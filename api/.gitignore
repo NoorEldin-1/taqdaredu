@@ -2,6 +2,11 @@
 .env
 .env.*
 *.env
+# ...except the templates, which hold no values. This negation must live in
+# THIS file: a deeper .gitignore wins over the repo-root one, so the root's
+# `!.env.example` alone cannot re-include front/.env.example.
+!.env.example
+!*.env.example
 
 # ─── Test-runner binary & generated reports (regenerated) ────
 # The test SOURCE (tests/, front/**/*.test.tsx, front/e2e/) IS tracked

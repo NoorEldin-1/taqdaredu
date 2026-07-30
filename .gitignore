@@ -10,6 +10,9 @@ api/application/config/secrets.php
 .env
 .env.*
 *.env
+# ...but the templates carry no secrets and must be tracked.
+!.env.example
+!*.env.example
 
 # ---- Dependencies (restored by composer / npm) --------------
 api/vendor/
@@ -36,8 +39,10 @@ api/application/cache/*
 !api/application/cache/index.html
 api/backups/*
 !api/backups/index.html
-lscache/
-logs/
+# Root-anchored on purpose. A bare `lscache/` / `logs/` would also swallow
+# api/application/libraries/s3-vendor/Aws/data/logs/, which is AWS SDK source.
+/lscache/
+/logs/
 
 # ---- Deploy archives & the previous dev's backup convention --
 # The old workflow left ~40 deploy_*.zip and 9 index.html.bak-* files in
@@ -62,6 +67,9 @@ _live_curr.json
 *.sql
 !fix_lesson_order.sql
 !api/application/sql/**
+# NOT api/uploads/install.sql: the base LMS template seeds its payment_gateways
+# table with the vendor's own Stripe / Cashfree / Flutterwave keys, and GitHub
+# push protection rightly rejects them. It stays out of git.
 
 # ---- Leftovers from the my-communication.uk project ---------
 # This codebase was cloned from "My-Communication Academy". Its stray
