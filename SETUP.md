@@ -120,16 +120,55 @@ force-HTTPS rule, so plain HTTP works locally.
 
 ## Running
 
+### Every time you sit down to work
+
+1. **XAMPP Control Panel → Start `Apache`, Start `MySQL`.** That is all the full
+   site needs; PHP has no build step, so backend edits are live on refresh.
+2. Only if you are editing the React frontend and want hot reload:
+
+   ```bash
+   cd api/front
+   npm run dev
+   ```
+
+`npm install` / `composer install` are one-off — repeat them only when
+`package.json` or `composer.json` changes.
+
 | | |
 | --- | --- |
-| Full site, as deployed | <http://localhost:8081/> |
+| Full site, exactly as deployed | <http://localhost:8081/> |
 | Admin panel | <http://localhost:8081/api/login> |
-| Frontend with hot reload | `cd api/front && npm run dev` → <http://localhost:8080/> |
+| Frontend with hot reload | <http://localhost:8080/> (after `npm run dev`) |
+| phpMyAdmin | <http://localhost/phpmyadmin> |
 
-In dev the Vite server proxies `/api/*` to `VITE_DEV_API_TARGET`. It also
-rewrites `Authorization: Bearer <token>` into a `?auth_token=` query parameter,
-because Apache-on-Windows behind the proxy hop drops the header before PHP sees
-it. The backend accepts both.
+Use **:8081** to check the real deployed behaviour — `.htaccess` routing, SEO bot
+rewrites, the image proxy. Use **:8080** while writing React, then rebuild and
+re-check on :8081.
+
+In dev the Vite server proxies `/api/*`, the legacy `/api_*` aliases and
+`/uploads` to `VITE_DEV_API_TARGET`. It also rewrites
+`Authorization: Bearer <token>` into an `?auth_token=` query parameter, because
+Apache-on-Windows behind the proxy hop drops the header before PHP sees it. The
+backend accepts both.
+
+> `vite.config.ts` reads that variable through Vite's `loadEnv()`, **not**
+> `process.env`. Vite does not put `.env` files on `process.env` — only on
+> `import.meta.env`, which config code cannot see. Reading it the wrong way is
+> silent: the target falls back to `http://localhost` (port 80 → `htdocs`) and
+> every API call 404s.
+
+### Admin login
+
+The password is a bcrypt hash, so it cannot be read out of a dump. Set a local
+one:
+
+```bash
+php -r "echo password_hash('YOUR_PASSWORD', PASSWORD_BCRYPT), PHP_EOL;"
+mysql -u root taqdaredu -e "UPDATE users SET password='<hash>' WHERE email='admin@taqdaredu.com';"
+```
+
+`Login.php` accepts bcrypt and, for legacy rows, a bare `sha1` — which it
+transparently upgrades to bcrypt on the next successful login.
 
 ## Build & deploy
 
