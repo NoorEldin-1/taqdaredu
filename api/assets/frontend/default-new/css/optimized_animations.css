@@ -1,0 +1,110 @@
+/**
+ * OPTIMIZED ANIMATIONS
+ * CSS-based animations to replace jQuery .slideToggle()
+ * Eliminates forced reflows by using GPU-accelerated transforms
+ */
+
+/* Slide Down/Up Animation */
+.slide-animated {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease-in-out, opacity 0.35s ease-in-out;
+  opacity: 0;
+}
+
+.slide-animated.active {
+  max-height: 1000px; /* Large enough for most content */
+  opacity: 1;
+}
+
+/* Search Box Animations */
+.search-box {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.search-box.active {
+  max-height: 200px;
+}
+
+.search_input {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.search_input.active {
+  max-height: 150px;
+}
+
+.hoverInput {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.hoverInput.active {
+  max-height: 150px;
+}
+
+/* Menu Cart Animation */
+.menu_pro_cart {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.menu_pro_cart.active {
+  max-height: 500px;
+}
+
+/* Submenu Animations */
+#hideSub-menu-one,
+#hideSub-menu-two,
+#hideSub-menu-three,
+#hideSub-menu-four,
+#hideSub-menu-five {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+}
+
+#hideSub-menu-one.active,
+#hideSub-menu-two.active,
+#hideSub-menu-three.active,
+#hideSub-menu-four.active,
+#hideSub-menu-five.active {
+  max-height: 800px;
+}
+
+/* Dropdown Submenu */
+.dropdown-submenu ul {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.dropdown-submenu ul.active {
+  max-height: 600px;
+}
+
+/* Performance Optimization: Use GPU acceleration */
+.slide-animated,
+.search-box,
+.search_input,
+.hoverInput,
+.menu_pro_cart {
+  will-change: max-height, opacity;
+  transform: translateZ(0); /* Force GPU acceleration */
+  backface-visibility: hidden;
+}
+
+/* Reduce will-change after animation completes */
+.slide-animated:not(.active),
+.search-box:not(.active),
+.search_input:not(.active),
+.hoverInput:not(.active),
+.menu_pro_cart:not(.active) {
+  will-change: auto;
+}

@@ -1,0 +1,639 @@
+openapi: 3.0.3
+info:
+  title: Academy LMS API
+  description: |
+    Comprehensive REST API for Academy LMS Platform.
+    
+    ## Authentication
+    Most endpoints require authentication using JWT tokens. Include the token in the 
+    `Authorization` header as `Bearer <token>`.
+    
+    ## Rate Limiting
+    API requests are rate-limited to 100 requests per minute per user.
+    
+    ## Error Responses
+    All errors follow the format:
+    ```json
+    {
+      "status": false,
+      "message": "Error description"
+    }
+    ```
+  version: 2.0.0
+  contact:
+    name: API Support
+    email: support@my-communication.uk
+
+servers:
+  - url: https://my-communication.uk
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints
+  - name: Courses
+    description: Course management endpoints
+  - name: Users
+    description: User profile and management
+  - name: Categories
+    description: Course categories
+  - name: Instructors
+    description: Instructor endpoints
+  - name: Cart & Wishlist
+    description: Shopping cart and wishlist
+  - name: Notifications
+    description: User notifications
+  - name: Messages
+    description: User messaging system
+  - name: Reports
+    description: Statistics and reports
+  - name: Admin
+    description: Admin dashboard API
+  - name: Webhooks
+    description: Webhook management
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        role_id:
+          type: integer
+        is_instructor:
+          type: integer
+        status:
+          type: integer
+        image_url:
+          type: string
+          format: uri
+    
+    Course:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        is_free_course:
+          type: integer
+        status:
+          type: string
+          enum: [active, pending, draft, inactive]
+        thumbnail_url:
+          type: string
+          format: uri
+        instructor_name:
+          type: string
+        total_enrolled:
+          type: integer
+        rating:
+          type: number
+    
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+        is_read:
+          type: integer
+        created_at:
+          type: integer
+        time_ago:
+          type: string
+    
+    Message:
+      type: object
+      properties:
+        message_id:
+          type: integer
+        thread_code:
+          type: string
+        sender:
+          type: integer
+        receiver:
+          type: integer
+        message:
+          type: string
+        timestamp:
+          type: integer
+        read_status:
+          type: integer
+    
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: integer
+        secret:
+          type: string
+    
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        total_pages:
+          type: integer
+    
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: true
+        data:
+          type: object
+    
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: boolean
+          example: false
+        message:
+          type: string
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  /api_frontend/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/User'
+                      - type: object
+                        properties:
+                          token:
+                            type: string
+        '401':
+          description: Invalid credentials
+
+  /api_frontend/register:
+    post:
+      tags:
+        - Authentication
+      summary: User registration
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - first_name
+                - last_name
+                - email
+                - password
+              properties:
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '201':
+          description: Registration successful
+        '409':
+          description: Email already exists
+
+  # ==================== COURSES ====================
+  /api_frontend/courses:
+    get:
+      tags:
+        - Courses
+      summary: Get courses list
+      security: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Courses list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Course'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /api_frontend/course/{id}:
+    get:
+      tags:
+        - Courses
+      summary: Get course details
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Course details
+        '404':
+          description: Course not found
+
+  # ==================== CATEGORIES ====================
+  /api_frontend/categories:
+    get:
+      tags:
+        - Categories
+      summary: Get all categories
+      security: []
+      responses:
+        '200':
+          description: Categories list
+
+  # ==================== NOTIFICATIONS ====================
+  /api_notifications/list:
+    get:
+      tags:
+        - Notifications
+      summary: Get user notifications
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: unread_only
+          in: query
+          schema:
+            type: integer
+            enum: [0, 1]
+      responses:
+        '200':
+          description: Notifications list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  unread_count:
+                    type: integer
+
+  /api_notifications/read/{id}:
+    put:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Marked as read
+
+  /api_notifications/read_all:
+    put:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      responses:
+        '200':
+          description: All marked as read
+
+  # ==================== MESSAGES ====================
+  /api_messages/threads:
+    get:
+      tags:
+        - Messages
+      summary: Get message threads
+      responses:
+        '200':
+          description: Message threads list
+
+  /api_messages/thread/{thread_code}:
+    get:
+      tags:
+        - Messages
+      summary: Get messages in thread
+      parameters:
+        - name: thread_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Thread messages
+
+  /api_messages/send:
+    post:
+      tags:
+        - Messages
+      summary: Send a message
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - receiver_id
+                - message
+              properties:
+                receiver_id:
+                  type: integer
+                message:
+                  type: string
+                thread_code:
+                  type: string
+      responses:
+        '201':
+          description: Message sent
+
+  # ==================== REPORTS ====================
+  /api_reports/instructor/dashboard:
+    get:
+      tags:
+        - Reports
+      summary: Instructor dashboard stats
+      responses:
+        '200':
+          description: Dashboard statistics
+
+  /api_reports/instructor/sales:
+    get:
+      tags:
+        - Reports
+      summary: Instructor sales report
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Sales report
+
+  /api_reports/student/dashboard:
+    get:
+      tags:
+        - Reports
+      summary: Student dashboard stats
+      responses:
+        '200':
+          description: Dashboard statistics
+
+  # ==================== ADMIN ====================
+  /api_admin/login:
+    post:
+      tags:
+        - Admin
+      summary: Admin login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid credentials
+
+  /api_admin/dashboard:
+    get:
+      tags:
+        - Admin
+      summary: Admin dashboard statistics
+      responses:
+        '200':
+          description: Dashboard stats
+
+  /api_admin/users:
+    get:
+      tags:
+        - Admin
+      summary: Get users list
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Users list
+
+  /api_admin/courses:
+    get:
+      tags:
+        - Admin
+      summary: Get courses list
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Courses list
+
+  # ==================== WEBHOOKS ====================
+  /api_webhooks/list:
+    get:
+      tags:
+        - Webhooks
+      summary: Get all webhooks
+      responses:
+        '200':
+          description: Webhooks list
+
+  /api_webhooks/create:
+    post:
+      tags:
+        - Webhooks
+      summary: Create a webhook
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+                name:
+                  type: string
+                events:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Webhook created
+
+  /api_webhooks/test/{id}:
+    post:
+      tags:
+        - Webhooks
+      summary: Test a webhook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Test sent
+
+  /api_webhooks/events:
+    get:
+      tags:
+        - Webhooks
+      summary: Get available webhook events
+      security: []
+      responses:
+        '200':
+          description: Events list

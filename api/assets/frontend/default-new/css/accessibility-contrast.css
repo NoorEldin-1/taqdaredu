@@ -1,0 +1,106 @@
+/* Accessibility Contrast Fixes */
+/* This file addresses WCAG AA contrast requirements (4.5:1 for normal text, 3:1 for large text) */
+
+/* Cookie Accept Button - Improve contrast */
+.eu-cookie-compliance-content a[onclick*="cookieAccept"] {
+  background-color: #000 !important;
+  color: #fff !important;
+  padding: 10px 20px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.eu-cookie-compliance-content a[onclick*="cookieAccept"]:hover {
+  background-color: #333 !important;
+}
+
+/* Search Input Placeholder - Darker placeholder for better contrast */
+.search-option input.form-control::placeholder,
+.form-control::placeholder {
+  color: #6c757d !important; /* Darker gray for WCAG AA compliance */
+  opacity: 1;
+}
+
+/* Banner Section Text - Ensure proper contrast */
+.h-1-banner .EbannerTop p,
+.bannar-area .EbannerTop p {
+  color: #000 !important; /* Ensure dark text on light backgrounds */
+  text-shadow: none;
+}
+
+.h-1-banner h1,
+.bannar-area h1 {
+  color: #000 !important;
+  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.8); /* Light shadow for legibility */
+}
+
+/* Ensure all form inputs meet contrast requirements */
+input.form-control,
+textarea.form-control,
+select.form-control {
+  border-color: #6c757d !important;
+  color: #000 !important;
+}
+
+input.form-control:focus,
+textarea.form-control:focus,
+select.form-control:focus {
+  border-color: #000 !important;
+  outline: 2px solid #000 !important;
+  outline-offset: 2px;
+}
+
+/* Footer text contrast */
+.footer p,
+.footer li,
+.footer a {
+  color: #e9ecef !important; /* Lighter text on dark backgrounds */
+}
+
+.footer a:hover {
+  color: #fff !important;
+}
+
+/* Ensure button text meets contrast */
+.submit-cls,
+.form-arrow,
+button[type="submit"] {
+  color: #fff !important;
+  background-color: #000 !important;
+}
+
+.submit-cls:hover,
+.form-arrow:hover,
+button[type="submit"]:hover {
+  background-color: #333 !important;
+  color: #fff !important;
+}
+
+/* Focus indicators for accessibility */
+a:focus,
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 3px solid #0056b3 !important;
+  outline-offset: 2px !important;
+}
+
+/* Skip to main content link (for screen readers and keyboard users) */
+.skip-to-main {
+  position: absolute;
+  left: -9999px;
+  z-index: 999;
+}
+
+.skip-to-main:focus {
+  left: 0;
+  top: 0;
+  background: #000;
+  color: #fff;
+  padding: 10px;
+  text-decoration: none;
+  z-index: 1000;
+}

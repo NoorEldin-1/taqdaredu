@@ -1,0 +1,119 @@
+{
+    "require_version": "6.13",
+    "directory": [],
+    "sql_file": "",
+    "libraries": [],
+    "files": [
+        {
+            "root_directory": "update/update_6.14/application/controllers/Admin.php",
+            "update_directory": "application/controllers/Admin.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/controllers/Home.php",
+            "update_directory": "application/controllers/Home.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/models/Crud_model.php",
+            "update_directory": "application/models/Crud_model.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/backend/admin/badges.php",
+            "update_directory": "application/views/backend/admin/badges.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/backend/admin/badges_add.php",
+            "update_directory": "application/views/backend/admin/badges_add.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/backend/admin/badges_edit.php",
+            "update_directory": "application/views/backend/admin/badges_edit.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/backend/admin/frontend_settings.php",
+            "update_directory": "application/views/backend/admin/frontend_settings.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/backend/admin/iframe_type_lesson_add.php",
+            "update_directory": "application/views/backend/admin/iframe_type_lesson_add.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/backend/admin/iframe_type_lesson_edit.php",
+            "update_directory": "application/views/backend/admin/iframe_type_lesson_edit.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/backend/admin/navigation.php",
+            "update_directory": "application/views/backend/admin/navigation.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/backend/admin/review_add.php",
+            "update_directory": "application/views/backend/admin/review_add.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/backend/admin/review_edit.php",
+            "update_directory": "application/views/backend/admin/review_edit.php"
+        },
+
+        {
+            "root_directory": "update/update_6.14/application/views/backend/user/iframe_type_lesson_add.php",
+            "update_directory": "application/views/backend/user/iframe_type_lesson_add.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/backend/user/iframe_type_lesson_edit.php",
+            "update_directory": "application/views/backend/user/iframe_type_lesson_edit.php"
+        },
+
+        {
+            "root_directory": "update/update_6.14/application/views/frontend/default-new/badges.php",
+            "update_directory": "application/views/frontend/default-new/badges.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/frontend/default-new/home_1.php",
+            "update_directory": "application/views/frontend/default-new/home_1.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/frontend/default-new/home_2.php",
+            "update_directory": "application/views/frontend/default-new/home_2.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/frontend/default-new/home_3.php",
+            "update_directory": "application/views/frontend/default-new/home_3.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/frontend/default-new/home_4.php",
+            "update_directory": "application/views/frontend/default-new/home_4.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/frontend/default-new/home_5.php",
+            "update_directory": "application/views/frontend/default-new/home_5.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/frontend/default-new/home_6.php",
+            "update_directory": "application/views/frontend/default-new/home_6.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/frontend/default-new/home_7.php",
+            "update_directory": "application/views/frontend/default-new/home_7.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/frontend/default-new/instructor_page.php",
+            "update_directory": "application/views/frontend/default-new/instructor_page.php"
+        },
+        {
+            "root_directory": "update/update_6.14/application/views/frontend/default-new/profile_menus.php",
+            "update_directory": "application/views/frontend/default-new/profile_menus.php"
+        },
+
+        {
+            "root_directory": "update/update_6.14/application/views/lesson/general_course_content_body.php",
+            "update_directory": "application/views/lesson/general_course_content_body.php"
+        },
+
+
+        {
+            "root_directory": "update/update_6.14/assets/frontend/default-new/css/custom.css",
+            "update_directory": "assets/frontend/default-new/css/custom.css"
+        }
+
+       
+    ]
+}

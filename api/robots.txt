@@ -1,0 +1,81 @@
+# robots.txt for Academy LMS Platform
+# https://www.robotstxt.org/robotstxt.html
+
+User-agent: *
+
+# Allow all search engines to index the site
+Allow: /
+
+# Disallow admin and private areas
+Disallow: /application/
+Disallow: /system/
+Disallow: /backups/
+Disallow: /update/
+Disallow: /update_pack/
+
+# Disallow cart and checkout pages (to avoid duplicate content)
+Disallow: /home/shopping_cart
+Disallow: /home/payment*
+
+# Disallow user private areas
+Disallow: /user/
+Disallow: /admin/
+Disallow: /login/
+
+# Disallow search results (to avoid duplicate content)
+Disallow: /home/search*
+Disallow: /*?search=*
+
+# Disallow API endpoints
+Disallow: /api/
+
+# Allow important assets and resources
+Allow: /assets/
+Allow: /uploads/
+Allow: /languages/
+
+# Disallow specific file types that shouldn't be indexed
+Disallow: /*.json$
+Disallow: /*.sql$
+Disallow: /*.log$
+Disallow: /*.txt$
+
+# Allow important pages
+Allow: /home
+Allow: /courses
+Allow: /instructor_page
+Allow: /blog
+Allow: /about_us
+Allow: /contact_us
+
+# Sitemap location
+Sitemap: https://my-communication.uk/sitemap.xml
+
+# Crawl-delay for all bots
+Crawl-delay: 1
+
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 1
+
+# Block bad bots
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: dotbot
+Disallow: /

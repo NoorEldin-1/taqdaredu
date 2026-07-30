@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node __admin-sweep.mjs)",
+      "Bash(node __probe-js.mjs)",
+      "Bash(grep -v \"^\\\\s*//\\\\|^\\\\s*\\\\*\\\\|^\\\\s*/\\\\*\" application/config/hooks.php)",
+      "Bash(grep -v \"^\\\\s*$\")",
+      "Bash(grep -n 'count\\($response\\\\['\\\\''verify-purchase'\\\\''\\\\]\\) > 0' application/models/Crud_model.php)",
+      "Bash(./mysql --default-character-set=utf8mb4 -u root tagdar -e ' *)",
+      "Bash(node __admin-shot.mjs final admin/courses admin/coupons)"
+    ]
+  }
+}

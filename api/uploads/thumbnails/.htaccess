@@ -1,0 +1,36 @@
+# =============================================================
+# SECURITY: Deny PHP execution in ALL upload directories (C-02)
+# This file must be present in every uploads/* subdirectory.
+# =============================================================
+
+# Disable PHP engine for all files in this directory tree
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+# Remove PHP handler associations
+<IfModule mod_mime.c>
+    RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phar .shtml
+    RemoveType .php .phtml
+</IfModule>
+
+# Deny direct execution attempts (belt-and-suspenders)
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|php8|phar|shtml|asp|aspx|jsp|cgi|pl|py|rb|sh|bash)$">
+    Require all denied
+</FilesMatch>
+
+# Allow only safe file types to be served
+<FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|pdf|mp4|webm|mp3|wav|ogg|doc|docx|xls|xlsx|ppt|pptx|txt|csv|zip|rar|7z)$">
+    Require all granted
+</FilesMatch>
+
+# Deny everything else that is not explicitly allowed
+<FilesMatch "^(?!.*\.(jpg|jpeg|png|gif|webp|svg|pdf|mp4|webm|mp3|wav|ogg|doc|docx|xls|xlsx|ppt|pptx|txt|csv|zip|rar|7z|htaccess)$)">
+    Require all denied
+</FilesMatch>

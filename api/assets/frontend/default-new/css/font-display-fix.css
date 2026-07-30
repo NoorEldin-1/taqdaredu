@@ -1,0 +1,54 @@
+/* Font Display Fix for Font Awesome - Performance Optimization */
+
+/* Override Font Awesome font-face rules with font-display: swap */
+@font-face {
+  font-family: "Font Awesome 6 Brands";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap; /* Add swap for better performance */
+  src: url(../webfonts/fa-brands-400.woff2) format("woff2"),
+    url(../webfonts/fa-brands-400.ttf) format("truetype");
+}
+
+@font-face {
+  font-family: "Font Awesome 6 Free";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap; /* Add swap for better performance */
+  src: url(../webfonts/fa-regular-400.woff2) format("woff2"),
+    url(../webfonts/fa-regular-400.ttf) format("truetype");
+}
+
+@font-face {
+  font-family: "Font Awesome 6 Free";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap; /* Add swap for better performance */
+  src: url(../webfonts/fa-solid-900.woff2) format("woff2"),
+    url(../webfonts/fa-solid-900.ttf) format("truetype");
+}
+
+/* Font Awesome 5 Compatibility */
+@font-face {
+  font-family: "Font Awesome 5 Brands";
+  font-display: swap;
+  font-weight: 400;
+  src: url(../webfonts/fa-brands-400.woff2) format("woff2"),
+    url(../webfonts/fa-brands-400.ttf) format("truetype");
+}
+
+@font-face {
+  font-family: "Font Awesome 5 Free";
+  font-display: swap;
+  font-weight: 900;
+  src: url(../webfonts/fa-solid-900.woff2) format("woff2"),
+    url(../webfonts/fa-solid-900.ttf) format("truetype");
+}
+
+@font-face {
+  font-family: "Font Awesome 5 Free";
+  font-display: swap;
+  font-weight: 400;
+  src: url(../webfonts/fa-regular-400.woff2) format("woff2"),
+    url(../webfonts/fa-regular-400.ttf) format("truetype");
+}

@@ -1,0 +1,61 @@
+{
+    "require_version": "6.14",
+    "directory": [],
+    "sql_file": "",
+    "libraries": [],
+    "files": [
+        {
+            "root_directory": "update/update_6.15/application/controllers/Sign_up.php",
+            "update_directory": "application/controllers/Sign_up.php"
+        },
+        {
+            "root_directory": "update/update_6.15/application/models/User_model.php",
+            "update_directory": "application/models/User_model.php"
+        },
+        {
+            "root_directory": "update/update_6.15/application/views/backend/modal.php",
+            "update_directory": "application/views/backend/modal.php"
+        },
+        {
+            "root_directory": "update/update_6.15/application/views/frontend/default-new/footer.php",
+            "update_directory": "application/views/frontend/default-new/footer.php"
+        },
+        {
+            "root_directory": "update/update_6.15/application/views/frontend/default-new/home_1.php",
+            "update_directory": "application/views/frontend/default-new/home_1.php"
+        },
+        {
+            "root_directory": "update/update_6.15/application/views/frontend/default-new/home_2.php",
+            "update_directory": "application/views/frontend/default-new/home_2.php"
+        },
+        {
+            "root_directory": "update/update_6.15/application/views/frontend/default-new/home_3.php",
+            "update_directory": "application/views/frontend/default-new/home_3.php"
+        },
+        {
+            "root_directory": "update/update_6.15/application/views/frontend/default-new/home_4.php",
+            "update_directory": "application/views/frontend/default-new/home_4.php"
+        },
+        {
+            "root_directory": "update/update_6.15/application/views/frontend/default-new/home_5.php",
+            "update_directory": "application/views/frontend/default-new/home_5.php"
+        },
+        {
+            "root_directory": "update/update_6.15/application/views/frontend/default-new/home_6.php",
+            "update_directory": "application/views/frontend/default-new/home_6.php"
+        },
+        {
+            "root_directory": "update/update_6.15/application/views/frontend/default-new/home_7.php",
+            "update_directory": "application/views/frontend/default-new/home_7.php"
+        },
+
+        {
+            "root_directory": "update/update_6.15/application/views/lessons/general_course_content_body.php",
+            "update_directory": "application/views/lessons/general_course_content_body.php"
+        }
+       
+ 
+
+       
+    ]
+}

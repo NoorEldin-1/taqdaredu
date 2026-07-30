@@ -1,0 +1,25 @@
+# ─── Secrets — NEVER commit ──────────────────────────────────
+.env
+.env.*
+*.env
+
+# ─── Test-runner binary & generated reports (regenerated) ────
+# The test SOURCE (tests/, front/**/*.test.tsx, front/e2e/) IS tracked
+# on purpose — only the downloadable phar and generated output are ignored.
+phpunit-9.phar
+.phpunit.result.cache
+front/test-results/
+front/playwright-report/
+front/coverage/
+
+# ─── Deploy artifacts & archives ─────────────────────────────
+*.zip
+
+# ─── Project backup convention (inert, .htaccess-blocked) ────
+*.bak-*
+*.before-*
+
+# ─── OS / editor junk ────────────────────────────────────────
+.DS_Store
+__MACOSX/
+Thumbs.db

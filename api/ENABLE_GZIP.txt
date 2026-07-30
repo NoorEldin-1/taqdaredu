@@ -1,0 +1,24 @@
+# Quick Test: Check if Gzip is Working
+
+# XAMPP Gzip Configuration
+# Add this to C:\xampp\apache\conf\httpd.conf
+
+# 1. Find and uncomment these lines (remove the # at start):
+LoadModule deflate_module modules/mod_deflate.so
+LoadModule filter_module modules/mod_filter.so
+LoadModule headers_module modules/mod_headers.so
+
+# 2. Restart Apache in XAMPP Control Panel
+
+# 3. Test compression:
+# Visit: http://localhost/myco_uk/
+# Open Chrome DevTools > Network tab
+# Refresh page
+# Click on any CSS/JS file
+# Check Headers tab for: "Content-Encoding: gzip"
+
+# If still not working, add this directly to httpd.conf:
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript
+    AddOutputFilterByType DEFLATE application/javascript application/json
+</IfModule>

@@ -1,0 +1,176 @@
+{
+    "require_version": "6.12.2",
+    "directory": [
+        {
+             "name" : "assets/frontend/default-new/css/fonts/custom"
+        }
+    ],
+    "sql_file": "",
+    "libraries": [],
+    "files": [
+       
+        {
+            "root_directory": "update/update_6.13/application/controllers/Home.php",
+            "update_directory": "application/controllers/Home.php"
+        },       
+        {
+            "root_directory": "update/update_6.13/application/views/backend/admin/lesson_edit.php",
+            "update_directory": "application/views/backend/admin/lesson_edit.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/backend/admin/seo_settings.php",
+            "update_directory": "application/views/backend/admin/seo_settings.php"
+        },
+
+
+
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/blog_details.php",
+            "update_directory": "application/views/frontend/default-new/blog_details.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/blog_latest_and_popular.php",
+            "update_directory": "application/views/frontend/default-new/blog_latest_and_popular.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/blogs_all.php",
+            "update_directory": "application/views/frontend/default-new/blogs_all.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/breadcrumb.php",
+            "update_directory": "application/views/frontend/default-new/breadcrumb.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/compare.php",
+            "update_directory": "application/views/frontend/default-new/compare.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/course_page.php",
+            "update_directory": "application/views/frontend/default-new/course_page.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/course_page_instructor.php",
+            "update_directory": "application/views/frontend/default-new/course_page_instructor.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/course_page_reviews.php",
+            "update_directory": "application/views/frontend/default-new/course_page_reviews.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/courses_page_grid_layout.php",
+            "update_directory": "application/views/frontend/default-new/courses_page_grid_layout.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/courses_page_list_layout.php",
+            "update_directory": "application/views/frontend/default-new/courses_page_list_layout.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/courses_page_sidebar.php",
+            "update_directory": "application/views/frontend/default-new/courses_page_sidebar.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/courses_page_sorting_section.php",
+            "update_directory": "application/views/frontend/default-new/courses_page_sorting_section.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/footer.php",
+            "update_directory": "application/views/frontend/default-new/footer.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/header.php",
+            "update_directory": "application/views/frontend/default-new/header.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/header_lg_device.php",
+            "update_directory": "application/views/frontend/default-new/header_lg_device.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/header_sm_device.php",
+            "update_directory": "application/views/frontend/default-new/header_sm_device.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/home_1.php",
+            "update_directory": "application/views/frontend/default-new/home_1.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/home_2.php",
+            "update_directory": "application/views/frontend/default-new/home_2.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/home_3.php",
+            "update_directory": "application/views/frontend/default-new/home_3.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/home_4.php",
+            "update_directory": "application/views/frontend/default-new/home_4.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/home_5.php",
+            "update_directory": "application/views/frontend/default-new/home_5.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/home_6.php",
+            "update_directory": "application/views/frontend/default-new/home_6.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/home_7.php",
+            "update_directory": "application/views/frontend/default-new/home_7.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/instructor_page.php",
+            "update_directory": "application/views/frontend/default-new/instructor_page.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/my_wishlist.php",
+            "update_directory": "application/views/frontend/default-new/my_wishlist.php"
+        },
+        {
+            "root_directory": "update/update_6.13/application/views/frontend/default-new/notifications.php",
+            "update_directory": "application/views/frontend/default-new/notifications.php"
+        },
+
+
+        {
+            "root_directory": "update/update_6.13/assets/frontend/default-new/css/fonts/custom/ClashGrotesk-Medium.woff",
+            "update_directory": "assets/frontend/default-new/css/fonts/custom/ClashGrotesk-Medium.woff"
+        },
+        {
+            "root_directory": "update/update_6.13/assets/frontend/default-new/css/fonts/custom/ClashGrotesk-Medium.woff2",
+            "update_directory": "assets/frontend/default-new/css/fonts/custom/ClashGrotesk-Medium.woff2"
+        },
+        {
+            "root_directory": "update/update_6.13/assets/frontend/default-new/css/fonts/custom/stylesheet.css",
+            "update_directory": "assets/frontend/default-new/css/fonts/custom/stylesheet.css"
+        },
+
+
+        {
+            "root_directory": "update/update_6.13/assets/frontend/default-new/css/style.css",
+            "update_directory": "assets/frontend/default-new/css/style.css"
+        },
+        {
+            "root_directory": "update/update_6.13/assets/frontend/default-new/css/custom.css",
+            "update_directory": "assets/frontend/default-new/css/custom.css"
+        },
+        {
+            "root_directory": "update/update_6.13/assets/frontend/default-new/css/new-style.css",
+            "update_directory": "assets/frontend/default-new/css/new-style.css"
+        },
+        {
+            "root_directory": "update/update_6.13/assets/frontend/default-new/css/responsive.css",
+            "update_directory": "assets/frontend/default-new/css/responsive.css"
+        },
+
+
+        {
+            "root_directory": "update/update_6.13/assets/frontend/default-new/image/course-breadcramb.jpg",
+            "update_directory": "assets/frontend/default-new/image/course-breadcramb.jpg"
+        },
+        {
+            "root_directory": "update/update_6.13/assets/playing-page/css/style.css",
+            "update_directory": "assets/playing-page/css/style.css"
+        }
+        
+        
+    ]
+}
