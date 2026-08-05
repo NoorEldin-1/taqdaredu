@@ -1,0 +1,128 @@
+/* ==========================================================================
+   منصّة تقدّر — توكنات الهوية
+   مولَّد آليًّا من lib/core/theme/*.dart في مستودع تطبيق تقدّر.
+   TQ-WHITE-BASE · الأبيض سطحٌ والأخضر إشارة، ولا وجه داكن.
+   حُذفت كتلتا الوجه الداكن حذفًا لا إخفاءً: كتلةٌ نائمة تُوقظها إعادةُ
+   توليدٍ يومًا ما. والألوان أُعيد ضبطها يدويًّا هنا لتطابق
+   واجهة الموقع (بترول · كريميّ · ذهب). فإن أُعيد التوليد من مصدر
+   Dart فسيُعيد اللوحة الكحلية — يُنقل التعديل إلى المصدر أوّلًا.
+
+   الهوية ثلاثة ألوان: كحلي (الفعل الأول) · تركوازي (الإتقان) · برتقالي
+   (إشارة واحدة لا تُستعمل للنجاح أبدًا). والأحمر لون نظام للخطأ لا لون هوية.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+  /* --- الهوية والنظام --- */
+  --tq-navy: #023331;
+  --tq-navyDeep: #01211F;
+  --tq-navySoft: #0A5A50;
+  --tq-teal: #0C786C;
+  --tq-tealSoft: #E8F4F1;
+  --tq-tealLift: #17A08E;
+  --tq-amber: #8A5D18;
+  --tq-amberSoft: #FBF3E4;
+  --tq-danger: #C0392B;
+  --tq-dangerSoft: #FBEAE7;
+  --tq-ground: #F5F7F8;
+  --tq-surface: #FFFFFF;
+  --tq-line: #E6EAED;
+  --tq-text: #1A2430;
+  --tq-text2: #5A6672;
+  --tq-text3: #64707E;
+  --tq-navBar: #023331;
+  --tq-navInkOn: #FFFFFF;
+  --tq-navInkOff: rgba(255, 255, 255, 0.78);
+
+  /* --- الباستيل الستّ: كل تعبئة مقترنة بحبرها، ولا تُفصل --- */
+  --tq-mint-fill: #E8F4F1;
+  --tq-mint-ink: #0A6157;
+  --tq-sky-fill: #E9F0F5;
+  --tq-sky-ink: #1F5A73;
+  --tq-peach-fill: #FBF3E4;
+  --tq-peach-ink: #8A5D18;
+  --tq-lilac-fill: #F0EBF6;
+  --tq-lilac-ink: #63508A;
+  --tq-rose-fill: #FBEAE7;
+  --tq-rose-ink: #A6473A;
+  --tq-sand-fill: #F4F1E4;
+  --tq-sand-ink: #6F6A2E;
+
+  /* --- مشتقّات موثَّقة: لا مقابل لها في الشيفرة، تُستعمل للزرّ الشبحي وحلقة التركيز --- */
+  /* أسطح الفعل: الكحلي والتركوازي يُقلبان في الوجه الداكن لأنهما حبرٌ هناك،
+     وقلبُهما كسطحٍ يضع الأبيض على لون فاتح (2.10:1). فالسطح المشبَع رمزٌ
+     مستقلّ يبقى داكنًا في الوجهين، وحبره أبيض ثابت لا يتبع الوجه. */
+  --tq-actionPrimary: #023331;
+  --tq-actionMastery: #0C786C;
+  --tq-actionDanger: #C0392B;
+  --tq-onAction: #FFFFFF;
+
+  --tq-navyWash: rgba(2, 51, 49, 0.055);
+  --tq-navyWashStrong: rgba(2, 51, 49, 0.10);
+  --tq-focusRing: rgba(2, 51, 49, 0.32);
+
+  /* --- المسافات --- */
+  --tq-space-xs: 4px;
+  --tq-space-s: 8px;
+  --tq-space-m: 12px;
+  --tq-space-l: 16px;
+  --tq-space-xl: 20px;
+  --tq-space-xxl: 24px;
+  --tq-space-h1: 32px;
+  --tq-space-h2: 40px;
+  --tq-space-h3: 56px;
+  --tq-space-screenPad: 20px;
+
+  /* --- أنصاف الأقطار: أنعم من المعتاد عمدًا؛ تقليلها يغيّر نبرة المنتج --- */
+  --tq-radius-soft: 32px;
+  --tq-radius-card: 28px;
+  --tq-radius-medium: 20px;
+  --tq-radius-small: 14px;
+  --tq-radius-pill: 999px;
+
+  /* --- الظلال: صبغتها كحلية لا رمادية ولا سوداء --- */
+  --tq-shadow-card: 0px 10px 24px -14px rgba(16, 24, 40, 0.16);
+  --tq-shadow-soft: 0px 6px 18px -12px rgba(16, 24, 40, 0.10);
+  --tq-shadow-raised: 0px 4px 12px -6px rgba(16, 24, 40, 0.12);
+
+  /* --- الحركة --- */
+  --tq-motion-route: 220ms;
+  --tq-motion-elementEntry: 320ms;
+  --tq-motion-stagger: 60ms;
+  --tq-motion-ringFill: 900ms;
+  --tq-motion-reduced: 120ms;
+  --tq-motion-hover: 150ms;
+  --tq-ease-enter: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --tq-ease-exit: cubic-bezier(0.55, 0.055, 0.675, 0.19);
+
+  /* --- الخطوط --- */
+  --tq-font-title: 'Cairo', 'Plex Arabic', system-ui, sans-serif;
+  --tq-font-body: 'Plex Arabic', 'Cairo', system-ui, sans-serif;
+  --tq-font-num: 'SpaceGrotesk', 'Cairo', system-ui, sans-serif;
+  --tq-type-hero: 700 38px/1.22 var(--tq-font-title);
+  --tq-type-eyebrow: 700 12.5px/1.40 var(--tq-font-body);
+  --tq-type-display: 700 32px/1.35 var(--tq-font-title);
+  --tq-type-h1: 700 24px/1.40 var(--tq-font-title);
+  --tq-type-h2: 700 19px/1.45 var(--tq-font-title);
+  --tq-type-body: 400 15px/1.70 var(--tq-font-body);
+  --tq-type-bodyStrong: 600 15px/1.70 var(--tq-font-body);
+  --tq-type-caption: 500 13px/1.60 var(--tq-font-body);
+  --tq-type-micro: 600 11.5px/1.40 var(--tq-font-body);
+  --tq-type-numeralXl: 700 34px/1.10 var(--tq-font-num);
+  --tq-type-numeralMd: 700 18px/1.20 var(--tq-font-num);
+  --tq-type-numeralSm: 600 13px/1.20 var(--tq-font-num);
+
+  /* --- الهيكل --- */
+  --tq-container-max: 1440px;
+  --tq-rail-open: 240px;
+  --tq-rail-collapsed: 72px;
+  --tq-nav-item-h: 44px;
+  --tq-touch-min: 44px;
+  --tq-progress-h: 7px;
+  --tq-field-border: 1.5px;
+  --tq-focus-ring-w: 3px;
+}
+
+/* الوضع الداكن ليس عكس الفاتح: الأرضية كحلي مطفأ لا أسود، والتركوازي
+   والبرتقالي يُرفعان، والحبر على السطح المشبَع ثابت لا يتبع الوجه. */
+

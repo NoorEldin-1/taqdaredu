@@ -1,0 +1,39 @@
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/*
+| -------------------------------------------------------------------
+| قالب إعدادات الاتصال بقاعدة البيانات
+| -------------------------------------------------------------------
+| انسخ هذا الملف إلى database.php واملأ بياناتك:
+|
+|     cp application/config/database.php.example application/config/database.php
+|
+| الملف الحقيقي مستثنى في .gitignore لأنّ المستودع عامّ.
+| للشرح الكامل للحقول راجع دليل CodeIgniter 3 — قسم Database Configuration.
+*/
+
+$active_group  = 'default';
+$query_builder = true;
+
+$db['default'] = [
+    'dsn'          => '',
+    'hostname'     => 'localhost',
+    'username'     => 'taqd_lmsuser',
+    'password'     => '',           // ← ضع كلمة المرور هنا
+    'database'     => 'taqd_lms',
+    'dbdriver'     => 'mysqli',
+    'dbprefix'     => '',
+    'pconnect'     => false,
+    'db_debug'     => (ENVIRONMENT !== 'production'),
+    'cache_on'     => false,
+    'cachedir'     => '',
+    'char_set'     => 'utf8',
+    'dbcollat'     => 'utf8_general_ci',
+    'swap_pre'     => '',
+    'encrypt'      => false,
+    'compress'     => false,
+    'stricton'     => false,
+    'failover'     => [],
+    'save_queries' => true,
+];

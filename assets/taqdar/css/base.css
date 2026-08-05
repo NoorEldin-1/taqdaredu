@@ -1,0 +1,224 @@
+/* ==========================================================================
+   منصّة تقدّر — الأساس
+   الاتجاه نتيجة للّغة لا إعداد. كل تخطيط بـ inline-start/end، ولا left/right.
+   كل رقم لاتيني داخل نصّ عربي يمرّ عبر مكوّن العزل الواحد (taqdar_num).
+   ========================================================================== */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+/* أي صنف يضبط display (مثل .tq-cols بـ grid) يتغلّب على قاعدة المتصفّح
+   الافتراضية لـ [hidden]، فيبقى العنصر ظاهرًا رغم إخفائه. هذا السطر يحسمها. */
+[hidden] { display: none !important; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--tq-ground);
+  color: var(--tq-text);
+  font: var(--tq-type-body);
+  font-feature-settings: 'kern' 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* الأرقام غربية دائمًا (0-9) في اللغتين، ولا أرقام هندية */
+[lang] { font-variant-numeric: lining-nums tabular-nums; }
+
+img, svg, video, canvas { max-width: 100%; height: auto; display: block; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+a { color: var(--tq-teal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+ul, ol { margin: 0; padding: 0; list-style: none; }
+p { margin: 0 0 var(--tq-space-m); }
+
+/* ترتيب العناوين متدرّج بلا قفز — القارئ الشاشي يتنقّل بها */
+h1, h2, h3, h4, h5, h6 { margin: 0 0 var(--tq-space-m); color: var(--tq-navy); }
+h1 { font: var(--tq-type-display); }
+h2 { font: var(--tq-type-h1); }
+h3 { font: var(--tq-type-h2); }
+h4, h5, h6 { font: var(--tq-type-bodyStrong); }
+
+/* --------------------------------------------------------------------------
+   الطباعة
+   -------------------------------------------------------------------------- */
+.tq-hero    { font: var(--tq-type-hero);    color: var(--tq-navy); }
+.tq-display { font: var(--tq-type-display); color: var(--tq-navy); }
+.tq-h1      { font: var(--tq-type-h1);      color: var(--tq-navy); }
+.tq-h2      { font: var(--tq-type-h2);      color: var(--tq-navy); }
+.tq-eyebrow { font: var(--tq-type-eyebrow); color: var(--tq-teal); letter-spacing: .02em; }
+.tq-body    { font: var(--tq-type-body); }
+.tq-strong  { font: var(--tq-type-bodyStrong); }
+.tq-caption { font: var(--tq-type-caption); color: var(--tq-text2); }
+.tq-micro   { font: var(--tq-type-micro);   color: var(--tq-text2); }
+
+/* الخافت أفتح درجات النصّ. رُفع إلى 4.59:1 على الأرضية (كان 2.69) فصار
+   يحمل معلومة بأمان دون أن يفقد كونه الدرجة الأخفت. */
+.tq-muted   { color: var(--tq-text3); }
+
+/* الأرقام: مكوّن العزل الواحد. النطاق وحدة واحدة لا طرفان. */
+.tq-num {
+  font: var(--tq-type-numeralMd);
+  font-variant-numeric: lining-nums tabular-nums;
+  unicode-bidi: isolate;
+  direction: ltr;
+  display: inline-block;
+}
+.tq-num--xl { font: var(--tq-type-numeralXl); }
+.tq-num--sm { font: var(--tq-type-numeralSm); }
+
+/* --------------------------------------------------------------------------
+   التخطيط
+   -------------------------------------------------------------------------- */
+.tq-container {
+  width: 100%;
+  max-width: var(--tq-container-max);
+  margin-inline: auto;
+  padding-inline: var(--tq-space-screenPad);
+}
+
+.tq-stack > * + * { margin-block-start: var(--tq-space-l); }
+.tq-row { display: flex; align-items: center; gap: var(--tq-space-s); }
+.tq-row--between { justify-content: space-between; }
+.tq-grid { display: grid; gap: var(--tq-space-xxl); }
+.tq-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tq-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tq-grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.tq-section { margin-block-end: var(--tq-space-h1); }
+.tq-block   { margin-block-end: var(--tq-space-h2); }
+
+/* --------------------------------------------------------------------------
+   نقاط الانكسار — أربع، كما في الفصل السابع والعشرين
+   جوّال < 640 · لوحي 640–1024 · مكتب 1024–1440 · عريض > 1440
+   -------------------------------------------------------------------------- */
+@media (max-width: 1023.98px) {
+  /* العمود الجانبي يختفي دون 1024 ومحتواه ينتقل أسفل الصفحة */
+  .tq-aside { order: 99; }
+  .tq-grid--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 639.98px) {
+  .tq-grid--2,
+  .tq-grid--3,
+  .tq-grid--4 { grid-template-columns: minmax(0, 1fr); }
+  .tq-container { padding-inline: var(--tq-space-l); }
+
+  /* الجداول تتحوّل إلى بطاقات — لا تمرير أفقي */
+  .tq-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .tq-table tr {
+    display: block;
+    background: var(--tq-surface);
+    border: 1px solid var(--tq-line);
+    border-radius: var(--tq-radius-medium);
+    padding: var(--tq-space-l);
+    margin-block-end: var(--tq-space-m);
+  }
+  .tq-table td { display: flex; justify-content: space-between; gap: var(--tq-space-m); border: 0; padding: var(--tq-space-xs) 0; }
+  .tq-table td::before { content: attr(data-label); color: var(--tq-text2); font: var(--tq-type-caption); }
+}
+
+/* --------------------------------------------------------------------------
+   قابلية الوصول
+   -------------------------------------------------------------------------- */
+
+/* حلقة التركيز ليست زينة: من يتنقّل بلوحة المفاتيح لا يرى غيرها.
+   إزالتها بـ outline:none أكثر سطر يُكتب في CSS ضررًا. */
+:focus-visible {
+  outline: var(--tq-focus-ring-w) solid var(--tq-focusRing);
+  outline-offset: 2px;
+  border-radius: var(--tq-radius-small);
+}
+
+.tq-skip-link {
+  position: absolute;
+  inset-block-start: -100%;
+  inset-inline-start: var(--tq-space-l);
+  z-index: 999;
+  background: var(--tq-actionPrimary);
+  color: var(--tq-onAction);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border-radius: var(--tq-radius-small);
+}
+.tq-skip-link:focus { inset-block-start: var(--tq-space-s); }
+
+/* للقارئ الشاشي وحده */
+.tq-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* الزخرفي يُخفى عن القارئ الشاشي */
+[aria-hidden='true'] { pointer-events: none; }
+
+/* مساحة اللمس لا تقلّ عن 44×44 على أي جهاز لمس */
+@media (pointer: coarse) {
+  a, button, [role='button'], input[type='checkbox'], input[type='radio'] {
+    min-block-size: var(--tq-touch-min);
+    min-inline-size: var(--tq-touch-min);
+  }
+}
+
+/* تقليل الحركة ليس خيارًا: بعض المستخدمين تُصيبهم الحركة بالدوار.
+   كل مدّة تُختصر إلى 120ms، والتتابع يُلغى بالكامل لا يُختصر. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: var(--tq-motion-reduced) !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: var(--tq-motion-reduced) !important;
+    scroll-behavior: auto !important;
+  }
+  .tq-stagger > * { animation-delay: 0ms !important; }
+}
+
+/* --------------------------------------------------------------------------
+   الحركة
+   -------------------------------------------------------------------------- */
+@keyframes tq-enter {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.tq-enter { animation: tq-enter var(--tq-motion-elementEntry) var(--tq-ease-enter) both; }
+
+.tq-stagger > *  { animation: tq-enter var(--tq-motion-elementEntry) var(--tq-ease-enter) both; }
+.tq-stagger > :nth-child(1) { animation-delay: calc(var(--tq-motion-stagger) * 0); }
+.tq-stagger > :nth-child(2) { animation-delay: calc(var(--tq-motion-stagger) * 1); }
+.tq-stagger > :nth-child(3) { animation-delay: calc(var(--tq-motion-stagger) * 2); }
+.tq-stagger > :nth-child(4) { animation-delay: calc(var(--tq-motion-stagger) * 3); }
+.tq-stagger > :nth-child(5) { animation-delay: calc(var(--tq-motion-stagger) * 4); }
+.tq-stagger > :nth-child(6) { animation-delay: calc(var(--tq-motion-stagger) * 5); }
+
+/* --------------------------------------------------------------------------
+   الطباعة الورقية
+   -------------------------------------------------------------------------- */
+@media print {
+  .tq-rail, .tq-topbar, .tq-aside, .tq-btn { display: none !important; }
+  body { background: #fff; }
+}
+
+/* الأيقونات الاتجاهية تنعكس مع اتجاه الكتابة؛ والزمنية والتشغيلية لا تنعكس.
+   السهم يقول «التالي» فينقلب، وزرّ التشغيل يقول «شغّل» فلا ينقلب. */
+[dir='rtl'] .tq-dir-icon { transform: scaleX(-1); }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-LIGHT-ONLY · وجهٌ واحد فاتح
+   ══════════════════════════════════════════════════════════════════ */
+html { color-scheme: light; }
+/* لو بقي `data-theme` في تخزين متصفّحٍ قديم فلا أثر له: الوجه واحد. */
+html[data-theme='dark'] { color-scheme: light; }

@@ -1,193 +1,76 @@
-DirectoryIndex index.html
+
+# ---------------------------------------------------------------------
+# ترويسات الأمان. `always` ضرورية: بدونها لا تُرسَل مع استجابات الخطأ،
+# وصفحة الخطأ هي بالضبط ما يُستهدَف بالتأطير.
+# ---------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+</IfModule>
+
+# ---------------------------------------------------------------------
+# البيئة. index.php يقرأ CI_ENV ويسقط إلى production حين لا يجدها،
+# فتُبتلَع الأخطاء صامتةً — وهو الصواب أمام الزوّار والعطب أمام المطوّر.
+# الشرط على المضيف وحده، فالإنتاج لا يُطابقه أبدًا.
+# ---------------------------------------------------------------------
+<IfModule mod_setenvif.c>
+    SetEnvIf Host "^(localhost|127\.0\.0\.1)" CI_ENV=development
+</IfModule>
+
+# ---- Academy LMS / منصة تقدّر ----
+# تحويل إجباري إلى HTTPS و www -> non-www
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# TQ-COURSES-301 — البيع صار بالباقة، فصفحة الموادّ وجهتُها الباقات.
+# دائمٌ لا مؤقّت: الصفحة لن تعود، والمؤقّت يُبقي القديم في الفهارس.
+RewriteRule ^courses/?$ /plans [R=301,L]
+RewriteRule ^courses/(.*)$ /plans [R=301,L]
+
+# التطوير المحلّي مستثنى: لا شهادة على localhost، والإجبار يقطع الخادم المحلّي.
+# الشرط لا يُفعَّل في الإنتاج لأنّ المضيف هناك ليس localhost أبدًا.
+RewriteCond %{HTTP_HOST} !^localhost [NC]
+RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
+RewriteCond %{HTTPS} !=on
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
+RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
+</IfModule>
 
 <IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /
 
-    # ===== Force HTTPS (redirect all HTTP traffic to HTTPS) =====
-    # Local development hosts are exempt (no cert on localhost).
-    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1|tagdar\.local)(:[0-9]+)?$ [NC]
-    RewriteCond %{HTTPS} !=on
-    RewriteCond %{HTTP:X-Forwarded-Proto} !https
-    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# تحويل الروابط القديمة إلى النظيفة — 301 حتى لا تضيع أرشفة ولا رابط محفوظ
+RewriteRule ^home/?$ / [R=301,L]
+RewriteRule ^home/courses/?$ /courses [R=301,L]
+RewriteRule ^home/about_us/?$ /about [R=301,L]
+RewriteRule ^home/contact_us/?$ /contact [R=301,L]
+RewriteRule ^home/faq/?$ /faq [R=301,L]
+RewriteRule ^home/terms_and_condition/?$ /terms [R=301,L]
+RewriteRule ^home/privacy_policy/?$ /privacy [R=301,L]
+RewriteRule ^home/refund_policy/?$ /refund [R=301,L]
+RewriteRule ^home/my_courses/?$ /my-courses [R=301,L]
+# الأخصّ قبل الأعمّ: القاعدة العامّة كانت تبتلع مسارَي المعلّم
+# ووليّ الأمر فتحوّلهما إلى /student/... وهو عنوان غير موجود.
+RewriteRule ^taqdar/teacher/?$ /teacher [R=301,L]
+RewriteRule ^taqdar/teacher/(.*)$ /teacher/$1 [R=301,L]
+RewriteRule ^taqdar/parent/?$ /parent [R=301,L]
+RewriteRule ^taqdar/parent/(.*)$ /parent/$1 [R=301,L]
+RewriteRule ^taqdar/?$ /student [R=301,L]
+RewriteRule ^taqdar/(.*)$ /student/$1 [R=301,L]
 
-    # ===== Canonical host: www → non-www (avoid duplicate-host indexing) =====
-    RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
-    RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
-
-    # ===== SEO bot rewrite — must run FIRST =====
-    # Bots get a single PHP entry point that internally fetches /api/seo/<route>.
-    # EVERY non-file content path for a bot goes to /seo-router.php, which renders a
-    # known SEO route OR returns a real 404 for unknown paths (no more soft-404 SPA).
-    # We exclude: real files (!-f → assets, robots.txt, favicon, llms.txt…), the API +
-    # static virtual prefixes, and the generated sitemap. Real users skip this whole
-    # block and fall through to the React SPA. (Note: NO !-d check — the site root "/"
-    # resolves to a directory and must still reach seo-router for the homepage.)
-    RewriteCond %{HTTP_USER_AGENT} (Googlebot|Google-InspectionTool|Storebot-Google|GoogleOther|Google-Extended|Bingbot|DuckDuckBot|YandexBot|Slurp|Baiduspider|Sogou|Exabot|facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp|TelegramBot|Applebot|PetalBot|Bytespider|Amazonbot|SemrushBot|AhrefsBot|MJ12bot|GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-Web|anthropic-ai|CCBot|PerplexityBot|Lighthouse|Chrome-Lighthouse) [NC]
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_URI} !^/(api|_app|uploads|assets|img|api_courses|api_frontend|api_payment|api_notifications|api_messages|api_admin|api_reports|api_webhooks)(/|$) [NC]
-    RewriteCond %{REQUEST_URI} !^/(sitemap\.xml|login/google_callback)$ [NC]
-    RewriteRule ^(.*)$ /seo-router.php?path=$1 [L,QSA]
-
-    # /sitemap.xml → fresh canonical sitemap from Sitemap_seo controller
-    RewriteRule ^sitemap\.xml$ /api/index.php/sitemap_seo [L]
-
-    # ===== Standard rules =====
-    RewriteRule ^_app/ - [L]
-    RewriteRule ^login/google_callback /api/login/google_callback [L,QSA]
-    RewriteRule ^api/ - [L]
-
-    # Frontend now calls /api/api_<module>/<endpoint> directly (no rewrite needed —
-    # the subdirectory's own .htaccess dispatches to CodeIgniter's index.php).
-    # Old /api_<module>/* URLs are 307-redirected for backward compatibility
-    # with bookmarks / external callers; new code should use /api/api_<module>.
-    RewriteRule ^api_courses/(.*)$ /api/api_courses/$1 [L,QSA,R=307]
-    RewriteRule ^api_frontend/(.*)$ /api/api_frontend/$1 [L,QSA,R=307]
-    RewriteRule ^api_payment/(.*)$ /api/api_payment/$1 [L,QSA,R=307]
-    RewriteRule ^api_notifications/(.*)$ /api/api_notifications/$1 [L,QSA,R=307]
-    RewriteRule ^api_messages/(.*)$ /api/api_messages/$1 [L,QSA,R=307]
-    RewriteRule ^api_admin/(.*)$ /api/api_admin/$1 [L,QSA,R=307]
-    RewriteRule ^api_reports/(.*)$ /api/api_reports/$1 [L,QSA,R=307]
-    RewriteRule ^api_webhooks/(.*)$ /api/api_webhooks/$1 [L,QSA,R=307]
-
-    RewriteRule ^uploads/(.*)$ /api/uploads/$1 [L]
-    RewriteRule ^assets/(.*)$ /api/assets/$1 [L]
-
-    # Clean image-proxy URL: /img/uploads/<path><ext>.jpg → img.php?src=uploads/<path><ext>
-    # Ends in .jpg with no query string so strict crawlers (WhatsApp) accept og:image.
-    RewriteRule ^img/(uploads/.+)\.jpg$ /img.php?src=$1 [L]
-
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
-    RewriteCond %{REQUEST_FILENAME} -d
-    RewriteRule ^ - [L]
-
-    RewriteRule ^ /index.html [L]
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?/$1 [L]
 </IfModule>
 
-# ====================================
-# SECURITY HEADERS
-# ====================================
+# صفحات إعدادات لوحة الإدارة تتجاوز 1000 حقل
+php_value max_input_vars 5000
 
-<IfModule mod_headers.c>
-    Header unset Server
-    Header unset X-Powered-By
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
-    Header set X-XSS-Protection "1; mode=block"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-    # HSTS: strong policy — 2 years + subdomains + preload-eligible (Lighthouse "strong HSTS policy").
-    Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-    # Permissions-Policy: restrict browser features (L-01)
-    Header set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(self)"
-    # COOP: cross-origin origin isolation (Lighthouse "origin isolation with COOP").
-    # allow-popups keeps OAuth / payment-gateway popups functional; the checkout flow
-    # itself is a full-page redirect (window.location) so it is unaffected either way.
-    Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
-</IfModule>
-
-# ====================================
-# GZIP / BROTLI COMPRESSION
-# ====================================
-
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE application/javascript
-    AddOutputFilterByType DEFLATE application/json
-    AddOutputFilterByType DEFLATE application/xml
-    AddOutputFilterByType DEFLATE text/css
-    AddOutputFilterByType DEFLATE text/html
-    AddOutputFilterByType DEFLATE text/javascript
-    AddOutputFilterByType DEFLATE text/plain
-    AddOutputFilterByType DEFLATE text/xml
-    AddOutputFilterByType DEFLATE image/svg+xml
-    AddOutputFilterByType DEFLATE font/opentype
-    AddOutputFilterByType DEFLATE font/ttf
-    AddOutputFilterByType DEFLATE font/woff2
-</IfModule>
-
-<IfModule mod_brotli.c>
-    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/xml text/css text/javascript
-    AddOutputFilterByType BROTLI_COMPRESS application/javascript application/json
-    AddOutputFilterByType BROTLI_COMPRESS image/svg+xml
-</IfModule>
-
-# ====================================
-# BROWSER CACHING
-# ====================================
-
-<IfModule mod_expires.c>
-    ExpiresActive On
-    ExpiresDefault "access plus 1 hour"
-    ExpiresByType image/jpg "access plus 1 year"
-    ExpiresByType image/jpeg "access plus 1 year"
-    ExpiresByType image/png "access plus 1 year"
-    ExpiresByType image/webp "access plus 1 year"
-    ExpiresByType image/svg+xml "access plus 1 year"
-    ExpiresByType image/x-icon "access plus 1 year"
-    ExpiresByType video/mp4 "access plus 1 year"
-    ExpiresByType video/webm "access plus 1 year"
-    ExpiresByType audio/mpeg "access plus 1 year"
-    ExpiresByType font/woff "access plus 1 year"
-    ExpiresByType font/woff2 "access plus 1 year"
-    ExpiresByType text/css "access plus 1 year"
-    ExpiresByType application/javascript "access plus 1 year"
-    ExpiresByType text/html "access plus 0 seconds"
-    ExpiresByType application/json "access plus 0 seconds"
-</IfModule>
-
-<IfModule mod_headers.c>
-    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico|woff|woff2|ttf|js|css|mp4|webm|mp3)$">
-        Header set Cache-Control "public, max-age=31536000, immutable"
-    </FilesMatch>
-    <FilesMatch "\.(html|htm)$">
-        # no-transform stops Cloudflare from injecting its JS-Detections script
-        # (/cdn-cgi/challenge-platform/.../jsd/main.js) into the SPA HTML — that
-        # script uses deprecated APIs and drags the PageSpeed Best-Practices score.
-        Header set Cache-Control "no-cache, must-revalidate, no-transform"
-    </FilesMatch>
-</IfModule>
-
-FileETag None
-
-<IfModule mod_mime.c>
-    AddType application/javascript js
-    AddType application/json json
-    AddType font/woff woff
-    AddType font/woff2 woff2
-    AddType image/webp webp
-    AddType image/svg+xml svg
-    AddType video/mp4 mp4
-    AddType video/webm webm
-</IfModule>
-
-# ====================================
-# SECURITY: Block Sensitive Files (C-01, M-05)
-# ====================================
-
-# Block ALL sensitive file types from public access
-<FilesMatch "\.(bak|bak\-[a-z0-9_\-]+|config|sql|log|sh|gz|tgz|tar|zip|env|map|postman_collection\.json|DS_Store|md|docx|xlsx|pdf|txt|py|before\-[a-z0-9_\-]+)$">
+# منع الوصول المباشر لملفات الترجمة ونسخ الإعدادات الاحتياطية
+<FilesMatch "\.(orig|bak|sql|log)$">
     Require all denied
 </FilesMatch>
-
-# Re-allow public crawler files (must come AFTER the deny block above — later section wins)
-<Files "robots.txt">
-    Require all granted
-</Files>
-<Files "llms.txt">
-    Require all granted
-</Files>
-
-# Block .htpasswd and .htaccess direct access
-<FilesMatch "^\.ht">
-    Require all denied
-</FilesMatch>
-
-# Block direct access to api/.git directory
-<IfModule mod_rewrite.c>
-    RewriteRule ^api/\.git(/.*)?$ - [F,L]
-</IfModule>
-
-# Block xmlrpc.php attacks
-<Files xmlrpc.php>
-    Order Deny,Allow
-    Deny from all
-</Files>

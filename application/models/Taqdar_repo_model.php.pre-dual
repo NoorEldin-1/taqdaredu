@@ -1,0 +1,1289 @@
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * مستودع بيانات تقدّر — الطبقة الانتقالية.
+ *
+ * كل دالّة هنا تطابق عقد /api/v1 المستقبلي اسمًا ومُخرَجًا، فلا تتغيّر
+ * الشاشات حين تُهاجَر الطبقة إلى Laravel/PostgreSQL: يتبدّل ما تحت الدالّة
+ * لا ما فوقها.
+ *
+ * قواعد ملزمة داخل هذا الملفّ:
+ *   • المبالغ أعداد صحيحة بالهللات — لا حساب بأرقام عشرية عائمة.
+ *   • الوقت يُولَّد في PHP بتوقيت التطبيق (Asia/Riyadh) لا بـ NOW() لأن
+ *     ساعة الخادم UTC، فاختلاطهما يفسد مواعيد الاستحقاق.
+ *   • لا تُعاد الإجابة الصحيحة إلى العميل أبدًا — لا في المراجعة ولا في
+ *     نتيجة المحاولة. التصحيح في الخادم والنتيجة رقم لا مفتاح حلّ.
+ *   • القفل يُحسَب هنا، والعميل يعرضه فقط.
+ */
+class Taqdar_repo_model extends CI_Model
+{
+    /** كتالوج الأخطاء الموحّد: code => [http, message, message_ar] */
+    public static $ERRORS = array(
+        'MASTERY_LOCKED'    => array(403, 'Finish the previous lesson review first.',   'أكمل مراجعة الدرس السابق أولًا'),
+        'NOT_ENTITLED'      => array(403, 'This content is not part of your enrolment.', 'هذا المحتوى غير متاح ضمن اشتراكك'),
+        'OUT_OF_ASSIGNMENT' => array(403, 'Outside your teaching assignment.',           'هذه المادة أو هذا الصفّ خارج نطاق إسنادك'),
+        'DUPLICATE_ATTEMPT' => array(409, 'This attempt was already submitted.',         'هذه المحاولة مُسلَّمة من قبل'),
+        'RATE_LIMITED'      => array(429, 'Too many requests, slow down.',               'محاولات كثيرة في وقت قصير — انتظر قليلًا ثم أعد المحاولة'),
+        'UNAUTHENTICATED'   => array(401, 'Sign in required.',                           'يلزم تسجيل الدخول'),
+        'NOT_FOUND'         => array(404, 'Resource not found.',                         'العنصر المطلوب غير موجود'),
+        'NO_REVIEW'         => array(404, 'No review is attached to this lesson.',        'لا توجد مراجعة مرتبطة بهذا الدرس'),
+        'VALIDATION'        => array(422, 'Invalid input.',                              'بيانات غير صالحة'),
+        'INTERNAL'          => array(500, 'Unexpected error.',                           'حدث خطأ غير متوقّع'),
+    );
+
+    private $_lesson_order_cache = array();
+    private $_settings_cache     = array();
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->database();
+    }
+
+    /* ================================================================
+     *  أدوات داخلية
+     * ================================================================ */
+
+    /** الوقت الآن بتوقيت التطبيق، بصيغة MySQL. */
+    private function now()
+    {
+        return date('Y-m-d H:i:s');
+    }
+
+    /** إعداد من جدول settings — لا ثوابت مدفونة في الكود. */
+    public function setting($key, $default = null)
+    {
+        if (array_key_exists($key, $this->_settings_cache)) {
+            return $this->_settings_cache[$key];
+        }
+        $row = $this->db->select('value')->where('key', $key)->get('settings')->row_array();
+        $val = ($row && $row['value'] !== null && $row['value'] !== '') ? $row['value'] : $default;
+        $this->_settings_cache[$key] = $val;
+        return $val;
+    }
+
+    public function pass_mark($assessment = null)
+    {
+        if (is_array($assessment) && isset($assessment['pass_mark']) && (int) $assessment['pass_mark'] > 0) {
+            return (int) $assessment['pass_mark'];
+        }
+        return (int) $this->setting('mastery_pass_mark', 3);
+    }
+
+    /** مغلّف الخطأ الموحّد — العميل يعرض message_ar. */
+    public function error($code, $details = array())
+    {
+        $e = isset(self::$ERRORS[$code]) ? self::$ERRORS[$code] : self::$ERRORS['INTERNAL'];
+        return array('error' => array(
+            'code'       => $code,
+            'message'    => $e[1],
+            'message_ar' => $e[2],
+            'details'    => (object) $details,
+        ));
+    }
+
+    public function http_status($code)
+    {
+        return isset(self::$ERRORS[$code]) ? self::$ERRORS[$code][0] : 500;
+    }
+
+    public function is_error($result)
+    {
+        return is_array($result) && isset($result['error']);
+    }
+
+    /** سجلّ التدقيق — من فعل ماذا بأيّ كيان ومتى. */
+    public function audit($actor_id, $action, $entity, $before = null, $after = null)
+    {
+        $this->db->insert('audit_log', array(
+            'actor_id' => $actor_id ? (int) $actor_id : null,
+            'action'   => $action,
+            'entity'   => $entity,
+            'before'   => $before === null ? null : json_encode($before, JSON_UNESCAPED_UNICODE),
+            'after'    => $after  === null ? null : json_encode($after,  JSON_UNESCAPED_UNICODE),
+            'ip'       => $this->input->ip_address(),
+            'at'       => $this->now(),
+        ));
+        return $this->db->insert_id();
+    }
+
+    /**
+     * MySQL يعيد الأعداد نصوصًا عبر mysqli؛ وعقد /api/v1 يعد بأعداد.
+     * فالتحويل هنا مرّة واحدة لا في كل شاشة.
+     */
+    private function cast_ints(&$row, $keys)
+    {
+        foreach ($keys as $k) {
+            if (array_key_exists($k, $row)) {
+                $row[$k] = ($row[$k] === null) ? null : (int) $row[$k];
+            }
+        }
+    }
+
+    /** "01:12:30" أو "12:30" أو "750" ⇐ ثوانٍ. */
+    public function duration_seconds($raw)
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') return 0;
+        if (ctype_digit($raw)) return (int) $raw;
+
+        $parts = array_reverse(explode(':', $raw));
+        $sec = 0;
+        $mul = 1;
+        foreach ($parts as $p) {
+            $sec += ((int) $p) * $mul;
+            $mul *= 60;
+        }
+        return $sec;
+    }
+
+    /* ================================================================
+     *  الاستحقاق والترتيب والقفل
+     * ================================================================ */
+
+    /** دروس المقرّر مرتّبة كما يراها الطالب: القسم ثمّ ترتيب الدرس. */
+    public function ordered_lessons($course_id)
+    {
+        $course_id = (int) $course_id;
+        if (isset($this->_lesson_order_cache[$course_id])) {
+            return $this->_lesson_order_cache[$course_id];
+        }
+        $sql = 'SELECT l.`id`, l.`title`, l.`section_id`, l.`course_id`, l.`duration`,
+                       l.`is_free`, l.`lesson_type`, l.`order` AS lesson_order,
+                       COALESCE(s.`order`, 0) AS section_order, s.`title` AS section_title
+                FROM `lesson` l
+                LEFT JOIN `section` s ON s.`id` = l.`section_id`
+                WHERE l.`course_id` = ?
+                ORDER BY section_order ASC, l.`section_id` ASC, lesson_order ASC, l.`id` ASC';
+        $rows = $this->db->query($sql, array($course_id))->result_array();
+        foreach ($rows as &$r) {
+            $this->cast_ints($r, array('id', 'section_id', 'course_id', 'is_free',
+                                       'lesson_order', 'section_order'));
+        }
+        unset($r);
+        $this->_lesson_order_cache[$course_id] = $rows;
+        return $rows;
+    }
+
+    /** هل الطالب مستحقّ لمحتوى هذا المقرّر؟ */
+    public function is_entitled($student_id, $course_id)
+    {
+        $student_id = (int) $student_id;
+        $course_id  = (int) $course_id;
+        if (!$student_id || !$course_id) return false;
+
+        $user = $this->db->select('id, role_id, is_instructor')
+                         ->where('id', $student_id)->get('users')->row_array();
+        if (!$user) return false;
+        if ((int) $user['role_id'] === 1) return true; // الإدارة ترى كل شيء
+
+        $course = $this->db->select('id, user_id, creator')
+                           ->where('id', $course_id)->get('course')->row_array();
+        if ($course) {
+            $owners = array_map('trim', explode(',', (string) $course['user_id']));
+            if (in_array((string) $student_id, $owners, true)) return true;
+            if ((int) $course['creator'] === $student_id) return true;
+        }
+
+        $enrol = $this->db->where('user_id', $student_id)->where('course_id', $course_id)
+                          ->get('enrol')->row_array();
+        if (!$enrol) return false;
+
+        $expiry = (int) $enrol['expiry_date'];
+        if ($expiry > 0 && $expiry < time()) return false;
+
+        return true;
+    }
+
+    /**
+     * حالة القفل لدرس بعينه — الحقيقة الوحيدة، والعميل تجميل لها.
+     *
+     * الدرس مفتوح إذا كان أوّل دروس المقرّر، أو كان مجّانيًّا للمعاينة،
+     * أو أُتقن الدرس السابق (mastered_at) حين تكون له مراجعة، أو أُكمل
+     * (completed_at) حين لا مراجعة له.
+     */
+    public function lesson_lock_state($student_id, $lesson_id)
+    {
+        $student_id = (int) $student_id;
+        $lesson     = $this->db->where('id', (int) $lesson_id)->get('lesson')->row_array();
+        if (!$lesson) return array('found' => false);
+
+        $ordered = $this->ordered_lessons($lesson['course_id']);
+        $pos     = -1;
+        foreach ($ordered as $i => $l) {
+            if ((int) $l['id'] === (int) $lesson['id']) { $pos = $i; break; }
+        }
+
+        $prev_id = ($pos > 0)                        ? (int) $ordered[$pos - 1]['id'] : null;
+        $next_id = ($pos >= 0 && isset($ordered[$pos + 1])) ? (int) $ordered[$pos + 1]['id'] : null;
+
+        $state = array(
+            'found'          => true,
+            'lesson'         => $lesson,
+            'position'       => $pos,
+            'prev_lesson_id' => $prev_id,
+            'next_lesson_id' => $next_id,
+            'unlocked'       => false,
+            'reason'         => '',
+        );
+
+        if ($pos <= 0) { // أوّل درس مفتوح دائمًا
+            $state['unlocked'] = true;
+            $state['reason']   = 'first_lesson';
+            return $state;
+        }
+        if ((int) $lesson['is_free'] === 1) {
+            $state['unlocked'] = true;
+            $state['reason']   = 'free_preview';
+            return $state;
+        }
+
+        $prev_progress = $this->db->where('student_id', $student_id)->where('lesson_id', $prev_id)
+                                  ->get('lesson_progress')->row_array();
+        $prev_review   = $this->review_assessment($prev_id, false);
+
+        if ($prev_review) {
+            $state['unlocked'] = !empty($prev_progress['mastered_at']);
+            $state['reason']   = $state['unlocked'] ? 'previous_mastered' : 'previous_not_mastered';
+        } else {
+            $state['unlocked'] = !empty($prev_progress['completed_at']);
+            $state['reason']   = $state['unlocked'] ? 'previous_completed' : 'previous_not_completed';
+        }
+        $state['blocking_lesson_id'] = $state['unlocked'] ? null : $prev_id;
+
+        return $state;
+    }
+
+    public function is_lesson_unlocked($student_id, $lesson_id)
+    {
+        $s = $this->lesson_lock_state($student_id, $lesson_id);
+        return !empty($s['found']) && !empty($s['unlocked']);
+    }
+
+    /* ================================================================
+     *  التقييمات
+     * ================================================================ */
+
+    /** تقييم المراجعة الخاصّ بدرس. ينشئه عند الطلب إن كان للدرس أهداف وأسئلة. */
+    public function review_assessment($lesson_id, $create = false)
+    {
+        $lesson_id = (int) $lesson_id;
+        $row = $this->db->where('type', 'review')->where('lesson_id', $lesson_id)
+                        ->get('assessments')->row_array();
+        if ($row || !$create) return $row ? $row : null;
+
+        if (!$this->count_review_questions($lesson_id)) return null;
+
+        $this->db->insert('assessments', array(
+            'type'           => 'review',
+            'lesson_id'      => $lesson_id,
+            'milestone_id'   => null,
+            'path_id'        => null,
+            'pass_mark'      => (int) $this->setting('mastery_pass_mark', 3),
+            'time_limit_sec' => null,
+        ));
+        $id = $this->db->insert_id();
+        $this->audit(null, 'assessment.autocreate', 'assessments:' . $id, null,
+                     array('type' => 'review', 'lesson_id' => $lesson_id));
+
+        return $this->db->where('id', $id)->get('assessments')->row_array();
+    }
+
+    /** عدد الأسئلة المرتبطة بأهداف الدرس. */
+    public function count_review_questions($lesson_id)
+    {
+        $sql = 'SELECT COUNT(*) AS c
+                FROM `question` q
+                JOIN `objectives` o ON o.`id` = q.`objective_id`
+                WHERE o.`lesson_id` = ?';
+        $r = $this->db->query($sql, array((int) $lesson_id))->row_array();
+        return (int) $r['c'];
+    }
+
+    /**
+     * أسئلة مراجعة الدرس — ٥ افتراضًا (إعداد mastery_review_questions).
+     * بلا correct_answers أبدًا.
+     */
+    public function review_questions($lesson_id, $limit = null)
+    {
+        $limit = $limit ? (int) $limit : (int) $this->setting('mastery_review_questions', 5);
+        $sql = 'SELECT q.`id`, q.`title`, q.`type`, q.`number_of_options`, q.`options`,
+                       q.`objective_id`, o.`text` AS objective_text, o.`at_second`
+                FROM `question` q
+                JOIN `objectives` o ON o.`id` = q.`objective_id`
+                WHERE o.`lesson_id` = ?
+                ORDER BY o.`at_second` ASC, q.`order` ASC, q.`id` ASC
+                LIMIT ' . $limit;
+        $rows = $this->db->query($sql, array((int) $lesson_id))->result_array();
+        foreach ($rows as &$r) {
+            $r['options'] = $r['options'] ? json_decode($r['options'], true) : array();
+            $this->cast_ints($r, array('id', 'number_of_options', 'objective_id', 'at_second'));
+        }
+        unset($r);
+        return $rows;
+    }
+
+    /** المقارنة بمنطق Academy نفسه، حتى لا تختلف نتيجة عن أخرى. */
+    public function is_answer_correct($question, $given)
+    {
+        $correct = json_decode((string) $question['correct_answers'], true);
+        if (!is_array($correct)) $correct = array();
+        if (!is_array($given))   $given   = ($given === null || $given === '') ? array() : array($given);
+
+        $given = array_values(array_map(function ($v) { return trim((string) $v); }, $given));
+        if (!count($given) || !count($correct)) return 0;
+
+        $type = (string) $question['type'];
+
+        if ($type === 'fill_in_the_blank') {
+            $correct = array_map(function ($v) { return mb_strtolower(trim((string) $v)); }, $correct);
+            $given   = array_map(function ($v) { return mb_strtolower($v); }, $given);
+            if (count($given) !== count($correct)) return 0;
+            foreach ($given as $k => $g) {
+                if (!isset($correct[$k]) || $g !== $correct[$k]) return 0;
+            }
+            return 1;
+        }
+
+        $correct = array_map(function ($v) { return trim((string) $v); }, $correct);
+
+        if ($type === 'single_choice') {
+            return in_array($given[0], $correct, true) ? 1 : 0;
+        }
+
+        // multiple_choice والافتراضي: تطابق المجموعتين تمامًا
+        if (count($given) !== count($correct)) return 0;
+        foreach ($given as $g) {
+            if (!in_array($g, $correct, true)) return 0;
+        }
+        return 1;
+    }
+
+    /* ================================================================
+     *  عقد /api/v1 — المسارات والدروس
+     * ================================================================ */
+
+    /** مسارات الطالب المنشورة التي يستحقّها، مع تقدّمه في كلٍّ منها. */
+    public function get_paths($student_id)
+    {
+        $student_id = (int) $student_id;
+        if (!$student_id) return array();
+
+        $sql = 'SELECT p.`id`, p.`title`, p.`price`, p.`status`, p.`expected_weeks`,
+                       p.`subject_id`, p.`grade_id`, p.`teacher_id`, p.`course_id`,
+                       s.`name_ar` AS subject_ar, s.`name_en` AS subject_en,
+                       g.`name_ar` AS grade_ar,   g.`name_en` AS grade_en,
+                       TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) AS teacher_name,
+                       c.`thumbnail`
+                FROM `paths` p
+                LEFT JOIN `subjects` s ON s.`id` = p.`subject_id`
+                LEFT JOIN `grades`   g ON g.`id` = p.`grade_id`
+                LEFT JOIN `users`    u ON u.`id` = p.`teacher_id`
+                LEFT JOIN `course`   c ON c.`id` = p.`course_id`
+                JOIN `enrol` e ON e.`course_id` = p.`course_id` AND e.`user_id` = ?
+                WHERE p.`status` = "published"
+                GROUP BY p.`id`
+                ORDER BY p.`id` ASC';
+        $rows = $this->db->query($sql, array($student_id))->result_array();
+
+        foreach ($rows as &$r) {
+            $this->cast_ints($r, array('id', 'price', 'expected_weeks', 'subject_id',
+                                       'grade_id', 'teacher_id', 'course_id')); // price بالهللات
+            $r['progress'] = $this->path_progress($student_id, $r['course_id']);
+        }
+        unset($r);
+        return $rows;
+    }
+
+    /** تقدّم الطالب داخل مقرّر: العدد والنسبة والدرس التالي المفتوح. */
+    public function path_progress($student_id, $course_id)
+    {
+        $lessons = $this->ordered_lessons($course_id);
+        $total   = count($lessons);
+        if (!$total) {
+            return array('total_lessons' => 0, 'mastered' => 0, 'completed' => 0,
+                         'percent' => 0, 'next_lesson_id' => null);
+        }
+
+        $ids = array();
+        foreach ($lessons as $l) $ids[] = (int) $l['id'];
+
+        $this->db->select('lesson_id, completed_at, mastered_at')
+                 ->where('student_id', (int) $student_id)
+                 ->where_in('lesson_id', $ids);
+        $prog = $this->db->get('lesson_progress')->result_array();
+
+        $map = array();
+        foreach ($prog as $p) $map[(int) $p['lesson_id']] = $p;
+
+        $mastered = 0; $completed = 0; $next = null;
+        foreach ($ids as $id) {
+            $has = isset($map[$id]) ? $map[$id] : null;
+            if ($has && !empty($has['mastered_at']))  $mastered++;
+            if ($has && !empty($has['completed_at'])) $completed++;
+            if ($next === null && (!$has || empty($has['mastered_at']))) $next = $id;
+        }
+
+        return array(
+            'total_lessons'  => $total,
+            'mastered'       => $mastered,
+            'completed'      => $completed,
+            'percent'        => (int) floor(($mastered * 100) / $total),
+            'next_lesson_id' => $next,
+        );
+    }
+
+    /** تفاصيل مسار: محطّاته ودروسه وحالة قفل كلّ درس للطالب. */
+    public function get_path($id, $student_id = null)
+    {
+        $id  = (int) $id;
+        $sql = 'SELECT p.*, s.`name_ar` AS subject_ar, g.`name_ar` AS grade_ar,
+                       TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) AS teacher_name,
+                       c.`thumbnail`, c.`short_description`
+                FROM `paths` p
+                LEFT JOIN `subjects` s ON s.`id` = p.`subject_id`
+                LEFT JOIN `grades`   g ON g.`id` = p.`grade_id`
+                LEFT JOIN `users`    u ON u.`id` = p.`teacher_id`
+                LEFT JOIN `course`   c ON c.`id` = p.`course_id`
+                WHERE p.`id` = ?';
+        $path = $this->db->query($sql, array($id))->row_array();
+        if (!$path) return $this->error('NOT_FOUND', array('entity' => 'paths:' . $id));
+
+        $this->cast_ints($path, array('id', 'price', 'expected_weeks', 'subject_id',
+                                      'grade_id', 'teacher_id', 'course_id'));
+
+        $path['milestones'] = $this->db->query(
+            'SELECT `id`, `path_id`, `order`, `title`, `checkpoint_assessment_id`, `section_id`
+             FROM `milestones` WHERE `path_id` = ? ORDER BY `order` ASC, `id` ASC',
+            array($id))->result_array();
+        foreach ($path['milestones'] as &$m) {
+            $this->cast_ints($m, array('id', 'path_id', 'order', 'checkpoint_assessment_id', 'section_id'));
+        }
+        unset($m);
+
+        $lessons = $this->ordered_lessons($path['course_id']);
+        foreach ($lessons as &$l) {
+            $l['duration_sec'] = $this->duration_seconds($l['duration']);
+            $l['has_review']   = (bool) $this->review_assessment($l['id'], false);
+            if ($student_id) {
+                $st = $this->lesson_lock_state($student_id, $l['id']);
+                $pr = $this->db->where('student_id', (int) $student_id)->where('lesson_id', (int) $l['id'])
+                               ->get('lesson_progress')->row_array();
+                $l['unlocked']     = !empty($st['unlocked']);
+                $l['lock_reason']  = $st['reason'];
+                $l['mastered_at']  = $pr ? $pr['mastered_at'] : null;
+                $l['completed_at'] = $pr ? $pr['completed_at'] : null;
+                $l['position_sec'] = $pr ? (int) $pr['position_sec'] : 0;
+            }
+        }
+        unset($l);
+        $path['lessons'] = $lessons;
+
+        if ($student_id) {
+            $path['entitled'] = $this->is_entitled($student_id, $path['course_id']);
+            $path['progress'] = $this->path_progress($student_id, $path['course_id']);
+        }
+        return $path;
+    }
+
+    /**
+     * درس واحد للطالب.
+     *
+     * لا يُعاد رابط تشغيل إلّا لمن استحقّ وفُتح له الدرس؛ وأي غير ذلك
+     * مغلّف خطأ يحمل MASTERY_LOCKED أو NOT_ENTITLED.
+     */
+    public function get_lesson($id, $student_id)
+    {
+        $id         = (int) $id;
+        $student_id = (int) $student_id;
+
+        $state = $this->lesson_lock_state($student_id, $id);
+        if (empty($state['found'])) {
+            return $this->error('NOT_FOUND', array('entity' => 'lesson:' . $id));
+        }
+        $lesson = $state['lesson'];
+
+        $free = ((int) $lesson['is_free'] === 1);
+        if (!$free && !$this->is_entitled($student_id, $lesson['course_id'])) {
+            return $this->error('NOT_ENTITLED', array(
+                'lesson_id' => $id,
+                'course_id' => (int) $lesson['course_id'],
+            ));
+        }
+
+        if (empty($state['unlocked'])) {
+            // لا رابط تشغيل، ولا حتى ملخّص الدرس — القفل قفل.
+            return $this->error('MASTERY_LOCKED', array(
+                'lesson_id'          => $id,
+                'blocking_lesson_id' => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+                'reason'             => $state['reason'],
+            ));
+        }
+
+        $progress = $this->db->where('student_id', $student_id)->where('lesson_id', $id)
+                             ->get('lesson_progress')->row_array();
+
+        $objectives = $this->db->query(
+            'SELECT `id`, `text`, `at_second` FROM `objectives`
+             WHERE `lesson_id` = ? ORDER BY `at_second` ASC, `id` ASC',
+            array($id))->result_array();
+        foreach ($objectives as &$o) $this->cast_ints($o, array('id', 'at_second'));
+        unset($o);
+
+        $review   = $this->review_assessment($id, true);
+        $attempts = 0;
+        if ($review) {
+            $attempts = (int) $this->db->where('assessment_id', (int) $review['id'])
+                                       ->where('student_id', $student_id)
+                                       ->count_all_results('attempts');
+        }
+
+        return array(
+            'lesson' => array(
+                'id'           => (int) $lesson['id'],
+                'title'        => $lesson['title'],
+                'course_id'    => (int) $lesson['course_id'],
+                'section_id'   => (int) $lesson['section_id'],
+                'lesson_type'  => $lesson['lesson_type'],
+                'duration'     => $lesson['duration'],
+                'duration_sec' => $this->duration_seconds($lesson['duration']),
+                'summary'      => $lesson['summary'],
+                'is_free'      => (int) $lesson['is_free'],
+            ),
+            'playback' => array(
+                'video_type'  => $lesson['video_type'],
+                'video_url'   => $lesson['video_url'],
+                'audio_url'   => $lesson['audio_url'],
+                'attachment'  => $lesson['attachment'],
+                'resume_at'   => $progress ? (int) $progress['position_sec'] : 0,
+            ),
+            'objectives' => $objectives,
+            'progress'   => array(
+                'position_sec'  => $progress ? (int) $progress['position_sec']  : 0,
+                'watch_seconds' => $progress ? (int) $progress['watch_seconds'] : 0,
+                'completed_at'  => $progress ? $progress['completed_at'] : null,
+                'mastered_at'   => $progress ? $progress['mastered_at']  : null,
+            ),
+            'review' => $review ? array(
+                'assessment_id'  => (int) $review['id'],
+                'question_count' => (int) $this->setting('mastery_review_questions', 5),
+                'pass_mark'      => $this->pass_mark($review),
+                'attempts'       => $attempts,
+            ) : null,
+            'prev_lesson_id' => $state['prev_lesson_id'],
+            'next_lesson_id' => $state['next_lesson_id'],
+            'unlocked'       => true,
+        );
+    }
+
+    /** حفظ موضع المشاهدة وزمنها. الحفظ نفسه يمرّ بالقفل. */
+    public function save_progress($student_id, $lesson_id, $position_sec, $watched_delta)
+    {
+        $student_id   = (int) $student_id;
+        $lesson_id    = (int) $lesson_id;
+        $position_sec = max(0, (int) $position_sec);
+        // حدّ أعلى للزيادة الواحدة يمنع تضخيم زمن المشاهدة من العميل
+        $watched_delta = max(0, min(300, (int) $watched_delta));
+
+        $state = $this->lesson_lock_state($student_id, $lesson_id);
+        if (empty($state['found'])) {
+            return $this->error('NOT_FOUND', array('entity' => 'lesson:' . $lesson_id));
+        }
+        $lesson = $state['lesson'];
+
+        if ((int) $lesson['is_free'] !== 1 && !$this->is_entitled($student_id, $lesson['course_id'])) {
+            return $this->error('NOT_ENTITLED', array('lesson_id' => $lesson_id));
+        }
+        if (empty($state['unlocked'])) {
+            return $this->error('MASTERY_LOCKED', array(
+                'lesson_id'          => $lesson_id,
+                'blocking_lesson_id' => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+            ));
+        }
+
+        $row = $this->db->where('student_id', $student_id)->where('lesson_id', $lesson_id)
+                        ->get('lesson_progress')->row_array();
+
+        $watch = ($row ? (int) $row['watch_seconds'] : 0) + $watched_delta;
+        $total = $this->duration_seconds($lesson['duration']);
+        $ratio = (float) $this->setting('lesson_complete_ratio', 0.9);
+
+        $completed_at = $row ? $row['completed_at'] : null;
+        if (!$completed_at && $total > 0 && $watch >= (int) ceil($total * $ratio)) {
+            $completed_at = $this->now();
+        }
+
+        $data = array(
+            'position_sec'  => $position_sec,
+            'watch_seconds' => $watch,
+            'completed_at'  => $completed_at,
+        );
+
+        if ($row) {
+            $this->db->where('id', (int) $row['id'])->update('lesson_progress', $data);
+        } else {
+            $data['student_id'] = $student_id;
+            $data['lesson_id']  = $lesson_id;
+            $data['mastered_at'] = null;
+            $this->db->insert('lesson_progress', $data);
+        }
+
+        return array(
+            'lesson_id'     => $lesson_id,
+            'position_sec'  => $position_sec,
+            'watch_seconds' => $watch,
+            'duration_sec'  => $total,
+            'percent'       => $total > 0 ? min(100, (int) floor(($watch * 100) / $total)) : 0,
+            'completed_at'  => $completed_at,
+            'mastered_at'   => $row ? $row['mastered_at'] : null,
+        );
+    }
+
+    /* ================================================================
+     *  بوّابة الإتقان
+     * ================================================================ */
+
+    /** يبدأ محاولة مراجعة ويعيد أسئلتها بلا مفاتيح حلّ. */
+    public function start_attempt($student_id, $lesson_id)
+    {
+        $student_id = (int) $student_id;
+        $lesson_id  = (int) $lesson_id;
+
+        $state = $this->lesson_lock_state($student_id, $lesson_id);
+        if (empty($state['found'])) {
+            return $this->error('NOT_FOUND', array('entity' => 'lesson:' . $lesson_id));
+        }
+        $lesson = $state['lesson'];
+
+        if ((int) $lesson['is_free'] !== 1 && !$this->is_entitled($student_id, $lesson['course_id'])) {
+            return $this->error('NOT_ENTITLED', array('lesson_id' => $lesson_id));
+        }
+        if (empty($state['unlocked'])) {
+            return $this->error('MASTERY_LOCKED', array(
+                'lesson_id'          => $lesson_id,
+                'blocking_lesson_id' => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+            ));
+        }
+
+        $assessment = $this->review_assessment($lesson_id, true);
+        if (!$assessment) {
+            return $this->error('NO_REVIEW', array('lesson_id' => $lesson_id));
+        }
+
+        // محاولة مفتوحة غير مُسلَّمة؟ تُستأنف بدل فتح واحدة جديدة.
+        $open = $this->db->where('assessment_id', (int) $assessment['id'])
+                         ->where('student_id', $student_id)
+                         ->where('submitted_at', null)
+                         ->order_by('attempt_no', 'DESC')
+                         ->get('attempts')->row_array();
+
+        if ($open) {
+            $attempt = $open;
+        } else {
+            $last = $this->db->select_max('attempt_no', 'n')
+                             ->where('assessment_id', (int) $assessment['id'])
+                             ->where('student_id', $student_id)
+                             ->get('attempts')->row_array();
+            $no = ((int) $last['n']) + 1; // لا حدّ أقصى للمحاولات — العقاب بقاء القفل
+            $this->db->insert('attempts', array(
+                'assessment_id' => (int) $assessment['id'],
+                'student_id'    => $student_id,
+                'attempt_no'    => $no,
+                'started_at'    => $this->now(),
+            ));
+            $attempt = $this->db->where('id', $this->db->insert_id())->get('attempts')->row_array();
+            $this->audit($student_id, 'attempt.start', 'attempts:' . $attempt['id'], null,
+                         array('assessment_id' => (int) $assessment['id'], 'attempt_no' => $no));
+        }
+
+        return array(
+            'attempt_id'     => (int) $attempt['id'],
+            'attempt_no'     => (int) $attempt['attempt_no'],
+            'assessment_id'  => (int) $assessment['id'],
+            'lesson_id'      => $lesson_id,
+            'pass_mark'      => $this->pass_mark($assessment),
+            'time_limit_sec' => $assessment['time_limit_sec'] !== null ? (int) $assessment['time_limit_sec'] : null,
+            'questions'      => $this->review_questions($lesson_id),
+        );
+    }
+
+    /**
+     * تسليم محاولة مراجعة — الخوارزمية حرفيًّا:
+     *
+     *   score >= pass_mark          → إتقان: mastered_at، وفتح التالي،
+     *                                 وجدولة الأهداف في review_queue بفاصل يوم
+     *   score <  pass_mark & no = 1 → { retry, seek_to: أضعف هدف } بلا إعطاء الإجابة
+     *   score <  pass_mark & no = 2 → { retry, alternate_explanation_id }
+     *   score <  pass_mark & no >=3 → { suggest_session, context_objective_id } والقفل باقٍ
+     */
+    public function submit_attempt($student_id, $attempt_id, $given_answers)
+    {
+        $student_id = (int) $student_id;
+        $attempt_id = (int) $attempt_id;
+
+        $attempt = $this->db->where('id', $attempt_id)->get('attempts')->row_array();
+        if (!$attempt) return $this->error('NOT_FOUND', array('entity' => 'attempts:' . $attempt_id));
+        if ((int) $attempt['student_id'] !== $student_id) {
+            return $this->error('NOT_ENTITLED', array('entity' => 'attempts:' . $attempt_id));
+        }
+        if (!empty($attempt['submitted_at'])) {
+            return $this->error('DUPLICATE_ATTEMPT', array(
+                'attempt_id'   => $attempt_id,
+                'submitted_at' => $attempt['submitted_at'],
+            ));
+        }
+
+        $assessment = $this->db->where('id', (int) $attempt['assessment_id'])->get('assessments')->row_array();
+        if (!$assessment) return $this->error('NOT_FOUND', array('entity' => 'assessments'));
+
+        $lesson_id = (int) $assessment['lesson_id'];
+        $pool      = $this->review_questions($lesson_id);
+        $allowed   = array();
+        foreach ($pool as $q) $allowed[(int) $q['id']] = true;
+
+        if (!is_array($given_answers)) $given_answers = array();
+
+        $score   = 0;
+        $touched = array(); // objective_id => ['ok'=>n,'total'=>n,'ms'=>n]
+
+        foreach ($given_answers as $item) {
+            if (!is_array($item) || !isset($item['question_id'])) continue;
+            $qid = (int) $item['question_id'];
+            if (!isset($allowed[$qid])) continue; // سؤال خارج مجموعة المراجعة يُهمَل
+
+            $q = $this->db->where('id', $qid)->get('question')->row_array();
+            if (!$q) continue;
+
+            $given = isset($item['given']) ? $item['given'] : null;
+            if (is_string($given)) {
+                $decoded = json_decode($given, true);
+                $given   = is_array($decoded) ? $decoded : array($given);
+            } elseif (!is_array($given)) {
+                $given = $given === null ? array() : array($given);
+            }
+
+            $ok  = $this->is_answer_correct($q, $given);
+            $ms  = isset($item['took_ms']) ? max(0, (int) $item['took_ms']) : null;
+            $oid = $q['objective_id'] !== null ? (int) $q['objective_id'] : 0;
+
+            $this->db->query(
+                'INSERT INTO `answers` (`attempt_id`,`question_id`,`given`,`is_correct`,`took_ms`)
+                 VALUES (?,?,?,?,?)
+                 ON DUPLICATE KEY UPDATE `given`=VALUES(`given`), `is_correct`=VALUES(`is_correct`),
+                                         `took_ms`=VALUES(`took_ms`)',
+                array($attempt_id, $qid, json_encode($given, JSON_UNESCAPED_UNICODE), $ok, $ms));
+
+            if ($ok) $score++;
+
+            if (!isset($touched[$oid])) $touched[$oid] = array('ok' => 0, 'total' => 0, 'ms' => 0, 'n_ms' => 0);
+            $touched[$oid]['total']++;
+            if ($ok) $touched[$oid]['ok']++;
+            if ($ms !== null) { $touched[$oid]['ms'] += $ms; $touched[$oid]['n_ms']++; }
+        }
+
+        $pass_mark = $this->pass_mark($assessment);
+        $passed    = ($score >= $pass_mark) ? 1 : 0;
+        $now       = $this->now();
+
+        $this->db->where('id', $attempt_id)->update('attempts', array(
+            'score'        => $score,
+            'passed'       => $passed,
+            'submitted_at' => $now,
+        ));
+
+        foreach ($touched as $oid => $t) {
+            if (!$oid) continue;
+            $avg = $t['n_ms'] ? (int) round($t['ms'] / $t['n_ms']) : null;
+            $this->touch_skill_state($student_id, $oid, $t['ok'], $t['total'], $avg);
+        }
+
+        $this->audit($student_id, 'attempt.submit', 'attempts:' . $attempt_id, null, array(
+            'assessment_id' => (int) $assessment['id'],
+            'attempt_no'    => (int) $attempt['attempt_no'],
+            'score'         => $score,
+            'pass_mark'     => $pass_mark,
+            'passed'        => $passed,
+        ));
+
+        $result = array(
+            'attempt_id' => $attempt_id,
+            'attempt_no' => (int) $attempt['attempt_no'],
+            'score'      => $score,
+            'out_of'     => count($pool),
+            'pass_mark'  => $pass_mark,
+            'passed'     => (bool) $passed,
+        );
+
+        if ($assessment['type'] !== 'review') {
+            return $result; // البوّابة تحكم المراجعة وحدها
+        }
+
+        return array_merge($result, $this->gate_decision(
+            $student_id, $lesson_id, $attempt_id, (int) $attempt['attempt_no'], (bool) $passed));
+    }
+
+    /** قرار البوّابة — هنا وحده يُفتح القفل أو يبقى. */
+    private function gate_decision($student_id, $lesson_id, $attempt_id, $attempt_no, $passed)
+    {
+        $state = $this->lesson_lock_state($student_id, $lesson_id);
+        $next  = isset($state['next_lesson_id']) ? $state['next_lesson_id'] : null;
+
+        if ($passed) {
+            $now = $this->now();
+            $this->db->query(
+                'INSERT INTO `lesson_progress`
+                    (`student_id`,`lesson_id`,`position_sec`,`watch_seconds`,`completed_at`,`mastered_at`)
+                 VALUES (?,?,0,0,?,?)
+                 ON DUPLICATE KEY UPDATE
+                    `mastered_at` = COALESCE(`mastered_at`, VALUES(`mastered_at`)),
+                    `completed_at`= COALESCE(`completed_at`, VALUES(`completed_at`))',
+                array($student_id, $lesson_id, $now, $now));
+
+            $scheduled = $this->schedule_objectives($student_id, $lesson_id, 1);
+
+            $this->audit($student_id, 'mastery.unlock', 'lesson:' . $lesson_id, null,
+                         array('next_lesson_id' => $next, 'scheduled_reviews' => $scheduled));
+
+            return array(
+                'mastered'            => true,
+                'mastered_at'         => $now,
+                'unlocked_lesson_id'  => $next,
+                'next_lesson_id'      => $next,
+                'next_lesson_locked'  => false,
+                'scheduled_reviews'   => $scheduled,
+            );
+        }
+
+        $weak = $this->weakest_objective($attempt_id);
+
+        if ($attempt_no <= 1) {
+            // إعادة المحاولة مع إرجاع الطالب إلى موضع الشرح — بلا إعطاء الإجابة
+            return array(
+                'mastered'           => false,
+                'retry'              => true,
+                'seek_to'            => $weak ? (int) $weak['at_second'] : 0,
+                'weakest_objective'  => $weak ? array(
+                    'id'   => (int) $weak['objective_id'],
+                    'text' => $weak['text'],
+                ) : null,
+                'next_lesson_id'     => $next,
+                'next_lesson_locked' => true,
+            );
+        }
+
+        if ($attempt_no == 2) {
+            $alt = $weak ? $this->alternate_explanation((int) $weak['objective_id']) : null;
+            return array(
+                'mastered'                 => false,
+                'retry'                    => true,
+                'alternate_explanation_id' => $alt ? (int) $alt['lesson_id'] : null,
+                'alternate'                => $alt ? array(
+                    'lesson_id'    => (int) $alt['lesson_id'],
+                    'objective_id' => (int) $alt['objective_id'],
+                    'at_second'    => (int) $alt['at_second'],
+                    'lesson_title' => $alt['lesson_title'],
+                ) : null,
+                'seek_to'                  => $weak ? (int) $weak['at_second'] : 0,
+                'next_lesson_id'           => $next,
+                'next_lesson_locked'       => true,
+                'details'                  => $alt ? null : 'no_alternate_available',
+            );
+        }
+
+        // ٣ فأكثر: تُقترح حصّة بالطلب، والقفل باقٍ — لا حدّ أقصى للمحاولات
+        $this->audit($student_id, 'mastery.suggest_session', 'lesson:' . $lesson_id, null,
+                     array('attempt_no' => $attempt_no,
+                           'context_objective_id' => $weak ? (int) $weak['objective_id'] : null));
+
+        return array(
+            'mastered'             => false,
+            'retry'                => true,
+            'suggest_session'      => true,
+            'context_objective_id' => $weak ? (int) $weak['objective_id'] : null,
+            'seek_to'              => $weak ? (int) $weak['at_second'] : 0,
+            'next_lesson_id'       => $next,
+            'next_lesson_locked'   => true,
+        );
+    }
+
+    /** أضعف هدف في المحاولة: أقلّ نسبة صواب، وعند التساوي الأسبق زمنًا. */
+    public function weakest_objective($attempt_id)
+    {
+        $sql = 'SELECT q.`objective_id`, o.`text`, o.`at_second`,
+                       SUM(a.`is_correct`) AS ok, COUNT(*) AS total
+                FROM `answers` a
+                JOIN `question` q ON q.`id` = a.`question_id`
+                JOIN `objectives` o ON o.`id` = q.`objective_id`
+                WHERE a.`attempt_id` = ?
+                GROUP BY q.`objective_id`, o.`text`, o.`at_second`
+                ORDER BY (SUM(a.`is_correct`) / COUNT(*)) ASC, o.`at_second` ASC
+                LIMIT 1';
+        $row = $this->db->query($sql, array((int) $attempt_id))->row_array();
+        return $row ? $row : null;
+    }
+
+    /** شرح بديل للهدف نفسه من درس آخر — إن وُجد. */
+    public function alternate_explanation($objective_id)
+    {
+        $sql = 'SELECT o2.`id` AS objective_id, o2.`lesson_id`, o2.`at_second`, l.`title` AS lesson_title
+                FROM `objectives` o1
+                JOIN `objectives` o2 ON o2.`text` = o1.`text` AND o2.`lesson_id` <> o1.`lesson_id`
+                JOIN `lesson` l ON l.`id` = o2.`lesson_id`
+                WHERE o1.`id` = ?
+                ORDER BY o2.`id` ASC LIMIT 1';
+        $row = $this->db->query($sql, array((int) $objective_id))->row_array();
+        return $row ? $row : null;
+    }
+
+    /** جدولة أسئلة أهداف الدرس في طابور المراجعة بفاصل يوم. */
+    public function schedule_objectives($student_id, $lesson_id, $interval_days = 1)
+    {
+        $ease = (float) $this->setting('review_initial_ease', 2.5);
+        $due  = date('Y-m-d H:i:s', time() + ((int) $interval_days * 86400));
+
+        $rows = $this->db->query(
+            'SELECT q.`id` FROM `question` q
+             JOIN `objectives` o ON o.`id` = q.`objective_id`
+             WHERE o.`lesson_id` = ?', array((int) $lesson_id))->result_array();
+
+        $n = 0;
+        foreach ($rows as $r) {
+            $this->db->query(
+                'INSERT INTO `review_queue`
+                    (`student_id`,`question_id`,`due_at`,`interval_days`,`ease`,`lapses`)
+                 VALUES (?,?,?,?,?,0)
+                 ON DUPLICATE KEY UPDATE `due_at` = LEAST(`due_at`, VALUES(`due_at`))',
+                array((int) $student_id, (int) $r['id'], $due, (int) $interval_days, $ease));
+            $n++;
+        }
+        return $n;
+    }
+
+    /* ================================================================
+     *  المراجعة المتباعدة ودفتر الأخطاء
+     * ================================================================ */
+
+    /** دفعة اليوم: ١٠ أسئلة مستحقّة، بالأسبق موعدًا ثمّ بالأصعب. */
+    public function get_due_reviews($student_id, $limit = 10)
+    {
+        $student_id = (int) $student_id;
+        $limit      = (int) $limit;
+        if ($limit <= 0) $limit = (int) $this->setting('review_daily_batch', 10);
+        $limit = min(50, $limit);
+
+        $sql = 'SELECT rq.`id` AS queue_id, rq.`question_id`, rq.`due_at`, rq.`interval_days`,
+                       rq.`ease`, rq.`lapses`,
+                       q.`title`, q.`type`, q.`number_of_options`, q.`options`, q.`objective_id`,
+                       o.`text` AS objective_text, o.`at_second`, o.`lesson_id`,
+                       l.`title` AS lesson_title, l.`course_id`, c.`title` AS course_title
+                FROM `review_queue` rq
+                JOIN `question` q ON q.`id` = rq.`question_id`
+                LEFT JOIN `objectives` o ON o.`id` = q.`objective_id`
+                LEFT JOIN `lesson` l ON l.`id` = o.`lesson_id`
+                LEFT JOIN `course` c ON c.`id` = l.`course_id`
+                WHERE rq.`student_id` = ? AND rq.`due_at` <= ?
+                ORDER BY rq.`due_at` ASC, rq.`lapses` DESC, rq.`ease` ASC, rq.`id` ASC
+                LIMIT ' . $limit;
+
+        $rows = $this->db->query($sql, array($student_id, $this->now()))->result_array();
+        foreach ($rows as &$r) {
+            $r['options'] = $r['options'] ? json_decode($r['options'], true) : array();
+            $r['ease']    = (float) $r['ease'];
+            $this->cast_ints($r, array('queue_id', 'question_id', 'interval_days', 'lapses',
+                                       'number_of_options', 'objective_id', 'at_second',
+                                       'lesson_id', 'course_id'));
+        }
+        unset($r);
+        return $rows; // بلا correct_answers — التصحيح في الخادم
+    }
+
+    /** عدد المستحقّ اليوم (للشارات في القائمة). */
+    public function count_due_reviews($student_id)
+    {
+        $r = $this->db->query(
+            'SELECT COUNT(*) AS c FROM `review_queue` WHERE `student_id` = ? AND `due_at` <= ?',
+            array((int) $student_id, $this->now()))->row_array();
+        return (int) $r['c'];
+    }
+
+    /**
+     * تحديث الفاصل بعد إجابة مراجعة:
+     *   صحيحة → ease += 0.1 ؛ interval = round(interval * ease)
+     *   خاطئة  → ease = max(1.3, ease - 0.2) ؛ interval = 1 ؛ lapses += 1
+     *   due_at = now + interval days ؛ والسقف ٦٠ يومًا
+     */
+    public function answer_review($student_id, $question_id, $correct)
+    {
+        $student_id = (int) $student_id;
+        $question_id = (int) $question_id;
+        $correct     = (bool) $correct;
+
+        $max  = (int) $this->setting('review_max_interval_days', 60);
+        $init = (float) $this->setting('review_initial_ease', 2.5);
+
+        $row = $this->db->where('student_id', $student_id)->where('question_id', $question_id)
+                        ->get('review_queue')->row_array();
+
+        $ease     = $row ? (float) $row['ease']          : $init;
+        $interval = $row ? (int) $row['interval_days']   : 1;
+        $lapses   = $row ? (int) $row['lapses']          : 0;
+
+        if ($correct) {
+            $ease     = round($ease + 0.1, 2);
+            $interval = (int) round($interval * $ease);
+        } else {
+            $ease     = max(1.3, round($ease - 0.2, 2));
+            $interval = 1;
+            $lapses++;
+        }
+
+        if ($interval < 1)    $interval = 1;
+        if ($interval > $max) $interval = $max;
+
+        $due = date('Y-m-d H:i:s', time() + ($interval * 86400));
+
+        $this->db->query(
+            'INSERT INTO `review_queue`
+                (`student_id`,`question_id`,`due_at`,`interval_days`,`ease`,`lapses`)
+             VALUES (?,?,?,?,?,?)
+             ON DUPLICATE KEY UPDATE `due_at`=VALUES(`due_at`), `interval_days`=VALUES(`interval_days`),
+                                     `ease`=VALUES(`ease`), `lapses`=VALUES(`lapses`)',
+            array($student_id, $question_id, $due, $interval, $ease, $lapses));
+
+        // الهدف هو المفصل: كل إجابة تُحرّك حالة المهارة أيضًا
+        $q = $this->db->select('objective_id')->where('id', $question_id)->get('question')->row_array();
+        if ($q && $q['objective_id']) {
+            $this->touch_skill_state($student_id, (int) $q['objective_id'], $correct ? 1 : 0, 1, null);
+        }
+
+        return array(
+            'question_id'   => $question_id,
+            'correct'       => $correct,
+            'ease'          => $ease,
+            'interval_days' => $interval,
+            'lapses'        => $lapses,
+            'due_at'        => $due,
+            'remaining_due' => $this->count_due_reviews($student_id),
+        );
+    }
+
+    /**
+     * دفتر الأخطاء — يُشتقّ من answers حيث is_correct = 0، لا جدول مستقلّ
+     * حتى لا يفترق الدفتر عن الحقيقة.
+     */
+    public function get_mistakes($student_id)
+    {
+        $sql = 'SELECT a.`question_id`, q.`title`, q.`type`, q.`objective_id`,
+                       o.`text` AS objective_text, o.`at_second`, o.`lesson_id`,
+                       l.`title` AS lesson_title, l.`course_id`, c.`title` AS course_title,
+                       COUNT(*) AS wrong_count,
+                       MAX(at.`submitted_at`) AS last_wrong_at,
+                       rq.`due_at`, rq.`lapses`, rq.`interval_days`
+                FROM `answers` a
+                JOIN `attempts` at ON at.`id` = a.`attempt_id`
+                JOIN `question` q ON q.`id` = a.`question_id`
+                LEFT JOIN `objectives` o ON o.`id` = q.`objective_id`
+                LEFT JOIN `lesson` l ON l.`id` = o.`lesson_id`
+                LEFT JOIN `course` c ON c.`id` = l.`course_id`
+                LEFT JOIN `review_queue` rq ON rq.`question_id` = a.`question_id`
+                                           AND rq.`student_id` = at.`student_id`
+                WHERE at.`student_id` = ? AND a.`is_correct` = 0
+                GROUP BY a.`question_id`, q.`title`, q.`type`, q.`objective_id`,
+                         o.`text`, o.`at_second`, o.`lesson_id`, l.`title`, l.`course_id`,
+                         c.`title`, rq.`due_at`, rq.`lapses`, rq.`interval_days`
+                ORDER BY wrong_count DESC, last_wrong_at DESC';
+        $rows = $this->db->query($sql, array((int) $student_id))->result_array();
+        foreach ($rows as &$r) {
+            $this->cast_ints($r, array('question_id', 'objective_id', 'at_second', 'lesson_id',
+                                       'course_id', 'wrong_count', 'lapses', 'interval_days'));
+        }
+        unset($r);
+        return $rows;
+    }
+
+    /* ================================================================
+     *  التوأم الرقمي
+     * ================================================================ */
+
+    /** يحدّث مستوى الهدف بعد إجابات — عشري ثابت لا عائم في التخزين. */
+    public function touch_skill_state($student_id, $objective_id, $ok, $total, $avg_ms = null)
+    {
+        $student_id   = (int) $student_id;
+        $objective_id = (int) $objective_id;
+        if (!$student_id || !$objective_id || $total <= 0) return;
+
+        $row = $this->db->where('student_id', $student_id)->where('objective_id', $objective_id)
+                        ->get('skill_state')->row_array();
+
+        $observed = ($ok / $total) * 100.0;
+        $level    = $row ? (float) $row['level'] : 0.0;
+        // متوسّط مرجّح: الملاحظة الجديدة تزن ٤٠٪ فلا يقفز المستوى بضربة واحدة
+        $level    = $row ? ($level * 0.6 + $observed * 0.4) : $observed;
+        $level    = max(0, min(100, round($level, 2)));
+
+        $forget = $row ? (float) $row['forget_rate'] : 0.1;
+        $forget = ($ok === $total) ? max(0.02, round($forget - 0.01, 4))
+                                   : min(0.9,  round($forget + 0.02, 4));
+
+        $avg = $row ? (int) $row['avg_response_ms'] : 0;
+        if ($avg_ms !== null) {
+            $avg = $avg > 0 ? (int) round(($avg * 0.7) + ($avg_ms * 0.3)) : (int) $avg_ms;
+        }
+
+        $data = array(
+            'level'           => $level,
+            'forget_rate'     => $forget,
+            'last_seen_at'    => $this->now(),
+            'avg_response_ms' => $avg,
+        );
+
+        if ($row) {
+            $this->db->where('id', (int) $row['id'])->update('skill_state', $data);
+        } else {
+            $data['student_id']   = $student_id;
+            $data['objective_id'] = $objective_id;
+            $this->db->insert('skill_state', $data);
+        }
+    }
+
+    /** خريطة المهارات: هدف هدف، ومعها أضعف خمسة للعرض السريع. */
+    public function get_skill_map($student_id)
+    {
+        $sql = 'SELECT ss.`objective_id`, ss.`level`, ss.`forget_rate`, ss.`last_seen_at`,
+                       ss.`avg_response_ms`, o.`text` AS objective_text, o.`at_second`,
+                       o.`lesson_id`, l.`title` AS lesson_title, l.`course_id`,
+                       c.`title` AS course_title
+                FROM `skill_state` ss
+                JOIN `objectives` o ON o.`id` = ss.`objective_id`
+                LEFT JOIN `lesson` l ON l.`id` = o.`lesson_id`
+                LEFT JOIN `course` c ON c.`id` = l.`course_id`
+                WHERE ss.`student_id` = ?
+                ORDER BY ss.`level` ASC, ss.`last_seen_at` ASC';
+        $rows = $this->db->query($sql, array((int) $student_id))->result_array();
+
+        $sum = 0;
+        foreach ($rows as &$r) {
+            $r['level']       = (float) $r['level'];
+            $r['forget_rate'] = (float) $r['forget_rate'];
+            $this->cast_ints($r, array('objective_id', 'at_second', 'avg_response_ms',
+                                       'lesson_id', 'course_id'));
+            $sum += $r['level'];
+        }
+        unset($r);
+
+        return array(
+            'objectives'    => $rows,
+            'count'         => count($rows),
+            'average_level' => count($rows) ? round($sum / count($rows), 2) : 0,
+            'weakest'       => array_slice($rows, 0, 5),
+        );
+    }
+
+    /* ================================================================
+     *  المحفظة وأولياء الأمور والمعلّمون
+     * ================================================================ */
+
+    /** محفظة المستخدم — كل المبالغ بالهللات كأعداد صحيحة. */
+    public function get_wallet($user_id)
+    {
+        $user_id = (int) $user_id;
+        $wallet  = $this->db->where('owner_user_id', $user_id)->get('wallets')->row_array();
+
+        if (!$wallet) {
+            $this->db->insert('wallets', array(
+                'owner_user_id'     => $user_id,
+                'balance_available' => 0,
+                'balance_pending'   => 0,
+                'balance_locked'    => 0,
+            ));
+            $wallet = $this->db->where('owner_user_id', $user_id)->get('wallets')->row_array();
+        }
+
+        $entries = $this->db->where('wallet_id', (int) $wallet['id'])
+                            ->order_by('id', 'DESC')->limit(50)
+                            ->get('wallet_entries')->result_array();
+        foreach ($entries as &$e) $this->cast_ints($e, array('id', 'wallet_id', 'amount'));
+        unset($e);
+
+        return array(
+            'wallet_id'         => (int) $wallet['id'],
+            'owner_user_id'     => $user_id,
+            'balance_available' => (int) $wallet['balance_available'],
+            'balance_pending'   => (int) $wallet['balance_pending'],
+            'balance_locked'    => (int) $wallet['balance_locked'],
+            'currency'          => 'SAR',
+            'unit'              => 'halala',
+            'entries'           => $entries,
+        );
+    }
+
+    /** أبناء وليّ الأمر المرتبطون بموافقة نشطة فقط. */
+    public function get_children($parent_user_id)
+    {
+        $sql = 'SELECT pl.`id` AS link_id, pl.`status`, pl.`consent_at`, pl.`scope`,
+                       u.`id` AS student_id, u.`first_name`, u.`last_name`, u.`email`, u.`image`
+                FROM `parent_links` pl
+                JOIN `users` u ON u.`id` = pl.`student_id`
+                WHERE pl.`parent_user_id` = ? AND pl.`status` = "active"
+                ORDER BY u.`first_name` ASC';
+        $rows = $this->db->query($sql, array((int) $parent_user_id))->result_array();
+
+        foreach ($rows as &$r) {
+            $this->cast_ints($r, array('link_id', 'student_id'));
+            $r['scope'] = $r['scope'] ? json_decode($r['scope'], true) : null;
+            $r['name']  = trim($r['first_name'] . ' ' . $r['last_name']);
+
+            $m = $this->db->query(
+                'SELECT COUNT(*) AS c FROM `lesson_progress`
+                 WHERE `student_id` = ? AND `mastered_at` IS NOT NULL',
+                array($r['student_id']))->row_array();
+
+            $r['mastered_lessons'] = (int) $m['c'];
+            $r['due_reviews']      = $this->count_due_reviews($r['student_id']);
+        }
+        return $rows;
+    }
+
+    /** نطاق إسناد المعلّم: مادّة × صفّ. خارجه OUT_OF_ASSIGNMENT. */
+    public function get_teacher_scope($teacher_id)
+    {
+        $sql = 'SELECT ta.`id`, ta.`subject_id`, ta.`grade_id`, ta.`can_publish`, ta.`can_take_sessions`,
+                       s.`name_ar` AS subject_ar, s.`name_en` AS subject_en,
+                       g.`name_ar` AS grade_ar,   g.`name_en` AS grade_en
+                FROM `teacher_assignments` ta
+                LEFT JOIN `subjects` s ON s.`id` = ta.`subject_id`
+                LEFT JOIN `grades`   g ON g.`id` = ta.`grade_id`
+                WHERE ta.`teacher_id` = ?
+                ORDER BY COALESCE(s.`order`,0) ASC, COALESCE(g.`order`,0) ASC';
+        $rows = $this->db->query($sql, array((int) $teacher_id))->result_array();
+
+        $subjects = array(); $grades = array();
+        foreach ($rows as &$r) {
+            $this->cast_ints($r, array('id', 'subject_id', 'grade_id',
+                                       'can_publish', 'can_take_sessions'));
+            $subjects[$r['subject_id']] = true;
+            $grades[$r['grade_id']]     = true;
+        }
+        unset($r);
+
+        return array(
+            'teacher_id'  => (int) $teacher_id,
+            'assignments' => $rows,
+            'subject_ids' => array_keys($subjects),
+            'grade_ids'   => array_keys($grades),
+        );
+    }
+
+    /** هل هذا الإسناد داخل نطاق المعلّم؟ */
+    public function teacher_can($teacher_id, $subject_id, $grade_id, $capability = null)
+    {
+        $this->db->where('teacher_id', (int) $teacher_id)
+                 ->where('subject_id', (int) $subject_id)
+                 ->where('grade_id', (int) $grade_id);
+        $row = $this->db->get('teacher_assignments')->row_array();
+        if (!$row) return false;
+        if ($capability && empty($row[$capability])) return false;
+        return true;
+    }
+}

@@ -1,0 +1,155 @@
+/* ══════════════════════════════════════════════════════════════════
+   ورقة الجسر — ما يحقنه Academy في الصفحة ولم يكن التصميم يعرف به.
+
+   الصفحات المنقولة **لا تحمّل أوراق البوّابات**، ولها سبب قاطع:
+   `base.css` فيها `h1 { font: var(--tq-type-display) }` — واختصار `font`
+   يضبط `font-size` أيضًا. والتصميم يضبط `h1..h4` بلا حجم (الأحجام في
+   الأصناف). فتحميل الورقتين معًا يجعل حجم **كل عنوان في الموقع** قادمًا
+   من ورقة البوّابات، ويبقى التصميم صحيحًا في كل شيء إلّا المقاسات.
+
+   لكنّ إسقاط تلك الأوراق يترك ما يحقنه الغلاف بلا تنسيق: شريط الكوكيز
+   ورابط التخطّي ورسائل الفلاش وشريط انقطاع الشبكة. فهذه الورقة تكسوها
+   **بتوكنات التصميم** لا بتوكنات `--tq-*`: تلك غير معرَّفة هنا، وتوكنٌ
+   غير معرَّف يعطي لونًا شفّافًا بلا خطأ يُنبِّه.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── رابط تخطّي المحتوى ─────────────────────────────────────────── */
+.tq-skip-link {
+  /* يُركن بالقصّ لا بالإزاحة: `-9999px` في اتجاه RTL يمتدّ إلى **يمين**
+     المستند فيوسّعه، والقصّ يُخفيه بلا أن يشغل مكانًا أصلًا. */
+  position: absolute; inset-inline-start: 0; top: 0; z-index: 9999;
+  width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  padding: .65rem 1.1rem; background: var(--petrol); color: #fff;
+  border-end-end-radius: 10px; font-weight: 700; text-decoration: none;
+}
+.tq-skip-link:focus { width: auto; height: auto; overflow: visible; clip-path: none; }
+
+/* ── شريط الارتباط ──────────────────────────────────────────────── */
+.tq-cookie {
+  position: fixed; inset-inline: 1rem; bottom: 1rem; z-index: 900;
+  max-inline-size: 44rem; margin-inline: auto;
+  display: flex; flex-wrap: wrap; gap: .9rem; align-items: center;
+  padding: 1rem 1.25rem; background: var(--paper, #fff);
+  border: 1px solid var(--gold-line); border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(19, 37, 73, .16);
+  font-size: .92rem; color: var(--ink);
+}
+.tq-cookie p, .tq-cookie div { margin: 0; flex: 1 1 16rem; }
+.tq-cookie a { color: var(--gold-text); text-decoration: underline; }
+.tq-cookie button, .tq-cookie .btn {
+  padding: .5rem 1.15rem; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--petrol); color: #fff; font: inherit; font-weight: 700;
+}
+.tq-cookie button:hover { background: var(--petrol-deep); }
+
+/* ── شريط انقطاع الشبكة ─────────────────────────────────────────── */
+[data-tq-offline] {
+  position: fixed; inset-inline: 0; top: 0; z-index: 950;
+  padding: .55rem 1rem; text-align: center;
+  background: var(--gold-deep); color: #fff; font-size: .9rem; font-weight: 700;
+}
+
+/* ── رسائل الفلاش ───────────────────────────────────────────────── */
+.tq-flash, .alert {
+  margin: 0 0 1.25rem; padding: .9rem 1.15rem; border-radius: 14px;
+  font-size: .95rem; border: 1px solid var(--gold-line); background: var(--beige); color: var(--ink);
+}
+.tq-flash--ok,   .alert-success { background: #E8F5EE; border-color: #BFE3CF; color: #14512F; }
+.tq-flash--err,  .alert-danger  { background: #FDECEC; border-color: #F3C7C7; color: #7A1F1F; }
+
+/* ── أخطاء التحقّق التي يطبعها CI ───────────────────────────────── */
+.form-error, .error { display: block; margin-block-start: .35rem; font-size: .85rem; color: #B3261E; }
+
+/* ── ترقيم Academy ──────────────────────────────────────────────── */
+.pagination { display: flex; flex-wrap: wrap; gap: .4rem; justify-content: center; margin: 2rem 0 0; padding: 0; list-style: none; }
+.pagination a, .pagination strong, .pagination span {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-inline-size: 2.4rem; padding: .45rem .7rem; border-radius: 10px;
+  border: 1px solid var(--gold-line); color: var(--ink); text-decoration: none; font-weight: 600;
+}
+.pagination strong, .pagination .active a { background: var(--petrol); border-color: var(--petrol); color: #fff; }
+.pagination a:hover { background: var(--beige); }
+
+/* ── شارتا المتجرين حين لا يكون التطبيق منشورًا ─────────────────────
+   تبقى مرئية لأنها جزء من التصميم، ولا تُنقر ولا تُوهم: الشفافية
+   وغياب المؤشّر يقولان «ليست رابطًا» قبل أن يجرّبها أحد. */
+.stores .store-soon { display: inline-block; opacity: .45; filter: grayscale(1); cursor: default; }
+.stores .store-soon svg { width: clamp(96px, 30vw, 120px); height: auto; direction: ltr; }
+.stores .store-note { display: block; margin-block-start: .5rem; font-size: .78rem; opacity: .7; }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-RESP · ما يحقنه الغلاف، على الجوّال
+   ══════════════════════════════════════════════════════════════════ */
+
+/* الوسم المحقون يستعمل `.tq-btn` لا `.btn`، فالمحدّد السابق لا يطابق
+   الرابط إطلاقًا — وكان الزرّ يظهر بلا شكل. */
+.tq-cookie .tq-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:.5rem 1.15rem;border-radius:999px;border:1px solid var(--gold-line);
+  font-weight:700;text-decoration:none;color:var(--ink);background:transparent
+}
+.tq-cookie .tq-btn--primary{background:var(--petrol);border-color:var(--petrol);color:#fff}
+.tq-cookie .tq-row{display:flex;gap:.6rem;flex-wrap:wrap}
+.tq-cookie .tq-caption{font-size:.82rem;opacity:.8}
+
+@media (max-width:680px){
+  .tq-cookie{
+    inset-inline:.6rem;bottom:.6rem;padding:.85rem 1rem;
+    font-size:.86rem;border-radius:14px;gap:.6rem
+  }
+  .tq-cookie p,.tq-cookie div{flex:1 1 100%}
+  /* الشريط مثبّت أسفل الشاشة، فبلا تعويض يغطّي آخر سطر في الصفحة */
+  body:has(.tq-cookie) main{padding-block-end:6.5rem}
+  .pagination a,.pagination strong,.pagination span{min-inline-size:2.1rem;padding:.4rem .55rem}
+}
+
+@media (max-width:480px){
+  .tq-flash,.alert{padding:.75rem .9rem;font-size:.88rem}
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-TABBAR · شريط التنقّل السفليّ
+   ══════════════════════════════════════════════════════════════════ */
+.tq-tabbar{display:none}
+
+@media (max-width:680px){
+  /* متغيّر واحد يحكم الشريط وحشوة الصفحة وموضع شريط الكوكيز، فلا
+     تتفرّق الأرقام الثلاثة ويغطّي أحدها الآخر. */
+  :root{--tabbar-h:calc(58px + env(safe-area-inset-bottom, 0px))}
+
+  .tq-tabbar{
+    position:fixed;inset-inline:0;bottom:0;z-index:60;
+    display:grid;grid-template-columns:repeat(5,1fr);
+    /* خلفية مصمتة لا `backdrop-filter`: التمويه مُطفأ عمدًا على الجوّال
+       لأنه كان من أسباب تلعثم التمرير. */
+    background:var(--paper);
+    border-block-start:1px solid var(--gold-line-soft);
+    box-shadow:0 -10px 30px -22px rgba(5,44,43,.5);
+    padding-block-end:env(safe-area-inset-bottom, 0px);
+  }
+  .tq-tabbar__item{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;min-block-size:56px;color:var(--ink-3);
+    font:600 .68rem/1 'Cairo',system-ui,sans-serif;text-decoration:none;
+    -webkit-tap-highlight-color:transparent;
+    transition:color var(--t-route) var(--ease);
+  }
+  .tq-tabbar__item:active{background:rgba(201,165,95,.08)}
+  /* الأوراق هنا لا تضبط مقاسًا عامًّا للـsvg — كل مكوّن يقيس أيقونته */
+  .tq-tabbar__ico svg{width:22px;height:22px;display:block}
+  .tq-tabbar__item[aria-current="page"]{color:var(--petrol)}
+  .tq-tabbar__item[aria-current="page"] .tq-tabbar__ico::after{
+    content:'';display:block;inline-size:18px;block-size:2px;border-radius:2px;
+    margin:3px auto 0;background:linear-gradient(90deg,var(--gold),var(--gold-deep));
+  }
+
+  /* التعويض على `body` لا على `main`: التذييل شقيقٌ لا ابن، فحشوة
+     `main` تترك الشريط يغطّي حقوق النشر وروابط الخصوصية. */
+  body{padding-block-end:var(--tabbar-h)}
+  .tq-cookie{bottom:calc(.6rem + var(--tabbar-h))}
+}
+
+@media (max-width:360px){
+  .tq-tabbar__item{font-size:.62rem;gap:2px}
+  .tq-tabbar__ico svg{width:20px;height:20px}
+}

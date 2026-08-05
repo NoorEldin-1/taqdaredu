@@ -1,112 +1,89 @@
-# taqdaredu.com — local setup
+# تشغيل المشروع محلّيًا
 
-> **Read this instead of `CLAUDE.md`.** That file was inherited from the
-> project this codebase was cloned from (**My-Communication Academy**,
-> `my-communication.uk`) and still describes *that* site — wrong domain, wrong
-> paths, wrong local folder name. Same goes for `api/front/DEPLOYMENT.md` and the
-> `AUDIT-*.md` reports. Treat all of them as historical notes, not instructions.
+منصّة **تقدّر** (`taqdaredu.com`) — تطبيق CodeIgniter 3 على PHP 8.2 و MariaDB.
+هذا الدليل يفترض XAMPP على ويندوز؛ أي لينكس/ماك يعمل بنفس الخطوات مع تبديل المسارات.
 
-## What this repo is
+---
 
-The source of **taqdaredu.com**, an Arabic e-learning platform. The repo mirrors
-the deployed web root (`/home/taqdaredu.com/public_html` on the server), so paths
-here match paths in production one-for-one.
+## المتطلّبات
 
-| Path | What it is |
-| --- | --- |
-| `api/` | **CodeIgniter 3** backend (PHP 8.2), served under the `/api/` URL prefix |
-| `api/front/` | **React 18 + TypeScript + Vite + shadcn/ui + Tailwind** frontend *source* |
-| `_app/`, `index.html` | the **built** frontend, as currently deployed |
-| `api/assets/` | admin-panel CSS/JS/images shipped with the base LMS template |
-| `api/uploads/` | user-uploaded media (course thumbnails, avatars…) |
+| | الإنتاج | المُتحقَّق منه محلّيًا |
+|---|---|---|
+| PHP | 8.2.29 | 8.2.12 (XAMPP 8.2.12) |
+| قاعدة البيانات | MariaDB 10.11.10 | MariaDB 10.4.32 |
+| الخادم | LiteSpeed | Apache 2.4.58 |
 
-Yes — the frontend source lives *inside* `api/`. That is inherited, not a
-choice; the `api/` directory is both the PHP app and the React project root.
+امتدادات PHP المطلوبة: `mysqli`, `curl`, `gd`, `mbstring`, `zip`, `openssl`, `fileinfo` — كلّها مفعّلة افتراضيًا في XAMPP.
 
-## Prerequisites
+---
 
-PHP 8.2+, Composer, Node 20+, MySQL/MariaDB, Apache with `mod_rewrite`.
-On Windows, XAMPP covers Apache + PHP + MariaDB.
+## 1. الملفّات السرّية
 
-## Setup
-
-### 1. Dependencies
+ملفّان مستثنيان من المستودع لأنّه عامّ. انسخ القالبين واملأهما:
 
 ```bash
-cd api        && composer install
-cd api/front  && npm install
+cp application/config/database.php.example      application/config/database.php
+cp application/config/taqdar_secret.php.example  application/config/taqdar_secret.php
 ```
 
-Neither `api/vendor/` nor `api/front/node_modules/` is tracked.
-`api/vendor/` is ~190 MB, 176 MB of which is `google/apiclient-services`.
+- **`database.php`** — بيانات الاتصال (انظر الخطوة 2).
+- **`taqdar_secret.php`** — سرّ توقيع توكنات الـAPI. للتطوير المحلّي ولّد سرًّا جديدًا:
+  ```bash
+  php -r "echo bin2hex(random_bytes(32));"
+  ```
+  استخدم سرّ الإنتاج فقط إن كنت تحتاج توكنات صالحة على الخادمين معًا.
 
-### 2. Config files (not tracked — they hold secrets)
+---
+
+## 2. قاعدة البيانات
+
+اسم القاعدة والمستخدم مطابقان للإنتاج عمدًا، فيعمل `database.php` نفسه في الموضعين بلا تعديل.
+
+```sql
+CREATE DATABASE taqd_lms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'taqd_lmsuser'@'localhost' IDENTIFIED BY '<كلمة-المرور>';
+GRANT ALL PRIVILEGES ON taqd_lms.* TO 'taqd_lmsuser'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+ثمّ استورد نسخة من الخادم:
 
 ```bash
-cd api/application/config
-cp database.php.example database.php   # fill in your local DB credentials
-cp secrets.php.example  secrets.php    # fill in encryption_key
+# على الخادم
+mysqldump --single-transaction --quick --routines --triggers \
+          --default-character-set=utf8mb4 --hex-blob \
+          -u taqd_lmsuser -p taqd_lms > taqd_lms.sql
+
+# محلّيًا
+mysql -u root --default-character-set=utf8mb4 taqd_lms < taqd_lms.sql
 ```
 
-`config.php` merges `secrets.php` into `$config` when the file exists. Without
-it, `encryption_key` stays empty and CodeIgniter's Encryption library refuses to
-run — deliberately, so a missing secret fails loudly instead of silently falling
-back to a key that would be public in this repo.
+> **عميل MariaDB 10.4 وأقدم:** مخرَج `mysqldump` من 10.11 يبدأ بسطر
+> `/*M!999999\- enable the sandbox mode */` يرفضه العميل القديم بـ
+> `Unknown command '\-'`. احذف السطر الأوّل قبل الاستيراد.
 
-Generate an `encryption_key` with:
+القاعدة السليمة: **75 جدولًا و triggerان** (`trg_parent_links_consent_*`).
 
-```bash
-php -r "echo bin2hex(random_bytes(16)), PHP_EOL;"
-```
+---
 
-> The production `encryption_key` is **not** in this repo and must not be
-> changed casually: rotating it invalidates every existing session and anything
-> already encrypted with the old key.
+## 3. الخادم
 
-`base_url` needs no configuration — `config.php` derives it from
-`$_SERVER['HTTP_HOST']`, so the app works on any hostname or port.
+### Apache — مضيف افتراضي
 
-### 3. Frontend env
+المشروع يفترض أنّه في جذر المضيف: `.htaccess` يعيد كتابة `^(.*)$` إلى
+`index.php` وقواعد التحويل تبدأ بـ `/`. تشغيله داخل مجلّد فرعي من `htdocs`
+يكسر التوجيه، فالمضيف الافتراضي ضرورةٌ لا تفضيل.
 
-```bash
-cd api/front
-cp .env.example .env.local
-```
-
-### 4. Database
-
-```bash
-mysql -u root -e "CREATE DATABASE taqdaredu CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root taqdaredu < your-dump.sql
-```
-
-Dumps are never committed (`*.sql` is ignored) — they carry real user data. Take
-one from the server with `mysqldump`.
-
-**Gotcha:** the server runs MariaDB 10.11, whose `mysqldump` prefixes the file
-with `/*M!999999\- enable the sandbox mode */`. Older clients (e.g. MariaDB 10.4
-in XAMPP) fail on that line with `Unknown command '\-'`. Strip it first:
-
-```bash
-sed -i '1{/^\/\*M!999999/d}' your-dump.sql
-```
-
-### 5. Apache vhost
-
-The root `.htaccess` uses `RewriteBase /` plus rules such as `RewriteRule ^api/`,
-so **the site must sit at a document root** — dropping it into a subfolder of
-`htdocs` breaks routing. Give it its own port instead:
+في `C:\xampp\apache\conf\extra\httpd-vhosts.conf`:
 
 ```apache
-# xampp/apache/conf/extra/httpd-vhosts.conf
 Listen 8081
-
 <VirtualHost *:8081>
     ServerName localhost
     DocumentRoot "C:/work/projects/taqdaredu"
     <Directory "C:/work/projects/taqdaredu">
         Options Indexes FollowSymLinks Includes ExecCGI
-        AllowOverride All          # required — the project leans on .htaccess
+        AllowOverride All
         Require all granted
     </Directory>
     ErrorLog  "logs/taqdaredu-error.log"
@@ -114,93 +91,80 @@ Listen 8081
 </VirtualHost>
 ```
 
-Then `httpd -t` to check syntax and restart Apache. `.htaccess` already exempts
-`localhost`, `127.0.0.1` and `tagdar.local` (with any port) from its
-force-HTTPS rule, so plain HTTP works locally.
+`AllowOverride All` شرطٌ لعمل `.htaccess`؛ بدونه لا تُقرأ قواعد التوجيه أصلًا.
 
-## Running
+أعد تشغيل Apache، ثمّ افتح **http://localhost:8081**.
 
-### Every time you sit down to work
+### ما يتكفّل به `.htaccess` محلّيًا
 
-1. **XAMPP Control Panel → Start `Apache`, Start `MySQL`.** That is all the full
-   site needs; PHP has no build step, so backend edits are live on refresh.
-2. Only if you are editing the React frontend and want hot reload:
+| السلوك | آليّته |
+|---|---|
+| لا إجبار على HTTPS | شرطان يستثنيان `localhost` و `127.0.0.1` |
+| إظهار الأخطاء | `SetEnvIf Host … CI_ENV=development` |
 
-   ```bash
-   cd api/front
-   npm run dev
-   ```
+كلاهما مشروط بالمضيف، فلا أثر لهما في الإنتاج.
 
-`npm install` / `composer install` are one-off — repeat them only when
-`package.json` or `composer.json` changes.
+### `base_url`
 
-| | |
-| --- | --- |
-| Full site, exactly as deployed | <http://localhost:8081/> |
-| Admin panel | <http://localhost:8081/api/login> |
-| Frontend with hot reload | <http://localhost:8080/> (after `npm run dev`) |
-| phpMyAdmin | <http://localhost/phpmyadmin> |
+`application/config/config.php` يشتقّ `base_url` من `$_SERVER['HTTP_HOST']`
+في كلّ طلب. لا شيء يُضبَط يدويًا، والمشروع يعمل على أيّ مضيف أو منفذ.
 
-Use **:8081** to check the real deployed behaviour — `.htaccess` routing, SEO bot
-rewrites, the image proxy. Use **:8080** while writing React, then rebuild and
-re-check on :8081.
+---
 
-In dev the Vite server proxies `/api/*`, the legacy `/api_*` aliases and
-`/uploads` to `VITE_DEV_API_TARGET`. It also rewrites
-`Authorization: Bearer <token>` into an `?auth_token=` query parameter, because
-Apache-on-Windows behind the proxy hop drops the header before PHP sees it. The
-backend accepts both.
+## 4. الوسائط المرفوعة
 
-> `vite.config.ts` reads that variable through Vite's `loadEnv()`, **not**
-> `process.env`. Vite does not put `.env` files on `process.env` — only on
-> `import.meta.env`, which config code cannot see. Reading it the wrong way is
-> silent: the target falls back to `http://localhost` (port 80 → `htdocs`) and
-> every API call 404s.
-
-### Admin login
-
-The password is a bcrypt hash, so it cannot be read out of a dump. Set a local
-one:
+`uploads/` مستثنى من git (محتوى مستخدمين لا كود). المستودع يحمل هيكل
+المجلّدات و حُرّاسها (`index.html`, `.htaccess`) فقط. لصور حقيقية محلّيًا:
 
 ```bash
-php -r "echo password_hash('YOUR_PASSWORD', PASSWORD_BCRYPT), PHP_EOL;"
-mysql -u root taqdaredu -e "UPDATE users SET password='<hash>' WHERE email='admin@taqdaredu.com';"
+rsync -avz taqda9296@88.222.221.162:public_html/uploads/ ./uploads/
 ```
 
-`Login.php` accepts bcrypt and, for legacy rows, a bare `sha1` — which it
-transparently upgrades to bcrypt on the next successful login.
+بدونها تعمل الواجهة لكن تظهر الصور مكسورة.
 
-## Build & deploy
+---
 
-There is **no CI/CD** — it is manual.
+## 5. الوصول إلى الخادم
 
 ```bash
-cd api/front
-npm run build                      # → api/front/dist/
-cp dist/index.html ../../index.html
-cp -r dist/_app/. ../../_app/
+ssh taqda9296@88.222.221.162          # جذر الموقع: ~/public_html
 ```
 
-Root `index.html` is hand-tuned (inline splash screen + CSP) *and* references the
-hashed filenames inside `_app/`, which is why both are tracked here. If you edit
-it directly, mirror the change into `api/front/index.html` too — otherwise the
-next build overwrites you.
+الوصول بمفتاح عامّ يُضاف من CyberPanel → Websites → taqdaredu.com → SSH Access.
+لوحة CyberPanel على `https://88.222.221.162:8090`.
 
-Never hand-edit `_app/*.js` or `_app/*.css`. They are build output.
+---
 
-## Inherited quirks worth knowing
+## التحقّق السريع
 
-- **`api/application/config/rest.php`** is the REST-controller config; API keys
-  live in the `api_keys` table, not in files.
-- **SMTP and payment-gateway credentials live in the database** (`settings`,
-  `payment_gateways`), not in config files.
-- **`ENVIRONMENT` defaults to `production`** (`api/index.php`), which suppresses
-  PHP errors. Set `CI_ENV=development` in the vhost to see them locally:
-  `SetEnv CI_ENV development`.
-- **The previous workflow left artefacts in the web root** — ~40 `deploy_*.zip`,
-  nine `index.html.bak-*` files, `_backup_audit_*/`, `_rollback_snapshot_*/`,
-  `eruda.js` (a debug console!), and `myco_uk (2).sql`. None are in this repo,
-  but they are **still on the live server** and some are publicly reachable.
-- **`api/assets/backend/login/custom.js`** contains a Google Maps API key
-  that ships with the base LMS template. It is not ours and is already public in
-  every copy of that template.
+| الفحص | المتوقَّع |
+|---|---|
+| `curl -I http://localhost:8081/` | `200` و `Content-Type: text/html; charset=UTF-8` |
+| `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='taqd_lms'` | `75` |
+| `curl -o /dev/null -w '%{http_code}' http://localhost:8081/plans` | `200` |
+| `curl -o /dev/null -w '%{http_code}' http://localhost:8081/student` | `302` (تحويل إلى الدخول) |
+| `curl -o /dev/null -w '%{http_code}' http://localhost:8081/courses` | `301` (إلى `/plans`) |
+
+---
+
+## أعطال شائعة
+
+**تحويل لا ينتهي إلى `https://localhost:8081`**
+`.htaccess` غير مقروء (`AllowOverride` ليس `All`) أو `mod_rewrite` معطّل.
+
+**صفحة بيضاء بلا رسالة**
+`CI_ENV` لم تصل إلى PHP، فبقيت البيئة `production` وابتُلع الخطأ.
+تحقّق من `mod_setenvif`، واقرأ `application/logs/` و سجلّ أخطاء Apache.
+
+**`Unable to connect to your database server`**
+المستخدم `taqd_lmsuser` غير موجود محلّيًا، أو `database.php` لم يُنسَخ من قالبه.
+
+**نصّ عربيّ مشوّه**
+استُورِدت النسخة بترميز غير `utf8mb4`. أعد الاستيراد مع
+`--default-character-set=utf8mb4` في طرفَي التصدير والاستيراد.
+
+**`Got error 176 "Read page with wrong checksum" from storage engine Aria`**
+عطبٌ في جداول صلاحيات MySQL المحلّية، لا علاقة له بالمشروع:
+```sql
+REPAIR TABLE mysql.db, mysql.tables_priv;
+```

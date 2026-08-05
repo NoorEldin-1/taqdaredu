@@ -1,0 +1,176 @@
+<?php
+if (!defined('BASEPATH')) exit('No direct script access allowed');
+
+/**
+ * متحكّم بوّابات تقدّر.
+ *
+ * كل مسار هنا يفرض دوره في الخادم لا في الواجهة — إخفاء زرّ ليس صلاحية.
+ * والعرض يمرّ بغلاف الثيم نفسه (frontend/<theme>/index) فلا يخرج عن النظام.
+ */
+class Taqdar extends CI_Controller
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->library('session');
+        $this->load->database();
+        $this->load->model('crud_model');
+        $this->load->model('user_model');
+    }
+
+    /* ---------------------------------------------------------------- */
+
+    private function theme()
+    {
+        return 'taqdar'; // بوّابات تقدّر تعرض بثيمها دائمًا، فلا تنتظر تبديل الموقع العام
+    }
+
+    /** يعرض صفحة داخل غلاف الثيم. */
+    private function show($page, $title, $data = [])
+    {
+        $data['page_name']  = $page;
+        $data['page_title'] = $title;
+        $this->load->view('frontend/' . $this->theme() . '/index', $data);
+    }
+
+    /** يشترط تسجيل الدخول — وإلا إلى صفحة الدخول. */
+    private function require_login()
+    {
+        if (!$this->session->userdata('user_id')) {
+            redirect(site_url('login'), 'refresh');
+        }
+    }
+
+    /**
+     * يشترط دورًا بعينه. الطالب هو الافتراضي؛ والمعلم يُعرف بـ is_instructor؛
+     * ووليّ الأمر ينتظر جدول parent_links فلا يُفتح بابه لمن ليس مرتبطًا.
+     */
+    private function require_role($role)
+    {
+        $this->require_login();
+        $uid  = $this->session->userdata('user_id');
+        $user = $this->user_model->get_all_user($uid)->row_array();
+
+        if ($role === 'teacher' && empty($user['is_instructor'])) {
+            show_error('هذه البوّابة مقصورة على المعلّمين.', 403, 'غير مصرّح');
+        }
+
+        if ($role === 'parent') {
+            $linked = $this->db->table_exists('parent_links')
+                ? $this->db->where(['parent_user_id' => $uid, 'status' => 'active'])
+                           ->count_all_results('parent_links')
+                : 0;
+            if (!$linked) {
+                show_error('وصولك مقصور على بيانات ابنك المرتبط بحسابك.', 403, 'غير مصرّح');
+            }
+        }
+
+        return $user;
+    }
+
+    /** أعداد الشارات في القائمة والترويسة — استعلام واحد لكل نوع. */
+    private function counts($uid)
+    {
+        // أعمدة Academy الفعلية: message(receiver, read_status) و notifications(to_user, status)
+        $unread_msgs = (int) $this->db->where('receiver', $uid)
+                                      ->where('read_status', 0)
+                                      ->count_all_results('message');
+
+        $unread_notif = (int) $this->db->where('to_user', $uid)
+                                       ->where('status', 0)
+                                       ->count_all_results('notifications');
+
+        return ['messages' => $unread_msgs, 'notifications' => $unread_notif];
+    }
+
+    /* ---- بوّابة الطالب --------------------------------------------- */
+
+    public function index()          { redirect(site_url('taqdar/home'), 'refresh'); }
+    public function home()           { $this->student('tq_home', 'الرئيسية'); }
+    public function lessons()        { $this->student('tq_lessons', 'دروسي'); }
+    public function tasks()          { $this->student('tq_tasks', 'مهامي'); }
+    public function exams()          { $this->student('tq_exams', 'اختباراتي'); }
+    public function materials()      { $this->student('tq_materials', 'المواد التعليمية'); }
+    public function reports()        { $this->student('tq_reports', 'المتابعة والتقارير'); }
+    public function favourites()     { $this->student('tq_favourites', 'المفضلة'); }
+    public function messages()       { $this->student('tq_messages', 'رسائلي'); }
+    public function notifications()  { $this->student('tq_notifications', 'الإشعارات'); }
+    public function calendar()       { $this->student('tq_calendar', 'التقويم'); }
+    public function certificates()   { $this->student('tq_certificates', 'الشهادات'); }
+    public function payments()       { $this->student('tq_payments', 'المدفوعات'); }
+    public function settings()       { $this->student('tq_settings', 'الإعدادات'); }
+
+    /** حصص بالطلب: طبقة مستقلّة بجوار المنهج لا داخله. */
+    public function on_demand()      { $this->student('tq_on_demand', 'حصص بالطلب'); }
+
+    private function student($page, $title)
+    {
+        $this->require_login();
+        $uid = $this->session->userdata('user_id');
+        $this->show($page, $title, [
+            'tq_counts' => $this->counts($uid),
+            'user_id'   => $uid,
+        ]);
+    }
+
+    /* ---- صفحات عامّة داخل الثيم ------------------------------------ */
+
+    public function plans()      { $this->show('plans', 'الاشتراكات'); }
+    public function categories() { $this->show('categories', 'الأقسام'); }
+
+    public function search()
+    {
+        $q = $this->input->get('q', true);
+        redirect(site_url('home/courses' . ($q ? '?query=' . urlencode($q) : '')), 'refresh');
+    }
+
+    /* ---- بوّابة المعلم ---------------------------------------------- */
+
+    public function teacher($section = 'dashboard')
+    {
+        $map = [
+            'dashboard' => ['tq_teacher_dashboard', 'لوحة المعلّم'],
+            'courses'   => ['tq_teacher_courses',   'كورساتي'],
+            'upload'    => ['tq_teacher_upload',    'رفع الدروس'],
+            'questions' => ['tq_teacher_questions', 'بنك الأسئلة'],
+            'marking'   => ['tq_teacher_marking',   'الواجبات والتصحيح'],
+            'students'  => ['tq_teacher_students',  'طلابي'],
+            'sessions'  => ['tq_teacher_sessions',  'الحصص'],
+            'wallet'    => ['tq_teacher_wallet',    'المحفظة والأرباح'],
+        ];
+        if (!isset($map[$section])) show_404();
+
+        $user = $this->require_role('teacher');
+        [$page, $title] = $map[$section];
+
+        $this->show($page, $title, [
+            'tq_counts' => $this->counts($user['id']),
+            'user_id'   => $user['id'],
+        ]);
+    }
+
+    /* ---- بوّابة وليّ الأمر ------------------------------------------ */
+
+    public function parent_portal($section = 'children')
+    {
+        $map = [
+            'children' => ['tq_parent_children', 'أبنائي'],
+            'child'    => ['tq_parent_child',    'تفاصيل الابن'],
+            'reports'  => ['tq_parent_reports',  'التقارير'],
+            'weekly'   => ['tq_parent_weekly',   'التقرير الأسبوعي'],
+            'payments' => ['tq_parent_payments', 'المدفوعات'],
+            'messages' => ['tq_parent_messages', 'الرسائل'],
+            'alerts'   => ['tq_parent_alerts',   'الإشعارات'],
+            'settings' => ['tq_parent_settings', 'الإعدادات'],
+        ];
+        if (!isset($map[$section])) show_404();
+
+        $user = $this->require_role('parent');
+        [$page, $title] = $map[$section];
+
+        $this->show($page, $title, [
+            'tq_counts' => $this->counts($user['id']),
+            'user_id'   => $user['id'],
+        ]);
+    }
+}

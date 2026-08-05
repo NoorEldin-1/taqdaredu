@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <!-- Girih-style tile: an eight-point khatim star tied to the tile corners so
+       copies interlock seamlessly when the tile repeats. -->
+  <g fill="none" stroke="#A06C20" stroke-width="1.1" stroke-linejoin="round">
+    <path d="M70 40 L61.21 48.79 L61.21 61.21 L48.79 61.21 L40 70 L31.21 61.21
+             L18.79 61.21 L18.79 48.79 L10 40 L18.79 31.21 L18.79 18.79
+             L31.21 18.79 L40 10 L48.79 18.79 L61.21 18.79 L61.21 31.21 Z"/>
+    <path d="M61.21 61.21 L80 80 M18.79 61.21 L0 80 M18.79 18.79 L0 0 M61.21 18.79 L80 0"/>
+    <circle cx="40" cy="40" r="4.4"/>
+    <path d="M70 40 L80 40 M10 40 L0 40 M40 10 L40 0 M40 70 L40 80"/>
+  </g>
+</svg>

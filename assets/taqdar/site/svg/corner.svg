@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88" viewBox="0 0 88 88">
+  <!-- Radially symmetric so one file serves all four corners without mirroring. -->
+  <g fill="none" stroke="#A06C20" stroke-width="1.1" stroke-linecap="round">
+    <path d="M44 20 51 30.5 62 37.5 51 44.5 44 55 37 44.5 26 37.5 37 30.5Z"/>
+    <circle cx="44" cy="37.5" r="4"/>
+    <path d="M44 12v8M44 55v9M20 37.5h6M62 37.5h6"/>
+    <path d="M26 22c6 0 10 4 11 8.5M62 22c-6 0-10 4-11 8.5"/>
+    <path d="M26 53c6 0 10-4 11-8.5M62 53c-6 0-10-4-11-8.5"/>
+  </g>
+</svg>

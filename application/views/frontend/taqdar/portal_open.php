@@ -1,0 +1,44 @@
+<?php
+/**
+ * فتح غلاف البوّابة: القائمة الجانبية + الترويسة.
+ * كل صفحة بوّابة تبدأ بهذا وتنتهي بـ portal_close.php.
+ *
+ * المتغيّرات المتوقّعة من الصفحة (كلّها اختيارية):
+ *   $tq_nav      مفتاح عنصر القائمة النشط
+ *   $tq_role     student | teacher | parent   (افتراضه student)
+ *   $tq_title    عنوان الصفحة
+ *   $tq_sub      سطر تحت العنوان
+ *   $tq_icon     اسم أيقونة (svg sprite)
+ *   $tq_tools    HTML لأدوات يمين العنوان
+ */
+$tq_nav  = $tq_nav  ?? '';
+$tq_role = $tq_role ?? 'student';
+?>
+<div class="tq-shell">
+
+    <?php include 'portal_rail.php'; ?>
+
+    <div class="tq-shell__main">
+        <?php include 'portal_topbar.php'; ?>
+
+        <div class="tq-page">
+            <?php if (!empty($tq_title)): ?>
+                <div class="tq-pagehead">
+                    <div>
+                        <div class="tq-pagehead__title">
+                            <?php if (!empty($tq_icon)): ?>
+                                <span class="tq-icon-box tq-pastel--sky" aria-hidden="true">
+                                    <?php echo tq_icon($tq_icon); ?>
+                                </span>
+                            <?php endif; ?>
+                            <h1><?php echo html_escape($tq_title); ?></h1>
+                        </div>
+                        <?php if (!empty($tq_sub)): ?>
+                            <p class="tq-pagehead__sub"><?php echo html_escape($tq_sub); ?></p>
+                        <?php endif; ?>
+                    </div>
+                    <?php if (!empty($tq_tools)): ?>
+                        <div class="tq-pagehead__tools"><?php echo $tq_tools; ?></div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>

@@ -1,0 +1,200 @@
+/* ==========================================================================
+   منصّة تقدّر — تخطيط البوّابات والموقع العام
+   الشبكة: القائمة الجانبية · المحتوى · العمود الجانبي.
+   في RTL القائمة يمينًا والعمود يسارًا، وينقلب الترتيب في LTR تلقائيًّا
+   لأن الشبكة منطقية (start/end) لا فيزيائية.
+   ========================================================================== */
+
+.tq-body--portal { background: var(--tq-ground); }
+
+.tq-shell {
+  display: flex;
+  min-block-size: 100vh;
+  align-items: stretch;
+}
+
+.tq-shell__main {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tq-page {
+  flex: 1;
+  padding: var(--tq-space-xl);
+  max-inline-size: var(--tq-container-max);
+  inline-size: 100%;
+  margin-inline: auto;
+}
+
+/* المحتوى + العمود الجانبي */
+.tq-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--tq-space-xxl);
+  align-items: start;
+}
+.tq-cols--wide  { grid-template-columns: minmax(0, 1fr) 300px; }
+.tq-cols--only  { grid-template-columns: minmax(0, 1fr); }
+
+.tq-aside { display: grid; gap: var(--tq-space-xxl); position: sticky; inset-block-start: var(--tq-space-xl); }
+
+/* العمود الجانبي يختفي دون 1024 ومحتواه ينتقل أسفل الصفحة */
+@media (max-width: 1023.98px) {
+  .tq-cols { grid-template-columns: minmax(0, 1fr); }
+  .tq-aside { position: static; }
+}
+
+/* رأس الصفحة داخل البوّابة */
+.tq-pagehead {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--tq-space-l);
+  margin-block-end: var(--tq-space-xl);
+  flex-wrap: wrap;
+}
+.tq-pagehead__title { display: flex; align-items: center; gap: var(--tq-space-m); }
+.tq-pagehead h1 { margin: 0; font: var(--tq-type-h1); }
+.tq-pagehead__sub { color: var(--tq-text2); font: var(--tq-type-caption); margin: var(--tq-space-xs) 0 0; }
+.tq-pagehead__tools { display: flex; align-items: center; gap: var(--tq-space-s); }
+
+/* رأس قسم + «عرض الكل» */
+.tq-sectionhead {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--tq-space-m); margin-block-end: var(--tq-space-l);
+}
+.tq-sectionhead h2 { margin: 0; font: var(--tq-type-h2); }
+.tq-sectionhead__count {
+  padding: 2px var(--tq-space-s);
+  background: var(--tq-navyWash); color: var(--tq-navy);
+  border-radius: var(--tq-radius-pill); font: var(--tq-type-numeralSm);
+  unicode-bidi: isolate; direction: ltr;
+}
+
+/* زرّ فتح الدرج على الجوّال */
+.tq-rail-toggle { display: none; }
+@media (max-width: 639.98px) {
+  .tq-rail-toggle { display: grid; }
+  .tq-rail-scrim {
+    position: fixed; inset: 0; z-index: 55;
+    background: rgba(1, 33, 31, .45);
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--tq-motion-route) ease;
+  }
+  .tq-rail-scrim[data-open='true'] { opacity: 1; pointer-events: auto; }
+  .tq-page { padding: var(--tq-space-l); }
+}
+
+/* --------------------------------------------------------------------------
+   الموقع العام
+   -------------------------------------------------------------------------- */
+.tq-site-header {
+  position: sticky; inset-block-start: 0; z-index: 50;
+  background: var(--tq-surface);
+  border-block-end: 1px solid var(--tq-line);
+}
+.tq-site-header__inner {
+  display: flex; align-items: center; gap: var(--tq-space-xl);
+  min-block-size: 72px;
+}
+.tq-site-nav { display: flex; align-items: center; gap: var(--tq-space-l); margin-inline-start: var(--tq-space-xl); }
+.tq-site-nav a { color: var(--tq-text2); }
+.tq-site-nav a:hover, .tq-site-nav a[aria-current='page'] { color: var(--tq-navy); text-decoration: none; }
+.tq-site-header__actions { display: flex; align-items: center; gap: var(--tq-space-s); margin-inline-start: auto; }
+
+.tq-logo { display: flex; align-items: center; gap: var(--tq-space-m); }
+.tq-logo img { block-size: 40px; inline-size: auto; }
+
+@media (max-width: 767.98px) {
+  .tq-site-nav { display: none; }
+}
+
+.tq-site-footer {
+  background: var(--tq-navyDeep);
+  color: rgba(255, 255, 255, .72);
+  padding-block: var(--tq-space-h3) var(--tq-space-xl);
+  margin-block-start: var(--tq-space-h3);
+}
+.tq-site-footer a { color: rgba(255, 255, 255, .72); }
+.tq-site-footer a:hover { color: #fff; }
+.tq-site-footer h3 { color: #fff; font: var(--tq-type-h2); margin-block-end: var(--tq-space-l); }
+.tq-site-footer__cols { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: var(--tq-space-h2); }
+.tq-site-footer__bottom {
+  margin-block-start: var(--tq-space-h2);
+  padding-block-start: var(--tq-space-l);
+  border-block-start: 1px solid rgba(255, 255, 255, .12);
+  display: flex; justify-content: space-between; gap: var(--tq-space-l); flex-wrap: wrap;
+}
+@media (max-width: 767.98px) {
+  .tq-site-footer__cols { grid-template-columns: minmax(0, 1fr); gap: var(--tq-space-xl); }
+}
+
+/* الواجهة (hero) */
+.tq-hero-block {
+  padding-block: var(--tq-space-h3);
+  background:
+    radial-gradient(1200px 400px at 80% -10%, var(--tq-mint-fill), transparent 60%),
+    radial-gradient(900px 380px at 10% 0%, var(--tq-sky-fill), transparent 62%);
+}
+.tq-hero-block__grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: var(--tq-space-h2); align-items: center; }
+@media (max-width: 900px) { .tq-hero-block__grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* شريط الأرقام */
+.tq-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--tq-space-xxl); }
+.tq-stat { text-align: center; }
+.tq-stat__value { font: var(--tq-type-numeralXl); color: var(--tq-navy); display: block; unicode-bidi: isolate; direction: ltr; }
+.tq-stat__label { color: var(--tq-text2); font: var(--tq-type-caption); }
+@media (max-width: 639.98px) { .tq-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* --------------------------------------------------------------------------
+   شريط ملفات تعريف الارتباط — يظهر مرّة ولا يعود، ولا يحجب المحتوى
+   -------------------------------------------------------------------------- */
+.tq-cookie {
+  position: fixed;
+  inset-block-end: var(--tq-space-l);
+  inset-inline-start: var(--tq-space-l);
+  z-index: 80;
+  max-inline-size: 420px;
+}
+@media (max-width: 639.98px) {
+  .tq-cookie { inset-inline: var(--tq-space-l); max-inline-size: none; }
+}
+
+/* --tq-text2 لون نصّ ثانوي على أبيض؛ وعلى أرضية التذييل الكحلية يبلغ 3.45:1
+   وهو دون العتبة. فالتذييل يحمل حبره الخاصّ لا الافتراضي. */
+.tq-site-footer .tq-micro,
+.tq-site-footer .tq-caption,
+.tq-site-footer .tq-body { color: rgba(255, 255, 255, .78); }
+
+/* tq-dark-action-note: الأبيض على السطح المشبَع ثابت في الوجهين. أي سطح
+   يحمل نصًّا أبيض يأخذ --tq-action*، ولا يأخذ --tq-navy ولا --tq-teal
+   لأنهما ينقلبان في الوجه الداكن بصفتهما حبرًا لا سطحًا. */
+.tq-site-footer { background: var(--tq-navyDeep); }
+
+/* --------------------------------------------------------------------------
+   مشغّل الدرس
+   -------------------------------------------------------------------------- */
+.tq-player { background: var(--tq-navyDeep); }
+.tq-player__frame { position: relative; padding-block-end: 56.25%; }
+.tq-player__frame > iframe,
+.tq-player__frame > video {
+  position: absolute; inset: 0;
+  inline-size: 100%; block-size: 100%;
+  border: 0; display: block; background: #000;
+}
+.tq-player__frame .tq-empty { position: absolute; inset: 0; color: rgba(255,255,255,.8); }
+.tq-player__frame .tq-empty__text { color: rgba(255,255,255,.8); }
+
+/* أسئلة المراجعة: الخيار كلّه قابل للنقر لا الدائرة وحدها */
+[data-tq-gate-questions] label {
+  gap: var(--tq-space-m);
+  padding: var(--tq-space-m);
+  border: var(--tq-field-border) solid var(--tq-line);
+  border-radius: var(--tq-radius-small);
+  margin-block-end: var(--tq-space-s);
+  transition: border-color var(--tq-motion-hover) ease, background-color var(--tq-motion-hover) ease;
+}
+[data-tq-gate-questions] label:hover { border-color: var(--tq-navy); background: var(--tq-navyWash); }
+[data-tq-gate-questions] input:checked + span { font-weight: 700; color: var(--tq-navy); }
+[data-tq-gate-questions] label:has(input:checked) { border-color: var(--tq-navy); background: var(--tq-navyWash); }
+[data-tq-gate-questions] input { accent-color: var(--tq-actionPrimary); inline-size: 20px; block-size: 20px; flex: none; }

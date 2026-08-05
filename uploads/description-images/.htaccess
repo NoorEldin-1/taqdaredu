@@ -1,0 +1,13 @@
+# لا يُنفَّذ سكربت داخل مجلّد رفع مهما كان امتداده أو من رفعه.
+# والملفّات الساكنة تبقى تُخدَم — فالصور هنا تُعرض للمتصفّح مباشرة،
+# ومنعها الكامل (كما في lesson_files) يكسر عرضها.
+<FilesMatch "(?i)\.(php|php[0-9]*|phtml|phar|pht|shtml|cgi|pl|py|rb|asp|aspx|jsp|sh|htaccess)$">
+    <IfModule authz_core_module>
+        Require all denied
+    </IfModule>
+    <IfModule !authz_core_module>
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+Options -Indexes

@@ -1,90 +1,45 @@
-# =============================================================
-#  taqdaredu.com — repo mirrors the live web root (public_html)
-#  Backend: CodeIgniter 3 under api/    Frontend source: api/front/
-# =============================================================
+# ============================================================
+#  أسرار — المستودع عامّ، فهذه الملفات لا تُرفع إطلاقًا.
+#  انسخ القالب المرافق (.example) واملأه بعد الاستنساخ.
+# ============================================================
+/application/config/database.php
+/application/config/database.php.orig
+/application/config/taqdar_secret.php
 
-# ---- Secrets: never commit ----------------------------------
-# Both have a committed .example alongside them.
-api/application/config/database.php
-api/application/config/secrets.php
-.env
-.env.*
-*.env
-# ...but the templates carry no secrets and must be tracked.
-!.env.example
-!*.env.example
+# ============================================================
+#  محتوى المستخدمين — يُنسَخ من الخادم لا من المستودع.
+#  تُستبقى ملفات index.html و .htaccess وحدها لأنّها حُرّاس
+#  المجلّدات: بدونها يصير سرد المحتويات مكشوفًا.
+# ============================================================
+/uploads/**
+!/uploads/**/
+!/uploads/**/index.html
+!/uploads/**/.htaccess
 
-# ---- Dependencies (restored by composer / npm) --------------
-api/vendor/
-api/front/node_modules/
+# ============================================================
+#  مخرجات وقت التشغيل
+# ============================================================
+/application/cache/*
+!/application/cache/index.html
+/application/logs/*
+!/application/logs/index.html
+/backups/*
+!/backups/index.html
+
+# ============================================================
+#  أدوات محلّية
+# ============================================================
+/vendor/
+composer.lock
 node_modules/
-
-# ---- Build output of api/front (rebuilt with `npm run build`)
-# NOTE: the *deployed* copies at the web root — /_app/ and /index.html —
-# ARE tracked, because root index.html is hand-tuned (inline splash + CSP)
-# and references the hashed filenames inside _app/.
-api/front/dist/
-
-# ---- Test & tooling artifacts -------------------------------
-api/front/test-results/
-api/front/playwright-report/
-api/front/coverage/
-api/front/vite.config.ts.timestamp-*
-.phpunit.result.cache
-phpunit-9.phar
-
-# ---- Runtime data written by the app ------------------------
-api/application/logs/*.php
-api/application/cache/*
-!api/application/cache/index.html
-api/backups/*
-!api/backups/index.html
-# Root-anchored on purpose. A bare `lscache/` / `logs/` would also swallow
-# api/application/libraries/s3-vendor/Aws/data/logs/, which is AWS SDK source.
-/lscache/
-/logs/
-
-# ---- Deploy archives & the previous dev's backup convention --
-# The old workflow left ~40 deploy_*.zip and 9 index.html.bak-* files in
-# the web root. They are history, not source — keep them out.
+*.log
+*.sql
+*.sql.gz
 *.zip
-*.tar
 *.tar.gz
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
 *.bak
 *.bak-*
-*.before-*
-_backup_audit_*/
-_rollback_snapshot_*/
-
-# ---- Debug tooling that must never reach production ---------
-eruda.js
-_live_bundle.js
-_live_curr.json
-
-# ---- Database dumps ----------------------------------------
-# Never commit dumps: they carry real user data.
-# (fix_lesson_order.sql is an intentional migration script and is tracked.)
-*.sql
-!fix_lesson_order.sql
-!api/application/sql/**
-# NOT api/uploads/install.sql: the base LMS template seeds its payment_gateways
-# table with the vendor's own Stripe / Cashfree / Flutterwave keys, and GitHub
-# push protection rightly rejects them. It stays out of git.
-
-# ---- Leftovers from the my-communication.uk project ---------
-# This codebase was cloned from "My-Communication Academy". Its stray
-# reports/dumps are not part of taqdaredu.
-My-Communication-UK*
-myco_uk*
-
-# ---- OS / editor junk ---------------------------------------
-.DS_Store
-__MACOSX/
-Thumbs.db
-desktop.ini
-.idea/
-.vscode/*
-!.vscode/extensions.json
-*.swp
-*.swo
-*~

@@ -1,0 +1,17 @@
+{
+  "name": "تقدّر — منصة التعليم الذكي",
+  "short_name": "تقدّر",
+  "description": "منصة تعليمية عربية تقود الطالب خطوة بخطوة حتى الإتقان.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/taqdar/home",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F6F7FA",
+  "theme_color": "#023331",
+  "icons": [
+    { "src": "/assets/taqdar/brand/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/taqdar/brand/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,38 @@
+﻿# =====================================================================
+# مهامّ تقدّر الدورية — تُنفَّذ بصلاحية taqda9296، مالك ملفّات الموقع.
+#
+# لماذا ليست في crontab الـroot: CodeIgniter يكتب الكاش والسجلّ أثناء
+# الإقلاع. فلو أُقلع من مهمّة root صار أوّل ملفّ يكتبه مملوكًا لـroot،
+# ثمّ يعجز الويب (nobody/taqda9296) عن الكتابة فوقه، فيقع الموقع في
+# خطأ صامت لا يظهر إلّا بعد أن يفسد شيء. والمالك الواحد يقطع هذا.
+#
+# ويُستعمل مفسّر LiteSpeed نفسه (lsphp82) لا /usr/bin/php، ليكون
+# نفسَ الإصدار والإضافات التي يعمل بها الموقع في الويب.
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# النشرة البريدية — معطَّلة عمدًا (٢٠٢٦-٠٨-٠٢)
+#
+# كانت تعمل كل ١٠ دقائق (١٤٤ مرّة يوميًّا) على ملفّ **غير موجود**:
+#   /home/taqdaredu.com/public_html/uploads/cronjob/newsletter_cron.php
+# والمجلّد فيه `.htaccess` فقط. وكل أثر كان يُبتلع بـ>/dev/null 2>&1،
+# فكان الفشل صامتًا تمامًا.
+#
+# ولم تُصلَح بإنشاء الملفّ لسببين: (١) الملفّ لا يُكتب يدويًّا، بل يولّده
+# مديرُ الموقع من لوحة التحكّم (الإعدادات ← النشرة البريدية ← زرّ
+# "Create Cronjob file")، وهو يُدرج فيه مسارات التنصيب وقتَ التوليد؛
+# (٢) الميزة غير مستعملة أصلًا: ٠ نشرة، ٠ مشترك، ٠ سجلّ إرسال.
+#
+# لإعادة التفعيل: أنشئ الملفّ من لوحة التحكّم، ثمّ أزل # من السطر التالي.
+# */10 * * * * /usr/local/lsws/lsphp82/bin/php -q /home/taqdaredu.com/public_html/uploads/cronjob/newsletter_cron.php >> /home/taqdaredu.com/logs/newsletter_cron.log 2>&1
+# ---------------------------------------------------------------------
+
+# انتهاء الاشتراكات المستحقّة — نُقلت من crontab الـroot في ٢٠٢٦-٠٨-٠٢
+0 2 * * * /usr/local/lsws/lsphp82/bin/php /home/taqdaredu.com/cron_taqdar.php taqdar_cron expire >> /home/taqdaredu.com/logs/taqdar_cron.log 2>&1
+
+# تقليم سجلّات CodeIgniter المؤرَّخة (ضغط بعد ٧ أيّام، حذف بعد ٦٠)
+# سجلّ CI فُعِّل حديثًا ويكتب ملفًّا لكل يوم، فبلا تقليم ينمو بلا حدّ.
+40 4 * * * /usr/local/bin/taqdar-ci-logs-prune >/dev/null 2>&1
+30 2 * * * /usr/local/lsws/lsphp82/bin/php /home/taqdaredu.com/cron_taqdar.php taqdar_cron_events run    >> /home/taqdaredu.com/logs/cron_events.log 2>&1
+0 4 * * 0 /usr/local/lsws/lsphp82/bin/php /home/taqdaredu.com/cron_taqdar.php taqdar_cron_events weekly >> /home/taqdaredu.com/logs/cron_events.log 2>&1
+10 * * * * /usr/local/lsws/lsphp82/bin/php /home/taqdaredu.com/cron_taqdar.php taqdar_cron expire_sessions >> /home/taqdaredu.com/logs/taqdar_cron.log 2>&1
