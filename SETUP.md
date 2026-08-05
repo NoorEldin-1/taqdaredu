@@ -124,7 +124,7 @@ rsync -avz taqda9296@88.222.221.162:public_html/uploads/ ./uploads/
 
 ---
 
-## 5. الوصول إلى الخادم
+## 5. الوصول إلى الخادم والنشر
 
 ```bash
 ssh taqda9296@88.222.221.162          # جذر الموقع: ~/public_html
@@ -132,6 +132,40 @@ ssh taqda9296@88.222.221.162          # جذر الموقع: ~/public_html
 
 الوصول بمفتاح عامّ يُضاف من CyberPanel → Websites → taqdaredu.com → SSH Access.
 لوحة CyberPanel على `https://88.222.221.162:8090`.
+
+### النشر
+
+ادفع إلى `main`، ثمّ على الخادم:
+
+```bash
+cd ~/public_html
+bash deploy.sh
+```
+
+| خيار | أثره |
+|---|---|
+| `--dry-run` | يعرض الكوميتات والملفّات التي ستتغيّر ثمّ يخرج |
+| `--no-backup` | يتخطّى نسخ قاعدة البيانات |
+
+السكربت ينسخ القاعدة إلى `~/backups` (يُبقي آخر ١٠)، يسحب `origin/main`،
+ينظّف كاش CodeIgniter و LiteSpeed، يضبط صلاحيّات المجلّدات القابلة للكتابة،
+ثمّ **يفحص الموقع فعليًّا** ويفشل إن لم ترجع `/` و `/plans` و `/login` بـ200
+أو إن انكشف `/.git/config`.
+
+الأسرار و `uploads/` مُتجاهَلة في git فلا يمسّها النشر. للرجوع:
+
+```bash
+git log --oneline -10
+git reset --hard <sha>
+```
+
+> **أوّل مرّة فقط** — `~/public_html` نُشِر بالرفع اليدويّ فليس مستودعًا.
+> انسخ سكربت التهيئة ثمّ شغّله على طورين:
+> ```bash
+> scp server/bootstrap-git.sh taqdaredu:public_html/
+> ssh taqdaredu 'cd public_html && bash bootstrap-git.sh'          # فحص
+> ssh taqdaredu 'cd public_html && bash bootstrap-git.sh --apply'  # تطبيق
+> ```
 
 ---
 
