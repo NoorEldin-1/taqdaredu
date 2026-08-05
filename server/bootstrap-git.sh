@@ -25,12 +25,23 @@ REPO=https://github.com/NoorEldin-1/taqdaredu.git
 APPLY=0
 [ "${1:-}" = "--apply" ] && APPLY=1
 
-cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-echo "📁 المشروع: $(pwd)"
-
-[ -f index.php ] && [ -d application ] || {
-  echo "❌ لا يبدو أنّ هذا جذر الموقع."; exit 1;
+# أوّل مرّة يُنسَخ هذا الملفّ إلى جذر الموقع مباشرةً (لا server/ بعد،
+# فالمستودع الذي يحويه لم يصل)؛ وبعد التهيئة يعيش في server/. فيُبحَث
+# عن الجذر بعلامته لا بموضع الملفّ.
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT=""
+for cand in "$SELF_DIR" "$SELF_DIR/.." "$PWD"; do
+  if [ -f "$cand/index.php" ] && [ -d "$cand/application" ]; then
+    ROOT="$(cd "$cand" && pwd)"; break
+  fi
+done
+[ -n "$ROOT" ] || {
+  echo "❌ تعذّر العثور على جذر الموقع (index.php + application/)."
+  echo "   شغّل السكربت من داخل ~/public_html."
+  exit 1
 }
+cd "$ROOT"
+echo "📁 المشروع: $(pwd)"
 
 # ── 1  إنشاء المستودع وتحصينه قبل أن يوجد فيه شيء ───────────
 #   ترتيب مقصود: .git/.htaccess يُكتب فور إنشاء المجلّد وقبل الجلب،
