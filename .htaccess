@@ -89,6 +89,9 @@ php_value max_input_vars 5000
 # `md` و `sh` و `example` أُضيفت مع المستودع: التوثيق وسكربت النشر وقوالب
 # الأسرار كلّها ملفّاتٌ حقيقيّة في جذر الويب، والملفّ الحقيقيّ يُخدَم كما هو.
 # و `example` تحديدًا يُفصح عن أسماء المستخدمين وبنية الاتصال.
-<FilesMatch "\.(orig|bak|sql|log|md|sh|example|gitignore|gitattributes)$">
+# الشقّ الثاني لعُرف النسخ في هذا المشروع: `<ملفّ>.bak-<وصف>-<تاريخ>` و
+# `<ملفّ>.pre-<وصف>`. اللاحقة فيهما وسطٌ لا نهاية، فقاعدة `\.bak$` تخطئها
+# كلَّها — و `Home.php.pre-404` شيفرةٌ كاملة تُقرأ لو خُدِمت.
+<FilesMatch "\.(orig|bak|sql|log|md|sh|example|gitignore|gitattributes)$|\.(bak|pre)-">
     Require all denied
 </FilesMatch>
