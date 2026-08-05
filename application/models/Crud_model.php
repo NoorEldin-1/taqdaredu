@@ -407,6 +407,25 @@ class Crud_model extends CI_Model
         $this->db->where('key', 'phone');
         $this->db->update('settings', $data);
 
+        // رابطا المتجرين. يُخزَّنان **خامَين** خلافًا لبقيّة الحقول هنا:
+        // site_stores.php يمرّرهما على html_escape عند العرض، فتهريبُهما مرّتين
+        // يقلب `&` في `?id=..&hl=ar` إلى `&amp;amp;` ويكسر الرابط.
+        //
+        // والتحقّق من المخطّط ليس زينة: الحقل يقبل أيّ نصّ، و`javascript:`
+        // فيه يصير تنفيذًا عند النقر على شارة التذييل. ما لا يكون http(s)
+        // يُفرَّغ، والتفريغ يعيد الشارة إلى حالة «قريبًا» — وهو سلوكٌ مفهوم.
+        foreach (array('app_store_url', 'google_play_url') as $store_key) {
+            $store_url = trim((string) $this->input->post($store_key, false));
+            if ($store_url !== '' && !preg_match('~^https?://~i', $store_url)) {
+                $store_url = '';
+            }
+            if ($store_url !== '' && !filter_var($store_url, FILTER_VALIDATE_URL)) {
+                $store_url = '';
+            }
+            $this->db->where('key', $store_key);
+            $this->db->update('settings', array('value' => $store_url));
+        }
+
         $data['value'] = html_escape($this->input->post('youtube_api_key'));
         $this->db->where('key', 'youtube_api_key');
         $this->db->update('settings', $data);

@@ -61,6 +61,36 @@
                             <input type="text" name = "phone" id = "phone" class="form-control" value="<?php echo get_settings('phone');  ?>">
                         </div>
 
+                        <!--
+                            رابطا المتجرين. شارتا التذييل (site/site_stores.php) تقرآن هذين
+                            المفتاحين: ما دام الحقل فارغًا تُعرض الشارة صامتةً مع «التطبيق
+                            قريبًا»، وبمجرّد وضع رابطٍ تصير رابطًا حيًّا يفتح في تبويب جديد.
+                            فالتفريغ هو طريقة التعطيل، لا حذف الشارة.
+
+                            والنصّ عربيّ مباشرةً لا عبر get_phrase: الدالّة تُرجع المفتاح
+                            مُنمَّقًا حين لا تجد ترجمة، فكانت ستطبع «App store url» وسط لوحةٍ
+                            عربيّة إلى أن يُدرَج صفٌّ في جدول language يدويًّا — خطوةٌ لا
+                            يحملها النشر. وطبقة تقدّر تكتب العربيّ مباشرةً أصلًا.
+
+                            و dir="ltr" على الحقل: الرابط لاتينيّ، وفي سياق RTL تنزلق
+                            علامات // و ? و = إلى مواضع مضلّلة بصريًّا عند المراجعة.
+                        -->
+                        <div class="form-group">
+                            <label for="app_store_url">رابط App Store</label>
+                            <input type="url" name="app_store_url" id="app_store_url" class="form-control"
+                                   dir="ltr" placeholder="https://apps.apple.com/..."
+                                   value="<?php echo html_escape(get_settings('app_store_url')); ?>">
+                            <small class="badge badge-light">اتركه فارغًا لتظهر الشارة بحالة «قريبًا»</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="google_play_url">رابط Google Play</label>
+                            <input type="url" name="google_play_url" id="google_play_url" class="form-control"
+                                   dir="ltr" placeholder="https://play.google.com/store/apps/details?id=..."
+                                   value="<?php echo html_escape(get_settings('google_play_url')); ?>">
+                            <small class="badge badge-light">اتركه فارغًا لتظهر الشارة بحالة «قريبًا»</small>
+                        </div>
+
                         <div class="form-group">
                             <label for="youtube_api_key"><?php echo get_phrase('youtube_API_key'); ?><span class="required">*</span> &nbsp; <a href = "https://developers.google.com/youtube/v3/getting-started" target = "_blank" style="color: #a7a4a4">(<?php echo get_phrase('get_YouTube_API_key'); ?> <i class="mdi mdi-open-in-new"></i>)</a></label>
                             <input type="text" name = "youtube_api_key" id = "youtube_api_key" class="form-control" value="<?php echo get_settings('youtube_api_key');  ?>" required>
