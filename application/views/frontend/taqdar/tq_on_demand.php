@@ -4,32 +4,32 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 /**
  * حصص بالطلب.
  *
- * طبقة مستقلّة بجوار المنهج لا داخله: المنهج مسجَّل بلا جدول ولا حجز،
- * والحصّة هنا موعد يُطلب عند الحاجة. فلا يُخلط الاثنان في شاشة واحدة،
- * ولا يُشترط أحدهما للآخر.
+ * طبقة مستقلة بجوار المنهج لا داخله: المنهج مسجل بلا جدول ولا حجز،
+ * والحصة هنا موعد يطلب عند الحاجة. فلا يخلط الاثنان في شاشة واحدة،
+ * ولا يشترط أحدهما للآخر.
  *
- * ولا يُخصم مبلغ الحصّة إلّا بعد تأكيد المعلّم: الحجز غير المؤكَّد لا
- * يُحتجز عليه مال ولا تُجمَّد به بطاقة. «بانتظار التأكيد» تعني بالضبط
- * أن شيئًا لم يُدفع بعد.
+ * ولا يخصم مبلغ الحصة إلا بعد تأكيد المعلم: الحجز غير المؤكد لا
+ * يحتجز عليه مال ولا تجمد به بطاقة. «بانتظار التأكيد» تعني بالضبط
+ * أن شيئا لم يدفع بعد.
  *
- * موصول بالقاعدة: course + category (عدد معلّمي كل مادة) · `availability_slots`
- * (المعلّمون المتاحون ومواعيدهم) · `tutoring_sessions` (طلبات الطالب وحالتها).
- * وكان هذا الملفّ يعدّ الإتاحة «بلا جدول» وهي في `availability_slots` أمامه.
+ * موصول بالقاعدة: course + category (عدد معلمي كل مادة) · `availability_slots`
+ * (المعلمون المتاحون ومواعيدهم) · `tutoring_sessions` (طلبات الطالب وحالتها).
+ * وكان هذا الملف يعد الإتاحة «بلا جدول» وهي في `availability_slots` أمامه.
  *
- * بلا مصدر بعد: أسعار الحصص وتقييمات المعلّمين وسنوات خبرتهم — لا عمود لها
- * في taqd_lms، فلا تُعرض أرقام مخترَعة بجوار اسم معلّم حقيقي.
+ * بلا مصدر بعد: أسعار الحصص وتقييمات المعلمين وسنوات خبرتهم — لا عمود لها
+ * في taqd_lms، فلا تعرض أرقام مخترعة بجوار اسم معلم حقيقي.
  */
 
 $tq_uid = (int) $this->session->userdata('user_id');
 
-/* النموذج يُحمَّل عبر get_instance(): العارض في CI3 ينسخ خصائص المتحكّم إلى
-   المحمِّل مرّة واحدة قبل التصيير، فما حُمِّل بعد بدء التصيير لا يظهر في `$this`. */
+/* النموذج يحمل عبر get_instance(): العارض في CI3 ينسخ خصائص المتحكم إلى
+   المحمل مرة واحدة قبل التصيير، فما حمل بعد بدء التصيير لا يظهر في `$this`. */
 $tq_CI = get_instance();
 $tq_CI->load->model('taqdar_sessions_model');
 $tq_m = $tq_CI->taqdar_sessions_model;
 
 /* ---- الكتابة قبل أي إخراج، ثم تحويل: تحديث الصفحة لا يعيد الطلب ------
-   وكل شرط (الموعد قائم ومفتوح ولم يمضِ ولا طلب سابق عليه) يُفحص في النموذج
+   وكل شرط (الموعد قائم ومفتوح ولم يمض ولا طلب سابق عليه) يفحص في النموذج
    داخل الاستعلام لا في الواجهة. */
 if ((string) $this->input->post('tq_action') === 'request_session') {
     $tq_res  = $tq_m->request_session($tq_uid, (int) $this->input->post('slot_id'));
@@ -47,7 +47,7 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 $tq_nav   = 'on_demand';
 $tq_role  = 'student';
 $tq_title = 'حصص بالطلب';
-$tq_sub   = 'احجز حصة مباشرة مع معلّم متخصّص في المادة التي تحتاجها';
+$tq_sub   = 'احجز حصة مباشرة مع معلم متخصص في المادة التي تحتاجها';
 $tq_icon  = 'video';
 
 $tq_subjects = tq_s_subject_tutors(5);
@@ -55,8 +55,8 @@ $tq_subjects = tq_s_subject_tutors(5);
 $f_subject = (string) $this->input->get('subject', true);
 
 /**
- * المعلّمون المتاحون — من `availability_slots`: معلّم له موعد مفتوح لم يمضِ،
- * ومعه مواعيده نفسها ليُطلب أحدها مباشرة. من لا موعد له لا يظهر.
+ * المعلمون المتاحون — من `availability_slots`: معلم له موعد مفتوح لم يمض،
+ * ومعه مواعيده نفسها ليطلب أحدها مباشرة. من لا موعد له لا يظهر.
  */
 $tq_tutors = $tq_m->available_teachers(12, 6, (int) $f_subject);
 
@@ -88,13 +88,13 @@ include 'portal_open.php';
         <section class="tq-s-banner tq-section tq-enter">
             <div class="tq-s-banner__body">
                 <p class="tq-eyebrow">حصص مباشرة</p>
-                <h2 class="tq-display" style="margin-block-end:var(--tq-space-s)">تعلّم بطريقتك الخاصة</h2>
+                <h2 class="tq-display" style="margin-block-end:var(--tq-space-s)">تعلم بطريقتك الخاصة</h2>
                 <p class="tq-body">
-                    احجز حصّة مباشرة مع معلّم خبير، واحصل على شرح مخصّص لاحتياجك أنت —
-                    ولا يُخصم مبلغ الحصّة إلّا بعد تأكيد المعلّم.
+                    احجز حصة مباشرة مع معلم خبير، واحصل على شرح مخصص لاحتياجك أنت —
+                    ولا يخصم مبلغ الحصة إلا بعد تأكيد المعلم.
                 </p>
                 <a class="tq-btn tq-btn--primary" href="<?php echo base_url('taqdar/on-demand#tq-tutors'); ?>">
-                    <?php echo tq_icon('calendar'); ?> اطلب حصّة الآن
+                    <?php echo tq_icon('calendar'); ?> اطلب حصة الآن
                 </a>
             </div>
             <span class="tq-s-banner__art" aria-hidden="true"><?php echo tq_icon('video', 56); ?></span>
@@ -114,7 +114,7 @@ include 'portal_open.php';
                     <?php echo tq_s_empty(
                         'folder', 'sky',
                         'لا مواد بعد',
-                        'مواد المنصّة تظهر هنا، وتحت كل مادة عدد معلّميها لتختار مادّتك أولًا ثم معلّمك.',
+                        'مواد المنصة تظهر هنا، وتحت كل مادة عدد معلميها لتختار مادتك أولا ثم معلمك.',
                         '', '', true
                     ); ?>
                 </div>
@@ -129,7 +129,7 @@ include 'portal_open.php';
                                 <span class="tq-pastel__icon"><?php echo tq_icon('book'); ?></span>
                             </span>
                             <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($s['name']); ?></span>
-                            <span class="tq-micro"><?php echo tq_iso($s['tutors'] . ' معلّم في المادة'); ?></span>
+                            <span class="tq-micro"><?php echo tq_iso($s['tutors'] . ' معلم في المادة'); ?></span>
                         </a>
                     <?php endforeach; ?>
                 </div>
@@ -143,10 +143,10 @@ include 'portal_open.php';
             <?php endif; ?>
         </section>
 
-        <!-- معلّمون متاحون الآن: من فتح وقتًا فعلًا، بمواعيده هو -->
+        <!-- معلمون متاحون الآن: من فتح وقتا فعلا، بمواعيده هو -->
         <section class="tq-section" id="tq-tutors">
             <div class="tq-sectionhead">
-                <h2>معلّمون متاحون الآن</h2>
+                <h2>معلمون متاحون الآن</h2>
                 <?php if ($tq_tutors): ?>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_tutors) . TQ_PDI; ?></span>
                 <?php endif; ?>
@@ -156,9 +156,9 @@ include 'portal_open.php';
                 <div class="tq-card">
                     <?php echo tq_s_empty(
                         'users', 'mint',
-                        'لا معلّم متاح الآن',
-                        'حين يفتح المعلّمون أوقاتهم يظهر كل واحد هنا باسمه ومادّته ومواعيده المتاحة، وبجواره زرّ طلب مباشر.',
-                        'نبّهني عند توفّر معلّم',
+                        'لا معلم متاح الآن',
+                        'حين يفتح المعلمون أوقاتهم يظهر كل واحد هنا باسمه ومادته ومواعيده المتاحة، وبجواره زر طلب مباشر.',
+                        'نبهني عند توفر معلم',
                         base_url('student/settings')
                     ); ?>
                 </div>
@@ -188,7 +188,7 @@ include 'portal_open.php';
                             <input type="hidden" name="subject" value="<?php echo html_escape($f_subject); ?>">
 
                             <label class="tq-sr" for="tq-slot-<?php echo (int) $t['id']; ?>">
-                                <?php echo html_escape('اختر موعدًا مع ' . $t['name']); ?>
+                                <?php echo html_escape('اختر موعدا مع ' . $t['name']); ?>
                             </label>
                             <select class="tq-select" name="slot_id" id="tq-slot-<?php echo (int) $t['id']; ?>"
                                     style="flex:1;min-inline-size:16rem" required>
@@ -215,9 +215,9 @@ include 'portal_open.php';
                 <?php
                 $steps = [
                     ['اختر المادة',  'اختر المادة التي تحتاج مساعدة فيها.'],
-                    ['اختر معلّمًا', 'تصفّح المعلّمين المتاحين واختر الأنسب لك.'],
-                    ['حدّد الوقت',   'اختر الوقت المناسب لك من الأوقات المتاحة.'],
-                    ['ابدأ الحصّة',  'انضمّ للحصّة واستفد من شرح مباشر ومخصّص.'],
+                    ['اختر معلما', 'تصفح المعلمين المتاحين واختر الأنسب لك.'],
+                    ['حدد الوقت',   'اختر الوقت المناسب لك من الأوقات المتاحة.'],
+                    ['ابدأ الحصة',  'انضم للحصة واستفد من شرح مباشر ومخصص.'],
                 ];
                 foreach ($steps as $i => $s):
                     ?>
@@ -231,7 +231,7 @@ include 'portal_open.php';
                 <?php endforeach; ?>
             </ol>
             <p class="tq-micro" style="margin-block-start:var(--tq-space-l);margin-block-end:0">
-                لا يُخصم مبلغ الحصّة إلّا بعد تأكيد المعلّم.
+                لا يخصم مبلغ الحصة إلا بعد تأكيد المعلم.
             </p>
         </section>
 
@@ -248,7 +248,7 @@ include 'portal_open.php';
                 <?php echo tq_s_empty(
                     'calendar', 'peach',
                     'لا حجوزات بعد',
-                    'كل حجز تطلبه يظهر هنا بموعده ومعلّمه وحالته: بانتظار التأكيد، أو مؤكّد، أو اعتذر عنه المعلّم.',
+                    'كل حجز تطلبه يظهر هنا بموعده ومعلمه وحالته: بانتظار التأكيد، أو مؤكد، أو اعتذر عنه المعلم.',
                     '', '', true
                 ); ?>
             <?php else: ?>
@@ -270,14 +270,14 @@ include 'portal_open.php';
             <?php endif; ?>
         </section>
 
-        <!-- عرض خاص: عرض حقيقي أو لا شيء — ولا خصم مخترَع لملء فراغ. -->
+        <!-- عرض خاص: عرض حقيقي أو لا شيء — ولا خصم مخترع لملء فراغ. -->
         <section class="tq-card tq-card--panel tq-pastel tq-pastel--lilac">
             <div class="tq-card__head">
                 <h2 class="tq-card__title tq-pastel__title">عرض خاص</h2>
                 <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('star', 24); ?></span>
             </div>
             <p class="tq-pastel__body">
-                لا يوجد عرض سارٍ الآن. العروض على باقات الحصص تظهر هنا فور إطلاقها.
+                لا يوجد عرض سار الآن. العروض على باقات الحصص تظهر هنا فور إطلاقها.
             </p>
             <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('plans'); ?>">
                 عرض الباقات

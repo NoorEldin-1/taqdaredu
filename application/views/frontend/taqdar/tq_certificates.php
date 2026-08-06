@@ -4,13 +4,13 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 /**
  * الشهادات.
  *
- * القاعدة الحاكمة: **لا تُصدر شهادة على مشاهدة، بل على إتقان مُقاس.**
- * ولذلك لا تُبنى هذه الشاشة من نسبة المشاهدة في watch_histories — الشهادة
+ * القاعدة الحاكمة: **لا تصدر شهادة على مشاهدة، بل على إتقان مقاس.**
+ * ولذلك لا تبنى هذه الشاشة من نسبة المشاهدة في watch_histories — الشهادة
  * تنتظر إتمام البرنامج واجتياز الامتحان النهائي، وكلاهما يقرأ mastered_at
- * من lesson_progress وattempts. وحتى يوجد محتوى بأهداف وبوّابات:
+ * من lesson_progress وattempts. وحتى يوجد محتوى بأهداف وبوابات:
  * الحالة الفارغة الصحيحة، لا شهادة مبنية على وقت تشغيل.
  *
- * كل شهادة تحمل رمز تحقّق يفتح صفحة عامة تؤكّد صحّتها.
+ * كل شهادة تحمل رمز تحقق يفتح صفحة عامة تؤكد صحتها.
  */
 include 'tq_student_styles.php';
 include 'tq_student_data.php';
@@ -21,7 +21,7 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 $tq_nav   = 'certificates';
 $tq_role  = 'student';
 $tq_title = 'الشهادات';
-$tq_sub   = 'ما أتقنته، موثَّقًا وقابلًا للتحقّق';
+$tq_sub   = 'ما أتقنته، موثقا وقابلا للتحقق';
 $tq_icon  = 'award';
 
 $tq_certs = [];
@@ -50,8 +50,8 @@ include 'portal_open.php';
                     </span>
                     <p class="tq-empty__title">لا شهادات بعد</p>
                     <p class="tq-empty__text">
-                        الشهادة تُصدر على إتقان مُقاس لا على مشاهدة: تُنهي المحطة،
-                        وتجتاز اختبارها، فتصلك شهادة بأهدافها ورمز تحقّق.
+                        الشهادة تصدر على إتقان مقاس لا على مشاهدة: تنهي المحطة،
+                        وتجتاز اختبارها، فتصلك شهادة بأهدافها ورمز تحقق.
                     </p>
                     <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>">تابع دروسك</a>
                 </div>
@@ -77,7 +77,7 @@ include 'portal_open.php';
                                 <dd style="margin:0"><?php echo tq_iso(html_escape((string) $c['submitted_at'])); ?></dd>
                             </div>
                             <div class="tq-s-row">
-                                <dt class="tq-caption">رمز التحقّق</dt>
+                                <dt class="tq-caption">رمز التحقق</dt>
                                 <dd style="margin:0"><?php echo tq_num('TQ-' . str_pad((string) $c['id'], 6, '0', STR_PAD_LEFT), 'tq-num--sm'); ?></dd>
                             </div>
                         </dl>
@@ -85,7 +85,7 @@ include 'portal_open.php';
                             <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('taqdar/certificate/' . (int) $c['id']); ?>">
                                 <?php echo tq_icon('download'); ?> تنزيل
                             </a>
-                            <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('taqdar/verify/' . (int) $c['id']); ?>">صفحة التحقّق</a>
+                            <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('taqdar/verify/' . (int) $c['id']); ?>">صفحة التحقق</a>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -95,12 +95,12 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-card">
-            <h2 class="tq-card__title">كيف تُصدر الشهادة</h2>
+            <h2 class="tq-card__title">كيف تصدر الشهادة</h2>
             <ol class="tq-s-list" style="counter-reset:s">
                 <?php foreach ([
-                    'تُنهي دروس المحطة وتتقنها واحدًا واحدًا',
+                    'تنهي دروس المحطة وتتقنها واحدا واحدا',
                     'تجتاز اختبار المحطة',
-                    'تصلك شهادة بأهدافك المتقنة ورمز تحقّق',
+                    'تصلك شهادة بأهدافك المتقنة ورمز تحقق',
                 ] as $n => $step): ?>
                     <div class="tq-s-row">
                         <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_num($n + 1, 'tq-num--sm'); ?></span>
@@ -109,7 +109,7 @@ include 'portal_open.php';
                 <?php endforeach; ?>
             </ol>
             <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
-                رمز التحقّق يفتح صفحة عامة تؤكّد صحّة الشهادة لأي جهة.
+                رمز التحقق يفتح صفحة عامة تؤكد صحة الشهادة لأي جهة.
             </p>
         </div>
     </aside>

@@ -1,15 +1,15 @@
 <?php
 /* البيانات من نموذج واحد — لا استعلام في العرض.
    و`get_instance()` لا `$this->load`: تحميل نموذج داخل عرض CI3
-   يُنتج بترًا صامتًا للصفحة، لا خطأً يُنبّه. */
+   ينتج بترا صامتا للصفحة، لا خطأ ينبه. */
 $tq_ci = &get_instance();
 $tq_ci->load->model('taqdar_site_model', 'tq_m');
 $tq_m  = $tq_ci->tq_m;
 $tq_teachers = $tq_m->teachers();
 ?>
 <!--
-title: المعلمون — منصّة تقدّر
-desc: نخبة من المعلمين المتخصّصين المتميّزين في تقديم تجارب تعليمية فريدة تلهم العقول وتنمّي المهارات.
+title: المعلمون — منصة تقدر
+desc: نخبة من المعلمين المتخصصين المتميزين في تقديم تجارب تعليمية فريدة تلهم العقول وتنمي المهارات.
 active: teachers
 header: solid
 css: pages
@@ -26,8 +26,8 @@ css: pages
           <span class="page-hero__sub">خبرات ملهمة.. تعليم يرتقي</span>
         </h1>
         <p class="page-hero__lede">
-          نخبة من المعلمين المتخصّصين المتميّزين في تقديم تجارب تعليمية فريدة
-          تلهم العقول وتنمّي المهارات.
+          نخبة من المعلمين المتخصصين المتميزين في تقديم تجارب تعليمية فريدة
+          تلهم العقول وتنمي المهارات.
         </p>
         <div class="hero-mini">
           <div class="hero-mini__item">
@@ -49,7 +49,7 @@ css: pages
         <div class="page-hero__arch">
           <div>
             <img src="<?php echo tq_site_asset('img/teachers-hero.webp'); ?>" width="960" height="1440"
-                 alt="أربعة معلمين ومعلمات سعوديين يقفون معًا">
+                 alt="أربعة معلمين ومعلمات سعوديين يقفون معا">
           </div>
 <?php include __DIR__ . '/site/site_arch.php'; ?>
         </div>
@@ -77,15 +77,15 @@ css: pages
       <span class="lantern lantern--corner" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
 
       <div class="section-head">
-        <h2><span>تعرّف على معلمينا المتميّزين</span></h2>
+        <h2><span>تعرف على معلمينا المتميزين</span></h2>
         <div class="rule"><svg aria-hidden="true"><use href="#i-star8"></use></svg></div>
       </div>
 
       <div class="directory-bar reveal" id="teacherBar">
         <label class="field field--grow">
           <svg aria-hidden="true"><use href="#i-search"></use></svg>
-          <span class="sr-only">ابحث عن معلّم أو مادة</span>
-          <input type="search" id="teacherSearch" placeholder="ابحث عن معلّم أو مادة…">
+          <span class="sr-only">ابحث عن معلم أو مادة</span>
+          <input type="search" id="teacherSearch" placeholder="ابحث عن معلم أو مادة…">
         </label>
         <label class="field field--select">
           <svg aria-hidden="true"><use href="#i-filter"></use></svg>
@@ -102,7 +102,7 @@ css: pages
           <svg aria-hidden="true"><use href="#i-star"></use></svg>
           <span class="sr-only">الترتيب</span>
           <select id="teacherSort">
-            <option value="rating">ترتيب: الأعلى تقييمًا</option>
+            <option value="rating">ترتيب: الأعلى تقييما</option>
             <option value="reviews">ترتيب: الأكثر مراجعات</option>
             <option value="courses">ترتيب: الأكثر دورات</option>
           </select>
@@ -114,7 +114,7 @@ css: pages
 <?php echo tqs_teachers($tq_teachers); ?>
       </div>
 
-      <p class="dir-empty" id="teacherEmpty" hidden>لا توجد نتائج مطابقة — جرّب كلمة أخرى.</p>
+      <p class="dir-empty" id="teacherEmpty" hidden>لا توجد نتائج مطابقة — جرب كلمة أخرى.</p>
 
       <div style="text-align:center;margin-block-start:clamp(22px,2.6vw,36px)">
         <a class="btn btn--ghost" href="<?php echo base_url('sign_up'); ?>">
@@ -131,7 +131,7 @@ css: pages
 <section class="section section--plain" id="why">
   <div class="shell">
     <div class="section-head">
-      <h2><span>لماذا معلمونا مميّزون؟</span></h2>
+      <h2><span>لماذا معلمونا مميزون؟</span></h2>
       <div class="rule"><svg aria-hidden="true"><use href="#i-star8"></use></svg></div>
     </div>
     <div class="grid-5">
@@ -166,15 +166,15 @@ css: pages
       <span class="lantern lantern--r" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
       <div class="cta__copy">
         <h2>ابدأ رحلتك التعليمية مع أفضل المعلمين</h2>
-        <p>اختر برنامجك التعليمي وابدأ التعلّم اليوم</p>
+        <p>اختر برنامجك التعليمي وابدأ التعلم اليوم</p>
         <div class="cta__actions">
-          <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>">تصفّح البرامج مجانًا</a>
+          <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>">تصفح البرامج مجانا</a>
           <a class="btn btn--ghost" href="<?php echo base_url('sign_up'); ?>">إنشاء حساب</a>
         </div>
       </div>
       <div class="cta__art">
         <img src="<?php echo tq_site_asset('img/teachers-cta.webp'); ?>" width="880" height="587" loading="lazy"
-             decoding="async" alt="طفلان سعوديان يدرسان معًا على جهاز لوحي"
+             decoding="async" alt="طفلان سعوديان يدرسان معا على جهاز لوحي"
             >
       </div>
     </div>

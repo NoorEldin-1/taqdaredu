@@ -1,9 +1,9 @@
-/* منصّة تقدّر — مشغّل الدرس وبوّابة الإتقان.
+/* منصة تقدر — مشغل الدرس وبوابة الإتقان.
  *
- * هذا الملفّ هو الجسر الذي كان غائبًا: الشاشة لا تستعلم من قاعدة البيانات،
- * بل تكلّم `taqdar_gate` وحده. والقفل وقرار البوّابة يُحسمان في الخادم —
- * وما هنا عرضٌ لقراره لا اتخاذٌ له. ولذلك لا تصل الإجابات الصحيحة إلى
- * المتصفّح أبدًا: تُرسل إجابة الطالب ويعود الحكم.
+ * هذا الملف هو الجسر الذي كان غائبا: الشاشة لا تستعلم من قاعدة البيانات،
+ * بل تكلم `taqdar_gate` وحده. والقفل وقرار البوابة يحسمان في الخادم —
+ * وما هنا عرض لقراره لا اتخاذ له. ولذلك لا تصل الإجابات الصحيحة إلى
+ * المتصفح أبدا: ترسل إجابة الطالب ويعود الحكم.
  */
 (function () {
   'use strict';
@@ -18,7 +18,7 @@
 
   var state = { lesson: null, attempt: null, questions: [], watched: 0, position: 0, ticker: null };
 
-  /* ---- نداء الخادم: مغلّف موحّد، والرسالة العربية تأتي منه لا نخترعها ---- */
+  /* ---- نداء الخادم: مغلف موحد، والرسالة العربية تأتي منه لا نخترعها ---- */
   function call(path, body) {
     var opt = { credentials: 'same-origin', headers: { 'Accept': 'application/json' } };
     if (body) {
@@ -30,7 +30,7 @@
       return r.json().then(function (j) {
         if (!r.ok || (j && j.error)) {
           var e = (j && j.error) || {};
-          throw { code: e.code || 'HTTP_' + r.status, message: e.message_ar || 'تعذّر إتمام الطلب', details: e.details || {} };
+          throw { code: e.code || 'HTTP_' + r.status, message: e.message_ar || 'تعذر إتمام الطلب', details: e.details || {} };
         }
         return j.data !== undefined ? j.data : j;
       });
@@ -75,7 +75,7 @@
     show('[data-tq-lesson-body]', true);
 
     var L = d.lesson || {};
-    document.title = (L.title || 'الدرس') + ' | تقدّر';
+    document.title = (L.title || 'الدرس') + ' | تقدر';
     text('[data-tq-lesson-title]', L.title || '');
     text('[data-tq-lesson-course]', L.course_title || '');
     text('[data-tq-lesson-duration]', L.duration ? iso(L.duration) : '');
@@ -104,7 +104,7 @@
     mountAttachments(L.attachment);
     mountNav(d);
 
-    // المراجعة تظهر حين يوجد تقييم مرتبط بالدرس وحين لم يُتقن بعد
+    // المراجعة تظهر حين يوجد تقييم مرتبط بالدرس وحين لم يتقن بعد
     show('[data-tq-gate-intro]', !!d.review && !p.mastered_at);
   }
 
@@ -139,7 +139,7 @@
     v.addEventListener('ended', function () { stopTicker(); flush(true); });
   }
 
-  /* ---- التقدّم: يُرسل كل 15 ثانية مشاهدة فعلية، لا كل نبضة ---- */
+  /* ---- التقدم: يرسل كل 15 ثانية مشاهدة فعلية، لا كل نبضة ---- */
   function startTicker() {
     if (state.ticker) return;
     state.ticker = setInterval(function () { state.watched += 5; if (state.watched >= 15) flush(false); }, 5000);
@@ -151,7 +151,7 @@
     var delta = state.watched; state.watched = 0;
     call('progress', { lesson_id: LESSON, position_sec: state.position, watched_delta: delta })
       .then(function () { if (ended) show('[data-tq-gate-intro]', !!(state.lesson && state.lesson.review)); })
-      .catch(function () { /* التقدّم لا يوقف المشاهدة؛ تُعاد المحاولة في النبضة التالية */ });
+      .catch(function () { /* التقدم لا يوقف المشاهدة؛ تعاد المحاولة في النبضة التالية */ });
   }
   addEventListener('beforeunload', function () { if (state.watched) flush(false); });
 
@@ -159,7 +159,7 @@
     var box = $('[data-tq-objectives]');
     if (!box) return;
     if (!list.length) {
-      box.innerHTML = '<li class="tq-caption tq-muted">لم تُضَف أهداف لهذا الدرس بعد.</li>';
+      box.innerHTML = '<li class="tq-caption tq-muted">لم تضف أهداف لهذا الدرس بعد.</li>';
       return;
     }
     box.innerHTML = list.map(function (o, i) {
@@ -188,7 +188,7 @@
     } else if (lock) { lock.hidden = false; }
   }
 
-  /* ---- بوّابة الإتقان ---- */
+  /* ---- بوابة الإتقان ---- */
   var startBtn = $('[data-tq-gate-start]');
   if (startBtn) startBtn.addEventListener('click', function () {
     startBtn.setAttribute('data-loading', 'true');
@@ -248,8 +248,8 @@
   });
 
   /**
-   * عرض قرار البوّابة. الرسوب لا يُعطي الإجابة أبدًا — يتصاعد الدعم:
-   * توقيت المفهوم الأضعف، ثم شرح بديل، ثم تمرير المفهوم إلى المعلّم.
+   * عرض قرار البوابة. الرسوب لا يعطي الإجابة أبدا — يتصاعد الدعم:
+   * توقيت المفهوم الأضعف، ثم شرح بديل، ثم تمرير المفهوم إلى المعلم.
    */
   function renderVerdict(r) {
     var icon = $('[data-tq-result-icon]'), acts = $('[data-tq-result-actions]');
@@ -258,8 +258,8 @@
     if (r.passed) {
       icon.className = 'tq-icon-box tq-pastel--mint';
       icon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>';
-      text('[data-tq-result-title]', 'أتقنتَ هذا الدرس');
-      text('[data-tq-result-text]', 'أجبتَ ' + score + '. فُتح الدرس التالي، وأسئلة هذا الدرس ستعود إليك غدًا للتثبيت.');
+      text('[data-tq-result-title]', 'أتقنت هذا الدرس');
+      text('[data-tq-result-text]', 'أجبت ' + score + '. فتح الدرس التالي، وأسئلة هذا الدرس ستعود إليك غدا للتثبيت.');
       acts.innerHTML = r.unlocked_lesson_id
         ? '<a class="tq-btn tq-btn--mastery" href="../' + root.getAttribute('data-tq-course') + '/' + r.unlocked_lesson_id + '">الدرس التالي</a>'
         : '<a class="tq-btn tq-btn--mastery" href="' + baseLessons() + '">عد إلى دروسك</a>';
@@ -272,28 +272,28 @@
     icon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>';
 
     if (r.suggest_session) {
-      text('[data-tq-result-title]', 'لنسأل معلّمك');
-      text('[data-tq-result-text]', 'أجبتَ ' + score + '. المفهوم المتعثّر سيصل معلّمك ومعه موضعه في الدرس، فيبدأ من حيث تعثّرت لا من الصفر.');
-      acts.innerHTML = '<a class="tq-btn tq-btn--primary" href="' + baseMessages() + '">اسأل المعلّم</a>'
-        + '<button class="tq-btn tq-btn--secondary" type="button" data-tq-gate-again>حاول مرّة أخرى</button>';
+      text('[data-tq-result-title]', 'لنسأل معلمك');
+      text('[data-tq-result-text]', 'أجبت ' + score + '. المفهوم المتعثر سيصل معلمك ومعه موضعه في الدرس، فيبدأ من حيث تعثرت لا من الصفر.');
+      acts.innerHTML = '<a class="tq-btn tq-btn--primary" href="' + baseMessages() + '">اسأل المعلم</a>'
+        + '<button class="tq-btn tq-btn--secondary" type="button" data-tq-gate-again>حاول مرة أخرى</button>';
     } else if (r.alternate_explanation_id) {
       text('[data-tq-result-title]', 'نشرحها بطريقة أخرى');
-      text('[data-tq-result-text]', 'أجبتَ ' + score + '. هذا شرح آخر للمفهوم نفسه — ثم أعد المراجعة.');
+      text('[data-tq-result-text]', 'أجبت ' + score + '. هذا شرح آخر للمفهوم نفسه — ثم أعد المراجعة.');
       acts.innerHTML = '<a class="tq-btn tq-btn--primary" href="../' + root.getAttribute('data-tq-course') + '/' + r.alternate_explanation_id + '">اشرح تاني</a>'
         + '<button class="tq-btn tq-btn--secondary" type="button" data-tq-gate-again>أعد المراجعة</button>';
     } else {
       var at = r.seek_to || 0;
       text('[data-tq-result-title]', 'راجع الدقيقة ' + mmss(at));
-      // المحاولة الثانية بلا شرح بديل: لا تُعاد كلمات الأولى حرفيًّا. تكرار
-      // النصّ نفسه يقرأه الطالب على أنه عطب، ويخفي أن الدعم تصاعد فعلًا.
+      // المحاولة الثانية بلا شرح بديل: لا تعاد كلمات الأولى حرفيا. تكرار
+      // النص نفسه يقرأه الطالب على أنه عطب، ويخفي أن الدعم تصاعد فعلا.
       text('[data-tq-result-text]', (r.attempt_no > 1)
-        ? 'أجبتَ ' + score + '. لا يوجد شرح بديل لهذا المفهوم بعد، فارجع إلى اللحظة نفسها بتركيز — وإن تعثّرت مرّة أخرى نمرّر المفهوم إلى معلّمك.'
-        : 'أجبتَ ' + score + '. لن نعطيك الإجابة — لكن المفهوم شُرح عند هذه اللحظة بالضبط، فارجع إليها ثم أعد المراجعة.');
-      acts.innerHTML = '<button class="tq-btn tq-btn--primary" type="button" data-tq-seek="' + at + '">شغّل من هناك</button>'
+        ? 'أجبت ' + score + '. لا يوجد شرح بديل لهذا المفهوم بعد، فارجع إلى اللحظة نفسها بتركيز — وإن تعثرت مرة أخرى نمرر المفهوم إلى معلمك.'
+        : 'أجبت ' + score + '. لن نعطيك الإجابة — لكن المفهوم شرح عند هذه اللحظة بالضبط، فارجع إليها ثم أعد المراجعة.');
+      acts.innerHTML = '<button class="tq-btn tq-btn--primary" type="button" data-tq-seek="' + at + '">شغل من هناك</button>'
         + '<button class="tq-btn tq-btn--secondary" type="button" data-tq-gate-again>أعد المراجعة</button>';
     }
-    /* «راجع إجاباتك» في كل حالة: يُلحق بعد بناء أزرار الحالة، فلا
-       يُكرَّر في أربعة فروع ولا يُنسى في واحد. */
+    /* «راجع إجاباتك» في كل حالة: يلحق بعد بناء أزرار الحالة، فلا
+       يكرر في أربعة فروع ولا ينسى في واحد. */
     if (acts && r.attempt_id) {
       acts.insertAdjacentHTML('beforeend',
         ' <button class="tq-btn tq-btn--secondary" type="button" data-tq-open-review="'
@@ -308,7 +308,7 @@
     if (seek) {
       var v = root.querySelector('video'), sec = parseInt(seek.getAttribute('data-tq-seek'), 10) || 0;
       if (v) { v.currentTime = sec; v.play(); v.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-      else alertBox('ارجع إلى الدقيقة ' + mmss(sec) + ' في المشغّل.');
+      else alertBox('ارجع إلى الدقيقة ' + mmss(sec) + ' في المشغل.');
       return;
     }
     if (ev.target.closest('[data-tq-gate-again]')) {
@@ -340,8 +340,8 @@
 })();
 
 /* ---- مراجعة الإجابات -------------------------------------------------
-   طلبٌ ثانٍ بعد التسليم: ردّ التسليم لا يحمل الإجابات الصحيحة عمدًا،
-   فالتلميح بالحلّ أثناء الاختبار يُفسد قياسه. وهنا يُطلب ما بعده. */
+   طلب ثان بعد التسليم: رد التسليم لا يحمل الإجابات الصحيحة عمدا،
+   فالتلميح بالحل أثناء الاختبار يفسد قياسه. وهنا يطلب ما بعده. */
 (function () {
   var root = document.querySelector('[data-tq-gate]');
   if (!root) return;
@@ -389,7 +389,7 @@
   };
 
   if (close) close.addEventListener('click', function () { box.hidden = true; });
-  /* الإعادة تُعيد فتح المراجعة من أوّلها — والمحرّك يزيد رقم المحاولة */
+  /* الإعادة تعيد فتح المراجعة من أولها — والمحرك يزيد رقم المحاولة */
   if (again) again.addEventListener('click', function () {
     box.hidden = true;
     var start = document.querySelector('[data-tq-gate-start]');
@@ -401,7 +401,7 @@
   });
 })();
 
-/* فتح المراجعة بالتفويض: الزرّ يُبنى بعد التحميل، فالمستمع على المستند. */
+/* فتح المراجعة بالتفويض: الزر يبنى بعد التحميل، فالمستمع على المستند. */
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-tq-open-review]');
   if (!b || !window.tqShowReview) return;

@@ -1,6 +1,6 @@
 /* ==========================================================================
-   منصّة تقدّر — مكوّنات الصفحات الداخلية
-   يعتمد على توكنات taqdar.css؛ لا يعيد تعريف أي لون حرفيًّا.
+   منصة تقدر — مكونات الصفحات الداخلية
+   يعتمد على توكنات taqdar.css؛ لا يعيد تعريف أي لون حرفيا.
    ========================================================================== */
 
 /* ==========================================================================
@@ -24,7 +24,7 @@
 .page-hero__cta{display:flex;align-items:center;gap:clamp(10px,1.4vw,18px);
   margin-block-start:clamp(20px,2.4vw,32px);flex-wrap:wrap}
 
-/* شريط المميّزات المصغّر تحت نصّ الهيرو */
+/* شريط المميزات المصغر تحت نص الهيرو */
 .hero-mini{display:flex;flex-wrap:wrap;gap:clamp(14px,2vw,34px);
   margin-block-start:clamp(22px,2.6vw,36px)}
 .hero-mini__item{display:flex;align-items:center;gap:10px;min-width:0}
@@ -54,7 +54,7 @@
 .page-hero .lantern--r{inset-block-start:-18px;inset-inline-end:clamp(-8px,0vw,10px)}
 
 /* ==========================================================================
-   شبكات بطاقات أيقونية عامّة (تُستعمل في كل الصفحات تقريبًا)
+   شبكات بطاقات أيقونية عامة (تستعمل في كل الصفحات تقريبا)
    ========================================================================== */
 .grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(12px,1.5vw,22px)}
 .grid-6{display:grid;grid-template-columns:repeat(6,1fr);gap:clamp(12px,1.5vw,20px)}
@@ -101,7 +101,7 @@
   font-size:clamp(18px,1.8vw,28px);color:var(--ink);line-height:1.3}
 .stat-strip span{display:block;font-size:clamp(10.5px,.82vw,13px);color:var(--ink-3)}
 
-/* غامق — «تقدّر بالأرقام» و«تجربة تعليمية تصنع الفرق» */
+/* غامق — «تقدر بالأرقام» و«تجربة تعليمية تصنع الفرق» */
 .stats-band{
   position:relative;overflow:hidden;border-radius:var(--r-panel);color:#fff;
   background:linear-gradient(135deg,var(--petrol-deep),var(--petrol) 48%,#064B44);
@@ -138,7 +138,7 @@
   mask-image:linear-gradient(180deg,#000 84%,transparent 99%)}
 
 /* ==========================================================================
-   المسارات: اختيار المرحلة والصفّ وشبكة المواد
+   المسارات: اختيار المرحلة والصف وشبكة المواد
    ========================================================================== */
 .stage-picker{display:grid;gap:clamp(10px,1.4vw,20px);
   grid-template-columns:repeat(auto-fit,minmax(clamp(140px,13vw,180px),1fr))}
@@ -186,8 +186,8 @@
   transition:transform 600ms var(--ease)}
 .subject-card:hover .subject-card__media img{transform:scale(1.05)}
 .subject-card__badge{
-  /* في التدفّق مع هامش سالب: لا سياق تموضع يتغيّر ولا نسبة
-     مئوية تُحسب من ارتفاع خاطئ. */
+  /* في التدفق مع هامش سالب: لا سياق تموضع يتغير ولا نسبة
+     مئوية تحسب من ارتفاع خاطئ. */
   position:relative;z-index:2;margin:-20px auto 0;flex:0 0 auto;align-self:center;
   width:clamp(36px,3vw,46px);height:clamp(36px,3vw,46px);aspect-ratio:1;border-radius:32%;display:grid;place-items:center;
   background:linear-gradient(155deg,var(--petrol-lift),var(--petrol-deep));
@@ -251,7 +251,7 @@
 .teacher-card__courses svg{width:14px;height:14px;color:var(--gold-deep)}
 
 /* ==========================================================================
-   أولياء الأمور: الخطوات المرقّمة + محاكاة اللوحة والهاتف
+   أولياء الأمور: الخطوات المرقمة + محاكاة اللوحة والهاتف
    ========================================================================== */
 .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(12px,1.6vw,24px);
   position:relative}
@@ -291,7 +291,7 @@
 .showcase__list svg{flex:0 0 auto;width:17px;height:17px;color:var(--gold-warm)}
 .showcase__panel .btn{margin-block-start:auto;align-self:flex-start}
 
-/* لوحة المتابعة — مبنيّة بالـCSS لا صورة، فتتبع التوكنات وتبقى حادّة */
+/* لوحة المتابعة — مبنية بالـCSS لا صورة، فتتبع التوكنات وتبقى حادة */
 .dash{background:var(--paper);border:1px solid var(--gold-line-soft);border-radius:var(--r-card);
   box-shadow:var(--sh-card);overflow:hidden;display:flex;flex-direction:column}
 .dash__bar{display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -357,7 +357,7 @@
 .tcard .stars{justify-content:flex-start;margin-block-start:12px}
 
 /* ==========================================================================
-   عن المنصة: القيم + الخطّ الزمني + الفريق
+   عن المنصة: القيم + الخط الزمني + الفريق
    ========================================================================== */
 .chips{display:flex;flex-wrap:wrap;gap:7px;margin-block-start:12px;justify-content:center}
 .chip{background:linear-gradient(150deg,#FFFDF8,#F6EBDA);border:1px solid var(--gold-line);
@@ -396,12 +396,12 @@
    الكاروسل — مسار أفقي بارتفاع ثابت مهما زاد عدد البطاقات
    ========================================================================== */
 .carousel{position:relative}
-/* أي شبكة توضع داخل .carousel تصير مسارًا أفقيًّا — فالمولِّد لا يعرف سياقه */
+/* أي شبكة توضع داخل .carousel تصير مسارا أفقيا — فالمولد لا يعرف سياقه */
 .carousel>.grid-4,.carousel>.grid-5,.carousel__track{
   display:flex;gap:clamp(12px,1.5vw,22px);
   overflow-x:auto;overscroll-behavior-x:contain;
   scroll-snap-type:x mandatory;
-  /* مساحة للظلّ وحركة الرفع عند hover حتى لا يقصّهما overflow */
+  /* مساحة للظل وحركة الرفع عند hover حتى لا يقصهما overflow */
   padding-block:6px 14px;padding-inline:2px;
   scrollbar-width:none;
 }
@@ -425,12 +425,12 @@
   border-color:var(--petrol);transform:translateY(-2px)}
 .carousel__btn[disabled]{opacity:.32;cursor:default}
 .carousel__btn svg{width:20px;height:20px}
-/* «التالي» يتقدّم نحو اليسار في RTL — واتجاه سهمه في الرمز نفسه (#i-arrow-back)
+/* «التالي» يتقدم نحو اليسار في RTL — واتجاه سهمه في الرمز نفسه (#i-arrow-back)
    لا في transform هنا، فلا تعكسه ورقة أنماط قديمة. */
 .carousel__nav[hidden]{display:none}
 
 @media (prefers-reduced-motion:reduce){
-  /* أي شبكة توضع داخل .carousel تصير مسارًا أفقيًّا — فالمولِّد لا يعرف سياقه */
+  /* أي شبكة توضع داخل .carousel تصير مسارا أفقيا — فالمولد لا يعرف سياقه */
 .carousel>.grid-4,.carousel>.grid-5,.carousel__track{scroll-behavior:auto}
 }
 
@@ -444,8 +444,8 @@
 }
 .book-card:hover{transform:translateY(-8px);box-shadow:var(--sh-raise)}
 
-/* الغلاف المؤقّت مرسوم بالـCSS لا صورة: عنصر نائب صريح لا يُوهم أنه الكتاب الحقيقي.
-   يكفي وضع `cover` في catalog.json ليحلّ الغلاف الحقيقي محلّه. */
+/* الغلاف المؤقت مرسوم بالـCSS لا صورة: عنصر نائب صريح لا يوهم أنه الكتاب الحقيقي.
+   يكفي وضع `cover` في catalog.json ليحل الغلاف الحقيقي محله. */
 .book-card__cover{
   position:relative;aspect-ratio:.78;overflow:hidden;display:grid;place-items:center;
   background:linear-gradient(150deg,#F3E7D5,#E9DCC6);
@@ -484,7 +484,7 @@
 /* ==========================================================================
    شريط تحميل التطبيق — الرئيسية
    ========================================================================== */
-/* بلا لوح ملوّن: نداء الختام البترولي يليه مباشرةً، ولوح آراء أولياء الأمور
+/* بلا لوح ملون: نداء الختام البترولي يليه مباشرة، ولوح آراء أولياء الأمور
    يسبقه — فصندوق ثالث يجعل الثلاثة كتلة واحدة. القسم هنا يجلس على خلفية
    الصفحة نفسها، والهواتف وحدها هي البؤرة. */
 .appband{
@@ -508,7 +508,7 @@
 .appband__note{margin-block-start:12px;color:var(--ink-3);
   font-size:clamp(10.5px,.82vw,12.5px)}
 
-/* ── لقطة التطبيق: صورة في مربّع بحواف مشطوفة، بلا إطار جهاز ولا زخرفة ── */
+/* ── لقطة التطبيق: صورة في مربع بحواف مشطوفة، بلا إطار جهاز ولا زخرفة ── */
 .appband__art{display:flex;justify-content:center;align-items:center}
 .appshot{
   width:clamp(190px,19vw,276px);
@@ -517,9 +517,9 @@
 }
 .appshot img{display:block;width:100%;height:auto}
 /* ==========================================================================
-   المدوّنة
+   المدونة
    ========================================================================== */
-/* البحث وشرائح التصنيف: كانا في الصفّ الفرعي للهيدر، وموضعهما في الموك‑أب هنا أصلًا */
+/* البحث وشرائح التصنيف: كانا في الصف الفرعي للهيدر، وموضعهما في الموك‑أب هنا أصلا */
 .blog-filter{margin-block-start:clamp(20px,2.4vw,32px);display:grid;gap:14px}
 .blog-filter .field{max-width:min(100%,420px)}
 .cat-tabs{display:flex;flex-wrap:wrap;gap:8px}
@@ -745,7 +745,7 @@
   font-size:clamp(11.5px,.88vw,13.5px)}
 
 /* ==========================================================================
-   قسم عمودين عامّ (نصّ + صورة)
+   قسم عمودين عام (نص + صورة)
    ========================================================================== */
 .split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,2.6vw,48px);
   align-items:center}
@@ -803,7 +803,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-RESP · الشبكات والمكوّنات على الجوّال
+   TQ-RESP · الشبكات والمكونات على الجوال
    ══════════════════════════════════════════════════════════════════ */
 @media (max-width:680px){
   .stage-picker{grid-template-columns:repeat(2,1fr)}
@@ -816,7 +816,7 @@
 }
 
 @media (max-width:480px){
-  /* عمود واحد: البطاقة بعرض الشاشة، فالصورة تُرى والنصّ يُقرأ */
+  /* عمود واحد: البطاقة بعرض الشاشة، فالصورة ترى والنص يقرأ */
   .grid-4,.grid-5,.grid-6,.cards-3,.stat-strip,.steps,.faq-grid,
   .grid-2,.form-grid,.stats-band__grid,.timeline,.visit__items,
   .appband__list,.stage-picker{grid-template-columns:1fr}
@@ -827,8 +827,8 @@
   .post-row{grid-template-columns:72px 1fr;gap:10px}
   .side-read{grid-template-columns:56px 1fr}
   .subject-card__meta{flex-wrap:wrap;gap:8px}
-  .carousel>.grid-4>*{flex:0 0 min(78vw,300px)}   /* بطاقة كاملة تقريبًا + طرف التالية */
-  .carousel__nav{display:none}                     /* السحب أطبع من زرَّين ضيّقين */
+  .carousel>.grid-4>*{flex:0 0 min(78vw,300px)}   /* بطاقة كاملة تقريبا + طرف التالية */
+  .carousel__nav{display:none}                     /* السحب أطبع من زرين ضيقين */
 }
 
 @media (max-width:360px){
@@ -836,31 +836,31 @@
   .book-card__body,.subject-card__body{padding:14px}
 }
 
-/* TQ-ICON-GUARD — أيقونة `<use>` لا تُترك بلا نسبة أبعاد.
-   `<svg>` بلا `viewBox` عنصرٌ مستبدَل بلا نسبة جوهرية، فـ`height:auto`
-   تُحسب من مقاس الكائن الافتراضي ٣٠٠×١٥٠ — لا من الرسمة. الحارس يجعل
-   الخطأ مستحيلًا بدل أن يكون محتملًا. */
+/* TQ-ICON-GUARD — أيقونة `<use>` لا تترك بلا نسبة أبعاد.
+   `<svg>` بلا `viewBox` عنصر مستبدل بلا نسبة جوهرية، فـ`height:auto`
+   تحسب من مقاس الكائن الافتراضي ٣٠٠×١٥٠ — لا من الرسمة. الحارس يجعل
+   الخطأ مستحيلا بدل أن يكون محتملا. */
 .stat-strip__item svg,.stats-band__item svg,.tcard__mark,
 .hero-mini__item .ico svg,.icard .ico svg,.subject-card__badge svg,
 .book-card__body svg,.subject-card__meta svg,.teacher-card__meta svg{aspect-ratio:1}
 
-/* وحارسٌ أعمّ: أي `<svg>` بلا `viewBox` داخل الموقع الجديد لا يُترك
-   بارتفاع نسبيّ — النسبة من ارتفاع غير محدَّد تسقط إلى ١٥٠px الافتراضية. */
+/* وحارس أعم: أي `<svg>` بلا `viewBox` داخل الموقع الجديد لا يترك
+   بارتفاع نسبي — النسبة من ارتفاع غير محدد تسقط إلى ١٥٠px الافتراضية. */
 .tq-tabbar__ico svg,.nav__auth svg{aspect-ratio:1}
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-ROWS · صفوف البنود وأشرطة الأرقام
    ══════════════════════════════════════════════════════════════════ */
 @media (max-width:680px){
-  /* `.hero-mini` فليكس مغلَّف ولا يصير شبكة في أي نقطة انكسار، فعرض
-     البند الذاتيّ (~١٥٠px) يسمح ببندين ثمّ يتيم — و`justify-content:center`
-     يتوسّط اليتيم فيبرز. والشبكة تُلغي التيتّم من أصله. */
+  /* `.hero-mini` فليكس مغلف ولا يصير شبكة في أي نقطة انكسار، فعرض
+     البند الذاتي (~١٥٠px) يسمح ببندين ثم يتيم — و`justify-content:center`
+     يتوسط اليتيم فيبرز. والشبكة تلغي التيتم من أصله. */
   .hero-mini{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
              gap:14px;justify-content:stretch}
   .hero-mini__item{min-width:0}
   .hero-mini__item b,.hero-mini__item span{overflow-wrap:anywhere}
 
-  /* بند الرقم مدمجًا: أيقونة إلى جانب رقمه ووصفه، لا فوقهما بفراغ */
+  /* بند الرقم مدمجا: أيقونة إلى جانب رقمه ووصفه، لا فوقهما بفراغ */
   .stats-band__item{display:grid;grid-template-columns:auto 1fr;
                     column-gap:10px;align-items:center;text-align:start;padding-inline:0}
   .stats-band__item svg{grid-row:1/3;margin-inline:0}
@@ -880,10 +880,10 @@
   .stats-band__grid,.stat-strip{grid-template-columns:1fr}
 }
 
-/* TQ-FRAME-GUARD — `svg.frame` خارج `.page-hero__arch` لا يُرسم أسود.
+/* TQ-FRAME-GUARD — `svg.frame` خارج `.page-hero__arch` لا يرسم أسود.
    `<path>` بلا `fill` يرث الأسود الافتراضي، وبلا قياس يملأ حاويته —
-   فقوسٌ أُدرج في غير موضعه يبتلع الصفحة كاملة. الحارس يجعل الخطأ
-   غير مرئيّ بدل أن يكون كارثيًّا. */
+   فقوس أدرج في غير موضعه يبتلع الصفحة كاملة. الحارس يجعل الخطأ
+   غير مرئي بدل أن يكون كارثيا. */
 svg.frame path{fill:none}
 :not(.page-hero__arch)>svg.frame{display:none}
 
@@ -891,7 +891,7 @@ svg.frame path{fill:none}
    TQ-FORMS · أصناف صفحات الدخول والتسجيل
    ══════════════════════════════════════════════════════════════════ */
 
-/* غلافٌ ضيّق: النموذج يُقرأ في عمود لا في عرض شاشة. */
+/* غلاف ضيق: النموذج يقرأ في عمود لا في عرض شاشة. */
 .shell--narrow{max-width:min(560px,100%)}
 
 .form-card{padding:clamp(22px,3vw,34px)}
@@ -910,7 +910,7 @@ svg.frame path{fill:none}
   font-size:.9rem;color:var(--ink-2);cursor:pointer;line-height:1.6}
 .form-consent input{inline-size:17px;block-size:17px;margin:2px 0 0;accent-color:var(--petrol);flex:0 0 auto}
 
-/* حقول المعلّم تظهر عند طلبها وحدها */
+/* حقول المعلم تظهر عند طلبها وحدها */
 .form-teacher{display:grid;gap:12px;margin-block-end:12px}
 .form-teacher .form-field{margin-block-end:0}
 .form-teacher textarea{width:100%;border:0;background:transparent;font:inherit;color:inherit;resize:vertical}
@@ -929,8 +929,8 @@ svg.frame path{fill:none}
 .page-hero__lead{margin-block-start:10px;font-size:clamp(14px,1.1vw,17px);
   color:var(--ink-2);max-width:52ch;line-height:1.9}
 
-/* ── نصّ قانونيّ طويل: التنفّس أهمّ من الزخرفة ────────────────────
-   وثيقةٌ تُقرأ لا تُتصفّح: سطرٌ مريح، وعناوين تُميَّز، وقوائم تُرقَّم. */
+/* ── نص قانوني طويل: التنفس أهم من الزخرفة ────────────────────
+   وثيقة تقرأ لا تتصفح: سطر مريح، وعناوين تميز، وقوائم ترقم. */
 .prose{font-size:clamp(13.5px,1vw,15.5px);line-height:2.05;color:var(--ink-2)}
 .prose>*+*{margin-block-start:1.05em}
 .prose h2{font-size:clamp(17px,1.5vw,22px);color:var(--ink);margin-block-start:1.8em}
@@ -968,9 +968,9 @@ svg.frame path{fill:none}
   .icard--sticky{position:static}
 }
 
-/* TQ-INPUT-SHRINK — `input` عنصرٌ مقاسه الافتراضي ~20 محرفًا، وفي حاوية
-   فليكس لا ينكمش دونه (`min-width:auto`) — فيفيض النصّ خارج الصندوق
-   في العمود الضيّق. */
+/* TQ-INPUT-SHRINK — `input` عنصر مقاسه الافتراضي ~20 محرفا، وفي حاوية
+   فليكس لا ينكمش دونه (`min-width:auto`) — فيفيض النص خارج الصندوق
+   في العمود الضيق. */
 .form-field{min-width:0}
 .form-field input,.form-field select,.form-field textarea{min-width:0;width:100%;flex:1 1 auto}
 
@@ -999,7 +999,7 @@ svg.frame path{fill:none}
 .auth-points b{display:block;color:#fff;font-size:.95rem;margin-block-end:2px}
 
 @media (max-width:820px){
-  /* الشاشة الضيّقة لا تحتمل زينةً تُبعد الحقول عن الإبهام */
+  /* الشاشة الضيقة لا تحتمل زينة تبعد الحقول عن الإبهام */
   .auth-wrap{grid-template-columns:1fr}
   .auth-aside{display:none}
   .shell--auth{max-width:min(560px,100%)}
@@ -1010,9 +1010,9 @@ svg.frame path{fill:none}
 .path-buy{display:block}
 .tq-tabbar__lbl{display:block;line-height:1.2;text-align:center}
 
-/* TQ-WHYBAR — الشريط عمودان على الجوّال لا عمود.
-   بنوده سطران قصيران، فالعمود الواحد يمطّه شريطًا طوليًّا بلا داعٍ —
-   وعمودان يُبقيانه قريبًا من المربّع كما ينبغي لشريط لا لقائمة. */
+/* TQ-WHYBAR — الشريط عمودان على الجوال لا عمود.
+   بنوده سطران قصيران، فالعمود الواحد يمطه شريطا طوليا بلا داع —
+   وعمودان يبقيانه قريبا من المربع كما ينبغي لشريط لا لقائمة. */
 @media (max-width:680px){
   .features__bar,.why__grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;
     gap:16px 12px}
@@ -1025,8 +1025,8 @@ svg.frame path{fill:none}
    TQ-CHIP · شريحة المادة ووسم التصنيف
    ══════════════════════════════════════════════════════════════════ */
 
-/* في التدفّق لا بالتثبيت: حاويتها بلا `position` فكان أقرب سلف موضعيّ
-   هو الشبكة كلّها — تُثبَّت كل الشرائح أسفل منتصفها وتتكدّس. */
+/* في التدفق لا بالتثبيت: حاويتها بلا `position` فكان أقرب سلف موضعي
+   هو الشبكة كلها — تثبت كل الشرائح أسفل منتصفها وتتكدس. */
 .teacher-card__chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
   margin-block:4px 6px}
 .teacher-card__chip{position:static!important;inset:auto!important;translate:none!important;
@@ -1036,7 +1036,7 @@ svg.frame path{fill:none}
   padding:5px 14px;white-space:nowrap;
   font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(10px,.78vw,12px)}
 
-/* `.post-tag` لم يكن له تعريف في المشروع كلّه — فالتصنيف يلتصق بالعنوان */
+/* `.post-tag` لم يكن له تعريف في المشروع كله — فالتصنيف يلتصق بالعنوان */
 .post-row__body{display:flex;flex-direction:column;gap:6px;min-width:0}
 .post-tag{display:inline-block;align-self:flex-start;
   padding:3px 10px;border-radius:999px;
@@ -1045,7 +1045,7 @@ svg.frame path{fill:none}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-block-start:10px}
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-GATES · بوّابات التسجيل الثلاث
+   TQ-GATES · بوابات التسجيل الثلاث
    ══════════════════════════════════════════════════════════════════ */
 .gate-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
   margin-block-end:18px}
@@ -1058,7 +1058,7 @@ svg.frame path{fill:none}
 .gate-card b{font-size:.92rem;color:var(--ink)}
 .gate-card span{font-size:.7rem;line-height:1.4;opacity:.85}
 .gate-card:hover{border-color:var(--gold)}
-/* المختارة تُعلَن باللون **وبالحدّ** معًا: اللون وحده لا يراه كل أحد. */
+/* المختارة تعلن باللون **وبالحد** معا: اللون وحده لا يراه كل أحد. */
 .gate-card.is-on{background:var(--petrol);border-color:var(--petrol);color:var(--gold-on-dark)}
 .gate-card.is-on b{color:#fff}
 .gate-card.is-on svg{color:var(--gold-warm)}
@@ -1068,7 +1068,7 @@ svg.frame path{fill:none}
 
 .form-hint{margin:-6px 0 12px;font-size:.78rem;color:var(--ink-3);line-height:1.7}
 
-/* حقل الملفّ: زرٌّ عربيّ واسم الملفّ — بدل زرّ المتصفّح بنصّه الإنجليزي */
+/* حقل الملف: زر عربي واسم الملف — بدل زر المتصفح بنصه الإنجليزي */
 .file-btn{display:inline-flex;align-items:center;padding:6px 14px;border-radius:999px;
   background:var(--beige);border:1px solid var(--gold-line);color:var(--gold-text);
   font-weight:600;font-size:.85rem;cursor:pointer;flex:0 0 auto}
@@ -1086,8 +1086,8 @@ svg.frame path{fill:none}
    TQ-COMP · المسابقات
    ══════════════════════════════════════════════════════════════════ */
 
-/* إيضاح عدم الارتباط: يُقرأ قبل البطاقات لا بعدها — تنبيهٌ يأتي متأخّرًا
-   لا ينفع من كوّن انطباعه سلفًا. */
+/* إيضاح عدم الارتباط: يقرأ قبل البطاقات لا بعدها — تنبيه يأتي متأخرا
+   لا ينفع من كون انطباعه سلفا. */
 .comp-note{display:flex;align-items:flex-start;gap:12px;margin-block-end:clamp(18px,2.2vw,28px);
   background:var(--beige);border-color:var(--gold-line)}
 .comp-note svg{width:22px;height:22px;aspect-ratio:1;color:var(--gold-deep);flex:0 0 auto;margin-block-start:2px}
@@ -1118,7 +1118,7 @@ svg.frame path{fill:none}
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-HOME-V2 · إطار الفيديو · القادم قريبًا · شريط الجامعات
+   TQ-HOME-V2 · إطار الفيديو · القادم قريبا · شريط الجامعات
    ══════════════════════════════════════════════════════════════════ */
 
 /* ── إطار الهيرو ────────────────────────────────────────────────── */
@@ -1140,8 +1140,8 @@ svg.frame path{fill:none}
 /* الفيديو فوق الإطار الثابت ويظهر حين يبدأ — فلا فجوة بيضاء لحظة التحميل */
 .hero__video{opacity:0;transition:opacity .6s ease;z-index:1}
 .hero__video.is-on{opacity:1}
-/* الحجاب بتروليّ: النصّ فوق مشهدٍ يتبدّل كلَّ إطار، والحجاب الفاتح يكفي
-   في لقطةٍ ويرسب في التالية. أبيضُ عليه 12.7:1 في أسوأ إطارٍ ممكن. */
+/* الحجاب بترولي: النص فوق مشهد يتبدل كل إطار، والحجاب الفاتح يكفي
+   في لقطة ويرسب في التالية. أبيض عليه 12.7:1 في أسوأ إطار ممكن. */
 .hero__scrim{
   position:absolute;inset:0;z-index:2;pointer-events:none;
   background:
@@ -1155,7 +1155,7 @@ svg.frame path{fill:none}
     rgba(1,33,31,.58) 0%, rgba(1,33,31,.78) 55%, rgba(1,33,31,.90) 100%)}
 }
 
-/* النصّ داخل الإطار */
+/* النص داخل الإطار */
 .hero--video .hero__copy{
   max-inline-size:min(100%,600px);
   padding:clamp(26px,4vw,56px) clamp(20px,3.4vw,52px)
@@ -1170,7 +1170,7 @@ svg.frame path{fill:none}
 }
 .hero--video .btn--ghost-light:hover{background:rgba(255,255,255,.12);border-color:#fff}
 
-/* ── القادم قريبًا ──────────────────────────────────────────────── */
+/* ── القادم قريبا ──────────────────────────────────────────────── */
 .section--tint{background:var(--beige)}
 .upcoming{gap:clamp(18px,2.4vw,34px)}
 .upcoming__title{font-size:clamp(15px,1.2vw,18px);margin-block-end:14px}
@@ -1191,7 +1191,7 @@ svg.frame path{fill:none}
 .unis__strip{
   margin-block-start:clamp(20px,2.4vw,34px);
   overflow:hidden;
-  /* الطرفان يذوبان فلا يبدو الشريط مقصوصًا */
+  /* الطرفان يذوبان فلا يبدو الشريط مقصوصا */
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
   mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)
 }
@@ -1208,7 +1208,7 @@ svg.frame path{fill:none}
 }
 .unis__item img{max-inline-size:100%;max-block-size:100%;
   inline-size:auto;block-size:auto;object-fit:contain}
-/* النصف لأن الشريط مكرّرٌ مرّتين — فالدورة تعود إلى نقطتها بلا قفزة */
+/* النصف لأن الشريط مكرر مرتين — فالدورة تعود إلى نقطتها بلا قفزة */
 @keyframes tq-unis{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media (prefers-reduced-motion:reduce){
   .unis__track{animation:none}
@@ -1218,30 +1218,30 @@ svg.frame path{fill:none}
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-SVG-GUARD-ALL · لا أيقونة بلا مقاس
-   `<svg>` بلا `viewBox` وبلا أبعاد يُرسم 300×150. ظهر ثلاث مرّات في
-   أشرطة الأرقام وعلامة الاقتباس والشارة، ورابعةً في زرّ الهيرو. فالحارس
-   عامٌّ لا موضعيّ: كل أيقونةٍ داخل زرّ أو رابط أو شارة لها مقاس.
+   `<svg>` بلا `viewBox` وبلا أبعاد يرسم 300×150. ظهر ثلاث مرات في
+   أشرطة الأرقام وعلامة الاقتباس والشارة، ورابعة في زر الهيرو. فالحارس
+   عام لا موضعي: كل أيقونة داخل زر أو رابط أو شارة لها مقاس.
    ══════════════════════════════════════════════════════════════════ */
-/* كلّ أيقونة سبرايت: بلا `viewBox` وبلا أبعاد — وهي بعينها الحالة التي
-   تُنتج 300×150. والرسمات المقصودة تحمل `viewBox` فلا يمسّها المحدّد. */
+/* كل أيقونة سبرايت: بلا `viewBox` وبلا أبعاد — وهي بعينها الحالة التي
+   تنتج 300×150. والرسمات المقصودة تحمل `viewBox` فلا يمسها المحدد. */
 svg:where(:not([viewBox]):not([width])){
   inline-size:1.1em; block-size:1.1em; flex:none
 }
 .btn .dir-icon, a .dir-icon{inline-size:1.05em;block-size:1.05em}
 
-/* زرّ الهيرو الأساسيّ: ذهبٌ على الفيديو لا بترولٌ على بترول */
+/* زر الهيرو الأساسي: ذهب على الفيديو لا بترول على بترول */
 .hero--video .btn--primary{
   background:var(--gold);border-color:var(--gold);color:#17240F;font-weight:800
 }
 .hero--video .btn--primary:hover{background:var(--gold-warm);border-color:var(--gold-warm)}
 .hero--video .hero__cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
 
-/* عمود «القادم قريبًا»: لوحٌ مستقلّ فيُقرأ العمودان قائمتين لا كتلةً */
+/* عمود «القادم قريبا»: لوح مستقل فيقرأ العمودان قائمتين لا كتلة */
 .upcoming__col{
   background:var(--paper);border:1px solid var(--gold-line-soft);
   border-radius:var(--r-card);padding:clamp(18px,2vw,26px)
 }
-/* قسم الجامعات: شريطه يبلغ حافّتَي الشاشة، فلا حشو أفقيّ على القسم */
+/* قسم الجامعات: شريطه يبلغ حافتي الشاشة، فلا حشو أفقي على القسم */
 .unis{padding-inline:0}
 .unis .shell{padding-inline:var(--gutter)}
 
@@ -1258,8 +1258,8 @@ svg:where(:not([viewBox]):not([width])){
   border-radius:var(--r-card);padding:clamp(22px,2.4vw,32px);
   box-shadow:var(--sh-soft)
 }
-/* المُبرَزة أعلى قليلًا وبإطارٍ ذهبيّ — والأخريان ظاهرتان بجوارها
-   فالمقارنة تبقى ممكنة، والإبراز يُرشد لا يحجب. */
+/* المبرزة أعلى قليلا وبإطار ذهبي — والأخريان ظاهرتان بجوارها
+   فالمقارنة تبقى ممكنة، والإبراز يرشد لا يحجب. */
 .bundle--featured{
   border-color:var(--gold);box-shadow:var(--sh-raise);
   background:linear-gradient(180deg,var(--cream-hi),var(--paper))
@@ -1299,9 +1299,9 @@ svg:where(:not([viewBox]):not([width])){
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-CAROUSEL2 · كاروسل واحد يُعاد استعماله
-   أساسه `scroll-snap`: المتصفّح يعرف السحب والزخم وحدّ التمرير أحسن
-   ممّا نكتب، ويعمل بلا سكربتٍ إن فشل تحميله. والجافاسكربت للأزرار فقط.
+   TQ-CAROUSEL2 · كاروسل واحد يعاد استعماله
+   أساسه `scroll-snap`: المتصفح يعرف السحب والزخم وحد التمرير أحسن
+   مما نكتب، ويعمل بلا سكربت إن فشل تحميله. والجافاسكربت للأزرار فقط.
    ══════════════════════════════════════════════════════════════════ */
 .carousel2{position:relative}
 .carousel2__track{
@@ -1324,8 +1324,8 @@ svg:where(:not([viewBox]):not([width])){
 }
 .carousel2__nav:hover{background:var(--cream-hi)}
 .carousel2__nav[disabled]{opacity:.32;cursor:default}
-/* المنطقيّ يخدع هنا: `inset-inline-end` في العربية **اليسار**.
-   والكاروسل يبدأ يمينًا ويمضي يسارًا ⇒ السابق يمينٌ والتالي يسار. */
+/* المنطقي يخدع هنا: `inset-inline-end` في العربية **اليسار**.
+   والكاروسل يبدأ يمينا ويمضي يسارا ⇒ السابق يمين والتالي يسار. */
 html[dir='rtl'] .carousel2__nav--prev{right:-10px;left:auto}
 html[dir='rtl'] .carousel2__nav--next{left:-10px;right:auto}
 html[dir='ltr'] .carousel2__nav--prev{left:-10px;right:auto}
@@ -1336,7 +1336,7 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 @media (max-width:980px){ .carousel2__nav{display:none} }
 @media (prefers-reduced-motion:reduce){ .carousel2__track{scroll-behavior:auto} }
 
-/* بطاقة البرنامج داخل الكاروسل — بلا سعرٍ ولا زرّ شراء */
+/* بطاقة البرنامج داخل الكاروسل — بلا سعر ولا زر شراء */
 .pcard{
   display:flex;flex-direction:column;background:var(--paper);
   border:1px solid var(--gold-line-soft);border-radius:var(--r-card);
@@ -1357,7 +1357,7 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 }
 .pcard__link:hover{text-decoration:underline}
 
-/* بند «ضمن الباقات» محلّ السعر في صفحة البرنامج */
+/* بند «ضمن الباقات» محل السعر في صفحة البرنامج */
 .path-inbundle{
   display:flex;gap:9px;align-items:flex-start;margin:0 0 10px;
   font-family:'Cairo',sans-serif;font-weight:700;color:var(--petrol);
@@ -1384,7 +1384,7 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 .stage-tab:focus-visible{outline:2px solid var(--petrol);outline-offset:3px}
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-UNIGRID · الجامعات شبكةً: خمسٌ في الصفّ تُرى دفعةً
+   TQ-UNIGRID · الجامعات شبكة: خمس في الصف ترى دفعة
    ══════════════════════════════════════════════════════════════════ */
 .unigrid{
   display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
@@ -1406,14 +1406,14 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 @media (max-width:420px){ .unigrid{grid-template-columns:repeat(2,minmax(0,1fr))} }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-FIT-COLS · العمود يتبع ما رُسم لا ما أُعلن
-   `tqs_stat()` يُخفي كلّ إحصاءٍ لم يُضبط (وذلك مقصود: عددٌ صفر أسوأ من
-   غيابه). فشبكةٌ تحجز أربعة أعمدة وتُرسَم فيها واحدة تترك ثلاثة فراغات
-   والبند في ركن. و`auto-fit` يجعل المتصفّح يعدّ المرسوم — بلا عدٍّ في
-   PHP يُمرَّر ويُنسى تحديثه.
+   TQ-FIT-COLS · العمود يتبع ما رسم لا ما أعلن
+   `tqs_stat()` يخفي كل إحصاء لم يضبط (وذلك مقصود: عدد صفر أسوأ من
+   غيابه). فشبكة تحجز أربعة أعمدة وترسم فيها واحدة تترك ثلاثة فراغات
+   والبند في ركن. و`auto-fit` يجعل المتصفح يعد المرسوم — بلا عد في
+   PHP يمرر وينسى تحديثه.
    ══════════════════════════════════════════════════════════════════ */
-/* شريطٌ يعرض ما تُوفّر لا شبكةٌ تمتلئ: `1fr` يتمدّد فيتباعد البندان
-   إلى طرفي الحاوية. والفليكس يُبقي البند بعرضه ويتوسّط المجموعة. */
+/* شريط يعرض ما توفر لا شبكة تمتلئ: `1fr` يتمدد فيتباعد البندان
+   إلى طرفي الحاوية. والفليكس يبقي البند بعرضه ويتوسط المجموعة. */
 .stat-strip{
   display:flex;flex-wrap:wrap;justify-content:center;align-items:center;
   gap:clamp(18px,3vw,54px)
@@ -1424,11 +1424,11 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
   gap:clamp(16px,2.6vw,46px)
 }
 .stats-band__item{flex:0 1 auto}
-/* الفاصل بين البنود يُرسم بين المرسوم لا بعد كلّ بند */
+/* الفاصل بين البنود يرسم بين المرسوم لا بعد كل بند */
 .stats-band__item:last-child::after,.stat-strip__item:last-child::after{display:none}
 
-/* `.visit` **ثلاثة** أبناء: صورةُ مقرّ وخريطة ولوح. وعمودان يُنزلان
-   الثالث صفًّا ثانيًا فيقصّه `overflow:hidden`. */
+/* `.visit` **ثلاثة** أبناء: صورة مقر وخريطة ولوح. وعمودان ينزلان
+   الثالث صفا ثانيا فيقصه `overflow:hidden`. */
 .visit{grid-template-columns:1fr 1.15fr 1fr}
 @media (max-width:900px){
   .visit{grid-template-columns:1fr}
@@ -1436,8 +1436,8 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-QUOTE-RTL · محاذاةٌ واحدة في بطاقة الرأي
-   كانت ثلاثًا: البطاقة `center` والفقرة `start` والنجوم `center` —
+   TQ-QUOTE-RTL · محاذاة واحدة في بطاقة الرأي
+   كانت ثلاثا: البطاقة `center` والفقرة `start` والنجوم `center` —
    والعين تقرأ الخلط «ليس RTL».
    ══════════════════════════════════════════════════════════════════ */
 .quote-card,
@@ -1446,8 +1446,8 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 .quote-card__head{ text-align:start }
 .quote-card .stars{ justify-content:flex-start }
 
-/* TQ-DIV-FIX — الفاصل كان يُخفى عن «الرابع» بافتراض أربعةٍ دائمًا.
-   والعدد يتبدّل، فالإخفاء يتبع الموضع الأخير لا رقمًا. */
+/* TQ-DIV-FIX — الفاصل كان يخفى عن «الرابع» بافتراض أربعة دائما.
+   والعدد يتبدل، فالإخفاء يتبع الموضع الأخير لا رقما. */
 @media (max-width:980px){
   .stats-band__item:nth-child(4)::after{display:revert}
   .stats-band__item:last-child::after{display:none}
@@ -1456,8 +1456,8 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 /* ══════════════════════════════════════════════════════════════════
    TQ-BUNDLE-MEDIA · صورة الباقة وشريحة الجامعة
    ══════════════════════════════════════════════════════════════════ */
-/* الصورة تبلغ حافّتَي البطاقة: هامشٌ حولها يجعلها لصاقةً لا رأسًا.
-   والحشو يُلغى من أعلى البطاقة ويُعاد على المحتوى وحده. */
+/* الصورة تبلغ حافتي البطاقة: هامش حولها يجعلها لصاقة لا رأسا.
+   والحشو يلغى من أعلى البطاقة ويعاد على المحتوى وحده. */
 .bundle{padding-block-start:0;overflow:hidden}
 .bundle__media{
   margin-inline:calc(clamp(22px,2.4vw,32px) * -1);
@@ -1484,10 +1484,10 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-SUBJGRID · الموادّ شبكةً لا شريطًا
-   البطاقة `.pcard` نفسها المستعملة في الكاروسل — يتبدّل الغلاف وحده.
-   و`minmax` بـ`auto-fill` لا `auto-fit`: بخمس عشرة بطاقةً الفرق معدوم،
-   وبواحدةٍ باقية في الصفّ الأخير يمنع `auto-fill` تمدّدها عبر الصفّ.
+   TQ-SUBJGRID · المواد شبكة لا شريطا
+   البطاقة `.pcard` نفسها المستعملة في الكاروسل — يتبدل الغلاف وحده.
+   و`minmax` بـ`auto-fill` لا `auto-fit`: بخمس عشرة بطاقة الفرق معدوم،
+   وبواحدة باقية في الصف الأخير يمنع `auto-fill` تمددها عبر الصف.
    ══════════════════════════════════════════════════════════════════ */
 .subjgrid{
   display:grid;gap:clamp(14px,1.6vw,22px);
@@ -1524,10 +1524,10 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-BUNDLE-FACE · الشارة إلى الركن
-   وُضعت وسطَ أعلى البطاقة حين كانت البطاقة نصًّا على لون؛ ثمّ حلّت
-   خلفها صورةُ شخصٍ في وسط الكادر فوقعت على وجهه.
-   (وقاعدة `object-position` التي كانت هنا حُذفت: الغلاف صار بنسبة
-   الصورة فلا قصّ، وقاعدةٌ بلا أثرٍ تُقرأ غدًا كأنّ لها أثرًا.)
+   وضعت وسط أعلى البطاقة حين كانت البطاقة نصا على لون؛ ثم حلت
+   خلفها صورة شخص في وسط الكادر فوقعت على وجهه.
+   (وقاعدة `object-position` التي كانت هنا حذفت: الغلاف صار بنسبة
+   الصورة فلا قص، وقاعدة بلا أثر تقرأ غدا كأن لها أثرا.)
    ══════════════════════════════════════════════════════════════════ */
 
 .bundle__flag{
@@ -1538,12 +1538,12 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
   .bundle__flag{inset-inline-end:14px;inset-inline-start:auto;inset-block-start:14px}
 }
 
-/* TQ-PCARD-FACE — صورة المادّة مربّعة في غلافٍ ١٦/١٠، و`cover` يقتطع
-   حول المركز فيقضم أعلى الرأس. والوجه فوق المركز في كلّ لقطةٍ نصفية. */
+/* TQ-PCARD-FACE — صورة المادة مربعة في غلاف ١٦/١٠، و`cover` يقتطع
+   حول المركز فيقضم أعلى الرأس. والوجه فوق المركز في كل لقطة نصفية. */
 .pcard__media img{ object-position:center 35% }
 
-/* TQ-BUNDLES-FOOT — الحاشية تحت الباقات: كانت بلا قاعدة فامتدّت بعرض
-   الغلاف كلّه، وسطرٌ من ١٤٠ حرفًا يصعب على العين تتبّعه إلى أوّل التالي. */
+/* TQ-BUNDLES-FOOT — الحاشية تحت الباقات: كانت بلا قاعدة فامتدت بعرض
+   الغلاف كله، وسطر من ١٤٠ حرفا يصعب على العين تتبعه إلى أول التالي. */
 .bundles__foot{
   margin-block-start:clamp(20px,2.4vw,32px);
   margin-inline:auto;max-inline-size:74ch;
@@ -1552,14 +1552,14 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-BUNDLE-BIG · الصورة تكبر وتحمل تفاصيلها
-   كانت ١٦/٩ فبدت شريطًا فوق نصٍّ طويل؛ و٤/٣ تجعلها موضوع البطاقة.
-   والتفاصيل عليها لا تحتها: من يمسح الصفحة بعينه يرى الصورة أوّلًا،
-   فما يميّز الباقة يُقرأ معها لا بعد سطرين.
-   والتدرّج أسفلها لا لونٌ صلب: النصّ يحتاج تباينًا، والحجب الكامل
-   يُلغي ما دفعنا فيه — والوجه فوق التدرّج يبقى ظاهرًا.
+   كانت ١٦/٩ فبدت شريطا فوق نص طويل؛ و٤/٣ تجعلها موضوع البطاقة.
+   والتفاصيل عليها لا تحتها: من يمسح الصفحة بعينه يرى الصورة أولا،
+   فما يميز الباقة يقرأ معها لا بعد سطرين.
+   والتدرج أسفلها لا لون صلب: النص يحتاج تباينا، والحجب الكامل
+   يلغي ما دفعنا فيه — والوجه فوق التدرج يبقى ظاهرا.
    ══════════════════════════════════════════════════════════════════ */
-/* نسبة الصورة نفسها (٨٨٠×٥٨٧) — فلا يقتطع `cover` شيئًا،
-   وتظهر اللقطة كاملةً كما وُلّدت. */
+/* نسبة الصورة نفسها (٨٨٠×٥٨٧) — فلا يقتطع `cover` شيئا،
+   وتظهر اللقطة كاملة كما ولدت. */
 .bundle__media{ aspect-ratio:880/587;position:relative }
 .bundle__over{
   position:absolute;inset-inline:0;inset-block-end:0;
@@ -1576,15 +1576,15 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
   font-style:normal;color:var(--gold-on-dark,#E4CB95);
   font-size:clamp(11.5px,.86vw,13px);font-weight:600
 }
-/* الاسم الكامل تحتها يكرّر ما فوقها — فيغيب من البطاقة ويبقى للقارئ الآليّ */
+/* الاسم الكامل تحتها يكرر ما فوقها — فيغيب من البطاقة ويبقى للقارئ الآلي */
 .bundle__media + .bundle__name{
   position:absolute;inline-size:1px;block-size:1px;
   overflow:hidden;clip-path:inset(50%);white-space:nowrap
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-PANEL-EDGE · بطاقات الآراء تبدأ من حافّة اللوح
-   حشوة اللوح الأفقية (٤٤px) كانت تُبعد أوّل بطاقةٍ عن الحافّة اليمنى،
+   TQ-PANEL-EDGE · بطاقات الآراء تبدأ من حافة اللوح
+   حشوة اللوح الأفقية (٤٤px) كانت تبعد أول بطاقة عن الحافة اليمنى،
    والعين في العربية تبدأ من هناك.
    ══════════════════════════════════════════════════════════════════ */
 #parents .panel{ padding-inline:0 }
@@ -1592,7 +1592,7 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-REALMAP · الخريطة إطارٌ لا رسم
+   TQ-REALMAP · الخريطة إطار لا رسم
    ══════════════════════════════════════════════════════════════════ */
 .visit__map{ overflow:hidden;border-radius:var(--r-card);background:var(--beige) }
 .visit__map iframe{
@@ -1601,9 +1601,9 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-GATE2 · بوّابتان في الدخول، وثلاثٌ صارت اثنتين في التسجيل
-   و`.gate-card` كانت `button` فحسب؛ وهي في الدخول `a` — فتُوحَّد
-   زينتُها كي لا يختلف الشكل باختلاف الوسم.
+   TQ-GATE2 · بوابتان في الدخول، وثلاث صارت اثنتين في التسجيل
+   و`.gate-card` كانت `button` فحسب؛ وهي في الدخول `a` — فتوحد
+   زينتها كي لا يختلف الشكل باختلاف الوسم.
    ══════════════════════════════════════════════════════════════════ */
 .gate-picker{ grid-template-columns:repeat(auto-fit,minmax(150px,1fr)) }
 a.gate-card{ text-decoration:none;color:inherit }
@@ -1611,9 +1611,9 @@ a.gate-card:hover{ text-decoration:none }
 .gate-picker--login{ margin-block-end:clamp(14px,1.8vw,20px) }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-CTA-BIG · طفلا شريط الختام أكبر — في كلّ صفحة
-   السقف السابق (٣٨٠px) وُضع لأنّ الصورة كانت تقود ارتفاع الشريط فيهبط
-   النصّ إلى القاع. فيرتفع السقف **ومعه** حدّ الشريط الأدنى، وإلّا عاد
+   TQ-CTA-BIG · طفلا شريط الختام أكبر — في كل صفحة
+   السقف السابق (٣٨٠px) وضع لأن الصورة كانت تقود ارتفاع الشريط فيهبط
+   النص إلى القاع. فيرتفع السقف **ومعه** حد الشريط الأدنى، وإلا عاد
    ذلك العطب نفسه.
    ══════════════════════════════════════════════════════════════════ */
 .cta{ min-block-size:clamp(300px,27vw,420px) }
@@ -1627,11 +1627,11 @@ a.gate-card:hover{ text-decoration:none }
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-BUNDLES-WIDE · الصفّ يتّسع بسعة الشاشة
-   صورة الباقة تملأ عرض البطاقة، والبطاقة ثلثُ الصفّ — فتكبيرها يمرّ
-   بتوسيع الصفّ وحده. والغلاف العامّ ١٤٤٠px يترك ٣٦٩px مهدورةً على
-   شاشة ١٧٢٨ و٥٦١ على ١٩٢٠. والسقف يُرفع هنا فقط: الغلاف العامّ قرارٌ
-   يخصّ الموقع كلّه.
+   TQ-BUNDLES-WIDE · الصف يتسع بسعة الشاشة
+   صورة الباقة تملأ عرض البطاقة، والبطاقة ثلث الصف — فتكبيرها يمر
+   بتوسيع الصف وحده. والغلاف العام ١٤٤٠px يترك ٣٦٩px مهدورة على
+   شاشة ١٧٢٨ و٥٦١ على ١٩٢٠. والسقف يرفع هنا فقط: الغلاف العام قرار
+   يخص الموقع كله.
    ══════════════════════════════════════════════════════════════════ */
 #bundles .shell,
 .bundles--page{
@@ -1642,16 +1642,16 @@ a.gate-card:hover{ text-decoration:none }
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-QUOTE-START · الاسم يبدأ حيث يبدأ التعليق
-   `justify-content:flex-end` في صفٍّ عربيّ يدفع المجموعة إلى **اليسار**
+   `justify-content:flex-end` في صف عربي يدفع المجموعة إلى **اليسار**
    (نهاية المحور)، فوقف الاسم في وسط البطاقة والتعليق تحته يبدأ من
-   الحافّة اليمنى — سطران يبدآن من موضعين.
+   الحافة اليمنى — سطران يبدآن من موضعين.
    ══════════════════════════════════════════════════════════════════ */
 .quote-card__head{ justify-content:flex-start }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-SITESEARCH · مربّع البحث
-   في الترويسة يظهر على الجوّال وحده: الشاشة العريضة فيها قائمةٌ كاملة
-   وأزرار دخول، والضيّقة تُخفيها خلف زرٍّ — فالبحث فيها هو الطريق الأقصر.
+   TQ-SITESEARCH · مربع البحث
+   في الترويسة يظهر على الجوال وحده: الشاشة العريضة فيها قائمة كاملة
+   وأزرار دخول، والضيقة تخفيها خلف زر — فالبحث فيها هو الطريق الأقصر.
    ══════════════════════════════════════════════════════════════════ */
 .sitesearch{
   display:flex;align-items:center;gap:8px;min-inline-size:0;
@@ -1669,11 +1669,11 @@ a.gate-card:hover{ text-decoration:none }
 .site-header--dark .sitesearch input::placeholder{color:rgba(255,255,255,.7)}
 .site-header--dark .sitesearch svg{color:var(--gold-warm)}
 
-/* في الترويسة: الجوّال وحده */
+/* في الترويسة: الجوال وحده */
 .header-search{display:none;flex:1 1 auto;min-inline-size:0;margin-inline:10px}
 @media (max-width:980px){ .header-search{display:flex} }
 
-/* في الصفحة: أعرض، وله زرّ */
+/* في الصفحة: أعرض، وله زر */
 .sitesearch--page{
   max-inline-size:min(640px,100%);margin-inline:auto;
   margin-block-end:clamp(22px,3vw,36px);padding:8px 8px 8px 8px;
@@ -1683,8 +1683,8 @@ a.gate-card:hover{ text-decoration:none }
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-WHY-BAL · خمسة عناصر لا تنقسم على اثنين ولا ثلاثة
-   فيبقى واحدٌ يتيمًا في الصفّ الأخير. والمرن يوزّع الباقي على الصفّ
-   ويتوسّطه، فلا يقف عنصرٌ وحده في ركن.
+   فيبقى واحد يتيما في الصف الأخير. والمرن يوزع الباقي على الصف
+   ويتوسطه، فلا يقف عنصر وحده في ركن.
    ══════════════════════════════════════════════════════════════════ */
 .why__grid{
   display:flex;flex-wrap:wrap;justify-content:center;
@@ -1695,8 +1695,8 @@ a.gate-card:hover{ text-decoration:none }
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-FEWRES · الشبكة تتبع ما نجا من الفلترة
-   شبكةٌ بأربعة أعمدة ثابتة ونتيجةٌ واحدة تترك ثلاثة أرباع الصفّ فراغًا.
-   والمرن يتوسّط ما بقي، فالنتيجة القليلة تبدو نتيجةً لا عطبًا.
+   شبكة بأربعة أعمدة ثابتة ونتيجة واحدة تترك ثلاثة أرباع الصف فراغا.
+   والمرن يتوسط ما بقي، فالنتيجة القليلة تبدو نتيجة لا عطبا.
    ══════════════════════════════════════════════════════════════════ */
 #bookGrid,#materialGrid{
   display:flex;flex-wrap:wrap;justify-content:center;
@@ -1707,9 +1707,9 @@ a.gate-card:hover{ text-decoration:none }
 @media (max-width:560px){ #bookGrid>*,#materialGrid>*{flex:1 1 100%} }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-CHIP-ON · الحالة النشطة تُرى لا تُخمَّن
-   كان الفرق إطارًا ذهبيًّا خفيفًا وحده — لا خلفية ولا وزن، فلا يُدرَك
-   في لمحة أيّ مرحلةٍ مختارة.
+   TQ-CHIP-ON · الحالة النشطة ترى لا تخمن
+   كان الفرق إطارا ذهبيا خفيفا وحده — لا خلفية ولا وزن، فلا يدرك
+   في لمحة أي مرحلة مختارة.
    ══════════════════════════════════════════════════════════════════ */
 .stage-card[aria-pressed='true']{
   background:var(--petrol);border-color:var(--petrol);
@@ -1720,19 +1720,19 @@ a.gate-card:hover{ text-decoration:none }
 .stage-card[aria-pressed='true'] .ico{color:var(--gold-warm)}
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-FAQ1COL · الأكورديون عمودٌ واحد
-   بعمودين يفتح المستخدم بطاقةً فيطول عمودها ويبقى جارُها المغلق يعلوه
-   فراغٌ بقدر الإجابة، ويقفز ما تحته. والعمود الواحد يجعل الفتح يدفع ما
-   بعده وحده — وهو ما تتوقّعه العين.
+   TQ-FAQ1COL · الأكورديون عمود واحد
+   بعمودين يفتح المستخدم بطاقة فيطول عمودها ويبقى جارها المغلق يعلوه
+   فراغ بقدر الإجابة، ويقفز ما تحته. والعمود الواحد يجعل الفتح يدفع ما
+   بعده وحده — وهو ما تتوقعه العين.
    ══════════════════════════════════════════════════════════════════ */
 .faq-grid{ grid-template-columns:1fr;max-inline-size:min(820px,100%);margin-inline:auto }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-INLINE-LINK · الرابط داخل الفقرة يُرى رابطًا
-   «الشروط» و«الخصوصية» و«سياسة الاسترجاع» روابطُ حقيقية، ولونها
-   المحسوب كان **مطابقًا للنصّ حولها** بلا تسطير ولا وزن — فلا شيء
-   يقول إنّها تُنقر. واللون وحده لا يكفي في كل حال: من لا يميّز اللون
-   لا يرى فرقًا، فيُضاف التسطير.
+   TQ-INLINE-LINK · الرابط داخل الفقرة يرى رابطا
+   «الشروط» و«الخصوصية» و«سياسة الاسترجاع» روابط حقيقية، ولونها
+   المحسوب كان **مطابقا للنص حولها** بلا تسطير ولا وزن — فلا شيء
+   يقول إنها تنقر. واللون وحده لا يكفي في كل حال: من لا يميز اللون
+   لا يرى فرقا، فيضاف التسطير.
    ══════════════════════════════════════════════════════════════════ */
 .form-consent a,
 .bundles__foot a,
@@ -1751,10 +1751,10 @@ a.gate-card:hover{ text-decoration:none }
 .form-field .form-prefix{ order:-1 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-POLISH · صقلٌ متفرّق، كلٌّ بسببه
+   TQ-POLISH · صقل متفرق، كل بسببه
    ══════════════════════════════════════════════════════════════════ */
 
-/* زرّ إظهار كلمة المرور — داخل الحقل لا بجانبه، فلا يُزيح التخطيط */
+/* زر إظهار كلمة المرور — داخل الحقل لا بجانبه، فلا يزيح التخطيط */
 .form-field{ position:relative }
 .pw-eye{
   position:absolute;inset-inline-end:10px;inset-block-start:50%;
@@ -1774,7 +1774,7 @@ a.gate-card:hover{ text-decoration:none }
 }
 .form-remember input{inline-size:17px;block-size:17px;accent-color:var(--petrol);flex:none}
 
-/* زرّ إيقاف الفيديو — ركنٌ لا يزاحم النصّ */
+/* زر إيقاف الفيديو — ركن لا يزاحم النص */
 .hero__vtoggle{
   position:absolute;inset-block-end:16px;inset-inline-end:16px;z-index:3;
   inline-size:40px;block-size:40px;border-radius:50%;
@@ -1785,43 +1785,43 @@ a.gate-card:hover{ text-decoration:none }
 .hero__vtoggle svg{inline-size:17px;block-size:17px}
 .hero__vtoggle:hover{background:rgba(1,33,31,.78)}
 
-/* بطاقات الرأي: القاع يُحاذى — كانت النجوم تقع عند ٧٣٣ و٧٣٦ و٧٦١ */
+/* بطاقات الرأي: القاع يحاذى — كانت النجوم تقع عند ٧٣٣ و٧٣٦ و٧٦١ */
 .quote-card{display:flex;flex-direction:column}
 .quote-card .stars{margin-block-start:auto}
 
-/* بطاقات القيم: شرائحُ تلتفّ في واحدة وفراغٌ في أختيها */
+/* بطاقات القيم: شرائح تلتف في واحدة وفراغ في أختيها */
 .value-card{display:flex;flex-direction:column}
 .value-card .chips,.value-card__chips{margin-block-start:auto}
 
-/* الخطّ الزمنيّ: «مستمرون» ليست سنة */
+/* الخط الزمني: «مستمرون» ليست سنة */
 .tl-item:last-child .tl-item__year,
 .timeline__item:last-child b{
   font-family:'Cairo',sans-serif;letter-spacing:0
 }
 
-/* الحدّ الأدنى للخطّ ١٣px: ما دونه لا يُقرأ على شاشةٍ في اليد */
+/* الحد الأدنى للخط ١٣px: ما دونه لا يقرأ على شاشة في اليد */
 .tq-caption,.pcard__meta,.stage-card span,.hero-mini__item span,
 .stats-band__item span,.stat-strip span,.compcard p,.form-hint{
   font-size:max(13px,1em)
 }
 
-/* التفافٌ لا يترك كلمةً يتيمة في سطرها */
+/* التفاف لا يترك كلمة يتيمة في سطرها */
 .page-hero__lede,.hero__lede,.section-head p,.bundle__note{ text-wrap:pretty }
 h1,h2,h3,.bundle__name{ text-wrap:balance }
 
-/* شعارات الجامعات: مقاسٌ واحد ولا صندوق ملوّن */
+/* شعارات الجامعات: مقاس واحد ولا صندوق ملون */
 .unislide img{
   inline-size:100%;block-size:100%;object-fit:contain;
   max-block-size:56px;mix-blend-mode:multiply
 }
 .unislide{display:flex;align-items:center;justify-content:center;padding:10px 14px}
 
-/* صفحة ٤٠٤: نصٌّ متوسّط وأزرارٌ لا تلتفّ ٢+١ */
+/* صفحة ٤٠٤: نص متوسط وأزرار لا تلتف ٢+١ */
 .err-card{text-align:center}
 .err-card .btn-row{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-PLAN · صفحة الباقة — المنهجُ بطلُها لا السعر
+   TQ-PLAN · صفحة الباقة — المنهج بطلها لا السعر
    ══════════════════════════════════════════════════════════════════ */
 .plan-cols{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);
   gap:clamp(18px,2.4vw,34px);align-items:start}
@@ -1829,7 +1829,7 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
 .plan-hero__stage{margin:0 0 6px;font-size:.86rem;font-weight:700;letter-spacing:.02em;
   color:var(--gold-text)}
 
-/* شريط الإحصاء — وما كان صفرًا لا يصل إلى هنا أصلًا (tqs_stat_strip) */
+/* شريط الإحصاء — وما كان صفرا لا يصل إلى هنا أصلا (tqs_stat_strip) */
 .plan-stats{display:flex;flex-wrap:wrap;gap:clamp(10px,1.6vw,22px);margin-block-start:clamp(14px,2vw,22px)}
 .plan-stats__i{display:flex;align-items:center;gap:9px;padding:9px 15px;
   background:rgba(252,248,244,.72);border:1px solid var(--gold-line-soft);
@@ -1868,7 +1868,7 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
   border-radius:12px;background:var(--beige);border:1px solid var(--gold-line-soft);color:var(--gold-deep)}
 .incl__ico svg{inline-size:19px;block-size:19px}
 
-/* ── الصفوف والمعلّمون ────────────────────────────────────────── */
+/* ── الصفوف والمعلمون ────────────────────────────────────────── */
 .gradelist{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:10px}
 .gradelist__i{display:flex;align-items:baseline;gap:8px;padding:9px 14px;background:var(--cream);
   border:1px solid var(--gold-line-soft);border-radius:13px}
@@ -1885,7 +1885,7 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
 .tlist__b b{display:block;color:var(--ink);font-size:.93rem}
 .tlist__b small{color:var(--ink-3);font-size:.78rem}
 
-/* ── أسئلةٌ قبل الاشتراك ──────────────────────────────────────── */
+/* ── أسئلة قبل الاشتراك ──────────────────────────────────────── */
 .faq2{margin-block-start:14px;display:grid;gap:9px}
 .faq2__i{background:var(--cream);border:1px solid var(--gold-line-soft);border-radius:14px;
   overflow:hidden}
@@ -1897,7 +1897,7 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
 .faq2__i[open]>summary svg{transform:rotate(180deg)}
 .faq2__i>p{margin:0;padding:0 16px 14px;color:var(--ink-2);font-size:.92rem;line-height:1.75}
 
-/* ── نداءٌ ختاميّ ─────────────────────────────────────────────── */
+/* ── نداء ختامي ─────────────────────────────────────────────── */
 .plan-cta__in{text-align:center;padding:clamp(26px,3.4vw,46px) clamp(18px,3vw,40px);
   background:var(--petrol);border-radius:var(--r-panel);color:#fff}
 .plan-cta__in h2{color:#fff;margin:0 0 8px}
@@ -1905,12 +1905,12 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
 
 @media (max-width:980px){
   .plan-cols{grid-template-columns:1fr}
-  .plan-buy{order:-1}                 /* السعر قبل المنهج على الجوّال: الشاشة ضيّقة
-                                         وطيّ المنهج يدفع الزرّ إلى ما بعد شاشتين */
+  .plan-buy{order:-1}                 /* السعر قبل المنهج على الجوال: الشاشة ضيقة
+                                         وطي المنهج يدفع الزر إلى ما بعد شاشتين */
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-CURRIC · المنهج — مادّةٌ تُطوى على وحداتها، بلا جافاسكربت
+   TQ-CURRIC · المنهج — مادة تطوى على وحداتها، بلا جافاسكربت
    ══════════════════════════════════════════════════════════════════ */
 .curric{margin-block-start:16px;display:grid;gap:10px}
 .curric__subj{background:var(--cream);border:1px solid var(--gold-line-soft);
@@ -1928,9 +1928,9 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
 .curric__subj[open] .curric__chev{transform:rotate(180deg)}
 .curric__subj.is-soon .curric__name{color:var(--ink-3)}
 
-/* شريط التقدّم داخل عنوان المادّة — للمشترك وحده.
-   يُملأ من **بداية السطر**: `inset-inline-start` في RTL هي اليمين، وهي
-   جهة القراءة — وشريطٌ يمتلئ يسارًا يبدو فارغًا للعين العربية. */
+/* شريط التقدم داخل عنوان المادة — للمشترك وحده.
+   يملأ من **بداية السطر**: `inset-inline-start` في RTL هي اليمين، وهي
+   جهة القراءة — وشريط يمتلئ يسارا يبدو فارغا للعين العربية. */
 .curric__prog{flex:none;display:flex;align-items:center;gap:8px}
 .curric__track{position:relative;flex:none;inline-size:70px;block-size:6px;
   border-radius:99px;background:rgba(5,44,43,.1);overflow:hidden}
@@ -1949,8 +1949,8 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
   border:1px solid var(--gold-line-soft);border-radius:11px;font-size:.9rem;color:var(--ink-2)}
 .curric__lesson.is-free{border-color:rgba(12,120,108,.34);background:rgba(12,120,108,.05)}
 .curric__ico{inline-size:16px;block-size:16px;flex:none;color:var(--gold-deep)}
-/* العنوان يبتلع الفراغ، فما بعده يستقرّ في آخر السطر بلا `margin:auto`
-   موزّعةٍ على أربعة عناصر يتنازعها ترتيبُ ظهورها. */
+/* العنوان يبتلع الفراغ، فما بعده يستقر في آخر السطر بلا `margin:auto`
+   موزعة على أربعة عناصر يتنازعها ترتيب ظهورها. */
 .curric__t{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
 a.curric__t{color:var(--ink-2);font-weight:600}
 a.curric__t:hover{color:var(--gold-text);text-decoration:underline}
@@ -1965,14 +1965,14 @@ a.curric__t:hover{color:var(--gold-text);text-decoration:underline}
 @media (max-width:560px){
   .curric__sum{flex-wrap:wrap;gap:6px 10px}
   .curric__meta{flex-basis:100%;order:3}
-  .curric__prog{display:none}          /* ٩٦ بكسل لشريطٍ في صفٍّ ملتفّ: يُقرأ في المتن */
+  .curric__prog{display:none}          /* ٩٦ بكسل لشريط في صف ملتف: يقرأ في المتن */
   .curric__lesson{flex-wrap:wrap}
   .curric__dur{margin-inline-start:0}
   .curric__free,.curric__lock{margin-inline-start:auto}
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-CHECKOUT · تأكيد الشراء — شاشةٌ واحدة بلا سلّة
+   TQ-CHECKOUT · تأكيد الشراء — شاشة واحدة بلا سلة
    ══════════════════════════════════════════════════════════════════ */
 .co-cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
   gap:clamp(18px,2.4vw,32px);align-items:start}
@@ -2033,7 +2033,7 @@ a.curric__t:hover{color:var(--gold-text);text-decoration:underline}
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-BANK · بيانات التحويل — الآيبان يُنسَخ لا يُملى
+   TQ-BANK · بيانات التحويل — الآيبان ينسخ لا يملى
    ══════════════════════════════════════════════════════════════════ */
 .bankbox{margin-block-start:16px;padding:clamp(14px,1.8vw,20px);
   background:var(--beige);border:1px solid var(--gold-line);border-radius:16px}
@@ -2058,7 +2058,7 @@ a.curric__t:hover{color:var(--gold-text);text-decoration:underline}
 .bankbox__note{margin:10px 0 0;font-size:.82rem;color:var(--ink-3);line-height:1.7}
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-BUNDLE · محتوى باقتي — داخل بوّابة الطالب
+   TQ-BUNDLE · محتوى باقتي — داخل بوابة الطالب
    ══════════════════════════════════════════════════════════════════ */
 .tqb-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
 .tqb-head__b{min-width:0}
@@ -2076,13 +2076,13 @@ a.curric__t:hover{color:var(--gold-text);text-decoration:underline}
 .tqb-prog__bar i{display:block;block-size:100%;background:var(--emerald,#0C786C);border-radius:99px;
   transition:inline-size var(--t-entry,320ms) var(--ease,ease)}
 
-/* رابط تفاصيل الباقة أسفل بطاقتها — ثانويّ لا ينافس زرّ الشراء */
+/* رابط تفاصيل الباقة أسفل بطاقتها — ثانوي لا ينافس زر الشراء */
 .bundle__more{display:flex;align-items:center;justify-content:center;gap:6px;
   margin-block-start:10px;font-size:.86rem;font-weight:700;color:var(--gold-text)}
 .bundle__more svg{inline-size:15px;block-size:15px;flex:none}
 .bundle__more:hover{text-decoration:underline}
 
-/* قائمة موادّ الباقة في صفحة الاشتراك — بطاقاتٌ صغيرة لا جدول */
+/* قائمة مواد الباقة في صفحة الاشتراك — بطاقات صغيرة لا جدول */
 .tqb-incl{margin-block-start:clamp(16px,2vw,24px)}
 .tqb-subj{list-style:none;margin:0 0 16px;padding:0;
   display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px}
@@ -2094,14 +2094,14 @@ a.curric__t:hover{color:var(--gold-text);text-decoration:underline}
 .tqb-subj__i.is-soon b{color:var(--ink-3)}
 .tqb-subj__i.is-soon span{color:var(--gold-text);font-weight:700}
 
-/* شارة «يُفتح بالاشتراك» — مرئيّةٌ عمدًا وهادئةٌ كي لا تنافس المعاينة */
+/* شارة «يفتح بالاشتراك» — مرئية عمدا وهادئة كي لا تنافس المعاينة */
 .curric__soonlock{display:inline-flex;align-items:center;gap:5px;flex:none;
   padding:4px 9px;border-radius:99px;background:var(--beige);
   border:1px solid var(--gold-line-soft);color:var(--ink-3);
   font-size:.74rem;font-weight:600;white-space:nowrap}
 .curric__soonlock .curric__lock{inline-size:13px;block-size:13px;opacity:1}
 @media (max-width:420px){
-  /* في أضيق شاشة يكفي القفل: النصّ يدفع السطر إلى ثلاثة أسطر */
+  /* في أضيق شاشة يكفي القفل: النص يدفع السطر إلى ثلاثة أسطر */
   .curric__soonlock{font-size:0;gap:0;padding:5px}
   .curric__soonlock .curric__lock{inline-size:14px;block-size:14px}
 }

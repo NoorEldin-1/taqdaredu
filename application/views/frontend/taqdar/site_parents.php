@@ -1,6 +1,6 @@
 <!--
-title: أولياء الأمور — منصّة تقدّر
-desc: نوفّر لكم كل ما تحتاجونه لمتابعة تقدّم أبنائكم التعليمي، لدعمهم وتحفيزهم نحو مستقبل مشرق.
+title: أولياء الأمور — منصة تقدر
+desc: نوفر لكم كل ما تحتاجونه لمتابعة تقدم أبنائكم التعليمي، لدعمهم وتحفيزهم نحو مستقبل مشرق.
 active: parents
 header: solid
 css: pages
@@ -17,7 +17,7 @@ css: pages
           <span class="page-hero__sub">شركاء في رحلة تعليم أبنائنا</span>
         </h1>
         <p class="page-hero__lede">
-          نوفّر لكم كل ما تحتاجونه لمتابعة تقدّم أبنائكم التعليمي،
+          نوفر لكم كل ما تحتاجونه لمتابعة تقدم أبنائكم التعليمي،
           لدعمهم وتحفيزهم نحو مستقبل مشرق.
         </p>
         <div class="page-hero__cta">
@@ -27,7 +27,7 @@ css: pages
         <div class="hero-mini">
           <div class="hero-mini__item">
             <span class="ico"><svg aria-hidden="true"><use href="#i-chart"></use></svg></span>
-            <div><b>تقارير تفصيلية</b><span>متابعة دقيقة لتقدّم الأبناء</span></div>
+            <div><b>تقارير تفصيلية</b><span>متابعة دقيقة لتقدم الأبناء</span></div>
           </div>
           <div class="hero-mini__item">
             <span class="ico"><svg aria-hidden="true"><use href="#i-growth"></use></svg></span>
@@ -75,12 +75,12 @@ css: pages
         <article class="icard reveal">
           <span class="ico"><svg aria-hidden="true"><use href="#i-clipboard"></use></svg></span>
           <h3>متابعة الواجبات</h3>
-          <p>اطّلع على الواجبات والأنشطة ومواعيد التسليم بسهولة.</p>
+          <p>اطلع على الواجبات والأنشطة ومواعيد التسليم بسهولة.</p>
         </article>
         <article class="icard reveal">
           <span class="ico"><svg aria-hidden="true"><use href="#i-chat"></use></svg></span>
           <h3>التواصل مع المعلمين</h3>
-          <p>تواصل مباشر مع المعلمين لمتابعة تقدّم أبنائك أوّلًا بأوّل.</p>
+          <p>تواصل مباشر مع المعلمين لمتابعة تقدم أبنائك أولا بأول.</p>
         </article>
         <article class="icard reveal">
           <span class="ico"><svg aria-hidden="true"><use href="#i-user"></use></svg></span>
@@ -90,7 +90,7 @@ css: pages
         <article class="icard reveal">
           <span class="ico"><svg aria-hidden="true"><use href="#i-bell"></use></svg></span>
           <h3>تنبيهات لحظية</h3>
-          <p>تنبيهات فورية بكل جديد يخصّ أداء ومهام أبنائك.</p>
+          <p>تنبيهات فورية بكل جديد يخص أداء ومهام أبنائك.</p>
         </article>
       </div>
     </div>
@@ -101,13 +101,13 @@ css: pages
 <section class="section section--plain">
   <div class="shell">
     <div class="section-head">
-      <h2><span>كيف نضمن لك متابعة سهلة وفعّالة؟</span></h2>
+      <h2><span>كيف نضمن لك متابعة سهلة وفعالة؟</span></h2>
       <div class="rule"><svg aria-hidden="true"><use href="#i-star8"></use></svg></div>
     </div>
     <div class="steps">
       <div class="step reveal">
         <span class="step__n">1</span>
-        <h3>تسجيل الدخول</h3><p>سجّل دخولك إلى حساب وليّ الأمر الخاص بك.</p>
+        <h3>تسجيل الدخول</h3><p>سجل دخولك إلى حساب ولي الأمر الخاص بك.</p>
       </div>
       <div class="step reveal">
         <span class="step__n">2</span>
@@ -115,11 +115,11 @@ css: pages
       </div>
       <div class="step reveal">
         <span class="step__n">3</span>
-        <h3>تابع التقدّم</h3><p>اطّلع على التقارير والدرجات والواجبات والأنشطة.</p>
+        <h3>تابع التقدم</h3><p>اطلع على التقارير والدرجات والواجبات والأنشطة.</p>
       </div>
       <div class="step reveal">
         <span class="step__n">4</span>
-        <h3>كن جزءًا من النجاح</h3><p>شارك أبناءك الرحلة وكن داعمهم الأوّل.</p>
+        <h3>كن جزءا من النجاح</h3><p>شارك أبناءك الرحلة وكن داعمهم الأول.</p>
       </div>
     </div>
   </div>
@@ -130,10 +130,10 @@ css: pages
   <div class="shell">
     <div class="showcase">
       <div class="showcase__panel reveal">
-        <h2>لوحة متابعة وليّ الأمر</h2>
+        <h2>لوحة متابعة ولي الأمر</h2>
         <p>واجهة سهلة تمنحك نظرة شاملة على أداء أبنائك في مكان واحد.</p>
         <ul class="showcase__list">
-          <li><svg aria-hidden="true"><use href="#i-check"></use></svg>ملخّص الأداء الأكاديمي</li>
+          <li><svg aria-hidden="true"><use href="#i-check"></use></svg>ملخص الأداء الأكاديمي</li>
           <li><svg aria-hidden="true"><use href="#i-check"></use></svg>تحليل نقاط القوة والضعف</li>
           <li><svg aria-hidden="true"><use href="#i-check"></use></svg>متابعة الأنشطة والواجبات</li>
           <li><svg aria-hidden="true"><use href="#i-check"></use></svg>التواصل مع المدرسة والمعلمين</li>
@@ -141,18 +141,18 @@ css: pages
         <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>">عرض نموذج اللوحة</a>
       </div>
 
-      <!-- اللوحة مبنيّة بالـCSS لا كصورة: تبقى حادّة وتتبع التوكنات -->
+      <!-- اللوحة مبنية بالـCSS لا كصورة: تبقى حادة وتتبع التوكنات -->
       <div class="dash reveal" role="img"
-           aria-label="نموذج لوحة متابعة وليّ الأمر: متوسط الأداء 85٪، المعدّل العام 4.6، عدد المهام 12">
+           aria-label="نموذج لوحة متابعة ولي الأمر: متوسط الأداء 85٪، المعدل العام 4.6، عدد المهام 12">
         <div class="dash__bar">
-          <b>مرحبًا، فاطمة</b>
+          <b>مرحبا، فاطمة</b>
           <span class="dash__dots" aria-hidden="true"><i></i><i></i><i></i></span>
         </div>
         <div class="dash__body">
           <div class="dash__kpis">
             <div class="dash__kpi"><b>85%</b><span>متوسط الأداء</span></div>
-            <div class="dash__kpi"><b>4.6</b><span>المعدّل العام</span></div>
-            <div class="dash__kpi"><b>12</b><span>مهمّة مكتملة</span></div>
+            <div class="dash__kpi"><b>4.6</b><span>المعدل العام</span></div>
+            <div class="dash__kpi"><b>12</b><span>مهمة مكتملة</span></div>
           </div>
           <div class="dash__chart">
             <svg viewBox="0 0 200 84" aria-hidden="true">
@@ -183,8 +183,8 @@ css: pages
       </div>
 
       <div class="appcard reveal" id="app">
-        <h3>تطبيق تقدّر بين يديك</h3>
-        <p>تابع أبناءك من أي مكان وفي أي وقت من خلال تطبيقنا المخصّص لأولياء الأمور.</p>
+        <h3>تطبيق تقدر بين يديك</h3>
+        <p>تابع أبناءك من أي مكان وفي أي وقت من خلال تطبيقنا المخصص لأولياء الأمور.</p>
         <div class="phone" aria-hidden="true">
           <img src="<?php echo tq_site_asset('img/logo-light.webp'); ?>" alt="" width="280" height="163">
         </div>
@@ -204,7 +204,7 @@ css: pages
     <div class="cards-3">
       <article class="tcard reveal">
         <svg class="tcard__mark" aria-hidden="true"><use href="#i-quote"></use></svg>
-        <p>التواصل مع المعلمين أصبح أسهل والمنصة توفّر وقت وجهد كبير.</p>
+        <p>التواصل مع المعلمين أصبح أسهل والمنصة توفر وقت وجهد كبير.</p>
         <div class="tcard__who">
           <img src="<?php echo tq_site_asset('img/avatar-3.webp'); ?>" width="130" height="130" loading="lazy"
                decoding="async" alt="">
@@ -221,7 +221,7 @@ css: pages
 
       <article class="tcard reveal">
         <svg class="tcard__mark" aria-hidden="true"><use href="#i-quote"></use></svg>
-        <p>التقارير مفصّلة جدًّا وتساعدني على دعم ابنتي في نقاط ضعفها أوّلًا بأوّل.</p>
+        <p>التقارير مفصلة جدا وتساعدني على دعم ابنتي في نقاط ضعفها أولا بأول.</p>
         <div class="tcard__who">
           <img src="<?php echo tq_site_asset('img/avatar-2.webp'); ?>" width="130" height="130" loading="lazy"
                decoding="async" alt="">
@@ -238,7 +238,7 @@ css: pages
 
       <article class="tcard reveal">
         <svg class="tcard__mark" aria-hidden="true"><use href="#i-quote"></use></svg>
-        <p>المنصة رائعة وسهلة. أتابع ابني أوّلًا بأوّل وأشعر بالطمأنينة على مستواه الدراسي.</p>
+        <p>المنصة رائعة وسهلة. أتابع ابني أولا بأول وأشعر بالطمأنينة على مستواه الدراسي.</p>
         <div class="tcard__who">
           <img src="<?php echo tq_site_asset('img/avatar-1.webp'); ?>" width="130" height="130" loading="lazy"
                decoding="async" alt="">
@@ -262,8 +262,8 @@ css: pages
     <div class="cta on-dark">
       <span class="lantern lantern--r" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
       <div class="cta__copy">
-        <h2>معًا نصنع مستقبلًا أفضل</h2>
-        <p>انضم إلى آلاف أولياء الأمور الذين يثقون بمنصة تقدّر التعليمية</p>
+        <h2>معا نصنع مستقبلا أفضل</h2>
+        <p>انضم إلى آلاف أولياء الأمور الذين يثقون بمنصة تقدر التعليمية</p>
         <div class="cta__actions">
           <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>">إنشاء حساب مجاني</a>
           <a class="btn btn--ghost" href="<?php echo base_url('login'); ?>">تسجيل الدخول</a>

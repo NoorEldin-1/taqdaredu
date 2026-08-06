@@ -2,13 +2,13 @@
 /**
  * تسجيل الدخول.
  *
- * العقد محفوظ حرفيًّا: `login/validate_login` بحقلَي `email` و`password`.
- * المتحكّم يتحقّق منهما بأسمائهما، فتغيير حرف في اسم حقل يُنتج رفضًا
- * صامتًا يبدو للمستخدم «كلمة مرور خاطئة».
+ * العقد محفوظ حرفيا: `login/validate_login` بحقلي `email` و`password`.
+ * المتحكم يتحقق منهما بأسمائهما، فتغيير حرف في اسم حقل ينتج رفضا
+ * صامتا يبدو للمستخدم «كلمة مرور خاطئة».
  *
- * ولا حقل CSRF يدويّ: `REST_Output` يحقنه في كل `<form method=post>`.
+ * ولا حقل CSRF يدوي: `REST_Output` يحقنه في كل `<form method=post>`.
  */
-$tq_h1 = 'أكمِل من حيث توقّفت.';
+$tq_h1 = 'أكمل من حيث توقفت.';
 $tq_lead = 'ادخل إلى حسابك لمتابعة برنامجك ودروسك.';
 include __DIR__ . '/site/site_pagehero.php';
 ?>
@@ -16,8 +16,8 @@ include __DIR__ . '/site/site_pagehero.php';
   <div class="shell shell--auth">
     <div class="auth-wrap">
       <div class="form-card">
-      <a class="auth-brand" href="<?php echo base_url(); ?>" aria-label="منصّة تقدّر">
-        <img src="<?php echo tq_site_asset('img/logo.webp'); ?>" alt="منصّة تقدّر" width="280" height="157">
+      <a class="auth-brand" href="<?php echo base_url(); ?>" aria-label="منصة تقدر">
+        <img src="<?php echo tq_site_asset('img/logo.webp'); ?>" alt="منصة تقدر" width="280" height="157">
       </a>
 
       <?php if ($tq_e = $this->session->flashdata('error_message')): ?>
@@ -28,15 +28,15 @@ include __DIR__ . '/site/site_pagehero.php';
       <?php endif; ?>
 
 <?php
-/* الدور هنا **عرضٌ لا قرار**: الوجهة بعد الدخول يحدّدها ما في الحساب،
-   ومعلّمٌ اختار «طالب» يصل إلى بوّابة المعلّم كما كان. وفائدته أنّ رابط
-   «أنشئ حسابًا» يفتح البوّابة التي يريدها بلا خطوةٍ ثانية. */
+/* الدور هنا **عرض لا قرار**: الوجهة بعد الدخول يحددها ما في الحساب،
+   ومعلم اختار «طالب» يصل إلى بوابة المعلم كما كان. وفائدته أن رابط
+   «أنشئ حسابا» يفتح البوابة التي يريدها بلا خطوة ثانية. */
 $tq_as = ((string) $this->input->get('as') === 'teacher') ? 'teacher' : 'student';
 ?>
       <div class="gate-picker gate-picker--login" role="tablist" aria-label="نوع الحساب">
         <?php foreach (array(
-          'student' => array('طالب',  'i-cap',     'أتعلّم على المنصّة'),
-          'teacher' => array('معلّم', 'i-teacher', 'أُدرّس على المنصّة'),
+          'student' => array('طالب',  'i-cap',     'أتعلم على المنصة'),
+          'teacher' => array('معلم', 'i-teacher', 'أدرس على المنصة'),
         ) as $tq_k => $tq_g): ?>
           <a class="gate-card<?php echo $tq_as === $tq_k ? ' is-on' : ''; ?>"
              role="tab" aria-selected="<?php echo $tq_as === $tq_k ? 'true' : 'false'; ?>"
@@ -58,8 +58,8 @@ $tq_as = ((string) $this->input->get('as') === 'teacher') ? 'teacher' : 'student
           <span class="sr-only">كلمة المرور</span>
           <input type="password" name="password" id="loginPw" placeholder="كلمة المرور"
                  required autocomplete="current-password">
-          <?php /* المهرب من الخطأ الصامت: من يكتب كلمةً في حقلٍ لا يراه
-                  لا يعرف أخطأ في حرفٍ أم في لغة لوحة المفاتيح. */ ?>
+          <?php /* المهرب من الخطأ الصامت: من يكتب كلمة في حقل لا يراه
+                  لا يعرف أخطأ في حرف أم في لغة لوحة المفاتيح. */ ?>
           <button class="pw-eye" type="button" data-tq-pw="loginPw"
                   aria-label="إظهار كلمة المرور" aria-pressed="false">
             <svg aria-hidden="true"><use href="#i-eye"></use></svg>
@@ -67,7 +67,7 @@ $tq_as = ((string) $this->input->get('as') === 'teacher') ? 'teacher' : 'student
         </label>
         <label class="form-remember">
           <input type="checkbox" name="remember_me" value="1">
-          <span>تذكّرني على هذا الجهاز</span>
+          <span>تذكرني على هذا الجهاز</span>
         </label>
         <button class="btn btn--primary btn--block" type="submit">دخول</button>
       </form>
@@ -76,20 +76,20 @@ $tq_as = ((string) $this->input->get('as') === 'teacher') ? 'teacher' : 'student
         <a href="<?php echo site_url('login/forgot_password_request'); ?>">نسيت كلمة المرور؟</a>
       </p>
       <p class="form-alt">ليس لديك حساب؟
-        <a href="<?php echo base_url('sign_up'); ?>?as=<?php echo $tq_as; ?>">أنشئ حسابًا مجّانًا</a></p>
+        <a href="<?php echo base_url('sign_up'); ?>?as=<?php echo $tq_as; ?>">أنشئ حسابا مجانا</a></p>
 
       </div>
       <aside class="auth-aside" aria-hidden="true">
         <img src="<?php echo tq_site_asset('img/auth-panel.webp'); ?>" alt="" width="700" height="1050" loading="lazy" decoding="async">
         <div class="auth-aside__body">
-          <h2>منصّة تعليمية سعودية</h2>
+          <h2>منصة تعليمية سعودية</h2>
           <ul class="auth-points">
             <li><svg aria-hidden="true"><use href="#i-cap"></use></svg>
-                <span><b>برامج متدرّجة</b>مصمَّمة وفق المناهج السعودية</span></li>
+                <span><b>برامج متدرجة</b>مصممة وفق المناهج السعودية</span></li>
             <li><svg aria-hidden="true"><use href="#i-chart"></use></svg>
-                <span><b>متابعة تقدّمك</b>تقارير دقيقة لك ولوليّ أمرك</span></li>
+                <span><b>متابعة تقدمك</b>تقارير دقيقة لك ولولي أمرك</span></li>
             <li><svg aria-hidden="true"><use href="#i-certificate"></use></svg>
-                <span><b>شهادات إتقان</b>تُصدَر عند اجتياز المحطّات</span></li>
+                <span><b>شهادات إتقان</b>تصدر عند اجتياز المحطات</span></li>
           </ul>
         </div>
       </aside>

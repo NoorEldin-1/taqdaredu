@@ -1,19 +1,19 @@
 <?php
 /**
- * إنشاء حساب — ثلاث بوّابات.
+ * إنشاء حساب — ثلاث بوابات.
  *
- * الطالب ووليّ الأمر والمعلّم لا يريدون الشيء نفسه ولا يُسألون عنه.
- * فبوّابةٌ لكلٍّ، وحقولٌ تخصّه، ووجهةٌ هي لوحته.
+ * الطالب وولي الأمر والمعلم لا يريدون الشيء نفسه ولا يسألون عنه.
+ * فبوابة لكل، وحقول تخصه، ووجهة هي لوحته.
  *
- * **وبرنامج المعلّم لا يفتح حسابًا**: يُنشئ طلبًا ينتظر اعتماد الإدارة.
- * منصّةٌ يدرّس فيها الغرباء بلا تحقّق ليست منصّة تعليمية.
+ * **وبرنامج المعلم لا يفتح حسابا**: ينشئ طلبا ينتظر اعتماد الإدارة.
+ * منصة يدرس فيها الغرباء بلا تحقق ليست منصة تعليمية.
  */
-$tq_h1   = 'حسابك في تقدّر مجّاني.';
-$tq_lead = 'اختر بوّابتك، وأنشئ حسابك في دقيقة.';
+$tq_h1   = 'حسابك في تقدر مجاني.';
+$tq_lead = 'اختر بوابتك، وأنشئ حسابك في دقيقة.';
 include __DIR__ . '/site/site_pagehero.php';
 
-/* «وليّ أمر» لم تعد بوّابةً عامّة، فـ`?as=parent` لا يُقبل — وإلّا فُتحت
-   بطاقةٌ محذوفة من الاختيار عبر الرابط وحده. */
+/* «ولي أمر» لم تعد بوابة عامة، فـ`?as=parent` لا يقبل — وإلا فتحت
+   بطاقة محذوفة من الاختيار عبر الرابط وحده. */
 $tq_gate = in_array((string) $this->input->get('as'), array('teacher'), true)
          ? (string) $this->input->get('as') : 'student';
 ?>
@@ -21,8 +21,8 @@ $tq_gate = in_array((string) $this->input->get('as'), array('teacher'), true)
   <div class="shell shell--auth">
     <div class="auth-wrap">
       <div class="form-card">
-      <a class="auth-brand" href="<?php echo base_url(); ?>" aria-label="منصّة تقدّر">
-        <img src="<?php echo tq_site_asset('img/logo.webp'); ?>" alt="منصّة تقدّر" width="280" height="157">
+      <a class="auth-brand" href="<?php echo base_url(); ?>" aria-label="منصة تقدر">
+        <img src="<?php echo tq_site_asset('img/logo.webp'); ?>" alt="منصة تقدر" width="280" height="157">
       </a>
 
       <?php if ($tq_e = $this->session->flashdata('error_message')): ?>
@@ -34,8 +34,8 @@ $tq_gate = in_array((string) $this->input->get('as'), array('teacher'), true)
 
       <div class="gate-picker" role="tablist" aria-label="نوع الحساب">
         <?php foreach (array(
-          'student' => array('طالب',      'i-cap',      'أتعلّم على المنصّة'),
-          'teacher' => array('معلّم',     'i-teacher',  'أُدرّس على المنصّة'),
+          'student' => array('طالب',      'i-cap',      'أتعلم على المنصة'),
+          'teacher' => array('معلم',     'i-teacher',  'أدرس على المنصة'),
         ) as $tq_k => $tq_g): ?>
           <button class="gate-card<?php echo $tq_gate === $tq_k ? ' is-on' : ''; ?>" type="button"
                   role="tab" aria-selected="<?php echo $tq_gate === $tq_k ? 'true' : 'false'; ?>"
@@ -79,7 +79,7 @@ $tq_gate = in_array((string) $this->input->get('as'), array('teacher'), true)
           </label>
             <?php /* التلميح تحت الحقل الذي يصفه لا تحت تأكيده:
                     من يقرؤه بعد كتابة الكلمتين يقرؤه بعد فوات الأوان. */ ?>
-            <p class="form-hint" id="pwHint">ثمانية محارف على الأقلّ.</p>
+            <p class="form-hint" id="pwHint">ثمانية محارف على الأقل.</p>
           <label class="form-field">
             <svg aria-hidden="true"><use href="#i-lock"></use></svg>
             <span class="sr-only">تأكيد كلمة المرور</span>
@@ -89,14 +89,14 @@ $tq_gate = in_array((string) $this->input->get('as'), array('teacher'), true)
         </div>
 
 
-        <?php /* ── الطالب: العمر، وبريد وليّ الأمر لمن هو دون الخامسة عشرة ── */ ?>
+        <?php /* ── الطالب: العمر، وبريد ولي الأمر لمن هو دون الخامسة عشرة ── */ ?>
         <div class="gate-fields" data-for="student">
           <div class="form-grid">
             <label class="form-field">
               <svg aria-hidden="true"><use href="#i-user"></use></svg>
               <span class="sr-only">العمر</span>
-              <?php /* مطلوب: المرحلة تُشتقّ منه، وحسابٌ بلا عمر لا يُصنَّف.
-        وكان بلا `required` رغم أنّه محور التصنيف. */ ?>
+              <?php /* مطلوب: المرحلة تشتق منه، وحساب بلا عمر لا يصنف.
+        وكان بلا `required` رغم أنه محور التصنيف. */ ?>
               <input type="number" name="age" id="tqAge" required
                      autocomplete="off" placeholder="العمر" min="5" max="99" inputmode="numeric">
             </label>
@@ -118,16 +118,16 @@ $tq_gate = in_array((string) $this->input->get('as'), array('teacher'), true)
           <div id="tqGuardian" hidden>
             <label class="form-field">
               <svg aria-hidden="true"><use href="#i-mail"></use></svg>
-              <span class="sr-only">بريد وليّ الأمر</span>
-              <input type="email" name="guardian_email" placeholder="بريد وليّ الأمر">
+              <span class="sr-only">بريد ولي الأمر</span>
+              <input type="email" name="guardian_email" placeholder="بريد ولي الأمر">
             </label>
             <p class="form-hint">
-              دون الخامسة عشرة نطلب بريد وليّ أمرك، ونرسل إليه طلب موافقة قبل تفعيل الحساب.
+              دون الخامسة عشرة نطلب بريد ولي أمرك، ونرسل إليه طلب موافقة قبل تفعيل الحساب.
             </p>
           </div>
         </div>
 
-        <?php /* ── المعلّم: طلبٌ يُراجَع، لا حساب يُفتح ── */ ?>
+        <?php /* ── المعلم: طلب يراجع، لا حساب يفتح ── */ ?>
         <div class="gate-fields" data-for="teacher">
           <label class="form-field">
             <svg aria-hidden="true"><use href="#i-phone"></use></svg>
@@ -138,15 +138,15 @@ $tq_gate = in_array((string) $this->input->get('as'), array('teacher'), true)
             <svg aria-hidden="true"><use href="#i-file"></use></svg>
             <span class="sr-only">مستند التعريف</span>
             <input type="file" name="document" id="tqDoc" accept=".pdf,.jpg,.jpeg,.png" class="sr-only">
-            <span class="file-btn" id="tqDocBtn">اختر ملفًّا…</span>
-            <span class="file-name" id="tqDocName">لم يُختر ملفّ</span>
+            <span class="file-btn" id="tqDocBtn">اختر ملفا…</span>
+            <span class="file-name" id="tqDocName">لم يختر ملف</span>
           </label>
           <label class="form-field form-field--full">
             <span class="sr-only">نبذة عن خبرتك</span>
-            <textarea name="message" rows="3" placeholder="نبذة عن خبرتك التدريسية وموادّك"></textarea>
+            <textarea name="message" rows="3" placeholder="نبذة عن خبرتك التدريسية وموادك"></textarea>
           </label>
           <p class="form-hint">
-            طلبك يُراجَع من الإدارة، ونتواصل معك قبل تفعيل لوحتك.
+            طلبك يراجع من الإدارة، ونتواصل معك قبل تفعيل لوحتك.
           </p>
         </div>
 
@@ -159,20 +159,20 @@ $tq_gate = in_array((string) $this->input->get('as'), array('teacher'), true)
         <button class="btn btn--primary btn--block" type="submit">إنشاء الحساب</button>
       </form>
 
-      <p class="form-alt">لديك حساب؟ <a href="<?php echo base_url('login'); ?>">سجّل الدخول</a></p>
+      <p class="form-alt">لديك حساب؟ <a href="<?php echo base_url('login'); ?>">سجل الدخول</a></p>
       </div>
 
       <aside class="auth-aside" aria-hidden="true">
         <img src="<?php echo tq_site_asset('img/auth-panel.webp'); ?>" alt="" width="700" height="1050" loading="lazy" decoding="async">
         <div class="auth-aside__body">
-          <h2>منصّة تعليمية سعودية</h2>
+          <h2>منصة تعليمية سعودية</h2>
           <ul class="auth-points">
             <li><svg aria-hidden="true"><use href="#i-cap"></use></svg>
-                <span><b>وفق المنهج السعودي</b>برامج لكل صفّ ومادّة</span></li>
+                <span><b>وفق المنهج السعودي</b>برامج لكل صف ومادة</span></li>
             <li><svg aria-hidden="true"><use href="#i-chart"></use></svg>
-                <span><b>متابعة تقدّمك</b>تقارير دقيقة لك ولوليّ أمرك</span></li>
+                <span><b>متابعة تقدمك</b>تقارير دقيقة لك ولولي أمرك</span></li>
             <li><svg aria-hidden="true"><use href="#i-certificate"></use></svg>
-                <span><b>شهادات إتقان</b>تُصدَر عند اجتياز المحطّات</span></li>
+                <span><b>شهادات إتقان</b>تصدر عند اجتياز المحطات</span></li>
           </ul>
         </div>
       </aside>
@@ -181,8 +181,8 @@ $tq_gate = in_array((string) $this->input->get('as'), array('teacher'), true)
 </section>
 
 <script>
-/* البوّابة تُبدّل الحقول والوجهة. وحقول كل بوّابة `required` عند اختيارها
-   وحدها — وإلّا مُنع الإرسال بحقلٍ مخفيّ لا يراه المستخدم. */
+/* البوابة تبدل الحقول والوجهة. وحقول كل بوابة `required` عند اختيارها
+   وحدها — وإلا منع الإرسال بحقل مخفي لا يراه المستخدم. */
 (function () {
   var gate = document.getElementById('tqGate');
   var picker = document.querySelector('.gate-picker');
@@ -223,13 +223,13 @@ $tq_gate = in_array((string) $this->input->get('as'), array('teacher'), true)
     }
   });
 
-  /* حقل الملفّ: زرّ عربيّ واسم الملفّ المختار بدل «Choose File» */
+  /* حقل الملف: زر عربي واسم الملف المختار بدل «Choose File» */
   var doc = document.getElementById('tqDoc'), btn = document.getElementById('tqDocBtn'),
       nm = document.getElementById('tqDocName');
   if (doc && btn) {
     btn.addEventListener('click', function () { doc.click(); });
     doc.addEventListener('change', function () {
-      if (nm) nm.textContent = doc.files && doc.files[0] ? doc.files[0].name : 'لم يُختر ملفّ';
+      if (nm) nm.textContent = doc.files && doc.files[0] ? doc.files[0].name : 'لم يختر ملف';
     });
   }
 

@@ -1,8 +1,8 @@
-/* خطوط تقدّر — نفس ملفّات الواجهة بعينها.
-   البوّابة كانت تُنزّل `Cairo.woff2` (116 ك.ب) و`Tajawal` بوزنين (36 ك.ب)،
-   والواجهة تُنزّل Cairo مقتطعًا وPlex مقتطعًا. فالزائر الآتي من الصفحة
-   الرئيسية كان يُنزّل أطقمًا كاملة من جديد ليقرأ الحروف نفسها.
-   والآن يشتركان في الملفّات، فلا تحميل ثانيًا ولا حرفٌ مختلف. */
+/* خطوط تقدر — نفس ملفات الواجهة بعينها.
+   البوابة كانت تنزل `Cairo.woff2` (116 ك.ب) و`Tajawal` بوزنين (36 ك.ب)،
+   والواجهة تنزل Cairo مقتطعا وPlex مقتطعا. فالزائر الآتي من الصفحة
+   الرئيسية كان ينزل أطقما كاملة من جديد ليقرأ الحروف نفسها.
+   والآن يشتركان في الملفات، فلا تحميل ثانيا ولا حرف مختلف. */
 
 @font-face{font-family:'Cairo';src:url('../site/fonts/Cairo-400-arabic.woff2') format('woff2');font-weight:400;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
 @font-face{font-family:'Cairo';src:url('../site/fonts/Cairo-400-latin.woff2') format('woff2');font-weight:400;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F,U+2190-21FF}
@@ -20,6 +20,6 @@
 @font-face{font-family:'Plex Arabic';src:url('../site/fonts/Plex-600-arabic.woff2') format('woff2');font-weight:600;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
 @font-face{font-family:'Plex Arabic';src:url('../site/fonts/Plex-600-latin.woff2') format('woff2');font-weight:600;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F,U+2190-21FF}
 
-/* الأرقام تبقى بحرفها: خطٌّ للأرقام قرارٌ وظيفيّ (أعمدة تتراصّ) لا هويّة،
-   ولا مقابل له في الواجهة يُنازعه. */
+/* الأرقام تبقى بحرفها: خط للأرقام قرار وظيفي (أعمدة تتراص) لا هوية،
+   ولا مقابل له في الواجهة ينازعه. */
 @font-face{font-family:'SpaceGrotesk';src:url('../fonts/SpaceGrotesk.woff2') format('woff2');font-weight:500 700;font-style:normal;font-display:swap}

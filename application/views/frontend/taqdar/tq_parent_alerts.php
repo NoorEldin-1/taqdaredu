@@ -1,11 +1,11 @@
 <?php
 /**
- * بوّابة وليّ الأمر — الإشعارات.
+ * بوابة ولي الأمر — الإشعارات.
  *
  * المرجع التصميمي: تطبيق البنك، لا لوحة تعليمية. والبنك لا يقاطعك بكل
- * حركة، يقاطعك بما يستدعي فعلًا الآن.
+ * حركة، يقاطعك بما يستدعي فعلا الآن.
  *
- * خمسة أحداث فقط تستحقّ المقاطعة الفورية:
+ * خمسة أحداث فقط تستحق المقاطعة الفورية:
  *   1. نتيجة امتحان
  *   2. رسوب في اختبار محطة
  *   3. انقطاع ثلاثة أيام
@@ -14,31 +14,31 @@
  * وما عداها ينتظر التقرير الأسبوعي. والفرز يقع في طبقة الاستعلام على
  * `notifications.type` بقائمة بيضاء، لا بإخفاء عناصر في الواجهة.
  *
- * ما ينتظر عملًا على الخادم: هذه الأنواع الخمسة تُكتب في `notifications.type`
- * عند وقوع الحدث (اليوم لا تُكتب إلا أنواع أكاديمي العامّة كـ signup،
- * ويُضاف إليها `parent_link_request` من طبقة الربط). ولذلك يظهر أكثر ما
+ * ما ينتظر عملا على الخادم: هذه الأنواع الخمسة تكتب في `notifications.type`
+ * عند وقوع الحدث (اليوم لا تكتب إلا أنواع أكاديمي العامة كـ signup،
+ * ويضاف إليها `parent_link_request` من طبقة الربط). ولذلك يظهر أكثر ما
  * وصلك في «ينتظر التقرير الأسبوعي» — وهو الصواب، لا خطأ في العرض.
  *
- * وما اختاره وليّ الأمر من هذه الأنواع صار مقروءًا هنا من `parent_links.scope`:
- * النوع الموقوف يظهر موقوفًا لا مخفيًّا، فمن أوقف شيئًا يعرف أنه أوقفه
- * ولا يظنّ الشاشة معطوبة.
+ * وما اختاره ولي الأمر من هذه الأنواع صار مقروءا هنا من `parent_links.scope`:
+ * النوع الموقوف يظهر موقوفا لا مخفيا، فمن أوقف شيئا يعرف أنه أوقفه
+ * ولا يظن الشاشة معطوبة.
  */
 
 $tq_nav   = 'alerts';
 $tq_role  = 'parent';
 $tq_title = 'الإشعارات';
-$tq_sub   = 'ما يستحقّ أن يقطع يومك — وما ينتظر الأحد';
+$tq_sub   = 'ما يستحق أن يقطع يومك — وما ينتظر الأحد';
 $tq_icon  = 'bell';
 
 $tq_uid = (int) $this->session->userdata('user_id');
 
-/* تفضيلات وليّ الأمر: أيّ الأحداث اختار أن تصله (تُحفظ في `parent_links.scope`).
-   وتُعرض هنا كما هي — فمن أوقف نوعًا يرى أنه موقوف، لا يظنّه معطوبًا. */
+/* تفضيلات ولي الأمر: أي الأحداث اختار أن تصله (تحفظ في `parent_links.scope`).
+   وتعرض هنا كما هي — فمن أوقف نوعا يرى أنه موقوف، لا يظنه معطوبا. */
 $tq_ci = &get_instance();
 $tq_ci->load->model('taqdar_parent_model');
 $tq_prefs = $tq_ci->taqdar_parent_model->prefs($tq_uid);
 
-/* القائمة البيضاء: الأحداث الخمسة وحدها تُقاطع. */
+/* القائمة البيضاء: الأحداث الخمسة وحدها تقاطع. */
 $tq_urgent_types = [
     'exam_result'      => ['نتيجة امتحان',          'check-badge', 'mint'],
     'station_failed'   => ['رسوب في اختبار محطة',   'target',      'rose'],
@@ -72,10 +72,10 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
-        <!-- ما يستحقّ المقاطعة -->
+        <!-- ما يستحق المقاطعة -->
         <section class="tq-section" aria-labelledby="tq-urgent-h">
             <div class="tq-sectionhead">
-                <h2 id="tq-urgent-h">يستحقّ انتباهك الآن</h2>
+                <h2 id="tq-urgent-h">يستحق انتباهك الآن</h2>
                 <?php if ($tq_urgent): ?>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_urgent) . TQ_PDI; ?></span>
                 <?php endif; ?>
@@ -131,7 +131,7 @@ include 'portal_open.php';
             <?php if ($tq_later): ?>
                 <div class="tq-card">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                        هذه أحداث مفيدة لكنها لا تستدعي أن تقطع يومك. تصلك مجمّعة صباح الأحد.
+                        هذه أحداث مفيدة لكنها لا تستدعي أن تقطع يومك. تصلك مجمعة صباح الأحد.
                     </p>
                     <ul class="tq-stack">
                         <?php foreach ($tq_later as $tq_n): ?>
@@ -150,8 +150,8 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('clipboard', 24); ?></span>
-                    <h3 class="tq-empty__title">لا شيء مؤجَّل</h3>
-                    <p class="tq-empty__text">كل ما لا يستحقّ المقاطعة يُجمَع هنا ويصلك في تقرير الأحد.</p>
+                    <h3 class="tq-empty__title">لا شيء مؤجل</h3>
+                    <p class="tq-empty__text">كل ما لا يستحق المقاطعة يجمع هنا ويصلك في تقرير الأحد.</p>
                     <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent'); ?>">أبنائي</a>
                 </div>
             <?php endif; ?>
@@ -176,16 +176,16 @@ include 'portal_open.php';
             </ul>
             <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
                 خمسة أحداث لا سادس لها. ما عداها ينتظر تقرير الأحد
-                <?php echo !empty($tq_prefs['weekly']) ? '(وهو مفعّل عندك)' : '(وقد أوقفته أنت)'; ?>.
-                <a href="<?php echo base_url('parent/settings'); ?>">غيّر ما يصلك</a>.
+                <?php echo !empty($tq_prefs['weekly']) ? '(وهو مفعل عندك)' : '(وقد أوقفته أنت)'; ?>.
+                <a href="<?php echo base_url('parent/settings'); ?>">غير ما يصلك</a>.
             </p>
         </div>
 
         <div class="tq-pastel tq-pastel--lilac">
-            <span class="tq-pastel__label tq-micro">لماذا نقلّل الإشعارات</span>
+            <span class="tq-pastel__label tq-micro">لماذا نقلل الإشعارات</span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                الإشعار الذي يتكرّر بلا سبب يُغلَق كلّه، فيضيع معه الإشعار المهمّ.
-                نقاطعك قليلًا لتنتبه حين نقاطعك.
+                الإشعار الذي يتكرر بلا سبب يغلق كله، فيضيع معه الإشعار المهم.
+                نقاطعك قليلا لتنتبه حين نقاطعك.
             </p>
         </div>
     </aside>

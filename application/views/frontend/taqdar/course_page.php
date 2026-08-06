@@ -1,12 +1,12 @@
 <?php
 /**
- * صفحة الدورة — المنهج · المعلّم · التقييمات · السعر.
+ * صفحة الدورة — المنهج · المعلم · التقييمات · السعر.
  *
- * المتحكّم Home::course يمرّر $course_id وحده، وبقيّة البيانات تُقرأ من النماذج
- * كما في الثيم القائم — الاستعلامات نفسها بواجهة تقدّر.
+ * المتحكم Home::course يمرر $course_id وحده، وبقية البيانات تقرأ من النماذج
+ * كما في الثيم القائم — الاستعلامات نفسها بواجهة تقدر.
  *
- * برامج الفعل عقد مع المتحكّم ولا تُغيَّر:
- * · الدورة المجّانية → home/get_enrolled_to_free_course/{id}
+ * برامج الفعل عقد مع المتحكم ولا تغير:
+ * · الدورة المجانية → home/get_enrolled_to_free_course/{id}
  * · الدورة المدفوعة  → home/handle_buy_now/{id}  (يعيد JSON فيه redirectTo)
  * · المشترك فيها     → home/lesson/{slug}/{id}
  */
@@ -15,7 +15,7 @@ include_once 'public_parts.php';
 $course_details = $this->crud_model->get_course_by_id($course_id)->row_array();
 
 if (empty($course_details)) {
-    tqp_empty('search', 'هذه الدورة غير متاحة', 'قد تكون أُخفيت أو حُذفت. تصفّح بقيّة الدورات المنشورة.', 'كل الدورات', base_url('plans'));
+    tqp_empty('search', 'هذه الدورة غير متاحة', 'قد تكون أخفيت أو حذفت. تصفح بقية الدورات المنشورة.', 'كل الدورات', base_url('plans'));
     return;
 }
 
@@ -42,7 +42,7 @@ $faqs      = is_array($faqs) ? $faqs : [];
 
 <section class="tqp-coursehead">
     <div class="tq-container">
-        <nav class="tqp-crumbs" aria-label="برنامج التصفّح">
+        <nav class="tqp-crumbs" aria-label="برنامج التصفح">
             <a href="<?php echo base_url(); ?>">الرئيسية</a>
             <span class="tqp-crumbs__sep" aria-hidden="true">/</span>
             <a href="<?php echo base_url('plans'); ?>">الدورات</a>
@@ -73,18 +73,18 @@ $faqs      = is_array($faqs) ? $faqs : [];
                     <span><?php echo tqp_stars($rating_avg, $rating_count); ?></span>
                     <span>
                         <?php echo tq_icon('users', 16); ?>
-                        <?php echo tqp_plural($students, 'طالب واحد', 'طالبان', 'طلاب', 'طالبًا'); ?>
+                        <?php echo tqp_plural($students, 'طالب واحد', 'طالبان', 'طلاب', 'طالبا'); ?>
                     </span>
                     <?php if ($duration !== ''): ?>
                         <span>
                             <?php echo tq_icon('clock', 16); ?>
-                            <span class="tq-sr">المدّة الكلّية</span>
+                            <span class="tq-sr">المدة الكلية</span>
                             <?php echo tq_num($duration, 'tq-num--sm'); ?>
                         </span>
                     <?php endif; ?>
                     <span>
                         <?php echo tq_icon('play', 16); ?>
-                        <?php echo tqp_plural(count($lesson_rows), 'درس واحد', 'درسان', 'دروس', 'درسًا'); ?>
+                        <?php echo tqp_plural(count($lesson_rows), 'درس واحد', 'درسان', 'دروس', 'درسا'); ?>
                     </span>
                 </div>
 
@@ -111,7 +111,7 @@ $faqs      = is_array($faqs) ? $faqs : [];
                 <div class="tq-tabs" role="tablist" data-tq-tabs aria-label="تفاصيل الدورة">
                     <button class="tq-tab" role="tab" id="tqp-tab-plan" aria-controls="tqp-panel-plan" aria-selected="true" type="button">المنهج</button>
                     <button class="tq-tab" role="tab" id="tqp-tab-about" aria-controls="tqp-panel-about" aria-selected="false" tabindex="-1" type="button">الوصف</button>
-                    <button class="tq-tab" role="tab" id="tqp-tab-teacher" aria-controls="tqp-panel-teacher" aria-selected="false" tabindex="-1" type="button">المعلّم</button>
+                    <button class="tq-tab" role="tab" id="tqp-tab-teacher" aria-controls="tqp-panel-teacher" aria-selected="false" tabindex="-1" type="button">المعلم</button>
                     <button class="tq-tab" role="tab" id="tqp-tab-reviews" aria-controls="tqp-panel-reviews" aria-selected="false" tabindex="-1" type="button">التقييمات</button>
                 </div>
 
@@ -126,7 +126,7 @@ $faqs      = is_array($faqs) ? $faqs : [];
                                 <summary>
                                     <span><?php echo html_escape($section['title']); ?></span>
                                     <span class="tqp-section__count">
-                                        <?php echo tqp_plural(count($section_lessons), 'درس واحد', 'درسان', 'دروس', 'درسًا'); ?>
+                                        <?php echo tqp_plural(count($section_lessons), 'درس واحد', 'درسان', 'دروس', 'درسا'); ?>
                                     </span>
                                 </summary>
                                 <?php foreach ($section_lessons as $lesson): ?>
@@ -138,26 +138,26 @@ $faqs      = is_array($faqs) ? $faqs : [];
                                         <?php endif; ?>
                                         <?php if (!empty($lesson['duration']) && $lesson['duration'] !== '00:00:00'): ?>
                                             <span class="tqp-lesson__time">
-                                                <span class="tq-sr">مدّة الدرس</span>
+                                                <span class="tq-sr">مدة الدرس</span>
                                                 <?php echo tq_num($lesson['duration'], 'tq-num--sm'); ?>
                                             </span>
                                         <?php endif; ?>
                                     </div>
                                 <?php endforeach; ?>
                                 <?php if (count($section_lessons) === 0): ?>
-                                    <div class="tqp-lesson"><span class="tq-caption">لم تُضَف دروس إلى هذا القسم بعد.</span></div>
+                                    <div class="tqp-lesson"><span class="tq-caption">لم تضف دروس إلى هذا القسم بعد.</span></div>
                                 <?php endif; ?>
                             </details>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <?php tqp_empty('clipboard', 'المنهج قيد الإعداد', 'يُنشر المنهج مقسّمًا إلى وحدات ودروس فور اكتماله.', '', ''); ?>
+                        <?php tqp_empty('clipboard', 'المنهج قيد الإعداد', 'ينشر المنهج مقسما إلى وحدات ودروس فور اكتماله.', '', ''); ?>
                     <?php endif; ?>
                 </div>
 
                 <!-- الوصف -->
                 <div id="tqp-panel-about" role="tabpanel" aria-labelledby="tqp-tab-about" hidden>
                     <?php if (count($outcomes) > 0): ?>
-                        <h2 class="tq-h2">ماذا ستتعلّم</h2>
+                        <h2 class="tq-h2">ماذا ستتعلم</h2>
                         <ul class="tqp-plan__list" style="margin-block-end:var(--tq-space-xl)">
                             <?php foreach ($outcomes as $item): ?>
                                 <li><?php echo tq_icon('check', 18); ?><span><?php echo html_escape($item); ?></span></li>
@@ -166,7 +166,7 @@ $faqs      = is_array($faqs) ? $faqs : [];
                     <?php endif; ?>
 
                     <?php if (count($requires) > 0): ?>
-                        <h2 class="tq-h2">المتطلّبات</h2>
+                        <h2 class="tq-h2">المتطلبات</h2>
                         <ul class="tqp-plan__list" style="margin-block-end:var(--tq-space-xl)">
                             <?php foreach ($requires as $item): ?>
                                 <li><?php echo tq_icon('target', 18); ?><span><?php echo html_escape($item); ?></span></li>
@@ -193,11 +193,11 @@ $faqs      = is_array($faqs) ? $faqs : [];
                     <?php endif; ?>
 
                     <?php if (count($outcomes) === 0 && count($requires) === 0 && empty($course_details['description'])): ?>
-                        <?php tqp_empty('file', 'لا وصف منشور لهذه الدورة', 'يظهر هنا وصف الدورة ومخرجاتها ومتطلّباتها فور كتابتها.', '', ''); ?>
+                        <?php tqp_empty('file', 'لا وصف منشور لهذه الدورة', 'يظهر هنا وصف الدورة ومخرجاتها ومتطلباتها فور كتابتها.', '', ''); ?>
                     <?php endif; ?>
                 </div>
 
-                <!-- المعلّم -->
+                <!-- المعلم -->
                 <div id="tqp-panel-teacher" role="tabpanel" aria-labelledby="tqp-tab-teacher" hidden>
                     <?php if (!empty($instructor)): ?>
                         <div class="tq-card tq-card--panel tqp-teacher">
@@ -215,14 +215,14 @@ $faqs      = is_array($faqs) ? $faqs : [];
                                 <?php if (!empty($instructor['biography'])): ?>
                                     <div class="tqp-prose"><?php echo htmlspecialchars_decode_($instructor['biography']); ?></div>
                                 <?php else: ?>
-                                    <p class="tq-caption">لم تُكتب نبذة عن المعلّم بعد.</p>
+                                    <p class="tq-caption">لم تكتب نبذة عن المعلم بعد.</p>
                                 <?php endif; ?>
                                 <a class="tq-btn tq-btn--secondary tq-btn--sm"
-                                   href="<?php echo base_url('home/instructor_page/' . (int) $instructor['id']); ?>">صفحة المعلّم</a>
+                                   href="<?php echo base_url('home/instructor_page/' . (int) $instructor['id']); ?>">صفحة المعلم</a>
                             </div>
                         </div>
                     <?php else: ?>
-                        <?php tqp_empty('users', 'لم يُربط معلّم بهذه الدورة', 'يظهر هنا اسم المعلّم ونبذته فور إسناد الدورة إليه.', '', ''); ?>
+                        <?php tqp_empty('users', 'لم يربط معلم بهذه الدورة', 'يظهر هنا اسم المعلم ونبذته فور إسناد الدورة إليه.', '', ''); ?>
                     <?php endif; ?>
                 </div>
 
@@ -243,7 +243,7 @@ $faqs      = is_array($faqs) ? $faqs : [];
                                         <span class="tq-caption" style="min-inline-size:64px">
                                             <?php echo tq_iso($star . ' نجوم'); ?>
                                         </span>
-                                        <?php echo tq_progress($pct, 'نسبة من قيّموا بـ ' . $star . ' من 5'); ?>
+                                        <?php echo tq_progress($pct, 'نسبة من قيموا بـ ' . $star . ' من 5'); ?>
                                     </div>
                                 <?php endfor; ?>
                             </div>
@@ -258,7 +258,7 @@ $faqs      = is_array($faqs) ? $faqs : [];
                                      loading="lazy">
                                 <div>
                                     <p class="tqp-quote__name" style="margin:0">
-                                        <?php echo !empty($author) ? html_escape($author['first_name'] . ' ' . $author['last_name']) : 'طالب في تقدّر'; ?>
+                                        <?php echo !empty($author) ? html_escape($author['first_name'] . ' ' . $author['last_name']) : 'طالب في تقدر'; ?>
                                     </p>
                                     <div style="margin-block:var(--tq-space-xs)">
                                         <?php echo tqp_stars((float) $rating['rating'], 1, false); ?>
@@ -297,7 +297,7 @@ $faqs      = is_array($faqs) ? $faqs : [];
                         <?php endif; ?>
                     </div>
                     <p class="tq-caption" style="margin:var(--tq-space-xs) 0 0">
-                        السعر شامل ما سيُدفع فعلًا، ولا رسوم تُضاف في خطوة الدفع.
+                        السعر شامل ما سيدفع فعلا، ولا رسوم تضاف في خطوة الدفع.
                     </p>
 
                     <div class="tqp-buycard__actions">
@@ -309,12 +309,12 @@ $faqs      = is_array($faqs) ? $faqs : [];
                         <?php elseif (!empty($course_details['is_free_course'])): ?>
                             <a class="tq-btn tq-btn--primary tq-btn--block"
                                href="<?php echo site_url('home/get_enrolled_to_free_course/' . (int) $course_details['id']); ?>">
-                                ابدأ الدورة مجّانًا
+                                ابدأ الدورة مجانا
                             </a>
                         <?php else: ?>
                             <button class="tq-btn tq-btn--primary tq-btn--block" type="button"
                                     data-tqp-buy="<?php echo site_url('home/handle_buy_now/' . (int) $course_details['id']); ?>">
-                                اشترِ الدورة
+                                اشتر الدورة
                             </button>
                             <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('plans'); ?>">
                                 أو اشترك في باقة
@@ -324,7 +324,7 @@ $faqs      = is_array($faqs) ? $faqs : [];
                         <?php if ($this->session->userdata('user_id')): ?>
                             <a class="tq-btn tq-btn--ghost tq-btn--block"
                                href="<?php echo site_url('home/toggleWishlistItems/' . (int) $course_details['id']); ?>">
-                                <?php echo tq_icon('heart', 18); ?> أضِف إلى المفضّلة
+                                <?php echo tq_icon('heart', 18); ?> أضف إلى المفضلة
                             </a>
                         <?php endif; ?>
                     </div>
@@ -332,19 +332,19 @@ $faqs      = is_array($faqs) ? $faqs : [];
                     <ul class="tqp-includes">
                         <li>
                             <?php echo tq_icon('play', 16); ?>
-                            <?php echo tqp_plural(count($lesson_rows), 'درس واحد', 'درسان', 'دروس', 'درسًا'); ?>
+                            <?php echo tqp_plural(count($lesson_rows), 'درس واحد', 'درسان', 'دروس', 'درسا'); ?>
                         </li>
                         <?php if ($duration !== ''): ?>
                             <li>
                                 <?php echo tq_icon('clock', 16); ?>
-                                <span class="tq-sr">المدّة الكلّية</span>
+                                <span class="tq-sr">المدة الكلية</span>
                                 <?php echo tq_num($duration, 'tq-num--sm'); ?>
                             </li>
                         <?php endif; ?>
                         <li>
                             <?php echo tq_icon('lock', 16); ?>
                             <?php if ((int) $course_details['expiry_period'] > 0): ?>
-                                <?php echo tq_iso('وصول لمدّة ' . (int) $course_details['expiry_period'] . ' شهرًا'); ?>
+                                <?php echo tq_iso('وصول لمدة ' . (int) $course_details['expiry_period'] . ' شهرا'); ?>
                             <?php else: ?>
                                 وصول دائم بلا انتهاء
                             <?php endif; ?>
@@ -358,8 +358,8 @@ $faqs      = is_array($faqs) ? $faqs : [];
 </section>
 
 <script>
-/* «اشترِ الدورة» يخاطب المتحكّم القائم الذي يعيد JSON فيه redirectTo،
-   فنتبع ما يقوله الخادم ولا نخمّن الوجهة في الواجهة. */
+/* «اشتر الدورة» يخاطب المتحكم القائم الذي يعيد JSON فيه redirectTo،
+   فنتبع ما يقوله الخادم ولا نخمن الوجهة في الواجهة. */
 (function () {
   var btn = document.querySelector('[data-tqp-buy]');
   if (!btn) return;

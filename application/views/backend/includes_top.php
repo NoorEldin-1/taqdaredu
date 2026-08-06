@@ -24,14 +24,14 @@
 <script src="<?php echo base_url('assets/backend/js/jquery-3.3.1.min.js'); ?>" charset="utf-8"></script>
 <script src="<?php echo site_url('assets/backend/js/onDomChange.js');?>"></script>
 
-<?php /* هوية تقدّر: التوكنات والخطوط ثم طبقة اللوحة — تُحمَّل بعد CSS القالب فتغلبه. */ ?>
+<?php /* هوية تقدر: التوكنات والخطوط ثم طبقة اللوحة — تحمل بعد CSS القالب فتغلبه. */ ?>
 <link rel="preload" as="font" type="font/woff2" crossorigin href="<?php echo tq_asset('site/fonts/Cairo-700-arabic.woff2'); ?>">
 <link rel="preload" as="font" type="font/woff2" crossorigin href="<?php echo tq_asset('site/fonts/Plex-400-arabic.woff2'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/fonts.css'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/tokens.css'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/admin.css'); ?>">
 
-<?php /* توكن CSRF لكل نداء AJAX في اللوحة — يلتقط الـ82 نداءً بلا لمس أيٍّ منها. */ ?>
+<?php /* توكن CSRF لكل نداء AJAX في اللوحة — يلتقط الـ82 نداء بلا لمس أي منها. */ ?>
 <?php if (config_item('csrf_protection')): ?>
 <script>
 (function () {

@@ -2,10 +2,10 @@
 /**
  * الأسئلة الشائعة — من `frontend_settings.website_faqs` (JSON).
  *
- * الطيّ يعمل بتفويض على `#faq` في `site.js`، فالمعرّف والأصناف عقدٌ لا زينة.
+ * الطي يعمل بتفويض على `#faq` في `site.js`، فالمعرف والأصناف عقد لا زينة.
  */
 $tq_h1   = 'الأسئلة الشائعة';
-$tq_lead = 'إجابات مختصرة عمّا يُسأل كثيرًا.';
+$tq_lead = 'إجابات مختصرة عما يسأل كثيرا.';
 include __DIR__ . '/site/site_pagehero.php';
 
 $tq_faqs = json_decode((string) get_frontend_settings('website_faqs'), true);
@@ -35,8 +35,8 @@ if (!is_array($tq_faqs)) $tq_faqs = array();
       </div>
     <?php else: ?>
       <div class="icard">
-        <p class="dir-empty">لم تُضَف أسئلة بعد.</p>
-        <p class="tq-caption">وإن كان سؤالك عاجلًا فـ<a href="<?php echo base_url('contact'); ?>">راسلنا</a> ونجيبك.</p>
+        <p class="dir-empty">لم تضف أسئلة بعد.</p>
+        <p class="tq-caption">وإن كان سؤالك عاجلا فـ<a href="<?php echo base_url('contact'); ?>">راسلنا</a> ونجيبك.</p>
       </div>
     <?php endif; ?>
   </div>

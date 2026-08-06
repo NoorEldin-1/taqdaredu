@@ -2,11 +2,11 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * الرئيسية — بوّابة الطالب.
+ * الرئيسية — بوابة الطالب.
  *
- * ترتيب الشاشة يخدم سؤالًا واحدًا: «ما الذي أفعله الآن؟».
- * فالترحيب وزرّ الاستكمال أولًا، ثم ما بدأه ولم يُكمله، ثم كورساته،
- * ثم المقترح له. والعمود الجانبي للأشياء المؤقّتة: حصّة، موعد، رقم.
+ * ترتيب الشاشة يخدم سؤالا واحدا: «ما الذي أفعله الآن؟».
+ * فالترحيب وزر الاستكمال أولا، ثم ما بدأه ولم يكمله، ثم كورساته،
+ * ثم المقترح له. والعمود الجانبي للأشياء المؤقتة: حصة، موعد، رقم.
  *
  * موصول بالقاعدة: enrol · course · lesson · watch_histories ·
  * watched_duration · quiz_results · section.
@@ -21,7 +21,7 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 $tq_nav   = 'home';
 $tq_role  = 'student';
 $tq_title = 'الرئيسية';
-$tq_sub   = 'واصل من حيث توقّفت، وتابع مواعيدك وتقدّمك';
+$tq_sub   = 'واصل من حيث توقفت، وتابع مواعيدك وتقدمك';
 $tq_icon  = 'home';
 
 $tq_courses   = tq_s_enrolled($tq_uid);
@@ -36,40 +36,40 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
-        <!-- الترحيب: زرّ واحد أساسي في الشاشة، ويعود إلى آخر موضع بالضبط
-             (الكورس الأحدث نشاطًا والدرس الذي توقّف عنده) لا إلى أوّل الكورس. -->
+        <!-- الترحيب: زر واحد أساسي في الشاشة، ويعود إلى آخر موضع بالضبط
+             (الكورس الأحدث نشاطا والدرس الذي توقف عنده) لا إلى أول الكورس. -->
         <section class="tq-s-banner tq-section tq-enter">
             <div class="tq-s-banner__body">
-                <p class="tq-eyebrow">استمرّ</p>
+                <p class="tq-eyebrow">استمر</p>
                 <?php if ($tq_resume !== null): ?>
-                    <h2 class="tq-display" style="margin-block-end:var(--tq-space-s)">واصل تعلّمك، وواصل تقدّمك</h2>
+                    <h2 class="tq-display" style="margin-block-end:var(--tq-space-s)">واصل تعلمك، وواصل تقدمك</h2>
                     <p class="tq-body">
-                        توقّفت عند
+                        توقفت عند
                         <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_resume['title']); ?></span>
                         —
                         <?php echo tq_s_lessons_word($tq_resume['done'], $tq_resume['lessons']); ?>.
                     </p>
                     <a class="tq-btn tq-btn--primary"
                        href="<?php echo tq_s_lesson_url($tq_resume['id'], $tq_resume['resume_id']); ?>">
-                        <?php echo tq_icon('play'); ?> استكمل التعلّم
+                        <?php echo tq_icon('play'); ?> استكمل التعلم
                     </a>
                 <?php else: ?>
-                    <h2 class="tq-display" style="margin-block-end:var(--tq-space-s)">ابدأ رحلتك مع تقدّر</h2>
+                    <h2 class="tq-display" style="margin-block-end:var(--tq-space-s)">ابدأ رحلتك مع تقدر</h2>
                     <p class="tq-body">
-                        اختر كورسك الأول، وسيظهر هنا زرّ يعيدك إلى آخر درس توقّفت عنده بالضبط.
+                        اختر كورسك الأول، وسيظهر هنا زر يعيدك إلى آخر درس توقفت عنده بالضبط.
                     </p>
                     <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">
-                        تصفّح الكورسات
+                        تصفح الكورسات
                     </a>
                 <?php endif; ?>
             </div>
             <span class="tq-s-banner__art" aria-hidden="true"><?php echo tq_icon('play', 56); ?></span>
         </section>
 
-        <!-- استكمال التعلّم -->
+        <!-- استكمال التعلم -->
         <section class="tq-section">
             <div class="tq-sectionhead">
-                <h2>استكمال التعلّم</h2>
+                <h2>استكمال التعلم</h2>
                 <?php if ($tq_active): ?>
                     <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('taqdar/lessons?state=progress'); ?>">عرض الكل</a>
                 <?php endif; ?>
@@ -80,8 +80,8 @@ include 'portal_open.php';
                     <?php echo tq_s_empty(
                         'play', 'sky',
                         'لا يوجد درس قيد المتابعة',
-                        'أوّل درس تبدأه سيظهر هنا ببطاقة تحمل نسبة تقدّمك ورقم الدرس من إجمالي دروس الكورس.',
-                        'ابدأ درسًا الآن',
+                        'أول درس تبدأه سيظهر هنا ببطاقة تحمل نسبة تقدمك ورقم الدرس من إجمالي دروس الكورس.',
+                        'ابدأ درسا الآن',
                         base_url('student/lessons')
                     ); ?>
                 </div>
@@ -92,7 +92,7 @@ include 'portal_open.php';
                             <a href="<?php echo tq_s_lesson_url($c['id'], $c['resume_id']); ?>">
                                 <?php echo tq_s_thumb(
                                     $c['title'], $c['thumbnail'], $c['index'],
-                                    tq_badge('progress', 'قيد التقدّم'),
+                                    tq_badge('progress', 'قيد التقدم'),
                                     $c['seconds'] ? tq_s_clock($c['seconds']) : ''
                                 ); ?>
                             </a>
@@ -103,7 +103,7 @@ include 'portal_open.php';
                             <?php if ($c['level']): ?>
                                 <p class="tq-micro" style="margin:0"><?php echo html_escape($c['level']); ?></p>
                             <?php endif; ?>
-                            <?php echo tq_progress($c['progress'], 'تقدّمك في ' . $c['title']); ?>
+                            <?php echo tq_progress($c['progress'], 'تقدمك في ' . $c['title']); ?>
                             <p class="tq-caption" style="margin:0"><?php echo tq_s_lessons_word($c['done'], $c['lessons']); ?></p>
                         </article>
                     <?php endforeach; ?>
@@ -126,9 +126,9 @@ include 'portal_open.php';
                 <div class="tq-card">
                     <?php echo tq_s_empty(
                         'book', 'mint',
-                        'لم تسجَّل في كورس بعد',
-                        'الكورسات التي تسجَّل فيها تظهر هنا مع عدد دروسها ومدّتها ونسبة إتمامك لها.',
-                        'تصفّح الكورسات',
+                        'لم تسجل في كورس بعد',
+                        'الكورسات التي تسجل فيها تظهر هنا مع عدد دروسها ومدتها ونسبة إتمامك لها.',
+                        'تصفح الكورسات',
                         base_url('plans')
                     ); ?>
                 </div>
@@ -138,7 +138,7 @@ include 'portal_open.php';
                         <?php
                         $badge = $c['status'] === 'done'
                             ? tq_badge('mastered', 'مكتمل')
-                            : ($c['status'] === 'progress' ? tq_badge('progress', 'قيد التقدّم') : tq_badge('idle', 'لم يبدأ'));
+                            : ($c['status'] === 'progress' ? tq_badge('progress', 'قيد التقدم') : tq_badge('idle', 'لم يبدأ'));
                         ?>
                         <article class="tq-card tq-s-course">
                             <a href="<?php echo tq_s_lesson_url($c['id'], $c['resume_id']); ?>">
@@ -150,29 +150,29 @@ include 'portal_open.php';
                                    style="color:var(--tq-navy)"><?php echo html_escape($c['title']); ?></a>
                             </h3>
                             <div class="tq-s-meta">
-                                <span><?php echo tq_icon('book', 16); ?><?php echo tq_iso($c['lessons'] . ' درسًا'); ?></span>
+                                <span><?php echo tq_icon('book', 16); ?><?php echo tq_iso($c['lessons'] . ' درسا'); ?></span>
                                 <?php if ($c['seconds']): ?>
                                     <span><?php echo tq_icon('clock', 16); ?><?php echo tq_iso(tq_s_hours($c['seconds'])); ?></span>
                                 <?php endif; ?>
                             </div>
-                            <?php echo tq_progress($c['progress'], 'تقدّمك في ' . $c['title']); ?>
+                            <?php echo tq_progress($c['progress'], 'تقدمك في ' . $c['title']); ?>
                         </article>
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
         </section>
 
-        <!-- المقترح لك — يُبنى على برنامج الطالب وهدفه لا على الأكثر مبيعًا.
+        <!-- المقترح لك — يبنى على برنامج الطالب وهدفه لا على الأكثر مبيعا.
              ولا يوجد في القاعدة اليوم جدول برامج ولا أهداف، فلا نعرض «الأكثر
-             مبيعًا» متنكّرًا في هيئة اقتراح شخصي. -->
+             مبيعا» متنكرا في هيئة اقتراح شخصي. -->
         <section class="tq-section">
             <div class="tq-sectionhead"><h2>المقترح لك</h2></div>
             <div class="tq-card">
                 <?php echo tq_s_empty(
                     'target', 'lilac',
-                    'اقتراحاتك تُبنى على برنامجك',
-                    'حدّد صفّك وهدفك الدراسي، فنقترح عليك الدروس التي تكمل برنامجك — لا الأكثر مبيعًا.',
-                    'حدّد برنامجك',
+                    'اقتراحاتك تبنى على برنامجك',
+                    'حدد صفك وهدفك الدراسي، فنقترح عليك الدروس التي تكمل برنامجك — لا الأكثر مبيعا.',
+                    'حدد برنامجك',
                     base_url('student/settings')
                 ); ?>
             </div>
@@ -182,7 +182,7 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
 
-        <!-- حصص بالطلب: طبقة مستقلّة بجوار المنهج لا داخله. -->
+        <!-- حصص بالطلب: طبقة مستقلة بجوار المنهج لا داخله. -->
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head">
                 <h2 class="tq-card__title">حصص بالطلب</h2>
@@ -190,15 +190,15 @@ include 'portal_open.php';
             </div>
             <?php echo tq_s_empty(
                 'video', 'sky',
-                'لا معلّم متاح الآن',
-                'حين يفتح المعلّمون أوقاتهم يظهر هنا ثلاثة منهم بسعر الساعة وزرّ حجز مباشر.',
-                'تصفّح حصص بالطلب',
+                'لا معلم متاح الآن',
+                'حين يفتح المعلمون أوقاتهم يظهر هنا ثلاثة منهم بسعر الساعة وزر حجز مباشر.',
+                'تصفح حصص بالطلب',
                 base_url('student/on-demand'),
                 true
             ); ?>
         </section>
 
-        <!-- المواعيد القادمة: الأحمر لما اقترب، والنصّ يقول القرب فلا يحمله اللون وحده. -->
+        <!-- المواعيد القادمة: الأحمر لما اقترب، والنص يقول القرب فلا يحمله اللون وحده. -->
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head">
                 <h2 class="tq-card__title">المواعيد القادمة</h2>
@@ -211,7 +211,7 @@ include 'portal_open.php';
                 <?php echo tq_s_empty(
                     'calendar', 'peach',
                     'لا مواعيد قريبة',
-                    'مواعيد تسليم وحدات كورساتك تظهر هنا، ويتحوّل لونها إلى الأحمر حين يقترب الموعد.',
+                    'مواعيد تسليم وحدات كورساتك تظهر هنا، ويتحول لونها إلى الأحمر حين يقترب الموعد.',
                     '', '', true
                 ); ?>
             <?php else: ?>
@@ -232,11 +232,11 @@ include 'portal_open.php';
             <?php endif; ?>
         </section>
 
-        <!-- تقدّمك: كل رقم من جدول حقيقي. والمقارنة بالأسبوع الماضي تُعرض حيث
-             يوجد طابع زمني للحدث فقط (نتائج الاختبارات)، ولا تُخمَّن حيث لا يوجد. -->
+        <!-- تقدمك: كل رقم من جدول حقيقي. والمقارنة بالأسبوع الماضي تعرض حيث
+             يوجد طابع زمني للحدث فقط (نتائج الاختبارات)، ولا تخمن حيث لا يوجد. -->
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">تقدّمك</h2>
+                <h2 class="tq-card__title">تقدمك</h2>
                 <a class="tq-caption" href="<?php echo base_url('student/reports'); ?>">التقارير</a>
             </div>
 
@@ -263,7 +263,7 @@ include 'portal_open.php';
                     );
 
                     $score_note = $tq_act['score_delta'] === null
-                        ? 'من اختباراتك المصحَّحة'
+                        ? 'من اختباراتك المصححة'
                         : tq_iso(($tq_act['score_delta'] >= 0 ? '+' : '') . $tq_act['score_delta'] . ' نقطة عن الأسبوع الماضي');
                     echo tq_s_stat(
                         tq_num($tq_act['score'] . '%'),
@@ -271,11 +271,11 @@ include 'portal_open.php';
                         $score_note
                     );
 
-                    // السلسلة تحتاج سجلّ نشاط يومي ولا جدول له بعد — والشرطة أصدق من رقم مخترَع.
+                    // السلسلة تحتاج سجل نشاط يومي ولا جدول له بعد — والشرطة أصدق من رقم مخترع.
                     echo tq_s_stat(
                         $tq_act['has_streak_source'] ? tq_num($tq_act['streak']) : '<span class="tq-muted">—</span>',
                         'سلسلة الأيام', 'flame', 'peach',
-                        $tq_act['has_streak_source'] ? 'يومًا متتاليًا' : 'تظهر عند تسجيل نشاطك اليومي'
+                        $tq_act['has_streak_source'] ? 'يوما متتاليا' : 'تظهر عند تسجيل نشاطك اليومي'
                     );
                     ?>
                 </div>

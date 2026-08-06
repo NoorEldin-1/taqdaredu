@@ -102,8 +102,8 @@ class Blog extends CI_Controller
     function details($blog_slug = "", $blog_id = ""){
         $blog_row = $this->crud_model->get_all_blogs($blog_id);
 
-        /* «all» تعني كل الحالات — بما فيها ما ينتظر الموافقة. وقراءةُ
-           المعلَّق برابط مباشر تُفرغ الموافقة التحريرية من معناها، فيُفحص
+        /* «all» تعني كل الحالات — بما فيها ما ينتظر الموافقة. وقراءة
+           المعلق برابط مباشر تفرغ الموافقة التحريرية من معناها، فيفحص
            النشر هنا: النموذج نفسه تحتاجه شاشات الإدارة بلا فلتر. */
         $tq_row = ($blog_row->num_rows() > 0) ? $blog_row->row_array() : null;
         $tq_published = $tq_row && isset($tq_row['status'])
@@ -121,7 +121,7 @@ class Blog extends CI_Controller
         $page_data['blog_id'] = $blog_id;
         $page_data['page_name'] = 'blog_details';
         /* عنوان المقال لا «تفاصيل المدونة»: العنوان الثابت يجعل كل رابط
-           مشارَك يحمل الاسم نفسه — ضررٌ أرشيفيّ على كل مقال. */
+           مشارك يحمل الاسم نفسه — ضرر أرشيفي على كل مقال. */
         $page_data['page_title'] = (string) $page_data['blog_details']['title'];
         $this->load->view('frontend/' . get_frontend_settings('theme') . '/index', $page_data);
     }

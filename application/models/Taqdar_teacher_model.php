@@ -2,56 +2,56 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * محرّك بوّابة المعلّم — كتابة الدروس.
+ * محرك بوابة المعلم — كتابة الدروس.
  *
- * القاعدة الحاكمة: **النطاق يُفرض هنا، في طبقة الاستعلام، لا في الواجهة.**
- * المعلّم يملك الكورس إمّا لأنه منشئه (`course.creator`) وإمّا لأنه ضمن
- * قائمة معلّميه (`FIND_IN_SET(uid, course.user_id)`) — وهذا هو نموذج
- * النطاق الفعلي في هذا السكربت. فمن غيّر قيمة `course_id` في المتصفّح
- * لا يكتب في كورس ليس له، لأن الملكية تُتحقَّق قبل أي كتابة وقبل نقل
- * أي ملفّ مرفوع، لا بعده.
+ * القاعدة الحاكمة: **النطاق يفرض هنا، في طبقة الاستعلام، لا في الواجهة.**
+ * المعلم يملك الكورس إما لأنه منشئه (`course.creator`) وإما لأنه ضمن
+ * قائمة معلميه (`FIND_IN_SET(uid, course.user_id)`) — وهذا هو نموذج
+ * النطاق الفعلي في هذا السكربت. فمن غير قيمة `course_id` في المتصفح
+ * لا يكتب في كورس ليس له، لأن الملكية تتحقق قبل أي كتابة وقبل نقل
+ * أي ملف مرفوع، لا بعده.
  *
- * والملفّ المرفوع يمرّ من `tq_safe_upload_extension()` وحدها: قائمة بيضاء
- * واحدة في المنصّة كلّها، فلا تتفرّق القوائم وتُنسى صيغة في إحداها.
- * والاسم المخزَّن يُولَّد هنا ولا يُشتقّ من اسم المستخدم أصلًا، فلا مسار
- * يُخترق ولا امتداد مزدوج يمرّ.
+ * والملف المرفوع يمر من `tq_safe_upload_extension()` وحدها: قائمة بيضاء
+ * واحدة في المنصة كلها، فلا تتفرق القوائم وتنسى صيغة في إحداها.
+ * والاسم المخزن يولد هنا ولا يشتق من اسم المستخدم أصلا، فلا مسار
+ * يخترق ولا امتداد مزدوج يمر.
  *
- * عقد الاستدعاء من المتحكّم (POST teacher/upload/save):
+ * عقد الاستدعاء من المتحكم (POST teacher/upload/save):
  *
  *     save_upload($teacher_id, $payload, $_FILES)  ← ما ينادي عليه Taqdar::upload_save
  *     save_lesson($teacher_id, $post, $files)      ← التنفيذ، ويصلح للنداء المباشر
  *
- * وكلاهما يعيد العقد الموحّد نفسه: `ok` ومعه `message`، أو `errors` ومعها
- * `old` لإعادة ملء النموذج. ولا يطبع شيئًا ولا يحوّل — العرض والتحويل قرار
- * المتحكّم.
+ * وكلاهما يعيد العقد الموحد نفسه: `ok` ومعه `message`، أو `errors` ومعها
+ * `old` لإعادة ملء النموذج. ولا يطبع شيئا ولا يحول — العرض والتحويل قرار
+ * المتحكم.
  *
- * و`save_upload` تقرأ POST الخام وتستعمل حمولة المتحكّم لسدّ ما نقص منها
+ * و`save_upload` تقرأ POST الخام وتستعمل حمولة المتحكم لسد ما نقص منها
  * فقط. لولا ذلك لسقط ما لا تعرفه الحمولة — نوع الدرس ومصدر المقطع ورابطه —
- * فيُحفظ درس مرئي بلا مقطع، وهو أسوأ من رفضٍ صريح.
+ * فيحفظ درس مرئي بلا مقطع، وهو أسوأ من رفض صريح.
  *
  * والعرض `tq_teacher_upload.php` يقرأ `tq_upload_errors` و`tq_upload_old`
- * من flashdata إن ضبطهما المتحكّم، وإلّا اكتفى بـ `error_message`.
+ * من flashdata إن ضبطهما المتحكم، وإلا اكتفى بـ `error_message`.
  */
 class Taqdar_teacher_model extends CI_Model
 {
     /**
-     * حدّ المدّة الصلب. القاعدة التربوية للمنصّة «من 8 إلى 15 دقيقة» تبقى
-     * إرشادًا ظاهرًا في النموذج، لكن الخادم لا يرفض درسًا مشروعًا لأنه بلغ
+     * حد المدة الصلب. القاعدة التربوية للمنصة «من 8 إلى 15 دقيقة» تبقى
+     * إرشادا ظاهرا في النموذج، لكن الخادم لا يرفض درسا مشروعا لأنه بلغ
      * السادسة عشرة: منع المحتوى أسوأ من درس أطول بدقيقة.
      */
     const MIN_MINUTES = 1;
     const MAX_MINUTES = 180;
 
-    /** من هدف إلى ثلاثة لكل درس — والرابع يعني درسًا ثانيًا. */
+    /** من هدف إلى ثلاثة لكل درس — والرابع يعني درسا ثانيا. */
     const MAX_OBJECTIVES = 3;
 
     /**
-     * مجلّد ملفّات الدروس.
+     * مجلد ملفات الدروس.
      *
-     * لا `uploads/lesson_files/` رغم أنه مجلّد Academy التاريخي: ملفّ
-     * `.htaccess` هناك يمنع الوصول منعًا كاملًا (`Require all denied`)،
-     * فالمقطع المرفوع إليه لا يُشغَّل في المتصفّح أصلًا. و`resource_files`
-     * يمنع تنفيذ السكربتات ويخدم الساكن — وهو ما يحتاجه مشغّل الدرس.
+     * لا `uploads/lesson_files/` رغم أنه مجلد Academy التاريخي: ملف
+     * `.htaccess` هناك يمنع الوصول منعا كاملا (`Require all denied`)،
+     * فالمقطع المرفوع إليه لا يشغل في المتصفح أصلا. و`resource_files`
+     * يمنع تنفيذ السكربتات ويخدم الساكن — وهو ما يحتاجه مشغل الدرس.
      */
     const UPLOAD_DIR = 'uploads/resource_files/tq_lessons/';
 
@@ -59,10 +59,10 @@ class Taqdar_teacher_model extends CI_Model
     private $statuses = array('draft', 'review', 'published');
 
     /* =====================================================================
-       القراءة — كلّها مقيَّدة بملكية المعلّم
+       القراءة — كلها مقيدة بملكية المعلم
        ===================================================================== */
 
-    /** كورسات المعلّم: ما أنشأه أو ما أُسنِد إليه. */
+    /** كورسات المعلم: ما أنشأه أو ما أسند إليه. */
     public function my_courses($teacher_id)
     {
         $teacher_id = (int) $teacher_id;
@@ -77,8 +77,8 @@ class Taqdar_teacher_model extends CI_Model
     }
 
     /**
-     * هل يملك المعلّم هذا الكورس؟ سؤال واحد بجواب واحد، ويُسأل قبل كل كتابة.
-     * وجوده دالّةً مستقلّة مقصود: تكرار الشرط في كل موضع هو كيف يُنسى في موضع.
+     * هل يملك المعلم هذا الكورس؟ سؤال واحد بجواب واحد، ويسأل قبل كل كتابة.
+     * وجوده دالة مستقلة مقصود: تكرار الشرط في كل موضع هو كيف ينسى في موضع.
      */
     public function owns_course($teacher_id, $course_id)
     {
@@ -96,7 +96,7 @@ class Taqdar_teacher_model extends CI_Model
         return (bool) $row;
     }
 
-    /** أقسام مجموعة كورسات، مجمّعة بالكورس. */
+    /** أقسام مجموعة كورسات، مجمعة بالكورس. */
     public function sections_of_courses($course_ids)
     {
         $ids = array();
@@ -117,7 +117,7 @@ class Taqdar_teacher_model extends CI_Model
         return $out;
     }
 
-    /** آخر ما رفعه المعلّم — من جدول الدروس الحقيقي، مقيَّدًا بكورساته. */
+    /** آخر ما رفعه المعلم — من جدول الدروس الحقيقي، مقيدا بكورساته. */
     public function recent_lessons($teacher_id, $limit = 5)
     {
         $teacher_id = (int) $teacher_id;
@@ -144,11 +144,11 @@ class Taqdar_teacher_model extends CI_Model
        ===================================================================== */
 
     /**
-     * مدخل المتحكّم: `Taqdar::upload_save` ينادي هذه بالحمولة و`$_FILES`.
+     * مدخل المتحكم: `Taqdar::upload_save` ينادي هذه بالحمولة و`$_FILES`.
      *
-     * الحمولة تسدّ الثغرات ولا تطمس POST: هي مشتقّة منه أصلًا، وما ليس فيها
-     * (نوع الدرس، مصدر المقطع، الرابط، المجّانية) موجود في POST. والتحقّق
-     * كلّه يُعاد في `save_lesson` على أي حال، فلا يُعتمد على تنظيف سابق.
+     * الحمولة تسد الثغرات ولا تطمس POST: هي مشتقة منه أصلا، وما ليس فيها
+     * (نوع الدرس، مصدر المقطع، الرابط، المجانية) موجود في POST. والتحقق
+     * كله يعاد في `save_lesson` على أي حال، فلا يعتمد على تنظيف سابق.
      */
     public function save_upload($teacher_id, $payload = null, $files = null)
     {
@@ -166,18 +166,18 @@ class Taqdar_teacher_model extends CI_Model
         return $this->save_lesson($teacher_id, $post, $files);
     }
 
-    /** اسم بديل للمدخل نفسه — المتحكّم يجرّب الاسمين. */
+    /** اسم بديل للمدخل نفسه — المتحكم يجرب الاسمين. */
     public function upload_save($teacher_id, $payload = null, $files = null)
     {
         return $this->save_upload($teacher_id, $payload, $files);
     }
 
     /**
-     * يحفظ درسًا للمعلّم.
+     * يحفظ درسا للمعلم.
      *
-     * يعيد دائمًا مصفوفة: `ok` وإمّا `lesson_id` و`message`، وإمّا `errors`
-     * ومعها `old` لإعادة ملء النموذج. لا يرمي استثناءً ولا يطبع شيئًا،
-     * فالعرض والتحويل قرار المتحكّم لا قرار النموذج.
+     * يعيد دائما مصفوفة: `ok` وإما `lesson_id` و`message`، وإما `errors`
+     * ومعها `old` لإعادة ملء النموذج. لا يرمي استثناء ولا يطبع شيئا،
+     * فالعرض والتحويل قرار المتحكم لا قرار النموذج.
      *
      * @param int        $teacher_id
      * @param array|null $post   افتراضه $this->input->post()
@@ -192,32 +192,32 @@ class Taqdar_teacher_model extends CI_Model
 
         $teacher_id = (int) $teacher_id;
 
-        /* الطلب تجاوز post_max_size: PHP يفرّغ POST و FILES معًا، فلولا هذا
-           الفحص لظهرت للمعلّم رسالة «العنوان مطلوب» وهو قد كتبه فعلًا. */
+        /* الطلب تجاوز post_max_size: PHP يفرغ POST و FILES معا، فلولا هذا
+           الفحص لظهرت للمعلم رسالة «العنوان مطلوب» وهو قد كتبه فعلا. */
         if (!$post && !$files && $this->post_overflowed()) {
             return $this->fail(array(
-                'الملفّ أكبر من حدّ الرفع على الخادم (' . ini_get('post_max_size') . ') فلم يصل الطلب أصلًا.'
+                'الملف أكبر من حد الرفع على الخادم (' . ini_get('post_max_size') . ') فلم يصل الطلب أصلا.'
             ), array());
         }
 
         $old = $this->old_input($post);
 
         if ($teacher_id <= 0) {
-            return $this->fail(array('لا يمكن تحديد المعلّم. سجّل الدخول من جديد.'), $old);
+            return $this->fail(array('لا يمكن تحديد المعلم. سجل الدخول من جديد.'), $old);
         }
 
         $errors = array();
 
-        /* ---- الملكية أوّلًا: قبل أي تحقّق آخر وقبل لمس أي ملفّ ---- */
+        /* ---- الملكية أولا: قبل أي تحقق آخر وقبل لمس أي ملف ---- */
         $course_id = (int) $this->val($post, 'course_id');
         if ($course_id <= 0) {
             $errors[] = 'اختر الكورس.';
         } elseif (!$this->owns_course($teacher_id, $course_id)) {
             $errors[] = 'هذا الكورس ليس ضمن كورساتك، فلا يمكن الرفع إليه.';
-            $course_id = 0;   // لا يُستعمل بعدها في أي استعلام
+            $course_id = 0;   // لا يستعمل بعدها في أي استعلام
         }
 
-        /* ---- القسم: إن حُدِّد فليكن من هذا الكورس بعينه ---- */
+        /* ---- القسم: إن حدد فليكن من هذا الكورس بعينه ---- */
         $section_id = (int) $this->val($post, 'section_id');
         if ($course_id > 0 && $section_id > 0) {
             $sec = $this->db->query(
@@ -225,7 +225,7 @@ class Taqdar_teacher_model extends CI_Model
                 array($section_id)
             )->row_array();
             if (!$sec || (int) $sec['course_id'] !== $course_id) {
-                $errors[] = 'القسم المحدَّد ليس من هذا الكورس.';
+                $errors[] = 'القسم المحدد ليس من هذا الكورس.';
                 $section_id = 0;
             }
         }
@@ -235,8 +235,8 @@ class Taqdar_teacher_model extends CI_Model
         $title = preg_replace('/\s+/u', ' ', $title);
         $len   = function_exists('mb_strlen') ? mb_strlen($title, 'UTF-8') : strlen($title);
         if ($title === '')  $errors[] = 'اكتب عنوان الدرس.';
-        elseif ($len < 3)   $errors[] = 'عنوان الدرس أقصر من أن يدلّ عليه.';
-        elseif ($len > 140) $errors[] = 'عنوان الدرس أطول من 140 حرفًا.';
+        elseif ($len < 3)   $errors[] = 'عنوان الدرس أقصر من أن يدل عليه.';
+        elseif ($len > 140) $errors[] = 'عنوان الدرس أطول من 140 حرفا.';
 
         /* ---- النوع ---- */
         $lesson_type = strtolower(trim((string) $this->val($post, 'lesson_type', 'video')));
@@ -245,24 +245,24 @@ class Taqdar_teacher_model extends CI_Model
             $lesson_type = 'video';
         }
 
-        /* ---- المدّة ---- */
+        /* ---- المدة ---- */
         $minutes_raw = trim((string) $this->val($post, 'duration_minutes'));
         $minutes     = (int) $minutes_raw;
         if ($minutes_raw === '' || !ctype_digit(ltrim($minutes_raw, '+'))) {
-            $errors[] = 'اكتب مدّة الدرس بالدقائق.';
+            $errors[] = 'اكتب مدة الدرس بالدقائق.';
         } elseif ($minutes < self::MIN_MINUTES || $minutes > self::MAX_MINUTES) {
-            $errors[] = 'مدّة الدرس تكون بين ' . self::MIN_MINUTES . ' و' . self::MAX_MINUTES . ' دقيقة.';
+            $errors[] = 'مدة الدرس تكون بين ' . self::MIN_MINUTES . ' و' . self::MAX_MINUTES . ' دقيقة.';
         }
 
         /* ---- الحالة ---- */
         $status = strtolower(trim((string) $this->val($post, 'action', 'draft')));
         if (!in_array($status, $this->statuses, true)) $status = 'draft';
 
-        /* ---- الملخّص ---- */
+        /* ---- الملخص ---- */
         $summary = trim((string) $this->val($post, 'summary'));
         if ($lesson_type === 'text') {
             $slen = function_exists('mb_strlen') ? mb_strlen($summary, 'UTF-8') : strlen($summary);
-            if ($slen < 10) $errors[] = 'الدرس النصّي محتواه ملخّصه — اكتب نصّ الدرس.';
+            if ($slen < 10) $errors[] = 'الدرس النصي محتواه ملخصه — اكتب نص الدرس.';
         }
 
         /* ---- الأهداف: من واحد إلى ثلاثة ---- */
@@ -275,9 +275,9 @@ class Taqdar_teacher_model extends CI_Model
             $objectives[] = $o;
             if (count($objectives) >= self::MAX_OBJECTIVES) break;
         }
-        if (!$objectives) $errors[] = 'اكتب هدفًا واحدًا على الأقلّ للدرس.';
+        if (!$objectives) $errors[] = 'اكتب هدفا واحدا على الأقل للدرس.';
 
-        /* ---- مصدر الفيديو: رابط أو ملفّ ---- */
+        /* ---- مصدر الفيديو: رابط أو ملف ---- */
         $video_url  = '';
         $video_type = '';
         $has_video_file = $this->file_present($files, 'video');
@@ -291,7 +291,7 @@ class Taqdar_teacher_model extends CI_Model
 
             if ($source === 'url') {
                 if ($url_raw === '') {
-                    $errors[] = 'ضع رابط المقطع أو اختر رفع ملفّ.';
+                    $errors[] = 'ضع رابط المقطع أو اختر رفع ملف.';
                 } elseif (!$this->valid_http_url($url_raw)) {
                     $errors[] = 'رابط المقطع غير صالح — يبدأ الرابط بـ http أو https.';
                 } else {
@@ -300,7 +300,7 @@ class Taqdar_teacher_model extends CI_Model
                 }
             } else {
                 if (!$has_video_file) {
-                    $errors[] = 'لم يصل ملفّ المقطع. اختر ملفًّا أو استعمل الرابط.';
+                    $errors[] = 'لم يصل ملف المقطع. اختر ملفا أو استعمل الرابط.';
                 } else {
                     $chk = $this->check_upload($files['video'], 'مقطع الدرس');
                     if (!$chk['ok']) $errors[] = $chk['error'];
@@ -318,10 +318,10 @@ class Taqdar_teacher_model extends CI_Model
         if ($errors) return $this->fail($errors, $old);
 
         /* ================================================================
-           من هنا فصاعدًا: صار مسموحًا أن نكتب.
+           من هنا فصاعدا: صار مسموحا أن نكتب.
            ================================================================ */
 
-        /* قسم افتراضي إن لم يكن للكورس أقسام — الدرس لا يُعلَّق بلا موضع. */
+        /* قسم افتراضي إن لم يكن للكورس أقسام — الدرس لا يعلق بلا موضع. */
         if ($section_id <= 0) {
             $section_id = $this->first_or_new_section($course_id);
         }
@@ -375,10 +375,10 @@ class Taqdar_teacher_model extends CI_Model
 
         if ($lesson_id <= 0) {
             $this->cleanup($moved);
-            return $this->fail(array('تعذّر حفظ الدرس. حاول مرّة أخرى.'), $old);
+            return $this->fail(array('تعذر حفظ الدرس. حاول مرة أخرى.'), $old);
         }
 
-        /* الأهداف — جدولها موجود، وعليه تقوم مراجعة الإتقان لاحقًا. */
+        /* الأهداف — جدولها موجود، وعليه تقوم مراجعة الإتقان لاحقا. */
         foreach ($objectives as $text) {
             $this->db->insert('objectives', array(
                 'lesson_id'  => $lesson_id,
@@ -399,7 +399,7 @@ class Taqdar_teacher_model extends CI_Model
             'lesson_id' => $lesson_id,
             'course_id' => $course_id,
             'status'    => $status,
-            'message'   => 'حُفِظ الدرس «' . $title . '» ' . $this->status_phrase($status) . '.',
+            'message'   => 'حفظ الدرس «' . $title . '» ' . $this->status_phrase($status) . '.',
         );
     }
 
@@ -417,7 +417,7 @@ class Taqdar_teacher_model extends CI_Model
         return isset($arr[$key]) ? $arr[$key] : $default;
     }
 
-    /** ما يُعاد إلى النموذج بعد الخطأ — بلا الملفّات، فهي لا تُعاد. */
+    /** ما يعاد إلى النموذج بعد الخطأ — بلا الملفات، فهي لا تعاد. */
     private function old_input($post)
     {
         $keys = array('course_id', 'section_id', 'title', 'lesson_type', 'duration_minutes',
@@ -459,27 +459,27 @@ class Taqdar_teacher_model extends CI_Model
     }
 
     /**
-     * يتحقّق من ملفّ مرفوع قبل نقله.
-     * الامتداد يُقرَّر بـ tq_safe_upload_extension() وحدها — قائمة بيضاء
-     * واحدة في المنصّة، فلا تتفرّق ولا تُنسى فيها صيغة.
+     * يتحقق من ملف مرفوع قبل نقله.
+     * الامتداد يقرر بـ tq_safe_upload_extension() وحدها — قائمة بيضاء
+     * واحدة في المنصة، فلا تتفرق ولا تنسى فيها صيغة.
      */
     private function check_upload($file, $label)
     {
         $err = (int) $this->val($file, 'error', UPLOAD_ERR_NO_FILE);
 
         if ($err === UPLOAD_ERR_INI_SIZE || $err === UPLOAD_ERR_FORM_SIZE) {
-            return array('ok' => false, 'error' => $label . ' أكبر من حدّ الرفع (' . ini_get('upload_max_filesize') . ').');
+            return array('ok' => false, 'error' => $label . ' أكبر من حد الرفع (' . ini_get('upload_max_filesize') . ').');
         }
         if ($err === UPLOAD_ERR_PARTIAL) {
-            return array('ok' => false, 'error' => 'انقطع رفع ' . $label . ' قبل اكتماله. أعِد المحاولة.');
+            return array('ok' => false, 'error' => 'انقطع رفع ' . $label . ' قبل اكتماله. أعد المحاولة.');
         }
         if ($err !== UPLOAD_ERR_OK) {
-            return array('ok' => false, 'error' => 'تعذّر رفع ' . $label . ' (رمز ' . $err . ').');
+            return array('ok' => false, 'error' => 'تعذر رفع ' . $label . ' (رمز ' . $err . ').');
         }
 
         $tmp = (string) $this->val($file, 'tmp_name');
         if ($tmp === '' || !is_uploaded_file($tmp)) {
-            return array('ok' => false, 'error' => 'ملفّ ' . $label . ' غير صالح.');
+            return array('ok' => false, 'error' => 'ملف ' . $label . ' غير صالح.');
         }
 
         $ext = tq_safe_upload_extension($this->val($file, 'name'));
@@ -491,17 +491,17 @@ class Taqdar_teacher_model extends CI_Model
     }
 
     /**
-     * ينقل الملفّ باسم يُولَّد هنا بالكامل.
+     * ينقل الملف باسم يولد هنا بالكامل.
      * لا شيء من اسم المستخدم يدخل المسار — لا امتداد مزدوج ولا `../`.
      */
     private function store_upload($file, $teacher_id)
     {
-        $chk = $this->check_upload($file, 'الملفّ');
+        $chk = $this->check_upload($file, 'الملف');
         if (!$chk['ok']) return array('ok' => false, 'error' => $chk['error']);
 
         $dir = rtrim(FCPATH, '/') . '/' . self::UPLOAD_DIR;
         if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
-            return array('ok' => false, 'error' => 'تعذّر تجهيز مجلّد الرفع على الخادم.');
+            return array('ok' => false, 'error' => 'تعذر تجهيز مجلد الرفع على الخادم.');
         }
 
         $name = 'tq_l' . (int) $teacher_id . '_' . time() . '_'
@@ -509,7 +509,7 @@ class Taqdar_teacher_model extends CI_Model
         $path = $dir . $name;
 
         if (!@move_uploaded_file($this->val($file, 'tmp_name'), $path)) {
-            return array('ok' => false, 'error' => 'تعذّر حفظ الملفّ المرفوع على الخادم.');
+            return array('ok' => false, 'error' => 'تعذر حفظ الملف المرفوع على الخادم.');
         }
         @chmod($path, 0644);
 
@@ -534,7 +534,7 @@ class Taqdar_teacher_model extends CI_Model
         return $scheme === 'http' || $scheme === 'https';
     }
 
-    /** نوع المقطع كما يفهمه مشغّل تقدّر. */
+    /** نوع المقطع كما يفهمه مشغل تقدر. */
     private function detect_video_type($url)
     {
         if (preg_match('~youtu\.?be~i', $url))  return 'youtube';
@@ -542,14 +542,14 @@ class Taqdar_teacher_model extends CI_Model
         return 'html5';
     }
 
-    /** Academy يخزّن المدّة نصًّا `HH:MM:SS` وقارئوها يعتمدون ذلك. */
+    /** Academy يخزن المدة نصا `HH:MM:SS` وقارئوها يعتمدون ذلك. */
     private function hms($seconds)
     {
         $seconds = max(0, (int) $seconds);
         return sprintf('%02d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);
     }
 
-    /** ترتيب الدرس داخل قسمه — يُلحَق بآخر الدروس لا يُقحَم بينها. */
+    /** ترتيب الدرس داخل قسمه — يلحق بآخر الدروس لا يقحم بينها. */
     private function next_order($course_id, $section_id)
     {
         $r = $this->db->query(
@@ -561,9 +561,9 @@ class Taqdar_teacher_model extends CI_Model
     }
 
     /**
-     * أوّل قسم للكورس، وإن لم يكن له قسم أنشأ واحدًا.
-     * و`course.section` يُحدَّث معه لأن لوحة Academy تقرأ ترتيب الأقسام منه،
-     * فقسم لا يُسجَّل هناك يظهر في البوّابة ويغيب عن اللوحة.
+     * أول قسم للكورس، وإن لم يكن له قسم أنشأ واحدا.
+     * و`course.section` يحدث معه لأن لوحة Academy تقرأ ترتيب الأقسام منه،
+     * فقسم لا يسجل هناك يظهر في البوابة ويغيب عن اللوحة.
      */
     private function first_or_new_section($course_id)
     {
@@ -593,8 +593,8 @@ class Taqdar_teacher_model extends CI_Model
 
     /**
      * جدول `lesson` في Academy بلا عمود حالة، وحالة الدرس مطلوبة.
-     * يُضاف `tq_status` مرّةً بقيمة افتراضية `published` حتى لا يتغيّر معنى
-     * أي صفّ كُتب قبله، ثم يُحفظ فيه ما يختاره المعلّم.
+     * يضاف `tq_status` مرة بقيمة افتراضية `published` حتى لا يتغير معنى
+     * أي صف كتب قبله، ثم يحفظ فيه ما يختاره المعلم.
      */
     private function has_status_column()
     {
@@ -615,12 +615,12 @@ class Taqdar_teacher_model extends CI_Model
 
     private function status_phrase($status)
     {
-        if ($status === 'published') return 'ونُشِر';
-        if ($status === 'review')    return 'وأُرسِل للمراجعة';
-        return 'كمسودّة';
+        if ($status === 'published') return 'ونشر';
+        if ($status === 'review')    return 'وأرسل للمراجعة';
+        return 'كمسودة';
     }
 
-    /** أثر الكتابة في سجلّ التدقيق — من كتب وماذا ومتى. */
+    /** أثر الكتابة في سجل التدقيق — من كتب وماذا ومتى. */
     private function log($action, $entity, $actor_id, $after)
     {
         @$this->db->insert('audit_log', array(
@@ -640,11 +640,11 @@ class Taqdar_teacher_model extends CI_Model
        ===================================================================== */
 
     /**
-     * ينشئ كورسًا للمعلّم أو يعدّل كورسًا يملكه.
+     * ينشئ كورسا للمعلم أو يعدل كورسا يملكه.
      *
      * الجديد يبدأ **`pending`**: النشر قرار إدارة لا قرار من يرفع المحتوى.
-     * و`creator` و`user_id` يُملآن معًا لأن السكربت يفحص أحدهما تارةً
-     * والآخر تارةً — وترك أحدهما يُنتج كورسًا لا يراه صاحبه في شاشته.
+     * و`creator` و`user_id` يملآن معا لأن السكربت يفحص أحدهما تارة
+     * والآخر تارة — وترك أحدهما ينتج كورسا لا يراه صاحبه في شاشته.
      */
     public function save_course($teacher_id, $post = null, $files = null)
     {
@@ -666,7 +666,7 @@ class Taqdar_teacher_model extends CI_Model
             $level = 'beginner';
         }
 
-        // التعديل: الملكية تُعاد قراءتها من القاعدة، لا تُؤخذ من النموذج
+        // التعديل: الملكية تعاد قراءتها من القاعدة، لا تؤخذ من النموذج
         if ($id > 0 && !$this->owns_course($teacher_id, $id)) {
             $errors[] = 'هذا الكورس ليس ضمن كورساتك.';
         }
@@ -685,7 +685,7 @@ class Taqdar_teacher_model extends CI_Model
 
         if ($id > 0) {
             $CI->db->where('id', $id)->update('course', $data);
-            $msg = 'حُفظت تعديلات الكورس.';
+            $msg = 'حفظت تعديلات الكورس.';
         } else {
             $data['creator']    = $teacher_id;
             $data['user_id']    = (string) $teacher_id;
@@ -695,7 +695,7 @@ class Taqdar_teacher_model extends CI_Model
             $data['is_free_course'] = 0;
             $CI->db->insert('course', $data);
             $id  = (int) $CI->db->insert_id();
-            $msg = 'أُنشئ الكورس، وهو بانتظار مراجعة الإدارة قبل النشر.';
+            $msg = 'أنشئ الكورس، وهو بانتظار مراجعة الإدارة قبل النشر.';
         }
 
         $CI->db->insert('audit_log', array(
@@ -710,7 +710,7 @@ class Taqdar_teacher_model extends CI_Model
         return array('ok' => true, 'message' => $msg, 'course_id' => $id);
     }
 
-    /** مِطواة لتطابق سلسلة التفويض في المتحكّم. */
+    /** مطواة لتطابق سلسلة التفويض في المتحكم. */
     public function courses_save($teacher_id, $payload = null, $files = null)
     {
         return $this->save_course($teacher_id, $payload, $files);
@@ -721,11 +721,11 @@ class Taqdar_teacher_model extends CI_Model
        ===================================================================== */
 
     /**
-     * يستورد أسئلة اختيار من ملفّ CSV إلى درس اختبار يملكه المعلّم.
+     * يستورد أسئلة اختيار من ملف CSV إلى درس اختبار يملكه المعلم.
      *
-     * الأعمدة: السؤال · خيار١..خيار٤ · الصحيح (رقم الخيار أو نصّه).
-     * والصفّ المعطوب يُتجاوَز ولا يُوقف غيره — ملفٌّ فيه خطأ واحد يجب أن
-     * يُدخل بقيّته.
+     * الأعمدة: السؤال · خيار١..خيار٤ · الصحيح (رقم الخيار أو نصه).
+     * والصف المعطوب يتجاوز ولا يوقف غيره — ملف فيه خطأ واحد يجب أن
+     * يدخل بقيته.
      */
     public function import_questions($teacher_id, $payload = null, $files = null)
     {
@@ -736,10 +736,10 @@ class Taqdar_teacher_model extends CI_Model
 
         $lesson_id = (int) (isset($payload['lesson_id']) ? $payload['lesson_id'] : 0);
         if ($lesson_id < 1) {
-            return array('ok' => false, 'errors' => array('اختر الاختبار الذي تُستورَد إليه الأسئلة.'));
+            return array('ok' => false, 'errors' => array('اختر الاختبار الذي تستورد إليه الأسئلة.'));
         }
 
-        // الملكية تُعاد قراءتها هنا ولا يُكتفى بحارس المتحكّم
+        // الملكية تعاد قراءتها هنا ولا يكتفى بحارس المتحكم
         $own = $CI->db->query(
             'SELECT COUNT(*) n FROM `lesson` l JOIN `course` c ON c.id = l.course_id
               WHERE l.id = ? AND (c.creator = ? OR FIND_IN_SET(?, c.user_id) > 0)',
@@ -749,7 +749,7 @@ class Taqdar_teacher_model extends CI_Model
             return array('ok' => false, 'errors' => array('هذا الدرس في كورس ليس لك.'));
         }
 
-        // شكلان محتملان: `$_FILES` كاملًا، أو الملفّ وحده كما يمرّره المتحكّم
+        // شكلان محتملان: `$_FILES` كاملا، أو الملف وحده كما يمرره المتحكم
         $f = null;
         if (isset($files['tmp_name']) && is_string($files['tmp_name'])) {
             $f = $files;
@@ -764,12 +764,12 @@ class Taqdar_teacher_model extends CI_Model
         }
 
         if (!$f || empty($f['tmp_name']) || !is_readable($f['tmp_name'])) {
-            return array('ok' => false, 'errors' => array('لم يصل ملفّ صالح.'));
+            return array('ok' => false, 'errors' => array('لم يصل ملف صالح.'));
         }
 
         $raw = @file_get_contents($f['tmp_name']);
         if ($raw === false || trim($raw) === '') {
-            return array('ok' => false, 'errors' => array('الملفّ فارغ أو تعذّرت قراءته.'));
+            return array('ok' => false, 'errors' => array('الملف فارغ أو تعذرت قراءته.'));
         }
         $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw);
 
@@ -810,7 +810,7 @@ class Taqdar_teacher_model extends CI_Model
                 continue;
             }
 
-            // الصحيح: رقم خيار أو نصّه — كلاهما يُكتب بالبشر
+            // الصحيح: رقم خيار أو نصه — كلاهما يكتب بالبشر
             if (ctype_digit($correct)) {
                 $idx = (int) $correct - 1;
                 if (!isset($opts[$idx])) { $skipped++; continue; }
@@ -833,23 +833,23 @@ class Taqdar_teacher_model extends CI_Model
             $added++;
         }
 
-        if ($head === null) return array('ok' => false, 'errors' => array('تعذّر فهم ترويسة الملفّ.'));
-        if ($added === 0)   return array('ok' => false, 'errors' => array('لم يُقبل أي سؤال. تحقّق من الأعمدة.'));
+        if ($head === null) return array('ok' => false, 'errors' => array('تعذر فهم ترويسة الملف.'));
+        if ($added === 0)   return array('ok' => false, 'errors' => array('لم يقبل أي سؤال. تحقق من الأعمدة.'));
 
-        $msg = 'أُضيف ' . $added . ' سؤالًا.';
+        $msg = 'أضيف ' . $added . ' سؤالا.';
         if ($skipped) {
-            $msg .= ' وتُجووِز ' . $skipped . ' سطرًا' . ($notes ? ' (' . implode('، ', $notes) . ')' : '') . '.';
+            $msg .= ' وتجووز ' . $skipped . ' سطرا' . ($notes ? ' (' . implode('، ', $notes) . ')' : '') . '.';
         }
         return array('ok' => true, 'message' => $msg, 'added' => $added, 'skipped' => $skipped);
     }
 
-    /** مِطواة: سلسلة التفويض في المتحكّم تنادي بهذا الاسم. */
+    /** مطواة: سلسلة التفويض في المتحكم تنادي بهذا الاسم. */
     public function questions_import($teacher_id, $payload = null, $files = null)
     {
         return $this->import_questions($teacher_id, $payload, $files);
     }
 
-    /** أوّل قيمة غير فارغة بين أسماء أعمدة مترادفة. */
+    /** أول قيمة غير فارغة بين أسماء أعمدة مترادفة. */
     private function pick($row, $names)
     {
         foreach ($names as $n) {

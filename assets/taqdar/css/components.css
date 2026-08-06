@@ -1,10 +1,10 @@
 /* ==========================================================================
-   منصّة تقدّر — المكوّنات
-   قواعد لا تُكسر:
-   · الكحلي يحمل نصّ البطاقة، لا حبر الباستيل (حبر الخوخي = 2.98:1 غير مقروء).
-   · البرتقالي إشارة واحدة ولا يُستعمل للنجاح أبدًا، ولا نصًّا على أبيض (2.19:1).
-   · شريط التقدّم برقمه دائمًا — شريط بلا رقم يقول «تقريبًا».
-   · هياكل عظمية لا دوّار وسط الشاشة.
+   منصة تقدر — المكونات
+   قواعد لا تكسر:
+   · الكحلي يحمل نص البطاقة، لا حبر الباستيل (حبر الخوخي = 2.98:1 غير مقروء).
+   · البرتقالي إشارة واحدة ولا يستعمل للنجاح أبدا، ولا نصا على أبيض (2.19:1).
+   · شريط التقدم برقمه دائما — شريط بلا رقم يقول «تقريبا».
+   · هياكل عظمية لا دوار وسط الشاشة.
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -44,7 +44,7 @@
 }
 .tq-btn--secondary:hover { background: var(--tq-navyWash); border-color: var(--tq-navy); }
 
-/* شبحي — «عرض الكل» والتنقّل الخفيف */
+/* شبحي — «عرض الكل» والتنقل الخفيف */
 .tq-btn--ghost { background: var(--tq-navyWash); color: var(--tq-navy); }
 .tq-btn--ghost:hover { background: var(--tq-navyWashStrong); }
 
@@ -52,7 +52,7 @@
 .tq-btn--mastery { background: var(--tq-actionMastery); color: var(--tq-onAction); }
 .tq-btn--mastery:hover { background: var(--tq-actionMastery); color: var(--tq-onAction); filter: brightness(1.15); }
 
-/* خطر — الحذف والإلغاء، بتأكيد دائمًا */
+/* خطر — الحذف والإلغاء، بتأكيد دائما */
 .tq-btn--danger { background: var(--tq-actionDanger); color: var(--tq-onAction); }
 .tq-btn--danger:hover { filter: brightness(.92); color: #fff; }
 
@@ -83,11 +83,11 @@
 .tq-btn--block { inline-size: 100%; }
 
 /* --------------------------------------------------------------------------
-   الحقول — رسالة الخطأ تقول كيف يُصحَّح لا ما المشكلة
+   الحقول — رسالة الخطأ تقول كيف يصحح لا ما المشكلة
    -------------------------------------------------------------------------- */
 .tq-field { display: block; margin-block-end: var(--tq-space-l); }
 
-/* كل حقل له تسمية مرتبطة — لا يُكتفى بنصّ داخل الحقل */
+/* كل حقل له تسمية مرتبطة — لا يكتفى بنص داخل الحقل */
 .tq-field__label {
   display: block;
   margin-block-end: var(--tq-space-s);
@@ -129,9 +129,9 @@
 /* --------------------------------------------------------------------------
    مفتاح التبديل — دائرة تنزلق بالمنطق لا باليمين واليسار.
 
-   رُقّي هذا النمط من <style> مضمّن في صفحة الرسائل إلى هنا. النمط المحبوس
-   في صفحة ليس نمطًا بل نسخة: حين احتاجته صفحة الإعدادات لم تجده، فعُرضت
-   فيها شارات ساكنة مكان مفاتيح تُبدَّل. مكان المكوّن المشترك ملفّ المكوّنات.
+   رقي هذا النمط من <style> مضمن في صفحة الرسائل إلى هنا. النمط المحبوس
+   في صفحة ليس نمطا بل نسخة: حين احتاجته صفحة الإعدادات لم تجده، فعرضت
+   فيها شارات ساكنة مكان مفاتيح تبدل. مكان المكون المشترك ملف المكونات.
    -------------------------------------------------------------------------- */
 .tq-switch { position: relative; inline-size: 44px; block-size: 26px; flex: none; }
 .tq-switch input { position: absolute; inset: 0; opacity: 0; inline-size: 100%; block-size: 100%; margin: 0; cursor: pointer; }
@@ -145,13 +145,13 @@
 html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: translateX(18px); }
 .tq-switch input:focus-visible ~ .tq-switch__track { outline: var(--tq-focus-ring-w) solid var(--tq-focusRing); outline-offset: 2px; }
 
-/* المفتاح داخل خلية جدول: يتوسّط الخلية وتبقى تسميته قائمة وإن كانت مخفية. */
+/* المفتاح داخل خلية جدول: يتوسط الخلية وتبقى تسميته قائمة وإن كانت مخفية. */
 .tq-switchcell { display: grid; place-items: center; min-block-size: var(--tq-touch-min); }
-/* حدّ اللمس 44px حيث يقف المفتاح وحده: تُمدّ مساحة اللمس رأسيًّا بلا أن تكبر صورته. */
+/* حد اللمس 44px حيث يقف المفتاح وحده: تمد مساحة اللمس رأسيا بلا أن تكبر صورته. */
 .tq-switchcell .tq-switch input { inset-block: -9px; }
 
 /* --------------------------------------------------------------------------
-   صفّ تفضيل — تسمية وشرحها في جهة، والتحكّم في الأخرى
+   صف تفضيل — تسمية وشرحها في جهة، والتحكم في الأخرى
    -------------------------------------------------------------------------- */
 .tq-prefrow {
   display: flex; align-items: center; justify-content: space-between;
@@ -167,7 +167,7 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-prefrow__end .tq-field { margin-block-end: 0; }
 @media (max-width: 479.98px) { .tq-prefrow { flex-wrap: wrap; } }
 
-/* حقلان جنبًا إلى جنب حين تتّسع الشاشة — الاسم الأول والأخير مثلًا. */
+/* حقلان جنبا إلى جنب حين تتسع الشاشة — الاسم الأول والأخير مثلا. */
 .tq-fieldgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--tq-space-l); }
 @media (max-width: 639.98px) { .tq-fieldgrid { grid-template-columns: minmax(0, 1fr); } }
 
@@ -194,17 +194,17 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 }
 /* مكتمل · متقن */
 .tq-badge--mastered { background: var(--tq-tealSoft); color: var(--tq-teal); }
-/* قيد التقدّم · جديد — تعبئة السماوي بالحبر الكحلي (الكحلي يحمل النصّ) */
+/* قيد التقدم · جديد — تعبئة السماوي بالحبر الكحلي (الكحلي يحمل النص) */
 .tq-badge--progress { background: var(--tq-sky-fill); color: var(--tq-navy); }
 /* يقترب موعده */
 .tq-badge--due { background: var(--tq-amberSoft); color: var(--tq-navy); }
-/* متأخّر · مرفوض */
+/* متأخر · مرفوض */
 .tq-badge--late { background: var(--tq-dangerSoft); color: var(--tq-danger); }
 /* لم يبدأ */
 .tq-badge--idle { background: var(--tq-line); color: var(--tq-text2); }
 
 /* --------------------------------------------------------------------------
-   شريط التقدّم — 7px، والنسبة بجواره إلزاميًّا
+   شريط التقدم — 7px، والنسبة بجواره إلزاميا
    -------------------------------------------------------------------------- */
 .tq-progress { display: flex; align-items: center; gap: var(--tq-space-m); }
 .tq-progress__track {
@@ -222,7 +222,7 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 }
 .tq-progress__value { font: var(--tq-type-numeralSm); color: var(--tq-navy); unicode-bidi: isolate; direction: ltr; }
 
-/* حلقة التقدّم */
+/* حلقة التقدم */
 .tq-ring { position: relative; display: grid; place-items: center; }
 .tq-ring svg { transform: rotate(-90deg); }
 .tq-ring__track { stroke: var(--tq-line); fill: none; }
@@ -251,7 +251,7 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 }
 .tq-card__title { font: var(--tq-type-h2); color: var(--tq-navy); margin: 0; }
 
-/* بطاقة باستيل: العنوان والمتن كحليّان، وحبر العائلة للتسمية والأيقونة فقط */
+/* بطاقة باستيل: العنوان والمتن كحليان، وحبر العائلة للتسمية والأيقونة فقط */
 .tq-pastel { border-radius: var(--tq-radius-card); padding: var(--tq-space-l); }
 .tq-pastel .tq-pastel__title,
 .tq-pastel .tq-pastel__body { color: var(--tq-navy); }
@@ -265,7 +265,7 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-pastel--rose  { background: var(--tq-rose-fill);  --tq-pastel-ink: var(--tq-rose-ink); }
 .tq-pastel--sand  { background: var(--tq-sand-fill);  --tq-pastel-ink: var(--tq-sand-ink); }
 
-/* التسمية نصّ، والنصّ عتبته 4.5:1 مقيسةً لا مقدَّرة. وبالقياس على تعبئتها:
+/* التسمية نص، والنص عتبته 4.5:1 مقيسة لا مقدرة. وبالقياس على تعبئتها:
    النعناع 4.65 والسماوي 9.51 والليلكي 4.70 تجتاز، بينما الخوخي 2.98
    والوردي 3.74 والرملي 3.69 تسقط. فتسمية هذه الثلاث كحلية، وحبر العائلة
    فيها للأيقونة وحدها. قاعدة استخدام لا تغيير توكن — الشيفرة هي الصواب. */
@@ -277,7 +277,7 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-pastel--rose  .tq-pastel__icon { color: var(--tq-rose-ink); }
 .tq-pastel--sand  .tq-pastel__icon { color: var(--tq-sand-ink); }
 
-/* أيقونة في مربّع باستيل */
+/* أيقونة في مربع باستيل */
 .tq-icon-box {
   display: grid; place-items: center;
   inline-size: 44px; block-size: 44px;
@@ -326,7 +326,7 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   text-align: center;
   unicode-bidi: isolate; direction: ltr;
 }
-/* نفس القاعدة: الرقم كحليّ على تظليل أحمر بحدّ أحمر، لا أبيض على أحمر. */
+/* نفس القاعدة: الرقم كحلي على تظليل أحمر بحد أحمر، لا أبيض على أحمر. */
 .tq-rail__count--urgent {
   background: var(--tq-dangerSoft);
   color: var(--tq-navy);
@@ -339,7 +339,7 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   .tq-rail .tq-rail__text, .tq-rail .tq-rail__promo { display: none; }
 }
 @media (max-width: 639.98px) {
-  /* درج على الجوّال */
+  /* درج على الجوال */
   .tq-rail {
     position: fixed; inset-block: 0; inset-inline-start: 0;
     inline-size: var(--tq-rail-open); z-index: 60;
@@ -379,8 +379,8 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 }
 .tq-iconbtn:hover { background: var(--tq-navyWash); color: var(--tq-navy); }
 /* الأبيض على الأحمر يبلغ 4.38:1 — وهو أحد الثمانية الممنوعة، والوثيقة
-   تقصره على النصّ الكبير. وعدّاد الشارة نصّ صغير، فيأخذ البديل المنصوص:
-   الكحلي يحمل الرقم على تظليل أحمر، والحدّ الأحمر يبقي الإشارة العاجلة. */
+   تقصره على النص الكبير. وعداد الشارة نص صغير، فيأخذ البديل المنصوص:
+   الكحلي يحمل الرقم على تظليل أحمر، والحد الأحمر يبقي الإشارة العاجلة. */
 .tq-iconbtn__dot {
   position: absolute; inset-block-start: 4px; inset-inline-end: 4px;
   min-inline-size: 20px; padding: 0 5px;
@@ -392,7 +392,7 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 }
 
 /* --------------------------------------------------------------------------
-   التبويبات والحبّات
+   التبويبات والحبات
    -------------------------------------------------------------------------- */
 .tq-tabs { display: flex; gap: var(--tq-space-xl); border-block-end: 1px solid var(--tq-line); margin-block-end: var(--tq-space-xl); }
 .tq-tab {
@@ -427,7 +427,7 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-table tbody tr:hover { background: var(--tq-navyWash); }
 
 /* --------------------------------------------------------------------------
-   الهياكل العظمية — لا دوّار وسط الشاشة.
+   الهياكل العظمية — لا دوار وسط الشاشة.
    الهيكل يقول «هذا ما سيصل وبهذا الحجم»، فلا يقفز التخطيط عند الوصول.
    -------------------------------------------------------------------------- */
 .tq-skeleton {
@@ -476,7 +476,7 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 
 /* عزل مقطع لاتيني داخل صندوق يرث اتجاه الصفحة.
    فرض direction على الصندوق نفسه يقلب معنى inset-inline-end فيهاجر إلى
-   الجهة الخاطئة — العزل يخصّ النصّ لا الصندوق. */
+   الجهة الخاطئة — العزل يخص النص لا الصندوق. */
 .tq-ltr {
   direction: ltr;
   unicode-bidi: isolate;
@@ -484,8 +484,8 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 }
 
 /* tq-legacy-rating — كانت هذه القاعدة الوحيدة من custom_css القديم التي
-   تصيب الثيم الجديد فعلًا، وكانت تفرض لونًا مباشرًا بـ!important فتتجاوز
-   التوكنات حتى في الوضع الليلي. نُقلت هنا بلون التوكن، وأُفرغ القديم. */
+   تصيب الثيم الجديد فعلا، وكانت تفرض لونا مباشرا بـ!important فتتجاوز
+   التوكنات حتى في الوضع الليلي. نقلت هنا بلون التوكن، وأفرغ القديم. */
 .rating i, .star-rating i, .fa-star { color: var(--tq-amber); }
 
 /* رسالة نتيجة في صفحة الباقات */
@@ -499,9 +499,9 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tqp-flash--no { background: var(--tq-dangerSoft); color: var(--tq-danger); border: 1px solid var(--tq-danger); }
 
 /* ══════════════════════════════════════════════════════════════════
-   مراجعة الإجابات — الصواب والخطأ يُقرآن بلونٍ **وبعلامة**
-   اللون وحده لا يكفي: ثمانية بالمئة من الذكور لا يفرّقون الأحمر من
-   الأخضر، والعلامة تُقرأ بلا لون.
+   مراجعة الإجابات — الصواب والخطأ يقرآن بلون **وبعلامة**
+   اللون وحده لا يكفي: ثمانية بالمئة من الذكور لا يفرقون الأحمر من
+   الأخضر، والعلامة تقرأ بلا لون.
    ══════════════════════════════════════════════════════════════════ */
 .tq-review__score{margin:0;font:var(--tq-type-bodyStrong);color:var(--tq-text2)}
 .tq-review__list{list-style:none;margin:var(--tq-space-l) 0;padding:0;display:grid;gap:var(--tq-space-m)}

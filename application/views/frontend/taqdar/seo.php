@@ -10,8 +10,8 @@
         $canonical_url = '';
         $og_title = $meta_title;
         $og_description = $meta_description;
-        /* الصورة الافتراضية كانت `placeholder.png` — أي أنّ كلّ مشاركةٍ للموقع
-           على الشبكات تظهر بمربّعٍ فارغ. وهذه صورةٌ حقيقية من أصول الموقع. */
+        /* الصورة الافتراضية كانت `placeholder.png` — أي أن كل مشاركة للموقع
+           على الشبكات تظهر بمربع فارغ. وهذه صورة حقيقية من أصول الموقع. */
         $tq_og = 'assets/taqdar/site/img/og-cover.jpg';
         $og_image = is_file(FCPATH . $tq_og)
             ? base_url($tq_og)
@@ -147,13 +147,13 @@
     <meta property="og:description" content="<?php echo htmlspecialchars($og_description, ENT_QUOTES, 'UTF-8'); ?>">
     <meta property="og:image" content="<?php echo htmlspecialchars($og_image, ENT_QUOTES, 'UTF-8'); ?>">
     <meta property="og:url" content="<?php echo current_url(); ?>">
-<?php /* الوسوم التي كانت غائبة: بلا `og:type` تُصنَّف الصفحة افتراضًا،
-        وبلا `twitter:card` تظهر المشاركة سطرًا بلا صورة، وبلا `og:locale`
-        لا يُعرف أنّ المحتوى عربيّ. و`hreflang` يقول للفهرس إنّ هذه هي
-        النسخة العربية الوحيدة — الموقع أحاديّ اللغة. */ ?>
+<?php /* الوسوم التي كانت غائبة: بلا `og:type` تصنف الصفحة افتراضا،
+        وبلا `twitter:card` تظهر المشاركة سطرا بلا صورة، وبلا `og:locale`
+        لا يعرف أن المحتوى عربي. و`hreflang` يقول للفهرس إن هذه هي
+        النسخة العربية الوحيدة — الموقع أحادي اللغة. */ ?>
     <meta property="og:type" content="website">
     <meta property="og:locale" content="ar_SA">
-    <meta property="og:site_name" content="منصّة تقدّر">
+    <meta property="og:site_name" content="منصة تقدر">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<?php echo htmlspecialchars($og_title, ENT_QUOTES, 'UTF-8'); ?>">
     <meta name="twitter:description" content="<?php echo htmlspecialchars($og_description, ENT_QUOTES, 'UTF-8'); ?>">

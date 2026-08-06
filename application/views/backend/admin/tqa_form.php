@@ -59,7 +59,7 @@ $is_edit = ($rid > 0 && $row);
                             <?php endforeach; ?>
                         </select>
                         <?php if (!$M->options($f['ref'])): ?>
-                            <small class="tqa-warn">لا توجد عناصر بعد في «<?php echo html_escape($f['ref']); ?>» — أضِفها أوّلًا.</small>
+                            <small class="tqa-warn">لا توجد عناصر بعد في «<?php echo html_escape($f['ref']); ?>» — أضفها أولا.</small>
                         <?php endif; ?>
 
                     <?php elseif ($f['type'] === 'textarea' || $f['type'] === 'lines'): ?>

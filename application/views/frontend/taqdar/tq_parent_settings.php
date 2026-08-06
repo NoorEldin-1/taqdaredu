@@ -2,25 +2,25 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * إعدادات وليّ الأمر.
+ * إعدادات ولي الأمر.
  *
- * كانت هذه الشاشة عرضًا بلا نموذج واحد: لا تعديل بيانات، ولا تفضيلات،
- * وزرّ «تغيير كلمة المرور» يشير إلى `/profile` وهو يُرجع 500 — فالمستخدم
- * يصطدم بجدار. صارت الآن ثلاثة نماذج تكتب فعلًا عبر `Taqdar_parent_model`:
+ * كانت هذه الشاشة عرضا بلا نموذج واحد: لا تعديل بيانات، ولا تفضيلات،
+ * وزر «تغيير كلمة المرور» يشير إلى `/profile` وهو يرجع 500 — فالمستخدم
+ * يصطدم بجدار. صارت الآن ثلاثة نماذج تكتب فعلا عبر `Taqdar_parent_model`:
  * بياناتك · كلمة مرورك · ما يصلك ومتى.
  *
- * والربط بالابن **بموافقة موثَّقة** لا بتخمين: يُطلب من هنا (أو من شاشة
+ * والربط بالابن **بموافقة موثقة** لا بتخمين: يطلب من هنا (أو من شاشة
  * «أبنائي»)، ويبدأ `pending` بلا تاريخ، ولا يصير `active` إلا بموافقة الابن
  * من حسابه وبتاريخ في `consent_at` — وهو شرط مفروض في القاعدة نفسها لا في
- * الشيفرة وحدها. وحدود الرؤية معروضة صراحةً لا مخفيّة: وليّ الأمر يعرف
+ * الشيفرة وحدها. وحدود الرؤية معروضة صراحة لا مخفية: ولي الأمر يعرف
  * ما لا يراه، فالشفافية مع الأسرة لا تعني إلغاء مساحة الطالب.
  */
 
-$tq_ci = &get_instance();   // الطبقةُ المُحمَّلة داخل عرضٍ لا تُنسخ على $this، فتُؤخذ من النسخة
+$tq_ci = &get_instance();   // الطبقة المحملة داخل عرض لا تنسخ على $this، فتؤخذ من النسخة
 $tq_ci->load->model('taqdar_parent_model');
 $tq_pm = $tq_ci->taqdar_parent_model;
 /* النماذج تنشر إلى `POST parent/settings/save` و`POST parent/children/link`
-   في المتحكّم، وكلاهما يستدعي دوالّ هذا النموذج. وهذا النداء شبكة أمان
+   في المتحكم، وكلاهما يستدعي دوال هذا النموذج. وهذا النداء شبكة أمان
    لأي نشر يصل إلى برنامج الشاشة نفسه. */
 $tq_pm->handle_post('settings');
 
@@ -67,12 +67,12 @@ include 'portal_open.php';
                     <label class="tq-field__label" for="tq-email">البريد الإلكتروني</label>
                     <input class="tq-input tq-ltr" id="tq-email" name="email" type="email" required
                            value="<?php echo html_escape((string) ($u['email'] ?? '')); ?>">
-                    <p class="tq-field__hint">هو نفسه اسم دخولك — وتغييره يغيّر ما تدخل به.</p>
+                    <p class="tq-field__hint">هو نفسه اسم دخولك — وتغييره يغير ما تدخل به.</p>
                 </div>
 
                 <div class="tq-grid tq-grid--2">
                     <div class="tq-field">
-                        <label class="tq-field__label" for="tq-phone">الجوّال</label>
+                        <label class="tq-field__label" for="tq-phone">الجوال</label>
                         <input class="tq-input tq-ltr" id="tq-phone" name="phone" type="text" inputmode="tel"
                                value="<?php echo html_escape((string) ($u['phone'] ?? '')); ?>">
                     </div>
@@ -129,7 +129,7 @@ include 'portal_open.php';
                 <dl class="tq-s-list">
                     <?php foreach ($tq_links as $l):
                         $k = $l['status'] === 'active' ? 'mastered' : ($l['status'] === 'pending' ? 'due' : 'late');
-                        $w = ['active' => 'مفعّل', 'pending' => 'بانتظار موافقته', 'revoked' => 'مسحوب'][$l['status']] ?? $l['status'];
+                        $w = ['active' => 'مفعل', 'pending' => 'بانتظار موافقته', 'revoked' => 'مسحوب'][$l['status']] ?? $l['status'];
                     ?>
                         <div class="tq-s-row">
                             <dt>
@@ -139,9 +139,9 @@ include 'portal_open.php';
                                     <?php if (!empty($l['consent_at']) && $l['status'] === 'active'): ?>
                                         وافق بتاريخ <?php echo TQ_LRI . html_escape((string) $l['consent_at']) . TQ_PDI; ?>
                                     <?php elseif ($l['status'] === 'pending'): ?>
-                                        لا تاريخ موافقة بعد — لا يُفتح شيء من بياناته
+                                        لا تاريخ موافقة بعد — لا يفتح شيء من بياناته
                                     <?php elseif (!empty($l['prefs']['revoked']['at'])): ?>
-                                        أُلغي الربط بتاريخ <?php echo TQ_LRI . html_escape((string) $l['prefs']['revoked']['at']) . TQ_PDI; ?>
+                                        ألغي الربط بتاريخ <?php echo TQ_LRI . html_escape((string) $l['prefs']['revoked']['at']) . TQ_PDI; ?>
                                     <?php endif; ?>
                                 </span>
                             </dt>
@@ -157,7 +157,7 @@ include 'portal_open.php';
                                     </form>
                                 <?php elseif ($l['status'] === 'active'): ?>
                                     <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
-                                          onsubmit="return confirm('إلغاء ربط <?php echo html_escape($l['name']); ?>؟ لن ترى شيئًا من بياناته بعدها.');">
+                                          onsubmit="return confirm('إلغاء ربط <?php echo html_escape($l['name']); ?>؟ لن ترى شيئا من بياناته بعدها.');">
                                         <input type="hidden" name="tq_action" value="link_revoke">
                                         <input type="hidden" name="student_id" value="<?php echo (int) $l['student_id']; ?>">
                                         <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit">إلغاء الربط</button>
@@ -172,12 +172,12 @@ include 'portal_open.php';
             <form method="post" action="<?php echo base_url('parent/children/link'); ?>" style="margin-block-start:var(--tq-space-xl)">
                 <input type="hidden" name="tq_action" value="link_request">
                 <div class="tq-field">
-                    <label class="tq-field__label" for="tq-identifier-s">إضافة ابن — بريد حسابه في تقدّر (أو رقم حسابه)</label>
+                    <label class="tq-field__label" for="tq-identifier-s">إضافة ابن — بريد حسابه في تقدر (أو رقم حسابه)</label>
                     <input class="tq-input tq-ltr" id="tq-identifier-s" name="identifier" type="text"
                            inputmode="email" required placeholder="name@example.com">
                     <p class="tq-field__hint">
-                        يُنشأ الطلب معلّقًا بلا تاريخ موافقة ولا يفتح شيئًا. وتصل ابنك رسالةٌ بنصّ الموافقة،
-                        فإن وافق من حسابه سُجّل تاريخها ونسخة نصّها ومن أعطاها.
+                        ينشأ الطلب معلقا بلا تاريخ موافقة ولا يفتح شيئا. وتصل ابنك رسالة بنص الموافقة،
+                        فإن وافق من حسابه سجل تاريخها ونسخة نصها ومن أعطاها.
                     </p>
                 </div>
                 <button class="tq-btn tq-btn--secondary" type="submit">إرسال طلب الربط</button>
@@ -189,7 +189,7 @@ include 'portal_open.php';
             <h2 class="tq-card__title">ما يصلك ومتى</h2>
             <p class="tq-caption">
                 خمسة أحداث وحدها تقطع يومك، وما عداها ينتظر التقرير الأسبوعي.
-                وهذه الشاشة تحدّد أيّها تريد.
+                وهذه الشاشة تحدد أيها تريد.
             </p>
 
             <form method="post" action="<?php echo base_url('parent/settings/save'); ?>">
@@ -217,11 +217,11 @@ include 'portal_open.php';
 
                 <?php $tq_active_links = array_filter($tq_links, function ($l) { return $l['status'] === 'active'; }); ?>
                 <?php if ($tq_active_links): ?>
-                    <h3 class="tq-strong" style="margin-block:var(--tq-space-xl) var(--tq-space-s)">أيام الدراسة المتوقَّعة أسبوعيًّا</h3>
+                    <h3 class="tq-strong" style="margin-block:var(--tq-space-xl) var(--tq-space-s)">أيام الدراسة المتوقعة أسبوعيا</h3>
                     <p class="tq-caption" style="margin-block-start:0">
-                        عليها يُقاس «ما بقي من خطة أسبوعه» في التقرير. وما لم تحدّدها،
-                        يُحسب على <?php echo TQ_LRI . Taqdar_parent_model::PLAN_DAYS_DEFAULT . TQ_PDI; ?> أيام
-                        ويُكتب في التقرير أنها الافتراضية لا خطّتك.
+                        عليها يقاس «ما بقي من خطة أسبوعه» في التقرير. وما لم تحددها،
+                        يحسب على <?php echo TQ_LRI . Taqdar_parent_model::PLAN_DAYS_DEFAULT . TQ_PDI; ?> أيام
+                        ويكتب في التقرير أنها الافتراضية لا خطتك.
                     </p>
                     <dl class="tq-s-list">
                         <?php foreach ($tq_active_links as $l):
@@ -239,7 +239,7 @@ include 'portal_open.php';
                                         <?php endfor; ?>
                                     </select>
                                     <?php if ($plan['is_default']): ?>
-                                        <span class="tq-micro" style="display:block">غير محدَّدة — يُحسب على الافتراضي</span>
+                                        <span class="tq-micro" style="display:block">غير محددة — يحسب على الافتراضي</span>
                                     <?php endif; ?>
                                 </dd>
                             </div>
@@ -249,8 +249,8 @@ include 'portal_open.php';
 
                 <button class="tq-btn tq-btn--primary" type="submit" style="margin-block-start:var(--tq-space-l)">حفظ التفضيلات</button>
                 <p class="tq-micro" style="margin-block-start:var(--tq-space-m)">
-                    تُحفظ في نطاق الرابط نفسه (<span class="tq-ltr">parent_links.scope</span>)،
-                    فهي جزء من «ما يصلك عن هذا الابن» لا إعدادًا معلّقًا في الهواء.
+                    تحفظ في نطاق الرابط نفسه (<span class="tq-ltr">parent_links.scope</span>)،
+                    فهي جزء من «ما يصلك عن هذا الابن» لا إعدادا معلقا في الهواء.
                 </p>
             </form>
         </section>
@@ -259,8 +259,8 @@ include 'portal_open.php';
         <section class="tq-card">
             <h2 class="tq-card__title">حدود ما تراه</h2>
             <p class="tq-caption">
-                الرقابة الكاملة تُنتج طالبًا يُخفي، لا طالبًا يتعلّم. ولذلك حدود الرؤية
-                معلَنة لك لا مخفيّة عنك.
+                الرقابة الكاملة تنتج طالبا يخفي، لا طالبا يتعلم. ولذلك حدود الرؤية
+                معلنة لك لا مخفية عنك.
             </p>
             <div class="tq-grid tq-grid--2">
                 <div class="tq-pastel tq-pastel--mint">
@@ -269,7 +269,7 @@ include 'portal_open.php';
                         <li>الدروس المكتملة والإتقان لكل مادة</li>
                         <li>أيام النشاط والالتزام</li>
                         <li>المدفوعات والفواتير</li>
-                        <li>ملاحظات المعلّمين</li>
+                        <li>ملاحظات المعلمين</li>
                     </ul>
                 </div>
                 <div class="tq-pastel tq-pastel--sand">
@@ -298,7 +298,7 @@ include 'portal_open.php';
         <div class="tq-card">
             <h2 class="tq-card__title">التقرير الأسبوعي</h2>
             <p class="tq-caption">
-                يصلك مرّة كل أسبوع في يوم ثابت، بلغة الناس لا بجدول درجات.
+                يصلك مرة كل أسبوع في يوم ثابت، بلغة الناس لا بجدول درجات.
                 وما عدا الأحداث الخمسة، لا شيء يقاطعك قبله.
             </p>
             <a class="tq-btn tq-btn--secondary tq-btn--sm tq-btn--block" href="<?php echo base_url('parent/weekly'); ?>">
@@ -309,8 +309,8 @@ include 'portal_open.php';
         <div class="tq-pastel tq-pastel--sand">
             <span class="tq-pastel__label tq-micro">الموافقة</span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                لا يُفعَّل رابط بلا تاريخ موافقة — والقاعدة نفسها ترفض ذلك، لا الشاشة وحدها.
-                والموافقة يعطيها ابنك من حسابه، أو الإدارة نيابةً عند التوثيق الورقي.
+                لا يفعل رابط بلا تاريخ موافقة — والقاعدة نفسها ترفض ذلك، لا الشاشة وحدها.
+                والموافقة يعطيها ابنك من حسابه، أو الإدارة نيابة عند التوثيق الورقي.
             </p>
         </div>
     </aside>

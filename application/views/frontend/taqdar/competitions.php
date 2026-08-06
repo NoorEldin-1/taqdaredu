@@ -2,13 +2,13 @@
 /**
  * المسابقات.
  *
- * **نافس برنامج وطنيّ رسميّ تديره هيئة تقويم التعليم والتدريب.** ومسابقات
- * تقدّر **على نمطه** لا هو، والإيضاح مكتوب في أعلى الصفحة لا مطويّ في
- * الشروط: إيهام ارتباط رسميّ لا وجود له مخاطرةٌ لا داعي لها، والقيمة
+ * **نافس برنامج وطني رسمي تديره هيئة تقويم التعليم والتدريب.** ومسابقات
+ * تقدر **على نمطه** لا هو، والإيضاح مكتوب في أعلى الصفحة لا مطوي في
+ * الشروط: إيهام ارتباط رسمي لا وجود له مخاطرة لا داعي لها، والقيمة
  * للطالب تبقى كاملة بلا استعارة الاسم.
  */
 $tq_h1   = 'المسابقات';
-$tq_lead = 'تحدّيات دورية على نمط أسئلة نافس، يقيس بها الطالب مستواه ويقارن تقدّمه.';
+$tq_lead = 'تحديات دورية على نمط أسئلة نافس، يقيس بها الطالب مستواه ويقارن تقدمه.';
 include __DIR__ . '/site/site_pagehero.php';
 
 $tq_ci  = &get_instance();
@@ -43,8 +43,8 @@ if ($tq_uid > 0) {
     <div class="icard comp-note">
       <svg aria-hidden="true"><use href="#i-shield"></use></svg>
       <p>
-        مسابقات <strong>تقدّر</strong> من إعدادنا و<strong>على نمط أسئلة نافس</strong>،
-        وهي <strong>غير مرتبطة بهيئة تقويم التعليم والتدريب</strong> ولا تُغني عن
+        مسابقات <strong>تقدر</strong> من إعدادنا و<strong>على نمط أسئلة نافس</strong>،
+        وهي <strong>غير مرتبطة بهيئة تقويم التعليم والتدريب</strong> ولا تغني عن
         اختبارات نافس الرسمية.
       </p>
     </div>
@@ -82,7 +82,7 @@ if ($tq_uid > 0) {
 
             <?php if ($tq_in): ?>
               <p class="comp-state comp-state--in">
-                <svg aria-hidden="true"><use href="#i-check"></use></svg>أنت مسجَّل في هذه المسابقة
+                <svg aria-hidden="true"><use href="#i-check"></use></svg>أنت مسجل في هذه المسابقة
               </p>
             <?php elseif (!$tq_open): ?>
               <button class="btn btn--primary btn--block" type="button" disabled>
@@ -93,17 +93,17 @@ if ($tq_uid > 0) {
             <?php elseif ($tq_uid > 0): ?>
               <form method="post" action="<?php echo base_url('competitions/join'); ?>">
                 <input type="hidden" name="competition_id" value="<?php echo (int) $tq_c['id']; ?>">
-                <button class="btn btn--primary btn--block" type="submit">سجّل في المسابقة</button>
+                <button class="btn btn--primary btn--block" type="submit">سجل في المسابقة</button>
               </form>
             <?php else: ?>
-              <a class="btn btn--primary btn--block" href="<?php echo base_url('login'); ?>">سجّل الدخول للمشاركة</a>
-              <p class="tq-caption">المشاركة لطلاب المنصّة — فالنتائج تُقاس والشهادات تُنسَب.</p>
+              <a class="btn btn--primary btn--block" href="<?php echo base_url('login'); ?>">سجل الدخول للمشاركة</a>
+              <p class="tq-caption">المشاركة لطلاب المنصة — فالنتائج تقاس والشهادات تنسب.</p>
             <?php endif; ?>
           </article>
         <?php endforeach; ?>
       </div>
     <?php else: ?>
-      <p class="dir-empty">لا مسابقات معلَنة الآن. تابعنا — نُطلق تحدّيًا جديدًا كل فترة.</p>
+      <p class="dir-empty">لا مسابقات معلنة الآن. تابعنا — نطلق تحديا جديدا كل فترة.</p>
     <?php endif; ?>
   </div>
 </section>

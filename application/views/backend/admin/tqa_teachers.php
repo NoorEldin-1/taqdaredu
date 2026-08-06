@@ -1,31 +1,31 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <?php
 /**
- * اعتماد المعلّمين.
+ * اعتماد المعلمين.
  *
- * من يتقدّم معلّمًا **لا يُفتح له حساب** — يُنشأ طلبٌ ينتظر مراجعتك.
- * ومنصّةٌ يدرّس فيها الغرباء بلا تحقّق ليست منصّة تعليمية.
+ * من يتقدم معلما **لا يفتح له حساب** — ينشأ طلب ينتظر مراجعتك.
+ * ومنصة يدرس فيها الغرباء بلا تحقق ليست منصة تعليمية.
  *
- * والرفض يُسجَّل كما يُسجَّل القبول: قرارٌ بلا أثر لا يُراجَع ولا يُفسَّر.
+ * والرفض يسجل كما يسجل القبول: قرار بلا أثر لا يراجع ولا يفسر.
  */
 ?>
 <div class="tqa-wrap">
   <?php echo tqa_flash(); ?>
   <div class="tqa-head">
-    <h1>طلبات المعلّمين</h1>
+    <h1>طلبات المعلمين</h1>
     <p class="tqa-lead">
-      تُراجَع هنا طلبات الانضمام. والاعتماد يفتح حساب المعلّم ولوحته؛
+      تراجع هنا طلبات الانضمام. والاعتماد يفتح حساب المعلم ولوحته؛
       وقبله لا يستطيع الدخول.
     </p>
   </div>
 
   <?php if (empty($apps)): ?>
-    <div class="tqa-card"><p class="tqa-empty">لا طلبات معلّقة.</p></div>
+    <div class="tqa-card"><p class="tqa-empty">لا طلبات معلقة.</p></div>
   <?php else: ?>
     <div class="tqa-card">
       <table class="tqa-table">
         <thead><tr>
-          <th>المعلّم</th><th>البريد</th><th>الجوال</th><th>النبذة</th>
+          <th>المعلم</th><th>البريد</th><th>الجوال</th><th>النبذة</th>
           <th>المستند</th><th>الحالة</th><th>الإجراء</th>
         </tr></thead>
         <tbody>
@@ -44,7 +44,7 @@
             <td>
               <?php
               $st = (int) $a['status'];
-              echo $st === 1 ? '<span class="tqa-pill tqa-pill--ok">معتمَد</span>'
+              echo $st === 1 ? '<span class="tqa-pill tqa-pill--ok">معتمد</span>'
                  : ($st === 2 ? '<span class="tqa-pill tqa-pill--no">مرفوض</span>'
                               : '<span class="tqa-pill">بانتظار المراجعة</span>');
               ?>

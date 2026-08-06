@@ -2,21 +2,21 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * المواد التعليمية — ملفّات دروس الطالب في مكان واحد.
+ * المواد التعليمية — ملفات دروس الطالب في مكان واحد.
  *
- * موصول بالقاعدة: resource_files (ملفّات الدرس) ومرفقات lesson، في الكورسات
- * المسجَّلة وحدها (enrol)، وحجم كل ملفّ من القرص لا من عمود مخزَّن.
+ * موصول بالقاعدة: resource_files (ملفات الدرس) ومرفقات lesson، في الكورسات
+ * المسجلة وحدها (enrol)، وحجم كل ملف من القرص لا من عمود مخزن.
  *
- * لكل نوع أيقونة ولون ثابتان في كل شاشة من المنصّة — مصدرهما tq_file_kind()
- * في tq_student_styles.php. تغييرهما في شاشة واحدة يجعل الطالب يعيد التعرّف
+ * لكل نوع أيقونة ولون ثابتان في كل شاشة من المنصة — مصدرهما tq_file_kind()
+ * في tq_student_styles.php. تغييرهما في شاشة واحدة يجعل الطالب يعيد التعرف
  * على النوع في كل صفحة.
  *
- * بلا مصدر بعد — وقد فُتِّشت القاعدة كلّها قبل أن يُقال ذلك:
- *   حصّة التخزين: لا عمود في plans ولا في subscriptions ولا مفتاح في settings
- *   يحمل سعة مسموحة (plans.features نصّ تسويقي لا رقم). فلا نسبة ولا شريط،
- *   ويُعرض الحجم الحقيقي المستهلَك وحده.
- *   تفضيل المواد: users.wishlist معرّفات كورسات لا ملفّات، ولا جدول تفضيل
- *   للملفّات. فحالة فارغة صادقة لا بطاقات وهمية.
+ * بلا مصدر بعد — وقد فتشت القاعدة كلها قبل أن يقال ذلك:
+ *   حصة التخزين: لا عمود في plans ولا في subscriptions ولا مفتاح في settings
+ *   يحمل سعة مسموحة (plans.features نص تسويقي لا رقم). فلا نسبة ولا شريط،
+ *   ويعرض الحجم الحقيقي المستهلك وحده.
+ *   تفضيل المواد: users.wishlist معرفات كورسات لا ملفات، ولا جدول تفضيل
+ *   للملفات. فحالة فارغة صادقة لا بطاقات وهمية.
  */
 include 'tq_student_styles.php';
 include 'tq_student_data.php';
@@ -27,7 +27,7 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 $tq_nav   = 'materials';
 $tq_role  = 'student';
 $tq_title = 'المواد التعليمية';
-$tq_sub   = 'جميع الملفّات والموارد الخاصة بدروسك';
+$tq_sub   = 'جميع الملفات والموارد الخاصة بدروسك';
 $tq_icon  = 'folder';
 
 $tq_all = tq_s_materials($tq_uid);
@@ -35,10 +35,10 @@ $tq_all = tq_s_materials($tq_uid);
 /* --- التصفية: النوع والبحث، كلاهما في الرابط فيمكن حفظه --- */
 $tq_types = [
     ''      => 'الكل',
-    'pdf'   => 'ملفّات PDF',
+    'pdf'   => 'ملفات PDF',
     'video' => 'فيديوهات',
     'slide' => 'عروض تقديمية',
-    'audio' => 'ملفّات صوتية',
+    'audio' => 'ملفات صوتية',
     'image' => 'صور',
     'link'  => 'روابط خارجية',
 ];
@@ -77,9 +77,9 @@ $tq_url = function ($over = []) use ($f_type, $f_q, $f_page) {
     return base_url('student/materials') . ($p ? '?' . http_build_query($p) : '');
 };
 
-/* حصّة التخزين: صفر لأنه لا مصدر لها في القاعدة — لا عمود سعة في plans ولا
-   في subscriptions ولا مفتاح في settings. والصفر هنا ليس رقمًا مُدَّعى: هو
-   الشرط الذي يُخفي الشريط ويُبقي الحجم الحقيقي وحده معروضًا أدناه. */
+/* حصة التخزين: صفر لأنه لا مصدر لها في القاعدة — لا عمود سعة في plans ولا
+   في subscriptions ولا مفتاح في settings. والصفر هنا ليس رقما مدعى: هو
+   الشرط الذي يخفي الشريط ويبقي الحجم الحقيقي وحده معروضا أدناه. */
 $tq_quota = 0;
 
 include 'portal_open.php';
@@ -104,8 +104,8 @@ include 'portal_open.php';
                 <?php echo tq_s_empty(
                     'folder', 'mint',
                     'لا مواد بعد',
-                    'ملفّات دروسك — من ملازم PDF وفيديوهات وعروض وملفّات صوتية — تظهر هنا في جدول واحد بحجمها وتاريخها وزرّ تحميلها.',
-                    'تصفّح دروسك',
+                    'ملفات دروسك — من ملازم PDF وفيديوهات وعروض وملفات صوتية — تظهر هنا في جدول واحد بحجمها وتاريخها وزر تحميلها.',
+                    'تصفح دروسك',
                     base_url('student/lessons'),
                     false,
                     'primary'
@@ -117,11 +117,11 @@ include 'portal_open.php';
             <div class="tq-s-grid5 tq-section">
                 <?php
                 $cards = [
-                    ['',      'إجمالي المواد', 'ملفّ ومورد', 'file',  'sky'],
-                    ['pdf',   'ملفّات PDF',    'ملفّ',       'file',  'rose'],
+                    ['',      'إجمالي المواد', 'ملف ومورد', 'file',  'sky'],
+                    ['pdf',   'ملفات PDF',    'ملف',       'file',  'rose'],
                     ['video', 'فيديوهات',      'فيديو',      'video', 'sky'],
                     ['slide', 'عروض تقديمية',  'عرض',        'chart', 'peach'],
-                    ['audio', 'ملفّات صوتية',  'ملفّ',       'play',  'lilac'],
+                    ['audio', 'ملفات صوتية',  'ملف',       'play',  'lilac'],
                 ];
                 foreach ($cards as [$key, $label, $unit, $icon, $pastel]):
                     $n = $key === '' ? count($tq_all) : ($tq_by_type[$key] ?? 0);
@@ -162,7 +162,7 @@ include 'portal_open.php';
                     <?php echo tq_s_empty(
                         'search', 'sky',
                         'لا نتائج',
-                        'لا مادة تطابق بحثك أو النوع المختار. جرّب كلمة أخرى أو ارجع إلى كل المواد.',
+                        'لا مادة تطابق بحثك أو النوع المختار. جرب كلمة أخرى أو ارجع إلى كل المواد.',
                         'كل المواد',
                         base_url('student/materials'),
                         true
@@ -252,7 +252,7 @@ include 'portal_open.php';
                 <?php echo tq_s_empty(
                     'folder', 'sky',
                     'لا تصنيفات بعد',
-                    'مواد دروسك تُجمَّع هنا حسب المادة مع عدد ملفّات كل واحدة.',
+                    'مواد دروسك تجمع هنا حسب المادة مع عدد ملفات كل واحدة.',
                     '', '', true
                 ); ?>
             <?php else: ?>
@@ -283,12 +283,12 @@ include 'portal_open.php';
                 </p>
                 <?php echo tq_progress((int) round($tq_bytes * 100 / $tq_quota), 'نسبة المساحة المستخدمة'); ?>
             <?php else: ?>
-                <p class="tq-caption" style="margin-block-end:var(--tq-space-s)">حجم موادّك الحالي</p>
+                <p class="tq-caption" style="margin-block-end:var(--tq-space-s)">حجم موادك الحالي</p>
                 <p class="tq-strong" style="color:var(--tq-navy);margin-block-end:var(--tq-space-s)">
                     <?php echo $tq_bytes > 0 ? tq_num(tq_s_size($tq_bytes)) : '<span class="tq-muted">—</span>'; ?>
                 </p>
                 <p class="tq-micro" style="margin:0">
-                    شريط النسبة يظهر هنا بعد تحديد حصّة التخزين في باقتك.
+                    شريط النسبة يظهر هنا بعد تحديد حصة التخزين في باقتك.
                 </p>
             <?php endif; ?>
 
@@ -296,7 +296,7 @@ include 'portal_open.php';
                href="<?php echo base_url('plans'); ?>">إدارة الباقة</a>
         </section>
 
-        <!-- المواد المفضلة: تفضيل الملفّات لا مصدر له بعد (wishlist للكورسات). -->
+        <!-- المواد المفضلة: تفضيل الملفات لا مصدر له بعد (wishlist للكورسات). -->
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head">
                 <h2 class="tq-card__title">المواد المفضلة</h2>
@@ -304,8 +304,8 @@ include 'portal_open.php';
             </div>
             <?php echo tq_s_empty(
                 'heart', 'rose',
-                'لا مواد مفضّلة',
-                'أضف أي ملفّ إلى مفضّلتك ليظهر هنا وتصل إليه دون بحث.',
+                'لا مواد مفضلة',
+                'أضف أي ملف إلى مفضلتك ليظهر هنا وتصل إليه دون بحث.',
                 '', '', true
             ); ?>
         </section>

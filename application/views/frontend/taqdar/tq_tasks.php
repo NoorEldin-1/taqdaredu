@@ -2,22 +2,22 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * مهامي — الواجبات والمهامّ المطلوبة من الطالب.
+ * مهامي — الواجبات والمهام المطلوبة من الطالب.
  *
- * المهامّ مجمَّعة بالحالة لا مرتَّبة بالتاريخ وحده: الطالب يسأل «ما المتأخّر؟»
- * قبل أن يسأل «ما التالي؟»، فالمجموعة تجيب قبل الصفّ.
+ * المهام مجمعة بالحالة لا مرتبة بالتاريخ وحده: الطالب يسأل «ما المتأخر؟»
+ * قبل أن يسأل «ما التالي؟»، فالمجموعة تجيب قبل الصف.
  *
- * مصدر البيانات: assessments.type = 'homework' — الواجب صفّ تقييم مرتبط بدرس
- * (assessments.lesson_id) في كورس مسجَّل (enrol)، وحالته من attempts للطالب:
+ * مصدر البيانات: assessments.type = 'homework' — الواجب صف تقييم مرتبط بدرس
+ * (assessments.lesson_id) في كورس مسجل (enrol)، وحالته من attempts للطالب:
  *   لا محاولة              → لم تبدأ
- *   محاولة بدأت ولم تُسلَّم → قيد التنفيذ
- *   محاولة مُسلَّمة         → مكتملة بدرجتها من attempts.score
- * وعدد بنود الواجب من question (question.quiz_id = معرّف الدرس)،
- * ومدّته من assessments.time_limit_sec، ودرجة نجاحه من assessments.pass_mark.
+ *   محاولة بدأت ولم تسلم → قيد التنفيذ
+ *   محاولة مسلمة         → مكتملة بدرجتها من attempts.score
+ * وعدد بنود الواجب من question (question.quiz_id = معرف الدرس)،
+ * ومدته من assessments.time_limit_sec، ودرجة نجاحه من assessments.pass_mark.
  *
- * بلا مصدر بعد: تاريخ استحقاق للواجب — لا عمود due في assessments، فلا يُعرض
- * موعد مخترَع ولا حالة «متأخّر»، وتقتصر التواريخ على ما سجّلته المحاولة فعلًا.
- * وكذلك درجة الصعوبة: لا عمود لها، فلا شارة صعوبة تُفترض.
+ * بلا مصدر بعد: تاريخ استحقاق للواجب — لا عمود due في assessments، فلا يعرض
+ * موعد مخترع ولا حالة «متأخر»، وتقتصر التواريخ على ما سجلته المحاولة فعلا.
+ * وكذلك درجة الصعوبة: لا عمود لها، فلا شارة صعوبة تفترض.
  */
 include 'tq_student_styles.php';
 include 'tq_student_data.php';
@@ -28,16 +28,16 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 $tq_nav   = 'tasks';
 $tq_role  = 'student';
 $tq_title = 'مهامي';
-$tq_sub   = 'تابع مهامك وحقّق أفضل النتائج';
+$tq_sub   = 'تابع مهامك وحقق أفضل النتائج';
 $tq_icon  = 'clipboard';
 
 /**
- * شكل المهمّة الواحدة الذي يقرأه العارض:
- *   id · title · subject · stage · at (طابع زمني مسجَّل أو صفر) · minutes
+ * شكل المهمة الواحدة الذي يقرأه العارض:
+ *   id · title · subject · stage · at (طابع زمني مسجل أو صفر) · minutes
  *   points · pass · type · score · max (للمكتملة) · href
  *
- * والمجموعات ثلاث بحالات القاعدة نفسها — لا حالة «متأخّر» لأن لا موعد
- * استحقاق يُقاس عليه التأخّر.
+ * والمجموعات ثلاث بحالات القاعدة نفسها — لا حالة «متأخر» لأن لا موعد
+ * استحقاق يقاس عليه التأخر.
  */
 $tq_groups = [
     'todo'     => ['label' => 'لم تبدأ',     'dot' => 'idle', 'badge' => 'idle',     'items' => []],
@@ -46,7 +46,7 @@ $tq_groups = [
 ];
 
 /* ---- الواجبات من القاعدة ---------------------------------------------
-   get_instance() صراحةً: $this في العرض ليس المتحكّم. */
+   get_instance() صراحة: $this في العرض ليس المتحكم. */
 if ($tq_uid > 0) {
     $CI = get_instance();
 
@@ -79,7 +79,7 @@ if ($tq_uid > 0) {
             $tq_att[(int) $r['assessment_id']] = $r;
         }
 
-        // عدد بنود الواجب — الأسئلة معلَّقة بمعرّف الدرس
+        // عدد بنود الواجب — الأسئلة معلقة بمعرف الدرس
         $tq_items_n = [];
         foreach ($CI->db->select('quiz_id, COUNT(*) AS n')
                         ->from('question')->where_in('quiz_id', $l_ids)
@@ -87,7 +87,7 @@ if ($tq_uid > 0) {
             $tq_items_n[(int) $r['quiz_id']] = (int) $r['n'];
         }
 
-        // اسم المادة من التصنيف — والعنوان بديلًا حين لا تصنيف
+        // اسم المادة من التصنيف — والعنوان بديلا حين لا تصنيف
         $tq_cat_names = [];
         $cat_ids = array_values(array_unique(array_filter(array_map(static function ($r) {
             return (int) $r['category_id'];
@@ -137,7 +137,7 @@ foreach ($tq_groups as $g) $tq_total += count($g['items']);
 $f_state = (string) $this->input->get('state', true);
 if (!isset($tq_groups[$f_state])) $f_state = '';
 
-$tq_marks = [];   // علامات التقويم — لا يُعلَّم يوم بلا مهمّة حقيقية فيه
+$tq_marks = [];   // علامات التقويم — لا يعلم يوم بلا مهمة حقيقية فيه
 foreach ($tq_groups as $key => $g) {
     foreach ($g['items'] as $t) {
         if (empty($t['at'])) continue;
@@ -146,7 +146,7 @@ foreach ($tq_groups as $key => $g) {
     }
 }
 
-/* ما ينتظر الطالب: ما لم يُسلَّم بعد — الجاري أوّلًا لأنه بدأ فعلًا */
+/* ما ينتظر الطالب: ما لم يسلم بعد — الجاري أولا لأنه بدأ فعلا */
 $tq_pending = [];
 foreach (['progress', 'todo'] as $key) {
     foreach ($tq_groups[$key]['items'] as $t) $tq_pending[] = $t;
@@ -166,7 +166,7 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
-        <nav class="tq-tabs tq-s-tabs" aria-label="تصفية المهامّ بالحالة">
+        <nav class="tq-tabs tq-s-tabs" aria-label="تصفية المهام بالحالة">
             <?php
             $tabs = ['' => ['الكل', $tq_total]];
             foreach ($tq_groups as $k => $g) $tabs[$k] = [$g['label'], count($g['items'])];
@@ -184,9 +184,9 @@ include 'portal_open.php';
             <div class="tq-card">
                 <?php echo tq_s_empty(
                     'clipboard', 'peach',
-                    'لا مهامّ عليك الآن',
-                    'حين يُسند إليك واجب في إحدى موادّك يظهر هنا بعدد بنوده ومدّته ودرجة نجاحه، مجمَّعًا حسب حالته: لم تبدأ، أو قيد التنفيذ، أو مكتملة بدرجتها.',
-                    'تصفّح دروسك',
+                    'لا مهام عليك الآن',
+                    'حين يسند إليك واجب في إحدى موادك يظهر هنا بعدد بنوده ومدته ودرجة نجاحه، مجمعا حسب حالته: لم تبدأ، أو قيد التنفيذ، أو مكتملة بدرجتها.',
+                    'تصفح دروسك',
                     base_url('student/lessons'),
                     false,
                     'primary'
@@ -207,13 +207,13 @@ include 'portal_open.php';
                     <?php foreach ($g['items'] as $t): ?>
                         <?php
                         $ico = $tq_type_icon[$t['type'] ?? 'homework'] ?? $tq_type_icon['homework'];
-                        /* التسمية تصف ما يحمله التاريخ فعلًا: تاريخ تسليم أو تاريخ بدء.
-                           ولا موعد استحقاق في القاعدة، فلا يُكتب «موعد التسليم» فوق فراغ. */
-                        $date_label = $key === 'done' ? 'تمّ التسليم' : ($key === 'progress' ? 'بدأتَه' : 'لم تبدأ بعد');
+                        /* التسمية تصف ما يحمله التاريخ فعلا: تاريخ تسليم أو تاريخ بدء.
+                           ولا موعد استحقاق في القاعدة، فلا يكتب «موعد التسليم» فوق فراغ. */
+                        $date_label = $key === 'done' ? 'تم التسليم' : ($key === 'progress' ? 'بدأته' : 'لم تبدأ بعد');
                         ?>
                         <article class="tq-s-row">
 
-                            <!-- كتلة الموعد: اليوم كبيرًا، ثم الشهر، ثم منذ متى -->
+                            <!-- كتلة الموعد: اليوم كبيرا، ثم الشهر، ثم منذ متى -->
                             <div class="tq-s-date">
                                 <span class="tq-s-date__label"><?php echo html_escape($date_label); ?></span>
                                 <?php if (!empty($t['at'])): ?>
@@ -221,7 +221,7 @@ include 'portal_open.php';
                                     <span class="tq-s-date__month"><?php echo tq_s_month(date('n', $t['at'])); ?></span>
                                     <span class="tq-micro" style="color:var(--tq-text2)"><?php echo tq_since($t['at']); ?></span>
                                 <?php else: ?>
-                                    <span class="tq-micro" style="color:var(--tq-text2)">لا موعد محدَّد</span>
+                                    <span class="tq-micro" style="color:var(--tq-text2)">لا موعد محدد</span>
                                 <?php endif; ?>
                             </div>
 
@@ -235,7 +235,7 @@ include 'portal_open.php';
                                         <span><?php echo tq_icon('clock', 16); ?><?php echo tq_s_minutes($t['minutes']); ?></span>
                                     <?php endif; ?>
                                     <?php if (!empty($t['points'])): ?>
-                                        <span><?php echo tq_icon('award', 16); ?><?php echo tq_iso($t['points'] . ' بندًا'); ?></span>
+                                        <span><?php echo tq_icon('award', 16); ?><?php echo tq_iso($t['points'] . ' بندا'); ?></span>
                                     <?php endif; ?>
                                     <?php if (!empty($t['pass'])): ?>
                                         <span><?php echo tq_icon('target', 16); ?>درجة النجاح <?php echo tq_num($t['pass'] . '%', 'tq-num--sm'); ?></span>
@@ -246,7 +246,7 @@ include 'portal_open.php';
                                 </div>
                             </div>
 
-                            <!-- شارة الحالة فوق زرّ الفعل — من القاعدة لا من افتراض -->
+                            <!-- شارة الحالة فوق زر الفعل — من القاعدة لا من افتراض -->
                             <div class="tq-s-row__end">
                                 <?php if ($key === 'done' && isset($t['pass_ok']) && $t['pass_ok'] !== null): ?>
                                     <?php echo tq_badge($t['pass_ok'] ? 'mastered' : 'late', $t['pass_ok'] ? 'ناجح' : 'يحتاج إعادة'); ?>
@@ -277,7 +277,7 @@ include 'portal_open.php';
 
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">ملخّص المهام</h2>
+                <h2 class="tq-card__title">ملخص المهام</h2>
                 <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('clipboard'); ?></span>
             </div>
 
@@ -285,7 +285,7 @@ include 'portal_open.php';
                 <?php echo tq_s_empty(
                     'chart', 'sky',
                     'لا أرقام بعد',
-                    'عدد مهامك التي لم تبدأها وقيد التنفيذ والمكتملة يظهر هنا فور إسناد أول مهمّة إليك.',
+                    'عدد مهامك التي لم تبدأها وقيد التنفيذ والمكتملة يظهر هنا فور إسناد أول مهمة إليك.',
                     '', '', true
                 ); ?>
             <?php else: ?>
@@ -300,19 +300,19 @@ include 'portal_open.php';
             <?php endif; ?>
         </section>
 
-        <!-- التقويم: الشهر الجاري واليوم الحقيقي، ولا تُعلَّم أيام بلا مهامّ فيها. -->
+        <!-- التقويم: الشهر الجاري واليوم الحقيقي، ولا تعلم أيام بلا مهام فيها. -->
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head"><h2 class="tq-card__title">التقويم</h2></div>
             <?php echo tq_s_calendar(time(), $tq_marks); ?>
             <?php echo tq_s_key([
-                'done' => 'مهامّ سلّمتها',
-                'due'  => 'مهامّ بدأتَها',
+                'done' => 'مهام سلمتها',
+                'due'  => 'مهام بدأتها',
             ]); ?>
         </section>
 
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">مهامّ في انتظارك</h2>
+                <h2 class="tq-card__title">مهام في انتظارك</h2>
                 <?php if ($tq_pending): ?>
                     <a class="tq-caption" href="<?php echo base_url('student/tasks'); ?>">عرض الكل</a>
                 <?php endif; ?>
@@ -321,8 +321,8 @@ include 'portal_open.php';
             <?php if (empty($tq_pending)): ?>
                 <?php echo tq_s_empty(
                     'calendar', 'lilac',
-                    'لا مهامّ في انتظارك',
-                    'كل واجب لم تُسلّمه بعد يظهر هنا بمادّته وعدد بنوده، لتعرف ما ينتظرك دون فتح القائمة.',
+                    'لا مهام في انتظارك',
+                    'كل واجب لم تسلمه بعد يظهر هنا بمادته وعدد بنوده، لتعرف ما ينتظرك دون فتح القائمة.',
                     '', '', true
                 ); ?>
             <?php else: ?>
@@ -339,7 +339,7 @@ include 'portal_open.php';
                             <?php if (!empty($t['points'])): ?>
                                 <span class="tq-caption" style="text-align:center">
                                     <?php echo tq_num($t['points'], 'tq-num--sm'); ?><br>
-                                    <span class="tq-micro">بندًا</span>
+                                    <span class="tq-micro">بندا</span>
                                 </span>
                             <?php endif; ?>
                         </li>

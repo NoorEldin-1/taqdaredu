@@ -1025,15 +1025,15 @@ class Payment_model extends CI_Model
 
 
     /* =====================================================================
-       صرف مستحقّات المعلّمين — دالّتان كان ينادِيهما `Admin.php` وهما مفقودتان
+       صرف مستحقات المعلمين — دالتان كان يناديهما `Admin.php` وهما مفقودتان
        ===================================================================== */
 
     /**
-     * يتحقّق من أمر دفع بايبال بمعرّفه، بمفاتيح **المعلّم** لا المنصّة.
+     * يتحقق من أمر دفع بايبال بمعرفه، بمفاتيح **المعلم** لا المنصة.
      *
-     * تُنادى من `Admin::paypal_payment()` بعد عودة المستخدم من بايبال.
-     * تفشل مغلقةً: مفاتيح ناقصة أو ردّ غير مفهوم ⇒ `false` مع تسجيل السبب،
-     * فلا تُعلَّم حوالةٌ مدفوعةً بلا تحقّق.
+     * تنادى من `Admin::paypal_payment()` بعد عودة المستخدم من بايبال.
+     * تفشل مغلقة: مفاتيح ناقصة أو رد غير مفهوم ⇒ `false` مع تسجيل السبب،
+     * فلا تعلم حوالة مدفوعة بلا تحقق.
      *
      * @return bool
      */
@@ -1041,7 +1041,7 @@ class Payment_model extends CI_Model
                                    $client_id = "", $secret_key = "")
     {
         if ($paymentID === "" || $client_id === "" || $secret_key === "") {
-            log_message('error', 'paypal_payment: مفاتيح المعلّم أو معرّف الأمر ناقص');
+            log_message('error', 'paypal_payment: مفاتيح المعلم أو معرف الأمر ناقص');
             return false;
         }
 
@@ -1064,12 +1064,12 @@ class Payment_model extends CI_Model
         curl_close($ch);
 
         if ($auth_raw === false) {
-            log_message('error', 'paypal_payment: تعذّر جلب رمز الوصول — ' . $auth_err);
+            log_message('error', 'paypal_payment: تعذر جلب رمز الوصول — ' . $auth_err);
             return false;
         }
         $auth = json_decode($auth_raw);
         if (empty($auth->access_token)) {
-            log_message('error', 'paypal_payment: لا رمز وصول في ردّ بايبال');
+            log_message('error', 'paypal_payment: لا رمز وصول في رد بايبال');
             return false;
         }
 
@@ -1088,7 +1088,7 @@ class Payment_model extends CI_Model
         curl_close($curl);
 
         if ($order_raw === false) {
-            log_message('error', 'paypal_payment: تعذّر جلب الأمر — ' . $order_err);
+            log_message('error', 'paypal_payment: تعذر جلب الأمر — ' . $order_err);
             return false;
         }
         $order = json_decode($order_raw);
@@ -1104,11 +1104,11 @@ class Payment_model extends CI_Model
     }
 
     /**
-     * يتحقّق من جلسة سترايب بمعرّفها، بمفاتيح **المعلّم**.
+     * يتحقق من جلسة سترايب بمعرفها، بمفاتيح **المعلم**.
      *
-     * تُنادى من `Admin::stripe_payment()` وتُرجع ما يتوقّعه المتحكّم:
-     * `payment_status` و`status_msg`. وأي انقطاع أو مفتاح ناقص يُعاد
-     * حالةً غير ناجحة برسالة مفهومة — لا استثناءً يُسقط الصفحة.
+     * تنادى من `Admin::stripe_payment()` وترجع ما يتوقعه المتحكم:
+     * `payment_status` و`status_msg`. وأي انقطاع أو مفتاح ناقص يعاد
+     * حالة غير ناجحة برسالة مفهومة — لا استثناء يسقط الصفحة.
      */
     public function stripe_payment($instructor_id = 0, $session_id = "", $is_payout = false)
     {
@@ -1117,14 +1117,14 @@ class Payment_model extends CI_Model
             return array('payment_status' => 'failed', 'status_msg' => $msg);
         };
 
-        if ($session_id === "") return $fail('لا معرّف جلسة دفع.');
+        if ($session_id === "") return $fail('لا معرف جلسة دفع.');
 
         $instructor = $this->db->get_where('users', array('id' => (int) $instructor_id))->row_array();
-        if (!$instructor) return $fail('المعلّم غير موجود.');
+        if (!$instructor) return $fail('المعلم غير موجود.');
 
         $keys = json_decode((string) $instructor['payment_keys'], true);
         $secret = isset($keys['stripe']['secret_key']) ? $keys['stripe']['secret_key'] : '';
-        if ($secret === '') return $fail('مفاتيح سترايب غير مضبوطة لهذا المعلّم.');
+        if ($secret === '') return $fail('مفاتيح سترايب غير مضبوطة لهذا المعلم.');
 
         require_once APPPATH . 'libraries/Stripe/init.php';
 
@@ -1132,13 +1132,13 @@ class Payment_model extends CI_Model
             \Stripe\Stripe::setApiKey($secret);
             $checkout_session = \Stripe\Checkout\Session::retrieve($session_id);
         } catch (\Exception $e) {
-            return $fail('تعذّر جلب جلسة سترايب: ' . $e->getMessage());
+            return $fail('تعذر جلب جلسة سترايب: ' . $e->getMessage());
         }
 
         $status = isset($checkout_session->payment_status) ? $checkout_session->payment_status : '';
 
         if ($status === 'paid') {
-            return array('payment_status' => 'succeeded', 'status_msg' => 'تمّ التحقّق من الدفع.');
+            return array('payment_status' => 'succeeded', 'status_msg' => 'تم التحقق من الدفع.');
         }
 
         return array(

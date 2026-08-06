@@ -2,11 +2,11 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * منصّة تقدّر — دوالّ الواجهة المشتركة.
+ * منصة تقدر — دوال الواجهة المشتركة.
  *
- * أهمّ ما فيه عزل الأرقام. خوارزمية bidi تعيد ترتيب المقاطع حول الفواصل
+ * أهم ما فيه عزل الأرقام. خوارزمية bidi تعيد ترتيب المقاطع حول الفواصل
  * المحايدة لا الحروف، فـ «1 – 2» بمسافات ينعكس إلى «2 – 1» بينما
- * «2026-08-01» بلا مسافات يسلم. لذلك كل رقم يظهر للمستخدم يمرّ من هنا،
+ * «2026-08-01» بلا مسافات يسلم. لذلك كل رقم يظهر للمستخدم يمر من هنا،
  * بلا استثناء — لأن الاستثناء الواحد هو الذي يظهر في لقطة الشاشة أمام العميل.
  */
 
@@ -17,8 +17,8 @@ if (!defined('TQ_LRI')) {
 
 if (!function_exists('tq_num')) {
     /**
-     * رقم قائم بذاته. يُعزل كوحدة واحدة — والنطاق «4:17 – 6:02» وحدة واحدة
-     * لا طرفان، فتقسيمه يعكس ترتيبه ويعرض رقمًا غير المقصود.
+     * رقم قائم بذاته. يعزل كوحدة واحدة — والنطاق «4:17 – 6:02» وحدة واحدة
+     * لا طرفان، فتقسيمه يعكس ترتيبه ويعرض رقما غير المقصود.
      */
     function tq_num($value, $class = '')
     {
@@ -28,7 +28,7 @@ if (!function_exists('tq_num')) {
 }
 
 if (!function_exists('tq_iso')) {
-    /** رقم داخل جملة: يُعزل كل تتابع رقمي في النصّ ويُعاد النصّ كوحدة واحدة. */
+    /** رقم داخل جملة: يعزل كل تتابع رقمي في النص ويعاد النص كوحدة واحدة. */
     function tq_iso($text)
     {
         return preg_replace(
@@ -40,7 +40,7 @@ if (!function_exists('tq_iso')) {
 }
 
 if (!function_exists('tq_sar')) {
-    /** مبلغ بالريال السعودي — السوق سعودي، والعملة لا تُخمَّن في الشاشة. */
+    /** مبلغ بالريال السعودي — السوق سعودي، والعملة لا تخمن في الشاشة. */
     function tq_sar($amount, $decimals = 0)
     {
         $n = number_format((float) $amount, $decimals, '.', ',');
@@ -49,7 +49,7 @@ if (!function_exists('tq_sar')) {
 }
 
 if (!function_exists('tq_pct')) {
-    /** نسبة مئوية — تُعرض دائمًا بجوار شريط التقدّم، لا وحدها. */
+    /** نسبة مئوية — تعرض دائما بجوار شريط التقدم، لا وحدها. */
     function tq_pct($value)
     {
         return '<span class="tq-progress__value">' . TQ_LRI . (int) $value . '%' . TQ_PDI . '</span>';
@@ -58,8 +58,8 @@ if (!function_exists('tq_pct')) {
 
 if (!function_exists('tq_progress')) {
     /**
-     * شريط التقدّم بارتفاع 7px ونسبته بجواره إلزاميًّا.
-     * شريط بلا رقم يقول «تقريبًا» ولا يقول كم.
+     * شريط التقدم بارتفاع 7px ونسبته بجواره إلزاميا.
+     * شريط بلا رقم يقول «تقريبا» ولا يقول كم.
      */
     function tq_progress($percent, $label = '')
     {
@@ -74,7 +74,7 @@ if (!function_exists('tq_progress')) {
 }
 
 if (!function_exists('tq_ring')) {
-    /** حلقة تقدّم — نفس قاعدة الرقم: النسبة مكتوبة في مركزها. */
+    /** حلقة تقدم — نفس قاعدة الرقم: النسبة مكتوبة في مركزها. */
     function tq_ring($percent, $size = 120, $stroke = 10, $caption = '')
     {
         $p = max(0, min(100, (int) $percent));
@@ -97,7 +97,7 @@ if (!function_exists('tq_ring')) {
 if (!function_exists('tq_badge')) {
     /**
      * شارة حالة — خمس فقط.
-     * mastered متقن · progress قيد التقدّم · due يقترب موعده · late متأخّر · idle لم يبدأ
+     * mastered متقن · progress قيد التقدم · due يقترب موعده · late متأخر · idle لم يبدأ
      * البرتقالي (due) إشارة لا نجاح — والنجاح tealSoft وحده.
      */
     function tq_badge($kind, $text)
@@ -109,7 +109,7 @@ if (!function_exists('tq_badge')) {
 }
 
 if (!function_exists('tq_pastel')) {
-    /** يدوّر عائلات الباستيل الستّ بثبات، فتبقى القوائم متنوّعة ومستقرّة. */
+    /** يدور عائلات الباستيل الست بثبات، فتبقى القوائم متنوعة ومستقرة. */
     function tq_pastel($index)
     {
         $families = ['mint', 'sky', 'peach', 'lilac', 'rose', 'sand'];
@@ -131,7 +131,7 @@ if (!function_exists('tq_since')) {
 }
 
 if (!function_exists('tq_units')) {
-    /** المثنّى والجمع في العربية ليسا s تُضاف — «منذ 2 ساعة» خطأ لغوي ظاهر. */
+    /** المثنى والجمع في العربية ليسا s تضاف — «منذ 2 ساعة» خطأ لغوي ظاهر. */
     function tq_units($n, $one, $two, $many)
     {
         if ($n == 1) return 'منذ ' . $one;
@@ -142,7 +142,7 @@ if (!function_exists('tq_units')) {
 }
 
 if (!function_exists('tq_asset')) {
-    /** أصل من ثيم تقدّر مع بصمة تُبطل الذاكرة المؤقّتة عند التعديل. */
+    /** أصل من ثيم تقدر مع بصمة تبطل الذاكرة المؤقتة عند التعديل. */
     function tq_asset($path)
     {
         $rel = 'assets/taqdar/' . ltrim($path, '/');
@@ -153,7 +153,7 @@ if (!function_exists('tq_asset')) {
 }
 
 if (!function_exists('tq_active')) {
-    /** يضع aria-current على عنصر القائمة النشط — الحالة تُقرأ لا تُرى فقط. */
+    /** يضع aria-current على عنصر القائمة النشط — الحالة تقرأ لا ترى فقط. */
     function tq_active($name, $current)
     {
         return $name === $current ? ' aria-current="page"' : '';
@@ -162,10 +162,10 @@ if (!function_exists('tq_active')) {
 
 if (!function_exists('tq_safe_upload_extension')) {
     /**
-     * يعيد امتدادًا آمنًا للحفظ، أو false إن كان ممنوعًا.
+     * يعيد امتدادا آمنا للحفظ، أو false إن كان ممنوعا.
      *
-     * قائمة بيضاء لا سوداء: القائمة السوداء تُنسى فيها صيغة (`phar`، `phtml`،
-     * `php7`، `shtml`…) فتصير ثغرة، والبيضاء تُخطئ في اتّجاه المنع لا الإباحة.
+     * قائمة بيضاء لا سوداء: القائمة السوداء تنسى فيها صيغة (`phar`، `phtml`،
+     * `php7`، `shtml`…) فتصير ثغرة، والبيضاء تخطئ في اتجاه المنع لا الإباحة.
      */
     function tq_safe_upload_extension($original_name)
     {
@@ -190,11 +190,11 @@ if (!function_exists('tq_safe_upload_extension')) {
 
 if (!function_exists('tq_grade_visible')) {
     /**
-     * أتُعرَض درجة هذه المحاولة لصاحبها؟
+     * أتعرض درجة هذه المحاولة لصاحبها؟
      *
-     * نفس قاعدة `Taqdar_marking_model::student_view()` مطبَّقةً على القراءة
-     * المباشرة من `quiz_results` — فلا يفترق رقمٌ يراه الطالب عن رقم يراه
-     * وليّه. ووجودها هنا لا في كل عرض يمنع أن تُنسى في شاشة فتتسرّب منها.
+     * نفس قاعدة `Taqdar_marking_model::student_view()` مطبقة على القراءة
+     * المباشرة من `quiz_results` — فلا يفترق رقم يراه الطالب عن رقم يراه
+     * وليه. ووجودها هنا لا في كل عرض يمنع أن تنسى في شاشة فتتسرب منها.
      */
     function tq_grade_visible($row)
     {

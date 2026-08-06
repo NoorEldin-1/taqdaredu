@@ -2,26 +2,26 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * المراجعة المتباعدة — الوعد الذي كان يُقطع ولا يُنفَّذ.
+ * المراجعة المتباعدة — الوعد الذي كان يقطع ولا ينفذ.
  *
- * كل درس يُتقَن يقول لصاحبه: «أسئلة هذا الدرس ستعود إليك غدًا للتثبيت».
- * وكانت تعود فعلًا: الجدولة تكتب في `review_queue` بعد كل تسليم. لكن لا
+ * كل درس يتقن يقول لصاحبه: «أسئلة هذا الدرس ستعود إليك غدا للتثبيت».
+ * وكانت تعود فعلا: الجدولة تكتب في `review_queue` بعد كل تسليم. لكن لا
  * شاشة تفتح ذلك الجدول، فما عاد شيء إلى أحد. هذه هي الشاشة الناقصة.
  *
- * ولا استعلام هنا. كل ما يُعرض يأتي من `taqdar_gate/reviews`، وكل إجابة
+ * ولا استعلام هنا. كل ما يعرض يأتي من `taqdar_gate/reviews`، وكل إجابة
  * يحسمها `taqdar_gate/review_answer`. الصفحة لا تعرف الإجابة الصحيحة ولا
- * الفاصل القادم — تعرضهما بعد أن يقولهما الخادم. ولو حُسب أيّهما هنا لأمكن
- * تزوير الجدول الزمني بتعديل جافاسكربت، فيصير «الإتقان» رقمًا يُكتب لا حالة
- * تُقاس.
+ * الفاصل القادم — تعرضهما بعد أن يقولهما الخادم. ولو حسب أيهما هنا لأمكن
+ * تزوير الجدول الزمني بتعديل جافاسكربت، فيصير «الإتقان» رقما يكتب لا حالة
+ * تقاس.
  *
- * وسؤال واحد في المرّة لا قائمة كاملة: الاستدعاء يقوى حين يُسأل الذهن
- * ويُجاب قبل أن يرى ما بعده. وقائمة مفتوحة تجعل الطالب يمسح الأسئلة بعينه
- * فيتعرّف عليها ولا يستدعيها.
+ * وسؤال واحد في المرة لا قائمة كاملة: الاستدعاء يقوى حين يسأل الذهن
+ * ويجاب قبل أن يرى ما بعده. وقائمة مفتوحة تجعل الطالب يمسح الأسئلة بعينه
+ * فيتعرف عليها ولا يستدعيها.
  */
 $tq_nav   = 'reviews';
 $tq_role  = 'student';
 $tq_title = 'المراجعة';
-$tq_sub   = 'أسئلة سبق أن أتقنتَها تعود اليوم لتثبت. لا تظهر قبل موعدها، ولا تُعرض دفعةً أكبر ممّا يُنجَز.';
+$tq_sub   = 'أسئلة سبق أن أتقنتها تعود اليوم لتثبت. لا تظهر قبل موعدها، ولا تعرض دفعة أكبر مما ينجز.';
 $tq_icon  = 'flame';
 
 include 'portal_open.php';
@@ -31,7 +31,7 @@ include 'portal_open.php';
      data-tq-gate="<?php echo base_url('taqdar_gate'); ?>"
      data-tq-lessons="<?php echo base_url('student/lessons'); ?>">
 
-    <!-- التحميل: هيكل بشكل المحتوى القادم، لا دوّار وسط الشاشة -->
+    <!-- التحميل: هيكل بشكل المحتوى القادم، لا دوار وسط الشاشة -->
     <div class="tq-cols" data-tq-rv-skeleton>
         <div class="tq-stack">
             <div class="tq-skeleton tq-skeleton--card" style="block-size:280px"></div>
@@ -43,13 +43,13 @@ include 'portal_open.php';
         </aside>
     </div>
 
-    <!-- الخطأ: ما حدث + زرّ إعادة. والتفصيل في السجلّ لا على الشاشة -->
+    <!-- الخطأ: ما حدث + زر إعادة. والتفصيل في السجل لا على الشاشة -->
     <div class="tq-card" data-tq-rv-error hidden>
         <div class="tq-empty">
             <span class="tq-icon-box tq-pastel--peach" style="inline-size:72px;block-size:72px" aria-hidden="true">
                 <?php echo tq_icon('help', 34); ?>
             </span>
-            <p class="tq-empty__title" data-tq-rv-error-msg>تعذّر تحميل مراجعاتك</p>
+            <p class="tq-empty__title" data-tq-rv-error-msg>تعذر تحميل مراجعاتك</p>
             <button class="tq-btn tq-btn--secondary" type="button" data-tq-rv-retry>إعادة المحاولة</button>
         </div>
     </div>
@@ -57,13 +57,13 @@ include 'portal_open.php';
     <div class="tq-cols" data-tq-rv-body hidden>
         <div class="tq-stack">
 
-            <!-- لا مستحقّ اليوم: هذا نجاح لا فراغ، فيُقال بلغة النجاح -->
+            <!-- لا مستحق اليوم: هذا نجاح لا فراغ، فيقال بلغة النجاح -->
             <section class="tq-card" data-tq-rv-empty hidden>
                 <div class="tq-empty">
                     <span class="tq-icon-box tq-pastel--mint" style="inline-size:72px;block-size:72px" aria-hidden="true">
                         <?php echo tq_icon('check-badge', 34); ?>
                     </span>
-                    <p class="tq-empty__title">لا مراجعة مستحقّة اليوم</p>
+                    <p class="tq-empty__title">لا مراجعة مستحقة اليوم</p>
                     <p class="tq-empty__text" data-tq-rv-empty-text>
                         أسئلتك السابقة ما زالت في موعدها البعيد. تابع دروسك، وستعود إليك هنا حين يحين وقتها.
                     </p>
@@ -89,19 +89,19 @@ include 'portal_open.php';
                     </fieldset>
 
                     <p class="tq-field__msg" data-tq-rv-hint hidden style="color:var(--tq-danger)">
-                        اختر إجابةً قبل التحقّق.
+                        اختر إجابة قبل التحقق.
                     </p>
 
                     <div class="tq-row" style="flex-wrap:wrap;margin-block-start:var(--tq-space-xl)">
-                        <button class="tq-btn tq-btn--primary" type="submit" data-tq-rv-submit>تحقّق</button>
+                        <button class="tq-btn tq-btn--primary" type="submit" data-tq-rv-submit>تحقق</button>
                         <button class="tq-btn tq-btn--ghost" type="button" data-tq-rv-skip>
-                            تخطَّ الآن — يبقى مستحقًّا
+                            تخط الآن — يبقى مستحقا
                         </button>
                     </div>
                 </form>
             </section>
 
-            <!-- الحكم: صواب أو خطأ ومعه موعد العودة. ولا يُعطى الحلّ بحال -->
+            <!-- الحكم: صواب أو خطأ ومعه موعد العودة. ولا يعطى الحل بحال -->
             <section class="tq-card" data-tq-rv-verdict hidden>
                 <div class="tq-row" style="gap:var(--tq-space-l);align-items:flex-start">
                     <span class="tq-icon-box" data-tq-rv-verdict-icon aria-hidden="true"></span>
@@ -121,7 +121,7 @@ include 'portal_open.php';
                 <div class="tq-stats" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--tq-space-l)">
                     <div class="tq-stat">
                         <span class="tq-stat__value" data-tq-rv-done-answered>0</span>
-                        <span class="tq-stat__label">سؤالًا أجبتَه</span>
+                        <span class="tq-stat__label">سؤالا أجبته</span>
                     </div>
                     <div class="tq-stat">
                         <span class="tq-stat__value" data-tq-rv-done-correct>0</span>
@@ -129,7 +129,7 @@ include 'portal_open.php';
                     </div>
                     <div class="tq-stat">
                         <span class="tq-stat__value" data-tq-rv-done-remaining>0</span>
-                        <span class="tq-stat__label">ما زال مستحقًّا</span>
+                        <span class="tq-stat__label">ما زال مستحقا</span>
                     </div>
                 </div>
                 <p class="tq-caption" style="margin-block-start:var(--tq-space-l)" data-tq-rv-done-text></p>
@@ -139,11 +139,11 @@ include 'portal_open.php';
 
         <aside class="tq-aside">
             <div class="tq-card">
-                <h2 class="tq-card__title">مستحقّ اليوم</h2>
+                <h2 class="tq-card__title">مستحق اليوم</h2>
                 <div class="tq-stats" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--tq-space-l)">
                     <div class="tq-stat">
                         <span class="tq-stat__value" data-tq-rv-total>—</span>
-                        <span class="tq-stat__label">سؤالًا مستحقًّا</span>
+                        <span class="tq-stat__label">سؤالا مستحقا</span>
                     </div>
                     <div class="tq-stat">
                         <span class="tq-stat__value" data-tq-rv-batch>—</span>
@@ -155,20 +155,20 @@ include 'portal_open.php';
             <div class="tq-card">
                 <h2 class="tq-card__title">كيف تعمل المراجعة</h2>
                 <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                    الفاصل بين المرّة والتي تليها يطول كلّما أجبتَ صوابًا، ويعود إلى الغد كلّما تعثّرت.
+                    الفاصل بين المرة والتي تليها يطول كلما أجبت صوابا، ويعود إلى الغد كلما تعثرت.
                 </p>
                 <ul class="tq-stack" style="--tq-space-l:var(--tq-space-m);list-style:none;padding:0;margin:0">
                     <li class="tq-row" style="gap:var(--tq-space-s);align-items:flex-start">
                         <span class="tq-icon-box tq-pastel--mint" aria-hidden="true"><?php echo tq_icon('check', 16); ?></span>
-                        <span class="tq-caption">إجابة صحيحة تُباعد الموعد، حتى ستّين يومًا على الأكثر.</span>
+                        <span class="tq-caption">إجابة صحيحة تباعد الموعد، حتى ستين يوما على الأكثر.</span>
                     </li>
                     <li class="tq-row" style="gap:var(--tq-space-s);align-items:flex-start">
                         <span class="tq-icon-box tq-pastel--peach" aria-hidden="true"><?php echo tq_icon('clock', 16); ?></span>
-                        <span class="tq-caption">إجابة خاطئة تُعيد السؤال غدًا — ولا تُعطيك الحلّ.</span>
+                        <span class="tq-caption">إجابة خاطئة تعيد السؤال غدا — ولا تعطيك الحل.</span>
                     </li>
                     <li class="tq-row" style="gap:var(--tq-space-s);align-items:flex-start">
                         <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon('target', 16); ?></span>
-                        <span class="tq-caption">كل سؤال مربوط بهدف في درسه، فتعرف أين تراجع لا أن تعيد الدرس كلّه.</span>
+                        <span class="tq-caption">كل سؤال مربوط بهدف في درسه، فتعرف أين تراجع لا أن تعيد الدرس كله.</span>
                     </li>
                 </ul>
             </div>

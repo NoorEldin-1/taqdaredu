@@ -1,7 +1,7 @@
 <?php
 /* البيانات من نموذج واحد — لا استعلام في العرض.
    و`get_instance()` لا `$this->load`: تحميل نموذج داخل عرض CI3
-   يُنتج بترًا صامتًا للصفحة، لا خطأً يُنبّه. */
+   ينتج بترا صامتا للصفحة، لا خطأ ينبه. */
 $tq_ci = &get_instance();
 $tq_ci->load->model('taqdar_site_model', 'tq_m');
 $tq_m  = $tq_ci->tq_m;
@@ -10,8 +10,8 @@ $tq_cats  = $tq_m->categories();
 $tq_books = $tq_m->books($tq_cat);
 ?>
 <!--
-title: كتب المنهج الدراسي — منصّة تقدّر
-desc: تصفَّح وحمِّل كتب المنهج الدراسي السعودي مجانًا، مرتّبة حسب المرحلة والمادة.
+title: كتب المنهج الدراسي — منصة تقدر
+desc: تصفح وحمل كتب المنهج الدراسي السعودي مجانا، مرتبة حسب المرحلة والمادة.
 active: books
 header: solid
 css: pages
@@ -25,11 +25,11 @@ css: pages
 
       <div class="page-hero__copy reveal">
         <h1>كتب المنهج الدراسي
-          <span class="page-hero__sub">تصفَّح وحمِّل مجانًا</span>
+          <span class="page-hero__sub">تصفح وحمل مجانا</span>
         </h1>
         <p class="page-hero__lede">
-          كتب المنهج السعودي المعتمد، مرتّبة حسب المرحلة والمادة،
-          جاهزة للتصفّح والتحميل في أي وقت.
+          كتب المنهج السعودي المعتمد، مرتبة حسب المرحلة والمادة،
+          جاهزة للتصفح والتحميل في أي وقت.
         </p>
         <div class="hero-mini">
           <div class="hero-mini__item">
@@ -89,12 +89,12 @@ css: pages
       <span class="lantern lantern--r" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
       <div class="cta__copy">
         <h2>الكتاب بداية.. والبرنامج هو الرحلة</h2>
-        <p>حمِّل الكتاب وابدأ البرنامج التعليمي المرافق له</p>
+        <p>حمل الكتاب وابدأ البرنامج التعليمي المرافق له</p>
         <a class="btn btn--gold" href="<?php echo base_url('plans'); ?>">استكشف المواد والبرامج</a>
       </div>
       <div class="cta__art">
         <img src="<?php echo tq_site_asset('img/cta-kids-cut.webp'); ?>" width="660" height="990" loading="lazy"
-             decoding="async" alt="طفلان سعوديان يبتسمان ويحملان جهازًا لوحيًّا">
+             decoding="async" alt="طفلان سعوديان يبتسمان ويحملان جهازا لوحيا">
       </div>
     </div>
   </div>

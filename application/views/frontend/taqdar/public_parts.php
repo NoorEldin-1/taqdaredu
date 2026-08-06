@@ -1,18 +1,18 @@
 <?php
 /**
- * الموقع العام — الأنماط المشتركة والقطع المتكرّرة.
+ * الموقع العام — الأنماط المشتركة والقطع المتكررة.
  *
- * يُدرَج بـ include_once من كل صفحة عامّة فيُطبع مرّة واحدة في الطلب الواحد.
- * لا يُدرَج في صفحات البوّابة — لها غلافها الخاصّ.
+ * يدرج بـ include_once من كل صفحة عامة فيطبع مرة واحدة في الطلب الواحد.
+ * لا يدرج في صفحات البوابة — لها غلافها الخاص.
  *
  * كل لون هنا توكن، وكل تخطيط منطقي (start/end) لا فيزيائي،
- * وكل رقم يمرّ من tq_num/tq_iso. لا #hex ولا rgb() ولا شبكة خارجية.
+ * وكل رقم يمر من tq_num/tq_iso. لا #hex ولا rgb() ولا شبكة خارجية.
  */
 
 if (!function_exists('tqp_plural')) {
     /**
-     * العدد في العربية ليس s تُضاف: واحد · اثنان · جمع قلّة · تمييز مفرد منصوب.
-     * والرقم معزول دائمًا وإلا انعكس ترتيبه حول المسافة.
+     * العدد في العربية ليس s تضاف: واحد · اثنان · جمع قلة · تمييز مفرد منصوب.
+     * والرقم معزول دائما وإلا انعكس ترتيبه حول المسافة.
      */
     function tqp_plural($n, $one, $two, $few, $many)
     {
@@ -30,8 +30,8 @@ if (!function_exists('tqp_level')) {
     {
         $map = [
             'beginner'     => 'مبتدئ',
-            'intermediate' => 'متوسّط',
-            'advanced'     => 'متقدّم',
+            'intermediate' => 'متوسط',
+            'advanced'     => 'متقدم',
         ];
         $k = strtolower(trim((string) $level));
         return $map[$k] ?? '';
@@ -40,8 +40,8 @@ if (!function_exists('tqp_level')) {
 
 if (!function_exists('tqp_duration')) {
     /**
-     * مدّة الدورة كوحدة واحدة «01:20:00» لا ثلاثة أطراف.
-     * تُعاد فارغة إن لم تُسجَّل مدّة — فالفراغ أصدق من صفر مُلفَّق.
+     * مدة الدورة كوحدة واحدة «01:20:00» لا ثلاثة أطراف.
+     * تعاد فارغة إن لم تسجل مدة — فالفراغ أصدق من صفر ملفق.
      */
     function tqp_duration($course_id)
     {
@@ -55,7 +55,7 @@ if (!function_exists('tqp_duration')) {
 }
 
 if (!function_exists('tqp_stars')) {
-    /** نجوم التقييم كحلية لا برتقالية — البرتقالي إشارة ولا يُرسم أيقونةً على أبيض. */
+    /** نجوم التقييم كحلية لا برتقالية — البرتقالي إشارة ولا يرسم أيقونة على أبيض. */
     function tqp_stars($average, $count, $show_text = true)
     {
         $filled = (int) ceil($average);
@@ -72,10 +72,10 @@ if (!function_exists('tqp_stars')) {
         if ($count > 0) {
             $out .= tq_num(number_format($average, 1), 'tq-num--sm');
             $out .= '<span class="tq-caption">'
-                . tqp_plural($count, 'تقييم واحد', 'تقييمان', 'تقييمات', 'تقييمًا')
+                . tqp_plural($count, 'تقييم واحد', 'تقييمان', 'تقييمات', 'تقييما')
                 . '</span>';
         } else {
-            $out .= '<span class="tq-caption">لم يُقيَّم بعد</span>';
+            $out .= '<span class="tq-caption">لم يقيم بعد</span>';
         }
         return $out;
     }
@@ -83,8 +83,8 @@ if (!function_exists('tqp_stars')) {
 
 if (!function_exists('tqp_thumb')) {
     /**
-     * صورة الدورة. حين لا تُضبط إعدادات الثيم يعود النموذج بـ base_url() وحده،
-     * فنكشف ذلك ونرسم بديلًا بتدرّج CSS بدل صورة مكسورة أو صورة من الإنترنت.
+     * صورة الدورة. حين لا تضبط إعدادات الثيم يعود النموذج بـ base_url() وحده،
+     * فنكشف ذلك ونرسم بديلا بتدرج CSS بدل صورة مكسورة أو صورة من الإنترنت.
      */
     function tqp_thumb($course_id)
     {
@@ -95,7 +95,7 @@ if (!function_exists('tqp_thumb')) {
 }
 
 if (!function_exists('tqp_flash')) {
-    /** رسائل النظام: الخطأ يقول كيف يُصحَّح، والنجاح يقول ما الذي تمّ. */
+    /** رسائل النظام: الخطأ يقول كيف يصحح، والنجاح يقول ما الذي تم. */
     function tqp_flash()
     {
         $CI = &get_instance();
@@ -129,8 +129,8 @@ if (!function_exists('tqp_empty')) {
 
 if (!function_exists('tqp_course_card')) {
     /**
-     * بطاقة الدورة: العنوان · التقييم · عدد الطلاب · المدّة · السعر والخصم.
-     * كل قيمة من قاعدة البيانات، وما لا قيمة له يُحذف سطره ولا يُملأ بصفر.
+     * بطاقة الدورة: العنوان · التقييم · عدد الطلاب · المدة · السعر والخصم.
+     * كل قيمة من قاعدة البيانات، وما لا قيمة له يحذف سطره ولا يملأ بصفر.
      */
     function tqp_course_card($course)
     {
@@ -179,12 +179,12 @@ if (!function_exists('tqp_course_card')) {
                 <span class="tqp-course__meta">
                     <span>
                         <?php echo tq_icon('users', 16); ?>
-                        <?php echo tqp_plural($students, 'طالب واحد', 'طالبان', 'طلاب', 'طالبًا'); ?>
+                        <?php echo tqp_plural($students, 'طالب واحد', 'طالبان', 'طلاب', 'طالبا'); ?>
                     </span>
                     <?php if ($duration !== ''): ?>
                         <span>
                             <?php echo tq_icon('clock', 16); ?>
-                            <span class="tq-sr">المدّة الكلّية</span>
+                            <span class="tq-sr">المدة الكلية</span>
                             <?php echo tq_num($duration, 'tq-num--sm'); ?>
                         </span>
                     <?php endif; ?>
@@ -265,7 +265,7 @@ if (!defined('TQP_STYLES')) {
   font: var(--tq-type-caption); color: var(--tq-navy);
 }
 
-/* ---- لماذا تقدّر ---- */
+/* ---- لماذا تقدر ---- */
 .tqp-why { display: grid; gap: var(--tq-space-l); }
 .tqp-why__card { display: grid; gap: var(--tq-space-s); align-content: start; block-size: 100%; }
 .tqp-why__card p { margin: 0; }
@@ -389,7 +389,7 @@ if (!defined('TQP_STYLES')) {
   .tqp-auth__card { padding: var(--tq-space-xl); }
 }
 
-/* ---- النصّ المُدار من لوحة التحكّم ---- */
+/* ---- النص المدار من لوحة التحكم ---- */
 .tqp-prose { max-inline-size: 78ch; color: var(--tq-text); }
 .tqp-prose h1, .tqp-prose h2 { font: var(--tq-type-h1); color: var(--tq-navy); margin-block: var(--tq-space-h1) var(--tq-space-m); }
 .tqp-prose h3, .tqp-prose h4 { font: var(--tq-type-h2); color: var(--tq-navy); margin-block: var(--tq-space-xl) var(--tq-space-s); }
@@ -471,7 +471,7 @@ if (!defined('TQP_STYLES')) {
 .tqp-review { display: flex; gap: var(--tq-space-l); padding-block: var(--tq-space-l); border-block-end: 1px solid var(--tq-line); }
 .tqp-review:last-child { border-block-end: 0; }
 
-/* ---- المدوّنة ---- */
+/* ---- المدونة ---- */
 .tqp-post { display: flex; flex-direction: column; background: var(--tq-surface); border-radius: var(--tq-radius-card); box-shadow: var(--tq-shadow-soft); overflow: hidden; block-size: 100%; color: var(--tq-text); }
 .tqp-post:hover { box-shadow: var(--tq-shadow-card); text-decoration: none; }
 .tqp-post__media { aspect-ratio: 16 / 9; background: var(--tq-lilac-fill); overflow: hidden; }
@@ -495,7 +495,7 @@ if (!defined('TQP_STYLES')) {
 .tqp-pager a:hover { background: var(--tq-navyWash); text-decoration: none; }
 .tqp-pager strong { background: var(--tq-actionPrimary); border-color: var(--tq-actionPrimary); color: var(--tq-onAction); }
 
-/* ---- المرشّحات ---- */
+/* ---- المرشحات ---- */
 .tqp-filters { display: grid; gap: var(--tq-space-l); }
 .tqp-filters fieldset { border: 0; padding: 0; margin: 0; }
 .tqp-filters legend { font: var(--tq-type-bodyStrong); color: var(--tq-navy); margin-block-end: var(--tq-space-s); padding: 0; }

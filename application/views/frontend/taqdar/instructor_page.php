@@ -1,17 +1,17 @@
 <?php
 /**
- * ملفّ المعلّم.
+ * ملف المعلم.
  *
- * كارت المعلّم كان يبدو قابلًا للنقر ولا يُنقر: النموذج يبني `url` ولا
- * أحد يستعمله، ولا برنامج ولا عرض. فالرابط صار حيًّا وهذه وجهته.
+ * كارت المعلم كان يبدو قابلا للنقر ولا ينقر: النموذج يبني `url` ولا
+ * أحد يستعمله، ولا برنامج ولا عرض. فالرابط صار حيا وهذه وجهته.
  *
- * والتقييم يُعرض **فقط إن وُجد**: منصّةٌ جديدة تُظهر «٠٫٠» فتبدو رديئة
+ * والتقييم يعرض **فقط إن وجد**: منصة جديدة تظهر «٠٫٠» فتبدو رديئة
  * لا جديدة.
  */
 $tq_t  = isset($tq_teacher) ? $tq_teacher : array();
 $tq_ci = &get_instance();
 
-$tq_h1   = $tq_t['name'] ?? 'معلّم';
+$tq_h1   = $tq_t['name'] ?? 'معلم';
 $tq_lead = trim((string) ($tq_t['bio'] ?? ''));
 include __DIR__ . '/site/site_pagehero.php';
 ?>
@@ -20,7 +20,7 @@ include __DIR__ . '/site/site_pagehero.php';
     <div class="path-main">
       <div class="icard">
         <h2>نبذة</h2>
-        <p><?php echo html_escape($tq_t['bio'] ?? '') ?: 'لم تُكتب نبذة هذا المعلّم بعد.'; ?></p>
+        <p><?php echo html_escape($tq_t['bio'] ?? '') ?: 'لم تكتب نبذة هذا المعلم بعد.'; ?></p>
 
         <?php if (!empty($tq_t['chips'])): ?>
           <div class="chips">
@@ -65,7 +65,7 @@ include __DIR__ . '/site/site_pagehero.php';
             <span class="tq-ltr"><?php echo html_escape(number_format((float) $tq_t['rating'], 1)); ?></span>
             <svg aria-hidden="true" style="width:20px;height:20px"><use href="#i-star"></use></svg>
           </p>
-          <p class="tq-caption"><span class="tq-ltr"><?php echo html_escape(number_format((int) $tq_t['reviews'])); ?></span> تقييمًا</p>
+          <p class="tq-caption"><span class="tq-ltr"><?php echo html_escape(number_format((int) $tq_t['reviews'])); ?></span> تقييما</p>
         <?php endif; ?>
 
         <?php if (!empty($tq_t['stage'])): ?>

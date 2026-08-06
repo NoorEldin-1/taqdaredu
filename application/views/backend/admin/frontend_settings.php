@@ -5,7 +5,7 @@
 </style>
 
 <?php
-    // themeConfiguration تُرجع false حين لا يملك الثيم ملفَّ إعداد؛ نضمن مصفوفة
+    // themeConfiguration ترجع false حين لا يملك الثيم ملف إعداد؛ نضمن مصفوفة
     // حتى لا ينهار count() في PHP 8 على قيمة bool.
     $homepage_banner = themeConfiguration(get_frontend_settings('theme'), 'homepage');
     if (! is_array($homepage_banner)) { $homepage_banner = []; }
@@ -220,7 +220,7 @@
                         <?php
                             $contact_info = get_frontend_settings('contact_info');
                             $contact_info = $contact_info ? json_decode($contact_info, true) : [];
-                            // نضمن وجود كل المفاتيح حتى لا تظهر تحذيرات «مفتاح غير معرّف» في PHP 8
+                            // نضمن وجود كل المفاتيح حتى لا تظهر تحذيرات «مفتاح غير معرف» في PHP 8
                             $contact_info = array_merge(
                                 ['email' => '', 'phone' => '', 'address' => '', 'office_hours' => ''],
                                 is_array($contact_info) ? $contact_info : []

@@ -1,18 +1,18 @@
 <script src="<?php echo tq_asset('js/taqdar.js'); ?>" defer></script>
 
-<?php /* سكربت المشغّل يُحمَّل على صفحته وحدها — لا يُثقل بقيّة الشاشات. */ ?>
+<?php /* سكربت المشغل يحمل على صفحته وحدها — لا يثقل بقية الشاشات. */ ?>
 <?php if (isset($page_name) && $page_name === 'tq_lesson'): ?>
 <script src="<?php echo tq_asset('js/taqdar-lesson.js'); ?>" defer></script>
 <?php endif; ?>
 
-<?php /* وشاشة المراجعة كذلك — سكربتها لا يُحمَّل إلّا حيث يُستعمل. */ ?>
+<?php /* وشاشة المراجعة كذلك — سكربتها لا يحمل إلا حيث يستعمل. */ ?>
 <?php if (isset($page_name) && $page_name === 'tq_reviews'): ?>
 <script src="<?php echo tq_asset('js/taqdar-reviews.js'); ?>" defer></script>
 <?php endif; ?>
 
-<?php /* واجهة تقدّر بلا jQuery وتستعمل fetch — فيُلفّ fetch نفسه.
-       اللفّ لنفس الأصل وطرق الكتابة وحدها: توكنٌ يُرسَل إلى طرف ثالث
-       تسريبٌ لسرّ الجلسة لا حماية. */ ?>
+<?php /* واجهة تقدر بلا jQuery وتستعمل fetch — فيلف fetch نفسه.
+       اللف لنفس الأصل وطرق الكتابة وحدها: توكن يرسل إلى طرف ثالث
+       تسريب لسر الجلسة لا حماية. */ ?>
 <?php if (config_item('csrf_protection')): ?>
 <script>
 (function () {
@@ -56,7 +56,7 @@
         return origFetch.call(this, input, init);
     };
 
-    /* XMLHttpRequest لمن يستعمله مباشرةً */
+    /* XMLHttpRequest لمن يستعمله مباشرة */
     var open = XMLHttpRequest.prototype.open, send = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.open = function (m, u) {
         this.__tqWrite = !!WRITE[(m || "").toUpperCase()] && sameOrigin(u);

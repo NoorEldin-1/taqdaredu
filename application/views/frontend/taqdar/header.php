@@ -8,14 +8,14 @@ $tq_dash = $tq_is_admin ? base_url('admin/dashboard') : base_url('student');
     <div class="tq-container tq-site-header__inner">
 
         <a class="tq-logo" href="<?php echo base_url(); ?>">
-            <img src="<?php echo tq_asset('brand/wordmark.png'); ?>" alt="تقدّر — منصة التعليم الذكي" height="40">
+            <img src="<?php echo tq_asset('brand/wordmark.png'); ?>" alt="تقدر — منصة التعليم الذكي" height="40">
         </a>
 
-        <nav class="tq-site-nav" aria-label="التنقّل الرئيسي">
+        <nav class="tq-site-nav" aria-label="التنقل الرئيسي">
             <a href="<?php echo base_url('plans'); ?>">الدورات</a>
             <a href="<?php echo base_url('categories'); ?>">الأقسام</a>
             <a href="<?php echo base_url('plans'); ?>">الاشتراكات</a>
-            <a href="<?php echo base_url('blog'); ?>">المدوّنة</a>
+            <a href="<?php echo base_url('blog'); ?>">المدونة</a>
             <a href="<?php echo base_url('about'); ?>">من نحن</a>
             <a href="<?php echo base_url('contact'); ?>">تواصل معنا</a>
         </nav>

@@ -2,29 +2,29 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * استيراد المنهج من ملفّ: المواد والصفوف والمسارات دفعةً واحدة.
+ * استيراد المنهج من ملف: المواد والصفوف والمسارات دفعة واحدة.
  *
- * الوحدة المستوردة **صفٌّ = مسار**، لأن المسار هو وحدة البيع؛ ومادّته
- * وصفّه يُستنتجان منه ويُنشآن إن غابا. فملفٌّ من ثلاثة جداول يُلزم المستورِد
- * بترتيب الإدخال وربط المفاتيح بيده، وهو ما يُخطئ فيه البشر أوّلًا.
+ * الوحدة المستوردة **صف = مسار**، لأن المسار هو وحدة البيع؛ ومادته
+ * وصفه يستنتجان منه وينشآن إن غابا. فملف من ثلاثة جداول يلزم المستورد
+ * بترتيب الإدخال وربط المفاتيح بيده، وهو ما يخطئ فيه البشر أولا.
  *
- * والعمل على مرحلتين لا واحدة: **قراءة وتحقّق ومعاينة** ثمّ **كتابة**.
- * فملفّ منهج فيه خطأ في الصفّ المئة يجب أن يُعرَف قبل أن يُكتب تسعة وتسعون.
+ * والعمل على مرحلتين لا واحدة: **قراءة وتحقق ومعاينة** ثم **كتابة**.
+ * فملف منهج فيه خطأ في الصف المئة يجب أن يعرف قبل أن يكتب تسعة وتسعون.
  *
- * والكتابة **رفعٌ لا تكرار** (upsert): إعادة استيراد الملفّ نفسه بعد تصحيحه
- * تحدّث ولا تُنشئ نسخة ثانية — إذ الاستيراد يُعاد في الواقع مرارًا.
+ * والكتابة **رفع لا تكرار** (upsert): إعادة استيراد الملف نفسه بعد تصحيحه
+ * تحدث ولا تنشئ نسخة ثانية — إذ الاستيراد يعاد في الواقع مرارا.
  */
 class Taqdar_import_model extends CI_Model
 {
-    /** الأعمدة المقبولة، بالعربية والإنجليزية معًا. */
+    /** الأعمدة المقبولة، بالعربية والإنجليزية معا. */
     private $aliases = array(
-        'subject'      => array('subject', 'المادة', 'المادّة', 'subject_ar'),
+        'subject'      => array('subject', 'المادة', 'المادة', 'subject_ar'),
         'subject_en'   => array('subject_en', 'المادة_en', 'subject_english'),
-        'grade'        => array('grade', 'الصف', 'الصفّ', 'grade_ar'),
+        'grade'        => array('grade', 'الصف', 'الصف', 'grade_ar'),
         'grade_en'     => array('grade_en', 'الصف_en', 'grade_english'),
         'title'        => array('title', 'path', 'المسار', 'عنوان_المسار', 'path_title'),
         'price'        => array('price', 'السعر', 'price_sar', 'سعر'),
-        'teacher'      => array('teacher', 'المعلم', 'المعلّم', 'teacher_email', 'بريد_المعلم'),
+        'teacher'      => array('teacher', 'المعلم', 'المعلم', 'teacher_email', 'بريد_المعلم'),
         'share'        => array('share', 'النسبة', 'نسبة_المعلم', 'share_percent'),
         'weeks'        => array('weeks', 'الاسابيع', 'الأسابيع', 'expected_weeks', 'مدة'),
         'course'       => array('course', 'الدورة', 'course_title', 'عنوان_الدورة'),
@@ -36,28 +36,28 @@ class Taqdar_import_model extends CI_Model
        ===================================================================== */
 
     /**
-     * يقرأ الملفّ ويعيد صفوفًا موحَّدة المفاتيح.
+     * يقرأ الملف ويعيد صفوفا موحدة المفاتيح.
      * يقبل CSV (بفاصلة أو فاصلة منقوطة) وJSON.
      */
     public function parse($path, $ext)
     {
         $raw = @file_get_contents($path);
         if ($raw === false || trim($raw) === '') {
-            return array('ok' => false, 'errors' => array('الملفّ فارغ أو تعذّرت قراءته.'));
+            return array('ok' => false, 'errors' => array('الملف فارغ أو تعذرت قراءته.'));
         }
 
-        // شارة BOM تلتصق بأوّل عمود فتُفسد مطابقة اسمه
+        // شارة BOM تلتصق بأول عمود فتفسد مطابقة اسمه
         $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw);
 
         if (strtolower($ext) === 'json') {
             $rows = json_decode($raw, true);
             if (!is_array($rows)) {
-                return array('ok' => false, 'errors' => array('ملفّ JSON غير صالح.'));
+                return array('ok' => false, 'errors' => array('ملف JSON غير صالح.'));
             }
         } else {
             $rows = $this->parse_csv($raw);
             if ($rows === false) {
-                return array('ok' => false, 'errors' => array('تعذّر فهم ترويسة الملفّ.'));
+                return array('ok' => false, 'errors' => array('تعذر فهم ترويسة الملف.'));
             }
         }
 
@@ -67,7 +67,7 @@ class Taqdar_import_model extends CI_Model
             $out[] = $this->normalise($r);
         }
 
-        if (!$out) return array('ok' => false, 'errors' => array('لا صفوف في الملفّ.'));
+        if (!$out) return array('ok' => false, 'errors' => array('لا صفوف في الملف.'));
         return array('ok' => true, 'rows' => $out);
     }
 
@@ -94,7 +94,7 @@ class Taqdar_import_model extends CI_Model
         return $head === null ? false : $rows;
     }
 
-    /** يوحّد أسماء الأعمدة مهما كتبها المستورِد. */
+    /** يوحد أسماء الأعمدة مهما كتبها المستورد. */
     private function normalise($row)
     {
         $low = array();
@@ -116,12 +116,12 @@ class Taqdar_import_model extends CI_Model
     }
 
     /* =====================================================================
-       التحقّق — قبل أي كتابة
+       التحقق — قبل أي كتابة
        ===================================================================== */
 
     /**
-     * يفحص كل صفّ ويعيده موسومًا بحاله وبما سيقع له.
-     * لا يكتب شيئًا: هذه هي المعاينة التي تُعرَض قبل التأكيد.
+     * يفحص كل صف ويعيده موسوما بحاله وبما سيقع له.
+     * لا يكتب شيئا: هذه هي المعاينة التي تعرض قبل التأكيد.
      */
     public function validate_rows($rows)
     {
@@ -130,18 +130,18 @@ class Taqdar_import_model extends CI_Model
 
         foreach ($rows as $i => $r) {
             $errs = array(); $warns = array();
-            $line = $i + 2;   // الترويسة سطر، والعدّ من واحد
+            $line = $i + 2;   // الترويسة سطر، والعد من واحد
 
             if ($r['subject'] === '') $errs[] = 'المادة مطلوبة';
-            if ($r['grade']   === '') $errs[] = 'الصفّ مطلوب';
+            if ($r['grade']   === '') $errs[] = 'الصف مطلوب';
             if ($r['title']   === '') $errs[] = 'عنوان المسار مطلوب';
 
-            // السعر يُدخَل بالريال ويُخزَّن هللات — التحويل مرّة واحدة هنا
+            // السعر يدخل بالريال ويخزن هللات — التحويل مرة واحدة هنا
             $price_halalas = 0;
             if ($r['price'] !== '') {
                 $p = str_replace(array(',', ' '), '', $r['price']);
                 if (!is_numeric($p) || (float) $p < 0) {
-                    $errs[] = 'السعر ليس رقمًا';
+                    $errs[] = 'السعر ليس رقما';
                 } else {
                     $price_halalas = (int) round(((float) $p) * 100);
                 }
@@ -159,24 +159,24 @@ class Taqdar_import_model extends CI_Model
 
             $weeks = 0;
             if ($r['weeks'] !== '') {
-                if (!ctype_digit((string) $r['weeks'])) $errs[] = 'المدّة ليست عددًا صحيحًا';
+                if (!ctype_digit((string) $r['weeks'])) $errs[] = 'المدة ليست عددا صحيحا';
                 else $weeks = (int) $r['weeks'];
             }
 
-            // المعلّم: يُطابَق بالبريد ولا يُنشأ — إنشاء حساب من ملفّ استيراد
-            // يفتح بابًا لحسابات لا يعرفها أحد
+            // المعلم: يطابق بالبريد ولا ينشأ — إنشاء حساب من ملف استيراد
+            // يفتح بابا لحسابات لا يعرفها أحد
             $teacher_id = 0;
             if ($r['teacher'] !== '') {
                 $u = $this->db->select('id, is_instructor')
                               ->where('email', $r['teacher'])->get('users')->row_array();
                 if (!$u)                            $errs[]  = 'لا حساب بهذا البريد';
-                elseif ((int) $u['is_instructor'] !== 1) $warns[] = 'الحساب ليس معلّمًا';
+                elseif ((int) $u['is_instructor'] !== 1) $warns[] = 'الحساب ليس معلما';
                 if ($u) $teacher_id = (int) $u['id'];
             } else {
-                $warns[] = 'بلا معلّم';
+                $warns[] = 'بلا معلم';
             }
 
-            // الدورة: تُطابَق بالعنوان ولا تُنشأ — المحتوى يُرفع من بوّابة المعلّم
+            // الدورة: تطابق بالعنوان ولا تنشأ — المحتوى يرفع من بوابة المعلم
             $course_id = 0;
             if ($r['course'] !== '') {
                 $c = $this->db->select('id')->where('title', $r['course'])->get('course')->row_array();
@@ -184,12 +184,12 @@ class Taqdar_import_model extends CI_Model
                 else     $course_id = (int) $c['id'];
             }
 
-            // الحالة تُكتب بالعربية في الملفّ النموذجي، فتُقبل باللغتين.
-            // وما لا يُفهم يصير مسودّة **مع تنبيه** لا صمتًا.
+            // الحالة تكتب بالعربية في الملف النموذجي، فتقبل باللغتين.
+            // وما لا يفهم يصير مسودة **مع تنبيه** لا صمتا.
             $raw_status = mb_strtolower(trim($r['status']));
             $map = array(
                 'published' => 'published', 'منشور' => 'published', 'نشر' => 'published',
-                'draft' => 'draft', 'مسودة' => 'draft', 'مسودّة' => 'draft',
+                'draft' => 'draft', 'مسودة' => 'draft', 'مسودة' => 'draft',
             );
             if ($raw_status === '') {
                 $status = 'draft';
@@ -197,18 +197,18 @@ class Taqdar_import_model extends CI_Model
                 $status = $map[$raw_status];
             } else {
                 $status  = 'draft';
-                $warns[] = 'حالة غير مفهومة — اعتُبرت مسودّة';
+                $warns[] = 'حالة غير مفهومة — اعتبرت مسودة';
             }
 
-            // مسار بلا دورة أو بلا سعر لا يُباع — يُستورَد مسودّة لا منشورًا،
-            // فنشرُه يَعِد بما لا يقع
+            // مسار بلا دورة أو بلا سعر لا يباع — يستورد مسودة لا منشورا،
+            // فنشره يعد بما لا يقع
             if ($status === 'published' && ($course_id === 0 || $price_halalas === 0)) {
                 $status  = 'draft';
-                $warns[] = 'نُزل إلى مسودّة (بلا دورة أو بلا سعر)';
+                $warns[] = 'نزل إلى مسودة (بلا دورة أو بلا سعر)';
             }
 
             $key = mb_strtolower($r['title']);
-            if (isset($seen_titles[$key])) $errs[] = 'عنوان مكرّر في الملفّ (سطر ' . $seen_titles[$key] . ')';
+            if (isset($seen_titles[$key])) $errs[] = 'عنوان مكرر في الملف (سطر ' . $seen_titles[$key] . ')';
             $seen_titles[$key] = $line;
 
             $exists = $r['title'] !== '' ? $this->db->select('id')->where('title', $r['title'])
@@ -239,8 +239,8 @@ class Taqdar_import_model extends CI_Model
        ===================================================================== */
 
     /**
-     * يكتب الصفوف السليمة وحدها. الصفوف المعطوبة تُترك ولا تُوقف غيرها —
-     * فملفّ من مئة صفّ فيه خطأ واحد يجب أن يُدخل تسعة وتسعين.
+     * يكتب الصفوف السليمة وحدها. الصفوف المعطوبة تترك ولا توقف غيرها —
+     * فملف من مئة صف فيه خطأ واحد يجب أن يدخل تسعة وتسعين.
      */
     public function commit($validated)
     {
@@ -279,7 +279,7 @@ class Taqdar_import_model extends CI_Model
         return $stats;
     }
 
-    /** يجد المادة/الصفّ بالاسم أو يُنشئه. المطابقة بالاسم العربي وهو المفتاح الفعلي. */
+    /** يجد المادة/الصف بالاسم أو ينشئه. المطابقة بالاسم العربي وهو المفتاح الفعلي. */
     private function upsert_lookup($table, $name_ar, $name_en, &$stats, $stat_key)
     {
         if ($name_ar === '') return 0;

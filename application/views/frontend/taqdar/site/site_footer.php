@@ -1,12 +1,12 @@
 <?php
 /**
- * تذييل الواجهة العامّة — تصميم تقدّر.
+ * تذييل الواجهة العامة — تصميم تقدر.
  *
- * يُدرَج للصفحات العامّة وحدها، فسكربت التصميم يُحمَّل من هنا: لا حاجة إلى
- * لمس `includes_bottom.php` المشترك مع البوّابات (وفيه لفّ CSRF وتحميل
- * سكربتَي الدرس والمراجعة المشروط).
+ * يدرج للصفحات العامة وحدها، فسكربت التصميم يحمل من هنا: لا حاجة إلى
+ * لمس `includes_bottom.php` المشترك مع البوابات (وفيه لف CSRF وتحميل
+ * سكربتي الدرس والمراجعة المشروط).
  *
- * وبيانات التواصل **من الإعدادات**: ما لم يُضبط لا يُعرَض. الرقم الوهميّ
+ * وبيانات التواصل **من الإعدادات**: ما لم يضبط لا يعرض. الرقم الوهمي
  * الذي كان في التصميم أسوأ من غياب الرقم — من يتصل به يجد لا أحد.
  */
 $tq_mail  = trim((string) get_settings('system_email'));
@@ -18,8 +18,8 @@ $tq_year  = date('Y');
     <div class="footer-grid">
 
       <div class="footer-brand">
-        <img src="<?php echo tq_site_asset('img/logo-light.webp'); ?>" alt="منصّة تقدّر" width="280" height="163">
-        <p><?php echo html_escape(get_settings('slogan') ?: 'منصة تعليمية تُلهم.. وتُمكِّن'); ?></p>
+        <img src="<?php echo tq_site_asset('img/logo-light.webp'); ?>" alt="منصة تقدر" width="280" height="163">
+        <p><?php echo html_escape(get_settings('slogan') ?: 'منصة تعليمية تلهم.. وتمكن'); ?></p>
         <div class="stores"><?php include __DIR__ . '/site_stores.php'; ?></div>
       </div>
 
@@ -28,7 +28,7 @@ $tq_year  = date('Y');
         <a href="<?php echo base_url('about'); ?>">من نحن</a>
         <a href="<?php echo base_url('about'); ?>#vision">رؤيتنا ورسالتنا</a>
         <a href="<?php echo base_url('about'); ?>#team">فريق العمل</a>
-        <a href="<?php echo base_url('blog'); ?>">المدوّنة</a>
+        <a href="<?php echo base_url('blog'); ?>">المدونة</a>
       </nav>
 
       <nav class="footer-col" aria-label="روابط سريعة">
@@ -62,12 +62,12 @@ $tq_year  = date('Y');
       </div>
 
     </div>
-    <p class="footer-bottom">جميع الحقوق محفوظة © <?php echo $tq_year; ?> <?php echo html_escape(get_settings('system_title') ?: 'منصة تقدّر التعليمية'); ?></p>
+    <p class="footer-bottom">جميع الحقوق محفوظة © <?php echo $tq_year; ?> <?php echo html_escape(get_settings('system_title') ?: 'منصة تقدر التعليمية'); ?></p>
   </div>
 </footer>
 
-<?php /* الشريط السفليّ حُذف: خمسة روابط تكرّر ما في قائمة الهامبرغر
-        نفسها، مقابل ٥٧px تُقتطع دائمًا من شاشةٍ ضيّقة. والملفّ باقٍ
-        (`site/site_tabbar.php`) فإعادته سطرٌ واحد. */ ?>
+<?php /* الشريط السفلي حذف: خمسة روابط تكرر ما في قائمة الهامبرغر
+        نفسها، مقابل ٥٧px تقتطع دائما من شاشة ضيقة. والملف باق
+        (`site/site_tabbar.php`) فإعادته سطر واحد. */ ?>
 
 <script src="<?php echo tq_site_asset('js/site.js'); ?>" defer></script>

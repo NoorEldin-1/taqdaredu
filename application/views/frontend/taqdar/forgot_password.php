@@ -1,5 +1,5 @@
 <?php
-/** استعادة كلمة المرور. المقطع `frontend` جزءٌ من البرنامج لا زيادة فيه. */
+/** استعادة كلمة المرور. المقطع `frontend` جزء من البرنامج لا زيادة فيه. */
 $tq_h1 = 'استعادة كلمة المرور';
 $tq_lead = 'اكتب بريدك، ونرسل إليك رابط إعادة التعيين.';
 include __DIR__ . '/site/site_pagehero.php';
@@ -8,8 +8,8 @@ include __DIR__ . '/site/site_pagehero.php';
   <div class="shell shell--auth">
     <div class="auth-wrap">
       <div class="form-card">
-      <a class="auth-brand" href="<?php echo base_url(); ?>" aria-label="منصّة تقدّر">
-        <img src="<?php echo tq_site_asset('img/logo.webp'); ?>" alt="منصّة تقدّر" width="280" height="157">
+      <a class="auth-brand" href="<?php echo base_url(); ?>" aria-label="منصة تقدر">
+        <img src="<?php echo tq_site_asset('img/logo.webp'); ?>" alt="منصة تقدر" width="280" height="157">
       </a>
 
       <?php if ($tq_e = $this->session->flashdata('error_message')): ?>

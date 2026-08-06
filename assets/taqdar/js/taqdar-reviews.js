@@ -1,11 +1,11 @@
-/* منصّة تقدّر — شاشة المراجعة المتباعدة.
+/* منصة تقدر — شاشة المراجعة المتباعدة.
  *
- * الجدولة كانت تعمل ولا تُرى: كل تسليم مراجعة يكتب في `review_queue`، ولا
- * عميل ينادي `taqdar_gate/reviews`. هذا الملفّ هو النداء الغائب.
+ * الجدولة كانت تعمل ولا ترى: كل تسليم مراجعة يكتب في `review_queue`، ولا
+ * عميل ينادي `taqdar_gate/reviews`. هذا الملف هو النداء الغائب.
  *
- * وكما في مشغّل الدرس: لا تصل الإجابات الصحيحة إلى المتصفّح أبدًا. تُرسل
+ * وكما في مشغل الدرس: لا تصل الإجابات الصحيحة إلى المتصفح أبدا. ترسل
  * إجابة الطالب ويعود الحكم ومعه الفاصل الجديد وموعد العودة — كلاهما محسوب
- * في الخادم. فما هنا عرضٌ لقرارٍ لا اتخاذٌ له.
+ * في الخادم. فما هنا عرض لقرار لا اتخاذ له.
  */
 (function () {
   'use strict';
@@ -25,7 +25,7 @@
     busy: false
   };
 
-  /* ---- نداء الخادم: مغلّف موحّد، والرسالة العربية تأتي منه لا نخترعها ---- */
+  /* ---- نداء الخادم: مغلف موحد، والرسالة العربية تأتي منه لا نخترعها ---- */
   function call(path, body) {
     var opt = { credentials: 'same-origin', headers: { 'Accept': 'application/json' } };
     if (body) {
@@ -39,7 +39,7 @@
           var e = (j && j.error) || {};
           throw {
             code: e.code || 'HTTP_' + r.status,
-            message: e.message_ar || 'تعذّر إتمام الطلب',
+            message: e.message_ar || 'تعذر إتمام الطلب',
             details: e.details || {}
           };
         }
@@ -53,14 +53,14 @@
   function iso(n) { return LRI + n + PDI; }
   function int(v) { return parseInt(v, 10) || 0; }
 
-  /** المثنّى والجمع في العربية ليسا s تُضاف — «بعد 2 يوم» خطأ لغوي ظاهر. */
+  /** المثنى والجمع في العربية ليسا s تضاف — «بعد 2 يوم» خطأ لغوي ظاهر. */
   function whenBack(n) {
     n = int(n);
     if (n <= 0) return 'اليوم نفسه';
-    if (n === 1) return 'غدًا';
+    if (n === 1) return 'غدا';
     if (n === 2) return 'بعد يومين';
     if (n <= 10) return 'بعد ' + iso(n) + ' أيام';
-    return 'بعد ' + iso(n) + ' يومًا';
+    return 'بعد ' + iso(n) + ' يوما';
   }
 
   function questions(n) {
@@ -68,7 +68,7 @@
     if (n === 1) return 'سؤال واحد';
     if (n === 2) return 'سؤالان';
     if (n <= 10) return iso(n) + ' أسئلة';
-    return iso(n) + ' سؤالًا';
+    return iso(n) + ' سؤالا';
   }
 
   function escapeHtml(s) {
@@ -77,7 +77,7 @@
     });
   }
 
-  /** رابط الدرس الذي جاء منه السؤال — يُشتقّ من رابط «دروسي» لا يُلفَّق. */
+  /** رابط الدرس الذي جاء منه السؤال — يشتق من رابط «دروسي» لا يلفق. */
   function lessonHref(q) {
     if (!q || !q.lesson_id || !LESSONS) return '';
     return LESSONS.replace(/\/lessons\/?$/, '/lesson/' + int(q.course_id) + '/' + int(q.lesson_id));
@@ -138,7 +138,7 @@
     var pw = $('[data-tq-rv-progress]');
     if (pw) {
       pw.innerHTML = '<div class="tq-progress" role="progressbar" aria-valuenow="' + pct + '"'
-        + ' aria-valuemin="0" aria-valuemax="100" aria-label="تقدّم جلسة المراجعة">'
+        + ' aria-valuemin="0" aria-valuemax="100" aria-label="تقدم جلسة المراجعة">'
         + '<div class="tq-progress__track"><div class="tq-progress__fill" style="inline-size:' + pct + '%"></div></div>'
         + '<span class="tq-progress__value">' + iso(pct + '%') + '</span></div>';
     }
@@ -164,9 +164,9 @@
   }
 
   /**
-   * الخيارات. الاختيار المتعدّد مربّعات لا دوائر — والدائرة تَعِد بإجابة
-   * واحدة، فلو استُعملت في سؤال متعدّد لأخطأ الطالب في القراءة لا في المعرفة.
-   * والسؤال بلا خيارات (ملء الفراغ) حقل نصّ.
+   * الخيارات. الاختيار المتعدد مربعات لا دوائر — والدائرة تعد بإجابة
+   * واحدة، فلو استعملت في سؤال متعدد لأخطأ الطالب في القراءة لا في المعرفة.
+   * والسؤال بلا خيارات (ملء الفراغ) حقل نص.
    */
   function optionsHtml(q) {
     var opts = (q.options || []).filter(function (o) { return o !== null && o !== ''; });
@@ -243,8 +243,8 @@
   });
 
   /**
-   * الحكم. الخطأ لا يُعطى معه الحلّ أبدًا — يُقال متى يعود السؤال، ويُشار
-   * إلى موضع شرحه في الدرس. إعطاء الإجابة هنا يقتل قياس الإتقان في المرّة
+   * الحكم. الخطأ لا يعطى معه الحل أبدا — يقال متى يعود السؤال، ويشار
+   * إلى موضع شرحه في الدرس. إعطاء الإجابة هنا يقتل قياس الإتقان في المرة
    * القادمة: يحفظها الطالب ولا يستدعيها.
    */
   function renderVerdict(r, q) {
@@ -261,18 +261,18 @@
 
     if (r.correct) {
       text('[data-tq-rv-verdict-title]', 'إجابة صحيحة');
-      text('[data-tq-rv-verdict-text]', 'ثبَتَ هذا المفهوم أكثر، فتباعد موعده: يعود إليك ' + back + '.');
+      text('[data-tq-rv-verdict-text]', 'ثبت هذا المفهوم أكثر، فتباعد موعده: يعود إليك ' + back + '.');
     } else {
       text('[data-tq-rv-verdict-title]', 'ليست الإجابة الصحيحة');
       text('[data-tq-rv-verdict-text]',
-        'لن نعطيك الحلّ — يعود السؤال ' + back + ' لتجيبه بنفسك. وإن أردت أن تراجع شرحه فهو في درسه.');
+        'لن نعطيك الحل — يعود السؤال ' + back + ' لتجيبه بنفسك. وإن أردت أن تراجع شرحه فهو في درسه.');
     }
 
     if (acts) {
       var html = '';
       var last = (state.index >= state.queue.length - 1);
       html += '<button class="tq-btn tq-btn--primary" type="button" data-tq-rv-next>'
-        + (last ? 'أنهِ الجلسة' : 'السؤال التالي') + '</button>';
+        + (last ? 'أنه الجلسة' : 'السؤال التالي') + '</button>';
 
       var href = lessonHref(q);
       if (!r.correct && href) {
@@ -296,8 +296,8 @@
     text('[data-tq-rv-done-remaining]', iso(state.remaining));
 
     text('[data-tq-rv-done-text]', state.remaining > 0
-      ? 'ما زال لديك ' + questions(state.remaining) + ' مستحقًّا اليوم — تُعرض في دفعة تالية.'
-      : 'أنهيتَ كل ما استحقّ اليوم. عُد غدًا لما يحلّ موعده.');
+      ? 'ما زال لديك ' + questions(state.remaining) + ' مستحقا اليوم — تعرض في دفعة تالية.'
+      : 'أنهيت كل ما استحق اليوم. عد غدا لما يحل موعده.');
 
     var acts = $('[data-tq-rv-done-actions]');
     if (acts) {
@@ -329,7 +329,7 @@
       return;
     }
     if (ev.target.closest('[data-tq-rv-skip]')) {
-      // التخطّي محلّي بحت: لا يُرسل شيء، فالسؤال يبقى مستحقًّا كما هو.
+      // التخطي محلي بحت: لا يرسل شيء، فالسؤال يبقى مستحقا كما هو.
       state.index++;
       if (state.index >= state.queue.length) finish();
       else renderQuestion();

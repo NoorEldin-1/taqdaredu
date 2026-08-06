@@ -7,20 +7,20 @@ $tq_contact = json_decode(get_frontend_settings('contact_info') ?: '{}', true);
         <div class="tq-site-footer__cols">
 
             <div>
-                <img src="<?php echo tq_asset('brand/wordmark_light.png'); ?>" alt="تقدّر" height="44"
+                <img src="<?php echo tq_asset('brand/wordmark_light.png'); ?>" alt="تقدر" height="44"
                      style="margin-block-end:var(--tq-space-l)">
                 <p class="tq-caption" style="color:rgba(255,255,255,.72);max-inline-size:34ch">
-                    منصة تعليمية عربية تقود الطالب خطوة بخطوة حتى الإتقان — لا تقدّم بلا إتقان.
+                    منصة تعليمية عربية تقود الطالب خطوة بخطوة حتى الإتقان — لا تقدم بلا إتقان.
                 </p>
             </div>
 
             <div>
-                <h3>المنصّة</h3>
+                <h3>المنصة</h3>
                 <ul class="tq-stack" style="--tq-space-l:var(--tq-space-s)">
                     <li><a href="<?php echo base_url('plans'); ?>">الدورات</a></li>
                     <li><a href="<?php echo base_url('categories'); ?>">الأقسام</a></li>
                     <li><a href="<?php echo base_url('plans'); ?>">الاشتراكات</a></li>
-                    <li><a href="<?php echo base_url('blog'); ?>">المدوّنة</a></li>
+                    <li><a href="<?php echo base_url('blog'); ?>">المدونة</a></li>
                 </ul>
             </div>
 
@@ -38,7 +38,7 @@ $tq_contact = json_decode(get_frontend_settings('contact_info') ?: '{}', true);
             <div>
                 <h3>النشرة البريدية</h3>
                 <p class="tq-caption" style="color:rgba(255,255,255,.72)">
-                    جديد البرامج والمواد، مرّة واحدة كل أسبوع.
+                    جديد البرامج والمواد، مرة واحدة كل أسبوع.
                 </p>
                 <form class="tq-row" action="<?php echo base_url('home/subscribe_to_our_newsletter'); ?>" method="post"
                       style="margin-block-start:var(--tq-space-m)">
@@ -57,9 +57,9 @@ $tq_contact = json_decode(get_frontend_settings('contact_info') ?: '{}', true);
 
         <div class="tq-site-footer__bottom">
             <span class="tq-micro">
-                حقوق النشر <?php echo TQ_LRI . date('Y') . TQ_PDI; ?> — تقدّر. كل الحقوق محفوظة.
+                حقوق النشر <?php echo TQ_LRI . date('Y') . TQ_PDI; ?> — تقدر. كل الحقوق محفوظة.
             </span>
-            <span class="tq-micro">صُنع بعناية في السعودية</span>
+            <span class="tq-micro">صنع بعناية في السعودية</span>
         </div>
     </div>
 </footer>

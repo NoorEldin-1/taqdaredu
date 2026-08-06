@@ -1,20 +1,20 @@
 <?php
 /**
- * بوّابة وليّ الأمر — المدفوعات.
+ * بوابة ولي الأمر — المدفوعات.
  *
  * المرجع التصميمي: تطبيق البنك، لا لوحة تعليمية — كل شيء واضح ومفهوم من
- * نظرة واحدة وبلا مصطلحات: تاريخ، وما اشتُري، ولمن، وكم. لا أكثر.
+ * نظرة واحدة وبلا مصطلحات: تاريخ، وما اشتري، ولمن، وكم. لا أكثر.
  *
  * ما يظهر هنا حقيقي بالكامل من جدول `payment`:
- *   · مدفوعاتك أنت           — `payment.user_id = <وليّ الأمر>`
+ *   · مدفوعاتك أنت           — `payment.user_id = <ولي الأمر>`
  *   · مدفوعات كل ابن مربوط   — عبر `parent_links` حين يوجد
  * والعملة الريال السعودي عبر tq_sar().
  *
- * ما ينتظر جدولًا:
- *   `parent_links` — ربط الوليّ بابنه؛ وبدونه تظهر مدفوعاته هو وحدها،
- *                    ولا تُخمَّن قرابة ولا تُفتح فاتورة حساب آخر.
- *   الفاتورة المطبوعة — تنتظر برنامج فاتورة رسميًّا؛ ويُعرض حتى ذلك
- *                    رقم العملية كما هو، فهو ما يُراجَع به الدفع.
+ * ما ينتظر جدولا:
+ *   `parent_links` — ربط الولي بابنه؛ وبدونه تظهر مدفوعاته هو وحدها،
+ *                    ولا تخمن قرابة ولا تفتح فاتورة حساب آخر.
+ *   الفاتورة المطبوعة — تنتظر برنامج فاتورة رسميا؛ ويعرض حتى ذلك
+ *                    رقم العملية كما هو، فهو ما يراجع به الدفع.
  */
 
 $tq_nav   = 'payments';
@@ -121,7 +121,7 @@ include 'portal_open.php';
                             <thead>
                                 <tr>
                                     <th scope="col">التاريخ</th>
-                                    <th scope="col">ما اشتُري</th>
+                                    <th scope="col">ما اشتري</th>
                                     <th scope="col">المبلغ</th>
                                     <th scope="col">رقم العملية</th>
                                 </tr>
@@ -130,7 +130,7 @@ include 'portal_open.php';
                                 <?php foreach ($tq_p['rows'] as $tq_r): ?>
                                     <tr>
                                         <td data-label="التاريخ"><?php echo tq_num(date('Y-m-d', (int) $tq_r['date_added']), 'tq-num--sm'); ?></td>
-                                        <td data-label="ما اشتُري">
+                                        <td data-label="ما اشتري">
                                             <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_r['course_title'] ?: 'اشتراك'); ?></span>
                                         </td>
                                         <td data-label="المبلغ"><?php echo tq_sar($tq_r['amount']); ?></td>
@@ -151,8 +151,8 @@ include 'portal_open.php';
                 <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('wallet', 24); ?></span>
                 <h2 class="tq-empty__title">لا مدفوعات بعد</h2>
                 <p class="tq-empty__text">
-                    كل عملية دفع تخصّك أو تخصّ أبناءك المربوطين بحسابك ستظهر هنا بتاريخها ومبلغها
-                    ورقم عمليتها — بلا مصطلحات ولا رسوم خفيّة.
+                    كل عملية دفع تخصك أو تخص أبناءك المربوطين بحسابك ستظهر هنا بتاريخها ومبلغها
+                    ورقم عمليتها — بلا مصطلحات ولا رسوم خفية.
                 </p>
                 <a class="tq-btn tq-btn--primary" href="<?php echo base_url('parent'); ?>">عودة إلى أبنائي</a>
             </div>
@@ -186,7 +186,7 @@ include 'portal_open.php';
         <div class="tq-pastel tq-pastel--peach">
             <span class="tq-pastel__label tq-micro">استرداد</span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                <?php echo tq_iso('لك 14 يومًا من تاريخ الشراء لطلب الاسترداد. راسِلنا من صفحة الرسائل ونعالج طلبك.'); ?>
+                <?php echo tq_iso('لك 14 يوما من تاريخ الشراء لطلب الاسترداد. راسلنا من صفحة الرسائل ونعالج طلبك.'); ?>
             </p>
         </div>
     </aside>

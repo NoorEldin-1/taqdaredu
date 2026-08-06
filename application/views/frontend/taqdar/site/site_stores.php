@@ -2,18 +2,18 @@
 /**
  * شارتا المتجرين.
  *
- * التطبيق غير منشور بعد، فالشارتان **معطَّلتان بنصّ صريح** لا روابط تقود
- * إلى لا شيء: شارةٌ تُنقر فلا تفتح شيئًا وعدٌ مكسور، والتصريح بـ«قريبًا»
- * أصدق منه. وحين يُنشر التطبيق تُضبط `app_store_url` و`google_play_url`
- * من اللوحة فتصيران رابطين حيَّين بلا تعديل سطر.
+ * التطبيق غير منشور بعد، فالشارتان **معطلتان بنص صريح** لا روابط تقود
+ * إلى لا شيء: شارة تنقر فلا تفتح شيئا وعد مكسور، والتصريح بـ«قريبا»
+ * أصدق منه. وحين ينشر التطبيق تضبط `app_store_url` و`google_play_url`
+ * من اللوحة فتصيران رابطين حيين بلا تعديل سطر.
  *
- * و`direction:ltr` على الـsvg ضروريّ: `<text>` يرث اتجاه الصفحة، فيصير `x`
- * نقطةَ نهاية النصّ في RTL فينزلق خارج الإطار.
+ * و`direction:ltr` على الـsvg ضروري: `<text>` يرث اتجاه الصفحة، فيصير `x`
+ * نقطة نهاية النص في RTL فينزلق خارج الإطار.
  */
 $tq_stores = array(
     'app_store_url' => array(
         'label' => 'App Store',
-        'aria'  => 'حمّل التطبيق من App Store',
+        'aria'  => 'حمل التطبيق من App Store',
         'svg'   => '<svg viewBox="0 0 120 40" aria-hidden="true">'
             . '<rect width="120" height="40" rx="7" fill="#000"/>'
             . '<rect x=".5" y=".5" width="119" height="39" rx="6.5" fill="none" stroke="#A6A6A6"/>'
@@ -28,7 +28,7 @@ $tq_stores = array(
     ),
     'google_play_url' => array(
         'label' => 'Google Play',
-        'aria'  => 'حمّل التطبيق من Google Play',
+        'aria'  => 'حمل التطبيق من Google Play',
         'svg'   => '<svg viewBox="0 0 120 40" aria-hidden="true">'
             . '<rect width="120" height="40" rx="7" fill="#000"/>'
             . '<rect x=".5" y=".5" width="119" height="39" rx="6.5" fill="none" stroke="#A6A6A6"/>'
@@ -50,11 +50,11 @@ foreach ($tq_stores as $tq_key => $tq_s) {
         echo '<a href="' . html_escape($tq_url) . '" target="_blank" rel="noopener noreferrer"'
            . ' aria-label="' . $tq_s['aria'] . '">' . $tq_s['svg'] . '</a>';
     } else {
-        echo '<span class="store-soon" role="img" aria-label="' . $tq_s['label'] . ' — قريبًا">'
+        echo '<span class="store-soon" role="img" aria-label="' . $tq_s['label'] . ' — قريبا">'
            . $tq_s['svg'] . '</span>';
     }
 }
 
 if (!$tq_any_live) {
-    echo '<span class="store-note">التطبيق قريبًا</span>';
+    echo '<span class="store-note">التطبيق قريبا</span>';
 }

@@ -2,19 +2,19 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * وحدات تقدّر في لوحة الإدارة: السجلّ والقراءة والكتابة.
+ * وحدات تقدر في لوحة الإدارة: السجل والقراءة والكتابة.
  *
- * الوحدات موصوفة لا مكتوبة: جدول واحد يصف الحقول، وشاشتان عامّتان تعرضانه.
- * البديل — ثماني شاشات متطابقة منسوخة — يتعفّن عند أوّل تعديل في حقل مشترك،
+ * الوحدات موصوفة لا مكتوبة: جدول واحد يصف الحقول، وشاشتان عامتان تعرضانه.
+ * البديل — ثماني شاشات متطابقة منسوخة — يتعفن عند أول تعديل في حقل مشترك،
  * وقد رأينا ما يفعله النسخ في هذا السكربت نفسه.
  *
  * والأموال هنا **هللات كأعداد صحيحة**؛ العرض وحده يقسم على مئة. أي تخزين
- * عشري للنقود يفقد هللات عند الجمع، ولا يظهر الخطأ إلّا في كشف حساب معلّم.
+ * عشري للنقود يفقد هللات عند الجمع، ولا يظهر الخطأ إلا في كشف حساب معلم.
  */
 class Taqdar_admin_model extends CI_Model
 {
     /* =====================================================================
-       السجلّ
+       السجل
        ===================================================================== */
 
     public function spec($key = null)
@@ -24,57 +24,57 @@ class Taqdar_admin_model extends CI_Model
             'subjects' => array(
                 'table'    => 'subjects',
                 'title'    => 'المواد الدراسية',
-                'lead'     => 'المادة أعلى تصنيف في المنهج، ويُبنى فوقها المسار والصفّ.',
+                'lead'     => 'المادة أعلى تصنيف في المنهج، ويبنى فوقها المسار والصف.',
                 'icon'     => 'book',
                 'order_by' => array('order' => 'ASC'),
                 'fields'   => array(
                     'name_ar' => array('label' => 'الاسم بالعربية', 'type' => 'text', 'required' => true, 'list' => true),
                     'name_en' => array('label' => 'الاسم بالإنجليزية', 'type' => 'text', 'list' => true, 'ltr' => true),
                     'order'   => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0, 'list' => true),
-                    'active'  => array('label' => 'مفعَّلة', 'type' => 'bool', 'default' => 1, 'list' => true),
+                    'active'  => array('label' => 'مفعلة', 'type' => 'bool', 'default' => 1, 'list' => true),
                 ),
             ),
 
             'grades' => array(
                 'table'    => 'grades',
                 'title'    => 'الصفوف الدراسية',
-                'lead'     => 'الصفّ يحدّد مستوى الطالب، وعليه تُبنى المسارات وإسناد المعلّمين.',
+                'lead'     => 'الصف يحدد مستوى الطالب، وعليه تبنى المسارات وإسناد المعلمين.',
                 'icon'     => 'layers',
                 'order_by' => array('order' => 'ASC'),
                 'fields'   => array(
                     'name_ar' => array('label' => 'الاسم بالعربية', 'type' => 'text', 'required' => true, 'list' => true),
                     'name_en' => array('label' => 'الاسم بالإنجليزية', 'type' => 'text', 'list' => true, 'ltr' => true),
                     'order'   => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0, 'list' => true),
-                    'active'  => array('label' => 'مفعَّل', 'type' => 'bool', 'default' => 1, 'list' => true),
+                    'active'  => array('label' => 'مفعل', 'type' => 'bool', 'default' => 1, 'list' => true),
                 ),
             ),
 
             'paths' => array(
                 'table'    => 'paths',
                 'title'    => 'المسارات التعليمية',
-                'lead'     => 'المسار = مادة + صفّ، وهو ما يشترك فيه الطالب فعليًّا.',
+                'lead'     => 'المسار = مادة + صف، وهو ما يشترك فيه الطالب فعليا.',
                 'icon'     => 'route',
                 'order_by' => array('id' => 'DESC'),
                 'fields'   => array(
                     'title'          => array('label' => 'عنوان المسار', 'type' => 'text', 'required' => true, 'list' => true),
                     'subject_id'     => array('label' => 'المادة', 'type' => 'ref', 'ref' => 'subjects', 'required' => true, 'list' => true),
-                    'grade_id'       => array('label' => 'الصفّ', 'type' => 'ref', 'ref' => 'grades', 'required' => true, 'list' => true),
-                    'teacher_id'     => array('label' => 'المعلّم المسؤول', 'type' => 'ref', 'ref' => 'teachers', 'list' => true),
+                    'grade_id'       => array('label' => 'الصف', 'type' => 'ref', 'ref' => 'grades', 'required' => true, 'list' => true),
+                    'teacher_id'     => array('label' => 'المعلم المسؤول', 'type' => 'ref', 'ref' => 'teachers', 'list' => true),
                     'price'          => array('label' => 'السعر', 'type' => 'money', 'default' => 0, 'list' => true,
-                                              'hint' => 'يُدخَل بالريال ويُخزَّن بالهللات. اتركه صفرًا للمسار المجّاني.'),
-                    'status'         => array('label' => 'الحالة', 'type' => 'enum', 'options' => array('draft' => 'مسودّة', 'published' => 'منشور'), 'default' => 'draft', 'list' => true),
-                    'teacher_share_percent' => array('label' => 'نسبة المعلّم %', 'type' => 'number', 'list' => true,
-                                              'hint' => 'حصّة معلّم هذا المسار من سعره. اتركه فارغًا ليأخذ النسبة الافتراضية العامّة.'),
-                    'expected_weeks' => array('label' => 'المدّة المتوقّعة (أسابيع)', 'type' => 'number', 'default' => 0),
+                                              'hint' => 'يدخل بالريال ويخزن بالهللات. اتركه صفرا للمسار المجاني.'),
+                    'status'         => array('label' => 'الحالة', 'type' => 'enum', 'options' => array('draft' => 'مسودة', 'published' => 'منشور'), 'default' => 'draft', 'list' => true),
+                    'teacher_share_percent' => array('label' => 'نسبة المعلم %', 'type' => 'number', 'list' => true,
+                                              'hint' => 'حصة معلم هذا المسار من سعره. اتركه فارغا ليأخذ النسبة الافتراضية العامة.'),
+                    'expected_weeks' => array('label' => 'المدة المتوقعة (أسابيع)', 'type' => 'number', 'default' => 0),
                     'course_id'      => array('label' => 'الدورة المرتبطة', 'type' => 'ref', 'ref' => 'courses',
-                                              'hint' => 'تربط المسار بمحتوى دورة قائمة في السكربت، فتُستعمَل دروسها.'),
+                                              'hint' => 'تربط المسار بمحتوى دورة قائمة في السكربت، فتستعمل دروسها.'),
                 ),
             ),
 
             'milestones' => array(
                 'table'    => 'milestones',
                 'title'    => 'المحطات',
-                'lead'     => 'المحطة تجمّع دروسًا داخل مسار وتُختم بتقييم.',
+                'lead'     => 'المحطة تجمع دروسا داخل مسار وتختم بتقييم.',
                 'icon'     => 'flag',
                 'order_by' => array('path_id' => 'ASC', 'order' => 'ASC'),
                 'fields'   => array(
@@ -89,14 +89,14 @@ class Taqdar_admin_model extends CI_Model
             'objectives' => array(
                 'table'    => 'objectives',
                 'title'    => 'الأهداف التعليمية',
-                'lead'     => 'الهدف يصف ما يُتقنه الطالب في الدرس، وإليه تُنسَب أسئلة المراجعة.',
+                'lead'     => 'الهدف يصف ما يتقنه الطالب في الدرس، وإليه تنسب أسئلة المراجعة.',
                 'icon'     => 'target',
                 'order_by' => array('lesson_id' => 'ASC', 'at_second' => 'ASC'),
-                'note'     => 'بغير أهداف مربوطة بالأسئلة لا تستطيع بوّابة الإتقان أن تحكم، فيبقى كل درس بعد الأوّل مقفلًا. هذه الشاشة هي ما يفكّ ذلك.',
+                'note'     => 'بغير أهداف مربوطة بالأسئلة لا تستطيع بوابة الإتقان أن تحكم، فيبقى كل درس بعد الأول مقفلا. هذه الشاشة هي ما يفك ذلك.',
                 'fields'   => array(
                     'lesson_id' => array('label' => 'الدرس', 'type' => 'ref', 'ref' => 'lessons', 'required' => true, 'list' => true),
-                    'text'      => array('label' => 'نصّ الهدف', 'type' => 'text', 'required' => true, 'list' => true,
-                                         'hint' => 'اكتبه فعلًا قابلًا للقياس: «يحسب مساحة المثلّث» لا «يفهم المثلّثات».'),
+                    'text'      => array('label' => 'نص الهدف', 'type' => 'text', 'required' => true, 'list' => true,
+                                         'hint' => 'اكتبه فعلا قابلا للقياس: «يحسب مساحة المثلث» لا «يفهم المثلثات».'),
                     'at_second' => array('label' => 'لحظة الشرح (ثانية)', 'type' => 'seconds', 'default' => 0, 'list' => true,
                                          'hint' => 'إليها يعيد النظام الطالب حين يخطئ في سؤال هذا الهدف.'),
                 ),
@@ -108,110 +108,110 @@ class Taqdar_admin_model extends CI_Model
                 'lead'     => 'الاختبار والامتحان والواجب. وبالامتحان وحده تصدر الشهادة.',
                 'icon'     => 'check-badge',
                 'order_by' => array('id' => 'DESC'),
-                'note'     => 'نوع «المراجعة» يولّده المحرّك تلقائيًّا بشروطه ولا يُنشأ يدويًّا — تقييم مراجعة مصنوع باليد لا يعرفه المحرّك ولا يربطه بأهدافه.',
+                'note'     => 'نوع «المراجعة» يولده المحرك تلقائيا بشروطه ولا ينشأ يدويا — تقييم مراجعة مصنوع باليد لا يعرفه المحرك ولا يربطه بأهدافه.',
                 'fields'   => array(
                     'type'           => array('label' => 'النوع', 'type' => 'enum', 'default' => 'quiz', 'list' => true,
                                               'options' => array('quiz' => 'اختبار', 'exam' => 'امتحان (تصدر به شهادة)', 'homework' => 'واجب')),
                     'lesson_id'      => array('label' => 'الدرس', 'type' => 'ref', 'ref' => 'lessons', 'list' => true,
-                                              'hint' => 'الدرس الذي يُجرى عليه التقييم.'),
+                                              'hint' => 'الدرس الذي يجرى عليه التقييم.'),
                     'path_id'        => array('label' => 'المسار', 'type' => 'ref', 'ref' => 'paths', 'list' => true,
-                                              'hint' => 'يظهر في الشهادة بوصفه ما أُتقن.'),
+                                              'hint' => 'يظهر في الشهادة بوصفه ما أتقن.'),
                     'milestone_id'   => array('label' => 'المحطة', 'type' => 'ref', 'ref' => 'milestones'),
                     'pass_mark'      => array('label' => 'درجة النجاح', 'type' => 'number', 'default' => 3, 'list' => true,
                                               'hint' => 'عدد الإجابات الصحيحة اللازمة للاجتياز.'),
-                    'time_limit_sec' => array('label' => 'المدّة (ثوانٍ)', 'type' => 'number', 'default' => 0,
-                                              'hint' => 'صفر = بلا حدّ زمني.'),
+                    'time_limit_sec' => array('label' => 'المدة (ثوان)', 'type' => 'number', 'default' => 0,
+                                              'hint' => 'صفر = بلا حد زمني.'),
                 ),
             ),
 
             'competitions' => array(
                 'table'    => 'competitions',
                 'title'    => 'المسابقات',
-                'lead'     => 'تحدّيات دورية على نمط أسئلة نافس. المفتوحة وحدها تظهر للطلاب.',
+                'lead'     => 'تحديات دورية على نمط أسئلة نافس. المفتوحة وحدها تظهر للطلاب.',
                 'icon'     => 'target',
                 'order_by' => array('tq_order' => 'ASC', 'id' => 'DESC'),
-                'note'     => 'مسابقات المنصّة غير مرتبطة بهيئة تقويم التعليم، والإيضاح مكتوب في الصفحة العامّة — فلا تُصغ عنوانًا يوهم ارتباطًا رسميًّا.',
+                'note'     => 'مسابقات المنصة غير مرتبطة بهيئة تقويم التعليم، والإيضاح مكتوب في الصفحة العامة — فلا تصغ عنوانا يوهم ارتباطا رسميا.',
                 'fields'   => array(
                     'title'       => array('label' => 'العنوان', 'type' => 'text', 'required' => true, 'list' => true),
-                    'slug'        => array('label' => 'المسمّى', 'type' => 'text',
-                                           'hint' => 'بحروف لاتينية — الروابط العربية تُردّ قبل أن تصل.'),
+                    'slug'        => array('label' => 'المسمى', 'type' => 'text',
+                                           'hint' => 'بحروف لاتينية — الروابط العربية ترد قبل أن تصل.'),
                     'tagline'     => array('label' => 'سطر التعريف', 'type' => 'text', 'list' => true),
                     'description' => array('label' => 'الوصف', 'type' => 'textarea'),
                     'category_id' => array('label' => 'المرحلة', 'type' => 'ref', 'ref' => 'categories', 'list' => true),
                     'starts_at'   => array('label' => 'تبدأ', 'type' => 'text', 'hint' => 'YYYY-MM-DD'),
                     'ends_at'     => array('label' => 'تنتهي', 'type' => 'text', 'hint' => 'YYYY-MM-DD'),
                     'seats'       => array('label' => 'المقاعد', 'type' => 'number', 'default' => 0,
-                                           'hint' => 'صفر = بلا حدّ.'),
+                                           'hint' => 'صفر = بلا حد.'),
                     'prize'       => array('label' => 'الجائزة', 'type' => 'text'),
                     'status'      => array('label' => 'الحالة', 'type' => 'enum', 'default' => 'draft', 'list' => true,
-                                           'options' => array('draft' => 'مسودّة', 'open' => 'مفتوحة',
-                                                              'closed' => 'أُغلق التسجيل', 'done' => 'انتهت')),
+                                           'options' => array('draft' => 'مسودة', 'open' => 'مفتوحة',
+                                                              'closed' => 'أغلق التسجيل', 'done' => 'انتهت')),
                     'tq_order'    => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0),
                 ),
             ),
 
             'teacher_assignments' => array(
                 'table'    => 'teacher_assignments',
-                'title'    => 'إسناد المعلّمين',
-                'lead'     => 'الإسناد يحدّد ما يملك المعلّم حقّ العمل فيه: مادة وصفًّا وصلاحية.',
+                'title'    => 'إسناد المعلمين',
+                'lead'     => 'الإسناد يحدد ما يملك المعلم حق العمل فيه: مادة وصفا وصلاحية.',
                 'icon'     => 'user-check',
                 'order_by' => array('id' => 'DESC'),
                 'fields'   => array(
-                    'teacher_id'        => array('label' => 'المعلّم', 'type' => 'ref', 'ref' => 'teachers', 'required' => true, 'list' => true),
+                    'teacher_id'        => array('label' => 'المعلم', 'type' => 'ref', 'ref' => 'teachers', 'required' => true, 'list' => true),
                     'subject_id'        => array('label' => 'المادة', 'type' => 'ref', 'ref' => 'subjects', 'required' => true, 'list' => true),
-                    'grade_id'          => array('label' => 'الصفّ', 'type' => 'ref', 'ref' => 'grades', 'list' => true),
+                    'grade_id'          => array('label' => 'الصف', 'type' => 'ref', 'ref' => 'grades', 'list' => true),
                     'can_publish'       => array('label' => 'ينشر المحتوى', 'type' => 'bool', 'default' => 0, 'list' => true),
-                    'can_take_sessions' => array('label' => 'يستقبل حصصًا', 'type' => 'bool', 'default' => 0, 'list' => true),
+                    'can_take_sessions' => array('label' => 'يستقبل حصصا', 'type' => 'bool', 'default' => 0, 'list' => true),
                 ),
             ),
 
             'parent_links' => array(
                 'table'    => 'parent_links',
                 'title'    => 'روابط أولياء الأمور',
-                'lead'     => 'الرابط يمنح وليّ الأمر اطّلاعًا على تقدّم ابنه — ولا يُفعَّل إلّا بموافقة موثّقة.',
+                'lead'     => 'الرابط يمنح ولي الأمر اطلاعا على تقدم ابنه — ولا يفعل إلا بموافقة موثقة.',
                 'icon'     => 'users',
                 'order_by' => array('id' => 'DESC'),
-                'note'     => 'الموافقة بيان قانوني لا خانة شكلية: تاريخها هو ما يُحتجّ به إن اعتُرض على اطّلاع وليّ الأمر. اترك الحالة «معلّقة» حتى تُوثَّق.',
+                'note'     => 'الموافقة بيان قانوني لا خانة شكلية: تاريخها هو ما يحتج به إن اعترض على اطلاع ولي الأمر. اترك الحالة «معلقة» حتى توثق.',
                 'fields'   => array(
-                    'parent_user_id' => array('label' => 'وليّ الأمر', 'type' => 'ref', 'ref' => 'users', 'required' => true, 'list' => true),
+                    'parent_user_id' => array('label' => 'ولي الأمر', 'type' => 'ref', 'ref' => 'users', 'required' => true, 'list' => true),
                     'student_id'     => array('label' => 'الطالب', 'type' => 'ref', 'ref' => 'users', 'required' => true, 'list' => true),
                     'status'         => array('label' => 'الحالة', 'type' => 'enum', 'default' => 'pending', 'list' => true,
-                                              'options' => array('pending' => 'معلّقة', 'active' => 'نشطة', 'revoked' => 'ملغاة')),
+                                              'options' => array('pending' => 'معلقة', 'active' => 'نشطة', 'revoked' => 'ملغاة')),
                     'consent_at'     => array('label' => 'تاريخ الموافقة', 'type' => 'datetime', 'list' => true),
-                    'scope'          => array('label' => 'نطاق الاطّلاع', 'type' => 'textarea',
-                                              'hint' => 'اتركه فارغًا ليطّلع على التقدّم كاملًا.'),
+                    'scope'          => array('label' => 'نطاق الاطلاع', 'type' => 'textarea',
+                                              'hint' => 'اتركه فارغا ليطلع على التقدم كاملا.'),
                 ),
             ),
 
             'plans' => array(
                 'table'    => 'plans',
                 'title'    => 'الباقات',
-                'lead'     => 'الباقة تحدّد السعر والمدّة وما يفتحه الاشتراك.',
+                'lead'     => 'الباقة تحدد السعر والمدة وما يفتحه الاشتراك.',
                 'icon'     => 'package',
                 'order_by' => array('order' => 'ASC'),
-                'note'     => 'تعديل باقة لا يمسّ اشتراكًا قائمًا: السعر والنطاق يُنسخان وقت الشراء، فمن اشترك أمس يبقى على ما دفع.',
+                'note'     => 'تعديل باقة لا يمس اشتراكا قائما: السعر والنطاق ينسخان وقت الشراء، فمن اشترك أمس يبقى على ما دفع.',
                 'fields'   => array(
                     'name_ar'       => array('label' => 'الاسم بالعربية', 'type' => 'text', 'required' => true, 'list' => true),
                     'name_en'       => array('label' => 'الاسم بالإنجليزية', 'type' => 'text', 'ltr' => true),
                     'code'          => array('label' => 'الرمز', 'type' => 'text', 'required' => true, 'list' => true, 'ltr' => true,
-                                             'hint' => 'رمز لاتيني فريد لا يتغيّر: free · monthly · quarterly · annual.'),
+                                             'hint' => 'رمز لاتيني فريد لا يتغير: free · monthly · quarterly · annual.'),
                     'price'         => array('label' => 'السعر', 'type' => 'money', 'default' => 0, 'list' => true,
-                                             'hint' => 'يُدخَل بالريال ويُخزَّن بالهللات. المجّانية تُحدَّد بالدورة «مجّانية» لا بخلوّ السعر؛ وباقة مدفوعة بلا سعر تُرفض.'),
+                                             'hint' => 'يدخل بالريال ويخزن بالهللات. المجانية تحدد بالدورة «مجانية» لا بخلو السعر؛ وباقة مدفوعة بلا سعر ترفض.'),
                     'period'        => array('label' => 'الدورة', 'type' => 'enum', 'default' => 'monthly', 'list' => true,
-                                             'options' => array('free' => 'مجّانية', 'monthly' => 'شهرية', 'quarterly' => 'ربع سنوية', 'annual' => 'سنوية')),
-                    'duration_days' => array('label' => 'المدّة (أيام)', 'type' => 'number', 'default' => 30, 'list' => true,
-                                             'hint' => 'المدّة الفعلية للاشتراك — هي ما يُحسب عليه تاريخ الانتهاء لا اسم الدورة.'),
+                                             'options' => array('free' => 'مجانية', 'monthly' => 'شهرية', 'quarterly' => 'ربع سنوية', 'annual' => 'سنوية')),
+                    'duration_days' => array('label' => 'المدة (أيام)', 'type' => 'number', 'default' => 30, 'list' => true,
+                                             'hint' => 'المدة الفعلية للاشتراك — هي ما يحسب عليه تاريخ الانتهاء لا اسم الدورة.'),
                     'scope'         => array('label' => 'النطاق', 'type' => 'enum', 'default' => 'all', 'list' => true,
                                              'options' => array('all' => 'كل المحتوى', 'trial' => 'دروس تجريبية فقط',
                                                  'subject' => 'مادة واحدة', 'path' => 'مسار واحد')),
                     'scope_id'      => array('label' => 'رقم المادة أو المسار', 'type' => 'number', 'default' => 0,
-                                             'hint' => 'يُترك صفرًا حين يكون النطاق «كل المحتوى».'),
+                                             'hint' => 'يترك صفرا حين يكون النطاق «كل المحتوى».'),
                     'note'          => array('label' => 'سطر الوصف', 'type' => 'text',
                                              'hint' => 'سطر قصير تحت اسم الباقة في صفحة الأسعار.'),
                     'featured'      => array('label' => 'الأكثر ملاءمة', 'type' => 'bool', 'default' => 0, 'list' => true,
-                                             'hint' => 'باقة واحدة فقط تُبرَز — إبراز الكلّ إبراز لا شيء.'),
+                                             'hint' => 'باقة واحدة فقط تبرز — إبراز الكل إبراز لا شيء.'),
                     'features'      => array('label' => 'المزايا', 'type' => 'lines',
-                                             'hint' => 'ميزة في كل سطر — تُعرض في بطاقة الباقة كما تُكتب هنا.'),
+                                             'hint' => 'ميزة في كل سطر — تعرض في بطاقة الباقة كما تكتب هنا.'),
                     'active'        => array('label' => 'متاحة', 'type' => 'bool', 'default' => 1, 'list' => true),
                     'order'         => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0),
                 ),
@@ -225,14 +225,14 @@ class Taqdar_admin_model extends CI_Model
                 'order_by' => array('id' => 'DESC'),
                 'readonly' => true,
                 'nodelete' => true,
-                'note'     => 'الفاتورة لا تُحذف ولا تُحرَّر — سجلّ مالي قابل للتعديل لا يصلح دليلًا.',
+                'note'     => 'الفاتورة لا تحذف ولا تحرر — سجل مالي قابل للتعديل لا يصلح دليلا.',
                 'fields'   => array(
                     'invoice_no'      => array('label' => 'رقم الفاتورة', 'type' => 'text', 'list' => true, 'ltr' => true),
                     'user_id'         => array('label' => 'المشترك', 'type' => 'ref', 'ref' => 'users', 'list' => true),
                     'subscription_id' => array('label' => 'الاشتراك', 'type' => 'number', 'list' => true),
                     'total'           => array('label' => 'الإجمالي', 'type' => 'money', 'list' => true),
                     'status'          => array('label' => 'الحالة', 'type' => 'enum', 'list' => true,
-                                               'options' => array('unpaid' => 'غير مدفوعة', 'paid' => 'مدفوعة', 'refunded' => 'مستردّة')),
+                                               'options' => array('unpaid' => 'غير مدفوعة', 'paid' => 'مدفوعة', 'refunded' => 'مستردة')),
                     'method'          => array('label' => 'الوسيلة', 'type' => 'text', 'list' => true, 'ltr' => true),
                     'issued_at'       => array('label' => 'تاريخ الإصدار', 'type' => 'datetime', 'list' => true),
                     'paid_at'         => array('label' => 'تاريخ السداد', 'type' => 'datetime', 'list' => true),
@@ -242,15 +242,15 @@ class Taqdar_admin_model extends CI_Model
             'wallets' => array(
                 'table'    => 'wallets',
                 'title'    => 'المحافظ',
-                'lead'     => 'رصيد كل معلّم: المتاح والمعلَّق والمحجوز.',
+                'lead'     => 'رصيد كل معلم: المتاح والمعلق والمحجوز.',
                 'icon'     => 'wallet',
                 'order_by' => array('id' => 'DESC'),
                 'readonly' => true,
-                'note'     => 'الأرصدة تُقرأ ولا تُحرَّر يدويًّا — تتغيّر بالقيود وحدها ليبقى الرصيد مساويًا لمجموعها.',
+                'note'     => 'الأرصدة تقرأ ولا تحرر يدويا — تتغير بالقيود وحدها ليبقى الرصيد مساويا لمجموعها.',
                 'fields'   => array(
                     'owner_user_id'     => array('label' => 'صاحب المحفظة', 'type' => 'ref', 'ref' => 'users', 'list' => true),
                     'balance_available' => array('label' => 'المتاح', 'type' => 'money', 'list' => true),
-                    'balance_pending'   => array('label' => 'المعلَّق', 'type' => 'money', 'list' => true),
+                    'balance_pending'   => array('label' => 'المعلق', 'type' => 'money', 'list' => true),
                     'balance_locked'    => array('label' => 'المحجوز', 'type' => 'money', 'list' => true),
                 ),
             ),
@@ -273,16 +273,16 @@ class Taqdar_admin_model extends CI_Model
 
             'audit_log' => array(
                 'table'    => 'audit_log',
-                'title'    => 'سجلّ التدقيق',
-                'lead'     => 'من غيّر ماذا ومتى ومن أي عنوان.',
+                'title'    => 'سجل التدقيق',
+                'lead'     => 'من غير ماذا ومتى ومن أي عنوان.',
                 'icon'     => 'shield',
                 'order_by' => array('id' => 'DESC'),
                 'readonly' => true,
                 'nodelete' => true,
-                'note'     => 'السجلّ لا يُحذف ولا يُحرَّر؛ سجلّ قابل للتعديل لا يصلح دليلًا.',
+                'note'     => 'السجل لا يحذف ولا يحرر؛ سجل قابل للتعديل لا يصلح دليلا.',
                 'fields'   => array(
                     'at'       => array('label' => 'التاريخ', 'type' => 'datetime', 'list' => true),
-                    'actor_id' => array('label' => 'المنفِّذ', 'type' => 'ref', 'ref' => 'users', 'list' => true),
+                    'actor_id' => array('label' => 'المنفذ', 'type' => 'ref', 'ref' => 'users', 'list' => true),
                     'action'   => array('label' => 'الإجراء', 'type' => 'text', 'list' => true),
                     'entity'   => array('label' => 'الكيان', 'type' => 'text', 'list' => true, 'ltr' => true),
                     'ip'       => array('label' => 'العنوان', 'type' => 'text', 'list' => true, 'ltr' => true),
@@ -323,8 +323,8 @@ class Taqdar_admin_model extends CI_Model
     }
 
     /**
-     * قوائم الاختيار. تُحمَّل مرّة واحدة لكل طلب — الشاشة الواحدة قد تعرض
-     * الحقل نفسه في مئتي صفّ، واستعلام لكل صفّ يقتل الصفحة.
+     * قوائم الاختيار. تحمل مرة واحدة لكل طلب — الشاشة الواحدة قد تعرض
+     * الحقل نفسه في مئتي صف، واستعلام لكل صف يقتل الصفحة.
      */
     public function options($ref)
     {
@@ -361,7 +361,7 @@ class Taqdar_admin_model extends CI_Model
                 break;
 
             case 'lessons':
-                // اسم الدرس وحده ملتبس — «مقدّمة» تتكرّر في كل دورة، فنسبقه بدورته
+                // اسم الدرس وحده ملتبس — «مقدمة» تتكرر في كل دورة، فنسبقه بدورته
                 $rows = $this->db->select('lesson.id, lesson.title, course.title AS course_title', false)
                                  ->join('course', 'course.id = lesson.course_id', 'left')
                                  ->order_by('lesson.course_id', 'ASC')->limit(1000)
@@ -390,9 +390,9 @@ class Taqdar_admin_model extends CI_Model
        ===================================================================== */
 
     /**
-     * يحفظ صفًّا بعد تنقية كل حقل حسب نوعه المعلن.
-     * لا يُقرأ من `$_POST` إلّا ما ورد في الوصف — فحقل يُضاف إلى النموذج
-     * من متصفّح المستخدم لا يجد له عمودًا يكتب فيه.
+     * يحفظ صفا بعد تنقية كل حقل حسب نوعه المعلن.
+     * لا يقرأ من `$_POST` إلا ما ورد في الوصف — فحقل يضاف إلى النموذج
+     * من متصفح المستخدم لا يجد له عمودا يكتب فيه.
      *
      * @return array ok|errors
      */
@@ -425,7 +425,7 @@ class Taqdar_admin_model extends CI_Model
                     break;
 
                 case 'money':
-                    // يُدخَل بالريال ويُخزَّن بالهللات — التقريب مرّة واحدة هنا
+                    // يدخل بالريال ويخزن بالهللات — التقريب مرة واحدة هنا
                     $data[$name] = (int) round(((float) str_replace(',', '', (string) $raw)) * 100);
                     break;
 
@@ -439,7 +439,7 @@ class Taqdar_admin_model extends CI_Model
 
                 case 'lines':
                     // سطر لكل ميزة في الشاشة، ومصفوفة JSON في القاعدة —
-                    // فالعرض لا يحتاج تحليل نصّ حرّ ولا يُخطئ في سطر فارغ
+                    // فالعرض لا يحتاج تحليل نص حر ولا يخطئ في سطر فارغ
                     $lines = array_values(array_filter(array_map(
                         'trim', preg_split('/\r\n|\r|\n/', (string) $raw)
                     ), 'strlen'));
@@ -456,12 +456,12 @@ class Taqdar_admin_model extends CI_Model
             }
         }
 
-        // موافقة وليّ الأمر: لا تُفعَّل بلا تاريخ موثّق
+        // موافقة ولي الأمر: لا تفعل بلا تاريخ موثق
         if ($key === 'parent_links' && $data['status'] === 'active' && empty($data['consent_at'])) {
-            $errors[] = 'لا يمكن تفعيل الرابط بلا تاريخ موافقة موثّق.';
+            $errors[] = 'لا يمكن تفعيل الرابط بلا تاريخ موافقة موثق.';
         }
         if ($key === 'parent_links' && $data['parent_user_id'] === $data['student_id'] && $data['parent_user_id'] > 0) {
-            $errors[] = 'لا يكون المستخدم وليَّ أمر نفسه.';
+            $errors[] = 'لا يكون المستخدم ولي أمر نفسه.';
         }
 
         if ($errors) return array('ok' => false, 'errors' => $errors);
@@ -494,8 +494,8 @@ class Taqdar_admin_model extends CI_Model
     }
 
     /**
-     * يقيّد الفعل في سجلّ التدقيق.
-     * لا يُوقف العملية إن فشل: فقدان سطر سجلّ أهون من ردّ حفظ نجح بالفعل.
+     * يقيد الفعل في سجل التدقيق.
+     * لا يوقف العملية إن فشل: فقدان سطر سجل أهون من رد حفظ نجح بالفعل.
      */
     public function audit($action, $entity, $before, $after)
     {
@@ -511,33 +511,33 @@ class Taqdar_admin_model extends CI_Model
     }
 
     /* =====================================================================
-       ربط الأسئلة بالأهداف — الشاشة التي تفكّ السلسلة المسدودة
+       ربط الأسئلة بالأهداف — الشاشة التي تفك السلسلة المسدودة
 
        الطرفان لا يقعان على درس واحد، وهذا أصل العطب الذي كانت عليه الشاشة:
-       السؤال معلَّق على **درس الاختبار** (`question.quiz_id`)، والهدف معلَّق
-       على **درس الفيديو** (`objectives.lesson_id`) — درسان مختلفان دائمًا في
+       السؤال معلق على **درس الاختبار** (`question.quiz_id`)، والهدف معلق
+       على **درس الفيديو** (`objectives.lesson_id`) — درسان مختلفان دائما في
        أي دورة حقيقية. فشاشة تسرد أسئلة درس وأهداف الدرس نفسه لا تجد ما تربطه
-       إلّا حين تُوضع الأسئلة والأهداف على درس واحد اصطناعًا.
+       إلا حين توضع الأسئلة والأهداف على درس واحد اصطناعا.
 
-       فالنطاق هنا **الدورة**: أسئلة اختبارات الدورة كلّها تُربَط بأهداف دروس
-       الدورة كلّها. ويبقى القيد قائمًا — لا يعبر الربط حدود الدورة — لأن
-       سؤالًا يشير إلى هدف في دورة أخرى يعيد الطالب إلى فيديو لم يشترِه.
+       فالنطاق هنا **الدورة**: أسئلة اختبارات الدورة كلها تربط بأهداف دروس
+       الدورة كلها. ويبقى القيد قائما — لا يعبر الربط حدود الدورة — لأن
+       سؤالا يشير إلى هدف في دورة أخرى يعيد الطالب إلى فيديو لم يشتره.
 
-       ومحرّك الإتقان يقرأ العلاقة معكوسةً: سؤال ← هدف ← درس الفيديو
+       ومحرك الإتقان يقرأ العلاقة معكوسة: سؤال ← هدف ← درس الفيديو
        (`JOIN objectives o ON o.id = q.objective_id WHERE o.lesson_id = ?`)،
-       فما يُحفَظ هنا هو ما يجده هناك، بلا وسيط ولا حقل جديد.
+       فما يحفظ هنا هو ما يجده هناك، بلا وسيط ولا حقل جديد.
        ===================================================================== */
 
     /**
-     * الدورات التي فيها أسئلة أو أهداف، ولكلٍّ ما لها وما عليها.
+     * الدورات التي فيها أسئلة أو أهداف، ولكل ما لها وما عليها.
      *
-     * «المربوط» يُحسَب بشرط المحرّك لا بمجرّد امتلاء `objective_id`:
-     * سؤال يشير إلى هدف محذوف أو إلى هدف في دورة أخرى ليس مربوطًا في شيء،
-     * وعدّه مربوطًا يعطي الإدارة اطمئنانًا كاذبًا بينما البوّابة لا تجد سؤالًا.
+     * «المربوط» يحسب بشرط المحرك لا بمجرد امتلاء `objective_id`:
+     * سؤال يشير إلى هدف محذوف أو إلى هدف في دورة أخرى ليس مربوطا في شيء،
+     * وعده مربوطا يعطي الإدارة اطمئنانا كاذبا بينما البوابة لا تجد سؤالا.
      */
     public function question_binding_overview()
     {
-        // الجدول المشتقّ لا زينة: `HAVING` على اسم مستعار بلا `GROUP BY`
+        // الجدول المشتق لا زينة: `HAVING` على اسم مستعار بلا `GROUP BY`
         // امتداد من امتدادات MySQL يسقط تحت `ONLY_FULL_GROUP_BY`
         $sql = "SELECT * FROM (
                 SELECT c.id AS course_id, c.title AS course_title,
@@ -578,7 +578,7 @@ class Taqdar_admin_model extends CI_Model
     }
 
     /**
-     * أسئلة اختبارات الدورة كلّها، ومعها درس الاختبار الذي جاءت منه
+     * أسئلة اختبارات الدورة كلها، ومعها درس الاختبار الذي جاءت منه
      * وحالة ارتباطها الحالية — ليعرف العارض أي ربط قائم وأي ربط مكسور.
      */
     public function questions_of_course($course_id)
@@ -598,8 +598,8 @@ class Taqdar_admin_model extends CI_Model
     }
 
     /**
-     * أهداف دروس الدورة كلّها، مرتّبةً بدرسها ثم بلحظة الشرح —
-     * فالعارض يجمعها بالدرس بلا استعلام ثانٍ لكل درس.
+     * أهداف دروس الدورة كلها، مرتبة بدرسها ثم بلحظة الشرح —
+     * فالعارض يجمعها بالدرس بلا استعلام ثان لكل درس.
      */
     public function objectives_of_course($course_id)
     {
@@ -613,11 +613,11 @@ class Taqdar_admin_model extends CI_Model
     }
 
     /**
-     * يحفظ الربط بعد التحقّق في الخادم من طرفَيه معًا.
+     * يحفظ الربط بعد التحقق في الخادم من طرفيه معا.
      *
-     * لا يُوثَق بما يصل من النموذج: قائمة `<select>` تُحرَّر في المتصفّح،
-     * فالمسموح يُقرأ من قاعدة البيانات — أسئلة اختبارات هذه الدورة، وأهداف
-     * دروس هذه الدورة — وما خرج عن القائمتين يُرفَض ويُحصى ليُقال للإدارة.
+     * لا يوثق بما يصل من النموذج: قائمة `<select>` تحرر في المتصفح،
+     * فالمسموح يقرأ من قاعدة البيانات — أسئلة اختبارات هذه الدورة، وأهداف
+     * دروس هذه الدورة — وما خرج عن القائمتين يرفض ويحصى ليقال للإدارة.
      *
      * @return array bound|cleared|rejected
      */
@@ -637,11 +637,11 @@ class Taqdar_admin_model extends CI_Model
             $question_id  = (int) $question_id;
             $objective_id = (int) $objective_id;
 
-            // سؤال من خارج هذه الدورة: لا يُلمَس ولو ورد في الطلب
+            // سؤال من خارج هذه الدورة: لا يلمس ولو ورد في الطلب
             if (!isset($allowed_q[$question_id])) { $rejected++; continue; }
 
-            // هدف من دورة أخرى — أو هدف لا وجود له — يُرفَض،
-            // وإلّا صار السؤال يعيد الطالب إلى فيديو ليس من دورته
+            // هدف من دورة أخرى — أو هدف لا وجود له — يرفض،
+            // وإلا صار السؤال يعيد الطالب إلى فيديو ليس من دورته
             if ($objective_id !== 0 && !isset($allowed_obj[$objective_id])) { $rejected++; continue; }
 
             if ($allowed_q[$question_id] !== $objective_id) {
@@ -674,8 +674,8 @@ class Taqdar_admin_model extends CI_Model
 
         // شريط «ربط الأسئلة بالأهداف» في لوحة الجاهزية يقيس ما تقيسه شاشة
         // الربط نفسها، لا `objective_id > 0`: رقم يقول «مكتمل» بينما الشاشة
-        // تقول «ناقص» يجعل الإدارة تصدّق أيّهما أراحها. فالمربوط هنا وهناك
-        // واحد: هدف قائم، في درسٍ من الدورة التي جاء منها سؤاله.
+        // تقول «ناقص» يجعل الإدارة تصدق أيهما أراحها. فالمربوط هنا وهناك
+        // واحد: هدف قائم، في درس من الدورة التي جاء منها سؤاله.
         $q = $this->db->query(
             "SELECT COUNT(*) AS t,
                     SUM(CASE WHEN o.id IS NOT NULL AND vl.course_id = ql.course_id
@@ -690,13 +690,13 @@ class Taqdar_admin_model extends CI_Model
 
 
     /**
-     * الفاعل: المستخدم في الطلب الوِبّي، و0 (النظام) في المهامّ الدورية.
-     * مكتبة الجلسة غير محمَّلة في سطر الأوامر، وقراءتها هناك تُسقط العملية.
+     * الفاعل: المستخدم في الطلب الوبي، و0 (النظام) في المهام الدورية.
+     * مكتبة الجلسة غير محملة في سطر الأوامر، وقراءتها هناك تسقط العملية.
      *
      * والفحص يقع على كائن CI لا على `$this`: خصائص النموذج في CI وهمية
-     * يخدمها `__get` وحده، و`CI_Model` لا يعرّف `__isset` — فـ
-     * `isset($this->session)` كاذبة أبدًا ولو كانت الجلسة قائمة، وكانت
-     * تنسب كل فعل إداري إلى «النظام» فيفقد سجلّ التدقيق فائدته الوحيدة.
+     * يخدمها `__get` وحده، و`CI_Model` لا يعرف `__isset` — فـ
+     * `isset($this->session)` كاذبة أبدا ولو كانت الجلسة قائمة، وكانت
+     * تنسب كل فعل إداري إلى «النظام» فيفقد سجل التدقيق فائدته الوحيدة.
      */
     private function tq_actor_id()
     {

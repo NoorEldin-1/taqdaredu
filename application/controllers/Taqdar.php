@@ -2,10 +2,10 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * متحكّم بوّابات تقدّر.
+ * متحكم بوابات تقدر.
  *
- * كل مسار هنا يفرض دوره في الخادم لا في الواجهة — إخفاء زرّ ليس صلاحية.
- * والعرض يمرّ بغلاف الثيم نفسه (frontend/<theme>/index) فلا يخرج عن النظام.
+ * كل مسار هنا يفرض دوره في الخادم لا في الواجهة — إخفاء زر ليس صلاحية.
+ * والعرض يمر بغلاف الثيم نفسه (frontend/<theme>/index) فلا يخرج عن النظام.
  */
 class Taqdar extends CI_Controller
 {
@@ -18,12 +18,12 @@ class Taqdar extends CI_Controller
         $this->load->model('user_model');
 
         /**
-         * المنطقة الزمنية تُضبط هنا كما تُضبط في Taqdar_admin وTaqdar_cron.
+         * المنطقة الزمنية تضبط هنا كما تضبط في Taqdar_admin وTaqdar_cron.
          *
-         * غيابها كان يجعل هذا المتحكّم يكتب بتوقيت الخادم (UTC) بينما تكتب
-         * اللوحة والمهامّ الدورية بتوقيت المنصّة — فيختلف الطابعان ثلاث ساعات
-         * في `audit_log` نفسه، ويصير السجلّ غير قابل للترتيب ولا للتدقيق.
-         * الإعداد الناقص لا يبرّر طابعًا عشوائيًا، فله بديل صريح.
+         * غيابها كان يجعل هذا المتحكم يكتب بتوقيت الخادم (UTC) بينما تكتب
+         * اللوحة والمهام الدورية بتوقيت المنصة — فيختلف الطابعان ثلاث ساعات
+         * في `audit_log` نفسه، ويصير السجل غير قابل للترتيب ولا للتدقيق.
+         * الإعداد الناقص لا يبرر طابعا عشوائيا، فله بديل صريح.
          */
         $tz = trim((string) get_settings('timezone'));
         if ($tz === '' || !in_array($tz, DateTimeZone::listIdentifiers(), true)) {
@@ -36,7 +36,7 @@ class Taqdar extends CI_Controller
 
     private function theme()
     {
-        return 'taqdar'; // بوّابات تقدّر تعرض بثيمها دائمًا، فلا تنتظر تبديل الموقع العام
+        return 'taqdar'; // بوابات تقدر تعرض بثيمها دائما، فلا تنتظر تبديل الموقع العام
     }
 
     /** يعرض صفحة داخل غلاف الثيم. */
@@ -56,11 +56,11 @@ class Taqdar extends CI_Controller
     }
 
     /**
-     * يشترط دورًا بعينه — عبر tq_guard الموحّدة في taqdar_role_helper.
+     * يشترط دورا بعينه — عبر tq_guard الموحدة في taqdar_role_helper.
      *
-     * قبل هذا كان كل متحكّم يشتقّ الدور بطريقته: هنا `is_instructor` وحدها،
-     * وفي Taqdar_gate `role_id` أيضًا — فمرّ الأدمن من باب ومُنع من آخر.
-     * الاشتقاق الآن في موضع واحد، والأدمن لا يُستثنى من الفصل.
+     * قبل هذا كان كل متحكم يشتق الدور بطريقته: هنا `is_instructor` وحدها،
+     * وفي Taqdar_gate `role_id` أيضا — فمر الأدمن من باب ومنع من آخر.
+     * الاشتقاق الآن في موضع واحد، والأدمن لا يستثنى من الفصل.
      */
     private function require_role($role)
     {
@@ -80,26 +80,26 @@ class Taqdar extends CI_Controller
                                        ->where('status', 0)
                                        ->count_all_results('notifications');
 
-        // المراجعة المستحقّة من المستودع نفسه الذي تقرأ منه الصفحة،
+        // المراجعة المستحقة من المستودع نفسه الذي تقرأ منه الصفحة،
         // فلا يفترق رقم الشارة عن عدد ما تعرضه
         $due = 0;
         try {
             $this->load->model('taqdar_repo_model');
             $due = (int) $this->taqdar_repo_model->count_due_reviews($uid);
         } catch (Throwable $e) {
-            $due = 0;   // شارةٌ ناقصة أهون من قائمة مبتورة
+            $due = 0;   // شارة ناقصة أهون من قائمة مبتورة
         }
 
         return ['messages' => $unread_msgs, 'notifications' => $unread_notif, 'reviews' => $due];
     }
 
-    /* ---- بوّابة الطالب --------------------------------------------- */
+    /* ---- بوابة الطالب --------------------------------------------- */
 
     public function index()          { redirect(site_url('taqdar/home'), 'refresh'); }
     public function home()           { $this->student('tq_home', 'الرئيسية'); }
     public function lessons()        { $this->student('tq_lessons', 'دروسي'); }
     // القائمة الجانبية تصدر `student/reviews` وشاشتها `tq_reviews.php` قائمة،
-    // ولم تكن لها نقطة في المتحكّم — فكان بندٌ ثابت في قائمة كل طالب يقود إلى 404.
+    // ولم تكن لها نقطة في المتحكم — فكان بند ثابت في قائمة كل طالب يقود إلى 404.
     public function reviews()        { $this->student('tq_reviews', 'المراجعة'); }
     public function tasks()          { $this->student('tq_tasks', 'مهامي'); }
     public function exams()          { $this->student('tq_exams', 'اختباراتي'); }
@@ -114,9 +114,9 @@ class Taqdar extends CI_Controller
     public function settings()       { $this->student('tq_settings', 'الإعدادات'); }
 
     /**
-     * مشغّل الدرس. لا يستعلم عن الدرس هنا — الصفحة تطلبه من `taqdar_gate`
-     * الذي يحسم القفل في الخادم. فلو بُني القفل هنا لأمكن تجاوزه بتعديل
-     * الواجهة، ولصار «قفلًا» بصريًّا لا آلية.
+     * مشغل الدرس. لا يستعلم عن الدرس هنا — الصفحة تطلبه من `taqdar_gate`
+     * الذي يحسم القفل في الخادم. فلو بني القفل هنا لأمكن تجاوزه بتعديل
+     * الواجهة، ولصار «قفلا» بصريا لا آلية.
      */
     public function lesson($course_id = 0, $lesson_id = 0)
     {
@@ -130,13 +130,13 @@ class Taqdar extends CI_Controller
         ));
     }
 
-    /** حصص بالطلب: طبقة مستقلّة بجوار المنهج لا داخله. */
+    /** حصص بالطلب: طبقة مستقلة بجوار المنهج لا داخله. */
     public function on_demand()      { $this->student('tq_on_demand', 'حصص بالطلب'); }
 
     private function student($page, $title)
     {
-        // الطالب محروس كغيره: الأدمن الذي يفتح بوّابة الطالب يرى شاشات فارغة
-        // فيظنّها معطوبة، والاختبار من حسابه يعطي نتيجة كاذبة.
+        // الطالب محروس كغيره: الأدمن الذي يفتح بوابة الطالب يرى شاشات فارغة
+        // فيظنها معطوبة، والاختبار من حسابه يعطي نتيجة كاذبة.
         $this->require_role('student');
         $uid = $this->session->userdata('user_id');
         $this->show($page, $title, [
@@ -145,18 +145,18 @@ class Taqdar extends CI_Controller
         ]);
     }
 
-    /* ---- صفحات عامّة داخل الثيم ------------------------------------ */
+    /* ---- صفحات عامة داخل الثيم ------------------------------------ */
 
-    /** عامّتان: تُعرضان لأي زائر، فالباقات والأقسام جزء من الموقع لا من بوّابة. */
+    /** عامتان: تعرضان لأي زائر، فالباقات والأقسام جزء من الموقع لا من بوابة. */
     public function plans()      { $this->show('plans', 'الاشتراكات'); }
     public function categories() { $this->show('categories', 'الأقسام'); }
 
     /**
-     * نتائج البحث العامّ.
+     * نتائج البحث العام.
      *
-     * منفصلةٌ عن `search()`: تلك تخصّ من له بوّابة وتُبقيه فيها، وهذه
-     * لكلّ زائر. وكانت `search()` تُرسل الزائر إلى `/courses?query=` —
-     * وقد صارت تحويلًا إلى `/plans` ولا تقرأ `query`، فكان بحثه يضيع.
+     * منفصلة عن `search()`: تلك تخص من له بوابة وتبقيه فيها، وهذه
+     * لكل زائر. وكانت `search()` ترسل الزائر إلى `/courses?query=` —
+     * وقد صارت تحويلا إلى `/plans` ولا تقرأ `query`، فكان بحثه يضيع.
      */
     public function site_search()
     {
@@ -167,14 +167,14 @@ class Taqdar extends CI_Controller
     }
 
     /**
-     * البحث — من داخل البوّابة لا خارجها.
+     * البحث — من داخل البوابة لا خارجها.
      *
-     * كان يحوّل إلى `home/courses`: صفحة الكتالوج العامّة بترويسة الموقع
-     * وتذييله لا بشريط البوّابة. فأوّل بحث يُخرج الطالب من بوّابته إلى شاشة
-     * لا رابط فيها يعيده. المقصد الآن يُشتقّ من الدور ويبقى داخل البوّابة،
-     * ويُمرَّر النصّ في `q` فتلتقطه شاشة النتائج متى بُنيت.
+     * كان يحول إلى `home/courses`: صفحة الكتالوج العامة بترويسة الموقع
+     * وتذييله لا بشريط البوابة. فأول بحث يخرج الطالب من بوابته إلى شاشة
+     * لا رابط فيها يعيده. المقصد الآن يشتق من الدور ويبقى داخل البوابة،
+     * ويمرر النص في `q` فتلتقطه شاشة النتائج متى بنيت.
      *
-     * والزائر وحده يُرسل إلى الكتالوج العامّ — لأنه لا بوّابة له أصلًا.
+     * والزائر وحده يرسل إلى الكتالوج العام — لأنه لا بوابة له أصلا.
      */
     public function search()
     {
@@ -182,12 +182,12 @@ class Taqdar extends CI_Controller
         $role = tq_role();
 
         if ($role === 'guest') {
-            /* كان `/courses?query=` — وهي الآن تحويلٌ إلى `/plans` لا تقرأ
-               `query`. فيُرسل الزائر إلى صفحة النتائج العامّة. */
+            /* كان `/courses?query=` — وهي الآن تحويل إلى `/plans` لا تقرأ
+               `query`. فيرسل الزائر إلى صفحة النتائج العامة. */
             redirect(site_url('search') . ($q === '' ? '' : '?q=' . rawurlencode($q)), 'location', 302);
         }
 
-        // شاشة نتائج داخل البوّابة إن رُكِّبت — وإلّا لا نخرج بالمستخدم منها
+        // شاشة نتائج داخل البوابة إن ركبت — وإلا لا نخرج بالمستخدم منها
         if (in_array($role, array('student', 'teacher', 'parent'), true)
             && is_file(APPPATH . 'views/frontend/' . $this->theme() . '/tq_search.php')) {
             $uid = (int) $this->session->userdata('user_id');
@@ -210,14 +210,14 @@ class Taqdar extends CI_Controller
 
         if ($q !== '') {
             $this->session->set_flashdata('flash_message',
-                'بحثت عن «' . $q . '» — وشاشة النتائج داخل البوّابة قيد الإعداد.');
+                'بحثت عن «' . $q . '» — وشاشة النتائج داخل البوابة قيد الإعداد.');
         }
         redirect(site_url($landing[$role]) . ($q === '' ? '' : '?q=' . rawurlencode($q)), 'location', 302);
     }
 
     /**
-     * تصدير بيانات الحساب — ملفّ JSON بكل ما يخصّ المستخدم.
-     * حقّ يُنفَّذ لا سياسة تُكتب.
+     * تصدير بيانات الحساب — ملف JSON بكل ما يخص المستخدم.
+     * حق ينفذ لا سياسة تكتب.
      */
     /* =====================================================================
        الاشتراك
@@ -231,8 +231,8 @@ class Taqdar extends CI_Controller
 
         $cur = $this->taqdar_billing_model->active_subscription($uid);
         if (!$cur) {
-            // آخر اشتراك مهما كانت حاله: المعلّق تنتظره فاتورة، والمنتهي
-            // يحتاج صاحبه أن يعرف أنه انتهى — لا أن يُقال له «لا اشتراك لك».
+            // آخر اشتراك مهما كانت حاله: المعلق تنتظره فاتورة، والمنتهي
+            // يحتاج صاحبه أن يعرف أنه انتهى — لا أن يقال له «لا اشتراك لك».
             $cur = $this->db->where('user_id', (int) $uid)
                             ->order_by('id', 'DESC')->limit(1)
                             ->get('subscriptions')->row_array();
@@ -250,7 +250,7 @@ class Taqdar extends CI_Controller
         ));
     }
 
-    /** الاشتراك يغيّر الحساب، فلا يُنفَّذ بطلب GET قد يجلبه زاحف أو صورة. */
+    /** الاشتراك يغير الحساب، فلا ينفذ بطلب GET قد يجلبه زاحف أو صورة. */
     /** شراء مسار — وحدة البيع الأساسية. POST وحده. */
     /** POST teacher/courses/save — إنشاء كورس أو تعديله. */
     public function courses_save()
@@ -270,10 +270,10 @@ class Taqdar extends CI_Controller
     }
 
     /**
-     * POST student/parent-link — يوافق الطالب على ربط وليّ أمره أو يرفضه.
+     * POST student/parent-link — يوافق الطالب على ربط ولي أمره أو يرفضه.
      *
-     * الموافقة بيان قانوني يوقّعه صاحبه: النموذج يرفض أن يوقّعها وليّ الأمر،
-     * وهذا المسار يمنح الطالب القدرة على توقيعها فعلًا.
+     * الموافقة بيان قانوني يوقعه صاحبه: النموذج يرفض أن يوقعها ولي الأمر،
+     * وهذا المسار يمنح الطالب القدرة على توقيعها فعلا.
      */
     public function parent_link_respond()
     {
@@ -288,15 +288,15 @@ class Taqdar extends CI_Controller
 
         if ($action === 'reject') {
             $r = $this->taqdar_parent_model->revoke_link($link_id, $uid);
-            $msg_ok = 'رُفض الطلب.';
+            $msg_ok = 'رفض الطلب.';
         } else {
             $r = $this->taqdar_parent_model->grant_consent($link_id, $uid);
-            $msg_ok = 'وافقتَ على الربط، ويستطيع وليّ أمرك متابعة تقدّمك الآن.';
+            $msg_ok = 'وافقت على الربط، ويستطيع ولي أمرك متابعة تقدمك الآن.';
         }
 
         $ok = !empty($r['ok']);
         $this->session->set_flashdata($ok ? 'flash_message' : 'error_message',
-            $ok ? $msg_ok : (isset($r['errors']) ? implode(' ', $r['errors']) : 'تعذّر تنفيذ الطلب.'));
+            $ok ? $msg_ok : (isset($r['errors']) ? implode(' ', $r['errors']) : 'تعذر تنفيذ الطلب.'));
         redirect(base_url('student/settings?s=profile'));
     }
 
@@ -319,7 +319,7 @@ class Taqdar extends CI_Controller
         }
 
         $this->session->set_flashdata('flash_message',
-            'صدرت فاتورتك. حوّل قيمتها ويُفتح المسار بعد التحقّق من الحوالة.');
+            'صدرت فاتورتك. حول قيمتها ويفتح المسار بعد التحقق من الحوالة.');
         redirect(base_url('student/subscription'));
     }
 
@@ -341,8 +341,8 @@ class Taqdar extends CI_Controller
         }
 
         $this->session->set_flashdata('flash_message', !empty($r['free'])
-            ? 'فُعِّلت باقتك المجّانية.'
-            : 'صدرت فاتورتك. حوّل قيمتها ويُفعَّل اشتراكك بعد التحقّق من الحوالة.');
+            ? 'فعلت باقتك المجانية.'
+            : 'صدرت فاتورتك. حول قيمتها ويفعل اشتراكك بعد التحقق من الحوالة.');
         redirect(base_url('student/subscription'));
     }
 
@@ -357,13 +357,13 @@ class Taqdar extends CI_Controller
         if ($sub) {
             $this->taqdar_billing_model->cancel($sub['id'], 'ألغاه الطالب');
             $this->session->set_flashdata('flash_message',
-                'أُوقف التجديد — ويبقى اشتراكك صالحًا حتى تاريخ انتهائه.');
+                'أوقف التجديد — ويبقى اشتراكك صالحا حتى تاريخ انتهائه.');
         }
         redirect(base_url('student/subscription'));
     }
 
 
-    /** كل نماذج صفحة الإعدادات تصبّ هنا؛ القرار في النموذج لا في الباب. */
+    /** كل نماذج صفحة الإعدادات تصب هنا؛ القرار في النموذج لا في الباب. */
     public function settings_save()
     {
         $this->require_role('student');
@@ -387,7 +387,7 @@ class Taqdar extends CI_Controller
 
     /**
      * POST teacher/students/message
-     * النطاق يُعاد فرضه هنا كاملًا: العرض يُخفي، والخادم وحده يمنع.
+     * النطاق يعاد فرضه هنا كاملا: العرض يخفي، والخادم وحده يمنع.
      */
     public function students_message()
     {
@@ -401,7 +401,7 @@ class Taqdar extends CI_Controller
         $back       = 'teacher/students' . ($course_id > 0 ? '?course=' . $course_id : '');
 
         if ($body === '') {
-            $this->session->set_flashdata('error_message', 'اكتب نصّ الرسالة قبل الإرسال.');
+            $this->session->set_flashdata('error_message', 'اكتب نص الرسالة قبل الإرسال.');
             redirect(base_url($back));
             return;
         }
@@ -414,7 +414,7 @@ class Taqdar extends CI_Controller
         )->row('n');
 
         if ($student_id < 1 || $in_scope < 1) {
-            $this->session->set_flashdata('error_message', 'لا تُرسَل الرسائل إلا إلى طلاب كورساتك.');
+            $this->session->set_flashdata('error_message', 'لا ترسل الرسائل إلا إلى طلاب كورساتك.');
             redirect(base_url($back));
             return;
         }
@@ -484,8 +484,8 @@ class Taqdar extends CI_Controller
 
     /**
      * حذف الحساب — **تجهيل لا محو**.
-     * تُستبدل حقول الهوية بقيم مجهولة وتبقى القيود المالية بمعرّف مجهول،
-     * لأن الالتزام الضريبي يوجب حفظ الفواتير. وهذا ما تنصّ عليه الوثيقة.
+     * تستبدل حقول الهوية بقيم مجهولة وتبقى القيود المالية بمعرف مجهول،
+     * لأن الالتزام الضريبي يوجب حفظ الفواتير. وهذا ما تنص عليه الوثيقة.
      */
     public function delete_account()
     {
@@ -493,11 +493,11 @@ class Taqdar extends CI_Controller
         $uid = (int) $this->session->userdata('user_id');
 
         if (tq_role($uid) === 'admin') {
-            show_error('لا يُحذف حساب إداري من هنا. استعمل لوحة الإدارة.', 403, 'غير مسموح');
+            show_error('لا يحذف حساب إداري من هنا. استعمل لوحة الإدارة.', 403, 'غير مسموح');
         }
 
-        // التأكيد بـ POST وحده. رابط GET يحذف حسابًا قد يفتحه زاحف أو
-        // استباق تحميل في المتصفّح — فيُجهَّل حساب بلا أن يطلب صاحبه شيئًا.
+        // التأكيد بـ POST وحده. رابط GET يحذف حسابا قد يفتحه زاحف أو
+        // استباق تحميل في المتصفح — فيجهل حساب بلا أن يطلب صاحبه شيئا.
         if ($this->input->method(true) !== 'POST' || $this->input->post('confirm') !== 'yes') {
             $this->show('tq_delete_account', 'حذف الحساب', array(
                 'tq_counts' => $this->counts($uid),
@@ -533,12 +533,12 @@ class Taqdar extends CI_Controller
         redirect(site_url('login'), 'location', 302);
     }
 
-    /* ---- بوّابة المعلم ---------------------------------------------- */
+    /* ---- بوابة المعلم ---------------------------------------------- */
 
     public function teacher($section = 'dashboard')
     {
         $map = [
-            'dashboard' => ['tq_teacher_dashboard', 'لوحة المعلّم'],
+            'dashboard' => ['tq_teacher_dashboard', 'لوحة المعلم'],
             'courses'   => ['tq_teacher_courses',   'كورساتي'],
             'upload'    => ['tq_teacher_upload',    'رفع الدروس'],
             'questions' => ['tq_teacher_questions', 'بنك الأسئلة'],
@@ -558,7 +558,7 @@ class Taqdar extends CI_Controller
         ]);
     }
 
-    /* ---- بوّابة وليّ الأمر ------------------------------------------ */
+    /* ---- بوابة ولي الأمر ------------------------------------------ */
 
     public function parent_portal($section = 'children')
     {
@@ -586,17 +586,17 @@ class Taqdar extends CI_Controller
     /* =====================================================================
        مسارات الكتابة
        ---------------------------------------------------------------------
-       دالّة العرض تعرض ولا تكتب.
+       دالة العرض تعرض ولا تكتب.
 
-       قبل هذا كان كل نموذج في بوّابتَي المعلّم ووليّ الأمر يرسل إلى مسار
-       العرض نفسه، و`teacher()`/`parent_portal()` لا تفحصان نوع الطلب أصلًا:
-       فيُستدعى الحارس، ثم تُعرض الصفحة كأن شيئًا لم يكن. لا كتابة، ولا خطأ،
-       ولا رسالة — وهذا أسوأ من العطل الظاهر لأن المستخدم يظنّ أنه حفظ.
+       قبل هذا كان كل نموذج في بوابتي المعلم وولي الأمر يرسل إلى مسار
+       العرض نفسه، و`teacher()`/`parent_portal()` لا تفحصان نوع الطلب أصلا:
+       فيستدعى الحارس، ثم تعرض الصفحة كأن شيئا لم يكن. لا كتابة، ولا خطأ،
+       ولا رسالة — وهذا أسوأ من العطل الظاهر لأن المستخدم يظن أنه حفظ.
 
-       فالكتابة الآن مسارات مستقلّة صريحة: POST وحده، ثم الدور، ثم الملكية،
+       فالكتابة الآن مسارات مستقلة صريحة: POST وحده، ثم الدور، ثم الملكية،
        ثم تفويض العمل إلى نموذج، ثم تحويل 302 برسالة. و`redirect(...,'refresh')`
-       متروك عمدًا: لا يتبعه curl فيبدو الفحص ناجحًا وهو لم يصل، ويكسر زرّ
-       الرجوع في المتصفّح.
+       متروك عمدا: لا يتبعه curl فيبدو الفحص ناجحا وهو لم يصل، ويكسر زر
+       الرجوع في المتصفح.
        ===================================================================== */
 
     /** حارس الكتابة. الرابط الذي يكتب بـ GET يستدعيه زاحف أو استباق تحميل. */
@@ -607,11 +607,11 @@ class Taqdar extends CI_Controller
     }
 
     /**
-     * ردّ المستخدم إلى صفحته برسالة — 302 دائمًا.
+     * رد المستخدم إلى صفحته برسالة — 302 دائما.
      *
-     * الرسالة تُكتب بمفتاحَي المنصّة (`flash_message`/`error_message`) وبمفتاحَي
-     * شاشات تقدّر (`tq_ok`/`tq_error`) معًا: الشاشات في البوّابات الثلاث لا
-     * تقرأ بالاصطلاح نفسه، ورسالة لا تُقرأ كأنها لم تُكتب.
+     * الرسالة تكتب بمفتاحي المنصة (`flash_message`/`error_message`) وبمفتاحي
+     * شاشات تقدر (`tq_ok`/`tq_error`) معا: الشاشات في البوابات الثلاث لا
+     * تقرأ بالاصطلاح نفسه، ورسالة لا تقرأ كأنها لم تكتب.
      */
     private function done($path, $ok, $message)
     {
@@ -620,7 +620,7 @@ class Taqdar extends CI_Controller
         redirect(site_url($path), 'location', 302);
     }
 
-    /** رسالة النتيجة من عقد النموذج الموحّد. */
+    /** رسالة النتيجة من عقد النموذج الموحد. */
     private function result_message($r, $success)
     {
         if (!empty($r['ok'])) {
@@ -629,23 +629,23 @@ class Taqdar extends CI_Controller
         // النماذج تشرح فشلها بمفتاحين مختلفين — وابتلاع الشرح أسوأ من الفشل
         if (!empty($r['errors']))  return implode(' ', (array) $r['errors']);
         if (!empty($r['message'])) return (string) $r['message'];
-        return 'تعذّر تنفيذ الطلب.';
+        return 'تعذر تنفيذ الطلب.';
     }
 
     /**
-     * تفويض العمل إلى نموذج قد لا يكون وُلد بعد.
+     * تفويض العمل إلى نموذج قد لا يكون ولد بعد.
      *
-     * المسارات تُبنى قبل النماذج. ولو نودي على نموذج غائب لسقطت الصفحة بخطأ
-     * قاتل بدل أن تقول ما ينقص — فيظنّ المجرِّب أن المسار نفسه مكسور.
-     * فالفحص على ثلاث مراحل: وجود الملفّ، ثم إعلانه الصنف (ملفّ يُكتب الآن
-     * قد يكون نصفه فيقتل `load->model`)، ثم وجود الدالّة.
+     * المسارات تبنى قبل النماذج. ولو نودي على نموذج غائب لسقطت الصفحة بخطأ
+     * قاتل بدل أن تقول ما ينقص — فيظن المجرب أن المسار نفسه مكسور.
+     * فالفحص على ثلاث مراحل: وجود الملف، ثم إعلانه الصنف (ملف يكتب الآن
+     * قد يكون نصفه فيقتل `load->model`)، ثم وجود الدالة.
      *
-     * وتوقيع كل نموذج شأنه: فالثالث في الزوج وسائطه هو إن اختلفت عن العامّة —
-     * لأن إجبار نموذج قائم على توقيع المتحكّم يكسره، والعكس أصحّ.
+     * وتوقيع كل نموذج شأنه: فالثالث في الزوج وسائطه هو إن اختلفت عن العامة —
+     * لأن إجبار نموذج قائم على توقيع المتحكم يكسره، والعكس أصح.
      *
-     * @param array $candidates [اسم النموذج، اسم الدالّة، وسائط خاصّة؟] بترتيب الأفضلية
-     * @param array $args       الوسائط العامّة
-     * @return array عقد موحّد: ok | errors | message
+     * @param array $candidates [اسم النموذج، اسم الدالة، وسائط خاصة؟] بترتيب الأفضلية
+     * @param array $args       الوسائط العامة
+     * @return array عقد موحد: ok | errors | message
      */
     private function delegate(array $candidates, array $args)
     {
@@ -663,7 +663,7 @@ class Taqdar extends CI_Controller
             $src = @file_get_contents($file);
             if ($src === false
                 || !preg_match('/\bclass\s+' . preg_quote(ucfirst($model), '/') . '\b/i', $src)) {
-                continue; // ملفّ قيد الكتابة: تحميله الآن خطأ قاتل
+                continue; // ملف قيد الكتابة: تحميله الآن خطأ قاتل
             }
 
             $this->load->model($model);
@@ -675,8 +675,8 @@ class Taqdar extends CI_Controller
             if (is_array($out) && isset($out['error'])) {
                 return array('ok' => false, 'errors' => array((string) $out['error']));
             }
-            /* نموذج يعيد عددًا لا حكمًا: صفرٌ نتيجةٌ صحيحة لا فشل — من مسح
-               كل فتراته حفظ صفرًا وقد نجح. فـ(bool) هنا كانت تقلب النجاح فشلًا. */
+            /* نموذج يعيد عددا لا حكما: صفر نتيجة صحيحة لا فشل — من مسح
+               كل فتراته حفظ صفرا وقد نجح. فـ(bool) هنا كانت تقلب النجاح فشلا. */
             if (isset($pair[3]) && $pair[3] === 'numeric_ok' && is_numeric($out)) {
                 return array('ok' => true, 'errors' => array(), 'count' => (int) $out);
             }
@@ -687,13 +687,13 @@ class Taqdar extends CI_Controller
             'ok'      => false,
             'pending' => true,
             'errors'  => array(
-                'وصل الطلب وصلاحيتك صحيحة، والنموذج المنفِّذ لم يُركَّب بعد ('
+                'وصل الطلب وصلاحيتك صحيحة، والنموذج المنفذ لم يركب بعد ('
                 . implode(' أو ', array_unique($wanted)) . ').'
             ),
         );
     }
 
-    /** أثر في audit_log لكل كتابة — عبر نموذج المستودع القائم إن وُجد. */
+    /** أثر في audit_log لكل كتابة — عبر نموذج المستودع القائم إن وجد. */
     private function trace($action, $entity, $payload = null)
     {
         if (!is_file(APPPATH . 'models/Taqdar_repo_model.php')) return;
@@ -705,16 +705,16 @@ class Taqdar extends CI_Controller
         );
     }
 
-    /* ---- الملكية: تُقرأ من قاعدة البيانات لا من الحقول المرسَلة --------- */
+    /* ---- الملكية: تقرأ من قاعدة البيانات لا من الحقول المرسلة --------- */
 
     /**
      * ملكية الكورس.
      *
-     * `course.user_id` **قائمة معرّفات مفصولة بفواصل** لا معرّفًا واحدًا،
+     * `course.user_id` **قائمة معرفات مفصولة بفواصل** لا معرفا واحدا،
      * ومعه عمود `creator` للمنشئ. فمقارنة `(int) user_id` كانت تقرأ «12,37»
-     * على أنها 12: تردّ المعلّم الثاني في كورس مشترك، وتردّ المنشئ نفسه إن
-     * لم يكن أوّل القائمة. وهذا يمنع صاحب الحقّ لا المتطفّل — ويقول له عن
-     * كورسه إنه «ليس كورسك». والصيغة هنا هي المعمول بها في بقيّة المشروع.
+     * على أنها 12: ترد المعلم الثاني في كورس مشترك، وترد المنشئ نفسه إن
+     * لم يكن أول القائمة. وهذا يمنع صاحب الحق لا المتطفل — ويقول له عن
+     * كورسه إنه «ليس كورسك». والصيغة هنا هي المعمول بها في بقية المشروع.
      */
     private function teacher_owns_course($teacher_id, $course_id)
     {
@@ -742,7 +742,7 @@ class Taqdar extends CI_Controller
         return $row && $this->teacher_owns_course($teacher_id, $row['course_id']);
     }
 
-    /** أبناء وليّ الأمر بموافقة نشطة — لا غيرهم. */
+    /** أبناء ولي الأمر بموافقة نشطة — لا غيرهم. */
     private function parent_owns_child($parent_id, $student_id)
     {
         $student_id = (int) $student_id;
@@ -754,7 +754,7 @@ class Taqdar extends CI_Controller
                               ->count_all_results('parent_links') > 0;
     }
 
-    /** قائمة نصّية نظيفة من حقل مكرّر — بلا مصفوفات متداخلة تُسقط trim. */
+    /** قائمة نصية نظيفة من حقل مكرر — بلا مصفوفات متداخلة تسقط trim. */
     private function post_list($field)
     {
         $out = array();
@@ -766,7 +766,7 @@ class Taqdar extends CI_Controller
         return $out;
     }
 
-    /* ---- بوّابة المعلّم: الكتابة ------------------------------------- */
+    /* ---- بوابة المعلم: الكتابة ------------------------------------- */
 
     /** POST teacher/upload/save */
     public function upload_save()
@@ -779,7 +779,7 @@ class Taqdar extends CI_Controller
 
         if (!$this->teacher_owns_course($tid, $course_id)) {
             $this->done('teacher/upload', false,
-                'اختر كورسًا من كورساتك — لا يُرفع درس إلى كورس ليس لك.');
+                'اختر كورسا من كورساتك — لا يرفع درس إلى كورس ليس لك.');
         }
         if ($title === '') {
             $this->done('teacher/upload', false, 'عنوان الدرس مطلوب.');
@@ -805,7 +805,7 @@ class Taqdar extends CI_Controller
             array('title' => $title, 'ok' => !empty($r['ok'])));
 
         $this->done('teacher/upload', !empty($r['ok']),
-            $this->result_message($r, 'حُفظ الدرس وأُرسل للمراجعة.'));
+            $this->result_message($r, 'حفظ الدرس وأرسل للمراجعة.'));
     }
 
     /** POST teacher/marking/approve */
@@ -816,21 +816,21 @@ class Taqdar extends CI_Controller
 
         $result_id = (int) $this->input->post('result_id');
         if ($result_id < 1) {
-            $this->done('teacher/marking', false, 'لم يُحدَّد التسليم المراد اعتماده.');
+            $this->done('teacher/marking', false, 'لم يحدد التسليم المراد اعتماده.');
         }
 
         $res = $this->db->where('quiz_result_id', $result_id)->get('quiz_results')->row_array();
         if (!$res) {
-            $this->done('teacher/marking', false, 'لا يوجد تسليم بهذا المعرّف.');
+            $this->done('teacher/marking', false, 'لا يوجد تسليم بهذا المعرف.');
         }
-        // التصحيح ملك صاحب الكورس: الدرجة تُغيّر سجلّ طالب، فلا تُترك لمن مرّ بالرابط
+        // التصحيح ملك صاحب الكورس: الدرجة تغير سجل طالب، فلا تترك لمن مر بالرابط
         if (!$this->teacher_owns_lesson($tid, $res['quiz_id'])) {
             $this->done('teacher/marking', false, 'هذا التسليم في كورس ليس لك.');
         }
 
         $score = $this->input->post('score');
         if ($score !== null && $score !== '' && (!is_numeric($score) || (float) $score < 0)) {
-            $this->done('teacher/marking', false, 'الدرجة تُكتب عددًا موجبًا.');
+            $this->done('teacher/marking', false, 'الدرجة تكتب عددا موجبا.');
         }
 
         $mastery = (string) $this->input->post('mastery');
@@ -857,7 +857,7 @@ class Taqdar extends CI_Controller
             array('mastery' => $mastery, 'ok' => !empty($r['ok'])));
 
         $this->done('teacher/marking', !empty($r['ok']),
-            $this->result_message($r, 'اعتُمدت الدرجة وأُبلغ الطالب.'));
+            $this->result_message($r, 'اعتمدت الدرجة وأبلغ الطالب.'));
     }
 
     /** POST teacher/sessions/save */
@@ -866,13 +866,13 @@ class Taqdar extends CI_Controller
         $user = $this->write_guard('teacher');
         $tid  = (int) $user['id'];
 
-        // قيمة الخانة «فهرس اليوم:مفتاح الفترة» — وما خالف الشكل لا يُمرَّر
+        // قيمة الخانة «فهرس اليوم:مفتاح الفترة» — وما خالف الشكل لا يمرر
         $slots = array();
         foreach ($this->post_list('slots') as $s) {
             if (preg_match('/^[0-6]:[A-Za-z0-9_-]{1,24}$/', $s)) $slots[] = $s;
         }
 
-        // إن أُرسلت معرّفات فترات قائمة فلا بدّ أن تكون فترات هذا المعلّم
+        // إن أرسلت معرفات فترات قائمة فلا بد أن تكون فترات هذا المعلم
         $slot_ids = array();
         foreach ($this->post_list('slot_id') as $sid) {
             $sid = (int) $sid;
@@ -896,8 +896,8 @@ class Taqdar extends CI_Controller
             array('slots' => count($slots), 'ok' => !empty($r['ok'])));
 
         $done = isset($r['count'])
-            ? 'حُفظت أوقاتك المتاحة — ' . (int) $r['count'] . ' فترة مفتوحة هذا الأسبوع.'
-            : 'حُفظت أوقاتك المتاحة.';
+            ? 'حفظت أوقاتك المتاحة — ' . (int) $r['count'] . ' فترة مفتوحة هذا الأسبوع.'
+            : 'حفظت أوقاتك المتاحة.';
 
         $this->done('teacher/sessions', !empty($r['ok']), $this->result_message($r, $done));
     }
@@ -910,14 +910,14 @@ class Taqdar extends CI_Controller
 
         $amount = $this->input->post('withdrawal_amount');
         if (!is_numeric($amount) || (float) $amount <= 0) {
-            $this->done('teacher/wallet', false, 'اكتب مبلغًا موجبًا.');
+            $this->done('teacher/wallet', false, 'اكتب مبلغا موجبا.');
         }
         $amount = (float) $amount;
 
         $dest = trim((string) $this->input->post('destination'));
         if ($dest === '') {
             $this->done('teacher/wallet', false,
-                'اكتب بيانات التحويل — لا يُرسل طلب مال بقناة لا تُسجَّل.');
+                'اكتب بيانات التحويل — لا يرسل طلب مال بقناة لا تسجل.');
         }
 
         $channel = (string) $this->input->post('payment_type');
@@ -925,22 +925,22 @@ class Taqdar extends CI_Controller
             $this->done('teacher/wallet', false, 'اختر قناة تحويل صحيحة.');
         }
 
-        /* الملكية هنا بنيوية: المحفظة تُقصد بمعرّف صاحب الجلسة دائمًا، ولا
-           يُقرأ من النموذج المرسل معرّف مستخدم ولا معرّف محفظة.
+        /* الملكية هنا بنيوية: المحفظة تقصد بمعرف صاحب الجلسة دائما، ولا
+           يقرأ من النموذج المرسل معرف مستخدم ولا معرف محفظة.
 
            وسقف الرصيد يحكم به `Taqdar_wallet_model` من الدفتر داخل معاملة —
-           وعمود `balance_available` قد يكون بائتًا، فالحكم به هنا يردّ سحبًا
-           مشروعًا. فلا نقرأ العمود إلا حين لا يوجد النموذج أصلًا. */
+           وعمود `balance_available` قد يكون بائتا، فالحكم به هنا يرد سحبا
+           مشروعا. فلا نقرأ العمود إلا حين لا يوجد النموذج أصلا. */
         $halalas = (int) round($amount * 100);
         $wallet  = $this->db->where('owner_user_id', $tid)->get('wallets')->row_array();
 
         if (!is_file(APPPATH . 'models/Taqdar_wallet_model.php')) {
             if (!$wallet) {
-                $this->done('teacher/wallet', false, 'لا محفظة لحسابك بعد — لا رصيد يُسحب.');
+                $this->done('teacher/wallet', false, 'لا محفظة لحسابك بعد — لا رصيد يسحب.');
             }
             if ($halalas > (int) $wallet['balance_available']) {
                 $this->done('teacher/wallet', false,
-                    'المبلغ أكبر من رصيدك المتاح — والمعلّق لا يُسحب قبل أن يتحرّر.');
+                    'المبلغ أكبر من رصيدك المتاح — والمعلق لا يسحب قبل أن يتحرر.');
             }
         }
 
@@ -962,7 +962,7 @@ class Taqdar extends CI_Controller
             array('amount_sar' => $amount, 'channel' => $channel, 'ok' => !empty($r['ok'])));
 
         $this->done('teacher/wallet', !empty($r['ok']),
-            $this->result_message($r, 'سُجِّل طلب السحب وينتظر المراجعة.'));
+            $this->result_message($r, 'سجل طلب السحب وينتظر المراجعة.'));
     }
 
     /** POST teacher/questions/import */
@@ -982,17 +982,17 @@ class Taqdar extends CI_Controller
         }
 
         if (empty($_FILES['csv']['name']) || !is_uploaded_file($_FILES['csv']['tmp_name'])) {
-            $this->done('teacher/questions', false, 'اختر ملفّ CSV قبل الاستيراد.');
+            $this->done('teacher/questions', false, 'اختر ملف CSV قبل الاستيراد.');
         }
         if ((int) $_FILES['csv']['error'] !== UPLOAD_ERR_OK) {
-            $this->done('teacher/questions', false, 'تعذّر رفع الملفّ — أعد المحاولة.');
+            $this->done('teacher/questions', false, 'تعذر رفع الملف — أعد المحاولة.');
         }
         if ((int) $_FILES['csv']['size'] > 2 * 1024 * 1024) {
-            $this->done('teacher/questions', false, 'حجم الملفّ يتجاوز ٢ ميغابايت.');
+            $this->done('teacher/questions', false, 'حجم الملف يتجاوز ٢ ميغابايت.');
         }
         $ext = strtolower((string) pathinfo($_FILES['csv']['name'], PATHINFO_EXTENSION));
         if (!in_array($ext, array('csv', 'txt'), true)) {
-            $this->done('teacher/questions', false, 'الملفّ لا بدّ أن يكون بصيغة CSV.');
+            $this->done('teacher/questions', false, 'الملف لا بد أن يكون بصيغة CSV.');
         }
 
         $r = $this->delegate(array(
@@ -1008,10 +1008,10 @@ class Taqdar extends CI_Controller
             array('file' => (string) $_FILES['csv']['name'], 'ok' => !empty($r['ok'])));
 
         $this->done('teacher/questions', !empty($r['ok']),
-            $this->result_message($r, 'استُوردت الأسئلة.'));
+            $this->result_message($r, 'استوردت الأسئلة.'));
     }
 
-    /* ---- بوّابة وليّ الأمر: الكتابة ---------------------------------- */
+    /* ---- بوابة ولي الأمر: الكتابة ---------------------------------- */
 
     /** POST parent/messages/compose */
     public function parent_message_send()
@@ -1021,7 +1021,7 @@ class Taqdar extends CI_Controller
 
         $body = trim((string) $this->input->post('message'));
         if ($body === '') {
-            $this->done('parent/messages', false, 'اكتب نصّ الرسالة.');
+            $this->done('parent/messages', false, 'اكتب نص الرسالة.');
         }
 
         $child_id = (int) $this->input->post('child_id');
@@ -1029,7 +1029,7 @@ class Taqdar extends CI_Controller
             $this->done('parent/messages', false, 'هذا الطالب ليس من أبنائك المرتبطين.');
         }
 
-        // المرسَل إليه: إدارة أو معلّم أو ابن مرتبط — لا أي حساب في المنصّة
+        // المرسل إليه: إدارة أو معلم أو ابن مرتبط — لا أي حساب في المنصة
         $to = (int) $this->input->post('to');
         if ($to < 1) $to = (int) $this->input->post('receiver');
 
@@ -1043,7 +1043,7 @@ class Taqdar extends CI_Controller
             );
             if (!$allowed) {
                 $this->done('parent/messages', false,
-                    'لا تُرسَل الرسائل إلا إلى معلّمي أبنائك أو الإدارة.');
+                    'لا ترسل الرسائل إلا إلى معلمي أبنائك أو الإدارة.');
             }
         }
 
@@ -1064,14 +1064,14 @@ class Taqdar extends CI_Controller
             array('child_id' => $child_id, 'ok' => !empty($r['ok'])));
 
         $this->done('parent/messages', !empty($r['ok']),
-            $this->result_message($r, 'أُرسلت رسالتك.'));
+            $this->result_message($r, 'أرسلت رسالتك.'));
     }
 
     /**
      * POST parent/children/link
      *
-     * ثلاثة أفعال على مسار واحد لأنها فعل واحد في نظر وليّ الأمر: علاقته
-     * بابنه — يطلبها، أو يسحب طلبه، أو يفكّها. و`tq_action` يفصلها.
+     * ثلاثة أفعال على مسار واحد لأنها فعل واحد في نظر ولي الأمر: علاقته
+     * بابنه — يطلبها، أو يسحب طلبه، أو يفكها. و`tq_action` يفصلها.
      */
     public function parent_child_link()
     {
@@ -1081,7 +1081,7 @@ class Taqdar extends CI_Controller
 
         if ($act === 'link_cancel') {
             $link_id = (int) $this->input->post('link_id');
-            // الطلب المسحوب لا بدّ أن يكون طلبه هو — لا رقم رابط عابر
+            // الطلب المسحوب لا بد أن يكون طلبه هو — لا رقم رابط عابر
             $row = $link_id > 0
                 ? $this->db->where('id', $link_id)->get('parent_links')->row_array()
                 : null;
@@ -1095,7 +1095,7 @@ class Taqdar extends CI_Controller
             $this->trace('parent.children.link_cancel', 'parent_links:' . $link_id,
                 array('ok' => !empty($r['ok'])));
             $this->done('parent/settings', !empty($r['ok']),
-                $this->result_message($r, 'سُحب طلب الربط.'));
+                $this->result_message($r, 'سحب طلب الربط.'));
         }
 
         if ($act === 'link_revoke') {
@@ -1110,17 +1110,17 @@ class Taqdar extends CI_Controller
             $this->trace('parent.children.link_revoke', 'users:' . $sid,
                 array('ok' => !empty($r['ok'])));
             $this->done('parent/settings', !empty($r['ok']),
-                $this->result_message($r, 'فُكّ الربط.'));
+                $this->result_message($r, 'فك الربط.'));
         }
 
-        // الرابط يُنشأ باسم صاحب الجلسة دائمًا — أيّ parent_user_id مرسل يُهمَل
+        // الرابط ينشأ باسم صاحب الجلسة دائما — أي parent_user_id مرسل يهمل
         $identifier = '';
         foreach (array('identifier', 'student_email', 'student_code', 'student_id') as $f) {
             $v = trim((string) $this->input->post($f));
             if ($v !== '' && $v !== '0') { $identifier = $v; break; }
         }
         if ($identifier === '') {
-            $this->done('parent/settings', false, 'اكتب بريد حساب ابنك في المنصّة أو رقم حسابه.');
+            $this->done('parent/settings', false, 'اكتب بريد حساب ابنك في المنصة أو رقم حسابه.');
         }
 
         $sid = ctype_digit($identifier)
@@ -1129,7 +1129,7 @@ class Taqdar extends CI_Controller
                              ->get('users')->row('id');
 
         if ($sid > 0 && $sid === $pid) {
-            $this->done('parent/settings', false, 'لا يكون المستخدم وليَّ أمر نفسه.');
+            $this->done('parent/settings', false, 'لا يكون المستخدم ولي أمر نفسه.');
         }
         if ($sid > 0 && $this->parent_owns_child($pid, $sid)) {
             $this->done('parent/children', false, 'هذا الابن مرتبط بحسابك بالفعل.');
@@ -1148,14 +1148,14 @@ class Taqdar extends CI_Controller
             array('identifier' => $identifier, 'ok' => !empty($r['ok'])));
 
         $this->done(!empty($r['ok']) ? 'parent/children' : 'parent/settings', !empty($r['ok']),
-            $this->result_message($r, 'أُرسل طلب الربط — ويُفعَّل بعد موافقة ابنك.'));
+            $this->result_message($r, 'أرسل طلب الربط — ويفعل بعد موافقة ابنك.'));
     }
 
     /**
      * POST parent/settings/save
      *
-     * شاشة الإعدادات ثلاثة نماذج: الملفّ الشخصي، وكلمة المرور، والتنبيهات.
-     * و`tq_action` يفصل بينها — فحفظ التنبيهات لا يمرّ بمسار كلمة المرور.
+     * شاشة الإعدادات ثلاثة نماذج: الملف الشخصي، وكلمة المرور، والتنبيهات.
+     * و`tq_action` يفصل بينها — فحفظ التنبيهات لا يمر بمسار كلمة المرور.
      */
     public function parent_settings_save()
     {
@@ -1176,7 +1176,7 @@ class Taqdar extends CI_Controller
             $this->trace('parent.settings.password', 'users:' . $pid,
                 array('ok' => !empty($r['ok'])));
             $this->done('parent/settings', !empty($r['ok']),
-                $this->result_message($r, 'غُيّرت كلمة المرور.'));
+                $this->result_message($r, 'غيرت كلمة المرور.'));
         }
 
         if ($act === 'profile_save') {
@@ -1194,10 +1194,10 @@ class Taqdar extends CI_Controller
             $this->trace('parent.settings.profile', 'users:' . $pid,
                 array('ok' => !empty($r['ok'])));
             $this->done('parent/settings', !empty($r['ok']),
-                $this->result_message($r, 'حُفظ ملفّك.'));
+                $this->result_message($r, 'حفظ ملفك.'));
         }
 
-        // الافتراض: تفضيلات التنبيه. وحقول الهوية والصلاحية لا تُقبل من النموذج
+        // الافتراض: تفضيلات التنبيه. وحقول الهوية والصلاحية لا تقبل من النموذج
         $blocked = array('id', 'user_id', 'parent_user_id', 'role_id', 'is_instructor',
                          'status', 'password', 'sessions', 'payment_keys',
                          'verification_code');
@@ -1221,22 +1221,22 @@ class Taqdar extends CI_Controller
             array('fields' => array_keys($payload), 'ok' => !empty($r['ok'])));
 
         $this->done('parent/settings', !empty($r['ok']),
-            $this->result_message($r, 'حُفظت إعداداتك.'));
+            $this->result_message($r, 'حفظت إعداداتك.'));
     }
 
     /* =====================================================================
        الشهادات
        ---------------------------------------------------------------------
        `tq_certificates.php` كان يشير إلى `taqdar/certificate/{id}` و
-       `taqdar/verify/{id}` ولا وجود للدالّتين — فكل زرّ في الشاشة يقود إلى
-       404. والقاعدة الحاكمة للشهادة أنها تُصدر على إتقان مُقاس: محاولة
+       `taqdar/verify/{id}` ولا وجود للدالتين — فكل زر في الشاشة يقود إلى
+       404. والقاعدة الحاكمة للشهادة أنها تصدر على إتقان مقاس: محاولة
        امتحان ناجحة في `attempts`، لا نسبة مشاهدة.
 
-       وحين لا يوجد بعد محتوى بأهداف وبوّابات، الصواب حالة فارغة مفهومة
-       لا شاشة خطأ: الرابط سليم، والشهادة هي التي لم تُستحقّ بعد.
+       وحين لا يوجد بعد محتوى بأهداف وبوابات، الصواب حالة فارغة مفهومة
+       لا شاشة خطأ: الرابط سليم، والشهادة هي التي لم تستحق بعد.
        ===================================================================== */
 
-    /** الشهادة الواحدة — لصاحبها ولوليّ أمره وللإدارة. */
+    /** الشهادة الواحدة — لصاحبها ولولي أمره وللإدارة. */
     public function certificate($id = 0)
     {
         $this->require_login();
@@ -1264,13 +1264,13 @@ class Taqdar extends CI_Controller
         $this->certificate_fallback($cert, false);
     }
 
-    /** صفحة التحقّق العامّة — بلا تسجيل دخول، وبلا بيانات تعريف زائدة. */
+    /** صفحة التحقق العامة — بلا تسجيل دخول، وبلا بيانات تعريف زائدة. */
     public function verify($code = '')
     {
         $cert = $this->certificate_row($code);
 
         if (is_file(APPPATH . 'views/frontend/' . $this->theme() . '/tq_verify.php')) {
-            $this->show('tq_verify', 'التحقّق من شهادة', array(
+            $this->show('tq_verify', 'التحقق من شهادة', array(
                 'certificate' => $cert,
                 'cert_code'   => (string) $code,
             ));
@@ -1280,8 +1280,8 @@ class Taqdar extends CI_Controller
     }
 
     /**
-     * صفّ الشهادة من رمزها. الرمز `TQ-000012` أو `12` — كلاهما يفتح الشهادة
-     * نفسها، فالرمز المطبوع هو ما ينسخه المتحقّق لا المعرّف العاري.
+     * صف الشهادة من رمزها. الرمز `TQ-000012` أو `12` — كلاهما يفتح الشهادة
+     * نفسها، فالرمز المطبوع هو ما ينسخه المتحقق لا المعرف العاري.
      */
     private function certificate_row($code)
     {
@@ -1304,13 +1304,13 @@ class Taqdar extends CI_Controller
     }
 
     /**
-     * عرض احتياطي حين لا تكون شاشة الشهادة قد رُكِّبت بعد.
+     * عرض احتياطي حين لا تكون شاشة الشهادة قد ركبت بعد.
      * صفحة قائمة بذاتها — لا 404، ولا شاشة بيضاء، ولا إطار ثيم ناقص.
      */
     private function certificate_fallback($cert, $public)
     {
-        $brand = 'منصّة تقدّر';
-        $title = $public ? 'التحقّق من شهادة' : 'الشهادة';
+        $brand = 'منصة تقدر';
+        $title = $public ? 'التحقق من شهادة' : 'الشهادة';
 
         if ($cert) {
             $code = 'TQ-' . str_pad((string) (int) $cert['id'], 6, '0', STR_PAD_LEFT);
@@ -1320,12 +1320,12 @@ class Taqdar extends CI_Controller
                   . '<dt>المحطة</dt><dd>' . html_escape($cert['milestone_title'] ?: ($cert['path_title'] ?: '—')) . '</dd>'
                   . '<dt>نسبة الإتقان</dt><dd>' . (int) $cert['score'] . '%</dd>'
                   . '<dt>تاريخ الإصدار</dt><dd>' . html_escape((string) $cert['submitted_at']) . '</dd>'
-                  . '<dt>رمز التحقّق</dt><dd>' . html_escape($code) . '</dd>'
+                  . '<dt>رمز التحقق</dt><dd>' . html_escape($code) . '</dd>'
                   . '</dl>';
         } else {
             $body = '<p class="empty">لا توجد شهادة بهذا الرمز.</p>'
-                  . '<p>الشهادة تُصدر على إتقان مُقاس لا على مشاهدة: تُنهي المحطة، '
-                  . 'وتجتاز اختبارها، فتصلك شهادة بأهدافها ورمز تحقّق.</p>';
+                  . '<p>الشهادة تصدر على إتقان مقاس لا على مشاهدة: تنهي المحطة، '
+                  . 'وتجتاز اختبارها، فتصلك شهادة بأهدافها ورمز تحقق.</p>';
         }
 
         $back = $public ? base_url() : base_url('student/certificates');
@@ -1354,10 +1354,10 @@ class Taqdar extends CI_Controller
     }
 
     /**
-     * عارض الصفحات العامّة الثابتة في التصميم الجديد.
+     * عارض الصفحات العامة الثابتة في التصميم الجديد.
      *
-     * قائمة بيضاء لا وسيط حرّ: `$page_name` يُدرَج ملفًّا في الغلاف، فتمريرُ
-     * ما يأتي من الرابط إليه بلا فحص يفتح الباب لقراءة ملفّات لم تُقصد.
+     * قائمة بيضاء لا وسيط حر: `$page_name` يدرج ملفا في الغلاف، فتمرير
+     * ما يأتي من الرابط إليه بلا فحص يفتح الباب لقراءة ملفات لم تقصد.
      */
     public function site_page($name = '')
     {
@@ -1375,8 +1375,8 @@ class Taqdar extends CI_Controller
     /**
      * صفحة تفصيل المسار — وبها يكتمل طريق الشراء.
      *
-     * الزرّ في الكتالوج كان يقود إلى لا شيء، فكان الزائر يرى ما يُعجبه
-     * ولا يجد بابًا يدخل منه.
+     * الزر في الكتالوج كان يقود إلى لا شيء، فكان الزائر يرى ما يعجبه
+     * ولا يجد بابا يدخل منه.
      */
     public function path_page($slug = '')
     {
@@ -1389,10 +1389,10 @@ class Taqdar extends CI_Controller
 
 
     /**
-     * ملفّ المعلّم العامّ.
+     * ملف المعلم العام.
      *
-     * المعروض علنًا اختيارٌ صريح (`is_public`) لا أثرٌ جانبيّ لكون
-     * المستخدم معلّمًا — فمن يدرّس لا يلزم أن يُنشَر اسمه وصورته.
+     * المعروض علنا اختيار صريح (`is_public`) لا أثر جانبي لكون
+     * المستخدم معلما — فمن يدرس لا يلزم أن ينشر اسمه وصورته.
      */
     public function instructor_page($id = 0)
     {
@@ -1418,8 +1418,8 @@ class Taqdar extends CI_Controller
     /**
      * التسجيل في مسابقة.
      *
-     * للمسجَّلين وحدهم: مسابقةٌ يدخلها المجهولون لا تُقاس نتائجها ولا
-     * تُنسب شهاداتها. والمفتاح الفريد يمنع التسجيل مرّتين.
+     * للمسجلين وحدهم: مسابقة يدخلها المجهولون لا تقاس نتائجها ولا
+     * تنسب شهاداتها. والمفتاح الفريد يمنع التسجيل مرتين.
      */
     public function competition_join()
     {
@@ -1442,27 +1442,27 @@ class Taqdar extends CI_Controller
                 $exists = $this->db->where('competition_id', $cid)->where('user_id', $uid)
                                    ->count_all_results('competition_entries') > 0;
                 if ($exists) {
-                    $this->session->set_flashdata('flash_message', 'أنت مسجَّل في هذه المسابقة سلفًا.');
+                    $this->session->set_flashdata('flash_message', 'أنت مسجل في هذه المسابقة سلفا.');
                 } else {
                     $this->db->insert('competition_entries', array(
                         'competition_id' => $cid, 'user_id' => $uid,
                         'created_at' => date('Y-m-d H:i:s')));
                     $this->session->set_flashdata('flash_message',
-                        'سُجّلت في المسابقة. سنُذكّرك قبل موعدها.');
+                        'سجلت في المسابقة. سنذكرك قبل موعدها.');
                 }
             }
         }
         redirect(site_url('competitions'), 'location', 302);
     }
 
-    /* ---- الباقة: صفحتُها وشراؤها ومحتواها ------------------------- */
+    /* ---- الباقة: صفحتها وشراؤها ومحتواها ------------------------- */
 
     /**
-     * صفحة الباقة — ما يُشترى، مفصَّلًا، قبل الدفع.
+     * صفحة الباقة — ما يشترى، مفصلا، قبل الدفع.
      *
-     * كان الكتالوج ينتهي عند بطاقةٍ ومرساة: يقرأ الزائر اسمًا وسعرًا وستّ
-     * كلماتٍ تسويقية ثم يُطلب منه ثلاثمئةٍ وتسعون ريالًا. وهذه الصفحة
-     * تعرض المنهج نفسه — مادّةً مادّة ووحدةً وحدة — قبل أن يُطلب شيء.
+     * كان الكتالوج ينتهي عند بطاقة ومرساة: يقرأ الزائر اسما وسعرا وست
+     * كلمات تسويقية ثم يطلب منه ثلاثمئة وتسعون ريالا. وهذه الصفحة
+     * تعرض المنهج نفسه — مادة مادة ووحدة وحدة — قبل أن يطلب شيء.
      */
     public function plan_page($code = '')
     {
@@ -1470,7 +1470,7 @@ class Taqdar extends CI_Controller
         $b = $this->tq_m->bundle_by_code($code);
         if (!$b) show_404();
 
-        /* حالةُ الزائر تُقرَّر هنا لا في العرض: العرض يعرض، والقرار قرار. */
+        /* حالة الزائر تقرر هنا لا في العرض: العرض يعرض، والقرار قرار. */
         $uid = (int) $this->session->userdata('user_id');
         $own = false;
         if ($uid > 0) {
@@ -1484,13 +1484,13 @@ class Taqdar extends CI_Controller
     }
 
     /**
-     * تأكيد الشراء — شاشةٌ واحدة بلا سلّة.
+     * تأكيد الشراء — شاشة واحدة بلا سلة.
      *
-     * السلّة تُجمِّع أصنافًا، والطالب يشتري باقةً واحدة تُغطّي سنته. فلا
-     * شيء يُجمَّع، وكلّ خطوةٍ زائدة بين الرغبة والدفع تُسقط مشترين.
+     * السلة تجمع أصنافا، والطالب يشتري باقة واحدة تغطي سنته. فلا
+     * شيء يجمع، وكل خطوة زائدة بين الرغبة والدفع تسقط مشترين.
      *
-     * والدخول شرطٌ هنا لا في الزرّ السابق: من يعود بعد التسجيل يجد الشاشة
-     * نفسها لا الكتالوج من أوّله.
+     * والدخول شرط هنا لا في الزر السابق: من يعود بعد التسجيل يجد الشاشة
+     * نفسها لا الكتالوج من أوله.
      */
     public function checkout($code = '')
     {
@@ -1505,11 +1505,11 @@ class Taqdar extends CI_Controller
             return;
         }
 
-        /* المعلّم وليّ الأمر لا يشتريان باقةَ طالب: الشراء يفتح محتوًى
-           يُقاس تقدّمُه لصاحب الحساب، ولا معنى له لغير الطالب. */
+        /* المعلم ولي الأمر لا يشتريان باقة طالب: الشراء يفتح محتوى
+           يقاس تقدمه لصاحب الحساب، ولا معنى له لغير الطالب. */
         if (function_exists('tq_role') && tq_role() !== 'student') {
             $this->session->set_flashdata('error_message',
-                'الاشتراك في الباقات لحسابات الطلاب. سجّل الدخول بحساب طالب.');
+                'الاشتراك في الباقات لحسابات الطلاب. سجل الدخول بحساب طالب.');
             redirect(site_url('plans'), 'location', 302);
             return;
         }
@@ -1525,10 +1525,10 @@ class Taqdar extends CI_Controller
     }
 
     /**
-     * محتوى الباقة للمشترك — ما دفع ثمنه، مرتَّبًا كما يُدرَس.
+     * محتوى الباقة للمشترك — ما دفع ثمنه، مرتبا كما يدرس.
      *
-     * صفحة الاشتراك تقول «نشط حتى كذا» ولا تقول ماذا فُتح. وهذه تقوله:
-     * الموادّ بوحداتها ودروسها وتقدّم الطالب في كلٍّ منها.
+     * صفحة الاشتراك تقول «نشط حتى كذا» ولا تقول ماذا فتح. وهذه تقوله:
+     * المواد بوحداتها ودروسها وتقدم الطالب في كل منها.
      */
     public function bundle()
     {
@@ -1541,10 +1541,10 @@ class Taqdar extends CI_Controller
 
         $sub = $this->taqdar_billing_model->active_subscription($uid);
         if (!$sub) {
-            /* `active_subscription()` تستثني المعلَّق عمدًا — فهو لا يمنح
-               شيئًا. لكنّ صفحةً تقول لمن دفع للتوّ «لا اشتراك بعد» وتدلّه
-               على الباقات تدعوه إلى الشراء مرّتين. فيُقرأ آخرُ اشتراكٍ
-               مهما كانت حاله، ويُقال له أين هو منه — كما تفعل
+            /* `active_subscription()` تستثني المعلق عمدا — فهو لا يمنح
+               شيئا. لكن صفحة تقول لمن دفع للتو «لا اشتراك بعد» وتدله
+               على الباقات تدعوه إلى الشراء مرتين. فيقرأ آخر اشتراك
+               مهما كانت حاله، ويقال له أين هو منه — كما تفعل
                `subscription()` بالارتداد نفسه. */
             $sub = $this->db->where('user_id', (int) $uid)
                             ->order_by('id', 'DESC')->limit(1)
@@ -1558,8 +1558,8 @@ class Taqdar extends CI_Controller
             if ($plan) $b = $this->tq_m->bundle_by_code($plan['code']);
         }
 
-        /* التقدّم من المستودع نفسه الذي يقرأ منه المشغّل، فلا يفترق رقمٌ
-           هنا عن رقمٍ هناك. */
+        /* التقدم من المستودع نفسه الذي يقرأ منه المشغل، فلا يفترق رقم
+           هنا عن رقم هناك. */
         if ($b) {
             foreach ($b['subjects'] as $s) {
                 $cid = (int) $s['course_id'];
@@ -1579,18 +1579,18 @@ class Taqdar extends CI_Controller
     }
 
     /**
-     * نقطة عودة بوّابة الدفع — جاهزةٌ ومغلقة.
+     * نقطة عودة بوابة الدفع — جاهزة ومغلقة.
      *
-     * `activate_from_gateway()` مكتوبةٌ في نموذج الفوترة ولا مُنادِيَ لها،
-     * لأنّ لا بوّابة مفعّلة بعد. وهذه النقطة تُبقي الفجوة **واحدة**: يوم
-     * يُفتح حساب ميسر أو تاب يُكتب التحقّق من التوقيع هنا وحده.
+     * `activate_from_gateway()` مكتوبة في نموذج الفوترة ولا منادي لها،
+     * لأن لا بوابة مفعلة بعد. وهذه النقطة تبقي الفجوة **واحدة**: يوم
+     * يفتح حساب ميسر أو تاب يكتب التحقق من التوقيع هنا وحده.
      *
-     * ولا تفعل شيئًا اليوم: نقطةٌ تُفعّل اشتراكًا بلا تحقّقٍ من توقيع
-     * البوّابة بابٌ يُفتح بطلبٍ مصنوع.
+     * ولا تفعل شيئا اليوم: نقطة تفعل اشتراكا بلا تحقق من توقيع
+     * البوابة باب يفتح بطلب مصنوع.
      */
     public function gateway_callback($gateway = '')
     {
-        log_message('error', 'TQ-GATEWAY: نداءٌ على نقطة عودةٍ غير مفعّلة — ' . $gateway);
+        log_message('error', 'TQ-GATEWAY: نداء على نقطة عودة غير مفعلة — ' . $gateway);
         show_404();
     }
 

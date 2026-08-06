@@ -1,8 +1,8 @@
 <?php
 /**
- * الترويسة العلوية للبوّابة.
- * التحية يمينًا · البحث وسطًا يفتح بـ ⌘K · الإشعارات والرسائل · الحساب.
- * شريحة ⌘K تظهر في العربية أيضًا — الاختصار ليس ميزة إنجليزية.
+ * الترويسة العلوية للبوابة.
+ * التحية يمينا · البحث وسطا يفتح بـ ⌘K · الإشعارات والرسائل · الحساب.
+ * شريحة ⌘K تظهر في العربية أيضا — الاختصار ليس ميزة إنجليزية.
  */
 $tq_uid   = $this->session->userdata('user_id');
 $tq_user  = $tq_uid ? $this->user_model->get_all_user($tq_uid)->row_array() : null;
@@ -11,7 +11,7 @@ $tq_photo = $tq_user && !empty($tq_user['image'])
     ? base_url('uploads/user_image/' . $tq_user['image'])
     : tq_asset('brand/icon.png');
 
-$tq_role_label = ['student' => 'طالب', 'teacher' => 'معلّم', 'parent' => 'وليّ أمر'][$tq_role] ?? 'طالب';
+$tq_role_label = ['student' => 'طالب', 'teacher' => 'معلم', 'parent' => 'ولي أمر'][$tq_role] ?? 'طالب';
 
 $tq_hour  = (int) date('G');
 $tq_greet = $tq_hour < 12 ? 'صباح الخير' : ($tq_hour < 17 ? 'مساء الخير' : 'مساء الخير');
@@ -25,13 +25,13 @@ $tq_greet = $tq_hour < 12 ? 'صباح الخير' : ($tq_hour < 17 ? 'مساء �
         <p class="tq-strong" style="margin:0;color:var(--tq-navy)">
             <?php echo html_escape($tq_greet . ($tq_name ? '، ' . explode(' ', $tq_name)[0] : '')); ?> 👋
         </p>
-        <p class="tq-micro" style="margin:0">مستعدّ لتتعلّم شيئًا جديدًا اليوم؟</p>
+        <p class="tq-micro" style="margin:0">مستعد لتتعلم شيئا جديدا اليوم؟</p>
     </div>
 
     <form class="tq-topbar__search" role="search" action="<?php echo base_url('student/search'); ?>" method="get">
-        <label class="tq-sr" for="tq-q">ابحث في الدروس والمواد والمعلّمين</label>
+        <label class="tq-sr" for="tq-q">ابحث في الدروس والمواد والمعلمين</label>
         <input class="tq-input" id="tq-q" name="q" type="search"
-               placeholder="ابحث عن درس أو مادة أو معلّم…" data-tq-search>
+               placeholder="ابحث عن درس أو مادة أو معلم…" data-tq-search>
         <kbd class="tq-topbar__kbd" aria-hidden="true"><span class="tq-ltr">⌘K</span></kbd>
     </form>
 

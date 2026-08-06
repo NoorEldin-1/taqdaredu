@@ -2,49 +2,49 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * محرّك الحصص الخاصّة: إتاحة المعلّم وطلبات الطلاب.
+ * محرك الحصص الخاصة: إتاحة المعلم وطلبات الطلاب.
  *
- * الجدولان الحقيقيّان في taqd_lms هما `availability_slots` و`tutoring_sessions`.
+ * الجدولان الحقيقيان في taqd_lms هما `availability_slots` و`tutoring_sessions`.
  * ولا وجود لـ `teacher_availability` ولا لـ `session_requests` — كانت الشاشتان
- * تنتظران اسمين لم يُنشآ قطّ، والجدولان أمامهما. فالتسمية هنا تتبع القاعدة،
+ * تنتظران اسمين لم ينشآ قط، والجدولان أمامهما. فالتسمية هنا تتبع القاعدة،
  * والقاعدة وحدها.
  *
- * والشبكة في شاشة المعلّم أسبوعية (٧ أيام × ٣ فترات) بينما العمود في القاعدة
- * `starts_at datetime` — موعد بعينه لا يومَ أسبوع. فالمفتاح «اليوم:الفترة»
- * يُترجَم هنا إلى أقرب وقوع قادم لذلك اليوم في تلك الفترة داخل الأيام السبعة
- * القادمة، ويُقرأ عكسيًّا عند العرض. الترجمة في موضع واحد لا تتكرّر في العرض.
+ * والشبكة في شاشة المعلم أسبوعية (٧ أيام × ٣ فترات) بينما العمود في القاعدة
+ * `starts_at datetime` — موعد بعينه لا يوم أسبوع. فالمفتاح «اليوم:الفترة»
+ * يترجم هنا إلى أقرب وقوع قادم لذلك اليوم في تلك الفترة داخل الأيام السبعة
+ * القادمة، ويقرأ عكسيا عند العرض. الترجمة في موضع واحد لا تتكرر في العرض.
  *
  * الأسبوع يبدأ الأحد — السوق سعودي، و`date('w')` يعطي ٠ للأحد فيوافق الشبكة.
  *
  * دورة حياة الموعد والطلب متلازمتان:
- *   الموعد open ← يطلبه طالب ← held ← يؤكّده المعلّم ← booked
- *                                  ← يعتذر المعلّم ← يعود open
- * والحالة تتغيّر في القاعدة لا في الواجهة، والملكيّة تُفحص في الاستعلام نفسه:
- * `teacher_id = <المعلّم الحالي>` شرطٌ في كل تحديث، لا إخفاءُ زرّ.
+ *   الموعد open ← يطلبه طالب ← held ← يؤكده المعلم ← booked
+ *                                  ← يعتذر المعلم ← يعود open
+ * والحالة تتغير في القاعدة لا في الواجهة، والملكية تفحص في الاستعلام نفسه:
+ * `teacher_id = <المعلم الحالي>` شرط في كل تحديث، لا إخفاء زر.
  *
- * ولا مال هنا: التأكيد لا يخصم شيئًا. «بانتظار التأكيد» تعني أن شيئًا لم يُدفع،
- * وتأكيد المعلّم يفتح الموعد لا المحفظة — والخصم شأن جدول الفوترة لا هذا.
+ * ولا مال هنا: التأكيد لا يخصم شيئا. «بانتظار التأكيد» تعني أن شيئا لم يدفع،
+ * وتأكيد المعلم يفتح الموعد لا المحفظة — والخصم شأن جدول الفوترة لا هذا.
  */
 class Taqdar_sessions_model extends CI_Model
 {
-    /** طول النافذة التي تُدار فيها الشبكة: أسبوع + يوم احتياط لحدود التوقيت. */
+    /** طول النافذة التي تدار فيها الشبكة: أسبوع + يوم احتياط لحدود التوقيت. */
     const WINDOW_DAYS = 8;
 
     /* =====================================================================
        الفترات والأيام — مصدر واحد للشبكة وللترجمة
        ===================================================================== */
 
-    /** الفترات الثلاث: ساعة البدء ومدّتها بالدقائق ونصّها كما يُعرض. */
+    /** الفترات الثلاث: ساعة البدء ومدتها بالدقائق ونصها كما يعرض. */
     public function periods()
     {
         return [
-            'morning' => ['label' => 'صباحًا', 'range' => '8:00 – 12:00',  'hour' => 8,  'duration' => 240],
-            'noon'    => ['label' => 'ظهرًا',  'range' => '12:00 – 16:00', 'hour' => 12, 'duration' => 240],
-            'evening' => ['label' => 'مساءً',  'range' => '16:00 – 21:00', 'hour' => 16, 'duration' => 300],
+            'morning' => ['label' => 'صباحا', 'range' => '8:00 – 12:00',  'hour' => 8,  'duration' => 240],
+            'noon'    => ['label' => 'ظهرا',  'range' => '12:00 – 16:00', 'hour' => 12, 'duration' => 240],
+            'evening' => ['label' => 'مساء',  'range' => '16:00 – 21:00', 'hour' => 16, 'duration' => 300],
         ];
     }
 
-    /** أيام الأسبوع بترتيب `date('w')` نفسه: الأحد أوّلًا. */
+    /** أيام الأسبوع بترتيب `date('w')` نفسه: الأحد أولا. */
     public function days()
     {
         return [
@@ -53,7 +53,7 @@ class Taqdar_sessions_model extends CI_Model
         ];
     }
 
-    /** أسماء الشهور الميلادية كما تُكتب في السوق السعودي. */
+    /** أسماء الشهور الميلادية كما تكتب في السوق السعودي. */
     private function month_name($m)
     {
         static $names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
@@ -68,8 +68,8 @@ class Taqdar_sessions_model extends CI_Model
 
     /**
      * «٣:evening» ← «2026-08-06 16:00:00».
-     * أقرب وقوع قادم لهذا اليوم في هذه الفترة؛ فما مضى من الأسبوع يُدفع أسبوعًا
-     * كاملًا إلى الأمام. وبهذا لا يُحفظ للمعلّم موعدٌ في الماضي يستحيل حجزه.
+     * أقرب وقوع قادم لهذا اليوم في هذه الفترة؛ فما مضى من الأسبوع يدفع أسبوعا
+     * كاملا إلى الأمام. وبهذا لا يحفظ للمعلم موعد في الماضي يستحيل حجزه.
      */
     public function key_to_datetime($key, $now = null)
     {
@@ -90,7 +90,7 @@ class Taqdar_sessions_model extends CI_Model
         return date('Y-m-d H:i:s', $ts);
     }
 
-    /** «2026-08-06 16:00:00» ← «3:evening»، وإلّا null لموعد خارج الفترات. */
+    /** «2026-08-06 16:00:00» ← «3:evening»، وإلا null لموعد خارج الفترات. */
     public function datetime_to_key($starts_at)
     {
         $ts = strtotime((string) $starts_at);
@@ -103,7 +103,7 @@ class Taqdar_sessions_model extends CI_Model
         return null;
     }
 
-    /** مدّة الفترة التي يقع فيها الموعد — نصف ساعة افتراض القاعدة لا يعبّر عنها. */
+    /** مدة الفترة التي يقع فيها الموعد — نصف ساعة افتراض القاعدة لا يعبر عنها. */
     private function duration_of($starts_at)
     {
         $hour = (int) date('G', strtotime((string) $starts_at));
@@ -113,7 +113,7 @@ class Taqdar_sessions_model extends CI_Model
         return 60;
     }
 
-    /** «الأحد 3 أغسطس · صباحًا 8:00 – 12:00» — نصّ واحد يُعرض كما هو. */
+    /** «الأحد 3 أغسطس · صباحا 8:00 – 12:00» — نص واحد يعرض كما هو. */
     public function when_text($starts_at)
     {
         $ts = strtotime((string) $starts_at);
@@ -131,7 +131,7 @@ class Taqdar_sessions_model extends CI_Model
         return $out . ' · ' . date('G:i', $ts);
     }
 
-    /** حدّا النافذة التي تُدار فيها الشبكة. */
+    /** حدا النافذة التي تدار فيها الشبكة. */
     private function window($now = null)
     {
         $now = $now ? (int) $now : time();
@@ -142,12 +142,12 @@ class Taqdar_sessions_model extends CI_Model
     }
 
     /* =====================================================================
-       إتاحة المعلّم
+       إتاحة المعلم
        ===================================================================== */
 
     /**
-     * مفاتيح الشبكة المحفوظة للمعلّم — ما يُعاد وضع علامته عند إعادة التحميل.
-     * تشمل المحجوز والمعلَّق: الفترة التي عليها حصّة مؤكّدة ما زالت فترة عمله.
+     * مفاتيح الشبكة المحفوظة للمعلم — ما يعاد وضع علامته عند إعادة التحميل.
+     * تشمل المحجوز والمعلق: الفترة التي عليها حصة مؤكدة ما زالت فترة عمله.
      */
     public function week_keys($teacher_id)
     {
@@ -170,11 +170,11 @@ class Taqdar_sessions_model extends CI_Model
     }
 
     /**
-     * يحفظ الشبكة: ما اختير يُنشأ، وما رُفع اختياره يُحذف.
+     * يحفظ الشبكة: ما اختير ينشأ، وما رفع اختياره يحذف.
      *
-     * ولا يُحذف موعد عليه طلب حيّ — ولو رفع المعلّم علامته: الطالب طلبه فعلًا،
-     * وحذفه يترك طلبًا معلّقًا بلا موعد. من أراد إلغاءه فليعتذر عنه أوّلًا.
-     * أمّا ما اعتُذر عنه أو انتهى فطلبٌ مغلق، ولا يُقيّد جدول المعلّم إلى الأبد.
+     * ولا يحذف موعد عليه طلب حي — ولو رفع المعلم علامته: الطالب طلبه فعلا،
+     * وحذفه يترك طلبا معلقا بلا موعد. من أراد إلغاءه فليعتذر عنه أولا.
+     * أما ما اعتذر عنه أو انتهى فطلب مغلق، ولا يقيد جدول المعلم إلى الأبد.
      *
      * @return int عدد الفترات المتاحة بعد الحفظ
      */
@@ -201,8 +201,8 @@ class Taqdar_sessions_model extends CI_Model
         if ($want) $this->db->where_not_in('starts_at', array_keys($want));
         $this->db->delete('availability_slots');
 
-        // المفتاح الفريد (معلّم، موعد) يمنع التكرار، فإعادة الحفظ لا تُضاعف شيئًا
-        // ولا تُرجِع محجوزًا إلى open.
+        // المفتاح الفريد (معلم، موعد) يمنع التكرار، فإعادة الحفظ لا تضاعف شيئا
+        // ولا ترجع محجوزا إلى open.
         foreach ($want as $dt => $dur) {
             $this->db->query(
                 'INSERT IGNORE INTO availability_slots (teacher_id, starts_at, duration_min, status) VALUES (?, ?, ?, ?)',
@@ -214,12 +214,12 @@ class Taqdar_sessions_model extends CI_Model
     }
 
     /* =====================================================================
-       المعلّمون المتاحون — لشاشة الطالب
+       المعلمون المتاحون — لشاشة الطالب
        ===================================================================== */
 
     /**
-     * اشتقاق المعلّم كما في `taqdar_role_helper`: مفعَّل، `is_instructor`، وليس
-     * أدمن. الأدمن لا تُفتح له بوّابة المعلّم فلا يُعرض معلّمًا للطلاب.
+     * اشتقاق المعلم كما في `taqdar_role_helper`: مفعل، `is_instructor`، وليس
+     * أدمن. الأدمن لا تفتح له بوابة المعلم فلا يعرض معلما للطلاب.
      */
     private function teacher_filter($alias = 'u')
     {
@@ -229,11 +229,11 @@ class Taqdar_sessions_model extends CI_Model
     }
 
     /**
-     * المعلّمون الذين لهم مواعيد مفتوحة قادمة، ومعهم مواعيدهم.
-     * لا تقييم ولا سعر ولا سنوات خبرة: لا جدول لها في taqd_lms، ولا تُخترَع.
+     * المعلمون الذين لهم مواعيد مفتوحة قادمة، ومعهم مواعيدهم.
+     * لا تقييم ولا سعر ولا سنوات خبرة: لا جدول لها في taqd_lms، ولا تخترع.
      *
-     * @param int $limit_teachers أقصى عدد معلّمين
-     * @param int $limit_slots    أقصى عدد مواعيد لكل معلّم
+     * @param int $limit_teachers أقصى عدد معلمين
+     * @param int $limit_slots    أقصى عدد مواعيد لكل معلم
      * @param int $category_id    تصفية بمادة (٠ = الكل)
      */
     public function available_teachers($limit_teachers = 12, $limit_slots = 6, $category_id = 0)
@@ -265,7 +265,7 @@ class Taqdar_sessions_model extends CI_Model
                 $name = trim((string) $r['first_name'] . ' ' . (string) $r['last_name']);
                 $out[$tid] = [
                     'id'      => $tid,
-                    'name'    => $name !== '' ? $name : 'معلّم',
+                    'name'    => $name !== '' ? $name : 'معلم',
                     'image'   => (string) $r['image'],
                     'title'   => trim((string) $r['title']),
                     'subject' => $subjects['name'][$tid] ?? '',
@@ -286,9 +286,9 @@ class Taqdar_sessions_model extends CI_Model
     }
 
     /**
-     * مادّة كل معلّم — من كورساته المنشورة (`course.user_id` نصّ في Academy).
-     * وهذا كل ما تعرفه القاعدة عن تخصّصه؛ من لا كورس له لا مادّة له، فلا يُنسب
-     * إلى مادة لم يدرّسها.
+     * مادة كل معلم — من كورساته المنشورة (`course.user_id` نص في Academy).
+     * وهذا كل ما تعرفه القاعدة عن تخصصه؛ من لا كورس له لا مادة له، فلا ينسب
+     * إلى مادة لم يدرسها.
      */
     public function teacher_subjects()
     {
@@ -323,9 +323,9 @@ class Taqdar_sessions_model extends CI_Model
        ===================================================================== */
 
     /**
-     * طلب حصّة على موعد بعينه.
-     * كل شرط هنا يُفحص في الخادم: الموعد قائم، ومفتوح، ولم يمضِ، وليس للطالب
-     * طلب قائم عليه. والموعد يصير `held` لا `booked` — الحجز لا يتمّ إلّا بتأكيد.
+     * طلب حصة على موعد بعينه.
+     * كل شرط هنا يفحص في الخادم: الموعد قائم، ومفتوح، ولم يمض، وليس للطالب
+     * طلب قائم عليه. والموعد يصير `held` لا `booked` — الحجز لا يتم إلا بتأكيد.
      *
      * @return array ['ok'=>bool, 'msg'=>string, 'id'=>int]
      */
@@ -339,16 +339,16 @@ class Taqdar_sessions_model extends CI_Model
 
         $slot = $this->db->where('id', $slot_id)->get('availability_slots')->row_array();
         if (!$slot) {
-            return ['ok' => false, 'msg' => 'هذا الموعد لم يعد موجودًا.', 'id' => 0];
+            return ['ok' => false, 'msg' => 'هذا الموعد لم يعد موجودا.', 'id' => 0];
         }
         if ($slot['status'] !== 'open') {
-            return ['ok' => false, 'msg' => 'سبقك غيرك إلى هذا الموعد. اختر موعدًا آخر.', 'id' => 0];
+            return ['ok' => false, 'msg' => 'سبقك غيرك إلى هذا الموعد. اختر موعدا آخر.', 'id' => 0];
         }
         if (strtotime($slot['starts_at']) <= time()) {
             return ['ok' => false, 'msg' => 'هذا الموعد مضى.', 'id' => 0];
         }
         if ((int) $slot['teacher_id'] === $student_id) {
-            return ['ok' => false, 'msg' => 'لا تُحجز حصّة مع نفسك.', 'id' => 0];
+            return ['ok' => false, 'msg' => 'لا تحجز حصة مع نفسك.', 'id' => 0];
         }
 
         $dup = $this->db->where('slot_id', $slot_id)
@@ -367,20 +367,20 @@ class Taqdar_sessions_model extends CI_Model
         ]);
         $id = (int) $this->db->insert_id();
         if ($id <= 0) {
-            return ['ok' => false, 'msg' => 'تعذّر حفظ الطلب. حاول مرّة أخرى.', 'id' => 0];
+            return ['ok' => false, 'msg' => 'تعذر حفظ الطلب. حاول مرة أخرى.', 'id' => 0];
         }
 
-        // شرط `status = open` في التحديث نفسه: طلبان متزامنان لا يعلّقان موعدًا واحدًا مرّتين.
+        // شرط `status = open` في التحديث نفسه: طلبان متزامنان لا يعلقان موعدا واحدا مرتين.
         $this->db->where('id', $slot_id)->where('status', 'open')
                  ->update('availability_slots', ['status' => 'held']);
 
-        return ['ok' => true, 'msg' => 'أُرسل طلبك إلى المعلّم. لم يُخصم شيء بعد.', 'id' => $id];
+        return ['ok' => true, 'msg' => 'أرسل طلبك إلى المعلم. لم يخصم شيء بعد.', 'id' => $id];
     }
 
     /**
-     * طلبات معلّم بعينه. الشرط في الاستعلام لا في العرض.
+     * طلبات معلم بعينه. الشرط في الاستعلام لا في العرض.
      *
-     * @param array $statuses حالات مطلوبة (فارغ = المعلّقة وحدها)
+     * @param array $statuses حالات مطلوبة (فارغ = المعلقة وحدها)
      */
     public function requests_for_teacher($teacher_id, $statuses = ['requested'], $limit = 50)
     {
@@ -417,8 +417,8 @@ class Taqdar_sessions_model extends CI_Model
     }
 
     /**
-     * يحسم المعلّم طلبًا: تأكيدًا أو اعتذارًا.
-     * الملكيّة والحالة شرطان في الاستعلام: لا يُحسم طلب غيره، ولا يُحسم محسوم.
+     * يحسم المعلم طلبا: تأكيدا أو اعتذارا.
+     * الملكية والحالة شرطان في الاستعلام: لا يحسم طلب غيره، ولا يحسم محسوم.
      *
      * @param string $decision confirm|decline
      */
@@ -436,10 +436,10 @@ class Taqdar_sessions_model extends CI_Model
         $row = $this->db->where('id', $session_id)->where('teacher_id', $teacher_id)
                         ->get('tutoring_sessions')->row_array();
         if (!$row) {
-            return ['ok' => false, 'msg' => 'هذا الطلب ليس لك أو لم يعد موجودًا.'];
+            return ['ok' => false, 'msg' => 'هذا الطلب ليس لك أو لم يعد موجودا.'];
         }
         if ($row['status'] !== 'requested') {
-            return ['ok' => false, 'msg' => 'هذا الطلب حُسم من قبل.'];
+            return ['ok' => false, 'msg' => 'هذا الطلب حسم من قبل.'];
         }
 
         $new = ($decision === 'confirm') ? 'confirmed' : 'declined';
@@ -447,11 +447,11 @@ class Taqdar_sessions_model extends CI_Model
                  ->where('status', 'requested')
                  ->update('tutoring_sessions', ['status' => $new]);
         if ($this->db->affected_rows() < 1) {
-            return ['ok' => false, 'msg' => 'تعذّر تحديث الطلب. حاول مرّة أخرى.'];
+            return ['ok' => false, 'msg' => 'تعذر تحديث الطلب. حاول مرة أخرى.'];
         }
 
         if (!empty($row['slot_id'])) {
-            // التأكيد يحجز الموعد، والاعتذار يعيده مفتوحًا لطالب آخر.
+            // التأكيد يحجز الموعد، والاعتذار يعيده مفتوحا لطالب آخر.
             $this->db->where('id', (int) $row['slot_id'])
                      ->where('teacher_id', $teacher_id)
                      ->update('availability_slots', ['status' => ($new === 'confirmed' ? 'booked' : 'open')]);
@@ -459,7 +459,7 @@ class Taqdar_sessions_model extends CI_Model
 
         return [
             'ok'  => true,
-            'msg' => $new === 'confirmed' ? 'أُكِّد الطلب، وصار الموعد محجوزًا.' : 'اعتُذر عن الطلب، وعاد الموعد متاحًا.',
+            'msg' => $new === 'confirmed' ? 'أكد الطلب، وصار الموعد محجوزا.' : 'اعتذر عن الطلب، وعاد الموعد متاحا.',
         ];
     }
 
@@ -467,7 +467,7 @@ class Taqdar_sessions_model extends CI_Model
        حجوزات الطالب
        ===================================================================== */
 
-    /** حجوزات الطالب بمواعيدها ومعلّميها وحالتها كما في القاعدة. */
+    /** حجوزات الطالب بمواعيدها ومعلميها وحالتها كما في القاعدة. */
     public function bookings_for_student($student_id, $limit = 20)
     {
         $student_id = (int) $student_id;
@@ -491,9 +491,9 @@ class Taqdar_sessions_model extends CI_Model
             $out[] = [
                 'id'        => (int) $r['id'],
                 'status'    => $r['status'],
-                'tutor'     => $name !== '' ? $name : 'معلّم',
+                'tutor'     => $name !== '' ? $name : 'معلم',
                 'image'     => (string) $r['image'],
-                'subject'   => $subjects['name'][(int) $r['teacher_id']] ?? 'حصّة خاصّة',
+                'subject'   => $subjects['name'][(int) $r['teacher_id']] ?? 'حصة خاصة',
                 'starts_at' => $r['starts_at'],
                 'when_text' => $r['starts_at'] ? $this->when_text($r['starts_at']) : 'بلا موعد',
             ];
@@ -501,17 +501,17 @@ class Taqdar_sessions_model extends CI_Model
         return $out;
     }
 
-    /** شارة الحالة: نصّها ونوعها. الحالات السبع كما في `tutoring_sessions.status`. */
+    /** شارة الحالة: نصها ونوعها. الحالات السبع كما في `tutoring_sessions.status`. */
     public function status_badge($status)
     {
         $map = [
             'requested' => ['due',      'بانتظار التأكيد'],
-            'confirmed' => ['mastered', 'مؤكّد'],
+            'confirmed' => ['mastered', 'مؤكد'],
             'live'      => ['progress', 'جارية الآن'],
             'completed' => ['idle',     'منتهية'],
-            'declined'  => ['late',     'اعتذر المعلّم'],
+            'declined'  => ['late',     'اعتذر المعلم'],
             'expired'   => ['late',     'انتهت مهلته'],
-            'refunded'  => ['idle',     'مُسترَدّ'],
+            'refunded'  => ['idle',     'مسترد'],
         ];
         return $map[$status] ?? ['idle', $status];
     }

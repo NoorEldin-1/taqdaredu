@@ -1,27 +1,27 @@
 <?php
 /**
- * بوّابة المعلم — بنك الأسئلة.
+ * بوابة المعلم — بنك الأسئلة.
  *
- * القاعدة الحاكمة لبوّابة المعلم كلها:
- * المعلم مُسنَد إلى مادة وصفّ بعينهما، وما لم يُسنَد إليه لا يظهر في لوحته
- * أصلًا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يُفرض في طبقة الاستعلام
- * لا في الواجهة — إخفاء زرّ في الواجهة ليس صلاحية. لذلك بنك الأسئلة أدناه
- * يمرّ عبر `lesson` ثمّ `course` ويُقيَّد بملكية الكورس، فلا يظهر سؤال لغيره.
+ * القاعدة الحاكمة لبوابة المعلم كلها:
+ * المعلم مسند إلى مادة وصف بعينهما، وما لم يسند إليه لا يظهر في لوحته
+ * أصلا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يفرض في طبقة الاستعلام
+ * لا في الواجهة — إخفاء زر في الواجهة ليس صلاحية. لذلك بنك الأسئلة أدناه
+ * يمر عبر `lesson` ثم `course` ويقيد بملكية الكورس، فلا يظهر سؤال لغيره.
  *
- * السؤال غير المربوط بهدف تعليمي عديم القيمة تشخيصيًّا: يعطيك «أخطأ» ولا
+ * السؤال غير المربوط بهدف تعليمي عديم القيمة تشخيصيا: يعطيك «أخطأ» ولا
  * يعطيك «في ماذا». ولذلك الربط بالهدف إلزامي في هذه الشاشة.
  *
- * ما ينتظر جدولًا:
+ * ما ينتظر جدولا:
  *   `objectives`            — الأهداف نفسها (هدف × درس × عتبة إتقان)
  *   `question.objective_id` — عمود الربط الإلزامي بين السؤال وهدفه
  *   `question_tags`         — الوسوم
- *   `question.archived_at`  — الأرشفة بدل الحذف (السؤال المؤرشف تاريخ لا يُمحى)
- * وحتى توجد، الأسئلة القائمة تُعرض موسومة «بلا هدف» بصدق، ولا يُخترع لها ربط.
+ *   `question.archived_at`  — الأرشفة بدل الحذف (السؤال المؤرشف تاريخ لا يمحى)
+ * وحتى توجد، الأسئلة القائمة تعرض موسومة «بلا هدف» بصدق، ولا يخترع لها ربط.
  *
  * ولذلك لا أزرار إجراء في هذا الجدول اليوم: كانت فيه «أرشفة» بلا معالج
- * و«تحرير» تعيد الصفحة نفسها. زرّ يوهم بفعل لا يقع أسوأ من غياب الزرّ،
- * فحُذفا. ويعودان يوم يوجد `question.archived_at` وبرنامج تحرير للمعلّم.
- * وكذلك استيراد CSV: مواصفته أدناه مكتوبة، وحقل رفعه لا يُعرض قبل معالجه.
+ * و«تحرير» تعيد الصفحة نفسها. زر يوهم بفعل لا يقع أسوأ من غياب الزر،
+ * فحذفا. ويعودان يوم يوجد `question.archived_at` وبرنامج تحرير للمعلم.
+ * وكذلك استيراد CSV: مواصفته أدناه مكتوبة، وحقل رفعه لا يعرض قبل معالجه.
  */
 
 $tq_nav   = 'questions';
@@ -41,15 +41,15 @@ $tq_my_courses = $this->db->query(
 
 $tq_course_ids = array_map('intval', array_column($tq_my_courses, 'id'));
 
-/* تصفية بكورس بعينه — تُضاف إلى شرط الملكية لا تحلّ محلّه. */
+/* تصفية بكورس بعينه — تضاف إلى شرط الملكية لا تحل محله. */
 $tq_course = (int) $this->input->get('course');
 if ($tq_course && !in_array($tq_course, $tq_course_ids, true)) {
     $tq_course = 0;
 }
 
-/* عمود الربط بالهدف وجدول الأهداف صارا موجودين على الخادم، لكنّ وجودهما
-   ليس مضمونًا في كل بيئة، فيُفحصان قبل القراءة. وحين يغيبان تُعرض الحقيقة
-   نفسها: «بلا هدف» — لا ربط مُخترَع ولا صفحة مكسورة. */
+/* عمود الربط بالهدف وجدول الأهداف صارا موجودين على الخادم، لكن وجودهما
+   ليس مضمونا في كل بيئة، فيفحصان قبل القراءة. وحين يغيبان تعرض الحقيقة
+   نفسها: «بلا هدف» — لا ربط مخترع ولا صفحة مكسورة. */
 $tq_has_objectives = $this->db->table_exists('objectives')
                   && $this->db->field_exists('objective_id', 'question');
 
@@ -76,7 +76,7 @@ if ($tq_course_ids) {
           LIMIT 100"
     )->result_array();
 
-    /* اختبارات هذا المعلّم — تُملأ منها قائمة وجهة الاستيراد، فلا يستورد
+    /* اختبارات هذا المعلم — تملأ منها قائمة وجهة الاستيراد، فلا يستورد
        إلى اختبار ليس في كورساته. والخادم يعيد فحص الملكية بعدها. */
     $tq_quizzes = $this->db->query(
         "SELECT l.id, l.title, c.id AS course_id, c.title AS course_title
@@ -88,14 +88,14 @@ if ($tq_course_ids) {
     $tq_quiz_count = count($tq_quizzes);
 }
 
-/* الاستيراد له برنامج كتابة قائم (`teacher/questions/import`) ودالّة تحرسه
-   وتفحص ملكية الدرس والملفّ. `$this` هنا المُحمِّل لا المتحكّم، فالفحص على
-   `get_instance()`. وغياب الدالّة يُخفي النموذج ولا يكسر الصفحة. */
+/* الاستيراد له برنامج كتابة قائم (`teacher/questions/import`) ودالة تحرسه
+   وتفحص ملكية الدرس والملف. `$this` هنا المحمل لا المتحكم، فالفحص على
+   `get_instance()`. وغياب الدالة يخفي النموذج ولا يكسر الصفحة. */
 $tq_import_ready = method_exists(get_instance(), 'questions_import');
 
 $tq_type_label = [
     'radio'    => 'اختيار واحد',
-    'checkbox' => 'اختيار متعدّد',
+    'checkbox' => 'اختيار متعدد',
     'text'     => 'إجابة قصيرة',
     'essay'    => 'مقالي',
 ];
@@ -106,8 +106,8 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
-        <?php /* نتيجة الاستيراد: المتحكّم يكتبها بمفتاحَي `tq_ok`/`tq_error`
-                 ومفتاحَي المنصّة معًا — تُقرأ هنا بالاصطلاحين. */ ?>
+        <?php /* نتيجة الاستيراد: المتحكم يكتبها بمفتاحي `tq_ok`/`tq_error`
+                 ومفتاحي المنصة معا — تقرأ هنا بالاصطلاحين. */ ?>
         <?php if ($tq_ok = ($this->session->flashdata('tq_ok') ?: $this->session->flashdata('flash_message'))): ?>
             <div class="tq-pastel tq-pastel--mint tq-section" role="status">
                 <p class="tq-pastel__body" style="margin:0"><?php echo html_escape($tq_ok); ?></p>
@@ -169,8 +169,8 @@ include 'portal_open.php';
                     </tbody>
                 </table>
                 <p class="tq-field__hint tq-micro" style="margin-block-start:var(--tq-space-l)">
-                    التحرير والربط بالهدف والوسم والأرشفة تُفتح فور تفعيل الأهداف
-                    وعمود الأرشفة على الخادم. ولا يُعرض هنا زرّ قبل معالجه.
+                    التحرير والربط بالهدف والوسم والأرشفة تفتح فور تفعيل الأهداف
+                    وعمود الأرشفة على الخادم. ولا يعرض هنا زر قبل معالجه.
                 </p>
             </div>
         <?php else: ?>
@@ -178,7 +178,7 @@ include 'portal_open.php';
                 <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('help', 24); ?></span>
                 <h2 class="tq-empty__title">بنك أسئلتك فارغ</h2>
                 <p class="tq-empty__text">
-                    <?php echo tq_iso('ابدأ بهدف واحد ثمّ اكتب له 5 أسئلة على الأقل. السؤال المربوط بهدفه يخبرك بما لم يُتقَن، والسؤال الحرّ يخبرك بأن الطالب أخطأ فقط.'); ?>
+                    <?php echo tq_iso('ابدأ بهدف واحد ثم اكتب له 5 أسئلة على الأقل. السؤال المربوط بهدفه يخبرك بما لم يتقن، والسؤال الحر يخبرك بأن الطالب أخطأ فقط.'); ?>
                 </p>
                 <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/upload'); ?>">ابدأ من درس وأهدافه</a>
             </div>
@@ -189,14 +189,14 @@ include 'portal_open.php';
         <div class="tq-pastel tq-pastel--rose">
             <span class="tq-pastel__label tq-micro">قاعدة البنك</span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                السؤال غير المربوط بهدف تعليمي عديم القيمة تشخيصيًّا: يقول «أخطأ» ولا يقول «في ماذا».
+                السؤال غير المربوط بهدف تعليمي عديم القيمة تشخيصيا: يقول «أخطأ» ولا يقول «في ماذا».
             </p>
         </div>
 
-        <!-- استيراد CSV: أعمدة معلومة سلفًا، لا تخمين.
-             النموذج يقصد برنامج كتابة قائمًا (`teacher/questions/import`) يحرس
-             الدور والملكية والملفّ ويردّ بنتيجة صريحة. وإن غاب البرنامج لا
-             يُعرض زرّ رفع أصلًا. -->
+        <!-- استيراد CSV: أعمدة معلومة سلفا، لا تخمين.
+             النموذج يقصد برنامج كتابة قائما (`teacher/questions/import`) يحرس
+             الدور والملكية والملف ويرد بنتيجة صريحة. وإن غاب البرنامج لا
+             يعرض زر رفع أصلا. -->
         <?php if ($tq_import_ready && $tq_quizzes): ?>
         <form class="tq-card" method="post" enctype="multipart/form-data"
               action="<?php echo base_url('teacher/questions/import'); ?>">
@@ -207,7 +207,7 @@ include 'portal_open.php';
             <div class="tq-field">
                 <label class="tq-field__label" for="tq-quiz">وجهة الاستيراد</label>
                 <select class="tq-select" id="tq-quiz" name="lesson_id" required>
-                    <option value="">اختر اختبارًا من كورساتك…</option>
+                    <option value="">اختر اختبارا من كورساتك…</option>
                     <?php foreach ($tq_quizzes as $tq_z): ?>
                         <option value="<?php echo (int) $tq_z['id']; ?>">
                             <?php echo html_escape($tq_z['course_title'] . ' — ' . $tq_z['title']); ?>
@@ -221,14 +221,14 @@ include 'portal_open.php';
                 <label class="tq-field__label" for="tq-csv">ملف الأسئلة</label>
                 <input class="tq-input" id="tq-csv" type="file" name="csv" accept=".csv,.txt" required>
                 <span class="tq-field__msg tq-field__hint">
-                    ترميز UTF-8، وأوّل سطر أسماء الأعمدة، والحدّ الأقصى <?php echo TQ_LRI . '2' . TQ_PDI; ?> ميغابايت.
+                    ترميز UTF-8، وأول سطر أسماء الأعمدة، والحد الأقصى <?php echo TQ_LRI . '2' . TQ_PDI; ?> ميغابايت.
                 </span>
             </div>
 
-            <p class="tq-caption" style="margin-block-end:var(--tq-space-s)">الأعمدة المتوقّعة:</p>
+            <p class="tq-caption" style="margin-block-end:var(--tq-space-s)">الأعمدة المتوقعة:</p>
             <ul class="tq-micro" style="margin:0 0 var(--tq-space-l);padding-inline-start:var(--tq-space-l);list-style:disc">
-                <li>objective — نصّ الهدف أو رقمه (إلزامي)</li>
-                <li>question — نصّ السؤال</li>
+                <li>objective — نص الهدف أو رقمه (إلزامي)</li>
+                <li>question — نص السؤال</li>
                 <li>type — radio أو checkbox</li>
                 <li><?php echo tq_iso('option_1 … option_4 — الخيارات'); ?></li>
                 <li>correct — رقم الخيار الصحيح أو أرقامه</li>
@@ -237,7 +237,7 @@ include 'portal_open.php';
 
             <button class="tq-btn tq-btn--primary tq-btn--block" type="submit">استيراد</button>
             <p class="tq-field__hint tq-micro" style="margin-block-start:var(--tq-space-m)">
-                الاستيراد يرفض أي صفّ بلا هدف — ولا يستورد نصفه. وتصلك نتيجته مكتوبة.
+                الاستيراد يرفض أي صف بلا هدف — ولا يستورد نصفه. وتصلك نتيجته مكتوبة.
             </p>
         </form>
         <?php else: ?>
@@ -246,14 +246,14 @@ include 'portal_open.php';
 
             <p class="tq-caption" style="margin-block-end:var(--tq-space-s)">
                 <?php echo $tq_quizzes
-                    ? 'برنامج الاستيراد غير مفعَّل على الخادم بعد، ولن يُعرض زرّ رفع قبل معالجه.'
+                    ? 'برنامج الاستيراد غير مفعل على الخادم بعد، ولن يعرض زر رفع قبل معالجه.'
                     : 'لا اختبار في كورساتك بعد، فلا وجهة للاستيراد.'; ?>
-                جهّز ملفك على هذه الأعمدة الآن ليستورد كما هو حين يُفتح. الترميز UTF-8،
-                وأوّل سطر أسماء الأعمدة:
+                جهز ملفك على هذه الأعمدة الآن ليستورد كما هو حين يفتح. الترميز UTF-8،
+                وأول سطر أسماء الأعمدة:
             </p>
             <ul class="tq-micro" style="margin:0 0 var(--tq-space-l);padding-inline-start:var(--tq-space-l);list-style:disc">
-                <li>objective — نصّ الهدف أو رقمه (إلزامي)</li>
-                <li>question — نصّ السؤال</li>
+                <li>objective — نص الهدف أو رقمه (إلزامي)</li>
+                <li>question — نص السؤال</li>
                 <li>type — radio أو checkbox</li>
                 <li><?php echo tq_iso('option_1 … option_4 — الخيارات'); ?></li>
                 <li>correct — رقم الخيار الصحيح أو أرقامه</li>
@@ -261,7 +261,7 @@ include 'portal_open.php';
             </ul>
 
             <p class="tq-field__hint tq-micro" style="margin:0">
-                وحين يُفتح: يرفض أي صفّ بلا هدف، ولا يستورد نصف ملفّ.
+                وحين يفتح: يرفض أي صف بلا هدف، ولا يستورد نصف ملف.
             </p>
         </div>
         <?php endif; ?>

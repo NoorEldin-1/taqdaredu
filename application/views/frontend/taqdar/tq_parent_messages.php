@@ -1,37 +1,37 @@
 <?php
 /**
- * بوّابة وليّ الأمر — الرسائل.
+ * بوابة ولي الأمر — الرسائل.
  *
  * المرجع التصميمي: تطبيق البنك، لا لوحة تعليمية — محادثة واحدة في كل سطر،
- * بمن تتحدّث وآخر ما قيل ومتى. بلا مصطلحات ولا خيوط متشعّبة.
+ * بمن تتحدث وآخر ما قيل ومتى. بلا مصطلحات ولا خيوط متشعبة.
  *
- * كل ما في هذه الصفحة حقيقي: `message_thread` و`message` مقيَّدان بمعرّف
- * وليّ الأمر نفسه في الاستعلام — لا يُفتح خيط لا يكون طرفًا فيه، ولو كتب
+ * كل ما في هذه الصفحة حقيقي: `message_thread` و`message` مقيدان بمعرف
+ * ولي الأمر نفسه في الاستعلام — لا يفتح خيط لا يكون طرفا فيه، ولو كتب
  * رمز الخيط في الرابط بنفسه.
  *
- * الحلقة الناقصة التي أُغلقت: كان الردّ ممكنًا وبدء المحادثة مستحيلًا —
- * لا زرّ يفتح محادثة مع معلّم. صار «محادثة جديدة» هنا، ومَن يجوز مراسلته
- * قائمة بيضاء تُحسب في الخادم: معلّمو كورسات أبنائه المربوطين وحدهم،
- * وتُفحص عند الكتابة لا عند رسم القائمة — فاختيار معرّف آخر في النموذج
- * يُرفض.
+ * الحلقة الناقصة التي أغلقت: كان الرد ممكنا وبدء المحادثة مستحيلا —
+ * لا زر يفتح محادثة مع معلم. صار «محادثة جديدة» هنا، ومن يجوز مراسلته
+ * قائمة بيضاء تحسب في الخادم: معلمو كورسات أبنائه المربوطين وحدهم،
+ * وتفحص عند الكتابة لا عند رسم القائمة — فاختيار معرف آخر في النموذج
+ * يرفض.
  *
- * حاجز الرؤية: هذه رسائل وليّ الأمر مع المعلمين والإدارة.
+ * حاجز الرؤية: هذه رسائل ولي الأمر مع المعلمين والإدارة.
  * محادثات ابنه مع المساعد الذكي ومنشوراته لا تظهر هنا ولا في أي صفحة —
- * «الرقابة الكاملة تُنتج طالبًا يُخفي، لا طالبًا يتعلّم.»
+ * «الرقابة الكاملة تنتج طالبا يخفي، لا طالبا يتعلم.»
  */
 
-$tq_ci = &get_instance();   // الطبقةُ المُحمَّلة داخل عرضٍ لا تُنسخ على $this، فتُؤخذ من النسخة
+$tq_ci = &get_instance();   // الطبقة المحملة داخل عرض لا تنسخ على $this، فتؤخذ من النسخة
 $tq_ci->load->model('taqdar_parent_model');
 $tq_pm = $tq_ci->taqdar_parent_model;
-/* بدء محادثة ينشر إلى `POST parent/messages/compose` في المتحكّم، والردّ
-   داخل خيط قائم ينشر إلى برنامج الشاشة ويُعالَج هنا (المتحكّم يفتح خيوطًا
-   جديدة لا يردّ فيها). والمعالجة في الحالتين من هذا النموذج. */
+/* بدء محادثة ينشر إلى `POST parent/messages/compose` في المتحكم، والرد
+   داخل خيط قائم ينشر إلى برنامج الشاشة ويعالج هنا (المتحكم يفتح خيوطا
+   جديدة لا يرد فيها). والمعالجة في الحالتين من هذا النموذج. */
 $tq_pm->handle_post('messages');
 
 $tq_nav   = 'messages';
 $tq_role  = 'parent';
 $tq_title = 'الرسائل';
-$tq_sub   = 'محادثاتك مع معلّمي أبنائك وإدارة المنصّة';
+$tq_sub   = 'محادثاتك مع معلمي أبنائك وإدارة المنصة';
 $tq_icon  = 'chat';
 
 $tq_uid = (int) $this->session->userdata('user_id');
@@ -69,7 +69,7 @@ foreach ($tq_threads as &$tq_t) {
 }
 unset($tq_t);
 
-/* فتح خيط بعينه — يُتحقّق من أنه طرف فيه في الاستعلام نفسه. */
+/* فتح خيط بعينه — يتحقق من أنه طرف فيه في الاستعلام نفسه. */
 $tq_open_code = (string) $this->input->get('thread', true);
 $tq_open      = null;
 $tq_messages  = [];
@@ -133,9 +133,9 @@ include 'portal_open.php';
                     <input type="hidden" name="tq_action" value="message_reply">
                     <input type="hidden" name="thread" value="<?php echo html_escape($tq_open['message_thread_code']); ?>">
                     <div class="tq-field">
-                        <label class="tq-field__label" for="tq-reply">ردّك</label>
+                        <label class="tq-field__label" for="tq-reply">ردك</label>
                         <textarea class="tq-textarea" id="tq-reply" name="message" rows="3" required
-                                  placeholder="اكتب ردّك هنا"></textarea>
+                                  placeholder="اكتب ردك هنا"></textarea>
                     </div>
                     <button class="tq-btn tq-btn--primary" type="submit">إرسال</button>
                 </form>
@@ -155,7 +155,7 @@ include 'portal_open.php';
                         <div class="tq-field">
                             <label class="tq-field__label" for="tq-receiver">إلى</label>
                             <select class="tq-select" id="tq-receiver" name="receiver" required>
-                                <option value="">اختر معلّمًا…</option>
+                                <option value="">اختر معلما…</option>
                                 <?php foreach ($tq_teachers as $tq_t2): ?>
                                     <option value="<?php echo (int) $tq_t2['id']; ?>">
                                         <?php echo html_escape($tq_t2['name']); ?>
@@ -165,7 +165,7 @@ include 'portal_open.php';
                                 <?php endforeach; ?>
                             </select>
                             <p class="tq-field__hint">
-                                القائمة معلّمو مواد أبنائك المربوطين وحدهم، وتُفحص في الخادم عند الإرسال.
+                                القائمة معلمو مواد أبنائك المربوطين وحدهم، وتفحص في الخادم عند الإرسال.
                             </p>
                         </div>
 
@@ -179,12 +179,12 @@ include 'portal_open.php';
                     </form>
                 <?php else: ?>
                     <div class="tq-empty">
-                        <h3 class="tq-empty__title">لا معلّم تجوز مراسلته الآن</h3>
+                        <h3 class="tq-empty__title">لا معلم تجوز مراسلته الآن</h3>
                         <p class="tq-empty__text">
                             <?php if (!$tq_children): ?>
-                                لا ابن مربوط بحسابك بعد. المراسلة تُفتح بعد ربط حساب ابنك وموافقته.
+                                لا ابن مربوط بحسابك بعد. المراسلة تفتح بعد ربط حساب ابنك وموافقته.
                             <?php else: ?>
-                                أبناؤك المربوطون غير مسجَّلين في أي مادة لها معلّم بعد،
+                                أبناؤك المربوطون غير مسجلين في أي مادة لها معلم بعد،
                                 فلا أحد نراسله باسمهم. وتظهر القائمة هنا فور تسجيلهم في مادة.
                             <?php endif; ?>
                         </p>
@@ -211,7 +211,7 @@ include 'portal_open.php';
                             <?php
                             $tq_other_name = $tq_t['other']
                                 ? trim($tq_t['other']['first_name'] . ' ' . $tq_t['other']['last_name'])
-                                : 'إدارة المنصّة';
+                                : 'إدارة المنصة';
                             $tq_photo = !empty($tq_t['other']['image'])
                                 ? base_url('uploads/user_image/' . $tq_t['other']['image'])
                                 : tq_asset('brand/icon.png');
@@ -243,7 +243,7 @@ include 'portal_open.php';
                     <span class="tq-icon-box tq-pastel--sky" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('chat', 24); ?></span>
                     <h3 class="tq-empty__title">لا محادثات بعد</h3>
                     <p class="tq-empty__text">
-                        ابدأ محادثة من النموذج فوق، أو انتظر رسالة من معلّم أو من إدارة المنصّة —
+                        ابدأ محادثة من النموذج فوق، أو انتظر رسالة من معلم أو من إدارة المنصة —
                         تجدها هنا في سطر واحد: من أرسل، وآخر ما قيل، ومتى.
                     </p>
                 </div>
@@ -253,9 +253,9 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-pastel tq-pastel--mint">
-            <span class="tq-pastel__label tq-micro">متى تراسل المعلّم</span>
+            <span class="tq-pastel__label tq-micro">متى تراسل المعلم</span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                حين تلاحظ انقطاعًا أو تراجعًا في مادة. سؤال قصير من وليّ الأمر يفتح للمعلّم
+                حين تلاحظ انقطاعا أو تراجعا في مادة. سؤال قصير من ولي الأمر يفتح للمعلم
                 ما لا تفتحه التقارير.
             </p>
         </div>
@@ -264,7 +264,7 @@ include 'portal_open.php';
             <div class="tq-card__head"><h2 class="tq-card__title">ما لا نعرضه</h2></div>
             <p class="tq-caption">
                 محادثات ابنك مع المساعد الذكي ومنشوراته في المجتمع ليست هنا ولا في أي صفحة أخرى.
-                نعطيك ما يساعدك على مساعدته، لا ما يجعله يُخفي.
+                نعطيك ما يساعدك على مساعدته، لا ما يجعله يخفي.
             </p>
         </div>
     </aside>

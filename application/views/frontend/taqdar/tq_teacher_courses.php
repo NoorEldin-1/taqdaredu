@@ -1,15 +1,15 @@
 <?php
 /**
- * بوّابة المعلم — كورساتي.
+ * بوابة المعلم — كورساتي.
  *
- * القاعدة الحاكمة لبوّابة المعلم كلها:
- * المعلم مُسنَد إلى مادة وصفّ بعينهما، وما لم يُسنَد إليه لا يظهر في لوحته
- * أصلًا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يُفرض في طبقة الاستعلام
- * لا في الواجهة — إخفاء زرّ في الواجهة ليس صلاحية.
+ * القاعدة الحاكمة لبوابة المعلم كلها:
+ * المعلم مسند إلى مادة وصف بعينهما، وما لم يسند إليه لا يظهر في لوحته
+ * أصلا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يفرض في طبقة الاستعلام
+ * لا في الواجهة — إخفاء زر في الواجهة ليس صلاحية.
  *
  * الإسناد الصريح ينتظر جدول `teacher_assignments`؛ والنطاق المتاح اليوم
- * هو ملكية الكورس: `course.creator` أو ورود معرّفه في `course.user_id`.
- * لاحظ أن التصفية أدناه تُضاف إلى شرط الملكية لا تحلّ محلّه.
+ * هو ملكية الكورس: `course.creator` أو ورود معرفه في `course.user_id`.
+ * لاحظ أن التصفية أدناه تضاف إلى شرط الملكية لا تحل محله.
  */
 
 $tq_nav   = 'courses';
@@ -20,12 +20,12 @@ $tq_icon  = 'book';
 
 $tq_uid = (int) $this->session->userdata('user_id');
 
-/* تصفية الحالة من الرابط، بقائمة بيضاء لا بما يُرسله المتصفّح. */
+/* تصفية الحالة من الرابط، بقائمة بيضاء لا بما يرسله المتصفح. */
 $tq_filters = [
     ''         => 'الكل',
     'active'   => 'منشور',
     'pending'  => 'قيد المراجعة',
-    'draft'    => 'مسودّة',
+    'draft'    => 'مسودة',
     'private'  => 'خاص',
 ];
 $tq_status = (string) $this->input->get('status', true);
@@ -49,12 +49,12 @@ $tq_courses = $this->db->query(
     [$tq_uid, $tq_uid]
 )->result_array();
 
-/* حالات أكاديمي الأربع تُترجَم إلى شارات تقدّر الخمس.
+/* حالات أكاديمي الأربع تترجم إلى شارات تقدر الخمس.
    البرتقالي (due) إشارة انتظار لا نجاح، والنجاح تركوازي وحده. */
 $tq_status_badge = [
     'active'  => ['mastered', 'منشور'],
     'pending' => ['due',      'قيد المراجعة'],
-    'draft'   => ['idle',     'مسودّة'],
+    'draft'   => ['idle',     'مسودة'],
     'private' => ['progress', 'خاص'],
     'upcoming' => ['progress', 'قادم'],
 ];
@@ -80,11 +80,11 @@ include 'portal_open.php';
 <?php endif; ?>
 
 <details class="tq-card tq-card--panel" style="margin-block-end:var(--tq-space-xl)">
-    <summary class="tq-card__title" style="cursor:pointer">أنشئ كورسًا جديدًا</summary>
+    <summary class="tq-card__title" style="cursor:pointer">أنشئ كورسا جديدا</summary>
 
     <p class="tq-caption" style="margin-block:var(--tq-space-s) var(--tq-space-l)">
         الكورس الجديد يبدأ <strong>بانتظار مراجعة الإدارة</strong>، وتستطيع رفع دروسه
-        من الآن. ويُنشر بعد المراجعة.
+        من الآن. وينشر بعد المراجعة.
     </p>
 
     <form method="post" action="<?php echo base_url('teacher/courses/save'); ?>">
@@ -98,8 +98,8 @@ include 'portal_open.php';
                 <label for="c_level">المستوى</label>
                 <select class="tq-input" id="c_level" name="level">
                     <option value="beginner">مبتدئ</option>
-                    <option value="intermediate">متوسّط</option>
-                    <option value="advanced">متقدّم</option>
+                    <option value="intermediate">متوسط</option>
+                    <option value="advanced">متقدم</option>
                 </select>
             </div>
 
@@ -131,12 +131,12 @@ include 'portal_open.php';
         <?php if ($tq_courses): ?>
             <div class="tq-card">
                 <table class="tq-table">
-                    <caption class="tq-sr">كورساتك: الحالة وعدد المسجَّلين ونسبة الإكمال</caption>
+                    <caption class="tq-sr">كورساتك: الحالة وعدد المسجلين ونسبة الإكمال</caption>
                     <thead>
                         <tr>
                             <th scope="col">الكورس</th>
                             <th scope="col">الحالة</th>
-                            <th scope="col">المسجَّلون</th>
+                            <th scope="col">المسجلون</th>
                             <th scope="col">الدروس</th>
                             <th scope="col">نسبة الإكمال</th>
                             <th scope="col"><span class="tq-sr">إجراءات</span></th>
@@ -151,13 +151,13 @@ include 'portal_open.php';
                             <tr>
                                 <td data-label="الكورس">
                                     <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_c['title']); ?></span>
-                                    <span class="tq-micro" style="display:block">أُضيف <?php echo html_escape(tq_since((int) $tq_c['date_added'])); ?></span>
+                                    <span class="tq-micro" style="display:block">أضيف <?php echo html_escape(tq_since((int) $tq_c['date_added'])); ?></span>
                                 </td>
                                 <td data-label="الحالة"><?php echo tq_badge($tq_kind, $tq_text); ?></td>
-                                <td data-label="المسجَّلون"><?php echo tq_num($tq_c['students'], 'tq-num--sm'); ?></td>
+                                <td data-label="المسجلون"><?php echo tq_num($tq_c['students'], 'tq-num--sm'); ?></td>
                                 <td data-label="الدروس"><?php echo tq_num($tq_c['lessons'], 'tq-num--sm'); ?></td>
                                 <td data-label="نسبة الإكمال" style="min-inline-size:180px">
-                                    <?php echo tq_progress($tq_completion, 'متوسّط إكمال ' . $tq_c['title']); ?>
+                                    <?php echo tq_progress($tq_completion, 'متوسط إكمال ' . $tq_c['title']); ?>
                                 </td>
                                 <td data-label="إجراءات">
                                     <a class="tq-btn tq-btn--ghost tq-btn--sm"
@@ -174,31 +174,31 @@ include 'portal_open.php';
             <div class="tq-card tq-empty">
                 <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('book', 24); ?></span>
                 <h2 class="tq-empty__title">
-                    <?php echo $tq_status === '' ? 'لم يُسنَد إليك كورس بعد' : 'لا كورس بهذه الحالة'; ?>
+                    <?php echo $tq_status === '' ? 'لم يسند إليك كورس بعد' : 'لا كورس بهذه الحالة'; ?>
                 </h2>
                 <p class="tq-empty__text">
                     <?php if ($tq_status === ''): ?>
-                        هذه الصفحة تعرض ما أُسنِد إليك وحده — لا تعرض كورسات زملائك ولو كانت في مادتك نفسها.
-                        تواصل مع إدارة المنصّة لإسناد مادتك وصفّك، أو ابدأ برفع درسك الأول.
+                        هذه الصفحة تعرض ما أسند إليك وحده — لا تعرض كورسات زملائك ولو كانت في مادتك نفسها.
+                        تواصل مع إدارة المنصة لإسناد مادتك وصفك، أو ابدأ برفع درسك الأول.
                     <?php else: ?>
-                        غيّر التصفية لتعود إلى كل كورساتك.
+                        غير التصفية لتعود إلى كل كورساتك.
                     <?php endif; ?>
                 </p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/upload'); ?>">ارفع درسًا جديدًا</a>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/upload'); ?>">ارفع درسا جديدا</a>
             </div>
         <?php endif; ?>
     </div>
 
     <aside class="tq-aside">
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">ملخّص</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title">ملخص</h2></div>
             <ul class="tq-stack">
                 <li class="tq-row tq-row--between">
                     <span class="tq-caption">عدد كورساتك</span>
                     <?php echo tq_num(count($tq_courses)); ?>
                 </li>
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">مجموع المسجَّلين</span>
+                    <span class="tq-caption">مجموع المسجلين</span>
                     <?php echo tq_num($tq_total_students); ?>
                 </li>
             </ul>
@@ -207,8 +207,8 @@ include 'portal_open.php';
         <div class="tq-pastel tq-pastel--sky">
             <span class="tq-pastel__label tq-micro">لماذا لا أرى كورسات زملائي؟</span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                لوحتك مقصورة على ما أُسنِد إليك: مادتك وصفّك. ما لم يُسنَد إليك لا يظهر لك،
-                لا محتوًى ولا طلابًا ولا تقريرًا.
+                لوحتك مقصورة على ما أسند إليك: مادتك وصفك. ما لم يسند إليك لا يظهر لك،
+                لا محتوى ولا طلابا ولا تقريرا.
             </p>
         </div>
     </aside>

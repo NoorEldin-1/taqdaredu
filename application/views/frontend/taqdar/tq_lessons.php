@@ -2,11 +2,11 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * دروسي — كل الكورسات المسجَّلة وتقدّمها.
+ * دروسي — كل الكورسات المسجلة وتقدمها.
  *
- * التبويبات والتصفية تعملان في الخادم لا في المتصفّح: الرابط يحمل الحالة،
- * فيمكن حفظه ومشاركته، ويعمل بلا جافاسكربت. وزرّ «مسح الفلاتر» لا يظهر
- * إلّا حين يوجد فلتر فعلًا — زرّ لا يفعل شيئًا يعلّم المستخدم تجاهل الأزرار.
+ * التبويبات والتصفية تعملان في الخادم لا في المتصفح: الرابط يحمل الحالة،
+ * فيمكن حفظه ومشاركته، ويعمل بلا جافاسكربت. وزر «مسح الفلاتر» لا يظهر
+ * إلا حين يوجد فلتر فعلا — زر لا يفعل شيئا يعلم المستخدم تجاهل الأزرار.
  *
  * موصول بالقاعدة: enrol · course · lesson · watch_histories · category.
  */
@@ -19,7 +19,7 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 $tq_nav   = 'lessons';
 $tq_role  = 'student';
 $tq_title = 'دروسي';
-$tq_sub   = 'كل الدروس المسجّلة لديك';
+$tq_sub   = 'كل الدروس المسجلة لديك';
 $tq_icon  = 'book';
 
 $tq_all = tq_s_enrolled($tq_uid);
@@ -33,7 +33,7 @@ if (!in_array($f_state, ['progress', 'done', 'idle'], true)) $f_state = '';
 
 $tq_has_filter = ($f_subject !== '' || $f_stage !== '');
 
-/* خيارات التصفية من كورسات الطالب نفسها لا من كل تصنيفات المنصّة */
+/* خيارات التصفية من كورسات الطالب نفسها لا من كل تصنيفات المنصة */
 $opt_subjects = [];
 $opt_stages   = [];
 foreach ($tq_all as $c) {
@@ -54,13 +54,13 @@ $tq_list = array_values(array_filter($tq_all, function ($c) use ($f_state, $f_su
     return true;
 }));
 
-/* --- إجمالي التقدّم: دروس مكتملة من إجمالي دروس الكورسات، لا متوسّط نِسَب --- */
+/* --- إجمالي التقدم: دروس مكتملة من إجمالي دروس الكورسات، لا متوسط نسب --- */
 $tq_total_lessons = 0;
 $tq_done_lessons  = 0;
 foreach ($tq_all as $c) { $tq_total_lessons += $c['lessons']; $tq_done_lessons += $c['done']; }
 $tq_overall = $tq_total_lessons > 0 ? (int) round($tq_done_lessons * 100 / $tq_total_lessons) : 0;
 
-/* --- بناء روابط تحفظ بقيّة الفلاتر --- */
+/* --- بناء روابط تحفظ بقية الفلاتر --- */
 $tq_query = function ($over = []) use ($f_state, $f_subject, $f_stage) {
     $p = array_merge(['state' => $f_state, 'subject' => $f_subject, 'stage' => $f_stage], $over);
     $p = array_filter($p, function ($v) { return $v !== '' && $v !== null; });
@@ -80,7 +80,7 @@ include 'portal_open.php';
             <?php
             $tabs = [
                 ''         => ['الكل',        $tq_counts_by['all']],
-                'progress' => ['قيد التقدّم', $tq_counts_by['progress']],
+                'progress' => ['قيد التقدم', $tq_counts_by['progress']],
                 'done'     => ['مكتملة',      $tq_counts_by['done']],
                 'idle'     => ['لم تبدأ',     $tq_counts_by['idle']],
             ];
@@ -100,8 +100,8 @@ include 'portal_open.php';
                 <?php echo tq_s_empty(
                     'book', 'mint',
                     'لا دروس بعد',
-                    'كل كورس تسجَّل فيه يظهر هنا ببطاقة تحمل غلافه وحالته ومدّته ونسبة تقدّمك فيه.',
-                    'تصفّح الكورسات',
+                    'كل كورس تسجل فيه يظهر هنا ببطاقة تحمل غلافه وحالته ومدته ونسبة تقدمك فيه.',
+                    'تصفح الكورسات',
                     base_url('plans')
                 ); ?>
             </div>
@@ -111,7 +111,7 @@ include 'portal_open.php';
                 <?php echo tq_s_empty(
                     'search', 'sky',
                     'لا نتائج لهذه التصفية',
-                    'جرّب توسيع التصفية أو امسحها لترى كل كورساتك مرّة أخرى.',
+                    'جرب توسيع التصفية أو امسحها لترى كل كورساتك مرة أخرى.',
                     'مسح الفلاتر',
                     base_url('student/lessons')
                 ); ?>
@@ -123,7 +123,7 @@ include 'portal_open.php';
                     <?php
                     $badge = $c['status'] === 'done'
                         ? tq_badge('mastered', 'مكتملة')
-                        : ($c['status'] === 'progress' ? tq_badge('progress', 'قيد التقدّم') : tq_badge('idle', 'لم تبدأ'));
+                        : ($c['status'] === 'progress' ? tq_badge('progress', 'قيد التقدم') : tq_badge('idle', 'لم تبدأ'));
                     $href = tq_s_lesson_url($c['id'], $c['resume_id']);
                     ?>
                     <article class="tq-card tq-s-course">
@@ -137,7 +137,7 @@ include 'portal_open.php';
                         <p class="tq-micro" style="margin:0">
                             <?php echo html_escape($c['level'] !== '' ? $c['level'] : tq_s_subject($c['category_id'], 'كورس')); ?>
                         </p>
-                        <?php echo tq_progress($c['progress'], 'تقدّمك في ' . $c['title']); ?>
+                        <?php echo tq_progress($c['progress'], 'تقدمك في ' . $c['title']); ?>
                         <p class="tq-caption" style="margin:0"><?php echo tq_s_lessons_word($c['done'], $c['lessons']); ?></p>
                     </article>
                 <?php endforeach; ?>
@@ -195,13 +195,13 @@ include 'portal_open.php';
                     <label class="tq-field__label" for="tq-f-state">الحالة</label>
                     <select class="tq-select" id="tq-f-state" name="state">
                         <option value="">كل الحالات</option>
-                        <option value="progress" <?php echo $f_state === 'progress' ? 'selected' : ''; ?>>قيد التقدّم</option>
+                        <option value="progress" <?php echo $f_state === 'progress' ? 'selected' : ''; ?>>قيد التقدم</option>
                         <option value="done"     <?php echo $f_state === 'done' ? 'selected' : ''; ?>>مكتملة</option>
                         <option value="idle"     <?php echo $f_state === 'idle' ? 'selected' : ''; ?>>لم تبدأ</option>
                     </select>
                 </p>
 
-                <button class="tq-btn tq-btn--primary tq-btn--block" type="submit">طبّق التصفية</button>
+                <button class="tq-btn tq-btn--primary tq-btn--block" type="submit">طبق التصفية</button>
 
                 <?php if ($tq_has_filter): ?>
                     <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-s)"
@@ -210,22 +210,22 @@ include 'portal_open.php';
             </form>
         </section>
 
-        <!-- ملخّص تقدّمك -->
+        <!-- ملخص تقدمك -->
         <section class="tq-card tq-card--panel">
-            <div class="tq-card__head"><h2 class="tq-card__title">ملخّص تقدّمك</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title">ملخص تقدمك</h2></div>
 
             <?php if (empty($tq_all)): ?>
                 <?php echo tq_s_empty(
                     'chart', 'mint',
-                    'لا تقدّم بعد',
-                    'حلقة تقدّمك وتوزيع حالات كورساتك يظهران هنا بعد أول درس تكمله.',
+                    'لا تقدم بعد',
+                    'حلقة تقدمك وتوزيع حالات كورساتك يظهران هنا بعد أول درس تكمله.',
                     '', '', true
                 ); ?>
             <?php else: ?>
                 <div class="tq-row" style="gap:var(--tq-space-l)">
                     <?php echo tq_ring($tq_overall, 108, 10); ?>
                     <div>
-                        <p class="tq-strong" style="margin:0;color:var(--tq-navy)">إجمالي التقدّم</p>
+                        <p class="tq-strong" style="margin:0;color:var(--tq-navy)">إجمالي التقدم</p>
                         <p class="tq-caption" style="margin:0">
                             <?php echo tq_s_lessons_word($tq_done_lessons, $tq_total_lessons); ?>
                         </p>
@@ -236,7 +236,7 @@ include 'portal_open.php';
                     <?php
                     $rows = [
                         ['done', 'كورسات مكتملة',    $tq_counts_by['done']],
-                        ['due',  'كورسات قيد التقدّم', $tq_counts_by['progress']],
+                        ['due',  'كورسات قيد التقدم', $tq_counts_by['progress']],
                         ['idle', 'كورسات لم تبدأ',   $tq_counts_by['idle']],
                     ];
                     foreach ($rows as [$dot, $label, $n]):
@@ -262,7 +262,7 @@ include 'portal_open.php';
                 <h2 class="tq-card__title tq-pastel__title">حصص بالطلب</h2>
                 <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('video', 24); ?></span>
             </div>
-            <p class="tq-pastel__body">احجز حصّة مباشرة مع معلّم عند حاجتك لفهم أعمق.</p>
+            <p class="tq-pastel__body">احجز حصة مباشرة مع معلم عند حاجتك لفهم أعمق.</p>
             <a class="tq-btn tq-btn--mastery tq-btn--block" href="<?php echo base_url('student/on-demand'); ?>">احجز الآن</a>
         </section>
 

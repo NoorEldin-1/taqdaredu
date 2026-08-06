@@ -2,20 +2,20 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * محتوى باقتي — ما دفع الطالب ثمنه، مرتَّبًا كما يُدرَس.
+ * محتوى باقتي — ما دفع الطالب ثمنه، مرتبا كما يدرس.
  *
- * صفحة الاشتراك تقول «نشط حتى كذا» وتعرض فاتورة، ولا تقول **ماذا فُتح**.
- * فمن اشترك يرى حالةً وتاريخًا ثمّ يبحث عن دروسه في قائمةٍ جانبية.
+ * صفحة الاشتراك تقول «نشط حتى كذا» وتعرض فاتورة، ولا تقول **ماذا فتح**.
+ * فمن اشترك يرى حالة وتاريخا ثم يبحث عن دروسه في قائمة جانبية.
  *
- * وهذه تقولها: الموادّ بوحداتها ودروسها، وتقدّمُه في كلٍّ منها، ورابطٌ
- * لكلّ درس. والمصدر `bundle_by_code()` نفسه الذي تقرأ منه صفحة الباقة
- * العامّة — فما وُعِد به قبل الدفع هو ما يُعرَض بعده، حرفًا بحرف.
+ * وهذه تقولها: المواد بوحداتها ودروسها، وتقدمه في كل منها، ورابط
+ * لكل درس. والمصدر `bundle_by_code()` نفسه الذي تقرأ منه صفحة الباقة
+ * العامة — فما وعد به قبل الدفع هو ما يعرض بعده، حرفا بحرف.
  */
 $b    = isset($tq_bundle) ? $tq_bundle : null;
 $sub  = isset($tq_sub) ? $tq_sub : null;
 $prog = isset($tq_progress) ? $tq_progress : array();
 
-/* الحال الفعلية لا المخزَّنة — كما في صفحة الاشتراك تمامًا. */
+/* الحال الفعلية لا المخزنة — كما في صفحة الاشتراك تماما. */
 $eff = $sub ? $sub['status'] : null;
 if ($sub && in_array($eff, array('active', 'cancelled'), true)
     && !empty($sub['ends_at']) && strtotime($sub['ends_at']) < time()) {
@@ -27,28 +27,28 @@ $live = in_array($eff, array('active', 'cancelled'), true);
 <div class="tq-page">
     <header class="tq-page__head">
         <h1 class="tq-h1">محتوى باقتي</h1>
-        <p class="tq-caption">كلّ ما فتحته باقتك — بموادّه ووحداته ودروسه.</p>
+        <p class="tq-caption">كل ما فتحته باقتك — بمواده ووحداته ودروسه.</p>
     </header>
 
     <?php if (!$sub): ?>
 
         <div class="tq-card tq-card--panel">
             <h2 class="tq-card__title">لا اشتراك بعد</h2>
-            <p class="tq-caption">اختر باقةً تفتح منهج صفّك كاملًا — لا مادّةً مادّة.</p>
-            <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">اطّلع على الباقات</a>
+            <p class="tq-caption">اختر باقة تفتح منهج صفك كاملا — لا مادة مادة.</p>
+            <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">اطلع على الباقات</a>
         </div>
 
     <?php elseif (!$live): ?>
 
-        <?php /* اشتراكٌ معلَّق أو منتهٍ: المحتوى لم يُفتح بعد، وعرضُ منهجٍ
-                 كامل هنا يوهم بأنّه متاح. يُقال سبب الإغلاق ويُدَلّ على بابه. */ ?>
+        <?php /* اشتراك معلق أو منته: المحتوى لم يفتح بعد، وعرض منهج
+                 كامل هنا يوهم بأنه متاح. يقال سبب الإغلاق ويدل على بابه. */ ?>
         <div class="tq-card tq-card--panel">
             <h2 class="tq-card__title">
-                <?php echo $eff === 'pending' ? 'اشتراكك بانتظار السداد' : 'انتهت مدّة اشتراكك'; ?>
+                <?php echo $eff === 'pending' ? 'اشتراكك بانتظار السداد' : 'انتهت مدة اشتراكك'; ?>
             </h2>
             <p class="tq-caption">
                 <?php if ($eff === 'pending'): ?>
-                    صدرت فاتورتك، ويُفتح المحتوى فور التحقّق من حوالتك.
+                    صدرت فاتورتك، ويفتح المحتوى فور التحقق من حوالتك.
                 <?php else: ?>
                     يمكنك الاشتراك من جديد ويعود ما كنت تدرسه كما تركته.
                 <?php endif; ?>
@@ -61,7 +61,7 @@ $live = in_array($eff, array('active', 'cancelled'), true);
         <div class="tq-card tq-card--panel">
             <h2 class="tq-card__title">باقتك نشطة</h2>
             <p class="tq-caption">
-                برامج هذه الباقة قيد التجهيز، وتظهر لك هنا تلقائيًّا فور نشرها.
+                برامج هذه الباقة قيد التجهيز، وتظهر لك هنا تلقائيا فور نشرها.
             </p>
         </div>
 
@@ -85,19 +85,19 @@ $live = in_array($eff, array('active', 'cancelled'), true);
         </div>
 
         <?php
-        /* الإجماليّات — وما كان صفرًا لا يُعرَض بندًا فارغًا. */
+        /* الإجماليات — وما كان صفرا لا يعرض بندا فارغا. */
         echo tqs_stat_strip(array(
-            array($t['subjects'], 'مادّة',    'i-book'),
+            array($t['subjects'], 'مادة',    'i-book'),
             array($t['units'],    'وحدة',     'i-grid'),
-            array($t['lessons'],  'درسًا',    'i-play'),
-            array($t['quizzes'],  'اختبارًا', 'i-clipboard'),
+            array($t['lessons'],  'درسا',    'i-play'),
+            array($t['quizzes'],  'اختبارا', 'i-clipboard'),
         ), 'tqb-stats');
         ?>
 
         <?php if ($t['lessons'] > 0): ?>
             <?php
-            /* تقدّمٌ إجماليّ: متوسّطُ ما أُنجز في المقرّرات التي لها محتوى.
-               والمقرّر الفارغ لا يُحسب — وإلّا هبطت النسبة بما لم يُنشَر بعد. */
+            /* تقدم إجمالي: متوسط ما أنجز في المقررات التي لها محتوى.
+               والمقرر الفارغ لا يحسب — وإلا هبطت النسبة بما لم ينشر بعد. */
             $done = 0; $n = 0;
             foreach ($b['subjects'] as $s) {
                 if (!$s['ready']) continue;
@@ -108,7 +108,7 @@ $live = in_array($eff, array('active', 'cancelled'), true);
             ?>
             <div class="tq-card tqb-prog">
                 <div class="tqb-prog__t">
-                    <span>تقدّمك في الباقة</span>
+                    <span>تقدمك في الباقة</span>
                     <b class="tq-ltr"><?php echo $pct; ?>%</b>
                 </div>
                 <div class="tqb-prog__bar"><i style="inline-size:<?php echo $pct; ?>%"></i></div>
@@ -118,7 +118,7 @@ $live = in_array($eff, array('active', 'cancelled'), true);
         <section class="tq-section">
             <h2 class="tq-h2">المنهج</h2>
             <p class="tq-caption">
-                يُفتح الدرس التالي بعد إتقان الذي قبله — فلا يُبنى على أساسٍ لم يُتقَن.
+                يفتح الدرس التالي بعد إتقان الذي قبله — فلا يبنى على أساس لم يتقن.
             </p>
             <?php echo tqs_curriculum($b, array(
                 'mode' => 'student', 'open' => 1, 'progress' => $prog,

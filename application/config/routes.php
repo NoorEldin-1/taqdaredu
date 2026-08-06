@@ -99,15 +99,15 @@ $route['sitemap.xml'] = 'sitemap';
 $route['translate_uri_dashes'] = false;
 
 // ---- taqdar write routes ----
-// مسارات الكتابة قبل قواعد العرض دائمًا.
+// مسارات الكتابة قبل قواعد العرض دائما.
 //
-// `(:any)` في CI3 تُترجم إلى `[^/]+` فتطابق **مقطعًا واحدًا**: فلا
-// `teacher/(:any)` ولا `taqdar/teacher/(:any)` تلتقط مسارًا من مقطعين مثل
+// `(:any)` في CI3 تترجم إلى `[^/]+` فتطابق **مقطعا واحدا**: فلا
+// `teacher/(:any)` ولا `taqdar/teacher/(:any)` تلتقط مسارا من مقطعين مثل
 // `teacher/upload/save`. وبلا قاعدة صريحة يسقط المسار إلى التوجيه الافتراضي
-// فيُنادى `Taqdar::teacher('upload','save')` — أي تُعرَض شاشة الرفع نفسها
-// ردًّا على طلب كتابة: لا حفظ، ولا خطأ، ولا رسالة.
+// فينادى `Taqdar::teacher('upload','save')` — أي تعرض شاشة الرفع نفسها
+// ردا على طلب كتابة: لا حفظ، ولا خطأ، ولا رسالة.
 //
-// وهذه المسارات كلّها POST فقط، ترفض GET من داخل المتحكّم بـ show_404().
+// وهذه المسارات كلها POST فقط، ترفض GET من داخل المتحكم بـ show_404().
 $route['teacher/upload/save']       = 'taqdar/upload_save';
 $route['teacher/marking/approve']   = 'taqdar/marking_approve';
 $route['teacher/sessions/save']     = 'taqdar/sessions_save';
@@ -117,7 +117,7 @@ $route['parent/messages/compose']   = 'taqdar/parent_message_send';
 $route['parent/children/link']      = 'taqdar/parent_child_link';
 $route['parent/settings/save']      = 'taqdar/parent_settings_save';
 
-// المرادفات ببادئة taqdar/ — لئلّا يسقط المسار الطويل إلى دالّة العرض
+// المرادفات ببادئة taqdar/ — لئلا يسقط المسار الطويل إلى دالة العرض
 $route['taqdar/teacher/upload/save']      = 'taqdar/upload_save';
 $route['taqdar/teacher/marking/approve']  = 'taqdar/marking_approve';
 $route['taqdar/teacher/sessions/save']    = 'taqdar/sessions_save';
@@ -128,10 +128,10 @@ $route['taqdar/parent/children/link']     = 'taqdar/parent_child_link';
 $route['taqdar/parent/settings/save']     = 'taqdar/parent_settings_save';
 
 // ---- taqdar certificates ----
-// شاشة الشهادات تشير إلى هذين المسارين، وكانا 404 لأن الدالّتين لم توجدا.
-// `verify` عامّة عمدًا: التحقّق من شهادة يقوم به من لا حساب له.
-// و`.htaccess` يحوّل `taqdar/(.*)` إلى `/student/$1` بـ301، فالمسار الواصل
-// فعلًا هو `student/...` — والقاعدتان الأوليان للاحتياط لو تغيّر التحويل.
+// شاشة الشهادات تشير إلى هذين المسارين، وكانا 404 لأن الدالتين لم توجدا.
+// `verify` عامة عمدا: التحقق من شهادة يقوم به من لا حساب له.
+// و`.htaccess` يحول `taqdar/(.*)` إلى `/student/$1` بـ301، فالمسار الواصل
+// فعلا هو `student/...` — والقاعدتان الأوليان للاحتياط لو تغير التحويل.
 $route['taqdar/certificate/(:num)']  = 'taqdar/certificate/$1';
 $route['taqdar/verify/(:any)']       = 'taqdar/verify/$1';
 $route['student/certificate/(:num)'] = 'taqdar/certificate/$1';
@@ -147,7 +147,7 @@ $route['taqdar/parent']         = 'taqdar/parent_portal/children';
 $route['taqdar/parent/(:any)']  = 'taqdar/parent_portal/$1';
 
 // ---- taqdar clean routes ----
-// بوّابات بأسماء أدوارها بدل بادئة taqdar/ — مطابقة لمسارات تطبيق Flutter.
+// بوابات بأسماء أدوارها بدل بادئة taqdar/ — مطابقة لمسارات تطبيق Flutter.
 $route['student']                = 'taqdar/home';
 $route['student/on-demand']      = 'taqdar/on_demand';
 $route['student/lesson/(:num)']            = 'taqdar/lesson/$1';
@@ -166,7 +166,7 @@ $route['teacher/(:any)']         = 'taqdar/teacher/$1';
 $route['parent']                 = 'taqdar/parent_portal/children';
 $route['parent/(:any)']          = 'taqdar/parent_portal/$1';
 
-// صفحات عامّة بلا بادئة home/
+// صفحات عامة بلا بادئة home/
 $route['courses']                = 'home/courses';
 $route['courses/(:any)']         = 'home/courses/$1';
 $route['course/(:any)']          = 'home/course/$1';
@@ -197,7 +197,7 @@ $route['my-courses']             = 'home/my_courses';
 $route['profile']                = 'home/profile';
 
 // ---- legacy player redirect ----
-// المشغّل القديم لا يعرف بوّابة الإتقان ويكتب في watch_histories وحده،
-// ففتحه مباشرةً كان يلتفّ على القفل. يُحوَّل إلى المشغّل الجديد.
+// المشغل القديم لا يعرف بوابة الإتقان ويكتب في watch_histories وحده،
+// ففتحه مباشرة كان يلتف على القفل. يحول إلى المشغل الجديد.
 $route['home/lesson/(:any)/(:num)/(:num)'] = 'taqdar/lesson/$2/$3';
 $route['home/lesson/(:any)/(:num)']        = 'taqdar/lesson/$2';

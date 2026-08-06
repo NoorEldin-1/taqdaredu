@@ -1,11 +1,11 @@
 <?php
 $course_details = $this->crud_model->get_course_by_id($course_id)->row_array();
-// شبكة أمان: لو استُدعيت الشاشة برقم دورة غير موجود، نتجنّب انهيار الوصول إلى null.
-// (المتحكّم يعيد التوجيه أصلًا في هذه الحالة، وهذا دفاع إضافي.)
+// شبكة أمان: لو استدعيت الشاشة برقم دورة غير موجود، نتجنب انهيار الوصول إلى null.
+// (المتحكم يعيد التوجيه أصلا في هذه الحالة، وهذا دفاع إضافي.)
 if (empty($course_details)) {
     $course_details = [];
 }
-// حقول JSON قد تكون null لدورة أُنشئت حديثًا؛ نضمن مصفوفة حتى لا ينهار count() في PHP 8.
+// حقول JSON قد تكون null لدورة أنشئت حديثا؛ نضمن مصفوفة حتى لا ينهار count() في PHP 8.
 $tq_requirements = ! empty($course_details['requirements']) ? json_decode($course_details['requirements']) : [];
 if (! is_array($tq_requirements)) { $tq_requirements = []; }
 $tq_outcomes = ! empty($course_details['outcomes']) ? json_decode($course_details['outcomes']) : [];

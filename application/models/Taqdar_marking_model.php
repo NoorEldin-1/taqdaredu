@@ -4,23 +4,23 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 /**
  * تصحيح المعلم واعتماد الدرجة.
  *
- * القاعدة الحاكمة: المعرّف القادم من النموذج بيانٌ لا صلاحية. كل دالّة هنا
- * تشتقّ نطاق المعلم من القاعدة نفسها — `course.creator` أو `course.user_id` —
- * ثمّ تربط المحاولة به عبر `lesson` و`course`، فما لم يُسنَد إليه لا يُقرأ
- * ولا يُكتب مهما كان في الرابط أو في الحقل المخفي. والحفظ يمرّ بالتحقّق
- * نفسه مرّتين: مرّة عند فتح الشاشة، ومرّة — وهي التي تحمي — عند الاعتماد.
+ * القاعدة الحاكمة: المعرف القادم من النموذج بيان لا صلاحية. كل دالة هنا
+ * تشتق نطاق المعلم من القاعدة نفسها — `course.creator` أو `course.user_id` —
+ * ثم تربط المحاولة به عبر `lesson` و`course`، فما لم يسند إليه لا يقرأ
+ * ولا يكتب مهما كان في الرابط أو في الحقل المخفي. والحفظ يمر بالتحقق
+ * نفسه مرتين: مرة عند فتح الشاشة، ومرة — وهي التي تحمي — عند الاعتماد.
  *
- * والتصحيح الآلي مساعِد لا بديل: `total_obtained_marks` اقتراح يحسبه السكربت
+ * والتصحيح الآلي مساعد لا بديل: `total_obtained_marks` اقتراح يحسبه السكربت
  * من الأسئلة الموضوعية وحدها، و`teacher_score` هي الدرجة التي اعتمدها إنسان.
- * ولذلك درجة الاختبار الذي فيه سؤال مقالي لا تُعرض على الطالب قبل الاعتماد —
- * وهذا ما تقرّره `student_view()` أدناه في موضع واحد يستعمله كل عارض.
+ * ولذلك درجة الاختبار الذي فيه سؤال مقالي لا تعرض على الطالب قبل الاعتماد —
+ * وهذا ما تقرره `student_view()` أدناه في موضع واحد يستعمله كل عارض.
  *
  * أعمدة الاعتماد في `quiz_results`:
  *   teacher_score · teacher_note · approved_at · approved_by
  */
 class Taqdar_marking_model extends CI_Model
 {
-    /** أنواع الأسئلة التي يصحّحها السكربت آليًّا (User::quiz_answer_submit). */
+    /** أنواع الأسئلة التي يصححها السكربت آليا (User::quiz_answer_submit). */
     private $auto_types = array('multiple_choice', 'single_choice', 'fill_in_the_blank');
 
     /** عتبة النجاح حين لا يضبطها الإعداد — نسبة مئوية. */
@@ -29,7 +29,7 @@ class Taqdar_marking_model extends CI_Model
     /** إعداد العتبة في جدول `settings`. */
     const PASS_PERCENT_KEY = 'marking_pass_percent';
 
-    /** أطول ملاحظة تُحفظ — الحقل نصّ، والحدّ يمنع الإغراق لا التعبير. */
+    /** أطول ملاحظة تحفظ — الحقل نص، والحد يمنع الإغراق لا التعبير. */
     const NOTE_MAX = 2000;
 
     public function __construct()
@@ -43,8 +43,8 @@ class Taqdar_marking_model extends CI_Model
      * ================================================================ */
 
     /**
-     * عتبة النجاح نسبةً مئوية. تُقرأ من `settings` لا من الشيفرة، وقيمتها
-     * الافتراضية 60 حتى يُضبط المفتاح — فلا يتغيّر سلوك اليوم بلا قرار.
+     * عتبة النجاح نسبة مئوية. تقرأ من `settings` لا من الشيفرة، وقيمتها
+     * الافتراضية 60 حتى يضبط المفتاح — فلا يتغير سلوك اليوم بلا قرار.
      */
     public function pass_percent()
     {
@@ -67,8 +67,8 @@ class Taqdar_marking_model extends CI_Model
     }
 
     /**
-     * حالة الإتقان مشتقّة من الدرجة والعتبة — لا تُخزَّن ولا تُسأل عن المعلم
-     * مرّتين. موضعها النهائي جدول `objectives` (لكل هدف عتبته)، وحتى يوجد
+     * حالة الإتقان مشتقة من الدرجة والعتبة — لا تخزن ولا تسأل عن المعلم
+     * مرتين. موضعها النهائي جدول `objectives` (لكل هدف عتبته)، وحتى يوجد
      * فالعتبة إعداد واحد لا رقم مبعثر في الشاشات.
      */
     public function mastery($score, $total)
@@ -79,14 +79,14 @@ class Taqdar_marking_model extends CI_Model
 
         if ($pct >= $pass)            return array('key' => 'mastered', 'label' => 'أتقن الهدف',            'percent' => (int) round($pct));
         if ($pct >= $pass * 0.75)     return array('key' => 'progress', 'label' => 'يحتاج مراجعة',          'percent' => (int) round($pct));
-        return                               array('key' => 'late',     'label' => 'لم يُتقَن — يُعاد الدرس', 'percent' => (int) round($pct));
+        return                               array('key' => 'late',     'label' => 'لم يتقن — يعاد الدرس', 'percent' => (int) round($pct));
     }
 
     /* ================================================================
      *  النطاق: ما يملكه المعلم
      * ================================================================ */
 
-    /** معرّفات كورسات المعلم — منشئًا أو مُسنَدًا إليها. */
+    /** معرفات كورسات المعلم — منشئا أو مسندا إليها. */
     public function course_ids($teacher_id)
     {
         $teacher_id = (int) $teacher_id;
@@ -117,8 +117,8 @@ class Taqdar_marking_model extends CI_Model
     }
 
     /**
-     * صفّ التصحيح: المُسلَّم الذي لم يُعتمد بعد، الأقدم أوّلًا —
-     * الطالب الذي انتظر أطول يُصحَّح أوّلًا.
+     * صف التصحيح: المسلم الذي لم يعتمد بعد، الأقدم أولا —
+     * الطالب الذي انتظر أطول يصحح أولا.
      */
     public function queue($teacher_id, $limit = 50)
     {
@@ -136,7 +136,7 @@ class Taqdar_marking_model extends CI_Model
         )->result_array();
     }
 
-    /** آخر ما اعتمده المعلم — ليرى أثر عمله لا صفًّا يفرغ بلا خبر. */
+    /** آخر ما اعتمده المعلم — ليرى أثر عمله لا صفا يفرغ بلا خبر. */
     public function approved_recent($teacher_id, $limit = 8)
     {
         $ids = $this->course_ids($teacher_id);
@@ -154,8 +154,8 @@ class Taqdar_marking_model extends CI_Model
     }
 
     /**
-     * محاولة بعينها — مقيَّدة بنطاق المعلم. تعود null إن لم تكن في كورساته،
-     * ولا فرق عندها بين «غير موجودة» و«ليست لك»: كلاهما لا يُعرض.
+     * محاولة بعينها — مقيدة بنطاق المعلم. تعود null إن لم تكن في كورساته،
+     * ولا فرق عندها بين «غير موجودة» و«ليست لك»: كلاهما لا يعرض.
      */
     public function attempt($result_id, $teacher_id)
     {
@@ -179,7 +179,7 @@ class Taqdar_marking_model extends CI_Model
      * ================================================================ */
 
     /**
-     * عدد أسئلة الاختبار التي لا يصحّحها السكربت — المقالي وما شابهه.
+     * عدد أسئلة الاختبار التي لا يصححها السكربت — المقالي وما شابهه.
      * وجود واحد منها يعني أن الاقتراح الآلي ناقص بالضرورة.
      */
     public function manual_questions($quiz_id)
@@ -213,12 +213,12 @@ class Taqdar_marking_model extends CI_Model
      * ================================================================ */
 
     /**
-     * الحاجز المعلن في واجهة المعلم، منفَّذًا في موضع واحد:
-     * درجة الاختبار الذي فيه سؤال مقالي **لا تُعرض للطالب قبل الاعتماد**.
+     * الحاجز المعلن في واجهة المعلم، منفذا في موضع واحد:
+     * درجة الاختبار الذي فيه سؤال مقالي **لا تعرض للطالب قبل الاعتماد**.
      *
-     * @param  array $row صفّ من `quiz_results` (يكفي منه quiz_id و
+     * @param  array $row صف من `quiz_results` (يكفي منه quiz_id و
      *                    total_obtained_marks و teacher_score و approved_at)
-     * @return array visible: هل تُعرض درجة؟ · score: الدرجة المعروضة أو null
+     * @return array visible: هل تعرض درجة؟ · score: الدرجة المعروضة أو null
      *               state: approved | pending_approval | auto | unsubmitted
      *               note: ملاحظة المعلم بعد الاعتماد وحده
      */
@@ -248,7 +248,7 @@ class Taqdar_marking_model extends CI_Model
             return array('visible' => false, 'score' => null, 'state' => 'pending_approval', 'note' => '');
         }
 
-        /* اختبار موضوعي بالكامل: الآلة تكفيه، فلا يُحجب عن صاحبه بلا سبب. */
+        /* اختبار موضوعي بالكامل: الآلة تكفيه، فلا يحجب عن صاحبه بلا سبب. */
         return array(
             'visible' => true,
             'score'   => (float) $row['total_obtained_marks'],
@@ -258,7 +258,7 @@ class Taqdar_marking_model extends CI_Model
     }
 
     /**
-     * مثلها بمعرّف المحاولة ومعرّف الطالب — والملكية تُتحقّق: لا يقرأ أحد
+     * مثلها بمعرف المحاولة ومعرف الطالب — والملكية تتحقق: لا يقرأ أحد
      * نتيجة غيره بتغيير رقم في الرابط.
      */
     public function student_view_by_id($result_id, $student_id)
@@ -283,8 +283,8 @@ class Taqdar_marking_model extends CI_Model
      * ================================================================ */
 
     /**
-     * العقد الموحّد للفشل: `message` للعرض و`errors` لأن متحكّم الكتابة
-     * يقرأ منها — ولو غابت لعرض «تعذّر تنفيذ الطلب» بدل السبب الحقيقي.
+     * العقد الموحد للفشل: `message` للعرض و`errors` لأن متحكم الكتابة
+     * يقرأ منها — ولو غابت لعرض «تعذر تنفيذ الطلب» بدل السبب الحقيقي.
      */
     private function fail($message)
     {
@@ -297,10 +297,10 @@ class Taqdar_marking_model extends CI_Model
     }
 
     /**
-     * مِطواة المتحكّم: `Taqdar::marking_approve()` يفوّض بنداء واحد
-     * `(معرّف المعلم، حمولة)` — فيُستقبل هنا ويُفكّ إلى وسائط `approve()`.
-     * الحمولة بيان لا صلاحية: لا يُؤخذ منها معرّف طالب ولا اختبار، لأن
-     * الملكية تُعاد قراءتها من القاعدة بمعرّف المحاولة وحده.
+     * مطواة المتحكم: `Taqdar::marking_approve()` يفوض بنداء واحد
+     * `(معرف المعلم، حمولة)` — فيستقبل هنا ويفك إلى وسائط `approve()`.
+     * الحمولة بيان لا صلاحية: لا يؤخذ منها معرف طالب ولا اختبار، لأن
+     * الملكية تعاد قراءتها من القاعدة بمعرف المحاولة وحده.
      */
     public function approve_marking($teacher_id, $payload = array())
     {
@@ -314,17 +314,17 @@ class Taqdar_marking_model extends CI_Model
         );
     }
 
-    /** الاسم الآخر الذي قد يناديه المتحكّم — سلوك واحد لا سلوكان. */
+    /** الاسم الآخر الذي قد يناديه المتحكم — سلوك واحد لا سلوكان. */
     public function marking_approve($teacher_id, $payload = array())
     {
         return $this->approve_marking($teacher_id, $payload);
     }
 
     /**
-     * اعتماد الدرجة. لا يُصدَّق من النموذج إلا معرّف المحاولة والدرجة
-     * والملاحظة — والملكية تُقرأ من القاعدة قبل أي كتابة.
+     * اعتماد الدرجة. لا يصدق من النموذج إلا معرف المحاولة والدرجة
+     * والملاحظة — والملكية تقرأ من القاعدة قبل أي كتابة.
      *
-     * @return array ok · message · attempt (الصفّ بعد الحفظ)
+     * @return array ok · message · attempt (الصف بعد الحفظ)
      */
     public function approve($result_id, $teacher_id, $score, $note = '')
     {
@@ -332,25 +332,25 @@ class Taqdar_marking_model extends CI_Model
         $teacher_id = (int) $teacher_id;
 
         if ($result_id <= 0) {
-            return $this->fail('لم تُحدَّد المحاولة المطلوب اعتمادها.');
+            return $this->fail('لم تحدد المحاولة المطلوب اعتمادها.');
         }
         if ($teacher_id <= 0) {
-            return $this->fail('الجلسة انتهت — سجّل دخولك ثمّ أعد الاعتماد.');
+            return $this->fail('الجلسة انتهت — سجل دخولك ثم أعد الاعتماد.');
         }
 
-        /* التحقّق الحاسم: المحاولة تُقرأ مقيَّدة بكورسات هذا المعلم وحده. */
+        /* التحقق الحاسم: المحاولة تقرأ مقيدة بكورسات هذا المعلم وحده. */
         $row = $this->attempt($result_id, $teacher_id);
         if (!$row) {
-            return $this->fail('هذه المحاولة ليست في كورساتك، فلا تُعتمد منك.');
+            return $this->fail('هذه المحاولة ليست في كورساتك، فلا تعتمد منك.');
         }
         if ((int) $row['is_submitted'] !== 1) {
-            return $this->fail('المحاولة لم تُسلَّم بعد، فلا درجة نهائية لها.');
+            return $this->fail('المحاولة لم تسلم بعد، فلا درجة نهائية لها.');
         }
 
         $total = max(1, (int) $row['total_marks']);
 
         if ($score === null || $score === '' || !is_numeric($score)) {
-            return $this->fail('الدرجة مطلوبة رقمًا بين 0 و' . $total . '.');
+            return $this->fail('الدرجة مطلوبة رقما بين 0 و' . $total . '.');
         }
         $score = round((float) $score, 2);
         if ($score < 0 || $score > $total) {
@@ -371,25 +371,25 @@ class Taqdar_marking_model extends CI_Model
             'approved_by'   => $teacher_id,
         ));
 
-        /* الحفظ يُقرأ لا يُفترض. */
+        /* الحفظ يقرأ لا يفترض. */
         $saved = $this->attempt($result_id, $teacher_id);
         if (!$saved || (int) $saved['approved_by'] !== $teacher_id || empty($saved['approved_at'])) {
-            return $this->fail('تعذّر حفظ الاعتماد — أعد المحاولة.');
+            return $this->fail('تعذر حفظ الاعتماد — أعد المحاولة.');
         }
 
         $mastery = $this->mastery($saved['teacher_score'], $saved['total_marks']);
 
         return array(
             'ok'      => true,
-            'message' => 'اعتُمدت الدرجة ' . (float) $saved['teacher_score'] . ' من ' . (int) $saved['total_marks']
+            'message' => 'اعتمدت الدرجة ' . (float) $saved['teacher_score'] . ' من ' . (int) $saved['total_marks']
                        . ' — ' . $mastery['label'] . '. وصارت تظهر للطالب.',
             'attempt' => $saved,
         );
     }
 
     /**
-     * سحب الاعتماد — يُعيد الدرجة إلى الحجب. تحتاجه شاشة الاعتماد حين
-     * يعتمد المعلم بالخطأ، ولا معنى لحاجز لا يُعاد.
+     * سحب الاعتماد — يعيد الدرجة إلى الحجب. تحتاجه شاشة الاعتماد حين
+     * يعتمد المعلم بالخطأ، ولا معنى لحاجز لا يعاد.
      */
     public function unapprove($result_id, $teacher_id)
     {
@@ -408,9 +408,9 @@ class Taqdar_marking_model extends CI_Model
 
         $saved = $this->attempt($result_id, $teacher_id);
         if (!$saved || !empty($saved['approved_at'])) {
-            return $this->fail('تعذّر سحب الاعتماد — أعد المحاولة.');
+            return $this->fail('تعذر سحب الاعتماد — أعد المحاولة.');
         }
 
-        return array('ok' => true, 'message' => 'سُحب الاعتماد، والدرجة محجوبة عن الطالب من جديد.', 'attempt' => $saved);
+        return array('ok' => true, 'message' => 'سحب الاعتماد، والدرجة محجوبة عن الطالب من جديد.', 'attempt' => $saved);
     }
 }

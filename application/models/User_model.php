@@ -92,9 +92,9 @@ class User_model extends CI_Model
 
     public function add_shortcut_user($is_instructor = false)
     {
-        /* TQ-SHORTCUT-GUARD — الغياب ليس تفرُّدًا.
-           `check_duplication` مع بريدٍ فارغ لا يجد مطابقًا فيُجيز الإنشاء،
-           فينشأ حسابٌ مفعَّل بلا بريد وكلمتُه تجزئةُ النصّ الفارغ. */
+        /* TQ-SHORTCUT-GUARD — الغياب ليس تفردا.
+           `check_duplication` مع بريد فارغ لا يجد مطابقا فيجيز الإنشاء،
+           فينشأ حساب مفعل بلا بريد وكلمته تجزئة النص الفارغ. */
         $tq_email = trim((string) $this->input->post('email'));
         $tq_pass  = (string) $this->input->post('password');
         $tq_first = trim((string) $this->input->post('first_name'));
@@ -170,10 +170,10 @@ class User_model extends CI_Model
                 if ($duplicate_email_check->row()->status == 1) {
                     return false;
                 } else {
-                    /* TQ-NO-TAKEOVER — حسابٌ معطَّل ليس حسابًا «غير مُتحقَّق منه».
-                       إعادة التسجيل ببريده كانت تُصفّر كلمة مروره وتُفعّله، فيُتجاوَز
-                       التعطيل الإداريّ بخطوة واحدة. ولا يُسمح بمسار الاستئناف إلّا
-                       حين يكون التحقّق بالبريد مفعَّلًا — فحينها البريد نفسه برهانٌ
+                    /* TQ-NO-TAKEOVER — حساب معطل ليس حسابا «غير متحقق منه».
+                       إعادة التسجيل ببريده كانت تصفر كلمة مروره وتفعله، فيتجاوز
+                       التعطيل الإداري بخطوة واحدة. ولا يسمح بمسار الاستئناف إلا
+                       حين يكون التحقق بالبريد مفعلا — فحينها البريد نفسه برهان
                        على أن الطالب يملك الصندوق. */
                     if (get_settings('student_email_verification') !== 'enable') {
                         return false;
@@ -674,10 +674,10 @@ class User_model extends CI_Model
 
         $pre_sessions = json_decode($sessions->row('sessions'), true);
 
-        /* tq_prune_dead_sessions: تُطرح المعرّفات التي لا يقابلها صفّ حيّ في
-           `ci_sessions`. فجامع القمامة يحذف الصفوف بعد عشرة أيام ولا يمسّ
-           هذه المصفوفة، فيبقى العدّ عند الحدّ ويُقفل المستخدم بلا جلسة
-           واحدة حيّة — ولا يصله رمز فكّ القفل لأن البريد غير مضبوط. */
+        /* tq_prune_dead_sessions: تطرح المعرفات التي لا يقابلها صف حي في
+           `ci_sessions`. فجامع القمامة يحذف الصفوف بعد عشرة أيام ولا يمس
+           هذه المصفوفة، فيبقى العد عند الحد ويقفل المستخدم بلا جلسة
+           واحدة حية — ولا يصله رمز فك القفل لأن البريد غير مضبوط. */
         if(is_array($pre_sessions) && count($pre_sessions) > 0){
             $live_rows = $this->db->select('id')->where_in('id', $pre_sessions)
                                   ->get('ci_sessions')->result_array();
@@ -754,8 +754,8 @@ class User_model extends CI_Model
                     $this->session->unset_userdata('url_history');
                     redirect($back, 'refresh');
                 }
-                // كل دور إلى بوّابته: المعلّم والطالب ووليّ الأمر لم يعودوا
-                // يهبطون جميعًا على الصفحة العامّة. الاشتقاق موحّد في tq_role().
+                // كل دور إلى بوابته: المعلم والطالب وولي الأمر لم يعودوا
+                // يهبطون جميعا على الصفحة العامة. الاشتقاق موحد في tq_role().
                 redirect(tq_home_for(tq_role($row->id)), 'refresh');
             }
         } else {
@@ -806,8 +806,8 @@ class User_model extends CI_Model
             if ($this->session->userdata('admin_login')) {
                 redirect(site_url('admin'), 'refresh');
             } elseif ($this->session->userdata('user_login')) {
-                /* بوّابة صاحب الدور لا `home/my_courses`: تلك صفحةٌ من القالب
-                   القديم تُرجع ٤٠٤ — فكان بابُ العودة يقود إلى خطأ. */
+                /* بوابة صاحب الدور لا `home/my_courses`: تلك صفحة من القالب
+                   القديم ترجع ٤٠٤ — فكان باب العودة يقود إلى خطأ. */
                 if (function_exists('tq_home_for') && function_exists('tq_role')) {
                     redirect(tq_home_for(tq_role()), 'location', 302);
                 }

@@ -2,21 +2,21 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * بوّابة المعلم — الحصص.
+ * بوابة المعلم — الحصص.
  *
- * القاعدة الحاكمة لبوّابة المعلم كلها:
- * المعلم مُسنَد إلى مادة وصفّ بعينهما، وما لم يُسنَد إليه لا يظهر في لوحته
- * أصلًا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يُفرض في طبقة الاستعلام
- * لا في الواجهة — إخفاء زرّ في الواجهة ليس صلاحية. وشرط `teacher_id = <المعلم
+ * القاعدة الحاكمة لبوابة المعلم كلها:
+ * المعلم مسند إلى مادة وصف بعينهما، وما لم يسند إليه لا يظهر في لوحته
+ * أصلا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يفرض في طبقة الاستعلام
+ * لا في الواجهة — إخفاء زر في الواجهة ليس صلاحية. وشرط `teacher_id = <المعلم
  * الحالي>` مكتوب في كل استعلام وكل تحديث في `Taqdar_sessions_model`، لا هنا.
  *
- * الجدولان: `availability_slots` (أوقات المعلّم) و`tutoring_sessions` (الطلبات).
- * وكان هذا الملفّ ينتظر اسمين لا وجود لهما — `teacher_availability` و
+ * الجدولان: `availability_slots` (أوقات المعلم) و`tutoring_sessions` (الطلبات).
+ * وكان هذا الملف ينتظر اسمين لا وجود لهما — `teacher_availability` و
  * `session_requests` — فبقيت الشاشة فارغة والجدولان أمامها. التسمية الآن
- * تتبع القاعدة، والشبكة تُحفظ فعلًا.
+ * تتبع القاعدة، والشبكة تحفظ فعلا.
  *
- * والشبكة أسبوعية بينما العمود موعد بعينه: مفتاح «اليوم:الفترة» يُترجَم في
- * النموذج إلى أقرب وقوع قادم، فلا يُحفظ للمعلّم موعد في الماضي.
+ * والشبكة أسبوعية بينما العمود موعد بعينه: مفتاح «اليوم:الفترة» يترجم في
+ * النموذج إلى أقرب وقوع قادم، فلا يحفظ للمعلم موعد في الماضي.
  *
  * الأسبوع يبدأ الأحد — السوق سعودي.
  */
@@ -29,22 +29,22 @@ $tq_icon  = 'video';
 
 $tq_uid = (int) $this->session->userdata('user_id');
 
-/* النموذج يُحمَّل عبر get_instance(): العارض في CI3 ينسخ خصائص المتحكّم إلى
-   المحمِّل مرّة واحدة قبل التصيير، فما حُمِّل بعد بدء التصيير لا يظهر في `$this`. */
+/* النموذج يحمل عبر get_instance(): العارض في CI3 ينسخ خصائص المتحكم إلى
+   المحمل مرة واحدة قبل التصيير، فما حمل بعد بدء التصيير لا يظهر في `$this`. */
 $tq_CI = get_instance();
 $tq_CI->load->model('taqdar_sessions_model');
 $tq_m = $tq_CI->taqdar_sessions_model;
 
 /* ---- الكتابة قبل أي إخراج، ثم تحويل: تحديث الصفحة لا يعيد الإرسال ------
-   والملكيّة والحالة تُفحصان في النموذج داخل الاستعلام نفسه. */
+   والملكية والحالة تفحصان في النموذج داخل الاستعلام نفسه. */
 $tq_do = (string) $this->input->post('tq_action');
 if ($tq_do !== '') {
     if ($tq_do === 'save_slots') {
         $tq_n = $tq_m->save_week($tq_uid, (array) $this->input->post('slots'));
         $this->session->set_flashdata(
             'flash_message',
-            $tq_n > 0 ? 'حُفظت أوقاتك: ' . $tq_n . ' فترة متاحة هذا الأسبوع.'
-                      : 'حُفظ اختيارك: لا فترات متاحة، فلن يصلك طلب حتى تفتح وقتًا.'
+            $tq_n > 0 ? 'حفظت أوقاتك: ' . $tq_n . ' فترة متاحة هذا الأسبوع.'
+                      : 'حفظ اختيارك: لا فترات متاحة، فلن يصلك طلب حتى تفتح وقتا.'
         );
     } elseif ($tq_do === 'confirm' || $tq_do === 'decline') {
         $tq_r = $tq_m->decide((int) $this->input->post('session_id'), $tq_uid, $tq_do);
@@ -121,18 +121,18 @@ include 'portal_open.php';
                     <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('calendar', 24); ?></span>
                     <h3 class="tq-empty__title">لا طلبات حجز الآن</h3>
                     <p class="tq-empty__text">
-                        <?php echo tq_iso('حين يطلب أحد طلابك حصة خاصة، يظهر طلبه هنا بموعده، فتؤكّده أو تعتذر عنه خلال 24 ساعة. حدِّد أوقاتك المتاحة أدناه ليعرف الطالب متى يطلب.'); ?>
+                        <?php echo tq_iso('حين يطلب أحد طلابك حصة خاصة، يظهر طلبه هنا بموعده، فتؤكده أو تعتذر عنه خلال 24 ساعة. حدد أوقاتك المتاحة أدناه ليعرف الطالب متى يطلب.'); ?>
                     </p>
                     <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher'); ?>">عودة إلى اللوحة</a>
                 </div>
             <?php endif; ?>
         </section>
 
-        <!-- حصص مؤكّدة: أثر التأكيد يُرى، فلا يختفي الطلب بلا مآل -->
+        <!-- حصص مؤكدة: أثر التأكيد يرى، فلا يختفي الطلب بلا مآل -->
         <?php if ($tq_confirmed): ?>
             <section class="tq-section" aria-labelledby="tq-ok-h">
                 <div class="tq-sectionhead">
-                    <h2 id="tq-ok-h">حصص مؤكّدة</h2>
+                    <h2 id="tq-ok-h">حصص مؤكدة</h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_confirmed) . TQ_PDI; ?></span>
                 </div>
                 <div class="tq-card">
@@ -161,8 +161,8 @@ include 'portal_open.php';
             <fieldset style="border:0;padding:0;margin:0">
                 <legend class="tq-h2" style="padding:0">أوقاتي المتاحة</legend>
                 <p class="tq-caption">
-                    اختر الفترات التي تقبل فيها حصصًا خاصة. الطالب لا يرى غيرها، فلا يصلك طلب في وقت لا تعمل فيه.
-                    والاختيار يسري على الأيام السبعة القادمة، وما حُجز منه لا يُلغى برفع العلامة — بل بالاعتذار عن طلبه.
+                    اختر الفترات التي تقبل فيها حصصا خاصة. الطالب لا يرى غيرها، فلا يصلك طلب في وقت لا تعمل فيه.
+                    والاختيار يسري على الأيام السبعة القادمة، وما حجز منه لا يلغى برفع العلامة — بل بالاعتذار عن طلبه.
                 </p>
 
                 <div style="overflow-x:auto">
@@ -209,7 +209,7 @@ include 'portal_open.php';
                     حفظ أوقاتي
                 </button>
                 <p class="tq-field__msg tq-field__hint" id="tq-slots-note" style="margin-block-start:var(--tq-space-m)">
-                    الحفظ فوري: كل فترة تختارها تصير موعدًا يراه الطالب في «حصص بالطلب».
+                    الحفظ فوري: كل فترة تختارها تصير موعدا يراه الطالب في «حصص بالطلب».
                 </p>
             </fieldset>
         </form>
@@ -219,7 +219,7 @@ include 'portal_open.php';
         <div class="tq-pastel tq-pastel--sky">
             <span class="tq-pastel__label tq-micro">قاعدة الحصص</span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                <?php echo tq_iso('طلب بلا ردّ 24 ساعة يُلغى تلقائيًّا ويُعاد للطالب. الاعتذار المبكّر أفضل للطالب من انتظار لا ينتهي.'); ?>
+                <?php echo tq_iso('طلب بلا رد 24 ساعة يلغى تلقائيا ويعاد للطالب. الاعتذار المبكر أفضل للطالب من انتظار لا ينتهي.'); ?>
             </p>
         </div>
 
@@ -227,11 +227,11 @@ include 'portal_open.php';
             <div class="tq-card__head"><h2 class="tq-card__title">هذا الأسبوع</h2></div>
             <ul class="tq-stack">
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">طلبات معلّقة</span>
+                    <span class="tq-caption">طلبات معلقة</span>
                     <?php echo tq_num(count($tq_requests)); ?>
                 </li>
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">حصص مؤكّدة</span>
+                    <span class="tq-caption">حصص مؤكدة</span>
                     <?php echo tq_num(count($tq_confirmed)); ?>
                 </li>
                 <li class="tq-row tq-row--between">

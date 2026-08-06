@@ -34,8 +34,8 @@ class Api extends REST_Controller {
           $row = $query->row();
 
           /* tq_no_admin_via_api: هذه النقطة تشتري دورة من التطبيق، والأدمن
-             لا يشتري دورة. فلا تُصنَع بها جلسة إدارية مهما كان التوكن —
-             وبهذا يُنزَع التصعيد من الطريق لا من السرّ وحده. */
+             لا يشتري دورة. فلا تصنع بها جلسة إدارية مهما كان التوكن —
+             وبهذا ينزع التصعيد من الطريق لا من السر وحده. */
           if ((int) $row->role_id === 1) {
               $this->session->set_flashdata('error_message', 'Invalid auth token');
               redirect(site_url('login'), 'refresh');

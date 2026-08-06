@@ -1,9 +1,9 @@
 <?php
 /**
- * ثيم تقدّر — الغلاف.
+ * ثيم تقدر — الغلاف.
  *
- * الاتجاه نتيجة للّغة لا إعداد مستقل، ولذلك يُشتقّ dir من لغة النظام
- * ولا يُقرأ من تفضيل منفصل. وصفحات البوّابات تفتح غلافها بنفسها عبر
+ * الاتجاه نتيجة للغة لا إعداد مستقل، ولذلك يشتق dir من لغة النظام
+ * ولا يقرأ من تفضيل منفصل. وصفحات البوابات تفتح غلافها بنفسها عبر
  * portal_open.php / portal_close.php، فالغلاف هنا لا يعرف بها.
  */
 $tq_lang     = get_settings('language') ?: 'arabic';
@@ -13,7 +13,7 @@ $tq_active   = $tq_session ?: $tq_lang;
 $tq_dir      = $tq_dirs[$tq_active] ?? 'ltr';
 $tq_iso      = getIsoCode(ucfirst($tq_active)) ?: 'ar';
 
-// صفحات البوّابة تُعرَض بلا ترويسة الموقع العام ولا تذييله
+// صفحات البوابة تعرض بلا ترويسة الموقع العام ولا تذييله
 $tq_portal_pages = [
     'tq_reviews', 'tq_parent_settings', 'tq_delete_account',
     'tq_home', 'tq_lesson', 'tq_subscription', 'tq_lessons', 'tq_tasks', 'tq_exams', 'tq_on_demand', 'tq_materials',
@@ -26,8 +26,8 @@ $tq_portal_pages = [
 ];
 $tq_is_portal = isset($page_name) && in_array($page_name, $tq_portal_pages, true);
 
-/* الصفحات المنقولة إلى التصميم الجديد. تنمو صفحةً صفحةً، وحذف اسم منها
-   يُرجع تلك الصفحة إلى حالها القديم في ثوانٍ — من غير لمس ملفّ آخر. */
+/* الصفحات المنقولة إلى التصميم الجديد. تنمو صفحة صفحة، وحذف اسم منها
+   يرجع تلك الصفحة إلى حالها القديم في ثوان — من غير لمس ملف آخر. */
 $tq_site_pages = array('home', 'home_elegant', 'courses_page', 'site_books', 'site_teachers', 'site_students', 'site_parents', 'blogs', 'about_us', 'contact_us', 'site_path', 'login', 'sign_up', 'forgot_password', 'terms_and_condition', 'privacy_policy', 'refund_policy', 'website_faq', '404', 'plans', 'categories', 'blog_details', 'instructor_page', 'competitions', 'site_search', 'site_plan', 'site_checkout');
 $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_site_pages, true);
 ?>
@@ -37,10 +37,10 @@ $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_si
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <?php /* الاستثناء الوحيد للون المباشر في الثيم كلّه: خاصّية meta لا تقبل
-       متغيّر CSS، فالقيمة هنا نسخة من --tq-navy وتُحدَّث معه. */ ?>
-    <?php /* لون شريط المتصفّح من الهوية: كان `#132549` كحليًّا لا وجود له
-        في الموقع، فيظهر شريطٌ بلونٍ غريب على الجوّال. */ ?>
+    <?php /* الاستثناء الوحيد للون المباشر في الثيم كله: خاصية meta لا تقبل
+       متغير CSS، فالقيمة هنا نسخة من --tq-navy وتحدث معه. */ ?>
+    <?php /* لون شريط المتصفح من الهوية: كان `#132549` كحليا لا وجود له
+        في الموقع، فيظهر شريط بلون غريب على الجوال. */ ?>
     <meta name="theme-color" content="#023331">
 
     <?php include 'seo.php'; ?>
@@ -49,7 +49,7 @@ $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_si
 
 <body class="tq-body<?php echo $tq_is_portal ? ' tq-body--portal' : ''; ?>">
 
-    <a class="tq-skip-link" href="#tq-main">تخطَّ إلى المحتوى</a>
+    <a class="tq-skip-link" href="#tq-main">تخط إلى المحتوى</a>
 
     <?php
     $my_wishlist_items = [];

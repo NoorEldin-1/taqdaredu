@@ -4,17 +4,17 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 /**
  * اختباراتي — القادم والجاري والمنتهي.
  *
- * موصول بالقاعدة: الاختبار درسٌ من نوع quiz في كورس مسجَّل (lesson + enrol)،
+ * موصول بالقاعدة: الاختبار درس من نوع quiz في كورس مسجل (lesson + enrol)،
  * وأسئلته من question، ونتيجته من quiz_results:
  *   بلا نتيجة        → قادم
- *   نتيجة غير مُسلَّمة → جارٍ (الطالب بدأ ولم يُسلّم)
- *   نتيجة مُسلَّمة     → منتهٍ بدرجته
+ *   نتيجة غير مسلمة → جار (الطالب بدأ ولم يسلم)
+ *   نتيجة مسلمة     → منته بدرجته
  *
- * ومدّة الاختبار من assessments.time_limit_sec للدرس نفسه — لا من رقم مكتوب
- * في الشيفرة. الاختبار الذي لا صفّ تقييم له تبقى مدّته صفرًا فيُعرض بلا عدّاد.
+ * ومدة الاختبار من assessments.time_limit_sec للدرس نفسه — لا من رقم مكتوب
+ * في الشيفرة. الاختبار الذي لا صف تقييم له تبقى مدته صفرا فيعرض بلا عداد.
  *
- * بلا مصدر بعد: موعد بدء مجدول للاختبار — لا عمود له في القاعدة، فلا يُعرض
- * تاريخ مخترَع ويُكتفى بما هو معلوم.
+ * بلا مصدر بعد: موعد بدء مجدول للاختبار — لا عمود له في القاعدة، فلا يعرض
+ * تاريخ مخترع ويكتفى بما هو معلوم.
  */
 include 'tq_student_styles.php';
 include 'tq_student_data.php';
@@ -31,12 +31,12 @@ $tq_icon  = 'check-badge';
 $tq_quizzes = tq_s_quizzes($tq_uid);
 
 /**
- * مدّة كل اختبار بالثواني — من assessments.time_limit_sec لدرس الاختبار.
+ * مدة كل اختبار بالثواني — من assessments.time_limit_sec لدرس الاختبار.
  * الجدول يربط التقييم بالدرس (assessments.lesson_id = lesson.id) وقد يحمل
- * الدرس أكثر من نوع تقييم، فتُؤخذ أصغر مدّة معلَنة لا أوّل ما يصادف.
+ * الدرس أكثر من نوع تقييم، فتؤخذ أصغر مدة معلنة لا أول ما يصادف.
  *
- * get_instance() صراحةً: $this في العرض ليس المتحكّم، وقاعدة البيانات
- * المحمَّلة أثناء العرض لا تظهر فيه.
+ * get_instance() صراحة: $this في العرض ليس المتحكم، وقاعدة البيانات
+ * المحملة أثناء العرض لا تظهر فيه.
  */
 $tq_limits = [];
 if ($tq_quizzes) {
@@ -65,12 +65,12 @@ $f_state = (string) $this->input->get('state', true);
 if (!in_array($f_state, ['upcoming', 'live', 'done'], true)) $f_state = '';
 $show = function ($key) use ($f_state) { return $f_state === '' || $f_state === $key; };
 
-/* متوسط الدرجات من الاختبارات المصحَّحة وحدها */
+/* متوسط الدرجات من الاختبارات المصححة وحدها */
 $tq_avg = 0;
 if ($tq_done) {
     $sum = 0;
-    // المتوسّط يُحسب من المعتمَد وحده: إدخالُ المحجوب فيه يُنتج رقمًا
-    // لا يعرف الطالب من أين جاء، ويتغيّر تحت قدميه عند كل اعتماد
+    // المتوسط يحسب من المعتمد وحده: إدخال المحجوب فيه ينتج رقما
+    // لا يعرف الطالب من أين جاء، ويتغير تحت قدميه عند كل اعتماد
     $tq_counted = 0;
     foreach ($tq_done as $q) {
         if (!empty($q['visible']) && $q['percent'] !== null) { $sum += $q['percent']; $tq_counted++; }
@@ -78,7 +78,7 @@ if ($tq_done) {
     $tq_avg = (int) round($sum / max(1, $tq_counted));
 }
 
-/* علامات تقويم الاختبارات: أيام فيها اختبار منتهٍ فعلًا في الشهر الجاري */
+/* علامات تقويم الاختبارات: أيام فيها اختبار منته فعلا في الشهر الجاري */
 $tq_marks = [];
 foreach ($tq_done as $q) {
     if ($q['ended_at'] <= 0 || date('Y-n', $q['ended_at']) !== date('Y-n')) continue;
@@ -89,10 +89,10 @@ foreach ($tq_live as $q) {
     $tq_marks[(int) date('j', $q['started_at'])] = 'due';
 }
 
-/** تسمية الدرجة: النصّ يقول المستوى، واللون يؤكّده ولا يحمله وحده. */
+/** تسمية الدرجة: النص يقول المستوى، واللون يؤكده ولا يحمله وحده. */
 $tq_grade = function ($pct) {
     if ($pct >= 90) return ['mastered', 'ممتاز'];
-    if ($pct >= 80) return ['mastered', 'جيد جدًا'];
+    if ($pct >= 80) return ['mastered', 'جيد جدا'];
     if ($pct >= 70) return ['progress',  'جيد'];
     if ($pct >= 50) return ['due',       'مقبول'];
     return ['late', 'يحتاج مراجعة'];
@@ -127,8 +127,8 @@ include 'portal_open.php';
                 <?php echo tq_s_empty(
                     'check-badge', 'sky',
                     'لا اختبارات بعد',
-                    'اختبارات كورساتك تظهر هنا: القادم بموعده ودرجته، والجاري بعدّاد وقته، والمنتهي بنتيجته وتقييمه.',
-                    'تصفّح دروسك',
+                    'اختبارات كورساتك تظهر هنا: القادم بموعده ودرجته، والجاري بعداد وقته، والمنتهي بنتيجته وتقييمه.',
+                    'تصفح دروسك',
                     base_url('student/lessons'),
                     false,
                     'primary'
@@ -151,7 +151,7 @@ include 'portal_open.php';
                         <?php echo tq_s_empty(
                             'calendar', 'lilac',
                             'لا اختبار قادم',
-                            'الاختبار الذي لم تبدأه بعد يظهر هنا بمادّته وعدد درجاته وزرّ بدئه.',
+                            'الاختبار الذي لم تبدأه بعد يظهر هنا بمادته وعدد درجاته وزر بدئه.',
                             '', '', true
                         ); ?>
                     </div>
@@ -175,15 +175,15 @@ include 'portal_open.php';
 
                                 <div class="tq-s-meta" style="margin-block-end:var(--tq-space-m)">
                                     <span><?php echo tq_icon('award', 16); ?><?php echo tq_iso($q['marks'] . ' درجة'); ?></span>
-                                    <span><?php echo tq_icon('help', 16); ?><?php echo tq_iso($q['marks'] . ' سؤالًا'); ?></span>
+                                    <span><?php echo tq_icon('help', 16); ?><?php echo tq_iso($q['marks'] . ' سؤالا'); ?></span>
                                     <?php if (!empty($tq_limits[$q['id']])): ?>
                                         <span><?php echo tq_icon('clock', 16); ?><?php echo tq_s_minutes((int) round($tq_limits[$q['id']] / 60)); ?></span>
                                     <?php endif; ?>
                                 </div>
 
                                 <?php
-                                /* لا موعد بدء في القاعدة، فلا يُعرض «بعد يومين» مخترَعًا.
-                                   الاختبار متاح متى شاء الطالب حتى يُضاف جدول مواعيد. */
+                                /* لا موعد بدء في القاعدة، فلا يعرض «بعد يومين» مخترعا.
+                                   الاختبار متاح متى شاء الطالب حتى يضاف جدول مواعيد. */
                                 echo tq_badge('progress', 'متاح الآن');
                                 ?>
 
@@ -206,14 +206,14 @@ include 'portal_open.php';
                 <?php foreach ($tq_live as $q): ?>
                     <?php
                     /**
-                     * العدّاد ليس عنصر هذه الشاشة وحدها: ما دام اختبارٌ مفتوحًا
-                     * يجب أن يبقى «الوقت المتبقي» ظاهرًا في كل شاشة ينتقل إليها
-                     * الطالب — شريطًا ثابتًا في الترويسة — حتى لا ينتهي وقته
-                     * وهو يتصفّح صفحة أخرى ظانًّا أن الاختبار متوقّف.
+                     * العداد ليس عنصر هذه الشاشة وحدها: ما دام اختبار مفتوحا
+                     * يجب أن يبقى «الوقت المتبقي» ظاهرا في كل شاشة ينتقل إليها
+                     * الطالب — شريطا ثابتا في الترويسة — حتى لا ينتهي وقته
+                     * وهو يتصفح صفحة أخرى ظانا أن الاختبار متوقف.
                      *
-                     * والمدّة من القاعدة: assessments.time_limit_sec لهذا الدرس.
-                     * فإن لم يكن للاختبار صفّ تقييم بقيت صفرًا، ويُعرض وقت البدء
-                     * الحقيقي وحده بدل عدّاد مخترَع.
+                     * والمدة من القاعدة: assessments.time_limit_sec لهذا الدرس.
+                     * فإن لم يكن للاختبار صف تقييم بقيت صفرا، ويعرض وقت البدء
+                     * الحقيقي وحده بدل عداد مخترع.
                      */
                     $duration_min = (int) round(($tq_limits[$q['id']] ?? 0) / 60);
                     ?>
@@ -256,7 +256,7 @@ include 'portal_open.php';
                                 </div>
                             <?php else: ?>
                                 <p class="tq-micro" style="margin:0">
-                                    الوقت المتبقي يظهر هنا وفي كل شاشة بمجرّد تحديد مدّة الاختبار.
+                                    الوقت المتبقي يظهر هنا وفي كل شاشة بمجرد تحديد مدة الاختبار.
                                 </p>
                             <?php endif; ?>
                         </div>
@@ -280,7 +280,7 @@ include 'portal_open.php';
                         <?php echo tq_s_empty(
                             'award', 'mint',
                             'لا نتائج بعد',
-                            'كل اختبار تُسلّمه يُسجَّل هنا بتاريخه ودرجته وتقييمه، ويمكنك فتح إجاباتك ومراجعتها.',
+                            'كل اختبار تسلمه يسجل هنا بتاريخه ودرجته وتقييمه، ويمكنك فتح إجاباتك ومراجعتها.',
                             '', '', true
                         ); ?>
                     <?php else: ?>
@@ -308,7 +308,7 @@ include 'portal_open.php';
                                             <?php if (!empty($q['visible'])): ?>
                                                 <?php echo tq_num(((float) $q['obtained'] == (int) $q['obtained'] ? (int) $q['obtained'] : $q['obtained']) . ' / ' . $q['marks'], 'tq-num--sm'); ?>
                                             <?php elseif (($q['grade_state'] ?? '') === 'pending_approval'): ?>
-                                                <span class="tq-caption">بانتظار اعتماد المعلّم</span>
+                                                <span class="tq-caption">بانتظار اعتماد المعلم</span>
                                             <?php else: ?>
                                                 <span class="tq-caption">—</span>
                                             <?php endif; ?>
@@ -344,7 +344,7 @@ include 'portal_open.php';
                 <div class="tq-s-2x2">
                     <?php
                     echo tq_s_stat(tq_num(count($tq_upcoming)), 'اختبارات قادمة', 'calendar', 'sky');
-                    echo tq_s_stat(tq_num(count($tq_live)),     'اختبار جارٍ',    'clock',    'peach');
+                    echo tq_s_stat(tq_num(count($tq_live)),     'اختبار جار',    'clock',    'peach');
                     echo tq_s_stat(tq_num(count($tq_done)),     'اختبارات مكتملة', 'check',   'mint');
                     echo tq_s_stat(tq_num($tq_avg . '%'),       'متوسط الدرجات',  'award',    'lilac');
                     ?>
@@ -389,8 +389,8 @@ include 'portal_open.php';
             <div class="tq-card__head"><h2 class="tq-card__title">تقويم الاختبارات</h2></div>
             <?php echo tq_s_calendar(time(), $tq_marks); ?>
             <?php echo tq_s_key([
-                'due'  => 'اختبار جارٍ',
-                'done' => 'اختبار منتهٍ',
+                'due'  => 'اختبار جار',
+                'done' => 'اختبار منته',
                 'idle' => 'لا اختبار',
             ]); ?>
         </section>

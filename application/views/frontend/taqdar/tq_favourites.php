@@ -1,17 +1,17 @@
 <?php
 /**
- * المفضلة — بوّابة الطالب.
+ * المفضلة — بوابة الطالب.
  *
- * المفضلة مُجمَّعة بالنوع لا مخلوطة في شبكة واحدة: الدرس والمادة والكورس
+ * المفضلة مجمعة بالنوع لا مخلوطة في شبكة واحدة: الدرس والمادة والكورس
  * ثلاثة أشياء يفعل بها الطالب ثلاثة أفعال مختلفة، فخلطها يجعل الشاشة كومة.
  *
- * مصدر التفضيل الوحيد في قاعدة taqd_lms هو users.wishlist (معرّفات كورسات)،
- * فقسم الكورسات موصول ببيانات حقيقية، وتقدّمه من watch_histories، و«الأكثر
- * استخدامًا» من watched_duration — وقت مشاهدة مسجَّل لا عدّاد مخترَع.
+ * مصدر التفضيل الوحيد في قاعدة taqd_lms هو users.wishlist (معرفات كورسات)،
+ * فقسم الكورسات موصول ببيانات حقيقية، وتقدمه من watch_histories، و«الأكثر
+ * استخداما» من watched_duration — وقت مشاهدة مسجل لا عداد مخترع.
  *
- * أمّا تفضيل درس بعينه أو ملفّ تعليمي بعينه أو قائمة باسم الطالب فلا جدول
- * لأيٍّ منها بعد — ولذلك يُعرض في قسمه حالة فارغة صحيحة تشرح ما سيظهر
- * وتضع الزرّ الذي يبدأ الفعل، لا بطاقات وهمية.
+ * أما تفضيل درس بعينه أو ملف تعليمي بعينه أو قائمة باسم الطالب فلا جدول
+ * لأي منها بعد — ولذلك يعرض في قسمه حالة فارغة صحيحة تشرح ما سيظهر
+ * وتضع الزر الذي يبدأ الفعل، لا بطاقات وهمية.
  */
 
 $tq_nav   = 'favourites';
@@ -22,7 +22,7 @@ $tq_icon  = 'heart';
 
 $uid = (int) $this->session->userdata('user_id');
 
-/* ---- الكورسات المفضّلة: users.wishlist ------------------------------- */
+/* ---- الكورسات المفضلة: users.wishlist ------------------------------- */
 $tq_wishlist_raw = $this->db->select('wishlist')->where('id', $uid)->get('users')->row('wishlist');
 $tq_wishlist     = json_decode((string) $tq_wishlist_raw, true);
 $tq_wishlist     = is_array($tq_wishlist) ? array_values(array_filter(array_map('intval', $tq_wishlist))) : [];
@@ -34,7 +34,7 @@ if ($tq_wishlist) {
         ->get('course')->result_array();
 }
 
-/* تقدّم الطالب في كل كورس مفضَّل — من watch_histories */
+/* تقدم الطالب في كل كورس مفضل — من watch_histories */
 $tq_course_progress = [];
 if ($tq_fav_courses) {
     $rows = $this->db->select('course_id, course_progress')
@@ -46,7 +46,7 @@ if ($tq_fav_courses) {
     }
 }
 
-/* أسماء المعلّمين */
+/* أسماء المعلمين */
 $tq_teachers = [];
 if ($tq_fav_courses) {
     $ids = array_values(array_unique(array_filter(array_map(static function ($c) { return (int) $c['user_id']; }, $tq_fav_courses))));
@@ -57,10 +57,10 @@ if ($tq_fav_courses) {
     }
 }
 
-/* ---- الأكثر استخدامًا: وقت مشاهدة مسجَّل داخل كورسات مفضّلتك -----------
-   لا عدّاد «مرّات فتح» في القاعدة، ولا يُخترع واحد. المقياس الحقيقي المتاح
-   هو ثواني المشاهدة المسجَّلة لكل كورس (watched_duration.current_duration)،
-   فهو الذي يُعرض، والتسمية تقول ما يقيسه بالضبط. */
+/* ---- الأكثر استخداما: وقت مشاهدة مسجل داخل كورسات مفضلتك -----------
+   لا عداد «مرات فتح» في القاعدة، ولا يخترع واحد. المقياس الحقيقي المتاح
+   هو ثواني المشاهدة المسجلة لكل كورس (watched_duration.current_duration)،
+   فهو الذي يعرض، والتسمية تقول ما يقيسه بالضبط. */
 $tq_most_used = [];
 if ($tq_fav_courses) {
     $CI      = get_instance();
@@ -89,11 +89,11 @@ if ($tq_fav_courses) {
 /* ---- ما لا مصدر له بعد ------------------------------------------------ */
 $tq_fav_lessons   = [];   // لا جدول تفضيل للدروس في taqd_lms
 $tq_fav_materials = [];   // ولا للمواد التعليمية (resource_files بلا تفضيل)
-$tq_lists         = [];   // ولا للقوائم المخصّصة
+$tq_lists         = [];   // ولا للقوائم المخصصة
 
 $tq_total_fav = count($tq_fav_courses) + count($tq_fav_lessons) + count($tq_fav_materials);
 
-/* تبويب النوع يعمل على الخادم لا في المتصفّح: الرابط قابل للمشاركة والعودة
+/* تبويب النوع يعمل على الخادم لا في المتصفح: الرابط قابل للمشاركة والعودة
    إليه، ويعمل بلا جافاسكربت. */
 $tq_type = $this->input->get('type', true);
 $tq_type = in_array($tq_type, ['lessons', 'materials', 'courses'], true) ? $tq_type : 'all';
@@ -107,9 +107,9 @@ $tq_types = [
     'courses'   => 'الكورسات',
 ];
 
-/* ---- الترتيب: يعمل فعلًا على الخادم -----------------------------------
-   قائمة منسدلة لا تُرتّب شيئًا كذبة صغيرة تتكرّر في كل زيارة. الترتيب هنا
-   في الرابط، فيعمل بلا جافاسكربت ويُحفظ ويُشارك كتبويب النوع. */
+/* ---- الترتيب: يعمل فعلا على الخادم -----------------------------------
+   قائمة منسدلة لا ترتب شيئا كذبة صغيرة تتكرر في كل زيارة. الترتيب هنا
+   في الرابط، فيعمل بلا جافاسكربت ويحفظ ويشارك كتبويب النوع. */
 $tq_sort = $this->input->get('sort', true);
 $tq_sort = in_array($tq_sort, ['recent', 'title', 'progress'], true) ? $tq_sort : 'recent';
 $tq_sorts = [
@@ -119,13 +119,13 @@ $tq_sorts = [
 ];
 
 if ($tq_fav_courses) {
-    $rank = array_flip($tq_wishlist);   // ترتيب الإضافة كما خزّنته القائمة
+    $rank = array_flip($tq_wishlist);   // ترتيب الإضافة كما خزنته القائمة
     usort($tq_fav_courses, static function ($a, $b) use ($tq_sort, $rank, $tq_course_progress) {
         $ia = (int) $a['id'];
         $ib = (int) $b['id'];
         if ($tq_sort === 'title')    return strcmp((string) $a['title'], (string) $b['title']);
         if ($tq_sort === 'progress') return ($tq_course_progress[$ib] ?? 0) <=> ($tq_course_progress[$ia] ?? 0);
-        return ($rank[$ib] ?? 0) <=> ($rank[$ia] ?? 0);   // الأحدث إضافة أوّلًا
+        return ($rank[$ib] ?? 0) <=> ($rank[$ia] ?? 0);   // الأحدث إضافة أولا
     });
 }
 
@@ -133,7 +133,7 @@ include 'portal_open.php';
 ?>
 
 <style>
-/* المفضلة — الأقسام مجمَّعة بالنوع، وكل بطاقة تشبه ما تمثّله. */
+/* المفضلة — الأقسام مجمعة بالنوع، وكل بطاقة تشبه ما تمثله. */
 .tq-icon-box[class*='tq-pastel--'] { color: var(--tq-pastel-ink); }
 /* تبويب النوع رابط حقيقي، فحالته aria-current لا aria-selected. */
 .tq-tab[aria-current='page'] { color: var(--tq-navy); border-block-end-color: var(--tq-navy); font-weight: 700; }
@@ -202,7 +202,7 @@ include 'portal_open.php';
                 </option>
             <?php endforeach; ?>
         </select>
-        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">رتّب</button>
+        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">رتب</button>
     </form>
 </div>
 
@@ -228,10 +228,10 @@ include 'portal_open.php';
                         </div>
                         <h3 class="tq-empty__title">لا دروس في مفضلتك</h3>
                         <p class="tq-empty__text">
-                            اضغط القلب على أي درس وسيظهر هنا ببطاقته: الغلاف، وزرّ التشغيل، ومدّته، واسم مادّته —
+                            اضغط القلب على أي درس وسيظهر هنا ببطاقته: الغلاف، وزر التشغيل، ومدته، واسم مادته —
                             فتعود إليه في ثانية بدل البحث عنه.
                         </p>
-                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>">تصفّح دروسي</a>
+                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>">تصفح دروسي</a>
                     </div>
                 </div>
             <?php else: ?>
@@ -275,11 +275,11 @@ include 'portal_open.php';
                         <div class="tq-empty__art tq-pastel tq-pastel--peach" style="display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                             <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('file', 44); ?></span>
                         </div>
-                        <h3 class="tq-empty__title">لا ملفّات محفوظة</h3>
+                        <h3 class="tq-empty__title">لا ملفات محفوظة</h3>
                         <p class="tq-empty__text">
-                            الملخّصات وأوراق العمل التي تحفظها تظهر هنا بامتدادها وحجمها، جاهزة للتنزيل قبل المذاكرة.
+                            الملخصات وأوراق العمل التي تحفظها تظهر هنا بامتدادها وحجمها، جاهزة للتنزيل قبل المذاكرة.
                         </p>
-                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/materials'); ?>">تصفّح المواد التعليمية</a>
+                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/materials'); ?>">تصفح المواد التعليمية</a>
                     </div>
                 </div>
             <?php else: ?>
@@ -318,9 +318,9 @@ include 'portal_open.php';
                         </div>
                         <h3 class="tq-empty__title">لا كورسات في مفضلتك</h3>
                         <p class="tq-empty__text">
-                            أضف كورسًا إلى المفضلة لتتابع تقدّمك فيه من هنا بشريط ونسبة، وتعود إليه من حيث توقّفت.
+                            أضف كورسا إلى المفضلة لتتابع تقدمك فيه من هنا بشريط ونسبة، وتعود إليه من حيث توقفت.
                         </p>
-                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">تصفّح الكورسات</a>
+                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">تصفح الكورسات</a>
                     </div>
                 </div>
             <?php else: ?>
@@ -351,9 +351,9 @@ include 'portal_open.php';
                                     </button>
                                 </div>
                                 <p class="tq-micro" style="margin:0 0 var(--tq-space-s)">
-                                    <?php echo html_escape($tq_teachers[(int) $c['user_id']] ?? 'فريق تقدّر'); ?>
+                                    <?php echo html_escape($tq_teachers[(int) $c['user_id']] ?? 'فريق تقدر'); ?>
                                 </p>
-                                <?php echo tq_progress($pct, 'تقدّمك في الكورس'); ?>
+                                <?php echo tq_progress($pct, 'تقدمك في الكورس'); ?>
                             </div>
                         </article>
                     <?php endforeach; ?>
@@ -398,9 +398,9 @@ include 'portal_open.php';
             <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('home/my_wishlist'); ?>" style="margin-block-start:var(--tq-space-xl)">إدارة المفضلة</a>
         </section>
 
-        <!-- القوائم المخصّصة: لا جدول قوائم في القاعدة بعد -->
+        <!-- القوائم المخصصة: لا جدول قوائم في القاعدة بعد -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-lists-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-lists-h">القوائم المخصّصة</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-lists-h">القوائم المخصصة</h2></div>
             <?php if (!$tq_lists): ?>
                 <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
                     اجمع مفضلتك في قوائم باسمك: «مراجعة الاختبار النهائي» أو «دروس مهمة»،
@@ -421,16 +421,16 @@ include 'portal_open.php';
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
-            <?php /* لا زرّ «إنشاء قائمة»: لا جدول قوائم في القاعدة، وزرٌّ لا
-                     يفعل شيئًا يَعِد بما لا يقع — والوعد الكاذب أسوأ من غيابه. */ ?>
+            <?php /* لا زر «إنشاء قائمة»: لا جدول قوائم في القاعدة، وزر لا
+                     يفعل شيئا يعد بما لا يقع — والوعد الكاذب أسوأ من غيابه. */ ?>
         </section>
 
-        <!-- الأكثر مشاهدة: وقت مسجَّل من watched_duration، لا عدّاد فتح مخترَع -->
+        <!-- الأكثر مشاهدة: وقت مسجل من watched_duration، لا عداد فتح مخترع -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-most-h">
             <div class="tq-card__head"><h2 class="tq-card__title" id="tq-most-h">الأكثر مشاهدة في مفضلتك</h2></div>
             <?php if (!$tq_most_used): ?>
                 <p class="tq-caption" style="margin:0">
-                    بعد أن تشاهد دروس كورسات مفضلتك سيظهر هنا أكثر ثلاثة قضيت فيها وقتًا، بزمن مشاهدتك المسجَّل.
+                    بعد أن تشاهد دروس كورسات مفضلتك سيظهر هنا أكثر ثلاثة قضيت فيها وقتا، بزمن مشاهدتك المسجل.
                 </p>
             <?php else: ?>
                 <ul class="tq-stack">

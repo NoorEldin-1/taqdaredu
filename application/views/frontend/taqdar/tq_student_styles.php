@@ -2,17 +2,17 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * شاشات الطالب — الأنماط والدوالّ المشتركة بين الشاشات الستّ.
+ * شاشات الطالب — الأنماط والدوال المشتركة بين الشاشات الست.
  *
- * يُضمَّن مرّة واحدة من كل شاشة بعد portal_open.php. سببه أن الأساس
- * (tokens/base/components/layout) لا يُعدَّل، وأن أيقونة نوع الملفّ ولونه
- * يجب أن يكونا واحدين في كل شاشة تعرض ملفًّا — فمصدرهما واحد هنا.
+ * يضمن مرة واحدة من كل شاشة بعد portal_open.php. سببه أن الأساس
+ * (tokens/base/components/layout) لا يعدل، وأن أيقونة نوع الملف ولونه
+ * يجب أن يكونا واحدين في كل شاشة تعرض ملفا — فمصدرهما واحد هنا.
  *
- * كل لون من التوكنات، وكل تخطيط بـ start/end، وكل رقم يمرّ من tq_num/tq_iso.
+ * كل لون من التوكنات، وكل تخطيط بـ start/end، وكل رقم يمر من tq_num/tq_iso.
  */
 
 if (!function_exists('tq_s_month')) {
-    /** أسماء الشهور الميلادية كما تُكتب في السوق السعودي. */
+    /** أسماء الشهور الميلادية كما تكتب في السوق السعودي. */
     function tq_s_month($m)
     {
         static $names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
@@ -44,7 +44,7 @@ if (!function_exists('tq_s_time')) {
 }
 
 if (!function_exists('tq_s_secs')) {
-    /** «45:30» أو «01:12:40» إلى ثوانٍ. مدد Academy تُخزَّن كنصّ ساعة. */
+    /** «45:30» أو «01:12:40» إلى ثوان. مدد Academy تخزن كنص ساعة. */
     function tq_s_secs($hms)
     {
         $parts = array_map('intval', explode(':', trim((string) $hms)));
@@ -56,7 +56,7 @@ if (!function_exists('tq_s_secs')) {
 }
 
 if (!function_exists('tq_s_clock')) {
-    /** ثوانٍ إلى «45:30» — وحدة واحدة معزولة لا طرفان. */
+    /** ثوان إلى «45:30» — وحدة واحدة معزولة لا طرفان. */
     function tq_s_clock($seconds)
     {
         $s = max(0, (int) $seconds);
@@ -70,7 +70,7 @@ if (!function_exists('tq_s_clock')) {
 }
 
 if (!function_exists('tq_s_hours')) {
-    /** ثوانٍ إلى «12 س 45 د» — وحدة واحدة، والمثنّى والجمع صحيحان. */
+    /** ثوان إلى «12 س 45 د» — وحدة واحدة، والمثنى والجمع صحيحان. */
     function tq_s_hours($seconds)
     {
         $s = max(0, (int) $seconds);
@@ -94,17 +94,17 @@ if (!function_exists('tq_s_minutes')) {
 }
 
 if (!function_exists('tq_s_lessons_word')) {
-    /** «12 من 20 درسًا» — التمييز مفرد منصوب بعد الأحد عشر فما فوق. */
+    /** «12 من 20 درسا» — التمييز مفرد منصوب بعد الأحد عشر فما فوق. */
     function tq_s_lessons_word($done, $total)
     {
         $total = (int) $total;
-        $word = $total === 1 ? 'درس' : ($total === 2 ? 'درسان' : ($total <= 10 ? 'دروس' : 'درسًا'));
+        $word = $total === 1 ? 'درس' : ($total === 2 ? 'درسان' : ($total <= 10 ? 'دروس' : 'درسا'));
         return tq_iso((int) $done . ' من ' . $total . ' ' . $word);
     }
 }
 
 if (!function_exists('tq_s_size')) {
-    /** حجم الملفّ — وحدة واحدة معزولة، والوحدة لاتينية كما تُقرأ. */
+    /** حجم الملف — وحدة واحدة معزولة، والوحدة لاتينية كما تقرأ. */
     function tq_s_size($bytes)
     {
         $b = (float) $bytes;
@@ -118,8 +118,8 @@ if (!function_exists('tq_s_size')) {
 
 if (!function_exists('tq_file_kind')) {
     /**
-     * نوع الملفّ: أيقونة ولون ثابتان لكل نوع في كل شاشة من المنصّة.
-     * تغييرهما في شاشة واحدة يجعل الطالب يعيد التعرّف على النوع في كل صفحة.
+     * نوع الملف: أيقونة ولون ثابتان لكل نوع في كل شاشة من المنصة.
+     * تغييرهما في شاشة واحدة يجعل الطالب يعيد التعرف على النوع في كل صفحة.
      */
     function tq_file_kind($file_name, $hint = '')
     {
@@ -127,7 +127,7 @@ if (!function_exists('tq_file_kind')) {
             'pdf'   => ['key' => 'pdf',   'label' => 'PDF',        'icon' => 'file',     'pastel' => 'rose'],
             'video' => ['key' => 'video', 'label' => 'فيديو',      'icon' => 'video',    'pastel' => 'sky'],
             'slide' => ['key' => 'slide', 'label' => 'عرض تقديمي', 'icon' => 'chart',    'pastel' => 'peach'],
-            'audio' => ['key' => 'audio', 'label' => 'ملفّ صوتي',  'icon' => 'play',     'pastel' => 'lilac'],
+            'audio' => ['key' => 'audio', 'label' => 'ملف صوتي',  'icon' => 'play',     'pastel' => 'lilac'],
             'image' => ['key' => 'image', 'label' => 'صورة',       'icon' => 'folder',   'pastel' => 'mint'],
             'link'  => ['key' => 'link',  'label' => 'رابط',       'icon' => 'clipboard','pastel' => 'sand'],
             'doc'   => ['key' => 'doc',   'label' => 'مستند',      'icon' => 'file',     'pastel' => 'sand'],
@@ -157,7 +157,7 @@ if (!function_exists('tq_file_kind')) {
 }
 
 if (!function_exists('tq_s_cover')) {
-    /** برنامج غلاف الكورس إن وُجد فعلًا على القرص، وإلّا فارغ فيُرسم بديل CSS. */
+    /** برنامج غلاف الكورس إن وجد فعلا على القرص، وإلا فارغ فيرسم بديل CSS. */
     function tq_s_cover($thumbnail)
     {
         $t = trim((string) $thumbnail);
@@ -169,7 +169,7 @@ if (!function_exists('tq_s_cover')) {
 
 if (!function_exists('tq_s_thumb')) {
     /**
-     * غلاف البطاقة: الصورة إن وُجدت، وإلّا تدرّج CSS بحرف المادة —
+     * غلاف البطاقة: الصورة إن وجدت، وإلا تدرج CSS بحرف المادة —
      * ولا صورة من الإنترنت ولا حزمة أيقونات خارجية.
      */
     function tq_s_thumb($title, $thumbnail = '', $index = 0, $badge = '', $tag = '')
@@ -191,8 +191,8 @@ if (!function_exists('tq_s_thumb')) {
 
 if (!function_exists('tq_s_empty')) {
     /**
-     * الحالة الفارغة: رسم + سطر يقول ما الذي سيظهر هنا + زرّ يبدأ الفعل.
-     * لا نملأ الفراغ ببيانات وهمية — الفراغ الصادق أنفع من رقم مخترَع.
+     * الحالة الفارغة: رسم + سطر يقول ما الذي سيظهر هنا + زر يبدأ الفعل.
+     * لا نملأ الفراغ ببيانات وهمية — الفراغ الصادق أنفع من رقم مخترع.
      */
     function tq_s_empty($icon, $pastel, $title, $text, $cta = '', $href = '', $tight = false, $variant = 'secondary')
     {
@@ -201,8 +201,8 @@ if (!function_exists('tq_s_empty')) {
             . '<span class="tq-pastel__icon">' . tq_icon($icon, $tight ? 24 : 34) . '</span></span>';
         $h .= '<h3 class="tq-empty__title">' . html_escape($title) . '</h3>';
         $h .= '<p class="tq-empty__text">' . html_escape($text) . '</p>';
-        // الزرّ الأساسي واحد في الشاشة، فالحالة الفارغة ثانوية إلّا حين تكون
-        // هي الفعل الوحيد في الصفحة — عندئذ تُطلب primary صراحةً.
+        // الزر الأساسي واحد في الشاشة، فالحالة الفارغة ثانوية إلا حين تكون
+        // هي الفعل الوحيد في الصفحة — عندئذ تطلب primary صراحة.
         if ($cta !== '' && $href !== '') {
             $kind = $variant === 'primary' ? 'tq-btn--primary' : 'tq-btn--secondary';
             $h .= '<a class="tq-btn ' . $kind . ($tight ? ' tq-btn--sm' : '') . '" href="'
@@ -213,7 +213,7 @@ if (!function_exists('tq_s_empty')) {
 }
 
 if (!function_exists('tq_s_days_left')) {
-    /** عدد الأيام حتى الموعد؛ سالبًا إن فات. */
+    /** عدد الأيام حتى الموعد؛ سالبا إن فات. */
     function tq_s_days_left($ts)
     {
         $today = strtotime('today');
@@ -222,23 +222,23 @@ if (!function_exists('tq_s_days_left')) {
 }
 
 if (!function_exists('tq_s_when')) {
-    /** «بعد يومين» · «متأخّرة» — النصّ يقول القرب، واللون يؤكّده ولا يحمله وحده. */
+    /** «بعد يومين» · «متأخرة» — النص يقول القرب، واللون يؤكده ولا يحمله وحده. */
     function tq_s_when($ts)
     {
         $d = tq_s_days_left($ts);
-        if ($d < 0)  return ['kind' => 'late', 'text' => 'متأخّرة'];
+        if ($d < 0)  return ['kind' => 'late', 'text' => 'متأخرة'];
         if ($d === 0) return ['kind' => 'late', 'text' => 'اليوم'];
-        if ($d === 1) return ['kind' => 'due',  'text' => 'غدًا'];
+        if ($d === 1) return ['kind' => 'due',  'text' => 'غدا'];
         if ($d === 2) return ['kind' => 'due',  'text' => 'بعد يومين'];
         if ($d <= 10) return ['kind' => 'due',  'text' => tq_iso('بعد ' . $d . ' أيام')];
-        return ['kind' => 'progress', 'text' => tq_iso('بعد ' . $d . ' يومًا')];
+        return ['kind' => 'progress', 'text' => tq_iso('بعد ' . $d . ' يوما')];
     }
 }
 
 if (!function_exists('tq_s_calendar')) {
     /**
      * تقويم شهر واحد. الأسبوع يبدأ الأحد — السوق سعودي.
-     * $marks: [يوم الشهر => 'done'|'due'|'late'] ولا يُعلَّم يوم بلا مصدر حقيقي.
+     * $marks: [يوم الشهر => 'done'|'due'|'late'] ولا يعلم يوم بلا مصدر حقيقي.
      */
     function tq_s_calendar($ts, $marks = [])
     {
@@ -276,7 +276,7 @@ if (!function_exists('tq_s_calendar')) {
 }
 
 if (!function_exists('tq_s_key')) {
-    /** مفتاح ألوان التقويم — اللون لا يحمل معنى وحده، فالنصّ بجواره. */
+    /** مفتاح ألوان التقويم — اللون لا يحمل معنى وحده، فالنص بجواره. */
     function tq_s_key($items)
     {
         $h = '<ul class="tq-s-key">';
@@ -289,7 +289,7 @@ if (!function_exists('tq_s_key')) {
 }
 
 if (!function_exists('tq_s_stat')) {
-    /** بطاقة رقم في العمود الجانبي: الرقم أولًا ثم تسميته، والفرق إن كان له مصدر. */
+    /** بطاقة رقم في العمود الجانبي: الرقم أولا ثم تسميته، والفرق إن كان له مصدر. */
     function tq_s_stat($value, $label, $icon = '', $pastel = 'sky', $note = '')
     {
         $h  = '<div class="tq-s-stat tq-pastel tq-pastel--' . html_escape($pastel) . '">';
@@ -377,8 +377,8 @@ if (!function_exists('tq_s_stat')) {
 
 /* --- بطاقات الأرقام --- */
 .tq-s-stat { display: grid; gap: var(--tq-space-xs); padding: var(--tq-space-l); border-radius: var(--tq-radius-medium); }
-/* القيمة قد تخلط رقمًا بوحدة عربية («12 س 45 د») فتبقى الجملة عربية
-   والأرقام معزولة داخلها — ولا يُفرض اتجاه لاتيني على السطر كلّه. */
+/* القيمة قد تخلط رقما بوحدة عربية («12 س 45 د») فتبقى الجملة عربية
+   والأرقام معزولة داخلها — ولا يفرض اتجاه لاتيني على السطر كله. */
 .tq-s-stat__value { font: var(--tq-type-numeralXl); unicode-bidi: isolate; }
 .tq-s-stat__label { font: var(--tq-type-caption); }
 .tq-s-stat__note  { font: var(--tq-type-micro); color: var(--tq-text2); }
@@ -433,7 +433,7 @@ if (!function_exists('tq_s_stat')) {
 .tq-s-banner__body { max-inline-size: 46ch; position: relative; }
 @media (max-width: 767.98px) { .tq-s-banner__art { display: none; } }
 
-/* --- صفّ المهمّة والاختبار --- */
+/* --- صف المهمة والاختبار --- */
 .tq-s-row {
   display: flex; align-items: center; gap: var(--tq-space-l);
   padding: var(--tq-space-l);
@@ -461,7 +461,7 @@ if (!function_exists('tq_s_stat')) {
 .tq-s-group { display: flex; align-items: center; gap: var(--tq-space-s); margin-block: var(--tq-space-xl) var(--tq-space-m); }
 .tq-s-group h2 { margin: 0; font: var(--tq-type-h2); color: var(--tq-navy); }
 
-/* --- الخطوات المرقّمة --- */
+/* --- الخطوات المرقمة --- */
 .tq-s-steps { display: grid; gap: var(--tq-space-l); }
 .tq-s-step { display: flex; gap: var(--tq-space-m); align-items: flex-start; }
 .tq-s-step__n {

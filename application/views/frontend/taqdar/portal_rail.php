@@ -1,9 +1,9 @@
 <?php
 /**
  * القائمة الجانبية.
- * الترتيب ثابت في كل الشاشات ولا يُعاد ترتيبه حسب الصفحة — قائمة تتحرّك
- * تُجبر المستخدم على القراءة في كل صفحة بدل أن يحفظ موضع ما يريد.
- * العرض 240px مفتوحة و72px مطوية، وارتفاع العنصر 44px وهو حدّ اللمس نفسه.
+ * الترتيب ثابت في كل الشاشات ولا يعاد ترتيبه حسب الصفحة — قائمة تتحرك
+ * تجبر المستخدم على القراءة في كل صفحة بدل أن يحفظ موضع ما يريد.
+ * العرض 240px مفتوحة و72px مطوية، وارتفاع العنصر 44px وهو حد اللمس نفسه.
  */
 $tq_nav_items = [
     'student' => [
@@ -50,17 +50,17 @@ $tq_counts = $tq_counts ?? [];
 /**
  * شارة المراجعة.
  *
- * `Taqdar.php::counts()` لا يُرجع مفتاح `reviews` بعد، وشارة بلا رقم تخبر
- * الطالب أن هناك شيئًا ولا تخبره كم — فيفتحها ليجدها فارغة، وهذا أسوأ من
- * غيابها. فالعدد يُقرأ هنا من `taqdar_repo_model` نفسه الذي تقرأ منه نقطة
- * البوّابة — مصدر حقيقة واحد، لا استعلام مكتوب في العرض. ومتى أُضيف المفتاح
- * إلى `counts()` سبقَ ما يأتي من المتحكّم وسقط هذا الاحتياط من تلقاء نفسه.
+ * `Taqdar.php::counts()` لا يرجع مفتاح `reviews` بعد، وشارة بلا رقم تخبر
+ * الطالب أن هناك شيئا ولا تخبره كم — فيفتحها ليجدها فارغة، وهذا أسوأ من
+ * غيابها. فالعدد يقرأ هنا من `taqdar_repo_model` نفسه الذي تقرأ منه نقطة
+ * البوابة — مصدر حقيقة واحد، لا استعلام مكتوب في العرض. ومتى أضيف المفتاح
+ * إلى `counts()` سبق ما يأتي من المتحكم وسقط هذا الاحتياط من تلقاء نفسه.
  *
- * و`$this` هنا نسخةٌ من خصائص المتحكّم أُخذت قبل التضمين، فنموذج يُحمَّل الآن
- * لا يظهر فيها — ولذلك `get_instance()` صراحةً، كما في كتلة الاشتراك أدناه.
+ * و`$this` هنا نسخة من خصائص المتحكم أخذت قبل التضمين، فنموذج يحمل الآن
+ * لا يظهر فيها — ولذلك `get_instance()` صراحة، كما في كتلة الاشتراك أدناه.
  *
- * وهذه القائمة تُعرض في كل صفحة بوّابة: خطأ واحد هنا يبتر كلّ الشاشات. فأيّ
- * تعثّر في قراءة العدد يُبتلع، وتُعرض القائمة بلا شارة.
+ * وهذه القائمة تعرض في كل صفحة بوابة: خطأ واحد هنا يبتر كل الشاشات. فأي
+ * تعثر في قراءة العدد يبتلع، وتعرض القائمة بلا شارة.
  */
 if ($tq_role === 'student' && !isset($tq_counts['reviews'])) {
     $tq_counts['reviews'] = 0;
@@ -76,24 +76,24 @@ if ($tq_role === 'student' && !isset($tq_counts['reviews'])) {
     }
 }
 
-/** نصّ قارئ الشاشة لكل شارة — «غير مقروء» لا يصف سؤالًا حلّ موعده. */
+/** نص قارئ الشاشة لكل شارة — «غير مقروء» لا يصف سؤالا حل موعده. */
 $tq_count_sr = [
-    'reviews'       => 'سؤال مستحقّ اليوم',
-    'tasks'         => 'مهمّة مستحقّة',
+    'reviews'       => 'سؤال مستحق اليوم',
+    'tasks'         => 'مهمة مستحقة',
     'messages'      => 'رسالة غير مقروءة',
     'notifications' => 'إشعار غير مقروء',
 ];
 ?>
 <div class="tq-rail-scrim" data-tq-scrim hidden></div>
 
-<nav class="tq-rail" data-tq-rail aria-label="التنقّل الرئيسي">
+<nav class="tq-rail" data-tq-rail aria-label="التنقل الرئيسي">
     <a class="tq-logo" href="<?php echo base_url(); ?>" style="margin-block-end:var(--tq-space-xl);padding-inline:var(--tq-space-m)">
         <img src="<?php echo tq_asset('brand/icon.png'); ?>" alt="" width="36" height="36" aria-hidden="true">
         <span class="tq-rail__text">
-            <span class="tq-strong" style="color:var(--tq-navy);display:block;line-height:1.2">تقدّر</span>
+            <span class="tq-strong" style="color:var(--tq-navy);display:block;line-height:1.2">تقدر</span>
             <span class="tq-micro">منصة التعليم الذكي</span>
         </span>
-        <span class="tq-sr">تقدّر — الصفحة الرئيسية</span>
+        <span class="tq-sr">تقدر — الصفحة الرئيسية</span>
     </a>
 
     <?php foreach ($tq_items as [$key, $label, $href, $icon]): ?>
@@ -110,7 +110,7 @@ $tq_count_sr = [
     <?php endforeach; ?>
 
     <?php if ($tq_role === 'student'):
-        /* من يدفع لا يُطالَب بالدفع: المشترك يرى مدّته الباقية لا إعلانًا. */
+        /* من يدفع لا يطالب بالدفع: المشترك يرى مدته الباقية لا إعلانا. */
         $tq_ci = &get_instance();
         $tq_ci->load->model('taqdar_billing_model');
         $tq_rail_sub = $tq_ci->taqdar_billing_model->active_subscription($tq_ci->session->userdata('user_id'));
@@ -122,7 +122,7 @@ $tq_count_sr = [
                 <span class="tq-pastel__label tq-micro">اشتراكك نشط</span>
                 <p class="tq-pastel__body tq-strong" style="margin:var(--tq-space-xs) 0 var(--tq-space-m)">
                     <?php if ($tq_rail_days > 0): ?>
-                        يتبقّى <?php echo TQ_LRI . $tq_rail_days . TQ_PDI; ?> يومًا
+                        يتبقى <?php echo TQ_LRI . $tq_rail_days . TQ_PDI; ?> يوما
                     <?php else: ?>
                         ينتهي اليوم
                     <?php endif; ?>
@@ -133,7 +133,7 @@ $tq_count_sr = [
             <?php else: ?>
                 <span class="tq-pastel__label tq-micro">اشتراكك</span>
                 <p class="tq-pastel__body tq-strong" style="margin:var(--tq-space-xs) 0 var(--tq-space-m)">
-                    افتح كل برامج صفّك
+                    افتح كل برامج صفك
                 </p>
                 <a class="tq-btn tq-btn--mastery tq-btn--sm tq-btn--block" href="<?php echo base_url('plans'); ?>">
                     عرض الباقات

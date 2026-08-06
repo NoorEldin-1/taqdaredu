@@ -1,13 +1,13 @@
 /* ==========================================================================
-   منصّة تقدّر — صفحة الهبوط
-   الألوان أدناه مُستخرَجة بالقياس من الموك‑أب، لا بالتخمين.
+   منصة تقدر — صفحة الهبوط
+   الألوان أدناه مستخرجة بالقياس من الموك‑أب، لا بالتخمين.
 
-   للعلم: توكنات الهوية الرسمية (lib/core/theme في تطبيق تقدّر) مختلفة —
+   للعلم: توكنات الهوية الرسمية (lib/core/theme في تطبيق تقدر) مختلفة —
    navy #132549 · teal #0C786C · amber #F49B2D · ground #F6F7FA.
-   الموك‑أب يمشي على عائلة بترولية/ذهبية/كريمية، وهو الحَكَم هنا.
+   الموك‑أب يمشي على عائلة بترولية/ذهبية/كريمية، وهو الحكم هنا.
    ========================================================================== */
 
-/* ---------- الخطوط (محلّية، بلا شبكة) ---------- */
+/* ---------- الخطوط (محلية، بلا شبكة) ---------- */
 @font-face{font-family:'Cairo';src:url('../fonts/Cairo-400-arabic.woff2') format('woff2');font-weight:400;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
 @font-face{font-family:'Cairo';src:url('../fonts/Cairo-400-latin.woff2') format('woff2');font-weight:400;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F,U+2190-21FF}
 @font-face{font-family:'Cairo';src:url('../fonts/Cairo-600-arabic.woff2') format('woff2');font-weight:600;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
@@ -33,19 +33,19 @@
   --petrol-lift:#0A5A50;
   --ink:#052C2B;            /* حبر العناوين */
   --ink-2:#4A6067;          /* حبر المتن */
-  --ink-3:#626F72;          /* حبر ثانوي — مُعتَّم ليمرّ AA على البيج (4.57:1) */
+  --ink-3:#626F72;          /* حبر ثانوي — معتم ليمر AA على البيج (4.57:1) */
   --gold:#C9A55F;
   --gold-warm:#D4B476;
   --gold-deep:#A06C20;      /* للزخرفة فقط — يرسب على البيج (4.12:1) */
-  --gold-text:#93631D;      /* نصّ ذهبي صغير: 4.56:1 على البيج */
-  --gold-on-dark:#E3CFA3;   /* نصّ ذهبي صغير على الأسطح الغامقة: 5.11:1 (‏--gold-warm يعطي 3.95 فيرسب) */
+  --gold-text:#93631D;      /* نص ذهبي صغير: 4.56:1 على البيج */
+  --gold-on-dark:#E3CFA3;   /* نص ذهبي صغير على الأسطح الغامقة: 5.11:1 (‏--gold-warm يعطي 3.95 فيرسب) */
   --gold-line:rgba(201,165,95,.42);
   --gold-line-soft:rgba(201,165,95,.22);
 
-  /* الحروفيات: مقبض واحد للشدّة بدل أرقام حرفية موزّعة في الملفّين */
+  /* الحروفيات: مقبض واحد للشدة بدل أرقام حرفية موزعة في الملفين */
   --script-op:.05;        /* على الأسطح الفاتحة */
   --script-op-dark:.08;   /* على الأسطح الغامقة */
-  --script-op-column:.09; /* اللوحة الرأسية — قيست عند 4% فلم تُقرأ إطلاقًا */
+  --script-op-column:.09; /* اللوحة الرأسية — قيست عند 4% فلم تقرأ إطلاقا */
   --script-tile:clamp(440px,42vw,620px);
   --emerald:#0C786C;
 
@@ -85,7 +85,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 ul{list-style:none;margin:0;padding:0}
 h1,h2,h3,h4{font-family:'Cairo','Plex Arabic',system-ui,sans-serif;color:var(--ink);margin:0;line-height:1.35;font-weight:700}
 p{margin:0}
-[hidden]{display:none!important}          /* [hidden] يُهزَم من أي صنف يضبط display */
+[hidden]{display:none!important}          /* [hidden] يهزم من أي صنف يضبط display */
 :focus-visible{outline:2px solid var(--gold-deep);outline-offset:3px;border-radius:6px}
 
 .shell{width:100%;max-width:var(--shell);margin-inline:auto;padding-inline:var(--gutter)}
@@ -104,8 +104,8 @@ p{margin:0}
   background-size:300px 300px;
   opacity:.05;mix-blend-mode:multiply;
 }
-/* حروفيات عربية بقناع ألفا: الصورة سوداء ولا تُلوَّن، فيُرسم اللون من التوكن
-   ويُقصّ بالقناع — نفس علّة pattern-star.svg التي لا يمكن تلوينها من CSS. */
+/* حروفيات عربية بقناع ألفا: الصورة سوداء ولا تلون، فيرسم اللون من التوكن
+   ويقص بالقناع — نفس علة pattern-star.svg التي لا يمكن تلوينها من CSS. */
 .bg-script{
   position:absolute;inset:0;
   background-color:var(--gold-deep);
@@ -115,7 +115,7 @@ p{margin:0}
   mask-size:var(--script-tile) auto;
   opacity:var(--script-op);
 }
-/* اللوحة الخطّية الرأسية — عنصر واحد ثابت لا يتكرّر */
+/* اللوحة الخطية الرأسية — عنصر واحد ثابت لا يتكرر */
 .bg-column{
   position:absolute;inset-block-start:50%;inset-inline-start:0;translate:0 -50%;
   width:clamp(200px,22vw,380px);height:82vh;
@@ -136,7 +136,7 @@ p{margin:0}
   background:radial-gradient(circle,rgba(12,120,108,.16),transparent 70%)}
 
 /* ==========================================================================
-   الفوانيس المعلّقة
+   الفوانيس المعلقة
    ========================================================================== */
 .lantern{position:absolute;pointer-events:none;transform-origin:50% 0;
   animation:sway 7s var(--ease) infinite alternate;z-index:2}
@@ -166,12 +166,12 @@ p{margin:0}
 .btn--text svg{width:18px;height:18px;transition:transform var(--t-route) var(--ease)}
 .btn--text:hover svg{transform:scaleX(-1) translateX(4px)}
 .btn--sm{padding:11px 24px;border-radius:999px;font-size:.95em}
-/* على الأسطح الغامقة يُقلب حبر الأزرار الشبحية */
+/* على الأسطح الغامقة يقلب حبر الأزرار الشبحية */
 .on-dark .btn--ghost{border-color:rgba(212,180,118,.55);color:var(--gold-warm)}
 .on-dark .btn--ghost:hover{background:rgba(212,180,118,.14);border-color:var(--gold-warm)}
 
 /* ==========================================================================
-   الهيدر — صفّ واحد ثابت في كل الصفحات
+   الهيدر — صف واحد ثابت في كل الصفحات
    ========================================================================== */
 .site-header{
   position:fixed;inset-block-start:0;inset-inline:0;z-index:40;
@@ -181,7 +181,7 @@ p{margin:0}
 .header-main .shell{display:flex;align-items:center;gap:clamp(10px,1.6vw,28px);
   min-height:var(--header-h)}
 
-/* الرئيسية وحدها شفّافة فوق الهيرو؛ باقي الصفحات كريمي مصمت من أول لحظة */
+/* الرئيسية وحدها شفافة فوق الهيرو؛ باقي الصفحات كريمي مصمت من أول لحظة */
 .site-header--plain{background:transparent}
 .site-header--plain.is-stuck,
 .site-header--solid{
@@ -202,7 +202,7 @@ p{margin:0}
 
 .brand{display:flex;align-items:center;flex:0 0 auto}
 .brand img{width:clamp(92px,8.4vw,126px);height:auto}
-/* :not() ضروري — بدونه تُخفي القاعدة النسخة الفاتحة أيضًا لأنها img داخل .brand */
+/* :not() ضروري — بدونه تخفي القاعدة النسخة الفاتحة أيضا لأنها img داخل .brand */
 .brand__light{display:none}
 .site-header--dark .brand img:not(.brand__light){display:none}
 .site-header--dark .brand__light{display:block}
@@ -225,8 +225,8 @@ p{margin:0}
   border-radius:12px;color:var(--ink)}
 .nav-toggle svg{width:24px;height:24px}
 
-/* الأرقام اللاتينية داخل نصّ عربي: direction:ltr على عنصر مُوضَّع يقلب inset-inline-end،
-   فيُستعمل span داخلي بدل ضبطه على الحاوية. */
+/* الأرقام اللاتينية داخل نص عربي: direction:ltr على عنصر موضع يقلب inset-inline-end،
+   فيستعمل span داخلي بدل ضبطه على الحاوية. */
 .tq-ltr{direction:ltr;display:inline-block;unicode-bidi:isolate}
 
 .site-header--solid ~ main,
@@ -337,7 +337,7 @@ p{margin:0}
   content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   background-image:url('../svg/pattern-star.svg');background-size:110px 110px;opacity:.035;
 }
-/* زخارف الأركان: ملفّ واحد متماثل شعاعيًّا يخدم الأركان الأربعة بلا انعكاس */
+/* زخارف الأركان: ملف واحد متماثل شعاعيا يخدم الأركان الأربعة بلا انعكاس */
 .panel::after{
   content:'';position:absolute;inset:clamp(10px,1.4vw,22px);border-radius:inherit;
   pointer-events:none;opacity:.5;
@@ -347,7 +347,7 @@ p{margin:0}
   background-size:clamp(46px,4vw,64px) auto;
   background-position:right top,left top,right bottom,left bottom;
 }
-/* الفانوس يظلّ خارج التدفّق — لولا :not() لأخذ ارتفاعه من أعلى اللوح */
+/* الفانوس يظل خارج التدفق — لولا :not() لأخذ ارتفاعه من أعلى اللوح */
 .panel>*:not(.lantern){position:relative}
 .panel .lantern--corner{inset-block-start:-28px;inset-inline-end:clamp(18px,4vw,64px)}
 
@@ -367,7 +367,7 @@ p{margin:0}
   transition:transform 600ms var(--ease)}
 .path-card:hover .path-card__media img{transform:scale(1.05)}
 .path-card__body{padding:clamp(14px,1.5vw,22px);text-align:center}
-/* شارة مربّعة الزوايا بحشو بترولي وأيقونة ذهبية — كما في الموك‑أب */
+/* شارة مربعة الزوايا بحشو بترولي وأيقونة ذهبية — كما في الموك‑أب */
 .path-card__icon{
   width:clamp(34px,3vw,46px);aspect-ratio:1;margin:-38px auto 10px;border-radius:32%;
   display:grid;place-items:center;color:var(--gold-warm);
@@ -380,7 +380,7 @@ p{margin:0}
 .path-card p{margin-block-start:4px;font-size:clamp(11px,.86vw,13px);color:var(--ink-3)}
 
 /* ==========================================================================
-   قسم «عن المنصّة»
+   قسم «عن المنصة»
    ========================================================================== */
 .about{display:grid;grid-template-columns:1fr 1.06fr;align-items:center;
   gap:clamp(26px,4vw,72px);position:relative}
@@ -429,7 +429,7 @@ p{margin:0}
 .stars .off{color:rgba(201,165,95,.3)}
 
 /* ==========================================================================
-   لماذا تختار تقدّر؟ — الشريط الغامق
+   لماذا تختار تقدر؟ — الشريط الغامق
    ========================================================================== */
 .why{
   position:relative;overflow:hidden;border-radius:var(--r-panel);color:#fff;
@@ -469,7 +469,7 @@ p{margin:0}
 .why__item span{display:block;font-size:clamp(11px,.86vw,13.5px);color:rgba(255,255,255,.72)}
 
 /* ==========================================================================
-   المدوّنة
+   المدونة
    ========================================================================== */
 .post-card{
   background:var(--paper);border:1px solid var(--gold-line-soft);border-radius:var(--r-card);
@@ -513,23 +513,23 @@ p{margin:0}
 .cta h2{color:#fff;font-size:clamp(21px,2.6vw,38px)}
 .cta__copy>p{margin-block-start:12px;color:rgba(255,255,255,.78);
   font-size:clamp(12.5px,1vw,15.5px)}
-/* الهامش للزرّ الوحيد الواقف تحت الفقرة مباشرةً. لولا `>` لسرى داخل صفّ الأزرار
-   فكبّر ارتفاع السطر، ومطّ الزرّ الشبحي (stretch) إلى 85px مقابل 57px للذهبي. */
+/* الهامش للزر الوحيد الواقف تحت الفقرة مباشرة. لولا `>` لسرى داخل صف الأزرار
+   فكبر ارتفاع السطر، ومط الزر الشبحي (stretch) إلى 85px مقابل 57px للذهبي. */
 .cta__copy>.btn--gold{margin-block-start:clamp(18px,2vw,28px)}
-/* صفّ زرّين — كان inline style مكرّرًا في أربع صفحات */
+/* صف زرين — كان inline style مكررا في أربع صفحات */
 .cta__actions{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;
   gap:clamp(10px,1.1vw,14px);margin-block-start:clamp(18px,2vw,28px)}
 .cta__actions .btn{font-size:clamp(13px,1.02vw,15px);padding-block:13px}
-.cta__actions .btn--ghost{padding-block:12px}   /* +1px حدّ ⇒ نفس الارتفاع */
+.cta__actions .btn--ghost{padding-block:12px}   /* +1px حد ⇒ نفس الارتفاع */
 .cta__login{display:block;margin-block-start:14px;color:var(--gold-warm);
   font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(11.5px,.92vw,14px)}
 .cta__login:hover{text-decoration:underline;text-underline-offset:4px}
 .cta__art{position:relative;align-self:end;height:100%;display:flex;align-items:flex-end;
   justify-content:center}
-/* الخلفية أُزيلت بـ build/key_out.py؛ يبقى تلاشٍ سفليّ فقط ليجلس الطفلان على الشريط */
+/* الخلفية أزيلت بـ build/key_out.py؛ يبقى تلاش سفلي فقط ليجلس الطفلان على الشريط */
 /* TQ-CTA-FIT — الصورة تجلس على الشريط ولا تقوده.
-   بلا سقفٍ يقودها ارتفاعُها الطبيعيّ (585px) فيهبط النصّ إلى القاع
-   ويبقى فوقه فراغٌ يساوي ارتفاعه. والسقف يردّ القيادة إلى المحتوى. */
+   بلا سقف يقودها ارتفاعها الطبيعي (585px) فيهبط النص إلى القاع
+   ويبقى فوقه فراغ يساوي ارتفاعه. والسقف يرد القيادة إلى المحتوى. */
 .cta__art img{
   width:min(100%,390px);
   max-block-size:clamp(260px,26vw,380px);
@@ -593,11 +593,11 @@ p{margin:0}
 /* ==========================================================================
    حركة الدخول
    ========================================================================== */
-/* الحركة **تُختار عند الدعم لا تُفترض**.
+/* الحركة **تختار عند الدعم لا تفترض**.
    كانت `.reveal{opacity:0}` بلا شرط، ومن يضيفها إلى `is-in` هو السكربت.
-   فإن لم يُحمَّل — حاجب إعلانات، شبكة تسقط، خطأ في ملفٍّ سابق — بقي كل
-   محتوى الصفحة غير مرئيّ إلى الأبد. والافتراض الآمن أن يُرى المحتوى،
-   وأن يُخفى فقط بعد أن يُثبت السكربت وجودَه بوسم `js` على `<html>`. */
+   فإن لم يحمل — حاجب إعلانات، شبكة تسقط، خطأ في ملف سابق — بقي كل
+   محتوى الصفحة غير مرئي إلى الأبد. والافتراض الآمن أن يرى المحتوى،
+   وأن يخفى فقط بعد أن يثبت السكربت وجوده بوسم `js` على `<html>`. */
 .reveal{opacity:1;transform:none}
 html.js .reveal{opacity:0;transform:translateY(14px);
   transition:opacity var(--t-entry) var(--ease),transform var(--t-entry) var(--ease)}
@@ -608,8 +608,8 @@ html.js .reveal.is-in{opacity:1;transform:none}
    ========================================================================== */
 
 /* ── الدخول والتسجيل داخل القائمة المنسدلة ─────────────────────────
-   يظهران حيث تظهر القائمة وحدها: على الشاشة العريضة زرّاهما في الشريط،
-   وتكرارُهما هناك ضجيج. */
+   يظهران حيث تظهر القائمة وحدها: على الشاشة العريضة زراهما في الشريط،
+   وتكرارهما هناك ضجيج. */
 .nav__auth,.nav__sep{display:none}
 @media (max-width:980px){
   .site-header.is-open .nav__sep{
@@ -629,9 +629,9 @@ html.js .reveal.is-in{opacity:1;transform:none}
   .why__item:nth-child(4)::after{display:none}
   .cards-4{grid-template-columns:repeat(2,1fr)}
 }
-/* عتبة الترويسة وحدها ١١٤٠: القائمة الأفقيّة تحتاج ٦٩٨px ولا تنضغط،
-   فمع اللوجو والأزرار تتجاوز الغلاف بين ١٠٢٤ و١١٣٠ ويخرج زرّ التسجيل
-   عن الشاشة (قِيس عند ‎−٩٧px). وبقيّة قواعد ٩٨٠ تبقى كما هي. */
+/* عتبة الترويسة وحدها ١١٤٠: القائمة الأفقية تحتاج ٦٩٨px ولا تنضغط،
+   فمع اللوجو والأزرار تتجاوز الغلاف بين ١٠٢٤ و١١٣٠ ويخرج زر التسجيل
+   عن الشاشة (قيس عند ‎−٩٧px). وبقية قواعد ٩٨٠ تبقى كما هي. */
 @media (max-width:1140px){
   .nav,.header-actions .btn--ghost{display:none}
   .header-main .shell{justify-content:space-between}
@@ -652,7 +652,7 @@ html.js .reveal.is-in{opacity:1;transform:none}
   .hero__lede{margin-inline:auto}
   .hero__cta{justify-content:center}
   .hero__art{margin-block-start:8px}
-  /* بعد التكديس يصير عمود الصورة بعرض اللوح كلّه، فيرتفع القوس بلا داعٍ */
+  /* بعد التكديس يصير عمود الصورة بعرض اللوح كله، فيرتفع القوس بلا داع */
   .hero__arch-wrap{width:min(100%,360px)}
   .features__bar{grid-template-columns:repeat(2,1fr);gap:18px 0;row-gap:20px}
   .feature:nth-child(3)::after{display:none}
@@ -665,7 +665,7 @@ html.js .reveal.is-in{opacity:1;transform:none}
   .cards-3>*:last-child{grid-column:1/-1;max-width:calc(50% - var(--gutter)/2);margin-inline:auto}
   .lantern{display:none}
   .bg-column{display:none}
-  /* خمسة أعمدة تحت 980px تعطي 123px للعمود — أضيق من أن يُقرأ */
+  /* خمسة أعمدة تحت 980px تعطي 123px للعمود — أضيق من أن يقرأ */
   .footer-grid{grid-template-columns:repeat(3,1fr)}
   .footer-grid>*+*{padding-inline-start:0;border-inline-start:0}
   .footer-brand{grid-column:1/-1}
@@ -693,26 +693,26 @@ html.js .reveal.is-in{opacity:1;transform:none}
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-RESP · مدى الجوّال — وما يُسلِّس التمرير
+   TQ-RESP · مدى الجوال — وما يسلس التمرير
    ══════════════════════════════════════════════════════════════════ */
 
-/* الحركة والهالات تُطفأ على الجوّال.
+/* الحركة والهالات تطفأ على الجوال.
    في CSS لا في الجافاسكربت لسببين: تعمل **حتى لو فشل تحميل السكربت**
-   (وإلّا بقي كل محتوى `.reveal` غير مرئي إلى الأبد)، وتستجيب لتدوير
-   الجهاز فورًا — بخلاف فحص العرض الذي يُقاس مرّة عند التحميل ويتجمّد. */
+   (وإلا بقي كل محتوى `.reveal` غير مرئي إلى الأبد)، وتستجيب لتدوير
+   الجهاز فورا — بخلاف فحص العرض الذي يقاس مرة عند التحميل ويتجمد. */
 @media (max-width:980px){
   .reveal{opacity:1!important;transform:none!important;transition:none!important}
-  .bg-glow{display:none}          /* blur(120px)×٣ يحرّكها التمرير: أغلى ما في الصفحة */
+  .bg-glow{display:none}          /* blur(120px)×٣ يحركها التمرير: أغلى ما في الصفحة */
   .site-header.is-stuck{backdrop-filter:none;-webkit-backdrop-filter:none}
   .features__bar{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
 
 @media (max-width:680px){
-  /* الشبكة التي سقطت من كل استعلام: هي شبكة قائمة المدوّنة كاملةً */
+  /* الشبكة التي سقطت من كل استعلام: هي شبكة قائمة المدونة كاملة */
   .cards-3{grid-template-columns:repeat(2,1fr)}
   .cards-3>*:last-child{grid-column:auto;max-width:none;margin-inline:0}
   .footer-grid{grid-template-columns:repeat(2,1fr);gap:22px}
-  /* الزخرفة تخرج ~٧٠px خارج المنفذ، وكان `overflow-x:hidden` يقصّها */
+  /* الزخرفة تخرج ~٧٠px خارج المنفذ، وكان `overflow-x:hidden` يقصها */
   .about__ornament{inset-inline-start:0;width:min(60%,220px);opacity:.07}
 }
 
@@ -722,8 +722,8 @@ html.js .reveal.is-in{opacity:1;transform:none}
   .footer-grid{gap:26px;text-align:start}
   .hero__cta{flex-direction:column;align-items:stretch}
   .hero__cta .btn{width:100%;justify-content:center}
-  /* كان `height:34px` مع `width:clamp(92px…)` من القاعدة الأمّ — أي
-     بُعدان مثبَّتان معًا، فانضغطت الصورة ٣٤٪ رأسيًّا (نسبتها المرسومة
+  /* كان `height:34px` مع `width:clamp(92px…)` من القاعدة الأم — أي
+     بعدان مثبتان معا، فانضغطت الصورة ٣٤٪ رأسيا (نسبتها المرسومة
      ٢٫٧٠٦ وطبيعتها ١٫٧٨٣). والعرض وحده يقود، والارتفاع يتبع. */
   .brand img{height:auto}
   .stores{justify-content:flex-start;flex-wrap:wrap;gap:10px}
@@ -735,17 +735,17 @@ html.js .reveal.is-in{opacity:1;transform:none}
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-CTA · أشرطة الدعوة على الجوّال
+   TQ-CTA · أشرطة الدعوة على الجوال
    ══════════════════════════════════════════════════════════════════ */
 
-/* الشريط بلا حشو رأسيّ (الحشو كلّه على `.cta__copy`)، فعمود الصورة
-   حشوه صفر وتجلس على الحافّة فيقصّها انحناء اللوح. */
+/* الشريط بلا حشو رأسي (الحشو كله على `.cta__copy`)، فعمود الصورة
+   حشوه صفر وتجلس على الحافة فيقصها انحناء اللوح. */
 .cta{padding-block:clamp(16px,2vw,28px)}
 .cta__art{min-width:0}
 
 @media (max-width:980px){
-  /* `!important` هنا ليس تكاسلًا: يقهر أي نمط سطريّ يعود مستقبلًا
-     من تحرير محتوى، فلا يتكرّر العطب نفسه بصمت. */
+  /* `!important` هنا ليس تكاسلا: يقهر أي نمط سطري يعود مستقبلا
+     من تحرير محتوى، فلا يتكرر العطب نفسه بصمت. */
   .cta{grid-template-columns:1fr!important}
   .cta__art{order:-1;align-self:center!important;margin-block-start:14px}
   .cta__art img{width:min(72%,240px)!important}
@@ -759,7 +759,7 @@ html.js .reveal.is-in{opacity:1;transform:none}
 
 @media (max-width:480px){
   /* نظير `.hero__cta` الموجود للهيرو — ولم يكن له نظير هنا،
-     فكان الزرّ ينكسر سطرين في عمودٍ عرضه ١٥٢px. */
+     فكان الزر ينكسر سطرين في عمود عرضه ١٥٢px. */
   .cta__actions{flex-direction:column;align-items:stretch;gap:10px}
   .cta__actions .btn{width:100%;justify-content:center;padding-inline:18px;white-space:nowrap}
   .cta__art img{width:min(78%,220px)!important}
@@ -772,18 +772,18 @@ html.js .reveal.is-in{opacity:1;transform:none}
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-HEADER-RESTORE · الترويسة كما كانت
-   البياض كان علاجًا لمسألةٍ زالت: كانت فوق الفيديو فاحتاجت سطحًا يحميها.
-   وبعد فصل الفيديو في إطاره صار تحتها كريميُّ الصفحة — فالشفافية تُظهره.
-   ولا يبقى من التعديل إلّا حشو `main`: الهيرو لم يعد يمتدّ تحتها.
+   البياض كان علاجا لمسألة زالت: كانت فوق الفيديو فاحتاجت سطحا يحميها.
+   وبعد فصل الفيديو في إطاره صار تحتها كريمي الصفحة — فالشفافية تظهره.
+   ولا يبقى من التعديل إلا حشو `main`: الهيرو لم يعد يمتد تحتها.
    ══════════════════════════════════════════════════════════════════ */
 .site-header--plain ~ main{padding-block-start:var(--header-h)}
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-ANCHOR · المرساة لا تختفي تحت الهيدر
-   الهيدر `fixed` بارتفاع ~٦٢–٧٣px، و`scroll-margin-top:0` يجعل المتصفّح
+   الهيدر `fixed` بارتفاع ~٦٢–٧٣px، و`scroll-margin-top:0` يجعل المتصفح
    يضع أعلى الهدف عند أعلى النافذة — أي **تحته**. فكل رابط `#id` يبدو
-   معطّلًا: الصفحة تتحرّك والهدف لا يُرى.
-   والقيمة على `:target` وحدها لا تكفي: القفز البرمجيّ لا يُفعّلها.
+   معطلا: الصفحة تتحرك والهدف لا يرى.
+   والقيمة على `:target` وحدها لا تكفي: القفز البرمجي لا يفعلها.
    ══════════════════════════════════════════════════════════════════ */
 :root{ --tq-anchor-off:88px }
 [id]{ scroll-margin-top:var(--tq-anchor-off) }

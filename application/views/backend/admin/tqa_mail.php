@@ -4,8 +4,8 @@ defined('BASEPATH') or exit('No direct script access allowed');
 /**
  * إعدادات البريد الصادر.
  *
- * كلمة المرور **لا تُعاد إلى الصفحة أبدًا**: تُعرض نائبةً، ويُترك الحقل
- * فارغًا للإبقاء عليها. فحقلٌ يحمل السرّ يتسرّب في مصدر الصفحة وفي أي
+ * كلمة المرور **لا تعاد إلى الصفحة أبدا**: تعرض نائبة، ويترك الحقل
+ * فارغا للإبقاء عليها. فحقل يحمل السر يتسرب في مصدر الصفحة وفي أي
  * لقطة شاشة، والفائدة منه صفر — لا أحد يقرأ كلمة مروره من نموذج.
  */
 $M   = $mail;
@@ -15,7 +15,7 @@ $has = !empty($M['smtp_pass']);
 <div class="tqa-head">
     <div>
         <h1>البريد الصادر</h1>
-        <p>منه تُرسَل استعادة كلمة المرور والتقرير الأسبوعي وتنبيهات أولياء الأمور.</p>
+        <p>منه ترسل استعادة كلمة المرور والتقرير الأسبوعي وتنبيهات أولياء الأمور.</p>
     </div>
 </div>
 
@@ -27,13 +27,13 @@ $has = !empty($M['smtp_pass']);
         <p>
             ثلاث ميزات موقوفة عليه ولا تعمل بدونه: <strong>استعادة كلمة المرور</strong>
             (فمن ينسى كلمته لا يستطيع الرجوع إلى حسابه)، و<strong>التقرير الأسبوعي</strong>
-            لوليّ الأمر، و<strong>التنبيهات البريدية</strong>.
+            لولي الأمر، و<strong>التنبيهات البريدية</strong>.
         </p>
     </div>
 <?php else: ?>
     <div class="tqa-note">
         <strong>البريد مضبوط.</strong>
-        ويبقى الضبط ادّعاءً حتى تنجح رسالة فحص فعلية — الزرّ أسفل الصفحة.
+        ويبقى الضبط ادعاء حتى تنجح رسالة فحص فعلية — الزر أسفل الصفحة.
     </div>
 <?php endif; ?>
 
@@ -73,22 +73,22 @@ $has = !empty($M['smtp_pass']);
                             <label for="m_user">اسم المستخدم <span class="tqa-req">*</span></label>
                             <input class="form-control tq-ltr" dir="ltr" type="text" id="m_user" name="smtp_user"
                                    value="<?php echo html_escape($M['smtp_user']); ?>" required>
-                            <small class="tqa-hint">عنوان الصندوق كاملًا، مثل <span class="tq-ltr" dir="ltr">info@taqdaredu.com</span></small>
+                            <small class="tqa-hint">عنوان الصندوق كاملا، مثل <span class="tq-ltr" dir="ltr">info@taqdaredu.com</span></small>
                         </div>
 
                         <div class="col-md-6 tqa-field">
                             <label for="m_pass">كلمة المرور <?php echo $has ? '' : '<span class="tqa-req">*</span>'; ?></label>
                             <input class="form-control tq-ltr" dir="ltr" type="password" id="m_pass" name="smtp_pass"
                                    autocomplete="new-password"
-                                   placeholder="<?php echo $has ? 'محفوظة — اتركه فارغًا للإبقاء عليها' : 'كلمة مرور الصندوق'; ?>">
-                            <small class="tqa-hint">لا تُعرض المحفوظة هنا أبدًا؛ اكتب قيمة جديدة لتبديلها فقط.</small>
+                                   placeholder="<?php echo $has ? 'محفوظة — اتركه فارغا للإبقاء عليها' : 'كلمة مرور الصندوق'; ?>">
+                            <small class="tqa-hint">لا تعرض المحفوظة هنا أبدا؛ اكتب قيمة جديدة لتبديلها فقط.</small>
                         </div>
 
                         <div class="col-md-6 tqa-field">
-                            <label for="m_from">المرسِل الظاهر <span class="tqa-req">*</span></label>
+                            <label for="m_from">المرسل الظاهر <span class="tqa-req">*</span></label>
                             <input class="form-control tq-ltr" dir="ltr" type="email" id="m_from" name="smtp_from_email"
                                    value="<?php echo html_escape($M['smtp_from_email']); ?>" required>
-                            <small class="tqa-hint">يُستحسن أن يطابق اسم المستخدم، وإلّا رفضته كثير من الخوادم.</small>
+                            <small class="tqa-hint">يستحسن أن يطابق اسم المستخدم، وإلا رفضته كثير من الخوادم.</small>
                         </div>
 
                         <div class="col-md-6 tqa-field">
@@ -112,22 +112,22 @@ $has = !empty($M['smtp_pass']);
             <div class="card-header"><h4 class="header-title">رسالة فحص</h4></div>
             <div class="card-body">
                 <p class="tqa-hint" style="margin-block-end:var(--tq-space-l)">
-                    تُرسَل رسالة حقيقية بالإعدادات المحفوظة. وإن فشلت يُعرض
-                    <strong>سبب الفشل كما قاله الخادم</strong> لا رسالة عامّة —
-                    فالسبب هو ما يُصلَح، لا الفشل.
+                    ترسل رسالة حقيقية بالإعدادات المحفوظة. وإن فشلت يعرض
+                    <strong>سبب الفشل كما قاله الخادم</strong> لا رسالة عامة —
+                    فالسبب هو ما يصلح، لا الفشل.
                 </p>
 
                 <form method="post" action="<?php echo site_url('taqdar_admin/mail_test'); ?>">
                     <div class="tqa-field">
-                        <label for="m_to">أرسِل إلى</label>
+                        <label for="m_to">أرسل إلى</label>
                         <input class="form-control tq-ltr" dir="ltr" type="email" id="m_to" name="to"
                                value="<?php echo html_escape($M['smtp_from_email']); ?>" required>
                     </div>
                     <button type="submit" class="btn btn-success" <?php echo $configured ? '' : 'disabled'; ?>>
-                        أرسِل رسالة فحص
+                        أرسل رسالة فحص
                     </button>
                     <?php if (!$configured): ?>
-                        <small class="tqa-warn">احفظ البيانات أوّلًا.</small>
+                        <small class="tqa-warn">احفظ البيانات أولا.</small>
                     <?php endif; ?>
                 </form>
 
@@ -144,18 +144,18 @@ $has = !empty($M['smtp_pass']);
             <div class="card-header"><h4 class="header-title">ما يعتمد على البريد</h4></div>
             <div class="card-body">
                 <ul class="tqa-deps">
-                    <li>استعادة كلمة المرور <span class="badge badge-<?php echo $configured ? 'success' : 'danger'; ?>"><?php echo $configured ? 'تعمل' : 'معطّلة'; ?></span></li>
-                    <li>التقرير الأسبوعي لوليّ الأمر <span class="badge badge-<?php echo $configured ? 'success' : 'danger'; ?>"><?php echo $configured ? 'تعمل' : 'معطّلة'; ?></span></li>
+                    <li>استعادة كلمة المرور <span class="badge badge-<?php echo $configured ? 'success' : 'danger'; ?>"><?php echo $configured ? 'تعمل' : 'معطلة'; ?></span></li>
+                    <li>التقرير الأسبوعي لولي الأمر <span class="badge badge-<?php echo $configured ? 'success' : 'danger'; ?>"><?php echo $configured ? 'تعمل' : 'معطلة'; ?></span></li>
                     <li>التنبيهات البريدية
                         <span class="badge badge-<?php echo $events_email ? 'success' : 'warning'; ?>">
-                            <?php echo $events_email ? 'مفعّلة' : 'مطفأة'; ?>
+                            <?php echo $events_email ? 'مفعلة' : 'مطفأة'; ?>
                         </span>
                     </li>
                 </ul>
 
                 <form method="post" action="<?php echo site_url('taqdar_admin/mail_toggle_events'); ?>">
                     <button type="submit" class="btn btn-secondary btn-sm" <?php echo $configured ? '' : 'disabled'; ?>>
-                        <?php echo $events_email ? 'أوقف التنبيهات البريدية' : 'فعّل التنبيهات البريدية'; ?>
+                        <?php echo $events_email ? 'أوقف التنبيهات البريدية' : 'فعل التنبيهات البريدية'; ?>
                     </button>
                 </form>
             </div>

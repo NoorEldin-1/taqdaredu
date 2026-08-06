@@ -1,28 +1,28 @@
 <?php
 /**
- * رسائلي — بوّابة الطالب.
+ * رسائلي — بوابة الطالب.
  *
- * ── قاعدة مُلزِمة لهذه الشاشة ──────────────────────────────────────────────
- * المراسلة هنا بين الطالب ومعلّمه، أو الدعم الفنّي، أو مجموعة مادة يشرف
- * عليها معلّم — ولا رسائل خاصّة بين الطلاب بعضهم ببعض، لأن أغلب مستخدمي
- * المنصّة قاصرون، وقناة خاصّة بين قاصرَين بلا إشراف بابٌ لا يُفتح.
- * قائمة المستقبِلين أدناه مبنيّة على هذا الأساس: معلّمو موادّك المسجّلة
+ * ── قاعدة ملزمة لهذه الشاشة ──────────────────────────────────────────────
+ * المراسلة هنا بين الطالب ومعلمه، أو الدعم الفني، أو مجموعة مادة يشرف
+ * عليها معلم — ولا رسائل خاصة بين الطلاب بعضهم ببعض، لأن أغلب مستخدمي
+ * المنصة قاصرون، وقناة خاصة بين قاصرين بلا إشراف باب لا يفتح.
+ * قائمة المستقبلين أدناه مبنية على هذا الأساس: معلمو موادك المسجلة
  * وحساب الدعم فقط. وهذا نصف القاعدة؛ نصفها الآخر أن يفرضها الخادم عند
- * الإرسال ولا يكتفي بإخفاء الخيار — إخفاء الزرّ ليس صلاحية.
+ * الإرسال ولا يكتفي بإخفاء الخيار — إخفاء الزر ليس صلاحية.
  * ─────────────────────────────────────────────────────────────────────────
  */
 
 $tq_nav   = 'messages';
 $tq_role  = 'student';
 $tq_title = 'رسائلي';
-$tq_sub   = 'تواصل مع معلّميك والدعم الفنّي بسهولة';
+$tq_sub   = 'تواصل مع معلميك والدعم الفني بسهولة';
 $tq_icon  = 'chat';
 
 $uid = (int) $this->session->userdata('user_id');
 
-/* ---- حذف المحادثة: يُنفَّذ قبل أي إخراج، وبتحقّق ملكية على الخادم ------
-   زرّ الخطر يجب أن يفعل ما يقوله. والتحقّق هنا لا يكفي وحده: الصلاحية
-   تُفرض في الخادم لا في الواجهة، وهذا الشرط جزء من الخادم لا من العرض. */
+/* ---- حذف المحادثة: ينفذ قبل أي إخراج، وبتحقق ملكية على الخادم ------
+   زر الخطر يجب أن يفعل ما يقوله. والتحقق هنا لا يكفي وحده: الصلاحية
+   تفرض في الخادم لا في الواجهة، وهذا الشرط جزء من الخادم لا من العرض. */
 if ($this->input->post('action') === 'delete_thread') {
     $tq_del = (string) $this->input->post('thread', true);
     $tq_own = $this->db->where('message_thread_code', $tq_del)
@@ -67,7 +67,7 @@ foreach ($tq_threads_raw as $t) {
     ];
 }
 
-/* ---- تصفية القائمة: تبويبات وبحث يعملان على الخادم فعلًا -------------- */
+/* ---- تصفية القائمة: تبويبات وبحث يعملان على الخادم فعلا -------------- */
 $tq_filter = $this->input->get('filter', true);
 $tq_filter = in_array($tq_filter, ['unread', 'teachers', 'support'], true) ? $tq_filter : 'all';
 $tq_query  = trim((string) $this->input->get('q', true));
@@ -87,7 +87,7 @@ $tq_threads = array_values(array_filter($tq_threads, static function ($t) use ($
 $tq_filters = [
     'all'      => 'الكل',
     'unread'   => 'غير مقروءة',
-    'teachers' => 'المعلّمون',
+    'teachers' => 'المعلمون',
     'support'  => 'الدعم',
 ];
 $tq_unread_total = 0;
@@ -108,7 +108,7 @@ if ($tq_open === null && $tq_threads) {
     $tq_open = $tq_threads[0];
 }
 
-/* فتح المحادثة يجعلها مقروءة — كما يتوقّع من فتحها فعلًا. */
+/* فتح المحادثة يجعلها مقروءة — كما يتوقع من فتحها فعلا. */
 if ($tq_open && $tq_open_code === $tq_open['code'] && $tq_open['unread'] > 0) {
     $this->crud_model->mark_thread_messages_read($tq_open['code']);
     $tq_open['unread'] = 0;
@@ -121,7 +121,7 @@ if ($tq_open) {
         ->get('message')->result_array();
 }
 
-/* ---- المستقبِلون المسموح بهم: معلّمو موادّك + الدعم ------------------- */
+/* ---- المستقبلون المسموح بهم: معلمو موادك + الدعم ------------------- */
 $tq_allowed = [];
 $tq_teacher_ids = $this->db->select('c.user_id')
     ->from('enrol e')->join('course c', 'c.id = e.course_id', 'inner')
@@ -132,11 +132,11 @@ $tq_teacher_ids = array_values(array_unique(array_filter(array_map(static functi
 }, $tq_teacher_ids))));
 if ($tq_teacher_ids) {
     foreach ($this->db->select('id, first_name, last_name')->where_in('id', $tq_teacher_ids)->get('users')->result_array() as $u) {
-        $tq_allowed[] = ['id' => (int) $u['id'], 'name' => trim($u['first_name'] . ' ' . $u['last_name']), 'kind' => 'معلّم'];
+        $tq_allowed[] = ['id' => (int) $u['id'], 'name' => trim($u['first_name'] . ' ' . $u['last_name']), 'kind' => 'معلم'];
     }
 }
 foreach ($this->db->select('id, first_name, last_name')->where('role_id', 1)->limit(1)->get('users')->result_array() as $u) {
-    $tq_allowed[] = ['id' => (int) $u['id'], 'name' => 'الدعم الفنّي', 'kind' => 'دعم'];
+    $tq_allowed[] = ['id' => (int) $u['id'], 'name' => 'الدعم الفني', 'kind' => 'دعم'];
 }
 
 /* ---- أدوات عرض ------------------------------------------------------- */
@@ -208,9 +208,9 @@ include 'portal_open.php';
   padding: var(--tq-space-xs) var(--tq-space-m); font: var(--tq-type-micro); }
 
 .tq-bubble { max-inline-size: 62%; padding: var(--tq-space-m) var(--tq-space-l); border-radius: var(--tq-radius-medium); }
-/* رسائل الطالب: تعبئة باستيل ومحاذاة start، ونصّها كحلي لا حبر العائلة. */
+/* رسائل الطالب: تعبئة باستيل ومحاذاة start، ونصها كحلي لا حبر العائلة. */
 .tq-bubble--me { align-self: flex-start; background: var(--tq-sky-fill); color: var(--tq-navy); }
-/* رسائل المعلم: بيضاء بحدّ. */
+/* رسائل المعلم: بيضاء بحد. */
 .tq-bubble--them { align-self: flex-end; background: var(--tq-surface); border: 1px solid var(--tq-line); color: var(--tq-text); }
 .tq-bubble__meta { display: flex; align-items: center; gap: var(--tq-space-xs); margin-block-start: var(--tq-space-xs); }
 .tq-bubble__time { font: var(--tq-type-micro); color: var(--tq-text2); }
@@ -269,7 +269,7 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
                     </div>
                     <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لا محادثات بعد</h3>
                     <p class="tq-empty__text tq-caption">
-                        اسأل معلّمك عمّا لم يتّضح لك في الدرس، أو راسل الدعم الفنّي إن واجهتك مشكلة.
+                        اسأل معلمك عما لم يتضح لك في الدرس، أو راسل الدعم الفني إن واجهتك مشكلة.
                         كل محادثة ستظهر هنا بآخر رسالة ووقتها.
                     </p>
                 </div>
@@ -308,7 +308,7 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
                 </summary>
                 <?php if (!$tq_allowed): ?>
                     <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
-                        لا مستقبِل متاح بعد. سجّل في مادة ليصبح معلّمها ضمن من تراسلهم، أو تواصل مع الدعم الفنّي.
+                        لا مستقبل متاح بعد. سجل في مادة ليصبح معلمها ضمن من تراسلهم، أو تواصل مع الدعم الفني.
                     </p>
                 <?php else: ?>
                     <form method="post" action="<?php echo base_url('home/my_messages/send_new'); ?>" style="margin-block-start:var(--tq-space-m)">
@@ -322,11 +322,11 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
                                 <?php endforeach; ?>
                             </select>
                             <span class="tq-field__msg tq-field__hint">
-                                المراسلة متاحة مع معلّميك والدعم فقط، ولا رسائل خاصّة بين الطلاب.
+                                المراسلة متاحة مع معلميك والدعم فقط، ولا رسائل خاصة بين الطلاب.
                             </span>
                         </div>
                         <div class="tq-field">
-                            <label class="tq-field__label" for="tq-new-body">نصّ الرسالة</label>
+                            <label class="tq-field__label" for="tq-new-body">نص الرسالة</label>
                             <textarea class="tq-textarea" id="tq-new-body" name="message" required placeholder="اكتب سؤالك هنا…"></textarea>
                         </div>
                         <button class="tq-btn tq-btn--primary tq-btn--block" type="submit">إرسال</button>
@@ -346,7 +346,7 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
                         </div>
                         <h3 class="tq-empty__title">اختر محادثة لتبدأ</h3>
                         <p class="tq-empty__text">
-                            حين تفتح محادثة تظهر هنا رسائلك ورسائل معلّمك مرتّبة بالتاريخ،
+                            حين تفتح محادثة تظهر هنا رسائلك ورسائل معلمك مرتبة بالتاريخ،
                             مع إيصال قراءة لكل رسالة أرسلتها ومرفقاتها جاهزة للتنزيل.
                         </p>
                     </div>
@@ -360,21 +360,21 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
                             <?php echo html_escape($tq_name_of($tq_open['person'])); ?>
                         </span>
                         <span class="tq-micro">
-                            <?php echo !empty($tq_open['person']['is_instructor']) ? 'معلّم' : 'الدعم الفنّي'; ?>
+                            <?php echo !empty($tq_open['person']['is_instructor']) ? 'معلم' : 'الدعم الفني'; ?>
                         </span>
                     </span>
                 </header>
 
-                <!-- شريط مثبَّت: تنبيه المنصّة الدائم لا رسالة عابرة -->
+                <!-- شريط مثبت: تنبيه المنصة الدائم لا رسالة عابرة -->
                 <p class="tq-thread__pin">
                     <span aria-hidden="true"><?php echo tq_icon('lock', 18); ?></span>
-                    محادثة مُشرَف عليها بين طالب ومعلّم. لا تشارك كلمة مرورك ولا بيانات الدفع في الرسائل.
+                    محادثة مشرف عليها بين طالب ومعلم. لا تشارك كلمة مرورك ولا بيانات الدفع في الرسائل.
                 </p>
 
                 <div class="tq-thread__body">
                     <?php if (!$tq_messages): ?>
                         <p class="tq-caption" style="text-align:center;margin:0">
-                            لا رسائل في هذه المحادثة بعد — اكتب أوّل رسالة من الشريط أسفل الشاشة.
+                            لا رسائل في هذه المحادثة بعد — اكتب أول رسالة من الشريط أسفل الشاشة.
                         </p>
                     <?php else: ?>
                         <?php $tq_last_day = ''; ?>
@@ -415,7 +415,7 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
                                         <span class="tq-bubble__seen<?php echo $seen ? '' : ' tq-bubble__seen--sent'; ?>" aria-hidden="true">
                                             <?php echo tq_icon('check', 14); ?><?php echo $seen ? tq_icon('check', 14) : ''; ?>
                                         </span>
-                                        <span class="tq-sr"><?php echo $seen ? 'قُرئت' : 'أُرسلت'; ?></span>
+                                        <span class="tq-sr"><?php echo $seen ? 'قرئت' : 'أرسلت'; ?></span>
                                     <?php endif; ?>
                                 </span>
                             </div>
@@ -450,14 +450,14 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
 
             <?php if (!$tq_open): ?>
                 <p class="tq-caption" style="margin:0">
-                    اختر محادثة لترى صورة مُراسِلك، ومرفقاتها، وخيار كتمها أو حذفها.
+                    اختر محادثة لترى صورة مراسلك، ومرفقاتها، وخيار كتمها أو حذفها.
                 </p>
             <?php else: ?>
                 <div style="display:grid;justify-items:center;gap:var(--tq-space-s);margin-block-end:var(--tq-space-xl)">
                     <img class="tq-avatar tq-avatar--lg" src="<?php echo html_escape($tq_photo_of($tq_open['person'])); ?>"
                          alt="صورة <?php echo html_escape($tq_name_of($tq_open['person'])); ?>">
                     <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_name_of($tq_open['person'])); ?></span>
-                    <span class="tq-micro"><?php echo !empty($tq_open['person']['is_instructor']) ? 'معلّم' : 'الدعم الفنّي'; ?></span>
+                    <span class="tq-micro"><?php echo !empty($tq_open['person']['is_instructor']) ? 'معلم' : 'الدعم الفني'; ?></span>
                     <a class="tq-btn tq-btn--secondary tq-btn--sm tq-btn--block"
                        href="<?php echo base_url('home/instructor_page/' . (int) $tq_open['other']); ?>">عرض الملف الشخصي</a>
                 </div>
@@ -510,7 +510,7 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
                         حذف المحادثة
                     </summary>
                     <p class="tq-caption" style="margin-block:var(--tq-space-m)">
-                        سيُحذف سجلّ هذه المحادثة من حسابك ولا يمكن التراجع. رسائل معلّمك تبقى في سجلّه.
+                        سيحذف سجل هذه المحادثة من حسابك ولا يمكن التراجع. رسائل معلمك تبقى في سجله.
                     </p>
                     <form method="post" action="<?php echo base_url('student/messages'); ?>">
                         <input type="hidden" name="thread" value="<?php echo html_escape($tq_open['code']); ?>">
@@ -525,8 +525,8 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
 </div>
 
 <script>
-/* تفضيل الكتم يُحفظ في المتصفّح — تفضيل عرض محلّي صريح، لا وعدٌ بحفظ خادمي
-   غير موجود بعد. حين يوجد جدول تفضيلات المحادثة يُستبدل هذا بحفظ حقيقي. */
+/* تفضيل الكتم يحفظ في المتصفح — تفضيل عرض محلي صريح، لا وعد بحفظ خادمي
+   غير موجود بعد. حين يوجد جدول تفضيلات المحادثة يستبدل هذا بحفظ حقيقي. */
 (function () {
   var boxes = document.querySelectorAll('[data-tq-pref]');
   Array.prototype.forEach.call(boxes, function (box) {

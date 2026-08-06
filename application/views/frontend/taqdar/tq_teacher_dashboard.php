@@ -1,30 +1,30 @@
 <?php
 /**
- * بوّابة المعلم — اللوحة.
+ * بوابة المعلم — اللوحة.
  *
- * القاعدة الحاكمة لبوّابة المعلم كلها:
- * المعلم مُسنَد إلى مادة وصفّ بعينهما، وما لم يُسنَد إليه لا يظهر في لوحته
- * أصلًا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يُفرض في طبقة الاستعلام
- * لا في الواجهة — إخفاء زرّ في الواجهة ليس صلاحية.
+ * القاعدة الحاكمة لبوابة المعلم كلها:
+ * المعلم مسند إلى مادة وصف بعينهما، وما لم يسند إليه لا يظهر في لوحته
+ * أصلا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يفرض في طبقة الاستعلام
+ * لا في الواجهة — إخفاء زر في الواجهة ليس صلاحية.
  *
- * الإسناد الصريح (معلّم × مادة × صفّ) ينتظر جدول `teacher_assignments`.
+ * الإسناد الصريح (معلم × مادة × صف) ينتظر جدول `teacher_assignments`.
  * وإلى أن يوجد، النطاق الحقيقي المتاح هو ملكية الكورس نفسها:
- * `course.creator` أو ورود معرّف المعلم في `course.user_id`.
+ * `course.creator` أو ورود معرف المعلم في `course.user_id`.
  * كل استعلام في هذه الصفحة يبدأ من هذه القائمة ولا يتجاوزها.
  */
 
 $tq_nav   = 'dashboard';
 $tq_role  = 'teacher';
-$tq_title = 'لوحة المعلّم';
+$tq_title = 'لوحة المعلم';
 $tq_sub   = 'ما يحتاج انتباهك اليوم، قبل أي رقم آخر';
 $tq_icon  = 'home';
 
 $tq_uid = (int) $this->session->userdata('user_id');
 
 /* ---- عتبة النجاح: إعداد لا رقم مبثوث في الشيفرة --------------------
-   مصدرها `settings.tq_pass_threshold` نسبةً مئوية. تغييرها من الإعدادات
-   يغيّر كل حساب رسوب في هذه اللوحة دفعةً واحدة، ولا يحتاج لمس شيفرة.
-   وإن غابت أو خرجت عن المدى عادت إلى 60% — العتبة التي كانت مثبَّتة. */
+   مصدرها `settings.tq_pass_threshold` نسبة مئوية. تغييرها من الإعدادات
+   يغير كل حساب رسوب في هذه اللوحة دفعة واحدة، ولا يحتاج لمس شيفرة.
+   وإن غابت أو خرجت عن المدى عادت إلى 60% — العتبة التي كانت مثبتة. */
 $tq_pass_pct = (int) get_settings('tq_pass_threshold');
 if ($tq_pass_pct < 1 || $tq_pass_pct > 100) {
     $tq_pass_pct = 60;
@@ -56,9 +56,9 @@ if ($tq_in !== '') {
         "SELECT COUNT(DISTINCT user_id) AS n FROM enrol WHERE course_id IN ($tq_in)"
     )->row('n');
 
-    /* صفّ التصحيح: محاولات مُسلَّمة في اختبارات كورساته.
+    /* صف التصحيح: محاولات مسلمة في اختبارات كورساته.
        اعتماد المعلم للدرجة النهائية ينتظر عمود اعتماد في `quiz_results`
-       (أو جدول `marking_approvals`)، فالعدّ هنا = المُسلَّم لا المُعتمَد. */
+       (أو جدول `marking_approvals`)، فالعد هنا = المسلم لا المعتمد. */
     $tq_pending_marking = (int) $this->db->query(
         "SELECT COUNT(*) AS n
            FROM quiz_results r
@@ -66,7 +66,7 @@ if ($tq_in !== '') {
           WHERE r.is_submitted = 1 AND l.course_id IN ($tq_in)"
     )->row('n');
 
-    /* أرباح الشهر: حصّة المعلم من كل عملية بيع في كورساته. */
+    /* أرباح الشهر: حصة المعلم من كل عملية بيع في كورساته. */
     $tq_month_revenue = (float) $this->db->query(
         "SELECT COALESCE(SUM(instructor_revenue), 0) AS s
            FROM payment
@@ -74,7 +74,7 @@ if ($tq_in !== '') {
         [strtotime(date('Y-m-01 00:00:00'))]
     )->row('s');
 
-    /* ---- «يحتاج انتباهك»: الطلاب المتعثّرون مرتّبين بالأولوية ------- */
+    /* ---- «يحتاج انتباهك»: الطلاب المتعثرون مرتبين بالأولوية ------- */
     $tq_rows = $this->db->query(
         "SELECT u.id, u.first_name, u.last_name, u.image,
                 c.id AS course_id, c.title AS course_title,
@@ -88,9 +88,9 @@ if ($tq_in !== '') {
           WHERE e.course_id IN ($tq_in)"
     )->result_array();
 
-    /* الرسوب يُقاس بعتبة `$tq_pass_pct` من عدد أسئلة الاختبار، وهي إعداد
-       يُقرأ من `settings` لا رقم في الشيفرة. وعتبة لكل هدف على حدة تنتظر
-       جدول `objectives` — وحتى يوجد فالعتبة واحدة للمنصّة كلها. */
+    /* الرسوب يقاس بعتبة `$tq_pass_pct` من عدد أسئلة الاختبار، وهي إعداد
+       يقرأ من `settings` لا رقم في الشيفرة. وعتبة لكل هدف على حدة تنتظر
+       جدول `objectives` — وحتى يوجد فالعتبة واحدة للمنصة كلها. */
     $tq_fail_map = [];
     foreach ($this->db->query(
         "SELECT r.user_id,
@@ -113,7 +113,7 @@ if ($tq_in !== '') {
         $tq_prog  = (int) $tq_r['progress'];
         $tq_fails = (int) ($tq_fail_map[(int) $tq_r['id']]['fails'] ?? 0);
 
-        /* الأولوية: الانقطاع أثقل من بطء التقدّم، والرسوب المتكرّر أثقل منهما. */
+        /* الأولوية: الانقطاع أثقل من بطء التقدم، والرسوب المتكرر أثقل منهما. */
         $tq_score = min($tq_days, 21) * 4 + (100 - $tq_prog) * 0.3 + $tq_fails * 12;
 
         if ($tq_days < 3 && $tq_fails === 0 && $tq_prog >= 40) {
@@ -123,8 +123,8 @@ if ($tq_in !== '') {
         $tq_reason = $tq_fails > 0
             ? 'رسب في ' . TQ_LRI . $tq_fails . TQ_PDI . ' اختبار'
             : ($tq_days >= 5
-                ? 'انقطع ' . TQ_LRI . $tq_days . TQ_PDI . ' يومًا'
-                : 'تقدّمه ' . TQ_LRI . $tq_prog . '%' . TQ_PDI . ' فقط');
+                ? 'انقطع ' . TQ_LRI . $tq_days . TQ_PDI . ' يوما'
+                : 'تقدمه ' . TQ_LRI . $tq_prog . '%' . TQ_PDI . ' فقط');
 
         $tq_r['days']   = $tq_days;
         $tq_r['fails']  = $tq_fails;
@@ -140,9 +140,9 @@ if ($tq_in !== '') {
 
     /* ---- الدروس عالية الفشل ----------------------------------------
        التجميع في استعلام داخلي والترتيب على نتيجته: ماريا دي بي ترفض
-       `ORDER BY (fails / attempts)` على أسماء دوالّ تجميع
-       (Reference 'fails' not supported)، وكان ذلك يرمي استثناءً يقطع
-       اللوحة عند أوّل معلّم له نتائج اختبارات. */
+       `ORDER BY (fails / attempts)` على أسماء دوال تجميع
+       (Reference 'fails' not supported)، وكان ذلك يرمي استثناء يقطع
+       اللوحة عند أول معلم له نتائج اختبارات. */
     $tq_hard_lessons = $this->db->query(
         "SELECT t.id, t.title, t.course_title, t.attempts, t.fails
            FROM (
@@ -165,12 +165,12 @@ if ($tq_in !== '') {
 }
 
 /* ---- الحصص القادمة: قراءة من `tutoring_sessions` لا كتابة فيه ------
-   جدول الحصص تملكه شاشة الحصص، وهذه اللوحة تعرض ما فيه ولا تمسّه.
-   الموعد نفسه ليس في الحصّة بل في شريحتها `availability_slots.starts_at`،
-   فحصّة بلا شريحة حصّة بلا موعد ولا تُعدّ «قادمة». والنافذة أسبوع واحد:
-   ما بعده مستقبل بعيد لا شيء يُفعَل حياله اليوم.
-   و`table_exists` لأن الجدول تحت يد وكيل آخر: غيابه يُفرغ البطاقة
-   ولا يُسقط الصفحة. */
+   جدول الحصص تملكه شاشة الحصص، وهذه اللوحة تعرض ما فيه ولا تمسه.
+   الموعد نفسه ليس في الحصة بل في شريحتها `availability_slots.starts_at`،
+   فحصة بلا شريحة حصة بلا موعد ولا تعد «قادمة». والنافذة أسبوع واحد:
+   ما بعده مستقبل بعيد لا شيء يفعل حياله اليوم.
+   و`table_exists` لأن الجدول تحت يد وكيل آخر: غيابه يفرغ البطاقة
+   ولا يسقط الصفحة. */
 $tq_sessions       = [];
 $tq_sessions_count = 0;
 
@@ -192,7 +192,7 @@ if ($this->db->table_exists('tutoring_sessions') && $this->db->table_exists('ava
         [$tq_uid]
     )->result_array();
 
-    /* العدّاد لا يُشتقّ من القائمة: القائمة محدودة بخمس والعدّ هو الحقيقة. */
+    /* العداد لا يشتق من القائمة: القائمة محدودة بخمس والعد هو الحقيقة. */
     $tq_sessions_count = (int) $this->db->query(
         "SELECT COUNT(*) AS n
            FROM tutoring_sessions s
@@ -219,16 +219,16 @@ include 'portal_open.php';
                     <span class="tq-pastel__icon" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('users'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0"><?php echo tq_num($tq_students, 'tq-num--xl'); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">مسجَّلون في كورساتك</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0">مسجلون في كورساتك</p>
             </div>
 
             <div class="tq-pastel tq-pastel--peach">
                 <div class="tq-row tq-row--between">
-                    <span class="tq-pastel__label tq-micro">ينتظر تصحيحًا</span>
+                    <span class="tq-pastel__label tq-micro">ينتظر تصحيحا</span>
                     <span class="tq-pastel__icon" style="color:var(--tq-peach-ink)" aria-hidden="true"><?php echo tq_icon('clipboard'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0"><?php echo tq_num($tq_pending_marking, 'tq-num--xl'); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">محاولة مُسلَّمة في صفّ التصحيح</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0">محاولة مسلمة في صف التصحيح</p>
             </div>
 
             <div class="tq-pastel tq-pastel--mint">
@@ -237,7 +237,7 @@ include 'portal_open.php';
                     <span class="tq-pastel__icon" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('wallet'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)"><?php echo tq_sar($tq_month_revenue); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">حصّتك من مبيعات كورساتك</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0">حصتك من مبيعات كورساتك</p>
             </div>
 
             <div class="tq-pastel tq-pastel--lilac">
@@ -246,11 +246,11 @@ include 'portal_open.php';
                     <span class="tq-pastel__icon" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('video'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0"><?php echo tq_num($tq_sessions_count, 'tq-num--xl'); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">حصة مؤكَّدة خلال سبعة أيام</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0">حصة مؤكدة خلال سبعة أيام</p>
             </div>
         </div>
 
-        <!-- أهمّ قسم في اللوحة: الطلاب المتعثّرون مرتّبين بالأولوية -->
+        <!-- أهم قسم في اللوحة: الطلاب المتعثرون مرتبين بالأولوية -->
         <section class="tq-section" aria-labelledby="tq-attention-h">
             <div class="tq-sectionhead">
                 <h2 id="tq-attention-h">يحتاج انتباهك</h2>
@@ -262,7 +262,7 @@ include 'portal_open.php';
             <?php if ($tq_attention): ?>
                 <div class="tq-card tq-card--float">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                        مرتّبون بالأولوية: الانقطاع أوّلًا، ثمّ الرسوب المتكرّر، ثمّ بطء التقدّم.
+                        مرتبون بالأولوية: الانقطاع أولا، ثم الرسوب المتكرر، ثم بطء التقدم.
                     </p>
                     <ul class="tq-stack">
                         <?php foreach ($tq_attention as $tq_i => $tq_s): ?>
@@ -280,7 +280,7 @@ include 'portal_open.php';
                                     <p class="tq-micro" style="margin:0"><?php echo html_escape($tq_s['course_title']); ?></p>
                                 </div>
                                 <div style="inline-size:180px">
-                                    <?php echo tq_progress((int) $tq_s['progress'], 'تقدّم ' . $tq_name); ?>
+                                    <?php echo tq_progress((int) $tq_s['progress'], 'تقدم ' . $tq_name); ?>
                                 </div>
                                 <?php echo tq_badge($tq_s['fails'] > 0 ? 'late' : ($tq_s['days'] >= 5 ? 'due' : 'idle'), $tq_s['reason']); ?>
                                 <a class="tq-btn tq-btn--ghost tq-btn--sm"
@@ -294,10 +294,10 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--mint" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('check', 24); ?></span>
-                    <h3 class="tq-empty__title">لا أحد متعثّر الآن</h3>
+                    <h3 class="tq-empty__title">لا أحد متعثر الآن</h3>
                     <p class="tq-empty__text">
-                        حين ينقطع طالب أو يرسب في اختبار أو يتوقّف تقدّمه، سيظهر هنا مرتّبًا بالأولوية.
-                        القائمة تُبنى من نشاط طلاب كورساتك وحدهم.
+                        حين ينقطع طالب أو يرسب في اختبار أو يتوقف تقدمه، سيظهر هنا مرتبا بالأولوية.
+                        القائمة تبنى من نشاط طلاب كورساتك وحدهم.
                     </p>
                     <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/students'); ?>">افتح قائمة طلابي</a>
                 </div>
@@ -313,8 +313,8 @@ include 'portal_open.php';
             <?php if ($tq_hard_lessons): ?>
                 <div class="tq-card">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                        درس يرسب فيه كثيرون مشكلته في الشرح غالبًا لا في الطلاب — راجعه قبل أن تراجعهم.
-                        الرسوب هنا محسوب بعتبة النجاح المعتمَدة في المنصّة: <?php echo TQ_LRI . $tq_pass_pct . '%' . TQ_PDI; ?>.
+                        درس يرسب فيه كثيرون مشكلته في الشرح غالبا لا في الطلاب — راجعه قبل أن تراجعهم.
+                        الرسوب هنا محسوب بعتبة النجاح المعتمدة في المنصة: <?php echo TQ_LRI . $tq_pass_pct . '%' . TQ_PDI; ?>.
                     </p>
                     <table class="tq-table">
                         <caption class="tq-sr">الدروس الأعلى نسبة رسوب في كورساتك</caption>
@@ -344,7 +344,7 @@ include 'portal_open.php';
                     <span class="tq-icon-box tq-pastel--sky" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('chart', 24); ?></span>
                     <h3 class="tq-empty__title">لا توجد نتائج اختبارات بعد</h3>
                     <p class="tq-empty__text">
-                        يظهر هنا الدرس الذي يرسب في اختباره أكثر طلابك، بعد أن يُسلّم طلابك أوّل اختباراتهم.
+                        يظهر هنا الدرس الذي يرسب في اختباره أكثر طلابك، بعد أن يسلم طلابك أول اختباراتهم.
                     </p>
                     <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/questions'); ?>">افتح بنك الأسئلة</a>
                 </div>
@@ -362,13 +362,13 @@ include 'portal_open.php';
                         $tq_at   = strtotime($tq_v['starts_at']);
                         $tq_who  = trim($tq_v['first_name'] . ' ' . $tq_v['last_name']);
                         if ($tq_who === '') {
-                            $tq_who = 'طالب لم يعد في المنصّة';
+                            $tq_who = 'طالب لم يعد في المنصة';
                         }
                         $tq_day  = date('Y-m-d', $tq_at);
                         $tq_when = $tq_day === date('Y-m-d')
                             ? 'اليوم'
                             : ($tq_day === date('Y-m-d', strtotime('+1 day'))
-                                ? 'غدًا'
+                                ? 'غدا'
                                 : TQ_LRI . $tq_day . TQ_PDI);
                         ?>
                         <li class="tq-row" style="gap:var(--tq-space-m);padding-block:var(--tq-space-s)">
@@ -383,7 +383,7 @@ include 'portal_open.php';
                             </span>
                             <?php echo $tq_v['status'] === 'live'
                                 ? tq_badge('late', 'جارية الآن')
-                                : tq_badge('progress', 'مؤكَّدة'); ?>
+                                : tq_badge('progress', 'مؤكدة'); ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>
@@ -399,7 +399,7 @@ include 'portal_open.php';
                     <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('calendar', 24); ?></span>
                     <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لا حصص مجدولة</h3>
                     <p class="tq-empty__text tq-caption">
-                        حين يحجز طالب حصة خاصة معك يظهر موعدها هنا، وتؤكّدها أو تعتذر من صفحة الحصص.
+                        حين يحجز طالب حصة خاصة معك يظهر موعدها هنا، وتؤكدها أو تعتذر من صفحة الحصص.
                     </p>
                     <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/sessions'); ?>">أوقاتي المتاحة</a>
                 </div>
@@ -425,11 +425,11 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-empty" style="padding:var(--tq-space-l) 0">
                     <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('book', 24); ?></span>
-                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لم يُسنَد إليك كورس بعد</h3>
+                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لم يسند إليك كورس بعد</h3>
                     <p class="tq-empty__text tq-caption">
-                        لوحتك تعرض ما أُسنِد إليك وحده. تواصل مع إدارة المنصّة لإسناد مادتك وصفّك.
+                        لوحتك تعرض ما أسند إليك وحده. تواصل مع إدارة المنصة لإسناد مادتك وصفك.
                     </p>
-                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/upload'); ?>">ارفع درسًا</a>
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/upload'); ?>">ارفع درسا</a>
                 </div>
             <?php endif; ?>
         </div>

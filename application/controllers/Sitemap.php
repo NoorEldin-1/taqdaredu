@@ -30,16 +30,16 @@ class Sitemap extends CI_Controller {
         foreach ($routes as $url) {
             $static_route_url_array[] = base_url(htmlspecialchars($url));
         }
-        /* تُضاف بعد بناء القائمة كي تشملها الحلقة نفسها */
+        /* تضاف بعد بناء القائمة كي تشملها الحلقة نفسها */
 
         // Fetching data for blogs, blog categories, courses, and categories
         $blogs = $this->crud_model->get_all_blogs()->result_array();
         $blog_categories = $this->crud_model->get_blog_categories()->result_array();
         $courses = $this->crud_model->get_courses()->result_array();
-        /* TQ-SITEMAP-PATHS — برامج تقدّر.
-           قسم الموادّ في `/plans` كان الرابط الوحيد إليها وقد حُذف بطلب
-           المالك؛ فبقيت الصفحات حيّةً بلا طريقٍ يصلها. والخريطة تُبقي
-           للزاحف طريقًا بلا أن تُعيد القسم إلى العرض. */
+        /* TQ-SITEMAP-PATHS — برامج تقدر.
+           قسم المواد في `/plans` كان الرابط الوحيد إليها وقد حذف بطلب
+           المالك؛ فبقيت الصفحات حية بلا طريق يصلها. والخريطة تبقي
+           للزاحف طريقا بلا أن تعيد القسم إلى العرض. */
         $tq_paths = array();
         if ($this->db->table_exists('paths')) {
             $tq_rows = $this->db->select('id, slug')->from('paths')

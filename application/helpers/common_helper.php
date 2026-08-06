@@ -764,9 +764,9 @@ if (!function_exists('get_seo_data')) {
         $route = $CI->uri->uri_string;
 
 
-        // tq_clean_route_aliases — الروابط النظيفة تُخرَّط إلى أسماء المسارات
-        // في seo_fields. السلسلة أدناه كُتبت على بادئة home/ القديمة، فبقيت
-        // الصفحات النظيفة بلا كانونيكال حتى أُضيفت هذه الخريطة.
+        // tq_clean_route_aliases — الروابط النظيفة تخرط إلى أسماء المسارات
+        // في seo_fields. السلسلة أدناه كتبت على بادئة home/ القديمة، فبقيت
+        // الصفحات النظيفة بلا كانونيكال حتى أضيفت هذه الخريطة.
         $tq_aliases = array(
             'about'   => 'about_us',
             'contact' => 'contact_us',

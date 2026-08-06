@@ -1060,7 +1060,7 @@ class User extends CI_Controller
             if (isset($_FILES['resource_file']['name']) && $_FILES['resource_file']['name'] != "") {
                 $tq_ext = tq_safe_upload_extension($_FILES['resource_file']['name']);
                 if ($tq_ext === false) {
-                    echo json_encode(array('error' => 'نوع الملفّ غير مسموح.'));
+                    echo json_encode(array('error' => 'نوع الملف غير مسموح.'));
                     return;
                 }
                 $data['file_name'] = random(20) . '.' . $tq_ext;
@@ -1082,7 +1082,7 @@ class User extends CI_Controller
                 }
                 $tq_ext = tq_safe_upload_extension($_FILES['resource_file']['name']);
                 if ($tq_ext === false) {
-                    echo json_encode(array('error' => 'نوع الملفّ غير مسموح.'));
+                    echo json_encode(array('error' => 'نوع الملف غير مسموح.'));
                     return;
                 }
                 $data['file_name'] = random(20) . '.' . $tq_ext;

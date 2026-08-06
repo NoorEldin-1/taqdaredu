@@ -2,20 +2,20 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * بوّابة الإتقان — في الخادم حصرًا.
+ * بوابة الإتقان — في الخادم حصرا.
  *
- * ما يفعله هذا المتحكّم لا يُعاد فعله في العميل: القفل هنا، والتصحيح هنا،
- * وقرار «أعد المحاولة» أو «اطلب حصّة» هنا. القفل البصري في الواجهة تجميل،
- * فطلب درس غير مفتوح يُرجع 403 بلا رابط تشغيل مهما جاء الطلب من أين.
+ * ما يفعله هذا المتحكم لا يعاد فعله في العميل: القفل هنا، والتصحيح هنا،
+ * وقرار «أعد المحاولة» أو «اطلب حصة» هنا. القفل البصري في الواجهة تجميل،
+ * فطلب درس غير مفتوح يرجع 403 بلا رابط تشغيل مهما جاء الطلب من أين.
  *
- * كل استجابة خطأ بمغلّف موحّد:
+ * كل استجابة خطأ بمغلف موحد:
  *   { error: { code, message, message_ar, details } }
  * والعميل يعرض message_ar.
  *
  * المسارات (توجيه CodeIgniter الافتراضي — لا حاجة لتعديل routes.php):
  *   GET  /taqdar_gate/paths
  *   GET  /taqdar_gate/path/{id}
- *   GET  /taqdar_gate/lesson/{id}          ← 403 MASTERY_LOCKED إن كان مقفلًا
+ *   GET  /taqdar_gate/lesson/{id}          ← 403 MASTERY_LOCKED إن كان مقفلا
  *   POST /taqdar_gate/progress             lesson_id, position_sec, watched_delta
  *   POST /taqdar_gate/review_start         lesson_id
  *   POST /taqdar_gate/review_submit        attempt_id, answers[]
@@ -30,7 +30,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 class Taqdar_gate extends CI_Controller
 {
-    /** حدود المعدّل: نقطة => [أقصى عدد, نافذة بالثواني] */
+    /** حدود المعدل: نقطة => [أقصى عدد, نافذة بالثواني] */
     private $limits = array(
         'progress'       => array(120, 60),
         'review_start'   => array(20,  60),
@@ -52,7 +52,7 @@ class Taqdar_gate extends CI_Controller
         $tz = get_settings('timezone');
         if ($tz) date_default_timezone_set($tz);
 
-        // مخزن مؤقّت لعدّاد المعدّل — إن تعذّر، يظلّ الباقي عاملًا
+        // مخزن مؤقت لعداد المعدل — إن تعذر، يظل الباقي عاملا
         try {
             $this->load->driver('cache', array('adapter' => 'file', 'backup' => 'dummy'));
             $this->cache_ready = true;
@@ -83,21 +83,21 @@ class Taqdar_gate extends CI_Controller
         return $this->respond($data, $status);
     }
 
-    /** مغلّف الخطأ الموحّد — مصدره الوحيد كتالوج النموذج. */
+    /** مغلف الخطأ الموحد — مصدره الوحيد كتالوج النموذج. */
     private function fail($code, $details = array())
     {
         $body = $this->repo->error($code, $details);
         return $this->respond($body, $this->repo->http_status($code));
     }
 
-    /** يمرّر مغلّف خطأ جاء من النموذج كما هو بحالته الصحيحة. */
+    /** يمرر مغلف خطأ جاء من النموذج كما هو بحالته الصحيحة. */
     private function passthru_error($result)
     {
         $code = $result['error']['code'];
         return $this->respond($result, $this->repo->http_status($code));
     }
 
-    /** جسم الطلب: JSON أو نموذج — أيّهما جاء. */
+    /** جسم الطلب: JSON أو نموذج — أيهما جاء. */
     private function body($key = null, $default = null)
     {
         static $data = null;
@@ -120,7 +120,7 @@ class Taqdar_gate extends CI_Controller
         return (int) $this->session->userdata('user_id');
     }
 
-    /** يشترط جلسة — وإلا 401 بمغلّف لا بإعادة توجيه (هذه واجهة بيانات). */
+    /** يشترط جلسة — وإلا 401 بمغلف لا بإعادة توجيه (هذه واجهة بيانات). */
     private function require_user()
     {
         $uid = $this->user_id();
@@ -131,7 +131,7 @@ class Taqdar_gate extends CI_Controller
         return $uid;
     }
 
-    /** عدّاد نافذة منزلقة بسيط — يُرجع false حين يتجاوز الحدّ. */
+    /** عداد نافذة منزلقة بسيط — يرجع false حين يتجاوز الحد. */
     private function within_limit($bucket)
     {
         if (!$this->cache_ready) return true;
@@ -196,7 +196,7 @@ class Taqdar_gate extends CI_Controller
         $result = $this->repo->get_path((int) $id, $uid);
         if ($this->repo->is_error($result)) return $this->passthru_error($result);
 
-        // المسار غير المنشور لا يُعرض إلّا لصاحبه أو للإدارة
+        // المسار غير المنشور لا يعرض إلا لصاحبه أو للإدارة
         if ($result['status'] !== 'published' && !$this->may_see_draft($uid, $result)) {
             return $this->fail('NOT_ENTITLED', array('entity' => 'paths:' . (int) $id));
         }
@@ -211,8 +211,8 @@ class Taqdar_gate extends CI_Controller
     }
 
     /**
-     * الدرس. هنا يظهر أثر البوّابة بأوضح صوره:
-     * الدرس المقفل يُرجع 403 ومعه MASTERY_LOCKED، ولا يحمل ردّه أي رابط تشغيل.
+     * الدرس. هنا يظهر أثر البوابة بأوضح صوره:
+     * الدرس المقفل يرجع 403 ومعه MASTERY_LOCKED، ولا يحمل رده أي رابط تشغيل.
      */
     public function lesson($id = 0)
     {
@@ -246,7 +246,7 @@ class Taqdar_gate extends CI_Controller
     }
 
     /* ================================================================
-     *  بوّابة الإتقان — بدء المحاولة وتسليمها
+     *  بوابة الإتقان — بدء المحاولة وتسليمها
      * ================================================================ */
 
     public function review_start()
@@ -265,8 +265,8 @@ class Taqdar_gate extends CI_Controller
     }
 
     /**
-     * تسليم المراجعة. الردّ يحمل النتيجة وقرار البوّابة فقط — ولا يحمل
-     * الإجابات الصحيحة، فالتلميح بالحلّ يُفسد قياس الإتقان.
+     * تسليم المراجعة. الرد يحمل النتيجة وقرار البوابة فقط — ولا يحمل
+     * الإجابات الصحيحة، فالتلميح بالحل يفسد قياس الإتقان.
      */
     public function review_submit()
     {
@@ -291,12 +291,12 @@ class Taqdar_gate extends CI_Controller
     }
 
     /**
-     * مراجعة إجابات محاولةٍ **مُسلَّمة**.
+     * مراجعة إجابات محاولة **مسلمة**.
      *
-     * منفصلةٌ عن `review_submit` عمدًا: ردّ التسليم يبقى بلا إجاباتٍ
-     * صحيحة (التلميح أثناء الاختبار يُفسد قياسه)، والمراجعة طلبٌ ثانٍ
-     * لا يُقبل إلّا بعد التسليم. والحارس بالطالب: رقمُ محاولةٍ في الجسم
-     * لا يكفي، وإلّا قرأ كلُّ طالبٍ إجابات غيره.
+     * منفصلة عن `review_submit` عمدا: رد التسليم يبقى بلا إجابات
+     * صحيحة (التلميح أثناء الاختبار يفسد قياسه)، والمراجعة طلب ثان
+     * لا يقبل إلا بعد التسليم. والحارس بالطالب: رقم محاولة في الجسم
+     * لا يكفي، وإلا قرأ كل طالب إجابات غيره.
      */
     public function review_answers()
     {
@@ -334,8 +334,8 @@ class Taqdar_gate extends CI_Controller
     }
 
     /**
-     * إجابة سؤال مراجعة. الصواب يُقرّره الخادم من correct_answers، ولا
-     * يُقبل من العميل بحال — وإلّا صار الجدول الزمني لعبة.
+     * إجابة سؤال مراجعة. الصواب يقرره الخادم من correct_answers، ولا
+     * يقبل من العميل بحال — وإلا صار الجدول الزمني لعبة.
      */
     public function review_answer()
     {
@@ -389,7 +389,7 @@ class Taqdar_gate extends CI_Controller
     }
 
     /* ================================================================
-     *  المحفظة ووليّ الأمر والمعلّم
+     *  المحفظة وولي الأمر والمعلم
      * ================================================================ */
 
     public function wallet()
@@ -407,7 +407,7 @@ class Taqdar_gate extends CI_Controller
         return $this->ok(array('children' => $rows, 'count' => count($rows)));
     }
 
-    /** تقرير ابن — لا يُفتح إلّا لوليّ أمر مرتبط بموافقة نشطة. */
+    /** تقرير ابن — لا يفتح إلا لولي أمر مرتبط بموافقة نشطة. */
     public function child($student_id = 0)
     {
         $uid = $this->guard('read');

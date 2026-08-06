@@ -1,24 +1,24 @@
 <?php
 /**
- * التقويم — بوّابة الطالب.
+ * التقويم — بوابة الطالب.
  *
- * ── قاعدة مُلزِمة لهذه الشاشة ──────────────────────────────────────────────
- * كل حدث في هذا التقويم يُنقر فيصل إلى صفحته: الدرس يفتح الدرس، والاختبار
- * يبدأ الاختبار، والحصّة تدخل الحصّة. تقويم لا يُنقر منه تقويمٌ للعرض لا
- * للعمل — يُري الطالب موعده ثم يتركه يبحث عنه في مكان آخر، فيصير عبئًا
- * إضافيًّا لا أداة. ولذلك كل حدث هنا وسمٌ حوله رابط، لا نصّ ساكن.
+ * ── قاعدة ملزمة لهذه الشاشة ──────────────────────────────────────────────
+ * كل حدث في هذا التقويم ينقر فيصل إلى صفحته: الدرس يفتح الدرس، والاختبار
+ * يبدأ الاختبار، والحصة تدخل الحصة. تقويم لا ينقر منه تقويم للعرض لا
+ * للعمل — يري الطالب موعده ثم يتركه يبحث عنه في مكان آخر، فيصير عبئا
+ * إضافيا لا أداة. ولذلك كل حدث هنا وسم حوله رابط، لا نص ساكن.
  * ─────────────────────────────────────────────────────────────────────────
  *
- * الأسبوع يبدأ الأحد (السوق سعودي)، واليوم الحالي بحبّة كحلية مصمتة.
+ * الأسبوع يبدأ الأحد (السوق سعودي)، واليوم الحالي بحبة كحلية مصمتة.
  *
- * لا جدول «مواعيد» واحد في قاعدة taqd_lms، لكنّ لكل فئة مصدرها الحقيقي:
- *   الدروس     ← section.start_date / section.end_date في الكورسات المسجَّلة
+ * لا جدول «مواعيد» واحد في قاعدة taqd_lms، لكن لكل فئة مصدرها الحقيقي:
+ *   الدروس     ← section.start_date / section.end_date في الكورسات المسجلة
  *   الاختبارات ← quiz_results (بدء أو تسليم) لدروس نوعها quiz
  *   المهام     ← attempts على تقييمات نوعها homework
  *   حصص بالطلب ← tutoring_sessions × availability_slots.starts_at
  *   المراجعات  ← review_queue.due_at
- * فما يُعرض هنا مسجَّل في القاعدة، ولا موعد مخترَع. وbbb_meetings متروك
- * عمدًا: يحمل غرفة الحصّة بلا وقت مجدول، فلا يصلح حدثًا في تقويم.
+ * فما يعرض هنا مسجل في القاعدة، ولا موعد مخترع. وbbb_meetings متروك
+ * عمدا: يحمل غرفة الحصة بلا وقت مجدول، فلا يصلح حدثا في تقويم.
  */
 
 $tq_nav   = 'calendar';
@@ -43,11 +43,11 @@ $tq_first   = mktime(0, 0, 0, $tq_month, 1, $tq_year);
 $tq_days_in = (int) date('t', $tq_first);
 
 $tq_month_names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-/* أسماء الأيام مرتّبة من الأحد — الأسبوع يبدأ الأحد في السوق السعودي */
+/* أسماء الأيام مرتبة من الأحد — الأسبوع يبدأ الأحد في السوق السعودي */
 $tq_day_names   = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 $tq_day_short   = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
 
-/* ---- خمس فئات ثابتة، ولون كل فئة ثابت لا يتغيّر بين الشاشات ---------- */
+/* ---- خمس فئات ثابتة، ولون كل فئة ثابت لا يتغير بين الشاشات ---------- */
 $tq_cats = [
     'lessons'   => ['الدروس',        'var(--tq-teal)',  'play',        'انضم إلى الدرس',  'taqdar/lessons'],
     'exams'     => ['الاختبارات',    'var(--tq-sky-ink)', 'check-badge', 'ابدأ الاختبار',   'taqdar/exams'],
@@ -58,17 +58,17 @@ $tq_cats = [
 
 /* ---- الأحداث ---------------------------------------------------------
    شكل الحدث الواحد:
-   ['ts' => طابع زمني, 'cat' => مفتاح فئة, 'title' => نصّ, 'sub' => نصّ, 'href' => رابط]
-   وكل حدث يحمل رابطه، فالتقويم يُنقر منه كما تنصّ قاعدة الشاشة أعلاه.
+   ['ts' => طابع زمني, 'cat' => مفتاح فئة, 'title' => نص, 'sub' => نص, 'href' => رابط]
+   وكل حدث يحمل رابطه، فالتقويم ينقر منه كما تنص قاعدة الشاشة أعلاه.
 
-   get_instance() صراحةً: $this في العرض ليس المتحكّم، ونموذج أو قاعدة
-   تُحمَّل أثناء العرض لا تظهر فيه. */
+   get_instance() صراحة: $this في العرض ليس المتحكم، ونموذج أو قاعدة
+   تحمل أثناء العرض لا تظهر فيه. */
 $tq_events = [];
 
 if ($uid > 0) {
     $CI = get_instance();
 
-    /** Academy يخزّن الوقت نصًّا: طابعًا زمنيًّا أحيانًا وتاريخًا أحيانًا. */
+    /** Academy يخزن الوقت نصا: طابعا زمنيا أحيانا وتاريخا أحيانا. */
     $tq_ts = static function ($value) {
         $v = trim((string) $value);
         if ($v === '' || $v === '0') return 0;
@@ -85,7 +85,7 @@ if ($uid > 0) {
     }
     $tq_cids = array_keys($tq_my_courses);
 
-    /* 1) الدروس — بداية الوحدة ونهايتها، وهما التاريخان الوحيدان المخزّنان للمنهج */
+    /* 1) الدروس — بداية الوحدة ونهايتها، وهما التاريخان الوحيدان المخزنان للمنهج */
     if ($tq_cids) {
         foreach ($CI->db->select('id, title, course_id, start_date, end_date')
                         ->from('section')->where_in('course_id', $tq_cids)
@@ -121,7 +121,7 @@ if ($uid > 0) {
             $tq_events[] = [
                 'ts'    => $ts,
                 'cat'   => 'exams',
-                'title' => ($done ? 'سلّمت: ' : 'بدأت: ') . $r['title'],
+                'title' => ($done ? 'سلمت: ' : 'بدأت: ') . $r['title'],
                 'sub'   => $tq_my_courses[$cid] ?? '',
                 'href'  => base_url('student/lesson/' . $cid . '/' . (int) $r['quiz_id']),
             ];
@@ -143,13 +143,13 @@ if ($uid > 0) {
         $tq_events[] = [
             'ts'    => $ts,
             'cat'   => 'tasks',
-            'title' => ($done ? 'سلّمت واجب: ' : 'بدأت واجب: ') . $r['title'],
+            'title' => ($done ? 'سلمت واجب: ' : 'بدأت واجب: ') . $r['title'],
             'sub'   => $tq_my_courses[$cid] ?? '',
             'href'  => base_url('student/lesson/' . $cid . '/' . (int) $r['lesson_id']),
         ];
     }
 
-    /* 4) حصص بالطلب — وقتها من الفترة المحجوزة لا من الحصّة نفسها */
+    /* 4) حصص بالطلب — وقتها من الفترة المحجوزة لا من الحصة نفسها */
     foreach ($CI->db->select('sl.starts_at, sl.duration_min, ts.status,'
                            . ' u.first_name, u.last_name')
                     ->from('tutoring_sessions ts')
@@ -164,8 +164,8 @@ if ($uid > 0) {
         $tq_events[] = [
             'ts'    => $ts,
             'cat'   => 'on_demand',
-            'title' => 'حصّة' . ($who !== '' ? ' مع ' . $who : ''),
-            /* نصّ خام: العزل يقع عند العرض مرّة واحدة، فلا يُعزل الرقم مرّتين */
+            'title' => 'حصة' . ($who !== '' ? ' مع ' . $who : ''),
+            /* نص خام: العزل يقع عند العرض مرة واحدة، فلا يعزل الرقم مرتين */
             'sub'   => ((int) $r['duration_min']) . ' دقيقة',
             'href'  => base_url('student/on-demand'),
         ];
@@ -204,14 +204,14 @@ foreach ($tq_events as $e) {
 
 $tq_today_events = $tq_by_day[date('Y-m-d', $tq_today)] ?? [];
 
-/* «الثلاثون يومًا القادمة» نافذة حقيقية لا عنوانًا فوق قائمة بلا حدّ */
+/* «الثلاثون يوما القادمة» نافذة حقيقية لا عنوانا فوق قائمة بلا حد */
 $tq_horizon  = $tq_today + 30 * 86400;
 $tq_upcoming = array_values(array_filter($tq_events, static function ($e) use ($tq_today, $tq_horizon) {
     return (int) $e['ts'] >= $tq_today && (int) $e['ts'] < $tq_horizon;
 }));
 usort($tq_upcoming, static function ($a, $b) { return $a['ts'] <=> $b['ts']; });
 
-/* ---- روابط التنقّل ---------------------------------------------------- */
+/* ---- روابط التنقل ---------------------------------------------------- */
 $tq_link = static function ($view, $date) {
     return base_url('taqdar/calendar?view=' . $view . '&d=' . date('Y-m-d', $date));
 };
@@ -225,7 +225,7 @@ include 'portal_open.php';
 ?>
 
 <style>
-/* التقويم — الشبكة منطقية، والأسبوع يبدأ الأحد، واليوم حبّة كحلية مصمتة. */
+/* التقويم — الشبكة منطقية، والأسبوع يبدأ الأحد، واليوم حبة كحلية مصمتة. */
 .tq-icon-box[class*='tq-pastel--'] { color: var(--tq-pastel-ink); }
 
 .tq-calbar { display: flex; align-items: center; justify-content: space-between; gap: var(--tq-space-m);
@@ -245,7 +245,7 @@ include 'portal_open.php';
 .tq-cal__n { inline-size: 30px; block-size: 30px; border-radius: var(--tq-radius-pill); display: grid; place-items: center;
   font: var(--tq-type-numeralSm); color: var(--tq-text); unicode-bidi: isolate; direction: ltr; }
 .tq-cal__cell--out .tq-cal__n { color: var(--tq-text3); }
-/* اليوم الحالي: حبّة كحلية مصمتة */
+/* اليوم الحالي: حبة كحلية مصمتة */
 .tq-cal__n--today { background: var(--tq-actionPrimary); color: var(--tq-onAction); font-weight: 700; }
 
 .tq-ev { display: flex; align-items: center; gap: var(--tq-space-xs); font: var(--tq-type-micro); color: var(--tq-navy); }
@@ -257,7 +257,7 @@ include 'portal_open.php';
 .tq-legend__key { display: inline-flex; align-items: center; gap: var(--tq-space-xs); font: var(--tq-type-caption); color: var(--tq-text2); }
 .tq-legend__dot { inline-size: 10px; block-size: 10px; border-radius: var(--tq-radius-pill); flex: none; }
 
-/* الخطّ الزمني الرأسي لجدول اليوم */
+/* الخط الزمني الرأسي لجدول اليوم */
 .tq-timeline { position: relative; padding-inline-start: var(--tq-space-h1); }
 .tq-timeline::before { content: ''; position: absolute; inset-block: 0; inset-inline-start: 78px; inline-size: 2px; background: var(--tq-line); }
 .tq-tl { display: grid; grid-template-columns: 70px 20px auto minmax(0, 1fr) auto; gap: var(--tq-space-m);
@@ -407,7 +407,7 @@ include 'portal_open.php';
                 <?php endfor; ?>
 
             <?php else: ?>
-                <h2 class="tq-h2" style="margin-block-end:var(--tq-space-l)">جدول الثلاثين يومًا القادمة</h2>
+                <h2 class="tq-h2" style="margin-block-end:var(--tq-space-l)">جدول الثلاثين يوما القادمة</h2>
                 <?php if (!$tq_upcoming): ?>
                     <div class="tq-empty">
                         <div class="tq-empty__art tq-pastel tq-pastel--sky" style="display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
@@ -415,10 +415,10 @@ include 'portal_open.php';
                         </div>
                         <h3 class="tq-empty__title">لا مواعيد في الجدول</h3>
                         <p class="tq-empty__text">
-                            كل درس تحجزه وكل اختبار يُفتح موعده وكل واجب له تاريخ تسليم يظهر هنا مرتّبًا بيومه،
-                            وبزرّ يأخذك إليه مباشرة.
+                            كل درس تحجزه وكل اختبار يفتح موعده وكل واجب له تاريخ تسليم يظهر هنا مرتبا بيومه،
+                            وبزر يأخذك إليه مباشرة.
                         </p>
-                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/on-demand'); ?>">احجز حصّة بالطلب</a>
+                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/on-demand'); ?>">احجز حصة بالطلب</a>
                     </div>
                 <?php else: ?>
                     <ul class="tq-stack">
@@ -450,7 +450,7 @@ include 'portal_open.php';
             </div>
         </section>
 
-        <!-- جدول اليوم على خطّ زمني رأسي، ولكل نوع زرّ فعله الخاص -->
+        <!-- جدول اليوم على خط زمني رأسي، ولكل نوع زر فعله الخاص -->
         <section class="tq-card tq-card--panel tq-section" aria-labelledby="tq-day-h">
             <div class="tq-card__head">
                 <h2 class="tq-card__title" id="tq-day-h">
@@ -465,12 +465,12 @@ include 'portal_open.php';
                     <div class="tq-empty__art tq-pastel tq-pastel--mint" style="display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                         <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('clock', 44); ?></span>
                     </div>
-                    <h3 class="tq-empty__title">يومك خالٍ من المواعيد</h3>
+                    <h3 class="tq-empty__title">يومك خال من المواعيد</h3>
                     <p class="tq-empty__text">
-                        حين يكون لديك درس أو اختبار أو حصّة بالطلب يظهر هنا على خطّ اليوم بوقته،
-                        وبجواره زرّ واحد يأخذك إليه: انضم إلى الدرس، أو ابدأ الاختبار، أو ادخل الحصّة.
+                        حين يكون لديك درس أو اختبار أو حصة بالطلب يظهر هنا على خط اليوم بوقته،
+                        وبجواره زر واحد يأخذك إليه: انضم إلى الدرس، أو ابدأ الاختبار، أو ادخل الحصة.
                     </p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/on-demand'); ?>">احجز حصّة بالطلب</a>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/on-demand'); ?>">احجز حصة بالطلب</a>
                 </div>
             <?php else: ?>
                 <div class="tq-timeline">
@@ -501,7 +501,7 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
 
-        <!-- التقويمات: مربّعات اختيار ملوّنة قابلة للإخفاء -->
+        <!-- التقويمات: مربعات اختيار ملونة قابلة للإخفاء -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-cals-h">
             <div class="tq-card__head"><h2 class="tq-card__title" id="tq-cals-h">التقويمات</h2></div>
             <?php foreach ($tq_cats as $key => $c): ?>
@@ -527,7 +527,7 @@ include 'portal_open.php';
             <div class="tq-card__head"><h2 class="tq-card__title" id="tq-up-h">المواعيد القادمة</h2></div>
             <?php if (!$tq_upcoming): ?>
                 <p class="tq-caption" style="margin:0">
-                    أقرب ثلاثة مواعيد ستظهر هنا بوقتها ومادّتها، وكلٌّ منها رابط يأخذك إليه مباشرة.
+                    أقرب ثلاثة مواعيد ستظهر هنا بوقتها ومادتها، وكل منها رابط يأخذك إليه مباشرة.
                 </p>
             <?php else: ?>
                 <ul class="tq-stack">
@@ -552,7 +552,7 @@ include 'portal_open.php';
             <div class="tq-card__head"><h2 class="tq-card__title" id="tq-rem-h">تذكير اليوم</h2></div>
             <?php if (!$tq_today_events): ?>
                 <p class="tq-caption" style="margin:0">
-                    لا شيء يستحقّ التذكير اليوم. حين يكون لديك مواعيد سيظهر عددها هنا وما مضى منها.
+                    لا شيء يستحق التذكير اليوم. حين يكون لديك مواعيد سيظهر عددها هنا وما مضى منها.
                 </p>
             <?php else: ?>
                 <?php
@@ -564,7 +564,7 @@ include 'portal_open.php';
                 }
                 ?>
                 <p class="tq-caption">
-                    <?php echo tq_iso('لديك ' . count($tq_today_events) . ' موعدًا اليوم'); ?>
+                    <?php echo tq_iso('لديك ' . count($tq_today_events) . ' موعدا اليوم'); ?>
                 </p>
                 <?php echo tq_progress((int) round($tq_passed * 100 / count($tq_today_events)), 'ما مضى من مواعيد اليوم'); ?>
                 <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo $tq_link('day', $tq_today); ?>" style="margin-block-start:var(--tq-space-m)">
@@ -607,7 +607,7 @@ include 'portal_open.php';
 </div>
 
 <script>
-/* إخفاء فئة من التقويم يخفي أحداثها فعلًا — عرض محلّي لا يمسّ البيانات. */
+/* إخفاء فئة من التقويم يخفي أحداثها فعلا — عرض محلي لا يمس البيانات. */
 (function () {
   var boxes = document.querySelectorAll('[data-tq-cal]');
   Array.prototype.forEach.call(boxes, function (box) {

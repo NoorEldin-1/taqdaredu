@@ -1,24 +1,24 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * مساعدات الواجهة العامّة الجديدة.
+ * مساعدات الواجهة العامة الجديدة.
  *
- * المُولِّدات هنا تُخرج **الوسم نفسه** الذي كان يُخرجه البنّاء المحلّي
- * (`build/build.py`) — لأن `site.js` يفلتر ويبحث ويفرز اعتمادًا على
- * معرّفات وأصناف وسمات `data-*` بعينها، ومطابقتها **حرفية تامّة**.
- * حرفٌ زائد في اسم صنف يُعطّل الفلترة بلا خطأ في الكونسول.
+ * المولدات هنا تخرج **الوسم نفسه** الذي كان يخرجه البناء المحلي
+ * (`build/build.py`) — لأن `site.js` يفلتر ويبحث ويفرز اعتمادا على
+ * معرفات وأصناف وسمات `data-*` بعينها، ومطابقتها **حرفية تامة**.
+ * حرف زائد في اسم صنف يعطل الفلترة بلا خطأ في الكونسول.
  *
- * وكل قيمة قادمة من القاعدة تمرّ بـ`html_escape` — كما كان البنّاء
- * يمرّرها بـ`html.escape`.
+ * وكل قيمة قادمة من القاعدة تمر بـ`html_escape` — كما كان البناء
+ * يمررها بـ`html.escape`.
  */
 
 if (!function_exists('tq_site_asset')) {
     /**
-     * رابط أصل من أصول التصميم، مبصومًا بزمن تعديله.
+     * رابط أصل من أصول التصميم، مبصوما بزمن تعديله.
      *
-     * الأصول في `assets/taqdar/site/` — منفصلةً عن `assets/taqdar/` التي
-     * تخدم البوّابات. والفصل ليس ترتيبًا: ملفّ `taqdar.js` في التصميم يحمل
-     * اسم `taqdar.js` في البوّابات ووظيفةً أخرى، فدمجُهما يُسقط درج القائمة
+     * الأصول في `assets/taqdar/site/` — منفصلة عن `assets/taqdar/` التي
+     * تخدم البوابات. والفصل ليس ترتيبا: ملف `taqdar.js` في التصميم يحمل
+     * اسم `taqdar.js` في البوابات ووظيفة أخرى، فدمجهما يسقط درج القائمة
      * في أربع وثلاثين شاشة بلا أثر ظاهر.
      */
     function tq_site_asset($path)
@@ -31,7 +31,7 @@ if (!function_exists('tq_site_asset')) {
 }
 
 if (!function_exists('tqs_nav')) {
-    /** روابط التنقّل التسعة، وعلى الصفحة الحالية `aria-current`. */
+    /** روابط التنقل التسعة، وعلى الصفحة الحالية `aria-current`. */
     function tqs_nav($active = '')
     {
         $items = array(
@@ -42,7 +42,7 @@ if (!function_exists('tqs_nav')) {
             array('students', 'students',  'الطلاب'),
             array('parents',  'parents',   'أولياء الأمور'),
             array('competitions', 'competitions', 'المسابقات'),
-            array('blog',     'blog',      'المدوّنة'),
+            array('blog',     'blog',      'المدونة'),
             array('about',    'about',     'عن المنصة'),
             array('contact',  'contact',   'تواصل معنا'),
         );
@@ -58,8 +58,8 @@ if (!function_exists('tqs_nav')) {
 
 if (!function_exists('tqs_badge')) {
     /**
-     * شارة البطاقة: معرّف أيقونة يبدأ بـ`i-` يصير رمزًا، وما عداه حرفٌ مجرّد.
-     * (الحرف مثل «ض» أو «EN» يُستعمل حين لا أيقونة تكفي.)
+     * شارة البطاقة: معرف أيقونة يبدأ بـ`i-` يصير رمزا، وما عداه حرف مجرد.
+     * (الحرف مثل «ض» أو «EN» يستعمل حين لا أيقونة تكفي.)
      */
     function tqs_badge($v)
     {
@@ -75,8 +75,8 @@ if (!function_exists('tqs_categories')) {
     /**
      * منتقي الفئات — أزرار.
      *
-     * `id="catPicker"` هو الحارس الأعلى في `site.js`: بدونه لا فلترة إطلاقًا.
-     * وزرّ «جميع الفئات» أوّلًا وبـ`data-cat` **فارغة** لأن الفلترة تقرأ
+     * `id="catPicker"` هو الحارس الأعلى في `site.js`: بدونه لا فلترة إطلاقا.
+     * وزر «جميع الفئات» أولا وبـ`data-cat` **فارغة** لأن الفلترة تقرأ
      * الفراغ بمعنى «لا تصفية». والعنوان في `<b>` لأن الجافاسكربت يقرؤه منه.
      */
     function tqs_categories($cats)
@@ -103,8 +103,8 @@ if (!function_exists('tqs_categories')) {
 
 if (!function_exists('tqs_category_links')) {
     /**
-     * الفئات على الرئيسية — روابط لا أزرار، وبلا `id` فلا تُفعَّل الفلترة هنا.
-     * ووجهتها `/courses?cat=` وإلّا صارت بطاقات الرئيسية كذبًا.
+     * الفئات على الرئيسية — روابط لا أزرار، وبلا `id` فلا تفعل الفلترة هنا.
+     * ووجهتها `/courses?cat=` وإلا صارت بطاقات الرئيسية كذبا.
      */
     function tqs_category_links($cats)
     {
@@ -127,8 +127,8 @@ if (!function_exists('tqs_materials')) {
      * بطاقات المواد.
      *
      * `data-cat` على `<article>` **نفسه** لا على ابن له: الفلترة تلتقط كل
-     * حفيد يحمل السمة داخل الشبكة، فوضعُها على عنصر داخلي يُخفي نصف البطاقة
-     * ويُبقي نصفها. و`alt=""` فارغ عمدًا — الصورة زخرفية والعنوان في `<h3>`.
+     * حفيد يحمل السمة داخل الشبكة، فوضعها على عنصر داخلي يخفي نصف البطاقة
+     * ويبقي نصفها. و`alt=""` فارغ عمدا — الصورة زخرفية والعنوان في `<h3>`.
      */
     function tqs_materials($items)
     {
@@ -142,7 +142,7 @@ if (!function_exists('tqs_materials')) {
             $h .= '            <img src="' . tqs_asset_img($m['image'], 'subj-math')
                 . '" width="620" height="620" loading="lazy" decoding="async" alt="">' . "\n";
             $h .= '          </div>' . "\n";
-            /* خارج `__media`: تلك تقصّ ما يبرز عنها، والشارة تبرز عمدًا */
+            /* خارج `__media`: تلك تقص ما يبرز عنها، والشارة تبرز عمدا */
             $h .= '          <span class="subject-card__badge" aria-hidden="true">'
                 . tqs_badge($m['badge']) . '</span>' . "\n";
             $h .= '          <div class="subject-card__body">' . "\n";
@@ -150,9 +150,9 @@ if (!function_exists('tqs_materials')) {
             $h .= '            <p>' . html_escape($m['blurb']) . '</p>' . "\n";
             $h .= '            <div class="subject-card__meta">' . "\n";
             $h .= '              <span><svg aria-hidden="true"><use href="#i-play"></use></svg>'
-                . html_escape($m['lessons']) . ' درسًا</span>' . "\n";
+                . html_escape($m['lessons']) . ' درسا</span>' . "\n";
             $h .= '              <span><svg aria-hidden="true"><use href="#i-clipboard"></use></svg>'
-                . html_escape($m['quizzes']) . ' اختبارًا</span>' . "\n";
+                . html_escape($m['quizzes']) . ' اختبارا</span>' . "\n";
             $h .= '            </div>' . "\n";
             $h .= '            <a class="btn btn--primary" href="' . html_escape($href) . '">ابدأ البرنامج</a>' . "\n";
             $h .= '          </div>' . "\n";
@@ -168,9 +168,9 @@ if (!function_exists('tqs_books')) {
     /**
      * بطاقات الكتب.
      *
-     * `data-tone` تُلوّن الغلاف، والقيم المدعومة في الورقة **حصرًا**:
-     * math · arabic · science · islamic · english. أي قيمة أخرى تُنتج غلافًا
-     * بلا لون — لذلك تُقصر هنا على المعروف بدل الوثوق بما في القاعدة.
+     * `data-tone` تلون الغلاف، والقيم المدعومة في الورقة **حصرا**:
+     * math · arabic · science · islamic · english. أي قيمة أخرى تنتج غلافا
+     * بلا لون — لذلك تقصر هنا على المعروف بدل الوثوق بما في القاعدة.
      */
     function tqs_books($items)
     {
@@ -203,9 +203,9 @@ if (!function_exists('tqs_books')) {
                 $h .= '            <a class="btn btn--primary" href="' . tq_site_asset('files/' . $b['file'])
                     . '" download><svg aria-hidden="true"><use href="#i-download"></use></svg>تحميل الكتاب</a>' . "\n";
             } else {
-                // زرٌّ معطَّل أصدق من رابط يقود إلى لا شيء
+                // زر معطل أصدق من رابط يقود إلى لا شيء
                 $h .= '            <button class="btn btn--primary" type="button" disabled>'
-                    . '<svg aria-hidden="true"><use href="#i-clock"></use></svg>قريبًا</button>' . "\n";
+                    . '<svg aria-hidden="true"><use href="#i-clock"></use></svg>قريبا</button>' . "\n";
             }
 
             $h .= '          </div>' . "\n";
@@ -221,13 +221,13 @@ if (!function_exists('tqs_social')) {
     /**
      * روابط التواصل الاجتماعي من الإعدادات.
      *
-     * **ما لم يُضبط لا يُعرَض.** أيقونةٌ تقود إلى `#` وعدٌ مكسور للزائر،
-     * وحسابٌ وهميّ أسوأ منه — فالغياب أصدق من كليهما.
+     * **ما لم يضبط لا يعرض.** أيقونة تقود إلى `#` وعد مكسور للزائر،
+     * وحساب وهمي أسوأ منه — فالغياب أصدق من كليهما.
      */
     function tqs_social()
     {
-        /* الترتيب ترتيبُ الحضور: ما للمنصّة عليه حسابٌ نشط أوّلًا.
-           وما لا رابط له يُحذف في الحلقة أدناه، فبقاؤه هنا لا يضرّ. */
+        /* الترتيب ترتيب الحضور: ما للمنصة عليه حساب نشط أولا.
+           وما لا رابط له يحذف في الحلقة أدناه، فبقاؤه هنا لا يضر. */
         $nets = array(
             'instagram' => array('i-instagram', 'إنستغرام'),
             'tiktok'    => array('i-tiktok',    'تيك توك'),
@@ -251,7 +251,7 @@ if (!function_exists('tqs_social')) {
 }
 
 if (!function_exists('tqs_img')) {
-    /** صورة محتوى: اسمٌ مجرّد ⇒ أصل تصميم، وبرنامجٌ فيه شرطة ⇒ رفعٌ حقيقيّ. */
+    /** صورة محتوى: اسم مجرد ⇒ أصل تصميم، وبرنامج فيه شرطة ⇒ رفع حقيقي. */
     function tqs_img($name, $fallback = 'blog-1')
     {
         $name = trim((string) $name);
@@ -263,13 +263,13 @@ if (!function_exists('tqs_img')) {
 
 if (!function_exists('tqs_teachers')) {
     /**
-     * بطاقات المعلّمين.
+     * بطاقات المعلمين.
      *
      * `data-name`/`data-stage`/`data-rating`/`data-reviews`/`data-courses`
-     * هي ما يبحث ويفرز به `site.js` — والفرز يُعيد ترتيب عناصر DOM فعليًّا،
-     * فغياب سمة يجعل بطاقةً تهبط إلى آخر القائمة أبدًا بلا سبب ظاهر.
+     * هي ما يبحث ويفرز به `site.js` — والفرز يعيد ترتيب عناصر DOM فعليا،
+     * فغياب سمة يجعل بطاقة تهبط إلى آخر القائمة أبدا بلا سبب ظاهر.
      *
-     * والتقييم يُعرض **فقط إن وُجد**: منصّة جديدة بلا مراجعات تُظهر «0.0»
+     * والتقييم يعرض **فقط إن وجد**: منصة جديدة بلا مراجعات تظهر «0.0»
      * فتبدو رديئة لا جديدة.
      */
     function tqs_teachers($items)
@@ -278,8 +278,8 @@ if (!function_exists('tqs_teachers')) {
         foreach ($items as $t) {
             $h .= '        <article class="teacher-card reveal"'
                 . ' data-name="' . html_escape($t['name']) . '"'
-                /* المواد والنبذة في سمة البحث: النصّ الإرشادي يَعِد بالبحث
-                   بالمادة، وكانت السمة تحمل الاسم وحده — فوعدٌ لا يُنفَّذ. */
+                /* المواد والنبذة في سمة البحث: النص الإرشادي يعد بالبحث
+                   بالمادة، وكانت السمة تحمل الاسم وحده — فوعد لا ينفذ. */
                 . ' data-search="' . html_escape(trim($t['name'] . ' '
                     . implode(' ', (array) $t['chips']) . ' ' . $t['bio'])) . '"'
                 . ' data-stage="' . html_escape($t['stage']) . '"'
@@ -290,8 +290,8 @@ if (!function_exists('tqs_teachers')) {
                 . '<img src="' . tqs_img($t['img'], 'teacher-1') . '" width="360" height="360"'
                 . ' loading="lazy" decoding="async" alt=""></div>' . "\n";
             $h .= '          <div class="teacher-card__body">' . "\n";
-            /* الاسم رابطٌ: النموذج يبني `url` ولم يستعمله أحد،
-               فبطاقات المعلّمين تبدو قابلة للنقر ولا تُنقر. */
+            /* الاسم رابط: النموذج يبني `url` ولم يستعمله أحد،
+               فبطاقات المعلمين تبدو قابلة للنقر ولا تنقر. */
             $h .= '            <h3><a href="' . html_escape($t['url']) . '">'
                 . html_escape($t['name']) . '</a></h3>' . "\n";
 
@@ -325,7 +325,7 @@ if (!function_exists('tqs_teachers')) {
 }
 
 if (!function_exists('tqs_post_tabs')) {
-    /** تبويبات تصنيفات المدوّنة — أوّلها «الكلّ» بـ`data-cat` فارغة. */
+    /** تبويبات تصنيفات المدونة — أولها «الكل» بـ`data-cat` فارغة. */
     function tqs_post_tabs($cats)
     {
         $h = '            <a href="#posts" class="is-active" data-cat="">الكل</a>' . "\n";
@@ -338,7 +338,7 @@ if (!function_exists('tqs_post_tabs')) {
 }
 
 if (!function_exists('tqs_side_cats')) {
-    /** قائمة التصنيفات الجانبية بعدد مقالات كلٍّ. */
+    /** قائمة التصنيفات الجانبية بعدد مقالات كل. */
     function tqs_side_cats($cats)
     {
         $h = '';
@@ -351,7 +351,7 @@ if (!function_exists('tqs_side_cats')) {
 }
 
 if (!function_exists('tqs_feat_post')) {
-    /** المقال المميَّز — أوّل ما وُسم كذلك، وإلّا أحدثها. */
+    /** المقال المميز — أول ما وسم كذلك، وإلا أحدثها. */
     function tqs_feat_post($posts)
     {
         if (!$posts) return '';
@@ -373,7 +373,7 @@ if (!function_exists('tqs_feat_post')) {
 }
 
 if (!function_exists('tqs_post_cards')) {
-    /** بطاقات المقالات — تتخطّى المميَّز فلا يظهر مرّتين. */
+    /** بطاقات المقالات — تتخطى المميز فلا يظهر مرتين. */
     function tqs_post_cards($posts, $skip_feat = true, $limit = 3)
     {
         $h = ''; $n = 0; $seen = false;
@@ -436,7 +436,7 @@ if (!function_exists('tqs_side_reads')) {
 }
 
 if (!function_exists('tqs_tel_href')) {
-    /** رابط الهاتف من الإعدادات — وما لم يُضبط لا يُنقر. */
+    /** رابط الهاتف من الإعدادات — وما لم يضبط لا ينقر. */
     function tqs_tel_href()
     {
         $p = trim((string) get_settings('phone'));
@@ -448,7 +448,7 @@ if (!function_exists('tqs_phone_text')) {
     function tqs_phone_text()
     {
         $p = trim((string) get_settings('phone'));
-        return $p === '' ? 'قريبًا' : html_escape($p);
+        return $p === '' ? 'قريبا' : html_escape($p);
     }
 }
 
@@ -464,7 +464,7 @@ if (!function_exists('tqs_whatsapp_text')) {
     function tqs_whatsapp_text()
     {
         $w = trim((string) get_settings('social_whatsapp'));
-        return $w === '' ? 'قريبًا' : html_escape($w);
+        return $w === '' ? 'قريبا' : html_escape($w);
     }
 }
 
@@ -472,9 +472,9 @@ if (!function_exists('tqs_asset_img')) {
     /**
      * صورة أصل بحارس اسم فارغ.
      *
-     * الاسم الفارغ يُنتج `img/.webp` — رابطًا مكسورًا بحالة 404 لا يظهر
-     * في سجلّ خطأ ولا في الكونسول، ويُرى صورةً مفقودة فحسب. فالبديل
-     * يُختار هنا مرّة، لا في كل موضع نداء.
+     * الاسم الفارغ ينتج `img/.webp` — رابطا مكسورا بحالة 404 لا يظهر
+     * في سجل خطأ ولا في الكونسول، ويرى صورة مفقودة فحسب. فالبديل
+     * يختار هنا مرة، لا في كل موضع نداء.
      */
     function tqs_asset_img($name, $fallback)
     {
@@ -485,12 +485,12 @@ if (!function_exists('tqs_asset_img')) {
 
 if (!function_exists('tqs_nav_key')) {
     /**
-     * اسم العرض ⟵ مفتاح التنقّل.
+     * اسم العرض ⟵ مفتاح التنقل.
      *
-     * كانت الخريطة مكتوبة داخل الترويسة، ويقرؤها الشريط السفليّ بمتغيّر
-     * `$tq_active` — وهو اسمٌ **مُعاد استعماله** (لغة الجلسة في الغلاف،
-     * ثمّ مفتاح التنقّل في الترويسة). فأي صفحة تُسنده تكسر الوسم النشط
-     * بصمت. والدالّة تجعل للمصدر موضعًا واحدًا.
+     * كانت الخريطة مكتوبة داخل الترويسة، ويقرؤها الشريط السفلي بمتغير
+     * `$tq_active` — وهو اسم **معاد استعماله** (لغة الجلسة في الغلاف،
+     * ثم مفتاح التنقل في الترويسة). فأي صفحة تسنده تكسر الوسم النشط
+     * بصمت. والدالة تجعل للمصدر موضعا واحدا.
      */
     function tqs_nav_key($page_name)
     {
@@ -511,12 +511,12 @@ if (!function_exists('tqs_stat')) {
     /**
      * بند رقم واحد — أو لا شيء.
      *
-     * **ما لم يُضبط لا يُعرَض.** صفرٌ معروض ادّعاءٌ معكوس: «صفر طالب»
+     * **ما لم يضبط لا يعرض.** صفر معروض ادعاء معكوس: «صفر طالب»
      * أسوأ من غياب البند، و«٠٪ رضا» أسوأ من الصمت. والغياب هنا قرار
-     * لا نقص — على نمط شارتَي المتجرين في `site_stores.php`.
+     * لا نقص — على نمط شارتي المتجرين في `site_stores.php`.
      *
      * @param string $key   مفتاح `settings` بلا البادئة
-     * @param string $icon  معرّف رمز من المكتبة
+     * @param string $icon  معرف رمز من المكتبة
      * @param string $label الوصف تحت الرقم
      * @param string $cls   صنف البند (stats-band__item أو stat-strip__item)
      */
@@ -539,9 +539,9 @@ if (!function_exists('tqs_stat')) {
 
 if (!function_exists('tqs_path_cards')) {
     /**
-     * بطاقات برامج للصفحة الرئيسية — نفس وسم الكتالوج بلا مِشبكه.
-     * `$grid` يحدّد عدد الأعمدة، والمعرّفات محذوفة عمدًا: `materialGrid`
-     * يخصّ فلترة الكتالوج، وتكراره يجعل الفلتر يمسّ أوّل شبكة وحدها.
+     * بطاقات برامج للصفحة الرئيسية — نفس وسم الكتالوج بلا مشبكه.
+     * `$grid` يحدد عدد الأعمدة، والمعرفات محذوفة عمدا: `materialGrid`
+     * يخص فلترة الكتالوج، وتكراره يجعل الفلتر يمس أول شبكة وحدها.
      */
     function tqs_path_cards($items, $grid = 'grid-3 cards-3')
     {
@@ -558,9 +558,9 @@ if (!function_exists('tqs_path_cards')) {
             $h .= '      <p>' . html_escape($m['blurb']) . '</p>' . "\n";
             $h .= '      <div class="subject-card__meta">' . "\n";
             $h .= '        <span><svg aria-hidden="true"><use href="#i-play"></use></svg>'
-                . html_escape($m['lessons']) . ' درسًا</span>' . "\n";
+                . html_escape($m['lessons']) . ' درسا</span>' . "\n";
             $h .= '        <span><svg aria-hidden="true"><use href="#i-clipboard"></use></svg>'
-                . html_escape($m['quizzes']) . ' اختبارًا</span>' . "\n";
+                . html_escape($m['quizzes']) . ' اختبارا</span>' . "\n";
             $h .= '      </div>' . "\n";
             $h .= '      <a class="btn btn--primary" href="' . html_escape($href) . '">ابدأ البرنامج</a>' . "\n";
             $h .= '    </div>' . "\n";
@@ -572,9 +572,9 @@ if (!function_exists('tqs_path_cards')) {
 
 if (!function_exists('tqs_universities')) {
     /**
-     * شعارات الجامعات من المجلّد لا من قائمة مكتوبة.
-     * إضافةُ شعارٍ = رفعُ ملفّ؛ وحذفُه = حذفُ ملفّ. وقائمةٌ في الشيفرة
-     * تفترق عن المجلّد عند أوّل تعديل، فتظهر صورةٌ مكسورة أو يغيب شعار.
+     * شعارات الجامعات من المجلد لا من قائمة مكتوبة.
+     * إضافة شعار = رفع ملف؛ وحذفه = حذف ملف. وقائمة في الشيفرة
+     * تفترق عن المجلد عند أول تعديل، فتظهر صورة مكسورة أو يغيب شعار.
      */
     function tqs_universities()
     {
@@ -592,7 +592,7 @@ if (!function_exists('tqs_universities')) {
 }
 
 if (!function_exists('tqs_bundles')) {
-    /** الباقات الفعّالة مرتّبةً — تُقرأ مرّة وتُحفظ. */
+    /** الباقات الفعالة مرتبة — تقرأ مرة وتحفظ. */
     function tqs_bundles()
     {
         static $cache = null;
@@ -623,16 +623,16 @@ if (!function_exists('tqs_bundles')) {
 
 if (!function_exists('tqs_bundle_cards')) {
     /**
-     * بطاقات الباقات — درجاتٌ صاعدة والوسطى مُبرَزة.
-     * السعر يُقسَم على مئة **مرّة واحدة**: القيمة هللاتٌ في القاعدة،
-     * وقسمتُها في موضعين تُنتج رقمًا يختلف بين صفحتين.
+     * بطاقات الباقات — درجات صاعدة والوسطى مبرزة.
+     * السعر يقسم على مئة **مرة واحدة**: القيمة هللات في القاعدة،
+     * وقسمتها في موضعين تنتج رقما يختلف بين صفحتين.
      */
     function tqs_bundle_cards($items = null)
     {
         $items = ($items === null) ? tqs_bundles() : $items;
         if (empty($items)) return '';
-        /* أوّل مرحلةٍ ظاهرة والباقي `hidden`: يعمل بلا سكربت — وإلّا رأى
-           الزائر ستّ بطاقاتٍ لمرحلتين لو فشل تحميله. */
+        /* أول مرحلة ظاهرة والباقي `hidden`: يعمل بلا سكربت — وإلا رأى
+           الزائر ست بطاقات لمرحلتين لو فشل تحميله. */
         $tq_stages = tqs_bundle_stages();
         $tq_hide   = (count($tq_stages) > 1);
         $tq_ks     = array_keys($tq_stages);
@@ -643,13 +643,13 @@ if (!function_exists('tqs_bundle_cards')) {
             $h .= '  <article class="' . $cls . ' reveal" data-stage="' . html_escape($b['stage']) . '"'
                 . (($tq_hide && $b['stage'] !== $tq_first) ? ' hidden' : '') . '>' . "\n";
             if ($b['featured']) {
-                $h .= '    <span class="bundle__flag">الأكثر طلبًا</span>' . "\n";
+                $h .= '    <span class="bundle__flag">الأكثر طلبا</span>' . "\n";
             }
             if ((string) $b['image'] !== '') {
-                /* الصورة تقول ما في الباقة، ولا تحمل معلومةً لا يقولها النصّ —
-                   فـ`alt` فارغة عمدًا: وصفُها يجعل قارئ الشاشة يُعيد العنوان. */
+                /* الصورة تقول ما في الباقة، ولا تحمل معلومة لا يقولها النص —
+                   فـ`alt` فارغة عمدا: وصفها يجعل قارئ الشاشة يعيد العنوان. */
                 /* التفاصيل **فوق** الصورة لا تحتها: البطاقة طويلة، ومن يمسح
-                   الصفحة بعينه يرى الصورة أوّلًا — فما يميّز الباقة يُقرأ معها. */
+                   الصفحة بعينه يرى الصورة أولا — فما يميز الباقة يقرأ معها. */
                 $h .= '    <div class="bundle__media">'
                     . '<img src="' . tqs_asset_img($b['image'], 'path-primary')
                     . '" alt="" width="1100" height="733" loading="lazy" decoding="async">'
@@ -664,7 +664,7 @@ if (!function_exists('tqs_bundle_cards')) {
             }
             $h .= '    <p class="bundle__price"><b class="tq-ltr">' . number_format($b['price'] / 100)
                 . '</b> <span>ر.س</span>'
-                . '<small>' . ($b['days'] >= 360 ? 'للعام الدراسيّ كاملًا' : 'لكل ' . (int) $b['days'] . ' يومًا') . '</small></p>' . "\n";
+                . '<small>' . ($b['days'] >= 360 ? 'للعام الدراسي كاملا' : 'لكل ' . (int) $b['days'] . ' يوما') . '</small></p>' . "\n";
             if ($b['features']) {
                 $h .= '    <ul class="bundle__list">' . "\n";
                 foreach ($b['features'] as $f) {
@@ -683,9 +683,9 @@ if (!function_exists('tqs_bundle_cards')) {
 
 if (!function_exists('tqs_carousel')) {
     /**
-     * غلاف كاروسل حول وسمٍ جاهز.
-     * أساسه `scroll-snap` لا جافاسكربت يحرّك: المتصفّح يعرف السحب والزخم
-     * وحدّ التمرير أحسن ممّا نكتب، ويعمل بلا سكربتٍ إن فشل تحميله.
+     * غلاف كاروسل حول وسم جاهز.
+     * أساسه `scroll-snap` لا جافاسكربت يحرك: المتصفح يعرف السحب والزخم
+     * وحد التمرير أحسن مما نكتب، ويعمل بلا سكربت إن فشل تحميله.
      */
     function tqs_carousel($inner, $label = '')
     {
@@ -705,9 +705,9 @@ if (!function_exists('tqs_carousel')) {
 
 if (!function_exists('tqs_program_slides')) {
     /**
-     * شرائح برامج المواد — **محتوًى لا سلعة**.
-     * بلا سعرٍ وبلا «اشترِ»: البيع صار بالباقة، وسعرٌ على بطاقة مادّة
-     * يُعيد الزائر إلى النموذج الذي تركناه.
+     * شرائح برامج المواد — **محتوى لا سلعة**.
+     * بلا سعر وبلا «اشتر»: البيع صار بالباقة، وسعر على بطاقة مادة
+     * يعيد الزائر إلى النموذج الذي تركناه.
      */
     function tqs_program_slides($items, $limit = 12)
     {
@@ -722,14 +722,14 @@ if (!function_exists('tqs_program_slides')) {
 }
 
 if (!function_exists('tqs_bundle_stages')) {
-    /** المراحل التي لها باقات — بترتيب ظهورها، ولا تُكتب أسماؤها هنا مرّتين. */
+    /** المراحل التي لها باقات — بترتيب ظهورها، ولا تكتب أسماؤها هنا مرتين. */
     function tqs_bundle_stages()
     {
         $seen = array();
         foreach (tqs_bundles() as $b) {
             $k = (string) $b['stage'];
             if ($k === '' || isset($seen[$k])) continue;
-            $seen[$k] = tqs_stage_label($k);   /* الأسماء في موضعٍ واحد */
+            $seen[$k] = tqs_stage_label($k);   /* الأسماء في موضع واحد */
         }
         return $seen;
     }
@@ -738,8 +738,8 @@ if (!function_exists('tqs_bundle_stages')) {
 if (!function_exists('tqs_stage_tabs')) {
     /**
      * تبويب المرحلة.
-     * المرحلة سؤالٌ يُجاب مرّة، والدرجة سؤالٌ يُوازَن فيه — فعرض الستّ
-     * معًا يُقارن ما لا يعني وليَّ الأمر.
+     * المرحلة سؤال يجاب مرة، والدرجة سؤال يوازن فيه — فعرض الست
+     * معا يقارن ما لا يعني ولي الأمر.
      */
     function tqs_stage_tabs($active = '')
     {
@@ -759,8 +759,8 @@ if (!function_exists('tqs_stage_tabs')) {
 
 if (!function_exists('tqs_universities_grid')) {
     /**
-     * شبكة الجامعات — خمسٌ في الصفّ.
-     * الشريط المنزلق يُخفي أكثرها ويطلب انتظارًا؛ والشبكة تُرى دفعةً.
+     * شبكة الجامعات — خمس في الصف.
+     * الشريط المنزلق يخفي أكثرها ويطلب انتظارا؛ والشبكة ترى دفعة.
      */
     function tqs_universities_grid()
     {
@@ -777,12 +777,12 @@ if (!function_exists('tqs_universities_grid')) {
 
 if (!function_exists('tqs_excerpt')) {
     /**
-     * مقتطفٌ من متن المقال.
+     * مقتطف من متن المقال.
      *
-     * كان المتن يُعرض كاملًا مجرَّدًا من الوسوم: مرّ حين كانت المقالات
-     * سطرًا واحدًا، وانكشف حين صارت ١٣٠٠ حرف — فطالت البطاقة عمودًا.
-     * والقطع **عند حدّ كلمة** لا عند حرف: قطعُ الكلمة نصفين يُقرأ خطأً
-     * مطبعيًّا لا اختصارًا.
+     * كان المتن يعرض كاملا مجردا من الوسوم: مر حين كانت المقالات
+     * سطرا واحدا، وانكشف حين صارت ١٣٠٠ حرف — فطالت البطاقة عمودا.
+     * والقطع **عند حد كلمة** لا عند حرف: قطع الكلمة نصفين يقرأ خطأ
+     * مطبعيا لا اختصارا.
      */
     function tqs_excerpt($html, $len = 165)
     {
@@ -798,9 +798,9 @@ if (!function_exists('tqs_excerpt')) {
 
 if (!function_exists('tqs_universities_slides')) {
     /**
-     * شعارات الجامعات شرائحَ للكاروسل.
-     * الشبكة تعرض ثمانيةً وخمسين دفعةً فتطول الصفحة بلا معنى؛ والكاروسل
-     * يعرض صفًّا يُمرَّر — والمكوّن قائم (`tqs_carousel`) فلا يُبنى ثانيًا.
+     * شعارات الجامعات شرائح للكاروسل.
+     * الشبكة تعرض ثمانية وخمسين دفعة فتطول الصفحة بلا معنى؛ والكاروسل
+     * يعرض صفا يمرر — والمكون قائم (`tqs_carousel`) فلا يبنى ثانيا.
      */
     function tqs_universities_slides()
     {
@@ -817,11 +817,11 @@ if (!function_exists('tqs_universities_slides')) {
 
 if (!function_exists('tqs_program_card')) {
     /**
-     * بطاقة برنامجٍ واحد — صورةٌ وشرحٌ وعدّادان ورابط.
+     * بطاقة برنامج واحد — صورة وشرح وعدادان ورابط.
      *
-     * كانت مكتوبةً داخل `tqs_program_slides` وحدها؛ ثمّ احتاجتها الشبكة.
-     * ونسخُها يجعل لها متنين يتباعدان عند أوّل تعديلٍ في أحدهما — فهي
-     * هنا مرّةً واحدة، والشرائح والشبكة تختلفان في **الغلاف** لا في
+     * كانت مكتوبة داخل `tqs_program_slides` وحدها؛ ثم احتاجتها الشبكة.
+     * ونسخها يجعل لها متنين يتباعدان عند أول تعديل في أحدهما — فهي
+     * هنا مرة واحدة، والشرائح والشبكة تختلفان في **الغلاف** لا في
      * البطاقة.
      */
     function tqs_program_card($m)
@@ -833,15 +833,15 @@ if (!function_exists('tqs_program_card')) {
         $h .= '      <div class="pcard__body">' . "\n";
         $h .= '        <h3>' . html_escape($m['title']) . '</h3>' . "\n";
         $h .= '        <p>' . html_escape($m['blurb']) . '</p>' . "\n";
-        /* الصفر يخبر عن حالة الاستيراد لا عن المادّة — فيغيب حتّى يُملأ */
+        /* الصفر يخبر عن حالة الاستيراد لا عن المادة — فيغيب حتى يملأ */
         $meta = '';
         if ((int) $m['lessons'] > 0) {
             $meta .= '<span><svg aria-hidden="true"><use href="#i-play"></use></svg>'
-                  . html_escape($m['lessons']) . ' درسًا</span>';
+                  . html_escape($m['lessons']) . ' درسا</span>';
         }
         if ((int) $m['quizzes'] > 0) {
             $meta .= '<span><svg aria-hidden="true"><use href="#i-clipboard"></use></svg>'
-                  . html_escape($m['quizzes']) . ' اختبارًا</span>';
+                  . html_escape($m['quizzes']) . ' اختبارا</span>';
         }
         if ($meta !== '') {
             $h .= '        <div class="pcard__meta">' . $meta . '</div>' . "\n";
@@ -855,12 +855,12 @@ if (!function_exists('tqs_program_card')) {
 
 if (!function_exists('tqs_subject_grid')) {
     /**
-     * الموادّ شبكةً — كلّها ظاهرةٌ دفعةً.
+     * المواد شبكة — كلها ظاهرة دفعة.
      *
-     * الصفحة عنوانها «المواد والبرامج التعليمية»، وكانت تعرضها شريطًا
-     * يُمرَّر: خمسٌ من خمس عشرة، والباقي وراء زرّ. والشبكة تُنجز ما يَعِد
-     * به العنوان — ولا حدَّ للعدد هنا عمدًا: الحدُّ صوابٌ في شريطٍ ضيّق،
-     * وحذفٌ صامتٌ في شبكةٍ تدّعي العرض كلّه.
+     * الصفحة عنوانها «المواد والبرامج التعليمية»، وكانت تعرضها شريطا
+     * يمرر: خمس من خمس عشرة، والباقي وراء زر. والشبكة تنجز ما يعد
+     * به العنوان — ولا حد للعدد هنا عمدا: الحد صواب في شريط ضيق،
+     * وحذف صامت في شبكة تدعي العرض كله.
      */
     function tqs_subject_grid($items)
     {
@@ -873,11 +873,11 @@ if (!function_exists('tqs_subject_grid')) {
 
 if (!function_exists('tqs_competitions_strip')) {
     /**
-     * المسابقات المفتوحة — ويُخفي القسمَ كلَّه إن لم تكن هناك واحدة.
+     * المسابقات المفتوحة — ويخفي القسم كله إن لم تكن هناك واحدة.
      *
-     * `open_competitions()` تُرجع المفتوحة فقط، والمسابقتان الحاليّتان
-     * تُغلقان في ٣١ أغسطس. فقسمٌ يُطبع بلا شرطٍ يصير عنوانًا فوق فراغٍ
-     * في تاريخٍ معلوم — والإخفاء هنا لا في العرض، كي لا يُنسى.
+     * `open_competitions()` ترجع المفتوحة فقط، والمسابقتان الحاليتان
+     * تغلقان في ٣١ أغسطس. فقسم يطبع بلا شرط يصير عنوانا فوق فراغ
+     * في تاريخ معلوم — والإخفاء هنا لا في العرض، كي لا ينسى.
      */
     function tqs_competitions_strip($limit = 3)
     {
@@ -889,8 +889,8 @@ if (!function_exists('tqs_competitions_strip')) {
         $h  = '<section class="section section--tint">' . "\n";
         $h .= '  <div class="shell">' . "\n";
         $h .= '    <div class="section-head">' . "\n";
-        $h .= '      <h2><span>مسابقاتٌ مفتوحة الآن</span></h2>' . "\n";
-        $h .= '      <p>يشترك فيها طلّاب الباقات بلا رسومٍ إضافية — تدريبٌ على المنافسة، وجوائزُ لأوائل كلّ مرحلة.</p>' . "\n";
+        $h .= '      <h2><span>مسابقات مفتوحة الآن</span></h2>' . "\n";
+        $h .= '      <p>يشترك فيها طلاب الباقات بلا رسوم إضافية — تدريب على المنافسة، وجوائز لأوائل كل مرحلة.</p>' . "\n";
         $h .= '    </div>' . "\n";
         $h .= '    <div class="compgrid">' . "\n";
         foreach ($rows as $r) {
@@ -903,8 +903,8 @@ if (!function_exists('tqs_competitions_strip')) {
                 $h .= '        <p>' . html_escape($r['blurb']) . '</p>' . "\n";
             }
             if ((string) $r['when'] !== '') {
-                /* التاريخ بأرقامٍ لاتينية داخل `tq-ltr`: الأرقام العربية
-                   الشرقية تنقلب ترتيبًا في بعض الخطوط، والتاريخ يُقرأ خطأً. */
+                /* التاريخ بأرقام لاتينية داخل `tq-ltr`: الأرقام العربية
+                   الشرقية تنقلب ترتيبا في بعض الخطوط، والتاريخ يقرأ خطأ. */
                 $h .= '        <p class="compcard__when"><svg aria-hidden="true"><use href="#i-calendar"></use></svg>'
                     . 'تبدأ <b>' . html_escape(tqs_date_ar($r['when'])) . '</b></p>' . "\n";
             }
@@ -919,7 +919,7 @@ if (!function_exists('tqs_competitions_strip')) {
 }
 
 if (!function_exists('tqs_stage_label')) {
-    /** اسم المرحلة من مفتاحها — موضعٌ واحد للأسماء، تقرؤه البطاقة والتبويب. */
+    /** اسم المرحلة من مفتاحها — موضع واحد للأسماء، تقرؤه البطاقة والتبويب. */
     function tqs_stage_label($key)
     {
         $labels = array(
@@ -936,10 +936,10 @@ if (!function_exists('tqs_bundle_tier')) {
     /**
      * درجة الباقة من اسمها الكامل.
      *
-     * الاسم في القاعدة «الباقة المميّزة — المرحلة الابتدائية»: يجمع
-     * الدرجة والمرحلة. وعرضُه كاملًا فوق الصورة يُطيل السطر ويكرّر ما
-     * تقوله الشارة تحته. فيُقتطع ما بعد الشرطة — والقاعدة تبقى مصدرًا
-     * واحدًا، ولا يُكتب الاسم هنا ثانيةً.
+     * الاسم في القاعدة «الباقة المميزة — المرحلة الابتدائية»: يجمع
+     * الدرجة والمرحلة. وعرضه كاملا فوق الصورة يطيل السطر ويكرر ما
+     * تقوله الشارة تحته. فيقتطع ما بعد الشرطة — والقاعدة تبقى مصدرا
+     * واحدا، ولا يكتب الاسم هنا ثانية.
      */
     function tqs_bundle_tier($name)
     {
@@ -952,12 +952,12 @@ if (!function_exists('tqs_bundle_tier')) {
 
 if (!function_exists('tqs_date_ar')) {
     /**
-     * تاريخٌ يُقرأ لا يُفكّ.
+     * تاريخ يقرأ لا يفك.
      *
-     * كان `2026-08-10` خامًا على صفحة المسابقات: صيغةٌ للآلة لا للقارئ،
-     * وتُقرأ في العربية من اليسار على غير عادة العين. والأشهر تُكتب هنا
-     * ولا تُترك لـ`IntlDateFormatter`: الامتداد غير مضمون على كل خادم،
-     * وغيابه كان سيُرجع سلسلةً فارغة بلا خطأ ظاهر.
+     * كان `2026-08-10` خاما على صفحة المسابقات: صيغة للآلة لا للقارئ،
+     * وتقرأ في العربية من اليسار على غير عادة العين. والأشهر تكتب هنا
+     * ولا تترك لـ`IntlDateFormatter`: الامتداد غير مضمون على كل خادم،
+     * وغيابه كان سيرجع سلسلة فارغة بلا خطأ ظاهر.
      */
     function tqs_date_ar($date)
     {
@@ -970,15 +970,15 @@ if (!function_exists('tqs_date_ar')) {
 }
 
 /* ═════════════════════════════════════════════════════════════════════
-   الباقة — سعرُها ومدّتها ومنهجُها وبيانات تحويلها
+   الباقة — سعرها ومدتها ومنهجها وبيانات تحويلها
    ═══════════════════════════════════════════════════════════════════ */
 
 if (!function_exists('tqs_money')) {
     /**
-     * السعر من الهللات إلى ريالٍ مقروء.
+     * السعر من الهللات إلى ريال مقروء.
      *
-     * القسمة على مئة **هنا وحدها**: كانت مكتوبةً في بطاقة الباقة وفي
-     * صفحة الاشتراك وفي الفاتورة، فأيّ إصلاحٍ في واحدةٍ يترك أختيها.
+     * القسمة على مئة **هنا وحدها**: كانت مكتوبة في بطاقة الباقة وفي
+     * صفحة الاشتراك وفي الفاتورة، فأي إصلاح في واحدة يترك أختيها.
      */
     function tqs_money($halalas, $unit = true)
     {
@@ -988,26 +988,26 @@ if (!function_exists('tqs_money')) {
 }
 
 if (!function_exists('tqs_period_label')) {
-    /** مدّة الاشتراك بعبارةٍ يفهمها وليّ الأمر لا بعددِ أيّام. */
+    /** مدة الاشتراك بعبارة يفهمها ولي الأمر لا بعدد أيام. */
     function tqs_period_label($days)
     {
         $d = (int) $days;
-        if ($d >= 360) return 'للعام الدراسيّ كاملًا';
-        if ($d >= 180) return 'لفصلٍ دراسيّ';
-        if ($d >= 28 && $d <= 31) return 'لشهرٍ واحد';
-        if ($d === 14) return 'أربعةَ عشرَ يومًا';
-        return 'لمدّة ' . $d . ' يومًا';
+        if ($d >= 360) return 'للعام الدراسي كاملا';
+        if ($d >= 180) return 'لفصل دراسي';
+        if ($d >= 28 && $d <= 31) return 'لشهر واحد';
+        if ($d === 14) return 'أربعة عشر يوما';
+        return 'لمدة ' . $d . ' يوما';
     }
 }
 
 if (!function_exists('tqs_bank')) {
     /**
-     * بيانات التحويل البنكيّ — أو `null` إن لم تُملأ بعد.
+     * بيانات التحويل البنكي — أو `null` إن لم تملأ بعد.
      *
-     * `offline_bank_information` في Academy حقلٌ نصّيّ حرّ قيمتُه هنا
-     * «Enter your bank information» الافتراضية، فلا يصلح مصدرًا: عرضُها
-     * على مشترٍ سعوديّ أسوأ من ألّا يُعرض شيء. والمفاتيح الثلاثة أدناه
-     * صريحةٌ تُملأ من لوحة تقدّر، وتُقرأ هنا وحدها.
+     * `offline_bank_information` في Academy حقل نصي حر قيمته هنا
+     * «Enter your bank information» الافتراضية، فلا يصلح مصدرا: عرضها
+     * على مشتر سعودي أسوأ من ألا يعرض شيء. والمفاتيح الثلاثة أدناه
+     * صريحة تملأ من لوحة تقدر، وتقرأ هنا وحدها.
      */
     function tqs_bank()
     {
@@ -1023,10 +1023,10 @@ if (!function_exists('tqs_bank')) {
 
 if (!function_exists('tqs_bank_block')) {
     /**
-     * صندوق «حوّل إلى هذا الحساب» — بمرجعِ الحوالة وزرِّ نسخ.
+     * صندوق «حول إلى هذا الحساب» — بمرجع الحوالة وزر نسخ.
      *
-     * ومرجعُ الحوالة رقمُ الفاتورة: بدونه تصل حوالةٌ بلا اسمٍ يُطابَق،
-     * فيُفتَح الاشتراك يدويًّا بالتخمين أو لا يُفتح.
+     * ومرجع الحوالة رقم الفاتورة: بدونه تصل حوالة بلا اسم يطابق،
+     * فيفتح الاشتراك يدويا بالتخمين أو لا يفتح.
      */
     function tqs_bank_block($ref = '', $amount = null)
     {
@@ -1034,14 +1034,14 @@ if (!function_exists('tqs_bank_block')) {
 
         $h  = '<div class="bankbox">' . "\n";
         $h .= '  <h3 class="bankbox__h"><svg aria-hidden="true"><use href="#i-bank"></use></svg>'
-            . ' بيانات التحويل البنكيّ</h3>' . "\n";
+            . ' بيانات التحويل البنكي</h3>' . "\n";
 
         if (!$b) {
-            /* لا يُعرض نصٌّ افتراضيّ ولا حسابٌ مخترع: يُقال الحقّ ويُعطى بابٌ
-               يُطرَق. الصمت هنا يُوقف الشراء، والكذب يُوقف الثقة. */
-            $h .= '  <p class="bankbox__empty">لم تُنشَر بيانات الحساب بعد. '
+            /* لا يعرض نص افتراضي ولا حساب مخترع: يقال الحق ويعطى باب
+               يطرق. الصمت هنا يوقف الشراء، والكذب يوقف الثقة. */
+            $h .= '  <p class="bankbox__empty">لم تنشر بيانات الحساب بعد. '
                 . '<a href="' . base_url('contact') . '">تواصل معنا</a> '
-                . 'ونرسل لك تفاصيل التحويل فورًا.</p>' . "\n";
+                . 'ونرسل لك تفاصيل التحويل فورا.</p>' . "\n";
             return $h . '</div>' . "\n";
         }
 
@@ -1071,16 +1071,16 @@ if (!function_exists('tqs_bank_block')) {
             $h .= '  <p class="bankbox__note">' . html_escape($b['note']) . '</p>' . "\n";
         }
         $h .= '  <p class="bankbox__note">اكتب مرجع الحوالة في خانة الملاحظات، '
-            . 'ويُفعَّل اشتراكك بعد التحقّق منها.</p>' . "\n";
+            . 'ويفعل اشتراكك بعد التحقق منها.</p>' . "\n";
         return $h . '</div>' . "\n";
     }
 }
 
 if (!function_exists('tqs_dur')) {
     /**
-     * مدّة الدرس بالعربية — لا "00:12:00".
+     * مدة الدرس بالعربية — لا "00:12:00".
      *
-     * Academy تخزّنها نصًّا بصيغة الساعة، وعرضُها كما هي يجعل درسًا من
+     * Academy تخزنها نصا بصيغة الساعة، وعرضها كما هي يجعل درسا من
      * اثنتي عشرة دقيقة يبدو ساعتين لمن يمسح القائمة بعينه.
      */
     function tqs_dur($raw)
@@ -1091,8 +1091,8 @@ if (!function_exists('tqs_dur')) {
         $p = explode(':', $raw);
         if (count($p) === 3)      $sec = ((int) $p[0]) * 3600 + ((int) $p[1]) * 60 + (int) $p[2];
         elseif (count($p) === 2)  $sec = ((int) $p[0]) * 60 + (int) $p[1];
-        elseif (ctype_digit($raw)) $sec = ((int) $raw) * 60;   // رقمٌ مجرَّد = دقائق
-        else return $raw;                                      // صيغةٌ لا نعرفها تُعرض كما هي
+        elseif (ctype_digit($raw)) $sec = ((int) $raw) * 60;   // رقم مجرد = دقائق
+        else return $raw;                                      // صيغة لا نعرفها تعرض كما هي
 
         if ($sec <= 0) return '';
         $h = intdiv($sec, 3600);
@@ -1105,14 +1105,14 @@ if (!function_exists('tqs_dur')) {
 
 if (!function_exists('tqs_curriculum')) {
     /**
-     * منهج الباقة — مادّةٌ تُطوى على وحداتها، والوحدةُ على دروسها.
+     * منهج الباقة — مادة تطوى على وحداتها، والوحدة على دروسها.
      *
-     * `<details>` لا جافاسكربت: الطيّ سلوكٌ يعرفه المتصفّح، ويعمل بلا
-     * سكربتٍ ومع قارئ الشاشة بلا `aria` نكتبها ثمّ ننساها.
+     * `<details>` لا جافاسكربت: الطي سلوك يعرفه المتصفح، ويعمل بلا
+     * سكربت ومع قارئ الشاشة بلا `aria` نكتبها ثم ننساها.
      *
      * وضعان:
-     *   `public`  — للزائر: المجّانيّ بزرّ معاينة، وما سواه بقفلٍ صريح
-     *   `student` — للمشترك: كلّ درسٍ رابط، والمقفول يقول سببه
+     *   `public`  — للزائر: المجاني بزر معاينة، وما سواه بقفل صريح
+     *   `student` — للمشترك: كل درس رابط، والمقفول يقول سببه
      *
      * @param array $bundle  ناتج `Taqdar_site_model::bundle_by_code()`
      * @param array $o       mode · open · progress (course_id → نسبة)
@@ -1122,7 +1122,7 @@ if (!function_exists('tqs_curriculum')) {
         if (empty($bundle['subjects'])) return '';
 
         $mode = isset($o['mode']) ? $o['mode'] : 'public';
-        $open = isset($o['open']) ? (int) $o['open'] : 1;   // كم مادّةً مفتوحة ابتداءً
+        $open = isset($o['open']) ? (int) $o['open'] : 1;   // كم مادة مفتوحة ابتداء
         $prog = isset($o['progress']) && is_array($o['progress']) ? $o['progress'] : array();
 
         $h = '<div class="curric">' . "\n";
@@ -1132,11 +1132,11 @@ if (!function_exists('tqs_curriculum')) {
             $i++;
             $meta = array();
             if (count($s['units']) > 0) $meta[] = count($s['units']) . ' وحدة';
-            if ($s['lessons'] > 0)      $meta[] = $s['lessons'] . ' درسًا';
-            if ($s['quizzes'] > 0)      $meta[] = $s['quizzes'] . ' اختبارًا';
+            if ($s['lessons'] > 0)      $meta[] = $s['lessons'] . ' درسا';
+            if ($s['quizzes'] > 0)      $meta[] = $s['quizzes'] . ' اختبارا';
 
-            /* برنامجٌ بلا محتوى لا يُخفى: الباقة تشمله والمشتري يجب أن
-               يعرف أنّه قيد الإعداد — إخفاؤه وعدٌ ضمنيّ بأنّه جاهز. */
+            /* برنامج بلا محتوى لا يخفى: الباقة تشمله والمشتري يجب أن
+               يعرف أنه قيد الإعداد — إخفاؤه وعد ضمني بأنه جاهز. */
             $ready = !empty($s['ready']);
 
             $h .= '  <details class="curric__subj' . ($ready ? '' : ' is-soon') . '"'
@@ -1159,13 +1159,13 @@ if (!function_exists('tqs_curriculum')) {
 
             $h .= '    <div class="curric__body">' . "\n";
             if (!$s['units']) {
-                $h .= '      <p class="curric__soon">دروس هذه المادّة قيد التجهيز، '
-                    . 'وتُفتح لك تلقائيًّا بمجرّد نشرها.</p>' . "\n";
+                $h .= '      <p class="curric__soon">دروس هذه المادة قيد التجهيز، '
+                    . 'وتفتح لك تلقائيا بمجرد نشرها.</p>' . "\n";
             }
             foreach ($s['units'] as $u) {
                 $h .= '      <section class="curric__unit">' . "\n";
                 $h .= '        <h4 class="curric__unit-h">' . html_escape($u['title'])
-                    . ' <small>' . count($u['lessons']) . ' درسًا</small></h4>' . "\n";
+                    . ' <small>' . count($u['lessons']) . ' درسا</small></h4>' . "\n";
                 $h .= '        <ol class="curric__lessons">' . "\n";
                 foreach ($u['lessons'] as $l) {
                     $icon = $l['is_quiz'] ? 'i-clipboard' : 'i-play';
@@ -1191,14 +1191,14 @@ if (!function_exists('tqs_curriculum')) {
                         if ($l['is_free']) {
                             $h .= '            <a class="curric__free" href="'
                                 . base_url('student/lesson/' . (int) $s['course_id'] . '/' . (int) $l['id'])
-                                . '"><svg aria-hidden="true"><use href="#i-unlock"></use></svg> معاينة مجّانية</a>' . "\n";
+                                . '"><svg aria-hidden="true"><use href="#i-unlock"></use></svg> معاينة مجانية</a>' . "\n";
                         } else {
-                            /* الشارة مرئيّةٌ عمدًا: المشتري يمسح المنهج
-                               بعينه ليعرف كم فيه ممّا يُدفع مقابله. وقفلٌ
-                               صامت يُقرأ عطبًا لا سياسة. */
+                            /* الشارة مرئية عمدا: المشتري يمسح المنهج
+                               بعينه ليعرف كم فيه مما يدفع مقابله. وقفل
+                               صامت يقرأ عطبا لا سياسة. */
                             $h .= '            <span class="curric__soonlock">'
                                 . '<svg class="curric__lock" aria-hidden="true"><use href="#i-lock"></use></svg>'
-                                . 'يُفتح بالاشتراك</span>' . "\n";
+                                . 'يفتح بالاشتراك</span>' . "\n";
                         }
                     }
                     $h .= '          </li>' . "\n";
@@ -1215,10 +1215,10 @@ if (!function_exists('tqs_curriculum')) {
 
 if (!function_exists('tqs_stat_strip')) {
     /**
-     * شريط إحصاءٍ — **وما كان صفرًا يسقط منه**.
+     * شريط إحصاء — **وما كان صفرا يسقط منه**.
      *
-     * الرقم المكتوب نصًّا في العرض («١٢٠٠ درس») يكذب يوم يتغيّر ما يصفه.
-     * وهذه تقرأ ما مُرِّر إليها من القاعدة، فإن كان صفرًا لم تَعِد به.
+     * الرقم المكتوب نصا في العرض («١٢٠٠ درس») يكذب يوم يتغير ما يصفه.
+     * وهذه تقرأ ما مرر إليها من القاعدة، فإن كان صفرا لم تعد به.
      *
      * @param array $items  [ [العدد, المفرد, الأيقونة], … ]
      */

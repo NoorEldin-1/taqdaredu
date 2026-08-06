@@ -30,8 +30,8 @@ $readonly = !empty($spec['readonly']);
                 <h3>لا يوجد شيء بعد</h3>
                 <p>
                     <?php echo $readonly
-                        ? 'ستمتلئ هذه الشاشة تلقائيًّا حين يبدأ النظام في التسجيل.'
-                        : 'ابدأ بإضافة أوّل عنصر — بقيّة الوحدات تعتمد عليه.'; ?>
+                        ? 'ستمتلئ هذه الشاشة تلقائيا حين يبدأ النظام في التسجيل.'
+                        : 'ابدأ بإضافة أول عنصر — بقية الوحدات تعتمد عليه.'; ?>
                 </p>
                 <?php if (!$readonly): ?>
                     <a class="btn btn-primary" href="<?php echo site_url('taqdar_admin/form/' . $mkey); ?>">إضافة الآن</a>
@@ -70,7 +70,7 @@ $readonly = !empty($spec['readonly']);
                                    href="<?php echo site_url('taqdar_admin/form/' . $mkey . '/' . (int) $r['id']); ?>">تعديل</a>
 
                                 <?php if (empty($spec['nodelete'])): ?>
-                                    <?php /* الحذف نموذجًا لا رابطًا: رابط GET يحذف يُنفَّذ بمجرّد جلبه. */ ?>
+                                    <?php /* الحذف نموذجا لا رابطا: رابط GET يحذف ينفذ بمجرد جلبه. */ ?>
                                     <form method="post" class="d-inline tqa-del"
                                           action="<?php echo site_url('taqdar_admin/delete/' . $mkey . '/' . (int) $r['id']); ?>">
                                         <button type="submit" class="btn btn-sm btn-danger">حذف</button>
@@ -85,7 +85,7 @@ $readonly = !empty($spec['readonly']);
             </div>
 
             <p class="tqa-count">
-                المعروض <span class="tq-ltr" dir="ltr"><?php echo count($rows); ?></span> عنصرًا.
+                المعروض <span class="tq-ltr" dir="ltr"><?php echo count($rows); ?></span> عنصرا.
             </p>
 
         <?php endif; ?>
@@ -93,10 +93,10 @@ $readonly = !empty($spec['readonly']);
 </div>
 
 <script>
-/* تأكيد الحذف. الحارس الحقيقي في الخادم — هذا لمنع الزلّة لا الاعتداء. */
+/* تأكيد الحذف. الحارس الحقيقي في الخادم — هذا لمنع الزلة لا الاعتداء. */
 document.querySelectorAll('.tqa-del').forEach(function (f) {
     f.addEventListener('submit', function (e) {
-        if (!window.confirm('حذف هذا العنصر نهائيًّا؟')) e.preventDefault();
+        if (!window.confirm('حذف هذا العنصر نهائيا؟')) e.preventDefault();
     });
 });
 </script>

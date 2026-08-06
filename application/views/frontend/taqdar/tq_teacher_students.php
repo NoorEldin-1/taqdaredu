@@ -1,31 +1,31 @@
 <?php
 /**
- * بوّابة المعلم — طلابي.
+ * بوابة المعلم — طلابي.
  *
- * القاعدة الحاكمة لبوّابة المعلم كلها:
- * المعلم مُسنَد إلى مادة وصفّ بعينهما، وما لم يُسنَد إليه لا يظهر في لوحته
- * أصلًا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يُفرض في طبقة الاستعلام
- * لا في الواجهة — إخفاء زرّ في الواجهة ليس صلاحية. لذلك قائمة الطلاب أدناه
- * تبدأ من `enrol` مقيَّدًا بكورساته، لا من `users`: المعلم لا يرى سجلّ
+ * القاعدة الحاكمة لبوابة المعلم كلها:
+ * المعلم مسند إلى مادة وصف بعينهما، وما لم يسند إليه لا يظهر في لوحته
+ * أصلا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يفرض في طبقة الاستعلام
+ * لا في الواجهة — إخفاء زر في الواجهة ليس صلاحية. لذلك قائمة الطلاب أدناه
+ * تبدأ من `enrol` مقيدا بكورساته، لا من `users`: المعلم لا يرى سجل
  * الطلاب، يرى طلابه هو.
  *
  * «من يوشك على الانقطاع» = غياب 5 أيام بعد نشاط منتظم.
  * وقياس «النشاط المنتظم» الصحيح يحتاج جدول أيام نشاط (`activity_days`)؛
  * والمتاح اليوم `watch_histories.date_updated` (آخر نشاط) و`course_progress`،
- * فالقاعدة المطبَّقة هنا: آخر نشاط ≥ 5 أيام، وتقدّم بين 1% و99% — أي بدأ
- * فعلًا ولم ينهِ. تُستبدل بقاعدة أدقّ فور وجود جدول الأيام.
+ * فالقاعدة المطبقة هنا: آخر نشاط ≥ 5 أيام، وتقدم بين 1% و99% — أي بدأ
+ * فعلا ولم ينه. تستبدل بقاعدة أدق فور وجود جدول الأيام.
  *
- * وشاشة تقيس الانقطاع ولا تعطي المعلّم ما يفعله به شاشة ناقصة. لذلك فيها
- * مراسلة الطالب: تُكتب من هنا وتُرسَل إلى `teacher/students/message` —
- * برنامج كتابة في طبقة المتحكّم لا في العرض، على اصطلاح بقيّة برامج الكتابة
- * في البوّابة. وما لم توجد دالّته لا يُعرض زرّ إرسال أصلًا: زرّ لا يفعل
- * شيئًا أسوأ من غياب الزرّ.
+ * وشاشة تقيس الانقطاع ولا تعطي المعلم ما يفعله به شاشة ناقصة. لذلك فيها
+ * مراسلة الطالب: تكتب من هنا وترسل إلى `teacher/students/message` —
+ * برنامج كتابة في طبقة المتحكم لا في العرض، على اصطلاح بقية برامج الكتابة
+ * في البوابة. وما لم توجد دالته لا يعرض زر إرسال أصلا: زر لا يفعل
+ * شيئا أسوأ من غياب الزر.
  */
 
 $tq_nav   = 'students';
 $tq_role  = 'teacher';
 $tq_title = 'طلابي';
-$tq_sub   = 'طلاب كورساتك وحدهم، وتقدّم كل واحد منهم';
+$tq_sub   = 'طلاب كورساتك وحدهم، وتقدم كل واحد منهم';
 $tq_icon  = 'users';
 
 $tq_uid = (int) $this->session->userdata('user_id');
@@ -66,7 +66,7 @@ if ($tq_course_ids) {
           ORDER BY last_seen DESC"
     )->result_array();
 
-    /* متوسّط نتائج كل طالب في اختبارات كورساتي — نسبة من عدد الأسئلة. */
+    /* متوسط نتائج كل طالب في اختبارات كورساتي — نسبة من عدد الأسئلة. */
     $tq_scores = [];
     foreach ($this->db->query(
         "SELECT r.user_id,
@@ -100,20 +100,20 @@ if ($tq_course_ids) {
         return $b['days'] <=> $a['days'];
     });
 
-    /* قائمة من يجوز مراسلتهم تُبنى من الصفوف المعروضة نفسها، فالنطاق
+    /* قائمة من يجوز مراسلتهم تبنى من الصفوف المعروضة نفسها، فالنطاق
        محفوظ بالبناء لا بفحص لاحق: من ليس في كورساتي ليس في القائمة
-       أصلًا. والطالب المسجَّل في أكثر من كورس لي يظهر مرّة واحدة. */
+       أصلا. والطالب المسجل في أكثر من كورس لي يظهر مرة واحدة. */
     foreach ($tq_students as $tq_t) {
         $tq_msg_targets[(int) $tq_t['id']] = trim($tq_t['first_name'] . ' ' . $tq_t['last_name']);
     }
     asort($tq_msg_targets);
 }
 
-/* المراسلة تحتاج برنامج كتابة في المتحكّم — على اصطلاح بقيّة برامج الكتابة
-   في البوّابة (`upload_save` و`questions_import` وأخواتها): البرنامج
-   `teacher/students/message` والدالّة `Taqdar::students_message()`.
-   و`$this` هنا ليس المتحكّم بل المُحمِّل، فالفحص على `get_instance()` وحده.
-   وغياب الدالّة يُخفي النموذج ولا يكسر الصفحة. */
+/* المراسلة تحتاج برنامج كتابة في المتحكم — على اصطلاح بقية برامج الكتابة
+   في البوابة (`upload_save` و`questions_import` وأخواتها): البرنامج
+   `teacher/students/message` والدالة `Taqdar::students_message()`.
+   و`$this` هنا ليس المتحكم بل المحمل، فالفحص على `get_instance()` وحده.
+   وغياب الدالة يخفي النموذج ولا يكسر الصفحة. */
 $tq_msg_ready = method_exists(get_instance(), 'students_message');
 
 $tq_msg_to = (int) $this->input->get('msg');
@@ -121,8 +121,8 @@ if ($tq_msg_to && !isset($tq_msg_targets[$tq_msg_to])) {
     $tq_msg_to = 0;
 }
 
-/* رابط «راسِله» لطالب بعينه: يفتح الشاشة نفسها والنموذج مملوء باسمه.
-   دالّة مجهولة لا مُعرَّفة عالميًّا — العرض قد يُضمَّن أكثر من مرّة. */
+/* رابط «راسله» لطالب بعينه: يفتح الشاشة نفسها والنموذج مملوء باسمه.
+   دالة مجهولة لا معرفة عالميا — العرض قد يضمن أكثر من مرة. */
 $tq_msg_link = static function ($student_id) use ($tq_course) {
     return base_url('teacher/students')
          . ($tq_course ? '?course=' . (int) $tq_course . '&amp;' : '?')
@@ -160,7 +160,7 @@ include 'portal_open.php';
             <?php if ($tq_at_risk): ?>
                 <div class="tq-card tq-card--float">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                        <?php echo tq_iso('طالب بدأ بانتظام ثمّ غاب 5 أيام أو أكثر. رسالة قصيرة الآن أنفع من تقرير بعد شهر.'); ?>
+                        <?php echo tq_iso('طالب بدأ بانتظام ثم غاب 5 أيام أو أكثر. رسالة قصيرة الآن أنفع من تقرير بعد شهر.'); ?>
                     </p>
                     <ul class="tq-stack">
                         <?php foreach ($tq_at_risk as $tq_s): ?>
@@ -173,13 +173,13 @@ include 'portal_open.php';
                                     <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></p>
                                     <p class="tq-micro" style="margin:0"><?php echo html_escape($tq_s['course_title']); ?></p>
                                 </div>
-                                <?php echo tq_badge('due', 'غاب ' . TQ_LRI . (int) $tq_s['days'] . TQ_PDI . ' يومًا'); ?>
+                                <?php echo tq_badge('due', 'غاب ' . TQ_LRI . (int) $tq_s['days'] . TQ_PDI . ' يوما'); ?>
                                 <div style="inline-size:160px">
-                                    <?php echo tq_progress((int) $tq_s['progress'], 'تقدّم ' . $tq_name); ?>
+                                    <?php echo tq_progress((int) $tq_s['progress'], 'تقدم ' . $tq_name); ?>
                                 </div>
                                 <?php if ($tq_msg_ready): ?>
                                     <a class="tq-btn tq-btn--secondary tq-btn--sm"
-                                       href="<?php echo $tq_msg_link((int) $tq_s['id']); ?>">راسِله</a>
+                                       href="<?php echo $tq_msg_link((int) $tq_s['id']); ?>">راسله</a>
                                 <?php else: ?>
                                     <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                        href="<?php echo base_url('home/my_messages'); ?>">صندوق الرسائل</a>
@@ -193,29 +193,29 @@ include 'portal_open.php';
                     <span class="tq-icon-box tq-pastel--mint" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('flame', 24); ?></span>
                     <h3 class="tq-empty__title">لا أحد على وشك الانقطاع</h3>
                     <p class="tq-empty__text">
-                        <?php echo tq_iso('نراقب من بدأ بانتظام ثمّ غاب 5 أيام. ما دامت هذه القائمة فارغة فطلابك مستمرّون.'); ?>
+                        <?php echo tq_iso('نراقب من بدأ بانتظام ثم غاب 5 أيام. ما دامت هذه القائمة فارغة فطلابك مستمرون.'); ?>
                     </p>
                     <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher'); ?>">عودة إلى اللوحة</a>
                 </div>
             <?php endif; ?>
         </section>
 
-        <!-- تقدّم كل طالب -->
+        <!-- تقدم كل طالب -->
         <section aria-labelledby="tq-students-h">
             <div class="tq-sectionhead">
-                <h2 id="tq-students-h">تقدّم كل طالب</h2>
+                <h2 id="tq-students-h">تقدم كل طالب</h2>
             </div>
 
             <?php if ($tq_students): ?>
                 <div class="tq-card">
                     <table class="tq-table">
-                        <caption class="tq-sr">طلاب كورساتك: التقدّم ومتوسّط الاختبارات وآخر نشاط</caption>
+                        <caption class="tq-sr">طلاب كورساتك: التقدم ومتوسط الاختبارات وآخر نشاط</caption>
                         <thead>
                             <tr>
                                 <th scope="col">الطالب</th>
                                 <th scope="col">الكورس</th>
-                                <th scope="col">التقدّم</th>
-                                <th scope="col">متوسّط الاختبارات</th>
+                                <th scope="col">التقدم</th>
+                                <th scope="col">متوسط الاختبارات</th>
                                 <th scope="col">آخر نشاط</th>
                                 <?php if ($tq_msg_ready): ?>
                                     <th scope="col"><span class="tq-sr">إجراءات</span></th>
@@ -235,21 +235,21 @@ include 'portal_open.php';
                                         </span>
                                     </td>
                                     <td data-label="الكورس"><?php echo html_escape($tq_s['course_title']); ?></td>
-                                    <td data-label="التقدّم" style="min-inline-size:170px">
-                                        <?php echo tq_progress((int) $tq_s['progress'], 'تقدّم ' . $tq_name); ?>
+                                    <td data-label="التقدم" style="min-inline-size:170px">
+                                        <?php echo tq_progress((int) $tq_s['progress'], 'تقدم ' . $tq_name); ?>
                                     </td>
-                                    <td data-label="متوسّط الاختبارات">
+                                    <td data-label="متوسط الاختبارات">
                                         <?php if ($tq_s['attempts'] > 0): ?>
                                             <?php echo tq_num($tq_s['avg_pct'] . '%', 'tq-num--sm'); ?>
                                         <?php else: ?>
-                                            <span class="tq-caption">لم يبدأ اختبارًا</span>
+                                            <span class="tq-caption">لم يبدأ اختبارا</span>
                                         <?php endif; ?>
                                     </td>
                                     <td data-label="آخر نشاط"><?php echo html_escape(tq_since((int) $tq_s['last_seen'])); ?></td>
                                     <?php if ($tq_msg_ready): ?>
                                         <td data-label="إجراءات">
                                             <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                                               href="<?php echo $tq_msg_link((int) $tq_s['id']); ?>">راسِله</a>
+                                               href="<?php echo $tq_msg_link((int) $tq_s['id']); ?>">راسله</a>
                                         </td>
                                     <?php endif; ?>
                                 </tr>
@@ -262,8 +262,8 @@ include 'portal_open.php';
                     <span class="tq-icon-box tq-pastel--sky" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('users', 24); ?></span>
                     <h3 class="tq-empty__title">لا طلاب في كورساتك بعد</h3>
                     <p class="tq-empty__text">
-                        تظهر هنا أسماء من سجّلوا في كورساتك المسندة إليك وحدهم، ومعها تقدّم كل واحد
-                        ومتوسّط اختباراته وآخر نشاط له.
+                        تظهر هنا أسماء من سجلوا في كورساتك المسندة إليك وحدهم، ومعها تقدم كل واحد
+                        ومتوسط اختباراته وآخر نشاط له.
                     </p>
                     <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/courses'); ?>">عرض كورساتي</a>
                 </div>
@@ -273,16 +273,16 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
 
-        <!-- التدخّل: رسالة قصيرة الآن، لا تقرير بعد شهر -->
+        <!-- التدخل: رسالة قصيرة الآن، لا تقرير بعد شهر -->
         <section class="tq-card" id="tq-compose" aria-labelledby="tq-compose-h">
             <div class="tq-card__head">
-                <h2 class="tq-card__title" id="tq-compose-h">راسِل طالبًا</h2>
+                <h2 class="tq-card__title" id="tq-compose-h">راسل طالبا</h2>
                 <span class="tq-pastel__icon" style="color:var(--tq-navy)" aria-hidden="true"><?php echo tq_icon('chat'); ?></span>
             </div>
 
-            <?php /* المتحكّم يكتب نتيجته بمفتاحَي `tq_ok`/`tq_error` ومفتاحَي
-                     المنصّة `flash_message`/`error_message` معًا — تُقرأ هنا
-                     بالاصطلاحين، فرسالة لا تُقرأ كأنها لم تُكتب. */ ?>
+            <?php /* المتحكم يكتب نتيجته بمفتاحي `tq_ok`/`tq_error` ومفتاحي
+                     المنصة `flash_message`/`error_message` معا — تقرأ هنا
+                     بالاصطلاحين، فرسالة لا تقرأ كأنها لم تكتب. */ ?>
             <?php if ($tq_flash_ok = ($this->session->flashdata('tq_ok') ?: $this->session->flashdata('flash_message'))): ?>
                 <div class="tq-pastel tq-pastel--mint" style="margin-block-end:var(--tq-space-l)" role="status">
                     <p class="tq-pastel__body" style="margin:0"><?php echo html_escape($tq_flash_ok); ?></p>
@@ -296,7 +296,7 @@ include 'portal_open.php';
 
             <?php if (!$tq_msg_targets): ?>
                 <p class="tq-caption" style="margin:0">
-                    لا طالب مسجَّل في كورساتك بعد، فلا أحد تراسله من هنا.
+                    لا طالب مسجل في كورساتك بعد، فلا أحد تراسله من هنا.
                 </p>
 
             <?php elseif ($tq_msg_ready): ?>
@@ -322,17 +322,17 @@ include 'portal_open.php';
                                   required maxlength="1000"
                                   placeholder="سطران يكفيان: ما الذي لاحظته، وما الخطوة التالية."></textarea>
                         <span class="tq-field__msg tq-field__hint">
-                            تصل إلى صندوق رسائله في المنصّة ويردّ عليها من مكانه.
+                            تصل إلى صندوق رسائله في المنصة ويرد عليها من مكانه.
                         </span>
                     </div>
 
-                    <button class="tq-btn tq-btn--primary tq-btn--block" type="submit">أرسِل</button>
+                    <button class="tq-btn tq-btn--primary tq-btn--block" type="submit">أرسل</button>
                 </form>
 
             <?php else: ?>
                 <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                    الإرسال من هذه الشاشة ينتظر تفعيل برنامج المراسلة على الخادم. ولن يُعرض هنا
-                    زرّ إرسال قبل ذلك — زرّ لا يرسل أسوأ من غياب الزرّ. وصندوق رسائل المنصّة
+                    الإرسال من هذه الشاشة ينتظر تفعيل برنامج المراسلة على الخادم. ولن يعرض هنا
+                    زر إرسال قبل ذلك — زر لا يرسل أسوأ من غياب الزر. وصندوق رسائل المنصة
                     يعمل الآن.
                 </p>
                 <a class="tq-btn tq-btn--secondary tq-btn--block tq-btn--sm"
@@ -341,7 +341,7 @@ include 'portal_open.php';
         </section>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">ملخّص</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title">ملخص</h2></div>
             <ul class="tq-stack">
                 <li class="tq-row tq-row--between">
                     <span class="tq-caption">تسجيلات في كورساتك</span>
@@ -355,10 +355,10 @@ include 'portal_open.php';
         </div>
 
         <div class="tq-pastel tq-pastel--lilac">
-            <span class="tq-pastel__label tq-micro">لماذا لا أرى بقيّة الطلاب؟</span>
+            <span class="tq-pastel__label tq-micro">لماذا لا أرى بقية الطلاب؟</span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                لأنك ترى طلابك أنت: من سجّل في كورس أُسنِد إليك. من ليس في كورساتك ليس في نطاقك،
-                ولا تظهر بياناته لك أصلًا.
+                لأنك ترى طلابك أنت: من سجل في كورس أسند إليك. من ليس في كورساتك ليس في نطاقك،
+                ولا تظهر بياناته لك أصلا.
             </p>
         </div>
     </aside>

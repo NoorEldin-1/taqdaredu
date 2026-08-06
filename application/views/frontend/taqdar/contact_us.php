@@ -1,6 +1,6 @@
 <!--
-title: تواصل معنا — منصّة تقدّر
-desc: فريق تقدّر جاهز للإجابة على استفساراتك وتقديم الدعم والمساعدة في رحلتك التعليمية.
+title: تواصل معنا — منصة تقدر
+desc: فريق تقدر جاهز للإجابة على استفساراتك وتقديم الدعم والمساعدة في رحلتك التعليمية.
 active: contact
 header: dark
 css: pages
@@ -17,8 +17,8 @@ css: pages
           <span class="page-hero__sub">نحن هنا لمساعدتك</span>
         </h1>
         <p class="page-hero__lede">
-          فريق تقدّر جاهز للإجابة على استفساراتك وتقديم الدعم والمساعدة
-          في رحلتك التعليمية. لا تتردّد في التواصل معنا في أي وقت.
+          فريق تقدر جاهز للإجابة على استفساراتك وتقديم الدعم والمساعدة
+          في رحلتك التعليمية. لا تتردد في التواصل معنا في أي وقت.
         </p>
         <div class="hero-mini">
           <div class="hero-mini__item">
@@ -27,15 +27,15 @@ css: pages
           </div>
           <div class="hero-mini__item">
             <span class="ico"><svg aria-hidden="true"><use href="#i-shield"></use></svg></span>
-            <div><b>خصوصيتك آمنة</b><span>نحافظ على سرّية معلوماتك</span></div>
+            <div><b>خصوصيتك آمنة</b><span>نحافظ على سرية معلوماتك</span></div>
           </div>
           <div class="hero-mini__item">
             <span class="ico"><svg aria-hidden="true"><use href="#i-support"></use></svg></span>
-            <div><b>دعم متخصّص</b><span>فريق ذو خبرة لمساعدتك</span></div>
+            <div><b>دعم متخصص</b><span>فريق ذو خبرة لمساعدتك</span></div>
           </div>
           <div class="hero-mini__item">
             <span class="ico"><svg aria-hidden="true"><use href="#i-clock"></use></svg></span>
-            <div><b>استجابة سريعة</b><span>نردّ في أسرع وقت ممكن</span></div>
+            <div><b>استجابة سريعة</b><span>نرد في أسرع وقت ممكن</span></div>
           </div>
         </div>
       </div>
@@ -44,7 +44,7 @@ css: pages
         <div class="page-hero__arch">
           <div>
             <img src="<?php echo tq_site_asset('img/contact-hero.webp'); ?>" width="960" height="1440"
-                 alt="طفلان سعوديان يتشاركان حاسوبًا محمولًا">
+                 alt="طفلان سعوديان يتشاركان حاسوبا محمولا">
           </div>
 <?php include __DIR__ . '/site/site_arch.php'; ?>
         </div>
@@ -68,7 +68,7 @@ css: pages
             <span class="ico"><svg aria-hidden="true"><use href="#i-phone"></use></svg></span>
             <div>
               <h3>اتصل بنا</h3>
-              <p>تحدّث مباشرة مع فريق الدعم</p>
+              <p>تحدث مباشرة مع فريق الدعم</p>
               <b class="tq-ltr"><?php echo tqs_phone_text(); ?></b>
               <p>من الأحد إلى الخميس · <span class="tq-ltr">9:00</span> ص –
                  <span class="tq-ltr">5:00</span> م</p>
@@ -78,7 +78,7 @@ css: pages
             <span class="ico"><svg aria-hidden="true"><use href="#i-mail"></use></svg></span>
             <div>
               <h3>راسلنا على البريد</h3>
-              <p>أرسل لنا استفسارك وسنردّ عليك</p>
+              <p>أرسل لنا استفسارك وسنرد عليك</p>
               <b><?php echo html_escape(get_settings('system_email')); ?></b>
               <p>نجيب على رسائلك خلال <span class="tq-ltr">24</span> ساعة</p>
             </div>
@@ -133,13 +133,13 @@ css: pages
                 <svg aria-hidden="true"><use href="#i-list"></use></svg>
                 <span class="sr-only">الموضوع</span>
                 <select name="subject" id="cSubj" required>
-                  <?php /* `disabled` لا `value=""` وحدها: بدونها يمرّ النموذج بموضوعٍ
-        فارغ، فتصل رسالةٌ لا يُعرف إلى أيّ فريقٍ توجَّه. */ ?>
+                  <?php /* `disabled` لا `value=""` وحدها: بدونها يمر النموذج بموضوع
+        فارغ، فتصل رسالة لا يعرف إلى أي فريق توجه. */ ?>
                   <option value="" disabled selected>اختر الموضوع…</option>
                   <option>استفسار عن البرامج</option>
                   <option>الدعم الفني</option>
                   <option>الاشتراكات والفواتير</option>
-                  <option>الانضمام كمعلّم</option>
+                  <option>الانضمام كمعلم</option>
                   <option>أخرى</option>
                 </select>
               </label>
@@ -154,7 +154,7 @@ css: pages
             <input type="hidden" name="address" value="">
             <label class="form-consent form-field--full">
               <input type="checkbox" name="i_agree" value="1" required>
-              <span>أوافق على معالجة بياناتي للردّ على رسالتي.</span>
+              <span>أوافق على معالجة بياناتي للرد على رسالتي.</span>
             </label>
             <button class="btn btn--primary" type="submit">
               إرسال الرسالة
@@ -163,7 +163,7 @@ css: pages
             </button>
           </form>
           <?php if ($tq_f = $this->session->flashdata('flash_message')): ?><p class="form-ok is-on" role="status"><?php echo html_escape($tq_f); ?></p><?php endif; ?><?php if ($tq_e = $this->session->flashdata('error_message')): ?><p class="tq-flash tq-flash--err" role="alert"><?php echo html_escape($tq_e); ?></p><?php endif; ?><p class="form-ok" data-ok role="status">
-            تمّ استلام رسالتك — سنعود إليك خلال <span class="tq-ltr">24</span> ساعة.
+            تم استلام رسالتك — سنعود إليك خلال <span class="tq-ltr">24</span> ساعة.
           </p>
           
         </div>
@@ -172,25 +172,25 @@ css: pages
   </div>
 </section>
 
-<!-- ══════════ زورنا في مقرّنا ══════════ -->
+<!-- ══════════ زورنا في مقرنا ══════════ -->
 <section class="section section--plain" id="visit">
   <div class="shell">
     <div class="visit reveal">
       <?php /* خريطة حقيقية من OpenStreetMap — لا مفتاح ولا كوكيز ولا موافقة.
-              وخرائط جوجل تضع كوكيز طرفٍ ثالث قبل أن يقبل الزائر شريط
-              الموافقة، فتُخالف ما يَعِد به الشريط. والزرّ تحتها يفتح جوجل
-              عند الطلب — وذلك اختيارُ الزائر لا اختيارُنا عنه.
-              و`loading=lazy` كي لا تُحمَّل خريطةٌ في أسفل الصفحة مع أوّلها. */ ?>
+              وخرائط جوجل تضع كوكيز طرف ثالث قبل أن يقبل الزائر شريط
+              الموافقة، فتخالف ما يعد به الشريط. والزر تحتها يفتح جوجل
+              عند الطلب — وذلك اختيار الزائر لا اختيارنا عنه.
+              و`loading=lazy` كي لا تحمل خريطة في أسفل الصفحة مع أولها. */ ?>
       <div class="visit__map">
-        <iframe title="خريطة موقع مقرّ منصة تقدّر — حيّ العليا، الرياض"
+        <iframe title="خريطة موقع مقر منصة تقدر — حي العليا، الرياض"
                 src="https://www.openstreetmap.org/export/embed.html?bbox=46.6650%2C24.6820%2C46.6980%2C24.7060&amp;layer=mapnik&amp;marker=24.6940%2C46.6815"
                 loading="lazy" referrerpolicy="no-referrer-when-downgrade"
                 style="border:0"></iframe>
       </div>
 
       <div class="visit__panel">
-        <h2>زورنا في مقرّنا</h2>
-        <p>نرحّب بزيارتك في مقرّ منصة تقدّر</p>
+        <h2>زورنا في مقرنا</h2>
+        <p>نرحب بزيارتك في مقر منصة تقدر</p>
         <div class="visit__items">
           <div>
             <span class="ico"><svg aria-hidden="true"><use href="#i-clock"></use></svg></span>
@@ -206,10 +206,10 @@ css: pages
           <div>
             <span class="ico"><svg aria-hidden="true"><use href="#i-flag"></use></svg></span>
             <b>مواقف مجانية</b>
-            <span>تتوفّر مواقف سيارات<br>للزوّار</span>
+            <span>تتوفر مواقف سيارات<br>للزوار</span>
           </div>
         </div>
-        <?php /* كان يشير إلى `#visit` — أي إلى نفسه، فالضغط لا يفعل شيئًا. */ ?>
+        <?php /* كان يشير إلى `#visit` — أي إلى نفسه، فالضغط لا يفعل شيئا. */ ?>
         <a class="btn btn--gold" target="_blank" rel="noopener noreferrer"
            href="https://www.google.com/maps/search/?api=1&amp;query=%D8%AD%D9%8A+%D8%A7%D9%84%D8%B9%D9%84%D9%8A%D8%A7%D8%8C+%D8%A7%D9%84%D8%B1%D9%8A%D8%A7%D8%B6">
           احصل على الاتجاهات
@@ -219,7 +219,7 @@ css: pages
 
       <div class="visit__photo">
         <img src="<?php echo tq_site_asset('img/office.webp'); ?>" width="880" height="587" loading="lazy"
-             decoding="async" alt="مدخل مقرّ منصة تقدّر بجدار أخضر وزخرفة عربية">
+             decoding="async" alt="مدخل مقر منصة تقدر بجدار أخضر وزخرفة عربية">
       </div>
     </div>
   </div>
@@ -237,18 +237,18 @@ css: pages
       <div class="faq-grid" id="faq">
         <div class="faq-item reveal">
           <button class="faq-q" type="button" aria-expanded="false" aria-controls="cfaq-a-1" id="cfaq-q-1">
-            كيف يمكنني إنشاء حساب في منصة تقدّر؟
+            كيف يمكنني إنشاء حساب في منصة تقدر؟
             <svg aria-hidden="true"><use href="#i-plus"></use></svg>
           </button>
           <div class="faq-a" id="cfaq-a-1" role="region" aria-labelledby="cfaq-q-1"><div><p>اضغط على «إنشاء حساب» في أعلى الصفحة، ثم أدخل بياناتك
-            وفعّل الحساب من رابط التفعيل الذي يصلك على بريدك. العملية لا تستغرق دقيقتين.</p></div></div>
+            وفعل الحساب من رابط التفعيل الذي يصلك على بريدك. العملية لا تستغرق دقيقتين.</p></div></div>
         </div>
         <div class="faq-item reveal">
           <button class="faq-q" type="button" aria-expanded="false" aria-controls="cfaq-a-2" id="cfaq-q-2">
             هل يمكنني تجربة المنصة قبل الاشتراك؟
             <svg aria-hidden="true"><use href="#i-plus"></use></svg>
           </button>
-          <div class="faq-a" id="cfaq-a-2" role="region" aria-labelledby="cfaq-q-2"><div><p>نعم، توفّر المنصة دروسًا مجانية في كل برنامج تعليمي
+          <div class="faq-a" id="cfaq-a-2" role="region" aria-labelledby="cfaq-q-2"><div><p>نعم، توفر المنصة دروسا مجانية في كل برنامج تعليمي
             لتجربتها قبل اتخاذ قرار الاشتراك.</p></div></div>
         </div>
         <div class="faq-item reveal">
@@ -256,23 +256,23 @@ css: pages
             هل المحتوى التعليمي معتمد من جهات رسمية؟
             <svg aria-hidden="true"><use href="#i-plus"></use></svg>
           </button>
-          <div class="faq-a" id="cfaq-a-3" role="region" aria-labelledby="cfaq-q-3"><div><p>المحتوى مبنيّ على المناهج السعودية المعتمدة، ويُراجَع
-            من معلمين متخصّصين قبل نشره.</p></div></div>
+          <div class="faq-a" id="cfaq-a-3" role="region" aria-labelledby="cfaq-q-3"><div><p>المحتوى مبني على المناهج السعودية المعتمدة، ويراجع
+            من معلمين متخصصين قبل نشره.</p></div></div>
         </div>
         <div class="faq-item reveal">
           <button class="faq-q" type="button" aria-expanded="false" aria-controls="cfaq-a-4" id="cfaq-q-4">
             كيف يمكنني التواصل مع المعلم؟
             <svg aria-hidden="true"><use href="#i-plus"></use></svg>
           </button>
-          <div class="faq-a" id="cfaq-a-4" role="region" aria-labelledby="cfaq-q-4"><div><p>من داخل صفحة الدرس تجد زر «تواصل مع المعلّم» لإرسال
-            سؤالك مباشرة، ويصلك الردّ في صندوق رسائلك داخل المنصة.</p></div></div>
+          <div class="faq-a" id="cfaq-a-4" role="region" aria-labelledby="cfaq-q-4"><div><p>من داخل صفحة الدرس تجد زر «تواصل مع المعلم» لإرسال
+            سؤالك مباشرة، ويصلك الرد في صندوق رسائلك داخل المنصة.</p></div></div>
         </div>
         <div class="faq-item reveal">
           <button class="faq-q" type="button" aria-expanded="false" aria-controls="cfaq-a-5" id="cfaq-q-5">
-            هل يمكنني تتبّع تقدّم طفلي في التعلّم؟
+            هل يمكنني تتبع تقدم طفلي في التعلم؟
             <svg aria-hidden="true"><use href="#i-plus"></use></svg>
           </button>
-          <div class="faq-a" id="cfaq-a-5" role="region" aria-labelledby="cfaq-q-5"><div><p>نعم، حساب وليّ الأمر يمنحك لوحة متابعة بتقارير دورية
+          <div class="faq-a" id="cfaq-a-5" role="region" aria-labelledby="cfaq-q-5"><div><p>نعم، حساب ولي الأمر يمنحك لوحة متابعة بتقارير دورية
             عن الدرجات والواجبات والحضور ونقاط القوة والضعف.</p></div></div>
         </div>
         <div class="faq-item reveal">
@@ -280,7 +280,7 @@ css: pages
             ما هي طرق الدفع المتاحة؟
             <svg aria-hidden="true"><use href="#i-plus"></use></svg>
           </button>
-          <div class="faq-a" id="cfaq-a-6" role="region" aria-labelledby="cfaq-q-6"><div><p>تُقبل مدى والبطاقات الائتمانية وApple&nbsp;Pay،
+          <div class="faq-a" id="cfaq-a-6" role="region" aria-labelledby="cfaq-q-6"><div><p>تقبل مدى والبطاقات الائتمانية وApple&nbsp;Pay،
             مع إمكانية الاشتراك الشهري أو السنوي.</p></div></div>
         </div>
       </div>
@@ -288,9 +288,9 @@ css: pages
       <div class="help-card reveal">
         <span class="ico"><svg aria-hidden="true"><use href="#i-chat"></use></svg></span>
         <h3>لم تجد إجابة لسؤالك؟</h3>
-        <p>فريق الدعم لدينا مستعدّ لمساعدتك في أي وقت</p>
-        <?php /* كان `#top` ولا عنصر بهذا المعرّف في الصفحة — رابطٌ لا يفعل
-        شيئًا. ووجهته الصحيحة نموذجُ المراسلة في الصفحة نفسها. */ ?>
+        <p>فريق الدعم لدينا مستعد لمساعدتك في أي وقت</p>
+        <?php /* كان `#top` ولا عنصر بهذا المعرف في الصفحة — رابط لا يفعل
+        شيئا. ووجهته الصحيحة نموذج المراسلة في الصفحة نفسها. */ ?>
         <a class="btn btn--primary" href="#contact-form">
           <svg aria-hidden="true" style="width:16px;height:16px"><use href="#i-support"></use></svg>
           تواصل معنا الآن

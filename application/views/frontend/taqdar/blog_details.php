@@ -2,11 +2,11 @@
 /**
  * صفحة المقال.
  *
- * عنوان التبويب كان «تفاصيل المدونة» **لكل مقال** — ضررٌ أرشيفيّ على كل
- * رابط مشارَك. ويُصلَح في المتحكّم لا هنا، فالعنوان يُضبط قبل العرض.
+ * عنوان التبويب كان «تفاصيل المدونة» **لكل مقال** — ضرر أرشيفي على كل
+ * رابط مشارك. ويصلح في المتحكم لا هنا، فالعنوان يضبط قبل العرض.
  *
- * والمتن يُطبع كما هو بلا `html_escape` — لأن كاتبه الإدارة عبر محرّر
- * اللوحة، وتهريبه يُظهر وسومه حروفًا.
+ * والمتن يطبع كما هو بلا `html_escape` — لأن كاتبه الإدارة عبر محرر
+ * اللوحة، وتهريبه يظهر وسومه حروفا.
  */
 $tq_b   = isset($blog_details) ? $blog_details : array();
 $tq_ci  = &get_instance();
@@ -28,10 +28,10 @@ $tq_rel = array_values(array_filter($tq_rel, function ($p) use ($tq_b) {
 <section class="page-hero">
   <?php include __DIR__ . '/site/site_lantern.php'; ?>
   <div class="shell">
-    <nav class="crumbs" aria-label="برنامج التصفّح">
+    <nav class="crumbs" aria-label="برنامج التصفح">
       <a href="<?php echo base_url(); ?>">الرئيسية</a>
       <span aria-hidden="true">›</span>
-      <a href="<?php echo base_url('blog'); ?>">المدوّنة</a>
+      <a href="<?php echo base_url('blog'); ?>">المدونة</a>
       <?php if ($tq_cat !== ''): ?>
         <span aria-hidden="true">›</span>
         <span><?php echo html_escape($tq_cat); ?></span>
@@ -58,7 +58,7 @@ $tq_rel = array_values(array_filter($tq_rel, function ($p) use ($tq_b) {
         <?php if (trim(strip_tags($tq_body)) !== ''): ?>
           <?php echo htmlspecialchars_decode_($tq_body); ?>
         <?php else: ?>
-          <p class="dir-empty">لم يُكتب متن هذا المقال بعد.</p>
+          <p class="dir-empty">لم يكتب متن هذا المقال بعد.</p>
         <?php endif; ?>
       </div>
 
@@ -82,7 +82,7 @@ $tq_rel = array_values(array_filter($tq_rel, function ($p) use ($tq_b) {
         <?php else: ?>
           <p class="dir-empty">لا مقالات أخرى في هذا التصنيف بعد.</p>
         <?php endif; ?>
-        <a class="path-back" href="<?php echo base_url('blog'); ?>">عودة إلى المدوّنة</a>
+        <a class="path-back" href="<?php echo base_url('blog'); ?>">عودة إلى المدونة</a>
       </div>
     </aside>
   </div>

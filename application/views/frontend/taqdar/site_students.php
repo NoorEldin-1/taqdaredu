@@ -1,6 +1,6 @@
 <!--
-title: الطلاب — منصّة تقدّر
-desc: منصة تقدّر تمنحك كل ما تحتاجه لتتعلّم بذكاء، وتطوّر مهاراتك، وتحقّق طموحاتك بثقة.
+title: الطلاب — منصة تقدر
+desc: منصة تقدر تمنحك كل ما تحتاجه لتتعلم بذكاء، وتطور مهاراتك، وتحقق طموحاتك بثقة.
 active: students
 header: solid
 css: pages
@@ -17,29 +17,29 @@ css: pages
           <span class="page-hero__sub">رحلتك التعليمية تبدأ من هنا</span>
         </h1>
         <p class="page-hero__lede">
-          منصة تقدّر تمنحك كل ما تحتاجه لتتعلّم بذكاء، وتطوّر مهاراتك،
-          وتحقّق طموحاتك بثقة.
+          منصة تقدر تمنحك كل ما تحتاجه لتتعلم بذكاء، وتطور مهاراتك،
+          وتحقق طموحاتك بثقة.
         </p>
         <div class="page-hero__cta">
-          <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>">ابدأ التعلّم الآن</a>
+          <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>">ابدأ التعلم الآن</a>
           <a class="btn btn--ghost" href="#paths">استكشاف البرامج</a>
         </div>
         <div class="hero-mini">
           <div class="hero-mini__item">
             <span class="ico"><svg aria-hidden="true"><use href="#i-certificate"></use></svg></span>
-            <div><b>شهادات معتمدة</b><span>تعزّز مستقبلك</span></div>
+            <div><b>شهادات معتمدة</b><span>تعزز مستقبلك</span></div>
           </div>
           <div class="hero-mini__item">
             <span class="ico"><svg aria-hidden="true"><use href="#i-growth"></use></svg></span>
-            <div><b>تقدّم مستمر</b><span>وخطوات دقيقة</span></div>
+            <div><b>تقدم مستمر</b><span>وخطوات دقيقة</span></div>
           </div>
           <div class="hero-mini__item">
             <span class="ico"><svg aria-hidden="true"><use href="#i-play"></use></svg></span>
-            <div><b>محتوى تفاعلي</b><span>مصمّم خصّيصًا لك</span></div>
+            <div><b>محتوى تفاعلي</b><span>مصمم خصيصا لك</span></div>
           </div>
           <div class="hero-mini__item">
             <span class="ico"><svg aria-hidden="true"><use href="#i-clock"></use></svg></span>
-            <div><b>تعلّم في أي وقت</b><span>ومن أي مكان</span></div>
+            <div><b>تعلم في أي وقت</b><span>ومن أي مكان</span></div>
           </div>
         </div>
       </div>
@@ -48,7 +48,7 @@ css: pages
         <div class="page-hero__arch">
           <div>
             <img src="<?php echo tq_site_asset('img/students-hero.webp'); ?>" width="960" height="1440"
-                 alt="ثلاثة طلاب سعوديين يدرسون معًا حول حاسوب محمول">
+                 alt="ثلاثة طلاب سعوديين يدرسون معا حول حاسوب محمول">
           </div>
 <?php include __DIR__ . '/site/site_arch.php'; ?>
         </div>
@@ -69,7 +69,7 @@ css: pages
       <div class="grid-5">
         <article class="icard reveal">
           <span class="ico"><svg aria-hidden="true"><use href="#i-star"></use></svg></span>
-          <h3>برامج متنوّعة</h3><p>اختر ما يناسب ميولك وأهدافك.</p>
+          <h3>برامج متنوعة</h3><p>اختر ما يناسب ميولك وأهدافك.</p>
         </article>
         <article class="icard reveal">
           <span class="ico"><svg aria-hidden="true"><use href="#i-clipboard"></use></svg></span>
@@ -77,7 +77,7 @@ css: pages
         </article>
         <article class="icard reveal">
           <span class="ico"><svg aria-hidden="true"><use href="#i-book"></use></svg></span>
-          <h3>متابعة التقدّم</h3><p>لوحات تحكّم وتقارير تساعدك على التطوّر.</p>
+          <h3>متابعة التقدم</h3><p>لوحات تحكم وتقارير تساعدك على التطور.</p>
         </article>
         <article class="icard reveal">
           <span class="ico"><svg aria-hidden="true"><use href="#i-users"></use></svg></span>
@@ -115,7 +115,7 @@ css: pages
       <article class="path-card reveal">
         <div class="path-card__media">
           <img src="<?php echo tq_site_asset('img/path-middle.webp'); ?>" width="620" height="620" loading="lazy"
-               decoding="async" alt="طفلة سعودية تستخدم جهازًا لوحيًّا"></div>
+               decoding="async" alt="طفلة سعودية تستخدم جهازا لوحيا"></div>
         <div class="path-card__body">
           <span class="path-card__icon"><svg aria-hidden="true"><use href="#i-headphones"></use></svg></span>
           <h3>المرحلة المتوسطة</h3><p>من الصف 1 إلى 3</p>
@@ -127,7 +127,7 @@ css: pages
       <article class="path-card reveal">
         <div class="path-card__media">
           <img src="<?php echo tq_site_asset('img/path-secondary.webp'); ?>" width="620" height="620" loading="lazy"
-               decoding="async" alt="طالب سعودي يحمل جهازًا لوحيًّا"></div>
+               decoding="async" alt="طالب سعودي يحمل جهازا لوحيا"></div>
         <div class="path-card__body">
           <span class="path-card__icon"><svg aria-hidden="true"><use href="#i-cap"></use></svg></span>
           <h3>المرحلة الثانوية</h3><p>من الصف 1 إلى 3</p>
@@ -139,7 +139,7 @@ css: pages
       <article class="path-card reveal">
         <div class="path-card__media">
           <img src="<?php echo tq_site_asset('img/path-qudurat.webp'); ?>" width="620" height="620" loading="lazy"
-               decoding="async" alt="طالب سعودي يستخدم حاسوبًا محمولًا"></div>
+               decoding="async" alt="طالب سعودي يستخدم حاسوبا محمولا"></div>
         <div class="path-card__body">
           <span class="path-card__icon"><svg aria-hidden="true"><use href="#i-target"></use></svg></span>
           <h3>اختبارات القدرات</h3><p>تجهيز شامل للاختبار</p>
@@ -154,7 +154,7 @@ css: pages
                decoding="async" alt="طالب سعودي يعمل على حاسوبه"></div>
         <div class="path-card__body">
           <span class="path-card__icon"><svg aria-hidden="true"><use href="#i-monitor"></use></svg></span>
-          <h3>المهارات الرقمية</h3><p>مهارات المستقبل الأوّل</p>
+          <h3>المهارات الرقمية</h3><p>مهارات المستقبل الأول</p>
           <a class="btn btn--text" href="<?php echo base_url('plans'); ?>" style="padding:10px 0;font-size:.85em">
             استكشف البرنامج
             <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
@@ -197,7 +197,7 @@ css: pages
       <div class="grid-2 reveal">
         <article class="icard">
           <span class="ico"><svg aria-hidden="true"><use href="#i-shield"></use></svg></span>
-          <h3>بيئة آمنة</h3><p>منصة آمنة تحمي خصوصيتك وتوفّر تجربة مريحة.</p>
+          <h3>بيئة آمنة</h3><p>منصة آمنة تحمي خصوصيتك وتوفر تجربة مريحة.</p>
         </article>
         <article class="icard">
           <span class="ico"><svg aria-hidden="true"><use href="#i-curriculum"></use></svg></span>
@@ -205,7 +205,7 @@ css: pages
         </article>
         <article class="icard">
           <span class="ico"><svg aria-hidden="true"><use href="#i-eye"></use></svg></span>
-          <h3>متابعة شخصية</h3><p>نراقب تقدّمك ونقدّم لك توصيات مخصّصة.</p>
+          <h3>متابعة شخصية</h3><p>نراقب تقدمك ونقدم لك توصيات مخصصة.</p>
         </article>
         <article class="icard">
           <span class="ico"><svg aria-hidden="true"><use href="#i-clipboard"></use></svg></span>
@@ -227,7 +227,7 @@ css: pages
       <span class="lantern lantern--r" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
       <div class="cta__copy">
         <h2>ابدأ رحلتك نحو مستقبل أفضل</h2>
-        <p>تعلّم بثقة.. طوّر بذكاء.. وحقّق طموحاتك</p>
+        <p>تعلم بثقة.. طور بذكاء.. وحقق طموحاتك</p>
         <div class="cta__actions">
           <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>">إنشاء حساب مجاني</a>
           <a class="btn btn--ghost" href="<?php echo base_url('login'); ?>">تسجيل الدخول</a>
@@ -235,7 +235,7 @@ css: pages
       </div>
       <div class="cta__art">
         <img src="<?php echo tq_site_asset('img/cta-kids-cut.webp'); ?>" width="660" height="990" loading="lazy"
-             decoding="async" alt="طفلان سعوديان يبتسمان ويحملان جهازًا لوحيًّا">
+             decoding="async" alt="طفلان سعوديان يبتسمان ويحملان جهازا لوحيا">
       </div>
     </div>
   </div>

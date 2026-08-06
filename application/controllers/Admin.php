@@ -425,8 +425,8 @@ class Admin extends CI_Controller
 
     public function add_shortcut_student()
     {
-        /* TQ-POST-ONLY — نقطةُ فعلٍ لا تُستدعى بـGET: الزحف واستباقُ
-           التحميل يُنفّذانها بلا قصد. */
+        /* TQ-POST-ONLY — نقطة فعل لا تستدعى بـGET: الزحف واستباق
+           التحميل ينفذانها بلا قصد. */
         if (strtolower($this->input->method()) !== 'post') {
             show_error(get_phrase('Method not allowed'), 405);
         }
@@ -511,8 +511,8 @@ class Admin extends CI_Controller
 
     public function shortcut_enrol_student()
     {
-        /* TQ-POST-ONLY — نقطةُ فعلٍ لا تُستدعى بـGET: الزحف واستباقُ
-           التحميل يُنفّذانها بلا قصد. */
+        /* TQ-POST-ONLY — نقطة فعل لا تستدعى بـGET: الزحف واستباق
+           التحميل ينفذانها بلا قصد. */
         if (strtolower($this->input->method()) !== 'post') {
             show_error(get_phrase('Method not allowed'), 405);
         }
@@ -762,7 +762,7 @@ class Admin extends CI_Controller
 
     public function notification_settings($param1 = "", $param2 = "", $param3 = "")
     {
-        // بوّابة الصلاحية — كانت غائبة
+        // بوابة الصلاحية — كانت غائبة
         if ($this->session->userdata('admin_login') != true) {
             redirect(site_url('login'));
         }
@@ -1240,7 +1240,7 @@ class Admin extends CI_Controller
             redirect(site_url('login'), 'refresh');
         }
         $course_details = $this->crud_model->get_course_by_id($course_id)->row_array();
-        // الدورة غير موجودة (رقم غير صحيح أو حُذفت) -> حالة فارغة مفهومة بدل الانهيار
+        // الدورة غير موجودة (رقم غير صحيح أو حذفت) -> حالة فارغة مفهومة بدل الانهيار
         if (empty($course_details)) {
             $this->session->set_flashdata('error_message', get_phrase('لا توجد دورة بهذا الرقم'));
             redirect(site_url('admin/courses'), 'refresh');
@@ -1412,7 +1412,7 @@ class Admin extends CI_Controller
         $current_editing_language = $this->input->post('currentEditingLanguage');
         $updatedValue             = $this->input->post('updatedValue');
         $key                      = $this->input->post('key');
-        // بلا لغة أو مفتاح لا يُبنى استعلام سليم -> نتجنّب خطأ SQL بدل الانهيار
+        // بلا لغة أو مفتاح لا يبنى استعلام سليم -> نتجنب خطأ SQL بدل الانهيار
         if (empty($current_editing_language) || empty($key)) {
             echo '';
             return;
@@ -1500,8 +1500,8 @@ class Admin extends CI_Controller
     // PAYPAL CHECKOUT ACTIONS
     public function paypal_payment($payout_id = "", $paypalPaymentID = "", $paypalPaymentToken = "", $paypalPayerID = "")
     {
-        // نقطة استدعاء راجعة من PayPal تحمل دائمًا معرّف الدفعة ورمزها؛ الوصول المباشر
-        // بلا هذه القيم (زحف/رابط مكسور) يُعاد توجيهه بلطف بدل الخطأ القاتل.
+        // نقطة استدعاء راجعة من PayPal تحمل دائما معرف الدفعة ورمزها؛ الوصول المباشر
+        // بلا هذه القيم (زحف/رابط مكسور) يعاد توجيهه بلطف بدل الخطأ القاتل.
         if (empty($payout_id) || empty($paypalPaymentID)) {
             $this->session->set_flashdata('error_message', get_phrase('invalid_payout_data'));
             redirect(site_url('admin/instructor_payout'), 'refresh');
@@ -1554,8 +1554,8 @@ class Admin extends CI_Controller
     // STRIPE CHECKOUT ACTIONS
     public function stripe_payment($payout_id = "", $session_id = "")
     {
-        // نقطة استدعاء راجعة من Stripe تحمل دائمًا معرّف الجلسة؛ الوصول المباشر بلا
-        // هذه القيم (زحف/رابط مكسور) يُعاد توجيهه بلطف بدل الخطأ القاتل.
+        // نقطة استدعاء راجعة من Stripe تحمل دائما معرف الجلسة؛ الوصول المباشر بلا
+        // هذه القيم (زحف/رابط مكسور) يعاد توجيهه بلطف بدل الخطأ القاتل.
         if (empty($payout_id) || empty($session_id)) {
             $this->session->set_flashdata('error_message', get_phrase('invalid_payout_data'));
             redirect(site_url('admin/instructor_payout'), 'refresh');
@@ -1595,7 +1595,7 @@ class Admin extends CI_Controller
             redirect(site_url('admin/instructor_payout'), 'refresh');
         }
 
-        // شاشة الدفع تُفتح من زرّ صرف مستحقّات معلّم وتحمل معرّفه ومعرّف الدفعة؛
+        // شاشة الدفع تفتح من زر صرف مستحقات معلم وتحمل معرفه ومعرف الدفعة؛
         // الوصول المباشر بلا هذه القيم (زحف/رابط مكسور) -> رجوع مفهوم بدل الانهيار.
         if (empty($user_id) || empty($payout_id)) {
             $this->session->set_flashdata('error_message', get_phrase('invalid_payout_data'));
@@ -2169,7 +2169,7 @@ class Admin extends CI_Controller
 
     public function blog_category($param1 = "", $param2 = "")
     {
-        // بوّابة الصلاحية — كانت غائبة
+        // بوابة الصلاحية — كانت غائبة
         if ($this->session->userdata('admin_login') != true) {
             redirect(site_url('login'));
         }
@@ -2219,7 +2219,7 @@ class Admin extends CI_Controller
 
     public function blog($param1 = "", $param2 = "")
     {
-        // بوّابة الصلاحية — كانت غائبة
+        // بوابة الصلاحية — كانت غائبة
         if ($this->session->userdata('admin_login') != true) {
             redirect(site_url('login'));
         }
@@ -2267,7 +2267,7 @@ class Admin extends CI_Controller
 
     public function blog_settings($param1 = "")
     {
-        // بوّابة الصلاحية — كانت غائبة
+        // بوابة الصلاحية — كانت غائبة
         if ($this->session->userdata('admin_login') != true) {
             redirect(site_url('login'));
         }
@@ -2377,7 +2377,7 @@ class Admin extends CI_Controller
     //Start data center
     public function data_center()
     {
-        // بوّابة الصلاحية — كانت غائبة
+        // بوابة الصلاحية — كانت غائبة
         if ($this->session->userdata('admin_login') != true) {
             redirect(site_url('login'));
         }
@@ -2453,17 +2453,17 @@ class Admin extends CI_Controller
         redirect(site_url('payment'));
     }
 
-    // هل إضافة الذكاء الاصطناعي (نموذج ai_model) مثبّتة فعلًا؟
+    // هل إضافة الذكاء الاصطناعي (نموذج ai_model) مثبتة فعلا؟
     private function _tq_ai_addon_installed()
     {
         return file_exists(APPPATH . 'models/addons/Ai_model.php')
             || file_exists(APPPATH . 'models/addons/ai_model.php');
     }
 
-    // شاشة كاملة مفهومة تُبيّن أن الإضافة غير مثبّتة بدل الخطأ القاتل
+    // شاشة كاملة مفهومة تبين أن الإضافة غير مثبتة بدل الخطأ القاتل
     private function _tq_addon_missing_page($addon_label = '')
     {
-        $page_data['page_title']     = 'إضافة غير مثبّتة';
+        $page_data['page_title']     = 'إضافة غير مثبتة';
         $page_data['page_name']      = 'addon_not_installed';
         $page_data['tq_addon_label'] = $addon_label;
         $this->load->view('backend/index', $page_data);
@@ -2471,7 +2471,7 @@ class Admin extends CI_Controller
 
     public function open_ai_settings($param1 = "")
     {
-        // الإضافة غير مثبّتة -> رسالة واضحة بدل «Unable to load model»
+        // الإضافة غير مثبتة -> رسالة واضحة بدل «Unable to load model»
         if (! $this->_tq_ai_addon_installed()) {
             $this->_tq_addon_missing_page('OpenAI / ChatGPT');
             return;
@@ -2488,7 +2488,7 @@ class Admin extends CI_Controller
     public function ai_img_download()
     {
         if (! $this->_tq_ai_addon_installed()) {
-            echo 'إضافة الذكاء الاصطناعي غير مثبّتة على النظام.';
+            echo 'إضافة الذكاء الاصطناعي غير مثبتة على النظام.';
             return;
         }
         $this->load->model('addons/ai_model');
@@ -2497,10 +2497,10 @@ class Admin extends CI_Controller
 
     public function chat_gpt()
     {
-        // الإضافة غير مثبّتة -> رسالة واضحة بدل الخطأ القاتل (JSON للـAJAX، وصفحة كاملة للعرض)
+        // الإضافة غير مثبتة -> رسالة واضحة بدل الخطأ القاتل (JSON للـAJAX، وصفحة كاملة للعرض)
         if (! $this->_tq_ai_addon_installed()) {
             if (isset($_POST['service_type']) && ! empty($_POST['service_type'])) {
-                echo 'إضافة الذكاء الاصطناعي غير مثبّتة على النظام.';
+                echo 'إضافة الذكاء الاصطناعي غير مثبتة على النظام.';
             } else {
                 $this->_tq_addon_missing_page('OpenAI / ChatGPT');
             }
@@ -2517,7 +2517,7 @@ class Admin extends CI_Controller
     public function gpt_assistant()
     {
         if (! $this->_tq_ai_addon_installed()) {
-            echo 'إضافة الذكاء الاصطناعي غير مثبّتة على النظام.';
+            echo 'إضافة الذكاء الاصطناعي غير مثبتة على النظام.';
             return;
         }
         $this->load->model('addons/ai_model');
@@ -2527,10 +2527,10 @@ class Admin extends CI_Controller
     public function upload_theme()
     {
         if (is_array($_FILES) && count($_FILES) > 0) {
-            // اسم الملفّ كما ورد يحمل المسار والامتداد معًا؛ يُبنى الاسم هنا
+            // اسم الملف كما ورد يحمل المسار والامتداد معا؛ يبنى الاسم هنا
             $tq_ext = strtolower(pathinfo($_FILES['theme_zip']['name'], PATHINFO_EXTENSION));
             if ($tq_ext !== 'zip') {
-                $this->session->set_flashdata('error_message', 'القالب يُرفع ملفَّ zip فقط.');
+                $this->session->set_flashdata('error_message', 'القالب يرفع ملف zip فقط.');
                 redirect(site_url('admin/theme_settings'), 'refresh');
                 return;
             }
@@ -2968,10 +2968,10 @@ class Admin extends CI_Controller
 
     public function student_certificate($user_id = "", $course_id = "")
     {
-        // إضافة الشهادات غير مثبّتة -> رسالة واضحة بدل «Unable to load model»
+        // إضافة الشهادات غير مثبتة -> رسالة واضحة بدل «Unable to load model»
         if (! file_exists(APPPATH . 'models/addons/Certificate_model.php')
             && ! file_exists(APPPATH . 'models/addons/certificate_model.php')) {
-            $this->session->set_flashdata('error_message', 'إضافة الشهادات غير مثبّتة على النظام.');
+            $this->session->set_flashdata('error_message', 'إضافة الشهادات غير مثبتة على النظام.');
             if (! empty($course_id)) {
                 redirect(site_url('admin/course_form/course_edit/' . $course_id . '?tab=academic_progress'));
             } else {
@@ -3149,7 +3149,7 @@ class Admin extends CI_Controller
             if (isset($_FILES['resource_file']['name']) && $_FILES['resource_file']['name'] != "") {
                 $tq_ext = tq_safe_upload_extension($_FILES['resource_file']['name']);
                 if ($tq_ext === false) {
-                    echo json_encode(array('error' => 'نوع الملفّ غير مسموح.'));
+                    echo json_encode(array('error' => 'نوع الملف غير مسموح.'));
                     return;
                 }
                 $data['file_name'] = random(20) . '.' . $tq_ext;
@@ -3171,7 +3171,7 @@ class Admin extends CI_Controller
                 }
                 $tq_ext = tq_safe_upload_extension($_FILES['resource_file']['name']);
                 if ($tq_ext === false) {
-                    echo json_encode(array('error' => 'نوع الملفّ غير مسموح.'));
+                    echo json_encode(array('error' => 'نوع الملف غير مسموح.'));
                     return;
                 }
                 $data['file_name'] = random(20) . '.' . $tq_ext;
@@ -4603,14 +4603,14 @@ $developer_html
                     
 
     /**
-     * يمنح الأدمن المنشأ حديثًا صفَّ صلاحيات فارغًا.
+     * يمنح الأدمن المنشأ حديثا صف صلاحيات فارغا.
      *
-     * `is_root_admin()` تعتبر غياب الصفّ دليلَ جذر، فالأدمن الذي يُنشأ بلا
-     * صفّ يولد سوبر أدمن كامل الصلاحية — ثم ترفض شاشة الصلاحيات تقييده
-     * لأنها لا تقيّد جذرًا. الصفّ الفارغ يقلب الافتراض: يبدأ بلا شيء،
+     * `is_root_admin()` تعتبر غياب الصف دليل جذر، فالأدمن الذي ينشأ بلا
+     * صف يولد سوبر أدمن كامل الصلاحية — ثم ترفض شاشة الصلاحيات تقييده
+     * لأنها لا تقيد جذرا. الصف الفارغ يقلب الافتراض: يبدأ بلا شيء،
      * ويمنحه الجذر ما يلزمه.
      *
-     * ولا يُمسّ من له صفّ أصلًا، ولا الجذر القائم.
+     * ولا يمس من له صف أصلا، ولا الجذر القائم.
      */
     private function tq_bootstrap_admin_permissions($email)
     {

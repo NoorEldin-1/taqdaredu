@@ -1,6 +1,6 @@
-<!-- ══════════ مكتبة الأشكال: أيقونات خطّية بسُمك موحّد + قناع القوس + تدرّجات الفانوس ══════════
-     مهمّ: التدرّجات هنا لا في أوّل فانوس — أي صفحة فيها فانوس بلا هيرو كانت هتطلع بلا لون.
-     ومهمّ كذلك أن الخصائص العرضية على كل <symbol> نفسه: <use> لا يرث من <g> حاوية. -->
+<!-- ══════════ مكتبة الأشكال: أيقونات خطية بسمك موحد + قناع القوس + تدرجات الفانوس ══════════
+     مهم: التدرجات هنا لا في أول فانوس — أي صفحة فيها فانوس بلا هيرو كانت هتطلع بلا لون.
+     ومهم كذلك أن الخصائص العرضية على كل <symbol> نفسه: <use> لا يرث من <g> حاوية. -->
 <svg width="0" height="0" aria-hidden="true" style="position:absolute">
   <defs>
     <clipPath id="tqArch" clipPathUnits="objectBoundingBox">
@@ -104,7 +104,7 @@
     <path d="M4.4 17.6v1.6a1.6 1.6 0 0 0 1.6 1.6h12a1.6 1.6 0 0 0 1.6-1.6v-1.6"/>
   </symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 12h14.8M13.4 6l6 6-6 6"/></symbol>
-  <!-- سهم «التالي» في RTL يشير يسارًا. اتجاهه في البنية لا في transform بورقة الأنماط:
+  <!-- سهم «التالي» في RTL يشير يسارا. اتجاهه في البنية لا في transform بورقة الأنماط:
        ورقة قديمة أو مفقودة كانت تعكس المعنى بصمت. -->
   <symbol id="i-arrow-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19.4 12H4.6M10.6 6l-6 6 6 6"/></symbol>
   <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>

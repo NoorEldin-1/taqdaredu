@@ -2,34 +2,34 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * مستودع بيانات تقدّر — الطبقة الانتقالية.
+ * مستودع بيانات تقدر — الطبقة الانتقالية.
  *
- * كل دالّة هنا تطابق عقد /api/v1 المستقبلي اسمًا ومُخرَجًا، فلا تتغيّر
- * الشاشات حين تُهاجَر الطبقة إلى Laravel/PostgreSQL: يتبدّل ما تحت الدالّة
+ * كل دالة هنا تطابق عقد /api/v1 المستقبلي اسما ومخرجا، فلا تتغير
+ * الشاشات حين تهاجر الطبقة إلى Laravel/PostgreSQL: يتبدل ما تحت الدالة
  * لا ما فوقها.
  *
- * قواعد ملزمة داخل هذا الملفّ:
+ * قواعد ملزمة داخل هذا الملف:
  *   • المبالغ أعداد صحيحة بالهللات — لا حساب بأرقام عشرية عائمة.
- *   • الوقت يُولَّد في PHP بتوقيت التطبيق (Asia/Riyadh) لا بـ NOW() لأن
+ *   • الوقت يولد في PHP بتوقيت التطبيق (Asia/Riyadh) لا بـ NOW() لأن
  *     ساعة الخادم UTC، فاختلاطهما يفسد مواعيد الاستحقاق.
- *   • لا تُعاد الإجابة الصحيحة إلى العميل أبدًا — لا في المراجعة ولا في
- *     نتيجة المحاولة. التصحيح في الخادم والنتيجة رقم لا مفتاح حلّ.
- *   • القفل يُحسَب هنا، والعميل يعرضه فقط.
+ *   • لا تعاد الإجابة الصحيحة إلى العميل أبدا — لا في المراجعة ولا في
+ *     نتيجة المحاولة. التصحيح في الخادم والنتيجة رقم لا مفتاح حل.
+ *   • القفل يحسب هنا، والعميل يعرضه فقط.
  */
 class Taqdar_repo_model extends CI_Model
 {
-    /** كتالوج الأخطاء الموحّد: code => [http, message, message_ar] */
+    /** كتالوج الأخطاء الموحد: code => [http, message, message_ar] */
     public static $ERRORS = array(
-        'MASTERY_LOCKED'    => array(403, 'Finish the previous lesson review first.',   'أكمل مراجعة الدرس السابق أولًا'),
+        'MASTERY_LOCKED'    => array(403, 'Finish the previous lesson review first.',   'أكمل مراجعة الدرس السابق أولا'),
         'NOT_ENTITLED'      => array(403, 'This content is not part of your enrolment.', 'هذا المحتوى غير متاح ضمن اشتراكك'),
-        'OUT_OF_ASSIGNMENT' => array(403, 'Outside your teaching assignment.',           'هذه المادة أو هذا الصفّ خارج نطاق إسنادك'),
-        'DUPLICATE_ATTEMPT' => array(409, 'This attempt was already submitted.',         'هذه المحاولة مُسلَّمة من قبل'),
-        'RATE_LIMITED'      => array(429, 'Too many requests, slow down.',               'محاولات كثيرة في وقت قصير — انتظر قليلًا ثم أعد المحاولة'),
+        'OUT_OF_ASSIGNMENT' => array(403, 'Outside your teaching assignment.',           'هذه المادة أو هذا الصف خارج نطاق إسنادك'),
+        'DUPLICATE_ATTEMPT' => array(409, 'This attempt was already submitted.',         'هذه المحاولة مسلمة من قبل'),
+        'RATE_LIMITED'      => array(429, 'Too many requests, slow down.',               'محاولات كثيرة في وقت قصير — انتظر قليلا ثم أعد المحاولة'),
         'UNAUTHENTICATED'   => array(401, 'Sign in required.',                           'يلزم تسجيل الدخول'),
         'NOT_FOUND'         => array(404, 'Resource not found.',                         'العنصر المطلوب غير موجود'),
         'NO_REVIEW'         => array(404, 'No review is attached to this lesson.',        'لا توجد مراجعة مرتبطة بهذا الدرس'),
         'VALIDATION'        => array(422, 'Invalid input.',                              'بيانات غير صالحة'),
-        'INTERNAL'          => array(500, 'Unexpected error.',                           'حدث خطأ غير متوقّع'),
+        'INTERNAL'          => array(500, 'Unexpected error.',                           'حدث خطأ غير متوقع'),
     );
 
     private $_lesson_order_cache = array();
@@ -71,7 +71,7 @@ class Taqdar_repo_model extends CI_Model
         return (int) $this->setting('mastery_pass_mark', 3);
     }
 
-    /** مغلّف الخطأ الموحّد — العميل يعرض message_ar. */
+    /** مغلف الخطأ الموحد — العميل يعرض message_ar. */
     public function error($code, $details = array())
     {
         $e = isset(self::$ERRORS[$code]) ? self::$ERRORS[$code] : self::$ERRORS['INTERNAL'];
@@ -93,7 +93,7 @@ class Taqdar_repo_model extends CI_Model
         return is_array($result) && isset($result['error']);
     }
 
-    /** سجلّ التدقيق — من فعل ماذا بأيّ كيان ومتى. */
+    /** سجل التدقيق — من فعل ماذا بأي كيان ومتى. */
     public function audit($actor_id, $action, $entity, $before = null, $after = null)
     {
         $this->db->insert('audit_log', array(
@@ -109,8 +109,8 @@ class Taqdar_repo_model extends CI_Model
     }
 
     /**
-     * MySQL يعيد الأعداد نصوصًا عبر mysqli؛ وعقد /api/v1 يعد بأعداد.
-     * فالتحويل هنا مرّة واحدة لا في كل شاشة.
+     * MySQL يعيد الأعداد نصوصا عبر mysqli؛ وعقد /api/v1 يعد بأعداد.
+     * فالتحويل هنا مرة واحدة لا في كل شاشة.
      */
     private function cast_ints(&$row, $keys)
     {
@@ -121,7 +121,7 @@ class Taqdar_repo_model extends CI_Model
         }
     }
 
-    /** "01:12:30" أو "12:30" أو "750" ⇐ ثوانٍ. */
+    /** "01:12:30" أو "12:30" أو "750" ⇐ ثوان. */
     public function duration_seconds($raw)
     {
         $raw = trim((string) $raw);
@@ -142,7 +142,7 @@ class Taqdar_repo_model extends CI_Model
      *  الاستحقاق والترتيب والقفل
      * ================================================================ */
 
-    /** دروس المقرّر مرتّبة كما يراها الطالب: القسم ثمّ ترتيب الدرس. */
+    /** دروس المقرر مرتبة كما يراها الطالب: القسم ثم ترتيب الدرس. */
     public function ordered_lessons($course_id)
     {
         $course_id = (int) $course_id;
@@ -167,7 +167,7 @@ class Taqdar_repo_model extends CI_Model
         return $rows;
     }
 
-    /** هل الطالب مستحقّ لمحتوى هذا المقرّر؟ */
+    /** هل الطالب مستحق لمحتوى هذا المقرر؟ */
     public function is_entitled($student_id, $course_id)
     {
         $student_id = (int) $student_id;
@@ -193,8 +193,8 @@ class Taqdar_repo_model extends CI_Model
             return true;
         }
 
-        // (2) التسجيل المفرد — ارتداد لا يُنزَع: من اشترى دورةً قبل وجود
-        //     الاشتراكات يبقى مالكًا لها، ولا يُطالَب بالدفع مرّتين.
+        // (2) التسجيل المفرد — ارتداد لا ينزع: من اشترى دورة قبل وجود
+        //     الاشتراكات يبقى مالكا لها، ولا يطالب بالدفع مرتين.
         $enrol = $this->db->where('user_id', $student_id)->where('course_id', $course_id)
                           ->get('enrol')->row_array();
         if (!$enrol) return false;
@@ -208,8 +208,8 @@ class Taqdar_repo_model extends CI_Model
     /**
      * حالة القفل لدرس بعينه — الحقيقة الوحيدة، والعميل تجميل لها.
      *
-     * الدرس مفتوح إذا كان أوّل دروس المقرّر، أو كان مجّانيًّا للمعاينة،
-     * أو أُتقن الدرس السابق (mastered_at) حين تكون له مراجعة، أو أُكمل
+     * الدرس مفتوح إذا كان أول دروس المقرر، أو كان مجانيا للمعاينة،
+     * أو أتقن الدرس السابق (mastered_at) حين تكون له مراجعة، أو أكمل
      * (completed_at) حين لا مراجعة له.
      */
     public function lesson_lock_state($student_id, $lesson_id)
@@ -237,7 +237,7 @@ class Taqdar_repo_model extends CI_Model
             'reason'         => '',
         );
 
-        if ($pos <= 0) { // أوّل درس مفتوح دائمًا
+        if ($pos <= 0) { // أول درس مفتوح دائما
             $state['unlocked'] = true;
             $state['reason']   = 'first_lesson';
             return $state;
@@ -274,7 +274,7 @@ class Taqdar_repo_model extends CI_Model
      *  التقييمات
      * ================================================================ */
 
-    /** تقييم المراجعة الخاصّ بدرس. ينشئه عند الطلب إن كان للدرس أهداف وأسئلة. */
+    /** تقييم المراجعة الخاص بدرس. ينشئه عند الطلب إن كان للدرس أهداف وأسئلة. */
     public function review_assessment($lesson_id, $create = false)
     {
         $lesson_id = (int) $lesson_id;
@@ -311,8 +311,8 @@ class Taqdar_repo_model extends CI_Model
     }
 
     /**
-     * أسئلة مراجعة الدرس — ٥ افتراضًا (إعداد mastery_review_questions).
-     * بلا correct_answers أبدًا.
+     * أسئلة مراجعة الدرس — ٥ افتراضا (إعداد mastery_review_questions).
+     * بلا correct_answers أبدا.
      */
     public function review_questions($lesson_id, $limit = null)
     {
@@ -361,7 +361,7 @@ class Taqdar_repo_model extends CI_Model
             return in_array($given[0], $correct, true) ? 1 : 0;
         }
 
-        // multiple_choice والافتراضي: تطابق المجموعتين تمامًا
+        // multiple_choice والافتراضي: تطابق المجموعتين تماما
         if (count($given) !== count($correct)) return 0;
         foreach ($given as $g) {
             if (!in_array($g, $correct, true)) return 0;
@@ -374,14 +374,14 @@ class Taqdar_repo_model extends CI_Model
      * ================================================================ */
 
     /**
-     * مسارات الطالب المنشورة التي يستحقّها، مع تقدّمه في كلٍّ منها.
+     * مسارات الطالب المنشورة التي يستحقها، مع تقدمه في كل منها.
      *
-     * الضمّ إلى `enrol` خارجيّ لا داخليّ: التسجيل المفرد طريقٌ إلى المحتوى
-     * لا شرطٌ له. فالمشترك اشتراكًا نشطًا يستحقّ المسار وإن لم يكن له صفّ في
-     * `enrol` قطّ — ولو بقي الضمّ داخليًّا لفُتح له الدرس ولم يرَ مسارًا واحدًا.
+     * الضم إلى `enrol` خارجي لا داخلي: التسجيل المفرد طريق إلى المحتوى
+     * لا شرط له. فالمشترك اشتراكا نشطا يستحق المسار وإن لم يكن له صف في
+     * `enrol` قط — ولو بقي الضم داخليا لفتح له الدرس ولم ير مسارا واحدا.
      *
      * والحكم النهائي واحد لا اثنان: `is_entitled()` هي مصدر القرار هنا كما هي
-     * مصدره في `get_lesson()`، فلا تفترق قائمةٌ عن قفل.
+     * مصدره في `get_lesson()`، فلا تفترق قائمة عن قفل.
      */
     public function get_paths($student_id)
     {
@@ -412,8 +412,8 @@ class Taqdar_repo_model extends CI_Model
                                        'grade_id', 'teacher_id', 'course_id',
                                        'is_enrolled')); // price بالهللات
 
-            // «مسجَّل أو مستحقّ بالاشتراك» — و`is_entitled` تحتويهما معًا،
-            // ومعهما انتهاء صلاحية التسجيل الذي كان الضمّ الداخلي يتجاهله.
+            // «مسجل أو مستحق بالاشتراك» — و`is_entitled` تحتويهما معا،
+            // ومعهما انتهاء صلاحية التسجيل الذي كان الضم الداخلي يتجاهله.
             if (!$this->is_entitled($student_id, $r['course_id'])) continue;
 
             $r['enrolled'] = ((int) $r['is_enrolled'] === 1);
@@ -424,7 +424,7 @@ class Taqdar_repo_model extends CI_Model
         return $out;
     }
 
-    /** تقدّم الطالب داخل مقرّر: العدد والنسبة والدرس التالي المفتوح. */
+    /** تقدم الطالب داخل مقرر: العدد والنسبة والدرس التالي المفتوح. */
     public function path_progress($student_id, $course_id)
     {
         $lessons = $this->ordered_lessons($course_id);
@@ -462,7 +462,7 @@ class Taqdar_repo_model extends CI_Model
         );
     }
 
-    /** تفاصيل مسار: محطّاته ودروسه وحالة قفل كلّ درس للطالب. */
+    /** تفاصيل مسار: محطاته ودروسه وحالة قفل كل درس للطالب. */
     public function get_path($id, $student_id = null)
     {
         $id  = (int) $id;
@@ -518,8 +518,8 @@ class Taqdar_repo_model extends CI_Model
     /**
      * درس واحد للطالب.
      *
-     * لا يُعاد رابط تشغيل إلّا لمن استحقّ وفُتح له الدرس؛ وأي غير ذلك
-     * مغلّف خطأ يحمل MASTERY_LOCKED أو NOT_ENTITLED.
+     * لا يعاد رابط تشغيل إلا لمن استحق وفتح له الدرس؛ وأي غير ذلك
+     * مغلف خطأ يحمل MASTERY_LOCKED أو NOT_ENTITLED.
      */
     public function get_lesson($id, $student_id)
     {
@@ -541,7 +541,7 @@ class Taqdar_repo_model extends CI_Model
         }
 
         if (empty($state['unlocked'])) {
-            // لا رابط تشغيل، ولا حتى ملخّص الدرس — القفل قفل.
+            // لا رابط تشغيل، ولا حتى ملخص الدرس — القفل قفل.
             return $this->error('MASTERY_LOCKED', array(
                 'lesson_id'          => $id,
                 'blocking_lesson_id' => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
@@ -605,13 +605,13 @@ class Taqdar_repo_model extends CI_Model
         );
     }
 
-    /** حفظ موضع المشاهدة وزمنها. الحفظ نفسه يمرّ بالقفل. */
+    /** حفظ موضع المشاهدة وزمنها. الحفظ نفسه يمر بالقفل. */
     public function save_progress($student_id, $lesson_id, $position_sec, $watched_delta)
     {
         $student_id   = (int) $student_id;
         $lesson_id    = (int) $lesson_id;
         $position_sec = max(0, (int) $position_sec);
-        // حدّ أعلى للزيادة الواحدة يمنع تضخيم زمن المشاهدة من العميل
+        // حد أعلى للزيادة الواحدة يمنع تضخيم زمن المشاهدة من العميل
         $watched_delta = max(0, min(300, (int) $watched_delta));
 
         $state = $this->lesson_lock_state($student_id, $lesson_id);
@@ -657,7 +657,7 @@ class Taqdar_repo_model extends CI_Model
             $this->db->insert('lesson_progress', $data);
         }
 
-        // الجديد يُملي على القديم فلا يتناقض رقمان لطالب واحد
+        // الجديد يملي على القديم فلا يتناقض رقمان لطالب واحد
         $this->sync_watch_history($student_id, (int) $lesson['course_id'], $lesson_id, $position_sec, (bool) $completed_at);
 
         return array(
@@ -672,10 +672,10 @@ class Taqdar_repo_model extends CI_Model
     }
 
     /* ================================================================
-     *  بوّابة الإتقان
+     *  بوابة الإتقان
      * ================================================================ */
 
-    /** يبدأ محاولة مراجعة ويعيد أسئلتها بلا مفاتيح حلّ. */
+    /** يبدأ محاولة مراجعة ويعيد أسئلتها بلا مفاتيح حل. */
     public function start_attempt($student_id, $lesson_id)
     {
         $student_id = (int) $student_id;
@@ -702,7 +702,7 @@ class Taqdar_repo_model extends CI_Model
             return $this->error('NO_REVIEW', array('lesson_id' => $lesson_id));
         }
 
-        // محاولة مفتوحة غير مُسلَّمة؟ تُستأنف بدل فتح واحدة جديدة.
+        // محاولة مفتوحة غير مسلمة؟ تستأنف بدل فتح واحدة جديدة.
         $open = $this->db->where('assessment_id', (int) $assessment['id'])
                          ->where('student_id', $student_id)
                          ->where('submitted_at', null)
@@ -716,7 +716,7 @@ class Taqdar_repo_model extends CI_Model
                              ->where('assessment_id', (int) $assessment['id'])
                              ->where('student_id', $student_id)
                              ->get('attempts')->row_array();
-            $no = ((int) $last['n']) + 1; // لا حدّ أقصى للمحاولات — العقاب بقاء القفل
+            $no = ((int) $last['n']) + 1; // لا حد أقصى للمحاولات — العقاب بقاء القفل
             $this->db->insert('attempts', array(
                 'assessment_id' => (int) $assessment['id'],
                 'student_id'    => $student_id,
@@ -740,13 +740,13 @@ class Taqdar_repo_model extends CI_Model
     }
 
     /**
-     * تسليم محاولة مراجعة — الخوارزمية حرفيًّا:
+     * تسليم محاولة مراجعة — الخوارزمية حرفيا:
      *
      *   score >= pass_mark          → إتقان: mastered_at، وفتح التالي،
      *                                 وجدولة الأهداف في review_queue بفاصل يوم
      *   score <  pass_mark & no = 1 → { retry, seek_to: أضعف هدف } بلا إعطاء الإجابة
      *   score <  pass_mark & no = 2 → { retry, alternate_explanation_id }
-     *   score <  pass_mark & no >=3 → { suggest_session, context_objective_id } والقفل باقٍ
+     *   score <  pass_mark & no >=3 → { suggest_session, context_objective_id } والقفل باق
      */
     public function submit_attempt($student_id, $attempt_id, $given_answers)
     {
@@ -781,7 +781,7 @@ class Taqdar_repo_model extends CI_Model
         foreach ($given_answers as $item) {
             if (!is_array($item) || !isset($item['question_id'])) continue;
             $qid = (int) $item['question_id'];
-            if (!isset($allowed[$qid])) continue; // سؤال خارج مجموعة المراجعة يُهمَل
+            if (!isset($allowed[$qid])) continue; // سؤال خارج مجموعة المراجعة يهمل
 
             $q = $this->db->where('id', $qid)->get('question')->row_array();
             if (!$q) continue;
@@ -837,8 +837,8 @@ class Taqdar_repo_model extends CI_Model
             'passed'        => $passed,
         ));
 
-        /* إشعارات لحظة الحدث. تُلَفّ كلّها لأن فشل الإشعار لا يُبطل التسليم:
-           من سلّم امتحانه سلّمه، وإسقاط العملية لأجل سطر إشعار عقابٌ بلا ذنب. */
+        /* إشعارات لحظة الحدث. تلف كلها لأن فشل الإشعار لا يبطل التسليم:
+           من سلم امتحانه سلمه، وإسقاط العملية لأجل سطر إشعار عقاب بلا ذنب. */
         try {
             $this->load->model('taqdar_events_model', 'tq_events');
 
@@ -852,7 +852,7 @@ class Taqdar_repo_model extends CI_Model
                     'key'         => 'attempt:' . $attempt_id,
                     'window_days' => 14,
                     'text'        => 'نتيجة الامتحان: ' . $score . ' من ' . $pass_mark
-                                   . ($passed ? ' — اجتياز.' : ' — دون حدّ النجاح.'),
+                                   . ($passed ? ' — اجتياز.' : ' — دون حد النجاح.'),
                 ));
             }
             if ($is_station && !$passed) {
@@ -860,7 +860,7 @@ class Taqdar_repo_model extends CI_Model
                     'key'         => 'attempt:' . $attempt_id,
                     'window_days' => 14,
                     'text'        => 'اختبار المحطة: المحاولة رقم ' . (int) $attempt['attempt_no']
-                                   . ' لم تبلغ حدّ النجاح. والإعادة متاحة بلا حدّ.',
+                                   . ' لم تبلغ حد النجاح. والإعادة متاحة بلا حد.',
                 ));
             }
             if ($is_exam && $passed) {
@@ -884,14 +884,14 @@ class Taqdar_repo_model extends CI_Model
         );
 
         if ($assessment['type'] !== 'review') {
-            return $result; // البوّابة تحكم المراجعة وحدها
+            return $result; // البوابة تحكم المراجعة وحدها
         }
 
         return array_merge($result, $this->gate_decision(
             $student_id, $lesson_id, $attempt_id, (int) $attempt['attempt_no'], (bool) $passed));
     }
 
-    /** قرار البوّابة — هنا وحده يُفتح القفل أو يبقى. */
+    /** قرار البوابة — هنا وحده يفتح القفل أو يبقى. */
     private function gate_decision($student_id, $lesson_id, $attempt_id, $attempt_no, $passed)
     {
         $state = $this->lesson_lock_state($student_id, $lesson_id);
@@ -909,13 +909,13 @@ class Taqdar_repo_model extends CI_Model
                 array($student_id, $lesson_id, $now, $now));
 
             /*
-             * الإتقان طريق ثانٍ إلى الاكتمال، فوجب أن يمرّ بالمرآة كما يمرّ
-             * حفظُ المشاهدة. ومن أتقن درسًا دون بلوغ عتبة المشاهدة كان يبقى
-             * «غير مكتمل» في كل شاشة يراها هو ووليّه ومعلّمه، لأن الشاشات
+             * الإتقان طريق ثان إلى الاكتمال، فوجب أن يمر بالمرآة كما يمر
+             * حفظ المشاهدة. ومن أتقن درسا دون بلوغ عتبة المشاهدة كان يبقى
+             * «غير مكتمل» في كل شاشة يراها هو ووليه ومعلمه، لأن الشاشات
              * تقرأ `watch_histories` لا `lesson_progress`. الآن رقم واحد.
              *
-             * والموضع يُقرأ من الصفّ بعد الكتابة لا يُفترض صفرًا، حتى لا
-             * يمحو الإتقانُ موضعَ استئنافٍ سجّله الطالب قبله.
+             * والموضع يقرأ من الصف بعد الكتابة لا يفترض صفرا، حتى لا
+             * يمحو الإتقان موضع استئناف سجله الطالب قبله.
              */
             $saved = $this->db->select('position_sec')
                               ->where('student_id', $student_id)
@@ -978,7 +978,7 @@ class Taqdar_repo_model extends CI_Model
             );
         }
 
-        // ٣ فأكثر: تُقترح حصّة بالطلب، والقفل باقٍ — لا حدّ أقصى للمحاولات
+        // ٣ فأكثر: تقترح حصة بالطلب، والقفل باق — لا حد أقصى للمحاولات
         $this->audit($student_id, 'mastery.suggest_session', 'lesson:' . $lesson_id, null,
                      array('attempt_no' => $attempt_no,
                            'context_objective_id' => $weak ? (int) $weak['objective_id'] : null));
@@ -994,7 +994,7 @@ class Taqdar_repo_model extends CI_Model
         );
     }
 
-    /** أضعف هدف في المحاولة: أقلّ نسبة صواب، وعند التساوي الأسبق زمنًا. */
+    /** أضعف هدف في المحاولة: أقل نسبة صواب، وعند التساوي الأسبق زمنا. */
     public function weakest_objective($attempt_id)
     {
         $sql = 'SELECT q.`objective_id`, o.`text`, o.`at_second`,
@@ -1010,7 +1010,7 @@ class Taqdar_repo_model extends CI_Model
         return $row ? $row : null;
     }
 
-    /** شرح بديل للهدف نفسه من درس آخر — إن وُجد. */
+    /** شرح بديل للهدف نفسه من درس آخر — إن وجد. */
     public function alternate_explanation($objective_id)
     {
         $sql = 'SELECT o2.`id` AS objective_id, o2.`lesson_id`, o2.`at_second`, l.`title` AS lesson_title
@@ -1051,7 +1051,7 @@ class Taqdar_repo_model extends CI_Model
      *  المراجعة المتباعدة ودفتر الأخطاء
      * ================================================================ */
 
-    /** دفعة اليوم: ١٠ أسئلة مستحقّة، بالأسبق موعدًا ثمّ بالأصعب. */
+    /** دفعة اليوم: ١٠ أسئلة مستحقة، بالأسبق موعدا ثم بالأصعب. */
     public function get_due_reviews($student_id, $limit = 10)
     {
         $student_id = (int) $student_id;
@@ -1085,7 +1085,7 @@ class Taqdar_repo_model extends CI_Model
         return $rows; // بلا correct_answers — التصحيح في الخادم
     }
 
-    /** عدد المستحقّ اليوم (للشارات في القائمة). */
+    /** عدد المستحق اليوم (للشارات في القائمة). */
     public function count_due_reviews($student_id)
     {
         $r = $this->db->query(
@@ -1098,7 +1098,7 @@ class Taqdar_repo_model extends CI_Model
      * تحديث الفاصل بعد إجابة مراجعة:
      *   صحيحة → ease += 0.1 ؛ interval = round(interval * ease)
      *   خاطئة  → ease = max(1.3, ease - 0.2) ؛ interval = 1 ؛ lapses += 1
-     *   due_at = now + interval days ؛ والسقف ٦٠ يومًا
+     *   due_at = now + interval days ؛ والسقف ٦٠ يوما
      */
     public function answer_review($student_id, $question_id, $correct)
     {
@@ -1138,7 +1138,7 @@ class Taqdar_repo_model extends CI_Model
                                      `ease`=VALUES(`ease`), `lapses`=VALUES(`lapses`)',
             array($student_id, $question_id, $due, $interval, $ease, $lapses));
 
-        // الهدف هو المفصل: كل إجابة تُحرّك حالة المهارة أيضًا
+        // الهدف هو المفصل: كل إجابة تحرك حالة المهارة أيضا
         $q = $this->db->select('objective_id')->where('id', $question_id)->get('question')->row_array();
         if ($q && $q['objective_id']) {
             $this->touch_skill_state($student_id, (int) $q['objective_id'], $correct ? 1 : 0, 1, null);
@@ -1156,7 +1156,7 @@ class Taqdar_repo_model extends CI_Model
     }
 
     /**
-     * دفتر الأخطاء — يُشتقّ من answers حيث is_correct = 0، لا جدول مستقلّ
+     * دفتر الأخطاء — يشتق من answers حيث is_correct = 0، لا جدول مستقل
      * حتى لا يفترق الدفتر عن الحقيقة.
      */
     public function get_mistakes($student_id)
@@ -1193,7 +1193,7 @@ class Taqdar_repo_model extends CI_Model
      *  التوأم الرقمي
      * ================================================================ */
 
-    /** يحدّث مستوى الهدف بعد إجابات — عشري ثابت لا عائم في التخزين. */
+    /** يحدث مستوى الهدف بعد إجابات — عشري ثابت لا عائم في التخزين. */
     public function touch_skill_state($student_id, $objective_id, $ok, $total, $avg_ms = null)
     {
         $student_id   = (int) $student_id;
@@ -1205,7 +1205,7 @@ class Taqdar_repo_model extends CI_Model
 
         $observed = ($ok / $total) * 100.0;
         $level    = $row ? (float) $row['level'] : 0.0;
-        // متوسّط مرجّح: الملاحظة الجديدة تزن ٤٠٪ فلا يقفز المستوى بضربة واحدة
+        // متوسط مرجح: الملاحظة الجديدة تزن ٤٠٪ فلا يقفز المستوى بضربة واحدة
         $level    = $row ? ($level * 0.6 + $observed * 0.4) : $observed;
         $level    = max(0, min(100, round($level, 2)));
 
@@ -1268,7 +1268,7 @@ class Taqdar_repo_model extends CI_Model
     }
 
     /* ================================================================
-     *  المحفظة وأولياء الأمور والمعلّمون
+     *  المحفظة وأولياء الأمور والمعلمون
      * ================================================================ */
 
     /** محفظة المستخدم — كل المبالغ بالهللات كأعداد صحيحة. */
@@ -1305,7 +1305,7 @@ class Taqdar_repo_model extends CI_Model
         );
     }
 
-    /** أبناء وليّ الأمر المرتبطون بموافقة نشطة فقط. */
+    /** أبناء ولي الأمر المرتبطون بموافقة نشطة فقط. */
     public function get_children($parent_user_id)
     {
         $sql = 'SELECT pl.`id` AS link_id, pl.`status`, pl.`consent_at`, pl.`scope`,
@@ -1332,7 +1332,7 @@ class Taqdar_repo_model extends CI_Model
         return $rows;
     }
 
-    /** نطاق إسناد المعلّم: مادّة × صفّ. خارجه OUT_OF_ASSIGNMENT. */
+    /** نطاق إسناد المعلم: مادة × صف. خارجه OUT_OF_ASSIGNMENT. */
     public function get_teacher_scope($teacher_id)
     {
         $sql = 'SELECT ta.`id`, ta.`subject_id`, ta.`grade_id`, ta.`can_publish`, ta.`can_take_sessions`,
@@ -1362,7 +1362,7 @@ class Taqdar_repo_model extends CI_Model
         );
     }
 
-    /** هل هذا الإسناد داخل نطاق المعلّم؟ */
+    /** هل هذا الإسناد داخل نطاق المعلم؟ */
     public function teacher_can($teacher_id, $subject_id, $grade_id, $capability = null)
     {
         $this->db->where('teacher_id', (int) $teacher_id)
@@ -1375,13 +1375,13 @@ class Taqdar_repo_model extends CI_Model
     }
 
     /**
-     * يعكس تقدّم المحرّك على جدول Academy القديم.
+     * يعكس تقدم المحرك على جدول Academy القديم.
      *
-     * `watch_histories.completed_lesson` مصفوفة JSON من معرّفات الدروس،
-     * و`course_progress` نسبة مئوية — هكذا يقرأها المشغّل القديم وتقارير
-     * الأدمن وشهادات Academy. لا نغيّر شكلها، بل نكتبه كما يتوقّعه القديم.
+     * `watch_histories.completed_lesson` مصفوفة JSON من معرفات الدروس،
+     * و`course_progress` نسبة مئوية — هكذا يقرأها المشغل القديم وتقارير
+     * الأدمن وشهادات Academy. لا نغير شكلها، بل نكتبه كما يتوقعه القديم.
      *
-     * أخطاؤها لا تُوقف حفظ التقدّم: المصدر الحقيقي كُتب بالفعل، وهذه مرآة.
+     * أخطاؤها لا توقف حفظ التقدم: المصدر الحقيقي كتب بالفعل، وهذه مرآة.
      */
     private function sync_watch_history($student_id, $course_id, $lesson_id, $position_sec, $completed)
     {
@@ -1402,8 +1402,8 @@ class Taqdar_repo_model extends CI_Model
             if (is_array($decoded)) $done = $decoded;
         }
 
-        // للمرآة الآن مدخلان — حفظُ المشاهدة والإتقان — فالتوحيد شرط:
-        // أعداد صحيحة بلا تكرار، وإلّا عُدّ الدرس الواحد مرّتين وتضخّمت النسبة.
+        // للمرآة الآن مدخلان — حفظ المشاهدة والإتقان — فالتوحيد شرط:
+        // أعداد صحيحة بلا تكرار، وإلا عد الدرس الواحد مرتين وتضخمت النسبة.
         $done = array_values(array_unique(array_map('intval', $done)));
 
         if ($completed && !in_array($lesson_id, $done, true)) {
@@ -1449,14 +1449,14 @@ class Taqdar_repo_model extends CI_Model
 
 
     /**
-     * مراجعة محاولةٍ بتفاصيل كلّ سؤال.
+     * مراجعة محاولة بتفاصيل كل سؤال.
      *
-     * الإجابات محفوظة في `answers` منذ التسليم، فهذه قراءةٌ لا حساب —
-     * ولا تُعيد التصحيح: إعادةُ حسابِ الصواب هنا تُنتج مصدرَ حقيقةٍ
-     * ثانيًا يفترق عن الأوّل عند أوّل تعديل في قاعدة التصحيح.
+     * الإجابات محفوظة في `answers` منذ التسليم، فهذه قراءة لا حساب —
+     * ولا تعيد التصحيح: إعادة حساب الصواب هنا تنتج مصدر حقيقة
+     * ثانيا يفترق عن الأول عند أول تعديل في قاعدة التصحيح.
      *
-     * والحارس بالطالب لا بالمحاولة: رقمُ محاولةٍ في الرابط لا يكفي،
-     * وإلّا قرأ كلُّ طالبٍ إجابات غيره بتغيير رقم.
+     * والحارس بالطالب لا بالمحاولة: رقم محاولة في الرابط لا يكفي،
+     * وإلا قرأ كل طالب إجابات غيره بتغيير رقم.
      */
     public function attempt_review($student_id, $attempt_id)
     {
@@ -1499,7 +1499,7 @@ class Taqdar_repo_model extends CI_Model
             );
         }
 
-        /* أعلى درجةٍ لا آخرها: من أعاد فأتقن يستحقّ ما أتقنه. */
+        /* أعلى درجة لا آخرها: من أعاد فأتقن يستحق ما أتقنه. */
         $best = (int) $this->db->select_max('score', 'best')
                                ->where('student_id', $student_id)
                                ->where('assessment_id', (int) $attempt['assessment_id'])

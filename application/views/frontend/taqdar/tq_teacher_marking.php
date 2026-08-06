@@ -1,25 +1,25 @@
 <?php
 /**
- * بوّابة المعلم — الواجبات والتصحيح.
+ * بوابة المعلم — الواجبات والتصحيح.
  *
- * القاعدة الحاكمة لبوّابة المعلم كلها:
- * المعلم مُسنَد إلى مادة وصفّ بعينهما، وما لم يُسنَد إليه لا يظهر في لوحته
- * أصلًا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يُفرض في طبقة الاستعلام
- * لا في الواجهة — إخفاء زرّ في الواجهة ليس صلاحية. لذلك كل استعلام هنا
- * انتقل إلى `Taqdar_marking_model`، ويمرّ عبر `lesson` ثمّ `course`
- * ويُقيَّد بملكية الكورس، وتُعاد قراءة الملكية عند الحفظ لا عند العرض فقط.
+ * القاعدة الحاكمة لبوابة المعلم كلها:
+ * المعلم مسند إلى مادة وصف بعينهما، وما لم يسند إليه لا يظهر في لوحته
+ * أصلا: لا محتواه ولا طلابه ولا تقاريره. والنطاق يفرض في طبقة الاستعلام
+ * لا في الواجهة — إخفاء زر في الواجهة ليس صلاحية. لذلك كل استعلام هنا
+ * انتقل إلى `Taqdar_marking_model`، ويمر عبر `lesson` ثم `course`
+ * ويقيد بملكية الكورس، وتعاد قراءة الملكية عند الحفظ لا عند العرض فقط.
  *
- * التصحيح الآلي مساعِد لا بديل: يقترح الدرجة ولا يعتمدها.
+ * التصحيح الآلي مساعد لا بديل: يقترح الدرجة ولا يعتمدها.
  * والدرجة النهائية للسؤال المقالي تظهر للطالب بعد اعتماد المعلم وحده —
- * وهذا الحاجز منفَّذ في `Taqdar_marking_model::student_view()` ليقرأه كل
- * عارض لنتيجة الطالب من موضع واحد، لا وعدًا مكتوبًا في شاشة المعلم.
+ * وهذا الحاجز منفذ في `Taqdar_marking_model::student_view()` ليقرأه كل
+ * عارض لنتيجة الطالب من موضع واحد، لا وعدا مكتوبا في شاشة المعلم.
  *
- * الاعتماد نفسه يُحفظ في `quiz_results`:
+ * الاعتماد نفسه يحفظ في `quiz_results`:
  *   teacher_score · teacher_note · approved_at · approved_by
  *
- * ما يزال ينتظر جدولًا:
- *   `assignments` — الواجبات المقالية المستقلّة عن الاختبارات
- *   `objectives`  — عتبة إتقان لكل هدف، بدل عتبة واحدة للنظام كلّه
+ * ما يزال ينتظر جدولا:
+ *   `assignments` — الواجبات المقالية المستقلة عن الاختبارات
+ *   `objectives`  — عتبة إتقان لكل هدف، بدل عتبة واحدة للنظام كله
  */
 
 $tq_nav   = 'marking';
@@ -30,8 +30,8 @@ $tq_icon  = 'clipboard';
 
 $tq_uid = (int) $this->session->userdata('user_id');
 
-/* النموذج يُحمَّل عبر get_instance(): العارض في CI3 ينسخ خصائص المتحكّم إلى
-   المحمِّل مرّة واحدة قبل التصيير، فما حُمِّل بعد بدء التصيير لا يظهر في `$this`. */
+/* النموذج يحمل عبر get_instance(): العارض في CI3 ينسخ خصائص المتحكم إلى
+   المحمل مرة واحدة قبل التصيير، فما حمل بعد بدء التصيير لا يظهر في `$this`. */
 $tq_CI = get_instance();
 $tq_CI->load->model('taqdar_marking_model');
 $tq_mark = $tq_CI->taqdar_marking_model;
@@ -40,7 +40,7 @@ $tq_queue    = $tq_mark->queue($tq_uid);
 $tq_approved = $tq_mark->approved_recent($tq_uid, 8);
 $tq_pass     = $tq_mark->pass_percent();
 
-/* التصحيح المفرد: المعرّف من الرابط لا يُصدَّق — يُعاد التحقّق من نطاقه. */
+/* التصحيح المفرد: المعرف من الرابط لا يصدق — يعاد التحقق من نطاقه. */
 $tq_rid    = (int) $this->input->get('result');
 $tq_single = $tq_rid ? $tq_mark->attempt($tq_rid, $tq_uid) : null;
 
@@ -88,19 +88,19 @@ include 'portal_open.php';
                         </p>
                     </div>
                     <?php echo $tq_is_appr
-                        ? tq_badge('mastered', 'معتمَدة')
+                        ? tq_badge('mastered', 'معتمدة')
                         : tq_badge('due', 'ينتظر اعتمادك'); ?>
                 </div>
 
                 <?php if ($tq_is_appr): ?>
                     <div class="tq-pastel tq-pastel--mint" style="margin-block-end:var(--tq-space-xl)">
-                        <span class="tq-pastel__label tq-micro">درجة معتمَدة</span>
+                        <span class="tq-pastel__label tq-micro">درجة معتمدة</span>
                         <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)">
                             <?php echo tq_num(((float) $tq_single['teacher_score'] == (int) $tq_single['teacher_score']
                                 ? (int) $tq_single['teacher_score'] : (float) $tq_single['teacher_score']) . ' / ' . $tq_total); ?>
                         </p>
                         <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-s) 0 0">
-                            <?php echo tq_iso('اعتمدتها ' . tq_since((int) $tq_single['approved_at']) . '، وهي ظاهرة للطالب الآن. تعديلها يحلّ محلّها.'); ?>
+                            <?php echo tq_iso('اعتمدتها ' . tq_since((int) $tq_single['approved_at']) . '، وهي ظاهرة للطالب الآن. تعديلها يحل محلها.'); ?>
                         </p>
                     </div>
                 <?php endif; ?>
@@ -111,10 +111,10 @@ include 'portal_open.php';
                         <?php echo tq_num($tq_auto . ' / ' . $tq_total); ?>
                     </p>
                     <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-s) 0 0">
-                        محسوب من الأسئلة الموضوعية وحدها. التصحيح الآلي مساعِد لا بديل —
-                        عدّل الدرجة متى رأيت في الإجابة ما لا يراه الحاسوب.
+                        محسوب من الأسئلة الموضوعية وحدها. التصحيح الآلي مساعد لا بديل —
+                        عدل الدرجة متى رأيت في الإجابة ما لا يراه الحاسوب.
                         <?php if ($tq_essays > 0): ?>
-                            <br><?php echo tq_iso('وفي هذا الاختبار ' . $tq_essays . ' من الأسئلة لا يقرؤها السكربت أصلًا.'); ?>
+                            <br><?php echo tq_iso('وفي هذا الاختبار ' . $tq_essays . ' من الأسئلة لا يقرؤها السكربت أصلا.'); ?>
                         <?php endif; ?>
                     </p>
                 </div>
@@ -136,7 +136,7 @@ include 'portal_open.php';
                             <?php echo tq_badge($tq_mastery['key'], $tq_mastery['label']); ?>
                         </p>
                         <span class="tq-field__msg tq-field__hint">
-                            <?php echo tq_iso('تُشتقّ من الدرجة وعتبة النجاح (' . $tq_pass . '%) — لا تُسأل عنها مرّتين.'); ?>
+                            <?php echo tq_iso('تشتق من الدرجة وعتبة النجاح (' . $tq_pass . '%) — لا تسأل عنها مرتين.'); ?>
                         </span>
                     </div>
                 </div>
@@ -147,20 +147,20 @@ include 'portal_open.php';
                               placeholder="اكتب ما يفعله في المحاولة القادمة، لا ما أخطأ فيه فقط"><?php
                         echo html_escape((string) $tq_single['teacher_note']);
                     ?></textarea>
-                    <span class="tq-field__msg tq-field__hint">تظهر للطالب مع الدرجة، ولوليّ أمره ضمن ملاحظات المعلمين.</span>
+                    <span class="tq-field__msg tq-field__hint">تظهر للطالب مع الدرجة، ولولي أمره ضمن ملاحظات المعلمين.</span>
                 </div>
 
                 <div class="tq-row" style="gap:var(--tq-space-m);flex-wrap:wrap">
                     <button class="tq-btn tq-btn--mastery" type="submit" aria-describedby="tq-approve-note">
                         <?php echo $tq_is_appr ? 'تحديث الدرجة المعتمدة' : 'اعتماد الدرجة'; ?>
                     </button>
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/marking'); ?>">رجوع إلى الصفّ</a>
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/marking'); ?>">رجوع إلى الصف</a>
                 </div>
                 <p class="tq-field__msg tq-field__hint" id="tq-approve-note" style="margin-block-start:var(--tq-space-m)">
                     <?php if ($tq_essays > 0): ?>
-                        الدرجة النهائية للسؤال المقالي لا تظهر للطالب قبل اعتمادك — والحجب مطبَّق في الاستعلام لا في الشاشة.
+                        الدرجة النهائية للسؤال المقالي لا تظهر للطالب قبل اعتمادك — والحجب مطبق في الاستعلام لا في الشاشة.
                     <?php else: ?>
-                        كل أسئلة هذا الاختبار موضوعية، فدرجته ظاهرة لصاحبها. واعتمادك يثبّتها ويضيف ملاحظتك إليها.
+                        كل أسئلة هذا الاختبار موضوعية، فدرجته ظاهرة لصاحبها. واعتمادك يثبتها ويضيف ملاحظتك إليها.
                     <?php endif; ?>
                 </p>
             </form>
@@ -168,7 +168,7 @@ include 'portal_open.php';
 
         <section aria-labelledby="tq-queue-h">
             <div class="tq-sectionhead">
-                <h2 id="tq-queue-h">صفّ التصحيح</h2>
+                <h2 id="tq-queue-h">صف التصحيح</h2>
                 <?php if ($tq_queue): ?>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_queue) . TQ_PDI; ?></span>
                 <?php endif; ?>
@@ -177,10 +177,10 @@ include 'portal_open.php';
             <?php if ($tq_queue): ?>
                 <div class="tq-card">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                        الأقدم أوّلًا: الطالب الذي انتظر أطول يُصحَّح أوّلًا.
+                        الأقدم أولا: الطالب الذي انتظر أطول يصحح أولا.
                     </p>
                     <table class="tq-table">
-                        <caption class="tq-sr">المحاولات المُسلَّمة التي تنتظر اعتمادك</caption>
+                        <caption class="tq-sr">المحاولات المسلمة التي تنتظر اعتمادك</caption>
                         <thead>
                             <tr>
                                 <th scope="col">الطالب</th>
@@ -208,7 +208,7 @@ include 'portal_open.php';
                                     <td data-label="إجراءات">
                                         <a class="tq-btn tq-btn--primary tq-btn--sm"
                                            href="<?php echo base_url('teacher/marking'); ?>?result=<?php echo (int) $tq_r['quiz_result_id']; ?>">
-                                            صحِّح
+                                            صحح
                                         </a>
                                     </td>
                                 </tr>
@@ -219,10 +219,10 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--mint" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('check', 24); ?></span>
-                    <h3 class="tq-empty__title">لا شيء ينتظر تصحيحًا</h3>
+                    <h3 class="tq-empty__title">لا شيء ينتظر تصحيحا</h3>
                     <p class="tq-empty__text">
-                        حين يُسلّم أحد طلابك اختبارًا أو واجبًا في كورساتك، يظهر هنا مرتّبًا بالأقدم انتظارًا،
-                        ومعه اقتراح آلي للدرجة تعتمده أو تعدّله.
+                        حين يسلم أحد طلابك اختبارا أو واجبا في كورساتك، يظهر هنا مرتبا بالأقدم انتظارا،
+                        ومعه اقتراح آلي للدرجة تعتمده أو تعدله.
                     </p>
                     <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/students'); ?>">طلابي</a>
                 </div>
@@ -232,7 +232,7 @@ include 'portal_open.php';
         <?php if ($tq_approved): ?>
             <section aria-labelledby="tq-approved-h" class="tq-section">
                 <div class="tq-sectionhead">
-                    <h2 id="tq-approved-h">اعتمدتَها أخيرًا</h2>
+                    <h2 id="tq-approved-h">اعتمدتها أخيرا</h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_approved) . TQ_PDI; ?></span>
                 </div>
                 <div class="tq-card">
@@ -269,7 +269,7 @@ include 'portal_open.php';
                                     <td data-label="إجراءات">
                                         <a class="tq-btn tq-btn--secondary tq-btn--sm"
                                            href="<?php echo base_url('teacher/marking'); ?>?result=<?php echo (int) $tq_a['quiz_result_id']; ?>">
-                                            راجِع
+                                            راجع
                                         </a>
                                     </td>
                                 </tr>
@@ -283,9 +283,9 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-pastel tq-pastel--peach">
-            <span class="tq-pastel__label tq-micro">حدّ التصحيح الآلي</span>
+            <span class="tq-pastel__label tq-micro">حد التصحيح الآلي</span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                التصحيح الآلي مساعِد لا بديل. يقرأ الاختيار الصحيح، ولا يقرأ محاولة الطالب
+                التصحيح الآلي مساعد لا بديل. يقرأ الاختيار الصحيح، ولا يقرأ محاولة الطالب
                 أن يشرح فكرته بعبارة أخرى.
             </p>
             <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-m) 0 0">
@@ -294,7 +294,7 @@ include 'portal_open.php';
         </div>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">حالة الصفّ</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title">حالة الصف</h2></div>
             <ul class="tq-stack">
                 <li class="tq-row tq-row--between">
                     <span class="tq-caption">ينتظر اعتمادك</span>

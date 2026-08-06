@@ -1,7 +1,7 @@
 <?php
 /**
- * شاشة حالة فارغة مفهومة: تُعرَض حين تُطلب ميزة تعتمد على إضافة غير مثبّتة
- * (مثل إضافة الذكاء الاصطناعي OpenAI). تُغني عن الخطأ القاتل «Unable to load model».
+ * شاشة حالة فارغة مفهومة: تعرض حين تطلب ميزة تعتمد على إضافة غير مثبتة
+ * (مثل إضافة الذكاء الاصطناعي OpenAI). تغني عن الخطأ القاتل «Unable to load model».
  */
 $tq_label = isset($tq_addon_label) && $tq_addon_label !== '' ? $tq_addon_label : '';
 ?>
@@ -10,7 +10,7 @@ $tq_label = isset($tq_addon_label) && $tq_addon_label !== '' ? $tq_addon_label :
         <div class="card">
             <div class="card-body text-center" style="padding: 48px 24px;">
                 <i class="mdi mdi-puzzle-outline" style="font-size: 56px; color: #b0b0b0;"></i>
-                <h4 class="mt-3 mb-2">هذه الميزة تعتمد على إضافة غير مثبّتة</h4>
+                <h4 class="mt-3 mb-2">هذه الميزة تعتمد على إضافة غير مثبتة</h4>
                 <p class="text-muted mb-1">
                     الإضافة المطلوبة<?php echo $tq_label ? ' (<strong>' . html_escape($tq_label) . '</strong>)' : ''; ?>
                     غير موجودة على هذا النظام، ولذلك لا يمكن فتح هذه الشاشة.

@@ -407,13 +407,13 @@ class Crud_model extends CI_Model
         $this->db->where('key', 'phone');
         $this->db->update('settings', $data);
 
-        // رابطا المتجرين. يُخزَّنان **خامَين** خلافًا لبقيّة الحقول هنا:
-        // site_stores.php يمرّرهما على html_escape عند العرض، فتهريبُهما مرّتين
+        // رابطا المتجرين. يخزنان **خامين** خلافا لبقية الحقول هنا:
+        // site_stores.php يمررهما على html_escape عند العرض، فتهريبهما مرتين
         // يقلب `&` في `?id=..&hl=ar` إلى `&amp;amp;` ويكسر الرابط.
         //
-        // والتحقّق من المخطّط ليس زينة: الحقل يقبل أيّ نصّ، و`javascript:`
-        // فيه يصير تنفيذًا عند النقر على شارة التذييل. ما لا يكون http(s)
-        // يُفرَّغ، والتفريغ يعيد الشارة إلى حالة «قريبًا» — وهو سلوكٌ مفهوم.
+        // والتحقق من المخطط ليس زينة: الحقل يقبل أي نص، و`javascript:`
+        // فيه يصير تنفيذا عند النقر على شارة التذييل. ما لا يكون http(s)
+        // يفرغ، والتفريغ يعيد الشارة إلى حالة «قريبا» — وهو سلوك مفهوم.
         foreach (array('app_store_url', 'google_play_url') as $store_key) {
             $store_url = trim((string) $this->input->post($store_key, false));
             if ($store_url !== '' && !preg_match('~^https?://~i', $store_url)) {
@@ -3080,8 +3080,8 @@ class Crud_model extends CI_Model
             $data_message_thread['message_thread_code'] = $message_thread_code;
             $data_message_thread['sender']              = $sender;
             $data_message_thread['receiver']            = $receiver;
-            // بلا هذا الطابع يظهر كل خيط جديد في ذيل أي قائمة مرتّبة زمنيًّا،
-            // فتُدفن الرسالة الأحدث تحت الأقدم
+            // بلا هذا الطابع يظهر كل خيط جديد في ذيل أي قائمة مرتبة زمنيا،
+            // فتدفن الرسالة الأحدث تحت الأقدم
             $data_message_thread['last_message_timestamp'] = $timestamp;
             $this->db->insert('message_thread', $data_message_thread);
         }

@@ -4,8 +4,8 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 /**
  * المدفوعات والفواتير.
  *
- * كل عملية تُنتج فاتورة قابلة للتحميل، لأن وليّ الأمر يسأل عنها.
- * والسعر يُعرض شاملًا ما دُفع فعلًا — لا رسوم تظهر بعد الشراء.
+ * كل عملية تنتج فاتورة قابلة للتحميل، لأن ولي الأمر يسأل عنها.
+ * والسعر يعرض شاملا ما دفع فعلا — لا رسوم تظهر بعد الشراء.
  * موصول: payment (جدول Academy) · العملة الريال.
  */
 include 'tq_student_styles.php';
@@ -50,7 +50,7 @@ include 'portal_open.php';
         <?php else: ?>
             <div class="tq-card">
                 <div class="tq-card__head">
-                    <h2 class="tq-card__title">سجلّ العمليات</h2>
+                    <h2 class="tq-card__title">سجل العمليات</h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_orders) . TQ_PDI; ?></span>
                 </div>
                 <table class="tq-table">
@@ -62,7 +62,7 @@ include 'portal_open.php';
                             $st = strtolower((string) ($o['payment_status'] ?? $o['status'] ?? ''));
                             $kind = in_array($st, ['success', 'paid', 'completed', '1'], true) ? 'mastered'
                                   : (in_array($st, ['refunded', 'failed', 'cancelled'], true) ? 'late' : 'progress');
-                            $word = ['mastered' => 'مدفوعة', 'late' => 'مستردّة أو متعثّرة', 'progress' => 'قيد المعالجة'][$kind];
+                            $word = ['mastered' => 'مدفوعة', 'late' => 'مستردة أو متعثرة', 'progress' => 'قيد المعالجة'][$kind];
                         ?>
                             <tr>
                                 <td data-label="رقم العملية"><?php echo tq_num('#' . (int) $o['id'], 'tq-num--sm'); ?></td>
@@ -85,7 +85,7 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-card">
-            <h2 class="tq-card__title">الملخّص</h2>
+            <h2 class="tq-card__title">الملخص</h2>
             <div class="tq-s-2x2">
                 <div class="tq-pastel tq-pastel--mint">
                     <span class="tq-pastel__label tq-micro">إجمالي المدفوع</span>
@@ -102,7 +102,7 @@ include 'portal_open.php';
             <h2 class="tq-card__title">اشتراكك</h2>
             <p class="tq-caption">
                 باقتك الحالية والتجديد يظهران هنا بعد أول اشتراك.
-                وحصص بالطلب خارج الاشتراك — تُشترى بالحصة.
+                وحصص بالطلب خارج الاشتراك — تشترى بالحصة.
             </p>
             <a class="tq-btn tq-btn--secondary tq-btn--sm tq-btn--block" href="<?php echo base_url('plans'); ?>">عرض الباقات</a>
         </div>

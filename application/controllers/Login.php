@@ -37,7 +37,7 @@ class Login extends CI_Controller
         if ($this->session->userdata('admin_login')) {
             redirect(site_url('admin'), 'refresh');
         } elseif ($this->session->userdata('user_login')) {
-            /* بوّابة صاحبها لا `user`: تلك صفحةٌ من القالب القديم تُرجع ٤٠٤. */
+            /* بوابة صاحبها لا `user`: تلك صفحة من القالب القديم ترجع ٤٠٤. */
             redirect(tq_home_for(tq_role()), 'location', 302);
         }
         $page_data['page_name'] = 'sign_up';
@@ -130,10 +130,10 @@ class Login extends CI_Controller
                 $this->user_model->set_login_userdata($row->id);
             }
             $this->session->set_flashdata('error_message', get_phrase('something_is_wrong').'! '.site_phrase('please_try_again'));
-            /* كلٌّ إلى لوحته: التوجيه إلى الرئيسية يجعل من دخل
-               يبحث عن بوّابته بنفسه. */
-            /* TQ-GATE-MSG — من ينتظر اعتمادًا يُقال له ذلك، لا يُترك أمام
-               شاشة دخول تردّه بلا سبب. */
+            /* كل إلى لوحته: التوجيه إلى الرئيسية يجعل من دخل
+               يبحث عن بوابته بنفسه. */
+            /* TQ-GATE-MSG — من ينتظر اعتمادا يقال له ذلك، لا يترك أمام
+               شاشة دخول ترده بلا سبب. */
             redirect(tq_home_for(tq_role()), 'location', 302);
         }
 
@@ -169,10 +169,10 @@ class Login extends CI_Controller
 
         $data['first_name'] = html_escape($this->input->post('first_name'));
         $data['last_name']  = html_escape($this->input->post('last_name'));
-        /* TQ-REGISTER-GUARD — التحقّق في الخادم لا في المتصفّح.
-           النمط الصحيح مطبَّق في نموذج التواصل ومفقود هنا: يُتحقَّق من
-           صيغة البريد هناك ولا يُتحقَّق منها في إنشاء حساب، ويُطلب تأكيد
-           كلمة المرور في الاستعادة ولا يُطلب في الإنشاء. */
+        /* TQ-REGISTER-GUARD — التحقق في الخادم لا في المتصفح.
+           النمط الصحيح مطبق في نموذج التواصل ومفقود هنا: يتحقق من
+           صيغة البريد هناك ولا يتحقق منها في إنشاء حساب، ويطلب تأكيد
+           كلمة المرور في الاستعادة ولا يطلب في الإنشاء. */
         $tq_email = trim((string) $this->input->post('email'));
         $tq_pass  = (string) $this->input->post('password');
         $tq_conf  = (string) $this->input->post('password_confirm');
@@ -183,20 +183,20 @@ class Login extends CI_Controller
         if (!filter_var($tq_email, FILTER_VALIDATE_EMAIL) || mb_strlen($tq_email) > 50) {
             $tq_err = 'البريد الإلكتروني غير صحيح.';
         } elseif (mb_strlen($tq_pass) < 8) {
-            $tq_err = 'كلمة المرور ثمانية محارف على الأقلّ.';
+            $tq_err = 'كلمة المرور ثمانية محارف على الأقل.';
         } elseif ($tq_pass !== $tq_conf) {
             $tq_err = 'كلمتا المرور غير متطابقتين.';
         } elseif ((string) $this->input->post('accept_terms') !== '1') {
-            $tq_err = 'لا بدّ من الموافقة على الشروط وسياسة الخصوصية.';
+            $tq_err = 'لا بد من الموافقة على الشروط وسياسة الخصوصية.';
         } elseif ($tq_gate === 'student' && $tq_age > 0 && $tq_age < 15
                   && !filter_var($tq_guard, FILTER_VALIDATE_EMAIL)) {
-            /* دون الخامسة عشرة: بريد وليّ الأمر شرطٌ لا حقل اختياريّ. */
-            $tq_err = 'دون الخامسة عشرة نحتاج بريد وليّ أمرك.';
+            /* دون الخامسة عشرة: بريد ولي الأمر شرط لا حقل اختياري. */
+            $tq_err = 'دون الخامسة عشرة نحتاج بريد ولي أمرك.';
         } elseif ($tq_gate === 'teacher') {
-            /* TQ-PHONE-NORM — يُطبَّع قبل الفحص: تُزال المسافات والشُّرَط
-               والأقواس، وتُحوَّل الأرقام العربية، وتُقصّ البادئة الدولية
+            /* TQ-PHONE-NORM — يطبع قبل الفحص: تزال المسافات والشرط
+               والأقواس، وتحول الأرقام العربية، وتقص البادئة الدولية
                (`+966` / `00966`) والصفر. فيقبل `0501234567` و`+966 50 123 4567`
-               و`٠٥٠١٢٣٤٥٦٧` جميعًا، ويُخزَّن `501234567` موحَّدًا. */
+               و`٠٥٠١٢٣٤٥٦٧` جميعا، ويخزن `501234567` موحدا. */
             $tq_phone = (string) $this->input->post('phone');
             $tq_phone = strtr($tq_phone, array(
                 '٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4',
@@ -206,9 +206,9 @@ class Login extends CI_Controller
             $tq_phone = preg_replace('/^(?:00966|966)/', '', $tq_phone);
             $tq_phone = preg_replace('/^0/', '', $tq_phone);
             if (!preg_match('/^5[0-9]{8}$/', $tq_phone)) {
-                $tq_err = 'رقم الجوّال غير صحيح. اكتبه هكذا: 0501234567';
+                $tq_err = 'رقم الجوال غير صحيح. اكتبه هكذا: 0501234567';
             } elseif (empty($_FILES['document']['name'])) {
-                $tq_err = 'مستند التعريف مطلوب لطلب الانضمام معلّمًا.';
+                $tq_err = 'مستند التعريف مطلوب لطلب الانضمام معلما.';
             }
         }
         if ($tq_err !== '') {
@@ -255,18 +255,18 @@ class Login extends CI_Controller
 
 
             //Check instructor application document
-            /* TQ-TEACHER-PENDING — الحساب يبقى مغلقًا حتّى تُراجَع أوراقه.
-               Academy يفتحه فورًا، فمن سجّل معلّمًا يرى لوحته قبل أن يراه
-               أحد — ومعلّمو هذه المنصّة يتعاملون مع قاصرين. */
-            /* TQ-GATE-BRIDGE — Academy يُنشئ صفّ الطلب بشرط `instructor=yes`،
-                       والبوّابة الجديدة ترسل `tq_gate=teacher`. فيُجسَر الاسمان
+            /* TQ-TEACHER-PENDING — الحساب يبقى مغلقا حتى تراجع أوراقه.
+               Academy يفتحه فورا، فمن سجل معلما يرى لوحته قبل أن يراه
+               أحد — ومعلمو هذه المنصة يتعاملون مع قاصرين. */
+            /* TQ-GATE-BRIDGE — Academy ينشئ صف الطلب بشرط `instructor=yes`،
+                       والبوابة الجديدة ترسل `tq_gate=teacher`. فيجسر الاسمان
                        هنا بدل تكرار منطق إنشاء الطلب. */
                     if ($tq_gate === 'teacher') {
                         $data['status'] = 0;
                         /* TQ-INSTRUCTOR-FLAG — `register()` يبني `$data` بيده
-                           ولا يضبط هذا العمود أبدًا (تضبطه `add_user()` وحدها
-                           حين تُنادى من الإدارة). فبدونه يبقى المعلّم — حتّى
-                           بعد اعتماده — طالبًا في اشتقاق الدور. */
+                           ولا يضبط هذا العمود أبدا (تضبطه `add_user()` وحدها
+                           حين تنادى من الإدارة). فبدونه يبقى المعلم — حتى
+                           بعد اعتماده — طالبا في اشتقاق الدور. */
                         $data['is_instructor'] = 1;
                         $_POST['instructor'] = 'yes';
                     }
@@ -282,11 +282,11 @@ class Login extends CI_Controller
             if(get_settings('allow_instructor')):
                 if(isset($_POST['instructor']) && $_POST['instructor'] == 'yes'){
                     if(empty($_POST['phone'])){
-                        $this->session->set_flashdata('error_message', 'أدخل رقم جوّالك — وهو لازمٌ لطلب الاعتماد.');
+                        $this->session->set_flashdata('error_message', 'أدخل رقم جوالك — وهو لازم لطلب الاعتماد.');
                         redirect(site_url('sign_up'), 'refresh');
                     }
                     if(empty($_FILES['document']['name'])){
-                        $this->session->set_flashdata('error_message', 'أرفق وثيقةً تُثبت مؤهّلك أو خبرتك (PDF أو صورة) — فطلب الاعتماد لا يُقبل بدونها.');
+                        $this->session->set_flashdata('error_message', 'أرفق وثيقة تثبت مؤهلك أو خبرتك (PDF أو صورة) — فطلب الاعتماد لا يقبل بدونها.');
                         redirect(site_url('sign_up'), 'refresh');
                     }
                     $accepted_ext = array('doc', 'docs', 'pdf', 'txt', 'png', 'jpg', 'jpeg');
@@ -348,7 +348,7 @@ class Login extends CI_Controller
         if ($this->session->userdata('admin_login')) {
             redirect(site_url('admin'), 'refresh');
         } elseif ($this->session->userdata('user_login')) {
-            /* بوّابة صاحبها لا `user`: تلك صفحةٌ من القالب القديم تُرجع ٤٠٤. */
+            /* بوابة صاحبها لا `user`: تلك صفحة من القالب القديم ترجع ٤٠٤. */
             redirect(tq_home_for(tq_role()), 'location', 302);
         }
         $page_data['page_name'] = 'forgot_password';

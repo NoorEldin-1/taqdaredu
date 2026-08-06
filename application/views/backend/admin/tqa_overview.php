@@ -6,10 +6,10 @@ $bound   = $q['bound'];
 $total   = $q['total'];
 $pct     = $total > 0 ? (int) floor(($bound * 100) / $total) : 0;
 
-/* السلسلة التي يجب أن تكتمل ليعمل الإتقان — بترتيب التبعية لا بترتيب الأهمّية. */
+/* السلسلة التي يجب أن تكتمل ليعمل الإتقان — بترتيب التبعية لا بترتيب الأهمية. */
 $chain = array(
     array('k' => 'subjects',   'label' => 'مواد',      'need' => 'لا مسار بلا مادة'),
-    array('k' => 'grades',     'label' => 'صفوف',      'need' => 'لا مسار بلا صفّ'),
+    array('k' => 'grades',     'label' => 'صفوف',      'need' => 'لا مسار بلا صف'),
     array('k' => 'paths',      'label' => 'مسارات',    'need' => 'لا اشتراك بلا مسار'),
     array('k' => 'objectives', 'label' => 'أهداف',     'need' => 'لا مراجعة بلا أهداف'),
 );
@@ -21,8 +21,8 @@ foreach ($chain as $c) {
 
 <div class="tqa-head">
     <div>
-        <h1>منصّة تقدّر</h1>
-        <p>حالة المنصّة الآن، وما يلزم لتشتغل دورة التعلّم كاملة.</p>
+        <h1>منصة تقدر</h1>
+        <p>حالة المنصة الآن، وما يلزم لتشتغل دورة التعلم كاملة.</p>
     </div>
 </div>
 
@@ -30,11 +30,11 @@ foreach ($chain as $c) {
 
 <?php if ($blocked): ?>
     <div class="tqa-block">
-        <h3>دورة التعلّم متوقّفة عند: <?php echo html_escape($blocked['label']); ?></h3>
+        <h3>دورة التعلم متوقفة عند: <?php echo html_escape($blocked['label']); ?></h3>
         <p>
             <?php echo html_escape($blocked['need']); ?>.
-            وما دامت هذه الخطوة فارغة، فبوّابة الإتقان لا تجد ما تحكم به،
-            ويبقى كل درس بعد الأوّل مقفلًا أمام الطالب.
+            وما دامت هذه الخطوة فارغة، فبوابة الإتقان لا تجد ما تحكم به،
+            ويبقى كل درس بعد الأول مقفلا أمام الطالب.
         </p>
         <a class="btn btn-primary" href="<?php echo site_url('taqdar_admin/module/' . $blocked['k']); ?>">
             ابدأ من هنا — <?php echo html_escape($readiness[$blocked['k']]['title']); ?>
@@ -43,7 +43,7 @@ foreach ($chain as $c) {
 <?php else: ?>
     <div class="tqa-note">
         <strong>السلسلة مكتملة.</strong>
-        المواد والصفوف والمسارات والأهداف كلّها ممتلئة، فبوّابة الإتقان قادرة على الحكم.
+        المواد والصفوف والمسارات والأهداف كلها ممتلئة، فبوابة الإتقان قادرة على الحكم.
     </div>
 <?php endif; ?>
 
@@ -62,9 +62,9 @@ foreach ($chain as $c) {
     <div class="card-header"><h4 class="header-title">ربط الأسئلة بالأهداف</h4></div>
     <div class="card-body">
         <p>
-            السؤال غير المربوط بهدف يستطيع أن يُصحَّح، لكنه لا يستطيع أن يوجّه:
+            السؤال غير المربوط بهدف يستطيع أن يصحح، لكنه لا يستطيع أن يوجه:
             حين يخطئ فيه الطالب لا يعرف النظام إلى أي لحظة من الشرح يعيده.
-            وهذا هو الفرق بين اختبار وبين تعلّم.
+            وهذا هو الفرق بين اختبار وبين تعلم.
         </p>
 
         <div class="tqa-bar">
@@ -72,7 +72,7 @@ foreach ($chain as $c) {
         </div>
         <p class="tqa-bar-cap">
             مربوط <span class="tq-ltr" dir="ltr"><?php echo $bound; ?></span>
-            من <span class="tq-ltr" dir="ltr"><?php echo $total; ?></span> سؤالًا
+            من <span class="tq-ltr" dir="ltr"><?php echo $total; ?></span> سؤالا
             (<span class="tq-ltr" dir="ltr"><?php echo $pct; ?>%</span>)
         </p>
 

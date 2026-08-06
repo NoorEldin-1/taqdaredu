@@ -1,14 +1,14 @@
-/* منصّة تقدّر — سلوك الواجهة. بلا اعتماد على أي مكتبة. */
+/* منصة تقدر — سلوك الواجهة. بلا اعتماد على أي مكتبة. */
 (function () {
   'use strict';
 
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
-  /* الوضع الليليّ أُزيل: الوجه واحد فاتح. ولا يُكتب تفضيلٌ
-     على الجهاز، فلم يبقَ من التخزين إلّا سجلّ اختيار الكوكيز. */
+  /* الوضع الليلي أزيل: الوجه واحد فاتح. ولا يكتب تفضيل
+     على الجهاز، فلم يبق من التخزين إلا سجل اختيار الكوكيز. */
 
-  /* ---- درج القائمة على الجوّال --------------------------------------- */
+  /* ---- درج القائمة على الجوال --------------------------------------- */
   var rail = $('[data-tq-rail]');
   var scrim = $('[data-tq-scrim]');
   function closeRail() {
@@ -85,7 +85,7 @@
   }
   addEventListener('online', net); addEventListener('offline', net); net();
 
-  /* ---- حلقات ومؤشّرات التقدّم تملأ عند الظهور لا عند التحميل ---------- */
+  /* ---- حلقات ومؤشرات التقدم تملأ عند الظهور لا عند التحميل ---------- */
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (en) {

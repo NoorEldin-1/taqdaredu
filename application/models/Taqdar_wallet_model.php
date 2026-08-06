@@ -2,45 +2,45 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * دفتر محفظة المعلّم — القيد أوّلًا، والرصيد أثرٌ له لا مصدرًا.
+ * دفتر محفظة المعلم — القيد أولا، والرصيد أثر له لا مصدرا.
  *
- * ما قبل هذا الملفّ كانت الشاشة تشتقّ رصيد المعلّم من جدول `payment` عند كل
- * عرض: تجمع `instructor_revenue` وتقسمها بحسب تاريخ البيع. وهذا يُظهر رقمًا
- * صحيحًا ما دام لا شيء يحدث؛ فإذا حدث استرداد أو تسوية أو سحب جزئيّ انهار،
- * لأن `payment` سجلّ مبيعات لا سجلّ نقود: لا يعرف ما خرج ولا ما رُدّ ولا ما
- * جُمِّد. ولا يعطي كشف حساب — يعطي قائمة مبيعات وحسب.
+ * ما قبل هذا الملف كانت الشاشة تشتق رصيد المعلم من جدول `payment` عند كل
+ * عرض: تجمع `instructor_revenue` وتقسمها بحسب تاريخ البيع. وهذا يظهر رقما
+ * صحيحا ما دام لا شيء يحدث؛ فإذا حدث استرداد أو تسوية أو سحب جزئي انهار،
+ * لأن `payment` سجل مبيعات لا سجل نقود: لا يعرف ما خرج ولا ما رد ولا ما
+ * جمد. ولا يعطي كشف حساب — يعطي قائمة مبيعات وحسب.
  *
- * القاعدة الحاكمة هنا: **لا يتغيّر رصيد إلّا بقيد.** كل حركة (بيع، عمولة
- * منصّة، ما تحتفظ به المنصّة من ضريبة/تقريب، تحرّر بعد نافذة الاسترداد،
- * استرداد، حجز سحب، تحويل، إلغاء) صفٌّ في `wallet_entries`. وأعمدة
- * `wallets` الثلاثة ليست حسابًا مستقلًّا بل مجموع قيود دلوها حرفيًّا:
+ * القاعدة الحاكمة هنا: **لا يتغير رصيد إلا بقيد.** كل حركة (بيع، عمولة
+ * منصة، ما تحتفظ به المنصة من ضريبة/تقريب، تحرر بعد نافذة الاسترداد،
+ * استرداد، حجز سحب، تحويل، إلغاء) صف في `wallet_entries`. وأعمدة
+ * `wallets` الثلاثة ليست حسابا مستقلا بل مجموع قيود دلوها حرفيا:
  *
  *     balance_available = SUM(amount) WHERE bucket='available'
  *     balance_pending   = SUM(amount) WHERE bucket='pending'
  *     balance_locked    = SUM(amount) WHERE bucket='locked'
  *
- * فلا يمكن أن «ينحرف» الرصيد عن الدفتر: هو مشتقّ منه بدالّة واحدة
+ * فلا يمكن أن «ينحرف» الرصيد عن الدفتر: هو مشتق منه بدالة واحدة
  * (`recompute`) لا كاتب لتلك الأعمدة سواها.
  *
- * **النقود هللات صحيحة (BIGINT) في كل هذا الملفّ.** جدول `payment` القديم
- * يخزّن الريالات في `double`/`varchar` ولا يُصلَح — لكن عيبه لا يُورَّث:
- * التحويل يقع مرّة واحدة عند حدّ القراءة منه (`halalas()`)، وبعدها لا `float`
+ * **النقود هللات صحيحة (BIGINT) في كل هذا الملف.** جدول `payment` القديم
+ * يخزن الريالات في `double`/`varchar` ولا يصلح — لكن عيبه لا يورث:
+ * التحويل يقع مرة واحدة عند حد القراءة منه (`halalas()`)، وبعدها لا `float`
  * ولا `round()` في أي حساب.
  *
  * لماذا الدلاء الثلاثة لا عمود «حالة» في القيد:
- *   pending   — بيع داخل نافذة الاسترداد، مالٌ للمعلّم لكنه ليس له بعد.
- *   available — تحرّر، يُسحب.
+ *   pending   — بيع داخل نافذة الاسترداد، مال للمعلم لكنه ليس له بعد.
+ *   available — تحرر، يسحب.
  *   locked    — محجوز مقابل طلب سحب قائم، خرج من المتاح ولم يغادر بعد.
  * الانتقال بين دلوين قيدان لا تعديل: خصم في دلو وإضافة في آخر. فالقيد
- * لا يُعدَّل ولا يُحذف أبدًا — يُقابَل بقيد عكسيّ. هذا ما يجعل الاسترداد
- * ممكنًا أصلًا: رصيد سالب بعد استرداد بيعٍ سُحب ثمنه حقيقةٌ محاسبيّة
- * تُعرض، لا خطأ يُخفى.
+ * لا يعدل ولا يحذف أبدا — يقابل بقيد عكسي. هذا ما يجعل الاسترداد
+ * ممكنا أصلا: رصيد سالب بعد استرداد بيع سحب ثمنه حقيقة محاسبية
+ * تعرض، لا خطأ يخفى.
  *
- * التعافي الذاتيّ: `sync()` تُصالح الدفتر مع الواقع في كل قراءة —
- * مبيعات جديدة لم تُقيَّد، قيود نضجت ولم تتحرّر، مدفوعات اختفت (استرداد)،
- * وطلبات سحب أنشأتها أو حدّثتها شاشات Academy القديمة (`Admin.php`،
+ * التعافي الذاتي: `sync()` تصالح الدفتر مع الواقع في كل قراءة —
+ * مبيعات جديدة لم تقيد، قيود نضجت ولم تتحرر، مدفوعات اختفت (استرداد)،
+ * وطلبات سحب أنشأتها أو حدثتها شاشات Academy القديمة (`Admin.php`،
  * `Crud_model::add_withdrawal_request`) بلا علم بالدفتر. فالدفتر لا يفترض
- * أنه الكاتب الوحيد لجدول `payout`، بل يلتقط ما كتبه غيره ويقيّده.
+ * أنه الكاتب الوحيد لجدول `payout`، بل يلتقط ما كتبه غيره ويقيده.
  *
  * ---------------------------------------------------------------------
  * نقطة الاستدعاء لمن يبني `POST teacher/wallet/withdraw`:
@@ -50,7 +50,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  *              $user_id, $amount_halalas, $channel, $destination);
  *     // $r = ['ok'=>bool,'code'=>string,'message'=>'عربي','payout_id'=>int]
  *
- * والقناة إحدى: bank|mada|stcpay|urpay. والمبلغ بالهللات صحيحًا؛ ولمن
+ * والقناة إحدى: bank|mada|stcpay|urpay. والمبلغ بالهللات صحيحا؛ ولمن
  * يقرأ ريالات من نموذج المستخدم: `sar_to_halalas($input)`.
  * ---------------------------------------------------------------------
  */
@@ -65,14 +65,14 @@ class Taqdar_wallet_model extends CI_Model
     const SCHEMA_V = '1';
 
     /**
-     * قنوات التحويل السعوديّة الأربع.
-     * ما لا يُسجَّل لا يُحوَّل: لا نقبل طلب مال بقناة لا تُحفَظ مع الطلب.
+     * قنوات التحويل السعودية الأربع.
+     * ما لا يسجل لا يحول: لا نقبل طلب مال بقناة لا تحفظ مع الطلب.
      */
     public static $CHANNELS = array(
         'bank'   => array('label' => 'تحويل بنكي',     'hint' => 'رقم الآيبان (يبدأ بـ SA)'),
         'mada'   => array('label' => 'بطاقة مدى',       'hint' => 'رقم البطاقة'),
-        'stcpay' => array('label' => 'محفظة STC Pay',   'hint' => 'رقم الجوّال المرتبط'),
-        'urpay'  => array('label' => 'محفظة urpay',     'hint' => 'رقم الجوّال المرتبط'),
+        'stcpay' => array('label' => 'محفظة STC Pay',   'hint' => 'رقم الجوال المرتبط'),
+        'urpay'  => array('label' => 'محفظة urpay',     'hint' => 'رقم الجوال المرتبط'),
     );
 
     private static $settings_cache = array();
@@ -89,12 +89,12 @@ class Taqdar_wallet_model extends CI_Model
      * ================================================================ */
 
     /**
-     * الوقت في هذا الملفّ لا يعتمد على المنطقة الافتراضيّة لـPHP.
+     * الوقت في هذا الملف لا يعتمد على المنطقة الافتراضية لـPHP.
      *
-     * `Taqdar_cron` يضبط Asia/Riyadh قبل التشغيل، والطلب من المتصفّح لا
-     * يضبط شيئًا فيبقى على UTC. فلو كُتب `released_at` من سطر الأوامر
-     * وقُورن بـ«الآن» من الويب لاختلفا ثلاث ساعات — ويتحرّر مالٌ قبل أوانه
-     * أو يتأخّر. المنطقة تُقرأ من الإعدادات وتُفرض هنا كتابةً وقراءةً.
+     * `Taqdar_cron` يضبط Asia/Riyadh قبل التشغيل، والطلب من المتصفح لا
+     * يضبط شيئا فيبقى على UTC. فلو كتب `released_at` من سطر الأوامر
+     * وقورن بـ«الآن» من الويب لاختلفا ثلاث ساعات — ويتحرر مال قبل أوانه
+     * أو يتأخر. المنطقة تقرأ من الإعدادات وتفرض هنا كتابة وقراءة.
      */
     private function tz()
     {
@@ -110,7 +110,7 @@ class Taqdar_wallet_model extends CI_Model
         return $tz;
     }
 
-    /** طابع يونكس ⇐ نصّ MySQL بتوقيت المنصّة. */
+    /** طابع يونكس ⇐ نص MySQL بتوقيت المنصة. */
     public function at($unix_ts)
     {
         $d = new DateTime('@' . (int) $unix_ts);
@@ -118,7 +118,7 @@ class Taqdar_wallet_model extends CI_Model
         return $d->format('Y-m-d H:i:s');
     }
 
-    /** نصّ MySQL بتوقيت المنصّة ⇐ طابع يونكس. */
+    /** نص MySQL بتوقيت المنصة ⇐ طابع يونكس. */
     public function ts($mysql_datetime)
     {
         if (!$mysql_datetime) return 0;
@@ -133,7 +133,7 @@ class Taqdar_wallet_model extends CI_Model
     }
 
     /**
-     * الحدّ الوحيد الذي يُسمح فيه بالعشريّ: القراءة من عمود ريالات قديم
+     * الحد الوحيد الذي يسمح فيه بالعشري: القراءة من عمود ريالات قديم
      * أو من مدخل مستخدم. ما بعده هللات صحيحة فقط.
      */
     public function sar_to_halalas($riyals)
@@ -141,7 +141,7 @@ class Taqdar_wallet_model extends CI_Model
         return (int) round(((float) $riyals) * 100);
     }
 
-    /** إعداد من `settings` بذاكرة طلب واحدة — get_settings تستعلم كل مرّة. */
+    /** إعداد من `settings` بذاكرة طلب واحدة — get_settings تستعلم كل مرة. */
     private function setting($key, $default = null)
     {
         if (!array_key_exists($key, self::$settings_cache)) {
@@ -153,22 +153,22 @@ class Taqdar_wallet_model extends CI_Model
         return ($v === null || $v === '') ? $default : $v;
     }
 
-    /** نافذة الاسترداد بالأيّام — من الإعدادات لا من الشيفرة. */
+    /** نافذة الاسترداد بالأيام — من الإعدادات لا من الشيفرة. */
     public function refund_window_days()
     {
         $d = (int) $this->setting('taqdar_refund_window_days', 14);
         return $d > 0 ? $d : 14;
     }
 
-    /** الحدّ الأدنى للسحب بالهللات — من الإعدادات. */
+    /** الحد الأدنى للسحب بالهللات — من الإعدادات. */
     public function payout_min_halalas()
     {
         return max(0, $this->sar_to_halalas($this->setting('taqdar_payout_min_sar', 100)));
     }
 
     /**
-     * مفتاح القيد. فريد على مستوى المنصّة كلّها، ومقيَّد بالمحفظة لأن البيع
-     * الواحد في كورس متعدّد المعلّمين يُقيَّد في محفظتين لا في واحدة.
+     * مفتاح القيد. فريد على مستوى المنصة كلها، ومقيد بالمحفظة لأن البيع
+     * الواحد في كورس متعدد المعلمين يقيد في محفظتين لا في واحدة.
      */
     private function ref_key($wallet_id, $origin, $kind)
     {
@@ -176,13 +176,13 @@ class Taqdar_wallet_model extends CI_Model
     }
 
     /* ================================================================
-     *  البنية — إضافيّة ومتكرّرة الأمان
+     *  البنية — إضافية ومتكررة الأمان
      * ================================================================ */
 
     /**
-     * يكمل بنية الجداول الثلاثة إن نقصت. إضافات فقط: أعمدة اختياريّة
-     * وفهارس. لا يحذف عمودًا ولا يغيّر نوعًا، فما كتبته شاشات Academy
-     * القديمة في `payout` يبقى مقروءًا لها كما هو.
+     * يكمل بنية الجداول الثلاثة إن نقصت. إضافات فقط: أعمدة اختيارية
+     * وفهارس. لا يحذف عمودا ولا يغير نوعا، فما كتبته شاشات Academy
+     * القديمة في `payout` يبقى مقروءا لها كما هو.
      */
     public function install_schema($force = false)
     {
@@ -193,8 +193,8 @@ class Taqdar_wallet_model extends CI_Model
             return false;
         }
 
-        // CodeIgniter يخبّئ أسماء الأعمدة لكل جدول في الطلب الواحد، فلو
-        // فُحصت البنية بعد تعديلها في النداء نفسه لقرأ قائمة بائتة وأعاد
+        // CodeIgniter يخبئ أسماء الأعمدة لكل جدول في الطلب الواحد، فلو
+        // فحصت البنية بعد تعديلها في النداء نفسه لقرأ قائمة بائتة وأعاد
         // الإضافة على عمود موجود.
         $this->db->data_cache = array();
 
@@ -209,7 +209,7 @@ class Taqdar_wallet_model extends CI_Model
         }
         if (!$this->db->field_exists('subject', 'wallet_entries')) {
             $add[] = "ADD COLUMN `subject` varchar(190) DEFAULT NULL"
-                   . " COMMENT 'وصف السطر لحظة القيد — لا يتغيّر بتغيّر الكورس' AFTER `origin`";
+                   . " COMMENT 'وصف السطر لحظة القيد — لا يتغير بتغير الكورس' AFTER `origin`";
         }
         if (!$this->db->field_exists('occurred_at', 'wallet_entries')) {
             $add[] = "ADD COLUMN `occurred_at` datetime NOT NULL DEFAULT current_timestamp()"
@@ -223,21 +223,21 @@ class Taqdar_wallet_model extends CI_Model
 
         $add = array();
         if (!$this->db->field_exists('amount_halalas', 'payout')) {
-            // المبلغ المُلزِم. `amount` القديم `double` بالريالات يبقى مرآةً
-            // لشاشات Academy التي تقارنه وتدفع به — ولا يُحسَب عليه هنا.
+            // المبلغ الملزم. `amount` القديم `double` بالريالات يبقى مرآة
+            // لشاشات Academy التي تقارنه وتدفع به — ولا يحسب عليه هنا.
             $add[] = "ADD COLUMN `amount_halalas` bigint(20) NOT NULL DEFAULT 0"
-                   . " COMMENT 'المبلغ المُلزِم بالهللات' AFTER `amount`";
+                   . " COMMENT 'المبلغ الملزم بالهللات' AFTER `amount`";
         }
         if (!$this->db->field_exists('destination', 'payout')) {
             $add[] = "ADD COLUMN `destination` varchar(190) DEFAULT NULL"
-                   . " COMMENT 'آيبان أو جوّال المحفظة كما أدخله المعلّم' AFTER `payment_type`";
+                   . " COMMENT 'آيبان أو جوال المحفظة كما أدخله المعلم' AFTER `payment_type`";
         }
         if (!$this->db->field_exists('requested_channel', 'payout')) {
-            // `payment_type` تكتبه الإدارة لاحقًا بوسيلة تحويلها
-            // (`Crud_model::update_payout_status`) فتمحو قناة المعلّم.
-            // القناة المطلوبة تُحفظ هنا كذلك فلا تضيع.
+            // `payment_type` تكتبه الإدارة لاحقا بوسيلة تحويلها
+            // (`Crud_model::update_payout_status`) فتمحو قناة المعلم.
+            // القناة المطلوبة تحفظ هنا كذلك فلا تضيع.
             $add[] = "ADD COLUMN `requested_channel` varchar(32) DEFAULT NULL"
-                   . " COMMENT 'قناة المعلّم وقت الطلب' AFTER `destination`";
+                   . " COMMENT 'قناة المعلم وقت الطلب' AFTER `destination`";
         }
         if ($add) $this->db->query('ALTER TABLE `payout` ' . implode(', ', $add));
         $this->add_index('payout', 'idx_payout_user', 'ADD KEY `idx_payout_user` (`user_id`,`status`)');
@@ -276,7 +276,7 @@ class Taqdar_wallet_model extends CI_Model
      *  المحفظة والنطاق
      * ================================================================ */
 
-    /** محفظة المستخدم — تُنشأ صفريّة إن لم تكن. */
+    /** محفظة المستخدم — تنشأ صفرية إن لم تكن. */
     public function wallet_of($user_id)
     {
         $user_id = (int) $user_id;
@@ -297,9 +297,9 @@ class Taqdar_wallet_model extends CI_Model
     }
 
     /**
-     * كورسات المعلّم — بنفس نطاق الشاشة السابقة حرفًا بحرف: ما أنشأه
-     * (`creator`) وما أُسنِد إليه في كورس متعدّد المعلّمين (`user_id` قائمة).
-     * تغيير النطاق هنا يغيّر رصيدًا قائمًا، وهذا ليس موضع تغييره.
+     * كورسات المعلم — بنفس نطاق الشاشة السابقة حرفا بحرف: ما أنشأه
+     * (`creator`) وما أسند إليه في كورس متعدد المعلمين (`user_id` قائمة).
+     * تغيير النطاق هنا يغير رصيدا قائما، وهذا ليس موضع تغييره.
      */
     public function teacher_course_ids($user_id)
     {
@@ -316,10 +316,10 @@ class Taqdar_wallet_model extends CI_Model
      * ================================================================ */
 
     /**
-     * يكتب قيدًا واحدًا. متكرّر الأمان بمفتاحه (`ref` فريد): استدعاؤه مرّتين
-     * يكتب صفًّا واحدًا — وعليه يقوم الترحيل والمصالحة معًا.
+     * يكتب قيدا واحدا. متكرر الأمان بمفتاحه (`ref` فريد): استدعاؤه مرتين
+     * يكتب صفا واحدا — وعليه يقوم الترحيل والمصالحة معا.
      *
-     * @return int 1 إن كُتب، 0 إن كان مكتوبًا
+     * @return int 1 إن كتب، 0 إن كان مكتوبا
      */
     private function post($wallet_id, $type, $bucket, $amount, $ref, $origin = null,
                           $subject = null, $occurred_at = null, $released_at = null)
@@ -336,7 +336,7 @@ class Taqdar_wallet_model extends CI_Model
         return (int) $this->db->affected_rows();
     }
 
-    /** مجموع قيود دلو — هذه هي الدالّة التي «تُنتِج» الرصيد. */
+    /** مجموع قيود دلو — هذه هي الدالة التي «تنتج» الرصيد. */
     public function bucket_sum($wallet_id, $bucket)
     {
         $r = $this->db->query(
@@ -348,8 +348,8 @@ class Taqdar_wallet_model extends CI_Model
     }
 
     /**
-     * يشتقّ أعمدة `wallets` من الدفتر. الكاتب الوحيد لتلك الأعمدة.
-     * لو حُذف هذا السطر لبقي الدفتر صحيحًا — الأعمدة مرآة لا مصدر.
+     * يشتق أعمدة `wallets` من الدفتر. الكاتب الوحيد لتلك الأعمدة.
+     * لو حذف هذا السطر لبقي الدفتر صحيحا — الأعمدة مرآة لا مصدر.
      */
     public function recompute($wallet_id)
     {
@@ -373,18 +373,18 @@ class Taqdar_wallet_model extends CI_Model
      * ================================================================ */
 
     /**
-     * يقيّد كل بيع لم يُقيَّد بعد في كورسات هذا المعلّم.
+     * يقيد كل بيع لم يقيد بعد في كورسات هذا المعلم.
      *
-     * ثلاثة قيود للبيعة الواحدة، لا سطر صافٍ واحد: المعلّم يجب أن يتتبّع
-     * أي ريال إلى مصدره — كم دفع الطالب، وكم أخذت المنصّة، وما بقي.
-     *   sale       + مبلغ البيع كاملًا
-     *   commission − عمولة المنصّة
-     *   retained   − ما تبقّى للمنصّة (ضريبة/تقريب) إن وُجد
+     * ثلاثة قيود للبيعة الواحدة، لا سطر صاف واحد: المعلم يجب أن يتتبع
+     * أي ريال إلى مصدره — كم دفع الطالب، وكم أخذت المنصة، وما بقي.
+     *   sale       + مبلغ البيع كاملا
+     *   commission − عمولة المنصة
+     *   retained   − ما تبقى للمنصة (ضريبة/تقريب) إن وجد
      * ومجموعها بحكم البناء = `instructor_revenue` بالضبط، فلا ينحرف الدفتر
-     * عن الرقم الذي كان المعلّم يراه ولو كانت أعمدة `payment` غير متّسقة.
+     * عن الرقم الذي كان المعلم يراه ولو كانت أعمدة `payment` غير متسقة.
      *
-     * وكلّها في دلو `pending` بتاريخ تحرّرٍ محسوب من نافذة الاسترداد
-     * **السارية وقت البيع** — تغيير الإعداد غدًا لا يحرّك بيع أمس.
+     * وكلها في دلو `pending` بتاريخ تحرر محسوب من نافذة الاسترداد
+     * **السارية وقت البيع** — تغيير الإعداد غدا لا يحرك بيع أمس.
      */
     public function post_sales($user_id)
     {
@@ -433,9 +433,9 @@ class Taqdar_wallet_model extends CI_Model
                                   $this->ref_key($wid, $origin, 'retained'), $origin, $subject, $occurred, $release);
             }
 
-            // بيع سُوِّي مع المعلّم قبل الدفتر (`instructor_payment_status=1`):
-            // يتحرّر فورًا ثمّ يخرج بقيد تحويل سابق، فيبقى ما يراه المعلّم
-            // في «حُوِّل إليك» كما كان، ولا يظهر في المتاح ولا في المعلّق.
+            // بيع سوي مع المعلم قبل الدفتر (`instructor_payment_status=1`):
+            // يتحرر فورا ثم يخرج بقيد تحويل سابق، فيبقى ما يراه المعلم
+            // في «حول إليك» كما كان، ولا يظهر في المتاح ولا في المعلق.
             if ((int) $r['instructor_payment_status'] === 1 && $share !== 0) {
                 $now = $this->now();
                 $n += $this->post($wid, 'release_out', self::B_PENDING, -$share,
@@ -450,9 +450,9 @@ class Taqdar_wallet_model extends CI_Model
     }
 
     /**
-     * يحرّر ما نضج: قيدان لا تعديل — خصم من `pending` وإضافة إلى `available`.
-     * يُشتقّ المبلغ من صافي الدلو للمستند لا من صفّ البيع وحده، فلو استُرِدّ
-     * جزء قبل التحرّر تحرّر الباقي فقط.
+     * يحرر ما نضج: قيدان لا تعديل — خصم من `pending` وإضافة إلى `available`.
+     * يشتق المبلغ من صافي الدلو للمستند لا من صف البيع وحده، فلو استرد
+     * جزء قبل التحرر تحرر الباقي فقط.
      */
     public function release_matured($wallet_id)
     {
@@ -486,10 +486,10 @@ class Taqdar_wallet_model extends CI_Model
      * ================================================================ */
 
     /**
-     * يعكس بيعًا. لا يحذف قيدًا ولا يعدّله: يقيّد عكسه في الدلو الذي
-     * يقف فيه المال الآن. فإن كان قد تحرّر وسُحب صار المتاح سالبًا —
-     * وهذا هو الصواب: المنصّة تطالب المعلّم بما قبضه عن بيع رُدّ،
-     * ولا يُخفى الرقم بجعله صفرًا.
+     * يعكس بيعا. لا يحذف قيدا ولا يعدله: يقيد عكسه في الدلو الذي
+     * يقف فيه المال الآن. فإن كان قد تحرر وسحب صار المتاح سالبا —
+     * وهذا هو الصواب: المنصة تطالب المعلم بما قبضه عن بيع رد،
+     * ولا يخفى الرقم بجعله صفرا.
      */
     public function record_refund($payment_id, $reason = '')
     {
@@ -535,8 +535,8 @@ class Taqdar_wallet_model extends CI_Model
     }
 
     /**
-     * مبيعات مقيَّدة اختفى صفّها من `payment` — إلغاء تسجيل أو استرداد
-     * نفّذته الإدارة بحذف الصفّ. الدفتر لا يُصدّق الغياب صمتًا: يقيّد عكسه.
+     * مبيعات مقيدة اختفى صفها من `payment` — إلغاء تسجيل أو استرداد
+     * نفذته الإدارة بحذف الصف. الدفتر لا يصدق الغياب صمتا: يقيد عكسه.
      */
     public function reconcile_refunds($wallet_id)
     {
@@ -571,9 +571,9 @@ class Taqdar_wallet_model extends CI_Model
     }
 
     /**
-     * طلب سحب. يكتب صفًّا في `payout` بقناته وبياناته، ويحجز المبلغ في
+     * طلب سحب. يكتب صفا في `payout` بقناته وبياناته، ويحجز المبلغ في
      * الدفتر (خروج من `available` ودخول إلى `locked`) في معاملة واحدة —
-     * فإمّا صفّ وقيود معًا أو لا شيء. لا صفّ سحبٍ بلا حجز، ولا حجز بلا صفّ.
+     * فإما صف وقيود معا أو لا شيء. لا صف سحب بلا حجز، ولا حجز بلا صف.
      */
     public function request_payout($user_id, $amount_halalas, $channel, $destination)
     {
@@ -590,19 +590,19 @@ class Taqdar_wallet_model extends CI_Model
             return $this->fail('DESTINATION', 'أدخل بيانات التحويل — لا نرسل طلب مال بقناة بلا وجهة.');
         }
         if ($channel === 'bank' && !preg_match('/^SA[0-9]{22}$/i', preg_replace('/\s+/', '', $dest))) {
-            return $this->fail('IBAN', 'الآيبان السعودي يبدأ بـ SA ويتكوّن من 24 خانة.');
+            return $this->fail('IBAN', 'الآيبان السعودي يبدأ بـ SA ويتكون من 24 خانة.');
         }
         if ($amount <= 0) {
-            return $this->fail('AMOUNT', 'أدخل مبلغًا أكبر من صفر.');
+            return $this->fail('AMOUNT', 'أدخل مبلغا أكبر من صفر.');
         }
 
         $min = $this->payout_min_halalas();
         if ($amount < $min) {
             return $this->fail('MIN_AMOUNT',
-                'الحدّ الأدنى للسحب ' . $this->sar($min) . ' ريال، والمطلوب ' . $this->sar($amount) . ' ريال.');
+                'الحد الأدنى للسحب ' . $this->sar($min) . ' ريال، والمطلوب ' . $this->sar($amount) . ' ريال.');
         }
 
-        // المتاح يُعاد حسابه من الدفتر داخل المعاملة، لا من عمود قد يكون بائتًا.
+        // المتاح يعاد حسابه من الدفتر داخل المعاملة، لا من عمود قد يكون بائتا.
         $this->sync($user_id);
         $wallet = $this->wallet_of($user_id);
         $wid    = $wallet['id'];
@@ -621,7 +621,7 @@ class Taqdar_wallet_model extends CI_Model
         $now = time();
         $this->db->insert('payout', array(
             'user_id'           => $user_id,
-            'payment_type'      => $channel,   // القناة تُكتب مع الطلب لا بعده
+            'payment_type'      => $channel,   // القناة تكتب مع الطلب لا بعده
             'destination'       => mb_substr($dest, 0, 190),
             'requested_channel' => $channel,
             'amount'            => $amount / 100, // مرآة الريالات لشاشات Academy
@@ -633,7 +633,7 @@ class Taqdar_wallet_model extends CI_Model
         $payout_id = (int) $this->db->insert_id();
         if (!$payout_id) {
             $this->db->trans_rollback();
-            return $this->fail('INTERNAL', 'تعذّر تسجيل طلب السحب، حاول مرّة أخرى.');
+            return $this->fail('INTERNAL', 'تعذر تسجيل طلب السحب، حاول مرة أخرى.');
         }
 
         $origin  = 'payout:' . $payout_id;
@@ -645,7 +645,7 @@ class Taqdar_wallet_model extends CI_Model
 
         if ($this->db->trans_status() === false) {
             $this->db->trans_rollback();
-            return $this->fail('INTERNAL', 'تعذّر تسجيل طلب السحب، حاول مرّة أخرى.');
+            return $this->fail('INTERNAL', 'تعذر تسجيل طلب السحب، حاول مرة أخرى.');
         }
         $this->db->trans_commit();
         $this->recompute($wid);
@@ -654,18 +654,18 @@ class Taqdar_wallet_model extends CI_Model
             'ok' => true, 'code' => 'OK', 'payout_id' => $payout_id,
             'amount_halalas' => $amount, 'channel' => $channel,
             'message' => 'استلمنا طلب سحب ' . $this->sar($amount) . ' ريال عبر '
-                       . self::$CHANNELS[$channel]['label'] . '، وحُجز المبلغ من رصيدك المتاح.',
+                       . self::$CHANNELS[$channel]['label'] . '، وحجز المبلغ من رصيدك المتاح.',
         );
     }
 
     /**
-     * محوّل لعقد `Taqdar::delegate()` — يمرّر المتحكّم (المعرّف، حمولة).
+     * محول لعقد `Taqdar::delegate()` — يمرر المتحكم (المعرف، حمولة).
      *
-     * المتحكّم يوقّع كل كتابةٍ بالتوقيع نفسه: `f($user_id, array $payload)`
+     * المتحكم يوقع كل كتابة بالتوقيع نفسه: `f($user_id, array $payload)`
      * ويعيد `['ok'=>..,'message'=>..]`. وهذا هو ذلك الباب إلى
-     * `request_payout` بلا أن يعرف المتحكّم شيئًا عن الدلاء ولا الهللات.
-     * الاسم مطابق لما يبحث عنه (`request_withdrawal`) فيكفي أن يُضاف
-     * `taqdar_wallet_model` إلى قائمة مرشّحيه.
+     * `request_payout` بلا أن يعرف المتحكم شيئا عن الدلاء ولا الهللات.
+     * الاسم مطابق لما يبحث عنه (`request_withdrawal`) فيكفي أن يضاف
+     * `taqdar_wallet_model` إلى قائمة مرشحيه.
      */
     public function request_withdrawal($user_id, $payload = array())
     {
@@ -684,7 +684,7 @@ class Taqdar_wallet_model extends CI_Model
         return $r;
     }
 
-    /** الاسم الثاني الذي يبحث عنه المتحكّم — البابان إلى الدالّة نفسها. */
+    /** الاسم الثاني الذي يبحث عنه المتحكم — البابان إلى الدالة نفسها. */
     public function wallet_withdraw($user_id, $payload = array())
     {
         return $this->request_withdrawal($user_id, $payload);
@@ -695,16 +695,16 @@ class Taqdar_wallet_model extends CI_Model
         return array_merge(array('ok' => false, 'code' => $code, 'message' => $message, 'payout_id' => 0), $extra);
     }
 
-    /** عرض الهللات ريالات في نصّ رسالة — حدّ عرض لا حساب. */
+    /** عرض الهللات ريالات في نص رسالة — حد عرض لا حساب. */
     private function sar($halalas)
     {
         return number_format(((int) $halalas) / 100, 2, '.', ',');
     }
 
     /**
-     * يصالح الدفتر مع جدول `payout` أيًّا كان من كتبه: هذا النموذج، أو
-     * متحكّم آخر، أو شاشة Academy القديمة. لكل صفّ سحب حجزُه، ولكلّ صفّ
-     * حُوِّل خروجُه، ولكلّ حجزٍ اختفى صفّه رجوعُه إلى المتاح.
+     * يصالح الدفتر مع جدول `payout` أيا كان من كتبه: هذا النموذج، أو
+     * متحكم آخر، أو شاشة Academy القديمة. لكل صف سحب حجزه، ولكل صف
+     * حول خروجه، ولكل حجز اختفى صفه رجوعه إلى المتاح.
      */
     public function reconcile_payouts($user_id)
     {
@@ -727,7 +727,7 @@ class Taqdar_wallet_model extends CI_Model
             if ($amount <= 0) continue;
 
             $ch      = $p['requested_channel'] ?: $p['payment_type'];
-            $label   = isset(self::$CHANNELS[$ch]) ? self::$CHANNELS[$ch]['label'] : 'قناة تُحدَّد مع الإدارة';
+            $label   = isset(self::$CHANNELS[$ch]) ? self::$CHANNELS[$ch]['label'] : 'قناة تحدد مع الإدارة';
             $subject = 'طلب سحب — ' . $label;
             $when    = $p['date_added'] ? $this->at((int) $p['date_added']) : $this->now();
 
@@ -742,7 +742,7 @@ class Taqdar_wallet_model extends CI_Model
             }
         }
 
-        // حجزٌ بقي بلا صفّ سحب — الطلب حُذف (`delete_withdrawal_request`).
+        // حجز بقي بلا صف سحب — الطلب حذف (`delete_withdrawal_request`).
         $orphans = $this->db->query(
             'SELECT e.`origin`, SUM(e.`amount`) net, MAX(e.`subject`) subject
                FROM `wallet_entries` e
@@ -763,7 +763,7 @@ class Taqdar_wallet_model extends CI_Model
         return $n;
     }
 
-    /** الإدارة حوّلت فعلًا: المال يغادر الدفتر من دلو الحجز. */
+    /** الإدارة حولت فعلا: المال يغادر الدفتر من دلو الحجز. */
     public function mark_payout_paid($payout_id, $payment_type = null)
     {
         $p = $this->db->where('id', (int) $payout_id)->get('payout')->row_array();
@@ -779,7 +779,7 @@ class Taqdar_wallet_model extends CI_Model
         return true;
     }
 
-    /** طلب رُفض أو أُلغي: المحجوز يعود إلى المتاح بقيدين. */
+    /** طلب رفض أو ألغي: المحجوز يعود إلى المتاح بقيدين. */
     public function cancel_payout($payout_id)
     {
         $p = $this->db->where('id', (int) $payout_id)->get('payout')->row_array();
@@ -809,7 +809,7 @@ class Taqdar_wallet_model extends CI_Model
      *  المصالحة الشاملة والترحيل
      * ================================================================ */
 
-    /** كل ما يجعل الدفتر مطابقًا للواقع، في نداء واحد متكرّر الأمان. */
+    /** كل ما يجعل الدفتر مطابقا للواقع، في نداء واحد متكرر الأمان. */
     public function sync($user_id)
     {
         $this->install_schema();
@@ -825,10 +825,10 @@ class Taqdar_wallet_model extends CI_Model
     }
 
     /**
-     * الترحيل: يبني الدفتر من `payment` القائم مرّة واحدة لكل من يملك
-     * كورسًا. متكرّر الأمان — إعادة تشغيله لا تضاعف قيدًا لأن كل قيد
+     * الترحيل: يبني الدفتر من `payment` القائم مرة واحدة لكل من يملك
+     * كورسا. متكرر الأمان — إعادة تشغيله لا تضاعف قيدا لأن كل قيد
      * بمفتاحه الفريد. وهو نفسه المسار الذي تسلكه المبيعات الجديدة
-     * (`sync`)، فلا منطق ترحيلٍ منفصل ينحرف عن منطق التشغيل.
+     * (`sync`)، فلا منطق ترحيل منفصل ينحرف عن منطق التشغيل.
      */
     public function migrate_all($echo = false)
     {
@@ -846,8 +846,8 @@ class Taqdar_wallet_model extends CI_Model
         foreach ($owners as $o) {
             $uid = (int) $o['id'];
 
-            // لا نفتح محفظة لمن لا مال له: صفٌّ صفريّ لكل من رُفعت عنه راية
-            // «معلّم» يومًا ما ضجيجٌ في جدول نقود، لا سجلّ.
+            // لا نفتح محفظة لمن لا مال له: صف صفري لكل من رفعت عنه راية
+            // «معلم» يوما ما ضجيج في جدول نقود، لا سجل.
             if (!$this->teacher_course_ids($uid)
                 && !$this->db->where('user_id', $uid)->count_all_results('payout')) {
                 $report['skipped']++;
@@ -904,9 +904,9 @@ class Taqdar_wallet_model extends CI_Model
      * ================================================================ */
 
     /**
-     * كشف الحساب من الدفتر: سطر لكل مستند بيع، فيه مبلغه وعمولته وحصّة
-     * المعلّم منه وحالته. الوصف مأخوذ من القيد لا من `course`، فبيعُ كورسٍ
-     * حُذف أو غُيِّر عنوانه يبقى مقروءًا في كشفه كما كان يوم وقع.
+     * كشف الحساب من الدفتر: سطر لكل مستند بيع، فيه مبلغه وعمولته وحصة
+     * المعلم منه وحالته. الوصف مأخوذ من القيد لا من `course`، فبيع كورس
+     * حذف أو غير عنوانه يبقى مقروءا في كشفه كما كان يوم وقع.
      */
     public function statement($wallet_id, $limit = 100)
     {
@@ -979,7 +979,7 @@ class Taqdar_wallet_model extends CI_Model
         return $out;
     }
 
-    /** طلبات السحب — مقيَّدة بمعرّف صاحبها، والوجهة مقنّعة إلّا آخرها. */
+    /** طلبات السحب — مقيدة بمعرف صاحبها، والوجهة مقنعة إلا آخرها. */
     public function payouts_of($user_id, $limit = 20)
     {
         $rows = $this->db->query(
@@ -1011,8 +1011,8 @@ class Taqdar_wallet_model extends CI_Model
     }
 
     /**
-     * كل ما تحتاجه شاشة المحفظة، من الدفتر وحده. تُصالح أوّلًا ثمّ تقرأ،
-     * فما يراه المعلّم هو حالة الدفتر بعد المصالحة لا قبلها.
+     * كل ما تحتاجه شاشة المحفظة، من الدفتر وحده. تصالح أولا ثم تقرأ،
+     * فما يراه المعلم هو حالة الدفتر بعد المصالحة لا قبلها.
      */
     public function screen($user_id)
     {
@@ -1042,17 +1042,17 @@ class Taqdar_wallet_model extends CI_Model
 
 
     /**
-     * يقيّد بيع مسار في محفظة معلّمه.
+     * يقيد بيع مسار في محفظة معلمه.
      *
-     * قيدان لا سطر صافٍ: `sale` بكامل المقبوض، ثمّ `commission` بما تأخذه
-     * المنصّة — فمجموعهما حصّةُ المعلّم **بحكم البناء**، ويبقى المقبوض
-     * الكامل ظاهرًا في كشفه بدل رقم صافٍ لا يُراجَع.
+     * قيدان لا سطر صاف: `sale` بكامل المقبوض، ثم `commission` بما تأخذه
+     * المنصة — فمجموعهما حصة المعلم **بحكم البناء**، ويبقى المقبوض
+     * الكامل ظاهرا في كشفه بدل رقم صاف لا يراجع.
      *
-     * الدلو `pending` حتى تمرّ نافذة الاسترداد، فتحرّره `release_matured()`
-     * كما تفعل ببقيّة المبيعات — لا آليّة ثانية توازيها.
+     * الدلو `pending` حتى تمر نافذة الاسترداد، فتحرره `release_matured()`
+     * كما تفعل ببقية المبيعات — لا آلية ثانية توازيها.
      *
-     * متكرّر الأمان: المفتاح `pathsub:<subscription_id>` فريد، فتفعيلٌ
-     * مكرّر لا يضاعف المال.
+     * متكرر الأمان: المفتاح `pathsub:<subscription_id>` فريد، فتفعيل
+     * مكرر لا يضاعف المال.
      *
      * @return array ok · teacher_share · platform_cut · wallet_id
      */
@@ -1063,7 +1063,7 @@ class Taqdar_wallet_model extends CI_Model
         $teacher_id = (int) $teacher_id;
         $gross      = (int) $gross_halalas;
         if ($teacher_id < 1 || $gross <= 0) {
-            return array("ok" => false, "errors" => array("لا معلّم للمسار أو لا مبلغ."));
+            return array("ok" => false, "errors" => array("لا معلم للمسار أو لا مبلغ."));
         }
 
         if ($share_percent === null || $share_percent === "") {
@@ -1071,7 +1071,7 @@ class Taqdar_wallet_model extends CI_Model
         }
         $share_percent = max(0, min(100, (float) $share_percent));
 
-        // التقريب مرّة واحدة، والباقي للمنصّة — فلا تضيع هللة ولا تُخترع
+        // التقريب مرة واحدة، والباقي للمنصة — فلا تضيع هللة ولا تخترع
         $teacher_share = (int) round($gross * $share_percent / 100);
         $platform_cut  = $gross - $teacher_share;
 

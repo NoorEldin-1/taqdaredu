@@ -1,6 +1,6 @@
 <?php
-    // بعض شاشات اللوحة تُحمّل القائمة دون تمرير page_name؛ نضبط قيمة افتراضية
-    // حتى لا يمتلئ السجلّ بمئات تحذيرات «Undefined variable $page_name» في PHP 8.
+    // بعض شاشات اللوحة تحمل القائمة دون تمرير page_name؛ نضبط قيمة افتراضية
+    // حتى لا يمتلئ السجل بمئات تحذيرات «Undefined variable $page_name» في PHP 8.
     $page_name = isset($page_name) ? $page_name : '';
     $status_wise_courses = $this->crud_model->get_status_wise_courses();
 ?>
@@ -19,12 +19,12 @@
     <!--- Sidemenu -->
     <ul class="metismenu side-nav side-nav-light">
 
-        <?php /* ===== منصّة تقدّر ===== */ ?>
-        <li class="side-nav-title side-nav-item">منصّة تقدّر</li>
+        <?php /* ===== منصة تقدر ===== */ ?>
+        <li class="side-nav-title side-nav-item">منصة تقدر</li>
 
         <li class="side-nav-item">
             <a href="<?php echo site_url('taqdar_admin/overview'); ?>" class="side-nav-link">
-                <i class="dripicons-meter"></i><span> نظرة عامّة </span>
+                <i class="dripicons-meter"></i><span> نظرة عامة </span>
             </a>
         </li>
 
@@ -55,8 +55,8 @@
                     <li><a href="<?php echo site_url('taqdar_admin/bindings'); ?>">ربط الأسئلة بالأهداف</a></li>
                     <li><a href="<?php echo site_url('taqdar_admin/module/assessments'); ?>">التقييمات</a></li>
                     <li><a href="<?php echo site_url('taqdar_admin/stats'); ?>">أرقام الموقع</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/bank'); ?>">بيانات التحويل البنكيّ</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/teachers'); ?>">طلبات المعلّمين</a></li>
+                    <li><a href="<?php echo site_url('taqdar_admin/bank'); ?>">بيانات التحويل البنكي</a></li>
+                    <li><a href="<?php echo site_url('taqdar_admin/teachers'); ?>">طلبات المعلمين</a></li>
                     <li><a href="<?php echo site_url('taqdar_admin/module/competitions'); ?>">المسابقات</a></li>
                 </ul>
             </div>
@@ -69,7 +69,7 @@
             </a>
             <div class="collapse" id="tqa-people">
                 <ul class="side-nav-second-level">
-                    <li><a href="<?php echo site_url('taqdar_admin/module/teacher_assignments'); ?>">إسناد المعلّمين</a></li>
+                    <li><a href="<?php echo site_url('taqdar_admin/module/teacher_assignments'); ?>">إسناد المعلمين</a></li>
                     <li><a href="<?php echo site_url('taqdar_admin/module/parent_links'); ?>">روابط أولياء الأمور</a></li>
                 </ul>
             </div>
@@ -88,7 +88,7 @@
                     <li><a href="<?php echo site_url('taqdar_admin/module/wallets'); ?>">المحافظ</a></li>
                     <li><a href="<?php echo site_url('taqdar_admin/module/wallet_entries'); ?>">قيود المحافظ</a></li>
                     <li><a href="<?php echo site_url('taqdar_admin/mail'); ?>">البريد الصادر</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/module/audit_log'); ?>">سجلّ التدقيق</a></li>
+                    <li><a href="<?php echo site_url('taqdar_admin/module/audit_log'); ?>">سجل التدقيق</a></li>
                 </ul>
             </div>
         </li>

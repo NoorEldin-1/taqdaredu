@@ -101,8 +101,8 @@ var __webpack_exports__ = {};
         h6: 'عنوان رئيسي 6'
       },
       lists: {
-        unordered: 'قائمة مُنقطة',
-        ordered: 'قائمة مُرقمة'
+        unordered: 'قائمة منقطة',
+        ordered: 'قائمة مرقمة'
       },
       options: {
         help: 'مساعدة',
@@ -153,8 +153,8 @@ var __webpack_exports__ = {};
         'justifyCenter': 'محاذاة توسيط',
         'justifyRight': 'محاذاة لليمين',
         'justifyFull': 'محاذاة كاملة',
-        'insertUnorderedList': 'قائمة منقّطة',
-        'insertOrderedList': 'قائمة مرقّمة',
+        'insertUnorderedList': 'قائمة منقطة',
+        'insertOrderedList': 'قائمة مرقمة',
         'outdent': 'إزاحة للأمام على الفقرة الحالية',
         'indent': 'إزاحة للخلف على الفقرة الحالية',
         'formatPara': 'تغيير التنسيق للكتلة الحالية إلى فقرة',

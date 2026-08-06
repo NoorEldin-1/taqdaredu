@@ -5,19 +5,19 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  * شاشات الطالب — طبقة البيانات.
  *
  * كل ما يمكن وصله بقاعدة taqd_lms موصول هنا، ومصدره واحد لكل الشاشات
- * حتى لا يختلف رقمٌ بين شاشة وأخرى. وما لا مصدر له بعد لا يُخترع:
- * الدالّة تُرجع مصفوفة فارغة، والشاشة تعرض حالتها الفارغة.
+ * حتى لا يختلف رقم بين شاشة وأخرى. وما لا مصدر له بعد لا يخترع:
+ * الدالة ترجع مصفوفة فارغة، والشاشة تعرض حالتها الفارغة.
  *
  * جداول موصولة: enrol · course · lesson · section · watch_histories ·
  * watched_duration · quiz_results · question · category · resource_files ·
  * notifications · message.
  *
- * بلا مصدر بعد: البرامج والأهداف · المهامّ (لا جدول واجبات) ·
- * حصص بالطلب (لا جدول إتاحة/حجز/تسعير) · الاختبارات كنوع مستقلّ مجدول.
+ * بلا مصدر بعد: البرامج والأهداف · المهام (لا جدول واجبات) ·
+ * حصص بالطلب (لا جدول إتاحة/حجز/تسعير) · الاختبارات كنوع مستقل مجدول.
  */
 
 if (!function_exists('tq_s_ts')) {
-    /** Academy يخزّن الأوقات نصًّا: طابعًا زمنيًّا أحيانًا وتاريخًا أحيانًا. */
+    /** Academy يخزن الأوقات نصا: طابعا زمنيا أحيانا وتاريخا أحيانا. */
     function tq_s_ts($value)
     {
         $v = trim((string) $value);
@@ -29,7 +29,7 @@ if (!function_exists('tq_s_ts')) {
 }
 
 if (!function_exists('tq_s_uid')) {
-    /** الطالب الحالي — صفر يعني زائرًا، فتُعرض حالة «سجّل دخولك». */
+    /** الطالب الحالي — صفر يعني زائرا، فتعرض حالة «سجل دخولك». */
     function tq_s_uid()
     {
         $CI = get_instance();
@@ -38,7 +38,7 @@ if (!function_exists('tq_s_uid')) {
 }
 
 if (!function_exists('tq_s_counts')) {
-    /** عدّادات القائمة والترويسة — من الجداول لا من ثوابت مكتوبة. */
+    /** عدادات القائمة والترويسة — من الجداول لا من ثوابت مكتوبة. */
     function tq_s_counts($uid)
     {
         $CI = get_instance();
@@ -54,9 +54,9 @@ if (!function_exists('tq_s_counts')) {
 
 if (!function_exists('tq_s_enrolled')) {
     /**
-     * الكورسات المسجَّلة مع تقدّمها الحقيقي.
-     * التقدّم من watch_histories، وعدد الدروس ومددها من lesson،
-     * وموضع التوقّف من watching_lesson_id — وهو ما يعيد زرّ «استكمل التعلّم»
+     * الكورسات المسجلة مع تقدمها الحقيقي.
+     * التقدم من watch_histories، وعدد الدروس ومددها من lesson،
+     * وموضع التوقف من watching_lesson_id — وهو ما يعيد زر «استكمل التعلم»
      * الطالب إليه بالضبط لا إلى أول الكورس.
      */
     function tq_s_enrolled($uid)
@@ -80,7 +80,7 @@ if (!function_exists('tq_s_enrolled')) {
 
         $ids = array_map('intval', array_column($courses, 'id'));
 
-        // مدّة الدرس نصّ «hh:mm:ss» فلا تُجمع في SQL — تُجمع بعد التحويل.
+        // مدة الدرس نص «hh:mm:ss» فلا تجمع في SQL — تجمع بعد التحويل.
         $lessons = $CI->db->select('id, course_id, duration, lesson_type')
             ->from('lesson')->where_in('course_id', $ids)->get()->result_array();
 
@@ -139,7 +139,7 @@ if (!function_exists('tq_s_enrolled')) {
 }
 
 if (!function_exists('tq_s_categories')) {
-    /** المواد — من جدول category، وتُستعمل تسميةً في التصفية والتصنيف. */
+    /** المواد — من جدول category، وتستعمل تسمية في التصفية والتصنيف. */
     function tq_s_categories()
     {
         static $cache = null;
@@ -153,7 +153,7 @@ if (!function_exists('tq_s_categories')) {
 }
 
 if (!function_exists('tq_s_subject')) {
-    /** اسم المادة لكورس: تصنيفه إن وُجد، وإلّا عنوانه. */
+    /** اسم المادة لكورس: تصنيفه إن وجد، وإلا عنوانه. */
     function tq_s_subject($category_id, $fallback = '')
     {
         $cats = tq_s_categories();
@@ -163,10 +163,10 @@ if (!function_exists('tq_s_subject')) {
 
 if (!function_exists('tq_s_subject_tutors')) {
     /**
-     * المواد وعدد معلّميها.
-     * المصدر الحقيقي الوحيد اليوم: معلّمو الكورسات المنشورة في كل تصنيف
-     * (course.user_id مجمَّعًا على category_id). وهو عدد معلّمي المادة،
-     * لا عدد المتاحين الآن — فالإتاحة لا جدول لها بعد، ولا تُدَّعى.
+     * المواد وعدد معلميها.
+     * المصدر الحقيقي الوحيد اليوم: معلمو الكورسات المنشورة في كل تصنيف
+     * (course.user_id مجمعا على category_id). وهو عدد معلمي المادة،
+     * لا عدد المتاحين الآن — فالإتاحة لا جدول لها بعد، ولا تدعى.
      */
     function tq_s_subject_tutors($limit = 5)
     {
@@ -192,10 +192,10 @@ if (!function_exists('tq_s_subject_tutors')) {
 
 if (!function_exists('tq_s_quizzes')) {
     /**
-     * الاختبارات: درس من نوع quiz في كورس مسجَّل.
-     * حالته من quiz_results — بلا نتيجة «قادم»، وبنتيجة غير مُسلَّمة «جارٍ»،
-     * وبنتيجة مُسلَّمة «منتهٍ». وهذا كل ما تعرفه القاعدة اليوم:
-     * لا موعد بدء ولا مدّة مجدولة، فلا تُعرض مواعيد مخترَعة.
+     * الاختبارات: درس من نوع quiz في كورس مسجل.
+     * حالته من quiz_results — بلا نتيجة «قادم»، وبنتيجة غير مسلمة «جار»،
+     * وبنتيجة مسلمة «منته». وهذا كل ما تعرفه القاعدة اليوم:
+     * لا موعد بدء ولا مدة مجدولة، فلا تعرض مواعيد مخترعة.
      */
     function tq_s_quizzes($uid)
     {
@@ -242,7 +242,7 @@ if (!function_exists('tq_s_quizzes')) {
             $state = 'upcoming';
             if ($res !== null) $state = ((int) $res['is_submitted'] === 1) ? 'done' : 'live';
 
-            /* الحجب عند المصدر: من هنا تُغذّى كل شاشة، فلا تُنسى واحدة. */
+            /* الحجب عند المصدر: من هنا تغذى كل شاشة، فلا تنسى واحدة. */
             $CI->load->model('taqdar_marking_model');
             $sv = $res !== null
                 ? $CI->taqdar_marking_model->student_view($res)
@@ -280,8 +280,8 @@ if (!function_exists('tq_s_quizzes')) {
 
 if (!function_exists('tq_s_materials')) {
     /**
-     * المواد التعليمية: ملفّات الدروس (resource_files) ومرفقات الدروس،
-     * في الكورسات المسجَّلة وحدها. الحجم من القرص إن كان الملفّ موجودًا.
+     * المواد التعليمية: ملفات الدروس (resource_files) ومرفقات الدروس،
+     * في الكورسات المسجلة وحدها. الحجم من القرص إن كان الملف موجودا.
      */
     function tq_s_materials($uid)
     {
@@ -351,8 +351,8 @@ if (!function_exists('tq_s_materials')) {
 
 if (!function_exists('tq_s_deadlines')) {
     /**
-     * المواعيد القادمة: نهايات الوحدات المقيَّدة بتاريخ في الكورسات المسجَّلة.
-     * وهو الموعد الوحيد الذي تعرفه القاعدة اليوم — ولا موعد سواه يُعرض.
+     * المواعيد القادمة: نهايات الوحدات المقيدة بتاريخ في الكورسات المسجلة.
+     * وهو الموعد الوحيد الذي تعرفه القاعدة اليوم — ولا موعد سواه يعرض.
      */
     function tq_s_deadlines($uid, $limit = 5)
     {
@@ -387,10 +387,10 @@ if (!function_exists('tq_s_deadlines')) {
 
 if (!function_exists('tq_s_activity')) {
     /**
-     * أرقام التقدّم.
+     * أرقام التقدم.
      * ساعات الدراسة من watched_duration، والدروس المكتملة من watch_histories،
-     * ومتوسط الدرجات من quiz_results. والمقارنة بالأسبوع الماضي تُحسب فقط حيث
-     * يوجد طابع زمني للحدث — ولا تُخمَّن حيث لا يوجد ('has_delta' => false).
+     * ومتوسط الدرجات من quiz_results. والمقارنة بالأسبوع الماضي تحسب فقط حيث
+     * يوجد طابع زمني للحدث — ولا تخمن حيث لا يوجد ('has_delta' => false).
      */
     function tq_s_activity($uid)
     {
@@ -432,7 +432,7 @@ if (!function_exists('tq_s_activity')) {
             );
         }
 
-        // السلسلة تحتاج سجلّ نشاط يومي، ولا جدول له في القاعدة بعد.
+        // السلسلة تحتاج سجل نشاط يومي، ولا جدول له في القاعدة بعد.
         $out['streak'] = 0;
         $out['has_streak_source'] = false;
 
@@ -441,7 +441,7 @@ if (!function_exists('tq_s_activity')) {
 }
 
 if (!function_exists('tq_s_resume')) {
-    /** آخر موضع بالضبط: الكورس الأحدث نشاطًا والدرس الذي توقّف عنده. */
+    /** آخر موضع بالضبط: الكورس الأحدث نشاطا والدرس الذي توقف عنده. */
     function tq_s_resume($uid)
     {
         $courses = tq_s_enrolled($uid);
@@ -455,7 +455,7 @@ if (!function_exists('tq_s_resume')) {
 }
 
 if (!function_exists('tq_s_lesson_url')) {
-    /** رابط تشغيل درس داخل بوّابة تقدّر. */
+    /** رابط تشغيل درس داخل بوابة تقدر. */
     function tq_s_lesson_url($course_id, $lesson_id = 0)
     {
         $p = 'student/lesson/' . (int) $course_id;

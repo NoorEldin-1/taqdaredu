@@ -6,8 +6,8 @@
     $logged_in_user_role = strtolower($this->session->userdata('role'));
 ?>
 <?php
-    /* الاتجاه نتيجة للّغة لا إعداد مستقلّ — نفس قاعدة الواجهة الأمامية.
-       وصنف `tqa` على body هو ما تتعلّق به طبقة هوية تقدّر، فلا تُعدَّل
+    /* الاتجاه نتيجة للغة لا إعداد مستقل — نفس قاعدة الواجهة الأمامية.
+       وصنف `tqa` على body هو ما تتعلق به طبقة هوية تقدر، فلا تعدل
        أي شاشة من التسعين شاشة القديمة. */
     $tqa_lang = get_settings('language') ?: 'arabic';
     $tqa_dirs = json_decode(get_settings('language_dirs') ?: '{}', true);

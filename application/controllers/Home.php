@@ -1468,8 +1468,8 @@ class Home extends CI_Controller
 
     public function page_not_found()
     {
-        // صفحة الخطأ كانت تُرجع 200، فتُفهرِسها محرّكات البحث ويعمى عنها
-        // كل فحص آلي: رابط مكسور يبدو ناجحًا. الحالة الآن 404 حقيقية.
+        // صفحة الخطأ كانت ترجع 200، فتفهرسها محركات البحث ويعمى عنها
+        // كل فحص آلي: رابط مكسور يبدو ناجحا. الحالة الآن 404 حقيقية.
         $this->output->set_status_header(404);
         $page_data['page_name'] = '404';
         $page_data['page_title'] = site_phrase('404 not found');

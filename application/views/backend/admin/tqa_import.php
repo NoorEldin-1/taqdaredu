@@ -15,10 +15,10 @@ if ($preview) {
 <div class="tqa-head">
     <div>
         <h1>استيراد المنهج</h1>
-        <p>المواد والصفوف والمسارات دفعةً واحدة من ملفّ، بدل إدخالها صفًّا صفًّا.</p>
+        <p>المواد والصفوف والمسارات دفعة واحدة من ملف، بدل إدخالها صفا صفا.</p>
     </div>
     <a class="btn btn-secondary" href="<?php echo site_url('taqdar_admin/import_template'); ?>">
-        نزّل ملفًّا نموذجيًّا
+        نزل ملفا نموذجيا
     </a>
 </div>
 
@@ -27,25 +27,25 @@ if ($preview) {
 <?php if (!$preview): ?>
 
     <div class="tqa-note">
-        <strong>صفٌّ واحد = مسار واحد.</strong>
-        المادة والصفّ يُنشآن تلقائيًّا إن لم يكونا موجودين، فلا حاجة إلى ملفّات ثلاثة ولا إلى ربط معرّفات بيدك.
+        <strong>صف واحد = مسار واحد.</strong>
+        المادة والصف ينشآن تلقائيا إن لم يكونا موجودين، فلا حاجة إلى ملفات ثلاثة ولا إلى ربط معرفات بيدك.
         <br>
-        و<strong>لا يُكتب شيء قبل أن تراه</strong>: يُقرأ الملفّ ويُفحص وتُعرض النتيجة، ثمّ تؤكّد.
+        و<strong>لا يكتب شيء قبل أن تراه</strong>: يقرأ الملف ويفحص وتعرض النتيجة، ثم تؤكد.
     </div>
 
     <div class="row">
         <div class="col-lg-7">
             <div class="card">
-                <div class="card-header"><h4 class="header-title">اختر الملفّ</h4></div>
+                <div class="card-header"><h4 class="header-title">اختر الملف</h4></div>
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data"
                           action="<?php echo site_url('taqdar_admin/import_preview'); ?>">
                         <div class="tqa-field">
-                            <label for="f">ملفّ CSV أو JSON</label>
+                            <label for="f">ملف CSV أو JSON</label>
                             <input class="form-control" type="file" id="f" name="curriculum"
                                    accept=".csv,.json" required>
                             <small class="tqa-hint">
-                                يُقبل الفاصل «,» أو «؛»، والترميز UTF-8. الحدّ الأقصى <span class="tq-ltr" dir="ltr">2</span> ميغابايت.
+                                يقبل الفاصل «,» أو «؛»، والترميز UTF-8. الحد الأقصى <span class="tq-ltr" dir="ltr">2</span> ميغابايت.
                             </small>
                         </div>
                         <div class="tqa-actions">
@@ -75,7 +75,7 @@ if ($preview) {
                         </tbody>
                     </table>
                     <small class="tqa-hint" style="margin-block-start:var(--tq-space-m)">
-                        الأسماء الإنجليزية مقبولة أيضًا (<span class="tq-ltr" dir="ltr">subject, grade, title…</span>).
+                        الأسماء الإنجليزية مقبولة أيضا (<span class="tq-ltr" dir="ltr">subject, grade, title…</span>).
                     </small>
                 </div>
             </div>
@@ -101,8 +101,8 @@ if ($preview) {
 
     <?php if ($err_n): ?>
         <div class="tqa-note">
-            الصفوف المرفوضة <strong>تُترك ولا تُوقف غيرها</strong> — تُكتب السليمة وحدها،
-            فتُصحّح المرفوض وتُعيد الاستيراد. وإعادة الاستيراد <strong>تُحدّث ولا تُكرّر</strong>.
+            الصفوف المرفوضة <strong>تترك ولا توقف غيرها</strong> — تكتب السليمة وحدها،
+            فتصحح المرفوض وتعيد الاستيراد. وإعادة الاستيراد <strong>تحدث ولا تكرر</strong>.
         </div>
     <?php endif; ?>
 
@@ -114,7 +114,7 @@ if ($preview) {
                     <thead>
                         <tr>
                             <th>السطر</th><th>المسار</th><th>المادة</th><th>الصف</th>
-                            <th>السعر</th><th>النسبة</th><th>المعلّم</th><th>الحالة</th><th>الأثر</th>
+                            <th>السعر</th><th>النسبة</th><th>المعلم</th><th>الحالة</th><th>الأثر</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -138,10 +138,10 @@ if ($preview) {
                                     : '<span class="tqa-dim">افتراضي</span>'; ?></td>
                             <td><?php echo $r['teacher'] ? '<span class="tq-ltr" dir="ltr">' . html_escape($r['teacher']) . '</span>' : '<span class="tqa-dim">—</span>'; ?></td>
                             <td><span class="badge badge-<?php echo $r['status'] === 'published' ? 'success' : 'warning'; ?>">
-                                <?php echo $r['status'] === 'published' ? 'منشور' : 'مسودّة'; ?></span></td>
+                                <?php echo $r['status'] === 'published' ? 'منشور' : 'مسودة'; ?></span></td>
                             <td>
                                 <?php if (!empty($r['errors'])): ?>
-                                    <span class="tqa-dim">يُتجاوَز</span>
+                                    <span class="tqa-dim">يتجاوز</span>
                                 <?php else: ?>
                                     <?php echo $r['action'] === 'update' ? 'تحديث' : 'إنشاء'; ?>
                                 <?php endif; ?>
@@ -155,7 +155,7 @@ if ($preview) {
             <div class="tqa-actions">
                 <form method="post" action="<?php echo site_url('taqdar_admin/import_commit'); ?>" class="d-inline">
                     <button type="submit" class="btn btn-primary" <?php echo $ok_n ? '' : 'disabled'; ?>>
-                        اكتب <span class="tq-ltr" dir="ltr"><?php echo (int) $ok_n; ?></span> صفًّا
+                        اكتب <span class="tq-ltr" dir="ltr"><?php echo (int) $ok_n; ?></span> صفا
                     </button>
                 </form>
                 <a class="btn btn-secondary" href="<?php echo site_url('taqdar_admin/import'); ?>">إلغاء</a>

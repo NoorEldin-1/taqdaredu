@@ -1,23 +1,23 @@
-/* وسمٌ يقول «الجافاسكربت يعمل».
-   تُبنى عليه إخفاءات الحركة: ما لم يصل هذا السطر بقي المحتوى مرئيًّا. */
+/* وسم يقول «الجافاسكربت يعمل».
+   تبنى عليه إخفاءات الحركة: ما لم يصل هذا السطر بقي المحتوى مرئيا. */
 document.documentElement.classList.add('js');
 
-/* منصّة تقدّر — سلوك الموقع.
-   ملفّ واحد يخدم الثمان صفحات، وكل كتلة تخرج بهدوء إذا لم تجد عناصرها،
-   فالصفحة التي لا تحتوي أكورديون أو فلاتر لا تتأثّر.
-   كل ما هو حركي يتوقّف تحت prefers-reduced-motion. */
+/* منصة تقدر — سلوك الموقع.
+   ملف واحد يخدم الثمان صفحات، وكل كتلة تخرج بهدوء إذا لم تجد عناصرها،
+   فالصفحة التي لا تحتوي أكورديون أو فلاتر لا تتأثر.
+   كل ما هو حركي يتوقف تحت prefers-reduced-motion. */
 (function () {
   'use strict';
 
   var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  /* نفس عتبة CSS: افتراقهما يُنتج سلوكًا لا يفسّره أحد. */
+  /* نفس عتبة CSS: افتراقهما ينتج سلوكا لا يفسره أحد. */
   var tqMobile = window.matchMedia('(max-width:980px)').matches;
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) {
     return Array.prototype.slice.call((r || document).querySelectorAll(s));
   };
 
-  /* ---------- الهيدر: شفاف فوق الهيرو، ثم يصير سطحًا عند النزول ---------- */
+  /* ---------- الهيدر: شفاف فوق الهيرو، ثم يصير سطحا عند النزول ---------- */
   var header = $('#header');
   if (header) {
     var ticking = false;
@@ -39,10 +39,10 @@ document.documentElement.classList.add('js');
   if (header && toggle && nav) {
     var setMenu = function (open) {
       header.classList.toggle('is-open', open);
-      /* قفل التمرير خلف القائمة: بدونه يمرّر الإصبعُ الصفحةَ تحتها،
-         فتُغلق القائمة على محتوًى غير الذي فُتحت فوقه.
+      /* قفل التمرير خلف القائمة: بدونه يمرر الإصبع الصفحة تحتها،
+         فتغلق القائمة على محتوى غير الذي فتحت فوقه.
          و`position:fixed` على الجسم يقفز بالصفحة إلى أعلاها في iOS،
-         فيُحفظ الموضع ويُعاد. */
+         فيحفظ الموضع ويعاد. */
       var doc = document.documentElement;
       if (open) {
         doc.dataset.tqScroll = String(window.scrollY);
@@ -71,10 +71,10 @@ document.documentElement.classList.add('js');
   /* ---------- دخول العناصر: 320ms مع تتابع 60ms داخل المجموعة الواحدة ---------- */
   var items = $$('.reveal');
 
-  /* TQ-CAROUSEL-SKIP — بطاقات المسار الأفقيّ تظهر فورًا.
-     مستطيل التقاطع يُقصّ بالحاويات ذات `overflow`، فالبطاقة الخارجة
-     أفقيًّا **لا تتقاطع أبدًا** وتبقى شفّافة حتى يسحبها المستخدم — ثمّ
-     تظهر متأخّرة. فالمراقِب هنا لا يؤخّر الظهور، بل يمنعه. */
+  /* TQ-CAROUSEL-SKIP — بطاقات المسار الأفقي تظهر فورا.
+     مستطيل التقاطع يقص بالحاويات ذات `overflow`، فالبطاقة الخارجة
+     أفقيا **لا تتقاطع أبدا** وتبقى شفافة حتى يسحبها المستخدم — ثم
+     تظهر متأخرة. فالمراقب هنا لا يؤخر الظهور، بل يمنعه. */
   items = items.filter(function (el) {
     if (el.closest('.carousel')) { el.classList.add('is-in'); return false; }
     return true;
@@ -83,7 +83,7 @@ document.documentElement.classList.add('js');
   if (calm || tqMobile || !('IntersectionObserver' in window)) {
     items.forEach(function (el) { el.classList.add('is-in'); });
   } else {
-    // التتابع يُحسب داخل الحاوية المباشرة، فصفّ الكروت يتدرّج ولا تتدرّج الصفحة كلّها.
+    // التتابع يحسب داخل الحاوية المباشرة، فصف الكروت يتدرج ولا تتدرج الصفحة كلها.
     var seen = new WeakMap();
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
@@ -101,7 +101,7 @@ document.documentElement.classList.add('js');
     items.forEach(function (el) { io.observe(el); });
   }
 
-  /* ---------- باراللاكس خفيف جدًّا على الفوانيس والهالات ---------- */
+  /* ---------- باراللاكس خفيف جدا على الفوانيس والهالات ---------- */
   if (!calm) {
     var floaters = $$('.lantern, .bg-glow');
     if (floaters.length && !tqMobile) {
@@ -112,7 +112,7 @@ document.documentElement.classList.add('js');
         requestAnimationFrame(function () {
           var y = window.scrollY;
           floaters.forEach(function (el, i) {
-            // ≤ 8px إزاحة: يُحسّ ولا يُلاحَظ.
+            // ≤ 8px إزاحة: يحس ولا يلاحظ.
             el.style.setProperty('--drift', (y * (i % 2 ? 0.014 : -0.011)).toFixed(2) + 'px');
             el.style.translate = '0 var(--drift)';
           });
@@ -122,7 +122,7 @@ document.documentElement.classList.add('js');
     }
   }
 
-  /* ---------- عدّادات الأرقام ---------- */
+  /* ---------- عدادات الأرقام ---------- */
   var counters = $$('[data-count]');
   if (counters.length) {
     var fmt = function (n) { return n.toLocaleString('en-US'); };
@@ -135,7 +135,7 @@ document.documentElement.classList.add('js');
       var dur = 1100;
       var step = function (now) {
         var t = Math.min(1, (now - start) / dur);
-        // easeOutCubic — يبدأ سريعًا ويستقرّ، فالرقم يُقرأ قبل أن يتوقّف
+        // easeOutCubic — يبدأ سريعا ويستقر، فالرقم يقرأ قبل أن يتوقف
         var v = target * (1 - Math.pow(1 - t, 3));
         el.textContent = pre + fmt(Math.round(v)) + post;
         if (t < 1) requestAnimationFrame(step);
@@ -150,7 +150,7 @@ document.documentElement.classList.add('js');
         entries.forEach(function (e) {
           if (!e.isIntersecting) return;
           run(e.target);
-          cio.unobserve(e.target);          // مرّة واحدة فقط
+          cio.unobserve(e.target);          // مرة واحدة فقط
         });
       }, { threshold: 0.4 });
       counters.forEach(function (el) { cio.observe(el); });
@@ -172,10 +172,10 @@ document.documentElement.classList.add('js');
 
   /* ---------- الكاروسل ----------
      مزلقان مقيسان في RTL:
-     1) `scrollBy({left})` بالبكسل الفيزيائي لا المنطقي — المحتوى ممتدّ يسارًا،
-        فالتقدّم يحتاج قيمة **سالبة**. لذلك ضربُ الخطوة في إشارة الاتجاه.
+     1) `scrollBy({left})` بالبكسل الفيزيائي لا المنطقي — المحتوى ممتد يسارا،
+        فالتقدم يحتاج قيمة **سالبة**. لذلك ضرب الخطوة في إشارة الاتجاه.
      2) `scroll-behavior:smooth` في CSS يبتلع scrollBy البرمجي مع scroll-snap
-        (قيست: صفر حركة). فالسلاسة تُمرَّر في الاستدعاء لا في الورقة.
+        (قيست: صفر حركة). فالسلاسة تمرر في الاستدعاء لا في الورقة.
      و`scrollLeft` نفسه سالب، فحساب الأطراف بالقيمة المطلقة. */
   $$('.carousel').forEach(function (car) {
     var track = $('.carousel__track, .grid-4, .grid-5', car);
@@ -192,8 +192,8 @@ document.documentElement.classList.add('js');
       return card ? (card.getBoundingClientRect().width + gap) * 2 : track.clientWidth * 0.8;
     };
 
-    /* هامش الطرف: `scroll-snap` يستقرّ عند |scrollLeft|=5 لا 0 (قيست) بسبب
-       حشوة المسار، فعتبة 4px كانت تُبقي «السابق» مفعّلًا في البداية. و12 تظلّ
+    /* هامش الطرف: `scroll-snap` يستقر عند |scrollLeft|=5 لا 0 (قيست) بسبب
+       حشوة المسار، فعتبة 4px كانت تبقي «السابق» مفعلا في البداية. و12 تظل
        أصغر بكثير من خطوة البطاقة (≈610px) فلا تبتلع تمريرة حقيقية. */
     var EDGE = 12;
     var sync = function () {
@@ -214,14 +214,14 @@ document.documentElement.classList.add('js');
 
     track.addEventListener('scroll', sync, { passive: true });
     window.addEventListener('resize', sync);
-    // بعد الفلترة يتغيّر عدد البطاقات فيتغيّر scrollWidth
+    // بعد الفلترة يتغير عدد البطاقات فيتغير scrollWidth
     car.addEventListener('tq:filtered', sync);
     sync();
   });
 
-  /* ---------- الكتالوج: فئة واحدة تفلتر المواد والكتب فعليًّا ----------
-     كان الاختيار سابقًا يبدّل نصّ العنوان فقط ولا يمسّ أي بطاقة. الفلترة الآن
-     على البيانات التي يولّدها البنّاء من catalog.json (data-cat على كل بطاقة). */
+  /* ---------- الكتالوج: فئة واحدة تفلتر المواد والكتب فعليا ----------
+     كان الاختيار سابقا يبدل نص العنوان فقط ولا يمس أي بطاقة. الفلترة الآن
+     على البيانات التي يولدها البناء من catalog.json (data-cat على كل بطاقة). */
   var catPicker = $('#catPicker');
   if (catPicker) {
     var catTitle = $('#catalogTitle');
@@ -244,7 +244,7 @@ document.documentElement.classList.add('js');
       }
     };
 
-    // نفس المنتقي يخدم صفحتَي المسارات والكتب؛ العنوان يتبع الشبكة الموجودة فعلًا
+    // نفس المنتقي يخدم صفحتي المسارات والكتب؛ العنوان يتبع الشبكة الموجودة فعلا
     var noun = $('#bookGrid') && !$('#materialGrid') ? 'كتب ' : 'مواد ';
     var allLabel = noun === 'كتب ' ? 'جميع الكتب' : 'جميع المواد والمسارات';
 
@@ -275,11 +275,11 @@ document.documentElement.classList.add('js');
       });
       applyCat(card.dataset.cat, (card.querySelector('b') || {}).textContent || '');
 
-      /* النتيجة المفلترة تصير عنوانًا يُشارَك ويُحفظ وينجو من التحديث.
-         القارئ يقرأ `?cat=` أصلًا عند التحميل — فكان نصف الطريق مبنيًّا
-         والنصف الآخر مفقودًا. و`replaceState` لا `pushState`: الفلترة
-         ليست صفحةً جديدة، وزرّ الرجوع يجب أن يخرج من الصفحة لا أن
-         يتراجع خطوةً خطوةً في المرشّحات. */
+      /* النتيجة المفلترة تصير عنوانا يشارك ويحفظ وينجو من التحديث.
+         القارئ يقرأ `?cat=` أصلا عند التحميل — فكان نصف الطريق مبنيا
+         والنصف الآخر مفقودا. و`replaceState` لا `pushState`: الفلترة
+         ليست صفحة جديدة، وزر الرجوع يجب أن يخرج من الصفحة لا أن
+         يتراجع خطوة خطوة في المرشحات. */
       var u = new URL(location.href);
       if (card.dataset.cat) u.searchParams.set('cat', card.dataset.cat);
       else u.searchParams.delete('cat');
@@ -326,7 +326,7 @@ document.documentElement.classList.add('js');
     [search, stageSel, sortSel].forEach(function (el) {
       if (el) el.addEventListener('input', apply);
     });
-    // البحث في الهيدر يغذّي حقل الدليل نفسه بدل أن يكون فلترًا ثانيًا مستقلًّا
+    // البحث في الهيدر يغذي حقل الدليل نفسه بدل أن يكون فلترا ثانيا مستقلا
     if (headerSearch && search) {
       headerSearch.addEventListener('input', function () {
         search.value = headerSearch.value;
@@ -335,7 +335,7 @@ document.documentElement.classList.add('js');
     }
   }
 
-  /* ---------- المدوّنة: تصنيفات وبحث ---------- */
+  /* ---------- المدونة: تصنيفات وبحث ---------- */
   var postGrid = $('#postGrid');
   if (postGrid) {
     var posts = $$('[data-cat]').filter(function (el) {
@@ -371,15 +371,15 @@ document.documentElement.classList.add('js');
     if (postSearch) postSearch.addEventListener('input', applyPosts);
   }
 
-  /* ---------- النماذج: تحقّق محلّي ثم حالة نجاح ---------- */
+  /* ---------- النماذج: تحقق محلي ثم حالة نجاح ---------- */
   $$('form[data-validate]').forEach(function (form) {
     var ok = form.parentElement.querySelector('[data-ok]');
 
     form.addEventListener('submit', function (e) {
-      /* TQ-GATE — المنع يُقرَّر بعد التحقّق لا قبله.
-         كان هنا منعٌ غير مشروط من مرحلة العرض التصميميّ، وبقي بعد
-         ربط النموذج بالخادم — فكل رسالة تُكتب تُمسح ويُقال لصاحبها
-         «تمّ استلام رسالتك». الترتيب الصحيح أدناه. */
+      /* TQ-GATE — المنع يقرر بعد التحقق لا قبله.
+         كان هنا منع غير مشروط من مرحلة العرض التصميمي، وبقي بعد
+         ربط النموذج بالخادم — فكل رسالة تكتب تمسح ويقال لصاحبها
+         «تم استلام رسالتك». الترتيب الصحيح أدناه. */
       var bad = null;
 
       $$('input, textarea, select', form).forEach(function (f) {
@@ -396,7 +396,7 @@ document.documentElement.classList.add('js');
 
       if (bad) { e.preventDefault(); bad.focus(); return; }
 
-      /* نموذجٌ له وجهة يمضي إليها؛ والتزييف لنموذج العرض وحده. */
+      /* نموذج له وجهة يمضي إليها؛ والتزييف لنموذج العرض وحده. */
       if (form.getAttribute('action')) { return; }
       e.preventDefault();
       form.reset();
@@ -406,7 +406,7 @@ document.documentElement.classList.add('js');
       }
     });
 
-    // يختفي التحذير بمجرّد أن يبدأ المستخدم في التصحيح
+    // يختفي التحذير بمجرد أن يبدأ المستخدم في التصحيح
     form.addEventListener('input', function (e) {
       var field = e.target.closest('.form-field');
       if (field) field.classList.remove('form-field--invalid');
@@ -415,10 +415,10 @@ document.documentElement.classList.add('js');
 })();
 
 /* ---- فيديو الهيرو ---------------------------------------------------
-   يعمل على الجوّال والحاسوب معًا (طلب المالك). والثمن يُخفَّض لا يُدفع
-   كاملًا: نسخةٌ بعرض 720 (471 ك.ب) دون 980px، وبعرض 1280 (1.3 م.ب) فوقها.
-   ويُحترم `prefers-reduced-motion` ووضع توفير البيانات — الأوّل تفضيلٌ
-   صحّيّ لا ذوقيّ، والثاني إعلانٌ صريح بأنّ البايت يُحاسَب عليه. */
+   يعمل على الجوال والحاسوب معا (طلب المالك). والثمن يخفض لا يدفع
+   كاملا: نسخة بعرض 720 (471 ك.ب) دون 980px، وبعرض 1280 (1.3 م.ب) فوقها.
+   ويحترم `prefers-reduced-motion` ووضع توفير البيانات — الأول تفضيل
+   صحي لا ذوقي، والثاني إعلان صريح بأن البايت يحاسب عليه. */
 (function () {
   var v = document.querySelector('[data-tq-hero-video]');
   if (!v) return;
@@ -427,9 +427,9 @@ document.documentElement.classList.add('js');
 
   var small = window.matchMedia('(max-width: 980px)').matches;
   var base = v.getAttribute('poster');
-  /* WebM أوّلًا وMP4 بديلًا: سفاري القديم وبعض أجهزة iOS لا تفكّ WebM،
-     فكانت الخلفية تبقى صورةً ساكنة بلا سبب ظاهر. و`canPlayType` تسأل
-     المتصفّح بدل أن نخمّن عنه. */
+  /* WebM أولا وMP4 بديلا: سفاري القديم وبعض أجهزة iOS لا تفك WebM،
+     فكانت الخلفية تبقى صورة ساكنة بلا سبب ظاهر. و`canPlayType` تسأل
+     المتصفح بدل أن نخمن عنه. */
   var webm = base.replace('hero-poster.webp', small ? 'hero-sm.webm' : 'hero.webm');
   var mp4  = base.replace('hero-poster.webp', small ? 'hero-sm.mp4' : 'hero.mp4');
   v.src = v.canPlayType('video/webm') ? webm : mp4;
@@ -454,8 +454,8 @@ document.documentElement.classList.add('js');
   function play() { var g = v.play(); if (g && g.catch) g.catch(function () {}); }
   play();
 
-  /* خارج الشاشة لا يُشغَّل: إطاراتٌ لا تُرى تستهلك بطاريةً بلا مقابل،
-     وهو على الجوّال أهمّ منه على الحاسوب. */
+  /* خارج الشاشة لا يشغل: إطارات لا ترى تستهلك بطارية بلا مقابل،
+     وهو على الجوال أهم منه على الحاسوب. */
   if ('IntersectionObserver' in window) {
     new IntersectionObserver(function (es) {
       es.forEach(function (e) { e.isIntersecting ? play() : v.pause(); });
@@ -464,9 +464,9 @@ document.documentElement.classList.add('js');
 })();
 
 /* ---- الكاروسل ------------------------------------------------------
-   السحب والزخم وحدّ التمرير من المتصفّح عبر `scroll-snap`. وهذا هنا
-   للأزرار وتعطيلها عند الطرفين — وفي RTL يكون `scrollLeft` سالبًا في
-   المتصفّحات الحديثة، فالحساب بالمقدار لا بالإشارة. */
+   السحب والزخم وحد التمرير من المتصفح عبر `scroll-snap`. وهذا هنا
+   للأزرار وتعطيلها عند الطرفين — وفي RTL يكون `scrollLeft` سالبا في
+   المتصفحات الحديثة، فالحساب بالمقدار لا بالإشارة. */
 (function () {
   var boxes = document.querySelectorAll('[data-tq-carousel]');
   if (!boxes.length) return;
@@ -501,9 +501,9 @@ document.documentElement.classList.add('js');
 })();
 
 /* ---- تبويب المرحلة --------------------------------------------------
-   البطاقات كلّها في الصفحة ويُخفى ما لا يخصّ المرحلة — فالتبديل فوريّ
-   بلا طلب. والخادم يُخفي غير الافتراضيّة أصلًا، فلو فشل هذا السكربت
-   رأى الزائر مرحلةً واحدة صحيحة لا ستّ بطاقاتٍ مختلطة. */
+   البطاقات كلها في الصفحة ويخفى ما لا يخص المرحلة — فالتبديل فوري
+   بلا طلب. والخادم يخفي غير الافتراضية أصلا، فلو فشل هذا السكربت
+   رأى الزائر مرحلة واحدة صحيحة لا ست بطاقات مختلطة. */
 (function () {
   var tabs = document.querySelectorAll('[data-tq-stage]');
   if (!tabs.length) return;
@@ -522,26 +522,26 @@ document.documentElement.classList.add('js');
 
   Array.prototype.forEach.call(tabs, function (t) {
     t.addEventListener('click', function () { pick(t.getAttribute('data-tq-stage')); });
-    /* الأسهم تتنقّل بين التبويبات كما يتوقّع قارئ الشاشة */
+    /* الأسهم تتنقل بين التبويبات كما يتوقع قارئ الشاشة */
     t.addEventListener('keydown', function (e) {
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
       e.preventDefault();
       var arr = Array.prototype.slice.call(tabs);
       var i = arr.indexOf(t);
-      var d = (e.key === 'ArrowLeft') ? 1 : -1;   /* RTL: اليسار يتقدّم */
+      var d = (e.key === 'ArrowLeft') ? 1 : -1;   /* RTL: اليسار يتقدم */
       var n = arr[(i + d + arr.length) % arr.length];
       n.focus(); n.click();
     });
   });
 
-  /* ---------- المرساة: تُفتح المرحلة ثمّ يُمرَّر ----------
-     ثلاث مشكلات في رابطٍ واحد مثل `/plans#plus-middle`:
-       · الهدف قد يكون `hidden` — تبويب المرحلة يُخفي ما ليس مرحلته،
-         فثلاثٌ من روابط التسعير الستّ تشير إلى عناصر لا تُرسم أصلًا.
-       · والمتصفّح يُمرّر عند التحليل، ثمّ تُغيّر الصورُ المتأخّرة التخطيط
-         فيبقى الموضع خاطئًا — قِستُ `scrollY=0` والهدف عند ٤٩٨px.
-       · و`scroll-margin` وحدها لا تُصلح ما لم يقع تمريرٌ أصلًا.
-     فيُؤخَّر التمرير إلى ما بعد استقرار التخطيط، وتُفتح المرحلة قبله. */
+  /* ---------- المرساة: تفتح المرحلة ثم يمرر ----------
+     ثلاث مشكلات في رابط واحد مثل `/plans#plus-middle`:
+       · الهدف قد يكون `hidden` — تبويب المرحلة يخفي ما ليس مرحلته،
+         فثلاث من روابط التسعير الست تشير إلى عناصر لا ترسم أصلا.
+       · والمتصفح يمرر عند التحليل، ثم تغير الصور المتأخرة التخطيط
+         فيبقى الموضع خاطئا — قست `scrollY=0` والهدف عند ٤٩٨px.
+       · و`scroll-margin` وحدها لا تصلح ما لم يقع تمرير أصلا.
+     فيؤخر التمرير إلى ما بعد استقرار التخطيط، وتفتح المرحلة قبله. */
   var tqAnchor = function () {
     var id = decodeURIComponent((location.hash || '').slice(1));
     if (!id) return;
@@ -555,8 +555,8 @@ document.documentElement.classList.add('js');
     }
     var jump = function () { el.scrollIntoView({ block: 'start', behavior: 'instant' }); };
     requestAnimationFrame(function () { setTimeout(jump, 60); });
-    /* تصحيحٌ واحد بعد استقرار الصور: القفزة الأولى تضع الزائر في المكان،
-       وصورةٌ كسولة تصل بعدها تُزيحه — فيُعاد الضبط مرّةً لا حلقةً. */
+    /* تصحيح واحد بعد استقرار الصور: القفزة الأولى تضع الزائر في المكان،
+       وصورة كسولة تصل بعدها تزيحه — فيعاد الضبط مرة لا حلقة. */
     setTimeout(jump, 700);
   };
   window.addEventListener('load', tqAnchor);
@@ -564,8 +564,8 @@ document.documentElement.classList.add('js');
 
 
   /* ---------- إظهار كلمة المرور ----------
-     الحقل المخفيّ لا يقول لصاحبه أخطأ في حرفٍ أم في لغة لوحة المفاتيح.
-     والزرّ يبدّل النوع ويُعلن حالته لقارئ الشاشة بـ`aria-pressed`. */
+     الحقل المخفي لا يقول لصاحبه أخطأ في حرف أم في لغة لوحة المفاتيح.
+     والزر يبدل النوع ويعلن حالته لقارئ الشاشة بـ`aria-pressed`. */
   document.querySelectorAll('[data-tq-pw]').forEach(function (btn) {
     var inp = document.getElementById(btn.getAttribute('data-tq-pw'));
     if (!inp) return;
@@ -581,12 +581,12 @@ document.documentElement.classList.add('js');
   });
 
   /* ---------- نسخ بيانات التحويل ----------
-     الآيبان أربعةٌ وعشرون محرفًا يُملى بالعين من شاشةٍ إلى تطبيق بنك:
-     محرفٌ واحد يخطئ فترتدّ الحوالة، ولا يعرف الطالب لماذا.
+     الآيبان أربعة وعشرون محرفا يملى بالعين من شاشة إلى تطبيق بنك:
+     محرف واحد يخطئ فترتد الحوالة، ولا يعرف الطالب لماذا.
 
-     و`navigator.clipboard` يشترط سياقًا آمنًا وقد يرفض بلا استثناء
-     يُلتقَط — فله بديلٌ قديم يعمل حيث لا يعمل. والفشل يُقال صراحةً:
-     زرٌّ يبتلع الضغطة صامتًا يجعل المستخدم يظنّ أنّه نسخ. */
+     و`navigator.clipboard` يشترط سياقا آمنا وقد يرفض بلا استثناء
+     يلتقط — فله بديل قديم يعمل حيث لا يعمل. والفشل يقال صراحة:
+     زر يبتلع الضغطة صامتا يجعل المستخدم يظن أنه نسخ. */
   var tqCopy = function (text, done) {
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text).then(function () { done(true); },
@@ -611,7 +611,7 @@ document.documentElement.classList.add('js');
     btn.addEventListener('click', function () {
       tqCopy(btn.getAttribute('data-tq-copy'), function (ok) {
         btn.classList.toggle('is-done', ok);
-        btn.setAttribute('aria-label', ok ? 'نُسخ' : 'تعذّر النسخ — حدّده وانسخه يدويًّا');
+        btn.setAttribute('aria-label', ok ? 'نسخ' : 'تعذر النسخ — حدده وانسخه يدويا');
         var u = btn.querySelector('use');
         if (u) u.setAttribute('href', ok ? '#i-check' : '#i-close');
         setTimeout(function () {

@@ -2,29 +2,29 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * الإعدادات — ستّة أقسام بتنقّل جانبي.
+ * الإعدادات — ستة أقسام بتنقل جانبي.
  *
- * كانت هذه الصفحة تُقرأ ولا تُكتب: صفر نموذج وصفر حقل. وأخطر من ذلك أن
- * جدول التنبيهات فيها كان يعرض قيمًا حرفية مكتوبة في العرض («مفعّل»،
+ * كانت هذه الصفحة تقرأ ولا تكتب: صفر نموذج وصفر حقل. وأخطر من ذلك أن
+ * جدول التنبيهات فيها كان يعرض قيما حرفية مكتوبة في العرض («مفعل»،
  * «مطفأ») كأنها تفضيلات صاحب الحساب، وكذلك «اللغة: العربية» و«ساعات صمت
- * من 10 مساءً إلى 7 صباحًا». والنقص يُرى فيُطلب، أمّا القيمة المفبركة
- * فتُصدَّق فلا تُطلب — ولذلك أُزيلت كلّها.
+ * من 10 مساء إلى 7 صباحا». والنقص يرى فيطلب، أما القيمة المفبركة
+ * فتصدق فلا تطلب — ولذلك أزيلت كلها.
  *
  * كل قيمة هنا الآن لها مصدر: `users` للهوية، و`tq_prefs_user` و
  * `tq_prefs_notify` للتفضيلات (يبنيهما ويقرؤهما Taqdar_settings_model)،
- * و`subscriptions` لآخر وسيلة دفع. وما لا مصدر له قيل نصًّا إنه غير موجود
- * ولم يُعرض بلون الإعداد.
+ * و`subscriptions` لآخر وسيلة دفع. وما لا مصدر له قيل نصا إنه غير موجود
+ * ولم يعرض بلون الإعداد.
  *
- * النماذج تُرسل POST إلى student/settings/save. البرنامج ليس من ملفّات هذه
- * المهمّة، والصفحة تُعرض كاملة سواء وُجد أو لم يوجد.
+ * النماذج ترسل POST إلى student/settings/save. البرنامج ليس من ملفات هذه
+ * المهمة، والصفحة تعرض كاملة سواء وجد أو لم يوجد.
  *
- * وفيها حقّان تنصّ الوثيقة على تنفيذهما **كشاشتين لا كسياسة مكتوبة**:
+ * وفيها حقان تنص الوثيقة على تنفيذهما **كشاشتين لا كسياسة مكتوبة**:
  * تصدير البيانات وحذف الحساب. وحذف الحساب **تجهيل لا محو**.
  */
 include 'tq_student_styles.php';
 include 'tq_student_data.php';
 
-/* داخل العرض `$this` ليس المتحكّم، فتحميل نموذج به يبتر الصفحة صامتًا. */
+/* داخل العرض `$this` ليس المتحكم، فتحميل نموذج به يبتر الصفحة صامتا. */
 $CI = get_instance();
 $CI->load->model('taqdar_settings_model');
 $tq_set = $CI->taqdar_settings_model;
@@ -47,21 +47,21 @@ $tq_channels = $tq_set->notify_channels();
 $tq_themes   = $tq_set->themes();
 $tq_langs    = $tq_set->languages();
 
-/* الصورة: الاسم في القاعدة رمز بلا امتداد، والملفّ <code>.jpg — وعرضه
+/* الصورة: الاسم في القاعدة رمز بلا امتداد، والملف <code>.jpg — وعرضه
    بلا امتداد كان يعطي صورة مكسورة لا صورة حساب. */
 $tq_img_code = trim((string) ($u['image'] ?? ''));
 $tq_avatar   = ($tq_img_code !== '' && file_exists(FCPATH . 'uploads/user_image/' . $tq_img_code . '.jpg'))
     ? base_url('uploads/user_image/' . $tq_img_code . '.jpg')
     : base_url('uploads/user_image/placeholder.png');
 
-/* آخر وسيلة دفع استُعملت فعلًا — لا «وسيلة محفوظة»، فالمنصّة لا تحفظ بطاقات. */
+/* آخر وسيلة دفع استعملت فعلا — لا «وسيلة محفوظة»، فالمنصة لا تحفظ بطاقات. */
 $tq_last_pay = $CI->db->table_exists('subscriptions')
     ? $CI->db->select('method, created_at')->where('user_id', $tq_uid)
              ->where('method IS NOT NULL', null, false)
              ->order_by('id', 'DESC')->limit(1)
              ->get('subscriptions')->row_array()
     : null;
-$tq_pay_names = ['manual' => 'تحويل بنكي يدوي', 'free' => 'باقة مجّانية'];
+$tq_pay_names = ['manual' => 'تحويل بنكي يدوي', 'free' => 'باقة مجانية'];
 
 $tq_save = base_url('student/settings/save');
 $tq_ok   = $CI->session->flashdata('flash_message');
@@ -111,8 +111,8 @@ include 'portal_open.php';
                 <?php if ($active === 'profile'): ?>
                     <section class="tq-card">
                         <?php
-                        /* طلبات ربط وليّ أمر تنتظر توقيع صاحبها.
-                           تُعرض قبل كل شيء لأنها قرار يخصّ خصوصيته. */
+                        /* طلبات ربط ولي أمر تنتظر توقيع صاحبها.
+                           تعرض قبل كل شيء لأنها قرار يخص خصوصيته. */
                         $tq_ci_pl = &get_instance();
                         $tq_pending_links = $tq_ci_pl->db
                             ->select('pl.id, TRIM(CONCAT(COALESCE(u.first_name,""), " ", COALESCE(u.last_name,""))) AS parent_name, u.email', false)
@@ -124,9 +124,9 @@ include 'portal_open.php';
                         ?>
                         <?php if ($tq_pending_links): ?>
                             <div class="tq-card tq-card--panel" style="margin-block-end:var(--tq-space-xl)">
-                                <h2 class="tq-card__title">طلب متابعة من وليّ أمر</h2>
+                                <h2 class="tq-card__title">طلب متابعة من ولي أمر</h2>
                                 <p class="tq-caption">
-                                    الموافقة تمنحه الاطّلاع على تقدّمك ونتائجك. وهي قرارك أنت،
+                                    الموافقة تمنحه الاطلاع على تقدمك ونتائجك. وهي قرارك أنت،
                                     ويمكنك سحبها متى شئت.
                                 </p>
 
@@ -165,8 +165,8 @@ include 'portal_open.php';
                                            accept="image/jpeg,image/png,image/webp"
                                            aria-describedby="tq-avatar-hint">
                                     <span class="tq-field__msg tq-field__hint" id="tq-avatar-hint">
-                                        JPG أو PNG أو WebP، الحدّ الأقصى <?php echo tq_iso('2 ميجابايت'); ?>.
-                                        اتركه فارغًا لتبقى صورتك كما هي.
+                                        JPG أو PNG أو WebP، الحد الأقصى <?php echo tq_iso('2 ميجابايت'); ?>.
+                                        اتركه فارغا لتبقى صورتك كما هي.
                                     </span>
                                 </div>
                             </div>
@@ -193,12 +193,12 @@ include 'portal_open.php';
                                        aria-describedby="tq-email-hint"
                                        value="<?php echo html_escape($u['email'] ?? ''); ?>">
                                 <span class="tq-field__msg tq-field__hint" id="tq-email-hint">
-                                    بريدك هو اسم دخولك — تغييره يغيّر ما تسجّل به الدخول.
+                                    بريدك هو اسم دخولك — تغييره يغير ما تسجل به الدخول.
                                 </span>
                             </div>
 
                             <div class="tq-field">
-                                <label class="tq-field__label" for="tq-phone">رقم الجوّال</label>
+                                <label class="tq-field__label" for="tq-phone">رقم الجوال</label>
                                 <input class="tq-input" id="tq-phone" name="phone" type="tel" dir="ltr"
                                        maxlength="25" autocomplete="tel" inputmode="tel"
                                        placeholder="05XXXXXXXX"
@@ -210,11 +210,11 @@ include 'portal_open.php';
                             </div>
                         </form>
 
-                        <?php /* التوقيت إعداد منصّة لا إعداد حساب، فيُقال كذلك ولا يوضع في نموذج. */ ?>
+                        <?php /* التوقيت إعداد منصة لا إعداد حساب، فيقال كذلك ولا يوضع في نموذج. */ ?>
                         <p class="tq-micro tq-muted" style="margin-block-start:var(--tq-space-l)">
-                            توقيت المنصّة كلّها
+                            توقيت المنصة كلها
                             <?php echo tq_iso(html_escape(function_exists('get_settings') ? (get_settings('timezone') ?: 'Asia/Riyadh') : 'Asia/Riyadh')); ?>،
-                            وليس إعدادًا لكل حساب على حدة.
+                            وليس إعدادا لكل حساب على حدة.
                         </p>
                     </section>
 
@@ -256,21 +256,21 @@ include 'portal_open.php';
                     <section class="tq-card">
                         <h2 class="tq-card__title">الجلسات والأجهزة</h2>
                         <p class="tq-caption" style="margin-block-end:0">
-                            لا سجلّ أجهزة في المنصّة بعد، فلا يمكن أن نعرض لك قائمة أجهزتك ولا أن ننهي
-                            جلسة عن بُعد. وحتى يوجد، إنهاء الجلسة على هذا الجهاز بزرّ تسجيل الخروج أدناه.
+                            لا سجل أجهزة في المنصة بعد، فلا يمكن أن نعرض لك قائمة أجهزتك ولا أن ننهي
+                            جلسة عن بعد. وحتى يوجد، إنهاء الجلسة على هذا الجهاز بزر تسجيل الخروج أدناه.
                         </p>
                     </section>
 
                     <section class="tq-card">
                         <h2 class="tq-card__title">بياناتك</h2>
                         <p class="tq-caption">
-                            حقّان يُنفَّذان كإجراءين لا كنصّ في سياسة: أن تأخذ نسخة من بياناتك،
-                            وأن تُنهي حسابك.
+                            حقان ينفذان كإجراءين لا كنص في سياسة: أن تأخذ نسخة من بياناتك،
+                            وأن تنهي حسابك.
                         </p>
                         <div class="tq-s-row">
                             <div class="tq-s-row__main">
                                 <p class="tq-strong" style="margin:0">تصدير بياناتي</p>
-                                <p class="tq-micro" style="margin:0">ملفّ بكل ما يخصّ حسابك، يُبنى ثم يصلك برابط مؤقّت.</p>
+                                <p class="tq-micro" style="margin:0">ملف بكل ما يخص حسابك، يبنى ثم يصلك برابط مؤقت.</p>
                             </div>
                             <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('taqdar/export_data'); ?>">
                                 <?php echo tq_icon('download'); ?> طلب نسخة
@@ -280,7 +280,7 @@ include 'portal_open.php';
                             <div class="tq-s-row__main">
                                 <p class="tq-strong" style="margin:0">حذف الحساب</p>
                                 <p class="tq-micro" style="margin:0">
-                                    تُستبدل بياناتك الشخصية بقيم مجهولة. وتبقى الفواتير بمعرّف مجهول
+                                    تستبدل بياناتك الشخصية بقيم مجهولة. وتبقى الفواتير بمعرف مجهول
                                     لأن الالتزام الضريبي يوجب حفظها.
                                 </p>
                             </div>
@@ -292,8 +292,8 @@ include 'portal_open.php';
                     <section class="tq-card">
                         <h2 class="tq-card__title">التنبيهات</h2>
                         <p class="tq-caption">
-                            لكل نوع قناتان مستقلّتان — إيقاف قناة لا يوقف الأخرى.
-                            وليست هناك قناة «إشعار على الجهاز» لأن المنصّة لا ترسل إشعارات دفع بعد.
+                            لكل نوع قناتان مستقلتان — إيقاف قناة لا يوقف الأخرى.
+                            وليست هناك قناة «إشعار على الجهاز» لأن المنصة لا ترسل إشعارات دفع بعد.
                         </p>
 
                         <form method="post" action="<?php echo $tq_save; ?>">
@@ -407,7 +407,7 @@ include 'portal_open.php';
                                     <?php endforeach; ?>
                                 </select>
                                 <span class="tq-field__msg tq-field__hint" id="tq-lang-hint">
-                                    اتجاه الصفحة نتيجة للّغة لا إعداد مستقل — فاختيار الإنجليزية يقلب الاتجاه معها.
+                                    اتجاه الصفحة نتيجة للغة لا إعداد مستقل — فاختيار الإنجليزية يقلب الاتجاه معها.
                                 </span>
                             </div>
 
@@ -417,15 +417,15 @@ include 'portal_open.php';
                         </form>
                     </section>
 
-                    <?php /* الوجه المحفوظ يُطبَّق على هذا المتصفّح: includes_top.php يقرأ
+                    <?php /* الوجه المحفوظ يطبق على هذا المتصفح: includes_top.php يقرأ
                        نفس المفتاح قبل الرسم، فلا تومض الصفحة في الزيارة التالية. */ ?>
 
                 <?php elseif ($active === 'billing'): ?>
                     <section class="tq-card">
                         <h2 class="tq-card__title">طريقة الدفع</h2>
                         <p class="tq-caption">
-                            المنصّة لا تحفظ بيانات بطاقتك ولا تخزّن وسيلة دفع على حسابك — تُدفع كل فاتورة
-                            عند إصدارها، ويبقى سجلّها في صفحة المدفوعات.
+                            المنصة لا تحفظ بيانات بطاقتك ولا تخزن وسيلة دفع على حسابك — تدفع كل فاتورة
+                            عند إصدارها، ويبقى سجلها في صفحة المدفوعات.
                         </p>
 
                         <?php if ($tq_last_pay): ?>
@@ -446,11 +446,11 @@ include 'portal_open.php';
                             </div>
                         <?php else: ?>
                             <div class="tq-empty">
-                                <p class="tq-empty__title">لم تُسجَّل لك دفعة بعد</p>
+                                <p class="tq-empty__title">لم تسجل لك دفعة بعد</p>
                                 <p class="tq-empty__text">
                                     عند أول اشتراك تظهر وسيلة الدفع التي استعملتها هنا، وتظهر فاتورتها في صفحة المدفوعات.
                                 </p>
-                                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">تصفّح الباقات</a>
+                                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">تصفح الباقات</a>
                             </div>
                         <?php endif; ?>
                     </section>
@@ -459,8 +459,8 @@ include 'portal_open.php';
                     <section class="tq-card">
                         <h2 class="tq-card__title">تحميلاتك</h2>
                         <p class="tq-caption">
-                            التحميل للعمل دون اتصال غير متاح في نسخة الويب بعد، فلا سجلّ تحميلات ولا مساحة
-                            مستخدمة نعرضها لك. والمواد تُشاهَد داخل المنصّة بصلاحية زمنية — تشاهد ولا تملك نسخة.
+                            التحميل للعمل دون اتصال غير متاح في نسخة الويب بعد، فلا سجل تحميلات ولا مساحة
+                            مستخدمة نعرضها لك. والمواد تشاهد داخل المنصة بصلاحية زمنية — تشاهد ولا تملك نسخة.
                         </p>
                         <div style="margin-block-start:var(--tq-space-l)">
                             <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('student/materials'); ?>">المواد التعليمية</a>
@@ -488,7 +488,7 @@ include 'portal_open.php';
                 <img class="tq-avatar" src="<?php echo html_escape($tq_avatar); ?>" alt="">
                 <div>
                     <p class="tq-strong" style="margin:0"><?php echo html_escape(trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''))); ?></p>
-                    <p class="tq-micro" style="margin:0"><?php echo $tq_role === 'teacher' ? 'معلّم' : 'طالب'; ?></p>
+                    <p class="tq-micro" style="margin:0"><?php echo $tq_role === 'teacher' ? 'معلم' : 'طالب'; ?></p>
                 </div>
             </div>
         </div>

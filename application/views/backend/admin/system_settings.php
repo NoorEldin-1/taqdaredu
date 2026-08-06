@@ -63,24 +63,24 @@
 
                         <!--
                             رابطا المتجرين. شارتا التذييل (site/site_stores.php) تقرآن هذين
-                            المفتاحين: ما دام الحقل فارغًا تُعرض الشارة صامتةً مع «التطبيق
-                            قريبًا»، وبمجرّد وضع رابطٍ تصير رابطًا حيًّا يفتح في تبويب جديد.
+                            المفتاحين: ما دام الحقل فارغا تعرض الشارة صامتة مع «التطبيق
+                            قريبا»، وبمجرد وضع رابط تصير رابطا حيا يفتح في تبويب جديد.
                             فالتفريغ هو طريقة التعطيل، لا حذف الشارة.
 
-                            والنصّ عربيّ مباشرةً لا عبر get_phrase: الدالّة تُرجع المفتاح
-                            مُنمَّقًا حين لا تجد ترجمة، فكانت ستطبع «App store url» وسط لوحةٍ
-                            عربيّة إلى أن يُدرَج صفٌّ في جدول language يدويًّا — خطوةٌ لا
-                            يحملها النشر. وطبقة تقدّر تكتب العربيّ مباشرةً أصلًا.
+                            والنص عربي مباشرة لا عبر get_phrase: الدالة ترجع المفتاح
+                            منمقا حين لا تجد ترجمة، فكانت ستطبع «App store url» وسط لوحة
+                            عربية إلى أن يدرج صف في جدول language يدويا — خطوة لا
+                            يحملها النشر. وطبقة تقدر تكتب العربي مباشرة أصلا.
 
-                            و dir="ltr" على الحقل: الرابط لاتينيّ، وفي سياق RTL تنزلق
-                            علامات // و ? و = إلى مواضع مضلّلة بصريًّا عند المراجعة.
+                            و dir="ltr" على الحقل: الرابط لاتيني، وفي سياق RTL تنزلق
+                            علامات // و ? و = إلى مواضع مضللة بصريا عند المراجعة.
                         -->
                         <div class="form-group">
                             <label for="app_store_url">رابط App Store</label>
                             <input type="url" name="app_store_url" id="app_store_url" class="form-control"
                                    dir="ltr" placeholder="https://apps.apple.com/..."
                                    value="<?php echo html_escape(get_settings('app_store_url')); ?>">
-                            <small class="badge badge-light">اتركه فارغًا لتظهر الشارة بحالة «قريبًا»</small>
+                            <small class="badge badge-light">اتركه فارغا لتظهر الشارة بحالة «قريبا»</small>
                         </div>
 
                         <div class="form-group">
@@ -88,7 +88,7 @@
                             <input type="url" name="google_play_url" id="google_play_url" class="form-control"
                                    dir="ltr" placeholder="https://play.google.com/store/apps/details?id=..."
                                    value="<?php echo html_escape(get_settings('google_play_url')); ?>">
-                            <small class="badge badge-light">اتركه فارغًا لتظهر الشارة بحالة «قريبًا»</small>
+                            <small class="badge badge-light">اتركه فارغا لتظهر الشارة بحالة «قريبا»</small>
                         </div>
 
                         <div class="form-group">

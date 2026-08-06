@@ -1,14 +1,14 @@
 <?php
 /**
- * نتائج البحث العامّ.
+ * نتائج البحث العام.
  *
  * البطاقات هي بطاقات الصفحات نفسها (`pcard` · `post-card` · `book-card`
- * · `teacher-card`)؛ فلا وسم جديد يُصان، وما يراه الزائر في النتيجة هو
+ * · `teacher-card`)؛ فلا وسم جديد يصان، وما يراه الزائر في النتيجة هو
  * ما سيراه في الصفحة التي يصل إليها.
  */
 $tq_h1   = 'البحث';
 $tq_lead = ($tq_q === '')
-    ? 'اكتب ما تبحث عنه: مادّةً أو مقالًا أو كتابًا أو معلّمًا.'
+    ? 'اكتب ما تبحث عنه: مادة أو مقالا أو كتابا أو معلما.'
     : 'نتائج البحث عن «' . $tq_q . '» — ' . tq_num($tq_res['total']) . ' نتيجة.';
 include __DIR__ . '/site/site_pagehero.php';
 ?>
@@ -17,17 +17,17 @@ include __DIR__ . '/site/site_pagehero.php';
 
     <form class="sitesearch sitesearch--page" role="search" method="get"
           action="<?php echo base_url('search'); ?>">
-      <label class="sr-only" for="siteQ">ابحث في المنصّة</label>
+      <label class="sr-only" for="siteQ">ابحث في المنصة</label>
       <svg aria-hidden="true"><use href="#i-search"></use></svg>
-      <input id="siteQ" type="search" name="q" placeholder="ابحث عن مادّة أو مقال أو معلّم…"
+      <input id="siteQ" type="search" name="q" placeholder="ابحث عن مادة أو مقال أو معلم…"
              value="<?php echo html_escape($tq_q); ?>" autocomplete="off">
       <button class="btn btn--primary btn--sm" type="submit">بحث</button>
     </form>
 
 <?php if ($tq_q === ''): ?>
 <?php elseif ((int) $tq_res['total'] === 0): ?>
-    <p class="dir-empty">لم نجد شيئًا يطابق «<?php echo html_escape($tq_q); ?>».
-       جرّب كلمةً أقصر أو أعمّ.</p>
+    <p class="dir-empty">لم نجد شيئا يطابق «<?php echo html_escape($tq_q); ?>».
+       جرب كلمة أقصر أو أعم.</p>
 <?php else: ?>
 
 <?php if ($tq_res['paths']): ?>
@@ -36,7 +36,7 @@ include __DIR__ . '/site/site_pagehero.php';
 <?php endif; ?>
 
 <?php if ($tq_res['teachers']): ?>
-    <div class="section-head"><h2>المعلّمون</h2></div>
+    <div class="section-head"><h2>المعلمون</h2></div>
     <div class="grid-3">
 <?php foreach ($tq_res['teachers'] as $tq_t): ?>
       <article class="pcard">
@@ -45,7 +45,7 @@ include __DIR__ . '/site/site_pagehero.php';
 <?php if ((string) $tq_t['bio'] !== ''): ?>
           <p><?php echo html_escape(tqs_excerpt($tq_t['bio'], 130)); ?></p>
 <?php endif; ?>
-          <a class="pcard__link" href="<?php echo html_escape($tq_t['url']); ?>">صفحة المعلّم</a>
+          <a class="pcard__link" href="<?php echo html_escape($tq_t['url']); ?>">صفحة المعلم</a>
         </div>
       </article>
 <?php endforeach; ?>
@@ -53,7 +53,7 @@ include __DIR__ . '/site/site_pagehero.php';
 <?php endif; ?>
 
 <?php if ($tq_res['posts']): ?>
-    <div class="section-head"><h2>المدوّنة</h2></div>
+    <div class="section-head"><h2>المدونة</h2></div>
     <div class="grid-3">
 <?php foreach ($tq_res['posts'] as $tq_p): ?>
       <article class="pcard">

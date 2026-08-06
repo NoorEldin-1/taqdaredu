@@ -1,17 +1,17 @@
 <?php
 /**
- * بوّابة وليّ الأمر — التقارير.
+ * بوابة ولي الأمر — التقارير.
  *
  * المرجع التصميمي: تطبيق البنك، لا لوحة تعليمية — كل شيء واضح ومفهوم من
  * نظرة واحدة وبلا مصطلحات. ولذلك التقرير هنا صفوف قليلة بعناوين بشرية:
- * «ما أنهاه» و«نتائجه» و«آخر نشاط» — لا «معدّل تراكمي» ولا «مؤشّر أداء».
+ * «ما أنهاه» و«نتائجه» و«آخر نشاط» — لا «معدل تراكمي» ولا «مؤشر أداء».
  *
- * حاجز الرؤية نفسه مطبَّق: لا استعلام على محادثات المساعد الذكي، ولا على
- * منشورات المجتمع، ولا على إجابات الطالب المفردة — نعرض المتقن والمتبقّي،
- * لا كل خطأ على حدة. «الرقابة الكاملة تُنتج طالبًا يُخفي، لا طالبًا يتعلّم.»
+ * حاجز الرؤية نفسه مطبق: لا استعلام على محادثات المساعد الذكي، ولا على
+ * منشورات المجتمع، ولا على إجابات الطالب المفردة — نعرض المتقن والمتبقي،
+ * لا كل خطأ على حدة. «الرقابة الكاملة تنتج طالبا يخفي، لا طالبا يتعلم.»
  *
- * ما ينتظر جدولًا:
- *   `parent_links` — ربط الوليّ بابنه (وبدونه لا تُفتح بيانات أحد)
+ * ما ينتظر جدولا:
+ *   `parent_links` — ربط الولي بابنه (وبدونه لا تفتح بيانات أحد)
  *   `objectives`   — «الإتقان» الحقيقي: هدف متقن من هدف مفتوح.
  *                    والمعروض اليوم بديله المتاح: ما أنهاه من دروس المادة.
  */
@@ -36,7 +36,7 @@ if ($this->db->table_exists('parent_links')) {
     )->result_array();
 }
 
-/* لكل ابن: صفّ لكل مادة، من `enrol` و`watch_histories` و`quiz_results`. */
+/* لكل ابن: صف لكل مادة، من `enrol` و`watch_histories` و`quiz_results`. */
 foreach ($tq_children as &$tq_child) {
     $tq_child['subjects'] = $this->db->query(
         "SELECT c.id, c.title,
@@ -122,7 +122,7 @@ include 'portal_open.php';
                                                     <?php echo tq_num($tq_s['avg_pct'] . '%', 'tq-num--sm'); ?>
                                                     <span class="tq-micro" style="display:block"><?php echo tq_iso('من ' . $tq_s['attempts'] . ' اختبار'); ?></span>
                                                 <?php else: ?>
-                                                    <span class="tq-caption">لم يبدأ اختبارًا</span>
+                                                    <span class="tq-caption">لم يبدأ اختبارا</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td data-label="آخر نشاط">
@@ -138,8 +138,8 @@ include 'portal_open.php';
                     <?php else: ?>
                         <div class="tq-card tq-empty">
                             <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('book', 24); ?></span>
-                            <h3 class="tq-empty__title">لا مواد مسجّلة لـ<?php echo html_escape(explode(' ', $tq_name)[0]); ?></h3>
-                            <p class="tq-empty__text">حين يُسجَّل في مادة يظهر تقريرها هنا في سطر واحد.</p>
+                            <h3 class="tq-empty__title">لا مواد مسجلة لـ<?php echo html_escape(explode(' ', $tq_name)[0]); ?></h3>
+                            <p class="tq-empty__text">حين يسجل في مادة يظهر تقريرها هنا في سطر واحد.</p>
                             <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/payments'); ?>">المدفوعات</a>
                         </div>
                     <?php endif; ?>
@@ -165,14 +165,14 @@ include 'portal_open.php';
         <div class="tq-pastel tq-pastel--sky">
             <span class="tq-pastel__label tq-micro">كيف تقرأ التقرير</span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                انظر إلى «آخر نشاط» أوّلًا: الانقطاع يسبق تراجع النتائج دائمًا، ومعالجته أسهل.
+                انظر إلى «آخر نشاط» أولا: الانقطاع يسبق تراجع النتائج دائما، ومعالجته أسهل.
             </p>
         </div>
 
         <div class="tq-card">
             <div class="tq-card__head"><h2 class="tq-card__title">التقرير الأسبوعي</h2></div>
             <p class="tq-caption">
-                إن أردت الخلاصة وحدها، يصلك كل أحد تقرير من أربعة أسطر تُقرأ في عشر ثوانٍ.
+                إن أردت الخلاصة وحدها، يصلك كل أحد تقرير من أربعة أسطر تقرأ في عشر ثوان.
             </p>
             <a class="tq-btn tq-btn--secondary tq-btn--block tq-btn--sm"
                href="<?php echo base_url('parent/weekly'); ?>">عرض التقرير الأسبوعي</a>

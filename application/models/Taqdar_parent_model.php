@@ -2,40 +2,40 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * نموذج بوّابة وليّ الأمر — كل كتابة تخصّ وليّ الأمر تمرّ من هنا.
+ * نموذج بوابة ولي الأمر — كل كتابة تخص ولي الأمر تمر من هنا.
  *
- * البوّابة كانت تقرأ ولا تكتب: الربط يُنشأ يدويًّا في القاعدة، ولا زرّ
- * لبدء محادثة، والإعدادات صفر نماذج. هذا الملفّ هو طبقة الكتابة الوحيدة،
+ * البوابة كانت تقرأ ولا تكتب: الربط ينشأ يدويا في القاعدة، ولا زر
+ * لبدء محادثة، والإعدادات صفر نماذج. هذا الملف هو طبقة الكتابة الوحيدة،
  * وقواعده ثلاث:
  *
  *   1) **الموافقة بيان لا خانة.** الرابط يبدأ `pending` بلا تاريخ، ولا يصير
- *      `active` إلا بتاريخ موافقة في `consent_at` مع نسخة نصّ الموافقة ومن
- *      أعطاها ومن أي عنوان. والموافقة تُعطى من حساب الابن نفسه أو من الإدارة،
- *      لا من وليّ الأمر — ولو أعطاها لنفسه لما كانت موافقة.
+ *      `active` إلا بتاريخ موافقة في `consent_at` مع نسخة نص الموافقة ومن
+ *      أعطاها ومن أي عنوان. والموافقة تعطى من حساب الابن نفسه أو من الإدارة،
+ *      لا من ولي الأمر — ولو أعطاها لنفسه لما كانت موافقة.
  *
- *   2) **الملكية تُفحص في الخادم لا في الواجهة.** كل دالّة هنا تأخذ معرّف
- *      وليّ الأمر من الجلسة وتقيّد استعلامها به؛ إخفاء زرّ ليس صلاحية.
+ *   2) **الملكية تفحص في الخادم لا في الواجهة.** كل دالة هنا تأخذ معرف
+ *      ولي الأمر من الجلسة وتقيد استعلامها به؛ إخفاء زر ليس صلاحية.
  *
- *   3) **لا مراسلة إلا من قائمة بيضاء.** وليّ الأمر يراسل معلّمي كورسات
- *      أبنائه المربوطين وحدهم — تُحسب القائمة في الخادم، ويُفحص المستقبِل
+ *   3) **لا مراسلة إلا من قائمة بيضاء.** ولي الأمر يراسل معلمي كورسات
+ *      أبنائه المربوطين وحدهم — تحسب القائمة في الخادم، ويفحص المستقبل
  *      عليها قبل الكتابة، لا عند رسم القائمة.
  *
- * والدوال العامّة هنا صالحة لاستدعائها من متحكّم (`Taqdar.php`) كما هي:
- * ما من دالّة تقرأ `$_POST` إلا `handle_post()` وحدها، وما عداها يأخذ
- * وسائطه صريحة ويُرجع `['ok' => bool, 'message' => string, ...]`.
+ * والدوال العامة هنا صالحة لاستدعائها من متحكم (`Taqdar.php`) كما هي:
+ * ما من دالة تقرأ `$_POST` إلا `handle_post()` وحدها، وما عداها يأخذ
+ * وسائطه صريحة ويرجع `['ok' => bool, 'message' => string, ...]`.
  */
 class Taqdar_parent_model extends CI_Model
 {
-    /** نصّ الموافقة الذي يُعرض على الابن ويُحفظ حرفيًّا مع تاريخها. */
-    const CONSENT_TEXT = 'أوافق على ربط حسابي بحساب وليّ أمري، وعلى أن يرى تقدّمي في المواد '
-                       . 'وأيام نشاطي ونتائج اختباراتي ومدفوعاتي وملاحظات معلّميّ. ولا يرى '
-                       . 'محادثاتي مع المساعد الذكي ولا منشوراتي ولا إجاباتي الخاطئة مفردةً. '
+    /** نص الموافقة الذي يعرض على الابن ويحفظ حرفيا مع تاريخها. */
+    const CONSENT_TEXT = 'أوافق على ربط حسابي بحساب ولي أمري، وعلى أن يرى تقدمي في المواد '
+                       . 'وأيام نشاطي ونتائج اختباراتي ومدفوعاتي وملاحظات معلمي. ولا يرى '
+                       . 'محادثاتي مع المساعد الذكي ولا منشوراتي ولا إجاباتي الخاطئة مفردة. '
                        . 'ولي أن أسحب هذه الموافقة متى شئت.';
 
-    /** خطة الأسبوع الافتراضية حين لا يحدّدها وليّ الأمر — مُعلَنة في الشاشة لا مموّهة. */
+    /** خطة الأسبوع الافتراضية حين لا يحددها ولي الأمر — معلنة في الشاشة لا مموهة. */
     const PLAN_DAYS_DEFAULT = 5;
 
-    /** الأحداث الخمسة التي تستحقّ المقاطعة — مفاتيحها مفاتيح `notifications.type`. */
+    /** الأحداث الخمسة التي تستحق المقاطعة — مفاتيحها مفاتيح `notifications.type`. */
     public function notify_keys()
     {
         return [
@@ -59,7 +59,7 @@ class Taqdar_parent_model extends CI_Model
        قراءة
        ================================================================ */
 
-    /** روابط وليّ الأمر كلّها أو بحالة بعينها. */
+    /** روابط ولي الأمر كلها أو بحالة بعينها. */
     public function links($parent_id, $status = null)
     {
         $parent_id = (int) $parent_id;
@@ -83,13 +83,13 @@ class Taqdar_parent_model extends CI_Model
         return $rows;
     }
 
-    /** الأبناء المربوطون فعلًا (رابط نشط بموافقة موثّقة). */
+    /** الأبناء المربوطون فعلا (رابط نشط بموافقة موثقة). */
     public function children($parent_id)
     {
         return $this->links($parent_id, 'active');
     }
 
-    /** هل هذا الابن ابن هذا الوليّ فعلًا؟ الفحص في الخادم وبرابط نشط وحده. */
+    /** هل هذا الابن ابن هذا الولي فعلا؟ الفحص في الخادم وبرابط نشط وحده. */
     public function owns($parent_id, $student_id)
     {
         $parent_id  = (int) $parent_id;
@@ -102,7 +102,7 @@ class Taqdar_parent_model extends CI_Model
                               ->count_all_results('parent_links') > 0;
     }
 
-    /** صفّ الابن إن كان مربوطًا — وإلا `null`، فلا تُفتح بيانات غير ابنه. */
+    /** صف الابن إن كان مربوطا — وإلا `null`، فلا تفتح بيانات غير ابنه. */
     public function child($parent_id, $student_id)
     {
         if (!$this->owns($parent_id, $student_id)) return null;
@@ -116,8 +116,8 @@ class Taqdar_parent_model extends CI_Model
     /**
      * أيام خطة الأسبوع لابن بعينه.
      * كانت `5` مزروعة في شيفرة `tq_parent_weekly.php` و`tq_parent_child.php`
-     * تُعرض كأنها بيانات الأسرة. صارت تُقرأ من `parent_links.scope` حين
-     * يحدّدها وليّ الأمر، وحين لا يحدّدها تُعلَن افتراضيّتها في الشاشة.
+     * تعرض كأنها بيانات الأسرة. صارت تقرأ من `parent_links.scope` حين
+     * يحددها ولي الأمر، وحين لا يحددها تعلن افتراضيتها في الشاشة.
      *
      * @return array{days:int, is_default:bool}
      */
@@ -137,7 +137,7 @@ class Taqdar_parent_model extends CI_Model
             : ['days' => self::PLAN_DAYS_DEFAULT, 'is_default' => true];
     }
 
-    /** تفضيلات الإشعارات — محفوظة في `scope` لكل رابط، وتُقرأ من أحدثها. */
+    /** تفضيلات الإشعارات — محفوظة في `scope` لكل رابط، وتقرأ من أحدثها. */
     public function prefs($parent_id)
     {
         $out = $this->notify_defaults();
@@ -158,8 +158,8 @@ class Taqdar_parent_model extends CI_Model
        ================================================================ */
 
     /**
-     * طلب ربط ابن. يُنشئ صفًّا `pending` **بلا** `consent_at` — ولا يفتح شيئًا.
-     * ويُبلَّغ الابن بإشعار ورسالة خاصّة، فالطلب لا يقع صامتًا.
+     * طلب ربط ابن. ينشئ صفا `pending` **بلا** `consent_at` — ولا يفتح شيئا.
+     * ويبلغ الابن بإشعار ورسالة خاصة، فالطلب لا يقع صامتا.
      */
     public function request_link($parent_id, $identifier)
     {
@@ -167,7 +167,7 @@ class Taqdar_parent_model extends CI_Model
         $identifier = trim((string) $identifier);
 
         if ($parent_id <= 0)      return $this->fail('لا جلسة مفتوحة.');
-        if ($identifier === '')   return $this->fail('اكتب بريد حساب ابنك في المنصّة أو رقم حسابه.');
+        if ($identifier === '')   return $this->fail('اكتب بريد حساب ابنك في المنصة أو رقم حسابه.');
         if (!$this->db->table_exists('parent_links')) return $this->fail('جدول الروابط غير موجود.');
 
         $student = ctype_digit($identifier)
@@ -175,16 +175,16 @@ class Taqdar_parent_model extends CI_Model
             : $this->db->where('email', $identifier)->get('users')->row_array();
 
         if (!$student) {
-            return $this->fail('لا حساب بهذا البريد أو الرقم. الربط يكون بحساب ابنك في المنصّة نفسها — '
+            return $this->fail('لا حساب بهذا البريد أو الرقم. الربط يكون بحساب ابنك في المنصة نفسها — '
                              . 'ولا نبحث بتشابه اسم، فخطأ واحد هنا يفتح بيانات طفل لغير أهله.');
         }
-        if ((int) $student['id'] === $parent_id) return $this->fail('لا يكون المستخدم وليَّ أمر نفسه.');
-        if ((int) $student['status'] !== 1)      return $this->fail('حساب ابنك غير مفعّل بعد.');
+        if ((int) $student['id'] === $parent_id) return $this->fail('لا يكون المستخدم ولي أمر نفسه.');
+        if ((int) $student['status'] !== 1)      return $this->fail('حساب ابنك غير مفعل بعد.');
 
         $name = trim($student['first_name'] . ' ' . $student['last_name']);
         $role = tq_role((int) $student['id']);
         if ($role === 'admin' || $role === 'teacher') {
-            return $this->fail('هذا الحساب حساب ' . ($role === 'admin' ? 'إدارة' : 'معلّم') . '، لا حساب طالب.');
+            return $this->fail('هذا الحساب حساب ' . ($role === 'admin' ? 'إدارة' : 'معلم') . '، لا حساب طالب.');
         }
 
         $existing = $this->db->where('parent_user_id', $parent_id)
@@ -196,14 +196,14 @@ class Taqdar_parent_model extends CI_Model
             'requested_ip' => $this->input->ip_address(),
             'notify'       => $this->prefs($parent_id),
         ];
-        // لا تُكتب `plan_days` هنا: خطة لم يحدّدها وليّ الأمر تبقى غير محدَّدة،
-        // وتُعلَن في الشاشة افتراضيّةً بدل أن تُعرض كأنها اختياره.
+        // لا تكتب `plan_days` هنا: خطة لم يحددها ولي الأمر تبقى غير محددة،
+        // وتعلن في الشاشة افتراضية بدل أن تعرض كأنها اختياره.
 
         if ($existing) {
             if ($existing['status'] === 'active')  return $this->fail('حساب ' . $name . ' مرتبط بحسابك.');
             if ($existing['status'] === 'pending') return $this->fail('طلبك السابق ما زال بانتظار موافقة ' . $name . '.');
 
-            // رابط مسحوب: يُعاد الطلب من الصفر — والموافقة القديمة لا تُورَّث.
+            // رابط مسحوب: يعاد الطلب من الصفر — والموافقة القديمة لا تورث.
             $old = $this->scope_of($existing);
             if (!empty($old['consent'])) $scope['previous_consent'] = $old['consent'];
 
@@ -224,21 +224,21 @@ class Taqdar_parent_model extends CI_Model
             $link_id = (int) $this->db->insert_id();
         }
 
-        if ($link_id <= 0) return $this->fail('تعذّر حفظ الطلب. حاول مرّة أخرى.');
+        if ($link_id <= 0) return $this->fail('تعذر حفظ الطلب. حاول مرة أخرى.');
 
         $this->announce_request($parent_id, $student, $link_id);
 
         return [
             'ok'      => true,
             'link_id' => $link_id,
-            'message' => 'أُرسل طلب الربط إلى ' . $name . '، ووصلته رسالة بنصّ الموافقة. '
-                       . 'ولا يُفتح شيء من بياناته قبل أن يوافق من حسابه.',
+            'message' => 'أرسل طلب الربط إلى ' . $name . '، ووصلته رسالة بنص الموافقة. '
+                       . 'ولا يفتح شيء من بياناته قبل أن يوافق من حسابه.',
         ];
     }
 
     /**
-     * تسجيل الموافقة — من حساب الابن نفسه أو من الإدارة، لا من وليّ الأمر.
-     * ولا تفعيل بلا تاريخ: `consent_at` و`status` يُكتبان معًا في تحديث واحد.
+     * تسجيل الموافقة — من حساب الابن نفسه أو من الإدارة، لا من ولي الأمر.
+     * ولا تفعيل بلا تاريخ: `consent_at` و`status` يكتبان معا في تحديث واحد.
      */
     public function grant_consent($link_id, $actor_id, $text = null)
     {
@@ -247,12 +247,12 @@ class Taqdar_parent_model extends CI_Model
 
         $row = $this->db->where('id', $link_id)->get('parent_links')->row_array();
         if (!$row)                        return $this->fail('طلب الربط غير موجود.');
-        if ($row['status'] !== 'pending') return $this->fail('لا موافقة إلا على طلب معلَّق.');
+        if ($row['status'] !== 'pending') return $this->fail('لا موافقة إلا على طلب معلق.');
 
         $is_student = ($actor_id === (int) $row['student_id']);
         $is_admin   = (tq_role($actor_id) === 'admin');
         if (!$is_student && !$is_admin) {
-            return $this->fail('الموافقة تُعطى من حساب الابن نفسه أو من الإدارة — لا من وليّ الأمر.');
+            return $this->fail('الموافقة تعطى من حساب الابن نفسه أو من الإدارة — لا من ولي الأمر.');
         }
 
         $now   = $this->now();
@@ -271,12 +271,12 @@ class Taqdar_parent_model extends CI_Model
             'scope'      => $this->json($scope),
         ]);
 
-        if ($this->db->affected_rows() < 1) return $this->fail('تعذّر تسجيل الموافقة.');
+        if ($this->db->affected_rows() < 1) return $this->fail('تعذر تسجيل الموافقة.');
 
-        return ['ok' => true, 'message' => 'سُجّلت الموافقة بتاريخها، وفُتح الرابط.'];
+        return ['ok' => true, 'message' => 'سجلت الموافقة بتاريخها، وفتح الرابط.'];
     }
 
-    /** سحب طلب معلَّق — يُحذف الصفّ، فلا شيء وقع ليُؤرَّخ. */
+    /** سحب طلب معلق — يحذف الصف، فلا شيء وقع ليؤرخ. */
     public function cancel_request($parent_id, $link_id)
     {
         $this->db->where('id', (int) $link_id)
@@ -285,13 +285,13 @@ class Taqdar_parent_model extends CI_Model
                  ->delete('parent_links');
 
         return $this->db->affected_rows() > 0
-            ? ['ok' => true, 'message' => 'سُحب طلب الربط.']
-            : $this->fail('لا طلب معلَّق بهذا الرقم في حسابك.');
+            ? ['ok' => true, 'message' => 'سحب طلب الربط.']
+            : $this->fail('لا طلب معلق بهذا الرقم في حسابك.');
     }
 
     /**
-     * إلغاء ربط ابن. الصفّ يبقى بحالة `revoked` ومعه تاريخ الموافقة الأصلي
-     * وتاريخ السحب — الأثر لا يُمحى، فالسجلّ هو ما يُحتجّ به لاحقًا.
+     * إلغاء ربط ابن. الصف يبقى بحالة `revoked` ومعه تاريخ الموافقة الأصلي
+     * وتاريخ السحب — الأثر لا يمحى، فالسجل هو ما يحتج به لاحقا.
      */
     public function revoke_link($parent_id, $student_id)
     {
@@ -317,20 +317,20 @@ class Taqdar_parent_model extends CI_Model
             'scope'  => $this->json($scope),
         ]);
 
-        if ($this->db->affected_rows() < 1) return $this->fail('تعذّر إلغاء الربط.');
+        if ($this->db->affected_rows() < 1) return $this->fail('تعذر إلغاء الربط.');
 
         $name = $this->name_of($student_id);
-        return ['ok' => true, 'message' => 'أُلغي ربط ' . $name . '، ولم تعد ترى شيئًا من بياناته.'];
+        return ['ok' => true, 'message' => 'ألغي ربط ' . $name . '، ولم تعد ترى شيئا من بياناته.'];
     }
 
     /* ================================================================
-       الرسائل — بدء محادثة مع معلّم ابن مربوط
+       الرسائل — بدء محادثة مع معلم ابن مربوط
        ================================================================ */
 
     /**
-     * القائمة البيضاء: معلّمو كورسات الأبناء المربوطين وحدهم.
-     * `course.user_id` نصّ قد يحمل أكثر من معرّف حين يكون الكورس بمعلّمين،
-     * فيُفكَّك ويُفحص كل معرّف على `users` (معلّم فعلًا وحسابه مفعّل).
+     * القائمة البيضاء: معلمو كورسات الأبناء المربوطين وحدهم.
+     * `course.user_id` نص قد يحمل أكثر من معرف حين يكون الكورس بمعلمين،
+     * فيفكك ويفحص كل معرف على `users` (معلم فعلا وحسابه مفعل).
      */
     public function teachers_for($parent_id)
     {
@@ -379,7 +379,7 @@ class Taqdar_parent_model extends CI_Model
         return array_values($out);
     }
 
-    /** هل يجوز لوليّ الأمر مراسلة هذا المعلّم؟ يُفحص قبل الكتابة لا عند الرسم. */
+    /** هل يجوز لولي الأمر مراسلة هذا المعلم؟ يفحص قبل الكتابة لا عند الرسم. */
     public function may_message($parent_id, $teacher_id)
     {
         foreach ($this->teachers_for($parent_id) as $t) {
@@ -389,8 +389,8 @@ class Taqdar_parent_model extends CI_Model
     }
 
     /**
-     * بدء محادثة: خيط إن لم يوجد، ثمّ رسالة. وتُحدَّث `last_message_timestamp`
-     * لأن قائمة المحادثات تُرتَّب عليها — ومسار المنصّة القديم لا يكتبها،
+     * بدء محادثة: خيط إن لم يوجد، ثم رسالة. وتحدث `last_message_timestamp`
+     * لأن قائمة المحادثات ترتب عليها — ومسار المنصة القديم لا يكتبها،
      * فكان الخيط الجديد يسقط إلى آخر القائمة بطابع فارغ.
      *
      * @return array{ok:bool, message:string, thread?:string}
@@ -402,12 +402,12 @@ class Taqdar_parent_model extends CI_Model
         $text       = trim((string) $text);
 
         if ($parent_id <= 0)  return $this->fail('لا جلسة مفتوحة.');
-        if ($teacher_id <= 0) return $this->fail('اختر المعلّم الذي تريد مراسلته.');
-        if ($text === '')     return $this->fail('اكتب نصّ رسالتك.');
+        if ($teacher_id <= 0) return $this->fail('اختر المعلم الذي تريد مراسلته.');
+        if ($text === '')     return $this->fail('اكتب نص رسالتك.');
         if (mb_strlen($text) > 4000) return $this->fail('الرسالة أطول من أربعة آلاف حرف.');
 
         if (!$this->may_message($parent_id, $teacher_id)) {
-            return $this->fail('لا تُراسَل إلا هيئة تدريس مواد أبنائك المربوطين.');
+            return $this->fail('لا تراسل إلا هيئة تدريس مواد أبنائك المربوطين.');
         }
 
         $thread = $this->db->query(
@@ -429,7 +429,7 @@ class Taqdar_parent_model extends CI_Model
                 'receiver'               => $teacher_id,
                 'last_message_timestamp' => $now,
             ]);
-            if ((int) $this->db->insert_id() <= 0) return $this->fail('تعذّر فتح المحادثة.');
+            if ((int) $this->db->insert_id() <= 0) return $this->fail('تعذر فتح المحادثة.');
         }
 
         $this->db->insert('message', [
@@ -440,18 +440,18 @@ class Taqdar_parent_model extends CI_Model
             'timestamp'           => $now,
             'read_status'         => 0,
         ]);
-        if ((int) $this->db->insert_id() <= 0) return $this->fail('تعذّر حفظ الرسالة.');
+        if ((int) $this->db->insert_id() <= 0) return $this->fail('تعذر حفظ الرسالة.');
 
         $this->db->where('message_thread_code', $code)
                  ->update('message_thread', ['last_message_timestamp' => $now]);
 
-        return ['ok' => true, 'thread' => $code, 'message' => 'أُرسلت رسالتك.'];
+        return ['ok' => true, 'thread' => $code, 'message' => 'أرسلت رسالتك.'];
     }
 
     /**
-     * ردّ داخل خيط قائم — لا يُفتح خيط ليس وليّ الأمر طرفًا فيه، ويُفحص ذلك
-     * في الاستعلام نفسه لا في الواجهة. ويُحدَّث طابع آخر رسالة كي لا يسقط
-     * الخيط إلى آخر القائمة (مسار المنصّة القديم لا يكتبه).
+     * رد داخل خيط قائم — لا يفتح خيط ليس ولي الأمر طرفا فيه، ويفحص ذلك
+     * في الاستعلام نفسه لا في الواجهة. ويحدث طابع آخر رسالة كي لا يسقط
+     * الخيط إلى آخر القائمة (مسار المنصة القديم لا يكتبه).
      */
     public function reply_thread($parent_id, $code, $text)
     {
@@ -460,7 +460,7 @@ class Taqdar_parent_model extends CI_Model
         $text      = trim((string) $text);
 
         if ($parent_id <= 0) return $this->fail('لا جلسة مفتوحة.');
-        if ($text === '')    return $this->fail('اكتب نصّ ردّك.');
+        if ($text === '')    return $this->fail('اكتب نص ردك.');
 
         $thread = $this->db->query(
             "SELECT sender, receiver FROM message_thread
@@ -481,26 +481,26 @@ class Taqdar_parent_model extends CI_Model
             'timestamp'           => $now,
             'read_status'         => 0,
         ]);
-        if ((int) $this->db->insert_id() <= 0) return $this->fail('تعذّر حفظ الردّ.');
+        if ((int) $this->db->insert_id() <= 0) return $this->fail('تعذر حفظ الرد.');
 
         $this->db->where('message_thread_code', $code)
                  ->update('message_thread', ['last_message_timestamp' => $now]);
 
-        return ['ok' => true, 'thread' => $code, 'message' => 'أُرسل ردّك.'];
+        return ['ok' => true, 'thread' => $code, 'message' => 'أرسل ردك.'];
     }
 
     /* ================================================================
        الإعدادات
        ================================================================ */
 
-    /** بيانات وليّ الأمر. */
+    /** بيانات ولي الأمر. */
     public function profile($parent_id)
     {
         return $this->db->select('id, first_name, last_name, email, phone, address, image')
                         ->where('id', (int) $parent_id)->get('users')->row_array() ?: [];
     }
 
-    /** تعديل بيانات وليّ الأمر — البريد فريد في `users` فيُفحص قبل الكتابة. */
+    /** تعديل بيانات ولي الأمر — البريد فريد في `users` فيفحص قبل الكتابة. */
     public function save_profile($parent_id, $data)
     {
         $parent_id = (int) $parent_id;
@@ -514,11 +514,11 @@ class Taqdar_parent_model extends CI_Model
 
         if ($first === '' || $last === '') return $this->fail('الاسم الأول واسم العائلة مطلوبان.');
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) return $this->fail('البريد الإلكتروني غير صحيح.');
-        if (mb_strlen($email) > 50) return $this->fail('البريد الإلكتروني أطول ممّا يقبله الحساب.');
+        if (mb_strlen($email) > 50) return $this->fail('البريد الإلكتروني أطول مما يقبله الحساب.');
 
         $taken = (int) $this->db->where('email', $email)->where('id !=', $parent_id)
                                 ->count_all_results('users');
-        if ($taken > 0) return $this->fail('هذا البريد مستعمَل في حساب آخر.');
+        if ($taken > 0) return $this->fail('هذا البريد مستعمل في حساب آخر.');
 
         $this->db->where('id', $parent_id)->update('users', [
             'first_name'    => $first,
@@ -529,16 +529,16 @@ class Taqdar_parent_model extends CI_Model
             'last_modified' => time(),
         ]);
 
-        return ['ok' => true, 'message' => 'حُفظت بياناتك.'];
+        return ['ok' => true, 'message' => 'حفظت بياناتك.'];
     }
 
     /**
-     * تغيير كلمة المرور من داخل البوّابة.
-     * زرّ «تغيير» كان يشير إلى `/profile` وهو يُرجع 500، فالمستخدم يصطدم
-     * بجدار. والتحقّق والتعمية يمرّان بدالّتَي المنصّة نفسهما
-     * (`tq_password_matches` و`tq_password_hash` في config.php): المنصّة
-     * ترقّي كلمات المرور القديمة إلى `password_hash()` عند أول دخول ناجح،
-     * فكتابة `sha1` هنا كانت تُنزل الحساب درجةً في الأمان وتكسر التحقّق.
+     * تغيير كلمة المرور من داخل البوابة.
+     * زر «تغيير» كان يشير إلى `/profile` وهو يرجع 500، فالمستخدم يصطدم
+     * بجدار. والتحقق والتعمية يمران بدالتي المنصة نفسهما
+     * (`tq_password_matches` و`tq_password_hash` في config.php): المنصة
+     * ترقي كلمات المرور القديمة إلى `password_hash()` عند أول دخول ناجح،
+     * فكتابة `sha1` هنا كانت تنزل الحساب درجة في الأمان وتكسر التحقق.
      */
     public function change_password($parent_id, $current, $new, $confirm)
     {
@@ -562,12 +562,12 @@ class Taqdar_parent_model extends CI_Model
             'last_modified' => time(),
         ]);
 
-        return ['ok' => true, 'message' => 'غُيّرت كلمة المرور.'];
+        return ['ok' => true, 'message' => 'غيرت كلمة المرور.'];
     }
 
     /**
      * حفظ تفضيلات الإشعارات وخطة الأسبوع لكل ابن — في `parent_links.scope`،
-     * وهو موضعها الطبيعي: نطاق ما يصل وليّ الأمر عن هذا الابن بعينه.
+     * وهو موضعها الطبيعي: نطاق ما يصل ولي الأمر عن هذا الابن بعينه.
      */
     public function save_prefs($parent_id, $notify, $plan_days = [])
     {
@@ -580,7 +580,7 @@ class Taqdar_parent_model extends CI_Model
         }
 
         $rows = $this->db->where('parent_user_id', $parent_id)->get('parent_links')->result_array();
-        if (!$rows) return $this->fail('لا روابط في حسابك لتُحفظ عليها التفضيلات.');
+        if (!$rows) return $this->fail('لا روابط في حسابك لتحفظ عليها التفضيلات.');
 
         foreach ($rows as $r) {
             $scope = $this->scope_of($r);
@@ -595,15 +595,15 @@ class Taqdar_parent_model extends CI_Model
             $this->db->where('id', (int) $r['id'])->update('parent_links', ['scope' => $this->json($scope)]);
         }
 
-        return ['ok' => true, 'message' => 'حُفظت تفضيلاتك.'];
+        return ['ok' => true, 'message' => 'حفظت تفضيلاتك.'];
     }
 
     /* ================================================================
        منفذ POST للشاشات
        ================================================================
-       الشاشات تنشر إلى مسارها نفسه (`parent/<section>`) وتستدعي هذه الدالّة
-       أوّل سطر. وحين يوجد متحكّم بمسارات مخصّصة، يستدعي الدوال أعلاه مباشرةً
-       ويُغيَّر `action` في النموذج — الطبقة المكتوبة واحدة في الحالتين.
+       الشاشات تنشر إلى مسارها نفسه (`parent/<section>`) وتستدعي هذه الدالة
+       أول سطر. وحين يوجد متحكم بمسارات مخصصة، يستدعي الدوال أعلاه مباشرة
+       ويغير `action` في النموذج — الطبقة المكتوبة واحدة في الحالتين.
     */
     public function handle_post($section)
     {
@@ -612,12 +612,12 @@ class Taqdar_parent_model extends CI_Model
         $parent_id = (int) $this->session->userdata('user_id');
         if ($parent_id <= 0) return;
 
-        /* حارس نفس الموقع: حماية CSRF في المنصّة معطّلة في `config.php`
-           (`csrf_protection = FALSE`) لأن العروض لا تحمل رمزًا بعد، ومسارات
-           الدخول تُقارن Origin/Referer بالمضيف بدلًا منه. وهذه نماذج تكتب —
-           إلغاء ربط أو رسالة أو تغيير بيانات — فتمرّ بالحارس نفسه. */
+        /* حارس نفس الموقع: حماية CSRF في المنصة معطلة في `config.php`
+           (`csrf_protection = FALSE`) لأن العروض لا تحمل رمزا بعد، ومسارات
+           الدخول تقارن Origin/Referer بالمضيف بدلا منه. وهذه نماذج تكتب —
+           إلغاء ربط أو رسالة أو تغيير بيانات — فتمر بالحارس نفسه. */
         if (function_exists('tq_auth_verify_origin') && !tq_auth_verify_origin()) {
-            $this->session->set_flashdata('tq_error', 'طلبٌ من موقع آخر — لم يُنفَّذ. أعد المحاولة من هذه الصفحة.');
+            $this->session->set_flashdata('tq_error', 'طلب من موقع آخر — لم ينفذ. أعد المحاولة من هذه الصفحة.');
             redirect(site_url('parent/' . $section), 'location', 303);
         }
 
@@ -685,22 +685,22 @@ class Taqdar_parent_model extends CI_Model
             (string) ($res['message'] ?? '')
         );
 
-        // 303 لأن ما بعد النشر عرضٌ لا إعادة نشر — ويتبعه العميل بلا لبس.
+        // 303 لأن ما بعد النشر عرض لا إعادة نشر — ويتبعه العميل بلا لبس.
         redirect($back, 'location', 303);
     }
 
-    /** شريط الرسالة بعد النشر — تُطبع في أعلى الشاشات الثلاث التي تكتب. */
+    /** شريط الرسالة بعد النشر — تطبع في أعلى الشاشات الثلاث التي تكتب. */
     public function flash_html()
     {
-        /* مفتاحان: مفاتيح شاشات تقدّر ومفاتيح المنصّة. الحارس `tq_guard`
-           ومسارات أكاديمي تكتب بالثانية، ورسالة لا تُقرأ كأنها لم تُكتب. */
+        /* مفتاحان: مفاتيح شاشات تقدر ومفاتيح المنصة. الحارس `tq_guard`
+           ومسارات أكاديمي تكتب بالثانية، ورسالة لا تقرأ كأنها لم تكتب. */
         $ok  = $this->session->flashdata('tq_ok')    ?: $this->session->flashdata('flash_message');
         $err = $this->session->flashdata('tq_error') ?: $this->session->flashdata('error_message');
         if (!$ok && !$err) return '';
 
         $text = html_escape((string) ($err ?: $ok));
         $fam  = $err ? 'rose' : 'mint';
-        $lab  = $err ? 'لم يتمّ' : 'تمّ';
+        $lab  = $err ? 'لم يتم' : 'تم';
 
         return '<div class="tq-pastel tq-pastel--' . $fam . '" role="status" style="margin-block-end:var(--tq-space-xl)">'
              . '<span class="tq-pastel__label tq-micro">' . $lab . '</span>'
@@ -709,7 +709,7 @@ class Taqdar_parent_model extends CI_Model
     }
 
     /* ================================================================
-       داخليّات
+       داخليات
        ================================================================ */
 
     private function fail($message)
@@ -720,9 +720,9 @@ class Taqdar_parent_model extends CI_Model
     /**
      * ساعة واحدة لتواريخ `parent_links`: ساعة القاعدة.
      * ساعة PHP على الويب هنا تسبق ساعة القاعدة بثلاث ساعات (توقيت الرياض
-     * في lsphp مقابل UTC في MariaDB)، فلو كُتب تاريخ الموافقة بساعة PHP
-     * لاختلف عن `NOW()` الذي تكتب به الإدارة الصفَّ نفسه — وتاريخ الموافقة
-     * حجّة قانونية لا يُقبل فيها اختلاف الساعتين.
+     * في lsphp مقابل UTC في MariaDB)، فلو كتب تاريخ الموافقة بساعة PHP
+     * لاختلف عن `NOW()` الذي تكتب به الإدارة الصف نفسه — وتاريخ الموافقة
+     * حجة قانونية لا يقبل فيها اختلاف الساعتين.
      */
     private function now()
     {
@@ -733,7 +733,7 @@ class Taqdar_parent_model extends CI_Model
     private function json($scope)
     {
         $out = json_encode($scope, JSON_UNESCAPED_UNICODE);
-        return $out === false ? '{}' : $out;   // العمود يشترط JSON صالحًا
+        return $out === false ? '{}' : $out;   // العمود يشترط JSON صالحا
     }
 
     private function scope_of($row)
@@ -749,7 +749,7 @@ class Taqdar_parent_model extends CI_Model
         return $u ? trim($u['first_name'] . ' ' . $u['last_name']) : 'الحساب';
     }
 
-    /** رمز خيط بطول رموز المنصّة نفسه (30 محرفًا) وبعشوائية صالحة. */
+    /** رمز خيط بطول رموز المنصة نفسه (30 محرفا) وبعشوائية صالحة. */
     private function thread_code()
     {
         $abc = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -759,8 +759,8 @@ class Taqdar_parent_model extends CI_Model
     }
 
     /**
-     * تبليغ الابن بطلب الربط: إشعار في `notifications` ورسالة خاصّة بنصّ
-     * الموافقة. طلبٌ لا يراه صاحبه ليس طلبًا.
+     * تبليغ الابن بطلب الربط: إشعار في `notifications` ورسالة خاصة بنص
+     * الموافقة. طلب لا يراه صاحبه ليس طلبا.
      */
     private function announce_request($parent_id, $student, $link_id)
     {
@@ -773,17 +773,17 @@ class Taqdar_parent_model extends CI_Model
                 'from_user'   => $parent_id,
                 'to_user'     => $sid,
                 'type'        => 'parent_link_request',
-                'title'       => 'طلب ربط وليّ أمر',
-                'description' => $parent . ' يطلب ربط حسابك بحسابه. لا يُفتح شيء من بياناتك قبل موافقتك.',
+                'title'       => 'طلب ربط ولي أمر',
+                'description' => $parent . ' يطلب ربط حسابك بحسابه. لا يفتح شيء من بياناتك قبل موافقتك.',
                 'status'      => 0,
                 'created_at'  => $now,
                 'updated_at'  => $now,
             ]);
         }
 
-        $body = $parent . ' طلب ربط حسابك بحسابه في تقدّر (طلب رقم ' . (int) $link_id . '). '
-              . 'نصّ الموافقة: ' . self::CONSENT_TEXT . ' '
-              . 'ولا يُفتح شيء من بياناتك قبل أن توافق أنت.';
+        $body = $parent . ' طلب ربط حسابك بحسابه في تقدر (طلب رقم ' . (int) $link_id . '). '
+              . 'نص الموافقة: ' . self::CONSENT_TEXT . ' '
+              . 'ولا يفتح شيء من بياناتك قبل أن توافق أنت.';
 
         $thread = $this->db->query(
             "SELECT message_thread_code FROM message_thread

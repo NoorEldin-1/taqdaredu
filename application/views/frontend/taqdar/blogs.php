@@ -1,7 +1,7 @@
 <?php
 /* البيانات من نموذج واحد — لا استعلام في العرض.
    و`get_instance()` لا `$this->load`: تحميل نموذج داخل عرض CI3
-   يُنتج بترًا صامتًا للصفحة، لا خطأً يُنبّه. */
+   ينتج بترا صامتا للصفحة، لا خطأ ينبه. */
 $tq_ci = &get_instance();
 $tq_ci->load->model('taqdar_site_model', 'tq_m');
 $tq_m  = $tq_ci->tq_m;
@@ -9,7 +9,7 @@ $tq_posts = $tq_m->posts();
 $tq_pcats = $tq_m->post_categories();
 ?>
 <!--
-title: المدوّنة — منصّة تقدّر
+title: المدونة — منصة تقدر
 desc: مقالات ونصائح وأفكار تربوية وتعليمية ملهمة لمساعدتك على دعم رحلة التعلم لطفلك.
 active: blog
 header: solid
@@ -23,8 +23,8 @@ css: pages
       <span class="lantern lantern--l" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
 
       <div class="page-hero__copy reveal">
-        <h1>المدوّنة
-          <span class="page-hero__sub">معرفة تُلهم .. وتجربة تُثري</span>
+        <h1>المدونة
+          <span class="page-hero__sub">معرفة تلهم .. وتجربة تثري</span>
         </h1>
         <p class="page-hero__lede">
           مقالات ونصائح وأفكار تربوية وتعليمية ملهمة لمساعدتك على دعم
@@ -36,7 +36,7 @@ css: pages
             <span class="sr-only">ابحث في المقالات</span>
             <input type="search" id="postSearch" placeholder="ابحث في المقالات…">
           </label>
-          <nav class="cat-tabs" id="catNav" aria-label="تصنيفات المدوّنة">
+          <nav class="cat-tabs" id="catNav" aria-label="تصنيفات المدونة">
 <?php echo tqs_post_tabs($tq_pcats); ?>
           </nav>
         </div>
@@ -62,7 +62,7 @@ css: pages
 
       <div>
         <div class="section-head" style="text-align:start;margin-block-end:18px">
-          <h2 style="font-size:clamp(17px,1.6vw,26px)"><span>مقالات مميّزة</span></h2>
+          <h2 style="font-size:clamp(17px,1.6vw,26px)"><span>مقالات مميزة</span></h2>
         </div>
 
         <?php echo tqs_feat_post($tq_posts); ?>
@@ -73,14 +73,14 @@ css: pages
 
         <div class="section-head" style="text-align:start;
              margin-block:clamp(26px,3vw,42px) 16px">
-          <h2 style="font-size:clamp(15px,1.4vw,22px)"><span>مقالات أخرى قد تهمّك</span></h2>
+          <h2 style="font-size:clamp(15px,1.4vw,22px)"><span>مقالات أخرى قد تهمك</span></h2>
         </div>
 
         <div class="grid-4" id="postRows">
           <?php echo tqs_post_rows($tq_posts); ?>
         </div>
 
-        <p class="dir-empty" id="postEmpty" hidden>لا توجد مقالات في هذا التصنيف حاليًّا.</p>
+        <p class="dir-empty" id="postEmpty" hidden>لا توجد مقالات في هذا التصنيف حاليا.</p>
 
         <div style="text-align:center;margin-block-start:clamp(22px,2.6vw,36px)">
           <a class="btn btn--ghost" href="#posts">
@@ -92,8 +92,8 @@ css: pages
 
       <aside>
         <div class="side-card reveal">
-          <h3>أقسام المدوّنة</h3>
-          <nav class="side-list" aria-label="أقسام المدوّنة">
+          <h3>أقسام المدونة</h3>
+          <nav class="side-list" aria-label="أقسام المدونة">
             <a href="#posts" data-cat="تعليم">
               <svg aria-hidden="true"><use href="#i-cap"></use></svg>تعليم</a>
             <a href="#posts" data-cat="تربية">
@@ -109,7 +109,7 @@ css: pages
 
         <div class="side-card reveal">
           <h3>مقالات ذات صلة</h3>
-<?php /* من القاعدة لا من الوسم: كانت أربعة عناوين مختلَقة بروابط `#`. */ ?>
+<?php /* من القاعدة لا من الوسم: كانت أربعة عناوين مختلقة بروابط `#`. */ ?>
 <?php echo tqs_side_reads($tq_posts); ?>
         </div>
 
@@ -124,7 +124,7 @@ css: pages
               <svg aria-hidden="true"><use href="#i-send"></use></svg>
             </button>
           </form>
-          <p class="form-ok" data-ok>تمّ تسجيل بريدك — شكرًا لاشتراكك.</p>
+          <p class="form-ok" data-ok>تم تسجيل بريدك — شكرا لاشتراكك.</p>
         </div>
       </aside>
 
@@ -144,7 +144,7 @@ css: pages
       </div>
       <div class="cta__art">
         <img src="<?php echo tq_site_asset('img/cta-kids-cut.webp'); ?>" width="660" height="990" loading="lazy"
-             decoding="async" alt="طفلان سعوديان يبتسمان ويحملان جهازًا لوحيًّا">
+             decoding="async" alt="طفلان سعوديان يبتسمان ويحملان جهازا لوحيا">
       </div>
     </div>
   </div>
