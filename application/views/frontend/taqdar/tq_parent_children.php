@@ -76,7 +76,7 @@ include 'portal_open.php';
                     <article class="tq-card tq-card--float">
                         <div class="tq-row" style="gap:var(--tq-space-l)">
                             <img class="tq-avatar tq-avatar--lg"
-                                 src="<?php echo !empty($tq_c['image']) ? base_url('uploads/user_image/' . $tq_c['image']) : tq_asset('brand/icon.png'); ?>"
+                                 src="<?php echo tqs_person_img($tq_c['image']); ?>"
                                  alt="صورة <?php echo html_escape($tq_name); ?>">
                             <div style="flex:1;min-inline-size:0">
                                 <h2 class="tq-h2" style="margin:0"><?php echo html_escape($tq_name); ?></h2>

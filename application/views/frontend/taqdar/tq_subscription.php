@@ -1,6 +1,14 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
+/**
+ * اشتراكي — حالة الاشتراك وما فتحه وفواتيره.
+ *
+ * كانت هذه الصفحة تعرض وسمها **خارج غلاف البوابة**: لا قائمة جانبية ولا
+ * ترويسة ولا سطح أبيض تحته. فتقرأ كصفحة انهارت لا كصفحة. وسببها سطران
+ * غائبان — `portal_open.php` و`portal_close.php` — لا خطأ في منطقها.
+ * وكل صفحة بوابة تفتح بهما، وهذه كانت الاستثناء الوحيد.
+ */
 $labels = array('pending' => 'بانتظار السداد', 'active' => 'نشط', 'cancelled' => 'ملغى التجديد', 'expired' => 'منته');
 
 /* الحال الفعلية لا المخزنة: الكرون يمر ليلا، والطالب يقرأ الآن. */
@@ -30,13 +38,23 @@ $tq_due = null;
 foreach ((array) $invoices as $tq_i) {
     if ($tq_i['status'] !== 'paid') { $tq_due = $tq_i; break; }
 }
+
+/* لون الحالة ليس زينة: «بانتظار السداد» و«نشط» يقرآن في لمحة واحدة،
+   وسطر نصي واحد يجعلهما متساويين في العين. والأصناف من مفردات الشارات
+   القائمة لا من عائلة الباستيل — الباستيل يعبئ ولا يضبط لون الحبر. */
+$tq_tone = array('pending' => 'due', 'active' => 'mastered',
+                 'cancelled' => 'idle', 'expired' => 'late');
+
+$tq_nav   = 'subscription';
+$tq_role  = 'student';
+$tq_title = 'اشتراكي';
+$tq_sub   = 'حالة اشتراكك وتاريخ انتهائه وفواتيرك.';
+$tq_icon  = 'wallet';
+
+include 'portal_open.php';
 ?>
 
-<div class="tq-page">
-    <header class="tq-page__head">
-        <h1 class="tq-h1">اشتراكي</h1>
-        <p class="tq-caption">حالة اشتراكك وتاريخ انتهائه وفواتيرك.</p>
-    </header>
+<div class="tq-stack">
 
     <?php if ($flash = $this->session->flashdata('flash_message')): ?>
         <div class="tq-alert tq-alert--ok"><?php echo html_escape($flash); ?></div>
@@ -48,34 +66,58 @@ foreach ((array) $invoices as $tq_i) {
     <?php if (!$current): ?>
 
         <div class="tq-card tq-card--panel">
-            <h2 class="tq-card__title">لا اشتراك نشط</h2>
-            <p class="tq-caption">
-                يمكنك تصفح الدروس المعلمة تجريبية، ويفتح الاشتراك المدفوع بقية المحتوى.
-            </p>
-            <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">اطلع على الباقات</a>
+            <div class="tq-empty">
+                <span class="tq-icon-box tq-pastel--sky" style="inline-size:64px;block-size:64px" aria-hidden="true">
+                    <?php echo tq_icon('wallet', 30); ?>
+                </span>
+                <p class="tq-empty__title">لا اشتراك نشط</p>
+                <p class="tq-empty__text">
+                    يمكنك تصفح الدروس المعلمة تجريبية، ويفتح الاشتراك المدفوع بقية المحتوى.
+                </p>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">اطلع على الباقات</a>
+            </div>
         </div>
 
     <?php else: ?>
 
-        <div class="tq-card tq-card--panel">
-            <h2 class="tq-card__title">الباقة <?php echo html_escape($current['plan_name']); ?></h2>
+        <div class="tq-card tq-card--panel tqs-head">
+            <div class="tqs-head__top">
+                <div class="tqs-head__b">
+                    <span class="tq-eyebrow">باقتك الحالية</span>
+                    <h2 class="tq-card__title"><?php echo html_escape($current['plan_name']); ?></h2>
+                </div>
+                <span class="tq-badge tq-badge--<?php echo $tq_tone[$eff] ?? 'idle'; ?>">
+                    <?php echo html_escape($labels[$eff]); ?>
+                </span>
+            </div>
 
-            <dl class="tq-deflist">
-                <dt>الحالة</dt>
-                <dd><?php echo html_escape($labels[$eff]); ?></dd>
-
-                <dt>القيمة</dt>
-                <dd><span class="tq-ltr" dir="ltr"><?php echo number_format(((int) $current['price']) / 100, 2); ?></span> ر.س</dd>
-
-                <?php if ($current['started_at']): ?>
-                    <dt>بدأ في</dt>
-                    <dd><span class="tq-ltr" dir="ltr"><?php echo date('Y-m-d', strtotime($current['started_at'])); ?></span></dd>
-                <?php endif; ?>
-
-                <?php if ($current['ends_at']): ?>
-                    <dt>ينتهي في</dt>
-                    <dd><span class="tq-ltr" dir="ltr"><?php echo date('Y-m-d', strtotime($current['ends_at'])); ?></span></dd>
-                <?php endif; ?>
+            <?php
+            /* الحقائق الأربع في صف بطاقات لا في `<dl>` عارية: المصطلح
+               فوق قيمته، والقيمة بخط الأرقام — فتمسح العين الصف مرة. */
+            $tq_facts = array(
+                array('القيمة', number_format(((int) $current['price']) / 100, 2) . ' ر.س', 'wallet'),
+            );
+            if ($current['started_at']) {
+                $tq_facts[] = array('بدأ في', date('Y-m-d', strtotime($current['started_at'])), 'calendar');
+            }
+            if ($current['ends_at']) {
+                $tq_facts[] = array($eff === 'cancelled' ? 'صالح حتى' : 'ينتهي في',
+                                    date('Y-m-d', strtotime($current['ends_at'])), 'clock');
+            }
+            if ($tq_due) {
+                $tq_facts[] = array('مرجع الفاتورة', $tq_due['invoice_no'], 'file');
+            }
+            ?>
+            <dl class="tqs-facts">
+                <?php foreach ($tq_facts as $f): ?>
+                    <div class="tqs-facts__i">
+                        <span class="tqs-facts__ico" aria-hidden="true"><?php echo tq_icon($f[2], 17); ?></span>
+                        <div>
+                            <dt><?php echo html_escape($f[0]); ?></dt>
+                            <dd class="tq-ltr" dir="ltr"><?php echo html_escape($f[1]); ?></dd>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </dl>
 
             <?php if ($tq_trial && in_array($eff, array('active', 'cancelled'), true)): ?>
@@ -98,34 +140,64 @@ foreach ((array) $invoices as $tq_i) {
                     <?php endif; ?>
                 </p>
                 <?php /* الإلغاء فعل لا يسترد، فيكون POST — ورابط GET ينفذ بمجرد جلبه. */ ?>
-                <form method="post" action="<?php echo base_url('student/subscription_cancel'); ?>" class="tq-form-inline">
-                    <button type="submit" class="tq-btn tq-btn--secondary tq-btn--sm">
-                        <?php echo $tq_trial ? 'إيقاف التجربة' : 'إيقاف التجديد'; ?>
-                    </button>
-                </form>
+                <div class="tqs-acts">
+                    <a class="tq-btn tq-btn--primary tq-btn--sm" href="<?php echo base_url('student/bundle'); ?>">
+                        افتح محتوى الباقة
+                    </a>
+                    <form method="post" action="<?php echo base_url('student/subscription_cancel'); ?>">
+                        <button type="submit" class="tq-btn tq-btn--secondary tq-btn--sm">
+                            <?php echo $tq_trial ? 'إيقاف التجربة' : 'إيقاف التجديد'; ?>
+                        </button>
+                    </form>
+                </div>
             <?php elseif ($eff === 'cancelled'): ?>
                 <p class="tq-caption">
                     أوقفت التجديد، ويبقى اشتراكك صالحا حتى تاريخ انتهائه أعلاه.
                     ويمكنك من الآن اختيار باقة أخرى من صفحة الباقات.
                 </p>
+                <div class="tqs-acts">
+                    <a class="tq-btn tq-btn--primary tq-btn--sm" href="<?php echo base_url('student/bundle'); ?>">
+                        افتح محتوى الباقة
+                    </a>
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('plans'); ?>">الباقات</a>
+                </div>
             <?php elseif ($eff === 'expired'): ?>
                 <p class="tq-caption">انتهت مدة هذا الاشتراك. يمكنك الاشتراك من جديد متى شئت.</p>
-                <a class="tq-btn tq-btn--primary tq-btn--sm" href="<?php echo base_url('plans'); ?>">الباقات</a>
+                <div class="tqs-acts">
+                    <a class="tq-btn tq-btn--primary tq-btn--sm" href="<?php echo base_url('plans'); ?>">الباقات</a>
+                </div>
             <?php endif; ?>
         </div>
 
     <?php endif; ?>
 
+    <?php if ($eff === 'pending' && $tq_due): ?>
+        <div class="tq-card tq-card--panel">
+            <div class="tq-card__head">
+                <h2 class="tq-card__title">كيف تفعل اشتراكك</h2>
+            </div>
+            <p class="tq-caption">
+                حول قيمة الفاتورة إلى الحساب أدناه، واكتب رقم الفاتورة في خانة الملاحظات.
+            </p>
+            <?php echo tqs_bank_block($tq_due['invoice_no'], (int) $tq_due['total']); ?>
+        </div>
+    <?php endif; ?>
+
     <?php if ($current && $tq_bundle && !empty($tq_bundle['subjects'])): ?>
         <?php $tq_t = $tq_bundle['totals']; ?>
-        <section class="tq-section tqb-incl">
-            <h2 class="tq-h2">باقتك تشمل</h2>
+        <div class="tq-card tq-card--panel tqb-incl">
+            <div class="tq-card__head">
+                <h2 class="tq-card__title">باقتك تشمل</h2>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('plan/' . $tq_bundle['code']); ?>">
+                    تفاصيل الباقة
+                </a>
+            </div>
 
             <?php
             echo tqs_stat_strip(array(
-                array($tq_t['grades'],   'صفوف',     'i-cap'),
+                array($tq_t['grades'],   'صفوف',    'i-cap'),
                 array($tq_t['subjects'], 'مادة',    'i-book'),
-                array($tq_t['units'],    'وحدة',     'i-grid'),
+                array($tq_t['units'],    'وحدة',    'i-grid'),
                 array($tq_t['lessons'],  'درسا',    'i-play'),
                 array($tq_t['quizzes'],  'اختبارا', 'i-clipboard'),
             ), 'tqb-stats');
@@ -151,21 +223,13 @@ foreach ((array) $invoices as $tq_i) {
                     افتح محتوى الباقة
                 </a>
             <?php endif; ?>
-        </section>
+        </div>
     <?php endif; ?>
 
-    <?php if ($eff === 'pending' && $tq_due): ?>
-        <section class="tq-section">
-            <h2 class="tq-h2">كيف تفعل اشتراكك</h2>
-            <p class="tq-caption">
-                حول قيمة الفاتورة إلى الحساب أدناه، واكتب رقم الفاتورة في خانة الملاحظات.
-            </p>
-            <?php echo tqs_bank_block($tq_due['invoice_no'], (int) $tq_due['total']); ?>
-        </section>
-    <?php endif; ?>
-
-    <section class="tq-section">
-        <h2 class="tq-h2">الفواتير</h2>
+    <div class="tq-card tq-card--panel">
+        <div class="tq-card__head">
+            <h2 class="tq-card__title">الفواتير</h2>
+        </div>
 
         <?php if (empty($invoices)): ?>
             <p class="tq-caption">لا فواتير بعد.</p>
@@ -186,8 +250,12 @@ foreach ((array) $invoices as $tq_i) {
                             <td><span class="tq-ltr" dir="ltr"><?php echo html_escape($inv['invoice_no']); ?></span></td>
                             <td><span class="tq-ltr" dir="ltr"><?php echo number_format(((int) $inv['total']) / 100, 2); ?></span> ر.س</td>
                             <td>
-                                <?php echo $inv['status'] === 'paid' ? 'مدفوعة'
-                                        : ($inv['status'] === 'refunded' ? 'مستردة' : 'غير مدفوعة'); ?>
+                                <?php
+                                $tq_ist = $inv['status'] === 'paid' ? array('مدفوعة', 'mastered')
+                                        : ($inv['status'] === 'refunded' ? array('مستردة', 'idle')
+                                                                        : array('غير مدفوعة', 'due'));
+                                ?>
+                                <span class="tq-badge tq-badge--<?php echo $tq_ist[1]; ?>"><?php echo $tq_ist[0]; ?></span>
                             </td>
                             <td><span class="tq-ltr" dir="ltr"><?php echo date('Y-m-d', strtotime($inv['issued_at'])); ?></span></td>
                         </tr>
@@ -196,5 +264,7 @@ foreach ((array) $invoices as $tq_i) {
                 </table>
             </div>
         <?php endif; ?>
-    </section>
+    </div>
 </div>
+
+<?php include 'portal_close.php'; ?>

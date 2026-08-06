@@ -167,7 +167,7 @@ include 'portal_open.php';
                             <?php $tq_name = trim($tq_s['first_name'] . ' ' . $tq_s['last_name']); ?>
                             <li class="tq-row" style="gap:var(--tq-space-l);padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
                                 <img class="tq-avatar"
-                                     src="<?php echo !empty($tq_s['image']) ? base_url('uploads/user_image/' . $tq_s['image']) : tq_asset('brand/icon.png'); ?>"
+                                     src="<?php echo tqs_person_img($tq_s['image']); ?>"
                                      alt="صورة <?php echo html_escape($tq_name); ?>">
                                 <div style="flex:1;min-inline-size:0">
                                     <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></p>
@@ -229,7 +229,7 @@ include 'portal_open.php';
                                     <td data-label="الطالب">
                                         <span class="tq-row" style="gap:var(--tq-space-s)">
                                             <img class="tq-avatar tq-avatar--sm"
-                                                 src="<?php echo !empty($tq_s['image']) ? base_url('uploads/user_image/' . $tq_s['image']) : tq_asset('brand/icon.png'); ?>"
+                                                 src="<?php echo tqs_person_img($tq_s['image']); ?>"
                                                  alt="صورة <?php echo html_escape($tq_name); ?>">
                                             <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></span>
                                         </span>

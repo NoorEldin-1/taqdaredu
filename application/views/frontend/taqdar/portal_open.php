@@ -14,6 +14,14 @@
 $tq_nav  = $tq_nav  ?? '';
 $tq_role = $tq_role ?? 'student';
 ?>
+<?php
+/* مكتبة الأشكال — مرة واحدة لكل صفحة بوابة.
+   المساعدات المشتركة (`tqs_curriculum` · `tqs_bank_block` · `tqs_stat_strip`)
+   تشير إلى رموزها بـ`<use href="#i-…">`، وهي معرفة في سبرايت الموقع الذي
+   كانت ترويسة الموقع وحدها تطبعه. فكان كل رمز في صفحات البوابة يرسم فراغا
+   بلا خطأ في الكونسول: مربع فارغ مكان القفل والبنك والعلم. */
+?>
+<?php include __DIR__ . '/site/site_sprite.php'; ?>
 <div class="tq-shell">
 
     <?php include 'portal_rail.php'; ?>

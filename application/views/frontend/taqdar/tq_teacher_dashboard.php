@@ -268,9 +268,7 @@ include 'portal_open.php';
                         <?php foreach ($tq_attention as $tq_i => $tq_s): ?>
                             <?php
                             $tq_name  = trim($tq_s['first_name'] . ' ' . $tq_s['last_name']);
-                            $tq_photo = !empty($tq_s['image'])
-                                ? base_url('uploads/user_image/' . $tq_s['image'])
-                                : tq_asset('brand/icon.png');
+                            $tq_photo = tqs_person_img($tq_s['image']);
                             ?>
                             <li class="tq-row" style="gap:var(--tq-space-l);padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
                                 <img class="tq-avatar" src="<?php echo $tq_photo; ?>"

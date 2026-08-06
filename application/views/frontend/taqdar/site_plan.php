@@ -42,7 +42,71 @@ $tier  = tqs_bundle_tier($b['name']);
       <p class="plan-hero__stage"><?php echo html_escape($stage); ?></p>
     <?php endif; ?>
 
-    <h1><?php echo html_escape($b['name']); ?></h1>
+    <?php
+    /* العنوان **هو** المبدل.
+     *
+     * كان الخروج من باقة إلى أختها يمر بالكتالوج ثم بالعودة — ثلاث
+     * صفحات لمقارنة رقمين، والمقارنة هي عين ما يفعله المشتري هنا.
+     * فصار العنوان نفسه بابا: نفس الخط ونفس الحجم ونفس اللون، وإنما
+     * تحته خط منقط وسهم يقول «هذا يفتح».
+     *
+     * و`<details>` لا قائمة بجافاسكربت: تفتح بلا سكربت، ويعرفها قارئ
+     * الشاشة، وتغلق بـEscape من المتصفح نفسه. والسكربت يضيف إغلاق
+     * النقر خارجها وحده — تحسين إن عمل، ولا شيء ينكسر إن لم يعمل.
+     * والباقة الحالية معلمة `aria-current` لا مخفية: من فتح القائمة
+     * يريد أن يعرف أين هو منها.
+     */
+    $sibs = isset($tq_siblings) ? (array) $tq_siblings : array();
+    ?>
+    <?php if (count($sibs) > 1): ?>
+      <details class="plan-switch" data-tq-switch>
+        <summary class="plan-switch__cur">
+          <h1><?php echo html_escape($b['name']); ?></h1>
+          <span class="plan-switch__chev" aria-hidden="true">
+            <svg><use href="#i-chevron"></use></svg>
+          </span>
+          <span class="sr-only">بدل الباقة</span>
+        </summary>
+
+        <div class="plan-switch__menu" role="group" aria-label="باقات أخرى">
+          <p class="plan-switch__h">باقات أخرى</p>
+          <?php
+          /* مجموعة بالمرحلة: «الأساسية» في الابتدائي غير «الأساسية» في
+             المتوسط، وقائمة مسطحة تعرض الاسم مرتين بلا فارق يقرأ. */
+          $by_stage = array();
+          foreach ($sibs as $s) $by_stage[$s['stage']][] = $s;
+          foreach ($by_stage as $stage_key => $group):
+            $stage_lbl = tqs_stage_label($stage_key);
+          ?>
+            <?php if ($stage_lbl !== ''): ?>
+              <p class="plan-switch__stage"><?php echo html_escape($stage_lbl); ?></p>
+            <?php endif; ?>
+            <ul class="plan-switch__list">
+              <?php foreach ($group as $s): ?>
+                <li>
+                  <a class="plan-switch__i<?php echo $s['current'] ? ' is-current' : ''; ?>"
+                     href="<?php echo base_url('plan/' . $s['code']); ?>"
+                     <?php echo $s['current'] ? 'aria-current="page"' : ''; ?>>
+                    <span class="plan-switch__tier"><?php echo html_escape($s['tier']); ?></span>
+                    <span class="plan-switch__price"><?php echo tqs_money($s['price']); ?></span>
+                    <?php if ($s['current']): ?>
+                      <svg class="plan-switch__tick" aria-hidden="true"><use href="#i-check"></use></svg>
+                    <?php endif; ?>
+                  </a>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endforeach; ?>
+
+          <a class="plan-switch__all" href="<?php echo base_url('plans'); ?>">
+            قارن الباقات كلها
+            <svg aria-hidden="true"><use href="#i-arrow-back"></use></svg>
+          </a>
+        </div>
+      </details>
+    <?php else: ?>
+      <h1><?php echo html_escape($b['name']); ?></h1>
+    <?php endif; ?>
 
     <?php if ($b['note'] !== ''): ?>
       <p class="page-hero__lead"><?php echo html_escape($b['note']); ?></p>
@@ -127,17 +191,27 @@ $tier  = tqs_bundle_tier($b['name']);
           <h2>من يدرس؟</h2>
           <ul class="tlist">
             <?php foreach ($b['teachers'] as $tt): ?>
+              <?php
+              /* `users.image` قد يكون اسم أصل أو رفعا أو مسارا — و`tqs_person_img`
+                 وحدها تعرف الفرق. كان هنا `base_url($tt['image'])` فينتج
+                 `…/teacher-3`: خمسة مربعات مكسورة تحت «من يدرس؟».
+                 والاسم يربط بصفحته إن كان معلنا وحسب — انظر `bundle_by_code()`. */
+              $tt_img = '<img src="' . tqs_person_img($tt['image']) . '" alt=""'
+                      . ' width="64" height="64" loading="lazy" decoding="async">';
+              $tt_b   = '<span class="tlist__b"><b>' . html_escape($tt['name']) . '</b>'
+                      . '<small>' . (int) $tt['n'] . ' برنامجا في هذه الباقة</small></span>';
+              ?>
+              <?php /* الصف دائما داخل وعاء واحد — رابطا كان أو لا. ولولا
+                       ذلك لاختلف عدد أبناء البطاقة بين معلم معلن وآخر،
+                       فاختلف تخطيطها بلا سبب يقرأ في الورقة. */ ?>
               <li class="tlist__i">
-                <?php if ((string) $tt['image'] !== ''): ?>
-                  <img src="<?php echo base_url($tt['image']); ?>" alt=""
-                       width="64" height="64" loading="lazy" decoding="async">
+                <?php if (!empty($tt['public'])): ?>
+                  <a class="tlist__l" href="<?php echo base_url('instructor/' . (int) $tt['id']); ?>">
                 <?php else: ?>
-                  <span class="tlist__ph"><svg aria-hidden="true"><use href="#i-teacher"></use></svg></span>
+                  <span class="tlist__l">
                 <?php endif; ?>
-                <span class="tlist__b">
-                  <b><?php echo html_escape($tt['name']); ?></b>
-                  <small><?php echo (int) $tt['n']; ?> برنامجا في هذه الباقة</small>
-                </span>
+                  <?php echo $tt_img . $tt_b; ?>
+                <?php echo !empty($tt['public']) ? '</a>' : '</span>'; ?>
               </li>
             <?php endforeach; ?>
           </ul>
@@ -184,10 +258,41 @@ $tier  = tqs_bundle_tier($b['name']);
       <div class="icard icard--sticky plan-card">
 
         <?php if ((string) $b['image'] !== ''): ?>
-          <div class="plan-card__media">
-            <img src="<?php echo tqs_asset_img($b['image'], 'path-primary'); ?>" alt=""
-                 width="880" height="587" loading="lazy" decoding="async">
-          </div>
+          <?php
+          /* الصورة تصير مشغلا حين يكون في الباقة درس مفتوح للمعاينة:
+             علامة تشغيل وشارة تقول ما هي، ونقرة تفتح الدرس نفسه. وبلا
+             درس مجاني تبقى صورة — لا علامة تشغيل تعد بفيديو لا يفتح. */
+          $promo = tqs_free_preview($b);
+          ?>
+          <?php if ($promo): ?>
+            <a class="plan-card__media plan-card__media--promo"
+               href="<?php echo base_url('student/lesson/' . $promo['course_id'] . '/' . $promo['lesson_id']); ?>"
+               aria-label="شاهد معاينة مجانية: <?php echo html_escape($promo['title']); ?>">
+              <?php /* لا `lazy` هنا: البطاقة أعلى العمود الجانبي وتظهر مع
+                       أول رسم، والتأجيل يجعل مربعا بيجيا يومض تحت علامة
+                       التشغيل قبل أن تصل الصورة. */ ?>
+              <img src="<?php echo tqs_asset_img($b['image'], 'path-primary'); ?>" alt=""
+                   width="880" height="587" decoding="async" fetchpriority="high">
+              <span class="plan-promo__scrim" aria-hidden="true"></span>
+              <span class="plan-promo__play" aria-hidden="true">
+                <svg><use href="#i-play"></use></svg>
+              </span>
+              <span class="plan-promo__tag">
+                <svg aria-hidden="true"><use href="#i-video"></use></svg>
+                معاينة مجانية
+              </span>
+              <span class="plan-promo__cap">
+                <b><?php echo html_escape($promo['title']); ?></b>
+                <i><?php echo html_escape($promo['subject']); ?><?php
+                    echo $promo['duration'] !== '' ? ' · ' . html_escape($promo['duration']) : ''; ?></i>
+              </span>
+            </a>
+          <?php else: ?>
+            <div class="plan-card__media">
+              <img src="<?php echo tqs_asset_img($b['image'], 'path-primary'); ?>" alt=""
+                   width="880" height="587" loading="lazy" decoding="async">
+            </div>
+          <?php endif; ?>
         <?php endif; ?>
 
         <p class="plan-card__price">
@@ -248,15 +353,36 @@ $tier  = tqs_bundle_tier($b['name']);
   </div>
 </section>
 
-<?php /* ── نداء ختامي ──────────────────────────────────────────── */ ?>
+<?php /* ── نداء ختامي ──────────────────────────────────────────────
+     ثلاث علل كانت هنا:
+     ١· الزر `btn--primary` — و`--petrol` هو **لون خلفية اللوح نفسه**.
+        فالزر يذوب فيها: يقرأ نصا أبيض معلقا لا زرا يضغط. والذهبي هو زر
+        الأسطح الغامقة في هذا التصميم (`.cta` في خمس صفحات تفعلها).
+     ٢· «ر.س» مرتين: `tqs_money()` تلحق العملة بنفسها، والسطر يلحقها
+        ثانية — «٣٩٩ ر.س ر.س».
+     ٣· السعر مذاب في جملة. وهو الرقم الذي يقرر، فيرفع إلى شارة تقرأ
+        وحدها بلا أن تقرأ الجملة كلها. */ ?>
 <?php if (!$owns): ?>
 <section class="section plan-cta">
-  <div class="shell plan-cta__in">
+  <div class="shell plan-cta__in on-dark">
+    <p class="plan-cta__eyebrow"><?php echo html_escape(tqs_stage_label($b['stage'])); ?></p>
     <h2>ابدأ سنة ابنك من اليوم</h2>
-    <p><?php echo html_escape($b['name']); ?> —
-      <?php echo strip_tags(tqs_money($b['price'])); ?> ر.س
-      <?php echo html_escape(mb_strtolower(tqs_period_label($b['days']), 'UTF-8')); ?>.</p>
-    <a class="btn btn--primary" href="<?php echo base_url('checkout/' . $b['code']); ?>">اشترك الآن</a>
+    <p class="plan-cta__lead"><?php echo html_escape($b['name']); ?></p>
+
+    <p class="plan-cta__price">
+      <?php echo tqs_money($b['price']); ?>
+      <small><?php echo html_escape(tqs_period_label($b['days'])); ?></small>
+    </p>
+
+    <div class="plan-cta__acts">
+      <a class="btn btn--gold" href="<?php echo base_url('checkout/' . $b['code']); ?>">اشترك الآن</a>
+      <a class="btn btn--ghost" href="#curriculum">راجع المنهج أولا</a>
+    </div>
+
+    <p class="plan-cta__note">
+      <svg aria-hidden="true"><use href="#i-shield"></use></svg>
+      لا تجديد تلقائي ولا خصم متكرر — تدفع مرة، ويبقى الباب مفتوحا المدة كاملة.
+    </p>
   </div>
 </section>
 <?php endif; ?>

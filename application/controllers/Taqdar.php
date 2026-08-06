@@ -1480,7 +1480,29 @@ class Taqdar extends CI_Controller
                           && $cur['status'] === 'active');
         }
 
-        $this->show('site_plan', $b['name'], array('tq_bundle' => $b, 'tq_owns' => $own));
+        /* أخوات الباقة — لتبديلها من عنوانها نفسه.
+           كان الخروج من باقة إلى أختها يمر بالكتالوج ثم بالعودة: ثلاث
+           صفحات لمقارنة رقمين. والقائمة تحت العنوان تجعلها نقرة، وهي
+           الموضع الذي تسأل فيه العين «وما البقية؟». */
+        $siblings = array();
+        $this->load->model('taqdar_billing_model');
+        foreach ((array) $this->taqdar_billing_model->plans(true) as $p) {
+            if ((string) $p['scope'] !== 'grade') continue;   // الباقات المباعة وحدها
+            $siblings[] = array(
+                'code'    => (string) $p['code'],
+                'name'    => (string) $p['name_ar'],
+                'tier'    => tqs_bundle_tier($p['name_ar']),
+                'stage'   => (string) $p['stage'],
+                'price'   => (int) $p['price'],
+                'current' => ((string) $p['code'] === $b['code']),
+            );
+        }
+
+        $this->show('site_plan', $b['name'], array(
+            'tq_bundle'   => $b,
+            'tq_owns'     => $own,
+            'tq_siblings' => $siblings,
+        ));
     }
 
     /**
@@ -1569,12 +1591,14 @@ class Taqdar extends CI_Controller
             }
         }
 
+        /* `tq_subscription` لا `tq_sub` — الأخير هو سطر ما تحت العنوان في
+           غلاف البوابة، فتسميته بالاشتراك تجعل الغلاف يطبع مصفوفة. */
         $this->show('tq_bundle', 'محتوى باقتي', array(
-            'tq_counts'  => $this->counts($uid),
-            'user_id'    => $uid,
-            'tq_sub'     => $sub,
-            'tq_bundle'  => $b,
-            'tq_progress'=> $prog,
+            'tq_counts'        => $this->counts($uid),
+            'user_id'          => $uid,
+            'tq_subscription'  => $sub,
+            'tq_bundle'        => $b,
+            'tq_progress'      => $prog,
         ));
     }
 

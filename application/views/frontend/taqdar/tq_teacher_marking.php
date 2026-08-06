@@ -79,7 +79,7 @@ include 'portal_open.php';
 
                 <div class="tq-row" style="gap:var(--tq-space-l);margin-block-end:var(--tq-space-xl)">
                     <img class="tq-avatar tq-avatar--lg"
-                         src="<?php echo !empty($tq_single['image']) ? base_url('uploads/user_image/' . $tq_single['image']) : tq_asset('brand/icon.png'); ?>"
+                         src="<?php echo tqs_person_img($tq_single['image']); ?>"
                          alt="صورة <?php echo html_escape($tq_name); ?>">
                     <div style="flex:1;min-inline-size:0">
                         <h2 class="tq-h2" style="margin:0"><?php echo html_escape($tq_name); ?></h2>

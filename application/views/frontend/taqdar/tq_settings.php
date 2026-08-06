@@ -48,11 +48,9 @@ $tq_themes   = $tq_set->themes();
 $tq_langs    = $tq_set->languages();
 
 /* الصورة: الاسم في القاعدة رمز بلا امتداد، والملف <code>.jpg — وعرضه
-   بلا امتداد كان يعطي صورة مكسورة لا صورة حساب. */
-$tq_img_code = trim((string) ($u['image'] ?? ''));
-$tq_avatar   = ($tq_img_code !== '' && file_exists(FCPATH . 'uploads/user_image/' . $tq_img_code . '.jpg'))
-    ? base_url('uploads/user_image/' . $tq_img_code . '.jpg')
-    : base_url('uploads/user_image/placeholder.png');
+   بلا امتداد كان يعطي صورة مكسورة لا صورة حساب. وهذا ما كانت تفعله عشر
+   شاشات أخرى، فصار الحل في `tqs_person_img` مرة لا في كل موضع. */
+$tq_avatar = tqs_person_img($u['image'] ?? '');
 
 /* آخر وسيلة دفع استعملت فعلا — لا «وسيلة محفوظة»، فالمنصة لا تحفظ بطاقات. */
 $tq_last_pay = $CI->db->table_exists('subscriptions')

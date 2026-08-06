@@ -22,6 +22,7 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
     <link rel="preload" href="<?php echo base_url('assets/taqdar/site/fonts/Plex-400-arabic.woff2'); ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/taqdar.css'); ?>">
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/pages.css'); ?>">
+    <link rel="stylesheet" href="<?php echo tq_site_asset('css/shared.css'); ?>">
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/shell.css'); ?>">
 <?php else: ?>
 <?php /* TQ-FONTS-MOVED — خطوط البوابة تسبق للبوابة وحدها.
@@ -39,6 +40,11 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
 <link rel="stylesheet" href="<?php echo tq_asset('css/base.css'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/components.css'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/layout.css'); ?>">
+<?php /* المكونات المشتركة — المنهج وبيانات التحويل وشرائط الأرقام. وسمها
+        يخرج من مساعد واحد للجهتين، وورقتها تجسر توكناتها إلى توكنات
+        البوابة. وهي **بعد** أوراق البوابة عمدا: الجسر يعرف على
+        `.tq-body--portal` فلا بد أن يقرأ بعد أن تعرف `:root`. */ ?>
+<link rel="stylesheet" href="<?php echo tq_site_asset('css/shared.css'); ?>">
 <?php endif; ?>
 
 <?php

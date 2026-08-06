@@ -56,7 +56,9 @@ include __DIR__ . '/site/site_pagehero.php';
     <aside>
       <div class="icard icard--sticky">
         <?php if (!empty($tq_t['img'])): ?>
-          <img src="<?php echo tqs_img($tq_t['img'], 'teacher-1'); ?>" alt=""
+          <?php /* `tqs_person_img` لا `tqs_img`: من رفع صورته فعلا يحمل
+                   `users.image` عنده بصمة لا اسم أصل — انظر المساعد. */ ?>
+          <img src="<?php echo tqs_person_img($tq_t['img'], 'teacher-1'); ?>" alt=""
                width="360" height="360" style="width:100%;height:auto;border-radius:14px;display:block;margin-block-end:12px">
         <?php endif; ?>
 
@@ -68,8 +70,11 @@ include __DIR__ . '/site/site_pagehero.php';
           <p class="tq-caption"><span class="tq-ltr"><?php echo html_escape(number_format((int) $tq_t['reviews'])); ?></span> تقييما</p>
         <?php endif; ?>
 
+        <?php /* `teacher_stage` مفتاح إنجليزي في القاعدة (`secondary`)،
+                 وكان يطبع خاما فيقرأ الزائر «المرحلة: secondary» في صفحة
+                 عربية بالكامل. و`tqs_stage_label` هي المترجم القائم. */ ?>
         <?php if (!empty($tq_t['stage'])): ?>
-          <p class="tq-caption">المرحلة: <?php echo html_escape($tq_t['stage']); ?></p>
+          <p class="tq-caption">المرحلة: <?php echo html_escape(tqs_stage_label($tq_t['stage'])); ?></p>
         <?php endif; ?>
 
         <a class="path-back" href="<?php echo base_url('teachers'); ?>">عودة إلى المعلمين</a>

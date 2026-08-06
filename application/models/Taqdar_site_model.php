@@ -394,7 +394,7 @@ class Taqdar_site_model extends CI_Model
                            s.name_ar AS subject_ar,
                            g.name_ar AS grade_ar,
                            TRIM(CONCAT(COALESCE(u.first_name,""), " ", COALESCE(u.last_name,""))) AS teacher_name,
-                           u.image AS teacher_image, u.teacher_slug', false)
+                           u.image AS teacher_image, u.teacher_slug, u.is_public AS teacher_public', false)
                  ->from('paths p')
                  ->join('subjects s', 's.id = p.subject_id', 'left')
                  ->join('grades   g', 'g.id = p.grade_id',   'left')
@@ -521,12 +521,16 @@ class Taqdar_site_model extends CI_Model
             $tid = (int) $p['teacher_id'];
             if ($tid > 0 && trim((string) $p['teacher_name']) !== '') {
                 if (!isset($teachers[$tid])) {
+                    /* `public` يقرر هل يربط اسمه بصفحته: `instructor_page()`
+                       تقرأ من `teachers()` التي تشترط `is_public`، فرابط
+                       لمعلم غير معلن ينتهي إلى 404 من داخل صفحتنا. */
                     $teachers[$tid] = array(
-                        'id'    => $tid,
-                        'name'  => trim((string) $p['teacher_name']),
-                        'image' => (string) $p['teacher_image'],
-                        'slug'  => (string) $p['teacher_slug'],
-                        'n'     => 0,
+                        'id'     => $tid,
+                        'name'   => trim((string) $p['teacher_name']),
+                        'image'  => (string) $p['teacher_image'],
+                        'slug'   => (string) $p['teacher_slug'],
+                        'public' => ((int) $p['teacher_public'] === 1),
+                        'n'      => 0,
                     );
                 }
                 $teachers[$tid]['n']++;

@@ -7,9 +7,7 @@
 $tq_uid   = $this->session->userdata('user_id');
 $tq_user  = $tq_uid ? $this->user_model->get_all_user($tq_uid)->row_array() : null;
 $tq_name  = $tq_user ? trim($tq_user['first_name'] . ' ' . $tq_user['last_name']) : '';
-$tq_photo = $tq_user && !empty($tq_user['image'])
-    ? base_url('uploads/user_image/' . $tq_user['image'])
-    : tq_asset('brand/icon.png');
+$tq_photo = tqs_person_img($tq_user ? $tq_user['image'] : '');
 
 $tq_role_label = ['student' => 'طالب', 'teacher' => 'معلم', 'parent' => 'ولي أمر'][$tq_role] ?? 'طالب';
 

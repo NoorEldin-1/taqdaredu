@@ -623,4 +623,27 @@ document.documentElement.classList.add('js');
     });
   });
 
+  /* ---------- مبدل الباقة: إغلاق بالنقر خارجها وبـEscape ----------
+     `<details>` تفتح وتغلق بلا سكربت، وهذا هو الأساس الذي يعمل دائما.
+     وما يضاف هنا سلوك قائمة لا سلوك تفصيل: قائمة تبقى مفتوحة بعد أن
+     ينصرف عنها المستخدم تحجب ما تحتها. فإن لم يعمل هذا الملف بقي
+     التبديل عاملا — بنقرة إغلاق زائدة لا أكثر. */
+  var tqSwitches = document.querySelectorAll('[data-tq-switch]');
+  if (tqSwitches.length) {
+    document.addEventListener('click', function (e) {
+      tqSwitches.forEach(function (d) {
+        if (d.open && !d.contains(e.target)) d.open = false;
+      });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      tqSwitches.forEach(function (d) {
+        if (!d.open) return;
+        d.open = false;
+        var sum = d.querySelector('summary');
+        if (sum) sum.focus();        /* التركيز يعود إلى ما فتحها */
+      });
+    });
+  }
+
 })();

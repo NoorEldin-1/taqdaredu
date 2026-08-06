@@ -64,7 +64,7 @@ $tq_tutors = $tq_m->available_teachers(12, 6, (int) $f_subject);
 $tq_bookings = $tq_m->bookings_for_student($tq_uid);
 
 $tq_ses_photo = function ($image) {
-    return !empty($image) ? base_url('uploads/user_image/' . $image) : tq_asset('brand/icon.png');
+    return tqs_person_img($image);
 };
 
 include 'portal_open.php';

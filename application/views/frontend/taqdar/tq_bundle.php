@@ -10,9 +10,15 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * وهذه تقولها: المواد بوحداتها ودروسها، وتقدمه في كل منها، ورابط
  * لكل درس. والمصدر `bundle_by_code()` نفسه الذي تقرأ منه صفحة الباقة
  * العامة — فما وعد به قبل الدفع هو ما يعرض بعده، حرفا بحرف.
+ *
+ * وكانت تعرض **خارج البوابة كلها**: اسمها غائب عن `$tq_portal_pages` في
+ * الغلاف، فتحمل ترويسة Academy القديمة وتذييلها حول محتوى مكتوب بمفردات
+ * تقدر. وغلافها الآن غلاف أخواتها.
  */
+/* `tq_subscription` لا `tq_sub`: الأخير اسم محجوز في غلاف البوابة لسطر
+   تحت العنوان. وتسمية واحدة لمعنيين تجعل ضبط العنوان يمحو الاشتراك. */
 $b    = isset($tq_bundle) ? $tq_bundle : null;
-$sub  = isset($tq_sub) ? $tq_sub : null;
+$sub  = isset($tq_subscription) ? $tq_subscription : null;
 $prog = isset($tq_progress) ? $tq_progress : array();
 
 /* الحال الفعلية لا المخزنة — كما في صفحة الاشتراك تماما. */
@@ -22,13 +28,17 @@ if ($sub && in_array($eff, array('active', 'cancelled'), true)
     $eff = 'expired';
 }
 $live = in_array($eff, array('active', 'cancelled'), true);
+
+$tq_nav   = 'bundle';
+$tq_role  = 'student';
+$tq_title = 'محتوى باقتي';
+$tq_sub   = 'كل ما فتحته باقتك — بمواده ووحداته ودروسه.';
+$tq_icon  = 'grid';
+
+include 'portal_open.php';
 ?>
 
-<div class="tq-page">
-    <header class="tq-page__head">
-        <h1 class="tq-h1">محتوى باقتي</h1>
-        <p class="tq-caption">كل ما فتحته باقتك — بمواده ووحداته ودروسه.</p>
-    </header>
+<div class="tq-stack">
 
     <?php if (!$sub): ?>
 
@@ -115,15 +125,19 @@ $live = in_array($eff, array('active', 'cancelled'), true);
             </div>
         <?php endif; ?>
 
-        <section class="tq-section">
-            <h2 class="tq-h2">المنهج</h2>
+        <div class="tq-card tq-card--panel">
+            <div class="tq-card__head">
+                <h2 class="tq-card__title">المنهج</h2>
+            </div>
             <p class="tq-caption">
                 يفتح الدرس التالي بعد إتقان الذي قبله — فلا يبنى على أساس لم يتقن.
             </p>
             <?php echo tqs_curriculum($b, array(
                 'mode' => 'student', 'open' => 1, 'progress' => $prog,
             )); ?>
-        </section>
+        </div>
 
     <?php endif; ?>
 </div>
+
+<?php include 'portal_close.php'; ?>

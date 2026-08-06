@@ -1,0 +1,174 @@
+/* ==========================================================================
+   منصة تقدر — المكونات المشتركة بين الموقع العام والبوابات
+   TQ-SHARED · مصدر واحد لأنماط ما يعرض في الجهتين
+
+   ثلاث كتل تعيش هنا لأن **الوسم نفسه** يخرج في الجهتين من مساعد واحد:
+     · `tqs_curriculum()`   — منهج الباقة: صفحة الباقة العامة و«محتوى باقتي»
+     · `tqs_bank_block()`   — بيانات التحويل: شاشة الشراء وصفحة الاشتراك
+     · `tqs_stat_strip()` و بطاقات الباقة — في الجهتين كذلك
+
+   كانت هذه القواعد في `pages.css` وحدها، وهي لا تحمل على صفحات البوابة
+   (بحق: `h1{font:…}` فيها يستولي على كل عنوان هناك). فكانت `/student/subscription`
+   و`/student/bundle` تعرضان وسما بلا ورقة: قوائم عارية وأرقام متناثرة
+   على صفحة بلا هيكل. والفصل يعطي الجهتين ما تحتاجه بلا ما لا تحتاجه.
+
+   والتوكنات: الموقع يعرفها في `:root` من `taqdar.css`. والبوابة لا تعرفها،
+   فتجسر أدناه إلى توكناتها هي (`--tq-*`) — الشكل واحد واللهجة لهجة المكان:
+   أبيض ورمادي وتركوازي في البوابة، كريمي وذهبي في الموقع.
+   ========================================================================== */
+
+/* ── جسر التوكنات: للبوابة وحدها. الموقع لا يحمل هذه الكتلة أصلا لأن
+      `.tq-body--portal` لا يوجد فيه. ─────────────────────────────────── */
+.tq-body--portal{
+  --cream:var(--tq-surface);
+  --paper:var(--tq-ground);
+  --beige:var(--tq-ground);
+  --ink:var(--tq-text);
+  --ink-2:var(--tq-text2);
+  --ink-3:var(--tq-text3);
+  --gold-line:var(--tq-line);
+  --gold-line-soft:var(--tq-line);
+  --gold-deep:var(--tq-teal);
+  --gold-text:var(--tq-amber);
+  --emerald:var(--tq-teal);
+  --petrol-lift:var(--tq-navySoft);
+  --sh-soft:var(--tq-shadow-soft);
+  --t-route:var(--tq-motion-route);
+  --t-entry:var(--tq-motion-elementEntry);
+  --ease:var(--tq-ease-enter);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-CURRIC · المنهج — مادة تطوى على وحداتها، بلا جافاسكربت
+   ══════════════════════════════════════════════════════════════════ */
+.curric{margin-block-start:16px;display:grid;gap:10px}
+.curric__subj{background:var(--cream);border:1px solid var(--gold-line-soft);
+  border-radius:16px;overflow:hidden}
+.curric__subj[open]{border-color:var(--gold-line);box-shadow:var(--sh-soft)}
+.curric__sum{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;
+  list-style:none;min-block-size:56px}
+.curric__sum::-webkit-details-marker{display:none}
+.curric__sum:hover{background:rgba(201,165,95,.07)}
+.curric__name{font-weight:700;color:var(--ink);font-size:.98rem;min-width:0}
+.curric__meta{font-size:.87rem;color:var(--ink-3);white-space:nowrap}
+.curric__meta--soon{color:var(--gold-text);font-weight:700}
+.curric__chev{inline-size:18px;block-size:18px;flex:none;margin-inline-start:auto;
+  color:var(--gold-deep);transition:transform var(--t-route) var(--ease)}
+.curric__subj[open] .curric__chev{transform:rotate(180deg)}
+.curric__subj.is-soon .curric__name{color:var(--ink-3)}
+
+/* شريط التقدم داخل عنوان المادة — للمشترك وحده.
+   يملأ من **بداية السطر**: `inset-inline-start` في RTL هي اليمين، وهي
+   جهة القراءة — وشريط يمتلئ يسارا يبدو فارغا للعين العربية. */
+.curric__prog{flex:none;display:flex;align-items:center;gap:8px}
+.curric__track{position:relative;flex:none;inline-size:70px;block-size:6px;
+  border-radius:99px;background:rgba(5,44,43,.1);overflow:hidden}
+.curric__track i{position:absolute;inset-block:0;inset-inline-start:0;
+  background:var(--emerald);border-radius:99px;max-inline-size:100%}
+.curric__prog b{font-size:.82rem;color:var(--ink-3);flex:none;min-inline-size:34px}
+
+.curric__body{padding:0 16px 14px;border-block-start:1px solid var(--gold-line-soft);
+  display:grid;gap:16px;padding-block-start:14px}
+.curric__soon{margin:0;font-size:.9rem;color:var(--ink-3)}
+.curric__unit-h{margin:0 0 8px;font-size:.9rem;color:var(--ink);font-weight:700;
+  display:flex;align-items:baseline;gap:8px}
+.curric__unit-h small{font-weight:600;color:var(--ink-3);font-size:.86rem}
+.curric__lessons{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.curric__lesson{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--paper);
+  border:1px solid var(--gold-line-soft);border-radius:11px;font-size:.9rem;color:var(--ink-2)}
+.curric__lesson.is-free{border-color:rgba(12,120,108,.34);background:rgba(12,120,108,.05)}
+.curric__ico{inline-size:16px;block-size:16px;flex:none;color:var(--gold-deep)}
+/* العنوان يبتلع الفراغ، فما بعده يستقر في آخر السطر بلا `margin:auto`
+   موزعة على أربعة عناصر يتنازعها ترتيب ظهورها. */
+.curric__t{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+a.curric__t{color:var(--ink-2);font-weight:600}
+a.curric__t:hover{color:var(--gold-text);text-decoration:underline}
+.curric__dur{font-size:.86rem;color:var(--ink-3);flex:none}
+.curric__lock{inline-size:15px;block-size:15px;flex:none;color:var(--ink-3);opacity:.7}
+.curric__free{display:inline-flex;align-items:center;gap:5px;flex:none;
+  padding:4px 10px;border-radius:99px;background:var(--emerald);color:#fff;
+  font-size:.84rem;font-weight:700;white-space:nowrap}
+.curric__free svg{inline-size:13px;block-size:13px}
+.curric__free:hover{background:var(--petrol-lift)}
+
+@media (max-width:560px){
+  .curric__sum{flex-wrap:wrap;gap:6px 10px}
+  .curric__meta{flex-basis:100%;order:3}
+  .curric__prog{display:none}          /* ٩٦ بكسل لشريط في صف ملتف: يقرأ في المتن */
+  .curric__lesson{flex-wrap:wrap}
+  .curric__dur{margin-inline-start:0}
+  .curric__free,.curric__lock{margin-inline-start:auto}
+}
+/* ══════════════════════════════════════════════════════════════════
+   TQ-BANK · بيانات التحويل — الآيبان ينسخ لا يملى
+   ══════════════════════════════════════════════════════════════════ */
+.bankbox{margin-block-start:16px;padding:clamp(14px,1.8vw,20px);
+  background:var(--beige);border:1px solid var(--gold-line);border-radius:16px}
+.bankbox__h{margin:0 0 12px;display:flex;align-items:center;gap:9px;
+  font-size:.98rem;color:var(--ink)}
+.bankbox__h svg{inline-size:19px;block-size:19px;flex:none;color:var(--gold-deep)}
+.bankbox__empty{margin:0;font-size:.9rem;color:var(--ink-2);line-height:1.8}
+.bankbox__empty a{color:var(--gold-text);font-weight:700;text-decoration:underline}
+.bankbox__rows{margin:0;display:grid;gap:8px}
+.bankbox__row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:9px 12px;background:var(--paper);border:1px solid var(--gold-line-soft);border-radius:11px}
+.bankbox__row dt{margin:0;font-size:.88rem;color:var(--ink-3);flex:none;min-inline-size:96px}
+.bankbox__row dd{margin:0;display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0}
+.bankbox__row dd>span{font-weight:700;color:var(--ink);font-size:.92rem;overflow-wrap:anywhere}
+.bankbox__copy{flex:none;margin-inline-start:auto;inline-size:30px;block-size:30px;
+  display:grid;place-items:center;border:1px solid var(--gold-line-soft);border-radius:9px;
+  background:var(--cream);color:var(--gold-deep);cursor:pointer;
+  transition:background var(--t-route) var(--ease)}
+.bankbox__copy:hover{background:var(--beige)}
+.bankbox__copy.is-done{background:var(--emerald);border-color:var(--emerald);color:#fff}
+.bankbox__copy svg{inline-size:15px;block-size:15px}
+.bankbox__note{margin:10px 0 0;font-size:.88rem;color:var(--ink-3);line-height:1.75}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-BUNDLE · محتوى باقتي — داخل بوابة الطالب
+   ══════════════════════════════════════════════════════════════════ */
+.tqb-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.tqb-head__b{min-width:0}
+.tqb-stats{display:flex;flex-wrap:wrap;gap:10px;margin-block:14px}
+.tqb-stats__i{display:flex;align-items:center;gap:8px;padding:8px 14px;
+  background:var(--paper,#fff);border:1px solid var(--gold-line-soft,rgba(201,165,95,.22));
+  border-radius:999px;font-size:.92rem}
+.tqb-stats__i svg{inline-size:16px;block-size:16px;flex:none;color:var(--gold-deep)}
+.tqb-stats__i b{font-weight:800}
+.tqb-prog{padding:14px 16px}
+.tqb-prog__t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  font-size:.9rem;margin-block-end:8px}
+.tqb-prog__t b{font-size:1.05rem;font-weight:800}
+.tqb-prog__bar{block-size:9px;border-radius:99px;background:rgba(5,44,43,.1);overflow:hidden}
+.tqb-prog__bar i{display:block;block-size:100%;background:var(--emerald,#0C786C);border-radius:99px;
+  transition:inline-size var(--t-entry,320ms) var(--ease,ease)}
+
+/* رابط تفاصيل الباقة أسفل بطاقتها — ثانوي لا ينافس زر الشراء */
+.bundle__more{display:flex;align-items:center;justify-content:center;gap:6px;
+  margin-block-start:10px;font-size:.86rem;font-weight:700;color:var(--gold-text)}
+.bundle__more svg{inline-size:15px;block-size:15px;flex:none}
+.bundle__more:hover{text-decoration:underline}
+
+/* قائمة مواد الباقة في صفحة الاشتراك — بطاقات صغيرة لا جدول */
+.tqb-incl{margin-block-start:clamp(16px,2vw,24px)}
+.tqb-subj{list-style:none;margin:0 0 16px;padding:0;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px}
+.tqb-subj__i{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:10px 13px;background:var(--paper);border:1px solid var(--gold-line-soft);
+  border-radius:12px}
+.tqb-subj__i b{color:var(--ink);font-size:.9rem;min-width:0;overflow-wrap:anywhere}
+.tqb-subj__i span{color:var(--ink-3);font-size:.86rem;flex:none}
+.tqb-subj__i.is-soon b{color:var(--ink-3)}
+.tqb-subj__i.is-soon span{color:var(--gold-text);font-weight:700}
+
+/* شارة «يفتح بالاشتراك» — مرئية عمدا وهادئة كي لا تنافس المعاينة */
+.curric__soonlock{display:inline-flex;align-items:center;gap:5px;flex:none;
+  padding:4px 9px;border-radius:99px;background:var(--beige);
+  border:1px solid var(--gold-line-soft);color:var(--ink-3);
+  font-size:.82rem;font-weight:600;white-space:nowrap}
+.curric__soonlock .curric__lock{inline-size:13px;block-size:13px;opacity:1}
+@media (max-width:420px){
+  /* في أضيق شاشة يكفي القفل: النص يدفع السطر إلى ثلاثة أسطر */
+  .curric__soonlock{font-size:0;gap:0;padding:5px}
+  .curric__soonlock .curric__lock{inline-size:14px;block-size:14px}
+}

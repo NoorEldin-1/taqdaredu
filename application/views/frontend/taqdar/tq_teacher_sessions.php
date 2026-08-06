@@ -62,7 +62,7 @@ $tq_days        = $tq_m->days();
 $tq_periods     = $tq_m->periods();
 
 $tq_ses_photo = function ($image) {
-    return !empty($image) ? base_url('uploads/user_image/' . $image) : tq_asset('brand/icon.png');
+    return tqs_person_img($image);
 };
 
 include 'portal_open.php';

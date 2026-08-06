@@ -16,7 +16,7 @@ $tq_iso      = getIsoCode(ucfirst($tq_active)) ?: 'ar';
 // صفحات البوابة تعرض بلا ترويسة الموقع العام ولا تذييله
 $tq_portal_pages = [
     'tq_reviews', 'tq_parent_settings', 'tq_delete_account',
-    'tq_home', 'tq_lesson', 'tq_subscription', 'tq_lessons', 'tq_tasks', 'tq_exams', 'tq_on_demand', 'tq_materials',
+    'tq_home', 'tq_lesson', 'tq_subscription', 'tq_bundle', 'tq_lessons', 'tq_tasks', 'tq_exams', 'tq_on_demand', 'tq_materials',
     'tq_reports', 'tq_favourites', 'tq_messages', 'tq_notifications', 'tq_calendar',
     'tq_settings', 'tq_certificates', 'tq_payments',
     'tq_teacher_dashboard', 'tq_teacher_courses', 'tq_teacher_upload', 'tq_teacher_questions',

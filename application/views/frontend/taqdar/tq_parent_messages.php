@@ -212,9 +212,7 @@ include 'portal_open.php';
                             $tq_other_name = $tq_t['other']
                                 ? trim($tq_t['other']['first_name'] . ' ' . $tq_t['other']['last_name'])
                                 : 'إدارة المنصة';
-                            $tq_photo = !empty($tq_t['other']['image'])
-                                ? base_url('uploads/user_image/' . $tq_t['other']['image'])
-                                : tq_asset('brand/icon.png');
+                            $tq_photo = tqs_person_img(isset($tq_t['other']['image']) ? $tq_t['other']['image'] : '');
                             ?>
                             <li>
                                 <a class="tq-row" style="gap:var(--tq-space-l);padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)"

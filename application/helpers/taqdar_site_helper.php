@@ -261,6 +261,65 @@ if (!function_exists('tqs_img')) {
     }
 }
 
+if (!function_exists('tqs_person_img')) {
+    /**
+     * صورة شخص — والحقل `users.image` يحمل **ثلاثة أشكال** لا شكلا واحدا.
+     *
+     * وهذا سبب مربعات الصور المكسورة في الموقع: كل موضع نداء كان يخمن
+     * شكلا ويبني عليه رابطا.
+     *
+     *   `teacher-3`                        اسم أصل مبذور ⟵ assets/…/img/teacher-3.webp
+     *   `68dd67f385fb55e7f7457370c3a45927` رفع فعلي      ⟵ uploads/user_image/<هو>.jpg
+     *   `uploads/…/x.png` أو رابط كامل     مسار صريح     ⟵ كما هو
+     *   NULL أو فارغ                       لا صورة       ⟵ البديل
+     *
+     * فصفحة الباقة كانت تكتب `base_url($image)` فتنتج `…/teacher-3` — عنوانا
+     * يرد 404، ويرى الزائر خمسة مربعات مكسورة تحت «من يدرس؟». وبطاقات
+     * المعلمين كانت تمر بـ`tqs_img` فتنتج `img/68dd….webp` لمن رفع صورته
+     * فعلا — مكسور بالعكس تماما.
+     *
+     * وأشهر صور هذا الخلل: عشرة مواضع في البوابة تكتب
+     * `base_url('uploads/user_image/' . $image)` **بلا `.jpg`** — فكل صورة
+     * رمزية في القائمة والترويسة والرسائل وقوائم الطلاب مكسورة، على
+     * حساب فيه صورة مرفوعة سليمة على القرص.
+     *
+     * والاختيار هنا مرة واحدة، ومرتب من الأرخص إلى الأغلى: الأشكال
+     * الصريحة تحسم بالنص، والرفع وحده يلمس القرص (`is_file`).
+     *
+     * @param string $image    قيمة `users.image` كما هي
+     * @param string $fallback اسم أصل في سمة الموقع؛ وبلا اسم يستعمل
+     *                         بديل Academy القائم (`placeholder.png`)
+     */
+    function tqs_person_img($image, $fallback = '')
+    {
+        $miss = ($fallback !== '')
+              ? tqs_asset_img('', $fallback)
+              : base_url('uploads/user_image/placeholder.png');
+
+        $name = trim((string) $image);
+        if ($name === '') return $miss;
+
+        // رابط كامل أو مسار صريح: يخدم كما هو
+        if (preg_match('~^(https?:)?//~i', $name)) return $name;
+        if (strpos($name, '/') !== false)          return base_url(ltrim($name, '/'));
+
+        /* رفع فعلي — Academy تكتب `<hash>.jpg` وتصنع نسخة مصغرة بجوارها.
+           والمصغرة أولا: هي 220px بدل الأصل الذي قد يكون ميغابايتين. */
+        foreach (array('uploads/user_image/optimized/', 'uploads/user_image/') as $dir) {
+            if (is_file(FCPATH . $dir . $name . '.jpg')) return base_url($dir . $name . '.jpg');
+        }
+
+        // اسم أصل مبذور في سمة الموقع
+        if (is_file(FCPATH . 'assets/taqdar/site/img/' . $name . '.webp')) {
+            return tq_site_asset('img/' . $name . '.webp');
+        }
+
+        /* بقي اسم لا يقابله ملف. البديل صورة عامة لا مربع مكسور:
+           الصورة المفقودة تقرأ عطبا في الموقع، والبديل يقرأ «لا صورة». */
+        return $miss;
+    }
+}
+
 if (!function_exists('tqs_teachers')) {
     /**
      * بطاقات المعلمين.
@@ -287,7 +346,7 @@ if (!function_exists('tqs_teachers')) {
                 . ' data-reviews="' . html_escape($t['reviews']) . '"'
                 . ' data-courses="' . html_escape($t['courses']) . '">' . "\n";
             $h .= '          <div class="teacher-card__media">'
-                . '<img src="' . tqs_img($t['img'], 'teacher-1') . '" width="360" height="360"'
+                . '<img src="' . tqs_person_img($t['img'], 'teacher-1') . '" width="360" height="360"'
                 . ' loading="lazy" decoding="async" alt=""></div>' . "\n";
             $h .= '          <div class="teacher-card__body">' . "\n";
             /* الاسم رابط: النموذج يبني `url` ولم يستعمله أحد،
@@ -1210,6 +1269,47 @@ if (!function_exists('tqs_curriculum')) {
             $h .= '  </details>' . "\n";
         }
         return $h . '</div>' . "\n";
+    }
+}
+
+if (!function_exists('tqs_free_preview')) {
+    /**
+     * أول درس مجاني في الباقة — أو null.
+     *
+     * صورة الباقة كانت صورة صامتة: لوحة جميلة لا تفعل شيئا، بينما في
+     * الباقة نفسها ستة دروس مفتوحة للمعاينة **مدفونة داخل المنهج** خلف
+     * طي مادة ثم طي وحدة. فمن جاء ليعرف «ما هذا؟» يرى صورة، ومن يريد
+     * أن يرى درسا عليه أن يبحث عنه.
+     *
+     * وهذه ترفع أول درس مجاني إلى السطح، فتصير الصورة مشغلا: عليها
+     * علامة تشغيل وشارة «معاينة مجانية» — وعد يرى ويضغط.
+     *
+     * والترتيب ترتيب المنهج نفسه (مادة فوحدة فدرس)، فأول مجاني هنا هو
+     * أول مجاني هناك — لا اختيارا عشوائيا يخالف ما تحته.
+     *
+     * @return array|null  course_id · lesson_id · title · duration
+     */
+    function tqs_free_preview($bundle)
+    {
+        if (empty($bundle['subjects'])) return null;
+
+        foreach ($bundle['subjects'] as $s) {
+            foreach ((array) $s['units'] as $u) {
+                foreach ((array) $u['lessons'] as $l) {
+                    /* الاختبار المجاني ليس معاينة: لا فيديو فيه يشاهد،
+                       وشارة تشغيل فوقه تعد بما لا يفتح. */
+                    if (empty($l['is_free']) || !empty($l['is_quiz'])) continue;
+                    return array(
+                        'course_id' => (int) $s['course_id'],
+                        'lesson_id' => (int) $l['id'],
+                        'title'     => (string) $l['title'],
+                        'subject'   => (string) $s['title'],
+                        'duration'  => tqs_dur($l['duration']),
+                    );
+                }
+            }
+        }
+        return null;
     }
 }
 

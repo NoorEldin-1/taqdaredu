@@ -105,7 +105,14 @@ if (!empty($_FILES)) {
  */
 switch (ENVIRONMENT) {
 	case 'development':
-		error_reporting(-1);
+		/* TQ-DEV-DEPRECATED — التطوير يعرض أخطاءنا، لا تقادم CI3 على PHP 8.
+		   `error_reporting(-1)` كان يطبع «Creation of dynamic property …»
+		   من `system/` داخل **جسم الاستجابة**. وهذا لا يشوه صفحة فحسب:
+		   نقاط `Taqdar_gate` ترجع JSON، فتصير أول بايت `<div style=…` —
+		   ويسقط `JSON.parse` في العميل برسالة «Unexpected token '<'».
+		   فمشغل الدرس والمعاينة المجانية يعطبان محليا بلا خطأ في شيفرتنا.
+		   والتقادم مكتوم هنا لأن مصدره طرف ثالث لا يرقع؛ وما عداه يظهر. */
+		error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 		ini_set('display_errors', 1);
 		break;
 

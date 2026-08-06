@@ -141,9 +141,7 @@ foreach ($this->db->select('id, first_name, last_name')->where('role_id', 1)->li
 
 /* ---- أدوات عرض ------------------------------------------------------- */
 $tq_photo_of = static function ($person) {
-    return (!empty($person['image']))
-        ? base_url('uploads/user_image/' . $person['image'])
-        : tq_asset('brand/icon.png');
+    return tqs_person_img(isset($person['image']) ? $person['image'] : '');
 };
 $tq_name_of = static function ($person) {
     if (empty($person)) {

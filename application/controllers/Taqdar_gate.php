@@ -41,9 +41,21 @@ class Taqdar_gate extends CI_Controller
 
     private $cache_ready = false;
 
+    /** مستوى مخازن الإخراج قبل أن نفتح مخزننا — إليه نعود في respond(). */
+    private $ob_base = 0;
+
     public function __construct()
     {
         parent::__construct();
+
+        /* TQ-GATE-CLEAN — لا بايت واحد قبل الـ JSON.
+           هذه واجهة بيانات: أي `echo` عارض — تنبيه PHP، أو ملف مساعد فيه
+           سطر فارغ بعد `?>` — يجعل أول بايت في الرد `<` أو مسافة، فيسقط
+           `JSON.parse` في العميل برسالة «Unexpected token» لا علاقة لها
+           بالخطأ الحقيقي. والمخزن يبتلع ذلك ويرميه، ويسجل ما ابتلعه في
+           سجل الأخطاء — فلا يضيع الأثر ولا يخرج مع الرد. */
+        $this->ob_base = ob_get_level();
+        ob_start();
 
         $this->load->database();
         $this->load->library('session');
@@ -52,9 +64,11 @@ class Taqdar_gate extends CI_Controller
         $tz = get_settings('timezone');
         if ($tz) date_default_timezone_set($tz);
 
-        // مخزن مؤقت لعداد المعدل — إن تعذر، يظل الباقي عاملا
+        /* مخزن مؤقت لعداد المعدل — إن تعذر، يظل الباقي عاملا.
+           و`@` هنا لتقادم CI3 على PHP 8 داخل `Driver.php`: شيفرة طرف ثالث
+           لا ترقع، وتنبيهها لا يخص من ينادي هذه النقطة. */
         try {
-            $this->load->driver('cache', array('adapter' => 'file', 'backup' => 'dummy'));
+            @$this->load->driver('cache', array('adapter' => 'file', 'backup' => 'dummy'));
             $this->cache_ready = true;
         } catch (Exception $e) {
             $this->cache_ready = false;
@@ -71,6 +85,13 @@ class Taqdar_gate extends CI_Controller
 
     private function respond($payload, $status = 200)
     {
+        /* ما تسرب قبل الرد يرمى هنا ويسجل — انظر TQ-GATE-CLEAN أعلاه. */
+        $stray = '';
+        while (ob_get_level() > $this->ob_base) $stray .= (string) ob_get_clean();
+        if (trim($stray) !== '') {
+            log_message('error', 'TQ-GATE: إخراج عارض قبل JSON — ' . substr(trim($stray), 0, 400));
+        }
+
         $this->output
              ->set_status_header($status)
              ->set_content_type('application/json', 'utf-8')

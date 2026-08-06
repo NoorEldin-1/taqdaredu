@@ -522,3 +522,61 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-review__a span{font-weight:700;color:var(--tq-text3)}
 .tq-review__a--ok{color:var(--tq-mint-ink)}
 .tq-review__a--ok span{color:var(--tq-mint-ink)}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-ALERT · رسائل الجلسة — كانت وسما بلا ورقة
+   `tq-alert` مكتوبة في العروض منذ البداية ولا قاعدة لها في أي ورقة،
+   فرسالة «تم الحفظ» ورسالة «فشل الحفظ» تخرجان بالخط نفسه واللون نفسه
+   في متن الصفحة: نجاح لا يفرح وخطأ لا ينبه.
+   ══════════════════════════════════════════════════════════════════ */
+.tq-alert {
+  display: flex; align-items: center; gap: var(--tq-space-m);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border-radius: var(--tq-radius-medium);
+  border-inline-start: 4px solid var(--tq-line);
+  background: var(--tq-ground); color: var(--tq-text);
+  font: var(--tq-type-bodyStrong);
+}
+.tq-alert--ok { background: var(--tq-mint-fill);  border-inline-start-color: var(--tq-teal);   color: var(--tq-mint-ink); }
+.tq-alert--no { background: var(--tq-dangerSoft); border-inline-start-color: var(--tq-danger); color: var(--tq-danger); }
+
+/* جدول عريض داخل بطاقة: يمرر في وعائه هو، ولا يمد الصفحة أفقيا */
+.tq-table-wrap { inline-size: 100%; overflow-x: auto; }
+.tq-table-wrap .tq-table { min-inline-size: 480px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-SUBSCRIPTION · بطاقة الاشتراك — الحال والحقائق في لمحة
+   ══════════════════════════════════════════════════════════════════ */
+.tqs-head__top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--tq-space-m); flex-wrap: wrap;
+  margin-block-end: var(--tq-space-l);
+}
+.tqs-head__b { min-inline-size: 0; }
+.tqs-head__b .tq-eyebrow { display: block; margin-block-end: 2px; }
+
+/* الحقائق شبكة بطاقات لا `<dl>` عارية: المصطلح فوق قيمته، والقيمة
+   بخط الأرقام — فتقرأ العين الصف مرة واحدة بدل أن تتتبع سطرين. */
+.tqs-facts {
+  margin: 0 0 var(--tq-space-l);
+  display: grid; gap: var(--tq-space-s);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.tqs-facts__i {
+  display: flex; align-items: center; gap: var(--tq-space-m);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  background: var(--tq-ground); border-radius: var(--tq-radius-medium);
+}
+.tqs-facts__ico {
+  display: grid; place-items: center; flex: none;
+  inline-size: 34px; block-size: 34px; border-radius: var(--tq-radius-small);
+  background: var(--tq-surface); color: var(--tq-teal);
+}
+.tqs-facts dt { font: var(--tq-type-caption); color: var(--tq-text2); margin: 0; }
+.tqs-facts dd { font: var(--tq-type-numeralMd); color: var(--tq-text); margin: 2px 0 0; }
+
+.tqs-acts {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: var(--tq-space-s); margin-block-start: var(--tq-space-l);
+}
+.tqs-acts form { margin: 0; }
