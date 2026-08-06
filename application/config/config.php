@@ -854,9 +854,10 @@ if ( ! function_exists('tq_auth_throttle_message'))
 {
 	function tq_auth_throttle_message()
 	{
+		// TQ-AR-ONLY -- the interface is Arabic; the English half of this
+		// message only doubled its length on the screen where it appears.
 		$minutes = (int) ceil(TQ_AUTH_WINDOW / 60);
-		return 'Too many failed attempts. Please try again in ' . $minutes . ' minutes.'
-			. ' / تم تجاوز عدد المحاولات المسموح به، برجاء المحاولة بعد ' . $minutes . ' دقيقة.';
+		return 'تجاوزت عدد المحاولات المسموح به. أعد المحاولة بعد ' . $minutes . ' دقيقة.';
 	}
 }
 

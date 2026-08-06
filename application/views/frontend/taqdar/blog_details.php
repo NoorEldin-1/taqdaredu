@@ -26,8 +26,8 @@ $tq_rel = array_values(array_filter($tq_rel, function ($p) use ($tq_b) {
 }));
 ?>
 <section class="page-hero">
-  <?php include __DIR__ . '/site/site_lantern.php'; ?>
   <div class="shell">
+    <span class="lantern lantern--r" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
     <nav class="crumbs" aria-label="برنامج التصفح">
       <a href="<?php echo base_url(); ?>">الرئيسية</a>
       <span aria-hidden="true">›</span>

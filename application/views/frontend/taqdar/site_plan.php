@@ -29,9 +29,9 @@ $tier  = tqs_bundle_tier($b['name']);
 
 <section class="page-hero page-hero--plan">
   <?php include __DIR__ . '/site/site_arch.php'; ?>
-  <?php include __DIR__ . '/site/site_lantern.php'; ?>
 
   <div class="shell">
+    <span class="lantern lantern--r" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
     <nav class="crumbs" aria-label="مسار التصفح">
       <a href="<?php echo base_url(); ?>">الرئيسية</a> ›
       <a href="<?php echo base_url('plans'); ?>">الباقات</a> ›

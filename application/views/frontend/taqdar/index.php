@@ -28,7 +28,8 @@ $tq_is_portal = isset($page_name) && in_array($page_name, $tq_portal_pages, true
 
 /* الصفحات المنقولة إلى التصميم الجديد. تنمو صفحة صفحة، وحذف اسم منها
    يرجع تلك الصفحة إلى حالها القديم في ثوان — من غير لمس ملف آخر. */
-$tq_site_pages = array('home', 'home_elegant', 'courses_page', 'site_books', 'site_teachers', 'site_students', 'site_parents', 'blogs', 'about_us', 'contact_us', 'site_path', 'login', 'sign_up', 'forgot_password', 'terms_and_condition', 'privacy_policy', 'refund_policy', 'website_faq', '404', 'plans', 'categories', 'blog_details', 'instructor_page', 'competitions', 'site_search', 'site_plan', 'site_checkout');
+$tq_site_pages = array('home', 'home_elegant', 'courses_page', 'site_books', 'site_teachers', 'site_students', 'site_parents', 'blogs', 'about_us', 'contact_us', 'site_path', 'login', 'sign_up', 'forgot_password',
+    'change_password_from_forgot_password', 'verification_code', 'terms_and_condition', 'privacy_policy', 'refund_policy', 'website_faq', '404', 'plans', 'categories', 'blog_details', 'instructor_page', 'competitions', 'site_search', 'site_plan', 'site_checkout');
 $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_site_pages, true);
 ?>
 <!DOCTYPE html>

@@ -21,8 +21,8 @@ elseif ($tq_price  <= 0) $tq_why = 'هذا البرنامج لم يسعر بعد
 ?>
 <section class="page-hero page-hero--path">
   <?php include __DIR__ . '/site/site_arch.php'; ?>
-  <?php include __DIR__ . '/site/site_lantern.php'; ?>
   <div class="shell">
+    <span class="lantern lantern--r" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
     <nav class="crumbs" aria-label="برنامج التصفح">
       <a href="<?php echo base_url(); ?>">الرئيسية</a>
       <span aria-hidden="true">›</span>

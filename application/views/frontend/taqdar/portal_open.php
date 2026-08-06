@@ -30,6 +30,26 @@ $tq_role = $tq_role ?? 'student';
         <?php include 'portal_topbar.php'; ?>
 
         <div class="tq-page">
+            <?php
+            /* TQ-PORTAL-FLASH — رسائل البوابة كانت تكتب ولا تقرأ.
+               `Taqdar.php` يودع ثماني عشرة رسالة (عشر أخطاء وثماني
+               نجاحات) بعد كل حفظ وربط وإرسال، ولم يكن في غلاف البوابة
+               سطر واحد يعرضها: تحفظ إعداداتك فلا يقال «حفظ»، ويفشل
+               الربط فلا يقال لماذا — الشاشة تعود كما هي في الحالين.
+               والدخول من بوابة غير بوابتك يقال هنا كذلك. */
+            foreach (array(
+                'error_message' => 'err',
+                'flash_message' => 'ok',
+                'info_message'  => 'ok',
+            ) as $tq_fk => $tq_fc):
+                $tq_fm = $this->session->flashdata($tq_fk);
+                if (empty($tq_fm)) continue; ?>
+                <p class="tq-flash tq-flash--<?php echo $tq_fc; ?>"
+                   role="<?php echo $tq_fc === 'err' ? 'alert' : 'status'; ?>">
+                    <?php echo html_escape($tq_fm); ?>
+                </p>
+            <?php endforeach; ?>
+
             <?php if (!empty($tq_title)): ?>
                 <div class="tq-pagehead">
                     <div>

@@ -19,17 +19,38 @@ include __DIR__ . '/site/site_pagehero.php';
         <p class="tq-flash tq-flash--ok" role="status"><?php echo html_escape($tq_f); ?></p>
       <?php endif; ?>
 
-      <form action="<?php echo site_url('login/forgot_password/frontend'); ?>" method="post" id="forgot-password">
-        <label class="form-field">
-          <svg aria-hidden="true"><use href="#i-mail"></use></svg>
-          <span class="sr-only">البريد الإلكتروني</span>
-          <input type="email" name="email" placeholder="البريد الإلكتروني" required autocomplete="email">
-        </label>
+      <form action="<?php echo site_url('login/forgot_password/frontend'); ?>" method="post"
+            id="forgot-password" data-tq-auth novalidate>
+        <div class="form-cell">
+          <label class="form-field">
+            <svg aria-hidden="true"><use href="#i-mail"></use></svg>
+            <span class="sr-only">البريد الإلكتروني</span>
+            <input type="email" name="email" placeholder="البريد الإلكتروني" required
+                   autocomplete="email" maxlength="50" autocapitalize="off" spellcheck="false"
+                   value="<?php echo html_escape((string) $this->session->flashdata('tq_old_email')); ?>">
+          </label>
+        </div>
         <button class="btn btn--primary btn--block" type="submit">أرسل الرابط</button>
       </form>
 
+      <p class="form-hint form-hint--box">
+        <svg aria-hidden="true"><use href="#i-clock"></use></svg>
+        <span>الرابط صالح لمدة محدودة ويستعمل مرة واحدة. إن لم يصلك خلال دقائق فراجع مجلد الرسائل غير المرغوبة.</span>
+      </p>
+
       <p class="form-alt"><a href="<?php echo base_url('login'); ?>">عودة إلى تسجيل الدخول</a></p>
       </div>
+
+      <?php /* اللوحة هنا كما في أختيها: الصفحة كانت عمودا واحدا في غلاف
+              عرضه غلاف عمودين، فيقف النموذج وحده في وسط فراغ. */
+      $tq_aside_h2 = 'حسابك يبقى لك';
+      $tq_aside_points = array(
+        array('i-lock',    'رابط لمرة واحدة', 'يسقط بعد استعماله أو انتهاء مدته'),
+        array('i-shield',  'لا يطلع عليه أحد', 'يرسل إلى بريدك وحده'),
+        array('i-support', 'تعثرت؟',           'تواصل معنا ونساعدك'),
+      );
+      include __DIR__ . '/site/site_authaside.php';
+      ?>
     </div>
   </div>
 </section>

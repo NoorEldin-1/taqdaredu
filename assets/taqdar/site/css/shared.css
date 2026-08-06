@@ -172,3 +172,48 @@ a.curric__t:hover{color:var(--gold-text);text-decoration:underline}
   .curric__soonlock{font-size:0;gap:0;padding:5px}
   .curric__soonlock .curric__lock{inline-size:14px;block-size:14px}
 }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-PORTAL-FLASH · شريط الرسائل داخل البوابة
+   ------------------------------------------------------------------
+   `.tq-flash` معرف في `shell.css`، وصفحات البوابة لا تحمل تلك الورقة
+   (انظر الشرط في `includes_top.php`) — فالفقرة تخرج بلا شكل. وهذا
+   تعريفها بتوكنات البوابة، مقيدا بـ`.tq-body--portal` كي لا يزاحم
+   تعريف الموقع في صفحاته.
+   ══════════════════════════════════════════════════════════════════ */
+.tq-body--portal .tq-flash{
+  display:flex;align-items:flex-start;gap:9px;
+  margin:0 0 var(--tq-space-5,18px);
+  padding:12px 16px;
+  border:1px solid var(--tq-line);
+  border-radius:var(--tq-radius-medium,20px);
+  background:var(--tq-surface,#fff);
+  color:var(--tq-navy,#132549);
+  font-size:.94rem;line-height:1.7;
+}
+.tq-body--portal .tq-flash::before{
+  content:'';flex:0 0 auto;inline-size:18px;block-size:18px;margin-block-start:3px;
+  background:currentColor;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  -webkit-mask-size:contain;mask-size:contain;
+  -webkit-mask-position:center;mask-position:center;
+}
+.tq-body--portal .tq-flash--ok{
+  background:var(--tq-mint-fill,#E8F4F1);
+  border-color:color-mix(in srgb, var(--tq-mint-ink,#0A6157) 24%, transparent);
+  color:var(--tq-mint-ink,#0A6157);
+}
+.tq-body--portal .tq-flash--ok::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.6 4.6 4.6L19 7.4'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.6 4.6 4.6L19 7.4'/%3E%3C/svg%3E");
+}
+.tq-body--portal .tq-flash--err{
+  background:var(--tq-rose-fill,#FBEAE7);
+  border-color:color-mix(in srgb, var(--tq-rose-ink,#A6473A) 26%, transparent);
+  color:var(--tq-rose-ink,#A6473A);
+}
+.tq-body--portal .tq-flash--err::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.6v5.2M12 16.4h.01'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.6v5.2M12 16.4h.01'/%3E%3C/svg%3E");
+}

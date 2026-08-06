@@ -383,10 +383,15 @@ document.documentElement.classList.add('js');
       var bad = null;
 
       $$('input, textarea, select', form).forEach(function (f) {
-        if (!f.name) return;
+        if (!f.name || f.disabled) return;
+        /* حقل لا يراه صاحبه لا يمنع الإرسال: المخفي بـ`hidden` أو بحاوية
+           مطوية يرفض بلا أن يظهر سبب الرفض — فيبقى الزر لا يستجيب. */
+        if (f.type === 'hidden' || !f.offsetParent) return;
         var value = f.value.trim();
         var valid = f.required ? value !== '' : true;
-        if (valid && f.type === 'email') valid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
+        /* الفراغ في حقل اختياري ليس بريدا خاطئا: فحص الصيغة على قيمة
+           موجودة وحدها، وإلا رد النموذج بحقل تركه صاحبه عمدا. */
+        if (valid && f.type === 'email' && value) valid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
         if (valid && f.type === 'tel' && value) valid = /^5[0-9]{8}$/.test(value);
 
         var field = f.closest('.form-field');
@@ -506,7 +511,14 @@ document.documentElement.classList.add('js');
    رأى الزائر مرحلة واحدة صحيحة لا ست بطاقات مختلطة. */
 (function () {
   var tabs = document.querySelectorAll('[data-tq-stage]');
-  if (!tabs.length) return;
+  /* TQ-DEADTAIL — كان هنا `if (!tabs.length) return;`، وهذه الدالة لا
+     تحمل تبويب المرحلة وحده: بعدها في الغلاف نفسه مرساة الروابط، **وزر
+     إظهار كلمة المرور**، وزر نسخ بيانات التحويل، ومبدل الباقة.
+     و`data-tq-stage` غير موجود في أي قالب في المشروع، فالشرط يصدق في كل
+     صفحة ويقطع الغلاف عند أول سطر — فزر العين في الدخول والتسجيل لم
+     يعمل قط: ينقر فلا يظهر شيء ولا يظهر خطأ.
+     والحذف مأمون: حلقة على `NodeList` فارغة لا تفعل شيئا، و`pick` بلا
+     بطاقات لا تفعل شيئا. */
   var cards = document.querySelectorAll('[data-tq-bundles] [data-stage]');
 
   function pick(stage) {
@@ -575,8 +587,11 @@ document.documentElement.classList.add('js');
       btn.setAttribute('aria-pressed', String(show));
       btn.setAttribute('aria-label', show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
       var u = btn.querySelector('use');
-      if (u) u.setAttribute('href', show ? '#i-close' : '#i-eye');
+      if (u) u.setAttribute('href', show ? '#i-eye-off' : '#i-eye');
+      /* المؤشر يعاد إلى آخر الحرف: `type` يعاد ضبطه فيقفز إلى أوله في
+         بعض المتصفحات، فيكتب من يواصل الكتابة في غير موضعه. */
       inp.focus();
+      try { var n = inp.value.length; inp.setSelectionRange(n, n); } catch (err) {}
     });
   });
 
@@ -646,4 +661,204 @@ document.documentElement.classList.add('js');
     });
   }
 
+})();
+
+/* ==== تحقق نماذج الحساب ==============================================
+   الدخول والتسجيل والاستعادة نماذج تكتب فيها كلمات سر وأعمار وأرقام،
+   وكانت بلا تحقق في المتصفح إطلاقا: `sign_up` يحمل `novalidate` ولا
+   يحمل `data-validate`، فيبطل تحقق المتصفح ولا يحل محله شيء. والنتيجة
+   أن كل خطأ — حرف ناقص في كلمة المرور، بريد بلا نقطة — يسافر إلى
+   الخادم، فيعود ردا يمسح النموذج كله برسالة واحدة أعلى الصفحة.
+
+   وهذا يتحقق **قبل** الإرسال ويقول لكل حقل ما به تحته مباشرة. وهو
+   طبقة راحة لا طبقة أمان: الخادم يعيد الفحص كله في `Login::register`،
+   فمن عطل السكربت لا يمر بشيء.
+
+   والقواعد تقرأ من الوسم نفسه (`required` و`minlength` و`min`/`max`
+   و`type`) كي لا يفترق الحقل عن قاعدته حين يعدل أحدهما دون الآخر،
+   ويزاد عليها `data-match` للتأكيد و`data-msg` لرسالة خاصة.
+   ==================================================================== */
+(function () {
+  'use strict';
+
+  var forms = document.querySelectorAll('form[data-tq-auth]');
+  if (!forms.length) return;
+
+  var RE_MAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  var AR_DIGITS = { '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9' };
+  var toLatin = function (d) { return AR_DIGITS[d]; };
+
+  /* الأرقام العربية والمسافات والشرط تطبع قبل الفحص — كما يطبعها
+     الخادم حرفا بحرف في `Login::register`. فما يقبله أحدهما يقبله
+     الآخر، ولا يرد المتصفح رقما سيقبله الخادم. */
+  function normPhone(v) {
+    return String(v).replace(/[٠-٩]/g, toLatin)
+      .replace(/[^0-9]/g, '').replace(/^(?:00966|966)/, '').replace(/^0/, '');
+  }
+
+  /* اسم الحقل كما يقرؤه صاحبه: `.sr-only` بجانبه هو تسميته الحقيقية،
+     و`placeholder` بديل — فلا تكتب الرسالة «هذا الحقل مطلوب». */
+  function labelOf(el) {
+    var box = el.closest('.form-field');
+    var s = box && box.querySelector('.sr-only');
+    var t = (s && s.textContent) || el.getAttribute('placeholder') || 'هذا الحقل';
+    return t.replace(/\s*\(.*\)\s*$/, '').trim();
+  }
+
+  function slotFor(el) {
+    var host = el.closest('.form-cell');
+    if (!host) {
+      var box = el.closest('.form-field, .form-consent');
+      host = box && box.parentNode;
+    }
+    if (!host) return null;
+    var slot = host.querySelector('.field-err');
+    if (!slot) {
+      slot = document.createElement('p');
+      slot.className = 'field-err';
+      slot.setAttribute('role', 'alert');
+      host.appendChild(slot);
+    }
+    return slot;
+  }
+
+  /* الخطأ يقال بثلاثة معا: لون الحد، ونص تحت الحقل، و`aria-invalid`
+     لمن يسمع الصفحة ولا يراها. */
+  function mark(el, msg) {
+    var box = el.closest('.form-field');
+    var slot = slotFor(el);
+    if (box) box.classList.toggle('form-field--invalid', !!msg);
+    if (slot) { slot.textContent = msg || ''; slot.hidden = !msg; }
+    if (msg) el.setAttribute('aria-invalid', 'true');
+    else el.removeAttribute('aria-invalid');
+    return !msg;
+  }
+
+  /* حقل لا يظهر على الشاشة لا يفحص: حقول البوابة المطوية ترفض بلا أن
+     يرى صاحبها سبب الرفض، فيبدو زر الإرسال معطلا بلا سبب.
+     و`document` مقصوص بـ`.sr-only` عمدا فيقاس بحاويته لا بنفسه. */
+  function live(el) {
+    if (el.disabled || el.type === 'hidden') return false;
+    var box = el.closest('.form-field, .form-consent');
+    return !!((box && box.offsetParent) || el.offsetParent);
+  }
+
+  function check(el, form) {
+    if (!live(el)) return mark(el, '');
+
+    var custom = el.getAttribute('data-msg');
+    var label = labelOf(el);
+
+    if (el.type === 'checkbox') {
+      return mark(el, (el.required && !el.checked) ? (custom || 'لا بد من تأكيد هذا الخيار.') : '');
+    }
+
+    if (el.type === 'file') {
+      var has = el.files && el.files.length > 0;
+      if (el.required && !has) return mark(el, custom || ('أرفق ' + label + '.'));
+      if (!has) return mark(el, '');
+      var ok = (el.getAttribute('accept') || '').split(',')
+        .map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
+      var nm = el.files[0].name.toLowerCase();
+      if (ok.length && !ok.some(function (x) { return nm.slice(-x.length) === x; })) {
+        return mark(el, 'صيغة الملف غير مقبولة. المقبول: PDF · JPG · PNG.');
+      }
+      /* حد الرفع في `php.ini`، وتجاوزه يعود صفحة بيضاء لا رسالة. */
+      if (el.files[0].size > 5 * 1024 * 1024) {
+        return mark(el, 'حجم الملف أكبر من خمسة ميغابايت.');
+      }
+      return mark(el, '');
+    }
+
+    var v = String(el.value).trim();
+    /* «اكتب كذا» لا «كذا مطلوب»: العربية تؤنث الصفة، فقالب واحد يخرج
+       «كلمة المرور مطلوب» و«نبذة مطلوب». والفعل يستقيم مع كل اسم.
+       و`data-msg` هنا رسالة الصيغة لا رسالة الفراغ — الفارغ لم يخطئ
+       في الصيغة، إنما لم يكتب بعد. */
+    if (el.required && v === '') {
+      return mark(el, (el.tagName === 'SELECT' ? 'اختر ' : 'اكتب ') + label + '.');
+    }
+    if (v === '') return mark(el, '');
+
+    if (el.type === 'email' && !RE_MAIL.test(v)) {
+      return mark(el, 'اكتب بريدا إلكترونيا صحيحا، مثل name@example.com');
+    }
+    if (el.type === 'tel' && !/^5[0-9]{8}$/.test(normPhone(v))) {
+      return mark(el, 'رقم جوال سعودي من عشر خانات، مثل 0512345678');
+    }
+
+    var minLen = parseInt(el.getAttribute('minlength'), 10);
+    if (!isNaN(minLen) && v.length < minLen) {
+      return mark(el, custom || ('الحد الأدنى ' + minLen + ' محارف.'));
+    }
+    var maxLen = parseInt(el.getAttribute('maxlength'), 10);
+    if (!isNaN(maxLen) && v.length > maxLen) {
+      return mark(el, 'الحد الأعلى ' + maxLen + ' محرفا.');
+    }
+
+    if (el.type === 'number') {
+      if (!/^[0-9٠-٩]+$/.test(v)) return mark(el, 'اكتب رقما.');
+      var n = Number(v.replace(/[٠-٩]/g, toLatin));
+      var lo = parseFloat(el.getAttribute('min')), hi = parseFloat(el.getAttribute('max'));
+      if ((!isNaN(lo) && n < lo) || (!isNaN(hi) && n > hi)) {
+        return mark(el, custom || ('اكتب رقما بين ' + lo + ' و' + hi + '.'));
+      }
+    }
+
+    var twin = el.getAttribute('data-match');
+    if (twin) {
+      var other = form.querySelector('#' + twin);
+      if (other && other.value !== el.value) {
+        return mark(el, custom || 'القيمتان غير متطابقتين.');
+      }
+    }
+    return mark(el, '');
+  }
+
+  Array.prototype.forEach.call(forms, function (form) {
+    function fields() {
+      return Array.prototype.slice.call(form.querySelectorAll('input, select, textarea'))
+        .filter(function (f) { return f.name && f.type !== 'hidden'; });
+    }
+
+    form.addEventListener('submit', function (e) {
+      var bad = null;
+      fields().forEach(function (f) { if (!check(f, form) && !bad) bad = f; });
+
+      if (bad) {
+        e.preventDefault();
+        bad.focus({ preventScroll: true });
+        (bad.closest('.form-cell') || bad.closest('.form-field') || bad)
+          .scrollIntoView({ block: 'center', behavior: 'smooth' });
+        return;
+      }
+
+      /* نقرتان على «إنشاء الحساب» تعنيان طلبين — والثاني يرد «لديك
+         حساب بالفعل». فيقفل الزر بعد أن يمضي الإرسال: تعطيله في اللحظة
+         نفسها يسقطه من الـPOST في بعض المتصفحات. */
+      var send = form.querySelector('[type=submit]');
+      if (send) {
+        setTimeout(function () { send.disabled = true; send.classList.add('is-busy'); }, 0);
+      }
+    });
+
+    /* الرسالة تختفي حالما يبدأ التصحيح، وتعاد عند مغادرة الحقل. */
+    form.addEventListener('input', function (e) {
+      var t = e.target;
+      if (!t.name) return;
+      mark(t, '');
+      if (t.id) {
+        var dep = form.querySelector('[data-match="' + t.id + '"]');
+        if (dep && dep.value) check(dep, form);
+      }
+    });
+    form.addEventListener('change', function (e) {
+      if (e.target.name && (e.target.type === 'file' || e.target.type === 'checkbox')) {
+        check(e.target, form);
+      }
+    });
+    form.addEventListener('blur', function (e) {
+      if (e.target.name && e.target.value !== '') check(e.target, form);
+    }, true);
+  });
 })();

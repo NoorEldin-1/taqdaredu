@@ -6,11 +6,12 @@
  * والنص HTML كتبه المدير في اللوحة، فلا يمر بـ`html_escape` — وإلا
  * ظهرت وسومه حروفا. وهذا مقبول لأن كاتبه هو الإدارة نفسها.
  */
-$tq_body = (string) get_frontend_settings($tq_key);
+$tq_body  = (string) get_frontend_settings($tq_key);
+$tq_shell = 'shell--read';
 include __DIR__ . '/site_pagehero.php';
 ?>
 <section class="section">
-  <div class="shell shell--narrow">
+  <div class="shell shell--read">
     <div class="icard prose">
       <?php if (trim(strip_tags($tq_body)) !== ''): ?>
         <?php echo $tq_body; ?>

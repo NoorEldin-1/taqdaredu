@@ -139,6 +139,20 @@
     <path d="M2.4 12S5.8 5.8 12 5.8 21.6 12 21.6 12 18.2 18.2 12 18.2 2.4 12 2.4 12Z"/>
     <circle cx="12" cy="12" r="3.2"/>
   </symbol>
+  <!-- عين مشطوبة لإخفاء كلمة المرور. كان زر الإظهار يقلب إلى `#i-close`،
+       وعلامة الإغلاق تقرأ «أغلق الحقل» لا «أخف الحرف». -->
+  <symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.9 5.9A9.6 9.6 0 0 1 12 5.8c6.2 0 9.6 6.2 9.6 6.2a17 17 0 0 1-3.2 4.1"/>
+    <path d="M6.3 7.9A17 17 0 0 0 2.4 12s3.4 6.2 9.6 6.2a9.7 9.7 0 0 0 4-.85"/>
+    <path d="M9.8 9.9a3.2 3.2 0 0 0 4.4 4.4"/>
+    <path d="M3.8 3.8l16.4 16.4"/>
+  </symbol>
+  <!-- مستند مرفق: حقل «مستند التعريف» في التسجيل كان ينادي `#i-file`
+       ولا وجود له في اللوح — فيرسم `use` فارغا: مساحة أيقونة بلا أيقونة. -->
+  <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13.4 3.2H7a2 2 0 0 0-2 2v13.6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.8Z"/>
+    <path d="M13.4 3.2v5.6H19"/><path d="M8.8 13.4h6.4M8.8 16.6h4.4"/>
+  </symbol>
   <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
     <path d="M5.4 21V3.6M5.4 4.6h11.4l-2 3.6 2 3.6H5.4"/>
   </symbol>
