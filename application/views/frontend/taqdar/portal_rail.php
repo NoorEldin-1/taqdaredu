@@ -1,50 +1,104 @@
 <?php
 /**
  * القائمة الجانبية.
+ *
  * الترتيب ثابت في كل الشاشات ولا يعاد ترتيبه حسب الصفحة — قائمة تتحرك
  * تجبر المستخدم على القراءة في كل صفحة بدل أن يحفظ موضع ما يريد.
  * العرض 240px مفتوحة و72px مطوية، وارتفاع العنصر 44px وهو حد اللمس نفسه.
+ *
+ * ثلاثة أشياء تغيرت هنا، وكلها عن عطل ظاهر لا عن ذوق:
+ *
+ * ١ — **المجموعات.** ست عشرة وجهة في عمود واحد جدار يقرأ سطرا سطرا في كل
+ *     مرة. وهي في ذهن الطالب أربعة أسئلة لا ستة عشر: أين أتعلم؟ أين
+ *     أتمرن؟ كيف أقيس؟ من يساعدني؟ فالعناوين تجيب السؤال قبل القراءة،
+ *     والترتيب داخل كل مجموعة يبقى ثابتا كما كان.
+ *
+ * ٢ — **الطي والتمرير.** الشريط كان يطول بطول قائمته: على شاشة محمول
+ *     ارتفاعها 768 تسقط آخر ثلاثة بنود والبطاقة السفلية تحت حافة النافذة،
+ *     ولا سبيل إليها إلا بتمرير الصفحة كلها — فتذهب القائمة مع المحتوى.
+ *     صار الشريط ملتصقا بارتفاع النافذة، وقائمته وحدها هي التي تمرر،
+ *     والبطاقة السفلية مثبتة أسفله لا تتحرك.
+ *
+ * ٣ — **الاسم في الوضع المطوي.** كان `.tq-rail__text` يخفى بـ`display:none`
+ *     والأيقونة `aria-hidden` — فيبقى الرابط **بلا اسم** لقارئ الشاشة بين
+ *     640 و1024 بكسل: ستة عشر رابطا يقرؤها «رابط» وحسب. النص الآن يخفى
+ *     بصريا ويبقى في شجرة الوصول، ومعه `title` لمن يرى.
  */
-$tq_nav_items = [
+$tq_nav  = $tq_nav  ?? '';
+$tq_role = $tq_role ?? 'student';
+
+/**
+ * البنود مجمعة: [عنوان المجموعة، [مفتاح، تسمية، مسار، أيقونة]…].
+ * وعنوان فارغ يعني مجموعة بلا رأس (البند الأول وحده).
+ */
+$tq_rail_map = [
     'student' => [
-        ['home',         'الرئيسية',              'student',         'home'],
-        ['lessons',      'دروسي',                 'student/lessons',      'book'],
-        ['bundle',       'محتوى باقتي',           'student/bundle',       'grid'],
-        ['reviews',      'المراجعة',              'student/reviews',      'flame'],
-        ['tasks',        'مهامي',                 'student/tasks',        'clipboard'],
-        ['exams',        'اختباراتي',             'student/exams',        'check-badge'],
-        ['on_demand',    'حصص بالطلب',            'student/on-demand',    'video'],
-        ['reports',      'المتابعة والتقارير',    'student/reports',      'chart'],
-        ['materials',    'المواد التعليمية',      'student/materials',    'folder'],
-        ['favourites',   'المفضلة',               'student/favourites',   'heart'],
-        ['messages',     'رسائلي',                'student/messages',     'chat'],
-        ['notifications','الإشعارات',             'student/notifications','bell'],
-        ['calendar',     'التقويم',               'student/calendar',     'calendar'],
-        ['certificates', 'الشهادات',              'student/certificates', 'award'],
-        ['subscription', 'اشتراكي',               'student/subscription', 'wallet'],
-        ['settings',     'الإعدادات',             'student/settings',     'cog'],
+        ['', [
+            ['home', 'الرئيسية', 'student', 'home'],
+        ]],
+        ['التعلم', [
+            ['lessons',    'دروسي',            'student/lessons',    'book'],
+            ['bundle',     'محتوى باقتي',      'student/bundle',     'grid'],
+            ['materials',  'المواد التعليمية', 'student/materials',  'folder'],
+            ['favourites', 'المفضلة',          'student/favourites', 'heart'],
+        ]],
+        ['التمرين والقياس', [
+            ['reviews', 'المراجعة',   'student/reviews', 'flame'],
+            ['tasks',   'مهامي',      'student/tasks',   'clipboard'],
+            ['exams',   'اختباراتي',  'student/exams',   'check-badge'],
+        ]],
+        ['المتابعة', [
+            ['reports',      'المتابعة والتقارير', 'student/reports',      'chart'],
+            ['calendar',     'التقويم',            'student/calendar',     'calendar'],
+            ['certificates', 'الشهادات',           'student/certificates', 'award'],
+        ]],
+        ['الدعم والتواصل', [
+            ['on_demand',     'حصص بالطلب', 'student/on-demand',     'video'],
+            ['messages',      'رسائلي',     'student/messages',      'chat'],
+            ['notifications', 'الإشعارات',  'student/notifications', 'bell'],
+        ]],
+        ['حسابي', [
+            ['subscription', 'اشتراكي',   'student/subscription', 'wallet'],
+            ['settings',     'الإعدادات', 'student/settings',     'cog'],
+        ]],
     ],
     'teacher' => [
-        ['dashboard', 'اللوحة',              'teacher',           'home'],
-        ['courses',   'كورساتي',             'teacher/courses',   'book'],
-        ['upload',    'رفع الدروس',          'teacher/upload',    'upload'],
-        ['questions', 'بنك الأسئلة',         'teacher/questions', 'help'],
-        ['marking',   'الواجبات والتصحيح',   'teacher/marking',   'clipboard'],
-        ['students',  'طلابي',               'teacher/students',  'users'],
-        ['sessions',  'الحصص',               'teacher/sessions',  'video'],
-        ['wallet',    'المحفظة والأرباح',    'teacher/wallet',    'wallet'],
+        ['', [
+            ['dashboard', 'اللوحة', 'teacher', 'home'],
+        ]],
+        ['التدريس', [
+            ['courses',   'كورساتي',     'teacher/courses',   'book'],
+            ['upload',    'رفع الدروس',  'teacher/upload',    'upload'],
+            ['questions', 'بنك الأسئلة', 'teacher/questions', 'help'],
+        ]],
+        ['الطلاب والتصحيح', [
+            ['marking',  'الواجبات والتصحيح', 'teacher/marking',  'clipboard'],
+            ['students', 'طلابي',             'teacher/students', 'users'],
+            ['sessions', 'الحصص',             'teacher/sessions', 'video'],
+        ]],
+        ['حسابي', [
+            ['wallet', 'المحفظة والأرباح', 'teacher/wallet', 'wallet'],
+        ]],
     ],
     'parent' => [
-        ['children', 'أبنائي',        'parent',          'users'],
-        ['reports',  'التقارير',      'parent/reports',  'chart'],
-        ['weekly',   'التقرير الأسبوعي', 'parent/weekly', 'clipboard'],
-        ['payments', 'المدفوعات',     'parent/payments', 'wallet'],
-        ['messages', 'الرسائل',       'parent/messages', 'chat'],
-        ['alerts',   'الإشعارات',     'parent/alerts',   'bell'],
-        ['settings', 'الإعدادات',     'parent/settings', 'cog'],
+        ['', [
+            ['children', 'أبنائي', 'parent', 'users'],
+        ]],
+        ['المتابعة', [
+            ['reports', 'التقارير',         'parent/reports', 'chart'],
+            ['weekly',  'التقرير الأسبوعي', 'parent/weekly',  'clipboard'],
+        ]],
+        ['التواصل', [
+            ['messages', 'الرسائل',   'parent/messages', 'chat'],
+            ['alerts',   'الإشعارات', 'parent/alerts',   'bell'],
+        ]],
+        ['حسابي', [
+            ['payments', 'المدفوعات', 'parent/payments', 'wallet'],
+            ['settings', 'الإعدادات', 'parent/settings', 'cog'],
+        ]],
     ],
 ];
-$tq_items  = $tq_nav_items[$tq_role] ?? $tq_nav_items['student'];
+$tq_rail_groups = $tq_rail_map[$tq_role] ?? $tq_rail_map['student'];
 $tq_counts = $tq_counts ?? [];
 
 /**
@@ -82,32 +136,61 @@ $tq_count_sr = [
     'tasks'         => 'مهمة مستحقة',
     'messages'      => 'رسالة غير مقروءة',
     'notifications' => 'إشعار غير مقروء',
+    'alerts'        => 'إشعار غير مقروء',
 ];
 ?>
 <div class="tq-rail-scrim" data-tq-scrim hidden></div>
 
-<nav class="tq-rail" data-tq-rail aria-label="التنقل الرئيسي">
-    <a class="tq-logo" href="<?php echo base_url(); ?>" style="margin-block-end:var(--tq-space-xl);padding-inline:var(--tq-space-m)">
-        <img src="<?php echo tq_asset('brand/icon.png'); ?>" alt="" width="36" height="36" aria-hidden="true">
-        <span class="tq-rail__text">
-            <span class="tq-strong" style="color:var(--tq-navy);display:block;line-height:1.2">تقدر</span>
-            <span class="tq-micro">منصة التعليم الذكي</span>
-        </span>
-        <span class="tq-sr">تقدر — الصفحة الرئيسية</span>
-    </a>
+<aside class="tq-rail" data-tq-rail>
 
-    <?php foreach ($tq_items as [$key, $label, $href, $icon]): ?>
-        <a class="tq-rail__item" href="<?php echo base_url($href); ?>"<?php echo tq_active($key, $tq_nav); ?>>
-            <span class="tq-rail__icon" aria-hidden="true"><?php echo tq_icon($icon); ?></span>
-            <span class="tq-rail__text"><?php echo html_escape($label); ?></span>
-            <?php if (!empty($tq_counts[$key])): ?>
-                <span class="tq-rail__count<?php echo in_array($key, ['tasks', 'messages'], true) ? ' tq-rail__count--urgent' : ''; ?>">
-                    <?php echo TQ_LRI . (int) $tq_counts[$key] . TQ_PDI; ?>
-                </span>
-                <span class="tq-sr"><?php echo html_escape($tq_count_sr[$key] ?? 'عنصر غير مقروء'); ?></span>
-            <?php endif; ?>
+    <div class="tq-rail__brand">
+        <a class="tq-logo tq-rail__logo" href="<?php echo base_url(); ?>">
+            <img src="<?php echo tq_asset('brand/icon.png'); ?>" alt="" width="36" height="36" aria-hidden="true">
+            <span class="tq-rail__text">
+                <span class="tq-strong" style="color:var(--tq-navy);display:block;line-height:1.2">تقدر</span>
+                <span class="tq-micro">منصة التعليم الذكي</span>
+            </span>
+            <span class="tq-sr">تقدر — الصفحة الرئيسية</span>
         </a>
-    <?php endforeach; ?>
+
+        <?php /* الطي كان مكتوبا في الورقة (`[data-collapsed]`) وبلا زر يضبطه —
+                 نصف ميزة لا تعمل. وهذا زرها، ويحفظ اختياره على الجهاز. */ ?>
+        <button class="tq-iconbtn tq-rail__collapse" type="button"
+                data-tq-rail-collapse aria-expanded="true"
+                aria-label="طي القائمة الجانبية" title="طي القائمة الجانبية">
+            <?php echo tq_icon('chev-next', 18); ?>
+        </button>
+
+        <?php /* على الجوال يغلق الدرج من داخله: زر الفتح في الترويسة يختفي
+                 خلف الطبقة السوداء، فمن فتح لا يجد بابا يخرج منه إلا بالضغط
+                 على الطبقة — وهو تصرف لا يعلنه شيء. */ ?>
+        <button class="tq-iconbtn tq-rail__close" type="button"
+                data-tq-rail-toggle aria-label="إغلاق القائمة" title="إغلاق القائمة">
+            <?php echo tq_icon('x', 18); ?>
+        </button>
+    </div>
+
+    <nav class="tq-rail__nav" aria-label="التنقل الرئيسي">
+        <?php foreach ($tq_rail_groups as [$tq_rail_gtitle, $tq_rail_gitems]): ?>
+            <?php if ($tq_rail_gtitle !== ''): ?>
+                <p class="tq-rail__group" aria-hidden="true"><?php echo html_escape($tq_rail_gtitle); ?></p>
+            <?php endif; ?>
+
+            <?php foreach ($tq_rail_gitems as [$key, $label, $href, $icon]): ?>
+                <a class="tq-rail__item" href="<?php echo base_url($href); ?>"
+                   title="<?php echo html_escape($label); ?>"<?php echo tq_active($key, $tq_nav); ?>>
+                    <span class="tq-rail__icon" aria-hidden="true"><?php echo tq_icon($icon); ?></span>
+                    <span class="tq-rail__text"><?php echo html_escape($label); ?></span>
+                    <?php if (!empty($tq_counts[$key])): ?>
+                        <span class="tq-rail__count<?php echo in_array($key, ['tasks', 'messages'], true) ? ' tq-rail__count--urgent' : ''; ?>">
+                            <?php echo TQ_LRI . (int) $tq_counts[$key] . TQ_PDI; ?>
+                        </span>
+                        <span class="tq-sr"><?php echo html_escape($tq_count_sr[$key] ?? 'عنصر غير مقروء'); ?></span>
+                    <?php endif; ?>
+                </a>
+            <?php endforeach; ?>
+        <?php endforeach; ?>
+    </nav>
 
     <?php if ($tq_role === 'student'):
         /* من يدفع لا يطالب بالدفع: المشترك يرى مدته الباقية لا إعلانا. */
@@ -117,28 +200,39 @@ $tq_count_sr = [
         $tq_rail_days = $tq_rail_sub && !empty($tq_rail_sub['ends_at'])
             ? (int) ceil((strtotime($tq_rail_sub['ends_at']) - time()) / 86400) : 0;
     ?>
-        <div class="tq-rail__promo tq-pastel tq-pastel--mint" style="margin-block-start:auto">
-            <?php if ($tq_rail_sub): ?>
-                <span class="tq-pastel__label tq-micro">اشتراكك نشط</span>
-                <p class="tq-pastel__body tq-strong" style="margin:var(--tq-space-xs) 0 var(--tq-space-m)">
-                    <?php if ($tq_rail_days > 0): ?>
-                        يتبقى <?php echo TQ_LRI . $tq_rail_days . TQ_PDI; ?> يوما
-                    <?php else: ?>
-                        ينتهي اليوم
-                    <?php endif; ?>
-                </p>
-                <a class="tq-btn tq-btn--secondary tq-btn--sm tq-btn--block" href="<?php echo base_url('student/subscription'); ?>">
-                    تفاصيل الاشتراك
-                </a>
-            <?php else: ?>
-                <span class="tq-pastel__label tq-micro">اشتراكك</span>
-                <p class="tq-pastel__body tq-strong" style="margin:var(--tq-space-xs) 0 var(--tq-space-m)">
-                    افتح كل برامج صفك
-                </p>
-                <a class="tq-btn tq-btn--mastery tq-btn--sm tq-btn--block" href="<?php echo base_url('plans'); ?>">
-                    عرض الباقات
-                </a>
-            <?php endif; ?>
+        <div class="tq-rail__foot">
+            <div class="tq-rail__promo tq-pastel tq-pastel--mint">
+                <?php if ($tq_rail_sub): ?>
+                    <span class="tq-pastel__label tq-micro">اشتراكك نشط</span>
+                    <p class="tq-pastel__body tq-strong" style="margin:var(--tq-space-xs) 0 var(--tq-space-m)">
+                        <?php if ($tq_rail_days > 0): ?>
+                            يتبقى <?php echo TQ_LRI . $tq_rail_days . TQ_PDI; ?> يوما
+                        <?php else: ?>
+                            ينتهي اليوم
+                        <?php endif; ?>
+                    </p>
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm tq-btn--block" href="<?php echo base_url('student/subscription'); ?>">
+                        تفاصيل الاشتراك
+                    </a>
+                <?php else: ?>
+                    <span class="tq-pastel__label tq-micro">اشتراكك</span>
+                    <p class="tq-pastel__body tq-strong" style="margin:var(--tq-space-xs) 0 var(--tq-space-m)">
+                        افتح كل برامج صفك
+                    </p>
+                    <a class="tq-btn tq-btn--mastery tq-btn--sm tq-btn--block" href="<?php echo base_url('plans'); ?>">
+                        عرض الباقات
+                    </a>
+                <?php endif; ?>
+            </div>
+
+            <?php /* البديل في الوضع المطوي: البطاقة تختفي ويبقى بابها —
+                     أيقونة واحدة تقود إلى الوجهة نفسها. */ ?>
+            <a class="tq-rail__item tq-rail__foot-mini"
+               href="<?php echo base_url($tq_rail_sub ? 'student/subscription' : 'plans'); ?>"
+               title="<?php echo $tq_rail_sub ? 'تفاصيل الاشتراك' : 'عرض الباقات'; ?>">
+                <span class="tq-rail__icon" aria-hidden="true"><?php echo tq_icon('wallet'); ?></span>
+                <span class="tq-rail__text"><?php echo $tq_rail_sub ? 'تفاصيل الاشتراك' : 'عرض الباقات'; ?></span>
+            </a>
         </div>
     <?php endif; ?>
-</nav>
+</aside>

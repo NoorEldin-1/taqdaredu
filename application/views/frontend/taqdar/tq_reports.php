@@ -50,9 +50,13 @@ $tq_progress_by_course = [];
 foreach ($tq_history as $row) {
     $tq_progress_sum += (int) $row['course_progress'];
     $tq_progress_by_course[(int) $row['course_id']] = (int) $row['course_progress'];
+    /* `completed_lesson` قائمة معرفات يضاف إليها عند كل إكمال، وقد يكرر
+       المعرف نفسه فيها. فعدها خاما كان يعطي «١٤ من ١٢ درسا» — رقما
+       يفضح نفسه. والتفريد هنا هو نفسه المعمول به في `tq_s_enrolled()`،
+       فلا يفترق رقم الشاشتين. */
     $done = json_decode($row['completed_lesson'], true);
     if (is_array($done)) {
-        $tq_done_lessons += count($done);
+        $tq_done_lessons += count(array_unique($done));
     }
 }
 $tq_completion = $tq_history ? (int) round($tq_progress_sum / count($tq_history)) : 0;
@@ -467,9 +471,14 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                                         <?php echo $line($tq_grade_series, 'var(--tq-teal)'); ?>
                                     </svg>
                                 </div>
+                                <?php /* الرقم وحده على المحور. ثمانية عناوين بنص «الأسبوع ن»
+                                         مجموع عرضها يفوق عرض الرسم، و`space-between` لا تضغط
+                                         النص فيفيض آخرها خارج البطاقة ويقطع نصفه. والسياق
+                                         مكتوب فوق الرسم («آخر 8 أسابيع»)، والاسم الكامل يبقى
+                                         لقارئ الشاشة. */ ?>
                                 <div class="tq-chart__xaxis">
                                     <?php foreach ($tq_weeks as $i => $w): ?>
-                                        <span class="tq-micro">الأسبوع <?php echo tq_num($i + 1, 'tq-num--sm'); ?></span>
+                                        <span class="tq-micro"><span class="tq-sr">الأسبوع </span><?php echo tq_num($i + 1, 'tq-num--sm'); ?></span>
                                     <?php endforeach; ?>
                                 </div>
                             </div>
@@ -479,7 +488,11 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
 
             <?php endif; ?>
 
-            <!-- أداؤك في المواد — جزء من النظرة العامة كما في الشاشة المرجعية -->
+            <!-- أداؤك في المواد — جزء من النظرة العامة كما في الشاشة المرجعية.
+                 ولا يعرض حين لا مواد: الشاشة كانت تكدس ثلاث حالات فارغة فوق
+                 بعضها («تقريرك يبدأ مع أول درس» ثم «لا مواد مسجلة بعد» مرتين)
+                 وثلاثة أزرار أساسية إلى الوجهة نفسها. النداء الواحد يسمع. -->
+            <?php if ($tq_has_data): ?>
             <section class="tq-card tq-card--panel tq-section" aria-labelledby="tq-subj-h">
             <div class="tq-card__head">
                 <h2 class="tq-card__title" id="tq-subj-h">أداؤك في المواد</h2>
@@ -509,6 +522,7 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                 </div>
             <?php endif; ?>
             </section>
+            <?php endif; ?>
 
         </div>
 

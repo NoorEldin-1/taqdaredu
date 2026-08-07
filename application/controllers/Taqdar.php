@@ -90,7 +90,35 @@ class Taqdar extends CI_Controller
             $due = 0;   // شارة ناقصة أهون من قائمة مبتورة
         }
 
-        return ['messages' => $unread_msgs, 'notifications' => $unread_notif, 'reviews' => $due];
+        /* المهام المستحقة — واجب في كورس مسجل لم تسلم محاولته بعد.
+           شارة «مهامي» كانت مكتوبة في القائمة بشرط `$tq_counts['tasks']`
+           ولا أحد يكتب هذا المفتاح، فبقيت ميتة: يسند إلى الطالب واجب فلا
+           يعلم به إلا إن فتح الشاشة بنفسه. والعد من الجداول نفسها التي
+           تقرأ منها `tq_tasks.php` فلا يفترق الرقمان. */
+        $tasks = 0;
+        try {
+            $tasks = (int) $this->db->query(
+                'SELECT COUNT(*) AS n
+                   FROM `assessments` a
+                   JOIN `lesson` l ON l.id = a.lesson_id
+                   JOIN `enrol` e  ON e.course_id = l.course_id AND e.user_id = ?
+                  WHERE a.type = ?
+                    AND NOT EXISTS (
+                        SELECT 1 FROM `attempts` t
+                         WHERE t.assessment_id = a.id AND t.student_id = ?
+                           AND t.submitted_at IS NOT NULL)',
+                array($uid, 'homework', $uid)
+            )->row('n');
+        } catch (Throwable $e) {
+            $tasks = 0;   // شارة ناقصة أهون من صفحة مبتورة
+        }
+
+        return [
+            'messages'      => $unread_msgs,
+            'notifications' => $unread_notif,
+            'reviews'       => $due,
+            'tasks'         => $tasks,
+        ];
     }
 
     /* ---- بوابة الطالب --------------------------------------------- */

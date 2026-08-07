@@ -213,6 +213,13 @@ include 'portal_open.php';
                         ?>
                         <article class="tq-s-row">
 
+                            <?php /* أيقونة النوع أول الصف لا آخره: كانت آخر أبنائه فتطبع
+                                     في الطرف المقابل بعد الأزرار، فتبدو رمزا سائبا لا
+                                     يعرف القارئ إلام يعود. وهي صفة المهمة، فمكانها قبلها. */ ?>
+                            <span class="tq-icon-box tq-pastel tq-pastel--<?php echo $ico[1]; ?>" aria-hidden="true">
+                                <span class="tq-pastel__icon"><?php echo tq_icon($ico[0]); ?></span>
+                            </span>
+
                             <!-- كتلة الموعد: اليوم كبيرا، ثم الشهر، ثم منذ متى -->
                             <div class="tq-s-date">
                                 <span class="tq-s-date__label"><?php echo html_escape($date_label); ?></span>
@@ -228,7 +235,7 @@ include 'portal_open.php';
                             <div class="tq-s-row__main">
                                 <h3 class="tq-s-row__title"><?php echo html_escape($t['title']); ?></h3>
                                 <p class="tq-micro" style="margin:0 0 var(--tq-space-s)">
-                                    <?php echo html_escape(trim(($t['subject'] ?? '') . ' — ' . ($t['stage'] ?? ''), ' —')); ?>
+                                    <?php echo html_escape(trim(($t['subject'] ?? '') . ' — ' . tq_s_level($t['stage'] ?? ''), ' —')); ?>
                                 </p>
                                 <div class="tq-s-meta">
                                     <?php if (!empty($t['minutes'])): ?>
@@ -261,10 +268,6 @@ include 'portal_open.php';
                                     <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($t['href'] ?? '#'); ?>">ابدأ الآن</a>
                                 <?php endif; ?>
                             </div>
-
-                            <span class="tq-icon-box tq-pastel tq-pastel--<?php echo $ico[1]; ?>" aria-hidden="true">
-                                <span class="tq-pastel__icon"><?php echo tq_icon($ico[0]); ?></span>
-                            </span>
                         </article>
                     <?php endforeach; ?>
                 </section>

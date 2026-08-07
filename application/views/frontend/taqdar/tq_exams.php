@@ -65,17 +65,17 @@ $f_state = (string) $this->input->get('state', true);
 if (!in_array($f_state, ['upcoming', 'live', 'done'], true)) $f_state = '';
 $show = function ($key) use ($f_state) { return $f_state === '' || $f_state === $key; };
 
-/* متوسط الدرجات من الاختبارات المصححة وحدها */
-$tq_avg = 0;
+/* متوسط الدرجات من الاختبارات المصححة وحدها.
+   وحين لا يوجد مصحح بعد فلا متوسط: الصفر رقم يقرؤه الطالب أداء له،
+   وهو لم يصحح له شيء أصلا — فالشرطة أصدق منه. */
+$tq_counted = 0;
+$tq_avg     = null;
 if ($tq_done) {
     $sum = 0;
-    // المتوسط يحسب من المعتمد وحده: إدخال المحجوب فيه ينتج رقما
-    // لا يعرف الطالب من أين جاء، ويتغير تحت قدميه عند كل اعتماد
-    $tq_counted = 0;
     foreach ($tq_done as $q) {
         if (!empty($q['visible']) && $q['percent'] !== null) { $sum += $q['percent']; $tq_counted++; }
     }
-    $tq_avg = (int) round($sum / max(1, $tq_counted));
+    if ($tq_counted > 0) $tq_avg = (int) round($sum / $tq_counted);
 }
 
 /* علامات تقويم الاختبارات: أيام فيها اختبار منته فعلا في الشهر الجاري */
@@ -170,12 +170,13 @@ include 'portal_open.php';
                                     <?php echo html_escape($q['title']); ?>
                                 </h3>
                                 <p class="tq-micro" style="margin:0 0 var(--tq-space-m)">
-                                    <?php echo html_escape($q['level'] !== '' ? $q['level'] : $q['course']); ?>
+                                    <?php echo html_escape($q['level'] !== '' ? tq_s_level($q['level']) : $q['course']); ?>
                                 </p>
 
                                 <div class="tq-s-meta" style="margin-block-end:var(--tq-space-m)">
-                                    <span><?php echo tq_icon('award', 16); ?><?php echo tq_iso($q['marks'] . ' درجة'); ?></span>
-                                    <span><?php echo tq_icon('help', 16); ?><?php echo tq_iso($q['marks'] . ' سؤالا'); ?></span>
+                                    <?php /* «٥ درجة» و«٥ سؤالا» رقم واحد بتسميتين — الدرجة في هذا
+                                             النموذج هي عدد الأسئلة نفسه. فيقال مرة واحدة. */ ?>
+                                    <span><?php echo tq_icon('help', 16); ?><?php echo tq_iso($q['marks'] . ' سؤالا، والدرجة من ' . $q['marks']); ?></span>
                                     <?php if (!empty($tq_limits[$q['id']])): ?>
                                         <span><?php echo tq_icon('clock', 16); ?><?php echo tq_s_minutes((int) round($tq_limits[$q['id']] / 60)); ?></span>
                                     <?php endif; ?>
@@ -196,12 +197,26 @@ include 'portal_open.php';
             </section>
         <?php endif; ?>
 
-        <!-- الاختبارات الجارية -->
-        <?php if ($show('live') && $tq_live): ?>
+        <!-- الاختبارات الجارية.
+             القسم يطوى في «الكل» حين لا اختبار جاريا — عنوان فوق فراغ ضجيج.
+             أما تبويب «الجارية» نفسه فلا يطوى: الطالب طلبه صراحة، وصفحة
+             لا تحمل إلا شريط تبويبات تقول له إن الصفحة معطوبة. -->
+        <?php if ($tq_quizzes && ($tq_live || $f_state === 'live')): ?>
             <section class="tq-section">
                 <div class="tq-sectionhead">
                     <h2><span class="tq-s-dot tq-s-dot--live" aria-hidden="true"></span> الاختبارات الجارية</h2>
                 </div>
+
+                <?php if (empty($tq_live)): ?>
+                    <div class="tq-card">
+                        <?php echo tq_s_empty(
+                            'clock', 'peach',
+                            'لا اختبار جار الآن',
+                            'الاختبار الذي تبدأه ولا تسلمه يظهر هنا بعداد وقته وزر يعيدك إليه من حيث توقفت.',
+                            '', '', true
+                        ); ?>
+                    </div>
+                <?php endif; ?>
 
                 <?php foreach ($tq_live as $q): ?>
                     <?php
@@ -242,17 +257,25 @@ include 'portal_open.php';
                         </div>
 
                         <div style="margin-block-start:var(--tq-space-l)">
-                            <?php if ($duration_min > 0): ?>
+                            <?php $left = $duration_min > 0 ? max(0, $q['started_at'] + $duration_min * 60 - time()) : 0; ?>
+                            <?php if ($duration_min > 0 && $left > 0): ?>
                                 <div class="tq-row tq-row--between" style="margin-block-end:var(--tq-space-s)">
                                     <span class="tq-caption">الوقت المتبقي</span>
-                                    <?php
-                                    $left = max(0, $q['started_at'] + $duration_min * 60 - time());
-                                    echo tq_num(tq_s_clock($left));
-                                    ?>
+                                    <?php echo tq_num(tq_s_clock($left)); ?>
                                 </div>
                                 <div class="tq-s-timebar">
                                     <div class="tq-s-timebar__fill"
                                          style="inline-size:<?php echo (int) round($left * 100 / ($duration_min * 60)); ?>%"></div>
+                                </div>
+                            <?php elseif ($duration_min > 0): ?>
+                                <?php /* عداد على «00:00» وشريط فارغ لا يقولان شيئا: المحاولة
+                                         مضى وقتها. يقال ذلك بلفظه، ويبقى الرابط ليحسم المشغل
+                                         أمرها — فالحسم شأنه لا شأن هذه الشاشة. */ ?>
+                                <div class="tq-row" style="gap:var(--tq-space-s)">
+                                    <?php echo tq_badge('late', 'انتهى وقت هذه المحاولة'); ?>
+                                    <span class="tq-micro">
+                                        مدتها <?php echo tq_s_minutes($duration_min); ?>، وقد مضت.
+                                    </span>
                                 </div>
                             <?php else: ?>
                                 <p class="tq-micro" style="margin:0">
@@ -297,7 +320,22 @@ include 'portal_open.php';
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($tq_done as $q): $g = $tq_grade($q['percent'] === null ? -1 : $q['percent']); ?>
+                                <?php foreach ($tq_done as $q): ?>
+                                    <?php
+                                    /* درجة لم يعتمدها المعلم بعد ليست درجة ضعيفة.
+                                       وتمرير `null` على أنها `-1` كان يصبغ كل تسليم
+                                       ينتظر التصحيح بالأحمر ويقول لصاحبه «يحتاج
+                                       مراجعة» — حكم على عمل لم يقرأه أحد بعد. */
+                                    if (empty($q['visible'])) {
+                                        $g = (($q['grade_state'] ?? '') === 'pending_approval')
+                                            ? array('due', 'بانتظار التصحيح')
+                                            : array('idle', 'بلا درجة بعد');
+                                    } elseif ($q['percent'] === null) {
+                                        $g = array('idle', 'بلا درجة بعد');
+                                    } else {
+                                        $g = $tq_grade($q['percent']);
+                                    }
+                                    ?>
                                     <tr>
                                         <td data-label="الاختبار">
                                             <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($q['title']); ?></span>
@@ -346,7 +384,11 @@ include 'portal_open.php';
                     echo tq_s_stat(tq_num(count($tq_upcoming)), 'اختبارات قادمة', 'calendar', 'sky');
                     echo tq_s_stat(tq_num(count($tq_live)),     'اختبار جار',    'clock',    'peach');
                     echo tq_s_stat(tq_num(count($tq_done)),     'اختبارات مكتملة', 'check',   'mint');
-                    echo tq_s_stat(tq_num($tq_avg . '%'),       'متوسط الدرجات',  'award',    'lilac');
+                    echo tq_s_stat(
+                        $tq_avg === null ? '<span class="tq-muted">—</span>' : tq_num($tq_avg . '%'),
+                        'متوسط الدرجات', 'award', 'lilac',
+                        $tq_avg === null ? 'يظهر بعد اعتماد أول درجة' : ''
+                    );
                     ?>
                 </div>
             <?php endif; ?>
@@ -356,7 +398,7 @@ include 'portal_open.php';
             <div class="tq-card__head">
                 <h2 class="tq-card__title">الاختبارات القادمة</h2>
                 <?php if ($tq_upcoming): ?>
-                    <a class="tq-caption" href="<?php echo base_url('taqdar/exams?state=upcoming'); ?>">عرض الكل</a>
+                    <a class="tq-caption" href="<?php echo base_url('student/exams?state=upcoming'); ?>">عرض الكل</a>
                 <?php endif; ?>
             </div>
 

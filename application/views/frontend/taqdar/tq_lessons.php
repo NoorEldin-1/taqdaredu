@@ -31,14 +31,19 @@ $f_stage   = (string) $this->input->get('stage', true);
 $f_all     = (string) $this->input->get('all', true);
 if (!in_array($f_state, ['progress', 'done', 'idle'], true)) $f_state = '';
 
-$tq_has_filter = ($f_subject !== '' || $f_stage !== '');
+/* الحالة فلتر كغيرها: تضبط من التبويب ومن القائمة معا، وزر «مسح الفلاتر»
+   الذي لا يظهر معها يترك الطالب أمام قائمة مصفاة بلا باب يعيده منها. */
+$tq_has_filter = ($f_subject !== '' || $f_stage !== '' || $f_state !== '');
 
 /* خيارات التصفية من كورسات الطالب نفسها لا من كل تصنيفات المنصة */
 $opt_subjects = [];
 $opt_stages   = [];
+/* التصفية بالمادة **باسمها** لا بمعرف تصنيف: `course.category_id` صفر في كل
+   كورس منشور، فالمفتاح الرقمي كان يجمع كل المواد في خيار واحد اسمه آخر ما
+   مر. والاسم يأتي من `paths.subject_id` وهو ثابت ومقروء في الرابط. */
 foreach ($tq_all as $c) {
-    $s = tq_s_subject($c['category_id'], '');
-    if ($s !== '') $opt_subjects[(string) $c['category_id']] = $s;
+    $s = tq_s_subject($c['category_id'], '', $c['id']);
+    if ($s !== '') $opt_subjects[$s] = $s;
     if (trim((string) $c['level']) !== '') $opt_stages[$c['level']] = $c['level'];
 }
 ksort($opt_subjects);
@@ -49,7 +54,7 @@ foreach ($tq_all as $c) $tq_counts_by[$c['status']]++;
 
 $tq_list = array_values(array_filter($tq_all, function ($c) use ($f_state, $f_subject, $f_stage) {
     if ($f_state !== '' && $c['status'] !== $f_state) return false;
-    if ($f_subject !== '' && (string) $c['category_id'] !== $f_subject) return false;
+    if ($f_subject !== '' && tq_s_subject($c['category_id'], '', $c['id']) !== $f_subject) return false;
     if ($f_stage !== '' && (string) $c['level'] !== $f_stage) return false;
     return true;
 }));
@@ -135,7 +140,7 @@ include 'portal_open.php';
                             <a href="<?php echo $href; ?>" style="color:var(--tq-navy)"><?php echo html_escape($c['title']); ?></a>
                         </h3>
                         <p class="tq-micro" style="margin:0">
-                            <?php echo html_escape($c['level'] !== '' ? $c['level'] : tq_s_subject($c['category_id'], 'كورس')); ?>
+                            <?php echo html_escape($c['level'] !== '' ? tq_s_level($c['level']) : tq_s_subject($c['category_id'], 'كورس', $c['id'])); ?>
                         </p>
                         <?php echo tq_progress($c['progress'], 'تقدمك في ' . $c['title']); ?>
                         <p class="tq-caption" style="margin:0"><?php echo tq_s_lessons_word($c['done'], $c['lessons']); ?></p>
@@ -185,7 +190,7 @@ include 'portal_open.php';
                         <?php foreach ($opt_stages as $lvl): ?>
                             <option value="<?php echo html_escape($lvl); ?>"
                                 <?php echo ((string) $lvl === $f_stage) ? 'selected' : ''; ?>>
-                                <?php echo html_escape($lvl); ?>
+                                <?php echo html_escape(tq_s_level($lvl)); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

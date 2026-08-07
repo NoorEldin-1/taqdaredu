@@ -18,7 +18,7 @@ $tq_portal_pages = [
     'tq_reviews', 'tq_parent_settings', 'tq_delete_account',
     'tq_home', 'tq_lesson', 'tq_subscription', 'tq_bundle', 'tq_lessons', 'tq_tasks', 'tq_exams', 'tq_on_demand', 'tq_materials',
     'tq_reports', 'tq_favourites', 'tq_messages', 'tq_notifications', 'tq_calendar',
-    'tq_settings', 'tq_certificates', 'tq_payments',
+    'tq_settings', 'tq_certificates', 'tq_payments', 'tq_search',
     'tq_teacher_dashboard', 'tq_teacher_courses', 'tq_teacher_upload', 'tq_teacher_questions',
     'tq_teacher_marking', 'tq_teacher_students', 'tq_teacher_sessions', 'tq_teacher_wallet',
     'tq_parent_children', 'tq_parent_child', 'tq_parent_reports', 'tq_parent_weekly',

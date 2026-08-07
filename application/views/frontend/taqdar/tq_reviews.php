@@ -147,7 +147,7 @@ include 'portal_open.php';
                     </div>
                     <div class="tq-stat">
                         <span class="tq-stat__value" data-tq-rv-batch>—</span>
-                        <span class="tq-stat__label">دفعة اليوم</span>
+                        <span class="tq-stat__label">في دفعة الآن</span>
                     </div>
                 </div>
             </div>

@@ -234,9 +234,9 @@ class Taqdar_sessions_model extends CI_Model
      *
      * @param int $limit_teachers أقصى عدد معلمين
      * @param int $limit_slots    أقصى عدد مواعيد لكل معلم
-     * @param int $category_id    تصفية بمادة (٠ = الكل)
+     * @param int $subject_id     تصفية بمادة من `subjects` (٠ = الكل)
      */
-    public function available_teachers($limit_teachers = 12, $limit_slots = 6, $category_id = 0)
+    public function available_teachers($limit_teachers = 12, $limit_slots = 6, $subject_id = 0)
     {
         $now = date('Y-m-d H:i:s');
 
@@ -255,9 +255,9 @@ class Taqdar_sessions_model extends CI_Model
         foreach ($rows as $r) {
             $tid = (int) $r['teacher_id'];
 
-            if ($category_id > 0) {
-                $cats = $subjects['cats'][$tid] ?? [];
-                if (!in_array((int) $category_id, $cats, true)) continue;
+            if ($subject_id > 0) {
+                $mine = $subjects['cats'][$tid] ?? [];
+                if (!in_array((int) $subject_id, $mine, true)) continue;
             }
 
             if (!isset($out[$tid])) {
@@ -286,33 +286,38 @@ class Taqdar_sessions_model extends CI_Model
     }
 
     /**
-     * مادة كل معلم — من كورساته المنشورة (`course.user_id` نص في Academy).
+     * مادة كل معلم — من كورساته المنشورة عبر مسارها (`paths.subject_id`).
      * وهذا كل ما تعرفه القاعدة عن تخصصه؛ من لا كورس له لا مادة له، فلا ينسب
      * إلى مادة لم يدرسها.
+     *
+     * وكان المصدر `course.category_id` — وهو صفر في كل كورس منشور، فلا
+     * ينسب معلم إلى مادة قط، وتصفية «اختر المادة» ترد الجميع.
+     * و`category` جدول مراحل لا مواد؛ المواد في `subjects`.
      */
     public function teacher_subjects()
     {
         static $cache = null;
         if ($cache !== null) return $cache;
 
-        $rows = $this->db->select('user_id, category_id')
-            ->from('course')
-            ->where('status', 'active')
-            ->where('category_id >', 0)
+        $rows = $this->db->select('c.user_id, p.subject_id, s.name_ar', false)
+            ->from('paths p')
+            ->join('course c', 'c.id = p.course_id', 'inner')
+            ->join('subjects s', 's.id = p.subject_id', 'inner')
+            ->where('c.status', 'active')
             ->get()->result_array();
-
-        $cats = $this->db->select('id, name')->get('category')->result_array();
-        $names = [];
-        foreach ($cats as $c) $names[(int) $c['id']] = (string) $c['name'];
 
         $by_teacher = [];
         $first      = [];
         foreach ($rows as $r) {
-            $tid = (int) $r['user_id'];
-            $cid = (int) $r['category_id'];
-            if ($tid <= 0 || $cid <= 0) continue;
-            $by_teacher[$tid][] = $cid;
-            if (!isset($first[$tid]) && isset($names[$cid])) $first[$tid] = $names[$cid];
+            /* `course.user_id` قائمة معرفات مفصولة بفواصل في Academy،
+               فالمعلم الثاني في كورس مشترك ينسب إلى مادته كذلك. */
+            foreach (explode(',', (string) $r['user_id']) as $raw) {
+                $tid = (int) trim($raw);
+                $sid = (int) $r['subject_id'];
+                if ($tid <= 0 || $sid <= 0) continue;
+                $by_teacher[$tid][] = $sid;
+                if (!isset($first[$tid])) $first[$tid] = (string) $r['name_ar'];
+            }
         }
 
         return $cache = ['cats' => $by_teacher, 'name' => $first];

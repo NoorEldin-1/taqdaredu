@@ -71,7 +71,9 @@ include 'portal_open.php';
             <div class="tq-sectionhead">
                 <h2>استكمال التعلم</h2>
                 <?php if ($tq_active): ?>
-                    <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('taqdar/lessons?state=progress'); ?>">عرض الكل</a>
+<?php /* المسار الحي `student/*`؛ و`taqdar/*` يحول إليه بـ301 من `.htaccess`،
+                             فكتابته هنا تكلف الطالب رحلة ذهاب وإياب على كل نقرة. */ ?>
+                    <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/lessons?state=progress'); ?>">عرض الكل</a>
                 <?php endif; ?>
             </div>
 
@@ -101,7 +103,7 @@ include 'portal_open.php';
                                    style="color:var(--tq-navy)"><?php echo html_escape($c['title']); ?></a>
                             </h3>
                             <?php if ($c['level']): ?>
-                                <p class="tq-micro" style="margin:0"><?php echo html_escape($c['level']); ?></p>
+                                <p class="tq-micro" style="margin:0"><?php echo html_escape(tq_s_level($c['level'])); ?></p>
                             <?php endif; ?>
                             <?php echo tq_progress($c['progress'], 'تقدمك في ' . $c['title']); ?>
                             <p class="tq-caption" style="margin:0"><?php echo tq_s_lessons_word($c['done'], $c['lessons']); ?></p>

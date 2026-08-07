@@ -99,7 +99,12 @@
       state.correct = 0;
       state.total_due = int(d.total_due);
       state.remaining = state.total_due;
-      state.batch = int(d.daily_batch);
+
+      /* «دفعة اليوم» هي ما حمل فعلا الآن، لا سقف الإعداد.
+         عرض `daily_batch` كان يكتب «10» بجوار «0 سؤالا مستحقا»
+         فيقرأها الطالب عشرة أسئلة تنتظره وليس أمامه سؤال واحد. */
+      state.batch = int(d.count);
+      if (!state.batch) state.batch = state.queue.length;
 
       text('[data-tq-rv-total]', iso(state.total_due));
       text('[data-tq-rv-batch]', iso(state.batch));

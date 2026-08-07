@@ -158,6 +158,16 @@ $route['teacher/students/message']     = 'taqdar/students_message';
 $route['taqdar/teacher/students/message'] = 'taqdar/students_message';
 $route['student/subscribe-path']       = 'taqdar/subscribe_path';
 $route['student/parent-link']            = 'taqdar/parent_link_respond';
+
+// ---- البحث داخل البوابة ----
+// صندوق البحث في ترويسة البوابة يصدر إلى `<الدور>/search`. و`student/search`
+// يصل وحده عبر `student/(:any)`، أما `teacher/search` فيسقط إلى
+// `Taqdar::teacher('search')` و`parent/search` إلى `Taqdar::parent_portal('search')`
+// وليس فيهما قسم بهذا الاسم — فترد 404 على زر في ترويسة كل صفحة.
+$route['student/search']         = 'taqdar/search';
+$route['teacher/search']         = 'taqdar/search';
+$route['parent/search']          = 'taqdar/search';
+
 $route['student/(:any)']         = 'taqdar/$1';
 $route['teacher']                = 'taqdar/teacher/dashboard';
 $route['teacher/courses/save']           = 'taqdar/courses_save';

@@ -33,6 +33,17 @@
         var method = (init.method || (input && input.method) || "GET").toUpperCase();
 
         if (WRITE[method] && sameOrigin(url)) {
+            /* الترويسة تحمل التوكن في كل طلب كتابة لنفس الأصل.
+               وهي الطريق الذي يصل: `$_POST` لا يملأ لطلب JSON، فالتوكن
+               المحقون داخل الجسم كان يرسل ولا يقرأ — و`REST_Input` يرفعه
+               من هنا (أو من الجسم) إلى `$_POST` قبل فحص CodeIgniter. */
+            init.headers = init.headers || {};
+            if (init.headers instanceof Headers) {
+                if (!init.headers.has("X-CSRF-Token")) init.headers.set("X-CSRF-Token", HASH);
+            } else if (!init.headers["X-CSRF-Token"]) {
+                init.headers["X-CSRF-Token"] = HASH;
+            }
+
             var b = init.body;
             if (b instanceof FormData) {
                 if (!b.has(NAME)) b.append(NAME, HASH);
@@ -64,6 +75,7 @@
     };
     XMLHttpRequest.prototype.send = function (body) {
         if (this.__tqWrite) {
+            try { this.setRequestHeader("X-CSRF-Token", HASH); } catch (e) {}
             if (body instanceof FormData) {
                 if (!body.has(NAME)) body.append(NAME, HASH);
             } else if (typeof body === "string" && body.indexOf(NAME + "=") === -1) {

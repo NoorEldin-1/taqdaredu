@@ -36,7 +36,10 @@ if ((string) $this->input->post('tq_action') === 'request_session') {
     $this->session->set_flashdata($tq_res['ok'] ? 'flash_message' : 'error_message', $tq_res['msg']);
 
     $tq_back = (string) $this->input->post('subject', true);
-    redirect(site_url('taqdar/on-demand') . ($tq_back !== '' ? '?subject=' . rawurlencode($tq_back) : ''), 'refresh');
+    /* `location` لا `refresh`: الثانية ترسل ترويسة `Refresh` لا يتبعها
+       curl فيبدو الفحص ناجحا وهو لم يصل، وتكسر زر الرجوع في المتصفح —
+       وهي القاعدة المعمول بها في مسارات الكتابة كلها. */
+    redirect(site_url('student/on-demand') . ($tq_back !== '' ? '?subject=' . rawurlencode($tq_back) : ''), 'location', 302);
 }
 
 include 'tq_student_styles.php';
@@ -70,16 +73,10 @@ $tq_ses_photo = function ($image) {
 include 'portal_open.php';
 ?>
 
-<?php if ($tq_flash = $this->session->flashdata('flash_message')): ?>
-    <div class="tq-pastel tq-pastel--mint" style="margin-block-end:var(--tq-space-l)">
-        <p class="tq-pastel__body" style="margin:0"><?php echo tq_iso($tq_flash); ?></p>
-    </div>
-<?php endif; ?>
-<?php if ($tq_err = $this->session->flashdata('error_message')): ?>
-    <div class="tq-pastel tq-pastel--rose" style="margin-block-end:var(--tq-space-l)">
-        <p class="tq-pastel__body" style="margin:0"><?php echo tq_iso($tq_err); ?></p>
-    </div>
-<?php endif; ?>
+<?php /* رسالة النتيجة يطبعها `portal_open.php` لكل شاشات البوابة.
+         وكانت تطبع هنا مرة ثانية — و`flashdata()` تقرأ ولا تستهلك داخل
+         الطلب الواحد، فيرى الطالب «أرسل طلبك» مرتين متتاليتين بشكلين
+         مختلفين ويظن أنه أرسل طلبين. */ ?>
 
 <div class="tq-cols">
     <div>
@@ -93,7 +90,7 @@ include 'portal_open.php';
                     احجز حصة مباشرة مع معلم خبير، واحصل على شرح مخصص لاحتياجك أنت —
                     ولا يخصم مبلغ الحصة إلا بعد تأكيد المعلم.
                 </p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('taqdar/on-demand#tq-tutors'); ?>">
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/on-demand#tq-tutors'); ?>">
                     <?php echo tq_icon('calendar'); ?> اطلب حصة الآن
                 </a>
             </div>
@@ -123,7 +120,7 @@ include 'portal_open.php';
                     <?php foreach ($tq_subjects as $i => $s): ?>
                         <?php $active = ((string) $s['id'] === $f_subject); ?>
                         <a class="tq-card tq-s-course" style="text-align:center;align-items:center<?php echo $active ? ';border:var(--tq-field-border) solid var(--tq-navy)' : ''; ?>"
-                           href="<?php echo base_url('taqdar/on-demand?subject=' . $s['id']); ?>"
+                           href="<?php echo base_url('student/on-demand?subject=' . $s['id']); ?>"
                            <?php echo $active ? 'aria-current="true"' : ''; ?>>
                             <span class="tq-icon-box tq-pastel tq-pastel--<?php echo tq_pastel($i); ?>" aria-hidden="true">
                                 <span class="tq-pastel__icon"><?php echo tq_icon('book'); ?></span>
@@ -135,7 +132,7 @@ include 'portal_open.php';
                 </div>
                 <?php if ($f_subject !== ''): ?>
                     <p style="margin-block-start:var(--tq-space-m)">
-                        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('taqdar/on-demand'); ?>">
+                        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/on-demand'); ?>">
                             إلغاء تصفية المادة
                         </a>
                     </p>

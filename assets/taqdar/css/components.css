@@ -287,20 +287,66 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 
 /* --------------------------------------------------------------------------
    القائمة الجانبية — 240 مفتوحة / 72 مطوية، عنصر 44px، ترتيب ثابت
+
+   الشريط ملتصق بارتفاع النافذة وقائمته وحدها هي التي تمرر. قبل ذلك كان
+   يطول بطول قائمته: ست عشرة وجهة وبطاقة اشتراك تتجاوز 900 بكسل، فتسقط
+   آخر البنود تحت حافة الشاشة على أي جهاز محمول، ولا يوصل إليها إلا
+   بتمرير الصفحة — فتذهب القائمة مع المحتوى الذي جاء المستخدم يقرؤه.
    -------------------------------------------------------------------------- */
 .tq-rail {
   inline-size: var(--tq-rail-open);
   flex: none;
   background: var(--tq-surface);
   border-inline-end: 1px solid var(--tq-line);
-  padding: var(--tq-space-l) var(--tq-space-m);
-  display: flex; flex-direction: column; gap: var(--tq-space-xs);
+  display: flex; flex-direction: column;
+  position: sticky; inset-block-start: 0;
+  block-size: 100vh;
+  block-size: 100dvh;
+  transition: inline-size var(--tq-motion-route) var(--tq-ease-enter);
 }
-.tq-rail[data-collapsed='true'] { inline-size: var(--tq-rail-collapsed); }
-.tq-rail[data-collapsed='true'] .tq-rail__text,
-.tq-rail[data-collapsed='true'] .tq-rail__promo { display: none; }
+
+/* الترويسة: الشعار + زر الطي، ولا تمرر مع القائمة */
+.tq-rail__brand {
+  flex: none;
+  display: flex; align-items: center; gap: var(--tq-space-xs);
+  padding: var(--tq-space-l) var(--tq-space-m);
+}
+.tq-rail__logo { flex: 1; min-inline-size: 0; }
+.tq-rail__collapse, .tq-rail__close { flex: none; inline-size: 36px; block-size: 36px; }
+/* الوزن `.tq-rail X` مقصود: `.tq-iconbtn { display: grid }` معرفة بعد هذا
+   الموضع في الورقة نفسها، فمحدد بوزن مساو كان يخسر أمامها ويظهر زر
+   الإغلاق على سطح المكتب حيث لا درج يغلق. */
+.tq-rail .tq-rail__close { display: none; }
+
+/* القائمة: هي وحدها التي تمرر */
+.tq-rail__nav {
+  flex: 1; min-block-size: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 0 var(--tq-space-m) var(--tq-space-m);
+  display: flex; flex-direction: column; gap: 2px;
+}
+
+/* عنوان المجموعة — يجيب «أين أتعلم؟» قبل قراءة ستة عشر سطرا */
+.tq-rail__group {
+  margin: var(--tq-space-l) var(--tq-space-m) var(--tq-space-xs);
+  font: var(--tq-type-micro); font-weight: 700;
+  color: var(--tq-text2);
+  text-transform: none;
+}
+.tq-rail__nav > .tq-rail__group:first-child { margin-block-start: 0; }
+
+/* الذيل: بطاقة الاشتراك مثبتة أسفل الشريط لا في آخر قائمة تمرر */
+.tq-rail__foot {
+  flex: none;
+  padding: var(--tq-space-m);
+  border-block-start: 1px solid var(--tq-line);
+}
+/* والوزن نفسه هنا: `.tq-rail__item { display: flex }` تليها في الورقة. */
+.tq-rail .tq-rail__foot-mini { display: none; }
 
 .tq-rail__item {
+  position: relative;
   display: flex; align-items: center; gap: var(--tq-space-m);
   min-block-size: var(--tq-nav-item-h);
   padding-inline: var(--tq-space-m);
@@ -309,6 +355,7 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   font: var(--tq-type-body);
   transition: background-color var(--tq-motion-hover) ease, color var(--tq-motion-hover) ease;
 }
+.tq-rail__icon { flex: none; display: grid; place-items: center; inline-size: 20px; block-size: 20px; }
 .tq-rail__item:hover { background: var(--tq-navyWash); color: var(--tq-navy); text-decoration: none; }
 .tq-rail__item[aria-current='page'] {
   background: var(--tq-actionPrimary);
@@ -334,43 +381,156 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 }
 .tq-rail__item[aria-current='page'] .tq-rail__count { background: rgba(255, 255, 255, .22); }
 
+/* --- الوضع المطوي -------------------------------------------------------
+   الحالة تكتب على `<html>` من سطر في الرأس قبل الرسم، لا على الشريط بعد
+   تحميل السكربت — وإلا ومض الشريط مفتوحا ثم انطوى في كل تنقل.
+
+   و`:where()` تصفر وزن المحدد عمدا: قواعد اللوح والجوال أدناه أثقل منه
+   فتغلبه، فيعود الدرج بأسمائه على الجوال مهما كان المحفوظ على الجهاز.
+
+   وإخفاء النص بصري لا `display:none`: الأيقونة `aria-hidden` والنص كان
+   يحذف، فيبقى الرابط بلا اسم في شجرة الوصول — ستة عشر رابطا يقرؤها قارئ
+   الشاشة «رابط» وحسب. */
+:where(html[data-tq-rail='collapsed']) .tq-rail { inline-size: var(--tq-rail-collapsed); }
+:where(html[data-tq-rail='collapsed']) .tq-rail__text {
+  position: absolute; inline-size: 1px; block-size: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+:where(html[data-tq-rail='collapsed']) .tq-rail__brand { justify-content: center; padding-inline: var(--tq-space-s); }
+:where(html[data-tq-rail='collapsed']) .tq-rail__logo { flex: none; }
+:where(html[data-tq-rail='collapsed']) .tq-rail__nav { padding-inline: var(--tq-space-s); }
+:where(html[data-tq-rail='collapsed']) .tq-rail__item { justify-content: center; padding-inline: var(--tq-space-s); }
+:where(html[data-tq-rail='collapsed']) .tq-rail__count {
+  position: absolute; inset-block-start: 3px; inset-inline-end: 3px;
+  margin: 0; min-inline-size: 18px; padding: 0 4px;
+  font: var(--tq-type-micro); font-weight: 700;
+}
+/* رأس المجموعة يصير فاصلا: المعنى يبقى (هنا تبدأ مجموعة) والنص يذهب */
+:where(html[data-tq-rail='collapsed']) .tq-rail__group {
+  margin: var(--tq-space-s) var(--tq-space-s);
+  block-size: 1px; padding: 0; font-size: 0;
+  background: var(--tq-line); border-radius: var(--tq-radius-pill);
+  overflow: hidden;
+}
+:where(html[data-tq-rail='collapsed']) .tq-rail__promo { display: none; }
+:where(html[data-tq-rail='collapsed']) .tq-rail__foot { padding: var(--tq-space-s); }
+/* `.tq-rail X` داخل الغلاف: القاعدة الأساسية أعلاه بهذا الوزن، ولو كتب
+   المحدد بلا `.tq-rail` لخسر أمامها وبقي البديل المصغر مخفيا في الوضع
+   المطوي — فلا بطاقة اشتراك ولا بابها. */
+:where(html[data-tq-rail='collapsed']) .tq-rail .tq-rail__foot-mini { display: flex; }
+/* الزر يبقى ظاهرا في الوضعين — وإلا انطوى الشريط بلا باب يفتحه.
+   والدوران على الزر لا على الأيقونة: الأيقونة تحمل `tq-dir-icon` وتنعكس
+   مع اتجاه الكتابة، فقلبها هنا يلغي انعكاسها ويشير السهم إلى غير جهته. */
+:where(html[data-tq-rail='collapsed']) .tq-rail__brand { flex-direction: column; gap: var(--tq-space-s); }
+:where(html[data-tq-rail='collapsed']) .tq-rail__collapse { transform: rotate(180deg); }
+
+/* --- لوح: الشريط مطوي دائما، والطي ليس اختيارا هنا ---------------------- */
 @media (max-width: 1023.98px) {
   .tq-rail { inline-size: var(--tq-rail-collapsed); }
-  .tq-rail .tq-rail__text, .tq-rail .tq-rail__promo { display: none; }
+  .tq-rail .tq-rail__text {
+    position: absolute; inline-size: 1px; block-size: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  .tq-rail .tq-rail__brand { justify-content: center; padding-inline: var(--tq-space-s); }
+  .tq-rail .tq-rail__logo { flex: none; }
+  .tq-rail .tq-rail__collapse { display: none; }
+  .tq-rail .tq-rail__nav { padding-inline: var(--tq-space-s); }
+  .tq-rail .tq-rail__item { justify-content: center; padding-inline: var(--tq-space-s); }
+  .tq-rail .tq-rail__count {
+    position: absolute; inset-block-start: 3px; inset-inline-end: 3px;
+    margin: 0; min-inline-size: 18px; padding: 0 4px;
+    font: var(--tq-type-micro); font-weight: 700;
+  }
+  .tq-rail .tq-rail__group {
+    margin: var(--tq-space-s) var(--tq-space-s);
+    block-size: 1px; padding: 0; font-size: 0;
+    background: var(--tq-line); border-radius: var(--tq-radius-pill);
+    overflow: hidden;
+  }
+  .tq-rail .tq-rail__promo { display: none; }
+  .tq-rail .tq-rail__foot { padding: var(--tq-space-s); }
+  .tq-rail .tq-rail__foot-mini { display: flex; }
 }
+
+/* --- جوال: درج كامل الأسماء، وزر إغلاق داخله ---------------------------- */
 @media (max-width: 639.98px) {
-  /* درج على الجوال */
   .tq-rail {
     position: fixed; inset-block: 0; inset-inline-start: 0;
-    inline-size: var(--tq-rail-open); z-index: 60;
+    inline-size: min(var(--tq-rail-open), 84vw); z-index: 60;
     transform: translateX(100%);
     transition: transform var(--tq-motion-route) var(--tq-ease-enter);
     box-shadow: var(--tq-shadow-card);
   }
   html[dir='ltr'] .tq-rail { transform: translateX(-100%); }
   .tq-rail[data-open='true'] { transform: none; }
-  .tq-rail .tq-rail__text, .tq-rail .tq-rail__promo { display: revert; }
+
+  /* الدرج مفتوح عن قصد، فيعرض بأسمائه لا بأيقوناته */
+  .tq-rail .tq-rail__text {
+    position: static; inline-size: auto; block-size: auto;
+    margin: 0; overflow: visible; clip-path: none; white-space: normal;
+  }
+  .tq-rail .tq-rail__brand { justify-content: space-between; padding-inline: var(--tq-space-m); }
+  .tq-rail .tq-rail__logo { flex: 1; }
+  .tq-rail .tq-rail__close { display: grid; }
+  .tq-rail .tq-rail__nav { padding-inline: var(--tq-space-m); }
+  .tq-rail .tq-rail__item { justify-content: flex-start; padding-inline: var(--tq-space-m); }
+  .tq-rail .tq-rail__count {
+    position: static; margin-inline-start: auto;
+    min-inline-size: 22px; padding: 2px var(--tq-space-s);
+    font: var(--tq-type-numeralSm); font-weight: 400;
+  }
+  .tq-rail .tq-rail__group {
+    margin: var(--tq-space-l) var(--tq-space-m) var(--tq-space-xs);
+    block-size: auto; font-size: revert; background: none; border-radius: 0;
+    font: var(--tq-type-micro); font-weight: 700; color: var(--tq-text2);
+  }
+  .tq-rail .tq-rail__promo { display: revert; }
+  .tq-rail .tq-rail__foot { padding: var(--tq-space-m); }
+  .tq-rail .tq-rail__foot-mini { display: none; }
 }
 
 /* --------------------------------------------------------------------------
    الترويسة العلوية
+
+   ملتصقة بأعلى الشاشة: البحث والإشعارات والحساب لا تنزل مع المحتوى في
+   صفحة طويلة. وتنكمش بترتيب معلن: التحية أولا ثم اسم الحساب — ولا شيء
+   منها يدفع الصفحة إلى تمرير أفقي.
    -------------------------------------------------------------------------- */
 .tq-topbar {
+  position: sticky; inset-block-start: 0; z-index: 40;
   display: flex; align-items: center; gap: var(--tq-space-l);
-  padding: var(--tq-space-l) var(--tq-space-xl);
+  padding: var(--tq-space-m) var(--tq-space-xl);
   background: var(--tq-surface);
   border-block-end: 1px solid var(--tq-line);
 }
-.tq-topbar__greet { flex: none; }
-.tq-topbar__search { flex: 1; max-inline-size: 560px; margin-inline: auto; position: relative; }
+.tq-topbar__greet { flex: 0 1 auto; min-inline-size: 0; }
+.tq-topbar__greet > p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tq-topbar__search { flex: 1 1 200px; min-inline-size: 0; max-inline-size: 560px; margin-inline: auto; position: relative; }
+.tq-topbar__search .tq-input { padding-inline-end: 3.4rem; }
 .tq-topbar__kbd {
   position: absolute; inset-inline-end: var(--tq-space-m); inset-block-start: 50%;
   transform: translateY(-50%);
   padding: 2px var(--tq-space-s);
   border: 1px solid var(--tq-line); border-radius: var(--tq-radius-small);
   font: var(--tq-type-micro); color: var(--tq-text2);
+  pointer-events: none;
 }
-.tq-topbar__actions { display: flex; align-items: center; gap: var(--tq-space-m); margin-inline-start: auto; }
+.tq-topbar__actions { display: flex; align-items: center; gap: var(--tq-space-s); margin-inline-start: auto; flex: none; }
+.tq-topbar__me { display: flex; align-items: center; gap: var(--tq-space-s); border-radius: var(--tq-radius-pill); padding: var(--tq-space-xs); }
+.tq-topbar__me:hover { background: var(--tq-navyWash); text-decoration: none; }
+.tq-topbar__me-name { min-inline-size: 0; max-inline-size: 12ch; }
+.tq-topbar__me-name > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* التحية أول ما يسقط: هي ترحيب لا وظيفة، والبحث وظيفة */
+@media (max-width: 1279.98px) { .tq-topbar__greet { display: none; } }
+@media (max-width: 899.98px)  { .tq-topbar__me-name { display: none; } }
+@media (max-width: 639.98px) {
+  .tq-topbar { padding: var(--tq-space-s) var(--tq-space-l); gap: var(--tq-space-s); }
+  .tq-topbar__kbd { display: none; }
+  .tq-topbar__search .tq-input { padding-inline-end: var(--tq-space-m); }
+}
 
 .tq-iconbtn {
   position: relative; display: grid; place-items: center;

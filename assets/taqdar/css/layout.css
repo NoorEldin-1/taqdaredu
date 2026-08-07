@@ -58,12 +58,16 @@
 .tq-pagehead__sub { color: var(--tq-text2); font: var(--tq-type-caption); margin: var(--tq-space-xs) 0 0; }
 .tq-pagehead__tools { display: flex; align-items: center; gap: var(--tq-space-s); }
 
-/* رأس قسم + «عرض الكل» */
+/* رأس قسم + «عرض الكل»
+   العدد صفة العنوان فيلتصق به، والرابط وحده يذهب إلى الطرف. و`space-between`
+   كانت تسوي بينهما: حيث لا رابط في الرأس يقذف العدد إلى الطرف المقابل فيقرأ
+   رقما سائبا في فراغ لا يعرف القارئ إلام يعود. */
 .tq-sectionhead {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: flex-start;
   gap: var(--tq-space-m); margin-block-end: var(--tq-space-l);
 }
 .tq-sectionhead h2 { margin: 0; font: var(--tq-type-h2); }
+.tq-sectionhead > a, .tq-sectionhead > button { margin-inline-start: auto; }
 .tq-sectionhead__count {
   padding: 2px var(--tq-space-s);
   background: var(--tq-navyWash); color: var(--tq-navy);
@@ -152,7 +156,10 @@
 .tq-cookie {
   position: fixed;
   inset-block-end: var(--tq-space-l);
-  inset-inline-start: var(--tq-space-l);
+  /* الجهة المقابلة للقائمة الجانبية: كانت عند بداية السطر — وهي في العربية
+     يمين الشاشة، أي فوق الشريط الجانبي تماما، فتحجب بطاقة الاشتراك وآخر
+     بنود القائمة في كل صفحة بوابة حتى يقرر الزائر في الكوكيز. */
+  inset-inline-end: var(--tq-space-l);
   z-index: 80;
   max-inline-size: 420px;
 }

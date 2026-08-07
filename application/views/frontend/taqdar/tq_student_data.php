@@ -152,10 +152,47 @@ if (!function_exists('tq_s_categories')) {
     }
 }
 
-if (!function_exists('tq_s_subject')) {
-    /** اسم المادة لكورس: تصنيفه إن وجد، وإلا عنوانه. */
-    function tq_s_subject($category_id, $fallback = '')
+if (!function_exists('tq_s_course_subjects')) {
+    /**
+     * [معرف الكورس => اسم مادته] من `paths.subject_id`.
+     *
+     * «المادة» في هذه القاعدة جدول `subjects` (رياضيات · لغة عربية · علوم…)،
+     * و`category` جدول **مراحل** (ابتدائية · متوسطة · ثانوية). وكانت الشاشات
+     * تقرأ المادة من `course.category_id` — وهو صفر في كل كورس منشور، فتسقط
+     * كل تسمية مادة إلى عنوان الكورس، ويبقى منتقي المادة في «حصص بالطلب»
+     * فارغا أبدا. والربط الصحيح موجود في `paths` منذ البداية: لكل كورس مسار،
+     * وللمسار مادته.
+     */
+    function tq_s_course_subjects()
     {
+        static $cache = null;
+        if ($cache !== null) return $cache;
+
+        $CI  = get_instance();
+        $out = [];
+        foreach ($CI->db->select('p.course_id, s.name_ar')
+                        ->from('paths p')
+                        ->join('subjects s', 's.id = p.subject_id', 'inner')
+                        ->where('p.course_id >', 0)
+                        ->get()->result_array() as $r) {
+            $out[(int) $r['course_id']] = (string) $r['name_ar'];
+        }
+        return $cache = $out;
+    }
+}
+
+if (!function_exists('tq_s_subject')) {
+    /**
+     * اسم المادة لكورس: مادته من مساره أولا، ثم تصنيفه، ثم البديل.
+     * و`$course_id` اختياري لئلا تنكسر مناداة قديمة لا تعرفه.
+     */
+    function tq_s_subject($category_id, $fallback = '', $course_id = 0)
+    {
+        $course_id = (int) $course_id;
+        if ($course_id > 0) {
+            $map = tq_s_course_subjects();
+            if (isset($map[$course_id]) && $map[$course_id] !== '') return $map[$course_id];
+        }
         $cats = tq_s_categories();
         return $cats[(int) $category_id] ?? $fallback;
     }
@@ -163,28 +200,31 @@ if (!function_exists('tq_s_subject')) {
 
 if (!function_exists('tq_s_subject_tutors')) {
     /**
-     * المواد وعدد معلميها.
-     * المصدر الحقيقي الوحيد اليوم: معلمو الكورسات المنشورة في كل تصنيف
-     * (course.user_id مجمعا على category_id). وهو عدد معلمي المادة،
-     * لا عدد المتاحين الآن — فالإتاحة لا جدول لها بعد، ولا تدعى.
+     * المواد وعدد معلميها — وهو عدد معلمي المادة لا عدد المتاحين الآن.
+     *
+     * المصدر `paths.subject_id` لا `course.category_id`: الأخير صفر في كل
+     * كورس منشور، فكان الشرط `category_id > 0` يرد كل الصفوف ويبقى «اختر
+     * المادة» فارغا مهما نشرت المنصة من مواد ومعلمين.
      */
     function tq_s_subject_tutors($limit = 5)
     {
         $CI = get_instance();
-        $rows = $CI->db->select('category_id, COUNT(DISTINCT user_id) AS n')
-            ->from('course')
-            ->where('category_id >', 0)
-            ->where('user_id !=', '')
-            ->group_by('category_id')
+        $rows = $CI->db->select('p.subject_id, s.name_ar, COUNT(DISTINCT c.user_id) AS n', false)
+            ->from('paths p')
+            ->join('course c', 'c.id = p.course_id', 'inner')
+            ->join('subjects s', 's.id = p.subject_id', 'inner')
+            ->where('c.status', 'active')
+            ->where('c.user_id !=', '')
+            ->group_by('p.subject_id')
             ->order_by('n', 'DESC')
             ->limit((int) $limit)
             ->get()->result_array();
 
         $out = [];
         foreach ($rows as $r) {
-            $name = tq_s_subject($r['category_id'], '');
+            $name = trim((string) $r['name_ar']);
             if ($name === '') continue;
-            $out[] = ['id' => (int) $r['category_id'], 'name' => $name, 'tutors' => (int) $r['n']];
+            $out[] = ['id' => (int) $r['subject_id'], 'name' => $name, 'tutors' => (int) $r['n']];
         }
         return $out;
     }
@@ -258,7 +298,7 @@ if (!function_exists('tq_s_quizzes')) {
                 'title'    => $r['title'],
                 'course_id' => (int) $r['course_id'],
                 'course'   => $r['course_title'],
-                'subject'  => tq_s_subject($r['category_id'], $r['course_title']),
+                'subject'  => tq_s_subject($r['category_id'], $r['course_title'], $r['course_id']),
                 'level'    => $r['level'],
                 'marks'    => $marks,
                 'obtained' => $got,
@@ -310,7 +350,7 @@ if (!function_exists('tq_s_materials')) {
                 'file'    => $f['file_name'],
                 'lesson'  => $f['lesson_title'],
                 'course'  => $f['course_title'],
-                'subject' => tq_s_subject($f['category_id'], $f['course_title']),
+                'subject' => tq_s_subject($f['category_id'], $f['course_title'], $f['course_id']),
                 'url'     => base_url($rel),
                 'bytes'   => is_file(FCPATH . $rel) ? (int) filesize(FCPATH . $rel) : 0,
                 'at'      => tq_s_ts($f['created_at']),
@@ -336,7 +376,7 @@ if (!function_exists('tq_s_materials')) {
                 'file'    => $a['attachment'],
                 'lesson'  => $a['title'],
                 'course'  => $a['course_title'],
-                'subject' => tq_s_subject($a['category_id'], $a['course_title']),
+                'subject' => tq_s_subject($a['category_id'], $a['course_title'], $a['course_id']),
                 'url'     => $is_link ? $a['attachment'] : base_url($rel),
                 'bytes'   => (!$is_link && is_file(FCPATH . $rel)) ? (int) filesize(FCPATH . $rel) : 0,
                 'at'      => tq_s_ts($a['date_added']),
@@ -375,7 +415,7 @@ if (!function_exists('tq_s_deadlines')) {
             $out[] = [
                 'title'   => $r['title'],
                 'course'  => $r['course_title'],
-                'subject' => tq_s_subject($r['category_id'], $r['course_title']),
+                'subject' => tq_s_subject($r['category_id'], $r['course_title'], $r['course_id']),
                 'course_id' => (int) $r['course_id'],
                 'at'      => $ts,
             ];

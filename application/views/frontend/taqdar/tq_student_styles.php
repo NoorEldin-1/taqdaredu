@@ -93,6 +93,28 @@ if (!function_exists('tq_s_minutes')) {
     }
 }
 
+if (!function_exists('tq_s_level')) {
+    /**
+     * مستوى الكورس بالعربية.
+     *
+     * `course.level` يخزن قيم Academy الإنجليزية (`beginner` · `intermediate`
+     * · `advanced`)، وكانت تطبع كما هي تحت عنوان عربي في بطاقة كل كورس —
+     * كلمة لاتينية وحيدة وسط شاشة عربية بالكامل. وما ليس من القيم المعروفة
+     * يعرض كما هو: قد يكون المعلم كتب مرحلة عربية بيده، وترجمتها تخريف.
+     */
+    function tq_s_level($level)
+    {
+        static $map = [
+            'beginner'     => 'مستوى مبتدئ',
+            'intermediate' => 'مستوى متوسط',
+            'advanced'     => 'مستوى متقدم',
+            'expert'       => 'مستوى متقدم',
+        ];
+        $k = strtolower(trim((string) $level));
+        return $map[$k] ?? trim((string) $level);
+    }
+}
+
 if (!function_exists('tq_s_lessons_word')) {
     /** «12 من 20 درسا» — التمييز مفرد منصوب بعد الأحد عشر فما فوق. */
     function tq_s_lessons_word($done, $total)
@@ -407,7 +429,13 @@ if (!function_exists('tq_s_stat')) {
   border-radius: var(--tq-radius-pill);
   color: var(--tq-text2);
 }
-.tq-s-cal__day--today { background: var(--tq-actionPrimary); color: var(--tq-onAction); }
+/* «اليوم» حلقة لا خلفية وحدها: قواعد الحالات بعده بالوزن نفسه فتغلب
+   خلفيته، وكان اليوم الذي عليه مهمة يفقد علامته تماما — والطالب يفتح
+   التقويم أول ما يفتحه ليعرف أين هو منه. والحلقة تنجو من الغلبة. */
+.tq-s-cal__day--today {
+  background: var(--tq-actionPrimary); color: var(--tq-onAction);
+  box-shadow: 0 0 0 2px var(--tq-actionPrimary);
+}
 .tq-s-cal__day--done  { background: var(--tq-tealSoft); color: var(--tq-teal); }
 .tq-s-cal__day--due   { background: var(--tq-amberSoft); color: var(--tq-navy); }
 .tq-s-cal__day--late  { background: var(--tq-dangerSoft); color: var(--tq-danger); }

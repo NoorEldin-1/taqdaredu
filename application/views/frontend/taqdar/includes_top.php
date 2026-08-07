@@ -45,6 +45,21 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
         البوابة. وهي **بعد** أوراق البوابة عمدا: الجسر يعرف على
         `.tq-body--portal` فلا بد أن يقرأ بعد أن تعرف `:root`. */ ?>
 <link rel="stylesheet" href="<?php echo tq_site_asset('css/shared.css'); ?>">
+
+<?php if (!empty($tq_is_portal)): ?>
+<?php /* حالة طي الشريط الجانبي تثبت قبل الرسم لا بعد تحميل السكربت.
+        لو كتبت في `taqdar.js` (المؤجل بـ`defer`) لرسم الشريط مفتوحا في كل
+        صفحة ثم انطوى أمام العين — وميض في كل تنقل يقرأ عطلا لا ذاكرة. */ ?>
+<script>
+(function () {
+    try {
+        if (localStorage.getItem('tq-rail') === 'collapsed') {
+            document.documentElement.setAttribute('data-tq-rail', 'collapsed');
+        }
+    } catch (e) {}
+})();
+</script>
+<?php endif; ?>
 <?php endif; ?>
 
 <?php

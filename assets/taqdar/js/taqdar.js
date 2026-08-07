@@ -8,31 +8,88 @@
   /* الوضع الليلي أزيل: الوجه واحد فاتح. ولا يكتب تفضيل
      على الجهاز، فلم يبق من التخزين إلا سجل اختيار الكوكيز. */
 
-  /* ---- درج القائمة على الجوال --------------------------------------- */
+  /* ---- درج القائمة على الجوال ---------------------------------------
+     الدرج يغطي الشاشة كلها، فما دام مفتوحا: الصفحة تحته لا تمرر، والتركيز
+     ينتقل إليه ويعود إلى الزر الذي فتحه. درج يفتح ويترك التركيز خلفه يجعل
+     التنقل بالمفاتيح يمر على روابط لا تراها العين. */
   var rail = $('[data-tq-rail]');
   var scrim = $('[data-tq-scrim]');
+  var railOpener = null;
+
+  function railIsOpen() { return !!rail && rail.getAttribute('data-open') === 'true'; }
+
   function closeRail() {
     if (!rail) return;
+    var was = railIsOpen();
     rail.removeAttribute('data-open');
     if (scrim) { scrim.removeAttribute('data-open'); scrim.hidden = true; }
     $$('[data-tq-rail-toggle]').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+    document.body.style.removeProperty('overflow');
+    if (was && railOpener && railOpener.focus) railOpener.focus();
+    railOpener = null;
   }
+
+  function openRail(btn) {
+    if (!rail) return;
+    railOpener = btn || null;
+    rail.setAttribute('data-open', 'true');
+    if (scrim) { scrim.hidden = false; requestAnimationFrame(function () { scrim.setAttribute('data-open', 'true'); }); }
+    $$('[data-tq-rail-toggle]').forEach(function (b) { b.setAttribute('aria-expanded', 'true'); });
+    document.body.style.overflow = 'hidden';
+    var first = rail.querySelector('.tq-rail__close, .tq-rail__item');
+    if (first && first.focus) first.focus();
+  }
+
   $$('[data-tq-rail-toggle]').forEach(function (b) {
     b.addEventListener('click', function () {
-      if (!rail) return;
-      var open = rail.getAttribute('data-open') === 'true';
-      if (open) { closeRail(); return; }
-      rail.setAttribute('data-open', 'true');
-      if (scrim) { scrim.hidden = false; requestAnimationFrame(function () { scrim.setAttribute('data-open', 'true'); }); }
-      b.setAttribute('aria-expanded', 'true');
+      railIsOpen() ? closeRail() : openRail(b);
     });
   });
   if (scrim) scrim.addEventListener('click', closeRail);
+
+  /* التنقل داخل الدرج يغلقه: الرابط الذي يشير إلى موضع في الصفحة نفسها
+     لا يعيد التحميل، فيبقى الدرج مفتوحا فوق ما ذهب إليه المستخدم. */
+  if (rail) rail.addEventListener('click', function (e) {
+    if (railIsOpen() && e.target.closest('.tq-rail__item')) closeRail();
+  });
+
+  /* ---- طي الشريط على الشاشات الكبيرة ---------------------------------
+     الحالة على `<html>` لا على الشريط، وتقرأ في الرأس قبل الرسم
+     (انظر includes_top.php) فلا تومض الصفحة مفتوحة ثم تنطوي. */
+  function railCollapsed() {
+    return document.documentElement.getAttribute('data-tq-rail') === 'collapsed';
+  }
+  function syncCollapseBtn() {
+    var on = railCollapsed();
+    $$('[data-tq-rail-collapse]').forEach(function (b) {
+      b.setAttribute('aria-expanded', on ? 'false' : 'true');
+      var label = on ? 'توسيع القائمة الجانبية' : 'طي القائمة الجانبية';
+      b.setAttribute('aria-label', label);
+      b.setAttribute('title', label);
+    });
+  }
+  $$('[data-tq-rail-collapse]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var next = railCollapsed() ? '' : 'collapsed';
+      if (next) document.documentElement.setAttribute('data-tq-rail', next);
+      else document.documentElement.removeAttribute('data-tq-rail');
+      try { localStorage.setItem('tq-rail', next || 'open'); } catch (e) {}
+      syncCollapseBtn();
+    });
+  });
+  syncCollapseBtn();
+
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeRail(); });
 
   /* ---- ⌘K / Ctrl+K يفتح البحث ---------------------------------------- */
+  /* الشريحة تكتب باسم المنصة التي تقرأ عليها: «⌘K» على أجهزة أبل وحدها،
+     و«Ctrl K» على ما سواها — ووعد باختصار لا يعمل أسوأ من لا وعد. */
+  var isApple = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '');
+  if (!isApple) {
+    $$('[data-tq-kbd]').forEach(function (k) { k.innerHTML = '<span class="tq-ltr">Ctrl K</span>'; });
+  }
   document.addEventListener('keydown', function (e) {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    if ((e.metaKey || e.ctrlKey) && String(e.key || '').toLowerCase() === 'k') {
       var q = $('[data-tq-search]');
       if (q) { e.preventDefault(); q.focus(); q.select(); }
     }
