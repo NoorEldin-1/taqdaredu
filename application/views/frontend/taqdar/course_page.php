@@ -321,12 +321,37 @@ $faqs      = is_array($faqs) ? $faqs : [];
                             </a>
                         <?php endif; ?>
 
-                        <?php if ($this->session->userdata('user_id')): ?>
-                            <a class="tq-btn tq-btn--ghost tq-btn--block"
-                               href="<?php echo site_url('home/toggleWishlistItems/' . (int) $course_details['id']); ?>">
-                                <?php echo tq_icon('heart', 18); ?> أضف إلى المفضلة
-                            </a>
-                        <?php endif; ?>
+                        <?php
+                        /* المفضلة.
+                           كان الزر رابطا إلى `home/toggleWishlistItems/<id>` — وهي نقطة
+                           AJAX ترد JSON وتحمل `wishlist_items.php` من الثيم، ولا وجود
+                           له في ثيم تقدر. فمن ضغطه خرج من الصفحة إلى «An Error Was
+                           Encountered». وكان اسمه «أضف إلى المفضلة» دائما ولو كان
+                           الكورس مفضلا سلفا، فلا يعرف الطالب حاله قبل الضغط.
+
+                           والآن نموذج POST إلى مسار المفضلة نفسه الذي تستعمله البوابة،
+                           والاسم يتبع الحالة، والصفحة تعود إلى نفسها. */
+                        $tqp_uid = (int) $this->session->userdata('user_id');
+                        $tqp_fav = false;
+                        if ($tqp_uid && function_exists('tq_role') && tq_role($tqp_uid) === 'student') {
+                            $tqp_ci = &get_instance();
+                            $tqp_ci->load->model('taqdar_favourites_model');
+                            $tqp_fav = in_array((int) $course_details['id'],
+                                                $tqp_ci->taqdar_favourites_model->course_ids($tqp_uid), true);
+                            ?>
+                            <form method="post" action="<?php echo base_url('student/favourite'); ?>">
+                                <input type="hidden" name="kind" value="course">
+                                <input type="hidden" name="item_id" value="<?php echo (int) $course_details['id']; ?>">
+                                <input type="hidden" name="back" value="course">
+                                <button class="tq-btn tq-btn--ghost tq-btn--block" type="submit"
+                                        aria-pressed="<?php echo $tqp_fav ? 'true' : 'false'; ?>">
+                                    <?php echo tq_icon('heart', 18); ?>
+                                    <?php echo $tqp_fav ? 'إزالة من المفضلة' : 'أضف إلى المفضلة'; ?>
+                                </button>
+                            </form>
+                            <?php
+                        }
+                        ?>
                     </div>
 
                     <ul class="tqp-includes">

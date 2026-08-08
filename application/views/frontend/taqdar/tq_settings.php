@@ -44,7 +44,9 @@ $tq_prefs    = $tq_set->prefs($tq_uid);
 $tq_matrix   = $tq_set->notify_matrix($tq_uid);
 $tq_types    = $tq_set->notify_types();
 $tq_channels = $tq_set->notify_channels();
-$tq_themes   = $tq_set->themes();
+/* لا `themes()` هنا: الوضع الداكن أزيل والوجه واحد فاتح
+   (انظر `Taqdar_settings_model::save_prefs` — يثبت `auto` ولا يقرأ المدخل).
+   وكان يحمل في متغير لا يقرؤه شيء في الصفحة. */
 $tq_langs    = $tq_set->languages();
 
 /* الصورة: الاسم في القاعدة رمز بلا امتداد، والملف <code>.jpg — وعرضه
@@ -251,11 +253,79 @@ include 'portal_open.php';
                         </form>
                     </section>
 
+                    <?php
+                    /* الجلسات المفتوحة.
+                       كان هذا القسم يقول «لا سجل أجهزة في المنصة بعد» — وهو غير صحيح:
+                       `users.sessions` يحمل معرفات جلسات الحساب، و`ci_sessions` يحمل
+                       لكل معرف عنوانه الشبكي وآخر نشاط له، وعليهما يقوم حد
+                       `allowed_device_number_of_loging` الذي يمنع الدخول فعلا. فالسجل
+                       قائم ويعمل، والشاشة وحدها كانت تنكره — فيقرأ الطالب أن المنصة
+                       لا تعرف أجهزته وهي تحصيها وتقفل عليه بها.
+
+                       والصفوف الميتة تطرح: جامع القمامة يحذف من `ci_sessions` ولا يمس
+                       المصفوفة، فيبقى فيها معرف لا جلسة له. */
+                    $tq_sess_ids = json_decode((string) ($u['sessions'] ?? ''), true);
+                    $tq_sess_ids = is_array($tq_sess_ids) ? array_values(array_filter($tq_sess_ids, 'is_string')) : [];
+                    $tq_sessions = [];
+                    if ($tq_sess_ids) {
+                        $tq_sessions = $CI->db->select('id, ip_address, timestamp')
+                            ->where_in('id', $tq_sess_ids)
+                            ->order_by('timestamp', 'DESC')
+                            ->get('ci_sessions')->result_array();
+                    }
+                    $tq_here = session_id();
+                    ?>
                     <section class="tq-card">
                         <h2 class="tq-card__title">الجلسات والأجهزة</h2>
-                        <p class="tq-caption" style="margin-block-end:0">
-                            لا سجل أجهزة في المنصة بعد، فلا يمكن أن نعرض لك قائمة أجهزتك ولا أن ننهي
-                            جلسة عن بعد. وحتى يوجد، إنهاء الجلسة على هذا الجهاز بزر تسجيل الخروج أدناه.
+                        <p class="tq-caption">
+                            كل جهاز سجلت منه دخولا ولم تخرج منه بعد. والحد
+                            <?php echo tq_iso(html_escape((string) (get_settings('allowed_device_number_of_loging') ?: '—'))); ?>
+                            جلسة في الوقت نفسه — وبعده يطلب منك تأكيد الجهاز الجديد.
+                        </p>
+
+                        <?php if (!$tq_sessions): ?>
+                            <p class="tq-caption" style="margin-block-end:0">لا جلسة مسجلة غير هذه.</p>
+                        <?php else: ?>
+                            <div class="tq-table-wrap">
+                                <table class="tq-table">
+                                    <caption class="tq-sr">جلسات حسابك المفتوحة</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">الجهاز</th>
+                                            <th scope="col">عنوان الاتصال</th>
+                                            <th scope="col">آخر نشاط</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($tq_sessions as $tq_s): ?>
+                                            <?php $tq_is_here = ((string) $tq_s['id'] === (string) $tq_here); ?>
+                                            <tr>
+                                                <td data-label="الجهاز">
+                                                    <?php if ($tq_is_here): ?>
+                                                        <span class="tq-badge tq-badge--mastered">هذا الجهاز</span>
+                                                    <?php else: ?>
+                                                        <span class="tq-caption">جهاز آخر</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td data-label="عنوان الاتصال">
+                                                    <span class="tq-ltr" dir="ltr"><?php echo html_escape((string) $tq_s['ip_address']); ?></span>
+                                                </td>
+                                                <td data-label="آخر نشاط">
+                                                    <?php echo tq_iso(html_escape(date('Y-m-d H:i', (int) $tq_s['timestamp']))); ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php /* لا زر «إنهاء هذه الجلسة» بجوار كل صف: إنهاء جلسة عن بعد
+                                 مسار كتابة لا وجود له في المتحكم، وزر يعد بما لا يقع أسوأ
+                                 من غيابه. والخروج من هذا الجهاز بالزر أسفل الصفحة. */ ?>
+                        <p class="tq-micro tq-muted" style="margin-block-end:0">
+                            إنهاء جلسة على جهاز آخر عن بعد غير متاح بعد. وتغيير كلمة المرور أعلاه
+                            يبقي الجلسات القائمة كما هي.
                         </p>
                     </section>
 
@@ -270,7 +340,7 @@ include 'portal_open.php';
                                 <p class="tq-strong" style="margin:0">تصدير بياناتي</p>
                                 <p class="tq-micro" style="margin:0">ملف بكل ما يخص حسابك، يبنى ثم يصلك برابط مؤقت.</p>
                             </div>
-                            <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('taqdar/export_data'); ?>">
+                            <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/export_data'); ?>">
                                 <?php echo tq_icon('download'); ?> طلب نسخة
                             </a>
                         </div>
@@ -282,7 +352,7 @@ include 'portal_open.php';
                                     لأن الالتزام الضريبي يوجب حفظها.
                                 </p>
                             </div>
-                            <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('taqdar/delete_account'); ?>">حذف حسابي</a>
+                            <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('student/delete_account'); ?>">حذف حسابي</a>
                         </div>
                     </section>
 
@@ -415,8 +485,6 @@ include 'portal_open.php';
                         </form>
                     </section>
 
-                    <?php /* الوجه المحفوظ يطبق على هذا المتصفح: includes_top.php يقرأ
-                       نفس المفتاح قبل الرسم، فلا تومض الصفحة في الزيارة التالية. */ ?>
 
                 <?php elseif ($active === 'billing'): ?>
                     <section class="tq-card">

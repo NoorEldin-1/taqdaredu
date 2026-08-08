@@ -379,7 +379,43 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   color: var(--tq-navy);
   border: 1.5px solid var(--tq-danger);
 }
-.tq-rail__item[aria-current='page'] .tq-rail__count { background: rgba(255, 255, 255, .22); }
+/* الشارة على البند النشط.
+   البند النشط خلفيته `--tq-actionPrimary` (#023331) داكنة، وشارة «مهامي»
+   و«رسائلي» تحمل `--urgent`: نصها `--tq-navy` وهو اللون الداكن نفسه تقريبا،
+   وحدها أحمر. فكانت تعيد الخلفية وحدها هنا فيبقى رقم داكن على داكن — تباين
+   نحو 1.5:1 أي رقم لا يقرأ — وحد أحمر على بند أخضر. فيعاد الثلاثة معا:
+   الخلفية والنص والحد، لا الخلفية وحدها. وغير العاجلة نصها أبيض أصلا ولا
+   حد لها، فـ`border-color` عليها بلا أثر. */
+.tq-rail__item[aria-current='page'] .tq-rail__count {
+  background: rgba(255, 255, 255, .22);
+  color: var(--tq-onAction);
+  border-color: rgba(255, 255, 255, .45);
+}
+
+/* نموذج زر واحد داخل صف.
+   الفعل الذي يكتب يكون POST، فيلزمه `<form>` حول الزر. و`<form>` عنصر كتلي
+   يكسر أي صف مرن حوله: الزر يهبط سطرا، أو يفقد `margin-inline-start:auto`
+   الذي يدفعه إلى الطرف. و`display:contents` يرفع النموذج من الرسم ويبقي
+   زره عضوا مباشرا في الصف — فيصطف كما لو كان زرا عاريا، والفعل يبقى POST.
+   تستعملها المفضلة والإعدادات ورسائل ولي الأمر، وكانت مكتوبة في الثلاثة
+   بلا تعريف في أي ورقة. */
+.tq-form-inline { display: contents; }
+
+/* زر التفضيل — على بطاقة الكورس والدرس والملف.
+   كان معرفا داخل `<style>` في شاشة المفضلة وحدها، ثم استعمل في «دروسي»
+   و«المواد» — فيظهر هناك زرا بلا شكل. والمشترك يعرف مرة في الورقة. */
+.tq-fav-heart {
+  display: grid; place-items: center; flex: none;
+  inline-size: var(--tq-touch-min); block-size: var(--tq-touch-min);
+  border: 0; background: none; border-radius: var(--tq-radius-small);
+  color: var(--tq-navy); cursor: pointer;
+  transition: background-color var(--tq-motion-hover) ease, color var(--tq-motion-hover) ease;
+}
+.tq-fav-heart:hover { background: var(--tq-navyWash); text-decoration: none; }
+/* المفضل ممتلئ لا مفرغ: الحالة تقرأ من الشكل لا من `aria-pressed` وحده،
+   فالسمة لا يراها إلا قارئ الشاشة. */
+.tq-fav-heart[aria-pressed='true'] svg { fill: currentColor; }
+.tq-fav-heart[aria-pressed='true']:hover { color: var(--tq-danger); background: var(--tq-dangerSoft); }
 
 /* --- الوضع المطوي -------------------------------------------------------
    الحالة تكتب على `<html>` من سطر في الرأس قبل الرسم، لا على الشريط بعد

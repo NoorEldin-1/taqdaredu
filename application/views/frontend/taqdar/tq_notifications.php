@@ -25,7 +25,7 @@ $uid = (int) $this->session->userdata('user_id');
 /* ---- «تحديد الكل كمقروء» فعل حقيقي، وينفذ قبل أي إخراج ------------- */
 if ($this->input->post('action') === 'mark_all_read') {
     $this->db->where('to_user', $uid)->update('notifications', ['status' => 1]);
-    redirect(site_url('taqdar/notifications'), 'refresh');
+    redirect(site_url('student/notifications'), 'location', 302);
 }
 
 /* ---- الإشعارات ------------------------------------------------------- */
@@ -333,11 +333,11 @@ include 'portal_open.php';
                 </div>
             <?php endif; ?>
 
-            <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('taqdar/settings#tq-set-alerts'); ?>">
+            <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('student/settings?s=alerts'); ?>">
                 <span aria-hidden="true"><?php echo tq_icon('cog', 18); ?></span>
                 تفضيلات الإشعارات
             </a>
-            <a class="tq-btn tq-btn--ghost tq-btn--block" href="<?php echo base_url('taqdar/settings#tq-set-alerts'); ?>" style="margin-block-start:var(--tq-space-s)">
+            <a class="tq-btn tq-btn--ghost tq-btn--block" href="<?php echo base_url('student/settings?s=alerts'); ?>" style="margin-block-start:var(--tq-space-s)">
                 <span aria-hidden="true"><?php echo tq_icon('chat', 18); ?></span>
                 الإشعارات البريدية
             </a>

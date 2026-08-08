@@ -346,6 +346,10 @@ if (!function_exists('tq_s_materials')) {
         foreach ($files as $f) {
             $rel  = 'uploads/resource_files/' . $f['file_name'];
             $out[] = [
+                /* `fav_id` معرف الملف في `resource_files`، وهو ما يفضل.
+                   ومرفق الدرس أدناه يتركه صفرا: لا صف له في جدول، فلا معرف
+                   ثابت يفضل به — وقلب لا يعرف ما يحفظ لا يعرض. */
+                'fav_id'  => (int) $f['id'],
                 'title'   => $f['title'] !== '' ? $f['title'] : $f['file_name'],
                 'file'    => $f['file_name'],
                 'lesson'  => $f['lesson_title'],

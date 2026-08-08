@@ -151,12 +151,16 @@ include 'portal_open.php';
 
             <?php if (empty($tq_tutors)): ?>
                 <div class="tq-card">
+                    <?php /* كان الزر «نبهني عند توفر معلم» يقود إلى الإعدادات، وليس في
+                             الإعدادات — ولا في `notify_types()` — تنبيه بهذا المعنى. فالزر
+                             يعد بتنبيه لا يوجد من يرسله، والوجهة لا تحوي ما يبحث عنه.
+                             والبديل فعل قائم فعلا: مراسلة معلم من صندوق الرسائل. */ ?>
                     <?php echo tq_s_empty(
                         'users', 'mint',
                         'لا معلم متاح الآن',
-                        'حين يفتح المعلمون أوقاتهم يظهر كل واحد هنا باسمه ومادته ومواعيده المتاحة، وبجواره زر طلب مباشر.',
-                        'نبهني عند توفر معلم',
-                        base_url('student/settings')
+                        'حين يفتح المعلمون أوقاتهم يظهر كل واحد هنا باسمه ومادته ومواعيده المتاحة، وبجواره زر طلب مباشر. وحتى ذلك الحين يمكنك مراسلة معلم مادتك مباشرة.',
+                        'راسل معلمك',
+                        base_url('student/messages')
                     ); ?>
                 </div>
             <?php else: ?>
@@ -252,15 +256,41 @@ include 'portal_open.php';
                 <ul class="tq-s-list">
                     <?php foreach ($tq_bookings as $b): ?>
                         <?php $badge = $tq_m->status_badge($b['status']); ?>
-                        <li class="tq-s-item">
-                            <img class="tq-avatar" src="<?php echo html_escape($tq_ses_photo($b['image'])); ?>"
-                                 alt="<?php echo html_escape('صورة ' . $b['tutor']); ?>">
-                            <span class="tq-s-item__body">
-                                <span class="tq-s-item__t tq-s-trunc"><?php echo html_escape($b['subject']); ?></span>
-                                <span class="tq-s-item__s tq-s-trunc"><?php echo html_escape($b['tutor']); ?></span>
-                                <span class="tq-s-item__s"><?php echo tq_iso($b['when_text']); ?></span>
-                            </span>
-                            <?php echo tq_badge($badge[0], $badge[1]); ?>
+                        <li class="tq-s-item tq-s-item--stack">
+                            <div class="tq-row" style="gap:var(--tq-space-m);inline-size:100%">
+                                <img class="tq-avatar" src="<?php echo html_escape($tq_ses_photo($b['image'])); ?>"
+                                     alt="<?php echo html_escape('صورة ' . $b['tutor']); ?>">
+                                <span class="tq-s-item__body" style="flex:1;min-inline-size:0">
+                                    <span class="tq-s-item__t tq-s-trunc"><?php echo html_escape($b['subject']); ?></span>
+                                    <span class="tq-s-item__s tq-s-trunc"><?php echo html_escape($b['tutor']); ?></span>
+                                    <span class="tq-s-item__s"><?php echo tq_iso($b['when_text']); ?></span>
+                                </span>
+                                <?php echo tq_badge($badge[0], $badge[1]); ?>
+                            </div>
+
+                            <?php /* باب الحصة.
+                                     الخطوة الرابعة في «كيف تعمل حصص بالطلب؟» تقول «انضم للحصة»
+                                     ولم يكن في الشاشة كلها ما ينضم به: يؤكد المعلم الموعد فيرى
+                                     الطالب شارة «مؤكد» ولا يعرف أين تعقد. والرابط يضعه المعلم
+                                     عند التأكيد، ولا يعرض إلا وقت نفعه — انظر `can_join`. */ ?>
+                            <?php if ($b['can_join']): ?>
+                                <a class="tq-btn tq-btn--mastery tq-btn--sm tq-btn--block"
+                                   href="<?php echo html_escape($b['meet_url']); ?>"
+                                   target="_blank" rel="noopener noreferrer"
+                                   style="margin-block-start:var(--tq-space-s)">
+                                    <?php echo tq_icon('video', 16); ?>
+                                    <?php echo $b['status'] === 'live' ? 'ادخل الحصة الجارية' : 'ادخل الحصة'; ?>
+                                    <span class="tq-sr">— يفتح في نافذة جديدة</span>
+                                </a>
+                            <?php elseif ($b['status'] === 'requested'): ?>
+                                <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
+                                    يظهر رابط الحصة هنا فور تأكيد المعلم.
+                                </p>
+                            <?php elseif (in_array($b['status'], ['confirmed', 'live'], true) && $b['is_over']): ?>
+                                <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
+                                    انتهى وقت هذه الحصة، وأغلق رابطها.
+                                </p>
+                            <?php endif; ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>

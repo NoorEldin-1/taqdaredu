@@ -1,0 +1,16 @@
+{
+  "_note": "ملف اعداد الثيم الذي يقرؤه themeConfiguration() في common_helper. غيابه كان يجعل الدالة ترجع false لثيم تقدر، فيقرأ Crud_model من قيمة منطقية كأنها مصفوفة: A PHP Error was encountered — Trying to access array offset on value of type bool. والخطأ يطبع فوق صفحة الكورس العامة وتحتها. وهو ملف اعداد لا شيفرة، فيضاف هنا بدل تعديل Crud_model المشترك مع مسارات Academy الاصلية.",
+  "theme-name": "taqdar",
+  "author": "Taqdar",
+  "year": "2026",
+  "homepage": {
+    "homepage_banner_image": true,
+    "homepage_banner_image_size": "1000 X 700"
+  },
+  "course_media_files": {
+    "course_thumbnail": "400 X 250"
+  },
+  "course_media_placeholders": {
+    "course_thumbnail_placeholder": "assets/taqdar/brand/course-placeholder.png"
+  }
+}

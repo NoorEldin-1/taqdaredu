@@ -49,11 +49,11 @@ $tq_day_short   = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خم
 
 /* ---- خمس فئات ثابتة، ولون كل فئة ثابت لا يتغير بين الشاشات ---------- */
 $tq_cats = [
-    'lessons'   => ['الدروس',        'var(--tq-teal)',  'play',        'انضم إلى الدرس',  'taqdar/lessons'],
-    'exams'     => ['الاختبارات',    'var(--tq-sky-ink)', 'check-badge', 'ابدأ الاختبار',   'taqdar/exams'],
-    'tasks'     => ['المهام',        'var(--tq-amber)', 'clipboard',   'رفع الواجب',      'taqdar/tasks'],
-    'on_demand' => ['حصص بالطلب',    'var(--tq-navy)',  'video',       'دخول الحصة',      'taqdar/on-demand'],
-    'revisions' => ['المراجعات',     'var(--tq-lilac-ink)', 'book',    'بدء المراجعة',    'taqdar/materials'],
+    'lessons'   => ['الدروس',        'var(--tq-teal)',  'play',        'انضم إلى الدرس',  'student/lessons'],
+    'exams'     => ['الاختبارات',    'var(--tq-sky-ink)', 'check-badge', 'ابدأ الاختبار',   'student/exams'],
+    'tasks'     => ['المهام',        'var(--tq-amber)', 'clipboard',   'رفع الواجب',      'student/tasks'],
+    'on_demand' => ['حصص بالطلب',    'var(--tq-navy)',  'video',       'دخول الحصة',      'student/on-demand'],
+    'revisions' => ['المراجعات',     'var(--tq-lilac-ink)', 'book',    'بدء المراجعة',    'student/materials'],
 ];
 
 /* ---- الأحداث ---------------------------------------------------------
@@ -213,7 +213,7 @@ usort($tq_upcoming, static function ($a, $b) { return $a['ts'] <=> $b['ts']; });
 
 /* ---- روابط التنقل ---------------------------------------------------- */
 $tq_link = static function ($view, $date) {
-    return base_url('taqdar/calendar?view=' . $view . '&d=' . date('Y-m-d', $date));
+    return base_url('student/calendar?view=' . $view . '&d=' . date('Y-m-d', $date));
 };
 $tq_prev_month = mktime(0, 0, 0, $tq_month - 1, 1, $tq_year);
 $tq_next_month = mktime(0, 0, 0, $tq_month + 1, 1, $tq_year);
@@ -476,7 +476,10 @@ include 'portal_open.php';
                 <div class="tq-timeline">
                     <?php foreach ($tq_today_events as $e): ?>
                         <?php $c = $tq_cats[$e['cat']] ?? $tq_cats['lessons']; $ts = (int) $e['ts']; ?>
-                        <div class="tq-tl">
+                        <?php /* الوسم هنا كما في شبكات الشهر والأسبوع واليوم: بدونه كان
+                                 إخفاء فئة يفرغها من الشبكة ويبقيها على خط اليوم — فيرى
+                                 الطالب أنه أخفى «الاختبارات» وهي أمامه، فيحسب المربع معطلا. */ ?>
+                        <div class="tq-tl" data-tq-evcat="<?php echo html_escape($e['cat']); ?>">
                             <span class="tq-tl__time">
                                 <?php echo tq_num(date('g:i', $ts), 'tq-num--sm'); ?> <?php echo (int) date('G', $ts) < 12 ? 'ص' : 'م'; ?>
                             </span>
@@ -516,10 +519,13 @@ include 'portal_open.php';
                     <span class="tq-legend__dot" style="background:<?php echo $c[1]; ?>;margin-inline-start:auto" aria-hidden="true"></span>
                 </div>
             <?php endforeach; ?>
-            <a class="tq-btn tq-btn--ghost tq-btn--sm tq-btn--block" href="<?php echo base_url('student/settings'); ?>" style="margin-block-start:var(--tq-space-m)">
-                <span aria-hidden="true"><?php echo tq_icon('cog', 16); ?></span>
-                إدارة التقويمات
-            </a>
+            <?php /* لا زر «إدارة التقويمات»: كان يقود إلى الإعدادات، وليس فيها قسم
+                     تقويمات — الفئات الخمس مشتقة من الجداول لا مضافة بيد الطالب، فلا
+                     شيء يدار. والمربعات أعلاه هي الضابط الحقيقي، وهو محلي لهذه
+                     الزيارة. وقوله أصدق من زر يقود إلى شاشة لا يجد فيها ما وعد به. */ ?>
+            <p class="tq-micro tq-muted" style="margin-block-start:var(--tq-space-m);margin-block-end:0">
+                الفئات الخمس ثابتة ومشتقة من مواعيدك المسجلة. وإخفاء فئة يخص هذه الزيارة وحدها.
+            </p>
         </section>
 
         <!-- المواعيد القادمة -->
@@ -533,7 +539,7 @@ include 'portal_open.php';
                 <ul class="tq-stack">
                     <?php foreach (array_slice($tq_upcoming, 0, 3) as $e): ?>
                         <?php $c = $tq_cats[$e['cat']] ?? $tq_cats['lessons']; ?>
-                        <li>
+                        <li data-tq-evcat="<?php echo html_escape($e['cat']); ?>">
                             <a class="tq-row" href="<?php echo html_escape($e['href']); ?>">
                                 <span class="tq-icon-box tq-pastel--mint" aria-hidden="true"><?php echo tq_icon($c[2], 18); ?></span>
                                 <span>

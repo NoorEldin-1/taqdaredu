@@ -86,8 +86,12 @@ include 'portal_open.php';
                     <span class="tq-eyebrow">باقتك الحالية</span>
                     <h2 class="tq-card__title"><?php echo html_escape($current['plan_name']); ?></h2>
                 </div>
+<?php /* `$labels[$eff]` بلا حارس: `subscriptions.status` عمود نصي قد يحمل
+                         حالة لا يعرفها هذا الجدول (يكتبها الكرون أو بوابة دفع)، فتسقط
+                         البطاقة بتنبيه مفتاح غير معرف — والشارة بجوارها محروسة بـ`??`
+                         أصلا، فالحارسان يتفقان الآن. */ ?>
                 <span class="tq-badge tq-badge--<?php echo $tq_tone[$eff] ?? 'idle'; ?>">
-                    <?php echo html_escape($labels[$eff]); ?>
+                    <?php echo html_escape($labels[$eff] ?? (string) $eff); ?>
                 </span>
             </div>
 

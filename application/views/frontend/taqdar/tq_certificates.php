@@ -82,10 +82,13 @@ include 'portal_open.php';
                             </div>
                         </dl>
                         <div class="tq-row" style="margin-block-start:var(--tq-space-l)">
-                            <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('taqdar/certificate/' . (int) $c['id']); ?>">
-                                <?php echo tq_icon('download'); ?> تنزيل
+<?php /* «تنزيل» بأيقونة تنزيل كانت تعد بملف ينزل، والوجهة صفحة شهادة
+                                     تفتح في المتصفح — لا ملف ولا تنزيل. والاسم يقول ما يقع،
+                                     وفي الصفحة نفسها زر حفظ نسخة PDF. */ ?>
+                            <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/certificate/' . (int) $c['id']); ?>">
+                                <?php echo tq_icon('award'); ?> افتح الشهادة
                             </a>
-                            <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('taqdar/verify/' . (int) $c['id']); ?>">صفحة التحقق</a>
+                            <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/verify/' . (int) $c['id']); ?>">صفحة التحقق</a>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -96,16 +99,20 @@ include 'portal_open.php';
     <aside class="tq-aside">
         <div class="tq-card">
             <h2 class="tq-card__title">كيف تصدر الشهادة</h2>
-            <ol class="tq-s-list" style="counter-reset:s">
+            <?php /* `<li>` لا `<div>`: `<ol>` لا يقبل إلا عناصر قائمة، و`<div>` داخلها
+                     يخرج من الشجرة فيقرؤها قارئ الشاشة قائمة **فارغة** بجوار ثلاث فقرات
+                     سائبة — فيضيع الترتيب وهو كل معنى الخطوات. و`counter-reset` كان
+                     مكتوبا بلا عداد يستعمله، فحذف. */ ?>
+            <ol class="tq-s-list">
                 <?php foreach ([
                     'تنهي دروس المحطة وتتقنها واحدا واحدا',
                     'تجتاز اختبار المحطة',
                     'تصلك شهادة بأهدافك المتقنة ورمز تحقق',
                 ] as $n => $step): ?>
-                    <div class="tq-s-row">
+                    <li class="tq-s-row">
                         <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_num($n + 1, 'tq-num--sm'); ?></span>
                         <span class="tq-caption"><?php echo html_escape($step); ?></span>
-                    </div>
+                    </li>
                 <?php endforeach; ?>
             </ol>
             <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">

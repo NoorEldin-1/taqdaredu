@@ -38,7 +38,11 @@ include 'portal_open.php';
 
         <!-- الترحيب: زر واحد أساسي في الشاشة، ويعود إلى آخر موضع بالضبط
              (الكورس الأحدث نشاطا والدرس الذي توقف عنده) لا إلى أول الكورس. -->
-        <section class="tq-s-banner tq-section tq-enter">
+        <?php /* `--plain`: بلا قرص التشغيل الزخرفي. كان القرص يعد بفيديو يعمل
+                 عند الضغط وهو `aria-hidden` لا يستقبل ضغطا — فالوعد كاذب،
+                 والزر الحقيقي «استكمل التعلم» تحته يقرأ ثانيا. وبحذفه يتسع
+                 النص لعرض البطاقة بدل أن يترك فجوة في مكان القرص. */ ?>
+        <section class="tq-s-banner tq-s-banner--plain tq-section tq-enter">
             <div class="tq-s-banner__body">
                 <p class="tq-eyebrow">استمر</p>
                 <?php if ($tq_resume !== null): ?>
@@ -63,7 +67,6 @@ include 'portal_open.php';
                     </a>
                 <?php endif; ?>
             </div>
-            <span class="tq-s-banner__art" aria-hidden="true"><?php echo tq_icon('play', 56); ?></span>
         </section>
 
         <!-- استكمال التعلم -->

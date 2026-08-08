@@ -158,6 +158,9 @@ $route['teacher/students/message']     = 'taqdar/students_message';
 $route['taqdar/teacher/students/message'] = 'taqdar/students_message';
 $route['student/subscribe-path']       = 'taqdar/subscribe_path';
 $route['student/parent-link']            = 'taqdar/parent_link_respond';
+// قلب التفضيل. قاعدة صريحة قبل `student/(:any)`: بدونها يصل الاسم كما هو
+// إلى `Taqdar::favourite()` وهي غير موجودة، فيرد 404 على كل ضغطة قلب.
+$route['student/favourite']            = 'taqdar/favourite_toggle';
 
 // ---- البحث داخل البوابة ----
 // صندوق البحث في ترويسة البوابة يصدر إلى `<الدور>/search`. و`student/search`

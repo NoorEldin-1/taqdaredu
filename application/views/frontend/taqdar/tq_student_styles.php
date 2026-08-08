@@ -461,6 +461,17 @@ if (!function_exists('tq_s_stat')) {
 .tq-s-banner__body { max-inline-size: 46ch; position: relative; }
 @media (max-width: 767.98px) { .tq-s-banner__art { display: none; } }
 
+/* بانر بلا زخرفة: النص وحده. `46ch` كانت تحجز نصف البطاقة للقرص، فبلا قرص
+   تصير فجوة. والقياس يبقى محدودا (`68ch`) لأن سطرا يمتد بعرض الشاشة يفقد
+   القارئ موضعه في السطر التالي. والوهج ينقل من `85%` — حيث كان القرص —
+   إلى ناحية النص فيضيء ما يقرأ لا فراغا. */
+.tq-s-banner--plain {
+  background:
+    radial-gradient(620px 260px at 92% -30%, var(--tq-mint-fill), transparent 70%),
+    linear-gradient(120deg, var(--tq-sky-fill), var(--tq-surface));
+}
+.tq-s-banner--plain .tq-s-banner__body { max-inline-size: 68ch; }
+
 /* --- صف المهمة والاختبار --- */
 .tq-s-row {
   display: flex; align-items: center; gap: var(--tq-space-l);
@@ -530,6 +541,9 @@ if (!function_exists('tq_s_stat')) {
 /* --- قائمة العمود الجانبي --- */
 .tq-s-list { display: grid; gap: var(--tq-space-m); }
 .tq-s-item { display: flex; align-items: center; gap: var(--tq-space-m); }
+/* عنصر بصف علوي وفعل تحته — الحجز الذي له باب حصة يفتح. `--stack` يقلب
+   الاتجاه فقط، وبقية أصناف `tq-s-item__*` تعمل كما هي داخل الصف العلوي. */
+.tq-s-item--stack { flex-direction: column; align-items: stretch; }
 .tq-s-item__body { flex: 1; min-inline-size: 0; }
 .tq-s-item__t { display: block; font: var(--tq-type-caption); font-weight: 700; color: var(--tq-navy); }
 .tq-s-item__s { display: block; font: var(--tq-type-micro); color: var(--tq-text2); }

@@ -82,6 +82,33 @@ $tq_url = function ($over = []) use ($f_type, $f_q, $f_page) {
    الشرط الذي يخفي الشريط ويبقي الحجم الحقيقي وحده معروضا أدناه. */
 $tq_quota = 0;
 
+/**
+ * قلب التفضيل على صف الملف.
+ *
+ * شاشة المفضلة تقول «الملخصات وأوراق العمل التي تحفظها تظهر هنا» ولم يكن
+ * في المنصة كلها موضع يحفظ فيه ملف — فالقسم يشرح فعلا لا سبيل إليه.
+ */
+$tq_CI_fav  = get_instance();
+$tq_CI_fav->load->model('taqdar_favourites_model');
+$tq_fav_on  = array_flip($tq_CI_fav->taqdar_favourites_model->ids($tq_uid, 'material'));
+
+$tq_fav_btn = static function ($id, $on, $title) use ($f_type, $f_q) {
+    ob_start(); ?>
+    <form method="post" action="<?php echo base_url('student/favourite'); ?>" class="tq-form-inline">
+        <input type="hidden" name="kind" value="material">
+        <input type="hidden" name="item_id" value="<?php echo (int) $id; ?>">
+        <input type="hidden" name="back" value="materials">
+        <input type="hidden" name="back_type" value="<?php echo html_escape($f_type); ?>">
+        <input type="hidden" name="back_q" value="<?php echo html_escape($f_q); ?>">
+        <button class="tq-fav-heart" type="submit" aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"
+                title="<?php echo $on ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'; ?>"
+                aria-label="<?php echo html_escape(($on ? 'إزالة ' : 'إضافة ') . $title . ($on ? ' من المفضلة' : ' إلى المفضلة')); ?>">
+            <?php echo tq_icon('heart', 18); ?>
+        </button>
+    </form>
+    <?php return ob_get_clean();
+};
+
 include 'portal_open.php';
 ?>
 
@@ -205,12 +232,17 @@ include 'portal_open.php';
                                         <?php echo $m['at'] > 0 ? tq_s_date($m['at']) : '<span class="tq-muted">—</span>'; ?>
                                     </td>
                                     <td data-label="الإجراء">
-                                        <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($m['url']); ?>"
-                                           <?php echo $k['key'] === 'link' ? 'rel="noopener"' : 'download'; ?>>
-                                            <?php echo tq_icon($k['key'] === 'link' ? 'play' : 'download', 16); ?>
-                                            <?php echo $k['key'] === 'link' ? 'فتح' : 'تحميل'; ?>
-                                            <span class="tq-sr"><?php echo html_escape($m['title']); ?></span>
-                                        </a>
+                                        <span class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:nowrap">
+                                            <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($m['url']); ?>"
+                                               <?php echo $k['key'] === 'link' ? 'rel="noopener"' : 'download'; ?>>
+                                                <?php echo tq_icon($k['key'] === 'link' ? 'play' : 'download', 16); ?>
+                                                <?php echo $k['key'] === 'link' ? 'فتح' : 'تحميل'; ?>
+                                                <span class="tq-sr"><?php echo html_escape($m['title']); ?></span>
+                                            </a>
+                                            <?php /* القلب على ملفات `resource_files` وحدها — مرفق الدرس
+                                                     بلا معرف ثابت يفضل به، انظر `fav_id` في tq_s_materials. */ ?>
+                                            <?php if (!empty($m['fav_id'])) echo $tq_fav_btn((int) $m['fav_id'], isset($tq_fav_on[(int) $m['fav_id']]), $m['title']); ?>
+                                        </span>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

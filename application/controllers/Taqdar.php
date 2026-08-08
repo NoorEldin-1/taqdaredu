@@ -149,12 +149,44 @@ class Taqdar extends CI_Controller
     public function lesson($course_id = 0, $lesson_id = 0)
     {
         $this->require_role('student');
-        $uid = $this->session->userdata('user_id');
+        $uid = (int) $this->session->userdata('user_id');
+
+        $course_id = (int) $course_id;
+        $lesson_id = (int) $lesson_id;
+
+        /* كورس بلا درس محدد يفتح على موضع التوقف.
+           كانت الشاشة تمرر `lesson_id = 0` إلى البوابة، فترد `NOT_FOUND`
+           ويقرأ الطالب «العنصر المطلوب غير موجود» على كورس مسجل فيه —
+           وهو ما يقع كلما فتح كورسا من رابط بلا رقم درس (`home/lesson/<اسم>/<كورس>`
+           أو `student/lesson/<كورس>`). فالموضع يحسم هنا قبل العرض:
+           آخر درس كان عنده، وإلا أول درس في الكورس. */
+        if ($course_id > 0 && $lesson_id < 1) {
+            $lesson_id = (int) $this->db->select('watching_lesson_id')
+                ->where('student_id', $uid)->where('course_id', $course_id)
+                ->get('watch_histories')->row('watching_lesson_id');
+
+            /* والدرس المحفوظ لا بد أن يكون من هذا الكورس فعلا: صف قديم قد
+               يحمل معرفا نقل أو حذف، فيعود العطل من باب آخر. */
+            if ($lesson_id > 0) {
+                $ok = (int) $this->db->where('id', $lesson_id)
+                    ->where('course_id', $course_id)->count_all_results('lesson');
+                if ($ok < 1) $lesson_id = 0;
+            }
+
+            if ($lesson_id < 1) {
+                $lesson_id = (int) $this->db->select('id')
+                    ->where('course_id', $course_id)
+                    ->where('lesson_type !=', 'quiz')
+                    ->order_by('id', 'ASC')->limit(1)
+                    ->get('lesson')->row('id');
+            }
+        }
+
         $this->show('tq_lesson', 'الدرس', array(
             'tq_counts' => $this->counts($uid),
             'user_id'   => $uid,
-            'course_id' => (int) $course_id,
-            'lesson_id' => (int) $lesson_id,
+            'course_id' => $course_id,
+            'lesson_id' => $lesson_id,
         ));
     }
 
@@ -478,6 +510,75 @@ class Taqdar extends CI_Controller
 
         $this->session->set_flashdata('flash_message', 'وصلت رسالتك إلى صندوق الطالب.');
         redirect(base_url($back));
+    }
+
+    /**
+     * POST student/favourite
+     *
+     * قلب التفضيل. كان القلب في `tq_favourites.php` زرا بلا نموذج ولا معالج،
+     * وتحته سطر يعد صراحة بأن الضغط عليه يزيل العنصر — فالوعد مكتوب والفعل
+     * غائب. وهذا مسار الفعل.
+     *
+     * والملكية تفحص في النموذج لا هنا: `write_guard` يثبت الدور، والنموذج
+     * يثبت أن العنصر داخل كورس مسجل لصاحب الطلب.
+     */
+    public function favourite_toggle()
+    {
+        $user = $this->write_guard('student');
+        $uid  = (int) $user['id'];
+
+        $kind = (string) $this->input->post('kind', true);
+        $id   = (int) $this->input->post('item_id');
+
+        $this->load->model('taqdar_favourites_model');
+        $r = ($kind === 'course')
+            ? $this->taqdar_favourites_model->toggle_course($uid, $id)
+            : $this->taqdar_favourites_model->toggle($uid, $kind, $id);
+
+        $this->trace('student.favourite.toggle', $kind . ':' . $id,
+                     array('ok' => !empty($r['ok']), 'on' => !empty($r['on'])));
+
+        /* العودة إلى الشاشة التي ضغط فيها القلب لا إلى المفضلة دائما — ومعها
+           تصفيتها وترتيبها كما كانا، فمن رتب قائمته ثم أزال عنصرا لا يعاد
+           إلى أولها.
+
+           والوجهة تبنى من **قائمة بيضاء** لا من `$_POST` خاما: `redirect()`
+           بقيمة يرسلها الطالب تفتح تحويلا مفتوحا إلى أي موقع. */
+        $pages = array(
+            'favourites' => 'student/favourites',
+            'lessons'    => 'student/lessons',
+            'materials'  => 'student/materials',
+        );
+        $from = (string) $this->input->post('back', true);
+
+        /* صفحة الكورس العامة تعيد إلى نفسها: القلب فيها كان رابطا إلى
+           `home/toggleWishlistItems/<id>` وهي نقطة AJAX ترد JSON وتحمل
+           قالبا لا وجود له في ثيم تقدر — فيسقط الطلب بـ«Unable to load the
+           requested file». والوجهة تبنى من عنوان الكورس في القاعدة لا من
+           المدخل، فلا تصير هذه النقطة بابا للتحويل إلى أي موقع. */
+        if ($from === 'course' && $kind === 'course' && $id > 0) {
+            $title = (string) $this->db->select('title')->where('id', $id)
+                                       ->get('course')->row('title');
+            $back  = $title !== ''
+                ? 'home/course/' . rawurlencode(slugify($title)) . '/' . $id
+                : 'student/favourites';
+            $this->done($back, !empty($r['ok']), $r['msg']);
+            return;
+        }
+
+        $back = $pages[$from] ?? 'student/favourites';
+
+        $qs   = array();
+        $type = (string) $this->input->post('back_type', true);
+        $sort = (string) $this->input->post('back_sort', true);
+        $qsrc = (string) $this->input->post('back_q', true);
+        if ($from === 'favourites' && in_array($type, array('lessons', 'materials', 'courses'), true)) $qs['type'] = $type;
+        if ($from === 'materials'  && in_array($type, array('pdf','video','slide','audio','image','link'), true)) $qs['type'] = $type;
+        if ($from === 'favourites' && in_array($sort, array('recent', 'title', 'progress'), true)) $qs['sort'] = $sort;
+        if ($qsrc !== '') $qs['q'] = mb_substr($qsrc, 0, 120);
+        if ($qs) $back .= '?' . http_build_query($qs);
+
+        $this->done($back, !empty($r['ok']), $r['msg']);
     }
 
     public function export_data()
@@ -1363,19 +1464,28 @@ class Taqdar extends CI_Controller
               . '<meta name="viewport" content="width=device-width, initial-scale=1">'
               . '<title>' . html_escape($title . ' — ' . $brand) . '</title>'
               . '<style>'
-              . 'body{margin:0;background:#f6f7fb;color:#132549;font:16px/1.7 system-ui,"Segoe UI",Tahoma,sans-serif}'
+              /* `#132549` كان كحليا لا وجود له في هوية الموقع — لون العلامة `#023331`. */
+              . 'body{margin:0;background:#f6f7fb;color:#023331;font:16px/1.7 system-ui,"Segoe UI",Tahoma,sans-serif}'
               . '.wrap{max-width:44rem;margin:4rem auto;padding:2.5rem;background:#fff;'
               . 'border:1px solid #e4e7f0;border-radius:1rem}'
               . 'h1{margin:0 0 1.5rem;font-size:1.5rem}'
               . 'dl{display:grid;grid-template-columns:auto 1fr;gap:.6rem 1.5rem;margin:1.5rem 0}'
               . 'dt{color:#6b7495;font-size:.9rem}dd{margin:0;font-weight:600}'
               . '.ok{color:#0f7b53;font-weight:700}.empty{color:#6b7495;font-weight:700}'
-              . 'a{display:inline-block;margin-top:1.5rem;padding:.7rem 1.4rem;background:#132549;'
-              . 'color:#fff;border-radius:.6rem;text-decoration:none}'
-              . '@media print{body{background:#fff}a{display:none}}'
+              . '.acts{margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap}'
+              . 'a,button{font:inherit;display:inline-block;padding:.7rem 1.4rem;background:#023331;'
+              . 'color:#fff;border:0;border-radius:.6rem;text-decoration:none;cursor:pointer}'
+              . 'a.ghost{background:#fff;color:#023331;border:1px solid #e4e7f0}'
+              . '@media print{body{background:#fff}.acts{display:none}}'
               . '</style></head><body><div class="wrap">'
               . '<h1>' . html_escape($title) . '</h1>' . $body
-              . '<a href="' . $back . '">' . $backLabel . '</a>'
+              . '<div class="acts">'
+              /* «احفظ نسخة PDF» هو ما تفعله طباعة المتصفح فعلا، والورقة أعلاه
+                 تخفي الأزرار عند الطباعة. وكانت الشاشة تعد بـ«تنزيل» ولا تنزل
+                 شيئا — فهذا هو الباب الذي يخرج منه ملف. */
+              . ($cert ? '<button type="button" onclick="window.print()">احفظ نسخة PDF</button>' : '')
+              . '<a class="ghost" href="' . $back . '">' . $backLabel . '</a>'
+              . '</div>'
               . '</div></body></html>';
 
         $this->output->set_content_type('text/html; charset=utf-8')->set_output($html);

@@ -651,11 +651,16 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                 <div class="tq-empty__art tq-pastel tq-pastel--peach" style="inline-size:72px;block-size:72px;display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                     <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('target', 32); ?></span>
                 </div>
-                <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لم تحدد أهدافا بعد</h3>
+                <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">تحديد الأهداف لم يفتح بعد</h3>
+                <?php /* كان الزر «حدد هدفك الأول» يقود إلى الإعدادات، وليس فيها ولا في
+                         القاعدة كلها جدول أهداف. فيضغطه الطالب ويقلب الأقسام الستة
+                         يبحث عما ليس فيها، ثم يظن أنه أخطأ هو. والنقص يقال ولا يخبأ
+                         خلف زر — وهو الأسلوب المتبع في بقية بطاقات هذه الشاشة. */ ?>
                 <p class="tq-empty__text tq-caption">
-                    حدد هدفا واحدا هذا الشهر — ساعات دراسة أو دروسا تكملها — وسيظهر تقدمك نحوه هنا بشريط ورقم.
+                    حين تفتح الأهداف الشهرية ستحدد هدفا واحدا — ساعات دراسة أو دروسا تكملها —
+                    ويظهر تقدمك نحوه هنا بشريط ورقم. وحتى ذلك الحين تجد قياسك الفعلي في
+                    «نظرة عامة» أعلاه.
                 </p>
-                <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/settings'); ?>">حدد هدفك الأول</a>
             </div>
         </section>
 

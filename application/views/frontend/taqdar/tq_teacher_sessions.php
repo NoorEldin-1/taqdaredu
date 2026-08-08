@@ -47,7 +47,8 @@ if ($tq_do !== '') {
                       : 'حفظ اختيارك: لا فترات متاحة، فلن يصلك طلب حتى تفتح وقتا.'
         );
     } elseif ($tq_do === 'confirm' || $tq_do === 'decline') {
-        $tq_r = $tq_m->decide((int) $this->input->post('session_id'), $tq_uid, $tq_do);
+        $tq_r = $tq_m->decide((int) $this->input->post('session_id'), $tq_uid, $tq_do,
+                              (string) $this->input->post('meet_url'));
         $this->session->set_flashdata($tq_r['ok'] ? 'flash_message' : 'error_message', $tq_r['msg']);
     }
     redirect(site_url('teacher/sessions'), 'refresh');
@@ -95,22 +96,40 @@ include 'portal_open.php';
                 <div class="tq-card">
                     <ul class="tq-stack">
                         <?php foreach ($tq_requests as $tq_r): ?>
-                            <li class="tq-row" style="gap:var(--tq-space-l);padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
-                                <img class="tq-avatar" src="<?php echo html_escape($tq_ses_photo($tq_r['image'])); ?>"
-                                     alt="<?php echo html_escape('صورة ' . $tq_r['student_name']); ?>">
-                                <div style="flex:1;min-inline-size:0">
-                                    <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_r['student_name']); ?></p>
-                                    <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_r['when_text']); ?></p>
+                            <li style="padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
+                                <div class="tq-row" style="gap:var(--tq-space-l)">
+                                    <img class="tq-avatar" src="<?php echo html_escape($tq_ses_photo($tq_r['image'])); ?>"
+                                         alt="<?php echo html_escape('صورة ' . $tq_r['student_name']); ?>">
+                                    <div style="flex:1;min-inline-size:0">
+                                        <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_r['student_name']); ?></p>
+                                        <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_r['when_text']); ?></p>
+                                    </div>
+                                    <form method="post" action="<?php echo base_url('teacher/sessions'); ?>" class="tq-form-inline">
+                                        <input type="hidden" name="tq_action" value="decline">
+                                        <input type="hidden" name="session_id" value="<?php echo (int) $tq_r['id']; ?>">
+                                        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">اعتذار</button>
+                                    </form>
                                 </div>
-                                <form method="post" action="<?php echo base_url('teacher/sessions'); ?>" style="display:inline">
+
+                                <?php /* التأكيد ورابط اللقاء نموذج واحد: «مؤكد» بلا رابط يقول
+                                         للطالب إن الحصة قائمة ولا يقول أين يدخلها — فيقف في
+                                         موعده أمام شاشة بلا باب. والنموذج يرفض بلا رابط صحيح. */ ?>
+                                <form method="post" action="<?php echo base_url('teacher/sessions'); ?>"
+                                      class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap;margin-block-start:var(--tq-space-m)">
                                     <input type="hidden" name="tq_action" value="confirm">
                                     <input type="hidden" name="session_id" value="<?php echo (int) $tq_r['id']; ?>">
-                                    <button class="tq-btn tq-btn--mastery tq-btn--sm" type="submit">تأكيد</button>
-                                </form>
-                                <form method="post" action="<?php echo base_url('teacher/sessions'); ?>" style="display:inline">
-                                    <input type="hidden" name="tq_action" value="decline">
-                                    <input type="hidden" name="session_id" value="<?php echo (int) $tq_r['id']; ?>">
-                                    <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">اعتذار</button>
+                                    <label class="tq-sr" for="tq-meet-<?php echo (int) $tq_r['id']; ?>">
+                                        رابط لقاء الحصة مع <?php echo html_escape($tq_r['student_name']); ?>
+                                    </label>
+                                    <input class="tq-input" id="tq-meet-<?php echo (int) $tq_r['id']; ?>"
+                                           name="meet_url" type="url" dir="ltr" required
+                                           style="flex:1;min-inline-size:18rem"
+                                           placeholder="https://meet.google.com/abc-defg-hij"
+                                           aria-describedby="tq-meet-h-<?php echo (int) $tq_r['id']; ?>">
+                                    <button class="tq-btn tq-btn--mastery tq-btn--sm" type="submit">تأكيد وإرسال الرابط</button>
+                                    <span class="tq-micro" id="tq-meet-h-<?php echo (int) $tq_r['id']; ?>" style="flex-basis:100%">
+                                        <?php echo html_escape('رابط ' . $tq_m->meet_hosts_text() . ' — يظهر للطالب في شاشته بعد التأكيد.'); ?>
+                                    </span>
                                 </form>
                             </li>
                         <?php endforeach; ?>
@@ -145,7 +164,18 @@ include 'portal_open.php';
                                 <div style="flex:1;min-inline-size:0">
                                     <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_c['student_name']); ?></p>
                                     <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_c['when_text']); ?></p>
+                                    <?php if ($tq_c['meet_url'] !== ''): ?>
+                                        <p class="tq-micro tq-s-trunc" style="margin:0" dir="ltr">
+                                            <?php echo html_escape($tq_c['meet_url']); ?>
+                                        </p>
+                                    <?php endif; ?>
                                 </div>
+                                <?php if ($tq_c['meet_url'] !== ''): ?>
+                                    <a class="tq-btn tq-btn--mastery tq-btn--sm" target="_blank" rel="noopener"
+                                       href="<?php echo html_escape($tq_c['meet_url']); ?>">
+                                        <?php echo tq_icon('video', 16); ?> ادخل الحصة
+                                    </a>
+                                <?php endif; ?>
                                 <?php echo tq_badge($tq_b[0], $tq_b[1]); ?>
                             </li>
                         <?php endforeach; ?>

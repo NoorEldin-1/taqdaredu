@@ -32,7 +32,73 @@ if ($this->input->post('action') === 'delete_thread') {
         $this->db->where('message_thread_code', $tq_del)->delete('message');
         $this->db->where('message_thread_code', $tq_del)->delete('message_thread');
     }
-    redirect(site_url('taqdar/messages'), 'refresh');
+    redirect(site_url('student/messages'), 'location', 302);
+}
+
+/* ---- إرسال رسالة: جديدة أو ردا ---------------------------------------
+ *
+ * كان النموذجان يرسلان إلى `home/my_messages/send_new` و`.../send_reply`،
+ * وهما مساران من Academy يحفظان الرسالة فعلا ثم **يحولان إلى
+ * `home/my_messages/read_message/<الرمز>`** — وهي شاشة Academy التي لا قالب
+ * لها في ثيم تقدر. فيرد الغلاف `show_404()` بعد أن يكون قد طبع ترويسة
+ * الصفحة: يضغط الطالب «إرسال» فيرى نصف صفحة ثم «404 Page Not Found»،
+ * ورسالته قد وصلت وهو لا يدري. (وهو عطل `home/my_wishlist` نفسه.)
+ *
+ * والحفظ يبقى في `crud_model` — هو المشترك مع مسارات LMS الأصلية ولا يكرر —
+ * وهذه الطبقة تضيف ما كان ناقصا فيه:
+ *
+ *   ١ — **نطاق المستقبل.** `send_new_private_message()` تقرأ `receiver` من
+ *       الطلب ولا تفحصه، والشاشة تقول للطالب «المراسلة متاحة مع معلميك
+ *       والدعم فقط، ولا رسائل خاصة بين الطلاب». فكان القيد وعدا في العرض
+ *       لا شرطا في الخادم — يبدل معرفا في النموذج فيراسل أي حساب.
+ *   ٢ — **ملكية الخيط.** `send_reply_message()` تقرأ الخيط برمزه وتستنتج
+ *       الطرف الآخر، ولا تتحقق أن المرسل طرف فيه أصلا — فمن خمن رمزا حقن
+ *       رسالة في محادثة غيره.
+ *   ٣ — **الوجهة.** يعاد إلى محادثته في البوابة، لا إلى 404.
+ */
+$tq_send = (string) $this->input->post('action');
+if ($tq_send === 'send_new' || $tq_send === 'send_reply') {
+
+    $tq_body = trim((string) $this->input->post('message'));
+    $tq_to   = 'student/messages';
+
+    if ($tq_body === '') {
+        $this->session->set_flashdata('error_message', 'اكتب نص الرسالة قبل الإرسال.');
+        redirect(site_url($tq_to), 'location', 302);
+    }
+
+    if ($tq_send === 'send_new') {
+        /* المستقبلون المسموح بهم: معلمو كورساته المسجلة، وحساب الإدارة (الدعم). */
+        $tq_ok_ids = array_map('intval', array_column($this->db->select('c.user_id')
+            ->from('enrol e')->join('course c', 'c.id = e.course_id', 'inner')
+            ->where('e.user_id', $uid)->get()->result_array(), 'user_id'));
+        foreach ($this->db->select('id')->where('role_id', 1)->limit(1)->get('users')->result_array() as $tq_a) {
+            $tq_ok_ids[] = (int) $tq_a['id'];
+        }
+
+        if (!in_array((int) $this->input->post('receiver'), array_filter($tq_ok_ids), true)) {
+            $this->session->set_flashdata('error_message', 'لا ترسل الرسائل إلا إلى معلمي موادك أو الدعم الفني.');
+            redirect(site_url($tq_to), 'location', 302);
+        }
+
+        $tq_code = $this->crud_model->send_new_private_message();
+        $this->session->set_flashdata('flash_message', 'وصلت رسالتك.');
+        redirect(site_url($tq_to . '?t=' . urlencode((string) $tq_code)), 'location', 302);
+    }
+
+    $tq_code = (string) $this->input->post('thread', true);
+    $tq_mine = $this->db->where('message_thread_code', $tq_code)
+        ->group_start()->where('sender', (string) $uid)->or_where('receiver', (string) $uid)->group_end()
+        ->count_all_results('message_thread');
+
+    if ($tq_code === '' || $tq_mine < 1) {
+        $this->session->set_flashdata('error_message', 'هذه المحادثة ليست لك.');
+        redirect(site_url($tq_to), 'location', 302);
+    }
+
+    $this->crud_model->send_reply_message($tq_code);
+    $this->session->set_flashdata('flash_message', 'أرسل ردك.');
+    redirect(site_url($tq_to . '?t=' . urlencode($tq_code)), 'location', 302);
 }
 
 /* ---- المحادثات ------------------------------------------------------- */
@@ -275,7 +341,7 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
                 <ul>
                     <?php foreach ($tq_threads as $t): ?>
                         <li>
-                            <a class="tq-conv" href="<?php echo base_url('taqdar/messages?t=' . urlencode($t['code'])); ?>"
+                            <a class="tq-conv" href="<?php echo base_url('student/messages?t=' . urlencode($t['code'])); ?>"
                                <?php echo ($tq_open && $t['code'] === $tq_open['code']) ? ' aria-current="page"' : ''; ?>>
                                 <span class="tq-conv__ava">
                                     <img class="tq-avatar" src="<?php echo html_escape($tq_photo_of($t['person'])); ?>"
@@ -309,7 +375,8 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
                         لا مستقبل متاح بعد. سجل في مادة ليصبح معلمها ضمن من تراسلهم، أو تواصل مع الدعم الفني.
                     </p>
                 <?php else: ?>
-                    <form method="post" action="<?php echo base_url('home/my_messages/send_new'); ?>" style="margin-block-start:var(--tq-space-m)">
+                    <form method="post" action="<?php echo base_url('student/messages'); ?>" style="margin-block-start:var(--tq-space-m)">
+                        <input type="hidden" name="action" value="send_new">
                         <div class="tq-field">
                             <label class="tq-field__label" for="tq-new-to">إلى</label>
                             <select class="tq-select" id="tq-new-to" name="receiver" required>
@@ -423,10 +490,13 @@ html[dir='rtl'] .tq-composer__send svg { transform: scaleX(-1); }
 
                 <div class="tq-thread__foot">
                     <form class="tq-composer" method="post"
-                          action="<?php echo base_url('home/my_messages/send_reply/' . urlencode($tq_open['code'])); ?>">
-                        <button class="tq-iconbtn" type="button" aria-label="إرفاق ملف">
-                            <?php echo tq_icon('upload'); ?>
-                        </button>
+                          action="<?php echo base_url('student/messages'); ?>">
+                        <input type="hidden" name="action" value="send_reply">
+                        <input type="hidden" name="thread" value="<?php echo html_escape($tq_open['code']); ?>">
+                        <?php /* لا زر «إرفاق ملف»: كان `type="button"` بلا معالج ولا حقل ملف،
+                                 و`message` جدول بلا عمود مرفق و`send_reply_message()` لا تقرأ
+                                 رفعا. فالزر يفتح شهية الطالب لإرسال صورة سؤاله ثم لا يفعل شيئا
+                                 — والوعد الكاذب أسوأ من غيابه. */ ?>
                         <span>
                             <label class="tq-sr" for="tq-reply">اكتب رسالتك</label>
                             <input class="tq-input" id="tq-reply" name="message" type="text" required placeholder="اكتب رسالتك هنا…">

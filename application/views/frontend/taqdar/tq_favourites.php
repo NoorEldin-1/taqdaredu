@@ -14,6 +14,38 @@
  * وتضع الزر الذي يبدأ الفعل، لا بطاقات وهمية.
  */
 
+/* هذان الملفان يحملان `tq_s_*` و`tq_file_kind` — وهي دوال عرض تعيش في
+   الشاشات لا في المساعدات المحملة تلقائيا. وكانت هذه الشاشة وحدها بلا
+   تضمينهما، فلم يظهر النقص لأن أقسام الدروس والملفات كانت فارغة أبدا
+   فلا يمر التنفيذ بسطر ينادي واحدة منها. وأول صف مفضل يسقط الصفحة كلها
+   بـ«Call to undefined function tq_s_clock()». */
+include 'tq_student_styles.php';
+include 'tq_student_data.php';
+
+if (!function_exists('tq_fav_course_url')) {
+    /**
+     * وجهة الكورس المفضل — وهي وجهتان لا واحدة.
+     *
+     * كان الرابط مكتوبا `home/course_page/<id>` وهو مسار لا وجود له في
+     * `routes.php` فيرد 404. ثم صار صفحة الكورس العامة — فيخرج الطالب من
+     * بوابته إلى صفحة بيع بترويسة الموقع وسعر وزر «اشترك»، وهو مسجل في
+     * الكورس أصلا. فبطاقة داخل لوحته تقذفه خارجها.
+     *
+     * فالوجهة تتبع حاله:
+     *   • **مسجل** ⟵ مشغل الدرس داخل البوابة، ويفتح على موضع توقفه.
+     *   • **غير مسجل** ⟵ الصفحة العامة، فهي التي تعرض ما يشتريه وكيف.
+     *
+     * والتفضيل نية شراء لا ملكية، فالحالتان واقعتان معا في هذه الشاشة.
+     */
+    function tq_fav_course_url($course_id, $title = '', $enrolled = false)
+    {
+        if ($enrolled) return base_url('student/lesson/' . (int) $course_id);
+
+        $slug = trim((string) $title) !== '' ? slugify($title) : 'course';
+        return site_url('home/course/' . rawurlencode($slug) . '/' . (int) $course_id);
+    }
+}
+
 $tq_nav   = 'favourites';
 $tq_role  = 'student';
 $tq_title = 'المفضلة';
@@ -32,6 +64,16 @@ if ($tq_wishlist) {
     $tq_fav_courses = $this->db->select('id, title, thumbnail, user_id, price, discounted_price, discount_flag')
         ->where_in('id', $tq_wishlist)
         ->get('course')->result_array();
+}
+
+/* المسجل فيه من المفضلة — يحدد وجهة البطاقة: مشغل البوابة أم الصفحة العامة. */
+$tq_fav_enrolled = [];
+if ($tq_fav_courses) {
+    foreach ($this->db->select('course_id')->where('user_id', $uid)
+                      ->where_in('course_id', array_map(static function ($c) { return (int) $c['id']; }, $tq_fav_courses))
+                      ->get('enrol')->result_array() as $e) {
+        $tq_fav_enrolled[(int) $e['course_id']] = true;
+    }
 }
 
 /* تقدم الطالب في كل كورس مفضل — من watch_histories */
@@ -81,15 +123,42 @@ if ($tq_fav_courses) {
         $tq_most_used[] = [
             'title' => $fav_titles[$cid] ?? '',
             'secs'  => $secs,
-            'href'  => base_url('home/course_page/' . $cid),
+            'href'  => tq_fav_course_url($cid, $fav_titles[$cid] ?? '', isset($tq_fav_enrolled[$cid])),
         ];
     }
 }
 
-/* ---- ما لا مصدر له بعد ------------------------------------------------ */
-$tq_fav_lessons   = [];   // لا جدول تفضيل للدروس في taqd_lms
-$tq_fav_materials = [];   // ولا للمواد التعليمية (resource_files بلا تفضيل)
-$tq_lists         = [];   // ولا للقوائم المخصصة
+/* ---- الدروس والملفات المفضلة: `tq_favourites` -------------------------
+   كان القسمان مصفوفتين فارغتين ثابتتين «لا جدول لهما»، فيقرأ الطالب حالة
+   فارغة أبدية لا تتغير مهما فعل. والجدول الآن قائم، ومعه مسار يكتب فيه. */
+$tq_CI_fav = get_instance();
+$tq_CI_fav->load->model('taqdar_favourites_model');
+$tq_fav_m = $tq_CI_fav->taqdar_favourites_model;
+
+$tq_fav_lessons = [];
+foreach ($tq_fav_m->lessons($uid) as $l) {
+    $tq_fav_lessons[] = [
+        'id'       => (int) $l['id'],
+        'title'    => (string) $l['title'],
+        'duration' => tq_s_clock(tq_s_secs($l['duration'])),
+        'subject'  => tq_s_subject($l['category_id'], $l['course_title'], (int) $l['course_id']),
+        'href'     => tq_s_lesson_url((int) $l['course_id'], (int) $l['id']),
+    ];
+}
+
+$tq_fav_materials = [];
+foreach ($tq_fav_m->materials($uid) as $f) {
+    $rel = 'uploads/resource_files/' . $f['file_name'];
+    $tq_fav_materials[] = [
+        'id'     => (int) $f['id'],
+        'title'  => $f['title'] !== '' ? (string) $f['title'] : (string) $f['file_name'],
+        'ext'    => tq_file_kind($f['file_name'])['key'],
+        'lesson' => (string) $f['lesson_title'],
+        'url'    => base_url($rel),
+    ];
+}
+
+$tq_lists = [];   // لا جدول قوائم مخصصة في القاعدة بعد
 
 $tq_total_fav = count($tq_fav_courses) + count($tq_fav_lessons) + count($tq_fav_materials);
 
@@ -129,6 +198,30 @@ if ($tq_fav_courses) {
     });
 }
 
+/**
+ * زر القلب — نموذج POST حقيقي.
+ *
+ * كان `<button type="button">` بلا نموذج ولا معالج: يضغطه الطالب فلا يقع
+ * شيء، وتحت الشبكة سطر يعده بأن الضغط عليه يزيل العنصر. والنموذج يحمل
+ * التصفية والترتيب معه فيعود الطالب إلى موضعه لا إلى أول القائمة.
+ */
+$tq_heart = static function ($kind, $id, $noun) use ($tq_type, $tq_sort) {
+    ob_start(); ?>
+    <form method="post" action="<?php echo base_url('student/favourite'); ?>" class="tq-form-inline">
+        <input type="hidden" name="kind" value="<?php echo html_escape($kind); ?>">
+        <input type="hidden" name="item_id" value="<?php echo (int) $id; ?>">
+        <input type="hidden" name="back" value="favourites">
+        <input type="hidden" name="back_type" value="<?php echo html_escape($tq_type); ?>">
+        <input type="hidden" name="back_sort" value="<?php echo html_escape($tq_sort); ?>">
+        <button class="tq-fav-heart" type="submit" aria-pressed="true"
+                title="<?php echo html_escape('إزالة ' . $noun . ' من المفضلة'); ?>"
+                aria-label="<?php echo html_escape('إزالة ' . $noun . ' من المفضلة'); ?>">
+            <?php echo tq_icon('heart'); ?>
+        </button>
+    </form>
+    <?php return ob_get_clean();
+};
+
 include 'portal_open.php';
 ?>
 
@@ -155,9 +248,6 @@ include 'portal_open.php';
   padding: 2px var(--tq-space-s); font: var(--tq-type-numeralSm); unicode-bidi: isolate; direction: ltr; }
 .tq-lesson-card__body { padding: var(--tq-space-m) var(--tq-space-l) var(--tq-space-l); }
 .tq-lesson-card__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--tq-space-s); margin-block-start: var(--tq-space-m); }
-
-.tq-fav-heart { color: var(--tq-navy); display: grid; place-items: center; inline-size: var(--tq-touch-min); block-size: var(--tq-touch-min); border-radius: var(--tq-radius-small); }
-.tq-fav-heart:hover { background: var(--tq-navyWash); }
 
 .tq-course-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: var(--tq-space-l); align-items: center;
   background: var(--tq-surface); border-radius: var(--tq-radius-card); box-shadow: var(--tq-shadow-soft); padding: var(--tq-space-l); }
@@ -238,17 +328,20 @@ include 'portal_open.php';
                 <div class="tq-cardgrid tq-stagger">
                     <?php foreach ($tq_fav_lessons as $i => $ls): ?>
                         <article class="tq-lesson-card">
-                            <div class="tq-lesson-card__cover">
+                            <a class="tq-lesson-card__cover" href="<?php echo html_escape($ls['href']); ?>"
+                               aria-label="<?php echo html_escape('افتح درس ' . $ls['title']); ?>">
                                 <span class="tq-lesson-card__play" aria-hidden="true"><?php echo tq_icon('play'); ?></span>
                                 <span class="tq-lesson-card__time"><?php echo TQ_LRI . html_escape($ls['duration']) . TQ_PDI; ?></span>
-                            </div>
+                            </a>
                             <div class="tq-lesson-card__body">
-                                <h3 class="tq-h2" style="font:var(--tq-type-bodyStrong);margin:0"><?php echo html_escape($ls['title']); ?></h3>
+                                <h3 class="tq-h2" style="font:var(--tq-type-bodyStrong);margin:0">
+                                    <a href="<?php echo html_escape($ls['href']); ?>" style="color:var(--tq-navy)">
+                                        <?php echo html_escape($ls['title']); ?>
+                                    </a>
+                                </h3>
                                 <div class="tq-lesson-card__foot">
                                     <span class="tq-micro"><?php echo html_escape($ls['subject']); ?></span>
-                                    <button class="tq-fav-heart" type="button" aria-pressed="true" aria-label="إزالة الدرس من المفضلة">
-                                        <?php echo tq_icon('heart'); ?>
-                                    </button>
+                                    <?php echo $tq_heart('lesson', $ls['id'], 'الدرس'); ?>
                                 </div>
                             </div>
                         </article>
@@ -290,7 +383,16 @@ include 'portal_open.php';
                                 <span class="tq-ext tq-pastel--<?php echo tq_pastel($i); ?>" style="color:var(--tq-pastel-ink)" aria-hidden="true">
                                     <?php echo html_escape(strtoupper($f['ext'])); ?>
                                 </span>
-                                <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($f['title']); ?></span>
+                                <span style="flex:1;min-inline-size:0">
+                                    <span class="tq-strong tq-s-trunc" style="display:block;color:var(--tq-navy)"><?php echo html_escape($f['title']); ?></span>
+                                    <span class="tq-micro tq-s-trunc" style="display:block"><?php echo html_escape($f['lesson']); ?></span>
+                                </span>
+                                <?php /* الملف يفتح فعلا، والقلب يزيله فعلا — لا بطاقة تعرض
+                                         اسما وحده ولا فعل تحتها. */ ?>
+                                <a class="tq-fav-heart" href="<?php echo html_escape($f['url']); ?>" download
+                                   aria-label="<?php echo html_escape('تنزيل ' . $f['title']); ?>"
+                                   title="تنزيل"><?php echo tq_icon('download'); ?></a>
+                                <?php echo $tq_heart('material', $f['id'], 'الملف'); ?>
                             </div>
                         </article>
                     <?php endforeach; ?>
@@ -307,7 +409,10 @@ include 'portal_open.php';
                     <h2 id="tq-fs-courses">الكورسات</h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_fav_courses) . TQ_PDI; ?></span>
                 </div>
-                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('my-courses'); ?>">عرض الكل</a>
+<?php /* كان `my-courses` — يرد 404. و«عرض الكل» هنا تعني كتالوج الكورسات
+                         لا مفضلتها. و`plans` لا `courses`: الثانية تحول بـ301 إلى الأولى،
+                         فكتابتها تكلف رحلة ذهاب وإياب على كل نقرة. */ ?>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('plans'); ?>">عرض الكل</a>
             </div>
 
             <?php if (!$tq_fav_courses): ?>
@@ -342,13 +447,11 @@ include 'portal_open.php';
                             <div>
                                 <div class="tq-row tq-row--between">
                                     <h3 style="font:var(--tq-type-bodyStrong);margin:0">
-                                        <a href="<?php echo base_url('home/course_page/' . $cid); ?>" style="color:var(--tq-navy)">
+                                        <a href="<?php echo tq_fav_course_url($cid, $c["title"], isset($tq_fav_enrolled[$cid])); ?>" style="color:var(--tq-navy)">
                                             <?php echo html_escape($c['title']); ?>
                                         </a>
                                     </h3>
-                                    <button class="tq-fav-heart" type="button" aria-pressed="true" aria-label="إزالة الكورس من المفضلة">
-                                        <?php echo tq_icon('heart'); ?>
-                                    </button>
+                                    <?php echo $tq_heart('course', $cid, 'الكورس'); ?>
                                 </div>
                                 <p class="tq-micro" style="margin:0 0 var(--tq-space-s)">
                                     <?php echo html_escape($tq_teachers[(int) $c['user_id']] ?? 'فريق تقدر'); ?>
@@ -395,7 +498,11 @@ include 'portal_open.php';
                     <?php echo tq_num(count($tq_fav_courses), 'tq-num--sm'); ?>
                 </div>
             </div>
-            <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('home/my_wishlist'); ?>" style="margin-block-start:var(--tq-space-xl)">إدارة المفضلة</a>
+            <?php /* لا زر «إدارة المفضلة» بعد اليوم. كان يقود إلى `home/my_wishlist`،
+                     وهي شاشة Academy الأصلية ولا قالب لها في ثيم تقدر — فيرد الغلاف
+                     `show_404()` بعد أن يكون قد طبع ترويسة الصفحة، فيرى الطالب نصف
+                     صفحة ثم «404 Page Not Found». وهذه الشاشة **هي** إدارة المفضلة:
+                     القلب في كل بطاقة يزيل، فلا وجهة ثانية تدير ما تديره هذه. */ ?>
         </section>
 
         <!-- القوائم المخصصة: لا جدول قوائم في القاعدة بعد -->

@@ -30,6 +30,72 @@ class Taqdar_sessions_model extends CI_Model
     /** طول النافذة التي تدار فيها الشبكة: أسبوع + يوم احتياط لحدود التوقيت. */
     const WINDOW_DAYS = 8;
 
+    /**
+     * مضيفو اللقاء المقبولون.
+     *
+     * قائمة بيضاء لا فحص «هل هو رابط»: الحقل يكتبه المعلم ويفتحه الطالب
+     * بضغطة، فرابط حر هنا يجعل شاشة المنصة بابا إلى أي موقع — والطالب
+     * قاصر في أغلب الحالات. والنطاقات هنا هي التي تشغل حصصا فعلا.
+     */
+    const MEET_HOSTS = array(
+        'meet.google.com',
+        'zoom.us',
+        'teams.microsoft.com',
+        'teams.live.com',
+    );
+
+    /**
+     * ينشئ عمود رابط اللقاء عند أول استعمال.
+     *
+     * `tutoring_sessions.room_id` قائم من قبل وهو معرف غرفة BigBlueButton
+     * (انظر `bbb_meetings`) — لا رابط لقاء خارجي. وحشر رابط فيه يخلط مصدرين
+     * في عمود واحد، فيقرأ من ينتظر معرف غرفة عنوانا كاملا. فالعمود مستقل.
+     */
+    public function ensure_schema()
+    {
+        static $done = false;
+        if ($done) return;
+        $done = true;
+
+        if (!$this->db->table_exists('tutoring_sessions')) return;
+        if (in_array('meet_url', $this->db->list_fields('tutoring_sessions'), true)) return;
+
+        $this->db->query('ALTER TABLE `tutoring_sessions` ADD COLUMN `meet_url` VARCHAR(512) NULL DEFAULT NULL');
+    }
+
+    /**
+     * يطهر رابط اللقاء: يقبل https ومضيفا من القائمة البيضاء وحده.
+     *
+     * @return string الرابط إن صح، أو '' إن لم يصح أو كان فارغا
+     */
+    public function clean_meet_url($url)
+    {
+        $url = trim((string) $url);
+        if ($url === '') return '';
+
+        $p = parse_url($url);
+        if (!$p || empty($p['scheme']) || empty($p['host'])) return '';
+        if (strtolower($p['scheme']) !== 'https') return '';
+
+        $host = strtolower($p['host']);
+        if (strpos($host, 'www.') === 0) $host = substr($host, 4);
+
+        foreach (self::MEET_HOSTS as $ok) {
+            // النطاق نفسه أو نطاق فرعي منه — و`endsWith` بنقطة تمنع
+            // `evil-zoom.us` من المرور بوصفه `zoom.us`.
+            if ($host === $ok || substr($host, -(strlen($ok) + 1)) === '.' . $ok) {
+                return mb_substr($url, 0, 512);
+            }
+        }
+        return '';
+    }
+
+    /** أسماء المضيفين كما تعرض للمعلم في التلميح. */
+    public function meet_hosts_text()
+    {
+        return 'Google Meet أو Zoom أو Microsoft Teams';
+    }
+
     /* =====================================================================
        الفترات والأيام — مصدر واحد للشبكة وللترجمة
        ===================================================================== */
@@ -392,7 +458,9 @@ class Taqdar_sessions_model extends CI_Model
         $teacher_id = (int) $teacher_id;
         if ($teacher_id <= 0) return [];
 
-        $this->db->select('t.id, t.status, t.slot_id, t.student_id,
+        $this->ensure_schema();
+
+        $this->db->select('t.id, t.status, t.slot_id, t.student_id, t.meet_url,
                            a.starts_at, a.duration_min,
                            u.first_name, u.last_name, u.image')
                  ->from('tutoring_sessions t')
@@ -416,6 +484,7 @@ class Taqdar_sessions_model extends CI_Model
                 'starts_at'    => $r['starts_at'],
                 'when_text'    => $r['starts_at'] ? $this->when_text($r['starts_at']) : 'بلا موعد',
                 'minutes'      => (int) $r['duration_min'],
+                'meet_url'     => (string) ($r['meet_url'] ?? ''),
             ];
         }
         return $out;
@@ -427,8 +496,10 @@ class Taqdar_sessions_model extends CI_Model
      *
      * @param string $decision confirm|decline
      */
-    public function decide($session_id, $teacher_id, $decision)
+    public function decide($session_id, $teacher_id, $decision, $meet_url = '')
     {
+        $this->ensure_schema();
+
         $session_id = (int) $session_id;
         $teacher_id = (int) $teacher_id;
         if ($session_id <= 0 || $teacher_id <= 0) {
@@ -436,6 +507,17 @@ class Taqdar_sessions_model extends CI_Model
         }
         if (!in_array($decision, ['confirm', 'decline'], true)) {
             return ['ok' => false, 'msg' => 'إجراء غير معروف.'];
+        }
+
+        /* الرابط شرط في التأكيد لا حقل اختياري.
+           «مؤكد» بلا رابط يقول للطالب إن الحصة قائمة ولا يقول أين — فيقف
+           في موعده أمام شاشة بلا باب. ورفض التأكيد هنا أهون من موعد ضائع. */
+        $meet = '';
+        if ($decision === 'confirm') {
+            $meet = $this->clean_meet_url($meet_url);
+            if ($meet === '') {
+                return ['ok' => false, 'msg' => 'ضع رابط اللقاء (' . $this->meet_hosts_text() . ') قبل التأكيد — الطالب يدخل الحصة منه.'];
+            }
         }
 
         $row = $this->db->where('id', $session_id)->where('teacher_id', $teacher_id)
@@ -448,9 +530,10 @@ class Taqdar_sessions_model extends CI_Model
         }
 
         $new = ($decision === 'confirm') ? 'confirmed' : 'declined';
+        /* الاعتذار يمحو الرابط: موعد اعتذر عنه لا يبقى له باب مفتوح. */
         $this->db->where('id', $session_id)->where('teacher_id', $teacher_id)
                  ->where('status', 'requested')
-                 ->update('tutoring_sessions', ['status' => $new]);
+                 ->update('tutoring_sessions', ['status' => $new, 'meet_url' => ($meet !== '' ? $meet : null)]);
         if ($this->db->affected_rows() < 1) {
             return ['ok' => false, 'msg' => 'تعذر تحديث الطلب. حاول مرة أخرى.'];
         }
@@ -478,7 +561,9 @@ class Taqdar_sessions_model extends CI_Model
         $student_id = (int) $student_id;
         if ($student_id <= 0) return [];
 
-        $rows = $this->db->select('t.id, t.status, t.slot_id,
+        $this->ensure_schema();
+
+        $rows = $this->db->select('t.id, t.status, t.slot_id, t.meet_url,
                                    a.starts_at, a.duration_min,
                                    u.id AS teacher_id, u.first_name, u.last_name, u.image')
             ->from('tutoring_sessions t')
@@ -490,9 +575,17 @@ class Taqdar_sessions_model extends CI_Model
 
         $subjects = $this->teacher_subjects();
 
+        $now = time();
         $out = [];
         foreach ($rows as $r) {
             $name = trim((string) $r['first_name'] . ' ' . (string) $r['last_name']);
+
+            /* الحصة انتهت حين مضى موعدها ومدتها. ورابط حصة انتهت لا يعرض:
+               غرفة أغلقت، والزر إليها يعد بما لا يقع. */
+            $starts = $r['starts_at'] ? strtotime($r['starts_at']) : 0;
+            $mins   = (int) ($r['duration_min'] ?: 30);
+            $over   = $starts > 0 && ($starts + $mins * 60) < $now;
+
             $out[] = [
                 'id'        => (int) $r['id'],
                 'status'    => $r['status'],
@@ -501,6 +594,11 @@ class Taqdar_sessions_model extends CI_Model
                 'subject'   => $subjects['name'][(int) $r['teacher_id']] ?? 'حصة خاصة',
                 'starts_at' => $r['starts_at'],
                 'when_text' => $r['starts_at'] ? $this->when_text($r['starts_at']) : 'بلا موعد',
+                'meet_url'  => (string) ($r['meet_url'] ?? ''),
+                /* الباب يفتح للمؤكدة والجارية وحدهما، وما لم ينته وقتها. */
+                'can_join'  => in_array($r['status'], ['confirmed', 'live'], true)
+                               && !$over && trim((string) ($r['meet_url'] ?? '')) !== '',
+                'is_over'   => $over,
             ];
         }
         return $out;
