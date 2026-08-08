@@ -203,12 +203,23 @@ $run("UPDATE lesson SET attachment = '', attachment_type = ''
 
 /* مواعيد حساب المعلم التجريبي وطلباته من هذا الطالب.
    بدون هذا الحذف يتراكم طلب معلق وموعدان مفتوحان في كل تشغيل، فتمتلئ
-   شاشة المعلم بطلبات مكررة لا تنتهي — والمرور يوصف بأنه مأمون التكرار. */
+   شاشة المعلم بطلبات مكررة لا تنتهي — والمرور يوصف بأنه مأمون التكرار.
+
+   والحذف مقيد بـ`duration_min = 45` وهي بصمة هذا المرور وحده: المرور
+   الأساسي (`seed_demo_student.php`) يفتح مواعيده بـ240 و300 دقيقة.
+   وبلا هذا القيد كان الحذف يمسح **كل** حجوزات المعلم التجريبي — وهو على
+   الإنتاج المعلم الفاعل الوحيد، فيقع عليه كل ما يبذره المرور الأساسي من
+   الحالات السبع. فيمحو مرور التكملة ما بذره الأساسي قبله بثوان، ولا يبقى
+   حجز مؤكد ولا جار يعرض عليه زر «ادخل الحصة». */
 if ($TQA) {
-    $run("DELETE FROM tutoring_sessions WHERE student_id = ? AND teacher_id = ?", [$SID, $TQA]);
-    /* والمواعيد لا تحذف إلا إن خلت من حجز طالب آخر. */
+    $run("DELETE t FROM tutoring_sessions t
+           JOIN availability_slots a ON a.id = t.slot_id
+          WHERE t.student_id = ? AND t.teacher_id = ? AND a.duration_min = 45",
+         [$SID, $TQA]);
+
+    /* والمواعيد لا تحذف إلا إن خلت من أي حجز — لطالب آخر أو لهذا الطالب. */
     $run("DELETE FROM availability_slots
-           WHERE teacher_id = ?
+           WHERE teacher_id = ? AND duration_min = 45
              AND NOT EXISTS (SELECT 1 FROM tutoring_sessions t WHERE t.slot_id = availability_slots.id)",
          [$TQA]);
 }
