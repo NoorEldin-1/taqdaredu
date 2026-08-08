@@ -129,7 +129,40 @@ $in_courses = implode(',', $course_ids);
 $files_dir = $root . '/uploads/resource_files';
 
 /* ================================================================
-   ٠ · حذف أثر هذا المرور وحده
+   ٠ · المخطط الذي يعتمد عليه هذا المرور
+   ================================================================
+   `tq_favourites` و`tutoring_sessions.meet_url` ينشئهما التطبيق كسولا عند
+   أول استعمال (`ensure_schema` في النموذجين). وهذا السكربت يتصل بـPDO
+   مباشرة ولا يمر بالتطبيق، فلا يضمن أن أحدا فتح الشاشة قبله — وعلى قاعدة
+   نشرت للتو لم يفتحها أحد، فيسقط عند أول `meet_url` بـ«Unknown column».
+   فيملك المرور مخططه بدل أن يفترض أن غيره هيأه له. */
+if ($apply) {
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `tq_favourites` (
+            `id`         INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+            `user_id`    INT(10) UNSIGNED NOT NULL,
+            `kind`       VARCHAR(16)      NOT NULL,
+            `item_id`    INT(10) UNSIGNED NOT NULL,
+            `created_at` INT(11)          NOT NULL DEFAULT 0,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uq_user_kind_item` (`user_id`,`kind`,`item_id`),
+            KEY `ix_user_kind` (`user_id`,`kind`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    $has_meet = $pdo->query(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'tutoring_sessions' AND COLUMN_NAME = 'meet_url'"
+    )->fetchColumn();
+    if (!$has_meet) {
+        $pdo->exec("ALTER TABLE `tutoring_sessions` ADD COLUMN `meet_url` VARCHAR(512) NULL DEFAULT NULL");
+        $say('٠ · أضيف العمود tutoring_sessions.meet_url');
+    }
+}
+
+/* ================================================================
+   ١ · حذف أثر هذا المرور وحده
    ================================================================ */
 $say('١ · حذف أثر البذرة السابقة');
 
