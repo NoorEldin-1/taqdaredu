@@ -92,6 +92,9 @@ $say = static function ($s = '') { echo $s, "\n"; };
    فيعرف ما يحذف بلا جدول وسوم منفصل. */
 const TAG = 'tqseedx';
 
+/** الرابط الخارجي الموسوم — الوسم في الشذرة ليعرف عند الحذف. */
+const LINK_ATTACHMENT = 'https://ar.wikipedia.org/wiki/رياضيات#' . TAG;
+
 /* ---------- الحساب المستهدف ---------- */
 $SID = $want ?: (int) $one("SELECT id FROM users WHERE email = ? LIMIT 1", ['student.test@taqdaredu.com']);
 if (!$SID) exit("لا حساب عرض. مرر --student=<معرف الطالب>\n");
@@ -158,6 +161,12 @@ $run("DELETE a FROM assessments a
 
 /* روابط اللقاء التي وضعها هذا المرور. */
 $run("UPDATE tutoring_sessions SET meet_url = NULL WHERE student_id = ?", [$SID]);
+
+/* المرفق الخارجي الموسوم يعاد فارغا — وهو الأثر الوحيد لهذا المرور في
+   محتوى يملكه معلم، فلا يترك وراءه. والشرط على الرابط نفسه لا على الدرس،
+   فلا يمس مرفقا وضعه صاحبه. */
+$run("UPDATE lesson SET attachment = '', attachment_type = ''
+       WHERE course_id IN ($in_courses) AND attachment = ?", [LINK_ATTACHMENT]);
 
 /* مواعيد حساب المعلم التجريبي وطلباته من هذا الطالب.
    بدون هذا الحذف يتراكم طلب معلق وموعدان مفتوحان في كل تشغيل، فتمتلئ
@@ -261,14 +270,25 @@ foreach ($course_ids as $cid) {
 $say('   ' . $made . ' ملفا في ' . count($course_ids) . ' كورسات — بأنواع pdf و mp4 و pptx و mp3 و png');
 
 /* مرفق درس من نوع «رابط خارجي»: التصفية فيها خانة `link` ولا مصدر يملؤها
-   إلا `lesson.attachment` حين يكون عنوانا كاملا. */
+   إلا `lesson.attachment` حين يكون عنوانا كاملا.
+
+   وهذا **الكتابة الوحيدة هنا في محتوى حقيقي** — عمود في صف درس يملكه معلمه،
+   لا صف يخص هذا الطالب. فيقيد بثلاثة شروط:
+     • لا يكتب إلا على درس **مرفقه فارغ أصلا** — فلا يمحو مرفقا وضعه معلم.
+     • الرابط موسوم (`#` + الوسم) فيعرف عند الحذف.
+     • الحذف أعلاه يعيده فارغا كما كان.
+   وبلا هذه القيود يترك المرور أثرا في المنهج لا يزول بـ`--clear`. */
 $link_lesson = (int) $one(
-    "SELECT id FROM lesson WHERE course_id IN ($in_courses) AND lesson_type != 'quiz'
+    "SELECT id FROM lesson
+      WHERE course_id IN ($in_courses) AND lesson_type != 'quiz'
+        AND (attachment IS NULL OR attachment = '')
       ORDER BY id DESC LIMIT 1");
 if ($link_lesson) {
     $run("UPDATE lesson SET attachment = ?, attachment_type = 'link' WHERE id = ?",
-         ['https://ar.wikipedia.org/wiki/رياضيات', $link_lesson]);
+         [LINK_ATTACHMENT, $link_lesson]);
     $say('   ومرفق خارجي واحد ليمتلئ تبويب «روابط خارجية»');
+} else {
+    $say('   (لا درس بمرفق فارغ — تخطي الرابط الخارجي، ولا يمس مرفق معلم)');
 }
 
 /* ================================================================
