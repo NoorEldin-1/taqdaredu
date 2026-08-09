@@ -30,6 +30,7 @@
  *     php scripts/seed_demo_parent.php --apply          # التنفيذ
  *     php scripts/seed_demo_parent.php --apply --parent=291
  *     php scripts/seed_demo_parent.php --apply --clear  # حذف البذرة وحدها
+ *     php scripts/seed_demo_parent.php --apply --demo-teachers  # يفعل معلمي الكورسات
  *
  * ── ما لا يمسه هذا المرور ────────────────────────────────────────────────
  * كل حذف هنا مقيد بأثر **هذا الولي وأبنائه المبذورين وحدهم**، لأن السكربت
@@ -180,12 +181,39 @@ $teachers = array_values(array_filter(array_keys($teachers), function ($tid) use
     return (int) $one("SELECT COUNT(*) FROM users WHERE id = ? AND status = 1 AND is_instructor = 1", [$tid]) > 0;
 }));
 
+/* `--demo-teachers`: يفعل حسابات معلمي كورسات البذرة.
+   التفعيل قرار إدارة لا أثر جانبي لمرور بيانات، فلا يقع إلا بطلب صريح —
+   كما في `seed_demo_student.php`. وأثره هنا أن ولي الأمر يستطيع مراسلة
+   معلمي مواد أبنائه: `Taqdar_parent_model::teachers_for()` يشترط
+   `status = 1`، فبلا تفعيل لا يجد ولي الأمر في قائمة المراسلة إلا
+   الإدارة — وهي نصف التجربة. */
+$demo_teachers = in_array('--demo-teachers', $argv, true);
+
+if (!$teachers && $demo_teachers) {
+    $owners = [];
+    foreach ($all("SELECT id, creator, user_id FROM course WHERE id IN ($in_courses)") as $c) {
+        foreach (array_merge([$c['creator']], explode(',', (string) $c['user_id'])) as $raw) {
+            $tid = (int) trim((string) $raw);
+            if ($tid > 0) $owners[$tid] = true;
+        }
+    }
+    $owners = array_values(array_filter(array_keys($owners), function ($tid) use ($one) {
+        return (int) $one("SELECT COUNT(*) FROM users WHERE id = ? AND is_instructor = 1 AND role_id <> 1", [$tid]) > 0;
+    }));
+    if ($owners) {
+        $run("UPDATE `users` SET status = 1 WHERE id IN (" . implode(',', $owners) . ")");
+        $teachers = $owners;
+        $say('   فعلت حسابات معلمي كورسات البذرة: ' . implode('، ', $owners));
+    }
+}
+
 if (!$teachers) {
     $teachers = $ids($all(
         "SELECT id FROM users WHERE status = 1 AND is_instructor = 1 AND role_id <> 1 ORDER BY id LIMIT 5"));
     if ($teachers) {
         $say('   (لا معلم مفعل يملك كورسات البذرة — استعمل معلمي المنصة المفعلين: '
              . implode('، ', $teachers) . ')');
+        $say('   ولمراسلة معلمي المواد من بوابة ولي الأمر: أضف --demo-teachers');
     }
 }
 if (!$teachers) exit("لا معلم مفعل في المنصة — لا يبذر باسم أحد.\n");
