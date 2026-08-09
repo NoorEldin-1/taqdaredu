@@ -776,3 +776,80 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   gap: var(--tq-space-s); margin-block-start: var(--tq-space-l);
 }
 .tqs-acts form { margin: 0; }
+
+/* --------------------------------------------------------------------------
+   نافذة التأكيد
+
+   كل فعل لا رجعة فيه في البوابات كان يسأل بـ`window.confirm()`: صندوق
+   يرسمه المتصفح بخطه ولونه، عنوانه «localhost:8081 says»، وزراه
+   «OK» و«Cancel» بالإنجليزية — يظهر فوق واجهة عربية كاملة فيقطعها،
+   ولا يقول أي فعل يؤكد ولا يميز الخطر من العادي. وهذه بديله.
+
+   القواعد:
+     · الفعل الخطر أحمر، والعادي بلون العلامة — واللون يقرأ قبل النص.
+     · «إلغاء» أولا في ترتيب التركيز، فالمفتاح Enter لا يهدم شيئا سهوا.
+     · Escape يغلق، والنقر على الطبقة يغلق، والتركيز يعود إلى زره.
+   -------------------------------------------------------------------------- */
+.tq-confirm {
+  position: fixed; inset: 0; z-index: 120;
+  display: grid; place-items: center;
+  padding: var(--tq-space-xl);
+  background: rgba(1, 33, 31, .52);
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--tq-motion-route) ease;
+}
+.tq-confirm[data-open='true'] { opacity: 1; pointer-events: auto; }
+
+.tq-confirm__box {
+  inline-size: min(30rem, 100%);
+  max-block-size: calc(100dvh - var(--tq-space-h3));
+  overflow-y: auto;
+  background: var(--tq-surface);
+  border-radius: var(--tq-radius-card);
+  box-shadow: 0 24px 60px -20px rgba(1, 33, 31, .45);
+  padding: var(--tq-space-xxl);
+  transform: translateY(8px) scale(.98);
+  transition: transform var(--tq-motion-route) var(--tq-ease-enter, ease);
+}
+.tq-confirm[data-open='true'] .tq-confirm__box { transform: none; }
+
+.tq-confirm__head { display: flex; align-items: flex-start; gap: var(--tq-space-l); }
+.tq-confirm__icon {
+  flex: none; display: grid; place-items: center;
+  inline-size: 46px; block-size: 46px;
+  border-radius: var(--tq-radius-medium);
+  background: var(--tq-navyWash); color: var(--tq-navy);
+}
+.tq-confirm[data-tone='danger'] .tq-confirm__icon {
+  background: var(--tq-dangerSoft); color: var(--tq-danger);
+}
+.tq-confirm__title {
+  margin: 0; font: var(--tq-type-h2); color: var(--tq-navy);
+}
+.tq-confirm__body {
+  margin: var(--tq-space-m) 0 0;
+  color: var(--tq-text2); font: var(--tq-type-body);
+}
+.tq-confirm__note {
+  margin: var(--tq-space-l) 0 0;
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border-radius: var(--tq-radius-small);
+  background: var(--tq-ground);
+  color: var(--tq-text2); font: var(--tq-type-micro);
+}
+
+.tq-confirm__acts {
+  display: flex; justify-content: flex-end; gap: var(--tq-space-m);
+  margin-block-start: var(--tq-space-xxl);
+}
+/* على الشاشة الضيقة يمتد الزران عرضا — هدف اللمس لا يصغر لأن الشاشة صغرت. */
+@media (max-width: 479.98px) {
+  .tq-confirm__box { padding: var(--tq-space-xl); }
+  .tq-confirm__acts { flex-direction: column-reverse; }
+  .tq-confirm__acts .tq-btn { inline-size: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tq-confirm, .tq-confirm__box { transition-duration: var(--tq-motion-reduced); }
+  .tq-confirm__box { transform: none; }
+}

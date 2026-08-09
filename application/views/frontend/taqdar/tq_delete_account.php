@@ -47,7 +47,11 @@ include 'portal_open.php';
             <div class="tq-row" style="flex-wrap:wrap">
                 <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('student/settings?s=security'); ?>">تراجع</a>
                 <form method="post" action="<?php echo base_url('student/delete_account'); ?>"
-                      onsubmit="return confirm('سيجهل حسابك ولا يمكن استعادته. هل أنت متأكد؟')">
+                      data-tq-confirm-title="حذف حسابك نهائيا؟"
+                      data-tq-confirm="تستبدل بياناتك بقيم مجهولة وتغلق جلستك في الحال. ولا يمكن استعادة الحساب بعدها."
+                      data-tq-confirm-note="تبقى فواتيرك بمعرف مجهول لأن حفظها التزام نظامي — ولا تحمل اسمك ولا بريدك."
+                      data-tq-confirm-ok="نعم، احذف حسابي"
+                      data-tq-confirm-tone="danger">
                     <input type="hidden" name="confirm" value="yes">
                     <button class="tq-btn tq-btn--danger" type="submit">نعم، احذف حسابي</button>
                 </form>
