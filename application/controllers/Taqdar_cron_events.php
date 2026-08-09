@@ -284,6 +284,13 @@ class Taqdar_cron_events extends CI_Controller
         foreach ($parents as $p) {
             $parent_id = (int) $p['id'];
 
+            /* من أوقف تقرير الأحد لا يصله.
+               الخانة في شاشة الإعدادات كانت تحفظ ولا تقرأ: يوقف التقرير
+               فيصله كل أحد كما كان — وهو أكثر ما يشكى منه في بريد أسبوعي. */
+            if (!$this->events->parent_wants($parent_id, 'weekly_report')) {
+                continue;
+            }
+
             $children = $this->db->query(
                 'SELECT u.`id`, u.`first_name`, u.`last_name`
                    FROM `parent_links` pl
@@ -301,8 +308,14 @@ class Taqdar_cron_events extends CI_Controller
             foreach ($children as $c) {
                 $sid  = (int) $c['id'];
                 $name = trim($c['first_name'] . ' ' . $c['last_name']);
+                /* المقارنة على مدى واحد: ما مضى من هذا الأسبوع مقابل
+                   **الأيام نفسها** من الأسبوع الماضي. وكانت تقارنه
+                   بالأسبوع الماضي كاملا — والتقرير يرسل صباح الأحد،
+                   فيقرأ كل ولي أمر أن نشاط ابنه «أقل من الأسبوع الماضي»
+                   لأن أسبوعا لم يبدأ يقارن بأسبوع تم. */
+                $elapsed = ((int) date('w') + 1) * 86400;
                 $now  = $this->active_days($sid, $week_start, PHP_INT_MAX);
-                $was  = $this->active_days($sid, $prev_start, $week_start);
+                $was  = $this->active_days($sid, $prev_start, $prev_start + $elapsed);
                 $qz   = $this->quizzes_between($sid, $week_start, PHP_INT_MAX);
 
                 $trend = ($now > $was) ? 'أفضل من الأسبوع الماضي'
@@ -360,10 +373,26 @@ class Taqdar_cron_events extends CI_Controller
         )->result_array();
     }
 
-    /** أيام درس فيها الطالب داخل مدة — بمصادر التقرير الأسبوعي نفسها. */
+    /**
+     * أيام درس فيها الطالب داخل مدة — بمصادر شاشة التقرير الأسبوعي نفسها.
+     *
+     * و`lesson_progress` أولها: فيه صف **لكل درس** بتاريخ إنهائه، بينما
+     * `watch_histories` صف واحد لكل مادة بآخر تحديث لها وحده — فمن واظب
+     * خمسة أيام على مادة واحدة كان يحسب له يوم نشاط، ومن لمس خمس مواد
+     * في جلسة واحدة تحسب له خمسة. والشاشة والبريد يقرآن الرقم نفسه،
+     * فاختلاف المصدرين بينهما يجعل ولي الأمر يرى رقمين لأسبوع واحد.
+     */
     private function active_days($student_id, $from, $to)
     {
         $stamps = array();
+
+        foreach ($this->db->query(
+            'SELECT UNIX_TIMESTAMP(`completed_at`) AS ts FROM `lesson_progress`
+              WHERE `student_id` = ? AND `completed_at` IS NOT NULL',
+            array((int) $student_id)
+        )->result_array() as $r) {
+            $stamps[] = (int) $r['ts'];
+        }
 
         foreach ($this->db->query(
             'SELECT `date_updated` AS ts FROM `watch_histories` WHERE `student_id` = ?',

@@ -187,11 +187,44 @@ class Taqdar_events_model extends CI_Model
 
         $written = 0;
         foreach ($this->parents_of($student_id) as $parent_id) {
+            /* تفضيل ولي الأمر يفرض هنا — عند الكتابة لا عند العرض.
+               شاشة الإعدادات تقول له صراحة «هذه الشاشة تحدد أيها تريد»،
+               وكانت الخانة تحفظ في `parent_links.scope` ولا يقرؤها أحد:
+               يوقف «رسوب في اختبار محطة» فيصله كل رسوب كما كان، وتكتفي
+               شاشة الإشعارات بأن تعلق عليه شارة «نوع أوقفته». إعداد لا
+               يغير شيئا أسوأ من إعداد غائب — الأول يكذب والثاني يعترف. */
+            if (!$this->parent_wants($parent_id, $type)) {
+                continue;
+            }
             if ($this->notify($parent_id, $type, $payload) > 0) {
                 $written++;
             }
         }
         return $written;
+    }
+
+    /**
+     * هل اختار ولي الأمر أن يصله هذا النوع؟
+     *
+     * الافتراض «نعم»: الكتم قرار المستخدم لا قرارنا، وما لم يحفظ تفضيلا
+     * بعد تصله الأحداث كلها. وما ليس من الأنواع القابلة للإيقاف — كأحداث
+     * الربط نفسه — لا يكتم أصلا: لا يحجب عن أحد خبر فتح بياناته أو إغلاقها.
+     */
+    public function parent_wants($parent_id, $type)
+    {
+        $parent_id = (int) $parent_id;
+        if ($parent_id <= 0) return false;
+
+        $this->load->model('taqdar_parent_model');
+
+        $switchable = array_keys($this->taqdar_parent_model->notify_keys());
+        $switchable[] = 'weekly_report';
+        if (!in_array($type, $switchable, true)) return true;
+
+        $prefs = $this->taqdar_parent_model->prefs($parent_id);
+        $key   = ($type === 'weekly_report') ? 'weekly' : $type;
+
+        return !isset($prefs[$key]) || !empty($prefs[$key]);
     }
 
     /** يكتب للطالب ولأوليائه معا — أكثر الأحداث تخص الاثنين. */

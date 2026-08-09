@@ -68,8 +68,19 @@ class Taqdar extends CI_Controller
         return $this->user_model->get_all_user($this->session->userdata('user_id'))->row_array();
     }
 
-    /** أعداد الشارات في القائمة والترويسة — استعلام واحد لكل نوع. */
-    private function counts($uid)
+    /**
+     * أعداد الشارات في القائمة والترويسة — استعلام واحد لكل نوع.
+     *
+     * والمفاتيح تطابق **مفاتيح بنود القائمة** لا أسماء الجداول: بند
+     * الإشعارات في بوابة ولي الأمر مفتاحه `alerts` (لأن مساره
+     * `parent/alerts`)، و`portal_rail.php` يقرأ `$tq_counts[$key]` بمفتاح
+     * البند. فكان العدد يحسب صحيحا تحت `notifications` ولا يقرؤه أحد:
+     * شارة ميتة في قائمة كل ولي أمر، وجرس في ترويسته يعد ولا يظهر رقما.
+     *
+     * ولا تحسب أعداد دور لدور آخر: `reviews` و`tasks` استعلاما طالب،
+     * وتشغيلهما لولي أمر أو معلم عمل ضائع في كل صفحة يفتحها.
+     */
+    private function counts($uid, $role = 'student')
     {
         // أعمدة Academy الفعلية: message(receiver, read_status) و notifications(to_user, status)
         $unread_msgs = (int) $this->db->where('receiver', $uid)
@@ -79,6 +90,16 @@ class Taqdar extends CI_Controller
         $unread_notif = (int) $this->db->where('to_user', $uid)
                                        ->where('status', 0)
                                        ->count_all_results('notifications');
+
+        if ($role !== 'student') {
+            /* بوابتا المعلم وولي الأمر: الرسائل والإشعارات وحدهما.
+               و`alerts` هو مفتاح بند الإشعارات في قائمة ولي الأمر. */
+            return [
+                'messages'      => $unread_msgs,
+                'notifications' => $unread_notif,
+                'alerts'        => $unread_notif,
+            ];
+        }
 
         // المراجعة المستحقة من المستودع نفسه الذي تقرأ منه الصفحة،
         // فلا يفترق رقم الشارة عن عدد ما تعرضه
@@ -252,7 +273,7 @@ class Taqdar extends CI_Controller
             && is_file(APPPATH . 'views/frontend/' . $this->theme() . '/tq_search.php')) {
             $uid = (int) $this->session->userdata('user_id');
             $this->show('tq_search', 'نتائج البحث', array(
-                'tq_counts' => $this->counts($uid),
+                'tq_counts' => $this->counts($uid, $role),
                 'user_id'   => $uid,
                 'tq_query'  => $q,
             ));
@@ -346,13 +367,25 @@ class Taqdar extends CI_Controller
 
         $this->load->model('taqdar_parent_model');
 
+        /* الوسائط بمعناها.
+           كان الرفض ينادي `revoke_link($link_id, $uid)` وتوقيعها
+           `($parent_id, $student_id)` — فيبحث الاستعلام عن رابط
+           `parent_user_id = <رقم الطلب>` ولا يطابق شيئا أبدا. كل ضغطة
+           «أرفض» كانت ترد «لا رابط نشط بهذا الابن في حسابك» ويبقى الطلب
+           معلقا. ولكل فعل الآن دالته الموقعة باسمه. */
         if ($action === 'reject') {
-            $r = $this->taqdar_parent_model->revoke_link($link_id, $uid);
-            $msg_ok = 'رفض الطلب.';
+            $r = $this->taqdar_parent_model->reject_request($link_id, $uid);
+            $msg_ok = 'رفضت الطلب، ولم يفتح شيء من بياناتك.';
+        } elseif ($action === 'withdraw') {
+            $r = $this->taqdar_parent_model->withdraw_consent($uid, $link_id);
+            $msg_ok = 'سحبت موافقتك، ولم يعد ولي أمرك يرى شيئا من بياناتك.';
         } else {
             $r = $this->taqdar_parent_model->grant_consent($link_id, $uid);
             $msg_ok = 'وافقت على الربط، ويستطيع ولي أمرك متابعة تقدمك الآن.';
         }
+
+        $this->trace('student.parent_link.' . ($action ?: 'approve'), 'parent_links:' . $link_id,
+            array('ok' => !empty($r['ok'])));
 
         $ok = !empty($r['ok']);
         $this->session->set_flashdata($ok ? 'flash_message' : 'error_message',
@@ -629,7 +662,7 @@ class Taqdar extends CI_Controller
         // استباق تحميل في المتصفح — فيجهل حساب بلا أن يطلب صاحبه شيئا.
         if ($this->input->method(true) !== 'POST' || $this->input->post('confirm') !== 'yes') {
             $this->show('tq_delete_account', 'حذف الحساب', array(
-                'tq_counts' => $this->counts($uid),
+                'tq_counts' => $this->counts($uid, tq_role($uid)),
                 'user_id'   => $uid,
             ));
             return;
@@ -682,7 +715,7 @@ class Taqdar extends CI_Controller
         [$page, $title] = $map[$section];
 
         $this->show($page, $title, [
-            'tq_counts' => $this->counts($user['id']),
+            'tq_counts' => $this->counts($user['id'], 'teacher'),
             'user_id'   => $user['id'],
         ]);
     }
@@ -707,7 +740,7 @@ class Taqdar extends CI_Controller
         [$page, $title] = $map[$section];
 
         $this->show($page, $title, [
-            'tq_counts' => $this->counts($user['id']),
+            'tq_counts' => $this->counts($user['id'], 'parent'),
             'user_id'   => $user['id'],
         ]);
     }
@@ -1380,7 +1413,7 @@ class Taqdar extends CI_Controller
         }
 
         $data = array(
-            'tq_counts'   => $this->counts($uid),
+            'tq_counts'   => $this->counts($uid, tq_role($uid)),
             'user_id'     => $uid,
             'certificate' => $cert,
             'cert_id'     => (int) $id,

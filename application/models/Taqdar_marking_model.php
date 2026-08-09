@@ -20,8 +20,30 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  */
 class Taqdar_marking_model extends CI_Model
 {
-    /** أنواع الأسئلة التي يصححها السكربت آليا (User::quiz_answer_submit). */
-    private $auto_types = array('multiple_choice', 'single_choice', 'fill_in_the_blank');
+    /**
+     * أنواع الأسئلة التي تصحح آليا — **باصطلاحي المنصة معا**.
+     *
+     * في عمود `question.type` مفرداتان لا واحدة:
+     *   · Academy الأصلي (`User::submit_quiz_answer`):
+     *     multiple_choice · single_choice · fill_in_the_blank
+     *   · طبقة تقدر (بنك أسئلة المعلم، `tq_teacher_questions.php`):
+     *     radio · checkbox · text · essay
+     *
+     * وكانت القائمة تعرف الأولى وحدها، وكل سؤال في هذه القاعدة مكتوب
+     * بالثانية (`radio`، مئة سؤال من مئة). فكانت `manual_questions()`
+     * تعد **كل** سؤال اختيار من متعدد سؤالا مقاليا، و`student_view()`
+     * تحجب درجته حتى يعتمدها معلم: اختبار موضوعي بالكامل صححته الآلة
+     * في الثانية نفسها، ويقال لصاحبه ولوليه «ينتظر اعتماد معلمه» إلى
+     * أن يمر عليه المعلم يدويا. حاجز كتب ليحمي السؤال المقالي فأمسك
+     * كل شيء.
+     *
+     * والمقالي والإجابة القصيرة (`essay` · `text`) يبقيان خارج القائمة:
+     * هما ما كتب الحاجز لأجله.
+     */
+    private $auto_types = array(
+        'multiple_choice', 'single_choice', 'fill_in_the_blank',   // اصطلاح Academy
+        'radio', 'checkbox',                                        // اصطلاح تقدر
+    );
 
     /** عتبة النجاح حين لا يضبطها الإعداد — نسبة مئوية. */
     const PASS_PERCENT_DEFAULT = 60;

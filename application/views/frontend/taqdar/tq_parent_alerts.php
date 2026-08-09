@@ -21,7 +21,13 @@
  *
  * وما اختاره ولي الأمر من هذه الأنواع صار مقروءا هنا من `parent_links.scope`:
  * النوع الموقوف يظهر موقوفا لا مخفيا، فمن أوقف شيئا يعرف أنه أوقفه
- * ولا يظن الشاشة معطوبة.
+ * ولا يظن الشاشة معطوبة. والكتم نفسه يقع في `Taqdar_events_model` عند
+ * الكتابة لا هنا عند العرض — إخفاء صف في شاشة ليس كتما.
+ *
+ * والمقروء يعلم من هنا. كانت الشاشة تقرأ ولا تكتب: يفتحها ولي الأمر
+ * عشر مرات فيبقى جرس ترويسته يحمل الرقم نفسه إلى الأبد — شارة لا تنطفئ
+ * تصير جزءا من الأثاث، فيضيع معها الإشعار الذي يستحق. وبوابة الطالب
+ * تعلم المقروء منذ زمن، وهذه الفجوة بينهما لا مبرر لها.
  */
 
 $tq_nav   = 'alerts';
@@ -31,6 +37,13 @@ $tq_sub   = 'ما يستحق أن يقطع يومك — وما ينتظر الأ
 $tq_icon  = 'bell';
 
 $tq_uid = (int) $this->session->userdata('user_id');
+
+/* «تحديد الكل كمقروء» فعل حقيقي، وينفذ قبل أي إخراج. */
+if ($this->input->post('tq_action') === 'alerts_read_all') {
+    $this->db->where('to_user', $tq_uid)->where('status', 0)
+             ->update('notifications', ['status' => 1, 'updated_at' => (string) time()]);
+    redirect(site_url('parent/alerts'), 'location', 303);
+}
 
 /* تفضيلات ولي الأمر: أي الأحداث اختار أن تصله (تحفظ في `parent_links.scope`).
    وتعرض هنا كما هي — فمن أوقف نوعا يرى أنه موقوف، لا يظنه معطوبا. */
@@ -58,12 +71,24 @@ $tq_all = $this->db->query(
 
 $tq_urgent = [];
 $tq_later  = [];
+$tq_unread = 0;
 foreach ($tq_all as $tq_n) {
+    if ((int) $tq_n['status'] === 0) $tq_unread++;
     if (isset($tq_urgent_types[$tq_n['type']])) {
         $tq_urgent[] = $tq_n;
     } else {
         $tq_later[] = $tq_n;
     }
+}
+
+/* زر «تحديد الكل كمقروء» في رأس الصفحة لا مدفونا في الأسفل: هو الفعل
+   الوحيد في هذه الشاشة، وموضعه حيث ينظر من فتحها ليطفئ جرسه. */
+if ($tq_unread > 0) {
+    $tq_tools = '<form method="post" action="' . base_url('parent/alerts') . '">'
+              . tq_csrf()
+              . '<input type="hidden" name="tq_action" value="alerts_read_all">'
+              . '<button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">'
+              . 'تحديد الكل كمقروء (' . TQ_LRI . $tq_unread . TQ_PDI . ')</button></form>';
 }
 
 include 'portal_open.php';
@@ -93,7 +118,15 @@ include 'portal_open.php';
                                 </span>
                                 <div style="flex:1;min-inline-size:0">
                                     <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_n['title']); ?></p>
-                                    <p class="tq-micro" style="margin:0"><?php echo html_escape($tq_label); ?></p>
+                                    <?php /* الجسم كان يقرأ من القاعدة ولا يعرض: عنوان بلا نص
+                                             يقول «وقع شيء» ولا يقول ماذا، فيفتح ولي الأمر
+                                             شاشة أخرى ليعرف ما كان سطرا هنا. */ ?>
+                                    <?php if (trim((string) $tq_n['description']) !== ''): ?>
+                                        <p class="tq-caption" style="margin:var(--tq-space-xs) 0 0">
+                                            <?php echo tq_iso(html_escape($tq_n['description'])); ?>
+                                        </p>
+                                    <?php endif; ?>
+                                    <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0"><?php echo html_escape($tq_label); ?></p>
                                 </div>
                                 <span class="tq-micro"><?php echo html_escape(tq_since((int) $tq_n['created_at'])); ?></span>
                                 <?php if (empty($tq_prefs[$tq_n['type']])): ?>

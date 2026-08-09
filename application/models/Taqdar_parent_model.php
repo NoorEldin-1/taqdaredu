@@ -137,12 +137,46 @@ class Taqdar_parent_model extends CI_Model
             : ['days' => self::PLAN_DAYS_DEFAULT, 'is_default' => true];
     }
 
-    /** تفضيلات الإشعارات — محفوظة في `scope` لكل رابط، وتقرأ من أحدثها. */
+    /** قناة تفضيلات ولي الأمر في `tq_prefs_notify` — البوابة نفسها لا البريد. */
+    const NOTIFY_CHANNEL = 'portal';
+
+    /**
+     * تفضيلات الإشعارات — «ما يصلك ومتى».
+     *
+     * موضعها `tq_prefs_notify` (مستخدم × نوع × قناة)، وهو موضعها الصحيح:
+     * السؤال «أي الأحداث تقطع يومي؟» سؤال عن **صاحب الحساب** لا عن رابط
+     * ابن بعينه. وكانت تحفظ في `parent_links.scope` — فولي أمر بلا رابط
+     * نشط بعد (طلبه معلق، أو ألغى ربطه) يفتح شاشة الإعدادات ويرى النموذج
+     * كاملا، فإذا حفظ رد عليه: «لا روابط في حسابك لتحفظ عليها التفضيلات».
+     * نموذج معروض لا يحفظ.
+     *
+     * وخطة الأيام تبقى في `scope` — تلك **فعلا** عن الابن لا عن أبيه.
+     *
+     * والقراءة تسقط إلى `scope` حين لا صف في الجدول الجديد: ما حفظه ولي
+     * أمر قبل اليوم لا يضيع لأننا نقلنا الموضع.
+     */
     public function prefs($parent_id)
     {
+        $parent_id = (int) $parent_id;
         $out = $this->notify_defaults();
-        $rows = $this->links($parent_id);
-        foreach ($rows as $r) {
+        if ($parent_id <= 0) return $out;
+
+        if ($this->db->table_exists('tq_prefs_notify')) {
+            $rows = $this->db->where('user_id', $parent_id)
+                             ->where('channel', self::NOTIFY_CHANNEL)
+                             ->get('tq_prefs_notify')->result_array();
+            if ($rows) {
+                foreach ($rows as $r) {
+                    if (array_key_exists($r['notify_type'], $out)) {
+                        $out[$r['notify_type']] = (int) $r['enabled'] ? 1 : 0;
+                    }
+                }
+                return $out;
+            }
+        }
+
+        // الموضع القديم: `parent_links.scope.notify`
+        foreach ($this->links($parent_id) as $r) {
             if (!empty($r['prefs']['notify']) && is_array($r['prefs']['notify'])) {
                 foreach ($out as $k => $v) {
                     if (isset($r['prefs']['notify'][$k])) $out[$k] = (int) $r['prefs']['notify'][$k] ? 1 : 0;
@@ -194,10 +228,12 @@ class Taqdar_parent_model extends CI_Model
         $scope = [
             'requested_at' => $this->now(),
             'requested_ip' => $this->input->ip_address(),
-            'notify'       => $this->prefs($parent_id),
         ];
         // لا تكتب `plan_days` هنا: خطة لم يحددها ولي الأمر تبقى غير محددة،
         // وتعلن في الشاشة افتراضية بدل أن تعرض كأنها اختياره.
+        //
+        // ولا `notify` كذلك: موضعها `tq_prefs_notify` باسم صاحب الحساب،
+        // ونسخها هنا يصنع مصدر حقيقة ثانيا يتباعد عن الأول عند أول حفظ.
 
         if ($existing) {
             if ($existing['status'] === 'active')  return $this->fail('حساب ' . $name . ' مرتبط بحسابك.');
@@ -273,7 +309,108 @@ class Taqdar_parent_model extends CI_Model
 
         if ($this->db->affected_rows() < 1) return $this->fail('تعذر تسجيل الموافقة.');
 
+        /* ولي الأمر يبلغ بالموافقة.
+           كان الطلب يرسل بإشعار ورسالة، ثم يوافق الابن فلا يصل ولي الأمر
+           شيء: يبقى ينتظر ويعيد فتح الشاشة ليرى هل وافق. والطرف الذي بدأ
+           الطلب أولى الناس بخبر نتيجته. */
+        $this->announce_to_parent(
+            (int) $row['parent_user_id'], (int) $row['student_id'], 'parent_link_granted',
+            'وافق ' . $this->name_of($row['student_id']) . ' على الربط',
+            $this->name_of($row['student_id']) . ' وافق على ربط حسابه بحسابك بتاريخ ' . $now
+            . '. تجد متابعته الآن في «أبنائي».'
+        );
+
         return ['ok' => true, 'message' => 'سجلت الموافقة بتاريخها، وفتح الرابط.'];
+    }
+
+    /**
+     * رفض الابن طلب ربط معلقا.
+     *
+     * كان الرفض ينادي `revoke_link($link_id, $uid)` — ووسائط تلك الدالة
+     * `($parent_id, $student_id)` بمعنى آخر تماما، فتبحث عن رابط
+     * `parent_user_id = <رقم الطلب>` وهو لا يطابق شيئا أبدا: يضغط الطالب
+     * «أرفض» فيقرأ «لا رابط نشط بهذا الابن في حسابك» ويبقى الطلب معلقا
+     * في شاشته إلى الأبد. وهذه دالته الصحيحة.
+     *
+     * والصف يبقى `revoked` لا يحذف: من رفض مرة له أن يحتج بأنه رفض،
+     * ومن أعاد الطلب بعد رفض يجب أن يقرأ الرفض السابق في السجل.
+     */
+    public function reject_request($link_id, $student_id)
+    {
+        $link_id    = (int) $link_id;
+        $student_id = (int) $student_id;
+
+        $row = $this->db->where('id', $link_id)
+                        ->where('student_id', $student_id)
+                        ->where('status', 'pending')
+                        ->get('parent_links')->row_array();
+
+        if (!$row) return $this->fail('لا طلب ربط معلق بهذا الرقم على حسابك.');
+
+        $scope = $this->scope_of($row);
+        $scope['rejected'] = [
+            'at' => $this->now(),
+            'by' => $student_id,
+            'ip' => $this->input->ip_address(),
+        ];
+
+        $this->db->where('id', $link_id)->where('status', 'pending')
+                 ->update('parent_links', ['status' => 'revoked', 'scope' => $this->json($scope)]);
+
+        if ($this->db->affected_rows() < 1) return $this->fail('تعذر تسجيل الرفض.');
+
+        $this->announce_to_parent(
+            (int) $row['parent_user_id'], $student_id, 'parent_link_rejected',
+            'لم يوافق ' . $this->name_of($student_id) . ' على الربط',
+            'رفض ' . $this->name_of($student_id) . ' طلب ربط حسابه بحسابك. '
+            . 'ولا يفتح شيء من بياناته. تحدث إليه قبل أن ترسل طلبا جديدا.'
+        );
+
+        return ['ok' => true, 'message' => 'رفضت الطلب، ولم يفتح شيء من بياناتك.'];
+    }
+
+    /**
+     * سحب الابن موافقته على رابط نشط.
+     *
+     * نص الموافقة نفسه يقول «ولي أن أسحب هذه الموافقة متى شئت» — وكان
+     * ذلك وعدا بلا باب: `revoke_link` تسحب باسم ولي الأمر وحده، ولا زر
+     * في شاشة الطالب يفعل ذلك. الوعد المكتوب في بيان قانوني ينفذ.
+     */
+    public function withdraw_consent($student_id, $link_id)
+    {
+        $student_id = (int) $student_id;
+        $link_id    = (int) $link_id;
+
+        $row = $this->db->where('id', $link_id)
+                        ->where('student_id', $student_id)
+                        ->where('status', 'active')
+                        ->get('parent_links')->row_array();
+
+        if (!$row) return $this->fail('لا رابط نشط بهذا الرقم على حسابك.');
+
+        $scope = $this->scope_of($row);
+        $scope['revoked'] = [
+            'at' => $this->now(),
+            'by' => $student_id,
+            'by_role' => 'student',
+            'ip' => $this->input->ip_address(),
+        ];
+
+        $this->db->where('id', $link_id)->update('parent_links', [
+            'status' => 'revoked',
+            'scope'  => $this->json($scope),
+        ]);
+
+        if ($this->db->affected_rows() < 1) return $this->fail('تعذر سحب الموافقة.');
+
+        $this->announce_to_parent(
+            (int) $row['parent_user_id'], $student_id, 'parent_link_withdrawn',
+            'سحب ' . $this->name_of($student_id) . ' موافقته على الربط',
+            'سحب ' . $this->name_of($student_id) . ' موافقته على ربط حسابه بحسابك، '
+            . 'ولم تعد ترى شيئا من بياناته. ويبقى في السجل تاريخ موافقته وتاريخ سحبها.'
+        );
+
+        return ['ok' => true, 'message' => 'سحبت موافقتك، ولم يعد ولي أمرك يرى شيئا من بياناتك.'];
     }
 
     /** سحب طلب معلق — يحذف الصف، فلا شيء وقع ليؤرخ. */
@@ -319,8 +456,41 @@ class Taqdar_parent_model extends CI_Model
 
         if ($this->db->affected_rows() < 1) return $this->fail('تعذر إلغاء الربط.');
 
+        /* الابن يبلغ بفك الربط.
+           كان الربط يقع بعلمه ويفك بلا علمه: يظل يحسب أن وليه يتابعه —
+           وهو حكم يغير سلوكه. وطرفا العلاقة يبلغان بانتهائها كما بلغا ببدئها. */
+        $this->announce_to_student(
+            $student_id, $parent_id, 'parent_link_revoked',
+            'أنهى ' . $this->name_of($parent_id) . ' متابعة حسابك',
+            'ألغى ' . $this->name_of($parent_id) . ' ربط حسابك بحسابه، ولم يعد يرى شيئا من بياناتك. '
+            . 'وأي متابعة جديدة تحتاج طلبا جديدا وموافقة جديدة منك.'
+        );
+
         $name = $this->name_of($student_id);
         return ['ok' => true, 'message' => 'ألغي ربط ' . $name . '، ولم تعد ترى شيئا من بياناته.'];
+    }
+
+    /** روابط الطالب مع أولياء أمره — تقرأ من شاشة إعدادات الطالب. */
+    public function links_of_student($student_id, $status = null)
+    {
+        $student_id = (int) $student_id;
+        if ($student_id <= 0 || !$this->db->table_exists('parent_links')) return [];
+
+        $sql = "SELECT pl.id, pl.parent_user_id, pl.status, pl.consent_at, pl.scope,
+                       u.first_name, u.last_name, u.email
+                  FROM parent_links pl
+                  JOIN users u ON u.id = pl.parent_user_id
+                 WHERE pl.student_id = ?";
+        $bind = [$student_id];
+        if ($status !== null) { $sql .= " AND pl.status = ?"; $bind[] = $status; }
+        $sql .= " ORDER BY FIELD(pl.status,'pending','active','revoked'), pl.id DESC";
+
+        $rows = $this->db->query($sql, $bind)->result_array();
+        foreach ($rows as &$r) {
+            $r['name']  = trim($r['first_name'] . ' ' . $r['last_name']);
+            $r['prefs'] = $this->scope_of($r);
+        }
+        return $rows;
     }
 
     /* ================================================================
@@ -379,10 +549,43 @@ class Taqdar_parent_model extends CI_Model
         return array_values($out);
     }
 
-    /** هل يجوز لولي الأمر مراسلة هذا المعلم؟ يفحص قبل الكتابة لا عند الرسم. */
+    /**
+     * قائمة من يجوز لولي الأمر مراسلته — معلمو مواد أبنائه، ثم الدعم.
+     *
+     * الدعم كان ناقصا: الشاشة تقول تحت عنوانها «محادثاتك مع معلمي أبنائك
+     * **وإدارة المنصة**»، والمتحكم يسمح بمراسلة الإدارة صراحة — ثم يفوض
+     * إلى `start_thread` التي تفحص قائمة المعلمين وحدها فترفض. وعد مكتوب
+     * في ثلاثة مواضع وباب مغلق في الرابع. وصفحة المدفوعات تحيل إليه
+     * كذلك: «راسلنا من صفحة الرسائل» لطلب الاسترداد.
+     *
+     * والقائمة واحدة للرسم وللفحص: قائمة ترسم من مصدر وتفحص من آخر
+     * تتباعد، فيرى ولي الأمر اسما في القائمة ويرفض إرساله إليه.
+     */
+    public function recipients_for($parent_id)
+    {
+        $out = $this->teachers_for($parent_id);
+
+        $admin = $this->db->select('id, first_name, last_name')
+                          ->where('role_id', 1)->where('status', 1)
+                          ->order_by('id', 'ASC')->limit(1)
+                          ->get('users')->row_array();
+
+        if ($admin) {
+            $out[] = [
+                'id'       => (int) $admin['id'],
+                'name'     => 'إدارة المنصة',
+                'courses'  => ['الدعم والاستفسارات والاسترداد'],
+                'children' => [],
+                'support'  => true,
+            ];
+        }
+        return $out;
+    }
+
+    /** هل يجوز لولي الأمر مراسلة هذا الحساب؟ يفحص قبل الكتابة لا عند الرسم. */
     public function may_message($parent_id, $teacher_id)
     {
-        foreach ($this->teachers_for($parent_id) as $t) {
+        foreach ($this->recipients_for($parent_id) as $t) {
             if ((int) $t['id'] === (int) $teacher_id) return true;
         }
         return false;
@@ -407,7 +610,7 @@ class Taqdar_parent_model extends CI_Model
         if (mb_strlen($text) > 4000) return $this->fail('الرسالة أطول من أربعة آلاف حرف.');
 
         if (!$this->may_message($parent_id, $teacher_id)) {
-            return $this->fail('لا تراسل إلا هيئة تدريس مواد أبنائك المربوطين.');
+            return $this->fail('لا تراسل إلا معلمي مواد أبنائك المربوطين أو إدارة المنصة.');
         }
 
         $thread = $this->db->query(
@@ -487,6 +690,117 @@ class Taqdar_parent_model extends CI_Model
                  ->update('message_thread', ['last_message_timestamp' => $now]);
 
         return ['ok' => true, 'thread' => $code, 'message' => 'أرسل ردك.'];
+    }
+
+    /* ================================================================
+       المال — دفتر واحد من مصدريه
+       ================================================================
+       المال في هذه المنصة في مكانين لا مكان واحد:
+
+         · `invoices` + `subscriptions` — مسار تقدر، وهو المسار العامل
+           اليوم (اشتراك بباقة، فاتورة بمبلغ **بالهللات**).
+         · `payment` — جدول Academy الأصلي، شراء كورس مفرد بمبلغ
+           **بالريالات**.
+
+       وشاشة المدفوعات كانت تقرأ `payment` وحده. وهو فارغ في هذه القاعدة
+       بينما لابن ولي الأمر أربعة اشتراكات وأربع فواتير وواحد منها نشط
+       بثلاثمئة وتسعين ريالا — فيقرأ ولي أمر يدفع فعلا: «لا مدفوعات بعد
+       · 0 ريال». وهذا أسوأ من صفحة معطوبة: صفحة تعمل وتكذب.
+
+       والوحدة تنقل هنا مرة واحدة: الدفتر يخرج بالريالات دائما، فلا تقسم
+       على مئة في شاشة وتنسى في أخرى. */
+
+    /**
+     * دفتر مدفوعات مستخدم — مصدراه مدمجان ومرتبان بالتاريخ.
+     *
+     * @return array صفوف: [ts, amount (ريال), title, ref, method, status, source]
+     */
+    public function payments_of($user_id, $limit = 50)
+    {
+        $user_id = (int) $user_id;
+        if ($user_id <= 0) return [];
+
+        $rows = [];
+
+        /* فواتير تقدر — المبلغ بالهللات، والحالة تعرض كما هي:
+           «مدفوعة» و«بانتظار التحويل» و«مستردة» ثلاث حقائق لا واحدة. */
+        if ($this->db->table_exists('invoices')) {
+            $labels = ['paid' => 'مدفوعة', 'unpaid' => 'بانتظار التحويل', 'refunded' => 'مستردة'];
+            foreach ($this->db->query(
+                "SELECT i.id, i.invoice_no, i.total, i.status, i.method, i.transaction_id,
+                        i.issued_at, i.paid_at, p.name_ar AS plan_name
+                   FROM invoices i
+                   LEFT JOIN subscriptions s ON s.id = i.subscription_id
+                   LEFT JOIN plans p ON p.id = s.plan_id
+                  WHERE i.user_id = ?
+                  ORDER BY i.id DESC LIMIT ?",
+                [$user_id, (int) $limit]
+            )->result_array() as $r) {
+                $when = !empty($r['paid_at']) ? $r['paid_at'] : $r['issued_at'];
+                $rows[] = [
+                    'ts'     => $when ? strtotime($when) : 0,
+                    'amount' => ((int) $r['total']) / 100,
+                    'title'  => $r['plan_name'] ?: 'اشتراك',
+                    'ref'    => $r['transaction_id'] ?: $r['invoice_no'],
+                    'method' => (string) $r['method'],
+                    'status' => $r['status'],
+                    'label'  => $labels[$r['status']] ?? $r['status'],
+                    'source' => 'invoice',
+                ];
+            }
+        }
+
+        /* مدفوعات Academy — المبلغ بالريالات، ولا حالة لها: صف هنا يعني
+           عملية تمت. */
+        foreach ($this->db->query(
+            "SELECT p.id, p.amount, p.date_added, p.payment_type, p.transaction_id,
+                    c.title AS course_title
+               FROM payment p
+               LEFT JOIN course c ON c.id = p.course_id
+              WHERE p.user_id = ?
+              ORDER BY p.date_added DESC LIMIT ?",
+            [$user_id, (int) $limit]
+        )->result_array() as $r) {
+            $rows[] = [
+                'ts'     => (int) $r['date_added'],
+                'amount' => (float) $r['amount'],
+                'title'  => $r['course_title'] ?: 'شراء',
+                'ref'    => (string) $r['transaction_id'],
+                'method' => (string) $r['payment_type'],
+                'status' => 'paid',
+                'label'  => 'مدفوعة',
+                'source' => 'payment',
+            ];
+        }
+
+        usort($rows, function ($a, $b) { return $b['ts'] <=> $a['ts']; });
+
+        return array_slice($rows, 0, (int) $limit);
+    }
+
+    /**
+     * مجاميع الدفتر — المدفوع وحده يجمع.
+     *
+     * فاتورة معلقة ليست مالا خرج من الجيب، وعدها في «مجموع ما دفعته»
+     * يعطي ولي الأمر رقما أكبر مما دفع فعلا. وتعرض معلقة على حدة.
+     */
+    public function payment_totals($rows, $month_start = null)
+    {
+        $month_start = $month_start === null ? strtotime(date('Y-m-01 00:00:00')) : (int) $month_start;
+        $out = ['month' => 0.0, 'all' => 0.0, 'pending' => 0.0, 'pending_count' => 0];
+
+        foreach ((array) $rows as $r) {
+            if ($r['status'] === 'unpaid') {
+                $out['pending'] += (float) $r['amount'];
+                $out['pending_count']++;
+                continue;
+            }
+            if ($r['status'] === 'refunded') continue;
+
+            $out['all'] += (float) $r['amount'];
+            if ((int) $r['ts'] >= $month_start) $out['month'] += (float) $r['amount'];
+        }
+        return $out;
     }
 
     /* ================================================================
@@ -579,20 +893,63 @@ class Taqdar_parent_model extends CI_Model
             $clean[$k] = !empty($notify[$k]) ? 1 : 0;
         }
 
+        /* التنبيهات: صف لكل نوع باسم صاحب الحساب — تحفظ سواء كان له
+           رابط أم لا. وكانت مشروطة بوجود رابط، فمن ألغى ربطه أو ينتظر
+           موافقة ابنه يجد نموذجا كاملا يرفض أن يحفظ. */
+        $saved_notify = false;
+        if ($this->db->table_exists('tq_prefs_notify')) {
+            $now = time();
+            foreach ($clean as $type => $on) {
+                $this->db->replace('tq_prefs_notify', [
+                    'user_id'     => $parent_id,
+                    'notify_type' => $type,
+                    'channel'     => self::NOTIFY_CHANNEL,
+                    'enabled'     => $on,
+                    'updated_at'  => $now,
+                ]);
+            }
+            $saved_notify = true;
+        }
+
+        /* خطة الأيام: في نطاق الرابط لأنها عن الابن لا عن أبيه.
+           والقيمة الفارغة تعني «غير محددة» فتحذف بدل أن تكتب رقما لم
+           يختره أحد — الخانة المنسدلة كانت تنتقي أول خيار (يوم واحد)
+           حين لا خطة، فأول حفظ يكتب خطة يوم واحد لكل ابن بلا أن يلمس
+           ولي الأمر الحقل، ثم يقرأ في التقرير «باقية أربعة أيام» وقد
+           صارت خطته يوما. */
         $rows = $this->db->where('parent_user_id', $parent_id)->get('parent_links')->result_array();
-        if (!$rows) return $this->fail('لا روابط في حسابك لتحفظ عليها التفضيلات.');
 
         foreach ($rows as $r) {
             $scope = $this->scope_of($r);
-            $scope['notify'] = $clean;
+            $sid   = (int) $r['student_id'];
+            $dirty = false;
 
-            $sid = (int) $r['student_id'];
-            if (isset($plan_days[$sid])) {
-                $d = (int) $plan_days[$sid];
-                if ($d >= 1 && $d <= 7) $scope['plan_days'] = $d;
+            // الموضع القديم يفرغ حين ينجح الجديد، فلا مصدران للحقيقة
+            if ($saved_notify && isset($scope['notify'])) {
+                unset($scope['notify']);
+                $dirty = true;
+            } elseif (!$saved_notify) {
+                $scope['notify'] = $clean;
+                $dirty = true;
             }
 
-            $this->db->where('id', (int) $r['id'])->update('parent_links', ['scope' => $this->json($scope)]);
+            if (array_key_exists($sid, (array) $plan_days)) {
+                $raw = trim((string) $plan_days[$sid]);
+                if ($raw === '') {
+                    if (isset($scope['plan_days'])) { unset($scope['plan_days']); $dirty = true; }
+                } else {
+                    $d = (int) $raw;
+                    if ($d >= 1 && $d <= 7) { $scope['plan_days'] = $d; $dirty = true; }
+                }
+            }
+
+            if ($dirty) {
+                $this->db->where('id', (int) $r['id'])->update('parent_links', ['scope' => $this->json($scope)]);
+            }
+        }
+
+        if (!$saved_notify && !$rows) {
+            return $this->fail('تعذر حفظ التفضيلات — لا جدول تفضيلات ولا روابط في حسابك.');
         }
 
         return ['ok' => true, 'message' => 'حفظت تفضيلاتك.'];
@@ -756,6 +1113,42 @@ class Taqdar_parent_model extends CI_Model
         $out = '';
         for ($i = 0; $i < 30; $i++) $out .= $abc[random_int(0, strlen($abc) - 1)];
         return $out;
+    }
+
+    /**
+     * إشعار واحد يكتب في `notifications` — أساس كل تبليغ في هذه الطبقة.
+     *
+     * كل أحداث الربط تكتب هنا بلا مرور بـ`Taqdar_events_model`: تلك تفرض
+     * تفضيلات ولي الأمر وتكتم ما أوقفه، وأحداث الربط نفسه ليست من الخمسة
+     * التي يختارها — ولا يكتم عن أحد خبر فتح بياناته أو إغلاقها.
+     */
+    private function announce($to_user, $from_user, $type, $title, $body)
+    {
+        if (!$this->db->table_exists('notifications')) return;
+        $now = time();
+
+        $this->db->insert('notifications', [
+            'from_user'   => (int) $from_user ?: null,
+            'to_user'     => (int) $to_user,
+            'type'        => $type,
+            'title'       => mb_substr($title, 0, 250),
+            'description' => $body,
+            'status'      => 0,
+            'created_at'  => (string) $now,
+            'updated_at'  => null,
+        ]);
+    }
+
+    /** تبليغ ولي الأمر بنتيجة طلبه — موافقة أو رفضا أو سحبا. */
+    private function announce_to_parent($parent_id, $student_id, $type, $title, $body)
+    {
+        $this->announce($parent_id, $student_id, $type, $title, $body);
+    }
+
+    /** تبليغ الابن بما يقع على رابطه من طرف وليه. */
+    private function announce_to_student($student_id, $parent_id, $type, $title, $body)
+    {
+        $this->announce($student_id, $parent_id, $type, $title, $body);
     }
 
     /**

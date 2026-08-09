@@ -36,8 +36,52 @@ $tq_icon  = 'chat';
 
 $tq_uid = (int) $this->session->userdata('user_id');
 
-$tq_teachers = $tq_pm->teachers_for($tq_uid);
+/* من يجوز مراسلته — معلمو مواد الأبناء ثم الدعم، من مصدر واحد يرسم
+   القائمة ويفحصها عند الإرسال. */
+$tq_teachers = $tq_pm->recipients_for($tq_uid);
 $tq_children = $tq_pm->children($tq_uid);
+
+/* فتح خيط بعينه — يتحقق من أنه طرف فيه في الاستعلام نفسه.
+   ويحسم **قبل** بناء القائمة: الخيط الذي فتح صار مقروءا، فلو حسبت
+   شاراته قبل تعليمه لعرضت الصفحة نفسها رقما ألغته للتو. */
+$tq_open_code = (string) $this->input->get('thread', true);
+$tq_open      = null;
+$tq_messages  = [];
+
+if ($tq_open_code !== '') {
+    $tq_open = $this->db->query(
+        "SELECT message_thread_code, sender, receiver FROM message_thread
+          WHERE message_thread_code = ? AND (sender = ? OR receiver = ?) LIMIT 1",
+        [$tq_open_code, $tq_uid, $tq_uid]
+    )->row_array();
+
+    if ($tq_open) {
+        /* المحادثة المفتوحة محادثة مقروءة.
+           كانت الشاشة تعرض ولا تعلم: يفتح ولي الأمر الخيط ويقرأ رسالة
+           المعلم، ثم يعود فيجد الشارة كما هي، وجرس ترويسته يحمل الرقم
+           نفسه إلى الأبد. وبوابة الطالب تنادي هذه الدالة عينها منذ زمن
+           (`tq_messages.php`) — فالفجوة بين البوابتين لا مبرر لها.
+
+           و`mark_thread_messages_read` تقيد بـ`receiver = <صاحب الجلسة>`،
+           فلا تعلم رسائله هو مقروءة عند الطرف الآخر. */
+        $tq_ci->load->model('crud_model');
+        $tq_ci->crud_model->mark_thread_messages_read($tq_open_code);
+
+        $tq_messages = $this->db->query(
+            "SELECT m.message_id, m.message, m.sender, m.timestamp,
+                    u.first_name, u.last_name
+               FROM message m
+               LEFT JOIN users u ON u.id = m.sender
+              WHERE m.message_thread_code = ?
+              ORDER BY m.message_id ASC
+              LIMIT 100",
+            [$tq_open_code]
+        )->result_array();
+    } else {
+        /* رمز خيط ليس طرفا فيه — يقال ولا يبتلع، وإلا ظن أن الرابط عطب. */
+        $tq_thread_denied = true;
+    }
+}
 
 $tq_threads = $this->db->query(
     "SELECT message_thread_code, sender, receiver, last_message_timestamp
@@ -69,36 +113,19 @@ foreach ($tq_threads as &$tq_t) {
 }
 unset($tq_t);
 
-/* فتح خيط بعينه — يتحقق من أنه طرف فيه في الاستعلام نفسه. */
-$tq_open_code = (string) $this->input->get('thread', true);
-$tq_open      = null;
-$tq_messages  = [];
-
-if ($tq_open_code !== '') {
-    $tq_open = $this->db->query(
-        "SELECT message_thread_code, sender, receiver FROM message_thread
-          WHERE message_thread_code = ? AND (sender = ? OR receiver = ?) LIMIT 1",
-        [$tq_open_code, $tq_uid, $tq_uid]
-    )->row_array();
-
-    if ($tq_open) {
-        $tq_messages = $this->db->query(
-            "SELECT m.message_id, m.message, m.sender, m.timestamp,
-                    u.first_name, u.last_name
-               FROM message m
-               LEFT JOIN users u ON u.id = m.sender
-              WHERE m.message_thread_code = ?
-              ORDER BY m.message_id ASC
-              LIMIT 100",
-            [$tq_open_code]
-        )->result_array();
-    }
-}
-
 include 'portal_open.php';
 ?>
 
 <?php echo $tq_pm->flash_html(); ?>
+
+<?php if (!empty($tq_thread_denied)): ?>
+    <div class="tq-pastel tq-pastel--rose" role="alert" style="margin-block-end:var(--tq-space-xl)">
+        <span class="tq-pastel__label tq-micro">لم تفتح</span>
+        <p class="tq-pastel__body" style="margin:var(--tq-space-xs) 0 0">
+            لا محادثة بهذا الرمز في حسابك. المحادثات تفتح لأطرافها وحدهم.
+        </p>
+    </div>
+<?php endif; ?>
 
 <div class="tq-cols">
     <div>
@@ -130,6 +157,7 @@ include 'portal_open.php';
 
                 <form method="post" style="margin-block-start:var(--tq-space-xl)"
                       action="<?php echo base_url('parent/messages'); ?>">
+                    <?php echo tq_csrf(); ?>
                     <input type="hidden" name="tq_action" value="message_reply">
                     <input type="hidden" name="thread" value="<?php echo html_escape($tq_open['message_thread_code']); ?>">
                     <div class="tq-field">
@@ -150,22 +178,26 @@ include 'portal_open.php';
             <div class="tq-card">
                 <?php if ($tq_teachers): ?>
                     <form method="post" action="<?php echo base_url('parent/messages/compose'); ?>">
+                        <?php echo tq_csrf(); ?>
                         <input type="hidden" name="tq_action" value="message_new">
 
                         <div class="tq-field">
                             <label class="tq-field__label" for="tq-receiver">إلى</label>
                             <select class="tq-select" id="tq-receiver" name="receiver" required>
-                                <option value="">اختر معلما…</option>
+                                <option value="">اختر من تراسل…</option>
                                 <?php foreach ($tq_teachers as $tq_t2): ?>
                                     <option value="<?php echo (int) $tq_t2['id']; ?>">
                                         <?php echo html_escape($tq_t2['name']); ?>
-                                        — <?php echo html_escape(implode('، ', $tq_t2['courses'])); ?>
-                                        (<?php echo html_escape(implode('، ', $tq_t2['children'])); ?>)
+                                        — <?php echo html_escape(implode('، ', $tq_t2['courses'])); ?><?php
+                                        echo !empty($tq_t2['children'])
+                                            ? ' (' . html_escape(implode('، ', $tq_t2['children'])) . ')'
+                                            : ''; ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                             <p class="tq-field__hint">
-                                القائمة معلمو مواد أبنائك المربوطين وحدهم، وتفحص في الخادم عند الإرسال.
+                                معلمو مواد أبنائك المربوطين وإدارة المنصة — لا أحد سواهم.
+                                والقائمة تفحص في الخادم عند الإرسال لا عند رسمها.
                             </p>
                         </div>
 
@@ -179,7 +211,7 @@ include 'portal_open.php';
                     </form>
                 <?php else: ?>
                     <div class="tq-empty">
-                        <h3 class="tq-empty__title">لا معلم تجوز مراسلته الآن</h3>
+                        <h3 class="tq-empty__title">لا أحد تجوز مراسلته الآن</h3>
                         <p class="tq-empty__text">
                             <?php if (!$tq_children): ?>
                                 لا ابن مربوط بحسابك بعد. المراسلة تفتح بعد ربط حساب ابنك وموافقته.

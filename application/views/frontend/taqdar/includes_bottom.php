@@ -20,14 +20,13 @@
     var HASH = "<?php echo $this->security->get_csrf_hash(); ?>";
     var WRITE = { POST: 1, PUT: 1, PATCH: 1, DELETE: 1 };
     var origFetch = window.fetch;
-    if (!origFetch) return;
 
     function sameOrigin(url) {
         try { return new URL(url, location.href).origin === location.origin; }
         catch (e) { return false; }
     }
 
-    window.fetch = function (input, init) {
+    if (origFetch) window.fetch = function (input, init) {
         init = init || {};
         var url = (typeof input === "string") ? input : (input && input.url) || "";
         var method = (init.method || (input && input.method) || "GET").toUpperCase();
@@ -66,6 +65,29 @@
         }
         return origFetch.call(this, input, init);
     };
+
+    /* نماذج HTML العادية — شبكة الأمان.
+       CI3 يشترط الرمز في كل جسم POST، و`form_open()` وحده يحقنه. وفي هذه
+       الشجرة مئتان واثنان وثلاثون نموذجا مكتوبا بيده مقابل نموذجين اثنين
+       بـ`form_open()`، فكل «حفظ» و«إرسال» فيها كان يرد 403 بصفحة إنجليزية
+       خام لا رسالة عربية ولا حفظ. والحقن هنا عند الإرسال لا عند التحميل:
+       نموذج يبنيه سكربت بعد التحميل يلتقط كذلك.
+
+       وهذا احتياط لا أصل: نماذج تقدر تطبع الحقل بنفسها عبر `tq_csrf()`،
+       لأن من أوقف JS يجب أن يحفظ كما يحفظ غيره. */
+    document.addEventListener("submit", function (e) {
+        var f = e.target;
+        if (!f || f.tagName !== "FORM") return;
+        if ((f.method || "get").toUpperCase() !== "POST") return;
+        if (!sameOrigin(f.getAttribute("action") || location.href)) return;
+        if (f.querySelector('input[name="' + NAME + '"]')) return;
+
+        var i = document.createElement("input");
+        i.type = "hidden";
+        i.name = NAME;
+        i.value = HASH;
+        f.appendChild(i);
+    }, true);
 
     /* XMLHttpRequest لمن يستعمله مباشرة */
     var open = XMLHttpRequest.prototype.open, send = XMLHttpRequest.prototype.send;

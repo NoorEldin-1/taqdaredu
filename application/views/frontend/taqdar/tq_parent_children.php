@@ -37,10 +37,17 @@ $tq_pending  = $tq_pm->links($tq_uid, 'pending');
 
 /* لكل ابن: كورساته ومتوسط تقدمه وآخر نشاط — من الجداول الحقيقية. */
 foreach ($tq_children as &$tq_child) {
+    /* المتوسط على **كل** مواده لا على ما بدأه منها.
+       `AVG()` تتخطى القيم الفارغة، و`LEFT JOIN` يعطي NULL لمادة بلا صف
+       مشاهدة — أي لمادة لم يفتحها بعد. فمن سجل في مادتين وأنجز في واحدة
+       ١٢٪ ولم يلمس الأخرى كان يقرأ وليه «١٢٪» بدل «٦٪»: المادة المهملة
+       تختفي من الحساب بدل أن تخفضه، والرقم يتحسن كلما أهمل أكثر.
+       والقسمة الصريحة على عدد المواد تعد غير المبدوءة صفرا كما هي. */
     $tq_row = $this->db->query(
-        "SELECT COUNT(DISTINCT e.course_id)              AS courses,
-                COALESCE(AVG(w.course_progress), 0)      AS progress,
-                COALESCE(MAX(w.date_updated), 0)         AS last_seen
+        "SELECT COUNT(DISTINCT e.course_id) AS courses,
+                COALESCE(SUM(COALESCE(w.course_progress, 0))
+                         / NULLIF(COUNT(DISTINCT e.course_id), 0), 0) AS progress,
+                COALESCE(MAX(w.date_updated), 0) AS last_seen
            FROM enrol e
            LEFT JOIN watch_histories w
                   ON w.student_id = e.user_id AND w.course_id = e.course_id
@@ -81,7 +88,12 @@ include 'portal_open.php';
                             <div style="flex:1;min-inline-size:0">
                                 <h2 class="tq-h2" style="margin:0"><?php echo html_escape($tq_name); ?></h2>
                                 <p class="tq-caption" style="margin:0">
-                                    <?php echo tq_iso($tq_c['courses'] . ' مواد مسجلة'); ?>
+                                    <?php /* «١ مواد» و«٢ مادة» خطآن ظاهران. والنعت يتبع
+                                             منعوته: «مادتان مسجلتان» لا «مادتان مسجلة». */ ?>
+                                    <?php echo tq_iso((int) $tq_c['courses'] === 2
+                                        ? 'مادتان مسجلتان'
+                                        : tq_count_units((int) $tq_c['courses'], 'مادة', 'مادتان', 'مادتين',
+                                            'مواد', 'مادة', 'لا مواد', 'nom', true) . ' مسجلة'); ?>
                                 </p>
                             </div>
                             <?php echo $tq_ok
@@ -105,7 +117,12 @@ include 'portal_open.php';
                         </p>
 
                         <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
-                              onsubmit="return confirm('إلغاء ربط <?php echo html_escape($tq_name); ?>؟ لن ترى شيئا من بياناته بعدها، ويلزم طلب جديد وموافقة جديدة منه.');">
+                              data-tq-confirm-title="إلغاء ربط <?php echo html_escape($tq_name); ?>؟"
+                              data-tq-confirm="لن ترى شيئا من بياناته بعدها: لا تقدمه ولا نتائجه ولا مدفوعاته."
+                              data-tq-confirm-note="يبقى في السجل تاريخ موافقته وتاريخ الإلغاء. وإعادة المتابعة تحتاج طلبا جديدا وموافقة جديدة منه."
+                              data-tq-confirm-ok="إلغاء الربط"
+                              data-tq-confirm-tone="danger">
+                            <?php echo tq_csrf(); ?>
                             <input type="hidden" name="tq_action" value="link_revoke">
                             <input type="hidden" name="student_id" value="<?php echo $tq_sid; ?>">
                             <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit">إلغاء الربط</button>
@@ -135,25 +152,31 @@ include 'portal_open.php';
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_pending) . TQ_PDI; ?></span>
                 </div>
                 <div class="tq-card">
-                    <dl class="tq-s-list">
-                        <?php foreach ($tq_pending as $tq_p): ?>
-                            <div class="tq-s-row">
-                                <dt>
-                                    <span class="tq-strong"><?php echo html_escape($tq_p['name']); ?></span>
-                                    <span class="tq-micro" style="display:block"><?php echo tq_iso(html_escape((string) $tq_p['email'])); ?></span>
-                                </dt>
-                                <dd style="margin:0;display:flex;gap:var(--tq-space-m);align-items:center">
-                                    <?php echo tq_badge('due', 'بانتظار موافقته'); ?>
-                                    <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
-                                          onsubmit="return confirm('سحب طلب ربط <?php echo html_escape($tq_p['name']); ?>؟');">
-                                        <input type="hidden" name="tq_action" value="link_cancel">
-                                        <input type="hidden" name="link_id" value="<?php echo (int) $tq_p['id']; ?>">
-                                        <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit">سحب الطلب</button>
-                                    </form>
-                                </dd>
-                            </div>
-                        <?php endforeach; ?>
-                    </dl>
+                    <?php /* `tq-prefrow` من مكتبة المكونات. كان الصف
+                             `dl.tq-s-list > .tq-s-row` وهما صنفان يعرفهما
+                             `tq_student_styles.php` وحده — وهذه الشاشة لا
+                             تضمنه، فتعرض الصفوف بلا نمط بتة. */ ?>
+                    <?php foreach ($tq_pending as $tq_p): ?>
+                        <div class="tq-prefrow">
+                            <span class="tq-prefrow__main">
+                                <span class="tq-prefrow__title"><?php echo html_escape($tq_p['name']); ?></span>
+                                <span class="tq-prefrow__hint" style="direction:ltr;text-align:start"><?php echo html_escape((string) $tq_p['email']); ?></span>
+                            </span>
+                            <span class="tq-prefrow__end">
+                                <?php echo tq_badge('due', 'بانتظار موافقته'); ?>
+                                <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
+                                      data-tq-confirm-title="سحب طلب ربط <?php echo html_escape($tq_p['name']); ?>؟"
+                                      data-tq-confirm="لن يصله الطلب بعد الآن، ولا يفتح شيء من بياناته — ولم يكن مفتوحا أصلا."
+                                      data-tq-confirm-note="تستطيع إرسال طلب جديد إليه متى شئت."
+                                      data-tq-confirm-ok="سحب الطلب">
+                                    <?php echo tq_csrf(); ?>
+                                    <input type="hidden" name="tq_action" value="link_cancel">
+                                    <input type="hidden" name="link_id" value="<?php echo (int) $tq_p['id']; ?>">
+                                    <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit">سحب الطلب</button>
+                                </form>
+                            </span>
+                        </div>
+                    <?php endforeach; ?>
                     <p class="tq-micro" style="margin-block-start:var(--tq-space-m)">
                         وصلت كل واحد منهم رسالة بنص الموافقة وإشعار في حسابه. ولا يفتح شيء من بياناته قبل أن يوافق هو.
                     </p>
@@ -166,6 +189,7 @@ include 'portal_open.php';
             <div class="tq-sectionhead"><h2 id="tq-add-h">إضافة ابن</h2></div>
             <div class="tq-card">
                 <form method="post" action="<?php echo base_url('parent/children/link'); ?>">
+                    <?php echo tq_csrf(); ?>
                     <input type="hidden" name="tq_action" value="link_request">
                     <div class="tq-field">
                         <label class="tq-field__label" for="tq-identifier">بريد حساب ابنك في تقدر (أو رقم حسابه)</label>

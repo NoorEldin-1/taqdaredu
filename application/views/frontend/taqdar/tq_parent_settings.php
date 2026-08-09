@@ -48,6 +48,7 @@ include 'portal_open.php';
         <section class="tq-card">
             <h2 class="tq-card__title">بياناتك</h2>
             <form method="post" action="<?php echo base_url('parent/settings/save'); ?>">
+                <?php echo tq_csrf(); ?>
                 <input type="hidden" name="tq_action" value="profile_save">
 
                 <div class="tq-grid tq-grid--2">
@@ -91,6 +92,7 @@ include 'portal_open.php';
         <section class="tq-card">
             <h2 class="tq-card__title">كلمة المرور</h2>
             <form method="post" action="<?php echo base_url('parent/settings/save'); ?>">
+                <?php echo tq_csrf(); ?>
                 <input type="hidden" name="tq_action" value="password_change">
 
                 <div class="tq-field">
@@ -126,50 +128,62 @@ include 'portal_open.php';
             <?php if (empty($tq_links)): ?>
                 <p class="tq-caption">لا رابط في حسابك بعد. أرسل طلبك من النموذج تحت.</p>
             <?php else: ?>
-                <dl class="tq-s-list">
-                    <?php foreach ($tq_links as $l):
-                        $k = $l['status'] === 'active' ? 'mastered' : ($l['status'] === 'pending' ? 'due' : 'late');
-                        $w = ['active' => 'مفعل', 'pending' => 'بانتظار موافقته', 'revoked' => 'مسحوب'][$l['status']] ?? $l['status'];
-                    ?>
-                        <div class="tq-s-row">
-                            <dt>
-                                <span class="tq-strong"><?php echo html_escape($l['name']); ?></span>
-                                <span class="tq-micro" style="display:block"><?php echo tq_iso(html_escape((string) $l['email'])); ?></span>
-                                <span class="tq-micro" style="display:block">
-                                    <?php if (!empty($l['consent_at']) && $l['status'] === 'active'): ?>
-                                        وافق بتاريخ <?php echo TQ_LRI . html_escape((string) $l['consent_at']) . TQ_PDI; ?>
-                                    <?php elseif ($l['status'] === 'pending'): ?>
-                                        لا تاريخ موافقة بعد — لا يفتح شيء من بياناته
-                                    <?php elseif (!empty($l['prefs']['revoked']['at'])): ?>
-                                        ألغي الربط بتاريخ <?php echo TQ_LRI . html_escape((string) $l['prefs']['revoked']['at']) . TQ_PDI; ?>
-                                    <?php endif; ?>
-                                </span>
-                            </dt>
-                            <dd style="margin:0;display:flex;gap:var(--tq-space-m);align-items:center">
-                                <?php echo tq_badge($k, $w); ?>
-
-                                <?php if ($l['status'] === 'pending'): ?>
-                                    <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
-                                          onsubmit="return confirm('سحب طلب ربط <?php echo html_escape($l['name']); ?>؟');">
-                                        <input type="hidden" name="tq_action" value="link_cancel">
-                                        <input type="hidden" name="link_id" value="<?php echo (int) $l['id']; ?>">
-                                        <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit">سحب الطلب</button>
-                                    </form>
-                                <?php elseif ($l['status'] === 'active'): ?>
-                                    <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
-                                          onsubmit="return confirm('إلغاء ربط <?php echo html_escape($l['name']); ?>؟ لن ترى شيئا من بياناته بعدها.');">
-                                        <input type="hidden" name="tq_action" value="link_revoke">
-                                        <input type="hidden" name="student_id" value="<?php echo (int) $l['student_id']; ?>">
-                                        <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit">إلغاء الربط</button>
-                                    </form>
+                <?php foreach ($tq_links as $l):
+                    $k = $l['status'] === 'active' ? 'mastered' : ($l['status'] === 'pending' ? 'due' : 'late');
+                    $w = ['active' => 'مفعل', 'pending' => 'بانتظار موافقته', 'revoked' => 'مسحوب'][$l['status']] ?? $l['status'];
+                ?>
+                    <div class="tq-prefrow">
+                        <span class="tq-prefrow__main">
+                            <span class="tq-prefrow__title"><?php echo html_escape($l['name']); ?></span>
+                            <span class="tq-prefrow__hint tq-ltr" style="direction:ltr;text-align:start"><?php echo html_escape((string) $l['email']); ?></span>
+                            <span class="tq-prefrow__hint">
+                                <?php if (!empty($l['consent_at']) && $l['status'] === 'active'): ?>
+                                    وافق بتاريخ <?php echo TQ_LRI . html_escape((string) $l['consent_at']) . TQ_PDI; ?>
+                                <?php elseif ($l['status'] === 'pending'): ?>
+                                    لا تاريخ موافقة بعد — لا يفتح شيء من بياناته
+                                <?php elseif (!empty($l['prefs']['rejected']['at'])): ?>
+                                    رفض الطلب بتاريخ <?php echo TQ_LRI . html_escape((string) $l['prefs']['rejected']['at']) . TQ_PDI; ?>
+                                <?php elseif (!empty($l['prefs']['revoked']['at'])): ?>
+                                    <?php $tq_by_student = ($l['prefs']['revoked']['by_role'] ?? '') === 'student'; ?>
+                                    <?php echo $tq_by_student ? 'سحب موافقته بتاريخ ' : 'ألغيت الربط بتاريخ '; ?>
+                                    <?php echo TQ_LRI . html_escape((string) $l['prefs']['revoked']['at']) . TQ_PDI; ?>
                                 <?php endif; ?>
-                            </dd>
-                        </div>
-                    <?php endforeach; ?>
-                </dl>
+                            </span>
+                        </span>
+                        <span class="tq-prefrow__end">
+                            <?php echo tq_badge($k, $w); ?>
+
+                            <?php if ($l['status'] === 'pending'): ?>
+                                <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
+                                      data-tq-confirm-title="سحب طلب ربط <?php echo html_escape($l['name']); ?>؟"
+                                      data-tq-confirm="لن يصله الطلب بعد الآن، ولا يفتح شيء من بياناته — ولم يكن مفتوحا أصلا."
+                                      data-tq-confirm-note="تستطيع إرسال طلب جديد إليه متى شئت."
+                                      data-tq-confirm-ok="سحب الطلب">
+                                    <?php echo tq_csrf(); ?>
+                                    <input type="hidden" name="tq_action" value="link_cancel">
+                                    <input type="hidden" name="link_id" value="<?php echo (int) $l['id']; ?>">
+                                    <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit">سحب الطلب</button>
+                                </form>
+                            <?php elseif ($l['status'] === 'active'): ?>
+                                <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
+                                      data-tq-confirm-title="إلغاء ربط <?php echo html_escape($l['name']); ?>؟"
+                                      data-tq-confirm="لن ترى شيئا من بياناته بعدها: لا تقدمه ولا نتائجه ولا مدفوعاته."
+                                      data-tq-confirm-note="يبقى في السجل تاريخ موافقته وتاريخ الإلغاء. وإعادة المتابعة تحتاج طلبا جديدا وموافقة جديدة منه."
+                                      data-tq-confirm-ok="إلغاء الربط"
+                                      data-tq-confirm-tone="danger">
+                                    <?php echo tq_csrf(); ?>
+                                    <input type="hidden" name="tq_action" value="link_revoke">
+                                    <input type="hidden" name="student_id" value="<?php echo (int) $l['student_id']; ?>">
+                                    <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit">إلغاء الربط</button>
+                                </form>
+                            <?php endif; ?>
+                        </span>
+                    </div>
+                <?php endforeach; ?>
             <?php endif; ?>
 
             <form method="post" action="<?php echo base_url('parent/children/link'); ?>" style="margin-block-start:var(--tq-space-xl)">
+                <?php echo tq_csrf(); ?>
                 <input type="hidden" name="tq_action" value="link_request">
                 <div class="tq-field">
                     <label class="tq-field__label" for="tq-identifier-s">إضافة ابن — بريد حسابه في تقدر (أو رقم حسابه)</label>
@@ -193,27 +207,60 @@ include 'portal_open.php';
             </p>
 
             <form method="post" action="<?php echo base_url('parent/settings/save'); ?>">
+                <?php echo tq_csrf(); ?>
                 <input type="hidden" name="tq_action" value="prefs_save">
 
-                <dl class="tq-s-list">
-                    <div class="tq-s-row">
-                        <dt><label class="tq-strong" for="tq-n-weekly">التقرير الأسبوعي صباح الأحد</label></dt>
-                        <dd style="margin:0">
-                            <input type="checkbox" id="tq-n-weekly" name="notify[weekly]" value="1"
-                                   <?php echo !empty($tq_prefs['weekly']) ? 'checked' : ''; ?>>
-                        </dd>
+                <?php
+                /* `tq-prefrow` و`tq-switch` من مكتبة المكونات، لا خانات متصفح خام.
+                   كانت هذه القائمة `dl.tq-s-list > .tq-s-row`، وهما صنفان
+                   **غير معرفين في أي ملف CSS**: يعرفهما `tq_student_styles.php`
+                   وحده، وشاشات ولي الأمر لا تضمنه. فكان كل صف هنا يعرض بلا
+                   نمط: التسمية سطرا والخانة سطرا تحتها، بخط المتصفح وحجمه —
+                   وهو ما تراه الشاشة اليوم. وشاشة الطالب تستعمل المفتاح نفسه
+                   للسؤال نفسه، ولا سبب لاختلاف الشكل بين البوابتين.
+
+                   والوصف تحت كل تسمية ليس زينة: «رسوب في اختبار محطة» لا يفهمه
+                   من لا يعرف ما المحطة، وهو مصطلح المنصة لا مصطلح الناس. */
+                $tq_hints = [
+                    'exam_result'      => 'حين تعتمد درجة اختبار لابنك.',
+                    'station_failed'   => 'حين لا يجتاز اختبار نهاية وحدة، وهو أول ما يستحق تدخلك.',
+                    'inactivity_3days' => 'حين يمر ثلاثة أيام بلا أن يفتح المنصة.',
+                    'session_request'  => 'حين يطلب حصة خاصة مع معلم أو يؤكد له موعد.',
+                    'certificate'      => 'حين ينهي محطة ويصدر له شهادة.',
+                ];
+                $tq_switch = function ($id, $name, $on) {
+                    return '<span class="tq-switch">'
+                         . '<input type="checkbox" id="' . html_escape($id) . '" name="' . html_escape($name) . '" value="1"'
+                         . ($on ? ' checked' : '') . '>'
+                         . '<span class="tq-switch__track" aria-hidden="true"></span>'
+                         . '<span class="tq-switch__knob" aria-hidden="true"></span>'
+                         . '</span>';
+                };
+                ?>
+
+                <div class="tq-prefrow">
+                    <span class="tq-prefrow__main">
+                        <label class="tq-prefrow__title" for="tq-n-weekly">التقرير الأسبوعي صباح الأحد</label>
+                        <span class="tq-prefrow__hint">أربعة أسطر عن كل ابن، تقرأ في عشر ثوان.</span>
+                    </span>
+                    <span class="tq-prefrow__end">
+                        <?php echo $tq_switch('tq-n-weekly', 'notify[weekly]', !empty($tq_prefs['weekly'])); ?>
+                    </span>
+                </div>
+
+                <?php foreach ($tq_types as $tq_k => $tq_label): ?>
+                    <div class="tq-prefrow">
+                        <span class="tq-prefrow__main">
+                            <label class="tq-prefrow__title" for="tq-n-<?php echo html_escape($tq_k); ?>"><?php echo html_escape($tq_label); ?></label>
+                            <?php if (isset($tq_hints[$tq_k])): ?>
+                                <span class="tq-prefrow__hint"><?php echo html_escape($tq_hints[$tq_k]); ?></span>
+                            <?php endif; ?>
+                        </span>
+                        <span class="tq-prefrow__end">
+                            <?php echo $tq_switch('tq-n-' . $tq_k, 'notify[' . $tq_k . ']', !empty($tq_prefs[$tq_k])); ?>
+                        </span>
                     </div>
-                    <?php foreach ($tq_types as $tq_k => $tq_label): ?>
-                        <div class="tq-s-row">
-                            <dt><label for="tq-n-<?php echo html_escape($tq_k); ?>"><?php echo html_escape($tq_label); ?></label></dt>
-                            <dd style="margin:0">
-                                <input type="checkbox" id="tq-n-<?php echo html_escape($tq_k); ?>"
-                                       name="notify[<?php echo html_escape($tq_k); ?>]" value="1"
-                                       <?php echo !empty($tq_prefs[$tq_k]) ? 'checked' : ''; ?>>
-                            </dd>
-                        </div>
-                    <?php endforeach; ?>
-                </dl>
+                <?php endforeach; ?>
 
                 <?php $tq_active_links = array_filter($tq_links, function ($l) { return $l['status'] === 'active'; }); ?>
                 <?php if ($tq_active_links): ?>
@@ -223,34 +270,45 @@ include 'portal_open.php';
                         يحسب على <?php echo TQ_LRI . Taqdar_parent_model::PLAN_DAYS_DEFAULT . TQ_PDI; ?> أيام
                         ويكتب في التقرير أنها الافتراضية لا خطتك.
                     </p>
-                    <dl class="tq-s-list">
-                        <?php foreach ($tq_active_links as $l):
+                    <p class="tq-micro" style="margin-block-start:0">
+                        وهي عن ابنك لا عنك، فتحفظ في نطاق رابطه — بخلاف خانات التنبيه فوق
+                        وهي عن حسابك أنت.
+                    </p>
+                    <?php foreach ($tq_active_links as $l):
                             $sid  = (int) $l['student_id'];
                             $plan = $tq_pm->plan_days($tq_uid, $sid);
                         ?>
-                            <div class="tq-s-row">
-                                <dt><label for="tq-plan-<?php echo $sid; ?>"><?php echo html_escape($l['name']); ?></label></dt>
-                                <dd style="margin:0">
+                            <div class="tq-prefrow">
+                                <span class="tq-prefrow__main">
+                                    <label class="tq-prefrow__title" for="tq-plan-<?php echo $sid; ?>"><?php echo html_escape($l['name']); ?></label>
+                                </span>
+                                <span class="tq-prefrow__end">
+                                    <?php /* «غير محددة» خيار صريح وأول القائمة.
+                                             بدونه ينتقي المتصفح أول خيار (يوم واحد) لمن لم
+                                             يحدد خطة، فأول ضغطة على «حفظ التفضيلات» — ولو
+                                             لتغيير خانة إشعار لا علاقة لها — تكتب خطة يوم
+                                             واحد لكل ابن. والشاشة تقول تحته «غير محددة»
+                                             بينما الحقل فوقه يقول «يوم واحد»: تناقض على
+                                             سطرين متجاورين. */ ?>
                                     <select class="tq-select" id="tq-plan-<?php echo $sid; ?>" name="plan_days[<?php echo $sid; ?>]">
+                                        <option value="" <?php echo $plan['is_default'] ? 'selected' : ''; ?>>
+                                            غير محددة — يحسب على <?php echo TQ_LRI . Taqdar_parent_model::PLAN_DAYS_DEFAULT . TQ_PDI; ?> أيام
+                                        </option>
                                         <?php for ($d = 1; $d <= 7; $d++): ?>
-                                            <option value="<?php echo $d; ?>" <?php echo (!$plan['is_default'] && $plan['days'] === $d) ? 'selected' : ''; ?>>
-                                                <?php echo TQ_LRI . $d . TQ_PDI; ?> أيام
+                                            <option value="<?php echo $d; ?>" <?php echo (!$plan['is_default'] && (int) $plan['days'] === $d) ? 'selected' : ''; ?>>
+                                                <?php echo html_escape(tq_days($d)); ?>
                                             </option>
                                         <?php endfor; ?>
                                     </select>
-                                    <?php if ($plan['is_default']): ?>
-                                        <span class="tq-micro" style="display:block">غير محددة — يحسب على الافتراضي</span>
-                                    <?php endif; ?>
-                                </dd>
+                                </span>
                             </div>
                         <?php endforeach; ?>
-                    </dl>
                 <?php endif; ?>
 
                 <button class="tq-btn tq-btn--primary" type="submit" style="margin-block-start:var(--tq-space-l)">حفظ التفضيلات</button>
                 <p class="tq-micro" style="margin-block-start:var(--tq-space-m)">
-                    تحفظ في نطاق الرابط نفسه (<span class="tq-ltr">parent_links.scope</span>)،
-                    فهي جزء من «ما يصلك عن هذا الابن» لا إعدادا معلقا في الهواء.
+                    ما توقفه هنا لا يكتب أصلا — يفرض عند إنشاء الإشعار لا عند عرضه،
+                    فالموقوف لا يصلك ولا يقف في صندوقك.
                 </p>
             </form>
         </section>
@@ -284,12 +342,20 @@ include 'portal_open.php';
         </section>
 
         <section class="tq-card">
-            <div class="tq-s-row">
-                <div>
-                    <p class="tq-strong" style="margin:0">تسجيل الخروج</p>
-                    <p class="tq-micro" style="margin:0">إنهاء جلستك على هذا الجهاز.</p>
-                </div>
-                <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('login/logout'); ?>">تسجيل الخروج</a>
+            <div class="tq-prefrow">
+                <span class="tq-prefrow__main">
+                    <span class="tq-prefrow__title">تسجيل الخروج</span>
+                    <span class="tq-prefrow__hint">إنهاء جلستك على هذا الجهاز.</span>
+                </span>
+                <span class="tq-prefrow__end">
+                    <?php /* زر ينهي الجلسة بنقرة واحدة وبجواره أزرار حفظ —
+                             والسهو فيه يكلف إعادة الدخول وسط عمل. */ ?>
+                    <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('login/logout'); ?>"
+                       data-tq-confirm-title="تسجيل الخروج؟"
+                       data-tq-confirm="تنتهي جلستك على هذا الجهاز، وتحتاج بريدك وكلمة مرورك للدخول من جديد."
+                       data-tq-confirm-ok="تسجيل الخروج"
+                       data-tq-confirm-tone="danger">تسجيل الخروج</a>
+                </span>
             </div>
         </section>
     </div>

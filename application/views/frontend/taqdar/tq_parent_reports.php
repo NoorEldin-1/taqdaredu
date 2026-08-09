@@ -10,10 +10,18 @@
  * منشورات المجتمع، ولا على إجابات الطالب المفردة — نعرض المتقن والمتبقي،
  * لا كل خطأ على حدة. «الرقابة الكاملة تنتج طالبا يخفي، لا طالبا يتعلم.»
  *
+ * والدرجة المعروضة هنا هي **الدرجة التي يراها ابنك نفسه**، لا الدرجة
+ * الخام: `Taqdar_marking_model::student_view()` هي الحكم الواحد —
+ *   · المعتمدة تعرض بدرجة المعلم إن عدلها، لا بدرجة الآلة.
+ *   · وما فيه سؤال مقالي لم يعتمد بعد لا يعرض لأحد.
+ * وكان الحساب هنا يجمع `total_obtained_marks` الخام لكل محاولة مسلمة:
+ * فيرى ولي الأمر رقما ولا يراه ابنه، أو يريان رقمين مختلفين للاختبار
+ * الواحد — وأسرع طريق إلى شجار بينهما أن تعطيهما المنصة رقمين.
+ *
  * ما ينتظر جدولا:
- *   `parent_links` — ربط الولي بابنه (وبدونه لا تفتح بيانات أحد)
  *   `objectives`   — «الإتقان» الحقيقي: هدف متقن من هدف مفتوح.
  *                    والمعروض اليوم بديله المتاح: ما أنهاه من دروس المادة.
+ *                    (وهو معروض كاملا في شاشة تفاصيل الابن.)
  */
 
 $tq_nav   = 'reports';
@@ -24,16 +32,20 @@ $tq_icon  = 'chart';
 
 $tq_uid = (int) $this->session->userdata('user_id');
 
+$tq_ci = &get_instance();
+$tq_ci->load->model('taqdar_parent_model');
+$tq_ci->load->model('taqdar_marking_model');
+$tq_mk = $tq_ci->taqdar_marking_model;
+
+/* الأبناء من مصدر الملكية الواحد لا من استعلام منسوخ في كل شاشة. */
 $tq_children = [];
-if ($this->db->table_exists('parent_links')) {
-    $tq_children = $this->db->query(
-        "SELECT u.id, u.first_name, u.last_name, u.image
-           FROM parent_links pl
-           JOIN users u ON u.id = pl.student_id
-          WHERE pl.parent_user_id = ? AND pl.status = 'active'
-          ORDER BY u.first_name ASC",
-        [$tq_uid]
-    )->result_array();
+foreach ($tq_ci->taqdar_parent_model->children($tq_uid) as $tq_c) {
+    $tq_children[] = [
+        'id'         => (int) $tq_c['student_id'],
+        'first_name' => $tq_c['first_name'],
+        'last_name'  => $tq_c['last_name'],
+        'image'      => $tq_c['image'],
+    ];
 }
 
 /* لكل ابن: صف لكل مادة، من `enrol` و`watch_histories` و`quiz_results`. */
@@ -42,7 +54,8 @@ foreach ($tq_children as &$tq_child) {
         "SELECT c.id, c.title,
                 COALESCE(w.course_progress, 0) AS progress,
                 COALESCE(w.date_updated, 0)    AS last_seen,
-                (SELECT COUNT(*) FROM lesson l WHERE l.course_id = c.id) AS lessons
+                (SELECT COUNT(*) FROM lesson l
+                  WHERE l.course_id = c.id AND l.lesson_type <> 'quiz') AS lessons
            FROM enrol e
            JOIN course c ON c.id = e.course_id
            LEFT JOIN watch_histories w
@@ -52,28 +65,49 @@ foreach ($tq_children as &$tq_child) {
         [(int) $tq_child['id']]
     )->result_array();
 
+    /* النتائج صفا صفا لا بمتوسط في SQL: الحكم على كل محاولة يمر بدالة
+       واحدة (`student_view`) فلا تكتب قاعدة الحجب مرتين وتتباعد. */
     $tq_scores = [];
     foreach ($this->db->query(
-        "SELECT l.course_id,
-                COUNT(*) AS attempts,
-                COALESCE(AVG(
-                  CASE WHEN (SELECT COUNT(*) FROM question q WHERE q.quiz_id = r.quiz_id) > 0
-                       THEN 100 * r.total_obtained_marks /
-                            (SELECT COUNT(*) FROM question q WHERE q.quiz_id = r.quiz_id)
-                       ELSE NULL END), 0) AS avg_pct
+        "SELECT r.quiz_result_id, r.quiz_id, r.total_obtained_marks, r.is_submitted,
+                r.teacher_score, r.teacher_note, r.approved_at,
+                l.course_id,
+                (SELECT COUNT(*) FROM question q WHERE q.quiz_id = r.quiz_id) AS q_count
            FROM quiz_results r
            JOIN lesson l ON l.id = r.quiz_id
-          WHERE r.user_id = ? AND r.is_submitted = 1
-          GROUP BY l.course_id",
+          WHERE r.user_id = ? AND r.is_submitted = 1",
         [(int) $tq_child['id']]
-    )->result_array() as $tq_s) {
-        $tq_scores[(int) $tq_s['course_id']] = $tq_s;
+    )->result_array() as $tq_r) {
+
+        $tq_cidk = (int) $tq_r['course_id'];
+        if (!isset($tq_scores[$tq_cidk])) {
+            $tq_scores[$tq_cidk] = ['sum' => 0.0, 'n' => 0, 'held' => 0];
+        }
+
+        $tq_view = $tq_mk->student_view($tq_r);
+
+        if (!$tq_view['visible']) {
+            // ينتظر اعتماد معلمه — يعد ولا يحسب، فالانتظار خبر لا فراغ
+            $tq_scores[$tq_cidk]['held']++;
+            continue;
+        }
+
+        $tq_qn = (int) $tq_r['q_count'];
+        if ($tq_qn < 1) continue;   // اختبار بلا أسئلة لا نسبة له
+
+        $tq_scores[$tq_cidk]['sum'] += 100 * (float) $tq_view['score'] / $tq_qn;
+        $tq_scores[$tq_cidk]['n']++;
     }
 
     foreach ($tq_child['subjects'] as &$tq_sub_row) {
         $tq_key = (int) $tq_sub_row['id'];
-        $tq_sub_row['attempts'] = (int) ($tq_scores[$tq_key]['attempts'] ?? 0);
-        $tq_sub_row['avg_pct']  = (int) round((float) ($tq_scores[$tq_key]['avg_pct'] ?? 0));
+        $tq_agg = $tq_scores[$tq_key] ?? ['sum' => 0.0, 'n' => 0, 'held' => 0];
+
+        $tq_sub_row['attempts'] = (int) $tq_agg['n'];
+        $tq_sub_row['held']     = (int) $tq_agg['held'];
+        $tq_sub_row['avg_pct']  = $tq_agg['n'] > 0
+            ? (int) round(min(100, $tq_agg['sum'] / $tq_agg['n']))
+            : 0;
     }
     unset($tq_sub_row);
 }
@@ -112,7 +146,7 @@ include 'portal_open.php';
                                         <tr>
                                             <td data-label="المادة">
                                                 <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_s['title']); ?></span>
-                                                <span class="tq-micro" style="display:block"><?php echo tq_iso($tq_s['lessons'] . ' دروس'); ?></span>
+                                                <span class="tq-micro" style="display:block"><?php echo tq_iso(tq_lessons_word((int) $tq_s['lessons'])); ?></span>
                                             </td>
                                             <td data-label="ما أنهاه" style="min-inline-size:180px">
                                                 <?php echo tq_progress((int) $tq_s['progress'], 'ما أنهاه في ' . $tq_s['title']); ?>
@@ -120,9 +154,20 @@ include 'portal_open.php';
                                             <td data-label="نتائج الاختبارات">
                                                 <?php if ($tq_s['attempts'] > 0): ?>
                                                     <?php echo tq_num($tq_s['avg_pct'] . '%', 'tq-num--sm'); ?>
-                                                    <span class="tq-micro" style="display:block"><?php echo tq_iso('من ' . $tq_s['attempts'] . ' اختبار'); ?></span>
+                                                    <span class="tq-micro" style="display:block">
+                                                        <?php echo tq_iso('من ' . tq_exams_word((int) $tq_s['attempts'])); ?>
+                                                    </span>
+                                                <?php elseif ($tq_s['held'] > 0): ?>
+                                                    <span class="tq-caption">ينتظر اعتماد معلمه</span>
                                                 <?php else: ?>
                                                     <span class="tq-caption">لم يبدأ اختبارا</span>
+                                                <?php endif; ?>
+                                                <?php /* المحجوب يعلن لا يبتلع: من سلم اختبارا فيه سؤال
+                                                         مقالي ينتظر تصحيحا، وصمت الشاشة عنه يقرأ إهمالا. */ ?>
+                                                <?php if ($tq_s['attempts'] > 0 && $tq_s['held'] > 0): ?>
+                                                    <span class="tq-micro" style="display:block">
+                                                        <?php echo tq_iso('و' . tq_exams_word((int) $tq_s['held'], 'لا اختبارات', 'nom') . ((int) $tq_s['held'] === 1 ? ' ينتظر' : ' تنتظر') . ' اعتماد معلمه'); ?>
+                                                    </span>
                                                 <?php endif; ?>
                                             </td>
                                             <td data-label="آخر نشاط">

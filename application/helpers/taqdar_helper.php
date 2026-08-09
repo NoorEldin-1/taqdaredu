@@ -141,6 +141,108 @@ if (!function_exists('tq_units')) {
     }
 }
 
+if (!function_exists('tq_csrf')) {
+    /**
+     * حقل رمز CSRF المخفي — يوضع داخل كل نموذج يكتب.
+     *
+     * `csrf_protection` صار `TRUE` في `config.php`، وشرطه أن يحمل **كل** جسم
+     * POST مفتاح `csrf_token_name`. ونماذج البوابات مكتوبة بيدها لا بـ
+     * `form_open()`، فلا يحقن فيها CodeIgniter شيئا: كل حفظ وربط وإرسال في
+     * بوابة ولي الأمر كان يرد `403 The action you have requested is not
+     * allowed` بصفحة إنجليزية خام — لا رسالة عربية، ولا حفظ، ولا تفسير.
+     *
+     * والحقل هنا لا في سكربت وحده: نموذج يعتمد على JS ليمر يسقط عند من
+     * أوقف JS أو عند فشل تحميل الملف، وسقوطه صامت. والسكربت في
+     * `includes_bottom.php` يبقى شبكة أمان لنماذج المنصة الأخرى.
+     *
+     * ويرجع نصا فارغا حين تكون الحماية موقوفة، فلا يزرع حقلا لا يقرأ.
+     */
+    function tq_csrf()
+    {
+        if (!config_item('csrf_protection')) return '';
+
+        $CI = get_instance();
+        if (!isset($CI->security)) return '';
+
+        return '<input type="hidden" name="' . html_escape($CI->security->get_csrf_token_name())
+             . '" value="' . html_escape($CI->security->get_csrf_hash()) . '">';
+    }
+}
+
+if (!function_exists('tq_count_units')) {
+    /**
+     * عدد بصيغته العربية السليمة — بلا «منذ».
+     *
+     * `tq_units` أختها تبدأ بـ«منذ» دائما لأنها كتبت لـ`tq_since`، فلا تصلح
+     * لـ«أنهى ٣ دروس» ولا لـ«خطة ١ أيام». والعربية لا تجمع بإضافة حرف:
+     * «١ أيام» و«٢ اختبار» و«٥ درس» أخطاء ظاهرة تقرأ في أول سطر من التقرير.
+     *
+     * تمييز العدد في العربية أربع حالات لا حالتان:
+     *   ٠      صيغة نفي         «لا يوم»
+     *   ١      المفرد           «يوم واحد»
+     *   ٢      المثنى           «يومان» أو «يومين» — بحسب موقعه
+     *   ٣–١٠   جمع قلة مجرور    «٥ أيام»
+     *   ١١+    مفرد منصوب       «٢٩ يوما»
+     *
+     * والمثنى وحده يتغير بموقعه من الجملة، ولا يغني فيه شكل واحد:
+     *   «نشاطه نزل من **يومين**»   بعد حرف جر → مجرور
+     *   «بقي من الأسبوع **يومان**» فاعل        → مرفوع
+     * فكانت صيغة واحدة تعطي «نزل من يومان» — خطأ يقرؤه كل عربي في أول
+     * سطر من التقرير. و`$case` يحسمه: `obl` هو الافتراض لأن أكثر مواضع
+     * هذه البوابة بعد حرف جر أو مفعول به.
+     *
+     * ولا يعزل الرقم هنا: النص يمر بـ`tq_iso()` عند الطباعة فيعزل كل
+     * تتابع رقمي مرة واحدة — والعزل مرتين يطبع علامتي عزل متداخلتين
+     * (`⁦⁦29⁩⁩`) تظهران مربعين فارغين في بعض الخطوط.
+     *
+     * @param int    $n            العدد
+     * @param string $one          المفرد               «يوم»
+     * @param string $two_nom      المثنى المرفوع       «يومان»
+     * @param string $two_obl      المثنى المنصوب المجرور «يومين»
+     * @param string $many         جمع القلة            «أيام»
+     * @param string $singular_acc المفرد المنصوب لما فوق العشرة «يوما»
+     * @param string $zero         صيغة الصفر
+     * @param string $case         nom مرفوع · obl منصوب أو مجرور (الافتراض)
+     * @param bool   $fem          مؤنث؛ فـ«مادة واحدة» لا «مادة واحد»
+     */
+    function tq_count_units($n, $one, $two_nom, $two_obl, $many,
+                            $singular_acc = null, $zero = null, $case = 'obl', $fem = false)
+    {
+        $n = (int) $n;
+        if ($singular_acc === null) $singular_acc = $one;
+
+        if ($n <= 0)  return $zero !== null ? $zero : 'لا ' . $one;
+        if ($n === 1) return $one . ($fem ? ' واحدة' : ' واحد');
+        if ($n === 2) return $case === 'nom' ? $two_nom : $two_obl;
+        if ($n <= 10) return $n . ' ' . $many;
+        return $n . ' ' . $singular_acc;
+    }
+}
+
+if (!function_exists('tq_days')) {
+    /** «٥ أيام» · «يومين»/«يومان» · «يوم واحد» · «٢٩ يوما». */
+    function tq_days($n, $zero = 'لا يوم', $case = 'obl')
+    {
+        return tq_count_units($n, 'يوم', 'يومان', 'يومين', 'أيام', 'يوما', $zero, $case);
+    }
+}
+
+if (!function_exists('tq_lessons_word')) {
+    /** «٤ دروس» · «درسين»/«درسان» · «درس واحد» · «٣٥ درسا». */
+    function tq_lessons_word($n, $zero = 'لا دروس', $case = 'obl')
+    {
+        return tq_count_units($n, 'درس', 'درسان', 'درسين', 'دروس', 'درسا', $zero, $case);
+    }
+}
+
+if (!function_exists('tq_exams_word')) {
+    /** «٤ اختبارات» · «اختبارين»/«اختباران» · «اختبار واحد» · «١٢ اختبارا». */
+    function tq_exams_word($n, $zero = 'لا اختبارات', $case = 'obl')
+    {
+        return tq_count_units($n, 'اختبار', 'اختباران', 'اختبارين', 'اختبارات', 'اختبارا', $zero, $case);
+    }
+}
+
 if (!function_exists('tq_asset')) {
     /** أصل من ثيم تقدر مع بصمة تبطل الذاكرة المؤقتة عند التعديل. */
     function tq_asset($path)

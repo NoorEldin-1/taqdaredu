@@ -111,16 +111,22 @@ include 'portal_open.php';
                 <?php if ($active === 'profile'): ?>
                     <section class="tq-card">
                         <?php
-                        /* طلبات ربط ولي أمر تنتظر توقيع صاحبها.
-                           تعرض قبل كل شيء لأنها قرار يخص خصوصيته. */
+                        /* روابط أولياء الأمر — المعلقة والنشطة معا.
+                           تعرض قبل كل شيء لأنها قرار يخص خصوصيته.
+
+                           والقراءة من `Taqdar_parent_model` لا من استعلام
+                           مكتوب في العرض: الملكية والحالة مصدرهما واحد،
+                           ونسخة استعلام في كل شاشة تتباعد عن أختها.
+
+                           والنشطة تعرض كذلك لأن نص الموافقة يعد صراحة:
+                           «ولي أن أسحب هذه الموافقة متى شئت» — وكان وعدا
+                           بلا باب، فالطالب يوافق ولا يجد بعدها سبيلا
+                           للتراجع إلا أن يطلب من وليه أن يفك الربط بنفسه. */
                         $tq_ci_pl = &get_instance();
-                        $tq_pending_links = $tq_ci_pl->db
-                            ->select('pl.id, TRIM(CONCAT(COALESCE(u.first_name,""), " ", COALESCE(u.last_name,""))) AS parent_name, u.email', false)
-                            ->from('parent_links pl')
-                            ->join('users u', 'u.id = pl.parent_user_id', 'left')
-                            ->where('pl.student_id', (int) $tq_ci_pl->session->userdata('user_id'))
-                            ->where('pl.status', 'pending')
-                            ->get()->result_array();
+                        $tq_ci_pl->load->model('taqdar_parent_model');
+                        $tq_sid_pl        = (int) $tq_ci_pl->session->userdata('user_id');
+                        $tq_pending_links = $tq_ci_pl->taqdar_parent_model->links_of_student($tq_sid_pl, 'pending');
+                        $tq_active_links  = $tq_ci_pl->taqdar_parent_model->links_of_student($tq_sid_pl, 'active');
                         ?>
                         <?php if ($tq_pending_links): ?>
                             <div class="tq-card tq-card--panel" style="margin-block-end:var(--tq-space-xl)">
@@ -130,17 +136,33 @@ include 'portal_open.php';
                                     ويمكنك سحبها متى شئت.
                                 </p>
 
+                                <div class="tq-pastel tq-pastel--sand" style="margin-block:var(--tq-space-l)">
+                                    <span class="tq-pastel__label tq-micro">نص ما توقع عليه</span>
+                                    <p class="tq-pastel__body" style="margin:var(--tq-space-xs) 0 0">
+                                        <?php echo html_escape(Taqdar_parent_model::CONSENT_TEXT); ?>
+                                    </p>
+                                </div>
+
                                 <?php foreach ($tq_pending_links as $tq_pl): ?>
-                                    <div class="tq-row" style="gap:var(--tq-space-m);align-items:center;margin-block-start:var(--tq-space-m)">
-                                        <span class="tq-strong"><?php echo html_escape($tq_pl['parent_name'] ?: $tq_pl['email']); ?></span>
+                                    <div class="tq-row" style="gap:var(--tq-space-m);align-items:center;margin-block-start:var(--tq-space-m);flex-wrap:wrap">
+                                        <span class="tq-strong" style="flex:1;min-inline-size:0">
+                                            <?php echo html_escape($tq_pl['name'] ?: $tq_pl['email']); ?>
+                                            <span class="tq-micro tq-ltr" style="display:block"><?php echo html_escape((string) $tq_pl['email']); ?></span>
+                                        </span>
 
                                         <form method="post" action="<?php echo base_url('student/parent-link'); ?>" class="tq-form-inline">
+                                            <?php echo tq_csrf(); ?>
                                             <input type="hidden" name="link_id" value="<?php echo (int) $tq_pl['id']; ?>">
                                             <input type="hidden" name="act" value="approve">
                                             <button type="submit" class="tq-btn tq-btn--mastery tq-btn--sm">أوافق</button>
                                         </form>
 
-                                        <form method="post" action="<?php echo base_url('student/parent-link'); ?>" class="tq-form-inline">
+                                        <form method="post" action="<?php echo base_url('student/parent-link'); ?>" class="tq-form-inline"
+                                              data-tq-confirm-title="رفض طلب <?php echo html_escape($tq_pl['name']); ?>؟"
+                                              data-tq-confirm="لن يفتح شيء من بياناتك، ويصله أنك لم توافق."
+                                              data-tq-confirm-note="القرار قرارك وحدك، ولك أن تقبل طلبا جديدا منه لاحقا."
+                                              data-tq-confirm-ok="أرفض الطلب">
+                                            <?php echo tq_csrf(); ?>
                                             <input type="hidden" name="link_id" value="<?php echo (int) $tq_pl['id']; ?>">
                                             <input type="hidden" name="act" value="reject">
                                             <button type="submit" class="tq-btn tq-btn--secondary tq-btn--sm">أرفض</button>
@@ -150,9 +172,43 @@ include 'portal_open.php';
                             </div>
                         <?php endif; ?>
 
+                        <?php if ($tq_active_links): ?>
+                            <div class="tq-card tq-card--panel" style="margin-block-end:var(--tq-space-xl)">
+                                <h2 class="tq-card__title">من يتابع حسابك</h2>
+                                <p class="tq-caption">
+                                    يرى تقدمك في المواد وأيام نشاطك ونتائج اختباراتك ومدفوعاتك وملاحظات معلميك.
+                                    ولا يرى محادثاتك مع المساعد الذكي ولا منشوراتك ولا إجاباتك الخاطئة مفردة.
+                                </p>
+
+                                <?php foreach ($tq_active_links as $tq_al): ?>
+                                    <div class="tq-row" style="gap:var(--tq-space-m);align-items:center;margin-block-start:var(--tq-space-l);flex-wrap:wrap">
+                                        <span style="flex:1;min-inline-size:0">
+                                            <span class="tq-strong" style="display:block"><?php echo html_escape($tq_al['name'] ?: $tq_al['email']); ?></span>
+                                            <span class="tq-micro" style="display:block">
+                                                وافقت بتاريخ <?php echo TQ_LRI . html_escape((string) $tq_al['consent_at']) . TQ_PDI; ?>
+                                            </span>
+                                        </span>
+                                        <?php echo tq_badge('mastered', 'يتابعك'); ?>
+                                        <form method="post" action="<?php echo base_url('student/parent-link'); ?>" class="tq-form-inline"
+                                              data-tq-confirm-title="سحب موافقتك على متابعة <?php echo html_escape($tq_al['name']); ?>؟"
+                                              data-tq-confirm="لن يرى شيئا من بياناتك بعدها، ويصله إشعار بأنك سحبت موافقتك."
+                                              data-tq-confirm-note="يبقى في السجل تاريخ موافقتك وتاريخ سحبها. ولك أن توافق من جديد متى شئت."
+                                              data-tq-confirm-ok="أسحب موافقتي"
+                                              data-tq-confirm-tone="danger">
+                                            <?php echo tq_csrf(); ?>
+                                            <input type="hidden" name="link_id" value="<?php echo (int) $tq_al['id']; ?>">
+                                            <input type="hidden" name="act" value="withdraw">
+                                            <button type="submit" class="tq-btn tq-btn--ghost tq-btn--sm">أسحب موافقتي</button>
+                                        </form>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
                         <h2 class="tq-card__title">الملف الشخصي</h2>
 
                         <form method="post" action="<?php echo $tq_save; ?>" enctype="multipart/form-data">
+                            <?php echo tq_csrf(); ?>
                             <input type="hidden" name="action" value="profile">
                             <input type="hidden" name="s" value="profile">
 
@@ -222,6 +278,7 @@ include 'portal_open.php';
                     <section class="tq-card">
                         <h2 class="tq-card__title">كلمة المرور</h2>
                         <form method="post" action="<?php echo $tq_save; ?>">
+                            <?php echo tq_csrf(); ?>
                             <input type="hidden" name="action" value="password">
                             <input type="hidden" name="s" value="security">
 
@@ -365,6 +422,7 @@ include 'portal_open.php';
                         </p>
 
                         <form method="post" action="<?php echo $tq_save; ?>">
+                            <?php echo tq_csrf(); ?>
                             <input type="hidden" name="action" value="alerts">
                             <input type="hidden" name="s" value="alerts">
 
@@ -461,6 +519,7 @@ include 'portal_open.php';
                         <h2 class="tq-card__title">التفضيلات العامة</h2>
 
                         <form method="post" action="<?php echo $tq_save; ?>">
+                            <?php echo tq_csrf(); ?>
                             <input type="hidden" name="action" value="prefs">
                             <input type="hidden" name="s" value="prefs">
 

@@ -5,14 +5,21 @@
  * المرجع التصميمي: تطبيق البنك، لا لوحة تعليمية — كل شيء واضح ومفهوم من
  * نظرة واحدة وبلا مصطلحات: تاريخ، وما اشتري، ولمن، وكم. لا أكثر.
  *
- * ما يظهر هنا حقيقي بالكامل من جدول `payment`:
- *   · مدفوعاتك أنت           — `payment.user_id = <ولي الأمر>`
- *   · مدفوعات كل ابن مربوط   — عبر `parent_links` حين يوجد
- * والعملة الريال السعودي عبر tq_sar().
+ * ما يظهر هنا حقيقي بالكامل، ومن **مصدري المال معا** لا من أحدهما:
+ *   · `invoices` + `subscriptions` — مسار تقدر، وهو المسار العامل اليوم
+ *   · `payment`                    — جدول Academy، شراء كورس مفرد
+ * والدمج والوحدة في `Taqdar_parent_model::payments_of()`، فلا تقسم شاشة
+ * على مئة وتنسى أختها.
+ *
+ * وكانت الشاشة تقرأ `payment` وحده — وهو فارغ بينما لابن ولي الأمر
+ * اشتراك نشط بثلاثمئة وتسعين ريالا وأربع فواتير: فيقرأ من يدفع فعلا
+ * «لا مدفوعات بعد · 0 ريال». صفحة تعمل وتكذب أسوأ من صفحة معطوبة.
+ *
+ * والمعلق يفصل عن المدفوع: فاتورة تنتظر تحويلا ليست مالا خرج من الجيب،
+ * وجمعها في «ما دفعته» يكبر الرقم على صاحبه — وهي في الوقت نفسه أهم ما
+ * في الصفحة، لأن عليها يتوقف اشتراك ابنه.
  *
  * ما ينتظر جدولا:
- *   `parent_links` — ربط الولي بابنه؛ وبدونه تظهر مدفوعاته هو وحدها،
- *                    ولا تخمن قرابة ولا تفتح فاتورة حساب آخر.
  *   الفاتورة المطبوعة — تنتظر برنامج فاتورة رسميا؛ ويعرض حتى ذلك
  *                    رقم العملية كما هو، فهو ما يراجع به الدفع.
  */
@@ -23,53 +30,57 @@ $tq_title = 'المدفوعات';
 $tq_sub   = 'كل ما دفعته، ولمن، ومتى';
 $tq_icon  = 'wallet';
 
+$tq_ci = &get_instance();
+$tq_ci->load->model('taqdar_parent_model');
+$tq_pm = $tq_ci->taqdar_parent_model;
+
 $tq_uid = (int) $this->session->userdata('user_id');
 
 $tq_people = [
     ['id' => $tq_uid, 'name' => 'مدفوعاتي', 'self' => true],
 ];
 
-if ($this->db->table_exists('parent_links')) {
-    foreach ($this->db->query(
-        "SELECT u.id, u.first_name, u.last_name
-           FROM parent_links pl
-           JOIN users u ON u.id = pl.student_id
-          WHERE pl.parent_user_id = ? AND pl.status = 'active'
-          ORDER BY u.first_name ASC",
-        [$tq_uid]
-    )->result_array() as $tq_c) {
-        $tq_people[] = [
-            'id'   => (int) $tq_c['id'],
-            'name' => trim($tq_c['first_name'] . ' ' . $tq_c['last_name']),
-            'self' => false,
-        ];
-    }
+foreach ($tq_pm->children($tq_uid) as $tq_c) {
+    $tq_people[] = [
+        'id'   => (int) $tq_c['student_id'],
+        'name' => 'مدفوعات ' . $tq_c['name'],
+        'self' => false,
+    ];
 }
 
 $tq_month_start = strtotime(date('Y-m-01 00:00:00'));
 $tq_month_total = 0;
 $tq_all_total   = 0;
+$tq_due_total   = 0;
+$tq_due_count   = 0;
 
 foreach ($tq_people as &$tq_p) {
-    $tq_p['rows'] = $this->db->query(
-        "SELECT p.id, p.amount, p.date_added, p.payment_type, p.transaction_id,
-                c.title AS course_title
-           FROM payment p
-           LEFT JOIN course c ON c.id = p.course_id
-          WHERE p.user_id = ?
-          ORDER BY p.date_added DESC
-          LIMIT 50",
-        [(int) $tq_p['id']]
-    )->result_array();
+    $tq_p['rows'] = $tq_pm->payments_of($tq_p['id']);
+    $tq_t         = $tq_pm->payment_totals($tq_p['rows'], $tq_month_start);
 
-    foreach ($tq_p['rows'] as $tq_r) {
-        $tq_all_total += (float) $tq_r['amount'];
-        if ((int) $tq_r['date_added'] >= $tq_month_start) {
-            $tq_month_total += (float) $tq_r['amount'];
-        }
-    }
+    $tq_month_total += $tq_t['month'];
+    $tq_all_total   += $tq_t['all'];
+    $tq_due_total   += $tq_t['pending'];
+    $tq_due_count   += $tq_t['pending_count'];
 }
 unset($tq_p);
+
+/* أسماء قنوات الدفع بالعربية.
+   الشاشة كانت تطبع مفتاح القناة كما هو (`bank_transfer`, `stripe`)، وهي
+   بوابة عربية بالكامل — وسطر إنجليزي واحد وسط جدول عربي يقرأ خطأ لا
+   بيانات. وما لا اسم له يعرض كما هو بدل أن يخفى: قناة مجهولة خبر. */
+$tq_methods = [
+    'manual'        => 'تحويل بنكي',
+    'bank_transfer' => 'تحويل بنكي',
+    'bank'          => 'تحويل بنكي',
+    'mada'          => 'بطاقة مدى',
+    'stcpay'        => 'محفظة STC Pay',
+    'urpay'         => 'محفظة urpay',
+    'stripe'        => 'بطاقة',
+    'paypal'        => 'باي بال',
+    'wallet'        => 'رصيد المحفظة',
+    'free'          => 'مجانا',
+];
 
 $tq_has_rows = false;
 foreach ($tq_people as $tq_p) {
@@ -85,14 +96,14 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
-        <div class="tq-grid tq-grid--2 tq-section">
+        <div class="tq-grid tq-grid--<?php echo $tq_due_count > 0 ? '3' : '2'; ?> tq-section">
             <div class="tq-pastel tq-pastel--mint">
                 <div class="tq-row tq-row--between">
                     <span class="tq-pastel__label tq-micro">هذا الشهر</span>
                     <span class="tq-pastel__icon" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('wallet'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)"><?php echo tq_sar($tq_month_total); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">مجموع ما دفعته منذ أول الشهر</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0">ما دفع لك ولأبنائك منذ أول الشهر</p>
             </div>
 
             <div class="tq-pastel tq-pastel--sky">
@@ -101,8 +112,24 @@ include 'portal_open.php';
                     <span class="tq-pastel__icon" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('file'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)"><?php echo tq_sar($tq_all_total); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">منذ أول اشتراك</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0">منذ أول اشتراك — المدفوع وحده</p>
             </div>
+
+            <?php if ($tq_due_count > 0): ?>
+                <?php /* المعلق لا يجمع مع المدفوع: مال لم يخرج بعد. وهو
+                         أهم ما في الصفحة لأن عليه يتوقف اشتراك الابن. */ ?>
+                <div class="tq-pastel tq-pastel--peach">
+                    <div class="tq-row tq-row--between">
+                        <span class="tq-pastel__label tq-micro">بانتظار التحويل</span>
+                        <span class="tq-pastel__icon" style="color:var(--tq-peach-ink)" aria-hidden="true"><?php echo tq_icon('clock'); ?></span>
+                    </div>
+                    <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)"><?php echo tq_sar($tq_due_total); ?></p>
+                    <p class="tq-pastel__body tq-caption" style="margin:0">
+                        <?php echo tq_count_units($tq_due_count, 'فاتورة', 'فاتورتان', 'فاتورتين', 'فواتير', 'فاتورة', null, 'nom'); ?>
+                        لم يفعل اشتراكها بعد
+                    </p>
+                </div>
+            <?php endif; ?>
         </div>
 
         <?php if ($tq_has_rows): ?>
@@ -116,6 +143,7 @@ include 'portal_open.php';
                     </div>
 
                     <div class="tq-card">
+                        <div class="tq-table-wrap">
                         <table class="tq-table">
                             <caption class="tq-sr">فواتير <?php echo html_escape($tq_p['name']); ?></caption>
                             <thead>
@@ -123,24 +151,40 @@ include 'portal_open.php';
                                     <th scope="col">التاريخ</th>
                                     <th scope="col">ما اشتري</th>
                                     <th scope="col">المبلغ</th>
+                                    <th scope="col">الحالة</th>
                                     <th scope="col">رقم العملية</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($tq_p['rows'] as $tq_r): ?>
+                                    <?php
+                                    $tq_kind = $tq_r['status'] === 'paid' ? 'mastered'
+                                        : ($tq_r['status'] === 'unpaid' ? 'due' : 'idle');
+                                    ?>
                                     <tr>
-                                        <td data-label="التاريخ"><?php echo tq_num(date('Y-m-d', (int) $tq_r['date_added']), 'tq-num--sm'); ?></td>
-                                        <td data-label="ما اشتري">
-                                            <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_r['course_title'] ?: 'اشتراك'); ?></span>
+                                        <td data-label="التاريخ">
+                                            <?php echo (int) $tq_r['ts'] > 0
+                                                ? tq_num(date('Y-m-d', (int) $tq_r['ts']), 'tq-num--sm')
+                                                : '<span class="tq-caption">—</span>'; ?>
                                         </td>
-                                        <td data-label="المبلغ"><?php echo tq_sar($tq_r['amount']); ?></td>
+                                        <td data-label="ما اشتري">
+                                            <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_r['title']); ?></span>
+                                            <?php if ($tq_r['method'] !== ''): ?>
+                                                <span class="tq-micro" style="display:block">
+                                                    <?php echo html_escape($tq_methods[$tq_r['method']] ?? $tq_r['method']); ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td data-label="المبلغ"><?php echo tq_sar($tq_r['amount'], 2); ?></td>
+                                        <td data-label="الحالة"><?php echo tq_badge($tq_kind, $tq_r['label']); ?></td>
                                         <td data-label="رقم العملية">
-                                            <span class="tq-num tq-num--sm"><?php echo html_escape($tq_r['transaction_id'] ?: '—'); ?></span>
+                                            <span class="tq-num tq-num--sm"><?php echo html_escape($tq_r['ref'] ?: '—'); ?></span>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </section>
             <?php endforeach; ?>
