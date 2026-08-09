@@ -402,10 +402,24 @@ foreach ($qs as $k => $qid) {
           VALUES (?, ?, ?, ?, ?, ?)", [$SID, $qid, $due, $int, $ease, $lap]);
 }
 
-foreach ($ids($all("SELECT id FROM objectives ORDER BY id LIMIT 12")) as $k => $oid) {
+/* مستوى الهدف **مئوي** لا كسري.
+   `Taqdar_repo_model::touch_skill_state()` يكتب `($ok/$total)*100` ويقص
+   على [0,100]، وكانت البذرة تكتب 0.35 و0.95 — أي مقياسان في عمود واحد.
+   وأثره ظاهر في بطاقة «الفهم» عند ولي الأمر: عتبة الإتقان 80، فكل هدف
+   مبذور دونها بمراحل، فيقرأ «أتقن ٠ هدفا من ٣٥» مهما تقدم ابنه.
+   وأهداف كورسات البذرة وحدها تبذر — لا أول اثني عشر هدفا في القاعدة
+   كيفما جاءت، فقد لا يكون أحدها في كورس مسجل فيه أصلا. */
+$seed_objectives = $ids($all(
+    "SELECT o.id
+       FROM objectives o
+       JOIN lesson l ON l.id = o.lesson_id
+      WHERE l.course_id IN ($in_courses)
+      ORDER BY o.id LIMIT 18"));
+
+foreach ($seed_objectives as $k => $oid) {
     $run("INSERT INTO `skill_state` (student_id, objective_id, level, forget_rate, last_seen_at, avg_response_ms)
           VALUES (?, ?, ?, 0.0500, ?, ?)",
-        [$SID, $oid, [0.35, 0.55, 0.72, 0.88, 0.95][$k % 5], $dt($now - ($k + 1) * $DAY), 4000 + $k * 350]);
+        [$SID, $oid, [35, 55, 72, 88, 95][$k % 5], $dt($now - ($k + 1) * $DAY), 4000 + $k * 350]);
 }
 
 /* ================================================================
