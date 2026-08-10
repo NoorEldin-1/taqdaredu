@@ -30,11 +30,11 @@ $tq_bar_map = [
         'search'        => 'student/search',
     ],
     'teacher' => [
-        // لا `tq_teacher_messages` ولا `tq_teacher_notifications` ولا شاشة
-        // إعدادات للمعلم في خريطة `Taqdar::teacher()` — فلا زر لها.
-        'messages'      => null,
-        'notifications' => null,
-        'account'       => 'teacher',
+        // كانت الثلاثة `null` لأن الشاشات لم تكن موجودة، فكان جرس المعلم
+        // مخفيا وصورة حسابه تعيده إلى لوحته. وصارت له شاشاته فصارت له أزرارها.
+        'messages'      => 'teacher/messages',
+        'notifications' => 'teacher/notifications',
+        'account'       => 'teacher/settings',
         'search'        => 'teacher/search',
     ],
     'parent' => [

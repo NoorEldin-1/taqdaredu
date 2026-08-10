@@ -27,6 +27,9 @@ $tq_filters = [
     'pending'  => 'قيد المراجعة',
     'draft'    => 'مسودة',
     'private'  => 'خاص',
+    /* `upcoming` كانت في خريطة الشارات ولا حبة تصفية لها: حالة تعرض ولا
+       سبيل إلى ترشيحها، فيقرأ المعلم شارة لا يستطيع أن يجمع أخواتها. */
+    'upcoming' => 'قادم',
 ];
 $tq_status = (string) $this->input->get('status', true);
 if (!array_key_exists($tq_status, $tq_filters)) {
@@ -70,56 +73,62 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
+        <?php if ($m = $this->session->flashdata('tq_ok')): ?>
+            <div class="tq-alert tq-alert--ok tq-section" role="status"><?php echo html_escape($m); ?></div>
+        <?php endif; ?>
+        <?php if ($m = $this->session->flashdata('tq_error')): ?>
+            <div class="tq-alert tq-alert--no tq-section" role="alert"><?php echo html_escape($m); ?></div>
+        <?php endif; ?>
+
+        <?php /* إنشاء كورس — يبدأ «بانتظار المراجعة»، فالنشر قرار إدارة.
+
+                 وكانت هذه الكتلة مكتوبة **داخل** `<nav>` التصفية: نموذج كامل
+                 في عنصر تنقل، فيقف زر «أنشئ كورسا جديدا» في صف حبات التصفية
+                 كأنه إحداها، ويقرأ قارئ الشاشة نموذج الإنشاء كله بندا من
+                 بنود قائمة «تصفية الكورسات بالحالة». */ ?>
+        <details class="tq-card tq-card--panel tq-section">
+            <summary class="tq-card__title" style="cursor:pointer">أنشئ كورسا جديدا</summary>
+
+            <p class="tq-caption" style="margin-block:var(--tq-space-s) var(--tq-space-l)">
+                الكورس الجديد يبدأ <strong>بانتظار مراجعة الإدارة</strong>، وتستطيع رفع دروسه
+                من الآن. وينشر بعد المراجعة.
+            </p>
+
+            <form method="post" action="<?php echo base_url('teacher/courses/save'); ?>">
+                <?php echo tq_csrf(); ?>
+                <div class="tq-formgrid">
+                    <div class="tq-field">
+                        <label for="c_title">عنوان الكورس <span aria-hidden="true">*</span></label>
+                        <input class="tq-input" type="text" id="c_title" name="title" required maxlength="190">
+                    </div>
+
+                    <div class="tq-field">
+                        <label for="c_level">المستوى</label>
+                        <select class="tq-input" id="c_level" name="level">
+                            <option value="beginner">مبتدئ</option>
+                            <option value="intermediate">متوسط</option>
+                            <option value="advanced">متقدم</option>
+                        </select>
+                    </div>
+
+                    <div class="tq-field" style="grid-column:1/-1">
+                        <label for="c_short">وصف مختصر</label>
+                        <input class="tq-input" type="text" id="c_short" name="short_description" maxlength="255">
+                    </div>
+
+                    <div class="tq-field" style="grid-column:1/-1">
+                        <label for="c_desc">الوصف</label>
+                        <textarea class="tq-input" id="c_desc" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div style="margin-block-start:var(--tq-space-l)">
+                    <button type="submit" class="tq-btn tq-btn--primary">أنشئ الكورس</button>
+                </div>
+            </form>
+        </details>
+
         <nav class="tq-row tq-section" aria-label="تصفية الكورسات بالحالة" style="flex-wrap:wrap">
-<?php /* إنشاء كورس — يبدأ «بانتظار المراجعة»، فالنشر قرار إدارة. */ ?>
-<?php if ($m = $this->session->flashdata('tq_ok')): ?>
-    <div class="tq-alert tq-alert--ok"><?php echo html_escape($m); ?></div>
-<?php endif; ?>
-<?php if ($m = $this->session->flashdata('tq_error')): ?>
-    <div class="tq-alert tq-alert--no"><?php echo html_escape($m); ?></div>
-<?php endif; ?>
-
-<details class="tq-card tq-card--panel" style="margin-block-end:var(--tq-space-xl)">
-    <summary class="tq-card__title" style="cursor:pointer">أنشئ كورسا جديدا</summary>
-
-    <p class="tq-caption" style="margin-block:var(--tq-space-s) var(--tq-space-l)">
-        الكورس الجديد يبدأ <strong>بانتظار مراجعة الإدارة</strong>، وتستطيع رفع دروسه
-        من الآن. وينشر بعد المراجعة.
-    </p>
-
-    <form method="post" action="<?php echo base_url('teacher/courses/save'); ?>">
-        <div class="tq-formgrid">
-            <div class="tq-field">
-                <label for="c_title">عنوان الكورس <span aria-hidden="true">*</span></label>
-                <input class="tq-input" type="text" id="c_title" name="title" required maxlength="190">
-            </div>
-
-            <div class="tq-field">
-                <label for="c_level">المستوى</label>
-                <select class="tq-input" id="c_level" name="level">
-                    <option value="beginner">مبتدئ</option>
-                    <option value="intermediate">متوسط</option>
-                    <option value="advanced">متقدم</option>
-                </select>
-            </div>
-
-            <div class="tq-field" style="grid-column:1/-1">
-                <label for="c_short">وصف مختصر</label>
-                <input class="tq-input" type="text" id="c_short" name="short_description" maxlength="255">
-            </div>
-
-            <div class="tq-field" style="grid-column:1/-1">
-                <label for="c_desc">الوصف</label>
-                <textarea class="tq-input" id="c_desc" name="description" rows="3"></textarea>
-            </div>
-        </div>
-
-        <div style="margin-block-start:var(--tq-space-l)">
-            <button type="submit" class="tq-btn tq-btn--primary">أنشئ الكورس</button>
-        </div>
-    </form>
-</details>
-
             <?php foreach ($tq_filters as $tq_key => $tq_label): ?>
                 <a class="tq-pill" <?php echo $tq_key === $tq_status ? 'aria-pressed="true"' : 'aria-pressed="false"'; ?>
                    href="<?php echo base_url('teacher/courses') . ($tq_key !== '' ? '?status=' . $tq_key : ''); ?>">
@@ -159,11 +168,26 @@ include 'portal_open.php';
                                 <td data-label="نسبة الإكمال" style="min-inline-size:180px">
                                     <?php echo tq_progress($tq_completion, 'متوسط إكمال ' . $tq_c['title']); ?>
                                 </td>
+                                <?php /* كان الإجراء الوحيد «طلابه»: صف كورس بلا باب إلى محتواه.
+                                         والوجهات الثلاث كلها قائمة تعمل، وكل واحدة تحمل معرف
+                                         الكورس فتفتح مقيدة به لا على كل شيء. */ ?>
                                 <td data-label="إجراءات">
-                                    <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                                       href="<?php echo base_url('teacher/students'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
-                                        طلابه
-                                    </a>
+                                    <span class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:wrap">
+                                        <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                                           href="<?php echo base_url('teacher/students'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
+                                            طلابه
+                                        </a>
+                                        <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                                           href="<?php echo base_url('teacher/questions'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
+                                            أسئلته
+                                        </a>
+                                        <?php if ($tq_c['status'] === 'active'): ?>
+                                            <a class="tq-btn tq-btn--ghost tq-btn--sm" target="_blank" rel="noopener"
+                                               href="<?php echo site_url('home/course/' . rawurlencode(slugify($tq_c['title'])) . '/' . (int) $tq_c['id']); ?>">
+                                                صفحته
+                                            </a>
+                                        <?php endif; ?>
+                                    </span>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

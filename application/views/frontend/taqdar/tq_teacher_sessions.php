@@ -35,24 +35,13 @@ $tq_CI = get_instance();
 $tq_CI->load->model('taqdar_sessions_model');
 $tq_m = $tq_CI->taqdar_sessions_model;
 
-/* ---- الكتابة قبل أي إخراج، ثم تحويل: تحديث الصفحة لا يعيد الإرسال ------
-   والملكية والحالة تفحصان في النموذج داخل الاستعلام نفسه. */
-$tq_do = (string) $this->input->post('tq_action');
-if ($tq_do !== '') {
-    if ($tq_do === 'save_slots') {
-        $tq_n = $tq_m->save_week($tq_uid, (array) $this->input->post('slots'));
-        $this->session->set_flashdata(
-            'flash_message',
-            $tq_n > 0 ? 'حفظت أوقاتك: ' . $tq_n . ' فترة متاحة هذا الأسبوع.'
-                      : 'حفظ اختيارك: لا فترات متاحة، فلن يصلك طلب حتى تفتح وقتا.'
-        );
-    } elseif ($tq_do === 'confirm' || $tq_do === 'decline') {
-        $tq_r = $tq_m->decide((int) $this->input->post('session_id'), $tq_uid, $tq_do,
-                              (string) $this->input->post('meet_url'));
-        $this->session->set_flashdata($tq_r['ok'] ? 'flash_message' : 'error_message', $tq_r['msg']);
-    }
-    redirect(site_url('teacher/sessions'), 'refresh');
-}
+/* ---- العرض يعرض ولا يكتب ---------------------------------------------
+   كانت هذه الشاشة تعالج POST بنفسها وترسل نماذجها إلى مسار العرض
+   `teacher/sessions`: كتابة في العرض تلتف على `write_guard`، بينما
+   `Taqdar::sessions_save()` والمسار `teacher/sessions/save` موجودان
+   ولا يرسل إليهما أحد — تنفيذان لعمل واحد، أحدهما ميت.
+   والكتابة الآن في `Taqdar::sessions_save()` و`Taqdar::sessions_decide()`،
+   ومنهما يخرج الإشعار إلى الطالب أيضا. */
 
 /* ---- القراءة ---------------------------------------------------------- */
 $tq_requests  = $tq_m->requests_for_teacher($tq_uid, ['requested']);
@@ -104,8 +93,16 @@ include 'portal_open.php';
                                         <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_r['student_name']); ?></p>
                                         <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_r['when_text']); ?></p>
                                     </div>
-                                    <form method="post" action="<?php echo base_url('teacher/sessions'); ?>" class="tq-form-inline">
-                                        <input type="hidden" name="tq_action" value="decline">
+                                    <?php /* الاعتذار يلغي حصة طالب انتظرها: حوار التأكيد الموحد
+                                             في البوابات لا ضغطة واحدة. */ ?>
+                                    <form method="post" action="<?php echo base_url('teacher/sessions/decide'); ?>" class="tq-form-inline"
+                                          data-tq-confirm-title="الاعتذار عن حصة <?php echo html_escape($tq_r['student_name']); ?>؟"
+                                          data-tq-confirm="يصله أنك اعتذرت، ويعود الموعد متاحا لغيره."
+                                          data-tq-confirm-note="الاعتذار المبكر أفضل للطالب من انتظار لا ينتهي. ولك أن تفتح الفترة نفسها من جديد."
+                                          data-tq-confirm-ok="أعتذر عن الطلب"
+                                          data-tq-confirm-tone="danger">
+                                        <?php echo tq_csrf(); ?>
+                                        <input type="hidden" name="decision" value="decline">
                                         <input type="hidden" name="session_id" value="<?php echo (int) $tq_r['id']; ?>">
                                         <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">اعتذار</button>
                                     </form>
@@ -114,9 +111,10 @@ include 'portal_open.php';
                                 <?php /* التأكيد ورابط اللقاء نموذج واحد: «مؤكد» بلا رابط يقول
                                          للطالب إن الحصة قائمة ولا يقول أين يدخلها — فيقف في
                                          موعده أمام شاشة بلا باب. والنموذج يرفض بلا رابط صحيح. */ ?>
-                                <form method="post" action="<?php echo base_url('teacher/sessions'); ?>"
+                                <form method="post" action="<?php echo base_url('teacher/sessions/decide'); ?>"
                                       class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap;margin-block-start:var(--tq-space-m)">
-                                    <input type="hidden" name="tq_action" value="confirm">
+                                    <?php echo tq_csrf(); ?>
+                                    <input type="hidden" name="decision" value="confirm">
                                     <input type="hidden" name="session_id" value="<?php echo (int) $tq_r['id']; ?>">
                                     <label class="tq-sr" for="tq-meet-<?php echo (int) $tq_r['id']; ?>">
                                         رابط لقاء الحصة مع <?php echo html_escape($tq_r['student_name']); ?>
@@ -186,8 +184,8 @@ include 'portal_open.php';
 
         <!-- الأوقات المتاحة: الأسبوع يبدأ الأحد -->
         <form class="tq-card tq-card--panel" method="post"
-              action="<?php echo base_url('teacher/sessions'); ?>">
-            <input type="hidden" name="tq_action" value="save_slots">
+              action="<?php echo base_url('teacher/sessions/save'); ?>">
+            <?php echo tq_csrf(); ?>
             <fieldset style="border:0;padding:0;margin:0">
                 <legend class="tq-h2" style="padding:0">أوقاتي المتاحة</legend>
                 <p class="tq-caption">

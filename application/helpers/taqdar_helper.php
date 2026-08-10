@@ -235,6 +235,38 @@ if (!function_exists('tq_lessons_word')) {
     }
 }
 
+if (!function_exists('tq_homework_word')) {
+    /** «٤ واجبات» · «واجبين»/«واجبان» · «واجب واحد» · «١٢ واجبا». */
+    function tq_homework_word($n, $zero = 'لا واجبات', $case = 'obl')
+    {
+        return tq_count_units($n, 'واجب', 'واجبان', 'واجبين', 'واجبات', 'واجبا', $zero, $case);
+    }
+}
+
+if (!function_exists('tq_minutes_word')) {
+    /** «٤٥ دقيقة» · «دقيقتين»/«دقيقتان» · «دقيقة واحدة» · «٥ دقائق». مؤنث. */
+    function tq_minutes_word($n, $zero = 'لا دقائق', $case = 'obl')
+    {
+        return tq_count_units($n, 'دقيقة', 'دقيقتان', 'دقيقتين', 'دقائق', 'دقيقة', $zero, $case, true);
+    }
+}
+
+if (!function_exists('tq_students_word')) {
+    /** «٤ طلاب» · «طالبين»/«طالبان» · «طالب واحد» · «١٢ طالبا». */
+    function tq_students_word($n, $zero = 'لا طلاب', $case = 'obl')
+    {
+        return tq_count_units($n, 'طالب', 'طالبان', 'طالبين', 'طلاب', 'طالبا', $zero, $case);
+    }
+}
+
+if (!function_exists('tq_sessions_word')) {
+    /** «٤ حصص» · «حصتين»/«حصتان» · «حصة واحدة» · «١٢ حصة». مؤنث. */
+    function tq_sessions_word($n, $zero = 'لا حصص', $case = 'obl')
+    {
+        return tq_count_units($n, 'حصة', 'حصتان', 'حصتين', 'حصص', 'حصة', $zero, $case, true);
+    }
+}
+
 if (!function_exists('tq_exams_word')) {
     /** «٤ اختبارات» · «اختبارين»/«اختباران» · «اختبار واحد» · «١٢ اختبارا». */
     function tq_exams_word($n, $zero = 'لا اختبارات', $case = 'obl')
@@ -309,5 +341,37 @@ if (!function_exists('tq_grade_visible')) {
         return !$CI->taqdar_marking_model->has_manual_questions(
             isset($row['quiz_id']) ? (int) $row['quiz_id'] : 0
         );
+    }
+}
+
+if (!function_exists('tq_course_owner_ids')) {
+    /**
+     * معرفات معلمي مجموعة كورسات، مفكوكة من `course.user_id` و`course.creator`.
+     *
+     * `course.user_id` **قائمة معرفات مفصولة بفواصل** («148,289») لا معرفا
+     * واحدا، ومعه `creator` للمنشئ — وهو نموذج الملكية المعتمد في
+     * `Taqdar_teacher_model::owns_course()` و`Taqdar::teacher_owns_course()`
+     * كليهما (`creator = ? OR FIND_IN_SET(?, user_id)`).
+     *
+     * و`(int)` على تلك القائمة تقرأ أولها وتسقط الباقي بلا خطأ ظاهر: كان
+     * ذلك يسقط كل معلم ثان في كورس مشترك من قائمة من يجوز للطالب مراسلتهم
+     * في `tq_messages.php` — فيقال للطالب عن معلمه إنه ليس من معلميه.
+     *
+     * @param array $rows صفوف فيها `user_id` وقد يكون فيها `creator`
+     * @return int[] معرفات فريدة موجبة
+     */
+    function tq_course_owner_ids($rows)
+    {
+        $out = array();
+        foreach ((array) $rows as $r) {
+            foreach (array('user_id', 'creator') as $col) {
+                if (!isset($r[$col])) continue;
+                foreach (explode(',', (string) $r[$col]) as $one) {
+                    $one = (int) trim($one);
+                    if ($one > 0) $out[$one] = true;
+                }
+            }
+        }
+        return array_keys($out);
     }
 }

@@ -76,8 +76,16 @@ $tq_rail_map = [
             ['students', 'طلابي',             'teacher/students', 'users'],
             ['sessions', 'الحصص',             'teacher/sessions', 'video'],
         ]],
+        /* التواصل: كان المعلم يرسل إلى طلابه من شاشة «طلابي» ولا يملك
+           صندوقا يقرأ فيه ردهم، وكانت إشعاراته تعد في `Taqdar::counts()`
+           ولا تعرض في شاشة ولا في جرس. */
+        ['التواصل', [
+            ['messages',      'الرسائل',   'teacher/messages',      'chat'],
+            ['notifications', 'الإشعارات', 'teacher/notifications', 'bell'],
+        ]],
         ['حسابي', [
-            ['wallet', 'المحفظة والأرباح', 'teacher/wallet', 'wallet'],
+            ['wallet',   'المحفظة والأرباح', 'teacher/wallet',   'wallet'],
+            ['settings', 'الإعدادات',        'teacher/settings', 'cog'],
         ]],
     ],
     'parent' => [

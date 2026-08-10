@@ -68,9 +68,16 @@ if ($tq_uid > 0) {
         $a_ids = array_map(static function ($r) { return (int) $r['assessment_id']; }, $tq_hw);
         $l_ids = array_map(static function ($r) { return (int) $r['lesson_id']; }, $tq_hw);
 
-        // آخر محاولة لكل تقييم — الترتيب تصاعدي فالأحدث يغلب
+        /* آخر محاولة لكل تقييم — الترتيب تصاعدي فالأحدث يغلب.
+           وأعمدة اعتماد المعلم تقرأ معها: الواجب عمل يقرؤه معلم، ودرجته
+           لا تعرض قبل اعتماده. والحكم في `Taqdar_marking_model` لا هنا،
+           فيقرأه كل عارض من موضع واحد. */
+        $CI->load->model('taqdar_marking_model');
+        $CI->taqdar_marking_model->ensure_schema();
+
         $tq_att = [];
-        foreach ($CI->db->select('assessment_id, score, passed, started_at, submitted_at')
+        foreach ($CI->db->select('assessment_id, score, passed, started_at, submitted_at,'
+                               . ' teacher_score, teacher_note, approved_at')
                         ->from('attempts')
                         ->where('student_id', $tq_uid)
                         ->where_in('assessment_id', $a_ids)
@@ -122,9 +129,16 @@ if ($tq_uid > 0) {
                 'href'    => base_url('student/lesson/' . (int) $r['course_id'] . '/' . $lid),
             ];
             if ($key === 'done') {
-                $item['score'] = $att['score'] === null ? null : (int) $att['score'];
-                $item['max']   = $max;
-                $item['pass_ok'] = $att['passed'] === null ? null : ((int) $att['passed'] === 1);
+                /* ما يعرض من الدرجة يقرره النموذج: قبل اعتماد المعلم لا
+                   تعرض. كان الطالب يقرأ رقما كتبه سكربت ويحسبه درجته
+                   النهائية، ثم يأتي اعتماد المعلم فيغيره — أو لا يأتي
+                   أصلا لأن الواجب لم يكن يصل معلما. */
+                $view = $CI->taqdar_marking_model->homework_student_view($att);
+                $item['graded']  = $view['visible'];
+                $item['score']   = $view['score'];
+                $item['max']     = 100;   // مقياس الواجب في المنصة نسبة مئوية
+                $item['note']    = $view['note'];
+                $item['pass_ok'] = $view['visible'] ? $view['passed'] : null;
             }
             $tq_groups[$key]['items'][] = $item;
         }
@@ -247,16 +261,29 @@ include 'portal_open.php';
                                     <?php if (!empty($t['pass'])): ?>
                                         <span><?php echo tq_icon('target', 16); ?>درجة النجاح <?php echo tq_num($t['pass'] . '%', 'tq-num--sm'); ?></span>
                                     <?php endif; ?>
-                                    <?php if ($key === 'done' && isset($t['score'], $t['max']) && $t['score'] !== null && $t['max'] > 0): ?>
-                                        <span><?php echo tq_icon('check', 16); ?>الدرجة <?php echo tq_num($t['score'] . '/' . $t['max'], 'tq-num--sm'); ?></span>
+                                    <?php if ($key === 'done' && !empty($t['graded']) && $t['score'] !== null): ?>
+                                        <span><?php echo tq_icon('check', 16); ?>الدرجة <?php echo tq_num(((float) $t['score'] == (int) $t['score'] ? (int) $t['score'] : $t['score']) . '%', 'tq-num--sm'); ?></span>
+                                    <?php elseif ($key === 'done'): ?>
+                                        <span><?php echo tq_icon('clock', 16); ?>ينتظر تصحيح معلمك</span>
                                     <?php endif; ?>
                                 </div>
+
+                                <?php /* ملاحظة المعلم: هي أنفع ما في التصحيح، وكانت تكتب في
+                                         شاشته ولا تصل صاحبها. */ ?>
+                                <?php if ($key === 'done' && !empty($t['note'])): ?>
+                                    <p class="tq-caption" style="margin:var(--tq-space-s) 0 0;padding:var(--tq-space-s) var(--tq-space-m);background:var(--tq-sand-fill);border-radius:var(--tq-radius-medium)">
+                                        <span class="tq-strong">ملاحظة معلمك:</span>
+                                        <?php echo tq_iso(html_escape($t['note'])); ?>
+                                    </p>
+                                <?php endif; ?>
                             </div>
 
                             <!-- شارة الحالة فوق زر الفعل — من القاعدة لا من افتراض -->
                             <div class="tq-s-row__end">
                                 <?php if ($key === 'done' && isset($t['pass_ok']) && $t['pass_ok'] !== null): ?>
                                     <?php echo tq_badge($t['pass_ok'] ? 'mastered' : 'late', $t['pass_ok'] ? 'ناجح' : 'يحتاج إعادة'); ?>
+                                <?php elseif ($key === 'done'): ?>
+                                    <?php echo tq_badge('due', 'ينتظر التصحيح'); ?>
                                 <?php else: ?>
                                     <?php echo tq_badge($g['badge'], $g['label']); ?>
                                 <?php endif; ?>

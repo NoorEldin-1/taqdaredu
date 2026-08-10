@@ -479,6 +479,38 @@ class Taqdar extends CI_Controller
 
 
     /**
+     * POST teacher/settings/save
+     *
+     * صفحة إعدادات المعلم تصب هنا. النموذج واحد للدورين
+     * (`Taqdar_settings_model`) لأن الملف الشخصي وكلمة المرور والتنبيهات
+     * والتفضيلات معنى واحد لا يختلف بالدور — والاختلاف الوحيد قسم
+     * «صفحتي العامة»، وله معالجه `teacher` في الموزع نفسه.
+     *
+     * ولا يعاد استعمال `settings_save()` بحارسها: حارسها `student`، ونداؤها
+     * من بوابة المعلم يرد المعلم إلى بوابة الطالب برسالة أنها ليست له.
+     */
+    public function teacher_settings_save()
+    {
+        $user = $this->write_guard('teacher');
+        $uid  = (int) $user['id'];
+
+        $this->load->model('taqdar_settings_model');
+        $r = $this->taqdar_settings_model->handle($uid, (string) $this->input->post('action', true));
+
+        $this->trace('teacher.settings.save', 'users:' . $uid,
+            array('action' => (string) $this->input->post('action', true), 'ok' => !empty($r['ok'])));
+
+        $section = (string) $this->input->post('s', true);
+        if (!in_array($section, array('profile','teacher','security','alerts','prefs','payouts'), true)) {
+            $section = isset($r['section']) ? $r['section'] : 'profile';
+        }
+
+        $this->done('teacher/settings?s=' . $section, !empty($r['ok']),
+            $this->result_message($r, 'حفظت إعداداتك.'));
+    }
+
+
+    /**
      * POST teacher/students/message
      * النطاق يعاد فرضه هنا كاملا: العرض يخفي، والخادم وحده يمنع.
      */
@@ -700,14 +732,20 @@ class Taqdar extends CI_Controller
     public function teacher($section = 'dashboard')
     {
         $map = [
-            'dashboard' => ['tq_teacher_dashboard', 'لوحة المعلم'],
-            'courses'   => ['tq_teacher_courses',   'كورساتي'],
-            'upload'    => ['tq_teacher_upload',    'رفع الدروس'],
-            'questions' => ['tq_teacher_questions', 'بنك الأسئلة'],
-            'marking'   => ['tq_teacher_marking',   'الواجبات والتصحيح'],
-            'students'  => ['tq_teacher_students',  'طلابي'],
-            'sessions'  => ['tq_teacher_sessions',  'الحصص'],
-            'wallet'    => ['tq_teacher_wallet',    'المحفظة والأرباح'],
+            'dashboard'     => ['tq_teacher_dashboard',      'لوحة المعلم'],
+            'courses'       => ['tq_teacher_courses',        'كورساتي'],
+            'upload'        => ['tq_teacher_upload',         'رفع الدروس'],
+            'questions'     => ['tq_teacher_questions',      'بنك الأسئلة'],
+            'marking'       => ['tq_teacher_marking',        'الواجبات والتصحيح'],
+            'students'      => ['tq_teacher_students',       'طلابي'],
+            'sessions'      => ['tq_teacher_sessions',       'الحصص'],
+            'wallet'        => ['tq_teacher_wallet',         'المحفظة والأرباح'],
+            /* الثلاثة الأخيرة كانت غائبة عن البوابة كلها: لا رسائل يقرأ فيها
+               المعلم رد طالبه، ولا إشعارات رغم أن `counts()` يعدها له، ولا
+               إعدادات — ولا تسجيل خروج معها، فلم يكن للمعلم باب يخرج منه. */
+            'messages'      => ['tq_teacher_messages',       'الرسائل'],
+            'notifications' => ['tq_teacher_notifications',  'الإشعارات'],
+            'settings'      => ['tq_teacher_settings',       'الإعدادات'],
         ];
         if (!isset($map[$section])) show_404();
 
@@ -947,6 +985,21 @@ class Taqdar extends CI_Controller
             $this->done('teacher/upload', false, 'عنوان الدرس مطلوب.');
         }
 
+        /**
+         * الحمولة تنقل ما اختاره المعلم كما هو.
+         *
+         * كان هذا السطر يكتب `$this->input->post('action') === 'draft' ? 'draft' : 'review'`
+         * — أي يمحو `published` قبل أن يصل النموذج. فزر «حفظ ونشر» يحفظ
+         * «قيد المراجعة» ويقال لصاحبه «أرسل للمراجعة»، وهو ضغط زر النشر.
+         * والقرار في `Taqdar_teacher_model::save_lesson()`: هي التي تعرف
+         * الكورس وحالته، وتنشر داخل المنشور وتنزل إلى المراجعة فيما عداه
+         * **وتقول لماذا**. والباب ينقل ولا يحكم.
+         */
+        $tq_action = strtolower(trim((string) $this->input->post('action')));
+        if (!in_array($tq_action, array('draft', 'review', 'published'), true)) {
+            $tq_action = 'draft';
+        }
+
         $payload = array(
             'course_id'        => $course_id,
             'section_id'       => (int) $this->input->post('section_id'),
@@ -954,7 +1007,7 @@ class Taqdar extends CI_Controller
             'duration_minutes' => (int) $this->input->post('duration_minutes'),
             'summary'          => (string) $this->input->post('summary'),
             'objectives'       => $this->post_list('objectives'),
-            'action'           => $this->input->post('action') === 'draft' ? 'draft' : 'review',
+            'action'           => $tq_action,
         );
 
         $r = $this->delegate(array(
@@ -990,16 +1043,35 @@ class Taqdar extends CI_Controller
             $this->done('teacher/marking', false, 'هذا التسليم في كورس ليس لك.');
         }
 
+        /**
+         * سحب الاعتماد.
+         *
+         * `Taqdar_marking_model::unapprove()` مكتوبة منذ بنيت الشاشة ولا
+         * مسار إليها ولا زر: حاجز يوضع ولا يرفع. والشاشة تقول للمعلم إن
+         * الدرجة المعتمدة «تعديلها يحل محلها» — وهو صحيح، لكن من اعتمد
+         * محاولة بالخطأ لا يملك أن يعيدها إلى الحجب.
+         */
+        if ((string) $this->input->post('act') === 'unapprove') {
+            $r = $this->delegate(array(
+                array('taqdar_marking_model', 'unapprove', array($result_id, $tid)),
+            ), array($result_id, $tid));
+
+            $this->trace('teacher.marking.unapprove', 'quiz_results:' . $result_id,
+                array('ok' => !empty($r['ok'])));
+
+            $this->done('teacher/marking?result=' . $result_id, !empty($r['ok']),
+                $this->result_message($r, 'سحب الاعتماد، والدرجة محجوبة عن الطالب من جديد.'));
+        }
+
         $score = $this->input->post('score');
         if ($score !== null && $score !== '' && (!is_numeric($score) || (float) $score < 0)) {
             $this->done('teacher/marking', false, 'الدرجة تكتب عددا موجبا.');
         }
 
-        $mastery = (string) $this->input->post('mastery');
-        if (!in_array($mastery, array('mastered', 'progress', 'late'), true)) {
-            $mastery = 'progress';
-        }
-
+        /* لا حقل `mastery` هنا: النموذج لا يرسله والموديل لا يقرؤه —
+           كان يقرأ من POST ويمرر ويسجل في `audit_log` ولا يغير شيئا،
+           فيقرأ المدقق في السجل قيمة لم يخترها أحد. وحالة الإتقان تشتق
+           من الدرجة والعتبة في `Taqdar_marking_model::mastery()`. */
         $r = $this->delegate(array(
             array('taqdar_marking_model', 'approve_marking'),
             array('taqdar_marking_model', 'marking_approve'),
@@ -1007,19 +1079,147 @@ class Taqdar extends CI_Controller
             array('taqdar_teacher_model', 'marking_approve'),
             array('taqdar_repo_model',    'teacher_approve_marking'),
         ), array($tid, array(
-            'result_id' => $result_id,
+            'result_id'  => $result_id,
             'student_id' => (int) $res['user_id'],
-            'quiz_id'   => (int) $res['quiz_id'],
-            'score'     => ($score === null || $score === '') ? null : (float) $score,
-            'mastery'   => $mastery,
-            'note'      => (string) $this->input->post('note'),
+            'quiz_id'    => (int) $res['quiz_id'],
+            'score'      => ($score === null || $score === '') ? null : (float) $score,
+            'note'       => (string) $this->input->post('note'),
         )));
 
         $this->trace('teacher.marking.approve', 'quiz_results:' . $result_id,
-            array('mastery' => $mastery, 'ok' => !empty($r['ok'])));
+            array('score' => $score, 'ok' => !empty($r['ok'])));
+
+        /* الطالب ووليه يعلمان بالنتيجة — انظر notify_marking(). */
+        if (!empty($r['ok'])) {
+            $this->notify_marking((int) $res['user_id'], $result_id, $tid);
+        }
 
         $this->done('teacher/marking', !empty($r['ok']),
             $this->result_message($r, 'اعتمدت الدرجة وأبلغ الطالب.'));
+    }
+
+    /**
+     * POST teacher/marking/homework — اعتماد درجة واجب أو سحبها.
+     *
+     * مسار مستقل عن `marking_approve()` لأن المصدر مختلف: ذاك على
+     * `quiz_results` وهذا على `attempts`، ومعرف «٧» في أحدهما ليس معرف
+     * «٧» في الآخر. وخلطهما في باب واحد يجعل رقما في نموذج يعتمد صفا
+     * في جدول لا يقصده صاحبه.
+     *
+     * والملكية تفحص في النموذج داخل الاستعلام
+     * (`Taqdar_marking_model::homework_attempt()`)، لا هنا.
+     */
+    public function marking_homework()
+    {
+        $user = $this->write_guard('teacher');
+        $tid  = (int) $user['id'];
+
+        $attempt_id = (int) $this->input->post('attempt_id');
+        if ($attempt_id < 1) {
+            $this->done('teacher/marking', false, 'لم يحدد الواجب المراد اعتماده.');
+        }
+
+        $this->load->model('taqdar_marking_model');
+
+        if ((string) $this->input->post('act') === 'unapprove') {
+            $r = $this->taqdar_marking_model->unapprove_homework($attempt_id, $tid);
+
+            $this->trace('teacher.marking.homework.unapprove', 'attempts:' . $attempt_id,
+                array('ok' => !empty($r['ok'])));
+
+            $this->done('teacher/marking?hw=' . $attempt_id, !empty($r['ok']),
+                $this->result_message($r, 'سحب الاعتماد.'));
+        }
+
+        $r = $this->taqdar_marking_model->approve_homework($tid, array(
+            'attempt_id' => $attempt_id,
+            'score'      => $this->input->post('score'),
+            'note'       => (string) $this->input->post('note'),
+        ));
+
+        $this->trace('teacher.marking.homework.approve', 'attempts:' . $attempt_id,
+            array('ok' => !empty($r['ok'])));
+
+        if (!empty($r['ok']) && !empty($r['attempt'])) {
+            $this->notify_homework($r['attempt'], $tid, !empty($r['passed']));
+        }
+
+        $this->done('teacher/marking', !empty($r['ok']),
+            $this->result_message($r, 'اعتمدت درجة الواجب وأبلغ الطالب.'));
+    }
+
+    /** إشعار الطالب ووليه باعتماد درجة واجب — كإشعار الاختبار سواء. */
+    private function notify_homework($attempt, $teacher_id, $passed)
+    {
+        try {
+            $this->load->model('taqdar_events_model');
+            $score = $attempt['teacher_score'] !== null
+                ? (float) $attempt['teacher_score'] : (float) $attempt['score'];
+            $total = max(1, (int) $attempt['total_marks']);
+
+            $this->taqdar_events_model->notify_student_and_parents(
+                (int) $attempt['student_id'],
+                $passed ? 'exam_result' : 'station_failed',
+                array(
+                    'key'         => 'homework:' . (int) $attempt['id'],
+                    'from_user'   => (int) $teacher_id,
+                    'window_days' => 30,
+                    'title'       => $passed ? 'صحح واجبك' : 'واجبك يحتاج إعادة',
+                    'text'        => 'واجب «' . $attempt['lesson_title'] . '» في '
+                                   . $attempt['course_title'] . ': '
+                                   . $score . ' من ' . $total
+                                   . ($passed ? ' — اجتزته.' : ' — لم تبلغ درجة العبور.'),
+                )
+            );
+        } catch (Throwable $e) {
+            // الدرجة محفوظة، والإشعار زيادة لا شرط
+        }
+    }
+
+    /**
+     * إشعار الطالب ووليه باعتماد درجة.
+     *
+     * كان الاعتماد يكتب الدرجة ثم ينتهي: الطالب لا يعلم أنها ظهرت إلا إن
+     * فتح شاشة اختباراته من تلقاء نفسه، وولي أمره لا يعلم أصلا. والأداة
+     * قائمة منذ زمن (`Taqdar_events_model::notify_student_and_parents()`)
+     * ونوع الحدث في كتالوجها (`exam_result`)، والوصلة وحدها كانت ناقصة.
+     *
+     * ونوع الحدث يفرق بالنتيجة لا بالفعل: من رسب يصله `station_failed`
+     * لأنه ما يستدعي تدخلا، ومن نجح يصله `exam_result`. والعتبة من
+     * `Taqdar_marking_model` نفسه فلا تفترق عن عتبة الشاشة.
+     *
+     * وأي تعثر هنا يبتلع: الدرجة حفظت فعلا، وإسقاط الصفحة بعد الحفظ
+     * يجعل المعلم يظن أن اعتماده لم يقع فيعيده.
+     */
+    private function notify_marking($student_id, $result_id, $teacher_id)
+    {
+        try {
+            $this->load->model('taqdar_marking_model');
+            $row = $this->taqdar_marking_model->attempt($result_id, $teacher_id);
+            if (!$row) return;
+
+            $score   = $row['teacher_score'] !== null ? (float) $row['teacher_score']
+                                                      : (float) $row['total_obtained_marks'];
+            $total   = max(1, (int) $row['total_marks']);
+            $mastery = $this->taqdar_marking_model->mastery($score, $total);
+            $passed  = ($mastery['key'] === 'mastered');
+
+            $this->load->model('taqdar_events_model');
+            $this->taqdar_events_model->notify_student_and_parents(
+                (int) $student_id,
+                $passed ? 'exam_result' : 'station_failed',
+                array(
+                    'key'         => 'attempt:' . (int) $result_id,
+                    'from_user'   => (int) $teacher_id,
+                    'window_days' => 30,
+                    'text'        => 'اختبار «' . $row['quiz_title'] . '» في '
+                                   . $row['course_title'] . ': '
+                                   . $score . ' من ' . $total . ' — ' . $mastery['label'] . '.',
+                )
+            );
+        } catch (Throwable $e) {
+            // الدرجة محفوظة، والإشعار زيادة لا شرط
+        }
     }
 
     /** POST teacher/sessions/save */
@@ -1058,10 +1258,90 @@ class Taqdar extends CI_Controller
             array('slots' => count($slots), 'ok' => !empty($r['ok'])));
 
         $done = isset($r['count'])
-            ? 'حفظت أوقاتك المتاحة — ' . (int) $r['count'] . ' فترة مفتوحة هذا الأسبوع.'
+            ? 'حفظت أوقاتك المتاحة — '
+              . tq_count_units((int) $r['count'], 'فترة', 'فترتان', 'فترتين', 'فترات', 'فترة', 'لا فترة', 'obl', true)
+              . ' مفتوحة هذا الأسبوع.'
             : 'حفظت أوقاتك المتاحة.';
 
         $this->done('teacher/sessions', !empty($r['ok']), $this->result_message($r, $done));
+    }
+
+    /**
+     * POST teacher/sessions/decide — تأكيد طلب حصة أو الاعتذار عنه.
+     *
+     * كانت هذه الكتابة تقع **داخل العرض**: `tq_teacher_sessions.php` يقرأ
+     * `tq_action` من POST ويحدث الجدول ثم يحول، والنماذج ترسل إلى مسار
+     * العرض `teacher/sessions`. وهو مخالف صريح لقاعدة هذا المشروع
+     * («مسارات الكتابة قبل مسارات العرض») ويلتف على `write_guard` كله.
+     * وأغرب منه أن `sessions_save()` والمسار `teacher/sessions/save` كانا
+     * موجودين ولا نموذج يرسل إليهما — تنفيذان لعمل واحد، أحدهما ميت.
+     *
+     * والملكية والحالة تفحصان داخل الاستعلام في `Taqdar_sessions_model::decide()`،
+     * فما هنا حراسة الباب لا حراسة البيانات.
+     */
+    public function sessions_decide()
+    {
+        $user = $this->write_guard('teacher');
+        $tid  = (int) $user['id'];
+
+        $session_id = (int) $this->input->post('session_id');
+        $decision   = (string) $this->input->post('decision');
+        if (!in_array($decision, array('confirm', 'decline'), true)) {
+            $this->done('teacher/sessions', false, 'إجراء غير معروف.');
+        }
+
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->decide(
+            $session_id, $tid, $decision, (string) $this->input->post('meet_url')
+        );
+
+        $this->trace('teacher.sessions.' . $decision, 'tutoring_sessions:' . $session_id,
+            array('ok' => !empty($r['ok'])));
+
+        /* الطالب يعلم بالرد — كان يؤكد له المعلم موعدا فلا يصله شيء،
+           ويعتذر عنه فلا يصله شيء، ولا يعرف إلا إن فتح شاشة الحجوزات. */
+        if (!empty($r['ok'])) {
+            $this->notify_session_decision($session_id, $tid, $decision);
+        }
+
+        $this->done('teacher/sessions', !empty($r['ok']),
+            isset($r['msg']) ? $r['msg'] : 'حفظ ردك على الطلب.');
+    }
+
+    /** إشعار الطالب برد معلمه على طلب حصته. */
+    private function notify_session_decision($session_id, $teacher_id, $decision)
+    {
+        try {
+            $row = $this->db->query(
+                'SELECT s.student_id, a.starts_at
+                   FROM `tutoring_sessions` s
+              LEFT JOIN `availability_slots` a ON a.id = s.slot_id
+                  WHERE s.id = ? AND s.teacher_id = ? LIMIT 1',
+                array((int) $session_id, (int) $teacher_id)
+            )->row_array();
+            if (!$row) return;
+
+            $this->load->model('taqdar_sessions_model');
+            $when = !empty($row['starts_at'])
+                ? $this->taqdar_sessions_model->when_text($row['starts_at']) : '';
+
+            $this->load->model('taqdar_events_model');
+            $this->taqdar_events_model->notify(
+                (int) $row['student_id'],
+                'session_request',
+                array(
+                    'key'         => 'session:' . (int) $session_id . ':' . $decision,
+                    'from_user'   => (int) $teacher_id,
+                    'window_days' => 30,
+                    'title'       => $decision === 'confirm' ? 'أكدت حصتك الخاصة' : 'اعتذر المعلم عن حصتك',
+                    'text'        => $decision === 'confirm'
+                        ? 'أكد معلمك الحصة' . ($when !== '' ? ' — ' . $when : '') . '. رابط الدخول في صفحة حصصك.'
+                        : 'اعتذر معلمك عن الموعد' . ($when !== '' ? ' — ' . $when : '') . '، واختر موعدا آخر من حصص بالطلب.',
+                )
+            );
+        } catch (Throwable $e) {
+            // الرد حفظ فعلا، والإشعار زيادة لا شرط
+        }
     }
 
     /** POST teacher/wallet/withdraw */
@@ -1125,6 +1405,48 @@ class Taqdar extends CI_Controller
 
         $this->done('teacher/wallet', !empty($r['ok']),
             $this->result_message($r, 'سجل طلب السحب وينتظر المراجعة.'));
+    }
+
+    /**
+     * POST teacher/wallet/cancel — إلغاء طلب سحب قائم.
+     *
+     * شاشة المحفظة تعد صراحة: «إلغاء الطلب يعيده إلى المتاح»، وكان الوعد
+     * بلا زر. و`Taqdar_wallet_model::cancel_payout()` مكتوبة وتقيد
+     * القيدين العكسيين كما ينبغي — الباب وحده كان ناقصا.
+     *
+     * والملكية تفحص هنا لأن `cancel_payout()` تقبل معرف الطلب وحده ولا
+     * تسأل عن صاحبه: تمرير معرف من المتصفح إليها بلا فحص يلغي طلب معلم
+     * آخر ويعيد ماله إلى دلو متاحه — أي يعبث بمال غيره من رابط.
+     */
+    public function wallet_cancel()
+    {
+        $user = $this->write_guard('teacher');
+        $tid  = (int) $user['id'];
+
+        $payout_id = (int) $this->input->post('payout_id');
+        $row = $payout_id > 0
+            ? $this->db->select('id, user_id, status')->where('id', $payout_id)
+                       ->get('payout')->row_array()
+            : null;
+
+        if (!$row || (int) $row['user_id'] !== $tid) {
+            $this->done('teacher/wallet', false, 'هذا الطلب ليس من طلباتك.');
+        }
+        if ((int) $row['status'] === 1) {
+            $this->done('teacher/wallet', false, 'هذا الطلب حول بالفعل، فلا يلغى.');
+        }
+        if ((int) $row['status'] === 2) {
+            $this->done('teacher/wallet', false, 'هذا الطلب ملغى من قبل.');
+        }
+
+        $this->load->model('taqdar_wallet_model');
+        $ok = (bool) $this->taqdar_wallet_model->cancel_payout($payout_id);
+
+        $this->trace('teacher.wallet.cancel', 'payout:' . $payout_id, array('ok' => $ok));
+
+        $this->done('teacher/wallet', $ok, $ok
+            ? 'ألغي الطلب، وعاد مبلغه إلى رصيدك المتاح.'
+            : 'تعذر إلغاء الطلب — أعد المحاولة.');
     }
 
     /** POST teacher/questions/import */

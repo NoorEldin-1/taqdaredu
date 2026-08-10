@@ -1042,6 +1042,58 @@ class Taqdar_wallet_model extends CI_Model
 
 
     /**
+     * حصة المعلم من مبيعات شهر بعينه — بالهللات، من الدفتر لا من `payment`.
+     *
+     * كانت لوحة المعلم تحسب هذا الرقم بنفسها: `SUM(payment.instructor_revenue)`
+     * لكورساته منذ أول الشهر. وهي بعينها الطريقة التي هجرتها شاشة المحفظة
+     * لأنها تنهار عند أول استرداد أو تسوية — فيقرأ المعلم في لوحته رقما
+     * وفي محفظته رقما آخر عن الشهر نفسه، ولا يعرف أيهما ماله.
+     *
+     * والحساب هنا من القيود: البيع ناقص العمولة ناقص المحتجز، لكل مستند
+     * وقع في الشهر — وهو تعريف «حصتك» نفسه في كشف الحساب.
+     *
+     * @param  int $user_id  المعلم
+     * @param  int $month_ts طابع أي لحظة في الشهر المقصود (الافتراض: الآن)
+     * @return int بالهللات
+     */
+    public function month_earnings($user_id, $month_ts = null)
+    {
+        /* المصالحة أولا: الدفتر يبنى من `payment` عند أول قراءة، فلو قرئ
+           بلا مصالحة أعطى صفرا وللمعلم مبيعات — وصفر كاذب أسوأ من بطء. */
+        $this->sync($user_id);
+
+        $wallet = $this->wallet_of($user_id);
+        $month_ts = $month_ts ? (int) $month_ts : time();
+        $from = date('Y-m-01 00:00:00', $month_ts);
+        $to   = date('Y-m-d H:i:s', strtotime('+1 month', strtotime($from)));
+
+        /**
+         * الشهر يحدد **بتاريخ البيع** لا بتاريخ القيد.
+         *
+         * قيد الاسترداد يكتب يوم يكتشف لا يوم البيع، فلو رشح بتاريخه هو
+         * لطرح استرداد بيع من يوليو من أرباح أغسطس — فيقرأ المعلم صفرا في
+         * شهر باع فيه فعلا. والصواب أن ينقص البيع المسترد من شهره هو.
+         *
+         * فالترشيح على مستندات بيعها في الشهر، ثم تجمع قيودها كلها —
+         * البيع والعمولة والمحتجز والاسترداد — فالرقم «حصتك من مبيعات هذا
+         * الشهر بعد ما استرد منها».
+         */
+        $row = $this->db->query(
+            'SELECT COALESCE(SUM(e.`amount`),0) s
+               FROM `wallet_entries` e
+              WHERE e.`wallet_id` = ?
+                AND e.`type` IN ("sale","commission","retained","refund")
+                AND e.`origin` IN (
+                    SELECT s.`origin` FROM `wallet_entries` s
+                     WHERE s.`wallet_id` = ? AND s.`type` = "sale"
+                       AND s.`occurred_at` >= ? AND s.`occurred_at` < ?)',
+            array($wallet['id'], $wallet['id'], $from, $to)
+        )->row_array();
+
+        return (int) ($row ? $row['s'] : 0);
+    }
+
+    /**
      * يقيد بيع مسار في محفظة معلمه.
      *
      * قيدان لا سطر صاف: `sale` بكامل المقبوض، ثم `commission` بما تأخذه

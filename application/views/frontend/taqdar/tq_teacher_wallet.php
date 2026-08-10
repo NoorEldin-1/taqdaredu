@@ -151,7 +151,11 @@ include 'portal_open.php';
                                 $tq_kind  = isset($tq_states[$tq_s['state']]) ? $tq_states[$tq_s['state']] : $tq_states['pending'];
                                 $tq_label = $tq_kind[1];
                                 if ($tq_s['state'] === 'pending') {
-                                    $tq_label .= ' · يتحرر بعد ' . TQ_LRI . (int) $tq_s['days_left'] . TQ_PDI . ' يوما';
+                                    /* «يتحرر بعد 4 يوما» خطأ في تمييز العدد، و«بعد 0 يوما»
+                                       أسوأ منه: بيع بلغ موعد تحرره يقال عنه إنه ينتظر صفرا. */
+                                    $tq_label .= (int) $tq_s['days_left'] > 0
+                                        ? ' · يتحرر بعد ' . tq_days((int) $tq_s['days_left'])
+                                        : ' · يتحرر مع أول تحديث';
                                 }
                                 ?>
                                 <tr>
@@ -201,6 +205,7 @@ include 'portal_open.php';
                                 <th scope="col">القناة</th>
                                 <th scope="col">الوجهة</th>
                                 <th scope="col">الحالة</th>
+                                <th scope="col"><span class="tq-sr">إجراءات</span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -223,6 +228,26 @@ include 'portal_open.php';
                                     <td data-label="القناة"><?php echo html_escape($tq_ch); ?></td>
                                     <td data-label="الوجهة"><?php echo tq_num($tq_p['destination_masked'], 'tq-num--sm'); ?></td>
                                     <td data-label="الحالة"><?php echo $tq_pstate; ?></td>
+                                    <?php /* الإلغاء — كان النص أعلاه يعد بأن «إلغاء الطلب يعيده
+                                             إلى المتاح» ولا زر في الشاشة يفعله، و`cancel_payout()`
+                                             في النموذج مكتوبة تنتظر بابا. ويعرض للمعلق وحده:
+                                             المحول لا يلغى، والملغى لا يلغى مرتين. */ ?>
+                                    <td data-label="إجراءات">
+                                        <?php if ((int) $tq_p['status'] === 0): ?>
+                                            <form method="post" action="<?php echo base_url('teacher/wallet/cancel'); ?>"
+                                                  data-tq-confirm-title="إلغاء طلب سحب <?php echo html_escape(trim(strip_tags($tq_money($tq_p['amount_halalas'])))); ?>؟"
+                                                  data-tq-confirm="يعود المبلغ إلى رصيدك المتاح فورا، ويقيد ذلك في دفترك."
+                                                  data-tq-confirm-note="يبقى الطلب في السجل بحالة «ألغي» — الدفتر لا يمحو سطرا."
+                                                  data-tq-confirm-ok="ألغي الطلب"
+                                                  data-tq-confirm-tone="danger">
+                                                <?php echo tq_csrf(); ?>
+                                                <input type="hidden" name="payout_id" value="<?php echo (int) $tq_p['id']; ?>">
+                                                <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit">إلغاء</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <span class="tq-micro">—</span>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -258,15 +283,28 @@ include 'portal_open.php';
             وصحة القناة — في `Taqdar_wallet_model::request_payout` في الخادم؛
             وما هنا (min/max) تيسير للمستخدم لا حراسة، فالحارس لا يكون في المتصفح.
         -->
+        <?php
+        /* المدى المعروض على الحقل.
+           كان `min` الحد الأدنى و`max` الرصيد المتاح دائما — فحين يكون
+           المتاح صفرا (وهو حال كل معلم جديد) يصير الحقل `min=100 max=0`:
+           مدى مستحيل يرفض المتصفح كل رقم يكتب فيه ولا يقول لماذا. والزر
+           معطل عندها، لكن الحقل يبقى مفتوحا يستقبل ما لا يقبله.
+           فحين لا يبلغ المتاح الحد الأدنى يعطل الحقل نفسه، ويقال السبب. */
+        $tq_can_withdraw = ((int) $tq_w['available'] >= (int) $tq_w['min_payout'])
+                        && (int) $tq_w['min_payout'] > 0;
+        ?>
         <form class="tq-card" id="tq-withdraw" method="post"
               action="<?php echo base_url('teacher/wallet/withdraw'); ?>">
+            <?php echo tq_csrf(); ?>
             <div class="tq-card__head"><h2 class="tq-card__title">طلب سحب</h2></div>
 
             <div class="tq-field">
                 <label class="tq-field__label" for="tq-amount">المبلغ بالريال</label>
                 <input class="tq-input" id="tq-amount" type="number" name="withdrawal_amount"
-                       min="<?php echo (int) $tq_w['min_payout'] / 100; ?>" step="0.01" inputmode="decimal"
-                       max="<?php echo (int) $tq_w['available'] / 100; ?>" required>
+                       min="<?php echo number_format((int) $tq_w['min_payout'] / 100, 2, '.', ''); ?>"
+                       max="<?php echo number_format((int) $tq_w['available'] / 100, 2, '.', ''); ?>"
+                       step="0.01" inputmode="decimal" required
+                       <?php echo $tq_can_withdraw ? '' : 'disabled'; ?>>
                 <span class="tq-field__msg tq-field__hint">
                     المتاح الآن <?php echo $tq_money($tq_w['available']); ?> —
                     <?php echo tq_iso('والحد الأدنى للسحب ' . number_format($tq_w['min_payout'] / 100, 2) . ' ريال.'); ?>
@@ -279,7 +317,8 @@ include 'portal_open.php';
                 <?php $tq_first = true; foreach ($tq_w['channels'] as $tq_key => $tq_c): ?>
                     <span class="tq-row" style="gap:var(--tq-space-s);margin-block-end:var(--tq-space-s)">
                         <input type="radio" id="tq-ch-<?php echo $tq_key; ?>" name="payment_type"
-                               value="<?php echo $tq_key; ?>" <?php echo $tq_first ? 'checked' : ''; ?> required>
+                               value="<?php echo $tq_key; ?>" <?php echo $tq_first ? 'checked' : ''; ?> required
+                               <?php echo $tq_can_withdraw ? '' : 'disabled'; ?>>
                         <label for="tq-ch-<?php echo $tq_key; ?>">
                             <?php echo html_escape($tq_c['label']); ?>
                             <span class="tq-caption"> — <?php echo html_escape($tq_c['hint']); ?></span>
@@ -291,7 +330,8 @@ include 'portal_open.php';
             <div class="tq-field">
                 <label class="tq-field__label" for="tq-dest">بيانات التحويل</label>
                 <input class="tq-input" id="tq-dest" type="text" name="destination" required
-                       placeholder="رقم الآيبان أو رقم الجوال المرتبط بالمحفظة">
+                       placeholder="رقم الآيبان أو رقم الجوال المرتبط بالمحفظة"
+                       <?php echo $tq_can_withdraw ? '' : 'disabled'; ?>>
                 <span class="tq-field__msg tq-field__hint">
                     <?php echo tq_iso('الآيبان السعودي يبدأ بـ SA ويتكون من 24 خانة.'); ?>
                     وتحفظ الوجهة مع الطلب، ولا تظهر بعدها إلا بأربع خاناتها الأخيرة.
@@ -300,12 +340,14 @@ include 'portal_open.php';
 
             <button class="tq-btn tq-btn--primary tq-btn--block" type="submit"
                     aria-describedby="tq-withdraw-note"
-                    <?php echo ((int) $tq_w['available'] < (int) $tq_w['min_payout']) ? 'disabled' : ''; ?>>
+                    <?php echo $tq_can_withdraw ? '' : 'disabled'; ?>>
                 إرسال الطلب
             </button>
             <p class="tq-field__msg tq-field__hint" id="tq-withdraw-note" style="margin-block-start:var(--tq-space-m)">
-                <?php if ((int) $tq_w['available'] < (int) $tq_w['min_payout']): ?>
-                    رصيدك المتاح لم يبلغ الحد الأدنى للسحب بعد.
+                <?php if (!$tq_can_withdraw): ?>
+                    <?php echo tq_iso('رصيدك المتاح ' . number_format((int) $tq_w['available'] / 100, 2)
+                        . ' ريال، ولم يبلغ الحد الأدنى للسحب (' . number_format((int) $tq_w['min_payout'] / 100, 2)
+                        . ' ريال) بعد. والمعلق يتحرر بعد نافذة الاسترداد فينضم إلى المتاح.'); ?>
                 <?php else: ?>
                     عند إرسال الطلب يحجز المبلغ من رصيدك المتاح فورا ويقيد في دفترك،
                     فلا يمكن طلبه مرتين.

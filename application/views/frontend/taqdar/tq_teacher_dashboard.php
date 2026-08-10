@@ -21,14 +21,18 @@ $tq_icon  = 'home';
 
 $tq_uid = (int) $this->session->userdata('user_id');
 
-/* ---- عتبة النجاح: إعداد لا رقم مبثوث في الشيفرة --------------------
-   مصدرها `settings.tq_pass_threshold` نسبة مئوية. تغييرها من الإعدادات
-   يغير كل حساب رسوب في هذه اللوحة دفعة واحدة، ولا يحتاج لمس شيفرة.
-   وإن غابت أو خرجت عن المدى عادت إلى 60% — العتبة التي كانت مثبتة. */
-$tq_pass_pct = (int) get_settings('tq_pass_threshold');
-if ($tq_pass_pct < 1 || $tq_pass_pct > 100) {
-    $tq_pass_pct = 60;
-}
+/* النماذج تحمل عبر get_instance(): العارض في CI3 ينسخ خصائص المتحكم إلى
+   المحمل مرة واحدة قبل التصيير، فما حمل بعد بدء التصيير لا يظهر في `$this`. */
+$tq_CI = get_instance();
+$tq_CI->load->model('taqdar_marking_model');
+$tq_mark = $tq_CI->taqdar_marking_model;
+
+/* ---- عتبة النجاح: من نموذج التصحيح لا من استعلام في العرض -----------
+   كانت تقرأ هنا من `settings.tq_pass_threshold`، ويقرأها
+   `Taqdar_marking_model` من `marking_pass_percent` — مفتاحان لعتبة واحدة.
+   فمن ضبط أحدهما جعل اللوحة تحسب الرسوب بعتبة وشاشة التصحيح بأخرى.
+   والقراءة الآن من موضع واحد يقبل المفتاحين. */
+$tq_pass_pct   = $tq_mark->pass_percent();
 $tq_pass_ratio = $tq_pass_pct / 100;
 
 /* ---- النطاق: كورسات هذا المعلم وحدها ------------------------------- */
@@ -44,10 +48,13 @@ $tq_my_courses = $this->db
 $tq_course_ids = array_map('intval', array_column($tq_my_courses, 'id'));
 $tq_in         = implode(',', $tq_course_ids);
 
-$tq_students        = 0;
-$tq_pending_marking = 0;
+$tq_students         = 0;
+$tq_pending_marking  = 0;
+$tq_pending_quizzes  = 0;
+$tq_pending_homework = 0;
 $tq_month_revenue   = 0;
 $tq_attention       = [];
+$tq_attention_total = 0;
 $tq_hard_lessons    = [];
 
 if ($tq_in !== '') {
@@ -56,25 +63,28 @@ if ($tq_in !== '') {
         "SELECT COUNT(DISTINCT user_id) AS n FROM enrol WHERE course_id IN ($tq_in)"
     )->row('n');
 
-    /* صف التصحيح: محاولات مسلمة في اختبارات كورساته.
-       اعتماد المعلم للدرجة النهائية ينتظر عمود اعتماد في `quiz_results`
-       (أو جدول `marking_approvals`)، فالعد هنا = المسلم لا المعتمد. */
-    $tq_pending_marking = (int) $this->db->query(
-        "SELECT COUNT(*) AS n
-           FROM quiz_results r
-           JOIN lesson l ON l.id = r.quiz_id
-          WHERE r.is_submitted = 1 AND l.course_id IN ($tq_in)"
-    )->row('n');
+    /* صف التصحيح — من `Taqdar_marking_model` لا من استعلام هنا.
+       كان العد هنا يشمل المعتمد أيضا (بلا شرط `approved_at IS NULL`)،
+       فتقول البطاقة رقما وتفتح شاشة التصحيح على رقم أصغر منه بكثير:
+       المعلم يرسل إلى صف قصره هو بنفسه. والمصدر الآن واحد. */
+    /* الصفان معا: اختبارات وواجبات. الأول من `quiz_results` والثاني من
+       `attempts`، وكلاهما ينتظر المعلم — فبطاقة تعد أحدهما تخفي الآخر. */
+    $tq_pending_quizzes  = $tq_mark->queue_count($tq_uid);
+    $tq_pending_homework = $tq_mark->homework_queue_count($tq_uid);
+    $tq_pending_marking  = $tq_pending_quizzes + $tq_pending_homework;
 
-    /* أرباح الشهر: حصة المعلم من كل عملية بيع في كورساته. */
-    $tq_month_revenue = (float) $this->db->query(
-        "SELECT COALESCE(SUM(instructor_revenue), 0) AS s
-           FROM payment
-          WHERE course_id IN ($tq_in) AND date_added >= ?",
-        [strtotime(date('Y-m-01 00:00:00'))]
-    )->row('s');
+    /* أرباح الشهر من دفتر المحفظة لا من `payment`.
+       كانت تجمع `payment.instructor_revenue` — وهي الطريقة التي هجرتها
+       شاشة المحفظة لأنها لا ترى استردادا ولا تسوية، فيفترق الرقمان عن
+       الشهر نفسه في شاشتين. والدفتر مصدر واحد لهما الآن.
+       والمبلغ بالهللات، والقسمة على مئة حد عرض أخير لا حساب. */
+    $tq_CI->load->model('taqdar_wallet_model');
+    $tq_month_revenue = $tq_CI->taqdar_wallet_model->month_earnings($tq_uid) / 100;
 
-    /* ---- «يحتاج انتباهك»: الطلاب المتعثرون مرتبين بالأولوية ------- */
+    /* ---- «يحتاج انتباهك»: الطلاب المتعثرون مرتبين بالأولوية -------
+       صف لكل (طالب × كورس): الطالب المسجل في ثلاثة من كورساتي يظهر ثلاث
+       مرات، فتمتلئ قائمة الستة بطالبين. والاختيار الآن أعلى صف لكل طالب،
+       والباقي يذكر عددا لا يكرر. */
     $tq_rows = $this->db->query(
         "SELECT u.id, u.first_name, u.last_name, u.image,
                 c.id AS course_id, c.title AS course_title,
@@ -88,12 +98,14 @@ if ($tq_in !== '') {
           WHERE e.course_id IN ($tq_in)"
     )->result_array();
 
-    /* الرسوب يقاس بعتبة `$tq_pass_pct` من عدد أسئلة الاختبار، وهي إعداد
-       يقرأ من `settings` لا رقم في الشيفرة. وعتبة لكل هدف على حدة تنتظر
-       جدول `objectives` — وحتى يوجد فالعتبة واحدة للمنصة كلها. */
+    /* الرسوب يقاس بعتبة `$tq_pass_pct` من عدد أسئلة الاختبار.
+       والتجميع بـ(طالب × كورس) لا بالطالب وحده: كان مجموع رسوبه في
+       كورساتي كلها يعلق على صف كل كورس منها، فيقرأ المعلم عن طالب
+       «رسب في 7 اختبار» في مادة اختباراتها ثلاثة — رقم صحيح في غير موضعه.
+       وعتبة لكل هدف على حدة تنتظر `objectives`. */
     $tq_fail_map = [];
     foreach ($this->db->query(
-        "SELECT r.user_id,
+        "SELECT r.user_id, l.course_id,
                 COUNT(*) AS attempts,
                 SUM(CASE WHEN r.total_obtained_marks <
                      (SELECT COUNT(*) FROM question q WHERE q.quiz_id = r.quiz_id) * ?
@@ -101,17 +113,18 @@ if ($tq_in !== '') {
            FROM quiz_results r
            JOIN lesson l ON l.id = r.quiz_id
           WHERE r.is_submitted = 1 AND l.course_id IN ($tq_in)
-          GROUP BY r.user_id",
+          GROUP BY r.user_id, l.course_id",
         [$tq_pass_ratio]
     )->result_array() as $tq_f) {
-        $tq_fail_map[(int) $tq_f['user_id']] = $tq_f;
+        $tq_fail_map[(int) $tq_f['user_id'] . ':' . (int) $tq_f['course_id']] = $tq_f;
     }
 
     foreach ($tq_rows as $tq_r) {
         $tq_days  = (int) floor((time() - (int) $tq_r['last_seen']) / 86400);
         $tq_days  = max(0, $tq_days);
         $tq_prog  = (int) $tq_r['progress'];
-        $tq_fails = (int) ($tq_fail_map[(int) $tq_r['id']]['fails'] ?? 0);
+        $tq_key   = (int) $tq_r['id'] . ':' . (int) $tq_r['course_id'];
+        $tq_fails = (int) ($tq_fail_map[$tq_key]['fails'] ?? 0);
 
         /* الأولوية: الانقطاع أثقل من بطء التقدم، والرسوب المتكرر أثقل منهما. */
         $tq_score = min($tq_days, 21) * 4 + (100 - $tq_prog) * 0.3 + $tq_fails * 12;
@@ -121,9 +134,9 @@ if ($tq_in !== '') {
         }
 
         $tq_reason = $tq_fails > 0
-            ? 'رسب في ' . TQ_LRI . $tq_fails . TQ_PDI . ' اختبار'
+            ? 'رسب في ' . tq_exams_word($tq_fails)
             : ($tq_days >= 5
-                ? 'انقطع ' . TQ_LRI . $tq_days . TQ_PDI . ' يوما'
+                ? 'انقطع ' . tq_days($tq_days)
                 : 'تقدمه ' . TQ_LRI . $tq_prog . '%' . TQ_PDI . ' فقط');
 
         $tq_r['days']   = $tq_days;
@@ -136,7 +149,19 @@ if ($tq_in !== '') {
     usort($tq_attention, static function ($a, $b) {
         return $b['score'] <=> $a['score'];
     });
-    $tq_attention = array_slice($tq_attention, 0, 6);
+
+    /* طالب واحد مرة واحدة، بأثقل كورساته حالا — والاسم المكرر ست مرات
+       يخفي خمسة طلاب متعثرين خلف واحد. */
+    $tq_seen_student = [];
+    $tq_unique       = [];
+    foreach ($tq_attention as $tq_a) {
+        $tq_sid = (int) $tq_a['id'];
+        if (isset($tq_seen_student[$tq_sid])) continue;
+        $tq_seen_student[$tq_sid] = true;
+        $tq_unique[] = $tq_a;
+    }
+    $tq_attention_total = count($tq_unique);
+    $tq_attention       = array_slice($tq_unique, 0, 6);
 
     /* ---- الدروس عالية الفشل ----------------------------------------
        التجميع في استعلام داخلي والترتيب على نتيجته: ماريا دي بي ترفض
@@ -228,7 +253,11 @@ include 'portal_open.php';
                     <span class="tq-pastel__icon" style="color:var(--tq-peach-ink)" aria-hidden="true"><?php echo tq_icon('clipboard'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0"><?php echo tq_num($tq_pending_marking, 'tq-num--xl'); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">محاولة مسلمة في صف التصحيح</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0">
+                    <?php echo tq_iso($tq_pending_marking > 0
+                        ? tq_exams_word($tq_pending_quizzes) . ' و' . tq_homework_word($tq_pending_homework) . ' تنتظر اعتمادك'
+                        : 'لا شيء ينتظر اعتمادك'); ?>
+                </p>
             </div>
 
             <div class="tq-pastel tq-pastel--mint">
@@ -255,7 +284,7 @@ include 'portal_open.php';
             <div class="tq-sectionhead">
                 <h2 id="tq-attention-h">يحتاج انتباهك</h2>
                 <?php if ($tq_attention): ?>
-                    <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_attention) . TQ_PDI; ?></span>
+                    <span class="tq-sectionhead__count"><?php echo TQ_LRI . $tq_attention_total . TQ_PDI; ?></span>
                 <?php endif; ?>
             </div>
 
@@ -263,6 +292,7 @@ include 'portal_open.php';
                 <div class="tq-card tq-card--float">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
                         مرتبون بالأولوية: الانقطاع أولا، ثم الرسوب المتكرر، ثم بطء التقدم.
+                        وكل طالب مرة واحدة بأثقل كورساته حالا.
                     </p>
                     <ul class="tq-stack">
                         <?php foreach ($tq_attention as $tq_i => $tq_s): ?>
@@ -288,6 +318,16 @@ include 'portal_open.php';
                             </li>
                         <?php endforeach; ?>
                     </ul>
+
+                    <?php /* القائمة مقطوعة عند ستة: من لم يظهر يقال عدده ويفتح
+                             له باب، لا يبتلع صامتا. */ ?>
+                    <?php if ($tq_attention_total > count($tq_attention)): ?>
+                        <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
+                            <?php echo tq_iso('و' . tq_students_word($tq_attention_total - count($tq_attention)) . ' غيرهم يحتاجون انتباهك.'); ?>
+                        </p>
+                    <?php endif; ?>
+                    <a class="tq-btn tq-btn--ghost tq-btn--block tq-btn--sm" style="margin-block-start:var(--tq-space-m)"
+                       href="<?php echo base_url('teacher/students'); ?>">قائمة طلابي كاملة</a>
                 </div>
             <?php else: ?>
                 <div class="tq-card tq-empty">
@@ -376,7 +416,7 @@ include 'portal_open.php';
                                 <span class="tq-micro">
                                     <?php echo $tq_when; ?> ·
                                     <?php echo TQ_LRI . date('H:i', $tq_at) . TQ_PDI; ?> ·
-                                    <?php echo TQ_LRI . (int) $tq_v['duration_min'] . TQ_PDI; ?> دقيقة
+                                    <?php echo tq_iso(tq_minutes_word((int) $tq_v['duration_min'])); ?>
                                 </span>
                             </span>
                             <?php echo $tq_v['status'] === 'live'
@@ -387,7 +427,7 @@ include 'portal_open.php';
                 </ul>
                 <?php if ($tq_sessions_count > count($tq_sessions)): ?>
                     <p class="tq-micro" style="margin-block-start:var(--tq-space-m)">
-                        و<?php echo TQ_LRI . ($tq_sessions_count - count($tq_sessions)) . TQ_PDI; ?> حصة أخرى خلال الأسبوع.
+                        <?php echo tq_iso('و' . tq_sessions_word($tq_sessions_count - count($tq_sessions)) . ' أخرى خلال الأسبوع.'); ?>
                     </p>
                 <?php endif; ?>
                 <a class="tq-btn tq-btn--ghost tq-btn--block tq-btn--sm" style="margin-block-start:var(--tq-space-l)"

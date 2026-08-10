@@ -173,7 +173,10 @@ include 'portal_open.php';
                                     <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></p>
                                     <p class="tq-micro" style="margin:0"><?php echo html_escape($tq_s['course_title']); ?></p>
                                 </div>
-                                <?php echo tq_badge('due', 'غاب ' . TQ_LRI . (int) $tq_s['days'] . TQ_PDI . ' يوما'); ?>
+                                <?php /* «غاب 6 يوما» خطأ ظاهر يقرؤه كل عربي: تمييز العدد من
+                                         ثلاثة إلى عشرة جمع قلة. و`tq_days()` في المساعدات تحسمه
+                                         منذ كتبت، وهذه الشاشة كانت تلصق « يوما» بيدها. */ ?>
+                                <?php echo tq_badge('due', 'غاب ' . tq_days((int) $tq_s['days'])); ?>
                                 <div style="inline-size:160px">
                                     <?php echo tq_progress((int) $tq_s['progress'], 'تقدم ' . $tq_name); ?>
                                 </div>

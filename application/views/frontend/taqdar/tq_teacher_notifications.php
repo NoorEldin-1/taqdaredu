@@ -1,31 +1,38 @@
 <?php
+if (!defined('BASEPATH')) exit('No direct script access allowed');
+
 /**
- * الإشعارات — بوابة الطالب.
+ * بوابة المعلم — الإشعارات.
  *
- * الإشعارات مجموعة زمنيا لا مرتبة سردا واحدا: «اليوم» و«أمس» و«قبل ٣ أيام»
- * تجيب سؤال الطالب الحقيقي — ما الذي فاتني؟ — بلا أن يقرأ تاريخا في كل صف.
+ * كان `Taqdar::counts()` يحسب للمعلم عدد إشعاراته غير المقروءة في كل صفحة
+ * يفتحها (سطر 91)، ثم لا يعرضه أحد: لا جرس في الترويسة لأن
+ * `portal_topbar.php` كان يضبط `notifications => null` للمعلم، ولا بند في
+ * قائمته، ولا شاشة في خريطة `Taqdar::teacher()`. عد يجري ويرمى.
  *
- * كل ما في هذه الشاشة من جدول notifications الحقيقي، وتفضيلات الإشعارات
- * تقرأ من notification_settings (إعداد المنصة لدور الطالب). وما لا يملك
- * الطالب تجاوزا خاصا به بعد يقال صراحة لا يزين بمفتاح لا يحفظ شيئا.
+ * والشاشة تقرأ الجدول نفسه الذي تقرؤه بوابتا الطالب وولي الأمر
+ * (`notifications`)، وتعرض أنواعها بالعناوين نفسها حرفا بحرف: الحدث
+ * الواحد يقرأ باسم واحد في البوابات الثلاث، وإلا صار الحديث عن حدثين.
  *
- * ومصدر أحداث تقدر هنا واحد: `Taqdar_events_model::notify()` — يكتبها
- * الكرون `taqdar_cron_events` دوريا، ويكتبها مطلقو الأحداث اللحظية عند
- * وقوعها. والشاشة لا تعرف أيهما كتب: هي تقرأ الجدول لا المصدر.
+ * وأنواع المعلم تختلف عن أنواع الطالب في المعنى لا في الاسم: «نتيجة
+ * امتحان» عند الطالب نتيجته هو، وعند المعلم تسليم ينتظر تصحيحه. فالعنوان
+ * الجانبي يقولها بلسان المعلم، والنوع في القاعدة واحد لا يتفرع.
+ *
+ * والأنماط في `tq_notif_styles.php` — مشتركة مع شاشة الطالب.
  */
 
 $tq_nav   = 'notifications';
-$tq_role  = 'student';
+$tq_role  = 'teacher';
 $tq_title = 'الإشعارات';
-$tq_sub   = 'تابع كل ما يهمك في رحلتك التعليمية';
+$tq_sub   = 'ما جد على طلابك وكورساتك، مجموعا بيومه';
 $tq_icon  = 'bell';
 
 $uid = (int) $this->session->userdata('user_id');
 
 /* ---- «تحديد الكل كمقروء» فعل حقيقي، وينفذ قبل أي إخراج ------------- */
 if ($this->input->post('action') === 'mark_all_read') {
-    $this->db->where('to_user', $uid)->update('notifications', ['status' => 1]);
-    redirect(site_url('student/notifications'), 'location', 302);
+    $this->db->where('to_user', $uid)->where('status', 0)
+             ->update('notifications', ['status' => 1, 'updated_at' => (string) time()]);
+    redirect(site_url('teacher/notifications'), 'location', 302);
 }
 
 /* ---- الإشعارات ------------------------------------------------------- */
@@ -48,43 +55,38 @@ $tq_list = array_values(array_filter($tq_all, static function ($n) use ($tq_stat
     return true;
 }));
 
-/* ---- تصنيف الأنواع: عربية الأنواع وأيقونتها وعائلتها -----------------
+/**
+ * التصنيف بلسان المعلم.
  *
- * الصدارة لأحداث تقدر الخمسة التي يكتبها `Taqdar_events_model`، وعناوينها
- * هنا هي عناوينها في شاشة ولي الأمر حرفا بحرف: الطالب ووليه يقرآن الحدث
- * الواحد باسم واحد، وإلا صار الحديث بينهما عن حدثين.
- *
- * وكل منها عائلة مستقلة لا مندرجة تحت «تنبيهات أخرى»: التصنيف الجانبي
- * يعد بالعائلة، ودمجها يخفي عن الطالب أن ما وصله رسوب لا إشعار عابر.
+ * النوع في `notifications.type` هو نفسه المكتوب لبقية الأدوار — الكتالوج
+ * في `Taqdar_events_model` واحد — والمعروض هنا وصفه من موقع المعلم:
+ * «تسليم ينتظر تصحيحك» لا «نتيجة امتحانك». ولكل نوع وجهة ينقلك إليها،
+ * فالإشعار الذي لا يفتح شيئا خبر لا أداة.
  */
 $tq_kinds = [
-    // أحداث تقدر — تكتب من Taqdar_events_model وحده
-    'exam_result'                     => ['نتيجة امتحان',      'check-badge', 'mint'],
-    'station_failed'                  => ['رسوب في اختبار محطة', 'target',    'rose'],
-    'inactivity_3days'                => ['انقطاع عن الدراسة',  'clock',      'peach'],
-    'session_request'                 => ['طلب حصة خاصة',      'video',       'lilac'],
-    'certificate'                     => ['شهادة جديدة',        'award',       'sky'],
-    'weekly_report'                   => ['التقرير الأسبوعي',   'clipboard',   'sand'],
+    'exam_result'      => ['تسليم ينتظر تصحيحك',   'clipboard',   'peach', 'teacher/marking'],
+    'station_failed'   => ['رسوب في اختبار محطة',  'target',      'rose',  'teacher/marking'],
+    'inactivity_3days' => ['طالب انقطع',            'clock',       'sand',  'teacher/students'],
+    'session_request'  => ['طلب حصة خاصة',          'video',       'lilac', 'teacher/sessions'],
+    'certificate'      => ['شهادة لطالبك',          'award',       'sky',   'teacher/students'],
+    'weekly_report'    => ['ملخص أسبوعك',           'chart',       'mint',  'teacher'],
 
-    // أنواع Academy الأصلية
-    'course_purchase'                 => ['الدروس والكورسات', 'book',        'sky'],
-    'bundle_purchase'                 => ['الدروس والكورسات', 'book',        'sky'],
-    'course_gift'                     => ['الدروس والكورسات', 'book',        'sky'],
-    'noticeboard'                     => ['لوحة المادة',      'clipboard',   'lilac'],
-    'instructor_followups'            => ['متابعة المعلم',    'chat',        'mint'],
-    'course_completion_mail'          => ['الإنجاز والشهادات', 'award',       'mint'],
-    'certificate_eligibility'         => ['الإنجاز والشهادات', 'award',       'mint'],
-    'offline_payment_suspended_mail'  => ['المدفوعات',         'wallet',      'peach'],
-    'signup'                          => ['الحساب والأمان',    'users',       'sand'],
-    'email_verification'              => ['الحساب والأمان',    'lock',        'sand'],
-    'forget_password_mail'            => ['الحساب والأمان',    'lock',        'sand'],
-    'new_device_login_confirmation'   => ['الحساب والأمان',    'lock',        'sand'],
+    // أنواع Academy الأصلية التي قد تصل المعلم
+    'course_purchase'                => ['بيع في كورساتك',   'wallet', 'mint', 'teacher/wallet'],
+    'bundle_purchase'                => ['بيع في كورساتك',   'wallet', 'mint', 'teacher/wallet'],
+    'offline_payment_suspended_mail' => ['المدفوعات',        'wallet', 'peach', 'teacher/wallet'],
+    'noticeboard'                    => ['لوحة المادة',      'clipboard', 'lilac', 'teacher/courses'],
+    'instructor_followups'           => ['متابعة',           'chat',   'mint',  'teacher/messages'],
+    'signup'                         => ['الحساب والأمان',   'users',  'sand',  'teacher/settings'],
+    'email_verification'             => ['الحساب والأمان',   'lock',   'sand',  'teacher/settings'],
+    'forget_password_mail'           => ['الحساب والأمان',   'lock',   'sand',  'teacher/settings?s=security'],
+    'new_device_login_confirmation'  => ['الحساب والأمان',   'lock',   'sand',  'teacher/settings?s=security'],
 ];
 $tq_kind = static function ($type) use ($tq_kinds) {
-    return $tq_kinds[$type] ?? ['تنبيهات أخرى', 'bell', 'rose'];
+    return $tq_kinds[$type] ?? ['تنبيهات أخرى', 'bell', 'rose', ''];
 };
 
-/* عداد كل نوع — من إشعارات هذا الطالب وحدها */
+/* عداد كل نوع — من إشعارات هذا المعلم وحدها */
 $tq_by_kind = [];
 foreach ($tq_all as $n) {
     [$label, $icon, $tone] = $tq_kind($n['type']);
@@ -114,24 +116,6 @@ foreach ($tq_all as $n) {
     }
 }
 
-/* ---- تفضيلات الإشعارات المتاحة لدور الطالب --------------------------- */
-$tq_prefs = [];
-foreach ($this->db->get('notification_settings')->result_array() as $s) {
-    $types = json_decode((string) $s['user_types'], true);
-    if (!is_array($types) || !in_array('student', $types, true)) {
-        continue;
-    }
-    $sys   = json_decode((string) $s['system_notification'], true);
-    $mail  = json_decode((string) $s['email_notification'], true);
-    [$label] = $tq_kind($s['type']);
-    $tq_prefs[] = [
-        'label'  => $label,
-        'title'  => $s['setting_title'],
-        'system' => (int) ($sys['student'] ?? 0) === 1,
-        'email'  => (int) ($mail['student'] ?? 0) === 1,
-    ];
-}
-
 $tq_states = [
     'all'    => ['الكل', count($tq_all)],
     'unread' => ['غير المقروءة', $tq_unread_count],
@@ -142,7 +126,6 @@ include 'portal_open.php';
 include 'tq_notif_styles.php';
 ?>
 
-
 <div class="tq-cols">
     <div>
 
@@ -150,7 +133,7 @@ include 'tq_notif_styles.php';
             <nav class="tq-tabs" aria-label="تصفية الإشعارات" style="margin-block-end:0;border-block-end:0">
                 <?php foreach ($tq_states as $key => $info): ?>
                     <a class="tq-tab"
-                       href="<?php echo base_url('student/notifications') . ($key === 'all' ? '' : '?state=' . $key); ?>"
+                       href="<?php echo base_url('teacher/notifications') . ($key === 'all' ? '' : '?state=' . $key); ?>"
                        <?php echo tq_active($key, $tq_state); ?>>
                         <?php echo html_escape($info[0]); ?>
                         <span class="tq-tab__n"><?php echo TQ_LRI . (int) $info[1] . TQ_PDI; ?></span>
@@ -159,7 +142,8 @@ include 'tq_notif_styles.php';
             </nav>
 
             <?php if ($tq_unread_count > 0): ?>
-                <form method="post" action="<?php echo base_url('student/notifications'); ?>">
+                <form method="post" action="<?php echo base_url('teacher/notifications'); ?>">
+                    <?php echo tq_csrf(); ?>
                     <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit" name="action" value="mark_all_read">
                         <span aria-hidden="true"><?php echo tq_icon('check', 16); ?></span>
                         تحديد الكل كمقروء
@@ -178,10 +162,10 @@ include 'tq_notif_styles.php';
                         <?php echo $tq_state === 'unread' ? 'لا إشعارات غير مقروءة' : ($tq_state === 'read' ? 'لا إشعارات مقروءة' : 'لا إشعارات بعد'); ?>
                     </h2>
                     <p class="tq-empty__text">
-                        هنا يصلك كل جديد: درس نشر في مادتك، وموعد حصة يقترب، وتقييم واجب،
-                        وشهادة أتممتها — مجموعا بيومه لا مبعثرا.
+                        هنا يصلك ما يستدعي انتباهك: تسليم ينتظر تصحيحك، وطلب حصة، وطالب انقطع،
+                        وبيع في كورساتك — مجموعا بيومه لا مبعثرا.
                     </p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>">اذهب إلى دروسي</a>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher'); ?>">عودة إلى اللوحة</a>
                 </div>
             </div>
         <?php else: ?>
@@ -192,12 +176,16 @@ include 'tq_notif_styles.php';
                     <div class="tq-card tq-card--panel" style="padding:var(--tq-space-s)">
                         <?php foreach ($items as $n): ?>
                             <?php
-                            [$kind_label, $kind_icon, $kind_tone] = $tq_kind($n['type']);
+                            [$kind_label, $kind_icon, $kind_tone, $kind_href] = $tq_kind($n['type']);
                             $unread = ((int) $n['status'] === 0);
                             $text   = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $n['description'])));
                             $ts     = (int) $n['created_at'];
+                            /* الإشعار الذي له وجهة رابط، والذي لا وجهة له صف نص —
+                               ولا يعرض رابط يفتح الصفحة نفسها ليبدو الصف قابلا للنقر. */
+                            $tag    = $kind_href !== '' ? 'a' : 'div';
                             ?>
-                            <div class="tq-notif<?php echo $unread ? ' tq-notif--unread' : ''; ?>">
+                            <<?php echo $tag; ?> class="tq-notif<?php echo $unread ? ' tq-notif--unread' : ''; ?>"
+                                <?php if ($kind_href !== ''): ?>href="<?php echo base_url($kind_href); ?>"<?php endif; ?>>
                                 <span class="tq-notif__dot" aria-hidden="true"></span>
                                 <span>
                                     <span class="tq-notif__title"><?php echo tq_iso(html_escape($n['title'])); ?></span>
@@ -211,7 +199,7 @@ include 'tq_notif_styles.php';
                                 <span class="tq-icon-box tq-pastel--<?php echo $kind_tone; ?>" aria-hidden="true">
                                     <?php echo tq_icon($kind_icon); ?>
                                 </span>
-                            </div>
+                            </<?php echo $tag; ?>>
                         <?php endforeach; ?>
                     </div>
                 </section>
@@ -222,13 +210,12 @@ include 'tq_notif_styles.php';
 
     <aside class="tq-aside">
 
-        <!-- تصفية بالنوع بعدد لكل نوع -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-kinds-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-kinds-h">تصفية الإشعارات</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-kinds-h">أنواع ما وصلك</h2></div>
             <?php if (!$tq_by_kind): ?>
                 <p class="tq-caption" style="margin:0">
-                    حين تصلك إشعارات ستصنف هنا بأنواعها — دروس، ومواعيد، وإنجازات، وحساب —
-                    وبعدد كل نوع، فتقرأ ما يعنيك وحده.
+                    حين تصلك إشعارات ستصنف هنا بأنواعها — تصحيح، وحصص، وانقطاع، ومبيعات —
+                    وبعدد كل نوع.
                 </p>
             <?php else: ?>
                 <div>
@@ -252,7 +239,6 @@ include 'tq_notif_styles.php';
             <?php endif; ?>
         </section>
 
-        <!-- ملخص -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-nsum-h">
             <div class="tq-card__head"><h2 class="tq-card__title" id="tq-nsum-h">ملخص الإشعارات</h2></div>
             <div class="tq-kindrow">
@@ -278,43 +264,22 @@ include 'tq_notif_styles.php';
             </div>
         </section>
 
-        <!-- إعدادات الإشعارات: تفضيلات + الإشعارات البريدية -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-nset-h">
             <div class="tq-card__head"><h2 class="tq-card__title" id="tq-nset-h">إعدادات الإشعارات</h2></div>
-            <p class="tq-caption">تحكم في طريقة استلامك للإشعارات.</p>
-
-            <?php if (!$tq_prefs): ?>
-                <p class="tq-caption" style="margin:0">لا أنواع إشعارات مفعلة لدور الطالب بعد.</p>
-            <?php else: ?>
-                <div style="margin-block:var(--tq-space-m)">
-                    <?php foreach (array_slice($tq_prefs, 0, 5) as $p): ?>
-                        <div class="tq-prefrow">
-                            <span class="tq-caption"><?php echo html_escape($p['label']); ?></span>
-                            <span class="tq-chanpair">
-                                <?php echo tq_badge($p['system'] ? 'mastered' : 'idle', 'داخل المنصة'); ?>
-                                <?php echo tq_badge($p['email'] ? 'mastered' : 'idle', 'بريد'); ?>
-                            </span>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-
-            <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('student/settings?s=alerts'); ?>">
+            <p class="tq-caption">
+                لكل نوع قناتان مستقلتان: داخل المنصة والبريد. وإيقاف قناة لا يوقف الأخرى.
+            </p>
+            <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('teacher/settings?s=alerts'); ?>">
                 <span aria-hidden="true"><?php echo tq_icon('cog', 18); ?></span>
-                تفضيلات الإشعارات
-            </a>
-            <a class="tq-btn tq-btn--ghost tq-btn--block" href="<?php echo base_url('student/settings?s=alerts'); ?>" style="margin-block-start:var(--tq-space-s)">
-                <span aria-hidden="true"><?php echo tq_icon('chat', 18); ?></span>
-                الإشعارات البريدية
+                تفضيلات التنبيهات
             </a>
         </section>
 
-        <!-- نصيحة -->
         <section class="tq-card tq-card--panel tq-pastel tq-pastel--mint" aria-labelledby="tq-tip-h">
-            <h2 class="tq-pastel__title tq-h2" id="tq-tip-h" style="margin-block-end:var(--tq-space-s)">نصيحة</h2>
+            <h2 class="tq-pastel__title tq-h2" id="tq-tip-h" style="margin-block-end:var(--tq-space-s)">قاعدة المقاطعة</h2>
             <p class="tq-pastel__body" style="margin:0">
-                فعل إشعارات المواعيد لتصلك تنبيهات الحصص والاختبارات قبل وقتها بوقت يكفي للاستعداد،
-                لا في اللحظة نفسها.
+                ما يستدعي فعلا اليوم يقاطعك، وما عداه ينتظر ملخص الأسبوع. طلب حصة بلا رد
+                أربعا وعشرين ساعة يلغى تلقائيا ويعاد للطالب.
             </p>
         </section>
 

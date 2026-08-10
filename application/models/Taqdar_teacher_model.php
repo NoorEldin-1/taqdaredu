@@ -254,9 +254,41 @@ class Taqdar_teacher_model extends CI_Model
             $errors[] = 'مدة الدرس تكون بين ' . self::MIN_MINUTES . ' و' . self::MAX_MINUTES . ' دقيقة.';
         }
 
-        /* ---- الحالة ---- */
+        /**
+         * ---- الحالة ----
+         *
+         * الأزرار الثلاثة في الشاشة: «حفظ ونشر» و«إرسال للمراجعة» و«حفظ
+         * كمسودة». وكان `Taqdar::upload_save()` يترجم كل ما ليس `draft`
+         * إلى `review` — فيضغط المعلم «حفظ ونشر» فيحفظ درسه «قيد
+         * المراجعة» ويقال له «حفظ الدرس وأرسل للمراجعة»، وهو لم يطلب
+         * مراجعة. زر يعد بفعل ويقع غيره، بلا رسالة تقول لماذا.
+         *
+         * والقاعدة الآن: **النشر ينفذ داخل كورس منشور.** المعلم صاحب درسه
+         * في كورس اعتمدته المنصة ونشرته، فلا معنى لمراجعة كل درس فيه.
+         * أما الكورس الذي لم ينشر بعد (`pending`/`draft`/`private`) فدرس
+         * منشور فيه لا يراه أحد أصلا — ولا يوعد المعلم بنشر لا يقع، بل
+         * يهبط الدرس إلى المراجعة **ويقال له ذلك صراحة** في رسالة النتيجة.
+         *
+         * والقرار هنا لا في المتحكم: هذه هي الطبقة التي تعرف الكورس وحالته
+         * وتفرض الملكية، وقاعدة تكتب في العرض أو في الباب تنسى في الثاني.
+         */
         $status = strtolower(trim((string) $this->val($post, 'action', 'draft')));
         if (!in_array($status, $this->statuses, true)) $status = 'draft';
+
+        $status_note = '';
+        if ($status === 'published' && $course_id > 0) {
+            $c_status = (string) $this->db->query(
+                'SELECT `status` FROM `course` WHERE `id` = ? LIMIT 1',
+                array($course_id)
+            )->row('status');
+
+            if ($c_status !== 'active') {
+                $status      = 'review';
+                $status_note = ' والنشر المباشر يكون في كورس منشور، وهذا الكورس '
+                             . $this->course_status_phrase($c_status)
+                             . ' — فأرسل الدرس للمراجعة بدلا من نشره.';
+            }
+        }
 
         /* ---- الملخص ---- */
         $summary = trim((string) $this->val($post, 'summary'));
@@ -399,8 +431,20 @@ class Taqdar_teacher_model extends CI_Model
             'lesson_id' => $lesson_id,
             'course_id' => $course_id,
             'status'    => $status,
-            'message'   => 'حفظ الدرس «' . $title . '» ' . $this->status_phrase($status) . '.',
+            'message'   => 'حفظ الدرس «' . $title . '» ' . $this->status_phrase($status) . '.' . $status_note,
         );
+    }
+
+    /** حالة الكورس بعبارة تقرأ داخل جملة. */
+    private function course_status_phrase($status)
+    {
+        $map = array(
+            'pending'  => 'ينتظر مراجعة الإدارة',
+            'draft'    => 'ما زال مسودة',
+            'private'  => 'خاص غير منشور',
+            'upcoming' => 'لم يبدأ بعد',
+        );
+        return isset($map[$status]) ? $map[$status] : 'غير منشور';
     }
 
     /* =====================================================================
@@ -779,6 +823,10 @@ class Taqdar_teacher_model extends CI_Model
         $head = null; $added = 0; $skipped = 0; $notes = array();
         $order = (int) $CI->db->where('quiz_id', $lesson_id)->count_all_results('question');
 
+        /* كورس الاختبار — يبحث فيه عن الهدف بنصه قبل أن ينشأ جديد. */
+        $course_of_lesson = (int) $CI->db->select('course_id')->where('id', $lesson_id)
+                                         ->get('lesson')->row('course_id');
+
         foreach ($lines as $ln => $line) {
             if (trim($line) === '') continue;
             $cells = str_getcsv($line, $delim);
@@ -792,42 +840,75 @@ class Taqdar_teacher_model extends CI_Model
             foreach ($head as $i => $h) $row[$h] = isset($cells[$i]) ? trim($cells[$i]) : '';
 
             $q = $this->pick($row, array('question', 'السؤال', 'نص_السؤال', 'title'));
+
+            /**
+             * أسماء أعمدة الخيارات.
+             *
+             * `option_1 … option_4` أولا لأنها **الأسماء المكتوبة في
+             * الشاشة نفسها** (`tq_teacher_questions.php`) — وكان المحلل
+             * يعرف `option1` بلا شرطة وحدها. فمن اتبع المواصفة المعروضة
+             * حرفا بحرف رد عليه «لم يقبل أي سؤال. تحقق من الأعمدة»،
+             * والأعمدة صحيحة وهو الذي كتبها كما قيل له.
+             */
             $opts = array();
             foreach (array(
-                array('option1', 'خيار1', 'الخيار1', 'خيار_1', 'a'),
-                array('option2', 'خيار2', 'الخيار2', 'خيار_2', 'b'),
-                array('option3', 'خيار3', 'الخيار3', 'خيار_3', 'c'),
-                array('option4', 'خيار4', 'الخيار4', 'خيار_4', 'd'),
+                array('option_1', 'option1', 'خيار1', 'الخيار1', 'خيار_1', 'a'),
+                array('option_2', 'option2', 'خيار2', 'الخيار2', 'خيار_2', 'b'),
+                array('option_3', 'option3', 'خيار3', 'الخيار3', 'خيار_3', 'c'),
+                array('option_4', 'option4', 'خيار4', 'الخيار4', 'خيار_4', 'd'),
             ) as $names) {
                 $v = $this->pick($row, $names);
                 if ($v !== '') $opts[] = $v;
             }
             $correct = $this->pick($row, array('correct', 'الصحيح', 'الاجابة', 'الإجابة', 'answer'));
 
-            if ($q === '' || count($opts) < 2 || $correct === '') {
+            /* الهدف: عمود إلزامي تعلنه الشاشة («الاستيراد يرفض أي صف بلا
+               هدف»)، وكان المحلل لا يقرؤه أصلا — فيستورد السؤال بلا هدف
+               ثم تعرضه الشاشة نفسها موسوما «بلا هدف». وعد يخالف نفسه. */
+            $objective = $this->pick($row, array('objective', 'الهدف', 'هدف', 'objective_id'));
+
+            if ($q === '' || count($opts) < 2 || $correct === '' || $objective === '') {
                 $skipped++;
-                if (count($notes) < 5) $notes[] = 'السطر ' . ($ln + 1);
+                if (count($notes) < 5) {
+                    $notes[] = 'السطر ' . ($ln + 1) . ($objective === '' ? ' بلا هدف' : '');
+                }
                 continue;
             }
 
-            // الصحيح: رقم خيار أو نصه — كلاهما يكتب بالبشر
-            if (ctype_digit($correct)) {
-                $idx = (int) $correct - 1;
-                if (!isset($opts[$idx])) { $skipped++; continue; }
-                $answer = $opts[$idx];
-            } else {
-                if (!in_array($correct, $opts, true)) { $skipped++; continue; }
-                $answer = $correct;
+            /* النوع: `radio` أو `checkbox` باصطلاح تقدر، ويقبل اصطلاح
+               Academy أيضا. وما لم يعرف يقرأ اختيارا واحدا. */
+            $type = mb_strtolower($this->pick($row, array('type', 'النوع', 'نوع')));
+            $type = in_array($type, array('checkbox', 'multiple_choice', 'multi', 'متعدد'), true)
+                ? 'checkbox' : 'radio';
+
+            /* الصحيح: رقم خيار أو نصه، وواحد أو أكثر للاختيار المتعدد.
+               والفاصل بين الأرقام `;` أو `|` أو مسافة — لا فاصلة، فهي
+               فاصل الأعمدة في الملف نفسه. */
+            $wanted = preg_split('/[;|\s]+/u', $correct, -1, PREG_SPLIT_NO_EMPTY);
+            $answers = array();
+            foreach ($wanted as $one) {
+                $one = trim($one);
+                if ($one === '') continue;
+                if (ctype_digit($one)) {
+                    $idx = (int) $one - 1;
+                    if (isset($opts[$idx])) $answers[] = $opts[$idx];
+                } elseif (in_array($one, $opts, true)) {
+                    $answers[] = $one;
+                }
             }
+            $answers = array_values(array_unique($answers));
+            if (!$answers) { $skipped++; continue; }
+            if ($type === 'radio') $answers = array($answers[0]);
 
             $order++;
             $CI->db->insert('question', array(
                 'quiz_id'           => $lesson_id,
+                'objective_id'      => $this->objective_id_for($objective, $lesson_id, $course_of_lesson),
                 'title'             => html_escape($q),
-                'type'              => 'single_choice',
+                'type'              => $type,
                 'number_of_options' => count($opts),
                 'options'           => json_encode(array_map('html_escape', $opts), JSON_UNESCAPED_UNICODE),
-                'correct_answers'   => json_encode(array(html_escape($answer)), JSON_UNESCAPED_UNICODE),
+                'correct_answers'   => json_encode(array_map('html_escape', $answers), JSON_UNESCAPED_UNICODE),
                 'order'             => $order,
             ));
             $added++;
@@ -836,9 +917,15 @@ class Taqdar_teacher_model extends CI_Model
         if ($head === null) return array('ok' => false, 'errors' => array('تعذر فهم ترويسة الملف.'));
         if ($added === 0)   return array('ok' => false, 'errors' => array('لم يقبل أي سؤال. تحقق من الأعمدة.'));
 
-        $msg = 'أضيف ' . $added . ' سؤالا.';
+        /* «أضيف 2 سؤالا» خطأ في تمييز العدد، و`tq_count_units` في المساعدات
+           تحسمه — والمساعدات محملة تلقائيا فلا تحتاج استيرادا. */
+        $msg = 'أضيف ' . (function_exists('tq_count_units')
+            ? tq_count_units($added, 'سؤال', 'سؤالان', 'سؤالين', 'أسئلة', 'سؤالا')
+            : $added . ' سؤالا') . '.';
         if ($skipped) {
-            $msg .= ' وتجووز ' . $skipped . ' سطرا' . ($notes ? ' (' . implode('، ', $notes) . ')' : '') . '.';
+            $msg .= ' وتجاوز ' . (function_exists('tq_count_units')
+                ? tq_count_units($skipped, 'سطر', 'سطران', 'سطرين', 'أسطر', 'سطرا')
+                : $skipped . ' سطرا') . ($notes ? ' (' . implode('، ', $notes) . ')' : '') . '.';
         }
         return array('ok' => true, 'message' => $msg, 'added' => $added, 'skipped' => $skipped);
     }
@@ -847,6 +934,60 @@ class Taqdar_teacher_model extends CI_Model
     public function questions_import($teacher_id, $payload = null, $files = null)
     {
         return $this->import_questions($teacher_id, $payload, $files);
+    }
+
+    /**
+     * معرف الهدف من خلية «objective» في ملف الاستيراد.
+     *
+     * ثلاث محاولات بترتيبها:
+     *   ١ — رقم: يقبل إن كان هدفا في هذا الكورس (لا في كورس غيره).
+     *   ٢ — نص: يطابق نص هدف قائم في دروس هذا الكورس، مجردا من فروق
+     *       المسافات — فمن كتب الهدف بمسافة زائدة لا يخلق له ثانيا.
+     *   ٣ — لا مطابق: ينشأ الهدف على درس الاختبار نفسه. وهو ما تفعله شاشة
+     *       رفع الدرس بالضبط حين يكتب المعلم أهدافه نصا حرا — فالمعلم
+     *       يؤلف بنكه هو، ونص هدفه محتواه لا مرجع خارجي يبحث عنه.
+     *
+     * @return int|null معرف الهدف، أو null إن تعذر (فيبقى السؤال بلا هدف)
+     */
+    private function objective_id_for($objective, $lesson_id, $course_id)
+    {
+        $objective = trim((string) $objective);
+        if ($objective === '') return null;
+
+        $CI = get_instance();
+        if (!$CI->db->table_exists('objectives') || !$CI->db->field_exists('objective_id', 'question')) {
+            return null;
+        }
+
+        if (ctype_digit($objective)) {
+            $row = $CI->db->query(
+                'SELECT o.`id` FROM `objectives` o
+                   JOIN `lesson` l ON l.`id` = o.`lesson_id`
+                  WHERE o.`id` = ? AND l.`course_id` = ? LIMIT 1',
+                array((int) $objective, (int) $course_id)
+            )->row_array();
+            if ($row) return (int) $row['id'];
+        }
+
+        $norm = preg_replace('/\s+/u', ' ', $objective);
+        $row  = $CI->db->query(
+            "SELECT o.`id` FROM `objectives` o
+               JOIN `lesson` l ON l.`id` = o.`lesson_id`
+              WHERE l.`course_id` = ?
+                AND TRIM(REGEXP_REPLACE(o.`text`, '[[:space:]]+', ' ')) = ?
+              LIMIT 1",
+            array((int) $course_id, $norm)
+        )->row_array();
+        if ($row) return (int) $row['id'];
+
+        $CI->db->insert('objectives', array(
+            'lesson_id' => (int) $lesson_id,
+            'text'      => html_escape(mb_substr($norm, 0, 500)),
+            'at_second' => 0,
+        ));
+        $id = (int) $CI->db->insert_id();
+
+        return $id > 0 ? $id : null;
     }
 
     /** أول قيمة غير فارغة بين أسماء أعمدة مترادفة. */

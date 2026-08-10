@@ -13,7 +13,19 @@ $tq_active   = $tq_session ?: $tq_lang;
 $tq_dir      = $tq_dirs[$tq_active] ?? 'ltr';
 $tq_iso      = getIsoCode(ucfirst($tq_active)) ?: 'ar';
 
-// صفحات البوابة تعرض بلا ترويسة الموقع العام ولا تذييله
+/**
+ * صفحات البوابة تعرض بلا ترويسة الموقع العام ولا تذييله.
+ *
+ * وكانت تعرف بقائمة مكتوبة باليد وحدها — وهي فخ صامت: من يضيف شاشة إلى
+ * بوابة يسجلها في `Taqdar.php` وفي `portal_rail.php` ثم ينسى هذا الملف،
+ * فتفتح شاشة البوابة وفوقها قائمة الموقع العام («الدورات · الأقسام ·
+ * الاشتراكات») وتحتها تذييله. لا خطأ يظهر، ولا سطر في سجل — شاشة تعرض
+ * مرتين. وهذا ما وقع فعلا عند إضافة رسائل المعلم وإشعاراته وإعداداته.
+ *
+ * فالاشتقاق أولا: كل عرض اسمه يبدأ بـ`tq_` شاشة بوابة، وهو اصطلاح
+ * التسمية المتبع في هذا الثيم كله. والقائمة تبقى تحته اتحادا لا بديلا،
+ * فما كان يعمل بها يبقى يعمل ولو خرج يوما عن الاصطلاح.
+ */
 $tq_portal_pages = [
     'tq_reviews', 'tq_parent_settings', 'tq_delete_account',
     'tq_home', 'tq_lesson', 'tq_subscription', 'tq_bundle', 'tq_lessons', 'tq_tasks', 'tq_exams', 'tq_on_demand', 'tq_materials',
@@ -21,10 +33,12 @@ $tq_portal_pages = [
     'tq_settings', 'tq_certificates', 'tq_payments', 'tq_search',
     'tq_teacher_dashboard', 'tq_teacher_courses', 'tq_teacher_upload', 'tq_teacher_questions',
     'tq_teacher_marking', 'tq_teacher_students', 'tq_teacher_sessions', 'tq_teacher_wallet',
+    'tq_teacher_messages', 'tq_teacher_notifications', 'tq_teacher_settings',
     'tq_parent_children', 'tq_parent_child', 'tq_parent_reports', 'tq_parent_weekly',
     'tq_parent_payments', 'tq_parent_messages', 'tq_parent_alerts',
 ];
-$tq_is_portal = isset($page_name) && in_array($page_name, $tq_portal_pages, true);
+$tq_is_portal = isset($page_name)
+    && (strpos((string) $page_name, 'tq_') === 0 || in_array($page_name, $tq_portal_pages, true));
 
 /* الصفحات المنقولة إلى التصميم الجديد. تنمو صفحة صفحة، وحذف اسم منها
    يرجع تلك الصفحة إلى حالها القديم في ثوان — من غير لمس ملف آخر. */

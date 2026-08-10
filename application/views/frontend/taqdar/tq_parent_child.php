@@ -197,7 +197,12 @@ if ($tq_child) {
 
     /* ملاحظات المعلمين — المعتمدة وحدها.
        الدرجة قبل اعتمادها لا يراها الطالب، ورؤية وليه لها تسبقه بخبر
-       عن نفسه — وهو أسوأ ما يقع بين مراهق وأهله. */
+       عن نفسه — وهو أسوأ ما يقع بين مراهق وأهله.
+
+       ومن مصدرين لا واحد: ملاحظة الاختبار في `quiz_results`، وملاحظة
+       الواجب في `attempts`. كانت الأولى وحدها تقرأ لأن الواجبات لم تكن
+       تصل معلما أصلا — فلما صار للمعلم أن يصححها صار لملاحظته عليها
+       أن تصل ولي الأمر كما تصل ملاحظة الاختبار. */
     $tq_notes = $this->db->query(
         "SELECT r.quiz_result_id, r.teacher_note, r.approved_at,
                 l.title AS lesson_title, c.title AS course_title,
@@ -213,6 +218,38 @@ if ($tq_child) {
           LIMIT 5",
         [$tq_cid]
     )->result_array();
+
+    /* أعمدة اعتماد الواجب تضاف عند الحاجة، فقد لا تكون على هذه البيئة بعد.
+       و`$this` هنا المحمل لا المتحكم: النموذج يسند إلى المتحكم فلا يظهر
+       على `$this` أبدا — ولذلك `get_instance()` صراحة كما في بقية الشاشات. */
+    $tq_ci_mk = &get_instance();
+    $tq_ci_mk->load->model('taqdar_marking_model');
+    $tq_ci_mk->taqdar_marking_model->ensure_schema();
+
+    foreach ($this->db->query(
+        "SELECT t.id AS quiz_result_id, t.teacher_note, t.approved_at,
+                CONCAT('واجب: ', l.title) AS lesson_title, c.title AS course_title,
+                TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS teacher
+           FROM attempts t
+           JOIN assessments a ON a.id = t.assessment_id
+           JOIN lesson l ON l.id = a.lesson_id
+           LEFT JOIN course c ON c.id = l.course_id
+           LEFT JOIN users u ON u.id = t.approved_by
+          WHERE t.student_id = ?
+            AND t.approved_at IS NOT NULL
+            AND t.teacher_note IS NOT NULL AND TRIM(t.teacher_note) <> ''
+          ORDER BY t.approved_at DESC
+          LIMIT 5",
+        [$tq_cid]
+    )->result_array() as $tq_hn) {
+        $tq_notes[] = $tq_hn;
+    }
+
+    /* الأحدث أولا بين المصدرين، ثم خمس ملاحظات لا أكثر. */
+    usort($tq_notes, static function ($a, $b) {
+        return (int) $b['approved_at'] <=> (int) $a['approved_at'];
+    });
+    $tq_notes = array_slice($tq_notes, 0, 5);
 }
 
 $tq_commitment = (int) round(100 * min($tq_days_this, $tq_plan_days) / max(1, $tq_plan_days));

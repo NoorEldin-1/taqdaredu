@@ -110,19 +110,35 @@ $route['translate_uri_dashes'] = false;
 // وهذه المسارات كلها POST فقط، ترفض GET من داخل المتحكم بـ show_404().
 $route['teacher/upload/save']       = 'taqdar/upload_save';
 $route['teacher/marking/approve']   = 'taqdar/marking_approve';
+$route['teacher/marking/homework']  = 'taqdar/marking_homework';
 $route['teacher/sessions/save']     = 'taqdar/sessions_save';
+$route['teacher/sessions/decide']   = 'taqdar/sessions_decide';
 $route['teacher/wallet/withdraw']   = 'taqdar/wallet_withdraw';
+$route['teacher/wallet/cancel']     = 'taqdar/wallet_cancel';
 $route['teacher/questions/import']  = 'taqdar/questions_import';
+$route['teacher/settings/save']     = 'taqdar/teacher_settings_save';
 $route['parent/messages/compose']   = 'taqdar/parent_message_send';
 $route['parent/children/link']      = 'taqdar/parent_child_link';
 $route['parent/settings/save']      = 'taqdar/parent_settings_save';
 
+// حقا تصدير البيانات وحذف الحساب لا يخصان الطالب وحده — الدالتان
+// `Taqdar::export_data()` و`delete_account()` تشترطان تسجيل الدخول لا دورا
+// بعينه — وكان مسارهما الوحيد تحت `student/`، فيقرأ المعلم في إعداداته
+// رابطا إلى بوابة غير بوابته.
+$route['teacher/export-data']       = 'taqdar/export_data';
+$route['teacher/delete-account']    = 'taqdar/delete_account';
+$route['parent/export-data']        = 'taqdar/export_data';
+$route['parent/delete-account']     = 'taqdar/delete_account';
+
 // المرادفات ببادئة taqdar/ — لئلا يسقط المسار الطويل إلى دالة العرض
 $route['taqdar/teacher/upload/save']      = 'taqdar/upload_save';
 $route['taqdar/teacher/marking/approve']  = 'taqdar/marking_approve';
+$route['taqdar/teacher/marking/homework'] = 'taqdar/marking_homework';
 $route['taqdar/teacher/sessions/save']    = 'taqdar/sessions_save';
+$route['taqdar/teacher/sessions/decide']  = 'taqdar/sessions_decide';
 $route['taqdar/teacher/wallet/withdraw']  = 'taqdar/wallet_withdraw';
 $route['taqdar/teacher/questions/import'] = 'taqdar/questions_import';
+$route['taqdar/teacher/settings/save']    = 'taqdar/teacher_settings_save';
 $route['taqdar/parent/messages/compose']  = 'taqdar/parent_message_send';
 $route['taqdar/parent/children/link']     = 'taqdar/parent_child_link';
 $route['taqdar/parent/settings/save']     = 'taqdar/parent_settings_save';

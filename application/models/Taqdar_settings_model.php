@@ -244,6 +244,7 @@ class Taqdar_settings_model extends CI_Model
             case 'password': return $this->save_password($user_id);
             case 'alerts':   return $this->save_alerts($user_id);
             case 'prefs':    return $this->save_prefs($user_id);
+            case 'teacher':  return $this->save_teacher_public($user_id);
         }
         return $this->fail('طلب غير معروف.', 'profile');
     }
@@ -309,6 +310,42 @@ class Taqdar_settings_model extends CI_Model
         $this->db->where('id', $user_id)->update('users', $data);
 
         return $this->ok('حفظت بيانات ملفك.', 'profile');
+    }
+
+    /* ---- الملف العام للمعلم ---------------------------------------- */
+
+    /**
+     * ما يراه الناس عن المعلم في صفحته العامة: صفته ونبذته.
+     *
+     * منفصل عن `save_profile()` عمدا. ذاك يكتب الهوية (اسم وبريد وجوال)
+     * وهي بيانات حساب لا تعرض لأحد، وهذه تكتب ما ينشر على `/instructor/<id>`
+     * ويقرؤه ولي أمر يختار لابنه معلما. وخلطهما في نموذج واحد يجعل تعديل
+     * رقم الجوال ينشر نبذة نصف مكتوبة.
+     *
+     * والحقول من `users` القائمة (`title` و`biography`)، ولا يخترع لها جدول.
+     * أما `is_public` فلا تكتب من هنا: ظهور المعلم على الموقع قرار إدارة
+     * لا تبديل مفتاح في إعداداته.
+     */
+    public function save_teacher_public($user_id)
+    {
+        $user_id = (int) $user_id;
+        $title   = trim((string) $this->input->post('title', true));
+        $bio     = trim((string) $this->input->post('biography', true));
+
+        $errors = array();
+        if (mb_strlen($title) > 160) $errors[] = 'الصفة أطول من المسموح (160 حرفا).';
+        if (mb_strlen($bio) > 1500)  $errors[] = 'النبذة أطول من المسموح (1500 حرف).';
+        if ($errors) return $this->fail($errors, 'teacher');
+
+        /* النص يعرض في صفحة عامة، فيجرد من الوسوم عند الحفظ لا عند العرض:
+           تجريد عند العرض ينسى في شاشة، وتجريد عند الحفظ يقع مرة. */
+        $this->db->where('id', $user_id)->update('users', array(
+            'title'         => strip_tags($title),
+            'biography'     => strip_tags($bio),
+            'last_modified' => time(),
+        ));
+
+        return $this->ok('حفظت ما يظهر في صفحتك العامة.', 'teacher');
     }
 
     /**

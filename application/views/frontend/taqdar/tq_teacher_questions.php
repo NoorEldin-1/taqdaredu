@@ -53,9 +53,10 @@ if ($tq_course && !in_array($tq_course, $tq_course_ids, true)) {
 $tq_has_objectives = $this->db->table_exists('objectives')
                   && $this->db->field_exists('objective_id', 'question');
 
-$tq_questions  = [];
-$tq_quizzes    = [];
-$tq_quiz_count = 0;
+$tq_questions   = [];
+$tq_quizzes     = [];
+$tq_quiz_count  = 0;
+$tq_total_count = 0;   // كل الأسئلة في النطاق، لا المعروض منها
 if ($tq_course_ids) {
     $tq_scope = $tq_course ? (string) $tq_course : implode(',', $tq_course_ids);
 
@@ -75,6 +76,17 @@ if ($tq_course_ids) {
           ORDER BY q.id DESC
           LIMIT 100"
     )->result_array();
+
+    /* العدد الحقيقي في النطاق — لا طول القائمة المعروضة.
+       كان بطاقة الجانب تكتب `count($tq_questions)` والاستعلام أعلاه محدود
+       بمئة: فبنك فيه ثلاثمئة سؤال يقرأ صاحبه أن فيه مئة، ولا شيء يقول له
+       إن القائمة مقطوعة. */
+    $tq_total_count = (int) $this->db->query(
+        "SELECT COUNT(*) AS n
+           FROM question q
+           JOIN lesson l ON l.id = q.quiz_id
+          WHERE l.course_id IN ($tq_scope)"
+    )->row('n');
 
     /* اختبارات هذا المعلم — تملأ منها قائمة وجهة الاستيراد، فلا يستورد
        إلى اختبار ليس في كورساته. والخادم يعيد فحص الملكية بعدها. */
@@ -168,6 +180,12 @@ include 'portal_open.php';
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                <?php if ($tq_total_count > count($tq_questions)): ?>
+                    <p class="tq-caption" style="margin-block-start:var(--tq-space-l)">
+                        <?php echo tq_iso('تعرض هنا أحدث ' . count($tq_questions) . ' سؤالا من ' . $tq_total_count
+                            . '. صفي بكورس بعينه من الأعلى لترى بنكه كاملا.'); ?>
+                    </p>
+                <?php endif; ?>
                 <p class="tq-field__hint tq-micro" style="margin-block-start:var(--tq-space-l)">
                     التحرير والربط بالهدف والوسم والأرشفة تفتح فور تفعيل الأهداف
                     وعمود الأرشفة على الخادم. ولا يعرض هنا زر قبل معالجه.
@@ -275,7 +293,7 @@ include 'portal_open.php';
                 </li>
                 <li class="tq-row tq-row--between">
                     <span class="tq-caption">أسئلة</span>
-                    <?php echo tq_num(count($tq_questions)); ?>
+                    <?php echo tq_num($tq_total_count); ?>
                 </li>
             </ul>
         </div>
