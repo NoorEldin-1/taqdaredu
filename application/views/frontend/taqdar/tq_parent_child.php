@@ -129,12 +129,19 @@ if ($tq_child) {
         }
     }
 
-    /* الإتقان لكل مادة + الدروس المكتملة. */
+    /* الإتقان لكل مادة + الدروس المكتملة.
+
+       والمادة هنا **كورس**، ودروسه رتبة تحتها — والنسبة وحدها لا تقول أيهما:
+       «٤٤٪» في مادة من عشرين درسا غير «٤٤٪» في مادة من ثلاثة. فيقرأ عدد
+       دروس كل مادة معها، ويعرض تحت الشريط «أنهى ٤ من ٢٠ درسا». (الاختبارات
+       مستثناة من العد كما تستثنى في بوابة الطالب، فلا يختلف رقم بين شاشتين.) */
     $tq_subjects = $this->db->query(
         "SELECT c.id, c.title,
                 COALESCE(w.course_progress, 0) AS progress,
                 w.completed_lesson,
-                COALESCE(w.date_updated, 0)    AS last_seen
+                COALESCE(w.date_updated, 0)    AS last_seen,
+                (SELECT COUNT(*) FROM lesson l
+                  WHERE l.course_id = c.id AND l.lesson_type <> 'quiz') AS lessons_n
            FROM enrol e
            JOIN course c ON c.id = e.course_id
            LEFT JOIN watch_histories w
@@ -144,10 +151,16 @@ if ($tq_child) {
         [$tq_cid]
     )->result_array();
 
-    foreach ($tq_subjects as $tq_s) {
+    foreach ($tq_subjects as $tq_i2 => $tq_s) {
         $tq_list = json_decode((string) $tq_s['completed_lesson'], true);
-        $tq_completed += is_array($tq_list) ? count($tq_list) : 0;
+        $tq_done_n = is_array($tq_list) ? count(array_unique($tq_list)) : 0;
+        /* والمكتمل لا يتجاوز الموجود: قائمة قديمة قد تحمل معرف درس حذف. */
+        $tq_total_n = (int) $tq_s['lessons_n'];
+        if ($tq_total_n > 0 && $tq_done_n > $tq_total_n) $tq_done_n = $tq_total_n;
+        $tq_subjects[$tq_i2]['done_n'] = $tq_done_n;
+        $tq_completed += $tq_done_n;
     }
+    unset($tq_s);
 
     /* المدفوعات والفواتير — ما اشتري لهذا الابن، من مصدري المال معا
        (فواتير تقدر ومدفوعات Academy) عبر الدفتر الموحد في النموذج. */
@@ -355,6 +368,17 @@ include 'portal_open.php';
                                     </span>
                                 </div>
                                 <?php echo tq_progress((int) $tq_s['progress'], 'ما أنهاه في ' . $tq_s['title']); ?>
+                                <?php /* الرقم تحت الشريط: النسبة وحدها لا تقول من كم. */ ?>
+                                <?php if ((int) $tq_s['lessons_n'] > 0): ?>
+                                    <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
+                                        <?php echo tq_iso('أنهى ' . (int) $tq_s['done_n'] . ' من '
+                                            . tq_lessons_word((int) $tq_s['lessons_n'])); ?>
+                                    </p>
+                                <?php else: ?>
+                                    <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
+                                        لم ينشر في هذه المادة درس بعد.
+                                    </p>
+                                <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
                     </ul>
