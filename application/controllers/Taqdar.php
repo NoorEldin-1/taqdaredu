@@ -146,6 +146,11 @@ class Taqdar extends CI_Controller
 
     public function index()          { redirect(site_url('taqdar/home'), 'refresh'); }
     public function home()           { $this->student('tq_home', 'الرئيسية'); }
+    /* شاشتان لا واحدة: `courses` للكورسات المسجلة (الغلاف والحالة والنسبة)،
+       و`lessons` للدروس أنفسها (كورسا فوحدة فدرسا). كانت `lessons` تعرض
+       الكورسات تحت عنوان «دروسي»، فلم يكن في البوابة مدخل إلى درس مفرد
+       أصلا — وشاشة المفضلة تعد الطالب بقلب على «أي درس» ولا موضع له. */
+    public function courses()        { $this->student('tq_courses', 'كورساتي'); }
     public function lessons()        { $this->student('tq_lessons', 'دروسي'); }
     // القائمة الجانبية تصدر `student/reviews` وشاشتها `tq_reviews.php` قائمة،
     // ولم تكن لها نقطة في المتحكم — فكان بند ثابت في قائمة كل طالب يقود إلى 404.
@@ -611,7 +616,10 @@ class Taqdar extends CI_Controller
            بقيمة يرسلها الطالب تفتح تحويلا مفتوحا إلى أي موقع. */
         $pages = array(
             'favourites' => 'student/favourites',
+            /* شاشتان لا واحدة منذ فصل الدرس عن الكورس: `lessons` قائمة
+               الدروس و`courses` شبكة الكورسات، ولكل منهما قلبها ومصفياتها. */
             'lessons'    => 'student/lessons',
+            'courses'    => 'student/courses',
             'materials'  => 'student/materials',
         );
         $from = (string) $this->input->post('back', true);
@@ -641,6 +649,16 @@ class Taqdar extends CI_Controller
         if ($from === 'materials'  && in_array($type, array('pdf','video','slide','audio','image','link'), true)) $qs['type'] = $type;
         if ($from === 'favourites' && in_array($sort, array('recent', 'title', 'progress'), true)) $qs['sort'] = $sort;
         if ($qsrc !== '') $qs['q'] = mb_substr($qsrc, 0, 120);
+
+        /* تصفية قائمة الدروس تسافر معها: من صفى على كورس ثم ضغط قلبا كان
+           يعود إلى القائمة كلها من أولها فيفقد موضعه. والكورس يقرأ رقما،
+           والحالة من قائمة بيضاء — لا يبنى شيء من المدخل كما هو. */
+        if ($from === 'lessons') {
+            $back_course = (int) $this->input->post('back_course');
+            $back_state  = (string) $this->input->post('back_state', true);
+            if ($back_course > 0) $qs['course'] = $back_course;
+            if (in_array($back_state, array('todo', 'current', 'done'), true)) $qs['state'] = $back_state;
+        }
         if ($qs) $back .= '?' . http_build_query($qs);
 
         $this->done($back, !empty($r['ok']), $r['msg']);
@@ -734,6 +752,9 @@ class Taqdar extends CI_Controller
         $map = [
             'dashboard'     => ['tq_teacher_dashboard',      'لوحة المعلم'],
             'courses'       => ['tq_teacher_courses',        'كورساتي'],
+            /* الدرس وحدة عمل المعلم اليومية، ولم تكن له شاشة: رقم مجمل في
+               جدول الكورسات، وآخر خمسة في زاوية شاشة الرفع. */
+            'lessons'       => ['tq_teacher_lessons',        'دروسي'],
             'upload'        => ['tq_teacher_upload',         'رفع الدروس'],
             'questions'     => ['tq_teacher_questions',      'بنك الأسئلة'],
             'marking'       => ['tq_teacher_marking',        'الواجبات والتصحيح'],

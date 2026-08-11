@@ -57,6 +57,13 @@ if (!is_array($tq_old)) $tq_old = array();
 $tq_v = function ($key, $default = '') use ($tq_old) {
     return isset($tq_old[$key]) && $tq_old[$key] !== '' ? $tq_old[$key] : $default;
 };
+
+/* وجهة قادمة من «دروسي»: `?course=&section=` تفتح النموذج والكورس والوحدة
+   مختاران سلفا، فمن أراد درسا في وحدة بعينها لا يعيد اختيارها في كل مرة.
+   ولا حراسة إضافية هنا: القائمتان لا تعرضان إلا ما يملكه المعلم، فمعرف
+   غريب لا يطابق خيارا فلا يختار شيئا — والحفظ يعيد فحص الملكية على أي حال. */
+$tq_pref_course  = (int) $CI->input->get('course');
+$tq_pref_section = (int) $CI->input->get('section');
 $tq_old_objectives = (isset($tq_old['objectives']) && is_array($tq_old['objectives']))
     ? array_values($tq_old['objectives']) : array();
 
@@ -113,7 +120,7 @@ include 'portal_open.php';
                                 aria-labelledby="tq-lbl-course" required>
                             <?php foreach ($tq_my_courses as $tq_c): ?>
                                 <option value="<?php echo (int) $tq_c['id']; ?>"
-                                    <?php echo ((int) $tq_v('course_id') === (int) $tq_c['id']) ? 'selected' : ''; ?>>
+                                    <?php echo ((int) $tq_v('course_id', $tq_pref_course) === (int) $tq_c['id']) ? 'selected' : ''; ?>>
                                     <?php echo html_escape($tq_c['title']); ?>
                                 </option>
                             <?php endforeach; ?>
@@ -131,7 +138,7 @@ include 'portal_open.php';
                                         <?php foreach ($tq_sections[(int) $tq_c['id']] as $tq_s): ?>
                                             <option value="<?php echo (int) $tq_s['id']; ?>"
                                                     data-tq-course="<?php echo (int) $tq_c['id']; ?>"
-                                                <?php echo ((int) $tq_v('section_id') === (int) $tq_s['id']) ? 'selected' : ''; ?>>
+                                                <?php echo ((int) $tq_v('section_id', $tq_pref_section) === (int) $tq_s['id']) ? 'selected' : ''; ?>>
                                                 <?php echo html_escape($tq_s['title']); ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -350,7 +357,12 @@ include 'portal_open.php';
         </div>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">آخر ما رفعت</h2></div>
+            <div class="tq-card__head">
+                <h2 class="tq-card__title">آخر ما رفعت</h2>
+                <?php /* خمسة وحدها لا تكفي معلما عنده أربعون درسا — والقائمة
+                         الكاملة صارت لها شاشة. */ ?>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('teacher/lessons'); ?>">كل دروسي</a>
+            </div>
             <?php if ($tq_recent): ?>
                 <ul class="tq-stack">
                     <?php foreach ($tq_recent as $tq_i => $tq_l): ?>
@@ -379,7 +391,7 @@ include 'portal_open.php';
                     <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('file', 24); ?></span>
                     <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لا دروس بعد</h3>
                     <p class="tq-empty__text tq-caption">أول درس ترفعه يظهر هنا مع مدته وكورسه.</p>
-                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/courses'); ?>">كورساتي</a>
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/lessons'); ?>">كل دروسي</a>
                 </div>
             <?php endif; ?>
         </div>

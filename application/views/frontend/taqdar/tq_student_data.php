@@ -138,6 +138,113 @@ if (!function_exists('tq_s_enrolled')) {
     }
 }
 
+if (!function_exists('tq_s_lessons')) {
+    /**
+     * دروس الطالب — **الدرس** وحدة الصف لا الكورس.
+     *
+     * كانت شاشة «دروسي» تعرض بطاقات كورسات: عنوان الشاشة يقول درسا،
+     * وما تحته صف من الكورسات نفسه المعروض في «كورساتي». فمن أراد درسا
+     * بعينه — «أين درس الكسور؟» — لم يجد له مدخلا في البوابة كلها إلا
+     * أن يفتح الكورس ثم يمسح منهجه بعينه.
+     *
+     * فهذه الدالة تقرأ الدروس أنفسها: كل درس في كورس مسجل، ومعه وحدته
+     * وكورسه ومدته وحالته. والحالة من `watch_histories` نفسه الذي تقرأ
+     * منه بطاقات الكورسات — مصدر واحد فلا يختلف رقم بين شاشتين:
+     *   • `done`    — معرفه في `completed_lesson`
+     *   • `current` — هو `watching_lesson_id` ولم يكتمل
+     *   • `todo`    — ما عدا ذلك
+     *
+     * والاختبارات (`lesson_type = quiz`) تستثنى: لها شاشتها `اختباراتي`،
+     * وخلطها بالدروس يجعل عداد «٣٥ من ١١٢ درسا» يخالف عداد الكورسات.
+     */
+    function tq_s_lessons($uid)
+    {
+        static $cache = [];
+        $uid = (int) $uid;
+        if (isset($cache[$uid])) return $cache[$uid];
+        if ($uid <= 0) return $cache[$uid] = [];
+
+        $CI = get_instance();
+
+        $rows = $CI->db
+            ->select('l.id, l.title, l.duration, l.lesson_type, l.is_free, l.section_id,'
+                   . ' l.order AS lesson_order, l.date_added,'
+                   . ' c.id AS course_id, c.title AS course_title, c.level, c.category_id,'
+                   . ' c.thumbnail')
+            ->from('lesson l')
+            ->join('enrol e', 'e.course_id = l.course_id', 'inner')
+            ->join('course c', 'c.id = l.course_id', 'inner')
+            ->where('e.user_id', $uid)
+            ->where('l.lesson_type !=', 'quiz')
+            ->order_by('l.course_id', 'ASC')
+            ->order_by('l.section_id', 'ASC')
+            ->order_by('l.order', 'ASC')
+            ->order_by('l.id', 'ASC')
+            ->get()->result_array();
+
+        if (empty($rows)) return $cache[$uid] = [];
+
+        /* عناوين الوحدات — استعلام واحد لكل الكورسات لا واحد لكل درس. */
+        $section_ids = array_values(array_unique(array_filter(
+            array_map('intval', array_column($rows, 'section_id'))
+        )));
+        $units = [];
+        if ($section_ids) {
+            foreach ($CI->db->select('id, title')->from('section')
+                        ->where_in('id', $section_ids)->get()->result_array() as $s) {
+                $units[(int) $s['id']] = (string) $s['title'];
+            }
+        }
+
+        /* حالة المشاهدة لكل كورس مسجل. */
+        $course_ids = array_values(array_unique(array_map('intval', array_column($rows, 'course_id'))));
+        $done_ids   = [];
+        $watching   = [];
+        $touched    = [];
+        foreach ($CI->db->select('course_id, completed_lesson, watching_lesson_id, date_updated')
+                    ->from('watch_histories')->where('student_id', $uid)
+                    ->where_in('course_id', $course_ids)->get()->result_array() as $w) {
+            $cid = (int) $w['course_id'];
+            $watching[$cid] = (int) $w['watching_lesson_id'];
+            $touched[$cid]  = tq_s_ts($w['date_updated']);
+            $list = json_decode((string) $w['completed_lesson'], true);
+            if (is_array($list)) {
+                foreach ($list as $lid) $done_ids[(int) $lid] = true;
+            }
+        }
+
+        $out = [];
+        foreach ($rows as $i => $r) {
+            $lid = (int) $r['id'];
+            $cid = (int) $r['course_id'];
+
+            $state = 'todo';
+            if (isset($done_ids[$lid]))                  $state = 'done';
+            elseif (($watching[$cid] ?? 0) === $lid)     $state = 'current';
+
+            $out[] = [
+                'id'       => $lid,
+                'title'    => (string) $r['title'],
+                'unit'     => $units[(int) $r['section_id']] ?? '',
+                'course_id' => $cid,
+                'course'   => (string) $r['course_title'],
+                'subject'  => tq_s_subject($r['category_id'], (string) $r['course_title'], $cid),
+                'level'    => (string) $r['level'],
+                'thumbnail' => (string) $r['thumbnail'],
+                'type'     => (string) $r['lesson_type'],
+                'free'     => (int) $r['is_free'] === 1,
+                'seconds'  => tq_s_secs($r['duration']),
+                'state'    => $state,
+                'index'    => $i,
+                'at'       => $touched[$cid] ?? tq_s_ts($r['date_added']),
+                'url'      => tq_s_lesson_url($cid, $lid),
+            ];
+        }
+
+        return $cache[$uid] = $out;
+    }
+}
+
 if (!function_exists('tq_s_categories')) {
     /** المواد — من جدول category، وتستعمل تسمية في التصفية والتصنيف. */
     function tq_s_categories()

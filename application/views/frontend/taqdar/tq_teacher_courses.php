@@ -164,7 +164,15 @@ include 'portal_open.php';
                                 </td>
                                 <td data-label="الحالة"><?php echo tq_badge($tq_kind, $tq_text); ?></td>
                                 <td data-label="المسجلون"><?php echo tq_num($tq_c['students'], 'tq-num--sm'); ?></td>
-                                <td data-label="الدروس"><?php echo tq_num($tq_c['lessons'], 'tq-num--sm'); ?></td>
+                                <?php /* الرقم صار بابا: كان عددا مجملا لا يفتح على شيء،
+                                         فمن أراد أن يعرف **أي** الدروس لم يجد إليها سبيلا. */ ?>
+                                <td data-label="الدروس">
+                                    <a href="<?php echo base_url('teacher/lessons') . '?course=' . (int) $tq_c['id']; ?>"
+                                       title="دروس <?php echo html_escape($tq_c['title']); ?>">
+                                        <?php echo tq_num($tq_c['lessons'], 'tq-num--sm'); ?>
+                                        <span class="tq-sr">درسا — اضغط لعرضها</span>
+                                    </a>
+                                </td>
                                 <td data-label="نسبة الإكمال" style="min-inline-size:180px">
                                     <?php echo tq_progress($tq_completion, 'متوسط إكمال ' . $tq_c['title']); ?>
                                 </td>
@@ -173,6 +181,10 @@ include 'portal_open.php';
                                          الكورس فتفتح مقيدة به لا على كل شيء. */ ?>
                                 <td data-label="إجراءات">
                                     <span class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:wrap">
+                                        <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                                           href="<?php echo base_url('teacher/lessons'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
+                                            دروسه
+                                        </a>
                                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                            href="<?php echo base_url('teacher/students'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
                                             طلابه

@@ -37,7 +37,11 @@ $tq_rail_map = [
             ['home', 'الرئيسية', 'student', 'home'],
         ]],
         ['التعلم', [
-            ['lessons',    'دروسي',            'student/lessons',    'book'],
+            /* الكورس والدرس بندان لا بند: «دروسي» كانت تفتح شبكة كورسات،
+               فلا مدخل في القائمة كلها إلى درس بعينه. والترتيب مقصود —
+               الكورس وعاء والدرس ما فيه، فيقرأ من الأعم إلى الأخص. */
+            ['courses',    'كورساتي',          'student/courses',    'book'],
+            ['lessons',    'دروسي',            'student/lessons',    'play'],
             ['bundle',     'محتوى باقتي',      'student/bundle',     'grid'],
             ['materials',  'المواد التعليمية', 'student/materials',  'folder'],
             ['favourites', 'المفضلة',          'student/favourites', 'heart'],
@@ -67,7 +71,10 @@ $tq_rail_map = [
             ['dashboard', 'اللوحة', 'teacher', 'home'],
         ]],
         ['التدريس', [
+            /* كما في بوابة الطالب: الكورس وعاء والدرس ما فيه، ولكل منهما
+               شاشة. وكان الدرس بلا شاشة هنا أصلا — رقم في جدول وخمسة في زاوية. */
             ['courses',   'كورساتي',     'teacher/courses',   'book'],
+            ['lessons',   'دروسي',       'teacher/lessons',   'play'],
             ['upload',    'رفع الدروس',  'teacher/upload',    'upload'],
             ['questions', 'بنك الأسئلة', 'teacher/questions', 'help'],
         ]],

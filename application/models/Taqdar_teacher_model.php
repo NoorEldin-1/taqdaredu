@@ -139,6 +139,67 @@ class Taqdar_teacher_model extends CI_Model
         )->result_array();
     }
 
+    /**
+     * كل دروس المعلم — لا آخر خمسة.
+     *
+     * كانت `recent_lessons()` كل ما يراه المعلم من دروسه: خمسة أسطر في
+     * زاوية شاشة الرفع. فمعلم رفع أربعين درسا لا يملك في بوابته قائمة
+     * يجدها فيها، ولا يعرف أي درس بقي مسودة، ولا أي وحدة نقصت درسا.
+     * وشاشة «كورساتي» تعطيه رقما مجملا («٢٤ درسا») لا يفتح على شيء.
+     *
+     * النطاق هنا هو نطاق `my_courses()` نفسه: ما أنشأه المعلم أو أسند
+     * إليه. والتصفية تضاف إلى شرط الملكية لا تحل محله، فمعرف كورس يخمن
+     * في الرابط لا يرد صفا واحدا من كورس غيره.
+     *
+     * @param int   $teacher_id
+     * @param array $f قد يحمل: course (int) · status (string) · type (string) · q (string)
+     */
+    public function lessons_of($teacher_id, $f = array())
+    {
+        $teacher_id = (int) $teacher_id;
+        if ($teacher_id <= 0) return array();
+
+        $status_col = $this->has_status_column() ? 'l.`tq_status`' : "'published'";
+
+        $sql = 'SELECT l.`id`, l.`title`, l.`duration`, l.`date_added`, l.`lesson_type`,
+                       l.`is_free`, l.`order` AS lesson_order, l.`attachment`, l.`video_url`,
+                       ' . $status_col . ' AS tq_status,
+                       c.`id` AS course_id, c.`title` AS course_title, c.`status` AS course_status,
+                       s.`id` AS section_id, s.`title` AS section_title,
+                       (SELECT COUNT(*) FROM `question` q WHERE q.`quiz_id` = l.`id`) AS questions
+                  FROM `lesson` l
+                  JOIN `course` c ON c.`id` = l.`course_id`
+             LEFT JOIN `section` s ON s.`id` = l.`section_id`
+                 WHERE (c.`creator` = ? OR FIND_IN_SET(?, c.`user_id`) > 0)';
+        $args = array($teacher_id, $teacher_id);
+
+        $course = isset($f['course']) ? (int) $f['course'] : 0;
+        if ($course > 0) { $sql .= ' AND c.`id` = ?'; $args[] = $course; }
+
+        $status = isset($f['status']) ? (string) $f['status'] : '';
+        if ($status !== '' && $this->has_status_column()) {
+            $sql .= ' AND l.`tq_status` = ?'; $args[] = $status;
+        }
+
+        $type = isset($f['type']) ? (string) $f['type'] : '';
+        if ($type === 'quiz')          { $sql .= ' AND l.`lesson_type` = ?';  $args[] = 'quiz'; }
+        elseif ($type === 'lesson')    { $sql .= ' AND l.`lesson_type` != ?'; $args[] = 'quiz'; }
+
+        /* البحث يمر بـ`escape_like_str` ثم يربط قيمة: النجمة والشرطة
+           السفلية في مدخل المعلم حروف بحث لا رموز نمط. */
+        $q = isset($f['q']) ? trim((string) $f['q']) : '';
+        if ($q !== '') {
+            $like = '%' . $this->db->escape_like_str(mb_substr($q, 0, 80)) . '%';
+            $sql .= ' AND (l.`title` LIKE ? ESCAPE \'!\' OR s.`title` LIKE ? ESCAPE \'!\')';
+            $args[] = $like; $args[] = $like;
+        }
+
+        $sql .= ' ORDER BY c.`date_added` DESC, c.`id` DESC, s.`order` ASC, s.`id` ASC,
+                           l.`order` ASC, l.`id` ASC';
+
+        return $this->db->query($sql, $args)->result_array();
+    }
+
     /* =====================================================================
        الكتابة
        ===================================================================== */

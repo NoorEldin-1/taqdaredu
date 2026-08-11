@@ -516,7 +516,13 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                                     · <?php echo tq_iso($s['lessons'] . ($s['lessons'] > 10 ? ' درسا' : ' دروس')); ?>
                                 <?php endif; ?>
                             </span>
-                            <a class="tq-btn tq-btn--ghost tq-btn--sm tq-btn--block" href="<?php echo base_url('student/lessons'); ?>">عرض التفاصيل</a>
+                            <?php /* بطاقة **مادة** تحمل عدد كورساتها، فوجهتها «كورساتي»
+                                     لا «دروسي»: الأولى هي التي تعرض الكورسات ببطاقاتها.
+                                     (ولا تصفية بالمادة في الرابط: اسم المادة هنا يقرأ من
+                                     `category` وهناك من `paths.subject_id`، والمصدران
+                                     يختلفان — فتصفية باسم من أحدهما ترد قائمة فارغة.) */ ?>
+                            <a class="tq-btn tq-btn--ghost tq-btn--sm tq-btn--block"
+                               href="<?php echo base_url('student/courses'); ?>">عرض التفاصيل</a>
                         </div>
                     <?php endforeach; ?>
                 </div>

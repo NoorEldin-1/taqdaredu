@@ -76,7 +76,10 @@ include 'portal_open.php';
                 <?php if ($tq_active): ?>
 <?php /* المسار الحي `student/*`؛ و`taqdar/*` يحول إليه بـ301 من `.htaccess`،
                              فكتابته هنا تكلف الطالب رحلة ذهاب وإياب على كل نقرة. */ ?>
-                    <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/lessons?state=progress'); ?>">عرض الكل</a>
+<?php /* والوجهة `courses` لا `lessons`: ما تحت هذا العنوان بطاقات كورسات،
+                             و`state=progress` حالة كورس. وقد صارت «دروسي» شاشة دروس
+                             مفردة لا تعرف هذه الحالة، فرابط إليها يصفي بلا شيء. */ ?>
+                    <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/courses?state=progress'); ?>">عرض الكل</a>
                 <?php endif; ?>
             </div>
 
@@ -122,7 +125,7 @@ include 'portal_open.php';
                 <h2>كورساتي</h2>
                 <?php if ($tq_courses): ?>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_courses) . TQ_PDI; ?></span>
-                    <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/lessons'); ?>"
+                    <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/courses'); ?>"
                        style="margin-inline-start:auto">عرض الكل</a>
                 <?php endif; ?>
             </div>
