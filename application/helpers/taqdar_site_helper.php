@@ -559,6 +559,9 @@ if (!function_exists('tqs_nav_key')) {
             'site_teachers' => 'teachers', 'site_students' => 'students',
             'site_parents' => 'parents', 'blogs' => 'blog', 'blog_details' => 'blog',
             'about_us' => 'about', 'contact_us' => 'contact', 'site_path' => 'paths', 'plans' => 'paths', 'categories' => 'paths',
+            /* صفحة الدورة تحت «المواد والبرامج» في ذهن الزائر: منها جاء
+               وإليها يعود، فيبقى البند مضاء تحته وهو فيها. */
+            'course_page' => 'paths',
             'competitions' => 'competitions', 'instructor_page' => 'teachers', 'site_search' => '',
         );
         $k = (string) $page_name;

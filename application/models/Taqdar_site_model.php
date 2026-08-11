@@ -328,6 +328,58 @@ class Taqdar_site_model extends CI_Model
      * @param  string $code  رمز الباقة (`plans.code`) أو رقمها
      * @return array|null    null إن لم توجد أو كانت معطلة
      */
+    /**
+     * الباقات التي تفتح دورة بعينها — مرتبة بالأرخص.
+     *
+     * صفحة الدورة كانت تعرض زر «اشتر الدورة» يخاطب سلة Academy، وهي
+     * سلة لا قالب لها في ثيم تقدر: من ضغطه وصل إلى `home/shopping_cart`
+     * فقرأ «Page Not Found 404». والأصل أن الشراء المفرد لم يعد وحدة
+     * البيع أصلا — انظر `site_path.php`: «لا سعر ولا شراء هنا: وحدة
+     * البيع صارت الباقة». فصفحة الدورة كانت آخر موضع يبيع بالقطعة،
+     * ويبيع إلى لا مكان.
+     *
+     * والجسر بين الدورة والباقة هو `paths`: هو الوحيد الذي يربط الدورة
+     * بصفها، والباقة ذات النطاق `grade` تحمل قائمة صفوفها في `scope_ids`.
+     * وهذه هي علاقة المنح نفسها التي يقرأها
+     * `Taqdar_billing_model::subscription_grants()` عند فتح الدرس —
+     * فما تعد به هذه الصفحة هو ما يفتحه الاشتراك فعلا، لا وعدا مكتوبا
+     * في العرض.
+     *
+     * ونطاق `all` يدخل معها: باقة تفتح الكتالوج كله تفتح هذه الدورة.
+     * و`trial` لا يدخل: وحدته الدرس المجاني لا الدورة.
+     *
+     * @return array صفوف `plans` (قد تكون فارغة)
+     */
+    public function plans_for_course($course_id)
+    {
+        $course_id = (int) $course_id;
+        if ($course_id <= 0) return array();
+
+        $grades = array();
+        foreach ($this->db->select('grade_id')->from('paths')
+                          ->where('course_id', $course_id)
+                          ->where('grade_id >', 0)->get()->result_array() as $r) {
+            $grades[] = (int) $r['grade_id'];
+        }
+        $grades = array_values(array_unique($grades));
+
+        $rows = $this->db->from('plans')->where('active', 1)
+                         ->where_in('scope', array('grade', 'all'))
+                         ->order_by('price', 'ASC')->order_by('`order`', 'ASC', false)
+                         ->get()->result_array();
+
+        $out = array();
+        foreach ($rows as $p) {
+            if ((string) $p['scope'] === 'all') { $out[] = $p; continue; }
+            if (!$grades) continue;
+
+            $ids = array_filter(array_map('intval', explode(',', (string) $p['scope_ids'])));
+            if (!$ids && (int) $p['scope_id'] > 0) $ids = array((int) $p['scope_id']);
+            if (array_intersect($grades, $ids)) $out[] = $p;
+        }
+        return $out;
+    }
+
     public function bundle_by_code($code)
     {
         /* ١ · الباقة ------------------------------------------------- */

@@ -14,6 +14,12 @@
    فأي صفحة جديدة تضاف في موضع وتنسى في الآخر. */
 $tq_active = tqs_nav_key($page_name ?? '');
 
+/* «لوحتي» تقود إلى **بوابة صاحبها**. كانت مكتوبة `student` حرفيا في
+   ترويسة يقرؤها الأدوار الأربعة: فالمعلم الذي يتصفح صفحة دورة ثم يضغطها
+   يمر بـ`tq_guard` فيرد إلى لوحته برسالة «هذه الصفحة تخص بوابة الطالب»
+   — وهو لم يطلب بوابة أحد، إنما ضغط زرا في ترويسته هو. */
+$tq_dash = function_exists('tq_home_for') ? tq_home_for(tq_role()) : base_url('student');
+
 /* صنف الهيدر: الرئيسية شفافة فوق الهيرو، وتواصل معنا داكنة، وما عداهما صلبة */
 $tq_hdr_class = 'plain';
 if ($tq_active === 'contact')                         $tq_hdr_class = 'dark';
@@ -57,7 +63,7 @@ elseif ($tq_active !== 'home' && $tq_active !== '')   $tq_hdr_class = 'solid';
                  على الجوال، فلو لم يكونا هنا لما بقي للزائر باب يدخل منه. */ ?>
         <span class="nav__sep" aria-hidden="true"></span>
 <?php if ((int) $this->session->userdata('user_id') > 0): ?>
-        <a class="nav__auth nav__auth--primary" href="<?php echo base_url('student'); ?>">لوحتي</a>
+        <a class="nav__auth nav__auth--primary" href="<?php echo $tq_dash; ?>">لوحتي</a>
 <?php else: ?>
         <a class="nav__auth" href="<?php echo base_url('login'); ?>">تسجيل الدخول</a>
         <a class="nav__auth nav__auth--primary" href="<?php echo base_url('sign_up'); ?>">إنشاء حساب</a>
@@ -66,7 +72,7 @@ elseif ($tq_active !== 'home' && $tq_active !== '')   $tq_hdr_class = 'solid';
 
       <div class="header-actions">
 <?php if ((int) $this->session->userdata('user_id') > 0): ?>
-        <a class="btn btn--primary btn--sm" href="<?php echo base_url('student'); ?>">لوحتي</a>
+        <a class="btn btn--primary btn--sm" href="<?php echo $tq_dash; ?>">لوحتي</a>
 <?php else: ?>
         <a class="btn btn--ghost" href="<?php echo base_url('login'); ?>">تسجيل الدخول</a>
         <a class="btn btn--primary btn--sm" href="<?php echo base_url('sign_up'); ?>">إنشاء حساب</a>
