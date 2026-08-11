@@ -599,7 +599,16 @@ include 'portal_open.php';
                             <p class="tq-strong" style="margin:0">تسجيل الخروج</p>
                             <p class="tq-micro" style="margin:0">إنهاء جلستك على هذا الجهاز.</p>
                         </div>
-                        <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('login/logout'); ?>">تسجيل الخروج</a>
+                        <?php /* السؤال قبل الخروج — كما في بوابة ولي الأمر حرفا بحرف.
+                                 كان الرابط هنا ينهي الجلسة بنقرة واحدة وبجواره أزرار
+                                 حفظ الإعدادات، فالسهو نقرة تكلف إعادة الدخول وسط عمل.
+                                 و`data-tq-confirm` يقرأه `taqdar.js` المحمل في كل شاشة
+                                 بوابة، فلا سكربت جديدا هنا. */ ?>
+                        <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('login/logout'); ?>"
+                           data-tq-confirm-title="تسجيل الخروج؟"
+                           data-tq-confirm="تنتهي جلستك على هذا الجهاز، وتحتاج بريدك وكلمة مرورك للدخول من جديد."
+                           data-tq-confirm-ok="تسجيل الخروج"
+                           data-tq-confirm-tone="danger">تسجيل الخروج</a>
                     </div>
                 </section>
             </div>

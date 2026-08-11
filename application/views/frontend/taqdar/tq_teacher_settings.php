@@ -502,7 +502,15 @@ include 'portal_open.php';
                             <p class="tq-strong" style="margin:0">تسجيل الخروج</p>
                             <p class="tq-micro" style="margin:0">إنهاء جلستك على هذا الجهاز.</p>
                         </div>
-                        <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('login/logout'); ?>">تسجيل الخروج</a>
+                        <?php /* السؤال قبل الخروج — كما في بوابة ولي الأمر حرفا بحرف.
+                                 والمعلم أولى به: قد يكون في يده درس نصف مرفوع أو تصحيح
+                                 نصف مكتوب، وخروج بنقرة واحدة يضيعهما. */ ?>
+                        <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('login/logout'); ?>"
+                           data-tq-confirm-title="تسجيل الخروج؟"
+                           data-tq-confirm="تنتهي جلستك على هذا الجهاز، وتحتاج بريدك وكلمة مرورك للدخول من جديد."
+                           data-tq-confirm-note="ما لم يحفظ من نموذج مفتوح لا يحفظ بالخروج."
+                           data-tq-confirm-ok="تسجيل الخروج"
+                           data-tq-confirm-tone="danger">تسجيل الخروج</a>
                     </div>
                 </section>
             </div>
