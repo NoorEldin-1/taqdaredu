@@ -51,7 +51,21 @@ function initDatePicker(ids) {
 
 }
 
+/**
+ * TQ-SELECT2-GONE — select2 غير محمل في اللوحة.
+ *
+ * لا `select2.min.js` ولا `select2.css` في `includes_top.php` ولا في
+ * `includes_bottom.php`، بينما ينادى `$(...).select2()` هنا وفي
+ * `common_scripts.php`. والنداء على دالة غير معرفة **يرمي**، والرمي في
+ * أعلى مستوى ملف يوقف تنفيذ **كل ما بعده فيه** — أي أن كل ما تحت السطر
+ * ٢٣٨ من هذا الملف (تبويبات التمرير وغيرها) كان ميتا في كل صفحة فيها
+ * `.server-side-select2`.
+ *
+ * فالنداء يحرس. والمنتقي بلا select2 يبقى منتقيا أصليا يعمل — و
+ * `admin.css` يلبسه لباس بقية الحقول، فلا يظهر الفرق.
+ */
 function initSelect2(ids) {
+	if (!$.fn.select2) return;
 	for (i = 0; i < ids.length; i++) {
 		$(ids[i]).select2();
 	}
@@ -203,13 +217,33 @@ function initImagePreviewer() {
 }
 
 
+/**
+ * يفحص الحقول المطلوبة قبل الإرسال.
+ *
+ * TQ-REQUIRED-MULTI — الفحص كان `val() === ""` وحده، و`val()` لمنتق
+ * متعدد لا يختار فيه شيء ترد **`null` لا `""`** — فتمر المقارنة، ويرسل
+ * النموذج فارغا. وهو ما يصيب شاشة «تسجيل طالب» بالذات: حقلاها كلاهما
+ * منتق متعدد مطلوب.
+ *
+ * ومربع الاختيار المطلوب كان يمر أيضا: قيمته `"on"` وإن لم يعلم.
+ * والحقل الفارغ يبرز ويتلقى التركيز بدل أن يقال «املأ الحقول المطلوبة»
+ * ولا يقال أيها.
+ */
 function checkRequiredFields() {
-	var pass = 1;
-	$('form.required-form').find('input, select').each(function () {
-		if ($(this).prop('required')) {
-			if ($(this).val() === "") {
-				pass = 0;
-			}
+	var pass = 1, firstBad = null;
+	$('form.required-form').find('input, select, textarea').each(function () {
+		var $f = $(this);
+		if (!$f.prop('required') || $f.prop('disabled')) return;
+
+		var v = $f.val();
+		var empty = (v === null || v === undefined || v === '' ||
+		             ($.isArray(v) && v.length === 0));
+		if ($f.is(':checkbox')) empty = !$f.prop('checked');
+
+		$f.toggleClass('is-invalid', empty);
+		if (empty) {
+			pass = 0;
+			if (!firstBad) firstBad = $f;
 		}
 	});
 
@@ -217,6 +251,10 @@ function checkRequiredFields() {
 		$('form.required-form').submit();
 	} else {
 		error_required_field();
+		if (firstBad) {
+			firstBad.trigger('focus');
+			if (firstBad[0].scrollIntoView) firstBad[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+		}
 	}
 }
 
@@ -235,7 +273,9 @@ function ellipsis(str, length, ending) {
 };
 
 
-$(".server-side-select2").each(function () {
+/* انظر TQ-SELECT2-GONE أعلاه: بلا هذا الحرس يرمي السطر التالي فيموت
+   كل ما بعده في هذا الملف. */
+if ($.fn.select2) $(".server-side-select2").each(function () {
 	var actionUrl = $(this).attr('action');
 	$(this).select2({
 		ajax: {

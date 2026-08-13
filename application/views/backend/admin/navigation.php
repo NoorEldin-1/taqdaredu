@@ -1,1015 +1,227 @@
 <?php
-    // بعض شاشات اللوحة تحمل القائمة دون تمرير page_name؛ نضبط قيمة افتراضية
-    // حتى لا يمتلئ السجل بمئات تحذيرات «Undefined variable $page_name» في PHP 8.
-    $page_name = isset($page_name) ? $page_name : '';
-    $status_wise_courses = $this->crud_model->get_status_wise_courses();
+/**
+ * الشريط الجانبي للوحة.
+ *
+ * أعيد بناؤه من الصفر لثلاثة أسباب، وكلها عن عطل ظاهر لا عن ذوق:
+ *
+ * ١ — **قائمتان في شريط واحد.** كان أعلاه «منصة تقدر» وأسفله «ملاحة»
+ *     Academy: فالمسارات في الأولى والكورسات في الثانية، والاشتراكات
+ *     هنا والمدفوعات هناك. المسؤول الذي يريد «كل ما يخص المال» يقرأ
+ *     الشريط كله مرتين. صارت البنية واحدة تجيب سؤال العمل لا سؤال
+ *     من كتب الشيفرة.
+ *
+ * ٢ — **كتل لا ترسم شيئا أبدا.** ثلاث عشرة كتلة كانت مشروطة بـ
+ *     `addon_status(...)`: bootcamp · team_training · tutor_booking ·
+ *     ebook · affiliate_course · offline_payment · customer_support …
+ *     و`application/controllers/addons/` مجلد فارغ وجدول `addons` بلا
+ *     صف. أي: نصف الملف شرط كاذب أبدا، ومعه استعلامات تنفذ في كل صفحة
+ *     لتعد صفوفا في جداول إضافات غير مثبتة. حذفت.
+ *
+ * ٣ — **الشارات كانت تستعلم في العرض.** ستة استعلامات مبعثرة بين
+ *     الوسوم، تنفذ في كل صفحة من صفحات اللوحة التسعين. جمعت في
+ *     `tqa_nav_counts()` — استعلام واحد مجمع، ومصدر واحد للرقم.
+ *
+ * والبند يكتب مرة واحدة في `$tqa_nav`: أي صفحة تضاف تسجل هنا وحدها،
+ * ولا يبقى موضع ثان ينسى فيصير البند بلا تظليل.
+ */
+
+/**
+ * التظليل يقرأ `nav_key` لا `page_name`.
+ *
+ * TQ-RAIL-NOACTIVE — الوحدات الموصوفة كلها تعرض بقالبي `tqa_list`
+ * و`tqa_form`، فست عشرة شاشة كانت ترسل الاسم نفسه ولا بند هنا يحمله:
+ * لا تظليل، ولا جلب البند إلى الرؤية، في قائمة من ثمانية وثلاثين بندا.
+ * فـ`Taqdar_admin::render()` صار يرسل `nav_key` يسمي البند، وافتراضه
+ * `page_name` فلا شيء مما كان يطابق ينكسر. وشاشات Academy تبقى على
+ * `page_name` وحده — أسماء بندها مسجلة أدناه كما كانت.
+ */
+$page_name  = isset($page_name) ? $page_name : '';
+$tqa_active_key = isset($nav_key) ? $nav_key : $page_name;
+$tqa_counts = tqa_nav_counts();
+
+/**
+ * البنية: [عنوان المجموعة، الأيقونة، [[مفتاح الصفحة، التسمية، المسار،
+ * الأيقونة، مفتاح الشارة]…]].
+ *
+ * `مفتاح الصفحة` قد يكون نصا أو مصفوفة أسماء — الشاشة الواحدة في هذا
+ * القالب تحمل `page_name` مختلفا في العرض والتحرير والإضافة، والبند
+ * يظلل في الثلاثة أو لا يظلل في شيء.
+ */
+$tqa_nav = [
+
+    ['', '', [
+        ['tqa_overview', 'لوحة القيادة', 'taqdar_admin/overview', 'meter', null],
+    ]],
+
+    ['المنهج', 'graduation', [
+        ['tqa_subjects',    'المواد الدراسية', 'taqdar_admin/module/subjects',   'layers',      null],
+        ['tqa_grades',      'الصفوف الدراسية', 'taqdar_admin/module/grades',     'award',       null],
+        ['tqa_paths',       'المسارات',        'taqdar_admin/module/paths',      'target',      null],
+        ['tqa_milestones',  'المحطات',         'taqdar_admin/module/milestones', 'flag',        null],
+        [['course_add', 'course_edit', 'courses-server-side', 'curriculum',
+          'lessons', 'video_player', 'course_enrol_list', 'change_course_author'],
+                            'الكورسات',        'admin/courses',                  'book',        'pending_courses'],
+        [['categories', 'category_add', 'category_edit'],
+                            'أقسام الكورسات',  'admin/categories',               'grid',        null],
+        ['tqa_import',      'استيراد المنهج',  'taqdar_admin/import',            'import',      null],
+    ]],
+
+    ['الإتقان والتقييم', 'crosshair', [
+        ['tqa_objectives',  'الأهداف التعليمية',    'taqdar_admin/module/objectives',  'target',      null],
+        [['tqa_bindings', 'tqa_bind'],
+                            'ربط الأسئلة بالأهداف', 'taqdar_admin/bindings',           'link',        null],
+        ['tqa_assessments', 'التقييمات',            'taqdar_admin/module/assessments', 'check-badge', null],
+        ['tqa_mastery',     'خريطة الإتقان',        'taqdar_admin/mastery',            'chart',       null],
+    ]],
+
+    ['الأشخاص', 'users', [
+        [['tqa_people', 'users', 'user_add', 'user_edit', 'instructors', 'instructor_add',
+          'instructor_edit', 'instructor_settings', 'enrol_student', 'enrol_history'],
+                            'كل الحسابات',          'taqdar_admin/people',                     'users',   null],
+        ['tqa_teachers',    'طلبات المعلمين',       'taqdar_admin/teachers',                   'file',    'teacher_apps'],
+        ['tqa_teacher_assignments', 'إسناد المعلمين', 'taqdar_admin/module/teacher_assignments', 'link',  null],
+        ['tqa_parent_links','روابط أولياء الأمور',  'taqdar_admin/module/parent_links',        'heart',   'parent_links'],
+        [['admins', 'admin_add', 'admin_edit', 'admin_permission'],
+                            'المسؤولون والصلاحيات', 'admin/admins',                            'shield',  null],
+    ]],
+
+    ['التعليم المباشر', 'video', [
+        ['tqa_sessions',    'الحصص',          'taqdar_admin/sessions', 'video', 'sessions'],
+        ['tqa_slots',       'أوقات المعلمين', 'taqdar_admin/slots',    'clock', null],
+    ]],
+
+    ['المالية', 'wallet', [
+        ['tqa_plans',          'الباقات',              'taqdar_admin/module/plans',          'card',    null],
+        ['tqa_subscriptions',  'الاشتراكات',           'taqdar_admin/subscriptions',         'refresh', 'subs_pending'],
+        ['tqa_invoices',       'الفواتير',             'taqdar_admin/module/invoices',       'file-text', null],
+        ['tqa_payouts',        'طلبات السحب',          'taqdar_admin/payouts',               'send',    'payouts'],
+        ['tqa_wallets',        'المحافظ',              'taqdar_admin/module/wallets',        'wallet',  null],
+        ['tqa_wallet_entries', 'قيود المحافظ',         'taqdar_admin/module/wallet_entries', 'receipt', null],
+        ['tqa_tap',            'الدفع بالبطاقة',        'taqdar_admin/tap',                   'card',    null],
+        ['tqa_bank',           'بيانات التحويل البنكي', 'taqdar_admin/bank',                  'bank',    null],
+        /* «بوابات الدفع» الموروثة تبقى في القائمة ولا تصير الأولى: هي شاشة
+           Academy لست عشرة بوابة لا واحدة منها تمس اشتراكات تقدر — وبند
+           الدفع الفعلي هو «الدفع بالبطاقة» أعلاه. */
+        [['payment_settings'], 'إعدادات الدفع الموروثة', 'admin/payment_settings',            'cog',     null],
+    ]],
+
+    ['المحتوى والموقع', 'globe', [
+        [['tqa_content', 'tqa_content_edit'],
+                             'نصوص الصفحات',     'taqdar_admin/content',                     'edit',   null],
+        ['tqa_stats',        'أرقام الموقع',      'taqdar_admin/stats',                       'chart',  null],
+        ['tqa_books',        'الكتب',            'taqdar_admin/module/books',                'book',   null],
+        ['tqa_competitions', 'المسابقات',        'taqdar_admin/module/competitions',         'trophy', null],
+        ['tqa_competition_entries', 'المشاركون في المسابقات', 'taqdar_admin/module/competition_entries', 'users', null],
+        [['blog', 'blog_add', 'blog_edit', 'blog_category', 'blog_category_add', 'blog_category_edit',
+          'blog_settings', 'instructors_pending_blog'],
+                             'المدونة',          'admin/blog',                               'file',   'pending_blogs'],
+    ]],
+
+    ['التواصل', 'chat', [
+        [['message', 'message_new', 'message_read', 'message_home'],
+                             'الرسائل',            'admin/message',            'chat',  'messages'],
+        ['tqa_notify',       'إرسال إشعار',        'taqdar_admin/notify',      'bell',  null],
+        [['contact', 'contact_reply_form'],
+                             'رسائل التواصل',      'admin/contact',            'mail',  'contact'],
+        [['subscribed_user', 'newsletters', 'newsletter_history',
+          'add_newsletter', 'edit_newsletter', 'send_newsletter'],
+                             'النشرة البريدية',    'admin/subscribed_user',    'send',  null],
+        ['tqa_mail',         'البريد الصادر',      'taqdar_admin/mail',        'mail',  null],
+    ]],
+
+    ['النظام', 'cog', [
+        [['system_settings'],   'إعدادات المنصة',       'admin/system_settings',       'cog',    null],
+        [['frontend_settings', 'review_add', 'review_edit'],
+                                'إعدادات الموقع',       'admin/frontend_settings',     'globe',  null],
+        [['seo_settings'],      'تحسين محركات البحث',   'admin/seo_settings',          'search', null],
+        [['sitemap_settings'],  'خريطة الموقع',         'admin/sitemap_settings',      'layers', null],
+        [['manage_language'],   'اللغات والترجمة',      'admin/manage_language',       'file',   null],
+        [['notification_settings'], 'قوالب الإشعارات',  'admin/notification_settings', 'bell',   null],
+        ['tqa_audit_log',       'سجل التدقيق',          'taqdar_admin/module/audit_log', 'shield', null],
+        [['manage_profile'],    'حسابي',                'admin/manage_profile',        'cog',    null],
+    ]],
+];
+
+/** هل هذا البند هو الصفحة المعروضة؟ */
+$tqa_is_active = function ($keys) use ($tqa_active_key) {
+    return in_array($tqa_active_key, is_array($keys) ? $keys : [$keys], true);
+};
 ?>
-<!-- ========== Left Sidebar Start ========== -->
-<div class="left-side-menu left-side-menu-detached">
-    <div class="leftbar-user">
-        <a href="javascript: void(0);">
-            <img src="<?php echo $this->user_model->get_user_image_url($this->session->userdata('user_id')); ?>" alt="user-image" height="42" class="rounded-circle shadow-sm">
-            <?php
-                $admin_details = $this->user_model->get_all_user($this->session->userdata('user_id'))->row_array();
-            ?>
-            <span class="leftbar-user-name"><?php echo $admin_details['first_name'] . ' ' . $admin_details['last_name']; ?></span>
+<div class="tqa-rail-scrim" data-tqa-scrim></div>
+
+<aside class="tqa-rail" id="tqa-rail">
+
+    <div class="tqa-rail__brand">
+        <a class="tqa-rail__logo" href="<?php echo site_url('taqdar_admin/overview'); ?>">
+            <img src="<?php echo tq_asset('brand/icon.png'); ?>" alt="" width="36" height="36">
+            <span>
+                <span class="tqa-rail__wordmark">تقدر</span>
+                <span class="tqa-rail__tagline">لوحة الإدارة</span>
+            </span>
         </a>
+
+        <?php /* الطي يحفظ اختياره على الجهاز: من طوى الشريط لا يريد
+                 أن يعود مفتوحا في كل صفحة.
+
+                 والسهم يشير إلى الحافة التي ينطوي الشريط نحوها — ينعكس
+                 في الوضع المطوي فيصير بابا يفتح. انظر `.tqa-rail__collapse`
+                 في [admin.css]: انعكاسه مكتوب هناك صراحة لأن `base.css`
+                 التي تقلب `tq-dir-icon` لا تحمل في اللوحة. */ ?>
+        <button class="tqa-iconbtn tqa-rail__collapse" type="button"
+                data-tqa-collapse aria-expanded="true"
+                aria-label="طي القائمة الجانبية" title="طي القائمة الجانبية">
+            <?php echo tq_icon('chev-next', 18); ?>
+        </button>
+
+        <button class="tqa-iconbtn tqa-rail__close" type="button"
+                data-tqa-toggle aria-label="إغلاق القائمة" title="إغلاق القائمة">
+            <?php echo tq_icon('x', 18); ?>
+        </button>
     </div>
 
-    <!--- Sidemenu -->
-    <ul class="metismenu side-nav side-nav-light">
-
-        <?php /* ===== منصة تقدر ===== */ ?>
-        <li class="side-nav-title side-nav-item">منصة تقدر</li>
-
-        <li class="side-nav-item">
-            <a href="<?php echo site_url('taqdar_admin/overview'); ?>" class="side-nav-link">
-                <i class="dripicons-meter"></i><span> نظرة عامة </span>
-            </a>
-        </li>
-
-        <li class="side-nav-item">
-            <a data-bs-toggle="collapse" href="#tqa-curriculum" aria-expanded="false"
-               aria-controls="tqa-curriculum" class="side-nav-link" data-toggle="collapse">
-                <i class="dripicons-graduation"></i><span> المنهج </span><span class="menu-arrow"></span>
-            </a>
-            <div class="collapse" id="tqa-curriculum">
-                <ul class="side-nav-second-level">
-                    <li><a href="<?php echo site_url('taqdar_admin/module/subjects'); ?>">المواد الدراسية</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/module/grades'); ?>">الصفوف الدراسية</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/module/paths'); ?>">المسارات</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/module/milestones'); ?>">المحطات</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/import'); ?>">استيراد المنهج</a></li>
-                </ul>
-            </div>
-        </li>
-
-        <li class="side-nav-item">
-            <a data-bs-toggle="collapse" href="#tqa-mastery" aria-expanded="false"
-               aria-controls="tqa-mastery" class="side-nav-link" data-toggle="collapse">
-                <i class="dripicons-crosshair"></i><span> الإتقان </span><span class="menu-arrow"></span>
-            </a>
-            <div class="collapse" id="tqa-mastery">
-                <ul class="side-nav-second-level">
-                    <li><a href="<?php echo site_url('taqdar_admin/module/objectives'); ?>">الأهداف التعليمية</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/bindings'); ?>">ربط الأسئلة بالأهداف</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/module/assessments'); ?>">التقييمات</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/stats'); ?>">أرقام الموقع</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/bank'); ?>">بيانات التحويل البنكي</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/teachers'); ?>">طلبات المعلمين</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/module/competitions'); ?>">المسابقات</a></li>
-                </ul>
-            </div>
-        </li>
-
-        <li class="side-nav-item">
-            <a data-bs-toggle="collapse" href="#tqa-people" aria-expanded="false"
-               aria-controls="tqa-people" class="side-nav-link" data-toggle="collapse">
-                <i class="dripicons-user-group"></i><span> الأشخاص </span><span class="menu-arrow"></span>
-            </a>
-            <div class="collapse" id="tqa-people">
-                <ul class="side-nav-second-level">
-                    <li><a href="<?php echo site_url('taqdar_admin/module/teacher_assignments'); ?>">إسناد المعلمين</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/module/parent_links'); ?>">روابط أولياء الأمور</a></li>
-                </ul>
-            </div>
-        </li>
-
-        <li class="side-nav-item">
-            <a data-bs-toggle="collapse" href="#tqa-finance" aria-expanded="false"
-               aria-controls="tqa-finance" class="side-nav-link" data-toggle="collapse">
-                <i class="dripicons-wallet"></i><span> المالية والتدقيق </span><span class="menu-arrow"></span>
-            </a>
-            <div class="collapse" id="tqa-finance">
-                <ul class="side-nav-second-level">
-                    <li><a href="<?php echo site_url('taqdar_admin/module/plans'); ?>">الباقات</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/subscriptions'); ?>">الاشتراكات</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/module/invoices'); ?>">الفواتير</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/module/wallets'); ?>">المحافظ</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/module/wallet_entries'); ?>">قيود المحافظ</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/mail'); ?>">البريد الصادر</a></li>
-                    <li><a href="<?php echo site_url('taqdar_admin/module/audit_log'); ?>">سجل التدقيق</a></li>
-                </ul>
-            </div>
-        </li>
-
-        <li class="side-nav-title side-nav-item"><?php echo get_phrase('navigation'); ?></li>
-
-        <li class="side-nav-item                                		                         <?php if ($page_name == 'dashboard') {
-                                                                         echo 'active';
-                                                                 }
-                                                                 ?>">
-            <a href="<?php echo site_url('admin/dashboard'); ?>" class="side-nav-link">
-                <i class="dripicons-view-apps"></i>
-                <span><?php echo get_phrase('dashboard'); ?></span>
-            </a>
-        </li>
-
-        <?php if (has_permission('course')): ?>
-        <li class="side-nav-item<?php if ($page_name == 'courses' || $page_name == 'course_add' || $page_name == 'course_edit' || $page_name == 'categories' || $page_name == 'category_add' || $page_name == 'category_edit' || $page_name == 'coupons' || $page_name == 'coupon_add' || $page_name == 'coupon_edit' || $page_name == 'add_bundle' || $page_name == 'manage_course_bundle' || $page_name == 'edit_bundle' || $page_name == 'active_bundle_subscription_report' || $page_name == 'expire_bundle_subscription_report' || $page_name == 'bundle_invoice') {
-        echo 'active';
-}
-?>">
-            <a href="javascript: void(0);"
-                class="side-nav-link                                    				                                                    <?php if ($page_name == 'courses' || $page_name == 'course_add' || $page_name == 'course_edit' || $page_name == 'categories' || $page_name == 'category_add' || $page_name == 'category_edit' || $page_name == 'coupons' || $page_name == 'coupon_add' || $page_name == 'coupon_edit'): ?> active<?php endif; ?>">
-                <i class="dripicons-archive"></i>
-                <span> <?php echo get_phrase('courses'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level" aria-expanded="false">
-                <?php if (has_permission('course')): ?>
-                <li class="<?php if ($page_name == 'courses' || $page_name == 'course_edit') {
-        echo 'active';
-}
-?>">
-                    <a href="<?php echo site_url('admin/courses'); ?>"><?php echo get_phrase('manage_courses'); ?></a>
-                </li>
-                <?php endif; ?>
-
-                <?php if (has_permission('course')): ?>
-                <li class="<?php if ($page_name == 'course_add') {
-        echo 'active';
-}
-?>">
-                    <a href="<?php echo site_url('admin/course_form/add_course'); ?>"><?php echo get_phrase('add_new_course'); ?></a>
-                </li>
-                <?php endif; ?>
-
-                <?php if (has_permission('category')): ?>
-                <li class="<?php if ($page_name == 'categories' || $page_name == 'category_add' || $page_name == 'category_edit') {
-        echo 'active';
-}
-?>">
-                    <a href="<?php echo site_url('admin/categories'); ?>"><?php echo get_phrase('course_category'); ?></a>
-                </li>
-                <?php endif; ?>
-                <?php if (has_permission('coupon')): ?>
-                <li class="<?php if ($page_name == 'coupons' || $page_name == 'coupon_add' || $page_name == 'coupon_edit') {
-        echo 'active';
-}
-?>">
-                    <a href="<?php echo site_url('admin/coupons'); ?>">
-                        <?php echo get_phrase('coupons'); ?>
-                    </a>
-                </li>
-                <?php endif; ?>
-
-                <?php if (addon_status('course_bundle')): ?>
-                <li class="side-nav-item">
-                    <a href="javascript: void(0);" aria-expanded="false"><?php echo get_phrase('course_bundle'); ?>
-                        <span class="menu-arrow"></span>
-                    </a>
-                    <ul class="side-nav-third-level" aria-expanded="false">
-                        <li class="<?php if ($page_name == 'add_bundle') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('addons/bundle/add_bundle_form'); ?>"><?php echo get_phrase('add_new_bundle'); ?></a>
-                        </li>
-                        <li class="<?php if ($page_name == 'manage_course_bundle') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('addons/bundle/manage_bundle'); ?>"><?php echo get_phrase('manage_bundle'); ?></a>
-                        </li>
-                        <li class="<?php if ($page_name == 'active_bundle_subscription_report' || $page_name == 'expire_bundle_subscription_report' || $page_name == 'bundle_invoice') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('addons/bundle/subscription_report/active'); ?>"><?php echo get_phrase('subscription_report'); ?></a>
-                        </li>
-                    </ul>
-                </li>
-                <?php endif; ?>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-        <!-- bootcamp addon -->
-        <?php if (addon_status('bootcamp')): ?>
-        <li class="side-nav-item<?php if ($page_name == 'bootcamp_list' || $page_name == 'bootcamp_form' || $page_name == 'bootcamp_payment_invoice'): ?> active<?php endif; ?>">
-            <a href="javascript: void(0);"
-                class="side-nav-link                                    				                                                    <?php if ($page_name == 'bootcamp_form' || $page_name == 'bootcamp_list' || $page_name == 'bootcamp_payment_invoice'): ?> active<?php endif; ?>">
-                <i class="dripicons-user-group"></i>
-                <span> <?php echo get_phrase('bootcamp'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level" aria-expanded="false">
-
-                <!-- live class -->
-                <li class="<?php if ($page_name == 'bootcamp_live_classes') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/bootcamp/list'); ?>"><?php echo get_phrase('bootcamp_list'); ?></a>
-                </li>
-
-                <!-- add bootcamp -->
-                <li class="<?php if ($page_name == 'bootcamp_bootcamp_form') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/bootcamp/action/form'); ?>"><?php echo get_phrase('add_bootcamp'); ?></a>
-                </li>
-
-                <!-- category -->
-                <li class="<?php if ($page_name == 'category') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/bootcamp/category'); ?>"><?php echo get_phrase('category'); ?></a>
-                </li>
-
-                <!-- payment -->
-                <li class="<?php if ($page_name == 'bootcamp_payment_report' || $page_name == 'bootcamp_payment_invoice') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/bootcamp/payment_report'); ?>"><?php echo get_phrase('payment'); ?></a>
-                </li>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-        <!-- team training start -->
-        <?php if (addon_status('team_training')): ?>
-        <li class="side-nav-item">
-            <a href="javascript: void(0);"
-                class="side-nav-link                                    				                                                    <?php if ($page_name == 'team_packages' || $page_name == 'team_package_add' || $page_name == 'team_package_edit' || $page_name == 'team_package_purchase_history' || $page_name == 'teams-server-side' || $page_name == 'team-details-page'): ?> active<?php endif; ?>">
-                <i class="dripicons-document"></i>
-                <span> <?php echo get_phrase('team_training'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level                                            				                                 <?php if ($page_name == 'team_packages' || $page_name == 'team_package_add' || $page_name == 'team_package_edit' || $page_name == 'team_package_purchase_history' || $page_name == 'teams-server-side' || $page_name == 'team-details-page') {
-                                                                                                     echo 'in';
-                                                                                             }
-                                                                                             ?>" aria-expanded="false">
-                <li class="<?php if ($page_name == 'team_packages') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/team_training/team_packages'); ?>"><?php echo get_phrase('manage_packages'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'team_package_add') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/team_training/team_package_form/add_team_package_form'); ?>"><?php echo get_phrase('add_new_package'); ?></a>
-                </li>
-
-
-                <li class="<?php if ($page_name == 'team_package_purchase_history') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/team_training/purchase_history'); ?>"><?php echo get_phrase('purchase_history'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'teams-server-side' || $page_name == 'team-details-page') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/team_training/teams_list'); ?>"><?php echo get_phrase('teams'); ?></a>
-                </li>
-
-            </ul>
-        </li>
-        <?php endif; ?>
-        <!-- team training end -->
-
-        <?php if (addon_status('tutor_booking')): ?>
-        <li class="side-nav-item">
-            <a href="javascript: void(0);"
-                class="side-nav-link                                    				                                                    <?php if ($page_name == 'tutor_inactive_booking_list' || $page_name == 'tutor_schedule_list' || $page_name == 'tutor_inactive_schedule_list' || $page_name == 'tutor_live_class_settings' || $page_name == 'booked_schedule_details' || $page_name == 'tutor_caregories' || $page_name == 'add_schedule' || $page_name == 'tutor_booking_list'): ?> active<?php endif; ?>">
-                <i class="dripicons-document"></i>
-                <span> <?php echo get_phrase('tutor_booking'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level                                            				                                 <?php if ($page_name == 'tutor_inactive_booking_list' || $page_name == 'tutor_schedule_list' || $page_name == 'tutor_inactive_schedule_list' || $page_name == 'tutor_live_class_settings' || $page_name == 'booked_schedule_details' || $page_name == 'tutor_caregories' || $page_name == 'add_schedule' || $page_name == 'tutor_booking_list') {
-                                                                                                     echo 'in';
-                                                                                             }
-                                                                                             ?>" aria-expanded="false">
-                <li class="<?php if ($page_name == 'tutor_caregories') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/tutor_booking/tutor_categories'); ?>"><?php echo get_phrase('subject_category'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'add_schedule') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/tutor_booking/schedule'); ?>"><?php echo get_phrase('add_booking'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'tutor_booking_list' || $page_name == 'tutor_inactive_booking_list' || $page_name == 'tutor_schedule_list' || $page_name == 'tutor_inactive_schedule_list') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/tutor_booking/tutor_booking_list'); ?>"><?php echo get_phrase('all bookings'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'booked_schedule_details') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/tutor_booking/booked_schedules'); ?>"><?php echo get_phrase('Booked Schedules'); ?></a>
-                </li>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-        <?php if (addon_status('ebook')): ?>
-        <li class="side-nav-item">
-            <a href="javascript: void(0);"
-                class="side-nav-link                                    				                                                    <?php if ($page_name == 'all_ebooks' || $page_name == 'add_ebook' || $page_name == 'ebook_edit'): ?> active<?php endif; ?>">
-                <i class="dripicons-document"></i>
-                <span> <?php echo get_phrase('ebook'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level                                            				                                 <?php if ($page_name == 'ebook_edit') {
-                                                                                                     echo 'in';
-                                                                                             }
-                                                                                             ?>" aria-expanded="false">
-                <li class="<?php if ($page_name == 'all_ebooks' || $page_name == 'ebook_edit') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/ebook_manager/ebook'); ?>"><?php echo get_phrase('all_ebooks'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'add_ebook') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('ebook_manager/add_ebook'); ?>"><?php echo get_phrase('add_ebook'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'ebook_payment_history') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="javascript: void(0);" class="<?php if ($page_name == 'admin_revenue' || $page_name == 'instructor_revenue'): ?> active<?php endif; ?>"
-                        aria-expanded="false"><?php echo get_phrase('payment_history'); ?>
-                        <span class="menu-arrow"></span>
-                    </a>
-
-                    <ul class="side-nav-third-level" aria-expanded="false">
-                        <li class="<?php if ($page_name == 'admin_revenue'): ?> active<?php endif; ?>">
-                            <a href="<?php echo site_url('addons/ebook_manager/payment_history/admin_revenue'); ?>"><?php echo get_phrase('admin_revenue'); ?></a>
-                        </li>
-                        <li class="<?php if ($page_name == 'instructor_revenue') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('addons/ebook_manager/payment_history/instructor_revenue'); ?>"><?php echo get_phrase('instructor_revenue'); ?></a>
-                        </li>
-                    </ul>
-                </li>
-
-                <li class="<?php if ($page_name == 'ebook_category') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/ebook_manager/ebook_category'); ?>"><?php echo get_phrase('category'); ?></a>
-                </li>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-        <?php if (has_permission('enrolment')): ?>
-        <li class="side-nav-item<?php if ($page_name == 'enrol_history' || $page_name == 'enrol_student'): ?> active<?php endif; ?>">
-            <a href="javascript: void(0);"
-                class="side-nav-link                                    				                                                    <?php if ($page_name == 'enrol_history' || $page_name == 'enrol_student'): ?> active<?php endif; ?>">
-                <i class="dripicons-network-3"></i>
-                <span> <?php echo get_phrase('Enrollments'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level" aria-expanded="false">
-                <li class="<?php if ($page_name == 'enrol_student') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/enrol_student'); ?>"><?php echo get_phrase('course_enrollment'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'enrol_history') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/enrol_history'); ?>"><?php echo get_phrase('enrol_history'); ?></a>
-                </li>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-        <?php if (has_permission('revenue')): ?>
-        <li class="side-nav-item">
-            <a href="javascript: void(0);"
-                class="side-nav-link                                    				                                                    <?php if ($page_name == 'admin_revenue' || $page_name == 'instructor_revenue' || $page_name == 'purchase_history' || $page_name == 'invoice'): ?> active<?php endif; ?>">
-                <i class="dripicons-box"></i>
-                <span> <?php echo get_phrase('report'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level" aria-expanded="false">
-                <li class="<?php if ($page_name == 'admin_revenue') {
-                                   echo 'active';
-                           }
-                           ?>"> <a href="<?php echo site_url('admin/admin_revenue'); ?>"><?php echo get_phrase('admin_revenue'); ?></a> </li>
-                <?php if (get_settings('allow_instructor') == 1): ?>
-                <li class="<?php if ($page_name == 'instructor_revenue') {
-        echo 'active';
-}
-?>">
-                    <a href="<?php echo site_url('admin/instructor_revenue'); ?>">
-                        <?php echo get_phrase('instructor_revenue'); ?>
-                    </a>
-                </li>
-                <?php endif; ?>
-                <li class="<?php if ($page_name == 'purchase_history') {
-        echo 'active';
-}
-?>"> <a href="<?php echo site_url('admin/purchase_history'); ?>"><?php echo get_phrase('purchase_history'); ?></a> </li>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-
-
-        <?php if (addon_status('affiliate_course')):
-                $CI = &get_instance();
-                $CI->load->model('addons/affiliate_course_model');
-
-            ?>
-        <li
-            class="side-nav-item<?php if ($page_name == 'active_affiliator' || $page_name == 'suspend_affiliator' || $page_name == 'pending_affiliator' || $page_name == 'course_affiliation_history' || $page_name == 'affiliation_course_payouts' || $page_name == 'affiliator_add' || $page_name == 'affiliate_addon_settings'): ?> active<?php endif; ?>">
-            <a href="javascript: void(0);"
-                class="side-nav-link                                    				                                                    <?php if ($page_name == 'active_affiliator' || $page_name == 'suspend_affiliator' || $page_name == 'pending_affiliator' || $page_name == 'course_affiliation_history' || $page_name == 'affiliation_course_payouts' || $page_name == 'affiliator_add' || $page_name == 'affiliate_addon_settings'): ?> active<?php endif; ?>">
-                <i class="dripicons-box"></i>
-                <span> <?php echo get_phrase('Affiliate'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level" aria-expanded="false">
-
-
-
-                <li class="<?php if ($page_name == 'active_affiliator' || $page_name == 'suspend_affiliator' || $page_name == 'pending_affiliator') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/affiliate_course/active_affiliator'); ?>">
-                        <?php echo get_phrase('affliliator_list'); ?>
-                        <span class="badge badge-danger-lighten">
-
-                            <?php
-                            echo $CI->affiliate_course_model->get_pending_affiliator_application()->num_rows();
-                            ?></span>
-
-                    </a>
-                </li>
-
-                <li class="<?php if ($page_name == 'course_affiliation_history') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/affiliate_course/course_affiliation_history'); ?>">
-                        <?php echo get_phrase('affiliation_history'); ?>
-                        <span class="badge badge-danger-lighten"></span>
-                    </a>
-                </li>
-
-                <li class="<?php if ($page_name == 'affiliation_course_payouts') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/affiliate_course/affiliation_course_payouts'); ?>">
-                        <?php echo get_phrase('Payouts'); ?>
-                        <span class="badge badge-danger-lighten">
-
-                            <?php
-                            echo $CI->affiliate_course_model->get_table_pending_course_amount_info_from_course_affiliation_payouts()->num_rows();
-                            ?></span>
-                    </a>
-                </li>
-
-
-
-
-
-                <li class="<?php if ($page_name == 'affiliator_add') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/affiliate_course/affiliator_form'); ?>">
-                        <?php echo get_phrase('Create_affiliator'); ?>
-
-                    </a>
-                </li>
-
-                <li class="<?php if ($page_name == 'affiliate_addon_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/affiliate_course/affiliate_addon_settings'); ?>">
-                        <?php echo get_phrase('affiliation_settings'); ?>
-                        <span class="badge badge-danger-lighten"></span>
-                    </a>
-                </li>
-
-
-
-
-
-            </ul>
-        </li>
-        <?php endif; ?>
-
-        <?php if (has_permission('user')): ?>
-        <li
-            class="side-nav-item<?php if ($page_name == 'admins' || $page_name == 'admin_add' || $page_name == 'admin_edit' || $page_name == 'admin_permission' || $page_name == 'instructors' || $page_name == 'instructor_add' || $page_name == 'instructor_edit' || $page_name == 'instructor_payout' || $page_name == 'instructor_settings' || $page_name == 'application_list' || $page_name == 'users' || $page_name == 'user_add' || $page_name == 'user_edit'): ?> active<?php endif; ?>">
-            <a href="javascript: void(0);"
-                class="side-nav-link                                    				                                                    <?php if ($page_name == 'admins' || $page_name == 'admin_add' || $page_name == 'admin_edit' || $page_name == 'admin_permission' || $page_name == 'instructors' || $page_name == 'instructor_add' || $page_name == 'instructor_edit' || $page_name == 'instructor_payout' || $page_name == 'instructor_settings' || $page_name == 'application_list' || $page_name == 'users' || $page_name == 'user_add' || $page_name == 'user_edit'): ?> active<?php endif; ?>">
-                <i class="dripicons-user-group"></i>
-                <span> <?php echo get_phrase('users'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level" aria-expanded="false">
-                <?php if (has_permission('admins')): ?>
-                <li class="side-nav-item<?php if ($page_name == 'admins' || $page_name == 'admin_add' || $page_name == 'admin_edit' || $page_name == 'admin_permission'): ?> active<?php endif; ?>">
-                    <a href="javascript: void(0);"
-                        class="<?php if ($page_name == 'admins' || $page_name == 'admin_add' || $page_name == 'admin_edit' || $page_name == 'admin_permission'): ?> active<?php endif; ?>"
-                        aria-expanded="false"><?php echo get_phrase('admins'); ?>
-                        <span class="menu-arrow"></span>
-                    </a>
-                    <ul class="side-nav-third-level" aria-expanded="false">
-                        <li class="<?php if ($page_name == 'admins' || $page_name == 'admin_edit' || $page_name == 'admin_permission'): ?> active<?php endif; ?>">
-                            <a href="<?php echo site_url('admin/admins'); ?>"
-                                class="<?php if ($page_name == 'admins' || $page_name == 'admin_edit' || $page_name == 'admin_permission'): ?> active<?php endif; ?>"><?php echo get_phrase('manage_admins'); ?></a>
-                        </li>
-                        <li class="<?php if ($page_name == 'admin_add') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('admin/admin_form/add_admin_form'); ?>"><?php echo get_phrase('add_new_admin'); ?></a>
-                        </li>
-                    </ul>
-                </li>
-                <?php endif; ?>
-
-                <?php if (has_permission('instructor')): ?>
-                <li class="side-nav-item<?php if ($page_name == 'instructors' || $page_name == 'instructor_edit'): ?> active<?php endif; ?>">
-                    <a href="javascript: void(0);" aria-expanded="false" class="<?php if ($page_name == 'instructors' || $page_name == 'instructor_edit'): ?> active<?php endif; ?>">
-                        <?php echo get_phrase('instructors'); ?>
-                        <span class="menu-arrow"></span>
-                    </a>
-                    <ul class="side-nav-third-level" aria-expanded="false">
-                        <li class="<?php if ($page_name == 'instructors' || $page_name == 'instructor_edit') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('admin/instructors'); ?>"><?php echo get_phrase('manage_instructors'); ?></a>
-                        </li>
-                        <li class="<?php if ($page_name == 'instructor_add') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('admin/instructor_form/add_instructor_form'); ?>"><?php echo get_phrase('add_new_instructor'); ?></a>
-                        </li>
-                        <li class="<?php if ($page_name == 'instructor_payout') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('admin/instructor_payout'); ?>">
-                                <?php echo get_phrase('instructor_payout'); ?>
-                                <span class="badge badge-danger-lighten"><?php echo $this->crud_model->get_pending_payouts()->num_rows(); ?></span>
-                            </a>
-                        </li>
-                        <li class="<?php if ($page_name == 'instructor_settings') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('admin/instructor_settings'); ?>"><?php echo get_phrase('instructor_settings'); ?></a>
-                        </li>
-                        <li class="<?php if ($page_name == 'application_list') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('admin/instructor_application'); ?>">
-                                <?php echo get_phrase('applications'); ?>
-                                <span class="badge badge-danger-lighten"><?php echo $this->user_model->get_pending_applications()->num_rows(); ?></span>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <?php endif; ?>
-
-                <?php if (has_permission('student')): ?>
-                <li class="side-nav-item<?php if ($page_name == 'users' || $page_name == 'user_add' || $page_name == 'user_edit'): ?> active<?php endif; ?>">
-                    <a href="javascript: void(0);" aria-expanded="false"
-                        class="<?php if ($page_name == 'users' || $page_name == 'user_add' || $page_name == 'user_edit'): ?> active<?php endif; ?>"><?php echo get_phrase('students'); ?>
-                        <span class="menu-arrow"></span>
-                    </a>
-                    <ul class="side-nav-third-level" aria-expanded="false">
-                        <li class="<?php if ($page_name == 'users' || $page_name == 'user_edit') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('admin/users'); ?>"><?php echo get_phrase('manage_students'); ?></a>
-                        </li>
-                        <li class="<?php if ($page_name == 'user_add') {
-                                           echo 'active';
-                                   }
-                                   ?>">
-                            <a href="<?php echo site_url('admin/user_form/add_user_form'); ?>"><?php echo get_phrase('add_new_student'); ?></a>
-                        </li>
-                    </ul>
-                </li>
-                <?php endif; ?>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-        <?php if (addon_status('offline_payment')): ?>
-        <li class="side-nav-item">
-            <a href="javascript: void(0);"
-                class="side-nav-link                                    				                                                    <?php if ($page_name == 'offline_payment_pending' || $page_name == 'offline_payment_approve' || $page_name == 'offline_payment_suspended'): ?> active<?php endif; ?>">
-                <i class="dripicons-box"></i>
-                <span> <?php echo get_phrase('offline_payment'); ?></span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level" aria-expanded="false">
-                <li class="<?php if ($page_name == 'offline_payment_pending') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/offline_payment/pending'); ?>">
-                        <?php echo get_phrase('pending_request'); ?>
-                        <span class="badge badge-danger-lighten badge-pill float-right"><?php echo get_pending_offline_payment(); ?></span></span>
-                    </a>
-                </li>
-                <li class="<?php if ($page_name == 'offline_payment_approve') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/offline_payment/approve'); ?>"><?php echo get_phrase('accepted_request'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'offline_payment_suspended') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/offline_payment/suspended'); ?>"><?php echo get_phrase('suspended_request'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'offline_payment_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/offline_payment/settings'); ?>"><?php echo get_phrase('offline_payment_settings'); ?></a>
-                </li>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-        <?php if (has_permission('messaging')): ?>
-        <li class="side-nav-item">
-            <a href="<?php echo site_url('admin/message'); ?>" class="side-nav-link<?php if ($page_name == 'message' || $page_name == 'message_new' || $page_name == 'message_read') {
-        echo 'active';
-}
-?>">
-                <i class="dripicons-message"></i>
-                <span><?php echo get_phrase('message'); ?></span>
-                <?php
-                    $this->db->where('receiver', $this->session->userdata('user_id'));
-                    $this->db->where('read_status !=', 1);
-                    $unreaded_message = $this->db->get('message')->num_rows();
-                ?>
-                <?php if ($unreaded_message > 0): ?>
-                <span class="badge badge-danger-lighten float-right"><?php echo $unreaded_message; ?></span>
-                <?php endif; ?>
-            </a>
-        </li>
-        <?php endif; ?>
-
-
-        <?php if (has_permission('newsletter')): ?>
-        <li class="side-nav-item<?php if ($page_name == 'subscribed_user' || $page_name == 'newsletters' || $page_name == 'newsletter_history'): ?> active<?php endif; ?>">
-            <a href="javascript: void(0);"
-                class="side-nav-link				                                                    <?php if ($page_name == 'subscribed_user' || $page_name == 'newsletters'): ?> active<?php endif; ?>">
-                <i class="far fa-envelope-open"></i>
-                <span> <?php echo get_phrase('Newsletter'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level" aria-expanded="false">
-                <li class="<?php if ($page_name == 'newsletters') {
-                                       echo 'active';
-                               }
-                               ?>">
-                    <a href="<?php echo site_url('admin/newsletters'); ?>"><?php echo get_phrase('All newsletter'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'subscribed_user') {
-                                       echo 'active';
-                               }
-                               ?>">
-                    <a href="<?php echo site_url('admin/subscribed_user'); ?>"><?php echo get_phrase('Subscribed user'); ?></a>
-                </li>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-
-        <?php if (has_permission('contact')): ?>
-        <li class="side-nav-item">
-            <a href="<?php echo site_url('admin/contact'); ?>" class="side-nav-link<?php if ($page_name == 'contact'): ?> active<?php endif; ?>">
-                <i class="dripicons-user-id"></i>
-                <span><?php echo get_phrase('Contact'); ?></span>
-                <?php $unread_contact = $this->db->where('has_read', null)->get('contact')->num_rows(); ?>
-                <?php if ($unread_contact > 0): ?>
-                <span class="badge badge-danger float-right"><?php echo $unread_contact; ?></span>
-                <?php endif; ?>
-            </a>
-        </li>
-        <?php endif; ?>
-
-
-        <?php if (has_permission('blog')): ?>
-        <li
-            class="side-nav-item<?php if ($page_name == 'blog' || $page_name == 'blog_add' || $page_name == 'blog_edit' || $page_name == 'blog_category' || $page_name == 'blog_settings'): ?> active<?php endif; ?>">
-            <a href="javascript: void(0);"
-                class="side-nav-link                                    				                                                    <?php if ($page_name == 'blog' || $page_name == 'blog_add' || $page_name == 'blog_edit' || $page_name == 'blog_category' || $page_name == 'blog_settings' || $page_name == 'instructors_pending_blog'): ?> active<?php endif; ?>">
-                <i class="dripicons-blog"></i>
-                <span> <?php echo get_phrase('blog'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level" aria-expanded="false">
-                <li class="<?php if ($page_name == 'blog') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/blog'); ?>"><?php echo get_phrase('all_blogs'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'instructors_pending_blog') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/instructors_pending_blog'); ?>"><?php echo get_phrase('pending_blog'); ?> <span
-                            class="badge badge-danger-lighten"><?php echo $this->crud_model->get_instructors_pending_blog()->num_rows(); ?></span></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'blog_category') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/blog_category'); ?>"><?php echo get_phrase('blog_category'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'blog_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/blog_settings'); ?>"><?php echo get_phrase('blog_settings'); ?></a>
-                </li>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-
-        <?php if (addon_status('customer_support')): ?>
-        <li class="side-nav-item<?php if ($page_name == 'tickets' || $page_name == 'support_category' || $page_name == 'support_macro' || $page_name == 'create_ticket'): ?> active<?php endif; ?>">
-            <a href="javascript: void(0);" class="side-nav-link">
-                <i class="dripicons-help"></i>
-                <span> <?php echo get_phrase('customer_support'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level" aria-expanded="false">
-                <li class="<?php if ($page_name == 'tickets') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/customer_support/tickets/opened'); ?>"><?php echo get_phrase('ticket_list'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'support_category') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/customer_support/get_support_categories'); ?>"><?php echo get_phrase('support_category'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'support_macro') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/customer_support/get_support_macros'); ?>"><?php echo get_phrase('macro'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'create_ticket') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('addons/customer_support/create_support_ticket'); ?>"><?php echo get_phrase('create_ticket'); ?></a>
-                </li>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-        <?php if (has_permission('addon')): ?>
-        <li class="side-nav-item">
-            <a href="<?php echo site_url('admin/addon'); ?>"
-                class="side-nav-link<?php if ($page_name == 'addons' || $page_name == 'addon_add' || $page_name == 'available_addons'): ?> active<?php endif; ?>">
-                <i class="dripicons-graph-pie"></i>
-                <span><?php echo get_phrase('addons'); ?></span>
-            </a>
-        </li>
-        <?php endif; ?>
-
-        <?php if (has_permission('theme')): ?>
-        <li class="side-nav-item">
-            <a href="<?php echo site_url('admin/theme_settings'); ?>" class="side-nav-link<?php if ($page_name == 'theme_settings') {
-        echo 'active';
-}
-?>">
-                <i class="dripicons-brush"></i>
-                <span><?php echo get_phrase('themes'); ?></span>
-            </a>
-        </li>
-        <?php endif; ?>
-
-
-        <?php if (has_permission('settings')): ?>
-        <li
-            class="side-nav-item<?php if ($page_name == 'system_settings' || $page_name == 'frontend_settings' || $page_name == 'payment_settings' || $page_name == 'manage_language' || $page_name == 'about' || $page_name == 'themes' || $page_name == 'custom_page' || $page_name == 'data_center' || $page_name == 'notification_settings' || $page_name == 'jitsi_live_class_settings' || $page_name == 'seo_settings' || $page_name == 'sitemap_settings'): ?> active<?php endif; ?>">
-            <a href="javascript: void(0);" class="side-nav-link">
-                <i class="dripicons-toggles"></i>
-                <span> <?php echo get_phrase('settings'); ?> </span>
-                <span class="menu-arrow"></span>
-            </a>
-            <ul class="side-nav-second-level" aria-expanded="false">
-                <li class="<?php if ($page_name == 'system_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/system_settings'); ?>"><?php echo get_phrase('system_settings'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'frontend_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/frontend_settings'); ?>"><?php echo get_phrase('website_settings'); ?></a>
-                </li>
-
-                <!-- <li class="<?php if ($page_name == 'academy_cloud') {
-                                        echo 'active';
-                                }
-                                ?>">
-						<a href="<?php echo site_url('admin/academy_cloud'); ?>"><?php echo get_phrase('academy_cloud'); ?></a>
-					</li> -->
-
-                <li class="<?php if ($page_name == 'drip_content_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/drip_content_settings'); ?>"><?php echo get_phrase('drip_content_settings'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'badges') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/badges'); ?>"><?php echo get_phrase('Gamification Badges'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'seo_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/seo_settings'); ?>"><?php echo get_phrase('seo_settings'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'sitemap_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/sitemap_settings'); ?>"><?php echo get_phrase('sitemap'); ?></a>
-                </li>
-
-                <?php if (addon_status('certificate')): ?>
-                <li class="<?php if ($page_name == 'certificate_settings') {
-        echo 'active';
-}
-?>">
-                    <a href="<?php echo site_url('addons/certificate/settings'); ?>"><?php echo get_phrase('certificate_settings'); ?></a>
-                </li>
-                <?php endif; ?>
-
-                <?php if (addon_status('amazon-s3')): ?>
-                <li class="<?php if ($page_name == 's3_settings') {
-        echo 'active';
-}
-?>">
-                    <a href="<?php echo site_url('addons/amazons3/settings'); ?>"><?php echo get_phrase('s3_settings'); ?></a>
-                </li>
-                <?php endif; ?>
-
-                <li class="<?php if ($page_name == 'wasabi_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/wasabi_settings'); ?>"><?php echo get_phrase('Wasabi Storage Settings'); ?></a>
-                </li>
-
-                <?php if (addon_status('course_ai')): ?>
-                <li class="<?php if ($page_name == 'open_ai_settings') {
-        echo 'active';
-}
-?>">
-                    <a href="<?php echo site_url('admin/open_ai_settings'); ?>"><?php echo get_phrase('Open_AI_settings'); ?></a>
-                </li>
-                <?php endif; ?>
-
-                <?php if (addon_status('live-class')): ?>
-                <li class="<?php if ($page_name == 'zoom_live_class_settings') {
-        echo 'active';
-}
-?>">
-                    <a href="<?php echo site_url('addons/liveclass/settings'); ?>"><?php echo get_phrase('Zoom live class settings'); ?></a>
-                </li>
-                <?php endif; ?>
-
-                <?php if (addon_status('jitsi-live-class')): ?>
-                <li class="<?php if ($page_name == 'jitsi_live_class_settings') {
-        echo 'active';
-}
-?>">
-                    <a href="<?php echo site_url('addons/jitsi_liveclass/settings'); ?>"><?php echo get_phrase('Jitsi live class settings'); ?></a>
-                </li>
-                <?php endif; ?>
-
-                <li class="<?php if ($page_name == 'bbb_live_class_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/bbb_live_class_settings'); ?>"><?php echo get_phrase('BBB live class settings'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'payment_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/payment_settings'); ?>"><?php echo get_phrase('payment_settings'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'manage_language') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/manage_language'); ?>"><?php echo get_phrase('language_settings'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'notification_settings') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/notification_settings'); ?>"><?php echo get_phrase('Notification settings'); ?></a>
-                </li>
-                <li class="<?php if ($page_name == 'social_login') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/social_login_settings'); ?>"><?php echo get_phrase('social_login'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'custom_page') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/custom_page'); ?>"><?php echo get_phrase('custom_page_builder'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'home_page_builder') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/home_page_builder'); ?>"><?php echo get_phrase('home_page_builder'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'data_center') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/data_center'); ?>"><?php echo get_phrase('data_center'); ?></a>
-                </li>
-
-                <li class="<?php if ($page_name == 'about') {
-                                   echo 'active';
-                           }
-                           ?>">
-                    <a href="<?php echo site_url('admin/about'); ?>"><?php echo get_phrase('about'); ?></a>
-                </li>
-            </ul>
-        </li>
-        <?php endif; ?>
-
-        <li class="side-nav-item                                		                         <?php if ($page_name == 'manage_profile') {
-                                                                         echo 'active';
-                                                                 }
-                                                                 ?>">
-            <a href="<?php echo site_url(strtolower($this->session->userdata('role')) . '/manage_profile'); ?>" class="side-nav-link">
-                <i class="dripicons-user"></i>
-                <span><?php echo get_phrase('manage_profile'); ?></span>
-            </a>
-        </li>
-    </ul>
-</div>
+    <nav class="tqa-rail__nav" aria-label="التنقل الرئيسي">
+        <?php foreach ($tqa_nav as [$tqa_gtitle, $tqa_gicon, $tqa_gitems]): ?>
+
+            <?php if ($tqa_gtitle !== ''): ?>
+                <p class="tqa-rail__group" aria-hidden="true"><?php echo html_escape($tqa_gtitle); ?></p>
+            <?php endif; ?>
+
+            <?php foreach ($tqa_gitems as [$tqa_key, $tqa_label, $tqa_href, $tqa_icon, $tqa_badge]): ?>
+                <?php $tqa_n = $tqa_badge ? (int) ($tqa_counts[$tqa_badge] ?? 0) : 0; ?>
+                <a class="tqa-rail__item" href="<?php echo site_url($tqa_href); ?>"
+                   title="<?php echo html_escape($tqa_label); ?>"
+                   <?php echo $tqa_is_active($tqa_key) ? 'aria-current="page"' : ''; ?>>
+                    <span class="tqa-rail__icon" aria-hidden="true"><?php echo tq_icon($tqa_icon, 19); ?></span>
+                    <span class="tqa-rail__text"><?php echo html_escape($tqa_label); ?></span>
+                    <?php if ($tqa_n > 0): ?>
+                        <?php /* الرقم في `<bdi>` لا الشارة نفسها.
+                                 TQ-RAIL-BADGE-DIR — كانت `direction: ltr`
+                                 مكتوبة على الشارة، وخصائص الهامش المنطقية
+                                 تقرأ اتجاه **العنصر نفسه**: فـ
+                                 `margin-inline-start: auto` صارت
+                                 `margin-left` في صف مقلوب، أي هامشا على
+                                 طرف النهاية لا البداية — فالشارة تلتصق
+                                 بالنص بدل أن تدفع إلى طرف البند. والعزل
+                                 يلزم مع ذلك حتى تخرج «99+» بعلامتها بعد
+                                 الرقم؛ فانتقل إلى `<bdi>` حول الرقم وحده. */ ?>
+                        <span class="tqa-rail__count<?php echo in_array($tqa_badge, ['payouts', 'teacher_apps', 'sessions'], true) ? ' tqa-rail__count--urgent' : ''; ?>"><bdi><?php
+                            echo $tqa_n > 99 ? '99+' : $tqa_n;
+                        ?></bdi></span>
+                        <span class="tqa-sr">بند ينتظر إجراء</span>
+                    <?php endif; ?>
+                </a>
+            <?php endforeach; ?>
+
+        <?php endforeach; ?>
+    </nav>
+
+    <?php /* الذيل يبقى في الوضع المطوي بأيقونته وحدها: كان يخفى كله،
+             فينطوي الشريط ويذهب معه الباب الوحيد إلى الموقع العام.
+             والاسم في `tqa-rail__text` فتخفيه قاعدة الطي نفسها. */ ?>
+    <div class="tqa-rail__foot">
+        <a class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--block" href="<?php echo base_url(); ?>"
+           target="_blank" rel="noopener" title="زيارة الموقع">
+            <?php echo tq_icon('eye', 16); ?> <span class="tqa-rail__text">زيارة الموقع</span>
+        </a>
+    </div>
+</aside>

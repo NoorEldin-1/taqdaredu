@@ -70,7 +70,7 @@
                 buttons: [
                     {
                         extend: 'csv',
-                        text: 'Export as CSV',
+                        text: 'تصدير CSV',
                         filename: function () {
                             var currentTime = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '_');  // Get current time and format it
                             return 'courses-' + currentTime;  // File name will be "courses-YYYY_MM_DD_HH_MM_SS"
@@ -83,7 +83,9 @@
             });
         });
 
-        $(".server-side-select2").each(function() {
+        <?php /* select2 غير محمل في اللوحة — انظر TQ-SELECT2-GONE في
+                 assets/backend/js/custom.js. النداء بلا حرس يرمي. */ ?>
+        if ($.fn.select2) $(".server-side-select2").each(function() {
             var actionUrl = $(this).attr('action');
             $(this).select2({
                 ajax: {
@@ -129,15 +131,9 @@
     }
 
 
-    function div_add() {
-        $.NotificationApp.send("<?php echo get_phrase('successfully'); ?>!", '<?php echo get_phrase('Div added to bottom ') ?>', "top-right", "rgba(0,0,0,0.2)", "info");
-
-    }
-
-    function div_remove() {
-        $.NotificationApp.send("<?php echo get_phrase('successfully'); ?>!", '<?php echo get_phrase('Div has been deleted ') ?>', "top-right", "rgba(0,0,0,0.2)", "error");
-
-    }
+    /* حذفت `div_add()` و`div_remove()`: كانتا تعرضان «تمت إضافة Div إلى
+       الأسفل» وتناديان من `home_page_builder` وحدها — وقوالبها محذوفة،
+       فلا مستدعي لهما في المستودع. */
 </script>
 
 <!-- Google analytics -->

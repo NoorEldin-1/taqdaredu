@@ -1,415 +1,2017 @@
 /* ==========================================================================
-   لوحة تقدر — طبقة الهوية والاتجاه فوق قالب الإدارة القديم.
-   لا يعدل أي ملف عرض قديم: هذه الطبقة تحمل بعد CSS القالب فتغلبه.
-   والقالب Bootstrap 4 ولا نسخة RTL رسمية له، فالاتجاه يعالج هنا بقواعد
-   مقصودة لا بقلب شامل — القلب الشامل يكسر الجداول والقوائم المنسدلة.
+   لوحة تقدر — نظام التصميم.
+
+   هذا الملف لا يصبغ قالب Hyper، بل يحل محله بصريا. القاعدة التي بني عليها:
+   **الهوية واحدة والمحرك اثنان.** البوابات الثلاث تبني شاشاتها بـ`tq-*`
+   فوق `tokens.css`؛ واللوحة فيها تسعون شاشة موروثة مكتوبة بـBootstrap 4،
+   ونسخها كلها إلى `tq-*` عمل شهور تنكسر خلاله اللوحة كل يوم.
+
+   فالمخرج: **التوكنات نفسها، ومحركان يقرآن منها.** الهيكل الجديد (`tqa-*`)
+   يكتب هنا من الصفر بمنطق `tq-shell`/`tq-rail`/`tq-topbar` نفسه، وأوليات
+   Bootstrap (`card` · `btn` · `table` · `form-control` · `nav-tabs` · `modal`)
+   يعاد تعريفها من التوكنات ذاتها. فالشاشة القديمة والجديدة تخرجان بالمظهر
+   نفسه بلا أن تلمس واحدة من التسعين.
+
+   ولماذا لا تحمل `base.css` و`components.css` هنا كما تحمل في البوابات؟
+   لأن `base.css` تعيد ضبط عناصر عامة يقوم عليها Bootstrap:
+   `ul{list-style:none;padding:0}` تكسر القوائم المنسدلة، و
+   `button{background:none;border:0}` تمسح كل زر، و`a{color:teal}` تصبغ
+   كل رابط في جدول. فالتوكنات وحدها هي المشترك — وهي مصدر الهوية أصلا.
+
+   والاتجاه يعالج بـ`inline-start/end` لا بـ`left/right`: القلب الشامل
+   لـBootstrap يكسر الجداول والقوائم المنسدلة، والخصائص المنطقية تنقلب
+   وحدها متى انقلبت لغة الصفحة.
    ========================================================================== */
 
-/* --- الأساس --- */
-html[dir='rtl'] body,
+/* ==========================================================================
+   ١ · متغيرات اللوحة وحدها
+   ========================================================================== */
+:root {
+  --tqa-rail: 264px;
+  --tqa-rail-collapsed: 76px;
+  --tqa-topbar-h: 68px;
+  --tqa-radius: 20px;
+  --tqa-radius-sm: 12px;
+  --tqa-field-h: 44px;
+}
+
+/* ==========================================================================
+   ٢ · الأساس
+   الأصناف مقيدة بـ`body.tqa` فلا تتسرب إلى صفحة عامة تحمل هذا الملف سهوا.
+   ========================================================================== */
 body.tqa {
+  margin: 0;
   background: var(--tq-ground);
   color: var(--tq-text);
+  font: var(--tq-type-body);
   font-family: var(--tq-font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
-.tqa h1, .tqa h2, .tqa h3, .tqa h4, .tqa h5,
-.tqa .page-title { font-family: var(--tq-font-title); color: var(--tq-navy); }
+/**
+ * الافتراضات العنصرية تلف بـ`:where()` — وهي صفر في حساب الأولوية.
+ *
+ * TQ-BTN-INVISIBLE — كانت مكتوبة `body.tqa a { color: var(--tq-teal) }`،
+ * وأولويتها (0,1,2): صنف واحد وعنصران. و`.tqa-btn--primary` أولويتها
+ * (0,1,0) — صنف واحد بلا عنصر. فالقاعدة العنصرية **تغلب صنف الزر**:
+ *
+ *   ١ — كل `<a class="tqa-btn tqa-btn--primary">` في اللوحة كان يخرج
+ *       بحبر تركوازي على خلفية كحلية داكنة بدل الأبيض (2.7:1).
+ *   ٢ — وعند التمرير `body.tqa a:hover` (0,2,2) تغلب `.tqa-btn:hover`
+ *       (0,2,0)، فيصير الحبر `--tq-navy` #023331 على خلفية
+ *       `--tq-navyDeep` #01211F — **نسبة 1.1:1، أي نص يختفي تماما.**
+ *       وهو ما يصيب زر «إضافة» في كل وحدة، وزر الفراغ، وأزرار الجداول.
+ *
+ * و`:where(body.tqa a)` تساوي صفرا في الأولوية: الرابط العاري يأخذ
+ * التركوازي كما كان، وأي عنصر يحمل صنفا — زرا كان أو بند قائمة أو
+ * بطاقة — يحمل لونه هو. وهذا هو الترتيب الصحيح أصلا: الافتراض أضعف
+ * ما في الورقة لا أقواها.
+ */
+:where(body.tqa h1, body.tqa h2, body.tqa h3,
+       body.tqa h4, body.tqa h5, body.tqa h6) {
+  font-family: var(--tq-font-title);
+  color: var(--tq-navy);
+}
+:where(body.tqa h1) { font: var(--tq-type-h1);   color: var(--tq-navy); }
+:where(body.tqa h2) { font: var(--tq-type-h2);   color: var(--tq-navy); }
+:where(body.tqa h3) { font: var(--tq-type-h2);   color: var(--tq-navy); }
+:where(body.tqa h4, body.tqa h5, body.tqa h6) { font: var(--tq-type-bodyStrong); color: var(--tq-navy); }
 
-/* الأرقام بخطها ومعزولة اتجاهيا */
-.tqa .widget-flat h3,
-.tqa .card-title-num,
-.tqa .tqa-num {
+:where(body.tqa a) { color: var(--tq-teal); }
+:where(body.tqa a:hover) { color: var(--tq-navy); text-decoration: none; }
+
+/* الرقم اللاتيني داخل نص عربي يعزل اتجاهيا، وإلا انقلب ترتيب خاناته
+   حين يجاوره نص عربي (١٢٠ ريال تقرأ «ريال ٠٢١»). */
+body.tqa .tqa-num,
+body.tqa .tq-ltr,
+body.tqa .widget-flat h3 {
   font-family: var(--tq-font-num);
-  unicode-bidi: isolate; direction: ltr; display: inline-block;
+  font-variant-numeric: lining-nums tabular-nums;
+  unicode-bidi: isolate;
+  direction: ltr;
+  display: inline-block;
 }
 
-/* --- الترويسة العلوية --- */
-.tqa .navbar-custom.topnav-navbar {
-  background: var(--tq-actionPrimary) !important;
-  border-block-end: 0;
-  box-shadow: var(--tq-shadow-soft);
+/* حلقة التركيز: من يتنقل بلوحة المفاتيح لا يرى غيرها. */
+body.tqa :focus-visible {
+  outline: 2px solid var(--tq-focusRing);
+  outline-offset: 2px;
+  border-radius: var(--tqa-radius-sm);
 }
-.tqa .navbar-custom .nav-link,
-.tqa .navbar-custom .topbar-right-menu > li > a { color: rgba(255, 255, 255, .82) !important; }
-.tqa .navbar-custom .nav-link:hover { color: #fff !important; }
 
-/* الشعار: نصي بهوية تقدر بدل صورة القالب */
-.tqa .topnav-logo-lg img, .tqa .topnav-logo-sm img { max-block-size: 34px; inline-size: auto; }
+body.tqa .tqa-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
-/* --- القائمة الجانبية --- */
-.tqa .left-side-menu {
+/* ==========================================================================
+   ٣ · الهيكل: شريط · ترويسة · صفحة
+   ========================================================================== */
+.tqa-shell {
+  display: flex;
+  min-block-size: 100vh;
+  align-items: stretch;
+}
+
+.tqa-main {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tqa-page {
+  flex: 1;
+  padding: var(--tq-space-xl);
+  inline-size: 100%;
+  max-inline-size: var(--tq-container-max);
+  margin-inline: auto;
+}
+
+/* ---- الشريط الجانبي ---- */
+.tqa-rail {
+  inline-size: var(--tqa-rail);
+  flex: none;
   background: var(--tq-surface);
-  border-radius: var(--tq-radius-card);
-  box-shadow: var(--tq-shadow-soft);
-  border: 0;
+  border-inline-end: 1px solid var(--tq-line);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  inset-block-start: 0;
+  block-size: 100vh;
+  z-index: 60;
+  transition: inline-size var(--tq-motion-route) var(--tq-ease-enter);
 }
-.tqa .side-nav .side-nav-title {
-  color: var(--tq-text3);
+
+/* الترويسة لا تمرر مع القائمة، و`flex: none` تمنعها من الانضغاط حين تطول
+   القائمة. والشعار يأخذ الفراغ كله (`flex: 1`) فيدفع زر الطي إلى الحافة:
+   بلا ذلك يجلس الزر ملاصقا لكلمة «تقدر» في وسط الترويسة، فيقرأ جزءا من
+   الشعار لا زرا مستقلا. */
+.tqa-rail__brand {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-s);
+  padding: var(--tq-space-l) var(--tq-space-m) var(--tq-space-m);
+  min-block-size: var(--tqa-topbar-h);
+}
+.tqa-rail__logo { flex: 1; display: flex; align-items: center; gap: var(--tq-space-m); min-inline-size: 0; }
+.tqa-rail__logo img { block-size: 36px; inline-size: 36px; object-fit: contain; flex: none; }
+.tqa-rail__wordmark { display: block; line-height: 1.2; color: var(--tq-navy); font: var(--tq-type-bodyStrong); font-family: var(--tq-font-title); }
+.tqa-rail__tagline { display: block; font: var(--tq-type-micro); color: var(--tq-text2); }
+
+/* القياسات هنا تطابق `.tq-rail__nav` في `components.css` حرفا بحرف:
+   الشريطان يقرآن من التوكنات نفسها، فوجب أن يقرآ المسافات نفسها أيضا —
+   وإلا اختلف بند القائمة بين اللوحة والبوابة ببكسلين لا يفسرهما شيء. */
+.tqa-rail__nav {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 0 var(--tq-space-m) var(--tq-space-m);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+/* شريط التمرير رفيع وبلون الخط لا رماديا افتراضيا */
+.tqa-rail__nav::-webkit-scrollbar { inline-size: 6px; }
+.tqa-rail__nav::-webkit-scrollbar-thumb { background: var(--tq-line); border-radius: 999px; }
+
+.tqa-rail__group {
+  margin: var(--tq-space-l) var(--tq-space-m) var(--tq-space-xs);
   font: var(--tq-type-micro);
-  letter-spacing: .04em;
-  padding-block: var(--tq-space-l) var(--tq-space-s);
-}
-.tqa .side-nav .side-nav-link,
-.tqa .side-nav .side-nav-second-level a {
+  font-weight: 700;
   color: var(--tq-text2);
-  border-radius: var(--tq-radius-small);
-  min-block-size: 44px;             /* حد اللمس نفسه في كل المنصة */
-  display: flex; align-items: center; gap: var(--tq-space-s);
+  text-transform: none;
+}
+/* أول عنوان مجموعة لا يترك فراغا فوقه: الشريط يبدأ من العلامة التجارية. */
+.tqa-rail__nav > .tqa-rail__group:first-child { margin-block-start: 0; }
+
+/* `position: relative` ليست زينة: `.tqa-rail` لاصقة، واللاصق كتلة احتواء
+   لكل مطلق تحته. فشارة الوضع المطوي — وهي `position: absolute` — كانت
+   تحسب من الشريط لا من بندها، فتبقى واقفة مكانها بينما تمرر القائمة
+   تحتها. البند هو مرجعها الصحيح. */
+.tqa-rail__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-m);
+  min-block-size: var(--tq-nav-item-h, 44px);
+  padding: 0 var(--tq-space-m);
+  border-radius: var(--tqa-radius-sm);
+  color: var(--tq-text2);
+  font: var(--tq-type-caption);
+  font-weight: 600;
+  text-decoration: none;
   transition: background-color var(--tq-motion-hover) ease, color var(--tq-motion-hover) ease;
 }
-.tqa .side-nav .side-nav-link:hover,
-.tqa .side-nav .side-nav-second-level a:hover {
-  background: var(--tq-navyWash); color: var(--tq-navy);
-}
-.tqa .side-nav .side-nav-item.mm-active > .side-nav-link,
-.tqa .side-nav .side-nav-second-level li.mm-active > a,
-.tqa .side-nav a.active {
-  background: var(--tq-actionPrimary) !important;
-  color: var(--tq-onAction) !important;
+.tqa-rail__item:hover { background: var(--tq-navyWash); color: var(--tq-navy); text-decoration: none; }
+.tqa-rail__item[aria-current='page'] {
+  background: var(--tq-actionPrimary);
+  color: var(--tq-onAction);
   font-weight: 700;
 }
-.tqa .leftbar-user { border-block-end: 1px solid var(--tq-line); }
-.tqa .leftbar-user-name { color: var(--tq-navy); font-family: var(--tq-font-title); }
+.tqa-rail__item[aria-current='page'] .tqa-rail__icon { color: var(--tq-onAction); }
 
-/* --- البطاقات --- */
-.tqa .card {
+.tqa-rail__icon { display: grid; place-items: center; inline-size: 20px; block-size: 20px; flex: none; color: inherit; }
+/* `flex: 1` هو ما يدفع الشارة إلى طرف البند، لا الهامش التلقائي وحده:
+   الهامش المنطقي يقرأ اتجاه العنصر الذي كتب عليه، والشارة كانت تعلن
+   `direction: ltr` فينقلب معناه. والنص يأخذ الفراغ فلا يبقى للهامش عمل
+   في الاتجاهين معا. */
+.tqa-rail__text { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tqa-rail__item > .tqa-rail__text { flex: 1; }
+
+/* الشارة: عدد ينتظر عملا. العزل الاتجاهي على `<bdi>` داخلها لا عليها —
+   انظر التعليق في [navigation.php]. */
+.tqa-rail__count {
+  margin-inline-start: auto;
+  min-inline-size: 22px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--tq-tealSoft);
+  color: var(--tq-mint-ink);
+  font: var(--tq-type-numeralSm);
+  text-align: center;
+  flex: none;
+}
+.tqa-rail__count > bdi { direction: ltr; unicode-bidi: isolate; }
+.tqa-rail__count--urgent { background: var(--tq-dangerSoft); color: var(--tq-rose-ink); }
+.tqa-rail__item[aria-current='page'] .tqa-rail__count {
+  background: rgba(255, 255, 255, .22);
+  color: var(--tq-onAction);
+}
+
+/* البند المظلل يجلب إلى الرؤية عند التحميل — انظر التعليق في
+   [backend/index.php]. و`scroll-margin` يترك له متنفسا فلا يلتصق
+   بحافة الشريط حين يجلب. */
+.tqa-rail__item[aria-current='page'] { scroll-margin-block: var(--tq-space-h1); }
+
+.tqa-rail__foot {
+  padding: var(--tq-space-m);
+  border-block-start: 1px solid var(--tq-line);
+}
+
+/* ---- الوضع المطوي ----
+   الاسم يخفى بصريا ويبقى في شجرة الوصول: `display:none` يترك ستين رابطا
+   يقرؤها قارئ الشاشة «رابط» وحسب. */
+.tqa-shell[data-collapsed='true'] .tqa-rail { inline-size: var(--tqa-rail-collapsed); }
+.tqa-shell[data-collapsed='true'] .tqa-rail__text,
+.tqa-shell[data-collapsed='true'] .tqa-rail__wordmark,
+.tqa-shell[data-collapsed='true'] .tqa-rail__tagline {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.tqa-shell[data-collapsed='true'] .tqa-rail__nav { padding-inline: var(--tq-space-s); }
+.tqa-shell[data-collapsed='true'] .tqa-rail__item { justify-content: center; padding-inline: 0; gap: 0; }
+
+/* رأس المجموعة يصير فاصلا لا يختفي: المعنى يبقى — هنا تبدأ مجموعة —
+   والنص يذهب. وبإخفائه كله كانت ثمان مجموعات تسيل في عمود أيقونات واحد
+   بلا فاصل يفصل «المالية» عن «التواصل». */
+.tqa-shell[data-collapsed='true'] .tqa-rail__group {
+  margin: var(--tq-space-s) var(--tq-space-s) var(--tq-space-s);
+  block-size: 1px;
+  padding: 0;
+  font-size: 0;
+  background: var(--tq-line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+/* الشارة تركن إلى زاوية بندها — والمرجع هو البند بفضل
+   `position: relative` أعلاه. وبلا `inset` كانت تعتمد على الموضع الساكن
+   لعنصر مطلق في حاوية مرنة، وهو موضع لا تتفق عليه المتصفحات. */
+.tqa-shell[data-collapsed='true'] .tqa-rail__count {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-end: 3px;
+  margin: 0;
+  min-inline-size: 18px;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 16px;
+}
+
+/* الترويسة تصير عمودا: الشعار ٣٦ بكسل وزر الطي ٣٦، ولا يتسعان جنبا إلى
+   جنب في ٧٦ بكسل. والزر يبقى ظاهرا — وإلا انطوى الشريط بلا باب يفتحه. */
+.tqa-shell[data-collapsed='true'] .tqa-rail__brand {
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--tq-space-s);
+  padding-inline: 0;
+}
+.tqa-shell[data-collapsed='true'] .tqa-rail__logo { flex: none; justify-content: center; }
+.tqa-shell[data-collapsed='true'] .tqa-rail__foot { padding: var(--tq-space-s); }
+.tqa-shell[data-collapsed='true'] .tqa-rail__foot .tqa-btn { padding-inline: 0; }
+
+/* زر الطي: مربع بحد خفيف فيقرأ زرا لا أيقونة سائبة بجانب الشعار.
+   واتجاه السهم مكتوب هنا صراحة — `base.css` التي تقلب `tq-dir-icon` مع
+   اتجاه الكتابة **لا تحمل في اللوحة** (انظر رأس الملف)، فالاعتماد على
+   انعكاسها التلقائي رهان على غيابها. والسهم يشير إلى الحافة التي ينطوي
+   الشريط نحوها، وينعكس مطويا فيصير بابا يفتح. */
+/* الوزن `.tqa-rail X` مقصود: `.tqa-iconbtn` معرفة **بعد** هذا الموضع في
+   الورقة نفسها، فمحدد بوزن مساو يخسر أمامها ويعود الزر ٤٠ بكسل بلا حد. */
+.tqa-rail .tqa-rail__collapse,
+.tqa-rail .tqa-rail__close {
+  flex: none;
+  inline-size: 36px;
+  block-size: 36px;
+  border: 1px solid var(--tq-line);
+  border-radius: 10px;
+  color: var(--tq-text3);
+}
+.tqa-rail__collapse svg.tq-dir-icon,
+.tqa-rail__close svg { transition: transform var(--tq-motion-route) ease; }
+
+/* الأربع قواعد تغطي الحالات الأربع، وأوزانها مرتبة عمدا:
+   يسار مفتوح ‹ · يمين مفتوح › · يسار مطوي › · يمين مطوي ‹ */
+.tqa-rail__collapse svg.tq-dir-icon { transform: scaleX(-1); }
+[dir='rtl'] .tqa-rail__collapse svg.tq-dir-icon { transform: none; }
+.tqa-shell[data-collapsed='true'] .tqa-rail__collapse svg.tq-dir-icon { transform: none; }
+[dir='rtl'] .tqa-shell[data-collapsed='true'] .tqa-rail__collapse svg.tq-dir-icon { transform: scaleX(-1); }
+
+/* ---- الترويسة العلوية ---- */
+.tqa-topbar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 50;
+  min-block-size: var(--tqa-topbar-h);
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-l);
+  padding-inline: var(--tq-space-xl);
   background: var(--tq-surface);
+  border-block-end: 1px solid var(--tq-line);
+}
+
+.tqa-topbar__title { min-inline-size: 0; }
+.tqa-topbar__title strong { display: block; color: var(--tq-navy); font: var(--tq-type-bodyStrong); font-family: var(--tq-font-title); }
+.tqa-topbar__title span { display: block; font: var(--tq-type-micro); color: var(--tq-text2); }
+
+.tqa-topbar__actions { display: flex; align-items: center; gap: var(--tq-space-s); margin-inline-start: auto; }
+
+.tqa-iconbtn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
   border: 0;
-  border-radius: var(--tq-radius-card);
+  border-radius: var(--tqa-radius-sm);
+  background: transparent;
+  color: var(--tq-text2);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--tq-motion-hover) ease, color var(--tq-motion-hover) ease;
+}
+.tqa-iconbtn:hover { background: var(--tq-navyWash); color: var(--tq-navy); text-decoration: none; }
+.tqa-iconbtn__dot {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-end: 3px;
+  min-inline-size: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--tq-actionDanger);
+  color: #fff;
+  font: 600 10px/17px var(--tq-font-num);
+  text-align: center;
+  unicode-bidi: isolate;
+  direction: ltr;
+}
+
+.tqa-topbar__me {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-s);
+  padding: var(--tq-space-xs) var(--tq-space-s);
+  border-radius: var(--tqa-radius-sm);
+  text-decoration: none;
+  transition: background-color var(--tq-motion-hover) ease;
+}
+.tqa-topbar__me:hover { background: var(--tq-navyWash); text-decoration: none; }
+.tqa-topbar__me img { inline-size: 34px; block-size: 34px; border-radius: 50%; object-fit: cover; flex: none; }
+.tqa-topbar__me b { display: block; color: var(--tq-navy); font: var(--tq-type-caption); font-weight: 700; }
+.tqa-topbar__me span { display: block; font: var(--tq-type-micro); color: var(--tq-text2); }
+
+/* ---- رأس الصفحة ---- */
+.tqa-pagehead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--tq-space-l);
+  flex-wrap: wrap;
+  margin-block-end: var(--tq-space-xl);
+}
+.tqa-pagehead__title { display: flex; align-items: center; gap: var(--tq-space-m); }
+.tqa-pagehead__title h1 { margin: 0; font: var(--tq-type-h1); color: var(--tq-navy); }
+.tqa-pagehead__sub { margin: var(--tq-space-xs) 0 0; color: var(--tq-text2); font: var(--tq-type-caption); }
+.tqa-pagehead__tools { display: flex; align-items: center; gap: var(--tq-space-s); flex-wrap: wrap; }
+
+.tqa-iconbox {
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-mint-fill);
+  color: var(--tq-mint-ink);
+  flex: none;
+}
+
+/* ---- الجوال ---- */
+.tqa-rail-scrim { display: none; }
+.tqa-rail__close { display: none; }
+
+@media (max-width: 991.98px) {
+  .tqa-rail {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    transform: translateX(-102%);
+    box-shadow: var(--tq-shadow-card);
+    transition: transform var(--tq-motion-route) var(--tq-ease-enter);
+  }
+  [dir='rtl'] .tqa-rail { inset-inline-start: auto; inset-inline-end: 0; transform: translateX(102%); }
+  .tqa-shell[data-open='true'] .tqa-rail { transform: none; }
+
+  /* الدرج مفتوح عن قصد فيعرض بأسمائه.
+     TQ-RAIL-MOBILE-COLLAPSED — كان يستعاد عرضه وحده، وتبقى عليه كل قواعد
+     الطي الأخرى: من طوى الشريط على حاسوبه ثم فتح اللوحة على جواله يجد
+     درجا بعرض ٢٦٤ بكسل بلا اسم واحد — أيقونات مجردة في مساحة تتسع
+     للأسماء، ومفضلته محفوظة فلا يخرج منها. فتلغى القواعد كلها هنا، لا
+     العرض وحده. */
+  .tqa-shell[data-collapsed='true'] .tqa-rail { inline-size: var(--tqa-rail); }
+  .tqa-shell[data-collapsed='true'] .tqa-rail__text,
+  .tqa-shell[data-collapsed='true'] .tqa-rail__wordmark,
+  .tqa-shell[data-collapsed='true'] .tqa-rail__tagline {
+    position: static;
+    width: auto; height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+  }
+  .tqa-shell[data-collapsed='true'] .tqa-rail__nav { padding-inline: var(--tq-space-m); }
+  .tqa-shell[data-collapsed='true'] .tqa-rail__item { justify-content: flex-start; padding-inline: var(--tq-space-m); gap: var(--tq-space-m); }
+  .tqa-shell[data-collapsed='true'] .tqa-rail__group {
+    margin: var(--tq-space-l) var(--tq-space-m) var(--tq-space-xs);
+    block-size: auto;
+    font: var(--tq-type-micro);
+    font-weight: 700;
+    background: none;
+  }
+  .tqa-shell[data-collapsed='true'] .tqa-rail__count {
+    position: static;
+    margin-inline-start: auto;
+    padding: 1px 6px;
+    min-inline-size: 22px;
+    font: var(--tq-type-numeralSm);
+  }
+  .tqa-shell[data-collapsed='true'] .tqa-rail__brand { flex-direction: row; justify-content: space-between; padding-inline: var(--tq-space-m); }
+  .tqa-shell[data-collapsed='true'] .tqa-rail__logo { flex: 1; }
+  .tqa-shell[data-collapsed='true'] .tqa-rail__foot { padding: var(--tq-space-m); }
+  .tqa-shell[data-collapsed='true'] .tqa-rail__foot .tqa-btn { padding-inline: var(--tq-space-m); }
+
+  /* الدرج يفتح ويغلق من داخله: زر الفتح يختفي خلف الطبقة، فمن فتح
+     لا يجد بابا يخرج منه إلا بالضغط على الطبقة — وهو تصرف لا يعلنه شيء. */
+  .tqa-rail__close { display: grid; margin-inline-start: auto; }
+  .tqa-rail__collapse { display: none; }
+
+  .tqa-rail-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(1, 33, 31, .45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--tq-motion-route) ease;
+  }
+  .tqa-shell[data-open='true'] .tqa-rail-scrim { opacity: 1; pointer-events: auto; }
+
+  .tqa-page { padding: var(--tq-space-l); }
+  .tqa-topbar { padding-inline: var(--tq-space-l); }
+}
+
+@media (min-width: 992px) {
+  .tqa-rail-toggle { display: none !important; }
+}
+
+/* ==========================================================================
+   ٤ · مكونات اللوحة
+   ========================================================================== */
+
+/* ---- البطاقة ---- */
+.tqa-card {
+  background: var(--tq-surface);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius);
+  padding: var(--tq-space-xl);
   box-shadow: var(--tq-shadow-soft);
 }
-.tqa .card-header { background: transparent; border-block-end: 1px solid var(--tq-line); }
-.tqa .card-title, .tqa .header-title { color: var(--tq-navy); font-family: var(--tq-font-title); }
+.tqa-card--flush { padding: 0; overflow: hidden; }
+.tqa-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-m);
+  padding: var(--tq-space-l) var(--tq-space-xl);
+  border-block-end: 1px solid var(--tq-line);
+}
+.tqa-card__head h2 { margin: 0; font: var(--tq-type-h2); color: var(--tq-navy); }
+.tqa-card__head > :last-child:not(h2) { margin-inline-start: auto; }
+.tqa-card__body { padding: var(--tq-space-xl); }
 
-/* --- الأزرار: نفس لغة المنصة --- */
-.tqa .btn-primary,
-.tqa .btn-info {
-  background: var(--tq-actionPrimary); border-color: var(--tq-actionPrimary);
-  color: var(--tq-onAction); border-radius: var(--tq-radius-small);
-}
-.tqa .btn-primary:hover, .tqa .btn-info:hover { filter: brightness(1.12); }
-.tqa .btn-success {
-  background: var(--tq-actionMastery); border-color: var(--tq-actionMastery); color: var(--tq-onAction);
-}
-.tqa .btn-danger {
-  background: var(--tq-actionDanger); border-color: var(--tq-actionDanger); color: var(--tq-onAction);
-}
-.tqa .btn-secondary, .tqa .btn-light {
-  background: var(--tq-surface); border-color: var(--tq-line); color: var(--tq-navy);
-}
-.tqa .btn { border-radius: var(--tq-radius-small); min-block-size: 38px; }
-
-/* --- الحقول --- */
-.tqa .form-control, .tqa .custom-select, .tqa select, .tqa textarea {
-  border: var(--tq-field-border) solid var(--tq-line);
-  border-radius: var(--tq-radius-small);
-  color: var(--tq-text);
-  min-block-size: 42px;
-}
-.tqa .form-control:focus, .tqa select:focus {
-  border-color: var(--tq-navy); box-shadow: none;
-}
-.tqa label { color: var(--tq-text2); font: var(--tq-type-caption); }
-
-/* حلقة التركيز لا تزال — من يتنقل بلوحة المفاتيح لا يرى غيرها */
-.tqa :focus-visible {
-  outline: var(--tq-focus-ring-w) solid var(--tq-focusRing);
-  outline-offset: 2px;
+/* ---- الشبكة ---- */
+.tqa-grid { display: grid; gap: var(--tq-space-l); }
+.tqa-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tqa-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tqa-grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tqa-grid--auto { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+@media (max-width: 1199.98px) { .tqa-grid--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 991.98px)  { .tqa-grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 639.98px)  {
+  .tqa-grid--2, .tqa-grid--3, .tqa-grid--4 { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* --- الجداول --- */
-.tqa .table thead th {
-  background: transparent; border-block-end: 1px solid var(--tq-line);
-  color: var(--tq-text2); font: var(--tq-type-caption); font-weight: 700;
-  text-align: start;
-}
-.tqa .table td { border-block-start: 1px solid var(--tq-line); vertical-align: middle; }
-.tqa .table-hover tbody tr:hover { background: var(--tq-navyWash); }
-
-/* --- الشارات --- */
-.tqa .badge-success, .tqa .bg-success { background: var(--tq-tealSoft) !important; color: var(--tq-teal) !important; }
-.tqa .badge-warning, .tqa .bg-warning { background: var(--tq-amberSoft) !important; color: var(--tq-navy) !important; }
-.tqa .badge-danger,  .tqa .bg-danger  { background: var(--tq-dangerSoft) !important; color: var(--tq-danger) !important; }
-.tqa .badge-info,    .tqa .bg-info    { background: var(--tq-sky-fill) !important; color: var(--tq-navy) !important; }
-.tqa .badge { border-radius: var(--tq-radius-pill); font: var(--tq-type-micro); padding: 4px 10px; }
-
-/* ==========================================================================
-   الاتجاه — قواعد مقصودة لا قلب شامل
-   ========================================================================== */
-html[dir='rtl'] .tqa .float-right { float: left !important; }
-html[dir='rtl'] .tqa .float-left  { float: right !important; }
-html[dir='rtl'] .tqa .text-right  { text-align: left !important; }
-html[dir='rtl'] .tqa .text-left   { text-align: right !important; }
-html[dir='rtl'] .tqa .ml-1,.tqa .ml-2,.tqa .ml-3 { margin-left: 0 !important; }
-html[dir='rtl'] .tqa .ml-1 { margin-right: .25rem !important; }
-html[dir='rtl'] .tqa .ml-2 { margin-right: .5rem !important; }
-html[dir='rtl'] .tqa .ml-3 { margin-right: 1rem !important; }
-html[dir='rtl'] .tqa .mr-1,.tqa .mr-2,.tqa .mr-3 { margin-right: 0 !important; }
-html[dir='rtl'] .tqa .mr-1 { margin-left: .25rem !important; }
-html[dir='rtl'] .tqa .mr-2 { margin-left: .5rem !important; }
-html[dir='rtl'] .tqa .mr-3 { margin-left: 1rem !important; }
-
-/* القائمة إلى اليمين والمحتوى إلى اليسار */
-html[dir='rtl'] .tqa .left-side-menu-detached { float: right; }
-html[dir='rtl'] .tqa .content-page { margin-inline-start: 0; }
-
-/* القوائم المنسدلة والأسهم */
-html[dir='rtl'] .tqa .dropdown-menu-right { inset-inline-end: 0; inset-inline-start: auto; }
-html[dir='rtl'] .tqa .side-nav-second-level { padding-inline-start: var(--tq-space-l); padding-inline-end: 0; }
-
-/* ==========================================================================
-   وحدات تقدر الجديدة
-   ========================================================================== */
-.tqa-head {
-  display: flex; align-items: flex-end; justify-content: space-between;
-  gap: var(--tq-space-l); flex-wrap: wrap; margin-block-end: var(--tq-space-xl);
-}
-.tqa-head h1 { margin: 0; font: var(--tq-type-h1); color: var(--tq-navy); }
-.tqa-head p  { margin: var(--tq-space-xs) 0 0; color: var(--tq-text2); font: var(--tq-type-caption); }
-
-.tqa-note {
-  background: var(--tq-sky-fill); color: var(--tq-navy);
-  border-radius: var(--tq-radius-medium);
+/* ---- بطاقة رقم ---- */
+.tqa-stat {
+  display: block;
+  background: var(--tq-surface);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius);
   padding: var(--tq-space-l);
-  margin-block-end: var(--tq-space-xl);
-  font: var(--tq-type-caption);
+  text-decoration: none;
+  transition: border-color var(--tq-motion-hover) ease, transform var(--tq-motion-hover) ease;
 }
-.tqa-note strong { font-weight: 700; }
-
-.tqa-empty { text-align: center; padding: var(--tq-space-h3) var(--tq-space-xl); color: var(--tq-text2); }
-.tqa-empty h3 { color: var(--tq-navy); margin-block-end: var(--tq-space-s); }
-
-.tqa-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 10px; border-radius: var(--tq-radius-pill);
-  background: var(--tq-navyWash); color: var(--tq-navy); font: var(--tq-type-micro);
+a.tqa-stat:hover { border-color: var(--tq-navy); transform: translateY(-2px); text-decoration: none; }
+.tqa-stat__top { display: flex; align-items: center; justify-content: space-between; gap: var(--tq-space-s); }
+.tqa-stat__label { font: var(--tq-type-micro); color: var(--tq-text2); }
+.tqa-stat__value {
+  display: block;
+  margin-block-start: var(--tq-space-s);
+  font: var(--tq-type-numeralXl);
+  color: var(--tq-navy);
+  unicode-bidi: isolate;
+  direction: ltr;
 }
+.tqa-stat__hint { display: block; margin-block-start: 2px; font: var(--tq-type-micro); color: var(--tq-text3); }
+.tqa-stat__icon { display: grid; place-items: center; inline-size: 34px; block-size: 34px; border-radius: 10px; }
 
-/* --- شاشات وحدات تقدر --- */
+/* الباستيل الست: التعبئة مقترنة بحبرها ولا تفصل عنه */
+.tqa-mint  { background: var(--tq-mint-fill);  color: var(--tq-mint-ink); }
+.tqa-sky   { background: var(--tq-sky-fill);   color: var(--tq-sky-ink); }
+.tqa-peach { background: var(--tq-peach-fill); color: var(--tq-peach-ink); }
+.tqa-lilac { background: var(--tq-lilac-fill); color: var(--tq-lilac-ink); }
+.tqa-rose  { background: var(--tq-rose-fill);  color: var(--tq-rose-ink); }
+.tqa-sand  { background: var(--tq-sand-fill);  color: var(--tq-sand-ink); }
+
+/* ---- الرسالة الطائرة ---- */
 .tqa-flash {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tq-space-m);
   padding: var(--tq-space-m) var(--tq-space-l);
-  border-radius: var(--tq-radius-medium);
+  border-radius: var(--tqa-radius-sm);
   margin-block-end: var(--tq-space-l);
   font: var(--tq-type-caption);
 }
-.tqa-flash-ok { background: var(--tq-tealSoft); color: var(--tq-teal); }
-.tqa-flash-no { background: var(--tq-dangerSoft); color: var(--tq-danger); border: 1px solid var(--tq-danger); }
+.tqa-flash--ok  { background: var(--tq-mint-fill); color: var(--tq-mint-ink); }
+.tqa-flash--err { background: var(--tq-dangerSoft); color: var(--tq-rose-ink); }
 
-.tqa-dim  { color: var(--tq-text3); }
-.tqa-req  { color: var(--tq-danger); margin-inline-start: 2px; }
-.tqa-hint { display: block; color: var(--tq-text3); font: var(--tq-type-micro); margin-block-start: 4px; }
-.tqa-warn { display: block; color: var(--tq-danger); font: var(--tq-type-micro); margin-block-start: 4px; }
-.tqa-count { color: var(--tq-text3); font: var(--tq-type-micro); margin-block: var(--tq-space-l) 0; }
+.tqa-flash.is-out { opacity: 0; transform: translateY(-6px); transition: opacity .3s ease, transform .3s ease; }
 
-.tqa-field   { margin-block-end: var(--tq-space-l); }
-.tqa-actions { display: flex; gap: var(--tq-space-s); margin-block-start: var(--tq-space-l); }
-
-.tqa-switch { display: flex; align-items: center; gap: var(--tq-space-s); min-block-size: 42px; }
-.tqa-switch input { inline-size: 20px; block-size: 20px; }
-.tqa-switch label { margin: 0; }
-
-.tqa-money { position: relative; }
-.tqa-money-unit {
-  position: absolute; inset-inline-end: 12px; inset-block-start: 50%;
-  transform: translateY(-50%); color: var(--tq-text3); font: var(--tq-type-micro);
+/* ---- الرسائل الطائرة ----
+   محرك واحد يخدم `TQA.toast()` وجسر `$.NotificationApp` معا، فالشاشة
+   الموروثة والجديدة تخرجان بالصندوق نفسه. ويثبت في أعلى الصفحة على
+   الطرف الابتدائي — أي يمين الشاشة في العربية، حيث ينتهي نظر القارئ. */
+.tqa-toasts {
+  position: fixed;
+  inset-block-start: var(--tq-space-l);
+  inset-inline-end: var(--tq-space-l);
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tq-space-s);
+  inline-size: min(380px, calc(100vw - 2 * var(--tq-space-l)));
   pointer-events: none;
 }
-.tqa-money input { padding-inline-end: 44px; }
 
-/* البطاقة المعطلة: تقرأ قبل غيرها لأنها تقول أين تقف المنصة */
-.tqa-block {
-  background: var(--tq-dangerSoft);
-  border: 1px solid var(--tq-danger);
-  border-radius: var(--tq-radius-card);
-  padding: var(--tq-space-xl);
-  margin-block-end: var(--tq-space-xl);
+.tqa-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tq-space-m);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-surface);
+  border: 1px solid var(--tq-line);
+  border-inline-start: 3px solid var(--tq-text3);
+  box-shadow: var(--tq-shadow-card);
+  font: var(--tq-type-caption);
+  color: var(--tq-text);
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity var(--tq-motion-hover) ease, transform var(--tq-motion-hover) var(--tq-ease-enter);
 }
-.tqa-block h3 { color: var(--tq-navy); margin-block-end: var(--tq-space-s); }
-.tqa-block p  { color: var(--tq-text2); margin-block-end: var(--tq-space-l); }
+.tqa-toast.is-in  { opacity: 1; transform: none; }
+.tqa-toast.is-out { opacity: 0; transform: translateY(-10px); }
 
-.tqa-stat {
-  display: block; background: var(--tq-surface);
-  border-radius: var(--tq-radius-card); box-shadow: var(--tq-shadow-soft);
-  padding: var(--tq-space-l); margin-block-end: var(--tq-space-l);
-  text-decoration: none; transition: transform var(--tq-motion-hover) ease;
+.tqa-toast__icon { display: grid; place-items: center; inline-size: 26px; block-size: 26px; border-radius: 8px; flex: none; }
+.tqa-toast__body { flex: 1; min-inline-size: 0; }
+.tqa-toast__body b { display: block; color: var(--tq-navy); font: var(--tq-type-bodyStrong); font-family: var(--tq-font-title); }
+.tqa-toast__body span { display: block; overflow-wrap: anywhere; }
+.tqa-toast__x {
+  flex: none; border: 0; background: transparent; cursor: pointer;
+  color: var(--tq-text3); padding: 2px; border-radius: 6px; line-height: 0;
 }
-.tqa-stat:hover { transform: translateY(-2px); text-decoration: none; }
-.tqa-stat-label { display: block; color: var(--tq-text2); font: var(--tq-type-caption); }
-.tqa-stat-num {
-  display: block; font-family: var(--tq-font-num); font-size: 2rem;
-  font-weight: 700; color: var(--tq-navy); margin-block-start: 4px;
+.tqa-toast__x:hover { background: var(--tq-navyWash); color: var(--tq-navy); }
+
+.tqa-toast--ok   { border-inline-start-color: var(--tq-actionMastery); }
+.tqa-toast--ok   .tqa-toast__icon { background: var(--tq-mint-fill);   color: var(--tq-mint-ink); }
+.tqa-toast--err  { border-inline-start-color: var(--tq-actionDanger); }
+.tqa-toast--err  .tqa-toast__icon { background: var(--tq-dangerSoft);  color: var(--tq-rose-ink); }
+.tqa-toast--warn { border-inline-start-color: var(--tq-amber); }
+.tqa-toast--warn .tqa-toast__icon { background: var(--tq-peach-fill);  color: var(--tq-peach-ink); }
+.tqa-toast--info { border-inline-start-color: var(--tq-navy); }
+.tqa-toast--info .tqa-toast__icon { background: var(--tq-sky-fill);    color: var(--tq-sky-ink); }
+
+@media (max-width: 639.98px) {
+  .tqa-toasts { inset-inline: var(--tq-space-m); inline-size: auto; }
 }
 
-.tqa-bar {
-  block-size: 10px; background: var(--tq-navyWash);
-  border-radius: var(--tq-radius-pill); overflow: hidden; margin-block: var(--tq-space-l) var(--tq-space-s);
+/* ---- نافذة التأكيد ----
+   لا تبنى على `.modal` من Bootstrap: تلك تحتاج jQuery ومحرك القالب،
+   وهي التي كانت تخرج بمظهر Hyper. هذه عنصران وطبقة، وتعمل بلا أي مكتبة. */
+.tqa-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: grid;
+  place-items: center;
+  padding: var(--tq-space-l);
 }
-.tqa-bar-fill { block-size: 100%; background: var(--tq-actionMastery); border-radius: var(--tq-radius-pill); }
-.tqa-bar-cap  { color: var(--tq-text2); font: var(--tq-type-caption); }
-
-.tqa-objlist { display: flex; flex-wrap: wrap; gap: var(--tq-space-s); }
-
-/* --- شاشة الاشتراكات --- */
-.tqa-activate { display: flex; gap: 6px; align-items: center; }
-.tqa-activate input { min-block-size: 32px; font-size: .82rem; inline-size: 110px; }
-
-/* --- شاشة البريد --- */
-.tqa-debug {
-  background: var(--tq-navyWash); color: var(--tq-navy);
-  border-radius: var(--tq-radius-small); padding: var(--tq-space-m);
-  font: var(--tq-type-micro); font-family: var(--tq-font-num);
-  max-block-size: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+.tqa-modal[hidden] { display: none; }
+.tqa-modal__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(1, 33, 31, .5);
+  animation: tqa-fade var(--tq-motion-hover) var(--tq-ease-enter);
 }
-.tqa-deps { list-style: none; padding: 0; margin: 0 0 var(--tq-space-l); }
-.tqa-deps li {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: var(--tq-space-s); padding-block: var(--tq-space-xs);
-  border-block-end: 1px solid var(--tq-line); font: var(--tq-type-caption);
+.tqa-modal__box {
+  position: relative;
+  inline-size: min(420px, 100%);
+  background: var(--tq-surface);
+  border-radius: var(--tqa-radius);
+  box-shadow: var(--tq-shadow-card);
+  padding: var(--tq-space-xxl);
+  text-align: center;
+  animation: tqa-pop var(--tq-motion-route) var(--tq-ease-enter);
 }
-.tqa-deps li:last-child { border-block-end: 0; }
-
-/* ══════════════════════════════════════════════════════════════════
-   TQ-VENDOR-INK · حبر القالب الدلالي يتبع الهوية
-   القيم مختارة لتجتاز 4.5:1 على `--tq-surface` في الوجهين، لا لتشبه
-   ألوان القالب. و`!important` لازم لأن أوراق القالب تحمل بعدها في
-   بعض الشاشات.
-   ══════════════════════════════════════════════════════════════════ */
-.tqa .text-muted,
-.tqa .text-secondary        { color: var(--tq-text3) !important; }
-.tqa .text-success,
-.tqa .mdi-trending-up       { color: var(--tq-teal) !important; }
-.tqa .text-warning,
-.tqa .mdi-trending-down     { color: var(--tq-peach-ink) !important; }
-.tqa .text-danger           { color: var(--tq-danger) !important; }
-.tqa .text-info             { color: var(--tq-sky-ink) !important; }
-.tqa .text-primary          { color: var(--tq-navy) !important; }
-.tqa .text-dark             { color: var(--tq-text) !important; }
-/* الشارة الصفراء كان حبرها `--tq-navy`، وهو حبر فاتح في الوجه الداكن
-   على تعبئة داكنة — فيصير أفتح على أفتح. وحبر الخوخ يتبع تعبئته. */
-.tqa .badge-warning, .tqa .bg-warning { color: var(--tq-peach-ink) !important; }
-.tqa .badge-info,    .tqa .bg-info    { color: var(--tq-sky-ink) !important; }
-
-/* ══════════════════════════════════════════════════════════════════
-   TQ-RTL-ARROW · سهم القائمة إلى الطرف البعيد عن النص
-   ══════════════════════════════════════════════════════════════════ */
-/* الخاصية المنطقية تترجم في RTL إلى ضد المقصود: `inset-inline-start`
-   هو **اليمين** حيث النص. فالصريح هنا أوضح من المنطقي وأقل خطأ. */
-html[dir='rtl'] .tqa .side-nav .menu-arrow,
-html[dir='rtl'] .tqa .menu-arrow {
-  right: auto !important; left: 18px !important;
-  inline-size: 10px; block-size: 10px; transform: none;
+.tqa-modal__icon {
   display: grid; place-items: center;
-}
-/* المثلث من حدين: يرث `currentColor`، ولا يعتمد على خط ولا محرف. */
-html[dir='rtl'] .tqa .menu-arrow::before {
-  content: ''; inline-size: 6px; block-size: 6px;
-  border-inline-start: 1.6px solid currentColor;
-  border-block-end: 1.6px solid currentColor;
-  transform: rotate(45deg); transform-origin: center;
-  transition: transform var(--tq-motion-hover) ease;
-}
-/* مفتوح: يشير إلى أسفل */
-html[dir='rtl'] .tqa .side-nav .side-nav-item.active > a .menu-arrow::before,
-html[dir='rtl'] .tqa .side-nav li.active > a .menu-arrow::before,
-html[dir='rtl'] .tqa .side-nav a[aria-expanded='true'] .menu-arrow::before {
-  transform: rotate(-45deg);
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   TQ-VENDOR-CHROME · أطقم القالب: روابط · أزرار · ترقيم · شارات · جداول
-   الاستثناءات في محدد الروابط مقصودة: السكة والشريط العلوي لهما
-   حبرهما على سطح داكن، وتعميم لون الرابط عليهما يعميهما.
-   ══════════════════════════════════════════════════════════════════ */
-.tqa a:not(.btn):not(.side-nav-link):not(.nav-link):not(.dropdown-item):not(.page-link) {
+  inline-size: 52px; block-size: 52px;
+  margin: 0 auto var(--tq-space-m);
+  border-radius: 50%;
+  background: var(--tq-navyWash);
   color: var(--tq-navy);
 }
-.tqa .breadcrumb a, .tqa .breadcrumb-item a { color: var(--tq-text2); }
-.tqa .breadcrumb-item.active, .tqa .breadcrumb-item + .breadcrumb-item::before { color: var(--tq-text3); }
+.tqa-modal__icon--danger { background: var(--tq-dangerSoft); color: var(--tq-danger); }
+.tqa-modal__icon--warn   { background: var(--tq-peach-fill); color: var(--tq-peach-ink); }
+.tqa-modal__title { margin: 0 0 var(--tq-space-s); font: var(--tq-type-h2); color: var(--tq-navy); }
+.tqa-modal__body  { margin: 0; font: var(--tq-type-caption); color: var(--tq-text2); }
+.tqa-modal__body[hidden] { display: none; }
+.tqa-modal__acts {
+  display: flex; gap: var(--tq-space-s);
+  margin-block-start: var(--tq-space-xl);
+}
+.tqa-modal__acts .tqa-btn { flex: 1; }
 
-/* أدوات الجداول — كانت `#212529` على سطح داكن: 1.07:1 */
-.tqa .dataTables_info, .tqa .dataTables_length, .tqa .dataTables_filter,
-.tqa .dataTables_length label, .tqa .dataTables_filter label,
-.tqa .dataTables_paginate, .tqa .dataTables_wrapper .dataTables_processing {
-  color: var(--tq-text2) !important;
+/* الصفحة خلف النافذة لا تمرر: التمرير تحت طبقة معتمة يقرأ عطلا. */
+.tqa-modal-open, .tqa-modal-open body { overflow: hidden; }
+
+@keyframes tqa-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tqa-pop  { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+
+/* الزر المشغول: ضغطة ثانية لا تكتب صفا ثانيا */
+.tqa-btn.is-busy, body.tqa .btn.is-busy { opacity: .6; cursor: progress; }
+
+/* ---- الشارة ---- */
+.tqa-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font: var(--tq-type-micro);
+  white-space: nowrap;
+}
+.tqa-badge--ok      { background: var(--tq-mint-fill);  color: var(--tq-mint-ink); }
+.tqa-badge--warn    { background: var(--tq-peach-fill); color: var(--tq-peach-ink); }
+.tqa-badge--danger  { background: var(--tq-dangerSoft); color: var(--tq-rose-ink); }
+.tqa-badge--muted   { background: var(--tq-ground);     color: var(--tq-text2); }
+.tqa-badge--info    { background: var(--tq-sky-fill);   color: var(--tq-sky-ink); }
+
+/* ---- الفراغ: يقول ما يفعل لا «لا بيانات» ---- */
+.tqa-empty {
+  display: grid;
+  place-items: center;
+  gap: var(--tq-space-m);
+  padding: var(--tq-space-h2) var(--tq-space-l);
+  text-align: center;
+  color: var(--tq-text2);
+}
+.tqa-empty__icon {
+  display: grid; place-items: center;
+  inline-size: 56px; block-size: 56px;
+  border-radius: 50%;
+  background: var(--tq-ground);
+  color: var(--tq-text3);
+}
+.tqa-empty h3 { margin: 0; font: var(--tq-type-h2); color: var(--tq-navy); }
+.tqa-empty p { margin: 0; max-inline-size: 46ch; font: var(--tq-type-caption); }
+
+/* ---- الجدول ---- */
+.tqa-table { inline-size: 100%; border-collapse: collapse; }
+.tqa-table th {
+  padding: var(--tq-space-m) var(--tq-space-l);
+  text-align: start;
+  font: var(--tq-type-micro);
+  color: var(--tq-text2);
+  background: var(--tq-ground);
+  border-block-end: 1px solid var(--tq-line);
+  white-space: nowrap;
+}
+.tqa-table td {
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border-block-end: 1px solid var(--tq-line);
+  font: var(--tq-type-caption);
+  color: var(--tq-text);
+  vertical-align: middle;
+}
+.tqa-table tbody tr:last-child td { border-block-end: 0; }
+.tqa-table tbody tr { transition: background-color var(--tq-motion-hover) ease; }
+.tqa-table tbody tr:hover { background: var(--tq-navyWash); }
+.tqa-table__wrap { overflow-x: auto; }
+
+/* دون 640 يصير الجدول بطاقات — لا تمرير أفقي على جوال */
+@media (max-width: 639.98px) {
+  .tqa-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .tqa-table tr {
+    display: block;
+    background: var(--tq-surface);
+    border: 1px solid var(--tq-line);
+    border-radius: var(--tqa-radius-sm);
+    padding: var(--tq-space-m);
+    margin-block-end: var(--tq-space-m);
+  }
+  .tqa-table td { display: flex; justify-content: space-between; gap: var(--tq-space-m); border: 0; padding: var(--tq-space-xs) 0; }
+  .tqa-table td::before { content: attr(data-label); color: var(--tq-text2); font: var(--tq-type-micro); }
 }
 
-/* الأزرار الأساسية */
-.tqa .btn-primary {
-  background: var(--tq-actionPrimary); border-color: var(--tq-actionPrimary); color: var(--tq-onAction);
+/* ---- الأزرار (المحرك الجديد) ----
+   القاعدة تحمل مظهر الزر الثانوي لا الشفاف: `class="tqa-btn"` وحدها
+   مكتوبة في شاشات الاعتماد والرفض، وكانت تخرج بلا خلفية ولا حد فتقرأ
+   نصا لا زرا. والصفات الأربع تعرف بعدها فتغلبها. */
+.tqa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tq-space-s);
+  min-block-size: var(--tqa-field-h);
+  padding: 0 var(--tq-space-l);
+  background: var(--tq-surface);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  color: var(--tq-navy);
+  font: var(--tq-type-caption);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--tq-motion-hover) ease,
+              border-color var(--tq-motion-hover) ease,
+              color var(--tq-motion-hover) ease,
+              transform var(--tq-motion-hover) ease;
 }
-.tqa .btn-primary:hover, .tqa .btn-primary:focus, .tqa .btn-primary:active {
-  background: var(--tq-navySoft); border-color: var(--tq-navySoft); color: var(--tq-onAction);
-}
-.tqa .btn-outline-primary { color: var(--tq-navy); border-color: var(--tq-navy); background: transparent; }
-.tqa .btn-outline-primary:hover, .tqa .btn-outline-primary:focus {
-  background: var(--tq-actionPrimary); border-color: var(--tq-actionPrimary); color: var(--tq-onAction);
-}
-.tqa .btn-secondary, .tqa .btn-light {
-  background: var(--tq-navyWash); border-color: var(--tq-line); color: var(--tq-text);
-}
-.tqa .btn-secondary:hover, .tqa .btn-light:hover { background: var(--tq-navyWashStrong); color: var(--tq-text); }
+.tqa-btn:hover { background: var(--tq-navyWash); border-color: var(--tq-navy); color: var(--tq-navy); text-decoration: none; }
+.tqa-btn--primary { background: var(--tq-actionPrimary); color: var(--tq-onAction); }
+.tqa-btn--primary:hover { background: var(--tq-navyDeep); color: var(--tq-onAction); }
+.tqa-btn--mastery { background: var(--tq-actionMastery); color: var(--tq-onAction); }
+.tqa-btn--mastery:hover { background: var(--tq-navySoft); color: var(--tq-onAction); }
+.tqa-btn--danger  { background: var(--tq-actionDanger); color: var(--tq-onAction); }
+.tqa-btn--danger:hover { background: #a5311f; color: var(--tq-onAction); }
+.tqa-btn--ghost   { background: var(--tq-surface); border-color: var(--tq-line); color: var(--tq-navy); }
+.tqa-btn--ghost:hover { background: var(--tq-navyWash); border-color: var(--tq-navy); color: var(--tq-navy); }
+.tqa-btn--sm { min-block-size: 34px; padding: 0 var(--tq-space-m); font: var(--tq-type-micro); }
+.tqa-btn--block { display: flex; inline-size: 100%; }
+.tqa-btn[disabled], .tqa-btn.is-disabled { opacity: .55; pointer-events: none; }
 
-/* الترقيم */
-.tqa .page-link { color: var(--tq-navy); background: var(--tq-surface); border-color: var(--tq-line); }
-.tqa .page-link:hover { background: var(--tq-navyWash); color: var(--tq-navy); }
-.tqa .page-item.active .page-link {
-  background: var(--tq-actionPrimary); border-color: var(--tq-actionPrimary); color: var(--tq-onAction);
-}
-.tqa .page-item.disabled .page-link { color: var(--tq-text3); background: var(--tq-surface); }
+/* الضغط يهبط بالزر قليلا: أثر لمسي يؤكد أن الضغطة سجلت — وغيابه يجعل
+   من ضغط ولم ير تغيرا يضغط ثانية. */
+.tqa-btn:active { transform: translateY(1px); }
+.tqa-btn--primary { border-color: var(--tq-actionPrimary); }
+.tqa-btn--mastery { border-color: var(--tq-actionMastery); }
+.tqa-btn--danger  { border-color: var(--tq-actionDanger); }
+.tqa-btn svg { flex: none; }
 
-/* الشارات المخففة — كل تعبئة مع حبرها، لا أبيض مفروض */
-.tqa .badge-danger-lighten   { background: var(--tq-dangerSoft) !important; color: var(--tq-danger) !important; }
-.tqa .badge-success-lighten  { background: var(--tq-mint-fill) !important;  color: var(--tq-mint-ink) !important; }
-.tqa .badge-warning-lighten  { background: var(--tq-peach-fill) !important; color: var(--tq-peach-ink) !important; }
-.tqa .badge-info-lighten     { background: var(--tq-sky-fill) !important;   color: var(--tq-sky-ink) !important; }
-.tqa .badge-primary-lighten  { background: var(--tq-navyWash) !important;   color: var(--tq-navy) !important; }
-.tqa .badge-secondary-lighten{ background: var(--tq-sand-fill) !important;  color: var(--tq-sand-ink) !important; }
+/* ---- الحقول (المحرك الجديد) ---- */
+.tqa-field { display: block; margin-block-end: var(--tq-space-l); }
+.tqa-field__label { display: block; margin-block-end: var(--tq-space-xs); font: var(--tq-type-caption); font-weight: 700; color: var(--tq-navy); }
+.tqa-field__hint  { display: block; margin-block-start: var(--tq-space-xs); font: var(--tq-type-micro); color: var(--tq-text2); }
+.tqa-field__req   { color: var(--tq-danger); }
 
-/* ══════════════════════════════════════════════════════════════════
-   TQ-VENDOR-TABLE · أسطح الجداول تتبع الوجه لا الأبيض المفترض
-   ══════════════════════════════════════════════════════════════════ */
-.tqa .table, .tqa table.dataTable { color: var(--tq-text); border-color: var(--tq-line); }
-.tqa .table thead th, .tqa table.dataTable thead th, .tqa table.dataTable thead td {
-  background: transparent !important; color: var(--tq-text2) !important;
-  border-color: var(--tq-line) !important;
+.tqa-input, .tqa-select, .tqa-textarea {
+  inline-size: 100%;
+  min-block-size: var(--tqa-field-h);
+  padding: var(--tq-space-s) var(--tq-space-m);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-surface);
+  color: var(--tq-text);
+  font: var(--tq-type-body);
+  font-family: var(--tq-font-body);
+  transition: border-color var(--tq-motion-hover) ease, box-shadow var(--tq-motion-hover) ease;
 }
-.tqa .table tbody tr, .tqa table.dataTable tbody tr,
-.tqa table.dataTable tbody tr.odd { background: var(--tq-surface) !important; }
-.tqa table.dataTable tbody tr.even { background: var(--tq-navyWash) !important; }
-.tqa .table tbody td, .tqa .table tbody th,
-.tqa table.dataTable tbody td, .tqa table.dataTable tbody th {
-  background: transparent !important; color: var(--tq-text) !important;
-  border-color: var(--tq-line) !important;
+.tqa-textarea { min-block-size: 120px; resize: vertical; }
+.tqa-input:focus, .tqa-select:focus, .tqa-textarea:focus {
+  outline: 0;
+  border-color: var(--tq-navy);
+  box-shadow: 0 0 0 3px var(--tq-navyWash);
 }
-.tqa .table-hover tbody tr:hover, .tqa table.dataTable tbody tr:hover {
-  background: var(--tq-navyWashStrong) !important;
+.tqa-input--ltr { direction: ltr; text-align: start; font-family: var(--tq-font-num); }
+
+/* المفتاح: بديل مربع الاختيار حيث تكون القيمة تشغيلا لا اختيارا */
+.tqa-switch { display: inline-flex; align-items: center; gap: var(--tq-space-m); cursor: pointer; }
+.tqa-switch input { position: absolute; opacity: 0; inline-size: 1px; block-size: 1px; }
+.tqa-switch__track {
+  inline-size: 46px; block-size: 26px;
+  border-radius: 999px;
+  background: var(--tq-line);
+  position: relative;
+  flex: none;
+  transition: background-color var(--tq-motion-hover) ease;
 }
-.tqa table.dataTable tbody tr.selected { background: var(--tq-mint-fill) !important; }
-/* الحقول داخل أدوات الجدول تتبع الوجه أيضا */
-.tqa .dataTables_length select, .tqa .dataTables_filter input {
-  background: var(--tq-surface); color: var(--tq-text); border: 1px solid var(--tq-line);
+.tqa-switch__track::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 3px;
+  inline-size: 20px; block-size: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--tq-shadow-raised);
+  transition: transform var(--tq-motion-hover) var(--tq-ease-enter);
+}
+.tqa-switch input:checked + .tqa-switch__track { background: var(--tq-actionMastery); }
+.tqa-switch input:checked + .tqa-switch__track::after { transform: translateX(20px); }
+[dir='rtl'] .tqa-switch input:checked + .tqa-switch__track::after { transform: translateX(-20px); }
+.tqa-switch input:focus-visible + .tqa-switch__track { outline: 2px solid var(--tq-focusRing); outline-offset: 2px; }
+
+/* ---- شريط التقدم ---- */
+.tqa-bar { block-size: 8px; border-radius: 999px; background: var(--tq-line); overflow: hidden; }
+.tqa-bar__fill { block-size: 100%; border-radius: 999px; background: var(--tq-actionMastery); transition: inline-size var(--tq-motion-route) ease; }
+
+/* ---- ملاحظة/تحذير داخل شاشة ---- */
+.tqa-note {
+  display: flex;
+  gap: var(--tq-space-m);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-sand-fill);
+  color: var(--tq-sand-ink);
+  font: var(--tq-type-caption);
+}
+.tqa-note--warn { background: var(--tq-peach-fill); color: var(--tq-peach-ink); }
+
+/* ---- شريط أدوات/مرشحات ---- */
+.tqa-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-s);
+  flex-wrap: wrap;
+  margin-block-end: var(--tq-space-l);
+}
+.tqa-toolbar > form { display: flex; align-items: center; gap: var(--tq-space-s); flex-wrap: wrap; margin: 0; }
+.tqa-toolbar .tqa-input, .tqa-toolbar .tqa-select { inline-size: auto; min-inline-size: 180px; }
+
+/* ---- التبويبات ---- */
+.tqa-tabs { display: flex; gap: var(--tq-space-xs); flex-wrap: wrap; margin-block-end: var(--tq-space-l); border-block-end: 1px solid var(--tq-line); }
+.tqa-tabs a {
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border-block-end: 2px solid transparent;
+  color: var(--tq-text2);
+  font: var(--tq-type-caption);
+  font-weight: 600;
+  text-decoration: none;
+  margin-block-end: -1px;
+}
+.tqa-tabs a:hover { color: var(--tq-navy); text-decoration: none; }
+.tqa-tabs a[aria-current='page'] { color: var(--tq-navy); border-block-end-color: var(--tq-actionPrimary); font-weight: 700; }
+
+/* شريط تبويبات طويل — «إعدادات الموقع» فيه أحد عشر تبويبا. يمرر أفقيا
+   داخل نفسه بدل أن يلتف سطرين ونصفا فيدفع المحتوى تحت الطية. */
+.tqa-tabs--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+.tqa-tabs--scroll a { white-space: nowrap; flex: none; }
+.tqa-tabs--scroll::-webkit-scrollbar { block-size: 4px; }
+.tqa-tabs--scroll::-webkit-scrollbar-thumb { background: var(--tq-line); border-radius: 999px; }
+
+/* ---- شبكة النموذج ----
+   حقلان في السطر على الشاشة الواسعة، وواحد على الضيقة. و`--full` تمد
+   الحقل على العرض كله (المحرر والوصف الطويل). */
+.tqa-fieldgrid {
+  display: grid;
+  gap: 0 var(--tq-space-l);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.tqa-fieldgrid--1 { grid-template-columns: minmax(0, 1fr); }
+.tqa-fieldgrid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tqa-field--full { grid-column: 1 / -1; }
+@media (max-width: 767.98px) {
+  .tqa-fieldgrid, .tqa-fieldgrid--3 { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   TQ-ADMIN-POLISH · زينة القالب وحشو القائمة
-   ══════════════════════════════════════════════════════════════════ */
-/* موجة القالب الزرقاء تستبدل بتدرج من الهوية — بلا تحميل صورة */
-.tqa .leftbar-user {
-  background-image: linear-gradient(160deg, var(--tq-mint-fill), var(--tq-surface)) !important;
+/* ---- صف تفضيل: عنوان وشرح على طرف، وأداة على الطرف الآخر ----
+   شكل الإعدادات كلها. وهو الشكل نفسه الذي تبنى به شاشات الإعدادات في
+   البوابات (`tq-prefrow`) — الاسم وحده يختلف. */
+.tqa-prefrow {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-l);
+  padding: var(--tq-space-l) 0;
   border-block-end: 1px solid var(--tq-line);
 }
-.tqa .leftbar-user .leftbar-user-name { color: var(--tq-text); font-weight: 700; }
+.tqa-prefrow:last-child { border-block-end: 0; padding-block-end: 0; }
+.tqa-prefrow:first-child { padding-block-start: 0; }
+.tqa-prefrow__main { flex: 1; min-inline-size: 0; }
+.tqa-prefrow__title { display: block; font: var(--tq-type-caption); font-weight: 700; color: var(--tq-navy); }
+.tqa-prefrow__hint { display: block; margin-block-start: 2px; font: var(--tq-type-micro); color: var(--tq-text2); }
+.tqa-prefrow__end { flex: none; display: flex; align-items: center; gap: var(--tq-space-s); }
+@media (max-width: 639.98px) {
+  .tqa-prefrow { flex-direction: column; align-items: stretch; }
+  .tqa-prefrow__end { justify-content: flex-start; }
+}
 
-/* البنود تتسق مع عنوان القسم فوقها بدل أن تدفع إلى الداخل */
-.tqa .side-nav .side-nav-link,
-.tqa .side-nav .side-nav-second-level a { padding-inline: 14px; gap: 10px; }
-.tqa .side-nav .side-nav-title { padding-inline: 14px; }
-.tqa .left-side-menu { padding-inline: 8px; }
-/* الأيقونة بعرض ثابت فتتراص الكلمات على خط واحد */
-.tqa .side-nav .side-nav-link > i { inline-size: 20px; text-align: center; flex: none; }
-/* المستوى الثاني يزاح قليلا فيقرأ تابعا */
-html[dir='rtl'] .tqa .side-nav .side-nav-second-level a { padding-inline-start: 34px; }
+/* ---- الوسائط داخل خلية: صورة وعنوان وسطر تحته ---- */
+.tqa-media { display: flex; align-items: center; gap: var(--tq-space-m); min-inline-size: 0; }
+.tqa-media__body { min-inline-size: 0; }
+.tqa-media__title { display: block; font: var(--tq-type-caption); font-weight: 700; color: var(--tq-navy); }
+.tqa-media__sub { display: block; margin-block-start: 2px; font: var(--tq-type-micro); color: var(--tq-text2); }
 
-/* تنبيه عطب يستدعي فعلا — يميز عن الملاحظة الخبرية بلون حافته */
-.tqa-note--warn{border-inline-start:4px solid #B4761E;background:#FDF6EC}
+/* الصورة المصغرة: الحجم مثبت هنا لا في السطر، ونسبة الأبعاد محفوظة —
+   وصورة ناقصة تعرض أرضية لا أيقونة مكسورة (انظر `.tqa-thumb--none`). */
+.tqa-thumb {
+  inline-size: 56px;
+  block-size: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--tq-ground);
+  flex: none;
+}
+.tqa-avatar {
+  inline-size: 38px;
+  block-size: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--tq-ground);
+  flex: none;
+}
+.tqa-avatar--sm { inline-size: 30px; block-size: 30px; }
+
+/* بديل الصورة الغائبة: حرف أول على أرضية باستيل. أهون من أيقونة
+   المتصفح المكسورة ومن نص `alt` معلقا في منتصف بطاقة. */
+.tqa-thumb--none, .tqa-avatar--none {
+  display: grid;
+  place-items: center;
+  background: var(--tq-mint-fill);
+  color: var(--tq-mint-ink);
+  font: var(--tq-type-micro);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ---- أدوات داخل خلية جدول ---- */
+.tqa-rowacts { display: flex; align-items: center; gap: var(--tq-space-xs); flex-wrap: wrap; }
+.tqa-rowacts form { margin: 0; }
+
+/* ---- الترقيم ---- */
+.tqa-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tq-space-xs);
+  flex-wrap: wrap;
+  padding: var(--tq-space-l) var(--tq-space-xl);
+  border-block-start: 1px solid var(--tq-line);
+}
+/* الحبة: رقم صفحة أو سهم. و`:not(.tqa-pager__info)` ليست تجميلا —
+   بدونها يرث سطر «المعروض ٢ من ٢ رسالة» صندوق الحبة نفسه
+   (`min-inline-size: 38px` وشبكة مركزة)، فينضغط في عمود بعرض ٣٨ بكسل
+   وتنكسر كلماته أربعة أسطر رأسية تحت الترقيم. */
+.tqa-pager > a,
+.tqa-pager > span:not(.tqa-pager__info) {
+  display: grid;
+  place-items: center;
+  min-inline-size: 38px;
+  block-size: 38px;
+  padding-inline: var(--tq-space-s);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  color: var(--tq-text2);
+  font: var(--tq-type-numeralSm);
+  text-decoration: none;
+}
+.tqa-pager > a:hover { background: var(--tq-navyWash); color: var(--tq-navy); text-decoration: none; }
+.tqa-pager [aria-current='page'] {
+  background: var(--tq-actionPrimary);
+  border-color: var(--tq-actionPrimary);
+  color: var(--tq-onAction);
+}
+.tqa-pager__gap { border-color: transparent; }
+.tqa-pager__info {
+  margin-inline-end: auto;
+  border: 0;
+  font: var(--tq-type-caption);
+  color: var(--tq-text2);
+  white-space: nowrap;
+}
+
+/* ---- حقل الملف ----
+   `<input type=file>` الأصلي يخرج بزر النظام وخطه، ونصه بالإنجليزية
+   دائما مهما كانت لغة الصفحة. فيخفى ويلبس الملصق لباس الحقل. */
+.tqa-file { display: flex; align-items: center; gap: var(--tq-space-m); flex-wrap: wrap; }
+.tqa-file input[type='file'] {
+  position: absolute;
+  inline-size: 1px; block-size: 1px;
+  overflow: hidden; clip-path: inset(50%);
+}
+.tqa-file__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tq-space-s);
+  min-block-size: var(--tqa-field-h);
+  padding: 0 var(--tq-space-l);
+  border: 1px dashed var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-surface);
+  color: var(--tq-navy);
+  font: var(--tq-type-caption);
+  font-weight: 700;
+  cursor: pointer;
+}
+.tqa-file__btn:hover { background: var(--tq-navyWash); border-color: var(--tq-navy); }
+.tqa-file input[type='file']:focus-visible + .tqa-file__btn { outline: 2px solid var(--tq-focusRing); outline-offset: 2px; }
+.tqa-file__name { font: var(--tq-type-micro); color: var(--tq-text2); min-inline-size: 0; overflow-wrap: anywhere; }
+.tqa-file__preview { inline-size: 64px; block-size: 44px; border-radius: 8px; object-fit: contain; background: var(--tq-ground); flex: none; }
+
+/* ---- حقل الوسوم ----
+   كلمات SEO ونحوها. كان `bootstrap-tagsinput` من CDN يرسمها حبات حمراء
+   بحرف «x» — لون خطر لقيمة عادية. هذه تبنى بلا مكتبة. */
+.tqa-tags {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-xs);
+  flex-wrap: wrap;
+  min-block-size: var(--tqa-field-h);
+  padding: var(--tq-space-xs) var(--tq-space-s);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-surface);
+}
+.tqa-tags:focus-within { border-color: var(--tq-navy); box-shadow: 0 0 0 3px var(--tq-navyWash); }
+.tqa-tags__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tq-space-xs);
+  padding: 3px 6px 3px 10px;
+  border-radius: 999px;
+  background: var(--tq-mint-fill);
+  color: var(--tq-mint-ink);
+  font: var(--tq-type-micro);
+}
+.tqa-tags__x {
+  display: grid; place-items: center;
+  inline-size: 18px; block-size: 18px;
+  border: 0; border-radius: 50%;
+  background: rgba(10, 97, 87, .12);
+  color: inherit; cursor: pointer; line-height: 0; padding: 0;
+}
+.tqa-tags__x:hover { background: var(--tq-mint-ink); color: #fff; }
+.tqa-tags__in {
+  flex: 1;
+  min-inline-size: 120px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: var(--tq-type-caption);
+  color: var(--tq-text);
+  padding: var(--tq-space-xs);
+}
+
+/* ---- مربع اختيار في سطر ---- */
+.tqa-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tq-space-s);
+  font: var(--tq-type-caption);
+  color: var(--tq-text);
+  cursor: pointer;
+  padding-block: var(--tq-space-xs);
+}
+.tqa-check input { inline-size: 18px; block-size: 18px; margin: 1px 0 0; accent-color: var(--tq-actionPrimary); flex: none; }
+.tqa-checkrow { display: flex; gap: var(--tq-space-l); flex-wrap: wrap; }
+
+/* ---- بطاقة عنصر في شبكة (الأقسام) ---- */
+.tqa-item {
+  display: flex;
+  flex-direction: column;
+  background: var(--tq-surface);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius);
+  overflow: hidden;
+}
+.tqa-item__head { display: flex; align-items: center; gap: var(--tq-space-m); padding: var(--tq-space-l); }
+.tqa-item__title { margin: 0; font: var(--tq-type-h2); color: var(--tq-navy); min-inline-size: 0; }
+.tqa-item__sub { display: block; margin-block-start: 2px; font: var(--tq-type-micro); color: var(--tq-text2); }
+.tqa-item__list { list-style: none; margin: 0; padding: 0; border-block-start: 1px solid var(--tq-line); flex: 1; }
+.tqa-item__list li {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-s);
+  padding: var(--tq-space-s) var(--tq-space-l);
+  border-block-end: 1px solid var(--tq-line);
+  font: var(--tq-type-caption);
+}
+.tqa-item__list li:last-child { border-block-end: 0; }
+.tqa-item__foot {
+  display: flex;
+  gap: var(--tq-space-s);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border-block-start: 1px solid var(--tq-line);
+  background: var(--tq-ground);
+}
+
+/* ---- أرضية شطرنجية لمعاينة صورة شفافة ----
+   الشعار وأيقونة التبويب غالبا بخلفية شفافة، وعلى أرضية بيضاء لا يفرق
+   الأبيض منها من الفراغ — فيرفع شعار بحواف بيضاء ولا يلاحظ حتى يظهر
+   على ترويسة الموقع الداكنة. */
+.tqa-checker {
+  display: grid;
+  place-items: center;
+  min-block-size: 110px;
+  padding: var(--tq-space-m);
+  margin-block-end: var(--tq-space-m);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  background:
+    linear-gradient(45deg,  var(--tq-ground) 25%, transparent 25%)  0    0   / 16px 16px,
+    linear-gradient(-45deg, var(--tq-ground) 25%, transparent 25%)  0    8px / 16px 16px,
+    linear-gradient(45deg,  transparent 75%, var(--tq-ground) 75%)  8px -8px / 16px 16px,
+    linear-gradient(-45deg, transparent 75%, var(--tq-ground) 75%) -8px  0   / 16px 16px,
+    var(--tq-surface);
+}
+.tqa-checker img { max-inline-size: 100%; max-block-size: 90px; object-fit: contain; }
+
+/* ---- مفاتيح وقيم ---- */
+.tqa-kv { display: grid; gap: 0; margin: 0; }
+.tqa-kv > div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tq-space-l);
+  padding: var(--tq-space-m) 0;
+  border-block-end: 1px solid var(--tq-line);
+}
+.tqa-kv > div:last-child { border-block-end: 0; }
+.tqa-kv dt { flex: none; inline-size: 180px; font: var(--tq-type-caption); color: var(--tq-text2); margin: 0; }
+.tqa-kv dd { margin: 0; min-inline-size: 0; font: var(--tq-type-caption); color: var(--tq-text); overflow-wrap: anywhere; }
+@media (max-width: 639.98px) { .tqa-kv dt { inline-size: 120px; } }
+
+/* ---- المحادثة ----
+   شاشة الرسائل: قائمة محادثات على طرف، والمحادثة على الآخر. وكانت
+   مبنية على `chat-conversation`/`ctext-wrap`/`slimscroll` من قالب Hyper
+   — أصناف لا تعرف في أي ورقة تحمل هنا، فالفقاعات تخرج فقرات عارية
+   بعضها فوق بعض بلا حد ولا لون ولا محاذاة. */
+.tqa-chat { display: grid; gap: var(--tq-space-l); grid-template-columns: 280px minmax(0, 1fr); align-items: start; }
+@media (max-width: 899.98px) { .tqa-chat { grid-template-columns: minmax(0, 1fr); } }
+
+.tqa-threads { display: grid; gap: var(--tq-space-xs); max-block-size: 60vh; overflow-y: auto; }
+.tqa-thread {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-s);
+  padding: var(--tq-space-s) var(--tq-space-m);
+  border-radius: var(--tqa-radius-sm);
+  color: var(--tq-text2);
+  font: var(--tq-type-caption);
+  font-weight: 600;
+  text-decoration: none;
+}
+.tqa-thread:hover { background: var(--tq-navyWash); color: var(--tq-navy); text-decoration: none; }
+.tqa-thread[aria-current='page'] { background: var(--tq-actionPrimary); color: var(--tq-onAction); }
+.tqa-thread__name { flex: 1; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tqa-thread__count {
+  flex: none;
+  min-inline-size: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--tq-dangerSoft);
+  color: var(--tq-rose-ink);
+  font: var(--tq-type-numeralSm);
+  text-align: center;
+  unicode-bidi: isolate;
+  direction: ltr;
+}
+.tqa-thread[aria-current='page'] .tqa-thread__count { background: rgba(255,255,255,.2); color: var(--tq-onAction); }
+
+.tqa-msgs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tq-space-m);
+  max-block-size: 52vh;
+  overflow-y: auto;
+  padding: var(--tq-space-s);
+  margin: 0;
+  list-style: none;
+}
+.tqa-msg { display: flex; gap: var(--tq-space-s); align-items: flex-end; max-inline-size: 78%; }
+
+/* رسالة الطرف الآخر تبدأ من حافة البدء، ورسالتي من حافة النهاية.
+   وهو ما يميز المتكلمين قبل قراءة الاسم — والفرق منطقي لا فيزيائي،
+   فينقلب وحده في العربية. */
+.tqa-msg--me { margin-inline-start: auto; flex-direction: row-reverse; }
+.tqa-msg__body {
+  padding: var(--tq-space-s) var(--tq-space-l);
+  border-radius: var(--tqa-radius);
+  background: var(--tq-ground);
+  color: var(--tq-text);
+  font: var(--tq-type-caption);
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.tqa-msg--me .tqa-msg__body { background: var(--tq-actionPrimary); color: var(--tq-onAction); }
+.tqa-msg__who { display: block; font: var(--tq-type-micro); opacity: .8; margin-block-end: 2px; }
+.tqa-msg__at { display: block; margin-block-start: var(--tq-space-xs); font: var(--tq-type-micro); color: var(--tq-text3); }
+.tqa-msg--me .tqa-msg__at { text-align: end; }
+
+.tqa-composer { display: flex; gap: var(--tq-space-s); align-items: flex-end; }
+.tqa-composer .tqa-input, .tqa-composer .tqa-textarea { flex: 1; }
+
+/* ---- `<summary>` بمظهر زر ----
+   الكاشف يفتح ويغلق بلا سطر جافاسكربت. لكن المتصفح يرسم له مثلثا
+   افتراضيا يقف بجانب الزر فيقرأ خللا؛ وWebKit يحتاج زائفا خاصا به. */
+summary.tqa-btn,
+details.tqa-card > summary { list-style: none; cursor: pointer; }
+summary.tqa-btn::-webkit-details-marker,
+details.tqa-card > summary::-webkit-details-marker { display: none; }
+summary.tqa-btn::marker,
+details.tqa-card > summary::marker { content: ''; }
+details[open] > summary.tqa-btn { background: var(--tq-navyWash); border-color: var(--tq-navy); }
+
+/* الكاشف يقول إنه يفتح: العنوان وحده لا يعلن أن تحته شيئا. والسهم
+   يدور عند الفتح — وهو منطقي الاتجاه فينقلب مع اللغة وحده. */
+details.tqa-card > summary::after {
+  content: '';
+  flex: none;
+  inline-size: 9px;
+  block-size: 9px;
+  border-inline-end: 2px solid var(--tq-text3);
+  border-block-end: 2px solid var(--tq-text3);
+  transform: rotate(45deg);
+  margin-inline-start: var(--tq-space-s);
+  transition: transform var(--tq-motion-hover) ease;
+}
+details.tqa-card[open] > summary::after { transform: rotate(-135deg); }
+
+/* ---- مساعدات تخطيط ---- */
+.tqa-section { margin-block-end: var(--tq-space-l); }
+.tqa-stack { display: grid; gap: var(--tq-space-m); }
+.tqa-row { display: flex; align-items: center; gap: var(--tq-space-s); flex-wrap: wrap; }
+.tqa-row--between { justify-content: space-between; }
+.tqa-cols { display: grid; gap: var(--tq-space-l); grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
+@media (max-width: 991.98px) { .tqa-cols { grid-template-columns: minmax(0, 1fr); } }
+
+/* ==========================================================================
+   ٥ · طبقة التوافق: أوليات Bootstrap 4 معاد تعريفها من التوكنات نفسها.
+
+   هذه هي التي تجعل التسعين شاشة الموروثة تخرج بمظهر الشاشات الجديدة بلا
+   أن يلمس ملف واحد منها. وكلها مقيدة بـ`body.tqa` — خارجها Bootstrap
+   كما هو (المشغل والفواتير المطبوعة تحمله أحيانا).
+   ========================================================================== */
+
+/* ---- البطاقة ---- */
+body.tqa .card {
+  background: var(--tq-surface);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius);
+  box-shadow: var(--tq-shadow-soft);
+  margin-block-end: var(--tq-space-l);
+}
+body.tqa .card-body { padding: var(--tq-space-xl); }
+body.tqa .card-header {
+  background: transparent;
+  border-block-end: 1px solid var(--tq-line);
+  padding: var(--tq-space-l) var(--tq-space-xl);
+  font-family: var(--tq-font-title);
+  color: var(--tq-navy);
+}
+body.tqa .card.widget-inline .card { box-shadow: none; border: 0; }
+body.tqa .card .border-left { border-inline-start: 1px solid var(--tq-line) !important; border-left: 0 !important; }
+
+/* عنوان الصفحة القديم: `page-title` + أيقونة mdi. يعاد ضبطه ليطابق
+   `tqa-pagehead` فلا تختلف شاشة قديمة عن جديدة في أول سطر منها. */
+body.tqa .page-title {
+  margin: 0;
+  font: var(--tq-type-h1);
+  font-family: var(--tq-font-title);
+  color: var(--tq-navy);
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-m);
+}
+body.tqa .page-title .title_icon {
+  display: grid; place-items: center;
+  inline-size: 40px; block-size: 40px;
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-mint-fill);
+  color: var(--tq-mint-ink);
+  font-size: 20px;
+}
+body.tqa .header-title { font: var(--tq-type-h2); font-family: var(--tq-font-title); color: var(--tq-navy); }
+
+/* ---- الأزرار ---- */
+body.tqa .btn {
+  min-block-size: var(--tqa-field-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tq-space-s);
+  padding: 0 var(--tq-space-l);
+  border-radius: var(--tqa-radius-sm) !important;
+  border: 1px solid transparent;
+  font: var(--tq-type-caption);
+  font-weight: 700;
+  box-shadow: none;
+  transition: background-color var(--tq-motion-hover) ease, border-color var(--tq-motion-hover) ease, color var(--tq-motion-hover) ease;
+}
+body.tqa .btn:focus, body.tqa .btn.focus { box-shadow: 0 0 0 3px var(--tq-navyWash); }
+body.tqa .btn-sm { min-block-size: 34px; padding: 0 var(--tq-space-m); font: var(--tq-type-micro); font-weight: 700; }
+body.tqa .btn-lg { min-block-size: 52px; padding: 0 var(--tq-space-xl); }
+body.tqa .btn-block { display: flex; inline-size: 100%; }
+
+body.tqa .btn-primary,
+body.tqa .btn-info,
+body.tqa .btn-dark {
+  background: var(--tq-actionPrimary);
+  border-color: var(--tq-actionPrimary);
+  color: var(--tq-onAction);
+}
+body.tqa .btn-primary:hover, body.tqa .btn-info:hover, body.tqa .btn-dark:hover,
+body.tqa .btn-primary:not(:disabled):not(.disabled):active,
+body.tqa .btn-primary:focus {
+  background: var(--tq-navyDeep);
+  border-color: var(--tq-navyDeep);
+  color: var(--tq-onAction);
+}
+
+body.tqa .btn-success {
+  background: var(--tq-actionMastery);
+  border-color: var(--tq-actionMastery);
+  color: var(--tq-onAction);
+}
+body.tqa .btn-success:hover, body.tqa .btn-success:focus,
+body.tqa .btn-success:not(:disabled):not(.disabled):active {
+  background: var(--tq-navySoft); border-color: var(--tq-navySoft); color: var(--tq-onAction);
+}
+
+body.tqa .btn-danger {
+  background: var(--tq-actionDanger);
+  border-color: var(--tq-actionDanger);
+  color: var(--tq-onAction);
+}
+body.tqa .btn-danger:hover, body.tqa .btn-danger:focus { background: #a5311f; border-color: #a5311f; color: #fff; }
+
+/* البرتقالي إشارة واحدة ولا يستعمل للنجاح أبدا */
+body.tqa .btn-warning {
+  background: var(--tq-peach-fill);
+  border-color: var(--tq-amber);
+  color: var(--tq-amber);
+}
+body.tqa .btn-warning:hover { background: var(--tq-amber); border-color: var(--tq-amber); color: #fff; }
+
+body.tqa .btn-secondary, body.tqa .btn-light {
+  background: var(--tq-surface);
+  border-color: var(--tq-line);
+  color: var(--tq-navy);
+}
+body.tqa .btn-secondary:hover, body.tqa .btn-light:hover {
+  background: var(--tq-navyWash); border-color: var(--tq-navy); color: var(--tq-navy);
+}
+
+body.tqa [class*='btn-outline-'] {
+  background: transparent;
+  border-color: var(--tq-line);
+  color: var(--tq-navy);
+}
+body.tqa [class*='btn-outline-']:hover {
+  background: var(--tq-navyWash);
+  border-color: var(--tq-navy);
+  color: var(--tq-navy);
+}
+body.tqa .btn-outline-danger { color: var(--tq-danger); border-color: var(--tq-dangerSoft); }
+body.tqa .btn-outline-danger:hover { background: var(--tq-actionDanger); border-color: var(--tq-actionDanger); color: #fff; }
+
+/* أنصاف الأقطار: القالب يفرض `rounded-0` و`btn-rounded` في مئة موضع،
+   والنبرة تتغير بتغيرها — فتوحد كلها على نصف قطر المنصة. */
+body.tqa .rounded-0 { border-radius: var(--tqa-radius-sm) !important; }
+body.tqa .btn-rounded { border-radius: 999px !important; }
+
+/* الزر الأيقوني: `padding: 0 16px` من القاعدة يجعل زر النقاط الثلاث
+   مستطيلا بعرض ضعف ارتفاعه في كل جدول. */
+body.tqa .btn.btn-icon {
+  padding: 0;
+  inline-size: var(--tqa-field-h);
+  min-inline-size: var(--tqa-field-h);
+}
+body.tqa .btn-sm.btn-icon { inline-size: 34px; min-inline-size: 34px; }
+
+/* Hyper يضيف توهجا ملونا عند التمرير والضغط (`box-shadow: 0 0 0 .15rem`)
+   على كل صفة زر. وهو خارج الهوية: الظل الملون يقرأ حالة خطأ أو تركيزا،
+   وهنا هو مجرد تمرير مؤشر. */
+body.tqa .btn:hover,
+body.tqa .btn:not(:disabled):not(.disabled):active,
+body.tqa .btn:not(:disabled):not(.disabled).active,
+body.tqa .btn:active:focus,
+body.tqa .show > .btn.dropdown-toggle {
+  box-shadow: none;
+}
+body.tqa .btn:not(:disabled):not(.disabled):active { transform: translateY(1px); }
+
+/* حلقة التركيز واحدة في اللوحة كلها: كانت لكل صفة حلقتها بلونها. */
+body.tqa .btn:focus-visible { box-shadow: 0 0 0 3px var(--tq-focusRing); outline: 0; }
+body.tqa .btn:focus:not(:focus-visible) { box-shadow: none; }
+
+/* الزر المعطل يقول إنه معطل: Hyper يبقيه بلونه كاملا فيضغط ولا يحدث شيء. */
+body.tqa .btn:disabled, body.tqa .btn.disabled { opacity: .55; cursor: not-allowed; }
+
+/* القائمة المنسدلة الجانبية في صفحة عربية: `dropright` تعني «إلى اليمين»
+   حرفيا، وهو داخل الجدول لا خارجه — فتفتح القائمة تحت المحتوى وتقص. */
+[dir='rtl'] body.tqa .dropright .dropdown-menu {
+  inset-inline-start: auto;
+  inset-inline-end: 100%;
+  right: auto;
+  left: 100%;
+}
+body.tqa .dropdown-menu { min-inline-size: 190px; }
+body.tqa .dropright .dropdown-toggle::after,
+body.tqa .btn-icon.dropdown-toggle::after { display: none; }
+
+/* زر الإغلاق × في النوافذ الموروثة: كان بلا مساحة نقر ولا أثر تمرير. */
+body.tqa .modal-header .close {
+  order: 9;
+  margin-inline-start: auto;
+  margin-inline-end: 0;
+  padding: 0;
+  inline-size: 34px; block-size: 34px;
+  border-radius: var(--tqa-radius-sm);
+  background: transparent;
+  border: 0;
+  color: var(--tq-text2);
+  font-size: 22px;
+  line-height: 1;
+  opacity: 1;
+  text-shadow: none;
+  cursor: pointer;
+}
+body.tqa .modal-header .close:hover { background: var(--tq-navyWash); color: var(--tq-navy); }
+body.tqa .modal-header { align-items: center; }
+
+/* ---- الحقول ---- */
+body.tqa .form-control,
+body.tqa .custom-select,
+body.tqa .form-control:not(textarea) {
+  min-block-size: var(--tqa-field-h);
+  padding: var(--tq-space-s) var(--tq-space-m);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm) !important;
+  background-color: var(--tq-surface);
+  color: var(--tq-text);
+  font: var(--tq-type-body);
+  font-family: var(--tq-font-body);
+  box-shadow: none;
+  transition: border-color var(--tq-motion-hover) ease, box-shadow var(--tq-motion-hover) ease;
+}
+body.tqa textarea.form-control { min-block-size: 110px; }
+body.tqa .form-control:focus, body.tqa .custom-select:focus {
+  border-color: var(--tq-navy);
+  box-shadow: 0 0 0 3px var(--tq-navyWash);
+  background-color: var(--tq-surface);
+}
+body.tqa .form-control::placeholder { color: var(--tq-text3); }
+body.tqa .form-control:disabled, body.tqa .form-control[readonly] { background-color: var(--tq-ground); }
+
+/* الحقل المطلوب الفارغ يبرز مكانه: «املأ الحقول المطلوبة» بلا إشارة إلى
+   أيها تترك من في نموذج من عشرين حقلا يعدها بعينه. */
+body.tqa .form-control.is-invalid,
+body.tqa select.is-invalid,
+body.tqa textarea.is-invalid {
+  border-color: var(--tq-danger);
+  box-shadow: 0 0 0 3px var(--tq-dangerSoft);
+}
+
+/* المنتقي المتعدد يظهر أسطره: `min-block-size` من قاعدة `.form-control`
+   كانت تسويه بحقل نص فيقرأ سطرا واحدا وفيه عشرة خيارات. */
+body.tqa select[multiple] {
+  min-block-size: 0;
+  block-size: auto;
+  padding: var(--tq-space-xs);
+}
+body.tqa select[multiple] option { padding: 6px 10px; border-radius: 8px; }
+body.tqa select[multiple] option:checked {
+  background: var(--tq-mint-fill) linear-gradient(0deg, var(--tq-mint-fill) 0%, var(--tq-mint-fill) 100%);
+  color: var(--tq-mint-ink);
+}
+
+body.tqa .col-form-label,
+body.tqa label {
+  font: var(--tq-type-caption);
+  font-weight: 700;
+  color: var(--tq-navy);
+  margin-block-end: var(--tq-space-xs);
+}
+/* النجمة تدل على الإلزام: كانت تعتمد على لون وحده، واللون لا يحمل معنى */
+body.tqa label.required::after,
+body.tqa .required::after { content: ' *'; color: var(--tq-danger); }
+body.tqa .form-group { margin-block-end: var(--tq-space-l); }
+
+body.tqa .input-group-text {
+  background: var(--tq-ground);
+  border-color: var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  color: var(--tq-text2);
+  font: var(--tq-type-caption);
+}
+body.tqa .custom-file-label, body.tqa .custom-file-input {
+  min-block-size: var(--tqa-field-h);
+  border-radius: var(--tqa-radius-sm) !important;
+  border-color: var(--tq-line);
+  font: var(--tq-type-caption);
+  display: flex;
+  align-items: center;
+}
+body.tqa .custom-file-label::after {
+  background: var(--tq-ground);
+  color: var(--tq-navy);
+  border-inline-start: 1px solid var(--tq-line);
+  border-radius: 0;
+  block-size: 100%;
+  display: flex;
+  align-items: center;
+}
+body.tqa .custom-control-label { font-weight: 500; color: var(--tq-text); }
+body.tqa .custom-control-input:checked ~ .custom-control-label::before {
+  background: var(--tq-actionMastery);
+  border-color: var(--tq-actionMastery);
+}
+body.tqa input[type='checkbox'], body.tqa input[type='radio'] { accent-color: var(--tq-actionPrimary); }
+
+/* select2: لا نسخة له بالتوكنات، فيلبس لباس الحقل نفسه لئلا يبدو
+   أربعة وستون منتقيا في اللوحة كأنها من منتج آخر. */
+body.tqa .select2-container--default .select2-selection--single,
+body.tqa .select2-container--default .select2-selection--multiple {
+  min-block-size: var(--tqa-field-h);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-surface);
+  display: flex;
+  align-items: center;
+  padding-inline: var(--tq-space-s);
+}
+body.tqa .select2-container--default .select2-selection--single .select2-selection__rendered {
+  line-height: 1.6; color: var(--tq-text); padding-inline: 0;
+}
+body.tqa .select2-container--default .select2-selection--single .select2-selection__arrow { block-size: 100%; }
+body.tqa .select2-dropdown {
+  border-color: var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  box-shadow: var(--tq-shadow-card);
+}
+body.tqa .select2-container--default .select2-results__option--highlighted[aria-selected] {
+  background: var(--tq-actionPrimary); color: var(--tq-onAction);
+}
+
+/* ---- الجداول ---- */
+body.tqa .table { color: var(--tq-text); margin-block-end: 0; }
+body.tqa .table thead th {
+  background: var(--tq-ground);
+  border-block-end: 1px solid var(--tq-line);
+  border-block-start: 0;
+  font: var(--tq-type-micro);
+  color: var(--tq-text2);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  vertical-align: middle;
+}
+body.tqa .table td {
+  border-block-start: 0;
+  border-block-end: 1px solid var(--tq-line);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  font: var(--tq-type-caption);
+  vertical-align: middle;
+}
+body.tqa .table-hover tbody tr:hover { background: var(--tq-navyWash); }
+body.tqa .table-bordered, body.tqa .table-bordered td, body.tqa .table-bordered th { border-color: var(--tq-line); }
+body.tqa .table-striped tbody tr:nth-of-type(odd) { background: rgba(2, 51, 49, .025); }
+
+/* DataTables: الأزرار والبحث والترقيم كلها عناصر القالب، فتلبس اللباس نفسه */
+body.tqa .dataTables_wrapper .dataTables_filter input,
+body.tqa .dataTables_wrapper .dataTables_length select {
+  min-block-size: 38px;
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  padding-inline: var(--tq-space-m);
+  background: var(--tq-surface);
+}
+body.tqa .dataTables_wrapper .dataTables_paginate .paginate_button {
+  border-radius: var(--tqa-radius-sm) !important;
+  border: 1px solid transparent !important;
+  color: var(--tq-text2) !important;
+  padding: 6px 12px;
+}
+body.tqa .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+body.tqa .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+  background: var(--tq-actionPrimary) !important;
+  border-color: var(--tq-actionPrimary) !important;
+  color: var(--tq-onAction) !important;
+}
+body.tqa .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background: var(--tq-navyWash) !important;
+  border-color: var(--tq-line) !important;
+  color: var(--tq-navy) !important;
+}
+body.tqa .dt-buttons .btn { margin-inline-end: var(--tq-space-xs); }
+
+/* مساحة DataTables كلها: كانت تخرج بخط القالب ومسافاته — صفوف الطول
+   والبحث والمعلومات والترقيم أربع كتل بأربعة مقاسات. */
+body.tqa .dataTables_wrapper { padding: var(--tq-space-l) 0 0; }
+body.tqa .dataTables_wrapper .dataTables_length,
+body.tqa .dataTables_wrapper .dataTables_filter,
+body.tqa .dataTables_wrapper .dataTables_info,
+body.tqa .dataTables_wrapper .dataTables_paginate {
+  font: var(--tq-type-caption);
+  color: var(--tq-text2);
+  padding-block: var(--tq-space-s);
+}
+body.tqa .dataTables_wrapper .dataTables_filter label,
+body.tqa .dataTables_wrapper .dataTables_length label {
+  display: flex; align-items: center; gap: var(--tq-space-s);
+  margin: 0; font-weight: 600; color: var(--tq-text2);
+}
+body.tqa .dataTables_wrapper .dataTables_filter input { margin: 0; min-inline-size: 220px; }
+body.tqa .dataTables_wrapper .dataTables_length select { inline-size: auto; }
+body.tqa .dataTables_wrapper .dt-buttons { margin-block-end: var(--tq-space-s); }
+body.tqa .dataTables_wrapper .dataTables_processing {
+  border: 0;
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-surface);
+  box-shadow: var(--tq-shadow-card);
+  color: var(--tq-navy);
+  font: var(--tq-type-caption);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  inline-size: auto;
+  margin: 0;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+}
+/* الصف الفارغ يقول ما يعنيه لا «No data available in table» بالإنجليزية */
+body.tqa .dataTables_empty { text-align: center; color: var(--tq-text2); padding: var(--tq-space-h2) var(--tq-space-l) !important; }
+/* أسهم الترتيب: صور من القالب لا تظهر — يستعاض عنها بمساحة ورمز نصي */
+body.tqa table.dataTable thead th { position: relative; }
+body.tqa table.dataTable thead .sorting,
+body.tqa table.dataTable thead .sorting_asc,
+body.tqa table.dataTable thead .sorting_desc { cursor: pointer; }
+
+/* الترقيم العادي */
+body.tqa .pagination { gap: var(--tq-space-xs); }
+body.tqa .page-link {
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm) !important;
+  color: var(--tq-text2);
+  min-inline-size: 38px;
+  text-align: center;
+}
+body.tqa .page-item.active .page-link {
+  background: var(--tq-actionPrimary);
+  border-color: var(--tq-actionPrimary);
+  color: var(--tq-onAction);
+}
+
+/* ---- الشارات ---- */
+body.tqa .badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font: var(--tq-type-micro);
+  font-weight: 600;
+}
+body.tqa .badge-primary, body.tqa .badge-info,
+body.tqa .badge-primary-lighten, body.tqa .badge-info-lighten { background: var(--tq-sky-fill); color: var(--tq-sky-ink); }
+body.tqa .badge-success, body.tqa .badge-success-lighten { background: var(--tq-mint-fill); color: var(--tq-mint-ink); }
+body.tqa .badge-warning, body.tqa .badge-warning-lighten { background: var(--tq-peach-fill); color: var(--tq-peach-ink); }
+body.tqa .badge-danger,  body.tqa .badge-danger-lighten  { background: var(--tq-dangerSoft); color: var(--tq-rose-ink); }
+body.tqa .badge-secondary, body.tqa .badge-light, body.tqa .badge-dark { background: var(--tq-ground); color: var(--tq-text2); }
+
+/* ---- التنبيهات ---- */
+body.tqa .alert {
+  border: 0;
+  border-radius: var(--tqa-radius-sm);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  font: var(--tq-type-caption);
+}
+body.tqa .alert-success { background: var(--tq-mint-fill);  color: var(--tq-mint-ink); }
+body.tqa .alert-danger  { background: var(--tq-dangerSoft); color: var(--tq-rose-ink); }
+body.tqa .alert-warning { background: var(--tq-peach-fill); color: var(--tq-peach-ink); }
+body.tqa .alert-info    { background: var(--tq-sky-fill);   color: var(--tq-sky-ink); }
+
+/* ---- التبويبات ---- */
+body.tqa .nav-tabs { border-block-end: 1px solid var(--tq-line); gap: var(--tq-space-xs); }
+body.tqa .nav-tabs .nav-link {
+  border: 0;
+  border-block-end: 2px solid transparent;
+  border-radius: 0;
+  color: var(--tq-text2);
+  font: var(--tq-type-caption);
+  font-weight: 600;
+  padding: var(--tq-space-m) var(--tq-space-l);
+}
+body.tqa .nav-tabs .nav-link:hover { color: var(--tq-navy); border-color: transparent; }
+body.tqa .nav-tabs .nav-link.active {
+  background: transparent;
+  color: var(--tq-navy);
+  border-block-end-color: var(--tq-actionPrimary);
+  font-weight: 700;
+}
+body.tqa .nav-pills .nav-link.active { background: var(--tq-actionPrimary); border-radius: var(--tqa-radius-sm); }
+
+/* ---- النوافذ المنبثقة ---- */
+body.tqa .modal-content {
+  border: 0;
+  border-radius: var(--tqa-radius);
+  box-shadow: var(--tq-shadow-card);
+}
+body.tqa .modal-header {
+  border-block-end: 1px solid var(--tq-line);
+  padding: var(--tq-space-l) var(--tq-space-xl);
+}
+body.tqa .modal-title { font: var(--tq-type-h2); font-family: var(--tq-font-title); color: var(--tq-navy); }
+body.tqa .modal-body { padding: var(--tq-space-xl); }
+body.tqa .modal-footer { border-block-start: 1px solid var(--tq-line); padding: var(--tq-space-l) var(--tq-space-xl); }
+body.tqa .modal-backdrop.show { opacity: .45; background: var(--tq-navyDeep); }
+body.tqa .modal-right .modal-content { border-radius: 0; }
+.tqa-modal-load {
+  display: grid; place-items: center; gap: var(--tq-space-m);
+  padding: var(--tq-space-h2) var(--tq-space-l);
+  font: var(--tq-type-caption); color: var(--tq-text2);
+}
+
+/* ---- القوائم المنسدلة ---- */
+body.tqa .dropdown-menu {
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  box-shadow: var(--tq-shadow-card);
+  padding: var(--tq-space-xs);
+}
+body.tqa .dropdown-item {
+  border-radius: var(--tqa-radius-sm);
+  padding: var(--tq-space-s) var(--tq-space-m);
+  font: var(--tq-type-caption);
+  color: var(--tq-text2);
+}
+body.tqa .dropdown-item:hover, body.tqa .dropdown-item:focus {
+  background: var(--tq-navyWash);
+  color: var(--tq-navy);
+}
+body.tqa .dropdown-divider { border-color: var(--tq-line); }
+
+/* ---- محرر summernote ---- */
+body.tqa .note-editor.note-frame {
+  border-color: var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  overflow: hidden;
+}
+body.tqa .note-toolbar { background: var(--tq-ground); border-block-end: 1px solid var(--tq-line); }
+body.tqa .note-editable { font-family: var(--tq-font-body); color: var(--tq-text); }
+
+/* ---- ألوان الحالة النصية ---- */
+body.tqa .text-muted { color: var(--tq-text2) !important; }
+body.tqa .text-primary { color: var(--tq-navy) !important; }
+body.tqa .text-success { color: var(--tq-mint-ink) !important; }
+body.tqa .text-danger  { color: var(--tq-danger) !important; }
+body.tqa .text-warning { color: var(--tq-amber) !important; }
+body.tqa .bg-primary   { background: var(--tq-actionPrimary) !important; }
+body.tqa .bg-light     { background: var(--tq-ground) !important; }
+body.tqa .bg-soft-primary { background: var(--tq-mint-fill) !important; }
+
+/* ---- الإجراءات التي تظهر بالتمرير وحده ----
+
+   أربع شاشات (`categories` · `curriculum` · `course_edit` · `quiz_questions`)
+   تخفي أزرار التعديل والحذف بـ`style="display:none"` وتظهرها بـ
+   `mouseenter` من jQuery. وهي بذلك:
+
+   ١ — **لا تظهر على جوال ولا لوح إطلاقا.** لا `mouseenter` على شاشة لمس،
+       فتحرير قسم أو حذف درس من الجوال غير ممكن — لا صعب، بل غير ممكن.
+   ٢ — **لا يبلغها لوح المفاتيح.** الزر المخفي بـ`display:none` خارج
+       ترتيب التنقل، فمن لا يستعمل فأرة لا يصل إليه.
+   ٣ — **لا يدل عليها شيء.** من لا يمرر مؤشره فوق البطاقة لا يعرف أن
+       فيها إجراءات أصلا.
+
+   والعلاج هنا لا في الشاشات الأربع: `!important` في ورقة أنماط تغلب
+   `style` المضمنة، فتظهر الأزرار حيث لا تمرير، وعند التركيز دائما. */
+body.tqa .on-hover-action:focus-within .card-widgets,
+body.tqa .on-hover-action:focus-within .category-action,
+body.tqa .on-hover-action:focus-within [id^='widgets-of-'],
+body.tqa .on-hover-action:focus-within [id^='category-edit-btn-'],
+body.tqa .on-hover-action:focus-within [id^='category-delete-btn-'] {
+  display: inline-block !important;
+}
+
+@media (hover: none), (max-width: 991.98px) {
+  body.tqa .on-hover-action .card-widgets,
+  body.tqa .on-hover-action .category-action,
+  body.tqa .on-hover-action [id^='widgets-of-'],
+  body.tqa .on-hover-action [id^='category-edit-btn-'],
+  body.tqa .on-hover-action [id^='category-delete-btn-'] {
+    display: inline-block !important;
+  }
+  /* والبطاقة تحمل الأزرار الظاهرة بلا أن تقفز عند لمسها */
+  body.tqa .on-hover-action { position: relative; }
+}
+
+/* الطفو الفيزيائي في صفحة منطقية الاتجاه: `float-right` في العربية تعني
+   يسارا، وهي مكتوبة في العروض القديمة بمعنى «إلى الطرف». */
+[dir='rtl'] body.tqa .float-right { float: left !important; }
+[dir='rtl'] body.tqa .float-left  { float: right !important; }
+[dir='rtl'] body.tqa .text-right  { text-align: left !important; }
+[dir='rtl'] body.tqa .text-left   { text-align: right !important; }
+[dir='rtl'] body.tqa .ml-1, [dir='rtl'] body.tqa .ml-2, [dir='rtl'] body.tqa .ml-3 { margin-left: 0 !important; }
+[dir='rtl'] body.tqa .ml-1 { margin-right: .25rem !important; }
+[dir='rtl'] body.tqa .ml-2 { margin-right: .5rem !important; }
+[dir='rtl'] body.tqa .ml-3 { margin-right: 1rem !important; }
+[dir='rtl'] body.tqa .mr-1, [dir='rtl'] body.tqa .mr-2, [dir='rtl'] body.tqa .mr-3 { margin-right: 0 !important; }
+[dir='rtl'] body.tqa .mr-1 { margin-left: .25rem !important; }
+[dir='rtl'] body.tqa .mr-2 { margin-left: .5rem !important; }
+[dir='rtl'] body.tqa .mr-3 { margin-left: 1rem !important; }
+
+/* ==========================================================================
+   ٦ · أسماء الأصناف القديمة في شاشات تقدر
+
+   ثماني شاشات (`tqa_subscriptions` · `tqa_mail` · `tqa_import` ·
+   `tqa_bindings` · `tqa_bind` · `tqa_stats` · `tqa_bank` · `tqa_teachers`)
+   كتبت على أسماء الطبقة السابقة بالشرطة الواحدة (`tqa-stat-num`)، والنظام
+   الجديد يكتب بشرطتين (`tqa-stat__value`). ونسخها كلها إلى الأسماء
+   الجديدة تغيير في ثمانية ملفات بلا أثر يراه أحد.
+
+   فالأسماء القديمة تعرف هنا **من التوكنات نفسها**: الشاشة القديمة تخرج
+   بالمظهر الجديد بلا أن تلمس. وتحذف هذه الكتلة يوم تعاد كتابة الشاشات
+   الثماني — لا قبله.
+   ========================================================================== */
+
+/* غلاف الشاشة القديم — `tqa-wrap` كان بلا تعريف أصلا، فالشاشات الثلاث
+   التي تستعمله (`bank` · `stats` · `teachers`) كانت تخرج بلا حد للعرض. */
+.tqa-wrap { inline-size: 100%; }
+
+/* السطر التعريفي تحت العنوان — كان يخرج بحجم النص العادي ولون الحبر
+   الكامل، فيزاحم العنوان بدل أن يشرحه. */
+.tqa-lead { margin: var(--tq-space-xs) 0 0; font: var(--tq-type-caption); color: var(--tq-text2); }
+
+/* تسمية حقل في نموذج قديم */
+.tqa-label {
+  display: block; margin-block-end: var(--tq-space-xs);
+  font: var(--tq-type-caption); font-weight: 700; color: var(--tq-navy);
+}
+
+/* الشارة — الصيغة القديمة (`pill`). نفس مظهر `tqa-badge` حرفا بحرف. */
+.tqa-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px; border-radius: 999px;
+  background: var(--tq-peach-fill); color: var(--tq-peach-ink);
+  font: var(--tq-type-micro); white-space: nowrap;
+}
+.tqa-pill--ok { background: var(--tq-mint-fill);  color: var(--tq-mint-ink); }
+.tqa-pill--no { background: var(--tq-dangerSoft); color: var(--tq-rose-ink); }
+
+/* نموذجان متجاوران في خلية واحدة: `<form>` كتلة، فكانا يقفان سطرين
+   ويظهر زر «اعتماد» فوق «رفض» بمحاذاة لا تشبه بقية الجدول. */
+.tqa-inline { display: inline-block; margin: 0 0 0 6px; vertical-align: middle; }
+[dir='rtl'] .tqa-inline { margin: 0 6px 0 0; }
+
+/* قائمة الأهداف في شاشة الربط */
+.tqa-objlist { display: grid; gap: var(--tq-space-xs); }
+
+/* رأس الصفحة القديم */
+.tqa-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--tq-space-l); flex-wrap: wrap;
+  margin-block-end: var(--tq-space-xl);
+}
+.tqa-head h1 { margin: 0; font: var(--tq-type-h1); color: var(--tq-navy); }
+.tqa-head p  { margin: var(--tq-space-xs) 0 0; font: var(--tq-type-caption); color: var(--tq-text2); }
+
+/* كتلة تنبيه */
+.tqa-block {
+  background: var(--tq-sand-fill); color: var(--tq-sand-ink);
+  border-radius: var(--tqa-radius); padding: var(--tq-space-l) var(--tq-space-xl);
+  margin-block-end: var(--tq-space-l);
+}
+.tqa-block h3 { margin: 0 0 var(--tq-space-s); font: var(--tq-type-h2); color: inherit; }
+.tqa-block p  { margin: 0 0 var(--tq-space-m); font: var(--tq-type-caption); color: inherit; }
+
+/* بطاقة رقم — الصيغة القديمة */
+.tqa-stat-label { display: block; font: var(--tq-type-micro); color: var(--tq-text2); }
+.tqa-stat-num {
+  display: block; margin-block-start: var(--tq-space-xs);
+  font: var(--tq-type-numeralXl); color: var(--tq-navy);
+  unicode-bidi: isolate; direction: ltr;
+}
+
+/* شريط تقدم — الصيغة القديمة */
+.tqa-bar-fill {
+  block-size: 100%; border-radius: 999px;
+  background: var(--tq-actionMastery);
+  transition: inline-size var(--tq-motion-route) ease;
+}
+.tqa-bar-cap { margin-block-start: var(--tq-space-s); font: var(--tq-type-caption); color: var(--tq-text2); }
+
+/* الرسائل — الصيغة القديمة */
+.tqa-flash-ok, .tqa-flash-no {
+  display: block; padding: var(--tq-space-m) var(--tq-space-l);
+  border-radius: var(--tqa-radius-sm); margin-block-end: var(--tq-space-l);
+  font: var(--tq-type-caption);
+}
+.tqa-flash-ok { background: var(--tq-mint-fill);  color: var(--tq-mint-ink); }
+.tqa-flash-no { background: var(--tq-dangerSoft); color: var(--tq-rose-ink); }
+
+/* تفاصيل الحقول */
+.tqa-req  { color: var(--tq-danger); }
+.tqa-hint { display: block; margin-block-start: var(--tq-space-xs); font: var(--tq-type-micro); color: var(--tq-text2); }
+.tqa-warn { display: block; margin-block-start: var(--tq-space-xs); font: var(--tq-type-micro); color: var(--tq-amber); }
+.tqa-dim  { color: var(--tq-text3); }
+
+.tqa-actions {
+  display: flex; gap: var(--tq-space-s); flex-wrap: wrap;
+  margin-block-start: var(--tq-space-l);
+}
+
+.tqa-money { display: flex; align-items: center; gap: var(--tq-space-s); }
+.tqa-money-unit { color: var(--tq-text2); font: var(--tq-type-caption); flex: none; }
+
+.tqa-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px; border-radius: 999px;
+  background: var(--tq-navyWash); color: var(--tq-navy);
+  font: var(--tq-type-micro);
+}
+.tqa-count { margin-block-start: var(--tq-space-m); font: var(--tq-type-caption); color: var(--tq-text2); }
+.tqa-deps  { font: var(--tq-type-caption); color: var(--tq-text2); }
+
+/* مخرجات الخادم تعرض كما جاءت: نص تشخيصي لاتيني داخل صفحة عربية،
+   فيعزل اتجاهيا ولا يلتف ليقرأ سطرا مبعثرا. */
+.tqa-debug {
+  background: var(--tq-navyDeep); color: rgba(255, 255, 255, .86);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border-radius: var(--tqa-radius-sm);
+  font: 400 12.5px/1.7 var(--tq-font-num);
+  unicode-bidi: isolate; direction: ltr;
+  overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+}
+
+/* ==========================================================================
+   ٧ · تقليل الحركة — ليس خيارا: بعض المستخدمين تصيبهم الحركة بالدوار
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  body.tqa *, body.tqa *::before, body.tqa *::after {
+    animation-duration: var(--tq-motion-reduced) !important;
+    transition-duration: var(--tq-motion-reduced) !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   ٨ · الطباعة الورقية — الفواتير وكشوف الحساب تطبع من اللوحة
+   ========================================================================== */
+@media print {
+  .tqa-rail, .tqa-topbar, .tqa-pagehead__tools, .tqa-btn, body.tqa .btn { display: none !important; }
+  body.tqa { background: #fff; }
+  .tqa-page { padding: 0; }
+  .tqa-card, body.tqa .card { box-shadow: none; border-color: #ddd; }
+}
