@@ -13,16 +13,19 @@ css: pages
       <span class="lantern lantern--l" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
 
       <div class="page-hero__copy reveal">
-        <h1>أولياء الأمور
-          <span class="page-hero__sub">شركاء في رحلة تعليم أبنائنا</span>
+        <h1><?php echo tq_text('site_parents', 'hero_title', 'أولياء الأمور'); ?>
+          <span class="page-hero__sub"><?php
+            echo tq_text('site_parents', 'hero_sub', 'شركاء في رحلة تعليم أبنائنا'); ?></span>
         </h1>
         <p class="page-hero__lede">
-          نوفر لكم كل ما تحتاجونه لمتابعة تقدم أبنائكم التعليمي،
-          لدعمهم وتحفيزهم نحو مستقبل مشرق.
+          <?php echo tq_text('site_parents', 'hero_lede',
+              'نوفر لكم كل ما تحتاجونه لمتابعة تقدم أبنائكم التعليمي، لدعمهم وتحفيزهم نحو مستقبل مشرق.'); ?>
         </p>
         <div class="page-hero__cta">
-          <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>">ابدأ الآن</a>
-          <a class="btn btn--ghost" href="#features">استكشف المنصة</a>
+          <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>"><?php
+            echo tq_text('site_parents', 'hero_cta_1', 'ابدأ الآن'); ?></a>
+          <a class="btn btn--ghost" href="#features"><?php
+            echo tq_text('site_parents', 'hero_cta_2', 'استكشف المنصة'); ?></a>
         </div>
         <div class="hero-mini">
           <div class="hero-mini__item">

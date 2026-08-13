@@ -12,17 +12,21 @@ css: pages
     <div class="page-hero__grid">
       <span class="lantern lantern--l" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
 
+      <?php /* النصوص تحرر من «نصوص الصفحات» في اللوحة؛ والمكتوب هنا الافتراضي. */ ?>
       <div class="page-hero__copy reveal">
-        <h1>الطلاب
-          <span class="page-hero__sub">رحلتك التعليمية تبدأ من هنا</span>
+        <h1><?php echo tq_text('site_students', 'hero_title', 'الطلاب'); ?>
+          <span class="page-hero__sub">
+            <?php echo tq_text('site_students', 'hero_sub', 'رحلتك التعليمية تبدأ من هنا'); ?></span>
         </h1>
         <p class="page-hero__lede">
-          منصة تقدر تمنحك كل ما تحتاجه لتتعلم بذكاء، وتطور مهاراتك،
-          وتحقق طموحاتك بثقة.
+          <?php echo tq_text('site_students', 'hero_lede',
+              'منصة تقدر تمنحك كل ما تحتاجه لتتعلم بذكاء، وتطور مهاراتك، وتحقق طموحاتك بثقة.'); ?>
         </p>
         <div class="page-hero__cta">
-          <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>">ابدأ التعلم الآن</a>
-          <a class="btn btn--ghost" href="#paths">استكشاف البرامج</a>
+          <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>">
+            <?php echo tq_text('site_students', 'hero_cta_1', 'ابدأ التعلم الآن'); ?></a>
+          <a class="btn btn--ghost" href="#paths">
+            <?php echo tq_text('site_students', 'hero_cta_2', 'استكشاف البرامج'); ?></a>
         </div>
         <div class="hero-mini">
           <div class="hero-mini__item">
@@ -173,11 +177,14 @@ css: pages
     <div class="stats-band stats-band--art reveal">
       <div class="stats-band__body">
         <h2>تجربة تعليمية تصنع الفرق</h2>
-        <div class="stats-band__grid" style="--n:4">
+        <div class="stats-band__grid">
+        <?php /* انظر TQ-STAT-ORPHAN في `about_us.php`. */ ?>
+        <?php echo tqs_stat('students','i-users','طالبا وطالبة','stats-band__item'); ?>
         <?php echo tqs_stat('paths','i-target','برنامج تعليمي','stats-band__item'); ?>
         <?php echo tqs_stat('subjects','i-book','مادة تعليمية','stats-band__item'); ?>
+        <?php echo tqs_stat('hours','i-clock','ساعة تعلم','stats-band__item'); ?>
+        <?php echo tqs_stat('rating','i-star','مستوى الرضا','stats-band__item'); ?>
         <?php echo tqs_stat('books','i-curriculum','كتاب منهجي','stats-band__item'); ?>
-        <?php echo tqs_stat('teachers','i-teacher','معلم ومعلمة','stats-band__item'); ?>
         </div>
       </div>
       <img src="<?php echo tq_site_asset('img/student-stats-cut.webp'); ?>" width="660" height="990" loading="lazy"

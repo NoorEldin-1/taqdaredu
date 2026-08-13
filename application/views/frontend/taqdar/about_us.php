@@ -13,13 +13,13 @@ css: pages
       <span class="lantern lantern--l" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
 
       <div class="page-hero__copy reveal">
-        <h1>عن منصة تقدر
-          <span class="page-hero__sub">تعليم يلهم، وتمكين يبني المستقبل</span>
+        <h1><?php echo tq_text('about_us', 'hero_title', 'عن منصة تقدر'); ?>
+          <span class="page-hero__sub"><?php
+            echo tq_text('about_us', 'hero_sub', 'تعليم يلهم، وتمكين يبني المستقبل'); ?></span>
         </h1>
         <p class="page-hero__lede">
-          تقدر منصة تعليمية سعودية رائدة تهدف إلى تقديم تجربة تعلم متكاملة
-          تجمع بين الجودة والتقنية والقيم، لنسهم في بناء جيل واع ومبدع
-          وقادر على صناعة المستقبل.
+          <?php echo tq_text('about_us', 'hero_lede',
+              'تقدر منصة تعليمية سعودية رائدة تهدف إلى تقديم تجربة تعلم متكاملة تجمع بين الجودة والتقنية والقيم، لنسهم في بناء جيل واع ومبدع وقادر على صناعة المستقبل.'); ?>
         </p>
         <div class="page-hero__cta">
         </div>
@@ -81,11 +81,18 @@ css: pages
   <div class="shell">
     <div class="stats-band reveal">
       <h2>تقدر بالأرقام</h2>
-      <div class="stats-band__grid" style="--n:4">
+      <?php /* TQ-STAT-ORPHAN — «الطلاب» و«الدروس» و«ساعات التعلم» و«مستوى
+               الرضا» كانت حقولا في `taqdar_admin/stats` **لا تعرض في أي
+               صفحة**: يملؤها المسؤول ويحفظ ولا يتغير شيء في الموقع، وشرح
+               الحقل يعده بأنها تظهر هنا. فوصلت بمواضعها، وضبط الشرح على
+               ما يجري فعلا. والحقل الفارغ لا يعرض بندا (انظر `tqs_stat`). */ ?>
+      <div class="stats-band__grid">
+        <?php echo tqs_stat('students','i-users','طالبا وطالبة','stats-band__item'); ?>
+        <?php echo tqs_stat('teachers','i-teacher','معلم ومعلمة','stats-band__item'); ?>
         <?php echo tqs_stat('paths','i-target','برنامج تعليمي','stats-band__item'); ?>
         <?php echo tqs_stat('subjects','i-book','مادة تعليمية','stats-band__item'); ?>
+        <?php echo tqs_stat('lessons','i-play','درسا','stats-band__item'); ?>
         <?php echo tqs_stat('books','i-curriculum','كتاب منهجي','stats-band__item'); ?>
-        <?php echo tqs_stat('teachers','i-teacher','معلم ومعلمة','stats-band__item'); ?>
       </div>
     </div>
   </div>

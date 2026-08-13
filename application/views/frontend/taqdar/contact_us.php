@@ -13,12 +13,13 @@ css: pages
       <span class="lantern lantern--l" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
 
       <div class="page-hero__copy reveal">
-        <h1>تواصل معنا
-          <span class="page-hero__sub">نحن هنا لمساعدتك</span>
+        <h1><?php echo tq_text('contact_us', 'hero_title', 'تواصل معنا'); ?>
+          <span class="page-hero__sub"><?php
+            echo tq_text('contact_us', 'hero_sub', 'نحن هنا لمساعدتك'); ?></span>
         </h1>
         <p class="page-hero__lede">
-          فريق تقدر جاهز للإجابة على استفساراتك وتقديم الدعم والمساعدة
-          في رحلتك التعليمية. لا تتردد في التواصل معنا في أي وقت.
+          <?php echo tq_text('contact_us', 'hero_lede',
+              'فريق تقدر جاهز للإجابة على استفساراتك وتقديم الدعم والمساعدة في رحلتك التعليمية. لا تتردد في التواصل معنا في أي وقت.'); ?>
         </p>
         <div class="hero-mini">
           <div class="hero-mini__item">

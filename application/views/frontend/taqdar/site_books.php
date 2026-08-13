@@ -24,12 +24,13 @@ css: pages
       <span class="lantern lantern--l" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
 
       <div class="page-hero__copy reveal">
-        <h1>كتب المنهج الدراسي
-          <span class="page-hero__sub">تصفح وحمل مجانا</span>
+        <h1><?php echo tq_text('site_books', 'hero_title', 'كتب المنهج الدراسي'); ?>
+          <span class="page-hero__sub"><?php
+            echo tq_text('site_books', 'hero_sub', 'تصفح وحمل مجانا'); ?></span>
         </h1>
         <p class="page-hero__lede">
-          كتب المنهج السعودي المعتمد، مرتبة حسب المرحلة والمادة،
-          جاهزة للتصفح والتحميل في أي وقت.
+          <?php echo tq_text('site_books', 'hero_lede',
+              'كتب المنهج السعودي المعتمد، مرتبة حسب المرحلة والمادة، جاهزة للتصفح والتحميل في أي وقت.'); ?>
         </p>
         <div class="hero-mini">
           <div class="hero-mini__item">

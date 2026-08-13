@@ -1339,3 +1339,53 @@ if (!function_exists('tqs_stat_strip')) {
         return '<div class="' . $class . '">' . "\n" . implode("\n", $out) . "\n</div>\n";
     }
 }
+
+if (!function_exists('tq_text')) {
+    /**
+     * نص من محرر اللوحة، وإلا نص القالب.
+     *
+     * ═══ العقد ═══
+     *
+     *   tq_text('home', 'hero_lede', 'النص المكتوب في القالب')
+     *
+     * المفتاح نفسه يسجل في `Taqdar_content_model::registry()` ليظهر في
+     * شاشة «نصوص الصفحات». ومفتاح في أحدهما بلا الآخر إما حقل يحرر ولا
+     * يظهر أو نص يظهر ولا يحرر — وكلاهما يكتشف بالمصادفة وحدها.
+     *
+     * والافتراضي يبقى مكتوبا هنا في القالب لا في القاعدة: قاعدة فارغة
+     * (أو جدول لم ينشأ بعد، أو قاعدة تعثرت) تعني أن الصفحة تعرض ما
+     * كانت تعرضه حرفا بحرف — لا صفحة بعنوان فارغ.
+     *
+     * ويرجع النص **مهربا** جاهزا للطباعة: النص يكتب في اللوحة نصا لا
+     * HTML، وطباعة قيمة قادمة من نموذج بلا تهريب تفتح كل صفحة عامة
+     * لحقن سكربت من شاشة تحرير عنوان. ومن أراد الخام فله `tq_text_raw`.
+     */
+    function tq_text($page, $key, $default = '')
+    {
+        return html_escape(tq_text_raw($page, $key, $default));
+    }
+}
+
+if (!function_exists('tq_text_raw')) {
+    /** القيمة بلا تهريب — لمن يضعها في `alt` أو `title` أو وسم meta. */
+    function tq_text_raw($page, $key, $default = '')
+    {
+        static $loaded = array();
+
+        if (!isset($loaded[$page])) {
+            $loaded[$page] = array();
+            try {
+                $CI = &get_instance();
+                $CI->load->model('taqdar_content_model', 'tq_content');
+                $loaded[$page] = $CI->tq_content->page_values($page);
+            } catch (Throwable $e) {
+                // الصفحة العامة لا تسقط لأجل نص: القالب يحمل نصه
+                $loaded[$page] = array();
+            }
+        }
+
+        return isset($loaded[$page][$key]) && trim((string) $loaded[$page][$key]) !== ''
+            ? $loaded[$page][$key]
+            : $default;
+    }
+}

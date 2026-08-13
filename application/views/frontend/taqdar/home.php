@@ -40,16 +40,23 @@ css: pages
         <span class="hero__scrim"></span>
       </div>
 
+      <?php /* النصوص تحرر من «المحتوى والموقع › نصوص الصفحات» في اللوحة.
+               والمكتوب هنا هو الافتراضي الذي يعرض ما لم يحرر — فالصفحة
+               تعمل بقاعدة فارغة كما تعمل بقاعدة ممتلئة. */ ?>
       <div class="hero__copy reveal">
-        <h1>نبني العقول<br>ونصنع <span class="gold">المستقبل</span></h1>
+        <h1><?php echo tq_text('home', 'hero_title_1', 'نبني العقول'); ?><br><?php
+            echo tq_text('home', 'hero_title_2', 'ونصنع'); ?>
+            <span class="gold"><?php echo tq_text('home', 'hero_title_3', 'المستقبل'); ?></span></h1>
         <p class="hero__lede">
-          منصة تعليمية سعودية على المنهج الرسمي: برامج يبنيها معلمون،
-          وتقييم يقيس الإتقان لا الحضور، وتقارير يراها ولي الأمر أولا بأول.
+          <?php echo tq_text('home', 'hero_lede',
+              'منصة تعليمية سعودية على المنهج الرسمي: برامج يبنيها معلمون، '
+            . 'وتقييم يقيس الإتقان لا الحضور، وتقارير يراها ولي الأمر أولا بأول.'); ?>
         </p>
         <div class="hero__cta">
-          <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>">ابدأ رحلة التعلم</a>
+          <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>">
+            <?php echo tq_text('home', 'hero_cta_1', 'ابدأ رحلة التعلم'); ?></a>
           <a class="btn btn--ghost-light" href="<?php echo base_url('plans'); ?>">
-            تصفح البرامج
+            <?php echo tq_text('home', 'hero_cta_2', 'تصفح البرامج'); ?>
             <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg>
           </a>
         </div>
@@ -64,19 +71,23 @@ css: pages
     <div class="features__bar reveal">
       <div class="feature">
         <span class="feature__icon"><svg aria-hidden="true"><use href="#i-badge"></use></svg></span>
-        <div><b class="feature__t">مناهج معتمدة</b><p>وفق أحدث المعايير</p></div>
+        <div><b class="feature__t"><?php echo tq_text('home', 'feat_1_t', 'مناهج معتمدة'); ?></b>
+             <p><?php echo tq_text('home', 'feat_1_d', 'وفق أحدث المعايير'); ?></p></div>
       </div>
       <div class="feature">
         <span class="feature__icon"><svg aria-hidden="true"><use href="#i-spark"></use></svg></span>
-        <div><b class="feature__t">تعلم تفاعلي</b><p>تجربة ممتعة وفعالة</p></div>
+        <div><b class="feature__t"><?php echo tq_text('home', 'feat_2_t', 'تعلم تفاعلي'); ?></b>
+             <p><?php echo tq_text('home', 'feat_2_d', 'تجربة ممتعة وفعالة'); ?></p></div>
       </div>
       <div class="feature">
         <span class="feature__icon"><svg aria-hidden="true"><use href="#i-teacher"></use></svg></span>
-        <div><b class="feature__t">معلمون متميزون</b><p>ذوو خبرة عالية</p></div>
+        <div><b class="feature__t"><?php echo tq_text('home', 'feat_3_t', 'معلمون متميزون'); ?></b>
+             <p><?php echo tq_text('home', 'feat_3_d', 'ذوو خبرة عالية'); ?></p></div>
       </div>
       <div class="feature">
         <span class="feature__icon"><svg aria-hidden="true"><use href="#i-report"></use></svg></span>
-        <div><b class="feature__t">متابعة مستمرة</b><p>تقارير دورية للأهالي</p></div>
+        <div><b class="feature__t"><?php echo tq_text('home', 'feat_4_t', 'متابعة مستمرة'); ?></b>
+             <p><?php echo tq_text('home', 'feat_4_d', 'تقارير دورية للأهالي'); ?></p></div>
       </div>
     </div>
   </div>

@@ -22,12 +22,13 @@ css: pages
       <span class="lantern lantern--l" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
 
       <div class="page-hero__copy reveal">
-        <h1>المعلمون
-          <span class="page-hero__sub">خبرات ملهمة.. تعليم يرتقي</span>
+        <h1><?php echo tq_text('site_teachers', 'hero_title', 'المعلمون'); ?>
+          <span class="page-hero__sub"><?php
+            echo tq_text('site_teachers', 'hero_sub', 'خبرات ملهمة.. تعليم يرتقي'); ?></span>
         </h1>
         <p class="page-hero__lede">
-          نخبة من المعلمين المتخصصين المتميزين في تقديم تجارب تعليمية فريدة
-          تلهم العقول وتنمي المهارات.
+          <?php echo tq_text('site_teachers', 'hero_lede',
+              'نخبة من المعلمين المتخصصين المتميزين في تقديم تجارب تعليمية فريدة تلهم العقول وتنمي المهارات.'); ?>
         </p>
         <div class="hero-mini">
           <div class="hero-mini__item">
@@ -62,10 +63,12 @@ css: pages
 <section class="section">
   <div class="shell">
     <div class="stat-strip reveal">
+        <?php /* انظر TQ-STAT-ORPHAN في `about_us.php`. */ ?>
         <?php echo tqs_stat('teachers','i-teacher','معلم ومعلمة','stat-strip__item'); ?>
+        <?php echo tqs_stat('students','i-users','طالبا وطالبة','stat-strip__item'); ?>
         <?php echo tqs_stat('subjects','i-book','مادة تعليمية','stat-strip__item'); ?>
         <?php echo tqs_stat('paths','i-target','برنامج تعليمي','stat-strip__item'); ?>
-        <?php echo tqs_stat('books','i-curriculum','كتاب منهجي','stat-strip__item'); ?>
+        <?php echo tqs_stat('rating','i-star','مستوى الرضا','stat-strip__item'); ?>
     </div>
   </div>
 </section>
