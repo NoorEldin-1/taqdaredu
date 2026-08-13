@@ -37,27 +37,59 @@ languages/                ملفات الترجمة
 
 | الأصل (Academy LMS) | طبقة تقدر |
 |---|---|
-| `Home.php` · `Admin.php` · `User.php` · `Api.php` | `Taqdar.php` · `Taqdar_admin.php` · `Taqdar_gate.php` · `Taqdar_cron_events.php` |
-| `Crud_model.php` (226 ك.ب) · `User_model.php` | `Taqdar_repo_model.php` · `Taqdar_wallet_model.php` · `Taqdar_billing_model.php` · `Taqdar_teacher_model.php` · `Taqdar_parent_model.php` · `Taqdar_marking_model.php` |
+| `Home.php` · `Admin.php` · `Api.php` | `Taqdar.php` · `Taqdar_admin.php` · `Taqdar_gate.php` · `Taqdar_pay.php` · `Taqdar_cron_events.php` |
+| `Crud_model.php` (226 ك.ب) · `User_model.php` | `Taqdar_repo_model.php` · `Taqdar_wallet_model.php` · `Taqdar_billing_model.php` · `Taqdar_tap_model.php` · `Taqdar_teacher_model.php` · `Taqdar_parent_model.php` · `Taqdar_marking_model.php` · `Taqdar_content_model.php` |
 | `views/frontend`, `views/backend` | `views/frontend/tq_*` و `assets/taqdar/` |
 
 الميزات الجديدة تكتب في طبقة `Taqdar_*`. تعديل `Crud_model.php` أو
 `Admin.php` يمس شيفرة مشتركة مع مسارات LMS الأصلية، فتوسع بحذر وبفهم
 من يناديها.
 
+**لا إضافات مثبتة.** `application/controllers/addons/` مجلد فارغ وجدول
+`addons` بلا صف، فكل `addon_status(...)` كاذبة أبدا. أي كتلة مشروطة بها
+شيفرة ميتة، ومسار يشير إلى `addons/…` رابط مكسور.
+
+## لوحة الإدارة
+
+اللوحة **مصدر الحقيقة** لكل ما ينشر. بنيتها في
+[navigation.php](application/views/backend/admin/navigation.php)، ثماني
+مجموعات تجيب سؤال العمل لا سؤال من كتب الشيفرة:
+
+المنهج · الإتقان والتقييم · الأشخاص · التعليم المباشر · المالية ·
+المحتوى والموقع · التواصل · النظام.
+
+- الشاشة الأولى `taqdar_admin/overview` — و`admin/dashboard` محولة إليها.
+- **الوحدات الموصوفة**: `Taqdar_admin_model::spec()` يصف الجدول والحقول،
+  و`tqa_list.php` + `tqa_form.php` تعرضانه. وحدة جديدة = مفتاح في `spec()`
+  وبند في `navigation.php`، بلا شاشة تكتب.
+- **نصوص الموقع العام** تحرر من `taqdar_admin/content`. القالب يكتب
+  `tq_text('<الصفحة>', '<المفتاح>', 'النص الافتراضي')`، والمفتاح نفسه يسجل في
+  `Taqdar_content_model::registry()`. الافتراضي يبقى في القالب: قاعدة فارغة
+  تعني أن الصفحة تعرض ما كانت تعرضه حرفا بحرف.
+- **التصميم**: [assets/taqdar/css/admin.css](assets/taqdar/css/admin.css)
+  يبني هيكل `tqa-*` من `tokens.css` نفسها التي تبني بها البوابات، **ويعيد
+  تعريف أوليات Bootstrap 4** (`card` · `btn` · `table` · `form-control` ·
+  `nav-tabs` · `modal`) من التوكنات ذاتها — فالشاشة الموروثة تخرج بمظهر
+  الشاشة الجديدة بلا أن تلمس. ولا تحمل `base.css` هنا: إعادة ضبطها للعناصر
+  العامة تكسر Bootstrap.
+
 ## التوجيه
 
 `application/config/routes.php` هو المرجع، وترتيبه مقصود:
 
-1. مسارات الإضافات (شهادات، حزم دورات، كتب إلكترونية، حجز مدرسين).
-2. **مسارات الكتابة قبل مسارات العرض.** `(:any)` في CI3 تعني `[^/]+` أي
+1. **مسارات الكتابة قبل مسارات العرض.** `(:any)` في CI3 تعني `[^/]+` أي
    مقطعا واحدا؛ فبلا قاعدة صريحة يسقط `teacher/upload/save` إلى
    `Taqdar::teacher('upload','save')` — تعرض الشاشة ردا على طلب حفظ،
    بلا حفظ ولا خطأ. القواعد الصريحة هي ما يمنع هذا الصمت.
-3. بوابات الأدوار: `/student/*` · `/teacher/*` · `/parent/*` توجه كلها
+2. بوابات الأدوار: `/student/*` · `/teacher/*` · `/parent/*` توجه كلها
    إلى `Taqdar.php`. البادئة القديمة `taqdar/*` محولة إليها بـ301 من
    `.htaccess`، والمرادفات في `routes.php` احتياط لو تغير التحويل.
-4. صفحات عامة نظيفة: `/plans` · `/courses` · `/about` … إلخ.
+3. صفحات عامة نظيفة: `/plans` · `/courses` · `/about` … إلخ.
+
+و`/user/*` — لوحة المحاضر الموروثة — صارت تحويلا بـ301 إلى ما يقابلها في
+بوابة المعلم ([User.php](application/controllers/User.php)). لا تعاد: كل
+ما فيها له نظير في `/teacher`، ولوحتان للمعلم تعنيان مكانين يرفع فيهما
+وأحدهما لا يعرف المسارات ولا الأهداف.
 
 عند إضافة صفحة: قاعدة في `routes.php` **و** دالة في المتحكم **و** قالب في
 `views/`. ولو كانت كتابة، ضع قاعدتها قبل قواعد العرض.
@@ -73,15 +105,82 @@ languages/                ملفات الترجمة
   — تحقق الملكية. أي مسار كتابة جديد يمر بالمناسب منها، وإلا صار
   تعديل صف لا يملكه المستخدم مجرد تخمين معرف.
 
+## الدفع
+
+طريقان لا أكثر، وكلاهما ينتهي إلى `Taqdar_billing_model`:
+
+| | البطاقة — تاب | التحويل البنكي |
+|---|---|---|
+| الإعداد | `taqdar_admin/tap` | `taqdar_admin/bank` |
+| الإعدادات | `settings` بالبادئة `tq_tap_` | `settings` بالبادئة `tq_bank_` |
+| التفعيل | `Taqdar_tap_model::settle()` تلقائيا | `activate_manually()` بيد المسؤول |
+
+و`admin/payment_settings` الموروثة تعرض ست عشرة بوابة Academy كلها
+`status = 1` — **ولا واحدة منها تمس اشتراكات تقدر**: محرك الفوترة لا يقرأ
+`payment_gateways` في سطر واحد. النافع فيها «عملة النظام» وحدها، وهي عملة
+الدفع في تاب.
+
+**الترتيب في كل شراء:** اشتراك معلق + فاتورة أولا
+(`Taqdar_billing_model::subscribe()`)، ثم تدفع الفاتورة. فالفاتورة هي
+المرساة — بها يدفع الطالب باقة أو مسارا أو فاتورة قديمة اختار لها التحويل
+ثم عدل، بلا فرع ثان. والعكس — دفعة قبل صف — يعني من دفع ثم سقط الاتصال
+دفع بلا شيء عندنا يقابله.
+
+**ثلاث قواعد في [Taqdar_tap_model.php](application/models/Taqdar_tap_model.php)
+لا تخرق:**
+
+1. **المفاتيح في `settings` لا في الشيفرة.** المستودع عام والنشر
+   `git reset --hard`.
+2. **لا يصدق طلب وارد.** عودة الطالب (`payment/tap/return`) والويبهوك
+   (`payment/tap/webhook`) لا يحملان إلا معرف الدفعة، وهو **مفتاح جلب**:
+   القرار على `GET /charges/{id}` بالمفتاح السري وحده. فمن اخترع `tap_id`
+   أو صنع جسم ويبهوك لم يفعل شيئا. والتوقيع (`hashstring`) يفحص ويسجل
+   ولا يقرر.
+3. **المبلغ يقابل الفاتورة.** لكل محاولة صف في `payment_attempts` بقيمة
+   الفاتورة بالهللات وقت البدء، وما ترده تاب يقابله — وإلا فلا تفعيل
+   وحالها `mismatch`.
+
+والبادئة `payment/` في المسارين مقصودة: `csrf_exclude_uris` يستثني
+`payment/.*` وحدها، والويبهوك يأتي بلا كعكة ولا رمز.
+
+**بلا مفاتيح لا شيء يتغير:** `ready()` كاذبة، فلا يعرض للطالب خيار البطاقة
+ولا زر «ادفع الآن»، ويبقى التحويل البنكي وحده كما كان.
+
+ثلاثة أبواب تسد ثلاث فجوات: الويبهوك لمن أغلق المتصفح بعد الدفع،
+و`taqdar_cron reconcile` (كل ربع ساعة) لمن لم يصله ويبهوك، وزر «اسأل تاب»
+في شاشة اللوحة لمن يقول «دفعت ولم يفتح». والثلاثة تنادي `settle()` نفسها،
+وهي مأمونة التكرار.
+
 ## قاعدة البيانات
 
-`taqd_lms` — **75 جدولا**. لا ORM ولا هجرات؛ استعلامات Query Builder
+`taqd_lms` — **77 جدولا**. لا ORM ولا هجرات؛ استعلامات Query Builder
 مباشرة في النماذج.
 
 - **الجوهر:** `users` · `role` · `course` · `lesson` · `section` · `category` · `subjects` · `grades`
-- **تقدر:** `paths` · `plans` · `subscriptions` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts`
-- **الإعدادات:** `settings` (97 صفا) · `frontend_settings` · `payment_gateways` · `seo_fields` — **مفاتيح بوابات الدفع و SMTP تعيش هنا، لا في الشيفرة.**
+- **تقدر:** `paths` · `plans` · `subscriptions` · `invoices` · `payment_attempts` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts` · `site_content`
+- **الإعدادات:** `settings` (102 صفا) · `frontend_settings` · `payment_gateways` · `seo_fields` — **مفاتيح بوابات الدفع و SMTP تعيش هنا، لا في الشيفرة.**
 - **triggerان:** `trg_parent_links_consent_*` على `parent_links`.
+
+**أعمدة تخطئ الظن فيها** (كلها كتبت مرة على أسماء مفترضة فرجعت جداول فارغة
+بلا خطأ): `attempts` صف لكل **محاولة تقييم** لا لكل سؤال — مفتاحه
+`student_id` وفيه `passed` و`submitted_at`، والصواب والخطأ لكل سؤال في
+`answers` (`attempt_id` + `question_id` + `is_correct`). و`skill_state.level`
+مدرج **0..100** لا كسرا عشريا، ومفتاح صاحبه `student_id` لا `user_id`.
+
+بعض الجداول تنشأ وقت التشغيل لا بهجرة: `site_content` من
+`Taqdar_content_model::ensure_schema()`، و`payment_attempts` من
+`Taqdar_tap_model::ensure_schema()`، و`tutoring_sessions` من
+`Taqdar_sessions_model`، و`wallet_entries` من `install_schema()`. فأي
+استعلام إداري عليها يلف بـ`safe_scalar`/`safe_rows` — جدول لم يستعمل بعد
+يرمي استثناء يبيض الشاشة، ورقم ناقص أهون.
+
+**CSRF مفعل** (`csrf_protection = TRUE`) والمستودع فيه ٢٣٢ نموذج مكتوب
+بيد. الحقل يحقن عالميا من [includes_top.php](application/views/backend/includes_top.php)
+عند الإرسال؛ ومع ذلك يكتب `tq_csrf()` صراحة في كل نموذج جديد — نموذج يعتمد
+على JS ليحفظ يسقط صامتا متى تعثر ملف.
+
+جدول `permissions` **فارغ**، و`has_permission()` ترجع `true` لمن لا صف له:
+كل مسؤول يرى كل شيء حتى يضبط له صف من `admin/admins`.
 
 جدول `language` (1872 صفا) يحمل الترجمات إلى جانب `languages/`.
 
@@ -90,6 +189,12 @@ languages/                ملفات الترجمة
 `assets/taqdar/` هي سمة تقدر (`brand` · `css` · `fonts` · `js` · `site`) وهي
 المقصودة عند تعديل مظهر واجهة المنصة. `assets/frontend` و `assets/backend`
 أصول قالب Academy LMS الأصلي. لا خطوة بناء: تحرر ملفات CSS و JS مباشرة.
+
+`tokens.css` **مصدر الهوية الوحيد** — يقرأ منه محركان: `base.css` +
+`layout.css` + `components.css` للموقع والبوابات (أصناف `tq-*`)، و
+`admin.css` للوحة (أصناف `tqa-*` + طبقة تصحح Bootstrap). أي لون أو مسافة
+أو نصف قطر يكتب في `tokens.css` وحده؛ قيمة مباشرة في ملف آخر تخرج عن
+الهوية بلا أن يظهر ذلك إلا بالمقارنة البصرية.
 
 ## قواعد التحرير
 
