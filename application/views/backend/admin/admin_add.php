@@ -1,180 +1,143 @@
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo $page_title; ?>
-                    <a href="<?php echo site_url('admin/admins'); ?>" class="btn btn-outline-primary btn-rounded alignToTitle"> <i class="mdi mdi-arrow-left"></i> <?php echo get_phrase('back_to_admins'); ?></a>
-                </h4>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-</div>
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-                <h4 class="header-title mb-3"><?php echo get_phrase('admin_add_form'); ?></h4>
+/**
+ * إضافة مسؤول.
+ *
+ * TQ-WIZARD-BLANK — كانت هذه الشاشة **معالج أربع خطوات** من قالب Hyper:
+ * `#progressbarwizard` وأربع `.tab-pane` وشريط تقدم متحرك وزرا «السابق»
+ * و«التالي». وثلاثة أعطال فيه:
+ *
+ * ١ — **الشاشة تخرج فارغة إن لم يشتغل المعالج.** `.tab-pane` مخفية في
+ *     Bootstrap حتى تنشط، والذي ينشط أولها هو سكربت المعالج. فإن تعثر
+ *     ملف واحد من حزمة القالب لا يرى المسؤول نموذجا أصلا — لا حقلا ولا
+ *     زرا، بطاقة بيضاء وحدها.
+ * ٢ — **زر الإرسال `type="button"`.** لا يرسل النموذج، بل ينادي
+ *     `checkRequiredFields()` لترسله بيدها. فالنموذج بلا زر إرسال حقيقي،
+ *     ولا يحفظ بلوحة المفاتيح (Enter في حقل لا يفعل شيئا).
+ * ٣ — **الحقل المطلوب يخفى خلف خطوة.** «البريد» و«كلمة المرور» في
+ *     الخطوة الثانية، فالمتصفح يرفض الإرسال لحقل مطلوب لا يستطيع أن
+ *     يعرضه — وهي حالة يصمت فيها Chrome تماما.
+ *
+ * والبديل نموذج مسطح في ثلاث بطاقات معنونة. أربع خطوات لتسعة حقول ليست
+ * تنظيما، وهي تخفي عن المسؤول ما بقي عليه.
+ */
+?>
 
-                <form class="required-form" action="<?php echo site_url('admin/admins/add'); ?>" enctype="multipart/form-data" method="post">
-                    <div id="progressbarwizard">
-                        <ul class="nav nav-pills nav-justified form-wizard-header mb-3">
-                            <li class="nav-item">
-                                <a href="#basic_info" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                    <i class="mdi mdi-face-profile mr-1"></i>
-                                    <span class="d-none d-sm-inline"><?php echo get_phrase('basic_info'); ?></span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#login_credentials" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                    <i class="mdi mdi-lock mr-1"></i>
-                                    <span class="d-none d-sm-inline"><?php echo get_phrase('login_credentials'); ?></span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#social_information" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                    <i class="mdi mdi-wifi mr-1"></i>
-                                    <span class="d-none d-sm-inline"><?php echo get_phrase('social_information'); ?></span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#finish" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                    <i class="mdi mdi-checkbox-marked-circle-outline mr-1"></i>
-                                    <span class="d-none d-sm-inline"><?php echo get_phrase('finish'); ?></span>
-                                </a>
-                            </li>
-                        </ul>
-                        <div class="tab-content b-0 mb-0">
+<?php tqa_head('إضافة مسؤول', 'الحساب الجديد يرى كل شيء حتى تضبط له صلاحيات من شاشة المسؤولين.', 'shield',
+    '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/admins') . '">'
+  . tq_icon('chev-prev', 16) . ' كل المسؤولين</a>'); ?>
 
-                            <div id="bar" class="progress mb-3" style="height: 7px;">
-                                <div class="bar progress-bar progress-bar-striped progress-bar-animated bg-success"></div>
-                            </div>
+<form action="<?php echo site_url('admin/admins/add'); ?>" enctype="multipart/form-data" method="post"
+      style="max-inline-size:860px">
+    <?php echo tq_csrf(); ?>
 
-                            <div class="tab-pane" id="basic_info">
-                                <div class="row">
-                                    <div class="col-12">
-                                        <div class="form-group row mb-3">
-                                            <label class="col-md-3 col-form-label" for="first_name"><?php echo get_phrase('first_name'); ?><span class="required">*</span></label>
-                                            <div class="col-md-9">
-                                                <input type="text" class="form-control" id="first_name" name="first_name" required>
-                                            </div>
-                                        </div>
-                                        <div class="form-group row mb-3">
-                                            <label class="col-md-3 col-form-label" for="last_name"><?php echo get_phrase('last_name'); ?><span class="required">*</span></label>
-                                            <div class="col-md-9">
-                                                <input type="text" class="form-control" id="last_name" name="last_name" required>
-                                            </div>
-                                        </div>
-                                        <div class="form-group row mb-3">
-                                            <label class="col-md-3 col-form-label" for="linkedin_link"><?php echo get_phrase('biography'); ?></label>
-                                            <div class="col-md-9">
-                                                <textarea name="biography" id="summernote-basic" class="form-control"></textarea>
-                                            </div>
-                                        </div>
+    <div class="tqa-card tqa-section">
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('users', 20); ?></span>
+            <h2>معلومات أساسية</h2>
+        </div>
 
-                                        <div class="form-group row mb-3">
-                                            <label class="col-md-3 col-form-label" for="phone"><?php echo get_phrase('Phone'); ?></label>
-                                            <div class="col-md-9">
-                                                <input type="text" class="form-control" id="phone" name="phone">
-                                            </div>
-                                        </div>
+        <div class="tqa-fieldgrid">
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="first_name">
+                    الاسم الأول <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input" type="text" id="first_name" name="first_name" required maxlength="100">
+            </div>
 
-                                        <div class="form-group row mb-3">
-                                            <label class="col-md-3 col-form-label" for="address"><?php echo get_phrase('address'); ?></label>
-                                            <div class="col-md-9">
-                                                <input type="text" class="form-control" id="address" name="address">
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="form-group row mb-3">
-                                            <label class="col-md-3 col-form-label" for="user_image"><?php echo get_phrase('user_image'); ?></label>
-                                            <div class="col-md-9">
-                                                <div class="input-group">
-                                                    <div class="custom-file">
-                                                        <input type="file" class="custom-file-input" id="user_image" name="user_image" accept="image/*" onchange="changeTitleOfImageUploader(this)">
-                                                        <label class="custom-file-label" for="user_image"><?php echo get_phrase('choose_user_image'); ?></label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div> <!-- end col -->
-                                </div> <!-- end row -->
-                            </div>
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="last_name">
+                    اسم العائلة <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input" type="text" id="last_name" name="last_name" required maxlength="100">
+            </div>
 
-                            <div class="tab-pane" id="login_credentials">
-                                <div class="row">
-                                    <div class="col-12">
-                                        <div class="form-group row mb-3">
-                                            <label class="col-md-3 col-form-label" for="email"><?php echo get_phrase('email'); ?><span class="required">*</span></label>
-                                            <div class="col-md-9">
-                                                <input type="email" id="email" name="email" class="form-control" required>
-                                            </div>
-                                        </div>
-                                        <div class="form-group row mb-3">
-                                            <label class="col-md-3 col-form-label" for="password"><?php echo get_phrase('password'); ?><span class="required">*</span></label>
-                                            <div class="col-md-9">
-                                                <input type="password" id="password" name="password" class="form-control" required>
-                                            </div>
-                                        </div>
-                                    </div> <!-- end col -->
-                                </div> <!-- end row -->
-                            </div>
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="phone">الهاتف</label>
+                <input class="tqa-input tqa-input--ltr" type="tel" id="phone" name="phone"
+                       inputmode="tel" autocomplete="tel">
+            </div>
 
-                            <div class="tab-pane" id="social_information">
-                                <div class="row">
-                                    <div class="col-12">
-                                        <div class="form-group row mb-3">
-                                            <label class="col-md-3 col-form-label" for="facebook_link"> <?php echo get_phrase('facebook'); ?></label>
-                                            <div class="col-md-9">
-                                                <input type="text" id="facebook_link" name="facebook_link" class="form-control">
-                                            </div>
-                                        </div>
-                                        <div class="form-group row mb-3">
-                                            <label class="col-md-3 col-form-label" for="twitter_link"><?php echo get_phrase('twitter'); ?></label>
-                                            <div class="col-md-9">
-                                                <input type="text" id="twitter_link" name="twitter_link" class="form-control">
-                                            </div>
-                                        </div>
-                                        <div class="form-group row mb-3">
-                                            <label class="col-md-3 col-form-label" for="linkedin_link"><?php echo get_phrase('linkedin'); ?></label>
-                                            <div class="col-md-9">
-                                                <input type="text" id="linkedin_link" name="linkedin_link" class="form-control">
-                                            </div>
-                                        </div>
-                                    </div> <!-- end col -->
-                                </div> <!-- end row -->
-                            </div>
-                            <div class="tab-pane" id="finish">
-                                <div class="row">
-                                    <div class="col-12">
-                                        <div class="text-center">
-                                            <h2 class="mt-0"><i class="mdi mdi-check-all"></i></h2>
-                                            <h3 class="mt-0"><?php echo get_phrase('thank_you'); ?> !</h3>
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="address">العنوان</label>
+                <input class="tqa-input" type="text" id="address" name="address">
+            </div>
 
-                                            <p class="w-75 mb-2 mx-auto"><?php echo get_phrase('you_are_just_one_click_away'); ?></p>
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="biography">نبذة</label>
+                <textarea class="tqa-textarea" id="biography" name="biography" rows="4"></textarea>
+                <span class="tqa-field__hint">اختيارية — لا تعرض في الموقع العام.</span>
+            </div>
 
-                                            <div class="mb-3">
-                                                <button type="button" class="btn btn-primary" onclick="checkRequiredFields()" name="button"><?php echo get_phrase('submit'); ?></button>
-                                            </div>
-                                        </div>
-                                    </div> <!-- end col -->
-                                </div> <!-- end row -->
-                            </div>
-
-                            <ul class="list-inline mb-0 wizard text-center">
-                                <li class="previous list-inline-item">
-                                    <a href="javascript:;" class="btn btn-info"> <i class="mdi mdi-arrow-left-bold"></i> </a>
-                                </li>
-                                <li class="next list-inline-item">
-                                    <a href="javascript:;" class="btn btn-info"> <i class="mdi mdi-arrow-right-bold"></i> </a>
-                                </li>
-                            </ul>
-
-                        </div> <!-- tab-content -->
-                    </div> <!-- end #progressbarwizard-->
-                </form>
-
-            </div> <!-- end card-body -->
-        </div> <!-- end card-->
+            <div class="tqa-field tqa-field--full">
+                <span class="tqa-field__label">الصورة الشخصية</span>
+                <div class="tqa-file">
+                    <input type="file" id="user_image" name="user_image" accept="image/*" data-tqa-file>
+                    <label class="tqa-file__btn" for="user_image">
+                        <?php echo tq_icon('image', 16); ?> اختر صورة
+                    </label>
+                    <span class="tqa-file__name" data-tqa-file-name>لم تختر ملفا بعد</span>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+
+    <div class="tqa-card tqa-section">
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('lock', 20); ?></span>
+            <h2>بيانات الدخول</h2>
+        </div>
+
+        <div class="tqa-fieldgrid">
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="email">
+                    البريد الإلكتروني <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input tqa-input--ltr" type="email" id="email" name="email" required
+                       autocomplete="off" dir="ltr">
+                <span class="tqa-field__hint">هو اسم الدخول، ولا يتكرر بين حسابين.</span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="password">
+                    كلمة المرور <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input tqa-input--ltr" type="password" id="password" name="password" required
+                       minlength="8" autocomplete="new-password" dir="ltr">
+                <span class="tqa-field__hint">ثمانية محارف على الأقل.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tqa-card tqa-section">
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-lilac" aria-hidden="true"><?php echo tq_icon('link', 20); ?></span>
+            <h2>روابط التواصل</h2>
+        </div>
+
+        <div class="tqa-fieldgrid tqa-fieldgrid--3">
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="facebook_link">فيسبوك</label>
+                <input class="tqa-input tqa-input--ltr" type="url" id="facebook_link" name="facebook_link" dir="ltr">
+            </div>
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="twitter_link">إكس (تويتر)</label>
+                <input class="tqa-input tqa-input--ltr" type="url" id="twitter_link" name="twitter_link" dir="ltr">
+            </div>
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="linkedin_link">لينكدإن</label>
+                <input class="tqa-input tqa-input--ltr" type="url" id="linkedin_link" name="linkedin_link" dir="ltr">
+            </div>
+        </div>
+    </div>
+
+    <div class="tqa-actions">
+        <button type="submit" class="tqa-btn tqa-btn--primary">
+            <?php echo tq_icon('check', 16); ?> أنشئ الحساب
+        </button>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/admins'); ?>">إلغاء</a>
+    </div>
+</form>
+
+<?php include 'tqa_file_js.php'; ?>

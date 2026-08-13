@@ -1,4 +1,4 @@
-<div class="table-responsive">
+<div class="tqa-table__wrap">
   <table class="studentAcademicProgress table table-striped table-centered mb-4">
     <thead>
       <tr>
@@ -26,7 +26,7 @@
         <tr>
           <td>
             <p class="my-0"><?php echo $student['first_name'].' '.$student['last_name']; ?></p>
-            <span class="badge badge-light"><?php echo $student['email']; ?></span>
+            <span class="tqa-badge tqa-badge--muted"><?php echo $student['email']; ?></span>
           </td>
           <td>
             <p class="my-0"><b><?php echo get_phrase('Enrolled from'); ?>-</b> <?php echo date('d M Y', $enrolment['date_added']); ?></p>
@@ -57,10 +57,10 @@
           </td>
           <td class="text-center">
             <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-              <a href="javascript:;" onclick="showLargeModal('<?php echo site_url('admin/student_academic_quiz_result/'.$course_details['id'].'/'.$enrolment['user_id']); ?>', '<?php echo get_phrase('Quiz results'); ?>')" class="btn btn-light cursor-pointer" data-toggle="tooltip" title="<?php echo get_phrase('Quiz results'); ?>"><i class="far fa-address-card"></i></a>
+              <a href="javascript:;" onclick="showLargeModal('<?php echo site_url('admin/student_academic_quiz_result/'.$course_details['id'].'/'.$enrolment['user_id']); ?>', '<?php echo get_phrase('Quiz results'); ?>')" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-toggle="tooltip" title="<?php echo get_phrase('Quiz results'); ?>"><i class="far fa-address-card"></i></a>
 
               <?php if(addon_status('certificate')): ?>
-                <a href="<?php echo site_url('admin/student_certificate/'.$enrolment['user_id'].'/'.$course_details['id']); ?>" target="_blank" class="btn btn-light cursor-pointer" data-toggle="tooltip" title="<?php echo get_phrase('Certificate'); ?>">
+                <a href="<?php echo site_url('admin/student_certificate/'.$enrolment['user_id'].'/'.$course_details['id']); ?>" target="_blank" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-toggle="tooltip" title="<?php echo get_phrase('Certificate'); ?>">
                   <i class="fas fa-graduation-cap"></i>
                 </a>
               <?php endif; ?>

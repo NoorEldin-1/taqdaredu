@@ -1,57 +1,81 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
-    // $student_list = $this->crud_model->all_enrolled_student()->result_array();
-    $student_list = $this->user_model->get_user()->result_array();
+/**
+ * رسالة جديدة.
+ *
+ * ما تغير:
+ *
+ * ١ — **`get_user()` كانت ترجع كل حسابات المنصة** تحت عنوان «الطلاب»:
+ *     معلمين وأولياء أمور ومسؤولين معهم، وكلهم في مجموعة اسمها «طلاب».
+ *     صارت مجموعات حقيقية، وكل حساب في مجموعته.
+ * ٢ — **`select2` غير محمل في اللوحة**، فالصنف زينة والمنتقي قائمة
+ *     عادية أصلا. حذف الصنف، وأضيف بحث المتصفح الأصلي عبر `<optgroup>`.
+ * ٣ — **`check_receiver()` كانت تنادي `toastr`** — وهي مكتبة غير محملة،
+ *     فالنداء يرمي `toastr is not defined`. ولم تكن تنادى من أي مكان
+ *     أصلا: الزر لا يحمل `onclick`. حذفت، والإلزام يفرضه `required`.
+ */
+$tq_people = $this->db->select('id, first_name, last_name, email, is_instructor, role_id')
+                      ->order_by('first_name', 'ASC')
+                      ->get('users')->result_array();
+
+$tq_groups = array(
+    'teacher' => array('المعلمون', array()),
+    'student' => array('الطلاب',   array()),
+    'admin'   => array('المسؤولون', array()),
+);
+
+foreach ($tq_people as $tq_p) {
+    if ((int) $tq_p['role_id'] === 1)          $tq_key = 'admin';
+    elseif ((int) $tq_p['is_instructor'] === 1) $tq_key = 'teacher';
+    else                                        $tq_key = 'student';
+
+    $tq_groups[$tq_key][1][] = $tq_p;
+}
 ?>
-<div class="card">
-	<h3>
-		<span class="p-3"><?php echo get_phrase('write_new_messages');?></span>
-	</h3>
-	<div class="card-body">
-		<form method="post" class="mt-2" action="<?php echo site_url('admin/message/send_new'); ?>" enctype="multipart/form-data">
 
-			<div class="form-group">
-		        <div class="row">
-		            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-		            	<label><?php echo get_phrase('Recipient'); ?></label>
-		            	<i class="float-right mdi mdi-reply"></i>
-                        <select class="form-control select2" data-toggle="select2" name="receiver" id="receiver" required>
-							<option value=""><?php echo get_phrase('select_a_user');?></option>
-                            <optgroup label="<?php echo get_phrase('students'); ?>">
-                                <?php foreach($student_list as $student):?>
-                                    <option value="<?php echo $student['id']; ?>">
-                                        - <?php echo $student['first_name'].' '.$student['last_name']; ?></option>
-                                <?php endforeach; ?>
-                            </optgroup>
-						</select>
-		            </div>
-		        </div>
-		    </div>
+<div class="tqa-card">
+    <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+        <span class="tqa-iconbox" aria-hidden="true"><?php echo tq_icon('edit', 20); ?></span>
+        <h2>رسالة جديدة</h2>
+    </div>
 
-		    <div class="form-group">
-		        <div class="row">
-		            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-		                <textarea class="form-control" rows="5" name="message" id="message" placeholder="<?php echo get_phrase('type_your_message'); ?>" required></textarea>
-		            </div>
-		        </div>
-		    </div>
+    <form method="post" action="<?php echo site_url('admin/message/send_new'); ?>">
+        <?php echo tq_csrf(); ?>
 
-		    <div class="form-group mt-4">
-		        <div class="row">
-		            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-13 text-center">
-		                <button type="submit" class="btn btn-success float-right"><?php echo get_phrase('sent_message'); ?></button>
-		            </div>
-		        </div>
-		    </div>
-		</form>
-	</div>
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="receiver">
+                المستقبل <span class="tqa-field__req" aria-hidden="true">*</span>
+            </label>
+            <select class="tqa-select" id="receiver" name="receiver" required>
+                <option value="">— اختر حسابا</option>
+                <?php foreach ($tq_groups as [$tq_glabel, $tq_gpeople]): ?>
+                    <?php if (empty($tq_gpeople)) continue; ?>
+                    <optgroup label="<?php echo html_escape($tq_glabel); ?>">
+                        <?php foreach ($tq_gpeople as $tq_p):
+                            $tq_n = trim($tq_p['first_name'] . ' ' . $tq_p['last_name']);
+                        ?>
+                            <option value="<?php echo (int) $tq_p['id']; ?>">
+                                <?php echo html_escape($tq_n !== '' ? $tq_n : $tq_p['email']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </optgroup>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="message">
+                نص الرسالة <span class="tqa-field__req" aria-hidden="true">*</span>
+            </label>
+            <textarea class="tqa-textarea" id="message" name="message" rows="6" required
+                      placeholder="اكتب رسالتك…"></textarea>
+        </div>
+
+        <div class="tqa-actions">
+            <button type="submit" class="tqa-btn tqa-btn--primary">
+                <?php echo tq_icon('send', 16); ?> أرسل الرسالة
+            </button>
+            <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/message'); ?>">إلغاء</a>
+        </div>
+    </form>
 </div>
-
-<script type="text/javascript">
-	function check_receiver() {
-		var check_receiver = $('#receiver').val();
-		if (check_receiver == '' || check_receiver == 0) {
-			toastr.error("Please select a receiver", "Error");
-            return false;
-		}
-	}
-</script>

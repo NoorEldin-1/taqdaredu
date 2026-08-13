@@ -4,21 +4,21 @@
  ?>
 
 <?php if (count($sections)): ?>
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row" id = "parent-div" data-plugin="dragula" data-containers='["section-list"]'>
-                        <div class="col-md-12">
+    <div class="tqa-stack">
+        <div>
+            <div class="tqa-card">
+                <div class="tqa-card__body">
+                    <div class="tqa-stack" id = "parent-div" data-plugin="dragula" data-containers='["section-list"]'>
+                        <div>
                             <div class="bg-dragula p-2 p-lg-4">
                                 <h5 class="mt-0"><?php echo get_phrase('list_of_sections'); ?>
-                                    <button type="button" class="btn btn-outline-primary btn-sm btn-rounded alignToTitle" id = "section-sort-btn" onclick="sort()" name="button"><?php echo get_phrase('update_sorting'); ?></button>
+                                    <button type="button" class="tqa-btn tqa-btn--ghost" id = "section-sort-btn" onclick="sort()" name="button"><?php echo get_phrase('update_sorting'); ?></button>
                                 </h5>
                                 <div id="section-list" class="py-2">
                                     <?php foreach ($sections as $section): ?>
                                         <!-- Item -->
                                         <div class="card mb-0 mt-2 draggable-item" id = "<?php echo $section['id']; ?>">
-                                            <div class="card-body">
+                                            <div class="tqa-card__body">
                                                 <div class="media">
                                                     <div class="media-body">
                                                         <h5 class="mb-1 mt-0"><?php echo $section['title']; ?></h5>

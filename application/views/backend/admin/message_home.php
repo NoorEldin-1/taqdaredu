@@ -1,4 +1,19 @@
-<div class="img-fluid w-100 text-center">
-	<img style="opacity: 1; width: 100px;" src="<?php echo base_url('assets/backend/images/file-search.svg'); ?>"><br>
-	<?php echo get_phrase('choose_an_option_from_the_left_side'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php
+/**
+ * لا محادثة مختارة.
+ *
+ * كانت صورة SVG من أصول القالب ونص «اختر خيارا من القائمة الجانبية» —
+ * و«الجانبية» في صفحة عربية جهة أخرى غير التي كتب لها النص. وحالة الفراغ
+ * هنا تقول ما يفعل، لا ما هو حاصل.
+ */
+?>
+<div class="tqa-card tqa-card--flush">
+    <?php tqa_empty(
+        'اختر محادثة',
+        'المحادثات معروضة إلى جانب هذه المساحة. اختر واحدة لقراءتها والرد عليها، أو ابدأ محادثة جديدة.',
+        'رسالة جديدة',
+        site_url('admin/message/message_new'),
+        'chat'
+    ); ?>
 </div>

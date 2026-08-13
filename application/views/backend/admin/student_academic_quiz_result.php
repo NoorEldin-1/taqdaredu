@@ -1,7 +1,7 @@
 <?php $quizes = $this->db->order_by('order', 'asc')->get_where('lesson', ['course_id' => $course_details['id'], 'lesson_type' => 'quiz'])->result_array(); ?>
-<div class="row">
+<div class="tqa-stack">
 	<?php foreach($quizes as $key => $quiz): ?>
-		<div class="col-md-12 border-bottom pb-2 mt-2">
+		<div>
 			<p class="w-100 mb-0 fw-bold">
 				<b>Q<?php echo ++$key.'. '; ?></b>
 				<span class="d-inline-block float-right"><?php echo get_phrase('Total Marks') ?>: <b><?php echo json_decode($quiz['attachment'])->total_marks; ?></b></span>
@@ -26,7 +26,7 @@
 				<?php endforeach; ?>
 			</p>
 
-			<a class="btn btn-primary btn-sm mt-3" href="<?php echo site_url('home/lesson/'.slugify($course_details['title']).'/'.$course_details['id'].'/'.$quiz['id'].'?student_id='.$student_id); ?>" target="_blank"><?php echo get_phrase('Go to answer sheet'); ?></a>
+			<a class="tqa-btn tqa-btn--primary tqa-btn--sm" href="<?php echo site_url('home/lesson/'.slugify($course_details['title']).'/'.$course_details['id'].'/'.$quiz['id'].'?student_id='.$student_id); ?>" target="_blank"><?php echo get_phrase('Go to answer sheet'); ?></a>
 		</div>
 	<?php endforeach; ?>
 </div>

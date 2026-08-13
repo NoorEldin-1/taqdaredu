@@ -1,217 +1,360 @@
-<div class="row ">
-	<div class="col-xl-12">
-		<div class="card">
-			<div class="card-body">
-				<h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('manage_language'); ?></h4>
-			</div>
-		</div>
-	</div>
-</div>
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-<div class="row">
-	<div class="col-12">
-		<div class="card">
-			<div class="card-body">
-				<ul class="nav nav-tabs nav-bordered mb-3">
-					<?php if (isset($edit_profile)) : ?>
-						<li class="nav-item">
-							<a href="#edit" data-toggle="tab" aria-expanded="true" class="nav-link active">
-								<?php echo get_phrase('edit_phrase'); ?>
-							</a>
-						</li>
-					<?php endif; ?>
-					<li class="nav-item">
-						<a href="#list" data-toggle="tab" aria-expanded="false" class="nav-link <?php if (!isset($edit_profile)) echo 'active'; ?>">
-							<i class="mdi mdi-home-variant d-lg-none d-block mr-1"></i>
-							<span class="d-none d-lg-block"><?php echo get_phrase('language_list'); ?></span>
-						</a>
-					</li>
-					<li class="nav-item">
-						<a href="#add_lang" data-toggle="tab" aria-expanded="false" class="nav-link">
-							<i class="mdi mdi-settings-outline d-lg-none d-block mr-1"></i>
-							<span class="d-none d-lg-block"><?php echo get_phrase('add_language'); ?></span>
-						</a>
-					</li>
-					<li class="nav-item">
-						<a href="#import_language" data-toggle="tab" aria-expanded="false" class="nav-link">
-							<i class="mdi mdi-settings-outline d-lg-none d-block mr-1"></i>
-							<span class="d-none d-lg-block"><?php echo get_phrase('Import language'); ?></span>
-						</a>
-					</li>
-				</ul>
+/**
+ * اللغات والترجمة.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*`. وما تغير:
+ *
+ * ١ — **تبويب رابع لا رابط إليه.** كان في الملف `.tab-pane#add` — نموذج
+ *     «إضافة عبارة جديدة» — وليس في شريط التبويبات بند يفتحه. أي أن
+ *     النموذج مرسوم في الصفحة ولا سبيل إلى رؤيته. صار قسما ظاهرا.
+ * ٢ — **`<form action="#">` داخل خلية جدول** لأزرار الاتجاه، وهي لا
+ *     ترسل شيئا أصلا (الحفظ بـAJAX). فالنموذج زينة تكسر شجرة المستند.
+ * ٣ — **اسم الحقل `direction` مكرر في كل صف.** المتصفح يجمع أزرار
+ *     الراديو بالاسم داخل النموذج الواحد؛ وهي هنا في نماذج منفصلة
+ *     صدفة — فأي إعادة ترتيب تجعل اختيار اتجاه لغة يلغي اختيار الأخرى.
+ *     صار الاسم فريدا لكل لغة.
+ * ٤ — **`success_notify(response)`** يعرض في كل حال، ولا معالج خطأ:
+ *     يقال «حدث الاتجاه» ولو رد الخادم 500.
+ * ٥ — **حذف اللغة برابط GET** ينفذ بمجرد جلبه. صار نموذج POST بتوكن.
+ * ٦ — **محرر العبارات كان أربعة أعمدة من البطاقات**، بطاقة كاملة لكل
+ *     عبارة — وملف الترجمة فيه ألوف. صار جدولا، وفيه بحث في المتصفح.
+ */
+$tq_dirs = get_settings('language_dirs')
+    ? json_decode(get_settings('language_dirs'), true)
+    : array('english' => 'ltr');
+if (!is_array($tq_dirs)) $tq_dirs = array();
 
-				<div class="tab-content">
-					<!----PHRASE EDITING TAB STARTS-->
-					<?php if (isset($edit_profile)) :
-						$current_editing_language	=	$edit_profile;
-					?>
-						<div class="tab-pane show active" id="edit" style="padding: 30px">
-							<div class="row">
-								<?php foreach (openJSONFile($edit_profile) as $key => $value) : ?>
-									<div class="col-xl-3 col-lg-6">
-										<div class="card">
-											<div class="card-header">
-												<?php echo $key; ?>
-											</div>
-											<div class="card-body">
-												<p>
-													<input type="text" class="form-control" name="updated_phrase" value="<?php echo $value; ?>" id="phrase-<?php echo slugify($key); ?>">
-												</p>
-												<button type="button" class="btn btn-icon btn-primary" style="float: right;" id="btn-<?php echo slugify($key); ?>" onclick="updatePhrase('<?php echo slugify($key); ?>', '<?php echo $key; ?>')"> <i class="mdi mdi-check-circle"></i> </button>
-											</div>
-										</div>
-									</div>
-								<?php endforeach; ?>
-							</div>
-						</div>
-					<?php endif; ?>
-					<!----PHRASE EDITING TAB ENDS-->
+$tq_active = get_settings('language');
+$tq_editing = isset($edit_profile) ? $edit_profile : '';
+?>
 
-					<!----TABLE LISTING STARTS-->
-					<div class="tab-pane <?php if (!isset($edit_profile)) echo 'show active'; ?>" id="list">
+<?php if ($tq_editing !== ''): ?>
 
-						<div class="table-responsive-sm">
-							<table class="table table-bordered table-centered mb-0">
-								<thead>
-									<tr>
-										<th><?php echo get_phrase('language'); ?></th>
-										<th><?php echo get_phrase('Direction'); ?></th>
-										<th><?php echo get_phrase('option'); ?></th>
-									</tr>
-								</thead>
-								<tbody>
-									<?php
-									$language_dirs = get_settings('language_dirs') ? json_decode(get_settings('language_dirs'), true) : ['english' => 'ltr'];
-									foreach ($languages as $language) :
-										if(array_key_exists($language, $language_dirs)){
-											$dir = $language_dirs[$language];
-										}else{
-											$dir = 'ltr';
-										}
-										?>
-										<tr>
-											<td><?php echo ucwords($language); ?></td>
-											<td>
-												<div class="form-group">
-													<form action="#">
-														<input onchange="update_language_dir('<?php echo $language; ?>', 'ltr')" name="direction" id="direction_ltr<?php echo $language; ?>" type="radio" value="ltr" <?php if($dir == 'ltr') echo 'checked'; ?>>
-														<label for="direction_ltr<?php echo $language; ?>"><?php echo get_phrase('LTR') ?></label>
-														&nbsp;&nbsp;
-														<input onchange="update_language_dir('<?php echo $language; ?>', 'rtl')" name="direction" id="direction_rtl<?php echo $language; ?>" type="radio" value="rtl" <?php if($dir == 'rtl') echo 'checked'; ?>>
-														<label for="direction_rtl<?php echo $language; ?>"><?php echo get_phrase('RTL') ?></label>
-													</form>
-												</div>
-											</td>
-											<td>
-												<a href="<?php echo site_url('admin/manage_language/edit_phrase/' . $language); ?>" class="btn btn-info">
-													<?php echo get_phrase('edit_phrase'); ?>
-												</a>
-												<a href="<?php echo site_url('admin/export_language/' . $language); ?>" class="btn btn-success">
-													<?php echo get_phrase('export'); ?>
-												</a>
-												<a href="javascript:;" onclick="confirm_modal('<?php echo site_url('admin/manage_language/delete_language/' . $language); ?>')" class="btn btn-danger">
-													<?php echo get_phrase('delete_language'); ?>
-												</a>
-											</td>
-										</tr>
-									<?php endforeach; ?>
-								</tbody>
-							</table>
+    <?php tqa_head('ترجمة ' . ucwords($tq_editing), 'العبارة تحفظ فور تعديلها — لا زر حفظ عام.', 'translate',
+        '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/manage_language') . '">'
+      . tq_icon('chev-prev', 16) . ' كل اللغات</a>'); ?>
 
-						</div>
-					</div>
-					<!----TABLE LISTING ENDS--->
+    <?php $tq_phrases = openJSONFile($tq_editing); ?>
 
-					<!----PHRASE CREATION FORM STARTS---->
-					<div class="tab-pane" id="add" style="padding: 30px">
-						<div class="row">
-							<div class="col-xl-6">
-								<form class="" action="<?php echo site_url('admin/manage_language/add_phrase') ?>" method="post">
-									<div class="form-group mb-3">
-										<label for="simpleinput"><?php echo get_phrase('add_new_phrase'); ?></label>
-										<input type="text" id="phrase" name="phrase" class="form-control" placeholder="Eg. Contamination">
-									</div>
-									<button type="submit" class="btn btn-primary" name="button"><?php echo get_phrase('save'); ?></button>
-								</form>
-							</div>
-						</div>
-					</div>
-					<!----PHRASE CREATION FORM ENDS--->
+    <div class="tqa-toolbar">
+        <label class="tqa-sr" for="phrase_filter">ابحث في العبارات</label>
+        <input class="tqa-input" type="search" id="phrase_filter" data-tqa-filter
+               placeholder="ابحث في المفاتيح والترجمات…" style="min-inline-size:320px">
+        <span style="font:var(--tq-type-caption);color:var(--tq-text2)">
+            <span class="tqa-num" data-tqa-filter-count><?php echo count($tq_phrases); ?></span>
+            من <span class="tqa-num"><?php echo count($tq_phrases); ?></span> عبارة
+        </span>
+    </div>
 
-					<!----ADD NEW LANGUAGE---->
-					<div class="tab-pane" id="add_lang" style="padding: 30px">
-						<div class="row">
-							<div class="col-xl-6">
-								<form class="" action="<?php echo site_url('admin/manage_language/add_language'); ?>" method="post">
-									<div class="form-group mb-3">
-										<label for="language"><?php echo get_phrase('add_new_language'); ?></label>
-										<input type="text" id="language" name="language" class="form-control" placeholder="<?php echo get_phrase('no_special_character_or_space_is_allowed') . '. ' . get_phrase('valid_examples') . ' : French, Spanish, Bengali etc'; ?>">
-									</div>
-									<button type="submit" class="btn btn-primary" name="button"><?php echo get_phrase('save'); ?></button>
-								</form>
-							</div>
-						</div>
-					</div>
-					<!----LANGUAGE ADDING FORM ENDS-->
+    <div class="tqa-card tqa-card--flush">
+        <div class="tqa-table__wrap">
+            <table class="tqa-table">
+                <caption class="tqa-sr">مفاتيح الترجمة وقيمها في لغة <?php echo html_escape($tq_editing); ?></caption>
+                <thead>
+                    <tr>
+                        <th style="inline-size:34%">المفتاح</th>
+                        <th>الترجمة</th>
+                    </tr>
+                </thead>
+                <tbody data-tqa-filter-body>
+                <?php foreach ($tq_phrases as $tq_key => $tq_val): $tq_slug = slugify($tq_key); ?>
+                    <tr>
+                        <td data-label="المفتاح">
+                            <span class="tq-ltr" dir="ltr" style="font:var(--tq-type-micro);color:var(--tq-text2)">
+                                <?php echo html_escape($tq_key); ?>
+                            </span>
+                        </td>
+                        <td data-label="الترجمة">
+                            <div class="tqa-row" style="flex-wrap:nowrap">
+                                <input class="tqa-input" type="text" id="p-<?php echo $tq_slug; ?>"
+                                       value="<?php echo html_escape($tq_val); ?>"
+                                       data-tqa-phrase="<?php echo html_escape($tq_key); ?>"
+                                       aria-label="ترجمة <?php echo html_escape($tq_key); ?>">
+                                <span class="tqa-badge tqa-badge--ok" hidden data-tqa-phrase-ok>
+                                    <?php echo tq_icon('check', 12); ?> حفظ
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-					<!----ADD NEW LANGUAGE---->
-					<div class="tab-pane" id="import_language" style="padding: 30px">
-						<div class="row">
-							<div class="col-xl-6">
-								<p>Import your language files from here.</p>
-								<form action="<?php echo site_url('admin/language_import'); ?>" method="post" enctype="multipart/form-data">
-									<div class="input-group mb-3">
-										<div class="input-group">
-											<div class="custom-file">
-												<input type="file" class="custom-file-input" name="language_files[]" id="language_files" onchange="changeTitleOfImageUploader(this)" accept=".json" multiple required>
-												<label class="custom-file-label ellipsis" for="language_files"><?php echo get_phrase('choose_your_json_file'); ?></label>
-											</div>
-										</div>
-										<span class="badge badge-light">Ex: english.json</span>
-									</div>
+    <script>
+    /**
+     * حفظ العبارة عند مغادرة الحقل.
+     *
+     * كان الحفظ بزر لكل عبارة، والزر يعرض «تم» في كل حال — ولا معالج
+     * خطأ في النداء إطلاقا. وهنا: الحفظ عند التغيير الفعلي وحده (لا عند
+     * مرور المؤشر)، والشارة تظهر عند النجاح فقط، والفشل يعلن.
+     */
+    (function () {
+        'use strict';
 
-									<div class="form-group">
-										<button type="submit" class="btn btn-primary"> <i class="mdi mdi-database-export"></i> <?php echo get_phrase('import'); ?></button>
-									</div>
-								</form>
-							</div>
-						</div>
-					</div>
-					<!----LANGUAGE ADDING FORM ENDS-->
-				</div>
-			</div>
-		</div>
-	</div>
-</div>
+        var URL  = <?php echo json_encode(site_url('admin/update_phrase_with_ajax')); ?>;
+        var LANG = <?php echo json_encode($tq_editing); ?>;
+        var CSRF = window.TQ_CSRF || null;
 
-<script type="text/javascript">
-	function updatePhrase(key, key_main) {
-		$('#btn-' + key).text('...');
-		var updatedValue = $('#phrase-' + key).val();
-		var currentEditingLanguage = '<?php echo isset($current_editing_language) ? $current_editing_language:''; ?>';
-		$.ajax({
-			type: "POST",
-			url: "<?php echo site_url('admin/update_phrase_with_ajax'); ?>",
-			data: {
-				updatedValue: updatedValue,
-				currentEditingLanguage: currentEditingLanguage,
-				key: key_main
-			},
-			success: function(response) {
-				$('#btn-' + key).html('<i class = "mdi mdi-check-circle"></i>');
-				success_notify('<?php echo get_phrase('phrase_updated'); ?>');
-			}
-		});
-	}
+        Array.prototype.forEach.call(document.querySelectorAll('[data-tqa-phrase]'), function (input) {
+            var was = input.value;
+            var ok  = input.parentNode.querySelector('[data-tqa-phrase-ok]');
 
-	function update_language_dir(language, dir){
-		$.ajax({
-			type: 'post',
-			url: '<?php echo site_url('admin/update_language_direction'); ?>',
-			data: {'language':language, 'dir':dir},
-			success: function(response){
-				success_notify(response);
-			}
-		});
-	}
-</script>
+            input.addEventListener('change', function () {
+                if (input.value === was) return;
+
+                var body = new URLSearchParams();
+                body.set('updatedValue', input.value);
+                body.set('currentEditingLanguage', LANG);
+                body.set('key', input.getAttribute('data-tqa-phrase'));
+                if (CSRF && CSRF.name) body.set(CSRF.name, CSRF.hash);
+
+                input.disabled = true;
+
+                fetch(URL, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString()
+                }).then(function (r) {
+                    if (!r.ok) throw new Error(r.status);
+                    was = input.value;
+                    if (ok) {
+                        ok.hidden = false;
+                        setTimeout(function () { ok.hidden = true; }, 1600);
+                    }
+                }).catch(function () {
+                    input.value = was;
+                    if (window.TQA) TQA.error('لم تحفظ العبارة. حدث الصفحة وأعد المحاولة.');
+                }).then(function () {
+                    input.disabled = false;
+                });
+            });
+        });
+
+        /* ترشيح في المتصفح: ملف الترجمة فيه ألوف من المفاتيح، والبحث
+           فيها بالتمرير غير ممكن. */
+        var filter = document.querySelector('[data-tqa-filter]');
+        var body   = document.querySelector('[data-tqa-filter-body]');
+        var count  = document.querySelector('[data-tqa-filter-count]');
+
+        if (filter && body) {
+            filter.addEventListener('input', function () {
+                var q = filter.value.trim().toLowerCase();
+                var n = 0;
+
+                Array.prototype.forEach.call(body.rows, function (row) {
+                    var hit = q === '' || row.textContent.toLowerCase().indexOf(q) !== -1
+                           || row.querySelector('input').value.toLowerCase().indexOf(q) !== -1;
+                    row.hidden = !hit;
+                    if (hit) n++;
+                });
+
+                if (count) count.textContent = n;
+            });
+        }
+    })();
+    </script>
+
+<?php else: ?>
+
+    <?php tqa_head('اللغات والترجمة',
+        'كل لغة ملف ترجمة واحد. واتجاه الكتابة يتبع اللغة ولا يضبط لكل صفحة.',
+        'translate'); ?>
+
+    <div class="tqa-card tqa-card--flush tqa-section">
+        <div class="tqa-card__head">
+            <span class="tqa-iconbox" aria-hidden="true"><?php echo tq_icon('globe', 20); ?></span>
+            <h2>اللغات المركبة</h2>
+        </div>
+
+        <div class="tqa-table__wrap">
+            <table class="tqa-table">
+                <caption class="tqa-sr">اللغات المركبة واتجاه كل منها</caption>
+                <thead>
+                    <tr>
+                        <th>اللغة</th>
+                        <th style="inline-size:220px">اتجاه الكتابة</th>
+                        <th style="inline-size:320px"><span class="tqa-sr">إجراءات</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($languages as $tq_l):
+                    $tq_dir = $tq_dirs[$tq_l] ?? 'ltr';
+                    $tq_is  = $tq_active === $tq_l;
+                ?>
+                    <tr>
+                        <td data-label="اللغة">
+                            <span class="tqa-media__title"><?php echo html_escape(ucwords($tq_l)); ?></span>
+                            <?php if ($tq_is): ?>
+                                <span class="tqa-badge tqa-badge--ok">لغة النظام</span>
+                            <?php endif; ?>
+                        </td>
+
+                        <td data-label="اتجاه الكتابة">
+                            <div class="tqa-checkrow">
+                                <?php foreach (array('ltr' => 'من اليسار', 'rtl' => 'من اليمين') as $tq_d => $tq_dl): ?>
+                                    <label class="tqa-check">
+                                        <?php /* الاسم فريد لكل لغة: الاسم المشترك يجمع الأزرار
+                                                 عبر الصفوف، فاختيار اتجاه لغة يلغي اختيار جارتها. */ ?>
+                                        <input type="radio" name="dir_<?php echo html_escape($tq_l); ?>"
+                                               value="<?php echo $tq_d; ?>"
+                                               data-tqa-dir="<?php echo html_escape($tq_l); ?>"
+                                               <?php echo $tq_dir === $tq_d ? 'checked' : ''; ?>>
+                                        <span><?php echo $tq_dl; ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </td>
+
+                        <td data-label="إجراءات">
+                            <div class="tqa-rowacts">
+                                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                   href="<?php echo site_url('admin/manage_language/edit_phrase/' . rawurlencode($tq_l)); ?>">
+                                    <?php echo tq_icon('edit', 14); ?> تحرير العبارات
+                                </a>
+
+                                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                   href="<?php echo site_url('admin/export_language/' . rawurlencode($tq_l)); ?>">
+                                    <?php echo tq_icon('download', 14); ?> تصدير
+                                </a>
+
+                                <?php if (!$tq_is): ?>
+                                    <form method="post"
+                                          action="<?php echo site_url('admin/manage_language/delete_language/' . rawurlencode($tq_l)); ?>"
+                                          data-tqa-confirm-title="حذف اللغة"
+                                          data-tqa-confirm="سيحذف ملف ترجمة «<?php echo html_escape(ucwords($tq_l)); ?>» كاملا. لا رجعة في هذا."
+                                          data-tqa-confirm-ok="نعم، احذف"
+                                          data-tqa-confirm-tone="danger">
+                                        <?php echo tq_csrf(); ?>
+                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                                style="color:var(--tq-danger)">
+                                            <?php echo tq_icon('trash', 14); ?> حذف
+                                        </button>
+                                    </form>
+                                <?php else: ?>
+                                    <span class="tqa-badge tqa-badge--muted">لا تحذف لغة النظام</span>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="tqa-grid tqa-grid--3">
+
+        <form class="tqa-card" method="post" action="<?php echo site_url('admin/manage_language/add_language'); ?>">
+            <?php echo tq_csrf(); ?>
+            <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+                <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('plus', 20); ?></span>
+                <h2>لغة جديدة</h2>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="language">اسم اللغة</label>
+                <input class="tqa-input tqa-input--ltr" type="text" id="language" name="language" dir="ltr"
+                       required pattern="[A-Za-z]+" placeholder="French">
+                <span class="tqa-field__hint">حروف لاتينية بلا مسافات ولا رموز.</span>
+            </div>
+
+            <div class="tqa-actions">
+                <button type="submit" class="tqa-btn tqa-btn--primary">
+                    <?php echo tq_icon('plus', 16); ?> أضف اللغة
+                </button>
+            </div>
+        </form>
+
+        <?php /* كان هذا النموذج مرسوما في الصفحة بلا رابط يفتحه (تبويب
+                 `#add` غير مذكور في شريط التبويبات) — ميزة كاملة كتبت
+                 ولم تعرض قط. */ ?>
+        <form class="tqa-card" method="post" action="<?php echo site_url('admin/manage_language/add_phrase'); ?>">
+            <?php echo tq_csrf(); ?>
+            <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+                <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('edit', 20); ?></span>
+                <h2>عبارة جديدة</h2>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="phrase">مفتاح العبارة</label>
+                <input class="tqa-input tqa-input--ltr" type="text" id="phrase" name="phrase" dir="ltr"
+                       required placeholder="course_completed">
+                <span class="tqa-field__hint">تضاف إلى كل اللغات بقيمة فارغة.</span>
+            </div>
+
+            <div class="tqa-actions">
+                <button type="submit" class="tqa-btn tqa-btn--primary">
+                    <?php echo tq_icon('plus', 16); ?> أضف العبارة
+                </button>
+            </div>
+        </form>
+
+        <form class="tqa-card" method="post" enctype="multipart/form-data"
+              action="<?php echo site_url('admin/language_import'); ?>">
+            <?php echo tq_csrf(); ?>
+            <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+                <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('import', 20); ?></span>
+                <h2>استيراد ملف</h2>
+            </div>
+
+            <div class="tqa-field">
+                <span class="tqa-field__label">ملفات JSON</span>
+                <div class="tqa-file">
+                    <input type="file" id="language_files" name="language_files[]" accept=".json" multiple required
+                           data-tqa-file>
+                    <label class="tqa-file__btn" for="language_files">
+                        <?php echo tq_icon('upload', 16); ?> اختر ملفات
+                    </label>
+                    <span class="tqa-file__name" data-tqa-file-name>مثال: english.json</span>
+                </div>
+                <span class="tqa-field__hint">اسم الملف هو اسم اللغة — والموجود يستبدل.</span>
+            </div>
+
+            <div class="tqa-actions">
+                <button type="submit" class="tqa-btn tqa-btn--primary">
+                    <?php echo tq_icon('import', 16); ?> استورد
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+    (function () {
+        'use strict';
+
+        var URL  = <?php echo json_encode(site_url('admin/update_language_direction')); ?>;
+        var CSRF = window.TQ_CSRF || null;
+
+        Array.prototype.forEach.call(document.querySelectorAll('[data-tqa-dir]'), function (radio) {
+            radio.addEventListener('change', function () {
+                if (!radio.checked) return;
+
+                var body = new URLSearchParams();
+                body.set('language', radio.getAttribute('data-tqa-dir'));
+                body.set('dir', radio.value);
+                if (CSRF && CSRF.name) body.set(CSRF.name, CSRF.hash);
+
+                fetch(URL, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString()
+                }).then(function (r) {
+                    if (!r.ok) throw new Error(r.status);
+                    if (window.TQA) TQA.ok('حدث اتجاه الكتابة');
+                }).catch(function () {
+                    if (window.TQA) TQA.error('لم يحفظ الاتجاه. حدث الصفحة وأعد المحاولة.');
+                });
+            });
+        });
+    })();
+    </script>
+
+    <?php include 'tqa_file_js.php'; ?>
+
+<?php endif; ?>

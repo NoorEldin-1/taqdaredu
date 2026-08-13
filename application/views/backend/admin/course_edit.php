@@ -1,926 +1,517 @@
 <?php
-$course_details = $this->crud_model->get_course_by_id($course_id)->row_array();
-// شبكة أمان: لو استدعيت الشاشة برقم دورة غير موجود، نتجنب انهيار الوصول إلى null.
-// (المتحكم يعيد التوجيه أصلا في هذه الحالة، وهذا دفاع إضافي.)
-if (empty($course_details)) {
-    $course_details = [];
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * تحرير كورس.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*`. وأربعة أعطال أصلحت معها:
+ *
+ * ١ — **تبويب «Bbb live class» يضمن ملفا محذوفا.** كان السطر
+ *     `include "bbb_live_class.php"` **بلا شرط** — والملف حذف مع بقية
+ *     شاشات الإضافات. فينتج تحذير PHP في كل فتح للشاشة، والتبويب يفتح
+ *     على فراغ أبيض. حذف التبويب وأخواته المشروطة بـ`addon_status(...)`
+ *     — وكلها كاذبة أبدا في هذا التركيب.
+ * ٢ — **التبويبات لا تعيش في الرابط.** `data-toggle="tab"` يبدل
+ *     بجافاسكربت، فالعودة إلى «المقرر» بعد حفظ أي تبويب غير ممكنة، ولا
+ *     يمكن إرسال رابط إلى تبويب بعينه. صارت في `?tab=`.
+ * ٣ — **«قائمة المسجلين» و«التقدم العلمي» كانا يجلبان بـAJAX** إلى
+ *     `<div class="tab-pane"></div>` فارغة — أي أن التبويب يظهر فارغا
+ *     ثم يمتلئ، ولا يظهر شيئا إن تعثر النداء. صارا يعرضان من الخادم.
+ * ٤ — **زر الحفظ `type="button"`** ينادي `checkRequiredFields()`؛ وهو
+ *     العطل نفسه الموصوف في TQ-WIZARD-BLANK.
+ *
+ * وتبويب «المقرر» يبقى خارج نموذج الحفظ: كان **داخله**، فأزراره
+ * (إضافة قسم · إضافة درس · فرز) تقع في نموذج `<form>` الكورس. وزر بلا
+ * `type` داخل نموذج نوعه `submit` ضمنا — أي أن الضغط على «فرز الأقسام»
+ * كان يرسل نموذج تحرير الكورس.
+ */
+$tq_course = $this->crud_model->get_course_by_id($course_id)->row_array();
+
+if (!$tq_course) {
+    tqa_head('كورس غير موجود', '', 'book');
+    echo '<div class="tqa-card tqa-card--flush">';
+    tqa_empty('لا كورس بهذا المعرف', 'قد يكون حذف من شاشة أخرى.',
+        'العودة إلى الكورسات', site_url('admin/courses'), 'book');
+    echo '</div>';
+    return;
 }
-// حقول JSON قد تكون null لدورة أنشئت حديثا؛ نضمن مصفوفة حتى لا ينهار count() في PHP 8.
-$tq_requirements = ! empty($course_details['requirements']) ? json_decode($course_details['requirements']) : [];
-if (! is_array($tq_requirements)) { $tq_requirements = []; }
-$tq_outcomes = ! empty($course_details['outcomes']) ? json_decode($course_details['outcomes']) : [];
-if (! is_array($tq_outcomes)) { $tq_outcomes = []; }
+
+/* الشاشات الداخلية تقرأ `$course_details` بهذا الاسم. */
+$course_details = $tq_course;
+
+$tq_tabs = array(
+    'curriculum' => array('المقرر',            'layers'),
+    'basic'      => array('أساسيات الكورس',    'book'),
+    'info'       => array('ما يعرض في صفحته',  'clipboard'),
+    'pricing'    => array('التسعير',           'money'),
+    'media'      => array('الصور والفيديو',    'video'),
+    'seo'        => array('تحسين البحث',       'search'),
+    'fields'     => array('حقول مخصصة',        'grid'),
+    'enrolled'   => array('المسجلون',          'users'),
+    'progress'   => array('التقدم العلمي',     'chart'),
+);
+
+$tq_tab = (string) $this->input->get('tab', true);
+/* أسماء التبويبات القديمة تحول: روابط محفوظة تشير إليها. */
+$tq_tab = array('customField' => 'fields', 'enrol_list' => 'enrolled',
+                'academic_progress' => 'progress')[$tq_tab] ?? $tq_tab;
+if (!isset($tq_tabs[$tq_tab])) $tq_tab = 'curriculum';
+
+$tq_url = function ($t) use ($course_id) {
+    return site_url('admin/course_form/course_edit/' . (int) $course_id) . '?tab=' . $t;
+};
+
+/** التبويبات التي تحرر حقول الكورس — وهي وحدها التي تلف بنموذج الحفظ. */
+$tq_editing = in_array($tq_tab, array('basic', 'info', 'pricing', 'media', 'seo'), true);
+
+$tq_live = site_url('home/course/' . rawurlencode(slugify($tq_course['title'])) . '/' . (int) $course_id);
 ?>
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('update') . ': ' . $course_details['title']; ?></h4>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-</div>
 
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <!--ajax page loader-->
-            <div class="ajax_loader w-100">
-                <div class="ajax_loaderBar"></div>
+<?php tqa_head('تحرير الكورس', $tq_course['title'], 'book',
+    '<a class="tqa-btn tqa-btn--ghost" href="' . $tq_live . '" target="_blank" rel="noopener">'
+  . tq_icon('external', 16) . ' صفحته في الموقع</a>'
+  . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/courses') . '">'
+  . tq_icon('chev-prev', 16) . ' كل الكورسات</a>'); ?>
+
+<nav class="tqa-tabs tqa-tabs--scroll" aria-label="أقسام تحرير الكورس">
+    <?php foreach ($tq_tabs as $tq_k => [$tq_label, $tq_ic]): ?>
+        <a href="<?php echo $tq_url($tq_k); ?>" <?php echo $tq_tab === $tq_k ? 'aria-current="page"' : ''; ?>>
+            <?php echo html_escape($tq_label); ?>
+        </a>
+    <?php endforeach; ?>
+</nav>
+
+
+<?php /* ============ المقرر — خارج نموذج الحفظ عمدا ============ */ ?>
+<?php if ($tq_tab === 'curriculum'): ?>
+
+    <?php include 'curriculum.php'; ?>
+
+
+<?php /* ============ المسجلون ============ */ ?>
+<?php elseif ($tq_tab === 'enrolled'):
+    $enrol_history = $this->crud_model->enrol_history($course_id);
+    include 'course_enrol_list.php';
+?>
+
+
+<?php /* ============ التقدم العلمي ============ */ ?>
+<?php elseif ($tq_tab === 'progress'): ?>
+
+    <?php include 'student_academic_progress.php'; ?>
+
+
+<?php /* ============ حقول مخصصة ============ */ ?>
+<?php elseif ($tq_tab === 'fields'): ?>
+
+    <?php include 'custom_field.php'; ?>
+
+
+<?php /* ============ تبويبات التحرير ============ */ ?>
+<?php else: ?>
+
+<form class="required-form" method="post" enctype="multipart/form-data" autocomplete="off"
+      action="<?php echo site_url('admin/course_actions/edit/' . (int) $course_id); ?>"
+      style="max-inline-size:900px">
+    <?php echo tq_csrf(); ?>
+    <input type="hidden" name="course_type" value="<?php echo html_escape($tq_course['course_type']); ?>">
+
+    <?php /* التبويب المعروض وحده يرسل حقوله. والحقول التي لا تعرض تحمل
+             قيمها الحالية في حقول مخفية، فحفظ «التسعير» لا يمحو «الوصف».
+             وكان النموذج السابق يعرضها كلها في صفحة واحدة، فلم تكن
+             المشكلة قائمة — وهي تقوم مع التبويبات الحقيقية. */ ?>
+    <?php
+    $tq_carry = array(
+        'basic'   => array('title', 'short_description', 'description', 'sub_category_id',
+                           'level', 'language_made_in', 'status'),
+        'pricing' => array('price', 'discounted_price'),
+        'seo'     => array('meta_keywords', 'meta_description'),
+        'media'   => array('course_overview_url' => 'video_url', 'course_overview_provider' => 'video_type'),
+    );
+    foreach ($tq_carry as $tq_group => $tq_names):
+        if ($tq_group === $tq_tab) continue;
+        foreach ($tq_names as $tq_field => $tq_col):
+            $tq_field = is_int($tq_field) ? $tq_col : $tq_field;
+            if (!array_key_exists($tq_col, $tq_course)) continue;
+    ?>
+        <input type="hidden" name="<?php echo html_escape($tq_field); ?>"
+               value="<?php echo html_escape($tq_course[$tq_col]); ?>">
+    <?php endforeach; endforeach; ?>
+
+
+    <?php if ($tq_tab === 'basic'): ?>
+
+        <div class="tqa-card tqa-section">
+            <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+                <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('book', 20); ?></span>
+                <h2>أساسيات الكورس</h2>
             </div>
-            <!--end ajax page loader-->
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h4 class="header-title my-1"><?php echo get_phrase('course_manager'); ?></h4>
-                    </div>
-                    <div class="col-md-6">
-                        <a href="<?php echo site_url('admin/preview/' . $course_id); ?>" class="alignToTitle btn btn-outline-secondary btn-rounded btn-sm ml-1 my-1" target="_blank"><?php echo get_phrase('view_on_frontend'); ?> <i class="mdi mdi-arrow-right"></i> </a>
 
-                        <a href="<?php echo site_url('admin/courses'); ?>" class="alignToTitle btn btn-outline-secondary btn-rounded btn-sm my-1"> <i class=" mdi mdi-keyboard-backspace"></i> <?php echo get_phrase('back_to_course_list'); ?></a>
+            <div class="tqa-fieldgrid">
+                <div class="tqa-field tqa-field--full">
+                    <label class="tqa-field__label" for="course_title">
+                        عنوان الكورس <span class="tqa-field__req" aria-hidden="true">*</span>
+                    </label>
+                    <input class="tqa-input" type="text" id="course_title" name="title" required maxlength="190"
+                           value="<?php echo html_escape($tq_course['title']); ?>">
+                </div>
+
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="sub_category_id">
+                        التصنيف <span class="tqa-field__req" aria-hidden="true">*</span>
+                    </label>
+                    <select class="tqa-select" id="sub_category_id" name="sub_category_id" required>
+                        <option value="">— اختر تصنيفا</option>
+                        <?php foreach ($categories->result_array() as $tq_c): ?>
+                            <?php if ((int) $tq_c['parent'] !== 0) continue; ?>
+                            <optgroup label="<?php echo html_escape($tq_c['name']); ?>">
+                                <?php foreach ($this->crud_model->get_sub_categories($tq_c['id']) as $tq_s): ?>
+                                    <option value="<?php echo (int) $tq_s['id']; ?>"
+                                        <?php echo (int) $tq_course['sub_category_id'] === (int) $tq_s['id'] ? 'selected' : ''; ?>>
+                                        <?php echo html_escape($tq_s['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </optgroup>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="level">المستوى</label>
+                    <select class="tqa-select" id="level" name="level">
+                        <?php foreach (array('beginner' => 'مبتدئ', 'intermediate' => 'متوسط', 'advanced' => 'متقدم') as $tq_k => $tq_l): ?>
+                            <option value="<?php echo $tq_k; ?>"
+                                <?php echo $tq_course['level'] === $tq_k ? 'selected' : ''; ?>><?php echo $tq_l; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="language_made_in">لغة المحتوى</label>
+                    <select class="tqa-select" id="language_made_in" name="language_made_in">
+                        <?php foreach ($languages as $tq_l): ?>
+                            <option value="<?php echo html_escape($tq_l); ?>"
+                                <?php echo $tq_course['language_made_in'] === $tq_l ? 'selected' : ''; ?>>
+                                <?php echo html_escape(ucfirst($tq_l)); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="tqa-field tqa-field--full">
+                    <label class="tqa-field__label" for="short_description">وصف مختصر</label>
+                    <input class="tqa-input" type="text" id="short_description" name="short_description" maxlength="255"
+                           value="<?php echo html_escape($tq_course['short_description']); ?>">
+                </div>
+
+                <div class="tqa-field tqa-field--full">
+                    <label class="tqa-field__label" for="description">الوصف الكامل</label>
+                    <textarea class="tqa-textarea" id="description" name="description" rows="6" data-tqa-rich><?php
+                        echo html_escape($tq_course['description']); ?></textarea>
+                </div>
+            </div>
+
+            <div class="tqa-field" style="margin-block-start:var(--tq-space-l)">
+                <span class="tqa-field__label">حالة الكورس</span>
+                <div class="tqa-stack">
+                    <?php foreach (array(
+                        'active'   => array('منشور', 'يظهر في الموقع العام ويمكن الاشتراك فيه.'),
+                        'private'  => array('خاص', 'لا يظهر في القوائم — يفتح برابطه وحده.'),
+                        'upcoming' => array('قادم', 'يعرض بتاريخ نشر ولا يفتح قبله.'),
+                        'pending'  => array('قيد المراجعة', 'أرسله معلم وينتظر قرار الإدارة.'),
+                        'draft'    => array('مسودة', 'غير مكتمل ولا يعرض لأحد.'),
+                    ) as $tq_k => [$tq_l, $tq_h]): ?>
+                        <label class="tqa-check">
+                            <input type="radio" name="status" value="<?php echo $tq_k; ?>" data-tqa-status
+                                   <?php echo $tq_course['status'] === $tq_k ? 'checked' : ''; ?>>
+                            <span>
+                                <strong style="color:var(--tq-navy)"><?php echo $tq_l; ?></strong>
+                                <span class="tqa-prefrow__hint"><?php echo $tq_h; ?></span>
+                            </span>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div data-tqa-upcoming <?php echo $tq_course['status'] === 'upcoming' ? '' : 'hidden'; ?>>
+                <div class="tqa-field">
+                    <span class="tqa-field__label">صورة الكورس القادم</span>
+                    <div class="tqa-file">
+                        <input type="file" id="upcoming_image_thumbnail" name="upcoming_image_thumbnail"
+                               accept="image/*" data-tqa-file>
+                        <label class="tqa-file__btn" for="upcoming_image_thumbnail">
+                            <?php echo tq_icon('image', 16); ?> اختر صورة
+                        </label>
+                        <span class="tqa-file__name" data-tqa-file-name>المقاس المفضل ‎365 × 460‎</span>
+                        <input type="hidden" name="old_upcoming_image_thumbnail"
+                               value="<?php echo html_escape($tq_course['upcoming_image_thumbnail']); ?>">
+                    </div>
+                </div>
+            </div>
+
+            <div class="tqa-prefrow">
+                <div class="tqa-prefrow__main">
+                    <label class="tqa-prefrow__title" for="is_top_course">كورس مميز</label>
+                    <span class="tqa-prefrow__hint">يعرض في شريط «الأبرز» في الصفحة الرئيسية.</span>
+                </div>
+                <div class="tqa-prefrow__end">
+                    <span class="tqa-switch">
+                        <input type="checkbox" id="is_top_course" name="is_top_course" value="1"
+                               <?php echo (int) $tq_course['is_top_course'] === 1 ? 'checked' : ''; ?>>
+                        <span class="tqa-switch__track" aria-hidden="true"></span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="tqa-prefrow">
+                <div class="tqa-prefrow__main">
+                    <label class="tqa-prefrow__title" for="enable_drip_content">إتاحة الدروس تدريجيا</label>
+                    <span class="tqa-prefrow__hint">الدرس لا يفتح إلا بعد سابقه.</span>
+                </div>
+                <div class="tqa-prefrow__end">
+                    <span class="tqa-switch">
+                        <input type="checkbox" id="enable_drip_content" name="enable_drip_content" value="1"
+                               <?php echo (int) $tq_course['enable_drip_content'] === 1 ? 'checked' : ''; ?>>
+                        <span class="tqa-switch__track" aria-hidden="true"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+
+    <?php elseif ($tq_tab === 'info'):
+        $tq_faqs  = json_decode((string) $tq_course['faqs'], true);
+        $tq_reqs  = json_decode((string) $tq_course['requirements'], true);
+        $tq_outs  = json_decode((string) $tq_course['outcomes'], true);
+        if (!is_array($tq_faqs) || !$tq_faqs) $tq_faqs = array(array('title' => '', 'description' => ''));
+        if (!is_array($tq_reqs) || !$tq_reqs) $tq_reqs = array('');
+        if (!is_array($tq_outs) || !$tq_outs) $tq_outs = array('');
+    ?>
+
+        <div class="tqa-card tqa-section">
+            <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+                <span class="tqa-iconbox tqa-sand" aria-hidden="true"><?php echo tq_icon('clipboard', 20); ?></span>
+                <h2>ما يعرض في صفحة الكورس</h2>
+            </div>
+
+            <div class="tqa-field">
+                <span class="tqa-field__label">المتطلبات السابقة</span>
+                <div data-tqa-rep="requirements">
+                    <?php foreach ($tq_reqs as $tq_r): ?>
+                        <div data-tqa-rep-item class="tqa-row" style="flex-wrap:nowrap;margin-block-end:var(--tq-space-s)">
+                            <input class="tqa-input" type="text" name="requirements[]"
+                                   value="<?php echo html_escape($tq_r); ?>">
+                            <button type="button" class="tqa-btn tqa-btn--ghost" data-tqa-rep-remove
+                                    style="color:var(--tq-danger)" aria-label="احذف هذا المتطلب">
+                                <?php echo tq_icon('trash', 15); ?>
+                            </button>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-add="requirements">
+                    <?php echo tq_icon('plus', 14); ?> أضف متطلبا
+                </button>
+            </div>
+
+            <div class="tqa-field">
+                <span class="tqa-field__label">مخرجات التعلم</span>
+                <div data-tqa-rep="outcomes">
+                    <?php foreach ($tq_outs as $tq_o): ?>
+                        <div data-tqa-rep-item class="tqa-row" style="flex-wrap:nowrap;margin-block-end:var(--tq-space-s)">
+                            <input class="tqa-input" type="text" name="outcomes[]"
+                                   value="<?php echo html_escape($tq_o); ?>">
+                            <button type="button" class="tqa-btn tqa-btn--ghost" data-tqa-rep-remove
+                                    style="color:var(--tq-danger)" aria-label="احذف هذا المخرج">
+                                <?php echo tq_icon('trash', 15); ?>
+                            </button>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-add="outcomes">
+                    <?php echo tq_icon('plus', 14); ?> أضف مخرجا
+                </button>
+            </div>
+
+            <div class="tqa-field">
+                <span class="tqa-field__label">أسئلة شائعة عن الكورس</span>
+                <div data-tqa-rep="faqs">
+                    <?php foreach ($tq_faqs as $tq_f): ?>
+                        <div data-tqa-rep-item class="tqa-card" style="box-shadow:none;border-style:dashed;
+                             margin-block-end:var(--tq-space-s)">
+                            <input class="tqa-input" type="text" name="faqs[]" placeholder="السؤال"
+                                   style="margin-block-end:var(--tq-space-s)"
+                                   value="<?php echo html_escape($tq_f['title'] ?? ''); ?>">
+                            <textarea class="tqa-textarea" name="faq_descriptions[]" rows="2" placeholder="الإجابة"
+                                      style="min-block-size:70px"><?php echo html_escape($tq_f['description'] ?? ''); ?></textarea>
+                            <div class="tqa-actions" style="margin-block-start:var(--tq-space-s)">
+                                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-remove
+                                        style="color:var(--tq-danger)">
+                                    <?php echo tq_icon('trash', 14); ?> احذف هذا السؤال
+                                </button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-add="faqs">
+                    <?php echo tq_icon('plus', 14); ?> أضف سؤالا
+                </button>
+            </div>
+        </div>
+
+
+    <?php elseif ($tq_tab === 'pricing'): ?>
+
+        <div class="tqa-card tqa-section">
+            <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+                <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('money', 20); ?></span>
+                <h2>التسعير</h2>
+            </div>
+
+            <div class="tqa-prefrow">
+                <div class="tqa-prefrow__main">
+                    <label class="tqa-prefrow__title" for="is_free_course">كورس مجاني</label>
+                    <span class="tqa-prefrow__hint">يفتح لكل مسجل بلا دفع.</span>
+                </div>
+                <div class="tqa-prefrow__end">
+                    <span class="tqa-switch">
+                        <input type="checkbox" id="is_free_course" name="is_free_course" value="1" data-tqa-free
+                               <?php echo (int) $tq_course['is_free_course'] === 1 ? 'checked' : ''; ?>>
+                        <span class="tqa-switch__track" aria-hidden="true"></span>
+                    </span>
+                </div>
+            </div>
+
+            <div data-tqa-paid style="margin-block-start:var(--tq-space-l)">
+                <div class="tqa-fieldgrid">
+                    <div class="tqa-field">
+                        <label class="tqa-field__label" for="price">
+                            السعر (<?php echo html_escape(currency_code_and_symbol()); ?>)
+                        </label>
+                        <input class="tqa-input tqa-input--ltr" type="number" id="price" name="price"
+                               min="0" step="0.01" value="<?php echo html_escape($tq_course['price']); ?>">
+                    </div>
+
+                    <div class="tqa-field">
+                        <label class="tqa-field__label" for="discounted_price">
+                            السعر بعد الخصم (<?php echo html_escape(currency_code_and_symbol()); ?>)
+                        </label>
+                        <input class="tqa-input tqa-input--ltr" type="number" id="discounted_price"
+                               name="discounted_price" min="0" step="0.01" data-tqa-discount
+                               value="<?php echo html_escape($tq_course['discounted_price']); ?>">
+                        <span class="tqa-field__hint">الخصم <span class="tqa-num" data-tqa-discount-pct>—</span></span>
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-xl-12">
-                        <form class="required-form" action="<?php echo site_url('admin/course_actions/edit/' . $course_id); ?>" method="post" enctype="multipart/form-data" autocomplete="off">
-                            <div class="scrollable-tab-section" id="basicwizard">
-
-                                <button type="button" class="scrollable-tab-btn-left"><i class="mdi mdi-arrow-left"></i></button>
-
-                                <div class="scrollable-tab">
-                                    <ul class="nav nav-pills nav-justified form-wizard-header">
-                                        <li class="nav-item">
-                                            <a href="#curriculum" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-account-circle"></i>
-                                                <span class=""><?php echo get_phrase('curriculum'); ?></span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="#enrol_list" onclick="enrol_list('<?php echo $course_details['id']; ?>')" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-chart-bar-stacked"></i>
-                                                <span class=""><?php echo get_phrase('Enrol list'); ?></span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="#academic_progress" onclick="student_academic_progress('<?php echo $course_details['id']; ?>')" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-chart-bar-stacked"></i>
-                                                <span class=""><?php echo get_phrase('Academic progress'); ?></span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="#bbb-live-class" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-video-account"></i>
-                                                <span class=""><?php echo get_phrase('BBB live class'); ?></span>
-                                            </a>
-                                        </li>
-                                        <?php if (addon_status('live-class')) : ?>
-                                            <li class="nav-item">
-                                                <a href="#live-class" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                    <i class="mdi mdi-video-account"></i>
-                                                    <span class=""><?php echo get_phrase('zoom_live_class'); ?></span>
-                                                </a>
-                                            </li>
-                                        <?php endif; ?>
-
-                                        <?php if (addon_status('jitsi-live-class')) : ?>
-                                            <li class="nav-item jitsiLiveClassNavItem">
-                                                <a href="#jitsi-live-class" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                    <i class="mdi mdi-video-account"></i>
-                                                    <span class=""><?php echo get_phrase('jitsi_live_class'); ?></span>
-                                                </a>
-                                            </li>
-                                        <?php endif; ?>
-
-                                        <?php if (addon_status('assignment')) : ?>
-                                            <li class="nav-item">
-                                                <a href="#assignment" onclick="load_assignment_list()" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                    <i class="dripicons-document"></i>
-                                                    <span class=""><?php echo get_phrase('assignment'); ?></span>
-                                                </a>
-                                            </li>
-                                        <?php endif; ?>
-
-                                        <?php if (addon_status('noticeboard')) : ?>
-                                            <li class="nav-item">
-                                                <a href="#noticeboard" onclick="load_notic_list()" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                    <i class="mdi mdi-clipboard-text-outline"></i>
-                                                    <span class=""><?php echo get_phrase('noticeboard'); ?></span>
-                                                </a>
-                                            </li>
-                                        <?php endif; ?>
-
-                                        <?php if (addon_status('course_analytics')) : ?>
-                                            <li class="nav-item">
-                                                <a href="#course_analytics" onclick="load_analytics_chart()" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                    <i class="mdi mdi-chart-bar"></i>
-                                                    <span class=""><?php echo get_phrase('analytics'); ?></span>
-                                                </a>
-                                            </li>
-                                        <?php endif; ?>
-
-                                        <li class="nav-item">
-                                            <a href="#basic" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-fountain-pen-tip"></i>
-                                                <span class=""><?php echo get_phrase('basic'); ?></span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="#info" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-information-outline"></i>
-                                                <span class=""><?php echo get_phrase('info'); ?></span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="#pricing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-currency-cny"></i>
-                                                <span class=""><?php echo get_phrase('pricing'); ?></span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="#media" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-library-video"></i>
-                                                <span class=""><?php echo get_phrase('media'); ?></span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="#seo" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-tag-multiple"></i>
-                                                <span class=""><?php echo get_phrase('seo'); ?></span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="#customField" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-file-check"></i>
-                                                <span class=""><?php echo get_phrase('Custom Field'); ?></span>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="#finish" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-checkbox-marked-circle-outline"></i>
-                                                <span class=""><?php echo get_phrase('finish'); ?></span>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
-
-                                <button type="button" class="scrollable-tab-btn-right"><i class="mdi mdi-arrow-right"></i></button>
-
-                                <div class="tab-content b-0 mb-0">
-                                    <div class="tab-pane" id="curriculum">
-                                        <?php
-                                        if ($course_details['course_type'] == 'general') :
-                                            include 'curriculum.php';
-                                        elseif ($course_details['course_type'] == 'scorm' && addon_status('scorm_course') == true) :
-                                            include 'scorm_curriculum.php';
-                                        elseif ($course_details['course_type'] == 'h5p' && addon_status('h5p') == true) :
-                                            include 'h5p_curriculum.php';
-                                        else : ?>
-                                            <?php if ($course_details['course_type'] == 'scorm_course') : ?>
-                                                <div class="row justify-content-center">
-                                                    <div class="col-md-6">
-                                                        <div class="alert alert-warning" role="alert">
-                                                            <h4 class="alert-heading"><?= get_phrase('heads_up'); ?>!</h4>
-                                                            <p><?= get_phrase('currently_the_scorm_course_addon_is_deactivate'); ?>. <?= get_phrase('please_activate_the_scorm_course_addon_to_use_it'); ?>.</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            <?php endif; ?>
-
-                                            <?php if ($course_details['course_type'] == 'h5p') : ?>
-                                                <div class="row justify-content-center">
-                                                    <div class="col-md-6">
-                                                        <div class="alert alert-warning" role="alert">
-                                                            <h4 class="alert-heading"><?= get_phrase('heads_up'); ?>!</h4>
-                                                            <p><?= get_phrase('currently_the_h5p_course_addon_is_deactivate'); ?>. <?= get_phrase('please_activate_the_h5p_course_addon_to_use_it'); ?>.</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            <?php endif; ?>
-                                        <?php endif; ?>
-                                    </div>
-
-                                    <div class="tab-pane" id="enrol_list"></div>
-
-                                    <div class="tab-pane" id="academic_progress"></div>
-
-                                    <div class="tab-pane" id="bbb-live-class">
-                                        <?php include "bbb_live_class.php"; ?>
-                                    </div>
-
-                                    <!-- LIVE CLASS CODE BASE -->
-                                    <?php if (addon_status('live-class')) : ?>
-                                        <?php include 'live_class.php'; ?>
-                                    <?php endif; ?>
-
-                                    <!-- Jitsi live class CODE BASE -->
-                                    <?php if (addon_status('jitsi-live-class')) : ?>
-                                        <div class="tab-pane" id="jitsi-live-class">
-                                            <?php include 'jitsi_live_class.php'; ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    <!-- LIVE CLASS CODE BASE -->
-
-                                    <!-- ASSIGNMENT CODE BASE -->
-                                    <?php if (addon_status('assignment')) : ?>
-                                        <div class="tab-pane" id="assignment">
-                                            <?php include 'assignment.php'; ?>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <!-- NOTICEBOARD CODE BASE -->
-                                    <?php if (addon_status('noticeboard')) : ?>
-                                        <div class="tab-pane" id="noticeboard">
-                                            <?php include 'noticeboard.php'; ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    <!-- NOTICEBOARD CODE BASE -->
-
-                                    <!-- COURSE ANALYTICS CODE BASE -->
-                                    <?php if (addon_status('course_analytics')) : ?>
-                                        <div class="tab-pane" id="course_analytics">
-                                            <?php include 'course_analytics.php'; ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    <!-- COURSE ANALYTICS CODE BASE -->
-
-                                    <div class="tab-pane" id="basic">
-                                        <div class="row justify-content-center">
-                                            <div class="col-xl-8">
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="course_type"><?php echo get_phrase('course_type'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <div class="alert alert-light" role="alert">
-                                                            <h4 class="alert-heading"><?= get_phrase($course_details['course_type']); ?></h4>
-                                                            <hr class="m-1">
-                                                            <p class="mb-0"><?= get_phrase('the_course_type_can_not_be_editable'); ?>.</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="existing_instructors"><?php echo get_phrase('instructor_of_this_course'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <?php if ($course_details['multi_instructor']) :
-                                                            $instructor_ids = explode(',', $course_details['user_id']);
-                                                        ?>
-                                                            <?php foreach ($instructor_ids as $instructor_id) :
-                                                            ?>
-                                                                <?php $instructor_details = $this->user_model->get_instructor($instructor_id)->row_array(); ?>
-                                                                <div class="m-2">
-                                                                    <img class="rounded-circle" src="<?php echo $this->user_model->get_user_image_url($instructor_details['id']);; ?>" height="30px" alt="">
-                                                                    <span style="font-weight: 700; font-size: 15px; vertical-align: sub; margin-left: 6px;">
-                                                                        <?php echo html_escape($instructor_details['first_name'] . ' ' . $instructor_details['last_name']); ?>
-                                                                    </span>
-                                                                    <?php if (count($instructor_ids) > 1 && $course_details['creator'] != $instructor_id) : ?>
-                                                                        <a class="btn text-danger mt-1" href="javascript:void(0)" onclick="confirm_modal('<?php echo site_url('admin/remove_an_instructor/' . $course_details['id'] . '/' . $instructor_details['id']); ?>');"> <i class="mdi mdi-delete"></i> <?php echo get_phrase('Remove'); ?></a>
-                                                                    <?php else : ?>
-                                                                        <a class="btn text-danger mt-1" href="javascript:void(0)" onclick="showAjaxModal('<?php echo site_url('admin/change_course_author/' . $course_details['id']); ?>', '<?php echo get_phrase('Change Course Author') ?>')"> <i class="mdi mdi-pencil"></i> <?php echo get_phrase('Change Course author'); ?></a>
-                                                                    <?php endif; ?>
-                                                                </div>
-                                                            <?php endforeach; ?>
-                                                        <?php else : ?>
-                                                            <?php $instructor_details = $this->user_model->get_instructor($course_details['user_id'])->row_array(); ?>
-                                                            <div>
-                                                                <img class="rounded-circle" src="<?php echo $this->user_model->get_user_image_url($instructor_details['id']);; ?>" height="30px" alt="">
-                                                                <span style="font-weight: 700; font-size: 15px; vertical-align: sub; margin-left: 6px;">
-                                                                    <?php echo html_escape($instructor_details['first_name'] . ' ' . $instructor_details['last_name']); ?>
-                                                                </span>
-                                                            </div>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                </div>
-
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="new_instructor"><?php echo get_phrase('add_new_instructor'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <select class="select2 form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="Choose ..." name="new_instructors[]">
-                                                            <?php $instructors = $this->user_model->get_instructor()->result_array(); ?>
-                                                            <?php foreach ($instructors as $key => $instructor) : ?>
-                                                                <option value="<?php echo html_escape($instructor['id']); ?>"><?php echo html_escape($instructor['first_name'] . ' ' . $instructor['last_name']); ?> ( <?php echo html_escape($instructor['email']); ?> )</option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="course_title"><?php echo get_phrase('course_title'); ?><span class="required">*</span></label>
-                                                    <div class="col-md-10">
-                                                        <input type="text" class="form-control" id="course_title" name="title" placeholder="<?php echo get_phrase('enter_course_title'); ?>" value="<?php echo $course_details['title']; ?>" required>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="short_description"><?php echo get_phrase('short_description'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <textarea name="short_description" id="short_description" class="form-control"><?php echo $course_details['short_description']; ?></textarea>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="description"><?php echo get_phrase('description'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <textarea name="description" id="description" class="form-control"><?php echo $course_details['description']; ?></textarea>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="sub_category_id"><?php echo get_phrase('category'); ?><span class="required">*</span></label>
-                                                    <div class="col-md-10">
-                                                        <select class="form-control select2" data-toggle="select2" name="sub_category_id" id="sub_category_id" required>
-                                                            <option value=""><?php echo get_phrase('select_a_category'); ?></option>
-                                                            <?php foreach ($categories->result_array() as $category) : ?>
-                                                                <optgroup label="<?php echo $category['name']; ?>">
-                                                                    <?php $sub_categories = $this->crud_model->get_sub_categories($category['id']);
-                                                                    foreach ($sub_categories as $sub_category) : ?>
-                                                                        <option value="<?php echo $sub_category['id']; ?>" <?php if ($sub_category['id'] == $course_details['sub_category_id']) echo 'selected'; ?>><?php echo $sub_category['name']; ?></option>
-                                                                    <?php endforeach; ?>
-                                                                </optgroup>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                        <small class="text-muted"><?php echo get_phrase('select_sub_category'); ?></small>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="level"><?php echo get_phrase('level'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <select class="form-control select2" data-toggle="select2" name="level" id="level">
-                                                            <option value="beginner" <?php if ($course_details['level'] == "beginner") echo 'selected'; ?>><?php echo get_phrase('beginner'); ?></option>
-                                                            <option value="advanced" <?php if ($course_details['level'] == "advanced") echo 'selected'; ?>><?php echo get_phrase('advanced'); ?></option>
-                                                            <option value="intermediate" <?php if ($course_details['level'] == "intermediate") echo 'selected'; ?>><?php echo get_phrase('intermediate'); ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="language_made_in"><?php echo get_phrase('language_made_in'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <select class="form-control select2" data-toggle="select2" name="language_made_in" id="language_made_in">
-                                                            <?php foreach ($languages as $language) : ?>
-                                                                <option value="<?php echo $language; ?>" <?php if ($course_details['language'] == $language) echo 'selected'; ?>><?php echo ucfirst($language); ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="enable_drip_content"><?php echo get_phrase('enable_drip_content'); ?></label>
-                                                    <div class="col-md-10 pt-2">
-                                                        <input type="checkbox" name="enable_drip_content" value="1" id="enable_drip_content" data-switch="primary" <?php if ($course_details['enable_drip_content'] == 1) echo 'checked'; ?>>
-                                                        <label for="enable_drip_content" data-on-label="On" data-off-label="Off"></label>
-                                                    </div>
-                                                </div>
-
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label pt-1" for="enable_drip_content"><?php echo get_phrase('Updated as a'); ?></label>
-                                                    <div class="col-md-10 pt-1">
-                                                        <div class="custom-control custom-radio mb-1">
-                                                            <input type="radio" id="status_active" name="status" class="custom-control-input" value="active" <?php echo $course_details['status'] == 'active' ? 'checked' : ''; ?>>
-                                                            <label class="custom-control-label" for="status_active"><?php echo get_phrase('Active course'); ?></label>
-                                                        </div>
-
-                                                        <div class="custom-control custom-radio mb-1">
-                                                            <input type="radio" id="status_private" name="status" class="custom-control-input" value="private" <?php echo $course_details['status'] == 'private' ? 'checked' : ''; ?>>
-                                                            <label class="custom-control-label" for="status_private"><?php echo get_phrase('Private course'); ?></label>
-                                                        </div>
-
-                                                        <div id="upcoming" class="custom-control custom-radio mb-1">
-                                                            <input type="radio" id="status_upcoming" name="status" class="custom-control-input" value="upcoming" <?php echo $course_details['status'] == 'upcoming' ? 'checked' : ''; ?>>
-                                                            <label class="custom-control-label" for="status_upcoming"><?php echo get_phrase('Upcoming course'); ?></label>
-                                                        </div>
-
-                                                         <!-- New Upcoming Image -->
-                                                        <div class="form-group mt-3" id = "thumbnail-picker-area">
-                                                            <div class="input-group">
-                                                                <div class="custom-file">
-                                                                    <input type="file" class="custom-file-input" id="upcoming_image_thumbnail" name="upcoming_image_thumbnail" value="<?php echo $course_details['upcoming_image_thumbnail']; ?>" >
-                                                                    <input type="hidden"  name="old_upcoming_image_thumbnail" value="<?php echo $course_details['upcoming_image_thumbnail']; ?>" >
-                                                                    <label class="custom-file-label" for="upcoming_image_thumbnail"><?php echo get_phrase('upcoming_image_thumbnail'); ?></label>
-                                                                </div>
-                                                            </div>
-                                                            <small>(<?php echo get_phrase('the_image_size_should_be'); ?>: 365 X 460)</small>
-                                                        </div>
-                                                    <!-- New Upcoming Image -->
-                                                    <div class="form-group mb-3" id="publish_date">
-                                                        <label class="col-form-label" for="input_publish_date"><?php echo get_phrase('publish_date'); ?> <span class="required">*</span> </label>
-                                                            <input type="datetime-local" class="form-control" id="input_publish_date" name = "publish_date" placeholder="<?php echo get_phrase('enter_publish_date'); ?>" value="<?php echo $course_details['publish_date'];?>">
-                                                    </div>
-
-                                                    </div>
-                                                </div>
-
-                                                <div class="form-group row mb-3">
-                                                    <div class="offset-md-2 col-md-10">
-                                                        <div class="custom-control custom-checkbox">
-                                                            <input type="checkbox" class="custom-control-input" name="is_top_course" id="is_top_course" value="1" <?php if ($course_details['is_top_course'] == 1) echo 'checked'; ?>>
-                                                            <label class="custom-control-label" for="is_top_course"><?php echo get_phrase('check_if_this_course_is_top_course'); ?></label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div> <!-- end col -->
-                                        </div> <!-- end row -->
-                                    </div> <!-- end tab pane -->
-
-                                    <div class="tab-pane" id="info">
-                                        <div class="row justify-content-center">
-                                            <div class="col-xl-8">
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="faq"><?php echo get_phrase('course_faq'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <div id="faq_area">
-                                                            <?php $faq_counter = 0; ?>
-                                                            <?php $course_faqs_arr = !empty($course_details['faqs']) ? json_decode($course_details['faqs'], true) : []; ?>
-                                                            <?php $course_faqs_arr = is_array($course_faqs_arr) ? $course_faqs_arr : array(); ?>
-                                                            <?php foreach ($course_faqs_arr as $faq_title => $faq_description) : ?>
-                                                                <div class="d-flex mt-2">
-                                                                    <div class="flex-grow-1 px-3">
-                                                                        <div class="form-group">
-                                                                            <input type="text" class="form-control" value="<?php echo $faq_title; ?>" name="faqs[]" id="faqs" placeholder="<?php echo get_phrase('faq_question'); ?>">
-                                                                            <textarea name="faq_descriptions[]" class="form-control mt-2" placeholder="<?php echo get_phrase('answer'); ?>"><?php echo $faq_description; ?></textarea>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="">
-                                                                        <?php if ($faq_counter == 0) : ?>
-                                                                            <button type="button" class="btn btn-success btn-sm" style="" name="button" onclick="appendFaq()"> <i class="fa fa-plus"></i> </button>
-                                                                        <?php else : ?>
-                                                                            <button type="button" class="btn btn-danger btn-sm" style="margin-top: 0px;" name="button" onclick="removeFaq(this)"> <i class="fa fa-minus"></i> </button>
-                                                                        <?php endif; ?>
-                                                                    </div>
-                                                                </div>
-                                                                <?php $faq_counter++; ?>
-                                                            <?php endforeach; ?>
-
-                                                            <?php if ($faq_counter == 0) : ?>
-                                                                <div class="d-flex mt-2">
-                                                                    <div class="flex-grow-1 px-3">
-                                                                        <div class="form-group">
-                                                                            <input type="text" class="form-control" name="faqs[]" id="faqs" placeholder="<?php echo get_phrase('faq_question'); ?>">
-                                                                            <textarea name="faq_descriptions[]" class="form-control mt-2" placeholder="<?php echo get_phrase('answer'); ?>"></textarea>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="">
-                                                                        <button type="button" class="btn btn-success btn-sm" style="" name="button" onclick="appendFaq()"> <i class="fa fa-plus"></i> </button>
-                                                                    </div>
-                                                                </div>
-                                                            <?php endif; ?>
-
-                                                            <div id="blank_faq_field">
-                                                                <div class="d-flex mt-2">
-                                                                    <div class="flex-grow-1 px-3">
-                                                                        <div class="form-group">
-                                                                            <input type="text" class="form-control" name="faqs[]" id="faqs" placeholder="<?php echo get_phrase('faq_question'); ?>">
-                                                                            <textarea name="faq_descriptions[]" class="form-control mt-2" placeholder="<?php echo get_phrase('answer'); ?>"></textarea>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="">
-                                                                        <button type="button" class="btn btn-danger btn-sm" style="margin-top: 0px;" name="button" onclick="removeFaq(this)"> <i class="fa fa-minus"></i> </button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="form-group row mb-3 pt-2">
-                                                    <label class="col-md-2 col-form-label" for="requirements"><?php echo get_phrase('requirements'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <div id="requirement_area">
-                                                            <?php if (count($tq_requirements) > 0) : ?>
-                                                                <?php
-                                                                $counter = 0;
-                                                                foreach ($tq_requirements as $requirement) : ?>
-                                                                    <?php if ($counter == 0) :
-                                                                        $counter++; ?>
-                                                                        <div class="d-flex mt-2">
-                                                                            <div class="flex-grow-1 px-3">
-                                                                                <div class="form-group">
-                                                                                    <input type="text" class="form-control" name="requirements[]" id="requirements" placeholder="<?php echo get_phrase('provide_requirements'); ?>" value="<?php echo $requirement; ?>">
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="">
-                                                                                <button type="button" class="btn btn-success btn-sm" style="" name="button" onclick="appendRequirement()"> <i class="fa fa-plus"></i> </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    <?php else : ?>
-                                                                        <div class="d-flex mt-2">
-                                                                            <div class="flex-grow-1 px-3">
-                                                                                <div class="form-group">
-                                                                                    <input type="text" class="form-control" name="requirements[]" id="requirements" placeholder="<?php echo get_phrase('provide_requirements'); ?>" value="<?php echo $requirement; ?>">
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="">
-                                                                                <button type="button" class="btn btn-danger btn-sm" style="margin-top: 0px;" name="button" onclick="removeRequirement(this)"> <i class="fa fa-minus"></i> </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    <?php endif; ?>
-                                                                <?php endforeach; ?>
-                                                            <?php else : ?>
-                                                                <div class="d-flex mt-2">
-                                                                    <div class="flex-grow-1 px-3">
-                                                                        <div class="form-group">
-                                                                            <input type="text" class="form-control" name="requirements[]" id="requirements" placeholder="<?php echo get_phrase('provide_requirements'); ?>">
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="">
-                                                                        <button type="button" class="btn btn-success btn-sm" style="" name="button" onclick="appendRequirement()"> <i class="fa fa-plus"></i> </button>
-                                                                    </div>
-                                                                </div>
-                                                            <?php endif; ?>
-
-                                                            <div id="blank_requirement_field">
-                                                                <div class="d-flex mt-2">
-                                                                    <div class="flex-grow-1 px-3">
-                                                                        <div class="form-group">
-                                                                            <input type="text" class="form-control" name="requirements[]" id="requirements" placeholder="<?php echo get_phrase('provide_requirements'); ?>">
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="">
-                                                                        <button type="button" class="btn btn-danger btn-sm" style="margin-top: 0px;" name="button" onclick="removeRequirement(this)"> <i class="fa fa-minus"></i> </button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="form-group row mb-3 pt-2">
-                                                    <label class="col-md-2 col-form-label" for="outcomes"><?php echo get_phrase('outcomes'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <div id="outcomes_area">
-                                                            <?php if (count($tq_outcomes) > 0) : ?>
-                                                                <?php
-                                                                $counter = 0;
-                                                                foreach ($tq_outcomes as $outcome) : ?>
-                                                                    <?php if ($counter == 0) :
-                                                                        $counter++; ?>
-                                                                        <div class="d-flex mt-2">
-                                                                            <div class="flex-grow-1 px-3">
-                                                                                <div class="form-group">
-                                                                                    <input type="text" class="form-control" name="outcomes[]" placeholder="<?php echo get_phrase('provide_outcomes'); ?>" value="<?php echo $outcome; ?>">
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="">
-                                                                                <button type="button" class="btn btn-success btn-sm" name="button" onclick="appendOutcome()"> <i class="fa fa-plus"></i> </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    <?php else : ?>
-                                                                        <div class="d-flex mt-2">
-                                                                            <div class="flex-grow-1 px-3">
-                                                                                <div class="form-group">
-                                                                                    <input type="text" class="form-control" name="outcomes[]" placeholder="<?php echo get_phrase('provide_outcomes'); ?>" value="<?php echo $outcome; ?>">
-                                                                                </div>
-                                                                            </div>
-                                                                            <div class="">
-                                                                                <button type="button" class="btn btn-danger btn-sm" style="margin-top: 0px;" name="button" onclick="removeOutcome(this)"> <i class="fa fa-minus"></i> </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    <?php endif; ?>
-                                                                <?php endforeach; ?>
-                                                            <?php else : ?>
-                                                                <div class="d-flex mt-2">
-                                                                    <div class="flex-grow-1 px-3">
-                                                                        <div class="form-group">
-                                                                            <input type="text" class="form-control" name="outcomes[]" placeholder="<?php echo get_phrase('provide_outcomes'); ?>">
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="">
-                                                                        <button type="button" class="btn btn-success btn-sm" name="button" onclick="appendOutcome()"> <i class="fa fa-plus"></i> </button>
-                                                                    </div>
-                                                                </div>
-                                                            <?php endif; ?>
-                                                            <div id="blank_outcome_field">
-                                                                <div class="d-flex mt-2">
-                                                                    <div class="flex-grow-1 px-3">
-                                                                        <div class="form-group">
-                                                                            <input type="text" class="form-control" name="outcomes[]" id="outcomes" placeholder="<?php echo get_phrase('provide_outcomes'); ?>">
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="">
-                                                                        <button type="button" class="btn btn-danger btn-sm" style="margin-top: 0px;" name="button" onclick="removeOutcome(this)"> <i class="fa fa-minus"></i> </button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="tab-pane" id="pricing">
-                                        <div class="row justify-content-center">
-                                            <div class="col-xl-8">
-                                                <div class="form-group row mb-3">
-                                                    <div class="offset-md-2 col-md-10">
-                                                        <div class="custom-control custom-checkbox">
-                                                            <input type="checkbox" class="custom-control-input" name="is_free_course" id="is_free_course" value="1" <?php if ($course_details['is_free_course'] == 1) echo 'checked'; ?> onclick="togglePriceFields(this.id)">
-                                                            <label class="custom-control-label" for="is_free_course"><?php echo get_phrase('check_if_this_is_a_free_course'); ?></label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="paid-course-stuffs">
-                                                    <div class="form-group row mb-3">
-                                                        <label class="col-md-2 col-form-label" for="price"><?php echo get_phrase('course_price') . ' (' . currency_code_and_symbol() . ')'; ?></label>
-                                                        <div class="col-md-10">
-                                                            <input type="number" class="form-control" id="price" name="price" min="0" placeholder="<?php echo get_phrase('enter_course_course_price'); ?>" value="<?php echo $course_details['price']; ?>">
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="form-group row mb-3">
-                                                        <div class="offset-md-2 col-md-10">
-                                                            <div class="custom-control custom-checkbox">
-                                                                <input type="checkbox" class="custom-control-input" name="discount_flag" id="discount_flag" value="1" <?php if ($course_details['discount_flag'] == 1) echo 'checked'; ?>>
-                                                                <label class="custom-control-label" for="discount_flag"><?php echo get_phrase('check_if_this_course_has_discount'); ?></label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="form-group row mb-3">
-                                                        <label class="col-md-2 col-form-label" for="discounted_price"><?php echo get_phrase('discounted_price') . ' (' . currency_code_and_symbol() . ')'; ?></label>
-                                                        <div class="col-md-10">
-                                                            <input type="number" class="form-control" name="discounted_price" id="discounted_price" onkeyup="calculateDiscountPercentage(this.value)" value="<?php echo $course_details['discounted_price']; ?>" min="0">
-                                                            <small class="text-muted"><?php echo get_phrase('this_course_has'); ?> <span id="discounted_percentage" class="text-danger">0%</span> <?php echo get_phrase('discount'); ?></small>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <hr>
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label"><?php echo get_phrase('Expiry period'); ?></label>
-                                                    <div class="col-md-10 pt-2 d-flex">
-                                                        <div class="custom-control custom-radio mr-2">
-                                                            <input type="radio" id="lifetime_expiry_period" name="expiry_period" class="custom-control-input" value="lifetime" onchange="checkExpiryPeriod(this)" <?php if ($course_details['expiry_period'] == 0) echo 'checked'; ?>>
-                                                            <label class="custom-control-label" for="lifetime_expiry_period"><?php echo get_phrase('Lifetime'); ?></label>
-                                                        </div>
-                                                        <div class="custom-control custom-radio">
-                                                            <input type="radio" id="limited_expiry_period" name="expiry_period" class="custom-control-input" value="limited_time" onchange="checkExpiryPeriod(this)" <?php if ($course_details['expiry_period'] > 0) echo 'checked'; ?>>
-                                                            <label class="custom-control-label" for="limited_expiry_period"><?php echo get_phrase('Limited time'); ?></label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-3" id="number_of_month" style="<?php if ($course_details['expiry_period'] == '') echo 'display: none'; ?>">
-                                                    <label class="col-md-2 col-form-label"><?php echo get_phrase('Number of month'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <input class="form-control" type="number" name="number_of_month" min="1" value="<?php echo $course_details['expiry_period']; ?>">
-                                                        <small class="badge badge-light"><?php echo get_phrase('After purchase, students can access the course until your selected time.'); ?></small>
-                                                    </div>
-                                                </div>
-                                            </div> <!-- end col -->
-                                        </div> <!-- end row -->
-                                    </div> <!-- end tab-pane -->
-                                    <div class="tab-pane" id="media">
-                                        <div class="row justify-content-center">
-
-                                            <div class="col-xl-8">
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="course_overview_provider"><?php echo get_phrase('course_overview_provider'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <select class="form-control select2" data-toggle="select2" name="course_overview_provider" id="course_overview_provider">
-                                                            <option value="youtube" <?php if ($course_details['course_overview_provider'] == 'youtube') echo 'selected'; ?>><?php echo get_phrase('youtube'); ?></option>
-                                                            <option value="vimeo" <?php if ($course_details['course_overview_provider'] == 'vimeo') echo 'selected'; ?>><?php echo get_phrase('vimeo'); ?></option>
-                                                            <option value="html5" <?php if ($course_details['course_overview_provider'] == 'html5') echo 'selected'; ?>><?php echo get_phrase('HTML5'); ?></option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                            </div> <!-- end col -->
-
-                                            <div class="col-xl-8">
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="course_overview_url"><?php echo get_phrase('course_overview_url'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <input type="text" class="form-control" name="course_overview_url" id="course_overview_url" placeholder="E.g: https://www.youtube.com/watch?v=oBtf8Yglw2w" value="<?php echo $course_details['video_url'] ?>">
-                                                    </div>
-                                                </div>
-                                            </div> <!-- end col -->
-
-                                            <!-- Course media content edit file starts -->
-                                            <?php include 'course_media_edit.php'; ?>
-                                            <!-- Course media content edit file ends -->
-                                        </div> <!-- end row -->
-                                    </div>
-                                    <div class="tab-pane" id="seo">
-                                        <div class="row justify-content-center">
-                                            <div class="col-xl-8">
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="website_keywords"><?php echo get_phrase('meta_keywords'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <input type="text" class="form-control bootstrap-tag-input" id="meta_keywords" name="meta_keywords" data-role="tagsinput" style="width: 100%;" value="<?php echo $course_details['meta_keywords']; ?>" placeholder="<?php echo get_phrase('write_a_keyword_and_then_press_enter_button'); ?>" . />
-                                                    </div>
-                                                </div>
-                                            </div> <!-- end col -->
-                                            <div class="col-xl-8">
-                                                <div class="form-group row mb-3">
-                                                    <label class="col-md-2 col-form-label" for="meta_description"><?php echo get_phrase('meta_description'); ?></label>
-                                                    <div class="col-md-10">
-                                                        <textarea name="meta_description" class="form-control"><?php echo $course_details['meta_description']; ?></textarea>
-                                                    </div>
-                                                </div>
-                                            </div> <!-- end col -->
-                                        </div> <!-- end row -->
-                                    </div>
-                                    <!-- Custom Field -->
-                                    <div class="tab-pane" id="customField">
-                                        <?php include 'custom_field.php'; ?>
-                                    </div>
-                                    <!-- Custom Field -->
-
-                                    <div class="tab-pane" id="finish">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="text-center">
-                                                    <h2 class="mt-0"><i class="mdi mdi-check-all"></i></h2>
-                                                    <h3 class="mt-0"><?php echo get_phrase('thank_you'); ?> !</h3>
-
-                                                    <p class="w-75 mb-2 mx-auto"><?php echo get_phrase('you_are_just_one_click_away'); ?></p>
-
-                                                    <div class="mb-3 mt-3">
-                                                        <button type="button" class="btn btn-primary text-center" onclick="checkRequiredFields()"><?php echo get_phrase('submit'); ?></button>
-                                                    </div>
-                                                </div>
-                                            </div> <!-- end col -->
-                                        </div> <!-- end row -->
-                                    </div>
-
-                                    <ul class="list-inline mb-0 wizard text-center">
-                                        <li class="previous list-inline-item">
-                                            <a href="javascript:;" class="btn btn-info"> <i class="mdi mdi-arrow-left-bold"></i> </a>
-                                        </li>
-                                        <li class="next list-inline-item">
-                                            <a href="javascript:;" class="btn btn-info"> <i class="mdi mdi-arrow-right-bold"></i> </a>
-                                        </li>
-                                    </ul>
-
-                                </div> <!-- tab-content -->
-                            </div> <!-- end #progressbarwizard-->
-                        </form>
+                <div class="tqa-prefrow">
+                    <div class="tqa-prefrow__main">
+                        <label class="tqa-prefrow__title" for="discount_flag">تفعيل الخصم</label>
+                        <span class="tqa-prefrow__hint">بدونه يباع بالسعر الأصلي ولو كتب سعر الخصم.</span>
                     </div>
-                </div><!-- end row-->
-            </div> <!-- end card-body-->
-        </div> <!-- end card-->
+                    <div class="tqa-prefrow__end">
+                        <span class="tqa-switch">
+                            <input type="checkbox" id="discount_flag" name="discount_flag" value="1"
+                                   <?php echo (int) $tq_course['discount_flag'] === 1 ? 'checked' : ''; ?>>
+                            <span class="tqa-switch__track" aria-hidden="true"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tqa-field" style="margin-block-start:var(--tq-space-l)">
+                <span class="tqa-field__label">مدة الوصول</span>
+                <div class="tqa-checkrow">
+                    <label class="tqa-check">
+                        <input type="radio" name="expiry_period" value="lifetime" data-tqa-expiry
+                               <?php echo (int) $tq_course['expiry_period'] === 0 ? 'checked' : ''; ?>>
+                        <span>وصول دائم</span>
+                    </label>
+                    <label class="tqa-check">
+                        <input type="radio" name="expiry_period" value="limited_time" data-tqa-expiry
+                               <?php echo (int) $tq_course['expiry_period'] > 0 ? 'checked' : ''; ?>>
+                        <span>مدة محدودة</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="tqa-field" data-tqa-months <?php echo (int) $tq_course['expiry_period'] > 0 ? '' : 'hidden'; ?>>
+                <label class="tqa-field__label" for="number_of_month">عدد الأشهر</label>
+                <input class="tqa-input tqa-input--ltr" type="number" id="number_of_month" name="number_of_month"
+                       min="1" value="<?php echo (int) $tq_course['expiry_period']; ?>">
+            </div>
+        </div>
+
+
+    <?php elseif ($tq_tab === 'media'): ?>
+
+        <div class="tqa-card tqa-section">
+            <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+                <span class="tqa-iconbox tqa-lilac" aria-hidden="true"><?php echo tq_icon('video', 20); ?></span>
+                <h2>الصور وفيديو النظرة العامة</h2>
+            </div>
+
+            <div class="tqa-fieldgrid">
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="course_overview_provider">مصدر الفيديو</label>
+                    <select class="tqa-select" id="course_overview_provider" name="course_overview_provider">
+                        <?php foreach (array('youtube' => 'يوتيوب', 'vimeo' => 'فيميو', 'html5' => 'ملف مرفوع') as $tq_k => $tq_l): ?>
+                            <option value="<?php echo $tq_k; ?>"
+                                <?php echo $tq_course['video_type'] === $tq_k ? 'selected' : ''; ?>><?php echo $tq_l; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="course_overview_url">رابط الفيديو</label>
+                    <input class="tqa-input tqa-input--ltr" type="url" id="course_overview_url"
+                           name="course_overview_url" dir="ltr"
+                           value="<?php echo html_escape($tq_course['video_url']); ?>">
+                </div>
+
+                <?php include 'course_media_add.php'; ?>
+            </div>
+        </div>
+
+
+    <?php else: /* seo */ ?>
+
+        <div class="tqa-card tqa-section">
+            <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+                <span class="tqa-iconbox tqa-rose" aria-hidden="true"><?php echo tq_icon('search', 20); ?></span>
+                <h2>تحسين محركات البحث</h2>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="meta_keywords_in">الكلمات الدلالية</label>
+                <div class="tqa-tags" data-tqa-tags>
+                    <input type="hidden" name="meta_keywords" data-tqa-tags-value
+                           value="<?php echo html_escape($tq_course['meta_keywords']); ?>">
+                    <input class="tqa-tags__in" type="text" id="meta_keywords_in" autocomplete="off"
+                           placeholder="اكتب كلمة ثم اضغط Enter" data-tqa-tags-input>
+                </div>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="meta_description">وصف محركات البحث</label>
+                <textarea class="tqa-textarea" id="meta_description" name="meta_description" rows="3"
+                          maxlength="320"><?php echo html_escape($tq_course['meta_description']); ?></textarea>
+            </div>
+        </div>
+
+    <?php endif; ?>
+
+    <div class="tqa-actions">
+        <button type="submit" class="tqa-btn tqa-btn--primary">
+            <?php echo tq_icon('check', 16); ?> احفظ التعديل
+        </button>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/courses'); ?>">إلغاء</a>
     </div>
-</div>
+</form>
 
-<script type="text/javascript">
-    $(document).ready(function() {
-        initSummerNote(['#description']);
-        togglePriceFields('is_free_course');
-    });
-</script>
+<?php endif; ?>
 
-<script type="text/javascript">
-    var blank_faq = jQuery('#blank_faq_field').html();
-    var blank_outcome = jQuery('#blank_outcome_field').html();
-    var blank_requirement = jQuery('#blank_requirement_field').html();
-    jQuery(document).ready(function() {
-        jQuery('#blank_faq_field').hide();
-        jQuery('#blank_outcome_field').hide();
-        jQuery('#blank_requirement_field').hide();
-        calculateDiscountPercentage($('#discounted_price').val());
-    });
-
-    function appendFaq() {
-        jQuery('#faq_area').append(blank_faq);
-    }
-
-    function removeFaq(faqElem) {
-        jQuery(faqElem).parent().parent().remove();
-    }
-
-    function appendOutcome() {
-        jQuery('#outcomes_area').append(blank_outcome);
-    }
-
-    function removeOutcome(outcomeElem) {
-        jQuery(outcomeElem).parent().parent().remove();
-    }
-
-    function appendRequirement() {
-        jQuery('#requirement_area').append(blank_requirement);
-    }
-
-    function removeRequirement(requirementElem) {
-        jQuery(requirementElem).parent().parent().remove();
-    }
-
-    function ajax_get_sub_category(category_id) {
-        $.ajax({
-            url: '<?php echo site_url('admin/ajax_get_sub_category/'); ?>' + category_id,
-            success: function(response) {
-                jQuery('#sub_category_id').html(response);
-            }
-        });
-    }
-
-    function priceChecked(elem) {
-        if (jQuery('#discountCheckbox').is(':checked')) {
-
-            jQuery('#discountCheckbox').prop("checked", false);
-        } else {
-
-            jQuery('#discountCheckbox').prop("checked", true);
-        }
-    }
-
-    function topCourseChecked(elem) {
-        if (jQuery('#isTopCourseCheckbox').is(':checked')) {
-
-            jQuery('#isTopCourseCheckbox').prop("checked", false);
-        } else {
-
-            jQuery('#isTopCourseCheckbox').prop("checked", true);
-        }
-    }
-
-    function isFreeCourseChecked(elem) {
-
-        if (jQuery('#' + elem.id).is(':checked')) {
-            $('#price').prop('required', false);
-        } else {
-            $('#price').prop('required', true);
-        }
-    }
-
-    function calculateDiscountPercentage(discounted_price) {
-        if (discounted_price > 0) {
-            var actualPrice = jQuery('#price').val();
-            if (actualPrice > 0) {
-                var reducedPrice = actualPrice - discounted_price;
-                var discountedPercentage = (reducedPrice / actualPrice) * 100;
-                if (discountedPercentage > 0) {
-                    jQuery('#discounted_percentage').text(discountedPercentage.toFixed(2) + "%");
-
-                } else {
-                    jQuery('#discounted_percentage').text('<?php echo '0%'; ?>');
-                }
-            }
-        }
-    }
-
-    $('.on-hover-action').mouseenter(function() {
-        var id = this.id;
-        $('#widgets-of-' + id).show();
-    });
-    $('.on-hover-action').mouseleave(function() {
-        var id = this.id;
-        $('#widgets-of-' + id).hide();
-    });
-
-    function enrol_list(course_id) {
-        var enrolList = $('#enrol_list').html();
-        if (enrolList == '') {
-            $('.ajax_loader').addClass('start_ajax_loading');
-            $.ajax({
-                url: '<?php echo site_url('admin/enrol_list/'); ?>' + course_id,
-                success: function(response) {
-                    $('#enrol_list').html(response);
-                    $('.ajax_loader').removeClass('start_ajax_loading');
-                }
-            });
-        }
-    }
-
-
-    function student_academic_progress(course_id) {
-        var academicProgressContent = $('#academic_progress').html();
-        if (academicProgressContent == '') {
-            $('.ajax_loader').addClass('start_ajax_loading');
-            $.ajax({
-                url: '<?php echo site_url('admin/student_academic_progress/'); ?>' + course_id,
-                success: function(response) {
-                    $('#academic_progress').html(response);
-                    $('.ajax_loader').removeClass('start_ajax_loading');
-                }
-            });
-        }
-    }
-
-
-    //Show specific tab by passing the tab id when reload browser
-    <?php if (isset($_GET['tab'])) : ?>
-        $('.ajax_loader').addClass('start_ajax_loading');
-        const tabClickInterval = setInterval(function() {
-            if (!$("a[href$=<?= $_GET['tab']; ?>]").hasClass('active')) {
-                $("a[href$=<?= $_GET['tab']; ?>]").click();
-            } else {
-                $('.ajax_loader').removeClass('start_ajax_loading');
-                clearInterval(tabClickInterval);
-            }
-        }, 1000);
-    <?php endif; ?>
-</script>
-
-
-<script type="text/javascript">
-  
-    $(document).ready(function() {
-        $('#thumbnail-picker-area').hide();
-        $('#publish_date').hide();
-        $('#upcoming').click(function() {
-            $('#thumbnail-picker-area').show();
-            $('#publish_date').show();
-        });
-
-        $('input[type="radio"]').not('#status_upcoming').click(function() {
-            $('#thumbnail-picker-area').hide();
-            $('#publish_date').hide();
-        });
-        <?php if($course_details['status'] == 'upcoming'):?>
-        $('#thumbnail-picker-area').show();
-        $('#publish_date').show();
-    <?php endif; ?>
-    });
-</script>
+<?php if ($tq_editing): ?>
+    <?php include 'tqa_file_js.php'; ?>
+    <?php include 'tqa_tags_js.php'; ?>
+    <?php include 'tqa_repeater_js.php'; ?>
+    <?php include 'tqa_course_form_js.php'; ?>
+<?php endif; ?>

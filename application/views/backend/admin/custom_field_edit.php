@@ -14,7 +14,7 @@ foreach ($items as $it) {
 }
 ?>
 
-<div class="alert alert-info" role="alert">
+<div class="tqa-note" role="alert">
         <?php echo get_phrase('custom_field_type : '); ?> <strong class="capitalize"> <?php echo $custom_type; ?></strong>
 </div>
 
@@ -29,12 +29,12 @@ foreach ($items as $it) {
             <label><?php echo get_phrase('title'); ?></label>
             <input type="text" name="image_title[]"
                    value="<?php echo htmlspecialchars($item['title']); ?>"
-                   class="form-control">
+                   class="tqa-input">
         </div>
         <div class="mb-3">
             <label><?php echo get_phrase('description'); ?></label>
             <textarea name="image_description[]"
-                      class="form-control"><?php echo htmlspecialchars($item['description']); ?></textarea>
+                      class="tqa-input"><?php echo htmlspecialchars($item['description']); ?></textarea>
         </div>
         <div class="mb-3">
             <?php if(!empty($item['file'])): ?>
@@ -43,14 +43,14 @@ foreach ($items as $it) {
             <?php endif; ?>
             <br>
             <label class="mt-2"><?php echo get_phrase('image'); ?></label>
-            <input type="file" name="image_file[]" class="form-control">
+            <input type="file" name="image_file[]" class="tqa-input">
         </div>
 
     <?php elseif($custom_type == 'text'): ?>
         <div class="mb-3">
             <label><?php echo get_phrase('text_content'); ?></label>
             <textarea id="summernote" name="text_content[]"
-                      class="form-control"><?php echo htmlspecialchars($item['description']); ?></textarea>
+                      class="tqa-input"><?php echo htmlspecialchars($item['description']); ?></textarea>
         </div>
 
     <?php elseif($custom_type == 'video'): ?>
@@ -58,7 +58,7 @@ foreach ($items as $it) {
             <label><?php echo get_phrase('video_url'); ?></label>
             <input type="text" name="video_url[]"
                    value="<?php echo htmlspecialchars($item['file']); ?>"
-                   class="form-control">
+                   class="tqa-input">
         </div>
 
     <?php elseif($custom_type == 'faq'): ?>
@@ -66,12 +66,12 @@ foreach ($items as $it) {
             <label><?php echo get_phrase('faq_question'); ?></label>
             <input type="text" name="faq_question[]"
                    value="<?php echo htmlspecialchars($item['title']); ?>"
-                   class="form-control">
+                   class="tqa-input">
         </div>
         <div class="mb-3">
             <label><?php echo get_phrase('faq_answer'); ?></label>
             <textarea name="faq_answer[]"
-                      class="form-control"><?php echo htmlspecialchars($item['description']); ?></textarea>
+                      class="tqa-input"><?php echo htmlspecialchars($item['description']); ?></textarea>
         </div>
 
     <?php elseif($custom_type == 'gallery'): ?>
@@ -82,11 +82,11 @@ foreach ($items as $it) {
             <?php endif; ?>
             <br>
             <label class="mt-2"><?php echo get_phrase('gallery_images'); ?></label>
-            <input type="file" name="image_file[]" multiple class="form-control">
+            <input type="file" name="image_file[]" multiple class="tqa-input">
         </div>
     <?php endif; ?>
 
-    <button type="submit" class="btn btn-primary"><?php echo get_phrase('update'); ?></button>
+    <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo get_phrase('update'); ?></button>
     
 </form>
 <hr>

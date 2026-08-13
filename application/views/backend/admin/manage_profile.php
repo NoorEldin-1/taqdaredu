@@ -1,127 +1,199 @@
-<div class="row ">
-	<div class="col-xl-12">
-		<div class="card">
-			<div class="card-body">
-				<h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('manage_profile'); ?></h4>
-			</div> <!-- end card body-->
-		</div> <!-- end card -->
-	</div><!-- end col-->
-</div>
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-<div class="row ">
-	<div class="col-xl-7">
-		<div class="card">
-			<div class="card-body">
-				<h4 class="header-title mb-3"><?php echo get_phrase('basic_info'); ?></h4>
-				<?php
-				foreach($edit_data as $row):
-					$social_links = json_decode($row['social_links'], true);?>
-					<?php echo form_open(site_url('admin/manage_profile/update_profile_info/'.$row['id']) , array('class' => 'form-horizontal form-groups-bordered validate','target'=>'_top' , 'enctype' => 'multipart/form-data'));?>
+/**
+ * حسابي.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*`. وثلاثة أعطال أصلحت معها:
+ *
+ * ١ — **وسم `</form>` زائد وثالث معلق.** كان في الملف ثلاثة أوسمة إغلاق
+ *     لنموذجين: واحد داخل `foreach` وواحد بعده خارج الحلقة. ووسم إغلاق
+ *     بلا فتح يغلق أقرب حاوية في شجرة المتصفح، فتخرج البطاقة مبتورة.
+ * ٢ — **`$social_links['facebook']` بلا فحص.** `social_links` عمود نصي
+ *     قد يكون `NULL` أو `''` في حساب لم يحفظ روابطه، و`json_decode('')`
+ *     ترد `null` — فتقرأ ثلاثة فهارس من `null`: ثلاثة تحذيرات PHP 8.2
+ *     تطبع فوق النموذج.
+ * ٣ — **`initSummerNote(['#biography'])`** — محرر يحمل من حزمة القالب،
+ *     ونبذة المسؤول لا تعرض في صفحة عامة أصلا فلا حاجة إلى HTML فيها.
+ *     صار حقل نص عاديا.
+ *
+ * وحلقة `foreach($edit_data …)` بقيت: المتحكم يمرر مجموعة صف واحد، وهي
+ * تدور مرة. لكنها تقرأ الآن أول صف صراحة — والحلقة التي تدور مرة واحدة
+ * أبدا تخفي أن الشاشة لحساب واحد لا لقائمة.
+ */
+$tq_row = is_array($edit_data) ? reset($edit_data) : $edit_data->row_array();
 
-					<div class="form-group">
-						<label><?php echo get_phrase('first_name');?></label>
-						<input type="text" class="form-control" name="first_name" value="<?php echo $row['first_name'];?>" required/>
-					</div>
+if (!$tq_row) {
+    tqa_head('حسابي', '', 'cog');
+    echo '<div class="tqa-card tqa-card--flush">';
+    tqa_empty('تعذر قراءة بيانات الحساب', 'سجل الخروج ثم الدخول مرة أخرى.', '', '', 'cog');
+    echo '</div>';
+    return;
+}
 
-					<div class="form-group">
-						<label><?php echo get_phrase('last_name');?></label>
-						<input type="text" class="form-control" name="last_name" value="<?php echo $row['last_name'];?>" required/>
-					</div>
+$tq_social = json_decode((string) $tq_row['social_links'], true);
+if (!is_array($tq_social)) $tq_social = array();
+$tq_social += array('facebook' => '', 'twitter' => '', 'linkedin' => '');
 
-					<div class="form-group">
-						<label><?php echo get_phrase('email');?></label>
-						<input type="email" class="form-control" name="email" value="<?php echo $row['email'];?>" required/>
-					</div>
+$tq_id = (int) $tq_row['id'];
+?>
 
-					<div class="form-group">
-						<label><?php echo get_phrase('facebook_link');?></label>
-						<input type="text" class="form-control" name="facebook_link" value="<?php echo $social_links['facebook'];?>"/>
-					</div>
+<?php tqa_head('حسابي', 'بياناتك أنت وكلمة مرورك — لا حسابات المسؤولين الآخرين.', 'cog'); ?>
 
-					<div class="form-group">
-						<label><?php echo get_phrase('twitter_link');?></label>
-						<input type="text" class="form-control" name="twitter_link" value="<?php echo $social_links['twitter'];?>"/>
-					</div>
+<div class="tqa-cols">
 
-					<div class="form-group">
-						<label><?php echo get_phrase('linkedin_link');?></label>
-						<input type="text" class="form-control" name="linkedin_link" value="<?php echo $social_links['linkedin'];?>"/>
-					</div>
+    <div>
+        <form action="<?php echo site_url('admin/manage_profile/update_profile_info/' . $tq_id); ?>"
+              method="post" enctype="multipart/form-data" class="tqa-card">
+            <?php echo tq_csrf(); ?>
 
-					<div class="form-group">
-						<label><?php echo get_phrase('a_short_title_about_yourself'); ?></label>
-						<textarea rows="5" id="short-title" class="form-control" name="title" placeholder="<?php echo get_phrase('a_short_title_about_yourself'); ?>"><?php echo $row['title']; ?></textarea>
-					</div>
+            <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+                <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('users', 20); ?></span>
+                <h2>معلومات أساسية</h2>
+            </div>
 
-					<div class="form-group">
-                        <label for="skills"><?php echo get_phrase('skills'); ?></label>
-                        <input type="text" class="form-control bootstrap-tag-input" id = "skills" name="skills" data-role="tagsinput" style="width: 100%;" value="<?php echo $row['skills'];  ?>"/>
-                        <small class="text-muted"><?php echo get_phrase('write_your_skill_and_click_the_enter_button'); ?></small>
+            <div class="tqa-fieldgrid">
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="first_name">
+                        الاسم الأول <span class="tqa-field__req" aria-hidden="true">*</span>
+                    </label>
+                    <input class="tqa-input" type="text" id="first_name" name="first_name" required
+                           value="<?php echo html_escape($tq_row['first_name']); ?>">
+                </div>
+
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="last_name">
+                        اسم العائلة <span class="tqa-field__req" aria-hidden="true">*</span>
+                    </label>
+                    <input class="tqa-input" type="text" id="last_name" name="last_name" required
+                           value="<?php echo html_escape($tq_row['last_name']); ?>">
+                </div>
+
+                <div class="tqa-field tqa-field--full">
+                    <label class="tqa-field__label" for="email">
+                        البريد الإلكتروني <span class="tqa-field__req" aria-hidden="true">*</span>
+                    </label>
+                    <input class="tqa-input tqa-input--ltr" type="email" id="email" name="email" required dir="ltr"
+                           value="<?php echo html_escape($tq_row['email']); ?>">
+                    <span class="tqa-field__hint">هو اسم دخولك — تغييره يغير ما تسجل به.</span>
+                </div>
+
+                <div class="tqa-field tqa-field--full">
+                    <label class="tqa-field__label" for="title">سطر تعريفي</label>
+                    <input class="tqa-input" type="text" id="title" name="title" maxlength="255"
+                           value="<?php echo html_escape($tq_row['title']); ?>">
+                </div>
+
+                <div class="tqa-field tqa-field--full">
+                    <label class="tqa-field__label" for="skills_in">المهارات</label>
+                    <div class="tqa-tags" data-tqa-tags>
+                        <input type="hidden" name="skills" value="<?php echo html_escape($tq_row['skills']); ?>"
+                               data-tqa-tags-value>
+                        <input class="tqa-tags__in" type="text" id="skills_in" autocomplete="off"
+                               placeholder="اكتب مهارة ثم اضغط Enter" data-tqa-tags-input>
                     </div>
+                </div>
 
-					<div class="form-group">
-						<label><?php echo get_phrase('biography'); ?></label>
-						<textarea rows="5" class="form-control" name="biography" id="biography" placeholder="<?php echo get_phrase('biography'); ?>"><?php echo $row['biography']; ?></textarea>
-					</div>
+                <div class="tqa-field tqa-field--full">
+                    <label class="tqa-field__label" for="biography">نبذة</label>
+                    <textarea class="tqa-textarea" id="biography" name="biography" rows="4"><?php
+                        echo html_escape($tq_row['biography']); ?></textarea>
+                </div>
 
+                <div class="tqa-field tqa-field--full">
+                    <span class="tqa-field__label">الصورة الشخصية</span>
+                    <div class="tqa-file">
+                        <img class="tqa-avatar" width="38" height="38" alt="صورتك الحالية"
+                             src="<?php echo html_escape($this->user_model->get_user_image_url($tq_id)); ?>">
+                        <input type="file" id="user_image" name="user_image" accept="image/*" data-tqa-file>
+                        <label class="tqa-file__btn" for="user_image">
+                            <?php echo tq_icon('image', 16); ?> استبدل الصورة
+                        </label>
+                        <span class="tqa-file__name" data-tqa-file-name>صورة مربعة تخرج أفضل</span>
+                    </div>
+                </div>
+            </div>
 
-					<div class="form-group">
-						<label> <?php echo get_phrase('photo'); ?> <small>(<?php echo get_phrase('the_image_size_should_be_any_square_image'); ?>)</small> </label>
-						<div class="d-flex mt-2">
-							<div class="">
-								<img class = "rounded-circle img-thumbnail" src="<?php echo $this->user_model->get_user_image_url($this->session->userdata('user_id')); ?>" alt="" style="height: 50px; width: 50px;">
-							</div>
-							<div class="flex-grow-1 pl-2">
-								<div class="input-group">
-									<div class="custom-file">
-										<input type="file" class="custom-file-input" name = "user_image" id="user_image" onchange="changeTitleOfImageUploader(this)" accept="image/*">
-										<label class="custom-file-label ellipsis" for=""><?php echo get_phrase('choose_file'); ?></label>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
+            <div class="tqa-card__head" style="padding:var(--tq-space-l) 0 var(--tq-space-l);
+                 margin-block:var(--tq-space-l);border-block-end:1px solid var(--tq-line);border-block-start:1px solid var(--tq-line)">
+                <span class="tqa-iconbox tqa-lilac" aria-hidden="true"><?php echo tq_icon('link', 20); ?></span>
+                <h2>روابط التواصل</h2>
+            </div>
 
-					<div class="row justify-content-center">
-						<button type="submit" class="btn btn-primary"><?php echo get_phrase('update_profile');?></button>
-					</div>
-				</form>
-				<?php
-			endforeach;
-			?>
-		</form>
-	</div> <!-- end card body-->
-</div> <!-- end card -->
+            <div class="tqa-fieldgrid tqa-fieldgrid--3">
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="facebook_link">فيسبوك</label>
+                    <input class="tqa-input tqa-input--ltr" type="url" id="facebook_link" name="facebook_link" dir="ltr"
+                           value="<?php echo html_escape($tq_social['facebook']); ?>">
+                </div>
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="twitter_link">إكس (تويتر)</label>
+                    <input class="tqa-input tqa-input--ltr" type="url" id="twitter_link" name="twitter_link" dir="ltr"
+                           value="<?php echo html_escape($tq_social['twitter']); ?>">
+                </div>
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="linkedin_link">لينكدإن</label>
+                    <input class="tqa-input tqa-input--ltr" type="url" id="linkedin_link" name="linkedin_link" dir="ltr"
+                           value="<?php echo html_escape($tq_social['linkedin']); ?>">
+                </div>
+            </div>
+
+            <div class="tqa-actions">
+                <button type="submit" class="tqa-btn tqa-btn--primary">
+                    <?php echo tq_icon('check', 16); ?> احفظ التعديل
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <aside>
+        <form action="<?php echo site_url('admin/manage_profile/change_password/' . $tq_id); ?>"
+              method="post" class="tqa-card">
+            <?php echo tq_csrf(); ?>
+
+            <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+                <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('lock', 20); ?></span>
+                <h2>كلمة المرور</h2>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="current_password">
+                    كلمة المرور الحالية <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input tqa-input--ltr" type="password" id="current_password"
+                       name="current_password" required autocomplete="current-password" dir="ltr">
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="new_password">
+                    كلمة المرور الجديدة <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input tqa-input--ltr" type="password" id="new_password"
+                       name="new_password" required minlength="8" autocomplete="new-password" dir="ltr">
+                <span class="tqa-field__hint">ثمانية محارف على الأقل.</span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="confirm_password">
+                    تأكيد الجديدة <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input tqa-input--ltr" type="password" id="confirm_password"
+                       name="confirm_password" required minlength="8" autocomplete="new-password" dir="ltr">
+            </div>
+
+            <div class="tqa-actions">
+                <button type="submit" class="tqa-btn tqa-btn--mastery tqa-btn--block">
+                    <?php echo tq_icon('lock', 16); ?> غير كلمة المرور
+                </button>
+            </div>
+        </form>
+
+        <div class="tqa-note" style="margin-block-start:var(--tq-space-l)">
+            <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
+            <span>تغيير كلمة المرور لا يخرجك من الجلسة الحالية، ويخرج أي جلسة أخرى لك عند الدخول التالي.</span>
+        </div>
+    </aside>
 </div>
-<div class="col-xl-5">
-	<div class="card">
-		<div class="card-body">
-			<?php foreach($edit_data as $row): ?>
-				<?php echo form_open(site_url('admin/manage_profile/change_password/'.$row['id']) , array('class' => 'form-horizontal form-groups-bordered validate','target'=>'_top'));?>
-				<div class="form-group">
-					<label><?php echo get_phrase('current_password');?></label>
-					<input type="password" class="form-control" name="current_password" value="" required/>
-				</div>
-				<div class="form-group">
-					<label><?php echo get_phrase('new_password');?></label>
-					<input type="password" class="form-control" name="new_password" value="" required/>
-				</div>
-				<div class="form-group">
-					<label><?php echo get_phrase('confirm_new_password');?></label>
-					<input type="password" class="form-control" name="confirm_password" value="" required/>
-				</div>
-				<div class="row justify-content-center">
-					<button type="submit" class="btn btn-info"><?php echo get_phrase('update_password');?></button>
-				</div>
-			</form>
-		<?php endforeach; ?>
-	</div>
-</div>
-</div>
-</div>
 
-<script type="text/javascript">
-$(document).ready(function () {
-	initSummerNote(['#biography']);
-});
-</script>
+<?php include 'tqa_file_js.php'; ?>
+<?php include 'tqa_tags_js.php'; ?>

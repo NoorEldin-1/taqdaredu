@@ -1,11 +1,11 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <input type="hidden" name="lesson_type" value="other-img">
 
-<div class="form-group">
-    <label> <?php echo get_phrase('attachment'); ?></label>
-    <div class="input-group">
-        <div class="custom-file">
-            <input type="file" class="custom-file-input" id="attachment" name="attachment" onchange="changeTitleOfImageUploader(this)">
-            <label class="custom-file-label" for="attachment"><?php echo get_phrase('attachment'); ?></label>
-        </div>
+<div class="tqa-field">
+    <span class="tqa-field__label">الصورة</span>
+    <div class="tqa-file">
+        <input type="file" id="attachment" name="attachment" accept="image/*" data-tqa-file>
+        <label class="tqa-file__btn" for="attachment"><?php echo tq_icon('image', 16); ?> استبدل الصورة</label>
+        <span class="tqa-file__name" data-tqa-file-name>اتركه فارغا لإبقاء الصورة الحالية</span>
     </div>
 </div>

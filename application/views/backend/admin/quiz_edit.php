@@ -1,62 +1,118 @@
 <?php
-$quiz_details = $this->crud_model->get_lessons('lesson', $param2)->row_array();
-$sections = $this->crud_model->get_section('course', $param3)->result_array();
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * تعديل اختبار — يفتح في نافذة.
+ *
+ * الشكل نفسه الذي في [quiz_add.php]. وما أصلح هنا:
+ *
+ * **`json_decode(...)['total_marks']` كانت تنادى ثلاث مرات على السلسلة
+ * نفسها**، وبلا فحص على الأولى منها. فاختبار حقله `attachment` فارغ أو
+ * غير صالح — وهو وارد في صفوف قديمة — يقرأ فهرسا من `null`: تحذير
+ * PHP 8.2 يطبع فوق النافذة، وقيمة فارغة في الحقل. صار الفك مرة واحدة
+ * وبقيم افتراضية.
+ */
+$tq_quiz     = $this->crud_model->get_lessons('lesson', $param2)->row_array();
+$tq_sections = $this->crud_model->get_section('course', $param3)->result_array();
+
+if (!$tq_quiz) {
+    echo '<p class="tqa-note tqa-note--warn">لا اختبار بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>';
+    return;
+}
+
+$tq_meta = json_decode((string) $tq_quiz['attachment'], true);
+if (!is_array($tq_meta)) $tq_meta = array();
+$tq_meta += array('total_marks' => 0, 'pass_mark' => 0, 'drip_content_for_passing_rule' => 'not_applicable');
 ?>
-<form action="<?php echo site_url('admin/quizes/'.$param3.'/edit/'.$param2); ?>" method="post">
-    <div class="form-group">
-        <label for="title"><?php echo get_phrase('quiz_title'); ?></label>
-        <input class="form-control" type="text" name="title" id="title" value="<?php echo $quiz_details['title']; ?>" required>
+
+<form action="<?php echo site_url('admin/quizes/' . (int) $param3 . '/edit/' . (int) $param2); ?>" method="post">
+    <?php echo tq_csrf(); ?>
+
+    <div class="tqa-field">
+        <label class="tqa-field__label" for="title">
+            عنوان الاختبار <span class="tqa-field__req" aria-hidden="true">*</span>
+        </label>
+        <input class="tqa-input" type="text" id="title" name="title" required maxlength="190"
+               value="<?php echo html_escape($tq_quiz['title']); ?>">
     </div>
-    <div class="form-group">
-        <label for="section_id"><?php echo get_phrase('section'); ?></label>
-        <select class="form-control select2" data-toggle="select2" name="section_id" id="section_id" required>
-            <?php foreach ($sections as $section): ?>
-                <option value="<?php echo $section['id']; ?>" <?php if ($quiz_details['section_id'] == $section['id']): ?>selected<?php endif; ?>><?php echo $section['title']; ?></option>
+
+    <div class="tqa-field">
+        <label class="tqa-field__label" for="section_id">
+            القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+        </label>
+        <select class="tqa-select" id="section_id" name="section_id" required>
+            <?php foreach ($tq_sections as $tq_s): ?>
+                <option value="<?php echo (int) $tq_s['id']; ?>"
+                    <?php echo (int) $tq_quiz['section_id'] === (int) $tq_s['id'] ? 'selected' : ''; ?>>
+                    <?php echo html_escape($tq_s['title']); ?>
+                </option>
             <?php endforeach; ?>
         </select>
     </div>
 
-    <div class="form-group">
-        <label for="quiz_duration"><?php echo get_phrase('quiz_duration'); ?></label>
-        <input type="text" class="form-control" data-toggle='timepicker' data-minute-step="5" name="quiz_duration" id = "quiz_duration" data-show-meridian="false" value="<?php echo $quiz_details['duration']; ?>">
-        <small class="badge badge-info"><?php echo get_phrase('if_you_want_to_disable_the_timer,_set_the_duration_to'); ?> 00:00:00.</small>
+    <div class="tqa-fieldgrid">
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="total_marks">
+                الدرجة الكلية <span class="tqa-field__req" aria-hidden="true">*</span>
+            </label>
+            <input class="tqa-input tqa-input--ltr" type="number" id="total_marks" name="total_marks"
+                   min="1" required dir="ltr" value="<?php echo html_escape($tq_meta['total_marks']); ?>">
+        </div>
+
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="pass_mark">
+                درجة النجاح <span class="tqa-field__req" aria-hidden="true">*</span>
+            </label>
+            <input class="tqa-input tqa-input--ltr" type="number" id="pass_mark" name="pass_mark"
+                   min="0" required dir="ltr" value="<?php echo html_escape($tq_meta['pass_mark']); ?>">
+        </div>
+
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="quiz_duration">مدة الاختبار</label>
+            <input class="tqa-input tqa-input--ltr" type="text" id="quiz_duration" name="quiz_duration"
+                   dir="ltr" placeholder="00:00:00"
+                   value="<?php echo html_escape($tq_quiz['duration']); ?>">
+            <span class="tqa-field__hint"><span class="tq-ltr" dir="ltr">00:00:00</span> تعني بلا مؤقت.</span>
+        </div>
+
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="number_of_quiz_retakes">عدد المحاولات الإضافية</label>
+            <input class="tqa-input tqa-input--ltr" type="number" id="number_of_quiz_retakes"
+                   name="number_of_quiz_retakes" min="0" max="50" dir="ltr"
+                   value="<?php echo (int) $tq_quiz['quiz_attempt']; ?>">
+            <span class="tqa-field__hint">صفر يعني محاولة واحدة لا غير.</span>
+        </div>
     </div>
 
-    <div class="form-group">
-        <label for="total_marks"><?php echo get_phrase('total_marks'); ?></label>
-        <input type="number" min="0" class="form-control" name="total_marks" value="<?php echo json_decode($quiz_details['attachment'], true)['total_marks']; ?>" id = "total_marks">
+    <fieldset class="tqa-field">
+        <legend class="tqa-field__label">قاعدة الانتقال إلى الدرس التالي</legend>
+        <span class="tqa-field__hint" style="margin-block-end:var(--tq-space-s)">
+            لا أثر لها ما لم تكن «الإتاحة التدريجية» مفعلة في إعدادات الكورس.
+        </span>
+
+        <div class="tqa-stack">
+            <label class="tqa-check">
+                <input type="radio" name="drip_content_for_passing_rule" value="not_applicable"
+                       <?php echo $tq_meta['drip_content_for_passing_rule'] !== 'applicable' ? 'checked' : ''; ?>>
+                <span>يكفي تسليم الاختبار — بأي درجة</span>
+            </label>
+            <label class="tqa-check">
+                <input type="radio" name="drip_content_for_passing_rule" value="applicable"
+                       <?php echo $tq_meta['drip_content_for_passing_rule'] === 'applicable' ? 'checked' : ''; ?>>
+                <span>يلزم بلوغ درجة النجاح</span>
+            </label>
+        </div>
+    </fieldset>
+
+    <div class="tqa-field">
+        <label class="tqa-field__label" for="quiz_summary">تعليمات للطالب</label>
+        <textarea class="tqa-textarea" id="quiz_summary" name="summary" rows="3"><?php
+            echo html_escape($tq_quiz['summary']); ?></textarea>
     </div>
 
-    <div class="form-group">
-        <label for="pass_mark"><?php echo get_phrase('Pass mark'); ?></label>
-        <input type="number" min="0" class="form-control" name="pass_mark" value="<?php echo json_decode($quiz_details['attachment'], true)['pass_mark'] ?? 0; ?>" id = "pass_mark" required>
-    </div>
-
-    <div class="form-group">
-        <?php $drip_content_for_passing_rule = json_decode($quiz_details['attachment'], true)['drip_content_for_passing_rule'] ?? ''; ?>
-        <label><?php echo get_phrase('Drip content rule for quiz'); ?></label> <small class="text-12px">(<?php echo get_phrase('This will only work if drip content is enabled'); ?>)</small><br>
-        <input name="drip_content_for_passing_rule" type="radio" value="not_applicable" <?php if($drip_content_for_passing_rule == 'not_applicable') echo 'checked'; ?> id = "drip_content_rule_not_applicable"> <label for="drip_content_rule_not_applicable"><?php echo get_phrase('Students can start the next lesson by submitting the quiz'); ?></label>
-        <br>
-        <input name="drip_content_for_passing_rule" type="radio" value="applicable" <?php if($drip_content_for_passing_rule == 'applicable') echo 'checked'; ?> id = "drip_content_rule_applicable"> <label for="drip_content_rule_applicable"><?php echo get_phrase('Students must achieve pass mark to start the next lesson'); ?></label>
-    </div>
-
-    <div class="form-group">
-        <label for="number_of_quiz_retakes"><?php echo get_phrase('number_of_quiz_retakes'); ?></label>
-        <input type="number" value="<?php echo $quiz_details['quiz_attempt']; ?>" min="0" max="50" class="form-control" name="number_of_quiz_retakes" id = "number_of_quiz_retakes">
-        <small class="badge badge-info"><?php echo get_phrase('enter_0_if_you_want_to_disable_multiple_attempts'); ?></small>
-    </div>
-    
-    <div class="form-group">
-        <label><?php echo get_phrase('instruction'); ?></label>
-        <textarea name="summary" class="form-control"><?php echo $quiz_details['summary']; ?></textarea>
-    </div>
-    <div class="text-center">
-        <button class = "btn btn-success" type="submit" name="button"><?php echo get_phrase('submit'); ?></button>
+    <div class="tqa-actions">
+        <button class="tqa-btn tqa-btn--primary tqa-btn--block" type="submit">
+            <?php echo tq_icon('check', 16); ?> احفظ التعديل
+        </button>
     </div>
 </form>
-<script type="text/javascript">
-$(document).ready(function() {
-    initSelect2(['#section_id']);
-    initTimepicker();
-});
-</script>

@@ -1,235 +1,327 @@
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('system_settings'); ?></h4>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-</div>
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-<div class="row">
-    <div class="col-xl-7">
-        <div class="card">
-            <div class="card-body">
-                <div class="col-lg-12">
-                    <h4 class="mb-3 header-title"><?php echo get_phrase('system_settings');?></h4>
+/**
+ * إعدادات المنصة.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*`. وما تغير:
+ *
+ * ١ — **زر الحفظ كان `type="button"`** ينادي `checkRequiredFields()` من
+ *     `main.js`. أي أن حفظ إعدادات المنصة كلها معلق على ملف جافاسكربت
+ *     واحد، وأن Enter في أي حقل لا يفعل شيئا.
+ * ٢ — **حقول لا تخص هذا التركيب كانت `required`:** «رمز الشراء» و
+ *     «مفتاح يوتيوب» و«مفتاح فيميو». والمنصة لا تستضيف على يوتيوب ولا
+ *     فيميو، ورمز الشراء من متجر القالب الأصلي. فمن أراد تغيير اسم
+ *     الموقع لم يكن يستطيع الحفظ حتى يملأ ثلاثة حقول لا معنى لها عنده.
+ *     صارت اختيارية ومجموعة في قسم «تكاملات».
+ * ٣ — **نموذج «تحديث المنتج»** يرفع ملفا إلى `updater/update` — وهو
+ *     محدث القالب التجاري، يفك أرشيفا فوق شجرة الموقع. والنشر هنا
+ *     يجري بـ`deploy.sh` من git (انظر CLAUDE.md)، فرفع أرشيف فوقه يعني
+ *     شجرة لا تطابق أي التزام. حذف النموذج.
+ * ٤ — **«هل يستطيع الطلاب تعطيل حساباتهم؟» كان زري راديو** بلا مجموعة
+ *     معنونة — يقرؤهما قارئ الشاشة خيارين معلقين. صار مفتاحا.
+ * ٥ — الحقول جمعت في أربع بطاقات معنونة: كانت ثمانية عشر حقلا في عمود
+ *     واحد بلا فاصل، فيقرأ «رمز الشراء» بجوار «رقم هاتف المنصة».
+ */
+$tq_yes = function ($key, $on = 'enable') { return get_settings($key) === $on; };
+?>
 
-                    <form class="required-form" action="<?php echo site_url('admin/system_settings/system_update'); ?>" method="post" enctype="multipart/form-data">
-                        <div class="form-group">
-                            <label for="system_name"><?php echo get_phrase('website_name'); ?><span class="required">*</span></label>
-                            <input type="text" name = "system_name" id = "system_name" class="form-control" value="<?php echo get_settings('system_name');  ?>" required>
-                        </div>
+<?php tqa_head('إعدادات المنصة', 'هوية الموقع وسلوكه العام — وما يظهر منها في كل صفحة.', 'cog'); ?>
 
-                        <div class="form-group">
-                            <label for="system_title"><?php echo get_phrase('website_title'); ?><span class="required">*</span></label>
-                            <input type="text" name = "system_title" id = "system_title" class="form-control" value="<?php echo get_settings('system_title');  ?>" required>
-                        </div>
+<form action="<?php echo site_url('admin/system_settings/system_update'); ?>" method="post"
+      enctype="multipart/form-data" style="max-inline-size:900px">
+    <?php echo tq_csrf(); ?>
 
-                        <div class="form-group">
-                            <label for="website_keywords"><?php echo get_phrase('website_keywords'); ?></label>
-                            <input type="text" class="form-control bootstrap-tag-input" id = "website_keywords" name="website_keywords" data-role="tagsinput" style="width: 100%;" value="<?php echo get_settings('website_keywords');  ?>"/>
-                        </div>
+    <div class="tqa-card tqa-section">
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('globe', 20); ?></span>
+            <h2>هوية الموقع</h2>
+        </div>
 
-                        <div class="form-group">
-                            <label for="website_description"><?php echo get_phrase('website_description'); ?></label>
-                            <textarea name="website_description" id = "website_description" class="form-control" rows="5"><?php echo get_settings('website_description');  ?></textarea>
-                        </div>
+        <div class="tqa-fieldgrid">
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="system_name">
+                    اسم الموقع <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input" type="text" id="system_name" name="system_name" required
+                       value="<?php echo html_escape(get_settings('system_name')); ?>">
+            </div>
 
-                        <div class="form-group">
-                            <label for="author"><?php echo get_phrase('author'); ?></label>
-                            <input type="text" name = "author" id = "author" class="form-control" value="<?php echo get_settings('author');  ?>">
-                        </div>
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="system_title">
+                    عنوان التبويب <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input" type="text" id="system_title" name="system_title" required
+                       value="<?php echo html_escape(get_settings('system_title')); ?>">
+                <span class="tqa-field__hint">يظهر في شريط تبويب المتصفح وفي المفضلة.</span>
+            </div>
 
-                        <div class="form-group">
-                            <label for="slogan"><?php echo get_phrase('slogan'); ?><span class="required">*</span></label>
-                            <input type="text" name = "slogan" id = "slogan" class="form-control" value="<?php echo get_settings('slogan');  ?>" required>
-                        </div>
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="slogan">
+                    الشعار النصي <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input" type="text" id="slogan" name="slogan" required
+                       value="<?php echo html_escape(get_settings('slogan')); ?>">
+            </div>
 
-                        <div class="form-group">
-                            <label for="system_email"><?php echo get_phrase('system_email'); ?><span class="required">*</span></label>
-                            <input type="text" name = "system_email" id = "system_email" class="form-control" value="<?php echo get_settings('system_email');  ?>" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="address"><?php echo get_phrase('address'); ?></label>
-                            <textarea name="address" id = "address" class="form-control" rows="5"><?php echo get_settings('address');  ?></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="phone"><?php echo get_phrase('phone'); ?></label>
-                            <input type="text" name = "phone" id = "phone" class="form-control" value="<?php echo get_settings('phone');  ?>">
-                        </div>
-
-                        <!--
-                            رابطا المتجرين. شارتا التذييل (site/site_stores.php) تقرآن هذين
-                            المفتاحين: ما دام الحقل فارغا تعرض الشارة صامتة مع «التطبيق
-                            قريبا»، وبمجرد وضع رابط تصير رابطا حيا يفتح في تبويب جديد.
-                            فالتفريغ هو طريقة التعطيل، لا حذف الشارة.
-
-                            والنص عربي مباشرة لا عبر get_phrase: الدالة ترجع المفتاح
-                            منمقا حين لا تجد ترجمة، فكانت ستطبع «App store url» وسط لوحة
-                            عربية إلى أن يدرج صف في جدول language يدويا — خطوة لا
-                            يحملها النشر. وطبقة تقدر تكتب العربي مباشرة أصلا.
-
-                            و dir="ltr" على الحقل: الرابط لاتيني، وفي سياق RTL تنزلق
-                            علامات // و ? و = إلى مواضع مضللة بصريا عند المراجعة.
-                        -->
-                        <div class="form-group">
-                            <label for="app_store_url">رابط App Store</label>
-                            <input type="url" name="app_store_url" id="app_store_url" class="form-control"
-                                   dir="ltr" placeholder="https://apps.apple.com/..."
-                                   value="<?php echo html_escape(get_settings('app_store_url')); ?>">
-                            <small class="badge badge-light">اتركه فارغا لتظهر الشارة بحالة «قريبا»</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="google_play_url">رابط Google Play</label>
-                            <input type="url" name="google_play_url" id="google_play_url" class="form-control"
-                                   dir="ltr" placeholder="https://play.google.com/store/apps/details?id=..."
-                                   value="<?php echo html_escape(get_settings('google_play_url')); ?>">
-                            <small class="badge badge-light">اتركه فارغا لتظهر الشارة بحالة «قريبا»</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="youtube_api_key"><?php echo get_phrase('youtube_API_key'); ?><span class="required">*</span> &nbsp; <a href = "https://developers.google.com/youtube/v3/getting-started" target = "_blank" style="color: #a7a4a4">(<?php echo get_phrase('get_YouTube_API_key'); ?> <i class="mdi mdi-open-in-new"></i>)</a></label>
-                            <input type="text" name = "youtube_api_key" id = "youtube_api_key" class="form-control" value="<?php echo get_settings('youtube_api_key');  ?>" required>
-                            <a href="https://support.google.com/googleapi/answer/6158841" target="_blank">
-                                <small class="badge badge-light">
-                                    <?php echo get_phrase('If you want to use Google Drive video, you need to enable the Google Drive service in this API'); ?>
-                                    <i class="mdi mdi-open-in-new"></i>
-                                </small>
-                            </a>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="vimeo_api_key"><?php echo get_phrase('vimeo_API_key'); ?><span class="required">*</span> &nbsp; <a href = "https://www.youtube.com/watch?v=Wwy9aibAd54" target = "_blank" style="color: #a7a4a4">(<?php echo get_phrase('get_Vimeo_API_key'); ?> <i class="mdi mdi-open-in-new"></i>)</a></label>
-                            <input type="text" name = "vimeo_api_key" id = "vimeo_api_key" class="form-control" value="<?php echo get_settings('vimeo_api_key');  ?>" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="purchase_code"><?php echo get_phrase('purchase_code'); ?><span class="required">*</span></label>
-                            <input type="text" name = "purchase_code" id = "purchase_code" class="form-control" value="<?php echo get_settings('purchase_code');  ?>" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="language"><?php echo get_phrase('system_language'); ?></label>
-                            <select class="form-control select2" data-toggle="select2" name="language" id="language">
-                                <?php foreach ($languages as $language): ?>
-                                    <option value="<?php echo $language; ?>" <?php if(get_settings('language') == $language) echo 'selected'; ?>><?php echo ucfirst($language); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="language"><?php echo get_phrase('student_email_verification'); ?></label>
-                            <select class="form-control select2" data-toggle="select2" name="student_email_verification" id="student_email_verification">
-                                <option value="enable" <?php if(get_settings('student_email_verification') == "enable") echo 'selected'; ?>><?php echo get_phrase('enable'); ?></option>
-                                <option value="disable" <?php if(get_settings('student_email_verification') == "disable") echo 'selected'; ?>><?php echo get_phrase('disable'); ?></option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="language"><?php echo get_phrase('course_accessibility'); ?></label>
-                            <select class="form-control select2" data-toggle="select2" name="course_accessibility" id="course_accessibility">
-                                <option value="publicly" <?php if(get_settings('course_accessibility') == "publicly") echo 'selected'; ?>><?php echo get_phrase('publicly'); ?></option>
-                                <option value="only_logged_in_users" <?php if(get_settings('course_accessibility') == "only_logged_in_users") echo 'selected'; ?>><?php echo get_phrase('only_logged_in_users'); ?></option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="allowed_device_number_of_loging"><?php echo get_phrase('number_of_authorized_devices'); ?><span class="required">*</span></label>
-                            <input type="number" name = "allowed_device_number_of_loging" id = "allowed_device_number_of_loging" class="form-control" value="<?php echo get_settings('allowed_device_number_of_loging');  ?>" min="1" required>
-                            <small><?php echo get_phrase('how_many_devices_do_you_want_to_allow_for_logging_in_using_a_single_account'); ?>?</small>
-                        </div>
-
-                        <div class="form-group toggleMinimumWatchField">
-                            <label for="course_selling_tax"><?php echo get_phrase('course_selling_tax'); ?> (%) <span class="required">*</span></label>
-                            <div class="input-group">
-                                <input type="number" value="<?php echo get_settings('course_selling_tax'); ?>" min="0" max="100" id="course_selling_tax" name="course_selling_tax" class="form-control" required>
-                                <div class="input-group-append">
-                                    <span class="input-group-text">%</span>
-                                </div>
-                            </div>
-                            <small><?php echo get_phrase('enter_0_if_you_want_to_disable_the_tax_option') ?></small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="google_analytics_id"><?php echo get_phrase('google_analytics_id'); ?></label>
-                            <input type="text" name = "google_analytics_id" id = "google_analytics_id" class="form-control" value="<?php echo get_settings('google_analytics_id');  ?>">
-                            <small><?php echo get_phrase('keep_it_blank_if_you_want_to_disable_it') ?></small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="meta_pixel_id"><?php echo get_phrase('meta_pixel_id'); ?></label>
-                            <input type="text" name = "meta_pixel_id" id = "meta_pixel_id" class="form-control" value="<?php echo get_settings('meta_pixel_id');  ?>">
-                            <small><?php echo get_phrase('keep_it_blank_if_you_want_to_disable_it') ?></small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="footer_text"><?php echo get_phrase('footer_text'); ?></label>
-                            <input type="text" name = "footer_text" id = "footer_text" class="form-control" value="<?php echo get_settings('footer_text');  ?>">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="footer_link"><?php echo get_phrase('footer_link'); ?></label>
-                            <input type="text" name = "footer_link" id = "footer_link" class="form-control" value="<?php echo get_settings('footer_link');  ?>">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="timezone"><?php echo get_phrase('Timezone'); ?></label>
-                            <select class="form-control select2" data-toggle="select2" name="timezone" id="timezone">
-                                <?php $timezones =  DateTimeZone::listIdentifiers(DateTimeZone::ALL); ?>
-                                <?php foreach ($timezones as $timezone): ?>
-                                    <option value="<?php echo $timezone; ?>" <?php if(get_settings('timezone') == $timezone) echo 'selected'; ?>><?php echo $timezone; ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="language"><?php echo get_phrase('public_signup'); ?></label>
-                            <select class="form-control select2" data-toggle="select2" name="public_signup" id="public_signup">
-                                <option value="enable" <?php if(get_settings('public_signup') == "enable") echo 'selected'; ?>><?php echo get_phrase('enable'); ?></option>
-                                <option value="disable" <?php if(get_settings('public_signup') == "disable") echo 'selected'; ?>><?php echo get_phrase('disable'); ?></option>
-                            </select>
-                        </div>
-
-
-                        <div class="form-group">
-                            <label><?php echo get_phrase('Can students disable their own accounts?'); ?></label><br>
-                            <input type="radio" id="account_disable_yes" value="1" name="account_disable" <?php if(get_settings('account_disable') == 1) echo 'checked'; ?>> <label for="account_disable_yes"><?php echo get_phrase('Yes'); ?></label>
-                            &nbsp;&nbsp;
-                            <input type="radio" id="account_disable_no" value="0" name="account_disable" <?php if(get_settings('account_disable') == 0) echo 'checked'; ?>> <label for="account_disable_no"><?php echo get_phrase('No'); ?></label>
-                        </div>
-
-
-                        <button type="button" class="btn btn-primary" onclick="checkRequiredFields()"><?php echo get_phrase('save'); ?></button>
-                    </form>
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="website_keywords_in">كلمات الموقع</label>
+                <div class="tqa-tags" data-tqa-tags>
+                    <input type="hidden" name="website_keywords" data-tqa-tags-value
+                           value="<?php echo html_escape(get_settings('website_keywords')); ?>">
+                    <input class="tqa-tags__in" type="text" id="website_keywords_in" autocomplete="off"
+                           placeholder="اكتب كلمة ثم اضغط Enter" data-tqa-tags-input>
                 </div>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-    <div class="col-xl-5">
-        <div class="card">
-            <div class="card-body">
-                <div class="col-lg-12">
-                    <h4 class="mb-3 header-title"><?php echo get_phrase('update_product');?></h4>
+            </div>
 
-                    <form action="<?php echo site_url('updater/update'); ?>" method="post" enctype="multipart/form-data">
-                        <div class="form-group mb-2">
-                            <label><?php echo get_phrase('file'); ?></label>
-                            <div class="input-group">
-                                <div class="custom-file">
-                                    <input type="file" class="custom-file-input" id="file_name" name="file_name" required onchange="changeTitleOfImageUploader(this)">
-                                    <label class="custom-file-label" for="file_name"><?php echo get_phrase('update_product'); ?></label>
-                                </div>
-                            </div>
-                        </div>
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="website_description">وصف الموقع</label>
+                <textarea class="tqa-textarea" id="website_description" name="website_description" rows="3"><?php
+                    echo html_escape(get_settings('website_description')); ?></textarea>
+            </div>
 
-                        <button type="submit" class="btn btn-primary"><?php echo get_phrase('update'); ?></button>
-                    </form>
-                </div>
-            </div> <!-- end card body-->
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="author">المؤلف</label>
+                <input class="tqa-input" type="text" id="author" name="author"
+                       value="<?php echo html_escape(get_settings('author')); ?>">
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="timezone">المنطقة الزمنية</label>
+                <select class="tqa-select" id="timezone" name="timezone">
+                    <?php foreach (DateTimeZone::listIdentifiers(DateTimeZone::ALL) as $tq_tz): ?>
+                        <option value="<?php echo html_escape($tq_tz); ?>"
+                            <?php echo get_settings('timezone') === $tq_tz ? 'selected' : ''; ?>>
+                            <?php echo html_escape($tq_tz); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="language">لغة النظام</label>
+                <select class="tqa-select" id="language" name="language">
+                    <?php foreach ($languages as $tq_l): ?>
+                        <option value="<?php echo html_escape($tq_l); ?>"
+                            <?php echo get_settings('language') === $tq_l ? 'selected' : ''; ?>>
+                            <?php echo html_escape(ucfirst($tq_l)); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
         </div>
     </div>
-</div>
+
+    <div class="tqa-card tqa-section">
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('mail', 20); ?></span>
+            <h2>بيانات التواصل</h2>
+        </div>
+
+        <div class="tqa-fieldgrid">
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="system_email">
+                    بريد المنصة <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input tqa-input--ltr" type="email" id="system_email" name="system_email"
+                       required dir="ltr" value="<?php echo html_escape(get_settings('system_email')); ?>">
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="phone">الهاتف</label>
+                <input class="tqa-input tqa-input--ltr" type="tel" id="phone" name="phone" dir="ltr"
+                       value="<?php echo html_escape(get_settings('phone')); ?>">
+            </div>
+
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="address">العنوان</label>
+                <textarea class="tqa-textarea" id="address" name="address" rows="2"><?php
+                    echo html_escape(get_settings('address')); ?></textarea>
+            </div>
+
+            <?php /* شارتا التذييل تقرآن هذين المفتاحين: الحقل الفارغ يعرض
+                     «التطبيق قريبا» صامتا، والرابط يجعلها حية. فالتفريغ هو
+                     التعطيل، لا حذف الشارة. */ ?>
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="app_store_url">رابط App Store</label>
+                <input class="tqa-input tqa-input--ltr" type="url" id="app_store_url" name="app_store_url"
+                       dir="ltr" placeholder="https://apps.apple.com/..."
+                       value="<?php echo html_escape(get_settings('app_store_url')); ?>">
+                <span class="tqa-field__hint">اتركه فارغا لتظهر الشارة بحالة «قريبا».</span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="google_play_url">رابط Google Play</label>
+                <input class="tqa-input tqa-input--ltr" type="url" id="google_play_url" name="google_play_url"
+                       dir="ltr" placeholder="https://play.google.com/store/apps/details?id=..."
+                       value="<?php echo html_escape(get_settings('google_play_url')); ?>">
+                <span class="tqa-field__hint">اتركه فارغا لتظهر الشارة بحالة «قريبا».</span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="footer_text">نص التذييل</label>
+                <input class="tqa-input" type="text" id="footer_text" name="footer_text"
+                       value="<?php echo html_escape(get_settings('footer_text')); ?>">
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="footer_link">رابط التذييل</label>
+                <input class="tqa-input tqa-input--ltr" type="url" id="footer_link" name="footer_link" dir="ltr"
+                       value="<?php echo html_escape(get_settings('footer_link')); ?>">
+            </div>
+        </div>
+    </div>
+
+    <div class="tqa-card tqa-section">
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('shield', 20); ?></span>
+            <h2>الحسابات والوصول</h2>
+        </div>
+
+        <div class="tqa-prefrow">
+            <div class="tqa-prefrow__main">
+                <span class="tqa-prefrow__title">التسجيل مفتوح للجميع</span>
+                <span class="tqa-prefrow__hint">إغلاقه يمنع إنشاء حسابات جديدة من الموقع العام.</span>
+            </div>
+            <div class="tqa-prefrow__end">
+                <input type="hidden" name="public_signup" value="disable">
+                <span class="tqa-switch">
+                    <input type="checkbox" name="public_signup" value="enable"
+                           <?php echo $tq_yes('public_signup') ? 'checked' : ''; ?>>
+                    <span class="tqa-switch__track" aria-hidden="true"></span>
+                </span>
+            </div>
+        </div>
+
+        <div class="tqa-prefrow">
+            <div class="tqa-prefrow__main">
+                <span class="tqa-prefrow__title">تأكيد البريد قبل الدخول</span>
+                <span class="tqa-prefrow__hint">
+                    يتطلب رسالة تأكيد لكل حساب جديد — ويحتاج إعدادات بريد صادر تعمل.
+                </span>
+            </div>
+            <div class="tqa-prefrow__end">
+                <input type="hidden" name="student_email_verification" value="disable">
+                <span class="tqa-switch">
+                    <input type="checkbox" name="student_email_verification" value="enable"
+                           <?php echo $tq_yes('student_email_verification') ? 'checked' : ''; ?>>
+                    <span class="tqa-switch__track" aria-hidden="true"></span>
+                </span>
+            </div>
+        </div>
+
+        <div class="tqa-prefrow">
+            <div class="tqa-prefrow__main">
+                <span class="tqa-prefrow__title">الطالب يستطيع تعطيل حسابه</span>
+                <span class="tqa-prefrow__hint">يظهر زر التعطيل في إعدادات بوابة الطالب.</span>
+            </div>
+            <div class="tqa-prefrow__end">
+                <input type="hidden" name="account_disable" value="0">
+                <span class="tqa-switch">
+                    <input type="checkbox" name="account_disable" value="1"
+                           <?php echo (int) get_settings('account_disable') === 1 ? 'checked' : ''; ?>>
+                    <span class="tqa-switch__track" aria-hidden="true"></span>
+                </span>
+            </div>
+        </div>
+
+        <div class="tqa-prefrow">
+            <div class="tqa-prefrow__main">
+                <span class="tqa-prefrow__title">صفحات الكورسات للزوار</span>
+                <span class="tqa-prefrow__hint">إغلاقها يجبر الزائر على الدخول قبل أن يرى أي كورس.</span>
+            </div>
+            <div class="tqa-prefrow__end">
+                <input type="hidden" name="course_accessibility" value="only_logged_in_users">
+                <span class="tqa-switch">
+                    <input type="checkbox" name="course_accessibility" value="publicly"
+                           <?php echo get_settings('course_accessibility') === 'publicly' ? 'checked' : ''; ?>>
+                    <span class="tqa-switch__track" aria-hidden="true"></span>
+                </span>
+            </div>
+        </div>
+
+        <div class="tqa-fieldgrid" style="margin-block-start:var(--tq-space-l)">
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="allowed_device_number_of_loging">
+                    عدد الأجهزة المسموحة <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input tqa-input--ltr" type="number" min="1" required
+                       id="allowed_device_number_of_loging" name="allowed_device_number_of_loging"
+                       value="<?php echo html_escape(get_settings('allowed_device_number_of_loging')); ?>">
+                <span class="tqa-field__hint">كم جهازا يدخل بالحساب الواحد في وقت واحد.</span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="course_selling_tax">
+                    ضريبة البيع (٪) <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input tqa-input--ltr" type="number" min="0" max="100" required
+                       id="course_selling_tax" name="course_selling_tax"
+                       value="<?php echo html_escape(get_settings('course_selling_tax')); ?>">
+                <span class="tqa-field__hint">صفر يعطل الضريبة تماما.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tqa-card tqa-section">
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-lilac" aria-hidden="true"><?php echo tq_icon('link', 20); ?></span>
+            <h2>تكاملات خارجية</h2>
+        </div>
+
+        <p style="margin:0 0 var(--tq-space-l);font:var(--tq-type-caption);color:var(--tq-text2)">
+            كلها اختيارية. الحقل الفارغ يعطل تكامله ولا يمنع الحفظ.
+        </p>
+
+        <div class="tqa-fieldgrid">
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="google_analytics_id">معرف Google Analytics</label>
+                <input class="tqa-input tqa-input--ltr" type="text" id="google_analytics_id"
+                       name="google_analytics_id" dir="ltr" placeholder="G-XXXXXXXXXX"
+                       value="<?php echo html_escape(get_settings('google_analytics_id')); ?>">
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="meta_pixel_id">معرف Meta Pixel</label>
+                <input class="tqa-input tqa-input--ltr" type="text" id="meta_pixel_id" name="meta_pixel_id"
+                       dir="ltr" value="<?php echo html_escape(get_settings('meta_pixel_id')); ?>">
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="youtube_api_key">مفتاح YouTube</label>
+                <input class="tqa-input tqa-input--ltr" type="text" id="youtube_api_key" name="youtube_api_key"
+                       dir="ltr" autocomplete="off"
+                       value="<?php echo html_escape(get_settings('youtube_api_key')); ?>">
+                <span class="tqa-field__hint">
+                    يلزم لدروس يوتيوب وجوجل درايف وحدها.
+                    <a href="https://developers.google.com/youtube/v3/getting-started" target="_blank" rel="noopener">
+                        كيف تحصل عليه</a>
+                </span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="vimeo_api_key">مفتاح Vimeo</label>
+                <input class="tqa-input tqa-input--ltr" type="text" id="vimeo_api_key" name="vimeo_api_key"
+                       dir="ltr" autocomplete="off"
+                       value="<?php echo html_escape(get_settings('vimeo_api_key')); ?>">
+                <span class="tqa-field__hint">يلزم لدروس فيميو وحدها.</span>
+            </div>
+
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="purchase_code">رمز شراء القالب</label>
+                <input class="tqa-input tqa-input--ltr" type="text" id="purchase_code" name="purchase_code"
+                       dir="ltr" autocomplete="off"
+                       value="<?php echo html_escape(get_settings('purchase_code')); ?>">
+                <span class="tqa-field__hint">من متجر القالب الأصلي — لا أثر له في تشغيل المنصة.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tqa-actions">
+        <button type="submit" class="tqa-btn tqa-btn--primary">
+            <?php echo tq_icon('check', 16); ?> احفظ الإعدادات
+        </button>
+    </div>
+</form>
+
+<?php include 'tqa_tags_js.php'; ?>

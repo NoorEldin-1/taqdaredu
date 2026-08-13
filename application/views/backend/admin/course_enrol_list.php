@@ -1,14 +1,14 @@
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
+<div class="tqa-stack">
+    <div>
+        <div class="tqa-card">
+            <div class="tqa-card__body">
                 <h4 class="mb-3 header-title"><?php echo get_phrase('enrol_student_list'); ?></h4>
                 <div class="pb-2">
-                    <button type="button" class="btn btn-info float-end" id="export-button" onclick="export_csv();"> <?php echo get_phrase('Export CSV');?></button>
+                    <button type="button" class="tqa-btn tqa-btn--primary" id="export-button" onclick="export_csv();"> <?php echo get_phrase('Export CSV');?></button>
                 </div>
-                <div class="table-responsive-sm mt-4">
+                <div class="tqa-table__wrap">
                     <?php if (count($enrol_history->result_array()) > 0): ?>
-                        <table class="table table-striped table-centered mb-0">
+                        <table class="tqa-table">
                             <thead>
                                 <tr>
                                     <th><?php echo get_phrase('photo'); ?></th>

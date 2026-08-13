@@ -1,91 +1,106 @@
-<!-- start page title -->
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('add_new_category'); ?></h4>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * إضافة قسم.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*`. وأربعة أشياء تغيرت في السلوك لا في الشكل:
+ *
+ * ١ — **الزر كان `type="button"`** ينادي `checkRequiredFields()` من
+ *     `main.js` ليرسل النموذج بيده. أي أن **إضافة قسم لا تعمل إن تعثر
+ *     ملف جافاسكربت واحد** — والنموذج بلا زر إرسال حقيقي أصلا. صار
+ *     `type="submit"`، والإلزام يفرضه المتصفح بـ`required`.
+ *
+ * ٢ — **حقلا الملف كانا يحملان `id="category_thumbnail"` كلاهما.** معرف
+ *     مكرر في صفحة واحدة: `<label for>` يشير إلى الأول أبدا، فالنقر على
+ *     ملصق «غلاف القسم الفرعي» يفتح منتقي ملفات الحقل الآخر.
+ *
+ * ٣ — **`select2` غير محمل في اللوحة** (انظر TQ-SELECT2-GONE)، فالصنف
+ *     `select2` و`data-toggle="select2"` زينة لا أثر لها. حذفت.
+ *
+ * ٤ — الغلاف المطلوب يتبع الأب: قسم أب له غلاف عريض، والفرعي أيقونة
+ *     صغيرة. وهو ما كان يفعله السكربت، وبقي — لكن بحقول تعمل بدونه أيضا
+ *     (كلاهما ظاهر حين لا جافاسكربت، لا كلاهما مخفي).
+ */
+$tq_code = substr(md5((string) rand(0, 1000000)), 0, 10);
+?>
+
+<?php tqa_head('إضافة قسم', 'اترك «القسم الأب» فارغا لإنشاء قسم رئيسي، أو اخترـه لإنشاء قسم فرعي تحته.', 'grid'); ?>
+
+<div class="tqa-card" style="max-inline-size:760px">
+
+    <form action="<?php echo site_url('admin/categories/add'); ?>" method="post" enctype="multipart/form-data">
+        <?php echo tq_csrf(); ?>
+
+        <div class="tqa-fieldgrid">
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="cat_name">
+                    اسم القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input" type="text" id="cat_name" name="name" required maxlength="190"
+                       autocomplete="off">
+                <span class="tqa-field__hint">هذا ما يقرؤه الزائر في صفحة الكورسات.</span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="cat_parent">القسم الأب</label>
+                <select class="tqa-select" id="cat_parent" name="parent" data-tqa-parent>
+                    <option value="0">— بلا أب (قسم رئيسي)</option>
+                    <?php foreach ($categories as $tq_c): ?>
+                        <?php if ((int) $tq_c['parent'] !== 0) continue; ?>
+                        <option value="<?php echo (int) $tq_c['id']; ?>"><?php echo html_escape($tq_c['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <span class="tqa-field__hint">اختياره يجعل هذا قسما فرعيا — والكورس يسند إلى الفرعي.</span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="cat_code">رمز القسم</label>
+                <input class="tqa-input tqa-input--ltr" type="text" id="cat_code" name="code"
+                       value="<?php echo html_escape($tq_code); ?>" readonly>
+                <span class="tqa-field__hint">يولد تلقائيا ولا يعدل.</span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="cat_icon">صنف الأيقونة</label>
+                <input class="tqa-input tqa-input--ltr" type="text" id="cat_icon" name="font_awesome_class"
+                       autocomplete="off" placeholder="fas fa-book">
+                <span class="tqa-field__hint">اختياري — صنف Font Awesome يعرض بجانب الاسم.</span>
+            </div>
+
+            <div class="tqa-field tqa-field--full" data-tqa-cover="parent">
+                <span class="tqa-field__label">غلاف القسم الرئيسي</span>
+                <div class="tqa-file">
+                    <input type="file" id="cat_cover" name="category_thumbnail" accept="image/*" data-tqa-file>
+                    <label class="tqa-file__btn" for="cat_cover">
+                        <?php echo tq_icon('image', 16); ?> اختر صورة
+                    </label>
+                    <span class="tqa-file__name" data-tqa-file-name>لم تختر ملفا بعد</span>
+                </div>
+                <span class="tqa-field__hint">المقاس المفضل ‎400 × 255‎ بكسل.</span>
+            </div>
+
+            <div class="tqa-field tqa-field--full" data-tqa-cover="sub" hidden>
+                <span class="tqa-field__label">أيقونة القسم الفرعي</span>
+                <div class="tqa-file">
+                    <input type="file" id="cat_cover_sub" name="sub_category_thumbnail" accept="image/*" data-tqa-file>
+                    <label class="tqa-file__btn" for="cat_cover_sub">
+                        <?php echo tq_icon('image', 16); ?> اختر صورة
+                    </label>
+                    <span class="tqa-file__name" data-tqa-file-name>لم تختر ملفا بعد</span>
+                </div>
+                <span class="tqa-field__hint">المقاس المفضل ‎100 × 100‎ بكسل.</span>
+            </div>
+        </div>
+
+        <div class="tqa-actions">
+            <button type="submit" class="tqa-btn tqa-btn--primary">
+                <?php echo tq_icon('check', 16); ?> احفظ القسم
+            </button>
+            <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/categories'); ?>">إلغاء</a>
+        </div>
+    </form>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-xl-7">
-        <div class="card">
-            <div class="card-body">
-              <div class="col-lg-12">
-                <h4 class="mb-3 header-title"><?php echo get_phrase('category_add_form'); ?></h4>
-
-                <form class="required-form" action="<?php echo site_url('admin/categories/add'); ?>" method="post" enctype="multipart/form-data">
-                    <div class="form-group">
-                        <label for="code"><?php echo get_phrase('category_code'); ?></label>
-                        <input type="text" class="form-control" id="code" name = "code" value="<?php echo substr(md5(rand(0, 1000000)), 0, 10); ?>" readonly>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="name"><?php echo get_phrase('category_title'); ?><span class="required">*</span></label>
-                        <input type="text" class="form-control" id="name" name = "name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="parent"><?php echo get_phrase('parent'); ?></label>
-                        <select class="form-control select2" data-toggle="select2" name="parent" id="parent" onchange="checkCategoryType(this.value)">
-                          <option value="0"><?php echo get_phrase('none'); ?></option>
-                          <?php foreach ($categories as $category): ?>
-                              <?php if ($category['parent'] == 0): ?>
-                                  <option value="<?php echo $category['id']; ?>"><?php echo $category['name']; ?></option>
-                              <?php endif; ?>
-                          <?php endforeach; ?>
-                        </select>
-                        <span class="badge badge-light"><?php echo get_phrase('select_none_to_create_a_parent_category'); ?></span>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="font_awesome_class"><?php echo get_phrase('icon_picker'); ?></label>
-                        <input type="text" id ="font_awesome_class" name="font_awesome_class" class="form-control icon-picker" autocomplete="off">
-                    </div>
-                    <!--  New  -->
-                    <div class="form-group" id = "thumbnail-picker-areas">
-                        <label> <?php echo get_phrase('sub_category_thumbnail'); ?> <small>(<?php echo get_phrase('the_image_size_should_be'); ?>: 100 X 100)</small> </label>
-                        <div class="input-group">
-                            <div class="custom-file">
-                                <input type="file" class="custom-file-input" id="category_thumbnail" name="sub_category_thumbnail" accept="image/*" onchange="changeTitleOfImageUploader(this)">
-                                <label class="custom-file-label" for="sub_category_thumbnail"><?php echo get_phrase('sub_category_thumbnail'); ?></label>
-                            </div>
-                        </div>
-                    </div>
-                 <!-- New -->
-                    <div class="form-group" id = "thumbnail-picker-area">
-                        <label> <?php echo get_phrase('category_thumbnail'); ?> <small>(<?php echo get_phrase('the_image_size_should_be'); ?>: 400 X 255)</small> </label>
-                        <div class="input-group">
-                            <div class="custom-file">
-                                <input type="file" class="custom-file-input" id="category_thumbnail" name="category_thumbnail" accept="image/*" onchange="changeTitleOfImageUploader(this)">
-                                <label class="custom-file-label" for="category_thumbnail"><?php echo get_phrase('choose_thumbnail'); ?></label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button type="button" class="btn btn-primary" onclick="checkRequiredFields()"><?php echo get_phrase("submit"); ?></button>
-                </form>
-              </div>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-</div>
-
-<script type="text/javascript">
-     $(document).ready(function() {
-        $('#thumbnail-picker-areas').hide();
-    });
-
-    function checkCategoryType(category_type) {
-        if (category_type > 0) {
-            $('#thumbnail-picker-area').hide();
-            $('#thumbnail-picker-areas').show();
-        }else {
-            $('#thumbnail-picker-area').show();
-            $('#thumbnail-picker-areas').hide();
-        }
-    }
-
-</script>
+<?php include 'category_form_js.php'; ?>

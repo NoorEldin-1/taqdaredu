@@ -1,21 +1,21 @@
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body py-2">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('instructors_pending_blog'); ?>
-                </h4>
+<div class="tqa-stack">
+    <div>
+        <div class="tqa-card">
+            <div class="tqa-card__body">
+                <h1 class="tqa-pagehead__title"><?php echo get_phrase('instructors_pending_blog'); ?>
+                </h1>
             </div> <!-- end card body-->
         </div> <!-- end card -->
     </div><!-- end col-->
 </div>
 
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="mb-3 header-title"><?php echo get_phrase('total_pending'); ?> <?php echo $pending_blogs->num_rows(); ?> <?php echo get_phrase('blogs'); ?></h4>
-                <div class="table-responsive-sm mt-4">
-                    <table id="basic-datatable" class="table table-striped dt-responsive nowrap dataTable no-footer dtr-inline collapsed">
+<div class="tqa-stack">
+    <div>
+        <div class="tqa-card">
+            <div class="tqa-card__body">
+                <h4 class="mb-3 header-title"><?php echo get_phrase('total_pending'); ?> <?php echo $pending_blogs->num_rows(); ?> <?php echo get_phrase('blogs'); ?></h1>
+                <div class="tqa-table__wrap">
+                    <table id="basic-datatable" class="tqa-table">
                         <thead>
                             <tr>
                                 <th>#</th>
@@ -47,15 +47,15 @@
                                     </td>
                                     <td>
                                         <a href="<?php echo site_url('blog/details/'.slugify($blog['title']).'/'.$blog['blog_id']); ?>" target="_blank"><?php echo $blog['title']; ?></a><br>
-                                        <small class="text-muted"><?php echo date('d M Y', $blog['added_date']); ?></small>
+                                        <small class="tqa-field__hint"><?php echo date('d M Y', $blog['added_date']); ?></small>
                                     </td>
                                     <td><?php echo $this->crud_model->get_blog_categories($blog['blog_category_id'])->row('title'); ?></td>
                                     <td>
-                                        <span class="badge badge-danger"><?php echo get_phrase($blog['status']); ?></span>
+                                        <span class="tqa-badge tqa-badge--danger"><?php echo get_phrase($blog['status']); ?></span>
                                     </td>
                                     <td>
-                                        <div class="dropright dropright">
-                                            <button type="button" class="btn btn-sm btn-outline-primary btn-rounded btn-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <div class="tqa-rowacts">
+                                            <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-toggle="dropdown">
                                                 <i class="mdi mdi-dots-vertical"></i>
                                             </button>
                                             <ul class="dropdown-menu">

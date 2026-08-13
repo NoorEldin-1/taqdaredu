@@ -1,195 +1,147 @@
 <?php
-// $param2 = lesson id and $param3 = course id
-$lesson_details = $this->crud_model->get_lessons('lesson', $param2)->row_array();
-$sections = $this->crud_model->get_section('course', $param3)->result_array();
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * تعديل درس — يفتح في نافذة.
+ *
+ * أعيدت كتابته بهيكل `tqa-*`. وثلاثة أعطال منطقية أصلحت معه:
+ *
+ * TQ-LESSON-TYPE-OR — كانت شروط اختيار القالب مكتوبة هكذا:
+ *
+ *     if ($l['lesson_type'] == 'other' && $att == 'doc' || $att == 'pdf' || $att == 'txt')
+ *
+ * و`&&` تسبق `||` في الأسبقية، فالشرط يقرأ:
+ *
+ *     (lesson_type == 'other' && att == 'doc')  ||  att == 'pdf'  ||  att == 'txt'
+ *
+ * أي أن **أي** درس امتداده pdf أو txt يعرض نموذج المستند مهما كان نوعه.
+ * وهي مكتوبة مرتين: في سطر العنوان وفي اختيار القالب. صار النوع يحسب
+ * مرة واحدة في `$tq_kind` وتقارن قيمته.
+ *
+ * وحذفت أربعة `include` لملفات غير موجودة (`academy_cloud` · `amazon_s3`
+ * · `wasabi_storage`) — انظر [lesson_add.php].
+ */
+$tq_lesson   = $this->crud_model->get_lessons('lesson', $param2)->row_array();
+$tq_sections = $this->crud_model->get_section('course', $param3)->result_array();
+
+if (!$tq_lesson) {
+    echo '<p class="tqa-note tqa-note--warn">لا درس بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>';
+    return;
+}
+
+/**
+ * نوع الدرس يحسب مرة: [مفتاح القالب، الاسم المعروض].
+ * الترتيب من الأخص إلى الأعم، وكل فرع يرد فورا.
+ */
+$tq_type = (string) $tq_lesson['lesson_type'];
+$tq_vid  = strtolower((string) $tq_lesson['video_type']);
+$tq_att  = strtolower((string) $tq_lesson['attachment_type']);
+
+if ($tq_type === 'video') {
+    switch ($tq_vid) {
+        case 'youtube':      $tq_kind = array('youtube', 'فيديو يوتيوب'); break;
+        case 'vimeo':        $tq_kind = array('vimeo', 'فيديو فيميو'); break;
+        case 'html5':        $tq_kind = array('html5', 'رابط ملف مباشر'); break;
+        case 'system':       $tq_kind = array('video', 'ملف فيديو'); break;
+        case 'google_drive': $tq_kind = array('google_drive_video', 'فيديو جوجل درايف'); break;
+        default:             $tq_kind = array('youtube', 'فيديو'); break;
+    }
+} elseif ($tq_type === 'audio') {
+    $tq_kind = array('audio', 'ملف صوتي');
+} elseif ($tq_type === 'text' && $tq_att === 'description') {
+    $tq_kind = array('text', 'نص');
+} elseif ($tq_type === 'other' && in_array($tq_att, array('doc', 'pdf', 'txt'), true)) {
+    $tq_kind = array('document', 'مستند');
+} elseif ($tq_type === 'other' && $tq_att === 'img') {
+    $tq_kind = array('image', 'صورة');
+} elseif ($tq_type === 'other' && $tq_att === 'iframe') {
+    $tq_kind = array('iframe', 'تضمين خارجي');
+} else {
+    $tq_kind = array('', 'غير معروف');
+}
+
+/* القوالب الموجودة فعلا. */
+$tq_partials = array(
+    'youtube'            => 'youtube_type_lesson_edit.php',
+    'vimeo'              => 'vimeo_type_lesson_edit.php',
+    'html5'              => 'html5_type_lesson_edit.php',
+    'video'              => 'video_type_lesson_edit.php',
+    'audio'              => 'audio_type_lesson_edit.php',
+    'google_drive_video' => 'google_drive_video_lesson_edit.php',
+    'document'           => 'document_type_lesson_edit.php',
+    'text'               => 'text_type_lesson_edit.php',
+    'image'              => 'image_type_lesson_edit.php',
+    'iframe'             => 'iframe_type_lesson_edit.php',
+);
+
+/* الشاشات الفرعية تقرأ `$lesson_details` بهذا الاسم. */
+$lesson_details = $tq_lesson;
 ?>
-<!-- SHOWING THE LESSON TYPE IN AN ALERT VIEW -->
-<div class="alert alert-info" role="alert">
-    <?php echo get_phrase("lesson_type"); ?> :
-    <strong>
-        <?php
-        if ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'html5') {
-            echo get_phrase("video_url").' [.mp4]';
-        }elseif ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'system') {
-            echo get_phrase("video_file");
-        }elseif ($lesson_details['lesson_type'] == 'audio') {
-            echo get_phrase("audio_file");
-        }elseif ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'youtube') {
-            echo 'YouTube '.get_phrase("video");
-        }elseif ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'academy_cloud') {
-            echo get_phrase('academy_cloud').' '.get_phrase("video");
-        }elseif ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'vimeo') {
-            echo 'Vimeo '.get_phrase("video");
-        }elseif($lesson_details['lesson_type'] == 'other' && strtolower($lesson_details['attachment_type']) == 'doc' || strtolower($lesson_details['attachment_type']) == 'pdf' || strtolower($lesson_details['attachment_type']) == 'txt'){
-            echo get_phrase('document');
-        }elseif($lesson_details['lesson_type'] == 'other' && strtolower($lesson_details['attachment_type']) == 'img'){
-            echo get_phrase('image');
-        }elseif($lesson_details['lesson_type'] == 'other' && strtolower($lesson_details['attachment_type']) == 'iframe'){
-            echo get_phrase('iframe');
-        }elseif($lesson_details['video_type'] == 'google_drive'){
-            echo get_phrase('google_drive_video');
-        }elseif($lesson_details['lesson_type'] == 'text' && strtolower($lesson_details['attachment_type']) == 'description'){
-            echo get_phrase('text');
-        }elseif($lesson_details['lesson_type'] == 'wasabi'){
-            echo get_phrase('Wasabi '.$lesson_details['attachment_type'].' file');
-        }
-        ?>.
-    </strong>
+
+<div class="tqa-note tqa-section">
+    <span aria-hidden="true"><?php echo tq_icon('play', 18); ?></span>
+    <span>نوع الدرس: <strong><?php echo html_escape($tq_kind[1]); ?></strong> — ولا يغير بعد الإنشاء.</span>
 </div>
 
-<!-- ACTUAL LESSON ADDING FORM -->
-<form class="ajaxFormSubmission" action="<?php echo site_url('admin/lessons/'.$param3.'/edit'.'/'.$param2); ?>" method="post" enctype="multipart/form-data">
+<form class="ajaxFormSubmission" method="post" enctype="multipart/form-data"
+      action="<?php echo site_url('admin/lessons/' . (int) $param3 . '/edit/' . (int) $param2); ?>">
+    <?php echo tq_csrf(); ?>
+    <input type="hidden" name="course_id" value="<?php echo (int) $param3; ?>">
 
-    <div class="form-group">
-        <label><?php echo get_phrase('title'); ?></label>
-        <input type="text" name = "title" class="form-control" required value="<?php echo $lesson_details['title']; ?>">
+    <div class="tqa-field">
+        <label class="tqa-field__label" for="lesson_title">
+            عنوان الدرس <span class="tqa-field__req" aria-hidden="true">*</span>
+        </label>
+        <input class="tqa-input" type="text" id="lesson_title" name="title" required maxlength="190"
+               value="<?php echo html_escape($tq_lesson['title']); ?>">
     </div>
 
-    <input type="hidden" name="course_id" value="<?php echo $param3; ?>">
-
-    <div class="form-group">
-        <label for="section_id"><?php echo get_phrase('section'); ?></label>
-        <select class="form-control select2" data-toggle="select2" name="section_id" id="section_id" required>
-            <?php foreach ($sections as $section): ?>
-                <option value="<?php echo $section['id']; ?>" <?php if($lesson_details['section_id'] == $section['id']) echo 'selected'; ?>><?php echo $section['title']; ?></option>
+    <div class="tqa-field">
+        <label class="tqa-field__label" for="section_id">
+            القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+        </label>
+        <select class="tqa-select" id="section_id" name="section_id" required>
+            <?php foreach ($tq_sections as $tq_s): ?>
+                <option value="<?php echo (int) $tq_s['id']; ?>"
+                    <?php echo (int) $tq_lesson['section_id'] === (int) $tq_s['id'] ? 'selected' : ''; ?>>
+                    <?php echo html_escape($tq_s['title']); ?>
+                </option>
             <?php endforeach; ?>
         </select>
     </div>
-   
-    <?php if ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'youtube'): include('youtube_type_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'academy_cloud'): include('academy_cloud_type_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'vimeo'): include('vimeo_type_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'html5'): include('html5_type_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'system'): include('video_type_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'audio'): include('audio_type_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'amazon' && addon_status('amazon-s3')): include('amazon_s3_type_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'wasabi' && strtolower($lesson_details['video_type']) == 'url'): include('wasabi_storage_type_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'video' && strtolower($lesson_details['video_type']) == 'google_drive'): include('google_drive_video_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'other' && strtolower($lesson_details['attachment_type']) == 'doc' || strtolower($lesson_details['attachment_type']) == 'pdf' || strtolower($lesson_details['attachment_type']) == 'txt'): include('document_type_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'text' && strtolower($lesson_details['attachment_type']) == 'description'): include('text_type_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'other' && strtolower($lesson_details['attachment_type']) == 'img'): include('image_type_lesson_edit.php'); endif; ?>
-    <?php if ($lesson_details['lesson_type'] == 'other' && strtolower($lesson_details['attachment_type']) == 'iframe'): include('iframe_type_lesson_edit.php'); endif; ?>
 
-    <div class="form-group">
-        <label><?php echo get_phrase('summary'); ?></label>
-        <textarea name="summary" id="lesson_summary" class="form-control"><?php echo htmlspecialchars_decode_($lesson_details['summary']); ?></textarea>
+    <?php
+    if ($tq_kind[0] !== '' && isset($tq_partials[$tq_kind[0]])) {
+        include $tq_partials[$tq_kind[0]];
+    }
+    ?>
+
+    <div class="tqa-field">
+        <label class="tqa-field__label" for="lesson_summary">ملخص الدرس</label>
+        <textarea class="tqa-textarea" id="lesson_summary" name="summary" rows="3"><?php
+            echo html_escape(htmlspecialchars_decode_($tq_lesson['summary'])); ?></textarea>
     </div>
 
-    <div class="form-group">
-        <label><?php echo get_phrase('do_you_want_to_keep_it_free_as_a_preview_lesson'); ?>?</label>
-        <br>
-        <input type="checkbox" name="free_lesson" id="free_lesson" value="1" <?php if($lesson_details['is_free'])echo 'checked'; ?>>
-        <label for="free_lesson"><?php echo get_phrase('mark_as_free_lesson'); ?></label>
+    <div class="tqa-prefrow">
+        <div class="tqa-prefrow__main">
+            <label class="tqa-prefrow__title" for="free_lesson">درس معاينة مجاني</label>
+            <span class="tqa-prefrow__hint">يفتح لغير المشتركين.</span>
+        </div>
+        <div class="tqa-prefrow__end">
+            <span class="tqa-switch">
+                <input type="checkbox" id="free_lesson" name="free_lesson" value="1"
+                       <?php echo (int) $tq_lesson['is_free'] === 1 ? 'checked' : ''; ?>>
+                <span class="tqa-switch__track" aria-hidden="true"></span>
+            </span>
+        </div>
     </div>
 
-    <div class="text-center">
-        <button class = "btn btn-success w-100 formSubmissionBtn" type="submit" name="button"><?php echo get_phrase('update_lesson'); ?></button>
+    <div class="tqa-actions">
+        <button class="tqa-btn tqa-btn--primary tqa-btn--block formSubmissionBtn" type="submit">
+            <?php echo tq_icon('check', 16); ?> احفظ التعديل
+        </button>
     </div>
 </form>
 
-<script type="text/javascript">
-$(document).ready(function() {
-    initSummerNote(['#lesson_summary']);
-    initSelect2(['#section_id','#lesson_type', '#lesson_provider', '#lesson_provider_for_mobile_application']);
-    initTimepicker();
-
-    // HIDING THE SEARCHBOX FROM SELECT2
-    $('select').select2({
-        minimumResultsForSearch: -1
-    });
-});
-
-function ajax_get_video_details(video_url) {
-    $('#perloader').show();
-    if(checkURLValidity(video_url)){
-        $.ajax({
-            url: '<?php echo site_url('admin/ajax_get_video_details');?>',
-            type : 'POST',
-            data : {video_url : video_url},
-            success: function(response)
-            {
-                jQuery('#duration').val(response);
-                $('#perloader').hide();
-                $('#invalid_url').hide();
-            }
-        });
-    }else {
-        $('#invalid_url').show();
-        $('#perloader').hide();
-        jQuery('#duration').val('');
-
-    }
-}
-
-function checkURLValidity(video_url) {
-    var youtubePregMatch = /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})(?:\S+)?$/;
-    var vimeoPregMatch = /^(http\:\/\/|https\:\/\/)?(www\.)?(vimeo\.com\/)([0-9]+)$/;
-    if (video_url.match(youtubePregMatch)) {
-        return true;
-    }
-    else if (vimeoPregMatch.test(video_url)) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
-
-
-$(function() {
-    var formSubmissionBtn = $('.formSubmissionBtn');
-    var formSubmissionBtnTxt = $(formSubmissionBtn).html();
-    //The form of submission to RailTeam js is defined here.(Form class or ID)
-    $('.ajaxFormSubmission').ajaxForm({
-        beforeSend: function() {
-            var percentVal = '0%';
-            $(formSubmissionBtn).html('<?php echo get_phrase('uploading'); ?>... '+percentVal);
-            $(formSubmissionBtn).attr('disabled', true);
-        },
-        uploadProgress: function(event, position, total, percentComplete) {
-            var percentVal = percentComplete + '%';
-            if(percentComplete < 100){
-                $(formSubmissionBtn).html('<?php echo get_phrase('uploading'); ?>... '+percentVal);
-            }else{
-                $(formSubmissionBtn).html('<?php echo get_phrase('please_wait'); ?>... '+percentVal);
-            }
-        },
-        complete: function(xhr) {
-            var response = xhr.responseText;
-            console.log(response);
-
-            setTimeout(function(){
-
-                if (response) {
-                    response = JSON.parse(response);
-
-                    if(typeof response.error != "undefined"){
-                        error_notify(response.error);
-                        $(formSubmissionBtn).attr('disabled', false);
-                        $(formSubmissionBtn).html(formSubmissionBtnTxt);
-                    }
-
-                    if(typeof response.success != "undefined"){
-                        success_notify(response.success);
-                    }
-
-                    if(typeof response.redirect != "undefined"){
-                        window.location.href = response.redirect;
-                    }
-
-                    if(typeof response.reload != "undefined"){
-                        location.reload();
-                    }
-                }
-
-                //set_js_flashdata('<?php echo site_url('home/set_flashdata_for_js/flash_message/your_video_file_uploaded_succesfully') ?>');
-            }, 500);
-        },
-        error: function()
-        {
-            //You can write here your js error message
-        }
-    });
-});
-</script>
+<?php include 'tqa_file_js.php'; ?>
+<?php include 'tqa_lesson_form_js.php'; ?>

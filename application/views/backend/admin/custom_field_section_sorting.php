@@ -8,13 +8,13 @@ $sectionSorting = $this->db
 
 ?>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
+<div class="tqa-stack">
+    <div>
+        <div class="tqa-card">
+            <div class="tqa-card__body">
 
-                <div class="row">
-                    <div class="col-md-12">
+                <div class="tqa-stack">
+                    <div>
 
                         <div class="bg-dragula p-2 p-lg-4">
                             <div id="section-custom-list" >
@@ -34,7 +34,7 @@ $sectionSorting = $this->db
 
                             <div class="text-end mt-3">
                                 <button type="button"
-                                        class="btn btn-primary"
+                                        class="tqa-btn tqa-btn--primary"
                                         id="save-btns"
                                         disabled>
                                     <?php echo get_phrase('Save Changes'); ?>

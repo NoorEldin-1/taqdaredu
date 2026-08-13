@@ -1,64 +1,140 @@
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('categories'); ?>
-                    <a href="<?php echo site_url('admin/category_form/add_category'); ?>" class="btn btn-outline-primary btn-rounded alignToTitle"><i class="mdi mdi-plus"></i><?php echo get_phrase('add_new_category'); ?></a>
-                </h4>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-</div>
-<div class="row">
-    <?php foreach ($categories->result_array() as $category) :
-        if ($category['parent'] > 0)
-            continue;
-        $sub_categories = $this->crud_model->get_sub_categories($category['id']); ?>
-        <div class="col-md-6 col-lg-6 col-xl-4 on-hover-action" id="<?php echo $category['id']; ?>">
-            <div class="card d-block">
-                <img class="card-img-top" src="<?php echo base_url('uploads/thumbnails/category_thumbnails/' . $category['thumbnail']); ?>" alt="Card image cap">
-                <div class="card-body">
-                    <h4 class="card-title mb-0"><i class="<?php echo $category['font_awesome_class']; ?>"></i> <?php echo $category['name']; ?></h4>
-                    <small style="font-style: italic;">
-                        <p class="card-text"><?php echo count($sub_categories) . ' ' . get_phrase('sub_categories'); ?></p>
-                    </small>
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * أقسام الكورسات.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*` — كانت آخر شاشة في اللوحة تعرض عطلها
+ * للعين مباشرة، وأعطالها ثلاثة لا واحد:
+ *
+ * ١ — **صورة مكسورة في كل بطاقة.** كانت تكتب
+ *     `<img src=".../category_thumbnails/{thumbnail}">` بلا فحص، وعمود
+ *     `thumbnail` في هذه القاعدة فارغ أو يحمل اسم ملف غير موجود — والموجود
+ *     في المجلد ملف واحد اسمه `category-thumbnail.png`. فكانت كل بطاقة
+ *     تعرض أيقونة الصورة المكسورة ونص `alt` الإنجليزي «Card image cap»
+ *     في أعلاها. صار الغلاف يفحص الملف، ويسقط إلى مربع بحرف القسم الأول
+ *     حين لا صورة — وهو ما يفعله بقية النظام في الصور الغائبة.
+ *
+ * ٢ — **الإجراءات تظهر بالتمرير وحده.** `style="display:none"` وjQuery
+ *     `mouseenter`: لا تعديل ولا حذف من جوال أو لوح إطلاقا (لا `mouseenter`
+ *     على شاشة لمس)، ولا وصول إليها بلوحة المفاتيح، ولا شيء يدل على
+ *     وجودها. الأزرار الآن ظاهرة دائما.
+ *
+ * ٣ — **الحذف برابط GET.** `<a href="admin/categories/delete/5">` ينفذ
+ *     بمجرد جلبه — من زاحف، أو من استباق التحميل في المتصفح. صار نموذج
+ *     POST بتوكن، وبنافذة تأكيد قبله.
+ */
+
+$tq_cats = $categories->result_array();
+
+/** غلاف القسم: ملف موجود فعلا، وإلا مربع بحرفه الأول. */
+$tq_cover = function ($file) {
+    $file = trim((string) $file);
+    if ($file === '') return '';
+    $rel = 'uploads/thumbnails/category_thumbnails/' . $file;
+    return is_file(FCPATH . $rel) ? base_url($rel) : '';
+};
+
+$tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/category_form/add_category') . '">'
+          . tq_icon('plus', 17) . ' ' . 'إضافة قسم' . '</a>';
+?>
+
+<?php tqa_head('أقسام الكورسات', 'القسم وعاء والقسم الفرعي ما فيه — والكورس يسند إلى الفرعي لا إلى الأب.', 'grid', $tq_tools); ?>
+
+<?php if (empty($tq_cats)): ?>
+
+    <div class="tqa-card tqa-card--flush">
+        <?php tqa_empty(
+            'لا أقسام بعد',
+            'القسم هو ما يصنف به الكورس في الموقع العام. ابدأ بقسم أب، ثم أضف تحته أقساما فرعية.',
+            'إضافة أول قسم',
+            site_url('admin/category_form/add_category'),
+            'grid'
+        ); ?>
+    </div>
+
+<?php else: ?>
+
+    <div class="tqa-grid tqa-grid--3">
+        <?php foreach ($tq_cats as $tq_c):
+            if ((int) $tq_c['parent'] > 0) continue;
+            $tq_subs  = $this->crud_model->get_sub_categories($tq_c['id']);
+            $tq_img   = $tq_cover($tq_c['thumbnail']);
+            $tq_first = mb_substr(trim((string) $tq_c['name']), 0, 1, 'UTF-8');
+        ?>
+            <article class="tqa-item">
+
+                <div class="tqa-item__head">
+                    <?php if ($tq_img !== ''): ?>
+                        <img class="tqa-thumb" src="<?php echo html_escape($tq_img); ?>" alt=""
+                             width="56" height="40" loading="lazy">
+                    <?php else: ?>
+                        <span class="tqa-thumb tqa-thumb--none" aria-hidden="true"><?php echo html_escape($tq_first); ?></span>
+                    <?php endif; ?>
+
+                    <div style="min-inline-size:0">
+                        <h2 class="tqa-item__title"><?php echo html_escape($tq_c['name']); ?></h2>
+                        <span class="tqa-item__sub">
+                            <span class="tqa-num"><?php echo count($tq_subs); ?></span> قسما فرعيا
+                        </span>
+                    </div>
                 </div>
 
-                <ul class="list-group list-group-flush">
-                    <?php foreach ($sub_categories as $sub_category) : ?>
-                        <li class="list-group-item on-hover-action" id="<?php echo $sub_category['id']; ?>">
-                            <span><i class="<?php echo $sub_category['font_awesome_class']; ?>"></i> <?php echo $sub_category['name']; ?></span>
-                            <span class="category-action" id='category-delete-btn-<?php echo $sub_category['id']; ?>' style="float: right; margin-left: 5px; display: none; height: 20px;">
-                                <a href="javascript:;" class="action-icon" onclick="confirm_modal('<?php echo site_url('admin/categories/delete/' . $sub_category['id']); ?>');"> <i class="mdi mdi-delete" style="font-size: 18px;"></i></a>
-                            </span>
-                            <span class="category-action" id='category-edit-btn-<?php echo $sub_category['id']; ?>' style="float: right; display: none; height: 20px;">
-                                <a href="<?php echo site_url('admin/category_form/edit_category/' . $sub_category['id']); ?>" class="action-icon"> <i class="mdi mdi-pencil" style="font-size: 18px;"></i></a>
-                            </span>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-                <div class="card-body">
-                    <a href="<?php echo site_url('admin/category_form/edit_category/' . $category['id']); ?>" class="btn btn-icon btn-outline-info btn-sm" id="category-edit-btn-<?php echo $category['id']; ?>" style="display: none;" style="margin-right:5px;">
-                        <i class="mdi mdi-wrench"></i> <?php echo get_phrase('edit'); ?>
-                    </a>
-                    <a href="#" class="btn btn-icon btn-outline-danger btn-sm" id="category-delete-btn-<?php echo $category['id']; ?>" style="float: right; display: none;" onclick="confirm_modal('<?php echo site_url('admin/categories/delete/' . $category['id']); ?>');" style="margin-right:5px;">
-                        <i class="mdi mdi-delete"></i> <?php echo get_phrase('delete'); ?>
-                    </a>
-                </div> <!-- end card-body-->
-            </div> <!-- end card-->
-        </div>
-    <?php endforeach; ?>
-</div>
+                <?php if ($tq_subs): ?>
+                    <ul class="tqa-item__list">
+                        <?php foreach ($tq_subs as $tq_s): ?>
+                            <li>
+                                <span style="flex:1;min-inline-size:0"><?php echo html_escape($tq_s['name']); ?></span>
 
-<script type="text/javascript">
-    $('.on-hover-action').mouseenter(function() {
-        var id = this.id;
-        $('#category-delete-btn-' + id).show();
-        $('#category-edit-btn-' + id).show();
-    });
-    $('.on-hover-action').mouseleave(function() {
-        var id = this.id;
-        $('#category-delete-btn-' + id).hide();
-        $('#category-edit-btn-' + id).hide();
-    });
-</script>
+                                <span class="tqa-rowacts">
+                                    <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                       href="<?php echo site_url('admin/category_form/edit_category/' . (int) $tq_s['id']); ?>"
+                                       title="تعديل <?php echo html_escape($tq_s['name']); ?>">
+                                        <?php echo tq_icon('edit', 14); ?>
+                                        <span class="tqa-sr">تعديل <?php echo html_escape($tq_s['name']); ?></span>
+                                    </a>
+
+                                    <form method="post" action="<?php echo site_url('admin/categories/delete/' . (int) $tq_s['id']); ?>"
+                                          data-tqa-confirm-title="حذف القسم الفرعي"
+                                          data-tqa-confirm="سيحذف «<?php echo html_escape($tq_s['name']); ?>». والكورسات المصنفة تحته تبقى بلا تصنيف."
+                                          data-tqa-confirm-ok="نعم، احذف"
+                                          data-tqa-confirm-tone="danger">
+                                        <?php echo tq_csrf(); ?>
+                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
+                                            <?php echo tq_icon('trash', 14); ?>
+                                            <span class="tqa-sr">حذف <?php echo html_escape($tq_s['name']); ?></span>
+                                        </button>
+                                    </form>
+                                </span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php else: ?>
+                    <ul class="tqa-item__list">
+                        <li style="color:var(--tq-text2)">لا أقسام فرعية تحته بعد</li>
+                    </ul>
+                <?php endif; ?>
+
+                <div class="tqa-item__foot">
+                    <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                       href="<?php echo site_url('admin/category_form/edit_category/' . (int) $tq_c['id']); ?>">
+                        <?php echo tq_icon('edit', 15); ?> تعديل
+                    </a>
+
+                    <form method="post" style="margin-inline-start:auto"
+                          action="<?php echo site_url('admin/categories/delete/' . (int) $tq_c['id']); ?>"
+                          data-tqa-confirm-title="حذف القسم"
+                          data-tqa-confirm="سيحذف «<?php echo html_escape($tq_c['name']); ?>» وكل أقسامه الفرعية. لا رجعة في هذا."
+                          data-tqa-confirm-ok="نعم، احذف"
+                          data-tqa-confirm-tone="danger">
+                        <?php echo tq_csrf(); ?>
+                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
+                            <?php echo tq_icon('trash', 15); ?> حذف
+                        </button>
+                    </form>
+                </div>
+            </article>
+        <?php endforeach; ?>
+    </div>
+
+<?php endif; ?>

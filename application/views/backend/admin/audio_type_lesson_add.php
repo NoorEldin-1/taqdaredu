@@ -1,16 +1,20 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <input type="hidden" name="lesson_type" value="system-audio">
 <input type="hidden" name="lesson_provider" value="system_audio">
 
-<div class="form-group">
-    <label> <?php echo get_phrase('Audio File'); ?></label>
-    <div class="input-group">
-        <div class="custom-file">
-            <input type="file" class="custom-file-input" id="system_audio_file" name="system_audio_file" onchange="changeTitleOfImageUploader(this)" required>
-            <label class="custom-file-label" for="system_audio_file"><?php echo get_phrase('Audio file'); ?></label>
-        </div>
+<div class="tqa-field">
+    <span class="tqa-field__label">الملف الصوتي <span class="tqa-field__req" aria-hidden="true">*</span></span>
+    <div class="tqa-file">
+        <input type="file" id="system_audio_file" name="system_audio_file" accept="audio/*" required data-tqa-file>
+        <label class="tqa-file__btn" for="system_audio_file"><?php echo tq_icon('upload', 16); ?> اختر ملفا</label>
+        <span class="tqa-file__name" data-tqa-file-name>لم تختر ملفا بعد</span>
     </div>
 </div>
-<div class="form-group">
-    <label for="system_audio_file_duration"><?php echo get_phrase('duration'); ?></label>
-    <input type="text" class="form-control" data-toggle='timepicker' data-minute-step="5" name="system_audio_file_duration" id = "system_audio_file_duration" data-show-meridian="false" value="00:00:00" required>
+
+<div class="tqa-field">
+    <label class="tqa-field__label" for="system_audio_file_duration">
+        المدة <span class="tqa-field__req" aria-hidden="true">*</span>
+    </label>
+    <input class="tqa-input tqa-input--ltr" type="text" id="system_audio_file_duration"
+           name="system_audio_file_duration" dir="ltr" value="00:00:00" placeholder="00:00:00" required>
 </div>

@@ -1,100 +1,149 @@
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body py-2">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('edit_blog'); ?>
-                </h4>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-</div>
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
+/**
+ * تعديل مقال. الشكل نفسه الذي في [blog_add.php]، وعليه معاينة الصور
+ * المحفوظة — كانت تعرض نائبة السمة أبدا حتى للمقال الذي له صورة.
+ */
+if (!$blog) {
+    tqa_head('مقال غير موجود', '', 'file');
+    echo '<div class="tqa-card tqa-card--flush">';
+    tqa_empty('لا مقال بهذا المعرف', 'قد يكون حذف من شاشة أخرى.',
+        'كل المقالات', site_url('admin/blog'), 'file');
+    echo '</div>';
+    return;
+}
 
-<div class="row ">
-    <div class="col-md-10">
-    	<div class="card">
-    		<div class="card-body">
-    			<h4 class='mb-3'><?php echo get_phrase('edit_your_blog'); ?></h4>
-		    	<form action="<?php echo site_url('admin/blog/update/'.$blog['blog_id']); ?>" method="post" enctype="multipart/form-data">
-		    		<div class="form-group">
-		    			<label for="title"><?php echo get_phrase('title'); ?></label>
-		    			<input type="text" class="form-control" value="<?php echo $blog['title']; ?>" name="title" id="title" placeholder="<?php echo get_phrase('enter_blog_title'); ?>" required>
-		    		</div>
+$tq_cats = $this->crud_model->get_blog_categories()->result_array();
 
-		    		<div class="form-group">
-		    			<label for="blog_category_id"><?php echo get_phrase('category'); ?></label>
-		    			<select class="form-control select2" data-toggle="select2" name="blog_category_id" id="blog_category_id" required>
-		    				<option value=""><?php echo get_phrase('select_a_category'); ?></option>
-		    				<?php foreach($this->crud_model->get_blog_categories()->result_array() as $category): ?>
-		    					<option value="<?php echo $category['blog_category_id']; ?>" <?php if($category['blog_category_id'] == $blog['blog_category_id'])echo 'selected'; ?>><?php echo $category['title']; ?></option>
-		    				<?php endforeach; ?>
-		    			</select>
-		    		</div>
+/** الملف الموجود فعلا وحده يعرض. */
+$tq_shot = function ($dir, $file) {
+    $file = trim((string) $file);
+    if ($file === '') return '';
+    $rel = 'uploads/blog/' . $dir . '/' . $file;
+    return is_file(FCPATH . $rel) ? base_url($rel) : '';
+};
+$tq_thumb  = $tq_shot('thumbnail', $blog['thumbnail'] ?? '');
+$tq_banner = $tq_shot('banner', $blog['banner'] ?? '');
 
-		    		<div class="form-group">
-                        <label for="keywords"><?php echo get_phrase('keywords'); ?></label>
-                        <input type="text" class="form-control bootstrap-tag-input" id = "keywords" name="keywords" data-role="tagsinput" style="width: 100%;" value="<?php echo $blog['keywords']; ?>" />
-                        <small class="text-muted"><?php echo site_phrase('click_the_enter_button_after_writing_your_keyword'); ?></small>
+$tq_live = site_url('blog/details/' . rawurlencode(slugify($blog['title'])) . '/' . (int) $blog['blog_id']);
+?>
+
+<?php tqa_head('تعديل المقال', $blog['title'], 'file',
+    '<a class="tqa-btn tqa-btn--ghost" href="' . $tq_live . '" target="_blank" rel="noopener">'
+  . tq_icon('external', 16) . ' اقرأه في الموقع</a>'
+  . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog') . '">'
+  . tq_icon('chev-prev', 16) . ' كل المقالات</a>'); ?>
+
+<form action="<?php echo site_url('admin/blog/edit/' . (int) $blog['blog_id']); ?>" method="post"
+      enctype="multipart/form-data" style="max-inline-size:860px">
+    <?php echo tq_csrf(); ?>
+
+    <div class="tqa-card tqa-section">
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('edit', 20); ?></span>
+            <h2>المحتوى</h2>
+        </div>
+
+        <div class="tqa-fieldgrid">
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="title">
+                    عنوان المقال <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input" type="text" id="title" name="title" required maxlength="190"
+                       value="<?php echo html_escape($blog['title']); ?>">
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="blog_category_id">
+                    القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <select class="tqa-select" id="blog_category_id" name="blog_category_id" required>
+                    <option value="">— اختر قسما</option>
+                    <?php foreach ($tq_cats as $tq_c): ?>
+                        <option value="<?php echo (int) $tq_c['blog_category_id']; ?>"
+                            <?php echo (int) $blog['blog_category_id'] === (int) $tq_c['blog_category_id'] ? 'selected' : ''; ?>>
+                            <?php echo html_escape($tq_c['title']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="keywords_in">الكلمات الدلالية</label>
+                <div class="tqa-tags" data-tqa-tags>
+                    <input type="hidden" name="keywords" data-tqa-tags-value
+                           value="<?php echo html_escape($blog['keywords']); ?>">
+                    <input class="tqa-tags__in" type="text" id="keywords_in" autocomplete="off"
+                           placeholder="اكتب كلمة ثم اضغط Enter" data-tqa-tags-input>
+                </div>
+            </div>
+
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="description">نص المقال</label>
+                <textarea class="tqa-textarea" id="description" name="description" rows="12" data-tqa-rich><?php
+                    echo html_escape(htmlspecialchars_decode_($blog['description'])); ?></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="tqa-card tqa-section">
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('image', 20); ?></span>
+            <h2>الصور</h2>
+        </div>
+
+        <div class="tqa-fieldgrid">
+            <?php foreach (array(
+                array('thumbnail', 'صورة المقال المصغرة', '800 × 500', $tq_thumb),
+                array('banner',    'بانر المقال',          '2000 × 500', $tq_banner),
+            ) as [$tq_name, $tq_label, $tq_size, $tq_src]): ?>
+                <div class="tqa-field">
+                    <span class="tqa-field__label"><?php echo $tq_label; ?></span>
+
+                    <?php if ($tq_src !== ''): ?>
+                        <div class="tqa-checker" style="min-block-size:90px">
+                            <img src="<?php echo html_escape($tq_src); ?>" alt="<?php echo $tq_label; ?> الحالية">
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="tqa-file">
+                        <input type="file" id="<?php echo $tq_name; ?>" name="<?php echo $tq_name; ?>"
+                               accept="image/*" data-tqa-file>
+                        <label class="tqa-file__btn" for="<?php echo $tq_name; ?>">
+                            <?php echo tq_icon('image', 16); ?>
+                            <?php echo $tq_src !== '' ? 'استبدل الصورة' : 'اختر صورة'; ?>
+                        </label>
+                        <span class="tqa-file__name" data-tqa-file-name>
+                            المقاس المفضل <span class="tq-ltr" dir="ltr"><?php echo $tq_size; ?></span>
+                        </span>
                     </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
 
-		    		<div class="form-group">
-		    			<label for="summernote-basic"><?php echo get_phrase('description'); ?></label>
-		    			<textarea name="description" id="summernote-basic"><?php echo htmlspecialchars_decode_($blog['description']); ?></textarea>
-		    		</div>
+        <div class="tqa-prefrow">
+            <div class="tqa-prefrow__main">
+                <label class="tqa-prefrow__title" for="is_popular">مقال مميز</label>
+                <span class="tqa-prefrow__hint">يعرض في شريط «الأبرز» في صفحة المدونة.</span>
+            </div>
+            <div class="tqa-prefrow__end">
+                <span class="tqa-switch">
+                    <input type="checkbox" id="is_popular" name="is_popular" value="1"
+                           <?php echo (int) $blog['is_popular'] === 1 ? 'checked' : ''; ?>>
+                    <span class="tqa-switch__track" aria-hidden="true"></span>
+                </span>
+            </div>
+        </div>
+    </div>
 
-		    		<div class="form-group mb-3">
-						<label for="banner"><?php echo get_phrase('blog_banner'); ?></label>
-						<div class="wrapper-image-preview" style="margin-left: -6px;">
-							<div class="box" style="width: 300px;">
-								<?php $blog_banner = 'uploads/blog/banner/'.$blog['banner']; ?>
-                                <?php
-                                	if(file_exists($blog_banner) && is_file($blog_banner)):
-                                		$blog_banner = base_url($blog_banner);
-                                	else:
-                                		$blog_banner = base_url('uploads/blog/banner/placeholder.png');
-                                	endif;
-                                ?>
-								<div class="js--image-preview" style="background-image: url('<?php echo $blog_banner; ?>'); background-color: #F5F5F5; background-size: cover; background-position: center;"></div>
-								<div class="upload-options">
-									<label for="banner" class="btn"> <i class="mdi mdi-camera"></i> <?php echo get_phrase('choose_a_banner'); ?> <br> <small>(2000 x 500)</small> </label>
-									<input id="banner" style="visibility:hidden;" type="file" class="image-upload" name="banner" accept="image/*">
-								</div>
-							</div>
-						</div>
-					</div>
+    <div class="tqa-actions">
+        <button type="submit" class="tqa-btn tqa-btn--primary">
+            <?php echo tq_icon('check', 16); ?> احفظ التعديل
+        </button>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/blog'); ?>">إلغاء</a>
+    </div>
+</form>
 
-					<div class="form-group mb-3">
-						<label for="thumbnail"><?php echo get_phrase('blog_thumbnail'); ?></label>
-						<div class="wrapper-image-preview" style="margin-left: -6px;">
-							<div class="box" style="width: 300px;">
-								<?php $blog_thumbnail = 'uploads/blog/thumbnail/'.$blog['thumbnail']; ?>
-                                <?php
-                                	if(file_exists($blog_thumbnail) && is_file($blog_thumbnail)):
-                                		$blog_thumbnail = base_url($blog_thumbnail);
-                                	else:
-                                		$blog_thumbnail = base_url('uploads/blog/thumbnail/placeholder.png');
-                                	endif;
-                                ?>
-								<div class="js--image-preview" style="background-image: url('<?php echo $blog_thumbnail; ?>'); background-color: #F5F5F5; background-size: cover; background-position: center;"></div>
-								<div class="upload-options">
-									<label for="thumbnail" class="btn"> <i class="mdi mdi-camera"></i> <?php echo get_phrase('choose_a_thumbnail'); ?> <br> <small>(800 x 500)</small> </label>
-									<input id="thumbnail" style="visibility:hidden;" type="file" class="image-upload" name="thumbnail" accept="image/*">
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<div class="form-group mt-4">
-						<label><?php echo get_phrase('do_you_want_to_mark_it_as_popular'); ?>?</label><br>
-						<input type="checkbox" id="is_popular" value="1" name="is_popular" <?php if($blog['is_popular'] == 1) echo 'checked'; ?>>
-						<label for="is_popular"><?php echo get_phrase('mark_as_popular'); ?></label>
-					</div>
-
-					<div class="form-group mt-4">
-						<button class="btn btn-success"><?php echo get_phrase('update_blog'); ?></button>
-					</div>
-		    	</form>
-		    </div>
-		</div>
-	</div>
-</div>
+<?php include 'tqa_file_js.php'; ?>
+<?php include 'tqa_tags_js.php'; ?>

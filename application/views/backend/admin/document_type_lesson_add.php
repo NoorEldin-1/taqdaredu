@@ -1,19 +1,21 @@
-<div class="form-group">
-    <label for="document_type"><?php echo get_phrase('document_type'); ?></label>
-    <select class="form-control select2" data-toggle="select2" name="lesson_type" id="lesson_type" required>
-        <option value=""><?php echo get_phrase('select_type_of_document'); ?></option>
-        <option value="other-txt"><?php echo get_phrase('text_file'); ?></option>
-        <option value="other-pdf" selected><?php echo get_phrase('pdf_file'); ?></option>
-        <option value="other-doc"><?php echo get_phrase('document_file'); ?></option>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<div class="tqa-field">
+    <label class="tqa-field__label" for="lesson_type">
+        نوع المستند <span class="tqa-field__req" aria-hidden="true">*</span>
+    </label>
+    <select class="tqa-select" id="lesson_type" name="lesson_type" required>
+        <option value="other-pdf" selected>ملف PDF</option>
+        <option value="other-doc">مستند Word</option>
+        <option value="other-txt">ملف نصي</option>
     </select>
 </div>
 
-<div class="form-group">
-    <label> <?php echo get_phrase('attachment'); ?></label>
-    <div class="input-group">
-        <div class="custom-file">
-            <input type="file" class="custom-file-input" id="attachment" name="attachment" onchange="changeTitleOfImageUploader(this)">
-            <label class="custom-file-label" for="attachment"><?php echo get_phrase('attachment'); ?></label>
-        </div>
+<div class="tqa-field">
+    <span class="tqa-field__label">الملف <span class="tqa-field__req" aria-hidden="true">*</span></span>
+    <div class="tqa-file">
+        <input type="file" id="attachment" name="attachment" required data-tqa-file
+               accept=".pdf,.doc,.docx,.txt">
+        <label class="tqa-file__btn" for="attachment"><?php echo tq_icon('upload', 16); ?> اختر ملفا</label>
+        <span class="tqa-file__name" data-tqa-file-name>لم تختر ملفا بعد</span>
     </div>
 </div>

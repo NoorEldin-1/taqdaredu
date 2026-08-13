@@ -1,179 +1,131 @@
 <?php
-// $param2 IS FOR COURSE ID AND $param3 IS FOR LESSON TYPE
-$course_details = $this->crud_model->get_course_by_id($param2)->row_array();
-$sections = $this->crud_model->get_section('course', $param2)->result_array();
-?>
-<!-- SHOWING THE LESSON TYPE IN AN ALERT VIEW -->
-<div class="alert alert-info" role="alert">
-    <?php echo get_phrase("lesson_type"); ?> :
-    <strong>
-        <?php
-        if ($param3 == 'html5') {
-            echo get_phrase("video_url").' [.mp4]';
-        }elseif ($param3 == 'video') {
-            echo get_phrase("video_file");
-        }elseif ($param3 == 'youtube' || $param3 == 'academy_cloud' || $param3 == 'vimeo') {
-            echo get_phrase($param3).' '.get_phrase("video");
-        }else{
-            echo get_phrase($param3);
-        }
-        ?>.
-    </strong>
+defined('BASEPATH') or exit('No direct script access allowed');
 
-    <strong><a href="#" class="ml-1" data-toggle="modal" data-dismiss="modal" onclick="showAjaxModal('<?php echo site_url('modal/popup/lesson_types/'.$param2.'/'.$param3); ?>', '<?php echo get_phrase('add_new_lesson'); ?>')"><?php echo get_phrase("change"); ?></a></strong>
+/**
+ * إضافة درس — يفتح في نافذة.
+ *
+ * أعيدت كتابته بهيكل `tqa-*`. وما تغير:
+ *
+ * ١ — **حذفت أنواع لا قوالب لها.** `academy_cloud` و`amazon-s3` و
+ *     `wasabi-storage` و`wasabi-s3` — أربعة `include` لملفات غير موجودة
+ *     في هذا المستودع. و`include` لملف غائب **تحذير لا خطأ**، فالنموذج
+ *     كان يفتح بلا حقل مصدر: عنوان وقسم وملخص، ودرس يحفظ بلا فيديو.
+ * ٢ — **لا أقسام = لا رسالة.** كان المنتقي يخرج فارغا حين لا أقسام في
+ *     الكورس، والحفظ يرد خطأ قاعدة بيانات. صار يقول ما ينقص.
+ * ٣ — **`initSummerNote` و`initSelect2` و`initTimepicker`** — ثلاث دوال
+ *     من حزمة القالب تنادى على معرفات أكثرها غير موجود في هذه النافذة.
+ */
+$tq_course   = $this->crud_model->get_course_by_id($param2)->row_array();
+$tq_sections = $this->crud_model->get_section('course', $param2)->result_array();
+$tq_kind     = isset($param3) ? $param3 : 'youtube';
+
+/* القوالب الموجودة فعلا — والمفتاح الغائب يسقط إلى «رابط يوتيوب». */
+$tq_partials = array(
+    'youtube'            => 'youtube_type_lesson_add.php',
+    'vimeo'              => 'vimeo_type_lesson_add.php',
+    'html5'              => 'html5_type_lesson_add.php',
+    'video'              => 'video_type_lesson_add.php',
+    'audio'              => 'audio_type_lesson_add.php',
+    'google_drive_video' => 'google_drive_video_lesson_add.php',
+    'document'           => 'document_type_lesson_add.php',
+    'text'               => 'text_type_lesson_add.php',
+    'image'              => 'image_type_lesson_add.php',
+    'iframe'             => 'iframe_type_lesson_add.php',
+);
+
+$tq_names = array(
+    'youtube'            => 'فيديو يوتيوب',
+    'vimeo'              => 'فيديو فيميو',
+    'html5'              => 'رابط ملف مباشر',
+    'video'              => 'ملف فيديو',
+    'audio'              => 'ملف صوتي',
+    'google_drive_video' => 'فيديو جوجل درايف',
+    'document'           => 'مستند',
+    'text'               => 'نص',
+    'image'              => 'صورة',
+    'iframe'             => 'تضمين خارجي',
+);
+?>
+
+<div class="tqa-note tqa-section">
+    <span aria-hidden="true"><?php echo tq_icon('play', 18); ?></span>
+    <span style="flex:1">
+        نوع الدرس: <strong><?php echo html_escape($tq_names[$tq_kind] ?? $tq_kind); ?></strong>
+    </span>
+    <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+            onclick="showAjaxModal('<?php echo site_url('modal/popup/lesson_types/' . (int) $param2 . '/' . html_escape($tq_kind)); ?>', 'إضافة درس')">
+        غيره
+    </button>
 </div>
 
-<!-- ACTUAL LESSON ADDING FORM -->
-<form class="ajaxFormSubmission" action="<?php echo site_url('admin/lessons/'.$param2.'/add'); ?>" method="post" enctype="multipart/form-data">
-    <input type="hidden" name="course_id" value="<?php echo $param2; ?>">
-    <div class="form-group">
-        <label><?php echo get_phrase('title'); ?></label>
-        <input type="text" name = "title" class="form-control" required>
+<?php if (empty($tq_sections)): ?>
+
+    <div class="tqa-note tqa-note--warn">
+        <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+        <span>
+            <strong>لا أقسام في هذا الكورس بعد.</strong>
+            والدرس لا يحفظ بلا قسم يحمله. أغلق هذه النافذة وأضف قسما أولا من تبويب «المقرر».
+        </span>
     </div>
 
-    <div class="form-group">
-        <label><?php echo get_phrase('section'); ?></label>
-        <select class="form-control select2" data-toggle="select2" name="section_id" required>
-            <?php foreach ($sections as $section): ?>
-                <option value="<?php echo $section['id']; ?>"><?php echo $section['title']; ?></option>
+<?php else: ?>
+
+<form class="ajaxFormSubmission" method="post" enctype="multipart/form-data"
+      action="<?php echo site_url('admin/lessons/' . (int) $param2 . '/add'); ?>">
+    <?php echo tq_csrf(); ?>
+    <input type="hidden" name="course_id" value="<?php echo (int) $param2; ?>">
+
+    <div class="tqa-field">
+        <label class="tqa-field__label" for="lesson_title">
+            عنوان الدرس <span class="tqa-field__req" aria-hidden="true">*</span>
+        </label>
+        <input class="tqa-input" type="text" id="lesson_title" name="title" required maxlength="190">
+    </div>
+
+    <div class="tqa-field">
+        <label class="tqa-field__label" for="section_id">
+            القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+        </label>
+        <select class="tqa-select" id="section_id" name="section_id" required>
+            <?php foreach ($tq_sections as $tq_s): ?>
+                <option value="<?php echo (int) $tq_s['id']; ?>"><?php echo html_escape($tq_s['title']); ?></option>
             <?php endforeach; ?>
         </select>
     </div>
 
-    <?php if ($param3 == 'youtube'): include('youtube_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'academy_cloud'): include('academy_cloud_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'vimeo'): include('vimeo_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'html5'): include('html5_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'video'): include('video_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'audio'): include('audio_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'amazon-s3' && addon_status('amazon-s3')): include('amazon_s3_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'wasabi-storage'): include('wasabi_storage_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'google_drive_video'): include('google_drive_video_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'document'): include('document_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'text'): include('text_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'image'): include('image_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'iframe'): include('iframe_type_lesson_add.php'); endif; ?>
-    <?php if ($param3 == 'wasabi-s3'): include('wasabi_lesson_add.php'); endif; ?>
+    <?php
+    /* قالب النوع — والمفتاح الغائب يسقط إلى يوتيوب بدل `include` صامت
+       على ملف غير موجود. */
+    $tq_file = $tq_partials[$tq_kind] ?? $tq_partials['youtube'];
+    include $tq_file;
+    ?>
 
-    <div class="form-group">
-        <label><?php echo get_phrase('summary'); ?></label>
-        <textarea name="summary" id="lesson_summary" class="form-control"></textarea>
+    <div class="tqa-field">
+        <label class="tqa-field__label" for="lesson_summary">ملخص الدرس</label>
+        <textarea class="tqa-textarea" id="lesson_summary" name="summary" rows="3"></textarea>
     </div>
 
-    <div class="form-group">
-        <label><?php echo get_phrase('do_you_want_to_keep_it_free_as_a_preview_lesson'); ?>?</label>
-        <br>
-        <input type="checkbox" name="free_lesson" id="free_lesson" value="1">
-        <label for="free_lesson"><?php echo get_phrase('mark_as_free_lesson'); ?></label>
+    <div class="tqa-prefrow">
+        <div class="tqa-prefrow__main">
+            <label class="tqa-prefrow__title" for="free_lesson">درس معاينة مجاني</label>
+            <span class="tqa-prefrow__hint">يفتح لغير المشتركين — واحد أو اثنان يكفيان.</span>
+        </div>
+        <div class="tqa-prefrow__end">
+            <span class="tqa-switch">
+                <input type="checkbox" id="free_lesson" name="free_lesson" value="1">
+                <span class="tqa-switch__track" aria-hidden="true"></span>
+            </span>
+        </div>
     </div>
 
-    <div class="text-center">
-        <button class = "btn btn-success w-100 formSubmissionBtn" type="submit" name="button"><?php echo get_phrase('add_lesson'); ?></button>
+    <div class="tqa-actions">
+        <button class="tqa-btn tqa-btn--primary tqa-btn--block formSubmissionBtn" type="submit">
+            <?php echo tq_icon('plus', 16); ?> أضف الدرس
+        </button>
     </div>
 </form>
 
-<script type="text/javascript">
+<?php endif; ?>
 
-$(document).ready(function() {
-    initSummerNote(['#lesson_summary']);
-    initSelect2(['#section_id','#lesson_type', '#lesson_provider', '#lesson_provider_for_mobile_application']);
-    initTimepicker();
-
-    // HIDING THE SEARCHBOX FROM SELECT2
-    $('select').select2({
-        minimumResultsForSearch: -1
-    });
-});
-function ajax_get_video_details(video_url) {
-    $('#perloader').show();
-    if(checkURLValidity(video_url)){
-        $.ajax({
-            url: '<?php echo site_url('admin/ajax_get_video_details');?>',
-            type : 'POST',
-            data : {video_url : video_url},
-            success: function(response)
-            {
-                jQuery('#duration').val(response);
-                $('#perloader').hide();
-                $('#invalid_url').hide();
-            }
-        });
-    }else {
-        $('#invalid_url').show();
-        $('#perloader').hide();
-        jQuery('#duration').val('');
-
-    }
-}
-
-function checkURLValidity(video_url) {
-    var youtubePregMatch = /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})(?:\S+)?$/;
-    var vimeoPregMatch = /^(http\:\/\/|https\:\/\/)?(www\.)?(vimeo\.com\/)([0-9]+)$/;
-    if (video_url.match(youtubePregMatch)) {
-        return true;
-    }
-    else if (vimeoPregMatch.test(video_url)) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
-
-$(function() {
-    var formSubmissionBtn = $('.formSubmissionBtn');
-    var formSubmissionBtnTxt = $(formSubmissionBtn).html();
-    //The form of submission to RailTeam js is defined here.(Form class or ID)
-    $('.ajaxFormSubmission').ajaxForm({
-        beforeSend: function() {
-            var percentVal = '0%';
-            $(formSubmissionBtn).html('<?php echo get_phrase('uploading'); ?>... '+percentVal);
-            $(formSubmissionBtn).attr('disabled', true);
-        },
-        uploadProgress: function(event, position, total, percentComplete) {
-            var percentVal = percentComplete + '%';
-            if(percentComplete < 100){
-                $(formSubmissionBtn).html('<?php echo get_phrase('uploading'); ?>... '+percentVal);
-            }else{
-                $(formSubmissionBtn).html('<?php echo get_phrase('please_wait'); ?>... '+percentVal);
-            }
-        },
-        complete: function(xhr) {
-            var response = xhr.responseText;
-            console.log(response);
-
-            setTimeout(function(){
-
-                if (response) {
-                    response = JSON.parse(response);
-
-                    if(typeof response.error != "undefined"){
-                        error_notify(response.error);
-                        $(formSubmissionBtn).attr('disabled', false);
-                        $(formSubmissionBtn).html(formSubmissionBtnTxt);
-                    }
-
-                    if(typeof response.success != "undefined"){
-                        success_notify(response.success);
-                    }
-
-                    if(typeof response.redirect != "undefined"){
-                        window.location.href = response.redirect;
-                    }
-
-                    if(typeof response.reload != "undefined"){
-                        location.reload();
-                    }
-                }
-
-                //set_js_flashdata('<?php echo site_url('home/set_flashdata_for_js/flash_message/your_video_file_uploaded_succesfully') ?>');
-            }, 500);
-        },
-        error: function()
-        {
-            //You can write here your js error message
-        }
-    });
-});
-</script>
+<?php include 'tqa_file_js.php'; ?>
+<?php include 'tqa_lesson_form_js.php'; ?>

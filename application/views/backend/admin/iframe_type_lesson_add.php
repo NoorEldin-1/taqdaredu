@@ -1,7 +1,14 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <input type="hidden" name="lesson_type" value="other-iframe">
 
-<div class="form-group">
-    <label><?php echo get_phrase('Iframe code or source URL'); ?></label>
-    <input type="text" id = "iframe_source" name = "iframe_source" class="form-control" placeholder="<?php echo get_phrase('enter_iframe_code_or_source_url'); ?>">
-    <p><?php echo get_phrase('you_can_provide_the_full_iframe_code_or_just_the_source_URL'); ?></p>
+<div class="tqa-field">
+    <label class="tqa-field__label" for="iframe_source">
+        كود التضمين أو رابطه <span class="tqa-field__req" aria-hidden="true">*</span>
+    </label>
+    <textarea class="tqa-textarea tqa-input--ltr" id="iframe_source" name="iframe_source" rows="3"
+              dir="ltr" spellcheck="false" required
+              placeholder="https://example.com/embed/123"></textarea>
+    <span class="tqa-field__hint">
+        يقبل وسم <span class="tq-ltr" dir="ltr">&lt;iframe&gt;</span> كاملا، أو الرابط وحده.
+    </span>
 </div>

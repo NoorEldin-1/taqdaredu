@@ -8,21 +8,21 @@
     <li><a href="<?php echo site_url('admin/lessons/').$lesson_details['course_id']; ?>"><?php echo get_phrase('lessons'); ?></a> </li>
     <li><a href="#" class="active"><?php echo get_phrase('video_player'); ?></a> </li>
 </ul>
-<div class="page-title"> <i class="icon-custom-left"></i>
+<div class="tqa-pagehead__title"> <i class="icon-custom-left"></i>
     <h3><?php echo $page_title; ?></h3>
 </div>
 
 
-    <div class="row">
-        <div class="col-md-12">
+    <div class="tqa-stack">
+        <div>
             <div class="grid simple">
                 <div class="grid-title no-border">
                     <h4><?php echo get_phrase('course_title'); ?> : <span style="font-weight: 800;"><?php echo $course_details['title']; ?></span></h4>
                     <h4><?php echo get_phrase('lesson_title'); ?> : <span style="font-weight: 800;"><?php echo $lesson_details['title']; ?></span></h4>
                 </div>
                 <div class="grid-body no-border">
-                    <div class="row">
-                        <div class="col-md-12 col-sm-12 col-xs-12" style="text-align: center;">
+                    <div class="tqa-stack">
+                        <div style="text-align: center;">
                           <?php if ($lesson_details['lesson_type'] != 'other'): ?>
                             <?php if (strtolower($provider) == 'youtube'): ?>
                                 <!------------- PLYR.IO ------------>
@@ -65,7 +65,7 @@
                             <?php endif; ?>
 
                           <?php else: ?>
-                            <a href="<?php echo base_url().'uploads/lesson_files/'.$lesson_details['attachment']; ?>" class="btn btn-primary" download>
+                            <a href="<?php echo base_url().'uploads/lesson_files/'.$lesson_details['attachment']; ?>" class="tqa-btn tqa-btn--primary" download>
                               <i class="entypo-download" style="font-size: 20px;"></i> <?php echo get_phrase('download').' '.$lesson_details['title']; ?>
                             </a>
                           <?php endif; ?>

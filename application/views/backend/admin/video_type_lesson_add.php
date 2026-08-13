@@ -1,29 +1,35 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <input type="hidden" name="lesson_type" value="system-video">
 <input type="hidden" name="lesson_provider" value="system_video">
 
-<div class="form-group">
-    <label> <?php echo get_phrase('upload_system_video_file'); ?></label>
-    <div class="input-group">
-        <div class="custom-file">
-            <input type="file" class="custom-file-input" id="system_video_file" name="system_video_file" onchange="changeTitleOfImageUploader(this)" required>
-            <label class="custom-file-label" for="system_video_file"><?php echo get_phrase('select_system_video_file'); ?></label>
-        </div>
+<div class="tqa-field">
+    <span class="tqa-field__label">ملف الفيديو <span class="tqa-field__req" aria-hidden="true">*</span></span>
+    <div class="tqa-file">
+        <input type="file" id="system_video_file" name="system_video_file" accept="video/*" required data-tqa-file>
+        <label class="tqa-file__btn" for="system_video_file"><?php echo tq_icon('upload', 16); ?> اختر ملفا</label>
+        <span class="tqa-file__name" data-tqa-file-name>لم تختر ملفا بعد</span>
     </div>
-    <small class="badge badge-primary"><?php echo 'maximum_upload_size'; ?>: <?php echo ini_get('upload_max_filesize'); ?></small>
-    <small class="badge badge-primary"><?php echo 'post_max_size'; ?>: <?php echo ini_get('post_max_size'); ?></small>
-    <small class="badge badge-secondary"><?php echo '"post_max_size" '.get_phrase("has_to_be_bigger_than").' "upload_max_filesize"'; ?></small>
-</div>
-<div class="form-group">
-    <label><?php echo get_phrase('duration'); ?></label>
-    <input type="text" class="form-control" data-toggle='timepicker' data-minute-step="5" name="system_video_file_duration" id = "system_video_file_duration" data-show-meridian="false" value="00:00:00" required>
+    <?php /* حدود الخادم تعلن قبل الرفع لا بعده: الملف الأكبر من الحد كان
+             يرفع كاملا ثم يرد الخادم ردا فارغا بلا رسالة مفهومة. */ ?>
+    <span class="tqa-field__hint">
+        أقصى حجم للملف <span class="tq-ltr" dir="ltr"><?php echo html_escape(ini_get('upload_max_filesize')); ?></span>،
+        وأقصى حجم للطلب <span class="tq-ltr" dir="ltr"><?php echo html_escape(ini_get('post_max_size')); ?></span>.
+    </span>
 </div>
 
-<div class="form-group">
-    <label><?php echo get_phrase('caption'); ?>( <?php echo get_phrase('.vtt'); ?> )</label>
-    <div class="input-group">
-        <div class="custom-file">
-            <input type="file" class="custom-file-input" id="caption" name="caption" onchange="changeTitleOfImageUploader(this)" accept=".vtt">
-            <label class="custom-file-label" for="caption"><?php echo get_phrase('choose_your_caption_file'); ?></label>
-        </div>
+<div class="tqa-field">
+    <label class="tqa-field__label" for="system_video_file_duration">
+        المدة <span class="tqa-field__req" aria-hidden="true">*</span>
+    </label>
+    <input class="tqa-input tqa-input--ltr" type="text" id="system_video_file_duration"
+           name="system_video_file_duration" dir="ltr" value="00:00:00" placeholder="00:00:00" required>
+</div>
+
+<div class="tqa-field">
+    <span class="tqa-field__label">ملف الترجمة</span>
+    <div class="tqa-file">
+        <input type="file" id="caption" name="caption" accept=".vtt" data-tqa-file>
+        <label class="tqa-file__btn" for="caption"><?php echo tq_icon('file-text', 16); ?> اختر ملفا</label>
+        <span class="tqa-file__name" data-tqa-file-name>صيغة <span class="tq-ltr" dir="ltr">.vtt</span> وحدها</span>
     </div>
 </div>

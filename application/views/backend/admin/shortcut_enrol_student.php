@@ -1,18 +1,18 @@
 <form class="required-form ajaxForm" action="<?php echo site_url('admin/shortcut_enrol_student'); ?>" method="post" enctype="multipart/form-data">
-    <div class="form-group">
+    <div class="tqa-field">
         <label for="user_id_short"><?php echo get_phrase('user'); ?><span class="required">*</span> </label>
-        <select class="form-control server-side-select3" name="user_id" id="user_id_short" action="<?php echo site_url('admin/get_select2_user_data'); ?>" required>
+        <select class="tqa-input server-side-select3" name="user_id" id="user_id_short" action="<?php echo site_url('admin/get_select2_user_data'); ?>" required>
             <option value=""><?php echo get_phrase('select_a_user'); ?></option>
         </select>
     </div>
 
-    <div class="form-group">
+    <div class="tqa-field">
         <label for="course_id_short"><?php echo get_phrase('course_to_enrol'); ?><span class="required">*</span> </label>
-        <select class="form-control server-side-select3" name="course_id" id="course_id_short" action="<?php echo site_url('admin/get_select2_course_for_enroll'); ?>" required>
+        <select class="tqa-input server-side-select3" name="course_id" id="course_id_short" action="<?php echo site_url('admin/get_select2_course_for_enroll'); ?>" required>
             <option value=""><?php echo get_phrase('select_a_course'); ?></option>
         </select>
     </div>
-    <button type="button" class="btn btn-primary float-right" onclick="checkRequiredFields()"><?php echo get_phrase('enrol_student'); ?></button>
+    <button type="button" class="tqa-btn tqa-btn--primary" onclick="checkRequiredFields()"><?php echo get_phrase('enrol_student'); ?></button>
 </form>
 
 <script type="text/javascript">

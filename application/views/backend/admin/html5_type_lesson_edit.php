@@ -1,51 +1,36 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <input type="hidden" name="lesson_type" value="video-url">
 <input type="hidden" name="lesson_provider" value="html5">
 
-<div class="form-group">
-    <label><?php echo get_phrase('video_url'); ?></label>
-    <input type="text" id = "html5_video_url" name = "html5_video_url" class="form-control" value="<?php echo $lesson_details['video_url']; ?>" placeholder="<?php echo get_phrase('this_video_will_be_shown_on_web_application'); ?>">
+<div class="tqa-field">
+    <label class="tqa-field__label" for="html5_video_url">رابط الملف</label>
+    <input class="tqa-input tqa-input--ltr" type="url" id="html5_video_url" name="html5_video_url" dir="ltr"
+           value="<?php echo html_escape($lesson_details['video_url']); ?>"
+           placeholder="https://example.com/lesson.mp4">
 </div>
 
-<div class="form-group">
-    <label><?php echo get_phrase('duration'); ?></label>
-    <input type="text" class="form-control" data-toggle='timepicker' data-minute-step="5" name="html5_duration" id = "html5_duration" data-show-meridian="false" value="<?php echo $lesson_details['duration']; ?>">
+<div class="tqa-field">
+    <label class="tqa-field__label" for="html5_duration">المدة</label>
+    <input class="tqa-input tqa-input--ltr" type="text" id="html5_duration" name="html5_duration" dir="ltr"
+           value="<?php echo html_escape($lesson_details['duration']); ?>" placeholder="00:00:00">
 </div>
 
-<div class="form-group">
-    <label><?php echo get_phrase('thumbnail'); ?> <small>(<?php echo get_phrase('the_image_size_should_be'); ?>: 979 x 551)</small> </label>
-    <div class="input-group">
-        <div class="custom-file">
-            <input type="file" class="custom-file-input" id="thumbnail" name="thumbnail" onchange="changeTitleOfImageUploader(this)">
-            <label class="custom-file-label" for="thumbnail"><?php echo get_phrase('thumbnail'); ?></label>
-        </div>
+<div class="tqa-field">
+    <span class="tqa-field__label">صورة الدرس</span>
+    <div class="tqa-file">
+        <input type="file" id="thumbnail" name="thumbnail" accept="image/*" data-tqa-file>
+        <label class="tqa-file__btn" for="thumbnail"><?php echo tq_icon('image', 16); ?> استبدل الصورة</label>
+        <span class="tqa-file__name" data-tqa-file-name>اتركه فارغا لإبقاء الصورة الحالية</span>
     </div>
 </div>
 
-<div class="form-group">
-    <label><?php echo get_phrase('caption'); ?>( <?php echo get_phrase('.vtt'); ?> )</label>
-    <div class="input-group">
-        <div class="custom-file">
-            <input type="file" class="custom-file-input" id="caption" name="caption" onchange="changeTitleOfImageUploader(this)" accept=".vtt">
-            <label class="custom-file-label" for="caption"><?php echo get_phrase('choose_your_caption_file'); ?></label>
-        </div>
+<div class="tqa-field">
+    <span class="tqa-field__label">ملف الترجمة</span>
+    <div class="tqa-file">
+        <input type="file" id="caption" name="caption" accept=".vtt" data-tqa-file>
+        <label class="tqa-file__btn" for="caption"><?php echo tq_icon('file-text', 16); ?> استبدل الملف</label>
+        <span class="tqa-file__name" data-tqa-file-name>اتركه فارغا لإبقاء الملف الحالي</span>
     </div>
 </div>
 
-
-<!-- This portion is for mobile application video lesson -->
-<div class="form-group d-none">
-    <label for="lesson_provider"><?php echo get_phrase('lesson_provider'); ?>( <?php echo get_phrase('for_mobile_application'); ?> )</label>
-    <select class="form-control select2" data-toggle="select2" name="lesson_provider_for_mobile_application" id="lesson_provider_for_mobile_application">
-        <option value="html5" <?php if(strtolower($lesson_details['video_type_for_mobile_application']) == 'html5') echo 'selected'; ?>>HTML5</option>
-    </select>
-</div>
-
-<div class="form-group d-none">
-    <label><?php echo get_phrase('video_url'); ?>( <?php echo get_phrase('for_mobile_application'); ?> )</label>
-    <input type="text" id = "html5_video_url_for_mobile_application" name = "html5_video_url_for_mobile_application" class="form-control" placeholder="<?php echo get_phrase('only'); ?> HTML5 <?php echo get_phrase('type_video_is_acceptable_for_mobile_application'); ?>" value="<?php echo $lesson_details['video_url_for_mobile_application']; ?>">
-</div>
-
-<div class="form-group d-none">
-    <label><?php echo get_phrase('duration'); ?>( <?php echo get_phrase('for_mobile_application'); ?> )</label>
-    <input type="text" class="form-control" data-toggle='timepicker' data-minute-step="5" name="html5_duration_for_mobile_application" id = "html5_duration_for_mobile_application" data-show-meridian="false" value="<?php echo $lesson_details['duration_for_mobile_application']; ?>">
-</div>
+<?php include '_tq_mobile_carry.php'; ?>

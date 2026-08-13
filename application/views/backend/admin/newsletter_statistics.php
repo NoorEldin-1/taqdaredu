@@ -1,54 +1,48 @@
-<div class="row no-gutters">
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-    <div class="col-sm-6 col-xl-3">
-        <a href="<?php echo site_url('admin/newsletter_history/pending') ?>" class="text-secondary">
-            <div class="card shadow-none m-0">
-                <div class="card-body text-center">
-                    <h3><span><?php echo $this->db->where('status', 'pending')->get('newsletter_histories')->num_rows(); ?></span></h3>
-                    <p class="font-15 mb-0 text-warning"><?php echo get_phrase('Total Pending'); ?></p>
-                    <small><?php echo get_phrase('Waiting to be sent') ?></small>
-                    <h6 class="mb-0 text-warning"><i class="fas fa-long-arrow-alt-right"></i></h6>
-                </div>
-            </div>
+/**
+ * أرقام النشرة البريدية.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*`. وأربعة استعلامات صارت واحدا مجمعا: كانت
+ * `->where('status', …)->get('newsletter_histories')->num_rows()` أربع
+ * مرات — أي أن الجدول كله يقرأ من القرص أربع مرات لتعرض أربعة أرقام.
+ *
+ * و«faild» مكتوبة هكذا في قاعدة البيانات — بخطئها الإملائي. لا تصحح
+ * هنا: الكتابة إليها في `Email_model` بالإملاء نفسه، وتصحيح القراءة
+ * وحدها يجعل العداد صفرا أبدا.
+ */
+$tq_counts = array('pending' => 0, 'sent' => 0, 'faild' => 0, 'unable' => 0);
+
+try {
+    foreach ($this->db->select('status, COUNT(*) AS n')
+                      ->group_by('status')
+                      ->get('newsletter_histories')->result_array() as $tq_r) {
+        $tq_counts[$tq_r['status']] = (int) $tq_r['n'];
+    }
+} catch (Throwable $tq_e) {
+    /* جدول لم ينشأ بعد — أصفار أهون من شاشة بيضاء. */
+}
+
+$tq_cards = array(
+    'pending' => array('بانتظار الإرسال', 'في الطابور الآن',           'peach', 'clock'),
+    'sent'    => array('أرسلت',           'وصلت إلى صناديق المستقبلين', 'mint',  'check-badge'),
+    'faild'   => array('تعثرت',           'تعاد في الجولة التالية',     'sand',  'refresh'),
+    'unable'  => array('تعذر إرسالها',    'عشر محاولات فاشلة',          'rose',  'alert'),
+);
+?>
+
+<div class="tqa-grid tqa-grid--4 tqa-section">
+    <?php foreach ($tq_cards as $tq_k => [$tq_label, $tq_hint, $tq_tone, $tq_ic]): ?>
+        <a class="tqa-stat" href="<?php echo site_url('admin/newsletter_history/' . $tq_k); ?>">
+            <span class="tqa-stat__top">
+                <span class="tqa-stat__label"><?php echo $tq_label; ?></span>
+                <span class="tqa-stat__icon tqa-<?php echo $tq_tone; ?>" aria-hidden="true">
+                    <?php echo tq_icon($tq_ic, 17); ?>
+                </span>
+            </span>
+            <span class="tqa-stat__value"><?php echo (int) $tq_counts[$tq_k]; ?></span>
+            <span class="tqa-stat__hint"><?php echo $tq_hint; ?></span>
         </a>
-    </div>
-
-    <div class="col-sm-6 col-xl-3">
-        <a href="<?php echo site_url('admin/newsletter_history/sent') ?>" class="text-secondary">
-            <div class="card shadow-none m-0 border-left rounded-0">
-                <div class="card-body text-center">
-                    <h3><span><?php echo $this->db->where('status', 'sent')->get('newsletter_histories')->num_rows(); ?></span></h3>
-                    <p class="font-15 mb-0 text-success"><?php echo get_phrase('Total Success'); ?></p>
-                    <small><?php echo get_phrase('Successfully sent') ?></small>
-                    <h6 class="mb-0 text-success"><i class="fas fa-long-arrow-alt-right"></i></h6>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    <div class="col-sm-6 col-xl-3">
-        <a href="<?php echo site_url('admin/newsletter_history/faild') ?>" class="text-secondary">
-            <div class="card shadow-none m-0 border-left rounded-0">
-                <div class="card-body text-center">
-                    <h3><span><?php echo $this->db->where('status', 'faild')->get('newsletter_histories')->num_rows(); ?></span></h3>
-                    <p class="font-15 mb-0 text-danger"><?php echo get_phrase('Total Faild'); ?></p>
-                    <small><?php echo get_phrase('Waiting for the next cue') ?></small>
-                    <h6 class="mb-0 text-danger"><i class="fas fa-long-arrow-alt-right"></i></h6>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    <div class="col-sm-6 col-xl-3">
-        <a href="<?php echo site_url('admin/newsletter_history/unable') ?>" class="text-secondary">
-            <div class="card shadow-none m-0 border-left rounded-0">
-                <div class="card-body text-center">
-                    <h3><span><?php echo $this->db->where('status', 'unable')->get('newsletter_histories')->num_rows(); ?></span></h3>
-                    <p class="font-15 mb-0 text-secondary"><?php echo get_phrase('Unable to send'); ?></p>
-                    <small><?php echo get_phrase('10 attempts failed, Click here to send email manually') ?></small>
-                </div>
-            </div>
-        </a>
-    </div>
-
-</div> <!-- end row -->
+    <?php endforeach; ?>
+</div>

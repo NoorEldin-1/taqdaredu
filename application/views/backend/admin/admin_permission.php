@@ -1,79 +1,135 @@
 <?php
-// DEFINING MODULE FOR SETTING PERMISSION
-// MAKE SURE TO KEEP A PERMISSION FOR USERS AND THEME
-$modules = [
-    'category', 'course', 'user', 'instructor', 'student', 'enrolment', 'revenue', 'messaging', 'blog', 'addon', 'theme', 'settings', 'coupon', 'academy_cloud', 'newsletter', 'contact', 'admin', 'data_center', 'taqdar'
-];
+defined('BASEPATH') or exit('No direct script access allowed');
 
+/**
+ * صلاحيات مسؤول.
+ *
+ * الوحدات التي تمنح لها الصلاحيات. نظفت من مفاتيح وحدات حذفت (`addon` ·
+ * `theme` · `coupon` · `academy_cloud` · `data_center`): مفتاح لوحدة غير
+ * موجودة يعرض مفتاحا يمنح صلاحية على لا شيء، فيقرأ من يضبط الصلاحيات
+ * أنه منع شيئا وهو لم يمنع.
+ *
+ * وملاحظة على النظام كله: جدول `permissions` فارغ الآن، و`has_permission()`
+ * ترجع `true` لمن لا صف له — أي أن **كل مسؤول يرى كل شيء حتى يضبط له صف
+ * هنا**. وهذا سلوك القالب الأصلي، وهو معلن في الشاشة نفسها الآن لا في
+ * تعليق يقرؤه المبرمج وحده.
+ *
+ * وما تغير في العرض: كان `data-switch="bool"` — مفتاح من قالب Hyper يرسم
+ * بـ`<label>` مجاور، ولا يظهر إطلاقا بلا ورقة أنماط القالب. صار
+ * `.tqa-switch` المبني هنا، وهو المفتاح نفسه المستعمل في إعدادات البوابات.
+ */
+$tq_modules = array(
+    'course'     => array('الكورسات',           'الإضافة والتحرير والنشر والحذف',        'book'),
+    'category'   => array('أقسام الكورسات',     'شجرة الأقسام والأقسام الفرعية',         'grid'),
+    'user'       => array('الحسابات',           'كل حسابات المنصة',                      'users'),
+    'instructor' => array('المعلمون',           'الطلبات والملفات والإسناد',             'graduation'),
+    'student'    => array('الطلاب',             'ملفات الطلاب وتقدمهم',                  'users'),
+    'enrolment'  => array('التسجيل في الكورسات', 'تسجيل الطلاب وسجل التسجيل',            'clipboard'),
+    'revenue'    => array('الإيرادات',          'المدفوعات والفواتير وطلبات السحب',      'wallet'),
+    'messaging'  => array('الرسائل',            'صندوق رسائل الإدارة',                   'chat'),
+    'blog'       => array('المدونة',            'المقالات وأقسامها',                     'file'),
+    'newsletter' => array('النشرة البريدية',    'المشتركون والإرسال',                    'send'),
+    'contact'    => array('رسائل التواصل',      'ما يرسل من صفحة «تواصل معنا»',          'mail'),
+    'admin'      => array('المسؤولون',          'إضافة المسؤولين وضبط صلاحياتهم',        'shield'),
+    'settings'   => array('إعدادات النظام',     'الموقع والدفع والبريد وتحسين البحث',    'cog'),
+    'taqdar'     => array('وحدات تقدر',         'المسارات والمحطات والإتقان والاشتراكات', 'target'),
+);
+
+$tq_uid  = (int) $permission_assign_to['id'];
+$tq_name = trim($permission_assign_to['first_name'] . ' ' . $permission_assign_to['last_name']);
+if ($tq_name === '') $tq_name = $permission_assign_to['email'];
 ?>
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo ucwords($page_title); ?>
-                    <a href="<?php echo site_url('admin/admins'); ?>" class="btn btn-outline-primary btn-rounded alignToTitle"> <i class="mdi mdi-arrow-left"></i> <?php echo get_phrase('back_to_admins'); ?></a>
-                </h4>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
+
+<?php tqa_head('الصلاحيات', $tq_name, 'key',
+    '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/admins') . '">'
+  . tq_icon('chev-prev', 16) . ' كل المسؤولين</a>'); ?>
+
+<div class="tqa-note tqa-section">
+    <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
+    <span>
+        جدول الصلاحيات فارغ في هذه القاعدة، ومن لا صف له فيه <strong>يرى كل شيء</strong>.
+        فأول مفتاح تطفئه هنا هو ما يبدأ التقييد فعلا — قبله لا فرق بين مسؤول ومسؤول.
+    </span>
 </div>
 
+<div class="tqa-card tqa-card--flush" style="max-inline-size:820px">
+    <div class="tqa-card__head">
+        <span class="tqa-iconbox" aria-hidden="true"><?php echo tq_icon('key', 20); ?></span>
+        <h2>ما يستطيع <?php echo html_escape($tq_name); ?> الوصول إليه</h2>
+    </div>
 
-<div class="row justify-content-center">
-    <div class="col-xl-8">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="header-title">
-                    <?php echo get_phrase('assign_permission_for'); ?> : <?php echo $permission_assign_to['first_name'] . ' ' . $permission_assign_to['last_name']; ?>
-                </h4>
-                <div class="text-muted">
-                    <small> <strong><?php echo get_phrase('note'); ?></strong> : <?php echo get_phrase('you_can_toggle_the_switch_for_enabling_or_disabling_a_feature_to_access'); ?>.</small>
+    <div class="tqa-card__body">
+        <?php foreach ($tq_modules as $tq_key => [$tq_label, $tq_desc, $tq_icon]):
+            $tq_on = has_permission($tq_key, $tq_uid);
+            $tq_dom = $tq_uid . '-' . $tq_key;
+        ?>
+            <div class="tqa-prefrow">
+                <span class="tqa-iconbox tqa-mint" aria-hidden="true" style="inline-size:36px;block-size:36px">
+                    <?php echo tq_icon($tq_icon, 18); ?>
+                </span>
+
+                <div class="tqa-prefrow__main">
+                    <label class="tqa-prefrow__title" for="perm-<?php echo html_escape($tq_dom); ?>">
+                        <?php echo html_escape($tq_label); ?>
+                    </label>
+                    <span class="tqa-prefrow__hint"><?php echo html_escape($tq_desc); ?></span>
                 </div>
-                <div class="table-responsive-sm mt-4">
-                    <table class="table table-striped table-centered mb-0">
-                        <thead>
-                            <tr>
-                                <th><?php echo get_phrase('feature'); ?></th>
-                                <th><?php echo get_phrase('action'); ?></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($modules as $module) :
-                                $module_permission = has_permission($module, $permission_assign_to['id']);
-                            ?>
-                                <tr>
-                                    <td><?php echo ucwords(get_phrase($module)); ?></td>
-                                    <td>
-                                        <!-- Bool Switch-->
-                                        <input type="checkbox" class="" id="<?php echo $permission_assign_to['id'] . '-' . $module; ?>" data-switch="bool" onchange="setPermission('<?php echo $permission_assign_to['id'] . '-' . $module; ?>')" <?php echo $module_permission ? "checked" : ""; ?> />
-                                        <label for="<?php echo $permission_assign_to['id']  . '-' . $module; ?>" data-on-label="On" data-off-label="Off"></label>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+
+                <div class="tqa-prefrow__end">
+                    <?php /* المفتاح يحفظ بنفسه عند التبديل — لا زر «احفظ»
+                             لأربعة عشر مفتاحا. والحالة تعلن نصا لقارئ
+                             الشاشة، فاللون وحده لا يحمل معنى. */ ?>
+                    <span class="tqa-switch">
+                        <input type="checkbox" id="perm-<?php echo html_escape($tq_dom); ?>"
+                               data-tqa-perm="<?php echo html_escape($tq_dom); ?>"
+                               <?php echo $tq_on ? 'checked' : ''; ?>>
+                        <span class="tqa-switch__track" aria-hidden="true"></span>
+                    </span>
                 </div>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
+            </div>
+        <?php endforeach; ?>
+    </div>
 </div>
-
-
 
 <script>
-    "use strict";
+/**
+ * تبديل صلاحية.
+ *
+ * كان النداء يرسل بـ`$.ajax` ثم يعرض `$.NotificationApp.send(...)`
+ * **في كل حال** — بما فيها حال الفشل: المعالج `success` وحده مكتوب،
+ * فرد 403 أو 500 يمر بلا كلمة، ويقرأ المسؤول «حدثت الصلاحية» وهي لم
+ * تتغير. وهنا يعاد المفتاح إلى وضعه إن لم يرد الخادم بنجاح.
+ */
+(function () {
+    'use strict';
 
-    function setPermission(arg) {
-        // CALL THE SERVER SIDE
-        $.ajax({
-            url: '<?php echo site_url('admin/assign_permission'); ?>',
-            type: 'POST',
-            data: {
-                arg: arg
-            },
-            success: function(response) {
-                $.NotificationApp.send("<?php echo get_phrase('heads_up'); ?>!", '<?php echo get_phrase('permission_updated'); ?>', "top-right", "rgba(0,0,0,0.2)", "info");
-            }
+    var URL  = <?php echo json_encode(site_url('admin/assign_permission')); ?>;
+    var CSRF = window.TQ_CSRF || null;
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-tqa-perm]'), function (box) {
+        box.addEventListener('change', function () {
+            var was  = !box.checked;
+            var body = new URLSearchParams();
+            body.set('arg', box.getAttribute('data-tqa-perm'));
+            if (CSRF && CSRF.name) body.set(CSRF.name, CSRF.hash);
+
+            box.disabled = true;
+
+            fetch(URL, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString()
+            }).then(function (r) {
+                if (!r.ok) throw new Error(r.status);
+                if (window.TQA) TQA.ok(box.checked ? 'منحت الصلاحية' : 'سحبت الصلاحية');
+            }).catch(function () {
+                box.checked = was;
+                if (window.TQA) TQA.error('لم تحفظ الصلاحية. حدث الصفحة وأعد المحاولة.');
+            }).then(function () {
+                box.disabled = false;
+            });
         });
-    }
+    });
+})();
 </script>

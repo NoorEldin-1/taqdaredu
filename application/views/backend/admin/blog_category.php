@@ -1,40 +1,87 @@
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body py-2">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('blog_categories'); ?>
-                    <button onclick="showAjaxModal('<?php echo site_url('admin/add_blog_category'); ?>', '<?php echo get_phrase('add_a_new_category'); ?>');" class="btn btn-outline-primary btn-rounded alignToTitle"><i class="mdi mdi-plus"></i><?php echo get_phrase('add_new_category'); ?></button>
-                </h4>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-</div>
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-<div class="row">
-	<?php foreach($categories->result_array() as $category): ?>
-	    <div class="col-md-4 mb-3">
-			<ul class="list-group list-group-numbered">
-				<li class="list-group-item d-flex justify-content-between align-items-start">
-					<div class="ml-2 mr-auto">
-						<div class="fw-bold" style="font-size: 20px; font-weight: 600;"><?php echo $category['title']; ?></div>
-						<span class="mt-1 d-block"><?php echo $category['subtitle']; ?></span>
-					</div>
-					<div class="ml-auto text-center">
-						<span class="badge badge-primary text-right"><?php echo $this->crud_model->get_blogs_by_category_id($category['blog_category_id'])->num_rows(); ?></span>
-						
+/**
+ * أقسام المدونة.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*`. وما تغير:
+ *
+ * ١ — **`<ul class="list-group">` بعنصر واحد لكل قسم.** قائمة من بند
+ *     واحد، مكررة في شبكة — أي أن كل بطاقة قائمة مستقلة. صارت بطاقات.
+ * ٢ — **قائمة منسدلة لإجرائين.** ضغطتان لما يقرأ بضغطة.
+ * ٣ — **الحذف برابط GET** ينفذ بمجرد جلبه.
+ * ٤ — **`get_blogs_by_category_id()` داخل الحلقة** — استعلام لكل قسم
+ *     ليعد مقالاته. صار استعلاما واحدا مجمعا.
+ */
+$tq_cats = $categories->result_array();
 
-						<div class="btn-group d-block mt-2">
-							<button type="button" class="border-0 bg-white" data-toggle="dropdown" aria-expanded="false">
-								<i class="mdi mdi-dots-vertical"></i>
-							</button>
-							<div class="dropdown-menu dropdown-menu-right">
-								<button class="dropdown-item" onclick="showAjaxModal('<?php echo site_url('admin/edit_blog_category/'.$category['blog_category_id']); ?>', '<?php echo get_phrase('edit_category'); ?>');" type="button"><i class="mdi mdi-pencil"></i> <?php echo get_phrase('edit'); ?></button>
-								<button class="dropdown-item" onclick="confirm_modal('<?php echo site_url('admin/blog_category/delete/'.$category['blog_category_id']); ?>');" type="button"><i class="mdi mdi-trash-can-outline"></i> <?php echo get_phrase('delete'); ?></button>
-							</div>
-						</div>
-					</div>
-				</li>
-			</ul>
-		</div>
-	<?php endforeach; ?>
-</div>
+/* عدد المقالات لكل قسم — استعلام واحد لا واحد لكل صف. */
+$tq_counts = array();
+try {
+    foreach ($this->db->select('blog_category_id AS k, COUNT(*) AS n')
+                      ->group_by('blog_category_id')
+                      ->get('blogs')->result_array() as $tq_r) {
+        $tq_counts[(int) $tq_r['k']] = (int) $tq_r['n'];
+    }
+} catch (Throwable $tq_e) {
+    /* عمود أرقام فارغ أهون من شاشة بيضاء. */
+}
+?>
+
+<?php tqa_head('أقسام المدونة', 'كل مقال يسند إلى قسم واحد، والقسم يظهر مرشحا في صفحة المدونة.', 'grid',
+    '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_blog_category') . '">'
+  . tq_icon('plus', 17) . ' قسم جديد</a>'
+  . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog') . '">'
+  . tq_icon('file', 16) . ' المقالات</a>'); ?>
+
+<?php if (empty($tq_cats)): ?>
+
+    <div class="tqa-card tqa-card--flush">
+        <?php tqa_empty('لا أقسام بعد',
+            'المقال لا يحفظ بلا قسم — فهذه أول خطوة قبل الكتابة.',
+            'أضف أول قسم', site_url('admin/add_blog_category'), 'grid'); ?>
+    </div>
+
+<?php else: ?>
+
+    <div class="tqa-grid tqa-grid--3">
+        <?php foreach ($tq_cats as $tq_c): $tq_id = (int) $tq_c['blog_category_id']; ?>
+            <article class="tqa-item">
+                <div class="tqa-item__head">
+                    <span class="tqa-iconbox tqa-lilac" aria-hidden="true"><?php echo tq_icon('grid', 20); ?></span>
+
+                    <div style="flex:1;min-inline-size:0">
+                        <h2 class="tqa-item__title"><?php echo html_escape($tq_c['title']); ?></h2>
+                        <?php if (trim((string) $tq_c['subtitle']) !== ''): ?>
+                            <span class="tqa-item__sub"><?php echo html_escape($tq_c['subtitle']); ?></span>
+                        <?php endif; ?>
+                    </div>
+
+                    <span class="tqa-badge tqa-badge--muted">
+                        <span class="tqa-num"><?php echo (int) ($tq_counts[$tq_id] ?? 0); ?></span> مقالا
+                    </span>
+                </div>
+
+                <div class="tqa-item__foot">
+                    <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                       href="<?php echo site_url('admin/edit_blog_category/' . $tq_id); ?>">
+                        <?php echo tq_icon('edit', 15); ?> تعديل
+                    </a>
+
+                    <form method="post" style="margin-inline-start:auto"
+                          action="<?php echo site_url('admin/blog_category/delete/' . $tq_id); ?>"
+                          data-tqa-confirm-title="حذف القسم"
+                          data-tqa-confirm="سيحذف «<?php echo html_escape($tq_c['title']); ?>». والمقالات المصنفة تحته تبقى بلا قسم."
+                          data-tqa-confirm-ok="نعم، احذف"
+                          data-tqa-confirm-tone="danger">
+                        <?php echo tq_csrf(); ?>
+                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
+                            <?php echo tq_icon('trash', 15); ?> حذف
+                        </button>
+                    </form>
+                </div>
+            </article>
+        <?php endforeach; ?>
+    </div>
+
+<?php endif; ?>

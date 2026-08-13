@@ -1,37 +1,29 @@
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('instructor_settings'); ?></h4>
-            </div>
-        </div>
-    </div>
-</div>
+<?php tqa_head('إعدادات المعلمين', 'ما يستطيع المعلم فعله بنفسه، ونسبته من كل عملية بيع.', 'graduation'); ?>
 
-<div class="row">
-    <div class="col-xl-6">
-        <div class="card">
-            <div class="card-body">
+<div class="tqa-stack">
+    <div>
+        <div class="tqa-card">
+            <div class="tqa-card__body">
                 <h4 class="mb-3 header-title"><?php echo get_phrase('public_instructor_settings');?></h4>
 
                 <form action="<?php echo site_url('admin/instructor_settings/update'); ?>" method="post" enctype="multipart/form-data">
-                    <div class="form-group">
+                    <div class="tqa-field">
                         <label><?php echo get_phrase('allow_public_instructor'); ?></label>
-                        <select class="form-control select2" data-toggle="select2" name="allow_instructor" required>
+                        <select class="tqa-select" name="allow_instructor" required>
                             <option value="1" <?php if(get_settings('allow_instructor') == 1) echo 'selected'; ?>><?php echo get_phrase('yes'); ?></option>
                             <option value="0" <?php if(get_settings('allow_instructor') == 0) echo 'selected'; ?>><?php echo get_phrase('no'); ?></option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="tqa-field">
                         <label for="instructor_application_note"><?php echo get_phrase('instructor_application_note'); ?></label>
-                        <div class="form-group">
-                            <textarea class="form-control" name="instructor_application_note" rows="8" cols="80"><?php echo get_settings('instructor_application_note'); ?></textarea>
+                        <div class="tqa-field">
+                            <textarea class="tqa-input" name="instructor_application_note" rows="8" cols="80"><?php echo get_settings('instructor_application_note'); ?></textarea>
                         </div>
                     </div>
 
-                    <div class="row justify-content-center">
-                        <div class="col-md-7">
-                            <button type="submit" class="btn btn-primary btn-block"><?php echo get_phrase('update_settings'); ?></button>
+                    <div class="tqa-stack">
+                        <div>
+                            <button type="submit" class="tqa-btn tqa-btn--primary tqa-btn--block"><?php echo get_phrase('update_settings'); ?></button>
                         </div>
                     </div>
                 </form>
@@ -39,34 +31,34 @@
         </div>
     </div>
 
-    <div class="col-xl-6">
-        <div class="card">
-            <div class="card-body">
+    <div>
+        <div class="tqa-card">
+            <div class="tqa-card__body">
                 <h4 class="mb-3 header-title"><?php echo get_phrase('instructor_commission_settings');?></h4>
 
                 <form action="<?php echo site_url('admin/instructor_settings/update'); ?>" method="post" enctype="multipart/form-data">
-                    <div class="form-group">
+                    <div class="tqa-field">
                         <label for="instructor_revenue"><?php echo get_phrase('instructor_revenue_percentage'); ?></label>
                         <div class="input-group">
-                            <input type="number" name = "instructor_revenue" id = "instructor_revenue" class="form-control" onkeyup="calculateAdminRevenue(this.value)" min="0" max="100" value="<?php echo get_settings('instructor_revenue'); ?>">
+                            <input type="number" name = "instructor_revenue" id = "instructor_revenue" class="tqa-input" onkeyup="calculateAdminRevenue(this.value)" min="0" max="100" value="<?php echo get_settings('instructor_revenue'); ?>">
                             <div class="input-group-append">
                                 <span class="input-group-text"><i class="mdi mdi-percent"></i></span>
                             </div>
                         </div>
                     </div>
-                    <div class="form-group">
+                    <div class="tqa-field">
                         <label for="admin_revenue"><?php echo get_phrase('admin_revenue_percentage'); ?></label>
                         <div class="input-group">
-                            <input type="number" name = "admin_revenue" id = "admin_revenue" class="form-control" value="0" disabled style="background: none; cursor: default;">
+                            <input type="number" name = "admin_revenue" id = "admin_revenue" class="tqa-input" value="0" disabled style="background: none; cursor: default;">
                             <div class="input-group-append">
                                 <span class="input-group-text"><i class="mdi mdi-percent"></i></span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="row justify-content-center">
-                        <div class="col-md-7">
-                            <button type="submit" class="btn btn-primary btn-block"><?php echo get_phrase('update_settings'); ?></button>
+                    <div class="tqa-stack">
+                        <div>
+                            <button type="submit" class="tqa-btn tqa-btn--primary tqa-btn--block"><?php echo get_phrase('update_settings'); ?></button>
                         </div>
                     </div>
                 </form>

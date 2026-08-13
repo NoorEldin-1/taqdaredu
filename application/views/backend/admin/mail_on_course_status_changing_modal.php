@@ -1,12 +1,12 @@
 <form  class="form-horizontal form-groups-bordered" action="<?php echo site_url('admin/change_course_status/'.$param2); ?>" method="post">
-  <div class="form-group">
+  <div class="tqa-field">
      <label><?php echo get_phrase('mail_subject'); ?></label>
-     <input type="text" name = "mail_subject" class="form-control" placeholder="<?php echo get_phrase('mail_subject'); ?>" required>
+     <input type="text" name = "mail_subject" class="tqa-input" placeholder="<?php echo get_phrase('mail_subject'); ?>" required>
   </div>
 
-  <div class="form-group">
+  <div class="tqa-field">
     <label><?php echo get_phrase('mail_body'); ?></label>
-      <textarea name = "mail_body" class="form-control" required rows="6" placeholder="<?php echo get_phrase('mail_subject'); ?>"></textarea>
+      <textarea name = "mail_body" class="tqa-input" required rows="6" placeholder="<?php echo get_phrase('mail_subject'); ?>"></textarea>
   </div>
 
   <input type="hidden" name="course_id" value="<?php echo $param3; ?>">

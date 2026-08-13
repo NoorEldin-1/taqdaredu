@@ -1,57 +1,132 @@
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo $page_title; ?>
-                </h4>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-</div>
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-<div class="row">
-  <div class="col-lg-12">
-      <div class="card">
-        <div class="card-body" data-collapsed="0">
-          <h4 class="mb-3 header-title"><?php echo get_phrase('Subscriber'); ?></h4>
-          <table class="table table-striped table-centered w-100" id="server_side_users_data">
+/**
+ * مشتركو النشرة البريدية — عرض من الخادم.
+ * انظر TQ-DT-GONE في [Admin::subscribed_user()] لسبب سقوط DataTables.
+ */
+$tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newsletters') . '">'
+          . tq_icon('send', 16) . ' النشرات المرسلة</a>';
+?>
+
+<?php tqa_head('مشتركو النشرة البريدية',
+    'من سجل بريده من الموقع العام. المسجل في المنصة يعرف باسمه، وغيره ببريده وحده.',
+    'send', $tq_tools); ?>
+
+<form class="tqa-toolbar" method="get" action="<?php echo site_url('admin/subscribed_user'); ?>">
+    <label class="tqa-sr" for="q">ابحث ببريد المشترك</label>
+    <input class="tqa-input" type="search" id="q" name="q" placeholder="ابحث ببريد المشترك…"
+           value="<?php echo html_escape($search); ?>" dir="ltr">
+    <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> ابحث</button>
+    <?php if ($search !== ''): ?>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/subscribed_user'); ?>">مسح البحث</a>
+    <?php endif; ?>
+</form>
+
+<div class="tqa-card tqa-card--flush">
+<?php if (empty($rows)): ?>
+
+    <?php tqa_empty(
+        $search !== '' ? 'لا مشترك يطابق هذا البحث' : 'لا مشتركين بعد',
+        $search !== ''
+            ? 'جرب جزءا من البريد بدل البريد كاملا.'
+            : 'يمتلئ هذا الجدول وحده حين يسجل الزوار بريدهم من تذييل الموقع — ولا يضاف إليه بيد.',
+        $search !== '' ? 'مسح البحث' : '',
+        $search !== '' ? site_url('admin/subscribed_user') : '',
+        'send'
+    ); ?>
+
+<?php else: ?>
+
+    <div class="tqa-table__wrap">
+        <table class="tqa-table">
+            <caption class="tqa-sr">المشتركون في النشرة وحالة كل منهم في المنصة</caption>
             <thead>
-              <tr>
-                <th>#</th>
-                <th><?php echo get_phrase('Email'); ?></th>
-                <th><?php echo get_phrase('User status'); ?></th>
-                <th><?php echo get_phrase('actions'); ?></th>
-              </tr>
+                <tr>
+                    <th style="inline-size:60px">#</th>
+                    <th>البريد الإلكتروني</th>
+                    <th>الحساب في المنصة</th>
+                    <th style="inline-size:120px"><span class="tqa-sr">إجراءات</span></th>
+                </tr>
             </thead>
-            <tbody></tbody>
-          </table>
-      </div>
+            <tbody>
+            <?php foreach ($rows as $tq_i => $tq_r):
+                $tq_ord  = ($page_no - 1) * $per_page + $tq_i + 1;
+                $tq_user = $known[strtolower($tq_r['email'])] ?? null;
+            ?>
+                <tr>
+                    <td data-label="#"><span class="tqa-num"><?php echo $tq_ord; ?></span></td>
+
+                    <td data-label="البريد الإلكتروني">
+                        <span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_r['email']); ?></span>
+                    </td>
+
+                    <td data-label="الحساب في المنصة">
+                        <?php if ($tq_user): ?>
+                            <span class="tqa-media__title">
+                                <?php echo html_escape(trim($tq_user['first_name'] . ' ' . $tq_user['last_name'])); ?>
+                            </span>
+                            <span class="tqa-badge tqa-badge--<?php echo (int) $tq_user['is_instructor'] === 1 ? 'ok' : 'info'; ?>">
+                                <?php echo (int) $tq_user['is_instructor'] === 1 ? 'معلم' : 'طالب'; ?>
+                            </span>
+                        <?php else: ?>
+                            <span class="tqa-badge tqa-badge--muted">غير مسجل</span>
+                        <?php endif; ?>
+                    </td>
+
+                    <td data-label="إجراءات">
+                        <form method="post" action="<?php echo site_url('admin/subscribed_user/delete/' . (int) $tq_r['id']); ?>"
+                              data-tqa-confirm-title="إلغاء الاشتراك"
+                              data-tqa-confirm="لن تصل النشرة إلى هذا البريد بعدها."
+                              data-tqa-confirm-ok="نعم، ألغ"
+                              data-tqa-confirm-tone="danger">
+                            <?php echo tq_csrf(); ?>
+                            <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
+                                <?php echo tq_icon('trash', 14); ?> إلغاء
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
     </div>
-  </div><!-- end col-->
+
+    <?php
+    $tq_from = max(1, $page_no - 2);
+    $tq_last = min($page_count, $tq_from + 4);
+    $tq_from = max(1, $tq_last - 4);
+    $tq_url  = function ($p) use ($search) {
+        $qs = array_filter(array('q' => $search, 'page' => $p > 1 ? $p : null));
+        return site_url('admin/subscribed_user') . ($qs ? '?' . http_build_query($qs) : '');
+    };
+    ?>
+    <nav class="tqa-pager" aria-label="صفحات المشتركين">
+        <span class="tqa-pager__info">
+            المعروض <span class="tqa-num"><?php echo count($rows); ?></span>
+            من <span class="tqa-num"><?php echo (int) $total; ?></span> مشتركا
+        </span>
+
+        <?php if ($page_no > 1): ?>
+            <a href="<?php echo $tq_url($page_no - 1); ?>" rel="prev" aria-label="الصفحة السابقة">
+                <?php echo tq_icon('chev-prev', 16); ?>
+            </a>
+        <?php endif; ?>
+
+        <?php for ($tq_p = $tq_from; $tq_p <= $tq_last; $tq_p++): ?>
+            <?php if ($tq_p === (int) $page_no): ?>
+                <span aria-current="page"><?php echo $tq_p; ?></span>
+            <?php else: ?>
+                <a href="<?php echo $tq_url($tq_p); ?>"><?php echo $tq_p; ?></a>
+            <?php endif; ?>
+        <?php endfor; ?>
+
+        <?php if ($page_no < $page_count): ?>
+            <a href="<?php echo $tq_url($page_no + 1); ?>" rel="next" aria-label="الصفحة التالية">
+                <?php echo tq_icon('chev-next', 16); ?>
+            </a>
+        <?php endif; ?>
+    </nav>
+
+<?php endif; ?>
 </div>
-
-<script>
-  $(document).ready(function () {
-     var table = $('#server_side_users_data').DataTable({
-      responsive: true,
-      "processing": true,
-      "serverSide": true,
-      "ajax":{
-        "url": "<?php echo base_url('admin/subscribed_user') ?>",
-        "dataType": "json",
-        "type": "POST",
-        "data":{  '<?php echo $this->security->get_csrf_token_name(); ?>' : '<?php echo $this->security->get_csrf_hash(); ?>' }
-      },
-      "columns": [
-        { "data": "key" },
-        { "data": "email" },
-        { "data": "user_status" },
-        { "data": "action" }
-      ]   
-    });
-   });
-
-  function refreshServersideTable(tableId){
-    $('#'+tableId).DataTable().ajax.reload();
-  }
-</script>

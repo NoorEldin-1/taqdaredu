@@ -5,14 +5,14 @@
 ?>
 <form class="pb-5" action="<?php echo site_url('admin/quiz_questions/'.$question_details['quiz_id'].'/edit/'.$param2); ?>" method="post" id = 'mcq_form'>
 
-    <div class="form-group">
+    <div class="tqa-field">
         <label for="question_title"><?php echo get_phrase('write_your_question'); ?></label>
-        <textarea name="title" id="question_title" class="form-control"><?php echo $question_details['title']; ?></textarea>
+        <textarea name="title" id="question_title" class="tqa-input"><?php echo $question_details['title']; ?></textarea>
     </div>
 
-    <div class="form-group">
+    <div class="tqa-field">
         <label for="title"><?php echo get_phrase('question_type'); ?></label>
-        <select class="form-control select2" data-toggle="select2" name="question_type" id="question_type" onchange="quiz_fields_type_wize(this)" required>
+        <select class="tqa-select" name="question_type" id="question_type" onchange="quiz_fields_type_wize(this)" required>
             <option value=""><?php echo get_phrase('select_question_type'); ?></option>
             <option value="multiple_choice" <?php if($question_details['type'] == 'multiple_choice')echo 'selected'; ?>><?php echo get_phrase('multiple_choice'); ?></option>
             <option value="single_choice" <?php if($question_details['type'] == 'single_choice')echo 'selected'; ?>><?php echo get_phrase('single_choice').' '.get_phrase('and').' true/false'; ?></option>

@@ -1,84 +1,134 @@
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body py-2">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('add_blog'); ?>
-                </h4>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-</div>
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
+/**
+ * مقال جديد.
+ *
+ * أعيدت كتابته بهيكل `tqa-*`. وما تغير:
+ * حقلا الصورة كانا `visibility:hidden` (يحجزان مساحتهما ويخرجان من
+ * ترتيب التنقل)، وحقل الكلمات `bootstrap-tagsinput` من CDN — انظر
+ * TQ-TAGSINPUT-CDN في [tqa_tags_js.php].
+ */
+$tq_cats = $this->crud_model->get_blog_categories()->result_array();
+?>
 
-<div class="row ">
-    <div class="col-md-10">
-    	<div class="card">
-    		<div class="card-body">
-    			<h4 class='mb-3'><?php echo get_phrase('add_a_new_blog'); ?></h4>
-		    	<form action="<?php echo site_url('admin/blog/add'); ?>" method="post" enctype="multipart/form-data">
-		    		<div class="form-group">
-		    			<label for="title"><?php echo get_phrase('title'); ?></label>
-		    			<input type="text" class="form-control" name="title" id="title" placeholder="<?php echo get_phrase('enter_blog_title'); ?>" required>
-		    		</div>
+<?php tqa_head('مقال جديد', 'المقال ينشر في مدونة الموقع العام.', 'file',
+    '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog') . '">'
+  . tq_icon('chev-prev', 16) . ' كل المقالات</a>'); ?>
 
-		    		<div class="form-group">
-		    			<label for="blog_category_id"><?php echo get_phrase('category'); ?></label>
-		    			<select class="form-control select2" data-toggle="select2" name="blog_category_id" id="blog_category_id" required>
-		    				<option value=""><?php echo get_phrase('select_a_category'); ?></option>
-		    				<?php foreach($this->crud_model->get_blog_categories()->result_array() as $category): ?>
-		    					<option value="<?php echo $category['blog_category_id']; ?>"><?php echo $category['title']; ?></option>
-		    				<?php endforeach; ?>
-		    			</select>
-		    		</div>
+<?php if (empty($tq_cats)): ?>
+    <div class="tqa-note tqa-note--warn tqa-section" style="max-inline-size:860px">
+        <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+        <span>
+            <strong>لا أقسام في المدونة بعد.</strong>
+            والمقال لا يحفظ بلا قسم.
+            <a href="<?php echo site_url('admin/blog_category'); ?>">أضف قسما أولا</a>.
+        </span>
+    </div>
+<?php endif; ?>
 
-		    		<div class="form-group">
-                        <label for="keywords"><?php echo get_phrase('keywords'); ?></label>
-                        <input type="text" class="form-control bootstrap-tag-input" id = "keywords" name="keywords" data-role="tagsinput" style="width: 100%;"/>
-                        <small class="text-muted"><?php echo site_phrase('click_the_enter_button_after_writing_your_keyword'); ?></small>
-                    </div>
+<form action="<?php echo site_url('admin/blog/add'); ?>" method="post" enctype="multipart/form-data"
+      style="max-inline-size:860px">
+    <?php echo tq_csrf(); ?>
 
-		    		<div class="form-group">
-		    			<label for="summernote-basic"><?php echo get_phrase('description'); ?></label>
-		    			<textarea name="description" id="summernote-basic"></textarea>
-		    		</div>
+    <div class="tqa-card tqa-section">
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('edit', 20); ?></span>
+            <h2>المحتوى</h2>
+        </div>
 
-		    		<div class="form-group mb-3">
-						<label for="banner"><?php echo get_phrase('blog_banner'); ?></label>
-						<div class="wrapper-image-preview" style="margin-left: -6px;">
-							<div class="box" style="width: 300px;">
-								<div class="js--image-preview" style="background-image: url('<?php echo base_url('uploads/blog/banner/placeholder.png') ?>'); background-color: #F5F5F5; background-size: cover; background-position: center;"></div>
-								<div class="upload-options">
-									<label for="banner" class="btn"> <i class="mdi mdi-camera"></i> <?php echo get_phrase('choose_a_banner'); ?> <br> <small>(2000 x 500)</small> </label>
-									<input id="banner" style="visibility:hidden;" type="file" class="image-upload" name="banner" accept="image/*">
-								</div>
-							</div>
-						</div>
-					</div>
+        <div class="tqa-fieldgrid">
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="title">
+                    عنوان المقال <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input" type="text" id="title" name="title" required maxlength="190">
+            </div>
 
-					<div class="form-group mb-3">
-						<label for="thumbnail"><?php echo get_phrase('blog_thumbnail'); ?></label>
-						<div class="wrapper-image-preview" style="margin-left: -6px;">
-							<div class="box" style="width: 300px;">
-								<div class="js--image-preview" style="background-image: url('<?php echo base_url('uploads/blog/thumbnail/placeholder.png') ?>'); background-color: #F5F5F5; background-size: cover; background-position: center;"></div>
-								<div class="upload-options">
-									<label for="thumbnail" class="btn"> <i class="mdi mdi-camera"></i> <?php echo get_phrase('choose_a_thumbnail'); ?> <br> <small>(800 x 500)</small> </label>
-									<input id="thumbnail" style="visibility:hidden;" type="file" class="image-upload" name="thumbnail" accept="image/*">
-								</div>
-							</div>
-						</div>
-					</div>
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="blog_category_id">
+                    القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <select class="tqa-select" id="blog_category_id" name="blog_category_id" required>
+                    <option value="">— اختر قسما</option>
+                    <?php foreach ($tq_cats as $tq_c): ?>
+                        <option value="<?php echo (int) $tq_c['blog_category_id']; ?>">
+                            <?php echo html_escape($tq_c['title']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
 
-					<div class="form-group mt-4">
-						<label><?php echo get_phrase('do_you_want_to_mark_it_as_popular'); ?>?</label><br>
-						<input type="checkbox" id="is_popular" value="1" name="is_popular">
-						<label for="is_popular"><?php echo get_phrase('mark_as_popular'); ?></label>
-					</div>
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="keywords_in">الكلمات الدلالية</label>
+                <div class="tqa-tags" data-tqa-tags>
+                    <input type="hidden" name="keywords" value="" data-tqa-tags-value>
+                    <input class="tqa-tags__in" type="text" id="keywords_in" autocomplete="off"
+                           placeholder="اكتب كلمة ثم اضغط Enter" data-tqa-tags-input>
+                </div>
+            </div>
 
-					<div class="form-group mt-4">
-						<button class="btn btn-success"><?php echo get_phrase('add_blog'); ?></button>
-					</div>
-		    	</form>
-		    </div>
-		</div>
-	</div>
-</div>
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="description">نص المقال</label>
+                <textarea class="tqa-textarea" id="description" name="description" rows="12"
+                          data-tqa-rich></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="tqa-card tqa-section">
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('image', 20); ?></span>
+            <h2>الصور</h2>
+        </div>
+
+        <div class="tqa-fieldgrid">
+            <div class="tqa-field">
+                <span class="tqa-field__label">صورة المقال المصغرة</span>
+                <div class="tqa-file">
+                    <input type="file" id="thumbnail" name="thumbnail" accept="image/*" data-tqa-file>
+                    <label class="tqa-file__btn" for="thumbnail">
+                        <?php echo tq_icon('image', 16); ?> اختر صورة
+                    </label>
+                    <span class="tqa-file__name" data-tqa-file-name>المقاس المفضل ‎800 × 500‎</span>
+                </div>
+                <span class="tqa-field__hint">تظهر في قائمة المدونة.</span>
+            </div>
+
+            <div class="tqa-field">
+                <span class="tqa-field__label">بانر المقال</span>
+                <div class="tqa-file">
+                    <input type="file" id="banner" name="banner" accept="image/*" data-tqa-file>
+                    <label class="tqa-file__btn" for="banner">
+                        <?php echo tq_icon('image', 16); ?> اختر صورة
+                    </label>
+                    <span class="tqa-file__name" data-tqa-file-name>المقاس المفضل ‎2000 × 500‎</span>
+                </div>
+                <span class="tqa-field__hint">تظهر أعلى صفحة المقال.</span>
+            </div>
+        </div>
+
+        <div class="tqa-prefrow">
+            <div class="tqa-prefrow__main">
+                <label class="tqa-prefrow__title" for="is_popular">مقال مميز</label>
+                <span class="tqa-prefrow__hint">يعرض في شريط «الأبرز» في صفحة المدونة.</span>
+            </div>
+            <div class="tqa-prefrow__end">
+                <span class="tqa-switch">
+                    <input type="checkbox" id="is_popular" name="is_popular" value="1">
+                    <span class="tqa-switch__track" aria-hidden="true"></span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tqa-actions">
+        <button type="submit" class="tqa-btn tqa-btn--primary">
+            <?php echo tq_icon('check', 16); ?> انشر المقال
+        </button>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/blog'); ?>">إلغاء</a>
+    </div>
+</form>
+
+<?php include 'tqa_file_js.php'; ?>
+<?php include 'tqa_tags_js.php'; ?>

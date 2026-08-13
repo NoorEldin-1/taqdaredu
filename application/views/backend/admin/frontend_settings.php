@@ -1,707 +1,779 @@
-<style type="text/css">
-    .scrollable-tab .nav .nav-link{
-        min-width: 155px;
-    }
-</style>
-
 <?php
-    // themeConfiguration ترجع false حين لا يملك الثيم ملف إعداد؛ نضمن مصفوفة
-    // حتى لا ينهار count() في PHP 8 على قيمة bool.
-    $homepage_banner = themeConfiguration(get_frontend_settings('theme'), 'homepage');
-    if (! is_array($homepage_banner)) { $homepage_banner = []; }
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * إعدادات الموقع العام.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*`. وأكبر ما تغير فيها **التبويبات**:
+ *
+ * TQ-TAB-SPIN — كانت ثمانية `tab-pane` من Bootstrap تبدل بجافاسكربت،
+ * وفوقها هذه الكتلة لفتح تبويب من الرابط:
+ *
+ *     const tabClickInterval = setInterval(function(){
+ *         if(!$("a[href$=…]").hasClass('active')){ $("a[href$=…]").click(); }
+ *         else { clearInterval(tabClickInterval); }
+ *     }, 1000);
+ *
+ * أي **مؤقت يضغط الرابط كل ثانية حتى ينشط**، ومعه طبقة تحميل تغطي
+ * الشاشة (`.start_ajax_loading`) طوال ذلك. فمن يفتح `?tab=logo_and_images`
+ * يرى الصفحة محجوبة ثانية أو أكثر ثم تقفز. وإن لم يكن التبويب موجودا
+ * دار المؤقت **إلى الأبد**.
+ *
+ * والسبب في وجوده أصلا أن التبديل بجافاسكربت لا يفهم الرابط. والعلاج
+ * أن يكون التبويب في الرابط ابتداء: كل تبويب صفحة يخدمها الخادم،
+ * فتحفظ وترسل ويعود إليها زر الرجوع — وبلا مؤقت ولا حجب.
+ *
+ * وثلاثة أعطال أخرى أصلحت:
+ *
+ * ١ — **حقول الصور كانت `visibility:hidden`** مع `<label class="btn">`.
+ *     و`visibility:hidden` تبقي العنصر يحجز مساحته ويخرجه من ترتيب
+ *     التنقل — فلا يبلغه لوح المفاتيح، وتحته فراغ أبيض بارتفاع حقل.
+ * ٢ — **«الأسئلة الشائعة» كان فيها حقل فارغ إضافي دائما** (`#blank_faq_field`)
+ *     يرسل سؤالا فارغا مع كل حفظ. وزر «+» ينسخ من `#blank_faq_field`
+ *     نفسه — فينسخ حقلا بمعرف مكرر في كل ضغطة.
+ * ٣ — **`count(json_decode(...))` بلا فحص:** الإعداد الفارغ يرد `null`،
+ *     و`count(null)` **خطأ قاتل في PHP 8** يبيض الصفحة كلها.
+ */
+
+$tq_tabs = array(
+    'general'  => array('العام والسياسات',      'globe'),
+    'contact'  => array('بيانات التواصل',       'mail'),
+    'faq'      => array('الأسئلة الشائعة',      'help'),
+    'branding' => array('الشعار والصور',        'image'),
+    'reviews'  => array('آراء العملاء',         'star'),
+    'recaptcha' => array('حماية النماذج',       'shield'),
+    'code'     => array('أكواد مخصصة',          'file-text'),
+    'watermark' => array('العلامة المائية',     'video'),
+);
+
+/* أسماء التبويبات القديمة تحول إلى الجديدة: روابط محفوظة ومراسلات
+   داخلية تشير إليها، وتبويب مجهول كان يدير المؤقت بلا نهاية. */
+$tq_alias = array(
+    'frontendsettings'    => 'general',
+    'websitefaqs'         => 'faq',
+    'contact_information' => 'contact',
+    'logo_and_images'     => 'branding',
+    'custom_codes'        => 'code',
+    'water_mark'          => 'watermark',
+    'review'              => 'reviews',
+);
+
+$tq_tab = (string) $this->input->get('tab', true);
+$tq_tab = $tq_alias[$tq_tab] ?? $tq_tab;
+if (!isset($tq_tabs[$tq_tab])) $tq_tab = 'general';
+
+$tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' . $t; };
 ?>
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('website_settings'); ?></h4>
+
+<?php tqa_head('إعدادات الموقع العام', 'ما يراه الزائر: البانر والشعار والسياسات وبيانات التواصل.', 'globe',
+    '<a class="tqa-btn tqa-btn--ghost" href="' . base_url() . '" target="_blank" rel="noopener">'
+  . tq_icon('external', 16) . ' افتح الموقع</a>'); ?>
+
+<nav class="tqa-tabs tqa-tabs--scroll" aria-label="أقسام إعدادات الموقع">
+    <?php foreach ($tq_tabs as $tq_k => [$tq_label, $tq_ic]): ?>
+        <a href="<?php echo $tq_url($tq_k); ?>" <?php echo $tq_tab === $tq_k ? 'aria-current="page"' : ''; ?>>
+            <?php echo html_escape($tq_label); ?>
+        </a>
+    <?php endforeach; ?>
+</nav>
+
+
+<?php /* ================= العام والسياسات ================= */ ?>
+<?php if ($tq_tab === 'general'): ?>
+
+    <form class="tqa-card" method="post" enctype="multipart/form-data"
+          action="<?php echo site_url('admin/frontend_settings/frontend_update'); ?>" style="max-inline-size:900px">
+        <?php echo tq_csrf(); ?>
+
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('home', 20); ?></span>
+            <h2>بانر الصفحة الرئيسية</h2>
+        </div>
+
+        <div class="tqa-fieldgrid">
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="banner_title">
+                    عنوان البانر <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input" type="text" id="banner_title" name="banner_title" required
+                       value="<?php echo html_escape(get_frontend_settings('banner_title')); ?>">
+            </div>
+
+            <div class="tqa-field tqa-field--full">
+                <label class="tqa-field__label" for="banner_sub_title">
+                    العنوان الفرعي <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input" type="text" id="banner_sub_title" name="banner_sub_title" required
+                       value="<?php echo html_escape(get_frontend_settings('banner_sub_title')); ?>">
             </div>
         </div>
-    </div>
-</div>
 
-<div class="row justify-content-center">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-
-                <div class="scrollable-tab-section" id="basicwizard">
-
-                    <button type="button" class="scrollable-tab-btn-left"><i class="mdi mdi-arrow-left"></i></button>
-
-                    <div class="scrollable-tab" style="height: 50px; overflow-y: hidden;">
-
-                        <ul class="nav nav-pills bg-nav-pills nav-justified mb-3" style="width: fit-content;">
-                            <li class="nav-item">
-                                <a href="#frontendsettings" data-toggle="tab" aria-expanded="true" class="nav-link rounded-0 active py-2">
-                                    <i class="mdi mdi-account-circle d-lg-none d-block mr-1"></i>
-                                    <span class="d-none d-lg-block"><?php echo site_phrase('Frontend Settings'); ?></span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#websitefaqs" data-toggle="tab" aria-expanded="false" class="nav-link rounded-0 py-2">
-                                    <i class="mdi mdi-account-circle d-lg-none d-block mr-1"></i>
-                                    <span class="d-none d-lg-block"><?php echo get_phrase('Website FAQS'); ?></span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#contact_information" data-toggle="tab" aria-expanded="false" class="nav-link rounded-0 py-2">
-                                    <i class="mdi mdi-account-circle d-lg-none d-block mr-1"></i>
-                                    <span class="d-none d-lg-block"><?php echo get_phrase('Contact Information'); ?></span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#recaptcha" data-toggle="tab" aria-expanded="false" class="nav-link rounded-0 py-2">
-                                    <i class="mdi mdi-account-circle d-lg-none d-block mr-1"></i>
-                                    <span class="d-none d-lg-block"><?php echo get_phrase('Recaptcha'); ?></span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#logo_and_images" data-toggle="tab" aria-expanded="false" class="nav-link rounded-0 py-2">
-                                    <i class="mdi mdi-account-circle d-lg-none d-block mr-1"></i>
-                                    <span class="d-none d-lg-block"><?php echo get_phrase('Logo & Images'); ?></span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#custom_codes" data-toggle="tab" aria-expanded="false" class="nav-link rounded-0 py-2">
-                                    <i class="mdi mdi-account-circle d-lg-none d-block mr-1"></i>
-                                    <span class="d-none d-lg-block"><?php echo get_phrase('Custom Codes'); ?></span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#water_mark" data-toggle="tab" aria-expanded="false" class="nav-link rounded-0 py-2">
-                                    <i class="mdi mdi-account-circle d-lg-none d-block mr-1"></i>
-                                    <span class="d-none d-lg-block"><?php echo get_phrase('Video Watermark'); ?></span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="#review" data-toggle="tab" aria-expanded="false" class="nav-link rounded-0 py-2">
-                                    <i class="mdi mdi-account-circle d-lg-none d-block mr-1"></i>
-                                    <span class="d-none d-lg-block"><?php echo get_phrase('Review'); ?></span>
-                                </a>
-                            </li>
-                        </ul>
-
-                    </div>
-
-                    <button type="button" class="scrollable-tab-btn-right"><i class="mdi mdi-arrow-right"></i></button>
-                </div>
-
-                <div class="tab-content">
-                    <div class="tab-pane show active" id="frontendsettings">
-                        <h4 class="mb-3 header-title"><?php echo get_phrase('frontend_website_settings');?></h4>
-                        <form class="required-form" action="<?php echo site_url('admin/frontend_settings/frontend_update'); ?>" method="post" enctype="multipart/form-data">
-                            <div class="form-group">
-                                <label for="banner_title"><?php echo get_phrase('banner_title'); ?><span class="required">*</span></label>
-                                <input type="text" name = "banner_title" id = "banner_title" class="form-control" value="<?php echo get_frontend_settings('banner_title');  ?>" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="banner_sub_title"><?php echo get_phrase('banner_sub_title'); ?><span class="required">*</span></label>
-                                <input type="text" name = "banner_sub_title" id = "banner_sub_title" class="form-control" value="<?php echo get_frontend_settings('banner_sub_title');  ?>" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="cookie_status"><?php echo get_phrase('cookie_status'); ?><span class="required">*</span></label><br>
-                                <input type="radio" value="active" name="cookie_status" <?php if(get_frontend_settings('cookie_status') == 'active') echo 'checked'; ?>> <?php echo get_phrase('active'); ?>
-                                &nbsp;&nbsp;
-                                <input type="radio" value="inactive" name="cookie_status" <?php if(get_frontend_settings('cookie_status') == 'inactive') echo 'checked'; ?>> <?php echo get_phrase('inactive'); ?>
-                            </div>
-                            <div class="form-group">
-                                <label for="cookie_note"><?php echo get_phrase('cookie_note'); ?></label>
-                                <textarea name="cookie_note" id = "cookie_note" class="form-control" rows="5"><?php echo get_frontend_settings('cookie_note'); ?></textarea>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="facebook"><?php echo get_phrase('facebook'); ?></label>
-                                <input type="text" name = "facebook" id = "facebook" class="form-control" value="<?php echo get_frontend_settings('facebook');  ?>">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="twitter"><?php echo get_phrase('twitter'); ?></label>
-                                <input type="text" name = "twitter" id = "twitter" class="form-control" value="<?php echo get_frontend_settings('twitter');  ?>">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="linkedin"><?php echo get_phrase('linkedin'); ?></label>
-                                <input type="text" name = "linkedin" id = "linkedin" class="form-control" value="<?php echo get_frontend_settings('linkedin');  ?>">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="cookie_policy"><?php echo get_phrase('cookie_policy'); ?></label>
-                                <textarea name="cookie_policy" id = "cookie_policy" class="form-control" rows="5"><?php echo get_frontend_settings('cookie_policy'); ?></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="about_us"><?php echo get_phrase('about_us'); ?></label>
-                                <textarea name="about_us" id = "about_us" class="form-control" rows="5"><?php echo get_frontend_settings('about_us'); ?></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="terms_and_condition"><?php echo get_phrase('terms_and_condition'); ?></label>
-                                <textarea name="terms_and_condition" id ="terms_and_condition" class="form-control" rows="5"><?php echo get_frontend_settings('terms_and_condition'); ?></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="privacy_policy"><?php echo get_phrase('privacy_policy'); ?></label>
-                                <textarea name="privacy_policy" id = "privacy_policy" class="form-control" rows="5"><?php echo get_frontend_settings('privacy_policy'); ?></textarea>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="refund_policy"><?php echo get_phrase('refund_policy'); ?></label>
-                                <textarea name="refund_policy" id = "refund_policy" class="form-control" rows="5"><?php echo get_frontend_settings('refund_policy'); ?></textarea>
-                            </div>
-
-                            <div class="row justify-content-center">
-                                <div class="col-md-4">
-                                    <button type="button" class="btn btn-primary btn-block" onclick="checkRequiredFields()"><?php echo get_phrase('update_settings'); ?></button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="tab-pane" id="websitefaqs">
-                        <h4 class="mb-3 header-title"><?php echo get_phrase('Website FAQS');?></h4>
-                        <form action="<?php echo site_url('admin/frontend_settings/website_faq'); ?>" method="post" enctype="multipart/form-data">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <div id = "faq_area">
-                                        <?php $faqs = count(json_decode(get_frontend_settings('website_faqs'), true)) > 0 ? json_decode(get_frontend_settings('website_faqs'), true):[['question' => '', 'answer' => '']]; ?>
-                                        <?php foreach($faqs as $key => $faq): ?>
-                                            <div class="d-flex mt-2">
-                                                <div class="flex-grow-1 px-3 mb-3">
-                                                    <div class="form-group">
-                                                        <label><?php echo get_phrase('Question'); ?></label>
-                                                        <input type="text" class="form-control" name="questions[]" id="questions" placeholder="<?php echo get_phrase('faq_question'); ?>" value="<?php echo $faq['question']; ?>">
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <label><?php echo get_phrase('Answer'); ?></label>
-                                                        <textarea name="answers[]" class="form-control" placeholder="<?php echo get_phrase('answer'); ?>"><?php echo $faq['answer']; ?></textarea>
-                                                    </div>
-                                                </div>
-
-                                                <?php if($key == 0): ?>
-                                                    <div class="" style="padding-top: 32px;">
-                                                        <button type="button" class="btn btn-success btn-sm" style="" name="button" onclick="appendFaq()"> <i class="fa fa-plus"></i> </button>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <div class="" style="padding-top: 32px;">
-                                                        <button type="button" class="btn btn-danger btn-sm" style="margin-top: 0px;" name="button" onclick="removeFaq(this)"> <i class="fa fa-minus"></i> </button>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
-                                        <?php endforeach; ?>
-
-                                        <div id = "blank_faq_field">
-                                            <div class="d-flex pt-2 border-top">
-                                                <div class="flex-grow-1 px-3">
-                                                    <div class="form-group">
-                                                        <label><?php echo get_phrase('Question'); ?></label>
-                                                        <input type="text" class="form-control" name="questions[]" id="questions" placeholder="<?php echo get_phrase('faq_question'); ?>">
-                                                    </div>
-                                                    <div class="form-group">
-                                                        <label><?php echo get_phrase('Answer'); ?></label>
-                                                        <textarea name="answers[]" class="form-control mt-2" placeholder="<?php echo get_phrase('answer'); ?>"></textarea>
-                                                    </div>
-
-                                                </div>
-                                                <div class="" style="padding-top: 32px;">
-                                                    <button type="button" class="btn btn-danger btn-sm" style="margin-top: 0px;" name="button" onclick="removeFaq(this)"> <i class="fa fa-minus"></i> </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="form-group pt-0 mt-0">
-                                        <button type="submit" class="btn btn-primary ml-3"><?php echo get_phrase('Save changes'); ?></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="tab-pane" id="contact_information">
-                        <h4 class="mb-3 header-title"><?php echo get_phrase('Contact Information');?></h4>
-                        <?php
-                            $contact_info = get_frontend_settings('contact_info');
-                            $contact_info = $contact_info ? json_decode($contact_info, true) : [];
-                            // نضمن وجود كل المفاتيح حتى لا تظهر تحذيرات «مفتاح غير معرف» في PHP 8
-                            $contact_info = array_merge(
-                                ['email' => '', 'phone' => '', 'address' => '', 'office_hours' => ''],
-                                is_array($contact_info) ? $contact_info : []
-                            );
-                        ?>
-                        <form action="<?php echo site_url('admin/frontend_settings/contact_info'); ?>" method="post" enctype="multipart/form-data">
-                            <div class="row">
-                                <div class="col-md-7">
-                                    <div class="mb-3">
-                                        <label><?php echo get_phrase('Contact Email') ?></label>
-                                        <textarea name="email" rows="2" class="form-control"><?php echo $contact_info['email']; ?></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label><?php echo get_phrase('Phone Number') ?></label>
-                                        <textarea name="phone" rows="2" class="form-control"><?php echo $contact_info['phone']; ?></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label><?php echo get_phrase('Address') ?></label>
-                                        <textarea name="address" rows="2" class="form-control"><?php echo $contact_info['address']; ?></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label><?php echo get_phrase('Office Hours') ?></label>
-                                        <textarea name="office_hours" rows="2" class="form-control"><?php echo $contact_info['office_hours']; ?></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <button type="submit" class="btn btn-primary"><?php echo get_phrase('Submit') ?></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-
-                    <div class="tab-pane" id="recaptcha">
-                        <h4 class="mb-3 header-title"><?php echo get_phrase('recaptcha_settings');?></h4>
-
-                        <form action="<?php echo site_url('admin/frontend_settings/recaptcha_update'); ?>" method="post" enctype="multipart/form-data">
-                            <div class="form-group">
-                                <label><?php echo get_phrase('recaptcha_status'); ?><span class="required">*</span></label><br>
-                                <input type="radio" id="recaptcha_off" value="off" name="recaptcha_status" <?php if(get_frontend_settings('recaptcha_status') == 0 && get_frontend_settings('recaptcha_status_v3') == 0) echo 'checked'; ?>> <label for="recaptcha_off"><?php echo get_phrase('off'); ?></label>
-                                &nbsp;&nbsp;
-                                <input type="radio" id="recaptcha_on_v2" value="v2" name="recaptcha_status" <?php if(get_frontend_settings('recaptcha_status') == 1) echo 'checked'; ?>> <label for="recaptcha_on_v2"><?php echo get_phrase('on_(v2)'); ?></label>
-                                &nbsp;&nbsp;
-                                <input type="radio" id="recaptcha_on_v3" value="v3" name="recaptcha_status" <?php if(get_frontend_settings('recaptcha_status_v3') == 1) echo 'checked'; ?>> <label for="recaptcha_on_v3"><?php echo get_phrase('on_(v3)'); ?></label>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="recaptcha_sitekey"><?php echo get_phrase('recaptcha_sitekey'); ?> (v2)<span class="required">*</span></label>
-                                <input type="text" name = "recaptcha_sitekey" id = "recaptcha_sitekey" class="form-control" value="<?php echo get_frontend_settings('recaptcha_sitekey');  ?>" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="recaptcha_secretkey"><?php echo get_phrase('recaptcha_secretkey'); ?> (v2)<span class="required">*</span></label>
-                                <input type="text" name = "recaptcha_secretkey" id = "recaptcha_secretkey" class="form-control" value="<?php echo get_frontend_settings('recaptcha_secretkey');  ?>" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="recaptcha_sitekey_v3"><?php echo get_phrase('recaptcha_sitekey'); ?> (v3)<span class="required">*</span></label>
-                                <input type="text" name = "recaptcha_sitekey_v3" id = "recaptcha_sitekey_v3" class="form-control" value="<?php echo get_frontend_settings('recaptcha_sitekey_v3');  ?>" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="recaptcha_secretkey_v3"><?php echo get_phrase('recaptcha_secretkey'); ?> (v3)<span class="required">*</span></label>
-                                <input type="text" name = "recaptcha_secretkey_v3" id = "recaptcha_secretkey_v3" class="form-control" value="<?php echo get_frontend_settings('recaptcha_secretkey_v3');  ?>" required>
-                            </div>
-
-                            <div class="row justify-content-center">
-                                <div class="col-md-4">
-                                    <button type="submit" class="btn btn-primary btn-block"><?php echo get_phrase('update_recaptcha_settings'); ?></button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="tab-pane" id="logo_and_images">
-                        <div class="row justify-content-center">
-                            <?php if (count($homepage_banner) > 0):
-                              if ($homepage_banner['homepage_banner_image']):?>
-                              <div class="col-xl-4 col-lg-6">
-                                  <div class="card">
-                                      <div class="card-body">
-                                          <div class="col-xl-12">
-                                              <h4 class="mb-3 header-title"><?php echo get_phrase('update_banner_image');?></h4>
-                                              <div class="row justify-content-center">
-                                                  <form action="<?php echo site_url('admin/frontend_settings/banner_image_update'); ?>" method="post" enctype="multipart/form-data" style="text-align: center;">
-                                                      <div class="form-group mb-2">
-                                                          <div class="wrapper-image-preview">
-                                                              <div class="box" style="width: 250px;">
-                                                                  <div class="js--image-preview" style="background-image: url(<?php echo base_url('uploads/system/'.get_current_banner('banner_image'));?>); background-color: #F5F5F5;"></div>
-                                                                  <div class="upload-options">
-                                                                      <label for="banner_image" class="btn"> <i class="mdi mdi-camera"></i> <?php echo get_phrase('upload_banner_image'); ?> <br> <small>(<?php echo $homepage_banner['homepage_banner_image_size']; ?>)</small> </label>
-                                                                      <input id="banner_image" style="visibility:hidden;" type="file" class="image-upload" name="banner_image" accept="image/*">
-                                                                  </div>
-                                                              </div>
-                                                          </div>
-                                                      </div>
-                                                      <button type="submit" class="btn btn-primary btn-block"><?php echo get_phrase('upload_banner_image'); ?></button>
-                                                  </form>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  </div>
-                              </div>
-                              <?php endif; ?>
-                            <?php endif; ?>
-
-                            <div class="col-xl-4 col-lg-6">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="col-xl-12">
-                                            <h4 class="mb-3 header-title"><?php echo get_phrase('update_light_logo');?></h4>
-                                            <div class="row justify-content-center">
-                                                <form action="<?php echo site_url('admin/frontend_settings/light_logo'); ?>" method="post" enctype="multipart/form-data" style="text-align: center;">
-                                                    <div class="form-group mb-2">
-                                                        <div class="wrapper-image-preview">
-                                                            <div class="box" style="width: 250px;">
-                                                                <div class="js--image-preview" style="background-image: url(<?php echo base_url('uploads/system/'.get_frontend_settings('light_logo')); ?>); background-color: #F5F5F5;"></div>
-                                                                <div class="upload-options">
-                                                                    <label for="light_logo" class="btn"> <i class="mdi mdi-camera"></i> <?php echo get_phrase('upload_light_logo'); ?> <br> <small>(330 X 70)</small> </label>
-                                                                    <input id="light_logo" style="visibility:hidden;" type="file" class="image-upload" name="light_logo" accept="image/*">
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <button type="submit" class="btn btn-primary btn-block"><?php echo get_phrase('upload_light_logo'); ?></button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-xl-4 col-lg-6">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="col-lg-12">
-                                            <h4 class="mb-3 header-title"><?php echo get_phrase('update_dark_logo');?></h4>
-                                            <div class="row justify-content-center">
-                                                <form action="<?php echo site_url('admin/frontend_settings/dark_logo'); ?>" method="post" enctype="multipart/form-data" style="text-align: center;">
-                                                    <div class="form-group mb-2">
-                                                        <div class="wrapper-image-preview">
-                                                            <div class="box" style="width: 250px;">
-                                                                <div class="js--image-preview" style="background-image: url(<?php echo base_url('uploads/system/'.get_frontend_settings('dark_logo')); ?>); background-color: #F5F5F5;"></div>
-                                                                <div class="upload-options">
-                                                                    <label for="dark_logo" class="btn"> <i class="mdi mdi-camera"></i> <?php echo get_phrase('upload_dark_logo'); ?> <br> <small>(330 X 70)</small> </label>
-                                                                    <input id="dark_logo" style="visibility:hidden;" type="file" class="image-upload" name="dark_logo" accept="image/*">
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <button type="submit" class="btn btn-primary btn-block"><?php echo get_phrase('upload_dark_logo'); ?></button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-xl-4 col-lg-6">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="col-lg-12">
-                                            <h4 class="mb-3 header-title"><?php echo get_phrase('update_small_logo');?></h4>
-                                            <div class="row justify-content-center">
-                                                <form action="<?php echo site_url('admin/frontend_settings/small_logo'); ?>" method="post" enctype="multipart/form-data" style="text-align: center;">
-                                                    <div class="form-group mb-2">
-                                                        <div class="wrapper-image-preview">
-                                                            <div class="box" style="width: 250px;">
-                                                                <div class="js--image-preview" style="background-image: url(<?php echo base_url('uploads/system/'.get_frontend_settings('small_logo')); ?>); background-color: #F5F5F5;"></div>
-                                                                <div class="upload-options">
-                                                                    <label for="small_logo" class="btn"> <i class="mdi mdi-camera"></i> <?php echo get_phrase('upload_small_logo'); ?> <br> <small>(49 X 58)</small> </label>
-                                                                    <input id="small_logo" style="visibility:hidden;" type="file" class="image-upload" name="small_logo" accept="image/*">
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <button type="submit" class="btn btn-primary btn-block"><?php echo get_phrase('upload_small_logo'); ?></button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-xl-4 col-lg-6">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="col-lg-12">
-                                            <h4 class="mb-3 header-title"><?php echo get_phrase('update_favicon');?></h4>
-                                            <div class="row justify-content-center">
-                                                <form action="<?php echo site_url('admin/frontend_settings/favicon'); ?>" method="post" enctype="multipart/form-data" style="text-align: center;">
-                                                    <div class="form-group mb-2">
-                                                        <div class="wrapper-image-preview">
-                                                            <div class="box" style="width: 250px;">
-                                                                <div class="js--image-preview" style="background-image: url(<?php echo base_url('uploads/system/'.get_frontend_settings('favicon')); ?>); background-color: #F5F5F5;"></div>
-                                                                <div class="upload-options">
-                                                                    <label for="favicon" class="btn"> <i class="mdi mdi-camera"></i> <?php echo get_phrase('upload_favicon'); ?> <br> <small>(90 X 90)</small> </label>
-                                                                    <input id="favicon" style="visibility:hidden;" type="file" class="image-upload" name="favicon" accept="image/*">
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <button type="submit" class="btn btn-primary btn-block"><?php echo get_phrase('upload_favicon'); ?></button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="tab-pane" id="custom_codes">
-                        <h4 class="mb-1 header-title"><?php echo get_phrase('Custom Codes') ?></h4>
-                        <small><?php echo get_phrase('You can modify your theme style and add external embed code from here'); ?></small>
-                        <div class="row mt-3">
-                            <div class="col-md-7">
-                                <form action="<?php echo site_url('admin/frontend_settings/custom_codes'); ?>" method="post">
-                                    <div class="form-group">
-                                        <label><?php echo get_phrase('Enter your custom css'); ?> <small>(<?php echo get_phrase('Only css code'); ?>)</small></label>
-                                        <textarea name="custom_css" rows="8" class="form-control" placeholder="h3{ color: black; }"><?php echo get_frontend_settings('custom_css'); ?></textarea>
-                                        <small><?php echo get_phrase('These codes are applicable for all pages of the frontend site'); ?></small>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label><?php echo get_phrase('Enter your embed or widget code'); ?></label>
-                                        <textarea name="embed_code" rows="8" class="form-control" placeholder="<?php echo get_phrase('Enter your embed or widget code here') ?>"><?php echo get_frontend_settings('embed_code'); ?></textarea>
-                                        <small><?php echo get_phrase('These codes are applicable for all pages of the frontend site'); ?></small>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <button class="btn btn-primary"><?php echo get_phrase('Save changes'); ?></button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Video Water Mark -->
-                    <div class="tab-pane" id="water_mark">
-                        <h4 class="mb-3 header-title"><?php echo get_phrase('video_watermark_settings');?></h4>
-                        <form  action="<?php echo site_url('admin/frontend_settings/water_mark'); ?>" method="post" enctype="multipart/form-data">
-                            <style>
-                               .form-group input[type="radio"] {
-                                    cursor: pointer;
-                                }
-                                .video_test{
-                                    list-style: none;
-                                    padding-left: 0;
-                                }
-                                .video_test li input,
-                                .video_test li label,{
-                                    cursor:pointer;
-                                }
-                                .boxs{
-                                    height: 260px;
-                                    width: 300px;
-                                    margin: 10px;
-                                    background-color: white;
-                                    border-radius: 5px;
-                                    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-                                    transition: all 0.3s cubic-bezier(.25,.8,.25,1);
-                                    overflow: hidden;
-                                    text-align:center;
-                                }
-                                .text-muted{
-                                    font-size: 14px;
-                                }
-                                
-                            </style>
-                             <div class="form-group mb-3">
-                                <label for="water_mark_status"><?php echo get_phrase('watermark_status'); ?></label><br>
-                                <input type="radio" value="active" name="water_mark_status" <?php if(get_frontend_settings('water_mark_status') == 'active') echo 'checked'; ?>> <?php echo get_phrase('active'); ?>
-                                &nbsp;&nbsp;
-                                <input type="radio" value="inactive" name="water_mark_status" <?php if(get_frontend_settings('water_mark_status') == 'inactive') echo 'checked'; ?>> <?php echo get_phrase('inactive'); ?>
-                                
-                             </div>
-
-                             <div class="form-group">
-                                <label for="water_mark_speed"><?php echo get_phrase('Watermark Animation Speed'); ?><span class="required">*</span></label>
-                                <input type="text" name = "water_mark_speed" id = "water_mark_speed" class="form-control" value="<?php echo get_frontend_settings('water_mark_speed');  ?>" required>
-                                <p class="text-muted"><?php echo get_phrase('Set the watermark animation speed in milliseconds (e.g., 1000 for 1 second, 3000 for 3 seconds).') ?></p>
-                            </div>
-                             <div class="form-group">
-                                <label for="water_mark_opacity"><?php echo get_phrase('Opacity Level of Watermark'); ?><span class="required">*</span></label>
-                                <input type="text" name = "water_mark_opacity" id = "water_mark_opacity" class="form-control" value="<?php echo get_frontend_settings('water_mark_opacity');  ?>" required>
-                                <p class="text-muted"><?php echo  get_phrase('Set the watermark opacity between 0 (completely transparent) and 1 (fully visible). For example: 0.3, 0.5, 0.8.')?></p>
-
-                            </div>
-
-                               <?php
-                                    $water_mark_value = get_frontend_settings('water_mark');
-                                    $watermark_type = (strpos($water_mark_value, '.png') !== false || strpos($water_mark_value, '.jpg') !== false || strpos($water_mark_value, '.jpeg') !== false || strpos($water_mark_value, '.gif') !== false) ? 'image' : 'text';
-                                    $water_mark_text = $watermark_type == 'text' ? $water_mark_value : '';
-                                ?>
-
-
-                              <label for="form-label mt-5"><?php echo get_phrase('Watermark Text / Image'); ?></label><br>
-
-                                <ul class="video_test d-flex mb-3">
-                                    <li class="text">
-                                        <div class="form-check">
-                                            <input class="form-check-input me-1" type="radio" name="water_mark_type" id="flexRadioText" value="text" <?php echo $watermark_type == 'text' ? 'checked' : ''; ?>>
-                                            <label class="form-check-label me-3" for="flexRadioText">
-                                                <?php echo get_phrase('Text'); ?>
-                                            </label>
-                                        </div>
-                                        
-                                    </li>
-                                    <li>&nbsp;&nbsp; ---OR--- &nbsp;&nbsp;</li>
-                                    <li class="image">
-                                        <div class="form-check">
-                                            <input class="form-check-input me-1" type="radio" name="water_mark_type" id="flexRadioImage" value="image" <?php echo $watermark_type == 'image' ? 'checked' : ''; ?>>
-                                            <label class="form-check-label me-3" for="flexRadioImage">
-                                                <?php echo get_phrase('Image'); ?>
-                                            </label>
-                                        </div>
-                                    </li>
-                                </ul>
-                                <!-- Text input -->
-                                <div class="eText mb-2" id="textWatermark" style="<?php echo $watermark_type == 'text' ? 'display: block;' : 'display: none;'; ?>">
-                                    <input type="text" class="form-control" name="water_mark" value="<?php echo $water_mark_text; ?>">
-
-                                    <div class="form-group mt-1">
-                                       <label for="water_mark_color"><?php echo get_phrase('Text Color'); ?></label>
-                                         <input type="color" name = "water_mark_color" id = "water_mark_color" class="form-control" value="<?php echo get_frontend_settings('water_mark_color');  ?>">
-                                         <p class="text-muted"><?php echo get_phrase('Click the color box to set the watermark text color according to your preference.')?></p>
-
-                                     </div>
-                                </div>
-                                <!-- Image upload -->
-                                <div class="eImage form-group mb-2" id="imageWatermark" style="<?php echo $watermark_type == 'image' ? 'display: block;' : 'display: none;'; ?>">
-                                    <div class="wrapper-image-preview">
-                                        <div class="boxs">
-                                            <div class="js--image-preview" style="background-image: url(<?php echo base_url('uploads/system/' . $water_mark_value); ?>); background-color: #F5F5F5;"></div>
-                                            <div class="upload-option">
-                                                <label for="water_mark_image" class="btn"> <i class="mdi mdi-camera"></i> <?php echo get_phrase('upload_watermark_logo'); ?> <br> <small>(330 X 70)</small> </label>
-                                                <input id="water_mark_image" style="visibility:hidden;" type="file" class="" name="water_mark_image" accept="image/*">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            <div class="form-group">
-                                <button type="submit" class="btn btn-primary"><?php echo get_phrase('Save changes'); ?></button>
-                            </div>
-
-                        </form>
-                    </div>
-                    <!-- Video Water Mark -->
-                    <!-- Fake Review -->
-                    <div class="tab-pane" id="review">
-                        <div class="d-flex justify-content-between">
-                            <h4 class="mb-3 header-title"><?php echo get_phrase('Review List');?></h4>
-                            <a href="javascript:;" onclick="showAjaxModal('<?php echo site_url('admin/review_add'); ?>', '<?php echo get_phrase('add_a_review'); ?>');" class="btn btn-outline-primary btn-rounded alignToTitle"><?php echo  get_phrase('Add Review')?></a>
-                        </div>
-                        <!--  -->
-                        <div class="table-responsive-sm mt-4">
-                            <?php 
-                                $users = $this->db->where('ratable_type', NULL)->get('rating')->result();
-                            ?>
-
-                            <?php if (!empty($users)): ?>
-                                <table class="table table-striped table-centered mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th><?php echo get_phrase('#'); ?></th>
-                                            <th><?php echo get_phrase('Name'); ?></th>
-                                            <th><?php echo get_phrase('Rating'); ?></th>
-                                            <th><?php echo get_phrase('Review'); ?></th>
-                                            <th><?php echo get_phrase('actions'); ?></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                            <?php
-                                            $counter = 1;
-                                            foreach ($users as $user): 
-                                                $user_data = $this->db->get_where('users', ['id' => $user->user_id])->row_array();
-                                            ?>
-                                                <tr class="gradeU" data-enrol-id="<?php echo $user->id; ?>">
-                                                   <td><?php echo $counter++; ?></td> 
-                                                    <td>
-                                                        <div class="d-flex gap-2">
-                                                            <div class="mt-1"> 
-                                                                <b><?php echo $user_data['first_name'].' '.$user_data['last_name']; ?></b><br>
-                                                                <small><?php echo $user_data['email']; ?></small>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <p ><?php echo $user->rating; ?></p>
-                                                    </td>
-                                                    <td>
-                                                        <div class="pl-1 pt-1">
-                                                            <p><?php echo $user->review; ?></p>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                    <div class="dropright dropright">
-                                                        <button type="button" class="btn btn-sm btn-outline-primary btn-rounded btn-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                            <i class="mdi mdi-dots-vertical"></i>
-                                                        </button>
-                                                        <ul class="dropdown-menu" x-placement="left-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(-162px, 0px, 0px);">
-                                                        <li>
-                                                            <a class="dropdown-item" href="javascript:;" onclick="showAjaxModal('<?php echo site_url('admin/review_edit/'.$user->id); ?>', '<?php echo get_phrase('update_review'); ?>');">
-                                                                <?php echo get_phrase('Edit');?>
-                                                            </a>
-                                                        </li>
-
-                                                        <li>
-                                                            <a class="dropdown-item" href="javascript:;" onclick="confirm_modal('<?php echo site_url('admin/review/delete/' . $user->id); ?>');">
-                                                                <?php echo get_phrase('delete'); ?>
-                                                            </a>
-                                                        </li>
-
-                                                        </ul>
-                                                          </div>
-                                                    </td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                <?php else: ?>
-                                    <div class="img-fluid w-100 text-center">
-                                        <img style="opacity: 1; width: 100px;" src="<?php echo base_url('assets/backend/images/file-search.svg'); ?>"><br>
-                                        <?php echo get_phrase('no_data_found'); ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-
-                        <!--  -->
-                    </div>
-                    <!-- Fake Review -->
-
-                </div>
-
-            </div> <!-- end card-body-->
+        <div class="tqa-card__head" style="padding:var(--tq-space-l) 0;margin-block:var(--tq-space-l);
+             border-block:1px solid var(--tq-line)">
+            <span class="tqa-iconbox tqa-lilac" aria-hidden="true"><?php echo tq_icon('link', 20); ?></span>
+            <h2>روابط التواصل الاجتماعي</h2>
         </div>
+
+        <div class="tqa-fieldgrid tqa-fieldgrid--3">
+            <?php foreach (array('facebook' => 'فيسبوك', 'twitter' => 'إكس (تويتر)', 'linkedin' => 'لينكدإن') as $tq_k => $tq_l): ?>
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="<?php echo $tq_k; ?>"><?php echo $tq_l; ?></label>
+                    <input class="tqa-input tqa-input--ltr" type="url" id="<?php echo $tq_k; ?>"
+                           name="<?php echo $tq_k; ?>" dir="ltr"
+                           value="<?php echo html_escape(get_frontend_settings($tq_k)); ?>">
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="tqa-card__head" style="padding:var(--tq-space-l) 0;margin-block:var(--tq-space-l);
+             border-block:1px solid var(--tq-line)">
+            <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('shield', 20); ?></span>
+            <h2>شريط ملفات تعريف الارتباط</h2>
+        </div>
+
+        <div class="tqa-prefrow">
+            <div class="tqa-prefrow__main">
+                <span class="tqa-prefrow__title">عرض شريط الموافقة</span>
+                <span class="tqa-prefrow__hint">يظهر للزائر في أول زيارة حتى يوافق.</span>
+            </div>
+            <div class="tqa-prefrow__end">
+                <input type="hidden" name="cookie_status" value="inactive">
+                <span class="tqa-switch">
+                    <input type="checkbox" name="cookie_status" value="active"
+                           <?php echo get_frontend_settings('cookie_status') === 'active' ? 'checked' : ''; ?>>
+                    <span class="tqa-switch__track" aria-hidden="true"></span>
+                </span>
+            </div>
+        </div>
+
+        <div class="tqa-field" style="margin-block-start:var(--tq-space-l)">
+            <label class="tqa-field__label" for="cookie_note">نص الشريط</label>
+            <textarea class="tqa-textarea" id="cookie_note" name="cookie_note" rows="3"><?php
+                echo html_escape(get_frontend_settings('cookie_note')); ?></textarea>
+        </div>
+
+        <div class="tqa-card__head" style="padding:var(--tq-space-l) 0;margin-block:var(--tq-space-l);
+             border-block:1px solid var(--tq-line)">
+            <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('file-text', 20); ?></span>
+            <h2>صفحات السياسات</h2>
+        </div>
+
+        <p style="margin:0 0 var(--tq-space-l);font:var(--tq-type-caption);color:var(--tq-text2)">
+            كل واحدة صفحة عامة في الموقع. وما يترك فارغا تعرض صفحته سطر
+            «لم يكتب نص هذه الصفحة بعد» — لا تختفي من التذييل.
+        </p>
+
+        <?php /**
+         * TQ-DEAD-FIELD — كان في هذه القائمة حقلان لا يعرضهما شيء:
+         *
+         * ١ — **«من نحن»**: صفحة `/about` في سمة تقدر صفحة مصممة كاملة
+         *     (هيرو وأرقام وقصة وفريق)، نصوصها تحرر من
+         *     `taqdar_admin/content`. والحقل هنا يقرؤه قالب
+         *     `frontend/default-new/about_us.php` وحده — سمة Academy
+         *     الأصلية، وهي غير مفعلة. فمن كتب فيه لا يرى أثرا.
+         * ٢ — **«سياسة ملفات الارتباط»**: لا صفحة لها في الموقع أصلا،
+         *     ولا يقرأ المفتاح أي قالب. وما يظهر للزائر هو «نص الشريط»
+         *     في قسم ملفات الارتباط أعلاه.
+         *
+         * حذف الحقلان. والقيم المحفوظة تبقى في القاعدة كما هي: النموذج
+         * لا يرسل المفتاح فلا يكتب فوقه.
+         */ ?>
+        <div class="tqa-note tqa-section">
+            <span aria-hidden="true"><?php echo tq_icon('edit', 18); ?></span>
+            <span>
+                نصوص صفحة <strong>«من نحن»</strong> تحرر من
+                <a href="<?php echo site_url('taqdar_admin/content'); ?>">نصوص الصفحات</a> —
+                فهي صفحة مصممة لا نصا واحدا.
+            </span>
+        </div>
+
+        <?php foreach (array(
+            'terms_and_condition' => array('الشروط والأحكام', 'file-text'),
+            'privacy_policy'      => array('سياسة الخصوصية', 'lock'),
+            'refund_policy'       => array('سياسة الاسترجاع', 'receipt'),
+        ) as $tq_k => [$tq_l, $tq_ic]): ?>
+            <details class="tqa-card" style="margin-block-end:var(--tq-space-m);box-shadow:none">
+                <summary class="tqa-row">
+                    <span class="tqa-iconbox tqa-sand" aria-hidden="true" style="inline-size:34px;block-size:34px">
+                        <?php echo tq_icon($tq_ic, 17); ?>
+                    </span>
+                    <strong style="color:var(--tq-navy);font:var(--tq-type-bodyStrong)"><?php echo $tq_l; ?></strong>
+                </summary>
+                <div style="margin-block-start:var(--tq-space-l)">
+                    <textarea class="tqa-textarea" id="<?php echo $tq_k; ?>" name="<?php echo $tq_k; ?>"
+                              rows="8" data-tqa-rich><?php echo html_escape(get_frontend_settings($tq_k)); ?></textarea>
+                </div>
+            </details>
+        <?php endforeach; ?>
+
+        <div class="tqa-actions">
+            <button type="submit" class="tqa-btn tqa-btn--primary">
+                <?php echo tq_icon('check', 16); ?> احفظ التعديل
+            </button>
+        </div>
+    </form>
+
+
+<?php /* ================= بيانات التواصل ================= */ ?>
+<?php elseif ($tq_tab === 'contact'): ?>
+
+    <form class="tqa-card" method="post" enctype="multipart/form-data"
+          action="<?php echo site_url('admin/frontend_settings/contact_info'); ?>" style="max-inline-size:760px">
+        <?php echo tq_csrf(); ?>
+
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('mail', 20); ?></span>
+            <h2>ما يعرض في صفحة «تواصل معنا»</h2>
+        </div>
+
+        <div class="tqa-fieldgrid">
+            <?php foreach (array(
+                'email'        => array('البريد الإلكتروني', 'سطر لكل عنوان.'),
+                'phone'        => array('الهاتف', 'سطر لكل رقم.'),
+                'address'      => array('العنوان', ''),
+                'office_hours' => array('ساعات العمل', 'مثال: الأحد إلى الخميس، ٩ص — ٥م'),
+            ) as $tq_k => [$tq_l, $tq_h]): ?>
+                <div class="tqa-field tqa-field--full">
+                    <label class="tqa-field__label" for="ci_<?php echo $tq_k; ?>"><?php echo $tq_l; ?></label>
+                    <textarea class="tqa-textarea" id="ci_<?php echo $tq_k; ?>" name="<?php echo $tq_k; ?>"
+                              rows="2" style="min-block-size:70px"><?php
+                        echo html_escape($contact_info[$tq_k] ?? ''); ?></textarea>
+                    <?php if ($tq_h !== ''): ?>
+                        <span class="tqa-field__hint"><?php echo $tq_h; ?></span>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="tqa-actions">
+            <button type="submit" class="tqa-btn tqa-btn--primary">
+                <?php echo tq_icon('check', 16); ?> احفظ البيانات
+            </button>
+        </div>
+    </form>
+
+
+<?php /* ================= الأسئلة الشائعة ================= */ ?>
+<?php elseif ($tq_tab === 'faq'):
+
+    /* `count(null)` خطأ قاتل في PHP 8 — والإعداد فارغ في قاعدة جديدة. */
+    $tq_faqs = json_decode((string) get_frontend_settings('website_faqs'), true);
+    if (!is_array($tq_faqs) || !$tq_faqs) $tq_faqs = array(array('question' => '', 'answer' => ''));
+?>
+
+    <form class="tqa-card" method="post" enctype="multipart/form-data"
+          action="<?php echo site_url('admin/frontend_settings/website_faq'); ?>" style="max-inline-size:820px">
+        <?php echo tq_csrf(); ?>
+
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('help', 20); ?></span>
+            <h2>الأسئلة الشائعة</h2>
+        </div>
+
+        <p style="margin:0 0 var(--tq-space-l);font:var(--tq-type-caption);color:var(--tq-text2)">
+            تعرض في صفحة «الأسئلة الشائعة» بالترتيب نفسه. والسؤال الفارغ يهمل عند الحفظ.
+        </p>
+
+        <div data-tqa-faq-list>
+            <?php foreach ($tq_faqs as $tq_i => $tq_f): ?>
+                <fieldset class="tqa-card" data-tqa-faq-item
+                          style="box-shadow:none;margin-block-end:var(--tq-space-m);border-style:dashed">
+                    <legend class="tqa-sr">سؤال رقم <?php echo $tq_i + 1; ?></legend>
+
+                    <div class="tqa-field">
+                        <label class="tqa-field__label">السؤال</label>
+                        <input class="tqa-input" type="text" name="questions[]"
+                               value="<?php echo html_escape($tq_f['question'] ?? ''); ?>"
+                               placeholder="كيف أشترك في المنصة؟">
+                    </div>
+
+                    <div class="tqa-field" style="margin-block-end:0">
+                        <label class="tqa-field__label">الإجابة</label>
+                        <textarea class="tqa-textarea" name="answers[]" rows="3"
+                                  style="min-block-size:80px"><?php echo html_escape($tq_f['answer'] ?? ''); ?></textarea>
+                    </div>
+
+                    <div class="tqa-actions" style="margin-block-start:var(--tq-space-m)">
+                        <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                style="color:var(--tq-danger)" data-tqa-faq-remove>
+                            <?php echo tq_icon('trash', 14); ?> احذف هذا السؤال
+                        </button>
+                    </div>
+                </fieldset>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="tqa-actions">
+            <button type="button" class="tqa-btn tqa-btn--ghost" data-tqa-faq-add>
+                <?php echo tq_icon('plus', 16); ?> أضف سؤالا
+            </button>
+            <button type="submit" class="tqa-btn tqa-btn--primary">
+                <?php echo tq_icon('check', 16); ?> احفظ الأسئلة
+            </button>
+        </div>
+    </form>
+
+    <script>
+    /**
+     * إضافة سؤال وحذفه.
+     *
+     * كانت النسخة السابقة تحتفظ في الصفحة بـ`#blank_faq_field` — حقلين
+     * فارغين **ظاهرين دائما**، يرسلان سؤالا فارغا مع كل حفظ. وزر «+»
+     * ينسخ تلك الكتلة نفسها، فينسخ معها معرفا مكررا (`id="questions"`)
+     * في كل ضغطة.
+     *
+     * وهنا تنسخ آخر بطاقة وتفرغ حقولها، ولا حقل زائد في الصفحة.
+     */
+    (function () {
+        'use strict';
+
+        var list = document.querySelector('[data-tqa-faq-list]');
+        var add  = document.querySelector('[data-tqa-faq-add]');
+        if (!list || !add) return;
+
+        var wire = function (item) {
+            var btn = item.querySelector('[data-tqa-faq-remove]');
+            if (!btn) return;
+            btn.addEventListener('click', function () {
+                /* آخر بطاقة لا تحذف — تفرغ. وإلا بقي النموذج بلا حقل
+                   ولا سبيل إلى إضافة واحد إلا بتحديث الصفحة. */
+                if (list.querySelectorAll('[data-tqa-faq-item]').length > 1) {
+                    item.parentNode.removeChild(item);
+                } else {
+                    item.querySelector('input').value = '';
+                    item.querySelector('textarea').value = '';
+                }
+            });
+        };
+
+        Array.prototype.forEach.call(list.querySelectorAll('[data-tqa-faq-item]'), wire);
+
+        add.addEventListener('click', function () {
+            var items = list.querySelectorAll('[data-tqa-faq-item]');
+            var copy  = items[items.length - 1].cloneNode(true);
+
+            copy.querySelector('input').value = '';
+            copy.querySelector('textarea').value = '';
+
+            list.appendChild(copy);
+            wire(copy);
+            copy.querySelector('input').focus();
+        });
+    })();
+    </script>
+
+
+<?php /* ================= الشعار والصور ================= */ ?>
+<?php elseif ($tq_tab === 'branding'):
+
+    $tq_images = array();
+
+    if (!empty($homepage_banner) && !empty($homepage_banner['homepage_banner_image'])) {
+        $tq_images['banner_image_update'] = array(
+            'banner_image', 'صورة البانر',
+            $homepage_banner['homepage_banner_image_size'],
+            get_current_banner('banner_image'),
+        );
+    }
+
+    $tq_images += array(
+        'light_logo' => array('light_logo', 'الشعار الفاتح', '330 × 70', get_frontend_settings('light_logo')),
+        'dark_logo'  => array('dark_logo',  'الشعار الداكن', '330 × 70', get_frontend_settings('dark_logo')),
+        'small_logo' => array('small_logo', 'الشعار المصغر', '49 × 58',  get_frontend_settings('small_logo')),
+        'favicon'    => array('favicon',    'أيقونة التبويب', '90 × 90', get_frontend_settings('favicon')),
+    );
+?>
+
+    <div class="tqa-grid tqa-grid--3">
+        <?php foreach ($tq_images as $tq_route => [$tq_field, $tq_label, $tq_size, $tq_file]):
+            $tq_rel = 'uploads/system/' . $tq_file;
+            $tq_src = (trim((string) $tq_file) !== '' && is_file(FCPATH . $tq_rel)) ? base_url($tq_rel) : '';
+        ?>
+            <form class="tqa-card" method="post" enctype="multipart/form-data"
+                  action="<?php echo site_url('admin/frontend_settings/' . $tq_route); ?>">
+                <?php echo tq_csrf(); ?>
+
+                <div class="tqa-card__head" style="padding:0 0 var(--tq-space-m);margin-block-end:var(--tq-space-m)">
+                    <span class="tqa-iconbox tqa-mint" aria-hidden="true" style="inline-size:36px;block-size:36px">
+                        <?php echo tq_icon('image', 18); ?>
+                    </span>
+                    <div>
+                        <h2 style="font:var(--tq-type-bodyStrong);font-family:var(--tq-font-title)">
+                            <?php echo html_escape($tq_label); ?>
+                        </h2>
+                        <span class="tqa-media__sub tq-ltr" dir="ltr"><?php echo html_escape($tq_size); ?></span>
+                    </div>
+                </div>
+
+                <?php /* المعاينة على أرضية شطرنجية (`.tqa-checker`): الشعار
+                         غالبا شفاف، وعلى أرضية بيضاء لا يعرف الأبيض منه
+                         من الفراغ — فيرفع شعار بحواف بيضاء ولا يلاحظ. */ ?>
+                <div class="tqa-checker">
+                    <?php if ($tq_src !== ''): ?>
+                        <img src="<?php echo html_escape($tq_src); ?>" alt="<?php echo html_escape($tq_label); ?> الحالي">
+                    <?php else: ?>
+                        <span style="font:var(--tq-type-caption);color:var(--tq-text2)">لا صورة مرفوعة</span>
+                    <?php endif; ?>
+                </div>
+
+                <div class="tqa-file">
+                    <?php /* كان `style="visibility:hidden"` — يحجز مساحته
+                             ويبقى خارج ترتيب التنقل، فيترك فراغا أبيض
+                             ولا يبلغه لوح المفاتيح. */ ?>
+                    <input type="file" id="<?php echo $tq_field; ?>" name="<?php echo $tq_field; ?>"
+                           accept="image/*" data-tqa-file required>
+                    <label class="tqa-file__btn" for="<?php echo $tq_field; ?>">
+                        <?php echo tq_icon('upload', 16); ?> اختر صورة
+                    </label>
+                    <span class="tqa-file__name" data-tqa-file-name>لم تختر ملفا بعد</span>
+                </div>
+
+                <div class="tqa-actions">
+                    <button type="submit" class="tqa-btn tqa-btn--primary tqa-btn--sm">
+                        <?php echo tq_icon('check', 15); ?> ارفع
+                    </button>
+                </div>
+            </form>
+        <?php endforeach; ?>
     </div>
-</div>
+
+    <?php include 'tqa_file_js.php'; ?>
 
 
+<?php /* ================= آراء العملاء ================= */ ?>
+<?php elseif ($tq_tab === 'reviews'):
+    $tq_reviews = $this->db->where('ratable_type', null)->get('rating')->result_array();
 
-
-<script type="text/javascript">
-    $(document).ready(function () {
-        initSummerNote(['#about_us', '#terms_and_condition', '#privacy_policy', '#cookie_policy', '#refund_policy']);
-
-        <?php if(isset($_GET['tab'])): ?>
-            $('a[href="#<?php echo $_GET['tab'] ?>"]').trigger('click');
-        <?php endif; ?>
-    });
-
-
-
-
-    <?php if(isset($_GET['tab'])): ?>
-        $('.ajax_loader').addClass('start_ajax_loading');
-        const tabClickInterval = setInterval(function(){
-            if(!$("a[href$=<?= $_GET['tab']; ?>]").hasClass('active')){
-                $("a[href$=<?= $_GET['tab']; ?>]").click();
-            }else{
-                $('.ajax_loader').removeClass('start_ajax_loading');
-                clearInterval(tabClickInterval);
-            }
-        }, 1000);
-    <?php endif; ?>
-
-</script>
-
-
-<script>
-    
-  $(document).ready(function () {
-    $('input[name="water_mark_type"]').change(function () {
-        if ($(this).val() == 'text') {
-            $('.eText').show();
-            $('.eImage').hide();
-        } else {
-            $('.eText').hide();
-            $('.eImage').show();
+    $tq_names = array();
+    $tq_uids  = array_filter(array_map(function ($r) { return (int) $r['user_id']; }, $tq_reviews));
+    if ($tq_uids) {
+        foreach ($this->db->select('id, first_name, last_name, email')
+                          ->where_in('id', $tq_uids)->get('users')->result_array() as $tq_u) {
+            $tq_names[(int) $tq_u['id']] = $tq_u;
         }
-    });
-    $('input[name="water_mark_type"]:checked').trigger('change');
-});
+    }
+?>
 
-</script>
+    <div class="tqa-card tqa-card--flush">
+        <div class="tqa-card__head">
+            <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('star', 20); ?></span>
+            <h2>آراء تعرض في الموقع</h2>
+            <a class="tqa-btn tqa-btn--primary tqa-btn--sm" href="<?php echo site_url('admin/review_add'); ?>">
+                <?php echo tq_icon('plus', 15); ?> أضف رأيا
+            </a>
+        </div>
+
+        <?php if (empty($tq_reviews)): ?>
+            <?php tqa_empty('لا آراء بعد',
+                'الرأي هنا يعرض في الصفحة الرئيسية باسم صاحبه وصورته.',
+                'أضف أول رأي', site_url('admin/review_add'), 'star'); ?>
+        <?php else: ?>
+            <div class="tqa-table__wrap">
+                <table class="tqa-table">
+                    <caption class="tqa-sr">الآراء المعروضة في الموقع العام</caption>
+                    <thead>
+                        <tr>
+                            <th style="inline-size:60px">#</th>
+                            <th>صاحب الرأي</th>
+                            <th style="inline-size:110px">التقييم</th>
+                            <th>النص</th>
+                            <th style="inline-size:170px"><span class="tqa-sr">إجراءات</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($tq_reviews as $tq_i => $tq_r):
+                        $tq_u = $tq_names[(int) $tq_r['user_id']] ?? null;
+                        $tq_n = $tq_u ? trim($tq_u['first_name'] . ' ' . $tq_u['last_name']) : '';
+                    ?>
+                        <tr>
+                            <td data-label="#"><span class="tqa-num"><?php echo $tq_i + 1; ?></span></td>
+
+                            <td data-label="صاحب الرأي">
+                                <?php if ($tq_u): ?>
+                                    <span class="tqa-media__title"><?php echo html_escape($tq_n !== '' ? $tq_n : $tq_u['email']); ?></span>
+                                    <span class="tqa-media__sub tq-ltr" dir="ltr"><?php echo html_escape($tq_u['email']); ?></span>
+                                <?php else: ?>
+                                    <span class="tqa-dim">حساب محذوف</span>
+                                <?php endif; ?>
+                            </td>
+
+                            <td data-label="التقييم">
+                                <span class="tqa-badge tqa-badge--warn">
+                                    <?php echo tq_icon('star', 12); ?>
+                                    <span class="tqa-num"><?php echo html_escape($tq_r['rating']); ?></span>
+                                </span>
+                            </td>
+
+                            <td data-label="النص"><?php echo html_escape($tq_r['review']); ?></td>
+
+                            <td data-label="إجراءات">
+                                <div class="tqa-rowacts">
+                                    <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                       href="<?php echo site_url('admin/review_edit/' . (int) $tq_r['id']); ?>">
+                                        <?php echo tq_icon('edit', 14); ?> تعديل
+                                    </a>
+
+                                    <form method="post" action="<?php echo site_url('admin/review/delete/' . (int) $tq_r['id']); ?>"
+                                          data-tqa-confirm-title="حذف الرأي"
+                                          data-tqa-confirm="لن يظهر في الموقع بعدها."
+                                          data-tqa-confirm-ok="نعم، احذف"
+                                          data-tqa-confirm-tone="danger">
+                                        <?php echo tq_csrf(); ?>
+                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                                style="color:var(--tq-danger)">
+                                            <?php echo tq_icon('trash', 14); ?>
+                                            <span class="tqa-sr">حذف</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </div>
+
+
+<?php /* ================= حماية النماذج ================= */ ?>
+<?php elseif ($tq_tab === 'recaptcha'):
+    $tq_v2 = (int) get_frontend_settings('recaptcha_status') === 1;
+    $tq_v3 = (int) get_frontend_settings('recaptcha_status_v3') === 1;
+    $tq_mode = $tq_v3 ? 'v3' : ($tq_v2 ? 'v2' : 'off');
+?>
+
+    <form class="tqa-card" method="post" enctype="multipart/form-data"
+          action="<?php echo site_url('admin/frontend_settings/recaptcha_update'); ?>" style="max-inline-size:760px">
+        <?php echo tq_csrf(); ?>
+
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('shield', 20); ?></span>
+            <h2>حماية النماذج من الإرسال الآلي</h2>
+        </div>
+
+        <div class="tqa-field">
+            <span class="tqa-field__label">الوضع</span>
+            <div class="tqa-checkrow">
+                <?php foreach (array(
+                    'off' => 'معطلة',
+                    'v2'  => 'الإصدار الثاني (مربع «لست روبوتا»)',
+                    'v3'  => 'الإصدار الثالث (بلا تفاعل)',
+                ) as $tq_k => $tq_l): ?>
+                    <label class="tqa-check">
+                        <input type="radio" name="recaptcha_status" value="<?php echo $tq_k; ?>"
+                               <?php echo $tq_mode === $tq_k ? 'checked' : ''; ?>>
+                        <span><?php echo $tq_l; ?></span>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div class="tqa-fieldgrid">
+            <?php foreach (array(
+                'recaptcha_sitekey'      => 'مفتاح الموقع (v2)',
+                'recaptcha_secretkey'    => 'المفتاح السري (v2)',
+                'recaptcha_sitekey_v3'   => 'مفتاح الموقع (v3)',
+                'recaptcha_secretkey_v3' => 'المفتاح السري (v3)',
+            ) as $tq_k => $tq_l): ?>
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="<?php echo $tq_k; ?>"><?php echo $tq_l; ?></label>
+                    <input class="tqa-input tqa-input--ltr" type="text" id="<?php echo $tq_k; ?>"
+                           name="<?php echo $tq_k; ?>" dir="ltr" autocomplete="off" spellcheck="false"
+                           value="<?php echo html_escape(get_frontend_settings($tq_k)); ?>">
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="tqa-note">
+            <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+            <span>
+                املأ مفاتيح الإصدار الذي تفعله وحده. وكانت الأربعة مطلوبة معا، فمن يريد
+                الإصدار الثاني لم يكن يستطيع الحفظ حتى يخترع مفاتيح للثالث.
+            </span>
+        </div>
+
+        <div class="tqa-actions">
+            <button type="submit" class="tqa-btn tqa-btn--primary">
+                <?php echo tq_icon('check', 16); ?> احفظ الإعداد
+            </button>
+        </div>
+    </form>
+
+
+<?php /* ================= أكواد مخصصة ================= */ ?>
+<?php elseif ($tq_tab === 'code'): ?>
+
+    <form class="tqa-card" method="post"
+          action="<?php echo site_url('admin/frontend_settings/custom_codes'); ?>" style="max-inline-size:860px">
+        <?php echo tq_csrf(); ?>
+
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-lilac" aria-hidden="true"><?php echo tq_icon('file-text', 20); ?></span>
+            <h2>أكواد تحقن في كل صفحة</h2>
+        </div>
+
+        <div class="tqa-note tqa-note--warn tqa-section">
+            <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+            <span>
+                ما يكتب هنا ينفذ في متصفح كل زائر. خطأ واحد في القوس يكسر الموقع كله،
+                ولا يظهر في هذه الشاشة — يظهر في الصفحة العامة.
+            </span>
+        </div>
+
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="custom_css">
+                <span class="tq-ltr" dir="ltr">CSS</span> مخصص
+            </label>
+            <textarea class="tqa-textarea tqa-input--ltr" id="custom_css" name="custom_css" rows="8"
+                      dir="ltr" spellcheck="false" placeholder="h3 { color: black; }"><?php
+                echo html_escape(get_frontend_settings('custom_css')); ?></textarea>
+            <span class="tqa-field__hint">قواعد CSS وحدها — بلا وسم <span class="tq-ltr" dir="ltr">&lt;style&gt;</span>.</span>
+        </div>
+
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="embed_code">كود تضمين أو أداة</label>
+            <textarea class="tqa-textarea tqa-input--ltr" id="embed_code" name="embed_code" rows="8"
+                      dir="ltr" spellcheck="false"><?php
+                echo html_escape(get_frontend_settings('embed_code')); ?></textarea>
+            <span class="tqa-field__hint">محادثة حية أو تتبع أو ما شابه.</span>
+        </div>
+
+        <div class="tqa-actions">
+            <button type="submit" class="tqa-btn tqa-btn--primary">
+                <?php echo tq_icon('check', 16); ?> احفظ الأكواد
+            </button>
+        </div>
+    </form>
+
+
+<?php /* ================= العلامة المائية ================= */ ?>
+<?php else:
+    $tq_wm   = (string) get_frontend_settings('water_mark');
+    $tq_kind = preg_match('/\.(png|jpe?g|gif|webp)$/i', $tq_wm) ? 'image' : 'text';
+    $tq_rel  = 'uploads/system/' . $tq_wm;
+    $tq_src  = ($tq_kind === 'image' && is_file(FCPATH . $tq_rel)) ? base_url($tq_rel) : '';
+?>
+
+    <form class="tqa-card" method="post" enctype="multipart/form-data"
+          action="<?php echo site_url('admin/frontend_settings/water_mark'); ?>" style="max-inline-size:760px">
+        <?php echo tq_csrf(); ?>
+
+        <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+            <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('video', 20); ?></span>
+            <h2>العلامة المائية على الفيديو</h2>
+        </div>
+
+        <div class="tqa-prefrow">
+            <div class="tqa-prefrow__main">
+                <span class="tqa-prefrow__title">تفعيل العلامة</span>
+                <span class="tqa-prefrow__hint">تتحرك فوق مشغل الدرس فتصعب تسجيل الشاشة.</span>
+            </div>
+            <div class="tqa-prefrow__end">
+                <input type="hidden" name="water_mark_status" value="inactive">
+                <span class="tqa-switch">
+                    <input type="checkbox" name="water_mark_status" value="active"
+                           <?php echo get_frontend_settings('water_mark_status') === 'active' ? 'checked' : ''; ?>>
+                    <span class="tqa-switch__track" aria-hidden="true"></span>
+                </span>
+            </div>
+        </div>
+
+        <div class="tqa-fieldgrid" style="margin-block-start:var(--tq-space-l)">
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="water_mark_speed">
+                    سرعة الحركة <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input tqa-input--ltr" type="number" min="200" step="100" required
+                       id="water_mark_speed" name="water_mark_speed"
+                       value="<?php echo html_escape(get_frontend_settings('water_mark_speed')); ?>">
+                <span class="tqa-field__hint">بالمللي ثانية — ‎1000‎ تعني ثانية واحدة.</span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="water_mark_opacity">
+                    الشفافية <span class="tqa-field__req" aria-hidden="true">*</span>
+                </label>
+                <input class="tqa-input tqa-input--ltr" type="number" min="0" max="1" step="0.1" required
+                       id="water_mark_opacity" name="water_mark_opacity"
+                       value="<?php echo html_escape(get_frontend_settings('water_mark_opacity')); ?>">
+                <span class="tqa-field__hint">من ‎0‎ (شفافة تماما) إلى ‎1‎ (ظاهرة تماما).</span>
+            </div>
+        </div>
+
+        <div class="tqa-field">
+            <span class="tqa-field__label">نوع العلامة</span>
+            <div class="tqa-checkrow">
+                <label class="tqa-check">
+                    <input type="radio" name="water_mark_type" value="text" data-tqa-wm
+                           <?php echo $tq_kind === 'text' ? 'checked' : ''; ?>>
+                    <span>نص</span>
+                </label>
+                <label class="tqa-check">
+                    <input type="radio" name="water_mark_type" value="image" data-tqa-wm
+                           <?php echo $tq_kind === 'image' ? 'checked' : ''; ?>>
+                    <span>صورة</span>
+                </label>
+            </div>
+        </div>
+
+        <div data-tqa-wm-pane="text" <?php echo $tq_kind === 'text' ? '' : 'hidden'; ?>>
+            <div class="tqa-fieldgrid">
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="wm_text">النص</label>
+                    <input class="tqa-input" type="text" id="wm_text" name="water_mark"
+                           value="<?php echo html_escape($tq_kind === 'text' ? $tq_wm : ''); ?>"
+                           placeholder="اسم الطالب أو اسم المنصة">
+                </div>
+
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="water_mark_color">لون النص</label>
+                    <input class="tqa-input" type="color" id="water_mark_color" name="water_mark_color"
+                           style="padding:var(--tq-space-xs);block-size:var(--tqa-field-h)"
+                           value="<?php echo html_escape(get_frontend_settings('water_mark_color') ?: '#ffffff'); ?>">
+                </div>
+            </div>
+        </div>
+
+        <div data-tqa-wm-pane="image" <?php echo $tq_kind === 'image' ? '' : 'hidden'; ?>>
+            <div class="tqa-field">
+                <span class="tqa-field__label">صورة العلامة</span>
+                <div class="tqa-file">
+                    <?php if ($tq_src !== ''): ?>
+                        <img class="tqa-file__preview" src="<?php echo html_escape($tq_src); ?>" alt="العلامة الحالية">
+                    <?php endif; ?>
+                    <input type="file" id="water_mark_image" name="water_mark_image" accept="image/*" data-tqa-file>
+                    <label class="tqa-file__btn" for="water_mark_image">
+                        <?php echo tq_icon('upload', 16); ?> اختر صورة
+                    </label>
+                    <span class="tqa-file__name" data-tqa-file-name>المقاس المفضل ‎330 × 70‎ بكسل</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tqa-actions">
+            <button type="submit" class="tqa-btn tqa-btn--primary">
+                <?php echo tq_icon('check', 16); ?> احفظ العلامة
+            </button>
+        </div>
+    </form>
+
+    <script>
+    (function () {
+        'use strict';
+        var panes = {
+            text:  document.querySelector('[data-tqa-wm-pane="text"]'),
+            image: document.querySelector('[data-tqa-wm-pane="image"]')
+        };
+        Array.prototype.forEach.call(document.querySelectorAll('[data-tqa-wm]'), function (radio) {
+            radio.addEventListener('change', function () {
+                if (panes.text)  panes.text.hidden  = radio.value !== 'text';
+                if (panes.image) panes.image.hidden = radio.value !== 'image';
+            });
+        });
+    })();
+    </script>
+
+    <?php include 'tqa_file_js.php'; ?>
+
+<?php endif; ?>

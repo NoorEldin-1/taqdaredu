@@ -2,21 +2,21 @@
 $section_details = $this->crud_model->get_section('section', $param2)->row_array();
 $lessons = $this->crud_model->get_lessons('section', $section_details['id'])->result_array();
 ?>
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="row" id = "parent-div" data-plugin="dragula" data-containers='["lesson-list"]'>
-                    <div class="col-md-12">
+<div class="tqa-stack">
+    <div>
+        <div class="tqa-card">
+            <div class="tqa-card__body">
+                <div class="tqa-stack" id = "parent-div" data-plugin="dragula" data-containers='["lesson-list"]'>
+                    <div>
                         <div class="bg-dragula p-2 p-lg-4">
                             <h5 class="mt-0"><?php echo get_phrase('sort_lessons_of').': '.$section_details['title'].' '.get_phrase('section'); ?>
-                                <button type="button" class="btn btn-outline-primary btn-sm btn-rounded alignToTitle" id = "lesson-sort-btn" onclick="sort()" name="button"><?php echo get_phrase('update_sorting'); ?></button>
+                                <button type="button" class="tqa-btn tqa-btn--ghost" id = "lesson-sort-btn" onclick="sort()" name="button"><?php echo get_phrase('update_sorting'); ?></button>
                             </h5>
                             <div id="lesson-list" class="py-2">
                                 <?php foreach ($lessons as $lesson): ?>
                                     <!-- item -->
                                     <div class="card mb-0 mt-2 draggable-item" id = "<?php echo $lesson['id']; ?>">
-                                        <div class="card-body">
+                                        <div class="tqa-card__body">
                                             <div class="media">
                                                 <div class="media-body">
                                                     <h5 class="mb-1 mt-0"><?php echo $lesson['title']; ?></h5>

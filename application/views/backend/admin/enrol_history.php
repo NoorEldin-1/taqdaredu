@@ -1,42 +1,42 @@
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('enrol_history'); ?></h4>
+<div class="tqa-stack">
+    <div>
+        <div class="tqa-card">
+            <div class="tqa-card__body">
+                <h1 class="tqa-pagehead__title"><?php echo get_phrase('enrol_history'); ?></h1>
             </div> <!-- end card body-->
         </div> <!-- end card -->
     </div><!-- end col-->
 </div>
 
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="mb-3 header-title"><?php echo get_phrase('enrol_histories'); ?></h4>
-                <div class="row d-flex justify-content-between">
-                    <div class="col-xl-6">
+<div class="tqa-stack">
+    <div>
+        <div class="tqa-card">
+            <div class="tqa-card__body">
+                <h4 class="mb-3 header-title"><?php echo get_phrase('enrol_histories'); ?></h1>
+                <div class="tqa-toolbar tqa-row--between">
+                    <div>
                         <form class="form-inline" action="<?php echo site_url('admin/enrol_history/filter_by_date_range') ?>" method="get">
-                            <div class="col-xl-10">
-                                <div class="form-group">
-                                    <div id="reportrange" class="form-control" data-toggle="date-picker-range" data-target-display="#selectedValue"  data-cancel-class="btn-light" style="width: 100%;">
+                            <div>
+                                <div class="tqa-field">
+                                    <div id="reportrange" class="tqa-input" data-toggle="date-picker-range" data-target-display="#selectedValue"  data-cancel-class="btn-light" style="width: 100%;">
                                         <i class="mdi mdi-calendar"></i>&nbsp;
                                         <span id="selectedValue"><?php echo date("F d, Y" , $timestamp_start) . " - " . date("F d, Y" , $timestamp_end);?></span> <i class="mdi mdi-menu-down"></i>
                                     </div>
                                     <input id="date_range" type="hidden" name="date_range" value="<?php echo date("d F, Y" , $timestamp_start) . " - " . date("d F, Y" , $timestamp_end);?>">
                                 </div>
                             </div>
-                            <div class="col-xl-2">
-                                <button type="submit" class="btn btn-info" id="submit-button" onclick="update_date_range();"> <?php echo get_phrase('filter');?></button>
+                            <div>
+                                <button type="submit" class="tqa-btn tqa-btn--primary" id="submit-button" onclick="update_date_range();"> <?php echo get_phrase('filter');?></button>
                             </div>
                         </form>
                     </div>
-                    <div class="col-xl-6">
-                        <button type="button" class="btn btn-info float-end" id="export-button" onclick="export_csv();"> <?php echo get_phrase('Export CSV');?></button>
+                    <div>
+                        <button type="button" class="tqa-btn tqa-btn--primary" id="export-button" onclick="export_csv();"> <?php echo get_phrase('Export CSV');?></button>
                     </div>
                 </div>
-                <div class="table-responsive-sm mt-4">
+                <div class="tqa-table__wrap">
                     <?php if (count($enrol_history->result_array()) > 0): ?>
-                        <table class="table table-striped table-centered mb-0">
+                        <table class="tqa-table">
                             <thead>
                                 <tr>
                                     <th><?php echo get_phrase('photo'); ?></th>
@@ -69,7 +69,7 @@
                                         <?php endif; ?>
                                         </td>
                                         <td>
-                                            <button type="button" class="btn btn-outline-danger btn-icon btn-rounded btn-sm" onclick="confirm_modal('<?php echo site_url('admin/enrol_history_delete/'.$enrol['id']); ?>');"> <i class="dripicons-trash"></i> </button>
+                                            <button type="button" class="tqa-btn tqa-btn--ghost" onclick="confirm_modal('<?php echo site_url('admin/enrol_history_delete/'.$enrol['id']); ?>');"> <i class="dripicons-trash"></i> </button>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

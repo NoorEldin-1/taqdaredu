@@ -4,22 +4,22 @@ $quiz_details = $this->crud_model->get_lessons('lesson', $param2)->row_array();
 $questions = $this->crud_model->get_quiz_questions($param2)->result_array();
 ?>
 <?php if (count($quiz_details)): ?>
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row" data-plugin="dragula" data-containers='["question-list"]'>
-                        <div class="col-md-12">
+    <div class="tqa-stack">
+        <div>
+            <div class="tqa-card">
+                <div class="tqa-card__body">
+                    <div class="tqa-stack" data-plugin="dragula" data-containers='["question-list"]'>
+                        <div>
                             <div class="bg-dragula p-2 p-lg-4">
                                 <h5 class="mt-0"><?php echo get_phrase('questions_of').': '.$quiz_details['title']; ?>
-                                    <button type="button" class="btn btn-outline-primary btn-sm btn-rounded alignToTitle ml-1" id = "question-sort-btn" onclick="sort()" name="button"><?php echo get_phrase('update_sorting'); ?></button>
-                                    <button type="button" class="btn btn-outline-primary btn-sm btn-rounded alignToTitle" onclick="showLargeModal('<?php echo site_url('modal/popup/question_add/'.$param2) ?>', '<?php echo get_phrase('add_new_question'); ?>')" name="button" data-dismiss="modal"><?php echo get_phrase('add_new_question'); ?></button>
+                                    <button type="button" class="tqa-btn tqa-btn--ghost" id = "question-sort-btn" onclick="sort()" name="button"><?php echo get_phrase('update_sorting'); ?></button>
+                                    <button type="button" class="tqa-btn tqa-btn--ghost" onclick="showLargeModal('<?php echo site_url('modal/popup/question_add/'.$param2) ?>', '<?php echo get_phrase('add_new_question'); ?>')" name="button" data-dismiss="modal"><?php echo get_phrase('add_new_question'); ?></button>
                                 </h5>
                                 <div id="question-list" class="py-2">
                                     <?php foreach ($questions as $question): ?>
                                         <!-- Item -->
                                         <div class="card mb-0 mt-2 draggable-item on-hover-action" id = "<?php echo $question['id']; ?>">
-                                            <div class="card-body">
+                                            <div class="tqa-card__body">
                                                 <div class="media">
                                                     <div class="media-body">
                                                         <h5 class="mb-1 mt-0"><?php echo htmlspecialchars_decode_($question['title']); ?>

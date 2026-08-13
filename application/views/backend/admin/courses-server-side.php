@@ -1,172 +1,333 @@
-<div class="row ">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="page-title"> <i class="mdi mdi-apple-keyboard-command title_icon"></i> <?php echo get_phrase('courses'); ?>
-                    <a href="<?php echo site_url('admin/course_form/add_course'); ?>" class="btn btn-outline-primary btn-rounded alignToTitle"><i class="mdi mdi-plus"></i><?php echo get_phrase('add_new_course'); ?></a>
-                </h4>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-</div>
-<div class="row">
-    <div class="col-12">
-        <div class="card widget-inline">
-            <div class="card-body p-0">
-                <div class="row no-gutters">
-                    <div class="col">
-                        <a href="<?php echo site_url('admin/courses?category_id=all&status=active&instructor_id=all&price=all&button='); ?>" class="text-secondary">
-                            <div class="card shadow-none m-0">
-                                <div class="card-body text-center">
-                                    <i class="dripicons-link text-muted" style="font-size: 24px;"></i>
-                                    <h3><span><?php echo $status_wise_courses['active']->num_rows(); ?></span></h3>
-                                    <p class="text-muted font-15 mb-0"><?php echo get_phrase('active_courses'); ?></p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-                    <div class="col">
-                        <a href="<?php echo site_url('admin/courses?category_id=all&status=upcoming&instructor_id=all&price=all&button='); ?>" class="text-secondary">
-                            <div class="card shadow-none m-0 border-left">
-                                <div class="card-body text-center">
-                                    <i class="dripicons-link-broken text-muted" style="font-size: 24px;"></i>
-                                    <h3><span><?php echo $status_wise_courses['upcoming']->num_rows(); ?></span></h3>
-                                    <p class="text-muted font-15 mb-0"><?php echo get_phrase('upcoming_courses'); ?></p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
+/**
+ * الكورسات.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*` وبعرض من الخادم — انظر TQ-DT-GONE في
+ * [Admin::courses()]. ما كان هنا: خمس بطاقات إحصاء من قالب Hyper، ونموذج
+ * ترشيح بأربعة منتقيات `select2` غير محملة، وجدول DataTables يجلب صفوفه
+ * بـPOST فيرد «Ajax error» في نافذة `alert()` بيضاء فوق اللوحة.
+ *
+ * والأعداد الثلاثة لكل صف (الدروس والأقسام والمسجلون) تجلب هنا **بثلاثة
+ * استعلامات مجمعة لا بستين**: الشاشة السابقة كانت تنادي ثلاث دوال نموذج
+ * لكل صف داخل حلقة الصفوف.
+ */
 
-                    <div class="col">
-                        <a href="<?php echo site_url('admin/courses?category_id=all&status=pending&instructor_id=all&price=all&button='); ?>" class="text-secondary">
-                            <div class="card shadow-none m-0 border-left">
-                                <div class="card-body text-center">
-                                    <i class="dripicons-link-broken text-muted" style="font-size: 24px;"></i>
-                                    <h3><span><?php echo $status_wise_courses['pending']->num_rows(); ?></span></h3>
-                                    <p class="text-muted font-15 mb-0"><?php echo get_phrase('pending_courses'); ?></p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
+$tq_ids = array();
+foreach ($courses as $tq_c) {
+    $tq_ids[] = (int) $tq_c['id'];
+}
 
-                    <div class="col">
-                        <a href="<?php echo site_url('admin/courses?category_id=all&status=all&instructor_id=all&price=free&button='); ?>" class="text-secondary">
-                            <div class="card shadow-none m-0 border-left">
-                                <div class="card-body text-center">
-                                    <i class="dripicons-star text-muted" style="font-size: 24px;"></i>
-                                    <h3><span><?php echo $this->crud_model->get_free_and_paid_courses('free')->num_rows(); ?></span></h3>
-                                    <p class="text-muted font-15 mb-0"><?php echo get_phrase('free_courses'); ?></p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
+/** عد مجمع: صف واحد لكل كورس، لا استعلام لكل كورس. */
+$tq_tally = function ($table, $col) use ($tq_ids) {
+    $out = array();
+    if (!$tq_ids) return $out;
+    $ci = &get_instance();
+    try {
+        $rows = $ci->db->select($col . ' AS k, COUNT(*) AS n')
+                       ->where_in($col, $tq_ids)
+                       ->group_by($col)
+                       ->get($table)->result_array();
+        foreach ($rows as $r) $out[(int) $r['k']] = (int) $r['n'];
+    } catch (Throwable $e) {
+        /* جدول غائب لا يبيض الشاشة — عمود أرقام فارغ أهون. */
+    }
+    return $out;
+};
 
-                    <div class="col">
-                        <a href="<?php echo site_url('admin/courses?category_id=all&status=all&instructor_id=all&price=paid&button='); ?>" class="text-secondary">
-                            <div class="card shadow-none m-0 border-left">
-                                <div class="card-body text-center">
-                                    <i class="dripicons-tags text-muted" style="font-size: 24px;"></i>
-                                    <h3><span><?php echo $this->crud_model->get_free_and_paid_courses('paid')->num_rows(); ?></span></h3>
-                                    <p class="text-muted font-15 mb-0"><?php echo get_phrase('paid_courses'); ?></p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
+$tq_lessons  = $tq_tally('lesson',  'course_id');
+$tq_sections = $tq_tally('section', 'course_id');
+$tq_enrols   = $tq_tally('enrol',   'course_id');
 
-                </div> <!-- end row -->
-            </div>
-        </div> <!-- end card-box-->
-    </div> <!-- end col-->
-</div>
-<div class="row">
-    <div class="col-xl-12">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="mb-3 header-title"><?php echo get_phrase('course_list'); ?></h4>
-                <form class="row justify-content-center" action="<?php echo site_url('admin/courses'); ?>" method="get">
-                    <!-- Course Categories -->
-                    <div class="col-xl-3">
-                        <div class="form-group">
-                            <label for="category_id"><?php echo get_phrase('categories'); ?></label>
-                            <select class="form-control select2" data-toggle="select2" name="category_id" id="category_id">
-                                <option value="<?php echo 'all'; ?>" <?php if ($selected_category_id == 'all') echo 'selected'; ?>><?php echo get_phrase('all'); ?></option>
-                                <?php foreach ($categories->result_array() as $category) : ?>
-                                    <optgroup label="<?php echo $category['name']; ?>">
-                                        <?php $sub_categories = $this->crud_model->get_sub_categories($category['id']);
-                                        foreach ($sub_categories as $sub_category) : ?>
-                                            <option value="<?php echo $sub_category['id']; ?>" <?php if ($selected_category_id == $sub_category['id']) echo 'selected'; ?>><?php echo $sub_category['name']; ?></option>
-                                        <?php endforeach; ?>
-                                    </optgroup>
-                                <?php endforeach; ?>
-                            </select>
+/** أسماء الأقسام مرة واحدة — لا `get_category_details_by_id` لكل صف. */
+$tq_catnames = array();
+foreach ($this->db->select('id, name')->get('category')->result_array() as $tq_r) {
+    $tq_catnames[(int) $tq_r['id']] = $tq_r['name'];
+}
+
+/** أسماء المعلمين مرة واحدة، من قائمة المنتقي نفسها. */
+$tq_insnames = array();
+foreach ($instructors as $tq_i) {
+    $tq_insnames[(int) $tq_i['id']] = trim($tq_i['first_name'] . ' ' . $tq_i['last_name']) ?: $tq_i['email'];
+}
+
+/* حالات Academy الخمس تترجم إلى نبرات الشارة. البرتقالي انتظار لا نجاح. */
+$tq_status_map = array(
+    'active'   => array('ok',     'منشور'),
+    'pending'  => array('warn',   'قيد المراجعة'),
+    'draft'    => array('muted',  'مسودة'),
+    'private'  => array('info',   'خاص'),
+    'upcoming' => array('info',   'قادم'),
+);
+
+$tq_statuses = array(
+    'all'      => 'كل الحالات',
+    'active'   => 'منشور',
+    'pending'  => 'قيد المراجعة',
+    'private'  => 'خاص',
+    'upcoming' => 'قادم',
+    'draft'    => 'مسودة',
+);
+
+/** رابط يحفظ المرشحات الحالية ويغير واحدا منها. */
+$tq_link = function ($over = array()) use ($selected_category_id, $selected_instructor_id, $selected_price, $selected_status, $search_term) {
+    $q = array_merge(array(
+        'category_id'   => $selected_category_id,
+        'instructor_id' => $selected_instructor_id,
+        'price'         => $selected_price,
+        'status'        => $selected_status,
+        'q'             => $search_term,
+    ), $over);
+    $q = array_filter($q, function ($v) { return $v !== '' && $v !== 'all'; });
+    return site_url('admin/courses') . ($q ? '?' . http_build_query($q) : '');
+};
+
+$tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/course_form/add_course') . '">'
+          . tq_icon('plus', 17) . ' إضافة كورس</a>';
+?>
+
+<?php tqa_head('الكورسات', 'كل كورسات المنصة — والنشر قرار إدارة لا قرار معلم.', 'book', $tq_tools); ?>
+
+<?php /* حبات الحالة: ترشيح بضغطة واحدة، والحالة تعيش في الرابط فتحفظ
+         وترسل ويعود إليها زر الرجوع. */ ?>
+<nav class="tqa-tabs" aria-label="تصفية الكورسات بالحالة">
+    <?php foreach ($tq_statuses as $tq_k => $tq_lbl): ?>
+        <a href="<?php echo $tq_link(array('status' => $tq_k, 'page' => null)); ?>"
+           <?php echo (string) $selected_status === (string) $tq_k ? 'aria-current="page"' : ''; ?>>
+            <?php echo html_escape($tq_lbl); ?>
+        </a>
+    <?php endforeach; ?>
+</nav>
+
+<form class="tqa-toolbar" method="get" action="<?php echo site_url('admin/courses'); ?>">
+
+    <label class="tqa-sr" for="f_q">ابحث في الكورسات</label>
+    <input class="tqa-input" type="search" id="f_q" name="q" placeholder="ابحث بعنوان الكورس…"
+           value="<?php echo html_escape($search_term); ?>">
+
+    <label class="tqa-sr" for="f_cat">القسم</label>
+    <select class="tqa-select" id="f_cat" name="category_id">
+        <option value="all">كل الأقسام</option>
+        <?php foreach ($categories->result_array() as $tq_cat): ?>
+            <?php if ((int) $tq_cat['parent'] === 0): ?>
+                <optgroup label="<?php echo html_escape($tq_cat['name']); ?>">
+                    <?php foreach ($this->crud_model->get_sub_categories($tq_cat['id']) as $tq_sub): ?>
+                        <option value="<?php echo (int) $tq_sub['id']; ?>"
+                            <?php echo (string) $selected_category_id === (string) $tq_sub['id'] ? 'selected' : ''; ?>>
+                            <?php echo html_escape($tq_sub['name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </optgroup>
+            <?php endif; ?>
+        <?php endforeach; ?>
+    </select>
+
+    <label class="tqa-sr" for="f_ins">المعلم</label>
+    <select class="tqa-select" id="f_ins" name="instructor_id">
+        <option value="all">كل المعلمين</option>
+        <?php foreach ($instructors as $tq_i): ?>
+            <option value="<?php echo (int) $tq_i['id']; ?>"
+                <?php echo (string) $selected_instructor_id === (string) $tq_i['id'] ? 'selected' : ''; ?>>
+                <?php echo html_escape($tq_insnames[(int) $tq_i['id']]); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+
+    <label class="tqa-sr" for="f_price">السعر</label>
+    <select class="tqa-select" id="f_price" name="price">
+        <option value="all">مجاني ومدفوع</option>
+        <option value="free" <?php echo $selected_price === 'free' ? 'selected' : ''; ?>>مجاني</option>
+        <option value="paid" <?php echo $selected_price === 'paid' ? 'selected' : ''; ?>>مدفوع</option>
+    </select>
+
+    <input type="hidden" name="status" value="<?php echo html_escape($selected_status); ?>">
+
+    <button type="submit" class="tqa-btn tqa-btn--primary">
+        <?php echo tq_icon('filter', 16); ?> رشح
+    </button>
+
+    <?php if ($search_term !== '' || $selected_category_id !== 'all' || $selected_instructor_id !== 'all' || $selected_price !== 'all'): ?>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/courses'); ?>">مسح المرشحات</a>
+    <?php endif; ?>
+</form>
+
+<div class="tqa-card tqa-card--flush">
+<?php if (empty($courses)): ?>
+
+    <?php tqa_empty(
+        $total_courses === 0 && $search_term === '' ? 'لا كورسات بعد' : 'لا كورس يطابق هذا الترشيح',
+        $total_courses === 0 && $search_term === ''
+            ? 'الكورس وعاء الدروس، وهو ما يشترك فيه الطالب. ابدأ بأول كورس.'
+            : 'غير المرشحات أو امسحها لتعود إلى كل الكورسات.',
+        $total_courses === 0 && $search_term === '' ? 'إضافة كورس' : 'مسح المرشحات',
+        $total_courses === 0 && $search_term === '' ? site_url('admin/course_form/add_course') : site_url('admin/courses'),
+        'book'
+    ); ?>
+
+<?php else: ?>
+
+    <div class="tqa-table__wrap">
+        <table class="tqa-table">
+            <caption class="tqa-sr">الكورسات: القسم والمحتوى والمسجلون والحالة والسعر</caption>
+            <thead>
+                <tr>
+                    <th style="inline-size:60px">#</th>
+                    <th>الكورس</th>
+                    <th>القسم</th>
+                    <th>المحتوى</th>
+                    <th>المسجلون</th>
+                    <th>الحالة</th>
+                    <th>السعر</th>
+                    <th style="inline-size:230px"><span class="tqa-sr">إجراءات</span></th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($courses as $tq_i => $tq_c):
+                $tq_id  = (int) $tq_c['id'];
+                $tq_ord = ($page_no - 1) * $per_page + $tq_i + 1;
+
+                [$tq_tone, $tq_slabel] = $tq_status_map[$tq_c['status']] ?? array('muted', $tq_c['status']);
+
+                $tq_free = (int) $tq_c['is_free_course'] === 1;
+                $tq_amt  = (int) $tq_c['discount_flag'] === 1 ? $tq_c['discounted_price'] : $tq_c['price'];
+
+                $tq_creator = (int) $tq_c['creator'];
+                $tq_owner   = $tq_insnames[$tq_creator] ?? '—';
+
+                $tq_slug = site_url('home/course/' . rawurlencode(slugify($tq_c['title'])) . '/' . $tq_id);
+            ?>
+                <tr>
+                    <td data-label="#"><span class="tqa-num"><?php echo $tq_ord; ?></span></td>
+
+                    <td data-label="الكورس">
+                        <a class="tqa-media__title" href="<?php echo site_url('admin/course_form/course_edit/' . $tq_id); ?>">
+                            <?php echo html_escape($tq_c['title']); ?>
+                        </a>
+                        <span class="tqa-media__sub">المعلم: <?php echo html_escape($tq_owner); ?></span>
+                    </td>
+
+                    <td data-label="القسم">
+                        <?php $tq_cn = $tq_catnames[(int) $tq_c['sub_category_id']] ?? ''; ?>
+                        <?php if ($tq_cn !== ''): ?>
+                            <span class="tqa-badge tqa-badge--muted"><?php echo html_escape($tq_cn); ?></span>
+                        <?php else: ?>
+                            <span class="tqa-dim">بلا تصنيف</span>
+                        <?php endif; ?>
+                    </td>
+
+                    <td data-label="المحتوى">
+                        <?php if ($tq_c['course_type'] === 'general'): ?>
+                            <span class="tqa-num"><?php echo (int) ($tq_lessons[$tq_id] ?? 0); ?></span> درسا
+                            <span class="tqa-media__sub">
+                                في <span class="tqa-num"><?php echo (int) ($tq_sections[$tq_id] ?? 0); ?></span> قسما
+                            </span>
+                        <?php else: ?>
+                            <span class="tqa-badge tqa-badge--info"><?php echo html_escape(strtoupper($tq_c['course_type'])); ?></span>
+                        <?php endif; ?>
+                    </td>
+
+                    <td data-label="المسجلون"><span class="tqa-num"><?php echo (int) ($tq_enrols[$tq_id] ?? 0); ?></span></td>
+
+                    <td data-label="الحالة">
+                        <span class="tqa-badge tqa-badge--<?php echo $tq_tone; ?>"><?php echo html_escape($tq_slabel); ?></span>
+                    </td>
+
+                    <td data-label="السعر">
+                        <?php if ($tq_free): ?>
+                            <span class="tqa-badge tqa-badge--ok">مجاني</span>
+                        <?php else: ?>
+                            <span class="tqa-num"><?php echo html_escape(currency($tq_amt)); ?></span>
+                        <?php endif; ?>
+                        <span class="tqa-media__sub">
+                            <?php echo (int) $tq_c['expiry_period'] > 0
+                                ? 'لمدة ' . (int) $tq_c['expiry_period'] . ' شهرا'
+                                : 'وصول دائم'; ?>
+                        </span>
+                    </td>
+
+                    <?php /* الإجراءات أزرار ظاهرة لا قائمة نقاط ثلاث: القائمة
+                             المنسدلة كانت تفتح `dropright` — أي «إلى اليمين»
+                             حرفيا — داخل جدول في صفحة عربية، فتقص عند الحافة. */ ?>
+                    <td data-label="إجراءات">
+                        <div class="tqa-rowacts">
+                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                               href="<?php echo site_url('admin/course_form/course_edit/' . $tq_id); ?>">
+                                <?php echo tq_icon('edit', 14); ?> تحرير
+                            </a>
+
+                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_slug; ?>"
+                               target="_blank" rel="noopener" title="صفحة الكورس في الموقع">
+                                <?php echo tq_icon('external', 14); ?>
+                                <span class="tqa-sr">صفحته في الموقع</span>
+                            </a>
+
+                            <?php
+                            /* تبديل الحالة: إن كان الكورس لغير من يعدله فالتبديل
+                               يمر بنافذة تخبر صاحبه — وهي شاشة موروثة تفتح
+                               بـAJAX. وإن كان له فالتبديل مباشر بعد تأكيد. */
+                            $tq_to   = $tq_c['status'] === 'active' ? 'pending' : 'active';
+                            $tq_verb = $tq_c['status'] === 'active' ? 'أوقف النشر' : 'انشر';
+                            $tq_url  = site_url('admin/change_course_status_for_admin/' . $tq_to . '/' . $tq_id
+                                     . '/' . $selected_category_id . '/' . $selected_instructor_id . '/all/' . $selected_status);
+                            ?>
+                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_url; ?>"
+                               data-tqa-confirm-title="<?php echo html_escape($tq_verb); ?>"
+                               data-tqa-confirm="سيتغير ظهور «<?php echo html_escape($tq_c['title']); ?>» في الموقع العام."
+                               data-tqa-confirm-ok="<?php echo html_escape($tq_verb); ?>">
+                                <?php echo tq_icon($tq_c['status'] === 'active' ? 'eye' : 'check', 14); ?>
+                                <?php echo html_escape($tq_verb); ?>
+                            </a>
+
+                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)"
+                               href="<?php echo site_url('admin/course_actions/delete/' . $tq_id); ?>"
+                               data-tqa-confirm-title="حذف الكورس"
+                               data-tqa-confirm="سيحذف «<?php echo html_escape($tq_c['title']); ?>» ودروسه وتسجيلات طلابه. لا رجعة في هذا."
+                               data-tqa-confirm-ok="نعم، احذف"
+                               data-tqa-confirm-tone="danger">
+                                <?php echo tq_icon('trash', 14); ?>
+                                <span class="tqa-sr">حذف <?php echo html_escape($tq_c['title']); ?></span>
+                            </a>
                         </div>
-                    </div>
-
-                    <!-- Course Status -->
-                    <div class="col-xl-2">
-                        <div class="form-group">
-                            <label for="status"><?php echo get_phrase('status'); ?></label>
-                            <select class="form-control select2" data-toggle="select2" name="status" id='status'>
-                                <option value="all" <?php if ($selected_status == 'all') echo 'selected'; ?>><?php echo get_phrase('all'); ?></option>
-                                <option value="active" <?php if ($selected_status == 'active') echo 'selected'; ?>><?php echo get_phrase('active'); ?></option>
-                                <option value="pending" <?php if ($selected_status == 'pending') echo 'selected'; ?>><?php echo get_phrase('pending'); ?></option>
-                                <option value="private" <?php if ($selected_status == 'private') echo 'selected'; ?>><?php echo get_phrase('private'); ?></option>
-                                <option value="upcoming" <?php if ($selected_status == 'upcoming') echo 'selected'; ?>><?php echo get_phrase('upcoming'); ?></option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Course Instructors -->
-                    <div class="col-xl-3">
-                        <div class="form-group">
-                            <label for="instructor_id"><?php echo get_phrase('instructor'); ?></label>
-                            <select class="form-control server-side-select2" name="instructor_id" id='instructor_id' action="<?php echo site_url('admin/get_select2_instructor_data/all'); ?>">
-                                <option value="all" <?php if ($selected_instructor_id == 'all') echo 'selected'; ?>><?php echo get_phrase('all'); ?></option>
-
-                                <?php if(isset($_GET['instructor_id']) && $_GET['instructor_id'] != 'all'): ?>
-                                    <?php $instructor_details = $this->user_model->get_all_user($_GET['instructor_id'])->row_array(); ?>
-                                    <option value="<?php echo $_GET['instructor_id']; ?>" selected><?php echo $instructor_details['first_name'].' '.$instructor_details['last_name']; ?></option>
-                                <?php endif; ?>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Course Price -->
-                    <div class="col-xl-2">
-                        <div class="form-group">
-                            <label for="price"><?php echo get_phrase('price'); ?></label>
-                            <select class="form-control select2" data-toggle="select2" name="price" id='price'>
-                                <option value="all" <?php if ($selected_price == 'all') echo 'selected'; ?>><?php echo get_phrase('all'); ?></option>
-                                <option value="free" <?php if ($selected_price == 'free') echo 'selected'; ?>><?php echo get_phrase('free'); ?></option>
-                                <option value="paid" <?php if ($selected_price == 'paid') echo 'selected'; ?>><?php echo get_phrase('paid'); ?></option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-2">
-                        <label for=".." class="text-white">..</label>
-                        <button type="submit" class="btn btn-primary btn-block" name="button"><?php echo get_phrase('filter'); ?></button>
-                    </div>
-                </form>
-
-                <div class="table-responsive-sm mt-4">
-                    <table id="course-datatable-server-side" class="table table-striped dt-responsive nowrap" width="100%" data-page-length='25'>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th><?php echo get_phrase('title'); ?></th>
-                                <th><?php echo get_phrase('category'); ?></th>
-                                <th><?php echo get_phrase('lesson_and_section'); ?></th>
-                                <th><?php echo get_phrase('enrolled_student'); ?></th>
-                                <th><?php echo get_phrase('status'); ?></th>
-                                <th><?php echo get_phrase('price'); ?></th>
-                                <th><?php echo get_phrase('actions'); ?></th>
-                            </tr>
-                        </thead>
-                    </table>
-                </div>
-            </div>
-        </div>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
     </div>
+
+    <?php
+    /* الترقيم: نافذة من خمس صفحات حول الحالية — لا ستون زرا حين تكثر. */
+    $tq_from = max(1, $page_no - 2);
+    $tq_to_p = min($page_count, $tq_from + 4);
+    $tq_from = max(1, $tq_to_p - 4);
+    ?>
+    <nav class="tqa-pager" aria-label="صفحات الكورسات">
+        <span class="tqa-pager__info">
+            المعروض <span class="tqa-num"><?php echo count($courses); ?></span>
+            من <span class="tqa-num"><?php echo (int) $total_courses; ?></span> كورسا
+        </span>
+
+        <?php if ($page_no > 1): ?>
+            <a href="<?php echo $tq_link(array('page' => $page_no - 1)); ?>" rel="prev" aria-label="الصفحة السابقة">
+                <?php echo tq_icon('chev-prev', 16); ?>
+            </a>
+        <?php endif; ?>
+
+        <?php for ($tq_p = $tq_from; $tq_p <= $tq_to_p; $tq_p++): ?>
+            <?php if ($tq_p === (int) $page_no): ?>
+                <span aria-current="page"><?php echo $tq_p; ?></span>
+            <?php else: ?>
+                <a href="<?php echo $tq_link(array('page' => $tq_p)); ?>"><?php echo $tq_p; ?></a>
+            <?php endif; ?>
+        <?php endfor; ?>
+
+        <?php if ($page_no < $page_count): ?>
+            <a href="<?php echo $tq_link(array('page' => $page_no + 1)); ?>" rel="next" aria-label="الصفحة التالية">
+                <?php echo tq_icon('chev-next', 16); ?>
+            </a>
+        <?php endif; ?>
+    </nav>
+
+<?php endif; ?>
 </div>

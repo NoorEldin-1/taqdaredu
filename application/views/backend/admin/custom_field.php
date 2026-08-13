@@ -1,474 +1,220 @@
-<style>
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-    .carousel-item img{
-        height: 400px;
-        object-fit: cover;
-        border-radius: 10px;
+/**
+ * الحقول المخصصة للكورس — أقسام إضافية تعرض في صفحته العامة.
+ *
+ * TQ-BS5-ACCORDION — كانت الأقسام مطوية بـ`data-bs-toggle="collapse"`،
+ * وهي **صيغة Bootstrap 5**؛ واللوحة تحمل Bootstrap 4 الذي يقرأ
+ * `data-toggle` بلا `bs`. فلم يكن أي قسم يفتح إطلاقا: تضغط عنوانه فلا
+ * يحدث شيء، ولا سبيل إلى رؤية ما فيه ولا تحريره. (العطل نفسه كان في
+ * [seo_settings.php].)
+ *
+ * وثلاثة أعطال أخرى:
+ *
+ * ١ — **مئتا سطر `<style>` مضمنة** في القالب، تعيد تعريف `.card` و
+ *     `.accordion-button` و`.list-group-item` بألوان مكتوبة مباشرة
+ *     (`#1982FE` · `#ff4625`) خارج هوية المنصة كلها.
+ * ٢ — **أزرار التحرير والحذف تظهر بالتمرير وحده** (`.eControll` بـ
+ *     `opacity:0` و`:hover`) — لا تصل من جوال ولا بلوحة مفاتيح.
+ * ٣ — **`$item['description']` و`$item['title']` تطبعان خامتين** — نص
+ *     يكتبه المسؤول، وهو مقصود في الوصف؛ لكن العنوان يهرب الآن.
+ */
+$tq_fields = $this->db->where('course_id', (int) $course_id)
+                      ->order_by('sorting', 'ASC')
+                      ->get('custom_fields')->result_array();
+
+$tq_kinds = array(
+    'image'   => array('صور بعناوين', 'image'),
+    'text'    => array('نص مفصل',     'file-text'),
+    'video'   => array('فيديو',       'play'),
+    'faq'     => array('أسئلة شائعة', 'help'),
+    'gallery' => array('معرض صور',    'grid'),
+);
+
+/** معرف فيديو يوتيوب من أي صيغة رابط. */
+$tq_ytid = function ($url) {
+    foreach (array('~youtu\.be/([^\?&]+)~', '~v=([^\?&]+)~', '~/embed/([^\?&]+)~', '~/shorts/([^\?&]+)~') as $tq_re) {
+        if (preg_match($tq_re, (string) $url, $tq_m)) return $tq_m[1];
     }
-    .ratio{
-        height: 430px;
-    }
-  .list-group-item {
-	border: 1px solid #e1dede !important;
-	border-radius: 5px;
-}
-.card-text {
-    display: -webkit-box;        
-    -webkit-line-clamp: 3;          
-    -webkit-box-orient: vertical;   
-    overflow: hidden;               
-    text-overflow: ellipsis;   
-}
-.eCard  .card-body {
-	padding: 11px 14px;
-}
-.eCard  .card-title {
-	font-size: 16px !important;
-	font-weight: 600 !important;
-}
-.bg-card{
-    box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
-    border-color: #e7e7e7;
-    background: #fff;
-}
-.ratio > * {
-	border-radius: 10px;
-}
-
-
-.eControll .fa-edit {
-	background: #1982FE;
-    color: #fff ;
-}
-.eControll .fa-trash {
-	background: #ff4625;
-    color: #fff ;
-}
-.list-group-item p{
-    font-size: 14px;
-}
-
- .dragable-item {
-	background: #dfedffb5;
-    color: #010101;
-	padding: 14px 12px;
-	border-radius: 5px;
-	margin-bottom: 10px;
-	cursor: move;
-}
-
-.ui-sortable-placeholder {
-    background: #e0e0e0;
-    border: 2px dashed #ccc;
-    height: 40px;
-}
-.notes {
-	font-size: 12px;
-	color: #010101;
-	background: #797c8b30;
-	border-radius: 3px;
-	padding: 7px 13px;
-}
-.singleFaq {
-	border-bottom: 1px solid #dbd5d5;
-	padding-bottom: 10px;
-	margin-bottom: 15px;
-    position: relative;
-}
-.singleFaq:hover .eControll {
-    visibility: visible;
-    opacity: 1;
-    }
-.singleFaq h4 {
-	font-size: 17px;
-	font-weight: 500;
-	margin-bottom: 10px;
-}
-.singleFaq p {
-	font-size: 14px;
-	line-height: 24px;
-}
-.accor_wrap ul{
-    position: absolute;
-    right: 50px;
-    visibility: hidden;
-    opacity: 0;
-    transition: .3s;
-    z-index: 999;
-    list-style: none;
-}
-
-.accor_wrap li a {
-	height: 30px;
-	width: 30px;
-	border-radius: 4px;
-	border: 1px solid #e0e5f3;
-    background: #fff;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	transition: .3s;
-   
-}
-.accor_wrap li a i{
-    font-size: 15px;
-}
-.accor_wrap li a:hover{
-    color: #1982FE;
-    border-color: #1982FE;
-}
-.accor_wrap:hover ul{
-    visibility: visible;
-    opacity: 1;
-}
-.accordion-item {
-	margin-bottom: 10px;
-    border: none;
-
-}
-.accor_wrap {
-	position: relative;
-}
-.accor_wrap .accordion-button {
-	padding: 14px 17px;
-    border: 1px solid #e5e1e1 !important;
-    border-radius: 5px;
-}
-.accordion-button:not(.collapsed) {
-	box-shadow: none;
-}
-.accordion-button{
-    font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--darkColor);
-}
-
-.accordion-button::after {
-	background-image: var(--bs-accordion-btn-icon) !important;
-	z-index: 999;
-}
-.accordion-button:not(.collapsed)::after {
-	transform: inherit;
-}
-.accordion-body {
-	border: 1px solid #e5e1e1 !important;
-	border-top: 0 !important;
-	border-radius: 0 0 5px 5px;
-}
-.accordion-button:not(.collapsed) {
-	color: var(--darkColor);
-}
-.carousel-caption  h5 {
-	font-size: 19px;
-	margin-bottom: 13px;
-}
-.accordion-button:focus {
-	box-shadow: none;
-}
-.accordion-button:not(.collapsed) {
-	background-color:transparent;
-}
-.eControll {
-	position: absolute;
-	top: 8px;
-    left: 6px;
-    width: 20px;
-	z-index: 999;
-	color: #ff4625;
-	visibility: hidden;
-	opacity: 0;
-	transition: .5s;
-}
-.eCard:hover .eControll {
-	visibility: visible;
-	opacity: 1;
-}
-.position-inherite{
-    position: inherit;
-}
-.eControll i {
-	font-size: 12px;
-	border: 1px solid var(--skinColor);
-	color: var(--skinColor);
-	height: 26px;
-	width: 26px;
-	line-height: 24px;
-	text-align: center;
-	border-radius: 50%;
-	transition: .5s;
-    display: flex;
-	justify-content: center;
-	align-items: center;
-}
- </style>
-
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h5 class="fs-16px title mb-3 capitalize"><?php echo get_phrase('custom_field'); ?></h5>
-    <div>
-        <a href="javascript:void(0);" onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_section_sorting/'.$course_id); ?>', '<?php echo get_phrase('sort_custom_field_section'); ?>')" class="btn btn-outline-primary btn-rounded btn-sm ml-1"><?php echo get_phrase('Sorting'); ?></a>
-         <a href="javascript:void(0)" class="btn btn-outline-primary btn-rounded btn-sm ml-1" onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_add/'.$course_id); ?>', '<?php echo get_phrase('add_type'); ?>')"><i class="mdi mdi-plus"></i> <?php echo get_phrase('add_type'); ?></a>
-    </div>
-</div>
-
-<?php 
-// Fetch all custom fields for the course
-$custom_fields = $this->db->where('course_id', $course_id)->order_by('sorting', 'ASC')->get('custom_fields')->result_array();
-
+    return '';
+};
 ?>
-<div class="row">
-    <div class="col-lg-12">
-        <div class="accordion" id="accordionExample">
-            <?php foreach($custom_fields as $field): ?>
-                <?php 
-                    $collapse_id = 'collapse' . $field['id'];
-                    $title = htmlspecialchars($field['custom_title']);
-                    $items = json_decode($field['custom_field'], true)['data'] ?? [];
-                ?>
-                
-                <?php if($field['custom_type'] == 'image'): ?>
-                <!-- Main Image -->
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <div class="accor_wrap d-flex justify-content-between align-items-center w-100">
-                            <button class="accordion-button collapsed flex-grow-1 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo $collapse_id; ?>" aria-expanded="false">
-                               <?php echo $title; ?>
-                            </button> 
-                            <ul class="d-flex gap-2 mb-0">
-                                 <li><a href="javascript:;" onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_section_edit/'.$field['id']); ?>', '<?php echo get_phrase('edit_section'); ?>')"><i class="far fa-edit"></i></a></li>
-                                <li><a href="javascript:;" onclick="confirm_modal('<?php echo site_url('admin/custom_field_section_delete/' . $field['id']); ?>');"><i class="fas fa-trash"></i></a></li>
-                            </ul>
-                        </div>
-                    </h2>
-                    <div id="<?php echo $collapse_id; ?>" class="accordion-collapse collapse">
-                        <div class="accordion-body">
-                            <div class="row">
-                                <?php foreach($items as $item): ?>
-                                <div class="col-lg-6 mb-3">
-                                    <div class="card eCard bg-card position-relative h-100">
-                                        <div class="row g-0">
-                                            <div class="col-md-4">
-                                                <img src="<?php echo base_url('uploads/custom_fields/' . $item['file']); ?>" class="img-fluid rounded-start w-100" style="height: 150px; object-fit: cover;">
-                                            </div>
-                                            <div class="col-md-8 d-flex position-inherite flex-column">
-                                                <div class="card-body flex-grow-1">
-                                                    <h5 class="card-title"><?php echo $item['title']; ?></h5>
-                                                    <p class="card-text"><?php echo $item['description']; ?></p>
-                                                </div>
-                                                <div class="eControll d-flex gap-2 mt-auto">
-                                                    <a href="javascript:;" 
-                                                        onclick="showLargeModal(
-                                                            '<?php echo site_url('modal/popup/custom_field_edit/'.$field['id'].'/'.$item['id']); ?>',
-                                                            '<?php echo get_phrase('edit_field'); ?>'
-                                                        )">
-                                                        <i class="far fa-edit"></i>
-                                                        </a>
 
-                                                    <a href="javascript:;" onclick="confirm_modal( '<?php echo site_url('admin/custom_field_item_delete/'.$field['id'].'/'.$item['id']); ?>');">
-                                                        <i class="fas fa-trash"></i>
-                                                    </a>
+<div class="tqa-toolbar">
+    <button type="button" class="tqa-btn tqa-btn--primary"
+            onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_add/' . (int) $course_id); ?>', 'إضافة قسم مخصص')">
+        <?php echo tq_icon('plus', 16); ?> أضف قسما
+    </button>
 
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <?php elseif($field['custom_type'] == 'text'): ?>
-                <!-- Detailed Text -->
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <div class="accor_wrap d-flex justify-content-between align-items-center w-100">
-                            <button class="accordion-button collapsed flex-grow-1 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo $collapse_id; ?>" aria-expanded="false">
-                                <?php echo $title; ?>
-                            </button>
-                            <ul class="d-flex gap-2 mb-0">
-                                <li><a href="javascript:;" onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_section_edit/'.$field['id']); ?>', '<?php echo get_phrase('edit_section'); ?>')"><i class="far fa-edit"></i></a></li>
-                                <li><a href="javascript:;" onclick="confirm_modal('<?php echo site_url('admin/custom_field_section_delete/' . $field['id']); ?>');"><i class="fas fa-trash"></i></a></li>
-                            </ul>
-                        </div>
-                    </h2>
-                    <div id="<?php echo $collapse_id; ?>" class="accordion-collapse collapse">
-                        <div class="accordion-body">
-                            <ul class="list-group gap-3">
-                                <?php foreach($items as $item): ?>
-                                <li class="list-group-item eCard">
-                                    <p><?php echo $item['description']; ?></p>
-                                    
-                                    <div class="eControll d-flex gap-2 mt-2">
-                                        <a href="javascript:;" onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_edit/'.$field['id'].'/'.$item['id']); ?>','<?php echo get_phrase('edit_field'); ?>')">
-                                                <i class="far fa-edit"></i>
-                                        </a>
-                                        <a href="javascript:;" onclick="confirm_modal(
-                                            '<?php echo site_url('admin/custom_field_item_delete/'.$field['id'].'/'.$item['id']); ?>'
-                                        );"><i class="fas fa-trash"></i></a>
-                                    </div>
-                                </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <?php elseif($field['custom_type'] == 'video'): ?>
-                <!-- Video Section -->
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <div class="accor_wrap d-flex justify-content-between align-items-center w-100">
-                            <button class="accordion-button collapsed flex-grow-1 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo $collapse_id; ?>" aria-expanded="false">
-                                <?php echo $title; ?>
-                            </button>
-                            <ul class="d-flex gap-2 mb-0">
-                                <li><a href="javascript:;" onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_section_edit/'.$field['id']); ?>', '<?php echo get_phrase('edit_section'); ?>')"><i class="far fa-edit"></i></a></li>
-                                <li><a href="javascript:;" onclick="confirm_modal('<?php echo site_url('admin/custom_field_section_delete/' . $field['id']); ?>');"><i class="fas fa-trash"></i></a></li>
-                            </ul>
-                        </div>
-                    </h2>
-                    <div id="<?php echo $collapse_id; ?>" class="accordion-collapse collapse">
-                        <div class="accordion-body">
-                            <div class="row">
-                               <?php foreach($items as $item): ?>
-                                    <?php
-                                        $video_id = '';
-
-                                        if (!empty($item['file'])) {
-                                            $url = $item['file'];
-
-                                            // youtu.be
-                                            if (preg_match('~youtu\.be/([^\?&]+)~', $url, $m)) {
-                                                $video_id = $m[1];
-                                            }
-                                            // watch?v=
-                                            elseif (preg_match('~v=([^\?&]+)~', $url, $m)) {
-                                                $video_id = $m[1];
-                                            }
-                                            // embed
-                                            elseif (preg_match('~/embed/([^\?&]+)~', $url, $m)) {
-                                                $video_id = $m[1];
-                                            }
-                                            // shorts
-                                            elseif (preg_match('~/shorts/([^\?&]+)~', $url, $m)) {
-                                                $video_id = $m[1];
-                                            }
-                                        }
-                                    ?>
-                                    <div class="col-lg-12 mb-3">
-                                        <div class="ratio ratio-16x9 eCard position-relative">
-                                            <?php if($video_id): ?>
-                                                <iframe
-                                                    src="https://www.youtube.com/embed/<?php echo $video_id; ?>"
-                                                    allowfullscreen
-                                                    frameborder="0">
-                                                </iframe>
-                                            <?php else: ?>
-                                                <p class="text-danger"><?php echo get_phrase('invalid_youtube_url'); ?></p>
-                                            <?php endif; ?>
-
-                                            <div class="eControll d-flex gap-2 position-absolute top-2 end-2">
-                                                <a href="javascript:;" onclick="showLargeModal(
-                                                    '<?php echo site_url('modal/popup/custom_field_edit/'.$field['id'].'/'.$item['id']); ?>',
-                                                    '<?php echo get_phrase('edit_field'); ?>'
-                                                )"><i class="far fa-edit"></i></a>
-
-                                                <a href="javascript:;" onclick="confirm_modal(
-                                                    '<?php echo site_url('admin/custom_field_item_delete/'.$field['id'].'/'.$item['id']); ?>'
-                                                );"><i class="fas fa-trash"></i></a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <?php endforeach; ?>
-
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-
-                <?php elseif($field['custom_type'] == 'faq'): ?>
-                <!-- FAQ Section -->
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <div class="accor_wrap d-flex justify-content-between align-items-center w-100">
-                            <button class="accordion-button collapsed flex-grow-1 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo $collapse_id; ?>" aria-expanded="false">
-                                <?php echo $title; ?>
-                            </button>
-                            <ul class="d-flex gap-2 mb-0">
-                                 <li><a href="javascript:;" onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_section_edit/'.$field['id']); ?>', '<?php echo get_phrase('edit_section'); ?>')"><i class="far fa-edit"></i></a></li>
-                                <li><a href="javascript:;" onclick="confirm_modal('<?php echo site_url('admin/custom_field_section_delete/' . $field['id']); ?>');"><i class="fas fa-trash"></i></a></li>
-                            </ul>
-                        </div>
-                    </h2>
-                    <div id="<?php echo $collapse_id; ?>" class="accordion-collapse collapse">
-                        <div class="accordion-body">
-                            <div class="faq-figure row">
-                                <div class="col-lg-12">
-                                    <ul class=" list-unstyled">
-                                        <?php foreach($items as $item): ?>
-                                        <li class="singleFaq  mb-3">
-                                            <h4><?php echo $item['title']; ?></h4>
-                                            <p><?php echo $item['description']; ?></p>
-                                            <div class="eControll d-flex gap-2 mt-2">
-                                                <a href="javascript:;"  onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_edit/'.$field['id'].'/'.$item['id']); ?>', '<?php echo get_phrase('edit_field'); ?>'  )">
-                                                        <i class="far fa-edit"></i>
-                                                </a>
-                                                <a href="javascript:;"   onclick="confirm_modal( '<?php echo site_url( 'admin/custom_field_item_delete/'.$field['id'].'/'.$item['id'] ); ?>'   );">
-                                                        <i class="fas fa-trash"></i>
-                                                </a>
-                                            </div>
-                                            
-                                        </li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <?php elseif($field['custom_type'] == 'gallery'): ?>
-                <!-- Gallery Section -->
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <div class="accor_wrap d-flex justify-content-between align-items-center w-100">
-                            <button class="accordion-button collapsed flex-grow-1 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo $collapse_id; ?>" aria-expanded="false">
-                                <?php echo $title; ?>
-                            </button>
-                            <ul class="d-flex gap-2 mb-0">
-                                <li><a href="javascript:;" onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_section_edit/'.$field['id']); ?>', '<?php echo get_phrase('edit_section'); ?>')"><i class="far fa-edit"></i></a></li>
-                                <li><a href="javascript:;" onclick="confirm_modal('<?php echo site_url('admin/custom_field_section_delete/' . $field['id']); ?>');"><i class="fas fa-trash"></i></a></li>
-                            </ul>
-                        </div>
-                    </h2>
-                    <div id="<?php echo $collapse_id; ?>" class="accordion-collapse collapse">
-                        <div class="accordion-body">
-                            <div class="row">
-                                <?php foreach($items as $item): ?>
-                                <div class="col-lg-3">
-                                    <div class="card eCard mb-3 position-relative">
-                                        <img src="<?php echo base_url('uploads/custom_fields/' . $item['file']); ?>" class="img-fluid rounded w-100" style="height: 260px; object-fit: cover;">
-                                        <div class="eControll d-flex gap-2 position-absolute top-2 end-2">
-                                            <a href="javascript:;"  onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_edit/'.$field['id'].'/'.$item['id']); ?>', '<?php echo get_phrase('edit_field'); ?>'  )">
-                                                        <i class="far fa-edit"></i>
-                                                </a>
-                                                <a href="javascript:;"   onclick="confirm_modal( '<?php echo site_url( 'admin/custom_field_item_delete/'.$field['id'].'/'.$item['id'] ); ?>'   );">
-                                                        <i class="fas fa-trash"></i>
-                                                </a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <?php endif; ?>
-            <?php endforeach; ?>
-        </div>
-    </div>
+    <?php if (count($tq_fields) > 1): ?>
+        <button type="button" class="tqa-btn tqa-btn--ghost"
+                onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_section_sorting/' . (int) $course_id); ?>', 'ترتيب الأقسام')">
+            <?php echo tq_icon('layers', 16); ?> رتب الأقسام
+        </button>
+    <?php endif; ?>
 </div>
+
+<?php if (empty($tq_fields)): ?>
+
+    <div class="tqa-card tqa-card--flush">
+        <?php tqa_empty(
+            'لا أقسام مخصصة في هذا الكورس',
+            'القسم المخصص كتلة إضافية تعرض في صفحة الكورس العامة — صور أو نص أو فيديو أو أسئلة شائعة أو معرض.',
+            '', '', 'grid'
+        ); ?>
+    </div>
+
+<?php else: ?>
+
+<div class="tqa-stack" style="max-inline-size:900px">
+<?php foreach ($tq_fields as $tq_f):
+    $tq_id    = (int) $tq_f['id'];
+    $tq_type  = (string) $tq_f['custom_type'];
+    $tq_items = json_decode((string) $tq_f['custom_field'], true)['data'] ?? array();
+    if (!is_array($tq_items)) $tq_items = array();
+    [$tq_kindname, $tq_ic] = $tq_kinds[$tq_type] ?? array($tq_type, 'grid');
+?>
+    <details class="tqa-card">
+        <summary class="tqa-row tqa-row--between">
+            <span class="tqa-row">
+                <span class="tqa-iconbox tqa-lilac" aria-hidden="true" style="inline-size:36px;block-size:36px">
+                    <?php echo tq_icon($tq_ic, 18); ?>
+                </span>
+                <span>
+                    <strong style="color:var(--tq-navy);font:var(--tq-type-bodyStrong)">
+                        <?php echo html_escape($tq_f['custom_title']); ?>
+                    </strong>
+                    <span class="tqa-media__sub">
+                        <?php echo html_escape($tq_kindname); ?> ·
+                        <span class="tqa-num"><?php echo count($tq_items); ?></span> عنصرا
+                    </span>
+                </span>
+            </span>
+        </summary>
+
+        <div style="margin-block-start:var(--tq-space-l);border-block-start:1px solid var(--tq-line);
+                    padding-block-start:var(--tq-space-l)">
+
+            <?php /* أدوات القسم — ظاهرة دائما لا بالتمرير. */ ?>
+            <div class="tqa-rowacts tqa-section">
+                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                        onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_section_edit/' . $tq_id); ?>', 'تعديل القسم')">
+                    <?php echo tq_icon('edit', 14); ?> تعديل القسم
+                </button>
+
+                <form method="post" action="<?php echo site_url('admin/custom_field_section_delete/' . $tq_id); ?>"
+                      data-tqa-confirm-title="حذف القسم المخصص"
+                      data-tqa-confirm="سيحذف «<?php echo html_escape($tq_f['custom_title']); ?>» وكل عناصره."
+                      data-tqa-confirm-ok="نعم، احذف"
+                      data-tqa-confirm-tone="danger">
+                    <?php echo tq_csrf(); ?>
+                    <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
+                        <?php echo tq_icon('trash', 14); ?> حذف القسم
+                    </button>
+                </form>
+            </div>
+
+            <?php if (empty($tq_items)): ?>
+                <p style="margin:0;font:var(--tq-type-caption);color:var(--tq-text2)">
+                    لا عناصر في هذا القسم بعد.
+                </p>
+            <?php else: ?>
+
+                <div class="<?php echo in_array($tq_type, array('image', 'gallery'), true) ? 'tqa-grid tqa-grid--2' : 'tqa-stack'; ?>">
+                <?php foreach ($tq_items as $tq_it):
+                    $tq_file = 'uploads/custom_fields/' . ($tq_it['file'] ?? '');
+                    $tq_src  = (!empty($tq_it['file']) && is_file(FCPATH . $tq_file)) ? base_url($tq_file) : '';
+
+                    /* شريط الأدوات لكل عنصر — يكتب مرة ويستعمل في الأنواع الخمسة. */
+                    ob_start(); ?>
+                    <div class="tqa-rowacts" style="margin-block-start:var(--tq-space-s)">
+                        <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_edit/' . $tq_id . '/' . html_escape($tq_it['id'])); ?>', 'تعديل العنصر')">
+                            <?php echo tq_icon('edit', 14); ?> تعديل
+                        </button>
+
+                        <form method="post"
+                              action="<?php echo site_url('admin/custom_field_item_delete/' . $tq_id . '/' . html_escape($tq_it['id'])); ?>"
+                              data-tqa-confirm-title="حذف العنصر"
+                              data-tqa-confirm="لا رجعة في هذا الحذف."
+                              data-tqa-confirm-ok="نعم، احذف"
+                              data-tqa-confirm-tone="danger">
+                            <?php echo tq_csrf(); ?>
+                            <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
+                                <?php echo tq_icon('trash', 14); ?>
+                                <span class="tqa-sr">حذف</span>
+                            </button>
+                        </form>
+                    </div>
+                    <?php $tq_acts = ob_get_clean(); ?>
+
+                    <?php if ($tq_type === 'video'): $tq_vid = $tq_ytid($tq_it['file'] ?? ''); ?>
+                        <div class="tqa-card" style="box-shadow:none;border-style:dashed">
+                            <?php if ($tq_vid !== ''): ?>
+                                <div style="position:relative;padding-block-end:56.25%;border-radius:var(--tqa-radius-sm);overflow:hidden">
+                                    <iframe style="position:absolute;inset:0;inline-size:100%;block-size:100%;border:0"
+                                            src="https://www.youtube.com/embed/<?php echo html_escape($tq_vid); ?>"
+                                            title="<?php echo html_escape($tq_it['title'] ?? 'فيديو'); ?>"
+                                            allowfullscreen loading="lazy"></iframe>
+                                </div>
+                            <?php else: ?>
+                                <p class="tqa-note tqa-note--warn" style="margin:0">
+                                    <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+                                    <span>رابط يوتيوب غير صالح — لا يعرض شيء للطالب.</span>
+                                </p>
+                            <?php endif; ?>
+                            <?php echo $tq_acts; ?>
+                        </div>
+
+                    <?php elseif ($tq_type === 'gallery'): ?>
+                        <div class="tqa-card" style="box-shadow:none;border-style:dashed">
+                            <?php if ($tq_src !== ''): ?>
+                                <img src="<?php echo html_escape($tq_src); ?>" alt="" loading="lazy"
+                                     style="inline-size:100%;block-size:200px;object-fit:cover;border-radius:var(--tqa-radius-sm)">
+                            <?php else: ?>
+                                <span class="tqa-dim">لا صورة</span>
+                            <?php endif; ?>
+                            <?php echo $tq_acts; ?>
+                        </div>
+
+                    <?php elseif ($tq_type === 'image'): ?>
+                        <div class="tqa-card" style="box-shadow:none;border-style:dashed">
+                            <?php if ($tq_src !== ''): ?>
+                                <img src="<?php echo html_escape($tq_src); ?>" alt="" loading="lazy"
+                                     style="inline-size:100%;block-size:140px;object-fit:cover;
+                                            border-radius:var(--tqa-radius-sm);margin-block-end:var(--tq-space-m)">
+                            <?php endif; ?>
+                            <strong style="color:var(--tq-navy);display:block">
+                                <?php echo html_escape($tq_it['title'] ?? ''); ?>
+                            </strong>
+                            <p style="margin:var(--tq-space-xs) 0 0;font:var(--tq-type-caption);color:var(--tq-text2)">
+                                <?php echo html_escape($tq_it['description'] ?? ''); ?>
+                            </p>
+                            <?php echo $tq_acts; ?>
+                        </div>
+
+                    <?php else: /* text · faq */ ?>
+                        <div class="tqa-card" style="box-shadow:none;border-style:dashed">
+                            <?php if (!empty($tq_it['title'])): ?>
+                                <strong style="color:var(--tq-navy);display:block;margin-block-end:var(--tq-space-xs)">
+                                    <?php echo html_escape($tq_it['title']); ?>
+                                </strong>
+                            <?php endif; ?>
+                            <div style="font:var(--tq-type-caption);color:var(--tq-text);overflow-wrap:anywhere">
+                                <?php echo $tq_it['description'] ?? ''; ?>
+                            </div>
+                            <?php echo $tq_acts; ?>
+                        </div>
+                    <?php endif; ?>
+
+                <?php endforeach; ?>
+                </div>
+
+            <?php endif; ?>
+        </div>
+    </details>
+<?php endforeach; ?>
+</div>
+
+<?php endif; ?>
