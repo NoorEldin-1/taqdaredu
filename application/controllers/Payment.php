@@ -105,7 +105,7 @@ class Payment extends CI_Controller
             $this->session->set_flashdata('error_message', site_phrase('an_error_occurred_during_payment'));
         }
 
-        redirect(site_url('admin/instructor_payout'), 'refresh');
+        redirect(site_url('taqdar_admin/payouts'), 'refresh');
     }
 
 

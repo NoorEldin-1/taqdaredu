@@ -50,10 +50,9 @@ foreach ($questions as $q) {
         <h1>ربط أسئلة: <?php echo html_escape($course['title']); ?></h1>
         <p>لكل سؤال هدف واحد — هو ما يحدد إلى أين يعاد الطالب حين يخطئ.</p>
     </div>
-    <a class="btn btn-secondary" href="<?php echo site_url('taqdar_admin/bindings'); ?>">رجوع</a>
+    <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/bindings'); ?>">رجوع</a>
 </div>
 
-<?php tqa_flash(); ?>
 
 <?php if (empty($objectives)): ?>
 
@@ -64,7 +63,7 @@ foreach ($questions as $q) {
             والهدف يعلق على درس الفيديو لا على درس الاختبار: إليه يعيد النظام
             الطالب، وعند لحظته من الشرح تحديدا.
         </p>
-        <a class="btn btn-primary" href="<?php echo site_url('taqdar_admin/form/objectives'); ?>">أضف هدفا</a>
+        <a class="tqa-btn tqa-btn--primary" href="<?php echo site_url('taqdar_admin/form/objectives'); ?>">أضف هدفا</a>
     </div>
 
 <?php elseif (empty($questions)): ?>
@@ -76,11 +75,11 @@ foreach ($questions as $q) {
 
 <?php else: ?>
 
-    <div class="card">
-        <div class="card-header">
+    <div class="tqa-card">
+        <div class="tqa-card__head">
             <h4 class="header-title">أهداف دروس هذه الدورة</h4>
         </div>
-        <div class="card-body">
+        <div class="tqa-card__body">
             <?php foreach ($obj_by_lesson as $lid => $g): ?>
                 <div class="tqa-field">
                     <label><?php echo html_escape($g['title']); ?></label>
@@ -108,9 +107,9 @@ foreach ($questions as $q) {
     <?php endif; ?>
 
     <form method="post" action="<?php echo site_url('taqdar_admin/bind_save/' . (int) $course['id']); ?>">
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
+        <div class="tqa-card">
+            <div class="tqa-card__body">
+                <div class="tqa-table__wrap">
                     <table class="table mb-0">
                         <thead>
                             <tr>
@@ -145,7 +144,7 @@ foreach ($questions as $q) {
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <select class="form-control" name="objective[<?php echo (int) $q['id']; ?>]">
+                                    <select class="tqa-input" name="objective[<?php echo (int) $q['id']; ?>]">
                                         <option value="0">— بلا هدف —</option>
                                         <?php foreach ($obj_by_lesson as $lid => $g): ?>
                                             <optgroup label="<?php echo html_escape($g['title']); ?>">
@@ -175,8 +174,8 @@ foreach ($questions as $q) {
                 </p>
 
                 <div class="tqa-actions">
-                    <button type="submit" class="btn btn-primary">حفظ الربط</button>
-                    <a class="btn btn-secondary" href="<?php echo site_url('taqdar_admin/bindings'); ?>">رجوع</a>
+                    <button type="submit" class="tqa-btn tqa-btn--primary">حفظ الربط</button>
+                    <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/bindings'); ?>">رجوع</a>
                 </div>
             </div>
         </div>

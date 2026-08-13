@@ -84,7 +84,10 @@ if (!function_exists('tq_home_for')) {
     function tq_home_for($role)
     {
         switch ($role) {
-            case 'admin':   return site_url('admin/dashboard');
+            /* لوحة القيادة الجديدة لا `admin/dashboard` الموروثة: تلك تقرأ
+               جدول `payment` القديم ورسما بيانيا لسنة لا يباع فيها شيء
+               بهذه الطريقة، وهذه تقرأ `subscriptions` و`invoices`. */
+            case 'admin':   return site_url('taqdar_admin/overview');
             case 'teacher': return site_url('teacher');
             case 'parent':  return site_url('parent');
             case 'student': return site_url('student');

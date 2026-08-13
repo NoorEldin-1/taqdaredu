@@ -271,6 +271,59 @@ class Taqdar_admin_model extends CI_Model
                 ),
             ),
 
+            /* الكتب: صفحة `/books` منشورة للعامة وتقرأ من هذا الجدول
+               (`Taqdar_site_model::books()`)، ولم تكن له شاشة واحدة في
+               اللوحة — فكان كتاب المنهج يضاف بيد في phpMyAdmin، أو لا
+               يضاف. وأي محتوى عام بلا شاشة إدارة يعني نشرا لكل تعديل. */
+            'books' => array(
+                'table'    => 'books',
+                'title'    => 'الكتب',
+                'lead'     => 'كتب المنهج التي تعرض في صفحة الكتب العامة.',
+                'icon'     => 'book',
+                'order_by' => array('tq_order' => 'ASC', 'id' => 'DESC'),
+                'fields'   => array(
+                    'title'       => array('label' => 'العنوان', 'type' => 'text', 'required' => true, 'list' => true),
+                    'slug'        => array('label' => 'المسمى في الرابط', 'type' => 'text', 'ltr' => true,
+                                           'hint' => 'حروف لاتينية وشرطات. يترك فارغا ليولد من العنوان.'),
+                    'subject'     => array('label' => 'المادة', 'type' => 'text', 'list' => true),
+                    'category_id' => array('label' => 'المرحلة', 'type' => 'ref', 'ref' => 'categories', 'list' => true),
+                    'author'      => array('label' => 'المؤلف أو الجهة', 'type' => 'text', 'list' => true),
+                    'pages'       => array('label' => 'عدد الصفحات', 'type' => 'number', 'default' => 0),
+                    'tone'        => array('label' => 'لون الغلاف', 'type' => 'enum', 'default' => 'math',
+                                           'options' => array('math' => 'رياضيات', 'arabic' => 'لغة عربية',
+                                                              'science' => 'علوم', 'islamic' => 'دراسات إسلامية',
+                                                              'english' => 'لغة إنجليزية')),
+                    'cover'       => array('label' => 'صورة الغلاف', 'type' => 'text', 'ltr' => true,
+                                           'hint' => 'مسار الملف داخل uploads/'),
+                    'file'        => array('label' => 'ملف الكتاب', 'type' => 'text', 'ltr' => true,
+                                           'hint' => 'مسار PDF داخل uploads/. بلا ملف لا يظهر زر التحميل.'),
+                    'description' => array('label' => 'الوصف', 'type' => 'textarea'),
+                    'status'      => array('label' => 'الحالة', 'type' => 'enum', 'default' => 'draft', 'list' => true,
+                                           'options' => array('draft' => 'مسودة', 'published' => 'منشور')),
+                    'tq_order'    => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0),
+                ),
+            ),
+
+            /* المشاركون: كانت المسابقة تنشأ من اللوحة وتفتح للتسجيل
+               (`Taqdar::competition_join`) ولا شاشة تقول من سجل فيها.
+               تقرأ ولا تحرر: الاشتراك فعل صاحبه، وتحريره من اللوحة
+               يجعل كشف المشاركين شيئا آخر غير ما جرى. */
+            'competition_entries' => array(
+                'table'    => 'competition_entries',
+                'title'    => 'المشاركون في المسابقات',
+                'lead'     => 'من سجل في كل مسابقة، ومتى، وبأي نتيجة.',
+                'icon'     => 'trophy',
+                'order_by' => array('id' => 'DESC'),
+                'readonly' => true,
+                'note'     => 'الاشتراك فعل صاحبه فلا يحرر ولا يحذف من هنا — كشف المشاركين يقرأ ما جرى لا ما أريد له أن يجري.',
+                'fields'   => array(
+                    'competition_id' => array('label' => 'المسابقة', 'type' => 'ref', 'ref' => 'competitions', 'list' => true),
+                    'user_id'        => array('label' => 'المشترك', 'type' => 'ref', 'ref' => 'users', 'list' => true),
+                    'score'          => array('label' => 'النتيجة', 'type' => 'number', 'list' => true),
+                    'created_at'     => array('label' => 'تاريخ التسجيل', 'type' => 'datetime', 'list' => true),
+                ),
+            ),
+
             'audit_log' => array(
                 'table'    => 'audit_log',
                 'title'    => 'سجل التدقيق',
@@ -379,6 +432,19 @@ class Taqdar_admin_model extends CI_Model
                 foreach ($this->db->order_by('id', 'DESC')->limit(500)->get('assessments')->result_array() as $r)
                     $out[$r['id']] = '#' . $r['id'] . ' — ' . $r['type'];
                 break;
+
+            /* `categories` مرجع للمرحلة في الكتب والمسابقات وحدها.
+               وليست مرجع المنهج — المنهج `subjects` + `grades`، وخلط
+               المرجعين هو ما يجعل مادة تظهر تحت مرحلتين مختلفتين. */
+            case 'categories':
+                foreach ($this->db->where('parent', 0)->order_by('id', 'ASC')->get('category')->result_array() as $r)
+                    $out[$r['id']] = $r['name'];
+                break;
+
+            case 'competitions':
+                foreach ($this->db->order_by('id', 'DESC')->limit(300)->get('competitions')->result_array() as $r)
+                    $out[$r['id']] = $r['title'];
+                break;
         }
 
         $cache[$ref] = $out;
@@ -456,6 +522,15 @@ class Taqdar_admin_model extends CI_Model
             }
         }
 
+        /* المسمى في الرابط يولد من العنوان متى ترك فارغا.
+           كتاب بلا `slug` لا يفتح في صفحته العامة: الرابط يبنى منه،
+           فيصير `/books/` بلا معرف — صفحة تعرض الكتب كلها بدل الكتاب. */
+        if (in_array($key, array('books', 'competitions'), true)
+            && array_key_exists('slug', $data) && trim((string) $data['slug']) === ''
+            && !empty($data['title'])) {
+            $data['slug'] = $this->slugify($data['title'], $spec['table'], (int) $id);
+        }
+
         // موافقة ولي الأمر: لا تفعل بلا تاريخ موثق
         if ($key === 'parent_links' && $data['status'] === 'active' && empty($data['consent_at'])) {
             $errors[] = 'لا يمكن تفعيل الرابط بلا تاريخ موافقة موثق.';
@@ -478,6 +553,33 @@ class Taqdar_admin_model extends CI_Model
 
         $this->audit($id ? 'update' : 'create', $spec['table'] . '#' . $new_id, $before, $this->row($key, $new_id));
         return array('ok' => true, 'id' => $new_id);
+    }
+
+    /**
+     * مسمى فريد للرابط.
+     *
+     * العنوان عربي والرابط لاتيني، فالحروف العربية تحذف ولا تنقحر —
+     * والنقحرة الآلية تنتج `alrhyadyat` وهو ليس أوضح من `book-12` ولا
+     * أقصر. فإن لم يبق حرف لاتيني واحد يستعمل اسم الجدول مع الرقم.
+     *
+     * والفرادة تفحص فعلا: `slug` مكرر يجعل صفحتين تتنازعان رابطا واحدا،
+     * فتفتح إحداهما أبدا والأخرى لا تفتح — بلا خطأ ولا رسالة.
+     */
+    private function slugify($title, $table, $exclude_id = 0)
+    {
+        $base = strtolower(trim((string) $title));
+        $base = preg_replace('/[^a-z0-9]+/u', '-', $base);
+        $base = trim((string) $base, '-');
+        if ($base === '') $base = $table;
+
+        $slug = $base;
+        for ($i = 2; $i < 200; $i++) {
+            $this->db->where('slug', $slug);
+            if ($exclude_id > 0) $this->db->where('id !=', $exclude_id);
+            if ($this->db->count_all_results($table) === 0) return $slug;
+            $slug = $base . '-' . $i;
+        }
+        return $base . '-' . time();
     }
 
     public function remove($key, $id)
@@ -688,6 +790,581 @@ class Taqdar_admin_model extends CI_Model
         return $out;
     }
 
+
+    /* =====================================================================
+       نبض المنصة — لوحة القيادة
+
+       الأرقام تقرأ من حيث يجري العمل فعلا: `subscriptions` و`invoices`
+       لا `payment`، و`paths` لا `course` وحدها. والمقارنة بالشهر السابق
+       لأن رقما بلا مرجع لا يقال عنه جيد ولا سيئ.
+       ===================================================================== */
+
+    public function pulse()
+    {
+        $month = date('Y-m-01 00:00:00');
+        $prev  = date('Y-m-01 00:00:00', strtotime('-1 month'));
+
+        return array(
+            'students'      => $this->safe_scalar('SELECT COUNT(*) n FROM `users` WHERE `is_instructor` = 0 AND COALESCE(`tq_gate`, "student") = "student"'),
+            'teachers'      => $this->safe_scalar('SELECT COUNT(*) n FROM `users` WHERE `is_instructor` = 1'),
+            'parents'       => $this->safe_scalar('SELECT COUNT(*) n FROM `users` WHERE `tq_gate` = "parent"'),
+            'paths_live'    => $this->safe_scalar('SELECT COUNT(*) n FROM `paths` WHERE `status` = "published"'),
+            'paths_draft'   => $this->safe_scalar('SELECT COUNT(*) n FROM `paths` WHERE `status` != "published"'),
+            'subs_active'   => $this->safe_scalar('SELECT COUNT(*) n FROM `subscriptions` WHERE `status` = "active"'),
+            'revenue_month' => $this->safe_scalar(
+                'SELECT COALESCE(SUM(`total`),0) n FROM `invoices` WHERE `status` = "paid" AND `paid_at` >= ?', array($month)),
+            'revenue_prev'  => $this->safe_scalar(
+                'SELECT COALESCE(SUM(`total`),0) n FROM `invoices` WHERE `status` = "paid" AND `paid_at` >= ? AND `paid_at` < ?',
+                array($prev, $month)),
+            'lessons'       => $this->safe_scalar('SELECT COUNT(*) n FROM `lesson`'),
+            'objectives'    => $this->safe_scalar('SELECT COUNT(*) n FROM `objectives`'),
+            'attempts_week' => $this->safe_scalar(
+                'SELECT COUNT(*) n FROM `attempts` WHERE `submitted_at` >= ?', array(date('Y-m-d H:i:s', strtotime('-7 days')))),
+        );
+    }
+
+    /**
+     * عدد واحد من استعلام واحد، بلا أن يسقط الصفحة.
+     *
+     * جداول تقدر لا تنشأ كلها بهجرة: `tutoring_sessions` ينشئه
+     * `Taqdar_sessions_model::ensure_schema()` عند أول استعمال، و
+     * `wallet_entries` ينشئه `install_schema()`. فاستعلام على جدول لم
+     * يستعمل بعد يرمي استثناء يبيض لوحة القيادة كلها — ورقم ناقص أهون.
+     */
+    private function safe_scalar($sql, $args = array())
+    {
+        try {
+            $q = $this->db->query($sql, $args);
+            if (!$q) return 0;
+            $r = $q->row_array();
+            return (int) ($r['n'] ?? 0);
+        } catch (Throwable $e) {
+            return 0;
+        }
+    }
+
+    /** صفوف من استعلام، بالحماية نفسها. */
+    private function safe_rows($sql, $args = array())
+    {
+        try {
+            $q = $this->db->query($sql, $args);
+            return $q ? $q->result_array() : array();
+        } catch (Throwable $e) {
+            return array();
+        }
+    }
+
+    /* =====================================================================
+       الحصص بالطلب
+       ===================================================================== */
+
+    public function sessions($status = '')
+    {
+        $where = '';
+        $args  = array();
+        if ($status !== '' && in_array($status, array('requested', 'confirmed', 'declined', 'expired', 'live', 'completed', 'refunded'), true)) {
+            $where = ' WHERE s.`status` = ?';
+            $args[] = $status;
+        }
+
+        return $this->safe_rows(
+            'SELECT s.*, sl.`starts_at`, sl.`duration_min`,
+                    TRIM(CONCAT(COALESCE(st.`first_name`,""), " ", COALESCE(st.`last_name`,""))) student_name,
+                    st.`email` student_email,
+                    TRIM(CONCAT(COALESCE(te.`first_name`,""), " ", COALESCE(te.`last_name`,""))) teacher_name,
+                    o.`text` objective_text
+               FROM `tutoring_sessions` s
+               LEFT JOIN `availability_slots` sl ON sl.`id` = s.`slot_id`
+               LEFT JOIN `users` st ON st.`id` = s.`student_id`
+               LEFT JOIN `users` te ON te.`id` = s.`teacher_id`
+               LEFT JOIN `objectives` o ON o.`id` = s.`context_objective_id`'
+            . $where . ' ORDER BY sl.`starts_at` IS NULL, sl.`starts_at` DESC, s.`id` DESC LIMIT 300',
+            $args
+        );
+    }
+
+    /** عد كل حالة — الشاشة تعرضها مرشحات فوق الجدول. */
+    public function session_tally()
+    {
+        $out = array('requested' => 0, 'confirmed' => 0, 'declined' => 0,
+                     'expired' => 0, 'live' => 0, 'completed' => 0, 'refunded' => 0);
+        foreach ($this->safe_rows('SELECT `status`, COUNT(*) c FROM `tutoring_sessions` GROUP BY `status`') as $r) {
+            $out[$r['status']] = (int) $r['c'];
+        }
+        return $out;
+    }
+
+    /**
+     * إلغاء حصة: الحصة تلغى **ووقتها يحرر**.
+     *
+     * إلغاء يترك الفسحة `booked` يفقد المعلم ساعة من أسبوعه بلا سبب،
+     * ولا يظهر ذلك في شاشة — يظهر في أنه لا أحد يستطيع حجزها.
+     */
+    public function cancel_session($session_id, $reason = '')
+    {
+        $session_id = (int) $session_id;
+        $row = $this->db->where('id', $session_id)->get('tutoring_sessions')->row_array();
+        if (!$row) return false;
+        if (in_array($row['status'], array('completed', 'declined'), true)) return false;
+
+        $this->db->where('id', $session_id)->update('tutoring_sessions', array('status' => 'declined'));
+
+        if (!empty($row['slot_id'])) {
+            $this->db->where('id', (int) $row['slot_id'])->update('availability_slots', array('status' => 'open'));
+        }
+
+        $note = trim((string) $reason) !== '' ? ' — ' . trim((string) $reason) : '';
+        foreach (array((int) $row['student_id'], (int) $row['teacher_id']) as $uid) {
+            if ($uid > 0) $this->push_notification($uid, 'ألغيت الحصة', 'ألغت الإدارة الحصة المتفق عليها' . $note . '.', 'session');
+        }
+
+        $this->audit('session_cancel', 'tutoring_sessions#' . $session_id, $row, array('reason' => $reason));
+        return true;
+    }
+
+    public function slots()
+    {
+        return $this->safe_rows(
+            'SELECT sl.*, TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) teacher_name
+               FROM `availability_slots` sl
+               LEFT JOIN `users` u ON u.`id` = sl.`teacher_id`
+              WHERE sl.`starts_at` >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+              ORDER BY sl.`starts_at` ASC LIMIT 300'
+        );
+    }
+
+    /**
+     * من فتح وقتا **ومن لم يفتح**.
+     *
+     * الصف الفارغ هو المعلومة: شاشة تعرض الفسحات المفتوحة وحدها تخفي
+     * أن نصف المعلمين لم يفتحوا شيئا، وهو سبب أن الطالب يرى «لا معلم
+     * متاح الآن» في بوابته.
+     */
+    public function teacher_slot_summary()
+    {
+        return $this->safe_rows(
+            'SELECT u.`id`, TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) name,
+                    u.`email`,
+                    COALESCE(SUM(CASE WHEN sl.`status` = "open"   AND sl.`starts_at` >= NOW() THEN 1 ELSE 0 END), 0) open_slots,
+                    COALESCE(SUM(CASE WHEN sl.`status` = "booked" AND sl.`starts_at` >= NOW() THEN 1 ELSE 0 END), 0) booked_slots
+               FROM `users` u
+               LEFT JOIN `availability_slots` sl ON sl.`teacher_id` = u.`id`
+              WHERE u.`is_instructor` = 1
+              GROUP BY u.`id`
+              ORDER BY open_slots ASC, name ASC'
+        );
+    }
+
+    /* =====================================================================
+       طلبات السحب
+       ===================================================================== */
+
+    public function payouts($status = '')
+    {
+        $where = '';
+        $args  = array();
+        if ($status === 'pending') { $where = ' WHERE p.`status` = 0'; }
+        elseif ($status === 'paid') { $where = ' WHERE p.`status` = 1'; }
+        elseif ($status === 'rejected') { $where = ' WHERE p.`status` = 2'; }
+
+        return $this->safe_rows(
+            'SELECT p.*,
+                    TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) teacher_name,
+                    u.`email` teacher_email,
+                    w.`balance_available`, w.`balance_locked`
+               FROM `payout` p
+               LEFT JOIN `users` u   ON u.`id` = p.`user_id`
+               LEFT JOIN `wallets` w ON w.`owner_user_id` = p.`user_id`'
+            . $where . ' ORDER BY p.`status` ASC, p.`id` DESC LIMIT 300',
+            $args
+        );
+    }
+
+    public function payout_totals()
+    {
+        return array(
+            'pending_n'   => $this->safe_scalar('SELECT COUNT(*) n FROM `payout` WHERE `status` = 0'),
+            'pending_sum' => $this->safe_scalar('SELECT COALESCE(SUM(`amount_halalas`),0) n FROM `payout` WHERE `status` = 0'),
+            'paid_sum'    => $this->safe_scalar('SELECT COALESCE(SUM(`amount_halalas`),0) n FROM `payout` WHERE `status` = 1'),
+        );
+    }
+
+    /** يخطر المعلم بقرار طلبه — قرار بلا إخطار يقرأ صمتا. */
+    public function notify_payout($payout_id, $paid, $note = '')
+    {
+        $p = $this->db->where('id', (int) $payout_id)->get('payout')->row_array();
+        if (!$p) return;
+
+        $sar = number_format(((int) $p['amount_halalas']) / 100, 2);
+        if ($paid) {
+            $this->push_notification((int) $p['user_id'], 'حول مبلغ السحب',
+                'حول إليك ' . $sar . ' ر.س. رقم العملية: ' . $note . '.', 'wallet');
+        } else {
+            $this->push_notification((int) $p['user_id'], 'رفض طلب السحب',
+                'رفض طلب سحب ' . $sar . ' ر.س، وأعيد المبلغ إلى رصيدك المتاح.'
+                . (trim((string) $note) !== '' ? ' السبب: ' . trim((string) $note) . '.' : ''), 'wallet');
+        }
+    }
+
+    /* =====================================================================
+       الإشعارات
+       ===================================================================== */
+
+    /**
+     * إشعار واحد إلى مستخدم واحد — الباب الذي تمر منه كل الإخطارات.
+     *
+     * TQ-NOTIF-TIME — `created_at` في هذا الجدول **طابع يونكس مخزن نصا**
+     * (العمود `varchar(255)`)، هكذا كتبته Academy وهكذا تقرؤه الشاشات
+     * الثلاث: `tq_notifications` و`tq_teacher_notifications` و
+     * `tq_parent_alerts` كلها تكتب `tq_since((int) $n['created_at'])`.
+     *
+     * وكانت هذه الدالة تكتب `date('Y-m-d H:i:s')`. و`(int) "2026-08-11 …"`
+     * تساوي **2026** — أي طابعا في يناير ١٩٧٠. فكل إشعار كتبته الإدارة
+     * (اعتماد سحب · رفضه · إشعار جماعي) يظهر لصاحبه «منذ ٥٦ سنة»،
+     * ويهبط إلى آخر القائمة تحت كل إشعار قديم، ويسقط من فرز «هذا الأسبوع».
+     *
+     * أي أن الإخطارات الإدارية كانت تكتب ولا تقرأ.
+     */
+    public function push_notification($to_user, $title, $description, $type = 'system', $mail = true)
+    {
+        try {
+            $now = time();
+            $this->db->insert('notifications', array(
+                'from_user'   => $this->tq_actor_id(),
+                'to_user'     => (int) $to_user,
+                'type'        => $type,
+                'title'       => $title,
+                'description' => $description,
+                'status'      => 0,
+                'created_at'  => (string) $now,
+                'updated_at'  => (string) $now,
+            ));
+        } catch (Throwable $e) {
+            log_message('error', 'push_notification: ' . $e->getMessage());
+            return false;
+        }
+
+        /* والبريد بعده — تابعا لا شرطا.
+           الإشعارات التي تمر من هنا كلها قرارات إدارية على أموال وحسابات
+           (اعتماد سحب · رفضه · تفعيل اشتراك)، وصاحبها ينتظرها ولا يفتح
+           المنصة كل يوم ليجدها. و`Taqdar_mail_model` يرد `false` بهدوء
+           حين لا يكون البريد مضبوطا — فلا يسقط القرار لأن الرسالة لم تصل. */
+        if ($mail) {
+            $this->mail_user((int) $to_user, $title, $description);
+        }
+        return true;
+    }
+
+    /** يرسل نص إشعار بالبريد إلى صاحبه إن كان له بريد والبريد مضبوط. */
+    private function mail_user($user_id, $title, $body, $cta = null)
+    {
+        try {
+            $u = $this->db->select('email')->where('id', (int) $user_id)
+                          ->get('users')->row_array();
+            if (!$u || empty($u['email'])) return false;
+
+            $this->load->model('taqdar_mail_model');
+            return $this->taqdar_mail_model->send_lines(
+                $u['email'], $title, array(strip_tags((string) $body)),
+                $cta ?: array('label' => 'افتح المنصة', 'href' => site_url('login'))
+            );
+        } catch (Throwable $e) {
+            log_message('error', 'push_notification mail: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /** فئات الإرسال ومن فيها. المعرفات تقرأ مرة ثم تستعمل مرتين. */
+    private function audience_ids($audience)
+    {
+        switch ($audience) {
+            case 'students':
+                $sql = 'SELECT `id` FROM `users` WHERE `status` = 1 AND `is_instructor` = 0
+                          AND COALESCE(`tq_gate`, "student") = "student"';
+                break;
+            case 'teachers':
+                $sql = 'SELECT `id` FROM `users` WHERE `status` = 1 AND `is_instructor` = 1';
+                break;
+            case 'parents':
+                $sql = 'SELECT `id` FROM `users` WHERE `status` = 1 AND `tq_gate` = "parent"';
+                break;
+            case 'subscribers':
+                /* المشتركون فعلا: الرسالة التي تخص الاشتراك لا ترسل لمن
+                   لا اشتراك له، وإلا قرئت إعلانا. */
+                $sql = 'SELECT DISTINCT u.`id` FROM `users` u
+                          JOIN `subscriptions` s ON s.`user_id` = u.`id` AND s.`status` = "active"
+                         WHERE u.`status` = 1';
+                break;
+            case 'all':
+            default:
+                $sql = 'SELECT `id` FROM `users` WHERE `status` = 1';
+        }
+
+        $out = array();
+        foreach ($this->safe_rows($sql) as $r) $out[] = (int) $r['id'];
+        return $out;
+    }
+
+    public function audience_sizes()
+    {
+        $out = array();
+        foreach (array('all', 'students', 'teachers', 'parents', 'subscribers') as $a) {
+            $out[$a] = count($this->audience_ids($a));
+        }
+        return $out;
+    }
+
+    /**
+     * البث.
+     *
+     * إدراج واحد مجمع لا إدراج لكل مستخدم: ألفا مستخدم يعني ألفي رحلة
+     * إلى القاعدة، وتنتهي المهلة قبل نصفهم — فيرسل الإشعار إلى بعضهم
+     * ويظهر للإدارة أنه فشل، فترسله ثانية إلى من وصله أصلا.
+     */
+    /**
+     * إشعار جماعي.
+     *
+     * @param bool $by_mail نسخة بريدية أيضا. **اختيارية عمدا**: الإشعار
+     *        داخل المنصة يكتب دفعة واحدة في القاعدة (ألف صف في استعلامين)،
+     *        أما البريد فاتصال SMTP لكل دفعة — وإرساله إلى ألفي مستلم في
+     *        مسار الطلب نفسه يعلق الصفحة حتى تنتهي مهلة PHP. فيرسل
+     *        بنسخة مخفية على دفعات من خمسين، ويقال للمسؤول ما وصل.
+     */
+    public function broadcast($audience, $title, $description, $by_mail = false)
+    {
+        $ids = $this->audience_ids($audience);
+        if (!$ids) return 0;
+
+        /* طابع يونكس نصا — انظر TQ-NOTIF-TIME في `push_notification`.
+           و`date('Y-m-d H:i:s')` هنا كانت تجعل كل إشعار جماعي يظهر
+           لمستقبليه «منذ ٥٦ سنة» في آخر قائمتهم. */
+        $now   = (string) time();
+        $actor = $this->tq_actor_id();
+        $sent  = 0;
+
+        foreach (array_chunk($ids, 500) as $chunk) {
+            $batch = array();
+            foreach ($chunk as $uid) {
+                $batch[] = array(
+                    'from_user'   => $actor,
+                    'to_user'     => $uid,
+                    'type'        => 'admin',
+                    'title'       => $title,
+                    'description' => $description,
+                    'status'      => 0,
+                    'created_at'  => $now,
+                    'updated_at'  => $now,
+                );
+            }
+            try {
+                $this->db->insert_batch('notifications', $batch);
+                $sent += count($batch);
+            } catch (Throwable $e) {
+                // دفعة تعثرت لا تسقط الباقي — والعدد المرجع يقول ما وصل فعلا
+            }
+        }
+
+        $mailed = $by_mail ? $this->broadcast_mail($ids, $title, $description) : 0;
+
+        $this->audit('broadcast', 'notifications', null,
+                     array('audience' => $audience, 'title' => $title,
+                           'count' => $sent, 'mailed' => $mailed));
+
+        $this->last_broadcast_mailed = $mailed;
+        return $sent;
+    }
+
+    /** كم مستلما وصلته النسخة البريدية من آخر إشعار جماعي. */
+    public $last_broadcast_mailed = 0;
+
+    /**
+     * النسخة البريدية من الإشعار الجماعي — بنسخة مخفية وعلى دفعات.
+     *
+     * خمسون في الدفعة: أكثر من ذلك ترفضه كثير من الخوادم (Gmail يحد
+     * المستلمين لكل رسالة)، وأقل منه يفتح اتصالات أكثر بلا فائدة.
+     * وعنوان كل مستلم في `Bcc` لا في `To`: قائمة ظاهرة تسرب بريد كل
+     * مستخدم إلى الباقين.
+     */
+    private function broadcast_mail($ids, $title, $description)
+    {
+        $this->load->model('taqdar_mail_model');
+        if (!$this->taqdar_mail_model->configured()) {
+            return 0;
+        }
+
+        $rows = $this->db->select('email')->where_in('id', $ids)
+                         ->where('email IS NOT NULL', null, false)
+                         ->where('email !=', '')
+                         ->get('users')->result_array();
+
+        $emails = array();
+        foreach ($rows as $r) {
+            if (filter_var($r['email'], FILTER_VALIDATE_EMAIL)) {
+                $emails[] = $r['email'];
+            }
+        }
+        if (!$emails) return 0;
+
+        $done = 0;
+        foreach (array_chunk($emails, 50) as $chunk) {
+            if ($this->taqdar_mail_model->send_lines($chunk, $title, array($description))) {
+                $done += count($chunk);
+            }
+        }
+        return $done;
+    }
+
+    public function recent_notifications($limit = 30)
+    {
+        return $this->safe_rows(
+            'SELECT n.`title`, n.`type`, n.`created_at`, COUNT(*) recipients,
+                    SUM(CASE WHEN n.`status` = 1 THEN 1 ELSE 0 END) opened
+               FROM `notifications` n
+              WHERE n.`type` = "admin"
+              GROUP BY n.`title`, n.`type`, n.`created_at`
+              ORDER BY n.`created_at` DESC LIMIT ' . (int) $limit
+        );
+    }
+
+    /* =====================================================================
+       خريطة الإتقان
+       ===================================================================== */
+
+    /**
+     * الأعمدة هنا ليست ما يظن.
+     *
+     * `attempts` صف لكل **محاولة تقييم** لا لكل سؤال: فيه `student_id`
+     * و`passed` و`submitted_at`، وليس فيه `is_correct` ولا `question_id`.
+     * الصواب والخطأ لكل سؤال في `answers` (`attempt_id` + `question_id`
+     * + `is_correct`). وقوة المهارة `skill_state.level` وهي **0..100**
+     * لا كسر عشري، ومفتاح صاحبها `student_id` لا `user_id`.
+     *
+     * كتبت هذه الاستعلامات أول مرة على أسماء مفترضة، وكلها كانت تخطئ
+     * صامتة عبر `safe_rows` — أي ترجع جدولا فارغا يقرأ «لا بيانات».
+     */
+    public function mastery_summary()
+    {
+        return array(
+            'attempts'    => $this->safe_scalar('SELECT COUNT(*) n FROM `attempts` WHERE `submitted_at` IS NOT NULL'),
+            'answers'     => $this->safe_scalar('SELECT COUNT(*) n FROM `answers`'),
+            'correct'     => $this->safe_scalar('SELECT COUNT(*) n FROM `answers` WHERE `is_correct` = 1'),
+            'learners'    => $this->safe_scalar('SELECT COUNT(DISTINCT `student_id`) n FROM `attempts`'),
+            'due_reviews' => $this->safe_scalar('SELECT COUNT(*) n FROM `review_queue` WHERE `due_at` <= NOW()'),
+            'skills'      => $this->safe_scalar('SELECT COUNT(*) n FROM `skill_state`'),
+            'mastered'    => $this->safe_scalar('SELECT COUNT(*) n FROM `skill_state` WHERE `level` >= 80'),
+        );
+    }
+
+    /**
+     * أصعب الأهداف: الهدف الذي يسقط فيه أكثر من مر به.
+     *
+     * أنفع رقم في المنصة لمن يحرر المنهج — وكان محجوبا تماما. والحد
+     * الأدنى خمس إجابات: هدف جربه اثنان وأخطآ ليس «أصعب هدف»، إنما
+     * عينة لا يقال عنها شيء.
+     */
+    public function hardest_objectives($limit = 20)
+    {
+        return $this->safe_rows(
+            'SELECT o.`id`, o.`text`, o.`lesson_id`,
+                    l.`title` lesson_title, c.`title` course_title,
+                    COUNT(an.`id`) tries,
+                    SUM(CASE WHEN an.`is_correct` = 1 THEN 1 ELSE 0 END) hits,
+                    COUNT(DISTINCT at.`student_id`) learners
+               FROM `objectives` o
+               JOIN `question` q  ON q.`objective_id` = o.`id`
+               JOIN `answers` an  ON an.`question_id` = q.`id`
+               JOIN `attempts` at ON at.`id` = an.`attempt_id`
+               LEFT JOIN `lesson` l ON l.`id` = o.`lesson_id`
+               LEFT JOIN `course` c ON c.`id` = l.`course_id`
+              GROUP BY o.`id`
+             HAVING tries >= 5
+              ORDER BY (hits / tries) ASC, tries DESC
+              LIMIT ' . (int) $limit
+        );
+    }
+
+    public function mastery_by_path($limit = 20)
+    {
+        return $this->safe_rows(
+            'SELECT p.`id`, p.`title`,
+                    COUNT(DISTINCT ss.`student_id`) learners,
+                    ROUND(AVG(ss.`level`)) avg_level
+               FROM `paths` p
+               JOIN `lesson` l      ON l.`course_id` = p.`course_id`
+               JOIN `objectives` o  ON o.`lesson_id` = l.`id`
+               JOIN `skill_state` ss ON ss.`objective_id` = o.`id`
+              GROUP BY p.`id`
+              ORDER BY avg_level ASC
+              LIMIT ' . (int) $limit
+        );
+    }
+
+    /* =====================================================================
+       الأشخاص
+       ===================================================================== */
+
+    /**
+     * الحسابات الأربعة في شاشة واحدة.
+     *
+     * الدور يشتق كما يشتقه `tq_role()`: `is_instructor` ثم `tq_gate` ثم
+     * الطالب افتراضا. واشتقاقه هنا بالقواعد نفسها لا باستدعائها لكل صف
+     * — خمسمئة صف تعني خمسمئة استعلام.
+     */
+    public function people($role = '', $q = '')
+    {
+        $where = array('1 = 1');
+        $args  = array();
+
+        if ($role === 'teacher')      $where[] = 'u.`is_instructor` = 1';
+        elseif ($role === 'parent')   $where[] = 'u.`is_instructor` = 0 AND u.`tq_gate` = "parent"';
+        elseif ($role === 'student')  $where[] = 'u.`is_instructor` = 0 AND COALESCE(u.`tq_gate`, "student") = "student"';
+        elseif ($role === 'admin')    $where[] = 'u.`role_id` = 1';
+        elseif ($role === 'disabled') $where[] = 'u.`status` = 0';
+
+        if (trim($q) !== '') {
+            $like    = '%' . trim($q) . '%';
+            $where[] = '(u.`email` LIKE ? OR u.`first_name` LIKE ? OR u.`last_name` LIKE ? OR u.`phone` LIKE ?)';
+            array_push($args, $like, $like, $like, $like);
+        }
+
+        return $this->safe_rows(
+            'SELECT u.`id`, u.`first_name`, u.`last_name`, u.`email`, u.`phone`,
+                    u.`status`, u.`is_instructor`, u.`role_id`, u.`date_added`,
+                    COALESCE(u.`tq_gate`, "student") tq_gate
+               FROM `users` u
+              WHERE ' . implode(' AND ', $where) . '
+              ORDER BY u.`id` DESC LIMIT 400',
+            $args
+        );
+    }
+
+    public function role_tally()
+    {
+        return array(
+            'all'      => $this->safe_scalar('SELECT COUNT(*) n FROM `users`'),
+            'student'  => $this->safe_scalar('SELECT COUNT(*) n FROM `users` WHERE `is_instructor` = 0 AND COALESCE(`tq_gate`, "student") = "student"'),
+            'teacher'  => $this->safe_scalar('SELECT COUNT(*) n FROM `users` WHERE `is_instructor` = 1'),
+            'parent'   => $this->safe_scalar('SELECT COUNT(*) n FROM `users` WHERE `is_instructor` = 0 AND `tq_gate` = "parent"'),
+            'admin'    => $this->safe_scalar('SELECT COUNT(*) n FROM `users` WHERE `role_id` = 1'),
+            'disabled' => $this->safe_scalar('SELECT COUNT(*) n FROM `users` WHERE `status` = 0'),
+        );
+    }
+
+    public function toggle_user($user_id)
+    {
+        $user_id = (int) $user_id;
+        $u = $this->db->where('id', $user_id)->get('users')->row_array();
+        if (!$u) return array('ok' => false, 'message' => 'الحساب غير موجود.');
+
+        $new = ((int) $u['status'] === 1) ? 0 : 1;
+        $this->db->where('id', $user_id)->update('users', array('status' => $new));
+        $this->audit($new ? 'user_enable' : 'user_disable', 'users#' . $user_id,
+                     array('status' => $u['status']), array('status' => $new));
+
+        return array('ok' => true, 'message' => $new
+            ? 'فتح الحساب، وصار بإمكان صاحبه الدخول.'
+            : 'أغلق الحساب. ولا يحذف شيء من بياناته — الإغلاق يمنع الدخول وحده.');
+    }
 
     /**
      * الفاعل: المستخدم في الطلب الوبي، و0 (النظام) في المهام الدورية.

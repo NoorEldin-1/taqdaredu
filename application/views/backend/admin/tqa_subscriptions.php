@@ -36,23 +36,35 @@ $tq_broken = (int) get_instance()->db->query(
     </div>
 <?php endif; ?>
 
-<?php tqa_flash(); ?>
 
 <?php if (!$gateway_active): ?>
+    <div class="tqa-note tqa-note--warn">
+        <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+        <span>
+            <strong>لا دفع أونلاين اليوم.</strong>
+            بوابة تاب غير مفعلة أو بلا مفتاح سري، فالمسار العامل هو التحويل البنكي وحده:
+            يشترك الطالب فينشأ اشتراك «معلق» وفاتورة، ثم تفعله من هنا بعد أن تتحقق من الحوالة.
+            <a href="<?php echo site_url('taqdar_admin/tap'); ?>">اضبط بوابة تاب</a>
+            ليصير الاشتراك يفعل نفسه عند الدفع.
+        </span>
+    </div>
+<?php else: ?>
     <div class="tqa-note">
-        <strong>لا بوابة دفع مفعلة.</strong>
-        مفاتيح PayPal وStripe فارغة في الإعدادات، فلا يمكن للطالب أن يدفع أونلاين اليوم.
-        المسار العامل هو التحويل البنكي: يشترك الطالب فينشأ اشتراك «معلق» وفاتورة،
-        ثم تفعله من هنا بعد أن تتحقق من الحوالة.
+        <span aria-hidden="true"><?php echo tq_icon('card', 18); ?></span>
+        <span>
+            الدفع بالبطاقة مفعل: من يدفع يفعل اشتراكه بنفسه ولا ينتظر تفعيلا يدويا.
+            وما يظهر «معلقا» هنا هو من اختار التحويل البنكي أو من لم يكمل دفعته —
+            وحال كل دفعة في <a href="<?php echo site_url('taqdar_admin/tap'); ?>">شاشة بوابة تاب</a>.
+        </span>
     </div>
 <?php endif; ?>
 
-<div class="row">
+<div class="tqa-stack">
     <?php foreach (array(
         'الباقات' => $stats['plans'], 'اشتراكات نشطة' => $stats['active'],
         'بانتظار التفعيل' => $stats['pending'], 'فواتير غير مدفوعة' => $stats['unpaid'],
     ) as $label => $num): ?>
-        <div class="col-md-3 col-sm-6">
+        <div>
             <div class="tqa-stat">
                 <span class="tqa-stat-label"><?php echo $label; ?></span>
                 <span class="tqa-stat-num tq-ltr" dir="ltr"><?php echo (int) $num; ?></span>
@@ -61,13 +73,13 @@ $tq_broken = (int) get_instance()->db->query(
     <?php endforeach; ?>
 </div>
 
-<div class="card">
-    <div class="card-header">
+<div class="tqa-card">
+    <div class="tqa-card__head">
         <h4 class="header-title">
             إجمالي المحصل: <?php echo tqa_money($stats['revenue']); ?>
         </h4>
     </div>
-    <div class="card-body">
+    <div class="tqa-card__body">
         <?php if (empty($rows)): ?>
 
             <div class="tqa-empty">
@@ -78,7 +90,7 @@ $tq_broken = (int) get_instance()->db->query(
 
         <?php else: ?>
 
-            <div class="table-responsive">
+            <div class="tqa-table__wrap">
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
@@ -112,16 +124,29 @@ $tq_broken = (int) get_instance()->db->query(
                             <td><?php echo $r['method'] ? tqa_ltr($r['method']) : '<span class="tqa-dim">—</span>'; ?></td>
                             <td>
                                 <?php if ($r['status'] === 'pending'): ?>
+                                    <?php /* التوكن يكتب صراحة: الحقن العام يعمل بجافاسكربت،
+                                             ونموذج يعتمد عليه ليحفظ يسقط صامتا متى تعثر ملف. */ ?>
                                     <form method="post" class="tqa-activate"
-                                          action="<?php echo site_url('taqdar_admin/subscription_activate/' . (int) $r['id']); ?>">
-                                        <input type="text" name="reference" class="form-control tq-ltr" dir="ltr"
+                                          action="<?php echo site_url('taqdar_admin/subscription_activate/' . (int) $r['id']); ?>"
+                                          data-tqa-confirm-title="تفعيل الاشتراك"
+                                          data-tqa-confirm="سيسدد الاشتراك وتفتح باقته للطالب فورا. تأكد من وصول الحوالة أولا."
+                                          data-tqa-confirm-ok="فعل الاشتراك">
+                                        <?php echo tq_csrf(); ?>
+                                        <input type="text" name="reference" class="tqa-input tq-ltr" dir="ltr"
                                                placeholder="مرجع الحوالة" required>
-                                        <button type="submit" class="btn btn-sm btn-success">فعل</button>
+                                        <button type="submit" class="tqa-btn tqa-btn--mastery tqa-btn--sm">فعل</button>
                                     </form>
                                 <?php elseif (in_array($r['status'], array('active'), true)): ?>
+                                    <?php /* الإلغاء لا يصادر المدفوع — المدة تكمل. يقال ذلك
+                                             في نص التأكيد نفسه لا بعده. */ ?>
                                     <form method="post" class="tqa-cancel"
-                                          action="<?php echo site_url('taqdar_admin/subscription_cancel/' . (int) $r['id']); ?>">
-                                        <button type="submit" class="btn btn-sm btn-danger">إلغاء</button>
+                                          action="<?php echo site_url('taqdar_admin/subscription_cancel/' . (int) $r['id']); ?>"
+                                          data-tqa-confirm-title="إلغاء التجديد"
+                                          data-tqa-confirm="يبقى الاشتراك صالحا حتى تاريخ انتهائه، ولا يجدد بعده."
+                                          data-tqa-confirm-ok="ألغ التجديد"
+                                          data-tqa-confirm-tone="danger">
+                                        <?php echo tq_csrf(); ?>
+                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">إلغاء</button>
                                     </form>
                                 <?php else: ?>
                                     <span class="tqa-dim">—</span>
@@ -137,11 +162,3 @@ $tq_broken = (int) get_instance()->db->query(
     </div>
 </div>
 
-<script>
-/* الإلغاء لا يصادر المدفوع — المدة تكمل. نقول ذلك قبل التأكيد لا بعده. */
-document.querySelectorAll('.tqa-cancel').forEach(function (f) {
-    f.addEventListener('submit', function (e) {
-        if (!window.confirm('إلغاء التجديد؟ يبقى الاشتراك صالحا حتى تاريخ انتهائه.')) e.preventDefault();
-    });
-});
-</script>

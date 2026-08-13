@@ -94,7 +94,7 @@ class Payment_model extends CI_Model
         $data['payment_title'] = get_phrase('pay_for_instructor_payout');
         $data['success_url'] = site_url('payment/success_instructor_payment');
         $data['cancel_url'] = site_url('payment');
-        $data['back_url'] = site_url('admin/instructor_payout');
+        $data['back_url'] = site_url('taqdar_admin/payouts');
 
         $this->session->set_userdata('payment_details', $data);
     }

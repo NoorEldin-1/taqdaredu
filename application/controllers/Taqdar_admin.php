@@ -35,11 +35,27 @@ class Taqdar_admin extends CI_Controller
         check_permission('taqdar');
     }
 
-    /** الغلاف القديم يدرج `admin/<page_name>.php` — فنكتفي بتسمية الصفحة. */
+    /**
+     * الغلاف القديم يدرج `admin/<page_name>.php` — فنكتفي بتسمية الصفحة.
+     *
+     * TQ-RAIL-NOACTIVE — و`page_name` لا يصلح وحده لتظليل الشريط الجانبي:
+     * الوحدات الموصوفة كلها تعرض بقالبين اثنين، `tqa_list` و`tqa_form`،
+     * فست عشرة شاشة — المواد والصفوف والمسارات والمحطات والأهداف
+     * والتقييمات والباقات والفواتير والمحافظ والكتب والمسابقات وسجل
+     * التدقيق … — كانت ترسل إلى `navigation.php` الاسم نفسه، ولا بند في
+     * الشريط اسمه `tqa_list`. أي أن **الشريط لا يظلل شيئا في أي منها**،
+     * ولا يجلب المستخدم إلى موضعه في قائمة من ثمانية وثلاثين بندا.
+     *
+     * فصار للشريط مفتاحه: `nav_key` يسمي **البند** لا القالب، وافتراضه
+     * `page_name` فلا تتغير الشاشات التي كان اسمها يطابق بندها أصلا.
+     */
     private function render($page_name, $title, $data = array())
     {
         $data['page_name']  = $page_name;
         $data['page_title'] = $title;
+        if (!isset($data['nav_key'])) {
+            $data['nav_key'] = $page_name;
+        }
         $this->load->view('backend/index.php', $data);
     }
 
@@ -48,12 +64,306 @@ class Taqdar_admin extends CI_Controller
         $this->overview();
     }
 
-    /** لوحة جاهزية: ما امتلأ وما بقي فارغا، بلا تجميل. */
+    /**
+     * لوحة القيادة.
+     *
+     * كانت `admin/dashboard` هي الشاشة الأولى، وتقرأ جدول `payment` القديم
+     * وعدد كورسات Academy: مبيعات لا تجري ورسم بياني لسنة لا تباع فيها
+     * دورة واحدة بهذه الطريقة. والحقيقة في `subscriptions` و`invoices`
+     * و`paths`. فالشاشة الأولى صارت تقرأ من حيث يجري المال فعلا، ومعها
+     * صف «ما ينتظرك» — لأن اللوحة تفتح لتعرف ما تفعل لا لتقرأ أرقاما.
+     */
     public function overview()
     {
-        $this->render('tqa_overview', 'منصة تقدر', array(
+        $this->render('tqa_overview', 'لوحة القيادة', array(
             'readiness' => $this->taqdar_admin_model->readiness(),
+            'pulse'     => $this->taqdar_admin_model->pulse(),
+            'queue'     => tqa_nav_counts(),
         ));
+    }
+
+    /* =====================================================================
+       الحصص بالطلب
+
+       المعلم يفتح وقتا والطالب يحجزه والمعلم يقرر — ولم يكن في اللوحة
+       شاشة واحدة تقول كم حصة طلبت اليوم ولا كم منها بلا رد. فالإدارة
+       تعرف بالشكوى وحدها.
+       ===================================================================== */
+
+    public function sessions()
+    {
+        $status = (string) $this->input->get('status');
+        $this->render('tqa_sessions', 'الحصص', array(
+            'rows'   => $this->taqdar_admin_model->sessions($status),
+            'tally'  => $this->taqdar_admin_model->session_tally(),
+            'status' => $status,
+        ));
+    }
+
+    /**
+     * إلغاء حصة من الإدارة.
+     *
+     * الإلغاء وحده لا الاعتماد: القبول قرار المعلم وحده — إدارة تقبل
+     * نيابة عنه تحجز وقتا قد لا يكون فارغا. والإلغاء إداري بحق: طلب
+     * علق أسبوعا يمنع الطالب من طلب غيره ويشغل وقتا لا يستعمل.
+     */
+    public function session_cancel()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $id = (int) $this->input->post('session_id');
+        $ok = $this->taqdar_admin_model->cancel_session($id, (string) $this->input->post('reason'));
+
+        $this->session->set_flashdata($ok ? 'flash_message' : 'error_message', $ok
+            ? 'ألغيت الحصة، وحرر وقتها، وأخطر الطرفان.'
+            : 'تعذر الإلغاء — الحصة غير موجودة أو انتهت أصلا.');
+        redirect(site_url('taqdar_admin/sessions'), 'location', 302);
+    }
+
+    /** أوقات المعلمين المفتوحة — من فتح وقتا ومن لم يفتح. */
+    public function slots()
+    {
+        $this->render('tqa_slots', 'أوقات المعلمين', array(
+            'rows'     => $this->taqdar_admin_model->slots(),
+            'teachers' => $this->taqdar_admin_model->teacher_slot_summary(),
+        ));
+    }
+
+    /* =====================================================================
+       طلبات السحب
+
+       المعلم يطلب من `POST teacher/wallet/withdraw` فيكتب صفا في `payout`
+       ويحجز المبلغ في دفتر محفظته. وكانت شاشة الاعتماد الوحيدة هي
+       `admin/instructor_payout` الموروثة: تدفع بـPayPal أو Stripe أو
+       Razorpay، ولا واحدة منها مفعلة، ولا تعرف الدفتر أصلا — فاعتمادها
+       يترك الرصيد محجوزا إلى الأبد.
+
+       وهذه الشاشة تحول بالحوالة البنكية (وهي وسيلة الدفع الفعلية) وتمر
+       بـ`Taqdar_wallet_model` فيغادر المال دلو الحجز كما ينبغي.
+       ===================================================================== */
+
+    public function payouts()
+    {
+        $this->load->model('taqdar_wallet_model');
+        $this->render('tqa_payouts', 'طلبات السحب', array(
+            'rows'     => $this->taqdar_admin_model->payouts((string) $this->input->get('status')),
+            'status'   => (string) $this->input->get('status'),
+            'channels' => Taqdar_wallet_model::$CHANNELS,
+            'totals'   => $this->taqdar_admin_model->payout_totals(),
+        ));
+    }
+
+    public function payout_decide()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $id  = (int) $this->input->post('payout_id');
+        $act = (string) $this->input->post('act');
+        $ref = trim((string) $this->input->post('reference'));
+
+        $this->load->model('taqdar_wallet_model');
+
+        if ($act === 'pay') {
+            /* المرجع شرط لا زينة: تحويل بلا رقم عملية لا يطابق بكشف
+               البنك، ولا يجاب به معلم يقول «لم يصلني». */
+            if ($ref === '') {
+                $this->session->set_flashdata('error_message',
+                    'اكتب رقم عملية التحويل قبل الاعتماد — تحويل بلا مرجع لا يطابق بكشف البنك.');
+                redirect(site_url('taqdar_admin/payouts'), 'location', 302);
+                return;
+            }
+
+            $ok = $this->taqdar_wallet_model->mark_payout_paid($id, 'bank:' . $ref);
+            if ($ok) {
+                $this->taqdar_admin_model->audit('payout_paid', 'payout#' . $id, null, array('reference' => $ref));
+                $this->taqdar_admin_model->notify_payout($id, true, $ref);
+            }
+            $msg = $ok ? 'اعتمد التحويل، وخصم المبلغ من المحجوز، وأخطر المعلم.' : 'تعذر الاعتماد.';
+
+        } else {
+            $ok = $this->taqdar_wallet_model->cancel_payout($id);
+            if ($ok) {
+                $this->taqdar_admin_model->audit('payout_rejected', 'payout#' . $id, null, array('reason' => $ref));
+                $this->taqdar_admin_model->notify_payout($id, false, $ref);
+            }
+            $msg = $ok
+                ? 'رفض الطلب، وأعيد المبلغ إلى رصيد المعلم المتاح.'
+                : 'تعذر الرفض — الطلب محول أصلا أو غير موجود.';
+        }
+
+        $this->session->set_flashdata($ok ? 'flash_message' : 'error_message', $msg);
+        redirect(site_url('taqdar_admin/payouts'), 'location', 302);
+    }
+
+    /* =====================================================================
+       الإشعارات
+
+       جدول `notifications` يكتب فيه النظام والمهام الدورية، ولم يكن في
+       اللوحة باب واحد إليه: لا مراجعة لما أرسل، ولا وسيلة لإخطار الطلاب
+       بموعد امتحان أو بتوقف مؤقت للخدمة إلا برسالة بريدية جماعية.
+       ===================================================================== */
+
+    public function notify()
+    {
+        $this->render('tqa_notify', 'إرسال إشعار', array(
+            'recent' => $this->taqdar_admin_model->recent_notifications(),
+            'sizes'  => $this->taqdar_admin_model->audience_sizes(),
+        ));
+    }
+
+    public function notify_send()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $title = trim((string) $this->input->post('title'));
+        $body  = trim((string) $this->input->post('description'));
+        $to    = (string) $this->input->post('audience');
+
+        $errors = array();
+        if ($title === '')            $errors[] = 'العنوان مطلوب.';
+        if (mb_strlen($title) > 120)  $errors[] = 'العنوان أطول من ١٢٠ حرفا.';
+        if ($body === '')             $errors[] = 'نص الإشعار مطلوب.';
+
+        if ($errors) {
+            $this->session->set_flashdata('error_message', implode(' ', $errors));
+            redirect(site_url('taqdar_admin/notify'), 'location', 302);
+            return;
+        }
+
+        $by_mail = ((string) $this->input->post('by_mail') === '1');
+        $n = $this->taqdar_admin_model->broadcast($to, $title, $body, $by_mail);
+
+        if ($n <= 0) {
+            $this->session->set_flashdata('error_message', 'لم يرسل الإشعار — لا مستخدم في هذه الفئة.');
+            redirect(site_url('taqdar_admin/notify'), 'location', 302);
+            return;
+        }
+
+        $msg = 'أرسل الإشعار إلى ' . $n . ' مستخدما. ويظهر لهم في جرس بوابتهم فورا.';
+        if ($by_mail) {
+            /* الرقم يقال كما هو: «أرسل بالبريد» بلا عدد يخفي أن نصف
+               المستلمين بلا بريد، وأن البريد قد لا يكون مضبوطا أصلا. */
+            $m = (int) $this->taqdar_admin_model->last_broadcast_mailed;
+            $msg .= $m > 0
+                ? ' ووصلت نسخة بريدية إلى ' . $m . ' منهم.'
+                : ' ولم ترسل نسخة بريدية — البريد الصادر غير مضبوط أو لا بريد لهم.';
+        }
+
+        $this->session->set_flashdata('flash_message', $msg);
+        redirect(site_url('taqdar_admin/notify'), 'location', 302);
+    }
+
+    /* =====================================================================
+       خريطة الإتقان
+
+       `attempts` و`skill_state` و`review_queue` قلب المنتج: كل إجابة طالب
+       تكتب فيها، وعليها يبنى جدول المراجعة والتقرير الأسبوعي. ولم تكن في
+       اللوحة نافذة واحدة عليها — فلا سبيل لمعرفة أن هدفا بعينه يسقط فيه
+       كل من مر به، وهو أنفع رقم في المنصة كلها لمن يحرر المنهج.
+       ===================================================================== */
+
+    public function mastery()
+    {
+        $this->render('tqa_mastery', 'خريطة الإتقان', array(
+            'summary'   => $this->taqdar_admin_model->mastery_summary(),
+            'hardest'   => $this->taqdar_admin_model->hardest_objectives(),
+            'by_path'   => $this->taqdar_admin_model->mastery_by_path(),
+        ));
+    }
+
+    /* =====================================================================
+       الأشخاص
+
+       كانت الحسابات في ثلاث شاشات موروثة (`admins` · `instructors` ·
+       `users`) تقسم الناس بقسمة Academy: مسؤول ومحاضر وطالب. وأدوار تقدر
+       أربعة — والرابع (**ولي الأمر**) لم تكن له شاشة أصلا: يسجل ويربط
+       بأبنائه ولا يظهر في أي قائمة.
+       ===================================================================== */
+
+    public function people()
+    {
+        $this->render('tqa_people', 'كل الحسابات', array(
+            'rows'  => $this->taqdar_admin_model->people(
+                (string) $this->input->get('role'),
+                (string) $this->input->get('q')
+            ),
+            'role'  => (string) $this->input->get('role'),
+            'q'     => (string) $this->input->get('q'),
+            'tally' => $this->taqdar_admin_model->role_tally(),
+        ));
+    }
+
+    /** فتح حساب أو إغلاقه — الفعل الإداري الوحيد المتاح هنا. */
+    public function people_toggle()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $id = (int) $this->input->post('user_id');
+        $me = (int) $this->session->userdata('user_id');
+
+        /* لا يغلق المسؤول حسابه: يخرج فورا ولا يستطيع الدخول ليفتحه —
+           ولا أحد غيره قد يملك صلاحية فتحه. */
+        if ($id === $me) {
+            $this->session->set_flashdata('error_message', 'لا تغلق حسابك أنت — لن تستطيع الدخول لفتحه.');
+            redirect(site_url('taqdar_admin/people'), 'location', 302);
+            return;
+        }
+
+        $r = $this->taqdar_admin_model->toggle_user($id);
+        $this->session->set_flashdata($r['ok'] ? 'flash_message' : 'error_message', $r['message']);
+        redirect(site_url('taqdar_admin/people' . ($this->input->post('back') ? '?' . $this->input->post('back') : '')),
+                 'location', 302);
+    }
+
+    /* =====================================================================
+       نصوص الموقع العام
+
+       تسع صفحات منشورة كانت نصوصها كلها مكتوبة في القوالب — صفر مرجع
+       ديناميكي في ثمان منها. أي: تغيير كلمة في الصفحة الرئيسية يحتاج
+       تحرير ملف ودفعا ونشرا. وهذه الشاشة تجعل اللوحة تملك ما ينشر.
+       ===================================================================== */
+
+    public function content($page = '')
+    {
+        $this->load->model('taqdar_content_model');
+
+        if ($page === '') {
+            $this->render('tqa_content', 'نصوص الصفحات', array(
+                'pages'  => $this->taqdar_content_model->registry(),
+                'edited' => $this->taqdar_content_model->edited_counts(),
+            ));
+            return;
+        }
+
+        $spec = $this->taqdar_content_model->registry($page);
+        if (!$spec) show_404();
+
+        $this->render('tqa_content_edit', $spec['title'], array(
+            'page'   => $page,
+            'spec'   => $spec,
+            'values' => $this->taqdar_content_model->page_values($page),
+        ));
+    }
+
+    public function content_save($page = '')
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_content_model');
+        $r = $this->taqdar_content_model->save_page($page, $this->input->post(null, false));
+
+        if (empty($r['ok'])) {
+            $this->session->set_flashdata('error_message', implode(' ', $r['errors']));
+            redirect(site_url('taqdar_admin/content'), 'location', 302);
+            return;
+        }
+
+        $msg = 'حفظ ' . (int) $r['set'] . ' نصا';
+        if (!empty($r['reset'])) {
+            $msg .= '، وأرجع ' . (int) $r['reset'] . ' إلى الافتراضي';
+        }
+        $this->session->set_flashdata('flash_message', $msg . '. والتغيير ظاهر على الموقع الآن.');
+        redirect(site_url('taqdar_admin/content/' . $page), 'location', 302);
     }
 
     /* =====================================================================
@@ -66,6 +376,8 @@ class Taqdar_admin extends CI_Controller
         if (!$spec) show_404();
 
         $this->render('tqa_list', $spec['title'], array(
+            // بند الشريط اسمه `tqa_<المفتاح>` — انظر التعليق على `render()`
+            'nav_key' => 'tqa_' . $key,
             'mkey' => $key,
             'spec' => $spec,
             'rows' => $this->taqdar_admin_model->listing($key),
@@ -78,6 +390,7 @@ class Taqdar_admin extends CI_Controller
         if (!$spec || !empty($spec['readonly'])) show_404();
 
         $this->render('tqa_form', $spec['title'], array(
+            'nav_key' => 'tqa_' . $key,
             'mkey' => $key,
             'spec' => $spec,
             'row'  => $id ? $this->taqdar_admin_model->row($key, $id) : null,
@@ -134,20 +447,20 @@ class Taqdar_admin extends CI_Controller
     }
 
     /**
-     * هل توجد بوابة دفع مفعلة فعلا؟
-     * الإعدادات تخزنها JSON بمفتاح `active`، ووجود المفتاح لا يعني تفعيله.
+     * هل يستطيع الطالب أن يدفع أونلاين الآن؟
+     *
+     * كانت هذه الدالة تقرأ `paypal` و`stripe_keys` من `settings` — ولا صف
+     * لهما في هذه القاعدة أصلا، فترد `false` أبدا. أي أن شاشة الاشتراكات
+     * كانت تنذر بأن «لا بوابة مفعلة» ولو فعلت عشر بوابات.
+     *
+     * والجواب اليوم من حيث يقع الدفع فعلا: `Taqdar_tap_model::ready()` —
+     * وهي نفسها التي يسأل عنها القالب قبل أن يعرض للطالب خيار البطاقة،
+     * فلا يفترق ما تقوله اللوحة عما يراه المشتري.
      */
     private function gateway_active()
     {
-        foreach (array('paypal', 'stripe_keys') as $key) {
-            $raw = get_settings($key);
-            if (!$raw) continue;
-            $cfg = json_decode($raw, true);
-            if (is_array($cfg) && isset($cfg[0]['active']) && (string) $cfg[0]['active'] === '1') {
-                return true;
-            }
-        }
-        return false;
+        $this->load->model('taqdar_tap_model');
+        return $this->taqdar_tap_model->ready();
     }
 
     public function subscription_activate($id = 0)
@@ -161,8 +474,29 @@ class Taqdar_admin extends CI_Controller
         }
 
         $ok = $this->taqdar_billing_model->activate_manually((int) $id, $ref);
+
+        /* TQ-SUB-TOLD — المشترك يعلم أن اشتراكه فتح.
+           كان التفعيل يقع في القاعدة بلا خبر: من حول حوالة بنكية ينتظر
+           ولا يعرف متى تراجع، فيدخل كل يوم يجرب — أو يتصل بالدعم. */
+        if ($ok) {
+            $sub = $this->db->select('s.user_id, p.name_ar AS plan_name, s.ends_at', false)
+                            ->from('subscriptions s')
+                            ->join('plans p', 'p.id = s.plan_id', 'left')
+                            ->where('s.id', (int) $id)->get()->row_array();
+            if ($sub && !empty($sub['user_id'])) {
+                $this->taqdar_admin_model->push_notification(
+                    (int) $sub['user_id'],
+                    'فعل اشتراكك',
+                    'فعلت باقة «' . ($sub['plan_name'] ?: 'الاشتراك') . '»'
+                    . (!empty($sub['ends_at']) ? ' حتى ' . date('Y-m-d', strtotime($sub['ends_at'])) : '')
+                    . '. صار المحتوى مفتوحا لك الآن.',
+                    'subscription'
+                );
+            }
+        }
+
         $this->session->set_flashdata($ok ? 'flash_message' : 'error_message',
-            $ok ? 'فعل الاشتراك وسددت فاتورته.' : 'تعذر التفعيل.');
+            $ok ? 'فعل الاشتراك وسددت فاتورته، وأخطر صاحبه.' : 'تعذر التفعيل.');
         redirect(site_url('taqdar_admin/subscriptions'));
     }
 
@@ -196,14 +530,18 @@ class Taqdar_admin extends CI_Controller
         return $out;
     }
 
-    /** مضبوط = خادم ومستخدم وكلمة مرور ومرسل. ما دون ذلك ادعاء. */
+    /**
+     * مضبوط = خادم ومستخدم وكلمة مرور ومرسل. ما دون ذلك ادعاء.
+     *
+     * الجواب يأتي من `Taqdar_mail_model` لا من نسخة هنا: كانت الشاشة
+     * تحكم بأربعة مفاتيح، ومحرك الإرسال لا يسأل أصلا، و
+     * `Taqdar_events_model` يسأل عن `smtp_user` وحدها. ثلاثة تعريفات
+     * لكلمة واحدة تعني أن الشاشة قد تقول «مضبوط» ولا يرسل شيء.
+     */
     private function mail_configured($m = null)
     {
-        $m = $m ?: $this->mail_values();
-        foreach (array('smtp_host', 'smtp_user', 'smtp_pass', 'smtp_from_email') as $k) {
-            if (trim($m[$k]) === '') return false;
-        }
-        return true;
+        $this->load->model('taqdar_mail_model');
+        return $this->taqdar_mail_model->configured();
     }
 
     public function mail()
@@ -269,6 +607,11 @@ class Taqdar_admin extends CI_Controller
             null, array('host' => $host, 'user' => $user, 'from' => $from,
                         'pass_changed' => $pass_in !== ''));
 
+        /* الضبط يقرأ مرة في الطلب ويحفظ ساكنا — فينسى بعد الكتابة، وإلا
+           قرأت الصفحة التالية القيم القديمة وقالت «غير مضبوط» بعد الحفظ. */
+        $this->load->model('taqdar_mail_model');
+        $this->taqdar_mail_model->forget();
+
         $this->session->set_flashdata('flash_message', 'حفظت إعدادات البريد. أرسل رسالة فحص للتأكد.');
         redirect(site_url('taqdar_admin/mail'));
     }
@@ -293,38 +636,23 @@ class Taqdar_admin extends CI_Controller
             return;
         }
 
-        $this->load->library('email');
-        $this->email->clear(true);
-        $this->email->initialize(array(
-            'protocol'     => 'smtp',
-            'smtp_host'    => get_settings('smtp_host'),
-            'smtp_port'    => get_settings('smtp_port'),
-            'smtp_user'    => get_settings('smtp_user'),
-            'smtp_pass'    => get_settings('smtp_pass'),
-            'smtp_crypto'  => get_settings('smtp_crypto'),
-            'mailtype'     => 'html',
-            'newline'      => "\r\n",
-            'charset'      => 'utf-8',
-            'smtp_timeout' => 20,
-        ));
-        $this->email->set_crlf("\r\n");
-        $this->email->from(get_settings('smtp_from_email'), get_settings('system_name') ?: 'تقدر');
-        $this->email->to($to);
-        $this->email->subject('رسالة فحص من منصة تقدر');
-        $this->email->message(
-            '<div dir="rtl" style="font-family:sans-serif">'
-            . '<p>هذه رسالة فحص من لوحة تقدر.</p>'
-            . '<p>وصولها يعني أن إعدادات البريد صحيحة، وأن استعادة كلمة المرور '
-            . 'والتقارير والتنبيهات صارت تعمل.</p>'
-            . '<p style="color:#657280;font-size:13px">أرسلت في '
-            . date('Y-m-d H:i') . '</p></div>'
-        );
+        /* بالمسار الذي تستعمله المنصة نفسها — لا بمسار مواز يظهر نجاحا
+           لا يتكرر في الاستعمال الفعلي. */
+        $this->load->model('taqdar_mail_model');
+        $ok = $this->taqdar_mail_model->send_lines($to, 'رسالة فحص من منصة تقدر', array(
+            'هذه رسالة فحص من لوحة تقدر.',
+            'وصولها يعني أن إعدادات البريد صحيحة، وأن استعادة كلمة المرور '
+            . 'وقرارات الطلبات والتقارير والتنبيهات صارت تصل فعلا.',
+            'أرسلت في ' . date('Y-m-d H:i') . '.',
+        ), array('label' => 'افتح لوحة الإدارة', 'href' => site_url('taqdar_admin/overview')),
+           array('debug' => true));
 
-        if ($this->email->send(false)) {
-            $this->session->set_flashdata('flash_message', 'أرسلت الرسالة إلى ' . $to . ' — تحقق من الصندوق (ومن مجلد المهملات).');
+        if ($ok) {
+            $this->session->set_flashdata('flash_message',
+                'أرسلت الرسالة إلى ' . $to . ' — تحقق من الصندوق (ومن مجلد المهملات).');
         } else {
             $this->session->set_flashdata('error_message', 'لم ترسل الرسالة. السبب أدناه كما قاله الخادم.');
-            $this->session->set_flashdata('mail_debug', $this->email->print_debugger(array('headers')));
+            $this->session->set_flashdata('mail_debug', $this->taqdar_mail_model->last_error);
         }
 
         redirect(site_url('taqdar_admin/mail'));
@@ -555,6 +883,23 @@ class Taqdar_admin extends CI_Controller
                      redirect(site_url('taqdar_admin/teachers'), 'location', 302); return; }
 
         $uid = (int) $app['user_id'];
+        $who = $this->db->select('first_name, last_name, email')->where('id', $uid)
+                        ->get('users')->row_array();
+
+        /* الحساب حذف بعد أن تقدم صاحبه: القرار لا معنى له، ويقال ذلك بدل
+           أن يظهر «اعتمد المعلم» ولا يعتمد أحد. */
+        if (!$who) {
+            $this->db->where('id', $id)->update('applications', array(
+                'status' => 2, 'reviewed_at' => date('Y-m-d H:i:s'),
+                'reviewed_by' => (int) $this->session->userdata('user_id')));
+            $this->session->set_flashdata('error_message',
+                'حساب صاحب هذا الطلب لم يعد موجودا. أغلق الطلب ولم يعتمد أحد.');
+            redirect(site_url('taqdar_admin/teachers'), 'location', 302);
+            return;
+        }
+
+        $name = trim($who['first_name'] . ' ' . $who['last_name']) ?: 'المعلم';
+
         if ($act === 'approve') {
             $this->db->where('id', $uid)->update('users',
                 array('status' => 1, 'is_instructor' => 1));
@@ -562,6 +907,7 @@ class Taqdar_admin extends CI_Controller
                 'status' => 1, 'reviewed_at' => date('Y-m-d H:i:s'),
                 'reviewed_by' => (int) $this->session->userdata('user_id')));
             $msg = 'اعتمد المعلم، وصار بإمكانه الدخول إلى لوحته.';
+
         } else {
             $this->db->where('id', $uid)->update('users', array('status' => 0));
             $this->db->where('id', $id)->update('applications', array(
@@ -570,8 +916,69 @@ class Taqdar_admin extends CI_Controller
             $msg = 'رفض الطلب، ويبقى الحساب مغلقا.';
         }
 
+        /* TQ-TEACHER-TOLD — القرار يبلغ صاحبه.
+           كان الاعتماد والرفض يغيران الحساب ولا يخطران أحدا: من سجل
+           معلما يبقى يجرب الدخول كل يوم حتى يوفق صدفة بعد الاعتماد،
+           ومن رفض ينتظر إلى الأبد. وصفحة التسجيل نفسها تعده بأن
+           «نتواصل معك». */
+        $this->notify_teacher_decision($uid, $name, $who['email'], $act === 'approve',
+            trim((string) $this->input->post('reason')));
+
+        $this->taqdar_admin_model->audit(
+            $act === 'approve' ? 'teacher_approved' : 'teacher_rejected',
+            'application#' . $id, null, array('user_id' => $uid));
+
         $this->session->set_flashdata('flash_message', $msg);
         redirect(site_url('taqdar_admin/teachers'), 'location', 302);
+    }
+
+    /**
+     * يخطر المعلم بقرار طلبه — داخل المنصة وبالبريد.
+     *
+     * الإشعار داخل المنصة يكتب دائما، والبريد يحاول ولا يشترط: بريد غير
+     * مضبوط يرد `false` بهدوء (انظر `Taqdar_mail_model`)، فلا يمنع
+     * فشل الإرسال قرارا قد تم في القاعدة أصلا.
+     */
+    private function notify_teacher_decision($uid, $name, $email, $approved, $reason = '')
+    {
+        $title = $approved ? 'اعتمد طلب انضمامك معلما' : 'لم يقبل طلب انضمامك';
+
+        $lines = $approved
+            ? array(
+                'مرحبا ' . $name . '،',
+                'راجعنا طلبك ووافقنا عليه. صار بإمكانك الدخول إلى لوحة المعلم '
+                . 'ورفع دروسك وفتح أوقاتك للحصص.',
+              )
+            : array(
+                'مرحبا ' . $name . '،',
+                'راجعنا طلب انضمامك ولم نتمكن من قبوله في هذه المرة.'
+                . ($reason !== '' ? ' السبب: ' . $reason : ''),
+                'يبقى حسابك مغلقا. وإن كان لديك ما يستدرك فتواصل معنا وسنعيد النظر.',
+              );
+
+        /* داخل المنصة: يقرؤه متى دخل، ولا يعتمد على وصول بريد. */
+        try {
+            $this->db->insert('notifications', array(
+                'status'      => 0,
+                'type'        => $approved ? 'teacher_approved' : 'teacher_rejected',
+                'from_user'   => (int) $this->session->userdata('user_id'),
+                'to_user'     => (int) $uid,
+                'title'       => $title,
+                'description' => implode(' ', array_slice($lines, 1)),
+                'created_at'  => time(),      // طابع يونكس نصا — كما تقرؤه الشاشات
+            ));
+        } catch (Throwable $e) {
+            log_message('error', 'teacher_review notification: ' . $e->getMessage());
+        }
+
+        if (empty($email)) {
+            return;
+        }
+
+        $this->load->model('taqdar_mail_model');
+        $this->taqdar_mail_model->send_lines($email, $title, $lines, $approved
+            ? array('label' => 'ادخل إلى لوحتك', 'href' => site_url('teacher'))
+            : array('label' => 'تواصل معنا',     'href' => site_url('contact')));
     }
 
     /** بيانات التحويل البنكي — وجهة المال. */
@@ -608,6 +1015,124 @@ class Taqdar_admin extends CI_Controller
             ? 'حفظت البيانات، وصارت تظهر للطلاب في شاشة الاشتراك والفاتورة.'
             : 'حفظت — ولن تعرض للطلاب حتى يملأ اسم المستفيد والآيبان معا.');
         redirect(site_url('taqdar_admin/bank'), 'location', 302);
+    }
+
+    /* =====================================================================
+       بوابة تاب
+       ===================================================================== */
+
+    /**
+     * شاشة بوابة الدفع — الإعدادات وسجل المحاولات في مكان واحد.
+     *
+     * ولماذا شاشة مستقلة لا صف في `admin/payment_settings`: تلك الشاشة
+     * تعرض حقول البوابة كلها في سطح واحد وتفرض `required` على كل مفتاح
+     * متى فعلت البوابة. وتاب لها أربعة مفاتيح — اثنان للاختبار واثنان
+     * للإنتاج — ومن يبدأ بالاختبار وحده لا يستطيع أن يحفظ حتى يخترع
+     * مفاتيح إنتاج. والأخطر: الوضع الجاري لا يظهر في تلك الشاشة، وهو
+     * أهم ما في هذه الصفحة كلها.
+     */
+    public function tap()
+    {
+        $this->load->model('taqdar_tap_model');
+        $this->render('tqa_tap', 'بوابة الدفع — تاب', array(
+            'cfg'      => $this->taqdar_tap_model->config(),
+            'ready'    => $this->taqdar_tap_model->ready(),
+            'attempts' => $this->taqdar_tap_model->attempts(30),
+            'totals'   => $this->taqdar_tap_model->attempt_totals(),
+        ));
+    }
+
+    /**
+     * حفظ إعدادات تاب — upsert كما في `bank_save()`.
+     *
+     * والمفتاح الفارغ في الإرسال **لا يمحو المحفوظ**: الحقول تعرض ملثمة
+     * (آخر أربعة محارف)، ومن فتح الشاشة ليبدل الوضع وحده لا يقصد أن
+     * يمسح مفاتيحه. والمسح صريح بمربع «امسح هذا المفتاح».
+     */
+    public function tap_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_tap_model');
+        $before = $this->taqdar_tap_model->config();
+
+        $mode = (string) $this->input->post('tq_tap_mode') === 'live' ? 'live' : 'test';
+        $vals = array(
+            'tq_tap_enabled'  => (string) $this->input->post('tq_tap_enabled') === '1' ? '1' : '0',
+            'tq_tap_mode'     => $mode,
+            'tq_tap_merchant' => preg_replace('/\s+/', '', (string) $this->input->post('tq_tap_merchant')),
+        );
+
+        $clear = (array) $this->input->post('clear');
+        foreach (array('test_secret', 'test_public', 'live_secret', 'live_public') as $k) {
+            $sent = trim((string) $this->input->post('tq_tap_' . $k));
+            if (in_array($k, $clear, true))      $vals['tq_tap_' . $k] = '';
+            elseif ($sent !== '')                $vals['tq_tap_' . $k] = $sent;
+        }
+
+        foreach ($vals as $k => $v) {
+            $exists = $this->db->where('key', $k)->count_all_results('settings') > 0;
+            if ($exists) $this->db->where('key', $k)->update('settings', array('value' => $v));
+            else         $this->db->insert('settings', array('key' => $k, 'value' => $v));
+        }
+
+        /* السجل يحفظ الحدث لا المفاتيح: سجل تدقيق فيه مفتاح سري يصير
+           نسخة ثانية من السر في مكان لا يحرس كما يحرس. */
+        $this->taqdar_admin_model->audit('tap_settings_save', 'settings#tap',
+            array('enabled' => $before['enabled'], 'mode' => $before['mode']),
+            array('enabled' => $vals['tq_tap_enabled'] === '1', 'mode' => $mode));
+
+        $msg = 'حفظت إعدادات البوابة.';
+        if ($vals['tq_tap_enabled'] === '1') {
+            $secret = $vals['tq_tap_' . $mode . '_secret'] ?? $before['keys'][$mode . '_secret'];
+            if (trim((string) $secret) === '') {
+                $msg = 'حفظت — والبوابة مفعلة بلا مفتاح سري لوضع '
+                     . ($mode === 'live' ? 'الإنتاج' : 'الاختبار')
+                     . '، فلا يعرض للطالب خيار البطاقة حتى يضاف.';
+            } elseif ($mode === 'live') {
+                $msg = 'حفظت — والبوابة تعمل الآن في وضع الإنتاج: كل دفعة تخصم مالا حقيقيا.';
+            } else {
+                $msg = 'حفظت — والبوابة في وضع الاختبار: الدفع ينجح ظاهريا ولا يصل مال.';
+            }
+        } else {
+            $msg = 'حفظت — والبوابة معطلة، فيبقى التحويل البنكي وحده معروضا للطلاب.';
+        }
+
+        $this->session->set_flashdata('flash_message', $msg);
+        redirect(site_url('taqdar_admin/tap'), 'location', 302);
+    }
+
+    /** يسأل تاب عن المفتاح المحفوظ — «هل يعمل؟» يجاب بنداء لا بظن. */
+    public function tap_probe()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_tap_model');
+        $r = $this->taqdar_tap_model->probe((string) $this->input->post('mode'));
+
+        $this->session->set_flashdata($r['ok'] ? 'flash_message' : 'error_message',
+            'فحص مفتاح ' . ($r['mode'] === 'live' ? 'الإنتاج' : 'الاختبار') . ': ' . $r['message']);
+        redirect(site_url('taqdar_admin/tap'), 'location', 302);
+    }
+
+    /**
+     * إعادة سؤال تاب عن محاولة بعينها.
+     *
+     * الباب الذي يحتاج حين يقول طالب «دفعت ولم يفتح»: يقرأ من البوابة
+     * نفسها ويسوي على ما ترده — لا يفعل بيد على قوله.
+     */
+    public function tap_recheck()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_tap_model');
+        $r = $this->taqdar_tap_model->settle((string) $this->input->post('charge_id'), 'admin');
+
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
+            !empty($r['ok'])
+                ? ($r['message'] ?? 'سويت الدفعة.')
+                : 'لم تسو: ' . implode(' ', (array) ($r['errors'] ?? array())));
+        redirect(site_url('taqdar_admin/tap'), 'location', 302);
     }
 
     /**

@@ -17,7 +17,6 @@ defined('BASEPATH') or exit('No direct script access allowed');
     </div>
 </div>
 
-<?php tqa_flash(); ?>
 
 <div class="tqa-note">
     <strong>السؤال المربوط بهدف هو وحده ما تراه بوابة الإتقان.</strong>
@@ -29,8 +28,8 @@ defined('BASEPATH') or exit('No direct script access allowed');
     على دروس الفيديو، لا على دروس الاختبار.
 </div>
 
-<div class="card">
-    <div class="card-body">
+<div class="tqa-card">
+    <div class="tqa-card__body">
         <?php if (empty($courses)): ?>
 
             <div class="tqa-empty">
@@ -40,7 +39,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
         <?php else: ?>
 
-            <div class="table-responsive">
+            <div class="tqa-table__wrap">
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
@@ -78,12 +77,12 @@ defined('BASEPATH') or exit('No direct script access allowed');
                             <td><span class="badge badge-<?php echo $tone; ?>"><?php echo $txt; ?></span></td>
                             <td>
                                 <?php if ($o === 0): ?>
-                                    <a class="btn btn-sm btn-secondary"
+                                    <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                        href="<?php echo site_url('taqdar_admin/form/objectives'); ?>">أضف أهدافا</a>
                                 <?php elseif ($t === 0): ?>
                                     <span class="tqa-dim">لا أسئلة تربط</span>
                                 <?php else: ?>
-                                    <a class="btn btn-sm btn-primary"
+                                    <a class="tqa-btn tqa-btn--primary tqa-btn--sm"
                                        href="<?php echo site_url('taqdar_admin/bind/' . (int) $c['course_id']); ?>">اربط</a>
                                 <?php endif; ?>
                             </td>

@@ -17,12 +17,11 @@ if ($preview) {
         <h1>استيراد المنهج</h1>
         <p>المواد والصفوف والمسارات دفعة واحدة من ملف، بدل إدخالها صفا صفا.</p>
     </div>
-    <a class="btn btn-secondary" href="<?php echo site_url('taqdar_admin/import_template'); ?>">
+    <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/import_template'); ?>">
         نزل ملفا نموذجيا
     </a>
 </div>
 
-<?php tqa_flash(); ?>
 
 <?php if (!$preview): ?>
 
@@ -33,33 +32,33 @@ if ($preview) {
         و<strong>لا يكتب شيء قبل أن تراه</strong>: يقرأ الملف ويفحص وتعرض النتيجة، ثم تؤكد.
     </div>
 
-    <div class="row">
-        <div class="col-lg-7">
-            <div class="card">
-                <div class="card-header"><h4 class="header-title">اختر الملف</h4></div>
-                <div class="card-body">
+    <div class="tqa-stack">
+        <div>
+            <div class="tqa-card">
+                <div class="tqa-card__head"><h2>اختر الملف</h2></div>
+                <div class="tqa-card__body">
                     <form method="post" enctype="multipart/form-data"
                           action="<?php echo site_url('taqdar_admin/import_preview'); ?>">
                         <div class="tqa-field">
                             <label for="f">ملف CSV أو JSON</label>
-                            <input class="form-control" type="file" id="f" name="curriculum"
+                            <input class="tqa-input" type="file" id="f" name="curriculum"
                                    accept=".csv,.json" required>
                             <small class="tqa-hint">
                                 يقبل الفاصل «,» أو «؛»، والترميز UTF-8. الحد الأقصى <span class="tq-ltr" dir="ltr">2</span> ميغابايت.
                             </small>
                         </div>
                         <div class="tqa-actions">
-                            <button type="submit" class="btn btn-primary">اقرأ واعرض</button>
+                            <button type="submit" class="tqa-btn tqa-btn--primary">اقرأ واعرض</button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-5">
-            <div class="card">
-                <div class="card-header"><h4 class="header-title">الأعمدة</h4></div>
-                <div class="card-body">
+        <div>
+            <div class="tqa-card">
+                <div class="tqa-card__head"><h2>الأعمدة</h2></div>
+                <div class="tqa-card__body">
                     <table class="table table-sm mb-0">
                         <thead><tr><th>العمود</th><th>لازم؟</th></tr></thead>
                         <tbody>
@@ -84,13 +83,13 @@ if ($preview) {
 
 <?php else: ?>
 
-    <div class="row">
+    <div class="tqa-stack">
         <?php foreach (array(
             'صالح للكتابة' => array($ok_n, 'success'),
             'به تنبيه'     => array($warn_n, 'warning'),
             'مرفوض'        => array($err_n, 'danger'),
         ) as $label => $pair): ?>
-            <div class="col-md-4">
+            <div>
                 <div class="tqa-stat">
                     <span class="tqa-stat-label"><?php echo $label; ?></span>
                     <span class="tqa-stat-num tq-ltr" dir="ltr"><?php echo (int) $pair[0]; ?></span>
@@ -106,10 +105,10 @@ if ($preview) {
         </div>
     <?php endif; ?>
 
-    <div class="card">
-        <div class="card-header"><h4 class="header-title">المعاينة قبل الكتابة</h4></div>
-        <div class="card-body">
-            <div class="table-responsive">
+    <div class="tqa-card">
+        <div class="tqa-card__head"><h2>المعاينة قبل الكتابة</h2></div>
+        <div class="tqa-card__body">
+            <div class="tqa-table__wrap">
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
@@ -124,10 +123,10 @@ if ($preview) {
                             <td>
                                 <?php echo html_escape($r['title']); ?>
                                 <?php foreach ($r['errors'] as $e): ?>
-                                    <span class="badge badge-danger"><?php echo html_escape($e); ?></span>
+                                    <span class="tqa-badge tqa-badge--danger"><?php echo html_escape($e); ?></span>
                                 <?php endforeach; ?>
                                 <?php foreach ($r['warnings'] as $w): ?>
-                                    <span class="badge badge-warning"><?php echo html_escape($w); ?></span>
+                                    <span class="tqa-badge tqa-badge--warn"><?php echo html_escape($w); ?></span>
                                 <?php endforeach; ?>
                             </td>
                             <td><?php echo html_escape($r['subject']); ?></td>
@@ -154,11 +153,11 @@ if ($preview) {
 
             <div class="tqa-actions">
                 <form method="post" action="<?php echo site_url('taqdar_admin/import_commit'); ?>" class="d-inline">
-                    <button type="submit" class="btn btn-primary" <?php echo $ok_n ? '' : 'disabled'; ?>>
+                    <button type="submit" class="tqa-btn tqa-btn--primary" <?php echo $ok_n ? '' : 'disabled'; ?>>
                         اكتب <span class="tq-ltr" dir="ltr"><?php echo (int) $ok_n; ?></span> صفا
                     </button>
                 </form>
-                <a class="btn btn-secondary" href="<?php echo site_url('taqdar_admin/import'); ?>">إلغاء</a>
+                <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/import'); ?>">إلغاء</a>
             </div>
         </div>
     </div>

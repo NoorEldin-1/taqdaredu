@@ -1,0 +1,131 @@
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * إرسال إشعار.
+ *
+ * جدول `notifications` كان يكتب فيه النظام والمهام الدورية وحدها، ولا
+ * باب إليه من اللوحة: فإخطار الطلاب بموعد امتحان أو بتوقف مؤقت للخدمة
+ * لم يكن ممكنا إلا برسالة بريدية جماعية — تصل بعد ساعات وتقرأ نصفها.
+ * والإشعار يظهر في جرس البوابة فورا.
+ */
+$audiences = array(
+    'all'         => 'كل المستخدمين',
+    'students'    => 'الطلاب',
+    'teachers'    => 'المعلمون',
+    'parents'     => 'أولياء الأمور',
+    'subscribers' => 'المشتركون النشطون',
+);
+?>
+
+<?php tqa_head('إرسال إشعار', 'رسالة تظهر في جرس البوابة فورا — لا بريد ينتظر.', 'bell'); ?>
+
+<div class="tqa-grid tqa-grid--2">
+
+    <section class="tqa-card">
+        <h2 style="margin-block-end:var(--tq-space-l)">إشعار جديد</h2>
+
+        <form action="<?php echo site_url('taqdar_admin/notify_send'); ?>" method="post">
+            <?php echo tq_csrf(); ?>
+
+            <label class="tqa-field">
+                <span class="tqa-field__label">إلى من <span class="tqa-field__req">*</span></span>
+                <select class="tqa-select" name="audience" required>
+                    <?php foreach ($audiences as $k => $label): ?>
+                        <option value="<?php echo $k; ?>">
+                            <?php echo html_escape($label); ?>
+                            (<?php echo (int) ($sizes[$k] ?? 0); ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <span class="tqa-field__hint">
+                    الحسابات المغلقة لا تشملها الفئات — إشعار لمن لا يستطيع الدخول لا يقرأ.
+                </span>
+            </label>
+
+            <label class="tqa-field">
+                <span class="tqa-field__label">العنوان <span class="tqa-field__req">*</span></span>
+                <input class="tqa-input" type="text" name="title" maxlength="120" required
+                       placeholder="مثال: صيانة المنصة مساء الخميس">
+                <span class="tqa-field__hint">
+                    هذا وحده ما يظهر في الجرس، فليكن كاملا بذاته — «تنبيه مهم» لا يخبر بشيء.
+                </span>
+            </label>
+
+            <label class="tqa-field">
+                <span class="tqa-field__label">النص <span class="tqa-field__req">*</span></span>
+                <textarea class="tqa-textarea" name="description" required rows="5"
+                          placeholder="التفاصيل التي يقرؤها من فتح الإشعار."></textarea>
+            </label>
+
+            <?php
+            /* النسخة البريدية اختيارية لا افتراضية: الإشعار داخل المنصة
+               مجاني وفوري، والبريد اتصال لكل خمسين مستلما — وإرساله إلى
+               كل المستخدمين لخبر صغير يحرق سمعة النطاق عند مزودي البريد.
+               والخانة تطفأ حين لا يكون البريد مضبوطا، ويقال لماذا. */
+            $CI_mail = &get_instance();
+            $CI_mail->load->model('taqdar_mail_model');
+            $tq_mail_on = $CI_mail->taqdar_mail_model->configured();
+            ?>
+            <label class="tqa-switch" style="margin-block-end:var(--tq-space-l)">
+                <input type="checkbox" name="by_mail" value="1" <?php echo $tq_mail_on ? '' : 'disabled'; ?>>
+                <span class="tqa-switch__track" aria-hidden="true"></span>
+                <span>أرسل نسخة بالبريد أيضا</span>
+            </label>
+            <?php if (!$tq_mail_on): ?>
+                <p class="tqa-field__hint" style="margin-block-start:calc(-1 * var(--tq-space-m));margin-block-end:var(--tq-space-l)">
+                    البريد الصادر غير مضبوط، فالنسخة البريدية معطلة.
+                    <a href="<?php echo site_url('taqdar_admin/mail'); ?>">اضبطه من هنا</a>.
+                </p>
+            <?php endif; ?>
+
+            <?php /* التأكيد يذكر العدد: «أرسل» بلا رقم يجعل من يقصد الطلاب
+                     يرسل إلى الجميع ولا يعلم إلا بعد الإرسال — ولا سبيل للسحب. */ ?>
+            <button class="tqa-btn tqa-btn--primary" type="submit"
+                    data-tqa-confirm-title="تأكيد الإرسال"
+                    data-tqa-confirm="لا يمكن سحب الإشعار بعد إرساله. هل تريد المتابعة؟"
+                    data-tqa-confirm-ok="أرسل الآن">
+                <?php echo tq_icon('send', 18); ?> أرسل الإشعار
+            </button>
+        </form>
+    </section>
+
+    <section class="tqa-card tqa-card--flush">
+        <div class="tqa-card__head"><h2>ما أرسل قبل</h2></div>
+
+        <?php if (!$recent): ?>
+            <?php tqa_empty('لم يرسل إشعار إداري بعد',
+                'الإشعارات التي يولدها النظام (التصحيح، الحصص، المحفظة) لا تظهر هنا — هذا كشف ما أرسلته الإدارة بيدها.',
+                '', '', 'bell'); ?>
+        <?php else: ?>
+            <div class="tqa-table__wrap">
+            <table class="tqa-table">
+                <thead>
+                    <tr><th>العنوان</th><th>المستلمون</th><th>فتح</th><th>التاريخ</th></tr>
+                </thead>
+                <tbody>
+                <?php foreach ($recent as $n):
+                    $rc   = (int) $n['recipients'];
+                    $open = (int) $n['opened'];
+                    $pct  = $rc > 0 ? (int) round(($open * 100) / $rc) : 0;
+                ?>
+                    <tr>
+                        <td data-label="العنوان"><?php echo html_escape($n['title']); ?></td>
+                        <td data-label="المستلمون"><span class="tqa-num"><?php echo $rc; ?></span></td>
+                        <td data-label="فتح">
+                            <span class="tqa-badge tqa-badge--<?php echo $pct >= 50 ? 'ok' : ($pct > 0 ? 'warn' : 'muted'); ?>">
+                                <span class="tqa-num"><?php echo $pct; ?>%</span>
+                            </span>
+                        </td>
+                        <td data-label="التاريخ">
+                            <?php /* الجدول فيه صيغتا وقت — انظر TQ-NOTIF-TIME. */ ?>
+                            <?php echo tqa_when($n['created_at']); ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            </div>
+        <?php endif; ?>
+    </section>
+</div>
