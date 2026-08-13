@@ -893,61 +893,42 @@ class Email_model extends CI_Model
         $this->db->insert('notifications', $data);
     }
 
+	/**
+	 * الإرسال — يمر كله بـ`Taqdar_mail_model` الآن.
+	 *
+	 * TQ-MAIL-SILENT — كانت هذه الدالة تبني الضبط بيدها **ولا تسأل هل هو
+	 * مضبوط**. و`smtp_user` و`smtp_pass` فارغان في هذا التنصيب، فكل نداء
+	 * منها — وهي تنادى من خمسة وعشرين موضعا، منها مسار إنشاء الحساب
+	 * نفسه — يحاول `fsockopen('')` وينتظر إلى `smtp_timeout` (ثلاثين
+	 * ثانية هنا) قبل أن يرد `false`.
+	 *
+	 * وأثر ذلك ليس «رسالة لا تصل»:
+	 *
+	 *   · **إنشاء الحساب يتجمد نصف دقيقة** ثم يكمل — لأن `signup_mail()`
+	 *     تنادى في الطلب نفسه لا في مهمة خلفية.
+	 *   · وفي بيئة تطبع التحذيرات يطبع `fsockopen(): unable to connect`
+	 *     في وسط الصفحة، وفي رد JSON يفسده.
+	 *   · و`max_execution_time = 300` أعلاه كان علاجا لعرض هذا المرض:
+	 *     يرفع المهلة بدل أن يمنع المحاولة.
+	 *
+	 * والتوقيع محفوظ كما هو لأن المستدعين خمسة وعشرون. والمعامل `$from`
+	 * كان يستقبل ثم **يدهس** في أول سطر بقيمة الإعدادات — فحذف، ولا
+	 * مستدعي واحد يمرره.
+	 */
 	public function send_smtp_mail($msg = NULL, $sub = NULL, $to = NULL, $from = NULL)
 	{
-		ini_set('max_execution_time', 300);
-		
-		if(!is_array($to)){
-			$to = array($to);
-		}
-		//Load email library
-		$this->load->library('email');
+		$this->load->model('taqdar_mail_model');
 
-		// Send emails for each chunk
-		$this->email->clear(); // Clear previous settings
+		/* `raw` — الرسالة هنا قالب HTML كامل من `email/common_template`
+		   أو من محرر النشرة، فلا تلف بقالب ثان. */
+		return $this->taqdar_mail_model->send($to, (string) $sub, (string) $msg, array('raw' => true));
+	}
 
-		$from		=	get_settings('smtp_from_email');
-
-		//SMTP & mail configuration
-		$config = array(
-			'protocol'  => get_settings('protocol'),
-			'smtp_host' => get_settings('smtp_host'),
-			'smtp_port' => get_settings('smtp_port'),
-			'smtp_user' => get_settings('smtp_user'),
-			'smtp_pass' => get_settings('smtp_pass'),
-			'smtp_crypto' => get_settings('smtp_crypto'), //can be 'ssl' or 'tls' for example
-			'mailtype'  => 'html',
-			'newline'   => "\r\n",
-			'charset'   => 'utf-8',
-			'smtp_timeout' => '30', //in seconds
-		);
-		$this->email->set_header('MIME-Version', 1.0);
-		$this->email->set_header('Content-type', 'text/html');
-		$this->email->set_header('charset', 'UTF-8');
-		$this->email->set_crlf( "\r\n" );
-
-		$this->email->initialize($config);
-
-		//for showing "to me" in gmail inbox To: users own email
-		
-		$this->email->from($from, get_settings('system_name'));
-		$this->email->subject($sub);
-		$this->email->message($msg);
-
-		if(count($to) == 1){
-			$this->email->to($to[0]);
-		}else{
-			$this->email->bcc($to);
-		}
-
-		if($this->email->send()){
-			return true;
-		}else{
-			return false;
-			// echo $this->email->print_debugger();
-			// die();
-		}
-		
+	/** هل البريد الصادر مضبوط؟ تسأله الشاشات قبل أن تعد بإرسال. */
+	public function mail_configured()
+	{
+		$this->load->model('taqdar_mail_model');
+		return $this->taqdar_mail_model->configured();
 	}
 
 

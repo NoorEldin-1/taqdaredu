@@ -1137,6 +1137,42 @@ class Taqdar_parent_model extends CI_Model
             'created_at'  => (string) $now,
             'updated_at'  => null,
         ]);
+
+        $this->announce_by_mail($to_user, $title, $body);
+    }
+
+    /**
+     * TQ-LINK-MAIL — أحداث الربط تصل بالبريد أيضا.
+     *
+     * الإشعار داخل المنصة لا يكفي هنا وحده، وهو أوضح ما يكون في هذا
+     * المسار بالذات: **ولي الأمر لا يدخل المنصة يوميا.** يسجل، ويطلب
+     * ربط ابنه، ثم ينتظر. وطلبه يعرض على الابن في جرسه — وحين يوافق أو
+     * يرفض يكتب لولي الأمر إشعار في جرس لا يفتحه أحد. فيبقى ولي الأمر
+     * يظن الطلب معلقا أسابيع، أو يرسله ثانية فيصير طلبان.
+     *
+     * وكذلك الطالب: طلب ربط يفتح تقاريره لطرف آخر لا ينبغي أن يعلم به
+     * حين يمر بالمنصة صدفة.
+     *
+     * والبريد **تابع لا شرط**: `Taqdar_mail_model` يرد `false` بهدوء حين
+     * لا يكون مضبوطا، فلا يمنع فشل الإرسال ربطا تم في القاعدة أصلا.
+     */
+    private function announce_by_mail($to_user, $title, $body)
+    {
+        try {
+            $u = $this->db->select('email')->where('id', (int) $to_user)
+                          ->get('users')->row_array();
+            if (!$u || empty($u['email'])) return;
+
+            $this->load->model('taqdar_mail_model');
+            $this->taqdar_mail_model->send_lines(
+                $u['email'],
+                $title,
+                [strip_tags((string) $body)],
+                ['label' => 'افتح المنصة', 'href' => site_url('login')]
+            );
+        } catch (Throwable $e) {
+            log_message('error', 'parent_links mail: ' . $e->getMessage());
+        }
     }
 
     /** تبليغ ولي الأمر بنتيجة طلبه — موافقة أو رفضا أو سحبا. */
@@ -1173,6 +1209,12 @@ class Taqdar_parent_model extends CI_Model
                 'updated_at'  => $now,
             ]);
         }
+
+        /* والبريد كذلك — انظر TQ-LINK-MAIL: الطالب قد لا يفتح جرسه أياما،
+           وطلب يفتح تقاريره لطرف آخر لا ينتظر أن يمر صاحبه صدفة. */
+        $this->announce_by_mail($sid, 'طلب ربط ولي أمر',
+            $parent . ' يطلب ربط حسابك بحسابه في تقدر. ادخل إلى إعدادات حسابك لتوافق أو ترفض. '
+          . 'ولا يفتح شيء من بياناتك قبل موافقتك.');
 
         $body = $parent . ' طلب ربط حسابك بحسابه في تقدر (طلب رقم ' . (int) $link_id . '). '
               . 'نص الموافقة: ' . self::CONSENT_TEXT . ' '

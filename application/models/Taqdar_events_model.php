@@ -435,10 +435,16 @@ class Taqdar_events_model extends CI_Model
      */
     private function maybe_email($user_id, $title, $text)
     {
+        /* المفتاح يعبر عن النية، و`Taqdar_mail_model::configured()` عن
+           القدرة. وكان الفحص هنا `smtp_user` وحده — وهي لا تكفي: خادم
+           بلا كلمة مرور يعلق الاتصال إلى المهلة ثم يفشل، وذلك في مسار
+           كرون يمر على مئة طالب. */
         if ((string) get_settings('taqdar_events_email') !== '1') {
             return false;
         }
-        if (trim((string) get_settings('smtp_user')) === '') {
+
+        $this->load->model('taqdar_mail_model');
+        if (!$this->taqdar_mail_model->configured()) {
             return false;
         }
 
@@ -447,29 +453,13 @@ class Taqdar_events_model extends CI_Model
             return false;
         }
 
-        try {
-            $this->load->library('email');
-            $this->email->clear(true);
-            $this->email->initialize(array(
-                'protocol'  => 'smtp',
-                'smtp_host' => get_settings('smtp_host'),
-                'smtp_port' => get_settings('smtp_port'),
-                'smtp_user' => get_settings('smtp_user'),
-                'smtp_pass' => get_settings('smtp_pass'),
-                'smtp_crypto' => get_settings('smtp_crypto'),
-                'mailtype'  => 'html',
-                'charset'   => 'utf-8',
-                'newline'   => "\r\n",
-            ));
-            $this->email->from(get_settings('smtp_from_email'), 'تقدر');
-            $this->email->to($u['email']);
-            $this->email->subject($title);
-            $this->email->message('<div dir="rtl">' . html_escape($title) . '<br>' . html_escape($text) . '</div>');
-            return (bool) $this->email->send(false);
-        } catch (Exception $e) {
-            // الإشعار داخل المنصة كتب already — وفشل البريد لا يسقط المهمة
-            log_message('error', 'taqdar_events mail failed: ' . $e->getMessage());
-            return false;
-        }
+        /* والنموذج لا يرمي بحال: فشل البريد لا يسقط المهمة الدورية بعد أن
+           تكون قد غيرت البيانات. والإشعار داخل المنصة كتب قبل هذا السطر. */
+        return $this->taqdar_mail_model->send_lines(
+            $u['email'],
+            $title,
+            array($text),
+            array('label' => 'افتح لوحتك', 'href' => site_url('student'))
+        );
     }
 }
