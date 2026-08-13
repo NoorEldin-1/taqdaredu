@@ -55,6 +55,83 @@ $has = !empty($M['smtp_pass']);
     </div>
 <?php endif; ?>
 
+<?php
+/* ---------------------------------------------------------------------------
+   وصول الرسائل — لا إرسالها.
+
+   «أرسلت الرسالة» و«وصلت الرسالة إلى الوارد» جوابان عن سؤالين، وزر الفحص
+   يجيب عن الأول وحده: خادم قبلها، وهذا منتهى علمه. أما الثاني فيقرره
+   المستلم بعد قراءة ثلاثة سجلات في نطاقك، ولا يخبرك بقراره — يضعها في
+   المهملات بصمت، فتظن الإعداد سليما لأن الفحص قال «نجح».
+
+   فهذه البطاقة تقرأ تلك السجلات وتقارنها بالضبط المحفوظ، وتقول ما سيقرره
+   المستلم قبل أن يقرره.
+   --------------------------------------------------------------------------- */
+$tq_meta = array(
+    'ok'      => array('ok',     'check', 'سليم'),
+    'warn'    => array('warn',   'alert', 'يضعف الوصول'),
+    'fail'    => array('danger', 'x',     'يمنع الوصول'),
+    'unknown' => array('muted',  'help',  'تعذر الفحص'),
+);
+
+$tq_fail = 0;
+$tq_warn = 0;
+foreach ((array) $health as $tq_h) {
+    if ($tq_h['state'] === 'fail')      $tq_fail++;
+    elseif ($tq_h['state'] === 'warn')  $tq_warn++;
+}
+?>
+
+<div class="tqa-card" style="margin-block-end:var(--tq-space-l)">
+    <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+        <span class="tqa-iconbox <?php echo $tq_fail ? 'tqa-peach' : 'tqa-mint'; ?>" aria-hidden="true">
+            <?php echo tq_icon('shield', 20); ?>
+        </span>
+        <h2>وصول الرسائل إلى الوارد</h2>
+        <span class="tqa-badge tqa-badge--<?php
+            echo $tq_fail ? 'danger' : ($tq_warn ? 'warn' : 'ok'); ?>" style="margin-inline-start:auto">
+            <?php
+            if ($tq_fail)      echo 'يمنع الوصول: ' . $tq_fail;
+            elseif ($tq_warn)  echo 'يستحسن إصلاحه: ' . $tq_warn;
+            else               echo 'كل الفحوص سليمة';
+            ?>
+        </span>
+    </div>
+    <div>
+        <p class="tqa-hint" style="margin-block-end:var(--tq-space-l)">
+            رسالة <strong>ترسل</strong> ورسالة <strong>تصل إلى الوارد</strong> ليستا شيئا واحدا.
+            زر الفحص يثبت الأولى وحدها — أن خادما قبل الرسالة. أما الثانية فيقررها بريد
+            المستلم بعد قراءة سجلات نطاقك، ولا يخبرك بقراره: يضع الرسالة في المهملات بصمت.
+            وهذه الفحوص تقرأ تلك السجلات من DNS الآن، فتعرف القرار قبل أن يقع.
+        </p>
+
+        <ul class="tqa-checks">
+            <?php foreach ((array) $health as $tq_h):
+                list($tq_badge, $tq_icon, $tq_word) = $tq_meta[$tq_h['state']]; ?>
+                <li class="tqa-check tqa-check--<?php echo $tq_h['state']; ?>">
+                    <div class="tqa-check__top">
+                        <span class="tqa-check__mark" aria-hidden="true"><?php echo tq_icon($tq_icon, 15); ?></span>
+                        <strong><?php echo html_escape($tq_h['label']); ?></strong>
+                        <span class="tqa-badge tqa-badge--<?php echo $tq_badge; ?>"><?php echo $tq_word; ?></span>
+                    </div>
+                    <p class="tqa-check__says"><?php echo html_escape($tq_h['says']); ?></p>
+                    <?php if ($tq_h['fix'] !== ''): ?>
+                        <p class="tqa-check__fix"><strong>ما العمل:</strong> <?php echo html_escape($tq_h['fix']); ?></p>
+                    <?php endif; ?>
+                    <?php if ($tq_h['record'] !== ''): ?>
+                        <pre class="tqa-debug" dir="ltr"><?php echo html_escape($tq_h['record']); ?></pre>
+                    <?php endif; ?>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+
+        <p class="tqa-hint" style="margin-block-start:var(--tq-space-l)">
+            سجلات DNS تنشر عند من يدير نطاق <span class="tq-ltr" dir="ltr">taqdaredu.com</span>،
+            وتأخذ من دقائق إلى ساعات حتى تنتشر. أعد تحميل هذه الشاشة بعدها لترى الفحص وقد تغير.
+        </p>
+    </div>
+</div>
+
 <div class="tqa-cols">
     <div class="tqa-stack">
         <div class="tqa-card">
@@ -132,7 +209,11 @@ $has = !empty($M['smtp_pass']);
                             <label class="tqa-field__label" for="m_from">المرسل الظاهر <span class="tqa-field__req" aria-hidden="true">*</span></label>
                             <input class="tqa-input tqa-input--ltr" dir="ltr" type="email" id="m_from" name="smtp_from_email"
                                    value="<?php echo html_escape($M['smtp_from_email']); ?>" required>
-                            <small class="tqa-field__hint">يستحسن أن يطابق اسم المستخدم، وإلا رفضته كثير من الخوادم.</small>
+                            <small class="tqa-field__hint">
+                                <strong>يجب أن يكون من نطاق اسم المستخدم نفسه.</strong>
+                                نطاق مختلف يفشل فحص DMARC عند المستلم فتذهب الرسائل إلى المهملات —
+                                انظر «وصول الرسائل» أعلى الشاشة.
+                            </small>
                         </div>
 
                         <div class="tqa-field">

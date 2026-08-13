@@ -547,9 +547,16 @@ class Taqdar_admin extends CI_Controller
     public function mail()
     {
         $m = $this->mail_values();
+
+        /* التشخيص يقرأ DNS، فقد يتأخر ثانية أو ثانيتين على شبكة بطيئة —
+           وهو ثمن مقبول في شاشة تفتح مرة عند الضبط، ولا يدفع في أي مسار
+           يراه مستخدم. */
+        $this->load->model('taqdar_mail_model');
+
         $this->render('tqa_mail', 'البريد الصادر', array(
             'mail'         => $m,
             'configured'   => $this->mail_configured($m),
+            'health'       => $this->taqdar_mail_model->diagnose(),
             'events_email' => get_settings('taqdar_events_email') === '1',
             'debug'        => $this->session->flashdata('mail_debug'),
         ));

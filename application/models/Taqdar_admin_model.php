@@ -1207,7 +1207,11 @@ class Taqdar_admin_model extends CI_Model
 
         $done = 0;
         foreach (array_chunk($emails, 50) as $chunk) {
-            if ($this->taqdar_mail_model->send_lines($chunk, $title, array($description))) {
+            /* `bulk` تضيف `List-Unsubscribe`: رسالة جماعية بلا زر إلغاء
+               اشتراك تجمع بلاغات «مزعجة»، والبلاغ يضر النطاق كله لا هذه
+               الرسالة. */
+            if ($this->taqdar_mail_model->send_lines($chunk, $title, array($description),
+                    null, array('bulk' => true))) {
                 $done += count($chunk);
             }
         }

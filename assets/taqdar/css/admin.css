@@ -1984,6 +1984,42 @@ body.tqa .on-hover-action:focus-within [id^='category-delete-btn-'] {
 .tqa-count { margin-block-start: var(--tq-space-m); font: var(--tq-type-caption); color: var(--tq-text2); }
 .tqa-deps  { font: var(--tq-type-caption); color: var(--tq-text2); }
 
+/* ---- فحوص وصول البريد ----
+   بند لكل فحص، وحاله في حافته الابتدائية لا في لونه كله: صف كامل ملون
+   يقرأ إنذارا حتى حين يقول «سليم»، والشاشة فيها ستة بنود لا واحد. */
+.tqa-checks {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: var(--tq-space-m);
+}
+.tqa-check {
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border: 1px solid var(--tq-line);
+  border-inline-start: 3px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-surface);
+}
+.tqa-check--ok   { border-inline-start-color: var(--tq-mint-ink); }
+.tqa-check--warn { border-inline-start-color: var(--tq-peach-ink); }
+.tqa-check--fail { border-inline-start-color: var(--tq-rose-ink); }
+
+.tqa-check__top { display: flex; align-items: center; gap: var(--tq-space-s); }
+.tqa-check__top strong { font: var(--tq-type-bodyStrong); color: var(--tq-navy); }
+.tqa-check__top .tqa-badge { margin-inline-start: auto; }
+
+.tqa-check__mark { display: inline-flex; color: var(--tq-text2); }
+.tqa-check--ok   .tqa-check__mark { color: var(--tq-mint-ink); }
+.tqa-check--warn .tqa-check__mark { color: var(--tq-peach-ink); }
+.tqa-check--fail .tqa-check__mark { color: var(--tq-rose-ink); }
+
+.tqa-check__says,
+.tqa-check__fix {
+  margin: var(--tq-space-s) 0 0;
+  font: var(--tq-type-caption);
+}
+.tqa-check__says { color: var(--tq-text2); }
+.tqa-check__fix  { color: var(--tq-navy); }
+.tqa-check .tqa-debug { margin-block-start: var(--tq-space-m); }
+
 /* مخرجات الخادم تعرض كما جاءت: نص تشخيصي لاتيني داخل صفحة عربية،
    فيعزل اتجاهيا ولا يلتف ليقرأ سطرا مبعثرا. */
 .tqa-debug {
