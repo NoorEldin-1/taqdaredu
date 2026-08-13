@@ -51,48 +51,28 @@ defined('BASEPATH') or exit('No direct script access allowed');
 */
 $route['default_controller'] = 'home';
 $route['404_override']       = 'home/page_not_found';
-$route['certificate/(:any)'] = "addons/certificate/generate_certificate/$1";
 
-//course bundles
-$route['course_bundles/(:any)']               = "addons/course_bundles/index/$1";
-$route['course_bundles']                      = "addons/course_bundles";
-$route['course_bundles/search/(:any)']        = "addons/course_bundles/search/$1";
-$route['course_bundles/search/(:any)/(:any)'] = "addons/course_bundles/search/$1/$1";
-$route['bundle_details/(:any)/(:any)']        = "addons/course_bundles/bundle_details/$1";
-$route['bundle_details/(:any)']               = "addons/course_bundles/bundle_details/$1/$1";
-$route['course_bundles/buy/(:any)']           = "addons/course_bundles/buy/$1";
-$route['home/my_bundles']                     = "addons/course_bundles/my_bundles";
-$route['home/bundle_invoice/(:any)']          = "addons/course_bundles/invoice/$1";
-//end course bundles
-
-//ebook
-$route['ebook/ebook_details/(:any)/(:any)'] = "addons/ebook/ebook_details/$1/$2";
-$route['ebook']                             = "addons/ebook/ebooks";
-$route['ebook_manager/all_ebooks']          = "addons/ebook_manager/all_ebooks";
-$route['ebook_manager/add_ebook']           = "addons/ebook_manager/add_ebook";
-$route['ebook_manager/payment_history']     = "addons/ebook_manager/payment_history";
-$route['ebook_manager/category']            = "addons/ebook_manager/category";
-$route['ebook/buy/(:any)']                  = "addons/ebook/buy/$1";
-$route['home/my_ebooks']                    = "addons/ebook/my_ebooks";
-//end ebook
+/* ---- ما حذف من هنا، ولماذا -------------------------------------------
+ *
+ * كانت في هذا الموضع عشرون قاعدة تحول إلى `addons/…`:
+ * `certificate/(:any)` · `course_bundles/*` · `ebook*` · `tutors*` ·
+ * `schedules_bookings/(:any)` · `my_bookings`.
+ *
+ * و`application/controllers/addons/` **مجلد فارغ**، وجدول `addons` بلا
+ * صف واحد. فكل واحدة منها كانت تحول رابطا عاما إلى متحكم غير موجود:
+ * الزائر الذي يفتح `/tutors` أو `/ebook` لا يرى 404 مفهومة بل خطأ
+ * توجيه، والزاحف يقرؤها روابط مكسورة في الموقع.
+ *
+ * وشهادات تقدر لها مسارها الخاص أدناه (`student/certificate/(:num)` و
+ * `verify/(:any)`) ولا علاقة لها بإضافة Academy المحذوفة، فحذف
+ * `certificate/(:any)` لا يمس شهادة واحدة صادرة.
+ * --------------------------------------------------------------------- */
 
 //BLog
 $route['blog/(:any)/(:num)']   = 'blog/details/$1/$2';
 $route['blogs']        = "blog/blogs";
 $route['blogs/(:any)'] = "blog/blogs/$1";
 //End blog
-
-//Custom page
-$route['page/(:any)'] = "page/index/$1";
-//End Custom page
-
-//tutor booking ..... tutor_booking/tutors
-$route['tutors']                    = "addons/tutor_booking/list_of_tuitions";
-$route['tutors/(:any)']             = "addons/tutor_booking/list_of_tuitions/$1";
-$route['tutor/filter']              = "addons/tutor_booking/list_of_tuitions_after_filter";
-$route['schedules_bookings/(:any)'] = "addons/tutor_booking/tutor_details/$1";
-$route['my_bookings']               = "addons/tutor_booking/booked_schedules_student";
-//End tutor booking
 
 $route['sitemap.xml'] = 'sitemap';
 

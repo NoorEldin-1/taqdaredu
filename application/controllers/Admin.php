@@ -29,14 +29,89 @@ class Admin extends CI_Controller
         }
     }
 
+    /* =====================================================================
+       TQ-DT — قراءة طلب DataTables والرد عليه.
+
+       ست شاشات في هذا الملف تقرأ الطلب نفسه بالسطور نفسها، وفيها ثلاثة
+       أعطال متكررة تظهر كلها للمستخدم بالنافذة البيضاء ذاتها
+       («DataTables warning … Ajax error») بلا أن تقول أين:
+
+       ١ — `$this->input->post('order')[0]['column']` تفترض وجود الترتيب.
+           و`ajax.reload()` ترسل أحيانا بلا `order`، وأي نداء يدوي كذلك،
+           فيرمى على فهرس غير موجود.
+
+       ٢ — `$columns[$idx]` بلا فحص: فهرس عمود من خارج المدى (وهو ما يرسله
+           جدول عدلت أعمدته) يرمي أيضا.
+
+       ٣ — `echo json_encode(...)` بلا ترويسة ولا تنظيف مخرج: أي تحذير PHP
+           سبق — والبيئة المحلية تطبع التحذيرات — يلتصق بأول قوس فيرفض
+           المحلل الرد كله.
+
+       فجمع القراءة والرد هنا: الشاشات تصف أعمدتها ولا تكرر المنطق.
+       ===================================================================== */
+
+    /** يقرأ معاملات الطلب مطهرة، ويرد `[limit, start, column, dir, search]`. */
+    private function tq_dt_request($columns, $method = 'post')
+    {
+        $get = function ($k) use ($method) {
+            return $method === 'get' ? $this->input->get($k) : $this->input->post($k);
+        };
+
+        $limit = (int) $get('length');
+        if ($limit <= 0) {
+            $limit = 25;                 // `-1` تعني «الكل»، ولا يحد استعلام بلا حد
+        }
+
+        $order  = $get('order');
+        $column = $columns[0];
+        $dir    = 'desc';
+        if (is_array($order) && isset($order[0]['column'])) {
+            $idx = (int) $order[0]['column'];
+            if (isset($columns[$idx])) {
+                $column = $columns[$idx];
+            }
+            $dir = (isset($order[0]['dir']) && strtolower((string) $order[0]['dir']) === 'asc') ? 'asc' : 'desc';
+        }
+
+        $search = $get('search');
+        $search = is_array($search) ? (string) ($search['value'] ?? '') : '';
+
+        return array($limit, max(0, (int) $get('start')), $column, $dir, $search);
+    }
+
+    /** يرد JSON صالحا: ترويسة صريحة، ومخرج نظيف قبله. */
+    private function tq_dt_respond($data, $total, $filtered)
+    {
+        if (ob_get_length()) {
+            @ob_clean();
+        }
+        $this->output
+             ->set_content_type('application/json', 'utf-8')
+             ->set_output(json_encode(array(
+                 'draw'            => (int) $this->input->post('draw') ?: (int) $this->input->get('draw'),
+                 'recordsTotal'    => (int) $total,
+                 'recordsFiltered' => (int) $filtered,
+                 'data'            => $data,
+             ), JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * حولت إلى لوحة القيادة الجديدة.
+     *
+     * الشاشة القديمة كانت تقرأ جدول `payment` الموروث وتعد كورسات
+     * Academy، وترسم إيراد السنة من مبيعات لا تجري بهذه الطريقة: تقدر
+     * تبيع باقات واشتراكات، وحقيقتها في `subscriptions` و`invoices`.
+     *
+     * والتحويل لا الحذف: `admin/dashboard` مكتوب في مئات الإشارات
+     * المرجعية وفي علامات متصفحات من يعمل على اللوحة منذ سنة. ورابط
+     * يرد 404 لمن حفظه أسوأ من رابط يوصله إلى الشاشة التي حلت محله.
+     */
     public function dashboard()
     {
         if ($this->session->userdata('admin_login') != true) {
             redirect(site_url('login'), 'refresh');
         }
-        $page_data['page_name']  = 'dashboard';
-        $page_data['page_title'] = get_phrase('dashboard');
-        $this->load->view('backend/index.php', $page_data);
+        redirect(site_url('taqdar_admin/overview'), 'location', 302);
     }
 
     public function categories($param1 = "", $param2 = "")
@@ -108,36 +183,26 @@ class Admin extends CI_Controller
         $this->load->view('backend/index', $page_data);
     }
 
-    public function sub_categories_by_category_id($category_id = 0)
-    {
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'), 'refresh');
-        }
-
-        $category_id = $this->input->post('category_id');
-        redirect(site_url("admin/sub_categories/$category_id"), 'refresh');
-    }
-
-    public function sub_category_form($param1 = "", $param2 = "")
-    {
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'), 'refresh');
-        }
-
-        // CHECK ACCESS PERMISSION
-        check_permission('category');
-
-        if ($param1 == 'add_sub_category') {
-            $page_data['page_name']  = 'sub_category_add';
-            $page_data['page_title'] = get_phrase('add_sub_category');
-        } elseif ($param1 == 'edit_sub_category') {
-            $page_data['page_name']       = 'sub_category_edit';
-            $page_data['page_title']      = get_phrase('edit_sub_category');
-            $page_data['sub_category_id'] = $param2;
-        }
-        $page_data['categories'] = $this->crud_model->get_categories();
-        $this->load->view('backend/index', $page_data);
-    }
+    /* TQ-SUBCAT-DEAD — حذفت `sub_categories_by_category_id()` و
+       `sub_category_form()` ومعهما ثلاثة قوالب.
+     *
+     * كانت شاشة أقسام فرعية مستقلة موروثة من **الجيل الأول** من
+     * Academy — قوالبها بـBootstrap 3 (`panel panel-primary` ·
+     * `col-md-offset-3` · أيقونات `entypo-`)، أي أنها لم تكن تشبه شيئا
+     * في هذه اللوحة أصلا لو عرضت.
+     *
+     * ولم تكن تعرض: كل أزرارها ترد ٤٠٤. النموذج يرسل إلى
+     * `admin/sub_categories/0/add`، والحذف إلى `admin/sub_categories/…`،
+     * و`sub_categories_by_category_id()` تحول إلى `admin/sub_categories/$id`
+     * — و**`Admin::sub_categories()` غير موجودة**. فالإضافة والتعديل
+     * والحذف والترشيح، أربعتها، تصل إلى صفحة غير موجودة.
+     *
+     * ولا رابط إليها من أي شاشة حية: الطريق الفعلي هو `admin/categories`
+     * وهي تعرض القسم وأقسامه الفرعية معا وتحرر الاثنين بـ
+     * `admin/category_form` (والقسم الفرعي صف في `category` بـ`parent`
+     * غير صفر — لا جدول آخر). فشاشة ثانية لعمل واحد تعني موضعين يحرر
+     * فيهما، وأحدهما لا يعمل.
+     */
 
     public function instructors($param1 = "", $param2 = "")
     {
@@ -159,6 +224,8 @@ class Admin extends CI_Controller
             $this->user_model->delete_user($param2);
             redirect(site_url('admin/instructors'), 'refresh');
         }
+
+        $page_data = array_merge($page_data ?? [], $this->tq_people_page(2, 1));
 
         $page_data['page_name']  = 'instructors';
         $page_data['page_title'] = get_phrase('instructor');
@@ -208,9 +275,77 @@ class Admin extends CI_Controller
             redirect(site_url('admin/users'), 'refresh');
         }
 
+        $page_data = array_merge($page_data ?? [], $this->tq_people_page(2, 0));
+
         $page_data['page_name']  = 'users';
         $page_data['page_title'] = get_phrase('student');
         $this->load->view('backend/index', $page_data);
+    }
+
+    /**
+     * صفحة حسابات — مشتركة بين شاشتي الطلاب والمعلمين.
+     *
+     * TQ-DT-GONE — كانت كل واحدة جدول DataTables يجلب صفوفه بـPOST من
+     * `server_side_users_data` / `server_side_instructors_data`، والمتحكم
+     * يبني الصور والأزرار HTML بالسلاسل. ومعها عطلان يشتركان فيهما:
+     *
+     * ١ — **العد الكلي يخالف الترشيح.** `total_number_of_row` يعد
+     *     `role_id != 1` — أي الطلاب والمعلمين معا — بينما الصفوف تجلب
+     *     بشرط آخر. فشاشة الطلاب تقول «١ من ٥٠» وفيها تسعة.
+     * ٢ — **عدد الكورسات المسجلة استعلام لكل صف.**
+     */
+    private function tq_people_page($role_id, $is_instructor)
+    {
+        $per  = 25;
+        $page = max(1, (int) $this->input->get('page'));
+        $q    = trim((string) $this->input->get('q', true));
+
+        $scope = function () use ($role_id, $is_instructor, $q) {
+            $this->db->where('role_id', $role_id);
+            $this->db->where('is_instructor', $is_instructor);
+            if ($q !== '') {
+                $this->db->group_start()
+                         ->like('first_name', $q)
+                         ->or_like('last_name', $q)
+                         ->or_like('email', $q)
+                         ->or_like('phone', $q)
+                         ->group_end();
+            }
+        };
+
+        $scope();
+        $total = (int) $this->db->count_all_results('users');
+
+        $pages = max(1, (int) ceil($total / $per));
+        $page  = min($page, $pages);
+
+        $scope();
+        $rows = $this->db->select('id, first_name, last_name, email, phone, status')
+                         ->order_by('id', 'DESC')
+                         ->limit($per, ($page - 1) * $per)
+                         ->get('users')->result_array();
+
+        /* عدد التسجيلات لكل حساب — استعلام واحد لكل الصفحة. */
+        $enrols = [];
+        $ids    = array_column($rows, 'id');
+        if ($ids) {
+            foreach ($this->db->select('user_id AS k, COUNT(*) AS n')
+                              ->where_in('user_id', $ids)
+                              ->group_by('user_id')
+                              ->get('enrol')->result_array() as $r) {
+                $enrols[(int) $r['k']] = (int) $r['n'];
+            }
+        }
+
+        return [
+            'rows'       => $rows,
+            'enrols'     => $enrols,
+            'total'      => $total,
+            'page_no'    => $page,
+            'page_count' => $pages,
+            'per_page'   => $per,
+            'search'     => $q,
+        ];
     }
 
     public function server_side_users_data()
@@ -220,16 +355,12 @@ class Admin extends CI_Controller
         //mentioned all with colum of database table that related with html table
         $columns = ['id', 'id', 'first_name', 'email', 'phone', 'id', 'id'];
 
-        $limit = htmlspecialchars_($this->input->post('length'));
-        $start = htmlspecialchars_($this->input->post('start'));
-
-        $column_index = $columns[$this->input->post('order')[0]['column']];
-
-        $dir                 = $this->input->post('order')[0]['dir'];
+        // انظر tq_dt_request: الترتيب والطول والبحث تقرأ مطهرة ومحصنة من الغياب
+        list($limit, $start, $column_index, $dir, $tq_dt_search) = $this->tq_dt_request($columns);
         $total_number_of_row = $this->db->where('role_id !=', 1)->get('users')->num_rows();
 
         $filtered_number_of_row = $total_number_of_row;
-        $search                 = $this->input->post('search')['value'];
+        $search                 = $tq_dt_search;
 
         if (empty($search)) {
             $this->db->select('*');
@@ -302,13 +433,7 @@ class Admin extends CI_Controller
             $data[]                         = $nestedData;
         endforeach;
 
-        $json_data = [
-            "draw"            => intval($this->input->post('draw')),
-            "recordsTotal"    => intval($total_number_of_row),
-            "recordsFiltered" => intval($filtered_number_of_row),
-            "data"            => $data,
-        ];
-        echo json_encode($json_data);
+        $this->tq_dt_respond($data, $total_number_of_row, $filtered_number_of_row);
     }
 
     public function server_side_instructors_data()
@@ -318,16 +443,12 @@ class Admin extends CI_Controller
         //mentioned all with colum of database table that related with html table
         $columns = ['id', 'id', 'first_name', 'email', 'phone', 'id', 'id'];
 
-        $limit = htmlspecialchars_($this->input->post('length'));
-        $start = htmlspecialchars_($this->input->post('start'));
-
-        $column_index = $columns[$this->input->post('order')[0]['column']];
-
-        $dir                 = $this->input->post('order')[0]['dir'];
+        // انظر tq_dt_request: الترتيب والطول والبحث تقرأ مطهرة ومحصنة من الغياب
+        list($limit, $start, $column_index, $dir, $tq_dt_search) = $this->tq_dt_request($columns);
         $total_number_of_row = $this->db->where('is_instructor', 1)->where('role_id !=', 1)->get('users')->num_rows();
 
         $filtered_number_of_row = $total_number_of_row;
-        $search                 = $this->input->post('search')['value'];
+        $search                 = $tq_dt_search;
 
         if (empty($search)) {
             $this->db->select('*');
@@ -414,13 +535,7 @@ class Admin extends CI_Controller
             $data[]                         = $nestedData;
         endforeach;
 
-        $json_data = [
-            "draw"            => intval($this->input->post('draw')),
-            "recordsTotal"    => intval($total_number_of_row),
-            "recordsFiltered" => intval($filtered_number_of_row),
-            "data"            => $data,
-        ];
-        echo json_encode($json_data);
+        $this->tq_dt_respond($data, $total_number_of_row, $filtered_number_of_row);
     }
 
     public function add_shortcut_student()
@@ -527,57 +642,8 @@ class Admin extends CI_Controller
         echo $this->crud_model->shortcut_enrol_a_student_manually();
     }
 
-    public function admin_revenue($param1 = "")
-    {
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'), 'refresh');
-        }
 
-        // CHECK ACCESS PERMISSION
-        check_permission('revenue');
 
-        if ($param1 != "") {
-            $date_range                   = $this->input->get('date_range');
-            $date_range                   = explode(" - ", $date_range);
-            $page_data['timestamp_start'] = strtotime($date_range[0] . ' 00:00:00');
-            $page_data['timestamp_end']   = strtotime($date_range[1] . ' 23:59:59');
-        } else {
-            $page_data['timestamp_start'] = strtotime(date("m/01/Y 00:00:00"));
-            $page_data['timestamp_end']   = strtotime(date("m/t/Y 23:59:59"));
-        }
-
-        $page_data['page_name']       = 'admin_revenue';
-        $page_data['payment_history'] = $this->crud_model->get_revenue_by_user_type($page_data['timestamp_start'], $page_data['timestamp_end'], 'admin_revenue');
-        $page_data['page_title']      = get_phrase('admin_revenue');
-
-        $this->load->view('backend/index', $page_data);
-    }
-
-    public function instructor_revenue($param1 = "")
-    {
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'), 'refresh');
-        }
-
-        // CHECK ACCESS PERMISSION
-        check_permission('revenue');
-
-        $page_data['page_name']       = 'instructor_revenue';
-        $page_data['payment_history'] = $this->crud_model->get_revenue_by_user_type("", "", 'instructor_revenue');
-        $page_data['page_title']      = get_phrase('instructor_revenue');
-        $this->load->view('backend/index', $page_data);
-    }
-
-    public function invoice($payout_id = "")
-    {
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'), 'refresh');
-        }
-        $page_data['page_name']  = 'invoice';
-        $page_data['payout_id']  = $payout_id;
-        $page_data['page_title'] = get_phrase('invoice');
-        $this->load->view('backend/index', $page_data);
-    }
 
     public function enrol_history_delete($param1 = "")
     {
@@ -593,16 +659,6 @@ class Admin extends CI_Controller
         redirect(site_url('admin/enrol_history'), 'refresh');
     }
 
-    public function purchase_history()
-    {
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'), 'refresh');
-        }
-        $page_data['page_name']        = 'purchase_history';
-        $page_data['purchase_history'] = $this->crud_model->purchase_history();
-        $page_data['page_title']       = get_phrase('purchase_history');
-        $this->load->view('backend/index', $page_data);
-    }
 
     public function system_settings($param1 = "")
     {
@@ -687,7 +743,7 @@ class Admin extends CI_Controller
         if ($param1 == 'motivational_speech') {
             $this->crud_model->update_motivational_speech();
             $this->session->set_flashdata('flash_message', get_phrase('Motivational speech updated successfully'));
-            redirect(site_url('admin/home_page_builder?tab=pre-built-home-settings'), 'refresh');
+            redirect(site_url('admin/frontend_settings?tab=frontendsettings'), 'refresh');
         }
 
         if ($param1 == 'website_faq') {
@@ -804,25 +860,6 @@ class Admin extends CI_Controller
         $this->load->view('backend/admin/edit_email_template', $page_data);
     }
 
-    public function social_login_settings($param1 = "")
-    {
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'), 'refresh');
-        }
-
-        // CHECK ACCESS PERMISSION
-        check_permission('settings');
-
-        if ($param1 == 'update') {
-            $this->crud_model->update_social_login_settings();
-            $this->session->set_flashdata('flash_message', get_phrase('social_login_settings_updated_successfully'));
-            redirect(site_url('admin/social_login_settings'), 'refresh');
-        }
-
-        $page_data['page_name']  = 'social_login';
-        $page_data['page_title'] = get_phrase('social_login');
-        $this->load->view('backend/index', $page_data);
-    }
 
     public function instructor_settings($param1 = "")
     {
@@ -845,49 +882,7 @@ class Admin extends CI_Controller
         $this->load->view('backend/index', $page_data);
     }
 
-    public function theme_settings($action = '')
-    {
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'), 'refresh');
-        }
 
-        // CHECK ACCESS PERMISSION
-        check_permission('theme');
-
-        $page_data['page_name']  = 'theme_settings';
-        $page_data['page_title'] = get_phrase('theme_settings');
-        $this->load->view('backend/index', $page_data);
-    }
-
-    public function theme_actions($action = "", $theme = "")
-    {
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'), 'refresh');
-        }
-
-        // CHECK ACCESS PERMISSION
-        check_permission('theme');
-
-        if ($action == 'activate') {
-            $theme_to_active  = $this->input->post('theme');
-            $installed_themes = $this->crud_model->get_installed_themes();
-            if (in_array($theme_to_active, $installed_themes)) {
-                $this->crud_model->activate_theme($theme_to_active);
-                echo true;
-            } else {
-                echo false;
-            }
-        } elseif ($action == 'remove') {
-            if ($theme == get_frontend_settings('theme')) {
-                $this->session->set_flashdata('error_message', get_phrase('activate_a_theme_first'));
-            } else {
-                $this->crud_model->remove_files_and_folders(APPPATH . '/views/frontend/' . $theme);
-                $this->crud_model->remove_files_and_folders(FCPATH . '/assets/frontend/' . $theme);
-                $this->session->set_flashdata('flash_message', $theme . ' ' . get_phrase('theme_removed_successfully'));
-            }
-            redirect(site_url('admin/theme_settings'), 'refresh');
-        }
-    }
 
     public function courses()
     {
@@ -902,16 +897,116 @@ class Admin extends CI_Controller
         $page_data['selected_instructor_id'] = isset($_GET['instructor_id']) ? $_GET['instructor_id'] : "all";
         $page_data['selected_price']         = isset($_GET['price']) ? $_GET['price'] : "all";
         $page_data['selected_status']        = isset($_GET['status']) ? $_GET['status'] : "all";
+        $page_data['search_term']            = trim((string) $this->input->get('q', true));
 
         $page_data['page_name']  = 'courses-server-side';
         $page_data['categories'] = $this->crud_model->get_categories();
-        $page_data['page_title'] = get_phrase('active_courses');
+        /* منتقي المعلم كان يملأ بـselect2 عبر `get_select2_instructor_data`،
+           و select2 غير محمل في اللوحة (انظر TQ-SELECT2-GONE) — فالمنتقي
+           يظهر بخيار «الجميع» وحده ولا يمكن الترشيح بمعلم إطلاقا.
+           والمعلمون هنا عشرات لا آلاف، فيملأ من الخادم مرة. */
+        $page_data['instructors'] = $this->db->select('id, first_name, last_name, email')
+                                             ->where('is_instructor', 1)
+                                             ->order_by('first_name', 'ASC')
+                                             ->get('users')->result_array();
+
+        /**
+         * صفوف الجدول تحضر هنا لا في نداء AJAX.
+         *
+         * TQ-DT-GONE — كان الجدول يبنى بـDataTables من جانب الخادم:
+         * `POST admin/get_courses` يرد JSON فيرسمه القالب. وكلفة ذلك
+         * ثلاثة أشياء دفعت كلها:
+         *
+         * ١ — **أي تعثر يخرج نافذة `alert()` بيضاء** نصها بالإنجليزية
+         *     «DataTables warning … Ajax error» فوق اللوحة، تحجب الخيط
+         *     الرئيسي حتى تغلق. وهي ما تراه هذه الشاشة اليوم: تحذير PHP
+         *     واحد يسبق الـJSON فيسقط الجدول كله ولا يبقى منه صف.
+         * ٢ — **الترشيح لا يصل إلى الرابط.** المرشحات ترسل في جسم POST،
+         *     فصفحة الدورات المعلقة لا تحفظ ولا ترسل ولا يعود إليها زر
+         *     الرجوع.
+         * ٣ — **مظهر من منتج آخر.** صف الطول والبحث والترقيم أربع كتل
+         *     من قالب Hyper وسط شاشة مبنية بهوية تقدر.
+         *
+         * والصفحة الواحدة عشرون صفا، فالعرض من الخادم أرخص من الرحلتين.
+         */
+        $tq_per  = 20;
+        $tq_page = max(1, (int) $this->input->get('page'));
+
+        /** المرشحات تكتب مرة وتطبق على عد الصفوف وعلى جلبها معا. */
+        $tq_scope = function () use ($page_data) {
+            if ($page_data['search_term'] !== '') {
+                $this->db->group_start()
+                         ->like('title', $page_data['search_term'])
+                         ->or_like('short_description', $page_data['search_term'])
+                         ->group_end();
+            }
+            if ($page_data['selected_category_id'] !== 'all') {
+                $this->db->where('sub_category_id', (int) $page_data['selected_category_id']);
+            }
+            if ($page_data['selected_instructor_id'] !== 'all') {
+                $this->db->where('creator', (int) $page_data['selected_instructor_id']);
+            }
+            if ($page_data['selected_status'] !== 'all') {
+                $this->db->where('status', $page_data['selected_status']);
+            }
+            if ($page_data['selected_price'] === 'free') {
+                $this->db->where('is_free_course', 1);
+            } elseif ($page_data['selected_price'] === 'paid') {
+                $this->db->where('is_free_course', null);
+            }
+        };
+
+        $tq_scope();
+        $tq_total = (int) $this->db->count_all_results('course');
+
+        $tq_pages = max(1, (int) ceil($tq_total / $tq_per));
+        $tq_page  = min($tq_page, $tq_pages);
+
+        $tq_scope();
+        $page_data['courses'] = $this->db->order_by('id', 'DESC')
+                                         ->limit($tq_per, ($tq_page - 1) * $tq_per)
+                                         ->get('course')->result_array();
+
+        $page_data['total_courses'] = $tq_total;
+        $page_data['page_no']       = $tq_page;
+        $page_data['page_count']    = $tq_pages;
+        $page_data['per_page']      = $tq_per;
+
+        $page_data['page_title'] = get_phrase('courses');
         $this->load->view('backend/index', $page_data);
     }
 
-    // This function is responsible for loading the course data from server side for datatable SILENTLY
+    /**
+     * بيانات جدول الدورات — يقرؤها DataTables من جانب الخادم.
+     *
+     * TQ-DT-JSON — الشاشة كانت ترد «DataTables warning … Ajax error» في
+     * نافذة تنبيه بيضاء فوق اللوحة، وسبب ذلك ليس في المتصفح:
+     *
+     * ١ — **تحذير PHP يسبق الـJSON.** ست دورات في هذه القاعدة
+     *     `sub_category_id = 0`، و`get_category_details_by_id(0)` لا ترد
+     *     صفا، فـ`$category_details['name']` تصير قراءة فهرس من `null`.
+     *     وهي في PHP 8.2 **تحذير** لا خطأ — يطبع في المخرجات لأن البيئة
+     *     المحلية `display_errors = 1`، فيسبق أول قوس من الـJSON فيرفض
+     *     المحلل الرد كله. وعلى الخادم الحي لا يطبع، فالجدول يظهر بخانة
+     *     تصنيف فارغة ولا يشكو أحد — وهو العطل نفسه صامتا.
+     *
+     * ٢ — **`order[0]` مفترض لا مفحوص.** أي نداء بلا ترتيب (وهو ما ترسله
+     *     `ajax.reload()` أحيانا) يرمي على فهرس غير موجود.
+     *
+     * ٣ — **الصلاحية غير مفحوصة.** `admin/courses` تفحص `check_permission`
+     *     ولا تفحصها هذه، فمسؤول ممنوع من وحدة الدورات يقرؤها كاملة من
+     *     المسار المباشر. (والدخول نفسه مفحوص في الباني.)
+     *
+     * والرد يخرج الآن بـ`application/json` صريحا وبمخرج نظيف: أي تحذير
+     * تسرب من دالة أبعد لا يخلط بالـJSON.
+     */
     public function get_courses()
     {
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
+        }
+        check_permission('course');
+
         $data = [];
         //mentioned all with colum of database table that related with html table
         $columns = ['id', 'title', 'sub_category_id', 'section', 'id', 'status', 'price', 'id'];
@@ -922,15 +1017,9 @@ class Admin extends CI_Controller
         $price         = $this->input->post('selected_price');
         $status        = $this->input->post('selected_status');
 
-        $limit = htmlspecialchars_($this->input->post('length'));
-        $start = htmlspecialchars_($this->input->post('start'));
-
-        $column_index = $columns[$this->input->post('order')[0]['column']];
-
-        $dir = $this->input->post('order')[0]['dir'];
+        list($limit, $start, $column_index, $dir, $search) = $this->tq_dt_request($columns);
 
         $total_number_of_row = $this->crud_model->get_courses()->num_rows();
-        $search              = $this->input->post('search')['value'];
 
         //FILTERED DATA
         $this->db->select('*');
@@ -999,8 +1088,12 @@ class Admin extends CI_Controller
         // Fetch the data and make it as JSON format and return it.
         if (! empty($courses)) {
             foreach ($courses as $key => $row) {
-                $instructor_details = $this->user_model->get_all_user($row['creator'])->row_array();
+                /* الصف الغائب يرد `null` لا مصفوفة فارغة: دورة صنفها صفر
+                   — وهي ست دورات هنا — كانت تسقط الرد كله. */
                 $category_details   = $this->crud_model->get_category_details_by_id($row['sub_category_id'])->row_array();
+                if (!is_array($category_details)) {
+                    $category_details = array('name' => 'بلا تصنيف');
+                }
                 $sections           = $this->crud_model->get_section('course', $row['id']);
                 $lessons            = $this->crud_model->get_lessons('course', $row['id']);
                 $enroll_history     = $this->crud_model->enrol_history($row['id']);
@@ -1092,11 +1185,21 @@ class Admin extends CI_Controller
 
                 $nestedData['#'] = $key + 1;
 
-                $instructor_names = "";
-                foreach ($this->crud_model->get_course_instructors_id($row['id']) as $instructor_id) {
-                    $multi_instructor = $this->user_model->get_all_user($instructor_id)->row_array();
-                    $instructor_names = $multi_instructor['first_name'] . ' ' . $multi_instructor['last_name'];
+                /* الأسماء تجمع ولا يطغى آخرها: كانت الحلقة **تسند** لا
+                   تضيف، فدورة بثلاثة معلمين تعرض اسم آخرهم وحده.
+                   والحساب المحذوف يرد `null` — فيتخطى لا يوقف الرد. */
+                $instructor_names = array();
+                foreach ($this->crud_model->get_course_instructors_id($row['id']) as $one_instructor_id) {
+                    $multi_instructor = $this->user_model->get_all_user($one_instructor_id)->row_array();
+                    if (!is_array($multi_instructor)) {
+                        continue;
+                    }
+                    $name = trim($multi_instructor['first_name'] . ' ' . $multi_instructor['last_name']);
+                    if ($name !== '') {
+                        $instructor_names[] = $name;
+                    }
                 }
+                $instructor_names = $instructor_names ? implode('، ', $instructor_names) : '—';
 
                 $nestedData['title'] = '<strong><a href="' . site_url('admin/course_form/course_edit/' . $row['id']) . '">' . $row['title'] . '</a></strong><br>
                 <small class="text-muted">' . get_phrase('instructor') . ': <b>' . $instructor_names . '</b></small>';
@@ -1134,21 +1237,45 @@ class Admin extends CI_Controller
             "data"            => $data,
         ];
 
-        echo json_encode($json_data);
+        /* المخرج ينظف قبل الطباعة: أي تحذير أو مسافة تسربت من دالة أبعد
+           تسبق أول قوس فتجعل الرد غير صالح — وهو ما يقرؤه DataTables
+           «Ajax error» بلا أن يقول أين. */
+        if (ob_get_length()) {
+            @ob_clean();
+        }
+        $this->output
+             ->set_content_type('application/json', 'utf-8')
+             ->set_output(json_encode($json_data, JSON_UNESCAPED_UNICODE));
     }
 
+    /**
+     * TQ-PENDING-MERGE — حولت إلى قائمة الدورات مرشحة بـ«معلقة».
+     *
+     * كان لها قالبها الخاص، وهو من **الجيل الأول** من Academy: بنية
+     * Bootstrap 3 (`panel panel-primary` · `col-md-offset-2` · أيقونات
+     * `entypo-`)، وفتات خبز تشير إلى `admin/dashboard`. أي أنه لو عرض
+     * لخرج بمظهر منتج آخر داخل اللوحة.
+     *
+     * وكان يقرأ أعمدة قراءة تسقط في هذه البيانات: `$category_details['name']`
+     * بلا فحص (وست دورات هنا تصنيفها صفر)، و`get_all_user($course['user_id'])`
+     * بينما العمود يحمل أحيانا قائمة معرفات («147,289») فلا يطابق شيئا،
+     * فيقرأ `['first_name']` من `null`.
+     *
+     * ولا رابط إليه من أي شاشة: بند «الكورسات» في الشريط يشير إلى
+     * `admin/courses`، وهي تعرض المعلقة بمرشح الحالة وتغير حالتها من
+     * قائمة الإجراءات. فشاشتان لعمل واحد، وإحداهما معطوبة.
+     *
+     * والتحويل لا الحذف: `admin/pending_courses` مكتوب في إشارات مرجعية.
+     */
     public function pending_courses()
     {
         if ($this->session->userdata('admin_login') != true) {
             redirect(site_url('login'), 'refresh');
         }
-
-        // CHECK ACCESS PERMISSION
         check_permission('course');
 
-        $page_data['page_name']  = 'pending_courses';
-        $page_data['page_title'] = get_phrase('pending_courses');
-        $this->load->view('backend/index', $page_data);
+        redirect(site_url('admin/courses?category_id=all&status=pending&instructor_id=all&price=all'),
+                 'location', 302);
     }
 
     public function course_actions($param1 = "", $param2 = "")
@@ -1476,144 +1603,12 @@ class Admin extends CI_Controller
         $this->load->view('backend/index', $page_data);
     }
 
-    public function paypal_checkout_for_instructor_revenue()
-    {
-        if ($this->session->userdata('admin_login') != 1) {
-            redirect(site_url('login'), 'refresh');
-        }
-
-        $page_data['amount_to_pay']        = $this->input->post('amount_to_pay');
-        $page_data['payout_id']            = $this->input->post('payout_id');
-        $page_data['instructor_name']      = $this->input->post('instructor_name');
-        $page_data['production_client_id'] = $this->input->post('production_client_id');
-
-        // BEFORE, CHECK PAYOUT AMOUNTS ARE VALID
-        $payout_details = $this->crud_model->get_payouts($page_data['payout_id'], 'payout')->row_array();
-        if ($payout_details['amount'] == $page_data['amount_to_pay'] && $payout_details['status'] == 0) {
-            $this->load->view('backend/admin/paypal_checkout_for_instructor_revenue', $page_data);
-        } else {
-            $this->session->set_flashdata('error_message', get_phrase('invalid_payout_data'));
-            redirect(site_url('admin/instructor_payout'), 'refresh');
-        }
-    }
 
     // PAYPAL CHECKOUT ACTIONS
-    public function paypal_payment($payout_id = "", $paypalPaymentID = "", $paypalPaymentToken = "", $paypalPayerID = "")
-    {
-        // نقطة استدعاء راجعة من PayPal تحمل دائما معرف الدفعة ورمزها؛ الوصول المباشر
-        // بلا هذه القيم (زحف/رابط مكسور) يعاد توجيهه بلطف بدل الخطأ القاتل.
-        if (empty($payout_id) || empty($paypalPaymentID)) {
-            $this->session->set_flashdata('error_message', get_phrase('invalid_payout_data'));
-            redirect(site_url('admin/instructor_payout'), 'refresh');
-            return;
-        }
-        $payout_details  = $this->crud_model->get_payouts($payout_id, 'payout')->row_array();
-        if (empty($payout_details)) {
-            $this->session->set_flashdata('error_message', get_phrase('invalid_payout_data'));
-            redirect(site_url('admin/instructor_payout'), 'refresh');
-            return;
-        }
-        $instructor_id   = $payout_details['user_id'];
-        $instructor_data = $this->db->get_where('users', ['id' => $instructor_id])->row_array();
 
-        $payment_keys          = json_decode($instructor_data['payment_keys'], true);
-        $paypal_keys           = $payment_keys['paypal'];
-        $production_client_id  = $paypal_keys['production_client_id'];
-        $production_secret_key = $paypal_keys['production_secret_key'];
-
-        //THIS IS HOW I CHECKED THE PAYPAL PAYMENT STATUS
-        $status = $this->payment_model->paypal_payment($paypalPaymentID, $paypalPaymentToken, $paypalPayerID, $production_client_id, $production_secret_key);
-        if (! $status) {
-            $this->session->set_flashdata('error_message', get_phrase('an_error_occurred_during_payment'));
-            redirect(site_url('admin/instructor_payout'), 'refresh');
-        }
-        $this->crud_model->update_payout_status($payout_id, 'paypal');
-        $this->session->set_flashdata('flash_message', get_phrase('payout_updated_successfully'));
-        redirect(site_url('admin/instructor_payout'), 'refresh');
-    }
-
-    public function stripe_checkout_for_instructor_revenue($payout_id)
-    {
-        if ($this->session->userdata('admin_login') != 1) {
-            redirect(site_url('login'), 'refresh');
-        }
-
-        // BEFORE, CHECK PAYOUT AMOUNTS ARE VALID
-        $payout_details = $this->crud_model->get_payouts($payout_id, 'payout')->row_array();
-        if ($payout_details['amount'] > 0 && $payout_details['status'] == 0) {
-            $page_data['user_details']  = $this->user_model->get_user($payout_details['user_id'])->row_array();
-            $page_data['amount_to_pay'] = $payout_details['amount'];
-            $page_data['payout_id']     = $payout_details['id'];
-            $this->load->view('backend/admin/stripe_checkout_for_instructor_revenue', $page_data);
-        } else {
-            $this->session->set_flashdata('error_message', get_phrase('invalid_payout_data'));
-            redirect(site_url('admin/instructor_payout'), 'refresh');
-        }
-    }
 
     // STRIPE CHECKOUT ACTIONS
-    public function stripe_payment($payout_id = "", $session_id = "")
-    {
-        // نقطة استدعاء راجعة من Stripe تحمل دائما معرف الجلسة؛ الوصول المباشر بلا
-        // هذه القيم (زحف/رابط مكسور) يعاد توجيهه بلطف بدل الخطأ القاتل.
-        if (empty($payout_id) || empty($session_id)) {
-            $this->session->set_flashdata('error_message', get_phrase('invalid_payout_data'));
-            redirect(site_url('admin/instructor_payout'), 'refresh');
-            return;
-        }
-        $payout_details = $this->crud_model->get_payouts($payout_id, 'payout')->row_array();
-        if (empty($payout_details)) {
-            $this->session->set_flashdata('error_message', get_phrase('invalid_payout_data'));
-            redirect(site_url('admin/instructor_payout'), 'refresh');
-            return;
-        }
-        $instructor_id  = $payout_details['user_id'];
-        //THIS IS HOW I CHECKED THE STRIPE PAYMENT STATUS
-        $response = $this->payment_model->stripe_payment($instructor_id, $session_id, true);
 
-        if ($response['payment_status'] === 'succeeded') {
-            $this->crud_model->update_payout_status($payout_id, 'stripe');
-            $this->session->set_flashdata('flash_message', get_phrase('payout_updated_successfully'));
-        } else {
-            $this->session->set_flashdata('error_message', $response['status_msg']);
-        }
-
-        redirect(site_url('admin/instructor_payout'), 'refresh');
-    }
-
-    public function razorpay_checkout_for_instructor_revenue($user_id = "", $payout_id = "", $param1 = "", $razorpay_order_id = "", $payment_id = "", $amount = "", $signature = "")
-    {
-        if ($param1 == 'paid') {
-            $status = $this->payment_model->razorpay_payment($razorpay_order_id, $payment_id, $amount, $signature);
-            if ($status == true) {
-                $this->crud_model->update_payout_status($payout_id, 'razorpay');
-                $this->session->set_flashdata('flash_message', get_phrase('payout_updated_successfully'));
-            } else {
-                $this->session->set_flashdata('error_message', $response['status_msg']);
-            }
-
-            redirect(site_url('admin/instructor_payout'), 'refresh');
-        }
-
-        // شاشة الدفع تفتح من زر صرف مستحقات معلم وتحمل معرفه ومعرف الدفعة؛
-        // الوصول المباشر بلا هذه القيم (زحف/رابط مكسور) -> رجوع مفهوم بدل الانهيار.
-        if (empty($user_id) || empty($payout_id)) {
-            $this->session->set_flashdata('error_message', get_phrase('invalid_payout_data'));
-            redirect(site_url('admin/instructor_payout'), 'refresh');
-            return;
-        }
-        $user_details = $this->user_model->get_user($user_id)->row_array();
-        if (empty($user_details)) {
-            $this->session->set_flashdata('error_message', get_phrase('invalid_payout_data'));
-            redirect(site_url('admin/instructor_payout'), 'refresh');
-            return;
-        }
-
-        $page_data['payout_id']     = $payout_id;
-        $page_data['user_details']  = $user_details;
-        $page_data['amount_to_pay'] = $this->input->post('total_price_of_checking_out');
-        $this->load->view('backend/admin/razorpay_checkout', $page_data);
-    }
 
     public function preview($course_id = '')
     {
@@ -1673,225 +1668,13 @@ class Admin extends CI_Controller
     }
 
     // software about page
-    public function about()
-    {
-        if ($this->session->userdata('admin_login') != 1) {
-            redirect(site_url('login'), 'refresh');
-        }
 
-        $page_data['application_details'] = $this->crud_model->get_application_details();
-        $page_data['page_name']           = 'about';
-        $page_data['page_title']          = get_phrase('about');
-        $this->load->view('backend/index', $page_data);
-    }
 
-    public function install_theme($theme_to_install = '')
-    {
-
-        if ($this->session->userdata('admin_login') != 1) {
-            redirect(site_url('login'), 'refresh');
-        }
-
-        // CHECK ACCESS PERMISSION
-        check_permission('theme');
-
-        $uninstalled_themes = $this->crud_model->get_uninstalled_themes();
-        if (! in_array($theme_to_install, $uninstalled_themes)) {
-            $this->session->set_flashdata('error_message', get_phrase('this_theme_is_not_available'));
-            redirect(site_url('admin/theme_settings'));
-        }
-
-        if (! class_exists('ZipArchive')) {
-            $this->session->set_flashdata('error_message', get_phrase('your_server_is_unable_to_extract_the_zip_file') . '. ' . get_phrase('please_enable_the_zip_extension_on_your_server') . ', ' . get_phrase('then_try_again'));
-            redirect(site_url('admin/theme_settings'));
-        }
-
-        $zipped_file_name   = $theme_to_install;
-        $unzipped_file_name = substr($zipped_file_name, 0, -4);
-        // Create update directory.
-        $views_directory  = 'application/views/frontend';
-        $assets_directory = 'assets/frontend';
-
-        //Unzip theme zip file and remove zip file.
-        $theme_path   = 'themes/' . $zipped_file_name;
-        $theme_zip    = new ZipArchive;
-        $theme_result = $theme_zip->open($theme_path);
-        if ($theme_result === true) {
-            $theme_zip->extractTo('themes');
-            $theme_zip->close();
-        }
-
-        // unzip the views zip file to the application>views folder
-        $views_path   = 'themes/' . $unzipped_file_name . '/views/' . $zipped_file_name;
-        $views_zip    = new ZipArchive;
-        $views_result = $views_zip->open($views_path);
-        if ($views_result === true) {
-            $views_zip->extractTo($views_directory);
-            $views_zip->close();
-        }
-
-        // unzip the assets zip file to the assets/frontend folder
-        $assets_path   = 'themes/' . $unzipped_file_name . '/assets/' . $zipped_file_name;
-        $assets_zip    = new ZipArchive;
-        $assets_result = $assets_zip->open($assets_path);
-        if ($assets_result === true) {
-            $assets_zip->extractTo($assets_directory);
-            $assets_zip->close();
-        }
-
-        unlink($theme_path);
-        $this->crud_model->remove_files_and_folders('themes/' . $unzipped_file_name);
-        $this->session->set_flashdata('flash_message', get_phrase('theme_imported_successfully'));
-        redirect(site_url('admin/theme_settings'));
-    }
-
-    public function available_addon()
-    {
-        $collectionId   = '8226729';
-        $personal_token = "FkA9UyDiQT0YiKwYLK3ghyFNRVV9SeUn";
-
-        //setting the header for the rest of the api
-        $bearer = 'bearer ' . $personal_token;
-
-        $header   = [];
-        $header[] = 'Content-length: 0';
-        $header[] = 'Content-type: application/json; charset=utf-8';
-        $header[] = 'Authorization: ' . $bearer;
-
-        $verify_url = 'https://api.envato.com/v3/market/catalog/collection';
-        $ch_verify  = curl_init($verify_url . '?id=' . $collectionId);
-
-        curl_setopt($ch_verify, CURLOPT_HTTPHEADER, $header);
-        curl_setopt($ch_verify, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch_verify, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch_verify, CURLOPT_CONNECTTIMEOUT, 5);
-        curl_setopt($ch_verify, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13');
-
-        $cinit_verify_data = curl_exec($ch_verify);
-        curl_close($ch_verify);
-
-        // collection, items, pagination
-        $response_data = json_decode($cinit_verify_data, true);
-
-        $page_data['items']        = $response_data['items'];
-        $page_data['collectionId'] = $collectionId;
-
-        $page_data['page_name']  = 'available_addons';
-        $page_data['page_title'] = get_phrase('available_addons');
-        $this->load->view('backend/index', $page_data);
-    }
 
     //ADDON MANAGER PORTION STARTS HERE
-    public function addon($param1 = "", $param2 = "", $param3 = "")
-    {
-        if ($this->session->userdata('admin_login') != 1) {
-            redirect(site_url('login'), 'refresh');
-        }
 
-        // CHECK ACCESS PERMISSION
-        check_permission('addon');
-
-        // ADD NEW ADDON FORM
-        if ($param1 == 'add') {
-
-            // CHECK ACCESS PERMISSION
-            check_permission('addon');
-            $page_data['page_name']  = 'addon_add';
-            $page_data['page_title'] = get_phrase('add_addon');
-        }
-
-        if ($param1 == 'update') {
-            // CHECK ACCESS PERMISSION
-            check_permission('addon');
-
-            $page_data['page_name']  = 'addon_update';
-            $page_data['page_title'] = get_phrase('add_update');
-        }
-
-        // INSTALLING AN ADDON
-        if ($param1 == 'install' || $param1 == 'version_update') {
-            // CHECK ACCESS PERMISSION
-            check_permission('addon');
-
-            $this->addon_model->install_addon($param1);
-        }
-
-        // ACTIVATING AN ADDON
-        if ($param1 == 'activate') {
-
-            $update_message = $this->addon_model->addon_activate($param2);
-            $this->session->set_flashdata('flash_message', get_phrase($update_message));
-            redirect(site_url('admin/addon'), 'refresh');
-        }
-
-        // DEACTIVATING AN ADDON
-        if ($param1 == 'deactivate') {
-            $update_message = $this->addon_model->addon_deactivate($param2);
-            $this->session->set_flashdata('flash_message', get_phrase($update_message));
-            redirect(site_url('admin/addon'), 'refresh');
-        }
-
-        // REMOVING AN ADDON
-        if ($param1 == 'delete') {
-            $this->addon_model->addon_delete($param2);
-            $this->session->set_flashdata('flash_message', get_phrase('addon_is_deleted_successfully'));
-            redirect(site_url('admin/addon'), 'refresh');
-        }
-
-        // SHOWING LIST OF INSTALLED ADDONS
-        if (empty($param1)) {
-            $page_data['page_name']  = 'addons';
-            $page_data['addons']     = $this->addon_model->addon_list()->result_array();
-            $page_data['page_title'] = get_phrase('addon_manager');
-        }
-        $this->load->view('backend/index', $page_data);
-    }
-
-    public function instructor_application($param1 = "", $param2 = "")
-    { // param1 is the status and param2 is the application id
-        if ($this->session->userdata('admin_login') != 1) {
-            redirect(site_url('login'), 'refresh');
-        }
-
-        // CHECK ACCESS PERMISSION
-        check_permission('instructor');
-
-        if ($param1 == 'approve' || $param1 == 'delete') {
-            $this->user_model->update_status_of_application($param1, $param2);
-        }
-        $page_data['page_name']             = 'application_list';
-        $page_data['page_title']            = get_phrase('instructor_application');
-        $page_data['approved_applications'] = $this->user_model->get_approved_applications();
-        $page_data['pending_applications']  = $this->user_model->get_pending_applications();
-        $this->load->view('backend/index', $page_data);
-    }
 
     // INSTRUCTOR PAYOUT SECTION
-    public function instructor_payout($param1 = "")
-    {
-        if ($this->session->userdata('admin_login') != 1) {
-            redirect(site_url('login'), 'refresh');
-        }
-
-        // CHECK ACCESS PERMISSION
-        check_permission('instructor');
-
-        if ($param1 != "") {
-            $date_range                   = $this->input->get('date_range');
-            $date_range                   = explode(" - ", $date_range);
-            $page_data['timestamp_start'] = strtotime($date_range[0]);
-            $page_data['timestamp_end']   = strtotime($date_range[1]);
-        } else {
-            $page_data['timestamp_start'] = strtotime(date('m/01/Y'));
-            $page_data['timestamp_end']   = strtotime(date('m/t/Y'));
-        }
-
-        $page_data['page_name']         = 'instructor_payout';
-        $page_data['page_title']        = get_phrase('instructor_payout');
-        $page_data['completed_payouts'] = $this->crud_model->get_completed_payouts_by_date_range($page_data['timestamp_start'], $page_data['timestamp_end']);
-        $page_data['pending_payouts']   = $this->crud_model->get_pending_payouts();
-        $this->load->view('backend/index', $page_data);
-    }
 
     // ADMINS SECTION STARTS
     public function admins($param1 = "", $param2 = "")
@@ -2048,67 +1831,7 @@ class Admin extends CI_Controller
         }
     }
 
-    /** Coupons functionality starts */
-    public function coupons($param1 = "", $param2 = "")
-    {
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'), 'refresh');
-        }
 
-        // CHECK ACCESS PERMISSION
-        check_permission('coupon');
-
-        if ($param1 == "add") {
-            // CHECK ACCESS PERMISSION
-            check_permission('coupon');
-
-            $response = $this->crud_model->add_coupon(); // PROVIDING TRUE FOR INSTRUCTOR
-            $response ? $this->session->set_flashdata('flash_message', get_phrase('coupon_added_successfully')) : $this->session->set_flashdata('error_message', get_phrase('coupon_code_already_exists'));
-            redirect(site_url('admin/coupons'), 'refresh');
-        } elseif ($param1 == "edit") {
-            // CHECK ACCESS PERMISSION
-            check_permission('coupon');
-
-            $response = $this->crud_model->edit_coupon($param2);
-            $response ? $this->session->set_flashdata('flash_message', get_phrase('coupon_updated_successfully')) : $this->session->set_flashdata('error_message', get_phrase('coupon_code_already_exists'));
-            redirect(site_url('admin/coupons'), 'refresh');
-        } elseif ($param1 == "delete") {
-            // CHECK ACCESS PERMISSION
-            check_permission('coupon');
-
-            $response = $this->crud_model->delete_coupon($param2);
-            $response ? $this->session->set_flashdata('flash_message', get_phrase('coupon_deleted_successfully')) : $this->session->set_flashdata('error_message', get_phrase('coupon_code_already_exists'));
-            redirect(site_url('admin/coupons'), 'refresh');
-        }
-
-        $page_data['page_name']  = 'coupons';
-        $page_data['page_title'] = get_phrase('coupons');
-        $page_data['coupons']    = $this->crud_model->get_coupons()->result_array();
-        $this->load->view('backend/index', $page_data);
-    }
-
-    public function coupon_form($param1 = "", $param2 = "")
-    {
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'), 'refresh');
-        }
-
-        // CHECK ACCESS PERMISSION
-        check_permission('coupon');
-
-        if ($param1 == 'add_coupon_form') {
-
-            $page_data['page_name']  = 'coupon_add';
-            $page_data['page_title'] = get_phrase('add_coupons');
-            $this->load->view('backend/index', $page_data);
-        } elseif ($param1 == 'edit_coupon_form') {
-
-            $page_data['page_name']  = 'coupon_edit';
-            $page_data['coupon']     = $this->crud_model->get_coupons($param2)->row_array();
-            $page_data['page_title'] = get_phrase('coupon_edit');
-            $this->load->view('backend/index', $page_data);
-        }
-    }
     // ADMINS SECTION ENDS
 
     // AJAX PORTION
@@ -2156,15 +1879,35 @@ class Admin extends CI_Controller
     }
 
     //Start blog
+    /**
+     * نموذجا قسم المدونة — صفحتان كاملتان لا نافذتان.
+     *
+     * كانا يحملان قالبهما عاريا بلا غلاف وبلا بوابة دخول ولا صلاحية:
+     * `admin/add_blog_category` تفتح لأي زائر نموذجا يكتب في القاعدة.
+     */
     public function add_blog_category()
     {
-        $this->load->view('backend/admin/blog_category_add');
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
+        }
+        check_permission('blog');
+
+        $page_data['page_name']  = 'blog_category_add';
+        $page_data['page_title'] = get_phrase('add_a_new_category');
+        $this->load->view('backend/index', $page_data);
     }
 
     public function edit_blog_category($blog_category_id = "")
     {
-        $data['blog_category'] = $this->crud_model->get_blog_categories($blog_category_id)->row_array();
-        $this->load->view('backend/admin/blog_category_edit', $data);
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
+        }
+        check_permission('blog');
+
+        $page_data['blog_category'] = $this->crud_model->get_blog_categories($blog_category_id)->row_array();
+        $page_data['page_name']     = 'blog_category_edit';
+        $page_data['page_title']    = get_phrase('edit_category');
+        $this->load->view('backend/index', $page_data);
     }
 
     public function blog_category($param1 = "", $param2 = "")
@@ -2285,109 +2028,15 @@ class Admin extends CI_Controller
     //End blog
 
     //Don't remove this code for security reasons
-    public function save_valid_purchase_code($param1 = "")
-    {
-        if ($param1 == 'update') {
-            $data['value'] = htmlspecialchars_($this->input->post('purchase_code'));
-            $status        = $this->crud_model->curl_request($data['value']);
-            if ($status) {
-                $this->db->where('key', 'purchase_code');
-                $this->db->update('settings', $data);
-                $this->session->set_flashdata('flash_message', get_phrase('purchase_code_has_been_updated'));
-                echo 1;
-            } else {
-                echo 0;
-            }
-        } else {
-            $this->load->view('backend/admin/save_purchase_code_form');
-        }
-    }
 
-    public function drip_content_settings($param1 = "")
-    {
-        if ($param1 == 'update') {
-            $this->crud_model->save_drip_content_settings();
-            $this->session->set_flashdata('flash_message', get_phrase('drip_content_settings_updated_successfully'));
-            redirect(site_url('admin/drip_content_settings'), 'refresh');
-        }
-        $page_data['drip_content_settings'] = json_decode(get_settings('drip_content_settings'), true);
-        $page_data['page_title']            = get_phrase('drip_content_settings');
-        $page_data['page_name']             = 'drip_content_settings';
-        $this->load->view('backend/index', $page_data);
-    }
 
-    public function custom_page($param1 = "", $param2 = "")
-    {
-        if ($param1 == 'add') {
-            $this->crud_model->add_custom_page();
-            $this->session->set_flashdata('flash_message', get_phrase('new_page_added_successfully'));
-            redirect(site_url('admin/custom_page'), 'refresh');
-        }
 
-        if ($param1 == 'update') {
-            $this->crud_model->update_custom_page($param2);
-            $this->session->set_flashdata('flash_message', get_phrase('page_updated_successfully'));
-            redirect(site_url('admin/custom_page'), 'refresh');
-        }
 
-        if ($param1 == 'delete') {
-            $this->crud_model->delete_custom_page($param2);
-            $this->session->set_flashdata('flash_message', get_phrase('page_deleted_successfully'));
-            redirect(site_url('admin/custom_page'), 'refresh');
-        }
-
-        $page_data['custom_pages'] = $this->crud_model->get_custom_pages();
-        $page_data['page_title']   = get_phrase('custom_pages');
-        $page_data['page_name']    = 'custom_page';
-        $this->load->view('backend/index', $page_data);
-    }
-
-    public function add_custom_page($custom_page_id = "")
-    {
-        $page_data['page_title'] = get_phrase('add_custom_page');
-        $page_data['page_name']  = 'add_custom_page';
-        $this->load->view('backend/index', $page_data);
-    }
-
-    public function edit_custom_page($custom_page_id = "")
-    {
-        $page_data['custom_page'] = $this->crud_model->get_custom_pages($custom_page_id)->row_array();
-        $page_data['page_title']  = get_phrase('edit_custom_page');
-        $page_data['page_name']   = 'edit_custom_page';
-        $this->load->view('backend/index', $page_data);
-    }
 
     //Start Academy Cloud coding
-    public function academy_cloud($param1 = "")
-    {
-        if ($param1 == 'update') {
-            $this->academy_cloud_model->save_access_token();
-            $this->session->set_flashdata('flash_message', get_phrase('access_token_saved_successfully'));
-            redirect(site_url('admin/academy_cloud'), 'refresh');
-        }
-
-        $page_data['subscription_details'] = $this->academy_cloud_model->get_subscription_details();
-        $page_data['cloud_videos']         = $this->academy_cloud_model->get_cloud_videos();
-        $page_data['page_title']           = get_phrase('academy_cloud');
-        $page_data['page_name']            = 'academy_cloud';
-        $this->load->view('backend/index', $page_data);
-    }
     //End of Academy Cloud coding
 
     //Start data center
-    public function data_center()
-    {
-        // بوابة الصلاحية — كانت غائبة
-        if ($this->session->userdata('admin_login') != true) {
-            redirect(site_url('login'));
-        }
-        check_permission('data_center');
-
-
-        $page_data['page_title'] = get_phrase('data_center');
-        $page_data['page_name']  = 'data_center';
-        $this->load->view('backend/index', $page_data);
-    }
     //End of data center
 
     //Select 2 server-side user data
@@ -2447,100 +2096,15 @@ class Admin extends CI_Controller
         echo json_encode($response);
     }
 
-    public function instructor_payment($instructor_id = "")
-    {
-        $this->payment_model->configure_instructor_payment($instructor_id);
-        redirect(site_url('payment'));
-    }
 
     // هل إضافة الذكاء الاصطناعي (نموذج ai_model) مثبتة فعلا؟
-    private function _tq_ai_addon_installed()
-    {
-        return file_exists(APPPATH . 'models/addons/Ai_model.php')
-            || file_exists(APPPATH . 'models/addons/ai_model.php');
-    }
 
     // شاشة كاملة مفهومة تبين أن الإضافة غير مثبتة بدل الخطأ القاتل
-    private function _tq_addon_missing_page($addon_label = '')
-    {
-        $page_data['page_title']     = 'إضافة غير مثبتة';
-        $page_data['page_name']      = 'addon_not_installed';
-        $page_data['tq_addon_label'] = $addon_label;
-        $this->load->view('backend/index', $page_data);
-    }
 
-    public function open_ai_settings($param1 = "")
-    {
-        // الإضافة غير مثبتة -> رسالة واضحة بدل «Unable to load model»
-        if (! $this->_tq_ai_addon_installed()) {
-            $this->_tq_addon_missing_page('OpenAI / ChatGPT');
-            return;
-        }
-        if ($param1 == "update") {
-            $this->load->model('addons/ai_model');
-            $this->ai_model->update_open_ai_settings();
-        }
-        $page_data['page_title'] = get_phrase('openai_settings');
-        $page_data['page_name']  = 'open_ai_settings';
-        $this->load->view('backend/index', $page_data);
-    }
 
-    public function ai_img_download()
-    {
-        if (! $this->_tq_ai_addon_installed()) {
-            echo 'إضافة الذكاء الاصطناعي غير مثبتة على النظام.';
-            return;
-        }
-        $this->load->model('addons/ai_model');
-        $this->ai_model->ai_img_download();
-    }
 
-    public function chat_gpt()
-    {
-        // الإضافة غير مثبتة -> رسالة واضحة بدل الخطأ القاتل (JSON للـAJAX، وصفحة كاملة للعرض)
-        if (! $this->_tq_ai_addon_installed()) {
-            if (isset($_POST['service_type']) && ! empty($_POST['service_type'])) {
-                echo 'إضافة الذكاء الاصطناعي غير مثبتة على النظام.';
-            } else {
-                $this->_tq_addon_missing_page('OpenAI / ChatGPT');
-            }
-            return;
-        }
-        if (isset($_POST['service_type']) && ! empty($_POST['service_type'])) {
-            $this->load->model('addons/ai_model');
-            echo $this->ai_model->chat_gpt();
-        } else {
-            $this->load->view('backend/admin/chat_gpt');
-        }
-    }
 
-    public function gpt_assistant()
-    {
-        if (! $this->_tq_ai_addon_installed()) {
-            echo 'إضافة الذكاء الاصطناعي غير مثبتة على النظام.';
-            return;
-        }
-        $this->load->model('addons/ai_model');
-        echo $this->ai_model->gpt_assistant();
-    }
 
-    public function upload_theme()
-    {
-        if (is_array($_FILES) && count($_FILES) > 0) {
-            // اسم الملف كما ورد يحمل المسار والامتداد معا؛ يبنى الاسم هنا
-            $tq_ext = strtolower(pathinfo($_FILES['theme_zip']['name'], PATHINFO_EXTENSION));
-            if ($tq_ext !== 'zip') {
-                $this->session->set_flashdata('error_message', 'القالب يرفع ملف zip فقط.');
-                redirect(site_url('admin/theme_settings'), 'refresh');
-                return;
-            }
-            $tq_theme_name = preg_replace('/[^A-Za-z0-9_\-]/', '', pathinfo($_FILES['theme_zip']['name'], PATHINFO_FILENAME));
-            if ($tq_theme_name === '') { $tq_theme_name = 'theme_' . time(); }
-            move_uploaded_file($_FILES['theme_zip']['tmp_name'], 'themes/' . $tq_theme_name . '.zip');
-            redirect(site_url('admin/theme_settings'), 'refresh');
-        }
-        $this->load->view('backend/admin/upload_theme');
-    }
 
     public function delete_course_review($rating_id = "")
     {
@@ -2640,107 +2204,129 @@ class Admin extends CI_Controller
         force_download($language . '.json', json_encode($json_content));
     }
 
+    /**
+     * مشتركو النشرة البريدية.
+     *
+     * TQ-DT-GONE — كانت الصفحة جدول DataTables يجلب صفوفه بـPOST إلى
+     * المسار نفسه، والمتحكم يرد HTML مبنيا بالسلاسل (`<div class="dropright">`
+     * وقائمة منسدلة و`<script>$("a,i").tooltip()</script>` **داخل كل خلية**
+     * — أي سكربت يحقن مرة لكل صف). وأثر ذلك ثلاثة:
+     *
+     * ١ — أي تعثر يخرج نافذة `alert()` بيضاء بالإنجليزية فوق اللوحة.
+     * ٢ — العرض يكتب في المتحكم لا في القالب، فلا سبيل إلى تغيير مظهر
+     *     صف إلا بتحرير PHP.
+     * ٣ — `$filtered_number_of_row = count(...)` بعد `limit` — أي أن عدد
+     *     نتائج البحث كان **عدد صفحة واحدة** أبدا، فالترقيم يقول
+     *     «١٠ من ١٠» مهما كان في القاعدة.
+     *
+     * صارت عرضا من الخادم بترقيم صحيح وبحث في الرابط.
+     */
     public function subscribed_user($type = "", $id = "")
     {
-        if ($type == 'delete') {
-            $this->db->where('id', $id)->delete('newsletter_subscriber');
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
+        }
+        check_permission('newsletter');
+
+        if ($type === 'delete') {
+            $this->db->where('id', (int) $id)->delete('newsletter_subscriber');
             $this->session->set_flashdata('flash_message', get_phrase('Newsletter subscription deleted successfully'));
             redirect(site_url('admin/subscribed_user'), 'refresh');
         }
 
-        if ($_POST) {
-            $data = [];
-            //mentioned all with colum of database table that related with html table
-            $columns = ['id', 'email', 'id', 'id'];
+        $per   = 25;
+        $page  = max(1, (int) $this->input->get('page'));
+        $q     = trim((string) $this->input->get('q', true));
 
-            $limit = htmlspecialchars_($this->input->post('length'));
-            $start = htmlspecialchars_($this->input->post('start'));
+        if ($q !== '') $this->db->like('email', $q);
+        $total = (int) $this->db->count_all_results('newsletter_subscriber');
 
-            $column_index = $columns[$this->input->post('order')[0]['column']];
+        $pages = max(1, (int) ceil($total / $per));
+        $page  = min($page, $pages);
 
-            $dir                 = $this->input->post('order')[0]['dir'];
-            $total_number_of_row = $this->db->get('newsletter_subscriber')->num_rows();
+        if ($q !== '') $this->db->like('email', $q);
+        $rows = $this->db->order_by('id', 'DESC')
+                         ->limit($per, ($page - 1) * $per)
+                         ->get('newsletter_subscriber')->result_array();
 
-            $filtered_number_of_row = $total_number_of_row;
-            $search                 = $this->input->post('search')['value'];
-
-            if (empty($search)) {
-                $this->db->select('*');
-                $this->db->limit($limit, $start);
-                $this->db->order_by($column_index, $dir);
-                $newsletter_subscriber = $this->db->get('newsletter_subscriber')->result_array();
-            } else {
-                $this->db->select('*');
-                $this->db->like('email', $search);
-                $this->db->limit($limit, $start);
-                $this->db->order_by($column_index, $dir);
-                $newsletter_subscriber = $this->db->get('newsletter_subscriber')->result_array();
-
-                $filtered_number_of_row = count($newsletter_subscriber);
-            }
-
-            foreach ($newsletter_subscriber as $key => $row):
-                $user_row = $this->db->where('email', $row['email'])->get('users');
-                //user email
-                $email = $row['email'];
-
-                if ($user_row->num_rows() > 0) {
-                    if ($user_row->row('is_instructor') != 1) {
-                        $user_status = '<p class="my-0">' . $user_row->row('first_name') . ' ' . $user_row->row('last_name') . '</p>';
-                        $user_status .= '<span class="badge badge-primary">' . get_phrase('Student') . '</span>';
-                    } else {
-                        $user_status = '<p class="my-0">' . $user_row->row('first_name') . ' ' . $user_row->row('last_name') . '</p>';
-                        $user_status .= '<span class="badge badge-success">' . get_phrase('Instructor') . '</span>';
-                    }
-                } else {
-                    $user_status = '<span class="badge badge-warning">' . get_phrase('Not registered') . '</span>';
-                }
-
-                $action = '<div class="dropright dropright">
-		                                <button type="button" class="btn btn-sm btn-outline-primary btn-rounded btn-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-		                                    <i class="mdi mdi-dots-vertical"></i>
-		                                </button>
-		                                <ul class="dropdown-menu">
-		                                    <li><a class="dropdown-item" href="#" onclick="confirm_modal(&#39;' . site_url('admin/subscribed_user/delete/' . $row['id']) . '&#39;);">' . get_phrase('delete') . '</a></li>
-		                                </ul>
-		                            </div>';
-
-                $nestedData['key']         = ++$key;
-                $nestedData['email']       = $email;
-                $nestedData['user_status'] = $user_status;
-                $nestedData['action']      = $action . '<script>$("a, i").tooltip();</script>';
-                $data[]                    = $nestedData;
-            endforeach;
-
-            $json_data = [
-                "draw"            => intval($this->input->post('draw')),
-                "recordsTotal"    => intval($total_number_of_row),
-                "recordsFiltered" => intval($filtered_number_of_row),
-                "data"            => $data,
-            ];
-            echo json_encode($json_data);
-        } else {
-            $page_data['page_name']  = 'subscribed_user';
-            $page_data['page_title'] = get_phrase('Subscribed user');
-            $this->load->view('backend/index', $page_data);
+        /* المشترك قد يكون مسجلا في المنصة وقد لا يكون. والربط كان
+           استعلاما لكل صف؛ صار استعلاما واحدا لكل الصفحة. */
+        $emails = array_column($rows, 'email');
+        $known  = array();
+        if ($emails) {
+            $users = $this->db->select('email, first_name, last_name, is_instructor')
+                              ->where_in('email', $emails)
+                              ->get('users')->result_array();
+            foreach ($users as $u) $known[strtolower($u['email'])] = $u;
         }
+
+        $page_data['rows']       = $rows;
+        $page_data['known']      = $known;
+        $page_data['total']      = $total;
+        $page_data['page_no']    = $page;
+        $page_data['page_count'] = $pages;
+        $page_data['per_page']   = $per;
+        $page_data['search']     = $q;
+
+        $page_data['page_name']  = 'subscribed_user';
+        $page_data['page_title'] = get_phrase('Subscribed user');
+        $this->load->view('backend/index', $page_data);
     }
 
+
+    /**
+     * نماذج النشرة — صفحات كاملة لا نوافذ.
+     *
+     * كانت الثلاثة تحمل قالبها **عاريا** (`load->view('backend/admin/…')`
+     * بلا غلاف)، وتفتح في نافذة `showAjaxModal`. وثلاثة أعطال في ذلك:
+     *
+     * ١ — **الرابط المباشر يخرج صفحة بلا هيكل.** من فتح
+     *     `admin/newsletter_edit_form/3` في تبويب جديد يرى نموذجا عاريا
+     *     على خلفية بيضاء بلا شريط ولا ترويسة ولا ورقة أنماط.
+     * ٢ — **لا بوابة صلاحية ولا بوابة دخول.** الثلاثة بلا
+     *     `admin_login` ولا `check_permission` — أي أن أي زائر يقرأ
+     *     نموذج الإرسال ويرى قائمة المستخدمين كاملة.
+     * ٣ — **المحرر لا يعمل داخل النافذة.** `initSummerNote` تنادى في
+     *     السطر عند الحقن، وقد تسبق وصول العنصر إلى الشجرة.
+     *
+     * فصارت صفحات كاملة تمر بالغلاف، ومحروسة.
+     */
     public function newsletter_add_form()
     {
-        $this->load->view('backend/admin/add_newsletter');
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
+        }
+        check_permission('newsletter');
+
+        $page_data['page_name']  = 'add_newsletter';
+        $page_data['page_title'] = get_phrase('Newsletter template');
+        $this->load->view('backend/index', $page_data);
     }
 
     public function newsletter_edit_form($id)
     {
-        $page_data['newsletter'] = $this->db->where('id', $id)->get('newsletters')->row_array();
-        $this->load->view('backend/admin/edit_newsletter', $page_data);
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
+        }
+        check_permission('newsletter');
+
+        $page_data['newsletter'] = $this->db->where('id', (int) $id)->get('newsletters')->row_array();
+        $page_data['page_name']  = 'edit_newsletter';
+        $page_data['page_title'] = get_phrase('Edit newsletter template');
+        $this->load->view('backend/index', $page_data);
     }
 
     public function newsletter_send_form($id)
     {
-        $page_data['newsletter'] = $this->db->where('id', $id)->get('newsletters')->row_array();
-        $this->load->view('backend/admin/send_newsletter', $page_data);
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
+        }
+        check_permission('newsletter');
+
+        $page_data['newsletter'] = $this->db->where('id', (int) $id)->get('newsletters')->row_array();
+        $page_data['page_name']  = 'send_newsletter';
+        $page_data['page_title'] = get_phrase('Send Newsletter');
+        $this->load->view('backend/index', $page_data);
     }
 
     public function newsletters($type = "", $id = "")
@@ -2831,105 +2417,92 @@ class Admin extends CI_Controller
         $this->load->view('backend/index', $page_data);
     }
 
+    /**
+     * سجل إرسال النشرة — عرض من الخادم.
+     *
+     * TQ-DT-GONE — كان جدول DataTables يجلب صفوفه بـPOST، والمتحكم يبني
+     * خلاياه HTML بالسلاسل. ومعه ثلاثة أعطال:
+     *
+     * ١ — **`$filtered_number_of_row = count($rows)` بعد `limit`** — أي
+     *     أن عدد نتائج البحث هو عدد صفحة واحدة أبدا، فيقول الترقيم
+     *     «١٠ من ١٠» ولو كان في القاعدة ألف.
+     * ٢ — **شرط البحث يتجاهل الحالة.** `like(email) or_like(subject)
+     *     or_like(description)` ثم `group_start()->where(status)` — و
+     *     `OR` تسبق المجموعة، فالاستعلام يقرأ
+     *     `email LIKE … OR subject LIKE … OR (description LIKE … AND status = …)`.
+     *     أي أن البحث في صفحة «المتعثرة» **كان يرد رسائل ناجحة**.
+     * ٣ — **زر الإرسال بلا حراسة صلاحية** ولا توكن.
+     *
+     * و«faild» بخطئها الإملائي — الكتابة إليها في `Email_model` بالإملاء
+     * نفسه، فتصحيح القراءة وحدها يجعل الصفحة فارغة أبدا.
+     */
     public function newsletter_history($type = "", $id = "")
     {
-
-        if ($_POST) {
-            $data = [];
-            //mentioned all with colum of database table that related with html table
-            $columns = ['id', 'subject', 'email', 'id', 'id'];
-
-            $limit = htmlspecialchars_($this->input->post('length'));
-            $start = htmlspecialchars_($this->input->post('start'));
-
-            $column_index = $columns[$this->input->post('order')[0]['column']];
-
-            $dir                 = $this->input->post('order')[0]['dir'];
-            $total_number_of_row = $this->db->where('status', $type)->get('newsletter_histories')->num_rows();
-
-            $filtered_number_of_row = $total_number_of_row;
-            $search                 = $this->input->post('search')['value'];
-
-            if (empty($search)) {
-                $this->db->select('*');
-                $this->db->where('status', $type);
-                $this->db->limit($limit, $start);
-                $this->db->order_by($column_index, $dir);
-                $newsletter_histories = $this->db->get('newsletter_histories')->result_array();
-            } else {
-                $this->db->select('*');
-                $this->db->like('email', $search);
-                $this->db->or_like('subject', $search);
-                $this->db->or_like('description', $search);
-
-                $this->db->group_start();
-                $this->db->where('status', $type);
-                $this->db->group_end();
-
-                $this->db->limit($limit, $start);
-                $this->db->order_by($column_index, $dir);
-                $newsletter_histories = $this->db->get('newsletter_histories')->result_array();
-
-                $filtered_number_of_row = count($newsletter_histories);
-            }
-
-            foreach ($newsletter_histories as $key => $row):
-                if ($row['status'] != 'sent') {
-                    $action = '<a class="btn btn-primary" href="javascript:void(0)" onclick="actionTo(&#39;' . site_url('admin/newsletter_history/send/' . $row['id']) . '&#39;);">' . get_phrase('Send') . '</a>';
-                    if ($row['status'] == 'faild') {
-                        $status = '<span class="text-capitalize text-danger">' . $row['status'] . '</span>';
-                    } elseif ($row['status'] == 'pending') {
-                    $status = '<span class="text-capitalize text-warning">' . $row['status'] . '</span>';
-                } else {
-                    $status = '<span class="text-capitalize text-secondary">' . $row['status'] . '</span>';
-                }
-            } else {
-                $action = '<a class="dropdown-item" href="javascript:void(0)" onclick="actionTo(&#39;' . site_url('admin/newsletter_history/send/' . $row['id']) . '&#39;);">' . get_phrase('Send Again') . '</a>';
-                $status = '<span class="text-capitalize text-success">' . $row['status'] . '</span>';
-            }
-
-            $nestedData['key']     = ++$key;
-            $nestedData['subject'] = $row['subject'];
-            $nestedData['email']   = $row['email'];
-            $nestedData['status']  = $status;
-            $nestedData['action']  = $action;
-            $data[]                = $nestedData;
-            endforeach;
-
-            $json_data = [
-                "draw"            => intval($this->input->post('draw')),
-                "recordsTotal"    => intval($total_number_of_row),
-                "recordsFiltered" => intval($filtered_number_of_row),
-                "data"            => $data,
-            ];
-            echo json_encode($json_data);
-        } elseif ($type == "send") {
-            $this->db->where('id', $id);
-            $newsletter_history = $this->db->get('newsletter_histories')->row_array();
-            $response           = $this->email_model->send_smtp_mail($newsletter_history['description'], $newsletter_history['subject'], $newsletter_history['email']);
-
-            if ($response) {
-                $this->db->where('id', $id);
-                $newsletter_history = $this->db->update('newsletter_histories', ['status' => 'sent']);
-                $sending_response   = [
-                    'run_function' => 'refreshTable',
-                    'success'      => get_phrase('Mail sent successfully'),
-                ];
-                echo json_encode($sending_response);
-            } else {
-                $sending_response = [
-                    'error' => get_phrase('Failed to send mail'),
-                ];
-                echo json_encode($sending_response);
-            }
-        } else {
-            $page_data['type']       = $type;
-            $page_data['page_name']  = 'newsletter_history';
-            $page_data['page_title'] = get_phrase('Newsletter history');
-            $this->load->view('backend/index', $page_data);
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
         }
-    }
+        check_permission('newsletter');
 
+        if ($type === 'send' && $id !== '') {
+            $row = $this->db->where('id', (int) $id)->get('newsletter_histories')->row_array();
+
+            if (!$row) {
+                $this->session->set_flashdata('error_message', get_phrase('Failed to send mail'));
+                redirect(site_url('admin/newsletter_history/pending'), 'refresh');
+            }
+
+            $sent = $this->email_model->send_smtp_mail($row['description'], $row['subject'], $row['email']);
+
+            if ($sent) {
+                $this->db->where('id', (int) $id)->update('newsletter_histories', ['status' => 'sent']);
+                $this->session->set_flashdata('flash_message', get_phrase('Mail sent successfully'));
+            } else {
+                $this->session->set_flashdata('error_message', get_phrase('Failed to send mail'));
+            }
+
+            redirect(site_url('admin/newsletter_history/' . ($row['status'] ?: 'pending')), 'refresh');
+        }
+
+        $known = ['pending', 'sent', 'faild', 'unable'];
+        if (!in_array($type, $known, true)) $type = 'pending';
+
+        $per  = 30;
+        $page = max(1, (int) $this->input->get('page'));
+        $q    = trim((string) $this->input->get('q', true));
+
+        /* الحالة شرط ثابت، والبحث مجموعة داخله — لا بجانبه. */
+        $scope = function () use ($type, $q) {
+            $this->db->where('status', $type);
+            if ($q !== '') {
+                $this->db->group_start()
+                         ->like('email', $q)
+                         ->or_like('subject', $q)
+                         ->group_end();
+            }
+        };
+
+        $scope();
+        $total = (int) $this->db->count_all_results('newsletter_histories');
+
+        $pages = max(1, (int) ceil($total / $per));
+        $page  = min($page, $pages);
+
+        $scope();
+        $page_data['rows'] = $this->db->order_by('id', 'DESC')
+                                      ->limit($per, ($page - 1) * $per)
+                                      ->get('newsletter_histories')->result_array();
+
+        $page_data['type']       = $type;
+        $page_data['total']      = $total;
+        $page_data['page_no']    = $page;
+        $page_data['page_count'] = $pages;
+        $page_data['per_page']   = $per;
+        $page_data['search']     = $q;
+
+        $page_data['page_name']  = 'newsletter_history';
+        $page_data['page_title'] = get_phrase('Newsletter history');
+        $this->load->view('backend/index', $page_data);
+    }
     public function newsletter_statistics()
     {
         echo $this->load->view('backend/admin/newsletter_statistics', [], true);
@@ -2958,13 +2531,6 @@ class Admin extends CI_Controller
         $this->load->view('backend/admin/student_academic_quiz_result', $page_data);
     }
 
-    public function home_page_layout($home_page = "")
-    {
-        $this->db->where('key', 'home_page');
-        $this->db->update('frontend_settings', ['value' => $home_page]);
-        $this->session->set_flashdata('flash_message', get_phrase('New home page layout has been activated'));
-        redirect(site_url('admin/home_page_builder'), 'refresh');
-    }
 
     public function student_certificate($user_id = "", $course_id = "")
     {
@@ -2993,15 +2559,26 @@ class Admin extends CI_Controller
 
     public function contact($type = "", $id = "")
     {
+        /**
+         * حذف جماعي.
+         *
+         * كان يقرأ `?selected_ids=1,2,3` من الرابط — أي أن **رابطا واحدا
+         * يمسح صفوفا بمجرد جلبه**، من زاحف أو من استباق تحميل، ويترك
+         * قائمة المعرفات مكتوبة في سجل الخادم. صار يقرأ مصفوفة
+         * `ids[]` من جسم POST، ولا شيء يحذف إلا بإرسال نموذج بتوكن.
+         *
+         * و`explode(',', '')` ترد `['']` لا مصفوفة فارغة، فشرط
+         * `!empty($ids)` كان صادقا أبدا — والحذف ينفذ بـ`WHERE id IN ('')`،
+         * فيقال «حذفت الرسائل» ولم يحذف شيء.
+         */
         if ($type == 'delete_selected_contact') {
-            $selected_ids = $this->input->get('selected_ids'); // Assuming selected_ids are passed via GET
-            $ids          = explode(',', $selected_ids);       // Convert the comma-separated string to an array
+            $ids = array_filter(array_map('intval', (array) $this->input->post('ids')));
 
-            if (! empty($ids)) {
+            if ($ids) {
                 $this->db->where_in('id', $ids)->delete('contact');
                 $this->session->set_flashdata('flash_message', get_phrase('Contacts deleted successfully'));
             } else {
-                $this->session->set_flashdata('flash_message', get_phrase('No contacts selected for deletion'));
+                $this->session->set_flashdata('error_message', get_phrase('No contacts selected for deletion'));
             }
 
             redirect(site_url('admin/contact'), 'refresh');
@@ -3014,14 +2591,76 @@ class Admin extends CI_Controller
         }
 
         if ($type == '') {
+            /**
+             * TQ-DT-GONE — كانت هذه الصفحة جدول DataTables يجلب صفوفه
+             * من `admin/contact/data-table`، والمتحكم يبني خلاياه HTML
+             * بالسلاسل: قائمة `dropright` منسدلة، و`<script>$("a,i").tooltip()</script>`
+             * **داخل كل خلية إجراءات** — أي سكربت يحقن ويشغل مرة لكل صف.
+             *
+             * وثلاثة أعطال تسقط معها:
+             *
+             * ١ — «تحديد الكل» كان يحدد **صفحة واحدة**، ومصفوفة
+             *     `selectedRows` تفرغ كاملة عند إلغاء تحديد واحد
+             *     (`selectedRows = []` في فرع `else`) — فمن حدد عشرة
+             *     وألغى واحدا فقد التسعة.
+             * ٢ — الحذف الجماعي يمر بـ`GET ?selected_ids=1,2,3`: رابط
+             *     يحذف بمجرد جلبه، وقائمة معرفات في سجل الخادم.
+             * ٣ — `has_read` كانت تحدث في نداء الـAJAX، فالشارة في
+             *     الشريط الجانبي لا تصفر إلا بعد أن يرسم الجدول.
+             *
+             * والرسائل هنا نصوص طويلة لا صفوف قصيرة، فتعرض بطاقات لا
+             * جدولا: الجدول كان يقص الرسالة أو يمدد الصف عشرة أسطر.
+             */
+            $this->db->where('has_read', null)->update('contact', ['has_read' => 1]);
+
+            $per  = 20;
+            $page = max(1, (int) $this->input->get('page'));
+            $q    = trim((string) $this->input->get('q', true));
+
+            $scope = function () use ($q) {
+                if ($q !== '') {
+                    $this->db->group_start()
+                             ->like('first_name', $q)
+                             ->or_like('last_name', $q)
+                             ->or_like('email', $q)
+                             ->or_like('phone', $q)
+                             ->or_like('message', $q)
+                             ->group_end();
+                }
+            };
+
+            $scope();
+            $total = (int) $this->db->count_all_results('contact');
+
+            $pages = max(1, (int) ceil($total / $per));
+            $page  = min($page, $pages);
+
+            $scope();
+            $rows = $this->db->order_by('id', 'DESC')
+                             ->limit($per, ($page - 1) * $per)
+                             ->get('contact')->result_array();
+
+            /* حالة المرسل في المنصة — استعلام واحد لا واحد لكل رسالة. */
+            $known = [];
+            $mails = array_filter(array_column($rows, 'email'));
+            if ($mails) {
+                foreach ($this->db->select('email, is_instructor')->where_in('email', $mails)
+                                  ->get('users')->result_array() as $u) {
+                    $known[strtolower($u['email'])] = (int) $u['is_instructor'] === 1 ? 'teacher' : 'student';
+                }
+            }
+
+            $page_data['rows']       = $rows;
+            $page_data['known']      = $known;
+            $page_data['total']      = $total;
+            $page_data['page_no']    = $page;
+            $page_data['page_count'] = $pages;
+            $page_data['per_page']   = $per;
+            $page_data['search']     = $q;
+
             $page_data['page_name']  = 'contact';
             $page_data['page_title'] = get_phrase('Contact');
             $this->load->view('backend/index', $page_data);
-        }
-
-        if ($type == 'contact_reply_form' && $id != '') {
-            $page_data['contact'] = $this->crud_model->get_contacts($id)->row_array();
-            $this->load->view('backend/admin/contact_reply_form', $page_data);
         }
 
         if ($type == 'send_reply' && $id != '') {
@@ -3031,96 +2670,6 @@ class Admin extends CI_Controller
             $this->db->where('id', $id)->update('contact', ['replied' => 1]);
             $this->session->set_flashdata('flash_message', get_phrase('Reply sent successfully'));
             redirect(site_url('admin/contact'), 'refresh');
-        }
-
-        if ($type == 'data-table' && $_GET) {
-            $this->db->where('has_read', null)->update('contact', ['has_read' => 1]);
-
-            $data = [];
-            //mentioned all with colum of database table that related with html table
-            $columns = ['id', 'first_name', 'email', 'message', 'id'];
-
-            $limit = htmlspecialchars_($this->input->get('length'));
-            $start = htmlspecialchars_($this->input->get('start'));
-
-            $column_index = $columns[$this->input->get('order')[0]['column']];
-
-            $dir                 = $this->input->get('order')[0]['dir'];
-            $total_number_of_row = $this->db->get('contact')->num_rows();
-
-            $filtered_number_of_row = $total_number_of_row;
-            $search                 = $this->input->get('search')['value'];
-
-            if (empty($search)) {
-                $this->db->limit($limit, $start);
-                $this->db->order_by($column_index, $dir);
-                $contacts = $this->db->get('contact')->result_array();
-            } else {
-                $this->db->like('first_name', $search);
-                $this->db->or_like('last_name', $search);
-                $this->db->or_like('email', $search);
-                $this->db->or_like('phone', $search);
-                $this->db->or_like('address', $search);
-                $this->db->or_like('message', $search);
-                $this->db->limit($limit, $start);
-                $this->db->order_by($column_index, $dir);
-                $contacts               = $this->db->get('contact');
-                $filtered_number_of_row = $contacts->num_rows();
-                $contacts               = $contacts->result_array();
-            }
-
-            foreach ($contacts as $key => $row):
-                if ($row['replied'] == 1):
-                    $reply_sent = ' <i class="fas fa-check-circle text-success" title="' . get_phrase('Reply sent') . '" data-toggle="tooltip"></i>';
-                else:
-                    $reply_sent = '';
-                endif;
-
-                $user_row = $this->db->where('email', $row['email'])->get('users');
-                if ($user_row->num_rows() > 0) {
-                    if ($user_row->row('is_instructor') != 1) {
-                        $user_status = '<span class="badge badge-primary">' . get_phrase('Student') . '</span>';
-                    } else {
-                        $user_status = '<span class="badge badge-success">' . get_phrase('Instructor') . '</span>';
-                    }
-                } else {
-                    $user_status = '<span class="badge badge-warning">' . get_phrase('Not registered') . '</span>';
-                }
-
-                $contact_info = '<p class="my-0">' . get_phrase('Email') . ': <a href="mailto:' . $row['email'] . '">' . $row['email'] . '</a></p>';
-                if ($row['phone'] != '') {
-                    $contact_info .= '<p class="my-0">' . get_phrase('Phone') . ': <a href="tel:' . $row['phone'] . '">' . $row['phone'] . '</a></p>';
-                }
-                if ($row['address'] != '') {
-                    $contact_info .= '<p class="my-0">' . $row['address'] . '</a></p>';
-                }
-
-                $action = '<div class="dropright dropright">
-		                                <button type="button" class="btn btn-sm btn-outline-primary btn-rounded btn-icon" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-		                                    <i class="mdi mdi-dots-vertical"></i>
-		                                </button>
-		                                <ul class="dropdown-menu">
-		                                    <li><a class="dropdown-item" href="#" onclick="showAjaxModal(&#39;' . site_url('admin/contact/contact_reply_form/' . $row['id']) . '&#39;, &#39;' . get_phrase('Reply to ' . $row['first_name'] . ' ' . $row['last_name']) . '&#39;);">' . get_phrase('Reply') . '</a></li>
-		                                    <li><a class="dropdown-item" href="#" onclick="confirm_modal(&#39;' . site_url('admin/contact/delete/' . $row['id']) . '&#39;);">' . get_phrase('delete') . '</a></li>
-		                                </ul>
-		                            </div>';
-
-                $nestedData['checkbox'] = '<input type="checkbox" name="selected_contacts[]" value="' . $row['id'] . '" data-row-id="' . $row['id'] . '">';
-                $nestedData['key']      = ++$key;
-                $nestedData['name']     = '<p class="my-0">' . $row['first_name'] . ' ' . $row['last_name'] . $reply_sent . '</p>' . $user_status;
-                $nestedData['contact']  = $contact_info;
-                $nestedData['message']  = $row['message'];
-                $nestedData['action']   = $action . '<script>$("a, i").tooltip();</script>';
-                $data[]                 = $nestedData;
-            endforeach;
-
-            $json_data = [
-                "draw"            => intval($this->input->post('draw')),
-                "recordsTotal"    => intval($total_number_of_row),
-                "recordsFiltered" => intval($filtered_number_of_row),
-                "data"            => $data,
-            ];
-            echo json_encode($json_data);
         }
     }
 
@@ -3143,63 +2692,6 @@ class Admin extends CI_Controller
         echo get_phrase('Language direction updated successfully');
     }
 
-    public function resource_files($param1 = "", $param2 = "")
-    {
-        if ($param1 == 'add') {
-            if (isset($_FILES['resource_file']['name']) && $_FILES['resource_file']['name'] != "") {
-                $tq_ext = tq_safe_upload_extension($_FILES['resource_file']['name']);
-                if ($tq_ext === false) {
-                    echo json_encode(array('error' => 'نوع الملف غير مسموح.'));
-                    return;
-                }
-                $data['file_name'] = random(20) . '.' . $tq_ext;
-                move_uploaded_file($_FILES['resource_file']['tmp_name'], 'uploads/resource_files/' . $data['file_name']);
-            }
-
-            $data['title']      = $this->input->post('title');
-            $data['lesson_id']  = $param2;
-            $data['created_at'] = time();
-            $this->db->insert('resource_files', $data);
-
-            $response['replace'] = ['elem' => '.resource_file_content', 'content' => $this->load->view('backend/admin/resource_files', ['param2' => $param2], true)];
-            echo json_encode($response);
-        } elseif ($param1 == 'update') {
-            $file_details = $this->db->get_where('resource_files', ['id' => $param2])->row_array();
-            if (isset($_FILES['resource_file']['name']) && $_FILES['resource_file']['name'] != "") {
-                if (file_exists('uploads/resource_files/' . $file_details['file_name']) && $file_details['file_name']) {
-                    unlink('uploads/resource_files/' . $file_details['file_name']);
-                }
-                $tq_ext = tq_safe_upload_extension($_FILES['resource_file']['name']);
-                if ($tq_ext === false) {
-                    echo json_encode(array('error' => 'نوع الملف غير مسموح.'));
-                    return;
-                }
-                $data['file_name'] = random(20) . '.' . $tq_ext;
-                move_uploaded_file($_FILES['resource_file']['tmp_name'], 'uploads/resource_files/' . $data['file_name']);
-            }
-
-            $data['title']      = $this->input->post('title');
-            $data['updated_at'] = time();
-            $this->db->where('id', $param2);
-            $this->db->update('resource_files', $data);
-
-            $response['replace'] = ['elem' => '.resource_file_content', 'content' => $this->load->view('backend/admin/resource_files', ['param2' => $file_details['lesson_id']], true)];
-            echo json_encode($response);
-        } elseif ($param1 == 'delete') {
-            $file_details = $this->db->get_where('resource_files', ['id' => $param2])->row_array();
-            if (file_exists('uploads/resource_files/' . $file_details['file_name']) && $file_details['file_name']) {
-                unlink('uploads/resource_files/' . $file_details['file_name']);
-            }
-
-            $this->db->where('id', $param2);
-            $this->db->delete('resource_files');
-
-            $response['replace'] = ['elem' => '.resource_file_content', 'content' => $this->load->view('backend/admin/resource_files', ['param2' => $file_details['lesson_id']], true)];
-            $response['success'] = get_phrase('Resource deleted successfully');
-            $response['fadeOut'] = '#resource_file_' . $file_details['id'];
-            echo json_encode($response);
-        }
-    }
 
     public function cronjob($type = "")
     {
@@ -3289,153 +2781,9 @@ class Admin extends CI_Controller
         }
     }
 
-    public function wasabi_settings($type = '')
-    {
 
-        if ($type == 'update') {
-            if ($this->db->where('key', 'wasabi_key')->get('settings')->num_rows() > 0) {
-                $data['value'] = $this->input->post('access_key');
-                $this->db->where('key', 'wasabi_key');
-                $this->db->update('settings', $data);
-            } else {
-                $data['value'] = $this->input->post('access_key');
-                $data['key']   = 'wasabi_key';
-                $this->db->insert('settings', $data);
-            }
 
-            if ($this->db->where('key', 'wasabi_secret_key')->get('settings')->num_rows() > 0) {
-                $data['value'] = $this->input->post('secret_key');
-                $this->db->where('key', 'wasabi_secret_key');
-                $this->db->update('settings', $data);
-            } else {
-                $data['value'] = $this->input->post('secret_key');
-                $data['key']   = 'wasabi_secret_key';
-                $this->db->insert('settings', $data);
-            }
 
-            if ($this->db->where('key', 'wasabi_bucketname')->get('settings')->num_rows() > 0) {
-                $data['value'] = $this->input->post('bucket_name');
-                $this->db->where('key', 'wasabi_bucketname');
-                $this->db->update('settings', $data);
-            } else {
-                $data['value'] = $this->input->post('bucket_name');
-                $data['key']   = 'wasabi_bucketname';
-                $this->db->insert('settings', $data);
-            }
-
-            if ($this->db->where('key', 'wasabi_region')->get('settings')->num_rows() > 0) {
-                $data['value'] = $this->input->post('region_name');
-                $this->db->where('key', 'wasabi_region');
-                $this->db->update('settings', $data);
-            } else {
-                $data['value'] = $this->input->post('region_name');
-                $data['key']   = 'wasabi_region';
-                $this->db->insert('settings', $data);
-            }
-
-            $this->session->set_flashdata('flash_message', get_phrase('Wasabi Settings Updated Successfully'));
-            redirect(site_url('admin/wasabi_settings'), 'refresh');
-        }
-
-        $page_data['page_name']  = 'wasabi_settings';
-        $page_data['page_title'] = get_phrase('Wasabi Storage Settings');
-        $this->load->view('backend/index', $page_data);
-    }
-
-    public function bbb_live_class_settings($type = "")
-    {
-        if ($type == 'update') {
-            $data['value'] = json_encode($_POST);
-            if ($this->db->where('key', 'bbb_setting')->get('settings')->num_rows() > 0) {
-                $this->db->where('key', 'bbb_setting')->update('settings', $data);
-            } else {
-                $data['key'] = 'bbb_setting';
-                $this->db->insert('settings', $data);
-            }
-            $this->session->set_flashdata('flash_message', get_phrase('BigBlueButton configuration has been Updated'));
-            redirect(site_url('admin/bbb_live_class_settings'), 'refresh');
-        }
-
-        $page_data['page_name']  = 'bbb_live_class_settings';
-        $page_data['page_title'] = get_phrase('BBB live class settings');
-        $this->load->view('backend/index', $page_data);
-    }
-
-    public function save_bbb_meeting($course_id = "")
-    {
-        $data['meeting_id']   = $this->input->post('bbb_meeting_id');
-        $data['moderator_pw'] = $this->input->post('bbb_moderator_pw');
-        $data['viewer_pw']    = $this->input->post('bbb_viewer_pw');
-        $data['instructions'] = $this->input->post('instructions');
-
-        if ($this->db->where('course_id', $course_id)->get('bbb_meetings')->num_rows() > 0) {
-            $data['updated_at'] = time();
-            $this->db->where('course_id', $course_id)->update('bbb_meetings', $data);
-        } else {
-            $data['course_id']  = $course_id;
-            $data['created_at'] = time();
-            $data['updated_at'] = $data['created_at'];
-            $this->db->insert('bbb_meetings', $data);
-        }
-
-        echo get_phrase("BigBlueButton Meeting has been updated");
-    }
-
-    public function start_bbb_meeting($course_id = "")
-    {
-        $course_details = $this->crud_model->get_courses($course_id)->row_array();
-        $bbb_meeting    = $this->db->where('course_id', $course_id)->get('bbb_meetings');
-        $current_url    = site_url('admin/course_form/course_edit/' . $course_id . '?tab=bbb-live-class');
-
-        if ($bbb_meeting->num_rows() > 0) {
-            $bbb_meeting = $bbb_meeting->row_array();
-            //Sanitize API URL START
-            $api_url = get_settings('bbb_setting', true)['endpoint'] ?? '';
-            // Parse the URL
-            $parsed_url = parse_url($api_url);
-            // Remove the 'api' part if it exists in the path
-            $path = rtrim(str_replace('/api', '', $parsed_url['path']), '/');
-            // Rebuild the URL
-            $api_url = $parsed_url['scheme'] . '://' . $parsed_url['host'] . $path;
-            //Sanitize API URL END
-
-            //Create BBB meeting START
-            $query_data = http_build_query([
-                'name'        => $course_details['title'],
-                'meetingID'   => $bbb_meeting['meeting_id'],
-                'attendeePW'  => $bbb_meeting['viewer_pw'],
-                'moderatorPW' => $bbb_meeting['moderator_pw'],
-                'redirectURL' => $current_url,
-            ]);
-            $response = $this->crud_model->callBbbApi('create', $query_data, $bbb_meeting['meeting_id']);
-            //Create BBB meeting END
-
-            // Handle response & redirect to meeting url
-            if ($response) {
-                $xml        = simplexml_load_string($response);
-                $returncode = (string) $xml->returncode;
-
-                if ($returncode == 'SUCCESS') {
-                    // $moderator_details = $this->user_model->get_all_user($this->session->userdata('user_id'))->row_array();
-                    // //JOIN AS A viewer
-                    // $full_name = $moderator_details['first_name'].' '.$moderator_details['last_name']; // The full name of the participant
-                    // $role = 'moderator'; // The role of the user (either "viewer" or "moderator")
-                    // $join_url = $api_url."/api/join?meetingID=".$bbb_meeting['meeting_id']."&fullName=$full_name&password=".$bbb_meeting['moderator_pw']."&joinViaHtml5=true&redirect=true&joinParam[role]=$role";
-                    // echo $join_url;
-                    // return;
-                    echo $this->crud_model->join_bbb_meeting_by_curl_calls($course_id, true);
-                    return;
-                } else {
-                    $this->session->set_flashdata('error_message', get_phrase("Failed to create meeting. Error code: ____", [$returncode]));
-                }
-            } else {
-                $this->session->set_flashdata('error_message', get_phrase("Failed to connect to BigBlueButton API"));
-            }
-        } else {
-            $this->session->set_flashdata('error_message', get_phrase("Please save your meeting info first"));
-        }
-        echo $current_url;
-    }
 
     public function change_course_author($course_id = "")
     {
@@ -3653,58 +3001,80 @@ class Admin extends CI_Controller
         exit;
     }
 
+    /**
+     * تصدير المسؤولين إلى CSV.
+     *
+     * TQ-CSV-PARTIAL — كان يقبل POST وحده، ويقرأ `admin_ids` من جسم
+     * الطلب. والذي يرسلها سكربت في [admins.php] يجمعها **من صفوف الجدول
+     * المعروضة**، فالملف الناتج لا يحوي إلا ما ظهر على الشاشة — ومن ضغط
+     * «تصدير» وهو يقرأ صفحة من عشرة يحصل على عشرة ويظن أنه حصل على الكل.
+     * ثم يبنى الرد `Blob` في المتصفح، فأي تعثر في السكربت يترك الزر
+     * صامتا (المعالج يكتب في الطرفية وحدها).
+     *
+     * فصار رابطا عاديا: الخادم يعرف قائمته كاملة، والمتصفح ينزلها كما
+     * ينزل أي ملف. و`fputcsv` تكتب الاقتباس والهروب — والكتابة اليدوية
+     * السابقة كانت تكسر عند أول اسم فيه علامة اقتباس.
+     */
     public function export_admins_csv()
     {
-        // Check if the request method is POST
-        if ($this->input->method() === 'post') {
-            // Get admin IDs from the request
-            $admin_ids = $this->input->post('admin_ids');
-
-            // Validate admin IDs
-            if (! is_array($admin_ids) || empty($admin_ids)) {
-                show_error('No admin IDs provided.', 400);
-            }
-
-            // Fetch admin data for the provided IDs
-            $this->db->where_in('id', $admin_ids);
-            $query = $this->db->get('users');
-
-            // Check if data exists
-            if ($query->num_rows() === 0) {
-                show_error('No data found for the provided admin IDs.', 404);
-            }
-
-            // Prepare the CSV header
-            $csv_data = '"Id","Name","Email","Phone"' . "\n";
-
-            // Populate the CSV rows
-            foreach ($query->result_array() as $row) {
-                // Add a CSV row
-                $csv_data .= '"' . $row['id'] . '",';
-                $csv_data .= '"' . $row['first_name'] . ' ' . $row['last_name'] . '",';
-                $csv_data .= '"' . $row['email'] . '",';
-                $csv_data .= '"' . $row['phone'] . '"' . "\n";
-            }
-
-            // Send the CSV data as a response
-            header('Content-Type: text/csv');
-            header('Content-Disposition: attachment; filename="admins.csv"');
-            echo $csv_data;
-            exit;
-        } else {
-            show_error('Invalid request method.', 405);
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
         }
+        check_permission('admin');
+
+        $admins = $this->user_model->get_admins()->result_array();
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="admins.csv"');
+
+        $out = fopen('php://output', 'w');
+
+        /* علامة الترتيب: بدونها يقرأ Excel العربية على أنها لاتينية
+           فيعرض «Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©» مكان كل اسم. */
+        fwrite($out, "ï»¿");
+
+        fputcsv($out, array('المعرف', 'الاسم', 'البريد الإلكتروني', 'الهاتف'));
+        foreach ($admins as $row) {
+            fputcsv($out, array(
+                $row['id'],
+                trim($row['first_name'] . ' ' . $row['last_name']),
+                $row['email'],
+                $row['phone'],
+            ));
+        }
+
+        fclose($out);
+        exit;
     }
 
     // Admin Create Review
+    /**
+     * نموذجا الرأي — صفحتان كاملتان لا نافذتان.
+     * كانا يحملان قالبهما عاريا وبلا بوابة دخول ولا صلاحية.
+     */
     public function review_add()
     {
-        $this->load->view('backend/admin/review_add');
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
+        }
+        check_permission('settings');
+
+        $page_data['page_name']  = 'review_add';
+        $page_data['page_title'] = get_phrase('add_a_review');
+        $this->load->view('backend/index', $page_data);
     }
+
     public function review_edit($id = '')
     {
-        $page_data['rating'] = $this->db->get_where('rating', ['id' => $id])->row_array();
-        $this->load->view('backend/admin/review_edit', $page_data);
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
+        }
+        check_permission('settings');
+
+        $page_data['rating']     = $this->db->get_where('rating', ['id' => (int) $id])->row_array();
+        $page_data['page_name']  = 'review_edit';
+        $page_data['page_title'] = get_phrase('update_review');
+        $this->load->view('backend/index', $page_data);
     }
     public function review($param1 = "", $param2 = "")
     {
@@ -3716,68 +3086,8 @@ class Admin extends CI_Controller
     }
 
     // Badges
-    public function badges($param1 = "", $param2 = "")
-    {
-        if ($param1 == 'course_count') {
-            $this->crud_model->badges_store();
-            $this->session->set_flashdata('flash_message', get_phrase('course count badges create successfully.'));
-            redirect(site_url('admin/badges?tab=courseCount'), 'refresh');
-        }
-        if ($param1 == 'courses_rating') {
-            $this->crud_model->badges_store();
-            $this->session->set_flashdata('flash_message', get_phrase('course rating badges create successfully.'));
-            redirect(site_url('admin/badges?tab=coursesRating'), 'refresh');
-        }
-        if ($param1 == 'courses_sale') {
-            $this->crud_model->badges_store();
-            $this->session->set_flashdata('flash_message', get_phrase('course sale badges create successfully.'));
-            redirect(site_url('admin/badges?tab=courseSale'), 'refresh');
-        }
-        if ($param1 == 'articles') {
-            $this->crud_model->badges_store();
-            $this->session->set_flashdata('flash_message', get_phrase('course articles badges create successfully.'));
-            redirect(site_url('admin/badges?tab=articles'), 'refresh');
-        }
-        if ($param1 == 'course_completed') {
-            $this->crud_model->badges_store();
-            $this->session->set_flashdata('flash_message', get_phrase('course completed badges create successfully.'));
-            redirect(site_url('admin/badges?tab=courseCompleted'), 'refresh');
-        }
-        if ($param1 == 'certificate') {
-            $this->crud_model->badges_store();
-            $this->session->set_flashdata('flash_message', get_phrase('course certificate badges create successfully.'));
-            redirect(site_url('admin/badges?tab=certificate'), 'refresh');
-        }
 
-        if ($param1 == 'update') {
-            $this->crud_model->badges_update();
-            $this->session->set_flashdata('flash_message', get_phrase('Badges  Update successfully'));
-            redirect(site_url('admin/badges?tab=courseCount'), 'refresh');
-        }
 
-        if ($param1 == 'delete') {
-            $this->crud_model->badges_delete($param2);
-            $this->session->set_flashdata('flash_message', get_phrase('Badges delete successfully.'));
-            redirect(site_url('admin/badges?tab=courseCount'), 'refresh');
-        }
-
-        $page_data['badgesList'] = $this->crud_model->badges_List()->result_array();
-        $page_data['page_title'] = get_phrase('badges');
-        $page_data['page_name']  = 'badges';
-        $this->load->view('backend/index', $page_data);
-    }
-
-    public function badges_add()
-    {
-        $page_data['type'] = $this->input->get('type');
-        $this->load->view('backend/admin/badges_add', $page_data);
-    }
-
-    public function badges_edit($id = '')
-    {
-        $page_data['badges'] = $this->db->get_where('badges', ['id' => $id])->row_array();
-        $this->load->view('backend/admin/badges_edit', $page_data);
-    }
 
     // Endbadges
 
@@ -3981,7 +3291,7 @@ public function custom_field_section_update($field_id)
     $field = $this->db->get_where('custom_fields', ['id' => $field_id])->row_array();
     if (!$field) {
         $this->session->set_flashdata('error_message', get_phrase('custom_field_not_found'));
-        redirect(site_url('admin/course_list'));
+        redirect(site_url('admin/courses'));
     }
 
     // Get new custom_title from form
@@ -4143,307 +3453,9 @@ public function custom_field_section_sort_update()
 
 
     // Home page builder
-    public function home_page_builder($type = "", $id = "")
-    {
-        if ($type == 'add') {
 
-            $data['title']        = $this->input->post('title');
-            $data['description']  = $this->input->post('description');
-            $data['identifier']   = slugify($this->input->post('title'));
-            $data['is_permanent'] = 0;
-            $data['status']       = 0;
 
-            if ($_FILES['thumbnail']['name'] != "") {
-                if (! file_exists('uploads/home-pages')) {
-                    mkdir('uploads/home-pages', 0777, true);
-                }
-                $data['thumbnail'] = 'uploads/home-pages/' . md5(rand(10000000, 20000000)) . '.jpg';
-                move_uploaded_file($_FILES['thumbnail']['tmp_name'], $data['thumbnail']);
-            }
 
-            $this->db->insert('home_pages', $data);
-            $this->session->set_flashdata('flash_message', get_phrase('home_page_added_successfully'));
-            redirect(site_url('admin/home_page_builder'), 'refresh');
-        } elseif ($type == 'update') {
-
-            $data['title']       = $this->input->post('title');
-            $data['description'] = $this->input->post('description');
-            $data['identifier']  = slugify($this->input->post('title'));
-
-            if ($_FILES['thumbnail']['name'] != "") {
-                if (! file_exists('uploads/home-pages')) {
-                    mkdir('uploads/home-pages', 0777, true);
-                }
-                $page_details = $this->db->get_where('home_pages', ['id' => $id])->row_array();
-                if (file_exists($page_details['thumbnail']) && $page_details['thumbnail']) {
-                    unlink($page_details['thumbnail']);
-                }
-                $data['thumbnail'] = 'uploads/home-pages/' . md5(rand(10000000, 20000000)) . '.jpg';
-                move_uploaded_file($_FILES['thumbnail']['tmp_name'], $data['thumbnail']);
-            }
-
-            $this->db->where('id', $id);
-            $this->db->update('home_pages', $data);
-            $this->session->set_flashdata('flash_message', get_phrase('home_page_updated_successfully'));
-            redirect(site_url('admin/home_page_builder'), 'refresh');
-        } elseif ($type == 'delete') {
-
-            $page_details = $this->db->get_where('home_pages', ['id' => $id])->row_array();
-            if (file_exists($page_details['thumbnail']) && $page_details['thumbnail']) {
-                unlink($page_details['thumbnail']);
-            }
-
-            $this->db->where('id', $id);
-            $this->db->delete('home_pages');
-            $this->session->set_flashdata('flash_message', get_phrase('home_page_deleted_successfully'));
-            redirect(site_url('admin/home_page_builder'), 'refresh');
-        } elseif ($type == 'status') {
-
-            $this->db->where('status', 1);
-            $this->db->update('home_pages', ['status' => 0]);
-
-            $this->db->where('id', $id);
-            $this->db->update('home_pages', ['status' => 1]);
-
-            $this->session->set_flashdata('flash_message', get_phrase('home_page_updated_successfully'));
-            redirect(site_url('admin/home_page_builder'), 'refresh');
-        }
-
-        $page_data['page_title'] = get_phrase('home_page_builder');
-        $page_data['page_name']  = 'home_page_builder';
-        $this->load->view('backend/index', $page_data);
-    }
-
-    public function home_page($type = '', $id = "")
-    {
-        $page_data['page'] = $this->db->get_where('home_pages', ['id' => $id])->row_array();
-        $this->load->view('backend/admin/home_page_builder/index', $page_data);
-    }
-
-    public function preview_home_page($id = "")
-    {
-        $page_data['home'] = $this->db->get_where('home_pages', ['id' => $id])->row_array();
-        $this->load->view('backend/admin/home_page_builder/preview', $page_data);
-    }
-
-    public function home_page_layout_update($id = "")
-    {
-        // $get_developer_elements = $this->developer_file_elements();
-        $post_builder_elements = $_POST['builder_elements'];
-        // print_r($post_builder_elements);
-        // die;
-
-        // dd($post_builder_elements);
-
-        $built_file_names = [];
-
-        foreach ($post_builder_elements as $file_name => $builder_elements) {
-            // Skip invalid blocks
-            // $arr_values = array_values($builder_elements);
-            // if ($arr_values[0]['tag'] == 'null') continue;
-
-            $built_file_names[] = $file_name;
-
-            // Load original developer section
-            $file_path      = APPPATH . 'views/components/main/' . $file_name . '.php';
-            $developer_html = $this->encode_some_special_characters(file_get_contents($file_path));
-
-            // Protect PHP opening tags (<?php, <?=)
-            $developer_html_safe = preg_replace_callback(
-                '/<\?(?:php|=)?[\s\S]*?\?>/i',
-function ($matches) {
-// encode the entire PHP snippet
-return '__PHP_OPEN__' . base64_encode($matches[0]) . '__PHP_CLOSE__';
-},
-$developer_html
-);
-
-// ✅ Wrap in dummy container to prevent <html>
-
-    $wrapped_html = '<div id="__temp_wrapper__">' . $developer_html_safe . '</div>';
-
-    $dom = new \DOMDocument();
-    libxml_use_internal_errors(true);
-    // $dom->loadHTML(mb_convert_encoding($wrapped_html, 'HTML-ENTITIES', 'UTF-8'));
-    $dom->loadHTML('
-    <?xml encoding="utf-8" ?>' . $wrapped_html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-    libxml_clear_errors();
-
-    $xpath = new \DOMXPath($dom);
-    $container = $dom->getElementById('__temp_wrapper__');
-
-    foreach ($builder_elements as $builder_element) {
-    $identity = $builder_element['identity'];
-
-    $tag = $this->decodeContent($builder_element['tag']);
-    $content = $this->decodeContent($builder_element['content']);
-    $src = $this->decodeContent($builder_element['src']);
-    $element = $this->decodeContent($builder_element['element']);
-    $element_safe = preg_replace_callback(
-    '/<\?(?:php|=)?[\s\S]*?\?>/i',
-        fn($m) => '__PHP_OPEN__' . base64_encode($m[0]) . '__PHP_CLOSE__',
-        $element
-        );
-
-        // ✅ Safe fallback support for new + old format
-        $dropAreaIndex = $builder_element['dropAreaIndex'] ?? null;
-        $droppedIndex = $builder_element['droppedIndex'] ?? null;
-
-        // New nested (hierarchical) structure
-        $dropAreaPath = $builder_element['dropAreaPath'] ?? [];
-        if (! is_array($dropAreaPath)) {
-        $decoded = json_decode($dropAreaPath, true);
-        $dropAreaPath = json_last_error() === JSON_ERROR_NONE ? $decoded : [];
-        }
-
-        // die;
-
-        // Check if element already exists
-        $existingNode = $xpath->query("//*[@builder-identity='$identity']")->item(0);
-        // print_r($builder_element);
-        // die;
-
-        if ($existingNode) {
-
-        // 🟢 Update existing element
-        if ($tag === 'img') {
-        // handle image src
-        $builder_element_src = explode('/uploads/', $src);
-        $builder_element_src2 = explode('/assets/', $src);
-        if (array_key_exists(1, $builder_element_src)) {
-        $updated_url_from_builder = '<?= base_url(); ?>' . 'uploads/' . $builder_element_src[1];
-        } elseif (array_key_exists(1, $builder_element_src2)) {
-        $updated_url_from_builder = '<?= base_url(); ?>' . 'assets/' . $builder_element_src2[1];
-        } else {
-        $updated_url_from_builder = '<?= base_url(); ?>' . $src;
-        }
-        $existingNode->setAttribute('src', $updated_url_from_builder);
-        } else {
-
-        // Replace content safely (keep Blade)
-        while ($existingNode->firstChild) {
-        $existingNode->removeChild($existingNode->firstChild);
-        }
-
-        $text = "<?= get_phrase('" . addslashes($content) . "') ?>";
-        $textNode = $dom->createTextNode($text);
-        $existingNode->appendChild($textNode);
-
-        // while ($existingNode->firstChild) {
-        // $existingNode->removeChild($existingNode->firstChild);
-        // }
-
-        // // Properly insert raw HTML or PHP snippets
-        // $fragment = $dom->createDocumentFragment();
-        // $fragment->appendXML($content);
-        // $existingNode->appendChild($fragment);
-        }
-        } else {
-        // Create new element
-        if ($tag === 'img') {
-        // handle image src
-        $builder_element_src = explode('/public/', $src);
-        if (array_key_exists(1, $builder_element_src)) {
-        $updated_url_from_builder = '<?= base_url(); ?>' . $builder_element_src[1];
-        } else {
-        $updated_url_from_builder = '<?= base_url(); ?>' . $src;
-        }
-        $newElement = $dom->createElement($tag, $updated_url_from_builder);
-        } else {
-        // dd($tag);
-        $newElement = $dom->createElement($tag, $content);
-        }
-        // Create new element ended
-
-        // Extract all attributes from $element and add to $newElement
-        $tempDom = new DOMDocument();
-        libxml_use_internal_errors(true);
-        // $tempDom->loadHTML(mb_convert_encoding($element, 'HTML-ENTITIES', 'UTF-8'));
-        $tempDom->loadHTML('
-        <?xml encoding="utf-8" ?>' . $element, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-
-        libxml_clear_errors();
-        $tempXpath = new DOMXPath($tempDom);
-        $tempNode = $tempXpath->query('/*')->item(0) ?? $tempXpath->query('/html/body/*')->item(0);
-
-        // print_r($tempNode);
-
-        if ($tempNode !== null) {
-        foreach ($tempNode->attributes ?? [] as $attr) {
-        $newElement->setAttribute($attr->nodeName, $attr->nodeValue);
-        }
-        }
-        // Extract all attributes from $element and add to $newElement ended
-
-        // Insert the new element at the specific position
-        if ($container) {
-        $dropAreaNode = 0;
-        $dropAreas = $xpath->query("//*[contains(concat(' ', normalize-space(@class), ' '), ' drop-area ')]", $container);
-
-        if ($dropAreas->length > $dropAreaIndex) {
-        $dropAreaNode = $dropAreas->item($dropAreaIndex);
-        }
-        if ($dropAreaNode) {
-        // Insert at specific position
-        $children = [];
-        foreach ($dropAreaNode->childNodes as $child) {
-        if ($child->nodeType === XML_ELEMENT_NODE) {
-        $children[] = $child;
-        }
-        }
-        $newElement = $dom->importNode($newElement, true);
-
-        // if the index not exists the insert to the end
-        if (! isset($children[$droppedIndex])) {
-        $dropAreaNode->appendChild($newElement);
-        } else {
-        // print_r($newElement->attributes);
-        $dropAreaNode->insertBefore($newElement, $children[$droppedIndex]);
-        }
-        }
-        }
-
-        // Insert the new element at the specific position ended
-        }
-        }
-
-        // ✅ Extract only real HTML (skip <html>
-
-            $container = $dom->getElementById('__temp_wrapper__');
-
-            // ✅ Extract only real HTML (skip <html>
-
-                $newHtml = '';
-                foreach ($container->childNodes ?? [] as $child) {
-                // Only nodes that belong to $dom
-                $newHtml .= $dom->saveHTML($child);
-                }
-
-                // Restore PHP code
-                $newHtml = preg_replace_callback('/__PHP_OPEN__(.*?)__PHP_CLOSE__/s', function ($matches) {
-                return base64_decode($matches[1]);
-                }, $newHtml);
-
-                // ✅ Decode Blade-safe content (restore {{ }}, ->, etc.)
-                $newHtml = html_entity_decode($newHtml, ENT_QUOTES | ENT_HTML5);
-                $newHtml = $this->decode_some_special_characters(urldecode($newHtml));
-
-                // ✅ Save cleaned section (no <html>
-
-                    file_put_contents(
-                    APPPATH . "views/components/builder/" . $id . '-' . $file_name . '.php',
-                    $newHtml
-                    );
-                    }
-
-                    // Update database with built section list
-                    $this->db->where('id', $id);
-                    $this->db->update('home_pages', ['html_file_names' => json_encode($built_file_names)]);
-
-                    // $this->session->set_flashdata('flash_message', get_phrase('data_added_successfully'));
-                    // redirect(site_url('admin/home_page/builder/' . $id), 'refresh');
-                    echo 'Layout Updated';
-                    }
 
                     public function encode_some_special_characters($content = "")
                     {
@@ -4487,24 +3499,6 @@ $developer_html
                     return urldecode(htmlspecialchars_decode(base64_decode($content)));
                     }
 
-                    public function upload_page_builder_image()
-                    {
-
-                    if (! file_exists('uploads/home-pages')) {
-                    mkdir('uploads/home-pages', 0777, true);
-                    }
-
-                    if ($_POST['remove_file']) {
-                    $remove_file_arr = explode('/uploads/', $_POST['remove_file']);
-                    if (isset($remove_file_arr[1]) && file_exists('uploads/' . $remove_file_arr[1])) {
-                    unlink('uploads/' . $remove_file_arr[1]);
-                    }
-                    }
-
-                    $image = 'uploads/home-pages/' . md5(rand(10000000, 20000000)) . '.png';
-                    move_uploaded_file($_FILES['file']['tmp_name'], $image);
-                    echo base_url($image);
-                    }
 
                     public function developer_file_elements()
                     {
