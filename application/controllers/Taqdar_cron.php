@@ -67,4 +67,22 @@ class Taqdar_cron extends CI_Controller
         $n = $this->taqdar_billing_model->expire_due();
         echo date('Y-m-d H:i:s') . " expired={$n}\n";
     }
+
+    /**
+     * يسأل تاب عن الدفعات التي بدأت ولم تنته.
+     *
+     * الحال التي تسدها هذه المهمة: يدفع الطالب فيغلق المتصفح قبل أن يعود،
+     * ولا يصل الويبهوك — انقطاع، أو خطأ في العنوان، أو صف كتب قبل أن يضبط
+     * الموقع HTTPS. فيبقى المال محصلا عند تاب والاشتراك مقفلا، ولا أحد
+     * يعلم إلا حين يشتكي صاحبه.
+     *
+     * والقراءة من تاب لا من الطلب، فتكرارها مأمون: المسوى لا يسوى مرتين
+     * (`settle()` ترد فورا على ما حاله `paid`).
+     */
+    public function reconcile()
+    {
+        $this->load->model('taqdar_tap_model');
+        $r = $this->taqdar_tap_model->reconcile(15, 60);
+        echo date('Y-m-d H:i:s') . " tap_checked={$r['checked']} tap_settled={$r['settled']}\n";
+    }
 }

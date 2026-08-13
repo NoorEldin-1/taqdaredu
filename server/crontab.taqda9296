@@ -36,3 +36,12 @@
 30 2 * * * /usr/local/lsws/lsphp82/bin/php /home/taqdaredu.com/cron_taqdar.php taqdar_cron_events run    >> /home/taqdaredu.com/logs/cron_events.log 2>&1
 0 4 * * 0 /usr/local/lsws/lsphp82/bin/php /home/taqdaredu.com/cron_taqdar.php taqdar_cron_events weekly >> /home/taqdaredu.com/logs/cron_events.log 2>&1
 10 * * * * /usr/local/lsws/lsphp82/bin/php /home/taqdaredu.com/cron_taqdar.php taqdar_cron expire_sessions >> /home/taqdaredu.com/logs/taqdar_cron.log 2>&1
+
+# مزامنة دفعات تاب المعلقة — كل ربع ساعة
+#
+# من دفع ببطاقته ثم أغلق المتصفح قبل أن يعود يفعل اشتراكه بالويبهوك. وهذه
+# المهمة تسد ما لو لم يصل الويبهوك: تسأل تاب عن كل محاولة بقيت «لم تكتمل»
+# أكثر من خمسة عشر دقيقة، وتفعل ما حصل ماله. وبلا هذا السطر تبقى دفعة
+# انقطع عنها النداء محصلة عند تاب والاشتراك مقفلا حتى يشتكي صاحبه.
+# وتكرارها مأمون: المسوى لا يسوى مرتين.
+*/15 * * * * /usr/local/lsws/lsphp82/bin/php /home/taqdaredu.com/cron_taqdar.php taqdar_cron reconcile >> /home/taqdaredu.com/logs/taqdar_cron.log 2>&1

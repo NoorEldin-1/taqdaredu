@@ -328,11 +328,14 @@ class Taqdar extends CI_Controller
             $cur['plan_name'] = $plan ? $plan['name_ar'] : '—';
         }
 
+        $this->load->model('taqdar_tap_model');
+
         $this->show('tq_subscription', 'اشتراكي', array(
             'tq_counts' => $this->counts($uid),
             'user_id'   => $uid,
             'current'   => $cur,
             'invoices'  => $this->taqdar_billing_model->invoices_of($uid),
+            'tq_card'   => $this->taqdar_tap_model->ready(),
         ));
     }
 
@@ -403,11 +406,17 @@ class Taqdar extends CI_Controller
         $this->require_role('student');
         if ($this->input->method(true) !== "POST") show_404();
 
+        $uid = (int) $this->session->userdata('user_id');
+
+        $this->load->model('taqdar_tap_model');
+        $by_card = ((string) $this->input->post('pay_method') === 'tap')
+                && $this->taqdar_tap_model->ready();
+
         $this->load->model('taqdar_billing_model');
         $r = $this->taqdar_billing_model->subscribe_path(
-            $this->session->userdata('user_id'),
+            $uid,
             (int) $this->input->post('path_id'),
-            'manual'
+            $by_card ? 'tap' : 'manual'
         );
 
         if (!$r['ok']) {
@@ -416,31 +425,80 @@ class Taqdar extends CI_Controller
             return;
         }
 
+        /* المسار يدفع بالبطاقة بالمسار نفسه الذي تدفع به الباقة: الفاتورة
+           هي المرساة في الحالين، فلا فرع ثان في `Taqdar_tap_model`. */
+        if ($by_card) {
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid);
+            if (!empty($pay['ok'])) {
+                redirect($pay['url'], 'location', 302);
+                return;
+            }
+            $this->session->set_flashdata('error_message',
+                implode(' ', $pay['errors']) . ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا أو إعادة المحاولة من هنا.');
+            redirect(base_url('student/subscription'));
+            return;
+        }
+
         $this->session->set_flashdata('flash_message',
             'صدرت فاتورتك. حول قيمتها ويفتح المسار بعد التحقق من الحوالة.');
         redirect(base_url('student/subscription'));
     }
 
+    /**
+     * تأكيد الاشتراك — يصدر الفاتورة، ثم يدفعها بالبطاقة أو يترك تحويلها.
+     *
+     * الترتيب مقصود: **الفاتورة تصدر أولا في الحالين.** لو أنشئت الدفعة
+     * عند تاب قبل أن تكتب الفاتورة، لصار من دفع ثم سقط الاتصال قد دفع
+     * بلا صف عندنا يقابل دفعته. والعكس مأمون: فاتورة صدرت ولم تدفع تحول
+     * بنكيا أو تدفع لاحقا بزر «ادفع بالبطاقة» في صفحة الاشتراك.
+     */
     public function subscribe()
     {
         $this->require_role('student');
         if ($this->input->method(true) !== 'POST') show_404();
 
+        $uid = (int) $this->session->userdata('user_id');
+
+        $this->load->model('taqdar_tap_model');
+        $by_card = ((string) $this->input->post('pay_method') === 'tap')
+                && $this->taqdar_tap_model->ready();
+
         $this->load->model('taqdar_billing_model');
         $r = $this->taqdar_billing_model->subscribe(
-            $this->session->userdata('user_id'),
+            $uid,
             (int) $this->input->post('plan_id'),
-            'manual'
+            $by_card ? 'tap' : 'manual'
         );
 
         if (!$r['ok']) {
             $this->session->set_flashdata('error_message', implode(' ', $r['errors']));
             redirect(base_url('plans'));
+            return;
         }
 
-        $this->session->set_flashdata('flash_message', !empty($r['free'])
-            ? 'فعلت باقتك المجانية.'
-            : 'صدرت فاتورتك. حول قيمتها ويفعل اشتراكك بعد التحقق من الحوالة.');
+        if (!empty($r['free'])) {
+            $this->session->set_flashdata('flash_message', 'فعلت باقتك المجانية.');
+            redirect(base_url('student/subscription'));
+            return;
+        }
+
+        if ($by_card) {
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid);
+            if (!empty($pay['ok'])) {
+                redirect($pay['url'], 'location', 302);
+                return;
+            }
+            /* تعذر بدء الدفع: الفاتورة صدرت ولم تضع، فيقال ما وقع ويدل
+               على البديل القائم — لا يعاد الطالب إلى الباقات وقد صار
+               له اشتراك معلق. */
+            $this->session->set_flashdata('error_message',
+                implode(' ', $pay['errors']) . ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا أو إعادة المحاولة من هنا.');
+            redirect(base_url('student/subscription'));
+            return;
+        }
+
+        $this->session->set_flashdata('flash_message',
+            'صدرت فاتورتك. حول قيمتها ويفعل اشتراكك بعد التحقق من الحوالة.');
         redirect(base_url('student/subscription'));
     }
 
@@ -2053,10 +2111,17 @@ class Taqdar extends CI_Controller
         $this->load->model('taqdar_billing_model');
         $cur = $this->taqdar_billing_model->active_subscription($uid);
 
+        /* جهوزية البطاقة تقرأ في المتحكم لا في القالب: القالب يقرر ما
+           يعرض، ولا يفتح نموذجا ولا يحمل بوابة ليعرف. وحين تكون كاذبة
+           تعرض الشاشة ما كانت تعرضه قبل تاب حرفا بحرف. */
+        $this->load->model('taqdar_tap_model');
+
         $this->show('site_checkout', 'تأكيد الاشتراك — ' . $b['name'], array(
             'tq_bundle'  => $b,
             'tq_current' => $cur,
             'user_id'    => $uid,
+            'tq_card'    => $this->taqdar_tap_model->ready(),
+            'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
         ));
     }
 
@@ -2117,18 +2182,19 @@ class Taqdar extends CI_Controller
     }
 
     /**
-     * نقطة عودة بوابة الدفع — جاهزة ومغلقة.
+     * `pay/<اسم البوابة>` — بادئة قديمة لا نقطة عودة.
      *
-     * `activate_from_gateway()` مكتوبة في نموذج الفوترة ولا منادي لها،
-     * لأن لا بوابة مفعلة بعد. وهذه النقطة تبقي الفجوة **واحدة**: يوم
-     * يفتح حساب ميسر أو تاب يكتب التحقق من التوقيع هنا وحده.
+     * نقطة عودة تاب هي `payment/tap/return` في
+     * [Taqdar_pay.php](Taqdar_pay.php) — والبادئة `payment/` مقصودة: هي
+     * المستثناة من حماية CSRF، فالويبهوك يصل منها وحدها.
      *
-     * ولا تفعل شيئا اليوم: نقطة تفعل اشتراكا بلا تحقق من توقيع
-     * البوابة باب يفتح بطلب مصنوع.
+     * وتبقى هذه الدالة لتسجل من يطرق الباب القديم: بوابة تنسخ عنوان
+     * عودتها من وثيقة قديمة تظهر هنا في السجل بدل أن تصمت.
      */
     public function gateway_callback($gateway = '')
     {
-        log_message('error', 'TQ-GATEWAY: نداء على نقطة عودة غير مفعلة — ' . $gateway);
+        log_message('error', 'TQ-GATEWAY: نداء على بادئة pay/ القديمة — ' . $gateway
+            . ' — والنقطة العاملة payment/tap/return');
         show_404();
     }
 

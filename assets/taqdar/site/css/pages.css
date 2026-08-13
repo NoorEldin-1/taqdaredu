@@ -2158,6 +2158,40 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
   color:var(--ink);width:fit-content}
 .co-pay__pick svg{inline-size:19px;block-size:19px;flex:none;color:var(--emerald)}
 
+/* منتقي طريقة الدفع — بطاقتان لا قائمة منسدلة:
+   الخياران اثنان ويقرآن معا في سطرين، والمنسدلة تخفي أحدهما خلف ضغطة. */
+.co-pick{display:grid;gap:10px;margin-block-start:14px}
+.co-opt{display:block;cursor:pointer}
+.co-opt input{position:absolute;inline-size:1px;block-size:1px;opacity:0;pointer-events:none}
+.co-opt__box{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;
+  background:var(--cream);border:2px solid var(--gold-line-soft);border-radius:16px;
+  transition:border-color .15s ease,background .15s ease}
+.co-opt:hover .co-opt__box{border-color:var(--emerald)}
+.co-opt input:checked + .co-opt__box{border-color:var(--emerald);background:#fff}
+/* حلقة التركيز على الغلاف: المدخل مخفي بصريا، فبلا هذا لا يرى من يتنقل
+   بلوحة المفاتيح أين هو. */
+.co-opt input:focus-visible + .co-opt__box{outline:2px solid var(--emerald);outline-offset:2px}
+.co-opt__ico{inline-size:38px;block-size:38px;flex:none;display:grid;place-items:center;
+  border-radius:11px;background:var(--beige);color:var(--emerald)}
+.co-opt__ico svg{inline-size:20px;block-size:20px}
+.co-opt__t{display:grid;gap:3px}
+.co-opt__t b{color:var(--ink);font-size:.98rem}
+.co-opt input:checked + .co-opt__box .co-opt__ico{background:var(--emerald);color:#fff}
+
+.co-pay__test{display:flex;align-items:center;gap:8px;margin:12px 0 0;padding:10px 14px;
+  border-radius:12px;background:#FDF3E3;color:#7A4A08;font-size:.88rem;line-height:1.7}
+.co-pay__test svg{inline-size:17px;block-size:17px;flex:none}
+
+.co-bank{margin-block-start:16px}
+
+/* `hidden` يحتاج سطرا صريحا على هذه الصفحة.
+   `base.css` — وفيها `[hidden]{display:none !important}` — لا تحمل في صفحات
+   التصميم (انظر شرط `$tq_is_site` في includes_top.php)، و`.co-steps` معرفة
+   `display:grid`. والصنف يهزم قاعدة المتصفح الافتراضية لـ`[hidden]`، فكان
+   منتقي الطريقة يخفي خطوات لا تخفى — تقرأ العين خطوات البطاقة وخطوات
+   الحوالة معا. */
+.co-cols [data-tq-for][hidden]{display:none}
+
 .co-blocked__acts{display:flex;flex-wrap:wrap;gap:10px;margin-block-start:16px}
 
 .co-side__h{margin:0 0 12px;font-size:1rem;color:var(--ink)}

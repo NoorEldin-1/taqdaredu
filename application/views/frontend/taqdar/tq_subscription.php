@@ -33,11 +33,17 @@ $CI->load->model('taqdar_site_model', 'tq_site_m');
 $tq_bundle = $tq_plan ? $CI->tq_site_m->bundle_by_code($tq_plan['code']) : null;
 
 /* آخر فاتورة غير مدفوعة: مرجع الحوالة رقمها، وبدونه تصل حوالة
-   بلا اسم يطابق فيفتح الاشتراك بالتخمين أو لا يفتح. */
+   بلا اسم يطابق فيفتح الاشتراك بالتخمين أو لا يفتح.
+   و`unpaid` بالحرف لا «ليست مدفوعة»: الفاتورة المستردة ليست مدفوعة أيضا،
+   ولا يطلب من صاحبها أن يحول قيمتها من جديد. */
 $tq_due = null;
 foreach ((array) $invoices as $tq_i) {
-    if ($tq_i['status'] !== 'paid') { $tq_due = $tq_i; break; }
+    if ($tq_i['status'] === 'unpaid') { $tq_due = $tq_i; break; }
 }
+
+/* زر الدفع بالبطاقة يعرض إن كانت البوابة مضبوطة وحدها — والقرار من
+   المتحكم (`Taqdar_tap_model::ready()`). */
+$tq_card = !empty($tq_card);
 
 /* لون الحالة ليس زينة: «بانتظار السداد» و«نشط» يقرآن في لمحة واحدة،
    وسطر نصي واحد يجعلهما متساويين في العين. والأصناف من مفردات الشارات
@@ -180,9 +186,33 @@ include 'portal_open.php';
             <div class="tq-card__head">
                 <h2 class="tq-card__title">كيف تفعل اشتراكك</h2>
             </div>
-            <p class="tq-caption">
-                حول قيمة الفاتورة إلى الحساب أدناه، واكتب رقم الفاتورة في خانة الملاحظات.
-            </p>
+
+            <?php if ($tq_card): ?>
+                <?php /* الدفع بالبطاقة من هنا أيضا لا من شاشة التأكيد وحدها.
+                         والحال التي يسدها هذا الزر تقع فعلا: من اختار التحويل
+                         ثم عدل، ومن بدأ الدفع فتردد وأغلق الصفحة — كلاهما له
+                         فاتورة معلقة، وبلا هذا الزر لا سبيل إلى دفعها بالبطاقة
+                         إلا أن يشترك من جديد. */ ?>
+                <p class="tq-caption">
+                    ادفع فاتورتك بالبطاقة فيفعل اشتراكك في لحظته، أو حول قيمتها إلى
+                    الحساب أدناه ويفعل بعد التحقق من الحوالة.
+                </p>
+                <div class="tqs-acts">
+                    <form method="post" action="<?php echo base_url('student/pay-invoice'); ?>">
+                        <?php echo tq_csrf(); ?>
+                        <input type="hidden" name="invoice_id" value="<?php echo (int) $tq_due['id']; ?>">
+                        <button type="submit" class="tq-btn tq-btn--primary tq-btn--sm">
+                            <?php echo tq_icon('card', 16); ?>
+                            ادفع الآن بالبطاقة
+                        </button>
+                    </form>
+                </div>
+            <?php else: ?>
+                <p class="tq-caption">
+                    حول قيمة الفاتورة إلى الحساب أدناه، واكتب رقم الفاتورة في خانة الملاحظات.
+                </p>
+            <?php endif; ?>
+
             <?php echo tqs_bank_block($tq_due['invoice_no'], (int) $tq_due['total']); ?>
         </div>
     <?php endif; ?>

@@ -301,6 +301,36 @@ class Taqdar_billing_model extends CI_Model
 
         $now = date('Y-m-d H:i:s');
 
+        /* TQ-SUB-REUSE — اشتراك معلق لنفس الباقة وفاتورته لم تدفع: يعاد
+           استعماله لا يصدر ثان.
+           والموضع الذي يظهر فيه هذا: الطالب يؤكد، فتفتح صفحة البوابة،
+           فيتردد ويرجع، فيؤكد مرة أخرى. بلا هذا الفرع يخرج من ذلك صفان
+           في `subscriptions` وفاتورتان برقمين متسلسلين — ثم تسدد إحداهما
+           وتبقى الأخرى «غير مدفوعة» في سجل مالي إلى الأبد. والسعر يفحص
+           مع الرقم: من عدلت الباقة بعد إصداره لا يشترى بسعر أمس. */
+        /* والمجانية مستثناة: لا فاتورة تدفع فيها، وإعادة استعمال صفها
+           تعود بلا تفعيل — والتفعيل هو كل ما تفعله الباقة المجانية. */
+        $pend = $free ? null : $this->db->where('user_id', $user_id)
+                         ->where('plan_id', (int) $plan['id'])
+                         ->where('path_id', 0)
+                         ->where('status', 'pending')
+                         ->where('price', (int) $plan['price'])
+                         ->order_by('id', 'DESC')->limit(1)
+                         ->get('subscriptions')->row_array();
+
+        if ($pend) {
+            $old = $this->invoice_of_subscription((int) $pend['id']);
+            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === (int) $plan['price']) {
+                $this->db->where('id', (int) $pend['id'])
+                         ->update('subscriptions', array('method' => $method));
+                $this->db->where('id', (int) $old['id'])
+                         ->update('invoices', array('method' => $method));
+
+                return array('ok' => true, 'subscription_id' => (int) $pend['id'],
+                             'invoice_id' => (int) $old['id'], 'free' => false, 'reused' => true);
+            }
+        }
+
         $this->db->insert('subscriptions', array(
             'user_id'    => $user_id,
             'plan_id'    => (int) $plan['id'],
@@ -506,9 +536,9 @@ class Taqdar_billing_model extends CI_Model
     /**
      * تفعيل يدوي — التحويل البنكي. تنادى من اللوحة بعد التحقق من الحوالة.
      *
-     * هذا هو المسار الوحيد العامل اليوم: لا بوابة دفع مفعلة في الإعدادات
-     * (`paypal.active=0` و`stripe.active=0`)، فوصلة البوابة أدناه مكتوبة
-     * وجاهزة لكنها لم تختبر بدفعة حقيقية ولا يصح ادعاء أنها مجربة.
+     * ويبقى مسارا قائما لا بديلا مؤقتا: بوابة تاب تفعل الاشتراك بنفسها
+     * (`activate_from_gateway()` أدناه)، والحوالة البنكية تبقى خيارا
+     * معروضا لمن لا يدفع بالبطاقة — فهذه الدالة لا تستغني عنها البوابة.
      */
     public function activate_manually($subscription_id, $reference = '')
     {
@@ -522,13 +552,24 @@ class Taqdar_billing_model extends CI_Model
         return $ok;
     }
 
-    /** نقطة الوصل للبوابات حين تفعل مفاتيحها. */
-    public function activate_from_gateway($subscription_id, $gateway, $transaction_id)
+    /**
+     * نقطة الوصل للبوابات — تنادى من `Taqdar_tap_model::settle()` وحدها.
+     *
+     * و`$invoice_id` يمرر صريحا حين يعرف: `invoice_of_subscription()` ترد
+     * **آخر** فاتورة للاشتراك، وهي الصواب في الحالة الشائعة. لكن الدفعة
+     * تخص فاتورة بعينها، ولو صدرت للاشتراك فاتورتان لسدد الأحدث بدفعة
+     * الأقدم — أي أن ما دفع ثمنه يبقى «غير مدفوع» في السجل.
+     */
+    public function activate_from_gateway($subscription_id, $gateway, $transaction_id, $invoice_id = 0)
     {
         $ok = $this->activate($subscription_id, $gateway, $transaction_id);
         if ($ok) {
-            $inv = $this->invoice_of_subscription($subscription_id);
-            if ($inv) $this->mark_invoice_paid($inv['id'], $transaction_id);
+            $inv = (int) $invoice_id > 0
+                 ? $this->db->where('id', (int) $invoice_id)
+                            ->where('subscription_id', (int) $subscription_id)
+                            ->get('invoices')->row_array()
+                 : $this->invoice_of_subscription($subscription_id);
+            if ($inv && $inv['status'] !== 'paid') $this->mark_invoice_paid($inv['id'], $transaction_id);
         }
         return $ok;
     }

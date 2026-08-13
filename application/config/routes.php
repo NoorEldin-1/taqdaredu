@@ -153,6 +153,10 @@ $route['student/reviews']              = 'taqdar/reviews';
 $route['teacher/students/message']     = 'taqdar/students_message';
 $route['taqdar/teacher/students/message'] = 'taqdar/students_message';
 $route['student/subscribe-path']       = 'taqdar/subscribe_path';
+// دفع فاتورة قائمة بالبطاقة. قاعدة صريحة قبل `student/(:any)`: بدونها يصل
+// `pay-invoice` إلى `Taqdar::pay_invoice()` وهي غير موجودة، فيرد 404 على زر
+// «ادفع الآن» في صفحة الاشتراك.
+$route['student/pay-invoice']          = 'taqdar_pay/start';
 $route['student/parent-link']            = 'taqdar/parent_link_respond';
 // قلب التفضيل. قاعدة صريحة قبل `student/(:any)`: بدونها يصل الاسم كما هو
 // إلى `Taqdar::favourite()` وهي غير موجودة، فيرد 404 على كل ضغطة قلب.
@@ -189,6 +193,17 @@ $route['course/(:any)/(:num)'] = 'home/course/$1/$2';
 $route['path/(:any)']          = 'taqdar/path_page/$1';
 $route['plan/(:any)']          = 'taqdar/plan_page/$1';
 $route['checkout/(:any)']      = 'taqdar/checkout/$1';
+
+// ---- بوابة تاب ----
+// البادئة `payment/` مقصودة لا مصادفة: `csrf_exclude_uris` في
+// [config.php](config.php) يستثني `payment/.*` وحدها، والويبهوك يأتي من خادم
+// تاب بلا كعكة ولا رمز حماية — فبادئة أخرى تعني 403 على كل نداء، وكل دفعة
+// يغلق صاحبها المتصفح بعدها تبقى محصلة بلا اشتراك.
+// والقاعدتان قبل التوجيه الافتراضي: بدونهما يسقط `payment/tap/return` إلى
+// `Payment::tap('return')` وليست في متحكم Academy دالة بهذا الاسم.
+$route['payment/tap/return']   = 'taqdar_pay/back';
+$route['payment/tap/webhook']  = 'taqdar_pay/webhook';
+
 $route['pay/(:any)']           = 'taqdar/gateway_callback/$1';
 $route['competitions']        = 'taqdar/competitions';
 $route['competitions/join']   = 'taqdar/competition_join';
