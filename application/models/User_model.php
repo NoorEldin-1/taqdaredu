@@ -495,27 +495,70 @@ class User_model extends CI_Model
         }
     }
 
+    /**
+     * ينشئ صف طلب الانضمام معلما بعد إنشاء الحساب.
+     *
+     * TQ-DOC-TRUTH — كان يسجل اسم الملف **قبل** أن يتأكد من نسخه:
+     * `$data['document'] = $name;` ثم `move_uploaded_file(...)` بلا فحص
+     * لقيمتها الراجعة. فإن تعذر النسخ — مجلد بلا صلاحية كتابة، أو قرص
+     * ممتلئ، أو رفع انقطع — يكتب الصف باسم ملف لا وجود له، ويظهر في
+     * شاشة الاعتماد رابط «عرض» يرد ٤٠٤. والمراجع يرى طلبا بمرفق مكسور
+     * فيرفضه، وصاحبه لا يعرف لماذا رفض. (وهو ما يفسر ملف
+     * `08NjwnupXSidPLq.pdf` المسجل في القاعدة والمفقود من القرص.)
+     *
+     * فالآن: الاسم يكتب بعد نجاح النسخ وحده، والامتداد يقيد بالقائمة
+     * البيضاء نفسها التي يفرضها `Login::register()` — ولا يؤخذ من اسم
+     * الملف كما جاء (`x.php.pdf` تعطي `pdf`، لكن اسما ينتهي بـ`.php`
+     * كان يعبر إلى مجلد يخدمه الخادم).
+     *
+     * والطلب ينشأ حتى لو سقط المرفق: حساب معلم موقوف بلا صف طلب لا
+     * يظهر لأحد ليعتمده — وهو أسوأ من طلب بلا مرفق يسأل صاحبه عنه.
+     */
     function instructor_application(){
         // FIRST GET THE USER DETAILS
         $user = $this->db->get_where('users', ['email' => $this->input->post('email')]);
-        if($user->num_rows() > 0){
-            $user_details = $user->row_array();
-            $previous_data = $this->get_applications($user_details['id'], 'user')->num_rows();
-            if ($previous_data == 0) {
-                if (!file_exists('uploads/document')) {
-                    mkdir('uploads/document', 0777, true);
-                }
-                $data['user_id'] = $user_details['id'];
-                $data['address'] = $user_details['address'];
-                $data['phone'] = $this->input->post('phone');
-                $data['message'] = $this->input->post('message');
+        if($user->num_rows() == 0){
+            return false;
+        }
 
-                $document_custom_name =random(15).'.'.pathinfo($_FILES['document']['name'], PATHINFO_EXTENSION);
-                $data['document'] = $document_custom_name;
-                move_uploaded_file($_FILES['document']['tmp_name'], 'uploads/document/' . $document_custom_name);
-                $this->db->insert('applications', $data);
+        $user_details = $user->row_array();
+        if ($this->get_applications($user_details['id'], 'user')->num_rows() > 0) {
+            return false;                       // طلب قائم — لا يكرر
+        }
+
+        $data = array(
+            'user_id' => $user_details['id'],
+            'address' => isset($user_details['address']) ? $user_details['address'] : '',
+            'phone'   => (string) $this->input->post('phone'),
+            'message' => (string) $this->input->post('message'),
+        );
+
+        $file = isset($_FILES['document']) ? $_FILES['document'] : null;
+        if ($file && !empty($file['name']) && (int) $file['error'] === UPLOAD_ERR_OK) {
+
+            $ext = strtolower((string) pathinfo($file['name'], PATHINFO_EXTENSION));
+            if (in_array($ext, array('pdf', 'jpg', 'jpeg', 'png'), true)) {
+
+                $dir = 'uploads/document';
+                if (!is_dir($dir)) {
+                    @mkdir($dir, 0755, true);
+                }
+
+                if (is_dir($dir) && is_writable($dir)) {
+                    $name = random(15) . '.' . $ext;
+                    if (@move_uploaded_file($file['tmp_name'], $dir . '/' . $name)) {
+                        $data['document'] = $name;   // بعد النجاح وحده
+                    } else {
+                        log_message('error', 'instructor_application: تعذر نسخ المستند إلى ' . $dir);
+                    }
+                } else {
+                    log_message('error', 'instructor_application: ' . $dir . ' غير قابل للكتابة');
+                }
             }
         }
+
+        $this->db->insert('applications', $data);
+        return true;
     }
 
 
@@ -567,16 +610,16 @@ class User_model extends CI_Model
                 $this->db->update('users', $instructor_data);
 
                 $this->session->set_flashdata('flash_message', get_phrase('application_approved_successfully'));
-                redirect(site_url('admin/instructor_application'), 'refresh');
+                redirect(site_url('taqdar_admin/teachers'), 'refresh');
             } else {
                 $this->db->where('id', $application_id);
                 $this->db->delete('applications');
                 $this->session->set_flashdata('flash_message', get_phrase('application_deleted_successfully'));
-                redirect(site_url('admin/instructor_application'), 'refresh');
+                redirect(site_url('taqdar_admin/teachers'), 'refresh');
             }
         } else {
             $this->session->set_flashdata('error_message', get_phrase('invalid_application'));
-            redirect(site_url('admin/instructor_application'), 'refresh');
+            redirect(site_url('taqdar_admin/teachers'), 'refresh');
         }
     }
 

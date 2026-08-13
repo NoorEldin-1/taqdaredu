@@ -266,6 +266,30 @@ class Login extends CI_Controller
         return preg_replace('/^0/', '', $p);
     }
 
+    /**
+     * TQ-PHONE-DUP — رقم الجوال من الحقل الذي يخص البوابة المختارة.
+     *
+     * كان لوحا المعلم وولي الأمر في `sign_up.php` يحملان كلاهما
+     * `name="phone"`. وكلاهما في الصفحة دائما — `hidden` يخفي عن العين
+     * ولا يمنع الإرسال — فالطلب يحمل الاسم مرتين، وPHP يبقي الأخير:
+     * حقل ولي الأمر الفارغ. أي أن **كل تسجيل معلم** كان يرد
+     * «رقم الجوال غير صحيح» مهما كتب في الحقل.
+     *
+     * فصار لكل بوابة اسمها (`teacher_phone` · `parent_phone`)، و`phone`
+     * تقرأ احتياطا: نموذج مخبأ في متصفح، أو تطبيق يرسل الاسم القديم،
+     * لا ينبغي أن يكسر بترحيل في الواجهة.
+     */
+    private function tq_gate_phone($gate)
+    {
+        foreach (array($gate . '_phone', 'phone') as $field) {
+            $raw = trim((string) $this->input->post($field));
+            if ($raw !== '') {
+                return $this->tq_normalize_phone($raw);
+            }
+        }
+        return '';
+    }
+
     public function register()
     {
         $this->tq_guard_origin('sign_up');
@@ -303,7 +327,7 @@ class Login extends CI_Controller
             'age'            => ($tq_age > 0 ? $tq_age : ''),
             'grade_id'       => ($tq_grade > 0 ? $tq_grade : ''),
             'guardian_email' => $tq_guard,
-            'phone'          => trim((string) $this->input->post('phone')),
+            'phone'          => $this->tq_gate_phone($tq_gate),
             'message'        => trim((string) $this->input->post('message')),
         );
 
@@ -353,7 +377,7 @@ class Login extends CI_Controller
             if (!get_settings('allow_instructor')) {
                 $tq_err = 'التسجيل معلما متوقف حاليا. تواصل معنا للانضمام.';
             } else {
-                $tq_phone = $this->tq_normalize_phone($this->input->post('phone'));
+                $tq_phone = $this->tq_gate_phone('teacher');
 
                 $tq_doc = isset($_FILES['document']) ? $_FILES['document'] : NULL;
                 $tq_doc_ext = ($tq_doc && !empty($tq_doc['name']))
@@ -382,7 +406,7 @@ class Login extends CI_Controller
                لا تكشف بيانات أحد، والتقارير لا تفتح إلا برابط يوافق عليه
                الطالب نفسه (`parent_links` ولها مشغلا موافقة في القاعدة).
                والجوال مطلوب: عليه تصل تنبيهات الأبناء. */
-            $tq_phone = $this->tq_normalize_phone($this->input->post('phone'));
+            $tq_phone = $this->tq_gate_phone('parent');
             if (!preg_match('/^5[0-9]{8}$/', $tq_phone)) {
                 $tq_err = 'رقم الجوال غير صحيح. اكتبه هكذا: 0501234567';
             }
@@ -481,6 +505,10 @@ class Login extends CI_Controller
             endif;
             //End instructor application
 
+            /* ولي الأمر يخبر في المسارين: تأكيد البريد شأن الطالب،
+               وإخطار ولي أمره لا يتوقف عليه. */
+            $this->tq_tell_guardian($tq_guard, $tq_first . ' ' . $tq_last, $tq_email, $tq_age);
+
             if (get_settings('student_email_verification') == 'enable') {
                 $this->email_model->send_email_verification_mail($data['email'], $verification_code);
 
@@ -513,6 +541,47 @@ class Login extends CI_Controller
             $this->session->set_flashdata('error_message', 'لهذا البريد حساب بالفعل. سجل الدخول، أو استعد كلمة المرور إن نسيتها.');
             redirect(site_url('login'), 'refresh');
         }
+    }
+
+    /**
+     * TQ-GUARDIAN-MAIL — بريد ولي الأمر كان يجمع ولا يستعمل.
+     *
+     * صفحة التسجيل تشترط بريد ولي الأمر لمن هو دون الخامسة عشرة، وتقول
+     * له صراحة: «نرسل إليه طلب موافقة قبل تفعيل الحساب». والعمود
+     * `users.guardian_email` يكتب فعلا — **ولا يرسل إليه شيء أبدا**.
+     * أي أن الصفحة تعد بما لا يقع، وتجمع بريد شخص ثالث بلا أن تخبره.
+     *
+     * فترسل الرسالة هنا. وهي إخطار لا بوابة: الحساب يفتح كما كان يفتح،
+     * ولا يوقف على رد لا يضمن أن يأتي — ولكن ولي الأمر يعلم، ويعرف كيف
+     * يتصرف. والحساب لا ينشئ رابطا في `parent_links` من هنا: ذلك يفتح
+     * تقارير الطالب، ولا يفتحها إلا الطالب بنفسه.
+     *
+     * وإن لم يكن البريد الصادر مضبوطا فلا شيء يقع ولا خطأ يظهر —
+     * `Taqdar_mail_model` يرد `false` بهدوء.
+     */
+    private function tq_tell_guardian($guardian_email, $student_name, $student_email, $age)
+    {
+        $guardian_email = trim((string) $guardian_email);
+        if ($guardian_email === '' || !filter_var($guardian_email, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        $this->load->model('taqdar_mail_model');
+        $this->taqdar_mail_model->send_lines(
+            $guardian_email,
+            'حساب جديد في منصة تقدر باسم ' . trim($student_name),
+            array(
+                'السلام عليكم،',
+                'أنشئ حساب في منصة تقدر التعليمية باسم ' . trim($student_name)
+                . ' (' . $student_email . ')، وذكر أن عمره ' . (int) $age . ' سنة'
+                . ' وأن بريدك هو بريد ولي أمره.',
+                'نخبرك بذلك لأن المنصة لا تفتح حساب من هو دون الخامسة عشرة بلا علم ولي أمره.',
+                'وإن أردت متابعة تقدمه فأنشئ حساب «ولي أمر» واطلب ربط حسابه بحسابك — '
+                . 'ويفتح الربط بموافقته هو.',
+                'وإن لم تكن تعرف هذا الحساب فتواصل معنا ونغلقه.',
+            ),
+            array('label' => 'أنشئ حساب ولي أمر', 'href' => site_url('sign_up') . '?as=parent')
+        );
     }
 
     public function logout($from = "")

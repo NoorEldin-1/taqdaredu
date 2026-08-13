@@ -205,8 +205,16 @@ $tq_gate = in_array($tq_gate, array('teacher', 'parent'), true) ? $tq_gate : 'st
               <span class="sr-only">رقم الجوال</span>
               <?php /* بلا `pattern`: الخادم يطبع الرقم قبل فحصه فيقبل
                       `0501234567` و`+966 50 123 4567`، وكان النمط هنا
-                      يرفض ما سيقبله — شرطان مختلفان لحقل واحد. */ ?>
-              <input type="tel" name="phone" data-req="1" placeholder="05XXXXXXXX"
+                      يرفض ما سيقبله — شرطان مختلفان لحقل واحد.
+
+                      TQ-PHONE-DUP — والاسم `teacher_phone` لا `phone`:
+                      لوحا المعلم وولي الأمر كلاهما في الصفحة دائما (يخفى
+                      أحدهما بـ`hidden` لا يحذف)، وكلاهما كان يحمل
+                      `name="phone"`. و`hidden` لا يمنع الإرسال — فالطلب
+                      يحمل الحقلين، وPHP يبقي **الأخير**: حقل ولي الأمر
+                      الفارغ. فكل تسجيل معلم كان يرد «رقم الجوال غير صحيح»
+                      مهما كتب فيه، وهو أول ما يقابل من يريد أن يدرس هنا. */ ?>
+              <input type="tel" name="teacher_phone" data-req="1" placeholder="05XXXXXXXX"
                      inputmode="tel" autocomplete="tel"
                      value="<?php echo $tq_v('phone'); ?>">
             </label>
@@ -254,7 +262,8 @@ $tq_gate = in_array($tq_gate, array('teacher', 'parent'), true) ? $tq_gate : 'st
             <label class="form-field">
               <svg aria-hidden="true"><use href="#i-phone"></use></svg>
               <span class="sr-only">رقم الجوال</span>
-              <input type="tel" name="phone" data-req="1" placeholder="05XXXXXXXX"
+              <?php /* اسم مستقل عن حقل المعلم — انظر TQ-PHONE-DUP أعلاه. */ ?>
+              <input type="tel" name="parent_phone" data-req="1" placeholder="05XXXXXXXX"
                      inputmode="tel" autocomplete="tel"
                      value="<?php echo $tq_v('phone'); ?>">
             </label>
@@ -344,6 +353,13 @@ $tq_gate = in_array($tq_gate, array('teacher', 'parent'), true) ? $tq_gate : 'st
       f.querySelectorAll('[data-req]').forEach(function (el) {
         if (on) el.setAttribute('required', '');
         else el.removeAttribute('required');
+      });
+      /* حقول البوابة المطوية تعطل فلا ترسل أصلا: `hidden` يخفي ولا يمنع
+         الإرسال، فكان طلب المعلم يحمل عمر الطالب وبريد ولي أمره ومستند
+         رفعه ثم بدل بوابته — بيانات لا تخص الطلب، وملف يرفع بلا سبب.
+         (والتصادم في اسم `phone` عولج بفصل الاسمين، فهذا احتياط ثان.) */
+      f.querySelectorAll('input, select, textarea').forEach(function (el) {
+        el.disabled = !on;
       });
       /* رسائل بوابة انصرف عنها لا تبقى معلقة */
       if (!on) f.querySelectorAll('.field-err').forEach(function (m) { m.hidden = true; });

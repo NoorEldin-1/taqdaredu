@@ -1726,10 +1726,6 @@ a.gate-card:hover{ text-decoration:none }
   font:inherit;color:var(--ink);padding-block:4px
 }
 .sitesearch input::placeholder{color:var(--ink-3)}
-.site-header--dark .sitesearch{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22)}
-.site-header--dark .sitesearch input{color:#fff}
-.site-header--dark .sitesearch input::placeholder{color:rgba(255,255,255,.7)}
-.site-header--dark .sitesearch svg{color:var(--gold-warm)}
 
 /* في الترويسة: الجوال وحده */
 .header-search{display:none;flex:1 1 auto;min-inline-size:0;margin-inline:10px}
@@ -2506,3 +2502,50 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 
 /* لا استثناء لـ«تقليل الحركة» بعد اليوم: اللوحة لم تعد تلتصق ولا
    تتحرك مع التمرير، فسلوكها واحد للجميع. */
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-SELECT · القائمة المنسدلة داخل الحقل
+
+   كانت ترث `background:none` من قاعدة `input,textarea,select` المشتركة،
+   وثلاثة أشياء تتبع ذلك ولا تظهر إلا في المتصفح:
+
+   ١ — **قائمة الخيارات نفسها** ترسم بألوان النظام لا بألوان الحقل:
+       سطح أبيض ناصع وخط النظام داخل نموذج كريمي بخط القاهرة. و`option`
+       لا يرث من `select` ما لم يعلن، فيعلن هنا.
+
+   ٢ — **الخيار الأول ليس قيمة.** «الصف الدراسي (اختياري)» تكتب بحبر
+       النص الكامل فتقرأ اختيارا قائما لا فراغا — بينما يكتب المكان
+       الشاغر في كل حقل آخر بحبر باهت.
+
+   ٣ — **ارتفاع مختلف عن جيرانه.** `select` بلا `padding` معلن يأخذ
+       ارتفاع سطره من النظام، فيقف صف «العمر · الصف» بحقلين بارتفاعين.
+   ══════════════════════════════════════════════════════════════════ */
+.form-field select{
+  padding-block:0;
+  min-block-size:1.8em;
+  line-height:1.8;
+  resize:none;                       /* ورثها من قاعدة مشتركة، ولا معنى لها هنا */
+  color:var(--ink);
+  text-overflow:ellipsis;
+}
+/* الفارغ يقرأ فراغا: الحبر الباهت هو ما يميز المكان الشاغر عن القيمة. */
+.form-field select:has(option[value=""]:checked){ color:var(--ink-3) }
+
+.form-field select option{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:inherit;
+  padding:6px 10px;
+}
+.form-field select option[value=""]{ color:var(--ink-3) }
+/* الخيار المعطل عنوان مجموعة لا اختيارا */
+.form-field select option:disabled{ color:var(--ink-3);font-style:normal }
+
+/* السهم يهبط قليلا حين يكبر الحقل، ويظهر أنه تابع للحقل لا فوقه */
+.form-field:has(select){ cursor:pointer }
+.form-field:has(select)::after{ transition:transform var(--t-hover,.15s) var(--ease) }
+.form-field:has(select):focus-within::after{
+  transform:translateY(-50%) rotate(135deg);
+}
+/* مساحة تكفي السهم: `22px` تترك آخر حرف يلامسه في الأسماء الطويلة */
+.form-field:has(select) select{ padding-inline-end:26px }
