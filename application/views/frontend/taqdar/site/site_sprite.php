@@ -77,6 +77,10 @@
     <path d="M3.5 9.5 12 4.5l8.5 5"/><path d="M5 9.5v9M9.7 9.5v9M14.3 9.5v9M19 9.5v9"/>
     <path d="M3 19.5h18"/>
   </symbol>
+  <symbol id="i-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2.8" y="5.2" width="18.4" height="13.6" rx="2.6"/>
+    <path d="M2.8 9.8h18.4"/><path d="M6.4 14.6h3.4"/>
+  </symbol>
   <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
     <path d="M12 3.2 4.8 6v6c0 4.4 3 7.6 7.2 8.8 4.2-1.2 7.2-4.4 7.2-8.8V6Z"/>
     <path d="m9.2 12 2 2 3.6-3.9"/>

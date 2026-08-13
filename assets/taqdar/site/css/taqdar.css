@@ -190,22 +190,13 @@ p{margin:0}
   -webkit-backdrop-filter:saturate(1.4) blur(14px);
   box-shadow:0 1px 0 var(--gold-line-soft),0 10px 30px -22px rgba(5,44,43,.5);
 }
-/* «تواصل معنا» تقلب الهيدر بالكامل — أقوى تمييز بين الصفحات */
-.site-header--dark{background:var(--petrol-deep);
-  box-shadow:0 10px 30px -22px rgba(0,0,0,.7)}
-.site-header--dark .nav a,
-.site-header--dark .nav-toggle{color:#EAF1EE}
-.site-header--dark .nav a:hover,
-.site-header--dark .nav a[aria-current='page']{color:var(--gold-warm)}
-.site-header--dark .btn--ghost{border-color:rgba(212,180,118,.5);color:var(--gold-warm)}
-.site-header--dark .btn--ghost:hover{background:rgba(212,180,118,.14)}
 
 .brand{display:flex;align-items:center;flex:0 0 auto}
 .brand img{width:clamp(92px,8.4vw,126px);height:auto}
-/* :not() ضروري — بدونه تخفي القاعدة النسخة الفاتحة أيضا لأنها img داخل .brand */
+/* النسخة الفاتحة من الشعار كانت للترويسة الداكنة وحدها، وقد حذفت
+   (انظر TQ-HEADER-ODDBALL). تبقى مخفية: الوسم في `site_header.php`
+   يحمل `aria-hidden` ولا يقرأ، وحذفه يمس بنية الترويسة بلا داع. */
 .brand__light{display:none}
-.site-header--dark .brand img:not(.brand__light){display:none}
-.site-header--dark .brand__light{display:block}
 
 .nav{display:flex;align-items:center;gap:clamp(8px,1.15vw,20px);margin-inline:auto;
   font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(11.5px,.88vw,14px)}
@@ -229,8 +220,7 @@ p{margin:0}
    فيستعمل span داخلي بدل ضبطه على الحاوية. */
 .tq-ltr{direction:ltr;display:inline-block;unicode-bidi:isolate}
 
-.site-header--solid ~ main,
-.site-header--dark ~ main{padding-block-start:var(--header-h)}
+.site-header--solid ~ main{padding-block-start:var(--header-h)}
 
 /* ==========================================================================
    الهيرو
