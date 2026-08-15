@@ -1,96 +1,65 @@
 <?php
-$section_details = $this->crud_model->get_section('section', $param2)->row_array();
-$lessons = $this->crud_model->get_lessons('section', $section_details['id'])->result_array();
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * ترتيب دروس قسم — يفتح في نافذة.
+ * الشكل نفسه الذي في [sort_section.php]، وأعطاله نفسها كانت هنا.
+ */
+$tq_section = $this->crud_model->get_section('section', $param2)->row_array();
+
+if (!$tq_section) {
+    echo '<p class="tqa-note tqa-note--warn">لا قسم بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>';
+    return;
+}
+
+$tq_lessons = $this->crud_model->get_lessons('section', $tq_section['id'])->result_array();
 ?>
-<div class="tqa-stack">
-    <div>
-        <div class="tqa-card">
-            <div class="tqa-card__body">
-                <div class="tqa-stack" id = "parent-div" data-plugin="dragula" data-containers='["lesson-list"]'>
-                    <div>
-                        <div class="bg-dragula p-2 p-lg-4">
-                            <h5 class="mt-0"><?php echo get_phrase('sort_lessons_of').': '.$section_details['title'].' '.get_phrase('section'); ?>
-                                <button type="button" class="tqa-btn tqa-btn--ghost" id = "lesson-sort-btn" onclick="sort()" name="button"><?php echo get_phrase('update_sorting'); ?></button>
-                            </h5>
-                            <div id="lesson-list" class="py-2">
-                                <?php foreach ($lessons as $lesson): ?>
-                                    <!-- item -->
-                                    <div class="card mb-0 mt-2 draggable-item" id = "<?php echo $lesson['id']; ?>">
-                                        <div class="tqa-card__body">
-                                            <div class="media">
-                                                <div class="media-body">
-                                                    <h5 class="mb-1 mt-0"><?php echo $lesson['title']; ?></h5>
-                                                </div> <!-- end media-body -->
-                                            </div> <!-- end media -->
-                                        </div> <!-- end card-body -->
-                                    </div> <!-- end col -->
-                                    <!-- item ends -->
-                                <?php endforeach; ?>
-                            </div> <!-- end company-list-1-->
-                        </div> <!-- end div.bg-light-->
-                    </div> <!-- end col -->
-                </div> <!-- end row -->
-            </div> <!-- end card-body -->
-        </div> <!-- end card -->
-    </div> <!-- end col -->
+
+<?php if (count($tq_lessons) < 2): ?>
+
+    <p class="tqa-note">
+        <span aria-hidden="true"><?php echo tq_icon('help', 18); ?></span>
+        <span>الترتيب يحتاج درسين فأكثر في القسم.</span>
+    </p>
+
+<?php else: ?>
+
+<p class="tqa-note tqa-section">
+    <span aria-hidden="true"><?php echo tq_icon('layers', 18); ?></span>
+    <span>
+        دروس قسم <strong><?php echo html_escape($tq_section['title']); ?></strong>.
+        اسحب الدرس إلى موضعه — والترتيب هنا هو ترتيب فتحه للطالب متى فعلت «الإتاحة التدريجية».
+    </span>
+</p>
+
+<div class="tqa-stack" id="tqa-sort-list" data-tqa-sortable>
+    <?php foreach ($tq_lessons as $tq_i => $tq_l):
+        $tq_is_quiz = ((string) $tq_l['lesson_type'] === 'quiz');
+    ?>
+        <div class="tqa-card tqa-sortitem" data-id="<?php echo (int) $tq_l['id']; ?>"
+             style="display:flex;align-items:center;gap:var(--tq-space-m);cursor:grab">
+            <span class="tqa-iconbox <?php echo $tq_is_quiz ? 'tqa-peach' : 'tqa-sky'; ?>"
+                  aria-hidden="true" style="inline-size:34px;block-size:34px">
+                <?php echo tq_icon($tq_is_quiz ? 'check-badge' : 'play', 16); ?>
+            </span>
+            <span style="flex:1;min-inline-size:0">
+                <span class="tqa-media__title"><?php echo html_escape($tq_l['title']); ?></span>
+                <span class="tqa-media__sub">
+                    <?php echo $tq_is_quiz ? 'اختبار' : 'درس'; ?> ·
+                    <span class="tqa-num" data-tqa-pos><?php echo $tq_i + 1; ?></span> في الترتيب
+                </span>
+            </span>
+        </div>
+    <?php endforeach; ?>
 </div>
 
-<!-- Init Dragula -->
-<script type="text/javascript">
-! function(r) {
-    "use strict";
-    var a = function() {
-        this.$body = r("body")
-    };
-    a.prototype.init = function() {
-        r('[data-plugin="dragula"]').each(function() {
-            var a = r(this).data("containers"),
-            t = [];
-            if (a)
-            for (var n = 0; n < a.length; n++) t.push(r("#" + a[n])[0]);
-            else t = [r(this)[0]];
-            var i = r(this).data("handleclass");
-            i ? dragula(t, {
-                moves: function(a, t, n) {
-                    return n.classList.contains(i)
-                }
-            }) : dragula(t)
-        })
-    }, r.Dragula = new a, r.Dragula.Constructor = a
-}(window.jQuery),
-function(a) {
-    "use strict";
-    window.jQuery.Dragula.init()
-}();
-</script>
-<script type="text/javascript">
-function sort() {
-    var containerArray = ['lesson-list'];
-    var itemArray = [];
-    var itemJSON;
-    for(var i = 0; i < containerArray.length; i++) {
-        $('#'+containerArray[i]).each(function () {
-            $(this).find('.draggable-item').each(function() {
-                //console.log(this.id);
-                itemArray.push(this.id);
-            });
-        });
-    }
+<div class="tqa-actions">
+    <button type="button" class="tqa-btn tqa-btn--primary tqa-btn--block" data-tqa-sort-save
+            data-url="<?php echo site_url('admin/ajax_sort_lesson'); ?>" disabled>
+        <?php echo tq_icon('check', 16); ?> احفظ الترتيب
+    </button>
+</div>
 
-    itemJSON = JSON.stringify(itemArray);
-    $.ajax({
-        url: '<?php echo site_url('admin/ajax_sort_lesson/');?>',
-        type : 'POST',
-        data : {itemJSON : itemJSON},
-        success: function(response)
-        {
-            success_notify('<?php echo get_phrase('lessons_have_been_sorted'); ?>');
-            setTimeout(
-                function()
-                {
-                    location.reload();
-                }, 1000);
-            }
-        });
-    }
-</script>
+<?php include 'tqa_sortable_js.php'; ?>
+
+<?php endif; ?>

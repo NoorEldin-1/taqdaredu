@@ -1,270 +1,201 @@
-<style>
-.form-select:focus {
-	box-shadow: none;
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * إضافة قسم مخصص إلى صفحة الكورس — يفتح في نافذة.
+ *
+ * أعيدت كتابته بهيكل `tqa-*`. وستة أعطال أصلحت معه:
+ *
+ * ١ — **بلا توكن CSRF.** والنموذج يكتب في القاعدة ويرفع ملفات.
+ *     `csrf_protection = TRUE` في هذا التركيب، فالحفظ يرد صفحة خطأ.
+ * ٢ — **أزرار «+» و«−» لا تفعل شيئا.** المستمعون معلقون على
+ *     `.btn-success` و`.remove-image-field` و`.add-slider-field` — أصناف
+ *     Bootstrap زالت حين أعيد بناء الأزرار بأصناف `tqa-*`. فمن أراد
+ *     صورتين في قسم واحد لم يكن له سبيل: يضغط «+» فلا يحدث شيء.
+ * ٣ — **نوع «slider» في الشيفرة ولا خيار له في المنتقي** — بينما
+ *     `Admin::custom_field_add()` يعالجه. كتلة ميتة في الوجهين.
+ * ٤ — **`initSummerNote` على `#summernote`** — معرف واحد في نموذج قد
+ *     يحمل عدة حقول، والمحرر غير محمل في هذه النافذة أصلا.
+ * ٥ — **بالإنجليزية** كاملا: «Select type» و«Section Title» و«Submit».
+ *     و`get_phrase('Submit')` كانت ترد «يقدم» — ترجمة آلية لا معنى لها
+ *     في زر حفظ.
+ * ٦ — **الحقول الخمسة مطبوعة كلها** ثم تخفى بـ`d-none`: أي أن النموذج
+ *     يرسل حقول الأنواع الأربعة الأخرى فارغة مع النوع المختار.
+ */
+$tq_types = array(
+    'image'   => array('صور بعناوين', 'صورة وعنوان ووصف لكل بند.',      'image'),
+    'text'    => array('نص مفصل',     'فقرات تعرض تحت وصف الكورس.',      'file-text'),
+    'video'   => array('فيديو',       'روابط يوتيوب تعرض في مشغل.',      'play'),
+    'faq'     => array('أسئلة شائعة', 'سؤال وجواب خاصان بهذا الكورس.',   'help'),
+    'gallery' => array('معرض صور',    'صور بلا عناوين تعرض في شبكة.',    'grid'),
+);
+
+/** عنوان القسم يثبت متى وجد قسم بالنوع نفسه: الحفظ يدمج فيه. */
+$tq_titles = array();
+foreach ($this->db->select('custom_type, custom_title')->where('course_id', (int) $param2)
+                  ->get('custom_fields')->result_array() as $tq_r) {
+    $tq_titles[(string) $tq_r['custom_type']] = (string) $tq_r['custom_title'];
 }
-</style>
+?>
 
-<form class="ajaxFormSubmission" action="<?php echo site_url('admin/custom_field_add/' . $param2); ?>" method="post" enctype="multipart/form-data">
-    <div class="tqa-field">
-        <label for="custom_type" ><?php echo get_phrase('select_type'); ?></label>
-        <select name="custom_type" id="custom_type" class="tqa-select">
-            <option value=""><?php echo get_phrase('select_type'); ?></option>
-            <option value="image"><?php echo get_phrase('Image'); ?></option>
-            <option value="text"><?php echo get_phrase('Text'); ?></option>
-            <option value="video"><?php echo get_phrase('Video'); ?></option>
-            <option value="faq"><?php echo get_phrase('FAQ'); ?></option>
-            <option value="gallery"><?php echo get_phrase('Gallery'); ?></option>
-        </select>
-    </div>
-      <?php
-        $custom_titles = [];
+<form method="post" enctype="multipart/form-data"
+      action="<?php echo site_url('admin/custom_field_add/' . (int) $param2); ?>">
+    <?php echo tq_csrf(); ?>
 
-        $custom_fields = $this->db
-            ->where('course_id', $param2)
-            ->get('custom_fields')
-            ->result_array();
+    <fieldset class="tqa-field">
+        <legend class="tqa-field__label">
+            نوع القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+        </legend>
 
-        foreach ($custom_fields as $row) {
-            $custom_titles[$row['custom_type']] = $row['custom_title'];
-        }
+        <div class="tqa-stack">
+            <?php foreach ($tq_types as $tq_k => [$tq_label, $tq_hint, $tq_ic]): ?>
+                <label class="tqa-check">
+                    <input type="radio" name="custom_type" value="<?php echo $tq_k; ?>"
+                           data-tqa-cf-type required>
+                    <span>
+                        <strong style="color:var(--tq-navy)"><?php echo $tq_label; ?></strong>
+                        <span class="tqa-prefrow__hint"><?php echo $tq_hint; ?></span>
+                    </span>
+                </label>
+            <?php endforeach; ?>
+        </div>
+    </fieldset>
+
+    <?php foreach ($tq_types as $tq_k => [$tq_label, $tq_hint, $tq_ic]):
+        $tq_fixed = isset($tq_titles[$tq_k]);
     ?>
+    <div data-tqa-cf-pane="<?php echo $tq_k; ?>" hidden>
 
-        <!---- IMAGE FIELDS - -->
-        <div class="custom-field-group d-none" id="image_fields">
-            <div class="mb-3">
-                <label class="form-label ol-form-label"><?php echo get_phrase('Section Title'); ?></label>
-                <input type="text" class="tqa-input <?php echo isset($custom_titles['image']) ? 'alert alert-info' : ''; ?>" value="<?php echo isset($custom_titles['image']) ? $custom_titles['image'] : ''; ?>" <?php echo isset($custom_titles['image']) ? 'readonly' : ''; ?> name="image_custom_title" >
-            </div>
-            <div id="image_field_container">
-                <div class="image-field-repeat rounded border p-2 mb-3">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <label class="form-label ol-form-label"><?php echo get_phrase('Title'); ?></label>
-                            <div class="d-flex gap-2 mb-2">
-                                <button type="button" class="tqa-btn tqa-btn--mastery tqa-btn--sm">+</button>
-                                <button type="button" class="tqa-btn tqa-btn--danger tqa-btn--sm">−</button>
-                            </div>
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="title_<?php echo $tq_k; ?>">
+                عنوان القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+            </label>
+            <input class="tqa-input" type="text" id="title_<?php echo $tq_k; ?>"
+                   name="<?php echo $tq_k; ?>_custom_title" maxlength="190"
+                   value="<?php echo html_escape($tq_titles[$tq_k] ?? ''); ?>"
+                   <?php echo $tq_fixed ? 'readonly' : ''; ?>>
+            <span class="tqa-field__hint">
+                <?php echo $tq_fixed
+                    ? 'يوجد قسم بهذا النوع، وما يضاف هنا ينضم إليه تحت عنوانه.'
+                    : 'يظهر عنوانا فوق هذه الكتلة في صفحة الكورس.'; ?>
+            </span>
+        </div>
+
+        <?php /* البنود: بند واحد ابتداء، والزر يستنسخه. */ ?>
+        <div data-tqa-rep="<?php echo $tq_k; ?>">
+            <div data-tqa-rep-item class="tqa-card"
+                 style="box-shadow:none;border-style:dashed;margin-block-end:var(--tq-space-s)">
+
+                <?php if ($tq_k === 'image'): ?>
+                    <div class="tqa-field">
+                        <label class="tqa-field__label">العنوان</label>
+                        <input class="tqa-input" type="text" name="image_title[]" maxlength="190">
+                    </div>
+                    <div class="tqa-field">
+                        <label class="tqa-field__label">الوصف</label>
+                        <textarea class="tqa-textarea" name="image_description[]" rows="2"
+                                  style="min-block-size:70px"></textarea>
+                    </div>
+                    <div class="tqa-field">
+                        <span class="tqa-field__label">الصورة</span>
+                        <div class="tqa-file">
+                            <input type="file" name="image_file[]" accept="image/*" data-tqa-file>
+                            <label class="tqa-file__btn"><?php echo tq_icon('image', 16); ?> اختر صورة</label>
+                            <span class="tqa-file__name" data-tqa-file-name>لم تختر ملفا بعد</span>
                         </div>
-                        <input type="text" name="image_title[]" class="tqa-input">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label ol-form-label"><?php echo get_phrase('Description'); ?></label>
-                        <textarea name="image_description[]" class="tqa-input"></textarea>
+
+                <?php elseif ($tq_k === 'text'): ?>
+                    <div class="tqa-field">
+                        <label class="tqa-field__label">النص</label>
+                        <textarea class="tqa-textarea" name="text_content[]" rows="5" data-tqa-rich></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label ol-form-label"><?php echo get_phrase('Image'); ?></label>
-                        <input type="file" name="image_file[]" class="tqa-input">
+
+                <?php elseif ($tq_k === 'video'): ?>
+                    <div class="tqa-field">
+                        <label class="tqa-field__label">رابط يوتيوب</label>
+                        <input class="tqa-input tqa-input--ltr" type="url" name="video_url[]" dir="ltr"
+                               placeholder="https://www.youtube.com/watch?v=...">
                     </div>
+
+                <?php elseif ($tq_k === 'faq'): ?>
+                    <div class="tqa-field">
+                        <label class="tqa-field__label">السؤال</label>
+                        <input class="tqa-input" type="text" name="faq_question[]" maxlength="255">
+                    </div>
+                    <div class="tqa-field">
+                        <label class="tqa-field__label">الإجابة</label>
+                        <textarea class="tqa-textarea" name="faq_answer[]" rows="3"></textarea>
+                    </div>
+
+                <?php else: /* gallery */ ?>
+                    <div class="tqa-field">
+                        <span class="tqa-field__label">الصور</span>
+                        <div class="tqa-file">
+                            <input type="file" name="gallery_images[]" accept="image/*" multiple data-tqa-file>
+                            <label class="tqa-file__btn"><?php echo tq_icon('image', 16); ?> اختر صورا</label>
+                            <span class="tqa-file__name" data-tqa-file-name>يمكن اختيار عدة صور معا</span>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <div class="tqa-actions" style="margin-block-start:var(--tq-space-s)">
+                    <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-remove
+                            style="color:var(--tq-danger)">
+                        <?php echo tq_icon('trash', 14); ?> احذف هذا البند
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- -- TEXT FIELDS ---->
-        <div class="custom-field-group d-none" id="text_fields">
-            <div class="mb-3">
-                <label class="form-label ol-form-label"><?php echo get_phrase('Section Title'); ?></label>
-                <input type="text" class="tqa-input <?php echo isset($custom_titles['text']) ? 'alert alert-info' : ''; ?>" value="<?php echo isset($custom_titles['text']) ? $custom_titles['text'] : ''; ?>" <?php echo isset($custom_titles['text']) ? 'readonly' : ''; ?> name="text_custom_title" >
+        <?php if ($tq_k !== 'gallery'): ?>
+            <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                    data-tqa-rep-add="<?php echo $tq_k; ?>">
+                <?php echo tq_icon('plus', 14); ?> أضف بندا
+            </button>
+        <?php endif; ?>
+    </div>
+    <?php endforeach; ?>
 
-            </div>
-            <div id="text_field_container">
-                <div class="text-field-repeat rounded border p-2 mb-3">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <label class="form-label ol-form-label"><?php echo get_phrase('Text Content'); ?></label>
-                        </div>
-                        <textarea id="summernote" name="text_content[]" class="tqa-input"></textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- {{-- VIDEO FIELDS --}} -->
-        <div class="custom-field-group d-none" id="video_fields">
-            <div class="mb-3">
-                <label class="form-label ol-form-label"><?php echo get_phrase('Section Title'); ?></label>
-                <input type="text" name="video_custom_title" class="tqa-input <?php echo isset($custom_titles['video']) ? 'alert alert-info' : ''; ?>" value="<?php echo isset($custom_titles['video']) ? $custom_titles['video'] : ''; ?>" <?php echo isset($custom_titles['video']) ? 'readonly' : ''; ?> >
-            </div>
-            <div id="video_field_container">
-                <div class="video-field-repeat rounded border p-2 mb-3">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <label class="form-label ol-form-label"><?php echo get_phrase('Video URL'); ?></label>
-                        </div>
-                        <input type="text" name="video_url[]" class="tqa-input" placeholder="https://youtube.com/...">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!---- FAQ FIELDS ---->
-        <div class="custom-field-group d-none" id="faq_fields">
-            <div class="mb-3">
-                <label class="form-label ol-form-label"><?php echo get_phrase('Section Title'); ?></label>
-                <input type="text" name="faq_custom_title" class="tqa-input <?php echo isset($custom_titles['faq']) ? 'alert alert-info' : ''; ?>" value="<?php echo isset($custom_titles['faq']) ? $custom_titles['faq'] : ''; ?>" <?php echo isset($custom_titles['faq']) ? 'readonly' : ''; ?> >
-            </div>
-            <div id="faq_field_container">
-                <div class="faq-field-repeat rounded border p-2 mb-3">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <label class="form-label ol-form-label"><?php echo get_phrase('FAQ Question'); ?></label>
-                            <div class="d-flex gap-2 mb-2">
-                                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm add-faq-field">+</button>
-                                <button type="button" class="tqa-btn tqa-btn--danger tqa-btn--sm">−</button>
-                            </div>
-                        </div>
-                        <input type="text" name="faq_question[]" class="tqa-input">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label ol-form-label"><?php echo get_phrase('FAQ Answer'); ?></label>
-                        <textarea name="faq_answer[]" class="tqa-input"></textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!---- Gallery   FIELDS ---->
-        <div class="custom-field-group d-none" id="gallery_fields">
-            <div class="mb-3">
-                <label class="form-label ol-form-label"><?php echo get_phrase('Section Title'); ?></label>
-                <input type="text" name="gallery_custom_title" class="tqa-input <?php echo isset($custom_titles['gallery']) ? 'alert alert-info' : ''; ?>" value="<?php echo isset($custom_titles['gallery']) ? $custom_titles['gallery'] : ''; ?>" <?php echo isset($custom_titles['gallery']) ? 'readonly' : ''; ?> >
-            </div>
-            <div id="gallery_field_container">
-                <div class="gallery-field-repeat rounded border p-2 mb-3">
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <label class="form-label ol-form-label"><?php echo get_phrase('Gallery Image'); ?></label>
-                        </div>
-                        <input type="file" name="gallery_images[]" multiple class="tqa-input">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!---- SUBMIT BUTTON ---->
-        <div class="text-end mt-3 d-none" id="submit_button_wrapper">
-            <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo get_phrase('Submit'); ?></button>
-        </div>
-
-
-
-
-
+    <div class="tqa-actions" data-tqa-cf-save hidden>
+        <button class="tqa-btn tqa-btn--primary tqa-btn--block" type="submit">
+            <?php echo tq_icon('check', 16); ?> أضف القسم
+        </button>
+    </div>
 </form>
-<script type="text/javascript">
-    "use strict";
-
-    $('#summernote').summernote({
-        tabsize: 2,
-        height: 120,
-        toolbar: [
-            ['style', ['style']],
-            ['font', ['bold', 'underline', 'clear']],
-            ['color', ['color']],
-            ['para', ['ul', 'ol', 'paragraph']],
-            ['table', ['table']],
-            ['insert', ['link', 'picture', 'video']]
-        ]
-    });
-</script>
-
-        <script>
-    $(document).ready(function () {
-        $('#custom_type').on('change', function () {
-            let selectedType = $(this).val();
-
-            // সব custom field hide
-            $('.custom-field-group').addClass('d-none');
-
-            // submit button hide
-            $('#submit_button_wrapper').addClass('d-none');
-
-            if (selectedType) {
-                // selected field show
-                $('#' + selectedType + '_fields').removeClass('d-none');
-
-                // submit button show
-                $('#submit_button_wrapper').removeClass('d-none');
-            }
-        });
-    });
-</script>
 
 <script>
-$(document).on('click', '.btn-success', function () {
-    let wrapper = $(this).closest('.custom-field-group').find('[id$="_field_container"]');
-    let firstItem = wrapper.children().first();
-    let clone = firstItem.clone();
+(function () {
+    'use strict';
 
-    // input reset
-    clone.find('input, textarea').val('');
-    clone.find('input[type="file"]').val('');
+    /**
+     * النوع المختار وحده يعرض **ويرسل**.
+     *
+     * التعطيل لا الإخفاء: الحقل المخفي يرسل قيمته الفارغة، وقد كان
+     * النموذج يرسل حقول الأنواع الخمسة معا — فيقرأ `custom_field_add`
+     * مصفوفات فارغة لأنواع لم تختر.
+     */
+    var panes = Array.prototype.slice.call(document.querySelectorAll('[data-tqa-cf-pane]'));
+    var save  = document.querySelector('[data-tqa-cf-save]');
+    if (!panes.length || !save) return;
 
-    wrapper.append(clone);
-});
+    var apply = function (kind) {
+        panes.forEach(function (p) {
+            var on = (p.getAttribute('data-tqa-cf-pane') === kind);
+            p.hidden = !on;
+            Array.prototype.forEach.call(p.querySelectorAll('input, textarea, select'), function (f) {
+                f.disabled = !on;
+            });
+        });
+        save.hidden = !kind;
+    };
 
-$(document).on('click', '.remove-image-field', function () {
-    let container = $('#image_field_container');
-
-    if (container.children().length > 1) {
-        $(this).closest('.image-field-repeat').remove();
-    }
-});
-
-// Slider
-$(document).on('click', '.add-slider-field', function () {
-    let container = $('#slider_field_container');
-    let clone = container.children().first().clone();
-
-    clone.find('input, textarea').val('');
-    clone.find('input[type="file"]').val('');
-
-    container.append(clone);
-});
-
-$(document).on('click', '.remove-slider-field', function () {
-    let container = $('#slider_field_container');
-
-    if (container.children().length > 1) {
-        $(this).closest('.slider-field-repeat').remove();
-    }
-});
-
-
-//FAQ
-$(document).on('click', '.add-faq-field', function () {
-    let container = $('#faq_field_container');
-    let clone = container.children().first().clone();
-
-    clone.find('input, textarea').val('');
-    container.append(clone);
-});
-
-$(document).on('click', '.remove-faq-field', function () {
-    let container = $('#faq_field_container');
-
-    if (container.children().length > 1) {
-        $(this).closest('.faq-field-repeat').remove();
-    }
-});
-
-
-//Gallery
-$(document).on('click', '.add-gallery-field', function () {
-    let container = $('#gallery_field_container');
-    let clone = container.children().first().clone();
-
-    clone.find('input[type="file"]').val('');
-    container.append(clone);
-});
-
-$(document).on('click', '.remove-gallery-field', function () {
-    let container = $('#gallery_field_container');
-
-    if (container.children().length > 1) {
-        $(this).closest('.gallery-field-repeat').remove();
-    }
-});
-
+    Array.prototype.forEach.call(document.querySelectorAll('[data-tqa-cf-type]'), function (r) {
+        r.addEventListener('change', function () { apply(r.value); });
+    });
+    apply('');
+})();
 </script>
 
-
+<?php include 'tqa_file_js.php'; ?>
+<?php include 'tqa_repeater_js.php'; ?>

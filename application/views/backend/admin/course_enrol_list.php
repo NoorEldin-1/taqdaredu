@@ -1,86 +1,103 @@
-<div class="tqa-stack">
-    <div>
-        <div class="tqa-card">
-            <div class="tqa-card__body">
-                <h4 class="mb-3 header-title"><?php echo get_phrase('enrol_student_list'); ?></h4>
-                <div class="pb-2">
-                    <button type="button" class="tqa-btn tqa-btn--primary" id="export-button" onclick="export_csv();"> <?php echo get_phrase('Export CSV');?></button>
-                </div>
-                <div class="tqa-table__wrap">
-                    <?php if (count($enrol_history->result_array()) > 0): ?>
-                        <table class="tqa-table">
-                            <thead>
-                                <tr>
-                                    <th><?php echo get_phrase('photo'); ?></th>
-                                    <th><?php echo get_phrase('user_name'); ?></th>
-                                    <th><?php echo get_phrase('enrollment_date'); ?></th>
-                                    <th><?php echo get_phrase('Expiry date'); ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($enrol_history->result_array() as $enrol):
-                                    $user_data = $this->db->get_where('users', array('id' => $enrol['user_id']))->row_array();?>
-                                    <tr class="gradeU" data-enrol-id="<?php echo $enrol['id']; ?>">
-                                        <td>
-                                            <img src="<?php echo $this->user_model->get_user_image_url($enrol['user_id']); ?>" alt="" height="50" width="50" class="img-fluid rounded-circle img-thumbnail">
-                                        </td>
-                                        <td>
-                                            <b><?php echo $user_data['first_name'].' '.$user_data['last_name']; ?></b><br>
-                                            <small><?php echo get_phrase('email').': '.$user_data['email']; ?></small>
-                                        </td>
-                                        <td><?php echo date('D, d M Y', $enrol['date_added']); ?></td>
-                                        <td>
-                                        <?php if($enrol['expiry_date']): ?>
-                                            <?php echo date('D, d M Y', $enrol['expiry_date']); ?>
-                                        <?php else: ?>
-                                            <?php echo get_phrase('Lifetime access'); ?>
-                                        <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    <?php endif; ?>
-                    <?php if (count($enrol_history->result_array()) == 0): ?>
-                        <div class="img-fluid w-100 text-center">
-                        <img style="opacity: 1; width: 100px;" src="<?php echo base_url('assets/backend/images/file-search.svg'); ?>"><br>
-                        <?php echo get_phrase('no_data_found'); ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div> <!-- end card body-->
-        </div> <!-- end card -->
-    </div><!-- end col-->
-</div>
-<script type="text/javascript">
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-    function export_csv() {
-        // Collect all enrol IDs
-        let enrolIds = [];
-        document.querySelectorAll('tr.gradeU').forEach(row => {
-            let enrolId = row.getAttribute('data-enrol-id');
-            if (enrolId) {
-                enrolIds.push(enrolId);
-            }
-        });
+/**
+ * المسجلون في الكورس.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*`. وأعطالها:
+ *
+ * ١ — **بالإنجليزية كاملة** وسط لوحة عربية: «Enrol student list» و
+ *     «Export CSV» و«Lifetime access» و«no_data_found» — `get_phrase`
+ *     لا تجد لها ترجمة فترد المفتاح حرفا.
+ * ٢ — **استعلام لكل صف.** `get_where('users', ...)` داخل الحلقة،
+ *     و`get_user_image_url()` معها. صار الجلب مجمعا بصفين.
+ * ٣ — **`$enrol_history->result_array()` تنادى ثلاث مرات** — مرة للعد،
+ *     ومرة للحلقة، ومرة للعد ثانية.
+ * ٤ — **تصدير CSV بجافاسكربت يجمع معرفات الصفوف المعروضة** ويرسلها في
+ *     `POST`، ثم يبني `Blob` وينقر رابطا. وهو طريق طويل إلى ملف: الرابط
+ *     المباشر يصدر الكل بلا جافاسكربت، ولا يسقط صامتا إن تعثر النداء
+ *     (وكان `error` منه يكتب في `console` وحدها فلا يرى المستخدم شيئا).
+ * ٥ — **`$user_data['first_name']` بلا فحص** — تسجيل لمستخدم حذف يقرأ
+ *     فهرسا من `null`.
+ */
+$tq_rows = $enrol_history->result_array();
 
-        // Send the enrol IDs to the server using AJAX
-        $.ajax({
-            url: "<?php echo site_url('admin/export_enrol_history_csv'); ?>",
-            method: "POST",
-            data: { enrol_ids: enrolIds },
-            success: function(response) {
-                // Trigger download
-                let blob = new Blob([response], { type: 'text/csv' });
-                let link = document.createElement('a');
-                link.href = window.URL.createObjectURL(blob);
-                link.download = 'enrol_history.csv';
-                link.click();
-            },
-            error: function(xhr, status, error) {
-                console.error('Error generating CSV:', error);
-            }
-        });
+$tq_users = array();
+if ($tq_rows) {
+    $tq_uids = array();
+    foreach ($tq_rows as $tq_r) $tq_uids[] = (int) $tq_r['user_id'];
+    foreach ($this->db->select('id, first_name, last_name, email')
+                      ->where_in('id', array_unique($tq_uids))
+                      ->get('users')->result_array() as $tq_u) {
+        $tq_users[(int) $tq_u['id']] = $tq_u;
     }
+}
+?>
 
-</script>
+<div class="tqa-toolbar">
+    <a class="tqa-btn tqa-btn--ghost"
+       href="<?php echo site_url('admin/export_enrol_history_csv/' . (int) $course_id); ?>">
+        <?php echo tq_icon('download', 16); ?> صدر جدولا
+    </a>
+</div>
+
+<div class="tqa-card tqa-card--flush">
+<?php if (!$tq_rows): ?>
+
+    <?php tqa_empty(
+        'لا مسجل في هذا الكورس بعد',
+        'يظهر هنا كل من سجل فيه: باشتراك في باقة تفتحه، أو بتسجيل مباشر من الإدارة.',
+        '', '', 'users'
+    ); ?>
+
+<?php else: ?>
+
+    <div class="tqa-table__wrap">
+        <table class="tqa-table">
+            <caption class="tqa-sr">المسجلون في الكورس: الاسم وتاريخ التسجيل ونهاية الوصول</caption>
+            <thead>
+                <tr>
+                    <th>الطالب</th>
+                    <th>سجل في</th>
+                    <th>ينتهي وصوله</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($tq_rows as $tq_e):
+                $tq_u    = $tq_users[(int) $tq_e['user_id']] ?? null;
+                $tq_name = $tq_u ? trim($tq_u['first_name'] . ' ' . $tq_u['last_name']) : '';
+            ?>
+                <tr>
+                    <td data-label="الطالب">
+                        <?php if ($tq_u): ?>
+                            <span class="tqa-media__title"><?php echo html_escape($tq_name ?: $tq_u['email']); ?></span>
+                            <span class="tqa-media__sub"><?php echo html_escape($tq_u['email']); ?></span>
+                        <?php else: ?>
+                            <span class="tqa-dim">حساب محذوف
+                                (<span class="tqa-num"><?php echo (int) $tq_e['user_id']; ?></span>)</span>
+                        <?php endif; ?>
+                    </td>
+
+                    <td data-label="سجل في">
+                        <?php echo tqa_when($tq_e['date_added'], 'Y-m-d'); ?>
+                    </td>
+
+                    <td data-label="ينتهي وصوله">
+                        <?php if (!empty($tq_e['expiry_date'])): ?>
+                            <?php echo tqa_when($tq_e['expiry_date'], 'Y-m-d'); ?>
+                        <?php else: ?>
+                            <span class="tqa-badge tqa-badge--ok">وصول دائم</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="tqa-pager__info" style="padding:var(--tq-space-l) var(--tq-space-xl)">
+        <span class="tqa-num"><?php echo count($tq_rows); ?></span> مسجلا
+    </p>
+
+<?php endif; ?>
+</div>

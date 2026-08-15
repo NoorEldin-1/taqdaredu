@@ -1,13 +1,32 @@
-<?php 
-// Fetch the specific custom field for editing
-$field = $this->db->get_where('custom_fields', ['id' => $param2])->row_array();
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * تعديل عنوان قسم مخصص — يفتح في نافذة.
+ * كان بالإنجليزية وبلا توكن CSRF وبلا فحص أن القسم موجود.
+ */
+$tq_f = $this->db->where('id', (int) $param2)->get('custom_fields')->row_array();
+
+if (!$tq_f) {
+    echo '<p class="tqa-note tqa-note--warn">لا قسم بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>';
+    return;
+}
 ?>
-<form action="<?php echo site_url('admin/custom_field_section_update/'.$field['id']); ?>" method="post">
-    <div class="mb-3">
-        <label class="form-label ol-form-label"><?php echo get_phrase('Section Title'); ?></label>
-        <input type="text" class="tqa-input" name="custom_title" value="<?php echo htmlspecialchars($field['custom_title']); ?>">
-    </div> 
-    <button type="submit" class="tqa-btn tqa-btn--primary">
-        <?php echo get_phrase('Update'); ?>
-    </button>
+<form method="post" action="<?php echo site_url('admin/custom_field_section_update/' . (int) $tq_f['id']); ?>">
+    <?php echo tq_csrf(); ?>
+
+    <div class="tqa-field">
+        <label class="tqa-field__label" for="custom_title">
+            عنوان القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+        </label>
+        <input class="tqa-input" type="text" id="custom_title" name="custom_title" required maxlength="190"
+               value="<?php echo html_escape($tq_f['custom_title']); ?>">
+        <span class="tqa-field__hint">يظهر عنوانا فوق هذه الكتلة في صفحة الكورس العامة.</span>
+    </div>
+
+    <div class="tqa-actions">
+        <button class="tqa-btn tqa-btn--primary tqa-btn--block" type="submit">
+            <?php echo tq_icon('check', 16); ?> احفظ التعديل
+        </button>
+    </div>
 </form>

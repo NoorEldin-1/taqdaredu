@@ -3055,52 +3055,73 @@ class Admin extends CI_Controller
         $this->load->view('backend/index', $page_data);
     }
 
-    public function export_enrol_history_csv()
+    /**
+     * تصدير مسجلي كورس جدولا.
+     *
+     * كان يقبل POST وحده بمصفوفة `enrol_ids` يجمعها جافاسكربت من صفوف
+     * الجدول المعروضة، ثم يبني المتصفح `Blob` وينقر رابطا. وثلاثة أعطال
+     * في ذلك: **بلا فحص دخول ولا صلاحية** (أي أن مصفوفة معرفات ترد
+     * أسماء الطلاب وبرايدهم لأي طالب)، وتصدير ما يعرض لا ما هو مسجل
+     * فعلا، ورد خطأ يكتب في `console` وحدها فلا يرى المستخدم شيئا.
+     *
+     * وصار رابطا مباشرا بمعرف الكورس: يصدر مسجليه كلهم، ويقرأ الأسماء
+     * والدورة باستعلامين لا باستعلامين لكل صف. والفاصلة المنقوطة
+     * وBOM لأجل إكسل العربي: بغيرهما يفتح الملف بأعمدة ملتصقة وحروف
+     * مشوهة، وهو أول ما يفعله من يصدر.
+     */
+    public function export_enrol_history_csv($course_id = "")
     {
-        // Check if the request method is POST
-        if ($this->input->method() === 'post') {
-            // Get enrol IDs from the request
-            $enrol_ids = $this->input->post('enrol_ids');
-
-            // Validate enrol IDs
-            if (! is_array($enrol_ids) || empty($enrol_ids)) {
-                show_error('No enrol IDs provided.', 400);
-            }
-
-            // Fetch enrol data for the provided IDs
-            $this->db->where_in('id', $enrol_ids);
-            $query = $this->db->get('enrol');
-
-            // Check if data exists
-            if ($query->num_rows() === 0) {
-                show_error('No data found for the provided enrol IDs.', 404);
-            }
-
-            // Prepare the CSV header
-            $csv_data = '"Id","Student Name","Course Title","Purchase Date","Expiry Date"' . "\n";
-
-            // Populate the CSV rows
-            foreach ($query->result_array() as $row) {
-                // Fetch related user and course data
-                $user_data   = $this->db->get_where('users', ['id' => $row['user_id']])->row_array();
-                $course_data = $this->db->get_where('course', ['id' => $row['course_id']])->row_array();
-
-                // Add a CSV row
-                $csv_data .= '"' . $row['id'] . '",';
-                $csv_data .= '"' . $user_data['first_name'] . ' ' . $user_data['last_name'] . '",';
-                $csv_data .= '"' . $course_data['title'] . '",';
-                $csv_data .= '"' . date('d-m-Y', $row['date_added']) . '",';
-                $csv_data .= '"' . ($row['expiry_date'] ? date('d-m-Y', $row['expiry_date']) : 'Lifetime access') . '"' . "\n";
-            }
-
-            // Send the CSV data as a response
-            header('Content-Type: text/csv');
-            header('Content-Disposition: attachment; filename="enrol_history.csv"');
-            echo $csv_data;
-            exit;
-        } else {
-            show_error('Invalid request method.', 405);
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
         }
+        check_permission('course');
+
+        $course_id = (int) $course_id;
+        $course    = $this->db->select('id, title')->where('id', $course_id)
+                              ->get('course')->row_array();
+        if (!$course) show_404();
+
+        $rows = $this->db->where('course_id', $course_id)
+                         ->order_by('date_added', 'DESC')
+                         ->get('enrol')->result_array();
+
+        $users = array();
+        if ($rows) {
+            $uids = array();
+            foreach ($rows as $r) $uids[] = (int) $r['user_id'];
+            foreach ($this->db->select('id, first_name, last_name, email')
+                              ->where_in('id', array_unique($uids))
+                              ->get('users')->result_array() as $u) {
+                $users[(int) $u['id']] = $u;
+            }
+        }
+
+        $cell = function ($v) {
+            return '"' . str_replace('"', '""', (string) $v) . '"';
+        };
+
+        $eol = chr(13) . chr(10);                   /* إكسل ويندوز يريد CRLF */
+        $csv = chr(0xEF) . chr(0xBB) . chr(0xBF);   /* BOM: إكسل يقرأ العربي به */
+        $csv .= implode(';', array_map($cell, array(
+            'الرقم', 'الطالب', 'البريد', 'الكورس', 'تاريخ التسجيل', 'نهاية الوصول'))) . $eol;
+
+        foreach ($rows as $r) {
+            $u = $users[(int) $r['user_id']] ?? null;
+            $csv .= implode(';', array_map($cell, array(
+                $r['id'],
+                $u ? trim($u['first_name'] . ' ' . $u['last_name']) : 'حساب محذوف',
+                $u ? $u['email'] : '',
+                $course['title'],
+                $r['date_added'] ? date('Y-m-d', (int) $r['date_added']) : '',
+                !empty($r['expiry_date']) ? date('Y-m-d', (int) $r['expiry_date']) : 'وصول دائم',
+            ))) . $eol;
+        }
+
+        $name = 'enrol-' . $course_id . '-' . date('Ymd') . '.csv';
+        $this->output
+             ->set_content_type('text/csv; charset=utf-8')
+             ->set_header('Content-Disposition: attachment; filename="' . $name . '"')
+             ->set_output($csv);
     }
 
     public function enrol_list($course_id = "")

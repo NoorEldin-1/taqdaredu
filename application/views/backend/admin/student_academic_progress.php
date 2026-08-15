@@ -1,76 +1,155 @@
-<div class="tqa-table__wrap">
-  <table class="studentAcademicProgress table table-striped table-centered mb-4">
-    <thead>
-      <tr>
-        <th><?php echo get_phrase('Student'); ?></th>
-        <th><?php echo get_phrase('Date') ?></th>
-        <th><?php echo get_phrase('Progress'); ?></th>
-        <th class="text-center"><?php echo get_phrase('Actions'); ?></th>
-      </tr> 
-    </thead>
-    <?php $enrolments = $this->db->where('course_id', $course_details['id'])->get('enrol')->result_array(); ?>
-    <?php $lessons = $this->crud_model->get_lessons('course', $course_details['id']); ?>
-    <?php $total_lesson = $lessons->num_rows(); ?>
-    <tbody>
-      <?php
-      foreach($enrolments as $enrolment):
-        $student = $this->user_model->get_all_user($enrolment['user_id'])->row_array();
-        $watch_history = $this->db->where('course_id', $course_details['id'])->where('student_id', $enrolment['user_id'])->get('watch_histories')->row_array();
-        $completed_lesson_arr = isset($watch_history['completed_lesson']) ? json_decode($watch_history['completed_lesson'], true) : [];
-        $completed_lesson = is_array($completed_lesson_arr) ? $completed_lesson_arr:[];
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
 
-        $date_updated = isset($watch_history['date_updated']) ? date('d M Y, H:i a', $watch_history['date_updated']) : get_phrase('Not started yet');
-        $completed_date = isset($watch_history['completed_date']) ? date('d M Y', $watch_history['completed_date']) : get_phrase('Not completed yet');
-        $course_progress = isset($watch_history['course_progress']) ? $watch_history['course_progress'] : 0;
-        ?>
-        <tr>
-          <td>
-            <p class="my-0"><?php echo $student['first_name'].' '.$student['last_name']; ?></p>
-            <span class="tqa-badge tqa-badge--muted"><?php echo $student['email']; ?></span>
-          </td>
-          <td>
-            <p class="my-0"><b><?php echo get_phrase('Enrolled from'); ?>-</b> <?php echo date('d M Y', $enrolment['date_added']); ?></p>
+/**
+ * تقدم الطلاب في الكورس.
+ *
+ * أعيدت كتابتها بهيكل `tqa-*`. وأعطالها:
+ *
+ * ١ — **بالإنجليزية** كاملة: «Student» و«Progress» و«Not started yet»
+ *     و«Completed lesson … out of» — وهي جمل تركب من مفتاحين ونص، فلا
+ *     تترجم بترجمة المفاتيح وحدها.
+ * ٢ — **أربعة استعلامات لكل صف**: المستخدم، وسجل المشاهدة، ومدد
+ *     المشاهدة، ودروس الكورس (وهذه الأخيرة كانت خارج الحلقة). صار
+ *     الجلب مجمعا بثلاثة استعلامات للجدول كله.
+ * ٣ — **`$student['first_name']` بلا فحص** — تسجيل لمستخدم حذف يقرأ
+ *     فهرسا من `null` فيبيض الخانة بتحذير.
+ * ٤ — **زر الشهادة مشروط بـ`addon_status('certificate')`** وهي كاذبة
+ *     أبدا في هذا التركيب (لا إضافات مثبتة) — شيفرة ميتة.
+ * ٥ — **`$('[data-toggle=tooltip]').tooltip()`** ونصوص التلميح
+ *     بالإنجليزية، و`btn-group` و`progress` من Bootstrap وسط شاشة
+ *     `tqa-*`.
+ * ٦ — **«أجراءات»** بألف قطع في ترويسة العمود، وصوابها «إجراءات».
+ */
+$tq_cid  = (int) $course_details['id'];
+$tq_rows = $this->db->where('course_id', $tq_cid)
+                    ->order_by('date_added', 'DESC')->get('enrol')->result_array();
 
-            <p class="my-0"><b><?php echo get_phrase('last seen on'); ?>-</b> <?php echo $date_updated; ?></p>
+$tq_total = (int) $this->db->where('course_id', $tq_cid)->count_all_results('lesson');
 
-            <p class="my-0"><b><?php echo get_phrase('Completed on'); ?>-</b> <?php echo $completed_date; ?></p>
-          </td>
-          <td>
-            <div class="progress">
+$tq_users = array();
+$tq_watch = array();
+$tq_secs  = array();
 
-              <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $course_progress; ?>%;" aria-valuenow="<?php echo $course_progress; ?>" aria-valuemin="0" aria-valuemax="100"><?php echo $course_progress; ?>%</div>
-            </div>
-            <p class="my-0 mt-1">- <?php echo get_phrase('Completed lesson').' '.count($completed_lesson).' '.get_phrase('out of').' '.$total_lesson; ?></p>
+if ($tq_rows) {
+    $tq_uids = array();
+    foreach ($tq_rows as $tq_r) $tq_uids[] = (int) $tq_r['user_id'];
+    $tq_uids = array_values(array_unique($tq_uids));
 
-            <?php
-              $total_watched_duration = 0; //seconds
-              $watched_durations = $this->db->get_where('watched_duration', ['watched_student_id' => $enrolment['user_id'], 'watched_course_id' => $course_details['id']]);
-              foreach($watched_durations->result_array() as $watched_duration){
-                $total_watched_duration += count(json_decode($watched_duration['watched_counter'], true))*5;
-              }
+    foreach ($this->db->select('id, first_name, last_name, email')
+                      ->where_in('id', $tq_uids)->get('users')->result_array() as $tq_u) {
+        $tq_users[(int) $tq_u['id']] = $tq_u;
+    }
+
+    foreach ($this->db->where('course_id', $tq_cid)->where_in('student_id', $tq_uids)
+                      ->get('watch_histories')->result_array() as $tq_w) {
+        $tq_watch[(int) $tq_w['student_id']] = $tq_w;
+    }
+
+    /* مدة المشاهدة: خمس ثوان لكل عداد. تجمع هنا بصف لكل طالب بدل
+       استعلام داخل الحلقة. */
+    foreach ($this->db->where('watched_course_id', $tq_cid)
+                      ->where_in('watched_student_id', $tq_uids)
+                      ->get('watched_duration')->result_array() as $tq_d) {
+        $tq_c = json_decode((string) $tq_d['watched_counter'], true);
+        $tq_secs[(int) $tq_d['watched_student_id']] =
+            ($tq_secs[(int) $tq_d['watched_student_id']] ?? 0) + (is_array($tq_c) ? count($tq_c) * 5 : 0);
+    }
+}
+?>
+
+<div class="tqa-card tqa-card--flush">
+<?php if (!$tq_rows): ?>
+
+    <?php tqa_empty(
+        'لا طالب في هذا الكورس بعد',
+        'يظهر هنا تقدم كل مسجل: ما أكمله من دروس، ومتى فتحه آخر مرة، وكم شاهد.',
+        '', '', 'chart'
+    ); ?>
+
+<?php else: ?>
+
+    <div class="tqa-table__wrap">
+        <table class="tqa-table">
+            <caption class="tqa-sr">تقدم الطلاب: الاسم والتواريخ ونسبة الإكمال</caption>
+            <thead>
+                <tr>
+                    <th>الطالب</th>
+                    <th>التواريخ</th>
+                    <th>التقدم</th>
+                    <th style="inline-size:140px"><span class="tqa-sr">إجراءات</span></th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($tq_rows as $tq_e):
+                $tq_uid  = (int) $tq_e['user_id'];
+                $tq_u    = $tq_users[$tq_uid] ?? null;
+                $tq_w    = $tq_watch[$tq_uid] ?? null;
+
+                $tq_done = json_decode((string) ($tq_w['completed_lesson'] ?? ''), true);
+                $tq_done = is_array($tq_done) ? count($tq_done) : 0;
+                $tq_pct  = (int) ($tq_w['course_progress'] ?? 0);
             ?>
+                <tr>
+                    <td data-label="الطالب">
+                        <?php if ($tq_u): ?>
+                            <span class="tqa-media__title">
+                                <?php echo html_escape(trim($tq_u['first_name'] . ' ' . $tq_u['last_name']) ?: $tq_u['email']); ?>
+                            </span>
+                            <span class="tqa-media__sub"><?php echo html_escape($tq_u['email']); ?></span>
+                        <?php else: ?>
+                            <span class="tqa-dim">حساب محذوف (<span class="tqa-num"><?php echo $tq_uid; ?></span>)</span>
+                        <?php endif; ?>
+                    </td>
 
-            <p class="my-0">- <?php echo get_phrase('Watched duration').'- <b>'.seconds_to_time_format($total_watched_duration); ?></b></p>
+                    <td data-label="التواريخ">
+                        <span class="tqa-media__sub">
+                            سجل: <?php echo tqa_when($tq_e['date_added'], 'Y-m-d'); ?>
+                        </span>
+                        <span class="tqa-media__sub">
+                            آخر فتح:
+                            <?php echo !empty($tq_w['date_updated'])
+                                ? tqa_when($tq_w['date_updated'], 'Y-m-d')
+                                : '<span class="tqa-dim">لم يبدأ بعد</span>'; ?>
+                        </span>
+                        <span class="tqa-media__sub">
+                            أكمله:
+                            <?php echo !empty($tq_w['completed_date'])
+                                ? tqa_when($tq_w['completed_date'], 'Y-m-d')
+                                : '<span class="tqa-dim">لم يكمل بعد</span>'; ?>
+                        </span>
+                    </td>
 
-            
-            
-          </td>
-          <td class="text-center">
-            <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-              <a href="javascript:;" onclick="showLargeModal('<?php echo site_url('admin/student_academic_quiz_result/'.$course_details['id'].'/'.$enrolment['user_id']); ?>', '<?php echo get_phrase('Quiz results'); ?>')" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-toggle="tooltip" title="<?php echo get_phrase('Quiz results'); ?>"><i class="far fa-address-card"></i></a>
+                    <td data-label="التقدم">
+                        <?php /* `tqa-bar` مكون قائم في [admin.css] — لا أنماط في السطر
+                                 بألوان مكتوبة خارج التوكنات. */ ?>
+                        <div class="tqa-bar" style="inline-size:160px;max-inline-size:100%">
+                            <div class="tqa-bar__fill"
+                                 style="inline-size:<?php echo max(0, min(100, $tq_pct)); ?>%"></div>
+                        </div>
+                        <span class="tqa-media__sub">
+                            <span class="tqa-num"><?php echo $tq_pct; ?>%</span> ·
+                            <span class="tqa-num"><?php echo $tq_done; ?></span>
+                            من <span class="tqa-num"><?php echo $tq_total; ?></span> درسا
+                        </span>
+                        <span class="tqa-media__sub">
+                            شاهد <?php echo html_escape(seconds_to_time_format($tq_secs[$tq_uid] ?? 0)); ?>
+                        </span>
+                    </td>
 
-              <?php if(addon_status('certificate')): ?>
-                <a href="<?php echo site_url('admin/student_certificate/'.$enrolment['user_id'].'/'.$course_details['id']); ?>" target="_blank" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-toggle="tooltip" title="<?php echo get_phrase('Certificate'); ?>">
-                  <i class="fas fa-graduation-cap"></i>
-                </a>
-              <?php endif; ?>
-            </div>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
+                    <td data-label="إجراءات">
+                        <div class="tqa-rowacts">
+                            <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                    onclick="showLargeModal('<?php echo site_url('admin/student_academic_quiz_result/' . $tq_cid . '/' . $tq_uid); ?>', 'نتائج الاختبارات')">
+                                <?php echo tq_icon('clipboard', 14); ?> الاختبارات
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+<?php endif; ?>
 </div>
-<script type="text/javascript">
-  $('[data-toggle=tooltip]').tooltip();
-</script>

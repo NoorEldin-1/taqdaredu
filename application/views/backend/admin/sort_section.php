@@ -1,102 +1,67 @@
 <?php
-    $course_details = $this->crud_model->get_course_by_id($param2)->row_array();
-    $sections = $this->crud_model->get_section('course', $param2)->result_array();
- ?>
+defined('BASEPATH') or exit('No direct script access allowed');
 
-<?php if (count($sections)): ?>
-    <div class="tqa-stack">
-        <div>
-            <div class="tqa-card">
-                <div class="tqa-card__body">
-                    <div class="tqa-stack" id = "parent-div" data-plugin="dragula" data-containers='["section-list"]'>
-                        <div>
-                            <div class="bg-dragula p-2 p-lg-4">
-                                <h5 class="mt-0"><?php echo get_phrase('list_of_sections'); ?>
-                                    <button type="button" class="tqa-btn tqa-btn--ghost" id = "section-sort-btn" onclick="sort()" name="button"><?php echo get_phrase('update_sorting'); ?></button>
-                                </h5>
-                                <div id="section-list" class="py-2">
-                                    <?php foreach ($sections as $section): ?>
-                                        <!-- Item -->
-                                        <div class="card mb-0 mt-2 draggable-item" id = "<?php echo $section['id']; ?>">
-                                            <div class="tqa-card__body">
-                                                <div class="media">
-                                                    <div class="media-body">
-                                                        <h5 class="mb-1 mt-0"><?php echo $section['title']; ?></h5>
-                                                    </div> <!-- end media-body -->
-                                                </div> <!-- end media -->
-                                            </div> <!-- end card-body -->
-                                        </div> <!-- end col -->
-                                    <?php endforeach; ?>
-                                </div> <!-- end company-list-1-->
-                            </div> <!-- end div.bg-light-->
-                        </div> <!-- end col -->
-                    </div> <!-- end row -->
-                </div> <!-- end card-body -->
-            </div> <!-- end card -->
-        </div> <!-- end col -->
-    </div>
+/**
+ * ترتيب أقسام الكورس — يفتح في نافذة.
+ *
+ * أعيدت كتابته بهيكل `tqa-*`. وما كان قبله:
+ *
+ * ١ — **بالإنجليزية وسط لوحة عربية.** «List of sections» و«Update
+ *     sorting» — `get_phrase` لا تجد لهما ترجمة فترد المفتاح كما هو.
+ * ٢ — **لا شيء يقول إن الصفوف تسحب.** بطاقات Bootstrap بلا مقبض ولا
+ *     مؤشر ولا سطر شرح: من يفتح النافذة يرى قائمة ساكنة وزرا اسمه
+ *     «Update sorting» ولا يعرف ما يحدثه.
+ * ٣ — **الزر مخفي حتى ينادى `onDomChange`.** `$('#section-sort-btn').show()`
+ *     داخل `onDomChange(...)`، وهي دالة من حزمة القالب. فمتى تعثر ملفها
+ *     بقي الزر مخفيا والنافذة بلا مخرج.
+ * ٤ — **ثلاثون سطرا من مصنع Dragula مضغوطا** منسوخة في هذا الملف وفي
+ *     [sort_lesson.php] وفي [custom_field_section_sorting.php] — وهي
+ *     نفسها في `component.dragula.js` المحمل في الذيل أصلا.
+ * ٥ — **الفرز يرسل بلا توكن CSRF**، فيسقط صامتا متى شددت الحماية.
+ * ٦ — **`success_notify` ثم `location.reload()` بعد ثانية** بلا فحص أن
+ *     الخادم قبل: أي رد — ولو كان صفحة خطأ — يعد نجاحا.
+ */
+$tq_sections = $this->crud_model->get_section('course', $param2)->result_array();
+?>
+
+<?php if (count($tq_sections) < 2): ?>
+
+    <p class="tqa-note">
+        <span aria-hidden="true"><?php echo tq_icon('help', 18); ?></span>
+        <span>الترتيب يحتاج قسمين فأكثر.</span>
+    </p>
+
+<?php else: ?>
+
+<p class="tqa-note tqa-section">
+    <span aria-hidden="true"><?php echo tq_icon('layers', 18); ?></span>
+    <span>اسحب القسم إلى موضعه. الترتيب هنا هو ترتيب ظهوره للطالب في صفحة الكورس.</span>
+</p>
+
+<div class="tqa-stack" id="tqa-sort-list" data-tqa-sortable>
+    <?php foreach ($tq_sections as $tq_i => $tq_s): ?>
+        <div class="tqa-card tqa-sortitem" data-id="<?php echo (int) $tq_s['id']; ?>"
+             style="display:flex;align-items:center;gap:var(--tq-space-m);cursor:grab">
+            <span class="tqa-iconbox tqa-mint" aria-hidden="true" style="inline-size:34px;block-size:34px">
+                <?php echo tq_icon('menu', 16); ?>
+            </span>
+            <span style="flex:1;min-inline-size:0">
+                <span class="tqa-media__title"><?php echo html_escape($tq_s['title']); ?></span>
+                <span class="tqa-media__sub">
+                    <span class="tqa-num" data-tqa-pos><?php echo $tq_i + 1; ?></span> في الترتيب
+                </span>
+            </span>
+        </div>
+    <?php endforeach; ?>
+</div>
+
+<div class="tqa-actions">
+    <button type="button" class="tqa-btn tqa-btn--primary tqa-btn--block" data-tqa-sort-save
+            data-url="<?php echo site_url('admin/ajax_sort_section'); ?>" disabled>
+        <?php echo tq_icon('check', 16); ?> احفظ الترتيب
+    </button>
+</div>
+
+<?php include 'tqa_sortable_js.php'; ?>
+
 <?php endif; ?>
-
-<!-- Init Dragula -->
-<script type="text/javascript">
-    ! function(r) {
-        "use strict";
-        var a = function() {
-            this.$body = r("body")
-        };
-        a.prototype.init = function() {
-            r('[data-plugin="dragula"]').each(function() {
-                var a = r(this).data("containers"),
-                t = [];
-                if (a)
-                for (var n = 0; n < a.length; n++) t.push(r("#" + a[n])[0]);
-                else t = [r(this)[0]];
-                var i = r(this).data("handleclass");
-                i ? dragula(t, {
-                    moves: function(a, t, n) {
-                        return n.classList.contains(i)
-                    }
-                }) : dragula(t)
-            })
-        }, r.Dragula = new a, r.Dragula.Constructor = a
-    }(window.jQuery),
-    function(a) {
-        "use strict";
-        window.jQuery.Dragula.init()
-    }();
-</script>
-<script type="text/javascript">
-    function sort() {
-        var containerArray = ['section-list'];
-        var itemArray = [];
-        var itemJSON;
-        for(var i = 0; i < containerArray.length; i++) {
-            $('#'+containerArray[i]).each(function () {
-                $(this).find('.draggable-item').each(function() {
-                    //console.log(this.id);
-                    itemArray.push(this.id);
-                });
-            });
-        }
-
-        itemJSON = JSON.stringify(itemArray);
-        $.ajax({
-            url: '<?php echo site_url('admin/ajax_sort_section/');?>',
-            type : 'POST',
-            data : {itemJSON : itemJSON},
-            success: function(response)
-            {
-                success_notify('<?php echo get_phrase('sections_have_been_sorted'); ?>');
-                setTimeout(
-                  function()
-                  {
-                    location.reload();
-                }, 1000);
-
-            }
-        });
-    }
-    onDomChange(function(){
-        $('#section-sort-btn').show();
-    });
-</script>
