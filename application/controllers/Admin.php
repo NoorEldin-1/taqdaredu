@@ -1926,18 +1926,126 @@ class Admin extends CI_Controller
             echo $video_details['duration'];
         }
     }
+    /**
+     * حراسة مسارات الفرز الثلاثة.
+     *
+     * كانت الثلاثة **بلا فحص دخول ولا صلاحية ولا طريقة**: أي زائر يرسل
+     * `POST admin/ajax_sort_section` بمصفوفة معرفات فيعيد ترتيب أقسام
+     * أي كورس في المنصة. وهي مسارات AJAX لا تظهر في قائمة، فلا شيء
+     * يلفت إليها — وذلك ما يجعلها أخطر لا أهون.
+     */
+    private function tq_guard_ajax_write()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        if ($this->session->userdata('admin_login') != true) {
+            $this->output->set_status_header(403)->set_output('');
+            exit;
+        }
+        check_permission('course');
+    }
+
+    /**
+     * ملفات الدرس — الوجه الكاتب لجدول `resource_files`.
+     *
+     * كان الجدول يقرأ ولا يكتب: يعرضه الطالب في «المواد» و«المفضلة»،
+     * ولا موضع في المستودع ينشئ فيه صفا. انظر TQ-FILES-404 في
+     * [resource_files.php].
+     */
+    public function resource_file_add($lesson_id = "")
+    {
+        if ($this->session->userdata('admin_login') != true) redirect(site_url('login'), 'refresh');
+        check_permission('course');
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $lesson = $this->db->select('id, course_id')->where('id', (int) $lesson_id)
+                           ->get('lesson')->row_array();
+        if (!$lesson) show_404();
+
+        $back = site_url('admin/course_form/course_edit/' . (int) $lesson['course_id'] . '?tab=curriculum');
+
+        if (!tq_uploaded('resource_file')) {
+            $this->session->set_flashdata('error_message', 'لم يصل ملف. راجع حجمه وحدود الرفع.');
+            redirect($back, 'refresh');
+        }
+
+        $dir = 'uploads/resource_files/';
+        if (!is_dir(FCPATH . $dir)) mkdir(FCPATH . $dir, 0755, true);
+
+        /* الاسم يولد ولا يؤخذ من المستخدم: اسم المرفوع قد يحمل مسارا أو
+           امتدادا مزدوجا، والامتداد وحده هو ما يحتاج. */
+        $ext  = strtolower(pathinfo($_FILES['resource_file']['name'], PATHINFO_EXTENSION));
+        $ext  = preg_replace('/[^a-z0-9]/', '', $ext);
+        $deny = array('php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'phar',
+                      'htaccess', 'exe', 'sh', 'bat', 'cgi', 'pl');
+        if ($ext === '' || in_array($ext, $deny, true)) {
+            $this->session->set_flashdata('error_message', 'صيغة الملف غير مقبولة.');
+            redirect($back, 'refresh');
+        }
+
+        $name = 'rf' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+        if (!move_uploaded_file($_FILES['resource_file']['tmp_name'], FCPATH . $dir . $name)) {
+            $this->session->set_flashdata('error_message', 'تعذر حفظ الملف على الخادم.');
+            redirect($back, 'refresh');
+        }
+
+        $title = trim((string) $this->input->post('title'));
+        if ($title === '') $title = (string) $_FILES['resource_file']['name'];
+
+        $this->db->insert('resource_files', array(
+            'lesson_id'  => (int) $lesson['id'],
+            'title'      => $title,
+            'file_name'  => $name,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ));
+
+        $this->session->set_flashdata('flash_message', 'أضيف الملف إلى الدرس.');
+        redirect($back, 'refresh');
+    }
+
+    public function resource_file_delete($file_id = "")
+    {
+        if ($this->session->userdata('admin_login') != true) redirect(site_url('login'), 'refresh');
+        check_permission('course');
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $row = $this->db->where('id', (int) $file_id)->get('resource_files')->row_array();
+        if (!$row) show_404();
+
+        $lesson = $this->db->select('course_id')->where('id', (int) $row['lesson_id'])
+                           ->get('lesson')->row_array();
+
+        $path = FCPATH . 'uploads/resource_files/' . $row['file_name'];
+        if ($row['file_name'] !== '' && is_file($path)) @unlink($path);
+
+        $this->db->where('id', (int) $row['id'])->delete('resource_files');
+        /* والمفضلات المعلقة عليه تحذف معه: قلب يشير إلى ملف غير موجود
+           يعرض في «مفضلتي» صفا لا يفتح. */
+        if ($this->db->table_exists('tq_favourites')) {
+            $this->db->where('kind', 'material')->where('item_id', (int) $row['id'])
+                     ->delete('tq_favourites');
+        }
+
+        $this->session->set_flashdata('flash_message', 'حذف الملف.');
+        redirect(site_url('admin/course_form/course_edit/'
+               . (int) ($lesson['course_id'] ?? 0) . '?tab=curriculum'), 'refresh');
+    }
+
     public function ajax_sort_section()
     {
+        $this->tq_guard_ajax_write();
         $section_json = $this->input->post('itemJSON');
         $this->crud_model->sort_section($section_json);
     }
     public function ajax_sort_lesson()
     {
+        $this->tq_guard_ajax_write();
         $lesson_json = $this->input->post('itemJSON');
         $this->crud_model->sort_lesson($lesson_json);
     }
     public function ajax_sort_question()
     {
+        $this->tq_guard_ajax_write();
         $question_json = $this->input->post('itemJSON');
         $this->crud_model->sort_question($question_json);
     }
@@ -3159,8 +3267,28 @@ class Admin extends CI_Controller
 
 // Custom Field Start
 
+    /**
+     * حراسة مسارات الأقسام المخصصة.
+     *
+     * كانت الخمسة **بلا فحص دخول ولا صلاحية**: `custom_field_add`
+     * و`custom_field_section_update` و`custom_field_section_delete`
+     * و`custom_field_item_update` و`custom_field_item_delete` — أي أن
+     * أي زائر يكتب في صفحة أي كورس، ويرفع ملفا إلى `uploads/`، ويحذف
+     * ما فيها.
+     */
+    private function tq_guard_custom_field()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        if ($this->session->userdata('admin_login') != true) {
+            redirect(site_url('login'), 'refresh');
+        }
+        check_permission('course');
+    }
+
+
 public function custom_field_add($param2)
 {
+    $this->tq_guard_custom_field();
     $custom_type = $this->input->post('custom_type');
     if (!$custom_type) return;
 
@@ -3351,6 +3479,7 @@ public function custom_field_add($param2)
 
 public function custom_field_section_update($field_id)
 {
+    $this->tq_guard_custom_field();
     // Fetch existing row
     $field = $this->db->get_where('custom_fields', ['id' => $field_id])->row_array();
     if (!$field) {
@@ -3374,6 +3503,7 @@ public function custom_field_section_update($field_id)
 
 public function custom_field_section_delete($id)
 {
+    $this->tq_guard_custom_field();
     $field = $this->db->get_where('custom_fields', ['id' => $id])->row_array();
     $this->db->where('id', $id);
     $this->db->delete('custom_fields');
@@ -3383,6 +3513,7 @@ public function custom_field_section_delete($id)
 
 public function custom_field_item_update($field_id, $item_id)
 {
+    $this->tq_guard_custom_field();
     $field = $this->db->get_where('custom_fields', ['id' => $field_id])->row_array();
     if (!$field) {
         return;
@@ -3457,6 +3588,7 @@ public function custom_field_item_update($field_id, $item_id)
 
 public function custom_field_item_delete($field_id = '', $item_id = '')
 {
+    $this->tq_guard_custom_field();
     $field = $this->db->get_where('custom_fields', ['id' => $field_id])->row_array();
 
     if (!$field) {
@@ -3492,6 +3624,7 @@ public function custom_field_item_delete($field_id = '', $item_id = '')
 
 public function custom_field_section_sort_update()
 {
+    $this->tq_guard_ajax_write();
     $order = $this->input->post('order');
 
     if (is_array($order) && count($order) > 0) {

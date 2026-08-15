@@ -55,9 +55,18 @@ class Modal extends CI_Controller {
 		'custom_field_edit',
 		'custom_field_section_edit',
 		'custom_field_section_sorting',
+		/* `resource_files` كان ينادى من [curriculum.php] ولا اسم له هنا
+		   ولا قالب له في المجلد — أي أن زر «الملفات» في كل صف درس كان
+		   يفتح نافذة ٤٠٤ بيضاء. */
+		'resource_files',
 		'change_course_author',
 		'course_enrol_list',
-		'course_add_shortcut',
+		/* `course_add_shortcut` كان هنا وحذف. وقالبه يقرأ `$categories`
+		   و`$languages`، وهذه الدالة لا تمررهما — تمررهما
+		   `Admin::course_form('add_course_shortcut')` وحدها. فالفتح من
+		   هنا كان يطبع تحذيري PHP ثم منتقي تصنيف فارغا. ولا موضع في
+		   الواجهة ينادي الاسمين: النموذج غير موصول بزر منذ أعيدت كتابة
+		   شاشة الكورسات، وبابه الحي هو «إضافة كورس». */
 		'shortcut_add_student',
 		'shortcut_enrol_student',
 		'student_academic_progress',
