@@ -69,6 +69,34 @@ include 'portal_open.php';
         <div class="tq-alert tq-alert--no"><?php echo html_escape($err); ?></div>
     <?php endif; ?>
 
+    <?php
+    /* نتيجة الاختبار التشخيصي — هنا لا في بند دائم في القائمة.
+       الاختبار يؤدى مرة، وهذه هي الشاشة التي يقرر فيها الطالب أمر باقته:
+       وهو السؤال الذي أجاب عنه الاختبار. وسطر واحد يكفي — تفصيله في
+       صفحته، والرابط إليها. */
+    $tq_lv = isset($tq_level) ? $tq_level : null;
+    if ($tq_lv && !empty($tq_lv['result_level'])):
+        $tq_lvm = Taqdar_diag_model::levels();
+        $tq_lvk = (string) $tq_lv['result_level'];
+        $tq_lvl = isset($tq_lvm[$tq_lvk]) ? $tq_lvm[$tq_lvk]['label'] : $tq_lvk;
+    ?>
+        <div class="tq-card tq-card--panel">
+            <div class="tq-row tq-row--between">
+                <div>
+                    <span class="tq-eyebrow">اختبار تحديد المستوى</span>
+                    <p class="tq-card__title" style="margin:0">موضعك: <?php echo html_escape($tq_lvl); ?></p>
+                    <p class="tq-caption" style="margin:0">
+                        <span class="tq-ltr"><?php echo (int) $tq_lv['score']; ?></span>
+                        من <span class="tq-ltr"><?php echo (int) $tq_lv['total']; ?></span> اجابة صحيحة
+                    </p>
+                </div>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/placement'); ?>">
+                    التفاصيل والباقة الموصى بها
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <?php if (!$current): ?>
 
         <div class="tq-card tq-card--panel">

@@ -153,6 +153,14 @@ $route['student/reviews']              = 'taqdar/reviews';
 $route['teacher/students/message']     = 'taqdar/students_message';
 $route['taqdar/teacher/students/message'] = 'taqdar/students_message';
 $route['student/subscribe-path']       = 'taqdar/subscribe_path';
+// ---- الاختبار التشخيصي ----
+// مسارا الكتابة قبل مسار العرض، وكلاهما مقطعان: `student/(:any)` تطابق
+// مقطعا واحدا، فبلا هاتين القاعدتين يسقط `student/placement/submit` إلى
+// `Taqdar::placement('submit')` — تعرض الشاشة ردا على تسليم اختبار، بلا
+// تصحيح ولا نتيجة ولا خطأ. وهذا هو الصمت الذي تحذر منه CLAUDE.md بعينه.
+$route['student/placement/start']      = 'taqdar/placement_start';
+$route['student/placement/submit']     = 'taqdar/placement_submit';
+$route['student/placement']            = 'taqdar/placement';
 // دفع فاتورة قائمة بالبطاقة. قاعدة صريحة قبل `student/(:any)`: بدونها يصل
 // `pay-invoice` إلى `Taqdar::pay_invoice()` وهي غير موجودة، فيرد 404 على زر
 // «ادفع الآن» في صفحة الاشتراك.

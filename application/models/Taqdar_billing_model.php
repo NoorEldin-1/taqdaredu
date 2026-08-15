@@ -232,6 +232,16 @@ class Taqdar_billing_model extends CI_Model
             return array("ok" => false, "errors" => array("هذا المسار مفتوح لك بالفعل."));
         }
 
+        /* TQ-PLACEMENT — شراء المسار المفرد يمر بالحارس نفسه.
+           بابان للشراء وحارس على أحدهما ليس حارسا: من رد عن الباقة يشتري
+           مسارا بالثمن نفسه ويفتح المحتوى نفسه. */
+        $this->load->model('taqdar_diag_model');
+        if ($this->taqdar_diag_model->gate($user_id)) {
+            return array("ok" => false, "code" => "PLACEMENT_REQUIRED", "errors" => array(
+                "قبل الشراء: اختبار قصير يحدد موضعك فنرشح لك ما يناسبك. لا رسوب فيه."
+            ));
+        }
+
         $this->db->insert("subscriptions", array(
             "user_id"    => $user_id,
             "plan_id"    => 0,
@@ -280,6 +290,20 @@ class Taqdar_billing_model extends CI_Model
         if (!$user_id)                return array('ok' => false, 'errors' => array('لا مستخدم.'));
         if (!$plan)                   return array('ok' => false, 'errors' => array('الباقة غير موجودة.'));
         if ((int) $plan['active'] !== 1) return array('ok' => false, 'errors' => array('الباقة غير متاحة.'));
+
+        /* TQ-PLACEMENT — الاختبار التشخيصي قبل الشراء.
+           **هذا هو المنع الفعلي.** الشاشات تخفي الزر وتحول قبل بلوغه، وهي
+           تحسين في الطريق لا حاجز: من يرسل النموذج بيده يصل إلى هنا. وكل
+           طرق الشراء — البطاقة والتحويل والباقة المجانية — تمر بهذه الدالة
+           وحدها، فالحارس فيها يحرس الثلاثة.
+           و`gate()` ترد `null` لمن لا صف له، أو لا اختبار منشور لصفه، أو
+           أداه — فهذا الشرط لا يمس شيئا في منصة بلا اختبارات تشخيصية. */
+        $this->load->model('taqdar_diag_model');
+        if ($this->taqdar_diag_model->gate($user_id)) {
+            return array('ok' => false, 'code' => 'PLACEMENT_REQUIRED', 'errors' => array(
+                'قبل الاشتراك: اختبار قصير يحدد موضعك فنرشح لك الباقة المناسبة. لا رسوب فيه.'
+            ));
+        }
 
         // اشتراك نشط قائم: لا يشترى فوقه اشتراك ثان صامتا.
         // و«النشط» هنا بالحرف: من أوقف التجديد فقد أعلن انصرافه عن هذه

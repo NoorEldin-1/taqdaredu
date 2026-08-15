@@ -219,16 +219,161 @@ class Taqdar extends CI_Controller
     /** حصص بالطلب: طبقة مستقلة بجوار المنهج لا داخله. */
     public function on_demand()      { $this->student('tq_on_demand', 'حصص بالطلب'); }
 
+    /**
+     * الشاشات التي تبقى مفتوحة قبل أداء الاختبار التشخيصي.
+     *
+     * قائمة سماح لا قائمة منع: شاشة تضاف إلى البوابة غدا تدخل تحت الحارس
+     * افتراضا، وهو الوجه الآمن. والعكس — قائمة ممنوعات — يعني أن كل شاشة
+     * جديدة ثغرة حتى يذكرها أحد.
+     *
+     * وفيها الإعدادات والرسائل والإشعارات عمدا: الطالب الذي وضع في صف غير
+     * صفه يحتاج بابا يصل منه إلى الإدارة. وحبسه في شاشة واحدة بلا مخرج
+     * يجعل الخطأ الإداري سجنا.
+     */
+    private static $placement_open = array(
+        'tq_placement', 'tq_settings', 'tq_messages', 'tq_notifications', 'tq_delete_account',
+    );
+
     private function student($page, $title)
     {
         // الطالب محروس كغيره: الأدمن الذي يفتح بوابة الطالب يرى شاشات فارغة
         // فيظنها معطوبة، والاختبار من حسابه يعطي نتيجة كاذبة.
         $this->require_role('student');
         $uid = $this->session->userdata('user_id');
+
+        /* الاختبار التشخيصي أول ما يواجه الطالب الجديد.
+           و`gate()` هي مصدر القرار الوحيد — تنادى هنا وفي شاشة التأكيد
+           وفي نموذج الفوترة، فلا يفترق ما يخفيه العرض عما يمنعه الخادم.
+           وترد `null` لمن لا صف له، أو لا اختبار منشور لصفه، أو أداه —
+           أي أن هذا السطر لا يمس أحدا في منصة بلا اختبارات. */
+        if (!in_array($page, self::$placement_open, true)) {
+            $this->load->model('taqdar_diag_model');
+            if ($this->taqdar_diag_model->gate($uid)) {
+                redirect(base_url('student/placement'), 'location', 302);
+                return;
+            }
+        }
+
         $this->show($page, $title, [
             'tq_counts' => $this->counts($uid),
             'user_id'   => $uid,
         ]);
+    }
+
+    /* ---- الاختبار التشخيصي ---------------------------------------- */
+
+    /**
+     * شاشة الاختبار التشخيصي — ثلاث حالات في مسار واحد.
+     *
+     * الحالة تشتق من القاعدة لا من معامل في الرابط: تمهيد لمن لم يبدأ،
+     * وأسئلة لمن بدأ ولم يسلم، ونتيجة لمن سلم. ولو كانت في الرابط لأمكن
+     * فتح شاشة النتيجة بلا نتيجة، وشاشة الأسئلة بعد التسليم.
+     *
+     * والاختبار لا يعرض `correct_answers` أبدا: التصحيح في الخادم، وصفحة
+     * تحمل الإجابات تحملها إلى متصفح الطالب.
+     */
+    public function placement()
+    {
+        $this->require_role('student');
+        $uid = (int) $this->session->userdata('user_id');
+
+        $this->load->model('taqdar_diag_model');
+        $this->load->model('taqdar_billing_model');
+
+        $grade_id = (int) $this->db->select('grade_id')->where('id', $uid)
+                                   ->get('users')->row('grade_id');
+        $exam = $this->taqdar_diag_model->exam_for_grade($grade_id);
+
+        /* لا اختبار لصفه — أو لا صف له أصلا. لا تعرض شاشة فارغة تقول
+           «لا شيء هنا»: تلك وجهة ميتة في قائمة. يعاد إلى الباقات، وهو ما
+           كان سيصل إليه لولا هذه الميزة. */
+        if (!$exam || array_sum($this->taqdar_diag_model->level_tally((int) $exam['id'])) < 1) {
+            redirect(base_url('plans'), 'location', 302);
+            return;
+        }
+
+        /* المحاولة المفتوحة تقرأ **قبل** المسلمة لا بعدها.
+           والفرق يظهر في الإعادة وحدها: من فتح محاولة ثانية بإذن المسؤول
+           له محاولة مفتوحة ومحاولة مسلمة معا — فقراءة المسلمة أولا تعيده
+           إلى نتيجته القديمة أبدا، ويصير مفتاح «يسمح بالإعادة» في اللوحة
+           إعدادا لا باب له. */
+        $open = $this->db->where('student_id', $uid)->where('exam_id', (int) $exam['id'])
+                         ->where('submitted_at IS NULL', null, false)
+                         ->order_by('id', 'DESC')->limit(1)
+                         ->get('tq_diag_attempts')->row_array();
+
+        $done = $this->taqdar_diag_model->latest_attempt($uid, (int) $exam['id']);
+
+        $state = $open ? 'exam' : ($done ? 'result' : 'intro');
+
+        /* الباقة الموصى بها تقرأ كاملة لا بمعرفها: الشاشة تعرض بطاقتها
+           بسعرها ومزاياها، فالنتيجة تنتهي إلى خطوة تالية لا إلى اسم. */
+        $plan = null;
+        if ($done && (int) $done['plan_id'] > 0) {
+            $plan = $this->taqdar_billing_model->plan((int) $done['plan_id']);
+        }
+
+        $this->show('tq_placement', 'اختبار تحديد المستوى', array(
+            'tq_counts'    => $this->counts($uid),
+            'user_id'      => $uid,
+            'tq_state'     => $state,
+            'tq_exam'      => $exam,
+            'tq_questions' => ($state === 'exam') ? $this->taqdar_diag_model->ordered_questions((int) $exam['id']) : array(),
+            'tq_attempt'   => $done,
+            'tq_plan'      => $plan,
+            'tq_levels'    => Taqdar_diag_model::levels(),
+        ));
+    }
+
+    /** بدء المحاولة — POST وحده، وهو ما يضبط لحظة البدء. */
+    public function placement_start()
+    {
+        $this->write_guard('student');
+        $uid = (int) $this->session->userdata('user_id');
+
+        $this->load->model('taqdar_diag_model');
+        $grade_id = (int) $this->db->select('grade_id')->where('id', $uid)
+                                   ->get('users')->row('grade_id');
+        $exam = $this->taqdar_diag_model->exam_for_grade($grade_id);
+
+        if ($exam) $this->taqdar_diag_model->start($uid, (int) $exam['id']);
+
+        redirect(base_url('student/placement'), 'location', 302);
+    }
+
+    /**
+     * تسليم الاختبار.
+     *
+     * ما يرسله المتصفح اختيار الطالب وحده: `answers[<معرف السؤال>]` نص
+     * الخيار. والصحة تقرر في `submit()` من `correct_answers` المقروءة من
+     * القاعدة — فمن أضاف حقلا في نموذجه لم يضف إلى نتيجته شيئا.
+     */
+    public function placement_submit()
+    {
+        $this->write_guard('student');
+        $uid = (int) $this->session->userdata('user_id');
+
+        $this->load->model('taqdar_diag_model');
+        $grade_id = (int) $this->db->select('grade_id')->where('id', $uid)
+                                   ->get('users')->row('grade_id');
+        $exam = $this->taqdar_diag_model->exam_for_grade($grade_id);
+
+        if (!$exam) {
+            redirect(base_url('plans'), 'location', 302);
+            return;
+        }
+
+        $given = $this->input->post('answers');
+        $r = $this->taqdar_diag_model->submit($uid, (int) $exam['id'], is_array($given) ? $given : array());
+
+        if (!$r['ok']) {
+            $this->session->set_flashdata('error_message', implode(' ', $r['errors']));
+        } else {
+            $this->trace('placement_submit', 'tq_diag_attempts#' . (int) $r['attempt_id'],
+                         array('level' => $r['level'], 'score' => $r['score'], 'total' => $r['total']));
+        }
+
+        redirect(base_url('student/placement'), 'location', 302);
     }
 
     /* ---- صفحات عامة داخل الثيم ------------------------------------ */
@@ -330,12 +475,20 @@ class Taqdar extends CI_Controller
 
         $this->load->model('taqdar_tap_model');
 
+        /* نتيجة التشخيص تعرض هنا لا في بند ثالث في القائمة.
+           والسبب أن هذه هي الشاشة التي يقرر فيها الطالب أمر باقته — وهو
+           السؤال الذي أجاب عنه الاختبار. وبند دائم في القائمة لشيء يؤدى
+           مرة واحدة يبقى معلقا في كل صفحة بعد أن انتهى أمره، ويقود عند
+           من لا اختبار لصفه إلى صفحة أخرى غير اسمه. */
+        $this->load->model('taqdar_diag_model');
+
         $this->show('tq_subscription', 'اشتراكي', array(
             'tq_counts' => $this->counts($uid),
             'user_id'   => $uid,
             'current'   => $cur,
             'invoices'  => $this->taqdar_billing_model->invoices_of($uid),
             'tq_card'   => $this->taqdar_tap_model->ready(),
+            'tq_level'  => $this->taqdar_diag_model->latest_result($uid),
         ));
     }
 
@@ -2225,6 +2378,18 @@ class Taqdar extends CI_Controller
             $this->session->set_flashdata('error_message',
                 'الاشتراك في الباقات لحسابات الطلاب. سجل الدخول بحساب طالب.');
             redirect(site_url('plans'), 'location', 302);
+            return;
+        }
+
+        /* الاختبار التشخيصي قبل الدفع لا بعده — وهو كل الغرض منه: أن
+           يعرف الطالب موضعه قبل أن يختار، لا أن يكتشفه بعد أن دفع.
+           والمنع الحقيقي في `Taqdar_billing_model::subscribe()`؛ وهذا
+           هنا لئلا يقرأ شاشة تأكيد كاملة ثم يرد عند الزر. */
+        $this->load->model('taqdar_diag_model');
+        if ($this->taqdar_diag_model->gate($uid)) {
+            $this->session->set_flashdata('error_message',
+                'قبل الاشتراك: اختبار قصير يحدد موضعك فنرشح لك الباقة المناسبة. لا رسوب فيه.');
+            redirect(base_url('student/placement'), 'location', 302);
             return;
         }
 

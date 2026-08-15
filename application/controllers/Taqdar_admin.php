@@ -828,6 +828,77 @@ class Taqdar_admin extends CI_Controller
         redirect(site_url('taqdar_admin/bind/' . $course_id));
     }
 
+    /* =====================================================================
+       الاختبار التشخيصي — الأسئلة والنتائج
+
+       رأس الاختبار وحدة موصوفة (`spec('diag_exams')`) لأنه صف بحقول.
+       والأسئلة ليست حقولا في صف: كل سؤال صف في جدول ثان، له مستواه
+       وخياراته وإجابته. فوصفها في `spec()` كان يعني حقلا نصيا يكتب فيه
+       المسؤول JSON بيده — وهو ما يفعله phpMyAdmin بلا لوحة.
+       ===================================================================== */
+
+    /** شاشة أسئلة اختبار واحد. */
+    public function diag_questions($exam_id = 0)
+    {
+        $this->load->model('taqdar_diag_model');
+
+        $exam = $this->taqdar_diag_model->exam($exam_id);
+        if (!$exam) show_404();
+
+        /* بند الشريط هو بند الاختبارات نفسه: شاشة الأسئلة امتداد له لا
+           وجهة مستقلة، وبند ثالث في القائمة لشيء يفتح من الجدول يزيد
+           القائمة ولا يزيد ما يبلغ. */
+        $this->render('tqa_diag_questions', 'أسئلة: ' . $exam['title'], array(
+            'nav_key'   => 'tqa_diag_exams',
+            'exam'      => $exam,
+            'levels'    => Taqdar_diag_model::levels(),
+            'by_level'  => $this->taqdar_diag_model->questions_by_level((int) $exam['id'], true),
+            'readiness' => $this->taqdar_diag_model->readiness($exam),
+            'dist'      => $this->taqdar_diag_model->distribution((int) $exam['id']),
+            'plans'     => $this->taqdar_admin_model->options('plans'),
+        ));
+    }
+
+    /** حفظ سؤال — إنشاء أو تحرير، والقرار في النموذج لا في الباب. */
+    public function diag_question_save($exam_id = 0, $id = 0)
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_diag_model');
+        $r = $this->taqdar_diag_model->save_question(
+            (int) $exam_id, (int) $id, $this->input->post(null, false)
+        );
+
+        if (!$r['ok']) {
+            $this->session->set_flashdata('error_message', implode(' ', $r['errors']));
+        } else {
+            $this->session->set_flashdata('flash_message', 'حفظ السؤال.');
+            $this->taqdar_admin_model->audit(
+                $id ? 'update' : 'create',
+                'tq_diag_questions#' . (int) $r['id'], null, null
+            );
+        }
+
+        redirect(site_url('taqdar_admin/diag_questions/' . (int) $exam_id));
+    }
+
+    /** حذف سؤال. POST وحده: رابط GET يحذف ينفذ بمجرد جلبه. */
+    public function diag_question_delete($exam_id = 0, $id = 0)
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_diag_model');
+        $ok = $this->taqdar_diag_model->delete_question((int) $exam_id, (int) $id);
+
+        if ($ok) {
+            $this->taqdar_admin_model->audit('delete', 'tq_diag_questions#' . (int) $id, null, null);
+        }
+        $this->session->set_flashdata($ok ? 'flash_message' : 'error_message',
+            $ok ? 'حذف السؤال.' : 'تعذر الحذف — السؤال ليس من هذا الاختبار.');
+
+        redirect(site_url('taqdar_admin/diag_questions/' . (int) $exam_id));
+    }
+
     /** شاشة أرقام الموقع. */
     public function stats()
     {
