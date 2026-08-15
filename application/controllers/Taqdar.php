@@ -2060,7 +2060,23 @@ class Taqdar extends CI_Controller
         $path = $this->tq_m->path_by_slug($slug);
         if (!$path) show_404();
 
-        $this->show('site_path', $path['title'], array('tq_path' => $path));
+        /* المنهج والأرقام والباقات كلها من النموذج لا من العرض: كان القالب
+           يستعلم عن دروسه بنفسه بـ`get_instance()` — ثلاثون عنوانا مسطحا
+           بلا وحدات ولا مدد. والاستعلام في العرض يعني أن أي شاشة ثانية
+           تريد الرقم نفسه تكتبه من جديد، فيفترق الرقمان. */
+        $detail = $this->tq_m->path_detail($path);
+
+        /* ما يجاور هذا البرنامج في قسمه — برامج وكتبا ومسابقات. والمادة
+           نفسها أولا: من يقرأ «رياضيات السادس» يريد ما يقربه منها لا ما
+           يشترك معها في المرحلة وحدها. */
+        $this->load->model('taqdar_catalog_model', 'tq_cat');
+        $near = $this->tq_cat->near_path($path, 6);
+
+        $this->show('site_path', $path['title'], array(
+            'tq_path'   => $path,
+            'tq_detail' => $detail,
+            'tq_near'   => $near,
+        ));
     }
 
 

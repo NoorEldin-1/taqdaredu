@@ -386,6 +386,128 @@ class Taqdar_site_model extends CI_Model
         return $out;
     }
 
+    /**
+     * تفصيل برنامج واحد — منهجه وأرقامه وما يفتحه.
+     *
+     * ═══ لماذا وجدت ═══
+     *
+     * كانت صفحة البرنامج تعرض سطر وصف وقائمة مسطحة بثلاثين عنوان درس بلا
+     * وحدات ولا مدد ولا تمييز بين درس فيديو واختبار. والمشتري هنا ولي أمر
+     * يسأل سؤالا واحدا: **ماذا سيدرس ابني؟** — والقائمة المسطحة لا تجيبه:
+     * لا يعرف كم وحدة، ولا كم ساعة، ولا اين ينتهي.
+     *
+     * ═══ الصفر يخفي نفسه ═══
+     *
+     * كل رقم هنا محسوب من صفوف فعلية. وبرنامج لم تستورد دروسه لا يعد
+     * بأربعين درسا: الوعد الذي لا يقابله صف في القاعدة يكتشفه المشتري بعد
+     * الدفع لا قبله — وهو المبدأ نفسه المكتوب في `bundle_by_code()`.
+     *
+     * ═══ باستعلامين لا باستعلام لكل وحدة ═══
+     *
+     * الوحدات ثم الدروس دفعة واحدة، وتجمع في الذاكرة. واستعلام لكل وحدة
+     * يعني خمسة عشر استعلاما في صفحة عامة تقرأ آلاف المرات في اليوم.
+     *
+     * @return array units · totals · plans — والدروس غير المنشورة مستبعدة
+     */
+    public function path_detail($path)
+    {
+        $out = array(
+            'units'  => array(),
+            'totals' => array('units' => 0, 'lessons' => 0, 'quizzes' => 0,
+                              'free' => 0, 'minutes' => 0),
+            'plans'  => array(),
+        );
+        if (!$path) return $out;
+
+        $course_id = (int) $path['course_id'];
+
+        /* الباقات تقرأ ولو لم يربط محتوى: هي جواب «كيف احصل عليه؟»،
+           وبرنامج قيد الاعداد له باقته التي ستفتحه. */
+        $out['plans'] = $this->plans_for_course($course_id);
+
+        if ($course_id <= 0) return $out;
+
+        /* `tq_status` يستبعد ما لم ينشر: درس مسودة في صفحة عامة يعد بما
+           لا يفتح، ويعده في المجموع فيكذب الرقم كذلك. */
+        $lessons = $this->db->select('id, title, duration, lesson_type, is_free, section_id, `order`', false)
+                            ->from('lesson')
+                            ->where('course_id', $course_id)
+                            ->where('tq_status', 'published')
+                            ->order_by('`order`', 'ASC', false)->order_by('id', 'ASC')
+                            ->get()->result_array();
+
+        $sections = $this->db->select('id, title, `order`', false)
+                             ->from('section')
+                             ->where('course_id', $course_id)
+                             ->order_by('`order`', 'ASC', false)->order_by('id', 'ASC')
+                             ->get()->result_array();
+
+        /* وعاء لكل وحدة، ووعاء «بلا وحدة» للدروس اليتيمة: درس بمعرف قسم
+           محذوف كان يسقط من العرض بلا اثر — يعد في المجموع ولا يظهر في
+           قائمة، فيقرأ الزائر «١٢ درسا» تحتها احد عشر. */
+        $bag = array();
+        foreach ($sections as $s) {
+            $bag[(int) $s['id']] = array('title' => (string) $s['title'], 'lessons' => array(),
+                                         'minutes' => 0, 'quizzes' => 0);
+        }
+        $bag[0] = array('title' => 'دروس البرنامج', 'lessons' => array(), 'minutes' => 0, 'quizzes' => 0);
+
+        foreach ($lessons as $l) {
+            $sid  = (int) $l['section_id'];
+            if (!isset($bag[$sid])) $sid = 0;
+
+            $quiz = ((string) $l['lesson_type'] === 'quiz');
+            $mins = (int) round($this->hms_seconds((string) $l['duration']) / 60);
+
+            $bag[$sid]['lessons'][] = array(
+                'id'      => (int) $l['id'],
+                'title'   => (string) $l['title'],
+                'quiz'    => $quiz,
+                'free'    => ((int) $l['is_free'] === 1),
+                'minutes' => $mins,
+            );
+            $bag[$sid]['minutes'] += $mins;
+            if ($quiz) $bag[$sid]['quizzes']++;
+
+            $out['totals']['lessons']++;
+            $out['totals']['minutes'] += $mins;
+            if ($quiz) $out['totals']['quizzes']++;
+            if ((int) $l['is_free'] === 1) $out['totals']['free']++;
+        }
+
+        /* وحدة بلا درس واحد لا تعرض: عنوان يفتح على فراغ يقرأ عطلا. */
+        foreach ($bag as $sid => $u) {
+            if (!$u['lessons']) continue;
+            $out['units'][] = $u;
+        }
+        $out['totals']['units'] = count($out['units']);
+
+        return $out;
+    }
+
+    /**
+     * المدة نصا الى ثوان — `HH:MM:SS` او `MM:SS` او رقم.
+     *
+     * عمود `lesson.duration` نصي حر يكتبه الرافع: كل صيغة من هذه وردت فيه
+     * فعلا. وقراءته بـ`(int)` وحدها تجعل «01:20:00» عشرين دقيقة… لا،
+     * تجعلها ثانية واحدة.
+     */
+    private function hms_seconds($raw)
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') return 0;
+
+        if (strpos($raw, ':') === false) return max(0, (int) $raw);
+
+        $p = array_reverse(array_map('intval', explode(':', $raw)));
+        $s = 0;
+        foreach ($p as $i => $v) {
+            if ($i > 2) break;
+            $s += $v * pow(60, $i);
+        }
+        return max(0, $s);
+    }
+
     public function bundle_by_code($code)
     {
         /* ١ · الباقة ------------------------------------------------- */
