@@ -71,6 +71,11 @@ $tqa_nav = [
         [['tqa_bindings', 'tqa_bind'],
                             'ربط الأسئلة بالأهداف', 'taqdar_admin/bindings',           'link',        null],
         ['tqa_assessments', 'التقييمات',            'taqdar_admin/module/assessments', 'check-badge', null],
+        /* الاختبار التشخيصي: بندان لا واحد — الاختبار يبنى، والنتائج تقرأ.
+           وشاشة الأسئلة تفتح من جدول الاختبارات (`row_action`) فلا بند
+           ثالث لها: بند في القائمة لشيء يحتاج معرفا يقود إلى لا شيء. */
+        ['tqa_diag_exams',    'الاختبارات التشخيصية', 'taqdar_admin/module/diag_exams',    'crosshair', null],
+        ['tqa_diag_attempts', 'نتائج التشخيص',        'taqdar_admin/module/diag_attempts', 'chart',     null],
         ['tqa_mastery',     'خريطة الإتقان',        'taqdar_admin/mastery',            'chart',       null],
     ]],
 

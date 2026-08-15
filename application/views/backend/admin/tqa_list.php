@@ -10,6 +10,13 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $M        = &get_instance()->taqdar_admin_model;
 $readonly = !empty($spec['readonly']);
 
+/* عمود حال محسوب — تعلنه الوحدة باسم دالة في النموذج.
+   وهو جواب السؤال الذي يدفع المسؤول إلى فتح القائمة أصلا: «صنعت الصف،
+   فأين هو؟». والباقة تسقط من الصفحة العامة عند أربعة شروط مختلفة، وكان
+   يعبرها كلها بلا إشارة واحدة — ثم يفتح `/plans` فلا يجد شيئا. */
+$status_fn = (!empty($spec['status_fn']) && method_exists($M, $spec['status_fn']))
+    ? $spec['status_fn'] : '';
+
 /* الأعمدة تحسب مرة: `count($rows)` صف في جدول تعني إعادة المرور على
    كل الحقول لكل صف لمعرفة أيها يعرض. */
 $cols = array();
@@ -54,6 +61,9 @@ $tools = $readonly ? '' :
                     <?php foreach ($cols as $f): ?>
                         <th><?php echo html_escape($f['label']); ?></th>
                     <?php endforeach; ?>
+                    <?php if ($status_fn !== ''): ?>
+                        <th><?php echo html_escape(isset($spec['status_label']) ? $spec['status_label'] : 'الحال'); ?></th>
+                    <?php endif; ?>
                     <?php if (!$readonly): ?>
                         <th style="inline-size:150px"><span class="tqa-sr">إجراءات</span></th>
                     <?php endif; ?>
@@ -70,9 +80,33 @@ $tools = $readonly ? '' :
                         </td>
                     <?php endforeach; ?>
 
+                    <?php if ($status_fn !== ''):
+                        $st = $M->{$status_fn}($r);
+                        $tone = array('ok' => 'ok', 'warn' => 'warn', 'no' => 'danger');
+                    ?>
+                        <td data-label="<?php echo html_escape(isset($spec['status_label']) ? $spec['status_label'] : 'الحال'); ?>">
+                            <span class="tqa-badge tqa-badge--<?php echo isset($tone[$st['tone']]) ? $tone[$st['tone']] : 'muted'; ?>">
+                                <?php echo html_escape($st['label']); ?>
+                            </span>
+                            <span class="tqa-status__why"><?php echo html_escape($st['why']); ?></span>
+                        </td>
+                    <?php endif; ?>
+
                     <?php if (!$readonly): ?>
                     <td data-label="إجراءات">
                         <div style="display:flex;gap:6px;align-items:center">
+                            <?php /* إجراء خاص بالوحدة — تعلنه في `spec()` باسمه ومساره.
+                                     وموضعه **قبل** التعديل لا بعده: الوحدة التي تعلنه
+                                     تعلنه لأنه المقصود من الصف (أسئلة الاختبار مثلا)،
+                                     والتحرير بعده تفصيل. */ ?>
+                            <?php if (!empty($spec['row_action'])): $ra = $spec['row_action']; ?>
+                                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                   href="<?php echo site_url($ra['href'] . (int) $r['id']); ?>">
+                                    <?php echo tq_icon(isset($ra['icon']) ? $ra['icon'] : 'link', 15); ?>
+                                    <?php echo html_escape($ra['label']); ?>
+                                </a>
+                            <?php endif; ?>
+
                             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                href="<?php echo site_url('taqdar_admin/form/' . $mkey . '/' . (int) $r['id']); ?>">
                                 <?php echo tq_icon('edit', 15); ?> تعديل

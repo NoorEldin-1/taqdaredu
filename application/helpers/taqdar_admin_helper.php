@@ -102,6 +102,37 @@ if (!function_exists('tqa_cell')) {
                     ? html_escape($opts[$value])
                     : '<span class="tqa-dim">#' . (int) $value . ' (محذوف)</span>';
 
+            /* المفتاح النصي يعرض باسمه لا بمفتاحه: عمود يقرأ `primary`
+               في شاشة عربية لا يقرأ. */
+            case 'pick':
+                $opts = $model->options($field['ref']);
+                return isset($opts[$value])
+                    ? html_escape($opts[$value])
+                    : '<span class="tqa-dim">' . html_escape((string) $value) . ' (غير معروف)</span>';
+
+            /* قائمة معرفات: الأسماء لا الأرقام، وما زاد على أربعة يعد
+               ولا يسرد — اثنا عشر صفا في خلية تكسر الجدول. */
+            case 'multiref':
+                $opts = $model->options($field['ref']);
+                $ids  = array_filter(array_map('intval', explode(',', (string) $value)));
+                if (!$ids) return '<span class="tqa-dim">—</span>';
+
+                $names = array();
+                foreach ($ids as $i) {
+                    $names[] = isset($opts[$i]) ? $opts[$i] : '#' . $i;
+                }
+                $shown = array_slice($names, 0, 3);
+                $more  = count($names) - count($shown);
+                $out   = '';
+                foreach ($shown as $n) $out .= '<span class="tqa-chip">' . html_escape($n) . '</span> ';
+                if ($more > 0) $out .= '<span class="tqa-dim">و' . $more . ' غيرها</span>';
+                return $out;
+
+            /* `refswitch` عمود واحد يفسر حسب حقل آخر، والخلية لا تعرف
+               ذلك الحقل — فالرقم وحده، وشاشة التعديل تقول ما هو. */
+            case 'refswitch':
+                return '<span class="tq-ltr" dir="ltr">#' . (int) $value . '</span>';
+
             default:
                 $txt = html_escape(mb_strimwidth((string) $value, 0, 90, '…', 'UTF-8'));
                 return !empty($field['ltr']) ? '<span class="tq-ltr" dir="ltr">' . $txt . '</span>' : $txt;

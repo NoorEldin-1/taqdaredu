@@ -2032,6 +2032,130 @@ body.tqa .on-hover-action:focus-within [id^='category-delete-btn-'] {
 }
 
 /* ==========================================================================
+   ٦٫٥ · النموذج الموصوف: الفواصل، والاختيار المتعدد، ولوحة ما تفتحه
+   ========================================================================== */
+
+/* `hidden` يخفي فعلا.
+   قاعدة المتصفح لـ`[hidden]` هي `display: none` بأضعف أولوية، فأي
+   `display` يكتبه المؤلف يبطلها — و`.tqa-field` يكتب `block`. فحقل
+   شرطي أخفاه الخادم يبقى ظاهرا، وهو عين ما جاء الإخفاء ليمنعه.
+   و`base.css` يحسمها عالميا ولا يحمل هنا (إعادة ضبطه للعناصر العامة
+   تكسر Bootstrap)، فتحسم للعناصر التي تستعملها هذه الشاشات وحدها. */
+.tqa-field[hidden],
+.tqa-checker[hidden],
+.tqa-reach__rows[hidden],
+.tqa-reach__row[hidden],
+.tqa-reach__note[hidden] { display: none !important; }
+
+/* فاصل بين مجموعات الحقول. لا خط ولا صندوق: سطر صغير بلون ثانوي يكفي
+   ليفصل «التسعير» عن «ما تفتحه الباقة»، وخط عرضي في شبكة حقول يقرأ
+   نهاية نموذج لا بداية مجموعة. */
+.tqa-formsec {
+  margin: var(--tq-space-l) 0 calc(var(--tq-space-s) * -1);
+  font: var(--tq-type-micro);
+  letter-spacing: .04em;
+  color: var(--tq-text2);
+}
+.tqa-formsec:first-child { margin-block-start: 0; }
+
+/* ---- اختيار متعدد: الصفوف التي تفتحها الباقة ---- */
+.tqa-picks__acts {
+  display: flex; align-items: center; gap: var(--tq-space-s);
+  flex-wrap: wrap; margin-block-end: var(--tq-space-s);
+}
+.tqa-picks__count { font: var(--tq-type-micro); color: var(--tq-text2); }
+.tqa-picks__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--tq-space-xs);
+  padding: var(--tq-space-s);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-surface);
+}
+/* الحبة كلها هدف للنقر لا المربع وحده: المربع ١٨ بكسلا، والاسم بجواره
+   هو ما تقصده العين وتصيبه الإصبع على الشاشة الصغيرة. */
+.tqa-pick {
+  display: flex; align-items: center; gap: var(--tq-space-s);
+  padding: var(--tq-space-xs) var(--tq-space-s);
+  border-radius: var(--tqa-radius-sm);
+  font: var(--tq-type-caption); color: var(--tq-text);
+  cursor: pointer;
+}
+.tqa-pick:hover { background: var(--tq-navyWash); }
+.tqa-pick input { inline-size: 17px; block-size: 17px; margin: 0; flex: none; accent-color: var(--tq-actionPrimary); }
+.tqa-pick:has(input:checked) { background: var(--tq-mint-fill); color: var(--tq-mint-ink); }
+.tqa-pick:focus-within { outline: 2px solid var(--tq-focusRing); outline-offset: 1px; }
+
+/* ---- لوحة «ما تفتحه هذه الباقة» ---- */
+.tqa-reach__title { margin: 0; font: var(--tq-type-h2); color: var(--tq-navy); }
+.tqa-reach__lead  { margin: var(--tq-space-xs) 0 0; font: var(--tq-type-caption); color: var(--tq-text2); }
+
+.tqa-reach__nums {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--tq-space-s);
+}
+.tqa-reach__num {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--tq-space-m);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-ground);
+}
+.tqa-reach__num b {
+  font: var(--tq-type-numeralMd); color: var(--tq-navy);
+  font-variant-numeric: tabular-nums; direction: ltr;
+}
+.tqa-reach__num span { font: var(--tq-type-micro); color: var(--tq-text2); }
+
+.tqa-reach__free { margin: var(--tq-space-m) 0 0; font: var(--tq-type-caption); color: var(--tq-text2); }
+.tqa-reach__free b { color: var(--tq-navy); font-variant-numeric: tabular-nums; }
+.tqa-reach__note { margin: var(--tq-space-m) 0 0; font: var(--tq-type-caption); color: var(--tq-amber); }
+
+.tqa-reach__rows {
+  display: grid; gap: 0;
+  margin-block-start: var(--tq-space-m);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  overflow: hidden;
+}
+.tqa-reach__row {
+  display: flex; align-items: baseline; gap: var(--tq-space-m); flex-wrap: wrap;
+  padding: var(--tq-space-s) var(--tq-space-m);
+  border-block-end: 1px solid var(--tq-line);
+  font: var(--tq-type-caption);
+}
+.tqa-reach__row:last-child { border-block-end: 0; }
+.tqa-reach__row b    { color: var(--tq-navy); min-inline-size: 160px; }
+.tqa-reach__row span { color: var(--tq-text2); }
+
+/* حكم الظهور: يقرأ قبل أن يقرأ ما حوله، فله لون حافة لا لون خلفية —
+   الخلفية الملونة تحت لوحة الأرقام تجعل الشاشة لافتتين تتنازعان. */
+.tqa-reach__vis {
+  display: flex; align-items: center; gap: var(--tq-space-m); flex-wrap: wrap;
+  margin-block-start: var(--tq-space-l);
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border: 1px solid var(--tq-line);
+  border-inline-start: 3px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  font: var(--tq-type-caption);
+}
+.tqa-reach__vis b    { flex: none; color: var(--tq-navy); }
+.tqa-reach__vis span { color: var(--tq-text2); min-inline-size: 0; overflow-wrap: anywhere; }
+.tqa-reach__vis .tqa-btn { margin-inline-start: auto; }
+.tqa-reach__vis--ok   { border-inline-start-color: var(--tq-mint-ink);  background: var(--tq-mint-fill); }
+.tqa-reach__vis--warn { border-inline-start-color: var(--tq-peach-ink); background: var(--tq-peach-fill); }
+.tqa-reach__vis--no   { border-inline-start-color: var(--tq-rose-ink);  background: var(--tq-rose-fill); }
+
+/* سبب الحال تحت شارته في الجدول — الشارة تقول «لا تظهر»، وهذا يقول لم. */
+.tqa-status__why {
+  display: block; margin-block-start: 3px;
+  font: var(--tq-type-micro); color: var(--tq-text2);
+  max-inline-size: 42ch; overflow-wrap: anywhere;
+}
+
+/* ==========================================================================
    ٧ · تقليل الحركة — ليس خيارا: بعض المستخدمين تصيبهم الحركة بالدوار
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {

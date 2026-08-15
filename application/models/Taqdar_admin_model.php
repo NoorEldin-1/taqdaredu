@@ -124,6 +124,77 @@ class Taqdar_admin_model extends CI_Model
                 ),
             ),
 
+            /* الاختبار التشخيصي: راسه هنا، واسئلته في شاشتها.
+               والسبب ان السؤال ليس حقلا في صف — هو صف في جدول ثان له
+               مستواه وخياراته واجابته، فوصفه هنا يعني حقلا نصيا يكتب فيه
+               المسؤول JSON بيده. و`row_action` يفتح شاشة الاسئلة من
+               الجدول مباشرة، فلا يبحث عن رابطها في القائمة الجانبية. */
+            'diag_exams' => array(
+                'table'        => 'tq_diag_exams',
+                'title'        => 'الاختبارات التشخيصية',
+                'lead'         => 'اختبار واحد لكل صف، يقاس به الطالب قبل ان يشترك فيدل على باقته.',
+                'icon'         => 'crosshair',
+                'ensure'       => 'taqdar_diag_model',
+                'order_by'     => array('id' => 'DESC'),
+                'note'         => 'الطالب في صف له اختبار منشور لا يشترك حتى يؤديه. والمسودة لا تحبس احدا — فابن اختبارك على مهل، وانشره حين تكتمل اسئلته وباقاته.',
+                'status_fn'    => 'diag_status',
+                'status_label' => 'الجهوزية',
+                'row_action'   => array('label' => 'الاسئلة', 'icon' => 'help',
+                                        'href'  => 'taqdar_admin/diag_questions/'),
+                'fields'   => array(
+                    'grade_id'    => array('label' => 'الصف الدراسي', 'type' => 'ref', 'ref' => 'grades',
+                                           'required' => true, 'list' => true, 'unique' => true,
+                                           'section' => 'التعريف',
+                                           'hint' => 'صف واحد لا يحمل اكثر من اختبار: اختباران لصف واحد يعنيان اختبارين يتنازعان الطالب ولا شيء يقرر ايهما يعرض.'),
+                    'title'       => array('label' => 'عنوان الاختبار', 'type' => 'text', 'required' => true, 'list' => true,
+                                           'hint' => 'يقرؤه الطالب قبل ان يبدا، مثل: اين موضعك في رياضيات الصف السادس؟'),
+                    'intro'       => array('label' => 'نص التمهيد', 'type' => 'textarea',
+                                           'hint' => 'يشرح للطالب ما هو الاختبار ولماذا. والتوضيح ان لا رسوب فيه يخفض القلق ويرفع صدق الاجابة.'),
+                    'status'      => array('label' => 'الحالة', 'type' => 'enum', 'default' => 'draft', 'list' => true,
+                                           'options' => array('draft' => 'مسودة', 'published' => 'منشور'),
+                                           'hint' => 'المنشور وحده يعرض ويحبس. ولا تنشر قبل ان تكتمل الاسئلة وباقات المستويات.'),
+
+                    'level_threshold' => array('label' => 'عتبة اتقان المستوى %', 'type' => 'number', 'default' => 60, 'list' => true,
+                                           'section' => 'الحساب',
+                                           'hint' => 'النسبة اللازمة داخل اسئلة المستوى ليعد متقنا. والحساب تدرجي: يبلغ الطالب اعلى مستوى بلغ عتبته، والا فما دونه، والا فمبتدئ.'),
+                    'time_limit_sec'  => array('label' => 'المدة (ثوان)', 'type' => 'number', 'default' => 0,
+                                           'hint' => 'صفر = بلا حد زمني. والاختبار تشخيص لا امتحان، فالضغط الزمني يخفض دقة القياس.'),
+                    'allow_retake'    => array('label' => 'يسمح بالاعادة', 'type' => 'bool', 'default' => 0,
+                                           'hint' => 'مغلق افتراضا: نتيجة تعاد حتى تعجب صاحبها لا تقيس شيئا.'),
+
+                    'plan_beginner'     => array('label' => 'باقة المبتدئ', 'type' => 'ref', 'ref' => 'plans', 'list' => true,
+                                           'section' => 'الباقة لكل نتيجة',
+                                           'hint' => 'اليها يوجه من كانت نتيجته «مبتدئ». وهي توصية لا الزام — يبقى له ان يختار غيرها.'),
+                    'plan_intermediate' => array('label' => 'باقة المتوسط', 'type' => 'ref', 'ref' => 'plans', 'list' => true),
+                    'plan_advanced'     => array('label' => 'باقة المتقدم', 'type' => 'ref', 'ref' => 'plans', 'list' => true),
+                ),
+            ),
+
+            /* النتائج تقرأ ولا تحرر: النتيجة فعل الطالب، وتحريرها من
+               اللوحة يجعل الكشف شيئا اخر غير ما جرى — كما في
+               `competition_entries` و`audit_log`. */
+            'diag_attempts' => array(
+                'table'    => 'tq_diag_attempts',
+                'title'    => 'نتائج الاختبارات التشخيصية',
+                'lead'     => 'من ادى اي اختبار، وبأي نتيجة، والى اي باقة وجه.',
+                'icon'     => 'chart',
+                'ensure'   => 'taqdar_diag_model',
+                'order_by' => array('id' => 'DESC'),
+                'readonly' => true,
+                'nodelete' => true,
+                'note'     => 'توزيع كله في «مبتدئ» يقرأ عن الاختبار لا عن الصف: اسئلة اصعب من صفها، او عتبة اعلى مما ينبغي.',
+                'fields'   => array(
+                    'student_id'   => array('label' => 'الطالب', 'type' => 'ref', 'ref' => 'users', 'list' => true),
+                    'grade_id'     => array('label' => 'الصف', 'type' => 'ref', 'ref' => 'grades', 'list' => true),
+                    'result_level' => array('label' => 'النتيجة', 'type' => 'enum', 'list' => true,
+                                            'options' => array('beginner' => 'مبتدئ', 'intermediate' => 'متوسط', 'advanced' => 'متقدم')),
+                    'score'        => array('label' => 'الصحيح', 'type' => 'number', 'list' => true),
+                    'total'        => array('label' => 'من', 'type' => 'number', 'list' => true),
+                    'plan_id'      => array('label' => 'الباقة الموصى بها', 'type' => 'ref', 'ref' => 'plans', 'list' => true),
+                    'submitted_at' => array('label' => 'تاريخ الاداء', 'type' => 'datetime', 'list' => true),
+                ),
+            ),
+
             'competitions' => array(
                 'table'    => 'competitions',
                 'title'    => 'المسابقات',
@@ -183,37 +254,72 @@ class Taqdar_admin_model extends CI_Model
                 ),
             ),
 
+            /* الباقة وحدة البيع، ومحتواها **مستنتج لا مسرود**: الباقة تختار
+               صفوفا، والصف يجمع مسارات المنهج المنشورة، والمسار يحمل دورته
+               ودروسها. فلا يربط المسؤول درسا بباقة ولا ينبغي أن يربط — ولو
+               ربط لصار كل درس جديد يحتاج مرورا على كل باقة، ولنسي.
+               ولوحة «ما تفتحه هذه الباقة» تحت النموذج تعرض حاصل هذا
+               الاستنتاج لحظة بلحظة، فالمسؤول يرى ما يبيع قبل أن يحفظ. */
             'plans' => array(
-                'table'    => 'plans',
-                'title'    => 'الباقات',
-                'lead'     => 'الباقة تحدد السعر والمدة وما يفتحه الاشتراك.',
-                'icon'     => 'package',
-                'order_by' => array('order' => 'ASC'),
-                'note'     => 'تعديل باقة لا يمس اشتراكا قائما: السعر والنطاق ينسخان وقت الشراء، فمن اشترك أمس يبقى على ما دفع.',
+                'table'        => 'plans',
+                'title'        => 'الباقات',
+                'lead'         => 'الباقة تحدد السعر والمدة والصفوف التي يفتحها الاشتراك.',
+                'icon'         => 'package',
+                'order_by'     => array('order' => 'ASC'),
+                'note'         => 'تعديل باقة لا يمس اشتراكا قائما: السعر والنطاق ينسخان وقت الشراء، فمن اشترك أمس يبقى على ما دفع.',
+                'form_extra'   => 'tqa_plan_reach',
+                'form_js'      => 'tqa_plan_js',
+                'status_fn'    => 'plan_visibility',
+                'status_label' => 'الظهور',
                 'fields'   => array(
-                    'name_ar'       => array('label' => 'الاسم بالعربية', 'type' => 'text', 'required' => true, 'list' => true),
+                    'name_ar'       => array('label' => 'الاسم بالعربية', 'type' => 'text', 'required' => true, 'list' => true,
+                                             'section' => 'التعريف',
+                                             'hint' => 'الاسم كما يقرؤه المشتري. وما بعد الشرطة «—» يقرأ مرحلة في بطاقة الباقة، مثل: الباقة المميزة — المرحلة المتوسطة.'),
                     'name_en'       => array('label' => 'الاسم بالإنجليزية', 'type' => 'text', 'ltr' => true),
                     'code'          => array('label' => 'الرمز', 'type' => 'text', 'required' => true, 'list' => true, 'ltr' => true,
-                                             'hint' => 'رمز لاتيني فريد لا يتغير: free · monthly · quarterly · annual.'),
-                    'price'         => array('label' => 'السعر', 'type' => 'money', 'default' => 0, 'list' => true,
-                                             'hint' => 'يدخل بالريال ويخزن بالهللات. المجانية تحدد بالدورة «مجانية» لا بخلو السعر؛ وباقة مدفوعة بلا سعر ترفض.'),
-                    'period'        => array('label' => 'الدورة', 'type' => 'enum', 'default' => 'monthly', 'list' => true,
-                                             'options' => array('free' => 'مجانية', 'monthly' => 'شهرية', 'quarterly' => 'ربع سنوية', 'annual' => 'سنوية')),
-                    'duration_days' => array('label' => 'المدة (أيام)', 'type' => 'number', 'default' => 30, 'list' => true,
-                                             'hint' => 'المدة الفعلية للاشتراك — هي ما يحسب عليه تاريخ الانتهاء لا اسم الدورة.'),
-                    'scope'         => array('label' => 'النطاق', 'type' => 'enum', 'default' => 'all', 'list' => true,
-                                             'options' => array('all' => 'كل المحتوى', 'trial' => 'دروس تجريبية فقط',
-                                                 'subject' => 'مادة واحدة', 'path' => 'مسار واحد')),
-                    'scope_id'      => array('label' => 'رقم المادة أو المسار', 'type' => 'number', 'default' => 0,
-                                             'hint' => 'يترك صفرا حين يكون النطاق «كل المحتوى».'),
+                                             'unique' => true,
+                                             'hint' => 'رمز لاتيني فريد لا يتغير — منه يبنى رابط الباقة `‎/plan/<الرمز>‎` ورابط الشراء. وتغييره يكسر كل رابط قديم.'),
                     'note'          => array('label' => 'سطر الوصف', 'type' => 'text',
-                                             'hint' => 'سطر قصير تحت اسم الباقة في صفحة الأسعار.'),
-                    'featured'      => array('label' => 'الأكثر ملاءمة', 'type' => 'bool', 'default' => 0, 'list' => true,
-                                             'hint' => 'باقة واحدة فقط تبرز — إبراز الكل إبراز لا شيء.'),
+                                             'hint' => 'سطر قصير تحت اسم الباقة في صفحة الباقات.'),
+
+                    'price'         => array('label' => 'السعر', 'type' => 'money', 'default' => 0, 'list' => true,
+                                             'section' => 'التسعير والمدة',
+                                             'hint' => 'يدخل بالريال ويخزن بالهللات. المجانية تحدد بالدورة «مجانية» لا بخلو السعر؛ وباقة مدفوعة بلا سعر ترفض عند الشراء.'),
+                    'period'        => array('label' => 'الدورة', 'type' => 'enum', 'default' => 'annual', 'list' => true,
+                                             'options' => array('free' => 'مجانية', 'monthly' => 'شهرية', 'quarterly' => 'ربع سنوية', 'annual' => 'سنوية'),
+                                             'hint' => 'اسم تجاري للدورة. والمدة تحتها هي ما يحسب عليه تاريخ الانتهاء فعلا.'),
+                    'duration_days' => array('label' => 'المدة (أيام)', 'type' => 'number', 'default' => 365, 'list' => true,
+                                             'hint' => 'من 360 يوما فصاعدا تكتب البطاقة «للعام الدراسي كاملا».'),
+
+                    'stage'         => array('label' => 'المرحلة', 'type' => 'pick', 'ref' => 'stages', 'list' => true,
+                                             'section' => 'ما تفتحه الباقة',
+                                             'hint' => 'صفحة الباقات تبوب بالمرحلة، وباقة بلا مرحلة تسقط من التبويب. والمرحلة قسم من «أقسام الكورسات» — فبها توضع الباقة في مرشح الكتالوج أيضا.'),
+                    'scope'         => array('label' => 'النطاق', 'type' => 'enum', 'default' => 'grade', 'list' => true,
+                                             'options' => array('grade' => 'صفوف دراسية — وهي باقة المنصة',
+                                                                'all' => 'كل المحتوى المنشور',
+                                                                'subject' => 'مادة واحدة',
+                                                                'path' => 'مسار واحد',
+                                                                'trial' => 'دروس تجريبية فقط'),
+                                             'hint' => 'صفحة الباقات العامة تعرض «صفوف دراسية» وحدها — وهي وحدة البيع. وبقية النطاقات تشترى برابطها المباشر أو تمنح من اللوحة، ولا تظهر في الصفحة العامة.'),
+                    'scope_ids'     => array('label' => 'الصفوف التي تفتحها', 'type' => 'multiref', 'ref' => 'grades', 'list' => true,
+                                             'show_when' => array('scope' => array('grade')),
+                                             'hint' => 'الاشتراك يفتح كل مسار منشور في هذه الصفوف، ومعه دورته ودروسها واختباراتها. ولا يربط الدرس بيد.'),
+                    'scope_id'      => array('label' => 'ما تفتحه', 'type' => 'refswitch', 'default' => 0,
+                                             'on' => 'scope',
+                                             'refs' => array('subject' => 'subjects', 'path' => 'paths'),
+                                             'show_when' => array('scope' => array('subject', 'path'))),
+
+                    'image'         => array('label' => 'صورة البطاقة', 'type' => 'pick', 'ref' => 'site_images',
+                                             'section' => 'العرض والترتيب',
+                                             'preview' => 'site_image',
+                                             'hint' => 'من صور السمة في `assets/taqdar/site/img`. وبلا صورة تعرض البطاقة نصا فقط.'),
                     'features'      => array('label' => 'المزايا', 'type' => 'lines',
-                                             'hint' => 'ميزة في كل سطر — تعرض في بطاقة الباقة كما تكتب هنا.'),
+                                             'hint' => 'ميزة في كل سطر — تعرض في بطاقة الباقة كما تكتب هنا. وهي وعد يقرؤه المشتري، فلا تكتب فيها ما ليس في الصفوف أعلاه.'),
+                    'featured'      => array('label' => 'الأكثر ملاءمة', 'type' => 'bool', 'default' => 0, 'list' => true,
+                                             'hint' => 'باقة واحدة تبرز في كل مرحلة — وتعليمها هنا يرفع الإبراز عن أختها في المرحلة نفسها تلقائيا.'),
                     'active'        => array('label' => 'متاحة', 'type' => 'bool', 'default' => 1, 'list' => true),
-                    'order'         => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0),
+                    'order'         => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0,
+                                             'hint' => 'الأصغر أولا داخل المرحلة — رتبها بالسعر صاعدا.'),
                 ),
             ),
 
@@ -351,10 +457,35 @@ class Taqdar_admin_model extends CI_Model
        القراءة
        ===================================================================== */
 
+    /**
+     * جداول تنشأ وقت التشغيل لا بهجرة.
+     *
+     * بعض جداول تقدر ينشئها نموذجها عند اول استعمال (`site_content` ·
+     * `payment_attempts` · `tq_diag_*`) — لان المستودع بلا هجرات. والوحدة
+     * الموصوفة تستعلم عن جدولها مباشرة، فجدول لم ينشأ بعد يرمي استثناء
+     * يبيض الشاشة عند اول فتح للوحة بعد النشر.
+     *
+     * فتعلن الوحدة نموذجها في `ensure`، وينادى هنا قبل اي استعلام. وهو
+     * متكرر الامان ويفحص مرة واحدة لكل طلب داخل النموذج نفسه.
+     */
+    private function ensure_table($spec)
+    {
+        if (empty($spec['ensure'])) return;
+        try {
+            $m = (string) $spec['ensure'];
+            $this->load->model($m);
+            $this->{$m}->ensure_schema();
+        } catch (Throwable $e) {
+            // الفشل هنا يعطل شاشة واحدة لا اللوحة كلها
+            log_message('error', 'TQ-ADMIN: تعذر تجهيز جدول الوحدة — ' . $e->getMessage());
+        }
+    }
+
     public function listing($key, $limit = 200, $offset = 0)
     {
         $spec = $this->spec($key);
         if (!$spec) return array();
+        $this->ensure_table($spec);
 
         foreach ($spec['order_by'] as $col => $dir) {
             $this->db->order_by($col, $dir);
@@ -365,13 +496,16 @@ class Taqdar_admin_model extends CI_Model
     public function count_rows($key)
     {
         $spec = $this->spec($key);
-        return $spec ? (int) $this->db->count_all_results($spec['table']) : 0;
+        if (!$spec) return 0;
+        $this->ensure_table($spec);
+        return (int) $this->db->count_all_results($spec['table']);
     }
 
     public function row($key, $id)
     {
         $spec = $this->spec($key);
         if (!$spec) return null;
+        $this->ensure_table($spec);
         return $this->db->where('id', (int) $id)->get($spec['table'])->row_array();
     }
 
@@ -445,6 +579,49 @@ class Taqdar_admin_model extends CI_Model
                 foreach ($this->db->order_by('id', 'DESC')->limit(300)->get('competitions')->result_array() as $r)
                     $out[$r['id']] = $r['title'];
                 break;
+
+            /* الباقات — لربط نتيجة الاختبار التشخيصي بما يوجه اليه.
+               والمعطلة تعرض بعلامتها لا تحذف: باقة ربطت ثم عطلت تختفي من
+               القائمة فيبدو الحقل فارغا وهو ليس فارغا، فيحفظ المسؤول
+               تعديلا في حقل اخر ويمسح الربط بلا ان يقصد. */
+            case 'plans':
+                foreach ($this->db->order_by('`order`', 'ASC', false)->order_by('id', 'ASC')
+                                  ->get('plans')->result_array() as $r) {
+                    $out[$r['id']] = $r['name_ar']
+                        . ((int) $r['active'] === 1 ? '' : ' (معطلة)');
+                }
+                break;
+
+            /* مفاتيح لا أرقام — لنوع `pick`.
+               ================================================== */
+
+            /* المرحلة مسمى قسم لا رقمه: `plans.stage` نص، ويبحث به
+               `Taqdar_catalog_model::cat_by_slug()` وتترجمه
+               `tqs_stage_label()`. فقسم بلا مسمى لاتيني لا يصلح مرحلة —
+               ولا يعرض هنا كي لا تحفظ باقة على مفتاح فارغ. */
+            case 'stages':
+                foreach ($this->db->where('parent', 0)->order_by('id', 'ASC')
+                                  ->get('category')->result_array() as $r) {
+                    $slug = trim((string) $r['slug']);
+                    if ($slug === '') continue;
+                    $out[$slug] = $r['name'];
+                }
+                break;
+
+            /* صور السمة: القيمة اسم الملف بلا امتداد — هكذا تقرؤها
+               `tqs_asset_img()`. والقائمة من المجلد لا من جدول: من رفع
+               صورة إلى السمة يجدها هنا بلا تسجيل ثان. */
+            case 'site_images':
+                $dir = FCPATH . 'assets/taqdar/site/img/';
+                if (!is_dir($dir)) break;
+                $files = glob($dir . '*.webp');
+                if (!$files) break;
+                sort($files);
+                foreach ($files as $f) {
+                    $name = basename($f, '.webp');
+                    $out[$name] = $name;
+                }
+                break;
         }
 
         $cache[$ref] = $out;
@@ -468,6 +645,7 @@ class Taqdar_admin_model extends CI_Model
         if (!$spec || !empty($spec['readonly'])) {
             return array('ok' => false, 'errors' => array('هذه الوحدة للقراءة فقط.'));
         }
+        $this->ensure_table($spec);
 
         $data   = array();
         $errors = array();
@@ -487,7 +665,29 @@ class Taqdar_admin_model extends CI_Model
                     break;
 
                 case 'ref':
+                case 'refswitch':
                     $data[$name] = (int) $raw;
+                    break;
+
+                /* قائمة معرفات مفصولة بفواصل في عمود نصي. المرور بـ`intval`
+                   شرط لا زينة: القيمة تحقن في `WHERE IN` وفي `explode`
+                   بلا تهريب لاحق، وعنصر غير رقمي يخرج من كليهما بلا خطأ
+                   يرى. والفرادة والترتيب يثبتان الصف: قائمتان بالمعرفات
+                   نفسها بترتيبين تقرآن مختلفتين في سجل التدقيق. */
+                case 'multiref':
+                    $ids = is_array($raw) ? $raw : explode(',', (string) $raw);
+                    $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+                    sort($ids);
+                    $data[$name] = implode(',', $ids);
+                    break;
+
+                /* مفتاح نصي من قائمة مبنية وقت التشغيل. يفحص مقابلها —
+                   وإلا كتب في العمود ما لا يقابله صف، فيقرأ اسما لاتينيا
+                   في صفحة عربية أو يكسر رابط صورة. */
+                case 'pick':
+                    $key_val = trim((string) $raw);
+                    $opts    = $this->options($f['ref']);
+                    $data[$name] = ($key_val !== '' && isset($opts[$key_val])) ? $key_val : '';
                     break;
 
                 case 'money':
@@ -520,6 +720,17 @@ class Taqdar_admin_model extends CI_Model
                 $empty = ($f['type'] === 'ref') ? ($data[$name] <= 0) : ($data[$name] === '' || $data[$name] === null);
                 if ($empty) $errors[] = 'الحقل «' . $f['label'] . '» مطلوب.';
             }
+
+            /* الفرادة تفحص هنا لا تترك للقاعدة: `UNIQUE` يرمي استثناء
+               يبيض الشاشة ويضيع ما كتب في النموذج، والرسالة التي تظهر
+               عنه إنجليزية عن فهرس لا يعرفه المسؤول. */
+            if (!empty($f['unique']) && (string) $data[$name] !== '') {
+                $this->db->where($name, $data[$name]);
+                if ((int) $id > 0) $this->db->where('id !=', (int) $id);
+                if ($this->db->count_all_results($spec['table']) > 0) {
+                    $errors[] = 'قيمة «' . $f['label'] . '» مستعملة في صف آخر — واختيرت فريدة.';
+                }
+            }
         }
 
         /* المسمى في الرابط يولد من العنوان متى ترك فارغا.
@@ -539,6 +750,29 @@ class Taqdar_admin_model extends CI_Model
             $errors[] = 'لا يكون المستخدم ولي أمر نفسه.';
         }
 
+        /* الباقة: النطاق يقرر أي حقل يعني، وحقل من نطاق آخر يبقى في الصف
+           فيكذب على قارئه. فيصفر ما لا يعنيه النطاق هنا، لا في العرض —
+           `subscribe()` و`sync_enrolments()` يقرآن العمود لا الشاشة. */
+        if ($key === 'plans') {
+            $scope = isset($data['scope']) ? $data['scope'] : 'grade';
+
+            if ($scope !== 'grade')                      $data['scope_ids'] = '';
+            if (!in_array($scope, array('subject', 'path'), true)) $data['scope_id'] = 0;
+
+            if ($scope === 'grade' && $data['scope_ids'] === '') {
+                $errors[] = 'باقة الصفوف بلا صف واحد لا تفتح شيئا — اختر صفوفها.';
+            }
+            if ($scope === 'grade' && (string) $data['stage'] === '') {
+                $errors[] = 'باقة الصفوف بلا مرحلة تسقط من تبويب صفحة الباقات — اختر مرحلتها.';
+            }
+            if (in_array($scope, array('subject', 'path'), true) && (int) $data['scope_id'] <= 0) {
+                $errors[] = 'نطاق «مادة واحدة» أو «مسار واحد» يلزمه تحديد ما تفتحه الباقة.';
+            }
+            if ($data['period'] !== 'free' && (int) $data['price'] <= 0) {
+                $errors[] = 'باقة مدفوعة بلا سعر ترفض عند الشراء — ضع سعرها، أو اجعل دورتها «مجانية».';
+            }
+        }
+
         if ($errors) return array('ok' => false, 'errors' => $errors);
 
         $before = $id ? $this->row($key, $id) : null;
@@ -549,6 +783,18 @@ class Taqdar_admin_model extends CI_Model
         } else {
             $this->db->insert($spec['table'], $data);
             $new_id = (int) $this->db->insert_id();
+        }
+
+        /* الإبراز واحد في كل مرحلة. والبطاقة المبرزة هي التي تحمل شارة
+           «الأكثر طلبا» وزرا ممتلئا بينما أختاها بزر شبحي — فإبراز
+           الثلاث يلغي الفرق ولا يعلن عنه شيء. ورفع الإبراز عن الأخريات
+           هنا لا في الشاشة: من يعلم باقة اليوم لا يذكر أيهن كانت معلمة
+           من شهر. */
+        if ($key === 'plans' && !empty($data['featured'])) {
+            $this->db->where('id !=', $new_id)
+                     ->where('stage', (string) $data['stage'])
+                     ->where('featured', 1)
+                     ->update('plans', array('featured' => 0));
         }
 
         $this->audit($id ? 'update' : 'create', $spec['table'] . '#' . $new_id, $before, $this->row($key, $new_id));
@@ -590,6 +836,14 @@ class Taqdar_admin_model extends CI_Model
         $before = $this->row($key, $id);
         if (!$before) return false;
 
+        /* حذف الاختبار التشخيصي يجر اسئلته: سؤال بلا اختباره لا يعرض ولا
+           يصحح ولا يحرر — صفوف ميتة تكبر في الجدول ولا يراها احد.
+           والمحاولات تبقى: هي سجل ما فعله الطالب، لا جزء من الاختبار.
+           وحذفها يمحو من كشف النتائج طلابا ادوا فعلا. */
+        if ($key === 'diag_exams') {
+            $this->db->where('exam_id', (int) $id)->delete('tq_diag_questions');
+        }
+
         $this->db->where('id', (int) $id)->delete($spec['table']);
         $this->audit('delete', $spec['table'] . '#' . (int) $id, $before, null);
         return true;
@@ -610,6 +864,214 @@ class Taqdar_admin_model extends CI_Model
             'ip'       => $this->input->is_cli_request() ? 'cli' : $this->input->ip_address(),
             'at'       => date('Y-m-d H:i:s'),
         ));
+    }
+
+    /* =====================================================================
+       الباقات: ما تفتحه، وهل تظهر
+
+       سؤال المسؤول عن الباقة سؤالان لا واحد: **ماذا فيها؟** و**أين تظهر؟**
+       وكلاهما كان يجاب بالتخمين — يحفظ باقة ثم يفتح الصفحة العامة فلا
+       يجدها، بلا سطر واحد يقول لماذا.
+
+       والجواب الأول مستنتج لا مخزن: `plans.scope_ids` صفوف، والصف يجمع
+       مسارات `paths` المنشورة، والمسار يحمل `course_id` ودروسه. فلا حقل
+       يربط درسا بباقة، ولا ينبغي — ولو وجد لصار كل درس جديد يحتاج مرورا
+       على كل باقة.
+       ===================================================================== */
+
+    /**
+     * ما يفتحه صف واحد — خريطة لكل صف، تقرأ باستعلامين لا باستعلام لكل صف.
+     *
+     * وتنقل كما هي إلى المتصفح فيجمع النموذج أرقامها وأنت تعلم الصفوف،
+     * قبل أن تحفظ. ولهذا ترد المواد والمعلمين **قوائم معرفات** لا أعداد:
+     * مادة واحدة تدرس في ستة صفوف، وجمع الأعداد يعدها ستا.
+     */
+    public function grade_reach_map()
+    {
+        /* تحفظ للطلب كله: شاشة القائمة تسأل عن حال كل باقة، وكل سؤال
+           يمر من هنا — فبلا حفظ صارت الشاشة استعلامين في كل صف. */
+        static $cache = null;
+        if ($cache !== null) return $cache;
+
+        $map = array();
+
+        $paths = $this->safe_rows(
+            'SELECT grade_id, subject_id, teacher_id, course_id
+               FROM paths WHERE status = "published" AND grade_id > 0'
+        );
+        if (!$paths) return $cache = $map;
+
+        $cids = array();
+        foreach ($paths as $p) if ((int) $p['course_id'] > 0) $cids[] = (int) $p['course_id'];
+        $cids = array_values(array_unique($cids));
+
+        /* عد الدروس مرة واحدة لكل دورة ثم يوزع — لا استعلام لكل مسار. */
+        $per_course = array();
+        if ($cids) {
+            $rows = $this->safe_rows(
+                'SELECT course_id,
+                        COUNT(*)                                        AS n,
+                        SUM(CASE WHEN lesson_type = "quiz" THEN 1 ELSE 0 END) AS q,
+                        SUM(CASE WHEN is_free = 1 THEN 1 ELSE 0 END)          AS f
+                   FROM lesson
+                  WHERE course_id IN (' . implode(',', array_map('intval', $cids)) . ')
+                    AND COALESCE(tq_status, "published") = "published"
+                  GROUP BY course_id'
+            );
+            foreach ($rows as $r) {
+                $per_course[(int) $r['course_id']] = array(
+                    'lessons' => (int) $r['n'], 'quizzes' => (int) $r['q'], 'free' => (int) $r['f'],
+                );
+            }
+        }
+
+        foreach ($paths as $p) {
+            $g = (int) $p['grade_id'];
+            if (!isset($map[$g])) {
+                $map[$g] = array('paths' => 0, 'lessons' => 0, 'quizzes' => 0, 'free' => 0,
+                                 'subjects' => array(), 'teachers' => array());
+            }
+            $map[$g]['paths']++;
+            if ((int) $p['subject_id'] > 0) $map[$g]['subjects'][(int) $p['subject_id']] = 1;
+            if ((int) $p['teacher_id'] > 0) $map[$g]['teachers'][(int) $p['teacher_id']] = 1;
+
+            $cid = (int) $p['course_id'];
+            if ($cid > 0 && isset($per_course[$cid])) {
+                $map[$g]['lessons'] += $per_course[$cid]['lessons'];
+                $map[$g]['quizzes'] += $per_course[$cid]['quizzes'];
+                $map[$g]['free']    += $per_course[$cid]['free'];
+            }
+        }
+
+        foreach ($map as $g => $v) {
+            $map[$g]['subjects'] = array_map('intval', array_keys($v['subjects']));
+            $map[$g]['teachers'] = array_map('intval', array_keys($v['teachers']));
+        }
+        return $cache = $map;
+    }
+
+    /** معرفات الصفوف التي تفتحها باقة — `scope_ids` أولا و`scope_id` احتياطا. */
+    public function plan_grade_ids($row)
+    {
+        if (!$row) return array();
+        $ids = array_filter(array_map('intval', explode(',', (string)
+                   (isset($row['scope_ids']) ? $row['scope_ids'] : ''))));
+        if (!$ids && (int) (isset($row['scope_id']) ? $row['scope_id'] : 0) > 0) {
+            $ids = array((int) $row['scope_id']);
+        }
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * ما تفتحه الباقة بالأرقام. والصفر يقال صفرا: باقة لم تستورد مسارات
+     * صفوفها بعد تعرض «لا محتوى» بدل أن تعد بما ليس في القاعدة.
+     */
+    public function plan_reach($row)
+    {
+        $out = array('grades' => 0, 'subjects' => 0, 'paths' => 0,
+                     'lessons' => 0, 'quizzes' => 0, 'free' => 0, 'teachers' => 0);
+        if (!$row) return $out;
+
+        $scope = (string) $row['scope'];
+        if (!in_array($scope, array('grade', 'all'), true)) return $out;
+
+        $map  = $this->grade_reach_map();
+        $gids = ($scope === 'all') ? array_keys($map) : $this->plan_grade_ids($row);
+
+        $subjects = array();
+        $teachers = array();
+        foreach ($gids as $g) {
+            $out['grades']++;
+            if (!isset($map[$g])) continue;
+            $out['paths']   += $map[$g]['paths'];
+            $out['lessons'] += $map[$g]['lessons'];
+            $out['quizzes'] += $map[$g]['quizzes'];
+            $out['free']    += $map[$g]['free'];
+            foreach ($map[$g]['subjects'] as $s) $subjects[$s] = 1;
+            foreach ($map[$g]['teachers'] as $t) $teachers[$t] = 1;
+        }
+        $out['subjects'] = count($subjects);
+        $out['teachers'] = count($teachers);
+        return $out;
+    }
+
+    /**
+     * هل تظهر هذه الباقة في صفحة الباقات العامة، ولم لا؟
+     *
+     * الشرط ليس واحدا: `plans.php` و`tqs_bundles()` يرشحان
+     * `active = 1 AND scope = "grade"`، ثم `tqs_bundle_stages()` يبني
+     * التبويب من `stage` فتسقط منه باقة بلا مرحلة، ثم `subscribe()` يرد
+     * `PLAN_NOT_PRICED` عند الشراء. فأربعة أبواب يسقط عندها الظهور أو
+     * البيع — والمسؤول كان يعبرها كلها بلا إشارة واحدة.
+     *
+     * @return array tone: ok|warn|no · label · why
+     */
+    public function plan_visibility($row)
+    {
+        if (empty($row['active'])) {
+            return array('tone' => 'no', 'label' => 'موقوفة',
+                         'why'  => 'غير متاحة — لا تظهر ولا تشترى حتى تفعل.');
+        }
+
+        if ((string) $row['scope'] !== 'grade') {
+            return array('tone' => 'warn', 'label' => 'خارج الصفحة العامة',
+                         'why'  => 'صفحة الباقات تعرض باقات الصفوف وحدها. وهذه تشترى برابطها '
+                                 . base_url('checkout/' . (string) $row['code']) . ' أو تمنح من اللوحة.');
+        }
+
+        if (!$this->plan_grade_ids($row)) {
+            return array('tone' => 'no', 'label' => 'لا تظهر',
+                         'why'  => 'بلا صفوف — لا محتوى تفتحه.');
+        }
+
+        if (trim((string) $row['stage']) === '') {
+            return array('tone' => 'no', 'label' => 'لا تظهر',
+                         'why'  => 'بلا مرحلة — وصفحة الباقات تبوب بالمرحلة فتسقط من التبويب.');
+        }
+
+        if ((string) $row['period'] !== 'free' && (int) $row['price'] <= 0) {
+            return array('tone' => 'warn', 'label' => 'تظهر ولا تشترى',
+                         'why'  => 'لم تسعر — والشراء يرد بخطأ. ضع سعرها أو اجعل دورتها «مجانية».');
+        }
+
+        $reach = $this->plan_reach($row);
+        if ($reach['paths'] === 0) {
+            return array('tone' => 'warn', 'label' => 'تظهر فارغة',
+                         'why'  => 'لا مسار منشور في صفوفها — تباع ولا يفتح المشتري شيئا.');
+        }
+
+        return array('tone' => 'ok', 'label' => 'تظهر',
+                     'why'  => 'في صفحة الباقات تحت ' . tqs_stage_label((string) $row['stage']) . '.');
+    }
+
+    /**
+     * حال الاختبار التشخيصي في الجدول.
+     *
+     * السؤال الذي يفتح المسؤول الشاشة من اجله: «انشات الاختبار، فهل يعمل؟».
+     * واختبار منشور ناقص اسوأ من مسودة: يحبس طلاب صفه امام شاشة لا تكتمل،
+     * ولا شيء يقول له ذلك الا شكواهم. فيقال هنا قبل ان يقع.
+     */
+    public function diag_status($row)
+    {
+        $this->load->model('taqdar_diag_model');
+        $r = $this->taqdar_diag_model->readiness($row);
+
+        $n = isset($r['total']) ? (int) $r['total'] : 0;
+
+        if ((string) $row['status'] !== 'published') {
+            return array('tone' => 'muted', 'label' => 'مسودة',
+                         'why'  => $r['ok']
+                             ? 'مكتمل ولم ينشر — لا يعرض ولا يحبس احدا.'
+                             : 'قيد الاعداد: ' . implode(' ', $r['why']));
+        }
+
+        if (!$r['ok']) {
+            return array('tone' => 'no', 'label' => 'منشور وناقص',
+                         'why'  => implode(' ', $r['why']));
+        }
+
+        return array('tone' => 'ok', 'label' => 'يعمل',
+                     'why'  => 'يعرض على طلاب هذا الصف قبل الاشتراك — ' . $n . ' سؤالا.');
     }
 
     /* =====================================================================
