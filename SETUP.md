@@ -149,7 +149,7 @@ bash deploy.sh
 
 السكربت ينسخ القاعدة إلى `~/backups` (يبقي آخر ١٠)، يسحب `origin/main`،
 ينظف كاش CodeIgniter و LiteSpeed، يضبط صلاحيات المجلدات القابلة للكتابة،
-ثم **يفحص الموقع فعليا** ويفشل إن لم ترجع `/` و `/plans` و `/login` بـ200
+ثم **يفحص الموقع فعليا** ويفشل إن لم ترجع `/` و `/catalog` و `/plans` و `/login` بـ200
 أو إن انكشف `/.git/config`.
 
 الأسرار و `uploads/` متجاهلة في git فلا يمسها النشر. للرجوع:
@@ -175,9 +175,12 @@ git reset --hard <sha>
 |---|---|
 | `curl -I http://localhost:8081/` | `200` و `Content-Type: text/html; charset=UTF-8` |
 | `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='taqd_lms'` | `75` |
+| `curl -o /dev/null -w '%{http_code}' http://localhost:8081/catalog` | `200` |
+| `curl -o /dev/null -w '%{http_code}' http://localhost:8081/catalog/results?type=book` | `200` و `Content-Type: application/json` |
 | `curl -o /dev/null -w '%{http_code}' http://localhost:8081/plans` | `200` |
 | `curl -o /dev/null -w '%{http_code}' http://localhost:8081/student` | `302` (تحويل إلى الدخول) |
-| `curl -o /dev/null -w '%{http_code}' http://localhost:8081/courses` | `301` (إلى `/plans`) |
+| `curl -o /dev/null -w '%{http_code}' http://localhost:8081/courses` | `301` (إلى `/catalog`) |
+| `curl -o /dev/null -w '%{http_code}' http://localhost:8081/books` | `301` (إلى `/catalog?type=book`) |
 
 ---
 
