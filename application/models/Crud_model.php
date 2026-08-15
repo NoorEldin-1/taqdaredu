@@ -674,21 +674,74 @@ class Crud_model extends CI_Model
         }
     }
 
+    /**
+     * أسئلة الكورس الشائعة من النموذج — قائمة لا خريطة.
+     *
+     * TQ-FAQ-SHAPE — كانت تبنى `$faqs[$السؤال] = $الإجابة`، أي **خريطة
+     * مفتاحها نص السؤال**. وكل من يقرؤها يقرؤها قائمة من
+     * `{title, description}`: شاشة التحرير ([course_edit.php] تبويب «ما
+     * يعرض في صفحته») وصفحة الدورة العامة (`course_page.php` تبحث عن
+     * `$f['title']`). فالنتيجة أن الأسئلة **تكتب ولا تعرض ولا تعود إلى
+     * النموذج أبدا**: يكتبها المسؤول، ويحفظ، ويفتح فيجد الحقول فارغة.
+     *
+     * وعطلان أصغر معها: سؤالان بالنص نفسه يبتلع أحدهما الآخر، و
+     * `array_filter` على الأسئلة يبقي مفاتيحها الأصلية بينما
+     * `faq_descriptions` تفهرس من الصفر — فحذف السؤال الأول يزيح كل
+     * إجابة إلى سؤال غير سؤالها.
+     */
+    private function tq_course_faqs()
+    {
+        $titles = $this->input->post('faqs');
+        $bodies = $this->input->post('faq_descriptions');
+        if (!is_array($titles)) return array();
+        if (!is_array($bodies)) $bodies = array();
+
+        $out = array();
+        foreach ($titles as $i => $title) {
+            $title = trim((string) $title);
+            if ($title === '') continue;          /* السؤال هو ما يعرض؛ فبلا سؤال لا بند */
+            $out[] = array(
+                'title'       => $title,
+                'description' => trim((string) ($bodies[$i] ?? '')),
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * المرحلة الأم للتصنيف المختار.
+     *
+     * TQ-CAT-NULL — كان السطر `$category_details['parent']` بلا فحص، و
+     * `get_category_details_by_id()` لا ترد صفا حين يرسل المنتقي قيمة
+     * فارغة — وهو ما كان يفعله دائما، إذ لا تصنيفات فرعية في القاعدة
+     * (انظر TQ-CAT-EMPTY في [taqdar_admin_helper.php]). فكل إنشاء كورس
+     * يطبع تحذيري PHP ويخزن `category_id = NULL`.
+     *
+     * والتصنيف الأب صار خيارا بذاته، فمن اختاره **هو** المرحلة: يرد
+     * معرفه لا `parent` الذي هو صفر.
+     */
+    private function tq_parent_category($chosen)
+    {
+        $chosen = (int) $chosen;
+        if ($chosen <= 0) return 0;
+
+        $row = $this->db->select('id, parent')->where('id', $chosen)
+                        ->get('category')->row_array();
+        if (!$row) return 0;
+
+        return ((int) $row['parent'] > 0) ? (int) $row['parent'] : (int) $row['id'];
+    }
+
     public function add_course($param1 = "")
     {
-        $faqs = array();
-        if (!empty($this->input->post('faqs'))) :
-            foreach (array_filter($this->input->post('faqs')) as $faq_key => $faq_title) {
-                $faqs[$faq_title] = $this->input->post('faq_descriptions')[$faq_key];
-            }
-        endif;
+        $faqs = $this->tq_course_faqs();
 
           // Upcoming Course Image
          if (!file_exists('uploads/thumbnails/upcoming_thumbnails')) {
             mkdir('uploads/thumbnails/upcoming_thumbnails', 0777, true);
         }
         
-        if ($_FILES['upcoming_image_thumbnail']['name'] != "") {
+        if (tq_uploaded('upcoming_image_thumbnail')) {
             $data['upcoming_image_thumbnail'] = md5(rand(10000000, 20000000)) . '.jpg';
             move_uploaded_file($_FILES['upcoming_image_thumbnail']['tmp_name'], 'uploads/thumbnails/upcoming_thumbnails/' . $data['upcoming_image_thumbnail']);
         }
@@ -707,9 +760,8 @@ class Crud_model extends CI_Model
         $data['outcomes'] = $outcomes;
         $data['faqs'] = json_encode($faqs);
         $data['language'] = $this->input->post('language_made_in');
-        $data['sub_category_id'] = $this->input->post('sub_category_id');
-        $category_details = $this->get_category_details_by_id($this->input->post('sub_category_id'))->row_array();
-        $data['category_id'] = $category_details['parent'];
+        $data['sub_category_id'] = (int) $this->input->post('sub_category_id');
+        $data['category_id']     = $this->tq_parent_category($this->input->post('sub_category_id'));
         $data['requirements'] = $requirements;
         $data['price'] = $this->input->post('price');
         $data['discount_flag'] = $this->input->post('discount_flag');
@@ -747,12 +799,12 @@ class Crud_model extends CI_Model
         $data['meta_description'] = $this->input->post('meta_description');
         $data['meta_keywords'] = $this->input->post('meta_keywords');
 
-        $admin_details = $this->user_model->get_admin_details()->row_array();
-        if ($admin_details['id'] == $data['user_id']) {
-            $data['is_admin'] = 1;
-        } else {
-            $data['is_admin'] = 0;
-        }
+        /* TQ-ISADMIN-FIRST — كان يقارن صاحب الكورس بـ`get_admin_details()`،
+           وهي ترد **أول مسؤول في الجدول** لا المسؤول الحالي. فكل كورس
+           ينشئه أي مسؤول غير الأول يخزن `is_admin = 0`، أي يعد كورس
+           محاضر. والحقيقة أبسط: من يكتب من لوحة الإدارة كورسه كورس
+           إدارة. */
+        $data['is_admin'] = $this->session->userdata('admin_login') ? 1 : 0;
 
 
         if ($this->session->userdata('admin_login')) {
@@ -785,7 +837,7 @@ class Crud_model extends CI_Model
         // Upload different number of images according to activated theme. Data is taking from the config.json file
         $course_media_files = themeConfiguration(get_frontend_settings('theme'), 'course_media_files');
         foreach ($course_media_files as $course_media => $size) {
-            if ($_FILES[$course_media]['name'] != "") {
+            if (tq_uploaded($course_media)) {
                 move_uploaded_file($_FILES[$course_media]['tmp_name'], 'uploads/thumbnails/course_thumbnails/' . $course_media . '_' . get_frontend_settings('theme') . '_' . $course_id . '.jpg');
             }
         }
@@ -812,9 +864,8 @@ class Crud_model extends CI_Model
         $data['title'] = html_escape($this->input->post('title'));
         $data['outcomes'] = '[]';
         $data['language'] = $this->input->post('language_made_in');
-        $data['sub_category_id'] = $this->input->post('sub_category_id');
-        $category_details = $this->get_category_details_by_id($this->input->post('sub_category_id'))->row_array();
-        $data['category_id'] = $category_details['parent'];
+        $data['sub_category_id'] = (int) $this->input->post('sub_category_id');
+        $data['category_id']     = $this->tq_parent_category($this->input->post('sub_category_id'));
 
         $data['requirements'] = '[]';
         $data['faqs'] = json_encode(array());
@@ -838,12 +889,12 @@ class Crud_model extends CI_Model
         $data['user_id'] = $this->session->userdata('user_id');
         $data['creator'] = $data['user_id'];
 
-        $admin_details = $this->user_model->get_admin_details()->row_array();
-        if ($admin_details['id'] == $data['user_id']) {
-            $data['is_admin'] = 1;
-        } else {
-            $data['is_admin'] = 0;
-        }
+        /* TQ-ISADMIN-FIRST — كان يقارن صاحب الكورس بـ`get_admin_details()`،
+           وهي ترد **أول مسؤول في الجدول** لا المسؤول الحالي. فكل كورس
+           ينشئه أي مسؤول غير الأول يخزن `is_admin = 0`، أي يعد كورس
+           محاضر. والحقيقة أبسط: من يكتب من لوحة الإدارة كورسه كورس
+           إدارة. */
+        $data['is_admin'] = $this->session->userdata('admin_login') ? 1 : 0;
 
         if ($this->input->post('is_private') == 1) {
             $data['status'] = 'private';
@@ -893,12 +944,7 @@ class Crud_model extends CI_Model
     {
         $course_details = $this->get_course_by_id($course_id)->row_array();
 
-        $faqs = array();
-        if (!empty($this->input->post('faqs'))) :
-            foreach (array_filter($this->input->post('faqs')) as $faq_key => $faq_title) {
-                $faqs[$faq_title] = $this->input->post('faq_descriptions')[$faq_key];
-            }
-        endif;
+        $faqs = $this->tq_course_faqs();
 
         $outcomes = $this->trim_and_return_json($this->input->post('outcomes'));
         $requirements = $this->trim_and_return_json($this->input->post('requirements'));
@@ -908,9 +954,8 @@ class Crud_model extends CI_Model
         $data['outcomes'] = $outcomes;
         $data['faqs'] = json_encode($faqs);
         $data['language'] = $this->input->post('language_made_in');
-        $data['sub_category_id'] = $this->input->post('sub_category_id');
-        $category_details = $this->get_category_details_by_id($this->input->post('sub_category_id'))->row_array();
-        $data['category_id'] = $category_details['parent'];
+        $data['sub_category_id'] = (int) $this->input->post('sub_category_id');
+        $data['category_id']     = $this->tq_parent_category($this->input->post('sub_category_id'));
         $data['requirements'] = $requirements;
         $data['is_free_course'] = $this->input->post('is_free_course');
         $data['publish_date'] = $this->input->post('publish_date');
@@ -952,12 +997,20 @@ class Crud_model extends CI_Model
             } else {
                 $data['is_top_course'] = 1;
             }
-            $status = $this->input->post('status');
-            if ($status == 'active' || $status == 'private' || $status == 'upcoming') {
-                $data['status'] = $status;
-            } else {
-                $data['status'] = 'active';
-            }
+            /* TQ-PENDING-PUBLISH — كان المقبول ثلاث حالات، وما عداها
+               يسقط إلى `active`. والكورس المرسل من معلم حالته `pending`،
+               فأي حفظ عليه — ولو كان تصحيح فاصلة في وصف محركات البحث —
+               **ينشره في الموقع العام بلا أن يقرر أحد نشره**. وهو نقض
+               للقاعدة التي تقوم عليها هذه الشاشة: النشر قرار إدارة لا
+               أثر جانبي لحفظ.
+
+               والحالة المجهولة تبقي ما هو محفوظ لا تستبدله: نموذج لم
+               يرسل الحقل لا يعني «انشر». */
+            $status  = (string) $this->input->post('status');
+            $allowed = array('active', 'private', 'upcoming', 'pending', 'draft');
+            $data['status'] = in_array($status, $allowed, true)
+                            ? $status
+                            : (string) $course_details['status'];
         } else {
             $data['status'] = $course_details['status'];
         }
@@ -970,7 +1023,7 @@ class Crud_model extends CI_Model
     }
     
 
-    if ($_FILES['upcoming_image_thumbnail']['name'] == "") {
+    if (! tq_uploaded('upcoming_image_thumbnail')) {
     } else {
         $data['upcoming_image_thumbnail'] = md5(rand(10000000, 20000000)) . '.jpg';
         
@@ -1001,7 +1054,7 @@ class Crud_model extends CI_Model
         $course_media_files = themeConfiguration(get_frontend_settings('theme'), 'course_media_files');
         $previous_last_modified = $course_details['last_modified'];
         foreach ($course_media_files as $course_media => $size) {
-            if ($_FILES[$course_media]['name'] != "") {
+            if (tq_uploaded($course_media)) {
 
                 move_uploaded_file($_FILES[$course_media]['tmp_name'], 'uploads/thumbnails/course_thumbnails/' . $course_media . '_' . get_frontend_settings('theme') . '_' . $course_id . $data['last_modified'] . '.jpg');
 

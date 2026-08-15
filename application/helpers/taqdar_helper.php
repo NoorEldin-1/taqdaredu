@@ -375,3 +375,29 @@ if (!function_exists('tq_course_owner_ids')) {
         return array_keys($out);
     }
 }
+
+if (!function_exists('tq_uploaded')) {
+    /**
+     * هل رفع ملف بهذا الاسم فعلا؟
+     *
+     * TQ-FILES-BLIND — الشيفرة الموروثة تقرأ `$_FILES['x']['name']`
+     * مباشرة. و`$_FILES` لا يحمل إلا ما أرسل: نموذج تحرير الكورس صار
+     * تبويبات، فحقل «صورة الكورس القادم» يعرض في تبويب «الأساسيات»
+     * وحده — وحفظ «التسعير» يقرأ مفتاحا غير موجود فيطبع تحذيري PHP في
+     * كل حفظ. والتحذير مطبوع **قبل** `redirect()`، فمع أول ضبط يمنع
+     * الترويسات بعد المخرجات يتحول إلى انهيار.
+     *
+     * وتفحص `error` مع الاسم: خانة ملف تجاوز حده في PHP تصل باسم ملء
+     * وبـ`UPLOAD_ERR_INI_SIZE` وبمسار مؤقت فارغ، فالنقل يفشل صامتا.
+     */
+    function tq_uploaded($field)
+    {
+        if (!isset($_FILES[$field]) || !is_array($_FILES[$field])) return false;
+
+        $f = $_FILES[$field];
+        if (!isset($f['name']) || is_array($f['name'])) return false;   /* المتعدد يفحص بيده */
+
+        return (string) $f['name'] !== ''
+            && (int) ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
+    }
+}

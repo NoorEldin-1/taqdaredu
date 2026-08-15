@@ -46,6 +46,29 @@ foreach ($this->db->select('id, name')->get('category')->result_array() as $tq_r
     $tq_catnames[(int) $tq_r['id']] = $tq_r['name'];
 }
 
+/**
+ * الربط بالبرنامج — صف واحد لكل كورس، باستعلام واحد للصفحة كلها.
+ *
+ * الكورس غير المربوط لا يظهر في «المواد والبرامج» ولا تفتحه باقة (انظر
+ * [Taqdar_course_link_model.php])، وهو أهم ما يريد المسؤول أن يراه في
+ * قائمة كورساته — وكانت القائمة تقول «منشور» ولا تقول ذلك.
+ */
+$tq_links = array();
+if ($tq_ids) {
+    try {
+        $tq_rows = $this->db->select('p.course_id, p.slug, p.status,
+                                      s.name_ar AS subject_ar, g.name_ar AS grade_ar', false)
+                            ->from('paths p')
+                            ->join('subjects s', 's.id = p.subject_id', 'left')
+                            ->join('grades   g', 'g.id = p.grade_id',   'left')
+                            ->where_in('p.course_id', $tq_ids)
+                            ->get()->result_array();
+        foreach ($tq_rows as $tq_r) $tq_links[(int) $tq_r['course_id']] = $tq_r;
+    } catch (Throwable $e) {
+        /* جدول غائب لا يبيض الشاشة. */
+    }
+}
+
 /** أسماء المعلمين مرة واحدة، من قائمة المنتقي نفسها. */
 $tq_insnames = array();
 foreach ($instructors as $tq_i) {
@@ -106,21 +129,12 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
     <input class="tqa-input" type="search" id="f_q" name="q" placeholder="ابحث بعنوان الكورس…"
            value="<?php echo html_escape($search_term); ?>">
 
-    <label class="tqa-sr" for="f_cat">القسم</label>
+    <?php /* المنتقي كان يعرض التصنيفات الفرعية وحدها، ولا فرعي واحد في
+             هذه القاعدة — فيخرج بخيار «كل الأقسام» لا غير (TQ-CAT-EMPTY). */ ?>
+    <label class="tqa-sr" for="f_cat">المرحلة</label>
     <select class="tqa-select" id="f_cat" name="category_id">
-        <option value="all">كل الأقسام</option>
-        <?php foreach ($categories->result_array() as $tq_cat): ?>
-            <?php if ((int) $tq_cat['parent'] === 0): ?>
-                <optgroup label="<?php echo html_escape($tq_cat['name']); ?>">
-                    <?php foreach ($this->crud_model->get_sub_categories($tq_cat['id']) as $tq_sub): ?>
-                        <option value="<?php echo (int) $tq_sub['id']; ?>"
-                            <?php echo (string) $selected_category_id === (string) $tq_sub['id'] ? 'selected' : ''; ?>>
-                            <?php echo html_escape($tq_sub['name']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </optgroup>
-            <?php endif; ?>
-        <?php endforeach; ?>
+        <option value="all">كل المراحل</option>
+        <?php echo tqa_category_options((int) $selected_category_id); ?>
     </select>
 
     <label class="tqa-sr" for="f_ins">المعلم</label>
@@ -169,12 +183,12 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
 
     <div class="tqa-table__wrap">
         <table class="tqa-table">
-            <caption class="tqa-sr">الكورسات: القسم والمحتوى والمسجلون والحالة والسعر</caption>
+            <caption class="tqa-sr">الكورسات: المرحلة والمادة والمحتوى والمسجلون والحالة والسعر</caption>
             <thead>
                 <tr>
                     <th style="inline-size:60px">#</th>
                     <th>الكورس</th>
-                    <th>القسم</th>
+                    <th>المرحلة والمادة</th>
                     <th>المحتوى</th>
                     <th>المسجلون</th>
                     <th>الحالة</th>
@@ -207,13 +221,25 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
                         <span class="tqa-media__sub">المعلم: <?php echo html_escape($tq_owner); ?></span>
                     </td>
 
-                    <td data-label="القسم">
-                        <?php $tq_cn = $tq_catnames[(int) $tq_c['sub_category_id']] ?? ''; ?>
+                    <td data-label="المرحلة والمادة">
+                        <?php
+                        $tq_cn = $tq_catnames[(int) $tq_c['sub_category_id']]
+                              ?? ($tq_catnames[(int) $tq_c['category_id']] ?? '');
+                        $tq_lk = $tq_links[$tq_id] ?? null;
+                        ?>
                         <?php if ($tq_cn !== ''): ?>
                             <span class="tqa-badge tqa-badge--muted"><?php echo html_escape($tq_cn); ?></span>
                         <?php else: ?>
-                            <span class="tqa-dim">بلا تصنيف</span>
+                            <span class="tqa-dim">بلا مرحلة</span>
                         <?php endif; ?>
+
+                        <span class="tqa-media__sub">
+                            <?php if ($tq_lk && ($tq_lk['grade_ar'] || $tq_lk['subject_ar'])): ?>
+                                <?php echo html_escape(trim($tq_lk['subject_ar'] . ' · ' . $tq_lk['grade_ar'], ' ·')); ?>
+                            <?php else: ?>
+                                <span style="color:var(--tq-danger)">بلا صف ولا مادة — لا يظهر في الموقع</span>
+                            <?php endif; ?>
+                        </span>
                     </td>
 
                     <td data-label="المحتوى">
@@ -263,31 +289,39 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
                             </a>
 
                             <?php
-                            /* تبديل الحالة: إن كان الكورس لغير من يعدله فالتبديل
-                               يمر بنافذة تخبر صاحبه — وهي شاشة موروثة تفتح
-                               بـAJAX. وإن كان له فالتبديل مباشر بعد تأكيد. */
+                            /* TQ-GET-DESTROY — كان الزران رابطين `<a href>`، فالنشر
+                               والحذف يقعان **بمجرد جلب العنوان**: التأكيد كان في
+                               المتصفح وحده، ولا يقف أمام جالب مسبق ولا أمام فتح
+                               الرابط من سجل أو من زر رجوع. وحذف كورس يحذف دروسه
+                               وتسجيلات طلابه معه. فصارا نموذجي POST بتوكن. */
                             $tq_to   = $tq_c['status'] === 'active' ? 'pending' : 'active';
                             $tq_verb = $tq_c['status'] === 'active' ? 'أوقف النشر' : 'انشر';
                             $tq_url  = site_url('admin/change_course_status_for_admin/' . $tq_to . '/' . $tq_id
                                      . '/' . $selected_category_id . '/' . $selected_instructor_id . '/all/' . $selected_status);
                             ?>
-                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_url; ?>"
-                               data-tqa-confirm-title="<?php echo html_escape($tq_verb); ?>"
-                               data-tqa-confirm="سيتغير ظهور «<?php echo html_escape($tq_c['title']); ?>» في الموقع العام."
-                               data-tqa-confirm-ok="<?php echo html_escape($tq_verb); ?>">
-                                <?php echo tq_icon($tq_c['status'] === 'active' ? 'eye' : 'check', 14); ?>
-                                <?php echo html_escape($tq_verb); ?>
-                            </a>
+                            <form method="post" action="<?php echo $tq_url; ?>"
+                                  data-tqa-confirm-title="<?php echo html_escape($tq_verb); ?>"
+                                  data-tqa-confirm="سيتغير ظهور «<?php echo html_escape($tq_c['title']); ?>» في الموقع العام."
+                                  data-tqa-confirm-ok="<?php echo html_escape($tq_verb); ?>">
+                                <?php echo tq_csrf(); ?>
+                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm">
+                                    <?php echo tq_icon($tq_c['status'] === 'active' ? 'eye' : 'check', 14); ?>
+                                    <?php echo html_escape($tq_verb); ?>
+                                </button>
+                            </form>
 
-                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)"
-                               href="<?php echo site_url('admin/course_actions/delete/' . $tq_id); ?>"
-                               data-tqa-confirm-title="حذف الكورس"
-                               data-tqa-confirm="سيحذف «<?php echo html_escape($tq_c['title']); ?>» ودروسه وتسجيلات طلابه. لا رجعة في هذا."
-                               data-tqa-confirm-ok="نعم، احذف"
-                               data-tqa-confirm-tone="danger">
-                                <?php echo tq_icon('trash', 14); ?>
-                                <span class="tqa-sr">حذف <?php echo html_escape($tq_c['title']); ?></span>
-                            </a>
+                            <form method="post" action="<?php echo site_url('admin/course_actions/delete/' . $tq_id); ?>"
+                                  data-tqa-confirm-title="حذف الكورس"
+                                  data-tqa-confirm="سيحذف «<?php echo html_escape($tq_c['title']); ?>» ودروسه وتسجيلات طلابه. لا رجعة في هذا."
+                                  data-tqa-confirm-ok="نعم، احذف"
+                                  data-tqa-confirm-tone="danger">
+                                <?php echo tq_csrf(); ?>
+                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                        style="color:var(--tq-danger)">
+                                    <?php echo tq_icon('trash', 14); ?>
+                                    <span class="tqa-sr">حذف <?php echo html_escape($tq_c['title']); ?></span>
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>

@@ -47,20 +47,12 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
             <div class="tqa-field">
                 <label class="tqa-field__label" for="sub_category_id">
-                    التصنيف <span class="tqa-field__req" aria-hidden="true">*</span>
+                    المرحلة <span class="tqa-field__req" aria-hidden="true">*</span>
                 </label>
                 <select class="tqa-select" id="sub_category_id" name="sub_category_id" required>
-                    <option value="">— اختر تصنيفا</option>
-                    <?php foreach ($categories->result_array() as $tq_c): ?>
-                        <?php if ((int) $tq_c['parent'] !== 0) continue; ?>
-                        <optgroup label="<?php echo html_escape($tq_c['name']); ?>">
-                            <?php foreach ($this->crud_model->get_sub_categories($tq_c['id']) as $tq_s): ?>
-                                <option value="<?php echo (int) $tq_s['id']; ?>"><?php echo html_escape($tq_s['name']); ?></option>
-                            <?php endforeach; ?>
-                        </optgroup>
-                    <?php endforeach; ?>
+                    <option value="">— اختر مرحلة</option>
+                    <?php echo tqa_category_options(0); ?>
                 </select>
-                <span class="tqa-field__hint">التصنيف الفرعي — لا الأب.</span>
             </div>
 
             <div class="tqa-field">

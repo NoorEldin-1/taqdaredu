@@ -940,8 +940,16 @@ class Admin extends CI_Controller
                          ->or_like('short_description', $page_data['search_term'])
                          ->group_end();
             }
+            /* المرحلة تطابق العمودين: `sub_category_id` هو ما اختير،
+               و`category_id` أبوه. فالترشيح بمرحلة يلتقط كورساتها
+               وكورسات تصنيفاتها الفرعية معا — وكان يطابق الأول وحده،
+               فيرجع فارغا لكل مرحلة لها أبناء. */
             if ($page_data['selected_category_id'] !== 'all') {
-                $this->db->where('sub_category_id', (int) $page_data['selected_category_id']);
+                $cat = (int) $page_data['selected_category_id'];
+                $this->db->group_start()
+                         ->where('sub_category_id', $cat)
+                         ->or_where('category_id', $cat)
+                         ->group_end();
             }
             if ($page_data['selected_instructor_id'] !== 'all') {
                 $this->db->where('creator', (int) $page_data['selected_instructor_id']);
@@ -949,10 +957,16 @@ class Admin extends CI_Controller
             if ($page_data['selected_status'] !== 'all') {
                 $this->db->where('status', $page_data['selected_status']);
             }
+            /* `is_free_course` ثلاثي القيم في هذه القاعدة: `1` و`0`
+               و`NULL` — والأخيرتان تعنيان «مدفوع». وكان «مدفوع» يقيد
+               بـ`IS NULL` وحدها، فيسقط كل كورس كتب صفره صراحة. */
             if ($page_data['selected_price'] === 'free') {
                 $this->db->where('is_free_course', 1);
             } elseif ($page_data['selected_price'] === 'paid') {
-                $this->db->where('is_free_course', null);
+                $this->db->group_start()
+                         ->where('is_free_course IS NULL', null, false)
+                         ->or_where('is_free_course !=', 1)
+                         ->group_end();
             }
         };
 

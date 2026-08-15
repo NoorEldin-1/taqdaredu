@@ -160,27 +160,88 @@ if ($tq_gaps): ?>
     <?php echo tq_csrf(); ?>
     <input type="hidden" name="course_type" value="<?php echo html_escape($tq_course['course_type']); ?>">
 
-    <?php /* التبويب المعروض وحده يرسل حقوله. والحقول التي لا تعرض تحمل
-             قيمها الحالية في حقول مخفية، فحفظ «التسعير» لا يمحو «الوصف».
-             وكان النموذج السابق يعرضها كلها في صفحة واحدة، فلم تكن
-             المشكلة قائمة — وهي تقوم مع التبويبات الحقيقية. */ ?>
     <?php
+    /**
+     * التبويب المعروض وحده يرسل حقوله؛ وما لا يعرض يحمل قيمه الحالية في
+     * حقول مخفية.
+     *
+     * TQ-TAB-WIPE — و`Crud_model::update_course()` **تكتب كل عمود في كل
+     * حفظ**، لا ما أرسل منها. فكل حقل لا يقابله مخفي يمحى: كان الحمل
+     * أحد عشر حقلا من نيف وعشرين، فحفظ «تحسين البحث» — وهو تبويب بحقلين
+     * — كان يمسح المتطلبات والمخرجات والأسئلة الشائعة، ويرد «كورس مميز»
+     * و«الإتاحة التدريجية» إلى الإطفاء، ويفرغ الخصم ومدة الوصول ولغة
+     * المحتوى ومصدر الفيديو. أي أن **تحرير أي تبويب كان يهدم البقية**.
+     *
+     * واثنان من الأحد عشر لم يكونا يعملان أصلا: `video_type` عمود لا
+     * وجود له في `course` (اسمه `course_overview_provider`)، فيسقط
+     * الشرط `array_key_exists` ولا يكتب المخفي — ثم تقرأ الدالة
+     * `course_overview_url` غير الفارغة فتخزن مصدرا فارغا.
+     *
+     * فالخريطة هنا **كاملة**: مفتاحها اسم الحقل في النموذج، وقيمتها
+     * اسم العمود. وما كان مصفوفة (المتطلبات · المخرجات · الأسئلة) يعاد
+     * بنودا مخفية لا سطرا واحدا.
+     */
     $tq_carry = array(
-        'basic'   => array('title', 'short_description', 'description', 'sub_category_id',
-                           'level', 'language_made_in', 'status'),
-        'pricing' => array('price', 'discounted_price'),
-        'seo'     => array('meta_keywords', 'meta_description'),
-        'media'   => array('course_overview_url' => 'video_url', 'course_overview_provider' => 'video_type'),
+        'basic'   => array('title' => 'title', 'short_description' => 'short_description',
+                           'description' => 'description', 'sub_category_id' => 'sub_category_id',
+                           'level' => 'level', 'language_made_in' => 'language',
+                           'status' => 'status', 'publish_date' => 'publish_date',
+                           'is_top_course' => 'is_top_course',
+                           'enable_drip_content' => 'enable_drip_content'),
+        'pricing' => array('price' => 'price', 'discounted_price' => 'discounted_price',
+                           'discount_flag' => 'discount_flag', 'is_free_course' => 'is_free_course'),
+        'seo'     => array('meta_keywords' => 'meta_keywords', 'meta_description' => 'meta_description'),
+        'media'   => array('course_overview_url' => 'video_url',
+                           'course_overview_provider' => 'course_overview_provider'),
     );
+
     foreach ($tq_carry as $tq_group => $tq_names):
         if ($tq_group === $tq_tab) continue;
         foreach ($tq_names as $tq_field => $tq_col):
-            $tq_field = is_int($tq_field) ? $tq_col : $tq_field;
             if (!array_key_exists($tq_col, $tq_course)) continue;
+            $tq_v = (string) $tq_course[$tq_col];
+            /* الصفر في خانة تأشير يعني «غير مؤشرة»، والمؤشرة ترسل «1».
+               وإرسال «0» يجعل `$this->input->post(...)` صادقة فيقلب
+               المعنى — فالحقل يحذف بدل أن يرسل صفرا. */
+            if (in_array($tq_field, array('is_top_course', 'enable_drip_content',
+                                          'discount_flag', 'is_free_course'), true)
+                && (int) $tq_v !== 1) continue;
     ?>
         <input type="hidden" name="<?php echo html_escape($tq_field); ?>"
-               value="<?php echo html_escape($tq_course[$tq_col]); ?>">
+               value="<?php echo html_escape($tq_v); ?>">
     <?php endforeach; endforeach; ?>
+
+    <?php
+    /* مدة الوصول: عمود واحد يمثل بحقلين في النموذج، فيعاد بناؤهما. */
+    if ($tq_tab !== 'pricing'):
+        $tq_months = (int) $tq_course['expiry_period'];
+    ?>
+        <input type="hidden" name="expiry_period"
+               value="<?php echo $tq_months > 0 ? 'limited_time' : 'lifetime'; ?>">
+        <?php if ($tq_months > 0): ?>
+            <input type="hidden" name="number_of_month" value="<?php echo $tq_months; ?>">
+        <?php endif; ?>
+    <?php endif; ?>
+
+    <?php
+    /* المصفوفات الثلاث. `faqs` تقبل الشكلين: القائمة التي تكتب اليوم،
+       والخريطة التي كتبت قبل إصلاح TQ-FAQ-SHAPE. */
+    if ($tq_tab !== 'info'):
+        $tq_c_reqs = json_decode((string) $tq_course['requirements'], true);
+        $tq_c_outs = json_decode((string) $tq_course['outcomes'], true);
+        foreach (array('requirements' => $tq_c_reqs, 'outcomes' => $tq_c_outs) as $tq_n => $tq_vals):
+            foreach (is_array($tq_vals) ? $tq_vals : array() as $tq_v): ?>
+                <input type="hidden" name="<?php echo $tq_n; ?>[]" value="<?php echo html_escape($tq_v); ?>">
+            <?php endforeach;
+        endforeach;
+        foreach (tqa_course_faqs($tq_course['faqs']) as $tq_f): ?>
+            <input type="hidden" name="faqs[]" value="<?php echo html_escape($tq_f['title']); ?>">
+            <input type="hidden" name="faq_descriptions[]" value="<?php echo html_escape($tq_f['description']); ?>">
+        <?php endforeach;
+    endif; ?>
+
+    <?php /* الربط لا يحمل في مخفي: `sync()` لا تنادى إلا حين يرسل
+             `tq_link_sent`، وهو في تبويب «الأساسيات» وحده. */ ?>
 
 
     <?php if ($tq_tab === 'basic'): ?>
@@ -202,21 +263,11 @@ if ($tq_gaps): ?>
 
                 <div class="tqa-field">
                     <label class="tqa-field__label" for="sub_category_id">
-                        التصنيف <span class="tqa-field__req" aria-hidden="true">*</span>
+                        المرحلة <span class="tqa-field__req" aria-hidden="true">*</span>
                     </label>
                     <select class="tqa-select" id="sub_category_id" name="sub_category_id" required>
-                        <option value="">— اختر تصنيفا</option>
-                        <?php foreach ($categories->result_array() as $tq_c): ?>
-                            <?php if ((int) $tq_c['parent'] !== 0) continue; ?>
-                            <optgroup label="<?php echo html_escape($tq_c['name']); ?>">
-                                <?php foreach ($this->crud_model->get_sub_categories($tq_c['id']) as $tq_s): ?>
-                                    <option value="<?php echo (int) $tq_s['id']; ?>"
-                                        <?php echo (int) $tq_course['sub_category_id'] === (int) $tq_s['id'] ? 'selected' : ''; ?>>
-                                        <?php echo html_escape($tq_s['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </optgroup>
-                        <?php endforeach; ?>
+                        <option value="">— اختر مرحلة</option>
+                        <?php echo tqa_category_options((int) $tq_course['sub_category_id']); ?>
                     </select>
                 </div>
 
@@ -233,9 +284,13 @@ if ($tq_gaps): ?>
                 <div class="tqa-field">
                     <label class="tqa-field__label" for="language_made_in">لغة المحتوى</label>
                     <select class="tqa-select" id="language_made_in" name="language_made_in">
+                        <?php /* العمود اسمه `language` لا `language_made_in`: الثاني اسم
+                                 الحقل في النموذج وحده. وقراءته من الصف كانت تطبع تحذير
+                                 PHP **داخل وسم `<option>`** في كل فتح للتبويب — وهو ما
+                                 يظهر للمسؤول سطر خطأ مكان اسم اللغة. */ ?>
                         <?php foreach ($languages as $tq_l): ?>
                             <option value="<?php echo html_escape($tq_l); ?>"
-                                <?php echo $tq_course['language_made_in'] === $tq_l ? 'selected' : ''; ?>>
+                                <?php echo (string) $tq_course['language'] === (string) $tq_l ? 'selected' : ''; ?>>
                                 <?php echo html_escape(ucfirst($tq_l)); ?>
                             </option>
                         <?php endforeach; ?>
@@ -278,6 +333,17 @@ if ($tq_gaps): ?>
             </div>
 
             <div data-tqa-upcoming <?php echo $tq_course['status'] === 'upcoming' ? '' : 'hidden'; ?>>
+                <?php /* حقل «تاريخ النشر» كان غائبا عن هذه الشاشة وحاضرا في شاشة
+                         الإضافة، و`update_course` تكتب `publish_date` من الطلب في كل
+                         حفظ — فأول تعديل بعد الإنشاء يمحو التاريخ، ويصير «الكورس
+                         القادم» بلا موعد يعرض. */ ?>
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="input_publish_date">تاريخ النشر</label>
+                    <input class="tqa-input tqa-input--ltr" type="datetime-local" id="input_publish_date"
+                           name="publish_date" dir="ltr"
+                           value="<?php echo html_escape($tq_course['publish_date']); ?>">
+                </div>
+
                 <div class="tqa-field">
                     <span class="tqa-field__label">صورة الكورس القادم</span>
                     <div class="tqa-file">
@@ -501,9 +567,12 @@ if ($tq_gaps): ?>
                 <div class="tqa-field">
                     <label class="tqa-field__label" for="course_overview_provider">مصدر الفيديو</label>
                     <select class="tqa-select" id="course_overview_provider" name="course_overview_provider">
+                        <?php /* العمود `course_overview_provider`. و`video_type` عمود في
+                                 `lesson` لا في `course`، فقراءته هنا كانت تحذيرا مطبوعا
+                                 في كل خيار من الثلاثة. */ ?>
                         <?php foreach (array('youtube' => 'يوتيوب', 'vimeo' => 'فيميو', 'html5' => 'ملف مرفوع') as $tq_k => $tq_l): ?>
                             <option value="<?php echo $tq_k; ?>"
-                                <?php echo $tq_course['video_type'] === $tq_k ? 'selected' : ''; ?>><?php echo $tq_l; ?></option>
+                                <?php echo (string) $tq_course['course_overview_provider'] === $tq_k ? 'selected' : ''; ?>><?php echo $tq_l; ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
