@@ -1229,10 +1229,17 @@ class Taqdar_admin_model extends CI_Model
     {
         $out = array();
         foreach ($this->spec() as $key => $spec) {
+            /* الشاشة الأولى في اللوحة تمر على **كل** وحدة، فهي أول ما يصطدم
+               بجدول ينشأ وقت التشغيل ولم ينشأ بعد: عد بلا `ensure_table` رمى
+               استثناء أسقط لوحة القيادة كلها — و`admin/dashboard` محولة إليها،
+               أي أن اللوحة كلها تسقط لوحدة واحدة لم تفتح مرة.
+               فالتجهيز أولا، والعد بعده محروس: وحدة تعطلت تعرض صفرا، ولا
+               تحجب الوحدات السبع عشرة الأخرى. */
+            $this->ensure_table($spec);
             $out[$key] = array(
                 'title' => $spec['title'],
                 'icon'  => isset($spec['icon']) ? $spec['icon'] : 'circle',
-                'count' => (int) $this->db->count_all_results($spec['table']),
+                'count' => $this->safe_scalar('SELECT COUNT(*) n FROM `' . $spec['table'] . '`'),
             );
         }
 
