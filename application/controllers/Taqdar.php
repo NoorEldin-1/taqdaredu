@@ -2343,10 +2343,18 @@ class Taqdar extends CI_Controller
             );
         }
 
+        /* والبطاقات تحت الصفحة غير المبدل في عنوانها: المبدل قائمة أسماء
+           وأسعار لمن قرر أن يوازن، والبطاقات عرض لمن لم يقرر بعد — بصورتها
+           وسطر وصفها ومدتها وشارة «الأكثر طلبا». وهي من مولد بطاقات
+           الكتالوج نفسه، فما يراه الزائر هنا هو ما رآه هناك حرفا. */
+        $this->load->model('taqdar_catalog_model', 'tq_cat');
+        $related = $this->tq_cat->plans_like($b['code'], 3);
+
         $this->show('site_plan', $b['name'], array(
             'tq_bundle'   => $b,
             'tq_owns'     => $own,
             'tq_siblings' => $siblings,
+            'tq_related'  => $related,
         ));
     }
 

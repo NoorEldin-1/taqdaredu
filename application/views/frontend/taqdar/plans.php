@@ -3,17 +3,22 @@
  * الباقات.
  *
  * وحدة البيع صارت **الباقة** لا البرنامج: الطالب يأخذ منهج صفه كاملا،
- * لا مادة مادة. فالصفحة تعرض الباقات الثلاث، والبرامج تحتها **محتوى**
- * يطمئن — بلا سعر ولا زر شراء، لأن سعرا على بطاقة مادة يعرض منتجا
- * لم يعد يباع.
+ * لا مادة مادة. وهذه الصفحة صارت صفحة الباقات وحدها بعد أن انتقل تصفح
+ * المحتوى إلى الكتالوج الموحد (`/catalog`) — فما كان صفحة تسأل سؤالين
+ * («ما المعروض؟» و«بكم؟») صار صفحتين، لكل واحدة سؤالها.
  *
- * والاشتراك يمر بـ`student/subscribe` كما كان: محرك الفوترة لم يتبدل،
- * إنما تبدل ما يشترى به.
+ * والعرض كاروسل لا شبكة: الباقات ست (ثلاث درجات في مرحلتين)، وشبكة
+ * ثلاثية تجعل كل مرحلة صفا فيطول العمود بلا حاجة — والكاروسل يعرض
+ * المرحلة المختارة في صف واحد يوازن بين درجاتها، وهو الموازنة التي
+ * جاء الزائر يجريها. وأساسه `scroll-snap` فيسحب بالإصبع وبلوحة
+ * اللمس ويمضي بالسهمين، ويعمل بلا سكربت إن تعثر تحميله.
+ *
+ * والاشتراك يمر بـ`checkout/<code>` كما كان: محرك الفوترة لم يتبدل.
  */
 /* العنوان والتعريف يحرران من «نصوص الصفحات» في اللوحة؛ والمكتوب هنا
    الافتراضي الذي يعرض ما لم يحرر. و`tq_text_raw` لا `tq_text` لأن
    `site_pagehero.php` يهرب ما يطبعه — والتهريب مرتين يظهر `&quot;`. */
-$tq_h1   = tq_text_raw('plans', 'hero_title', 'المواد والبرامج التعليمية');
+$tq_h1   = tq_text_raw('plans', 'hero_title', 'الباقات');
 $tq_lead = tq_text_raw('plans', 'hero_lede', 'منهج المرحلة كاملا في باقة واحدة: مواد الصف وبرامجها ودروسها واختباراتها — تختار مرة، ويبقى الباب مفتوحا العام الدراسي كله.');
 include __DIR__ . '/site/site_pagehero.php';
 
@@ -47,8 +52,12 @@ $tq_hide  = (count($tq_stg) > 1);
 $tq_ks    = array_keys($tq_stg);
 $tq_first = $tq_ks ? $tq_ks[0] : '';
 ?>
-    <div class="bundles" data-tq-bundles>
-<?php foreach ($tq_rows as $tq_b):
+<?php
+/* البطاقات تجمع في مخزن ثم تلف بالكاروسل: `tqs_carousel` تأخذ وسما
+   جاهزا لا تطبع بنفسها — فهي غلاف واحد يعاد استعماله في الرئيسية
+   وفي الجامعات وهنا، ولا تعرف ما تلفه. */
+ob_start();
+foreach ($tq_rows as $tq_b):
         $tq_feat = json_decode((string) $tq_b['features'], true);
         $tq_feat = is_array($tq_feat) ? $tq_feat : array();
         $tq_hot  = ((int) $tq_b['featured'] === 1);
@@ -61,8 +70,12 @@ $tq_first = $tq_ks ? $tq_ks[0] : '';
 <?php endif; ?>
 <?php if ((string) $tq_b['image'] !== ''): ?>
         <div class="bundle__media">
+          <?php /* `eager` لا `lazy`: البطاقات داخل مضمار أفقي، وحساب
+                   المتصفح لما «سيرى» فيه غير موثوق في الاتجاه من اليمين
+                   — قيس فحملت صورة واحدة من ثلاث كلها في الشاشة. وهي
+                   ست صور على أكثر تقدير، وهي محتوى الصفحة لا زينتها. */ ?>
           <img src="<?php echo tqs_asset_img($tq_b['image'], 'path-primary'); ?>"
-               alt="" width="1100" height="733" loading="lazy" decoding="async">
+               alt="" width="1100" height="733" loading="eager" decoding="async">
           <span class="bundle__over">
             <b><?php echo html_escape(tqs_bundle_tier($tq_b['name_ar'])); ?></b>
             <i><?php echo html_escape(tqs_stage_label($tq_b['stage'])); ?></i>
@@ -95,7 +108,15 @@ $tq_first = $tq_ks ? $tq_ks[0] : '';
           <svg aria-hidden="true"><use href="#i-arrow-back"></use></svg>
         </a>
       </article>
-<?php endforeach; ?>
+<?php
+endforeach;
+$tq_cards = ob_get_clean();
+/* `data-tq-bundles` على الغلاف لا على المضمار: تبويب المرحلة يبحث عن
+   `[data-tq-bundles] [data-stage]` — أي سلف يكفي، والمضمار يطبع من
+   `tqs_carousel` التي لا تعرف الباقات ولا ينبغي أن تعرفها. */
+?>
+    <div data-tq-bundles>
+<?php echo tqs_carousel($tq_cards, 'الباقات المتاحة', 'carousel2--bundles'); ?>
     </div>
 
     <p class="bundles__foot tq-caption">
