@@ -65,6 +65,16 @@ $tq_url = function ($t) use ($course_id) {
 $tq_editing = in_array($tq_tab, array('basic', 'info', 'pricing', 'media', 'seo'), true);
 
 $tq_live = site_url('home/course/' . rawurlencode(slugify($tq_course['title'])) . '/' . (int) $course_id);
+
+/* الربط بالبرنامج — يقرأ مرة ويستعمله لوح الحالة وبطاقة الحقول.
+   والنداء عبر `get_instance()` لا `$this`: القالب يضمن داخل
+   `CI_Loader::_ci_load`، فـ`$this` فيه هو المحمل لا المتحكم. والمحمل
+   ينسخ خصائص المتحكم إليه **قبل** التضمين، فما يحمل من داخل القالب
+   يوضع على المتحكم ولا يرى هنا — و`CI_Loader` بلا `__get` يسده. */
+$CI = get_instance();
+$CI->load->model('taqdar_course_link_model', 'tq_link_m');
+$tq_link  = $CI->tq_link_m->link_of($course_id);
+$tq_gaps  = $CI->tq_link_m->diagnose($course_id);
 ?>
 
 <?php tqa_head('تحرير الكورس', $tq_course['title'], 'book',
@@ -80,6 +90,40 @@ $tq_live = site_url('home/course/' . rawurlencode(slugify($tq_course['title'])) 
         </a>
     <?php endforeach; ?>
 </nav>
+
+<?php
+/**
+ * لوح الوصول — ما يفصل هذا الكورس عن الطالب.
+ *
+ * كانت الشاشة تقول «منشور» ولا تقول أكثر، بينما «منشور» في `course` لا
+ * تعني ظاهرا: الكتالوج ومحرك الاشتراكات يقرآن من `paths` وحده. فمن
+ * أنشأ كورسا ونشره ثم لم يجده في الموقع لم يكن أمامه ما يفسر ذلك، ولا
+ * موضع يصلحه منه. وهذه الأسطر تقولها بترتيب معالجتها.
+ */
+if ($tq_gaps): ?>
+    <div class="tqa-stack tqa-section">
+    <?php foreach ($tq_gaps as [$tq_tone, $tq_t, $tq_b, $tq_href]): ?>
+        <p class="tqa-note<?php echo $tq_tone === 'warn' ? ' tqa-note--warn' : ''; ?>">
+            <span aria-hidden="true"><?php echo tq_icon($tq_tone === 'warn' ? 'alert' : 'help', 18); ?></span>
+            <span style="flex:1">
+                <strong><?php echo html_escape($tq_t); ?></strong>
+                <span style="display:block"><?php echo $tq_b; ?></span>
+            </span>
+            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo html_escape($tq_href); ?>">عالجها</a>
+        </p>
+    <?php endforeach; ?>
+    </div>
+<?php elseif ($tq_link['path_id'] > 0): ?>
+    <p class="tqa-note tqa-section">
+        <span aria-hidden="true"><?php echo tq_icon('check-badge', 18); ?></span>
+        <span style="flex:1">
+            <strong>هذا الكورس يصل إلى الطالب.</strong>
+            منشور، وله صف ومادة، وباقة تفتحه.
+        </span>
+        <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" target="_blank" rel="noopener"
+           href="<?php echo site_url('path/' . rawurlencode($tq_link['slug'])); ?>">صفحته في «المواد والبرامج»</a>
+    </p>
+<?php endif; ?>
 
 
 <?php /* ============ المقرر — خارج نموذج الحفظ عمدا ============ */ ?>
@@ -278,12 +322,16 @@ $tq_live = site_url('home/course/' . rawurlencode(slugify($tq_course['title'])) 
             </div>
         </div>
 
+        <?php /* الربط: يرسل من هذا التبويب وحده، ولذلك `tq_link_sent`. */ ?>
+        <input type="hidden" name="tq_link_sent" value="1">
+        <?php include 'tqa_course_link_fields.php'; ?>
+
 
     <?php elseif ($tq_tab === 'info'):
-        $tq_faqs  = json_decode((string) $tq_course['faqs'], true);
+        $tq_faqs  = tqa_course_faqs($tq_course['faqs']);
         $tq_reqs  = json_decode((string) $tq_course['requirements'], true);
         $tq_outs  = json_decode((string) $tq_course['outcomes'], true);
-        if (!is_array($tq_faqs) || !$tq_faqs) $tq_faqs = array(array('title' => '', 'description' => ''));
+        if (!$tq_faqs) $tq_faqs = array(array('title' => '', 'description' => ''));
         if (!is_array($tq_reqs) || !$tq_reqs) $tq_reqs = array('');
         if (!is_array($tq_outs) || !$tq_outs) $tq_outs = array('');
     ?>

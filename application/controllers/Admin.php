@@ -1288,12 +1288,14 @@ class Admin extends CI_Controller
 
         if ($param1 == "add") {
             $course_id = $this->crud_model->add_course();
+            $this->tq_sync_course_link($course_id);
             redirect(site_url('admin/course_form/course_edit/' . $course_id), 'refresh');
         } elseif ($param1 == 'add_shortcut') {
             echo $this->crud_model->add_shortcut_course();
         } elseif ($param1 == "edit") {
 
-            $this->crud_model->update_course($param2); 
+            $this->crud_model->update_course($param2);
+            $this->tq_sync_course_link($param2);
 
             // CHECK IF LIVE CLASS ADDON EXISTS, ADD OR UPDATE IT TO ADDON MODEL
             if (addon_status('live-class')) {
@@ -1310,10 +1312,45 @@ class Admin extends CI_Controller
             redirect(site_url('admin/course_form/course_edit/' . $param2));
         } elseif ($param1 == 'delete') {
 
+            /* TQ-GET-DESTROY — كان الحذف رابطا `<a href>`: أي أن **مجرد
+               جلب العنوان يحذف الكورس ودروسه وتسجيلات طلابه**. والتأكيد
+               كان في المتصفح وحده، فلا يقف أمام جالب مسبق ولا أمام رابط
+               يفتح من سجل أو من زر رجوع. */
+            if ($this->input->method(true) !== 'POST') show_404();
+
             $this->is_drafted_course($param2);
+
+            /* البرنامج المرتبط ينزل إلى مسودة **قبل** حذف الكورس، وإلا
+               بقي معروضا في «المواد والبرامج» بعنوان يفتح على لا شيء.
+               ولا يحذف: قد تشير إليه بنود اشتراك قائمة في
+               `subscription_items` بمعرفه. */
+            $this->load->model('taqdar_course_link_model', 'tq_link_m');
+            $this->tq_link_m->sync($param2, 0, 0);
+
             $this->crud_model->delete_course($param2);
+            $this->session->set_flashdata('flash_message', get_phrase('حذف الكورس'));
             redirect(site_url('admin/courses'), 'refresh');
         }
+    }
+
+    /**
+     * يوائم برنامج الكورس مع ما اختير له من صف ومادة.
+     *
+     * لا ينادى إلا حين يرسل النموذج `tq_link_sent`: تبويبات التحرير
+     * ترسل حقولها وحدها، فحفظ «التسعير» لا يحمل صفا ولا مادة — ولو قرئت
+     * منه لفهم غيابهما «احذف الربط».
+     */
+    private function tq_sync_course_link($course_id)
+    {
+        $course_id = (int) $course_id;
+        if ($course_id <= 0) return;
+        if ($this->input->post('tq_link_sent') === null
+            && $this->input->post('tq_grade_id') === null) return;
+
+        $this->load->model('taqdar_course_link_model', 'tq_link_m');
+        $this->tq_link_m->sync($course_id,
+            (int) $this->input->post('tq_grade_id'),
+            (int) $this->input->post('tq_subject_id'));
     }
 
     public function course_form($param1 = "", $param2 = "")
@@ -1405,7 +1442,20 @@ class Admin extends CI_Controller
         if ($this->session->userdata('admin_login') != true) {
             redirect(site_url('login'), 'refresh');
         }
+        check_permission('course');
+
+        /* تغيير الظهور في الموقع العام كتابة، فلا يجرى بجلب رابط —
+           انظر TQ-GET-DESTROY في `course_actions`. */
+        if ($this->input->method(true) !== 'POST') show_404();
+
         $this->crud_model->change_course_status($updated_status, $course_id);
+        /* الحالة تنتقل إلى البرنامج: كورس أوقف نشره وبرنامجه `published`
+           يبقى معروضا في الكتالوج، فيضغطه الزائر ويجد صفحة لا تفتح. */
+        $this->load->model('taqdar_course_link_model', 'tq_link_m');
+        $link = $this->tq_link_m->link_of($course_id);
+        if ($link['path_id'] > 0) {
+            $this->tq_link_m->sync($course_id, $link['grade_id'], $link['subject_id']);
+        }
         $this->session->set_flashdata('flash_message', get_phrase('course_status_updated'));
         redirect(site_url('admin/courses?category_id=' . $category_id . '&status=' . $status . '&instructor_id=' . $instructor_id . '&price=' . $price), 'refresh');
     }

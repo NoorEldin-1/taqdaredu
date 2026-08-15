@@ -267,3 +267,105 @@ if (!function_exists('tqa_empty')) {
         echo '</div>';
     }
 }
+
+/* =====================================================================
+   الكورس: تصنيفه وربطه بالبرنامج
+   ===================================================================== */
+
+if (!function_exists('tqa_category_options')) {
+    /**
+     * خيارات منتقي «المرحلة» في نموذج الكورس.
+     *
+     * TQ-CAT-EMPTY — كان المنتقي يطبع `optgroup` لكل فئة أب ثم يملؤها
+     * بأبنائها. و`category` في هذه القاعدة **خمسة صفوف كلها `parent = 0`**
+     * ولا ابن لواحد منها: فيخرج المنتقي خمس مجموعات فارغة، أي خيارا
+     * واحدا هو «— اختر تصنيفا». والحقل `required`، فالنموذج لا يمكن
+     * إرساله إطلاقا — وهذا ما يوقف إنشاء أي كورس من اللوحة.
+     *
+     * والقاعدة هنا: **الأب خيار بذاته**، وأبناؤه — إن وجدوا — يعرضون
+     * تحته مزاحين. فالشجرة تعمل بمستوى واحد كما هي اليوم، وبمستويين لو
+     * أضيفت تصنيفات فرعية غدا، بلا تغيير في هذا الموضع.
+     */
+    function tqa_category_options($selected = 0)
+    {
+        $CI  = &get_instance();
+        $sel = (int) $selected;
+
+        $rows = $CI->db->select('id, name, parent, tq_order')
+                       ->order_by('tq_order', 'ASC')->order_by('id', 'ASC')
+                       ->get('category')->result_array();
+
+        $kids = array();
+        foreach ($rows as $r) {
+            if ((int) $r['parent'] !== 0) $kids[(int) $r['parent']][] = $r;
+        }
+
+        $html = '';
+        foreach ($rows as $r) {
+            if ((int) $r['parent'] !== 0) continue;
+            $id = (int) $r['id'];
+
+            $html .= '<option value="' . $id . '"' . ($sel === $id ? ' selected' : '') . '>'
+                   . html_escape($r['name']) . '</option>';
+
+            foreach ($kids[$id] ?? array() as $k) {
+                $kid = (int) $k['id'];
+                $html .= '<option value="' . $kid . '"' . ($sel === $kid ? ' selected' : '') . '>'
+                       . '&nbsp;&nbsp;— ' . html_escape($k['name']) . '</option>';
+            }
+        }
+        return $html;
+    }
+}
+
+if (!function_exists('tqa_ref_options')) {
+    /** خيارات من جدول مرجعي بسيط (`grades` · `subjects`) — النشط منه وحده. */
+    function tqa_ref_options($table, $selected = 0, $label = 'name_ar')
+    {
+        $CI  = &get_instance();
+        $sel = (int) $selected;
+
+        $CI->db->select('id, ' . $label . ' AS label');
+        if ($CI->db->field_exists('active', $table)) $CI->db->where('active', 1);
+        if ($CI->db->field_exists('order',  $table)) $CI->db->order_by('`order`', 'ASC', false);
+        $rows = $CI->db->order_by('id', 'ASC')->get($table)->result_array();
+
+        $html = '';
+        foreach ($rows as $r) {
+            $id = (int) $r['id'];
+            $html .= '<option value="' . $id . '"' . ($sel === $id ? ' selected' : '') . '>'
+                   . html_escape($r['label']) . '</option>';
+        }
+        return $html;
+    }
+}
+
+if (!function_exists('tqa_course_faqs')) {
+    /**
+     * أسئلة الكورس الشائعة بشكل واحد مهما كتبت.
+     *
+     * الشكل المكتوب اليوم قائمة من `{title, description}`. وما كتب قبل
+     * إصلاح TQ-FAQ-SHAPE خريطة `{السؤال: الإجابة}` — انظر
+     * [Crud_model::tq_course_faqs()]. والدورات القائمة تحمل الشكل
+     * القديم، فالقراءة تقبل الاثنين وإلا ضاعت أسئلة كتبت فعلا.
+     */
+    function tqa_course_faqs($raw)
+    {
+        $d = json_decode((string) $raw, true);
+        if (!is_array($d)) return array();
+
+        $out = array();
+        foreach ($d as $k => $v) {
+            if (is_array($v)) {
+                $t = trim((string) ($v['title'] ?? ''));
+                if ($t === '') continue;
+                $out[] = array('title' => $t, 'description' => (string) ($v['description'] ?? ''));
+            } else {
+                $t = trim((string) $k);
+                if ($t === '') continue;
+                $out[] = array('title' => $t, 'description' => (string) $v);
+            }
+        }
+        return $out;
+    }
+}

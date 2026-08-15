@@ -94,6 +94,9 @@ defined('BASEPATH') or exit('No direct script access allowed');
         </div>
     </div>
 
+    <?php /* ---------- الصف والمادة ---------- */ ?>
+    <?php include 'tqa_course_link_fields.php'; ?>
+
     <?php /* ---------- النشر ---------- */ ?>
     <div class="tqa-card tqa-section">
         <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
