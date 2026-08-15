@@ -1427,6 +1427,21 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 }
 .path-inbundle svg{color:var(--emerald);margin-block-start:.2em}
 
+/* «يفتح ابتداء من …» — أرخص باقة تفتح هذا البرنامج.
+   السطر رقم لا جملة: هو ما يقرر، فيرفع إلى حجم يقرأ وحده بلا أن تقرأ
+   السطر كله. وكانت البطاقة تقول «ضمن باقات تقدر» بلا رقم ولا اسم باقة —
+   وعد بلا باب، والزائر يخرج ليبحث عما كان يجب أن يجده هنا. */
+.path-from{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  margin:14px 0 10px;padding-block-start:12px;border-block-start:1px solid var(--gold-line-soft)
+}
+.path-from span{font-size:clamp(11.5px,.85vw,13px);color:var(--ink-3)}
+.path-from b{
+  font-family:'Cairo',sans-serif;font-weight:800;color:var(--petrol);
+  font-size:clamp(19px,1.9vw,27px);unicode-bidi:isolate
+}
+.path-buy .btn--block+.btn--block{margin-block-start:8px}
+
 /* ══════════════════════════════════════════════════════════════════
    TQ-STAGE-TABS · اختيار المرحلة قبل الموازنة بين الدرجات
    ══════════════════════════════════════════════════════════════════ */
@@ -2075,6 +2090,12 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 .faq2__i[open]>summary svg{transform:rotate(180deg)}
 .faq2__i>p{margin:0;padding:0 16px 14px;color:var(--ink-2);font-size:.92rem;line-height:1.75}
 
+/* ── باقات أخرى: شبكة البطاقات تحت الصفحة ───────────────────────
+   لا قاعدة للشبكة نفسها هنا — هي `.cgrid` عينها التي يرسم بها الكتالوج،
+   فتتبعه في العرض والفجوة وحد البطاقة بلا سطر يكرر. وهذا وحده المكتوب:
+   رابط «شاهد الباقات كلها» تحتها، ورأس القسم يوسط بـ`.section-head`. */
+.plan-rel__all{margin-block-start:clamp(18px,2vw,28px);text-align:center}
+
 /* ── نداء ختامي ─────────────────────────────────────────────── */
 .plan-cta__in{
   position:relative;overflow:hidden;isolation:isolate;
@@ -2583,3 +2604,438 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 }
 /* مساحة تكفي السهم: `22px` تترك آخر حرف يلامسه في الأسماء الطويلة */
 .form-field:has(select) select{ padding-inline-end:26px }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-CATALOG · الكتالوج الموحد
+   أربعة أنواع في شبكة واحدة، ولوحة مرشحات إلى جانبها.
+   والقيم كلها من التوكنات: لون مباشر هنا يخرج عن الهوية بلا أن يظهر
+   ذلك إلا بالمقارنة البصرية.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ---------- شريط الأدوات ---------- */
+.cbar{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  gap:clamp(8px,1vw,14px);
+  align-items:center;
+  margin-block-end:clamp(18px,2vw,28px)
+}
+.cbar__search{
+  position:relative;display:flex;align-items:center;
+  background:var(--paper);border:1px solid var(--gold-line);
+  border-radius:999px;padding-inline:clamp(14px,1.4vw,20px);
+  box-shadow:var(--sh-soft);
+  transition:border-color .18s ease,box-shadow .18s ease
+}
+.cbar__search:focus-within{border-color:var(--gold);box-shadow:var(--sh-card)}
+.cbar__search > svg{
+  inline-size:clamp(16px,1.4vw,20px);block-size:clamp(16px,1.4vw,20px);
+  color:var(--gold-deep);flex:none
+}
+.cbar__search input{
+  flex:1;min-inline-size:0;border:0;background:none;outline:none;
+  font:inherit;color:var(--ink);
+  padding-block:clamp(11px,1.15vw,15px);padding-inline:10px
+}
+.cbar__search input::placeholder{color:var(--ink-3)}
+/* زر المسح لا يظهر إلا وفي الصندوق نص — وإخفاؤه بـ`hidden` من السكربت */
+.cbar__clear{
+  flex:none;display:grid;place-items:center;
+  inline-size:26px;block-size:26px;border-radius:999px;
+  background:var(--beige);color:var(--ink-2)
+}
+.cbar__clear:hover{background:var(--gold-line-soft);color:var(--ink)}
+.cbar__clear svg{inline-size:12px;block-size:12px}
+
+.cbar__sort{position:relative;display:flex;align-items:center}
+.cbar__sort select{
+  appearance:none;-webkit-appearance:none;font:inherit;cursor:pointer;
+  color:var(--ink);background:var(--paper);
+  border:1px solid var(--gold-line);border-radius:999px;
+  padding-block:clamp(11px,1.15vw,15px);
+  padding-inline:clamp(16px,1.5vw,22px) clamp(34px,3vw,42px);
+  box-shadow:var(--sh-soft)
+}
+.cbar__sort select:hover{border-color:var(--gold)}
+.cbar__sort > svg{
+  position:absolute;inset-inline-end:14px;pointer-events:none;
+  inline-size:14px;block-size:14px;color:var(--gold-deep);
+  transform:rotate(90deg)
+}
+.cbar__go{white-space:nowrap}
+@media (max-width:760px){
+  .cbar{grid-template-columns:1fr}
+  .cbar__sort select{inline-size:100%}
+}
+
+/* ---------- الهيكل: لوحة ثم شبكة ---------- */
+.cwrap{
+  display:grid;
+  grid-template-columns:clamp(240px,22vw,310px) minmax(0,1fr);
+  gap:clamp(16px,2vw,30px);
+  align-items:start
+}
+.cwrap__toggle{display:none}
+.crail{
+  position:sticky;top:calc(var(--header-h) + 16px);
+  background:var(--paper);border:1px solid var(--gold-line-soft);
+  border-radius:var(--r-card);padding:clamp(16px,1.6vw,22px);
+  box-shadow:var(--sh-soft);
+  max-block-size:calc(100vh - var(--header-h) - 32px);
+  overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin
+}
+.cmain{min-inline-size:0}
+.ccount{
+  color:var(--ink-2);font-size:clamp(12px,.92vw,14px);
+  margin-block-end:clamp(10px,1.2vw,16px)
+}
+.ccount b{color:var(--ink);font-family:'Cairo',sans-serif;font-weight:700}
+
+/* الشبكة تومض قليلا وهي تنتظر الرد: بلا إشارة يظن الزائر أن نقرته ضاعت */
+#catGrid{transition:opacity .18s ease}
+#catGrid.is-loading{opacity:.45;pointer-events:none}
+
+/* ---------- لوحة المرشحات ---------- */
+.cfilters__head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding-block-end:12px;margin-block-end:6px;
+  border-block-end:1px solid var(--gold-line-soft)
+}
+.cfilters__title{
+  display:flex;align-items:center;gap:8px;margin:0;
+  font-size:clamp(13.5px,1.05vw,16px)
+}
+.cfilters__title svg{inline-size:1.05em;block-size:1.05em;color:var(--gold-deep)}
+.cfilters__clear{
+  font-size:clamp(11px,.85vw,12.5px);font-weight:700;
+  color:var(--gold-text);white-space:nowrap
+}
+.cfilters__clear:hover{text-decoration:underline}
+.cfilters__note{
+  display:flex;gap:8px;align-items:flex-start;
+  margin-block-start:14px;padding-block-start:12px;
+  border-block-start:1px solid var(--gold-line-soft);
+  color:var(--ink-3);font-size:clamp(10.5px,.8vw,12px);line-height:1.65
+}
+.cfilters__note svg{inline-size:1.1em;block-size:1.1em;color:var(--gold-deep);
+  flex:none;margin-block-start:.22em}
+
+.cfil{border-block-end:1px solid var(--gold-line-soft);padding-block:10px}
+.cfil:last-of-type{border-block-end:0}
+.cfil__label{
+  font-family:'Cairo',sans-serif;font-weight:700;color:var(--ink);
+  font-size:clamp(12px,.92vw,14px);margin-block-end:9px
+}
+.cfil__sum{
+  display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;
+  font-family:'Cairo',sans-serif;font-weight:700;color:var(--ink);
+  font-size:clamp(12px,.92vw,14px);padding-block:4px
+}
+.cfil__sum::-webkit-details-marker{display:none}
+.cfil__ico{inline-size:1.05em;block-size:1.05em;color:var(--gold-deep);flex:none}
+.cfil__sum > span{flex:1}
+/* نقطة تقول «هنا مرشح مضغوط» — تقرأ والقائمة مطوية */
+.cfil__dot{
+  inline-size:7px;block-size:7px;border-radius:50%;
+  background:var(--emerald);flex:none
+}
+.cfil__chev{
+  inline-size:13px;block-size:13px;color:var(--ink-3);flex:none;
+  transform:rotate(90deg);transition:transform .18s ease
+}
+.cfil[open] .cfil__chev{transform:rotate(-90deg)}
+.cfil__list{
+  display:grid;gap:2px;margin-block-start:6px;
+  max-block-size:238px;overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin
+}
+
+.copt{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 8px;border-radius:10px;cursor:pointer;
+  color:var(--ink-2);font-size:clamp(11.5px,.88vw,13.5px);
+  transition:background .15s ease,color .15s ease
+}
+.copt:hover{background:var(--beige);color:var(--ink)}
+.copt__box{
+  inline-size:16px;block-size:16px;border-radius:5px;flex:none;
+  border:1.5px solid var(--gold-line);background:var(--paper);
+  display:grid;place-items:center;
+  transition:background .15s ease,border-color .15s ease
+}
+.copt__box svg{inline-size:10px;block-size:10px;color:#fff;opacity:0}
+.copt__t{flex:1;min-inline-size:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copt__n{
+  flex:none;color:var(--ink-3);font-size:.85em;
+  background:var(--beige);border-radius:999px;padding:1px 8px
+}
+.copt.is-on{color:var(--ink);font-weight:600}
+.copt.is-on .copt__box{background:var(--petrol);border-color:var(--petrol)}
+.copt.is-on .copt__box svg{opacity:1}
+.copt.is-on .copt__n{background:var(--gold-line-soft);color:var(--gold-text)}
+
+/* ---------- الرقائق: النوع والسعر ---------- */
+.cchips{display:flex;flex-wrap:wrap;gap:7px}
+.cchip{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(11px,.85vw,13px);
+  padding:7px 13px;border-radius:999px;
+  border:1px solid var(--gold-line);background:var(--paper);color:var(--ink-2);
+  transition:background .16s ease,color .16s ease,border-color .16s ease
+}
+.cchip:hover{border-color:var(--gold);color:var(--ink)}
+.cchip b{
+  font-weight:700;font-size:.85em;color:var(--ink-3);
+  background:var(--beige);border-radius:999px;padding:0 6px
+}
+.cchip.is-on{background:var(--petrol);border-color:var(--petrol);color:#fff}
+.cchip.is-on b{background:rgba(255,255,255,.18);color:var(--gold-on-dark)}
+
+/* ---------- ما هو مفعل الآن ---------- */
+.cactive{display:flex;flex-wrap:wrap;gap:7px;margin-block-end:clamp(12px,1.4vw,18px)}
+.cactive__i{
+  display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+  font-size:clamp(11px,.85vw,12.5px);font-weight:600;
+  padding:6px 12px;border-radius:999px;
+  background:var(--beige);border:1px solid var(--gold-line-soft);color:var(--ink-2);
+  transition:background .16s ease,color .16s ease
+}
+.cactive__i:hover{background:var(--gold-line-soft);color:var(--ink)}
+.cactive__i svg{inline-size:11px;block-size:11px;color:var(--gold-deep)}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-CCARD · البطاقة، ووجهها يختلف بالنوع
+   البنية واحدة (`tqs_cat_card`) و`data-kind` يقرر اللون والوجه —
+   فأربع بطاقات لا تعني أربعة قوالب تتباعد عند أول تعديل.
+   ══════════════════════════════════════════════════════════════════ */
+.cgrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(clamp(210px,17vw,250px),1fr));
+  gap:clamp(12px,1.4vw,20px)
+}
+.ccard{
+  position:relative;display:flex;flex-direction:column;
+  background:var(--paper);border:1px solid var(--gold-line-soft);
+  border-radius:var(--r-card);overflow:hidden;box-shadow:var(--sh-soft);
+  transition:transform var(--t-entry) var(--ease),box-shadow var(--t-entry) var(--ease),
+             border-color var(--t-entry) var(--ease)
+}
+.ccard:hover{transform:translateY(-7px);box-shadow:var(--sh-raise);border-color:var(--gold-line)}
+/* خط اللون يقول النوع قبل أن تقرأ الرقاقة */
+.ccard::before{
+  content:'';position:absolute;inset-block-start:0;inset-inline:0;
+  block-size:3px;background:var(--kind);z-index:2
+}
+.ccard[data-kind='plan']       {--kind:var(--gold)}
+.ccard[data-kind='path']       {--kind:var(--emerald)}
+/* الكورس بلون البترول الأساسي — أقرب إلى البرنامج في العين لأنه أقرب
+   إليه في المعنى: البرنامج واجهة الكورس، والكورس دروسه. ولون بعيد
+   بينهما يقرأ نوعين لا صلة بينهما. */
+.ccard[data-kind='course']     {--kind:var(--petrol)}
+.ccard[data-kind='book']       {--kind:var(--petrol-lift)}
+.ccard[data-kind='competition']{--kind:var(--gold-deep)}
+
+/* الرابط طبقة تغطي البطاقة: لف البطاقة كلها في `<a>` يجعل قارئ الشاشة
+   يقرأ العنوان والوصف والعدادات نصا لرابط واحد. */
+.ccard__hit{position:absolute;inset:0;z-index:4}
+.ccard__hit:focus-visible{outline:2px solid var(--gold-deep);outline-offset:-4px;border-radius:var(--r-card)}
+
+.ccard__media{position:relative;aspect-ratio:16/10;overflow:hidden;background:var(--beige)}
+.ccard__media img{inline-size:100%;block-size:100%;object-fit:cover;display:block;
+  transition:transform var(--t-entry) var(--ease)}
+.ccard:hover .ccard__media img{transform:scale(1.05)}
+
+/* الكتاب: غلاف واقف على لوح بلون مادته — نسبته الرأسية تحفظ داخل
+   الإطار العريض نفسه، فلا يطول صف الشبكة لأجل نوع واحد. */
+/* الأرضية ترث من `.book-card__cover` — الوسم يحمل الصنفين معا،
+   وإعادة كتابتها هنا لونان حرفيان يفترقان عند أول تعديل في أحدهما. */
+.ccard__media--book{
+  aspect-ratio:16/10;display:grid;place-items:center;padding:12px
+}
+.ccard__media--book img{
+  inline-size:auto;block-size:100%;max-inline-size:100%;
+  object-fit:contain;border-radius:4px;
+  box-shadow:0 10px 22px -12px rgba(5,44,43,.55)
+}
+.ccard__media--book .book-card__label{font-size:clamp(11.5px,.95vw,14px);max-width:70%}
+.ccard__media--comp{
+  display:grid;place-items:center;
+  background:linear-gradient(150deg,var(--petrol),var(--petrol-deep))
+}
+.ccard__media--comp svg{
+  inline-size:clamp(34px,3.4vw,50px);block-size:clamp(34px,3.4vw,50px);
+  color:var(--gold-warm);opacity:.9
+}
+
+.ccard__kind{
+  position:absolute;z-index:3;inset-block-start:10px;inset-inline-start:10px;
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(9.5px,.72vw,11px);
+  padding:4px 10px;border-radius:999px;
+  background:rgba(252,248,244,.94);color:var(--ink);
+  box-shadow:0 3px 10px -5px rgba(5,44,43,.5)
+}
+.ccard__kind svg{inline-size:11px;block-size:11px;color:var(--kind)}
+.ccard__flag{
+  position:absolute;z-index:3;inset-block-start:10px;inset-inline-end:10px;
+  background:var(--gold);color:#17240F;font-weight:800;
+  font-size:clamp(9.5px,.72vw,11px);padding:4px 10px;border-radius:999px;
+  white-space:nowrap;box-shadow:0 3px 10px -5px rgba(1,33,31,.6)
+}
+
+.ccard__body{
+  display:flex;flex-direction:column;gap:7px;flex:1;
+  padding:clamp(12px,1.2vw,17px)
+}
+.ccard__tag{
+  align-self:flex-start;font-size:clamp(9.5px,.74vw,11.5px);font-weight:700;
+  color:var(--gold-text);background:var(--beige);
+  border-radius:999px;padding:2px 9px
+}
+.ccard__title{font-size:clamp(12.5px,1vw,15px);line-height:1.55;margin:0}
+.ccard__blurb{
+  color:var(--ink-3);font-size:clamp(10.5px,.8vw,12.5px);line-height:1.7;margin:0
+}
+.ccard__meta{
+  display:flex;flex-wrap:wrap;gap:5px 12px;
+  font-size:clamp(10px,.76vw,11.5px);color:var(--ink-3)
+}
+.ccard__meta span{display:inline-flex;align-items:center;gap:4px}
+.ccard__meta svg{inline-size:1em;block-size:1em;color:var(--kind);flex:none}
+
+.ccard__foot{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin-block-start:auto;padding-block-start:10px;
+  border-block-start:1px solid var(--gold-line-soft)
+}
+.ccard__price{
+  display:flex;align-items:baseline;gap:4px;margin:0;
+  font-family:'Cairo',sans-serif;font-weight:800;color:var(--petrol);
+  font-size:clamp(15px,1.35vw,20px);line-height:1
+}
+.ccard__price span{font-size:.58em;font-weight:700;color:var(--ink-2)}
+.ccard__price--free{color:var(--emerald);font-size:clamp(11px,.85vw,13px)}
+.ccard__price--in{color:var(--ink-3);font-weight:700;font-size:clamp(10.5px,.8vw,12.5px)}
+.ccard__cta{
+  display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+  font-family:'Cairo',sans-serif;font-weight:700;color:var(--petrol);
+  font-size:clamp(10px,.78vw,12px)
+}
+.ccard__cta svg{inline-size:11px;block-size:11px;transition:transform .18s ease}
+.ccard:hover .ccard__cta svg{transform:translateX(-3px)}
+html[dir='ltr'] .ccard:hover .ccard__cta svg{transform:translateX(3px)}
+@media (max-width:520px){
+  .ccard__foot{flex-direction:column;align-items:flex-start;gap:6px}
+}
+
+/* ---------- الترقيم ---------- */
+.cpager{
+  display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;
+  margin-block-start:clamp(22px,2.6vw,36px)
+}
+.cpager__i{
+  display:grid;place-items:center;cursor:pointer;
+  min-inline-size:38px;block-size:38px;padding-inline:10px;
+  border-radius:12px;border:1px solid var(--gold-line-soft);
+  background:var(--paper);color:var(--ink-2);
+  font-family:'Cairo',sans-serif;font-weight:700;font-size:clamp(12px,.92vw,14px);
+  transition:background .16s ease,color .16s ease,border-color .16s ease
+}
+.cpager__i:hover{border-color:var(--gold);color:var(--ink)}
+.cpager__i.is-on{background:var(--petrol);border-color:var(--petrol);color:#fff}
+.cpager__i.is-off{opacity:.3;cursor:default}
+.cpager__i svg{inline-size:14px;block-size:14px}
+/* السهم يشير إلى وجهته — كما في الكاروسل */
+html[dir='rtl'] .cpager__i--next svg{transform:scaleX(-1)}
+html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
+.cpager__gap{color:var(--ink-3);padding-inline:2px}
+
+/* ---------- لا نتائج ---------- */
+.cempty{
+  display:grid;justify-items:center;gap:10px;text-align:center;
+  padding:clamp(34px,4.5vw,68px) clamp(18px,2vw,32px);
+  background:var(--paper);border:1px dashed var(--gold-line);
+  border-radius:var(--r-card)
+}
+.cempty__ico{
+  display:grid;place-items:center;
+  inline-size:clamp(46px,4.4vw,62px);aspect-ratio:1;border-radius:50%;
+  background:var(--beige);color:var(--gold-deep)
+}
+.cempty__ico svg{inline-size:46%;block-size:46%}
+.cempty h3{font-size:clamp(14px,1.2vw,18px)}
+.cempty p{color:var(--ink-3);font-size:clamp(11.5px,.88vw,13.5px);max-inline-size:46ch}
+.cempty .btn{margin-block-start:6px}
+
+/* ---------- الجوال: اللوحة خلف زر ---------- */
+@media (max-width:980px){
+  .cwrap{grid-template-columns:1fr}
+  .cwrap__toggle{
+    display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+    font-family:'Cairo',sans-serif;font-weight:700;
+    font-size:clamp(12.5px,1vw,14.5px);
+    padding:11px 20px;border-radius:999px;
+    border:1px solid var(--gold-line);background:var(--paper);color:var(--ink);
+    box-shadow:var(--sh-soft)
+  }
+  .cwrap__toggle svg{inline-size:16px;block-size:16px;color:var(--gold-deep)}
+  .cwrap__toggle b{
+    background:var(--petrol);color:#fff;border-radius:999px;
+    padding:0 7px;font-size:.82em
+  }
+  /* مطوية افتراضا: ثلاثة مرشحات مفتوحة فوق الشبكة تعني تمرير شاشتين
+     قبل أول بطاقة. و`.is-open` من السكربت — وبلا سكربت تبقى ظاهرة
+     لأن القاعدة تحتها تلغي الطي عند غياب الصنف `js`. */
+  html.js .crail{display:none}
+  html.js .crail.is-open{display:block}
+  .crail{position:static;max-block-size:none;overflow:visible}
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-BOOKFACE · غلاف الكتاب في صفحته المفردة
+   ══════════════════════════════════════════════════════════════════ */
+/* الغلاف يقيد بعرضه لا يملأ العمود: نسبة الكتاب رأسية، وعمود بعرض
+   خمسمئة بكسل يجعلها ستمئة طولا — لوح واحد يبتلع الشاشة، وزر التحميل
+   الذي جاء الزائر لأجله يهبط تحت الطية. */
+.bookface{
+  aspect-ratio:.78;border-radius:14px;overflow:hidden;
+  inline-size:100%;max-inline-size:290px;margin-inline:auto;
+  margin-block-end:clamp(12px,1.4vw,18px);
+  box-shadow:var(--sh-card)
+}
+.bookface img{inline-size:100%;block-size:100%;object-fit:cover}
+.bookface__free{
+  display:flex;gap:8px;align-items:center;margin:0 0 12px;
+  font-family:'Cairo',sans-serif;font-weight:700;color:var(--emerald);
+  font-size:clamp(12.5px,1vw,15px)
+}
+.bookface__free svg{inline-size:1.05em;block-size:1.05em;flex:none}
+.tq-inline-ico{inline-size:1.05em;block-size:1.05em;color:var(--gold-deep);
+  vertical-align:-.14em;margin-inline-end:6px}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-BUNDLE-CAROUSEL · الباقات في مضمار
+   البطاقة أعرض من شريحة البرنامج: فيها قائمة مزايا من سبعة بنود،
+   وثلاثمئة بكسل تكسر كل سطر منها سطرين.
+   ══════════════════════════════════════════════════════════════════ */
+.carousel2--bundles{padding-block-start:14px}
+.carousel2--bundles .carousel2__track{
+  align-items:stretch;
+  padding-block-start:14px;         /* شارة «الأكثر طلبا» تبرز فوق البطاقة */
+  /* المرحلة ثلاث باقات تسع الشاشة العريضة بلا تمرير، فتقف عند حافة
+     البداية وتترك ثلث الغلاف فارغا يقرأ خطأ في التخطيط لا اختيارا.
+     و`safe` تمنع أثرها الجانبي: التوسيط في حاوية ضيقة يقص أول عنصر
+     ولا يمكن التمرير إليه. والمتصفح الذي لا يعرفها يسقط الإعلان كله
+     فيعود إلى حافة البداية — وهو ما كان. */
+  justify-content:safe center
+}
+.carousel2--bundles .carousel2__track > *{
+  flex:0 0 clamp(280px,31vw,400px)
+}
+/* الإبراز برفع البطاقة يقص في مضمار له `overflow`، فيصير بالإطار وحده */
+@media (min-width:981px){
+  .carousel2--bundles .bundle--featured{transform:none}
+}

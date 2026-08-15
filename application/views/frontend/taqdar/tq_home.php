@@ -62,7 +62,7 @@ include 'portal_open.php';
                     <p class="tq-body">
                         اختر كورسك الأول، وسيظهر هنا زر يعيدك إلى آخر درس توقفت عنده بالضبط.
                     </p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('catalog'); ?>">
                         تصفح الكورسات
                     </a>
                 <?php endif; ?>
@@ -137,7 +137,7 @@ include 'portal_open.php';
                         'لم تسجل في كورس بعد',
                         'الكورسات التي تسجل فيها تظهر هنا مع عدد دروسها ومدتها ونسبة إتمامك لها.',
                         'تصفح الكورسات',
-                        base_url('plans')
+                        base_url('catalog')
                     ); ?>
                 </div>
             <?php else: ?>

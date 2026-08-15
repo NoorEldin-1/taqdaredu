@@ -22,7 +22,7 @@ $tq_cats = $tq_ci->tq_m->categories();
     <?php if ($tq_cats): ?>
       <div class="stage-picker">
         <?php foreach ($tq_cats as $tq_c): ?>
-          <a class="stage-card reveal" href="<?php echo base_url('plans'); ?>?cat=<?php echo html_escape($tq_c['id']); ?>">
+          <a class="stage-card reveal" href="<?php echo base_url('catalog'); ?>?cat=<?php echo html_escape($tq_c['id']); ?>">
             <span class="ico"><svg aria-hidden="true"><use href="#<?php echo html_escape($tq_c['icon']); ?>"></use></svg></span>
             <b><?php echo html_escape($tq_c['label']); ?></b>
             <span><?php

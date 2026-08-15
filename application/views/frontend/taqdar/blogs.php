@@ -140,7 +140,7 @@ css: pages
       <div class="cta__copy">
         <h2>رحلة التعلم لا تتوقف</h2>
         <p>ابدأ اليوم في تطوير مهاراتك ومهارات أطفالك</p>
-        <a class="btn btn--gold" href="<?php echo base_url('plans'); ?>">استكشف المواد والبرامج</a>
+        <a class="btn btn--gold" href="<?php echo base_url('catalog'); ?>">استكشف المواد والبرامج</a>
       </div>
       <div class="cta__art">
         <img src="<?php echo tq_site_asset('img/cta-kids-cut.webp'); ?>" width="660" height="990" loading="lazy"

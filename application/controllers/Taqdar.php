@@ -1934,7 +1934,6 @@ class Taqdar extends CI_Controller
     public function site_page($name = '')
     {
         $allowed = array(
-            'site_books'    => 'كتب المنهج',
             'site_teachers' => 'المعلمون',
             'site_students' => 'الطلاب',
             'site_parents'  => 'أولياء الأمور',
@@ -1942,6 +1941,111 @@ class Taqdar extends CI_Controller
         if (!isset($allowed[$name])) show_404();
 
         $this->show($name, $allowed[$name]);
+    }
+
+    /* ---- الكتالوج الموحد ----------------------------------------- */
+
+    /**
+     * كل ما تقدمه المنصة في صفحة واحدة.
+     *
+     * كان لكل نوع بابه: البرامج في `/plans`، والكتب في `/books`،
+     * والمسابقات في `/competitions`. ومن يبحث عن «رياضيات الصف الرابع»
+     * لا يعرف أي باب يفتح — ولا مرشح في باب يشبه مرشح الباب الآخر.
+     *
+     * والحال هنا يعيش في **الرابط وحده**: المرشحات والبحث ورقم الصفحة
+     * كلها معاملات `GET`، فالنتيجة تشارك برابطها وتحفظ في المفضلة
+     * وترجع بزر «رجوع». والبحث الحي في `site.js` يكتب الرابط نفسه
+     * بـ`pushState` ثم يستبدل الجزء — فلا حالة ثانية في الجافاسكربت
+     * تفترق عما يفهمه الخادم.
+     */
+    public function catalog()
+    {
+        $this->load->model('taqdar_catalog_model', 'tq_cat');
+        $f   = $this->tq_cat->filters_from($this->input->get());
+        $res = $this->tq_cat->search($f);
+
+        $this->show('site_catalog', 'المواد والبرامج التعليمية', array(
+            'tq_f'   => $f,
+            'tq_res' => $res,
+        ));
+    }
+
+    /**
+     * جزء النتائج وحده — لصندوق البحث الحي والمرشحات والترقيم.
+     *
+     * يعيد **الوسم مطبوعا من المولدات نفسها** التي تطبع الصفحة الكاملة
+     * (`tqs_cat_card` · `tqs_cat_pager`)، فلا يفترق ما يراه من يبحث عما
+     * يراه من يفتح الرابط مباشرة. وثلاثة أجزاء لا واحد: الشبكة
+     * والمرشحات وسطر العد — لأن عدادات المرشحات تتغير مع كل بحث، ولوحة
+     * مرشحات تقول «الكتب (٨)» فوق نتيجة فيها كتاب واحد مرشد كاذب.
+     *
+     * والمخرج JSON لا HTML خام: الأجزاء ثلاثة، ورد واحد يحمل الثلاثة
+     * أوفر من ثلاثة طلبات، والرابط الجديد يرد معها فلا يحسب مرتين.
+     */
+    public function catalog_results()
+    {
+        $this->load->model('taqdar_catalog_model', 'tq_cat');
+        $f   = $this->tq_cat->filters_from($this->input->get());
+        $res = $this->tq_cat->search($f);
+
+        $out = array(
+            'grid'    => $this->load->view('frontend/taqdar/site/site_catalog_grid',
+                                           array('tq_f' => $f, 'tq_res' => $res), true),
+            'filters' => $this->load->view('frontend/taqdar/site/site_catalog_filters',
+                                           array('tq_f' => $f, 'tq_res' => $res), true),
+            'count'   => tqs_cat_count_line($res),
+            'total'   => (int) $res['total'],
+            'page'    => (int) $res['page'],
+            'url'     => tqs_cat_query($f, array('page' => $res['page'])),
+        );
+
+        $this->output->set_content_type('application/json; charset=utf-8')
+                     ->set_output(json_encode($out, JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * صفحة الكتاب.
+     *
+     * الكتاب كان بطاقة وزر تحميل لا أكثر: لا وصف، ولا مؤلف، ولا رابط
+     * يشارك. وهو محتوى مجاني — أي أنه أول ما يصل إليه الزائر من محرك
+     * البحث، فصفحة له تعني بابا يدخل منه إلى بقية المنصة.
+     */
+    public function book_page($slug = '')
+    {
+        $this->load->model('taqdar_catalog_model', 'tq_cat');
+        $b = $this->tq_cat->book_by_slug($slug);
+        if (!$b) show_404();
+
+        $this->show('site_book', $b['title'], array(
+            'tq_book' => $b,
+            'tq_more' => $this->tq_cat->books_like($b, 4),
+        ));
+    }
+
+    /**
+     * صفحة المسابقة الواحدة.
+     *
+     * والتسجيل يبقى في `competition_join` نفسها: النموذج هنا يرسل إلى
+     * المسار ذاته الذي ترسل إليه صفحة القائمة، فلا مساران يكتبان في
+     * `competition_entries` بشرطين مختلفين.
+     */
+    public function competition_page($slug = '')
+    {
+        $this->load->model('taqdar_catalog_model', 'tq_cat');
+        $c = $this->tq_cat->competition_by_slug($slug);
+        if (!$c) show_404();
+
+        $mine = false;
+        $uid  = (int) $this->session->userdata('user_id');
+        if ($uid > 0) {
+            $mine = $this->db->where('competition_id', (int) $c['id'])->where('user_id', $uid)
+                             ->count_all_results('competition_entries') > 0;
+        }
+
+        $this->show('site_competition', $c['title'], array(
+            'tq_comp' => $c,
+            'tq_mine' => $mine,
+        ));
     }
 
     /**

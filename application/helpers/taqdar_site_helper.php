@@ -34,10 +34,14 @@ if (!function_exists('tqs_nav')) {
     /** روابط التنقل التسعة، وعلى الصفحة الحالية `aria-current`. */
     function tqs_nav($active = '')
     {
+        /* «المواد والبرامج» قبل «الباقات»: الزائر يتصفح قبل أن يشتري،
+           والترتيب في القائمة هو ترتيب الرحلة لا ترتيب الأهمية عندنا.
+           وبند الكتب حذف لا لأن الكتب حذفت بل لأنها صارت نوعا في
+           الكتالوج — وبند يقود إلى مرشح واحد من أربعة يقسم ما جمع. */
         $items = array(
             array('home',     '',          'الرئيسية'),
-            array('paths',    'plans',     'المواد والبرامج التعليمية'),
-            array('books',    'books',     'كتب المنهج'),
+            array('catalog',  'catalog',   'المواد والبرامج التعليمية'),
+            array('plans',    'plans',     'الباقات'),
             array('teachers', 'teachers',  'المعلمون'),
             array('students', 'students',  'الطلاب'),
             array('parents',  'parents',   'أولياء الأمور'),
@@ -555,14 +559,19 @@ if (!function_exists('tqs_nav_key')) {
     {
         $map = array(
             'home' => 'home', 'home_elegant' => 'home',
-            'courses_page' => 'paths', 'site_books' => 'books',
             'site_teachers' => 'teachers', 'site_students' => 'students',
             'site_parents' => 'parents', 'blogs' => 'blog', 'blog_details' => 'blog',
-            'about_us' => 'about', 'contact_us' => 'contact', 'site_path' => 'paths', 'plans' => 'paths', 'categories' => 'paths',
-            /* صفحة الدورة تحت «المواد والبرامج» في ذهن الزائر: منها جاء
-               وإليها يعود، فيبقى البند مضاء تحته وهو فيها. */
-            'course_page' => 'paths',
-            'competitions' => 'competitions', 'instructor_page' => 'teachers', 'site_search' => '',
+            'about_us' => 'about', 'contact_us' => 'contact',
+            /* الكتالوج ومفرداته: البرنامج والكتاب صفحتا تفصيل يصلهما
+               الزائر من الكتالوج وإليه يعود، فيبقى بنده مضاء وهو فيهما.
+               وصفحة الدورة معهما لأنها آخر ما يفتح من البرنامج. */
+            'site_catalog' => 'catalog', 'site_path' => 'catalog', 'site_book' => 'catalog',
+            'courses_page' => 'catalog', 'course_page' => 'catalog', 'categories' => 'catalog',
+            /* الباقة وشاشة تأكيدها تحت «الباقات» — وهو الفرق الذي بني
+               عليه فصل الصفحتين: التصفح باب، والشراء باب آخر. */
+            'plans' => 'plans', 'site_plan' => 'plans', 'site_checkout' => 'plans',
+            'competitions' => 'competitions', 'site_competition' => 'competitions',
+            'instructor_page' => 'teachers', 'site_search' => '',
         );
         $k = (string) $page_name;
         return isset($map[$k]) ? $map[$k] : '';
@@ -749,10 +758,11 @@ if (!function_exists('tqs_carousel')) {
      * أساسه `scroll-snap` لا جافاسكربت يحرك: المتصفح يعرف السحب والزخم
      * وحد التمرير أحسن مما نكتب، ويعمل بلا سكربت إن فشل تحميله.
      */
-    function tqs_carousel($inner, $label = '')
+    function tqs_carousel($inner, $label = '', $class = '')
     {
         if (trim((string) $inner) === '') return '';
-        $h  = '<div class="carousel2" data-tq-carousel>' . "\n";
+        $h  = '<div class="carousel2' . ($class !== '' ? ' ' . html_escape($class) : '')
+            . '" data-tq-carousel>' . "\n";
         $h .= '  <button class="carousel2__nav carousel2__nav--prev" type="button" data-tq-car-prev'
             . ' aria-label="السابق"><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>' . "\n";
         $h .= '  <div class="carousel2__track" data-tq-car-track tabindex="0" role="region"'
@@ -981,7 +991,15 @@ if (!function_exists('tqs_competitions_strip')) {
 }
 
 if (!function_exists('tqs_stage_label')) {
-    /** اسم المرحلة من مفتاحها — موضع واحد للأسماء، تقرؤه البطاقة والتبويب. */
+    /**
+     * اسم المرحلة من مفتاحها — موضع واحد للأسماء، تقرؤه البطاقة والتبويب.
+     *
+     * والمفتاح **مسمى قسم** (`category.slug`): `Taqdar_catalog_model` يبحث
+     * به في `cat_by_slug()` ليضع الباقة تحت مرشح المرحلة في الكتالوج. فمن
+     * أضاف قسما جديدا في اللوحة — «اختبارات القدرات» مثلا — وأسند إليه
+     * باقة، كان يرى `qudurat` نصا لاتينيا وسط عربية الصفحة. فالثلاثة
+     * المعروفة تجاب بلا استعلام، وما عداها يسأل عنه الجدول مرة واحدة.
+     */
     function tqs_stage_label($key)
     {
         $labels = array(
@@ -990,7 +1008,22 @@ if (!function_exists('tqs_stage_label')) {
             'secondary' => 'المرحلة الثانوية',
         );
         $k = (string) $key;
-        return isset($labels[$k]) ? $labels[$k] : $k;
+        if ($k === '') return '';
+        if (isset($labels[$k])) return $labels[$k];
+
+        static $cats = null;
+        if ($cats === null) {
+            $cats = array();
+            $CI = get_instance();
+            $CI->load->database();
+            try {
+                foreach ($CI->db->select('slug, name')->where('parent', 0)
+                                ->get('category')->result_array() as $r) {
+                    $cats[(string) $r['slug']] = (string) $r['name'];
+                }
+            } catch (Exception $e) { /* اسم ناقص أهون من صفحة بيضاء */ }
+        }
+        return isset($cats[$k]) ? $cats[$k] : $k;
     }
 }
 

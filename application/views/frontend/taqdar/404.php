@@ -24,8 +24,8 @@ include __DIR__ . '/site/site_pagehero.php';
         <button class="btn btn--primary btn--sm" type="submit">بحث</button>
       </form>
       <div class="hero__cta" style="justify-content:center;flex-wrap:wrap">
-        <a class="btn btn--primary" href="<?php echo base_url('plans'); ?>">المواد والبرامج</a>
-        <a class="btn btn--ghost" href="<?php echo base_url('books'); ?>">كتب المنهج</a>
+        <a class="btn btn--primary" href="<?php echo base_url('catalog'); ?>">المواد والبرامج</a>
+        <a class="btn btn--ghost" href="<?php echo base_url('plans'); ?>">الباقات</a>
         <a class="btn btn--ghost" href="<?php echo base_url(); ?>">الصفحة الرئيسية</a>
       </div>
       <p class="tq-caption" style="margin-block-start:1.2rem">

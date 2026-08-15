@@ -18,8 +18,8 @@ $tq_in  = (int) $this->session->userdata('user_id') > 0;   /* مطابق لـsit
 
 $tq_tabs = array(
     array('home',     base_url(),           'الرئيسية',  null),
-    array('paths',    base_url('plans'),  'البرامج',  'i-grid'),
-    array('books',    base_url('books'),    'الكتب',     'i-book'),
+    array('catalog',  base_url('catalog'),  'المواد',   'i-grid'),
+    array('plans',    base_url('plans'),    'الباقات',  'i-card'),
     array('teachers', base_url('teachers'), 'المعلمون', 'i-teacher'),
     array('',         $tq_in ? base_url('student') : base_url('login'),
                       $tq_in ? 'حسابي' : 'دخول', 'i-user'),

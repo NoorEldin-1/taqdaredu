@@ -181,7 +181,10 @@ deploy() {
   #   يعني حالةً مكسورة تُعالَج فورًا بالرجوع (انظر الأسفل).
   echo "🩺 [7/7] فحص دخانيّ..."
   local ok=1
-  for path in / /plans /login; do
+  # `/catalog` مع `/plans`: الكتالوج الموحد صفحة يقرأ فيها أربعة جداول
+  # ونموذج ترشيح كامل، فهو أكثر ما يكسره تعديل — وصفحة الباقات وحدها
+  # لا تمر به.
+  for path in / /catalog /plans /login; do
     local code
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "https://taqdaredu.com${path}" || echo 000)
     printf "   %-10s → %s\n" "$path" "$code"

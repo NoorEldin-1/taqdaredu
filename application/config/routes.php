@@ -183,7 +183,21 @@ $route['parent/(:any)']          = 'taqdar/parent_portal/$1';
 $route['courses']                = 'home/courses';
 $route['courses/(:any)']         = 'home/courses/$1';
 $route['course/(:any)']          = 'home/course/$1';
-$route['books']                   = 'taqdar/site_page/site_books';
+// ---- الكتالوج الموحد ----
+// `catalog/results` قبل `catalog`: هما مساران مستقلان لا واحد بوسيط،
+// وترتيبهما هنا لا يضر — لكن الأخص أولا هو القاعدة المتبعة في هذا
+// الملف كله، فلا يقرأ لاحق أن الترتيب اعتباطي فيبدله.
+// وجزء النتائج **مسار مستقل** لا معامل على الصفحة: صفحة كاملة ترد على
+// طلب يريد شبكة بطاقات تحمل الترويسة والتذييل والأصول كلها في كل حرف
+// يكتبه الزائر في صندوق البحث.
+$route['catalog/results']      = 'taqdar/catalog_results';
+$route['catalog']              = 'taqdar/catalog';
+$route['book/(:any)']          = 'taqdar/book_page/$1';
+$route['competition/(:any)']   = 'taqdar/competition_page/$1';
+// `books` كانت صفحة الكتب وحدها، وصارت الكتب نوعا في الكتالوج.
+// و`.htaccess` يحولها بـ301؛ وهذه القاعدة احتياط لو عطل التحويل —
+// فيصل الزائر إلى الكتب مرشحة بدل 404.
+$route['books']                = 'taqdar/catalog';
 $route['instructor/(:num)']    = 'taqdar/instructor_page/$1';
 $route['teachers']                = 'taqdar/site_page/site_teachers';
 $route['students']                = 'taqdar/site_page/site_students';

@@ -46,8 +46,12 @@ $tq_is_portal = isset($page_name)
    ومن صفحة المعلم ومن نتائج البحث: فيهبط من ترويسة الموقع العشرية إلى
    ترويسة الثيم القديمة السداسية، ومن الخلفية الكريمية إلى بيضاء. لا شيء
    يقول له إنه غادر الموقع — لأنه لم يغادره. */
-$tq_site_pages = array('home', 'home_elegant', 'courses_page', 'course_page', 'site_books', 'site_teachers', 'site_students', 'site_parents', 'blogs', 'about_us', 'contact_us', 'site_path', 'login', 'sign_up', 'forgot_password',
-    'change_password_from_forgot_password', 'verification_code', 'terms_and_condition', 'privacy_policy', 'refund_policy', 'website_faq', '404', 'plans', 'categories', 'blog_details', 'instructor_page', 'competitions', 'site_search', 'site_plan', 'site_checkout');
+$tq_site_pages = array('home', 'home_elegant', 'courses_page', 'course_page', 'site_teachers', 'site_students', 'site_parents', 'blogs', 'about_us', 'contact_us', 'site_path', 'login', 'sign_up', 'forgot_password',
+    'change_password_from_forgot_password', 'verification_code', 'terms_and_condition', 'privacy_policy', 'refund_policy', 'website_faq', '404', 'plans', 'categories', 'blog_details', 'instructor_page', 'competitions', 'site_search', 'site_plan', 'site_checkout',
+    /* الكتالوج وصفحتا مفرداته: بلا إدراجها هنا تفتح بترويسة الثيم
+       القديمة وخلفية بيضاء — يهبط الزائر من الموقع إلى موقع آخر بلا
+       شيء يقول له إنه غادر، لأنه لم يغادره. */
+    'site_catalog', 'site_book', 'site_competition');
 $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_site_pages, true);
 ?>
 <!DOCTYPE html>

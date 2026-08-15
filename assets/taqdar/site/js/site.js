@@ -76,7 +76,7 @@ document.documentElement.classList.add('js');
      أفقيا **لا تتقاطع أبدا** وتبقى شفافة حتى يسحبها المستخدم — ثم
      تظهر متأخرة. فالمراقب هنا لا يؤخر الظهور، بل يمنعه. */
   items = items.filter(function (el) {
-    if (el.closest('.carousel')) { el.classList.add('is-in'); return false; }
+    if (el.closest('.carousel, .carousel2')) { el.classList.add('is-in'); return false; }
     return true;
   });
 
@@ -501,6 +501,20 @@ document.documentElement.classList.add('js');
     }
     track.addEventListener('scroll', sync, { passive: true });
     addEventListener('resize', sync);
+
+    /* TQ-CAROUSEL-HIDDEN — الشرائح قد تخفى وتظهر تحت الكاروسل نفسه:
+       تبويب المرحلة في صفحة الباقات يخفي ما ليس مرحلته، فيتغير
+       `scrollWidth` بلا تمرير ولا تغيير حجم — والزران يبقيان على حالهما
+       الأول: «التالي» معطل وثلاث بطاقات وراءه، أو مفعل ولا شيء بعده.
+       والمضمار يعاد إلى أوله أيضا: من كان في آخر مرحلة ثم بدلها يجد
+       نفسه في فراغ بعد آخر بطاقة. */
+    if ('MutationObserver' in window) {
+      new MutationObserver(function () {
+        track.scrollTo({ left: 0, behavior: 'auto' });
+        sync();
+      }).observe(track, { attributes: true, subtree: true, attributeFilter: ['hidden'] });
+    }
+
     sync();
   });
 })();
@@ -861,4 +875,206 @@ document.documentElement.classList.add('js');
       if (e.target.name && e.target.value !== '') check(e.target, form);
     }, true);
   });
+})();
+
+/* ---- الكتالوج: بحث حي ومرشحات وترقيم ---------------------------------
+   ═══ لماذا لا يرشح في المتصفح ═══
+
+   الترشيح في الجافاسكربت يعني نسخة ثانية من قواعد الترشيح: واحدة في
+   `Taqdar_catalog_model` وأخرى هنا. وهما تفترقان عند أول تعديل — يضاف
+   نوع خامس في الخادم فيراه من يفتح الرابط ولا يراه من يكتب في صندوق
+   البحث. وأسوأ منه: عدادات المرشحات لا تحسب في المتصفح إلا على ما نزل
+   منها فعلا، وقد نزلت اثنتا عشرة بطاقة من إحدى وثلاثين.
+
+   فالخادم يرشح، وهذه الكتلة تجلب الجزء وتستبدله. والحال في **الرابط
+   وحده**: لا كائن حال هنا يمكن أن يفترق عما يفهمه الخادم. وكل نقرة
+   تكتب الرابط ثم تجلب منه — والرجوع بزر المتصفح يمر بالطريق نفسه.
+
+   ═══ ويعمل بلا هذا الملف ═══
+
+   كل خيار رابط `<a>` وكل بحث نموذج `GET`. فمن عطل الجافاسكربت أو تعثر
+   تحميله رأى الصفحة كاملة تعاد تحميلا — بالنتيجة نفسها. */
+(function () {
+  var grid = document.querySelector('[data-tq-cat-grid]');
+  if (!grid) return;
+
+  var endpoint = grid.getAttribute('data-tq-cat-grid');
+  if (!endpoint) return;
+
+  var form    = document.querySelector('[data-tq-cat-form]');
+  var input   = document.querySelector('[data-tq-cat-q]');
+  var sorter  = document.querySelector('[data-tq-cat-sort]');
+  var rail    = document.querySelector('[data-tq-cat-rail-box]');
+  var railBtn = document.querySelector('[data-tq-cat-rail]');
+  var counter = document.getElementById('catCount');
+  var goBtn   = document.querySelector('[data-tq-cat-go]');
+  var clrBtn  = document.querySelector('[data-tq-cat-clear]');
+
+  /* زر «ابحث» لمن لا سكربت عنده: هنا يبحث وقت الكتابة فلا معنى له.
+     ويخفى من هنا لا من القالب — القالب لا يعرف أوصل هذا الملف أم لا. */
+  if (goBtn) goBtn.hidden = true;
+
+  var timer = null;
+  var ctrl  = null;
+  var seq   = 0;
+
+  function toggleClear() {
+    if (clrBtn && input) clrBtn.hidden = (input.value === '');
+  }
+
+  /** يستبدل الأجزاء الثلاثة معا — والثلاثة من رد واحد فلا تتفارق. */
+  function paint(data) {
+    grid.innerHTML = data.grid;
+    if (rail && typeof data.filters === 'string') rail.innerHTML = data.filters;
+    if (counter && typeof data.count === 'string') counter.innerHTML = data.count;
+
+    /* البطاقات الجديدة تظهر فورا: مراقب الظهور في أعلى الملف يعمل مرة
+       واحدة عند التحميل، فما حقن بعده يبقى شفافا إلى الأبد. */
+    var fresh = grid.querySelectorAll('.reveal');
+    for (var i = 0; i < fresh.length; i++) fresh[i].classList.add('is-in');
+    if (rail) {
+      var rf = rail.querySelectorAll('.reveal');
+      for (var j = 0; j < rf.length; j++) rf[j].classList.add('is-in');
+    }
+  }
+
+  /**
+   * يجلب النتيجة لرابط كتالوج ويستبدل الأجزاء.
+   *
+   * `mode`: push (نقرة تسجل في التاريخ) · replace (كتابة في صندوق البحث
+   * — تسجيل كل حرف يجعل زر الرجوع يمر بالكلمة حرفا حرفا) · none (رجوع).
+   */
+  function load(url, mode) {
+    var qs = url.indexOf('?') >= 0 ? url.slice(url.indexOf('?') + 1) : '';
+    var my = ++seq;
+
+    if (ctrl && typeof ctrl.abort === 'function') ctrl.abort();
+    ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+
+    grid.setAttribute('aria-busy', 'true');
+    grid.classList.add('is-loading');
+
+    fetch(endpoint + (qs ? '?' + qs : ''), {
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      signal: ctrl ? ctrl.signal : undefined
+    })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (data) {
+        /* رد متأخر لطلب سابق لا يكتب فوق رد أحدث: من يكتب بسرعة يصدر
+           طلبين، والشبكة لا تضمن ترتيب وصولهما. */
+        if (my !== seq) return;
+        paint(data);
+        var next = data.url || url;
+        if (mode === 'push')         history.pushState({ tq: 1 }, '', next);
+        else if (mode === 'replace') history.replaceState({ tq: 1 }, '', next);
+      })
+      .catch(function (e) {
+        if (e && e.name === 'AbortError') return;
+        /* الشبكة تعثرت: ينتقل انتقالا كاملا بدل أن يبقى الزائر أمام
+           نتيجة قديمة تحتها مرشح يقول غيرها. */
+        if (my === seq) window.location.href = url;
+      })
+      .then(function () {
+        if (my !== seq) return;
+        grid.removeAttribute('aria-busy');
+        grid.classList.remove('is-loading');
+      });
+  }
+
+  /** الرابط الحالي ومعه تعديل — نفس عقد `tqs_cat_query` في الخادم. */
+  function urlWith(set) {
+    var u = new URL(window.location.href);
+    u.pathname = new URL(endpoint, window.location.origin).pathname.replace(/\/results$/, '');
+    var keys = Object.keys(set);
+    /* أي تعديل غير رقم الصفحة يعيدها إلى الأولى: الصفحة السابعة من
+       نتيجة قديمة لا وجود لها في نتيجة جديدة. */
+    for (var i = 0; i < keys.length; i++) if (keys[i] !== 'page') { u.searchParams.delete('page'); break; }
+    for (var k in set) {
+      if (!Object.prototype.hasOwnProperty.call(set, k)) continue;
+      if (set[k] === null || set[k] === '') u.searchParams.delete(k);
+      else u.searchParams.set(k, set[k]);
+    }
+    return u.toString();
+  }
+
+  /* ---- النقر على أي خيار أو رقم صفحة ----
+     التفويض على المستند لا على العناصر: اللوحة والشبكة تستبدلان مع كل
+     تحديث، ومستمع على عنصر مستبدل يموت معه. */
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('[data-tq-cat-link]') : null;
+    if (!a) return;
+    /* الفتح في تبويب جديد يبقى فتحا في تبويب جديد */
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    load(a.href, 'push');
+
+    /* رقم صفحة: يعاد الزائر إلى أعلى النتائج — وإلا بقي حيث كان فرأى
+       ذيل الصفحة الجديدة وظن أنه لم يتغير شيء. */
+    if (a.hasAttribute('data-tq-page')) {
+      var top = document.getElementById('catalog');
+      if (top) top.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+  });
+
+  /* ---- الكتابة في صندوق البحث ----
+     التأخير ٢٦٠ مللي: أقل منه يصدر طلبا لكل حرف، وأكثر منه يحس تأخرا. */
+  if (input) {
+    input.addEventListener('input', function () {
+      toggleClear();
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        load(urlWith({ q: input.value.trim() }), 'replace');
+      }, 260);
+    });
+    /* الإدخال يبحث فورا بلا انتظار المؤقت */
+    input.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      clearTimeout(timer);
+      load(urlWith({ q: input.value.trim() }), 'push');
+    });
+  }
+
+  if (clrBtn && input) {
+    clrBtn.addEventListener('click', function () {
+      input.value = '';
+      toggleClear();
+      input.focus();
+      clearTimeout(timer);
+      load(urlWith({ q: null }), 'push');
+    });
+  }
+
+  if (sorter) {
+    sorter.addEventListener('change', function () {
+      load(urlWith({ sort: sorter.value === 'featured' ? null : sorter.value }), 'push');
+    });
+  }
+
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      clearTimeout(timer);
+      load(urlWith({ q: input ? input.value.trim() : '' }), 'push');
+    });
+  }
+
+  /* ---- لوحة المرشحات على الجوال ---- */
+  if (railBtn && rail) {
+    railBtn.addEventListener('click', function () {
+      var open = railBtn.getAttribute('aria-expanded') !== 'true';
+      railBtn.setAttribute('aria-expanded', String(open));
+      rail.classList.toggle('is-open', open);
+    });
+  }
+
+  /* ---- زر الرجوع ----
+     الحال في الرابط، فالرجوع يعني إعادة الجلب منه — لا استرجاع وسم
+     محفوظ في `state`: الوسم يشيخ إن تغير المحتوى بين الزيارتين. */
+  window.addEventListener('popstate', function () {
+    load(window.location.href, 'none');
+  });
+
+  toggleClear();
 })();

@@ -113,7 +113,11 @@ class Taqdar_site_model extends CI_Model
     /** الكتب المنشورة. */
     public function books($cat = null)
     {
-        $this->db->select('b.title, b.subject, b.pages, b.tone, b.cover, b.file, c.slug AS cat_slug', false)
+        /* `id` و`slug` معهما: صفحة الكتاب (`/book/<slug>`) صارت موجودة،
+           وبطاقة تعرض كتابا ولا تعرف رابطه تنتهي إلى قائمة الكتب كلها —
+           فيبحث الزائر مرة ثانية عما وجد. */
+        $this->db->select('b.id, b.slug, b.title, b.subject, b.pages, b.tone, b.cover, b.file,
+                           c.slug AS cat_slug', false)
                  ->from('books b')
                  ->join('category c', 'c.id = b.category_id', 'left')
                  ->where('b.status', 'published')
@@ -124,6 +128,7 @@ class Taqdar_site_model extends CI_Model
 
         $out = array();
         foreach ($rows as $r) {
+            $slug = ((string) $r['slug'] !== '') ? (string) $r['slug'] : (string) $r['id'];
             $out[] = array(
                 'cat'     => (string) $r['cat_slug'],
                 'title'   => $r['title'],
@@ -132,6 +137,7 @@ class Taqdar_site_model extends CI_Model
                 'tone'    => (string) $r['tone'],
                 'cover'   => (string) $r['cover'],
                 'file'    => (string) $r['file'],
+                'href'    => base_url('book/' . $slug),
             );
         }
         return $out;

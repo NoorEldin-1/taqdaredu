@@ -79,7 +79,9 @@ include __DIR__ . '/site/site_pagehero.php';
 <?php if ((string) $tq_b['subject'] !== ''): ?>
           <p><?php echo html_escape($tq_b['subject']); ?></p>
 <?php endif; ?>
-          <a class="pcard__link" href="<?php echo base_url('books'); ?>">إلى الكتب</a>
+          <?php /* رابط الكتاب نفسه لا رابط القائمة: من بحث فوجد يريده هو،
+                   و«إلى الكتب» تعيده ليبحث فيها مرة ثانية عما وجد. */ ?>
+          <a class="pcard__link" href="<?php echo html_escape($tq_b['href']); ?>">تفاصيل الكتاب</a>
         </div>
       </article>
 <?php endforeach; ?>

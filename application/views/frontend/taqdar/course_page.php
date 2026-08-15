@@ -42,7 +42,7 @@ if (empty($course)) {
         <div class="icard" style="text-align:center">
           <h1>هذه الدورة غير متاحة</h1>
           <p class="tq-caption">قد تكون أخفيت أو حذفت. تصفح بقية ما هو منشور.</p>
-          <a class="btn btn--primary" href="<?php echo base_url('plans'); ?>">المواد والبرامج</a>
+          <a class="btn btn--primary" href="<?php echo base_url('catalog'); ?>">المواد والبرامج</a>
         </div>
       </div>
     </section>
@@ -171,7 +171,7 @@ $play = function ($lesson_id = 0) use ($cid) {
 
     <nav class="crumbs" aria-label="مسار التصفح">
       <a href="<?php echo base_url(); ?>">الرئيسية</a> ›
-      <a href="<?php echo base_url('plans'); ?>">المواد والبرامج</a> ›
+      <a href="<?php echo base_url('catalog'); ?>">المواد والبرامج</a> ›
       <span aria-current="page"><?php echo html_escape($course['title']); ?></span>
     </nav>
 

@@ -55,7 +55,7 @@ css: pages
         <div class="hero__cta">
           <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>">
             <?php echo tq_text('home', 'hero_cta_1', 'ابدأ رحلة التعلم'); ?></a>
-          <a class="btn btn--ghost-light" href="<?php echo base_url('plans'); ?>">
+          <a class="btn btn--ghost-light" href="<?php echo base_url('catalog'); ?>">
             <?php echo tq_text('home', 'hero_cta_2', 'تصفح البرامج'); ?>
             <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg>
           </a>

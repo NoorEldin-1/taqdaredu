@@ -425,7 +425,7 @@ include 'portal_open.php';
                         <p class="tq-empty__text">
                             أضف كورسا إلى المفضلة لتتابع تقدمك فيه من هنا بشريط ونسبة، وتعود إليه من حيث توقفت.
                         </p>
-                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">تصفح الكورسات</a>
+                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('catalog'); ?>">تصفح الكورسات</a>
                     </div>
                 </div>
             <?php else: ?>

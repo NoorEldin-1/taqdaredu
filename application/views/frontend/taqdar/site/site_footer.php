@@ -33,8 +33,9 @@ $tq_year  = date('Y');
 
       <nav class="footer-col" aria-label="روابط سريعة">
         <h3>روابط سريعة</h3>
-        <a href="<?php echo base_url('plans'); ?>">المواد والبرامج التعليمية</a>
-        <a href="<?php echo base_url('books'); ?>">كتب المنهج</a>
+        <a href="<?php echo base_url('catalog'); ?>">المواد والبرامج التعليمية</a>
+        <a href="<?php echo base_url('plans'); ?>">الباقات</a>
+        <a href="<?php echo base_url('catalog'); ?>?type=book">كتب المنهج</a>
         <a href="<?php echo base_url('teachers'); ?>">المعلمون</a>
         <a href="<?php echo base_url('students'); ?>">الطلاب</a>
       </nav>

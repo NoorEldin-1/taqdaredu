@@ -209,7 +209,7 @@ include 'portal_open.php';
                         $tq_cards[] = array($r['name'], (string) $r['bio'], $r['url'], 'users', 'معلم');
                     }
                     foreach ($tq_pub['books'] as $r) {
-                        $tq_cards[] = array($r['title'], (string) $r['subject'], base_url('books'), 'file', 'كتاب');
+                        $tq_cards[] = array($r['title'], (string) $r['subject'], $r['href'], 'file', 'كتاب');
                     }
                     foreach ($tq_pub['posts'] as $r) {
                         $tq_cards[] = array($r['title'], (string) $r['excerpt'], $r['url'], 'chat', 'مقال');
