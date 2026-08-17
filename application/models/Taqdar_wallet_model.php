@@ -160,6 +160,25 @@ class Taqdar_wallet_model extends CI_Model
         return $d > 0 ? $d : 14;
     }
 
+    /**
+     * مهلة تعليق الرصيد بالأيام = نافذة الاسترداد **+ يومين**.
+     *
+     * اليومان هامش مقاصة لا زينة: الاسترداد الذي يطلب في اليوم الأخير
+     * يصل من البوابة بعد ساعات، وقد يصل غدا. وبلاهما يتحرر رصيد بيع صباح
+     * اليوم الرابع عشر ويطلب استرداده مساءه — فيخصم من رصيد متاح، أو من
+     * رصيد سحب فعلا ولم يعد في المحفظة شيء يخصم منه.
+     *
+     * والهامش إعداد لا رقم مزروع، فمن غير نافذة الاسترداد لا يعيد قراءة
+     * هذا الملف. وصفر مسموح لمن أراد إلغاءه صراحة.
+     */
+    public function hold_days()
+    {
+        $buffer = $this->setting('taqdar_settlement_buffer_days', null);
+        $buffer = ($buffer === null || $buffer === '') ? 2 : (int) $buffer;
+        if ($buffer < 0) $buffer = 0;
+        return $this->refund_window_days() + $buffer;
+    }
+
     /** الحد الأدنى للسحب بالهللات — من الإعدادات. */
     public function payout_min_halalas()
     {
@@ -394,7 +413,7 @@ class Taqdar_wallet_model extends CI_Model
         if (!$ids) return 0;
 
         $in   = implode(',', $ids);
-        $days = $this->refund_window_days();
+        $days = $this->hold_days();   // نافذة الاسترداد + هامش المقاصة
 
         $rows = $this->db->query(
             "SELECT p.`id`, p.`amount`, p.`admin_revenue`, p.`instructor_revenue`,
@@ -1032,7 +1051,11 @@ class Taqdar_wallet_model extends CI_Model
             'pending'     => (int) $wallet['balance_pending'],
             'locked'      => (int) $wallet['balance_locked'],
             'transferred' => $paid,
-            'refund_days' => $this->refund_window_days(),
+            /* `refund_days` اسم عقد تقرؤه الشاشة، وقيمته صارت مهلة التعليق
+               الفعلية لا نافذة الاسترداد وحدها — فالمعلم يقرأ الرقم الذي
+               ينضج عليه رصيده لا رقما أقصر منه بيومين. */
+            'refund_days' => $this->hold_days(),
+            'refund_window' => $this->refund_window_days(),
             'min_payout'  => $this->payout_min_halalas(),
             'channels'    => self::$CHANNELS,
             'statement'   => $this->statement($wid, 100),
@@ -1131,12 +1154,22 @@ class Taqdar_wallet_model extends CI_Model
         $origin = "pathsub:" . (int) $subscription_id;
         $subject = "مسار #" . (int) $path_id;
 
+        /* TQ-PATHSALE-STUCK — تاريخ التحرر يكتب هنا، وكان لا يكتب.
+           و`release_matured()` يشترط `rel IS NOT NULL` في `HAVING`، فبيع
+           المسار كان يدخل `pending` ولا يخرج منه أبدا: يقرأ المعلم رصيدا
+           معلقا لا ينضج ولو بعد سنة، ولا خطأ في سجل ولا في شاشة. وبيع
+           الكورس كان يكتبه (`post_sales`) فبقي العطل في نصف المسارات
+           وحده — وهو النصف الذي تباع به باقات تقدر. */
+        $release = $this->at(time() + $this->hold_days() * 86400);
+
         $this->post($wallet["id"], "sale", "pending", $gross,
-                    $this->ref_key($wallet["id"], $origin, "sale"), $origin, $subject);
+                    $this->ref_key($wallet["id"], $origin, "sale"), $origin, $subject,
+                    null, $release);
 
         if ($platform_cut > 0) {
             $this->post($wallet["id"], "commission", "pending", -$platform_cut,
-                        $this->ref_key($wallet["id"], $origin, "commission"), $origin, $subject);
+                        $this->ref_key($wallet["id"], $origin, "commission"), $origin, $subject,
+                        null, $release);
         }
 
         $this->recompute($wallet["id"]);

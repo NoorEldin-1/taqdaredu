@@ -94,6 +94,120 @@ class Taqdar_events_model extends CI_Model
     }
 
     /* =====================================================================
+       التصنيف — من يقاطع الليل ومن ينتظر الصباح
+       =====================================================================
+
+       الوثيقة تقول: «ساعات الصمت تحترم **إلا المالي والحصص**». فالتصنيف
+       ليس زينة بل هو ما يفرق بين ما يوقظ صاحبه وما ينتظر.
+
+         financial  فاتورة · سحب · استرداد        — لا يؤجل أبدا
+         session    طلب حصة · تأكيدها · قرب موعدها — لا يؤجل أبدا
+         learning   نتيجة · رسوب · شهادة · انقطاع  — يؤجل في الصمت
+         marketing  عرض · تذكير تسويقي · بث إداري  — يؤجل في الصمت،
+                                                     ويسقط في وضع الامتحان
+
+       والافتراض `learning` لا `marketing`: نوع لم يصنف بعد حدث تعليمي في
+       هذه المنصة، ومعاملته إعلانا تسقطه عن صاحبه في وضع الامتحان بلا أن
+       يقصد أحد ذلك. */
+    private $categories = array(
+        'exam_result'       => 'learning',
+        'station_failed'    => 'learning',
+        'inactivity_3days'  => 'learning',
+        'certificate'       => 'learning',
+        'placement_result'  => 'learning',
+        'weekly_report'     => 'learning',
+        'session_request'   => 'session',
+        'session_confirmed' => 'session',
+        'session_declined'  => 'session',
+        'session_soon'      => 'session',
+        'invoice_due'       => 'financial',
+        'invoice_paid'      => 'financial',
+        'payout_approved'   => 'financial',
+        'payout_paid'       => 'financial',
+        'subscription_on'   => 'financial',
+        'refund'            => 'financial',
+        'promo'             => 'marketing',
+        'announcement'      => 'marketing',
+        'broadcast'         => 'marketing',
+    );
+
+    /** تصنيف نوع. الحمولة تعلو الجدول: مطلق الحدث أدرى بما أطلق. */
+    public function category_of($type, $payload = array())
+    {
+        if (is_array($payload) && !empty($payload['category'])) {
+            $c = (string) $payload['category'];
+            if (in_array($c, array('financial', 'session', 'learning', 'marketing'), true)) return $c;
+        }
+        return isset($this->categories[$type]) ? $this->categories[$type] : 'learning';
+    }
+
+    /**
+     * هل هذا المستخدم في ساعات صمته الآن؟
+     *
+     * الأعمدة موجودة في `tq_prefs_user` منذ أن كتبت شاشتا الإعدادات، ولم
+     * يكن في المستودع قارئ واحد لها: يوقف المستخدم الإشعارات من العاشرة
+     * مساء فتصله كما كانت. إعداد يحفظ ولا يفعل أسوأ من إعداد غائب — الأول
+     * يكذب على صاحبه والثاني يعترف.
+     *
+     * والمدى الذي يعبر منتصف الليل (22 ← 7) شرطه «أو» لا «و»، وهو الحالة
+     * الشائعة لا النادرة.
+     */
+    public function is_quiet_now($user_id)
+    {
+        $user_id = (int) $user_id;
+        if ($user_id <= 0) return false;
+
+        try {
+            if (!$this->db->table_exists('tq_prefs_user')) return false;
+            $row = $this->db->select('quiet_on, quiet_from, quiet_to')
+                            ->where('user_id', $user_id)
+                            ->get('tq_prefs_user')->row_array();
+        } catch (Throwable $e) {
+            return false;
+        }
+
+        if (!$row || (int) $row['quiet_on'] !== 1) return false;
+
+        $from = (int) $row['quiet_from'];
+        $to   = (int) $row['quiet_to'];
+        if ($from === $to) return false;   // مدى بلا اتساع ليس صمتا
+
+        $h = (int) date('G');
+        return ($from < $to) ? ($h >= $from && $h < $to) : ($h >= $from || $h < $to);
+    }
+
+    /** أول لحظة بعد انتهاء الصمت — إليها يؤجل ما أجل، لا إلى «بعد ساعة». */
+    private function quiet_ends_at($user_id)
+    {
+        try {
+            $row = $this->db->select('quiet_to')->where('user_id', (int) $user_id)
+                            ->get('tq_prefs_user')->row_array();
+        } catch (Throwable $e) {
+            $row = null;
+        }
+        $to = $row ? (int) $row['quiet_to'] : 7;
+        $to = max(0, min(23, $to));
+
+        $today = mktime($to, 0, 0);
+        return ($today > time()) ? $today : $today + 86400;
+    }
+
+    /**
+     * هل هذا الطالب في وضع الامتحان؟
+     * المصدر `Taqdar_learn_model` وحده — الشاشة والمحرك يقرآن الحكم نفسه.
+     */
+    public function exam_mode_active($user_id)
+    {
+        try {
+            $this->load->model('taqdar_learn_model', 'tq_learn');
+            $m = $this->tq_learn->exam_mode((int) $user_id);
+            return !empty($m['active']);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /* =====================================================================
        الواجهة: نداء واحد يكتب إشعارا
        ===================================================================== */
 
@@ -149,6 +263,16 @@ class Taqdar_events_model extends CI_Model
             return 0;
         }
 
+        /* وضع الامتحان يسقط التسويق وحده.
+           `F2.5` نصه «كل الإشعارات التسويقية تتوقف تلقائيا بهذا الوضع» —
+           وحدها. نتيجة امتحان ورسوب محطة وطلب حصة تصل كما كانت، وإسقاطها
+           هنا يجعل الوضع الذي يفترض أن يخدم الامتحان يخفي نتيجته. */
+        $category = $this->category_of($type, $payload);
+        if ($category === 'marketing' && $this->exam_mode_active($user_id)) {
+            log_message('debug', 'TQ-EVENTS: أسقط إشعار تسويقي في وضع الامتحان — ' . $type);
+            return 0;
+        }
+
         $from = (isset($payload['from_user']) && (int) $payload['from_user'] > 0)
             ? (int) $payload['from_user'] : null;
 
@@ -164,10 +288,223 @@ class Taqdar_events_model extends CI_Model
         ));
 
         $id = (int) $this->db->insert_id();
-        if ($id > 0 && !(isset($payload['email']) && $payload['email'] === false)) {
-            $this->maybe_email($user_id, $title, $text);
+        if ($id <= 0) {
+            return 0;
         }
+
+        /* الصف في `notifications` كتب — وهو **السجل**، يقرؤه صاحبه متى فتح
+           شاشته ولا يقاطعه. أما الإرسال الخارج (البريد اليوم، والدفع
+           والواتساب غدا) فهو **المقاطعة**، وعليه وحده تسري ساعات الصمت:
+           التأجيل يؤجل الطرق على الباب ولا يمحو الرسالة.
+
+           ومن مرر `email => false` لا يريد إرسالا خارجا أصلا، فلا يودع. */
+        if (isset($payload['email']) && $payload['email'] === false) {
+            return $id;
+        }
+
+        $delay_to = null;
+        if (in_array($category, array('learning', 'marketing'), true)
+            && $this->is_quiet_now($user_id)) {
+            $delay_to = $this->quiet_ends_at($user_id);
+        }
+
+        $this->enqueue($user_id, $type, $title, $text, $category, $delay_to);
         return $id;
+    }
+
+    /* =====================================================================
+       طابور الإرسال — تأجيل وإعادة محاولة
+       =====================================================================
+
+       `B4.4` يطلب «طابور إشعارات (dedupe + retry) + ساعات صمت». والتكرار
+       كان محجوبا ببصمة (`already_sent`) وهو الشق المتقن؛ والناقص شقان:
+       إعادة المحاولة عند الفشل، وموضع تنتظر فيه المقاطعة حتى ينتهي الصمت.
+       والاثنان طابور واحد لأنهما سؤال واحد: «متى يخرج هذا؟».
+
+       والتراجع أسي: دقيقة، ثم أربع، ثم تسع… حتى خمس محاولات. خادم بريد
+       يرفض الآن قد يقبل بعد ربع ساعة، وإعادة المحاولة كل ثانية تحرق
+       الحصة وتزيد الرفض.
+
+       والقناة عمود لا ثابت: يوم يضاف الواتساب (`B4.3`) يصير صفا بقناة
+       أخرى في الطابور نفسه، بلا طابور ثان يعاد فيه التأجيل والإعادة. */
+
+    public function ensure_queue()
+    {
+        static $done = false;
+        if ($done) return;
+        $done = true;
+
+        $this->db->query(
+            'CREATE TABLE IF NOT EXISTS `tq_notify_queue` (
+               `id`          INT(11)      NOT NULL AUTO_INCREMENT,
+               `user_id`     INT(11)      NOT NULL,
+               `type`        VARCHAR(64)  NOT NULL,
+               `category`    VARCHAR(16)  NOT NULL DEFAULT "learning",
+               `channel`     VARCHAR(16)  NOT NULL DEFAULT "email",
+               `title`       VARCHAR(250) NOT NULL,
+               `body`        TEXT         NULL,
+               `state`       VARCHAR(16)  NOT NULL DEFAULT "queued",
+               `attempts`    INT(11)      NOT NULL DEFAULT 0,
+               `last_error`  VARCHAR(250) NULL,
+               `next_try_at` INT(11)      NOT NULL DEFAULT 0,
+               `created_at`  INT(11)      NOT NULL DEFAULT 0,
+               `sent_at`     INT(11)      NULL,
+               PRIMARY KEY (`id`),
+               KEY `ix_due` (`state`,`next_try_at`),
+               KEY `ix_user` (`user_id`,`type`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+    }
+
+    /** يضع رسالة في الطابور. `$delay_to` طابع يونكس أو null للفور. */
+    public function enqueue($user_id, $type, $title, $text, $category = 'learning', $delay_to = null)
+    {
+        try {
+            $this->ensure_queue();
+            $this->db->insert('tq_notify_queue', array(
+                'user_id'     => (int) $user_id,
+                'type'        => (string) $type,
+                'category'    => (string) $category,
+                'channel'     => 'email',
+                'title'       => mb_substr((string) $title, 0, 250),
+                'body'        => (string) $text,
+                'state'       => 'queued',
+                'next_try_at' => $delay_to ? (int) $delay_to : time(),
+                'created_at'  => time(),
+            ));
+            return (int) $this->db->insert_id();
+        } catch (Throwable $e) {
+            /* تعذر الطابور يفقد بريدا لا سجلا: الإشعار داخل المنصة كتب
+               قبل هذا السطر، وهو ما يراه صاحبه في شاشته. */
+            log_message('error', 'TQ-QUEUE enqueue: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * يصرف ما استحق من الطابور. ينادى من الكرون.
+     * @return array sent · failed · dead · held
+     */
+    /**
+     * هل الإرسال الخارج ممكن أصلا؟
+     *
+     * مفتاحان: النية (`taqdar_events_email`) والقدرة (إعداد SMTP). وهذا
+     * الفحص **قبل** المحاولة لا بعدها — والفرق ليس أداء:
+     *
+     * منصة أطفأت البريد عمدا كانت رسائلها تعامل «محاولة أخفقت»، فتعاد
+     * خمس مرات ثم تموت. فيمتلئ الطابور صفوفا حالها `dead` وسببها «تعذر
+     * الإرسال» — وهو وصف كاذب: لم يتعذر شيء، بل لم يطلب أحد الإرسال.
+     * ثم يفتح المسؤول شاشة الطابور فيقرأ عطلا لا وجود له.
+     *
+     * فما لا قناة له يوسم `skipped` من أول نظرة، بسبب يقرأ.
+     */
+    public function outbound_ready()
+    {
+        if ((string) get_settings('taqdar_events_email') !== '1') return false;
+
+        try {
+            $this->load->model('taqdar_mail_model');
+            return (bool) $this->taqdar_mail_model->configured();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    public function drain($limit = 50)
+    {
+        $out = array('sent' => 0, 'failed' => 0, 'dead' => 0, 'held' => 0, 'skipped' => 0);
+
+        try {
+            $this->ensure_queue();
+            $rows = $this->db->where('state', 'queued')
+                             ->where('next_try_at <=', time())
+                             ->order_by('next_try_at', 'ASC')
+                             ->limit(max(1, min(500, (int) $limit)))
+                             ->get('tq_notify_queue')->result_array();
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-QUEUE drain: ' . $e->getMessage());
+            return $out;
+        }
+
+        /* لا قناة: يوسم ما استحق `skipped` ولا يحاول ولا يعاد. والإشعار
+           داخل المنصة كتب قبل هذا، وهو ما يراه صاحبه فعلا. */
+        if ($rows && !$this->outbound_ready()) {
+            $ids = array_map('intval', array_column($rows, 'id'));
+            $this->db->where_in('id', $ids)->update('tq_notify_queue', array(
+                'state'      => 'skipped',
+                'last_error' => 'البريد غير مفعل على هذه المنصة — الإشعار داخل المنصة كتب.',
+            ));
+            $out['skipped'] = count($ids);
+            return $out;
+        }
+
+        $max = 5;
+
+        foreach ($rows as $r) {
+            $id  = (int) $r['id'];
+            $uid = (int) $r['user_id'];
+
+            /* الصمت يفحص عند الصرف أيضا لا عند الإيداع وحده: من غير
+               ساعاته بعد أن أودعت رسالته يجد إعداده الجديد ساريا عليها. */
+            if (in_array($r['category'], array('learning', 'marketing'), true)
+                && $this->is_quiet_now($uid)) {
+                $this->db->where('id', $id)->update('tq_notify_queue',
+                    array('next_try_at' => $this->quiet_ends_at($uid)));
+                $out['held']++;
+                continue;
+            }
+
+            $attempts = (int) $r['attempts'] + 1;
+            $ok  = false;
+            $err = '';
+
+            try {
+                $ok = (bool) $this->maybe_email($uid, $r['title'], (string) $r['body']);
+            } catch (Throwable $e) {
+                $ok  = false;
+                $err = $e->getMessage();
+            }
+
+            if ($ok) {
+                $this->db->where('id', $id)->update('tq_notify_queue', array(
+                    'state' => 'sent', 'attempts' => $attempts,
+                    'sent_at' => time(), 'last_error' => null));
+                $out['sent']++;
+                continue;
+            }
+
+            if ($attempts >= $max) {
+                $this->db->where('id', $id)->update('tq_notify_queue', array(
+                    'state'      => 'dead',
+                    'attempts'   => $attempts,
+                    'last_error' => mb_substr($err ?: 'تعذر الإرسال بعد المحاولات كلها', 0, 250)));
+                $out['dead']++;
+                continue;
+            }
+
+            // تراجع أسي: دقيقة · أربع · تسع · ست عشرة
+            $this->db->where('id', $id)->update('tq_notify_queue', array(
+                'attempts'    => $attempts,
+                'next_try_at' => time() + ($attempts * $attempts * 60),
+                'last_error'  => mb_substr($err ?: 'تعذر الإرسال', 0, 250)));
+            $out['failed']++;
+        }
+
+        return $out;
+    }
+
+    /** إحصاء الطابور — تقرؤه اللوحة فلا يبقى الطابور صندوقا مغلقا. */
+    public function queue_stats()
+    {
+        $out = array('queued' => 0, 'sent' => 0, 'dead' => 0, 'failed' => 0, 'skipped' => 0);
+        try {
+            $this->ensure_queue();
+            $rows = $this->db->query(
+                'SELECT `state`, COUNT(*) n FROM `tq_notify_queue` GROUP BY `state`')->result_array();
+            foreach ($rows as $r) $out[$r['state']] = (int) $r['n'];
+        } catch (Throwable $e) {
+            // جدول لم يستعمل بعد: أصفار أهون من شاشة بيضاء
+        }
+        return $out;
     }
 
     /**

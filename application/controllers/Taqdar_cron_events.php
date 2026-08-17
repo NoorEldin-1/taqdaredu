@@ -67,6 +67,29 @@ class Taqdar_cron_events extends CI_Controller
         $this->certificates();
         $this->session_requests();
         $this->placements();
+        $this->deliver();
+    }
+
+    /**
+     * يصرف طابور الإرسال.
+     *
+     * **بعد** مطلقي الأحداث لا قبلهم: ما أودع في هذه الجولة يخرج فيها لا
+     * في التي تليها، فلا يتأخر إشعار ربع ساعة بلا سبب. ومن أجل لساعات
+     * الصمت يعاد إيداعه هنا بموعده الجديد ولا يحسب فشلا.
+     */
+    public function deliver()
+    {
+        $r = $this->events->drain(80);
+        $total = $r['sent'] + $r['failed'] + $r['dead'] + $r['held'] + $r['skipped'];
+        $this->line('deliver', $total, $r['sent']);
+
+        /* المؤجل والمتروك والمخفق تقال صراحة: طابور يعرض «أرسل صفرا» ولا
+           يقول لماذا يقرأ عطلا — وهو قد يكون ساعة صمت تعمل كما ينبغي، أو
+           بريدا مطفأ عمدا. */
+        if ($r['held'] || $r['dead'] || $r['failed'] || $r['skipped']) {
+            echo '    held=' . $r['held'] . ' retry=' . $r['failed']
+               . ' dead=' . $r['dead'] . ' skipped=' . $r['skipped'] . "\n";
+        }
     }
 
     /* =====================================================================

@@ -240,9 +240,24 @@ class Taqdar_tap_model extends CI_Model
         if (!$inv) return $this->fail('الفاتورة غير موجودة.');
 
         /* الملكية تفحص هنا لا في المتحكم وحده: هذه الدالة تنادى من أكثر
-           من باب، ورقم فاتورة مخمن يصير صفحة دفع لفاتورة غيرك. */
+           من باب، ورقم فاتورة مخمن يصير صفحة دفع لفاتورة غيرك.
+
+           TQ-PARENT-PAYS — وولي الأمر يدفع عن ابنه (`B4.6`).
+           الفاتورة باسم الابن دائما — هو صاحب الاشتراك والمحتوى — فلو
+           بقي الشرط على المطابقة وحدها لرد ولي الأمر «هذه الفاتورة ليست
+           لك» وهو يدفعها فعلا. والاستثناء يشترط **رابطا نشطا**: لا
+           `pending` ولا `revoked`، وهو الشرط نفسه الذي تقرأ به بقية
+           بوابة ولي الأمر — فلا يفتح هذا الباب ما أغلقه ذاك.
+
+           ولا يوسع هذا قراءته: يدفع ولا يقرأ. */
         if ((int) $user_id > 0 && (int) $inv['user_id'] !== (int) $user_id) {
-            return $this->fail('هذه الفاتورة ليست لك.');
+            $linked = (int) $this->db->where('parent_user_id', (int) $user_id)
+                                     ->where('student_id', (int) $inv['user_id'])
+                                     ->where('status', 'active')
+                                     ->count_all_results('parent_links');
+            if (!$linked) {
+                return $this->fail('هذه الفاتورة ليست لك.');
+            }
         }
         if ($inv['status'] === 'paid')     return $this->fail('هذه الفاتورة مدفوعة بالفعل.');
         if ($inv['status'] === 'refunded') return $this->fail('هذه الفاتورة مستردة، فلا تدفع.');
