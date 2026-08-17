@@ -63,6 +63,141 @@ class Taqdar_teacher_model extends CI_Model
        ===================================================================== */
 
     /** كورسات المعلم: ما أنشأه أو ما أسند إليه. */
+    /* =====================================================================
+       مسار الانضمام — العينة ولجنة التحكيم
+       =====================================================================
+
+       فلو المعلم في وثيقة المنتج ثلاث خطوات قبل أن يفتح له شيء:
+
+         ١ — تقديم طلب انضمام (بيانات **+ عينة شرح 10 دقائق**)
+         ٢ — **مراجعة لجنة تحكيم داخلية** ← توثيق الهوية والمؤهل
+         ٣ — الإدارة تسند مادة + صف ← يقفل نطاق لوحته
+
+       والمنفذ منها كان الثالثة وحدها (`teacher_assignments` قائم ويقيد
+       الاستعلام)، ونصف الأولى (مستند مؤهل ونبذة، بلا عينة). أما اللجنة
+       فلم توجد: قرار مسؤول واحد اعتماد أو رفض.
+
+       واللجنة هنا **ليست شاشة ثانية** بل جدول أصوات: كل محكم يسجل رأيه
+       ومعه ملاحظته، والاعتماد يشترط نصابا (`tq_teacher_quorum`، افتراضه
+       اثنان). فالقرار يبقى في الشاشة نفسها التي يعرفها المسؤول، ويصير
+       له سند مكتوب يراجع — وهذا هو الفرق العملي بين «لجنة» و«زر». */
+
+    public function ensure_apply_schema()
+    {
+        static $done = false;
+        if ($done) return;
+        $done = true;
+
+        if (!$this->db->table_exists('applications')) return;
+
+        $have = $this->db->list_fields('applications');
+        $add  = array(
+            'sample_url'   => 'ADD COLUMN `sample_url` VARCHAR(500) NULL DEFAULT NULL',
+            'sample_note'  => 'ADD COLUMN `sample_note` VARCHAR(500) NULL DEFAULT NULL',
+            'identity_ok'  => 'ADD COLUMN `identity_ok` TINYINT(1) NOT NULL DEFAULT 0',
+            'subject_hint' => 'ADD COLUMN `subject_hint` VARCHAR(190) NULL DEFAULT NULL',
+        );
+
+        $sql = array();
+        foreach ($add as $col => $clause) {
+            if (!in_array($col, $have, true)) $sql[] = $clause;
+        }
+        if ($sql) {
+            $this->db->query('ALTER TABLE `applications` ' . implode(', ', $sql));
+            // CI يخبئ أسماء الأعمدة في الطلب الواحد، فقراءتها بعد التعديل بائتة
+            $this->db->data_cache = array();
+        }
+
+        $this->db->query(
+            'CREATE TABLE IF NOT EXISTS `tq_app_review` (
+               `id`          INT(11)      NOT NULL AUTO_INCREMENT,
+               `app_id`      INT(11)      NOT NULL,
+               `reviewer_id` INT(11)      NOT NULL,
+               `verdict`     VARCHAR(12)  NOT NULL,
+               `note`        VARCHAR(500) NULL,
+               `created_at`  DATETIME     NULL,
+               PRIMARY KEY (`id`),
+               UNIQUE KEY `uq_vote` (`app_id`,`reviewer_id`),
+               KEY `ix_app` (`app_id`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+    }
+
+    /** نصاب اللجنة — من `settings` لا من الشيفرة. */
+    public function quorum()
+    {
+        $row = $this->db->select('value')->where('key', 'tq_teacher_quorum')
+                        ->get('settings')->row_array();
+        $n = $row ? (int) $row['value'] : 0;
+        return ($n >= 1 && $n <= 9) ? $n : 2;
+    }
+
+    /** أصوات اللجنة على طلب. */
+    public function reviews_of($app_id)
+    {
+        $this->ensure_apply_schema();
+        try {
+            return $this->db->select('r.*, TRIM(CONCAT(COALESCE(u.first_name,""), " ",
+                                       COALESCE(u.last_name,""))) AS reviewer', false)
+                            ->from('tq_app_review r')
+                            ->join('users u', 'u.id = r.reviewer_id', 'left')
+                            ->where('r.app_id', (int) $app_id)
+                            ->order_by('r.id', 'ASC')->get()->result_array();
+        } catch (Throwable $e) { return array(); }
+    }
+
+    /**
+     * تصويت محكم. صوت واحد لكل محكم على كل طلب — و`uq_vote` يفرضه في
+     * القاعدة لا في شرط هنا، فالتصويت مرتين لا يقع بسباق نقرتين.
+     * وتغيير الرأي مسموح: يستبدل الصوت ولا يضاف ثان.
+     */
+    public function cast_vote($app_id, $reviewer_id, $verdict, $note = '')
+    {
+        $this->ensure_apply_schema();
+        $verdict = in_array($verdict, array('approve', 'reject'), true) ? $verdict : '';
+        if ($verdict === '') return array('ok' => false, 'message' => 'رأي غير معروف.');
+
+        if ($verdict === 'reject' && trim((string) $note) === '') {
+            /* الرفض بسبب مكتوب — كما في رفض المحتوى. ورفض بلا سبب لا
+               يعلم صاحبه ماذا يصلح، ولا يعلم بقية اللجنة لماذا خالف. */
+            return array('ok' => false, 'message' => 'اكتب سبب الرفض قبل تسجيله.');
+        }
+
+        $this->db->query(
+            'INSERT INTO `tq_app_review` (`app_id`,`reviewer_id`,`verdict`,`note`,`created_at`)
+             VALUES (?,?,?,?,?)
+             ON DUPLICATE KEY UPDATE `verdict` = VALUES(`verdict`), `note` = VALUES(`note`),
+                                     `created_at` = VALUES(`created_at`)',
+            array((int) $app_id, (int) $reviewer_id, $verdict,
+                  mb_substr(trim((string) $note), 0, 500) ?: null, date('Y-m-d H:i:s')));
+
+        $t = $this->tally($app_id);
+        return array('ok' => true, 'tally' => $t,
+            'message' => 'سجل رأيك. الموافقات ' . $t['approve'] . ' والاعتراضات ' . $t['reject']
+                       . ' والنصاب ' . $t['quorum'] . '.');
+    }
+
+    /** حصيلة الأصوات، ومعها هل بلغ النصاب. */
+    public function tally($app_id)
+    {
+        $rows = $this->reviews_of($app_id);
+        $a = 0; $r = 0;
+        foreach ($rows as $v) {
+            if ($v['verdict'] === 'approve') $a++;
+            elseif ($v['verdict'] === 'reject') $r++;
+        }
+        $q = $this->quorum();
+
+        return array(
+            'approve'      => $a,
+            'reject'       => $r,
+            'quorum'       => $q,
+            'votes'        => $rows,
+            'may_approve'  => $a >= $q,
+            'may_reject'   => $r >= 1,   // اعتراض واحد يكفي لعرض زر الرفض
+            'blocked'      => $a < $q,
+        );
+    }
+
     public function my_courses($teacher_id)
     {
         $teacher_id = (int) $teacher_id;

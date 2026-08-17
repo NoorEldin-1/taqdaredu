@@ -245,9 +245,45 @@ $tq_gate = in_array($tq_gate, array('teacher', 'parent'), true) ? $tq_gate : 'st
             </label>
           </div>
 
+          <?php /* ── عينة الشرح ────────────────────────────────────────
+                  فلو المعلم في وثيقة المنتج يشترطها مع البيانات: «تقديم
+                  طلب انضمام (بيانات + عينة شرح 10 دقائق)». وكان النموذج
+                  يقبل مستند مؤهل ونبذة وحدهما — فتراجع اللجنة ورقا ولا
+                  ترى المتقدم يشرح، وهي تحكم على تدريس.
+
+                  **ورابط لا ملف**: عشر دقائق فيديو مئات الميغابايتات،
+                  ورفعها في نموذج تسجيل يسقط عند حد الخادم بلا رسالة
+                  مفهومة — والمتقدم غالبا له تسجيل جاهز على يوتيوب أو
+                  درايف. */ ?>
+          <div class="form-cell">
+            <label class="form-field">
+              <svg aria-hidden="true"><use href="#i-play"></use></svg>
+              <span class="sr-only">رابط عينة الشرح</span>
+              <input type="url" name="sample_url" data-req="1" dir="ltr"
+                     placeholder="رابط عينة شرح — يوتيوب أو درايف"
+                     inputmode="url" autocomplete="off" spellcheck="false" maxlength="500"
+                     data-msg="ضع رابطا صحيحا لعينة شرحك."
+                     value="<?php echo $tq_v('sample_url'); ?>">
+            </label>
+            <p class="form-hint">
+              عشر دقائق تشرح فيها مفهوما واحدا من مادتك. تأكد أن الرابط يفتح لمن يملكه.
+            </p>
+          </div>
+
+          <div class="form-cell">
+            <label class="form-field">
+              <svg aria-hidden="true"><use href="#i-cap"></use></svg>
+              <span class="sr-only">المادة والصف</span>
+              <input type="text" name="subject_hint" maxlength="190"
+                     placeholder="المادة والصف الذي تدرسه (اختياري)"
+                     value="<?php echo $tq_v('subject_hint'); ?>">
+            </label>
+          </div>
+
           <p class="form-hint form-hint--box">
             <svg aria-hidden="true"><use href="#i-shield"></use></svg>
-            <span>طلبك يراجع من الإدارة، ونتواصل معك قبل تفعيل لوحتك. لن تستطيع الدخول إلى لوحة المعلم قبل الاعتماد.</span>
+            <span>طلبك تراجعه لجنة تحكيم داخلية: تشاهد عينتك، وتوثق هويتك ومؤهلك.
+                  ونتواصل معك قبل تفعيل لوحتك. لن تستطيع الدخول إلى لوحة المعلم قبل الاعتماد.</span>
           </p>
         </div>
 

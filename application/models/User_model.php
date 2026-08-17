@@ -526,12 +526,37 @@ class User_model extends CI_Model
             return false;                       // طلب قائم — لا يكرر
         }
 
+        /* الأعمدة الأربعة الجديدة تضمن قبل الكتابة: عينة الشرح وملاحظتها
+           وتوثيق الهوية والمادة المقترحة. و`ensure_apply_schema()` مأمونة
+           التكرار، فنداؤها هنا لا يكلف شيئا بعد أول مرة. */
+        $this->load->model('taqdar_teacher_model', 'tq_teach');
+        $this->tq_teach->ensure_apply_schema();
+
         $data = array(
             'user_id' => $user_details['id'],
             'address' => isset($user_details['address']) ? $user_details['address'] : '',
             'phone'   => (string) $this->input->post('phone'),
             'message' => (string) $this->input->post('message'),
         );
+
+        /* TQ-SAMPLE — عينة شرح عشر دقائق.
+           فلو المعلم في وثيقة المنتج يشترطها مع البيانات في الخطوة
+           الأولى، وكان النموذج يقبل مستند مؤهل ونبذة وحدهما: فتراجع
+           اللجنة ورقا ولا ترى المتقدم يشرح — وهي تحكم على تدريس.
+
+           **ورابط لا ملف**: عشر دقائق فيديو مئات الميغابايتات، ورفعها
+           في نموذج تسجيل يسقط عند حد `upload_max_filesize` بلا رسالة
+           مفهومة. والرابط يقبل من يوتيوب أو درايف أو أي موضع — والمتقدم
+           غالبا له تسجيل جاهز أصلا. */
+        $sample = trim((string) $this->input->post('sample_url'));
+        if ($sample !== '' && filter_var($sample, FILTER_VALIDATE_URL)) {
+            $data['sample_url'] = mb_substr($sample, 0, 500);
+        }
+        $note = trim((string) $this->input->post('sample_note'));
+        if ($note !== '') $data['sample_note'] = mb_substr($note, 0, 500);
+
+        $hint = trim((string) $this->input->post('subject_hint'));
+        if ($hint !== '') $data['subject_hint'] = mb_substr($hint, 0, 190);
 
         $file = isset($_FILES['document']) ? $_FILES['document'] : null;
         if ($file && !empty($file['name']) && (int) $file['error'] === UPLOAD_ERR_OK) {
