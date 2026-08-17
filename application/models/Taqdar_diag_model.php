@@ -50,6 +50,33 @@ defined('BASEPATH') or exit('No direct script access allowed');
  *
  * ولا يمنع شيئا حيث لا اختبار: صف بلا اختبار منشور — او طالب بلا صف —
  * يمر كما كان يمر قبل هذا الملف حرفا بحرف.
+ *
+ * ═══ من يعلم بالنتيجة ═══
+ *
+ * الطالب يراها في الشاشة، وهذا كل ما كان يقع. ومن يقرر امر الباقة فعلا
+ * هو من يدفع — وهو في الغالب ليس صاحب الشاشة. فالنتيجة تخرج من المتصفح
+ * الى بريد من يعنيه امرها:
+ *
+ *   ١ — ولي امر مربوط بموافقة **نشطة** (`parent_links`)، بحسابه وبريده.
+ *   ٢ — `users.guardian_email` — البريد الذي كتبه الطالب عند التسجيل،
+ *       وهو مشروط على من هو دون الخامسة عشرة. لا حساب له ولا تفضيلات،
+ *       فالبريد وحده سبيله.
+ *   ٣ — وان لم يكن هذا ولا ذاك، فبريد الطالب نفسه: «اي بريد مرتبط
+ *       بالحساب» احسن من نتيجة لا تخرج من الشاشة.
+ *
+ * والاول وحده يستقبل ايضا اشعارا داخل المنصة، لان له حسابا يقرأ فيه.
+ *
+ * وثلاثة قيود على هذا الباب:
+ *
+ * · **الرابط النشط لا غيره.** `pending` طلب لم يوافق عليه الطالب،
+ *   و`revoked` موافقة سحبت — وكلاهما لا يفتح بيانات احد، فلا يستقبل
+ *   عنها بريدا. ولا يخمن ولي الامر بتشابه اسم او جوال.
+ * · **البريد لا يرسل مرتين.** `notified_at` على المحاولة، وهو ما يجعل
+ *   نداء الكرون بعد نداء التسليم بلا اثر ثان.
+ * · **وفشل البريد لا يفسد التسليم.** النتيجة محفوظة قبل ان يفتح اتصال،
+ *   وما لم يرسل يبقى `notified_at` فارغا فيلتقطه `taqdar_cron_events
+ *   placements` — فمن ضبط البريد بعد ان ادى طلابه يصلهم ما فات، ولا
+ *   يعيد الارسال لمن وصله.
  */
 class Taqdar_diag_model extends CI_Model
 {
@@ -166,6 +193,7 @@ class Taqdar_diag_model extends CI_Model
                     `plan_id`      int(10) unsigned NOT NULL DEFAULT 0,
                     `started_at`   datetime     DEFAULT NULL,
                     `submitted_at` datetime     DEFAULT NULL,
+                    `notified_at`  datetime     DEFAULT NULL,
                     PRIMARY KEY (`id`),
                     KEY `ix_diag_at_student` (`student_id`, `exam_id`),
                     KEY `ix_diag_at_exam` (`exam_id`, `submitted_at`)
@@ -184,6 +212,22 @@ class Taqdar_diag_model extends CI_Model
                     KEY `ix_diag_an_q` (`question_id`)
                  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
             );
+
+            /* العمود يضاف على القائم لا على المنشأ وحده: `CREATE TABLE IF
+               NOT EXISTS` لا تمس جدولا موجودا، فمن نصب المنصة قبل هذا
+               العمل يبقى جدوله بلا `notified_at` — واول تحديث عليه يرمي،
+               فيسقط التسليم بعد ان تكون النتيجة قد حفظت.
+
+               والخبيئة تفرغ قبل الفحص: CodeIgniter يحفظ اسماء اعمدة كل
+               جدول في الطلب الواحد، فمن قرأ الجدول قبل هذا السطر — وشاشة
+               الوحدة الموصوفة تقرؤه — يعطي قائمة بائتة، فيعاد `ADD COLUMN`
+               على عمود قائم. وفي البيئة المحلية `db_debug` مفتوح، فذلك
+               الخطأ صفحة بيضاء لا استثناء يمسك. */
+            $this->db->data_cache = array();
+            if (!$this->db->field_exists('notified_at', 'tq_diag_attempts')) {
+                $this->db->query('ALTER TABLE `tq_diag_attempts`
+                                  ADD COLUMN `notified_at` datetime DEFAULT NULL');
+            }
         } catch (Throwable $e) {
             /* بلا جداول لا يوجد اختبار منشور، و`gate()` ترد «لا مانع» —
                اي ان المنصة تعمل كما كانت تعمل قبل هذه الميزة. الفشل هنا
@@ -593,6 +637,323 @@ class Taqdar_diag_model extends CI_Model
         }
 
         return 'beginner';
+    }
+
+    /* =====================================================================
+       من يعلم بالنتيجة — البريد والاشعار
+       ===================================================================== */
+
+    /**
+     * الى من ترسل نتيجة هذا الطالب؟
+     *
+     * ترد بنودا، لكل بند `email` و`kind` (`parent` · `guardian` · `student`)
+     * و`user_id` (صفر لمن لا حساب له). والترتيب مقصود: من له حساب اولا.
+     *
+     * وبريد الطالب نفسه **بديل لا اضافة**: يدخل القائمة حين تخلو من ولي
+     * امر ومن بريد ولي امر مكتوب، لا معهما. فمن له ولي امر يعلم وليه،
+     * ومن لا احد له يعلم هو — ولا ترسل رسالتان عن حدث واحد.
+     *
+     * والتكرار يطوى بالبريد لا بالحساب: ولي امر مربوط كتب الطالب بريده
+     * نفسه في `guardian_email` شخص واحد، ورسالتان اليه تقرآن عطلا.
+     */
+    public function result_audience($student_id)
+    {
+        $sid = (int) $student_id;
+        if ($sid <= 0) return array();
+
+        $u = $this->db->select('email, guardian_email')
+                      ->where('id', $sid)->get('users')->row_array();
+        if (!$u) return array();
+
+        $out  = array();
+        $seen = array();
+
+        /* البريد يفك ترميزه قبل ان يفحص: `Login::register()` يحفظ
+           `html_escape($email)`، فبريد فيه فاصلة عليا — وهي حرف مقبول —
+           يخزن `&#39;` ويرفضه `FILTER_VALIDATE_EMAIL` فيسقط صاحبه من
+           القائمة صامتا. */
+        $push = function ($email, $kind, $uid) use (&$out, &$seen) {
+            $email = trim(html_entity_decode((string) $email, ENT_QUOTES, 'UTF-8'));
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) return;
+
+            $key = strtolower($email);
+            if (isset($seen[$key])) return;
+            $seen[$key] = true;
+
+            $out[] = array('email' => $email, 'kind' => $kind, 'user_id' => (int) $uid);
+        };
+
+        /* ١ — اولياء الامر بموافقة نشطة. والتفضيل يفحص هنا كما يفحص عند
+               كتابة الاشعار: من اوقف هذا النوع من شاشة اعداداته لا يصله
+               بريد به — والا صار الاعداد كلاما. */
+        if ($this->db->table_exists('parent_links')) {
+            $this->load->model('taqdar_events_model');
+
+            try {
+                $rows = $this->db->query(
+                    'SELECT DISTINCT u.`id`, u.`email`
+                       FROM `parent_links` pl
+                       JOIN `users` u ON u.`id` = pl.`parent_user_id` AND u.`status` = 1
+                      WHERE pl.`student_id` = ? AND pl.`status` = "active"',
+                    array($sid)
+                )->result_array();
+            } catch (Throwable $e) {
+                $rows = array();
+            }
+
+            foreach ($rows as $r) {
+                if (!$this->taqdar_events_model->parent_wants((int) $r['id'], 'placement_result')) {
+                    continue;
+                }
+                $push($r['email'], 'parent', (int) $r['id']);
+            }
+        }
+
+        /* ٢ — البريد المكتوب عند التسجيل. لا حساب له ولا تفضيلات، وهو
+               البريد الذي جمع لهذا الغرض بعينه: ان يعلم ولي الامر بما
+               يخص ابنه. ولا يكتم لانه لا شاشة له يكتم منها. */
+        $push(isset($u['guardian_email']) ? $u['guardian_email'] : '', 'guardian', 0);
+
+        /* ٣ — البديل: الطالب نفسه، وحين لا احد سواه. */
+        if (!$out) {
+            $push($u['email'], 'student', $sid);
+        }
+
+        return $out;
+    }
+
+    /**
+     * يبلغ بنتيجة محاولة: اشعارا في المنصة وبريدا الى من يعنيه.
+     *
+     * تنادى من مسار التسليم اولا — فالنتيجة تصل حين تعني شيئا لا بعد
+     * ساعة — ومن الكرون بعده لما لم يرسل.
+     *
+     * وترتيبها مقصود:
+     *   · الاشعار داخل المنصة يكتب اولا ولا يتوقف على بريد مضبوط.
+     *   · ثم البريد. وبلا ضبط لا يدمغ `notified_at` — فيلتقطها الكرون
+     *     متى ضبط، ولا تضيع نتيجة اديت قبل ان يكتب مسؤول كلمة مرور.
+     *   · والدمغ يقع كذلك حين لا مستلم اصلا: قائمة فارغة ليست فشلا
+     *     يعاد، فلا تسأل كل ليلة الى ان تخرج من نافذة المسح.
+     *
+     * @param  int  $attempt_id
+     * @param  bool $force  يعيد الارسال لمحاولة دمغت — لزر «اعد الارسال».
+     * @return array sent · to · skipped
+     */
+    public function notify_result($attempt_id, $force = false)
+    {
+        $this->ensure_schema();
+
+        $attempt_id = (int) $attempt_id;
+        $out = array('sent' => 0, 'to' => array(), 'skipped' => '');
+        if ($attempt_id <= 0) {
+            $out['skipped'] = 'bad_id';
+            return $out;
+        }
+
+        try {
+            $a = $this->db->where('id', $attempt_id)
+                          ->where('submitted_at IS NOT NULL', null, false)
+                          ->get('tq_diag_attempts')->row_array();
+        } catch (Throwable $e) {
+            $out['skipped'] = 'no_table';
+            return $out;
+        }
+
+        /* محاولة لم تسلم لا نتيجة لها تبلغ: من فتح الاختبار واغلق المتصفح
+           لا يرسل عنه شيء. */
+        if (!$a) {
+            $out['skipped'] = 'not_submitted';
+            return $out;
+        }
+        /* `isset` لا القراءة المباشرة: العمود يضاف في `ensure_schema()`،
+           وان فشلت الاضافة على قاعدة قديمة فالغياب يقرأ «لم يبلغ» ولا يرمي
+           تنبيها في وسط رد الصفحة. */
+        if (!$force && trim((string) (isset($a['notified_at']) ? $a['notified_at'] : '')) !== '') {
+            $out['skipped'] = 'already';
+            return $out;
+        }
+
+        $sid   = (int) $a['student_id'];
+        $level = (string) $a['result_level'];
+        $label = self::level_label($level);
+        $score = (int) $a['score'];
+        $total = (int) $a['total'];
+
+        $levels = self::levels();
+        $lead   = isset($levels[$level]) ? $levels[$level]['lead'] : '';
+
+        /* الباقة تقرأ كاملة لا بمعرفها: رسالة تقول «باقة رقم ٣» لا تقول
+           شيئا، والاسم والسعر والمدة هي ما يقرر عليه من يدفع. */
+        $plan = null;
+        if ((int) $a['plan_id'] > 0) {
+            $this->load->model('taqdar_billing_model');
+            $plan = $this->taqdar_billing_model->plan((int) $a['plan_id']);
+        }
+
+        $this->load->model('taqdar_events_model');
+        $name = $this->taqdar_events_model->student_name($sid);
+
+        $numbers = 'اجاب ' . $score . ' من ' . $total . ' اجابة صحيحة.';
+        $spread  = $this->breakdown_line($a['breakdown']);
+
+        /* ── الاشعار داخل المنصة ─────────────────────────────────────
+           نص محايد الضمير: الصف نفسه يصل الطالب ووليه، و«ابنك» في شاشة
+           الطالب حديث عن غائب. و`email => false` لان البريد يرسل من هنا
+           بجسم كامل — ونداء `maybe_email` كان يبعث سطرا مكررا معه. */
+        $note = 'نتيجة اختبار تحديد المستوى: ' . $label . ' — '
+              . $score . ' من ' . $total . ' اجابة صحيحة.'
+              . ($plan ? ' والباقة المرشحة: ' . (string) $plan['name_ar'] . '.' : '');
+
+        $this->taqdar_events_model->notify_student_and_parents($sid, 'placement_result', array(
+            'key'         => 'diag_attempt:' . $attempt_id,
+            'window_days' => 60,
+            'text'        => $note,
+            'email'       => false,
+        ));
+
+        /* ── البريد ─────────────────────────────────────────────────── */
+        $audience = $this->result_audience($sid);
+        if (!$audience) {
+            $this->mark_notified($attempt_id);
+            $out['skipped'] = 'no_recipient';
+            return $out;
+        }
+
+        $this->load->model('taqdar_mail_model');
+        if (!$this->taqdar_mail_model->configured()) {
+            /* بلا دمغ: هذه نتيجة تنتظر بريدا يضبط، لا نتيجة ابلغ عنها. */
+            $out['skipped'] = 'mail_off';
+            return $out;
+        }
+
+        /* الرابط الى صفحة الباقة العامة لا الى بوابة الطالب: من يقرأ
+           الرسالة قد لا يكون له حساب اصلا (`guardian_email`)، ورابط يطلب
+           منه تسجيل دخول لا يفتح له شيئا. */
+        $cta = $plan
+            ? array('label' => 'اطلع على الباقة', 'href' => site_url('plan/' . (string) $plan['code']))
+            : array('label' => 'اطلع على الباقات', 'href' => site_url('plans'));
+
+        $plan_lines = array();
+        if ($plan) {
+            $price = number_format(((int) $plan['price']) / 100, 0, '.', ',');
+            $plan_lines[] = 'الباقة التي ترشحها المنصة على هذه النتيجة: '
+                          . (string) $plan['name_ar'] . ' — ' . $price . ' ريال '
+                          . tqs_period_label((int) $plan['duration_days']) . '.';
+            $plan_lines[] = 'وهي توصية لا الزام: كل الباقات مفتوحة، والاختيار لكم.';
+        } else {
+            $plan_lines[] = 'وباقات الصف معروضة كلها في صفحة الباقات.';
+        }
+
+        /* مجموعتان لا واحدة: من يخاطب **عن** الطالب، والطالب نفسه. ورسالة
+           تقول «ابنك» لمن هو الابن تقرأ عطلا، ورسالة تقول «اديت» لولي
+           الامر تقرأ خطأ في المرسل اليه. */
+        $groups = array('about' => array(), 'self' => array());
+        foreach ($audience as $r) {
+            $groups[$r['kind'] === 'student' ? 'self' : 'about'][] = $r['email'];
+            $out['to'][] = $r['email'];
+        }
+
+        $sent = 0;
+
+        if ($groups['about']) {
+            $sent += (int) $this->taqdar_mail_model->send_lines(
+                $groups['about'],
+                'نتيجة اختبار تحديد المستوى — ' . $name,
+                array_merge(array(
+                    'السلام عليكم،',
+                    'ادى ' . $name . ' اختبار تحديد المستوى في منصة تقدر، وهذه نتيجته.',
+                    'موضعه الان: ' . $label . '. ' . $numbers,
+                    $spread,
+                    $lead,
+                ), $plan_lines, array(
+                    'والاختبار تشخيص لا امتحان: لا رسوب فيه، وانما يقول اين يبدأ '
+                    . 'ليكون ما يدرسه على قدره.',
+                )),
+                $cta
+            );
+        }
+
+        if ($groups['self']) {
+            $sent += (int) $this->taqdar_mail_model->send_lines(
+                $groups['self'],
+                'نتيجة اختبار تحديد المستوى',
+                array_merge(array(
+                    'هذه نتيجة اختبار تحديد المستوى الذي اديته في منصة تقدر.',
+                    'موضعك الان: ' . $label . '. اجبت ' . $score . ' من ' . $total
+                    . ' اجابة صحيحة.',
+                    $spread,
+                    $lead,
+                ), $plan_lines),
+                $cta
+            );
+        }
+
+        /* الدمغ على ارسال وقع فعلا: خادم رفض الرسالة يترك الصف كما هو
+           فيعاد في مسح الكرون التالي. */
+        if ($sent > 0) {
+            $this->mark_notified($attempt_id);
+        }
+
+        $out['sent'] = $sent;
+        if ($sent < 1) $out['skipped'] = 'send_failed';
+        return $out;
+    }
+
+    /**
+     * محاولات سلمت ولم يبلغ عنها — طابور الكرون.
+     *
+     * النافذة تحد الاعادة: ما مضى عليه اسبوعان لا يبلغ عنه بعد ذلك.
+     * ورسالة عن نتيجة قديمة تصل ولي امر لا يذكرها اشبه بالخلل من الخدمة،
+     * ومحاولة تعصى الارسال ابدا كانت ستسأل الخادم كل ليلة الى الابد.
+     */
+    public function pending_notifications($days = 14, $limit = 100)
+    {
+        $this->ensure_schema();
+
+        try {
+            $rows = $this->db->select('id')
+                             ->where('submitted_at IS NOT NULL', null, false)
+                             ->where('notified_at IS NULL', null, false)
+                             ->where('submitted_at >=', date('Y-m-d H:i:s', time() - max(1, (int) $days) * 86400))
+                             ->order_by('id', 'ASC')->limit(max(1, (int) $limit))
+                             ->get('tq_diag_attempts')->result_array();
+        } catch (Throwable $e) {
+            return array();
+        }
+
+        $ids = array();
+        foreach ($rows as $r) $ids[] = (int) $r['id'];
+        return $ids;
+    }
+
+    /** توزيع الصحيح على المستويات، سطرا يقرأ. */
+    private function breakdown_line($json)
+    {
+        $bd = json_decode((string) $json, true);
+        if (!is_array($bd)) return '';
+
+        $parts = array();
+        foreach (self::levels() as $key => $meta) {
+            $n = isset($bd[$key]['n']) ? (int) $bd[$key]['n'] : 0;
+            if ($n < 1) continue;   // مستوى بلا اسئلة لا يذكر بصفر يقرأ رسوبا
+            $ok = isset($bd[$key]['ok']) ? (int) $bd[$key]['ok'] : 0;
+            $parts[] = $meta['label'] . ': ' . $ok . ' من ' . $n;
+        }
+
+        return $parts ? ('التوزيع على المستويات — ' . implode(' · ', $parts) . '.') : '';
+    }
+
+    private function mark_notified($attempt_id)
+    {
+        try {
+            $this->db->where('id', (int) $attempt_id)
+                     ->update('tq_diag_attempts', array('notified_at' => date('Y-m-d H:i:s')));
+        } catch (Throwable $e) {
+            /* الرسالة ارسلت فعلا؛ وفقدان الدمغة يعني اعادة محتملة في مسح
+               الكرون، وهي اهون من ان يرد التسليم خطأ على نتيجة حفظت. */
+            log_message('error', 'TQ-DIAG: تعذر دمغ notified_at للمحاولة '
+                . (int) $attempt_id . ' — ' . $e->getMessage());
+        }
     }
 
     /* =====================================================================

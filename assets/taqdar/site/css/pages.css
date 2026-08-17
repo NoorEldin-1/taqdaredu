@@ -2793,6 +2793,26 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 .cchip.is-on{background:var(--petrol);border-color:var(--petrol);color:#fff}
 .cchip.is-on b{background:rgba(255,255,255,.18);color:var(--gold-on-dark)}
 
+/* ---------- مرحلة الطالب: مرشح حقن نفسه فيقول ذلك ----------
+   لوح واحد فوق الرقائق لا رقاقة بينها: الرقاقة تقرأ اختيارا اختاره
+   الزائر، وهذا لم يختره — فيقرأ سطرا يفسر ومعه باب يخرج منه. */
+.cscope{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+  margin-block-end:clamp(10px,1.2vw,16px);
+  padding:10px clamp(12px,1.2vw,16px);
+  background:var(--beige);border:1px solid var(--gold-line-soft);
+  border-radius:var(--r-card);
+  color:var(--ink-2);font-size:clamp(11.5px,.88vw,13.5px);line-height:1.7
+}
+.cscope > svg{inline-size:16px;block-size:16px;color:var(--gold-deep);flex:0 0 auto}
+.cscope span{flex:1 1 240px}
+.cscope b{color:var(--ink);font-weight:700}
+.cscope a{
+  flex:0 0 auto;font-weight:700;color:var(--petrol);
+  text-decoration:underline;text-underline-offset:3px
+}
+.cscope a:hover{color:var(--gold-deep)}
+
 /* ---------- ما هو مفعل الآن ---------- */
 .cactive{display:flex;flex-wrap:wrap;gap:7px;margin-block-end:clamp(12px,1.4vw,18px)}
 .cactive__i{

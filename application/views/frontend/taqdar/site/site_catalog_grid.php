@@ -11,6 +11,22 @@
  * المؤشر موضعه، فيكتب الزائر حرفا ثم يجد المؤشر عاد إلى أول السطر.
  */
 ?>
+<?php
+/* مرشح حقن نفسه يقول ذلك.
+   الطالب يفتح الكتالوج فيجد مرحلته مرشحة سلفا — وترشيح بلا سطر يفسره
+   يقرأ نقصا في المحتوى لا تقريبا منه: «أين بقية المواد؟». والسطر يقول
+   من رشح ولماذا، ويعطي الباب الذي يخرج منه في نقرة. */
+if (!empty($tq_f['auto'])): ?>
+<p class="cscope">
+  <svg aria-hidden="true"><use href="#i-cap"></use></svg>
+  <span>عرضنا لك <b><?php echo html_escape($tq_f['mine_label']); ?></b> لأنها مرحلة صفك،
+        ورشح بالصف من اللوحة لتصل إلى ما يخصك وحدك.</span>
+  <a href="<?php echo html_escape(tqs_cat_query($tq_f, array('cat' => null))); ?>" data-tq-cat-link>
+    اعرض كل المراحل
+  </a>
+</p>
+<?php endif; ?>
+
 <?php if ($tq_res['active']): ?>
 <div class="cactive" aria-label="المرشحات المفعلة">
 <?php foreach ($tq_res['active'] as $tq_c): ?>
@@ -45,7 +61,9 @@
 <?php else: ?>
   <p>المرشحات المختارة معا لا يجتمع فيها شيء. احذف واحدا منها وجرب.</p>
 <?php endif; ?>
-  <a class="btn btn--primary" href="<?php echo html_escape(base_url('catalog')); ?>" data-tq-cat-link>
+  <?php /* `tqs_cat_clear` لا `base_url('catalog')`: الرابط العاري يعيد
+           حقن مرحلة الطالب، فيقرأ الزر «اعرض كل المحتوى» ويعرض مرحلة. */ ?>
+  <a class="btn btn--primary" href="<?php echo html_escape(tqs_cat_clear($tq_f)); ?>" data-tq-cat-link>
     اعرض كل المحتوى
   </a>
 </div>

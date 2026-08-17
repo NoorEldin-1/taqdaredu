@@ -52,6 +52,27 @@ if (!function_exists('tqs_norm_words')) {
     }
 }
 
+if (!function_exists('tqs_cat_bare')) {
+    /**
+     * هل هذا عار من كل مرشح؟ — أي «لم يختر الزائر شيئا بعد».
+     *
+     * موضع واحد يقرؤه طرفان: `Taqdar_catalog_model::with_scope()` حين
+     * يقرر حقن مرحلة الطالب، وبناء الروابط هنا حين يقرر كتابة
+     * `scope=all`. ونسختان منه تعنيان رابطا يكتب «كل المحتوى» في حال
+     * لا يقرؤها بها الخادم — فيضغط الزائر «مسح الكل» ولا يمسح شيء.
+     *
+     * والفرز ورقم الصفحة ليسا مرشحين: ترتيب لا شيء لا يزال لا شيء.
+     * ويقرأ الشكلين معا — المرشحات مفسرة (قوائم) وقيم الرابط (نصوصا).
+     */
+    function tqs_cat_bare($f)
+    {
+        foreach (array('q', 'type', 'cat', 'grade', 'subject', 'teacher', 'price') as $k) {
+            if (!empty($f[$k])) return false;
+        }
+        return true;
+    }
+}
+
 if (!function_exists('tqs_cat_query')) {
     /**
      * رابط الكتالوج بمرشحاته — مع تعديل واحد.
@@ -89,9 +110,33 @@ if (!function_exists('tqs_cat_query')) {
            والفهرس يعدهما صفحتين بمحتوى واحد. */
         if ((string) $q['page'] === '1') $q['page'] = '';
 
+        /* «كل المحتوى» صراحة.
+           للطالب مرحلة تحقن حين لا يختار شيئا (`with_scope`)، ورابط عار
+           يعيد حقنها — فمن نزع آخر مرشح رأى الشبكة كما هي وظن أن نقرته
+           ضاعت. و`scope=all` هو قوله «رأيت مرحلتي وأريد ما سواها»، ولا
+           يكتب إلا حيث يلزم: أي مرشح آخر في الرابط يمنع الحقن أصلا. */
+        if (!empty($f['mine']) && tqs_cat_bare($q)) $q['scope'] = 'all';
+
         $out = array();
         foreach ($q as $k => $v) if ((string) $v !== '') $out[$k] = $v;
         return $out ? base_url('catalog') . '?' . http_build_query($out) : base_url('catalog');
+    }
+}
+
+if (!function_exists('tqs_cat_clear')) {
+    /**
+     * رابط «مسح الكل» — ويخرج من مرحلة الطالب أيضا، فالمسح مسح.
+     *
+     * و`base_url('catalog')` مكتوبا بيده لا يصلح بديلا: هو الرابط العاري
+     * الذي يعيد حقن المرحلة، فيقرأ الزر «مسح الكل» ولا يمسح آخر مرشح.
+     */
+    function tqs_cat_clear($f)
+    {
+        return tqs_cat_query($f, array(
+            'q'       => null, 'type'    => null, 'cat'   => null,
+            'grade'   => null, 'subject' => null, 'teacher' => null,
+            'price'   => null, 'sort'    => null,
+        ));
     }
 }
 

@@ -5,12 +5,13 @@
  * المرجع التصميمي: تطبيق البنك، لا لوحة تعليمية. والبنك لا يقاطعك بكل
  * حركة، يقاطعك بما يستدعي فعلا الآن.
  *
- * خمسة أحداث فقط تستحق المقاطعة الفورية:
+ * وهذه وحدها تستحق المقاطعة الفورية:
  *   1. نتيجة امتحان
- *   2. رسوب في اختبار محطة
- *   3. انقطاع ثلاثة أيام
- *   4. طلب حصة خاصة
- *   5. شهادة جديدة
+ *   2. نتيجة تحديد المستوى
+ *   3. رسوب في اختبار محطة
+ *   4. انقطاع ثلاثة أيام
+ *   5. طلب حصة خاصة
+ *   6. شهادة جديدة
  * وما عداها ينتظر التقرير الأسبوعي. والفرز يقع في طبقة الاستعلام على
  * `notifications.type` بقائمة بيضاء، لا بإخفاء عناصر في الواجهة.
  *
@@ -51,9 +52,13 @@ $tq_ci = &get_instance();
 $tq_ci->load->model('taqdar_parent_model');
 $tq_prefs = $tq_ci->taqdar_parent_model->prefs($tq_uid);
 
-/* القائمة البيضاء: الأحداث الخمسة وحدها تقاطع. */
+/* القائمة البيضاء: هذه الأحداث وحدها تقاطع.
+   والمفاتيح هي مفاتيح `Taqdar_parent_model::notify_keys()` نفسها — فما
+   يعرض هنا هو ما يملك ولي الأمر إيقافه من شاشة إعداداته، لا قائمة ثانية
+   تفترق عنها. */
 $tq_urgent_types = [
     'exam_result'      => ['نتيجة امتحان',          'check-badge', 'mint'],
+    'placement_result' => ['نتيجة تحديد المستوى',   'crosshair',   'sand'],
     'station_failed'   => ['رسوب في اختبار محطة',   'target',      'rose'],
     'inactivity_3days' => ['انقطاع ثلاثة أيام',     'clock',       'peach'],
     'session_request'  => ['طلب حصة خاصة',          'video',       'lilac'],
@@ -144,8 +149,8 @@ include 'portal_open.php';
                     <span class="tq-icon-box tq-pastel--mint" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('bell', 24); ?></span>
                     <h3 class="tq-empty__title">لا شيء يستدعي المقاطعة</h3>
                     <p class="tq-empty__text">
-                        لا نقاطعك إلا بخمسة أحداث: نتيجة امتحان، أو رسوب في اختبار محطة،
-                        أو انقطاع ثلاثة أيام، أو طلب حصة خاصة، أو شهادة جديدة.
+                        لا نقاطعك إلا بنتيجة امتحان، أو نتيجة تحديد مستوى، أو رسوب في
+                        اختبار محطة، أو انقطاع ثلاثة أيام، أو طلب حصة خاصة، أو شهادة جديدة.
                     </p>
                     <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/weekly'); ?>">التقرير الأسبوعي</a>
                 </div>
@@ -208,7 +213,7 @@ include 'portal_open.php';
                 <?php endforeach; ?>
             </ul>
             <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
-                خمسة أحداث لا سادس لها. ما عداها ينتظر تقرير الأحد
+                هذه وحدها تقاطعك. ما عداها ينتظر تقرير الأحد
                 <?php echo !empty($tq_prefs['weekly']) ? '(وهو مفعل عندك)' : '(وقد أوقفته أنت)'; ?>.
                 <a href="<?php echo base_url('parent/settings'); ?>">غير ما يصلك</a>.
             </p>

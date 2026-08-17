@@ -68,6 +68,14 @@ class Taqdar_events_model extends CI_Model
             'self'   => 'حصلت على شهادة جديدة',
             'parent' => 'شهادة جديدة لـ{name}',
         ),
+        /* نتيجة اختبار تحديد المستوى: تقع مرة واحدة لكل طالب، وهي التي
+           يقرر عليها من يدفع أي باقة يشتري. فمكانها «يستحق انتباهك» لا
+           تقرير الأحد — الباقة تشترى قبل الأحد. */
+        'placement_result' => array(
+            'label'  => 'نتيجة تحديد المستوى',
+            'self'   => 'ظهرت نتيجة اختبار تحديد مستواك',
+            'parent' => 'نتيجة تحديد مستوى {name}',
+        ),
         'weekly_report' => array(
             'label'  => 'التقرير الأسبوعي',
             'self'   => 'تقريرك الأسبوعي جاهز',
@@ -104,6 +112,10 @@ class Taqdar_events_model extends CI_Model
      *        - window_days int     نافذة منع التكرار بالأيام؛ الافتراض
      *                              «اليوم الجاري» وحده.
      *        - audience    string  self|parent — أي صيغة عنوان تختار.
+     *        - email       bool    `false` تمنع البريد العام من هنا. يمررها
+     *                              من يرسل بريده بنفسه بجسم أوفى من سطر
+     *                              الإشعار — وبلا هذا المفتاح يصل المستلم
+     *                              رسالتان عن حدث واحد.
      *
      * @return int معرف الصف المكتوب، أو 0 إن منع بوصفه مكررا.
      */
@@ -152,7 +164,7 @@ class Taqdar_events_model extends CI_Model
         ));
 
         $id = (int) $this->db->insert_id();
-        if ($id > 0) {
+        if ($id > 0 && !(isset($payload['email']) && $payload['email'] === false)) {
             $this->maybe_email($user_id, $title, $text);
         }
         return $id;

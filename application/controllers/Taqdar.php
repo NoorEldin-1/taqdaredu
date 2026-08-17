@@ -371,6 +371,19 @@ class Taqdar extends CI_Controller
         } else {
             $this->trace('placement_submit', 'tq_diag_attempts#' . (int) $r['attempt_id'],
                          array('level' => $r['level'], 'score' => $r['score'], 'total' => $r['total']));
+
+            /* الإبلاغ **بعد** حفظ النتيجة لا قبله: من يقرر أمر الباقة هو
+               من يدفع، وهو في الغالب ليس صاحب هذه الشاشة. فتخرج النتيجة
+               إلى بريد ولي الأمر المربوط، أو البريد الذي كتبه الطالب عند
+               التسجيل، وإلا فبريده هو.
+
+               ويقع هنا لا في مهمة دورية لأن التوصية تعني شيئا الآن —
+               والطالب واقف أمام صفحة الباقات. والتأخير الذي يضيفه اتصال
+               SMTP واحد مقبول (ومقطوع بمهلة عشرين ثانية في
+               `Taqdar_mail_model`)، وبلا بريد مضبوط لا يفتح اتصال أصلا.
+               وما لم يرسل يبقى بلا دمغة فيلتقطه
+               `taqdar_cron_events placements`. */
+            $this->taqdar_diag_model->notify_result((int) $r['attempt_id']);
         }
 
         redirect(base_url('student/placement'), 'location', 302);
@@ -2099,6 +2112,25 @@ class Taqdar extends CI_Controller
     /* ---- الكتالوج الموحد ----------------------------------------- */
 
     /**
+     * صف الزائر الحالي — والصفر لمن ليس له صف.
+     *
+     * ثلاثة تعيد الصفر: الزائر بلا حساب، ومن ليس طالبا (المعلم يبحث في
+     * الكتالوج كله لا في صف، والإدارة كذلك)، والطالب الذي لم يذكر صفه —
+     * والحقل اختياري في التسجيل، فأكثر الحسابات اليوم بلا صف.
+     *
+     * وقراءة واحدة لكل طلب: الصفحة الكاملة تناديها مرة، وجزء البحث الحي
+     * مرة، ولا يجتمعان في طلب.
+     */
+    private function viewer_grade()
+    {
+        $uid = (int) $this->session->userdata('user_id');
+        if (!$uid || tq_role($uid) !== 'student') return 0;
+
+        return (int) $this->db->select('grade_id')->where('id', $uid)
+                              ->get('users')->row('grade_id');
+    }
+
+    /**
      * كل ما تقدمه المنصة في صفحة واحدة.
      *
      * كان لكل نوع بابه: البرامج في `/plans`، والكتب في `/books`،
@@ -2114,7 +2146,17 @@ class Taqdar extends CI_Controller
     public function catalog()
     {
         $this->load->model('taqdar_catalog_model', 'tq_cat');
-        $f   = $this->tq_cat->filters_from($this->input->get());
+        $f = $this->tq_cat->filters_from($this->input->get());
+        $f = $this->tq_cat->with_scope($f, $this->viewer_grade());
+
+        /* التحويل لا العرض الصامت.
+           لو عرضت النتيجة المرشحة تحت رابط عار لافترق طرفان: `site.js`
+           يبني كل رابط تال من `location.search` وحده، فأول بحث حي يرسل
+           `?q=…` بلا مرحلة — فتتسع النتيجة بلا أن يطلب ذلك أحد واللوحة
+           لا تزال تقول إن المرحلة مضغوطة. والرابط بعد التحويل يقول ما
+           يعرض، فيشارك ويحفظ ويرجع إليه كأي رابط كتالوج آخر. */
+        if (!empty($f['injected'])) redirect(tqs_cat_query($f), 'location', 302);
+
         $res = $this->tq_cat->search($f);
 
         $this->show('site_catalog', 'المواد والبرامج التعليمية', array(
@@ -2139,6 +2181,10 @@ class Taqdar extends CI_Controller
     {
         $this->load->model('taqdar_catalog_model', 'tq_cat');
         $f   = $this->tq_cat->filters_from($this->input->get());
+        /* المدخلان يفهمان الرابط فهما واحدا: الصفحة الكاملة تحول إلى
+           الرابط الصريح، وهذا يقرؤه كما هو — ولو غاب لصار طلب بحث من
+           رابط عار يتسع بلا مرحلة بينما الصفحة تحته مرشحة. */
+        $f   = $this->tq_cat->with_scope($f, $this->viewer_grade());
         $res = $this->tq_cat->search($f);
 
         $out = array(

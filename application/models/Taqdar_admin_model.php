@@ -183,6 +183,8 @@ class Taqdar_admin_model extends CI_Model
                 'readonly' => true,
                 'nodelete' => true,
                 'note'     => 'توزيع كله في «مبتدئ» يقرأ عن الاختبار لا عن الصف: اسئلة اصعب من صفها، او عتبة اعلى مما ينبغي.',
+                'status_fn'    => 'diag_notify_status',
+                'status_label' => 'ابلاغ ولي الامر',
                 'fields'   => array(
                     'student_id'   => array('label' => 'الطالب', 'type' => 'ref', 'ref' => 'users', 'list' => true),
                     'grade_id'     => array('label' => 'الصف', 'type' => 'ref', 'ref' => 'grades', 'list' => true),
@@ -1072,6 +1074,45 @@ class Taqdar_admin_model extends CI_Model
 
         return array('tone' => 'ok', 'label' => 'يعمل',
                      'why'  => 'يعرض على طلاب هذا الصف قبل الاشتراك — ' . $n . ' سؤالا.');
+    }
+
+    /**
+     * هل خرجت هذه النتيجة الى بريد من يعنيه امرها؟
+     *
+     * السؤال ليس ترفا: التوصية تخرج لمن يدفع، فان لم تخرج بقيت في شاشة
+     * الطالب وحدها ولا يعرف احد. وشاشة تقول «ادى» ولا تقول «ابلغ» تخفي
+     * نصف الحال — وهو النصف الذي يشتكى منه.
+     *
+     * والفحص الغالي (من هم المستلمون؟) لا يجري الا حين يعني شيئا: صف دمغ
+     * لا يسأل، وبريد غير مضبوط جوابه واحد لكل الصفوف.
+     */
+    public function diag_notify_status($row)
+    {
+        $when = trim((string) (isset($row['notified_at']) ? $row['notified_at'] : ''));
+        if ($when !== '') {
+            return array('tone' => 'ok', 'label' => 'ابلغ',
+                         'why'  => 'ارسلت النتيجة الى بريد ولي الامر في ' . $when . '.');
+        }
+
+        $this->load->model('taqdar_mail_model');
+        if (!$this->taqdar_mail_model->configured()) {
+            return array('tone' => 'warn', 'label' => 'ينتظر البريد',
+                         'why'  => 'البريد الصادر غير مضبوط — الناقص: '
+                                 . implode('، ', $this->taqdar_mail_model->missing())
+                                 . '. تضبطه من «البريد الصادر» فترسل ما ادي في الاسبوعين الاخيرين.');
+        }
+
+        $this->load->model('taqdar_diag_model');
+        $to = $this->taqdar_diag_model->result_audience((int) $row['student_id']);
+        if (!$to) {
+            return array('tone' => 'muted', 'label' => 'لا بريد',
+                         'why'  => 'لا ولي امر مربوط بموافقة نشطة، ولا بريد ولي امر على الحساب، '
+                                 . 'ولا بريد صالح للطالب نفسه.');
+        }
+
+        return array('tone' => 'warn', 'label' => 'في الطابور',
+                     'why'  => 'تعذر الارسال حين سلم الاختبار. يعيده المسح الدوري '
+                             . '(taqdar_cron_events placements) الى ' . count($to) . ' مستلما.');
     }
 
     /* =====================================================================

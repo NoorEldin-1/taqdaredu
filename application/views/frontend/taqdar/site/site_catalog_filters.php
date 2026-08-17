@@ -26,7 +26,7 @@ $tq_prices = array(
       <svg aria-hidden="true"><use href="#i-filter"></use></svg>تصفية النتائج
     </h2>
 <?php if ($tq_res['active']): ?>
-    <a class="cfilters__clear" href="<?php echo html_escape(base_url('catalog')); ?>" data-tq-cat-link>
+    <a class="cfilters__clear" href="<?php echo html_escape(tqs_cat_clear($tq_f)); ?>" data-tq-cat-link>
       مسح الكل
     </a>
 <?php endif; ?>

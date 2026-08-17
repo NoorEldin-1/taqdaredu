@@ -66,6 +66,7 @@ class Taqdar_cron_events extends CI_Controller
         $this->stations();
         $this->certificates();
         $this->session_requests();
+        $this->placements();
     }
 
     /* =====================================================================
@@ -251,6 +252,39 @@ class Taqdar_cron_events extends CI_Controller
         }
 
         $this->line('session_request', count($rows), $written);
+    }
+
+    /**
+     * نتائج تحديد المستوى التي لم يبلغ بها أحد.
+     *
+     * وهي المهمة الوحيدة هنا التي **لا تشتق** حدثا من البيانات: النتيجة
+     * تبلغ لحظة التسليم من `Taqdar.php::placement_submit()`، وهذا المسح
+     * لما لم يخرج حينها. وثلاث حالات تسقط في هذا الطابور:
+     *
+     *   · البريد الصادر لم يكن مضبوطا وقت التسليم — وهو حال هذا الخادم
+     *     حتى تكتب كلمة المرور في `taqdar_admin/mail`. فما أدي قبل الضبط
+     *     يصل بعده، ولا يضيع صامتا.
+     *   · الخادم رفض الرسالة (انقطاع · حد إرسال · اعتماد مؤقت).
+     *   · ولي الأمر ربط حسابه بعد أن أدى ابنه الاختبار.
+     *
+     * و`notify_result()` تدمغ `notified_at` فيما أرسل، فلا يعاد على أحد.
+     * ونافذتها أربعة عشر يوما — بعدها لا تبلغ نتيجة لا يذكرها صاحبها.
+     */
+    public function placements()
+    {
+        $this->load->model('taqdar_diag_model');
+
+        $ids  = $this->taqdar_diag_model->pending_notifications($this->memory_days, 200);
+        $sent = 0;
+
+        foreach ($ids as $id) {
+            $r = $this->taqdar_diag_model->notify_result($id);
+            if ((int) $r['sent'] > 0) {
+                $sent++;
+            }
+        }
+
+        $this->line('placement_result', count($ids), $sent);
     }
 
     /* =====================================================================

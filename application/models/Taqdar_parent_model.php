@@ -35,11 +35,12 @@ class Taqdar_parent_model extends CI_Model
     /** خطة الأسبوع الافتراضية حين لا يحددها ولي الأمر — معلنة في الشاشة لا مموهة. */
     const PLAN_DAYS_DEFAULT = 5;
 
-    /** الأحداث الخمسة التي تستحق المقاطعة — مفاتيحها مفاتيح `notifications.type`. */
+    /** الأحداث التي تستحق المقاطعة — مفاتيحها مفاتيح `notifications.type`. */
     public function notify_keys()
     {
         return [
             'exam_result'      => 'نتيجة امتحان',
+            'placement_result' => 'نتيجة تحديد المستوى',
             'station_failed'   => 'رسوب في اختبار محطة',
             'inactivity_3days' => 'انقطاع ثلاثة أيام',
             'session_request'  => 'طلب حصة خاصة',
