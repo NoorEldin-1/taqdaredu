@@ -166,6 +166,14 @@ class Taqdar extends CI_Controller
     public function certificates()   { $this->student('tq_certificates', 'الشهادات'); }
     public function payments()       { $this->student('tq_payments', 'المدفوعات'); }
     public function settings()       { $this->student('tq_settings', 'الإعدادات'); }
+    /* الأربع الجديدة. كلها موجودة في «شاشات الطالب المطلوبة» بوثيقة المنتج،
+       وكان محركها مبنيا في الخادم ولا باب إليه: `get_mistakes()` و
+       `get_skill_map()` منشوران في `taqdar_gate` منذ أن كتبا ولا سطر في
+       الواجهة يناديهما. */
+    public function mistakes()       { $this->student('tq_mistakes', 'دفتر الأخطاء'); }
+    public function mastery()        { $this->student('tq_mastery', 'خريطة إتقاني'); }
+    public function library()        { $this->student('tq_library', 'مكتبتي'); }
+    public function profile_page()   { $this->student('tq_profile', 'ملفي'); }
 
     /**
      * مشغل الدرس. لا يستعلم عن الدرس هنا — الصفحة تطلبه من `taqdar_gate`
@@ -232,6 +240,19 @@ class Taqdar extends CI_Controller
      */
     private static $placement_open = array(
         'tq_placement', 'tq_settings', 'tq_messages', 'tq_notifications', 'tq_delete_account',
+        'tq_setup',
+    );
+
+    /**
+     * شاشات تفتح قبل التهيئة.
+     *
+     * أضيق من `$placement_open` بشاشة واحدة: التهيئة نفسها. وبقية المخارج
+     * تبقى مفتوحة للسبب ذاته — من وضع في صف غير صفه يحتاج بابا إلى
+     * الإدارة، وحبسه في شاشة تهيئة بلا مخرج يجعل الخطأ الإداري سجنا.
+     */
+    private static $setup_open = array(
+        'tq_setup', 'tq_settings', 'tq_messages', 'tq_notifications', 'tq_delete_account',
+        'tq_placement',
     );
 
     private function student($page, $title)
@@ -240,6 +261,27 @@ class Taqdar extends CI_Controller
         // فيظنها معطوبة، والاختبار من حسابه يعطي نتيجة كاذبة.
         $this->require_role('student');
         $uid = $this->session->userdata('user_id');
+
+        /* التهيئة قبل التشخيص، والتشخيص قبل كل شيء.
+           والترتيب مقصود: الاختبار التشخيصي يقرأ `users.grade_id`، وشاشة
+           التهيئة هي التي تكتبه. فمن هيئ حسابه أولا وجد لصفه اختبارا،
+           ومن قدم التشخيص على التهيئة سقط عند `exam_for_grade()` فحول إلى
+           الباقات بلا أن يفهم لماذا.
+
+           و`needs_setup()` ترد `false` لمن هيأ مرة — فهذا السطر لا يعترض
+           طالبا قائما إلا مرة واحدة في العمر. */
+        if (!in_array($page, self::$setup_open, true)) {
+            try {
+                $this->load->model('taqdar_learn_model', 'tq_learn');
+                if ($this->tq_learn->needs_setup($uid)) {
+                    redirect(base_url('student/setup'), 'location', 302);
+                    return;
+                }
+            } catch (Throwable $e) {
+                // جدول لم ينشأ بعد: لا تحبس الطالب خارج بوابته لأجل ذلك
+                log_message('error', 'TQ-SETUP-GATE: ' . $e->getMessage());
+            }
+        }
 
         /* الاختبار التشخيصي أول ما يواجه الطالب الجديد.
            و`gate()` هي مصدر القرار الوحيد — تنادى هنا وفي شاشة التأكيد
@@ -258,6 +300,93 @@ class Taqdar extends CI_Controller
             'tq_counts' => $this->counts($uid),
             'user_id'   => $uid,
         ]);
+    }
+
+    /* ---- التهيئة ووضع الامتحان ------------------------------------ */
+
+    /**
+     * شاشة التهيئة — المرحلة والمواد والهدف اليومي.
+     *
+     * `F1.2` يشترط «لا أكثر من 4 إجابات قبل أول قيمة تعرض»، وهي هنا
+     * ثلاث: الصف، والمواد، والهدف. والرابعة لا توجد.
+     */
+    public function setup()
+    {
+        $this->require_role('student');
+        $uid = (int) $this->session->userdata('user_id');
+
+        $this->load->model('taqdar_learn_model', 'tq_learn');
+
+        $this->show('tq_setup', 'خطتك في تقدر', [
+            'tq_counts'   => $this->counts($uid),
+            'user_id'     => $uid,
+            'tq_setup'    => $this->tq_learn->setup($uid),
+            'tq_subjects' => $this->tq_learn->subjects_for($uid),
+            'tq_units'    => Taqdar_learn_model::units(),
+            'tq_grades'   => $this->db->select('id, name_ar')->from('grades')
+                                      ->where('active', 1)->order_by('`order`', 'ASC')
+                                      ->get()->result_array(),
+            'tq_grade_id' => (int) $this->db->select('grade_id')->where('id', $uid)
+                                            ->get('users')->row('grade_id'),
+        ]);
+    }
+
+    /** حفظ التهيئة — POST وحده كسائر مسارات الكتابة. */
+    public function setup_save()
+    {
+        $this->write_guard('student');
+        $uid = (int) $this->session->userdata('user_id');
+
+        $this->load->model('taqdar_learn_model', 'tq_learn');
+        $r = $this->tq_learn->save_setup($uid, [
+            'grade_id'    => $this->input->post('grade_id'),
+            'subject_ids' => $this->input->post('subject_ids'),
+            'goal_unit'   => $this->input->post('goal_unit'),
+            'goal_value'  => $this->input->post('goal_value'),
+        ]);
+
+        $this->trace('setup_save', 'user#' . $uid, $r);
+
+        /* الوجهة بعد الحفظ ليست اللوحة دائما: من بقي عليه تشخيص يذهب إليه
+           مباشرة، فلا يقرأ «حفظت خطتك» ثم يقذف إلى شاشة لم يطلبها. */
+        $this->load->model('taqdar_diag_model');
+        $next = $this->taqdar_diag_model->gate($uid) ? 'student/placement' : 'student';
+
+        $this->done($next, !empty($r['ok']), $r['message']);
+    }
+
+    /** تفعيل وضع الامتحان أو إيقافه. */
+    public function exam_mode_save()
+    {
+        $this->write_guard('student');
+        $uid = (int) $this->session->userdata('user_id');
+
+        $this->load->model('taqdar_learn_model', 'tq_learn');
+
+        $off = (string) $this->input->post('off') === '1';
+        $r = $off
+            ? $this->tq_learn->set_exam_mode($uid, null, null)
+            : $this->tq_learn->set_exam_mode($uid,
+                  (string) $this->input->post('exam_from'),
+                  (string) $this->input->post('exam_to'));
+
+        $this->trace('exam_mode', 'user#' . $uid, $r);
+        $this->done('student/exams', !empty($r['ok']), $r['message']);
+    }
+
+    /** زر إيقاف التلعيب — تشترطه الوثيقة صراحة في `F2.6`. */
+    public function gamify_save()
+    {
+        $this->write_guard('student');
+        $uid = (int) $this->session->userdata('user_id');
+
+        $this->load->model('taqdar_learn_model', 'tq_learn');
+        $on = (string) $this->input->post('gamify') === '1';
+        $this->tq_learn->set_gamify($uid, $on);
+
+        $this->done('student/settings', true, $on
+            ? 'أعاد التلعيب: تظهر لك السلسلة وحلقة الهدف.'
+            : 'أوقف التلعيب: لا سلسلة ولا حلقة هدف ولا أرقام تحفيز.');
     }
 
     /* ---- الاختبار التشخيصي ---------------------------------------- */
@@ -980,7 +1109,12 @@ class Taqdar extends CI_Controller
                جدول الكورسات، وآخر خمسة في زاوية شاشة الرفع. */
             'lessons'       => ['tq_teacher_lessons',        'دروسي'],
             'upload'        => ['tq_teacher_upload',         'رفع الدروس'],
+            /* استوديو المحتوى: خطوتان من خمس في «دورة إنتاج المحتوى»
+               بالوثيقة كانتا غائبتين — التوليد الآلي، واعتماد المعلم لكل
+               مخرج قبل النشر. */
+            'studio'        => ['tq_teacher_studio',         'استوديو المحتوى'],
             'questions'     => ['tq_teacher_questions',      'بنك الأسئلة'],
+            'analytics'     => ['tq_teacher_analytics',      'التحليلات والخريطة الحرارية'],
             'marking'       => ['tq_teacher_marking',        'الواجبات والتصحيح'],
             'students'      => ['tq_teacher_students',       'طلابي'],
             'sessions'      => ['tq_teacher_sessions',       'الحصص'],
@@ -1012,6 +1146,10 @@ class Taqdar extends CI_Controller
             'child'    => ['tq_parent_child',    'تفاصيل الابن'],
             'reports'  => ['tq_parent_reports',  'التقارير'],
             'weekly'   => ['tq_parent_weekly',   'التقرير الأسبوعي'],
+            /* الدفع نيابة عن الابن — `B4.6` و`F4.3`.
+               وشاشة مستقلة عن «المدفوعات»: تلك سجل قراءة، وهذه فعل.
+               والوثيقة تشترط «تدفق منفصل واضح عن دفع الطالب نفسه». */
+            'pay'      => ['tq_parent_pay',      'ادفع عن ابنك'],
             'payments' => ['tq_parent_payments', 'المدفوعات'],
             'messages' => ['tq_parent_messages', 'الرسائل'],
             'alerts'   => ['tq_parent_alerts',   'الإشعارات'],
@@ -1695,6 +1833,188 @@ class Taqdar extends CI_Controller
     }
 
     /** POST teacher/questions/import */
+    /* ---- استوديو المحتوى ------------------------------------------ */
+
+    /**
+     * توليد مخرجات درس — مسودات لا أكثر.
+     *
+     * `F3.2` نصه «لا نشر تلقائي — كل مخرج يمر باعتماد صريح»، فالتوليد
+     * لا ينشر شيئا: يكتب مسودات، والاعتماد مسار مستقل تحته.
+     */
+    public function studio_generate()
+    {
+        $user = $this->write_guard('teacher');
+        $tid  = (int) $user['id'];
+        $lid  = (int) $this->input->post('lesson_id');
+
+        if (!$this->teacher_owns_lesson($tid, $lid)) {
+            $this->done('teacher/studio', false, 'هذا الدرس ليس في نطاقك.');
+        }
+
+        $this->load->model('taqdar_studio_model', 'tq_studio');
+        $r = $this->tq_studio->generate($lid, $tid);
+
+        $this->trace('studio.generate', 'lesson:' . $lid, $r);
+        $this->done('teacher/studio?lesson=' . $lid, !empty($r['ok']), $r['message']);
+    }
+
+    /** حفظ تعديل المعلم على مخرج — ويعيده مسودة إن كان معتمدا. */
+    public function studio_save()
+    {
+        $user = $this->write_guard('teacher');
+        $tid  = (int) $user['id'];
+        $lid  = (int) $this->input->post('lesson_id');
+        $kind = (string) $this->input->post('kind');
+
+        if (!$this->teacher_owns_lesson($tid, $lid)) {
+            $this->done('teacher/studio', false, 'هذا الدرس ليس في نطاقك.');
+        }
+
+        $raw  = (string) $this->input->post('data');
+        $data = json_decode($raw, true);
+        if (!is_array($data)) {
+            $this->done('teacher/studio?lesson=' . $lid, false, 'تعذر قراءة ما أرسل. أعد المحاولة.');
+        }
+
+        $this->load->model('taqdar_studio_model', 'tq_studio');
+        $r = $this->tq_studio->save_output($lid, $kind, $data, $tid);
+
+        $this->done('teacher/studio?lesson=' . $lid, !empty($r['ok']), $r['message']);
+    }
+
+    /**
+     * الاعتماد الصريح — الباب الوحيد الذي يصل مخرج منه إلى طالب.
+     * والرفض يعيده مسودة ولا يحذفه: عمل المعلم لا يمحى بضغطة.
+     */
+    public function studio_approve()
+    {
+        $user = $this->write_guard('teacher');
+        $tid  = (int) $user['id'];
+        $lid  = (int) $this->input->post('lesson_id');
+        $kind = (string) $this->input->post('kind');
+        $act  = (string) $this->input->post('act');
+
+        if (!$this->teacher_owns_lesson($tid, $lid)) {
+            $this->done('teacher/studio', false, 'هذا الدرس ليس في نطاقك.');
+        }
+
+        $this->load->model('taqdar_studio_model', 'tq_studio');
+        $r = ($act === 'reject')
+            ? $this->tq_studio->reject_output($lid, $kind, $tid, (string) $this->input->post('reason'))
+            : $this->tq_studio->approve($lid, $kind, $tid);
+
+        $this->trace('studio.' . ($act === 'reject' ? 'reject' : 'approve'), 'lesson:' . $lid,
+                     array('kind' => $kind, 'ok' => !empty($r['ok'])));
+        $this->done('teacher/studio?lesson=' . $lid, !empty($r['ok']), $r['message']);
+    }
+
+    /** نص الدرس — مصدر البحث والقفز في المشغل، ومادة التوليد. */
+    public function studio_transcript()
+    {
+        $user = $this->write_guard('teacher');
+        $tid  = (int) $user['id'];
+        $lid  = (int) $this->input->post('lesson_id');
+
+        if (!$this->teacher_owns_lesson($tid, $lid)) {
+            $this->done('teacher/studio', false, 'هذا الدرس ليس في نطاقك.');
+        }
+
+        $this->load->model('taqdar_learn_model', 'tq_learn');
+        $r = $this->tq_learn->save_transcript($lid, (string) $this->input->post('transcript'));
+
+        $this->trace('studio.transcript', 'lesson:' . $lid, $r);
+        $this->done('teacher/studio?lesson=' . $lid, true, $r['message']);
+    }
+
+    /** نقل حالة الأصل: إرسال للمراجعة من المعلم. */
+    public function studio_state()
+    {
+        $user = $this->write_guard('teacher');
+        $tid  = (int) $user['id'];
+        $lid  = (int) $this->input->post('lesson_id');
+        $to   = (string) $this->input->post('to');
+
+        if (!$this->teacher_owns_lesson($tid, $lid)) {
+            $this->done('teacher/studio', false, 'هذا الدرس ليس في نطاقك.');
+        }
+
+        /* المعلم ينقل إلى `processed` و`in_review` وحدهما. والنشر والرفض
+           للإدارة — وهي الخطوتان الرابعة والخامسة في دورة الإنتاج
+           بالوثيقة. ومعلم ينشر لنفسه يلغي المراجعة كلها. */
+        if (!in_array($to, array('processed', 'in_review'), true)) {
+            $this->done('teacher/studio?lesson=' . $lid, false,
+                'النشر والرفض من الإدارة بعد المراجعة العلمية والفنية.');
+        }
+
+        $this->load->model('taqdar_studio_model', 'tq_studio');
+        $r = $this->tq_studio->transition($lid, $to, $tid);
+
+        $this->done('teacher/studio?lesson=' . $lid, !empty($r['ok']), $r['message']);
+    }
+
+    /* ---- مولد الاختبارات ------------------------------------------ */
+
+    public function examgen_save()
+    {
+        $user = $this->write_guard('teacher');
+        $tid  = (int) $user['id'];
+        $aid  = (int) $this->input->post('assessment_id');
+
+        if (!$this->teacher_owns_assessment($tid, $aid)) {
+            $this->done('teacher/questions', false, 'هذا التقييم ليس في نطاقك.');
+        }
+
+        $spec = $this->input->post('spec');
+        $this->load->model('taqdar_examgen_model', 'tq_examgen');
+        $r = $this->tq_examgen->save_blueprint($aid, is_array($spec) ? $spec : array(),
+                                               (int) $this->input->post('forms'), $tid);
+
+        $this->done('teacher/questions?assessment=' . $aid, !empty($r['ok']), $r['message']);
+    }
+
+    public function examgen_build()
+    {
+        $user = $this->write_guard('teacher');
+        $tid  = (int) $user['id'];
+        $aid  = (int) $this->input->post('assessment_id');
+
+        if (!$this->teacher_owns_assessment($tid, $aid)) {
+            $this->done('teacher/questions', false, 'هذا التقييم ليس في نطاقك.');
+        }
+
+        $this->load->model('taqdar_examgen_model', 'tq_examgen');
+        $r = $this->tq_examgen->generate($aid, $tid);
+
+        $this->trace('examgen.build', 'assessments:' . $aid, $r);
+        $this->done('teacher/questions?assessment=' . $aid, !empty($r['ok']), $r['message']);
+    }
+
+    /**
+     * ملكية تقييم — عبر درسه أو محطته أو مساره إلى كورس المعلم.
+     *
+     * والفحص في الاستعلام لا في شرط عرض: من غير رقم التقييم في النموذج
+     * لا يصل إلى وصفة غيره.
+     */
+    private function teacher_owns_assessment($teacher_id, $assessment_id)
+    {
+        $teacher_id = (int) $teacher_id;
+        $assessment_id = (int) $assessment_id;
+        if ($teacher_id < 1 || $assessment_id < 1) return false;
+
+        $n = (int) $this->db->query(
+            'SELECT COUNT(*) n
+               FROM `assessments` a
+          LEFT JOIN `lesson` l     ON l.`id` = a.`lesson_id`
+          LEFT JOIN `milestones` m ON m.`id` = a.`milestone_id`
+          LEFT JOIN `paths` p      ON p.`id` = COALESCE(a.`path_id`, m.`path_id`)
+               JOIN `course` c     ON c.`id` = COALESCE(l.`course_id`, p.`course_id`)
+              WHERE a.`id` = ?
+                AND (c.`creator` = ? OR FIND_IN_SET(?, c.`user_id`) > 0)',
+            array($assessment_id, $teacher_id, $teacher_id))->row('n');
+
+        return $n > 0;
+    }
+
     public function questions_import()
     {
         $user = $this->write_guard('teacher');
@@ -1886,6 +2206,64 @@ class Taqdar extends CI_Controller
      * شاشة الإعدادات ثلاثة نماذج: الملف الشخصي، وكلمة المرور، والتنبيهات.
      * و`tq_action` يفصل بينها — فحفظ التنبيهات لا يمر بمسار كلمة المرور.
      */
+    /**
+     * ولي الأمر يشتري باقة لابنه — `B4.6` و`F4.3`.
+     *
+     * الاشتراك والفاتورة يكتبان **باسم الابن** لا باسم الأب: هو صاحب
+     * المحتوى، وعليه يقاس التقدم، وله تجسد `sync_enrolments()` صفوف
+     * `enrol`. وولي الأمر يدفع ولا يملك.
+     *
+     * والترتيب هو ترتيب كل شراء في المنصة: اشتراك معلق + فاتورة أولا،
+     * ثم تدفع الفاتورة. فالفاتورة هي المرساة — ولو عكس لكان من دفع ثم
+     * سقط اتصاله قد دفع بلا شيء يقابله.
+     *
+     * وحارس الاختبار التشخيصي يبقى ساريا: `subscribe()` هي التي تمنع،
+     * وهي واحدة لكل طرق الشراء. ولي أمر يشتري لابن لم يشخص يرد عليه
+     * برسالة تقول ذلك — ولا يفتح له باب يلتف على الحارس.
+     */
+    public function parent_pay_start()
+    {
+        $this->write_guard('parent');
+        $pid = (int) $this->session->userdata('user_id');
+
+        $child_id = (int) $this->input->post('child_id');
+        $plan_id  = (int) $this->input->post('plan_id');
+        $method   = (string) $this->input->post('method') === 'card' ? 'card' : 'bank';
+
+        if (!$this->parent_owns_child($pid, $child_id)) {
+            $this->done('parent/pay', false, 'هذا الطالب غير مرتبط بحسابك برابط نشط.');
+        }
+        if ($plan_id < 1) {
+            $this->done('parent/pay', false, 'اختر باقة أولا.');
+        }
+
+        $this->load->model('taqdar_billing_model');
+        $r = $this->taqdar_billing_model->subscribe($child_id, $plan_id, $method);
+
+        if (empty($r['ok'])) {
+            $msg = !empty($r['errors']) ? implode(' ', $r['errors']) : 'تعذر إنشاء الاشتراك.';
+            $this->done('parent/pay', false, $msg);
+        }
+
+        $this->trace('parent.pay.start', 'user#' . $child_id,
+                     array('plan_id' => $plan_id, 'invoice_id' => $r['invoice_id'] ?? 0));
+
+        /* البطاقة: تسلم إلى `Taqdar_pay::start` بنموذج ذاتي الإرسال —
+           وهو مسار POST يشترط رمز CSRF، فلا يحول إليه بـ302.
+           والتحويل البنكي: تعليمات الحوالة في شاشة المدفوعات كما هي
+           للطالب، فلا يعاد بناؤها هنا. */
+        if ($method === 'card' && !empty($r['invoice_id'])) {
+            $this->session->set_flashdata('flash_message',
+                'صدرت الفاتورة باسم ابنك. أكمل الدفع بالبطاقة.');
+            $this->session->set_userdata('tq_pay_invoice', (int) $r['invoice_id']);
+            redirect(base_url('parent/pay?invoice=' . (int) $r['invoice_id']), 'location', 302);
+            return;
+        }
+
+        $this->done('parent/payments', true,
+            'صدرت الفاتورة باسم ابنك. حول قيمتها ثم ترسل الإدارة التفعيل.');
+    }
+
     public function parent_settings_save()
     {
         $user = $this->write_guard('parent');
@@ -1991,6 +2369,44 @@ class Taqdar extends CI_Controller
             return;
         }
         $this->certificate_fallback($cert, false);
+    }
+
+    /**
+     * رمز QR لشهادة — `B4.7`.
+     *
+     * ما يرمز هو **رابط التحقق العام** لا رقم الشهادة: من يمسحه بهاتفه
+     * يريد أن يرى صفحة تقول «هذه شهادة صحيحة»، ورقم عار يجعله يبحث عن
+     * موضع يكتبه فيه. والصفحة عامة بلا تسجيل دخول — المتحقق جهة توظيف
+     * أو مدرسة لا حساب لها هنا.
+     *
+     * والصورة تولد عند الطلب ولا تخزن: ملف لكل شهادة تراكم في
+     * `uploads/` بلا كانس، والتوليد أرخص من إدارة دورة حياته.
+     */
+    public function certificate_qr($id = 0)
+    {
+        $cert = $this->certificate_row($id);
+        if (!$cert) show_404();
+
+        $url = base_url('verify/' . $this->cert_code((int) $cert['id']));
+
+        /* المكتبة طرف ثالث لا تعدل، وتطبع مباشرة إلى المخرج — فينظف
+           ما قبلها ويرسل نوع المحتوى بيدنا. و`QR_ECLEVEL_M` يحتمل ربع
+           التلف: الرمز يطبع على ورق ويصور بهاتف. */
+        if (!class_exists('QRcode')) {
+            require_once APPPATH . 'libraries/phpqrcode/phpqrcode.php';
+        }
+
+        while (ob_get_level() > 0) ob_end_clean();
+        header('Content-Type: image/png');
+        header('Cache-Control: public, max-age=86400');
+        QRcode::png($url, false, QR_ECLEVEL_M, 6, 2);
+        exit;
+    }
+
+    /** رمز الشهادة المطبوع — `TQ-000012`. مصدره واحد فلا يفترق موضعان. */
+    private function cert_code($id)
+    {
+        return 'TQ-' . str_pad((string) (int) $id, 6, '0', STR_PAD_LEFT);
     }
 
     /** صفحة التحقق العامة — بلا تسجيل دخول، وبلا بيانات تعريف زائدة. */

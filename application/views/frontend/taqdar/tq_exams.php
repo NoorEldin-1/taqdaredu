@@ -98,8 +98,71 @@ $tq_grade = function ($pct) {
     return ['late', 'يحتاج مراجعة'];
 };
 
+/* وضع الامتحان — `F2.5`.
+   موضعه هذه الشاشة لا الإعدادات: من يفتح «اختباراتي» قبل امتحانه بأسابيع
+   هو من يريده، ودفنه في إعدادات لا يفتحها أحد يجعله ميزة لا توجد. */
+$CI_ex = &get_instance();
+$CI_ex->load->model('taqdar_learn_model', 'tq_learn');
+$tq_exam = $CI_ex->tq_learn->exam_mode($tq_uid);
+
 include 'portal_open.php';
 ?>
+
+<?php /* ── وضع الامتحان ─────────────────────────────────────────────
+        حالتان في بطاقة واحدة: سار فيقال ما بقي ويعرض الإيقاف، أو مطفأ
+        فيعرض نموذج التفعيل. ولا شاشة ثالثة: الوضع مفتاح لا رحلة. */ ?>
+<section class="tq-card tq-exam-mode<?php echo !empty($tq_exam['active']) ? ' is-on' : ''; ?>"
+         style="margin-block-end:var(--tq-space-l)">
+  <div class="tq-card__head">
+    <h2 class="tq-card__title">وضع الامتحان</h2>
+    <?php if (!empty($tq_exam['active'])): ?>
+      <span class="tq-badge tq-badge--due">سار — بقي <?php
+        echo tq_num((int) $tq_exam['days_left']); ?> يوما</span>
+    <?php endif; ?>
+  </div>
+
+  <?php if (!empty($tq_exam['active'])): ?>
+    <p class="tq-body" style="margin-block-end:var(--tq-space-l)">
+      شاشاتك الآن خطة مراجعة: خطوتك اليومية مراجعة لا درس جديد، والإشعارات
+      التسويقية موقوفة حتى <?php echo tq_num(html_escape((string) $tq_exam['to'])); ?>.
+      وإشعارات النتائج والحصص تصلك كما هي.
+    </p>
+    <form method="post" action="<?php echo base_url('student/exam-mode'); ?>">
+      <?php echo tq_csrf(); ?>
+      <input type="hidden" name="off" value="1">
+      <button class="tq-btn tq-btn--secondary" type="submit">أوقف وضع الامتحان</button>
+    </form>
+
+  <?php else: ?>
+    <p class="tq-body" style="margin-block-end:var(--tq-space-l)">
+      حدد مدى امتحاناتك، وستتحول شاشاتك إلى خطة مراجعة: المراجعة قبل الدرس
+      الجديد، وبلا إشعارات تسويقية تقطع عليك.
+    </p>
+    <form method="post" action="<?php echo base_url('student/exam-mode'); ?>" class="tq-exam-mode__form">
+      <?php echo tq_csrf(); ?>
+      <label class="tq-field">
+        <span class="tq-field__label">من</span>
+        <input class="tq-input" type="date" name="exam_from" required
+               min="<?php echo date('Y-m-d'); ?>" value="<?php echo date('Y-m-d'); ?>">
+      </label>
+      <label class="tq-field">
+        <span class="tq-field__label">إلى</span>
+        <input class="tq-input" type="date" name="exam_to" required
+               min="<?php echo date('Y-m-d'); ?>"
+               value="<?php echo date('Y-m-d', strtotime('+14 day')); ?>">
+      </label>
+      <button class="tq-btn tq-btn--primary" type="submit">فعل الوضع</button>
+    </form>
+  <?php endif; ?>
+</section>
+
+<style>
+.tq-exam-mode.is-on { border-color: color-mix(in srgb, var(--tq-amber) 40%, transparent); }
+.tq-exam-mode__form {
+  display: flex; flex-wrap: wrap; gap: var(--tq-space-m); align-items: flex-end;
+}
+.tq-exam-mode__form .tq-field { min-inline-size: 160px; }
+</style>
 
 <div class="tq-cols">
     <div>

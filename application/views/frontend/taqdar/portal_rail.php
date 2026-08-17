@@ -43,16 +43,27 @@ $tq_rail_map = [
             ['courses',    'كورساتي',          'student/courses',    'book'],
             ['lessons',    'دروسي',            'student/lessons',    'play'],
             ['bundle',     'محتوى باقتي',      'student/bundle',     'grid'],
+            /* الكتب كانت في الكتالوج العام وفي اللوحة، وبلا قارئ في بوابة
+               الطالب: يشتري باقة فيها كتب ولا موضع يفتحها منه. */
+            ['library',    'مكتبتي',           'student/library',    'book'],
             ['materials',  'المواد التعليمية', 'student/materials',  'folder'],
             ['favourites', 'المفضلة',          'student/favourites', 'heart'],
         ]],
         ['التمرين والقياس', [
-            ['reviews', 'المراجعة',   'student/reviews', 'flame'],
-            ['tasks',   'مهامي',      'student/tasks',   'clipboard'],
-            ['exams',   'اختباراتي',  'student/exams',   'check-badge'],
+            ['reviews',  'المراجعة',      'student/reviews',  'flame'],
+            /* دفتر الأخطاء: محركه (`get_mistakes`) و`endpoint`ه
+               (`taqdar_gate/mistakes`) مبنيان منذ أن كتبت بوابة الإتقان،
+               ولم يكن في الواجهة كلها سطر يناديهما — ميزة كاملة بلا باب.
+               وموضعه هنا لا في «المتابعة»: الدفتر يمرن ولا يخبر. */
+            ['mistakes', 'دفتر الأخطاء', 'student/mistakes', 'help'],
+            ['tasks',    'مهامي',        'student/tasks',    'clipboard'],
+            ['exams',    'اختباراتي',    'student/exams',    'check-badge'],
         ]],
         ['المتابعة', [
             ['reports',      'المتابعة والتقارير', 'student/reports',      'chart'],
+            /* خريطة الإتقان: يقرؤها المسؤول في `taqdar_admin/mastery`
+               ويقاس عليها الطالب وتصدر بها شهادته — ولا يراها هو. */
+            ['mastery',      'خريطة إتقاني',       'student/mastery',      'target'],
             ['calendar',     'التقويم',            'student/calendar',     'calendar'],
             ['certificates', 'الشهادات',           'student/certificates', 'award'],
         ]],
@@ -62,6 +73,9 @@ $tq_rail_map = [
             ['notifications', 'الإشعارات',  'student/notifications', 'bell'],
         ]],
         ['حسابي', [
+            /* الملف الشخصي غير الإعدادات: هذا ما بلغه الطالب — إتقانه
+               وشهاداته وسلسلته — وتلك ما يضبطه. وكانا شاشة واحدة. */
+            ['profile',      'ملفي',      'student/profile',      'user'],
             ['subscription', 'اشتراكي',   'student/subscription', 'wallet'],
             ['settings',     'الإعدادات', 'student/settings',     'cog'],
         ]],
@@ -75,13 +89,19 @@ $tq_rail_map = [
                شاشة. وكان الدرس بلا شاشة هنا أصلا — رقم في جدول وخمسة في زاوية. */
             ['courses',   'كورساتي',     'teacher/courses',   'book'],
             ['lessons',   'دروسي',       'teacher/lessons',   'play'],
-            ['upload',    'رفع الدروس',  'teacher/upload',    'upload'],
-            ['questions', 'بنك الأسئلة', 'teacher/questions', 'help'],
+            ['upload',    'رفع الدروس',      'teacher/upload',    'upload'],
+            /* الاستوديو بعد الرفع مباشرة: هو الخطوة التالية في دورة
+               الإنتاج — يرفع، ثم يولد ويعتمد، ثم يرسل للمراجعة. */
+            ['studio',    'استوديو المحتوى', 'teacher/studio',    'pen'],
+            ['questions', 'بنك الأسئلة',     'teacher/questions', 'help'],
         ]],
         ['الطلاب والتصحيح', [
-            ['marking',  'الواجبات والتصحيح', 'teacher/marking',  'clipboard'],
-            ['students', 'طلابي',             'teacher/students', 'users'],
-            ['sessions', 'الحصص',             'teacher/sessions', 'video'],
+            ['marking',   'الواجبات والتصحيح', 'teacher/marking',   'clipboard'],
+            ['students',  'طلابي',             'teacher/students',  'users'],
+            ['sessions',  'الحصص',             'teacher/sessions',  'video'],
+            /* التحليلات مع الطلاب لا مع التدريس: الخريطة الحرارية تقرأ
+               سلوك الطلاب لا حال المحتوى، وكل صف فيها ينتهي بإجراء. */
+            ['analytics', 'التحليلات',         'teacher/analytics', 'chart'],
         ]],
         /* التواصل: كان المعلم يرسل إلى طلابه من شاشة «طلابي» ولا يملك
            صندوقا يقرأ فيه ردهم، وكانت إشعاراته تعد في `Taqdar::counts()`
@@ -108,8 +128,12 @@ $tq_rail_map = [
             ['alerts',   'الإشعارات', 'parent/alerts',   'bell'],
         ]],
         ['حسابي', [
-            ['payments', 'المدفوعات', 'parent/payments', 'wallet'],
-            ['settings', 'الإعدادات', 'parent/settings', 'cog'],
+            /* الدفع فعل والمدفوعات سجل، وهما بندان لا بند: كان ولي
+               الأمر لا يستطيع الشراء لابنه أصلا — `checkout()` يرده
+               برسالة «الاشتراك لحسابات الطلاب». */
+            ['pay',      'ادفع عن ابنك', 'parent/pay',      'card'],
+            ['payments', 'المدفوعات',    'parent/payments', 'wallet'],
+            ['settings', 'الإعدادات',    'parent/settings', 'cog'],
         ]],
     ],
 ];

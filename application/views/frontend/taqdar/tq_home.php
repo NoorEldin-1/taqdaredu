@@ -30,6 +30,21 @@ $tq_active    = array_values(array_filter($tq_courses, function ($c) { return $c
 $tq_deadlines = tq_s_deadlines($tq_uid, 4);
 $tq_act       = tq_s_activity($tq_uid);
 
+/* الخطوة التالية — محسوبة لا مستأنفة.
+   الفرق بينها وبين «واصل من حيث وقفت» أنها **توازن**: مراجعة مستحقة اليوم
+   أهم من درس جديد لأن ما نسي لا يعوض بما يضاف، وواجب لم يسلم أقرب موعدا
+   منهما. و`B1.7` يشترط «خطوة واحدة مقترحة لا قائمة»، و`F1.4` «زر واحد
+   كبير» — وهما هذان.
+   والحساب في الخادم (`Taqdar_learn_model::next_step`) لا هنا: ترتيب
+   الأولويات قرار منتج، ونسخة ثانية منه في قالب تفترق عن الأولى عند أول
+   تعديل. */
+$CI = &get_instance();
+$CI->load->model('taqdar_learn_model', 'tq_learn');
+$tq_step   = $CI->tq_learn->next_step($tq_uid);
+$tq_streak = $CI->tq_learn->streak($tq_uid);
+$tq_goal   = $CI->tq_learn->goal_today($tq_uid);
+$tq_exam   = $CI->tq_learn->exam_mode($tq_uid);
+
 include 'portal_open.php';
 ?>
 
@@ -44,30 +59,83 @@ include 'portal_open.php';
                  النص لعرض البطاقة بدل أن يترك فجوة في مكان القرص. */ ?>
         <section class="tq-s-banner tq-s-banner--plain tq-section tq-enter">
             <div class="tq-s-banner__body">
-                <p class="tq-eyebrow">استمر</p>
-                <?php if ($tq_resume !== null): ?>
-                    <h2 class="tq-display" style="margin-block-end:var(--tq-space-s)">واصل تعلمك، وواصل تقدمك</h2>
-                    <p class="tq-body">
-                        توقفت عند
-                        <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_resume['title']); ?></span>
-                        —
-                        <?php echo tq_s_lessons_word($tq_resume['done'], $tq_resume['lessons']); ?>.
+                <p class="tq-eyebrow"><?php
+                  echo !empty($tq_exam['active']) ? 'وضع الامتحان' : 'خطوتك التالية'; ?></p>
+                <h2 class="tq-display" style="margin-block-end:var(--tq-space-s)"><?php
+                  echo html_escape($tq_step['title']); ?></h2>
+                <p class="tq-body"><?php echo html_escape($tq_step['subtitle']); ?></p>
+                <a class="tq-btn tq-btn--primary" href="<?php echo html_escape($tq_step['href']); ?>">
+                    <?php echo tq_icon($tq_step['icon']); ?> <?php echo html_escape($tq_step['cta']); ?>
+                </a>
+
+                <?php /* الاستئناف يبقى — لكن ثانويا وبلا زر أساسي ثان.
+                        فمن كانت خطوته اليوم مراجعة قد يريد مع ذلك أن يعود
+                        إلى درسه، وحذف الباب كله ليس توجيها بل حجب.
+                        ويخفى حين تكون الخطوة نفسها هي الاستئناف — رابطان
+                        إلى موضع واحد يقرآن خيارين. */ ?>
+                <?php if ($tq_resume !== null && $tq_step['kind'] !== 'resume'): ?>
+                    <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
+                        أو <a href="<?php echo tq_s_lesson_url($tq_resume['id'], $tq_resume['resume_id']); ?>">واصل
+                        <?php echo html_escape($tq_resume['title']); ?></a>
+                        حيث توقفت.
                     </p>
-                    <a class="tq-btn tq-btn--primary"
-                       href="<?php echo tq_s_lesson_url($tq_resume['id'], $tq_resume['resume_id']); ?>">
-                        <?php echo tq_icon('play'); ?> استكمل التعلم
-                    </a>
-                <?php else: ?>
-                    <h2 class="tq-display" style="margin-block-end:var(--tq-space-s)">ابدأ رحلتك مع تقدر</h2>
-                    <p class="tq-body">
-                        اختر كورسك الأول، وسيظهر هنا زر يعيدك إلى آخر درس توقفت عنده بالضبط.
-                    </p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('catalog'); ?>">
-                        تصفح الكورسات
-                    </a>
                 <?php endif; ?>
             </div>
+
+            <?php /* حلقة الهدف والسلسلة — `F2.6`.
+                    وتخفى بالكامل لمن أوقف التلعيب من إعداداته: الوثيقة
+                    تشترط «زر إيقاف كامل»، والإيقاف الذي يبقي الحلقة
+                    ويخفي الرقم ليس إيقافا. */ ?>
+            <?php if (!empty($tq_goal['gamify'])): ?>
+              <?php
+                $tq_pct  = (int) $tq_goal['percent'];
+                $tq_dash = 100 - $tq_pct;
+              ?>
+              <div class="tq-s-goal" aria-hidden="false">
+                <div class="tq-s-goal__ring" role="img"
+                     aria-label="أنجزت <?php echo (int) $tq_goal['done']; ?> من <?php
+                       echo (int) $tq_goal['target']; ?> <?php echo html_escape($tq_goal['plural']); ?> اليوم">
+                  <svg viewBox="0 0 42 42" width="96" height="96">
+                    <circle class="tq-s-goal__track" cx="21" cy="21" r="15.9" fill="none" stroke-width="4"></circle>
+                    <circle class="tq-s-goal__fill<?php echo $tq_goal['met'] ? ' is-met' : ''; ?>"
+                            cx="21" cy="21" r="15.9" fill="none" stroke-width="4"
+                            stroke-linecap="round"
+                            stroke-dasharray="<?php echo $tq_pct; ?> <?php echo $tq_dash; ?>"
+                            stroke-dashoffset="25"></circle>
+                  </svg>
+                  <span class="tq-s-goal__num"><?php echo tq_num($tq_goal['done'] . '/' . $tq_goal['target']); ?></span>
+                </div>
+                <p class="tq-s-goal__label"><?php
+                  echo $tq_goal['met']
+                     ? 'بلغت هدف اليوم'
+                     : html_escape($tq_goal['plural']) . ' اليوم'; ?></p>
+
+                <?php if ((int) $tq_streak['days'] > 0): ?>
+                  <p class="tq-s-goal__streak">
+                    <?php echo tq_icon('flame', 14); ?>
+                    <?php echo tq_num((int) $tq_streak['days']); ?> يوما متتاليا
+                  </p>
+                <?php else: ?>
+                  <?php /* لا سلسلة: تدعى ولا تلام. «انقطعت» تقرأ عتابا. */ ?>
+                  <p class="tq-s-goal__streak tq-s-goal__streak--off">ابدأ سلسلتك اليوم</p>
+                <?php endif; ?>
+              </div>
+            <?php endif; ?>
         </section>
+
+        <?php if (!empty($tq_exam['active'])): ?>
+          <?php /* شريط وضع الامتحان: يقول إن الشاشة تغيرت ولماذا، وكيف
+                  يوقف. وضع يغير السلوك بلا أن يعلن نفسه يقرأ عطلا. */ ?>
+          <div class="tq-s-examstrip tq-section">
+            <span class="tq-s-examstrip__i" aria-hidden="true"><?php echo tq_icon('check-badge', 18); ?></span>
+            <p>
+              <strong>وضع الامتحان سار.</strong>
+              بقي <?php echo tq_num((int) $tq_exam['days_left']); ?> يوما.
+              خطوتك اليوم مراجعة لا درس جديد، والإشعارات التسويقية موقوفة.
+            </p>
+            <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/exams'); ?>">اضبطه</a>
+          </div>
+        <?php endif; ?>
 
         <!-- استكمال التعلم -->
         <section class="tq-section">

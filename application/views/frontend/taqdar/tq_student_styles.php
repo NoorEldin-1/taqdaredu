@@ -465,6 +465,61 @@ if (!function_exists('tq_s_stat')) {
    تصير فجوة. والقياس يبقى محدودا (`68ch`) لأن سطرا يمتد بعرض الشاشة يفقد
    القارئ موضعه في السطر التالي. والوهج ينقل من `85%` — حيث كان القرص —
    إلى ناحية النص فيضيء ما يقرأ لا فراغا. */
+/* --------------------------------------------------------------------------
+   حلقة الهدف والسلسلة — نظام التلعيب (F2.6)
+   --------------------------------------------------------------------------
+   الحلقة `stroke-dasharray` على دائرة نصف قطرها 15.9 — محيطها 99.9 ≈ 100،
+   فالنسبة المئوية تكتب في `dasharray` كما هي بلا حساب. و`dashoffset: 25`
+   يدير نقطة البدء إلى أعلى الدائرة.
+   والاتجاه: الحلقة رقم لا نص، فلا تنعكس في RTL — ولذلك لا `transform`
+   هنا يقلبها. */
+.tq-s-goal {
+  position: absolute; inset-block-start: 50%; inset-inline-end: var(--tq-space-h1);
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: var(--tq-space-xs);
+  text-align: center;
+}
+.tq-s-goal__ring { position: relative; display: grid; place-items: center; }
+.tq-s-goal__ring svg { transform: rotate(-90deg); }
+.tq-s-goal__track { stroke: var(--tq-line); }
+.tq-s-goal__fill {
+  stroke: var(--tq-actionMastery);
+  transition: stroke-dasharray var(--tq-motion-ringFill) var(--tq-ease-enter);
+}
+.tq-s-goal__fill.is-met { stroke: var(--tq-tealLift); }
+.tq-s-goal__num {
+  position: absolute; font-weight: 800; font-size: .95rem;
+  unicode-bidi: isolate; direction: ltr; color: var(--tq-navy);
+}
+.tq-s-goal__label { margin: 0; font-size: .78rem; color: var(--tq-text2); }
+.tq-s-goal__streak {
+  margin: 0; display: inline-flex; align-items: center; gap: 4px;
+  font-size: .78rem; font-weight: 700; color: var(--tq-peach-ink);
+}
+.tq-s-goal__streak--off { color: var(--tq-text3); font-weight: 400; }
+
+/* دون 900 بكسل تنزل الحلقة تحت النص بدل أن تزاحمه — والبطاقة تعود
+   تدفقا عاديا فلا تحتاج `position` مطلقا. */
+@media (max-width: 899.98px) {
+  .tq-s-goal {
+    position: static; transform: none;
+    flex-direction: row; flex-wrap: wrap; justify-content: flex-start;
+    gap: var(--tq-space-m); margin-block-start: var(--tq-space-xl);
+  }
+  .tq-s-goal__ring svg { width: 64px; height: 64px; }
+}
+
+/* شريط وضع الامتحان */
+.tq-s-examstrip {
+  display: flex; flex-wrap: wrap; gap: var(--tq-space-m); align-items: center;
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border-radius: var(--tq-radius-medium);
+  background: var(--tq-peach-fill); color: var(--tq-peach-ink);
+  border: 1px solid color-mix(in srgb, var(--tq-amber) 28%, transparent);
+}
+.tq-s-examstrip__i { display: inline-flex; flex: none; }
+.tq-s-examstrip p { margin: 0; flex: 1; min-inline-size: 200px; font-size: .9rem; }
+
 .tq-s-banner--plain {
   background:
     radial-gradient(620px 260px at 92% -30%, var(--tq-mint-fill), transparent 70%),

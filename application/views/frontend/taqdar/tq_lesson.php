@@ -71,6 +71,63 @@ include 'portal_open.php';
                     <div class="tq-player__frame" data-tq-player-frame></div>
                 </div>
 
+                <?php /* ── أدوات المشغل — `F2.1` ──────────────────────────
+                        ثلاث: سرعة متغيرة، ونص قابل للبحث، وملاحظات موقوتة.
+                        وشرطها في الوثيقة «كل أداة تشتغل قطعيا لا واجهة
+                        قاضية» — فما لا مصدر له يخفى ولا يعرض معطلا: النص
+                        لا يظهر شريطه إن لم يرفع للدرس نص، والسرعة تخفى
+                        على إطار يوتيوب لأن المنصة لا تملك مشغله.
+
+                        والشريط داخل بطاقة المشغل لا في عمود جانبي: الأداة
+                        التي تخص الفيديو تسكن بجواره، وإبعادها إلى الحاشية
+                        يجعلها لا تستعمل. */ ?>
+                <div class="tq-ptools" data-tq-ptools hidden>
+                    <div class="tq-ptools__grp" data-tq-speed-grp hidden>
+                        <span class="tq-ptools__lbl">السرعة</span>
+                        <div class="tq-ptools__rates" role="group" aria-label="سرعة التشغيل">
+                            <?php foreach (array('0.75', '1', '1.25', '1.5', '2') as $r): ?>
+                                <button class="tq-ptools__rate<?php echo $r === '1' ? ' is-on' : ''; ?>"
+                                        type="button" data-tq-rate="<?php echo $r; ?>"
+                                        aria-pressed="<?php echo $r === '1' ? 'true' : 'false'; ?>"><?php
+                                    echo $r === '1' ? 'عادي' : '×' . $r; ?></button>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="tq-ptools__grp tq-ptools__grp--grow" data-tq-tr-grp hidden>
+                        <label class="sr-only" for="tqTrSearch">ابحث في نص الدرس</label>
+                        <span class="tq-ptools__search">
+                            <?php echo tq_icon('search', 16); ?>
+                            <input id="tqTrSearch" type="search" data-tq-tr-search
+                                   placeholder="ابحث في نص الدرس واقفز إلى موضعه" autocomplete="off">
+                        </span>
+                        <button class="tq-btn tq-btn--ghost tq-btn--sm" type="button" data-tq-tr-toggle
+                                aria-expanded="false">النص</button>
+                    </div>
+
+                    <button class="tq-btn tq-btn--ghost tq-btn--sm" type="button" data-tq-note-add>
+                        <?php echo tq_icon('pen', 16); ?> ملاحظة هنا
+                    </button>
+                </div>
+
+                <!-- النص: مقاطع بثوانيها، والضغط يقفز -->
+                <div class="tq-transcript" data-tq-transcript hidden>
+                    <p class="tq-caption" data-tq-tr-count></p>
+                    <ol class="tq-transcript__list" data-tq-tr-list></ol>
+                    <p class="tq-caption" data-tq-tr-none hidden>لا نتيجة لهذا البحث في نص الدرس.</p>
+                </div>
+
+                <!-- الملاحظة: تفتح عند الثانية التي كان عندها، ولا تسأله عنها -->
+                <form class="tq-noteform" data-tq-noteform hidden>
+                    <p class="tq-caption" data-tq-note-at></p>
+                    <textarea data-tq-note-body rows="3" maxlength="2000"
+                              placeholder="ما الذي تريد أن تتذكره من هذه اللحظة؟"></textarea>
+                    <div class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap">
+                        <button class="tq-btn tq-btn--primary tq-btn--sm" type="submit">احفظ</button>
+                        <button class="tq-btn tq-btn--ghost tq-btn--sm" type="button" data-tq-note-cancel>ألغ</button>
+                    </div>
+                </form>
+
                 <div style="padding:var(--tq-space-xl)">
                     <span class="tq-eyebrow" data-tq-lesson-course></span>
                     <h1 class="tq-h1" style="margin:var(--tq-space-xs) 0 var(--tq-space-m)" data-tq-lesson-title></h1>
@@ -158,6 +215,16 @@ include 'portal_open.php';
                 <div data-tq-attachments></div>
             </div>
 
+            <?php /* ملاحظاتي — موقوتة، وكل واحدة تعود بصاحبها إلى ثانيتها.
+                    وهي في الحاشية لا في المتن: تكتب مرة وتقرأ كثيرا. */ ?>
+            <div class="tq-card" data-tq-notes-card hidden>
+                <div class="tq-card__head">
+                    <h2 class="tq-card__title">ملاحظاتي</h2>
+                    <span class="tq-caption" data-tq-notes-count></span>
+                </div>
+                <ol class="tq-notes" data-tq-notes></ol>
+            </div>
+
             <div class="tq-card">
                 <h2 class="tq-card__title">التنقل</h2>
                 <div class="tq-stack" style="--tq-space-l:var(--tq-space-s)">
@@ -172,5 +239,110 @@ include 'portal_open.php';
         </aside>
     </div>
 </div>
+
+<style>
+/* أدوات المشغل — من التوكنات، وبلا left/right. */
+.tq-ptools {
+  display: flex; flex-wrap: wrap; gap: var(--tq-space-m); align-items: center;
+  padding: var(--tq-space-m) var(--tq-space-xl);
+  border-block-end: 1px solid var(--tq-line);
+  background: var(--tq-ground);
+}
+.tq-ptools__grp { display: flex; gap: var(--tq-space-s); align-items: center; }
+.tq-ptools__grp--grow { flex: 1; min-inline-size: 200px; }
+.tq-ptools__lbl { font-size: .78rem; color: var(--tq-text3); }
+.tq-ptools__rates { display: flex; gap: 2px; }
+.tq-ptools__rate {
+  border: 1px solid var(--tq-line); background: var(--tq-surface);
+  color: var(--tq-text2); font: inherit; font-size: .78rem; font-weight: 700;
+  padding: 3px 9px; cursor: pointer;
+  unicode-bidi: isolate;
+}
+/* الحواف المستديرة على طرفي المجموعة منطقيا: `start`/`end` تنقلبان مع
+   الاتجاه وحدهما، فلا يحتاج RTL قاعدة ثانية. */
+.tq-ptools__rate:first-child {
+  border-start-start-radius: var(--tq-radius-small);
+  border-end-start-radius: var(--tq-radius-small);
+}
+.tq-ptools__rate:last-child {
+  border-start-end-radius: var(--tq-radius-small);
+  border-end-end-radius: var(--tq-radius-small);
+}
+.tq-ptools__rate.is-on {
+  background: var(--tq-actionMastery); color: var(--tq-onAction);
+  border-color: var(--tq-actionMastery);
+}
+.tq-ptools__rate:focus-visible { outline: 2px solid var(--tq-focusRing); outline-offset: 1px; }
+
+.tq-ptools__search {
+  flex: 1; display: flex; align-items: center; gap: var(--tq-space-s);
+  border: 1px solid var(--tq-line); border-radius: var(--tq-radius-small);
+  background: var(--tq-surface); padding: var(--tq-space-xs) var(--tq-space-m);
+  color: var(--tq-text3);
+}
+.tq-ptools__search input {
+  flex: 1; min-inline-size: 0; border: 0; background: transparent;
+  font: inherit; color: var(--tq-text);
+}
+.tq-ptools__search input:focus { outline: none; }
+.tq-ptools__search:focus-within { border-color: var(--tq-teal); }
+
+/* النص */
+.tq-transcript {
+  max-block-size: 320px; overflow-y: auto;
+  padding: var(--tq-space-l) var(--tq-space-xl);
+  border-block-end: 1px solid var(--tq-line);
+}
+.tq-transcript__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.tq-transcript__cue {
+  display: flex; gap: var(--tq-space-m); align-items: baseline;
+  padding: var(--tq-space-xs) var(--tq-space-s);
+  border-radius: var(--tq-radius-small);
+  cursor: pointer; background: none; border: 0; font: inherit;
+  color: inherit; text-align: start; inline-size: 100%;
+}
+.tq-transcript__cue:hover { background: var(--tq-navyWash); }
+.tq-transcript__cue.is-now { background: var(--tq-mint-fill); }
+.tq-transcript__cue:focus-visible { outline: 2px solid var(--tq-focusRing); outline-offset: -2px; }
+.tq-transcript__t {
+  flex: none; font-variant-numeric: tabular-nums; unicode-bidi: isolate; direction: ltr;
+  font-size: .8rem; font-weight: 700; color: var(--tq-teal); min-inline-size: 46px;
+}
+.tq-transcript__x { flex: 1; }
+.tq-transcript mark { background: var(--tq-amberSoft); color: inherit; border-radius: 3px; padding: 0 2px; }
+
+/* الملاحظة */
+.tq-noteform {
+  padding: var(--tq-space-l) var(--tq-space-xl);
+  border-block-end: 1px solid var(--tq-line);
+  display: flex; flex-direction: column; gap: var(--tq-space-s);
+  background: var(--tq-amberSoft);
+}
+.tq-noteform textarea {
+  inline-size: 100%; font: inherit; color: inherit;
+  border: 1px solid var(--tq-line); border-radius: var(--tq-radius-small);
+  padding: var(--tq-space-m); background: var(--tq-surface); resize: vertical;
+}
+.tq-noteform textarea:focus { outline: none; border-color: var(--tq-teal); }
+
+.tq-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--tq-space-s); }
+.tq-notes li {
+  display: flex; gap: var(--tq-space-s); align-items: flex-start;
+  padding: var(--tq-space-m); border-radius: var(--tq-radius-small);
+  background: var(--tq-ground);
+}
+.tq-notes__jump {
+  flex: none; background: none; border: 0; cursor: pointer; font: inherit;
+  font-size: .78rem; font-weight: 700; color: var(--tq-teal);
+  unicode-bidi: isolate; direction: ltr; padding: 0;
+}
+.tq-notes__jump:hover { text-decoration: underline; }
+.tq-notes__b { flex: 1; font-size: .88rem; white-space: pre-wrap; }
+.tq-notes__del {
+  flex: none; background: none; border: 0; cursor: pointer;
+  color: var(--tq-text3); padding: 0; line-height: 1;
+}
+.tq-notes__del:hover { color: var(--tq-danger); }
+</style>
 
 <?php include 'portal_close.php'; ?>

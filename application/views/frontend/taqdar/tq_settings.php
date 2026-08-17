@@ -508,8 +508,48 @@ include 'portal_open.php';
                                 </div>
                             </div>
 
+                            <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
+                                ساعات الصمت تؤجل التنبيه ولا تلغيه: يصلك بعد انتهائها، ويبقى
+                                في شاشة إشعاراتك طوالها. وتنبيهات المال والحصص لا تؤجل.
+                            </p>
+
                             <div class="tq-formbar">
                                 <button class="tq-btn tq-btn--primary" type="submit">حفظ تفضيلات التنبيهات</button>
+                            </div>
+                        </form>
+
+                        <?php /* ── التلعيب ────────────────────────────────────────
+                                `F2.6` يشترط «زر إيقاف كامل للتلعيب من الإعدادات».
+                                ونموذج مستقل لا خانة في النموذج أعلاه: هذا يحفظ في
+                                `tq_student_setup` وذاك في `tq_prefs_notify`، وجمعهما
+                                في زر واحد يعني مسار حفظ يكتب في جدولين ويفشل نصفه
+                                بصمت. */ ?>
+                        <?php
+                        $CI_g = &get_instance();
+                        $CI_g->load->model('taqdar_learn_model', 'tq_learn');
+                        $tq_gam = (int) $CI_g->tq_learn->setup((int) $tq_uid)['gamify'] === 1;
+                        ?>
+                        <h3 class="tq-card__title"
+                            style="font:var(--tq-type-h2);margin-block-start:var(--tq-space-h1)">التحفيز</h3>
+
+                        <form method="post" action="<?php echo base_url('student/gamify'); ?>">
+                            <?php echo tq_csrf(); ?>
+                            <input type="hidden" name="gamify" value="<?php echo $tq_gam ? '0' : '1'; ?>">
+
+                            <div class="tq-prefrow">
+                                <span class="tq-prefrow__main">
+                                    <span class="tq-prefrow__title">السلسلة وحلقة الهدف</span>
+                                    <span class="tq-prefrow__hint">
+                                        <?php echo $tq_gam
+                                            ? 'تظهر في لوحتك أيامك المتتالية وتقدمك نحو هدف اليوم.'
+                                            : 'موقوفة الآن: لا سلسلة ولا حلقة هدف ولا أرقام تحفيز في أي شاشة.'; ?>
+                                    </span>
+                                </span>
+                                <span class="tq-prefrow__end">
+                                    <button class="tq-btn <?php echo $tq_gam ? 'tq-btn--secondary' : 'tq-btn--primary'; ?>"
+                                            type="submit"><?php
+                                        echo $tq_gam ? 'أوقف التلعيب' : 'أعد التلعيب'; ?></button>
+                                </span>
                             </div>
                         </form>
                     </section>

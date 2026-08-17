@@ -16,7 +16,12 @@
   var $ = function (s, r) { return (r || root).querySelector(s); };
   var LRI = '⁦', PDI = '⁩';
 
-  var state = { lesson: null, attempt: null, questions: [], watched: 0, position: 0, ticker: null };
+  var state = {
+    lesson: null, attempt: null, questions: [], watched: 0, position: 0, ticker: null,
+    /* أدوات `F2.1`: المشغل نفسه (لضبط السرعة والقفز)، ومقاطع النص،
+       وعقد النص المرسومة (لتظليل المقطع الجاري بلا إعادة رسم القائمة). */
+    video: null, cues: [], cueNodes: [], activeCue: -1, notes: []
+  };
 
   /* ---- نداء الخادم: مغلف موحد، والرسالة العربية تأتي منه لا نخترعها ---- */
   function call(path, body) {
@@ -103,6 +108,7 @@
     mountObjectives(d.objectives || []);
     mountAttachments(L.attachment);
     mountNav(d);
+    mountTools();
 
     // المراجعة تظهر حين يوجد تقييم مرتبط بالدرس وحين لم يتقن بعد
     show('[data-tq-gate-intro]', !!d.review && !p.mastered_at);
@@ -132,11 +138,28 @@
     frame.innerHTML = '<video controls preload="metadata" playsinline></video>';
     var v = frame.querySelector('video');
     v.src = url;
-    if (state.position > 0) v.currentTime = state.position;
-    v.addEventListener('timeupdate', function () { state.position = Math.floor(v.currentTime); });
+    state.video = v;
+
+    /* `?t=<ثانية>` يعلو موضع الاستئناف.
+       الروابط التي تأتي من دفتر الأخطاء وخريطة الإتقان تقصد لحظة بعينها
+       — لحظة المفهوم الذي أخطأ فيه — فإعادته إلى موضع توقفه تلغي كل
+       معنى الرابط وتجعله يبحث عما جيء به إليه. */
+    var deep = parseInt((location.search.match(/[?&]t=(\d+)/) || [])[1], 10) || 0;
+    if (deep > 0) v.currentTime = deep;
+    else if (state.position > 0) v.currentTime = state.position;
+    v.addEventListener('timeupdate', function () {
+      state.position = Math.floor(v.currentTime);
+      markCue(state.position);
+    });
     v.addEventListener('play', startTicker);
     v.addEventListener('pause', stopTicker);
     v.addEventListener('ended', function () { stopTicker(); flush(true); });
+
+    /* ضابط السرعة يظهر على مشغل المنصة وحده.
+       يوتيوب وفيميو إطاران من نطاق آخر، وسياسة المصدر نفسه تمنع لمسهما —
+       فزر سرعة عليهما «واجهة قاضية» تضغط ولا تفعل، وهو ما تنهى عنه
+       الوثيقة نصا. ولذلك يخفى ولا يعطل. */
+    show('[data-tq-speed-grp]', true);
   }
 
   /* ---- التقدم: يرسل كل 15 ثانية مشاهدة فعلية، لا كل نبضة ---- */
@@ -302,6 +325,215 @@
     show('[data-tq-gate-result]', true);
     $('[data-tq-gate-result]').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+
+  /* ==================================================================
+     أدوات المشغل — `F2.1`
+     ==================================================================
+     ثلاث أدوات، وشرط الوثيقة عليها واحد: «كل أداة تشتغل قطعيا لا واجهة
+     قاضية». ولذلك ما لا مصدر له **يخفى** ولا يعرض معطلا: شريط النص لا
+     يظهر لدرس بلا نص، وضابط السرعة لا يظهر على إطار يوتيوب.
+     ================================================================== */
+
+  function mountTools() {
+    var bar = $('[data-tq-ptools]');
+    if (bar) bar.hidden = false;
+
+    loadTranscript();
+    loadNotes();
+  }
+
+  /* ---- 1 · السرعة ------------------------------------------------- */
+  function setRate(rate) {
+    if (!state.video) return;
+    state.video.playbackRate = rate;
+    var btns = root.querySelectorAll('[data-tq-rate]');
+    for (var i = 0; i < btns.length; i++) {
+      var on = parseFloat(btns[i].getAttribute('data-tq-rate')) === rate;
+      btns[i].classList.toggle('is-on', on);
+      btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+  }
+
+  /* ---- 2 · النص القابل للبحث -------------------------------------- */
+  function loadTranscript() {
+    call('transcript/' + LESSON).then(function (d) {
+      state.cues = (d && d.cues) || [];
+      if (!state.cues.length) return;           // بلا نص: لا شريط ولا زر
+
+      show('[data-tq-tr-grp]', true);
+      renderCues('');
+      var c = $('[data-tq-tr-count]');
+      if (c) c.textContent = 'نص الدرس في ' + state.cues.length + ' مقطعا. اضغط أي مقطع لتشغيله من موضعه.';
+    }).catch(function () { /* النص إضافة؛ غيابه لا يمس الدرس */ });
+  }
+
+  function renderCues(q) {
+    var list = $('[data-tq-tr-list]');
+    if (!list) return;
+
+    var needle = (q || '').trim();
+    var rows = needle
+      ? state.cues.filter(function (c) { return c.text.indexOf(needle) !== -1; })
+      : state.cues;
+
+    show('[data-tq-tr-none]', needle !== '' && rows.length === 0);
+
+    list.innerHTML = rows.map(function (c) {
+      var body = escapeHtml(c.text);
+      if (needle) {
+        /* التظليل على النص **بعد** الهروب: التظليل قبله يحقن وسما من
+           صندوق بحث. والبحث حرفي لا نمطي، فلا يهرب المستخدم من تعبير. */
+        body = body.split(escapeHtml(needle)).join('<mark>' + escapeHtml(needle) + '</mark>');
+      }
+      return '<li><button class="tq-transcript__cue" type="button" data-tq-cue="' + c.at_second + '">'
+           + '<span class="tq-transcript__t">' + c.at_label + '</span>'
+           + '<span class="tq-transcript__x">' + body + '</span></button></li>';
+    }).join('');
+
+    state.cueNodes = list.querySelectorAll('[data-tq-cue]');
+    state.activeCue = -1;
+  }
+
+  /* المقطع الجاري: بحث خطي على قائمة مرتبة يكفي — مئتا مقطع في أطول
+     درس، والنداء أربع مرات في الثانية. والتظليل لا يعاد رسمه إلا حين
+     يتغير المقطع فعلا، وإلا ومض النص مع كل نبضة. */
+  function markCue(sec) {
+    if (!state.cueNodes.length) return;
+
+    var idx = -1;
+    for (var i = 0; i < state.cueNodes.length; i++) {
+      if (parseInt(state.cueNodes[i].getAttribute('data-tq-cue'), 10) <= sec) idx = i;
+      else break;
+    }
+    if (idx === state.activeCue) return;
+
+    if (state.activeCue >= 0 && state.cueNodes[state.activeCue]) {
+      state.cueNodes[state.activeCue].classList.remove('is-now');
+    }
+    state.activeCue = idx;
+    if (idx >= 0) state.cueNodes[idx].classList.add('is-now');
+  }
+
+  /* ---- 3 · الملاحظات الموقوتة ------------------------------------- */
+  function loadNotes() {
+    call('notes/' + LESSON).then(function (d) {
+      state.notes = (d && d.notes) || [];
+      renderNotes();
+    }).catch(function () {});
+  }
+
+  function renderNotes() {
+    var card = $('[data-tq-notes-card]'), box = $('[data-tq-notes]');
+    if (!box) return;
+
+    if (card) card.hidden = state.notes.length === 0;
+    var n = $('[data-tq-notes-count]');
+    if (n) n.textContent = state.notes.length ? iso(state.notes.length) : '';
+
+    box.innerHTML = state.notes.map(function (o) {
+      return '<li>'
+        + '<button class="tq-notes__jump" type="button" data-tq-cue="' + o.at_second + '">'
+        + o.at_label + '</button>'
+        + '<span class="tq-notes__b">' + escapeHtml(o.body) + '</span>'
+        + '<button class="tq-notes__del" type="button" data-tq-note-del="' + o.id
+        + '" aria-label="احذف الملاحظة">&times;</button></li>';
+    }).join('');
+  }
+
+  function openNoteForm() {
+    var form = $('[data-tq-noteform]');
+    if (!form) return;
+    /* اللحظة تلتقط عند فتح النموذج لا عند الحفظ: بين الاثنين يكتب
+       الطالب سطرين والفيديو يمضي، فتحفظ الملاحظة عند لحظة لا تخصها.
+       والفيديو يوقف لأن من يكتب لا يسمع. */
+    var at = state.position || 0;
+    form.setAttribute('data-tq-at', at);
+    if (state.video && !state.video.paused) state.video.pause();
+
+    var lbl = $('[data-tq-note-at]');
+    if (lbl) lbl.textContent = 'ملاحظة عند ' + mmss(at);
+    form.hidden = false;
+    var ta = $('[data-tq-note-body]');
+    if (ta) { ta.value = ''; ta.focus(); }
+  }
+
+  function saveNote() {
+    var form = $('[data-tq-noteform]');
+    var ta = $('[data-tq-note-body]');
+    if (!form || !ta || !ta.value.trim()) return;
+
+    call('note_add', {
+      lesson_id: LESSON,
+      at_second: parseInt(form.getAttribute('data-tq-at'), 10) || 0,
+      body: ta.value
+    }).then(function (d) {
+      state.notes = (d && d.notes) || state.notes;
+      renderNotes();
+      form.hidden = true;
+      ta.value = '';
+    }).catch(function (e) { alertBox(e.message || 'تعذر حفظ الملاحظة.'); });
+  }
+
+  function deleteNote(id) {
+    call('note_delete', { note_id: id, lesson_id: LESSON }).then(function (d) {
+      state.notes = (d && d.notes) || [];
+      renderNotes();
+    }).catch(function () {});
+  }
+
+  root.addEventListener('submit', function (ev) {
+    if (ev.target.matches('[data-tq-noteform]')) { ev.preventDefault(); saveNote(); }
+  });
+
+  var trSearch = $('[data-tq-tr-search]');
+  if (trSearch) {
+    /* تأخير قصير: الرسم عند كل ضغطة على قائمة من مئتي مقطع يقطع الكتابة
+       في الجوال. */
+    var timer = null;
+    trSearch.addEventListener('input', function () {
+      clearTimeout(timer);
+      var q = trSearch.value;
+      timer = setTimeout(function () {
+        renderCues(q);
+        if (q.trim()) show('[data-tq-transcript]', true);
+      }, 180);
+    });
+  }
+
+  root.addEventListener('click', function (ev) {
+    /* القفز إلى ثانية: مصدره ثلاثة — قرار البوابة، ومقطع نص، وملاحظة.
+       وثلاثتها فعل واحد، فيتشاركان `data-tq-seek`/`data-tq-cue` نفسه. */
+    var cue = ev.target.closest('[data-tq-cue]');
+    if (cue) {
+      var at = parseInt(cue.getAttribute('data-tq-cue'), 10) || 0;
+      if (state.video) {
+        state.video.currentTime = at;
+        state.video.play();
+        state.video.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alertBox('ارجع إلى الدقيقة ' + mmss(at) + ' في المشغل.');
+      }
+      return;
+    }
+
+    var rate = ev.target.closest('[data-tq-rate]');
+    if (rate) { setRate(parseFloat(rate.getAttribute('data-tq-rate')) || 1); return; }
+
+    var trToggle = ev.target.closest('[data-tq-tr-toggle]');
+    if (trToggle) {
+      var panel = $('[data-tq-transcript]');
+      var open = panel && panel.hidden;
+      show('[data-tq-transcript]', open);
+      trToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      return;
+    }
+
+    if (ev.target.closest('[data-tq-note-add]')) { openNoteForm(); return; }
+    if (ev.target.closest('[data-tq-note-cancel]')) { show('[data-tq-noteform]', false); return; }
+
+    var del = ev.target.closest('[data-tq-note-del]');
+    if (del) { deleteNote(parseInt(del.getAttribute('data-tq-note-del'), 10)); return; }
+  });
 
   root.addEventListener('click', function (ev) {
     var seek = ev.target.closest('[data-tq-seek]');

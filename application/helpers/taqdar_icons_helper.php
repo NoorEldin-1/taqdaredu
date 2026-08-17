@@ -87,6 +87,18 @@ if (!function_exists('tq_icon')) {
             'translate'   => '<path d="M3.5 6h9"/><path d="M8 4v2c0 4-1.8 7.2-4.5 9"/><path d="M6 11.5c1.4 2.6 3.4 4.4 6 5.5"/><path d="m13 21 4-10 4 10"/><path d="M14.4 18h5.2"/>',
             'copy'        => '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h4"/>',
             'money'       => '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.8"/><path d="M6 10v4M18 10v4"/>',
+
+            /* --- أسماء كانت تنادى ولا وجود لها ---
+               `tq_icon()` ترجع نصا فارغا للمجهول، فكانت الشاشة تخرج دائرة
+               فارغة بلا خطأ ينبه: `user` و`pen` عنوانا «ملفي» و«استوديو
+               المحتوى»، و`package` و`route` و`user-check` وحدات في اللوحة،
+               و`close` زر إغلاق في المكتبة. */
+            'user'        => '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+            'user-check'  => '<circle cx="9.5" cy="8" r="3.6"/><path d="M3 20a6.5 6.5 0 0 1 13 0"/><path d="m16.5 12.5 2 2 4-4"/>',
+            'pen'         => '<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/><path d="m14.5 5.5 3 3"/>',
+            'package'     => '<path d="m12 3 8 4.2v9.6L12 21l-8-4.2V7.2z"/><path d="m4 7.2 8 4.2 8-4.2"/><path d="M12 11.4V21"/>',
+            'route'       => '<circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18h5a3.5 3.5 0 0 0 0-7h-3a3.5 3.5 0 0 1 0-7h5"/>',
+            'close'       => '<path d="M6 6l12 12M18 6 6 18"/>',
         ];
 
         if (!isset($paths[$name])) {

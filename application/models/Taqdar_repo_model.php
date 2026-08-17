@@ -109,6 +109,26 @@ class Taqdar_repo_model extends CI_Model
     }
 
     /**
+     * يسجل يوم نشاط في دفتر `Taqdar_learn_model`.
+     *
+     * موضعه هنا لا في المتحكم لأن النشاط يقع في النموذج: حفظ المشاهدة
+     * وإتقان الدرس وإجابة المراجعة ثلاثتها تمر من هذا الملف، ومنها يأتي
+     * التطبيق والويب والكرون معا. ووضعه في متحكم واحد يعني أن السلسلة
+     * تنقطع لمن دخل من الباب الآخر.
+     *
+     * ولا يرمي أبدا: دفتر نشاط ناقص أهون من درس لا يحفظ موضعه.
+     */
+    private function touch_day($student_id, $kind, $amount)
+    {
+        try {
+            $this->load->model('taqdar_learn_model', 'tq_learn');
+            $this->tq_learn->touch_activity($student_id, $kind, $amount);
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-ACTIVITY: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * MySQL يعيد الأعداد نصوصا عبر mysqli؛ وعقد /api/v1 يعد بأعداد.
      * فالتحويل هنا مرة واحدة لا في كل شاشة.
      */
@@ -268,6 +288,51 @@ class Taqdar_repo_model extends CI_Model
     {
         $s = $this->lesson_lock_state($student_id, $lesson_id);
         return !empty($s['found']) && !empty($s['unlocked']);
+    }
+
+    /**
+     * حمولة التشغيل — والرابط الدائم لا يخرج منها.
+     *
+     * `B3.3` معيار قبوله «لا رابط تشغيل دائم أبدا». وكان `video_url` يخرج
+     * عاريا من هنا إلى المتصفح: ينسخ من أدوات المطور ويوزع، ويعمل بعد
+     * سنة لمن لا حساب له. فصار الملف المستضاف عندنا يخرج **رمزا موقعا**
+     * صالحا خمس دقائق مقيدا بالدرس والطالب معا، ويجلب من
+     * `Taqdar_gate::media()`.
+     *
+     * ويوتيوب وفيميو يخرجان كما هما ومعهما `protection = unprotected`
+     * صراحة: مستضافان عند غيرنا برابط عام دائم بحكم تعريفه، وإخفاؤهما
+     * خلف رمز يوهم بحماية غير قائمة — والواجهة تقول ذلك للمعلم في شاشة
+     * الرفع بدل أن يكتشفه بعد أن يرفع.
+     */
+    private function playback_for($lesson, $student_id, $progress)
+    {
+        $out = array(
+            'video_type' => $lesson['video_type'],
+            'video_url'  => $lesson['video_url'],
+            'audio_url'  => $lesson['audio_url'],
+            'attachment' => $lesson['attachment'],
+            'resume_at'  => $progress ? (int) $progress['position_sec'] : 0,
+            'protection' => 'unprotected',
+        );
+
+        try {
+            $this->load->model('taqdar_studio_model', 'tq_studio');
+            $mode = $this->tq_studio->protection_for($lesson['video_type']);
+
+            if ($mode === 'signed' && trim((string) $lesson['video_url']) !== '') {
+                $t = $this->tq_studio->sign((int) $lesson['id'], (int) $student_id);
+                $out['protection'] = 'signed';
+                $out['video_url']  = site_url('taqdar_gate/media/' . $t['token']);
+                $out['expires_in'] = (int) $t['ttl'];
+            }
+        } catch (Throwable $e) {
+            /* تعذرت طبقة الحماية: يعرض الدرس كما كان يعرض قبلها. وحجب
+               المحتوى عن طالب دفع ثمنه لأجل عطل في التوقيع أسوأ من رابط
+               غير موقع — والعطل يسجل ليصلح. */
+            log_message('error', 'TQ-MEDIA sign: ' . $e->getMessage());
+        }
+
+        return $out;
     }
 
     /* ================================================================
@@ -579,13 +644,7 @@ class Taqdar_repo_model extends CI_Model
                 'summary'      => $lesson['summary'],
                 'is_free'      => (int) $lesson['is_free'],
             ),
-            'playback' => array(
-                'video_type'  => $lesson['video_type'],
-                'video_url'   => $lesson['video_url'],
-                'audio_url'   => $lesson['audio_url'],
-                'attachment'  => $lesson['attachment'],
-                'resume_at'   => $progress ? (int) $progress['position_sec'] : 0,
-            ),
+            'playback' => $this->playback_for($lesson, $student_id, $progress),
             'objectives' => $objectives,
             'progress'   => array(
                 'position_sec'  => $progress ? (int) $progress['position_sec']  : 0,
@@ -659,6 +718,11 @@ class Taqdar_repo_model extends CI_Model
 
         // الجديد يملي على القديم فلا يتناقض رقمان لطالب واحد
         $this->sync_watch_history($student_id, (int) $lesson['course_id'], $lesson_id, $position_sec, (bool) $completed_at);
+
+        /* سجل اليوم في دفتر النشاط — وهو مصدر السلسلة وحلقة الهدف.
+           يكتب ولو كانت الزيادة صفرا: من فتح درسا اليوم حضر، والسلسلة عن
+           الحضور لا عن بلوغ عتبة. */
+        $this->touch_day($student_id, 'seconds', $watched_delta);
 
         return array(
             'lesson_id'     => $lesson_id,
@@ -929,6 +993,9 @@ class Taqdar_repo_model extends CI_Model
 
             $scheduled = $this->schedule_objectives($student_id, $lesson_id, 1);
 
+            // درس أتقن اليوم — يعد في هدف اليوم إن كانت وحدته الدروس.
+            $this->touch_day($student_id, 'lessons', 1);
+
             $this->audit($student_id, 'mastery.unlock', 'lesson:' . $lesson_id, null,
                          array('next_lesson_id' => $next, 'scheduled_reviews' => $scheduled));
 
@@ -1143,6 +1210,9 @@ class Taqdar_repo_model extends CI_Model
         if ($q && $q['objective_id']) {
             $this->touch_skill_state($student_id, (int) $q['objective_id'], $correct ? 1 : 0, 1, null);
         }
+
+        // ومراجعة واحدة في دفتر اليوم — صوابا كانت أو خطأ، فكلاهما عمل.
+        $this->touch_day($student_id, 'reviews', 1);
 
         return array(
             'question_id'   => $question_id,

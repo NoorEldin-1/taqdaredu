@@ -27,6 +27,14 @@ defined('BASEPATH') or exit('No direct script access allowed');
  *   GET  /taqdar_gate/children
  *   GET  /taqdar_gate/child/{student_id}
  *   GET  /taqdar_gate/teacher_scope
+ *   GET  /taqdar_gate/next_step            الخطوة الواحدة + السلسلة + الهدف
+ *   GET  /taqdar_gate/activity             خريطة أيام النشاط
+ *   GET  /taqdar_gate/notes/{lesson_id}
+ *   POST /taqdar_gate/note_add             lesson_id, at_second, body
+ *   POST /taqdar_gate/note_delete          note_id, lesson_id
+ *   GET  /taqdar_gate/transcript/{lesson_id}
+ *   GET  /taqdar_gate/practice_questions   أسئلة دفتر الأخطاء
+ *   POST /taqdar_gate/practice_answer      question_id, given
  */
 class Taqdar_gate extends CI_Controller
 {
@@ -463,5 +471,395 @@ class Taqdar_gate extends CI_Controller
         }
 
         return $this->ok($this->repo->get_teacher_scope($uid));
+    }
+
+    /* ================================================================
+     *  الوسائط — الرابط الموقع (B3.3)
+     * ================================================================ */
+
+    /**
+     * يخدم مقطع درس برمز موقع.
+     *
+     * الرمز يحمل الدرس والطالب والانتهاء موقعة بـ HMAC، ويفحص هنا
+     * ثلاثا: التوقيع، ثم صلاحية الوقت، ثم **القفل والاشتراك من جديد**.
+     * والثالثة ليست تكرارا: بين إصدار الرمز واستعماله قد ينتهي اشتراك،
+     * أو يسحب درس من النشر — ورمز مصدر قبل دقائق لا يفتح ما أغلق بعده.
+     *
+     * والملف يمرر مجزأ (`Range`) لا دفعة واحدة: المشغل يطلب أول مئة
+     * كيلوبايت ليعرف مدة المقطع، فقراءة ملف من ثلاثمئة ميغابايت في
+     * الذاكرة لأجل ذلك تسقط الطلب.
+     *
+     * ولا يمر من هذا الباب إلا ما تحت `uploads/` — والمسار يفحص بعد
+     * `realpath` لا قبله: `../` في عمود قاعدة بيانات يخرج من الجذر،
+     * والفحص النصي وحده يمر عليه.
+     */
+    public function media($token = '')
+    {
+        /* هذه ترد ملفا لا JSON: المخزن الذي فتحه الباني لا يصلح هنا،
+           وترويسة `application/json` تفسد الرد. */
+        while (ob_get_level() > $this->ob_base) ob_end_clean();
+
+        $uid = $this->user_id();
+        if (!$uid) { $this->output->set_status_header(401); return; }
+
+        $this->load->model('taqdar_studio_model', 'studio');
+        $lesson_id = (int) $this->studio->verify($token, $uid);
+
+        if (!$lesson_id) {
+            /* 403 لا 404: الرمز إما زور أو انتهى، وكلاهما «ممنوع» لا
+               «غير موجود». والرسالة عربية لأن المشغل قد يعرضها. */
+            $this->output->set_status_header(403);
+            $this->output->set_content_type('text/plain', 'utf-8');
+            $this->output->set_output('انتهت صلاحية رابط التشغيل. أعد تحميل الصفحة.');
+            return;
+        }
+
+        if (!$this->repo->is_lesson_unlocked($uid, $lesson_id)) {
+            $this->output->set_status_header(403);
+            return;
+        }
+
+        $lesson = $this->db->select('video_url, course_id, is_free')
+                           ->where('id', $lesson_id)->get('lesson')->row_array();
+        if (!$lesson) { $this->output->set_status_header(404); return; }
+
+        if ((int) $lesson['is_free'] !== 1
+            && !$this->repo->is_entitled($uid, (int) $lesson['course_id'])) {
+            $this->output->set_status_header(403);
+            return;
+        }
+
+        $rel  = ltrim(str_replace('\\', '/', (string) $lesson['video_url']), '/');
+        $base = realpath(FCPATH . 'uploads');
+        $path = realpath(FCPATH . $rel);
+
+        if (!$base || !$path || strpos($path, $base) !== 0 || !is_file($path)) {
+            $this->output->set_status_header(404);
+            return;
+        }
+
+        $this->stream($path);
+    }
+
+    /** يمرر ملفا مع دعم `Range` — ويخرج بعده مباشرة. */
+    private function stream($path)
+    {
+        $size = filesize($path);
+        $mime = 'video/mp4';
+        $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $map  = array('webm' => 'video/webm', 'ogg' => 'video/ogg', 'ogv' => 'video/ogg',
+                      'm4v' => 'video/mp4', 'mp3' => 'audio/mpeg', 'm4a' => 'audio/mp4');
+        if (isset($map[$ext])) $mime = $map[$ext];
+
+        $start = 0;
+        $end   = $size - 1;
+        $range = (string) $this->input->server('HTTP_RANGE');
+        $partial = false;
+
+        if ($range !== '' && preg_match('/bytes=(\d*)-(\d*)/', $range, $m)) {
+            if ($m[1] !== '') $start = (int) $m[1];
+            if ($m[2] !== '') $end   = (int) $m[2];
+            if ($start > $end || $start >= $size) {
+                header('HTTP/1.1 416 Range Not Satisfiable');
+                header('Content-Range: bytes */' . $size);
+                exit;
+            }
+            $end = min($end, $size - 1);
+            $partial = true;
+        }
+
+        $length = $end - $start + 1;
+
+        header($partial ? 'HTTP/1.1 206 Partial Content' : 'HTTP/1.1 200 OK');
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . $length);
+        header('Accept-Ranges: bytes');
+        if ($partial) header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
+        /* لا تخزين: الرابط موقع لخمس دقائق، ووسيط يخزنه يعيده لغير
+           صاحبه بعد انتهائه. */
+        header('Cache-Control: private, no-store, max-age=0');
+        header('X-Content-Type-Options: nosniff');
+        header('Content-Disposition: inline');
+
+        $fp = fopen($path, 'rb');
+        if (!$fp) { $this->output->set_status_header(500); return; }
+
+        fseek($fp, $start);
+        $left = $length;
+        while ($left > 0 && !feof($fp)) {
+            $chunk = fread($fp, min(262144, $left));
+            if ($chunk === false) break;
+            echo $chunk;
+            $left -= strlen($chunk);
+            flush();
+        }
+        fclose($fp);
+        exit;
+    }
+
+    /* ================================================================
+     *  رحلة اليوم — الخطوة والسلسلة والهدف
+     * ================================================================ */
+
+    private function learn()
+    {
+        $this->load->model('taqdar_learn_model', 'learn');
+        return $this->learn;
+    }
+
+    /**
+     * الخطوة الواحدة المقترحة، ومعها ما ترسمه اللوحة حولها.
+     *
+     * نداء واحد لا ثلاثة: اللوحة تريد الخطوة والسلسلة والهدف معا، وثلاثة
+     * أشواط شبكية لرسم بطاقة واحدة تجعلها تومض ثلاث مرات.
+     */
+    public function next_step()
+    {
+        $uid = $this->guard('read');
+        if (!$uid) return;
+
+        $learn = $this->learn();
+
+        return $this->ok(array(
+            'step'   => $learn->next_step($uid),
+            'streak' => $learn->streak($uid),
+            'goal'   => $learn->goal_today($uid),
+            'exam'   => $learn->exam_mode($uid),
+            'setup'  => array('done' => !$learn->needs_setup($uid)),
+        ));
+    }
+
+    /** خريطة نشاط الأسابيع الأخيرة — يوما يوما. */
+    public function activity()
+    {
+        $uid = $this->guard('read');
+        if (!$uid) return;
+
+        $days = (int) $this->body('days', 28);
+        return $this->ok(array(
+            'days'   => $this->learn()->activity_range($uid, $days),
+            'streak' => $this->learn()->streak($uid),
+        ));
+    }
+
+    /* ================================================================
+     *  الملاحظات الموقوتة
+     * ================================================================ */
+
+    public function notes($lesson_id = 0)
+    {
+        $uid = $this->guard('read');
+        if (!$uid) return;
+
+        $lesson_id = (int) ($lesson_id ?: $this->body('lesson_id', 0));
+        if (!$lesson_id) return $this->fail('VALIDATION', array('field' => 'lesson_id'));
+
+        return $this->ok(array(
+            'lesson_id' => $lesson_id,
+            'notes'     => $this->learn()->notes($uid, $lesson_id),
+        ));
+    }
+
+    /**
+     * ملاحظة جديدة عند ثانية بعينها.
+     *
+     * والقفل يفحص قبل الكتابة: من لا يفتح له الدرس لا يكتب فيه ملاحظة —
+     * وإلا صار هذا المسار بابا يثبت به وجود درس مقفل ومدته وموضعه.
+     */
+    public function note_add()
+    {
+        if (!$this->require_post()) return;
+        $uid = $this->guard('review_answer');
+        if (!$uid) return;
+
+        $lesson_id = (int) $this->body('lesson_id', 0);
+        if (!$lesson_id) return $this->fail('VALIDATION', array('field' => 'lesson_id'));
+
+        if (!$this->repo->is_lesson_unlocked($uid, $lesson_id)) {
+            return $this->fail('MASTERY_LOCKED', array('lesson_id' => $lesson_id));
+        }
+
+        $r = $this->learn()->add_note($uid, $lesson_id,
+                                      (int) $this->body('at_second', 0),
+                                      (string) $this->body('body', ''));
+
+        if (empty($r['ok'])) return $this->fail('VALIDATION', array('reason' => $r['message']));
+
+        return $this->ok(array(
+            'saved'   => true,
+            'message' => $r['message'],
+            'notes'   => $this->learn()->notes($uid, $lesson_id),
+        ));
+    }
+
+    public function note_delete()
+    {
+        if (!$this->require_post()) return;
+        $uid = $this->guard('review_answer');
+        if (!$uid) return;
+
+        $r = $this->learn()->delete_note($uid, (int) $this->body('note_id', 0));
+        $lesson_id = (int) $this->body('lesson_id', 0);
+
+        return $this->ok(array(
+            'deleted' => !empty($r['ok']),
+            'message' => $r['message'],
+            'notes'   => $lesson_id ? $this->learn()->notes($uid, $lesson_id) : array(),
+        ));
+    }
+
+    /* ================================================================
+     *  نص الدرس
+     * ================================================================ */
+
+    /** النص مقطعا مقطعا بثوانيه. القفل يفحص — النص محتوى الدرس لا فهرسه. */
+    public function transcript($lesson_id = 0)
+    {
+        $uid = $this->guard('read');
+        if (!$uid) return;
+
+        $lesson_id = (int) ($lesson_id ?: $this->body('lesson_id', 0));
+        if (!$lesson_id) return $this->fail('VALIDATION', array('field' => 'lesson_id'));
+
+        if (!$this->repo->is_lesson_unlocked($uid, $lesson_id)) {
+            return $this->fail('MASTERY_LOCKED', array('lesson_id' => $lesson_id));
+        }
+
+        $rows = $this->learn()->transcript($lesson_id);
+        return $this->ok(array(
+            'lesson_id' => $lesson_id,
+            'cues'      => $rows,
+            'count'     => count($rows),
+        ));
+    }
+
+    /* ================================================================
+     *  دفتر الأخطاء — وضع المراجعة المركزة
+     * ================================================================ */
+
+    /**
+     * إجابة سؤال من دفتر الأخطاء.
+     *
+     * منفصلة عن `review_answer` لأن شرط الملكية مختلف: تلك تشترط أن يكون
+     * السؤال في طابور المراجعة، وهذه تشترط أن يكون الطالب **أخطأه من قبل**
+     * — والسؤالان يفترقان: كل خطأ ليس في الطابور بالضرورة، ومن أخطأ في
+     * تقييم درس لم يتقنه لا يجدول له شيء أصلا.
+     *
+     * والصواب هنا يحرك حالة المهارة، ويباعد الموعد إن كان السؤال مجدولا —
+     * فالتدريب المركز يحسب كما تحسب المراجعة، ولا يكون عملا بلا أثر.
+     */
+    public function practice_answer()
+    {
+        if (!$this->require_post()) return;
+        $uid = $this->guard('review_answer');
+        if (!$uid) return;
+
+        $question_id = (int) $this->body('question_id', 0);
+        if (!$question_id) return $this->fail('VALIDATION', array('field' => 'question_id'));
+
+        $owns = (int) $this->db->query(
+            'SELECT COUNT(*) n FROM `answers` a
+               JOIN `attempts` t ON t.`id` = a.`attempt_id`
+              WHERE t.`student_id` = ? AND a.`question_id` = ? AND a.`is_correct` = 0',
+            array($uid, $question_id))->row('n');
+
+        if (!$owns) {
+            return $this->fail('NOT_ENTITLED', array('reason' => 'question_not_in_your_mistakes'));
+        }
+
+        $q = $this->db->where('id', $question_id)->get('question')->row_array();
+        if (!$q) return $this->fail('NOT_FOUND', array('entity' => 'question:' . $question_id));
+
+        $given = $this->body('given', array());
+        if (is_string($given)) {
+            $decoded = json_decode($given, true);
+            $given   = is_array($decoded) ? $decoded : array($given);
+        }
+        if (!is_array($given)) $given = ($given === null) ? array() : array($given);
+
+        $correct = $this->repo->is_answer_correct($q, $given);
+
+        /* السؤال المجدول يمر بمحرك المراجعة كاملا (فاصل وسهولة وتعثر)،
+           وغير المجدول يحرك حالة المهارة وحدها — فلا يخترع لنفسه جدولا
+           لم تفتحه بوابة الإتقان. */
+        $scheduled = (int) $this->db->where('student_id', $uid)
+                                    ->where('question_id', $question_id)
+                                    ->count_all_results('review_queue');
+
+        if ($scheduled) {
+            $result = $this->repo->answer_review($uid, $question_id, $correct);
+        } else {
+            if (!empty($q['objective_id'])) {
+                $this->repo->touch_skill_state($uid, (int) $q['objective_id'], $correct ? 1 : 0, 1, null);
+            }
+            $result = array(
+                'question_id'  => $question_id,
+                'correct'      => (bool) $correct,
+                'scheduled'    => false,
+                'remaining_due'=> $this->repo->count_due_reviews($uid),
+            );
+        }
+
+        $result['practice'] = true;
+        $result['still_wrong_count'] = (int) $this->db->query(
+            'SELECT COUNT(*) n FROM `answers` a
+               JOIN `attempts` t ON t.`id` = a.`attempt_id`
+              WHERE t.`student_id` = ? AND a.`question_id` = ? AND a.`is_correct` = 0',
+            array($uid, $question_id))->row('n');
+
+        $this->repo->audit($uid, 'mistake.practice', 'question:' . $question_id, null,
+                           array('correct' => (bool) $correct, 'scheduled' => (bool) $scheduled));
+
+        return $this->ok($result);
+    }
+
+    /**
+     * أسئلة دفتر الأخطاء بخياراتها — للتدريب.
+     * بلا `correct_answers` أبدا، كما في كل مسار أسئلة في هذا المتحكم.
+     */
+    public function practice_questions()
+    {
+        $uid = $this->guard('read');
+        if (!$uid) return;
+
+        $limit = max(1, min(50, (int) $this->body('limit', 10)));
+        $subject = (int) $this->body('subject_id', 0);
+
+        $sql = 'SELECT DISTINCT q.`id`, q.`title`, q.`type`, q.`number_of_options`, q.`options`,
+                       q.`objective_id`, o.`text` AS objective_text, o.`at_second`, o.`lesson_id`,
+                       l.`title` AS lesson_title, l.`course_id`, c.`title` AS course_title,
+                       COUNT(*) AS wrong_count
+                  FROM `answers` a
+                  JOIN `attempts` t   ON t.`id` = a.`attempt_id`
+                  JOIN `question` q   ON q.`id` = a.`question_id`
+             LEFT JOIN `objectives` o ON o.`id` = q.`objective_id`
+             LEFT JOIN `lesson` l     ON l.`id` = o.`lesson_id`
+             LEFT JOIN `course` c     ON c.`id` = l.`course_id`
+                 WHERE t.`student_id` = ? AND a.`is_correct` = 0';
+        $bind = array($uid);
+
+        if ($subject > 0) {
+            $sql .= ' AND c.`id` IN (SELECT `course_id` FROM `paths` WHERE `subject_id` = ?)';
+            $bind[] = $subject;
+        }
+
+        $sql .= ' GROUP BY q.`id`, q.`title`, q.`type`, q.`number_of_options`, q.`options`,
+                           q.`objective_id`, o.`text`, o.`at_second`, o.`lesson_id`,
+                           l.`title`, l.`course_id`, c.`title`
+                  ORDER BY wrong_count DESC, q.`id` ASC
+                  LIMIT ' . $limit;
+
+        $rows = $this->db->query($sql, $bind)->result_array();
+
+        foreach ($rows as &$r) {
+            $r['options'] = $r['options'] ? json_decode($r['options'], true) : array();
+            foreach (array('id','number_of_options','objective_id','at_second',
+                           'lesson_id','course_id','wrong_count') as $k) {
+                if (isset($r[$k])) $r[$k] = (int) $r[$k];
+            }
+        }
+        unset($r);
+
+        return $this->ok(array('questions' => $rows, 'count' => count($rows)));
     }
 }

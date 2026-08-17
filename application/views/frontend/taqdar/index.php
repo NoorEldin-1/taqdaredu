@@ -37,7 +37,18 @@ $tq_portal_pages = [
     'tq_parent_children', 'tq_parent_child', 'tq_parent_reports', 'tq_parent_weekly',
     'tq_parent_payments', 'tq_parent_messages', 'tq_parent_alerts',
 ];
+/* استثناء الاصطلاح.
+   القاعدة أعلاه «كل `tq_` شاشة بوابة»، وهي تصدق على كل ما كتب حتى الآن
+   إلا شاشة واحدة: **التحقق من شهادة**. تفتح بلا حساب — يفتحها من يتحقق
+   من وثيقة: جهة توظيف أو مدرسة، لا طالب ولا معلم. فعرضها بغلاف البوابة
+   يعني شريطا جانبيا بلا جلسة تملؤه وترويسة تسأل عن مستخدم لا وجود له.
+   والاستثناء يكتب هنا صراحة بدل أن يخرج اسم الملف عن الاصطلاح — فالملف
+   بجوار `tq_certificate.php` وهو أخوه، وتسميته `verify_page.php` تخفي
+   القرابة لتوافق قاعدة. */
+$tq_public_tq_pages = array('tq_verify');
+
 $tq_is_portal = isset($page_name)
+    && !in_array($page_name, $tq_public_tq_pages, true)
     && (strpos((string) $page_name, 'tq_') === 0 || in_array($page_name, $tq_portal_pages, true));
 
 /* الصفحات المنقولة إلى التصميم الجديد. تنمو صفحة صفحة، وحذف اسم منها
@@ -51,7 +62,10 @@ $tq_site_pages = array('home', 'home_elegant', 'courses_page', 'course_page', 's
     /* الكتالوج وصفحتا مفرداته: بلا إدراجها هنا تفتح بترويسة الثيم
        القديمة وخلفية بيضاء — يهبط الزائر من الموقع إلى موقع آخر بلا
        شيء يقول له إنه غادر، لأنه لم يغادره. */
-    'site_catalog', 'site_book', 'site_competition');
+    'site_catalog', 'site_book', 'site_competition',
+    /* صفحة التحقق من شهادة: عامة كصفحات الموقع — انظر
+       `$tq_public_tq_pages` أعلاه. */
+    'tq_verify');
 $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_site_pages, true);
 ?>
 <!DOCTYPE html>

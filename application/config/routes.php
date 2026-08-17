@@ -89,6 +89,15 @@ $route['translate_uri_dashes'] = false;
 //
 // وهذه المسارات كلها POST فقط، ترفض GET من داخل المتحكم بـ show_404().
 $route['teacher/upload/save']       = 'taqdar/upload_save';
+// استوديو المحتوى ومولد الاختبارات — كلها مقطعان، فلا تلتقطها
+// `teacher/(:any)` وتسقط إلى دالة العرض.
+$route['teacher/studio/generate']   = 'taqdar/studio_generate';
+$route['teacher/studio/save']       = 'taqdar/studio_save';
+$route['teacher/studio/approve']    = 'taqdar/studio_approve';
+$route['teacher/studio/transcript'] = 'taqdar/studio_transcript';
+$route['teacher/studio/state']      = 'taqdar/studio_state';
+$route['teacher/examgen/save']      = 'taqdar/examgen_save';
+$route['teacher/examgen/build']     = 'taqdar/examgen_build';
 $route['teacher/marking/approve']   = 'taqdar/marking_approve';
 $route['teacher/marking/homework']  = 'taqdar/marking_homework';
 $route['teacher/sessions/save']     = 'taqdar/sessions_save';
@@ -100,6 +109,8 @@ $route['teacher/settings/save']     = 'taqdar/teacher_settings_save';
 $route['parent/messages/compose']   = 'taqdar/parent_message_send';
 $route['parent/children/link']      = 'taqdar/parent_child_link';
 $route['parent/settings/save']      = 'taqdar/parent_settings_save';
+// الدفع نيابة عن الابن — مقطعان، فلا تلتقطها `parent/(:any)`.
+$route['parent/pay/start']          = 'taqdar/parent_pay_start';
 
 // حقا تصدير البيانات وحذف الحساب لا يخصان الطالب وحده — الدالتان
 // `Taqdar::export_data()` و`delete_account()` تشترطان تسجيل الدخول لا دورا
@@ -128,6 +139,9 @@ $route['taqdar/parent/settings/save']     = 'taqdar/parent_settings_save';
 // `verify` عامة عمدا: التحقق من شهادة يقوم به من لا حساب له.
 // و`.htaccess` يحول `taqdar/(.*)` إلى `/student/$1` بـ301، فالمسار الواصل
 // فعلا هو `student/...` — والقاعدتان الأوليان للاحتياط لو تغير التحويل.
+// رمز QR للشهادة — مقطعان، فقاعدته قبل قاعدة عرض الشهادة.
+$route['student/certificate/(:num)/qr'] = 'taqdar/certificate_qr/$1';
+$route['taqdar/certificate/(:num)/qr']  = 'taqdar/certificate_qr/$1';
 $route['taqdar/certificate/(:num)']  = 'taqdar/certificate/$1';
 $route['taqdar/verify/(:any)']       = 'taqdar/verify/$1';
 $route['student/certificate/(:num)'] = 'taqdar/certificate/$1';
@@ -153,6 +167,18 @@ $route['student/reviews']              = 'taqdar/reviews';
 $route['teacher/students/message']     = 'taqdar/students_message';
 $route['taqdar/teacher/students/message'] = 'taqdar/students_message';
 $route['student/subscribe-path']       = 'taqdar/subscribe_path';
+// ---- التهيئة ووضع الامتحان والتلعيب ----
+// الكتابة قبل العرض كما في كل هذا الملف: `student/(:any)` تطابق مقطعا
+// واحدا، فبلا `student/setup/save` صريحة يسقط الطلب إلى
+// `Taqdar::setup('save')` — تعرض شاشة التهيئة ردا على حفظها، فيظن الطالب
+// أن خطته لم تحفظ ويعيدها، وهي لم تحفظ فعلا.
+$route['student/setup/save']     = 'taqdar/setup_save';
+$route['student/setup']          = 'taqdar/setup';
+$route['student/exam-mode']      = 'taqdar/exam_mode_save';
+$route['student/gamify']         = 'taqdar/gamify_save';
+// `profile` اسم دالة محجوز في متحكم Academy الموروث، فالدالة هنا
+// `profile_page` والمسار يبقى نظيفا كما يقرؤه الطالب.
+$route['student/profile']        = 'taqdar/profile_page';
 // ---- الاختبار التشخيصي ----
 // مسارا الكتابة قبل مسار العرض، وكلاهما مقطعان: `student/(:any)` تطابق
 // مقطعا واحدا، فبلا هاتين القاعدتين يسقط `student/placement/submit` إلى
