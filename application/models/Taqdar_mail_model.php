@@ -324,6 +324,17 @@ class Taqdar_mail_model extends CI_Model
         $name = html_escape($this->config()['name']);
         $site = rtrim(base_url(), '/');
 
+        /* **أصول الرسالة تجلب من عنوان عام لا من `base_url()`.**
+
+           الروابط تتبع `base_url()` عمدا — رسالة فحص من المحلي يجب أن
+           تفتح المحلي. أما الصورة فيجلبها **خادم Gmail** لا المتصفح،
+           وهو لا يعرف `localhost`، فتصل الترويسة بشعار مكسور في كل فحص
+           محلي. ونطاق المنصة مكتوب هنا لأن الشعار أصل عام لا سرا. */
+        $assets = $site;
+        if (preg_match('~^https?://(localhost|127\.0\.0\.1|\[::1\])~i', $assets)) {
+            $assets = 'https://taqdaredu.com';
+        }
+
         $button = '';
         if (is_array($cta) && !empty($cta['href']) && !empty($cta['label'])) {
             $button =
@@ -342,8 +353,17 @@ class Taqdar_mail_model extends CI_Model
       . ' style="width:100%;max-width:560px;background:#ffffff;border-radius:18px;'
       . 'border:1px solid #E6EAED;overflow:hidden">'
 
+      /* الشعار صورة، والنص `alt` يحمل الاسم بالنمط نفسه: Gmail يحجب
+         الصور افتراضيا لمن لم يراسله المستلم من قبل، فترويسة بلا بديل
+         تصل خالية. والمقاسان مكتوبان في السمة وفي النمط معا — Outlook
+         يتجاهل النمط. */
       . '<tr><td dir="rtl" style="padding:22px 28px;background:#023331;color:#ffffff">'
-      . '<span style="font:700 19px Tahoma,Arial,sans-serif">' . $name . '</span>'
+      . '<a href="' . html_escape($site) . '" style="text-decoration:none">'
+      . '<img src="' . html_escape($assets) . '/assets/taqdar/brand/wordmark_light.png"'
+      . ' width="69" height="40" alt="' . $name . '"'
+      . ' style="display:block;border:0;width:69px;height:40px;'
+      . 'font:700 19px Tahoma,Arial,sans-serif;color:#ffffff;text-decoration:none">'
+      . '</a>'
       . '</td></tr>'
 
       . '<tr><td dir="rtl" style="padding:26px 28px 6px">'
