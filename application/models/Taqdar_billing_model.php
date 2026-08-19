@@ -254,6 +254,7 @@ class Taqdar_billing_model extends CI_Model
         ));
         $sid = (int) $this->db->insert_id();
         $inv = $this->issue_invoice($sid, $user_id, (int) $path["price"], $method);
+        $this->notify_invoice_issued($inv, $method);
 
         return array("ok" => true, "subscription_id" => $sid, "invoice_id" => $inv, "free" => false);
     }
@@ -371,9 +372,61 @@ class Taqdar_billing_model extends CI_Model
         if ($free) {
             $this->activate($sid, $method, 'free');
             $this->mark_invoice_paid($inv, 'free');
+        } else {
+            $this->notify_invoice_issued($inv, $method);
         }
 
         return array('ok' => true, 'subscription_id' => $sid, 'invoice_id' => $inv, 'free' => $free);
+    }
+
+    /**
+     * TQ-INVOICE-TOLD — يخبر صاحب الفاتورة أنها صدرت وينتظر تحويلها.
+     *
+     * وهذا الطرف كان صامتا وحده من أطراف الدفع الأربعة: نجاح البطاقة
+     * يخبر (`Taqdar_pay::notify_paid`)، والتفعيل اليدوي يخبر، وقرار
+     * السحب يخبر — **وإصدار الفاتورة لا يخبر بشيء**. فمن اختار التحويل
+     * البنكي يرى سطرا في الصفحة ثم يغلقها، ولا يبقى معه رقم الفاتورة
+     * ولا المبلغ ولا الآيبان إلا أن يعود ويبحث.
+     *
+     * والبطاقة مستثناة عمدا: صاحبها ينتقل إلى صفحة الدفع في اللحظة
+     * نفسها، ورسالة «صدرت فاتورتك» تصله وهو يدفعها.
+     */
+    public function notify_invoice_issued($invoice_id, $method = 'manual')
+    {
+        if ((string) $method !== 'manual') return false;
+
+        try {
+            /* الباقة والمسار كلاهما يصدر فاتورة، وصفهما واحد في
+               `subscriptions` يفرق بـ`plan_id`/`path_id`. فيقرأ الاسمان
+               معا ويؤخذ الموجود — وإلا قرأ مشتري المسار «الباقة». */
+            $inv = $this->db->select('i.invoice_no, i.total, i.user_id,'
+                            . ' p.name_ar AS plan_name, t.title AS path_name', false)
+                            ->from('invoices i')
+                            ->join('subscriptions s', 's.id = i.subscription_id', 'left')
+                            ->join('plans p', 'p.id = s.plan_id', 'left')
+                            ->join('paths t', 't.id = s.path_id', 'left')
+                            ->where('i.id', (int) $invoice_id)->get()->row_array();
+            if (!$inv || empty($inv['user_id'])) return false;
+
+            $what = trim((string) ($inv['plan_name'] !== null && $inv['plan_name'] !== ''
+                                   ? $inv['plan_name'] : (string) $inv['path_name']));
+            $iban = trim((string) get_settings('tq_bank_iban'));
+
+            $this->load->model('taqdar_admin_model');
+            return (bool) $this->taqdar_admin_model->push_notification(
+                (int) $inv['user_id'],
+                'صدرت فاتورتك ' . $inv['invoice_no'],
+                'قيمة الاشتراك في «' . ($what !== '' ? $what : 'الباقة') . '» هي '
+                . number_format((int) $inv['total']) . ' ر.س. حول المبلغ'
+                . ($iban !== '' ? ' إلى الآيبان ' . $iban : '')
+                . ' واذكر رقم الفاتورة في التحويل، ويفعل اشتراكك بعد التحقق من الحوالة.',
+                'invoice'
+            );
+        } catch (Throwable $e) {
+            /* إخطار يفشل لا يمنع فاتورة صدرت. */
+            log_message('error', 'TQ-BILLING: تعذر إخطار إصدار الفاتورة — ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
