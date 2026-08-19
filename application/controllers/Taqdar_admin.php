@@ -1181,7 +1181,7 @@ class Taqdar_admin extends CI_Controller
     }
 
 
-    /** طلبات المعلمين — ومعها أصوات لجنة التحكيم. */
+    /** طلبات المعلمين — العرض والقرار في شاشة واحدة. */
     public function teachers()
     {
         $this->load->model('taqdar_teacher_model', 'tq_teach');
@@ -1195,44 +1195,10 @@ class Taqdar_admin extends CI_Controller
                          ->order_by('a.status', 'ASC')->order_by('a.id', 'DESC')
                          ->get()->result_array();
 
-        /* الحصيلة تقرأ مع الصف لا في الشاشة: قراءتها هناك تعني استعلامين
-           لكل طلب في جدول من مئة صف. */
-        foreach ($apps as &$a) {
-            $a['tally'] = $this->tq_teach->tally((int) $a['id']);
-        }
-        unset($a);
-
         $this->render('tqa_teachers', 'طلبات المعلمين', array(
-            'apps'   => $apps,
-            'quorum' => $this->tq_teach->quorum(),
-            'me'     => (int) $this->session->userdata('user_id'),
+            'apps' => $apps,
+            'me'   => (int) $this->session->userdata('user_id'),
         ));
-    }
-
-    /**
-     * صوت محكم على طلب انضمام.
-     *
-     * اللجنة ليست شاشة ثانية بل أصوات على الطلب نفسه — والاعتماد يشترط
-     * نصابها. فالمسؤول الواحد لم يعد يقرر وحده، وللقرار سند مكتوب يراجع.
-     */
-    public function teacher_vote()
-    {
-        if ($this->input->method(true) !== 'POST') show_404();
-
-        $this->load->model('taqdar_teacher_model', 'tq_teach');
-        $r = $this->tq_teach->cast_vote(
-            (int) $this->input->post('app_id'),
-            (int) $this->session->userdata('user_id'),
-            (string) $this->input->post('verdict'),
-            (string) $this->input->post('note'));
-
-        $this->taqdar_admin_model->audit('teacher_vote',
-            'application#' . (int) $this->input->post('app_id'), null,
-            array('verdict' => (string) $this->input->post('verdict')));
-
-        $this->session->set_flashdata(
-            !empty($r['ok']) ? 'flash_message' : 'error_message', $r['message']);
-        redirect(site_url('taqdar_admin/teachers'), 'location', 302);
     }
 
     /** توثيق الهوية والمؤهل — الخطوة الثانية في فلو الانضمام. */
@@ -1289,33 +1255,13 @@ class Taqdar_admin extends CI_Controller
 
         $name = trim($who['first_name'] . ' ' . $who['last_name']) ?: 'المعلم';
 
-        /* TQ-COMMITTEE — الاعتماد يشترط نصاب اللجنة.
-           فلو المعلم في وثيقة المنتج: «مراجعة لجنة تحكيم داخلية ←
-           توثيق الهوية والمؤهل» قبل الإسناد. وكان القرار لمسؤول واحد
-           بضغطة، بلا سند مكتوب يراجع ولا رأي ثان.
-
-           والحارس هنا لا في الشاشة وحدها: الشاشة تخفي الزر، ومن يرسل
-           النموذج بيده يصل إلى هذا السطر. والرفض لا نصاب له — اعتراض
-           واحد مسبب يكفي لإيقاف طلب، وحجب الرفض خلف نصاب يبقي طلبا
-           مرفوضا معلقا. */
-        if ($act === 'approve') {
-            $this->load->model('taqdar_teacher_model', 'tq_teach');
-            $t = $this->tq_teach->tally($id);
-
-            if (!$t['may_approve']) {
-                $this->session->set_flashdata('error_message',
-                    'الاعتماد يحتاج ' . $t['quorum'] . ' موافقات من اللجنة، والمسجل '
-                    . $t['approve'] . '. سجل رأيك أولا أو انتظر بقية المحكمين.');
-                redirect(site_url('taqdar_admin/teachers'), 'location', 302);
-                return;
-            }
-
-            if ((int) $app['identity_ok'] !== 1) {
-                $this->session->set_flashdata('error_message',
-                    'وثق هوية المتقدم ومؤهله قبل الاعتماد — وهي الخطوة الثانية في مسار الانضمام.');
-                redirect(site_url('taqdar_admin/teachers'), 'location', 302);
-                return;
-            }
+        /* التوثيق قبل الاعتماد — والحارس هنا لا في الشاشة وحدها:
+           الشاشة تعطل الزر، ومن يرسل النموذج بيده يصل إلى هذا السطر. */
+        if ($act === 'approve' && (int) $app['identity_ok'] !== 1) {
+            $this->session->set_flashdata('error_message',
+                'وثق هوية المتقدم ومؤهله قبل الاعتماد — وهي الخطوة الثانية في مسار الانضمام.');
+            redirect(site_url('taqdar_admin/teachers'), 'location', 302);
+            return;
         }
 
         if ($act === 'approve') {

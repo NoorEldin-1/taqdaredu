@@ -64,9 +64,6 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                 <th>الجوال</th>
                 <th>النبذة</th>
                 <th>المستند والعينة</th>
-                <?php /* ثلاثة أعمدة تتبع فلو الانضمام بترتيبه: تراجع
-                         اللجنة، ثم توثق الهوية، ثم يعتمد. */ ?>
-                <th>اللجنة</th>
                 <th>الهوية</th>
                 <th>الحالة</th>
                 <th><span class="tqa-sr">الإجراء</span></th>
@@ -133,7 +130,7 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                         <span class="tqa-badge tqa-badge--warn">بلا مستند</span>
                     <?php endif; ?>
 
-                    <?php /* عينة الشرح — أهم ما تحكم عليه اللجنة.
+                    <?php /* عينة الشرح — أهم ما تحكم عليه قبل الاعتماد.
                              وطلب قديم قدم قبل أن يوجد الحقل يقال عنه ذلك
                              صراحة بدل أن يقرأ «رفض إرسالها». */ ?>
                     <?php if (!empty($a['sample_url'])): ?>
@@ -150,60 +147,6 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                     <?php if (!empty($a['subject_hint'])): ?>
                         <div class="tqa-dim" style="margin-block-start:4px;font-size:.8em"><?php
                             echo html_escape($a['subject_hint']); ?></div>
-                    <?php endif; ?>
-                </td>
-
-                <?php /* ── لجنة التحكيم ────────────────────────────────
-                        الأصوات مع الطلب لا في شاشة ثانية: من يراجع يريد
-                        أن يرى رأي زملائه وهو يكون رأيه، لا أن يفتح شاشة
-                        ليجده. */ ?>
-                <td data-label="اللجنة">
-                    <?php $t = isset($a['tally']) ? $a['tally'] : null; ?>
-                    <?php if (!$t): ?>
-                        <span class="tqa-dim">—</span>
-                    <?php else: ?>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-                            <span class="tqa-badge tqa-badge--<?php
-                                echo $t['may_approve'] ? 'ok' : 'warn'; ?>"
-                                  title="النصاب <?php echo (int) $t['quorum']; ?>">
-                                <?php echo (int) $t['approve']; ?> / <?php echo (int) $t['quorum']; ?> موافقة
-                            </span>
-                            <?php if ((int) $t['reject'] > 0): ?>
-                                <span class="tqa-badge tqa-badge--danger"><?php
-                                    echo (int) $t['reject']; ?> اعتراض</span>
-                            <?php endif; ?>
-                        </div>
-
-                        <?php if ($t['votes']): ?>
-                            <details style="margin-block-start:4px">
-                                <summary class="tqa-dim" style="font-size:.8em;cursor:pointer">الآراء</summary>
-                                <ul style="margin:6px 0 0;padding-inline-start:1em;font-size:.8em">
-                                    <?php foreach ($t['votes'] as $v): ?>
-                                        <li>
-                                            <?php echo html_escape($v['reviewer'] ?: 'محكم'); ?>:
-                                            <?php echo $v['verdict'] === 'approve' ? 'وافق' : 'اعترض'; ?>
-                                            <?php if (!empty($v['note'])): ?>
-                                                — <?php echo html_escape($v['note']); ?>
-                                            <?php endif; ?>
-                                        </li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            </details>
-                        <?php endif; ?>
-
-                        <?php if ($st === 0 && !$orphan): ?>
-                            <form method="post" style="margin:6px 0 0;display:flex;gap:4px;flex-wrap:wrap"
-                                  action="<?php echo site_url('taqdar_admin/teacher_vote'); ?>">
-                                <?php echo tq_csrf(); ?>
-                                <input type="hidden" name="app_id" value="<?php echo (int) $a['id']; ?>">
-                                <input class="tqa-input" type="text" name="note"
-                                       placeholder="ملاحظتك (لازمة عند الاعتراض)" style="min-inline-size:150px">
-                                <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit"
-                                        name="verdict" value="approve">أوافق</button>
-                                <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit"
-                                        name="verdict" value="reject">أعترض</button>
-                            </form>
-                        <?php endif; ?>
                     <?php endif; ?>
                 </td>
 
@@ -234,14 +177,12 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                     <?php if ($st !== 0 || $orphan): ?>
                         <span class="tqa-dim">—</span>
                     <?php else: ?>
-                        <?php /* زر الاعتماد يعطل قبل النصاب أو قبل توثيق
-                                 الهوية — والحارس الفعلي في المتحكم، وهذا
-                                 لئلا يضغط المسؤول زرا يرد عليه. */ ?>
+                        <?php /* زر الاعتماد يعطل قبل توثيق الهوية — والحارس
+                                 الفعلي في المتحكم، وهذا لئلا يضغط المسؤول زرا
+                                 يرد عليه. */ ?>
                         <?php
-                        $tq_ready = $t && $t['may_approve'] && (int) $a['identity_ok'] === 1;
-                        $tq_why = !$t || !$t['may_approve']
-                            ? 'ينتظر نصاب اللجنة'
-                            : ((int) $a['identity_ok'] !== 1 ? 'ينتظر توثيق الهوية' : '');
+                        $tq_ready = (int) $a['identity_ok'] === 1;
+                        $tq_why = $tq_ready ? '' : 'ينتظر توثيق الهوية';
                         ?>
                         <div style="display:flex;gap:6px;flex-wrap:wrap">
                             <form method="post" style="margin:0"
