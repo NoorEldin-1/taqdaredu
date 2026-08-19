@@ -45,3 +45,12 @@
 # انقطع عنها النداء محصلة عند تاب والاشتراك مقفلا حتى يشتكي صاحبه.
 # وتكرارها مأمون: المسوى لا يسوى مرتين.
 */15 * * * * /usr/local/lsws/lsphp82/bin/php /home/taqdaredu.com/cron_taqdar.php taqdar_cron reconcile >> /home/taqdaredu.com/logs/taqdar_cron.log 2>&1
+
+# تنظيف رموز التحقق وسجل واتساب — مرة في اليوم
+#
+# `tq_otp` صف لكل رمز يصدر، وأكثرها لحسابات لم تكتمل؛ و`tq_wa_log` صف
+# لكل رسالة واتساب تحاول. والجدولان لا يقرأ منهما إلا الأيام الأخيرة —
+# ثلاثة للرموز (أطول من عمر الرمز بمراحل، وكافية لتشخيص «سجلت أمس ولم
+# يصلني شيء») وتسعون للسجل (وهو ما يجيب عن «هل وصل إشعار دفعة الشهر
+# الماضي؟»). وبلا هذا السطر يصيران أكبر جدولين في القاعدة.
+15 3 * * * /usr/local/lsws/lsphp82/bin/php /home/taqdaredu.com/cron_taqdar.php taqdar_cron purge >> /home/taqdaredu.com/logs/taqdar_cron.log 2>&1

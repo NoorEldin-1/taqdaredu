@@ -85,4 +85,34 @@ class Taqdar_cron extends CI_Controller
         $r = $this->taqdar_tap_model->reconcile(15, 60);
         echo date('Y-m-d H:i:s') . " tap_checked={$r['checked']} tap_settled={$r['settled']}\n";
     }
+
+    /**
+     * ينظف ما لا يقرأ بعد: رموز التحقق المستهلكة وسجل واتساب القديم.
+     *
+     * والجدولان ينموان بصف لكل محاولة — ومحاولات التسجيل أكثرها لحسابات
+     * لم تكتمل، ورسائل واتساب صف لكل إشعار دفع. فبلا تنظيف يصيران أكبر
+     * جدولين في القاعدة ولا يقرأ منهما إلا الأيام الأخيرة.
+     *
+     * وثلاثة أيام للرموز: أطول من عمر الرمز (عشر دقائق) بمراحل، وكافية
+     * لتشخيص «سجلت أمس ولم يصلني شيء». وتسعون يوما للسجل: هو ما يجيب
+     * عن «هل وصل إشعار دفعة الشهر الماضي؟».
+     */
+    public function purge()
+    {
+        $this->load->model('taqdar_otp_model');
+        $n = $this->taqdar_otp_model->purge(3);
+
+        $w = 0;
+        try {
+            $this->load->model('taqdar_wa_model');
+            $this->taqdar_wa_model->ensure_schema();
+            $this->db->where('at <', date('Y-m-d H:i:s', strtotime('-90 days')))
+                     ->delete('tq_wa_log');
+            $w = (int) $this->db->affected_rows();
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-CRON purge: ' . $e->getMessage());
+        }
+
+        echo date('Y-m-d H:i:s') . " otp_purged={$n} wa_log_purged={$w}\n";
+    }
 }

@@ -78,6 +78,17 @@ $route['sitemap.xml'] = 'sitemap';
 
 $route['translate_uri_dashes'] = false;
 
+// ---- تأكيد الحساب بالرمز (OTP) ----
+// ثلاث نقاط كتابة تنادى بـ`fetch` من شاشة `sign_up/verification_code`.
+// وهي تحت `login/` عمدا: هناك يعيش التسجيل والتحقق كله، والشاشة نفسها
+// تحت `sign_up/` لأن `Sign_up` هو من يعرضها.
+//
+// والقواعد صريحة وإن كانت `login/(:any)` غير موجودة: مقطعان، فلو أضيفت
+// يوما قاعدة عرض عامة تحت `login/` سقطت هذه الثلاثة إليها بلا خطأ ظاهر.
+$route['login/otp/verify']  = 'login/otp_verify';
+$route['login/otp/resend']  = 'login/otp_resend';
+$route['login/otp/channel'] = 'login/otp_channel';
+
 // ---- taqdar write routes ----
 // مسارات الكتابة قبل قواعد العرض دائما.
 //

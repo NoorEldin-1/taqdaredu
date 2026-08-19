@@ -248,13 +248,50 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
   و**نص الرسالة لا يكتب**: الرمز سر، وسجل يحفظه يجعل كل من يفتح اللوحة
   يقرأ رموز الناس.
 
+## رموز التحقق (OTP)
+
+[Taqdar_otp_model](application/models/Taqdar_otp_model.php) — يصدر ويرسل
+ويحكم. والموروث من Academy (`users.verification_code`) لا يستعمل: `rand()`
+على مئة ألف قيمة، مخزن كما هو، بلا انتهاء ولا عداد محاولات. وهنا
+`random_int` على ستمئة ألف، مهشوم بـ`password_hash`، يموت بعد **عشر دقائق**
+أو **خمس محاولات** أو أول استعمال.
+
+**و`signup_route()` وحدها تقرر أين يذهب الرمز:**
+
+| البوابة | القنوات | الوجهة |
+|---|---|---|
+| معلم · ولي أمر | بريد **أو** واتساب — يختار في نموذج التسجيل | بريده · جواله |
+| طالب دون ١٥ | البريد وحده | **بريد ولي أمره** — وبه يفتح الحساب |
+| طالب ١٥ فما فوق | البريد وحده | بريده هو |
+
+الطالب لا يسأل عن جواله في التسجيل أصلا، فلا واتساب له. والقاصر كتب بريد
+ولي أمره وهو شرط تسجيله، وصفحة التسجيل تعده بأن «نرسل إليه طلب موافقة قبل
+تفعيل الحساب» — فحساب يفتحه القاصر وحده يجعل تلك العبارة كذبا.
+
+- **ما لا يستطاع لا يشترط.** بلا بريد ولا واتساب لا يخرج رمز، فيفتح الحساب
+  كما كان يفتح ويكتب سطر في السجل. ولو أوقفناه على رمز لا يخرج لصار
+  التسجيل معطلا على منصة يظن صاحبها أنه أضاف طبقة أمان.
+- **والمعلم يبقى موقوفا بعد التأكيد.** حسابه `status = 0` لسببين: تأكيد
+  التواصل، واعتماد الإدارة لأوراقه — والرمز يرفع الأول وحده. فيكتب
+  `users.tq_verified_at` ولا يمس `status`، وتقال له الحقيقة صراحة.
+- الحقول `<gate>_otp_channel` لكل بوابة اسمها كما لحقول الجوال
+  (TQ-PHONE-DUP): أزرار `radio` باسم واحد تكون **مجموعة واحدة عند المتصفح**
+  ولو تفرقت في لوحين، فيسقط تعليم أحدهما ويصل الطلب بلا قناة.
+- النقاط ثلاث تحت `login/otp/*` (كتابة، فقواعدها قبل قواعد العرض)، وترد
+  **JSON**: «الرمز غير صحيح» تخفي «انتهت صلاحيته» و«تجاوزت المحاولات»
+  و«انتهت الجلسة»، وكلها تعالج بغير ما يعالج به الخطأ الحقيقي. والهوية
+  تقرأ **من الجلسة لا من الطلب** — بريد يرسل في الجسم يجعل من يعرف بريد
+  غيره يستهلك رموزه ويقفل حسابه بخمس محاولات.
+- `tq_signup_otp` في `settings` يوقفه كله، و`student_email_verification`
+  الموروث لم يعد يقرأ في التسجيل.
+
 ## قاعدة البيانات
 
 `taqd_lms` — **77 جدولا**. لا ORM ولا هجرات؛ استعلامات Query Builder
 مباشرة في النماذج.
 
 - **الجوهر:** `users` · `role` · `course` · `lesson` · `section` · `category` · `subjects` · `grades`
-- **تقدر:** `paths` · `plans` · `subscriptions` · `invoices` · `payment_attempts` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts` · `site_content` · `tq_wa_log`
+- **تقدر:** `paths` · `plans` · `subscriptions` · `invoices` · `payment_attempts` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts` · `site_content` · `tq_otp` · `tq_wa_log`
 - **الإعدادات:** `settings` · `frontend_settings` · `payment_gateways` · `seo_fields` — **مفاتيح بوابات الدفع و SMTP وواتساب تعيش هنا، لا في الشيفرة.**
 - **triggerان:** `trg_parent_links_consent_*` على `parent_links`.
 
@@ -267,7 +304,9 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 بعض الجداول تنشأ وقت التشغيل لا بهجرة: `site_content` من
 `Taqdar_content_model::ensure_schema()`، و`payment_attempts` من
 `Taqdar_tap_model::ensure_schema()`، و`tq_wa_log` من
-`Taqdar_wa_model::ensure_schema()`، و`tutoring_sessions` من
+`Taqdar_wa_model::ensure_schema()`، و`tq_otp` من
+`Taqdar_otp_model::ensure_schema()` (ومعه عمود `users.tq_verified_at`
+بـ`ADD COLUMN IF NOT EXISTS`)، و`tutoring_sessions` من
 `Taqdar_sessions_model`، و`wallet_entries` من `install_schema()`. فأي
 استعلام إداري عليها يلف بـ`safe_scalar`/`safe_rows` — جدول لم يستعمل بعد
 يرمي استثناء يبيض الشاشة، ورقم ناقص أهون.

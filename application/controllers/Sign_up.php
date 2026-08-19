@@ -38,13 +38,27 @@ class Sign_up extends CI_Controller
         $this->load->view('frontend/' . get_frontend_settings('theme') . '/index', $page_data);
     }
 
+    /**
+     * شاشة تأكيد الحساب بالرمز.
+     *
+     * الحارس على `tq_otp` لا على `register_email` وحده: الأولى هي جلسة
+     * التأكيد الجارية (فيها الهوية والقنوات ومن يفتح)، والثانية بقية من
+     * المسار الموروث يقرؤها ثيم Academy. فمن وصل بالمفتاح القديم وحده —
+     * أو بقي في تبويب مفتوح بعد أن أكد — يعاد إلى التسجيل بدل أن يرى
+     * نموذجا لا يقبل منه شيئا.
+     */
     public function verification_code()
     {
-        if (!$this->session->userdata('register_email')) {
-            redirect(site_url('sign_up'), 'refresh');
+        $otp = $this->session->userdata('tq_otp');
+        if (!is_array($otp) || empty($otp['identity'])) {
+            if (!$this->session->userdata('register_email')) {
+                redirect(site_url('sign_up'), 'refresh');
+                return;
+            }
         }
-        $page_data['page_name'] = "verification_code";
-        $page_data['page_title'] = site_phrase('verification_code');
+
+        $page_data['page_name']  = "verification_code";
+        $page_data['page_title'] = 'تأكيد الحساب';
         $this->load->view('frontend/' . get_frontend_settings('theme') . '/index', $page_data);
     }
 

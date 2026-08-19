@@ -3059,3 +3059,66 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 @media (min-width:981px){
   .carousel2--bundles .bundle--featured{transform:none}
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-OTP · قناة رمز التأكيد
+   ══════════════════════════════════════════════════════════════════
+
+   سؤالان في شاشتين: «أين نرسل الرمز؟» في نموذج التسجيل، و«أرسله إلى
+   غير ذلك» في شاشة التأكيد. وهما وجهان لأمر واحد فيشتركان في اللغة
+   البصرية نفسها — بطاقة تعلن اختيارها **بالحد واللون معا**، فاللون
+   وحده لا يراه كل أحد.
+
+   والمقاس أصغر من `gate-card`: هذه اختيار داخل لوح، وتلك تختار اللوح.
+   ══════════════════════════════════════════════════════════════════ */
+.otp-pick{display:grid;gap:8px}
+.otp-pick__t{
+  display:flex;align-items:center;gap:7px;
+  font-family:'Cairo',sans-serif;font-weight:600;font-size:.86rem;color:var(--ink)
+}
+.otp-pick__t svg{inline-size:16px;block-size:16px;aspect-ratio:1;color:var(--gold-deep)}
+
+.otp-pick__row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.otp-pick__opt{
+  display:flex;align-items:center;gap:9px;
+  padding:10px 12px;border-radius:13px;cursor:pointer;
+  background:var(--cream);border:1px solid var(--gold-line-soft);color:var(--ink-2);
+  transition:border-color var(--t-route) var(--ease),background var(--t-route) var(--ease),
+    color var(--t-route) var(--ease)
+}
+/* زر الاختيار يخفى عن العين ولا يخفى عن لوح المفاتيح: `display:none`
+   يخرجه من ترتيب التنقل، فلا يبلغه من لا يستعمل فأرة. */
+.otp-pick__opt input{position:absolute;opacity:0;inline-size:1px;block-size:1px;pointer-events:none}
+.otp-pick__opt svg{inline-size:19px;block-size:19px;aspect-ratio:1;flex:0 0 auto;color:var(--gold-deep)}
+.otp-pick__opt span{display:flex;flex-direction:column;gap:1px;min-width:0}
+.otp-pick__opt b{font-size:.86rem;color:var(--ink);font-weight:600}
+.otp-pick__opt small{font-size:.7rem;line-height:1.4;opacity:.85}
+.otp-pick__opt:hover{border-color:var(--gold)}
+.otp-pick__opt.is-on{background:var(--petrol);border-color:var(--petrol);color:var(--gold-on-dark)}
+.otp-pick__opt.is-on b{color:#fff}
+.otp-pick__opt.is-on svg{color:var(--gold-warm)}
+/* حلقة التركيز على البطاقة لا على الزر المخفي */
+.otp-pick__opt:focus-within{outline:2px solid var(--gold);outline-offset:2px}
+
+/* ── تبديل القناة في شاشة التأكيد ──────────────────────────────── */
+.otp-switch{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  margin-block:10px 4px;padding-block-start:12px;
+  border-block-start:1px solid var(--gold-line-soft)
+}
+.otp-switch__t{font-size:.78rem;color:var(--ink-3)}
+.otp-switch__b{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 13px;border-radius:999px;cursor:pointer;
+  background:var(--beige);border:1px solid var(--gold-line);color:var(--ink-2);
+  font:inherit;font-size:.8rem
+}
+.otp-switch__b svg{inline-size:16px;block-size:16px;aspect-ratio:1;flex:0 0 auto;color:var(--gold-deep)}
+.otp-switch__b span{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.otp-switch__b b{font-weight:600;color:var(--ink-3);font-size:.75rem}
+.otp-switch__b:hover:not(:disabled){border-color:var(--gold);background:var(--gold-line-soft)}
+.otp-switch__b:disabled{opacity:.5;cursor:default}
+
+@media (max-width:480px){
+  .otp-pick__row{grid-template-columns:1fr}
+}

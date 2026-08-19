@@ -34,6 +34,18 @@ $tq_v = function ($k) use ($tq_old) {
    والبوابة المرفوضة تعود كما اختيرت لا كما في العنوان. */
 $tq_gate = isset($tq_old['tq_gate']) ? (string) $tq_old['tq_gate'] : (string) $this->input->get('as');
 $tq_gate = in_array($tq_gate, array('teacher', 'parent'), true) ? $tq_gate : 'student';
+
+/* TQ-OTP — أين يصل رمز تأكيد الحساب؟
+   السؤال يعرض للمعلم ولولي الأمر وحدهما، لأنهما وحدهما من يكتب بريدا
+   وجوالا معا. والطالب لا يسأل عن جواله أصلا فقناته البريد — وإن كان
+   دون الخامسة عشرة فالوجهة بريد ولي أمره، وذلك مكتوب تحت حقله.
+   والقرار كله في `Taqdar_otp_model::signup_route()`؛ وهذا عرضه.
+   وإن لم يكن واتساب مضبوطا لا يظهر السؤال أصلا: خيار لا يعمل أسوأ من
+   خيار لا يعرض. */
+$tq_ci_otp = &get_instance();
+$tq_ci_otp->load->model('taqdar_wa_model');
+$tq_wa_otp = $tq_ci_otp->taqdar_wa_model->otp_on();
+$tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : 'email';
 ?>
 <section class="section">
   <div class="shell shell--auth">
@@ -280,6 +292,8 @@ $tq_gate = in_array($tq_gate, array('teacher', 'parent'), true) ? $tq_gate : 'st
             </label>
           </div>
 
+          <?php $tq_otp_for = 'teacher'; include __DIR__ . '/_tq_otp_channel.php'; ?>
+
           <p class="form-hint form-hint--box">
             <svg aria-hidden="true"><use href="#i-shield"></use></svg>
             <span>طلبك تراجعه لجنة تحكيم داخلية: تشاهد عينتك، وتوثق هويتك ومؤهلك.
@@ -305,6 +319,8 @@ $tq_gate = in_array($tq_gate, array('teacher', 'parent'), true) ? $tq_gate : 'st
             </label>
             <p class="form-hint">نراسلك عليه في تنبيهات أبنائك المهمة.</p>
           </div>
+
+          <?php $tq_otp_for = 'parent'; include __DIR__ . '/_tq_otp_channel.php'; ?>
 
           <p class="form-hint form-hint--box">
             <svg aria-hidden="true"><use href="#i-users"></use></svg>
@@ -430,5 +446,17 @@ $tq_gate = in_array($tq_gate, array('teacher', 'parent'), true) ? $tq_gate : 'st
   }
 
   apply(gate.value);
+
+  /* اختيار قناة الرمز: البطاقة تعلن اختيارها بالحد واللون معا — واللون
+     وحده لا يراه كل أحد. و`:has()` تفعل هذا في CSS الحديث وحده، وهذه
+     الصفحة تفتح على أجهزة قديمة كثيرة. */
+  document.querySelectorAll('.otp-pick__row').forEach(function (row) {
+    row.addEventListener('change', function () {
+      row.querySelectorAll('.otp-pick__opt').forEach(function (opt) {
+        var r = opt.querySelector('input[type=radio]');
+        opt.classList.toggle('is-on', !!(r && r.checked));
+      });
+    });
+  });
 })();
 </script>

@@ -329,6 +329,10 @@ class Login extends CI_Controller
             'guardian_email' => $tq_guard,
             'phone'          => $this->tq_gate_phone($tq_gate),
             'message'        => trim((string) $this->input->post('message')),
+            /* قناة الرمز تعود كما اختيرت: من رفض طلبه لخطأ في حقل آخر
+               لا يعيد اختيارها. */
+            'otp_channel'    => ((string) $this->input->post($tq_gate . '_otp_channel') === 'whatsapp')
+                              ? 'whatsapp' : 'email',
         );
 
         $tq_err = '';
@@ -434,10 +438,56 @@ class Login extends CI_Controller
         $verification_code =  rand(100000, 200000);
         $data['verification_code'] = $verification_code;
 
-        if (get_settings('student_email_verification') == 'enable') {
+        /* ═══════════════════════════════════════════════════════════════
+           TQ-OTP — تأكيد الحساب برمز، وأين يذهب الرمز
+           ═══════════════════════════════════════════════════════════════
+
+           `Taqdar_otp_model::signup_route()` وحدها تقرر القنوات المتاحة
+           ووجهة كل منها؛ والقاعدة كلها مشروحة هناك في موضع واحد. وما
+           يعني هذا الموضع منها ثلاثة:
+
+           ١ — **القناة اختيار لمن يملك اثنتين.** المعلم وولي الأمر يكتبان
+               بريدا وجوالا، فيصلهما الرمز حيث اختارا. والطالب لا يسأل عن
+               جواله أصلا، فقناته البريد وحده.
+
+           ٢ — **بريد الطالب القاصر ليس بريده.** من هو دون الخامسة عشرة
+               كتب بريد ولي أمره وهو شرط تسجيله، فالرمز إلى ولي الأمر وبه
+               يفتح الحساب. وصفحة التسجيل تقول له ذلك صراحة، فحساب يفتحه
+               القاصر وحده يجعل تلك العبارة كذبا.
+
+           ٣ — **ما لا يستطاع لا يشترط.** بريد غير مضبوط وواتساب غير مضبوط
+               يعني رمزا لا يخرج — ولو أوقفنا الحساب على رمز لا يخرج لصار
+               التسجيل معطلا على منصة يظن صاحبها أنه أضاف طبقة أمان. فحين
+               لا قناة يفتح الحساب كما كان يفتح، ويكتب سطر في السجل.
+           ═══════════════════════════════════════════════════════════════ */
+        $this->load->model('taqdar_otp_model');
+        $tq_route = $this->taqdar_otp_model->signup_route($tq_gate, $tq_email, $tq_guard, $tq_phone);
+
+        /* القناة تقرأ من حقل البوابة المختارة — كما يقرأ جوالها
+           (TQ-PHONE-DUP أعلاه): أزرار `radio` باسم واحد تكون مجموعة
+           واحدة عند المتصفح ولو تفرقت في لوحين، فيسقط تعليم أحدهما.
+           والاسم العام يقرأ احتياطا لنموذج مخبأ أو تطبيق يرسل القديم. */
+        $tq_chan = '';
+        foreach (array($tq_gate . '_otp_channel', 'otp_channel') as $tq_f) {
+            $tq_chan = (string) $this->input->post($tq_f);
+            if ($tq_chan !== '') break;
+        }
+        /* والقبول من القائمة لا كما جاءت: قيمة مخترعة في الطلب كانت
+           تصير وجهة إرسال. */
+        if (!isset($tq_route['channels'][$tq_chan])) {
+            $tq_chan = $tq_route['default'];
+        }
+
+        $tq_otp_on = $this->taqdar_otp_model->signup_required() && $tq_chan !== '';
+
+        if ($tq_otp_on) {
             $data['status'] = 0;
         } else {
             $data['status'] = 1;
+            if ($this->taqdar_otp_model->signup_required()) {
+                log_message('info', 'TQ-OTP: لا قناة ترسل رمزا (' . $tq_gate . ') — '
+                    . 'فتح الحساب بلا تأكيد. اضبط البريد أو واتساب.');
+            }
         }
 
         $data['wishlist'] = json_encode(array());
@@ -509,16 +559,51 @@ class Login extends CI_Controller
                وإخطار ولي أمره لا يتوقف عليه. */
             $this->tq_tell_guardian($tq_guard, $tq_first . ' ' . $tq_last, $tq_email, $tq_age);
 
-            if (get_settings('student_email_verification') == 'enable') {
-                $this->email_model->send_email_verification_mail($data['email'], $verification_code);
-
-                if ($validity === 'unverified_user') {
-                    $this->session->set_flashdata('info_message', 'لهذا البريد حساب بالفعل. أكد بريدك بالرمز المرسل إليك.');
-                } else {
-                    $this->session->set_flashdata('flash_message', 'أنشئ حسابك. راجع بريدك واكتب رمز التأكيد ليفتح.');
+            if ($tq_otp_on) {
+                /* المعرف بعد الإنشاء لا قبله، ومن الفرعين معا: مسار
+                   «حساب غير مؤكد قائم» لا يرد معرفا، فبلا هذا السطر يصدر
+                   الرمز بمعرف صفر ولا يعرف من يفتح عند التأكيد. */
+                if (empty($user_id)) {
+                    $tq_u = $this->db->select('id')->where('email', $data['email'])
+                                     ->get('users')->row_array();
+                    $user_id = $tq_u ? (int) $tq_u['id'] : 0;
                 }
-                $this->session->set_userdata('register_email', $this->input->post('email'));
-                redirect(site_url('sign_up/verification_code'), 'refresh');
+
+                $tq_sent = $this->taqdar_otp_model->send(
+                    'signup', $tq_email, $tq_chan,
+                    $tq_route['channels'][$tq_chan]['to'],
+                    (int) $user_id, $tq_first
+                );
+
+                /* ما تحتاجه شاشة التأكيد كله في الجلسة: البريد هو الهوية
+                   التي يحكم بها الرمز، والقنوات ليعرض التبديل بلا أن يعاد
+                   اشتقاقها من نموذج انتهى. */
+                $this->session->set_userdata('tq_otp', array(
+                    'identity' => $tq_email,
+                    'user_id'  => (int) $user_id,
+                    'gate'     => $tq_gate,
+                    'name'     => $tq_first,
+                    'channels' => $tq_route['channels'],
+                    'why'      => $tq_route['why'],
+                ));
+                /* المفتاح الموروث يبقى: شاشات Academy تقرؤه. */
+                $this->session->set_userdata('register_email', $tq_email);
+
+                if (empty($tq_sent['ok'])) {
+                    /* الحساب يبقى موقوفا ولا يفتح: الفشل هنا عابر غالبا
+                       (قناة مضبوطة ردت خطأ)، وشاشة التأكيد فيها «أعد
+                       الإرسال» و«بدل القناة». وفتح الحساب على فشل عابر
+                       يبطل التأكيد كله. */
+                    $this->session->set_flashdata('error_message', $tq_sent['error']);
+                } elseif ($validity === 'unverified_user') {
+                    $this->session->set_flashdata('info_message',
+                        'لهذا البريد حساب لم يؤكد بعد. أرسلنا رمزا جديدا — اكتبه ليفتح.');
+                } else {
+                    $this->session->set_flashdata('flash_message',
+                        'أنشئ حسابك. اكتب الرمز الذي وصلك ليفتح.');
+                }
+
+                redirect(site_url('sign_up/verification_code'), 'location', 302);
             } else {
                 if(isset($user_id)){
                     $this->email_model->signup_mail($user_id);
@@ -559,6 +644,157 @@ class Login extends CI_Controller
      * وإن لم يكن البريد الصادر مضبوطا فلا شيء يقع ولا خطأ يظهر —
      * `Taqdar_mail_model` يرد `false` بهدوء.
      */
+    /* =====================================================================
+       TQ-OTP — نقاط تأكيد الحساب بالرمز
+
+       ثلاث نقاط تنادى بـ`fetch` من `sign_up/verification_code`، وكلها
+       POST وترد JSON. وثلاثتها تقرأ الهوية **من الجلسة لا من الطلب**:
+       بريد يرسل في الجسم يجعل من يعرف بريد غيره يستهلك رموزه ويقفل
+       حسابه بخمس محاولات خاطئة.
+       ===================================================================== */
+
+    /** جلسة التأكيد الجارية، أو `null`. */
+    private function tq_otp_session()
+    {
+        $s = $this->session->userdata('tq_otp');
+        if (!is_array($s) || empty($s['identity'])) return null;
+        return $s;
+    }
+
+    private function tq_json($data)
+    {
+        $this->output->set_content_type('application/json', 'utf-8')
+                     ->set_output(json_encode($data, JSON_UNESCAPED_UNICODE));
+    }
+
+    /** POST login/otp/verify — الرمز صحيح؟ يفتح الحساب. */
+    public function otp_verify()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        if (!tq_auth_verify_origin()) {
+            $this->tq_json(array('ok' => false, 'error' => 'طلب غير مقبول. أعد تحميل الصفحة.'));
+            return;
+        }
+
+        $s = $this->tq_otp_session();
+        if (!$s) {
+            $this->tq_json(array('ok' => false, 'expired' => true,
+                'error' => 'انتهت جلسة التأكيد. سجل من جديد أو سجل الدخول.'));
+            return;
+        }
+
+        $this->load->model('taqdar_otp_model');
+        $r = $this->taqdar_otp_model->verify('signup', $s['identity'],
+                                             (string) $this->input->post('code'));
+
+        if (empty($r['ok'])) {
+            $this->tq_json(array('ok' => false, 'error' => $r['error']));
+            return;
+        }
+
+        /* ── ما يفتحه القبول ────────────────────────────────────────
+           **المعلم يبقى موقوفا.** حسابه `status = 0` لسببين لا واحد:
+           تأكيد التواصل، واعتماد الإدارة لأوراقه. والرمز يرفع الأول
+           وحده — ومنصة يدرس فيها الغرباء بلا مراجعة ليست منصة تعليمية.
+           فيقال له ذلك صراحة، وإلا أكد رمزه ثم حاول الدخول فقرأ
+           «بيانات دخول غير صحيحة» وظن أن التأكيد لم يقع. */
+        $uid  = (int) ($r['user_id'] ?: ($s['user_id'] ?? 0));
+        $gate = (string) ($s['gate'] ?? 'student');
+
+        try {
+            $upd = array('tq_verified_at' => date('Y-m-d H:i:s'));
+            if ($gate !== 'teacher') $upd['status'] = 1;
+            if ($uid > 0) $this->db->where('id', $uid)->update('users', $upd);
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-OTP: تعذر فتح الحساب بعد التأكيد — ' . $e->getMessage());
+        }
+
+        if ($uid > 0 && $gate !== 'teacher') {
+            /* رسالة الترحيب بعد التأكيد لا قبله: من لم يؤكد قد لا يكون
+               صاحب البريد أصلا. */
+            $this->email_model->signup_mail($uid);
+        }
+
+        $this->session->unset_userdata('tq_otp');
+        $this->session->unset_userdata('register_email');
+
+        $this->session->set_flashdata('flash_message', $gate === 'teacher'
+            ? 'أكدنا بياناتك. طلب الانضمام معلما عند الإدارة الآن، ونتواصل معك — '
+            . 'ولن يفتح الدخول قبل الاعتماد.'
+            : ($gate === 'parent'
+                ? 'فتح حسابك. سجل الدخول ثم اربط أبناءك من لوحتك.'
+                : 'فتح حسابك. سجل الدخول للمتابعة.'));
+
+        $this->tq_json(array('ok' => true, 'next' => site_url('login')));
+    }
+
+    /** POST login/otp/resend — رمز جديد على القناة نفسها. */
+    public function otp_resend()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        if (!tq_auth_verify_origin()) {
+            $this->tq_json(array('ok' => false, 'error' => 'طلب غير مقبول. أعد تحميل الصفحة.'));
+            return;
+        }
+        $this->tq_otp_dispatch('');
+    }
+
+    /** POST login/otp/channel — بدل القناة ثم أرسل. */
+    public function otp_channel()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        if (!tq_auth_verify_origin()) {
+            $this->tq_json(array('ok' => false, 'error' => 'طلب غير مقبول. أعد تحميل الصفحة.'));
+            return;
+        }
+        $this->tq_otp_dispatch((string) $this->input->post('channel'));
+    }
+
+    /**
+     * يرسل رمزا على قناة من قنوات الجلسة.
+     *
+     * والقنوات تقرأ من الجلسة لا من الطلب: قناة تأتي في الجسم بوجهتها
+     * تجعل هذه النقطة بابا يرسل رسائل إلى أي رقم يكتب فيه.
+     */
+    private function tq_otp_dispatch($want)
+    {
+        $s = $this->tq_otp_session();
+        if (!$s) {
+            $this->tq_json(array('ok' => false, 'expired' => true,
+                'error' => 'انتهت جلسة التأكيد. سجل من جديد أو سجل الدخول.'));
+            return;
+        }
+
+        $chans = (isset($s['channels']) && is_array($s['channels'])) ? $s['channels'] : array();
+
+        $this->load->model('taqdar_otp_model');
+        if ($want === '') {
+            $st   = $this->taqdar_otp_model->state('signup', $s['identity']);
+            $want = ($st && isset($chans[$st['channel']])) ? $st['channel'] : '';
+        }
+        if (!isset($chans[$want])) {
+            $keys = array_keys($chans);
+            $want = $keys ? $keys[0] : '';
+        }
+        if ($want === '') {
+            $this->tq_json(array('ok' => false, 'error' => 'لا قناة متاحة لإرسال الرمز.'));
+            return;
+        }
+
+        $r = $this->taqdar_otp_model->send('signup', $s['identity'], $want,
+                                           $chans[$want]['to'],
+                                           (int) ($s['user_id'] ?? 0),
+                                           (string) ($s['name'] ?? ''));
+
+        $this->tq_json(array(
+            'ok'          => !empty($r['ok']),
+            'error'       => $r['error'],
+            'channel'     => $r['channel'],
+            'shown'       => $r['shown'],
+            'retry_after' => (int) $r['retry_after'],
+        ));
+    }
+
     private function tq_tell_guardian($guardian_email, $student_name, $student_email, $age)
     {
         $guardian_email = trim((string) $guardian_email);
