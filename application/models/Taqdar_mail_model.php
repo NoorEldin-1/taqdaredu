@@ -198,6 +198,13 @@ class Taqdar_mail_model extends CI_Model
             $this->email->clear(true);
             $this->email->initialize(array(
                 'protocol'     => 'smtp',
+                /* **لا تعلن أن المرسل إطار PHP.** مكتبة CI تكتب اسمها في
+                   `X-Mailer` و`User-Agent` في كل رسالة، فتخرج رسالة تأكيد
+                   الحساب موقعة `CodeIgniter`. والمرشحات تقرأ هذه الترويسة:
+                   خدمات البريد المعروفة تكتب اسم منتجها، ومن يكتب اسم إطار
+                   عام يقع في خانة السكربتات المستضافة — وهي خانة يخرج منها
+                   أكثر البريد المزعج. والاسم هنا اسم المنصة. */
+                'useragent'    => $c['name'],
                 'smtp_host'    => $c['host'],
                 'smtp_port'    => $c['port'],
                 'smtp_user'    => $c['user'],
