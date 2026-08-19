@@ -216,14 +216,46 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 في شاشة اللوحة لمن يقول «دفعت ولم يفتح». والثلاثة تنادي `settle()` نفسها،
 وهي مأمونة التكرار.
 
+## الإشعارات — ثلاث قنوات ومصدر واحد
+
+| | داخل المنصة | البريد | واتساب |
+|---|---|---|---|
+| المنفذ | `notifications` | [Taqdar_mail_model](application/models/Taqdar_mail_model.php) | [Taqdar_wa_model](application/models/Taqdar_wa_model.php) |
+| الإعداد | — | `taqdar_admin/mail` | `taqdar_admin/whatsapp` |
+| المفاتيح | — | `smtp_*` | `settings` بالبادئة `tq_wa_` |
+| ما يخرج منها | كل شيء | كل شيء | **المال ورموز التحقق وحدها** |
+
+**والباب واحد:** `Taqdar_admin_model::push_notification()`. يكتب الصف في
+`notifications` أولا — وهو السجل الذي يقرؤه صاحبه متى فتح شاشته — ثم يرسل
+البريد، ثم واتساب. والقناتان **تابعتان لا شرط**: كلتاهما ترد `false` بهدوء
+حين لا تضبط، فلا يسقط تفعيل اشتراك لأن رسالة لم تخرج.
+
+- **واتساب يشتق من `$type`.** `Taqdar_wa_model::$PAY_TYPES` تسمي أنواع
+  المال (`subscription` · `wallet` · `invoice` · `payment` · `payout`)، وما
+  سواها لا يخرج بواتساب. والتفريق ليس تحفظا: من يصله من منصة تعليمية خبر
+  كل حصة ألغيت يبلغ عن الرقم، وبلاغات المستلمين تخفض جودة الرقم عند ميتا
+  ثم تخفض حد إرساله — فتضيع معها إشعارات المال نفسها. والمعامل السادس
+  `$wa` يخالف الاشتقاق في الاتجاهين لمن أراد.
+- **قالب معتمد أو لا شيء.** واتساب لا يوصل نصا تكتبه إلا داخل نافذة أربع
+  وعشرين ساعة من آخر رسالة أرسلها العميل، وكل ما ترسله المنصة يبدأ منها.
+  فاسم القالب ولغته **وعدد بدائله** تدخل في كل طلب، واختلاف واحد منها يرد
+  الرسالة برمز لا يفهم. ولذلك `diagnose()` تسأل ميتا عن القوالب قبل أن
+  تفشل رسالة على مستخدم، والشاشة تحمل دليلا من سبع خطوات فيه نص القالبين
+  جاهزا للنسخ.
+- **رموز ميتا مترجمة.** `api_error()` تحول `131047` و`131030` و`132000` —
+  وهي الثلاثة التي توقف كل من يضبط أول مرة — إلى عربية تقول ما العمل.
+- **`tq_wa_log` صف لكل محاولة.** البريد يفشل بصوت وواتساب يفشل بصمت.
+  و**نص الرسالة لا يكتب**: الرمز سر، وسجل يحفظه يجعل كل من يفتح اللوحة
+  يقرأ رموز الناس.
+
 ## قاعدة البيانات
 
 `taqd_lms` — **77 جدولا**. لا ORM ولا هجرات؛ استعلامات Query Builder
 مباشرة في النماذج.
 
 - **الجوهر:** `users` · `role` · `course` · `lesson` · `section` · `category` · `subjects` · `grades`
-- **تقدر:** `paths` · `plans` · `subscriptions` · `invoices` · `payment_attempts` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts` · `site_content`
-- **الإعدادات:** `settings` (102 صفا) · `frontend_settings` · `payment_gateways` · `seo_fields` — **مفاتيح بوابات الدفع و SMTP تعيش هنا، لا في الشيفرة.**
+- **تقدر:** `paths` · `plans` · `subscriptions` · `invoices` · `payment_attempts` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts` · `site_content` · `tq_wa_log`
+- **الإعدادات:** `settings` · `frontend_settings` · `payment_gateways` · `seo_fields` — **مفاتيح بوابات الدفع و SMTP وواتساب تعيش هنا، لا في الشيفرة.**
 - **triggerان:** `trg_parent_links_consent_*` على `parent_links`.
 
 **أعمدة تخطئ الظن فيها** (كلها كتبت مرة على أسماء مفترضة فرجعت جداول فارغة
@@ -234,7 +266,8 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 
 بعض الجداول تنشأ وقت التشغيل لا بهجرة: `site_content` من
 `Taqdar_content_model::ensure_schema()`، و`payment_attempts` من
-`Taqdar_tap_model::ensure_schema()`، و`tutoring_sessions` من
+`Taqdar_tap_model::ensure_schema()`، و`tq_wa_log` من
+`Taqdar_wa_model::ensure_schema()`، و`tutoring_sessions` من
 `Taqdar_sessions_model`، و`wallet_entries` من `install_schema()`. فأي
 استعلام إداري عليها يلف بـ`safe_scalar`/`safe_rows` — جدول لم يستعمل بعد
 يرمي استثناء يبيض الشاشة، ورقم ناقص أهون.

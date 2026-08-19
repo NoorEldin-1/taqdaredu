@@ -1534,8 +1534,26 @@ class Taqdar_admin_model extends CI_Model
      * ويهبط إلى آخر القائمة تحت كل إشعار قديم، ويسقط من فرز «هذا الأسبوع».
      *
      * أي أن الإخطارات الإدارية كانت تكتب ولا تقرأ.
+     *
+     * ═══════════════════════════════════════════════════════════════════
+     * TQ-WA-PAY — وواتساب بعد البريد، لإشعارات المال وحدها
+     * ═══════════════════════════════════════════════════════════════════
+     *
+     * القناة الثالثة لا تفتح لكل ما يمر من هنا، بل لما يقرره `$type`:
+     * `Taqdar_wa_model::$PAY_TYPES` تسمي أنواع المال (`subscription` ·
+     * `wallet` · `invoice` · `payment` · `payout`)، وما سواها يبقى في
+     * المنصة والبريد كما كان.
+     *
+     * والتفريق ليس تحفظا زائدا: واتساب قناة يدفع ثمن كل رسالة فيها،
+     * وقناة **تسد** — من يصله من منصة تعليمية خبر كل حصة ألغيت وكل
+     * نتيجة امتحان يبلغ عن الرقم، وبلاغات المستلمين تخفض جودة الرقم عند
+     * ميتا ثم تخفض حد إرساله اليومي. فالمال وحده يستحق المقاطعة، وهو
+     * أيضا ما ينتظره صاحبه فعلا.
+     *
+     * و`$wa` يمرر صريحا لمن أراد أن يخالف الاشتقاق في الاتجاهين.
      */
-    public function push_notification($to_user, $title, $description, $type = 'system', $mail = true)
+    public function push_notification($to_user, $title, $description, $type = 'system',
+                                      $mail = true, $wa = null)
     {
         try {
             $now = time();
@@ -1562,7 +1580,47 @@ class Taqdar_admin_model extends CI_Model
         if ($mail) {
             $this->mail_user((int) $to_user, $title, $description);
         }
+
+        /* وواتساب بعده — تابعا كالبريد، ولإشعارات المال وحدها.
+           و`Taqdar_wa_model` يرد `false` بهدوء حين لا يكون مضبوطا أو
+           حين لا رقم لصاحب الحساب، فلا يسقط تفعيل اشتراك لأن رسالة
+           لم تخرج. وهذا النداء قد يقع داخل ويبهوك دفع، فمهلته اثنتا
+           عشرة ثانية ولا يرمي شيئا أبدا. */
+        if ($wa !== false) {
+            $this->wa_user((int) $to_user, $title, $description, (string) $type, $wa === true);
+        }
+
         return true;
+    }
+
+    /**
+     * يرسل نص إشعار بواتساب إلى صاحبه إن كان له رقم وواتساب مضبوط.
+     *
+     * ولا يرمي شيئا: النداء يقع في ويبهوك دفع وفي شاشة إدارة، واستثناء
+     * هنا يعني دفعة بلا تفعيل أو شاشة بيضاء للمسؤول.
+     */
+    private function wa_user($user_id, $title, $body, $type = 'system', $force = false)
+    {
+        try {
+            /* النموذج يحمل هنا لا في `push_notification`: الثابت
+               `$PAY_TYPES` يقرأ من الصنف، وقراءته قبل تحميله خطأ قاتل
+               في CI3 — لا محمل أصناف يوجد. */
+            $this->load->model('taqdar_wa_model');
+
+            if (!$force && !in_array((string) $type, Taqdar_wa_model::$PAY_TYPES, true)) {
+                return false;
+            }
+            if (!$this->taqdar_wa_model->payments_on()) return false;
+
+            $to = $this->taqdar_wa_model->phone_of((int) $user_id);
+            if ($to === '') return false;   /* لا رقم: لا محاولة ولا سطر سجل */
+
+            return (bool) $this->taqdar_wa_model->send_notice($to, $title, $body,
+                array('purpose' => mb_substr((string) $type, 0, 24), 'user_id' => (int) $user_id));
+        } catch (Throwable $e) {
+            log_message('error', 'push_notification wa: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /** يرسل نص إشعار بالبريد إلى صاحبه إن كان له بريد والبريد مضبوط. */

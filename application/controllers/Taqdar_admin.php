@@ -684,6 +684,255 @@ class Taqdar_admin extends CI_Controller
     }
 
     /* =====================================================================
+       واتساب الصادر
+
+       شاشة أخت لشاشة البريد: بيانات اتصال، وفحوص تسأل المزود قبل أن
+       تفشل رسالة على مستخدم، ورسالة فحص حقيقية بالمسار الذي تستعمله
+       المنصة نفسها.
+
+       والفرق الوحيد الذي يستحق الذكر: البريد يرسل ما تكتبه، وواتساب لا
+       يرسل إلا **قالبا اعتمدته ميتا مسبقا** — فالشاشة تحمل دليلا خطوة
+       بخطوة يقول من أين يجاء كل بيان، ويعطي نص القالبين جاهزا للنسخ.
+       ===================================================================== */
+
+    /** المفاتيح التي تدار من هذه الشاشة، وكلها في جدول `settings`. */
+    private function wa_values()
+    {
+        $out = array();
+        foreach (Taqdar_wa_model::$KEYS as $k) {
+            $out[$k] = (string) get_settings($k);
+        }
+        return $out;
+    }
+
+    public function whatsapp()
+    {
+        $this->load->model('taqdar_wa_model');
+
+        /* التشخيص ينادي ميتا مرتين، فقد يتأخر ثانية أو ثانيتين — وهو ثمن
+           مقبول في شاشة تفتح عند الضبط، ولا يدفع في أي مسار يراه مستخدم. */
+        $this->render('tqa_whatsapp', 'إشعارات واتساب', array(
+            'wa'         => $this->wa_values(),
+            'cfg'        => $this->taqdar_wa_model->config(),
+            'configured' => $this->taqdar_wa_model->configured(),
+            'health'     => $this->taqdar_wa_model->diagnose(),
+            'log'        => $this->taqdar_wa_model->recent(25),
+            'totals'     => $this->taqdar_wa_model->totals(),
+            'otp_on'     => (string) get_settings('tq_signup_otp') !== '0',
+            'debug'      => $this->session->flashdata('wa_debug'),
+        ));
+    }
+
+    /**
+     * حفظ إعدادات واتساب.
+     *
+     * ورمز الوصول **لا يعاد إلى الصفحة أبدا** ولا يمحوه إرسال فارغ:
+     * الحقل يترك خاليا للإبقاء على المحفوظ، كما في كلمة مرور البريد.
+     * ومن فتح الشاشة ليصحح اسم قالب لا يقصد أن يمسح رمزه.
+     */
+    public function whatsapp_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_wa_model');
+        $before = $this->taqdar_wa_model->config();
+
+        $errors   = array();
+        $enabled  = (string) $this->input->post('tq_wa_enabled') === '1';
+        $phone_id = preg_replace('/\D/', '', (string) $this->input->post('tq_wa_phone_id'));
+        $waba_id  = preg_replace('/\D/', '', (string) $this->input->post('tq_wa_waba_id'));
+        $ver      = trim((string) $this->input->post('tq_wa_api_ver'));
+
+        /* الرمز الفارغ يعني «أبق المحفوظ» لا «امسحه» — والمسح صريح. */
+        $tok_in  = trim((string) $this->input->post('tq_wa_token'));
+        $tok_old = (string) get_settings('tq_wa_token');
+        $token   = ((string) $this->input->post('tq_wa_token_clear') === '1')
+                 ? '' : ($tok_in !== '' ? $tok_in : $tok_old);
+
+        if ($ver !== '' && !preg_match('/^v[0-9]+\.[0-9]+$/', $ver)) {
+            $errors[] = 'نسخة الواجهة تكتب هكذا: v21.0';
+        }
+        if ($enabled && $token === '')    $errors[] = 'التفعيل بلا رمز وصول لا يرسل شيئا.';
+        if ($enabled && $phone_id === '') $errors[] = 'التفعيل بلا معرف رقم المرسل لا يرسل شيئا.';
+
+        /* أسماء القوالب: حروف لاتينية صغيرة وأرقام وشرطة سفلية — هذا شرط
+           ميتا نفسه، وفحصه هنا يوفر على المسؤول رسالة `132001` غامضة. */
+        $tpl_otp    = strtolower(trim((string) $this->input->post('tq_wa_tpl_otp')));
+        $tpl_notice = strtolower(trim((string) $this->input->post('tq_wa_tpl_notice')));
+        foreach (array('قالب الرمز' => $tpl_otp, 'قالب الإشعارات' => $tpl_notice) as $lbl => $nm) {
+            if ($nm !== '' && !preg_match('/^[a-z0-9_]{1,512}$/', $nm)) {
+                $errors[] = $lbl . ': الاسم حروف لاتينية صغيرة وأرقام وشرطة سفلية فقط.';
+            }
+        }
+
+        $lang_otp    = trim((string) $this->input->post('tq_wa_tpl_otp_lang'));
+        $lang_notice = trim((string) $this->input->post('tq_wa_tpl_notice_lang'));
+        foreach (array($lang_otp, $lang_notice) as $lg) {
+            if ($lg !== '' && !preg_match('/^[a-zA-Z]{2}(_[a-zA-Z]{2})?$/', $lg)) {
+                $errors[] = 'رمز اللغة يكتب هكذا: ar أو ar_SA أو en_US.';
+                break;
+            }
+        }
+
+        if ($errors) {
+            $this->session->set_flashdata('error_message', implode(' ', $errors));
+            redirect(site_url('taqdar_admin/whatsapp'), 'location', 302);
+            return;
+        }
+
+        $vals = array(
+            'tq_wa_enabled'           => $enabled ? '1' : '0',
+            'tq_wa_token'             => $token,
+            'tq_wa_phone_id'          => $phone_id,
+            'tq_wa_waba_id'           => $waba_id,
+            'tq_wa_api_ver'           => $ver ?: Taqdar_wa_model::DEFAULT_VER,
+            'tq_wa_tpl_otp'           => $tpl_otp,
+            'tq_wa_tpl_otp_lang'      => $lang_otp ?: 'ar',
+            'tq_wa_tpl_otp_button'    => (string) $this->input->post('tq_wa_tpl_otp_button') === '1' ? '1' : '0',
+            'tq_wa_tpl_notice'        => $tpl_notice,
+            'tq_wa_tpl_notice_lang'   => $lang_notice ?: 'ar',
+            'tq_wa_tpl_notice_params' => ((int) $this->input->post('tq_wa_tpl_notice_params') === 1) ? '1' : '2',
+            'tq_wa_notify_payments'   => (string) $this->input->post('tq_wa_notify_payments') === '1' ? '1' : '0',
+            'tq_wa_otp_allowed'       => (string) $this->input->post('tq_wa_otp_allowed') === '1' ? '1' : '0',
+        );
+
+        $this->settings_put($vals);
+
+        /* السجل يحفظ الحدث لا السر: سجل تدقيق فيه رمز وصول نسخة ثانية
+           منه في مكان لا يحرس كما يحرس. */
+        $this->taqdar_admin_model->audit('wa_settings_save', 'settings#whatsapp',
+            array('enabled' => $before['enabled'], 'phone_id' => $before['phone_id']),
+            array('enabled' => $enabled, 'phone_id' => $phone_id,
+                  'token_changed' => ($tok_in !== ''), 'tpl_otp' => $tpl_otp,
+                  'tpl_notice' => $tpl_notice));
+
+        /* الضبط يقرأ مرة في الطلب ويحفظ — فينسى بعد الكتابة، وإلا قرأت
+           الصفحة التالية القيم القديمة وقالت «غير مضبوط» بعد الحفظ. */
+        $this->taqdar_wa_model->forget();
+
+        if (!$enabled) {
+            $msg = 'حفظت — وواتساب معطل، فتبقى الإشعارات في المنصة والبريد كما هي.';
+        } elseif ($tpl_notice === '' && $tpl_otp === '') {
+            $msg = 'حفظت — ولا قالب محفوظا، فلا يخرج شيء إلا لمن راسل الرقم في آخر '
+                 . 'أربع وعشرين ساعة. راجع الدليل أسفل الشاشة.';
+        } else {
+            $msg = 'حفظت. راجع بطاقة «حال الاتصال» أعلى الشاشة، ثم أرسل رسالة فحص.';
+        }
+
+        $this->session->set_flashdata('flash_message', $msg);
+        redirect(site_url('taqdar_admin/whatsapp'), 'location', 302);
+    }
+
+    /**
+     * يرسل رسالة حقيقية بالمسار الذي تستعمله المنصة نفسها.
+     *
+     * وثلاثة أنواع لا واحد، لأن الفشل يختلف باختلافها: النص الحر يفشل
+     * بـ`131047` إن مضى يوم على آخر رسالة من الرقم، والقالب يفشل
+     * بـ`132001` إن كان اسمه أو لغته خطأ، وقالب الرمز يفشل بـ`132000`
+     * إن اختلف عدد بدائله. ورسالة فحص واحدة تخفي عطبين من الثلاثة.
+     */
+    public function whatsapp_test()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_wa_model');
+
+        $to = trim((string) $this->input->post('to'));
+        $e164 = $this->taqdar_wa_model->to_e164($to);
+
+        if ($e164 === '') {
+            $this->session->set_flashdata('error_message',
+                'الرقم غير صالح. اكتبه هكذا: 0501234567 — أو برمز دولته: ‎+201001234567');
+            redirect(site_url('taqdar_admin/whatsapp'), 'location', 302);
+            return;
+        }
+        if (!$this->taqdar_wa_model->configured()) {
+            $this->session->set_flashdata('error_message', 'احفظ بيانات الاتصال أولا وفعلها.');
+            redirect(site_url('taqdar_admin/whatsapp'), 'location', 302);
+            return;
+        }
+
+        $kind = (string) $this->input->post('kind');
+        $cfg  = $this->taqdar_wa_model->config();
+
+        if ($kind === 'otp') {
+            if ($cfg['tpl_otp'] === '') {
+                $this->session->set_flashdata('error_message',
+                    'لا قالب رمز محفوظ — احفظ اسمه أولا، أو افحص بالنص الحر.');
+                redirect(site_url('taqdar_admin/whatsapp'), 'location', 302);
+                return;
+            }
+            /* رمز فحص لا رمز حقيقي: لا يقبل في أي شاشة، ولا يكتب في
+               `tq_otp`. من يفحص لا يريد أن يفتح حسابا. */
+            $ok   = $this->taqdar_wa_model->send_otp($e164, '000000', array('purpose' => 'test'));
+            $what = 'قالب رمز التحقق';
+
+        } elseif ($kind === 'notice') {
+            if ($cfg['tpl_notice'] === '') {
+                $this->session->set_flashdata('error_message',
+                    'لا قالب إشعارات محفوظ — احفظ اسمه أولا، أو افحص بالنص الحر.');
+                redirect(site_url('taqdar_admin/whatsapp'), 'location', 302);
+                return;
+            }
+            $ok = $this->taqdar_wa_model->send_template(
+                $e164, $cfg['tpl_notice'], $cfg['tpl_notice_lang'],
+                ($cfg['tpl_notice_params'] >= 2)
+                    ? array('رسالة فحص من منصة تقدر',
+                            'وصولها يعني أن إشعارات الدفع تخرج فعلا. أرسلت في ' . date('Y-m-d H:i') . '.')
+                    : array('رسالة فحص من منصة تقدر — أرسلت في ' . date('Y-m-d H:i')),
+                array('purpose' => 'test'));
+            $what = 'قالب الإشعارات';
+
+        } else {
+            $ok = $this->taqdar_wa_model->send_text($e164,
+                'رسالة فحص من منصة تقدر.' . "\n"
+                . 'وصولها يعني أن رمز الوصول ومعرف الرقم صحيحان.' . "\n"
+                . 'أرسلت في ' . date('Y-m-d H:i') . '.',
+                array('purpose' => 'test'));
+            $what = 'النص الحر';
+        }
+
+        if ($ok) {
+            $this->session->set_flashdata('flash_message',
+                'أرسلت (' . $what . ') إلى ' . $this->taqdar_wa_model->pretty($e164)
+                . ' — راجع الجهاز. وقبول ميتا للطلب لا يعني وصولها بعد، فالسجل أسفل الشاشة يقول متى.');
+        } else {
+            $this->session->set_flashdata('error_message',
+                'لم ترسل (' . $what . '). السبب أدناه كما قالته ميتا.');
+            $this->session->set_flashdata('wa_debug', $this->taqdar_wa_model->last_error);
+        }
+
+        redirect(site_url('taqdar_admin/whatsapp'), 'location', 302);
+    }
+
+    /** يفعل تأكيد الحساب بالرمز أو يوقفه — مفتاح واحد يمس التسجيل كله. */
+    public function whatsapp_toggle_otp()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $on = (string) get_settings('tq_signup_otp') !== '0';
+        $this->settings_put(array('tq_signup_otp' => $on ? '0' : '1'));
+
+        $this->session->set_flashdata('flash_message', $on
+            ? 'أوقفت تأكيد الحساب بالرمز — الحسابات الجديدة تفتح فورا.'
+            : 'فعلت تأكيد الحساب بالرمز. ولو تعذر إرسال الرمز (لا بريد ولا واتساب) '
+            . 'فتح الحساب كما كان، فلا يتعطل التسجيل.');
+        redirect(site_url('taqdar_admin/whatsapp'), 'location', 302);
+    }
+
+    /** كتابة مفاتيح في `settings` — upsert، كما في `bank_save` و`tap_save`. */
+    private function settings_put($vals)
+    {
+        foreach ((array) $vals as $k => $v) {
+            if ($this->db->where('key', $k)->count_all_results('settings') > 0) {
+                $this->db->where('key', $k)->update('settings', array('value' => (string) $v));
+            } else {
+                $this->db->insert('settings', array('key' => $k, 'value' => (string) $v));
+            }
+        }
+    }
+
+    /* =====================================================================
        استيراد المنهج
        ===================================================================== */
 

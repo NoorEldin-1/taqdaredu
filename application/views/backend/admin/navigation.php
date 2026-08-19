@@ -132,6 +132,9 @@ $tqa_nav = [
           'add_newsletter', 'edit_newsletter', 'send_newsletter'],
                              'النشرة البريدية',    'admin/subscribed_user',    'send',  null],
         ['tqa_mail',         'البريد الصادر',      'taqdar_admin/mail',        'mail',  null],
+        /* القناة الثانية، وتحت البريد لا فوقه: البريد يحمل كل شيء
+           وواتساب يحمل المال ورموز التحقق وحدها. */
+        ['tqa_whatsapp',     'إشعارات واتساب',     'taqdar_admin/whatsapp',    'whatsapp', null],
     ]],
 
     ['النظام', 'cog', [

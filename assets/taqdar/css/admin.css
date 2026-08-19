@@ -2058,6 +2058,49 @@ body.tqa .on-hover-action:focus-within [id^='category-delete-btn-'] {
 }
 .tqa-formsec:first-child { margin-block-start: 0; }
 
+/* ---- دليل خطوة بخطوة ----
+   الترقيم عنصر مرئي لا زخرفة: القارئ يعود إلى «الخطوة الرابعة» بعد أن
+   يفتح شاشة عند مزود آخر، فالرقم لا بد أن يبقى ظاهرا وهو يمسح الصفحة.
+   ولذلك عداد يدوي في دائرة، لا نقطة القائمة الافتراضية التي تختفي في
+   حشو النص. */
+.tqa-steps {
+  counter-reset: tqa-step;
+  list-style: none;
+  margin: 0; padding: 0;
+  display: grid; gap: var(--tq-space-l);
+}
+.tqa-steps > li {
+  counter-increment: tqa-step;
+  position: relative;
+  padding-inline-start: 42px;
+}
+.tqa-steps > li::before {
+  content: counter(tqa-step);
+  position: absolute; inset-inline-start: 0; inset-block-start: 0;
+  inline-size: 28px; block-size: 28px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--tq-mint-fill); color: var(--tq-mint-ink);
+  font: var(--tq-type-micro);
+  font-variant-numeric: tabular-nums;
+}
+.tqa-steps > li > b {
+  display: block; margin-block-end: var(--tq-space-s);
+  font: var(--tq-type-bodyStrong); color: var(--tq-navy);
+}
+.tqa-steps p  { margin: 0 0 var(--tq-space-s); font: var(--tq-type-caption); color: var(--tq-text2); }
+.tqa-steps p.tqa-hint { color: var(--tq-text2); opacity: .92; }
+.tqa-steps ul,
+.tqa-steps ol {
+  margin: 0 0 var(--tq-space-s);
+  padding-inline-start: 20px;
+  font: var(--tq-type-caption); color: var(--tq-text2);
+}
+.tqa-steps li li { margin-block-end: 4px; }
+.tqa-steps .tqa-debug { margin-block: var(--tq-space-s) var(--tq-space-m); }
+/* عنوان الخطوة الفرعية داخل الشرح — الشارة تلتصق بالعنوان لا بالسطر */
+.tqa-steps > li > b .tqa-badge { margin-inline-start: var(--tq-space-s); }
+
 /* ---- اختيار متعدد: الصفوف التي تفتحها الباقة ---- */
 .tqa-picks__acts {
   display: flex; align-items: center; gap: var(--tq-space-s);
