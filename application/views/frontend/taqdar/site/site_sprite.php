@@ -157,6 +157,19 @@
     <path d="M13.4 3.2H7a2 2 0 0 0-2 2v13.6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.8Z"/>
     <path d="M13.4 3.2v5.6H19"/><path d="M8.8 13.4h6.4M8.8 16.6h4.4"/>
   </symbol>
+  <!-- سيارة ومسار: لوح «زورنا في مقرنا» كان يصف «مواقف مجانية» بعلم
+       (`i-flag`) و«الوصول سهل» بدبوس موقع هو نفسه دبوس بطاقة «موقعنا»
+       فوقها — فأيقونتان تقولان الشيء نفسه وثالثة لا تقول شيئا. -->
+  <symbol id="i-car" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.2 13.4 5.9 8.3A2 2 0 0 1 7.8 7h8.4a2 2 0 0 1 1.9 1.3l1.7 5.1"/>
+    <path d="M3.4 13.4h17.2v4.2H3.4Z"/>
+    <path d="M6.6 17.6v1.6M17.4 17.6v1.6"/>
+    <path d="M6.8 15.5h.01M17.2 15.5h.01"/>
+  </symbol>
+  <symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="6.4" cy="5.6" r="2.4"/><circle cx="17.6" cy="18.4" r="2.4"/>
+    <path d="M6.4 8v4.4a3.2 3.2 0 0 0 3.2 3.2h4.8a3.2 3.2 0 0 1 3.2 3.2"/>
+  </symbol>
   <symbol id="i-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
     <path d="M5.4 21V3.6M5.4 4.6h11.4l-2 3.6 2 3.6H5.4"/>
   </symbol>

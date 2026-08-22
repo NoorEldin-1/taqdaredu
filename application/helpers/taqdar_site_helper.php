@@ -335,11 +335,17 @@ if (!function_exists('tqs_teachers')) {
      * والتقييم يعرض **فقط إن وجد**: منصة جديدة بلا مراجعات تظهر «0.0»
      * فتبدو رديئة لا جديدة.
      */
-    function tqs_teachers($items)
+    function tqs_teachers($items, $fold = 0)
     {
         $h = '';
+        $i = 0;
         foreach ($items as $t) {
-            $h .= '        <article class="teacher-card reveal"'
+            /* ما بعد الطية يطبع مخفيا لا محذوفا: الزر يكشفه بلا طلب ثان،
+               والبحث يفتشه كما يفتش غيره — فبطاقة وراء الطية تجدها كلمة
+               البحث ولو لم تكشف بعد. */
+            $folded = ($fold > 0 && $i++ >= $fold);
+            $h .= '        <article class="teacher-card reveal'
+                . ($folded ? ' is-folded" data-fold="1" hidden' : '"')
                 . ' data-name="' . html_escape($t['name']) . '"'
                 /* المواد والنبذة في سمة البحث: النص الإرشادي يعد بالبحث
                    بالمادة، وكانت السمة تحمل الاسم وحده — فوعد لا ينفذ. */
@@ -349,9 +355,13 @@ if (!function_exists('tqs_teachers')) {
                 . ' data-rating="' . html_escape($t['rating']) . '"'
                 . ' data-reviews="' . html_escape($t['reviews']) . '"'
                 . ' data-courses="' . html_escape($t['courses']) . '">' . "\n";
-            $h .= '          <div class="teacher-card__media">'
+            /* الصورة رابط كالاسم: البطاقة كلها تبدو قابلة للنقر، وكان
+               الاسم وحده ينقر — فمن ضغط الصورة ظنها معطلة. و`tabindex=-1`
+               كي لا يمر الوصول بالمفتاح على رابطين إلى وجهة واحدة. */
+            $h .= '          <a class="teacher-card__media" href="' . html_escape($t['url']) . '"'
+                . ' tabindex="-1" aria-hidden="true">'
                 . '<img src="' . tqs_person_img($t['img'], 'teacher-1') . '" width="360" height="360"'
-                . ' loading="lazy" decoding="async" alt=""></div>' . "\n";
+                . ' loading="lazy" decoding="async" alt=""></a>' . "\n";
             $h .= '          <div class="teacher-card__body">' . "\n";
             /* الاسم رابط: النموذج يبني `url` ولم يستعمله أحد،
                فبطاقات المعلمين تبدو قابلة للنقر ولا تنقر. */
@@ -1285,7 +1295,7 @@ if (!function_exists('tqs_curriculum')) {
                     if ($mode === 'public') {
                         if ($l['is_free']) {
                             $h .= '            <a class="curric__free" href="'
-                                . base_url('student/lesson/' . (int) $s['course_id'] . '/' . (int) $l['id'])
+                                . tqs_preview_url($s['course_id'], $l['id'])
                                 . '"><svg aria-hidden="true"><use href="#i-unlock"></use></svg> معاينة مجانية</a>' . "\n";
                         } else {
                             /* الشارة مرئية عمدا: المشتري يمسح المنهج
@@ -1420,5 +1430,72 @@ if (!function_exists('tq_text_raw')) {
         return isset($loaded[$page][$key]) && trim((string) $loaded[$page][$key]) !== ''
             ? $loaded[$page][$key]
             : $default;
+    }
+}
+
+if (!function_exists('tqs_preview_url')) {
+    /**
+     * وجهة «معاينة مجانية» للزائر.
+     *
+     * كانت كل شارة معاينة في الصفحات العامة تشير إلى `student/lesson/…`،
+     * وهو مسار محروس: فمن ضغطها بلا حساب ارتد إلى صفحة الدخول. والوعد
+     * المكتوب على الشارة أن الدرس مجاني، فوجهته `/preview/…` — انظر
+     * `controllers/Preview.php`.
+     *
+     * ومن كان داخلا يبقى في مشغل الدرس الكامل: هناك تقدمه وأسئلته
+     * وبوابته، وإرساله إلى صفحة معاينة عارية خسارة لا مكسب.
+     */
+    function tqs_preview_url($course_id, $lesson_id)
+    {
+        $course_id = (int) $course_id;
+        $lesson_id = (int) $lesson_id;
+
+        $ci = &get_instance();
+        if ((int) $ci->session->userdata('user_id') > 0 && tq_role($ci->session->userdata('user_id')) === 'student') {
+            return base_url('student/lesson/' . $course_id . '/' . $lesson_id);
+        }
+        return base_url('preview/' . $course_id . '/' . $lesson_id);
+    }
+}
+
+if (!function_exists('tqs_video_embed')) {
+    /**
+     * وسم المشغل لمقطع درس — يوتيوب أو فيميو أو ملف على المنصة.
+     *
+     * نسخة الخادم من `mountPlayer()` في `taqdar-lesson.js`: القواعد نفسها
+     * (نطاق `youtube-nocookie` بلا كوكيز، ومعرف يستخرج من أي صيغة رابط)،
+     * لأن صفحة المعاينة تفتح بلا جافاسكربت المشغل ولا بوابته.
+     */
+    function tqs_video_embed($type, $url, $title = '')
+    {
+        $url  = trim((string) $url);
+        $type = strtolower(trim((string) $type));
+        if ($url === '') return '';
+
+        $t = html_escape($title);
+
+        if ($type === 'youtube' || preg_match('~youtu\.?be~i', $url)) {
+            /* الرابط قد يأتي بـ`&amp;` مكتوبة في القاعدة (كما في `pp=`)،
+               فيفك الترميز قبل قراءة المعرف وإلا التقط ما بعده معه. */
+            $clean = html_entity_decode($url, ENT_QUOTES, 'UTF-8');
+            preg_match('~(?:v=|youtu\.be/|embed/)([\w-]{6,})~', $clean, $m);
+            $id = isset($m[1]) ? $m[1] : '';
+            if ($id === '') return '';
+            return '<iframe src="https://www.youtube-nocookie.com/embed/' . html_escape($id)
+                 . '?rel=0&amp;modestbranding=1" title="' . $t . '"'
+                 . ' allow="accelerometer; encrypted-media; picture-in-picture"'
+                 . ' allowfullscreen loading="lazy"></iframe>';
+        }
+
+        if ($type === 'vimeo' || preg_match('~vimeo~i', $url)) {
+            preg_match('~vimeo\.com/(\d+)~', $url, $m);
+            $id = isset($m[1]) ? $m[1] : '';
+            if ($id === '') return '';
+            return '<iframe src="https://player.vimeo.com/video/' . html_escape($id) . '"'
+                 . ' title="' . $t . '" allowfullscreen loading="lazy"></iframe>';
+        }
+
+        return '<video controls preload="metadata" playsinline'
+             . ' src="' . html_escape($url) . '"></video>';
     }
 }

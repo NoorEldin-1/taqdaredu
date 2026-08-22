@@ -266,7 +266,7 @@ $tier  = tqs_bundle_tier($b['name']);
           ?>
           <?php if ($promo): ?>
             <a class="plan-card__media plan-card__media--promo"
-               href="<?php echo base_url('student/lesson/' . $promo['course_id'] . '/' . $promo['lesson_id']); ?>"
+               href="<?php echo tqs_preview_url($promo['course_id'], $promo['lesson_id']); ?>"
                aria-label="شاهد معاينة مجانية: <?php echo html_escape($promo['title']); ?>">
               <?php /* لا `lazy` هنا: البطاقة أعلى العمود الجانبي وتظهر مع
                        أول رسم، والتأجيل يجعل مربعا بيجيا يومض تحت علامة

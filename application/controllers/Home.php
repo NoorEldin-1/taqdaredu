@@ -1858,23 +1858,23 @@ class Home extends CI_Controller
 
             if (!filter_var($this->input->post('email'), FILTER_VALIDATE_EMAIL)) {
                 $this->session->set_flashdata('error_message', site_phrase('Invalid email address'));
-                redirect('home/contact_us', 'refresh');
+                redirect('contact', 'refresh');
             }
 
 
             if (empty($this->input->post('i_agree')) || $this->input->post('i_agree') != '1') {
                 $this->session->set_flashdata('error_message', site_phrase('You should agree with our terms'));
-                redirect('home/contact_us', 'refresh');
+                redirect('contact', 'refresh');
             }
 
             if ($this->input->post('first_name') == '') {
                 $this->session->set_flashdata('error_message', site_phrase('First name can not be empty'));
-                redirect('home/contact_us', 'refresh');
+                redirect('contact', 'refresh');
             }
 
             if ($this->input->post('message') == '') {
                 $this->session->set_flashdata('error_message', site_phrase('Message can not be empty'));
-                redirect('home/contact_us', 'refresh');
+                redirect('contact', 'refresh');
             }
 
             $data['first_name'] = $this->input->post('first_name');
@@ -1890,13 +1890,73 @@ class Home extends CI_Controller
 
 
             $this->db->insert('contact', $data);
+            $contact_id = (int) $this->db->insert_id();
+
+            /* TQ-CONTACT-MAIL · الرسالة كانت تنتهي في جدول `contact` ولا
+               يعلم بها أحد: لا بريد يخرج، ولا إشعار في اللوحة، ولا شيء
+               يقول للمسؤول أن هناك ما ينتظر. فمن كتب «سنعود إليك خلال
+               24 ساعة» وعد بما لا آلية له — والصفحة تقولها نصا.
+
+               والبريدان تابعان لا شرط: `Taqdar_mail_model::send_lines()`
+               ترد `false` بهدوء حين لا يضبط SMTP، فلا تسقط الرسالة من
+               الجدول لأن بريدا لم يخرج. */
+            $this->notify_contact($contact_id, $data);
+
             $this->session->set_flashdata('flash_message', site_phrase('Your contact request has been sent successfully'));
-            redirect('home/contact_us', 'refresh');
+            redirect('contact', 'refresh');
         }
 
         $page_data['page_name'] = 'contact_us';
         $page_data['page_title'] = get_phrase('Contact us');
         $this->load->view('frontend/' . get_frontend_settings('theme') . '/index', $page_data);
+    }
+
+    /**
+     * إشعار رسالة «تواصل معنا» — إلى الدعم أولا، ثم إيصال إلى صاحبها.
+     *
+     * الوجهة `system_email` من الإعدادات: صندوق الدعم المعلن في الصفحة
+     * نفسها، فمن راسل يراسل الصندوق الذي يقرأ. وبلا إعداد لا يخرج شيء
+     * ولا يعطل الحفظ.
+     */
+    private function notify_contact($id, $d)
+    {
+        $to = trim((string) get_settings('system_email'));
+        if ($to === '') return;
+
+        $this->load->model('taqdar_mail_model');
+
+        $name = trim((string) $d['first_name'] . ' ' . (string) $d['last_name']);
+        $subj = trim((string) $d['subject']) !== '' ? (string) $d['subject'] : 'بلا موضوع';
+
+        /* إلى الدعم: كل ما كتب، ورابط الشاشة التي يرد منها. */
+        $this->taqdar_mail_model->send_lines(
+            $to,
+            'رسالة جديدة من الموقع: ' . $subj,
+            array(
+                'الاسم: ' . $name,
+                'البريد: ' . (string) $d['email'],
+                'الجوال: ' . ((string) $d['phone'] !== '' ? (string) $d['phone'] : '—'),
+                'الموضوع: ' . $subj,
+                'الرسالة:',
+                (string) $d['message'],
+            ),
+            array('label' => 'افتح الرسالة في اللوحة', 'href' => site_url('admin/contact'))
+        );
+
+        /* وإلى صاحبها إيصال: الصفحة تعده بالرد خلال أربع وعشرين ساعة،
+           ومن أرسل ولم يصله شيء لا يعرف أوصلت رسالته أم ضاعت. */
+        if (filter_var((string) $d['email'], FILTER_VALIDATE_EMAIL)) {
+            $this->taqdar_mail_model->send_lines(
+                (string) $d['email'],
+                'استلمنا رسالتك — منصة تقدر',
+                array(
+                    'مرحبا ' . ($name !== '' ? $name : 'بك') . '،',
+                    'وصلتنا رسالتك بخصوص: ' . $subj . '. سنعود إليك خلال 24 ساعة.',
+                    'وهذه نسخة مما أرسلت:',
+                    (string) $d['message'],
+                )
+            );
+        }
     }
 
     // function get_remote_video_duration(){

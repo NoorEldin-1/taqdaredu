@@ -143,6 +143,9 @@ include 'portal_open.php';
                 <span class="tqp-q__n">السؤال <span class="tq-ltr"><?php echo $i; ?></span>
                     من <span class="tq-ltr"><?php echo count($tq_questions); ?></span></span>
                 <p class="tqp-q__t"><?php echo html_escape($q['title']); ?></p>
+                <?php /* TQ-QIMG · المعادلة والرسم البياني لا يكتبان حروفا،
+                         فما رفع مع السؤال يعرض تحت نصه لا بدلا منه. */ ?>
+                <?php echo tq_qimage_tag($q['image'] ?? '', 'tq-qimg'); ?>
 
                 <?php /* المستوى لا يعرض للطالب عمدا: من قرا «متقدم» فوق سؤال
                          حكم على نفسه قبل ان يقرا السؤال، ومن قرا «مبتدئ»

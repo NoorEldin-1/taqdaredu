@@ -1075,11 +1075,11 @@ svg.frame path{fill:none}
    بنوده سطران قصيران، فالعمود الواحد يمطه شريطا طوليا بلا داع —
    وعمودان يبقيانه قريبا من المربع كما ينبغي لشريط لا لقائمة. */
 @media (max-width:680px){
-  .features__bar,.why__grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  .features__bar{grid-template-columns:repeat(2,minmax(0,1fr))!important;
     gap:16px 12px}
 }
 @media (max-width:380px){
-  .features__bar,.why__grid{grid-template-columns:1fr!important}
+  .features__bar{grid-template-columns:1fr!important}
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1761,10 +1761,27 @@ a.gate-card:hover{ text-decoration:none }
    ══════════════════════════════════════════════════════════════════ */
 .why__grid{
   display:flex;flex-wrap:wrap;justify-content:center;
-  gap:clamp(18px,2.4vw,32px)
+  gap:clamp(10px,1.4vw,22px)
 }
-.why__grid>*{flex:1 1 clamp(200px,20vw,260px);max-inline-size:320px}
-@media (max-width:560px){ .why__grid>*{flex:1 1 100%;max-inline-size:none} }
+/* TQ-WHY-ROW · الخمسة صف واحد على الشاشة الواسعة
+   كان الاساس `clamp(200px,20vw,260px)` — فخمسة منه مع فجواتها تتجاوز
+   عرض اللوح، فيسقط الخامس وحده الى سطر ثان. والاساس هنا محسوب على
+   اللوح نفسه: `(100% - 4 فجوات) / 5`، فالخمسة تملأ السطر بلا لف،
+   ومع `flex-shrink` تضيق معه ولا تكسره. */
+.why__grid>*{
+  flex:1 1 calc((100% - 4 * clamp(10px,1.4vw,22px)) / 5);
+  min-inline-size:0;max-inline-size:none
+}
+@media (max-width:900px){
+  .why__grid>*{flex:1 1 calc((100% - 2 * 16px) / 3)}
+}
+@media (max-width:680px){
+  .why__grid>*{flex:1 1 calc((100% - 12px) / 2)}
+}
+@media (max-width:380px){ .why__grid>*{flex:1 1 100%} }
+/* الفاصل بين البنود يفترض صفا واحدا: متى لف الشريط وقف فاصل في اول
+   السطر التالي معلقا بلا ما يفصله. فيسقط مع اول لف. */
+@media (max-width:900px){ .why__item::after{display:none!important} }
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-FEWRES · الشبكة تتبع ما نجا من الفلترة
@@ -3122,3 +3139,68 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 @media (max-width:480px){
   .otp-pick__row{grid-template-columns:1fr}
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-PREVIEW · صفحة معاينة الدرس المجاني — `/preview/<كورس>/<درس>`
+   شاشة الزائر قبل أن يدفع: مشغل بلا شريط جانبي ولا بوابة، ثم مخرج
+   واحد إلى الباقة التي فيها هذا الدرس.
+   ══════════════════════════════════════════════════════════════════ */
+.preview-card{padding:clamp(14px,1.6vw,22px)}
+.preview-player{
+  position:relative;aspect-ratio:16/9;inline-size:100%;
+  border-radius:var(--r-card);overflow:hidden;background:#0B2B2E;
+  display:grid;place-items:center
+}
+.preview-player iframe,.preview-player video{
+  position:absolute;inset:0;inline-size:100%;block-size:100%;border:0;display:block
+}
+.preview-meta{
+  display:flex;flex-wrap:wrap;align-items:center;gap:clamp(8px,1.2vw,16px);
+  margin-block-start:clamp(12px,1.4vw,18px)
+}
+.preview-meta__dur,.preview-meta__course{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:clamp(11.5px,.9vw,13.5px);color:var(--ink-3)
+}
+.preview-meta svg{inline-size:15px;block-size:15px;aspect-ratio:1;color:var(--gold-deep)}
+.preview-summary{margin-block-start:clamp(12px,1.4vw,18px);color:var(--ink-2);
+  font-size:clamp(12.5px,1vw,15px);line-height:1.95}
+.preview-summary :is(p,ul,ol){margin:0 0 .8em}
+.preview-next{margin-block-start:clamp(16px,2vw,28px);text-align:center}
+.preview-next h2{margin-block-end:8px}
+.preview-next p{color:var(--ink-2);margin-block-end:clamp(12px,1.4vw,18px)}
+.preview-next .cta__actions{justify-content:center}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-DIR-FEW · دليل المعلمين ولوح المسابقات: القليل يتوسط لا يتزحزح
+   شبكة بخمسة أعمدة ونتيجة واحدة تترك أربعة أخماس الصف فراغا، فتقرأ
+   النتيجة القليلة عطبا لا نتيجة. والمرن يتوسط ما بقي — القاعدة نفسها
+   في TQ-FEWRES أعلاه.
+   ══════════════════════════════════════════════════════════════════ */
+#teacherGrid{
+  display:flex;flex-wrap:wrap;justify-content:center;
+  gap:clamp(12px,1.5vw,22px)
+}
+#teacherGrid>.teacher-card{
+  flex:1 1 clamp(150px,15vw,210px);max-inline-size:250px;min-inline-size:0
+}
+/* الصورة صارت رابطا، والرابط سطري افتراضا — فـ`aspect-ratio` عليه بلا
+   `display:block` لا تنتج ارتفاعا، فتتفلطح البطاقة. */
+.teacher-card__media{display:block}
+.teacher-card__media:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#teacherMore[hidden]{display:none}
+
+.comp-grid{
+  display:flex;flex-wrap:wrap;justify-content:center;
+  gap:clamp(14px,1.8vw,26px)
+}
+.comp-grid>.comp-card{
+  flex:1 1 clamp(240px,24vw,300px);max-inline-size:380px;min-inline-size:0
+}
+@media (max-width:560px){
+  #teacherGrid>.teacher-card{flex:1 1 46%;max-inline-size:none}
+  .comp-grid>.comp-card{flex:1 1 100%;max-inline-size:none}
+}
+
+/* رابط «كل الأسئلة» يقع داخل شبكة الأسئلة، فيمتد على عرضها ويتوسط. */
+.faq-more{grid-column:1/-1;text-align:center;margin-block-start:clamp(10px,1.2vw,16px)}

@@ -114,11 +114,24 @@ $correct_of = function ($q) {
     <?php endforeach; ?>
 </div>
 
+<?php /* TQ-QIMG · ورقة صورة السؤال — موضعها هنا لا في `admin.css`:
+         القاعدة تخص هذه الشاشة وحدها، وورقة اللوحة العامة تحمل في كل
+         شاشة فيها. والقيم من التوكنات نفسها لا من أرقام مباشرة. */ ?>
+<style>
+.tqd-q__img{
+  display:block;max-inline-size:min(100%, 420px);block-size:auto;
+  margin-block:var(--tq-space-s);border-radius:var(--tq-radius-m);
+  border:1px solid var(--tq-line)
+}
+</style>
 <?php /* ── إضافة سؤال ──────────────────────────────────────────────── */ ?>
 <div class="tqa-card" style="margin-block-end:var(--tq-space-xl)">
     <div class="tqa-card__head"><h4 class="header-title">أضف سؤالا</h4></div>
     <div class="tqa-card__body">
-        <form method="post" action="<?php echo site_url('taqdar_admin/diag_question_save/' . $exam_id); ?>">
+        <?php /* TQ-QIMG · `enctype` شرط لا زينة: بدونه يصل الطلب بلا
+                 `$_FILES` اصلا، فيحفظ السؤال ولا صورة معه ولا خطأ يقال. */ ?>
+        <form method="post" enctype="multipart/form-data"
+              action="<?php echo site_url('taqdar_admin/diag_question_save/' . $exam_id); ?>">
             <?php echo tq_csrf(); ?>
 
             <div class="tqa-fieldgrid">
@@ -141,6 +154,16 @@ $correct_of = function ($q) {
                     <label class="tqa-field__label" for="tqd-order">الترتيب</label>
                     <input class="tqa-input" id="tqd-order" name="order" type="number" value="0">
                     <span class="tqa-field__hint">صفر = في آخر المستوى.</span>
+                </div>
+
+                <div class="tqa-field tqa-field--full">
+                    <label class="tqa-field__label" for="tqd-image">صورة السؤال</label>
+                    <input class="tqa-input" id="tqd-image" name="image" type="file"
+                           accept="image/png,image/jpeg,image/gif,image/webp">
+                    <span class="tqa-field__hint">
+                        للمعادلات والرسوم البيانية ولقطات الشاشة — تعرض تحت نص السؤال.
+                        jpg · png · gif · webp، وحتى <span class="tq-ltr">4</span> ميجابايت.
+                    </span>
                 </div>
             </div>
 
@@ -207,6 +230,7 @@ $correct_of = function ($q) {
                         <div class="tqd-q__top">
                             <div>
                                 <strong><?php echo html_escape($q['title']); ?></strong>
+                                <?php echo tq_qimage_tag($q['image'] ?? '', 'tqd-q__img'); ?>
                                 <ol class="tqd-q__opts">
                                     <?php foreach ($q['options'] as $o): ?>
                                         <li class="<?php echo ((string) $o === $right) ? 'is-right' : ''; ?>">
@@ -235,7 +259,7 @@ $correct_of = function ($q) {
 
                         <details class="tqd-edit">
                             <summary>تحرير هذا السؤال</summary>
-                            <form method="post"
+                            <form method="post" enctype="multipart/form-data"
                                   action="<?php echo site_url('taqdar_admin/diag_question_save/' . $exam_id . '/' . (int) $q['id']); ?>"
                                   style="margin-block-start:var(--tq-space-m)">
                                 <?php echo tq_csrf(); ?>
@@ -261,6 +285,22 @@ $correct_of = function ($q) {
                                         <label class="tqa-field__label">الترتيب</label>
                                         <input class="tqa-input" name="order" type="number" value="<?php echo (int) $q['order']; ?>">
                                     </div>
+                                </div>
+
+                                <div class="tqa-field">
+                                    <label class="tqa-field__label">صورة السؤال</label>
+                                    <input class="tqa-input" name="image" type="file"
+                                           accept="image/png,image/jpeg,image/gif,image/webp">
+                                    <?php if (tq_qimage_url($q['image'] ?? '') !== ''): ?>
+                                        <?php /* الحذف خانة لا زر ثالث: الحفظ واحد، وحقل ملف
+                                                 فارغ يعني «اترك ما هو موجود» لا «احذفه». */ ?>
+                                        <label class="tqa-check" style="margin-block-start:var(--tq-space-s)">
+                                            <input type="checkbox" name="image_remove" value="1">
+                                            <span>احذف الصورة الحالية</span>
+                                        </label>
+                                    <?php else: ?>
+                                        <span class="tqa-field__hint">jpg · png · gif · webp، وحتى <span class="tq-ltr">4</span> ميجابايت.</span>
+                                    <?php endif; ?>
                                 </div>
 
                                 <div class="tqa-field">

@@ -241,9 +241,15 @@
           + '<input type="radio" id="' + id + '" name="q' + q.id + '" value="' + escapeHtml(o) + '">'
           + '<span class="tq-body">' + escapeHtml(o) + '</span></label>';
       }).join('');
+      /* TQ-QIMG · صورة السؤال — للمعادلة والرسم البياني ولقطة الشاشة.
+         و`alt` فارغة عمدا: الصورة **هي** السؤال لا زينة له، ووصفها
+         بنص بديل يكتب السؤال مرتين أو يفشي جوابه. */
+      var img = q.image
+        ? '<img class="tq-qimg" src="' + escapeHtml(q.image) + '" alt="" loading="lazy" decoding="async">'
+        : '';
       return '<fieldset style="border:0;padding:0;margin:0 0 var(--tq-space-xl)">'
         + '<legend class="tq-strong" style="margin-block-end:var(--tq-space-m)">'
-        + iso(i + 1) + '. ' + escapeHtml(q.title) + '</legend>' + opts + '</fieldset>';
+        + iso(i + 1) + '. ' + escapeHtml(q.title) + '</legend>' + img + opts + '</fieldset>';
     }).join('');
   }
 

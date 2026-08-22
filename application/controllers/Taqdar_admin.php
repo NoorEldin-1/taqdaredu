@@ -1114,8 +1114,22 @@ class Taqdar_admin extends CI_Controller
         if ($this->input->method(true) !== 'POST') show_404();
 
         $this->load->model('taqdar_diag_model');
+
+        /* TQ-QIMG · الرفع هنا لا في النموذج: `$this->input->post()` لا
+           ترى `$_FILES` اصلا، والنموذج يستقبل مصفوفة `post` وحدها. فما
+           يمرر اليه اسم الملف بعد ان يحفظ. */
+        $post = $this->input->post(null, false);
+        $img  = tq_qimage_upload('image');
+        if ($img === false) {
+            $this->session->set_flashdata('error_message',
+                'الصورة مرفوضة — صيغة مقبولة (jpg · png · gif · webp) وحجم دون 4 ميجابايت.');
+            redirect(site_url('taqdar_admin/diag_questions/' . (int) $exam_id));
+            return;
+        }
+        $post['image'] = $img;
+
         $r = $this->taqdar_diag_model->save_question(
-            (int) $exam_id, (int) $id, $this->input->post(null, false)
+            (int) $exam_id, (int) $id, $post
         );
 
         if (!$r['ok']) {

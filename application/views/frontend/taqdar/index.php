@@ -63,6 +63,9 @@ $tq_site_pages = array('home', 'home_elegant', 'courses_page', 'course_page', 's
        القديمة وخلفية بيضاء — يهبط الزائر من الموقع إلى موقع آخر بلا
        شيء يقول له إنه غادر، لأنه لم يغادره. */
     'site_catalog', 'site_book', 'site_competition',
+    /* معاينة الدرس المجاني: عامة كصفحات الموقع — يفتحها من لا حساب له،
+       وهي الوعد المكتوب على شارة «معاينة مجانية». انظر `Preview.php`. */
+    'site_preview',
     /* صفحة التحقق من شهادة: عامة كصفحات الموقع — انظر
        `$tq_public_tq_pages` أعلاه. */
     'tq_verify');

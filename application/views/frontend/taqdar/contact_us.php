@@ -108,7 +108,11 @@ css: pages
         <div class="form-card reveal" id="contact-form">
           <h2>أرسل لنا رسالة</h2>
           <p>املأ النموذج وسنعود إليك في أقرب وقت</p>
+          <?php /* `tq_csrf()` صراحة: `includes_bottom.php` يحقن الرمز
+                   بجافاسكربت عند الإرسال، ونموذج يعتمد على ملف JS ليحفظ
+                   يسقط صامتا متى تعثر الملف. */ ?>
           <form method="post" action="<?php echo base_url('home/contact_us/submit'); ?>" data-validate novalidate>
+            <?php echo tq_csrf(); ?>
             <div class="form-grid">
               <label class="form-field">
                 <svg aria-hidden="true"><use href="#i-user"></use></svg>
@@ -192,6 +196,10 @@ css: pages
       <div class="visit__panel">
         <h2>زورنا في مقرنا</h2>
         <p>نرحب بزيارتك في مقر منصة تقدر</p>
+        <?php /* لكل بند أيقونة تخصه: كان «الوصول سهل» يحمل دبوس الموقع
+                 نفسه الذي تحمله بطاقة «موقعنا» فوقه، و«مواقف مجانية»
+                 تحمل علما لا علاقة له. والسطران في كل بند متقابلان طولا
+                 فلا يبقى سطر يتيم بكلمة واحدة. */ ?>
         <div class="visit__items">
           <div>
             <span class="ico"><svg aria-hidden="true"><use href="#i-clock"></use></svg></span>
@@ -200,14 +208,14 @@ css: pages
               <span class="tq-ltr">5:00</span> م</span>
           </div>
           <div>
-            <span class="ico"><svg aria-hidden="true"><use href="#i-pin"></use></svg></span>
+            <span class="ico"><svg aria-hidden="true"><use href="#i-route"></use></svg></span>
             <b>الوصول سهل</b>
-            <span>قريب من محطة مترو<br>مركز الملك عبدالله المالي</span>
+            <span>قريب من محطة المترو<br>ومركز الملك عبدالله المالي</span>
           </div>
           <div>
-            <span class="ico"><svg aria-hidden="true"><use href="#i-flag"></use></svg></span>
+            <span class="ico"><svg aria-hidden="true"><use href="#i-car"></use></svg></span>
             <b>مواقف مجانية</b>
-            <span>تتوفر مواقف سيارات<br>للزوار</span>
+            <span>مواقف سيارات للزوار<br>داخل البرج وبجواره</span>
           </div>
         </div>
         <?php /* كان يشير إلى `#visit` — أي إلى نفسه، فالضغط لا يفعل شيئا. */ ?>
@@ -227,6 +235,29 @@ css: pages
 </section>
 
 <!-- ══════════ الأسئلة الشائعة ══════════ -->
+<?php
+/**
+ * TQ-FAQ-ONE · مصدر واحد للأسئلة الشائعة.
+ *
+ * كانت ستة أسئلة **مكتوبة في هذا القالب بيدها**، بينما صفحة `/faq`
+ * تقرأ من `frontend_settings.website_faqs` التي تحرر في اللوحة:
+ * «الموقع ← إعدادات الواجهة ← الأسئلة الشائعة». فمن عدل السؤال في
+ * اللوحة رآه يتغير في صفحة ويبقى كما كان في أخرى، ولا شيء يقول له
+ * لماذا. والمصدر هنا هو المصدر نفسه.
+ *
+ * ولا تعرض الصفحة كل ما في اللوحة: هذا ملحق في صفحة تواصل لا صفحة
+ * أسئلة، فستة منها وبعدها رابط إلى الصفحة الكاملة.
+ */
+$tq_faqs = json_decode((string) get_frontend_settings('website_faqs'), true);
+if (!is_array($tq_faqs)) $tq_faqs = array();
+
+$tq_faqs = array_values(array_filter($tq_faqs, function ($f) {
+    return is_array($f) && trim((string) ($f['question'] ?? '')) !== '';
+}));
+$tq_faq_all   = count($tq_faqs);
+$tq_faq_shown = array_slice($tq_faqs, 0, 6);
+?>
+<?php if ($tq_faq_shown): ?>
 <section class="section section--plain" id="faq">
   <div class="shell">
     <div class="section-head">
@@ -235,55 +266,41 @@ css: pages
     </div>
 
     <div class="faq-layout">
-      <div class="faq-grid" id="faq">
-        <div class="faq-item reveal">
-          <button class="faq-q" type="button" aria-expanded="false" aria-controls="cfaq-a-1" id="cfaq-q-1">
-            كيف يمكنني إنشاء حساب في منصة تقدر؟
-            <svg aria-hidden="true"><use href="#i-plus"></use></svg>
-          </button>
-          <div class="faq-a" id="cfaq-a-1" role="region" aria-labelledby="cfaq-q-1"><div><p>اضغط على «إنشاء حساب» في أعلى الصفحة، ثم أدخل بياناتك
-            وفعل الحساب من رابط التفعيل الذي يصلك على بريدك. العملية لا تستغرق دقيقتين.</p></div></div>
-        </div>
-        <div class="faq-item reveal">
-          <button class="faq-q" type="button" aria-expanded="false" aria-controls="cfaq-a-2" id="cfaq-q-2">
-            هل يمكنني تجربة المنصة قبل الاشتراك؟
-            <svg aria-hidden="true"><use href="#i-plus"></use></svg>
-          </button>
-          <div class="faq-a" id="cfaq-a-2" role="region" aria-labelledby="cfaq-q-2"><div><p>نعم، توفر المنصة دروسا مجانية في كل برنامج تعليمي
-            لتجربتها قبل اتخاذ قرار الاشتراك.</p></div></div>
-        </div>
-        <div class="faq-item reveal">
-          <button class="faq-q" type="button" aria-expanded="false" aria-controls="cfaq-a-3" id="cfaq-q-3">
-            هل المحتوى التعليمي معتمد من جهات رسمية؟
-            <svg aria-hidden="true"><use href="#i-plus"></use></svg>
-          </button>
-          <div class="faq-a" id="cfaq-a-3" role="region" aria-labelledby="cfaq-q-3"><div><p>المحتوى مبني على المناهج السعودية المعتمدة، ويراجع
-            من معلمين متخصصين قبل نشره.</p></div></div>
-        </div>
-        <div class="faq-item reveal">
-          <button class="faq-q" type="button" aria-expanded="false" aria-controls="cfaq-a-4" id="cfaq-q-4">
-            كيف يمكنني التواصل مع المعلم؟
-            <svg aria-hidden="true"><use href="#i-plus"></use></svg>
-          </button>
-          <div class="faq-a" id="cfaq-a-4" role="region" aria-labelledby="cfaq-q-4"><div><p>من داخل صفحة الدرس تجد زر «تواصل مع المعلم» لإرسال
-            سؤالك مباشرة، ويصلك الرد في صندوق رسائلك داخل المنصة.</p></div></div>
-        </div>
-        <div class="faq-item reveal">
-          <button class="faq-q" type="button" aria-expanded="false" aria-controls="cfaq-a-5" id="cfaq-q-5">
-            هل يمكنني تتبع تقدم طفلي في التعلم؟
-            <svg aria-hidden="true"><use href="#i-plus"></use></svg>
-          </button>
-          <div class="faq-a" id="cfaq-a-5" role="region" aria-labelledby="cfaq-q-5"><div><p>نعم، حساب ولي الأمر يمنحك لوحة متابعة بتقارير دورية
-            عن الدرجات والواجبات والحضور ونقاط القوة والضعف.</p></div></div>
-        </div>
-        <div class="faq-item reveal">
-          <button class="faq-q" type="button" aria-expanded="false" aria-controls="cfaq-a-6" id="cfaq-q-6">
-            ما هي طرق الدفع المتاحة؟
-            <svg aria-hidden="true"><use href="#i-plus"></use></svg>
-          </button>
-          <div class="faq-a" id="cfaq-a-6" role="region" aria-labelledby="cfaq-q-6"><div><p>تقبل مدى والبطاقات الائتمانية وApple&nbsp;Pay،
-            مع إمكانية الاشتراك الشهري أو السنوي.</p></div></div>
-        </div>
+      <?php /* المعرف كان `faq` على القسم وعلى الشبكة معا — معرفان
+               متكرران في صفحة واحدة، و`site.js` يفوض الطي على `#faq`
+               فيمسك بالأول (القسم) لا بالشبكة. والشبكة هنا `#faqGrid`،
+               والقسم يبقى مرساة الرابط. */ ?>
+      <div class="faq-grid" id="faqGrid">
+        <?php foreach ($tq_faq_shown as $tq_i => $tq_f): ?>
+          <div class="faq-item reveal">
+            <button class="faq-q" type="button" aria-expanded="false"
+                    aria-controls="cfaq-a-<?php echo (int) $tq_i; ?>"
+                    id="cfaq-q-<?php echo (int) $tq_i; ?>">
+              <span><?php echo html_escape($tq_f['question']); ?></span>
+              <svg aria-hidden="true"><use href="#i-plus"></use></svg>
+            </button>
+            <?php /* الغلاف الداخلي عقد لا زينة — انظر `website_faq.php`:
+                     الطي `grid-template-rows:0fr` على `.faq-a`، والقص
+                     على ابنها المباشر. وبلاه يظهر كل جواب مفتوحا أبدا. */ ?>
+            <div class="faq-a" id="cfaq-a-<?php echo (int) $tq_i; ?>" role="region"
+                 aria-labelledby="cfaq-q-<?php echo (int) $tq_i; ?>"><div><p><?php
+              /* الأجوبة تحرر في اللوحة وقد تحمل روابط — و`html_escape`
+                 كانت تطبعها وسما ظاهرا. فقائمة بيضاء ضيقة تبقي الرابط
+                 والتوكيد وتسقط ما سواهما. */
+              echo strip_tags((string) ($tq_f['answer'] ?? ''), '<a><strong><b><em><i><br>');
+            ?></p></div></div>
+          </div>
+        <?php endforeach; ?>
+
+        <?php if ($tq_faq_all > count($tq_faq_shown)): ?>
+          <p class="faq-more">
+            <a class="btn btn--ghost" href="<?php echo base_url('faq'); ?>">
+              كل الأسئلة الشائعة
+              <span class="tq-ltr">(<?php echo (int) $tq_faq_all; ?>)</span>
+              <svg aria-hidden="true" style="width:16px;height:16px"><use href="#i-arrow"></use></svg>
+            </a>
+          </p>
+        <?php endif; ?>
       </div>
 
       <div class="help-card reveal">
@@ -300,3 +317,4 @@ css: pages
     </div>
   </div>
 </section>
+<?php endif; ?>

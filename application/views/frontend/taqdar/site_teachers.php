@@ -113,19 +113,34 @@ css: pages
         </label>
       </div>
 
-      <div class="grid-5" id="teacherGrid">
-<?php echo tqs_teachers($tq_teachers); ?>
+      <?php
+      /* TQ-DIR-ALL · «عرض جميع المعلمين» كان يشير إلى `sign_up` — أي إلى
+         لوحة من كان داخلا، وإلى نموذج تسجيل من لم يكن. وفي الحالين لا
+         يعرض معلما واحدا، والزر يعد بذلك نصا.
+         والدليل يعرض كل معلم عام أصلا (`teachers()` بلا حد)، فالزر لا
+         وجهة له خارج الصفحة. فصار ما يقوله: أول عشرة تعرض، والبقية
+         يكشفها الزر — ولا يطبع الزر أصلا إن لم يكن وراءه أحد. */
+      $tq_fold = 10;
+      $tq_more = max(0, count($tq_teachers) - $tq_fold);
+      ?>
+      <div class="grid-5" id="teacherGrid" data-tq-fold="<?php echo (int) $tq_fold; ?>">
+<?php echo tqs_teachers($tq_teachers, $tq_fold); ?>
       </div>
 
       <p class="dir-empty" id="teacherEmpty" hidden>لا توجد نتائج مطابقة — جرب كلمة أخرى.</p>
 
-      <div style="text-align:center;margin-block-start:clamp(22px,2.6vw,36px)">
-        <a class="btn btn--ghost" href="<?php echo base_url('sign_up'); ?>">
-          عرض جميع المعلمين
-          <svg class="dir-icon" aria-hidden="true" style="width:16px;height:16px">
-            <use href="#i-arrow"></use></svg>
-        </a>
-      </div>
+      <?php if ($tq_more > 0): ?>
+        <div style="text-align:center;margin-block-start:clamp(22px,2.6vw,36px)">
+          <button class="btn btn--ghost" type="button" id="teacherMore"
+                  data-label-more="عرض جميع المعلمين"
+                  data-label-less="اعرض أقل">
+            <span data-tq-morelbl>عرض جميع المعلمين</span>
+            <span class="tq-ltr">(<?php echo (int) $tq_more; ?>+)</span>
+            <svg class="dir-icon" aria-hidden="true" style="width:16px;height:16px">
+              <use href="#i-arrow"></use></svg>
+          </button>
+        </div>
+      <?php endif; ?>
     </div>
   </div>
 </section>
@@ -171,7 +186,10 @@ css: pages
         <h2>ابدأ رحلتك التعليمية مع أفضل المعلمين</h2>
         <p>اختر برنامجك التعليمي وابدأ التعلم اليوم</p>
         <div class="cta__actions">
-          <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>">تصفح البرامج مجانا</a>
+          <?php /* «تصفح البرامج» كان يقود إلى نموذج التسجيل — وهو عكس
+                   ما يقوله: من يريد أن يتصفح قبل أن يسجل يجد نفسه مسجلا
+                   أولا. والبرامج في الكتالوج، وهو مفتوح بلا حساب. */ ?>
+          <a class="btn btn--gold" href="<?php echo base_url('catalog'); ?>">تصفح البرامج مجانا</a>
           <a class="btn btn--ghost" href="<?php echo base_url('sign_up'); ?>">إنشاء حساب</a>
         </div>
       </div>

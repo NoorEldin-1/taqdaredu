@@ -382,7 +382,12 @@ class Taqdar_repo_model extends CI_Model
     public function review_questions($lesson_id, $limit = null)
     {
         $limit = $limit ? (int) $limit : (int) $this->setting('mastery_review_questions', 5);
+        /* TQ-QIMG · العمود يضمن قبل ان يقرأ: `question` جدول موروث بلا
+           هجرة، وقراءة عمود لا وجود له تسقط الشاشة كلها لا السؤال. */
+        tq_qimage_ensure('question');
+
         $sql = 'SELECT q.`id`, q.`title`, q.`type`, q.`number_of_options`, q.`options`,
+                       q.`image`,
                        q.`objective_id`, o.`text` AS objective_text, o.`at_second`
                 FROM `question` q
                 JOIN `objectives` o ON o.`id` = q.`objective_id`
@@ -392,6 +397,9 @@ class Taqdar_repo_model extends CI_Model
         $rows = $this->db->query($sql, array((int) $lesson_id))->result_array();
         foreach ($rows as &$r) {
             $r['options'] = $r['options'] ? json_decode($r['options'], true) : array();
+            /* الرابط لا اسم الملف: الواجهة لا تعرف اين يعيش المجلد، وبناؤه
+               فيها يعني معرفة مسار الخادم في جافاسكربت. */
+            $r['image'] = tq_qimage_url($r['image']);
             $this->cast_ints($r, array('id', 'number_of_options', 'objective_id', 'at_second'));
         }
         unset($r);

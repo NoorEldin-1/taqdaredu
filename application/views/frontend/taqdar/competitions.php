@@ -51,7 +51,9 @@ if ($tq_uid > 0) {
     </div>
 
     <?php if ($tq_comps): ?>
-      <div class="grid-4">
+      <?php /* TQ-DIR-FEW: مسابقة واحدة في شبكة رباعية تجلس في ربع
+               الصف وتترك ثلاثة أرباعه فراغا. والمرن يتوسط ما وجد. */ ?>
+      <div class="grid-4 comp-grid">
         <?php foreach ($tq_comps as $tq_c):
           $tq_open  = ($tq_c['status'] === 'open')
                    && (empty($tq_c['ends_at']) || $tq_c['ends_at'] >= $tq_now);
@@ -62,7 +64,20 @@ if ($tq_uid > 0) {
             <?php if (!empty($tq_c['cat_name'])): ?>
               <span class="post-tag"><?php echo html_escape($tq_c['cat_name']); ?></span>
             <?php endif; ?>
-            <h3><?php echo html_escape($tq_c['title']); ?></h3>
+            <?php /* العنوان رابط إلى صفحة المسابقة المفردة (`/competition/<slug>`)
+                     — وفيها وصفها وشروطها. وكانت البطاقة تعرض سطرا واحدا
+                     وزر تسجيل، فيسجل الطالب في مسابقة لم يقرأ عنها شيئا.
+                     وبلا `slug` لا رابط: `competition_by_slug` تقبل الرقم
+                     أيضا، لكن الرابط الرقمي لا يقرأ ولا يشارك. */ ?>
+            <h3>
+              <?php if (!empty($tq_c['slug'])): ?>
+                <a href="<?php echo base_url('competition/' . rawurlencode((string) $tq_c['slug'])); ?>">
+                  <?php echo html_escape($tq_c['title']); ?>
+                </a>
+              <?php else: ?>
+                <?php echo html_escape($tq_c['title']); ?>
+              <?php endif; ?>
+            </h3>
             <?php if (!empty($tq_c['tagline'])): ?>
               <p><?php echo html_escape($tq_c['tagline']); ?></p>
             <?php endif; ?>

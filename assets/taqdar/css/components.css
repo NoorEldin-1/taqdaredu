@@ -853,3 +853,16 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   .tq-confirm, .tq-confirm__box { transition-duration: var(--tq-motion-reduced); }
   .tq-confirm__box { transform: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   TQ-QIMG · صورة داخل السؤال
+   للمعادلة والرسم البياني ولقطة الشاشة. تعرض تحت نص السؤال بعرضها
+   الطبيعي وحتى حد اللوح، فلا تمتد صورة صغيرة حتى تتبقع ولا تفيض كبيرة.
+   ══════════════════════════════════════════════════════════════════════ */
+.tq-qimg{
+  display:block;max-inline-size:min(100%, 540px);block-size:auto;
+  margin-block:var(--tq-space-m, 12px);
+  border-radius:var(--tq-radius-m, 10px);
+  border:1px solid var(--tq-line, rgba(0,0,0,.08));
+  background:var(--tq-surface2, #fff)
+}

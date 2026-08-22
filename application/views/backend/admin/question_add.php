@@ -1,4 +1,4 @@
-<form class="pb-5" action="<?php echo site_url('admin/quiz_questions/'.$param2.'/add'); ?>" method="post" id = 'mcq_form'>
+<form class="pb-5" action="<?php echo site_url('admin/quiz_questions/'.$param2.'/add'); ?>" method="post" enctype="multipart/form-data" id = 'mcq_form'>
 
     <div class="tqa-field">
         <label for="question_title"><?php echo get_phrase('write_your_question'); ?></label>
@@ -16,6 +16,16 @@
         </select>
     </div>
 
+
+    <?php /* TQ-QIMG · صورة داخل السؤال — للمعادلة والرسم البياني ولقطة
+             الشاشة. والنص وحده يجبر المعلم على كتابة كسر مركب في سطر
+             واحد بلا بسط ولا مقام، أو ترك السؤال. */ ?>
+    <div class="tqa-field">
+        <label for="question_image">صورة السؤال <small>(اختياري)</small></label>
+        <input type="file" name="image" id="question_image" class="tqa-input"
+               accept="image/png,image/jpeg,image/gif,image/webp">
+        <small class="text-muted">jpg · png · gif · webp، وحتى 4 ميجابايت. تعرض تحت نص السؤال.</small>
+    </div>
 
     <div id="quiz_fields_type_wize"></div>
 
@@ -42,7 +52,13 @@ $('#submitButton').click( function(event) {
     $.ajax({
         url: '<?php echo site_url('admin/quiz_questions/'.$param2.'/add'); ?>',
         type: 'post',
-        data: $('form#mcq_form').serialize(),
+        /* `FormData` لا `serialize()`: الأخيرة تجمع الحقول النصية وحدها
+           فلا يصل الملف أبدا — يرفع المعلم صورة ويحفظ السؤال بلا صورة
+           ولا رسالة تقول لماذا. و`processData`/`contentType` يطفآن كي
+           يبني المتصفح حد الأجزاء بنفسه. */
+        data: new FormData(document.getElementById('mcq_form')),
+        processData: false,
+        contentType: false,
         success: function(response) {
            if (response == 1) {
                success_notify('<?php echo get_phrase('question_has_been_added'); ?>');

@@ -288,6 +288,21 @@ document.documentElement.classList.add('js');
   }
 
   /* ---------- المعلمون: بحث وفلترة وفرز ---------- */
+  /* TQ-DIR-AR · البحث كان `indexOf` على النص كما كتب: فمن كتب «احمد»
+     لا يجد «أحمد»، ومن كتب «ساره» لا يجد «سارة»، ومن كتب «MATH» لا
+     يجد «math». والعربي يكتب بهمزات وتاء مربوطة وألف مقصورة تختلف من
+     كاتب إلى كاتب، فالمقارنة تسوى على الطرفين قبل أن تقع. */
+  function tqNorm(v) {
+    return String(v || '')
+      .toLowerCase()
+      .replace(/[ً-ْـ]/g, '')            /* تشكيل وتطويل */
+      .replace(/[أإآٱ]/g, 'ا') /* أ إ آ ← ا */
+      .replace(/ة/g, 'ه')                     /* ة ← ه */
+      .replace(/ى/g, 'ي')                     /* ى ← ي */
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   var teacherGrid = $('#teacherGrid');
   if (teacherGrid) {
     var cards = $$('.teacher-card', teacherGrid);
@@ -296,36 +311,73 @@ document.documentElement.classList.add('js');
     var headerSearch = $('#headerTeacherSearch');
     var stageSel = $('#teacherStage');
     var sortSel = $('#teacherSort');
+    var moreBtn = $('#teacherMore');
+    var moreLbl = moreBtn && moreBtn.querySelector('[data-tq-morelbl]');
+    var expanded = false;
+
+    cards.forEach(function (c) { c.dataset.norm = tqNorm(c.dataset.search || c.dataset.name); });
 
     var apply = function () {
-      var q = ((search && search.value) || '').trim();
+      var q = tqNorm((search && search.value) || '');
       var stage = (stageSel && stageSel.value) || '';
-      var shown = 0;
+      var matched = 0, hiddenByFold = 0;
 
-      cards.forEach(function (c) {
-        var ok = (!q || (c.dataset.search || c.dataset.name).indexOf(q) !== -1) &&
-                 (!stage || c.dataset.stage === stage);
-        c.hidden = !ok;
-        if (ok) shown++;
-      });
-      if (empty) empty.hidden = shown !== 0;
-
+      /* الفرز أولا ثم الطي: كان الفرز يقع بعد قرار الإخفاء، فتكشف
+         الطية العشر الأولى بالترتيب القديم لا بالترتيب المعروض. */
       if (sortSel) {
         var key = sortSel.value;
+        var attr = (key === 'reviews') ? 'reviews' : (key === 'courses' ? 'courses' : 'rating');
         cards.slice()
           .sort(function (a, b) {
-            return parseFloat(b.dataset[key === 'rating' ? 'rating' :
-                   key === 'reviews' ? 'reviews' : 'courses']) -
-                   parseFloat(a.dataset[key === 'rating' ? 'rating' :
-                   key === 'reviews' ? 'reviews' : 'courses']);
+            return (parseFloat(b.dataset[attr]) || 0) - (parseFloat(a.dataset[attr]) || 0);
           })
           .forEach(function (c) { teacherGrid.appendChild(c); });
+      }
+
+      /* البحث أو الترشيح يلغي الطية: من بحث يريد كل ما طابق، لا عشرة
+         منه وزرا يطلب البقية. */
+      var filtering = (q !== '' || stage !== '');
+
+      cards.forEach(function (c) {
+        var ok = (!q || (c.dataset.norm || '').indexOf(q) !== -1) &&
+                 (!stage || c.dataset.stage === stage);
+        if (ok) matched++;
+
+        var folded = c.dataset.fold === '1' && !expanded && !filtering;
+        if (ok && folded) hiddenByFold++;
+
+        c.hidden = !ok || folded;
+      });
+
+      if (empty) empty.hidden = matched !== 0;
+      if (moreBtn) {
+        /* الزر يختفي حين لا يخفي شيئا — زر يضغط ولا يتغير تحته شيء
+           أسوأ من غياب الزر. */
+        moreBtn.hidden = filtering || (hiddenByFold === 0 && !expanded);
+        if (moreLbl) {
+          moreLbl.textContent = expanded
+            ? (moreBtn.dataset.labelLess || '')
+            : (moreBtn.dataset.labelMore || '');
+        }
+        moreBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       }
     };
 
     [search, stageSel, sortSel].forEach(function (el) {
-      if (el) el.addEventListener('input', apply);
+      if (!el) return;
+      el.addEventListener('input', apply);
+      /* `change` إلى جانب `input`: قوائم `select` في بعض المتصفحات لا
+         تصدر `input`، فيبقى المرشح لا يعمل بلا خطأ يظهر. */
+      el.addEventListener('change', apply);
     });
+
+    if (moreBtn) {
+      moreBtn.addEventListener('click', function () {
+        expanded = !expanded;
+        apply();
+      });
+    }
+
     // البحث في الهيدر يغذي حقل الدليل نفسه بدل أن يكون فلترا ثانيا مستقلا
     if (headerSearch && search) {
       headerSearch.addEventListener('input', function () {
@@ -333,6 +385,8 @@ document.documentElement.classList.add('js');
         apply();
       });
     }
+
+    apply();
   }
 
   /* ---------- المدونة: تصنيفات وبحث ---------- */

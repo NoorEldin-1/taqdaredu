@@ -228,6 +228,15 @@ class Taqdar_diag_model extends CI_Model
                 $this->db->query('ALTER TABLE `tq_diag_attempts`
                                   ADD COLUMN `notified_at` datetime DEFAULT NULL');
             }
+
+            /* TQ-QIMG · صورة السؤال — بالقاعدة نفسها: العمود يضاف على
+               الجدول القائم كما اضيف `notified_at` اعلاه. والمعادلة
+               والرسم البياني لا يكتبان حروفا، وكان بنك الاسئلة نصا
+               خالصا. انظر `tq_qimage_upload()` في `taqdar_helper`. */
+            if (!$this->db->field_exists('image', 'tq_diag_questions')) {
+                $this->db->query('ALTER TABLE `tq_diag_questions`
+                                  ADD COLUMN `image` varchar(190) DEFAULT NULL');
+            }
         } catch (Throwable $e) {
             /* بلا جداول لا يوجد اختبار منشور، و`gate()` ترد «لا مانع» —
                اي ان المنصة تعمل كما كانت تعمل قبل هذه الميزة. الفشل هنا
@@ -283,7 +292,7 @@ class Taqdar_diag_model extends CI_Model
         $exam_id = (int) $exam_id;
         if ($exam_id <= 0) return array();
 
-        $cols = 'id, exam_id, level, title, type, options, `order`'
+        $cols = 'id, exam_id, level, title, type, options, image, `order`'
               . ($with_answers ? ', correct_answers' : '');
 
         try {
@@ -1024,6 +1033,28 @@ class Taqdar_diag_model extends CI_Model
             'order'           => (int) (isset($post['order']) ? $post['order'] : 0),
         );
 
+        /* TQ-QIMG · الصورة.
+           `$post['image']` ليست ملفا: المتحكم يرفع الملف قبل ان ينادي هنا
+           ويمرر اسم المحفوظ، لان `$this->input->post()` لا يرى `$_FILES`.
+           وثلاث حالات لا اثنتان: لم يرفع شيء ولم يطلب حذف — تترك كما هي؛
+           رفع جديد — يكتب ويحذف القديم؛ طلب حذف — يفرغ العمود ويحذف الملف. */
+        $old = ($id > 0)
+            ? (string) $this->db->select('image')->where('id', $id)
+                                ->where('exam_id', $exam_id)
+                                ->get('tq_diag_questions')->row('image')
+            : '';
+
+        $new  = isset($post['image']) ? trim((string) $post['image']) : '';
+        $drop = !empty($post['image_remove']);
+
+        if ($new !== '') {
+            $data['image'] = $new;
+            if ($old !== '' && $old !== $new) tq_qimage_delete($old);
+        } elseif ($drop) {
+            $data['image'] = null;
+            if ($old !== '') tq_qimage_delete($old);
+        }
+
         if ($id > 0) {
             /* الشرط على `exam_id` لا على `id` وحده: معرف من نموذج معدل
                كان يحرر سؤال اختبار اخر بلا ان يظهر ذلك في شاشة. */
@@ -1047,9 +1078,19 @@ class Taqdar_diag_model extends CI_Model
     public function delete_question($exam_id, $id)
     {
         $this->ensure_schema();
+
+        /* الملف يقرأ قبل الحذف: بعده لا يبقى صف يدل عليه، فتبقى الصورة
+           في القرص الى الابد بلا من يشير اليها. */
+        $img = (string) $this->db->select('image')->where('id', (int) $id)
+                                 ->where('exam_id', (int) $exam_id)
+                                 ->get('tq_diag_questions')->row('image');
+
         $this->db->where('id', (int) $id)->where('exam_id', (int) $exam_id)
                  ->delete('tq_diag_questions');
-        return $this->db->affected_rows() > 0;
+
+        $ok = $this->db->affected_rows() > 0;
+        if ($ok && $img !== '') tq_qimage_delete($img);
+        return $ok;
     }
 
     /* =====================================================================

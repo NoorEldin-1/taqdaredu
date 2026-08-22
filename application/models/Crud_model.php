@@ -3613,6 +3613,9 @@ class Crud_model extends CI_Model
     // Get quiz questions
     public function get_quiz_questions($quiz_id)
     {
+        /* TQ-QIMG · العمود يضمن عند اول قراءة للاسئلة، فشاشة تحرير
+           الاختبار تجده موجودا وان لم يحفظ فيها سؤال بعد. */
+        tq_qimage_ensure('question');
         $this->db->order_by("order", "asc");
         $this->db->where('quiz_id', $quiz_id);
         return $this->db->get('question');
@@ -3620,6 +3623,7 @@ class Crud_model extends CI_Model
 
     public function get_quiz_question_by_id($question_id)
     {
+        tq_qimage_ensure('question');
         $this->db->order_by("order", "asc");
         $this->db->where('id', $question_id);
         return $this->db->get('question');
@@ -3669,6 +3673,28 @@ class Crud_model extends CI_Model
         $data['type']               = htmlspecialchars_($this->input->post('question_type'));
         $data['options']            = json_encode($this->input->post('options'));
         $data['correct_answers']    = json_encode($correct_answers);
+
+        /* TQ-QIMG · صورة داخل السؤال — للمعادلة والرسم البياني ولقطة
+           الشاشة، وهي ما لا يكتب حروفا. والدوال في `taqdar_helper`،
+           والعمود يضاف من الشيفرة لأن لا هجرات في هذا المستودع. */
+        tq_qimage_ensure('question');
+        $old_image = ($action == 'edit')
+            ? (string) $this->db->select('image')->where('id', $question_id)
+                                ->get('question')->row('image')
+            : '';
+
+        $new_image = tq_qimage_upload('image');
+        if ($new_image === false) {
+            echo 'الصورة مرفوضة — صيغة مقبولة (jpg · png · gif · webp) وحجم دون 4 ميجابايت.';
+            return;
+        }
+        if ($new_image !== '') {
+            $data['image'] = $new_image;
+            if ($old_image !== '' && $old_image !== $new_image) tq_qimage_delete($old_image);
+        } elseif ($this->input->post('image_remove')) {
+            $data['image'] = null;
+            if ($old_image !== '') tq_qimage_delete($old_image);
+        }
 
         if ($action == 'add') {
             $data['quiz_id']            = $quiz_id;
@@ -3724,8 +3750,16 @@ class Crud_model extends CI_Model
 
     function delete_quiz_question($question_id)
     {
+        /* الملف يقرأ قبل الحذف: بعده لا يبقى صف يدل عليه، فتبقى الصورة
+           في القرص بلا من يشير اليها. */
+        tq_qimage_ensure('question');
+        $image = (string) $this->db->select('image')->where('id', $question_id)
+                                   ->get('question')->row('image');
+
         $this->db->where('id', $question_id);
         $this->db->delete('question');
+
+        if ($image !== '') tq_qimage_delete($image);
         return true;
     }
 

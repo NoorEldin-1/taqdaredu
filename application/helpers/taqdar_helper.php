@@ -401,3 +401,148 @@ if (!function_exists('tq_uploaded')) {
             && (int) ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   TQ-QIMG · صورة داخل السؤال
+
+   المعادلة والرسم البياني ولقطة الشاشة لا تكتب حروفا. وكان بنك الأسئلة
+   نصا خالصا، فسؤال رياضيات عن كسر مركب يكتب «(٣س+٢)/(س-١)» في سطر واحد
+   بلا بسط ولا مقام، وسؤال عن رسم بياني يوصف بالكلام. والمعلم الذي عنده
+   الصورة جاهزة في كتابه يعيد رسمها بالنص أو يترك السؤال.
+
+   ثلاث دوال يشترك فيها الاختبار التشخيصي (`tq_diag_questions`) واختبار
+   ما بعد الدرس (`question`): الرفع، والحذف، والعرض.
+   ══════════════════════════════════════════════════════════════════════ */
+
+if (!function_exists('tq_qimage_dir')) {
+    /** مجلد صور الأسئلة — ينشأ عند أول رفع. */
+    function tq_qimage_dir()
+    {
+        $dir = FCPATH . 'uploads/question_images/';
+        if (!is_dir($dir)) @mkdir($dir, 0755, true);
+        return $dir;
+    }
+}
+
+if (!function_exists('tq_qimage_upload')) {
+    /**
+     * يرفع صورة سؤال ويعيد اسم الملف المحفوظ — أو `''` إن لم يرفع شيء،
+     * أو `false` إن رفض.
+     *
+     * **الصور وحدها.** `tq_safe_upload_extension` تبيح المستند والصوت
+     * والحزمة أيضا، وهي قائمة المرفقات العامة — وحقل يقول «صورة» ويقبل
+     * `zip` يجعل السؤال يعرض رابطا مكسورا. و`svg` مستثنى: ملف نصي يحمل
+     * `<script>`، ويعرض هنا داخل `<img>` من نطاقنا نفسه.
+     *
+     * والاسم يولد ولا يؤخذ من المستخدم: اسم الملف الوارد يحمل مسارات
+     * وحروفا لا تصلح، ويكشف ما في جهاز رافعه.
+     */
+    function tq_qimage_upload($field)
+    {
+        if (!tq_uploaded($field)) return '';
+
+        $f   = $_FILES[$field];
+        $ext = tq_safe_upload_extension($f['name']);
+        if ($ext === false || !in_array($ext, array('jpg', 'jpeg', 'png', 'gif', 'webp'), true)) {
+            return false;
+        }
+
+        /* والامتداد وحده لا يكفي: ملف اسمه `.png` وليس صورة يمر منه.
+           و`getimagesize` تقرأ الترويسة نفسها. */
+        $info = @getimagesize($f['tmp_name']);
+        if ($info === false) return false;
+
+        /* حد الحجم هنا لا في `php.ini` وحده: ملف يتجاوزه يصل بخطأ
+           `UPLOAD_ERR_INI_SIZE` فتصده `tq_uploaded` قبل هذا السطر،
+           وهذا للحد الذي نختاره نحن دون حد الخادم. */
+        if ((int) $f['size'] > 4 * 1024 * 1024) return false;
+
+        $name = 'q' . date('YmdHis') . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+        if (!@move_uploaded_file($f['tmp_name'], tq_qimage_dir() . $name)) return false;
+
+        return $name;
+    }
+}
+
+if (!function_exists('tq_qimage_delete')) {
+    /**
+     * يحذف صورة سؤال.
+     *
+     * `basename` عقد لا زينة: القيمة تأتي من عمود في القاعدة، ولو حمل
+     * يوما `../../` لحذف الحذف ما ليس في المجلد.
+     */
+    function tq_qimage_delete($name)
+    {
+        $name = basename((string) $name);
+        if ($name === '' || $name === '.' || $name === '..') return;
+
+        $path = tq_qimage_dir() . $name;
+        if (is_file($path)) @unlink($path);
+    }
+}
+
+if (!function_exists('tq_qimage_url')) {
+    /** رابط صورة السؤال — أو `''` إن لم يبق لها ملف. */
+    function tq_qimage_url($name)
+    {
+        $name = basename((string) $name);
+        if ($name === '') return '';
+        if (!is_file(tq_qimage_dir() . $name)) return '';
+
+        return base_url('uploads/question_images/' . rawurlencode($name));
+    }
+}
+
+if (!function_exists('tq_qimage_tag')) {
+    /**
+     * وسم صورة السؤال كما تعرض للطالب وللمعلم.
+     *
+     * `alt` فارغة عمدا: الصورة **هي** السؤال لا زينة له، ووصفها بنص
+     * بديل يعني كتابة السؤال مرتين — ومن قرأها بقارئ شاشة سمع النص
+     * ثم سمع وصفا يقول الشيء نفسه أو يفشي الجواب.
+     */
+    function tq_qimage_tag($name, $cls = 'tq-qimg')
+    {
+        $url = tq_qimage_url($name);
+        if ($url === '') return '';
+
+        return '<img class="' . html_escape($cls) . '" src="' . html_escape($url) . '"'
+             . ' alt="" loading="lazy" decoding="async">';
+    }
+}
+
+if (!function_exists('tq_qimage_ensure')) {
+    /**
+     * يضمن وجود عمود `image` في جدول أسئلة.
+     *
+     * `tq_diag_questions` له `ensure_schema()` تنشئه، و`question` جدول
+     * موروث من Academy لا هجرة له ولا منشئ. ولا هجرات في هذا المستودع
+     * والنشر `git reset --hard`، فالعمود يضاف من الشيفرة أو لا يضاف —
+     * وملف SQL يستورد بيد ينسى، فتسقط الشاشة عند من نشر ولم يستورد.
+     *
+     * ويفحص مرة واحدة لكل طلب: `field_exists` استعلام، وتكراره على كل
+     * سؤال في كل اختبار عمل ضائع.
+     */
+    function tq_qimage_ensure($table = 'question')
+    {
+        static $done = array();
+        if (isset($done[$table])) return $done[$table];
+
+        $ci = &get_instance();
+        try {
+            /* الخبيئة تفرغ قبل الفحص: CodeIgniter يحفظ أسماء أعمدة كل
+               جدول في الطلب الواحد، فمن قرأ الجدول قبل هذا السطر يعطي
+               قائمة بائتة فيعاد `ADD COLUMN` على عمود قائم. */
+            $ci->db->data_cache = array();
+            if (!$ci->db->field_exists('image', $table)) {
+                $ci->db->query('ALTER TABLE `' . $table . '`
+                                ADD COLUMN `image` varchar(190) DEFAULT NULL');
+            }
+            $done[$table] = true;
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-QIMG: تعذر اضافة عمود الصورة على ' . $table . ' — ' . $e->getMessage());
+            $done[$table] = false;
+        }
+        return $done[$table];
+    }
+}

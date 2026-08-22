@@ -3,7 +3,7 @@
     $question_details = $this->crud_model->get_quiz_question_by_id($param2)->row_array();
     $question_type = $question_details['type'];
 ?>
-<form class="pb-5" action="<?php echo site_url('admin/quiz_questions/'.$question_details['quiz_id'].'/edit/'.$param2); ?>" method="post" id = 'mcq_form'>
+<form class="pb-5" action="<?php echo site_url('admin/quiz_questions/'.$question_details['quiz_id'].'/edit/'.$param2); ?>" method="post" enctype="multipart/form-data" id = 'mcq_form'>
 
     <div class="tqa-field">
         <label for="question_title"><?php echo get_phrase('write_your_question'); ?></label>
@@ -21,6 +21,26 @@
         </select>
     </div>
 
+
+    <?php /* TQ-QIMG · صورة داخل السؤال. وحقل الملف الفارغ يعني «اترك ما
+             هو موجود» لا «احذفه» — والحذف خانة صريحة تحته. */ ?>
+    <div class="tqa-field">
+        <label for="question_image">صورة السؤال <small>(اختياري)</small></label>
+        <?php $tq_qimg = tq_qimage_url($question_details['image'] ?? ''); ?>
+        <?php if ($tq_qimg !== ''): ?>
+            <div class="mb-2">
+                <img src="<?php echo html_escape($tq_qimg); ?>" alt=""
+                     style="max-width:220px;height:auto;border-radius:8px;display:block">
+                <label class="mt-1 d-inline-flex align-items-center" style="gap:6px">
+                    <input type="checkbox" name="image_remove" value="1">
+                    <span>احذف الصورة الحالية</span>
+                </label>
+            </div>
+        <?php endif; ?>
+        <input type="file" name="image" id="question_image" class="tqa-input"
+               accept="image/png,image/jpeg,image/gif,image/webp">
+        <small class="text-muted">jpg · png · gif · webp، وحتى 4 ميجابايت. ورفع صورة جديدة يستبدل القديمة.</small>
+    </div>
 
     <div id="quiz_fields_type_wize">
         <?php include "quiz_fields_type_wize.php"; ?>
@@ -49,7 +69,10 @@ $('#submitButton').click( function(event) {
     $.ajax({
         url: '<?php echo site_url('admin/quiz_questions/'.$question_details['quiz_id'].'/edit/'.$param2); ?>',
         type: 'post',
-        data: $('form#mcq_form').serialize(),
+        /* `FormData` لا `serialize()` — انظر `question_add.php`. */
+        data: new FormData(document.getElementById('mcq_form')),
+        processData: false,
+        contentType: false,
         success: function(response) {
            if (response == 1) {
                success_notify('<?php echo get_phrase('question_has_been_added'); ?>');

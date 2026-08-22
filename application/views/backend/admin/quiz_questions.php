@@ -24,6 +24,13 @@ $questions = $this->crud_model->get_quiz_questions($param2)->result_array();
                                                     <div class="media-body">
                                                         <h5 class="mb-1 mt-0"><?php echo htmlspecialchars_decode_($question['title']); ?>
                                                         </h5>
+                                                        <?php /* TQ-QIMG · مصغرة الصورة في القائمة: بلاها لا
+                                                                 يعرف من يحرر أي سؤال يحمل صورة وأيها لا. */ ?>
+                                                        <?php $tq_qi = tq_qimage_url($question['image'] ?? ''); ?>
+                                                        <?php if ($tq_qi !== ''): ?>
+                                                            <img src="<?php echo html_escape($tq_qi); ?>" alt=""
+                                                                 style="max-width:160px;height:auto;border-radius:6px;display:block;margin-block:6px">
+                                                        <?php endif; ?>
                                                         <span id = "<?php echo 'widgets-of-'.$question['id']; ?>" class="widgets-of-quiz-question">
                                                                 <a href="javascript:;" class="alignToTitle float-right ml-1 text-secondary" onclick="deleteQuizQuestionAndReloadModal('<?php echo $param2; ?>', '<?php echo $question['id']; ?>')" data-dismiss="modal"><i class="dripicons-cross"></i></a>
                                                                 <a href="javascript:;" class="alignToTitle float-right text-secondary" onclick="showLargeModal('<?php echo site_url('modal/popup/question_edit/'.$question['id'].'/'.$param2); ?>', '<?php echo get_phrase('update_quiz_question'); ?>')" data-dismiss="modal"><i class="dripicons-document-edit"></i></a>
