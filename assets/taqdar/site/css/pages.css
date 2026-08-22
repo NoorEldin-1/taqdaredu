@@ -727,14 +727,25 @@
 .visit__panel>*{position:relative}
 .visit__panel h2{color:var(--gold-warm);font-size:clamp(15px,1.4vw,22px)}
 .visit__panel>p{color:rgba(255,255,255,.76);font-size:clamp(11px,.86vw,13px)}
-.visit__items{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(8px,1.2vw,16px);
-  margin-block-start:4px}
-.visit__items>div{text-align:center}
-.visit__items .ico{width:clamp(30px,2.4vw,38px);aspect-ratio:1;margin-inline:auto;
+/* TQ-VISIT-ICO · شارة لا حلقة فارغة
+   كانت الأيقونة حلقة بحد شعري بلا حشو، وداخلها رسم بنصف قطرها —
+   فتقرأ فراغا معلقا على لوح غامق لا علامة. والحشو الذهبي الخفيف هو
+   نفسه الذي يميز شارات «لماذا تختار تقدر؟» على اللوح الغامق نفسه،
+   فتتبع الشارتان هوية واحدة. والرسم يكبر معها فلا يسبح في وسطها. */
+.visit__items{display:grid;grid-template-columns:repeat(3,1fr);
+  gap:clamp(10px,1.4vw,20px);align-items:start;
+  margin-block:clamp(6px,1vw,12px)}
+.visit__items>div{text-align:center;position:relative;padding-inline:clamp(4px,.6vw,10px)}
+/* فاصل شعري بين البنود — يجمع الثلاثة شريطا واحدا بدل ثلاث جزر. */
+.visit__items>div+div::after{
+  content:'';position:absolute;inset-inline-end:100%;inset-block:6%;width:1px;
+  background:linear-gradient(180deg,transparent,rgba(212,180,118,.34),transparent);
+}
+.visit__items .ico{width:clamp(38px,3vw,48px);aspect-ratio:1;margin-inline:auto;
   border-radius:50%;display:grid;place-items:center;color:var(--gold-warm);
-  border:1px solid rgba(212,180,118,.45)}
-.visit__items .ico svg{width:50%;height:50%}
-.visit__items b{display:block;margin-block-start:8px;font-family:'Cairo',sans-serif;
+  border:1px solid rgba(212,180,118,.5);background:rgba(212,180,118,.1)}
+.visit__items .ico svg{width:52%;height:52%}
+.visit__items b{display:block;margin-block-start:10px;font-family:'Cairo',sans-serif;
   font-size:clamp(10.5px,.82vw,12.5px);color:#fff}
 .visit__items span:not(.tq-ltr){display:block;font-size:clamp(9.5px,.74vw,11.5px);
   color:rgba(255,255,255,.7);line-height:1.6}
@@ -825,6 +836,9 @@
   .form-grid,.stats-band__grid,.timeline{grid-template-columns:1fr}
   .stat-strip__item::after,.step::after,.stats-band__item::after{display:none!important}
   .visit__items{grid-template-columns:1fr;row-gap:14px}
+  /* الفاصل عمودي بين عمودين: متى صار البند عمودا وحده وقف على حافته
+     خط لا يفصل شيئا. فيسقط مع أول تكديس. */
+  .visit__items>div+div::after{display:none!important}
   .dash__body{grid-template-columns:1fr}
   .dash__kpis{grid-template-columns:repeat(3,1fr)}
   .appband__list{grid-template-columns:1fr}
