@@ -208,12 +208,12 @@ css: pages
               <span class="tq-ltr">5:00</span> م</span>
           </div>
           <div>
-            <span class="ico"><svg aria-hidden="true"><use href="#i-route"></use></svg></span>
+            <span class="ico"><svg aria-hidden="true"><use href="#i-map"></use></svg></span>
             <b>الوصول سهل</b>
             <span>قريب من محطة المترو<br>ومركز الملك عبدالله المالي</span>
           </div>
           <div>
-            <span class="ico"><svg aria-hidden="true"><use href="#i-car"></use></svg></span>
+            <span class="ico"><svg aria-hidden="true"><use href="#i-parking"></use></svg></span>
             <b>مواقف مجانية</b>
             <span>مواقف سيارات للزوار<br>داخل البرج وبجواره</span>
           </div>

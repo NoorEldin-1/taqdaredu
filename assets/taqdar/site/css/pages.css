@@ -741,9 +741,11 @@
   content:'';position:absolute;inset-inline-end:100%;inset-block:6%;width:1px;
   background:linear-gradient(180deg,transparent,rgba(212,180,118,.34),transparent);
 }
-.visit__items .ico{width:clamp(38px,3vw,48px);aspect-ratio:1;margin-inline:auto;
+/* القيم نسخة حرفية من `.why__item .ico` — الشارتان على لوح غامق واحد
+   ولا سبب يجعلهما تختلفان في مقاس ولا في حد ولا في حشو. */
+.visit__items .ico{width:clamp(38px,3.2vw,50px);aspect-ratio:1;margin-inline:auto;
   border-radius:50%;display:grid;place-items:center;color:var(--gold-warm);
-  border:1px solid rgba(212,180,118,.5);background:rgba(212,180,118,.1)}
+  border:1px solid rgba(212,180,118,.45);background:rgba(212,180,118,.08)}
 .visit__items .ico svg{width:52%;height:52%}
 .visit__items b{display:block;margin-block-start:10px;font-family:'Cairo',sans-serif;
   font-size:clamp(10.5px,.82vw,12.5px);color:#fff}
