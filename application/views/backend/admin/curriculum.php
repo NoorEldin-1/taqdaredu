@@ -22,6 +22,11 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 $tq_sections = $this->crud_model->get_section('course', $course_id)->result_array();
 
+/* أعداد أسئلة اختبارات المقرر — استعلام واحد لا واحد لكل درس. */
+$CI = get_instance();
+$CI->load->model('taqdar_quiz_model', 'tq_quiz');
+$tq_qcounts = $CI->tq_quiz->counts_for_course((int) $course_id);
+
 /** نوع الدرس يترجم إلى أيقونة واسم عربي. */
 $tq_kind = function ($lesson) {
     if ($lesson['lesson_type'] === 'quiz') return array('check-badge', 'اختبار');
@@ -174,6 +179,19 @@ $tq_kind = function ($lesson) {
                                     <?php echo tq_icon('edit', 14); ?> تعديل
                                 </button>
                             <?php else: ?>
+                                <?php /* اختبار الدرس — بجوار درسه لا في شاشة بعيدة: هو
+                                         الذي يفتح الدرس التالي، فموضعه حيث يبنى الدرس.
+                                         والعدد في الزر: «الاختبار» وحدها لا تقول أفيه
+                                         أسئلة أم لا. وهذه الشاشة نفسها عند المعلم. */
+                                      $tq_qn = $tq_qcounts[(int) $tq_l['id']] ?? 0; ?>
+                                <a class="tqa-btn tqa-btn--<?php echo $tq_qn > 0 ? 'ghost' : 'secondary'; ?> tqa-btn--sm"
+                                   href="<?php echo site_url('taqdar_admin/lesson_quiz/' . (int) $tq_l['id']); ?>">
+                                    <?php echo tq_icon('help', 14); ?>
+                                    <?php echo $tq_qn > 0
+                                        ? 'الاختبار (<span class="tqa-num">' . $tq_qn . '</span>)'
+                                        : 'أضف اختبارا'; ?>
+                                </a>
+
                                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                         onclick="showAjaxModal('<?php echo site_url('modal/popup/resource_files/' . (int) $tq_l['id']); ?>', 'ملفات الدرس')">
                                     <?php echo tq_icon('folder', 14); ?> الملفات

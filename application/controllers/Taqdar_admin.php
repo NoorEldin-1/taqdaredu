@@ -1193,6 +1193,98 @@ class Taqdar_admin extends CI_Controller
     }
 
     /* =====================================================================
+       اختبار الدرس
+       ===================================================================== */
+
+    /**
+     * تأليف اختبار درس من اللوحة — الشاشة نفسها التي عند المعلم.
+     *
+     * والمحرر واحد ([components/tq_question_editor.php])، فلا يفترق ما
+     * يقبله المعلم عما تقبله الإدارة. والفرق أن اللوحة تصل إلى كل درس،
+     * والمعلم إلى دروسه وحدها — وهو فرق في الملكية لا في القدرة.
+     */
+    public function lesson_quiz($lesson_id = 0)
+    {
+        $this->load->model('taqdar_curriculum_model', 'tq_curric');
+        $this->load->model('taqdar_quiz_model', 'tq_quiz');
+
+        $lesson_id = (int) $lesson_id;
+        $lesson    = $this->tq_curric->lesson($lesson_id);
+        if (!$lesson) show_404();
+
+        $this->render('tqa_lesson_quiz', 'اختبار: ' . $lesson['title'], array(
+            /* بند الشريط هو بند الكورسات: شاشة الاختبار امتداد للمقرر لا
+               وجهة مستقلة، وبند في القائمة لشيء يحتاج معرفا يقود إلى
+               لا شيء. */
+            'nav_key'   => 'course_edit',
+            'lesson'    => $lesson,
+            'lesson_id' => $lesson_id,
+        ));
+    }
+
+    /** POST — حفظ سؤال في اختبار درس. */
+    public function lesson_quiz_save($lesson_id = 0)
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_curriculum_model', 'tq_curric');
+        $this->load->model('taqdar_quiz_model', 'tq_quiz');
+
+        $lesson_id = (int) $lesson_id;
+        $actor     = $this->tq_curric->actor_as('admin', (int) $this->session->userdata('user_id'));
+
+        /* الرفع في المتحكم: `$this->input->post()` لا ترى `$_FILES`. */
+        $post = $this->input->post(null, false);
+        $img  = tq_qimage_upload('image');
+        if ($img === false) {
+            $this->session->set_flashdata('error_message',
+                'الصورة مرفوضة — صيغة مقبولة (jpg · png · gif · webp) وحجم دون 4 ميجابايت.');
+            redirect(site_url('taqdar_admin/lesson_quiz/' . $lesson_id));
+            return;
+        }
+        $post['image'] = $img;
+
+        $r = $this->tq_quiz->save_question($actor, $lesson_id, (int) $this->input->post('id'), $post);
+
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
+            !empty($r['ok']) ? $r['message'] : implode(' ', (array) $r['errors']));
+        redirect(site_url('taqdar_admin/lesson_quiz/' . $lesson_id));
+    }
+
+    /** POST — حذف سؤال. */
+    public function lesson_quiz_delete($lesson_id = 0)
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_curriculum_model', 'tq_curric');
+        $this->load->model('taqdar_quiz_model', 'tq_quiz');
+
+        $lesson_id = (int) $lesson_id;
+        $actor     = $this->tq_curric->actor_as('admin', (int) $this->session->userdata('user_id'));
+        $r = $this->tq_quiz->delete_question($actor, $lesson_id, (int) $this->input->post('id'));
+
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message', $r['message']);
+        redirect(site_url('taqdar_admin/lesson_quiz/' . $lesson_id));
+    }
+
+    /** POST — إعدادات الاختبار. */
+    public function lesson_quiz_settings($lesson_id = 0)
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_curriculum_model', 'tq_curric');
+        $this->load->model('taqdar_quiz_model', 'tq_quiz');
+
+        $lesson_id = (int) $lesson_id;
+        $actor     = $this->tq_curric->actor_as('admin', (int) $this->session->userdata('user_id'));
+        $r = $this->tq_quiz->save_settings($actor, $lesson_id, $this->input->post(null, false));
+
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
+            !empty($r['ok']) ? $r['message'] : implode(' ', (array) $r['errors']));
+        redirect(site_url('taqdar_admin/lesson_quiz/' . $lesson_id));
+    }
+
+    /* =====================================================================
        مراجعة المحتوى
        ===================================================================== */
 

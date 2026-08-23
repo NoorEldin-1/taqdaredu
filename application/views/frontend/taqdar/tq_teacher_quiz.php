@@ -232,4 +232,50 @@ foreach ($tq_stats as $tq_s) $tq_answered += (int) $tq_s['answered'];
 </div>
 <?php endif; ?>
 
+<?php /* ── من أدى هذا الاختبار ───────────────────────────────────────
+         المحاولات تقرأ ولا تحرر: النتيجة فعل الطالب، وتحريرها من شاشة
+         المعلم يجعل الكشف شيئا آخر غير ما جرى. والمعلم يرى طلابه وحدهم
+         لأن الاختبار من درسه، والدرس من كورسه. */ ?>
+<?php $tq_att = $CI->tq_quiz->attempts_of_lesson($tq_lid, 100); ?>
+<?php if ($tq_att): ?>
+<div class="tq-card tq-section">
+    <div class="tq-card__head">
+        <h2 class="tq-card__title">من أدى هذا الاختبار</h2>
+        <span class="tq-caption"><?php echo tq_iso(count($tq_att)); ?> محاولة مسلمة</span>
+    </div>
+    <table class="tq-table">
+        <caption class="tq-sr">محاولات اختبار هذا الدرس: الطالب ورقم المحاولة ونتيجتها</caption>
+        <thead>
+            <tr>
+                <th scope="col">الطالب</th>
+                <th scope="col">المحاولة</th>
+                <th scope="col">الصحيح</th>
+                <th scope="col">النتيجة</th>
+                <th scope="col">التسليم</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($tq_att as $tq_a): ?>
+            <tr>
+                <td data-label="الطالب">
+                    <span class="tq-strong"><?php echo html_escape(trim($tq_a['first_name'] . ' ' . $tq_a['last_name'])); ?></span>
+                </td>
+                <td data-label="المحاولة"><?php echo tq_iso((int) $tq_a['attempt_no']); ?></td>
+                <td data-label="الصحيح">
+                    <?php echo tq_iso((int) $tq_a['score']); ?> من <?php echo tq_iso(count($tq_rows)); ?>
+                </td>
+                <td data-label="النتيجة">
+                    <?php echo tq_badge((int) $tq_a['passed'] === 1 ? 'mastered' : 'late',
+                                        (int) $tq_a['passed'] === 1 ? 'اجتاز' : 'لم يجتز'); ?>
+                </td>
+                <td data-label="التسليم">
+                    <span class="tq-ltr" dir="ltr"><?php echo html_escape(substr((string) $tq_a['submitted_at'], 0, 16)); ?></span>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
+<?php endif; ?>
+
 <?php include 'portal_close.php'; ?>

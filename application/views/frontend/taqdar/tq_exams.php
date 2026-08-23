@@ -503,4 +503,23 @@ include 'portal_open.php';
     </aside>
 </div>
 
+
+<?php /* ── نتائج اختبارات الدروس ─────────────────────────────────────
+         شاشة الاختبارات كانت تقرأ `quiz_results` الموروث وحده — وهو
+         نصف الحقيقة: اختبار الدرس، وهو ما يفتح الدرس التالي، يكتب في
+         `attempts`. فيقرأ الطالب شاشة «اختباراتي» ولا يجد فيها الاختبار
+         الذي وقف عنده فعلا. */ ?>
+<?php
+$CI = get_instance();
+$CI->load->model('taqdar_quiz_model', 'tq_quiz');
+$r_rows  = $CI->tq_quiz->student_results((int) $this->session->userdata('user_id'));
+$r_skin  = 'tq';
+$r_who   = 'student';
+$r_title = 'نتائج اختبارات الدروس';
+$r_empty = 'لم تؤد اختبار درس بعد. اختبار كل درس يفتح بعد إتمام مشاهدته.';
+?>
+<div class="tq-section">
+    <?php include APPPATH . 'views/components/tq_quiz_results.php'; ?>
+</div>
+
 <?php include 'portal_close.php'; ?>

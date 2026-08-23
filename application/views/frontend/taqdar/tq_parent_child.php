@@ -557,4 +557,20 @@ include 'portal_open.php';
 
 <?php endif; ?>
 
+
+<?php /* ── نتائج اختبارات دروس الابن ──────────────────────────────── */ ?>
+<?php if ($tq_child):
+    $CI = get_instance();
+    $CI->load->model('taqdar_quiz_model', 'tq_quiz');
+    $r_rows  = $CI->tq_quiz->student_results((int) $tq_cid);
+    $r_skin  = 'tq';
+    $r_who   = 'parent';
+    $r_title = 'نتائج اختبارات الدروس';
+    $r_empty = 'لم يؤد ابنك اختبار درس بعد.';
+?>
+<div class="tq-section">
+    <?php include APPPATH . 'views/components/tq_quiz_results.php'; ?>
+</div>
+<?php endif; ?>
+
 <?php include 'portal_close.php'; ?>
