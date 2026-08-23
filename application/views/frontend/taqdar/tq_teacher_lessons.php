@@ -402,8 +402,21 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                                             <span class="tq-sr">— <?php echo html_escape($l['title']); ?></span>
                                         </a>
                                     <?php else: ?>
-                                        <?php /* «أضف إلى هذه الوحدة»: شاشة الرفع تفتح والكورس
-                                                 والوحدة مختاران سلفا — لا يعاد اختيارهما في كل درس. */ ?>
+                                        <?php /* الأبواب الثلاثة من صف الدرس: تحريره،
+                                                 واختباره، وإضافة درس بجواره. وكانت هنا
+                                                 «أضف هنا» وحدها — فمن أراد أن يعدل درسا
+                                                 رفعه لم يجد إليه سبيلا من شاشة دروسه. */ ?>
+                                        <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                                           href="<?php echo base_url('teacher/course/' . (int) $l['course_id'])
+                                               . '?lesson=' . (int) $l['id']; ?>">
+                                            تعديل
+                                            <span class="tq-sr">— <?php echo html_escape($l['title']); ?></span>
+                                        </a>
+                                        <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                                           href="<?php echo base_url('teacher/quiz/' . (int) $l['id']); ?>">
+                                            اختباره
+                                            <span class="tq-sr">— <?php echo html_escape($l['title']); ?></span>
+                                        </a>
                                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                            href="<?php echo base_url('teacher/upload') . '?course=' . (int) $l['course_id']
                                                . (!empty($l['section_id']) ? '&section=' . (int) $l['section_id'] : ''); ?>">
