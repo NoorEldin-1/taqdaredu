@@ -38,7 +38,7 @@ languages/                ملفات الترجمة
 | الأصل (Academy LMS) | طبقة تقدر |
 |---|---|
 | `Home.php` · `Admin.php` · `Api.php` | `Taqdar.php` · `Taqdar_admin.php` · `Taqdar_gate.php` · `Taqdar_pay.php` · `Taqdar_cron_events.php` |
-| `Crud_model.php` (226 ك.ب) · `User_model.php` | `Taqdar_repo_model.php` · `Taqdar_wallet_model.php` · `Taqdar_billing_model.php` · `Taqdar_tap_model.php` · `Taqdar_teacher_model.php` · `Taqdar_parent_model.php` · `Taqdar_marking_model.php` · `Taqdar_content_model.php` |
+| `Crud_model.php` (226 ك.ب) · `User_model.php` | `Taqdar_repo_model.php` · `Taqdar_wallet_model.php` · `Taqdar_billing_model.php` · `Taqdar_tap_model.php` · `Taqdar_teacher_model.php` · `Taqdar_parent_model.php` · `Taqdar_marking_model.php` · `Taqdar_content_model.php` · `Taqdar_revenue_model.php` |
 | `views/frontend`, `views/backend` | `views/frontend/tq_*` و `assets/taqdar/` |
 
 الميزات الجديدة تكتب في طبقة `Taqdar_*`. تعديل `Crud_model.php` أو
@@ -63,12 +63,12 @@ languages/                ملفات الترجمة
   و`tqa_list.php` + `tqa_form.php` تعرضانه. وحدة جديدة = مفتاح في `spec()`
   وبند في `navigation.php`، بلا شاشة تكتب.
   أنواع الحقول: `text` · `textarea` · `lines` · `number` · `seconds` ·
-  `money` · `bool` · `datetime` · `enum` · `ref` (رقم من `options()`) ·
+  `money` · `percent` (نسبة، ومتممها مرآة تعرض ولا تخزن) · `bool` · `datetime` · `enum` · `ref` (رقم من `options()`) ·
   `pick` (**مفتاح نصي** من `options()`) · `multiref` (قائمة معرفات بفواصل
   في عمود نصي) · `refswitch` (عمود واحد يفسر حسب حقل آخر). ومفاتيح تصف
   الشاشة لا العمود: `section` يفصل مجموعة، و`show_when` يخفي حقلا لا
   يعنيه اختيار آخر، و`unique` يفحص الفرادة قبل أن ترميها القاعدة،
-  و`form_extra`/`form_js` يضمان لوحة تخص الوحدة، و`status_fn` يضيف عمود
+  و`form_extra` (اسم أو قائمة أسماء) و`form_js` يضمان لوحة تخص الوحدة، و`status_fn` يضيف عمود
   حال محسوبا في القائمة.
 - **نصوص الموقع العام** تحرر من `taqdar_admin/content`. القالب يكتب
   `tq_text('<الصفحة>', '<المفتاح>', 'النص الافتراضي')`، والمفتاح نفسه يسجل في
@@ -216,6 +216,63 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 في شاشة اللوحة لمن يقول «دفعت ولم يفتح». والثلاثة تنادي `settle()` نفسها،
 وهي مأمونة التكرار.
 
+## قسمة الإيراد — وعاء مغلق يقسم بالدرس
+
+الباقة تباع مرة وتفتح محتوى **عدة معلمين**، فالدفعة واحدة والمستحقون كثر.
+و[Taqdar_revenue_model](application/models/Taqdar_revenue_model.php) هو من
+يقسم — وحده، لأن القسمة تحتاج أوزان كل المعلمين لا وزن من يمر عليه.
+
+**النسبتان لهما وظيفتان مختلفتان، ورقم واحد يخزن:**
+
+```
+سعر الباقة
+  ├── عمولة المنصة  = السعر − الوعاء     ← مرآة محسوبة لا تخزن
+  └── وعاء المعلمين = السعر × النسبة      ← plans.teacher_pool_percent
+         │                                  (فارغ ⇐ taqdar_teacher_pool_percent، افتراضه 15)
+         └── يقسم على أوزان الدروس المنشورة في نطاق الباقة
+                وزن الدرس = معامل مساره (paths.teacher_share_percent)
+```
+
+- **القاعدة «كل معلم يأخذ ١٥٪» تنهار عند المعلم السابع** — سبعة في ١٥ تساوي
+  ١٠٥٪ من السعر. وتنهار بصمت: كل قيد وحده يبدو صحيحا. فالوعاء واحد يقسم،
+  لا نسبة تتكرر.
+- **رقم واحد يخزن لا رقمان.** نسبتان في عمودين تفترقان عند أول تعديل.
+- **الوحدة الدرس لا الكورس.** الكورس وحدة إدارية: معلم يضع منهجه في كورس
+  واحد فيه مئة وعشرون درسا وآخر يفرقه على ثلاثة فيها ثلاثون، والقسمة
+  بالكورس تعطي الثاني ضعف الأول على ربع العمل.
+- **`allocate()` بأكبر البواقي، بلا كسر عشري.** `intdiv` وباقيه الصحيح، ثم
+  توزع الهللات المتبقية على أصحاب أكبر البواقي — فالمجموع يساوي الوعاء
+  **بالضبط** مهما كانت الأوزان.
+- **قسمتان مستقلتان** على الأوزان نفسها: واحدة على الوعاء وأخرى على
+  `السعر − الوعاء`. فنصيب المعلم من السعر = حصته + عمولة المنصة عنه،
+  ومجموع الأنصبة = السعر. وبها تبقى أعمدة كشف الحساب الثلاثة صحيحة صفا بصف.
+- **الدورة تعد مرة واحدة** ولو ظهرت في صفين — وإلا تضخم وزن صاحبها بلا أن
+  ينشر درسا.
+- **`plan_grade_ids()` لباقة الصفوف وحدها.** `scope_id` عمود يفسر بحسب
+  `scope` (`refswitch`)، فقراءته صفا في باقة مادة تقسم إيرادها على معلمي
+  صف لا علاقة له بها — ورقم يقابل صفا موجودا فعلا، فلا خطأ يظهر.
+  و`plan_contributors()` توجه كل نطاق إلى مساراته.
+- **الأساس الإتاحة وقت التفعيل** لا الاستهلاك: `subscription_items` تنسخ
+  النطاق بالمبدأ نفسه، وأساس ثان يجعل للاشتراك مصدري حقيقة يفترقان. ومدخل
+  الانتقال إلى القسمة بالاستهلاك يوما هو `contributors()` وحدها.
+- **القسمة تجمد** في `revenue_shares` (صف لكل معلم لكل اشتراك، `uq_rs`
+  يمنع التكرار)، فنشر عشرين درسا غدا لا يعيد حساب بيعة أمس. ومنه تقرأ
+  شاشة المحفظة سبب كل سطر باقة.
+- الاستدعاء من `Taqdar_billing_model::activate()` بعد `sync_enrolments()`،
+  و**فشله لا يبطل التفعيل**: الطالب دفع واستحق وصوله.
+- لوحة **«قسمة إيراد هذه الباقة»** ([tqa_plan_split.php](application/views/backend/admin/tqa_plan_split.php))
+  تريك نصيب كل معلم بالريال **قبل الحفظ**، وتحسبه من `split()` نفسها التي
+  تنفذ — لا من نسخة ثانية من قواعدها. والسكربت يعيد القسمة في المتصفح
+  بخوارزمية أكبر البواقي حرفا بحرف: اختلاف هللة يعني أن ما وعد به المسؤول
+  غير ما قيد.
+
+**قنوات السحب ست، والفحص في الجدول لا في سلسلة `if`:** `bank` · `mada` ·
+`stcpay` · `urpay` (سعودية) و`vodafone` · `instapay` (مصرية). ولكل قناة
+`pattern` و`example` و`error` في `Taqdar_wallet_model::$CHANNELS` —
+فالقناة الجديدة تضاف هناك وحدها وتظهر في شاشة المعلم وتفحص وجهتها بلا لمس
+قالب. وشاشة المعلم تقنع الوجهة بأربع خانات، وشاشة الإدارة تعرضها كاملة:
+من سيفتح تطبيق البنك يحتاج الرقم كله.
+
 ## الإشعارات — ثلاث قنوات ومصدر واحد
 
 | | داخل المنصة | البريد | واتساب |
@@ -247,6 +304,29 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 - **`tq_wa_log` صف لكل محاولة.** البريد يفشل بصوت وواتساب يفشل بصمت.
   و**نص الرسالة لا يكتب**: الرمز سر، وسجل يحفظه يجعل كل من يفتح اللوحة
   يقرأ رموز الناس.
+
+### البريد الذي يصل ولا يقرأ
+
+الرسالة تخرج وتسلم ولا يراها صاحبها: مزود بريده صنفها غير مرغوبة. وهذا
+ليس عطلا يصلح في الشيفرة — فالإرسال نجح — بل شيء يعلم للمستخدم. وموضعه
+موضعان لا واحد:
+
+- **في الشاشة:** `tq_spam_notice()` في
+  [taqdar_inbox_helper.php](application/helpers/taqdar_inbox_helper.php) —
+  مصدر واحد للنص والخطوات الأربع، يطبعه الموقع العام والبوابات معا،
+  وورقته في `site/css/shared.css` (الوحيدة التي تحمل في الجهتين وتجسر
+  توكناتها). ويشتق **رابط مجلد المهملات من نطاق بريد المستلم نفسه**
+  (`tq_inbox_key()`)، فيفتح Gmail لمن بريده على Gmail لا قائمة أربعة
+  يقرؤها قبل أن ينقر. صورتان: كاملة مفتوحة حيث الانتظار هو الموضوع
+  (التأكيد · استعادة كلمة المرور · الإعدادات · الإشعارات)، ومطوية
+  `compact` حيث ليس كذلك (التسجيل · الشراء · الفواتير).
+- **في الرسالة نفسها:** لوح في تذييل `Taqdar_mail_model::wrap()` — وهو
+  الوحيد الذي يقرؤه **من هو داخل المجلد الآن**. والشاشة وحدها نصف حل:
+  من فتح المجلد ووجد الرسالة قرأها ومضى، فذهبت التالية إلى المجلد نفسه.
+
+**والخطوة المقصودة واحدة: «ليس بريدا غير مرغوب».** الأولى والثانية تجدان
+رسالة واحدة، وهي وحدها ما يعيد ما بعدها إلى صندوق الوارد — ولذلك تعلم
+`is-key` في الوسم وتشدد في النص.
 
 ## رموز التحقق (OTP)
 
@@ -285,13 +365,61 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 - `tq_signup_otp` في `settings` يوقفه كله، و`student_email_verification`
   الموروث لم يعد يقرأ في التسجيل.
 
+## واجهة البرمجة للتطبيق (api/v1)
+
+مدخل تطبيق Flutter. يغطي **الدخول** وثلاث شاشات من بوابة الطالب: الملف
+والإعدادات والاشتراك. وما ليس مذكورا في المواصفة ليس موجودا.
+
+| | الملف |
+|---|---|
+| النقاط | [Api_v1.php](application/controllers/Api_v1.php) |
+| الرموز وحد الطلبات | [Taqdar_api_model.php](application/models/Taqdar_api_model.php) |
+| الغلاف والتحقق | [taqdar_api_helper.php](application/helpers/taqdar_api_helper.php) |
+| **المواصفة** | [taqdar_api_spec.php](application/config/taqdar_api_spec.php) |
+| الوثائق | [Api_docs.php](application/controllers/Api_docs.php) · [views/api/docs.php](application/views/api/docs.php) |
+
+- **مصدر واحد ثلاثة مخرجات.** `taqdar_api_spec.php` يصف كل نقطة، ومنه
+  تطبع صفحة `/api/docs` ومواصفة `/api/docs/openapi.json` ومجموعة
+  `/api/docs/collection.json` — وقت الطلب لا وقت النشر، فلا يفترق مخرج عن
+  مصدره. ولا Scribe: تلك حزمة Laravel تحتاج Composer، وهذا مستودع بلا
+  `vendor/` وبلا خطوة بناء. نقطة جديدة = مدخل في المواصفة **و** قاعدة في
+  `routes.php` **و** دالة في `Api_v1.php`.
+- **لا جلسة ولا كعكة.** الهوية من ترويسة `Authorization` وحدها. ونداء
+  `$this->session` في هذه الطبقة يعني حالة على الخادم لطلب لا يحملها.
+  والبادئة `api/` مقصودة: `csrf_exclude_uris` يستثني `api/.*`.
+- **رمز عشوائي لا JWT.** صف في `tq_api_tokens` مخزن بـ`sha256` لا نصا.
+  و`libraries/JWT.php` طرف ثالث لا يعدل، وأهم منه أن JWT **لا يبطل**:
+  «اخرج من كل الأجهزة» هنا شرط `UPDATE` واحد، وتغيير كلمة المرور يبطل ما
+  سواه في اللحظة. زوجان: وصول ربع ساعة وتجديد ثلاثون يوما.
+- **التجديد يدور ويكشف إعادة الاستعمال.** كل سلسلة لها `family`، ورمز
+  تجديد يقدم مرتين يقطع العائلة كلها — توصية OAuth 2.0 BCP. ولذلك يجب
+  على العميل ألا يجدد مرتين متوازيتين، وهذا مكتوب في الوثيقة بمثاله.
+- **القرار في النموذج لا في المتحكم.** الحفظ يمر بـ`Taqdar_settings_model`
+  و`Taqdar_billing_model` أنفسهما اللذين تمر بهما شاشات الويب —
+  و`as_post()` تحقن جسم JSON في `$_POST` لأجل ذلك. ونسخة ثانية من قواعد
+  التحقق هنا تفترق عن أختها عند أول تعديل، فيقبل التطبيق ما يرفضه الموقع.
+- **الغلاف ثابت بلا استثناء**: نجاح `{data, message, meta}` وخطأ
+  `{message, code, errors}` — و`500` منها. وحارس في `guard_fatals()` يمسك
+  الاستثناء غير المتوقع فيخرجه بالغلاف: بدونه يرد CI صفحة HTML فيرمي
+  عميل Dart `FormatException` بدل أن يعرض رسالة. و`code` مفتاح ثابت
+  و`message` عربية تعرض كما هي — العميل يفرع على الأول لا الثاني.
+- **المال هللات** (`tq_api_money`) ترد العدد الصحيح والكسر والصيغة معا،
+  والتواريخ ISO-8601 بمنطقة صريحة.
+- **الحدود مفروضة والترويسات ترد دائما**: دخول ١٠/ربع ساعة لكل (بريد
+  وعنوان) فوق خنق `tq_auth_*` الموروث، وقراءة ١٢٠/دقيقة، وكتابة ٣٠/دقيقة،
+  وتصدير ٥/ساعة. و`ETag` على كل قراءة فيرد `304` بلا حمولة.
+- **الأدمن لا يدخل من التطبيق**، والمعلم يدخل ويقرأ دوره ثم ترد نقاط
+  `/student/*` عليه `wrong_role` — لا شاشة فارغة يظنها عطبا.
+- **التسجيل وOTP خارج النطاق**: يبقيان في الويب، والدخول يرد
+  `email_not_verified` أو `teacher_pending_approval` فيوجه التطبيق صاحبه.
+
 ## قاعدة البيانات
 
 `taqd_lms` — **77 جدولا**. لا ORM ولا هجرات؛ استعلامات Query Builder
 مباشرة في النماذج.
 
 - **الجوهر:** `users` · `role` · `course` · `lesson` · `section` · `category` · `subjects` · `grades`
-- **تقدر:** `paths` · `plans` · `subscriptions` · `invoices` · `payment_attempts` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts` · `site_content` · `tq_otp` · `tq_wa_log`
+- **تقدر:** `paths` · `plans` · `subscriptions` · `invoices` · `payment_attempts` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts` · `site_content` · `revenue_shares` · `tq_otp` · `tq_wa_log`
 - **الإعدادات:** `settings` · `frontend_settings` · `payment_gateways` · `seo_fields` — **مفاتيح بوابات الدفع و SMTP وواتساب تعيش هنا، لا في الشيفرة.**
 - **triggerان:** `trg_parent_links_consent_*` على `parent_links`.
 
@@ -307,7 +435,12 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 `Taqdar_wa_model::ensure_schema()`، و`tq_otp` من
 `Taqdar_otp_model::ensure_schema()` (ومعه عمود `users.tq_verified_at`
 بـ`ADD COLUMN IF NOT EXISTS`)، و`tutoring_sessions` من
-`Taqdar_sessions_model`، و`wallet_entries` من `install_schema()`. فأي
+`Taqdar_sessions_model`، و`wallet_entries` من `install_schema()`،
+و`revenue_shares` من `Taqdar_revenue_model::install_schema()` (ومعه عمود
+`plans.teacher_pool_percent`). وأعمدة قرار السحب الخمسة على `payout`
+(`decided_by` · `decided_at` · `reference` · `reject_reason` ·
+`admin_note`) من `Taqdar_wallet_model::install_schema()` — إصداره `2`،
+فمن يقرؤها قبل ترقية الإصدار يقرأ عمودا غير موجود. فأي
 استعلام إداري عليها يلف بـ`safe_scalar`/`safe_rows` — جدول لم يستعمل بعد
 يرمي استثناء يبيض الشاشة، ورقم ناقص أهون.
 
