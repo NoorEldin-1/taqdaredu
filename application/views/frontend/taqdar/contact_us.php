@@ -6,6 +6,33 @@ header: dark
 css: pages
 -->
 
+<?php
+/**
+ * TQ-CONTACT-ADDR · عنوان واحد لا نسختان.
+ *
+ * كان مكتوبا بيده في بطاقة «موقعنا»، ولوح «زورنا في مقرنا» تحته لا
+ * يذكره أصلا — فالقسم الذي عنوانه «زورنا» لا يقول أين. ونسختان تفترقان
+ * عند أول انتقال مكتب، فيصح العنوان في بطاقة ويكذب في لوح.
+ *
+ * والبحث في الخرائط يشتق من السطر نفسه: رابط مكتوب بيده يبقى على الحي
+ * القديم بعد تحرير النص.
+ */
+$tq_addr = array(
+    'الرياض — المملكة العربية السعودية',
+    'حي العليا · طريق الملك فهد',
+    'برج النهضة — الدور <span class="tq-ltr">12</span>',
+);
+$tq_maps_href = 'https://www.google.com/maps/search/?api=1&query='
+              . rawurlencode('حي العليا، الرياض');
+
+/* الهاتف وواتساب يقرآن من الإعدادات، وقد لا يضبطان بعد — فتقول
+   الدالتان «قريبا». والبطاقة حينها **ليست رابطا**: `tqs_tel_href()`
+   ترد `#` عند الفراغ، ووسم `<a href="#">` يبدو قابلا للنقر ثم يقفز
+   بالزائر إلى أعلى الصفحة — وعد بشيء ثم نقضه. */
+$tq_has_tel = tqs_tel_href() !== '#';
+$tq_has_wa  = tqs_whatsapp_href() !== '#';
+?>
+
 <!-- ══════════ الهيرو ══════════ -->
 <section class="page-hero">
   <div class="shell">
@@ -64,43 +91,53 @@ css: pages
       </div>
 
       <div class="contact-split">
-        <div>
-          <a class="contact-card reveal" href="<?php echo tqs_tel_href(); ?>">
+        <div class="contact-ways">
+          <?php /* البطاقة رابط حين يكون لها وجهة، و`div` حين لا تكون —
+                   لا `<a href="#">` يقفز بالزائر إلى أعلى الصفحة. والوسم
+                   واحد في الحالين فلا يختلف الشكل باختلافه. */ ?>
+          <<?php echo $tq_has_tel ? 'a' : 'div'; ?> class="contact-card reveal<?php echo $tq_has_tel ? '' : ' is-soon'; ?>"
+             <?php if ($tq_has_tel): ?>href="<?php echo tqs_tel_href(); ?>"<?php endif; ?>>
             <span class="ico"><svg aria-hidden="true"><use href="#i-phone"></use></svg></span>
             <div>
               <h3>اتصل بنا</h3>
               <p>تحدث مباشرة مع فريق الدعم</p>
-              <b class="tq-ltr"><?php echo tqs_phone_text(); ?></b>
+              <b class="<?php echo $tq_has_tel ? 'tq-ltr' : 'contact-card__soon'; ?>"><?php echo tqs_phone_text(); ?></b>
               <p>من الأحد إلى الخميس · <span class="tq-ltr">9:00</span> ص –
                  <span class="tq-ltr">5:00</span> م</p>
             </div>
-          </a>
+          </<?php echo $tq_has_tel ? 'a' : 'div'; ?>>
+
           <a class="contact-card reveal" href="mailto:<?php echo html_escape(get_settings('system_email')); ?>">
             <span class="ico"><svg aria-hidden="true"><use href="#i-mail"></use></svg></span>
             <div>
               <h3>راسلنا على البريد</h3>
               <p>أرسل لنا استفسارك وسنرد عليك</p>
-              <b><?php echo html_escape(get_settings('system_email')); ?></b>
+              <b class="tq-ltr"><?php echo html_escape(get_settings('system_email')); ?></b>
               <p>نجيب على رسائلك خلال <span class="tq-ltr">24</span> ساعة</p>
             </div>
           </a>
-          <a class="contact-card reveal" href="<?php echo tqs_whatsapp_href(); ?>" id="whatsapp">
+
+          <<?php echo $tq_has_wa ? 'a' : 'div'; ?> class="contact-card reveal<?php echo $tq_has_wa ? '' : ' is-soon'; ?>" id="whatsapp"
+             <?php if ($tq_has_wa): ?>href="<?php echo tqs_whatsapp_href(); ?>" target="_blank" rel="noopener noreferrer"<?php endif; ?>>
             <span class="ico"><svg aria-hidden="true"><use href="#i-whatsapp"></use></svg></span>
             <div>
               <h3>تواصل عبر واتساب</h3>
               <p>راسلنا على واتساب للحصول على دعم فوري</p>
-              <b class="tq-ltr"><?php echo tqs_whatsapp_text(); ?></b>
+              <b class="<?php echo $tq_has_wa ? 'tq-ltr' : 'contact-card__soon'; ?>"><?php echo tqs_whatsapp_text(); ?></b>
               <p>متاح من <span class="tq-ltr">9:00</span> ص –
                  <span class="tq-ltr">10:00</span> م</p>
             </div>
-          </a>
+          </<?php echo $tq_has_wa ? 'a' : 'div'; ?>>
+
           <a class="contact-card reveal" href="#visit">
             <span class="ico"><svg aria-hidden="true"><use href="#i-pin"></use></svg></span>
             <div>
               <h3>موقعنا</h3>
-              <p>الرياض — المملكة العربية السعودية<br>
-                 حي العليا · طريق الملك فهد<br>
-                 برج النهضة — الدور <span class="tq-ltr">12</span></p>
+              <p><?php echo implode('<br>', $tq_addr); ?></p>
+              <b class="contact-card__go">
+                زورنا في مقرنا
+                <svg aria-hidden="true"><use href="#i-arrow-back"></use></svg>
+              </b>
             </div>
           </a>
         </div>
@@ -194,33 +231,60 @@ css: pages
       </div>
 
       <div class="visit__panel">
-        <h2>زورنا في مقرنا</h2>
-        <p>نرحب بزيارتك في مقر منصة تقدر</p>
-        <?php /* لكل بند أيقونة تخصه: كان «الوصول سهل» يحمل دبوس الموقع
-                 نفسه الذي تحمله بطاقة «موقعنا» فوقه، و«مواقف مجانية»
-                 تحمل علما لا علاقة له. والسطران في كل بند متقابلان طولا
-                 فلا يبقى سطر يتيم بكلمة واحدة. */ ?>
-        <div class="visit__items">
-          <div>
-            <span class="ico"><svg aria-hidden="true"><use href="#i-clock"></use></svg></span>
-            <b>أوقات العمل</b>
-            <span>الأحد – الخميس<br><span class="tq-ltr">9:00</span> ص –
-              <span class="tq-ltr">5:00</span> م</span>
-          </div>
-          <div>
-            <span class="ico"><svg aria-hidden="true"><use href="#i-map"></use></svg></span>
-            <b>الوصول سهل</b>
-            <span>قريب من محطة المترو<br>ومركز الملك عبدالله المالي</span>
-          </div>
-          <div>
-            <span class="ico"><svg aria-hidden="true"><use href="#i-parking"></use></svg></span>
-            <b>مواقف مجانية</b>
-            <span>مواقف سيارات للزوار<br>داخل البرج وبجواره</span>
-          </div>
+        <div class="visit__head">
+          <h2>زورنا في مقرنا</h2>
+          <p>نرحب بزيارتك في مقر منصة تقدر</p>
         </div>
+
+        <?php /* العنوان في اللوح لا في بطاقة بعيدة عنه: قسم عنوانه
+                 «زورنا» كان لا يقول أين. والمصدر واحد — انظر
+                 TQ-CONTACT-ADDR أعلى الملف. */ ?>
+        <address class="visit__addr">
+          <svg aria-hidden="true"><use href="#i-pin"></use></svg>
+          <span><?php echo implode('<br>', $tq_addr); ?></span>
+        </address>
+
+        <?php /* TQ-VISIT-ICO2 · الشارة كانت تكرر ظل الأيقونة نفسها.
+                 حلقة دائرية حول ساعة = دائرتان متحدتا المركز تقرآن هدفا
+                 لا ساعة؛ وحولها مربع الموقف = إطار داخل إطار. والثالثة
+                 وحدها (الخريطة) كانت تنجو. والعلة في الشارة لا في
+                 الرسوم: ظلالها الثلاثة المختلفة — دائرة ومضلع مطوي
+                 ومربع مستدير — هي ما يفرقها بلمحة، وحلقة موحدة حولها
+                 تمحو ذلك الفرق ثم تضاعف اثنين منها.
+
+                 فلا شارة: الرسم عاريا عند مقاس يقرأ، والبنية تأتي من
+                 الصف لا من الحلقة — أيقونة في المبتدأ وسطران بجوارها،
+                 وهو نظم `.contact-card` نفسه في الصفحة نفسها. وثلاثة
+                 أعمدة في لوح عرضه أربعمئة بكسل كانت تلوي كل عنوان
+                 سطرين. */ ?>
+        <ul class="visit__items">
+          <li>
+            <svg class="visit__ico" aria-hidden="true"><use href="#i-clock"></use></svg>
+            <div>
+              <b>أوقات العمل</b>
+              <span>الأحد – الخميس · <span class="tq-ltr">9:00</span> ص –
+                <span class="tq-ltr">5:00</span> م</span>
+            </div>
+          </li>
+          <li>
+            <svg class="visit__ico" aria-hidden="true"><use href="#i-map"></use></svg>
+            <div>
+              <b>الوصول سهل</b>
+              <span>قريب من محطة المترو ومركز الملك عبدالله المالي</span>
+            </div>
+          </li>
+          <li>
+            <svg class="visit__ico" aria-hidden="true"><use href="#i-parking"></use></svg>
+            <div>
+              <b>مواقف مجانية</b>
+              <span>مواقف سيارات للزوار داخل البرج وبجواره</span>
+            </div>
+          </li>
+        </ul>
+
         <?php /* كان يشير إلى `#visit` — أي إلى نفسه، فالضغط لا يفعل شيئا. */ ?>
-        <a class="btn btn--gold" target="_blank" rel="noopener noreferrer"
-           href="https://www.google.com/maps/search/?api=1&amp;query=%D8%AD%D9%8A+%D8%A7%D9%84%D8%B9%D9%84%D9%8A%D8%A7%D8%8C+%D8%A7%D9%84%D8%B1%D9%8A%D8%A7%D8%B6">
+        <a class="btn btn--gold visit__cta" target="_blank" rel="noopener noreferrer"
+           href="<?php echo html_escape($tq_maps_href); ?>">
           احصل على الاتجاهات
           <svg aria-hidden="true" style="width:16px;height:16px"><use href="#i-send"></use></svg>
         </a>

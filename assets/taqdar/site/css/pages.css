@@ -660,13 +660,40 @@
 /* ==========================================================================
    تواصل معنا: بطاقات + نموذج + خريطة + أسئلة
    ========================================================================== */
+/* TQ-CONTACT-EVEN · العمودان ينتهيان معا.
+   بطاقات الطرق أربع فتطول، والنموذج أقصر منها بنحو مئة وستين بكسلا —
+   فيقف قاعاه متفاوتين ويقرأ اللوح ناقصا. و`stretch` وحدها تمدد
+   البطاقة وتترك القاع فارغا؛ فتمتص الفائض **خانة الرسالة**: صف
+   الشبكة الأخير يأخذ ما بقي، وهو الحقل الوحيد الذي تنفعه كل زيادة. */
 .contact-split{display:grid;grid-template-columns:.42fr 1fr;gap:clamp(14px,2vw,32px);
-  align-items:start}
+  align-items:stretch}
+.form-card{display:flex;flex-direction:column}
+.form-card form{flex:1;display:flex;flex-direction:column}
+/* عمود البطاقات: تباعد بالفجوة لا بهامش على كل بطاقة — الهامش السفلي
+   كان يعلق تحت آخر بطاقة فيفترق قاع العمودين بلا سبب. */
+.contact-ways{display:flex;flex-direction:column;gap:12px}
 .contact-card{display:flex;align-items:flex-start;gap:14px;background:var(--paper);
   border:1px solid var(--gold-line-soft);border-radius:var(--r-card);
-  padding:clamp(14px,1.6vw,22px);box-shadow:var(--sh-soft);margin-block-end:12px;
+  padding:clamp(14px,1.6vw,22px);box-shadow:var(--sh-soft);
   transition:transform var(--t-route) var(--ease),box-shadow var(--t-route) var(--ease)}
-.contact-card:hover{transform:translateY(-4px);box-shadow:var(--sh-raise)}
+a.contact-card:hover{transform:translateY(-4px);box-shadow:var(--sh-raise)}
+/* بطاقة بلا وجهة: لا ترتفع عند المرور ولا تعد بنقرة. ولونها الخافت
+   يقول «ليست جاهزة» قبل أن يقرأ الزائر «قريبا». */
+.contact-card.is-soon{box-shadow:none;background:color-mix(in oklab,var(--paper) 82%,var(--cream))}
+.contact-card.is-soon .ico{filter:grayscale(.35);opacity:.72}
+/* `.contact-card b{display:block}` أخص من صنف واحد فتغلبه، والرقاقة
+   تمتد عرض البطاقة كلها فتقرأ حقلا فارغا لا وسما. */
+.contact-card b.contact-card__soon{display:inline-block;inline-size:fit-content;
+  margin-block-start:6px;padding:2px 10px;
+  border-radius:999px;background:var(--cream);border:1px dashed var(--gold-line-soft);
+  font-family:'Cairo',sans-serif;font-size:clamp(10px,.76vw,12px);color:var(--ink-3)}
+/* «زورنا في مقرنا» في بطاقة الموقع: البطاقة كانت ترسو على `#visit`
+   ولا شيء فيها يقول ذلك، فتقرأ نصا لا رابطا. */
+.contact-card__go{display:inline-flex;align-items:center;gap:6px;margin-block-start:8px;
+  color:var(--gold-deep);font-size:clamp(11px,.84vw,13px)}
+.contact-card__go svg{inline-size:14px;block-size:14px;
+  transition:transform var(--t-route) var(--ease)}
+a.contact-card:hover .contact-card__go svg{transform:translateX(-3px)}
 .contact-card .ico{flex:0 0 auto;width:clamp(40px,3.2vw,50px);aspect-ratio:1;border-radius:50%;
   display:grid;place-items:center;color:var(--gold-warm);
   background:linear-gradient(155deg,var(--petrol-lift),var(--petrol-deep))}
@@ -683,7 +710,12 @@
 .form-card>p{margin-block-start:8px;text-align:center;color:var(--ink-3);
   font-size:clamp(11.5px,.88vw,13.5px)}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.3vw,18px);
-  margin-block-start:clamp(18px,2.2vw,30px)}
+  margin-block-start:clamp(18px,2.2vw,30px);flex:1;
+  grid-template-rows:auto auto minmax(132px,1fr)}
+/* الصفوف الثلاثة تصف شبكة **عمودين**؛ ومتى صارت عمودا واحدا صارت
+   خمسة صفوف، فيقع `minmax(132px,1fr)` على حقل الجوال فيمدده ارتفاع
+   خانة رسالة. فيسقط الوصف مع أول تكديس. */
+@media (max-width:680px){ .form-grid{grid-template-rows:none} }
 .form-field{display:flex;align-items:center;gap:10px;background:var(--cream);
   border:1px solid var(--gold-line-soft);border-radius:14px;padding:12px 16px;
   transition:border-color var(--t-route) var(--ease),box-shadow var(--t-route) var(--ease)}
@@ -692,9 +724,22 @@
   margin-block-start:2px}
 .form-field input,.form-field textarea,.form-field select{
   flex:1;min-width:0;border:0;background:none;outline:none;font:inherit;color:var(--ink);
-  font-size:clamp(11.5px,.9vw,14px);resize:vertical}
-.form-field textarea{min-height:110px;line-height:1.9}
-.form-field--full{grid-column:1/-1;align-items:flex-start}
+  font-size:clamp(11.5px,.9vw,14px)}
+/* TQ-FORM-GRIP · مقبض التمديد كان يرسم شرطة مائلة في الركن السفلي
+   الابتدائي، داخل حشو الحقل وفوق لا شيء — فيقرأ حرفا مطبوعا خطأ لا
+   مقبضا. و`field-sizing` تكبر الحقل مع النص فتغني عنه أصلا حيث تدعم،
+   والحد الأدنى يكفي رسالة قصيرة حيث لا تدعم. */
+.form-field textarea{min-block-size:132px;block-size:100%;line-height:1.9;resize:none}
+/* TQ-FORM-TEL · الرقم يلاصق مفتاح الدولة.
+   الحقل صف مرن والمدخل يأخذ ما بقي منه، فينتهي الرقم في أقصى طرف
+   والمفتاح `+966` في الطرف المقابل — بينهما عرض الحقل كله، فيقرآن
+   قيمتين لا قيمة واحدة. و`ltr` لأن الأرقام تكتب من اليسار، والمحاذاة
+   إلى الحافة الملاصقة للمفتاح. */
+.form-field input[type="tel"]{direction:ltr;text-align:right;unicode-bidi:isolate}
+/* `stretch` لا `flex-start`: الأخيرة تقلص الخانة إلى ارتفاع نصها
+   فيبقى الصف الممدد فارغا تحتها. والأيقونة تعلق أعلاها بـ`align-self`
+   الخاص بها فلا تتمدد معها. */
+.form-field--full{grid-column:1/-1;align-items:stretch}
 .form-field--invalid{border-color:#C2556A;box-shadow:0 0 0 3px rgba(194,85,106,.14)}
 .form-prefix{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding-inline-end:10px;
   margin-inline-end:2px;border-inline-end:1px solid var(--gold-line-soft);
@@ -714,8 +759,8 @@
 .visit__map svg{position:absolute;inset:0;width:100%;height:100%}
 .visit__panel{position:relative;overflow:hidden;color:#fff;
   background:linear-gradient(150deg,var(--petrol-deep),var(--petrol) 55%,#064B44);
-  padding:clamp(18px,2.2vw,32px);display:flex;flex-direction:column;
-  justify-content:center;gap:14px;text-align:center}
+  padding:clamp(20px,2.4vw,34px);display:flex;flex-direction:column;
+  justify-content:center;gap:clamp(12px,1.4vw,18px);text-align:center}
 .visit__panel::before{
   content:'';position:absolute;inset:0;pointer-events:none;
   background-color:var(--gold-warm);
@@ -724,34 +769,53 @@
   -webkit-mask-size:var(--script-tile) auto;mask-size:var(--script-tile) auto;
   opacity:var(--script-op-dark);
 }
-.visit__panel>*{position:relative}
+/* عمود القراءة داخل اللوح.
+   اللوح أوسع أعمدة الثلاثة لأن النص كله فيه، ولكن العنوان وبنوده لا
+   يحتاجان ذلك العرض — فتلتصق أسطرها بالحافة الابتدائية ويبقى نصف
+   اللوح فراغا يقرأ خطأ في المحاذاة لا سعة. فيقيد المحتوى بعمود واحد
+   يتوسط، والنص فيه محاذ إلى مبتدئه كما ينبغي للعربية. */
+.visit__panel>*{position:relative;inline-size:min(100%,42ch);margin-inline:auto}
 .visit__panel h2{color:var(--gold-warm);font-size:clamp(15px,1.4vw,22px)}
-.visit__panel>p{color:rgba(255,255,255,.76);font-size:clamp(11px,.86vw,13px)}
-/* TQ-VISIT-ICO · شارة لا حلقة فارغة
-   كانت الأيقونة حلقة بحد شعري بلا حشو، وداخلها رسم بنصف قطرها —
-   فتقرأ فراغا معلقا على لوح غامق لا علامة. والحشو الذهبي الخفيف هو
-   نفسه الذي يميز شارات «لماذا تختار تقدر؟» على اللوح الغامق نفسه،
-   فتتبع الشارتان هوية واحدة. والرسم يكبر معها فلا يسبح في وسطها. */
-.visit__items{display:grid;grid-template-columns:repeat(3,1fr);
-  gap:clamp(10px,1.4vw,20px);align-items:start;
-  margin-block:clamp(6px,1vw,12px)}
-.visit__items>div{text-align:center;position:relative;padding-inline:clamp(4px,.6vw,10px)}
-/* فاصل شعري بين البنود — يجمع الثلاثة شريطا واحدا بدل ثلاث جزر. */
-.visit__items>div+div::after{
-  content:'';position:absolute;inset-inline-end:100%;inset-block:6%;width:1px;
-  background:linear-gradient(180deg,transparent,rgba(212,180,118,.34),transparent);
+.visit__panel>p,.visit__head p{color:rgba(255,255,255,.76);font-size:clamp(11px,.86vw,13px)}
+.visit__head p{margin-block-start:6px}
+
+/* ── العنوان في اللوح ──
+   سطر واحد يقول أين، ودبوس في مبتدئه. والمحاذاة `start` لا `center`:
+   ثلاثة أسطر عنوان موسطة تصنع مثلثا مسننا يقرأ ببطء. */
+.visit__addr{
+  display:flex;gap:10px;align-items:flex-start;font-style:normal;text-align:start;
+  padding:clamp(10px,1.1vw,14px) clamp(12px,1.2vw,16px);
+  border:1px solid rgba(212,180,118,.28);border-radius:var(--r-card);
+  background:rgba(212,180,118,.07);
 }
-/* القيم نسخة حرفية من `.why__item .ico` — الشارتان على لوح غامق واحد
-   ولا سبب يجعلهما تختلفان في مقاس ولا في حد ولا في حشو. */
-.visit__items .ico{width:clamp(38px,3.2vw,50px);aspect-ratio:1;margin-inline:auto;
-  border-radius:50%;display:grid;place-items:center;color:var(--gold-warm);
-  border:1px solid rgba(212,180,118,.45);background:rgba(212,180,118,.08)}
-.visit__items .ico svg{width:52%;height:52%}
-.visit__items b{display:block;margin-block-start:10px;font-family:'Cairo',sans-serif;
-  font-size:clamp(10.5px,.82vw,12.5px);color:#fff}
-.visit__items span:not(.tq-ltr){display:block;font-size:clamp(9.5px,.74vw,11.5px);
-  color:rgba(255,255,255,.7);line-height:1.6}
-.visit__panel .btn{align-self:center}
+.visit__addr svg{inline-size:16px;block-size:16px;flex:none;margin-block-start:2px;
+  color:var(--gold-warm)}
+.visit__addr span{font-size:clamp(10.5px,.8vw,12.5px);line-height:1.75;
+  color:rgba(255,255,255,.82)}
+
+/* ── TQ-VISIT-ICO2 · صف لا عمود، ورسم بلا شارة ──
+   الشرح كاملا في `contact_us.php` عند الوسم. وخلاصته: الحلقة الدائرية
+   كانت تكرر ظل الأيقونة (ساعة داخل دائرة = دائرتان متحدتا المركز،
+   موقف داخل دائرة = إطار داخل إطار)، فتمحو ما يفرق الثلاثة ثم تضاعفه.
+   والبنية تأتي من الصف: أيقونة في المبتدأ وسطران بجوارها. */
+.visit__items{list-style:none;margin:0;padding:0;display:grid;
+  gap:clamp(8px,.9vw,12px);text-align:start}
+.visit__items li{
+  display:grid;grid-template-columns:auto 1fr;gap:clamp(10px,1vw,14px);
+  align-items:start;padding-block:clamp(8px,.9vw,12px);
+}
+/* فاصل شعري بين البنود — يجمع الثلاثة قائمة واحدة بدل ثلاث جزر. */
+.visit__items li+li{
+  border-block-start:1px solid;
+  border-image:linear-gradient(90deg,transparent,rgba(212,180,118,.3),transparent) 1;
+}
+.visit__ico{inline-size:clamp(20px,1.7vw,24px);block-size:clamp(20px,1.7vw,24px);
+  flex:none;color:var(--gold-warm);margin-block-start:1px}
+.visit__items b{display:block;font-family:'Cairo',sans-serif;
+  font-size:clamp(11px,.86vw,13px);color:#fff;line-height:1.5}
+.visit__items span:not(.tq-ltr){display:block;margin-block-start:3px;
+  font-size:clamp(10px,.78vw,12px);color:rgba(255,255,255,.7);line-height:1.65}
+.visit__cta{align-self:stretch;justify-content:center;margin-block-start:2px}
 .visit__photo{position:relative;background:linear-gradient(140deg,#F2E6D4,#EADFCB)}
 .visit__photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
@@ -837,10 +901,8 @@
   .grid-4,.grid-5,.grid-6,.stat-strip,.steps,.faq-grid,.grid-2,
   .form-grid,.stats-band__grid,.timeline{grid-template-columns:1fr}
   .stat-strip__item::after,.step::after,.stats-band__item::after{display:none!important}
-  .visit__items{grid-template-columns:1fr;row-gap:14px}
-  /* الفاصل عمودي بين عمودين: متى صار البند عمودا وحده وقف على حافته
-     خط لا يفصل شيئا. فيسقط مع أول تكديس. */
-  .visit__items>div+div::after{display:none!important}
+  /* القائمة عمود واحد أصلا منذ TQ-VISIT-ICO2، فلا شيء يكدس هنا.
+     والفاصل صار أفقيا بين صفين فيبقى على كل مقاس. */
   .dash__body{grid-template-columns:1fr}
   .dash__kpis{grid-template-columns:repeat(3,1fr)}
   .appband__list{grid-template-columns:1fr}
@@ -1521,8 +1583,16 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 .stats-band__item:last-child::after,.stat-strip__item:last-child::after{display:none}
 
 /* `.visit` **ثلاثة** أبناء: صورة مقر وخريطة ولوح. وعمودان ينزلان
-   الثالث صفا ثانيا فيقصه `overflow:hidden`. */
-.visit{grid-template-columns:1fr 1.15fr 1fr}
+   الثالث صفا ثانيا فيقصه `overflow:hidden`.
+
+   واللوح يأخذ أوسعها: هو وحده الذي يحمل نصا — عنوانا وثلاثة بنود
+   وزرا — والصورة والخريطة تحتملان الضيق بلا أن يقرأ منهما شيء أسوأ.
+   وكان يقاسمهما القياس نفسه تقريبا فيلوي كل عنوان بند سطرين. */
+/* والخريطة تحتاج عرضا أدنى لا زينة: إسناد OpenStreetMap سطر مفروض
+   داخل الإطار لا يملك أحد تنسيقه، وعمود ضيق يلويه سطرين فوق الخريطة. */
+.visit{grid-template-columns:.8fr 1.35fr 1.1fr;align-items:stretch}
+@media (max-width:1100px){ .visit{grid-template-columns:1.25fr 1fr}
+  .visit__photo{display:none} }
 @media (max-width:900px){
   .visit{grid-template-columns:1fr}
   .visit__photo{display:none}   /* الصورة زينة؛ والخريطة واللوح هما المعنى */
@@ -1687,8 +1757,20 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 /* ══════════════════════════════════════════════════════════════════
    TQ-REALMAP · الخريطة إطار لا رسم
    ══════════════════════════════════════════════════════════════════ */
-.visit__map{ overflow:hidden;border-radius:var(--r-card);background:var(--beige) }
+/* TQ-MAP-CLIP · نصف قطر ثان داخل حاوية تقص بنصف قطرها.
+   `.visit` تقص أبناءها الثلاثة بـ`overflow:hidden` وتستدير عند
+   `--r-panel`؛ وهذه كانت تستدير مرة أخرى عند `--r-card` **داخل** ذلك
+   القص — فتظهر نتوءان بلون اللوح عند الزاويتين الخارجيتين، ويبقى
+   ركنان داخليان مستديرين بلا سبب بينما الصورة المقابلة لهما قائمة
+   الزوايا. والقص للحاوية وحدها. */
+.visit__map{ overflow:hidden;background:var(--beige) }
+/* TQ-MAP-FILL · `block-size:100%` على إطار في التدفق العادي يحتاج أبا
+   بارتفاع محسوم؛ وهذا خلية شبكة تمدد، فلا يحله كروم — فتقف الخريطة
+   عند حدها الأدنى ويبقى تحتها فراغ بيج بثلث ارتفاع القسم، وسطر إسناد
+   OpenStreetMap عائم في وسطه. والتثبيت المطلق هو ما يفعله `svg`
+   المجاور في السطر الذي فوقه منذ البداية. */
 .visit__map iframe{
+  position:absolute;inset:0;
   inline-size:100%;block-size:100%;min-block-size:clamp(260px,26vw,360px);
   display:block;border:0
 }
@@ -1832,6 +1914,20 @@ a.gate-card:hover{ text-decoration:none }
    بعده وحده — وهو ما تتوقعه العين.
    ══════════════════════════════════════════════════════════════════ */
 .faq-grid{ grid-template-columns:1fr;max-inline-size:min(820px,100%);margin-inline:auto }
+
+/* TQ-FAQ-PAIR · الأسئلة وبطاقة الدعم لوح واحد لا جزيرتان.
+   السقف أعلاه (٨٢٠px) موضوع لصفحة `/faq` حيث الأكورديون وحده في
+   الشل؛ وهنا بجواره عمود ثان، فيتوسط داخل عموده ويترك بينه وبين
+   البطاقة فراغا بمئة بكسل زيادة على الفجوة — فتقرآن غير متصلين.
+   ونسبة `.3fr` تعطي البطاقة عرضا يتبدل بعرض الشاشة، فتضيق على الشاشة
+   المتوسطة حتى يلتف زرها سطرين. */
+.faq-layout{ grid-template-columns:minmax(0,1fr) clamp(230px,24%,310px) }
+.faq-layout .faq-grid{ max-inline-size:100%;margin-inline:0 }
+/* والتكديس يعاد هنا: قاعدة الجوال في الأعلى (‏max-width:900px‏) تسبق هذه
+   في الملف وتساويها تخصيصا، فتغلبها هذه على **كل** المقاسات — فيبقى
+   عمودان على شاشة عرضها أربعمئة بكسل ويخرج اللوح عن الشاشة أفقيا.
+   والاستعلام لا يرفع التخصيص، فالترتيب وحده هو الحكم. */
+@media (max-width:900px){ .faq-layout{ grid-template-columns:1fr } }
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-INLINE-LINK · الرابط داخل الفقرة يرى رابطا
