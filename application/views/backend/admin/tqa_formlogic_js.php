@@ -80,6 +80,33 @@
         tally();
     });
 
+    /* ---- النسبة ومتممها ----
+       المخزن رقم واحد والمتمم مرآة، فلا تفترق النسبتان أبدا. ومن كتب
+       ١٥ يرى ٨٥ وهو يكتب — لا بعد أن يحفظ ويفتح الصفحة العامة. */
+    Array.prototype.forEach.call(form.querySelectorAll('[data-tqa-percent]'), function (el) {
+        var id = el.getAttribute('data-tqa-percent-mirror');
+        if (!id) return;
+        var out  = document.getElementById(id);
+        if (!out) return;
+        var label = String(out.textContent || '').split('—')[0].trim();
+
+        function paint() {
+            var s = String(el.value || '').trim();
+            if (s === '' || isNaN(parseFloat(s))) {
+                /* الفارغ يعني «الافتراض العام» لا صفرا — فلا يعرض ١٠٠٪
+                   للمنصة على باقة لم تضبط نسبتها بعد. */
+                out.textContent = label + ' — بالافتراض العام';
+                return;
+            }
+            var v = Math.max(0, Math.min(100, parseFloat(s)));
+            out.textContent = label + ' — ' + String(Math.round((100 - v) * 100) / 100) + '%';
+        }
+
+        el.addEventListener('input', paint);
+        el.addEventListener('change', paint);
+        paint();
+    });
+
     /* ---- معاينة الصورة المختارة ---- */
     Array.prototype.forEach.call(form.querySelectorAll('[data-tqa-imgpick]'), function (sel) {
         var prev = form.querySelector('[data-tqa-imgpreview="' + sel.id + '"]');

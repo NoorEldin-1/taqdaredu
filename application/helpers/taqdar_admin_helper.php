@@ -82,6 +82,14 @@ if (!function_exists('tqa_cell')) {
             case 'number':
                 return tqa_ltr($value);
 
+            /* النسبة ومتممها معا في خلية واحدة: عمود يقول «١٥» وحدها
+               يترك القارئ يحسب ٨٥ في رأسه على كل صف، وهو الرقم الذي
+               فتح الشاشة من أجله. */
+            case 'percent':
+                $p = rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.');
+                $q = rtrim(rtrim(number_format(100 - (float) $value, 2, '.', ''), '0'), '.');
+                return tqa_ltr($p . '%') . ' <span class="tqa-dim">/ ' . tqa_ltr($q . '%') . '</span>';
+
             case 'datetime':
                 return tqa_ltr(date('Y-m-d H:i', strtotime($value)));
 

@@ -244,6 +244,31 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                            id="<?php echo $id; ?>" name="<?php echo $name; ?>"
                            value="<?php echo html_escape((string) $val); ?>">
 
+                <?php elseif ($f['type'] === 'percent'): ?>
+
+                    <?php /* النسبة ومتممها في سطر واحد. والمتمم يحسب في المتصفح
+                             وهو يكتب لا بعد الحفظ: من يكتب ١٥ يجب أن يرى ٨٥
+                             فورا، وإلا حفظ وهو يظن أنه ضبط نسبة المنصة.
+                             والمخزن رقم واحد — فلا تفترق النسبتان أبدا. */ ?>
+                    <div style="display:flex;align-items:center;gap:var(--tq-space-s);flex-wrap:wrap">
+                        <input class="tqa-input tqa-input--ltr" dir="ltr" type="number"
+                               min="0" max="100" step="0.01" style="max-inline-size:9rem"
+                               id="<?php echo $id; ?>" name="<?php echo $name; ?>"
+                               data-tqa-percent
+                               <?php if (!empty($f['mirror'])): ?>
+                                   data-tqa-percent-mirror="<?php echo html_escape($id); ?>-mirror"
+                               <?php endif; ?>
+                               <?php if (isset($f['placeholder'])): ?>
+                                   placeholder="<?php echo html_escape((string) $f['placeholder']); ?>"
+                               <?php endif; ?>
+                               value="<?php echo ($val === null || $val === '') ? '' : html_escape(rtrim(rtrim(number_format((float) $val, 2, '.', ''), '0'), '.')); ?>">
+                        <span style="color:var(--tq-text2);font:var(--tq-type-caption);flex:none">%</span>
+                        <?php if (!empty($f['mirror'])): ?>
+                            <span class="tqa-pill" id="<?php echo $id; ?>-mirror"
+                                  style="flex:none"><?php echo html_escape($f['mirror']); ?> —</span>
+                        <?php endif; ?>
+                    </div>
+
                 <?php elseif ($f['type'] === 'money'): ?>
 
                     <div style="display:flex;align-items:center;gap:var(--tq-space-s)">
@@ -276,10 +301,15 @@ $tqa_now = function ($field_name) use ($row, $spec) {
     <?php /* لوحة تخص الوحدة تعرض ما لا يعرفه النموذج العام — مثل ما
              تفتحه الباقة فعلا. وهي داخل النموذج كي يصلها السكربت
              ويحدثها مع الاختيار قبل الحفظ. */ ?>
+    <?php /* لوحة واحدة أو عدة: الوحدة قد تحتاج أن تجيب سؤالين مستقلين
+             قبل الحفظ (ماذا تفتح الباقة؟ ولمن يذهب مالها؟)، وحشرهما في
+             ملف واحد يجعل تعديل أحدهما يمس الآخر. */ ?>
     <?php if (!empty($spec['form_extra'])): ?>
-        <?php $this->load->view('backend/admin/' . $spec['form_extra'], array(
-            'mkey' => $mkey, 'spec' => $spec, 'row' => $row, 'rid' => $rid,
-        )); ?>
+        <?php foreach ((array) $spec['form_extra'] as $extra_view): ?>
+            <?php $this->load->view('backend/admin/' . $extra_view, array(
+                'mkey' => $mkey, 'spec' => $spec, 'row' => $row, 'rid' => $rid,
+            )); ?>
+        <?php endforeach; ?>
     <?php endif; ?>
 
     <div style="display:flex;gap:var(--tq-space-s);flex-wrap:wrap">

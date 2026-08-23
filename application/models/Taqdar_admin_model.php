@@ -269,7 +269,7 @@ class Taqdar_admin_model extends CI_Model
                 'icon'         => 'package',
                 'order_by'     => array('order' => 'ASC'),
                 'note'         => 'تعديل باقة لا يمس اشتراكا قائما: السعر والنطاق ينسخان وقت الشراء، فمن اشترك أمس يبقى على ما دفع.',
-                'form_extra'   => 'tqa_plan_reach',
+                'form_extra'   => array('tqa_plan_reach', 'tqa_plan_split'),
                 'form_js'      => 'tqa_plan_js',
                 'status_fn'    => 'plan_visibility',
                 'status_label' => 'الظهور',
@@ -664,6 +664,17 @@ class Taqdar_admin_model extends CI_Model
                 case 'number':
                 case 'seconds':
                     $data[$name] = (int) $raw;
+                    break;
+
+                /* نسبة مئوية. والفارغ يخزن `NULL` لا صفرا: الصفر نسبة
+                   صريحة تعني «لا شيء»، والفارغ يعني «خذ الافتراض العام»
+                   — ومعنيان في عمود واحد يحتاجان قيمتين لا قيمة تفسر
+                   مرتين. ولذلك لا يقبل هذا النوع `required`. */
+                case 'percent':
+                    $s = trim((string) $raw);
+                    $data[$name] = ($s === '' || !is_numeric($s))
+                                 ? null
+                                 : max(0, min(100, round((float) $s, 2)));
                     break;
 
                 case 'ref':
