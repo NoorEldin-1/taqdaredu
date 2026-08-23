@@ -86,6 +86,39 @@ $tq_kind = static function ($type) use ($tq_kinds) {
     return $tq_kinds[$type] ?? ['تنبيهات أخرى', 'bell', 'rose', ''];
 };
 
+/* ---- «هذا الإشعار وحده» ---------------------------------------------
+ *
+ * TQ-NOTIF-READ — الصف هنا كان ينتقل بوجهته ولا يقرأ: يفتح المعلم
+ * «تسليم ينتظر تصحيحك» فيصحح، ثم يعود فيجد النقطة الزرقاء مكانها —
+ * والعداد لا ينقص إلا بـ«تحديد الكل كمقروء»، وهو يمسح ما لم يفتحه.
+ * فصار غير المقروء زرا: يقرأ أولا ثم يحول إلى وجهته، فيقع الفعلان بضغطة.
+ *
+ * والوجهة تشتق من `$tq_kinds` في الخادم لا ترسل في الطلب: عنوان يرسله
+ * المتصفح يجعل من هذا النموذج بابا يحول به إلى أي موقع (open redirect).
+ *
+ * ويوضع بعد `$tq_kind` لأنه يقرأ منها، وقبل أي إخراج فـ`redirect` تعمل. */
+if ($this->input->post('action') === 'mark_read') {
+    $tq_nid = (int) $this->input->post('id');
+    $tq_to  = '';
+    if ($tq_nid > 0) {
+        $tq_row = $this->db->where('to_user', $uid)->where('id', $tq_nid)
+                           ->get('notifications')->row_array();
+        if ($tq_row) {
+            if ((int) $tq_row['status'] === 0) {
+                $this->db->where('to_user', $uid)->where('id', $tq_nid)
+                         ->update('notifications', ['status' => 1, 'updated_at' => (string) time()]);
+            }
+            $tq_to = $tq_kind($tq_row['type'])[3];
+        }
+    }
+    if ($tq_to !== '') {
+        redirect(site_url($tq_to), 'location', 302);
+    }
+    $tq_back = $this->input->post('state', true);
+    $tq_back = in_array($tq_back, ['unread', 'read'], true) ? '?state=' . $tq_back : '';
+    redirect(site_url('teacher/notifications') . $tq_back, 'location', 302);
+}
+
 /* عداد كل نوع — من إشعارات هذا المعلم وحدها */
 $tq_by_kind = [];
 foreach ($tq_all as $n) {
@@ -175,6 +208,12 @@ include 'tq_notif_styles.php';
                 </div>
             </div>
         <?php else: ?>
+            <?php /* نموذج واحد يلف القائمة، وكل صف غير مقروء زر يرسل معرفه.
+                     والوجهة لا ترسل معه — تشتق في الخادم من نوع الإشعار. */ ?>
+            <form method="post" action="<?php echo base_url('teacher/notifications'); ?>">
+                <?php echo tq_csrf(); ?>
+                <input type="hidden" name="action" value="mark_read">
+                <input type="hidden" name="state" value="<?php echo html_escape($tq_state); ?>">
             <?php foreach ($tq_groups as $label => $items): ?>
                 <?php if (!$items) { continue; } ?>
                 <section class="tq-daygroup" aria-labelledby="tq-g-<?php echo md5($label); ?>">
@@ -186,18 +225,22 @@ include 'tq_notif_styles.php';
                             $unread = ((int) $n['status'] === 0);
                             $text   = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $n['description'])));
                             $ts     = (int) $n['created_at'];
-                            /* الإشعار الذي له وجهة رابط، والذي لا وجهة له صف نص —
-                               ولا يعرض رابط يفتح الصفحة نفسها ليبدو الصف قابلا للنقر. */
-                            $tag    = $kind_href !== '' ? 'a' : 'div';
+                            /* ثلاث حالات لا حالتان:
+                               غير المقروء **زر** — يقرأ نفسه ثم يحول إلى وجهته إن كانت له؛
+                               والمقروء ذو الوجهة **رابط** — لا شيء يقرأ فيبقى الانتقال وحده؛
+                               وما لا وجهة له ولا قراءة **صف نص** — ولا يعرض رابط يفتح
+                               الصفحة نفسها ليبدو الصف قابلا للنقر. */
+                            $tag    = $unread ? 'button' : ($kind_href !== '' ? 'a' : 'div');
                             ?>
                             <<?php echo $tag; ?> class="tq-notif<?php echo $unread ? ' tq-notif--unread' : ''; ?>"
-                                <?php if ($kind_href !== ''): ?>href="<?php echo base_url($kind_href); ?>"<?php endif; ?>>
+                                <?php if ($unread): ?>type="submit" name="id" value="<?php echo (int) $n['id']; ?>"
+                                <?php elseif ($kind_href !== ''): ?>href="<?php echo base_url($kind_href); ?>"<?php endif; ?>>
                                 <span class="tq-notif__dot" aria-hidden="true"></span>
                                 <span>
                                     <span class="tq-notif__title"><?php echo tq_iso(html_escape($n['title'])); ?></span>
                                     <span class="tq-notif__line"><?php echo tq_iso(html_escape(mb_substr($text, 0, 90))); ?></span>
                                     <span class="tq-notif__line"><?php echo html_escape($kind_label); ?></span>
-                                    <?php if ($unread): ?><span class="tq-sr">غير مقروء</span><?php endif; ?>
+                                    <?php if ($unread): ?><span class="tq-sr">غير مقروء — اضغط لتحديده كمقروء<?php echo $kind_href !== '' ? ' والانتقال إليه' : ''; ?></span><?php endif; ?>
                                 </span>
                                 <span class="tq-notif__time">
                                     <?php echo tq_num(date('g:i', $ts), 'tq-num--sm'); ?> <?php echo (int) date('G', $ts) < 12 ? 'ص' : 'م'; ?>
@@ -210,6 +253,7 @@ include 'tq_notif_styles.php';
                     </div>
                 </section>
             <?php endforeach; ?>
+            </form>
         <?php endif; ?>
 
     </div>

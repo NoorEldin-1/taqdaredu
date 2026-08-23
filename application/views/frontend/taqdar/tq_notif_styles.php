@@ -28,6 +28,21 @@ define('TQ_NOTIF_STYLES_DONE', true);
 .tq-notif { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: var(--tq-space-m);
   align-items: start; padding: var(--tq-space-l); border-radius: var(--tq-radius-medium); }
 .tq-notif:hover { background: var(--tq-navyWash); text-decoration: none; }
+
+/* TQ-NOTIF-READ — الصف كان `div` صامتا: يضغطه صاحبه فلا يقرأ ولا ينتقل،
+   وتبقى النقطة الزرقاء مكانها. و«تحديد الكل كمقروء» وحده كان يعمل — وهو
+   إما الكل أو لا شيء. فصار غير المقروء زرا يرسل نفسه، والزر عنصر يعرفه
+   المتصفح وقارئ الشاشة ولوحة المفاتيح بلا سطر جافاسكربت.
+   والشكل من `.tq-notif` وحده: المتصفح يورث الزر خلفية وحدا وخطا ومحاذاة
+   وسط، وكلها تنزع هنا حتى يخرج الصف كما كان حرفا بحرف. */
+button.tq-notif {
+  appearance: none; -webkit-appearance: none;
+  background: none; border: 0; margin: 0;
+  font: inherit; font-family: inherit; color: inherit;
+  text-align: start; inline-size: 100%; cursor: pointer;
+}
+button.tq-notif:focus-visible,
+a.tq-notif:focus-visible { outline: 2px solid var(--tq-focusRing); outline-offset: -2px; }
 .tq-notif + .tq-notif { border-block-start: 1px solid var(--tq-line); border-start-start-radius: 0; border-start-end-radius: 0; }
 .tq-notif__dot { inline-size: 10px; block-size: 10px; border-radius: var(--tq-radius-pill); margin-block-start: 6px; background: transparent; }
 .tq-notif--unread .tq-notif__dot { background: var(--tq-navy); }

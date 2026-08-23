@@ -24,8 +24,33 @@ $uid = (int) $this->session->userdata('user_id');
 
 /* ---- «تحديد الكل كمقروء» فعل حقيقي، وينفذ قبل أي إخراج ------------- */
 if ($this->input->post('action') === 'mark_all_read') {
-    $this->db->where('to_user', $uid)->update('notifications', ['status' => 1]);
+    $this->db->where('to_user', $uid)->where('status', 0)
+             ->update('notifications', ['status' => 1, 'updated_at' => (string) time()]);
     redirect(site_url('student/notifications'), 'location', 302);
+}
+
+/* ---- «هذا الإشعار وحده» ---------------------------------------------
+ *
+ * TQ-NOTIF-READ — كان الصف `div` لا يستقبل ضغطة، فلا سبيل إلى قراءة
+ * إشعار بعينه: إما «تحديد الكل كمقروء» وإما تبقى النقطة الزرقاء على
+ * تسعة إشعارات قرئت كلها. ومن قرأ واحدا ثم عاد وجد العداد كما تركه،
+ * فظن الشاشة لا تحفظ شيئا.
+ *
+ * و`to_user` في الشرط لا في الثقة بالطلب: المعرف يأتي من المتصفح،
+ * وبدونه يقرأ من خمن رقما إشعارات غيره — لا يراها، ولكنه يمسح عنهم
+ * نقطة «غير مقروء» فيخفي عنهم خبرا لم يفتحوه.
+ *
+ * والحال يعاد كما كان: من كان يصفي «غير المقروءة» يبقى عليها بعد
+ * القراءة، ولا يقذف إلى «الكل» فيفقد موضعه من القائمة. */
+if ($this->input->post('action') === 'mark_read') {
+    $tq_nid = (int) $this->input->post('id');
+    if ($tq_nid > 0) {
+        $this->db->where('to_user', $uid)->where('id', $tq_nid)->where('status', 0)
+                 ->update('notifications', ['status' => 1, 'updated_at' => (string) time()]);
+    }
+    $tq_back = $this->input->post('state', true);
+    $tq_back = in_array($tq_back, ['unread', 'read'], true) ? '?state=' . $tq_back : '';
+    redirect(site_url('student/notifications') . $tq_back, 'location', 302);
 }
 
 /* ---- الإشعارات ------------------------------------------------------- */
@@ -167,6 +192,12 @@ include 'tq_notif_styles.php';
 
             <?php if ($tq_unread_count > 0): ?>
                 <form method="post" action="<?php echo base_url('student/notifications'); ?>">
+                    <?php /* TQ-CSRF — كان ينقص، و`csrf_protection` مفعل ولا استثناء
+                             لـ`student/notifications`. فكان الزر يرد بـ403 «الإجراء
+                             غير مسموح» على شاشة كاملة، لا برسالة في الشاشة — ويقرأ
+                             ذلك على أنه «الإشعارات لا تقرأ». ونظيره في بوابة المعلم
+                             كان يحمله، فالشاشتان تفترقان في السطر الوحيد الذي يهم. */ ?>
+                    <?php echo tq_csrf(); ?>
                     <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit" name="action" value="mark_all_read">
                         <span aria-hidden="true"><?php echo tq_icon('check', 16); ?></span>
                         تحديد الكل كمقروء
@@ -192,6 +223,13 @@ include 'tq_notif_styles.php';
                 </div>
             </div>
         <?php else: ?>
+            <?php /* نموذج واحد يلف القائمة كلها، وكل صف زر يرسل معرفه في
+                     `name="id"` — فلا نموذج لكل إشعار ولا سطر جافاسكربت.
+                     و`state` يرافقه ليعود المصفي إلى تصفيته. */ ?>
+            <form method="post" action="<?php echo base_url('student/notifications'); ?>">
+                <?php echo tq_csrf(); ?>
+                <input type="hidden" name="action" value="mark_read">
+                <input type="hidden" name="state" value="<?php echo html_escape($tq_state); ?>">
             <?php foreach ($tq_groups as $label => $items): ?>
                 <?php if (!$items) { continue; } ?>
                 <section class="tq-daygroup" aria-labelledby="tq-g-<?php echo md5($label); ?>">
@@ -204,13 +242,17 @@ include 'tq_notif_styles.php';
                             $text   = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $n['description'])));
                             $ts     = (int) $n['created_at'];
                             ?>
-                            <div class="tq-notif<?php echo $unread ? ' tq-notif--unread' : ''; ?>">
+                            <?php /* غير المقروء زر يقرأ نفسه، والمقروء صف نص —
+                                     ولا يعرض زرا لا يفعل شيئا. */ ?>
+                            <?php $tag = $unread ? 'button' : 'div'; ?>
+                            <<?php echo $tag; ?> class="tq-notif<?php echo $unread ? ' tq-notif--unread' : ''; ?>"
+                                <?php if ($unread): ?>type="submit" name="id" value="<?php echo (int) $n['id']; ?>"<?php endif; ?>>
                                 <span class="tq-notif__dot" aria-hidden="true"></span>
                                 <span>
                                     <span class="tq-notif__title"><?php echo tq_iso(html_escape($n['title'])); ?></span>
                                     <span class="tq-notif__line"><?php echo tq_iso(html_escape(mb_substr($text, 0, 90))); ?></span>
                                     <span class="tq-notif__line"><?php echo html_escape($kind_label); ?></span>
-                                    <?php if ($unread): ?><span class="tq-sr">غير مقروء</span><?php endif; ?>
+                                    <?php if ($unread): ?><span class="tq-sr">غير مقروء — اضغط لتحديده كمقروء</span><?php endif; ?>
                                 </span>
                                 <span class="tq-notif__time">
                                     <?php echo tq_num(date('g:i', $ts), 'tq-num--sm'); ?> <?php echo (int) date('G', $ts) < 12 ? 'ص' : 'م'; ?>
@@ -218,11 +260,12 @@ include 'tq_notif_styles.php';
                                 <span class="tq-icon-box tq-pastel--<?php echo $kind_tone; ?>" aria-hidden="true">
                                     <?php echo tq_icon($kind_icon); ?>
                                 </span>
-                            </div>
+                            </<?php echo $tag; ?>>
                         <?php endforeach; ?>
                     </div>
                 </section>
             <?php endforeach; ?>
+            </form>
         <?php endif; ?>
 
     </div>
