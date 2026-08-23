@@ -850,10 +850,36 @@ a.tqa-stat:hover { border-color: var(--tq-navy); transform: translateY(-2px); te
 .tqa-input--ltr { direction: ltr; text-align: start; font-family: var(--tq-font-num); }
 
 /* المفتاح: بديل مربع الاختيار حيث تكون القيمة تشغيلا لا اختيارا */
-.tqa-switch { display: inline-flex; align-items: center; gap: var(--tq-space-m); cursor: pointer; }
-.tqa-switch input { position: absolute; opacity: 0; inline-size: 1px; block-size: 1px; }
+
+/* TQ-SWITCH-DEAD — مربع الاختيار كان بحجم بكسل واحد شفاف في ركن الصفحة،
+   والمرئي «`__track`» زخرفة (`aria-hidden`) لا تصل إليه بضغطة. فمن ضغط
+   المفتاح نفسه — وهو ما يضغطه كل أحد — لم يقع شيء: لا الشكل تغير ولا
+   القيمة. والعنوان وحده كان يعمل (`label for`)، وهو آخر ما يخطر لأحد أن
+   يضغطه. ولم تكن العلة في شاشة: خمسة وعشرون مفتاحا في أربع عشرة شاشة —
+   الصلاحيات · إعدادات النظام · بوابات الدفع · تاب · الكورسات · الدروس ·
+   المدونة · واجهة الموقع · الإشعارات.
+
+   فصار المربع نفسه يغطي المفتاح المرئي: شفافا كما كان، وفوقه (`z-index`)
+   لأن `__track` عنصر موضع يرسم بعده في الترتيب فيسرق الضغطة. والعرض من
+   متغير واحد لا رقمين يفترقان. ولا شيء تغير في الشكل ولا في التنقل
+   بلوحة المفاتيح ولا في حلقة التركيز. */
+.tqa-switch {
+  --tqa-switch-w: 46px;
+  position: relative;
+  display: inline-flex; align-items: center; gap: var(--tq-space-m); cursor: pointer;
+}
+.tqa-switch input {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: var(--tqa-switch-w);
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
 .tqa-switch__track {
-  inline-size: 46px; block-size: 26px;
+  inline-size: var(--tqa-switch-w); block-size: 26px;
   border-radius: 999px;
   background: var(--tq-line);
   position: relative;
