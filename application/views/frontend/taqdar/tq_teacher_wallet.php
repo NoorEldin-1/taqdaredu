@@ -314,10 +314,25 @@ include 'portal_open.php';
 
             <fieldset style="border:0;padding:0;margin:0 0 var(--tq-space-l)">
                 <legend class="tq-field__label" style="padding:0">قناة التحويل</legend>
-                <?php $tq_first = true; foreach ($tq_w['channels'] as $tq_key => $tq_c): ?>
+                <?php
+                /* القنوات تقرأ من `Taqdar_wallet_model::$CHANNELS` — فإضافة
+                   قناة هناك تظهر هنا بلا لمس هذا الملف. ومعها **مثالها**:
+                   المثال يصحح الشكل قبل الإرسال أسرع من قاعدة تقرأ. */
+                $tq_first = true;
+                $tq_ch_js = array();
+                foreach ($tq_w['channels'] as $tq_key => $tq_c) {
+                    $tq_ch_js[$tq_key] = array(
+                        'hint'    => isset($tq_c['hint']) ? $tq_c['hint'] : '',
+                        'example' => isset($tq_c['example']) ? $tq_c['example'] : '',
+                        'error'   => isset($tq_c['error']) ? $tq_c['error'] : '',
+                    );
+                }
+                ?>
+                <?php foreach ($tq_w['channels'] as $tq_key => $tq_c): ?>
                     <span class="tq-row" style="gap:var(--tq-space-s);margin-block-end:var(--tq-space-s)">
                         <input type="radio" id="tq-ch-<?php echo $tq_key; ?>" name="payment_type"
                                value="<?php echo $tq_key; ?>" <?php echo $tq_first ? 'checked' : ''; ?> required
+                               data-tq-channel
                                <?php echo $tq_can_withdraw ? '' : 'disabled'; ?>>
                         <label for="tq-ch-<?php echo $tq_key; ?>">
                             <?php echo html_escape($tq_c['label']); ?>
@@ -329,14 +344,41 @@ include 'portal_open.php';
 
             <div class="tq-field">
                 <label class="tq-field__label" for="tq-dest">بيانات التحويل</label>
+                <?php /* الحقل يتبع القناة المختارة. وكان يقول «الآيبان السعودي
+                         يبدأ بـ SA» أيا كانت القناة — فمن اختار فودافون كاش
+                         يقرأ تعليمات آيبان فوق حقل ينتظر رقم جوال مصريا. */ ?>
                 <input class="tq-input" id="tq-dest" type="text" name="destination" required
-                       placeholder="رقم الآيبان أو رقم الجوال المرتبط بالمحفظة"
+                       dir="ltr" data-tq-dest
+                       placeholder="<?php echo html_escape(reset($tq_ch_js)['example']); ?>"
                        <?php echo $tq_can_withdraw ? '' : 'disabled'; ?>>
-                <span class="tq-field__msg tq-field__hint">
-                    <?php echo tq_iso('الآيبان السعودي يبدأ بـ SA ويتكون من 24 خانة.'); ?>
+                <span class="tq-field__msg tq-field__hint" data-tq-dest-hint>
+                    <?php echo tq_iso(reset($tq_ch_js)['error']); ?>
                     وتحفظ الوجهة مع الطلب، ولا تظهر بعدها إلا بأربع خاناتها الأخيرة.
                 </span>
             </div>
+
+            <script>
+            /* الخادم هو الحارس (`destination_error()` في النموذج). وهذه
+               الأسطر تيسير: من لم يصله الملف يرى تعليمات القناة الأولى
+               ويرد عليه الخادم بالرسالة الصحيحة — لا نموذج يقبل ثم يرفض
+               بلا سبب. */
+            (function () {
+                var meta = <?php echo json_encode($tq_ch_js, JSON_UNESCAPED_UNICODE); ?>;
+                var dest = document.querySelector('[data-tq-dest]');
+                var hint = document.querySelector('[data-tq-dest-hint]');
+                if (!dest || !hint) return;
+                var tail = ' وتحفظ الوجهة مع الطلب، ولا تظهر بعدها إلا بأربع خاناتها الأخيرة.';
+                Array.prototype.forEach.call(document.querySelectorAll('[data-tq-channel]'), function (r) {
+                    r.addEventListener('change', function () {
+                        var m = meta[r.value];
+                        if (!m) return;
+                        dest.placeholder = m.example;
+                        dest.value = '';
+                        hint.textContent = m.error + tail;
+                    });
+                });
+            })();
+            </script>
 
             <button class="tq-btn tq-btn--primary tq-btn--block" type="submit"
                     aria-describedby="tq-withdraw-note"

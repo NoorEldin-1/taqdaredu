@@ -62,17 +62,78 @@ class Taqdar_wallet_model extends CI_Model
     const B_LOCKED    = 'locked';
 
     /** إصدار بنية الدفتر — يمنع إعادة فحص الأعمدة في كل طلب. */
-    const SCHEMA_V = '1';
+    const SCHEMA_V = '2';
 
     /**
-     * قنوات التحويل السعودية الأربع.
-     * ما لا يسجل لا يحول: لا نقبل طلب مال بقناة لا تحفظ مع الطلب.
+     * قنوات التحويل. ما لا يسجل لا يحول: لا نقبل طلب مال بقناة لا تحفظ
+     * مع الطلب.
+     *
+     * **والفحص في الجدول لا في سلسلة `if`.** كان فحص الآيبان سطرا مفردا
+     * في `request_payout()`، فكل قناة تضاف بعده تقبل أي نص: «١٢٣» وجهة
+     * صالحة لمحفظة، والطلب يسجل ويحجز المال ثم يقف عند المسؤول الذي لا
+     * يملك ما يحول إليه. والنمط هنا يرفض قبل الحجز، ويشرح **بمثال** لا
+     * بقاعدة — «مثل ٠١٠١٢٣٤٥٦٧٨٩» أوضح من «أحد عشر رقما يبدأ بـ٠١».
+     *
+     * و`country` ليس زينة: المنصة تحول بالريال، ووجهة مصرية تعني صرفا
+     * وسعرا — فتعلم في شاشة الإدارة كي لا يفتح المحول تطبيق بنكه ثم
+     * يكتشف أنه أمام قناة أخرى.
      */
     public static $CHANNELS = array(
-        'bank'   => array('label' => 'تحويل بنكي',     'hint' => 'رقم الآيبان (يبدأ بـ SA)'),
-        'mada'   => array('label' => 'بطاقة مدى',       'hint' => 'رقم البطاقة'),
-        'stcpay' => array('label' => 'محفظة STC Pay',   'hint' => 'رقم الجوال المرتبط'),
-        'urpay'  => array('label' => 'محفظة urpay',     'hint' => 'رقم الجوال المرتبط'),
+        'bank' => array(
+            'label'   => 'تحويل بنكي',
+            'hint'    => 'رقم الآيبان (يبدأ بـ SA)',
+            'country' => 'sa',
+            'pattern' => '/^SA[0-9]{22}$/i',
+            'example' => 'SA4420000001234567891234',
+            'error'   => 'الآيبان السعودي يبدأ بـ SA ويتكون من 24 خانة.',
+        ),
+        'mada' => array(
+            'label'   => 'بطاقة مدى',
+            'hint'    => 'رقم البطاقة',
+            'country' => 'sa',
+            'pattern' => '/^[0-9]{16}$/',
+            'example' => '4111111111111111',
+            'error'   => 'رقم بطاقة مدى ستة عشر رقما بلا فواصل.',
+        ),
+        'stcpay' => array(
+            'label'   => 'محفظة STC Pay',
+            'hint'    => 'رقم الجوال المرتبط',
+            'country' => 'sa',
+            'pattern' => '/^(?:\+?966|0)5[0-9]{8}$/',
+            'example' => '0551234567',
+            'error'   => 'جوال STC Pay يبدأ بـ 05 ويتكون من عشرة أرقام.',
+        ),
+        'urpay' => array(
+            'label'   => 'محفظة urpay',
+            'hint'    => 'رقم الجوال المرتبط',
+            'country' => 'sa',
+            'pattern' => '/^(?:\+?966|0)5[0-9]{8}$/',
+            'example' => '0551234567',
+            'error'   => 'جوال urpay يبدأ بـ 05 ويتكون من عشرة أرقام.',
+        ),
+
+        /* القناتان المصريتان. الجوال المصري أحد عشر رقما يبدأ بـ ٠١٠ أو
+           ٠١١ أو ٠١٢ أو ٠١٥ — والرابع (٠١٣) لا وجود له، فقبوله يعني
+           تحويلا يرتد بعد يومين. */
+        'vodafone' => array(
+            'label'   => 'فودافون كاش',
+            'hint'    => 'رقم الجوال المرتبط بالمحفظة',
+            'country' => 'eg',
+            'pattern' => '/^(?:\+?20|0)1[0125][0-9]{8}$/',
+            'example' => '01012345678',
+            'error'   => 'رقم فودافون كاش أحد عشر رقما يبدأ بـ 010 أو 011 أو 012 أو 015.',
+        ),
+        /* انستاباي وجهتان لا واحدة: عنوان الدفع (`اسم@instapay`) أو رقم
+           الجوال. وقبول واحدة منهما وحدها يرد نصف المعلمين — ومعظم من
+           يستعمله يحفظ عنوانه لا رقمه. */
+        'instapay' => array(
+            'label'   => 'انستاباي',
+            'hint'    => 'عنوان الدفع (اسم@instapay) أو رقم الجوال',
+            'country' => 'eg',
+            'pattern' => '/^(?:[A-Za-z0-9._-]{3,40}@[A-Za-z0-9.-]{2,30}|(?:\+?20|0)1[0125][0-9]{8})$/',
+            'example' => 'ahmed@instapay',
+            'error'   => 'اكتب عنوان انستاباي مثل ahmed@instapay أو رقم جوال مصري.',
+        ),
     );
 
     private static $settings_cache = array();
@@ -603,14 +664,21 @@ class Taqdar_wallet_model extends CI_Model
         $dest    = trim((string) $destination);
 
         if (!isset(self::$CHANNELS[$channel])) {
-            return $this->fail('CHANNEL', 'اختر قناة تحويل معتمدة: تحويل بنكي أو مدى أو STC Pay أو urpay.');
+            return $this->fail('CHANNEL', 'اختر قناة تحويل معتمدة: '
+                . implode(' أو ', array_column(self::$CHANNELS, 'label')) . '.');
         }
         if ($dest === '') {
             return $this->fail('DESTINATION', 'أدخل بيانات التحويل — لا نرسل طلب مال بقناة بلا وجهة.');
         }
-        if ($channel === 'bank' && !preg_match('/^SA[0-9]{22}$/i', preg_replace('/\s+/', '', $dest))) {
-            return $this->fail('IBAN', 'الآيبان السعودي يبدأ بـ SA ويتكون من 24 خانة.');
+
+        /* الوجهة تنظف ثم تفحص بنمط قناتها. والمعادة هي المنظفة: مسافات
+           الآيبان التي يلصقها البنك تكسر المطابقة بكشف الحساب لاحقا. */
+        $dest = $this->clean_destination($channel, $dest);
+        $bad  = $this->destination_error($channel, $dest);
+        if ($bad !== '') {
+            return $this->fail('DESTINATION_FORMAT', $bad);
         }
+
         if ($amount <= 0) {
             return $this->fail('AMOUNT', 'أدخل مبلغا أكبر من صفر.');
         }
@@ -712,6 +780,34 @@ class Taqdar_wallet_model extends CI_Model
     private function fail($code, $message, $extra = array())
     {
         return array_merge(array('ok' => false, 'code' => $code, 'message' => $message, 'payout_id' => 0), $extra);
+    }
+
+    /**
+     * ينظف الوجهة بحسب قناتها. المسافات تسقط من كل قناة — البنك يعرض
+     * الآيبان مجزأ والمعلم ينسخه كما رآه. وعنوان انستاباي يصغر: العناوين
+     * غير حساسة لحالة الحرف، وحفظها كما كتبت يجعل `Ahmed@instapay`
+     * و`ahmed@instapay` وجهتين في السجل وهما واحدة.
+     */
+    public function clean_destination($channel, $value)
+    {
+        $v = preg_replace('/\s+/u', '', (string) $value);
+        if ($channel === 'bank')     return strtoupper($v);
+        if ($channel === 'instapay') return mb_strtolower($v);
+        return $v;
+    }
+
+    /**
+     * رسالة الخطأ إن كانت الوجهة لا تصلح لقناتها، وإلا نص فارغ.
+     * والرسالة تحمل **مثالا**: من كتب رقمه خطأ يصححه بالنظر إلى الشكل
+     * الصحيح أسرع مما يصححه بقراءة قاعدة.
+     */
+    public function destination_error($channel, $value)
+    {
+        if (!isset(self::$CHANNELS[$channel])) return 'قناة غير معتمدة.';
+        $c = self::$CHANNELS[$channel];
+        if (empty($c['pattern'])) return '';
+        if (preg_match($c['pattern'], (string) $value)) return '';
+        return $c['error'] . ' مثال: ' . $c['example'];
     }
 
     /** عرض الهللات ريالات في نص رسالة — حد عرض لا حساب. */
@@ -1021,10 +1117,27 @@ class Taqdar_wallet_model extends CI_Model
         return $rows;
     }
 
+    /**
+     * تقنيع الوجهة في شاشة المعلم. والرقم يقنع من أوله ويبقى آخره —
+     * أربع خانات تكفي صاحبها ليتعرف على حسابه ولا تكفي غيره ليحول إليه.
+     *
+     * وعنوان انستاباي يقنع من الطرف الآخر: `••••@instapay` لا يميز بين
+     * عنوانين، فالنطاق يبقى ويقنع الاسم — `ah••••@instapay`. والنطاق
+     * ليس سرا أصلا، وهو ما يعرف به المعلم قناته.
+     */
     private function mask($value)
     {
-        $v = preg_replace('/\s+/', '', (string) $value);
+        $v = preg_replace('/\s+/u', '', (string) $value);
         if ($v === '') return '';
+
+        $at = mb_strpos($v, '@');
+        if ($at !== false && $at > 0) {
+            $name   = mb_substr($v, 0, $at);
+            $domain = mb_substr($v, $at);
+            $keep   = mb_strlen($name) <= 2 ? $name : mb_substr($name, 0, 2);
+            return $keep . '••••' . $domain;
+        }
+
         if (mb_strlen($v) <= 4) return $v;
         return '••••' . mb_substr($v, -4);
     }
