@@ -181,6 +181,14 @@ include 'portal_open.php';
                                          الكورس فتفتح مقيدة به لا على كل شيء. */ ?>
                                 <td data-label="إجراءات">
                                     <span class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:wrap">
+                                        <?php /* «المقرر» أولا وبارزا: هو الباب الذي لم يكن
+                                                 موجودا أصلا — أقسام الكورس ودروسه، إضافة
+                                                 وتعديلا وحذفا وترتيبا. وكان المعلم يملك
+                                                 نموذج رفع درس وحده، بلا قسم يضعه فيه. */ ?>
+                                        <a class="tq-btn tq-btn--secondary tq-btn--sm"
+                                           href="<?php echo base_url('teacher/course/' . (int) $tq_c['id']); ?>">
+                                            <?php echo tq_icon('layers', 14); ?> المقرر
+                                        </a>
                                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                            href="<?php echo base_url('teacher/lessons'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
                                             دروسه

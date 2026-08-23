@@ -1,0 +1,357 @@
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * رسم حقول المنهج — نموذج واحد يطبع في لوحتين.
+ *
+ * الطلب كان: «نفس الشاشات اللي في الكورسات وإضافة الدروس تكون موجودة
+ * بالظبط عند المدرس». و«بالظبط» لا تصمد إن كتبت مرتين: أول نوع درس
+ * يضاف بعد اليوم يضاف في واحدة وينسى في الأخرى، فيرفع المعلم درسا
+ * ترفضه اللوحة أو العكس.
+ *
+ * فالحقول تطبع من `Taqdar_curriculum_model::lesson_types()` — الوصف
+ * الوحيد — ومن هنا. والفرق بين اللوحتين **أصناف CSS لا أكثر**:
+ *
+ *   · اللوحة  `tqa-*`  (Bootstrap معاد تعريفه من التوكنات)
+ *   · البوابة `tq-*`   (محرك الموقع والبوابات)
+ *
+ * وكلاهما يقرأ من `tokens.css` نفسها، فالحقل يخرج بالمظهر الصحيح في
+ * الجهتين بلا نسخة ثانية من الوسم.
+ *
+ * والدوال هنا **تطبع ولا تحكم**: التحقق كله في النموذج، وقاعدة تكتب في
+ * قالب تنسى في القالب الثاني.
+ */
+
+if (!function_exists('tq_cur_types')) {
+    /**
+     * وصف أنواع الدروس — ويضمن تحميل النموذج قبل قراءته.
+     *
+     * CodeIgniter 3 لا يحمل أصناف النماذج بالاسم: النداء الساكن على
+     * صنف لم يحمل خطأ قاتل لا تحذير. والقوالب تنادى من مواضع شتى، فمنها
+     * ما يحمل النموذج ومنها ما لا يحمله — والفرق لا يظهر إلا حين تفتح
+     * الشاشة التي نسيت.
+     */
+    function tq_cur_types()
+    {
+        $ci = &get_instance();
+        if (!isset($ci->taqdar_curriculum_model)) {
+            $ci->load->model('taqdar_curriculum_model');
+        }
+        return Taqdar_curriculum_model::lesson_types();
+    }
+}
+
+if (!function_exists('tq_cur_type')) {
+    /** نوع بمفتاحه، والغائب يسقط إلى يوتيوب — لا إلى صفحة بيضاء. */
+    function tq_cur_type($key)
+    {
+        $all = tq_cur_types();
+        return isset($all[$key]) ? $all[$key] : $all['youtube'];
+    }
+}
+
+if (!function_exists('tq_cur_kind_of')) {
+    /** مفتاح النوع من صف درس محفوظ. */
+    function tq_cur_kind_of($lesson)
+    {
+        tq_cur_types();   // يضمن التحميل
+        return Taqdar_curriculum_model::kind_of($lesson);
+    }
+}
+
+if (!function_exists('tq_cur_skin')) {
+    /**
+     * أصناف الجلد — `tqa` للوحة و`tq` للبوابة.
+     *
+     * تجمع هنا لا تبعثر في الوسم: صنف يكتب في عشرة مواضع يتغير في تسعة.
+     */
+    function tq_cur_skin($skin = 'tqa')
+    {
+        if ($skin === 'tq') {
+            return array(
+                'field'  => 'tq-field',
+                'label'  => 'tq-field__label',
+                'input'  => 'tq-input',
+                'select' => 'tq-select',
+                'area'   => 'tq-textarea',
+                'hint'   => 'tq-caption',
+                'req'    => 'tqc-req',
+                'err'    => 'tq-alert tq-alert--no',
+                'note'   => 'tqc-note',
+                'ltr'    => 'tq-ltr',
+            );
+        }
+        return array(
+            'field'  => 'tqa-field',
+            'label'  => 'tqa-field__label',
+            'input'  => 'tqa-input',
+            'select' => 'tqa-select',
+            'area'   => 'tqa-textarea',
+            'hint'   => 'tqa-field__hint',
+            'req'    => 'tqa-field__req',
+            'err'    => 'tqa-flash tqa-flash--err',
+            'note'   => 'tqa-note',
+            'ltr'    => 'tqa-input--ltr',
+        );
+    }
+}
+
+if (!function_exists('tq_cur_field')) {
+    /**
+     * يطبع حقلا واحدا من وصفه.
+     *
+     * @param string $name  اسم الحقل في النموذج
+     * @param array  $f     وصفه من `lesson_types()`
+     * @param mixed  $value قيمته الحالية (تحرير) أو '' (إنشاء)
+     * @param string $skin  'tqa' | 'tq'
+     */
+    function tq_cur_field($name, $f, $value = '', $skin = 'tqa')
+    {
+        $c    = tq_cur_skin($skin);
+        $id   = 'tqf_' . preg_replace('/[^a-z0-9_]/i', '', $name);
+        $req  = !empty($f['required']);
+        $ltr  = !empty($f['ltr']) || in_array($f['kind'], array('url', 'duration'), true);
+        $hint = isset($f['hint']) ? $f['hint'] : '';
+
+        echo '<div class="' . $c['field'] . '">';
+        echo '<label' . ($c['label'] ? ' class="' . $c['label'] . '"' : '') . ' for="' . $id . '">'
+           . html_escape($f['label'])
+           . ($req ? ' <span class="' . $c['req'] . '" aria-hidden="true">*</span>' : '')
+           . '</label>';
+
+        switch ($f['kind']) {
+
+            case 'url':
+                /* `type="url"` لا `text`: المتصفح يفحص الصيغة قبل الإرسال،
+                   ولوحة الجوال تعطي مفاتيح الرابط. */
+                echo '<input class="' . $c['input'] . ' ' . $c['ltr'] . '" type="url"'
+                   . ' id="' . $id . '" name="' . html_escape($name) . '" dir="ltr"'
+                   . ' value="' . html_escape((string) $value) . '"'
+                   . ($req ? ' required' : '')
+                   . ' data-tq-cur="url"'
+                   . (!empty($f['probe']) ? ' data-tq-probe="1"' : '')
+                   . ' placeholder="' . html_escape(isset($f['placeholder']) ? $f['placeholder'] : '') . '">';
+                if (!empty($f['probe'])) {
+                    /* قارئ المدة يكتب هنا: «يقرأ…» ثم النتيجة أو سبب
+                       التعذر. وهو يعمل في المتصفح لا في الخادم — يوتيوب
+                       يعلن مدته لمشغله، والخادم يحتاج مفتاح واجهة برمجة
+                       لا يملكه هذا التركيب. */
+                    echo '<span class="' . $c['hint'] . '" data-tq-probe-out hidden></span>';
+                }
+                break;
+
+            case 'duration':
+                $sec = is_numeric($value) ? (int) $value : 0;
+                $txt = ($sec > 0)
+                    ? sprintf('%02d:%02d:%02d', intdiv($sec, 3600), intdiv($sec % 3600, 60), $sec % 60)
+                    : (string) $value;
+                echo '<input class="' . $c['input'] . ' ' . $c['ltr'] . '" type="text"'
+                   . ' id="' . $id . '" name="' . html_escape($name) . '" dir="ltr"'
+                   . ' value="' . html_escape($txt) . '"'
+                   . ' inputmode="numeric" pattern="[0-9]{1,3}(:[0-9]{1,2}){1,2}"'
+                   . ' data-tq-cur="duration"'
+                   . ($req ? ' required' : '')
+                   . ' placeholder="00:00:00">';
+                break;
+
+            case 'file':
+                if (trim((string) $value) !== '') {
+                    /* الملف القائم يعرض باسمه ورابطه: «اختر ملفا» وحدها
+                       تجعل من يحرر درسا لا يعرف أله ملف أصلا، فيرفع
+                       ثانية بلا حاجة. */
+                    $href = (strpos((string) $value, 'http') === 0)
+                        ? (string) $value
+                        : base_url((isset($f['dir']) ? $f['dir'] : 'uploads/lesson_files') . '/' . basename((string) $value));
+                    echo '<p class="' . $c['hint'] . '" style="margin-block-end:var(--tq-space-s)">'
+                       . 'الملف الحالي: <a href="' . html_escape($href) . '" target="_blank" rel="noopener">'
+                       . html_escape(basename((string) $value)) . '</a>'
+                       . ' — واختيار ملف جديد يستبدله.</p>';
+                }
+                echo '<input type="file" id="' . $id . '" name="' . html_escape($name) . '"'
+                   . (isset($f['accept']) ? ' accept="' . html_escape($f['accept']) . '"' : '')
+                   . ($req && trim((string) $value) === '' ? ' required' : '')
+                   . ' data-tq-cur="file" data-tqa-file>';
+                break;
+
+            case 'richtext':
+            case 'textarea':
+                echo '<textarea class="' . $c['area'] . ($ltr ? ' ' . $c['ltr'] : '') . '"'
+                   . ' id="' . $id . '" name="' . html_escape($name) . '" rows="'
+                   . ($f['kind'] === 'richtext' ? 10 : 3) . '"'
+                   . ($ltr ? ' dir="ltr"' : '')
+                   . ($req ? ' required' : '')
+                   . ' data-tq-cur="' . $f['kind'] . '">'
+                   . html_escape((string) $value) . '</textarea>';
+                break;
+
+            default:
+                echo '<input class="' . $c['input'] . '" type="text"'
+                   . ' id="' . $id . '" name="' . html_escape($name) . '"'
+                   . ' value="' . html_escape((string) $value) . '"'
+                   . ($req ? ' required' : '') . '>';
+        }
+
+        if ($hint !== '') {
+            echo '<span class="' . $c['hint'] . '">' . html_escape($hint) . '</span>';
+        }
+        echo '</div>';
+    }
+}
+
+if (!function_exists('tq_cur_fields')) {
+    /**
+     * يطبع حقول نوع درس كاملة.
+     *
+     * @param array  $spec   النوع من `lesson_types()`
+     * @param array  $lesson صف الدرس عند التحرير، أو array() عند الإنشاء
+     * @param string $skin   'tqa' | 'tq'
+     */
+    function tq_cur_fields($spec, $lesson = array(), $skin = 'tqa')
+    {
+        if (empty($spec['fields'])) return;
+
+        foreach ($spec['fields'] as $name => $f) {
+            /* القيمة تقرأ من العمود الذي يكتب فيه الحقل لا من اسمه:
+               `video_file` يكتب في `video_url`، وقراءتها باسم الحقل
+               تعطي فارغا أبدا فيبدو كل درس بلا ملف. */
+            $col = $f['col'];
+            $val = '';
+            if ($f['kind'] === 'duration') {
+                $val = isset($lesson['duration_sec']) && (int) $lesson['duration_sec'] > 0
+                    ? (int) $lesson['duration_sec']
+                    : (isset($lesson['duration']) ? $lesson['duration'] : '');
+            } elseif (isset($lesson[$col])) {
+                $val = $lesson[$col];
+            }
+            tq_cur_field($name, $f, $val, $skin);
+        }
+    }
+}
+
+if (!function_exists('tq_cur_type_picker')) {
+    /**
+     * منتقي نوع الدرس — بطاقات لا قائمة منسدلة.
+     *
+     * والفرق ليس ذوقا: القائمة تعرض الاسم وحده، والفرق بين «رابط ملف
+     * مباشر» و«فيديو جوجل درايف» يقرأ من سطر التوضيح لا من الاسم. ومن
+     * اختار خطأ يكتشفه بعد أن يرفع.
+     */
+    function tq_cur_type_picker($current = 'youtube', $skin = 'tqa', $name = 'tq_kind')
+    {
+        $types = tq_cur_types();
+        $cls   = $skin === 'tq' ? 'tqc-pick' : 'tqc-pick tqc-pick--admin';
+
+        echo '<div class="' . $cls . '" role="radiogroup" aria-label="نوع الدرس">';
+        foreach ($types as $k => $t) {
+            $on = ($k === $current);
+            echo '<label class="tqc-pick__one' . ($on ? ' is-on' : '') . '">'
+               . '<input type="radio" name="' . html_escape($name) . '" value="' . html_escape($k) . '"'
+               . ($on ? ' checked' : '') . ' data-tq-kind>'
+               . '<span class="tqc-pick__ic" aria-hidden="true">' . tq_icon($t['icon'], 20) . '</span>'
+               . '<span class="tqc-pick__t">'
+               . '<b>' . html_escape($t['label']) . '</b>'
+               . '<i>' . html_escape($t['hint']) . '</i>'
+               . '</span></label>';
+        }
+        echo '</div>';
+    }
+}
+
+if (!function_exists('tq_cur_track_note')) {
+    /**
+     * ما تقوله المنصة عن تتبع هذا النوع — **قبل** أن يرفع لا بعده.
+     *
+     * ثلاث حالات لا حالتان، ولكل واحدة أثر مختلف على الطالب:
+     *
+     *   api    — يوتيوب وفيميو: مشغلهما يعلن موضعه، فيقاس ما شوهد فعلا
+     *   native — عنصر وسائط في صفحتنا: الأدق، ومعه ضبط السرعة والنص
+     *   none   — درايف وإطار خارجي: لا موضع يقرأ. والطالب يعلن إتمامه
+     *            بنفسه، وهو إقرار لا قياس
+     *
+     * وقولها هنا يمنع أن يبني معلم كورسا كاملا على درايف ثم يكتشف أن
+     * بوابة الإتقان لا تفتح لطلابه.
+     */
+    function tq_cur_track_note($spec, $skin = 'tqa')
+    {
+        $c = tq_cur_skin($skin);
+        $track = isset($spec['track']) ? $spec['track'] : 'none';
+
+        if ($track === 'native') return;   // الأدق: لا شيء يقال
+
+        if ($track === 'api') {
+            echo '<p class="' . $c['note'] . '">'
+               . '<span aria-hidden="true">' . tq_icon('help', 18) . '</span>'
+               . '<span>تقاس مشاهدة الطالب من مشغل المصدر نفسه، فتحسب الثواني التي شوهدت فعلا.'
+               . ' والرابط عام دائم بحكم استضافته عند غيرنا — فلا تضع فيه ما لا يعرض لغير المشترك.</span>'
+               . '</p>';
+            return;
+        }
+
+        echo '<p class="' . $c['note'] . ($skin === 'tqa' ? ' tqa-note--warn' : '') . '">'
+           . '<span aria-hidden="true">' . tq_icon('alert', 18) . '</span>'
+           . '<span><strong>هذا المصدر لا يعلن موضع تشغيله.</strong>'
+           . ' فلا تقاس مشاهدة الطالب فيه، ويفتح الدرس التالي بإقرار الطالب أنه أنهاه لا بقياس.'
+           . ' واستعمل يوتيوب أو ملفا مرفوعا حيث يهمك القياس.</span>'
+           . '</p>';
+    }
+}
+
+if (!function_exists('tq_cur_status_face')) {
+    /** حالة الدرس: شارة ونصها — مصدر واحد للجهتين. */
+    function tq_cur_status_face($status)
+    {
+        switch ((string) $status) {
+            case 'published': return array('ok',    'منشور');
+            case 'review':    return array('warn',  'قيد المراجعة');
+            case 'rejected':  return array('danger', 'رد للتعديل');
+            default:          return array('muted', 'مسودة');
+        }
+    }
+}
+
+if (!function_exists('tq_cur_styles')) {
+    /**
+     * ورقة منتقي النوع — تطبع مرة في الصفحة.
+     *
+     * موضعها هنا لا في `admin.css` ولا في `components.css`: هي تخص هذا
+     * المكون وحده ويطبع في المحركين، فوضعها في أحدهما يعني نسخها في
+     * الثاني. وكل قيمة من التوكنات — لا لون مباشر ولا مسافة.
+     */
+    function tq_cur_styles()
+    {
+        static $done = false;
+        if ($done) return;
+        $done = true;
+        ?>
+<style>
+.tqc-pick { display: grid; gap: var(--tq-space-s);
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            margin-block-end: var(--tq-space-l); }
+.tqc-pick__one { display: flex; gap: var(--tq-space-s); align-items: flex-start;
+                 border: 1px solid var(--tq-line); border-radius: var(--tq-radius-small);
+                 padding: var(--tq-space-m); cursor: pointer; background: var(--tq-surface); }
+.tqc-pick__one:hover { border-color: var(--tq-teal); }
+.tqc-pick__one.is-on { border-color: var(--tq-teal); background: var(--tq-mint-fill); }
+.tqc-pick__one:focus-within { outline: 2px solid var(--tq-focusRing); outline-offset: 1px; }
+.tqc-pick__one input { flex: none; margin-block-start: 3px; accent-color: var(--tq-teal); }
+.tqc-pick__ic { flex: none; color: var(--tq-teal); display: grid; place-items: center; }
+.tqc-pick__t  { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
+.tqc-pick__t b { font-size: .92rem; }
+.tqc-pick__t i { font-style: normal; font-size: .78rem; color: var(--tq-text2); }
+
+/* المدة تقرأ يمينا-يسارا دائما: `00:12:30` مقلوبة تقرأ خطأ. */
+[data-tq-cur="duration"], [data-tq-cur="url"] { unicode-bidi: isolate; }
+
+/* البوابة ليس فيها `tq-note` ولا `tq-req` — واللوحة فيها نظيراهما.
+   فيعرفان هنا بالبادئة `tqc-` (مكون المنهج) فيعملان في المحركين، ولا
+   يضاف صنف إلى ورقة عامة لأجل شاشة واحدة. */
+.tqc-req  { color: var(--tq-danger); }
+.tqc-note { display: flex; gap: var(--tq-space-s); align-items: flex-start;
+            padding: var(--tq-space-m); border-radius: var(--tq-radius-small);
+            background: var(--tq-amberSoft); color: var(--tq-text);
+            font: var(--tq-type-caption); margin-block-end: var(--tq-space-l); }
+.tqc-note > span:first-child { flex: none; color: var(--tq-navy); }
+</style>
+        <?php
+    }
+}

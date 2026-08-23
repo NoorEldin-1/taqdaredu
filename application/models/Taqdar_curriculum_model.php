@@ -454,9 +454,11 @@ class Taqdar_curriculum_model extends CI_Model
     {
         if ((isset($actor['role']) ? $actor['role'] : '') === 'admin') return true;
 
-        $v = $this->db->select('value')->where('type', 'tq_teacher_direct_publish')
-                      ->get('settings')->row('value');
-        return (string) $v === '1';
+        /* عمود المفتاح اسمه `key` وهو **كلمة محجوزة في MySQL**، فيلزمه
+           التنصيص العكسي. و`get_settings()` هي التي تعرف ذلك، فتنادى
+           بدل كتابة الاستعلام هنا — نسخة ثانية منه تنكسر متى تغير
+           المخطط، وهذا ما وقع. */
+        return (string) get_settings('tq_teacher_direct_publish') === '1';
     }
 
     /* =====================================================================

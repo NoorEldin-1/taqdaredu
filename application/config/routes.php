@@ -283,6 +283,23 @@ $route['student/(:any)']         = 'taqdar/$1';
 $route['teacher']                = 'taqdar/teacher/dashboard';
 $route['teacher/courses/save']           = 'taqdar/courses_save';
 $route['taqdar/teacher/courses/save']    = 'taqdar/courses_save';
+
+// ---- المنهج عند المعلم: الأقسام والدروس ----
+// كل هذه **قبل** `teacher/(:any)` وقبل بعضها بترتيب الأخص أولا. و`(:any)`
+// في CI3 تعني `[^/]+` أي مقطعا واحدا، فبلا هذه القواعد يسقط
+// `teacher/lesson/save` إلى `Taqdar::teacher('lesson')` — وليس في خريطة
+// أقسام البوابة قسم بهذا الاسم، فيرد 404 على كل حفظ درس. وهو الصمت الذي
+// تصفه CLAUDE.md في أول قواعد التوجيه.
+$route['teacher/section/save']    = 'taqdar/section_save';
+$route['teacher/section/delete']  = 'taqdar/section_delete';
+$route['teacher/section/sort']    = 'taqdar/section_sort';
+$route['teacher/lesson/save']     = 'taqdar/lesson_save';
+$route['teacher/lesson/delete']   = 'taqdar/lesson_delete';
+$route['teacher/lesson/sort']     = 'taqdar/lesson_sort';
+$route['teacher/lesson/move']     = 'taqdar/lesson_move';
+// شاشة المقرر — عرض، فبعد قواعد الكتابة.
+$route['teacher/course/(:num)']   = 'taqdar/teacher_course/$1';
+
 $route['teacher/(:any)']         = 'taqdar/teacher/$1';
 $route['parent']                 = 'taqdar/parent_portal/children';
 $route['parent/(:any)']          = 'taqdar/parent_portal/$1';

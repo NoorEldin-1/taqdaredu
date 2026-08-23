@@ -1406,6 +1406,159 @@ class Taqdar extends CI_Controller
             $this->result_message($r, 'حفظ الدرس وأرسل للمراجعة.'));
     }
 
+    /* ---- بوابة المعلم: المنهج ------------------------------------- */
+
+    /**
+     * فاعل المنهج — معلم محروس، بدور صريح.
+     *
+     * `Taqdar_curriculum_model::actor()` تستنتج الدور من الجلسة، وهذا
+     * يعلنه: هذا المتحكم لا يخدم إلا المعلم، والاستنتاج هنا يفتح بابا
+     * لو تغير اسم مفتاح جلسة يوما.
+     */
+    private function curric($write = true)
+    {
+        $user = $write ? $this->write_guard('teacher') : $this->require_role('teacher');
+        $this->load->model('taqdar_curriculum_model', 'tq_curric');
+        return array($user, $this->tq_curric->actor_as('teacher', (int) $user['id']));
+    }
+
+    /**
+     * شاشة مقرر كورس عند المعلم — مرآة تبويب «المقرر» في اللوحة.
+     *
+     * وهي عرض لا كتابة، فتحرس بـ`require_role` لا بـ`write_guard`.
+     * وتحقق الملكية قبل أي قراءة: كورس ليس له لا يعرض عنوانه ولا عدد
+     * دروسه — والاكتفاء بإخفاء زر ليس صلاحية.
+     */
+    public function teacher_course($course_id = 0)
+    {
+        $user = $this->require_role('teacher');
+        $this->load->model('taqdar_curriculum_model', 'tq_curric');
+
+        $course_id = (int) $course_id;
+        $actor     = $this->tq_curric->actor_as('teacher', (int) $user['id']);
+
+        if (!$this->tq_curric->may_edit_course($actor, $course_id)) {
+            $this->done('teacher/courses', false,
+                'هذا الكورس ليس ضمن كورساتك.');
+            return;
+        }
+
+        $this->show('tq_teacher_course', 'مقرر الكورس', array(
+            'tq_counts' => $this->counts((int) $user['id'], 'teacher'),
+            'user_id'   => (int) $user['id'],
+            'course_id' => $course_id,
+        ));
+    }
+
+    /** POST teacher/section/save */
+    public function section_save()
+    {
+        [$user, $actor] = $this->curric();
+
+        $course_id = (int) $this->input->post('course_id');
+        $r = $this->tq_curric->save_section($actor, $course_id,
+            (int) $this->input->post('id'), $this->input->post(null, false));
+
+        $this->trace('teacher.section.save', 'course:' . $course_id,
+            array('ok' => !empty($r['ok'])));
+        $this->done('teacher/course/' . $course_id, !empty($r['ok']),
+            $this->result_message($r, 'حفظ القسم.'));
+    }
+
+    /** POST teacher/section/delete */
+    public function section_delete()
+    {
+        [$user, $actor] = $this->curric();
+
+        $id  = (int) $this->input->post('id');
+        $cid = (int) $this->input->post('course_id');
+        $r   = $this->tq_curric->delete_section($actor, $id);
+
+        $this->trace('teacher.section.delete', 'section:' . $id,
+            array('ok' => !empty($r['ok'])));
+        $this->done('teacher/course/' . $cid, !empty($r['ok']),
+            $this->result_message($r, 'حذف القسم.'));
+    }
+
+    /** POST teacher/section/sort */
+    public function section_sort()
+    {
+        [$user, $actor] = $this->curric();
+
+        $cid = (int) $this->input->post('course_id');
+        $r   = $this->tq_curric->sort_sections($actor, $cid,
+            (array) $this->input->post('ids'));
+
+        $this->done('teacher/course/' . $cid, !empty($r['ok']),
+            $this->result_message($r, 'رتب الأقسام.'));
+    }
+
+    /** POST teacher/lesson/save */
+    public function lesson_save()
+    {
+        [$user, $actor] = $this->curric();
+
+        $id  = (int) $this->input->post('id');
+        $cid = (int) $this->input->post('course_id');
+
+        /* `post(null, false)` لا `post()`: الثانية تمرر بالمرشح الافتراضي
+           فتهرب ما يكتب، والرابط ونص الدرس يخزنان كما كتبا — انظر
+           TQ-URLESC. والتهريب موضعه العرض. */
+        $r = $this->tq_curric->save_lesson($actor, $id,
+            $this->input->post(null, false), isset($_FILES) ? $_FILES : array());
+
+        if ($cid <= 0 && !empty($r['id'])) {
+            $cid = (int) $this->tq_curric->lesson((int) $r['id'])['course_id'];
+        }
+
+        $this->trace('teacher.lesson.save', 'lesson:' . (int) ($r['id'] ?? $id),
+            array('ok' => !empty($r['ok']), 'staged' => !empty($r['staged'])));
+
+        $this->done('teacher/course/' . $cid, !empty($r['ok']),
+            $this->result_message($r, 'حفظ الدرس.'));
+    }
+
+    /** POST teacher/lesson/delete */
+    public function lesson_delete()
+    {
+        [$user, $actor] = $this->curric();
+
+        $id  = (int) $this->input->post('id');
+        $cid = (int) $this->input->post('course_id');
+        $r   = $this->tq_curric->delete_lesson($actor, $id);
+
+        $this->trace('teacher.lesson.delete', 'lesson:' . $id,
+            array('ok' => !empty($r['ok'])));
+        $this->done('teacher/course/' . $cid, !empty($r['ok']),
+            $this->result_message($r, 'حذف الدرس.'));
+    }
+
+    /** POST teacher/lesson/sort */
+    public function lesson_sort()
+    {
+        [$user, $actor] = $this->curric();
+
+        $cid = (int) $this->input->post('course_id');
+        $r   = $this->tq_curric->sort_lessons($actor,
+            (int) $this->input->post('section_id'), (array) $this->input->post('ids'));
+
+        $this->done('teacher/course/' . $cid, !empty($r['ok']),
+            $this->result_message($r, 'رتب الدروس.'));
+    }
+
+    /** POST teacher/lesson/move */
+    public function lesson_move()
+    {
+        [$user, $actor] = $this->curric();
+
+        $cid = (int) $this->input->post('course_id');
+        $r   = $this->tq_curric->move_lesson($actor,
+            (int) $this->input->post('id'), (int) $this->input->post('section_id'));
+
+        $this->done('teacher/course/' . $cid, !empty($r['ok']),
+            $this->result_message($r, 'نقل الدرس.'));
+    }
+
     /** POST teacher/marking/approve */
     public function marking_approve()
     {

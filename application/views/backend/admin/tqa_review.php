@@ -28,7 +28,7 @@ $tq_courses = isset($courses) ? $courses : array();
 $tq_course  = isset($course)  ? (int) $course : 0;
 
 /** أسماء أنواع الدروس — من الوحدة الموصوفة، لا من قائمة تكتب هنا. */
-$tq_types = Taqdar_curriculum_model::lesson_types();
+$tq_types = tq_cur_types();
 $tq_kind_label = function ($k) use ($tq_types) {
     return isset($tq_types[$k]) ? $tq_types[$k]['label'] : $k;
 };
