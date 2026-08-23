@@ -146,6 +146,13 @@ include 'tq_notif_styles.php';
 <div class="tq-cols">
     <div>
 
+        <?php /* TQ-SPAM — هذه الشاشة سجل ما وصل داخل المنصة، ونسخة كل صف
+                 منها ترسل بالبريد كذلك. فمن يقرأ هنا خبرا لم يصله بريده
+                 يقف على الفرق بعينه — وهذا موضعه.
+                 وفي العمود الرئيسي لا في الجانبي: الجانبي ينتقل تحت
+                 القائمة كلها دون 1024 بكسل، فيقرؤه من نزل مئة إشعار. */ ?>
+        <?php echo tq_spam_notice(array('what' => 'إشعاراتنا', 'class' => 'tq-spam--top')); ?>
+
         <div class="tq-row tq-row--between" style="margin-block-end:var(--tq-space-l);flex-wrap:wrap;gap:var(--tq-space-m)">
             <nav class="tq-tabs" aria-label="تصفية الإشعارات" style="margin-block-end:0;border-block-end:0">
                 <?php foreach ($tq_states as $key => $info): ?>

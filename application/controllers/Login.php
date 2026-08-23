@@ -883,6 +883,12 @@ class Login extends CI_Controller
         $this->session->set_flashdata('error_message', NULL);
         $this->session->set_flashdata('flash_message',
             'إن كان لهذا البريد حساب لدينا فقد أرسلنا إليه رابط إعادة التعيين. راجع بريدك.');
+        /* TQ-SPAM — العنوان الذي كتب، ليعرف تنبيه «الرسائل غير المرغوبة»
+           أي مزود يفتح له مباشرة. ولا يعاد في `value` الحقل (`tq_old_email`
+           لذلك، ولا يودع إلا عند الرفض): نموذج يعاد ملؤه بعد نجاح يقرأ
+           دعوة إلى إرسال ثان. ولا يفشي شيئا — هو ما كتبه صاحبه للتو،
+           والجواب يبقى واحدا سواء وجد الحساب أو لم يوجد. */
+        $this->session->set_flashdata('tq_sent_to', $email);
         redirect($back, 'refresh');
     }
 

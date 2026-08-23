@@ -81,6 +81,11 @@ include 'portal_open.php';
                 </table>
             </div>
         <?php endif; ?>
+
+        <?php /* TQ-SPAM — كل عملية هنا خرجت بفاتورتها بالبريد، والفاتورة
+                 التي لا تصل تجعل صاحبها يظن أن الدفع لم يتم. مطوي: هذه
+                 شاشة سجل، والحقيقة معروضة أمامه في الجدول. */ ?>
+        <?php echo tq_spam_notice(array('compact' => true, 'id' => 'tq-spam-pay')); ?>
     </div>
 
     <aside class="tq-aside">

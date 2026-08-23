@@ -202,6 +202,10 @@ include 'portal_open.php';
             </div>
 
         <?php endif; ?>
+
+        <?php /* TQ-SPAM — فواتير ولي الأمر تخرج بالبريد كذلك. مطوي: هذه
+                 شاشة سجل لا شاشة انتظار رسالة. */ ?>
+        <?php echo tq_spam_notice(array('compact' => true, 'id' => 'tq-spam-ppay')); ?>
     </div>
 
     <aside class="tq-aside">

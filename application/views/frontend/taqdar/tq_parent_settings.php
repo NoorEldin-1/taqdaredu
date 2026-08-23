@@ -206,6 +206,15 @@ include 'portal_open.php';
                 وهذه الشاشة تحدد أيها تريد.
             </p>
 
+            <?php /* TQ-SPAM — ولي الأمر أشد الثلاثة تضررا: ما يصله بالبريد
+                     هو رسوب ابنه وانقطاعه وتقرير أحده، وهي أخبار لا يعلم
+                     أنها فاتته أصلا. فتنبيه «الرسائل غير المرغوبة» فوق
+                     المفاتيح لا تحتها. */ ?>
+            <?php echo tq_spam_notice(array(
+                'email' => (string) ($u['email'] ?? ''),
+                'what'  => 'تنبيهاتنا وتقريرك الأسبوعي',
+            )); ?>
+
             <form method="post" action="<?php echo base_url('parent/settings/save'); ?>">
                 <?php echo tq_csrf(); ?>
                 <input type="hidden" name="tq_action" value="prefs_save">

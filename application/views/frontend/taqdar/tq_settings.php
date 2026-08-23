@@ -250,6 +250,8 @@ include 'portal_open.php';
                                        value="<?php echo html_escape($u['email'] ?? ''); ?>">
                                 <span class="tq-field__msg tq-field__hint" id="tq-email-hint">
                                     بريدك هو اسم دخولك — تغييره يغير ما تسجل به الدخول.
+                                    ولا تصلك رسائلنا عليه؟
+                                    <a href="<?php echo base_url('student/settings?s=alerts#tq-spam'); ?>">اقرأ ما تفعله في دقيقة</a>.
                                 </span>
                             </div>
 
@@ -420,6 +422,15 @@ include 'portal_open.php';
                             لكل نوع قناتان مستقلتان — إيقاف قناة لا يوقف الأخرى.
                             وليست هناك قناة «إشعار على الجهاز» لأن المنصة لا ترسل إشعارات دفع بعد.
                         </p>
+
+                        <?php /* TQ-SPAM — قناة البريد مفعلة في الجدول أدناه ولا يصل
+                                 منها شيء: مزود البريد صنفها غير مرغوبة. ومن لا يعرف
+                                 ذلك يقلب المفاتيح هنا مرارا ولا يتغير شيء، ثم يوقفها
+                                 كلها. فالتنبيه فوق الجدول لا تحته. */ ?>
+                        <?php echo tq_spam_notice(array(
+                            'email' => (string) ($u['email'] ?? ''),
+                            'what'  => 'إشعاراتنا',
+                        )); ?>
 
                         <form method="post" action="<?php echo $tq_save; ?>">
                             <?php echo tq_csrf(); ?>

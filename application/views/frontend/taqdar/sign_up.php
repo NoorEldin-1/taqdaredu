@@ -340,6 +340,11 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
         <button class="btn btn--primary btn--block" type="submit">إنشاء الحساب</button>
       </form>
 
+      <?php /* TQ-SPAM — يقرأ قبل أن يغادر إلى صندوقه لا بعد أن ييأس فيه.
+               وشاشة التأكيد تحمل التنبيه كاملا مفتوحا، وهذا هنا مطوي:
+               نموذج من أحد عشر حقلا لا يحتمل لوحة رابعة فوق زر الإرسال. */ ?>
+      <?php echo tq_spam_notice(array('compact' => true, 'id' => 'tq-spam-su')); ?>
+
       <p class="form-alt">لديك حساب؟
         <a href="<?php echo base_url('login'); ?>?as=<?php echo $tq_gate; ?>"
            id="signupLoginLink">سجل الدخول</a></p>

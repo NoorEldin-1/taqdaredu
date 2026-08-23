@@ -35,8 +35,19 @@ include __DIR__ . '/site/site_pagehero.php';
 
       <p class="form-hint form-hint--box">
         <svg aria-hidden="true"><use href="#i-clock"></use></svg>
-        <span>الرابط صالح لمدة محدودة ويستعمل مرة واحدة. إن لم يصلك خلال دقائق فراجع مجلد الرسائل غير المرغوبة.</span>
+        <span>الرابط صالح لمدة محدودة ويستعمل مرة واحدة. وإن لم يصلك خلال دقائق فاقرأ ما تحته.</span>
       </p>
+
+      <?php /* TQ-SPAM — الرابط الذي لا يصل يترك صاحبه خارج حسابه.
+               وكان هنا نصف سطر يقول «فراجع مجلد الرسائل غير المرغوبة» —
+               وهو صحيح ولا يكفي: لا يقول أين المجلد، ولا ما يفعل حين
+               يجد الرسالة، فتذهب الرسالة التالية إلى المجلد نفسه.
+               والوجهة تعرف بعد الإرسال (`tq_sent_to`)، فيفتح له مزوده هو. */ ?>
+      <?php echo tq_spam_notice(array(
+          'email' => (string) ($this->session->flashdata('tq_sent_to')
+                     ?: $this->session->flashdata('tq_old_email')),
+          'what'  => 'رابط إعادة التعيين',
+      )); ?>
 
       <p class="form-alt"><a href="<?php echo base_url('login'); ?>">عودة إلى تسجيل الدخول</a></p>
       </div>

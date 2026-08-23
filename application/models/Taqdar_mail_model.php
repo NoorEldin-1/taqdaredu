@@ -382,6 +382,32 @@ class Taqdar_mail_model extends CI_Model
 
       . $button
 
+      /* **TQ-SPAM — التعليمة توضع حيث يقرؤها من يحتاجها.**
+
+         كل شاشة في المنصة تقول لمن لم تصله الرسالة: ابحث في «الرسائل غير
+         المرغوبة» ثم اضغط «ليس بريدا غير مرغوب». وذلك نصف الحل: من فتح
+         المجلد ووجد الرسالة قرأ ما فيها ومضى، فذهبت الرسالة التالية إلى
+         المجلد نفسه. **والسطر هنا يقرؤه وهو داخل المجلد**، فيقول له
+         الضغطة في موضع الضغطة.
+
+         وهو لكل رسالة لا لرسالة: القالب واحد، فما يضاف هنا يخرج مع رمز
+         التأكيد والفاتورة والتقرير الأسبوعي جميعا.
+
+         وبأسلوب السطور لا بلوح ملون: لوح تحذير في كل رسالة يقرأ إلحاحا،
+         والمرشحات نفسها تنظر إليه بريبة. */
+      . '<tr><td dir="rtl" style="padding:14px 28px 0">'
+      . '<table role="presentation" cellpadding="0" cellspacing="0" border="0"'
+      . ' style="width:100%;background:#FBF3E4;border-radius:12px">'
+      . '<tr><td dir="rtl" style="padding:12px 14px;'
+      . 'font:400 12px/1.85 Tahoma,Arial,sans-serif;color:#5A4A2E">'
+      . '<b style="color:#8A5D18">وصلتك هذه الرسالة في «الرسائل غير المرغوبة»؟</b><br>'
+      . 'اضغط <b>«ليس بريدا غير مرغوب»</b> (Not spam) وأضف '
+      . '<span style="direction:ltr;unicode-bidi:isolate">'
+      . html_escape($this->config()['from'] ?: $this->config()['send_as'])
+      . '</span> إلى جهات اتصالك — فتصلك بقية رسائلنا في صندوق الوارد.'
+      . '</td></tr></table>'
+      . '</td></tr>'
+
       . '<tr><td dir="rtl" style="padding:16px 28px 22px;border-top:1px solid #E6EAED;'
       . 'font:400 12px/1.8 Tahoma,Arial,sans-serif;color:#5A6672">'
       . 'هذه رسالة آلية من ' . $name . '. '

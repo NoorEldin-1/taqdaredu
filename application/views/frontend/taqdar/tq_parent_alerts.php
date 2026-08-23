@@ -102,6 +102,11 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
+        <?php /* TQ-SPAM — ما يصل ولي الأمر بالبريد هو رسوب ابنه وانقطاعه
+                 وتقرير أحده، وهي أخبار لا يعلم أنها فاتته أصلا: لا شيء
+                 ينبهه إلى غيابها. فالتنبيه في أعلى شاشة تنبيهاته. */ ?>
+        <?php echo tq_spam_notice(array('what' => 'تنبيهاتنا', 'class' => 'tq-spam--top')); ?>
+
         <!-- ما يستحق المقاطعة -->
         <section class="tq-section" aria-labelledby="tq-urgent-h">
             <div class="tq-sectionhead">
