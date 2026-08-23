@@ -269,6 +269,10 @@ class Taqdar_admin_model extends CI_Model
                 'icon'         => 'package',
                 'order_by'     => array('order' => 'ASC'),
                 'note'         => 'تعديل باقة لا يمس اشتراكا قائما: السعر والنطاق ينسخان وقت الشراء، فمن اشترك أمس يبقى على ما دفع.',
+                /* `teacher_pool_percent` عمود يضاف وقت التشغيل، وهذه
+                   الوحدة تعرضه في القائمة وتحفظه من النموذج — فيركب قبل
+                   أن يقرأ، لا عند أول بيعة. */
+                'ensure'       => 'taqdar_revenue_model',
                 'form_extra'   => array('tqa_plan_reach', 'tqa_plan_split'),
                 'form_js'      => 'tqa_plan_js',
                 'status_fn'    => 'plan_visibility',

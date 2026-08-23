@@ -158,6 +158,16 @@ class Taqdar_revenue_model extends CI_Model
         return true;
     }
 
+    /**
+     * الاسم الذي تناديه به وحدات اللوحة (`'ensure'` في `spec()`) — وهو
+     * الاسم نفسه في `Taqdar_diag_model` و`Taqdar_content_model`. واسمان
+     * لفعل واحد يجعل من يضيف وحدة غدا يبحث عن أيهما لهذا النموذج.
+     */
+    public function ensure_schema()
+    {
+        return $this->install_schema();
+    }
+
     private function seed_setting($key, $value)
     {
         $row = $this->db->select('id')->where('key', $key)->get('settings')->row_array();
@@ -714,10 +724,37 @@ class Taqdar_revenue_model extends CI_Model
      *  القراءة — للشاشات
      * ================================================================ */
 
+    /**
+     * قراءة لا تبيض شاشة.
+     *
+     * TQ-REVENUE-READ — `revenue_shares` ينشأ وقت التشغيل كما تنشأ
+     * `site_content` و`tq_otp`، ومنشئه `install_schema()`. وكان ينادى
+     * من طريق الكتابة وحده (`credit_plan_sale`)، فأول من يقرأ قبل أول
+     * بيعة يقرأ **جدولا غير موجود**: يرد التعريف `FALSE`، ثم
+     * `result_array()` عليه خطأ قاتل — وصفحة بيضاء على شاشة مال أسوأ
+     * ما يعرض لمعلم يسأل «كم لي؟».
+     *
+     * فالبنية تركب أولا هنا كما تركب هناك، وما بقي من عطل يسجل ويرد
+     * فارغا: كشف حساب بلا سطور شرح أهون من كشف لا يفتح. وهي القاعدة
+     * نفسها التي تكتب بها استعلامات اللوحة على الجداول الوليدة
+     * (`safe_rows` في `Taqdar_admin_model`).
+     */
+    private function read_rows($sql, $args = array())
+    {
+        try {
+            $this->install_schema();
+            $q = $this->db->query($sql, $args);
+            return $q instanceof CI_DB_result ? $q->result_array() : array();
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-REVENUE read: ' . $e->getMessage());
+            return array();
+        }
+    }
+
     /** صفوف قسمة اشتراك، بأسماء معلميها. */
     public function shares_of($subscription_id)
     {
-        return $this->db->query(
+        return $this->read_rows(
             'SELECT r.*,
                     TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) teacher_name,
                     u.`email` teacher_email
@@ -726,7 +763,7 @@ class Taqdar_revenue_model extends CI_Model
               WHERE r.`subscription_id` = ?
               ORDER BY r.`amount_halalas` DESC, r.`teacher_id` ASC',
             array((int) $subscription_id)
-        )->result_array();
+        );
     }
 
     /**
@@ -735,29 +772,47 @@ class Taqdar_revenue_model extends CI_Model
      */
     public function shares_for_teacher($teacher_id, $limit = 200)
     {
-        $rows = $this->db->query(
+        $rows = $this->read_rows(
             'SELECT r.*, p.`name_ar` plan_name, p.`code` plan_code
                FROM `revenue_shares` r
                LEFT JOIN `plans` p ON p.`id` = r.`plan_id`
               WHERE r.`teacher_id` = ?
               ORDER BY r.`id` DESC LIMIT ' . (int) $limit,
             array((int) $teacher_id)
-        )->result_array();
+        );
 
         $by = array();
         foreach ($rows as $r) $by['plansub:' . (int) $r['subscription_id']] = $r;
         return $by;
     }
 
+    /**
+     * ما بيع فعلا من باقة: كم اشتراكا، وكم وزع على معلميها.
+     * يفرق بين المعاينة (ما سيقسم) والتاريخ (ما قسم) في شاشة الباقة.
+     */
+    public function plan_sales($plan_id)
+    {
+        $rows = $this->read_rows(
+            'SELECT COUNT(DISTINCT `subscription_id`) n,
+                    COALESCE(SUM(`amount_halalas`),0) s
+               FROM `revenue_shares` WHERE `plan_id` = ?',
+            array((int) $plan_id)
+        );
+        $r = $rows ? $rows[0] : null;
+        return array('count' => (int) ($r ? $r['n'] : 0),
+                     'paid'  => (int) ($r ? $r['s'] : 0));
+    }
+
     /** إجماليات معلم من قسمات الباقات — للوحة وللمحفظة. */
     public function teacher_totals($teacher_id)
     {
-        $r = $this->db->query(
+        $rows = $this->read_rows(
             'SELECT COUNT(*) n, COALESCE(SUM(`amount_halalas`),0) s,
                     COALESCE(SUM(`gross_halalas`),0) g
                FROM `revenue_shares` WHERE `teacher_id` = ?',
             array((int) $teacher_id)
-        )->row_array();
+        );
+        $r = $rows ? $rows[0] : null;
         return array(
             'sales'  => (int) ($r ? $r['n'] : 0),
             'earned' => (int) ($r ? $r['s'] : 0),

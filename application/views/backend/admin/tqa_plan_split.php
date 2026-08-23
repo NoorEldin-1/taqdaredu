@@ -194,18 +194,11 @@ $money = function ($halalas) {
         <?php endif; ?>
 
         <?php /* ما وقع فعلا — يفرق بين المعاينة والتاريخ. */ ?>
-        <?php if ($rid > 0):
-            $sold = $CI->db->query(
-                'SELECT COUNT(DISTINCT `subscription_id`) n,
-                        COALESCE(SUM(`amount_halalas`),0) s
-                   FROM `revenue_shares` WHERE `plan_id` = ?',
-                array((int) $rid)
-            )->row_array();
-        ?>
-            <?php if ($sold && (int) $sold['n'] > 0): ?>
+        <?php if ($rid > 0): $sold = $REV->plan_sales($rid); ?>
+            <?php if ($sold['count'] > 0): ?>
                 <p class="tqa-split__sold">
-                    بيعت هذه الباقة <b><?php echo (int) $sold['n']; ?></b> مرة، ووزع عن مبيعاتها
-                    <b><?php echo $money((int) $sold['s']); ?></b> على معلميها.
+                    بيعت هذه الباقة <b><?php echo (int) $sold['count']; ?></b> مرة، ووزع عن مبيعاتها
+                    <b><?php echo $money($sold['paid']); ?></b> على معلميها.
                     وتعديل النسبة الآن يخص ما يباع بعده وحده — القسمة تجمد وقت التفعيل،
                     فمن اشترك أمس قسم ماله على نسبة أمس.
                 </p>
