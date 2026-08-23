@@ -252,12 +252,22 @@ include 'portal_open.php';
     });
   }
 
+  /** رمز الجلسة — يطبعه `portal_open.php` في `<meta name="tq-csrf">`. */
+  function tqCsrf() {
+    var m = document.querySelector('meta[name="tq-csrf"]');
+    return m ? m.getAttribute('content') || '' : '';
+  }
+
   function api(path, opts) {
     opts = opts || {};
+    /* TQ-GATE-CSRF — الرمز في الترويسة: `$_POST` فارغ مع جسم JSON،
+       فكان كل نداء كتابة يرد 403 قبل أن يبلغ المتحكم. */
+    var h = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    if (opts.method && opts.method !== 'GET') h['X-CSRF-Token'] = tqCsrf();
     return fetch(GATE + '/' + path, {
       method: opts.method || 'GET',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: h,
       body: opts.body ? JSON.stringify(opts.body) : undefined
     }).then(function (r) {
       return r.json().then(function (j) {

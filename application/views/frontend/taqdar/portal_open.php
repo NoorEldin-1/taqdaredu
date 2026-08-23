@@ -22,6 +22,14 @@ $tq_role = $tq_role ?? 'student';
    بلا خطأ في الكونسول: مربع فارغ مكان القفل والبنك والعلم. */
 ?>
 <?php include __DIR__ . '/site/site_sprite.php'; ?>
+
+<?php /* TQ-GATE-CSRF — رمز الجلسة، يقرؤه كل عميل ينادي `taqdar_gate`.
+         موضعه هنا لا في كل صفحة: أربع شاشات تنادي البوابة اليوم، وخامسة
+         تضاف غدا فتنسى الرمز فترد كل كتاباتها 403 — وهو ما كان يقع.
+         و`meta` لا حقل مخفي: النداء `fetch` بجسم JSON لا نموذج. */ ?>
+<meta name="tq-csrf" content="<?php
+    echo isset($this->security) ? html_escape($this->security->get_csrf_hash()) : ''; ?>">
+
 <div class="tq-shell">
 
     <?php include 'portal_rail.php'; ?>

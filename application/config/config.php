@@ -507,6 +507,26 @@ $config['csrf_exclude_uris'] = array(
 	'home/sendEmailToAssignedAddresses',
 	'.*/ajax_.*',
 	'.*_ajax',
+
+	/* TQ-GATE-CSRF -- the mastery gate speaks JSON, and CI3 cannot read it.
+	 *
+	 * CI_Security::csrf_verify() looks for the token in $_POST. A request
+	 * whose body is application/json leaves $_POST empty, so the check fails
+	 * before the controller is reached: EVERY POST to taqdar_gate answered
+	 * 403 "The action you have requested is not allowed." -- progress,
+	 * review_start, review_submit, note_add, practice_answer. That is the
+	 * whole mastery gate, the core of the product, and it had never worked
+	 * in a browser since csrf_protection was turned on.
+	 *
+	 * Excluding it here does NOT drop the protection. The gate authenticates
+	 * by session cookie, so it needs CSRF defence more than most; it just
+	 * needs one that can read a JSON request. Taqdar_gate::require_post()
+	 * verifies the same token itself, taken from the X-CSRF-Token header and
+	 * compared with hash_equals() against this session's hash -- the
+	 * double-submit pattern. A cross-site page can make the browser send the
+	 * cookie, but it cannot read the token to put in the header.
+	 */
+	'taqdar_gate/.*',
 );
 
 /*

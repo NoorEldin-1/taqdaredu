@@ -188,13 +188,61 @@ class Taqdar_gate extends CI_Controller
         return $uid;
     }
 
+    /**
+     * كتابة: POST، ومعها رمز مضاد للتزوير يقرأ من الترويسة.
+     *
+     * TQ-GATE-CSRF — **كل POST إلى هذه البوابة كان يرد 403.**
+     *
+     * `CI_Security::csrf_verify()` يبحث عن الرمز في `$_POST`. وجسم هذه
+     * النقاط `application/json`، فـ`$_POST` فارغ دائما — فيسقط الفحص
+     * **قبل أن يبلغ المتحكم**، ويرد CodeIgniter صفحة HTML بـ«The action
+     * you have requested is not allowed». وأثر ذلك أن بوابة الإتقان كلها
+     * — تسجيل المشاهدة، وبدء المراجعة، وتسليمها، والملاحظات، وأجوبة
+     * التمرين — لم تعمل في متصفح قط منذ فتح `csrf_protection`. وهو تفسير
+     * «الطالب يشاهد الفيديو ولا يسجل له تقدم» من جهته الثانية: يوتيوب لا
+     * يرسل حدثا، وحين يرسل غيره يرد الخادم 403.
+     *
+     * والعلاج ليس إسقاط الحماية: هذه البوابة تستوثق **بكعكة الجلسة**،
+     * فهي أحوج ما يكون إليها. وإنما فحص يقرأ JSON:
+     * `csrf_exclude_uris` يستثنيها من فحص CodeIgniter الذي لا يقرأ
+     * الجسم، وتفحص هي الرمز نفسه من ترويسة `X-CSRF-Token` مقابل هاش هذه
+     * الجلسة — نمط الإرسال المزدوج. فصفحة من نطاق آخر تستطيع أن تجعل
+     * المتصفح يرسل الكعكة، ولا تستطيع أن تقرأ الرمز لتضعه في الترويسة.
+     */
     private function require_post()
     {
         if (strtoupper($this->input->server('REQUEST_METHOD')) !== 'POST') {
             $this->fail('VALIDATION', array('reason' => 'method_not_allowed', 'expected' => 'POST'));
             return false;
         }
+        if (!$this->csrf_ok()) {
+            $this->fail('CSRF', array('reason' => 'bad_or_missing_token'));
+            return false;
+        }
         return true;
+    }
+
+    /**
+     * هل تحمل الترويسة رمز هذه الجلسة؟
+     *
+     * `hash_equals` لا `===`: المقارنة الحرفية تسرب طول المطابقة بزمنها.
+     * والرمز يقبل من الترويسة أو من الجسم — عميل يرسل نموذجا عاديا
+     * (لا JSON) يضعه حقلا، ومنع ذلك يجعل النقطة تخدم عميلا واحدا.
+     */
+    private function csrf_ok()
+    {
+        $name = (string) $this->config->item('csrf_token_name');
+        $hash = (string) $this->security->get_csrf_hash();
+        if ($hash === '') return true;   // الحماية مطفأة في هذا التركيب
+
+        $sent = (string) $this->input->get_request_header('X-CSRF-Token', true);
+        if ($sent === '') $sent = (string) $this->input->post($name);
+        if ($sent === '') {
+            $body = $this->body($name);
+            if (is_scalar($body)) $sent = (string) $body;
+        }
+
+        return $sent !== '' && hash_equals($hash, $sent);
     }
 
     /* ================================================================

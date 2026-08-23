@@ -29,6 +29,10 @@ class Taqdar_repo_model extends CI_Model
         'NOT_FOUND'         => array(404, 'Resource not found.',                         'العنصر المطلوب غير موجود'),
         'NO_REVIEW'         => array(404, 'No review is attached to this lesson.',        'لا توجد مراجعة مرتبطة بهذا الدرس'),
         'VALIDATION'        => array(422, 'Invalid input.',                              'بيانات غير صالحة'),
+        /* TQ-GATE-CSRF · رمز مضاد للتزوير غائب أو بائت. والرسالة تقول
+           «حدث الصفحة» لا «ممنوع»: هذا ما يقع فعلا حين تترك الصفحة
+           مفتوحة حتى تنتهي الجلسة، وهو ما يصلحه المستخدم بنفسه. */
+        'CSRF'              => array(403, 'Security token missing or stale.',            'انتهت صلاحية الصفحة — حدثها ثم أعد المحاولة'),
         'INTERNAL'          => array(500, 'Unexpected error.',                           'حدث خطأ غير متوقع'),
     );
 
@@ -364,39 +368,108 @@ class Taqdar_repo_model extends CI_Model
         return $this->db->where('id', $id)->get('assessments')->row_array();
     }
 
-    /** عدد الأسئلة المرتبطة بأهداف الدرس. */
+    /**
+     * معرف تقييم مراجعة الدرس — بلا إنشاء.
+     *
+     * يقرأ مرة ويخبأ: `review_questions()` و`count_review_questions()`
+     * تنادى كل منهما مرات في الطلب الواحد، وكلتاهما تحتاجه.
+     */
+    private function review_assessment_id($lesson_id)
+    {
+        $lesson_id = (int) $lesson_id;
+        if (!isset($this->_review_as_cache[$lesson_id])) {
+            $this->_review_as_cache[$lesson_id] = (int) $this->db
+                ->select('id')->where('type', 'review')->where('lesson_id', $lesson_id)
+                ->get('assessments')->row('id');
+        }
+        return $this->_review_as_cache[$lesson_id];
+    }
+    private $_review_as_cache = array();
+
+    /**
+     * كم سؤالا لبوابة هذا الدرس — من أي المصدرين.
+     *
+     * TQ-QSOURCE — **مصدران لا واحد، والمؤلف يعلو.**
+     *
+     * كانت أسئلة البوابة تشتق من الأهداف وحدها: `question.objective_id`
+     * يشير إلى هدف، والهدف إلى درس. وهذا يكفي مسارا واحدا — أن يؤلف
+     * السؤال في «بنك الأسئلة» ثم يربط بهدف من شاشة الربط — وهو مساران
+     * وشاشتان لشيء واحد.
+     *
+     * فصار للمعلم أن يؤلف أسئلة الدرس في موضعه ودفعة واحدة
+     * (`Taqdar_quiz_model`)، وهي تنسب إلى التقييم مباشرة
+     * (`question.assessment_id`). وحين توجد فهي الاختبار، وحين لا توجد
+     * تبقى أسئلة الأهداف تعمل كما كانت حرفا بحرف.
+     *
+     * ولم يصر هذا نظام اختبارات رابعا: التقييم هو `type='review'` نفسه،
+     * فالقفل والمحاولات الثلاث ودفتر الأخطاء وخريطة الإتقان تعمل بلا
+     * تغيير — انظر رأس [Taqdar_quiz_model.php].
+     */
     public function count_review_questions($lesson_id)
     {
-        $sql = 'SELECT COUNT(*) AS c
-                FROM `question` q
-                JOIN `objectives` o ON o.`id` = q.`objective_id`
-                WHERE o.`lesson_id` = ?';
-        $r = $this->db->query($sql, array((int) $lesson_id))->row_array();
+        $lesson_id = (int) $lesson_id;
+
+        $as = $this->review_assessment_id($lesson_id);
+        if ($as > 0) {
+            $n = (int) $this->db->query(
+                'SELECT COUNT(*) AS c FROM `question` WHERE `assessment_id` = ?',
+                array($as))->row('c');
+            if ($n > 0) return $n;
+        }
+
+        $r = $this->db->query(
+            'SELECT COUNT(*) AS c
+               FROM `question` q
+               JOIN `objectives` o ON o.`id` = q.`objective_id`
+              WHERE o.`lesson_id` = ?', array($lesson_id))->row_array();
         return (int) $r['c'];
     }
 
     /**
-     * أسئلة مراجعة الدرس — ٥ افتراضا (إعداد mastery_review_questions).
-     * بلا correct_answers أبدا.
+     * أسئلة بوابة الدرس — بلا `correct_answers` أبدا.
+     *
+     * المؤلفة تخرج **كلها** بترتيب مؤلفها: الاختبار مصمم، وقص خمسة منه
+     * يجعل ما يقيسه غير ما كتب. والمشتقة من الأهداف تبقى على حدها
+     * (`mastery_review_questions`، افتراضه خمسة) كما كانت.
      */
     public function review_questions($lesson_id, $limit = null)
     {
-        $limit = $limit ? (int) $limit : (int) $this->setting('mastery_review_questions', 5);
+        $lesson_id = (int) $lesson_id;
+
         /* TQ-QIMG · العمود يضمن قبل ان يقرأ: `question` جدول موروث بلا
            هجرة، وقراءة عمود لا وجود له تسقط الشاشة كلها لا السؤال. */
         tq_qimage_ensure('question');
 
-        $sql = 'SELECT q.`id`, q.`title`, q.`type`, q.`number_of_options`, q.`options`,
-                       q.`image`,
-                       q.`objective_id`, o.`text` AS objective_text, o.`at_second`
-                FROM `question` q
-                JOIN `objectives` o ON o.`id` = q.`objective_id`
-                WHERE o.`lesson_id` = ?
-                ORDER BY o.`at_second` ASC, q.`order` ASC, q.`id` ASC
-                LIMIT ' . $limit;
-        $rows = $this->db->query($sql, array((int) $lesson_id))->result_array();
+        $as = $this->review_assessment_id($lesson_id);
+        $rows = array();
+
+        if ($as > 0) {
+            $rows = $this->db->query(
+                'SELECT q.`id`, q.`title`, q.`type`, q.`number_of_options`, q.`options`,
+                        q.`image`, q.`objective_id`, o.`text` AS objective_text, o.`at_second`
+                   FROM `question` q
+                   LEFT JOIN `objectives` o ON o.`id` = q.`objective_id`
+                  WHERE q.`assessment_id` = ?
+                  ORDER BY q.`order` ASC, q.`id` ASC',
+                array($as))->result_array();
+        }
+
+        if (!$rows) {
+            $limit = $limit ? (int) $limit : (int) $this->setting('mastery_review_questions', 5);
+            $rows  = $this->db->query(
+                'SELECT q.`id`, q.`title`, q.`type`, q.`number_of_options`, q.`options`,
+                        q.`image`, q.`objective_id`, o.`text` AS objective_text, o.`at_second`
+                   FROM `question` q
+                   JOIN `objectives` o ON o.`id` = q.`objective_id`
+                  WHERE o.`lesson_id` = ?
+                  ORDER BY o.`at_second` ASC, q.`order` ASC, q.`id` ASC
+                  LIMIT ' . $limit,
+                array($lesson_id))->result_array();
+        }
+
         foreach ($rows as &$r) {
             $r['options'] = $r['options'] ? json_decode($r['options'], true) : array();
+            if (!is_array($r['options'])) $r['options'] = array();
             /* الرابط لا اسم الملف: الواجهة لا تعرف اين يعيش المجلد، وبناؤه
                فيها يعني معرفة مسار الخادم في جافاسكربت. */
             $r['image'] = tq_qimage_url($r['image']);
@@ -660,9 +733,13 @@ class Taqdar_repo_model extends CI_Model
                 'completed_at'  => $progress ? $progress['completed_at'] : null,
                 'mastered_at'   => $progress ? $progress['mastered_at']  : null,
             ),
+            /* العدد يحسب لا يقرأ من إعداد.
+               كان `mastery_review_questions` — رقم عام افتراضه خمسة —
+               فتقول الشاشة «خمسة أسئلة قصيرة» على اختبار فيه ثلاثة، أو
+               فيه عشرة. والعدد المعروض قبل البدء وعد، وإخلافه يقرأ عطلا. */
             'review' => $review ? array(
                 'assessment_id'  => (int) $review['id'],
-                'question_count' => (int) $this->setting('mastery_review_questions', 5),
+                'question_count' => count($this->review_questions($id)),
                 'pass_mark'      => $this->pass_mark($review),
                 'attempts'       => $attempts,
             ) : null,

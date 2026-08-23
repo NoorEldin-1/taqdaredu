@@ -36,6 +36,7 @@ $tq_cid = isset($course_id) ? (int) $course_id : 0;
 
 $CI = get_instance();
 $CI->load->model('taqdar_curriculum_model', 'tq_curric');
+$CI->load->model('taqdar_quiz_model', 'tq_quiz');
 
 $tq_course = $CI->db->select('id, title, status, thumbnail, level')
                     ->where('id', $tq_cid)->get('course')->row_array();
@@ -45,6 +46,10 @@ $tq_sub   = 'أقسام هذا الكورس ودروسه — والنشر بعد
 
 $tq_outline = $CI->tq_curric->outline($tq_cid);
 $tq_types   = tq_cur_types();
+
+/* أعداد أسئلة اختبارات المقرر — استعلام واحد، فلا استعلام في حلقة على
+   مقرر قد يحمل مئة درس. */
+$tq_qcounts = $CI->tq_quiz->counts_for_course($tq_cid);
 
 /* الاقتراحات المعلقة تقرأ مرة لكل الدروس: استعلام لكل صف يعني استعلاما
    في حلقة على مقرر قد يحمل مئة درس. */
@@ -238,6 +243,17 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
                     </div>
                 </div>
                 <div class="tqc-acts">
+                    <?php /* الاختبار بجوار درسه لا في شاشة بعيدة: هو الذي
+                             يفتح الدرس التالي، فموضعه حيث يبنى الدرس.
+                             والعدد يظهر في الزر — «الاختبار» وحدها لا
+                             تقول أفيه أسئلة أم لا. والأعداد كلها قرئت
+                             باستعلام واحد أعلى الصفحة لا باستعلام لكل صف. */
+                          $tq_qn = $tq_qcounts[$tq_l['id']] ?? 0; ?>
+                    <a class="tq-btn <?php echo $tq_qn > 0 ? 'tq-btn--ghost' : 'tq-btn--secondary'; ?> tq-btn--sm"
+                       href="<?php echo base_url('teacher/quiz/' . (int) $tq_l['id']); ?>">
+                        <?php echo tq_icon('help', 14); ?>
+                        <?php echo $tq_qn > 0 ? 'الاختبار (' . tq_iso($tq_qn) . ')' : 'أضف اختبارا'; ?>
+                    </a>
                     <a class="tq-btn tq-btn--ghost tq-btn--sm"
                        href="<?php echo base_url('teacher/course/' . $tq_cid) . '?lesson=' . (int) $tq_l['id']; ?>">
                         <?php echo tq_icon('pen', 14); ?> تعديل

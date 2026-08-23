@@ -1559,6 +1559,89 @@ class Taqdar extends CI_Controller
             $this->result_message($r, 'نقل الدرس.'));
     }
 
+    /* ---- بوابة المعلم: اختبار الدرس ------------------------------- */
+
+    /**
+     * شاشة تأليف اختبار درس — مرآة شاشة أسئلة الاختبار التشخيصي.
+     *
+     * وهي البوابة نفسها لا اختبار ثان: الأسئلة تنسب إلى تقييم
+     * `type='review'` الذي يحكم فتح الدرس التالي — انظر رأس
+     * [Taqdar_quiz_model.php].
+     */
+    public function teacher_quiz($lesson_id = 0)
+    {
+        $user = $this->require_role('teacher');
+        $this->load->model('taqdar_curriculum_model', 'tq_curric');
+        $this->load->model('taqdar_quiz_model', 'tq_quiz');
+
+        $lesson_id = (int) $lesson_id;
+        $actor     = $this->tq_curric->actor_as('teacher', (int) $user['id']);
+
+        if (!$this->tq_curric->may_edit_lesson($actor, $lesson_id)) {
+            $this->done('teacher/courses', false, 'هذا الدرس ليس ضمن كورساتك.');
+            return;
+        }
+
+        $this->show('tq_teacher_quiz', 'اختبار الدرس', array(
+            'tq_counts' => $this->counts((int) $user['id'], 'teacher'),
+            'user_id'   => (int) $user['id'],
+            'lesson_id' => $lesson_id,
+        ));
+    }
+
+    /** POST teacher/quiz/question — حفظ سؤال (إنشاء أو تحرير). */
+    public function quiz_question_save()
+    {
+        [$user, $actor] = $this->curric();
+        $this->load->model('taqdar_quiz_model', 'tq_quiz');
+
+        $lesson_id = (int) $this->input->post('lesson_id');
+
+        /* الرفع هنا لا في النموذج: `$this->input->post()` لا ترى
+           `$_FILES` أصلا، والنموذج يستقبل مصفوفة `post` وحدها. */
+        $post = $this->input->post(null, false);
+        $img  = tq_qimage_upload('image');
+        if ($img === false) {
+            $this->done('teacher/quiz/' . $lesson_id, false,
+                'الصورة مرفوضة — صيغة مقبولة (jpg · png · gif · webp) وحجم دون 4 ميجابايت.');
+            return;
+        }
+        $post['image'] = $img;
+
+        $r = $this->tq_quiz->save_question($actor, $lesson_id,
+            (int) $this->input->post('id'), $post);
+
+        $this->done('teacher/quiz/' . $lesson_id, !empty($r['ok']),
+            $this->result_message($r, 'حفظ السؤال.'));
+    }
+
+    /** POST teacher/quiz/delete */
+    public function quiz_question_delete()
+    {
+        [$user, $actor] = $this->curric();
+        $this->load->model('taqdar_quiz_model', 'tq_quiz');
+
+        $lesson_id = (int) $this->input->post('lesson_id');
+        $r = $this->tq_quiz->delete_question($actor, $lesson_id,
+            (int) $this->input->post('id'));
+
+        $this->done('teacher/quiz/' . $lesson_id, !empty($r['ok']),
+            $this->result_message($r, 'حذف السؤال.'));
+    }
+
+    /** POST teacher/quiz/settings */
+    public function quiz_settings_save()
+    {
+        [$user, $actor] = $this->curric();
+        $this->load->model('taqdar_quiz_model', 'tq_quiz');
+
+        $lesson_id = (int) $this->input->post('lesson_id');
+        $r = $this->tq_quiz->save_settings($actor, $lesson_id, $this->input->post(null, false));
+
+        $this->done('teacher/quiz/' . $lesson_id, !empty($r['ok']),
+            $this->result_message($r, 'حفظت إعدادات الاختبار.'));
+    }
+
     /** POST teacher/marking/approve */
     public function marking_approve()
     {

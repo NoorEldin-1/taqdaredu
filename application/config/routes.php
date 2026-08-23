@@ -297,8 +297,13 @@ $route['teacher/lesson/save']     = 'taqdar/lesson_save';
 $route['teacher/lesson/delete']   = 'taqdar/lesson_delete';
 $route['teacher/lesson/sort']     = 'taqdar/lesson_sort';
 $route['teacher/lesson/move']     = 'taqdar/lesson_move';
-// شاشة المقرر — عرض، فبعد قواعد الكتابة.
+// اختبار الدرس — الكتابة قبل العرض للسبب نفسه.
+$route['teacher/quiz/question']   = 'taqdar/quiz_question_save';
+$route['teacher/quiz/delete']     = 'taqdar/quiz_question_delete';
+$route['teacher/quiz/settings']   = 'taqdar/quiz_settings_save';
+// شاشتا العرض — بعد قواعد الكتابة.
 $route['teacher/course/(:num)']   = 'taqdar/teacher_course/$1';
+$route['teacher/quiz/(:num)']     = 'taqdar/teacher_quiz/$1';
 
 $route['teacher/(:any)']         = 'taqdar/teacher/$1';
 $route['parent']                 = 'taqdar/parent_portal/children';

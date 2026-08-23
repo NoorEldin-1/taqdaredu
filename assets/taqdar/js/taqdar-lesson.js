@@ -24,11 +24,23 @@
   };
 
   /* ---- نداء الخادم: مغلف موحد، والرسالة العربية تأتي منه لا نخترعها ---- */
+  /** رمز الجلسة — يطبعه `portal_open.php` في `<meta name="tq-csrf">`. */
+  function tqCsrf() {
+    var m = document.querySelector('meta[name="tq-csrf"]');
+    return m ? m.getAttribute('content') || '' : '';
+  }
+
   function call(path, body) {
     var opt = { credentials: 'same-origin', headers: { 'Accept': 'application/json' } };
     if (body) {
       opt.method = 'POST';
       opt.headers['Content-Type'] = 'application/json';
+      /* TQ-GATE-CSRF — الرمز في الترويسة لا في الجسم.
+         `CI_Security::csrf_verify()` يبحث عنه في `$_POST`، وجسم JSON
+         يترك `$_POST` فارغا — فكان كل POST إلى البوابة يرد 403 قبل أن
+         يبلغ المتحكم: التقدم، وبدء المراجعة، وتسليمها، والملاحظات.
+         والبوابة تفحصه بنفسها من هنا (`Taqdar_gate::csrf_ok`). */
+      opt.headers['X-CSRF-Token'] = tqCsrf();
       opt.body = JSON.stringify(body);
     }
     return fetch(GATE + '/' + path, opt).then(function (r) {
