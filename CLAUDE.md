@@ -159,6 +159,111 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 عند إضافة صفحة: قاعدة في `routes.php` **و** دالة في المتحكم **و** قالب في
 `views/`. ولو كانت كتابة، ضع قاعدتها قبل قواعد العرض.
 
+## المنهج — طبقة واحدة تكتبها لوحتان
+
+الإدارة والمعلم يفعلان **الشيء نفسه** بالمقرر: قسما وحذفا وترتيبا، ودرسا
+بأنواعه العشرة. وكتابة ذلك مرتين تنتهي إلى شاشتين تفترقان — نوع يضاف في
+واحدة وينسى في الأخرى، فيرفع المعلم درسا ترفضه اللوحة. فالقواعد في
+[Taqdar_curriculum_model](application/models/Taqdar_curriculum_model.php)
+وحدها، والشاشتان تعرضان ولا تحكمان.
+
+| | اللوحة | بوابة المعلم |
+|---|---|---|
+| المقرر | `admin/course_form/course_edit/<id>?tab=curriculum` | `/teacher/course/<id>` |
+| اختبار الدرس | `taqdar_admin/lesson_quiz/<lesson>` | `/teacher/quiz/<lesson>` |
+| المراجعة | `taqdar_admin/review` | — |
+| الجلد | `tqa-*` | `tq-*` |
+
+- **أنواع الدروس وحدة موصوفة**: `lesson_types()` تصف كل نوع بحقوله وأين
+  يكتب كل حقل من الصف وكيف يتتبع (`api` · `native` · `none`)، ومنها يطبع
+  [taqdar_curriculum_helper.php](application/helpers/taqdar_curriculum_helper.php)
+  الحقول بالجلدين. فالنوع الجديد يضاف **هناك وحده** فيظهر في الشاشتين
+  ويحفظ ويتحقق بلا قالب يكتب. وهو مبدأ `Taqdar_admin_model::spec()` نفسه.
+- **الأعمدة الثلاثة تفرق بين الأنواع** (`lesson_type` · `attachment_type` ·
+  `video_type`) ولا يحمل الصف مفتاح النوع، فـ`kind_of()` تستنتجه — في
+  النموذج لا في القالب.
+- **النشر ليس بيد المعلم.** `may_publish()` تحول ما يعلمه `published` إلى
+  `review`، إلا أن يفتح المسؤول `tq_teacher_direct_publish` في `settings`.
+- **تعديل المنشور لا يخفيه.** درس جديد ينتظر في `tq_status='review'` غير
+  مرئي. أما درس **منشور** يعدله من لا ينشر فالصف الحي لا يمس، والتعديل
+  المقترح ينتظر في `tq_content_revisions` (`uq_pending` يمنع اقتراحين
+  معلقين لعنصر واحد). فمن دفع لا يفقد درسه لأن معلمه صحح خطأ إملائيا.
+- **الرفض يطلب سببه.** «مرفوض» وحدها تعيد الدرس بلا ما يفعله صاحبه،
+  فيعيد إرساله كما هو.
+- **الروابط تخزن كما تكتب.** `tq_clean_url()` لا `html_escape()`: الرابط
+  قيمة تفكك لا نص يعرض، وتهريبه يحول `&` إلى `&amp;` فيقرأ المشغل معاملا
+  اسمه `amp;list`. والتهريب موضعه العرض.
+
+## اختبار الدرس — بوابة الإتقان نفسها لا نظام رابع
+
+كان في القاعدة **ثلاثة** أنظمة اختبارات لا يعرف أحدها الآخر: الموروث
+(`lesson_type='quiz'` + `question.quiz_id` + `quiz_results`)، وبوابة
+الإتقان (`assessments(type='review')` + `objectives` + `attempts`)،
+والتشخيصي (`tq_diag_*`). فنتيجة الطالب في مكانين، وشاشتان تقرأ كل منهما
+نصفها.
+
+و[Taqdar_quiz_model](application/models/Taqdar_quiz_model.php) **لا يضيف
+رابعا**: اختبار الدرس هو تقييم `type='review'` نفسه، والذي يتغير **مصدر
+أسئلته وحده**:
+
+```
+أسئلة مؤلفة (question.assessment_id)  →  هي الاختبار
+ولا شيء                                →  أسئلة الأهداف كما كان يجري
+```
+
+فالقفل والمحاولات الثلاث وتصعيدها إلى المعلم ودفتر الأخطاء وخريطة
+الإتقان والتكرار المتباعد تعمل للاختبار الجديد **بلا سطر**. ونظام رابع
+كان يحتاج نسخة ثانية من كل واحد منها.
+
+- **المحرر واحد يركب في ثلاث شاشات**
+  ([tq_question_editor.php](application/views/components/tq_question_editor.php)):
+  التشخيصي، واختبار الدرس في اللوحة، وعند المعلم. وقواعده في النموذج:
+  خياران على الأقل وستة على الأكثر، بلا تكرار، والصحيح **من الخيارات**
+  بموضعه لا رقما حرا.
+- **حد النجاح لا يتجاوز عدد الأسئلة** — يرفض في `save_settings()`: اختبار
+  بثلاثة أسئلة وحد نجاح خمسة لا يجتاز أبدا، فيبقى الدرس التالي مقفلا على
+  كل طالب ولا شيء يقول لماذا.
+- **السؤال يربط بهدف** (اختياريا): بلا الهدف يصحح ولا يعلم شيئا بعد ذلك —
+  لا خريطة إتقان ولا دفتر أخطاء ولا «راجع الدقيقة».
+- النتائج في `attempts`/`answers` ويقرؤها لوح واحد
+  ([tq_quiz_results.php](application/views/components/tq_quiz_results.php))
+  عند الطالب وولي أمره، والمحاولات عند المعلم والإدارة. **آخر محاولة لكل
+  اختبار** لا كلها: السؤال «أين هو الآن؟».
+
+## المشغل والتقدم — يقاس ما شوهد لا ما ادعي
+
+- **[tq-player.js](assets/taqdar/js/tq-player.js) واجهة واحدة وأربعة
+  محولات**: يوتيوب (IFrame API) وفيميو (Player SDK) يعلنان الموضع والمدة،
+  والوسائط الأصلية أدقها، ودرايف والإطار الخارجي `kind:'none'` لا يعلنان
+  شيئا. وكان `<iframe>` عاريا ليوتيوب — فلا حدث ولا موضع ولا مدة، وكل
+  دروس المنصة يوتيوب.
+- **ما لا يقاس يقال صراحة**: زر «أنهيت الدرس» بدل شريط يتحرك بمؤقت.
+  و`confirm_complete()` ترفضه على مصدر **يقاس**، فلا يصير مخرجا من كل
+  درس.
+- **المدة من المشغل**: الخادم لا يسأل يوتيوب بلا مفتاح واجهة برمجة، وكل
+  درس كان `00:00:00` — أي أن `completed_at` لم يكن ليكتب أبدا. تكتب مرة
+  في `lesson.duration_sec` وبشرط أن المخزن صفر.
+- **الإتمام بالتغطية لا بالعداد**: `lesson_progress.segments` خريطة دلاء
+  عشر ثوان (بت لكل دلو، ست عشرية)، تعلم حين يمر التشغيل عليها.
+  فالسحب إلى النهاية لا يكمل درسا. **والنسبة التي يقرؤها الطالب هي التي
+  يقرؤها القفل** — رقمان يفترقان يجعلان «٪١٠٠» تقف أمام درس مقفل.
+- **الرقمان الواردان من المتصفح يحدان بزمن الجدار**: العداد وعدد الدلاء،
+  من الفارق منذ آخر نبضة بهامش للسرعة المضاعفة. والنبضة الأولى بلا مرجع،
+  فلها ميزانية ثابتة (`FIRST_PING`) — وإلا كان **أول نداء** هو الثغرة.
+- **بطاقة الاختبار تفتح بعد إتمام الدرس** لا عند تحميله: هي بوابة الدرس
+  التالي، فموضعها بعده.
+
+**TQ-GATE-CSRF — كل POST إلى `taqdar_gate` كان يرد 403.**
+`CI_Security::csrf_verify()` يبحث عن الرمز في `$_POST`، وجسم JSON يترك
+`$_POST` فارغا — فيسقط الفحص قبل أن يبلغ المتحكم. أي أن بوابة الإتقان
+كلها (التقدم، وبدء المراجعة، وتسليمها، والملاحظات) لم تعمل في متصفح قط.
+والعلاج ليس إسقاط الحماية — البوابة تستوثق بكعكة الجلسة فهي أحوج ما يكون
+إليها — بل فحص يقرأ JSON: `csrf_exclude_uris` يستثني `taqdar_gate/.*`،
+و`Taqdar_gate::csrf_ok()` تفحص الرمز من ترويسة `X-CSRF-Token` مقابل هاش
+الجلسة (إرسال مزدوج). والرمز يطبع في `<meta name="tq-csrf">` من
+`portal_open.php` — **مرة لكل صفحة بوابة** لا في كل شاشة، فالشاشة الخامسة
+التي تنادي البوابة غدا لا تنسى الرمز.
+
 ## الأدوار والحراس
 
 أربعة أدوار: **طالب · معلم · ولي أمر · إدارة**. داخل `Taqdar.php`:
@@ -419,7 +524,7 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 مباشرة في النماذج.
 
 - **الجوهر:** `users` · `role` · `course` · `lesson` · `section` · `category` · `subjects` · `grades`
-- **تقدر:** `paths` · `plans` · `subscriptions` · `invoices` · `payment_attempts` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts` · `site_content` · `revenue_shares` · `tq_otp` · `tq_wa_log`
+- **تقدر:** `paths` · `plans` · `subscriptions` · `invoices` · `payment_attempts` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts` · `answers` · `lesson_progress` · `site_content` · `revenue_shares` · `tq_content_revisions` · `tq_otp` · `tq_wa_log`
 - **الإعدادات:** `settings` · `frontend_settings` · `payment_gateways` · `seo_fields` — **مفاتيح بوابات الدفع و SMTP وواتساب تعيش هنا، لا في الشيفرة.**
 - **triggerان:** `trg_parent_links_consent_*` على `parent_links`.
 
@@ -428,6 +533,10 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 `student_id` وفيه `passed` و`submitted_at`، والصواب والخطأ لكل سؤال في
 `answers` (`attempt_id` + `question_id` + `is_correct`). و`skill_state.level`
 مدرج **0..100** لا كسرا عشريا، ومفتاح صاحبه `student_id` لا `user_id`.
+و`question` فيه **ثلاثة** أعمدة ربط لا واحد: `quiz_id` يشير إلى **درس**
+نوعه اختبار في النظام الموروث، و`objective_id` إلى هدف، و`assessment_id`
+إلى تقييم — وهو وحده مصدر أسئلة اختبار الدرس. وقراءة أحدها مكان الآخر
+ترجع صفوفا فارغة بلا خطأ.
 
 بعض الجداول تنشأ وقت التشغيل لا بهجرة: `site_content` من
 `Taqdar_content_model::ensure_schema()`، و`payment_attempts` من
@@ -437,7 +546,13 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 بـ`ADD COLUMN IF NOT EXISTS`)، و`tutoring_sessions` من
 `Taqdar_sessions_model`، و`wallet_entries` من `install_schema()`،
 و`revenue_shares` من `Taqdar_revenue_model::install_schema()` (ومعه عمود
-`plans.teacher_pool_percent`). وأعمدة قرار السحب الخمسة على `payout`
+`plans.teacher_pool_percent`)، و`tq_content_revisions` من
+`Taqdar_curriculum_model::install_schema()` (ومعه `lesson.duration_sec`
+و`tq_review_note`/`tq_reviewed_at`/`tq_reviewed_by`)، و`question.assessment_id`
+و`assessments.attempts_allowed` من `Taqdar_quiz_model::install_schema()`،
+وأعمدة التغطية الثلاثة على `lesson_progress` (`segments` · `last_ping_at` ·
+`declared_at`) من `Taqdar_repo_model::ensure_progress_schema()` — وهي تنادى
+من مسار الكتابة، فتنشأ عند أول نبضة تقدم لا عند أول عرض. وأعمدة قرار السحب الخمسة على `payout`
 (`decided_by` · `decided_at` · `reference` · `reject_reason` ·
 `admin_note`) من `Taqdar_wallet_model::install_schema()` — إصداره `2`،
 فمن يقرؤها قبل ترقية الإصدار يقرأ عمودا غير موجود. فأي

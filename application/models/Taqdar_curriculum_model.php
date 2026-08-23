@@ -468,6 +468,7 @@ class Taqdar_curriculum_model extends CI_Model
     /** أقسام كورس مرتبة، ومع كل قسم عدد دروسه. */
     public function sections_of($course_id)
     {
+        $this->install_schema();
         $rows = $this->db->query(
             'SELECT s.`id`, s.`title`, s.`course_id`, s.`order`,
                     s.`start_date`, s.`end_date`, s.`restricted_by`,
@@ -498,6 +499,7 @@ class Taqdar_curriculum_model extends CI_Model
     /** درس بمعرفه. */
     public function lesson($id)
     {
+        $this->install_schema();
         $id = (int) $id;
         if ($id <= 0) return null;
         $row = $this->db->where('id', $id)->get('lesson')->row_array();
@@ -513,6 +515,7 @@ class Taqdar_curriculum_model extends CI_Model
      */
     public function lessons_of($course_id, $section_id = null)
     {
+        $this->install_schema();
         $args  = array((int) $course_id);
         $where = 'l.`course_id` = ?';
         if ($section_id !== null) {

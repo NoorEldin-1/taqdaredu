@@ -638,7 +638,10 @@ class Taqdar_repo_model extends CI_Model
 
         $lessons = $this->ordered_lessons($path['course_id']);
         foreach ($lessons as &$l) {
-            $l['duration_sec'] = $this->duration_seconds($l['duration']);
+            /* من `lesson_duration()` لا من النص وحده: العمود الرقمي هو
+               الذي يكتبه المشغل حين يكتشف المدة، وقراءة النص هنا تعطي
+               صفرا على درس صارت مدته معروفة. */
+            $l['duration_sec'] = $this->lesson_duration($l);
             $l['has_review']   = (bool) $this->review_assessment($l['id'], false);
             if ($student_id) {
                 $st = $this->lesson_lock_state($student_id, $l['id']);
@@ -721,7 +724,7 @@ class Taqdar_repo_model extends CI_Model
                 'section_id'   => (int) $lesson['section_id'],
                 'lesson_type'  => $lesson['lesson_type'],
                 'duration'     => $lesson['duration'],
-                'duration_sec' => $this->duration_seconds($lesson['duration']),
+                'duration_sec' => $this->lesson_duration($lesson),
                 'summary'      => $lesson['summary'],
                 'is_free'      => (int) $lesson['is_free'],
             ),
