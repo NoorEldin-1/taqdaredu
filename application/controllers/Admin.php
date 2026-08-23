@@ -3188,9 +3188,12 @@ class Admin extends CI_Controller
         }
 
         // Set the headers to trigger a file download
-        header('Content-Type: text/csv');
+        /* TQ-CSV-BOM — أسماء الطلاب عربية، وبلا علامة الترتيب يقرؤها
+           Excel لاتينية فيخرج الجدول كله «Ø·Ø§Ù„Ø¨». وهي العلة نفسها
+           التي كانت في تصدير المسؤولين. */
+        header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="student_progress.csv"');
-        echo $csv_data;
+        echo "\xEF\xBB\xBF" . $csv_data;
         exit;
     }
 
@@ -3223,8 +3226,15 @@ class Admin extends CI_Controller
         $out = fopen('php://output', 'w');
 
         /* علامة الترتيب: بدونها يقرأ Excel العربية على أنها لاتينية
-           فيعرض «Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©» مكان كل اسم. */
-        fwrite($out, "ï»¿");
+           فيعرض «Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©» مكان كل اسم.
+
+           TQ-CSV-BOM — وكانت تكتب هنا بحروفها لا برموزها. وتلك
+           صورة العلامة حين تقرأ لاتينية، فمن نسخها من شاشة معطوبة كتب
+           في الملف ستة بايتات (C3 AF C2 BB C2 BF) مكان ثلاثة (EF BB BF)
+           — فلا Excel يجد العلامة فيقرأ العربية لاتينية كما كان، ويزيد
+           عليها ثلاثة رموز غريبة في أول خانة. والهروب الصريح لا يشبه
+           حرفا فلا يفسده محرر يعيد الحفظ. */
+        fwrite($out, "\xEF\xBB\xBF");
 
         fputcsv($out, array('المعرف', 'الاسم', 'البريد الإلكتروني', 'الهاتف'));
         foreach ($admins as $row) {
