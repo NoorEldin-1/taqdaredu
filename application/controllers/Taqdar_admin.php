@@ -153,15 +153,43 @@ class Taqdar_admin extends CI_Controller
         ));
     }
 
+    /**
+     * ملف طلب سحب واحد — القائمة تقول «طلب 60 ر.س»، وهذه تقول لمن ولماذا
+     * ومن أين جاء رصيده وما سابقته.
+     *
+     * وهي شاشة قراءة وقرار معا: من فتحها ليتحقق يقرر من موضعه، ولا يعود
+     * إلى القائمة ليبحث عن الصف نفسه بين ثلاثمئة.
+     */
+    public function payout($id = 0)
+    {
+        $d = $this->taqdar_admin_model->payout_detail((int) $id);
+        if (!$d) show_404();
+
+        $this->render('tqa_payout', 'طلب سحب #' . (int) $id, array(
+            'd'        => $d,
+            'channels' => Taqdar_wallet_model::$CHANNELS,
+            'nav_key'  => 'tqa_payouts',
+        ));
+    }
+
     public function payout_decide()
     {
         if ($this->input->method(true) !== 'POST') show_404();
 
-        $id  = (int) $this->input->post('payout_id');
-        $act = (string) $this->input->post('act');
-        $ref = trim((string) $this->input->post('reference'));
+        $id   = (int) $this->input->post('payout_id');
+        $act  = (string) $this->input->post('act');
+        $ref  = trim((string) $this->input->post('reference'));
+        $note = trim((string) $this->input->post('admin_note'));
+
+        /* العودة إلى حيث جاء: من قرر من شاشة الملف يعود إليها ليرى أثر
+           قراره، ومن قرر من القائمة يعود إلى القائمة ويكمل. وإعادة الكل
+           إلى القائمة تجعل من فتح الملف يفقد موضعه. */
+        $back = (string) $this->input->post('back') === 'detail'
+              ? site_url('taqdar_admin/payout/' . $id)
+              : site_url('taqdar_admin/payouts');
 
         $this->load->model('taqdar_wallet_model');
+        $actor = (int) $this->session->userdata('user_id');
 
         if ($act === 'pay') {
             /* المرجع شرط لا زينة: تحويل بلا رقم عملية لا يطابق بكشف
@@ -169,21 +197,23 @@ class Taqdar_admin extends CI_Controller
             if ($ref === '') {
                 $this->session->set_flashdata('error_message',
                     'اكتب رقم عملية التحويل قبل الاعتماد — تحويل بلا مرجع لا يطابق بكشف البنك.');
-                redirect(site_url('taqdar_admin/payouts'), 'location', 302);
+                redirect($back, 'location', 302);
                 return;
             }
 
-            $ok = $this->taqdar_wallet_model->mark_payout_paid($id, 'bank:' . $ref);
+            $ok = $this->taqdar_wallet_model->mark_payout_paid($id, 'bank:' . $ref, $ref, $actor, $note);
             if ($ok) {
-                $this->taqdar_admin_model->audit('payout_paid', 'payout#' . $id, null, array('reference' => $ref));
+                $this->taqdar_admin_model->audit('payout_paid', 'payout#' . $id, null,
+                    array('reference' => $ref, 'note' => $note));
                 $this->taqdar_admin_model->notify_payout($id, true, $ref);
             }
             $msg = $ok ? 'اعتمد التحويل، وخصم المبلغ من المحجوز، وأخطر المعلم.' : 'تعذر الاعتماد.';
 
         } else {
-            $ok = $this->taqdar_wallet_model->cancel_payout($id);
+            $ok = $this->taqdar_wallet_model->cancel_payout($id, $ref, $actor);
             if ($ok) {
-                $this->taqdar_admin_model->audit('payout_rejected', 'payout#' . $id, null, array('reason' => $ref));
+                $this->taqdar_admin_model->audit('payout_rejected', 'payout#' . $id, null,
+                    array('reason' => $ref, 'note' => $note));
                 $this->taqdar_admin_model->notify_payout($id, false, $ref);
             }
             $msg = $ok
@@ -192,7 +222,7 @@ class Taqdar_admin extends CI_Controller
         }
 
         $this->session->set_flashdata($ok ? 'flash_message' : 'error_message', $msg);
-        redirect(site_url('taqdar_admin/payouts'), 'location', 302);
+        redirect($back, 'location', 302);
     }
 
     /* =====================================================================

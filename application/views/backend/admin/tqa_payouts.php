@@ -93,29 +93,62 @@ $states = array(
             $ch = (string) ($p['requested_channel'] ?: $p['payment_type']);
             $ch_label = $channels[$ch]['label'] ?? 'قناة تحدد مع الإدارة';
         ?>
+            <?php
+            $hist = isset($p['hist']) ? $p['hist'] : array('paid' => 0, 'rejected' => 0, 'total' => 0, 'paid_sum' => 0);
+            $country = isset($channels[$ch]['country']) ? $channels[$ch]['country'] : '';
+            $amount  = (int) $p['amount_halalas'];
+            if ($amount <= 0) $amount = (int) round(((float) $p['amount']) * 100);
+            ?>
             <tr>
-                <td data-label="#"><span class="tqa-num"><?php echo (int) $p['id']; ?></span></td>
+                <td data-label="#">
+                    <a class="tqa-num" href="<?php echo site_url('taqdar_admin/payout/' . (int) $p['id']); ?>"
+                       title="افتح ملف الطلب">#<?php echo (int) $p['id']; ?></a>
+                </td>
 
                 <td data-label="المعلم">
                     <?php echo html_escape($p['teacher_name'] ?: '—'); ?><br>
                     <span class="tqa-num" style="color:var(--tq-text2);font-size:12px">
                         <?php echo html_escape($p['teacher_email'] ?: ''); ?></span>
+                    <?php /* السابقة في سطر: من حول إليه ست مرات ليس كمن يطلب
+                             لأول مرة، والفرق يقرر قبل أن يفتح الملف. */ ?>
+                    <br><span style="color:var(--tq-text2);font-size:11px">
+                        <?php if ((int) $hist['paid'] > 0): ?>
+                            حول إليه <?php echo (int) $hist['paid']; ?> مرة
+                            (<?php echo tqa_money((int) $hist['paid_sum']); ?>)
+                        <?php else: ?>
+                            لم يحول إليه من قبل
+                        <?php endif; ?>
+                        <?php if ((int) $hist['rejected'] > 0): ?>
+                            · رفض له <?php echo (int) $hist['rejected']; ?>
+                        <?php endif; ?>
+                    </span>
                 </td>
 
                 <td data-label="المبلغ">
-                    <strong><?php echo tqa_money($p['amount_halalas']); ?></strong>
-                    <?php /* المتاح بعد الحجز: الإدارة تحتاج أن تعرف أن المعلم
+                    <strong><?php echo tqa_money($amount); ?></strong>
+                    <?php /* الدلاء الثلاثة: الإدارة تحتاج أن تعرف أن المعلم
                              لم يطلب أكثر مما يملك — والدفتر يمنع ذلك، لكن
                              عرضه يجعل الرقم مفهوما لا مسلما به. */ ?>
                     <br><span style="color:var(--tq-text2);font-size:12px">
-                        رصيده المتاح: <?php echo tqa_money((int) $p['balance_available']); ?>
+                        متاح <?php echo tqa_money((int) $p['balance_available']); ?>
+                        · معلق <?php echo tqa_money((int) $p['balance_pending']); ?>
+                        · محجوز <?php echo tqa_money((int) $p['balance_locked']); ?>
                     </span>
                 </td>
 
                 <td data-label="الوجهة">
-                    <?php echo html_escape($ch_label); ?><br>
+                    <?php echo html_escape($ch_label); ?>
+                    <?php if ($country === 'eg'): ?>
+                        <span class="tqa-badge tqa-badge--warn" style="font-size:10px">مصر</span>
+                    <?php endif; ?>
+                    <br>
                     <?php if (!empty($p['destination'])): ?>
                         <span class="tqa-num" style="font-size:12px"><?php echo html_escape($p['destination']); ?></span>
+                        <?php if ($st === 0 && !empty($p['dest_changed'])): ?>
+                            <br><span class="tqa-badge tqa-badge--danger" style="font-size:10px">وجهة جديدة</span>
+                        <?php elseif ($st === 0 && !empty($p['first_request'])): ?>
+                            <br><span class="tqa-badge tqa-badge--warn" style="font-size:10px">أول طلب</span>
+                        <?php endif; ?>
                     <?php else: ?>
                         <span style="color:var(--tq-text3);font-size:12px">لم يحدد وجهة — اسأله قبل التحويل</span>
                     <?php endif; ?>
@@ -125,19 +158,43 @@ $states = array(
                     <span class="tqa-num"><?php
                         echo !empty($p['date_added']) ? date('Y-m-d', (int) $p['date_added']) : '—';
                     ?></span>
+                    <?php if ($st === 0 && !empty($p['date_added'])):
+                        $days = (int) floor((time() - (int) $p['date_added']) / 86400); ?>
+                        <br><span style="font-size:11px;color:var(--tq-<?php echo $days >= 3 ? 'amber' : 'text2'; ?>)">
+                            <?php echo $days <= 0 ? 'اليوم' : 'منتظر ' . $days . ' يوما'; ?>
+                        </span>
+                    <?php endif; ?>
                 </td>
 
                 <td data-label="الحالة">
                     <span class="tqa-badge tqa-badge--<?php echo $tone; ?>"><?php echo html_escape($label); ?></span>
-                    <?php if ($st === 1 && !empty($p['payment_type'])): ?>
-                        <br><span class="tqa-num" style="font-size:11px;color:var(--tq-text2)">
-                            <?php echo html_escape($p['payment_type']); ?></span>
+                    <?php /* أثر القرار في مكانه: من قرر ومتى وبأي مرجع — وكان
+                             العمود يعرض `payment_type` وحده وهو نص فني
+                             (`bank:12345`) لا يقول من قرر ولا متى. */ ?>
+                    <?php if ($st !== 0): ?>
+                        <br><span style="font-size:11px;color:var(--tq-text2)">
+                            <?php if (!empty($p['decided_name'])): ?>
+                                <?php echo html_escape(trim((string) $p['decided_name'])); ?>
+                            <?php endif; ?>
+                            <?php if (!empty($p['decided_at'])): ?>
+                                · <span class="tqa-num"><?php echo date('Y-m-d', (int) $p['decided_at']); ?></span>
+                            <?php endif; ?>
+                        </span>
+                        <?php if (!empty($p['reference'])): ?>
+                            <br><span class="tqa-num" style="font-size:11px;color:var(--tq-text2)">
+                                مرجع: <?php echo html_escape((string) $p['reference']); ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($p['reject_reason'])): ?>
+                            <br><span style="font-size:11px;color:var(--tq-text2)">
+                                <?php echo html_escape((string) $p['reject_reason']); ?></span>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </td>
 
                 <td data-label="القرار">
                     <?php if ($st !== 0): ?>
-                        <span style="color:var(--tq-text3)">قرر</span>
+                        <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                           href="<?php echo site_url('taqdar_admin/payout/' . (int) $p['id']); ?>">التفاصيل</a>
                     <?php else: ?>
                         <?php /* المرجع حقل واحد يخدم الفعلين: رقم العملية عند
                                  الاعتماد، وسبب الرفض عند الرفض. وحقلان
@@ -149,6 +206,13 @@ $states = array(
                             <input class="tqa-input tqa-input--ltr" type="text" name="reference"
                                    placeholder="رقم العملية أو سبب الرفض"
                                    style="min-block-size:34px;font-size:13px">
+                            <div style="display:flex;gap:6px;align-items:center">
+                                <?php /* الملف قبل القرار لمن أراد التحقق. والقرار
+                                         من هنا لمن لا يحتاج — القائمة تخدم من يمر
+                                         على عشرة طلبات، والملف من يقف عند واحد. */ ?>
+                                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                                   href="<?php echo site_url('taqdar_admin/payout/' . (int) $p['id']); ?>">التفاصيل</a>
+                            </div>
                             <div style="display:flex;gap:6px">
                                 <?php /* التأكيد على الزر لا على النموذج: الزران يرسلان
                                          النموذج نفسه ويفترقان في `act` وحدها، فالسؤال

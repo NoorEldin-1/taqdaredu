@@ -319,6 +319,30 @@ class Taqdar_wallet_model extends CI_Model
             $add[] = "ADD COLUMN `requested_channel` varchar(32) DEFAULT NULL"
                    . " COMMENT 'قناة المعلم وقت الطلب' AFTER `destination`";
         }
+        /* أثر القرار — خمسة أعمدة لم تكن، فكانت شاشة الإدارة لا تعرض
+           التفاصيل **لأنها غير مخزنة**. رقم العملية كان يكتب في `ref`
+           قيد المحفظة وحده (`bank:<رقم>`)، والرافض لا يترك سببا، ولا
+           يعرف بعد أسبوع من قرر ولا متى. وطلب مال قرر ولا يعرف من قرره
+           لا يدقق. */
+        if (!$this->db->field_exists('decided_by', 'payout')) {
+            $add[] = "ADD COLUMN `decided_by` int(11) DEFAULT NULL"
+                   . " COMMENT 'معرف المسؤول الذي اعتمد أو رفض'";
+        }
+        if (!$this->db->field_exists('decided_at', 'payout')) {
+            $add[] = "ADD COLUMN `decided_at` int(11) DEFAULT NULL"
+                   . " COMMENT 'طابع يونكس لوقت القرار'";
+        }
+        if (!$this->db->field_exists('reference', 'payout')) {
+            $add[] = "ADD COLUMN `reference` varchar(190) DEFAULT NULL"
+                   . " COMMENT 'رقم عملية التحويل كما في كشف البنك'";
+        }
+        if (!$this->db->field_exists('reject_reason', 'payout')) {
+            $add[] = "ADD COLUMN `reject_reason` varchar(255) DEFAULT NULL";
+        }
+        if (!$this->db->field_exists('admin_note', 'payout')) {
+            $add[] = "ADD COLUMN `admin_note` varchar(255) DEFAULT NULL"
+                   . " COMMENT 'ملاحظة داخلية لا تعرض للمعلم'";
+        }
         if ($add) $this->db->query('ALTER TABLE `payout` ' . implode(', ', $add));
         $this->add_index('payout', 'idx_payout_user', 'ADD KEY `idx_payout_user` (`user_id`,`status`)');
 
@@ -878,14 +902,27 @@ class Taqdar_wallet_model extends CI_Model
         return $n;
     }
 
-    /** الإدارة حولت فعلا: المال يغادر الدفتر من دلو الحجز. */
-    public function mark_payout_paid($payout_id, $payment_type = null)
+    /**
+     * الإدارة حولت فعلا: المال يغادر الدفتر من دلو الحجز.
+     *
+     * وأثر القرار يكتب مع القرار لا بعده: من اعتمد ومتى وبأي رقم عملية.
+     * وكان الرقم يعيش في `ref` قيد المحفظة وحده — نصا داخل مفتاح فني لا
+     * يبحث فيه ولا يعرض، فيسأل المعلم «متى حولتم؟» ولا جواب إلا بقراءة
+     * الدفتر سطرا سطرا.
+     */
+    public function mark_payout_paid($payout_id, $payment_type = null,
+                                     $reference = '', $actor_id = 0, $note = '')
     {
+        $this->install_schema();
         $p = $this->db->where('id', (int) $payout_id)->get('payout')->row_array();
         if (!$p) return false;
 
         $updater = array('status' => 1, 'last_modified' => time());
         if ($payment_type !== null) $updater['payment_type'] = $payment_type;
+        $updater['decided_at'] = time();
+        if ((int) $actor_id > 0)         $updater['decided_by'] = (int) $actor_id;
+        if (trim((string) $reference) !== '') $updater['reference'] = mb_substr(trim((string) $reference), 0, 190);
+        if (trim((string) $note) !== '')      $updater['admin_note'] = mb_substr(trim((string) $note), 0, 255);
         $this->db->where('id', (int) $payout_id)->update('payout', $updater);
 
         $this->reconcile_payouts((int) $p['user_id']);
@@ -894,9 +931,10 @@ class Taqdar_wallet_model extends CI_Model
         return true;
     }
 
-    /** طلب رفض أو ألغي: المحجوز يعود إلى المتاح بقيدين. */
-    public function cancel_payout($payout_id)
+    /** طلب رفض أو ألغي: المحجوز يعود إلى المتاح بقيدين، والسبب يحفظ. */
+    public function cancel_payout($payout_id, $reason = '', $actor_id = 0)
     {
+        $this->install_schema();
         $p = $this->db->where('id', (int) $payout_id)->get('payout')->row_array();
         if (!$p || (int) $p['status'] === 1) return false;
 
@@ -915,7 +953,10 @@ class Taqdar_wallet_model extends CI_Model
             $this->post($wallet['id'], 'payout_cancel_in', self::B_AVAILABLE, $net,
                         $this->ref_key($wallet['id'], $origin, 'cancel:in'), $origin, 'إلغاء طلب سحب');
         }
-        $this->db->where('id', (int) $payout_id)->update('payout', array('status' => 2, 'last_modified' => time()));
+        $updater = array('status' => 2, 'last_modified' => time(), 'decided_at' => time());
+        if ((int) $actor_id > 0)            $updater['decided_by']    = (int) $actor_id;
+        if (trim((string) $reason) !== '')  $updater['reject_reason'] = mb_substr(trim((string) $reason), 0, 255);
+        $this->db->where('id', (int) $payout_id)->update('payout', $updater);
         $this->recompute($wallet['id']);
         return true;
     }

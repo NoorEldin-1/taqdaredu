@@ -1471,23 +1471,194 @@ class Taqdar_admin_model extends CI_Model
 
     public function payouts($status = '')
     {
-        $where = '';
-        $args  = array();
-        if ($status === 'pending') { $where = ' WHERE p.`status` = 0'; }
-        elseif ($status === 'paid') { $where = ' WHERE p.`status` = 1'; }
-        elseif ($status === 'rejected') { $where = ' WHERE p.`status` = 2'; }
+        /* البنية أولا: أعمدة القرار (`decided_by` · `reference` · `reject_reason`)
+           أضيفت في الإصدار الثاني من دفتر المحفظة، وقراءتها قبل إنشائها
+           ترمي استثناء يبيض الشاشة. */
+        $this->load->model('taqdar_wallet_model');
+        $this->taqdar_wallet_model->install_schema();
 
-        return $this->safe_rows(
+        $where = '';
+        if ($status === 'pending')       { $where = ' WHERE p.`status` = 0'; }
+        elseif ($status === 'paid')      { $where = ' WHERE p.`status` = 1'; }
+        elseif ($status === 'rejected')  { $where = ' WHERE p.`status` = 2'; }
+
+        $rows = $this->safe_rows(
             'SELECT p.*,
                     TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) teacher_name,
-                    u.`email` teacher_email,
-                    w.`balance_available`, w.`balance_locked`
+                    u.`email` teacher_email, u.`phone` teacher_phone,
+                    TRIM(CONCAT(COALESCE(d.`first_name`,""), " ", COALESCE(d.`last_name`,""))) decided_name,
+                    w.`balance_available`, w.`balance_locked`, w.`balance_pending`
                FROM `payout` p
                LEFT JOIN `users` u   ON u.`id` = p.`user_id`
+               LEFT JOIN `users` d   ON d.`id` = p.`decided_by`
                LEFT JOIN `wallets` w ON w.`owner_user_id` = p.`user_id`'
-            . $where . ' ORDER BY p.`status` ASC, p.`id` DESC LIMIT 300',
-            $args
+            . $where . ' ORDER BY p.`status` ASC, p.`id` DESC LIMIT 300'
         );
+
+        /* السياق الذي يقرر به: كم طلبا لهذا المعلم قبل هذا، وهل تغيرت
+           وجهته. واستعلام لكل صف يجعل الشاشة ثلاثمئة استعلام — فالسياق
+           يجلب مرة واحدة لكل المعلمين الظاهرين. */
+        $ids = array();
+        foreach ($rows as $r) if ((int) $r['user_id'] > 0) $ids[(int) $r['user_id']] = 1;
+        $hist = $ids ? $this->payout_history(array_keys($ids)) : array();
+
+        foreach ($rows as &$r) {
+            $uid = (int) $r['user_id'];
+            $h   = isset($hist[$uid]) ? $hist[$uid] : array('paid' => 0, 'rejected' => 0, 'total' => 0,
+                                                            'paid_sum' => 0, 'last_dest' => null, 'first_at' => 0);
+            $r['hist'] = $h;
+
+            /* الوجهة الجديدة تعلم لا تمنع. حساب اخترق تغير وجهته أول ما
+               يفعل، ومسؤول يرى «حول إلى هذا الآيبان ست مرات» يقرر غير من
+               يرى «آيبان لم يظهر قط». والقرار يبقى قراره. */
+            $r['dest_changed'] = ($h['last_dest'] !== null
+                                  && (string) $h['last_dest'] !== ''
+                                  && (string) $h['last_dest'] !== (string) $r['destination']);
+            $r['first_request'] = ((int) $h['total'] <= 1);
+        }
+        unset($r);
+
+        return $rows;
+    }
+
+    /**
+     * سجل السحب لكل معلم في نداء واحد — كم طلب، كم حول، وآخر وجهة **حول
+     * إليها فعلا** (لا آخر وجهة طلبت: طلب معلق لم يقرر بعد ليس سابقة).
+     */
+    private function payout_history($user_ids)
+    {
+        $in = implode(',', array_map('intval', (array) $user_ids));
+        if ($in === '') return array();
+
+        $out = array();
+        foreach ($this->safe_rows(
+            'SELECT `user_id`, COUNT(*) total,
+                    SUM(CASE WHEN `status` = 1 THEN 1 ELSE 0 END) paid,
+                    SUM(CASE WHEN `status` = 2 THEN 1 ELSE 0 END) rejected,
+                    COALESCE(SUM(CASE WHEN `status` = 1 THEN `amount_halalas` ELSE 0 END),0) paid_sum,
+                    MIN(`date_added`) first_at
+               FROM `payout` WHERE `user_id` IN (' . $in . ') GROUP BY `user_id`'
+        ) as $r) {
+            $out[(int) $r['user_id']] = array(
+                'total'     => (int) $r['total'],
+                'paid'      => (int) $r['paid'],
+                'rejected'  => (int) $r['rejected'],
+                'paid_sum'  => (int) $r['paid_sum'],
+                'first_at'  => (int) $r['first_at'],
+                'last_dest' => null,
+            );
+        }
+
+        foreach ($this->safe_rows(
+            'SELECT p.`user_id`, p.`destination`
+               FROM `payout` p
+               JOIN (SELECT `user_id`, MAX(`id`) mid FROM `payout`
+                      WHERE `status` = 1 AND `user_id` IN (' . $in . ') GROUP BY `user_id`) m
+                 ON m.`mid` = p.`id`'
+        ) as $r) {
+            $u = (int) $r['user_id'];
+            if (isset($out[$u])) $out[$u]['last_dest'] = (string) $r['destination'];
+        }
+
+        return $out;
+    }
+
+    /**
+     * ملف طلب سحب واحد — كل ما يحتاجه المسؤول ليقرر ثم ليجيب من يسأل.
+     *
+     * والقائمة لا تكفي: القرار المالي يحتاج أن يعرف صاحبه **من أين جاء
+     * هذا الرصيد** (أي مبيعات كونته)، و**ما سابقة هذا المعلم**، و**ماذا
+     * يبقى له بعد التحويل**. وهذه ثلاثة استعلامات لا تحتمل في صف جدول،
+     * فلها شاشتها.
+     *
+     * @return array|null
+     */
+    public function payout_detail($id)
+    {
+        $this->load->model('taqdar_wallet_model');
+        $this->taqdar_wallet_model->install_schema();
+
+        $rows = $this->safe_rows(
+            'SELECT p.*,
+                    TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) teacher_name,
+                    u.`email` teacher_email, u.`phone` teacher_phone,
+                    u.`date_added` teacher_since, u.`status` teacher_status,
+                    TRIM(CONCAT(COALESCE(d.`first_name`,""), " ", COALESCE(d.`last_name`,""))) decided_name,
+                    d.`email` decided_email
+               FROM `payout` p
+               LEFT JOIN `users` u ON u.`id` = p.`user_id`
+               LEFT JOIN `users` d ON d.`id` = p.`decided_by`
+              WHERE p.`id` = ? LIMIT 1',
+            array((int) $id)
+        );
+        if (!$rows) return null;
+        $p   = $rows[0];
+        $uid = (int) $p['user_id'];
+
+        /* الرصيد يقرأ **بعد المصالحة**: الدفتر يبنى عند أول قراءة، ورقم
+           قبلها صفر كاذب — وصفر كاذب في شاشة قرار مالي أسوأ من بطء. */
+        $wallet = $this->taqdar_wallet_model->wallet_of($uid);
+        $this->taqdar_wallet_model->sync($uid);
+        $wallet = $this->taqdar_wallet_model->wallet_of($uid);
+
+        $hist = $this->payout_history(array($uid));
+        $h    = isset($hist[$uid]) ? $hist[$uid] : array('total' => 0, 'paid' => 0, 'rejected' => 0,
+                                                         'paid_sum' => 0, 'first_at' => 0, 'last_dest' => null);
+
+        return array(
+            'payout'   => $p,
+            'wallet'   => $wallet,
+            'hist'     => $h,
+            'dest_changed'  => ($h['last_dest'] !== null && (string) $h['last_dest'] !== ''
+                                && (string) $h['last_dest'] !== (string) $p['destination']),
+            'first_request' => ((int) $h['total'] <= 1),
+            'sources'  => $this->payout_sources($wallet['id']),
+            'others'   => $this->safe_rows(
+                'SELECT `id`,`amount_halalas`,`status`,`date_added`,`destination`,
+                        `requested_channel`,`payment_type`,`reference`,`reject_reason`
+                   FROM `payout` WHERE `user_id` = ? AND `id` <> ?
+                  ORDER BY `id` DESC LIMIT 10',
+                array($uid, (int) $id)
+            ),
+            'entries'  => $this->safe_rows(
+                'SELECT `type`,`bucket`,`amount`,`subject`,`occurred_at`,`origin`
+                   FROM `wallet_entries` WHERE `wallet_id` = ?
+                  ORDER BY `id` DESC LIMIT 25',
+                array($wallet['id'])
+            ),
+            'teacher_paths' => (int) $this->safe_scalar(
+                'SELECT COUNT(*) n FROM `paths` WHERE `teacher_id` = ?', array($uid)
+            ),
+        );
+    }
+
+    /**
+     * من أين جاء رصيد هذا المعلم — آخر المبيعات التي كونته، ولكل منها
+     * حصته الصافية بعد العمولة.
+     *
+     * وهذا هو الجواب على «المعلم يقول إن له أكثر من هذا»: تفتح الشاشة
+     * فترى البيعات نفسها التي رآها في كشفه، بالأرقام نفسها.
+     */
+    private function payout_sources($wallet_id, $limit = 12)
+    {
+        $sales = $this->safe_rows(
+            'SELECT `origin`, MAX(`subject`) subject, MAX(`occurred_at`) occurred_at,
+                    SUM(`amount`) net
+               FROM `wallet_entries`
+              WHERE `wallet_id` = ?
+                AND `type` IN ("sale","commission","retained","refund")
+                AND `origin` IS NOT NULL
+              GROUP BY `origin`
+              ORDER BY MAX(`occurred_at`) DESC, MAX(`id`) DESC
+              LIMIT ' . (int) $limit,
+            array((int) $wallet_id)
+        );
+        foreach ($sales as &$s) {
+            $s['net']  = (int) $s['net'];
+            $s['kind'] = (strpos((string) $s['origin'], 'plansub:') === 0) ? 'plan' : 'course';
+        }
+        unset($s);
+        return $sales;
     }
 
     public function payout_totals()
