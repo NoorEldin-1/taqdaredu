@@ -777,7 +777,7 @@ class Crud_model extends CI_Model
             $data['expiry_period'] = null;
         }
 
-        $data['video_url'] = html_escape($this->input->post('course_overview_url'));
+        $data['video_url'] = tq_clean_url($this->input->post('course_overview_url'));       // TQ-URLESC
 
         $enable_drip_content = $this->input->post('enable_drip_content');
         if (isset($enable_drip_content) && $enable_drip_content) {
@@ -971,7 +971,7 @@ class Crud_model extends CI_Model
         $data['discount_flag'] = $this->input->post('discount_flag');
         $data['discounted_price'] = $this->input->post('discounted_price');
         $data['level'] = $this->input->post('level');
-        $data['video_url'] = $this->input->post('course_overview_url');
+        $data['video_url'] = tq_clean_url($this->input->post('course_overview_url'));       // TQ-URLESC
 
         $enable_drip_content = $this->input->post('enable_drip_content');
         if (isset($enable_drip_content) && $enable_drip_content) {
@@ -1563,7 +1563,7 @@ class Crud_model extends CI_Model
                 if ($this->input->post('video_url') == "" || $this->input->post('duration') == "") {
                     return json_encode(['error' => get_phrase('invalid_lesson_url_and_duration')]);
                 }
-                $data['video_url'] = html_escape($this->input->post('video_url'));
+                $data['video_url'] = tq_clean_url($this->input->post('video_url'));                 // TQ-URLESC
 
                 $duration_formatter = explode(':', $this->input->post('duration'));
                 $hour = sprintf('%02d', $duration_formatter[0]);
@@ -1598,7 +1598,7 @@ class Crud_model extends CI_Model
                 if ($this->input->post('html5_video_url') == "" || $this->input->post('html5_duration') == "") {
                     return json_encode(['error' => get_phrase('invalid_lesson_url_and_duration')]);
                 }
-                $data['video_url'] = html_escape($this->input->post('html5_video_url'));
+                $data['video_url'] = tq_clean_url($this->input->post('html5_video_url'));           // TQ-URLESC
                 $duration_formatter = explode(':', $this->input->post('html5_duration'));
                 $hour = sprintf('%02d', $duration_formatter[0]);
                 $min = sprintf('%02d', $duration_formatter[1]);
@@ -1609,7 +1609,7 @@ class Crud_model extends CI_Model
                 if ($this->input->post('google_drive_video_url') == "" || $this->input->post('google_drive_video_duration') == "") {
                     return json_encode(['error' => get_phrase('invalid_lesson_url_and_duration')]);
                 }
-                $data['video_url'] = html_escape($this->input->post('google_drive_video_url'));
+                $data['video_url'] = tq_clean_url($this->input->post('google_drive_video_url'));    // TQ-URLESC
                 $duration_formatter = explode(':', $this->input->post('google_drive_video_duration'));
                 $hour = sprintf('%02d', $duration_formatter[0]);
                 $min = sprintf('%02d', $duration_formatter[1]);
@@ -1962,7 +1962,7 @@ class Crud_model extends CI_Model
                 if ($this->input->post('video_url') == "" || $this->input->post('duration') == "") {
                     return json_encode(['error' => get_phrase('invalid_lesson_url_and_duration')]);
                 }
-                $data['video_url'] = html_escape($this->input->post('video_url'));
+                $data['video_url'] = tq_clean_url($this->input->post('video_url'));                 // TQ-URLESC
 
                 $duration_formatter = explode(':', $this->input->post('duration'));
                 $hour = sprintf('%02d', $duration_formatter[0]);
@@ -1999,7 +1999,7 @@ class Crud_model extends CI_Model
                 if ($this->input->post('html5_video_url') == "" || $this->input->post('html5_duration') == "") {
                     return json_encode(['error' => get_phrase('invalid_lesson_url_and_duration')]);
                 }
-                $data['video_url'] = html_escape($this->input->post('html5_video_url'));
+                $data['video_url'] = tq_clean_url($this->input->post('html5_video_url'));           // TQ-URLESC
 
                 $duration_formatter = explode(':', $this->input->post('html5_duration'));
                 $hour = sprintf('%02d', $duration_formatter[0]);
@@ -2011,7 +2011,7 @@ class Crud_model extends CI_Model
                 if ($this->input->post('google_drive_video_url') == "" || $this->input->post('google_drive_video_duration') == "") {
                     return json_encode(['error' => get_phrase('invalid_lesson_url_and_duration')]);
                 }
-                $data['video_url'] = html_escape($this->input->post('google_drive_video_url'));
+                $data['video_url'] = tq_clean_url($this->input->post('google_drive_video_url'));    // TQ-URLESC
                 $duration_formatter = explode(':', $this->input->post('google_drive_video_duration'));
                 $hour = sprintf('%02d', $duration_formatter[0]);
                 $min = sprintf('%02d', $duration_formatter[1]);

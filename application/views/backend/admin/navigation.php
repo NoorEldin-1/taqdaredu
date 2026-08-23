@@ -61,6 +61,10 @@ $tqa_nav = [
         [['course_add', 'course_edit', 'courses-server-side', 'curriculum',
           'lessons', 'video_player', 'course_enrol_list', 'change_course_author'],
                             'الكورسات',        'admin/courses',                  'book',        'pending_courses'],
+        /* مراجعة المحتوى — تحت الكورسات لأنها بابها: ما يعتمد هنا يظهر
+           هناك. وكانت غائبة كلها، فيكتب المعلم `tq_status='review'` ولا
+           شيء في اللوحة يقرؤه. */
+        ['tqa_review',      'مراجعة المحتوى',  'taqdar_admin/review',            'shield',      'content_review'],
         [['categories', 'category_add', 'category_edit'],
                             'أقسام الكورسات',  'admin/categories',               'grid',        null],
         ['tqa_import',      'استيراد المنهج',  'taqdar_admin/import',            'import',      null],

@@ -1192,6 +1192,73 @@ class Taqdar_admin extends CI_Controller
         redirect(site_url('taqdar_admin/diag_questions/' . (int) $exam_id));
     }
 
+    /* =====================================================================
+       مراجعة المحتوى
+       ===================================================================== */
+
+    /**
+     * ما ينتظر قرار الإدارة من محتوى المعلمين.
+     *
+     * ولم تكن هذه الشاشة موجودة أصلا: `Taqdar_teacher_model::save_lesson()`
+     * تكتب `lesson.tq_status = 'review'` منذ كتبت، **ولا شيء في اللوحة
+     * يقرأ ذلك العمود**. فالمعلم يضغط «أرسل للمراجعة» ويقال له «أرسل»،
+     * ويقف الدرس في حالة لا يراها أحد إلى الأبد. وكان في القاعدة درس
+     * واحد محبوس هكذا حين كتبت هذه الشاشة.
+     *
+     * والقائمة واحدة لنوعين: درس جديد ينتظر نشره، وتعديل على درس منشور
+     * ينتظر تطبيقه. وهما سؤال واحد — **ما الذي ينتظرني؟** — فقائمتان
+     * تعنيان أن الثانية تفتح إن تذكرها أحد.
+     */
+    public function review()
+    {
+        $this->load->model('taqdar_curriculum_model', 'tq_curric');
+
+        $course = (int) $this->input->get('course', true);
+
+        $this->render('tqa_review', 'مراجعة المحتوى', array(
+            'nav_key' => 'tqa_review',
+            'items'   => $this->tq_curric->pending(array('course_id' => $course)),
+            'course'  => $course,
+            'courses' => $this->db->query(
+                'SELECT DISTINCT c.`id`, c.`title`
+                   FROM `course` c JOIN `lesson` l ON l.`course_id` = c.`id`
+                  WHERE l.`tq_status` = "review"
+                  ORDER BY c.`title` ASC')->result_array(),
+        ));
+    }
+
+    /**
+     * قرار على عنصر ينتظر — اعتماد أو رد.
+     *
+     * كتابة، فـPOST وحده: رابط GET يعتمد ينفذ بمجرد جلبه من سجل أو من
+     * جالب مسبق — انظر TQ-GET-DESTROY في `Admin::course_actions()`.
+     */
+    public function review_decide()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_curriculum_model', 'tq_curric');
+
+        $actor    = $this->tq_curric->actor_as('admin', (int) $this->session->userdata('user_id'));
+        $decision = (string) $this->input->post('decision');
+        $entity   = (string) $this->input->post('entity');
+        $eid      = (int) $this->input->post('entity_id');
+        $rev      = (int) $this->input->post('revision_id');
+
+        $r = ($decision === 'approve')
+            ? $this->tq_curric->approve($actor, $entity, $eid, $rev)
+            : $this->tq_curric->reject($actor, $entity, $eid, $rev,
+                                       (string) $this->input->post('reason'));
+
+        $this->session->set_flashdata(
+            !empty($r['ok']) ? 'flash_message' : 'error_message',
+            $r['message']
+        );
+        redirect(site_url('taqdar_admin/review'
+            . ((int) $this->input->post('course') > 0
+                ? '?course=' . (int) $this->input->post('course') : '')));
+    }
+
     /** شاشة أرقام الموقع. */
     public function stats()
     {

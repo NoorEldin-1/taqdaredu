@@ -235,6 +235,11 @@ if (!function_exists('tqa_nav_counts')) {
             'contact_open'  => $count('SELECT COUNT(*) n FROM `contact` WHERE `replied` IS NULL OR `replied` != 1'),
             'pending_blogs' => $count('SELECT COUNT(*) n FROM `blogs` WHERE `status` = 0'),
             'pending_courses' => $count('SELECT COUNT(*) n FROM `course` WHERE `status` = "pending"'),
+            /* مراجعة المحتوى: عددان في رقم — درس جديد ينتظر نشرا، وتعديل
+               على منشور ينتظر تطبيقا. وهما سؤال واحد على المسؤول، فرقم
+               واحد يجيبه. */
+            'content_review' => $count('SELECT COUNT(*) n FROM `lesson` WHERE `tq_status` = "review"')
+                              + $count('SELECT COUNT(*) n FROM `tq_content_revisions` WHERE `status` = "pending"'),
         );
 
         return $cache;
