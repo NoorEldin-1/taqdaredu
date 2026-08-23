@@ -1,0 +1,500 @@
+/* ==========================================================================
+   وثائق واجهة البرمجة — /api/docs
+
+   ثلاثة أعمدة: تنقل ثابت، وشرح على أرضية فاتحة، وشيفرة على أرضية داكنة.
+   والشريط الداكن **يمتد بلا انقطاع** خلف عمود الشيفرة كله لا خلف كل صندوق
+   وحده: انقطاعه بين النقطتين يجعل الصفحة تقرأ سلسلة بطاقات لا مرجعا.
+
+   والصفحة إنجليزية `ltr` بخلاف بقية المنصة — انظر التعليق في
+   `application/views/api/docs.php`.
+
+   ولا تقرأ `tokens.css`: تلك مبنية للواجهة العربية بمنطقها في الاتجاه
+   والمسافات، وهذه صفحة واحدة مستقلة تحمل قيمها معها. والألوان مأخوذة من
+   هوية تقدر حرفا (كحلي · تركوازي · ذهبي) فلا تخرج عنها.
+   ========================================================================== */
+
+:root {
+    /* الهوية — من tokens.css */
+    --navy:      #023331;
+    --navyDeep:  #01211F;
+    --teal:      #0C786C;
+    --tealLift:  #17A08E;
+    --amber:     #8A5D18;
+    --danger:    #C0392B;
+
+    /* الأسطح الفاتحة */
+    --ground:    #F7F9F9;
+    --surface:   #FFFFFF;
+    --line:      #E3E9EA;
+    --line2:     #EDF1F2;
+    --text:      #16232B;
+    --text2:     #55646E;
+    --text3:     #7B8992;
+
+    /* الأرضية الداكنة لعمود الشيفرة */
+    --dark:      #0C1A1E;
+    --darkLift:  #132A2E;
+    --darkLine:  #21393D;
+    --darkText:  #D6E4E4;
+    --darkDim:   #7FA09E;
+
+    /* ألوان الإبراز داخل الشيفرة */
+    --c-str:     #9BD9A8;
+    --c-num:     #E4B978;
+    --c-key:     #7FD1C4;
+    --c-kw:      #7FB6E8;
+    --c-com:     #5E7C7E;
+
+    --sideW:     280px;
+    --radius:    10px;
+    --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", "Cascadia Mono",
+            Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, "Noto Sans Arabic", sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 1.5rem; }
+
+body {
+    margin: 0;
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text);
+    background: var(--surface);
+    -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--teal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.skip {
+    position: absolute; inset-inline-start: -9999px; top: 0; z-index: 100;
+    background: var(--navy); color: #fff; padding: .6rem 1rem;
+}
+.skip:focus { inset-inline-start: 0; }
+
+/* ==========================================================================
+   العمود الجانبي
+   ========================================================================== */
+
+.side {
+    position: fixed; inset-block: 0; inset-inline-start: 0;
+    inline-size: var(--sideW);
+    background: var(--ground);
+    border-inline-end: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    z-index: 40;
+}
+
+.side__head { padding: 1.25rem 1.25rem 1rem; }
+
+.brand { display: flex; align-items: center; gap: .7rem; color: inherit; }
+.brand:hover { text-decoration: none; }
+
+.brand__mark {
+    inline-size: 38px; block-size: 38px; flex: 0 0 38px;
+    display: grid; place-items: center;
+    background: var(--navy); color: #fff;
+    border-radius: 9px;
+    font-size: 13px; font-weight: 700;
+    /* الاسم عربي داخل صفحة `ltr` — يعزل فلا يقلب ما حوله. */
+    direction: rtl; unicode-bidi: isolate;
+}
+.brand__text { display: flex; flex-direction: column; line-height: 1.25; min-inline-size: 0; }
+.brand__text strong { font-size: 14px; font-weight: 650; }
+.brand__text em { font-style: normal; font-size: 11.5px; color: var(--text3); }
+
+.side__search { padding: 0 1rem .75rem; }
+.side__search input {
+    inline-size: 100%;
+    padding: .5rem .7rem;
+    font: inherit; font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+}
+.side__search input:focus {
+    outline: none;
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(12, 120, 108, .12);
+}
+
+.side__nav {
+    flex: 1; overflow-y: auto;
+    padding: 0 .6rem 1rem;
+    overscroll-behavior: contain;
+}
+
+.navgroup {
+    margin: 1.1rem 0 .35rem;
+    padding-inline-start: .65rem;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: .09em; text-transform: uppercase;
+    color: var(--text3);
+}
+
+.navlink {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .34rem .65rem;
+    border-radius: 7px;
+    font-size: 13px; color: var(--text2);
+    line-height: 1.4;
+}
+.navlink:hover { background: rgba(2, 51, 49, .055); color: var(--text); text-decoration: none; }
+.navlink.is-on {
+    background: rgba(12, 120, 108, .11);
+    color: var(--navy); font-weight: 600;
+}
+.navlink--top { padding-block: .4rem; font-weight: 500; }
+.navlink__t { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.navlink[hidden] { display: none; }
+
+.side__foot {
+    padding: .85rem 1.25rem;
+    border-block-start: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: .3rem;
+    font-size: 12.5px;
+}
+
+/* أفعال HTTP — لون لكل فعل، وهو نفسه في القائمة وفي الترويسة */
+.verb {
+    flex: 0 0 auto;
+    display: inline-block; min-inline-size: 46px;
+    padding: .12rem .38rem;
+    border-radius: 5px;
+    font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+    letter-spacing: .05em; text-align: center; text-transform: uppercase;
+    color: #fff;
+}
+.verb--get    { background: #0C786C; }
+.verb--post   { background: #1F5A73; }
+.verb--put    { background: #8A5D18; }
+.verb--patch  { background: #63508A; }
+.verb--delete { background: #A6473A; }
+
+/* ==========================================================================
+   الهيكل — العمودان الأيمنان
+   ========================================================================== */
+
+.main { margin-inline-start: var(--sideW); }
+
+.shell {
+    position: relative;
+    /* الشريط الداكن المتصل: يرسم خلفية للنصف الأيمن من العمود كله، فلا
+       ينقطع بين قسم وقسم كما ينقطع لو رسم على كل صندوق وحده. */
+    background: linear-gradient(to right, var(--surface) 0 52%, var(--dark) 52% 100%);
+}
+
+.sec, .foot {
+    display: grid;
+    grid-template-columns: 52% 48%;
+    align-items: start;
+    border-block-end: 1px solid var(--line2);
+}
+.sec:last-of-type { border-block-end: 0; }
+
+.prose { padding: 2.5rem 2.75rem 2.5rem 2.5rem; min-inline-size: 0; }
+.code  { padding: 2.5rem 2.5rem; min-inline-size: 0; }
+
+/* حد فاصل داخل الجزء الداكن بين النقاط — أرق من الفاصل الفاتح */
+.sec + .sec .code { border-block-start: 1px solid var(--darkLine); margin-block-start: -1px; }
+
+.sec--tag { border-block-end: 0; }
+.sec--tag .prose { padding-block-end: .5rem; }
+.sec--tag h2 {
+    margin: 0;
+    font-size: 27px; letter-spacing: -.015em;
+    color: var(--navy);
+}
+.tag-desc { color: var(--text2); }
+
+/* ==========================================================================
+   النص
+   ========================================================================== */
+
+.prose h1 {
+    margin: 0 0 1rem;
+    font-size: 34px; font-weight: 700; letter-spacing: -.02em;
+    color: var(--navy);
+}
+.prose h2 {
+    margin: 0 0 1rem;
+    font-size: 24px; font-weight: 680; letter-spacing: -.015em;
+    color: var(--navy);
+}
+.md-h { margin: 1.6rem 0 .55rem; font-weight: 650; color: var(--navy); }
+h3.md-h { font-size: 16.5px; }
+h4.md-h { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--text3); }
+h5.md-h { font-size: 14px; }
+
+.md-p { margin: 0 0 .85rem; color: var(--text2); }
+.prose > .md-p:last-child { margin-block-end: 0; }
+
+.md-ul { margin: 0 0 .9rem; padding-inline-start: 1.15rem; color: var(--text2); }
+.md-ul li { margin-block-end: .3rem; }
+.md-ol { list-style: decimal; }
+
+.prose strong { color: var(--text); font-weight: 640; }
+
+.prose code, .md-p code, .md-ul code, .md-table code {
+    font-family: var(--mono); font-size: .87em;
+    background: rgba(2, 51, 49, .062);
+    color: var(--navy);
+    padding: .1em .36em; border-radius: 4px;
+    word-break: break-word;
+}
+
+/* كتلة شيفرة داخل الشرح (نادرة — أكثر الشيفرة في العمود الداكن) */
+.md-pre {
+    margin: 0 0 .9rem;
+    padding: .85rem 1rem;
+    background: var(--navyDeep); color: var(--darkText);
+    border-radius: var(--radius);
+    overflow-x: auto;
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+}
+.md-pre code { background: none; color: inherit; padding: 0; }
+
+/* الجداول */
+.md-tablewrap { overflow-x: auto; margin: 0 0 1.1rem; }
+.md-table {
+    inline-size: 100%; border-collapse: collapse;
+    font-size: 13.5px;
+}
+.md-table th {
+    text-align: start; font-weight: 640; color: var(--text3);
+    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    padding: .5rem .7rem;
+    border-block-end: 1px solid var(--line);
+    white-space: nowrap;
+}
+.md-table td {
+    padding: .6rem .7rem;
+    border-block-end: 1px solid var(--line2);
+    color: var(--text2);
+    vertical-align: top;
+}
+.md-table tr:last-child td { border-block-end: 0; }
+
+.params td:first-child { white-space: nowrap; }
+.params .t { font-family: var(--mono); font-size: 11.5px; color: var(--text3); white-space: nowrap; }
+.dim { color: var(--text3); font-size: 11.5px; }
+
+.req {
+    display: inline-block;
+    margin-inline-start: .35rem;
+    font-size: 9.5px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--danger);
+}
+
+/* رموز الحال */
+.st {
+    display: inline-block;
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    padding: .1rem .4rem; border-radius: 4px;
+}
+.st--ok   { background: rgba(12, 120, 108, .13); color: #0A6157; }
+.st--warn { background: rgba(138, 93, 24, .13);  color: #8A5D18; }
+.st--bad  { background: rgba(192, 57, 43, .12);  color: #A6473A; }
+.panel__bar .st { background: rgba(255,255,255,.1); color: var(--darkText); }
+
+/* صندوق ملاحظة */
+.note {
+    margin: 1.1rem 0;
+    padding: .85rem 1rem;
+    border-inline-start: 3px solid var(--teal);
+    background: rgba(12, 120, 108, .055);
+    border-radius: 0 8px 8px 0;
+    font-size: 13.5px; color: var(--text2);
+}
+.note--warn {
+    border-inline-start-color: var(--amber);
+    background: rgba(138, 93, 24, .06);
+}
+
+/* ==========================================================================
+   ترويسة النقطة
+   ========================================================================== */
+
+.ep__h {
+    margin: 0 0 .7rem;
+    font-size: 20px; font-weight: 660; letter-spacing: -.012em;
+    color: var(--navy);
+    display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+}
+
+.chip {
+    font-size: 10px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase;
+    padding: .18rem .45rem; border-radius: 5px;
+}
+.chip--auth { background: rgba(138, 93, 24, .13); color: var(--amber); }
+.chip--open { background: rgba(12, 120, 108, .13); color: #0A6157; }
+
+.ep__route {
+    display: flex; align-items: center; gap: .55rem;
+    margin: 0 0 1.1rem;
+    padding: .5rem .6rem;
+    background: var(--ground);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow-x: auto;
+}
+.ep__path {
+    font-family: var(--mono); font-size: 12.5px;
+    color: var(--navy); background: none; padding: 0;
+    white-space: nowrap;
+}
+
+/* ==========================================================================
+   عمود الشيفرة
+   ========================================================================== */
+
+.panel {
+    margin-block-end: 1rem;
+    background: var(--darkLift);
+    border: 1px solid var(--darkLine);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+.panel:last-child { margin-block-end: 0; }
+
+.panel__bar {
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    padding: .4rem .5rem .4rem .75rem;
+    background: rgba(255, 255, 255, .035);
+    border-block-end: 1px solid var(--darkLine);
+    min-block-size: 38px;
+}
+.panel__title {
+    display: flex; align-items: center; gap: .45rem;
+    font-size: 11.5px; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase;
+    color: var(--darkDim);
+}
+
+.tabs { display: flex; gap: .15rem; }
+.tab {
+    appearance: none; border: 0; background: none;
+    padding: .3rem .55rem;
+    border-radius: 6px;
+    font: inherit; font-size: 12px; font-weight: 550;
+    color: var(--darkDim); cursor: pointer;
+}
+.tab:hover { color: var(--darkText); background: rgba(255, 255, 255, .05); }
+.tab.is-on { color: #fff; background: rgba(23, 160, 142, .2); }
+
+.panel__pre {
+    margin: 0;
+    padding: .9rem 1rem;
+    overflow-x: auto;
+    font-family: var(--mono); font-size: 12.3px; line-height: 1.62;
+    color: var(--darkText);
+    tab-size: 2;
+}
+.panel__pre code { font: inherit; background: none; color: inherit; padding: 0; }
+
+/* الإبراز — الصنف يوضع من apidocs.js */
+.tok-str { color: var(--c-str); }
+.tok-num { color: var(--c-num); }
+.tok-key { color: var(--c-key); }
+.tok-kw  { color: var(--c-kw); }
+.tok-com { color: var(--c-com); font-style: italic; }
+.tok-pun { color: var(--darkDim); }
+
+/* العربية داخل الشيفرة تعزل، فلا تقلب علامات الترقيم حولها */
+.panel__pre bdi, .md-pre bdi { unicode-bidi: isolate; }
+
+/* زر النسخ */
+.copy {
+    appearance: none; cursor: pointer;
+    border: 1px solid var(--line);
+    background: var(--surface); color: var(--text3);
+    padding: .18rem .45rem;
+    border-radius: 5px;
+    font-family: var(--mono); font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: .05em;
+    flex: 0 0 auto;
+}
+.copy:hover { color: var(--navy); border-color: var(--teal); }
+.copy--panel {
+    border-color: var(--darkLine);
+    background: transparent; color: var(--darkDim);
+}
+.copy--panel:hover { color: #fff; border-color: var(--tealLift); }
+.copy.is-done { color: var(--tealLift); border-color: var(--tealLift); }
+
+/* ==========================================================================
+   التذييل
+   ========================================================================== */
+
+.foot { border-block-end: 0; }
+.foot .prose { padding-block: 1.75rem; }
+.foot .md-p { margin: 0; font-size: 12.5px; }
+
+/* ==========================================================================
+   زر القائمة على الشاشات الضيقة
+   ========================================================================== */
+
+.navtoggle {
+    position: fixed; inset-block-start: .75rem; inset-inline-start: .75rem;
+    z-index: 60;
+    display: none;
+    inline-size: 40px; block-size: 40px;
+    padding: 0 10px;
+    flex-direction: column; justify-content: center; gap: 4px;
+    background: var(--navy); border: 0; border-radius: 9px;
+    cursor: pointer;
+}
+.navtoggle span { display: block; block-size: 2px; background: #fff; border-radius: 2px; }
+
+/* ==========================================================================
+   الاستجابة
+   ==========================================================================
+   عند ضيق الشاشة ينهار العمودان إلى واحد، و**الشريط الداكن يلغى**: تدرج
+   يقسم العرض نصفين على شاشة عرضها 700 بكسل يضع نصف الشرح على أرضية سوداء.
+*/
+
+@media (max-width: 1180px) {
+    .shell { background: var(--surface); }
+    .sec, .foot { grid-template-columns: 1fr; }
+    .prose { padding: 2rem 2rem 1rem; }
+    .code  { padding: 0 2rem 2rem; }
+    .sec + .sec .code { border-block-start: 0; margin-block-start: 0; }
+    .foot .code { padding: 0; }
+}
+
+@media (max-width: 900px) {
+    .navtoggle { display: flex; }
+    .side {
+        transform: translateX(-100%);
+        transition: transform .18s ease;
+        box-shadow: 0 0 40px rgba(0, 0, 0, .16);
+    }
+    .side.is-open { transform: none; }
+    .main { margin-inline-start: 0; }
+    .prose { padding: 4rem 1.25rem 1rem; }
+    .code  { padding: 0 1.25rem 1.75rem; }
+    .sec:not(:first-child) .prose { padding-block-start: 2rem; }
+    body.nav-open { overflow: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .side { transition: none; }
+}
+
+@media print {
+    .side, .navtoggle, .copy, .tabs { display: none; }
+    .main { margin: 0; }
+    .shell { background: none; }
+    .sec, .foot { grid-template-columns: 1fr; }
+    .panel { background: #f4f4f4; border-color: #ccc; }
+    .panel__pre { color: #111; }
+    .tok-str, .tok-num, .tok-key, .tok-kw, .tok-com, .tok-pun { color: #111; }
+}

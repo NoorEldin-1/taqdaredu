@@ -503,8 +503,23 @@ class Taqdar_settings_model extends CI_Model
 
         $this->upsert_prefs($user_id, array('theme' => $theme, 'language' => $lang));
 
-        // اللغة إعداد يسري فورا: الجلسة هي ما يقرؤه get_phrase واشتقاق dir.
-        $this->session->set_userdata('language', $lang);
+        /* اللغة إعداد يسري فورا: الجلسة هي ما يقرؤه get_phrase واشتقاق dir.
+           والكتابة مشروطة بوجود الجلسة أصلا — فواجهة البرمجة تنادي هذه
+           الدالة نفسها وهي **بلا جلسة عمدا** (`Api_v1` لا يحمل المكتبة،
+           والتطبيق لا يحمل كعكة). وبلا الشرط كان النداء يرمي
+           `Call to a member function set_userdata() on null` فيرد 500 صفحة
+           HTML على طلب حفظ نجح فعلا في القاعدة.
+           والصف محفوظ في الحالين، وهو المرجع؛ والجلسة نسخة عاجلة لطلب
+           الويب وحده.
+
+           والفحص على `get_instance()` لا على `$this`: `CI_Model` يعرف
+           `__get` ولا يعرف `__isset`، فـ`isset($this->session)` كاذبة
+           **دائما** — حتى في الويب حيث الجلسة محملة. والمتحكم يحمل
+           مكتباته خصائص حقيقية، فالفحص عليه يقول الحقيقة. */
+        $CI = get_instance();
+        if ($CI && isset($CI->session)) {
+            $CI->session->set_userdata('language', $lang);
+        }
 
         return $this->ok('حفظت تفضيلاتك.', 'prefs');
     }

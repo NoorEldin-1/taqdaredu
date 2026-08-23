@@ -89,6 +89,69 @@ $route['login/otp/verify']  = 'login/otp_verify';
 $route['login/otp/resend']  = 'login/otp_resend';
 $route['login/otp/channel'] = 'login/otp_channel';
 
+// ======================================================================
+// واجهة البرمجة — الإصدار الأول (api/v1)
+// ======================================================================
+//
+// **القواعد صريحة كلها، ولا مفر من ذلك.** `Api.php` الموروث موجود، فبلا
+// قاعدة يذهب `api/v1/auth/login` إلى `Api::v1('auth','login')` — و
+// `REST_Controller` لا يجد `v1_get` فيرد خطأه هو بشكل غلاف آخر. أي أن
+// الصمت هنا لا يعطي 404 مفهومة بل ردا بغلاف ثالث يحير عميل التطبيق.
+//
+// والبادئة `api/` مقصودة كما `payment/`: `csrf_exclude_uris` في
+// [config.php](config.php) يستثني `api/.*` وحدها — والتطبيق لا يحمل رمز
+// حماية النماذج ولا كعكته.
+//
+// والترتيب هو ترتيب هذا الملف كله: **الأخص قبل الأعم**. و`api/v1/(:any)`
+// في الذيل تلتقط ما لا قاعدة له فترد JSON مفهومة بدل صفحة HTML كاملة
+// يرمي عليها Flutter استثناء تحليل.
+
+// ---- الوثائق ----
+// `openapi.json` و`collection.json` قبل `api/docs`: هما مساران مستقلان
+// لا وسيطان على الصفحة، والأخص أولا كما في هذا الملف كله.
+$route['api/docs/openapi.json']   = 'api_docs/openapi';
+$route['api/docs/collection.json']= 'api_docs/collection';
+$route['api/docs']                = 'api_docs/index';
+
+// ---- الدخول ----
+$route['api/v1/auth/login']       = 'api_v1/auth_login';
+$route['api/v1/auth/refresh']     = 'api_v1/auth_refresh';
+$route['api/v1/auth/logout-all']  = 'api_v1/auth_logout_all';
+$route['api/v1/auth/logout']      = 'api_v1/auth_logout';
+$route['api/v1/auth/sessions']    = 'api_v1/auth_sessions';
+$route['api/v1/auth/me']          = 'api_v1/auth_me';
+
+// ---- الطالب · ملفي ----
+// المسارات الأطول أولا: `profile/activity` مقطعان، و`student/profile`
+// مقطعان كذلك — فلولا الترتيب لالتقطت الأولى قاعدة الثانية.
+$route['api/v1/student/profile/activity'] = 'api_v1/student_activity';
+$route['api/v1/student/profile/mastery']  = 'api_v1/student_mastery';
+$route['api/v1/student/profile']          = 'api_v1/student_profile';
+
+// ---- الطالب · الإعدادات ----
+// الكتابة قبل العرض: `settings/profile` لا يجوز أن تسقط إلى `settings`.
+$route['api/v1/student/settings/profile']          = 'api_v1/settings_profile';
+$route['api/v1/student/settings/avatar']           = 'api_v1/settings_avatar';
+$route['api/v1/student/settings/password']         = 'api_v1/settings_password';
+$route['api/v1/student/settings/notifications']    = 'api_v1/settings_notifications';
+$route['api/v1/student/settings/preferences']      = 'api_v1/settings_preferences';
+$route['api/v1/student/settings/parent-links/(:num)'] = 'api_v1/settings_parent_link/$1';
+$route['api/v1/student/settings/parent-links']     = 'api_v1/settings_parent_links';
+$route['api/v1/student/settings/export']           = 'api_v1/settings_export';
+$route['api/v1/student/settings']                  = 'api_v1/student_settings';
+$route['api/v1/student/account']                   = 'api_v1/account_delete';
+
+// ---- الطالب · الاشتراك والفواتير ----
+$route['api/v1/student/subscription/cancel'] = 'api_v1/subscription_cancel';
+$route['api/v1/student/subscription']        = 'api_v1/student_subscription';
+$route['api/v1/student/invoices/(:num)/pay'] = 'api_v1/invoice_pay/$1';
+$route['api/v1/student/invoices/(:num)']     = 'api_v1/student_invoice/$1';
+$route['api/v1/student/invoices']            = 'api_v1/student_invoices';
+
+// ---- الفهرس وما لا قاعدة له ----
+$route['api/v1']         = 'api_v1/index';
+$route['api/v1/(:any)']  = 'api_v1/not_found';
+
 // ---- taqdar write routes ----
 // مسارات الكتابة قبل قواعد العرض دائما.
 //
