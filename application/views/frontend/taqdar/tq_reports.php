@@ -431,24 +431,61 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                         </div>
                     <?php else: ?>
                         <?php
+                        /* TQ-CURVE-GAP — الخط كان يوصل نقطتين بينهما أسبوع بلا
+                           قياس، فيمر مستقيما فوق فراغ ويقرأ كأنه قياس متدرج.
+                           والأسبوع الفارغ ليس صفرا ولا وسطا بين جاريه: هو
+                           «لا قياس» — والسلسلة تتركه `null` عمدا لذلك. فصار
+                           الخط ينقطع حيث تنقطع البيانات، ويرسم مقطعا لكل
+                           سلسلة متصلة. وما بقي وحيدا بين فراغين يرسم نقطة
+                           بلا خط — فلا يختفي أسبوع قيس لأن جاريه لم يقاسا.
+
+                           و`<title>` على كل نقطة: قيمة تقرأ بالمؤشر وبقارئ
+                           الشاشة بلا سطر جافاسكربت — وهو ما كان ينقص الرسم،
+                           إذ لا سبيل إلى معرفة رقم أسبوع بعينه منه. */
                         $cw = 640; $ch = 220; $pad = 8;
-                        $line = static function ($series, $color) use ($cw, $ch, $pad) {
-                            $pts = [];
-                            $n = count($series);
+                        $line = static function ($series, $color, $label) use ($cw, $ch, $pad) {
+                            $n  = count($series);
+                            $xy = static function ($i, $v) use ($cw, $ch, $pad, $n) {
+                                return [
+                                    round($i * ($cw - 2 * $pad) / max(1, $n - 1) + $pad, 1),
+                                    round($ch - $pad - ($v / 100) * ($ch - 2 * $pad), 1),
+                                ];
+                            };
+
+                            /* مقاطع متصلة: كل تتابع من أسابيع مقيسة مقطع. */
+                            $runs = [];
+                            $run  = [];
                             for ($i = 0; $i < $n; $i++) {
-                                if ($series[$i] === null) { continue; }
-                                $x = round($i * ($cw - 2 * $pad) / max(1, $n - 1) + $pad, 1);
-                                $y = round($ch - $pad - ($series[$i] / 100) * ($ch - 2 * $pad), 1);
-                                $pts[] = [$x, $y];
+                                if ($series[$i] === null) {
+                                    if ($run) { $runs[] = $run; $run = []; }
+                                    continue;
+                                }
+                                $run[] = [$i, (int) $series[$i]];
                             }
-                            if (!$pts) { return ''; }
-                            $poly = implode(' ', array_map(static function ($p) { return $p[0] . ',' . $p[1]; }, $pts));
-                            $dots = '';
-                            foreach ($pts as $p) {
-                                $dots .= '<circle cx="' . $p[0] . '" cy="' . $p[1] . '" r="4" fill="' . $color . '"/>';
+                            if ($run) { $runs[] = $run; }
+                            if (!$runs) { return ''; }
+
+                            $svg = '';
+                            foreach ($runs as $seg) {
+                                if (count($seg) > 1) {
+                                    $poly = [];
+                                    foreach ($seg as $pt) {
+                                        [$x, $y] = $xy($pt[0], $pt[1]);
+                                        $poly[] = $x . ',' . $y;
+                                    }
+                                    $svg .= '<polyline points="' . implode(' ', $poly) . '" fill="none"'
+                                          . ' stroke="' . $color . '" stroke-width="2.5"'
+                                          . ' stroke-linecap="round" stroke-linejoin="round"/>';
+                                }
+                                foreach ($seg as $pt) {
+                                    [$x, $y] = $xy($pt[0], $pt[1]);
+                                    $svg .= '<circle cx="' . $x . '" cy="' . $y . '" r="4" fill="' . $color . '">'
+                                          . '<title>' . html_escape($label . ' — الأسبوع ' . ($pt[0] + 1)
+                                                                   . ': ' . $pt[1] . '%') . '</title>'
+                                          . '</circle>';
+                                }
                             }
-                            return '<polyline points="' . $poly . '" fill="none" stroke="' . $color . '" stroke-width="2.5"'
-                                . ' stroke-linecap="round" stroke-linejoin="round"/>' . $dots;
+                            return $svg;
                         };
                         ?>
                         <div class="tq-chart">
@@ -467,8 +504,8 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                                                   y2="<?php echo round($ch - $pad - ($g / 100) * ($ch - 2 * $pad), 1); ?>"
                                                   stroke="var(--tq-line)" stroke-width="1"/>
                                         <?php endforeach; ?>
-                                        <?php echo $line($tq_completion_series, 'var(--tq-navy)'); ?>
-                                        <?php echo $line($tq_grade_series, 'var(--tq-teal)'); ?>
+                                        <?php echo $line($tq_completion_series, 'var(--tq-navy)', 'نسبة الإنجاز'); ?>
+                                        <?php echo $line($tq_grade_series, 'var(--tq-teal)', 'متوسط الدرجات'); ?>
                                     </svg>
                                 </div>
                                 <?php /* الرقم وحده على المحور. ثمانية عناوين بنص «الأسبوع ن»
@@ -628,21 +665,35 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
         <!-- ملخص الأداء -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-sum-h">
             <div class="tq-card__head"><h2 class="tq-card__title" id="tq-sum-h">ملخص الأداء</h2></div>
+            <?php /* TQ-REPORT-DOUBLE — الحلقة كانت تسمى «أداؤك العام» وقيمتها
+                     `$tq_completion` نفسها — أي **نسبة الإنجاز** حرفا بحرف، وهي
+                     معروضة تحتها بشريط باسمها الصحيح. فيقرأ الطالب 44% مرتين
+                     تحت اسمين، ويظن أن مصادفة وافقت بين «أدائه العام» و«إنجازه»،
+                     ثم يسأل: أيهما درجتي؟ والحقيقة أن لا رقم «عام» في القاعدة:
+                     `$tq_completion` متوسط `course_progress` المسجل لا أكثر.
+
+                     فالحلقة تسمى باسمها، والشريط المكرر يحذف — ولا يخترع هنا
+                     رقم «عام» بمعادلة من عندنا: رقم يجمع الإنجاز بالدرجات قرار
+                     تربوي لا تنسيق شاشة. */ ?>
             <div style="display:grid;justify-items:center;gap:var(--tq-space-l)">
-                <?php echo tq_ring($tq_completion, 150, 13, 'أداؤك العام'); ?>
+                <?php echo tq_ring($tq_completion, 150, 13, 'نسبة الإنجاز'); ?>
             </div>
             <div class="tq-stack" style="margin-block-start:var(--tq-space-xl)">
-                <div>
-                    <span class="tq-caption">نسبة الإنجاز</span>
-                    <?php echo tq_progress($tq_completion, 'نسبة الإنجاز'); ?>
-                </div>
                 <div>
                     <span class="tq-caption">متوسط الدرجات</span>
                     <?php echo tq_progress($tq_average, 'متوسط الدرجات'); ?>
                 </div>
                 <div>
                     <span class="tq-caption">الدروس المكتملة</span>
-                    <?php echo tq_progress($tq_total_lessons ? (int) round($tq_done_lessons * 100 / $tq_total_lessons) : 0, 'الدروس المكتملة'); ?>
+                    <?php
+                    $tq_done_pct = $tq_total_lessons
+                        ? (int) round($tq_done_lessons * 100 / $tq_total_lessons) : 0;
+                    echo tq_progress($tq_done_pct, 'الدروس المكتملة');
+                    ?>
+                    <span class="tq-micro">
+                        <?php echo tq_num($tq_done_lessons, 'tq-num--sm'); ?>
+                        من <?php echo tq_num($tq_total_lessons, 'tq-num--sm'); ?> درسا
+                    </span>
                 </div>
             </div>
             <p class="tq-micro" style="margin-block-start:var(--tq-space-l);margin-block-end:0">
