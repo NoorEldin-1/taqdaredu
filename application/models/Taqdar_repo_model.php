@@ -750,7 +750,11 @@ class Taqdar_repo_model extends CI_Model
     }
 
     /** حفظ موضع المشاهدة وزمنها. الحفظ نفسه يمر بالقفل. */
-    public function save_progress($student_id, $lesson_id, $position_sec, $watched_delta)
+    /**
+     * @param array $covered دلاء العشر ثوان التي مر عليها التشغيل فعلا
+     *                       منذ آخر نبضة — انظر TQ-COVERAGE أدناه.
+     */
+    public function save_progress($student_id, $lesson_id, $position_sec, $watched_delta, $covered = array())
     {
         $student_id   = (int) $student_id;
         $lesson_id    = (int) $lesson_id;
@@ -774,22 +778,70 @@ class Taqdar_repo_model extends CI_Model
             ));
         }
 
+        $this->ensure_progress_schema();
+
         $row = $this->db->where('student_id', $student_id)->where('lesson_id', $lesson_id)
                         ->get('lesson_progress')->row_array();
 
-        $watch = ($row ? (int) $row['watch_seconds'] : 0) + $watched_delta;
-        $total = $this->duration_seconds($lesson['duration']);
+        $total = $this->lesson_duration($lesson);
         $ratio = (float) $this->setting('lesson_complete_ratio', 0.9);
 
+        /* ---- الزيادة تقاس بزمن الجدار ----
+           `watched_delta` يأتي من المتصفح، وكان يقبل حتى ٣٠٠ ثانية للنبضة
+           بلا سؤال: نداء واحد كل ثانية يدعي خمس دقائق يكمل درسا كاملا في
+           دقيقتين. فالسقف الآن هو ما مضى فعلا منذ آخر نبضة (ومعه هامش
+           للسرعة المضاعفة وتأخر الشبكة)، لا رقم ثابت. */
+        $last = $row && !empty($row['last_ping_at']) ? strtotime($row['last_ping_at']) : 0;
+
+        /* النبضة الأولى بلا مرجع: لا صف سابق فلا زمن يقاس عليه. فتأخذ
+           ميزانية ثابتة صغيرة بدل أن يصدق ما يدعيه العميل — وإلا كان
+           **أول نداء** هو الثغرة: يرسل الدرس كاملا فيكمله في لحظة. */
+        $wall = $last > 0 ? max(0, time() - $last) : self::FIRST_PING;
+        $watched_delta = min($watched_delta, (int) ($wall * 2.5) + 5);
+
+        $watch = ($row ? (int) $row['watch_seconds'] : 0) + $watched_delta;
+
+        /* ---- التغطية: أي أجزاء الدرس شوهدت فعلا ----
+           TQ-COVERAGE — العداد وحده يكذب. الطالب يفتح الدرس ويقفز إلى
+           آخره ويتركه دقيقة، فيجمع العداد ثواني لم يشاهد فيها شيئا؛
+           والأسوأ أن السحب إلى النهاية كان يكفي وحده. فالإتمام يقاس
+           بخريطة دلاء عشر ثوان: كل دلو يعلم حين يمر عليه التشغيل فعلا،
+           والإتمام أن تعلم منها نسبة `lesson_complete_ratio`.
+
+           والخريطة تخزن ست عشرية: بت لكل دلو، فدرس ساعتين ١٨٠ بايتا. */
+        $segments = $row ? (string) $row['segments'] : '';
+        $buckets  = $total > 0 ? (int) ceil($total / self::BUCKET) : 0;
+
+        if ($buckets > 0 && is_array($covered) && $covered) {
+            /* الدلاء تحد بزمن الجدار كما يحد العداد.
+               بدونها يرسل عميل معدل خريطة الدرس كاملة في نداء واحد
+               فيكمله في لحظة — وهو الباب نفسه الذي سد على `watched_delta`.
+               والميزانية: ما مضى مضروبا في السرعة القصوى، وفوقه دلوان
+               هامشا للشبكة. والفجوة تحسب بخمس دقائق على الأكثر: العميل
+               ينبض كل خمس عشرة ثانية ما دام يعمل، وفجوة أطول تعني أن
+               التشغيل كان متوقفا. */
+            $span  = min($wall, 300);
+            $allow = (int) ceil(($span * 2.5 + 20) / self::BUCKET);
+            if (count($covered) > $allow) $covered = array_slice($covered, 0, $allow);
+
+            $segments = $this->seg_add($segments, $covered, $buckets);
+        }
+        $seen = $buckets > 0 ? $this->seg_count($segments, $buckets) : 0;
+
         $completed_at = $row ? $row['completed_at'] : null;
-        if (!$completed_at && $total > 0 && $watch >= (int) ceil($total * $ratio)) {
-            $completed_at = $this->now();
+        if (!$completed_at && $buckets > 0) {
+            if ($seen >= (int) ceil($buckets * $ratio)) $completed_at = $this->now();
+        } elseif (!$completed_at && $total > 0) {
+            /* لا خريطة (عميل قديم لا يرسل التغطية): العداد كما كان. */
+            if ($watch >= (int) ceil($total * $ratio)) $completed_at = $this->now();
         }
 
         $data = array(
             'position_sec'  => $position_sec,
             'watch_seconds' => $watch,
             'completed_at'  => $completed_at,
+            'segments'      => $segments !== '' ? $segments : null,
+            'last_ping_at'  => $this->now(),
         );
 
         if ($row) {
@@ -809,15 +861,210 @@ class Taqdar_repo_model extends CI_Model
            الحضور لا عن بلوغ عتبة. */
         $this->touch_day($student_id, 'seconds', $watched_delta);
 
+        /* النسبة من التغطية لا من العداد: هي ما يقرؤه الطالب، ويجب أن
+           تكون هي نفسها ما يفتح به الدرس التالي — رقمان يفترقان يجعلان
+           «٪١٠٠» تقف أمام درس مقفل. */
+        $percent = $buckets > 0
+            ? min(100, (int) floor($seen * 100 / $buckets))
+            : ($total > 0 ? min(100, (int) floor($watch * 100 / $total)) : 0);
+
         return array(
             'lesson_id'     => $lesson_id,
             'position_sec'  => $position_sec,
             'watch_seconds' => $watch,
             'duration_sec'  => $total,
-            'percent'       => $total > 0 ? min(100, (int) floor(($watch * 100) / $total)) : 0,
+            'covered_sec'   => $seen * self::BUCKET,
+            'percent'       => $percent,
             'completed_at'  => $completed_at,
             'mastered_at'   => $row ? $row['mastered_at'] : null,
         );
+    }
+
+    /**
+     * إتمام يعلنه الطالب بنفسه — للمصادر التي لا تعلن موضع تشغيلها.
+     *
+     * درايف والإطار الخارجي لا يعطيان موضعا ولا مدة، فلا شيء يقاس. وأمام
+     * ذلك بابان: أن يبقى الدرس التالي مقفلا إلى الأبد، أو أن يقر الطالب
+     * بإتمامه. والثاني إقرار لا قياس — ويقال له ذلك في الشاشة، ويكتب في
+     * السجل ليعرف المعلم أي إتمام قيس وأي إتمام أقر.
+     */
+    public function confirm_complete($student_id, $lesson_id)
+    {
+        $this->ensure_progress_schema();
+
+        $student_id = (int) $student_id;
+        $lesson_id  = (int) $lesson_id;
+
+        $state = $this->lesson_lock_state($student_id, $lesson_id);
+        if (empty($state['found'])) {
+            return $this->error('NOT_FOUND', array('entity' => 'lesson:' . $lesson_id));
+        }
+        $lesson = $state['lesson'];
+
+        if ((int) $lesson['is_free'] !== 1 && !$this->is_entitled($student_id, $lesson['course_id'])) {
+            return $this->error('NOT_ENTITLED', array('lesson_id' => $lesson_id));
+        }
+        if (empty($state['unlocked'])) {
+            return $this->error('MASTERY_LOCKED', array('lesson_id' => $lesson_id));
+        }
+
+        /* الإقرار لا يقبل على مصدر يقاس: من يستطيع القياس يقاس. وبلا هذا
+           الشرط يصير الزر مخرجا من كل درس فيديو على المنصة. */
+        if ($this->trackable($lesson)) {
+            return $this->error('VALIDATION', array(
+                'reason'    => 'measurable_source',
+                'lesson_id' => $lesson_id,
+            ));
+        }
+
+        $row = $this->db->where('student_id', $student_id)->where('lesson_id', $lesson_id)
+                        ->get('lesson_progress')->row_array();
+        $now = $this->now();
+
+        if ($row) {
+            if (!empty($row['completed_at'])) {
+                return array('lesson_id' => $lesson_id, 'completed_at' => $row['completed_at'],
+                             'declared' => true);
+            }
+            $this->db->where('id', (int) $row['id'])->update('lesson_progress', array(
+                'completed_at' => $now, 'declared_at' => $now, 'last_ping_at' => $now,
+            ));
+        } else {
+            $this->db->insert('lesson_progress', array(
+                'student_id' => $student_id, 'lesson_id' => $lesson_id,
+                'position_sec' => 0, 'watch_seconds' => 0,
+                'completed_at' => $now, 'declared_at' => $now, 'last_ping_at' => $now,
+                'mastered_at' => null,
+            ));
+        }
+
+        $this->sync_watch_history($student_id, (int) $lesson['course_id'], $lesson_id, 0, true);
+        $this->audit($student_id, 'lesson.declare_complete', 'lesson:' . $lesson_id, null,
+                     array('source' => $lesson['video_type']));
+
+        return array('lesson_id' => $lesson_id, 'completed_at' => $now, 'declared' => true);
+    }
+
+    /**
+     * يسجل المدة التي اكتشفها المشغل في المتصفح.
+     *
+     * يوتيوب وفيميو يعلنان المدة لمشغلهما، ولا يعلنانها للخادم إلا بمفتاح
+     * واجهة برمجة لا يملكه هذا التركيب — وكل درس في القاعدة `00:00:00`،
+     * أي أن `completed_at` لم يكن ليكتب أبدا مهما شوهد.
+     *
+     * والكتابة مشروطة بأن المخزن صفر: مدة كتبها صاحبها بيده لا يدهسها
+     * رقم من متصفح زائر.
+     */
+    public function record_duration($lesson_id, $seconds)
+    {
+        try {
+            $this->load->model('taqdar_curriculum_model', 'tq_curric');
+            return $this->tq_curric->record_duration($lesson_id, $seconds);
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-DUR: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /* ================================================================
+     *  التغطية — خريطة دلاء عشر ثوان
+     * ================================================================ */
+
+    /** ثواني الدلو الواحد. عشر: أدق من دقيقة، وأرخص من ثانية. */
+    const BUCKET = 10;
+
+    /**
+     * ميزانية النبضة الأولى بالثواني.
+     *
+     * لا صف سابق فلا `last_ping_at` يقاس عليه، فتأخذ رقما ثابتا بدل أن
+     * يصدق ما يدعيه العميل. والعميل ينبض بعد خمس عشرة ثانية من بدء
+     * التشغيل، فثلاثون تسع أبطأ شبكة ولا تكفي لدرس.
+     */
+    const FIRST_PING = 30;
+
+    /** مدة الدرس بالثواني — العمود الرقمي أولا، والنصي مرآة قديمة. */
+    public function lesson_duration($lesson)
+    {
+        if (isset($lesson['duration_sec']) && (int) $lesson['duration_sec'] > 0) {
+            return (int) $lesson['duration_sec'];
+        }
+        return $this->duration_seconds(isset($lesson['duration']) ? $lesson['duration'] : '');
+    }
+
+    /** هل يقاس تشغيل هذا الدرس أصلا؟ */
+    public function trackable($lesson)
+    {
+        $t = strtolower((string) (isset($lesson['video_type']) ? $lesson['video_type'] : ''));
+        if (in_array($t, array('youtube', 'vimeo', 'html5', 'system'), true)) return true;
+        return strtolower((string) $lesson['lesson_type']) === 'audio';
+    }
+
+    /** يعلم دلاء في الخريطة، ويرد الخريطة الجديدة ست عشرية. */
+    private function seg_add($hex, $buckets, $max)
+    {
+        $bytes = (int) ceil($max / 8);
+        $raw   = $hex !== '' ? @hex2bin(str_pad((string) $hex, $bytes * 2, '0')) : false;
+        if ($raw === false || strlen($raw) < $bytes) {
+            $raw = str_pad((string) $raw, $bytes, "\0");
+        }
+
+        foreach ((array) $buckets as $b) {
+            $b = (int) $b;
+            if ($b < 0 || $b >= $max) continue;
+            $i = intdiv($b, 8);
+            $raw[$i] = chr(ord($raw[$i]) | (1 << ($b % 8)));
+        }
+        return bin2hex(substr($raw, 0, $bytes));
+    }
+
+    /** كم دلوا معلما. */
+    private function seg_count($hex, $max)
+    {
+        if ($hex === '' || $hex === null) return 0;
+        $raw = @hex2bin(strlen($hex) % 2 ? '0' . $hex : $hex);
+        if ($raw === false) return 0;
+
+        $n = 0;
+        $len = strlen($raw);
+        for ($i = 0; $i < $len; $i++) {
+            $v = ord($raw[$i]);
+            /* عد البتات — `substr_count(decbin())` أبطأ وأوضح، وهذه تنفذ
+               على كل نبضة تقدم من كل طالب. */
+            $v = $v - (($v >> 1) & 0x55);
+            $v = ($v & 0x33) + (($v >> 2) & 0x33);
+            $n += ($v + ($v >> 4)) & 0x0F;
+        }
+        return min($n, $max);
+    }
+
+    /**
+     * أعمدة التقدم التي تحتاجها التغطية.
+     *
+     * تنشأ وقت التشغيل كما ينشئ `Taqdar_content_model` جدوله: المستودع
+     * بلا هجرات، ومن نصب المنصة قبل هذا العمل يبقى جدوله بلا الأعمدة —
+     * وأول كتابة عليها ترمي، فيسقط تسجيل التقدم كله.
+     */
+    private $_prog_schema = false;
+    private function ensure_progress_schema()
+    {
+        if ($this->_prog_schema) return;
+        $this->_prog_schema = true;
+
+        try {
+            $this->db->data_cache = array();
+            $cols = array(
+                'segments'     => 'text DEFAULT NULL COMMENT "خريطة دلاء عشر ثوان، ست عشرية"',
+                'last_ping_at' => 'datetime DEFAULT NULL',
+                'declared_at'  => 'datetime DEFAULT NULL COMMENT "إتمام أقره الطالب لا قيس"',
+            );
+            foreach ($cols as $c => $ddl) {
+                if (!$this->db->field_exists($c, 'lesson_progress')) {
+                    $this->db->query('ALTER TABLE `lesson_progress` ADD COLUMN `' . $c . '` ' . $ddl);
+                }
+            }
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-COVERAGE: تعذر تركيب أعمدة التقدم — ' . $e->getMessage());
+        }
     }
 
     /* ================================================================

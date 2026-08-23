@@ -20,7 +20,13 @@
     lesson: null, attempt: null, questions: [], watched: 0, position: 0, ticker: null,
     /* أدوات `F2.1`: المشغل نفسه (لضبط السرعة والقفز)، ومقاطع النص،
        وعقد النص المرسومة (لتظليل المقطع الجاري بلا إعادة رسم القائمة). */
-    video: null, cues: [], cueNodes: [], activeCue: -1, notes: []
+    video: null, cues: [], cueNodes: [], activeCue: -1, notes: [],
+    /* TQ-COVERAGE — المشغل الموحد وخريطة ما شوهد فعلا.
+       `seen` كل الدلاء المعروفة (لا يعاد إرسال دلو أرسل)، و`fresh` ما
+       لم يرسل بعد. والفصل بينهما هو ما يجعل النبضة صغيرة ومأمونة
+       التكرار: نبضة تفشل تعيد دلاءها إلى `fresh` ولا تضاعف شيئا. */
+    player: null, duration: 0, buckets: 0, seen: {}, fresh: [],
+    completed: false, mastered: false
   };
 
   /* ---- نداء الخادم: مغلف موحد، والرسالة العربية تأتي منه لا نخترعها ---- */
@@ -99,8 +105,18 @@
     text('[data-tq-lesson-summary]', L.summary || '');
 
     var p = d.progress || {};
-    state.position = parseInt(p.position_sec, 10) || 0;
-    var pct = L.duration_sec ? Math.min(100, Math.round((p.watch_seconds || 0) / L.duration_sec * 100)) : 0;
+    state.position  = parseInt(p.position_sec, 10) || 0;
+    state.completed = !!p.completed_at;
+    state.mastered  = !!p.mastered_at;
+    state.duration  = parseInt(L.duration_sec, 10) || 0;
+    state.buckets   = state.duration > 0 ? Math.ceil(state.duration / BUCKET) : 0;
+
+    /* النسبة من التغطية التي حسبها الخادم، لا من العداد.
+       كانت `watch_seconds / duration_sec` — ورقمان يقيسان شيئين
+       مختلفين: العداد يجمع الثواني ولو تكررت، والقفل يقرأ التغطية. فمن
+       أعاد مشاهدة أول دقيقة عشر مرات كان يقرأ «٪١٠٠» على درس مقفل. */
+    var pct = typeof p.percent === 'number' ? p.percent
+            : (state.duration ? Math.min(100, Math.round((p.covered_sec || 0) / state.duration * 100)) : 0);
     var pw = $('[data-tq-lesson-progress]');
     if (pw) {
       pw.innerHTML = '<div class="tq-progress"><div class="tq-progress__track">'
@@ -122,73 +138,196 @@
     mountNav(d);
     mountTools();
 
-    // المراجعة تظهر حين يوجد تقييم مرتبط بالدرس وحين لم يتقن بعد
-    show('[data-tq-gate-intro]', !!d.review && !p.mastered_at);
+    /* الاختبار يفتح بعد إتمام الدرس لا عند تحميله — انظر `openGate()`. */
+    openGate();
   }
 
+  /* ==================================================================
+     المشغل — من `TQPlayer`، وواحد لكل مصدر
+     ==================================================================
+     كان هنا `<iframe>` عار ليوتيوب وفيميو. والإطار العاري لا يعلن شيئا:
+     لا حدث تشغيل ولا موضع ولا مدة — فالطالب يشاهد الدرس كاملا ولا تسجل
+     له ثانية، ولا يكتب `completed_at`، ولا تفتح البوابة. وكل دروس
+     المنصة يوتيوب. وثلاث أدوات موعودة (السرعة، والقفز من النص،
+     والملاحظات الموقوتة) كانت تعمل على `<video>` وحده.
+  */
   function mountPlayer(pb, L) {
     var frame = $('[data-tq-player-frame]');
     if (!frame) return;
-    var url = pb.video_url || '';
-    var t = (pb.video_type || '').toLowerCase();
+    var url = pb.video_url || pb.audio_url || '';
 
     if (!url) {
       frame.innerHTML = '<div class="tq-empty"><p class="tq-empty__text">لا يوجد مقطع لهذا الدرس.</p></div>';
+      show('[data-tq-declare]', false);
       return;
     }
-    if (t === 'youtube' || /youtu\.?be/.test(url)) {
-      var id = (url.match(/(?:v=|be\/|embed\/)([\w-]{6,})/) || [])[1] || '';
-      frame.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + id
-        + '?rel=0&modestbranding=1" title="' + (L.title || '') + '" allowfullscreen loading="lazy"></iframe>';
+    if (!window.TQPlayer) {
+      frame.innerHTML = '<div class="tq-empty"><p class="tq-empty__text">تعذر تحميل المشغل. حدث الصفحة.</p></div>';
       return;
     }
-    if (t === 'vimeo' || /vimeo/.test(url)) {
-      var vid = (url.match(/vimeo\.com\/(\d+)/) || [])[1] || '';
-      frame.innerHTML = '<iframe src="https://player.vimeo.com/video/' + vid + '" allowfullscreen loading="lazy"></iframe>';
-      return;
-    }
-    frame.innerHTML = '<video controls preload="metadata" playsinline></video>';
-    var v = frame.querySelector('video');
-    v.src = url;
-    state.video = v;
 
     /* `?t=<ثانية>` يعلو موضع الاستئناف.
        الروابط التي تأتي من دفتر الأخطاء وخريطة الإتقان تقصد لحظة بعينها
        — لحظة المفهوم الذي أخطأ فيه — فإعادته إلى موضع توقفه تلغي كل
        معنى الرابط وتجعله يبحث عما جيء به إليه. */
     var deep = parseInt((location.search.match(/[?&]t=(\d+)/) || [])[1], 10) || 0;
-    if (deep > 0) v.currentTime = deep;
-    else if (state.position > 0) v.currentTime = state.position;
-    v.addEventListener('timeupdate', function () {
-      state.position = Math.floor(v.currentTime);
-      markCue(state.position);
-    });
-    v.addEventListener('play', startTicker);
-    v.addEventListener('pause', stopTicker);
-    v.addEventListener('ended', function () { stopTicker(); flush(true); });
+    var at   = deep > 0 ? deep : (state.position || 0);
 
-    /* ضابط السرعة يظهر على مشغل المنصة وحده.
-       يوتيوب وفيميو إطاران من نطاق آخر، وسياسة المصدر نفسه تمنع لمسهما —
-       فزر سرعة عليهما «واجهة قاضية» تضغط ولا تفعل، وهو ما تنهى عنه
-       الوثيقة نصا. ولذلك يخفى ولا يعطل. */
-    show('[data-tq-speed-grp]', true);
+    TQPlayer.mount(frame, {
+      type: pb.video_type || '', url: url, startAt: at, title: L.title || ''
+    }).then(function (pl) {
+      state.player = pl;
+      /* `state.video` يبقى للتوافق: النص والملاحظات كانا يمسانه مباشرة.
+         والعنصر الأصلي وحده يملكه، وما سواه يمر بالواجهة. */
+      state.video  = pl.el || null;
+
+      pl.on('time', onTime);
+      pl.on('play',  startTicker);
+      pl.on('pause', stopTicker);
+      pl.on('ended', function () { stopTicker(); flush(true); });
+      pl.on('ready', function () {
+        /* المدة تعلن مرة: الخادم لا يعرفها لمصدر خارجي بلا مفتاح واجهة
+           برمجة، وكل درس في القاعدة `00:00:00` — فلا إتمام يكتب أبدا. */
+        var d = Math.round(pl.duration() || 0);
+        if (d > 0 && !state.duration) {
+          state.duration = d;
+          state.buckets  = Math.ceil(d / BUCKET);
+          if (!(state.lesson && state.lesson.duration_sec > 0)) sendDuration(d);
+        }
+      });
+
+      /* ضبط السرعة يعرض حيث يعمل فعلا — والآن يعمل على يوتيوب وفيميو
+         أيضا، لا على مشغل المنصة وحده. وزر يضغط ولا يفعل «واجهة قاضية»
+         تنهى عنها الوثيقة نصا، فيخفى حيث لا يعمل. */
+      show('[data-tq-speed-grp]', pl.canRate());
+
+      /* ما لا يعلن موضعه يقال صراحة: زر إقرار بدل شريط تقدم يكذب. */
+      var blind = (pl.kind === 'none');
+      show('[data-tq-declare]', blind && !state.completed);
+      show('[data-tq-blind-note]', blind);
+    });
   }
 
-  /* ---- التقدم: يرسل كل 15 ثانية مشاهدة فعلية، لا كل نبضة ---- */
+  /* ---- التقدم -------------------------------------------------------
+     TQ-COVERAGE — العداد وحده يكذب.
+     كان يجمع خمس ثوان لكل نبضة مؤقت ما دام المشغل يعمل، فالسحب إلى آخر
+     الفيديو ثم تركه دقيقة يكمل درسا لم يشاهد. فالمقياس الآن **تغطية**:
+     أي أجزاء الدرس مر عليها التشغيل فعلا — دلو لكل عشر ثوان، يعلم حين
+     يمر عليه الموضع. والإتمام أن تعلم منها نسبة `lesson_complete_ratio`،
+     والقرار في الخادم لا هنا.
+  */
+  var BUCKET = 10;
+
+  function onTime(t) {
+    var sec = Math.floor(t || 0);
+    if (sec < 0) return;
+    state.position = sec;
+    markCue(sec);
+
+    if (state.buckets > 0) {
+      var b = Math.floor(sec / BUCKET);
+      if (b >= 0 && b < state.buckets && !state.seen[b]) {
+        state.seen[b] = 1;
+        state.fresh.push(b);
+      }
+    }
+  }
+
   function startTicker() {
     if (state.ticker) return;
-    state.ticker = setInterval(function () { state.watched += 5; if (state.watched >= 15) flush(false); }, 5000);
+    state.ticker = setInterval(function () {
+      state.watched += 5;
+      if (state.watched >= 15) flush(false);
+    }, 5000);
   }
-  function stopTicker() { if (state.ticker) { clearInterval(state.ticker); state.ticker = null; } flush(false); }
+  function stopTicker() {
+    if (state.ticker) { clearInterval(state.ticker); state.ticker = null; }
+    flush(false);
+  }
 
   function flush(ended) {
-    if (!state.watched && !ended) return;
+    if (!state.watched && !state.fresh.length && !ended) return;
     var delta = state.watched; state.watched = 0;
-    call('progress', { lesson_id: LESSON, position_sec: state.position, watched_delta: delta })
-      .then(function () { if (ended) show('[data-tq-gate-intro]', !!(state.lesson && state.lesson.review)); })
-      .catch(function () { /* التقدم لا يوقف المشاهدة؛ تعاد المحاولة في النبضة التالية */ });
+    var cov = state.fresh;     state.fresh = [];
+
+    call('progress', {
+      lesson_id: LESSON,
+      position_sec: state.position,
+      watched_delta: delta,
+      covered: cov,
+      duration_sec: state.duration || 0
+    }).then(function (r) {
+      paintProgress(r);
+      if (r && r.completed_at && !state.completed) {
+        state.completed = true;
+        show('[data-tq-declare]', false);
+        openGate();
+      } else if (ended) {
+        openGate();
+      }
+    }).catch(function () {
+      /* التقدم لا يوقف المشاهدة. والدلاء تعاد إلى الطابور: إسقاطها يعني
+         أن انقطاعا لحظة يمحو دقيقة شاهدها الطالب فعلا. */
+      state.fresh = cov.concat(state.fresh);
+      state.watched += delta;
+    });
   }
-  addEventListener('beforeunload', function () { if (state.watched) flush(false); });
+
+  /** يعلن مدة اكتشفها المشغل — مرة واحدة، ونبضة التقدم تحملها بعدها. */
+  function sendDuration(d) {
+    call('progress', {
+      lesson_id: LESSON, position_sec: state.position,
+      watched_delta: 0, covered: [], duration_sec: d
+    }).then(paintProgress).catch(function () {});
+  }
+
+  /** شريط التقدم — من رد الخادم لا من حساب في المتصفح. */
+  function paintProgress(r) {
+    if (!r) return;
+    var pw = $('[data-tq-lesson-progress]');
+    if (pw && typeof r.percent === 'number') {
+      pw.innerHTML = '<div class="tq-progress"><div class="tq-progress__track">'
+        + '<div class="tq-progress__fill" style="inline-size:' + r.percent + '%"></div></div>'
+        + '<span class="tq-progress__value">' + iso(r.percent + '%') + '</span></div>';
+    }
+    var badge = $('[data-tq-lesson-badge]');
+    if (badge && r.completed_at) {
+      badge.innerHTML = '<span class="tq-badge tq-badge--progress">شوهد</span>';
+    }
+  }
+
+  /**
+   * يفتح بطاقة الاختبار — بعد إتمام الدرس لا عند تحميله.
+   *
+   * كانت تعرض فور فتح الصفحة، فيقرأ الطالب «هل فهمت؟» قبل أن يشاهد
+   * دقيقة. والاختبار بوابة الدرس التالي، فموضعه بعد الدرس.
+   */
+  function openGate() {
+    var has = !!(state.lesson && state.lesson.review);
+    var done = state.completed || (state.lesson && state.lesson.mastered);
+    show('[data-tq-gate-intro]', has && done && !state.mastered);
+    show('[data-tq-gate-wait]',  has && !done);
+  }
+
+  addEventListener('beforeunload', function () {
+    if (state.watched || state.fresh.length) flush(false);
+  });
+
+  /* ---- إقرار الإتمام: للمصادر التي لا تعلن موضعها ---- */
+  var declareBtn = $('[data-tq-declare]');
+  if (declareBtn) declareBtn.addEventListener('click', function () {
+    declareBtn.setAttribute('data-loading', 'true');
+    call('complete', { lesson_id: LESSON }).then(function () {
+      declareBtn.removeAttribute('data-loading');
+      state.completed = true;
+      show('[data-tq-declare]', false);
+      paintProgress({ percent: 100, completed_at: 1 });
+      openGate();
+    }).catch(function (e) {
+      declareBtn.removeAttribute('data-loading');
+      alert(e && e.message ? e.message : 'تعذر تسجيل الإتمام.');
+    });
+  });
 
   function mountObjectives(list) {
     var box = $('[data-tq-objectives]');
@@ -362,8 +501,9 @@
 
   /* ---- 1 · السرعة ------------------------------------------------- */
   function setRate(rate) {
-    if (!state.video) return;
-    state.video.playbackRate = rate;
+    /* عبر الواجهة لا على العنصر: يوتيوب وفيميو يقبلان تغيير السرعة عبر
+       واجهتيهما، وكان الزر يخفى عليهما لأن `state.video` فارغ. */
+    if (!state.player || !state.player.setRate(rate)) return;
     var btns = root.querySelectorAll('[data-tq-rate]');
     for (var i = 0; i < btns.length; i++) {
       var on = parseFloat(btns[i].getAttribute('data-tq-rate')) === rate;
@@ -466,7 +606,7 @@
        والفيديو يوقف لأن من يكتب لا يسمع. */
     var at = state.position || 0;
     form.setAttribute('data-tq-at', at);
-    if (state.video && !state.video.paused) state.video.pause();
+    if (state.player) state.player.pause();
 
     var lbl = $('[data-tq-note-at]');
     if (lbl) lbl.textContent = 'ملاحظة عند ' + mmss(at);
@@ -524,10 +664,13 @@
     var cue = ev.target.closest('[data-tq-cue]');
     if (cue) {
       var at = parseInt(cue.getAttribute('data-tq-cue'), 10) || 0;
-      if (state.video) {
-        state.video.currentTime = at;
-        state.video.play();
-        state.video.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      /* القفز صار يعمل على كل مصدر يعلن موضعه — لا على `<video>` وحده.
+         وما لا يعلنه (درايف والإطار الخارجي) يقال لصاحبه أين يذهب بدل
+         زر يضغط ولا يتحرك شيء. */
+      if (state.player && state.player.kind !== 'none') {
+        state.player.seek(at);
+        var frame = $('[data-tq-player-frame]');
+        if (frame) frame.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
         alertBox('ارجع إلى الدقيقة ' + mmss(at) + ' في المشغل.');
       }

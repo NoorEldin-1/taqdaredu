@@ -147,6 +147,44 @@ include 'portal_open.php';
                 </div>
             </article>
 
+            <?php /* ── المصدر الذي لا يعلن موضعه ─────────────────────
+                     درايف والإطار الخارجي لا يعطيان موضع تشغيل ولا مدة،
+                     فلا شيء يقاس. والبديلان: أن يبقى الدرس التالي مقفلا
+                     إلى الأبد، أو أن يقر الطالب بإتمامه. والثاني إقرار
+                     لا قياس — ويقال ذلك صراحة. وشريط تقدم يتحرك بمؤقت
+                     على شيء قد يكون أوقفه كذب أسوأ من الصمت. */ ?>
+            <section class="tq-card" data-tq-blind-note hidden>
+                <div class="tq-row" style="gap:var(--tq-space-l);align-items:flex-start">
+                    <span class="tq-icon-box tq-pastel--peach" aria-hidden="true"><?php echo tq_icon('alert'); ?></span>
+                    <div style="flex:1">
+                        <h2 class="tq-card__title" style="margin:0">هذا المصدر لا يقاس تلقائيا</h2>
+                        <p class="tq-caption" style="margin:var(--tq-space-xs) 0 var(--tq-space-l)">
+                            المنصة لا تقرأ موضع التشغيل في هذا النوع من المصادر، فلا يسجل تقدمك فيه من تلقائه.
+                            اضغط «أنهيت الدرس» حين تكمله ليفتح لك الاختبار.
+                        </p>
+                        <button class="tq-btn tq-btn--primary" type="button" data-tq-declare hidden>
+                            <?php echo tq_icon('check', 16); ?> أنهيت هذا الدرس
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <?php /* ── الاختبار ينتظر إتمام الدرس ────────────────────
+                     كانت بطاقة «هل فهمت؟» تظهر فور فتح الصفحة، فيقرأها
+                     الطالب قبل أن يشاهد دقيقة واحدة. والاختبار بوابة
+                     الدرس التالي، فموضعه بعد الدرس لا قبله. */ ?>
+            <section class="tq-card" data-tq-gate-wait hidden>
+                <div class="tq-row" style="gap:var(--tq-space-l);align-items:flex-start">
+                    <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon('lock'); ?></span>
+                    <div style="flex:1">
+                        <h2 class="tq-card__title" style="margin:0">اختبار هذا الدرس</h2>
+                        <p class="tq-caption" style="margin:var(--tq-space-xs) 0 0">
+                            يفتح حين تكمل مشاهدة الدرس — وباجتيازه يفتح الدرس التالي.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             <!-- «هل فهمت؟» — لا تخطي: البوابة هي المنتج -->
             <section class="tq-card" data-tq-gate-intro hidden>
                 <div class="tq-row" style="gap:var(--tq-space-l);align-items:flex-start">

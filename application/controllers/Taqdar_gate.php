@@ -311,12 +311,48 @@ class Taqdar_gate extends CI_Controller
         $lesson_id = (int) $this->body('lesson_id', 0);
         if (!$lesson_id) return $this->fail('VALIDATION', array('field' => 'lesson_id'));
 
+        /* TQ-COVERAGE · الدلاء التي مر عليها التشغيل منذ آخر نبضة.
+           والحد مئة في النبضة: النبضة كل خمس عشرة ثانية، أي دلوان في
+           التشغيل العادي وعشرة في السرعة القصوى — ومئة سعة كافية لأبطأ
+           شبكة، وسد أمام حمولة تدعي تغطية درس كامل في نداء. */
+        $covered = $this->body('covered', array());
+        if (!is_array($covered)) $covered = array();
+        $covered = array_slice($covered, 0, 100);
+
+        /* المدة يعلنها المشغل: يوتيوب وفيميو يعرفانها ولا يعرفها الخادم
+           بلا مفتاح واجهة برمجة، وكل درس في القاعدة `00:00:00`. */
+        $dur = (int) $this->body('duration_sec', 0);
+        if ($dur > 0) $this->repo->record_duration($lesson_id, $dur);
+
         $result = $this->repo->save_progress(
             $uid,
             $lesson_id,
             (int) $this->body('position_sec', 0),
-            (int) $this->body('watched_delta', 0)
+            (int) $this->body('watched_delta', 0),
+            $covered
         );
+        if ($this->repo->is_error($result)) return $this->passthru_error($result);
+
+        return $this->ok($result);
+    }
+
+    /**
+     * إتمام يعلنه الطالب — للمصادر التي لا تعلن موضع تشغيلها.
+     *
+     * درايف والإطار الخارجي لا يعطيان موضعا، فلا شيء يقاس. والبديل أن
+     * يبقى الدرس التالي مقفلا إلى الأبد. والنموذج يرفض هذا الإقرار على
+     * مصدر يقاس، فلا يصير مخرجا من كل درس على المنصة.
+     */
+    public function complete()
+    {
+        if (!$this->require_post()) return;
+        $uid = $this->guard('progress');
+        if (!$uid) return;
+
+        $lesson_id = (int) $this->body('lesson_id', 0);
+        if (!$lesson_id) return $this->fail('VALIDATION', array('field' => 'lesson_id'));
+
+        $result = $this->repo->confirm_complete($uid, $lesson_id);
         if ($this->repo->is_error($result)) return $this->passthru_error($result);
 
         return $this->ok($result);

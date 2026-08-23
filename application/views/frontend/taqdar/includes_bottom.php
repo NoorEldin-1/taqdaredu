@@ -1,7 +1,10 @@
 <script src="<?php echo tq_asset('js/taqdar.js'); ?>" defer></script>
 
-<?php /* سكربت المشغل يحمل على صفحته وحدها — لا يثقل بقية الشاشات. */ ?>
+<?php /* سكربت المشغل يحمل على صفحته وحدها — لا يثقل بقية الشاشات.
+         و`tq-player.js` **قبله**: `taqdar-lesson.js` ينادي `TQPlayer`
+         عند أول رسم، وكلاهما `defer` فينفذان بترتيب ورودهما. */ ?>
 <?php if (isset($page_name) && $page_name === 'tq_lesson'): ?>
+<script src="<?php echo tq_asset('js/tq-player.js'); ?>" defer></script>
 <script src="<?php echo tq_asset('js/taqdar-lesson.js'); ?>" defer></script>
 <?php endif; ?>
 
