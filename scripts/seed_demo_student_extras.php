@@ -243,42 +243,289 @@ $say('٢ · المواد التعليمية (ملفات على القرص + صف
 if ($apply && !is_dir($files_dir)) @mkdir($files_dir, 0775, true);
 
 /**
- * محتوى ملف صغير صالح لكل امتداد.
- * PDF مصغر لكنه صحيح البنية فيفتحه العارض، والبقية نص أو صورة حقيقية.
+ * مقطع mp4 صحيح مصغر — H.264 بلا صوت، ١٦٠×٩٠، ثانية واحدة.
+ *
+ * محفوظ مرمزا لأنه بيانات ثنائية لا شيفرة: بناء MP4 صالح يحتاج
+ * `moov` كاملا بجداول العينات و SPS/PPS للترميز، وكتابتها بيد في
+ * سكربت بذر تعني خطأ صامتا آخر كالذي سبق. ولد بـffmpeg مرة:
+ *   ffmpeg -f lavfi -i color=c=0x023331:s=160x90:d=1:r=5 \
+ *          -c:v libx264 -profile:v baseline -pix_fmt yuv420p \
+ *          -movflags +faststart out.mp4
  */
-$blob = static function ($ext, $title) {
+define('TQ_SEED_MP4_B64',
+        'AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAM4bW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAA+gAAQAA'
+      . 'AQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+      . 'AAAAAgAAAmN0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAA'
+      . 'AAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAKAAAABaAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPoAAAAAAABAAAAAAHb'
+      . 'bWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAAoAAAAKABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRl'
+      . 'b0hhbmRsZXIAAAABhm1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAA'
+      . 'AQAAAUZzdGJsAAAAunN0c2QAAAAAAAAAAQAAAKphdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAKAAWgBIAAAASAAAAAAA'
+      . 'AAABFUxhdmM2Mi4xMS4xMDAgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAAMGF2Y0MBQsAe/+EAGGdCwB7ZAo35MBEAAAMAAQAA'
+      . 'AwAKDxYuSAEABWjLg8sgAAAAEHBhc3AAAAABAAAAAQAAABRidHJ0AAAAAAAAFyAAAAAAAAAAGHN0dHMAAAAAAAAAAQAAAAUA'
+      . 'AAgAAAAAFHN0c3MAAAAAAAAAAQAAAAEAAAAcc3RzYwAAAAAAAAABAAAAAQAAAAUAAAABAAAAKHN0c3oAAAAAAAAAAAAAAAUA'
+      . 'AAK6AAAACwAAAAsAAAAKAAAACgAAABRzdGNvAAAAAAAAAAEAAANoAAAAYXVkdGEAAABZbWV0YQAAAAAAAAAhaGRscgAAAAAA'
+      . 'AAAAbWRpcmFwcGwAAAAAAAAAAAAAAAAsaWxzdAAAACSpdG9vAAAAHGRhdGEAAAABAAAAAExhdmY2Mi4zLjEwMAAAAAhmcmVl'
+      . 'AAAC7G1kYXQAAAJwBgX//2zcRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY1IHIzMjIyIGIzNTYwNWEgLSBILjI2NC9N'
+      . 'UEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDI1IC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcveDI2NC5odG1s'
+      . 'IC0gb3B0aW9uczogY2FiYWM9MCByZWY9MyBkZWJsb2NrPTE6MDowIGFuYWx5c2U9MHgxOjB4MTExIG1lPWhleCBzdWJtZT03'
+      . 'IHBzeT0xIHBzeV9yZD0xLjAwOjAuMDAgbWl4ZWRfcmVmPTEgbWVfcmFuZ2U9MTYgY2hyb21hX21lPTEgdHJlbGxpcz0xIDh4'
+      . 'OGRjdD0wIGNxbT0wIGRlYWR6b25lPTIxLDExIGZhc3RfcHNraXA9MSBjaHJvbWFfcXBfb2Zmc2V0PS0yIHRocmVhZHM9MyBs'
+      . 'b29rYWhlYWRfdGhyZWFkcz0xIHNsaWNlZF90aHJlYWRzPTAgbnI9MCBkZWNpbWF0ZT0xIGludGVybGFjZWQ9MCBibHVyYXlf'
+      . 'Y29tcGF0PTAgY29uc3RyYWluZWRfaW50cmE9MCBiZnJhbWVzPTAgd2VpZ2h0cD0wIGtleWludD0yNTAga2V5aW50X21pbj01'
+      . 'IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFj'
+      . 'b21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAAQmWIhAR8RigA'
+      . 'C/zHAAEDaOAAIlMnJycnJycnJyddddddddddddddddddddddddddddddddddddddddddddddddddeAAAAAdBmjgI+D2AAAAA'
+      . 'B0GaVAI+D2AAAAAGQZpgEPB7AAAABkGagD/B7A=='
+);
+
+/** أصغر عرض تقديمي صحيح البنية (OOXML) — شريحة واحدة بعنوانها. */
+function tq_seed_pptx($title, $subtitle = '')
+{
+    $esc = static function ($s) {
+        return htmlspecialchars((string) $s, ENT_QUOTES | ENT_XML1, 'UTF-8');
+    };
+    $P = 'http://schemas.openxmlformats.org/presentationml/2006/main';
+    $A = 'http://schemas.openxmlformats.org/drawingml/2006/main';
+    $R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    $X = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+    $RELS = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+
+    $parts = array();
+
+    $parts['[Content_Types].xml'] = $X
+        . '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+        . '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+        . '<Default Extension="xml" ContentType="application/xml"/>'
+        . '<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>'
+        . '<Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/>'
+        . '<Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>'
+        . '<Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>'
+        . '<Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>'
+        . '</Types>';
+
+    $parts['_rels/.rels'] = $X . $RELS
+        . '<Relationship Id="rId1" Type="' . $R . '/officeDocument" Target="ppt/presentation.xml"/>'
+        . '</Relationships>';
+
+    $parts['ppt/presentation.xml'] = $X
+        . '<p:presentation xmlns:a="' . $A . '" xmlns:r="' . $R . '" xmlns:p="' . $P . '" rtl="1">'
+        . '<p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst>'
+        . '<p:sldIdLst><p:sldId id="256" r:id="rId2"/></p:sldIdLst>'
+        . '<p:sldSz cx="12192000" cy="6858000"/><p:notesSz cx="6858000" cy="9144000"/>'
+        . '</p:presentation>';
+
+    $parts['ppt/_rels/presentation.xml.rels'] = $X . $RELS
+        . '<Relationship Id="rId1" Type="' . $R . '/slideMaster" Target="slideMasters/slideMaster1.xml"/>'
+        . '<Relationship Id="rId2" Type="' . $R . '/slide" Target="slides/slide1.xml"/>'
+        . '<Relationship Id="rId3" Type="' . $R . '/theme" Target="theme/theme1.xml"/>'
+        . '</Relationships>';
+
+    /* الشريحة: عنوان ونص تحته. والعربية تكتب كما هي —
+       OOXML مستند XML بترميز UTF-8، فلا مسألة ترميز هنا أصلا. */
+    $body = '<a:p><a:pPr algn="ctr" rtl="1"/><a:r><a:rPr lang="ar-SA" sz="4000" b="1" dirty="0"/>'
+          . '<a:t>' . $esc($title) . '</a:t></a:r></a:p>';
+    if ($subtitle !== '') {
+        $body .= '<a:p><a:pPr algn="ctr" rtl="1"/><a:r><a:rPr lang="ar-SA" sz="2000" dirty="0"/>'
+               . '<a:t>' . $esc($subtitle) . '</a:t></a:r></a:p>';
+    }
+
+    $shape = '<p:sp><p:nvSpPr><p:cNvPr id="2" name="Title 1"/>'
+        . '<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>'
+        . '<p:nvPr><p:ph type="ctrTitle"/></p:nvPr></p:nvSpPr>'
+        . '<p:spPr><a:xfrm><a:off x="1524000" y="2286000"/><a:ext cx="9144000" cy="2286000"/></a:xfrm></p:spPr>'
+        . '<p:txBody><a:bodyPr/><a:lstStyle/>' . $body . '</p:txBody></p:sp>';
+
+    $tree = '<p:spTree>'
+        . '<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>'
+        . '<p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/>'
+        . '<a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>';
+
+    $parts['ppt/slides/slide1.xml'] = $X
+        . '<p:sld xmlns:a="' . $A . '" xmlns:r="' . $R . '" xmlns:p="' . $P . '">'
+        . '<p:cSld>' . $tree . $shape . '</p:spTree></p:cSld>'
+        . '<p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
+
+    $parts['ppt/slides/_rels/slide1.xml.rels'] = $X . $RELS
+        . '<Relationship Id="rId1" Type="' . $R . '/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>'
+        . '</Relationships>';
+
+    $parts['ppt/slideLayouts/slideLayout1.xml'] = $X
+        . '<p:sldLayout xmlns:a="' . $A . '" xmlns:r="' . $R . '" xmlns:p="' . $P . '" type="title" preserve="1">'
+        . '<p:cSld name="Title Slide">' . $tree . '</p:spTree></p:cSld>'
+        . '<p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>';
+
+    $parts['ppt/slideLayouts/_rels/slideLayout1.xml.rels'] = $X . $RELS
+        . '<Relationship Id="rId1" Type="' . $R . '/slideMaster" Target="../slideMasters/slideMaster1.xml"/>'
+        . '</Relationships>';
+
+    $parts['ppt/slideMasters/slideMaster1.xml'] = $X
+        . '<p:sldMaster xmlns:a="' . $A . '" xmlns:r="' . $R . '" xmlns:p="' . $P . '">'
+        . '<p:cSld>' . $tree . '</p:spTree></p:cSld>'
+        . '<p:clrMap bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2"'
+        . ' accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6"'
+        . ' hlink="hlink" folHlink="folHlink"/>'
+        . '<p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst>'
+        . '</p:sldMaster>';
+
+    $parts['ppt/slideMasters/_rels/slideMaster1.xml.rels'] = $X . $RELS
+        . '<Relationship Id="rId1" Type="' . $R . '/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>'
+        . '<Relationship Id="rId2" Type="' . $R . '/theme" Target="../theme/theme1.xml"/>'
+        . '</Relationships>';
+
+    /* السمة: أصغر ما يقبله العارض — لوحة ألوان تقدر وخطان وتنسيق فارغ. */
+    $pal = array('dk2' => '023331', 'lt2' => 'F4F7F6', 'accent1' => '0C786C', 'accent2' => '1B9E8A',
+                 'accent3' => '8FBFB5', 'accent4' => 'D9E8E4', 'accent5' => '2F6F63',
+                 'accent6' => '5AA79A', 'hlink' => '0C786C', 'folHlink' => '2F6F63');
+    $scheme = '<a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1>'
+            . '<a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>';
+    foreach ($pal as $k => $v) {
+        $scheme .= '<a:' . $k . '><a:srgbClr val="' . $v . '"/></a:' . $k . '>';
+    }
+    $fill3 = str_repeat('<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>', 3);
+    $ln = '';
+    foreach (array(6350, 12700, 19050) as $w) {
+        $ln .= '<a:ln w="' . $w . '"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln>';
+    }
+    $parts['ppt/theme/theme1.xml'] = $X
+        . '<a:theme xmlns:a="' . $A . '" name="Taqdar">'
+        . '<a:themeElements>'
+        . '<a:clrScheme name="Taqdar">' . $scheme . '</a:clrScheme>'
+        . '<a:fontScheme name="Taqdar">'
+        . '<a:majorFont><a:latin typeface="Calibri Light"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>'
+        . '<a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>'
+        . '</a:fontScheme>'
+        . '<a:fmtScheme name="Taqdar">'
+        . '<a:fillStyleLst>' . $fill3 . '</a:fillStyleLst>'
+        . '<a:lnStyleLst>' . $ln . '</a:lnStyleLst>'
+        . '<a:effectStyleLst>' . str_repeat('<a:effectStyle><a:effectLst/></a:effectStyle>', 3) . '</a:effectStyleLst>'
+        . '<a:bgFillStyleLst>' . $fill3 . '</a:bgFillStyleLst>'
+        . '</a:fmtScheme></a:themeElements></a:theme>';
+
+    if (!class_exists('ZipArchive')) {
+        return '';
+    }
+    $tmp = tempnam(sys_get_temp_dir(), 'tqpptx');
+    $zip = new ZipArchive();
+    if ($zip->open($tmp, ZipArchive::OVERWRITE) !== true) {
+        @unlink($tmp);
+        return '';
+    }
+    foreach ($parts as $name => $xml) {
+        $zip->addFromString($name, $xml);
+    }
+    $zip->close();
+    $bytes = (string) file_get_contents($tmp);
+    @unlink($tmp);
+    return $bytes;
+}
+
+/**
+ * محتوى ملف صغير **يفتحه برنامجه فعلا** لكل امتداد.
+ *
+ * TQ-SEED-FAKE — كانت الملفات هنا أشكالا لا ملفات، وثلاثة بلاغات جودة
+ * خرجت منها وحدها («تصدير PDF» · «تصدير الفيديو» · «تصدير الصوت والعرض»)
+ * وكلها سجلت على أنها عطل في التنزيل — والتنزيل سليم: القالب يضع
+ * `<a href download>` على ملف ساكن، وأباتشي يخدمه كما هو. المعطوب ما
+ * كتب على القرص:
+ *
+ *   • **mp4** — صندوق `ftyp` وحده يتبعه ٥١٢ صفرا. لا `moov` ولا `mdat`،
+ *     أي لا مسار ولا بيانات: «moov atom not found» من ffprobe، و«Failed
+ *     to Play» من كل مشغل.
+ *   • **mp3** — ترويسة `ID3` بحجم صفر يتبعها ٥١٢ صفرا. لا إطار MPEG
+ *     واحدا: «Failed to find two consecutive MPEG audio frames».
+ *   • **pptx** — نص عربي عاد بامتداد `.pptx`. وملف OOXML أرشيف ZIP
+ *     يبدأ بـ`PK`، فالبرنامج يرفضه قبل أن يقرأ حرفا.
+ *   • **pdf** — بنيته صحيحة، ولكن العنوان العربي كتب بايتاته الخام في
+ *     سلسلة `Tj` بخط Helvetica. والخطوط القياسية أحادية البايت لاتينية
+ *     لا حرف عربي فيها، فيرسم كل بايت حرفا لاتينيا: «ÙˆØ§...».
+ *
+ * والأربعة تولد هنا صحيحة، وكل واحد محقق بأداته: ffprobe للصوت والمرئي،
+ * وقارئ OOXML للعرض، وpdftotext للملف المقروء.
+ *
+ * والعربية تكتب حيث يمثلها الشكل: في العرض التقديمي نصا في الشريحة
+ * (OOXML مستند UTF-8، فلا مسألة ترميز)، وفي PDF عنوانا للمستند
+ * (`/Info /Title` بترميز UTF-16BE) — لا في صفحته، فعرضها هناك يوجب
+ * تضمين ملف خط لا يحمله المستودع.
+ */
+$blob = static function ($ext, $title, $course_id = 0, $lesson_id = 0) {
+
     if ($ext === 'pdf') {
-        // PDF بأربعة كائنات — أصغر ملف يفتحه أي عارض
-        $txt = str_replace(['(', ')'], '', $title);
-        $stream = "BT /F1 18 Tf 60 700 Td ($txt) Tj ET";
-        $objs = [
+        /* هروب ما يخص PDF من رموز في نص الصفحة. */
+        $pesc = static function ($s) {
+            return str_replace(array('\\', '(', ')'), array('\\\\', '\\(', '\\)'), (string) $s);
+        };
+        /* عنوان المستند: UTF-16BE بعلامة ترتيب — بها يقرأ العارض العربية. */
+        $utf16 = static function ($s) {
+            $b = @iconv('UTF-8', 'UTF-16BE', (string) $s);
+            if ($b === false) { $b = ''; }
+            return '<' . strtoupper(bin2hex("\xFE\xFF" . $b)) . '>';
+        };
+
+        $lines = array(
+            'Taqdar - lesson material',
+            'Seed sample for course ' . (int) $course_id . ', lesson ' . (int) $lesson_id . '.',
+            'taqdaredu.com',
+        );
+        $stream = "BT\n/F1 20 Tf 60 760 Td (" . $pesc($lines[0]) . ") Tj\n"
+                . "0 -34 Td /F1 12 Tf (" . $pesc($lines[1]) . ") Tj\n"
+                . "0 -20 Td (" . $pesc($lines[2]) . ") Tj\nET\n"
+                . "0.05 0.20 0.19 RG 2 w 60 735 m 535 735 l S\n";
+
+        $objs = array(
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
             "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842]"
                 . " /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n",
-            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
-            "5 0 obj\n<< /Length " . strlen($stream) . " >>\nstream\n$stream\nendstream\nendobj\n",
-        ];
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica"
+                . " /Encoding /WinAnsiEncoding >>\nendobj\n",
+            "5 0 obj\n<< /Length " . strlen($stream) . " >>\nstream\n" . $stream . "endstream\nendobj\n",
+            "6 0 obj\n<< /Title " . $utf16($title) . " /Producer (Taqdar seed) >>\nendobj\n",
+        );
+
         $pdf = "%PDF-1.4\n";
-        $off = [];
+        $off = array();
         foreach ($objs as $o) { $off[] = strlen($pdf); $pdf .= $o; }
         $xref = strlen($pdf);
         $pdf .= "xref\n0 " . (count($objs) + 1) . "\n0000000000 65535 f \n";
-        foreach ($off as $o) $pdf .= sprintf("%010d 00000 n \n", $o);
-        $pdf .= "trailer\n<< /Size " . (count($objs) + 1) . " /Root 1 0 R >>\nstartxref\n$xref\n%%EOF\n";
+        foreach ($off as $o) { $pdf .= sprintf("%010d 00000 n \n", $o); }
+        $pdf .= "trailer\n<< /Size " . (count($objs) + 1) . " /Root 1 0 R /Info 6 0 R >>\n"
+              . "startxref\n" . $xref . "\n%%EOF\n";
         return $pdf;
     }
+
     if ($ext === 'png') {
         // بكسل PNG صحيح — يكفي لعرض صورة ولقياس حجم
         return base64_decode(
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
         );
     }
-    if ($ext === 'mp3') return "ID3\x03\x00\x00\x00\x00\x00\x00" . str_repeat("\x00", 512);
-    if ($ext === 'mp4') return "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom" . str_repeat("\x00", 512);
-    // pptx/docx وما شابه: نص عادي يقرأ ويقيس حجما — ولا يدعى أنه غير ذلك
+
+    if ($ext === 'mp3') {
+        /* ثانية صمت: إطارات MPEG-1 Layer III صحيحة الترويسة —
+           ٤٤٫١ كيلوهرتز، ١٢٨ كيلوبت، أحادي. وطول الإطار
+           144 × 128000 ÷ 44100 = 417 بايتا، حشوه أصفار: إطار صالح
+           يفك إلى صمت. ولذلك تفتحه المشغلات وتقرأ مدته. */
+        $hdr   = chr(0xFF) . chr(0xFB) . chr(0x90) . chr(0xC0);
+        $frame = $hdr . str_repeat(chr(0), 417 - 4);
+        return str_repeat($frame, 38);
+    }
+
+    if ($ext === 'mp4') {
+        /* مقطع H.264 صحيح: ١٦٠×٩٠، ثانية واحدة، خمسة إطارات بلون تقدر،
+           و`moov` قبل `mdat` (faststart) فيبدأ التشغيل قبل اكتمال التنزيل.
+           ولد بـffmpeg مرة وحفظ هنا: بناؤه بايتا بايتا في هذا السكربت
+           يعني كتابة SPS وPPS بيدين — ومصفوفة أصفار هي التي أوقعتنا هنا. */
+        return base64_decode(TQ_SEED_MP4_B64);
+    }
+
+    if ($ext === 'pptx') {
+        return tq_seed_pptx($title, 'منصة تقدر — مادة عرض تجريبية');
+    }
+
+    // ما لا يعرف له شكل: نص عادي — ولا يدعى أنه غير ذلك
     return "منصة تقدر — مادة عرض\n\n" . $title . "\n\n" . str_repeat("سطر تجريبي للعرض.\n", 40);
 };
+
 
 /* لكل كورس مسجل ملفان أو ثلاثة بأنواع مختلفة، لتمتلئ تصفية النوع كلها:
    pdf · video · slide · audio · image. */
@@ -303,7 +550,13 @@ foreach ($course_ids as $cid) {
         $name  = TAG . '_' . $cid . '_' . (int) $ls['id'] . '.' . $ext;
         $title = $label . ' — ' . $ls['title'];
 
-        if ($apply) file_put_contents($files_dir . '/' . $name, $blob($ext, $label));
+        /* العنوان الكامل لا التسمية وحدها: هو ما يكتب في `resource_files`،
+           وهو ما يقرؤه صاحب الملف في شريحة العرض وفي خصائص PDF — فيتطابق
+           ما في الشاشة وما في الملف. */
+        if ($apply) {
+            file_put_contents($files_dir . '/' . $name,
+                              $blob($ext, $title, (int) $cid, (int) $ls['id']));
+        }
 
         $run("INSERT INTO resource_files (lesson_id, title, file_name, created_at, updated_at)
               VALUES (?, ?, ?, ?, ?)",
