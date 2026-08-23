@@ -791,6 +791,100 @@ class Admin extends CI_Controller
         $page_data['page_title'] = get_phrase('frontend_settings');
         $this->load->view('backend/index', $page_data);
     }
+    /**
+     * يفحص بوابة دفع قبل حفظها، ويرد قائمة أخطاء عربية (فارغة = سليمة).
+     *
+     * TQ-PAY-NOVALIDATE — `update_payment_settings()` كانت تكتب ما يرسل
+     * كما يرسل: تحفظ `production_client_id = 1234` و`secret = 12345`
+     * وتقول «حفظت بنجاح»، وتحفظ بوابة عملتها تخالف عملة النظام فتظهر
+     * البوابة «مفعلة» وهي لا تحصل شيئا. والشاشة كانت **تنبه** إلى
+     * اختلاف العملة ولا **تمنعه** — والتنبيه الذي يمر عليه الحفظ تنبيه
+     * لا يقرأ بعد المرة الأولى.
+     *
+     * والفحص مشروط بالتفعيل وحده: بوابة تحفظ معطلة تقبل كما هي، وإلا
+     * حبس المسؤول عن إطفاء بوابة لأن مفاتيحها التي لن تستعمل ناقصة.
+     * وهو الوجه الذي يجعل «أطفئها واحفظ» مخرجا دائما.
+     */
+    private function tq_gateway_errors()
+    {
+        $post = $this->input->post(null, true);
+        if (!is_array($post)) $post = array();
+
+        $id   = (string) ($post['identifier'] ?? '');
+        $name = $id !== '' ? ucfirst($id) : 'البوابة';
+
+        /* المعطلة تحفظ كما هي — لا مال يمر بها. */
+        if ((int) ($post['status'] ?? 0) !== 1) return array();
+
+        $err = array();
+
+        /* ١ — العملة. وهي وحدها ما يقاس بالمال: بوابة بعملة غير عملة
+               النظام تحصل مبلغا غير الذي عرض على الطالب. */
+        $cur = strtoupper(trim((string) ($post['currency'] ?? '')));
+        $sys = strtoupper((string) get_settings('system_currency'));
+        if ($cur === '') {
+            $err[] = 'عملة ' . $name . ' مطلوبة.';
+        } elseif ($sys !== '' && $cur !== $sys) {
+            $err[] = 'عملة ' . $name . ' (' . $cur . ') تخالف عملة النظام (' . $sys . ')'
+                   . ' — فالمبلغ يحصل بغير ما عرض على الطالب. وحدهما أو أطفئ البوابة.';
+        }
+
+        /* ٢ — المفاتيح. وما ليس من حقول البوابة الأربعة فهو مفتاح،
+               وهو التقسيم نفسه الذي يقسمه `update_payment_settings()`. */
+        $meta = array('identifier' => 1, 'currency' => 1, 'enabled_test_mode' => 1, 'status' => 1);
+
+        foreach ($post as $key => $raw) {
+            if (isset($meta[$key])) continue;
+
+            $val   = trim((string) $raw);
+            $label = str_replace('_', ' ', $key);
+
+            if ($val === '') {
+                $err[] = '«' . $label . '» في ' . $name . ' مطلوب ما دامت مفعلة.';
+                continue;
+            }
+
+            /* لون الواجهة قيمة عرض لا مفتاح — يفحص بما هو. */
+            if (strpos($key, 'color') !== false) {
+                if (!preg_match('/^#[0-9a-fA-F]{6}$/', $val)) {
+                    $err[] = '«' . $label . '» يجب أن يكون لونا مثل ‎#023331‎.';
+                }
+                continue;
+            }
+
+            if (strpos($key, 'email') !== false) {
+                if (!filter_var($val, FILTER_VALIDATE_EMAIL)) {
+                    $err[] = '«' . $label . '» ليس بريدا صحيحا.';
+                }
+                continue;
+            }
+
+            /* لا فراغ داخل مفتاح: الفراغ علامة نسخ ناقص أو لصق سطرين. */
+            if (preg_match('/\s/u', $val)) {
+                $err[] = '«' . $label . '» فيه فراغ — والمفاتيح لا فراغ فيها. تحقق من النسخ.';
+                continue;
+            }
+
+            /* الطول. والمفاتيح السرية أطول من المعرفات، ولذلك حدان:
+               ما اسمه سر أو مفتاح أو كلمة مرور لا يقل عن ست عشرة خانة،
+               وما سواه (معرف تاجر · معرف متجر) لا يقل عن ثمان. */
+            $secretish = preg_match('/(secret|password|passphrase|_key$|^key|api_key|token|signature)/i', $key);
+            $min = $secretish ? 16 : 8;
+            if (mb_strlen($val) < $min) {
+                $err[] = '«' . $label . '» أقصر من أن يكون صحيحا (' . mb_strlen($val)
+                       . ' خانة، والحد ' . $min . ') — هذه قيمة تجريبية لا مفتاح بوابة.';
+                continue;
+            }
+
+            /* رقم محض ليس مفتاح واجهة قط — و«1234» هو ما حفظ فعلا. */
+            if ($secretish && ctype_digit($val)) {
+                $err[] = '«' . $label . '» أرقام محضة — ومفاتيح البوابات ليست أرقاما.';
+            }
+        }
+
+        return $err;
+    }
+
     public function payment_settings($param1 = "")
     {
         if ($this->session->userdata('admin_login') != true) {
@@ -806,6 +900,13 @@ class Admin extends CI_Controller
         }
 
         if (isset($_POST['identifier'])) {
+            /* الفحص قبل الكتابة — انظر `tq_gateway_errors()`. */
+            $tq_errors = $this->tq_gateway_errors();
+            if ($tq_errors) {
+                $this->session->set_flashdata('error_message',
+                    'لم تحفظ: ' . implode('  •  ', $tq_errors));
+                redirect(site_url('admin/payment_settings'), 'refresh');
+            }
             $this->crud_model->update_payment_settings();
             redirect(site_url('admin/payment_settings'), 'refresh');
         }
