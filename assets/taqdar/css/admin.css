@@ -2253,6 +2253,103 @@ a.tqa-chip .tqa-num { color: var(--tq-text3, var(--tq-text2)); }
 .tqa-reach__vis--warn { border-inline-start-color: var(--tq-peach-ink); background: var(--tq-peach-fill); }
 .tqa-reach__vis--no   { border-inline-start-color: var(--tq-rose-ink);  background: var(--tq-rose-fill); }
 
+/* ---- لوحة «قسمة إيراد هذه الباقة» ----
+   الشريط أولا: النسبة رقم يقرأ، والشطران شكل يفهم قبل أن يقرأ. وعرض كل
+   شطر هو نسبته حرفيا، فباقة وعاؤها ١٥٪ يرى المسؤول ضيقها قبل أن يقرأ
+   الرقم — وهذا ما يجعله يسأل «أهذا ما قصدت؟» في موضعه. */
+.tqa-split__bar {
+  display: flex; gap: 2px; overflow: hidden;
+  border-radius: var(--tqa-radius-sm);
+}
+.tqa-split__seg {
+  display: flex; flex-direction: column; gap: 2px; min-inline-size: 0;
+  padding: var(--tq-space-m) var(--tq-space-l);
+  transition: flex-grow var(--tq-motion-route) var(--tq-ease-enter);
+}
+.tqa-split__seg b {
+  font: var(--tq-type-numeralMd); font-variant-numeric: tabular-nums;
+  direction: ltr; text-align: start; white-space: nowrap;
+}
+.tqa-split__seg span { font: var(--tq-type-micro); white-space: nowrap; }
+.tqa-split__seg i    { font-style: normal; font-variant-numeric: tabular-nums; }
+.tqa-split__seg--platform { background: var(--tq-navyWash); color: var(--tq-navy); }
+.tqa-split__seg--platform span { color: var(--tq-text2); }
+.tqa-split__seg--pool     { background: var(--tq-mint-fill); color: var(--tq-mint-ink); }
+.tqa-split__seg--pool span { color: var(--tq-mint-ink); opacity: .8; }
+
+.tqa-split__basis,
+.tqa-split__closed,
+.tqa-split__sold {
+  margin: var(--tq-space-m) 0 0; font: var(--tq-type-caption); color: var(--tq-text2);
+}
+.tqa-split__basis b, .tqa-split__closed b, .tqa-split__sold b {
+  color: var(--tq-navy); font-variant-numeric: tabular-nums;
+}
+
+.tqa-split__table {
+  inline-size: 100%; margin-block-start: var(--tq-space-l);
+  border-collapse: collapse; font: var(--tq-type-caption);
+}
+.tqa-split__table th {
+  text-align: start; padding: var(--tq-space-s) var(--tq-space-m);
+  font: var(--tq-type-micro); color: var(--tq-text2);
+  border-block-end: 1px solid var(--tq-line);
+}
+.tqa-split__table td {
+  padding: var(--tq-space-s) var(--tq-space-m);
+  border-block-end: 1px solid var(--tq-line);
+  vertical-align: baseline;
+}
+.tqa-split__table tbody b { display: block; color: var(--tq-navy); }
+.tqa-split__table tbody .tqa-dim { font: var(--tq-type-micro); }
+/* المال والأوزان أرقام تقارن رأسيا — فبخانات متساوية العرض واتجاه لاتيني. */
+.tqa-split__table td:nth-child(2),
+.tqa-split__table td:nth-child(3),
+.tqa-split__table td:nth-child(4) {
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.tqa-split__table tbody tr:last-child td { border-block-end: 0; }
+.tqa-split__table tfoot td {
+  padding-block-start: var(--tq-space-m);
+  border-block-start: 2px solid var(--tq-line); border-block-end: 0;
+  color: var(--tq-navy);
+}
+.tqa-split__table tfoot b { color: var(--tq-mint-ink); }
+
+/* الجدول لا يضغط تحت 640px — الأربعة أعمدة تصير غير مقروءة. فيمرر
+   داخل صندوقه، ولا تمرر الصفحة كلها أفقيا. */
+@media (max-width: 640px) {
+  .tqa-split__table { display: block; overflow-x: auto; white-space: nowrap; }
+  .tqa-split__seg { padding: var(--tq-space-s) var(--tq-space-m); }
+}
+
+/* ---- قائمة وصف: مصطلح وقيمته ----
+   شبكة عمودين لا سطران: العناوين تصطف رأسيا فتمسح العين القيم وحدها،
+   وهو ما يفعله من يبحث عن رقم بعينه في ملف طلب سحب. */
+.tqa-dl {
+  display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: var(--tq-space-s) var(--tq-space-l);
+  margin: 0; font: var(--tq-type-caption);
+}
+.tqa-dl dt { color: var(--tq-text2); white-space: nowrap; }
+.tqa-dl dd { margin: 0; color: var(--tq-text); min-inline-size: 0; overflow-wrap: anywhere; }
+.tqa-dl dd b { color: var(--tq-navy); }
+@media (max-width: 480px) {
+  .tqa-dl { grid-template-columns: minmax(0, 1fr); gap: 2px var(--tq-space-l); }
+  .tqa-dl dt { margin-block-start: var(--tq-space-s); font: var(--tq-type-micro); }
+}
+
+/* الوجهة — رقم ينسخ ويقارن خانة بخانة، فبخانات متساوية العرض وبمساحة
+   تفصله عما حوله. والآيبان أربع وعشرون خانة: يلتف ولا يمرر الصفحة. */
+.tqa-dest {
+  display: inline-block;
+  padding: 2px var(--tq-space-s);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-navyWash); color: var(--tq-navy);
+  font-variant-numeric: tabular-nums; letter-spacing: .02em;
+  overflow-wrap: anywhere;
+}
+
 /* سبب الحال تحت شارته في الجدول — الشارة تقول «لا تظهر»، وهذا يقول لم. */
 .tqa-status__why {
   display: block; margin-block-start: 3px;

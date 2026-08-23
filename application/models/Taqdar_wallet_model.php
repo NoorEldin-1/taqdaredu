@@ -1337,4 +1337,76 @@ class Taqdar_wallet_model extends CI_Model
         );
     }
 
+    /**
+     * يقيد حصة معلم من بيعة **باقة** في دفتره.
+     *
+     * الفرق عن `credit_path_sale()` أن القسمة لا تقع هنا: `Taqdar_revenue_model`
+     * هو الذي يقسم — وهو وحده يستطيع، لأن القسمة تحتاج أوزان كل المعلمين
+     * لا وزن واحد. فهذه الدالة تستلم رقمين محسوبين وتكتبهما، ولا تحسب.
+     * ولو حسبت هنا لصار لكل محفظة رأي في الوعاء، ومجموع الآراء لا يساوي
+     * الوعاء.
+     *
+     * و`$attributed` نصيب دروسه من **سعر الباقة**، لا سعر الباقة كله:
+     * قيد `sale` بخمسمئة في سبع محافظ يجعل كشف كل معلم يقول إنه باع
+     * بخمسمئة، وعمود «المقبوض» في سبعة كشوف يجمع ثلاثة آلاف ونصف على
+     * بيعة واحدة بخمسمئة. والنصيب يجمع إلى السعر بالضبط بحكم القسمة.
+     *
+     * متكرر الأمان: `ref` مقيد بالمحفظة والمستند، فنداء ثان لا يكتب صفا.
+     *
+     * @param  int    $attributed_halalas نصيبه من السعر = حصته + عمولة المنصة عنه
+     * @param  int    $share_halalas      حصته هو — وهذا ما يبقى له
+     * @return array  ok · wallet_id · share · commission
+     */
+    public function credit_plan_share($teacher_id, $subscription_id, $attributed_halalas,
+                                      $share_halalas, $subject = null)
+    {
+        $this->install_schema();
+
+        $teacher_id = (int) $teacher_id;
+        $attributed = (int) $attributed_halalas;
+        $share      = (int) $share_halalas;
+
+        if ($teacher_id < 1 || $attributed <= 0) {
+            return array('ok' => false, 'errors' => array('لا معلم أو لا مبلغ.'));
+        }
+        /* الحصة لا تتجاوز النصيب: عمولة سالبة تعني أن المنصة تدفع للمعلم
+           أكثر مما قبضت عنه، وهي حالة لا تنتج عن قسمة صحيحة — فترفض هنا
+           بدل أن تقيد وتكتشف في مراجعة. */
+        if ($share < 0 || $share > $attributed) {
+            return array('ok' => false, 'errors' => array('حصة لا تطابق نصيبها.'));
+        }
+
+        $wallet  = $this->wallet_of($teacher_id);
+        $wid     = $wallet['id'];
+        $origin  = 'plansub:' . (int) $subscription_id;
+        $subject = $subject !== null && $subject !== '' ? $subject : 'اشتراك باقة';
+        $release = $this->at(time() + $this->hold_days() * 86400);
+        $cut     = $attributed - $share;
+
+        $this->post($wid, 'sale', self::B_PENDING, $attributed,
+                    $this->ref_key($wid, $origin, 'sale'), $origin, $subject, null, $release);
+
+        if ($cut > 0) {
+            $this->post($wid, 'commission', self::B_PENDING, -$cut,
+                        $this->ref_key($wid, $origin, 'commission'), $origin, $subject, null, $release);
+        }
+
+        $this->recompute($wid);
+
+        return array('ok' => true, 'wallet_id' => $wid,
+                     'share' => $share, 'commission' => $cut, 'attributed' => $attributed);
+    }
+
+    /**
+     * يعكس حصة معلم من باقة استردت — بالباب نفسه الذي يعكس به بيع كورس
+     * (`reverse_origin`)، فلا آلية ثانية للاسترداد تفترق عن أختها.
+     */
+    public function reverse_plan_share($teacher_id, $subscription_id, $reason = '')
+    {
+        $wallet = $this->wallet_of((int) $teacher_id);
+        $n = $this->reverse_origin($wallet['id'], 'plansub:' . (int) $subscription_id, $reason);
+        if ($n > 0) $this->recompute($wallet['id']);
+        return $n > 0;
+    }
+
 }

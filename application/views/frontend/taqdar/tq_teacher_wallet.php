@@ -43,6 +43,14 @@ $tq_ci = &get_instance();
 $tq_ci->load->model('taqdar_wallet_model');
 $tq_w  = $tq_ci->taqdar_wallet_model->screen($tq_uid);
 
+/* قسمات الباقات — الدفتر يقول «حصتك ١٠.٥٩»، وهذا يقول **لماذا**.
+   وبيع الباقة يختلف عن بيع الكورس في أن المبلغ لم يدفع فيك وحدك: الطالب
+   اشترى باقة تفتح محتوى سبعة معلمين، ونصيبك منها بعدد دروسك. ورقم بلا
+   سبب في شاشة مال يقرأ خصما. */
+$tq_ci->load->model('taqdar_revenue_model');
+$tq_shares = $tq_ci->taqdar_revenue_model->shares_for_teacher($tq_uid);
+$tq_pool_default = $tq_ci->taqdar_revenue_model->default_pool_percent();
+
 /** هللات ⇐ نص ريالات. الخانتان تظهران حين يكون فيه هللات، فلا يدور مال. */
 $tq_money = function ($halalas) {
     $h = (int) $halalas;
@@ -129,13 +137,14 @@ include 'portal_open.php';
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
                         كل سطر عملية بيع واحدة كما قيدت في دفترك: مبلغها، وعمولة المنصة عليها،
                         وحصتك منها، ومتى تتحرر. والأرصدة أعلاه حاصل جمع هذه القيود لا حسابا مستقلا عنها.
+                        وسطر الباقة يحمل تحته سبب رقمه: سعرها، ووعاء معلميها، وكم درسا لك فيها.
                     </p>
                     <table class="tq-table">
-                        <caption class="tq-sr">مبيعات كورساتك: المبلغ وعمولة المنصة وحصتك وحالة كل عملية</caption>
+                        <caption class="tq-sr">مبيعاتك: المبلغ وعمولة المنصة وحصتك وحالة كل عملية</caption>
                         <thead>
                             <tr>
                                 <th scope="col">التاريخ</th>
-                                <th scope="col">الكورس</th>
+                                <th scope="col">ما بيع</th>
                                 <th scope="col">مبلغ البيع</th>
                                 <th scope="col">عمولة المنصة</th>
                                 <?php if ($tq_has_retained): ?>
@@ -158,9 +167,32 @@ include 'portal_open.php';
                                         : ' · يتحرر مع أول تحديث';
                                 }
                                 ?>
+                                <?php
+                                /* بيع باقة: المبلغ لم يدفع فيك وحدك، فيقال بأي
+                                   نسبة صار نصيبك ما صار. والسطر تحت الاسم لا
+                                   عمود ثامن — الجدول بسبعة أعمدة أصلا، وثامن
+                                   يجعله يمرر أفقيا على الجوال. */
+                                $tq_sh = isset($tq_shares[$tq_s['origin']]) ? $tq_shares[$tq_s['origin']] : null;
+                                ?>
                                 <tr>
                                     <td data-label="التاريخ"><?php echo tq_num($tq_s['date'], 'tq-num--sm'); ?></td>
-                                    <td data-label="الكورس"><?php echo html_escape($tq_s['subject']); ?></td>
+                                    <td data-label="الكورس">
+                                        <?php echo html_escape($tq_s['subject']); ?>
+                                        <?php if ($tq_sh):
+                                            $tq_wt = (int) $tq_sh['weight_total'] > 0
+                                                   ? round((int) $tq_sh['weight'] * 100 / (int) $tq_sh['weight_total'], 1) : 0;
+                                        ?>
+                                            <span class="tq-micro tq-stmt__why">
+                                                <?php echo tq_iso(
+                                                    'باقة بـ' . number_format(((int) $tq_sh['gross_halalas']) / 100, 2) . ' ر.س · '
+                                                    . 'وعاء المعلمين ' . rtrim(rtrim(number_format((float) $tq_sh['pool_percent'], 2), '0'), '.')
+                                                    . '% = ' . number_format(((int) $tq_sh['pool_halalas']) / 100, 2) . ' ر.س · '
+                                                    . 'دروسك ' . (int) $tq_sh['lessons'] . ' من ' . (int) $tq_sh['lessons_total']
+                                                    . ' (' . $tq_wt . '% من الوعاء)'
+                                                ); ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td data-label="مبلغ البيع"><?php echo $tq_money($tq_s['gross']); ?></td>
                                     <td data-label="عمولة المنصة"><?php echo $tq_money($tq_s['commission']); ?></td>
                                     <?php if ($tq_has_retained): ?>
@@ -397,10 +429,46 @@ include 'portal_open.php';
             </p>
         </form>
 
+        <?php /* من أين يأتي المال — قبل «كيف يتحرر».
+                 المعلم يفتح هذه الشاشة بسؤالين: «كم لي؟» و«لم هذا الرقم؟».
+                 والثاني لا يجيبه كشف الحساب وحده حين يكون البيع باقة: الطالب
+                 دفع خمسمئة، وقيد في دفترك عشرة — والفرق ليس عمولة كلها بل
+                 حصص زملائك. ورقم بلا سبب في شاشة مال يقرأ خصما. */ ?>
+        <div class="tq-pastel tq-pastel--sky tq-section">
+            <span class="tq-pastel__label tq-micro">من أين تأتي أرباحك</span>
+            <div class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
+                <p style="margin:0 0 var(--tq-space-s)">
+                    <b>بيع مباشر</b> — طالب يشتري كورسك أو مسارك وحده. المبلغ كله عن محتواك،
+                    وحصتك منه نسبتك المضبوطة على ذلك المسار.
+                </p>
+                <p style="margin:0 0 var(--tq-space-s)">
+                    <b>بيع باقة</b> — طالب يشتري باقة تفتح صفوفا كاملة، فيها محتواك ومحتوى
+                    زملائك. والباقة تقسم قسمتين:
+                </p>
+                <ol style="margin:0 0 var(--tq-space-s);padding-inline-start:var(--tq-space-l);list-style:decimal">
+                    <li>
+                        يخرج من سعرها <b>وعاء المعلمين</b> —
+                        <?php echo tq_iso('نسبته '
+                            . rtrim(rtrim(number_format((float) $tq_pool_default, 2), '0'), '.')
+                            . '% افتراضا، وقد تخص الباقة بنسبتها. والباقي عمولة المنصة.'); ?>
+                    </li>
+                    <li>
+                        يقسم الوعاء على معلمي الباقة <b>بعدد دروسهم</b> لا بعدد كورساتهم —
+                        فمن له خمسون درسا من مئتين يأخذ ربع الوعاء.
+                    </li>
+                </ol>
+                <p style="margin:0">
+                    ومجموع حصص المعلمين يساوي الوعاء بالضبط، فدخول معلم جديد لا يزيد ما تدفعه
+                    المنصة ولا ينقص وعاء الباقة — يقسمه على عدد أكبر. وكل سطر باقة في كشفك
+                    أعلاه يحمل تحته سعرها ووعاءها وعدد دروسك فيها.
+                </p>
+            </div>
+        </div>
+
         <div class="tq-pastel tq-pastel--peach">
             <span class="tq-pastel__label tq-micro">كيف يتحرر المال</span>
             <ol class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0;padding-inline-start:var(--tq-space-l);list-style:decimal">
-                <li>يشتري الطالب الكورس، فتقيد العملية في دفترك بحصتك وعمولة المنصة عليها.</li>
+                <li>يشتري الطالب كورسك أو باقة فيها محتواك، فتقيد العملية في دفترك بحصتك وعمولة المنصة عليها.</li>
                 <li><?php echo tq_iso('تظل الحصة معلقة ' . (int) $tq_w['refund_days'] . ' يوما — نافذة استرداد الطالب.'); ?></li>
                 <li>بعدها تنتقل إلى «متاح للسحب» بقيد في دفترك، لا بإعادة حساب.</li>
                 <li>لو استرد بيع بعد تحرره، يقيد عكسه ويظهر في كشفك — ولا يمحى سطره.</li>

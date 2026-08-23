@@ -622,6 +622,16 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-table td { padding: var(--tq-space-l); border-block-end: 1px solid var(--tq-line); }
 .tq-table tbody tr:hover { background: var(--tq-navyWash); }
 
+/* سبب الرقم تحت اسمه في كشف الحساب — الصف يقول «حصتك ١٠.٥٩»، وهذا يقول
+   لماذا: سعر الباقة، ووعاء معلميها، وكم درسا لصاحب الكشف فيها. وسطر تحت
+   الاسم لا عمود ثامن: الجدول بسبعة أعمدة أصلا، وثامن يجعله يمرر أفقيا
+   على الجوال فيسقط أهم أعمدته من الشاشة. */
+.tq-stmt__why {
+  display: block; margin-block-start: 3px;
+  color: var(--tq-text2); max-inline-size: 46ch;
+  overflow-wrap: anywhere; font-variant-numeric: tabular-nums;
+}
+
 /* --------------------------------------------------------------------------
    الهياكل العظمية — لا دوار وسط الشاشة.
    الهيكل يقول «هذا ما سيصل وبهذا الحجم»، فلا يقفز التخطيط عند الوصول.

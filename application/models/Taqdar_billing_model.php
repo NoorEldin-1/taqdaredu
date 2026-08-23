@@ -502,6 +502,28 @@ class Taqdar_billing_model extends CI_Model
            وصفوف `enrol` تجيب الشاشات التي لا تسأل غيرها. */
         $this->sync_enrolments((int) $subscription_id);
 
+        /* حصص معلمي الباقة — وعاء مغلق يقسم بالدرس.
+           TQ-PLAN-NOSHARE: كانت الدالة تنتهي هنا، فالباقة تبيع محتوى
+           سبعة معلمين ولا يقيد لأحدهم ريال. وبيع المسار المنفرد وحده
+           كان يقيد (`activate_path_subscription`) — وهو الأقل وقوعا.
+           والقسمة كلها في `Taqdar_revenue_model`: لا تحسب هنا لأنها
+           تحتاج أوزان كل المعلمين لا وزن من نمر عليه.
+
+           وفشل القسمة لا يبطل التفعيل، بالقاعدة نفسها التي في اشتراك
+           المسار: الطالب دفع واستحق وصوله، ودفتر المعلم يصالح لاحقا —
+           ومنع الطالب لأن دفترا لم يكتب يعاقب من لا ذنب له. */
+        if ((int) $sub['price'] > 0) {
+            try {
+                $this->load->model('taqdar_revenue_model');
+                $this->taqdar_revenue_model->credit_plan_sale(
+                    (int) $subscription_id, $plan, (int) $sub['price']
+                );
+            } catch (Exception $e) {
+                log_message('error', 'TQ-REVENUE: تعذرت قسمة اشتراك #'
+                    . (int) $subscription_id . ' — ' . $e->getMessage());
+            }
+        }
+
         $this->audit('subscription_activate', 'subscriptions#' . (int) $subscription_id,
                      $sub, $this->subscription($subscription_id));
         return true;
