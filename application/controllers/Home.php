@@ -1920,13 +1920,40 @@ class Home extends CI_Controller
      */
     private function notify_contact($id, $d)
     {
+        $name = trim((string) $d['first_name'] . ' ' . (string) $d['last_name']);
+        $subj = trim((string) $d['subject']) !== '' ? (string) $d['subject'] : 'بلا موضوع';
+
+        /* TQ-CONTACT-BELL · الرسالة تسجل في اللوحة قبل أن ترسل بريدا.
+           والبريد وحده كان يعني أن من لا يفتح صندوق `system_email` لا
+           يعلم بها أبدا — وصندوق الدعم قد يكون قائمة بريدية لا يقرؤها
+           مسؤول اللوحة. فصف في `notifications` لكل مسؤول: هو السجل الذي
+           يقرؤه صاحبه متى فتح شاشته، وهو الباب الموحد في المنصة
+           (`Taqdar_admin_model::push_notification()`).
+
+           و`$mail = false` عمدا: بريد الدعم يخرج من هنا بعد قليل بكل ما
+           كتب الزائر، ونسخة ثانية إلى كل مسؤول تجعل رسالة واحدة أربع
+           رسائل. و`$wa = false` لأن واتساب للمال ورموز التحقق وحدها. */
+        try {
+            $this->load->model('taqdar_admin_model');
+            $admins = $this->db->select('id')->where('role_id', 1)->get('users')->result_array();
+            foreach ($admins as $a) {
+                $this->taqdar_admin_model->push_notification(
+                    (int) $a['id'],
+                    'رسالة تواصل جديدة: ' . $subj,
+                    ($name !== '' ? $name : (string) $d['email']) . ' أرسل رسالة من صفحة «تواصل معنا».',
+                    'contact',
+                    false,
+                    false
+                );
+            }
+        } catch (Throwable $e) {
+            log_message('error', 'notify_contact: ' . $e->getMessage());
+        }
+
         $to = trim((string) get_settings('system_email'));
         if ($to === '') return;
 
         $this->load->model('taqdar_mail_model');
-
-        $name = trim((string) $d['first_name'] . ' ' . (string) $d['last_name']);
-        $subj = trim((string) $d['subject']) !== '' ? (string) $d['subject'] : 'بلا موضوع';
 
         /* إلى الدعم: كل ما كتب، ورابط الشاشة التي يرد منها. */
         $this->taqdar_mail_model->send_lines(

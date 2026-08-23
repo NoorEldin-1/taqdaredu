@@ -15,34 +15,106 @@ $tq_kind = array(
     'student' => array('info', 'طالب'),
     'teacher' => array('ok',   'معلم'),
 );
+
+/* رابط يحمل المرشحات القائمة ويبدل واحدا — والقيمة الفارغة تنزع مفتاحها
+   بدل أن تكتب `?state=` فارغا يقرأ حالا ثالثا لا وجود له. */
+$tq_url = function (array $over = array()) use ($search, $state, $subject) {
+    $qs = array_filter(array_merge(
+        array('q' => $search, 'state' => $state, 'subject' => $subject),
+        $over
+    ), function ($v) { return (string) $v !== ''; });
+    return site_url('admin/contact') . ($qs ? '?' . http_build_query($qs) : '');
+};
+
+/* «قبل ساعتين» يقرأ أسرع من طابع زمني، والتاريخ الكامل يبقى في `title`
+   لمن يريد الدقيقة. و`created_at` عمود نصي فيه ثوان — والصف القديم قد
+   يأتي فارغا، فلا يطبع سطر تاريخ كاذب. */
+$tq_when = function ($ts) {
+    $ts = (int) $ts;
+    if ($ts <= 0) return array('', '');
+    $d = time() - $ts;
+    if ($d < 60)      $rel = 'الآن';
+    elseif ($d < 3600)   $rel = 'قبل ' . (int) ($d / 60) . ' دقيقة';
+    elseif ($d < 86400)  $rel = 'قبل ' . (int) ($d / 3600) . ' ساعة';
+    elseif ($d < 604800) $rel = 'قبل ' . (int) ($d / 86400) . ' يوم';
+    else                 $rel = date('Y/m/d', $ts);
+    return array($rel, date('Y/m/d — H:i', $ts));
+};
 ?>
 
 <?php tqa_head('رسائل التواصل',
-    'ما يرسل من صفحة «تواصل معنا» في الموقع العام. الرد يخرج من بريد المنصة نفسه.',
+    'ما يرسل من صفحة «تواصل معنا» في الموقع العام — بموضوعه ووقته كاملا. الرد يخرج من بريد المنصة نفسه.',
     'mail'); ?>
 
 <form class="tqa-toolbar" method="get" action="<?php echo site_url('admin/contact'); ?>">
     <label class="tqa-sr" for="q">ابحث في الرسائل</label>
-    <input class="tqa-input" type="search" id="q" name="q" placeholder="ابحث باسم أو بريد أو نص الرسالة…"
+    <input class="tqa-input" type="search" id="q" name="q" placeholder="ابحث باسم أو بريد أو موضوع أو نص الرسالة…"
            value="<?php echo html_escape($search); ?>">
+    <?php /* المرشحات القائمة تركب في نموذج البحث، وإلا مسحها أول بحث. */ ?>
+    <?php if ($state !== ''): ?><input type="hidden" name="state" value="<?php echo html_escape($state); ?>"><?php endif; ?>
+    <?php if ($subject !== ''): ?><input type="hidden" name="subject" value="<?php echo html_escape($subject); ?>"><?php endif; ?>
     <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> ابحث</button>
     <?php if ($search !== ''): ?>
-        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/contact'); ?>">مسح البحث</a>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo $tq_url(array('q' => '')); ?>">مسح البحث</a>
     <?php endif; ?>
 </form>
 
+<?php /* ══════════ مرشحا الحال والموضوع ══════════
+         الحال أولا لأنه السؤال الأول كل صباح: «ما الذي ينتظر ردي؟».
+         والموضوع بعده لأنه يوجه إلى فريق: الفني غير المالي غير القبول. */ ?>
+<div class="tqa-toolbar tqa-toolbar--wrap" style="gap:var(--tq-space-xs)">
+    <?php
+    $tq_states = array(
+        array('',        'الكل',       (int) $all_n),
+        array('open',    'بلا رد',     (int) $open_n),
+        array('replied', 'رد عليها',   max(0, (int) $all_n - (int) $open_n)),
+    );
+    foreach ($tq_states as $tq_s): ?>
+        <a class="tqa-chip<?php echo $state === $tq_s[0] ? ' is-on' : ''; ?>"
+           <?php echo $state === $tq_s[0] ? 'aria-current="true"' : ''; ?>
+           href="<?php echo $tq_url(array('state' => $tq_s[0], 'page' => '')); ?>">
+            <?php echo $tq_s[1]; ?>
+            <span class="tqa-num">(<?php echo $tq_s[2]; ?>)</span>
+        </a>
+    <?php endforeach; ?>
+
+    <?php if (!empty($subjects)): ?>
+        <span class="tqa-chipsep" aria-hidden="true"></span>
+        <?php if ($subject !== ''): ?>
+            <a class="tqa-chip is-on" href="<?php echo $tq_url(array('subject' => '', 'page' => '')); ?>">
+                <?php echo html_escape($subject); ?>
+                <?php echo tq_icon('close', 12); ?>
+            </a>
+        <?php else: foreach ($subjects as $tq_sub => $tq_n): ?>
+            <a class="tqa-chip" href="<?php echo $tq_url(array('subject' => $tq_sub, 'page' => '')); ?>">
+                <?php echo html_escape($tq_sub); ?>
+                <span class="tqa-num">(<?php echo (int) $tq_n; ?>)</span>
+            </a>
+        <?php endforeach; endif; ?>
+    <?php endif; ?>
+</div>
+
 <?php if (empty($rows)): ?>
 
+    <?php /* الفراغ ثلاثة أحوال لا حالان: لا رسائل أصلا · لا رسالة تطابق
+             البحث · لا رسالة في هذا المرشح. والثالث كان يقول «لا رسائل
+             بعد» وفي الجدول مئة — فيظن قارئه أن شيئا ضاع. */
+    $tq_filtered = ($state !== '' || $subject !== '');
+    ?>
     <div class="tqa-card tqa-card--flush">
-        <?php tqa_empty(
-            $search !== '' ? 'لا رسالة تطابق هذا البحث' : 'لا رسائل بعد',
-            $search !== ''
-                ? 'جرب كلمة واحدة بدل الجملة كاملة.'
-                : 'تمتلئ هذه الشاشة وحدها حين يرسل زائر من صفحة «تواصل معنا» — ولا يضاف إليها بيد.',
-            $search !== '' ? 'مسح البحث' : '',
-            $search !== '' ? site_url('admin/contact') : '',
-            'mail'
-        ); ?>
+        <?php if ($search !== ''): ?>
+            <?php tqa_empty('لا رسالة تطابق هذا البحث',
+                'جرب كلمة واحدة بدل الجملة كاملة.',
+                'مسح البحث', $tq_url(array('q' => '')), 'mail'); ?>
+        <?php elseif ($tq_filtered): ?>
+            <?php tqa_empty('لا رسالة في هذا المرشح',
+                'الجدول فيه ' . (int) $all_n . ' رسالة — لكن لا شيء يطابق ما اخترت.',
+                'اعرض الكل', site_url('admin/contact'), 'mail'); ?>
+        <?php else: ?>
+            <?php tqa_empty('لا رسائل بعد',
+                'تمتلئ هذه الشاشة وحدها حين يرسل زائر من صفحة «تواصل معنا» — ولا يضاف إليها بيد.',
+                '', '', 'mail'); ?>
+        <?php endif; ?>
     </div>
 
 <?php else: ?>
@@ -76,6 +148,8 @@ $tq_kind = array(
             if ($tq_name === '') $tq_name = $tq_r['email'];
             $tq_replied = (int) $tq_r['replied'] === 1;
             $tq_role    = $known[strtolower((string) $tq_r['email'])] ?? null;
+            $tq_subj    = trim((string) $tq_r['subject']);
+            list($tq_rel, $tq_abs) = $tq_when($tq_r['created_at']);
         ?>
             <article class="tqa-card">
 
@@ -87,9 +161,19 @@ $tq_kind = array(
                         </label>
 
                         <div>
+                            <?php /* الموضوع أولا والاسم تحته: الشاشة تفرز بالموضوع
+                                     («الدعم الفني» لفريق، «الاشتراكات» لآخر)، ومن
+                                     يمسح عشرين بطاقة يبحث عن الموضوع لا عن الاسم. */ ?>
                             <strong style="color:var(--tq-navy);font:var(--tq-type-bodyStrong)">
-                                <?php echo html_escape($tq_name); ?>
+                                <?php echo $tq_subj !== '' ? html_escape($tq_subj) : 'بلا موضوع'; ?>
                             </strong>
+                            <div style="margin-block-start:2px;font:var(--tq-type-caption);color:var(--tq-text2)">
+                                <?php echo html_escape($tq_name); ?>
+                                <?php if ($tq_rel !== ''): ?>
+                                    · <time datetime="<?php echo date('c', (int) $tq_r['created_at']); ?>"
+                                            title="<?php echo html_escape($tq_abs); ?>"><?php echo $tq_rel; ?></time>
+                                <?php endif; ?>
+                            </div>
                             <div class="tqa-row" style="gap:var(--tq-space-xs);margin-block-start:var(--tq-space-xs)">
                                 <?php if ($tq_role !== null): ?>
                                     <span class="tqa-badge tqa-badge--<?php echo $tq_kind[$tq_role][0]; ?>">
@@ -141,6 +225,16 @@ $tq_kind = array(
                         <div>
                             <dt>العنوان</dt>
                             <dd><?php echo html_escape($tq_r['address']); ?></dd>
+                        </div>
+                    <?php endif; ?>
+                    <div>
+                        <dt>الموضوع</dt>
+                        <dd><?php echo $tq_subj !== '' ? html_escape($tq_subj) : '—'; ?></dd>
+                    </div>
+                    <?php if ($tq_abs !== ''): ?>
+                        <div>
+                            <dt>وصلت</dt>
+                            <dd><span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_abs); ?></span></dd>
                         </div>
                     <?php endif; ?>
                 </dl>
@@ -204,9 +298,10 @@ $tq_kind = array(
     $tq_from = max(1, $page_no - 2);
     $tq_last = min($page_count, $tq_from + 4);
     $tq_from = max(1, $tq_last - 4);
-    $tq_url  = function ($p) use ($search) {
-        $qs = array_filter(array('q' => $search, 'page' => $p > 1 ? $p : null));
-        return site_url('admin/contact') . ($qs ? '?' . http_build_query($qs) : '');
+    /* صفحات المرشح لا صفحات الجدول: الصفحة الثانية كانت تنسى الحال
+       والموضوع فتعود إلى «الكل» بلا أن يطلب أحد. */
+    $tq_page = function ($p) use ($tq_url) {
+        return $tq_url(array('page' => $p > 1 ? (string) $p : ''));
     };
     ?>
     <nav class="tqa-pager" aria-label="صفحات الرسائل" style="border:0">
@@ -216,7 +311,7 @@ $tq_kind = array(
         </span>
 
         <?php if ($page_no > 1): ?>
-            <a href="<?php echo $tq_url($page_no - 1); ?>" rel="prev" aria-label="الصفحة السابقة">
+            <a href="<?php echo $tq_page($page_no - 1); ?>" rel="prev" aria-label="الصفحة السابقة">
                 <?php echo tq_icon('chev-prev', 16); ?>
             </a>
         <?php endif; ?>
@@ -225,12 +320,12 @@ $tq_kind = array(
             <?php if ($tq_p === (int) $page_no): ?>
                 <span aria-current="page"><?php echo $tq_p; ?></span>
             <?php else: ?>
-                <a href="<?php echo $tq_url($tq_p); ?>"><?php echo $tq_p; ?></a>
+                <a href="<?php echo $tq_page($tq_p); ?>"><?php echo $tq_p; ?></a>
             <?php endif; ?>
         <?php endfor; ?>
 
         <?php if ($page_no < $page_count): ?>
-            <a href="<?php echo $tq_url($page_no + 1); ?>" rel="next" aria-label="الصفحة التالية">
+            <a href="<?php echo $tq_page($page_no + 1); ?>" rel="next" aria-label="الصفحة التالية">
                 <?php echo tq_icon('chev-next', 16); ?>
             </a>
         <?php endif; ?>

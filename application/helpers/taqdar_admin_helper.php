@@ -215,7 +215,16 @@ if (!function_exists('tqa_nav_counts')) {
             'payouts'       => $count('SELECT COUNT(*) n FROM `payout` WHERE `status` = 0'),
             'subs_pending'  => $count('SELECT COUNT(*) n FROM `subscriptions` WHERE `status` = "pending"'),
             'messages'      => $count('SELECT COUNT(*) n FROM `message` WHERE `receiver` = ? AND `read_status` != 1', array($uid)),
+            /* عدادان لا واحد، لأنهما سؤالان:
+               `contact`      — «هل وصل جديد؟» ويصفر بمجرد فتح الشاشة
+                                (`Admin::contact()` تعلم الكل مقروءا)، فهو
+                                نقطة الجرس في الشريط العلوي لا أكثر.
+               `contact_open` — «ما الذي ينتظر ردي؟» ولا يصفر إلا بالرد
+                                فعلا. وهذا ما تعرضه لوحة القيادة، وإلا
+                                اختفى بند «ينتظر إجراء منك» بعد نظرة
+                                واحدة ولم يرد على أحد. */
             'contact'       => $count('SELECT COUNT(*) n FROM `contact` WHERE `has_read` IS NULL'),
+            'contact_open'  => $count('SELECT COUNT(*) n FROM `contact` WHERE `replied` IS NULL OR `replied` != 1'),
             'pending_blogs' => $count('SELECT COUNT(*) n FROM `blogs` WHERE `status` = 0'),
             'pending_courses' => $count('SELECT COUNT(*) n FROM `course` WHERE `status` = "pending"'),
         );

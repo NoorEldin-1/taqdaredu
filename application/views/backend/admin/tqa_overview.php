@@ -42,8 +42,11 @@ $waiting = array(
           'href' => 'taqdar_admin/sessions?status=requested', 'icon' => 'video', 'tone' => 'lilac'),
     array('n' => (int) ($queue['subs_pending'] ?? 0), 'label' => 'اشتراك بلا تفعيل',
           'href' => 'taqdar_admin/subscriptions',     'icon' => 'refresh', 'tone' => 'sky'),
-    array('n' => (int) ($queue['contact'] ?? 0),      'label' => 'رسالة تواصل لم تقرأ',
-          'href' => 'admin/contact',                  'icon' => 'mail',  'tone' => 'sand'),
+    /* «بلا رد» لا «لم تقرأ»: القراءة تسجل بمجرد فتح الشاشة، فبند مبني
+       عليها يختفي من «ينتظر إجراء منك» قبل أن يجري أحد إجراء. وسائر
+       بنود هذا الصف كلها «بلا رد» — فيتبعها. */
+    array('n' => (int) ($queue['contact_open'] ?? 0), 'label' => 'رسالة تواصل بلا رد',
+          'href' => 'admin/contact?state=open',       'icon' => 'mail',  'tone' => 'sand'),
     array('n' => (int) ($queue['pending_courses'] ?? 0), 'label' => 'كورس بانتظار المراجعة',
           'href' => 'admin/courses',                  'icon' => 'book',  'tone' => 'mint'),
 );

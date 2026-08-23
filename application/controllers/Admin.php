@@ -2886,20 +2886,44 @@ class Admin extends CI_Controller
              */
             $this->db->where('has_read', null)->update('contact', ['has_read' => 1]);
 
-            $per  = 20;
-            $page = max(1, (int) $this->input->get('page'));
-            $q    = trim((string) $this->input->get('q', true));
+            /**
+             * TQ-CONTACT-FULL · الرسالة تصل كاملة أو لا تصل.
+             *
+             * نموذج «تواصل معنا» يرسل **موضوعا** يختاره الزائر من خمسة
+             * (استفسار · دعم فني · اشتراكات · انضمام كمعلم · أخرى)،
+             * ويكتب `created_at` وقت الإرسال. والعمودان في الجدول منذ
+             * البداية — وهذه الشاشة كانت تطبع الاسم والبريد والنص وتسقطهما
+             * صامتة. فالمسؤول يفتح عشرين رسالة لا يعرف أيها من اليوم وأيها
+             * من الشهر الماضي، ولا أيها للفريق المالي وأيها للدعم الفني.
+             *
+             * والترشيح هنا لا في المتصفح: من عنده مئتا رسالة يريد «أرني ما
+             * لم يرد عليه» لا أن يقلب عشر صفحات بعينه. والحال في الرابط
+             * وحده (`?state=` · `?subject=`) فيشارك ويحفظ ويرجع إليه.
+             */
+            $per     = 20;
+            $page    = max(1, (int) $this->input->get('page'));
+            $q       = trim((string) $this->input->get('q', true));
+            $state   = (string) $this->input->get('state', true);
+            $subject = trim((string) $this->input->get('subject', true));
 
-            $scope = function () use ($q) {
+            if (!in_array($state, ['open', 'replied'], true)) $state = '';
+
+            $scope = function () use ($q, $state, $subject) {
                 if ($q !== '') {
                     $this->db->group_start()
                              ->like('first_name', $q)
                              ->or_like('last_name', $q)
                              ->or_like('email', $q)
                              ->or_like('phone', $q)
+                             ->or_like('subject', $q)
                              ->or_like('message', $q)
                              ->group_end();
                 }
+                /* «بلا رد» = `replied` ليست ١ — والعمود يكتب `NULL` لا صفرا
+                   عند الإدراج، فشرط `= 0` وحده يرد لا شيء أبدا. */
+                if ($state === 'open')    $this->db->where('(`replied` IS NULL OR `replied` != 1)', null, false);
+                if ($state === 'replied') $this->db->where('replied', 1);
+                if ($subject !== '')      $this->db->where('subject', $subject);
             };
 
             $scope();
@@ -2923,6 +2947,23 @@ class Admin extends CI_Controller
                 }
             }
 
+            /* عدادا الحالين يحسبان على الجدول كله لا على الصفحة: رقم يتبدل
+               مع رقم الصفحة لا يقال عنه «بلا رد». */
+            $open_n = (int) $this->db->where('(`replied` IS NULL OR `replied` != 1)', null, false)
+                                     ->count_all_results('contact');
+
+            /* خيارات مرشح الموضوع تشتق من **المخزون** لا من قائمة القالب:
+               الموضوعات تعدل في `contact_us.php`، ورسالة قديمة بموضوع حذف
+               تبقى في الجدول — وقائمة مبنية من القالب تخفيها فلا تفتح. */
+            $subjects = [];
+            foreach ($this->db->select('subject, COUNT(*) AS n')
+                              ->where('subject IS NOT NULL', null, false)
+                              ->where('subject !=', '')
+                              ->group_by('subject')->order_by('n', 'DESC')
+                              ->get('contact')->result_array() as $s) {
+                $subjects[(string) $s['subject']] = (int) $s['n'];
+            }
+
             $page_data['rows']       = $rows;
             $page_data['known']      = $known;
             $page_data['total']      = $total;
@@ -2930,6 +2971,11 @@ class Admin extends CI_Controller
             $page_data['page_count'] = $pages;
             $page_data['per_page']   = $per;
             $page_data['search']     = $q;
+            $page_data['state']      = $state;
+            $page_data['subject']    = $subject;
+            $page_data['subjects']   = $subjects;
+            $page_data['open_n']     = $open_n;
+            $page_data['all_n']      = (int) $this->db->count_all_results('contact');
 
             $page_data['page_name']  = 'contact';
             $page_data['page_title'] = get_phrase('Contact');
@@ -2937,10 +2983,46 @@ class Admin extends CI_Controller
         }
 
         if ($type == 'send_reply' && $id != '') {
-            $message         = $this->input->post('reply_message');
-            $contact_details = $this->crud_model->get_contacts($id)->row_array();
-            $this->email_model->send_smtp_mail($message, get_phrase('Reply from - ') . get_settings('system_name'), $contact_details['email']);
-            $this->db->where('id', $id)->update('contact', ['replied' => 1]);
+            /**
+             * الرد يخرج من `Taqdar_mail_model` لا من `email_model` الموروث.
+             *
+             * الأخير يرسل نصا عاريا بتوقيع القالب الأصلي، فيصل الزائر ردا
+             * لا يشبه المنصة التي راسلها — ولا يحمل لوح «ليس بريدا غير
+             * مرغوب» في التذييل، وهو الوحيد الذي يقرؤه من هو داخل مجلد
+             * المهملات الآن (انظر `wrap()`).
+             *
+             * وموضوع الرسالة يعاد في موضوع الرد: صندوق بريد فيه عشرة ردود
+             * كلها «رد من منصة تقدر» لا يفرق بينها صاحبه.
+             */
+            $message = trim((string) $this->input->post('reply_message'));
+            $row     = $this->db->where('id', (int) $id)->get('contact')->row_array();
+
+            if (!$row || $message === '') {
+                $this->session->set_flashdata('error_message', 'لا رسالة بهذا المعرف، أو نص الرد فارغ.');
+                redirect(site_url('admin/contact'), 'refresh');
+            }
+
+            $this->load->model('taqdar_mail_model');
+
+            $subj = trim((string) $row['subject']);
+            $name = trim((string) $row['first_name'] . ' ' . (string) $row['last_name']);
+
+            $this->taqdar_mail_model->send_lines(
+                (string) $row['email'],
+                'رد على رسالتك' . ($subj !== '' ? ': ' . $subj : ''),
+                array(
+                    'مرحبا ' . ($name !== '' ? $name : 'بك') . '،',
+                    $message,
+                    '—',
+                    'وهذه رسالتك التي نرد عليها:',
+                    (string) $row['message'],
+                )
+            );
+
+            $this->db->where('id', (int) $id)->update('contact', [
+                'replied'    => 1,
+                'updated_at' => (string) time(),
+            ]);
             $this->session->set_flashdata('flash_message', get_phrase('Reply sent successfully'));
             redirect(site_url('admin/contact'), 'refresh');
         }

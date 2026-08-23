@@ -2007,17 +2007,53 @@ body.tqa .on-hover-action:focus-within [id^='category-delete-btn-'] {
   background: var(--tq-navyWash); color: var(--tq-navy);
   font: var(--tq-type-micro);
 }
+
+/* ---- رقاقة مرشح ----
+   الرقاقة الساكنة أعلاه وسم حال؛ وهذه رابط يبدل المعروض. والفرق يقرأ
+   من الحد والمؤشر: بلاهما يظن القارئ الرقاقتين شيئا واحدا فينقر ما لا
+   ينقر، أو يمر على ما ينقر. */
+a.tqa-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--tq-line);
+  background: var(--tq-surface); color: var(--tq-text2);
+  text-decoration: none;
+  transition: background-color var(--tq-motion-hover) ease,
+              border-color var(--tq-motion-hover) ease,
+              color var(--tq-motion-hover) ease;
+}
+a.tqa-chip:hover { background: var(--tq-navyWash); border-color: var(--tq-navy); color: var(--tq-navy); }
+a.tqa-chip.is-on {
+  background: var(--tq-navy); border-color: var(--tq-navy); color: #fff;
+  font-weight: 600;
+}
+a.tqa-chip.is-on .tqa-num { color: rgba(255, 255, 255, .72); }
+a.tqa-chip .tqa-num { color: var(--tq-text3, var(--tq-text2)); }
+
+/* فاصل شعري بين مجموعتي مرشحات في شريط واحد — الحال ثم الموضوع. */
+.tqa-chipsep {
+  inline-size: 1px; align-self: stretch; min-block-size: 20px;
+  background: var(--tq-line); margin-inline: var(--tq-space-xs);
+}
+.tqa-toolbar--wrap { row-gap: var(--tq-space-xs); }
 .tqa-count { margin-block-start: var(--tq-space-m); font: var(--tq-type-caption); color: var(--tq-text2); }
 .tqa-deps  { font: var(--tq-type-caption); color: var(--tq-text2); }
 
 /* ---- فحوص وصول البريد ----
    بند لكل فحص، وحاله في حافته الابتدائية لا في لونه كله: صف كامل ملون
-   يقرأ إنذارا حتى حين يقول «سليم»، والشاشة فيها ستة بنود لا واحد. */
+   يقرأ إنذارا حتى حين يقول «سليم»، والشاشة فيها ستة بنود لا واحد.
+
+   TQ-CHECK-CLASH · و`.tqa-check` **اسم مشغول**: هو صنف لوح مربع
+   الاختيار أعلاه (سطر ١١٥١)، تستعمله إحدى عشرة شاشة. وهذه القاعدة
+   تأتي بعده في الملف فتغلبه بالترتيب لا بالتخصيص — فكل مربع اختيار
+   في اللوحة كان يخرج ببطاقة محاطة بحد وحشو، من «حدد كل المعروض» في
+   رسائل التواصل إلى خانات إعدادات الواجهة. فتقيد ببنود `‎.tqa-checks‎`
+   وحدها، وهي الموضع الوحيد الذي كتبت له. */
 .tqa-checks {
   list-style: none; margin: 0; padding: 0;
   display: grid; gap: var(--tq-space-m);
 }
-.tqa-check {
+.tqa-checks > .tqa-check {
+  display: block;
   padding: var(--tq-space-m) var(--tq-space-l);
   border: 1px solid var(--tq-line);
   border-inline-start: 3px solid var(--tq-line);
