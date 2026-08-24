@@ -186,7 +186,7 @@ class Taqdar_curriculum_model extends CI_Model
                 'timed' => true,
                 'fields' => array(
                     'video_url' => array('kind' => 'url', 'col' => 'video_url', 'label' => 'رابط الفيديو',
-                                         'required' => true, 'probe' => true,
+                                         'required' => true, 'probe' => 'youtube',
                                          'placeholder' => 'https://www.youtube.com/watch?v=...'),
                     'duration'  => array('kind' => 'duration', 'col' => 'duration', 'label' => 'المدة',
                                          'hint' => 'تقرأ تلقائيا من الرابط، وتكتب بيد إن تعذر.'),
@@ -205,9 +205,10 @@ class Taqdar_curriculum_model extends CI_Model
                 'timed' => true,
                 'fields' => array(
                     'video_url' => array('kind' => 'url', 'col' => 'video_url', 'label' => 'رابط الفيديو',
-                                         'required' => true, 'probe' => true,
+                                         'required' => true, 'probe' => 'vimeo',
                                          'placeholder' => 'https://vimeo.com/...'),
-                    'duration'  => array('kind' => 'duration', 'col' => 'duration', 'label' => 'المدة'),
+                    'duration'  => array('kind' => 'duration', 'col' => 'duration', 'label' => 'المدة',
+                                         'hint' => 'تقرأ تلقائيا من الرابط، وتكتب بيد إن تعذر.'),
                     'caption'   => array('kind' => 'file', 'col' => 'caption', 'label' => 'ملف الترجمة',
                                          'accept' => '.vtt', 'dir' => 'uploads/captions'),
                 ),
@@ -222,7 +223,7 @@ class Taqdar_curriculum_model extends CI_Model
                 'timed' => true,
                 'fields' => array(
                     'video_file' => array('kind' => 'file', 'col' => 'video_url', 'label' => 'ملف الفيديو',
-                                          'required' => true, 'accept' => 'video/*',
+                                          'required' => true, 'accept' => 'video/*', 'probe' => 'file',
                                           'dir' => 'uploads/lesson_files/videos', 'as_url' => true,
                                           'ext' => array('mp4', 'webm', 'ogg', 'ogv', 'm4v', 'mov')),
                     'duration'   => array('kind' => 'duration', 'col' => 'duration', 'label' => 'المدة',
@@ -241,8 +242,10 @@ class Taqdar_curriculum_model extends CI_Model
                 'timed' => true,
                 'fields' => array(
                     'video_url' => array('kind' => 'url', 'col' => 'video_url', 'label' => 'رابط الملف',
-                                         'required' => true, 'placeholder' => 'https://…/video.mp4'),
-                    'duration'  => array('kind' => 'duration', 'col' => 'duration', 'label' => 'المدة'),
+                                         'required' => true, 'probe' => 'html5',
+                                         'placeholder' => 'https://…/video.mp4'),
+                    'duration'  => array('kind' => 'duration', 'col' => 'duration', 'label' => 'المدة',
+                                         'hint' => 'تقرأ تلقائيا من الملف، وتكتب بيد إن تعذر.'),
                 ),
             ),
 
@@ -272,10 +275,11 @@ class Taqdar_curriculum_model extends CI_Model
                 'timed' => true,
                 'fields' => array(
                     'audio_file' => array('kind' => 'file', 'col' => 'audio_url', 'label' => 'الملف الصوتي',
-                                          'required' => true, 'accept' => 'audio/*',
+                                          'required' => true, 'accept' => 'audio/*', 'probe' => 'file',
                                           'dir' => 'uploads/lesson_files/audios', 'as_url' => true,
                                           'ext' => array('mp3', 'm4a', 'wav', 'ogg', 'oga', 'aac')),
-                    'duration'   => array('kind' => 'duration', 'col' => 'duration', 'label' => 'المدة'),
+                    'duration'   => array('kind' => 'duration', 'col' => 'duration', 'label' => 'المدة',
+                                          'hint' => 'تقرأ من الملف عند اختياره.'),
                 ),
             ),
 
@@ -644,6 +648,7 @@ class Taqdar_curriculum_model extends CI_Model
         $data   = array();
         $link   = array('grade' => null, 'subject' => null);
         $paths  = array();
+        $status_note = '';
 
         foreach ($spec as $name => $f) {
             $sent = array_key_exists($name, $post);
@@ -686,10 +691,17 @@ class Taqdar_curriculum_model extends CI_Model
                     /* النشر ليس بيد المعلم — القاعدة نفسها التي تحكم
                        الدروس (`may_publish`). وما يعلنه منشورا أو خاصا
                        ينزل إلى «قيد المراجعة»، ولا يرد بخطأ: هو لم يخطئ،
-                       وإنما القرار ليس له. */
+                       وإنما القرار ليس له.
+                       **ويقال له**: كان الخفض يقع صامتا والرسالة «حفظت
+                       تعديلات الكورس» — فيظن المعلم أنه نشر، ويفتح رابط
+                       كورسه فلا يجده، ولا شيء يفسر. وأخته `save_lesson()`
+                       تلحق `$status_note` منذ كتبت. */
                     if (!$this->may_publish($actor)
                         && in_array($want, array('active', 'private', 'upcoming'), true)) {
-                        $want = 'pending';
+                        $asked = $this->status_label($want);
+                        $want  = 'pending';
+                        $status_note = ' واخترت «' . $asked . '»، والنشر قرار إدارة —'
+                                     . ' فحفظ الكورس «قيد المراجعة» وسيصل إلى طلابك متى اعتمد.';
                     }
                     $data['status'] = $want;
                     break;
@@ -789,6 +801,8 @@ class Taqdar_curriculum_model extends CI_Model
                 $msg .= ' وبلا صف ومادة يبقى محتوى داخليا لا يعرض في الموقع العام.';
             }
         }
+
+        $msg .= $status_note;
 
         $this->log($actor, $isnew ? 'course.create' : 'course.save', 'course:' . $id,
                    array('fields' => array_keys($data)));
@@ -1789,6 +1803,66 @@ class Taqdar_curriculum_model extends CI_Model
         $course = (int) $this->val($filters, 'course_id', 0);
         $out    = array();
 
+        /* ٠ — كورسات ينتظر نشرها — TQ-COURSE-REVIEW.
+           `save_course()` تحول ما يعلنه المعلم `active` إلى `pending`
+           بحكم `may_publish()`، كما تفعل بحالة الدرس تماما. وشاشة
+           المعلم تقول له ذلك صراحة: «بانتظار مراجعة الإدارة».
+           **ولم يكن في اللوحة ما يقرأ ذلك**: لا صف في هذا الطابور،
+           ولا رقم في الشارة، ولا فرع في `approve()`. فالكورس يجلس في
+           `pending` إلى الأبد، والمعلم ينتظر قرارا لا يعلم أحد أنه
+           مطلوب — وهذا نصف TQ-COURSE-SPLIT الغائب.
+           والمخرج الوحيد كان أن يعرف المسؤول أن يفتح القائمة الموروثة
+           في `admin/courses` ويقلب الحالة بيده. */
+        try {
+            $args  = array();
+            $where = 'c.`status` = "pending"';
+            if ($course > 0) { $where .= ' AND c.`id` = ?'; $args[] = $course; }
+
+            $rows = $this->db->query(
+                'SELECT c.`id`, c.`title`, c.`date_added`, c.`last_modified`,
+                        u.`first_name`, u.`last_name`,
+                        (SELECT COUNT(*) FROM `lesson` l WHERE l.`course_id` = c.`id`)  AS lessons,
+                        (SELECT COUNT(*) FROM `section` s WHERE s.`course_id` = c.`id`) AS sections,
+                        p.`grade_id`, p.`subject_id`,
+                        g.`name_ar` AS grade_name, sj.`name_ar` AS subject_name
+                   FROM `course` c
+              LEFT JOIN `users`  u  ON u.`id` = c.`creator`
+              LEFT JOIN `paths`  p  ON p.`course_id` = c.`id`
+              LEFT JOIN `grades` g  ON g.`id` = p.`grade_id`
+              LEFT JOIN `subjects` sj ON sj.`id` = p.`subject_id`
+                  WHERE ' . $where . '
+               GROUP BY c.`id`
+                  ORDER BY COALESCE(c.`last_modified`, c.`date_added`) ASC
+                  LIMIT 200', $args
+            )->result_array();
+
+            foreach ($rows as $r) {
+                $out[] = array(
+                    'kind'        => 'course',
+                    'entity'      => 'course',
+                    'entity_id'   => (int) $r['id'],
+                    'revision_id' => 0,
+                    'title'       => (string) $r['title'],
+                    'course_id'   => (int) $r['id'],
+                    'course'      => (string) $r['title'],
+                    'section'     => '',
+                    'author'      => trim((string) $r['first_name'] . ' ' . (string) $r['last_name']),
+                    'tq_kind'     => '',
+                    'objectives'  => 0,
+                    'duration'    => '',
+                    'lessons'     => (int) $r['lessons'],
+                    'sections'    => (int) $r['sections'],
+                    'grade'       => (string) $r['grade_name'],
+                    'subject'     => (string) $r['subject_name'],
+                    'linked'      => ((int) $r['grade_id'] > 0 && (int) $r['subject_id'] > 0),
+                    'at'          => (int) ($r['last_modified'] ?: $r['date_added']),
+                    'note'        => '',
+                );
+            }
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-CURRIC pending(course): ' . $e->getMessage());
+        }
+
         /* ١ — دروس جديدة في `review` */
         try {
             $args  = array();
@@ -1887,6 +1961,13 @@ class Taqdar_curriculum_model extends CI_Model
     {
         $n = 0;
         try {
+            /* والكورس ينتظر كما ينتظر الدرس — TQ-COURSE-REVIEW.
+               بلا هذا السطر تقول الشارة «لا شيء ينتظر» وكورس معلم
+               حبيس `pending` منذ أسبوع. */
+            $n += (int) $this->db->query(
+                'SELECT COUNT(*) n FROM `course` WHERE `status` = "pending"')->row('n');
+        } catch (Throwable $e) { /* الجدول لم يقرأ */ }
+        try {
             $n += (int) $this->db->query(
                 'SELECT COUNT(*) n FROM `lesson` WHERE `tq_status` = "review"')->row('n');
         } catch (Throwable $e) { /* العمود لم ينشأ */ }
@@ -1913,6 +1994,8 @@ class Taqdar_curriculum_model extends CI_Model
 
         $entity_id   = (int) $entity_id;
         $revision_id = (int) $revision_id;
+
+        if ((string) $entity === 'course') return $this->approve_course($actor, $entity_id);
 
         /* اقتراح على منشور: الحمولة تطبق ثم يقفل الصف. */
         if ($revision_id > 0) {
@@ -1990,6 +2073,8 @@ class Taqdar_curriculum_model extends CI_Model
         $entity_id   = (int) $entity_id;
         $revision_id = (int) $revision_id;
 
+        if ((string) $entity === 'course') return $this->reject_course($actor, $entity_id, $reason);
+
         if ($revision_id > 0) {
             $rev = $this->db->where('id', $revision_id)->where('status', 'pending')
                             ->get('tq_content_revisions')->row_array();
@@ -2022,6 +2107,138 @@ class Taqdar_curriculum_model extends CI_Model
         $this->notify_author($this->author_of($entity_id), $entity_id, false, $reason);
 
         return array('ok' => true, 'message' => 'رد الدرس إلى صاحبه مع السبب.');
+    }
+
+    /**
+     * اعتماد كورس ينتظر — TQ-COURSE-REVIEW.
+     *
+     * وثلاثة أشياء تقع معا، وترك أيها يجعل الاعتماد نصفه:
+     *
+     * ١ — `course.status = 'active'`.
+     * ٢ — **البرنامج يتبع**: `Taqdar_course_link_model::sync()` هو
+     *     الجسر الوحيد إلى الكتالوج ومحرك الاشتراكات، وبلا استدعائه
+     *     يصير الكورس منشورا وبرنامجه مسودة — فلا يظهر ولا تفتحه باقة،
+     *     وهو عين العطل الذي جاء TQ-COURSE-SPLIT ليغلقه.
+     * ٣ — **يبلغ من يملك نطاقه الآن**: `sync()` تنادي `resync_scope()`
+     *     فيجسد للمشتركين القائمين (TQ-ENROL-STALE).
+     *
+     * ودروس الكورس لا تنشر معه: لكل درس قراره، وكورس فيه عشرون درسا
+     * ينشر بضغطة واحدة يعني عشرين درسا لم يقرأها أحد.
+     */
+    private function approve_course($actor, $course_id)
+    {
+        $row = $this->db->select('id, title, status, creator')
+                        ->where('id', (int) $course_id)->get('course')->row_array();
+        if (!$row) return $this->fail('لا كورس بهذا المعرف.');
+        if ((string) $row['status'] !== 'pending') {
+            return $this->fail('هذا الكورس ليس في انتظار المراجعة — حالته «'
+                             . $this->status_label((string) $row['status']) . '».');
+        }
+
+        $this->db->where('id', (int) $course_id)
+                 ->update('course', array('status' => 'active', 'last_modified' => time()));
+
+        $sync = null;
+        try {
+            $CI = get_instance();
+            $CI->load->model('taqdar_course_link_model', 'tq_link_m');
+            $link = $CI->tq_link_m->link_of((int) $course_id);
+            $sync = $CI->tq_link_m->sync((int) $course_id,
+                                         (int) $link['grade_id'], (int) $link['subject_id']);
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-COURSE-REVIEW sync: ' . $e->getMessage());
+        }
+
+        $this->log($actor, 'course.approve', 'course:' . (int) $course_id,
+                   array('status' => 'active', 'sync' => $sync));
+        $this->notify_course_author((int) $row['creator'], (int) $course_id,
+                                    (string) $row['title'], true, '');
+
+        $msg = 'نشر الكورس «' . $row['title'] . '».';
+        if (is_array($sync) && !empty($sync['reached'])) {
+            $msg .= ' وفتح لـ' . (int) $sync['reached'] . ' اشتراكا قائما في نطاقه.';
+        }
+        if (empty($link['grade_id']) || empty($link['subject_id'])) {
+            $msg .= ' وهو بلا صف أو مادة، فلا يظهر في «المواد والبرامج» ولا تفتحه باقة'
+                  . ' — أكملهما من تبويب «الأساسيات».';
+        }
+        return array('ok' => true, 'message' => $msg);
+    }
+
+    /**
+     * رد كورس إلى صاحبه بسببه.
+     *
+     * وينزل إلى `draft` لا إلى `rejected`: `course.status` ليس فيه هذه
+     * الحالة (انظر `course_statuses()`)، والمسودة هي ما يستطيع صاحبها
+     * أن يعدله ثم يعيد إرساله. والسبب يبلغه إشعارا لأن الكورس — خلاف
+     * الدرس — بلا عمود يحمل ملاحظة المراجعة.
+     */
+    private function reject_course($actor, $course_id, $reason)
+    {
+        $row = $this->db->select('id, title, status, creator')
+                        ->where('id', (int) $course_id)->get('course')->row_array();
+        if (!$row) return $this->fail('لا كورس بهذا المعرف.');
+
+        $this->db->where('id', (int) $course_id)
+                 ->update('course', array('status' => 'draft', 'last_modified' => time()));
+
+        /* والبرنامج يتبع الحالة: كورس رد إلى صاحبه لا يبقى برنامجه
+           معروضا في الكتالوج. */
+        try {
+            $CI = get_instance();
+            $CI->load->model('taqdar_course_link_model', 'tq_link_m');
+            $link = $CI->tq_link_m->link_of((int) $course_id);
+            $CI->tq_link_m->sync((int) $course_id,
+                                 (int) $link['grade_id'], (int) $link['subject_id']);
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-COURSE-REVIEW sync(reject): ' . $e->getMessage());
+        }
+
+        $this->log($actor, 'course.reject', 'course:' . (int) $course_id,
+                   array('reason' => $reason));
+        $this->notify_course_author((int) $row['creator'], (int) $course_id,
+                                    (string) $row['title'], false, $reason);
+
+        return array('ok' => true, 'message' => 'رد الكورس إلى صاحبه مع السبب، وصار مسودة عنده.');
+    }
+
+    /** اسم الحالة كما يقرؤها إنسان. */
+    private function status_label($key)
+    {
+        $m = self::course_statuses();
+        return isset($m[$key]) ? $m[$key][0] : $key;
+    }
+
+    /**
+     * يخبر صاحب الكورس بالقرار.
+     *
+     * والباب واحد (`Taqdar_admin_model::push_notification`) كما لإشعار
+     * الدرس: يكتب الصف أولا ثم يرسل، وفشل القناة لا يبطل القرار.
+     */
+    private function notify_course_author($teacher_id, $course_id, $title, $ok, $reason)
+    {
+        if ((int) $teacher_id <= 0) return;
+        try {
+            $CI = get_instance();
+            $CI->load->model('taqdar_admin_model', 'tq_admin_m');
+            if (!method_exists($CI->tq_admin_m, 'push_notification')) return;
+
+            /* النوع `content` لا `payment`: `Taqdar_wa_model::$PAY_TYPES`
+               تسمي أنواع المال وحدها، وما سواها لا يخرج بواتساب — وقرار
+               مراجعة ليس مالا. */
+            $CI->tq_admin_m->push_notification(
+                (int) $teacher_id,
+                $ok ? 'اعتمد كورسك ونشر' : 'كورسك يحتاج تعديلا',
+                $ok
+                    ? 'اعتمدت الإدارة كورس «' . $title . '» وصار منشورا،'
+                      . ' ودروسه المعتمدة تفتح لطلابه.'
+                    : 'رد كورس «' . $title . '» إليك للتعديل، وصار مسودة عندك.'
+                      . ' السبب: ' . $reason,
+                'content'
+            );
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-COURSE-REVIEW notify: ' . $e->getMessage());
+        }
     }
 
     /** الاقتراح المعلق على درس — تعرضه شاشة المعلم فيعرف أنه ينتظر. */

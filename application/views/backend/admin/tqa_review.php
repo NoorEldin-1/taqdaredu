@@ -121,35 +121,53 @@ $tq_ago = function ($ts) {
         <span>
             <strong><span class="tqa-num"><?php echo count($tq_items); ?></span> عنصرا ينتظر.</strong>
             <span style="display:block">
-                <strong>درس جديد</strong> لا يراه طالب حتى تعتمده.
+                <strong>كورس جديد</strong> أنشأه معلم ولا يظهر في الموقع حتى تعتمده.
+                و<strong>درس جديد</strong> لا يراه طالب حتى تعتمده.
                 و<strong>تعديل على منشور</strong> لا يمس ما يراه الطالب الآن — الدرس القديم يعمل حتى تطبق التعديل.
             </span>
         </span>
     </p>
 
     <?php foreach ($tq_items as $tq_it):
-        $tq_new  = $tq_it['kind'] === 'new';
-        $tq_live = site_url('admin/course_form/course_edit/' . (int) $tq_it['course_id']) . '?tab=curriculum';
+        /* ثلاثة أنواع لا نوعان — TQ-COURSE-REVIEW: كورس ينتظر نشرا،
+           ودرس جديد ينتظر نشرا، وتعديل على منشور ينتظر تطبيقا. */
+        $tq_kind_row = $tq_it['kind'];
+        $tq_course_row = $tq_kind_row === 'course';
+        $tq_new  = $tq_kind_row === 'new';
+        $tq_live = $tq_course_row
+            ? site_url('admin/course_form/course_edit/' . (int) $tq_it['course_id']) . '?tab=basic'
+            : site_url('admin/course_form/course_edit/' . (int) $tq_it['course_id']) . '?tab=curriculum';
     ?>
     <article class="tqr-item">
 
         <div class="tqr-item__top">
-            <span class="tqa-iconbox <?php echo $tq_new ? "tqa-mint" : "tqa-peach"; ?>" aria-hidden="true">
-                <?php echo tq_icon($tq_kind_icon($tq_it['tq_kind']), 20); ?>
+            <span class="tqa-iconbox <?php echo $tq_course_row ? 'tqa-sand' : ($tq_new ? 'tqa-mint' : 'tqa-peach'); ?>" aria-hidden="true">
+                <?php echo tq_icon($tq_course_row ? 'book' : $tq_kind_icon($tq_it['tq_kind']), 20); ?>
             </span>
 
             <div class="tqr-item__body">
                 <h2 style="font:var(--tq-type-h2)"><?php echo html_escape($tq_it['title']); ?></h2>
                 <div class="tqr-item__meta">
-                    <span class="tqa-badge <?php echo $tq_new ? 'tqa-badge--ok' : 'tqa-badge--warn'; ?>">
-                        <?php echo $tq_new ? 'درس جديد' : 'تعديل على منشور'; ?>
+                    <span class="tqa-badge <?php echo $tq_course_row ? 'tqa-badge--warn' : ($tq_new ? 'tqa-badge--ok' : 'tqa-badge--warn'); ?>">
+                        <?php echo $tq_course_row ? 'كورس جديد' : ($tq_new ? 'درس جديد' : 'تعديل على منشور'); ?>
                     </span>
-                    <span><?php echo html_escape($tq_kind_label($tq_it['tq_kind'])); ?></span>
-                    <?php if ($tq_it['course'] !== ''): ?>
-                        <span><?php echo html_escape($tq_it['course']); ?></span>
-                    <?php endif; ?>
-                    <?php if ($tq_it['section'] !== ''): ?>
-                        <span>قسم: <?php echo html_escape($tq_it['section']); ?></span>
+                    <?php if ($tq_course_row): ?>
+                        <span><?php echo tq_num((int) $tq_it['sections']); ?> قسما</span>
+                        <span><?php echo tq_num((int) $tq_it['lessons']); ?> درسا</span>
+                        <?php if ($tq_it['grade'] !== ''): ?>
+                            <span><?php echo html_escape($tq_it['grade']); ?></span>
+                        <?php endif; ?>
+                        <?php if ($tq_it['subject'] !== ''): ?>
+                            <span><?php echo html_escape($tq_it['subject']); ?></span>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <span><?php echo html_escape($tq_kind_label($tq_it['tq_kind'])); ?></span>
+                        <?php if ($tq_it['course'] !== ''): ?>
+                            <span><?php echo html_escape($tq_it['course']); ?></span>
+                        <?php endif; ?>
+                        <?php if ($tq_it['section'] !== ''): ?>
+                            <span>قسم: <?php echo html_escape($tq_it['section']); ?></span>
+                        <?php endif; ?>
                     <?php endif; ?>
                     <?php if ($tq_it['author'] !== ''): ?>
                         <span>المعلم: <?php echo html_escape($tq_it['author']); ?></span>
@@ -161,9 +179,35 @@ $tq_ago = function ($ts) {
             </div>
 
             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_live; ?>">
-                <?php echo tq_icon('external', 14); ?> افتح المقرر
+                <?php echo tq_icon('external', 14); ?>
+                <?php echo $tq_course_row ? 'افتح الكورس' : 'افتح المقرر'; ?>
             </a>
         </div>
+
+        <?php /* ── الكورس الجديد: ما يمنعه من الوصول إلى طالب ────────
+                الحقلان اللذان لا يقرؤهما `course` أصلا هما اللذان يحكمان
+                وصوله: الكتالوج ومحرك الاشتراكات يقرآن `paths` وحده
+                (TQ-COURSE-SPLIT). فكورس بلا صف ومادة ينشر ولا يراه أحد،
+                ولا شيء يقول لماذا — فيقال هنا **قبل** النشر. */ ?>
+        <?php if ($tq_course_row && empty($tq_it['linked'])): ?>
+            <p class="tqa-note tqa-note--warn" style="margin:0 var(--tq-space-l) var(--tq-space-l)">
+                <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+                <span>
+                    <strong>هذا الكورس بلا صف أو مادة.</strong>
+                    والباقة تمنح صفا ومادة لا كورسا بعينه، والكتالوج يقرأ «المواد والبرامج»
+                    لا جدول الكورسات — فنشره بحالته هذه يجعله <strong>موجودا ولا يصل إليه أحد</strong>.
+                    أكملهما من «افتح الكورس» ثم اعتمده.
+                </span>
+            </p>
+        <?php elseif ($tq_course_row && (int) $tq_it['lessons'] === 0): ?>
+            <p class="tqa-note tqa-note--warn" style="margin:0 var(--tq-space-l) var(--tq-space-l)">
+                <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+                <span>
+                    <strong>هذا الكورس بلا درس واحد.</strong>
+                    ينشر فيظهر في «المواد والبرامج» بعنوانه، ويفتحه الطالب على منهج فارغ.
+                </span>
+            </p>
+        <?php endif; ?>
 
         <?php /* ── الدرس الجديد: ما ينقصه قبل أن يعتمد ─────────────── */ ?>
         <?php if ($tq_new && (int) $tq_it['objectives'] === 0): ?>
@@ -224,7 +268,7 @@ $tq_ago = function ($ts) {
                 <input type="hidden" name="course"      value="<?php echo $tq_course; ?>">
                 <button class="tqa-btn tqa-btn--primary tqa-btn--sm" type="submit">
                     <?php echo tq_icon('check-badge', 14); ?>
-                    <?php echo $tq_new ? 'اعتمد وانشر' : 'طبق التعديل'; ?>
+                    <?php echo $tq_course_row ? 'اعتمد الكورس وانشره' : ($tq_new ? 'اعتمد وانشر' : 'طبق التعديل'); ?>
                 </button>
             </form>
 
@@ -237,15 +281,15 @@ $tq_ago = function ($ts) {
                 <input type="hidden" name="revision_id" value="<?php echo (int) $tq_it['revision_id']; ?>">
                 <input type="hidden" name="course"      value="<?php echo $tq_course; ?>">
 
-                <label class="sr-only" for="why-<?php echo (int) $tq_it['entity_id']; ?>-<?php echo (int) $tq_it['revision_id']; ?>">
+                <label class="sr-only" for="why-<?php echo html_escape($tq_it['entity']); ?>-<?php echo (int) $tq_it['entity_id']; ?>-<?php echo (int) $tq_it['revision_id']; ?>">
                     سبب الرد
                 </label>
                 <input class="tqa-input tqr-acts__why"
-                       id="why-<?php echo (int) $tq_it['entity_id']; ?>-<?php echo (int) $tq_it['revision_id']; ?>"
+                       id="why-<?php echo html_escape($tq_it['entity']); ?>-<?php echo (int) $tq_it['entity_id']; ?>-<?php echo (int) $tq_it['revision_id']; ?>"
                        type="text" name="reason" maxlength="500" required minlength="5"
                        placeholder="سبب الرد — يقرؤه المعلم ويصلح عليه">
                 <button class="tqa-btn tqa-btn--danger tqa-btn--sm" type="submit">
-                    <?php echo tq_icon('close', 14); ?> رد إلى المعلم
+                    <?php echo tq_icon('close', 14); ?> <?php echo $tq_course_row ? 'رد الكورس' : 'رد إلى المعلم'; ?>
                 </button>
             </form>
         </div>
@@ -253,6 +297,51 @@ $tq_ago = function ($ts) {
     <?php endforeach; ?>
 
 <?php endif; ?>
+
+<?php /* ── مفتاحا هذه الشاشة — TQ-REVIEW-KNOBS ────────────────────────
+        الأول يحدد أيمر محتوى المعلم من هنا أصلا، والثاني نصاب تصحيح
+        مدة درس كتبت خطأ. وكلاهما كان يعمل بافتراضه ولا صف له في
+        `settings` ولا حقل في المستودع كله: من أراد أن يفتح النشر
+        المباشر لمعلميه لم يجد أين، ومن سأل «لماذا لم تصحح مدة هذا
+        الدرس؟» لم يجد النصاب مكتوبا في موضع.
+        وموضعهما هنا لا في «إعدادات المنصة»: هذه هي الشاشة التي يظهر
+        فيها أثرهما، ومفتاح يدفن في شاشة لا تفتح ميزة لا توجد. */ ?>
+<section class="tqa-card tqa-section" style="margin-block-start:var(--tq-space-xl)">
+    <h2 class="tqa-card__title" style="margin-block-end:var(--tq-space-s)">إعدادات المراجعة</h2>
+    <form method="post" action="<?php echo site_url('taqdar_admin/review_settings'); ?>">
+        <?php echo tq_csrf(); ?>
+        <input type="hidden" name="direct_sent" value="1">
+
+        <div class="tqa-field">
+            <label class="tqa-field__label">
+                <input type="checkbox" name="tq_teacher_direct_publish" value="1"
+                       <?php echo !empty($tq_direct_publish) ? 'checked' : ''; ?>>
+                النشر المباشر للمعلمين
+            </label>
+            <span class="tqa-field__hint">
+                حين يفتح، ينشر المعلم كورسه ودروسه بنفسه ولا يمر شيء بهذه الشاشة.
+                وحين يغلق — وهو الافتراض — يحفظ ما يعلنه منشورا «قيد المراجعة» ويقال له ذلك،
+                وينتظر هنا.
+            </span>
+        </div>
+
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="tqw">نصاب تصحيح المدة</label>
+            <input class="tqa-input tq-ltr" type="number" id="tqw" name="tq_duration_witnesses"
+                   dir="ltr" min="2" max="20" step="1"
+                   value="<?php echo (int) (isset($tq_witnesses) ? $tq_witnesses : 2); ?>"
+                   style="max-inline-size:120px">
+            <span class="tqa-field__hint">
+                كم طالبا يجب أن تتفق مشغلاتهم — بهامش ١٠٪ — قبل أن تصحح المدة المكتوبة
+                في صف الدرس تلقائيا. وما دون النصاب يعرض تنبيها في شاشة المقرر ولا يكتب.
+                والحد الأدنى اثنان: بشاهد واحد يستطيع طالب يعدل جافاسكربته أن يعلن
+                مدة عشر ثوان فيفسد رقم الدرس على زملائه كلهم.
+            </span>
+        </div>
+
+        <button class="tqa-btn tqa-btn--primary tqa-btn--sm" type="submit">احفظ</button>
+    </form>
+</section>
 
 <script>
 /* الرد يؤكد مرة: قرار يعود إلى إنسان ينتظره، والضغطة الخاطئة تكلفه يوما.
