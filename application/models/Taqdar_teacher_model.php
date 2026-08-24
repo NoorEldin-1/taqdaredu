@@ -301,7 +301,16 @@ class Taqdar_teacher_model extends CI_Model
                        ' . $status_col . ' AS tq_status,
                        c.`id` AS course_id, c.`title` AS course_title, c.`status` AS course_status,
                        s.`id` AS section_id, s.`title` AS section_title,
-                       (SELECT COUNT(*) FROM `question` q WHERE q.`quiz_id` = l.`id`) AS questions
+                       (SELECT COUNT(*) FROM `question` q WHERE q.`quiz_id` = l.`id`) AS questions,
+                       -- TQ-EXAM-SOURCE: `question.quiz_id` أعلاه يشير إلى
+                       -- درس نوعه اختبار في النظام الموروث، وقد هجر —
+                       -- واختبار الدرس اليوم تقييم `review` وأسئلته في
+                       -- `question.assessment_id`. فكان العد يقرأ صفرا على
+                       -- درس له اختبار بخمسة أسئلة، وتقول الشاشة
+                       -- «اختباراتك ٠» لمعلم ألف اثنين.
+                       (SELECT COUNT(*) FROM `question` q2
+                          JOIN `assessments` a2 ON a2.`id` = q2.`assessment_id`
+                         WHERE a2.`lesson_id` = l.`id` AND a2.`type` = "review") AS quiz_questions
                   FROM `lesson` l
                   JOIN `course` c ON c.`id` = l.`course_id`
              LEFT JOIN `section` s ON s.`id` = l.`section_id`
@@ -378,6 +387,22 @@ class Taqdar_teacher_model extends CI_Model
      * @param int        $teacher_id
      * @param array|null $post   افتراضه $this->input->post()
      * @param array|null $files  افتراضه $_FILES
+     */
+    /**
+     * @deprecated TQ-UPLOAD-FOLD — استعمل `Taqdar_curriculum_model::save_lesson()`.
+     *
+     * هذه هي النسخة الثانية من كاتب الدروس، بجوار `Taqdar_curriculum_model`.
+     * وافترقت عنه في كل ما يهم:
+     *
+     *   • نوعان (`video` · `text`) مقابل **عشرة** في الوصف الموحد
+     *   • المدة عددا صحيحا بالدقائق، فمقطع `00:02:49` لا يعبر عنه أصلا
+     *   • **لا تكتب `duration_sec`** وهو مقام نسبة التقدم وأساس القفل
+     *   • قاعدة نشر ثالثة (`course.status === 'active'`) بدل `may_publish()`
+     *   • `html_escape()` قبل الإدراج، فتخزن الكيانات في القاعدة
+     *   • إدراج فقط: لا تحرير، فلا `tq_content_revisions`
+     *
+     * و`Taqdar::upload_save()` صارت تفوض إلى الطبقة. وتبقى هذه لئلا يرد
+     * 404 على نموذج محفوظ أو نداء قديم — كما بقيت أختها `save_course()`.
      */
     public function save_lesson($teacher_id, $post = null, $files = null)
     {

@@ -32,16 +32,53 @@ $CI->load->model('taqdar_studio_model', 'tq_studio');
 $CI->load->model('taqdar_learn_model',  'tq_learn');
 $CI->load->model('taqdar_teacher_model', 'tq_teach');
 
-/* دروس المعلم — نطاقه مفروض في الاستعلام لا في شرط عرض. */
+/* دروس المعلم — نطاقه مفروض في الاستعلام لا في شرط عرض.
+   ومرتبة كما يراها الطالب: كورسا فقسما فترتيبا. وكانت `ORDER BY l.id DESC`
+   قائمة مسطحة بمئتي صف بلا تجميع — والمعلم يبحث عن «الدرس الثالث في
+   الوحدة الثانية» لا عن «الدرس رقم ٣٩١». وحالة الدرس تعرض معه: مسودة
+   واقعة في وسط القائمة تشبه المنشور تماما. */
 $tq_lessons = array();
 try {
     $tq_lessons = $CI->db->query(
-        'SELECT l.`id`, l.`title`, c.`title` AS course_title
+        'SELECT l.`id`, l.`title`, l.`tq_status`, l.`duration`,
+                c.`title` AS course_title, c.`id` AS course_id,
+                s.`title` AS section_title, s.`order` AS section_order
            FROM `lesson` l
            JOIN `course` c ON c.`id` = l.`course_id`
+      LEFT JOIN `section` s ON s.`id` = l.`section_id`
           WHERE c.`creator` = ? OR FIND_IN_SET(?, c.`user_id`) > 0
-          ORDER BY l.`id` DESC LIMIT 200', array($tid, $tid))->result_array();
+          ORDER BY c.`title` ASC, s.`order` ASC, s.`id` ASC, l.`order` ASC, l.`id` ASC
+          LIMIT 300', array($tid, $tid))->result_array();
 } catch (Throwable $e) { $tq_lessons = array(); }
+
+/** حالة الدرس بعبارة تقرأ في قائمة منسدلة. */
+$tq_status_word = function ($s) {
+    $s = (string) $s;
+    if ($s === 'review')   return 'قيد المراجعة';
+    if ($s === 'rejected') return 'مرفوض';
+    if ($s === 'draft')    return 'مسودة';
+    return 'منشور';
+};
+
+/**
+ * شكل المخرج — يعرض في `placeholder` لا داخل الحقل.
+ *
+ * المحرر خام في هذه النسخة، والخانة الفارغة أمام معلم لا تقول شيئا.
+ * والقالب هنا يقول ما بنية المطلوب بلا أن يصير قيمة تحفظ.
+ */
+$tq_shape = function ($kind) {
+    switch ($kind) {
+        case 'summary':
+            return "{\n  \"text\": \"…\",\n  \"points\": [\"…\", \"…\"]\n}";
+        case 'concept_map':
+            return "{\n  \"nodes\": [{\"id\": 1, \"label\": \"…\"}],\n  \"edges\": [{\"from\": 1, \"to\": 2}]\n}";
+        case 'flashcards':
+            return "{\n  \"cards\": [{\"front\": \"…\", \"back\": \"…\"}]\n}";
+        case 'questions':
+            return "{\n  \"items\": [{\"q\": \"…\", \"options\": [\"…\", \"…\"], \"correct\": 0}]\n}";
+    }
+    return '{}';
+};
 
 $tq_lid = (int) $CI->input->get('lesson');
 if (!$tq_lid && $tq_lessons) $tq_lid = (int) $tq_lessons[0]['id'];
@@ -72,13 +109,26 @@ include 'portal_open.php';
 
   <form method="get" class="tq-st-pick" action="<?php echo base_url('teacher/studio'); ?>">
     <label class="sr-only" for="tqStLesson">اختر درسا</label>
+    <?php /* مجمع بالكورس والقسم كما يراه الطالب — لا قائمة مسطحة
+             بمئتي صف. والحالة مع كل درس: مسودة في وسط القائمة تشبه
+             المنشور تماما بلا هذا. */ ?>
     <select class="tq-select" id="tqStLesson" name="lesson" onchange="this.form.submit()">
-      <?php foreach ($tq_lessons as $l): ?>
+      <?php
+      $tq_g = '';
+      foreach ($tq_lessons as $l):
+          $g = trim((string) $l['course_title'] . ' · ' . (string) $l['section_title'], ' ·');
+          if ($g !== $tq_g):
+              if ($tq_g !== '') echo '</optgroup>';
+              $tq_g = $g;
+              echo '<optgroup label="' . html_escape($g) . '">';
+          endif; ?>
         <option value="<?php echo (int) $l['id']; ?>"
           <?php echo $tq_lid === (int) $l['id'] ? ' selected' : ''; ?>>
-          <?php echo html_escape($l['title']); ?> — <?php echo html_escape($l['course_title']); ?>
+          <?php echo html_escape($l['title']); ?>
+          — <?php echo html_escape($tq_status_word($l['tq_status'])); ?>
         </option>
       <?php endforeach; ?>
+      <?php if ($tq_g !== '') echo '</optgroup>'; ?>
     </select>
     <noscript><button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">افتح</button></noscript>
   </form>
@@ -192,19 +242,46 @@ include 'portal_open.php';
                       نوع (شبكة بطاقات، ورسم خريطة) شاشة قائمة بذاتها،
                       وتأجيله لا يمنع الدورة من العمل — والمعلم يرى بنية
                       واضحة ويعدل فيها. وما يحفظ يفحص عند الاعتماد فلا
-                      يمر ناقص. */ ?>
+                      يمر ناقص.
+
+                      والفارغ يطبع **فارغا**: كانت الخانة تملأ بالنص
+                      الحرفي `{}` حين لا مخرج، فيقرأ المعلم رمزين لا
+                      يعنيان له شيئا، ويحفظهما، فيصير المخرج «مسودة»
+                      خاوية تعد بشيء لا وجود له. والقالب في `placeholder`
+                      يقول ما شكل المطلوب بلا أن يدخل في الحقل. */ ?>
               <form method="post" action="<?php echo base_url('teacher/studio/save'); ?>">
                 <?php echo tq_csrf(); ?>
                 <input type="hidden" name="lesson_id" value="<?php echo $tq_lid; ?>">
                 <input type="hidden" name="kind" value="<?php echo html_escape($kind); ?>">
-                <textarea name="data" rows="10" class="tq-st-json" dir="ltr" spellcheck="false"><?php
+                <textarea name="data" rows="10" class="tq-st-json" dir="ltr" spellcheck="false"
+                          placeholder="<?php echo html_escape($tq_shape($kind)); ?>"><?php
                   echo html_escape($o && $o['data']
                       ? json_encode($o['data'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
-                      : '{}'); ?></textarea>
+                      : ''); ?></textarea>
                 <div class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap;margin-block-start:var(--tq-space-s)">
                   <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">احفظ مسودة</button>
                 </div>
               </form>
+
+              <?php /* ── الجسر إلى اختبار الدرس — TQ-STUDIO-QBRIDGE ────
+                      «أسئلة مقترحة» كانت **مخزن أسئلة خامسا** في
+                      `tq_lesson_output`، ومحرر الاختبار في
+                      `teacher/quiz/<lesson>` لا يعرف عنه شيئا. فيولد
+                      المعلم أسئلة، ويعتمدها، ولا يجيب عنها طالب واحد
+                      أبدا — لأن `Taqdar_quiz_model` يقرأ
+                      `question.assessment_id` وحده.
+                      فيقال هنا صراحة، ويوضع الباب. */ ?>
+              <?php if ($kind === 'questions'): ?>
+                <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
+                  <strong>هذه مسودات لا اختبار.</strong>
+                  اختبار الدرس — وهو الذي يفتح الدرس التالي — يؤلف في
+                  <a href="<?php echo base_url('teacher/quiz/' . $tq_lid); ?>">محرر الاختبار</a>،
+                  وأسئلته تربط بأهداف الدرس فتغذي خريطة الإتقان ودفتر الأخطاء.
+                  انقل ما أعجبك من هنا إلى هناك.
+                </p>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" style="margin-block-start:var(--tq-space-s)"
+                   href="<?php echo base_url('teacher/quiz/' . $tq_lid); ?>">افتح محرر الاختبار</a>
+              <?php endif; ?>
 
               <?php if ($o): ?>
                 <div class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap;margin-block-start:var(--tq-space-m)">

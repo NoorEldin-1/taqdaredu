@@ -1361,59 +1361,114 @@ class Taqdar extends CI_Controller
 
     /* ---- بوابة المعلم: الكتابة ------------------------------------- */
 
-    /** POST teacher/upload/save */
+    /**
+     * POST teacher/upload/save
+     *
+     * ═══ TQ-UPLOAD-FOLD — كاتب الدروس واحد ═══
+     *
+     * كان هذا المسار يفوض إلى `Taqdar_teacher_model::save_lesson()` —
+     * **كاتب دروس ثان** يعيش بجوار `Taqdar_curriculum_model` ويفترق
+     * عنه في كل شيء يهم:
+     *
+     *   • نوعان (`video` · `text`) مقابل **عشرة** في شاشة المنهج. فمن
+     *     أراد ملفا صوتيا أو مستندا أو صورة من «رفع الدروس» لم يستطع،
+     *     ونوع يضاف في الوصف لا يظهر هنا أبدا.
+     *   • المدة **عددا صحيحا بالدقائق** (١..١٨٠)، فمقطع طوله `00:02:49`
+     *     لا يعبر عنه أصلا: يكتب ٣ فيصير `00:03:00`.
+     *   • **لا يكتب `duration_sec`** إطلاقا، وهو مقام نسبة التقدم.
+     *   • قاعدة نشر ثالثة: يفحص `course.status === 'active'` بدل
+     *     `may_publish()` و`tq_teacher_direct_publish` — فالشاشتان
+     *     تعطيان جوابين مختلفين على الزر نفسه.
+     *   • `html_escape()` على العنوان والملخص **قبل** الإدراج، فتخزن
+     *     الكيانات في القاعدة وتهرب ثانية عند العرض.
+     *   • إدراج فقط: لا تحرير، فلا مسار `tq_content_revisions`.
+     *
+     * وهذا هو العطل نفسه الذي أوسم به `Taqdar_teacher_model::save_course()`
+     * بـ`@deprecated` من قبل. فالباب الآن ينقل ويفوض، والقواعد كلها في
+     * `Taqdar_curriculum_model::save_lesson()` — هي التي تعرف الأنواع
+     * العشرة وتكتب `duration_sec` وتحكم بـ`may_publish()`.
+     */
     public function upload_save()
     {
-        $user = $this->write_guard('teacher');
-        $tid  = (int) $user['id'];
+        [$user, $actor] = $this->curric();
+        $tid = (int) $user['id'];
 
         $course_id = (int) $this->input->post('course_id');
-        $title     = trim((string) $this->input->post('title'));
 
         if (!$this->teacher_owns_course($tid, $course_id)) {
             $this->done('teacher/upload', false,
                 'اختر كورسا من كورساتك — لا يرفع درس إلى كورس ليس لك.');
         }
-        if ($title === '') {
-            $this->done('teacher/upload', false, 'عنوان الدرس مطلوب.');
-        }
+
+        /* `post(null, false)` لا `post()`: الثانية تمرر بالمرشح الافتراضي
+           فتهرب ما يكتب — والرابط يخزن كما يكتب (TQ-URLESC). */
+        $post = $this->input->post(null, false);
+        if (!is_array($post)) $post = array();
 
         /**
-         * الحمولة تنقل ما اختاره المعلم كما هو.
+         * «أول قسم في الكورس» — تيسير تحفظه هذه الشاشة.
          *
-         * كان هذا السطر يكتب `$this->input->post('action') === 'draft' ? 'draft' : 'review'`
-         * — أي يمحو `published` قبل أن يصل النموذج. فزر «حفظ ونشر» يحفظ
-         * «قيد المراجعة» ويقال لصاحبه «أرسل للمراجعة»، وهو ضغط زر النشر.
-         * والقرار في `Taqdar_teacher_model::save_lesson()`: هي التي تعرف
-         * الكورس وحالته، وتنشر داخل المنشور وتنزل إلى المراجعة فيما عداه
-         * **وتقول لماذا**. والباب ينقل ولا يحكم.
+         * `save_lesson()` تشترط قسما صريحا لأن الدرس بلا قسم لا موضع له
+         * في المنهج. وشاشة الرفع تعرض «أول قسم في الكورس» خيارا افتراضيا
+         * ليرفع المعلم أول درس في كورس لم يقسم بعد. فيحل هنا **قبل**
+         * التفويض: القاعدة تبقى واحدة، والتيسير في الباب.
          */
-        $tq_action = strtolower(trim((string) $this->input->post('action')));
-        if (!in_array($tq_action, array('draft', 'review', 'published'), true)) {
-            $tq_action = 'draft';
+        if ((int) $this->val_post($post, 'section_id') <= 0 && $course_id > 0) {
+            $post['section_id'] = $this->first_section_of($course_id);
         }
 
-        $payload = array(
-            'course_id'        => $course_id,
-            'section_id'       => (int) $this->input->post('section_id'),
-            'title'            => $title,
-            'duration_minutes' => (int) $this->input->post('duration_minutes'),
-            'summary'          => (string) $this->input->post('summary'),
-            'objectives'       => $this->post_list('objectives'),
-            'action'           => $tq_action,
-        );
+        $r = $this->tq_curric->save_lesson($actor, 0, $post,
+                                           isset($_FILES) ? $_FILES : array());
 
-        $r = $this->delegate(array(
-            array('taqdar_teacher_model', 'save_upload'),
-            array('taqdar_teacher_model', 'upload_save'),
-            array('taqdar_repo_model',    'teacher_save_upload'),
-        ), array($tid, $payload, isset($_FILES) ? $_FILES : array()));
-
+        $ok = !empty($r['ok']);
         $this->trace('teacher.upload.save', 'course:' . $course_id,
-            array('title' => $title, 'ok' => !empty($r['ok'])));
+            array('title' => (string) $this->val_post($post, 'title'), 'ok' => $ok));
 
-        $this->done('teacher/upload', !empty($r['ok']),
-            $this->result_message($r, 'حفظ الدرس وأرسل للمراجعة.'));
+        /* ما كتبه المعلم يعود إليه إن لم يحفظ: نموذج بعشرين حقلا يفرغ
+           عند أول خطأ يجعل صاحبه يكتبه من أوله. */
+        if (!$ok) {
+            $keep = $post;
+            unset($keep['csrf_test_name'], $keep[config_item('csrf_token_name')]);
+            $this->session->set_flashdata('tq_upload_old', $keep);
+            $this->session->set_flashdata('tq_upload_errors',
+                !empty($r['errors']) ? (array) $r['errors'] : array());
+        }
+
+        $this->done('teacher/upload', $ok,
+            $this->result_message($r, 'حفظ الدرس.'));
+    }
+
+    /** قيمة من حمولة مقروءة خاما. */
+    private function val_post($post, $key, $default = '')
+    {
+        return isset($post[$key]) && $post[$key] !== '' ? $post[$key] : $default;
+    }
+
+    /**
+     * أول قسم في كورس، وينشأ إن لم يكن له قسم.
+     *
+     * الدرس لا يحفظ بلا قسم يحمله، و«الوحدة الأولى» أفضل من رسالة خطأ
+     * تطلب من المعلم أن يذهب إلى شاشة أخرى وينشئ قسما ثم يعود ويكتب
+     * نموذجه من جديد.
+     */
+    private function first_section_of($course_id)
+    {
+        $course_id = (int) $course_id;
+
+        $sid = (int) $this->db->select('id')->where('course_id', $course_id)
+                              ->order_by('order', 'ASC')->order_by('id', 'ASC')
+                              ->limit(1)->get('section')->row('id');
+        if ($sid > 0) return $sid;
+
+        $now = time();
+        $this->db->insert('section', array(
+            'title'         => 'الوحدة الأولى',
+            'course_id'     => $course_id,
+            'order'         => 1,
+            'date_added'    => $now,
+            'last_modified' => $now,
+        ));
+        return (int) $this->db->insert_id();
     }
 
     /* ---- بوابة المعلم: المنهج ------------------------------------- */

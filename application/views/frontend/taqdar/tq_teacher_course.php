@@ -559,52 +559,9 @@ $tq_live_edit = $tq_edit && (string) $tq_edit['tq_status'] === 'published';
         b.addEventListener('click', function () { close(b.closest('dialog')); });
     });
 
-    /* ---- تبديل لوح النوع ----
-       الحقول المخفية تعطل `required` عنها: متصفح يرفض إرسال نموذج فيه
-       حقل مطلوب مخفي **ولا يقول أين** — الرسالة تشير إلى عنصر غير مرئي،
-       فيضغط المعلم «احفظ» ولا يحدث شيء ولا يفهم لماذا. */
-    function syncPanes(kind) {
-        document.querySelectorAll('[data-tqc-pane]').forEach(function (p) {
-            var on = p.getAttribute('data-tqc-pane') === kind;
-            p.hidden = !on;
-            p.querySelectorAll('input, textarea, select').forEach(function (el) {
-                if (on) {
-                    if (el.dataset.tqcReq === '1') el.required = true;
-                    el.disabled = false;
-                } else {
-                    if (el.required) el.dataset.tqcReq = '1';
-                    el.required = false;
-                    /* والمعطل لا يرسل أصلا: حقول عشرة أنواع في طلب واحد
-                       تجعل الخادم يقرأ رابط نوع لم يختر. */
-                    el.disabled = true;
-                }
-            });
-        });
-    }
-
-    var kinds = document.querySelectorAll('[data-tq-kind]');
-    kinds.forEach(function (r) {
-        r.addEventListener('change', function () {
-            if (!r.checked) return;
-            document.querySelectorAll('.tqc-pick__one').forEach(function (l) { l.classList.remove('is-on'); });
-            r.closest('.tqc-pick__one').classList.add('is-on');
-            syncPanes(r.value);
-        });
-    });
-    var checked = document.querySelector('[data-tq-kind]:checked');
-    if (checked) syncPanes(checked.value);
-
-    /* ---- زر الحفظ يحمل نيته ----
-       زران يرسلان النموذج نفسه بحالتين. و`<button value>` لا يصل في كل
-       المتصفحات مع `formnovalidate` وغيره، فالنية تكتب في حقل مخفي
-       صراحة قبل الإرسال. */
-    document.querySelectorAll('[data-tqc-submit]').forEach(function (b) {
-        b.addEventListener('click', function () {
-            var f = b.closest('form');
-            var a = f && f.querySelector('[data-tqc-action]');
-            if (a) a.value = b.getAttribute('data-tqc-submit');
-        });
-    });
+    /* تبديل لوح النوع وحمل الزر لنيته: في
+       `views/components/tq_lesson_panes.php` — تشترك فيه هذه الشاشة
+       وشاشة «رفع الدروس»، فلا يفترق سلوكهما عند أول تعديل. */
 
     /* ---- الحذف يؤكد ----
        والتأكيد في المتصفح **زينة**: الخادم يرفض GET ويفحص الملكية. وهو
@@ -620,5 +577,7 @@ $tq_live_edit = $tq_edit && (string) $tq_edit['tq_status'] === 'published';
     <?php if ($tq_edit_sec): ?>open(byId('secDlg'));<?php endif; ?>
 })();
 </script>
+
+<?php $this->load->view('components/tq_lesson_panes'); ?>
 
 <?php include 'portal_close.php'; ?>

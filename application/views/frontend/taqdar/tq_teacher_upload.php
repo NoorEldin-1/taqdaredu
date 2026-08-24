@@ -67,8 +67,12 @@ $tq_pref_section = (int) $CI->input->get('section');
 $tq_old_objectives = (isset($tq_old['objectives']) && is_array($tq_old['objectives']))
     ? array_values($tq_old['objectives']) : array();
 
-$tq_type_old   = $tq_v('lesson_type', 'video');
-$tq_source_old = $tq_v('video_source', 'url');
+/* الأنواع من الوحدة الموصوفة — TQ-UPLOAD-FOLD.
+   لا قائمة تكتب هنا: `lesson_types()` هي المصدر، وهي نفسها التي تقرؤها
+   شاشة المقرر و`save_lesson()` التي تستقبل الحفظ. */
+$tq_types    = tq_cur_types();
+$tq_kind_old = $tq_v('tq_kind', 'youtube');
+if (!isset($tq_types[$tq_kind_old])) $tq_kind_old = 'youtube';
 
 include 'portal_open.php';
 ?>
@@ -159,75 +163,28 @@ include 'portal_open.php';
                            placeholder="مثال: تحليل المقدار الثلاثي إلى عوامل">
                 </label>
 
+                <?php /* ── نوع الدرس: الأنواع العشرة من الوحدة الموصوفة ──────
+                         TQ-UPLOAD-FOLD. كانت هنا خانتان — «مقطع مرئي» و«درس
+                         نصي» — لأن هذه الشاشة كانت تخاطب كاتب دروس ثانيا لا
+                         يعرف غيرهما. فمن أراد ملفا صوتيا أو مستندا أو صورة
+                         من «رفع الدروس» لم يستطع، وكان يستطيعه من شاشة
+                         المقرر في التبويب المجاور.
+                         والوصف الآن واحد (`lesson_types()`) والشاشتان تطبعان
+                         منه، فالنوع الجديد يظهر فيهما بلا قالب يكتب. */ ?>
                 <fieldset style="border:0;padding:0;margin:0 0 var(--tq-space-xl)">
                     <legend class="tq-field__label" style="padding:0">نوع الدرس</legend>
-                    <div class="tq-row" style="gap:var(--tq-space-l);flex-wrap:wrap">
-                        <label class="tq-row" style="gap:var(--tq-space-xs)">
-                            <input type="radio" name="lesson_type" value="video" data-tq-type
-                                   <?php echo $tq_type_old !== 'text' ? 'checked' : ''; ?>>
-                            <span>مقطع مرئي</span>
-                        </label>
-                        <label class="tq-row" style="gap:var(--tq-space-xs)">
-                            <input type="radio" name="lesson_type" value="text" data-tq-type
-                                   <?php echo $tq_type_old === 'text' ? 'checked' : ''; ?>>
-                            <span>درس نصي</span>
-                        </label>
-                    </div>
+                    <?php tq_cur_type_picker($tq_kind_old, 'tq'); ?>
                 </fieldset>
 
-                <div class="tq-field" data-state="hint">
-                    <label class="tq-field__label" for="tq-duration">مدة الدرس بالدقائق</label>
-                    <input class="tq-input" id="tq-duration" type="number" name="duration_minutes"
-                           min="1" max="180" step="1" inputmode="numeric" required
-                           value="<?php echo html_escape($tq_v('duration_minutes')); ?>"
-                           style="max-inline-size:200px">
-                    <span class="tq-field__msg tq-field__hint">
-                        <?php echo tq_iso('القاعدة: من 8 إلى 15 دقيقة. ما زاد على ذلك يقسم درسين — الانتباه ينقطع قبل الشرح.'); ?>
-                    </span>
-                </div>
-
-                <fieldset style="border:0;padding:0;margin:0 0 var(--tq-space-xl)" data-tq-video-box>
-                    <legend class="tq-h2" style="padding:0">مقطع الدرس</legend>
-
-                    <div class="tq-row" style="gap:var(--tq-space-l);flex-wrap:wrap;margin-block-end:var(--tq-space-m)">
-                        <label class="tq-row" style="gap:var(--tq-space-xs)">
-                            <input type="radio" name="video_source" value="url" data-tq-source
-                                   <?php echo $tq_source_old !== 'file' ? 'checked' : ''; ?>>
-                            <span>رابط</span>
-                        </label>
-                        <label class="tq-row" style="gap:var(--tq-space-xs)">
-                            <input type="radio" name="video_source" value="file" data-tq-source
-                                   <?php echo $tq_source_old === 'file' ? 'checked' : ''; ?>>
-                            <span>رفع ملف</span>
-                        </label>
+                <?php /* حقول كل نوع تطبع كلها ويعرض المختار وحده —
+                         `components/tq_lesson_panes.php` يبدل ويعطل المخفي. */ ?>
+                <?php foreach ($tq_types as $tq_k => $tq_spec):
+                    $tq_on = ($tq_k === $tq_kind_old); ?>
+                    <div data-tqc-pane="<?php echo html_escape($tq_k); ?>" <?php echo $tq_on ? '' : 'hidden'; ?>>
+                        <?php tq_cur_track_note($tq_spec, 'tq'); ?>
+                        <?php tq_cur_fields($tq_spec, $tq_on ? $tq_old : array(), 'tq'); ?>
                     </div>
-
-                    <div class="tq-field" data-tq-pane="url">
-                        <label class="tq-field__label" for="tq-video-url">رابط المقطع</label>
-                        <input class="tq-input tq-ltr" id="tq-video-url" type="url" name="video_url"
-                               dir="ltr" placeholder="https://www.youtube.com/watch?v=..."
-                               value="<?php echo html_escape($tq_v('video_url')); ?>">
-                        <span class="tq-field__msg tq-field__hint">
-                            يوتيوب أو Vimeo أو رابط مباشر لملف mp4. المشغل يتعرف على النوع تلقائيا.
-                        </span>
-                    </div>
-
-                    <div class="tq-field" data-tq-pane="file">
-                        <label class="tq-field__label" for="tq-video">ملف المقطع</label>
-                        <input class="tq-input" id="tq-video" type="file" name="video"
-                               accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.mkv">
-                        <span class="tq-field__msg tq-field__hint">
-                            <?php echo tq_iso('الصيغ المسموحة: mp4 و webm و mov و mkv. حد الرفع على الخادم ' . ini_get('upload_max_filesize') . '.'); ?>
-                        </span>
-                    </div>
-                </fieldset>
-
-                <div class="tq-field">
-                    <label class="tq-field__label" for="tq-attach">مرفق الدرس (اختياري)</label>
-                    <input class="tq-input" id="tq-attach" type="file" name="attachment"
-                           accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,.zip">
-                    <span class="tq-field__msg tq-field__hint">ورقة تمارين أو ملخص أو شريحة — تظهر للطالب أسفل الدرس.</span>
-                </div>
+                <?php endforeach; ?>
 
                 <!-- الأهداف التعليمية: الدرس بلا هدف محتوى، لا تعلم -->
                 <fieldset style="border:0;padding:0;margin:0 0 var(--tq-space-xl)">
@@ -251,12 +208,9 @@ include 'portal_open.php';
                 </fieldset>
 
                 <label class="tq-field">
-                    <span class="tq-field__label" data-tq-summary-label>ملخص الدرس</span>
+                    <span class="tq-field__label">ملخص الدرس</span>
                     <textarea class="tq-textarea" name="summary" rows="4"
                               placeholder="سطران يخبران الطالب بما سيخرج به من هذا الدرس"><?php echo html_escape($tq_v('summary')); ?></textarea>
-                    <span class="tq-field__msg tq-field__hint" data-tq-summary-hint hidden>
-                        الدرس النصي محتواه هذا الملخص، فاكتبه كاملا.
-                    </span>
                 </label>
 
                 <label class="tq-row" style="gap:var(--tq-space-xs);margin-block-end:var(--tq-space-xl)">
@@ -264,19 +218,24 @@ include 'portal_open.php';
                     <span class="tq-caption">درس مجاني — يفتح لغير المشتركين كمعاينة.</span>
                 </label>
 
+                <?php /* النية في حقل مخفي لا في `<button value>`: انظر
+                         `components/tq_lesson_panes.php`. */ ?>
+                <input type="hidden" name="action" value="draft" data-tqc-action>
+
                 <div class="tq-row" style="gap:var(--tq-space-m);flex-wrap:wrap">
-                    <button class="tq-btn tq-btn--primary" type="submit" name="action" value="published">
+                    <button class="tq-btn tq-btn--primary" type="submit" data-tqc-submit="published">
                         حفظ ونشر
                     </button>
-                    <button class="tq-btn tq-btn--secondary" type="submit" name="action" value="review">
+                    <button class="tq-btn tq-btn--secondary" type="submit" data-tqc-submit="review">
                         إرسال للمراجعة
                     </button>
-                    <button class="tq-btn tq-btn--ghost" type="submit" name="action" value="draft">
+                    <button class="tq-btn tq-btn--ghost" type="submit" data-tqc-submit="draft">
                         حفظ كمسودة
                     </button>
                 </div>
                 <p class="tq-field__msg tq-field__hint" style="margin-block-start:var(--tq-space-m)">
-                    المسودة تبقى عندك، والمراجعة ترسل الدرس إلى الإدارة، والنشر يضعه في برنامج الطالب مباشرة.
+                    المسودة تبقى عندك، والمراجعة ترسل الدرس إلى الإدارة، والنشر قرار إدارة —
+                    فما لم يفتح لك النشر المباشر يحفظ «قيد المراجعة» ويقال لك ذلك.
                 </p>
             </form>
 
@@ -304,34 +263,6 @@ include 'portal_open.php';
                 if (course) course.addEventListener('change', syncSections);
                 syncSections();
 
-                /* لوح المصدر: الظاهر هو المرسل. */
-                function syncSource() {
-                    var v = form.querySelector('[data-tq-source]:checked');
-                    var pick = v ? v.value : 'url';
-                    var panes = form.querySelectorAll('[data-tq-pane]');
-                    for (var i = 0; i < panes.length; i++) {
-                        panes[i].hidden = panes[i].getAttribute('data-tq-pane') !== pick;
-                    }
-                }
-                var sources = form.querySelectorAll('[data-tq-source]');
-                for (var i = 0; i < sources.length; i++) sources[i].addEventListener('change', syncSource);
-
-                /* الدرس النصي لا مقطع له، وملخصه هو محتواه. */
-                function syncType() {
-                    var t = form.querySelector('[data-tq-type]:checked');
-                    var isText = t && t.value === 'text';
-                    var box = form.querySelector('[data-tq-video-box]');
-                    if (box) box.hidden = isText;
-                    var lbl  = form.querySelector('[data-tq-summary-label]');
-                    var hint = form.querySelector('[data-tq-summary-hint]');
-                    if (lbl)  lbl.textContent = isText ? 'نص الدرس' : 'ملخص الدرس';
-                    if (hint) hint.hidden = !isText;
-                    if (!isText) syncSource();
-                }
-                var types = form.querySelectorAll('[data-tq-type]');
-                for (var j = 0; j < types.length; j++) types[j].addEventListener('change', syncType);
-                syncType();
-
                 /* الإرسال مرة واحدة: مقطع كبير يستغرق، والنقرة الثانية تنشئ درسا ثانيا. */
                 form.addEventListener('submit', function (e) {
                     if (form.getAttribute('data-sending')) { e.preventDefault(); return; }
@@ -341,6 +272,8 @@ include 'portal_open.php';
                 });
             })();
             </script>
+
+            <?php $CI->load->view('components/tq_lesson_panes'); ?>
 
         <?php endif; ?>
     </div>
