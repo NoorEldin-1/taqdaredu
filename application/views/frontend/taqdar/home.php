@@ -129,59 +129,61 @@ css: pages
 </section>
 
 <!-- ══════════ آراء أولياء الأمور ══════════ -->
+<?php
+/* المصدر واحد مع `/parents`: الآراء من اللوحة
+   (`taqdar_admin/module/testimonials`) لا من هذا الملف. وكانت البطاقات
+   الثلاث مكتوبة هنا باسم ومدينة ونص وصورة، فمن حرر رأيا في اللوحة رآه
+   في صفحة أولياء الأمور ولم يره في الرئيسية — والرئيسية هي التي تفتح.
+
+   والثلاث فقط: الرئيسية عرض لا سرد، وصفحة `/parents` تعرضها كلها في
+   كاروسل. والفارغ يرجع إلى ما كان — قاعدة بلا صف منشور تعرض الآراء
+   الثلاث الأصلية بصورها حرفا بحرف، كما يرد `tq_text()` نص القالب. */
+$tq_quotes = array_slice(tq_testimonials(), 0, 3);
+if (!$tq_quotes) {
+    $tq_quotes = array(
+        array('name' => 'فاطمة القحطاني', 'role' => 'الرياض', 'rating' => 5,
+              'body' => 'منصة رائعة! ابني أصبح أكثر حماسا للتعلم وتحسنت درجاته بشكل ملحوظ.',
+              'avatar' => 'img/avatar-1.webp'),
+        array('name' => 'عبدالله السبيعي', 'role' => 'جدة', 'rating' => 5,
+              'body' => 'أكثر ما أعجبني المتابعة المستمرة والتقارير المفصلة عن مستوى ابني.',
+              'avatar' => 'img/avatar-2.webp'),
+        array('name' => 'سارة العنزي', 'role' => 'الدمام', 'rating' => 5,
+              'body' => 'المعلمون متعاونون والمحتوى مميز جدا. أنصح كل أم بتجربة المنصة.',
+              'avatar' => 'img/avatar-3.webp'),
+    );
+}
+?>
 <section class="section" id="parents">
   <div class="shell">
     <div class="panel">
       <div class="section-head">
-        <h2>ماذا يقول أولياء الأمور؟</h2>
+        <h2><?php echo tq_text('site_parents', 'quotes_title', 'ماذا يقول أولياء الأمور؟'); ?></h2>
         <div class="rule"><svg aria-hidden="true"><use href="#i-star8"></use></svg></div>
       </div>
 
       <div class="cards-3">
+        <?php foreach ($tq_quotes as $q): ?>
         <article class="quote-card reveal">
           <div class="quote-card__head">
-            <div><b>فاطمة القحطاني</b><span>الرياض</span></div>
-            <img src="<?php echo tq_site_asset('img/avatar-1.webp'); ?>" width="130" height="130" alt="" loading="lazy" decoding="async">
+            <div><b><?php echo html_escape($q['name']); ?></b><?php
+              if ((string) $q['role'] !== '') echo '<span>' . html_escape($q['role']) . '</span>';
+            ?></div>
+            <?php /* الصورة للبطاقات المكتوبة في القالب وحدها: رأي اللوحة
+                     بلا صورة عمدا — وجه لا يعرفه القارئ لا يزيد الرأي صدقا. */ ?>
+            <?php if (!empty($q['avatar'])): ?>
+            <img src="<?php echo tq_site_asset($q['avatar']); ?>" width="130" height="130" alt="" loading="lazy" decoding="async">
+            <?php endif; ?>
           </div>
-          <p>منصة رائعة! ابني أصبح أكثر حماسا للتعلم وتحسنت درجاته بشكل ملحوظ.</p>
-          <div class="stars" aria-label="خمس نجوم من خمس">
+          <p><?php echo html_escape($q['body']); ?></p>
+          <?php $stars = (int) $q['rating']; if ($stars > 0): ?>
+          <div class="stars" aria-label="<?php echo $stars; ?> من 5">
+            <?php for ($i = 0; $i < $stars; $i++): ?>
             <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
+            <?php endfor; ?>
           </div>
+          <?php endif; ?>
         </article>
-
-        <article class="quote-card reveal">
-          <div class="quote-card__head">
-            <div><b>عبدالله السبيعي</b><span>جدة</span></div>
-            <img src="<?php echo tq_site_asset('img/avatar-2.webp'); ?>" width="130" height="130" alt="" loading="lazy" decoding="async">
-          </div>
-          <p>أكثر ما أعجبني المتابعة المستمرة والتقارير المفصلة عن مستوى ابني.</p>
-          <div class="stars" aria-label="خمس نجوم من خمس">
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          </div>
-        </article>
-
-        <article class="quote-card reveal">
-          <div class="quote-card__head">
-            <div><b>سارة العنزي</b><span>الدمام</span></div>
-            <img src="<?php echo tq_site_asset('img/avatar-3.webp'); ?>" width="130" height="130" alt="" loading="lazy" decoding="async">
-          </div>
-          <p>المعلمون متعاونون والمحتوى مميز جدا. أنصح كل أم بتجربة المنصة.</p>
-          <div class="stars" aria-label="خمس نجوم من خمس">
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-            <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          </div>
-        </article>
+        <?php endforeach; ?>
       </div>
     </div>
   </div>
