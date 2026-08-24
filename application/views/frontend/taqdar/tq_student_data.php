@@ -362,7 +362,13 @@ if (!function_exists('tq_s_quizzes')) {
             ->where('l.lesson_type', 'quiz')
             ->get()->result_array();
 
-        if (empty($rows)) return $cache[$uid] = [];
+        /* لا خروج مبكر هنا: طبقة الإتقان تضاف في آخر الدالة، وقد يكون
+           الموروث فارغا وهي عامرة — وهو الحال الغالب اليوم. */
+        if (empty($rows)) {
+            $out = tq_s_assessment_quizzes($uid);
+            usort($out, function ($a, $b) { return $b['ended_at'] <=> $a['ended_at']; });
+            return $cache[$uid] = $out;
+        }
 
         $qids = array_map('intval', array_column($rows, 'id'));
 
@@ -420,8 +426,113 @@ if (!function_exists('tq_s_quizzes')) {
             ];
         }
 
+        /* ── ٢ · اختبارات الدرس — بوابة الإتقان — TQ-EXAM-SOURCE ────────
+           الكتلة أعلاه تقرأ **النظام الموروث**: درس `lesson_type='quiz'`
+           ونتيجته في `quiz_results`. وقد توقف تأليف الاختبارات به منذ
+           صار اختبار الدرس تقييم `assessments(type='review')` بأسئلة في
+           `question.assessment_id` (انظر رأس [Taqdar_quiz_model.php]).
+           فكانت هذه الشاشة تقول «لا اختبارات بعد» لطالب سلم أربع محاولات
+           في الأسبوع الماضي — لأنها تسأل الجدول الذي هجر.
+           والقراءة الآن من الاثنين: الموروث لما بقي منه، والحي لما يؤلف
+           اليوم. */
+        foreach (tq_s_assessment_quizzes($uid) as $q) $out[] = $q;
+
         usort($out, function ($a, $b) { return $b['ended_at'] <=> $a['ended_at']; });
         return $cache[$uid] = $out;
+    }
+}
+
+if (!function_exists('tq_s_assessment_quizzes')) {
+    /**
+     * اختبارات الدرس من طبقة الإتقان — `assessments(type='review')`.
+     *
+     * والحالة تشتق من `attempts`:
+     *   لا محاولة              → قادم
+     *   محاولة بلا `submitted_at` → جار
+     *   آخر محاولة مسلمة        → منته بدرجته
+     *
+     * و**آخر محاولة لكل تقييم** لا كلها — السؤال «أين هو الآن؟»، وهي
+     * القاعدة نفسها التي يعمل بها لوح النتائج المشترك.
+     *
+     * والاختبار بلا سؤال واحد لا يعرض: هو صف تقييم أنشئ عند فتح المحرر
+     * ولم يؤلف بعد، وعرضه يعد الطالب باختبار لا يجده.
+     */
+    function tq_s_assessment_quizzes($uid)
+    {
+        $CI = get_instance();
+        $uid = (int) $uid;
+        if ($uid <= 0) return [];
+
+        try {
+            $rows = $CI->db->query(
+                'SELECT a.`id` AS assessment_id, a.`pass_mark`,
+                        l.`id` AS lesson_id, l.`title`, l.`course_id`,
+                        c.`title` AS course_title, c.`level`, c.`category_id`,
+                        (SELECT COUNT(*) FROM `question` q
+                          WHERE q.`assessment_id` = a.`id`) AS marks
+                   FROM `assessments` a
+                   JOIN `lesson` l ON l.`id` = a.`lesson_id`
+                   JOIN `course` c ON c.`id` = l.`course_id`
+                   JOIN `enrol`  e ON e.`course_id` = l.`course_id` AND e.`user_id` = ?
+                  WHERE a.`type` = "review" AND a.`lesson_id` > 0
+                 HAVING marks > 0', array($uid))->result_array();
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-EXAM-SOURCE: ' . $e->getMessage());
+            return [];
+        }
+        if (!$rows) return [];
+
+        $aids = array_map('intval', array_column($rows, 'assessment_id'));
+
+        /* آخر محاولة لكل تقييم — بالمعرف الأكبر، وهو ترتيب الإنشاء. */
+        $last = [];
+        try {
+            foreach ($CI->db->query(
+                'SELECT `id`, `assessment_id`, `score`, `passed`, `attempt_no`,
+                        `started_at`, `submitted_at`
+                   FROM `attempts`
+                  WHERE `student_id` = ? AND `assessment_id` IN ('
+                        . implode(',', $aids) . ')
+                  ORDER BY `id` ASC', array($uid))->result_array() as $a) {
+                $last[(int) $a['assessment_id']] = $a;   // الأحدث يغلب
+            }
+        } catch (Throwable $e) { $last = []; }
+
+        $out = [];
+        foreach ($rows as $i => $r) {
+            $aid   = (int) $r['assessment_id'];
+            $marks = (int) $r['marks'];
+            $a     = isset($last[$aid]) ? $last[$aid] : null;
+
+            $state = 'upcoming';
+            if ($a !== null) $state = empty($a['submitted_at']) ? 'live' : 'done';
+
+            $got = ($state === 'done') ? (float) $a['score'] : null;
+            $pct = ($state === 'done' && $marks > 0)
+                 ? (int) round($got * 100 / $marks) : null;
+
+            $out[] = [
+                'id'        => (int) $r['lesson_id'],
+                'title'     => $r['title'],
+                'course_id' => (int) $r['course_id'],
+                'course'    => $r['course_title'],
+                'subject'   => tq_s_subject($r['category_id'], $r['course_title'], (int) $r['course_id']),
+                'level'     => $r['level'],
+                'marks'     => $marks,
+                'obtained'  => $got,
+                'percent'   => $pct,
+                /* اختيار من متعدد يصحح آليا، فالنتيجة تظهر فور التسليم —
+                   ولا تنتظر اعتماد معلم كما ينتظر المقالي. */
+                'visible'   => $state === 'done',
+                'grade_state'  => $state === 'done' ? 'auto' : 'unsubmitted',
+                'teacher_note' => '',
+                'state'     => $state,
+                'index'     => $i,
+                'started_at' => $a !== null ? tq_s_ts($a['started_at'])   : 0,
+                'ended_at'   => $a !== null ? tq_s_ts($a['submitted_at']) : 0,
+            ];
+        }
+        return $out;
     }
 }
 

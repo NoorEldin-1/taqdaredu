@@ -93,14 +93,25 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
         <?php if ($q_objectives): ?>
         <div class="<?php echo $c['field']; ?>">
             <label class="<?php echo $c['label']; ?>" for="qo<?php echo $u; ?>">الهدف الذي يقيسه</label>
+            <?php /* TQ-QOBJ — الافتراضي أول هدف لا «بلا هدف».
+                     كان السؤال الجديد يفتح على الخيار الأسوأ: المعلم يكتب
+                     سؤاله ويحفظ ولا يمر على القائمة، فتحفظ الأسئلة كلها
+                     بـ`objective_id = NULL` — وهو ما وقع فعلا على كل سؤال
+                     في القاعدة. وحينها **لا يكتب صف `skill_state` واحد**:
+                     خريطة الإتقان فارغة، ودفتر الأخطاء فارغ، والمراجعة
+                     المتباعدة فارغة، والسؤال يصحح ولا يعلم شيئا بعد ذلك.
+                     ولا يجبر عليه: «بلا هدف» يبقى خيارا لمن أراده صراحة،
+                     ولكن لا يكون هو ما يقع بالسكوت. */ ?>
+            <?php $q_sel = $q ? (int) ($q['objective_id'] ?? 0)
+                              : (int) key($q_objectives); ?>
             <select class="<?php echo $c['select']; ?>" id="qo<?php echo $u; ?>" name="objective_id">
-                <option value="0">— بلا هدف</option>
                 <?php foreach ($q_objectives as $oid => $otext): ?>
                     <option value="<?php echo (int) $oid; ?>"
-                        <?php echo $q && (int) ($q['objective_id'] ?? 0) === (int) $oid ? 'selected' : ''; ?>>
+                        <?php echo $q_sel === (int) $oid ? 'selected' : ''; ?>>
                         <?php echo html_escape($otext); ?>
                     </option>
                 <?php endforeach; ?>
+                <option value="0" <?php echo $q_sel === 0 ? 'selected' : ''; ?>>— بلا هدف</option>
             </select>
             <span class="<?php echo $c['hint']; ?>">
                 بالهدف يعرف النظام أي مفهوم تعثر فيه الطالب، فيعيده إلى دقيقته في الشرح
@@ -209,6 +220,11 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
     <h3 style="font:var(--tq-type-h3);margin:var(--tq-space-xl) 0 var(--tq-space-m)">
         أسئلة هذا الاختبار (<?php echo tq_iso(count($q_rows)); ?>)
     </h3>
+
+    <?php /* «كذا من الأسئلة بلا هدف مرتبط» يقال في لوح الجاهزية أعلى
+             الشاشة، من `Taqdar_quiz_model::readiness()` — وهو المصدر
+             الواحد لذلك الخبر في الشاشتين. ولا يكرر هنا: تحذيران
+             بالمعنى نفسه في صفحة واحدة يعلمان القارئ تجاهلهما. */ ?>
 
     <?php foreach ($q_rows as $qi => $q): $right = $q_right($q); ?>
         <div class="tqq-q">

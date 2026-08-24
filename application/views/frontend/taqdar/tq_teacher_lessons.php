@@ -81,11 +81,18 @@ foreach ($tq_all as $l) {
     $st = (string) $l['tq_status'];
     if (isset($tq_n[$st])) $tq_n[$st]++;
     if ($l['lesson_type'] === 'quiz') {
+        /* درس اختبار موروث */
         $tq_n['quiz']++;
         if ((int) $l['questions'] === 0) $tq_empty_quizzes[] = $l;
     } else {
         $tq_n['lesson']++;
         $tq_seconds += $tq_secs_of($l['duration']);
+        /* TQ-EXAM-SOURCE — واختبار الدرس ليس درسا مستقلا اليوم: هو
+           تقييم `review` معلق بالدرس نفسه. فكان العداد يقول «اختباراتك
+           ⁦0⁩» لمعلم ألف اختبارين، لأنه يعد النوع الموروث وحده. */
+        if ((int) (isset($l['quiz_questions']) ? $l['quiz_questions'] : 0) > 0) {
+            $tq_n['quiz']++;
+        }
     }
 }
 
