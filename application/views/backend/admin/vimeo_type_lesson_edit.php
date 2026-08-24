@@ -4,6 +4,7 @@
 <?php
 $tq_url = $lesson_details['video_url'];
 $tq_dur = $lesson_details['duration'];
+$tq_kind = 'vimeo';
 include '_tq_videourl_fields.php';
 include '_tq_mobile_carry.php';
 ?>

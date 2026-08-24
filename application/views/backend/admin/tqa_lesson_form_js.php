@@ -3,62 +3,34 @@
 /**
  * سلوك نموذج الدرس — الإضافة والتحرير.
  *
- * شيئان: قراءة مدة الفيديو من الرابط، ورفع يعرض تقدمه.
+ * شيء واحد الآن: رفع يعرض تقدمه وفشله يعلن.
  *
  * TQ-UPLOAD-SILENT — كان معالج `error` في `ajaxForm` **فارغا** وفيه
  * تعليق «You can write here your js error message». فرفع يسقط — لانقطاع
  * أو لتجاوز حد حجم الملف في PHP — يترك الزر مكتوبا عليه «جار الرفع…
  * ٩٩٪» **إلى الأبد**، ومعطلا. فلا الدرس حفظ ولا المستخدم علم.
+ *
+ * ═══ TQ-PROBE — وأين ذهبت قراءة المدة ═══
+ *
+ * كانت هنا كتلة تنادي `admin/ajax_get_video_details`، وهو ينادي
+ * `Video_model::getVideoDetails()` الذي يطلب واجهة يوتيوب بمفتاح
+ * `youtube_api_key` من `settings`. **والمفتاح فارغ** (وكذلك مفتاح
+ * فيميو)، فيرد الطلب خطأ ويرد المتحكم نصا فارغا — وكان هذا السطر:
+ *
+ *     .then(function (t) { dur.value = t.trim(); })
+ *
+ * يكتب الفراغ في الحقل. أي أن «قارئ المدة» كان **يمحو ما كتبه المسؤول
+ * بيده** ويسمي ذلك قراءة، ولا رسالة.
+ *
+ * والقراءة الآن في المتصفح من [tq-duration-probe.js] بالمشغل نفسه الذي
+ * يشغل الدرس عند الطالب — بلا مفتاح ولا نداء شبكة من الخادم — ويحمله
+ * `_tq_videourl_fields.php` مع الحقلين. وهو المحرك نفسه الذي يخدم شاشة
+ * المنهج عند المعلم، فلا رقمان.
  */
 (function () {
     'use strict';
 
-    /* ---- ١ · مدة الفيديو تقرأ من الرابط ---- */
-    var url  = document.getElementById('video_url');
-    var dur  = document.getElementById('duration');
-    var busy = document.getElementById('perloader');
-    var bad  = document.getElementById('invalid_url');
-
-    var valid = function (v) {
-        return /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})(?:\S+)?$/.test(v)
-            || /^(https?:\/\/)?(www\.)?(vimeo\.com\/)([0-9]+)$/.test(v);
-    };
-
-    if (url && dur) {
-        url.addEventListener('blur', function () {
-            var v = url.value.trim();
-            if (v === '') return;
-
-            if (!valid(v)) {
-                if (bad)  bad.hidden = false;
-                if (busy) busy.hidden = true;
-                dur.value = '';
-                return;
-            }
-
-            if (bad)  bad.hidden = true;
-            if (busy) busy.hidden = false;
-
-            var body = new URLSearchParams();
-            body.set('video_url', v);
-            if (window.TQ_CSRF && TQ_CSRF.name) body.set(TQ_CSRF.name, TQ_CSRF.hash);
-
-            fetch(<?php echo json_encode(site_url('admin/ajax_get_video_details')); ?>, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: body.toString()
-            }).then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
-              .then(function (t) { dur.value = t.trim(); })
-              .catch(function () {
-                  /* تعذر قراءة المدة لا يمنع الحفظ — تكتب بيد. */
-                  if (window.TQA) TQA.warn('تعذر قراءة مدة الفيديو. اكتبها يدويا.');
-              })
-              .then(function () { if (busy) busy.hidden = true; });
-        });
-    }
-
-    /* ---- ٢ · الرفع يعرض تقدمه، وفشله يعلن ---- */
+    /* ---- الرفع يعرض تقدمه، وفشله يعلن ---- */
     var $ = window.jQuery;
     if (!$ || !$.fn || !$.fn.ajaxForm) return;
 

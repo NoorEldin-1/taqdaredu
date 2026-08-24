@@ -129,7 +129,11 @@ if (!function_exists('tq_cur_field')) {
                    . ' value="' . html_escape((string) $value) . '"'
                    . ($req ? ' required' : '')
                    . ' data-tq-cur="url"'
-                   . (!empty($f['probe']) ? ' data-tq-probe="1"' : '')
+                   /* قيمة `probe` هي **نوع المشغل** لا `1`: بها ينادي
+                      [tq-duration-probe.js] المحول الصحيح من `TQPlayer`
+                      بدل أن يحزره من الرابط، فيقرأ المعلم ما سيقيسه
+                      الطالب بالضبط. */
+                   . (!empty($f['probe']) ? ' data-tq-probe="' . html_escape((string) $f['probe']) . '"' : '')
                    . ' placeholder="' . html_escape(isset($f['placeholder']) ? $f['placeholder'] : '') . '">';
                 if (!empty($f['probe'])) {
                     /* قارئ المدة يكتب هنا: «يقرأ…» ثم النتيجة أو سبب
@@ -170,7 +174,15 @@ if (!function_exists('tq_cur_field')) {
                 echo '<input type="file" id="' . $id . '" name="' . html_escape($name) . '"'
                    . (isset($f['accept']) ? ' accept="' . html_escape($f['accept']) . '"' : '')
                    . ($req && trim((string) $value) === '' ? ' required' : '')
+                   /* ملف الوسائط يعلن مدته في المتصفح **قبل** أن يرفع:
+                      `createObjectURL` يعطيه رابطا محليا وترويسته تقرأ.
+                      فالوعد «تقرأ من الملف عند اختياره» يتحقق بلا رحلة
+                      ذهاب وإياب إلى الخادم. */
+                   . (!empty($f['probe']) ? ' data-tq-probe="' . html_escape((string) $f['probe']) . '"' : '')
                    . ' data-tq-cur="file" data-tqa-file>';
+                if (!empty($f['probe'])) {
+                    echo '<span class="' . $c['hint'] . '" data-tq-probe-out hidden></span>';
+                }
                 break;
 
             case 'richtext':
@@ -210,6 +222,14 @@ if (!function_exists('tq_cur_fields')) {
     {
         if (empty($spec['fields'])) return;
 
+        /* قارئ المدة يحمل مع أول حقل يعلن `probe` — لا في قالب الشاشة.
+           فالشاشة الرابعة التي تطبع حقول المنهج غدا تحصل عليه بلا أن
+           يتذكر كاتبها سطر `<script>`، وهو المبدأ نفسه الذي جعل النوع
+           الجديد يظهر في الشاشتين بلا قالب يكتب. */
+        foreach ($spec['fields'] as $tq_f) {
+            if (!empty($tq_f['probe'])) { tq_cur_probe_scripts(); break; }
+        }
+
         foreach ($spec['fields'] as $name => $f) {
             /* القيمة تقرأ من العمود الذي يكتب فيه الحقل لا من اسمه:
                `video_file` يكتب في `video_url`، وقراءتها باسم الحقل
@@ -225,6 +245,30 @@ if (!function_exists('tq_cur_fields')) {
             }
             tq_cur_field($name, $f, $val, $skin);
         }
+    }
+}
+
+if (!function_exists('tq_cur_probe_scripts')) {
+    /**
+     * يحمل قارئ المدة — مرة واحدة في الصفحة مهما تكرر النداء.
+     *
+     * والترتيب ملزم: `tq-player.js` **قبله**، لأن القارئ ينادي
+     * `TQPlayer.mount()` ولا يبني مشغلا ثانيا. وهو محمل أصلا في صفحة
+     * الدرس عند الطالب (`includes_bottom.php`)، وغائب عن شاشات المنهج
+     * كلها — ولذلك بقي `data-tq-probe` مطبوعا منذ كتب ولا يقرؤه أحد.
+     *
+     * ولا `defer` هنا: هذه سطور توضع في وسط المستند لا في ترويسته،
+     * و`defer` على سكربت يحقن بعد التحليل لا معنى له. والملف نفسه يحرس
+     * إقلاعه بـ`readyState`.
+     */
+    function tq_cur_probe_scripts()
+    {
+        static $done = false;
+        if ($done) return;
+        $done = true;
+
+        echo '<script src="' . tq_asset('js/tq-player.js') . '"></script>' . "\n"
+           . '<script src="' . tq_asset('js/tq-duration-probe.js') . '"></script>' . "\n";
     }
 }
 
