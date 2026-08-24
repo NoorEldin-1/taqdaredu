@@ -27,6 +27,12 @@ $CI = get_instance();
 $CI->load->model('taqdar_quiz_model', 'tq_quiz');
 $tq_qcounts = $CI->tq_quiz->counts_for_course((int) $course_id);
 
+/* TQ-DURATION — دروس تخالف مشغلات الطلاب مدتها المكتوبة.
+   والمدة أساس القفل لا حلية: مكتوب أطول من المقطع يعني درسا تاليا لا
+   يفتح أبدا. واستعلام واحد للمقرر كله، واللوح نفسه في بوابة المعلم. */
+$CI->load->model('taqdar_curriculum_model', 'tq_curric');
+$tq_durflags = $CI->tq_curric->duration_conflicts((int) $course_id);
+
 /** نوع الدرس يترجم إلى أيقونة واسم عربي. */
 $tq_kind = function ($lesson) {
     if ($lesson['lesson_type'] === 'quiz') return array('check-badge', 'اختبار');
@@ -218,6 +224,12 @@ $tq_kind = function ($lesson) {
                             </form>
                         </div>
                     </li>
+                    <?php if (isset($tq_durflags[(int) $tq_l['id']])): ?>
+                        <li style="padding:0 var(--tq-space-xl) var(--tq-space-m);
+                                   border-block-start:1px solid var(--tq-line)">
+                            <?php tq_cur_duration_flag($tq_durflags[(int) $tq_l['id']], 'tqa'); ?>
+                        </li>
+                    <?php endif; ?>
                 <?php endforeach; ?>
                 </ul>
             <?php endif; ?>

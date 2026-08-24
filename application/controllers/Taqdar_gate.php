@@ -16,7 +16,8 @@ defined('BASEPATH') or exit('No direct script access allowed');
  *   GET  /taqdar_gate/paths
  *   GET  /taqdar_gate/path/{id}
  *   GET  /taqdar_gate/lesson/{id}          ← 403 MASTERY_LOCKED إن كان مقفلا
- *   POST /taqdar_gate/progress             lesson_id, position_sec, watched_delta
+ *   POST /taqdar_gate/progress             lesson_id, position_sec, watched_delta,
+ *                                          covered[], media_sec
  *   POST /taqdar_gate/review_start         lesson_id
  *   POST /taqdar_gate/review_submit        attempt_id, answers[]
  *   GET  /taqdar_gate/reviews
@@ -320,16 +321,27 @@ class Taqdar_gate extends CI_Controller
         $covered = array_slice($covered, 0, 100);
 
         /* المدة يعلنها المشغل: يوتيوب وفيميو يعرفانها ولا يعرفها الخادم
-           بلا مفتاح واجهة برمجة، وكل درس في القاعدة `00:00:00`. */
-        $dur = (int) $this->body('duration_sec', 0);
-        if ($dur > 0) $this->repo->record_duration($lesson_id, $dur);
+           بلا مفتاح واجهة برمجة، وكل درس في القاعدة `00:00:00`.
+
+           وكانت تكتب **هنا** بـ`record_duration()` قبل أن يجري النموذج
+           فحص الاستحقاق والقفل — أي أن أي طالب مسجل كان يستطيع أن يضبط
+           مدة **أي درس على المنصة** بمعرفه وحده، ولو كان درسا لا يملك
+           إليه سبيلا. فالقرار كله انتقل إلى `save_progress()`: هي التي
+           تفحص الاستحقاق أولا، وهي التي تقرر أي مدة تعتمد وبأي شهادة
+           (TQ-DURATION). وهنا نقل للرقم لا حكم به.
+
+           و`duration_sec` يقبل باسمه القديم توافقا: عميل لم يحدث بعد
+           يرسله ولا يرسل `media_sec`، ومعناهما واحد — ما أعلنه مشغله. */
+        $media = (int) $this->body('media_sec', 0);
+        if ($media <= 0) $media = (int) $this->body('duration_sec', 0);
 
         $result = $this->repo->save_progress(
             $uid,
             $lesson_id,
             (int) $this->body('position_sec', 0),
             (int) $this->body('watched_delta', 0),
-            $covered
+            $covered,
+            $media
         );
         if ($this->repo->is_error($result)) return $this->passthru_error($result);
 

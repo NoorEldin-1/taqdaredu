@@ -62,6 +62,11 @@ try {
     }
 } catch (Throwable $e) { /* الجدول لم ينشأ بعد */ }
 
+/* TQ-DURATION — الدروس التي تخالف مشغلات الطلاب مدتها المكتوبة.
+   استعلام واحد للمقرر كله، والمدة أساس القفل: خطؤها يظهر عند الطالب
+   لا عند من كتبه، فيقال هنا حيث يصلح. */
+$tq_durflags = $CI->tq_curric->duration_conflicts($tq_cid);
+
 /** كل الأقسام في قائمة واحدة — لمنتقي القسم في نافذة الدرس. */
 $tq_sections = $tq_outline['sections'];
 
@@ -287,6 +292,11 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
                     <strong>تعديلك على هذا الدرس ينتظر المراجعة.</strong>
                     والدرس المنشور يعمل أمام طلابك كما هو حتى تعتمده الإدارة.
                 </p>
+            <?php endif; ?>
+            <?php if (isset($tq_durflags[$tq_l['id']])): ?>
+                <div style="margin:0 var(--tq-space-l) var(--tq-space-m)">
+                    <?php tq_cur_duration_flag($tq_durflags[$tq_l['id']], 'tq'); ?>
+                </div>
             <?php endif; ?>
             <?php endforeach; ?>
         <?php endif; ?>

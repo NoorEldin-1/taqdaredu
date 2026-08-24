@@ -500,6 +500,53 @@ if (!function_exists('tq_cur_course_form')) {
     }
 }
 
+if (!function_exists('tq_cur_duration_flag')) {
+    /**
+     * TQ-DURATION — تنبيه: مشغلات الطلاب تقول غير ما كتب في الدرس.
+     *
+     * والمدة ليست حلية تعرض: تسعون بالمئة منها هي **بوابة الدرس
+     * التالي**. فمن كتب `00:12:00` على مقطع طوله دقيقتان وثمان وأربعون
+     * ثانية أقفل مقرره على كل من اشترك فيه — ولا يظهر أثر خطئه عنده،
+     * بل عند طالب يشاهد الدرس كاملا ويرى «٪٢٣».
+     *
+     * والتصحيح التلقائي يقع حين يتفق شاهدان (`effective_duration()` في
+     * `Taqdar_repo_model`). وهذا اللوح لما دونه: شاهد واحد لا يكفي
+     * لتغيير صف يملكه معلم، ويكفي أن يقال.
+     *
+     * @param array  $flag من `Taqdar_curriculum_model::duration_conflicts()`
+     * @param string $skin 'tqa' | 'tq'
+     */
+    function tq_cur_duration_flag($flag, $skin = 'tqa')
+    {
+        if (empty($flag) || empty($flag['measured'])) return;
+
+        $c   = tq_cur_skin($skin);
+        $m   = (int) $flag['measured'];
+        $a   = (int) $flag['authored'];
+        $n   = (int) $flag['witnesses'];
+        $hms = function ($sec) {
+            return sprintf('%02d:%02d:%02d', intdiv($sec, 3600), intdiv($sec % 3600, 60), $sec % 60);
+        };
+
+        /* والنص يقول الأثر لا الرقمين وحدهما: «المكتوب ١٢:٠٠ والمقاس
+           ٢:٤٨» خبر، و«لن يبلغ طالبك حد الإتمام أبدا» سبب يدفع إلى
+           الإصلاح. */
+        $harm = ($a > $m)
+            ? 'وما دام المكتوب أطول من المقطع فلن يبلغ الطالب حد الإتمام مهما شاهد، ويبقى الدرس التالي مقفلا عليه.'
+            : 'وما دام المكتوب أقصر من المقطع فالدرس يعد مكتملا قبل أن يشاهده الطالب إلى آخره.';
+
+        echo '<p class="' . $c['note'] . ($skin === 'tqa' ? ' tqa-note--warn' : '') . '">'
+           . '<span aria-hidden="true">' . tq_icon('alert', 18) . '</span>'
+           . '<span><strong>المدة المكتوبة تخالف المقطع.</strong> '
+           . 'المكتوب ' . html_escape($a > 0 ? $hms($a) : '00:00:00')
+           . ' ومشغلات الطلاب تقول ' . html_escape($hms($m))
+           . ' (' . ($n === 1 ? 'شاهد واحد' : 'من ' . (int) $n . ' شهود') . '). '
+           . html_escape($harm)
+           . ' صححها في «المدة» من تحرير هذا الدرس.</span>'
+           . '</p>';
+    }
+}
+
 if (!function_exists('tq_cur_status_face')) {
     /** حالة الدرس: شارة ونصها — مصدر واحد للجهتين. */
     function tq_cur_status_face($status)

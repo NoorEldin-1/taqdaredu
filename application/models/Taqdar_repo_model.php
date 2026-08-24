@@ -716,6 +716,14 @@ class Taqdar_repo_model extends CI_Model
                                        ->count_all_results('attempts');
         }
 
+        /* النسبة تحسب هنا كما تحسب في مسار الكتابة، بالدالة نفسها.
+           وكانت لا ترسل أصلا: `progress` يخرج بأعمدته الخام، فتقرأ
+           الشاشة `p.percent` غير موجودة و`p.covered_sec` غير موجودة
+           و`duration_sec` صفرا — فتطبع **٪٠ على درس أتمه صاحبه**، ولا
+           يعود إلى الصواب إلا بعد أول نبضة تشغيل. ومن فتح درسا أتمه
+           ولم يشغله يقرأ صفرا إلى أن يغادر. */
+        $view = $this->progress_view($lesson, $student_id, $progress);
+
         return array(
             'lesson' => array(
                 'id'           => (int) $lesson['id'],
@@ -723,16 +731,25 @@ class Taqdar_repo_model extends CI_Model
                 'course_id'    => (int) $lesson['course_id'],
                 'section_id'   => (int) $lesson['section_id'],
                 'lesson_type'  => $lesson['lesson_type'],
-                'duration'     => $lesson['duration'],
-                'duration_sec' => $this->lesson_duration($lesson),
+                /* المعتمدة لا المكتوبة: هي التي يقسم عليها القفل دلاءه،
+                   فتكون هي التي تقسم عليها الشاشة دلاءها. */
+                'duration'     => $view['duration_sec'] > 0
+                                    ? $this->hms_of($view['duration_sec'])
+                                    : $lesson['duration'],
+                'duration_sec' => $view['duration_sec'],
                 'summary'      => $lesson['summary'],
                 'is_free'      => (int) $lesson['is_free'],
+                /* هل يقاس هذا المصدر أصلا؟ الشاشة تحتاجه لتقرر أتعد
+                   بقياس أم تعرض إقرارا — ولا تستنتجه من الرابط. */
+                'trackable'    => $this->trackable($lesson) ? 1 : 0,
             ),
             'playback' => $this->playback_for($lesson, $student_id, $progress),
             'objectives' => $objectives,
             'progress'   => array(
                 'position_sec'  => $progress ? (int) $progress['position_sec']  : 0,
                 'watch_seconds' => $progress ? (int) $progress['watch_seconds'] : 0,
+                'covered_sec'   => $view['covered_sec'],
+                'percent'       => $view['percent'],
                 'completed_at'  => $progress ? $progress['completed_at'] : null,
                 'mastered_at'   => $progress ? $progress['mastered_at']  : null,
             ),
@@ -754,10 +771,12 @@ class Taqdar_repo_model extends CI_Model
 
     /** حفظ موضع المشاهدة وزمنها. الحفظ نفسه يمر بالقفل. */
     /**
-     * @param array $covered دلاء العشر ثوان التي مر عليها التشغيل فعلا
-     *                       منذ آخر نبضة — انظر TQ-COVERAGE أدناه.
+     * @param array $covered   دلاء العشر ثوان التي مر عليها التشغيل فعلا
+     *                         منذ آخر نبضة — انظر TQ-COVERAGE أدناه.
+     * @param int   $media_sec طول المقطع كما أعلنه مشغل هذا الطالب، أو
+     *                         صفر إن لم يعلن — انظر TQ-DURATION أدناه.
      */
-    public function save_progress($student_id, $lesson_id, $position_sec, $watched_delta, $covered = array())
+    public function save_progress($student_id, $lesson_id, $position_sec, $watched_delta, $covered = array(), $media_sec = 0)
     {
         $student_id   = (int) $student_id;
         $lesson_id    = (int) $lesson_id;
@@ -786,7 +805,14 @@ class Taqdar_repo_model extends CI_Model
         $row = $this->db->where('student_id', $student_id)->where('lesson_id', $lesson_id)
                         ->get('lesson_progress')->row_array();
 
-        $total = $this->lesson_duration($lesson);
+        /* TQ-DURATION — المدة المعتمدة لا المكتوبة.
+           المكتوبة **ادعاء** والمقيسة **شهادة**، وحين تختلفان يخسر
+           الطالب: معلم كتب `00:12:00` على مقطع طوله دقيقتان وثمان
+           وأربعون ثانية يجعل تسعين بالمئة رقما لا يبلغ أبدا، فيبقى
+           الدرس التالي مقفلا على كل من اشترك ولا شيء يقول لماذا.
+           و`effective_duration()` هي من يفصل — بشهادة طالبين لا بواحد. */
+        $media = max(0, (int) $media_sec);
+        $total = $this->effective_duration($lesson, $student_id, $media);
         $ratio = (float) $this->setting('lesson_complete_ratio', 0.9);
 
         /* ---- الزيادة تقاس بزمن الجدار ----
@@ -847,6 +873,23 @@ class Taqdar_repo_model extends CI_Model
             'last_ping_at'  => $this->now(),
         );
 
+        /* شهادة هذا الطالب على طول المقطع — تكتب ولا يكتب فوقها صفر:
+           نبضة تأتي قبل أن يعلن المشغل مدته لا تمحو ما أعلنه قبلها. */
+        if ($media > 0) $data['media_sec'] = $media;
+
+        /* TQ-BLIND — ختم العجز.
+           «لا قياس» تعني: لا مدة أعلنها مشغله، ولا دلو تعلم، ولا موضع
+           تحرك. ومتى وصل أي منها محي الختم — فالعجز حال قائمة لا حكم
+           سابق، ومن حجب عنه السكربت دقيقة ثم وصل لا يعامل معاملة من لم
+           يصله شيء. وبهذا الختم وحده يقبل إقرار الإتمام على مصدر
+           يفترض أنه يقاس (`confirm_complete`). */
+        $measured = ($media > 0) || ($seen > 0) || ($position_sec > 0);
+        if ($measured) {
+            $data['blind_at'] = null;
+        } elseif (!$row || empty($row['blind_at'])) {
+            $data['blind_at'] = $this->now();
+        }
+
         if ($row) {
             $this->db->where('id', (int) $row['id'])->update('lesson_progress', $data);
         } else {
@@ -867,15 +910,21 @@ class Taqdar_repo_model extends CI_Model
         /* النسبة من التغطية لا من العداد: هي ما يقرؤه الطالب، ويجب أن
            تكون هي نفسها ما يفتح به الدرس التالي — رقمان يفترقان يجعلان
            «٪١٠٠» تقف أمام درس مقفل. */
-        $percent = $buckets > 0
-            ? min(100, (int) floor($seen * 100 / $buckets))
-            : ($total > 0 ? min(100, (int) floor($watch * 100 / $total)) : 0);
+        $percent = $completed_at
+            ? 100
+            : ($buckets > 0
+                ? min(100, (int) floor($seen * 100 / $buckets))
+                : ($total > 0 ? min(100, (int) floor($watch * 100 / $total)) : 0));
 
         return array(
             'lesson_id'     => $lesson_id,
             'position_sec'  => $position_sec,
             'watch_seconds' => $watch,
+            /* المعتمدة لا المكتوبة: هي التي حسبت عليها النسبة، فتعود
+               إلى الشاشة لتحسب عليها هي أيضا. رقمان يفترقان يجعلان
+               «٪١٠٠» تقف أمام درس مقفل. */
             'duration_sec'  => $total,
+            'buckets'       => $buckets,
             'covered_sec'   => $seen * self::BUCKET,
             'percent'       => $percent,
             'completed_at'  => $completed_at,
@@ -911,18 +960,29 @@ class Taqdar_repo_model extends CI_Model
             return $this->error('MASTERY_LOCKED', array('lesson_id' => $lesson_id));
         }
 
+        $row = $this->db->where('student_id', $student_id)->where('lesson_id', $lesson_id)
+                        ->get('lesson_progress')->row_array();
+        $now = $this->now();
+
         /* الإقرار لا يقبل على مصدر يقاس: من يستطيع القياس يقاس. وبلا هذا
-           الشرط يصير الزر مخرجا من كل درس فيديو على المنصة. */
-        if ($this->trackable($lesson)) {
+           الشرط يصير الزر مخرجا من كل درس فيديو على المنصة.
+
+           TQ-BLIND — **إلا أن يكون القياس تعذر فعلا**.
+           فالمصدر «يقاس» وصف للنوع لا للواقع: سكربت يوتيوب يحجب في شبكة
+           مدرسة، والفيديو يحذف من مصدره، والتضمين يرفض — فلا موضع ولا
+           مدة ولا رسالة خطأ. وكان هذا الشرط وحده يجعل من وقع في ذلك
+           محبوسا إلى الأبد: لا شريط يتحرك ولا زر يضغط ولا درس تال.
+
+           والعجز لا يؤخذ من دعوى العميل: `blind_at` يختمه **الخادم**
+           عند أول نبضة لا يصحبها قياس، ويمحوه عند أول قياس يصل. فالشرط
+           أن يكون العجز قائما، وأن يكون قد مضى عليه وقت حقيقي — ومن
+           عطل سكربته ليأخذ المخرج ينتظره كما ينتظره من حجب عنه. */
+        if ($this->trackable($lesson) && !$this->blind_enough($row)) {
             return $this->error('VALIDATION', array(
                 'reason'    => 'measurable_source',
                 'lesson_id' => $lesson_id,
             ));
         }
-
-        $row = $this->db->where('student_id', $student_id)->where('lesson_id', $lesson_id)
-                        ->get('lesson_progress')->row_array();
-        $now = $this->now();
 
         if ($row) {
             if (!empty($row['completed_at'])) {
@@ -943,9 +1003,78 @@ class Taqdar_repo_model extends CI_Model
 
         $this->sync_watch_history($student_id, (int) $lesson['course_id'], $lesson_id, 0, true);
         $this->audit($student_id, 'lesson.declare_complete', 'lesson:' . $lesson_id, null,
-                     array('source' => $lesson['video_type']));
+                     array('source'   => $lesson['video_type'],
+                           /* ولماذا قبل: نوع لا يقاس أصلا، أم نوع يقاس
+                              عجز عنه؟ الثاني عطل يصلح، والأول تصميم. */
+                           'reason'   => $this->trackable($lesson) ? 'no_signal' : 'unmeasurable',
+                           'blind_at' => $row && !empty($row['blind_at']) ? $row['blind_at'] : null));
 
         return array('lesson_id' => $lesson_id, 'completed_at' => $now, 'declared' => true);
+    }
+
+    /**
+     * أرقام التقدم كما تعرض — من المسارين معا.
+     *
+     * مسار الكتابة (`save_progress`) ومسار القراءة (`get_lesson`) كانا
+     * يحسبان شيئين مختلفين: الأول تغطية ونسبة، والثاني لا شيء. فيقرأ
+     * الطالب صفرا على درس أتمه حتى تعود أول نبضة. والقاعدة التي تحكم
+     * هذا الملف كله واحدة: **الرقم الذي يقرؤه الطالب هو الرقم الذي
+     * يقرؤه القفل** — ورقمان يحسبان في موضعين يفترقان عند أول تعديل.
+     */
+    private function progress_view($lesson, $student_id, $row)
+    {
+        $media = $row && isset($row['media_sec']) ? (int) $row['media_sec'] : 0;
+        $total = $this->effective_duration($lesson, $student_id, $media);
+
+        $buckets = $total > 0 ? (int) ceil($total / self::BUCKET) : 0;
+        $seg     = ($row && isset($row['segments'])) ? (string) $row['segments'] : '';
+        $seen    = $buckets > 0 ? $this->seg_count($seg, $buckets) : 0;
+        $watch   = $row ? (int) $row['watch_seconds'] : 0;
+
+        /* درس أتم لا ينزل عن المئة مهما قالت خريطته: قد يكون أتم إقرارا
+           (`declared_at`) فلا دلو فيه أصلا، أو أتم قبل أن تعرف مدته. */
+        if ($row && !empty($row['completed_at'])) {
+            $percent = 100;
+        } elseif ($buckets > 0) {
+            $percent = min(100, (int) floor($seen * 100 / $buckets));
+        } else {
+            $percent = $total > 0 ? min(100, (int) floor($watch * 100 / $total)) : 0;
+        }
+
+        return array(
+            'duration_sec' => $total,
+            'buckets'      => $buckets,
+            'covered_sec'  => $seen * self::BUCKET,
+            'percent'      => $percent,
+        );
+    }
+
+    /** ثوان إلى `HH:MM:SS` — للعرض. */
+    private function hms_of($sec)
+    {
+        $sec = max(0, (int) $sec);
+        return sprintf('%02d:%02d:%02d', intdiv($sec, 3600), intdiv($sec % 3600, 60), $sec % 60);
+    }
+
+    /**
+     * مهلة العجز — كم يمضي على ختم `blind_at` قبل أن يقبل الإقرار.
+     *
+     * دقيقتان: تكفي أن يحدث الطالب صفحته وتتعافى شبكته، ولا تكفي أن
+     * يمر بها على درس بعد درس ليفتح المقرر كله.
+     */
+    const BLIND_GRACE = 120;
+
+    /** هل عجز القياس عن هذا الطالب في هذا الدرس عجزا قائما ومعمرا؟ */
+    private function blind_enough($row)
+    {
+        if (!$row || empty($row['blind_at'])) return false;
+        /* والعجز يبطل بأول قياس: `save_progress` يمحو الختم حينها،
+           وهذان الشرطان احتياط لصف كتب قبل ذلك المحو. */
+        if ((int) $row['position_sec'] > 0) return false;
+        if (isset($row['media_sec']) && (int) $row['media_sec'] > 0) return false;
+        if (trim((string) (isset($row['segments']) ? $row['segments'] : '')) !== '') return false;
+
+        return (time() - strtotime($row['blind_at'])) >= self::BLIND_GRACE;
     }
 
     /**
@@ -984,6 +1113,162 @@ class Taqdar_repo_model extends CI_Model
      * التشغيل، فثلاثون تسع أبطأ شبكة ولا تكفي لدرس.
      */
     const FIRST_PING = 30;
+
+    /**
+     * كم شاهدا يلزم قبل أن يصحح قياس ما كتبته يد؟
+     *
+     * اثنان افتراضا. وواحد يكفي منصة صغيرة لا يمر على الدرس فيها إلا
+     * طالب واحد، ويضبط من `settings` — ولكن الافتراض ليس واحدا: طالب
+     * واحد يعدل جافاسكربت متصفحه يستطيع أن يعلن أن مقطع اثنتي عشرة
+     * دقيقة طوله عشر ثوان، فيكمله في لحظة **ويفسد رقمه على كل زملائه**.
+     * واشتراط شاهدين مستقلين يجعل ذلك تواطؤا لا عبثا.
+     */
+    private function witnesses_needed()
+    {
+        $n = (int) $this->setting('tq_duration_witnesses', 2);
+        return $n > 0 ? $n : 2;
+    }
+
+    /** هامش الاتفاق بين قياسين — عشرة بالمئة، وخمس ثوان حدا أدنى. */
+    private function slack($sec)
+    {
+        return max(5, (int) round($sec * 0.10));
+    }
+
+    /**
+     * TQ-DURATION — المدة التي يقاس عليها القفل.
+     *
+     * ═══ المشكلة ═══
+     *
+     * `lesson.duration` حقل يكتب بيد، و`duration_sec` مرآته الرقمية.
+     * وكلاهما **ادعاء عن المقطع لا قياس له**. والمقطع نفسه يعرف طوله
+     * ويعلنه لمشغله، ولا يعلنه للخادم: يوتيوب لا يرد المدة إلا بمفتاح
+     * واجهة برمجة لا يملكه هذا التركيب.
+     *
+     * فحين يختلف الادعاء عن الحقيقة يقع أحد عطلين، وكلاهما صامت:
+     *
+     *   مكتوب أطول من الحقيقة  →  النسبة لا تبلغ الحد أبدا، فيبقى
+     *                             الدرس التالي مقفلا على من شاهد كل شيء.
+     *   مكتوب أصفار (وهو حال كل درس في القاعدة)  →  لا دلاء تعد أصلا،
+     *                             فلا تغطية ولا إتمام ولا اختبار.
+     *
+     * ═══ القاعدة ═══
+     *
+     *   لا قياس عندي            →  المكتوب، فهو كل ما نملك.
+     *   قياسي يوافق المكتوب     →  المكتوب، ولا استعلام يجرى أصلا.
+     *   قياسي يخالفه            →  أسأل بقية الشهود:
+     *        اتفق منهم النصاب   →  قولهم، وأصحح صف الدرس به.
+     *        لم يتفق            →  المكتوب إن كان، وإلا فقياسي أنا.
+     *
+     * والأخيرة هي البداية: درس جديد بلا مدة مكتوبة يمشي بقياس أول
+     * طالب — وحده، ولا يكتب في الصف حتى يصدقه ثان. فمن عبث لم يفسد
+     * إلا رقم نفسه، وحد زمن الجدار (`$wall`) يمنعه أن ينتفع به.
+     */
+    private function effective_duration($lesson, $student_id, $media)
+    {
+        $authored = $this->lesson_duration($lesson);
+        $media    = max(0, (int) $media);
+
+        /* لا شهادة عندي: المكتوب وحده. */
+        if ($media <= 0) return $authored;
+
+        /* شهادتي توافق المكتوب: لا خلاف يفصل فيه، ولا استعلام يجرى.
+           والشرط هنا لا هناك عمدا — هذه الدالة تنادى في كل نبضة من كل
+           طالب، واستعلام يجري بلا سبب في مسار الكتابة يثقل بلا فائدة. */
+        if ($authored > 0 && abs($authored - $media) <= $this->slack($media)) {
+            return $authored;
+        }
+
+        $agreed = $this->agreed_media((int) $lesson['id'], (int) $student_id, $media);
+        if ($agreed > 0) {
+            if ($authored <= 0 || abs($authored - $agreed) > $this->slack($agreed)) {
+                $this->adopt_duration((int) $lesson['id'], $agreed, $authored);
+            }
+            return $agreed;
+        }
+
+        return $authored > 0 ? $authored : $media;
+    }
+
+    /**
+     * أطول قياس اتفق عليه النصاب من الشهود — أو صفر.
+     *
+     * والعنقود لا المتوسط: قيمة شاذة واحدة تجر المتوسط وتفسده، ولا
+     * تحرك عنقودا. وكل قياس يعد من يوافقه بهامش، وأكبر عنقود يفوز،
+     * ووسيطه هو الرقم — لا طرفه.
+     *
+     * والشهود متمايزون بحكم المخطط: `lesson_progress` صف لكل (طالب،
+     * درس)، فلا يشهد أحد مرتين ولو نبض ألفا.
+     */
+    private function agreed_media($lesson_id, $student_id, $mine)
+    {
+        $need = $this->witnesses_needed();
+
+        /* العمود يركب عند أول نبضة تقدم (`ensure_progress_schema`)، وهذه
+           الدالة تنادى من مسار القراءة أيضا. فتركيب لم يفتح فيه درس بعد
+           يقرأ عمودا غير موجود — واستثناء يبيض شاشة الدرس أسوأ من مدة
+           غير مصدقة. */
+        try {
+            $rows = $this->db->select('student_id, media_sec')
+                             ->where('lesson_id', (int) $lesson_id)
+                             ->where('media_sec >', 0)
+                             ->limit(60)
+                             ->get('lesson_progress')->result_array();
+        } catch (Throwable $e) {
+            return 0;
+        }
+
+        $vals = array();
+        foreach ($rows as $r) $vals[(int) $r['student_id']] = (int) $r['media_sec'];
+        /* شهادتي قد لا تكون كتبت بعد — هذه النبضة هي التي تكتبها. */
+        if ($mine > 0) $vals[(int) $student_id] = (int) $mine;
+
+        if (count($vals) < $need) return 0;
+
+        $best = 0; $best_n = 0;
+        foreach ($vals as $v) {
+            $grp = array();
+            foreach ($vals as $w) {
+                if (abs($w - $v) <= $this->slack($v)) $grp[] = $w;
+            }
+            if (count($grp) > $best_n) {
+                sort($grp);
+                $best_n = count($grp);
+                $best   = $grp[intdiv(count($grp), 2)];
+            }
+        }
+        return $best_n >= $need ? (int) $best : 0;
+    }
+
+    /**
+     * يصحح مدة الدرس بما شهد به الشهود، ويترك أثرا.
+     *
+     * والأثر ليس زينة: هذا تعديل على صف يملكه معلم، يقع بلا أن يطلبه
+     * أحد. فمن فتح الدرس غدا ووجد `00:02:48` مكان `00:12:00` الذي
+     * كتبه بيده يجب أن يجد في السجل من غيره ولماذا — وإلا ظنه ضياعا
+     * وأعاد كتابة الخطأ.
+     */
+    private function adopt_duration($lesson_id, $seconds, $was)
+    {
+        $lesson_id = (int) $lesson_id;
+        $seconds   = (int) $seconds;
+        if ($lesson_id <= 0 || $seconds <= 0 || $seconds > 28800) return;
+
+        try {
+            $this->db->where('id', $lesson_id)->update('lesson', array(
+                'duration_sec' => $seconds,
+                'duration'     => sprintf('%02d:%02d:%02d',
+                                          intdiv($seconds, 3600),
+                                          intdiv($seconds % 3600, 60),
+                                          $seconds % 60),
+            ));
+            $this->audit(0, 'lesson.duration.measured', 'lesson:' . $lesson_id,
+                array('duration_sec' => (int) $was),
+                array('duration_sec' => $seconds, 'by' => 'players'));
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-DURATION: ' . $e->getMessage());
+        }
+    }
 
     /** مدة الدرس بالثواني — العمود الرقمي أولا، والنصي مرآة قديمة. */
     public function lesson_duration($lesson)
@@ -1059,6 +1344,16 @@ class Taqdar_repo_model extends CI_Model
                 'segments'     => 'text DEFAULT NULL COMMENT "خريطة دلاء عشر ثوان، ست عشرية"',
                 'last_ping_at' => 'datetime DEFAULT NULL',
                 'declared_at'  => 'datetime DEFAULT NULL COMMENT "إتمام أقره الطالب لا قيس"',
+                /* TQ-DURATION — ما قاسه مشغل **هذا الطالب** هو.
+                   عمود واحد لا جدول: `lesson_progress` صف لكل (طالب،
+                   درس) بحكم تعريفه، فالقياسات فيه متمايزة بأصحابها
+                   مجانا — ومن أراد التصديق عد الصفوف. */
+                'media_sec'    => 'int(11) NOT NULL DEFAULT 0 COMMENT "طول المقطع كما أعلنه مشغل هذا الطالب"',
+                /* TQ-BLIND — متى علمنا أننا لا نعلم.
+                   يختم عند أول نبضة لا يصحبها قياس، ويمحى عند أول
+                   قياس يصل. فهو «الوقت الذي مضى ونحن عاجزون»، وبه
+                   وحده يقبل إقرار الإتمام على مصدر يفترض أنه يقاس. */
+                'blind_at'     => 'datetime DEFAULT NULL COMMENT "أول لحظة عجز عن القياس"',
             );
             foreach ($cols as $c => $ddl) {
                 if (!$this->db->field_exists($c, 'lesson_progress')) {

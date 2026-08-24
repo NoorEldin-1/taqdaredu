@@ -894,6 +894,68 @@ class Taqdar_curriculum_model extends CI_Model
         return $rows;
     }
 
+    /**
+     * TQ-DURATION — الدروس التي تخالف مشغلاتها ما كتب فيها.
+     *
+     * المدة المكتوبة **أساس القفل**: تسعون بالمئة منها هي ما يفتح الدرس
+     * التالي. فإن كتبت أطول من المقطع لم يبلغها أحد أبدا، وبقي المقرر
+     * مقفلا على كل من اشترك — ولا شيء في أي شاشة يقول لماذا. وهذا
+     * أخطر ما في هذا الحقل: يخطئ صامتا، ويظهر أثره عند الطالب لا عند
+     * من كتبه.
+     *
+     * و`Taqdar_repo_model` يصحح وحده حين يتفق شاهدان مستقلان (انظر
+     * `effective_duration()` هناك). وما دون النصاب لا يصحح — ولا يسكت
+     * عنه أيضا: يعرض هنا لمن يملك إصلاحه، بشهادته وعددها.
+     *
+     * @return array  معرف الدرس => array('measured', 'witnesses', 'authored')
+     */
+    public function duration_conflicts($course_id)
+    {
+        $course_id = (int) $course_id;
+        if ($course_id <= 0) return array();
+
+        try {
+            $rows = $this->db->query(
+                'SELECT p.`lesson_id`, p.`media_sec`, l.`duration_sec`
+                   FROM `lesson_progress` p
+                   JOIN `lesson` l ON l.`id` = p.`lesson_id`
+                  WHERE l.`course_id` = ? AND p.`media_sec` > 0',
+                array($course_id)
+            )->result_array();
+        } catch (Throwable $e) {
+            /* العمود يركب عند أول نبضة تقدم (`ensure_progress_schema`)،
+               فمنصة لم يفتح فيها درس بعد تقرأ عمودا غير موجود. وشاشة
+               بيضاء أسوأ من تنبيه ناقص. */
+            return array();
+        }
+
+        $by = array();
+        foreach ($rows as $r) {
+            $by[(int) $r['lesson_id']]['authored'] = (int) $r['duration_sec'];
+            $by[(int) $r['lesson_id']]['seen'][]   = (int) $r['media_sec'];
+        }
+
+        $out = array();
+        foreach ($by as $lid => $d) {
+            $seen = $d['seen'];
+            sort($seen);
+            $mid   = $seen[intdiv(count($seen), 2)];
+            $slack = max(5, (int) round($mid * 0.10));
+            /* المكتوب يوافق المقاس: لا خبر هنا. */
+            if ($d['authored'] > 0 && abs($d['authored'] - $mid) <= $slack) continue;
+
+            $agree = 0;
+            foreach ($seen as $v) if (abs($v - $mid) <= $slack) $agree++;
+
+            $out[$lid] = array(
+                'measured'  => $mid,
+                'witnesses' => $agree,
+                'authored'  => $d['authored'],
+            );
+        }
+        return $out;
+    }
+
     /** المقرر كاملا: أقسام وفيها دروسها — استعلامان لا استعلام لكل قسم. */
     public function outline($course_id)
     {

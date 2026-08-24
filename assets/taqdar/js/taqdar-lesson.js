@@ -26,6 +26,11 @@
        لم يرسل بعد. والفصل بينهما هو ما يجعل النبضة صغيرة ومأمونة
        التكرار: نبضة تفشل تعيد دلاءها إلى `fresh` ولا تضاعف شيئا. */
     player: null, duration: 0, buckets: 0, seen: {}, fresh: [],
+    /* TQ-BLIND — ما قاسه المشغل فعلا، وهل وصل منه شيء أصلا.
+       `media` طول الوسائط كما أعلنه المشغل (لا كما كتب في القاعدة)،
+       و`sawTime` أن نبضة موضع واحدة على الأقل وصلت. وبهما وحدهما يعرف
+       أن القياس **تعذر** — فيفتح المخرج المشروط بدل حبس لا نهاية له. */
+    media: 0, sawTime: false, blind: false, blindTimer: null,
     completed: false, mastered: false
   };
 
@@ -93,6 +98,10 @@
   }
 
   function render(d) {
+    /* المغلف كله، وصف الدرس فيه تحت `d.lesson`. وكان يقرأ
+       `state.lesson.duration_sec` من المغلف فيخرج `undefined` أبدا —
+       تحت شرط، فالشرط يصدق دائما ولا أحد يلاحظ. والمدة صارت تأتي من
+       المشغل ومن رد الخادم، فلا تقرأ من هنا. */
     state.lesson = d;
     show('[data-tq-lesson-skeleton]', false);
     show('[data-tq-lesson-body]', true);
@@ -185,26 +194,55 @@
       pl.on('play',  startTicker);
       pl.on('pause', stopTicker);
       pl.on('ended', function () { stopTicker(); flush(true); });
-      pl.on('ready', function () {
-        /* المدة تعلن مرة: الخادم لا يعرفها لمصدر خارجي بلا مفتاح واجهة
-           برمجة، وكل درس في القاعدة `00:00:00` — فلا إتمام يكتب أبدا. */
-        var d = Math.round(pl.duration() || 0);
-        if (d > 0 && !state.duration) {
-          state.duration = d;
-          state.buckets  = Math.ceil(d / BUCKET);
-          if (!(state.lesson && state.lesson.duration_sec > 0)) sendDuration(d);
-        }
-      });
+
+      /* المدة حدث قائم بنفسه لا سطر داخل `ready`.
+         يوتيوب لا يعرف مدة فيديوه عند الجهوزية — يعلنها بعد أن تحمل
+         بيانات وسائطه، أي بعد بدء التشغيل عادة. وكان يسأل مرة واحدة
+         عند `ready` فيقرأ صفرا، وصفر المدة يعطل السلسلة كلها: لا دلاء
+         تعد، فلا تغطية تسجل، فلا إتمام يكتب، فلا اختبار يفتح. */
+      pl.on('duration', onDuration);
 
       /* ضبط السرعة يعرض حيث يعمل فعلا — والآن يعمل على يوتيوب وفيميو
          أيضا، لا على مشغل المنصة وحده. وزر يضغط ولا يفعل «واجهة قاضية»
          تنهى عنها الوثيقة نصا، فيخفى حيث لا يعمل. */
       show('[data-tq-speed-grp]', pl.canRate());
 
-      /* ما لا يعلن موضعه يقال صراحة: زر إقرار بدل شريط تقدم يكذب. */
+      /* ما لا يعلن موضعه يقال صراحة: زر إقرار بدل شريط تقدم يكذب.
+
+         و«يقاس» صفتان لا واحدة، وقد تختلفان:
+
+           `pl.kind`     ما استطاعه المشغل في هذا المتصفح الآن
+           `L.trackable` ما يعده الخادم مقيسا، من `video_type` المخزن
+
+         و`confirm_complete` تحكم بالثانية: ترفض الإقرار على مصدر تعده
+         مقيسا حتى تمضي مهلة العجز. فلو عرض الزر بناء على الأولى وحدها
+         لضغطه من ركب درسا نوعه `youtube` ورابطه درايف — فيرى رفضا على
+         زر عرض عليه للتو. فالمهلة تنتظر متى اختلفتا. */
       var blind = (pl.kind === 'none');
-      show('[data-tq-declare]', blind && !state.completed);
-      show('[data-tq-blind-note]', blind);
+      var trackable = !!(L && L.trackable);
+
+      /* نبضة الوصول — وهي شهادة العجز لا إعلان الحضور.
+         الخادم يختم `blind_at` عند أول نبضة لا يصحبها قياس، ويمحوه عند
+         أول قياس يصل. فهذه النبضة تبدأ عد المهلة **من الخادم لا من
+         المتصفح**: لو بدأ العد هنا لكان تعديل رقم في جافاسكربت كافيا
+         لأخذ المخرج في الحال. وأول مدة يعلنها المشغل تمحو الختم، فلا
+         أثر لها على من يعمل مشغله. */
+      flush(false, true);
+
+      if (blind && !trackable) {
+        /* درايف وإطار خارجي: معروف من أول لحظة أنه لا يقاس، والخادم
+           يوافق — فلا انتظار في انتظاره فائدة. */
+        goBlind('unmeasurable');
+      } else {
+        /* ومصدر **يفترض** أنه يقاس قد لا يقيس: سكربت يوتيوب يحجب في
+           شبكة مدرسة، والفيديو يحذف من مصدره، والإطار يرفض التضمين.
+           وحينها لا موضع ولا مدة ولا خطأ — شاشة صامتة وشريط لا يتحرك
+           ودرس تال مقفل إلى الأبد. فينتظر دقيقتين، فإن لم تصل نبضة
+           واحدة ولا مدة قيل ذلك صراحة وفتح المخرج. */
+        state.blindTimer = setTimeout(function () {
+          if (!state.sawTime && !state.media) goBlind('nosignal');
+        }, BLIND_AFTER);
+      }
     });
   }
 
@@ -218,19 +256,94 @@
   */
   var BUCKET = 10;
 
+  /**
+   * بعدها يقال «تعذر القياس» إن لم تصل نبضة ولا مدة.
+   *
+   * وهي أطول من مهلة الخادم (`BLIND_GRACE`، دقيقتان) بهامش: الخادم يبدأ
+   * عده من نبضة الوصول، فلو تساوى الرقمان لرد الطلب الأول بالرفض لفارق
+   * أجزاء من الثانية — ويقرأ الطالب «لا يقبل» على زر عرض عليه للتو.
+   */
+  var BLIND_AFTER = 135000;
+
   function onTime(t) {
     var sec = Math.floor(t || 0);
     if (sec < 0) return;
     state.position = sec;
+    state.sawTime = true;
     markCue(sec);
 
-    if (state.buckets > 0) {
-      var b = Math.floor(sec / BUCKET);
-      if (b >= 0 && b < state.buckets && !state.seen[b]) {
-        state.seen[b] = 1;
-        state.fresh.push(b);
-      }
+    /* رقم الدلو لا يحتاج المدة — `floor(sec/10)` وحده. وكان الشرط
+       `state.buckets > 0` يسبقه، فما شوهد قبل أن تعرف المدة يضيع كله:
+       يوتيوب يعلن مدته بعد بدء التشغيل، فأول ثوان الدرس — وهي التي
+       يشاهدها كل طالب — كانت تسقط بلا أثر. والحد الأعلى يفرضه الخادم
+       على خريطته، فدلو خارج المدى يهمل هناك ولا يفسد شيئا. */
+    var b = Math.floor(sec / BUCKET);
+    if (b < 0 || state.seen[b]) return;
+    if (state.buckets > 0 && b >= state.buckets) return;
+    state.seen[b] = 1;
+    state.fresh.push(b);
+  }
+
+  /**
+   * المدة كما قاسها المشغل — لا كما كتبت في القاعدة.
+   *
+   * وهما ليسا واحدا: معلم يكتب `00:12:00` على فيديو طوله دقيقتان
+   * وثمان وأربعون ثانية يحبس طلابه إلى الأبد — لا يبلغون النسبة أبدا
+   * ولا شيء يقول لماذا. فالقياس يرسل إلى الخادم، وهو من يقرر أيهما
+   * يعتمد (يحتاج اتفاق طالبين مستقلين قبل أن يصحح صفا)، ونحن نأخذ
+   * جوابه. والرقم الذي يقرؤه الطالب يجب أن يكون الرقم الذي يقرؤه
+   * القفل — فلا يحسب هنا رقم ثان.
+   */
+  function onDuration(d) {
+    d = Math.round(d || 0);
+    if (d <= 0 || state.media === d) return;
+    state.media = d;
+
+    /* والمدة تظهر في الشاشة فورا: انتظار الخادم يترك «00:00:00» أمام
+       من يشاهد فيديو يرى مدته في مشغله. */
+    if (!state.duration) text('[data-tq-lesson-duration]', iso(hms(d)));
+
+    if (!state.duration) {
+      state.duration = d;
+      state.buckets  = Math.ceil(d / BUCKET);
     }
+    flush(false, true);
+  }
+
+  /** ثوان إلى `HH:MM:SS` — للعرض وحده. */
+  function hms(sec) {
+    sec = Math.max(0, parseInt(sec, 10) || 0);
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  /**
+   * يعلن أن القياس متعذر، ويفتح المخرج المشروط.
+   *
+   * `unmeasurable` — درايف وإطار خارجي: معروف من أول لحظة أنه لا يقاس.
+   * `nosignal`     — مصدر يفترض أنه يقاس ولم يعلن شيئا في دقيقتين:
+   *                  سكربت محجوب، أو فيديو حذف، أو تضمين مرفوض.
+   *
+   * والفرق يقال للطالب بنصه: «هذا النوع لا يقاس» غير «تعذر قياس
+   * مشاهدتك» — والثانية تدعوه إلى تحديث الصفحة قبل أن يقر.
+   *
+   * والإقرار **يسجل إقرارا لا قياسا**: `declared_at` في الصف، فيعرف
+   * المعلم أي إتمام قيس وأي إتمام أقر — ولا يظن أن كل ٪١٠٠ سواء.
+   */
+  function goBlind(why) {
+    if (state.blind) return;
+    state.blind = true;
+    if (state.blindTimer) { clearTimeout(state.blindTimer); state.blindTimer = null; }
+
+    if (why === 'nosignal') {
+      text('[data-tq-blind-title]', 'تعذر قياس مشاهدتك لهذا الدرس');
+      text('[data-tq-blind-body]',
+        'المشغل لم يعلن موضع التشغيل ولا مدة المقطع — قد يكون الفيديو محجوبا على شبكتك '
+        + 'أو حذف من مصدره. جرب تحديث الصفحة أولا؛ فإن بقي الحال، أعلن إتمامك ليفتح لك '
+        + 'الاختبار. وسيصل معلمك أن هذا الإتمام أقر ولم يقس.');
+    }
+    show('[data-tq-blind-note]', true);
+    show('[data-tq-declare]', !state.completed);
   }
 
   function startTicker() {
@@ -245,8 +358,8 @@
     flush(false);
   }
 
-  function flush(ended) {
-    if (!state.watched && !state.fresh.length && !ended) return;
+  function flush(ended, force) {
+    if (!state.watched && !state.fresh.length && !ended && !force) return;
     var delta = state.watched; state.watched = 0;
     var cov = state.fresh;     state.fresh = [];
 
@@ -255,6 +368,10 @@
       position_sec: state.position,
       watched_delta: delta,
       covered: cov,
+      /* المقاس يرسل باسمه: `media_sec` ما أعلنه المشغل، و`duration_sec`
+         ما تعمل عليه هذه الشاشة الآن. والخادم يقابل بينهما ويرد الرقم
+         المعتمد، فلا يبقى في المتصفح أساس ثان للنسبة. */
+      media_sec: state.media || 0,
       duration_sec: state.duration || 0
     }).then(function (r) {
       paintProgress(r);
@@ -273,17 +390,21 @@
     });
   }
 
-  /** يعلن مدة اكتشفها المشغل — مرة واحدة، ونبضة التقدم تحملها بعدها. */
-  function sendDuration(d) {
-    call('progress', {
-      lesson_id: LESSON, position_sec: state.position,
-      watched_delta: 0, covered: [], duration_sec: d
-    }).then(paintProgress).catch(function () {});
-  }
-
   /** شريط التقدم — من رد الخادم لا من حساب في المتصفح. */
   function paintProgress(r) {
     if (!r) return;
+
+    /* الأساس من الخادم لا من هنا.
+       هو من يقرر أي مدة تعتمد (المكتوبة أم المقيسة)، ونحن نعيد ضبط
+       عدد الدلاء عليها — وإلا حسب المتصفح نسبته على أساس والقفل على
+       آخر، فيقف «٪١٠٠» أمام درس مقفل. */
+    if (typeof r.duration_sec === 'number' && r.duration_sec > 0
+        && r.duration_sec !== state.duration) {
+      state.duration = r.duration_sec;
+      state.buckets  = Math.ceil(state.duration / BUCKET);
+      text('[data-tq-lesson-duration]', iso(hms(state.duration)));
+    }
+
     var pw = $('[data-tq-lesson-progress]');
     if (pw && typeof r.percent === 'number') {
       pw.innerHTML = '<div class="tq-progress"><div class="tq-progress__track">'
