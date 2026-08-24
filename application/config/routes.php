@@ -301,6 +301,13 @@ $route['teacher/lesson/move']     = 'taqdar/lesson_move';
 $route['teacher/quiz/question']   = 'taqdar/quiz_question_save';
 $route['teacher/quiz/delete']     = 'taqdar/quiz_question_delete';
 $route['teacher/quiz/settings']   = 'taqdar/quiz_settings_save';
+// إعدادات الكورس — الحفظ قبل العرض، والعرض قبل `teacher/course/(:num)`
+// لأن `teacher/course/12/settings` ثلاثة مقاطع و`(:num)` يلتقط الثاني
+// وحده، فبلا هذه القاعدة يسقط إلى `teacher_course(12, 'settings')`.
+$route['teacher/course/save']            = 'taqdar/course_save';
+$route['taqdar/teacher/course/save']     = 'taqdar/course_save';
+$route['teacher/course/new']             = 'taqdar/teacher_course_form/0';
+$route['teacher/course/(:num)/settings'] = 'taqdar/teacher_course_form/$1';
 // شاشتا العرض — بعد قواعد الكتابة.
 $route['teacher/course/(:num)']   = 'taqdar/teacher_course/$1';
 $route['teacher/quiz/(:num)']     = 'taqdar/teacher_quiz/$1';

@@ -646,20 +646,21 @@ class Taqdar extends CI_Controller
     /** الاشتراك يغير الحساب، فلا ينفذ بطلب GET قد يجلبه زاحف أو صورة. */
     /** شراء مسار — وحدة البيع الأساسية. POST وحده. */
     /** POST teacher/courses/save — إنشاء كورس أو تعديله. */
+    /**
+     * POST teacher/courses/save — المسار القديم، ووجهته الجديدة.
+     *
+     * TQ-COURSE-SPLIT — كان ينادي `Taqdar_teacher_model::save_course()`،
+     * وهي نسخة ثانية من قواعد حفظ الكورس تعرف أربعة حقول ولا تعرف الصف
+     * والمادة — فكل كورس مر بها ولد محجوبا. والقواعد صارت في
+     * `Taqdar_curriculum_model` وحدها، كما صارت قواعد الأقسام والدروس.
+     *
+     * ويبقى المسار قائما لا يحذف: نموذج محفوظ في متصفح، أو مرجع قديم،
+     * أو مسار `taqdar/teacher/courses/save` المرادف — وحذفه يجعل الحفظ
+     * يرد 404 بلا أن يقول أحد لماذا.
+     */
     public function courses_save()
     {
-        $this->require_role('teacher');
-        if ($this->input->method(true) !== "POST") show_404();
-
-        $tid = (int) $this->session->userdata('user_id');
-        $this->load->model('taqdar_teacher_model');
-        $r = $this->taqdar_teacher_model->save_course($tid, $this->input->post(null, false));
-
-        $this->session->set_flashdata($r['ok'] ? 'flash_message' : 'error_message',
-            $r['ok'] ? $r['message'] : implode(' ', $r['errors']));
-        $this->session->set_flashdata($r['ok'] ? 'tq_ok' : 'tq_error',
-            $r['ok'] ? $r['message'] : implode(' ', $r['errors']));
-        redirect(base_url('teacher/courses'));
+        $this->course_save();
     }
 
     /**
@@ -1566,6 +1567,67 @@ class Taqdar extends CI_Controller
 
         $this->done('teacher/course/' . $cid, !empty($r['ok']),
             $this->result_message($r, 'نقل الدرس.'));
+    }
+
+    /**
+     * شاشة إعدادات الكورس عند المعلم — مرآة تبويبات اللوحة.
+     *
+     * TQ-COURSE-SPLIT — كان المعلم يملك نموذج **إنشاء** بأربعة حقول ولا
+     * يملك شاشة **تعديل** أصلا: كورس أخطأ عنوانه لا يصححه، ووصف كتبه
+     * ناقصا لا يتمه، وصورة لا يضعها. والأهم أن الصف والمادة لم يكونا في
+     * النموذج، وبغيرهما لا يصل الكورس إلى طالب البتة — انظر
+     * [Taqdar_course_link_model.php].
+     *
+     * والحقول من `Taqdar_curriculum_model::course_fields()` — الوصف
+     * الواحد الذي تعرضه اللوحة والبوابة معا.
+     */
+    public function teacher_course_form($course_id = 0)
+    {
+        $user      = $this->require_role('teacher');
+        $course_id = (int) $course_id;
+
+        $this->load->model('taqdar_curriculum_model', 'tq_curric');
+        $actor = $this->tq_curric->actor_as('teacher', (int) $user['id']);
+
+        if ($course_id > 0 && !$this->tq_curric->may_edit_course($actor, $course_id)) {
+            $this->done('teacher/courses', false, 'هذا الكورس ليس ضمن كورساتك.');
+            return;
+        }
+
+        $this->show('tq_teacher_course_form',
+            $course_id > 0 ? 'إعدادات الكورس' : 'كورس جديد', array(
+                'tq_counts' => $this->counts((int) $user['id'], 'teacher'),
+                'user_id'   => (int) $user['id'],
+                'course_id' => $course_id,
+            ));
+    }
+
+    /** POST teacher/course/save — إنشاء الكورس وتعديله بالباب نفسه. */
+    public function course_save()
+    {
+        [$user, $actor] = $this->curric();
+
+        $id = (int) $this->input->post('course_id');
+
+        /* `post(null, false)` لا `post()`: الثانية تمرر بالمرشح الافتراضي
+           فتهرب ما يكتب — والرابط والوصف الغني يخزنان كما كتبا. والتهريب
+           موضعه العرض (TQ-URLESC). */
+        $r = $this->tq_curric->save_course($actor, $id,
+            $this->input->post(null, false), isset($_FILES) ? $_FILES : array());
+
+        $ok  = !empty($r['ok']);
+        $cid = $ok ? (int) $r['id'] : $id;
+
+        $this->trace('teacher.course.save', 'course:' . $cid, array('ok' => $ok, 'new' => $id <= 0));
+
+        /* الكورس الجديد يفتح على مقرره: من أنشأ كورسا يريد أن يضع فيه
+           درسه الأول، لا أن يعود إلى قائمة فيبحث عنه. والتعديل يعود إلى
+           شاشته. */
+        $back = $ok
+            ? ($id <= 0 ? 'teacher/course/' . $cid : 'teacher/course/' . $cid . '/settings')
+            : ($id > 0 ? 'teacher/course/' . $id . '/settings' : 'teacher/course/new');
+
+        $this->done($back, $ok, $this->result_message($r, 'حفظ الكورس.'));
     }
 
     /* ---- بوابة المعلم: اختبار الدرس ------------------------------- */

@@ -465,6 +465,351 @@ class Taqdar_curriculum_model extends CI_Model
        القراءة
        ===================================================================== */
 
+    /* =====================================================================
+       الكورس نفسه — حقوله ومن يملك كلا منها
+       =====================================================================
+
+       TQ-COURSE-SPLIT — لوحتان تحرران كورسا واحدا.
+
+       اللوحة تحرره من `admin/course_form/course_edit` بتسعة تبويبات،
+       والمعلم كان يحرره من... لا شيء. نموذج إنشاء بأربعة حقول (عنوان
+       ومستوى ووصفين) وحسب — بلا شاشة تعديل أصلا، وبلا **الصف والمادة**.
+
+       والحقلان الأخيران ليسا زينة: الكتالوج ومحرك الاشتراكات لا يقرآن
+       جدول `course` في سطر واحد، بل `paths` وحده (انظر
+       [Taqdar_course_link_model.php]). فكل كورس أنشأه معلم منذ اليوم
+       الأول **ولد محجوبا**: لا يظهر في «المواد والبرامج»، ولا تفتحه
+       باقة، ولا يصل إليه طالب — ولا شيء في شاشته يقول لماذا.
+
+       فالحقول توصف هنا مرة واحدة، بالمبدأ نفسه الذي وصفت به
+       `lesson_types()` أنواع الدروس: **الوصف واحد والشاشات تعرض**.
+       ولكل حقل صاحبه:
+
+         any    — يملكه من يحرر الكورس، معلما كان أو مسؤولا
+         admin  — قرار عمل لا قرار محتوى: السعر، و«كورس مميز»،
+                  وتحسين البحث، وتاريخ النشر.
+
+       والقسمة ليست حجرا على المعلم: من يضع سعر كورسه بنفسه يضع سعر
+       المنصة، ومن يضع كورسه في شريط «الأبرز» بنفسه يضعه أمام كورسات
+       زملائه. وما سوى ذلك محتوى، والمحتوى لصاحبه.
+    */
+
+    /** حالات الكورس ووصف كل منها — مصدر واحد للقائمتين. */
+    public static function course_statuses()
+    {
+        return array(
+            'active'   => array('منشور',        'يظهر في الموقع العام ويمكن الاشتراك فيه.'),
+            'private'  => array('خاص',          'لا يظهر في القوائم — يفتح برابطه وحده.'),
+            'upcoming' => array('قادم',         'يعرض بتاريخ نشر ولا يفتح قبله.'),
+            'pending'  => array('قيد المراجعة', 'أرسله معلم وينتظر قرار الإدارة.'),
+            'draft'    => array('مسودة',        'غير مكتمل ولا يعرض لأحد.'),
+        );
+    }
+
+    /**
+     * حقول الكورس، وما يراه هذا الفاعل منها.
+     *
+     * `col` عمود القاعدة، و`kind` شكل الحقل، و`owner` من يملكه.
+     * و`tq_grade_id`/`tq_subject_id` وحدهما ليسا عمودين في `course`:
+     * يكتبان في `paths` عبر `Taqdar_course_link_model::sync()` —
+     * ولذلك `col` فيهما `null`.
+     */
+    public function course_fields($actor = null)
+    {
+        $admin = (isset($actor['role']) ? $actor['role'] : '') === 'admin';
+
+        $f = array(
+            'title' => array('col' => 'title', 'kind' => 'text', 'owner' => 'any',
+                'label' => 'عنوان الكورس', 'required' => true, 'max' => 190, 'full' => true,
+                'section' => 'أساسيات الكورس'),
+
+            'sub_category_id' => array('col' => 'sub_category_id', 'kind' => 'category', 'owner' => 'any',
+                'label' => 'المرحلة',
+                'hint' => 'بها يبوب الكورس في «المواد والبرامج».'),
+
+            'level' => array('col' => 'level', 'kind' => 'enum', 'owner' => 'any',
+                'label' => 'المستوى', 'default' => 'beginner',
+                'options' => array('beginner' => 'مبتدئ', 'intermediate' => 'متوسط', 'advanced' => 'متقدم')),
+
+            'language_made_in' => array('col' => 'language', 'kind' => 'language', 'owner' => 'any',
+                'label' => 'لغة المحتوى'),
+
+            'short_description' => array('col' => 'short_description', 'kind' => 'text', 'owner' => 'any',
+                'label' => 'وصف مختصر', 'max' => 255, 'full' => true,
+                'hint' => 'سطر واحد يظهر تحت العنوان في بطاقة الكورس.'),
+
+            'description' => array('col' => 'description', 'kind' => 'richtext', 'owner' => 'any',
+                'label' => 'الوصف الكامل', 'full' => true),
+
+            'status' => array('col' => 'status', 'kind' => 'status', 'owner' => 'any',
+                'label' => 'حالة الكورس', 'default' => 'pending', 'full' => true,
+                'section' => 'النشر والإتاحة'),
+
+            'publish_date' => array('col' => 'publish_date', 'kind' => 'datetime', 'owner' => 'admin',
+                'label' => 'تاريخ النشر'),
+
+            'is_top_course' => array('col' => 'is_top_course', 'kind' => 'bool', 'owner' => 'admin',
+                'label' => 'كورس مميز', 'full' => true,
+                'hint' => 'يعرض في شريط «الأبرز» في الصفحة الرئيسية.'),
+
+            'enable_drip_content' => array('col' => 'enable_drip_content', 'kind' => 'bool', 'owner' => 'any',
+                'label' => 'إتاحة الدروس تدريجيا', 'full' => true,
+                'hint' => 'الدرس لا يفتح إلا بعد سابقه.'),
+
+            'tq_grade_id' => array('col' => null, 'kind' => 'ref', 'owner' => 'any', 'table' => 'grades',
+                'label' => 'الصف الدراسي', 'empty' => '— بلا صف',
+                'section' => 'الصف والمادة'),
+
+            'tq_subject_id' => array('col' => null, 'kind' => 'ref', 'owner' => 'any', 'table' => 'subjects',
+                'label' => 'المادة', 'empty' => '— بلا مادة'),
+
+            'thumbnail' => array('col' => 'thumbnail', 'kind' => 'image', 'owner' => 'any',
+                'label' => 'صورة الكورس', 'dir' => 'uploads/thumbnails/course_thumbnails',
+                'accept' => 'image/*', 'section' => 'الصورة والفيديو',
+                'hint' => 'المقاس المفضل 700 × 430.'),
+
+            'course_overview_url' => array('col' => 'video_url', 'kind' => 'url', 'owner' => 'any',
+                'label' => 'فيديو تعريفي', 'ltr' => true, 'full' => true,
+                'hint' => 'مقطع قصير يعرض في صفحة الكورس قبل الاشتراك.'),
+
+            'requirements' => array('col' => 'requirements', 'kind' => 'lines', 'owner' => 'any',
+                'label' => 'المتطلبات السابقة', 'full' => true, 'section' => 'ما يعرض في صفحته',
+                'hint' => 'بند في كل سطر.'),
+
+            'outcomes' => array('col' => 'outcomes', 'kind' => 'lines', 'owner' => 'any',
+                'label' => 'ماذا سيتعلم الطالب', 'full' => true, 'hint' => 'بند في كل سطر.'),
+
+            'price' => array('col' => 'price', 'kind' => 'money', 'owner' => 'admin',
+                'label' => 'السعر', 'section' => 'التسعير'),
+
+            'meta_keywords' => array('col' => 'meta_keywords', 'kind' => 'text', 'owner' => 'admin',
+                'label' => 'كلمات البحث', 'full' => true, 'section' => 'تحسين البحث'),
+
+            'meta_description' => array('col' => 'meta_description', 'kind' => 'textarea', 'owner' => 'admin',
+                'label' => 'وصف محرك البحث', 'full' => true),
+        );
+
+        if ($admin) return $f;
+
+        foreach ($f as $k => $d) {
+            if ($d['owner'] === 'admin') unset($f[$k]);
+        }
+        return $f;
+    }
+
+    /** صف الكورس مع صفه ومادته — القراءة التي تغذي شاشة التحرير. */
+    public function course($id)
+    {
+        $id  = (int) $id;
+        $row = $this->db->where('id', $id)->get('course')->row_array();
+        if (!$row) return null;
+
+        $CI = get_instance();
+        $CI->load->model('taqdar_course_link_model', 'tq_link_m');
+        $link = $CI->tq_link_m->link_of($id);
+
+        $row['tq_grade_id']   = (int) $link['grade_id'];
+        $row['tq_subject_id'] = (int) $link['subject_id'];
+        return $row;
+    }
+
+    /**
+     * يحفظ حقول الكورس — من اللوحة أو من بوابة المعلم، بالقواعد نفسها.
+     *
+     * ويكتب **ما أرسل من الحقول المملوكة وحده**: `Crud_model::update_course()`
+     * تكتب كل عمود في كل حفظ، فحفظ تبويب واحد يمحو ما سواه (TQ-TAB-WIPE).
+     * وهنا لا يمس عمود لم يرسل حقله، فلا يحتاج النموذج أن يحمل حقولا
+     * مخفية بقيمها القديمة كي لا تضيع.
+     *
+     * @param array $actor من `actor_as()`
+     */
+    public function save_course($actor, $id, $post, $files = array())
+    {
+        $this->install_schema();
+
+        $id    = (int) $id;
+        $post  = is_array($post) ? $post : array();
+        $files = is_array($files) ? $files : array();
+        $isnew = $id <= 0;
+
+        if (!$isnew && !$this->may_edit_course($actor, $id)) {
+            return $this->fail('هذا الكورس ليس ضمن كورساتك.');
+        }
+
+        $spec    = $this->course_fields($actor);
+        $current = $isnew ? array() : ($this->course($id) ?: array());
+        if (!$isnew && !$current) return $this->fail('لا كورس بهذا المعرف.');
+
+        $errors = array();
+        $data   = array();
+        $link   = array('grade' => null, 'subject' => null);
+        $paths  = array();
+
+        foreach ($spec as $name => $f) {
+            $sent = array_key_exists($name, $post);
+
+            /* الصف والمادة يذهبان إلى `paths` لا إلى `course`. */
+            if ($name === 'tq_grade_id')   { if ($sent) $link['grade']   = (int) $post[$name]; continue; }
+            if ($name === 'tq_subject_id') { if ($sent) $link['subject'] = (int) $post[$name]; continue; }
+
+            switch ($f['kind']) {
+
+                case 'image':
+                    $up = $this->take_file($files, $name, $f);
+                    if (is_array($up) && isset($up['error'])) { $errors[] = $up['error']; break; }
+                    /* الاسم لا المسار: `course.thumbnail` يخزن اسم الملف
+                       وحده كما يخزنه المسار الموروث، والقالب يبني
+                       الرابط من مجلده. */
+                    if ($up) { $data[$f['col']] = $up['name']; $paths[] = $up['path']; }
+                    break;
+
+                case 'bool':
+                    /* الخانة غير المؤشرة لا ترسل أصلا، فلا يفرق «لم يرسل»
+                       عن «أطفئ». وحقل مرافق `<name>_sent` هو ما يفصل —
+                       يطبع مع كل خانة، فيعلم النموذج أن الشاشة عرضتها. */
+                    if (!empty($post[$name . '_sent'])) {
+                        $data[$f['col']] = ($sent && (string) $post[$name] !== '0') ? 1 : 0;
+                    }
+                    break;
+
+                case 'lines':
+                    if (!$sent) break;
+                    $vals = preg_split('/\r\n|\r|\n/', (string) $post[$name]);
+                    $vals = array_values(array_filter(array_map('trim', $vals), 'strlen'));
+                    $data[$f['col']] = json_encode($vals, JSON_UNESCAPED_UNICODE);
+                    break;
+
+                case 'status':
+                    if (!$sent) break;
+                    $want = (string) $post[$name];
+                    if (!array_key_exists($want, self::course_statuses())) $want = 'draft';
+                    /* النشر ليس بيد المعلم — القاعدة نفسها التي تحكم
+                       الدروس (`may_publish`). وما يعلنه منشورا أو خاصا
+                       ينزل إلى «قيد المراجعة»، ولا يرد بخطأ: هو لم يخطئ،
+                       وإنما القرار ليس له. */
+                    if (!$this->may_publish($actor)
+                        && in_array($want, array('active', 'private', 'upcoming'), true)) {
+                        $want = 'pending';
+                    }
+                    $data['status'] = $want;
+                    break;
+
+                case 'money':
+                    if (!$sent) break;
+                    $data[$f['col']] = max(0, (float) $post[$name]);
+                    break;
+
+                case 'ref':
+                case 'category':
+                    if (!$sent) break;
+                    $data[$f['col']] = (int) $post[$name];
+                    break;
+
+                case 'url':
+                    if (!$sent) break;
+                    /* الرابط قيمة تفكك لا نص يعرض — TQ-URLESC. */
+                    $data[$f['col']] = $this->clean_url_val((string) $post[$name]);
+                    break;
+
+                case 'richtext':
+                    if (!$sent) break;
+                    $data[$f['col']] = $this->clean_html((string) $post[$name], true);
+                    break;
+
+                case 'enum':
+                    if (!$sent) break;
+                    $v = (string) $post[$name];
+                    $data[$f['col']] = isset($f['options'][$v]) ? $v : $f['default'];
+                    break;
+
+                case 'language':
+                case 'datetime':
+                case 'textarea':
+                default:
+                    if (!$sent) break;
+                    $v = trim((string) $post[$name]);
+                    if (!empty($f['max']) && $this->len($v) > $f['max']) {
+                        $errors[] = $f['label'] . ': أطول من المسموح (' . (int) $f['max'] . ' حرفا).';
+                        break;
+                    }
+                    if (!empty($f['required']) && $v === '') {
+                        $errors[] = $f['label'] . ' مطلوب.';
+                        break;
+                    }
+                    $data[$f['col']] = ($f['kind'] === 'text') ? html_escape($v) : $v;
+            }
+        }
+
+        if ($isnew && trim((string) $this->val($data, 'title')) === '') {
+            $errors[] = 'عنوان الكورس مطلوب.';
+        }
+        if ($errors) { $this->cleanup($paths); return $this->fail($errors); }
+
+        $data['last_modified'] = time();
+
+        if ($isnew) {
+            $data += array(
+                'creator'        => (int) $actor['id'],
+                'user_id'        => (string) (int) $actor['id'],
+                'course_type'    => 'general',
+                'date_added'     => time(),
+                'price'          => 0,
+                'is_free_course' => 0,
+                'expiry_period'  => 0,
+                'language'       => get_settings('language') ?: 'arabic',
+            );
+            if (empty($data['status'])) {
+                $data['status'] = $this->may_publish($actor) ? 'draft' : 'pending';
+            }
+            $this->db->insert('course', $data);
+            $id  = (int) $this->db->insert_id();
+            $msg = $this->may_publish($actor)
+                ? 'أنشئ الكورس.'
+                : 'أنشئ الكورس، وهو بانتظار مراجعة الإدارة قبل النشر.';
+        } else {
+            $this->db->where('id', $id)->update('course', $data);
+            $msg = 'حفظت تعديلات الكورس.';
+        }
+
+        /* الجسر إلى `paths` — وبه وحده يصل الكورس إلى طالب.
+           ينادى متى أرسل أحد الحقلين، ويقرأ الآخر من المخزون إن لم
+           يرسل: شاشة تعرض المادة وحدها لا يجوز أن تمحو الصف. */
+        $sync = null;
+        if ($link['grade'] !== null || $link['subject'] !== null) {
+            $g = $link['grade']   !== null ? $link['grade']   : (int) $this->val($current, 'tq_grade_id', 0);
+            $s = $link['subject'] !== null ? $link['subject'] : (int) $this->val($current, 'tq_subject_id', 0);
+
+            $CI = get_instance();
+            $CI->load->model('taqdar_course_link_model', 'tq_link_m');
+            $sync = $CI->tq_link_m->sync($id, $g, $s);
+
+            if ($g > 0 && $s > 0) {
+                $msg .= ' وربط بصفه ومادته، فيظهر في «المواد والبرامج» متى نشر.';
+            } else {
+                $msg .= ' وبلا صف ومادة يبقى محتوى داخليا لا يعرض في الموقع العام.';
+            }
+        }
+
+        $this->log($actor, $isnew ? 'course.create' : 'course.save', 'course:' . $id,
+                   array('fields' => array_keys($data)));
+
+        return array('ok' => true, 'id' => $id, 'message' => $msg, 'sync' => $sync);
+    }
+
+    /**
+     * الرابط يخزن كما يكتب — TQ-URLESC.
+     *
+     * `html_escape()` يحول `&` إلى `&amp;` فيقرأ المشغل معاملا اسمه
+     * `amp;list`. والتهريب موضعه العرض.
+     */
+    private function clean_url_val($raw)
+    {
+        $u = trim((string) $raw);
+        if ($u === '') return '';
+        $u = html_entity_decode($u, ENT_QUOTES, 'UTF-8');
+        return preg_match('~^(https?://|/)~i', $u) ? $u : '';
+    }
+
     /** أقسام كورس مرتبة، ومع كل قسم عدد دروسه. */
     public function sections_of($course_id)
     {

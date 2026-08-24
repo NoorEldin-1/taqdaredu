@@ -143,9 +143,16 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
             <?php echo tq_icon('plus', 16); ?> إضافة درس
         </button>
     </div>
-    <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('teacher/courses'); ?>">
-        <?php echo tq_icon('chev-prev', 16); ?> كل كورساتي
-    </a>
+    <div class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap">
+        <?php /* بيانات الكورس نفسه — عنوانه وصفه ومادته وحالته. ولم يكن
+                 للمعلم إليها باب أصلا (TQ-COURSE-SPLIT). */ ?>
+        <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('teacher/course/' . $tq_cid . '/settings'); ?>">
+            <?php echo tq_icon('pen', 16); ?> إعدادات الكورس
+        </a>
+        <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('teacher/courses'); ?>">
+            <?php echo tq_icon('chev-prev', 16); ?> كل كورساتي
+        </a>
+    </div>
 </div>
 
 <?php /* ── حالة الكورس: ما يفصل مقرره عن الطالب ─────────────────── */ ?>

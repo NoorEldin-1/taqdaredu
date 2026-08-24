@@ -296,6 +296,210 @@ if (!function_exists('tq_cur_track_note')) {
     }
 }
 
+if (!function_exists('tq_cur_course_field')) {
+    /**
+     * يطبع حقل كورس واحدا من وصفه — TQ-COURSE-SPLIT.
+     *
+     * أخته `tq_cur_field()` تطبع حقول **الدرس**، وهذه حقول **الكورس**.
+     * والفصل بينهما لأن أنواعهما تختلف: الدرس فيه رابط ومدة وملف،
+     * والكورس فيه مرحلة وحالة وصف ومادة. وجمعهما في دالة واحدة يعني
+     * مفتاح `switch` بأربعة عشر فرعا نصفها لا يقع أبدا.
+     *
+     * والجلد واحد (`tq_cur_skin`)، فالحقل يخرج بمظهر لوحته في الجهتين.
+     *
+     * @param string $name اسم الحقل في النموذج
+     * @param array  $f    وصفه من `Taqdar_curriculum_model::course_fields()`
+     * @param mixed  $val  قيمته الحالية
+     * @param string $skin 'tqa' | 'tq'
+     */
+    function tq_cur_course_field($name, $f, $val = '', $skin = 'tq')
+    {
+        $c    = tq_cur_skin($skin);
+        $id   = 'tqc_' . preg_replace('/[^a-z0-9_]/i', '', $name);
+        $req  = !empty($f['required']);
+        $hint = isset($f['hint']) ? $f['hint'] : '';
+        $kind = $f['kind'];
+
+        /* الخانة والحالة يرسمان لوحيهما بأنفسهما: ليس لهما `<label>`
+           واحد يعلو حقلا واحدا. */
+        if ($kind === 'bool') {
+            echo '<div class="' . $c['field'] . '" style="grid-column:1/-1">';
+            /* الخانة غير المؤشرة لا ترسل أصلا، فلا يفرق النموذج بين «لم
+               تعرض» و«أطفئت». وهذا المرافق هو ما يفرق. */
+            echo '<input type="hidden" name="' . html_escape($name) . '_sent" value="1">';
+            echo '<label class="tqc-check">';
+            echo '<input type="checkbox" id="' . $id . '" name="' . html_escape($name) . '" value="1"'
+               . ((int) $val === 1 ? ' checked' : '') . '>';
+            echo '<span><strong>' . html_escape($f['label']) . '</strong>';
+            if ($hint !== '') echo '<span style="display:block" class="' . $c['hint'] . '">' . html_escape($hint) . '</span>';
+            echo '</span></label></div>';
+            return;
+        }
+
+        if ($kind === 'status') {
+            echo '<div class="' . $c['field'] . '" style="grid-column:1/-1">';
+            echo '<span class="' . $c['label'] . '">' . html_escape($f['label']) . '</span>';
+            $cur = (string) ($val !== '' ? $val : $f['default']);
+            foreach (Taqdar_curriculum_model::course_statuses() as $k => $sd) {
+                /* والحالات كلها تعرض ولو لم يملكها المعلم: إخفاء «منشور»
+                   يجعله يظن أنها غير موجودة، وعرضها مع سبب تعذرها يقول
+                   له أين القرار. والنموذج هو من يحكم لا هذا الوسم. */
+                echo '<label class="tqc-check">';
+                echo '<input type="radio" name="' . html_escape($name) . '" value="' . $k . '"'
+                   . ($cur === $k ? ' checked' : '') . '>';
+                echo '<span><strong>' . html_escape($sd[0]) . '</strong>'
+                   . '<span style="display:block" class="' . $c['hint'] . '">' . html_escape($sd[1]) . '</span>'
+                   . '</span></label>';
+            }
+            echo '</div>';
+            return;
+        }
+
+        echo '<div class="' . $c['field'] . '"' . (!empty($f['full']) ? ' style="grid-column:1/-1"' : '') . '>';
+        echo '<label class="' . $c['label'] . '" for="' . $id . '">' . html_escape($f['label'])
+           . ($req ? ' <span class="' . $c['req'] . '" aria-hidden="true">*</span>' : '') . '</label>';
+
+        switch ($kind) {
+
+            case 'category':
+                echo '<select class="' . $c['select'] . '" id="' . $id . '" name="' . html_escape($name) . '">'
+                   . '<option value="0">— بلا مرحلة</option>'
+                   . tqa_category_options((int) $val)
+                   . '</select>';
+                break;
+
+            case 'ref':
+                echo '<select class="' . $c['select'] . '" id="' . $id . '" name="' . html_escape($name) . '">'
+                   . '<option value="0">' . html_escape(isset($f['empty']) ? $f['empty'] : '—') . '</option>'
+                   . tqa_ref_options($f['table'], (int) $val)
+                   . '</select>';
+                break;
+
+            case 'enum':
+                echo '<select class="' . $c['select'] . '" id="' . $id . '" name="' . html_escape($name) . '">';
+                foreach ($f['options'] as $k => $l) {
+                    echo '<option value="' . html_escape($k) . '"'
+                       . ((string) $val === (string) $k ? ' selected' : '') . '>' . html_escape($l) . '</option>';
+                }
+                echo '</select>';
+                break;
+
+            case 'language':
+                /* القائمة من `Crud_model` نفسها التي تغذي شاشة اللوحة —
+                   لا مصفوفة مكتوبة هنا تفترق عنها عند أول لغة تضاف. */
+                $CI = get_instance();
+                $langs = array();
+                try {
+                    $langs = (array) $CI->crud_model->get_all_languages();
+                } catch (Throwable $e) { /* الشاشة تعمل بلا قائمة */ }
+                if (!$langs) $langs = array('arabic', 'english');
+                echo '<select class="' . $c['select'] . '" id="' . $id . '" name="' . html_escape($name) . '">';
+                foreach ($langs as $l) {
+                    echo '<option value="' . html_escape($l) . '"'
+                       . ((string) $val === (string) $l ? ' selected' : '') . '>' . html_escape(ucfirst($l)) . '</option>';
+                }
+                echo '</select>';
+                break;
+
+            case 'image':
+                if (trim((string) $val) !== '') {
+                    $src = strpos((string) $val, 'uploads/') === 0
+                        ? base_url((string) $val)
+                        : base_url(rtrim($f['dir'], '/') . '/' . basename((string) $val));
+                    echo '<img src="' . html_escape($src) . '" alt=""'
+                       . ' style="max-inline-size:220px;border-radius:var(--tq-radius-small);'
+                       . 'margin-block-end:var(--tq-space-s);display:block">';
+                    echo '<p class="' . $c['hint'] . '">واختيار صورة جديدة يستبدلها.</p>';
+                }
+                echo '<input type="file" id="' . $id . '" name="' . html_escape($name) . '"'
+                   . ' accept="' . html_escape(isset($f['accept']) ? $f['accept'] : 'image/*') . '">';
+                break;
+
+            case 'url':
+                echo '<input class="' . $c['input'] . ' ' . $c['ltr'] . '" type="url" dir="ltr"'
+                   . ' id="' . $id . '" name="' . html_escape($name) . '"'
+                   . ' value="' . html_escape((string) $val) . '" placeholder="https://...">';
+                break;
+
+            case 'money':
+                echo '<input class="' . $c['input'] . ' ' . $c['ltr'] . '" type="number" dir="ltr"'
+                   . ' min="0" step="0.01" id="' . $id . '" name="' . html_escape($name) . '"'
+                   . ' value="' . html_escape((string) ($val === '' ? '0' : $val)) . '">';
+                break;
+
+            case 'datetime':
+                echo '<input class="' . $c['input'] . ' ' . $c['ltr'] . '" type="datetime-local" dir="ltr"'
+                   . ' id="' . $id . '" name="' . html_escape($name) . '"'
+                   . ' value="' . html_escape((string) $val) . '">';
+                break;
+
+            case 'lines':
+                /* المصفوفة تخزن JSON وتحرر أسطرا: صف مكرر بزر «أضف بندا»
+                   يحتاج جافاسكربت ليعمل، وسطر في مربع نص يعمل بلا شيء. */
+                $rows = json_decode((string) $val, true);
+                $txt  = is_array($rows) ? implode("\n", $rows) : (string) $val;
+                echo '<textarea class="' . $c['area'] . '" id="' . $id . '" name="' . html_escape($name) . '"'
+                   . ' rows="4">' . html_escape($txt) . '</textarea>';
+                break;
+
+            case 'richtext':
+                echo '<textarea class="' . $c['area'] . '" id="' . $id . '" name="' . html_escape($name) . '"'
+                   . ' rows="8">' . html_escape((string) $val) . '</textarea>';
+                break;
+
+            case 'textarea':
+                echo '<textarea class="' . $c['area'] . '" id="' . $id . '" name="' . html_escape($name) . '"'
+                   . ' rows="3">' . html_escape((string) $val) . '</textarea>';
+                break;
+
+            default:
+                echo '<input class="' . $c['input'] . '" type="text" id="' . $id . '"'
+                   . ' name="' . html_escape($name) . '" value="' . html_escape((string) $val) . '"'
+                   . (!empty($f['max']) ? ' maxlength="' . (int) $f['max'] . '"' : '')
+                   . ($req ? ' required' : '') . '>';
+        }
+
+        if ($hint !== '') echo '<span class="' . $c['hint'] . '">' . html_escape($hint) . '</span>';
+        echo '</div>';
+    }
+}
+
+if (!function_exists('tq_cur_course_form')) {
+    /**
+     * يطبع نموذج الكورس كاملا من وصفه، مجموعا في بطاقات بمفتاح `section`.
+     *
+     * والقيمة تقرأ من **العمود** لا من اسم الحقل: `language_made_in`
+     * يكتب في `language`، وقراءته باسمه تعطي فارغا أبدا فتظهر لغة كل
+     * كورس على أول خيار في القائمة.
+     *
+     * @param array  $spec   من `Taqdar_curriculum_model::course_fields()`
+     * @param array  $course صف الكورس عند التحرير، أو array() عند الإنشاء
+     * @param string $skin   'tqa' | 'tq'
+     */
+    function tq_cur_course_form($spec, $course = array(), $skin = 'tq')
+    {
+        $open = false;
+        foreach ($spec as $name => $f) {
+            if (!empty($f['section'])) {
+                if ($open) echo '</div></section>';
+                echo '<section class="' . ($skin === 'tq' ? 'tq-card tq-section' : 'tqa-card tqa-section') . '">';
+                echo '<h2 class="' . ($skin === 'tq' ? 'tq-card__title' : 'tqa-card__head') . '"'
+                   . ' style="margin-block-end:var(--tq-space-l)">' . html_escape($f['section']) . '</h2>';
+                echo '<div class="' . ($skin === 'tq' ? 'tqc-grid' : 'tqa-fieldgrid') . '">';
+                $open = true;
+            }
+
+            $col = isset($f['col']) && $f['col'] !== null ? $f['col'] : $name;
+            $val = array_key_exists($col, $course) ? $course[$col]
+                 : (array_key_exists($name, $course) ? $course[$name]
+                 : (isset($f['default']) ? $f['default'] : ''));
+
+            tq_cur_course_field($name, $f, $val, $skin);
+        }
+        if ($open) echo '</div></section>';
+    }
+}
+
 if (!function_exists('tq_cur_status_face')) {
     /** حالة الدرس: شارة ونصها — مصدر واحد للجهتين. */
     function tq_cur_status_face($status)
@@ -351,6 +555,16 @@ if (!function_exists('tq_cur_styles')) {
             background: var(--tq-amberSoft); color: var(--tq-text);
             font: var(--tq-type-caption); margin-block-end: var(--tq-space-l); }
 .tqc-note > span:first-child { flex: none; color: var(--tq-navy); }
+
+/* شبكة حقول الكورس وخانة الاختيار — بالبادئة نفسها وللسبب نفسه:
+   `tq-formgrid` و`tq-check` **غير معرفتين في أي ورقة** (`tq_teacher_courses`
+   يكتب الأولى منذ اليوم الأول فتخرج حقوله مكدسة بلا شبكة)، ونظيراهما في
+   اللوحة `tqa-fieldgrid` و`tqa-check`. فيعرفان هنا فيعملان في المحركين. */
+.tqc-grid  { display: grid; gap: var(--tq-space-l);
+             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.tqc-check { display: flex; gap: var(--tq-space-m); align-items: flex-start;
+             cursor: pointer; margin-block-end: var(--tq-space-s); }
+.tqc-check input { margin-block-start: 3px; flex: none; }
 </style>
         <?php
     }

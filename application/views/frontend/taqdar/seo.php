@@ -42,7 +42,12 @@
             $route_second_segment = $CI->uri->segment(2);
             $route_first_segment = $CI->uri->segment(1);
 
-            if ($route_second_segment == 'course' && isset($course_id)) {
+            /* `home/` صراحة: الفرع لصفحة الكورس العامة وحدها.
+               وبدونها يلتقط **كل** مسار مقطعه الثاني `course` — ومنها
+               `teacher/course/<id>` و`teacher/course/new` في بوابة
+               المعلم، فيصير عنوان تبويب «إعدادات الكورس» عنوان الكورس،
+               وعنوان شاشة الإنشاء الكلمة الحرفية `Title`. */
+            if ($route_first_segment == 'home' && $route_second_segment == 'course' && isset($course_id)) {
                 $data = $CI->crud_model->get_course_by_id($course_id)->row_array();
                 $meta_title = $data['title'] ?? 'Title';
                 $meta_description = $data['meta_description'] ?? '';

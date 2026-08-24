@@ -80,53 +80,35 @@ include 'portal_open.php';
             <div class="tq-alert tq-alert--no tq-section" role="alert"><?php echo html_escape($m); ?></div>
         <?php endif; ?>
 
-        <?php /* إنشاء كورس — يبدأ «بانتظار المراجعة»، فالنشر قرار إدارة.
+        <?php /* إنشاء كورس — TQ-COURSE-SPLIT.
 
-                 وكانت هذه الكتلة مكتوبة **داخل** `<nav>` التصفية: نموذج كامل
-                 في عنصر تنقل، فيقف زر «أنشئ كورسا جديدا» في صف حبات التصفية
-                 كأنه إحداها، ويقرأ قارئ الشاشة نموذج الإنشاء كله بندا من
-                 بنود قائمة «تصفية الكورسات بالحالة». */ ?>
-        <details class="tq-card tq-card--panel tq-section">
-            <summary class="tq-card__title" style="cursor:pointer">أنشئ كورسا جديدا</summary>
+                 كان هنا نموذج مطوي بأربعة حقول: عنوان ومستوى ووصفان. وأربعة
+                 من نيف وعشرين تحررها اللوحة — وأهم ما سقط منها **الصف
+                 والمادة**، وبهما وحدهما يصل الكورس إلى طالب (الكتالوج ومحرك
+                 الاشتراكات يقرآن `paths` لا `course`). فكل كورس أنشئ من هنا
+                 ولد محجوبا ولا شيء يقول لماذا.
 
-            <p class="tq-caption" style="margin-block:var(--tq-space-s) var(--tq-space-l)">
-                الكورس الجديد يبدأ <strong>بانتظار مراجعة الإدارة</strong>، وتستطيع رفع دروسه
-                من الآن. وينشر بعد المراجعة.
-            </p>
+                 وحقول الشاشة الكاملة لا تسع نموذجا مطويا فوق جدول، فصار
+                 الإنشاء شاشته: `teacher/course/new`، وهي نفسها شاشة التعديل
+                 — نموذج واحد لا اثنان يفترقان.
 
-            <form method="post" action="<?php echo base_url('teacher/courses/save'); ?>">
-                <?php echo tq_csrf(); ?>
-                <div class="tq-formgrid">
-                    <div class="tq-field">
-                        <label for="c_title">عنوان الكورس <span aria-hidden="true">*</span></label>
-                        <input class="tq-input" type="text" id="c_title" name="title" required maxlength="190">
-                    </div>
-
-                    <div class="tq-field">
-                        <label for="c_level">المستوى</label>
-                        <select class="tq-input" id="c_level" name="level">
-                            <option value="beginner">مبتدئ</option>
-                            <option value="intermediate">متوسط</option>
-                            <option value="advanced">متقدم</option>
-                        </select>
-                    </div>
-
-                    <div class="tq-field" style="grid-column:1/-1">
-                        <label for="c_short">وصف مختصر</label>
-                        <input class="tq-input" type="text" id="c_short" name="short_description" maxlength="255">
-                    </div>
-
-                    <div class="tq-field" style="grid-column:1/-1">
-                        <label for="c_desc">الوصف</label>
-                        <textarea class="tq-input" id="c_desc" name="description" rows="3"></textarea>
-                    </div>
+                 وكانت الكتلة قبل ذلك مكتوبة **داخل** `<nav>` التصفية: نموذج
+                 كامل في عنصر تنقل، فيقرأ قارئ الشاشة نموذج الإنشاء كله بندا
+                 من بنود قائمة «تصفية الكورسات بالحالة». */ ?>
+        <div class="tq-card tq-card--panel tq-section">
+            <div class="tq-row tq-row--between" style="flex-wrap:wrap;gap:var(--tq-space-m)">
+                <div>
+                    <h2 class="tq-card__title" style="margin:0">أنشئ كورسا جديدا</h2>
+                    <p class="tq-caption" style="margin-block-start:var(--tq-space-xs)">
+                        عرفه وحدد <strong>صفه ومادته</strong> — بهما يظهر في «المواد والبرامج»
+                        وتفتحه باقة. ثم ابن مقرره من الآن.
+                    </p>
                 </div>
-
-                <div style="margin-block-start:var(--tq-space-l)">
-                    <button type="submit" class="tq-btn tq-btn--primary">أنشئ الكورس</button>
-                </div>
-            </form>
-        </details>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/course/new'); ?>">
+                    <?php echo tq_icon('plus', 16); ?> كورس جديد
+                </a>
+            </div>
+        </div>
 
         <nav class="tq-row tq-section" aria-label="تصفية الكورسات بالحالة" style="flex-wrap:wrap">
             <?php foreach ($tq_filters as $tq_key => $tq_label): ?>
@@ -188,6 +170,14 @@ include 'portal_open.php';
                                         <a class="tq-btn tq-btn--secondary tq-btn--sm"
                                            href="<?php echo base_url('teacher/course/' . (int) $tq_c['id']); ?>">
                                             <?php echo tq_icon('layers', 14); ?> المقرر
+                                        </a>
+                                        <?php /* «إعداداته» — البيانات نفسها التي تحررها
+                                                 اللوحة. ولم يكن للمعلم إليها باب: كورس
+                                                 أخطأ عنوانه لا يصححه، وبلا صف ومادة لا
+                                                 يصلحه (TQ-COURSE-SPLIT). */ ?>
+                                        <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                                           href="<?php echo base_url('teacher/course/' . (int) $tq_c['id'] . '/settings'); ?>">
+                                            <?php echo tq_icon('pen', 14); ?> إعداداته
                                         </a>
                                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                            href="<?php echo base_url('teacher/lessons'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
