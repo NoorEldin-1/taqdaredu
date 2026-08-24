@@ -21,7 +21,7 @@
  *   TQPlayer.mount(el, {type, url, startAt, title}) -> Promise<player>
  *
  *   player.kind          'api' | 'native' | 'none'
- *   player.on(ev, fn)    ready · play · pause · ended · time
+ *   player.on(ev, fn)    ready · duration · play · pause · ended · time
  *   player.duration()    ثوان، أو صفر إن لم تعرف بعد
  *   player.currentTime()
  *   player.seek(sec)
@@ -38,6 +38,16 @@
  * والثالث يعلن عن نفسه صراحة (`kind === 'none'`) فتعرض الشاشة زر «أنهيت
  * الدرس» بدل أن تعد بقياس لا يقع. وإخفاء العجز أسوأ من إعلانه: طالب
  * ينتظر شريط تقدم لا يتحرك يظن العطب في حسابه.
+ *
+ * ----------------------------------------------------------------------
+ * `ready` و`duration` لاصقان
+ *
+ * وهما وحدهما كذلك، لأنهما **حالة لا لحظة**: من سأل «أجاهز؟» بعد أن صار
+ * جاهزا يجب أن يقال له نعم، لا أن يسكت عنه لأنه تأخر. وبغير ذلك يضيع
+ * الحدثان على يوتيوب وفيميو كليهما — انظر TQ-READY-LOST أدناه.
+ *
+ * و`duration` يعلن مرة واحدة، وقد يتأخر عن `ready` بثوان: يوتيوب لا
+ * يعرف مدة فيديوه إلا بعد أن تحمل بيانات وسائطه.
  */
 (function (global) {
   'use strict';
@@ -59,17 +69,73 @@
     return loaded[src];
   }
 
-  /* ---- ناقل أحداث صغير ---- */
+  /* ---- ناقل أحداث صغير، وحدثان منه لاصقان -------------------------
+     TQ-READY-LOST — `ready` و`duration` **حالة لا لحظة**.
+
+     كان `mountYouTube` ينادي `ok(wrap())` ثم `bus.fire('ready')` في
+     السطر التالي — والأول يحل وعدا تنفذ توابعه في دورة صغرى تالية،
+     والثاني يقع **الآن**. فالصفحة تسجل مستمعها بعد أن يكون الحدث قد
+     وقع ومضى، ولا يصلها شيء أبدا. وفيميو مثله: `bus.fire('ready')`
+     داخل `then` الذي يرد المشغل.
+
+     ونتيجته أن الكتلة التي تعلن المدة **لم تنفذ مرة واحدة** على يوتيوب
+     ولا فيميو — وهما كل محتوى المنصة. فيبقى `lesson.duration_sec`
+     صفرا، فلا دلاء تحسب، فلا تغطية تسجل، فلا `completed_at` يكتب،
+     فلا اختبار يفتح ولا درس تال. عطل واحد في ترتيب سطرين يوقف السلسلة
+     كلها.
+
+     والعلاج ليس تأخير الإطلاق — من ينتظر دورة يخسرها من اشترك مبكرا —
+     بل أن يحفظ الحدثان آخر قيمة لهما، فمن اشترك بعد وقوعهما علمهما في
+     الحال. */
+  var STICKY = { ready: 1, duration: 1 };
+
   function emitter() {
-    var map = {};
+    var map = {}, latched = {};
     return {
-      on: function (ev, fn) { (map[ev] = map[ev] || []).push(fn); },
+      on: function (ev, fn) {
+        (map[ev] = map[ev] || []).push(fn);
+        if (STICKY[ev] && Object.prototype.hasOwnProperty.call(latched, ev)) {
+          try { fn(latched[ev]); } catch (e) { /* مستمع متأخر يرمي لا يهم غيره */ }
+        }
+      },
       fire: function (ev, a) {
+        if (STICKY[ev]) latched[ev] = a;
         (map[ev] || []).forEach(function (fn) {
           try { fn(a); } catch (e) { /* مستمع يرمي لا يوقف الباقين */ }
         });
       }
     };
+  }
+
+  /* ---- إعلان المدة: يسأل حتى يعرف، لا مرة واحدة -------------------
+     يوتيوب يرد `getDuration()` صفرا حتى تحمل بيانات الوسائط، وهي تحمل
+     بعد بدء التشغيل عادة لا عند الجهوزية. فسؤال واحد عند `ready` يعطي
+     صفرا في أكثر الأحوال — والصفر يعطل قياس التقدم كله، لأن خريطة
+     الدلاء تحتاج عددها وعددها من المدة.
+
+     فالسؤال يعاد: كل نصف ثانية إلى نصف دقيقة، ومع كل نبضة موضع بعدها.
+     ويعلن مرة واحدة وحدها (`duration` لاصق)، ثم يكف. */
+  function announceDuration(bus, get) {
+    var done = false, tries = 0, timer = null;
+
+    function look() {
+      if (done) return true;
+      var d = Math.round(get() || 0);
+      if (!isFinite(d) || d <= 0) return false;
+      done = true;
+      if (timer) { clearInterval(timer); timer = null; }
+      bus.fire('duration', d);
+      return true;
+    }
+
+    if (!look()) {
+      timer = setInterval(function () {
+        if (look() || ++tries > 60) { clearInterval(timer); timer = null; }
+      }, 500);
+      /* والموضع يعلن قبل المدة أحيانا: أول نبضة تشغيل مناسبة للسؤال. */
+      bus.on('time', function () { look(); });
+    }
+    return function () { if (timer) clearInterval(timer); };
   }
 
   /* ---- تعرف المصدر -------------------------------------------------
@@ -132,6 +198,10 @@
               onReady: function () {
                 ok(wrap());
                 bus.fire('ready');
+                /* والمدة تسأل حتى تعرف: يوتيوب يردها صفرا هنا. */
+                announceDuration(bus, function () {
+                  return yt.getDuration ? yt.getDuration() : 0;
+                });
               },
               onStateChange: function (e) {
                 var S = global.YT.PlayerState;
@@ -209,6 +279,8 @@
       var dur = 0, now = 0;
       vp.getDuration().then(function (d) { dur = d || 0; }).catch(function () {});
       vp.on('timeupdate', function (d) { now = (d && d.seconds) || 0; });
+      /* `getDuration()` وعد قد يحل بعد أن يرد المشغل، فلا يسأل مرة. */
+      announceDuration(bus, function () { return dur; });
 
       return vp.ready().then(function () {
         if (opt.startAt > 0) { try { vp.setCurrentTime(opt.startAt); } catch (e) {} }
@@ -256,6 +328,9 @@
     m.addEventListener('ended',      function () { bus.fire('pause'); bus.fire('ended'); });
     m.addEventListener('timeupdate', function () { bus.fire('time', m.currentTime); });
     m.addEventListener('loadedmetadata', function () { bus.fire('ready'); });
+    announceDuration(bus, function () {
+      return isFinite(m.duration) ? (m.duration || 0) : 0;
+    });
 
     return Promise.resolve({
       kind: 'native',
