@@ -1202,6 +1202,44 @@ class Crud_model extends CI_Model
     {
         $course_type = $this->get_course_by_id($course_id)->row('course_type');
 
+        /**
+         * TQ-ORPHAN-PURGE — ما بنته طبقة تقدر فوق هذه الأسطر الأربعة.
+         *
+         * هذه الدالة تحذف أربعة جداول كانت موجودة يوم كتب Academy،
+         * ويبقى ما سواها معلقا على معرفات لا تشير إلى شيء: برنامج منشور
+         * **يعرض في الكتالوج ويباع** ويفتح على «قيد التجهيز» أبدا، وتقدم
+         * في كورس محذوف تطبعه الشاشة «تقدمك في «كورس»»، وأهداف وتقييمات
+         * ومحاولات وإتقان بلا وعاء. ولا شيء يخطئ — كل استعلام ينجح،
+         * والأرقام وحدها تكذب.
+         *
+         * والتنظيف **قبل** حذف `lesson` أدناه: معرفات الدروس هي مفتاح
+         * أكثر ما ينظف، وبعد حذفها لا سبيل إلى معرفتها.
+         *
+         * والقيود المالية لا تمس: انظر [Taqdar_purge_model.php].
+         */
+        $tq_debris = array();
+        try {
+            $this->load->model('taqdar_purge_model', 'tq_purge');
+            $tq_debris = $this->tq_purge->course_debris((int) $course_id);
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-PURGE delete_course: ' . $e->getMessage());
+        }
+
+        /* أثر في السجل: حذف الكورس كان يقع بلا سطر واحد يقول من ولا متى
+           ولا ماذا ذهب معه — ومن وجد الفراغ غدا لا يجد ما يفسره. */
+        try {
+            $this->load->model('taqdar_repo_model', 'tq_repo');
+            if (method_exists($this->tq_repo, 'audit')) {
+                $this->tq_repo->audit(
+                    (int) $this->session->userdata('user_id'),
+                    'course.delete', 'course:' . (int) $course_id, null,
+                    array('type' => $course_type, 'debris' => $tq_debris)
+                );
+            }
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-PURGE audit: ' . $e->getMessage());
+        }
+
         $this->db->where('id', $course_id);
         $this->db->delete('course');
 
