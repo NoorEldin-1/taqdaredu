@@ -155,7 +155,8 @@ class Taqdar_course_link_model extends CI_Model
                 $data['slug'] = $this->slug_for($existing['title'] ?: $course['title'], $pid);
             }
             $this->db->where('id', $pid)->update('paths', $data);
-            return array('ok' => true, 'action' => 'updated', 'path_id' => $pid);
+            $reach = $this->reach($data['status'], $grade_id, $subject_id, $course_id);
+            return array('ok' => true, 'action' => 'updated', 'path_id' => $pid, 'reached' => $reach);
         }
 
         $this->db->insert('paths', $data);
@@ -164,7 +165,36 @@ class Taqdar_course_link_model extends CI_Model
             'slug'     => $this->slug_for($course['title'], $pid),
             'tq_order' => $pid,
         ));
-        return array('ok' => true, 'action' => 'created', 'path_id' => $pid);
+        $reach = $this->reach($data['status'], $grade_id, $subject_id, $course_id);
+        return array('ok' => true, 'action' => 'created', 'path_id' => $pid, 'reached' => $reach);
+    }
+
+    /**
+     * البرنامج صار منشورا: يصل إلى من يملك نطاقه **الآن** لا عند
+     * اشتراكه القادم — TQ-ENROL-STALE.
+     *
+     * `enrol` تكتب مرة واحدة عند التفعيل، فمقرر ينشر بعد البيع كان
+     * لا يبلغ مشتركا قائما أبدا: يشاهد دروسه من الوصول الحي، ويقرأ
+     * «لا كورسات بعد» في القوائم التي تضم الجدول. فالنشر ينادي
+     * التجسيد على نطاقه وحده.
+     *
+     * ولا يبطل النشر إن تعثر: المهمة الدورية `taqdar_cron enrolments`
+     * تلحق ما فات.
+     *
+     * @return int عدد الاشتراكات التي تغيرت
+     */
+    private function reach($status, $grade_id, $subject_id, $course_id)
+    {
+        if ((string) $status !== 'published') return 0;
+
+        try {
+            $this->load->model('taqdar_billing_model', 'tq_bill');
+            if (!method_exists($this->tq_bill, 'resync_scope')) return 0;
+            return (int) $this->tq_bill->resync_scope($grade_id, $subject_id, $course_id);
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-LINK reach: ' . $e->getMessage());
+            return 0;
+        }
     }
 
     /**

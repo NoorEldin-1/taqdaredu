@@ -469,11 +469,70 @@ class Taqdar_admin extends CI_Controller
             ->order_by('s.id', 'DESC')->limit(300)
             ->get()->result_array();
 
+        /* قسمة كل بيعة — TQ-REVENUE-RESPLIT.
+           «باعوا صفي ولم يصلني شيء» أول ما يسأل عنه معلم، ولم يكن في
+           اللوحة موضع واحد يجيب: `revenue_shares` تكتب وتقرأ من شاشة
+           محفظة المعلم وحدها، فالمسؤول لا يرى من قسم له ولا كم.
+           واستعلام واحد لكل الصفوف المعروضة لا استعلام لكل صف. */
+        $shares = array();
+        if ($rows) {
+            $ids = array_map('intval', array_column($rows, 'id'));
+            try {
+                foreach ($this->db->query(
+                    'SELECT r.`subscription_id`, r.`teacher_id`, r.`amount_halalas`,
+                            r.`lessons`, r.`lessons_total`, r.`pool_halalas`,
+                            TRIM(CONCAT(COALESCE(u.`first_name`,""), " ",
+                                        COALESCE(u.`last_name`,""))) AS teacher_name
+                       FROM `revenue_shares` r
+                  LEFT JOIN `users` u ON u.`id` = r.`teacher_id`
+                      WHERE r.`subscription_id` IN (' . implode(',', $ids) . ')
+                   ORDER BY r.`amount_halalas` DESC')->result_array() as $s) {
+                    $shares[(int) $s['subscription_id']][] = $s;
+                }
+            } catch (Throwable $e) {
+                /* الجدول ينشأ عند أول بيعة — وقبلها لا قسمة تعرض. */
+                log_message('debug', 'TQ-REVENUE shares list: ' . $e->getMessage());
+            }
+        }
+
         $this->render('tqa_subscriptions', 'الاشتراكات', array(
             'rows'           => $rows,
+            'shares'         => $shares,
             'stats'          => $this->taqdar_billing_model->stats(),
             'gateway_active' => $this->gateway_active(),
         ));
+    }
+
+    /**
+     * إعادة قسمة إيراد بيعة على المستحقين **الآن**.
+     *
+     * القسمة تجمد وقت التفعيل بالقاعدة، وهذا صواب. وهذا الزر للحال
+     * التي يفشل فيها الجمود: بيعت الباقة فقسمت على مسارات، ثم حذفت
+     * كورساتها، ثم نشر معلم آخر محتواه في الصف نفسه — فالقيد قائم لمن
+     * لا محتوى له، ومن يخدم المشتركين اليوم محفظته صفر.
+     *
+     * وهو **قرار إداري صريح** لا مسار تلقائي: نقل مال بعد أن قيد ليس
+     * تصحيح رقم، فيضغطه مسؤول ويترك أثره في السجل.
+     */
+    public function subscription_resplit($id = 0)
+    {
+        if ($this->input->method(true) !== "POST") show_404();
+
+        $this->load->model('taqdar_revenue_model');
+        $r = $this->taqdar_revenue_model->resplit_plan_sale(
+            (int) $id, (string) $this->input->post('reason'));
+
+        if (empty($r['ok'])) {
+            $this->session->set_flashdata('error_message',
+                implode(' ', (array) ($r['errors'] ?? array('تعذرت إعادة القسمة.'))));
+        } else {
+            $msg = 'أعيدت القسمة: عكس ' . (int) $r['reversed'] . ' قيدا،'
+                 . ' وقيد لـ' . (int) $r['credited'] . ' معلما.';
+            if (!empty($r['note'])) $msg .= ' ' . $r['note'];
+            $this->session->set_flashdata('flash_message', $msg);
+        }
+
+        redirect(site_url('taqdar_admin/subscriptions'), 'location', 302);
     }
 
     /**
@@ -1311,12 +1370,57 @@ class Taqdar_admin extends CI_Controller
             'nav_key' => 'tqa_review',
             'items'   => $this->tq_curric->pending(array('course_id' => $course)),
             'course'  => $course,
+            /* المفتاحان اللذان يحكمان هذه الشاشة نفسها — TQ-REVIEW-KNOBS.
+               كانا يعملان بافتراضهما وحده ولا صف لهما في `settings` ولا
+               حقل في أي شاشة: من أراد أن يفتح النشر المباشر لمعلميه لم
+               يجد أين، ومن أراد أن يعرف لماذا لا تصحح مدة درس خطأ لم
+               يجد النصاب مكتوبا. وموضعهما هنا لا في «إعدادات المنصة»:
+               هذه هي الشاشة التي يظهر فيها أثرهما. */
+            'tq_direct_publish' => (string) get_settings('tq_teacher_direct_publish') === '1',
+            'tq_witnesses'      => max(1, (int) (get_settings('tq_duration_witnesses') ?: 2)),
+            /* الرقائق تحمل ما ينتظر فعلا: كورس في `pending`، أو كورس فيه
+               درس في `review`. وكانت تقرأ الثاني وحده، فكورس ينتظر نشره
+               لا رقاقة له — ولا وسيلة إلى ترشيح الطابور به. */
             'courses' => $this->db->query(
                 'SELECT DISTINCT c.`id`, c.`title`
-                   FROM `course` c JOIN `lesson` l ON l.`course_id` = c.`id`
-                  WHERE l.`tq_status` = "review"
+                   FROM `course` c
+              LEFT JOIN `lesson` l ON l.`course_id` = c.`id` AND l.`tq_status` = "review"
+                  WHERE c.`status` = "pending" OR l.`id` IS NOT NULL
                   ORDER BY c.`title` ASC')->result_array(),
         ));
+    }
+
+    /**
+     * مفتاحا شاشة المراجعة — TQ-REVIEW-KNOBS.
+     *
+     * `tq_teacher_direct_publish` يحدد أيمر محتوى المعلم بهذه الشاشة
+     * أصلا، و`tq_duration_witnesses` نصاب تصحيح مدة درس كتبت خطأ.
+     * وكلاهما كان يعمل بافتراضه ولا حقل له في المستودع كله.
+     */
+    public function review_settings()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        /* الخانة غير المؤشرة لا ترسل، فحقل مرافق هو ما يفرق بين «أطفئت»
+           و«لم تعرض» — القاعدة نفسها في `course_fields()`. */
+        $direct = $this->input->post('direct_sent')
+            ? ($this->input->post('tq_teacher_direct_publish') ? '1' : '0')
+            : null;
+
+        $w = (int) $this->input->post('tq_duration_witnesses');
+        $vals = array();
+        if ($direct !== null) $vals['tq_teacher_direct_publish'] = $direct;
+        /* شاهد واحد يعني أن أول طالب يعدل جافاسكربته يغير مدة الدرس على
+           زملائه كلهم — انظر TQ-DURATION. فالحد الأدنى اثنان. */
+        if ($w > 0) $vals['tq_duration_witnesses'] = (string) max(2, min(20, $w));
+
+        if ($vals) $this->settings_put($vals);
+
+        $this->session->set_flashdata('flash_message',
+            $direct === '1'
+                ? 'فتحت النشر المباشر للمعلمين — ما ينشرونه يصل إلى الطلاب بلا مرورك.'
+                : 'حفظت إعدادات المراجعة.');
+        redirect(site_url('taqdar_admin/review'), 'location', 302);
     }
 
     /**
@@ -1718,6 +1822,15 @@ class Taqdar_admin extends CI_Controller
         $msg = 'أصلح ' . (int) $r['fixed'] . ' اشتراكا، وترك '
              . (int) $r['skipped'] . ' لأن بنوده موجودة.';
         if (!empty($r['errors'])) $msg .= ' وتعذر: ' . implode(' ', $r['errors']);
+
+        /* والبنود وحدها لا تكفي — TQ-ENROL-STALE. البنود تجيب
+           `is_entitled()`، وصفوف `enrol` تجيب عشر شاشات لا تسأل
+           غيرها. فمن أصلح بنوده وترك جدوله بقي يقرأ «لا كورسات بعد»
+           وهو يشاهد دروسه. */
+        $e = $this->taqdar_billing_model->sync_active_enrolments();
+        $msg .= ' ومر على ' . (int) $e['subscriptions'] . ' اشتراكا نشطا'
+              . ' فجسد ' . (int) $e['enrolments'] . ' تسجيلا في '
+              . (int) $e['changed'] . ' منها.';
 
         $this->session->set_flashdata('flash_message', $msg);
         redirect(site_url('taqdar_admin/subscriptions'), 'location', 302);

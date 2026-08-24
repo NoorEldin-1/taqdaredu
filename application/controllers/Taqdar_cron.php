@@ -69,6 +69,47 @@ class Taqdar_cron extends CI_Controller
     }
 
     /**
+     * يجسد ما استجد من محتوى في صفوف `enrol` — TQ-ENROL-STALE.
+     *
+     * `sync_enrolments()` تنادى من `activate()` وحدها، فتكتب صورة لحظة
+     * الشراء. وما نشر بعدها — مسار جديد، كورس اعتمدته الإدارة، درس
+     * أضافه معلم في صف الباقة — لا يبلغ مشتركا قائما: يشاهد دروسه
+     * لأن الوصول يستعلم حيا، ويقرأ «لا كورسات بعد» في كل شاشة تضم
+     * الجدول. وشاشتان تفترقان أسوأ من عطل ظاهر.
+     *
+     * والنشر ينادي `resync_scope()` فورا، وهذه شبكة الأمان تحته: تلحق
+     * ما فات إن تعثر النداء، وما كتب في القاعدة بيد أو باستيراد.
+     *
+     * ومأمونة التكرار: `sync_enrolments()` تدرج ما ينقص وتمدد الأجل،
+     * ولا تحذف صفا لم تكتبه.
+     */
+    public function enrolments()
+    {
+        /* البرامج اليتيمة أولا — TQ-ORPHAN-PURGE.
+           برنامج منشور يشير إلى كورس محذوف **يعرض في الكتالوج ويباع**
+           ويفتح على «قيد التجهيز» أبدا. وفصله ليس اجتهادا: هو مبيع لا
+           يستطيع أن يسلم شيئا، وإبقاؤه معروضا أسوأ من كل ما في إخفائه.
+           ولا يحذف — بنود اشتراك مدفوع قد تشير إليه بمعرفه.
+           ويترك أثره في السجل: تغيير حالة صف بلا طلب أحد يجب أن يفسر. */
+        $d = array('detached' => 0, 'was_published' => 0);
+        try {
+            $this->load->model('taqdar_purge_model', 'tq_purge');
+            $d = $this->tq_purge->detach_orphan_paths();
+            if (!empty($d['detached'])) {
+                $this->load->model('taqdar_repo_model', 'tq_repo');
+                $this->tq_repo->audit(null, 'paths.detach_orphans', 'paths', null, $d);
+            }
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-CRON enrolments/orphans: ' . $e->getMessage());
+        }
+
+        $r = $this->taqdar_billing_model->sync_active_enrolments();
+        echo date('Y-m-d H:i:s')
+           . " orphan_paths={$d['detached']} (was_published={$d['was_published']})"
+           . " subs={$r['subscriptions']} changed={$r['changed']} enrolments={$r['enrolments']}\n";
+    }
+
+    /**
      * يسأل تاب عن الدفعات التي بدأت ولم تنته.
      *
      * الحال التي تسدها هذه المهمة: يدفع الطالب فيغلق المتصفح قبل أن يعود،

@@ -871,6 +871,147 @@ class Taqdar_billing_model extends CI_Model
      *
      * @return int عدد المقررات التي صار الطالب مسجلا فيها
      */
+
+    /**
+     * المقررات التي تجسد من بنود اشتراك — **وهي موجودة فعلا**.
+     *
+     * TQ-ORPHAN-ENROL: حذف الكورس من اللوحة يمحو `course` و`enrol`
+     * و`lesson` و`section` ولا يمس `paths`. فيبقى في الجدول مسار
+     * منشور يشير إلى كورس غير موجود — خمسة منها في القاعدة الآن —
+     * وكل نداء تجسيد كان يكتب لها صف `enrol` معلقا: صف يضم إلى
+     * `course` فلا يطابق شيئا، فيعد الطالب مسجلا في لا شيء.
+     *
+     * فالضم هنا `inner` على `course`: ما لا وعاء له لا يجسد.
+     *
+     * @param array $items بنود الاشتراك من `items_of()`
+     * @return int[] معرفات مقررات فريدة
+     */
+    private function grantable_course_ids($items)
+    {
+        $direct = array();
+        $where  = array();
+
+        foreach ((array) $items as $it) {
+            $type = $it['entity_type'];
+            $eid  = (int) $it['entity_id'];
+
+            if ($type === 'course')       { $direct[] = $eid; continue; }
+            if ($type === 'grade')        { $where[] = 'p.`grade_id` = '   . $eid; continue; }
+            if ($type === 'subject')      { $where[] = 'p.`subject_id` = ' . $eid; continue; }
+            if ($type === 'path')         { $where[] = 'p.`id` = '         . $eid; continue; }
+            if ($type === 'all')          { $where[] = '1 = 1'; continue; }
+            /* `trial` وحدته الدرس لا المقرر، فلا يجسد شيئا. */
+        }
+
+        $courses = array();
+
+        if ($where) {
+            $rows = $this->db->query(
+                'SELECT DISTINCT p.`course_id`
+                   FROM `paths` p
+                   JOIN `course` c ON c.`id` = p.`course_id`
+                  WHERE p.`status` = "published"
+                    AND p.`course_id` > 0
+                    AND (' . implode(' OR ', $where) . ')'
+            )->result_array();
+            foreach ($rows as $r) $courses[] = (int) $r['course_id'];
+        }
+
+        /* المقرر الممنوح مباشرة يفحص وجوده كذلك: باقة مقرر حذف وعاؤه
+           لا تسجل أحدا في شبح. */
+        $direct = array_values(array_unique(array_filter(array_map('intval', $direct))));
+        if ($direct) {
+            $rows = $this->db->query(
+                'SELECT `id` FROM `course` WHERE `id` IN (' . implode(',', $direct) . ')'
+            )->result_array();
+            foreach ($rows as $r) $courses[] = (int) $r['id'];
+        }
+
+        return array_values(array_unique(array_filter($courses)));
+    }
+
+    /**
+     * يعيد تجسيد كل الاشتراكات النشطة — TQ-ENROL-STALE.
+     *
+     * `sync_enrolments()` تنادى من `activate()` وحدها، فهي تكتب صورة
+     * **لحظة الشراء**. وما ينشر بعدها — مسار جديد، كورس اعتمدته
+     * الإدارة، درس أضافه معلم في صف الباقة — لا يصل إلى مشترك قائم
+     * أبدا: يفتح «كورساتي» فيقرأ «لا كورسات بعد» وهو يشاهد دروسها
+     * في الشاشة المجاورة، لأن الوصول يستعلم حيا والقوائم تقرأ الجدول.
+     *
+     * فهذه هي شبكة الأمان: تنادى من المهمة الدورية ومن زر في اللوحة،
+     * وتنادى فورا عند كل نشر (`resync_scope()`) فلا ينتظر الطالب ربع
+     * ساعة. وهي مأمونة التكرار: `sync_enrolments()` تدرج ما ينقص
+     * وتمدد الأجل ولا تحذف صفا لم تكتبه.
+     *
+     * @param int $limit سقف الاشتراكات في النداء الواحد (0 = بلا سقف)
+     * @return array عدد ما مر وعدد ما تغير
+     */
+    public function sync_active_enrolments($limit = 0)
+    {
+        $q = $this->db->select('id')->from('subscriptions')
+                      ->where_in('status', array('active', 'cancelled'))
+                      ->order_by('id', 'DESC');
+        if ((int) $limit > 0) $q->limit((int) $limit);
+
+        $seen = 0; $changed = 0; $rows = 0;
+        foreach ($q->get()->result_array() as $s) {
+            $seen++;
+            $n = (int) $this->sync_enrolments((int) $s['id']);
+            if ($n > 0) { $changed++; $rows += $n; }
+        }
+
+        return array('subscriptions' => $seen, 'changed' => $changed, 'enrolments' => $rows);
+    }
+
+    /**
+     * نشر شيء في نطاق ما: من يملكه الآن يملكه فورا.
+     *
+     * تنادى من مسارات النشر (اعتماد كورس، مزامنة برنامج، حفظ مسار في
+     * اللوحة) فتصيب الاشتراكات التي يعنيها ذلك النطاق وحدها — لا كل
+     * اشتراك في المنصة. وفشلها لا يبطل النشر: المهمة الدورية تلحقه.
+     *
+     * @param int $grade_id   الصف المعني، أو 0
+     * @param int $subject_id المادة المعنية، أو 0
+     * @param int $course_id  المقرر المعني، أو 0
+     * @return int عدد الاشتراكات التي تغيرت
+     */
+    public function resync_scope($grade_id = 0, $subject_id = 0, $course_id = 0)
+    {
+        $grade_id   = (int) $grade_id;
+        $subject_id = (int) $subject_id;
+        $course_id  = (int) $course_id;
+
+        $or = array("si.`entity_type` = 'all'");
+        if ($grade_id > 0)   $or[] = "(si.`entity_type` = 'grade'   AND si.`entity_id` = " . $grade_id . ")";
+        if ($subject_id > 0) $or[] = "(si.`entity_type` = 'subject' AND si.`entity_id` = " . $subject_id . ")";
+        if ($course_id > 0) {
+            $or[] = "(si.`entity_type` = 'course' AND si.`entity_id` = " . $course_id . ")";
+            /* وبند المسار يصيب مقرره: الباقة اشترت مسارا، والمقرر خلفه. */
+            $or[] = "(si.`entity_type` = 'path' AND si.`entity_id` IN ("
+                  . "SELECT `id` FROM `paths` WHERE `course_id` = " . $course_id . "))";
+        }
+
+        try {
+            $rows = $this->db->query(
+                'SELECT DISTINCT s.`id`
+                   FROM `subscriptions` s
+                   JOIN `subscription_items` si ON si.`subscription_id` = s.`id`
+                  WHERE s.`status` IN ("active", "cancelled")
+                    AND (' . implode(' OR ', $or) . ')'
+            )->result_array();
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-ENROL resync_scope: ' . $e->getMessage());
+            return 0;
+        }
+
+        $n = 0;
+        foreach ($rows as $r) {
+            if ($this->sync_enrolments((int) $r['id']) > 0) $n++;
+        }
+        return $n;
+    }
+
     public function sync_enrolments($subscription_id)
     {
         $sub = $this->subscription($subscription_id);
@@ -884,25 +1025,7 @@ class Taqdar_billing_model extends CI_Model
            لا تاريخ انتهاء، فلا يحبس الطالب بأجل مخترع. */
         $exp = !empty($sub['ends_at']) ? (int) strtotime($sub['ends_at']) : 0;
 
-        $courses = array();
-        foreach ($this->items_of((int) $sub['id']) as $it) {
-            $type = $it['entity_type'];
-            $eid  = (int) $it['entity_id'];
-
-            if ($type === 'course') { $courses[] = $eid; continue; }
-
-            $q = $this->db->select('course_id')->from('paths')
-                          ->where('status', 'published')->where('course_id >', 0);
-            if      ($type === 'grade')   $q->where('grade_id', $eid);
-            elseif  ($type === 'subject') $q->where('subject_id', $eid);
-            elseif  ($type === 'path')    $q->where('id', $eid);
-            elseif  ($type === 'all')     { /* بلا قيد: الكتالوج المنشور كله */ }
-            else    { $q->reset_query(); continue; }   // `trial` لا يمنح مقررا
-
-            foreach ($q->get()->result_array() as $r) $courses[] = (int) $r['course_id'];
-        }
-
-        $courses = array_values(array_unique(array_filter($courses)));
+        $courses = $this->grantable_course_ids($this->items_of((int) $sub['id']));
         if (!$courses) return 0;
 
         $have = array();

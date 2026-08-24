@@ -24,14 +24,49 @@ $tq_broken = (int) get_instance()->db->query(
                          WHERE i.`subscription_id` = s.`id`)'
 )->row()->n;
 ?>
-<?php if ($tq_broken > 0): ?>
+<?php
+/* اشتراك نشط ينقصه تسجيل — TQ-ENROL-STALE.
+   البنود تجيب `is_entitled()`، وصفوف `enrol` تجيب عشر شاشات لا تسأل
+   غيرها: كورساتي ودروسي وطلاب المعلم والمواد والتقارير. وهي تكتب مرة
+   واحدة عند التفعيل، فكل ما ينشر بعد البيع لا يبلغ مشتركا قائما —
+   يشاهد دروسه ويقرأ «لا كورسات بعد» في الشاشة المجاورة.
+   والعد هنا بالفرق نفسه الذي يجسده الإصلاح، لا بتقدير. */
+$tq_stale = (int) get_instance()->db->query(
+    'SELECT COUNT(DISTINCT s.`id`) AS n
+       FROM `subscriptions` s
+       JOIN `subscription_items` si ON si.`subscription_id` = s.`id`
+       JOIN `paths` p ON p.`status` = "published" AND p.`course_id` > 0
+            AND ( (si.`entity_type` = "grade"   AND p.`grade_id`   = si.`entity_id`)
+               OR (si.`entity_type` = "subject" AND p.`subject_id` = si.`entity_id`)
+               OR (si.`entity_type` = "path"    AND p.`id`         = si.`entity_id`)
+               OR  si.`entity_type` = "all" )
+       JOIN `course` c ON c.`id` = p.`course_id`
+       LEFT JOIN `enrol` e ON e.`course_id` = p.`course_id` AND e.`user_id` = s.`user_id`
+      WHERE s.`status` IN ("active","cancelled")
+        AND e.`id` IS NULL'
+)->row()->n;
+?>
+<?php if ($tq_broken > 0 || $tq_stale > 0): ?>
     <div class="tqa-note tqa-note--warn">
-        <strong><?php echo $tq_broken; ?> اشتراكا نشطا بلا بنود.</strong>
-        هذه الاشتراكات مدفوعة وحالتها نشطة، لكن محتواها <strong>لا يفتح للطالب</strong>
-        لأن نطاقها لم ينسخ بنودا. يقع هذا حين يفعل الاشتراك من خارج زر التفعيل.
+        <?php if ($tq_broken > 0): ?>
+            <p style="margin:0 0 6px">
+                <strong><?php echo $tq_broken; ?> اشتراكا نشطا بلا بنود.</strong>
+                هذه الاشتراكات مدفوعة وحالتها نشطة، لكن محتواها <strong>لا يفتح للطالب</strong>
+                لأن نطاقها لم ينسخ بنودا. يقع هذا حين يفعل الاشتراك من خارج زر التفعيل.
+            </p>
+        <?php endif; ?>
+        <?php if ($tq_stale > 0): ?>
+            <p style="margin:0">
+                <strong><?php echo $tq_stale; ?> اشتراكا نشطا ينقصه تسجيل.</strong>
+                محتوى نشر <strong>بعد</strong> شرائهم، فهو يفتح لهم فعلا ولا يظهر في
+                «كورساتي» ولا «دروسي» ولا في قوائم طلاب معلمه — لأن تلك الشاشات تقرأ
+                جدول التسجيل، وهو يكتب مرة واحدة يوم التفعيل.
+            </p>
+        <?php endif; ?>
         <form method="post" action="<?php echo site_url('taqdar_admin/subscriptions_repair'); ?>"
               style="margin-block-start:10px">
-            <button type="submit" class="tqa-btn tqa-btn--primary">أعد بناء البنود من نطاق الباقات</button>
+            <?php echo tq_csrf(); ?>
+            <button type="submit" class="tqa-btn tqa-btn--primary">أعد بناء البنود والتسجيلات</button>
         </form>
     </div>
 <?php endif; ?>
@@ -150,6 +185,49 @@ $tq_broken = (int) get_instance()->db->query(
                                     </form>
                                 <?php else: ?>
                                     <span class="tqa-dim">—</span>
+                                <?php endif; ?>
+
+                                <?php /* ── قسمة هذه البيعة — TQ-REVENUE-RESPLIT ──────
+                                        «باعوا صفي ولم يصلني شيء» أول ما يسأل عنه
+                                        معلم، ولم يكن في اللوحة موضع واحد يجيب.
+                                        والقسمة تجمد وقت التفعيل بالقاعدة — ونشر
+                                        عشرين درسا غدا لا يعيد حساب بيعة أمس — لكن
+                                        حين يحذف المحتوى المقسوم عليه ثم ينشر غيره
+                                        في الصف نفسه يبقى القيد لمن لا محتوى له.
+                                        وهذا الزر هو المخرج، بقرار مسؤول لا تلقائيا. */ ?>
+                                <?php $tq_sh = isset($shares[(int) $r['id']]) ? $shares[(int) $r['id']] : array(); ?>
+                                <?php if ($tq_sh || (int) $r['price'] > 0 && in_array($r['status'], array('active','cancelled'), true)): ?>
+                                    <details style="margin-block-start:8px">
+                                        <summary class="tqa-dim" style="cursor:pointer;font-size:12px">قسمة الإيراد</summary>
+                                        <?php if ($tq_sh): ?>
+                                            <ul style="margin:6px 0;padding-inline-start:16px;font-size:12px">
+                                                <?php foreach ($tq_sh as $tq_s): ?>
+                                                    <li>
+                                                        <?php echo html_escape($tq_s['teacher_name'] ?: ('#' . $tq_s['teacher_id'])); ?>
+                                                        — <?php echo tqa_money($tq_s['amount_halalas']); ?>
+                                                        <span class="tqa-dim">(<?php echo (int) $tq_s['lessons']; ?>
+                                                        من <?php echo (int) $tq_s['lessons_total']; ?> درسا)</span>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        <?php else: ?>
+                                            <p class="tqa-dim" style="margin:6px 0;font-size:12px">
+                                                لم يقيد لأحد. لا مسار منشور بمعلم في نطاق الباقة وقت البيع.
+                                            </p>
+                                        <?php endif; ?>
+                                        <form method="post"
+                                              action="<?php echo site_url('taqdar_admin/subscription_resplit/' . (int) $r['id']); ?>"
+                                              data-tqa-confirm-title="إعادة قسمة الإيراد"
+                                              data-tqa-confirm="تعكس القيود القائمة على هذه البيعة وتقسمها من جديد على المستحقين الآن. ينقل مال بين المحافظ، ويسجل في سجل التدقيق."
+                                              data-tqa-confirm-ok="أعد القسمة"
+                                              data-tqa-confirm-tone="danger">
+                                            <?php echo tq_csrf(); ?>
+                                            <input type="text" name="reason" class="tqa-input tq-ltr" dir="auto"
+                                                   placeholder="السبب" maxlength="200" required
+                                                   style="font-size:12px">
+                                            <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm">أعد القسمة</button>
+                                        </form>
+                                    </details>
                                 <?php endif; ?>
                             </td>
                         </tr>

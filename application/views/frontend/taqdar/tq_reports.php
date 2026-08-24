@@ -41,8 +41,16 @@ $tq_seconds = (int) $this->db->select_sum('current_duration', 'total')
 $tq_hours   = intdiv($tq_seconds, 3600);
 $tq_minutes = intdiv($tq_seconds % 3600, 60);
 
-/* ---- تقدم الكورسات ---------------------------------------------------- */
-$tq_history = $this->db->where('student_id', $uid)->get('watch_histories')->result_array();
+/* ---- تقدم الكورسات ----------------------------------------------------
+   مقيد بالكورسات المسجلة — وهي نفسها مقام «الدروس المكتملة» أدناه.
+   وكان يقرأ `watch_histories` كلها: البسط من كل كورس مر به الطالب ولو
+   حذف، والمقام من `enrol` وحده. فتطبع الشاشة «٦ من ٠ درسا» — رقم يفضح
+   نفسه ولا يفسر. والرقمان الآن من مجموعة واحدة. */
+$tq_history = $tq_course_ids
+    ? $this->db->where('student_id', $uid)
+               ->where_in('course_id', $tq_course_ids)
+               ->get('watch_histories')->result_array()
+    : [];
 
 $tq_progress_sum = 0;
 $tq_done_lessons = 0;

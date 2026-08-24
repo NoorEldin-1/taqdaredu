@@ -720,6 +720,80 @@ class Taqdar_revenue_model extends CI_Model
         return $n;
     }
 
+    /**
+     * يعيد قسمة بيعة على المستحقين **الآن** — TQ-REVENUE-RESPLIT.
+     *
+     * ═══ لماذا وجد ═══
+     *
+     * القسمة تجمد وقت التفعيل، وهذا صواب: نشر عشرين درسا غدا لا يعيد
+     * حساب بيعة أمس. لكن الحال التي تفضح الجمود هي التي وقعت فعلا:
+     *
+     *   • باعت المنصة باقة صف، فقسمت على مساري ذلك الصف يومها.
+     *   • ثم **حذفت الكورسات** التي خلف المسارين من اللوحة.
+     *   • ثم أنشأ معلم كورسه ونشر فيه دروسه في الصف نفسه.
+     *
+     * فالقيد قائم لمن لم يعد له محتوى، ومن يخدم المشتركين اليوم محفظته
+     * صفر — ولا شيء في المنصة يستطيع تصحيح ذلك: `credit_plan_sale()`
+     * ترد «قسمت من قبل»، و`reverse_plan_sale()` تعكس القيود **وتترك
+     * صفوف `revenue_shares` قائمة**، فلا يعاد الحساب بعدها أبدا.
+     *
+     * ═══ ولا يفعل نفسه ═══
+     *
+     * لا تنادى من مسار تلقائي واحد. هي **قرار إداري صريح** يضغطه
+     * مسؤول على بيعة بعينها، ويترك أثره في `audit_log` — لأن نقل مال
+     * من محفظة إلى أخرى بعد أن قيد ليس تصحيح رقم.
+     *
+     * @return array عكس · قسمة جديدة · وعاء
+     */
+    public function resplit_plan_sale($subscription_id, $reason = '')
+    {
+        $this->install_schema();
+        $sid = (int) $subscription_id;
+        if ($sid < 1) return array('ok' => false, 'errors' => array('لا اشتراك.'));
+
+        $sub = $this->db->where('id', $sid)->get('subscriptions')->row_array();
+        if (!$sub) return array('ok' => false, 'errors' => array('الاشتراك غير موجود.'));
+
+        $before = $this->shares_of($sid);
+
+        /* ١ — تعكس القيود في المحافظ */
+        $reversed = $this->reverse_plan_sale($sid, $reason !== '' ? $reason : 'إعادة قسمة');
+
+        /* ٢ — تمحى الصفوف المجمدة، وإلا ردت `credit_plan_sale` «قسمت
+               من قبل» ولم يحدث شيء. والمحو بعد العكس لا قبله: العكس
+               يقرأ منها من له قيد. */
+        $this->db->where('subscription_id', $sid)->delete('revenue_shares');
+
+        /* ٣ — تقسم من جديد على المستحقين الآن */
+        $r = $this->credit_plan_sale($sid, null, (int) $sub['price']);
+
+        $after = $this->shares_of($sid);
+
+        try {
+            $this->load->model('taqdar_repo_model');
+            $this->taqdar_repo_model->audit(
+                (int) $this->tq_actor(), 'revenue.resplit', 'subscriptions:' . $sid,
+                array('shares' => $before),
+                array('shares' => $after, 'reversed' => $reversed, 'reason' => $reason)
+            );
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-REVENUE resplit audit: ' . $e->getMessage());
+        }
+
+        return array('ok' => true, 'reversed' => (int) $reversed,
+                     'credited' => (int) ($r['credited'] ?? 0),
+                     'pool' => (int) ($r['pool'] ?? 0),
+                     'note' => isset($r['note']) ? $r['note'] : '',
+                     'rows' => $after);
+    }
+
+    /** من ينفذ — للسجل. */
+    private function tq_actor()
+    {
+        $CI = get_instance();
+        return isset($CI->session) ? (int) $CI->session->userdata('user_id') : 0;
+    }
+
     /* ================================================================
      *  القراءة — للشاشات
      * ================================================================ */

@@ -50,11 +50,17 @@ class Taqdar_admin_model extends CI_Model
             ),
 
             'paths' => array(
-                'table'    => 'paths',
-                'title'    => 'المسارات التعليمية',
-                'lead'     => 'المسار = مادة + صف، وهو ما يشترك فيه الطالب فعليا.',
-                'icon'     => 'route',
-                'order_by' => array('id' => 'DESC'),
+                'table'     => 'paths',
+                'title'     => 'المسارات التعليمية',
+                'lead'      => 'المسار = مادة + صف، وهو ما يشترك فيه الطالب فعليا.',
+                'icon'      => 'route',
+                'order_by'  => array('id' => 'DESC'),
+                /* عمود «الظهور» — المسار يسقط من الكتالوج أو يعرض فارغا
+                   بأربعة أسباب مختلفة، وكان يعبرها كلها بلا إشارة. وأخطرها
+                   الوعاء المحذوف: البرنامج يظل معروضا **ويباع** ويفتح على
+                   «قيد التجهيز» أبدا (TQ-ORPHAN-PURGE). */
+                'status_fn' => 'path_visibility',
+                'status_label' => 'الظهور',
                 'fields'   => array(
                     'title'          => array('label' => 'عنوان المسار', 'type' => 'text', 'required' => true, 'list' => true),
                     'subject_id'     => array('label' => 'المادة', 'type' => 'ref', 'ref' => 'subjects', 'required' => true, 'list' => true),
@@ -858,7 +864,29 @@ class Taqdar_admin_model extends CI_Model
                      ->update('plans', array('featured' => 0));
         }
 
-        $this->audit($id ? 'update' : 'create', $spec['table'] . '#' . $new_id, $before, $this->row($key, $new_id));
+        /* برنامج صار منشورا يصل إلى مشتركي نطاقه الآن — TQ-ENROL-STALE.
+           صفوف `enrol` تكتب مرة واحدة عند التفعيل، فمسار ينشر بعد
+           البيع كان لا يبلغ مشتركا قائما أبدا. وفشله لا يبطل الحفظ:
+           `taqdar_cron enrolments` تلحق ما فات. */
+        $after = $this->row($key, $new_id);
+
+        if ($key === 'paths' && is_array($after)
+            && (string) (isset($after['status']) ? $after['status'] : '') === 'published') {
+            try {
+                $this->load->model('taqdar_billing_model', 'tq_bill');
+                if (method_exists($this->tq_bill, 'resync_scope')) {
+                    $this->tq_bill->resync_scope(
+                        (int) (isset($after['grade_id'])   ? $after['grade_id']   : 0),
+                        (int) (isset($after['subject_id']) ? $after['subject_id'] : 0),
+                        (int) (isset($after['course_id'])  ? $after['course_id']  : 0)
+                    );
+                }
+            } catch (Throwable $e) {
+                log_message('error', 'TQ-ENROL paths save: ' . $e->getMessage());
+            }
+        }
+
+        $this->audit($id ? 'update' : 'create', $spec['table'] . '#' . $new_id, $before, $after);
         return array('ok' => true, 'id' => $new_id);
     }
 
@@ -1103,6 +1131,56 @@ class Taqdar_admin_model extends CI_Model
 
         return array('tone' => 'ok', 'label' => 'تظهر',
                      'why'  => 'في صفحة الباقات تحت ' . tqs_stage_label((string) $row['stage']) . '.');
+    }
+
+    /**
+     * ظهور المسار في الكتالوج — TQ-ORPHAN-PURGE.
+     *
+     * والحال الأولى أخطرها: كورس حذف من اللوحة يمحو `course` و`lesson`
+     * ولا يمس `paths`. فيبقى البرنامج **منشورا في «المواد والبرامج»
+     * وتفتحه الباقات**، ويقرأ الزائر تحته «دروس هذا البرنامج قيد
+     * التجهيز» — إلى الأبد. وخمسة منها في القاعدة. ولا استعلام يخطئ،
+     * فلا شيء يقول ذلك إلا هذا العمود.
+     */
+    public function path_visibility($row)
+    {
+        $cid = (int) (isset($row['course_id']) ? $row['course_id'] : 0);
+
+        if ($cid > 0) {
+            $c = $this->db->select('id, status')->where('id', $cid)->get('course')->row_array();
+            if (!$c) {
+                return array('tone' => 'no', 'label' => 'وعاؤه محذوف',
+                             'why'  => 'الدورة المرتبطة (#' . $cid . ') لم تعد موجودة، فالبرنامج '
+                                     . 'يعرض ويباع ويفتح فارغا. اربطه بدورة أخرى أو أنزله إلى مسودة.');
+            }
+            if ((string) $c['status'] !== 'active' && (string) $row['status'] === 'published') {
+                return array('tone' => 'warn', 'label' => 'دورته غير منشورة',
+                             'why'  => 'البرنامج منشور ودورته حالتها «' . html_escape((string) $c['status'])
+                                     . '»، فيعرض عنوانه ولا يفتح محتواه.');
+            }
+        }
+
+        if ((string) $row['status'] !== 'published') {
+            return array('tone' => 'no', 'label' => 'مسودة',
+                         'why'  => 'لا يعرض في الكتالوج ولا تفتحه باقة حتى ينشر.');
+        }
+
+        if ($cid <= 0) {
+            return array('tone' => 'warn', 'label' => 'يظهر فارغا',
+                         'why'  => 'بلا دورة مرتبطة — يعرض في الكتالوج بعنوانه ووصفه، '
+                                 . 'ولا درس واحد تحته.');
+        }
+
+        $n = (int) $this->db->where('course_id', $cid)
+                            ->where('COALESCE(`tq_status`, "published") =', 'published')
+                            ->count_all_results('lesson');
+        if ($n === 0) {
+            return array('tone' => 'warn', 'label' => 'يظهر بلا دروس',
+                         'why'  => 'دورته المرتبطة بلا درس منشور واحد.');
+        }
+
+        return array('tone' => 'ok', 'label' => 'يظهر',
+                     'why'  => 'في «المواد والبرامج» بـ' . $n . ' درسا منشورا.');
     }
 
     /**
