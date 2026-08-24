@@ -74,6 +74,10 @@ languages/                ملفات الترجمة
   `tq_text('<الصفحة>', '<المفتاح>', 'النص الافتراضي')`، والمفتاح نفسه يسجل في
   `Taqdar_content_model::registry()`. الافتراضي يبقى في القالب: قاعدة فارغة
   تعني أن الصفحة تعرض ما كانت تعرضه حرفا بحرف.
+  و**آراء أولياء الأمور** صفوف لا مفاتيح، فجدولها `tq_testimonials` ووحدتها
+  الموصوفة `testimonials` — والمبدأ نفسه: بلا صف منشور تعرض `/parents`
+  آراءها الثلاث المكتوبة في قالبها. ولا صورة فيها: وجه لا يعرفه القارئ
+  لا يزيد الرأي صدقا، وصور المخزون كانت تعرض على أنها أولياء أمور.
 - **التصميم**: [assets/taqdar/css/admin.css](assets/taqdar/css/admin.css)
   يبني هيكل `tqa-*` من `tokens.css` نفسها التي تبني بها البوابات، **ويعيد
   تعريف أوليات Bootstrap 4** (`card` · `btn` · `table` · `form-control` ·
@@ -524,7 +528,7 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 مباشرة في النماذج.
 
 - **الجوهر:** `users` · `role` · `course` · `lesson` · `section` · `category` · `subjects` · `grades`
-- **تقدر:** `paths` · `plans` · `subscriptions` · `invoices` · `payment_attempts` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts` · `answers` · `lesson_progress` · `site_content` · `revenue_shares` · `tq_content_revisions` · `tq_otp` · `tq_wa_log`
+- **تقدر:** `paths` · `plans` · `subscriptions` · `invoices` · `payment_attempts` · `milestones` · `objectives` · `skill_state` · `wallets` · `wallet_entries` · `parent_links` · `review_queue` · `assessments` · `attempts` · `answers` · `lesson_progress` · `site_content` · `tq_testimonials` · `revenue_shares` · `tq_content_revisions` · `tq_otp` · `tq_wa_log`
 - **الإعدادات:** `settings` · `frontend_settings` · `payment_gateways` · `seo_fields` — **مفاتيح بوابات الدفع و SMTP وواتساب تعيش هنا، لا في الشيفرة.**
 - **triggerان:** `trg_parent_links_consent_*` على `parent_links`.
 
@@ -538,7 +542,7 @@ plans.scope_ids ← صفوف  →  paths (grade_id, status='published')
 إلى تقييم — وهو وحده مصدر أسئلة اختبار الدرس. وقراءة أحدها مكان الآخر
 ترجع صفوفا فارغة بلا خطأ.
 
-بعض الجداول تنشأ وقت التشغيل لا بهجرة: `site_content` من
+بعض الجداول تنشأ وقت التشغيل لا بهجرة: `site_content` و`tq_testimonials` من
 `Taqdar_content_model::ensure_schema()`، و`payment_attempts` من
 `Taqdar_tap_model::ensure_schema()`، و`tq_wa_log` من
 `Taqdar_wa_model::ensure_schema()`، و`tq_otp` من

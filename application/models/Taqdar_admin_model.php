@@ -447,6 +447,32 @@ class Taqdar_admin_model extends CI_Model
                 ),
             ),
 
+            /* آراء أولياء الأمور في صفحة `/parents`.
+               كانت ثلاث بطاقات مكتوبة في القالب باسم ووصف ونص — فتغيير
+               رأي واحد يحتاج تحرير ملف ونشرا على الخادم، وهي بحسب
+               تعريفها محتوى ينشر: موضعه اللوحة.
+               وبلا صف واحد هنا تعرض الصفحة آراءها الأصلية كما كانت،
+               بالمبدأ نفسه الذي يرد به `tq_text()` نص القالب. */
+            'testimonials' => array(
+                'table'    => 'tq_testimonials',
+                'title'    => 'آراء أولياء الأمور',
+                'lead'     => 'ما يقوله أولياء الأمور في صفحة «أولياء الأمور». بلا صف منشور تعرض الصفحة الآراء الأصلية.',
+                'icon'     => 'chat',
+                'ensure'   => 'taqdar_content_model',
+                'order_by' => array('tq_order' => 'ASC', 'id' => 'ASC'),
+                'fields'   => array(
+                    'name'     => array('label' => 'الاسم', 'type' => 'text', 'required' => true, 'list' => true),
+                    'role'     => array('label' => 'الصفة', 'type' => 'text', 'list' => true,
+                                        'hint' => 'مثل: أم لطالبة في المرحلة الثانوية.'),
+                    'body'     => array('label' => 'نص الرأي', 'type' => 'textarea', 'required' => true),
+                    'rating'   => array('label' => 'عدد النجوم', 'type' => 'number', 'default' => 5, 'list' => true,
+                                        'hint' => 'من صفر إلى خمسة.'),
+                    'status'   => array('label' => 'الحالة', 'type' => 'enum', 'default' => 'published', 'list' => true,
+                                        'options' => array('draft' => 'مسودة', 'published' => 'منشور')),
+                    'tq_order' => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0, 'list' => true),
+                ),
+            ),
+
             'audit_log' => array(
                 'table'    => 'audit_log',
                 'title'    => 'سجل التدقيق',
@@ -768,6 +794,13 @@ class Taqdar_admin_model extends CI_Model
             && array_key_exists('slug', $data) && trim((string) $data['slug']) === ''
             && !empty($data['title'])) {
             $data['slug'] = $this->slugify($data['title'], $spec['table'], (int) $id);
+        }
+
+        /* النجوم خمس لا أكثر. الرقم يطبع نجمة نجمة في القالب، فسبع
+           تكسر سطر البطاقة وسالب يطبع صفرا بلا أن يقول أحد لماذا. */
+        if ($key === 'testimonials' && isset($data['rating'])) {
+            $r = (int) $data['rating'];
+            if ($r < 0 || $r > 5) $errors[] = 'عدد النجوم من صفر إلى خمسة.';
         }
 
         // موافقة ولي الأمر: لا تفعل بلا تاريخ موثق

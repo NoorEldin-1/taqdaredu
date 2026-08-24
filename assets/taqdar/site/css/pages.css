@@ -1476,6 +1476,16 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 @media (max-width:980px){ .carousel2__nav{display:none} }
 @media (prefers-reduced-motion:reduce){ .carousel2__track{scroll-behavior:auto} }
 
+/* آراء أولياء الأمور داخل الكاروسل.
+   الشريحة أعرض من شريحة البرنامج: هذه نص يقرأ لا بطاقة تمسح بالعين،
+   و320px تكسر الجملة العربية إلى أربعة أسطر. والبطاقات تتساوى ارتفاعا
+   (`align-items:stretch` من الشريط) فلا يتدلى أطولها وحده. */
+.carousel2--quotes .carousel2__track>*{flex:0 0 clamp(268px,30vw,392px)}
+.carousel2--quotes .tcard{display:flex;flex-direction:column;block-size:100%}
+.carousel2--quotes .tcard>p{flex:1}
+/* الرفع عند hover يقص عند حافة المسار الأفقي، فيهبط هنا إلى ظل وحده */
+.carousel2--quotes .tcard:hover{transform:none;box-shadow:var(--sh-raise)}
+
 /* بطاقة البرنامج داخل الكاروسل — بلا سعر ولا زر شراء */
 .pcard{
   display:flex;flex-direction:column;background:var(--paper);

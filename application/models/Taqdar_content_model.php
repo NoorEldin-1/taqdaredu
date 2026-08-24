@@ -123,6 +123,9 @@ class Taqdar_content_model extends CI_Model
                                           'default' => 'نوفر لكم كل ما تحتاجونه لمتابعة تقدم أبنائكم التعليمي، لدعمهم وتحفيزهم نحو مستقبل مشرق.'),
                     'hero_cta_1' => array('label' => 'الزر الأول', 'type' => 'label', 'default' => 'ابدأ الآن'),
                     'hero_cta_2' => array('label' => 'الزر الثاني', 'type' => 'label', 'default' => 'استكشف المنصة'),
+                    'quotes_title' => array('label' => 'عنوان قسم الآراء', 'type' => 'line',
+                                            'default' => 'ماذا يقول أولياء الأمور؟',
+                                            'hint' => 'والآراء نفسها تحرر من شاشة «آراء أولياء الأمور».'),
                 ),
             ),
 
@@ -229,6 +232,63 @@ class Taqdar_content_model extends CI_Model
         } catch (Throwable $e) {
             // بلا جدول تعرض الصفحات نصوص قوالبها — وهو ما كانت تفعله أصلا
         }
+
+        /* الآراء صفوف لا مفاتيح، فجدولها الثاني.
+           وهي محتوى الموقع العام نفسه، فموضعها هذا النموذج لا نموذج
+           ثالث: من يحرر نص صفحة أولياء الأمور يحرر آراءها في الشاشة
+           المجاورة، ومن ينشر الموقع لا يستورد ملفين. */
+        try {
+            $this->db->query(
+                'CREATE TABLE IF NOT EXISTS `tq_testimonials` (
+                    `id`         int(10) unsigned NOT NULL AUTO_INCREMENT,
+                    `name`       varchar(120) NOT NULL,
+                    `role`       varchar(160) DEFAULT NULL,
+                    `body`       text         NOT NULL,
+                    `rating`     tinyint(1) unsigned NOT NULL DEFAULT 5,
+                    `status`     varchar(16)  NOT NULL DEFAULT \'published\',
+                    `tq_order`   int(11)      NOT NULL DEFAULT 0,
+                    `created_at` datetime     DEFAULT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `ix_live` (`status`, `tq_order`)
+                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+            );
+        } catch (Throwable $e) {
+            // بلا جدول تعرض الصفحة آراءها المكتوبة في القالب
+        }
+    }
+
+    /**
+     * آراء أولياء الأمور المنشورة — للزائر.
+     *
+     * والفارغ ليس عطلا: قاعدة بلا صف تعني أن الصفحة تعرض الآراء
+     * المكتوبة في قالبها حرفا بحرف، كما يفعل `tq_text()` بالنصوص. فلا
+     * يوم واحد تفتح فيه الصفحة على قسم فارغ لأن أحدا لم يملأ اللوحة بعد.
+     */
+    public function testimonials($limit = 24)
+    {
+        $this->ensure_schema();
+
+        try {
+            $rows = $this->db->where('status', 'published')
+                             ->order_by('tq_order', 'ASC')->order_by('id', 'ASC')
+                             ->limit((int) $limit)
+                             ->get('tq_testimonials')->result_array();
+        } catch (Throwable $e) {
+            return array();
+        }
+
+        $out = array();
+        foreach ($rows as $r) {
+            if (trim((string) $r['body']) === '') continue;
+            $stars = (int) $r['rating'];
+            $out[] = array(
+                'name'   => (string) $r['name'],
+                'role'   => (string) $r['role'],
+                'body'   => (string) $r['body'],
+                'rating' => ($stars < 0 ? 0 : ($stars > 5 ? 5 : $stars)),
+            );
+        }
+        return $out;
     }
 
     /**

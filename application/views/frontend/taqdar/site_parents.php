@@ -198,64 +198,56 @@ css: pages
 </section>
 
 <!-- ══════════ ماذا يقول أولياء الأمور؟ ══════════ -->
+<?php
+/* الآراء من اللوحة (`taqdar_admin/module/testimonials`) لا من هذا الملف.
+   وكانت ثلاث بطاقات مكتوبة هنا باسم ووصف ونص وصورة — فتغيير رأي واحد
+   يحتاج تحرير ملف ودفعا ونشرا، وهو محتوى ينشر لا شيفرة.
+
+   والفارغ يرجع إلى ما كان: قاعدة بلا صف منشور تعرض الآراء الثلاث
+   الأصلية حرفا بحرف — المبدأ نفسه الذي يرد به `tq_text()` نص القالب،
+   فإضافة هذا النظام لا تفتح الصفحة يوما على قسم فارغ.
+
+   ولا صور: وجه لا يعرفه القارئ لا يزيد الرأي صدقا، وصور المخزون
+   الثلاث كانت تعرض على أنها أولياء أمور حقيقيون. */
+$tq_quotes = tq_testimonials();
+if (!$tq_quotes) {
+    $tq_quotes = array(
+        array('name' => 'نوال المطيري', 'role' => 'أم لطالبة في المرحلة الثانوية', 'rating' => 5,
+              'body' => 'التواصل مع المعلمين أصبح أسهل والمنصة توفر وقت وجهد كبير.'),
+        array('name' => 'أحمد الشهري', 'role' => 'أب لطالبة في المرحلة الابتدائية', 'rating' => 5,
+              'body' => 'التقارير مفصلة جدا وتساعدني على دعم ابنتي في نقاط ضعفها أولا بأول.'),
+        array('name' => 'سارة العنزي', 'role' => 'أم لطالب في المرحلة المتوسطة', 'rating' => 5,
+              'body' => 'المنصة رائعة وسهلة. أتابع ابني أولا بأول وأشعر بالطمأنينة على مستواه الدراسي.'),
+    );
+}
+
+$tq_slides = '';
+foreach ($tq_quotes as $q) {
+    $tq_slides .= '<article class="tcard">' . "\n";
+    $tq_slides .= '  <svg class="tcard__mark" aria-hidden="true"><use href="#i-quote"></use></svg>' . "\n";
+    $tq_slides .= '  <p>' . html_escape($q['body']) . '</p>' . "\n";
+    $tq_slides .= '  <div class="tcard__who"><div><b>' . html_escape($q['name']) . '</b>'
+                . ((string) $q['role'] !== '' ? '<span>' . html_escape($q['role']) . '</span>' : '')
+                . '</div></div>' . "\n";
+    $stars = (int) $q['rating'];
+    if ($stars > 0) {
+        $tq_slides .= '  <div class="stars" aria-label="' . $stars . ' من 5">' . "\n";
+        $tq_slides .= str_repeat('    <svg aria-hidden="true"><use href="#i-star"></use></svg>' . "\n", $stars);
+        $tq_slides .= '  </div>' . "\n";
+    }
+    $tq_slides .= '</article>' . "\n";
+}
+?>
 <section class="section section--plain">
   <div class="shell">
     <div class="section-head">
-      <h2><span>ماذا يقول أولياء الأمور؟</span></h2>
+      <h2><span><?php echo tq_text('site_parents', 'quotes_title', 'ماذا يقول أولياء الأمور؟'); ?></span></h2>
       <div class="rule"><svg aria-hidden="true"><use href="#i-star8"></use></svg></div>
     </div>
-    <div class="cards-3">
-      <article class="tcard reveal">
-        <svg class="tcard__mark" aria-hidden="true"><use href="#i-quote"></use></svg>
-        <p>التواصل مع المعلمين أصبح أسهل والمنصة توفر وقت وجهد كبير.</p>
-        <div class="tcard__who">
-          <img src="<?php echo tq_site_asset('img/avatar-3.webp'); ?>" width="130" height="130" loading="lazy"
-               decoding="async" alt="">
-          <div><b>نوال المطيري</b><span>أم لطالبة في المرحلة الثانوية</span></div>
-        </div>
-        <div class="stars" aria-label="خمس نجوم من خمس">
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-        </div>
-      </article>
-
-      <article class="tcard reveal">
-        <svg class="tcard__mark" aria-hidden="true"><use href="#i-quote"></use></svg>
-        <p>التقارير مفصلة جدا وتساعدني على دعم ابنتي في نقاط ضعفها أولا بأول.</p>
-        <div class="tcard__who">
-          <img src="<?php echo tq_site_asset('img/avatar-2.webp'); ?>" width="130" height="130" loading="lazy"
-               decoding="async" alt="">
-          <div><b>أحمد الشهري</b><span>أب لطالبة في المرحلة الابتدائية</span></div>
-        </div>
-        <div class="stars" aria-label="خمس نجوم من خمس">
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-        </div>
-      </article>
-
-      <article class="tcard reveal">
-        <svg class="tcard__mark" aria-hidden="true"><use href="#i-quote"></use></svg>
-        <p>المنصة رائعة وسهلة. أتابع ابني أولا بأول وأشعر بالطمأنينة على مستواه الدراسي.</p>
-        <div class="tcard__who">
-          <img src="<?php echo tq_site_asset('img/avatar-1.webp'); ?>" width="130" height="130" loading="lazy"
-               decoding="async" alt="">
-          <div><b>سارة العنزي</b><span>أم لطالب في المرحلة المتوسطة</span></div>
-        </div>
-        <div class="stars" aria-label="خمس نجوم من خمس">
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-        </div>
-      </article>
-    </div>
+    <?php /* كاروسل واحد يعاد استعماله (`tqs_carousel`) لا ثالث يكتب هنا:
+             السحب والزخم من `scroll-snap`، والأزرار من `site.js`. وبلا
+             جافاسكربت تبقى البطاقات مقروءة تسحب باليد. */ ?>
+    <?php echo tqs_carousel($tq_slides, 'آراء أولياء الأمور', 'carousel2--quotes'); ?>
   </div>
 </section>
 

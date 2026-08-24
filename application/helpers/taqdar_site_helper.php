@@ -1409,6 +1409,31 @@ if (!function_exists('tq_text')) {
     }
 }
 
+if (!function_exists('tq_testimonials')) {
+    /**
+     * آراء أولياء الأمور المنشورة — من اللوحة.
+     *
+     * تلف نداء النموذج كما تلفه `tq_text_raw()`: القالب لا ينادي
+     * `$this->load->model()` بنفسه، ولا تسقط صفحة عامة لأن جدولا
+     * لم ينشأ بعد — الفارغ يعني «اعرض ما في القالب».
+     */
+    function tq_testimonials($limit = 24)
+    {
+        static $rows = null;
+        if ($rows !== null) return $rows;
+
+        $rows = array();
+        try {
+            $CI = &get_instance();
+            $CI->load->model('taqdar_content_model', 'tq_content');
+            $rows = $CI->tq_content->testimonials($limit);
+        } catch (Throwable $e) {
+            $rows = array();
+        }
+        return $rows;
+    }
+}
+
 if (!function_exists('tq_text_raw')) {
     /** القيمة بلا تهريب — لمن يضعها في `alt` أو `title` أو وسم meta. */
     function tq_text_raw($page, $key, $default = '')
