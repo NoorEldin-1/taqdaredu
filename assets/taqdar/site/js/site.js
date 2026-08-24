@@ -556,6 +556,34 @@ document.documentElement.classList.add('js');
     track.addEventListener('scroll', sync, { passive: true });
     addEventListener('resize', sync);
 
+    /* TQ-CAROUSEL-WHEEL — عجلة الفأرة الرأسية تحرك المسار أفقيا.
+       لوحة اللمس ترسل `deltaX` فيمررها المتصفح وحده، أما الفأرة فلا
+       ترسل إلا `deltaY` — فمن يمرر فوق الكاروسل بفأرة كان يمر بالصفحة
+       كلها ولا تتحرك بطاقة، وهو الجهاز الأشيع على الحاسوب.
+
+       وثلاثة قيود تمنع خطف تمرير الصفحة:
+       ١ — الأفقي الصريح يترك للمتصفح (`deltaX` أكبر) فلا يعالج مرتين.
+       ٢ — الميل الرأسي الغالب وحده يحول، وقطريه يترك للصفحة.
+       ٣ — عند الطرف لا يمنع الافتراضي، فالصفحة تكمل تمريرها ولا يعلق
+           القارئ في مسار انتهى. */
+    track.addEventListener('wheel', function (e) {
+      if (e.ctrlKey) return;                                  /* تكبير لا تمرير */
+      if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;   /* أفقي: للمتصفح */
+
+      var max = track.scrollWidth - track.clientWidth;
+      if (max <= 2) return;                                   /* لا شيء يمرر */
+
+      /* RTL: `scrollLeft` سالب في المتصفحات الحديثة، فالحساب بالمقدار
+         والدفع بإشارة الاتجاه. */
+      var sign = getComputedStyle(track).direction === 'rtl' ? -1 : 1;
+      var at   = Math.abs(track.scrollLeft);
+      var down = e.deltaY > 0;
+      if ((down && at >= max - 2) || (!down && at <= 2)) return;
+
+      e.preventDefault();
+      track.scrollBy({ left: sign * e.deltaY, behavior: 'auto' });
+    }, { passive: false });
+
     /* TQ-CAROUSEL-HIDDEN — الشرائح قد تخفى وتظهر تحت الكاروسل نفسه:
        تبويب المرحلة في صفحة الباقات يخفي ما ليس مرحلته، فيتغير
        `scrollWidth` بلا تمرير ولا تغيير حجم — والزران يبقيان على حالهما
