@@ -47,8 +47,12 @@ $tq_gates = array(
   'student' => array('طالب',    'i-cap',     'أتعلم على المنصة'),
   'teacher' => array('معلم',   'i-teacher', 'أدرس على المنصة'),
   'parent'  => array('ولي أمر', 'i-users',   'أتابع أبنائي'),
-  'admin'   => array('إدارة',   'i-shield',  'أدير المنصة'),
 );
+/* و«الإدارة» ليست بوابة تعرض: حسابها ينشأ من داخل المنصة ولا يسجل من
+   الموقع العام، فبطاقتها تعد بابا رابعا لا يخص أحدا ممن يقرأ الصفحة —
+   وأربع بطاقات تصير صفين يزاحمان النموذج. والمسؤول يدخل من النموذج
+   نفسه ببريده وكلمته، و`tq_gate` يصله فارغا فلا يقابل بدور — ثم
+   يوجهه `validate_login` إلى لوحته كما كان. */
 /* الاختيار الصريح وحده يحاسب عليه: «طالب» هي حالة العرض الأولى لا
    قرارا اتخذه أحد. فلو أرسلت كما هي لقرأ كل معلم يفتح `/login` مجردا
    «دخلت من بوابة طالب» في كل مرة — تنبيه عن اختيار لم يختره.
@@ -60,7 +64,7 @@ if (!$tq_chosen) { $tq_as = 'student'; }
       <?php /* البطاقات روابط تعمل بلا سكربت؛ والسكربت يمنع الانتقال
                 ويبدل محليا — فالنقر عليها بعد كتابة البريد وكلمة المرور
                 كان يعيد تحميل الصفحة فيمسح ما كتب. */ ?>
-      <div class="gate-picker gate-picker--login gate-picker--4" id="loginGate"
+      <div class="gate-picker gate-picker--login" id="loginGate"
            role="radiogroup" aria-label="نوع الحساب">
         <?php foreach ($tq_gates as $tq_k => $tq_g): ?>
           <a class="gate-card<?php echo $tq_as === $tq_k ? ' is-on' : ''; ?>"
@@ -113,15 +117,9 @@ if (!$tq_chosen) { $tq_as = 'student'; }
       <p class="form-alt">
         <a href="<?php echo site_url('login/forgot_password_request'); ?>">نسيت كلمة المرور؟</a>
       </p>
-      <?php /* حسابات الإدارة تنشأ من لوحة الإدارة لا من هنا، فسطر
-              «أنشئ حسابا» يخفى مع بوابتها — دعوة إلى باب لا يفتح
-              هي وعد كاذب. والسكربت يخفيه ويظهره مع التبديل. */ ?>
-      <p class="form-alt" id="loginSignupLine"<?php echo $tq_as === 'admin' ? ' hidden' : ''; ?>>ليس لديك حساب؟
-        <a href="<?php echo base_url('sign_up'); ?>?as=<?php echo $tq_as === 'admin' ? 'student' : $tq_as; ?>"
+      <p class="form-alt" id="loginSignupLine">ليس لديك حساب؟
+        <a href="<?php echo base_url('sign_up'); ?>?as=<?php echo $tq_as; ?>"
            id="loginSignupLink">أنشئ حسابا مجانا</a></p>
-      <p class="form-alt form-alt--muted" id="loginAdminNote"<?php echo $tq_as === 'admin' ? '' : ' hidden'; ?>>
-        حسابات الإدارة تنشأ من داخل المنصة، ولا تسجل من هذه الصفحة.
-      </p>
 
       </div>
       <?php
@@ -145,8 +143,6 @@ if (!$tq_chosen) { $tq_as = 'student'; }
   var box = document.getElementById('loginGate');
   if (!box) return;
   var link  = document.getElementById('loginSignupLink');
-  var line  = document.getElementById('loginSignupLine');
-  var note  = document.getElementById('loginAdminNote');
   var field = document.getElementById('loginGateValue');
 
   box.addEventListener('click', function (e) {
@@ -160,10 +156,7 @@ if (!$tq_chosen) { $tq_as = 'student'; }
       c.setAttribute('aria-checked', String(on));
     });
     if (field) field.value = v;              /* ما يقرؤه الخادم */
-    var isAdmin = (v === 'admin');
-    if (line) line.hidden = isAdmin;
-    if (note) note.hidden = !isAdmin;
-    if (link) link.href = link.href.replace(/\?as=.*$/, '') + '?as=' + (isAdmin ? 'student' : v);
+    if (link) link.href = link.href.replace(/\?as=.*$/, '') + '?as=' + v;
     /* والعنوان يتبع الاختيار كي لا يعود التحديث ببوابة أخرى */
     try { history.replaceState(null, '', '?as=' + v); } catch (err) {}
   });
