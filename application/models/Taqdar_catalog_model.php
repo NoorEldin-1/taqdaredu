@@ -280,7 +280,7 @@ class Taqdar_catalog_model extends CI_Model
     {
         $rows = $this->db->select('c.id, c.title, c.short_description, c.thumbnail, c.category_id,
                                    c.price, c.discount_flag, c.discounted_price, c.is_free_course,
-                                   c.level, c.date_added, c.is_top_course, c.creator,
+                                   c.level, c.date_added, c.is_top_course, c.creator, c.last_modified,
                                    TRIM(CONCAT(COALESCE(u.first_name,""), " ", COALESCE(u.last_name,""))) AS teacher_name,
                                    u.is_public AS teacher_public', false)
                          ->from('course c')
@@ -343,7 +343,7 @@ class Taqdar_catalog_model extends CI_Model
                 'id'         => $cid,
                 'title'      => (string) $r['title'],
                 'blurb'      => tqs_excerpt(strip_tags((string) $r['short_description']), 120),
-                'image'      => (string) $r['thumbnail'],
+                'image'      => $this->course_image($r),
                 'fallback'   => 'subj-math',
                 /* المسار الكامل `course/<المسمى>/<الرقم>` كما تبنيه بقية
                    الواجهة (`public_parts.php`): الرقم هو ما يفتح، والمسمى
@@ -373,6 +373,41 @@ class Taqdar_catalog_model extends CI_Model
             ));
         }
         return $out;
+    }
+
+    /**
+     * صورة الكورس — مسارا يفتح، لا اسما يخمن.
+     *
+     * `course.thumbnail` يخزن **اسم ملف مجردا** داخل
+     * `uploads/thumbnails/course_thumbnails/`، وهو ما تكتبه
+     * `Taqdar_curriculum_model` وما تقرؤه شاشة `course_media_add.php`.
+     * وتمريره كما هو الى `tqs_img()` يجعله يقرأ اسم أصل من السمة — فيبني
+     * `assets/taqdar/site/img/<الاسم>.jpg.webp`، وهو ملف لا وجود له:
+     * فيخرج وجه البطاقة **فارغا** بلا صورة ولا بديل، ولا خطأ في الصفحة.
+     *
+     * والاسمان يقرآن: اسم عمود `thumbnail` (طبقة تقدر)، واسم Academy
+     * الموروث `course_thumbnail_<السمة>_<الرقم><آخر تعديل>.jpg` لكورس رفعت
+     * صورته من الشاشة القديمة والعمود عندها فارغ — والمصغرة أولا ان وجدت.
+     *
+     * وما لم يوجد على القرص يرد فارغا، فتعرض البطاقة أصل السمة البديل
+     * كما تعرضه بقية الأنواع بلا صورة.
+     */
+    private function course_image($r)
+    {
+        $name = trim((string) $r['thumbnail']);
+        if ($name !== '') {
+            $rel = 'uploads/thumbnails/course_thumbnails/' . basename($name);
+            if (is_file(FCPATH . $rel)) return $rel;
+        }
+
+        $legacy = 'course_thumbnail_' . get_frontend_settings('theme') . '_'
+                . (int) $r['id'] . (string) $r['last_modified'] . '.jpg';
+        foreach (array('uploads/thumbnails/course_thumbnails/optimized/' . $legacy,
+                       'uploads/thumbnails/course_thumbnails/' . $legacy) as $rel) {
+            if (is_file(FCPATH . $rel)) return $rel;
+        }
+
+        return '';
     }
 
     /* ---- الكتب --------------------------------------------------- */
