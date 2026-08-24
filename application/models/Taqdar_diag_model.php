@@ -370,12 +370,26 @@ class Taqdar_diag_model extends CI_Model
             $why[] = 'لا سؤال واحد في هذا الاختبار.';
         }
 
+        $this->load->model('taqdar_site_model');
         foreach (self::levels() as $key => $meta) {
             /* الباقة تلزم للمستوى الذي فيه اسئلة وحده: اختبار بمستويين
                لا يطالب بباقة مستوى لا يبلغه احد. */
             if ($tally[$key] < 1) continue;
-            if ((int) $exam['plan_' . $key] <= 0) {
+
+            $pid = (int) $exam['plan_' . $key];
+            if ($pid <= 0) {
                 $why[] = 'مستوى «' . $meta['label'] . '» فيه اسئلة ولا باقة مربوطة به.';
+                continue;
+            }
+
+            /* **وباقة مربوطة ليست باقة تفتح** (TQ-DIAG-404): قائمة
+               الاختيار تعرض الموقوفة بعلامتها عمدا، ومن اوقف باقة بعد ان
+               ربطها لا يمر على الاختبارات. فيسأل هنا عن البوابة نفسها
+               التي يفتحها الطالب — والا خرجت الرسالة تسمي باقة وزرها 404
+               ولا شيء يقوله الا شكواه. */
+            if (!$this->taqdar_site_model->plan_row($pid)) {
+                $why[] = 'باقة مستوى «' . $meta['label'] . '» موقوفة او محذوفة — '
+                       . 'فالنتيجة ترشحها ورابطها لا يفتح. اخترها من جديد او اعد تفعيلها.';
             }
         }
 
@@ -792,12 +806,18 @@ class Taqdar_diag_model extends CI_Model
         $lead   = isset($levels[$level]) ? $levels[$level]['lead'] : '';
 
         /* الباقة تقرأ كاملة لا بمعرفها: رسالة تقول «باقة رقم ٣» لا تقول
-           شيئا، والاسم والسعر والمدة هي ما يقرر عليه من يدفع. */
-        $plan = null;
-        if ((int) $a['plan_id'] > 0) {
-            $this->load->model('taqdar_billing_model');
-            $plan = $this->taqdar_billing_model->plan((int) $a['plan_id']);
-        }
+           شيئا، والاسم والسعر والمدة هي ما يقرر عليه من يدفع.
+
+           **وتقرأ من بوابة عنوانها العام لا من الجدول** (TQ-DIAG-404):
+           `Taqdar_billing_model::plan()` ترد أي صف بمعرفه، وصفحة
+           `‎/plan/<الرمز>‎` ترد `active = 1` وحدها. فباقة أوقفت بعد أن
+           ربطت بمستوى — أو كتب صفها بلا رمز — كانت تخرج رسالة تسميها
+           بسعرها وزرها يفتح 404. والاسم والزر من مصدر واحد الآن: إما
+           باقة تفتح فتسمى، أو لا اسم ولا زر يخصها. */
+        $this->load->model('taqdar_site_model');
+        $plan     = $this->taqdar_site_model->plan_row((int) $a['plan_id']);
+        $plan_url = $plan ? $this->taqdar_site_model->plan_url($plan) : null;
+        if (!$plan_url) $plan = null;
 
         $this->load->model('taqdar_events_model');
         $name = $this->taqdar_events_model->student_name($sid);
@@ -839,7 +859,7 @@ class Taqdar_diag_model extends CI_Model
            الرسالة قد لا يكون له حساب اصلا (`guardian_email`)، ورابط يطلب
            منه تسجيل دخول لا يفتح له شيئا. */
         $cta = $plan
-            ? array('label' => 'اطلع على الباقة', 'href' => site_url('plan/' . (string) $plan['code']))
+            ? array('label' => 'اطلع على الباقة', 'href' => $plan_url)
             : array('label' => 'اطلع على الباقات', 'href' => site_url('plans'));
 
         $plan_lines = array();

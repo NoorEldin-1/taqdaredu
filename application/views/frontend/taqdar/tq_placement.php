@@ -209,7 +209,9 @@ include 'portal_open.php';
 
     <?php if ($tq_plan): ?>
         <?php
-        $tq_code  = (string) $tq_plan['code'];
+        /* الرابط يبنى في المتحكم من بوابة `/plan/<كذا>` نفسها لا هنا من
+           العمود: رمز فارغ أو باقة موقوفة يعطيان زرا يرد 404. */
+        $tq_href  = (string) $tq_plan_url;
         $tq_feats = json_decode((string) $tq_plan['features'], true);
         $tq_feats = is_array($tq_feats) ? array_slice($tq_feats, 0, 4) : array();
         ?>
@@ -233,7 +235,7 @@ include 'portal_open.php';
             <?php endif; ?>
 
             <div class="tq-row" style="gap:var(--tq-space-m);margin-block-start:var(--tq-space-l)">
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plan/' . $tq_code); ?>">
+                <a class="tq-btn tq-btn--primary" href="<?php echo html_escape($tq_href); ?>">
                     اطلع على تفاصيلها
                 </a>
                 <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('plans'); ?>">قارن بالباقات الاخرى</a>

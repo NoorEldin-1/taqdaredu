@@ -436,10 +436,18 @@ class Taqdar extends CI_Controller
         $state = $open ? 'exam' : ($done ? 'result' : 'intro');
 
         /* الباقة الموصى بها تقرأ كاملة لا بمعرفها: الشاشة تعرض بطاقتها
-           بسعرها ومزاياها، فالنتيجة تنتهي إلى خطوة تالية لا إلى اسم. */
-        $plan = null;
+           بسعرها ومزاياها، فالنتيجة تنتهي إلى خطوة تالية لا إلى اسم.
+
+           **ومن بوابة عنوانها العام** (TQ-DIAG-404): البطاقة زرها
+           `‎/plan/<الرمز>‎`، وتلك تفتح `active = 1` وحدها. فباقة أوقفت
+           بعد أن ربطت بمستوى كانت تعرض هنا بسعرها وزرها يرد 404 — والشاشة
+           لها مخرجها حين لا باقة: تدل على صفحة الباقات كلها. */
+        $plan = $plan_url = null;
         if ($done && (int) $done['plan_id'] > 0) {
-            $plan = $this->taqdar_billing_model->plan((int) $done['plan_id']);
+            $this->load->model('taqdar_site_model', 'tq_site');
+            $plan     = $this->tq_site->plan_row((int) $done['plan_id']);
+            $plan_url = $plan ? $this->tq_site->plan_url($plan) : null;
+            if (!$plan_url) $plan = null;
         }
 
         $this->show('tq_placement', 'اختبار تحديد المستوى', array(
@@ -450,6 +458,7 @@ class Taqdar extends CI_Controller
             'tq_questions' => ($state === 'exam') ? $this->taqdar_diag_model->ordered_questions((int) $exam['id']) : array(),
             'tq_attempt'   => $done,
             'tq_plan'      => $plan,
+            'tq_plan_url'  => $plan_url,
             'tq_levels'    => Taqdar_diag_model::levels(),
         ));
     }

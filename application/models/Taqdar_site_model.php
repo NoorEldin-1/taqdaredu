@@ -508,13 +508,62 @@ class Taqdar_site_model extends CI_Model
         return max(0, $s);
     }
 
+    /**
+     * صف الباقة كما يقرؤه **عنوانها العام** — بالرمز أو بالمعرف.
+     *
+     * وهذه هي **بوابة `/plan/<كذا>` نفسها** لا نسخة منها: من أراد أن
+     * يعرف هل تفتح باقة لمن ينقر رابطها فليسألها هي. والقيد `active = 1`
+     * مقصود: الموقوفة سحبت من البيع، فصفحة تعرضها بسعرها تعرض
+     * ما لا يباع.
+     */
+    public function plan_row($code)
+    {
+        $code = trim((string) $code);
+        if ($code === '') return null;
+
+        $this->db->from('plans')->where('active', 1);
+        if (ctype_digit($code)) $this->db->where('id', (int) $code);
+        else                    $this->db->where('code', $code);
+
+        $row = $this->db->get()->row_array();
+        return $row ? $row : null;
+    }
+
+    /**
+     * العنوان العام لباقة — أو `null` إن لم يكن لها عنوان **يفتح**.
+     *
+     * رابط يبنى من `plans.code` رأسا يرد 404 في ثلاث حالات وقعت كلها:
+     * باقة أوقفت بعد أن ربطت، وباقة كتب صفها من خارج اللوحة بلا رمز
+     * (فيصير الرابط `‎/plan/‎` ولا قاعدة توجيه تلتقطه)، ورمز فيه ما يرده
+     * `permitted_uri_chars`. والرقم مخرج للحالتين الأخيرتين لأن
+     * `plan_row()` تقبل المعرف كما تقبل الرمز.
+     *
+     * ورمز كله أرقام يكتب بالمعرف أيضا: `plan_row()` تقرأ المقطع الرقمي
+     * معرفا، فرابط `‎/plan/2024‎` يفتح الباقة رقم 2024 لا التي رمزها «2024».
+     *
+     * @param array|int $plan صف باقة أو معرفها
+     */
+    public function plan_url($plan)
+    {
+        if (!is_array($plan)) $plan = $this->plan_row($plan);
+        if (!$plan || (int) $plan['id'] < 1) return null;
+
+        /* الصف قد يأتي من قارئ لا يفحص `active` — والفحص هنا لا هناك،
+           فمن يطلب رابطا يأخذ رابطا يفتح أو لا يأخذ شيئا. */
+        if (isset($plan['active']) && (int) $plan['active'] !== 1) return null;
+
+        $seg = trim((string) (isset($plan['code']) ? $plan['code'] : ''));
+        if ($seg === '' || ctype_digit($seg) || !preg_match('#^[A-Za-z0-9._~-]+$#', $seg)) {
+            $seg = (string) (int) $plan['id'];
+        }
+
+        return base_url('plan/' . $seg);
+    }
+
     public function bundle_by_code($code)
     {
         /* ١ · الباقة ------------------------------------------------- */
-        $this->db->from('plans')->where('active', 1);
-        if (ctype_digit((string) $code)) $this->db->where('id', (int) $code);
-        else                             $this->db->where('code', (string) $code);
-        $plan = $this->db->get()->row_array();
+        $plan = $this->plan_row($code);
         if (!$plan) return null;
 
         $features = array();
