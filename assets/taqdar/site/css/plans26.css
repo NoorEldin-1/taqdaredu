@@ -23,9 +23,9 @@
   --p26-bg2:#F6F7FA;         /* الخلفيات الثانوية */
   --p26-mute:#5C7189;        /* النص الوصفي */
   --p26-line:#E7EBF0;        /* الحدود */
-  --p26-r:15px;              /* نصف قطر الكارت 14–16 */
-  --p26-r-btn:8px;
-  --p26-pad:clamp(20px,1.7vw,24px);
+  --p26-r:18px;              /* استدارة واضحة على كل الأطراف */
+  --p26-r-btn:10px;
+  --p26-pad:clamp(20px,1.7vw,26px);
   --p26-gap:clamp(16px,1.3vw,20px);
 }
 
@@ -59,16 +59,20 @@
   background:var(--p26-teal); border-color:var(--p26-teal); color:#fff
 }
 
-/* الشبكة ─────────────────────────────────────────── */
+/* الشبكة ───────────────────────────────────────────
+   عرض محدود عمدًا: بطاقة عريضة تصير مربّعة، والتصميم طوليّ.
+   940 على ثلاثة بفجوة 18 ⇒ نحو 300px للبطاقة، ونسبتها ~0.72 طوليّة. */
 .tq-p26 .p26__grid{
   display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:var(--p26-gap); align-items:stretch
+  gap:var(--p26-gap); align-items:stretch;
+  max-inline-size:min(1200px,100%); margin-inline:auto
 }
 
 /* الكارت ───────────────────────────────────────────
-   شبكة صفّين لا فليكس: **`float` لا يعمل على ابن حاوية فليكس**، والصورة
-   في هذا التصميم تلتف حولها الكتابة ثم تنساب تحتها. فالجسم صف يتمدد
-   والزر صف يلتصق بالقاع — فتتحاذى الأزرار مهما اختلف طول القوائم. */
+   الصورة **طبقة تحت الكلام**: موضوعة على جهة البدء تحت النص، وتتلاشى
+   نحو جهة الكتابة بقناع متدرّج + حجاب أبيض خفيف — فتبقى بائنة ولا
+   تزاحم الحرف. والزر صفّ مستقلّ يلتصق بالقاع فتتحاذى الأزرار مهما
+   اختلف طول القوائم. */
 .tq-p26 .p26-card{
   position:relative; display:grid; grid-template-rows:1fr auto;
   background:#fff; border:1px solid var(--p26-line);
@@ -80,27 +84,32 @@
 .tq-p26 .p26-card__body::after{ content:''; display:block; clear:both }
 .tq-p26 .p26-card--hot{ border:1.5px solid var(--p26-gold) }
 .tq-p26 .p26-card__badge{
-  position:absolute; inset-block-start:0; inset-inline-end:var(--p26-pad);
+  position:absolute; inset-block-start:10px; inset-inline-end:var(--p26-pad);
   background:var(--p26-gold); color:var(--p26-navy);
   font-family:'Cairo','Plex Arabic',system-ui,sans-serif; font-weight:700;
   font-size:clamp(9.5px,.75vw,11.5px); line-height:1;
-  padding:6px 12px; border-radius:0 0 8px 8px; z-index:3
+  padding:6px 13px; border-radius:999px; z-index:3
 }
 
-/* الصورة: تسيل حولها الكتابة ثم تنساب تحتها — بلا مواضع مطلقة هشة */
+/* الصورة — تطفو على جهة البدء (اليمين في العربية) **ظاهرة كما هي**:
+   لا قناع ولا حجاب ولا ضباب. والكتابة تسيل إلى يسارها ثم تنساب تحتها،
+   وهو ما يعطي شكل الشاشة المرجعية بلا مواضع مطلقة هشّة.
+   والطفو يلزمه صندوق تنسيق عاديّ — ولذلك الجسم ليس ابن فليكس. */
 .tq-p26 .p26-card__art{
-  float:inline-start; inline-size:48%;
-  margin-inline-start:calc(var(--p26-pad) * -0.55);
-  margin-block-start:calc(var(--p26-pad) * -0.55);
+  float:inline-start; inline-size:52%;
+  margin-inline-start:calc(var(--p26-pad) * -0.85);
+  margin-block-start:calc(var(--p26-pad) * -0.85);
   margin-inline-end:10px; margin-block-end:2px; pointer-events:none
 }
-.tq-p26 .p26-card--hot .p26-card__art{ inline-size:54% }   /* المميزة أكبر */
 .tq-p26 .p26-card__art img{ inline-size:100%; block-size:auto; display:block }
 
 /* الأيقونة الدائرية — نفس الشكل والحجم في كل مكان */
 .tq-p26 .p26-card__ico{
-  inline-size:clamp(44px,3.6vw,54px); aspect-ratio:1; border-radius:50%;
-  display:grid; place-items:center; position:relative; z-index:2; color:#fff;
+  /* في مجرى الكتابة لا فوق الصورة: الطفو يزيحها إلى جهة النهاية
+     (اليسار في العربية) فلا تقع على وجه الطالب. */
+  position:relative; z-index:2;
+  inline-size:clamp(42px,3.4vw,52px); aspect-ratio:1; border-radius:50%;
+  display:grid; place-items:center; color:#fff;
   background:linear-gradient(150deg,var(--p26-green),var(--p26-teal))
 }
 .tq-p26 .p26-card__ico svg{
@@ -126,11 +135,11 @@
 
 .tq-p26 .p26-card__list{
   list-style:none; margin:16px 0 0; padding:0; position:relative; z-index:2;
-  display:flex; flex-direction:column; gap:9px
+  display:flex; flex-direction:column; gap:6px
 }
 .tq-p26 .p26-card__list li{
   display:flex; align-items:flex-start; gap:8px;
-  color:var(--p26-mute); font-size:clamp(10.5px,.84vw,13px); line-height:1.65
+  color:var(--p26-mute); font-size:clamp(11px,.86vw,13px); line-height:1.6
 }
 .tq-p26 .p26-card__list svg{
   inline-size:1em; block-size:1em; aspect-ratio:1; flex:none;
@@ -140,7 +149,7 @@
 
 /* الزر — واحد أساسي في القسم كله: زر الكارت المميز */
 .tq-p26 .p26-card__cta{
-  padding-block-start:20px; position:relative; z-index:2
+  clear:both; padding-block-start:16px; position:relative; z-index:2
 }
 .tq-p26 .p26-card__cta a{
   display:block; text-align:center; border-radius:var(--p26-r-btn);
@@ -160,16 +169,11 @@
    ───────────────────────────────────────────────── */
 @media (max-width:980px){
   .tq-p26 .p26__grid{ grid-template-columns:repeat(2,minmax(0,1fr)) }
-  .tq-p26 .p26-card__art,
-  .tq-p26 .p26-card--hot .p26-card__art{ inline-size:48% }
 }
 @media (max-width:680px){
   .tq-p26 .p26__grid{ grid-template-columns:1fr }
   .tq-p26 .p26-card--hot{ order:-1 }          /* المميز أولًا على الجوال */
-  .tq-p26 .p26-card__art,
-  .tq-p26 .p26-card--hot .p26-card__art{ inline-size:46% }
 }
 @media (max-width:420px){
-  .tq-p26 .p26-card__art,
-  .tq-p26 .p26-card--hot .p26-card__art{ inline-size:42% }
+  .tq-p26 .p26-card__art{ inline-size:42% }
 }
