@@ -257,8 +257,18 @@
   overflow:hidden;box-shadow:var(--sh-soft);text-align:center;
   transition:transform var(--t-entry) var(--ease),box-shadow var(--t-entry) var(--ease)}
 .teacher-card:hover{transform:translateY(-8px);box-shadow:var(--sh-raise)}
-.teacher-card__media{position:relative;aspect-ratio:1;overflow:hidden;
-  background:linear-gradient(140deg,#F2E6D4,#EADFCB)}
+/* الصور الجديدة بخلفية بيضاء ⇒ الأرضية بيضاء لا متدرّجة بيج،
+   وإلّا بان إطار بيج حول كل وجه. */
+.teacher-card__media{position:relative;aspect-ratio:1;overflow:hidden;background:#fff}
+
+/* TQ-TEACHERS-CAROUSEL · دليل المعلّمين مضمار لا شبكة */
+.carousel2--teachers .carousel2__track>*{flex:0 0 clamp(200px,19vw,248px)}
+.carousel2--teachers .teacher-card{display:flex;flex-direction:column;block-size:100%}
+.carousel2--teachers .teacher-card__body{flex:1;display:flex;flex-direction:column}
+.carousel2--teachers .teacher-card:hover{transform:none;box-shadow:var(--sh-raise)}
+@media (max-width:480px){
+  .carousel2--teachers .carousel2__track>*{flex:0 0 min(74vw,260px)}
+}
 .teacher-card__media img{width:100%;height:100%;object-fit:cover}
 .teacher-card__chip{
   position:absolute;inset-block-end:10px;inset-inline-start:50%;translate:50% 0;
@@ -3303,17 +3313,17 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 .preview-next .cta__actions{justify-content:center}
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-DIR-FEW · دليل المعلمين ولوح المسابقات: القليل يتوسط لا يتزحزح
-   شبكة بخمسة أعمدة ونتيجة واحدة تترك أربعة أخماس الصف فراغا، فتقرأ
-   النتيجة القليلة عطبا لا نتيجة. والمرن يتوسط ما بقي — القاعدة نفسها
-   في TQ-FEWRES أعلاه.
+   TQ-DIR-FEW · دليل المعلمين: كان شبكةً بخمسة أعمدة، وصار **مضمار
+   كاروسل** — والمعرّف انتقل معه إلى المضمار لأن سكربت الدليل يفتّش
+   أبناء `#teacherGrid` مباشرةً.
+   والقاعدتان القديمتان بمعرّف كانتا تغلبان أصناف الكاروسل فتُبقيانه
+   ملتفًّا: خصوصية المعرّف أعلى من أي صنف مهما تأخّر في الملفّ.
+   والقليل يبقى متوسّطًا: نتيجةٌ واحدة في مضمار عريض تقرأ عطبًا،
+   فـ`justify-content:center` تُبقيها في الوسط ولا تمنع التمرير.
    ══════════════════════════════════════════════════════════════════ */
-#teacherGrid{
-  display:flex;flex-wrap:wrap;justify-content:center;
-  gap:clamp(12px,1.5vw,22px)
-}
+#teacherGrid{ flex-wrap:nowrap; justify-content:center }
 #teacherGrid>.teacher-card{
-  flex:1 1 clamp(150px,15vw,210px);max-inline-size:250px;min-inline-size:0
+  flex:0 0 clamp(200px,19vw,248px); max-inline-size:none; min-inline-size:0
 }
 /* الصورة صارت رابطا، والرابط سطري افتراضا — فـ`aspect-ratio` عليه بلا
    `display:block` لا تنتج ارتفاعا، فتتفلطح البطاقة. */
@@ -3329,7 +3339,7 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
   flex:1 1 clamp(240px,24vw,300px);max-inline-size:380px;min-inline-size:0
 }
 @media (max-width:560px){
-  #teacherGrid>.teacher-card{flex:1 1 46%;max-inline-size:none}
+  #teacherGrid>.teacher-card{flex:0 0 min(74vw,260px);max-inline-size:none}
   .comp-grid>.comp-card{flex:1 1 100%;max-inline-size:none}
 }
 

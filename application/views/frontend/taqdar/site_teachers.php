@@ -120,12 +120,13 @@ css: pages
          والدليل يعرض كل معلم عام أصلا (`teachers()` بلا حد)، فالزر لا
          وجهة له خارج الصفحة. فصار ما يقوله: أول عشرة تعرض، والبقية
          يكشفها الزر — ولا يطبع الزر أصلا إن لم يكن وراءه أحد. */
-      $tq_fold = 10;
-      $tq_more = max(0, count($tq_teachers) - $tq_fold);
+      /* الكاروسل لا يحتاج طيًّا: البطاقات كلها في المضمار والزائر
+         يمرّرها. فـ`fold=0` والزر يسقط من تلقائه. */
+      $tq_fold = 0;
+      $tq_more = 0;
       ?>
-      <div class="grid-5" id="teacherGrid" data-tq-fold="<?php echo (int) $tq_fold; ?>">
-<?php echo tqs_teachers($tq_teachers, $tq_fold); ?>
-      </div>
+<?php echo tqs_carousel(tqs_teachers($tq_teachers, $tq_fold),
+                        'المعلمون', 'carousel2--teachers', 'teacherGrid'); ?>
 
       <p class="dir-empty" id="teacherEmpty" hidden>لا توجد نتائج مطابقة — جرب كلمة أخرى.</p>
 

@@ -310,7 +310,13 @@ if (!function_exists('tqs_person_img')) {
         /* رفع فعلي — Academy تكتب `<hash>.jpg` وتصنع نسخة مصغرة بجوارها.
            والمصغرة أولا: هي 220px بدل الأصل الذي قد يكون ميغابايتين. */
         foreach (array('uploads/user_image/optimized/', 'uploads/user_image/') as $dir) {
-            if (is_file(FCPATH . $dir . $name . '.jpg')) return base_url($dir . $name . '.jpg');
+            $abs = FCPATH . $dir . $name . '.jpg';
+            if (is_file($abs)) {
+                /* `?v=` بزمن التعديل: استبدال صورة معلّم لا يغيّر الرابط،
+                   فيبقى الزائر العائد على القديمة حتى ينتهي كاشه.
+                   ونفس ما تفعله `tq_site_asset()` لأصول السمة. */
+                return base_url($dir . $name . '.jpg') . '?v=' . filemtime($abs);
+            }
         }
 
         // اسم أصل مبذور في سمة الموقع
@@ -768,14 +774,18 @@ if (!function_exists('tqs_carousel')) {
      * أساسه `scroll-snap` لا جافاسكربت يحرك: المتصفح يعرف السحب والزخم
      * وحد التمرير أحسن مما نكتب، ويعمل بلا سكربت إن فشل تحميله.
      */
-    function tqs_carousel($inner, $label = '', $class = '')
+    function tqs_carousel($inner, $label = '', $class = '', $track_id = '')
     {
+        /* `$track_id` يوضع على **المضمار** لا على الغلاف: سكربت دليل
+           المعلّمين يفتّش أبناء `#teacherGrid` مباشرةً، والأبناء هم
+           البطاقات — فلو وُضع على الغلاف صار ابنه زرَّين ومضمارًا. */
         if (trim((string) $inner) === '') return '';
         $h  = '<div class="carousel2' . ($class !== '' ? ' ' . html_escape($class) : '')
             . '" data-tq-carousel>' . "\n";
         $h .= '  <button class="carousel2__nav carousel2__nav--prev" type="button" data-tq-car-prev'
             . ' aria-label="السابق"><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>' . "\n";
         $h .= '  <div class="carousel2__track" data-tq-car-track tabindex="0" role="region"'
+            . ($track_id !== '' ? ' id="' . html_escape($track_id) . '"' : '')
             . ($label !== '' ? ' aria-label="' . html_escape($label) . '"' : '') . '>' . "\n";
         $h .= $inner . "\n";
         $h .= '  </div>' . "\n";
