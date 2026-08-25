@@ -1591,9 +1591,22 @@ if (!function_exists('tqs_p26_cards')) {
                العنوان سطرين بلا فائدة. و`tqs_bundle_tier()` قائمة أصلًا. */
             $h .= '    <h3 class="p26-card__title">' . html_escape(tqs_bundle_tier($b['name'])) . '</h3>' . "\n";
             $h .= '    <p class="p26-card__sub">' . html_escape(tqs_stage_label($b['stage'])) . '</p>' . "\n";
-            $h .= '    <p class="p26-card__price"><b class="tq-ltr">' . number_format($b['price'] / 100)
-                . '</b> ريال / '
-                . ($b['days'] >= 360 ? 'سنويا' : 'كل ' . (int) $b['days'] . ' يوما') . '</p>' . "\n";
+            /* السعر بنسختين: سنويّة كما هي في القاعدة، ومعادِل شهريّ **عرضًا
+               لا فوترة**. كل الباقات `period='annual'`، فالشهريّ يقول صراحةً
+               «يُدفع سنويًّا» — رقم بلا سياقه وعدٌ مضلّل. */
+            $tq_sar   = (int) round($b['price'] / 100);
+            $tq_year  = ($b['days'] >= 360);
+            $tq_month = $tq_year ? (int) round($tq_sar / 12) : 0;
+
+            $h .= '    <p class="p26-card__price" data-cycle="year"><b class="tq-ltr">'
+                . number_format($tq_sar) . '</b> ريال / '
+                . ($tq_year ? 'سنويا' : 'كل ' . (int) $b['days'] . ' يوما') . '</p>' . "\n";
+            if ($tq_year) {
+                $h .= '    <p class="p26-card__price" data-cycle="month" hidden><b class="tq-ltr">'
+                    . number_format($tq_month) . '</b> ريال / شهريا'
+                    . '<small class="p26-card__note">تدفع سنويا '
+                    . number_format($tq_sar) . ' ر.س</small></p>' . "\n";
+            }
             if (!empty($b['features'])) {
                 $h .= '    <ul class="p26-card__list">' . "\n";
                 foreach ($b['features'] as $f) {

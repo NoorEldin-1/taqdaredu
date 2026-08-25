@@ -24,7 +24,7 @@
   --p26-mute:#5C7189;        /* النص الوصفي */
   --p26-line:#E7EBF0;        /* الحدود */
   --p26-r:18px;              /* استدارة واضحة على كل الأطراف */
-  --p26-r-btn:10px;
+  --p26-r-btn:999px;      /* حوافّ مشطوفة تمامًا */
   --p26-pad:clamp(20px,1.7vw,26px);
   --p26-gap:clamp(16px,1.3vw,20px);
 }
@@ -40,6 +40,19 @@
   margin:8px 0 0; color:var(--p26-mute);
   font-size:clamp(11.5px,.92vw,14.5px); line-height:1.8
 }
+/* الهوية هندسية لا تصويرية: نجمة ثمانية بين خطّين — زخرفة نجدية
+   مألوفة، بلا نخلة ولا سفينة ولا علم. */
+.tq-p26 .p26__rule{
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  margin-block-start:14px; color:var(--p26-gold)
+}
+.tq-p26 .p26__rule::before,
+.tq-p26 .p26__rule::after{
+  content:''; inline-size:clamp(28px,3vw,52px); block-size:1px;
+  background:linear-gradient(to left,transparent,var(--p26-line))
+}
+.tq-p26 .p26__rule::after{ background:linear-gradient(to right,transparent,var(--p26-line)) }
+.tq-p26 .p26__rule svg{ inline-size:13px; block-size:13px; aspect-ratio:1 }
 
 /* تبويب المرحلة ─────────────────────────────────── */
 .tq-p26 .p26__tabs{
@@ -57,6 +70,35 @@
 .tq-p26 .p26__tabs .stage-tab.is-on,
 .tq-p26 .p26__tabs .stage-tab[aria-selected='true']{
   background:var(--p26-teal); border-color:var(--p26-teal); color:#fff
+}
+
+/* مبدّل الدورة ─────────────────────────────────────
+   عرضٌ لا فوترة: كل الباقات سنوية في القاعدة، وهذا يُظهر المعادل الشهري
+   ومعه سطر «يُدفع سنويًّا» — فلا يَعِد بما لا يحدث. */
+.tq-p26 .p26__cycle{
+  display:flex; justify-content:center; margin-block-end:clamp(20px,1.9vw,28px)
+}
+.tq-p26 .p26__cycle-in{
+  display:inline-flex; gap:4px; padding:4px;
+  background:var(--p26-bg2); border:1px solid var(--p26-line); border-radius:999px
+}
+.tq-p26 .p26__cycle button{
+  border:0; background:transparent; color:var(--p26-navy); cursor:pointer;
+  border-radius:999px; padding:8px 20px;
+  font-family:'Cairo','Plex Arabic',system-ui,sans-serif; font-weight:600;
+  font-size:clamp(10.5px,.84vw,13px);
+  transition:background-color .2s ease, color .2s ease
+}
+.tq-p26 .p26__cycle button:hover{ color:var(--p26-teal) }
+.tq-p26 .p26__cycle button[aria-pressed='true']{
+  background:#fff; color:var(--p26-teal); box-shadow:0 1px 3px rgba(19,37,73,.08)
+}
+.tq-p26 .p26__cycle-save{
+  display:inline-block; margin-inline-start:6px; padding:2px 8px; border-radius:999px;
+  /* حبر أعمق من `--p26-gold-ink`: الشارة على تظليل ذهبي لا على أبيض،
+     وهناك 4.27 فترسب. #945908 يعطي 4.73 على الخلفية المخلوطة الفعلية. */
+  background:rgba(244,155,45,.16); color:#945908;
+  font-size:clamp(8.5px,.66vw,10.5px); font-weight:700
 }
 
 /* الشبكة ───────────────────────────────────────────
@@ -132,10 +174,20 @@
   font-size:clamp(14px,1.2vw,18px); color:var(--p26-gold-ink)
 }
 .tq-p26 .p26-card__price b{ color:var(--p26-teal); font-weight:700 }
+/* المعادل الشهري يقول صراحةً كيف يُدفع — رقمٌ بلا سياقه وعدٌ مضلّل */
+.tq-p26 .p26-card__note{
+  display:block; margin-block-start:3px; font-family:'Plex Arabic',system-ui,sans-serif;
+  font-weight:400; font-size:clamp(9.5px,.74vw,11.5px); color:var(--p26-mute)
+}
 
 .tq-p26 .p26-card__list{
-  list-style:none; margin:16px 0 0; padding:0; position:relative; z-index:2;
-  display:flex; flex-direction:column; gap:6px
+  /* `clear` هو بيت القصيد: القائمة تبدأ **من تحت الصورة** بعرض البطاقة
+     كاملًا، فتُقرأ المزايا في عمود واحد بدل سطرين قصيرين بجوار الصورة.
+     وفوقها فاصل رفيع يفصل «ما هي الباقة» عن «ماذا فيها». */
+  clear:both; list-style:none; padding:0; position:relative; z-index:2;
+  margin:16px 0 0; padding-block-start:16px;
+  border-block-start:1px solid var(--p26-line);
+  display:flex; flex-direction:column; gap:8px
 }
 .tq-p26 .p26-card__list li{
   display:flex; align-items:flex-start; gap:8px;

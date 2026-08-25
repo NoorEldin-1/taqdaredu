@@ -205,11 +205,22 @@ if (!$tq_quotes) {
     <div class="p26__head reveal">
       <h2><?php echo tq_text('home', 'plans_title', 'اختر ما يناسبك'); ?></h2>
       <p><?php echo tq_text('home', 'plans_lede', 'باقات تعليمية مرنة لتناسب جميع احتياجاتك'); ?></p>
+<?php /* هوية هندسية لا تصويرية: نجمة ثمانية بين خطّين. */ ?>
+      <div class="p26__rule" aria-hidden="true"><svg><use href="#i-star8"></use></svg></div>
     </div>
 <?php /* التبويب يبقى: الباقات ست عبر مرحلتين، وحذفه يخفي نصفها. */ ?>
 <?php $tq_tabs = tqs_stage_tabs(); if ($tq_tabs !== ''): ?>
     <div class="p26__tabs"><?php echo $tq_tabs; ?></div>
 <?php endif; ?>
+<?php /* مبدّل الدورة — **عرض لا فوترة**: كل الباقات سنوية في القاعدة،
+        فالشهريّ يعرض المعادل ومعه «يُدفع سنويًّا». والزرّان مبدّلان لا
+        روابط، ويعملان بلا تنقّل ولا استعلام. */ ?>
+    <div class="p26__cycle">
+      <div class="p26__cycle-in" role="group" aria-label="دورة عرض السعر">
+        <button type="button" data-tq-cycle="year" aria-pressed="true">سنوي<span class="p26__cycle-save">الأوفر</span></button>
+        <button type="button" data-tq-cycle="month" aria-pressed="false">شهري</button>
+      </div>
+    </div>
 <?php echo tqs_p26_cards(); ?>
   </div>
 </section>

@@ -1160,3 +1160,27 @@ document.documentElement.classList.add('js');
 
   toggleClear();
 })();
+
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-P26-CYCLE · مبدّل عرض السعر في قسم الباقات
+   يبدّل **ما يُعرض** لا ما يُدفع: كل الباقات سنوية، والشهريّ معادلها
+   ومعه سطر «يُدفع سنويًّا». ولذلك لا يمسّ الزرّ ولا الرابط ولا الخادم.
+   ولو لم يعمل هذا السكربت بقي السعر السنويّ ظاهرًا — وهو الصحيح.
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+  var btns = document.querySelectorAll('[data-tq-cycle]');
+  if (!btns.length) return;
+  function apply(cycle) {
+    Array.prototype.forEach.call(btns, function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-tq-cycle') === cycle));
+    });
+    var prices = document.querySelectorAll('.p26-card__price[data-cycle]');
+    Array.prototype.forEach.call(prices, function (p) {
+      p.hidden = (p.getAttribute('data-cycle') !== cycle);
+    });
+  }
+  Array.prototype.forEach.call(btns, function (b) {
+    b.addEventListener('click', function () { apply(b.getAttribute('data-tq-cycle')); });
+  });
+})();
