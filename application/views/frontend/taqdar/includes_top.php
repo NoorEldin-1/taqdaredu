@@ -24,6 +24,11 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/pages.css'); ?>">
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/shared.css'); ?>">
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/shell.css'); ?>">
+<?php /* TQ-P26 · ورقة قسم الباقات — الرئيسية وحدها، وكل قاعدة فيها
+        مقيَّدة بـ`body.tq-p26`. حذف هذه الكتلة يعيد القسم إلى شكله السابق. */ ?>
+<?php if (isset($page_name) && in_array($page_name, array('home', 'home_elegant'), true)): ?>
+    <link rel="stylesheet" href="<?php echo tq_site_asset('css/plans26.css'); ?>">
+<?php endif; ?>
 <?php else: ?>
 <?php /* TQ-FONTS-MOVED — خطوط البوابة تسبق للبوابة وحدها.
    كانت خارج الشرط، فتجلب بأولوية عالية على كل صفحة تصميم — وهي

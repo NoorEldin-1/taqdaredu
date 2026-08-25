@@ -194,14 +194,23 @@ if (!$tq_quotes) {
 <?php /* ══════════ TQ-HOME-BUNDLES ══════════
         الباقة وحدة البيع، فهي قلب الصفحة. والمواد تحتها **محتوى**
         يطمئن لا سلعة تشترى — ولذلك بلا سعر ولا زر شراء. */ ?>
-<section class="section" id="bundles">
+<?php /* ══════════════════════════════════════════════════════════════
+        قسم الباقات — نظام تصميم المالك (ورقة `css/plans26.css` المحصورة
+        بـ`body.tq-p26`). لا يمس هذا القسم غيره: الهيرو والخلفية العربية
+        وكل قسم آخر في الصفحة كما هي.
+        والبيانات من `tqs_bundles()` نفسها — صفر استعلام جديد.
+        ══════════════════════════════════════════════════════════════ */ ?>
+<section class="section p26" id="bundles">
   <div class="shell">
-    <div class="section-head reveal">
-      <h2><span>اختر باقتك</span></h2>
-      <p>المنهج كاملا في باقة واحدة — لا مادة مادة. كل باقة تحوي ما قبلها وتزيد.</p>
+    <div class="p26__head reveal">
+      <h2><?php echo tq_text('home', 'plans_title', 'اختر ما يناسبك'); ?></h2>
+      <p><?php echo tq_text('home', 'plans_lede', 'باقات تعليمية مرنة لتناسب جميع احتياجاتك'); ?></p>
     </div>
-    <?php echo tqs_stage_tabs(); ?>
-    <?php echo tqs_bundle_cards(); ?>
+<?php /* التبويب يبقى: الباقات ست عبر مرحلتين، وحذفه يخفي نصفها. */ ?>
+<?php $tq_tabs = tqs_stage_tabs(); if ($tq_tabs !== ''): ?>
+    <div class="p26__tabs"><?php echo $tq_tabs; ?></div>
+<?php endif; ?>
+<?php echo tqs_p26_cards(); ?>
   </div>
 </section>
 

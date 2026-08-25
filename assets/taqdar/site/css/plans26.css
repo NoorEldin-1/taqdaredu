@@ -1,0 +1,175 @@
+/* ══════════════════════════════════════════════════════════════════
+   تقدر · قسم الباقات في الرئيسية — نظام تصميم المالك
+   ------------------------------------------------------------------
+   ورقة محصورة: تُحمَّل على الرئيسية وحدها، وكل قاعدة مقيَّدة بـ`.tq-p26`
+   على `<body>`. ولا تمس هذه الورقة إلا قسم الباقات — لا الهيرو ولا
+   الخلفية العربية ولا أي قسم آخر في الصفحة.
+
+   لوحة المالك حرفيًّا، وموضعان عُمِّقا للقراءة وحدها:
+   · السعر: عدده تركوازي #0C786C (5.36) ووحدته ذهب عميق #A9660A (4.57)
+     — الذهب #F49B2D يعطي 2.19 على الأبيض فلا يصلح حبرًا، ويبقى تعبئةً.
+   · النص الوصفي #5C7189 بدل #8DA0B3 (2.69) — نفس العائلة أغمق.
+     والقيمة اختيرت على **أرضية الصفحة الكريمية** لا على أبيض: وصف
+     العنوان يجلس عليها مباشرة، وهناك #61768E يعطي 4.28 فيرسب.
+     #5C7189 يعطي 4.60 على الكريمي و5.03 على البطاقة البيضاء.
+   ══════════════════════════════════════════════════════════════════ */
+
+.tq-p26 .p26{
+  --p26-navy:#132549;        /* العناوين والنص الأساسي */
+  --p26-teal:#0C786C;        /* الهوية · الأزرار الثانوية · علامات الصح */
+  --p26-green:#17A08E;       /* التفاعل والأيقونات */
+  --p26-gold:#F49B2D;        /* المميز والـCTA — تعبئةً لا حبرًا */
+  --p26-gold-ink:#A9660A;    /* الذهب حين يكون حبرًا */
+  --p26-bg2:#F6F7FA;         /* الخلفيات الثانوية */
+  --p26-mute:#5C7189;        /* النص الوصفي */
+  --p26-line:#E7EBF0;        /* الحدود */
+  --p26-r:15px;              /* نصف قطر الكارت 14–16 */
+  --p26-r-btn:8px;
+  --p26-pad:clamp(20px,1.7vw,24px);
+  --p26-gap:clamp(16px,1.3vw,20px);
+}
+
+/* العنوان ───────────────────────────────────────── */
+.tq-p26 .p26__head{ text-align:center; margin-block-end:clamp(24px,2.3vw,32px) }
+.tq-p26 .p26__head h2{
+  margin:0; color:var(--p26-navy); font-weight:700;
+  font-family:'Cairo','Plex Arabic',system-ui,sans-serif;
+  font-size:clamp(20px,2vw,30px); line-height:1.35
+}
+.tq-p26 .p26__head p{
+  margin:8px 0 0; color:var(--p26-mute);
+  font-size:clamp(11.5px,.92vw,14.5px); line-height:1.8
+}
+
+/* تبويب المرحلة ─────────────────────────────────── */
+.tq-p26 .p26__tabs{
+  display:flex; justify-content:center; gap:10px; flex-wrap:wrap;
+  margin-block-end:clamp(20px,1.9vw,28px)
+}
+.tq-p26 .p26__tabs .stage-tab{
+  background:#fff; border:1px solid var(--p26-line); color:var(--p26-navy);
+  border-radius:999px; padding:9px 20px; box-shadow:none;
+  font-family:'Cairo','Plex Arabic',system-ui,sans-serif; font-weight:600;
+  font-size:clamp(11px,.88vw,13.5px);
+  transition:border-color .2s ease, color .2s ease, background-color .2s ease
+}
+.tq-p26 .p26__tabs .stage-tab:hover{ border-color:var(--p26-green); color:var(--p26-teal) }
+.tq-p26 .p26__tabs .stage-tab.is-on,
+.tq-p26 .p26__tabs .stage-tab[aria-selected='true']{
+  background:var(--p26-teal); border-color:var(--p26-teal); color:#fff
+}
+
+/* الشبكة ─────────────────────────────────────────── */
+.tq-p26 .p26__grid{
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:var(--p26-gap); align-items:stretch
+}
+
+/* الكارت ───────────────────────────────────────────
+   شبكة صفّين لا فليكس: **`float` لا يعمل على ابن حاوية فليكس**، والصورة
+   في هذا التصميم تلتف حولها الكتابة ثم تنساب تحتها. فالجسم صف يتمدد
+   والزر صف يلتصق بالقاع — فتتحاذى الأزرار مهما اختلف طول القوائم. */
+.tq-p26 .p26-card{
+  position:relative; display:grid; grid-template-rows:1fr auto;
+  background:#fff; border:1px solid var(--p26-line);
+  border-radius:var(--p26-r); padding:var(--p26-pad);
+  box-shadow:0 1px 2px rgba(19,37,73,.04);   /* شبه غير موجود — الاعتماد على الحد */
+  overflow:hidden
+}
+.tq-p26 .p26-card__body{ min-inline-size:0 }
+.tq-p26 .p26-card__body::after{ content:''; display:block; clear:both }
+.tq-p26 .p26-card--hot{ border:1.5px solid var(--p26-gold) }
+.tq-p26 .p26-card__badge{
+  position:absolute; inset-block-start:0; inset-inline-end:var(--p26-pad);
+  background:var(--p26-gold); color:var(--p26-navy);
+  font-family:'Cairo','Plex Arabic',system-ui,sans-serif; font-weight:700;
+  font-size:clamp(9.5px,.75vw,11.5px); line-height:1;
+  padding:6px 12px; border-radius:0 0 8px 8px; z-index:3
+}
+
+/* الصورة: تسيل حولها الكتابة ثم تنساب تحتها — بلا مواضع مطلقة هشة */
+.tq-p26 .p26-card__art{
+  float:inline-start; inline-size:48%;
+  margin-inline-start:calc(var(--p26-pad) * -0.55);
+  margin-block-start:calc(var(--p26-pad) * -0.55);
+  margin-inline-end:10px; margin-block-end:2px; pointer-events:none
+}
+.tq-p26 .p26-card--hot .p26-card__art{ inline-size:54% }   /* المميزة أكبر */
+.tq-p26 .p26-card__art img{ inline-size:100%; block-size:auto; display:block }
+
+/* الأيقونة الدائرية — نفس الشكل والحجم في كل مكان */
+.tq-p26 .p26-card__ico{
+  inline-size:clamp(44px,3.6vw,54px); aspect-ratio:1; border-radius:50%;
+  display:grid; place-items:center; position:relative; z-index:2; color:#fff;
+  background:linear-gradient(150deg,var(--p26-green),var(--p26-teal))
+}
+.tq-p26 .p26-card__ico svg{
+  inline-size:46%; block-size:46%; aspect-ratio:1;
+  fill:none; stroke:currentColor; stroke-width:1.7
+}
+
+.tq-p26 .p26-card__title{
+  margin:14px 0 0; position:relative; z-index:2;
+  color:var(--p26-navy); font-family:'Cairo','Plex Arabic',system-ui,sans-serif;
+  font-weight:700; font-size:clamp(14px,1.2vw,18px); line-height:1.45
+}
+.tq-p26 .p26-card__sub{
+  margin:5px 0 0; position:relative; z-index:2;
+  color:var(--p26-mute); font-size:clamp(10.5px,.82vw,12.5px)
+}
+.tq-p26 .p26-card__price{
+  margin:14px 0 0; position:relative; z-index:2;
+  font-family:'Cairo','Plex Arabic',system-ui,sans-serif; font-weight:700;
+  font-size:clamp(14px,1.2vw,18px); color:var(--p26-gold-ink)
+}
+.tq-p26 .p26-card__price b{ color:var(--p26-teal); font-weight:700 }
+
+.tq-p26 .p26-card__list{
+  list-style:none; margin:16px 0 0; padding:0; position:relative; z-index:2;
+  display:flex; flex-direction:column; gap:9px
+}
+.tq-p26 .p26-card__list li{
+  display:flex; align-items:flex-start; gap:8px;
+  color:var(--p26-mute); font-size:clamp(10.5px,.84vw,13px); line-height:1.65
+}
+.tq-p26 .p26-card__list svg{
+  inline-size:1em; block-size:1em; aspect-ratio:1; flex:none;
+  color:var(--p26-teal); margin-block-start:.3em;
+  fill:none; stroke:currentColor; stroke-width:2.2
+}
+
+/* الزر — واحد أساسي في القسم كله: زر الكارت المميز */
+.tq-p26 .p26-card__cta{
+  padding-block-start:20px; position:relative; z-index:2
+}
+.tq-p26 .p26-card__cta a{
+  display:block; text-align:center; border-radius:var(--p26-r-btn);
+  font-family:'Cairo','Plex Arabic',system-ui,sans-serif; font-weight:700;
+  font-size:clamp(11px,.88vw,13.5px); padding:12px 16px;
+  background:#fff; border:1.5px solid var(--p26-teal); color:var(--p26-teal);
+  transition:background-color .2s ease, color .2s ease, border-color .2s ease
+}
+.tq-p26 .p26-card__cta a:hover{ background:var(--p26-teal); color:#fff }
+.tq-p26 .p26-card--hot .p26-card__cta a{
+  background:var(--p26-gold); border-color:var(--p26-gold); color:var(--p26-navy)
+}
+.tq-p26 .p26-card--hot .p26-card__cta a:hover{ background:#E28C1C; border-color:#E28C1C }
+
+/* ─────────────────────────────────────────────────
+   الاستجابة — الكروت تتراص، والمميز أولًا كما طلب المالك
+   ───────────────────────────────────────────────── */
+@media (max-width:980px){
+  .tq-p26 .p26__grid{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .tq-p26 .p26-card__art,
+  .tq-p26 .p26-card--hot .p26-card__art{ inline-size:48% }
+}
+@media (max-width:680px){
+  .tq-p26 .p26__grid{ grid-template-columns:1fr }
+  .tq-p26 .p26-card--hot{ order:-1 }          /* المميز أولًا على الجوال */
+  .tq-p26 .p26-card__art,
+  .tq-p26 .p26-card--hot .p26-card__art{ inline-size:46% }
+}
+@media (max-width:420px){
+  .tq-p26 .p26-card__art,
+  .tq-p26 .p26-card--hot .p26-card__art{ inline-size:42% }
+}

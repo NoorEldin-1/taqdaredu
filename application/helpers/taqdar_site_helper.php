@@ -1524,3 +1524,89 @@ if (!function_exists('tqs_video_embed')) {
              . ' src="' . html_escape($url) . '"></video>';
     }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-P26 · بطاقات الباقات في الرئيسية — نظام تصميم المالك
+   تُستعمل في `home.php` وحدها. ولم يُمس `tqs_bundle_cards()` القائمة،
+   فصفحة `/plans` تُرسم كما هي بلا تغيير.
+   ══════════════════════════════════════════════════════════════════ */
+
+if (!function_exists('tqs_p26_tier')) {
+    /** درجة الباقة من رمزها: basic-primary ⇒ basic */
+    function tqs_p26_tier($code)
+    {
+        $c = (string) $code;
+        foreach (array('basic', 'plus', 'full') as $t) {
+            if (strpos($c, $t) === 0) return $t;
+        }
+        return 'basic';
+    }
+}
+
+if (!function_exists('tqs_p26_cards')) {
+    /**
+     * بطاقات الباقات.
+     *
+     * البيانات من `tqs_bundles()` نفسها — لا استعلام جديد ولا عمود جديد.
+     * وصورة الطالب تُشتق من **درجة الباقة** في العرض لا من القاعدة:
+     * الصورة قرار واجهة، وتخزينها في عمود يجعل تبديلها تعديل بيانات.
+     */
+    function tqs_p26_cards($items = null)
+    {
+        $items = ($items === null) ? tqs_bundles() : $items;
+        if (empty($items)) return '';
+
+        /* أول مرحلة ظاهرة والباقي `hidden`: يعمل بلا سكربت — وإلا رأى
+           الزائر ست بطاقات لمرحلتين معًا لو فشل تحميله. */
+        $stages = tqs_bundle_stages();
+        $hide   = (count($stages) > 1);
+        $ks     = array_keys($stages);
+        $first  = $ks ? $ks[0] : '';
+
+        /* أيقونة لكل درجة — من سبرايت الموقع، بلا سبرايت ثانٍ */
+        $ico = array('basic' => 'i-book', 'plus' => 'i-quality', 'full' => 'i-badge');
+
+        $h = '<div class="p26__grid" data-tq-bundles>' . "\n";
+        foreach ($items as $b) {
+            $tier = tqs_p26_tier($b['code']);
+            $hot  = !empty($b['featured']);
+            $h .= '  <article class="p26-card' . ($hot ? ' p26-card--hot' : '') . '"'
+                . ' data-stage="' . html_escape($b['stage']) . '"'
+                . (($hide && $b['stage'] !== $first) ? ' hidden' : '') . '>' . "\n";
+            if ($hot) {
+                $h .= '    <span class="p26-card__badge">الأكثر اختيارا</span>' . "\n";
+            }
+            /* الجسم صندوق تنسيق مستقل: الصورة تطفو داخله فتلتف حولها
+               الكتابة، والزر خارجه فيلتصق بقاع البطاقة. */
+            $h .= '    <div class="p26-card__body">' . "\n";
+            /* الصورة عنصر مساعد لا بطل: `alt` فارغة و`aria-hidden` — وصفها
+               يجعل قارئ الشاشة يقرأ «طالب» قبل اسم الباقة بلا فائدة. */
+            $h .= '    <span class="p26-card__art" aria-hidden="true">'
+                . '<img src="' . tq_site_asset('img/p26-' . $tier . '.webp') . '" alt=""'
+                . ' width="480" height="620" loading="lazy" decoding="async"></span>' . "\n";
+            $h .= '    <span class="p26-card__ico" aria-hidden="true">'
+                . '<svg><use href="#' . $ico[$tier] . '"></use></svg></span>' . "\n";
+            /* اسم الدرجة وحده: `plans.name` يحمل «الباقة المميزة — المرحلة
+               الابتدائية»، والمرحلة تُعرض سطرًا تحته — فذكرها مرتين يكسر
+               العنوان سطرين بلا فائدة. و`tqs_bundle_tier()` قائمة أصلًا. */
+            $h .= '    <h3 class="p26-card__title">' . html_escape(tqs_bundle_tier($b['name'])) . '</h3>' . "\n";
+            $h .= '    <p class="p26-card__sub">' . html_escape(tqs_stage_label($b['stage'])) . '</p>' . "\n";
+            $h .= '    <p class="p26-card__price"><b class="tq-ltr">' . number_format($b['price'] / 100)
+                . '</b> ريال / '
+                . ($b['days'] >= 360 ? 'سنويا' : 'كل ' . (int) $b['days'] . ' يوما') . '</p>' . "\n";
+            if (!empty($b['features'])) {
+                $h .= '    <ul class="p26-card__list">' . "\n";
+                foreach ($b['features'] as $f) {
+                    $h .= '      <li><svg aria-hidden="true"><use href="#i-check"></use></svg>'
+                        . '<span>' . html_escape($f) . '</span></li>' . "\n";
+                }
+                $h .= '    </ul>' . "\n";
+            }
+            $h .= '    </div>' . "\n";
+            $h .= '    <span class="p26-card__cta"><a href="' . base_url('plan/' . $b['code'])
+                . '">اشترك الآن</a></span>' . "\n";
+            $h .= '  </article>' . "\n";
+        }
+        return $h . '</div>' . "\n";
+    }
+}
