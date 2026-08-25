@@ -216,6 +216,15 @@
 }
 .tq-p26 .p26-card--hot .p26-card__cta a:hover{ background:#E28C1C; border-color:#E28C1C }
 
+/* رابط التفاصيل تحت الزر — ثانويّ فلا ينافس الإجراء الأهم */
+.tq-p26 .p26-card__more{
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  margin-block-start:10px; color:var(--p26-teal);
+  font-size:clamp(10px,.8vw,12.5px); font-weight:600
+}
+.tq-p26 .p26-card__more:hover{ text-decoration:underline }
+.tq-p26 .p26-card__more svg{ inline-size:1em; block-size:1em; aspect-ratio:1 }
+
 /* ─────────────────────────────────────────────────
    الاستجابة — الكروت تتراص، والمميز أولًا كما طلب المالك
    ───────────────────────────────────────────────── */

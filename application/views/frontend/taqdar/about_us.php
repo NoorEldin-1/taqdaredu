@@ -144,53 +144,6 @@ css: pages
         الرئيسية بالمحتوى نفسه تقريبا — تكرار يطيل الصفحة ولا
         يضيف. والقسم باق في الرئيسية حيث يقرأ أولا. */ ?>
 
-<!-- ══════════ فريقنا ══════════ -->
-<section class="section" id="team">
-  <div class="shell">
-    <div class="panel">
-      <div class="section-head">
-        <h2><span>فريقنا</span></h2>
-        <p>نحن فريق من خبراء التعليم والتقنية والمحتوى، نعمل بشغف لنقدم أفضل
-           تجربة تعليمية لأبنائنا.</p>
-        <div class="rule"><svg aria-hidden="true"><use href="#i-star8"></use></svg></div>
-      </div>
-      <div class="grid-6">
-        <?php /* الرئيس التنفيذي أولا في ترتيب القراءة: كان آخر
-        بطاقة — أي أقصى اليسار في العربية. */ ?>
-        <article class="team-card reveal">
-          <img src="<?php echo tq_site_asset('img/team-6.webp'); ?>" width="130" height="130" loading="lazy"
-               decoding="async" alt="">
-          <div class="team-card__body"><h3>عبدالله الشمري</h3><p>الرئيس التنفيذي</p></div>
-        </article>
-        <article class="team-card reveal">
-          <img src="<?php echo tq_site_asset('img/team-1.webp'); ?>" width="130" height="130" loading="lazy"
-               decoding="async" alt="">
-          <div class="team-card__body"><h3>محمد الحربي</h3><p>مدير التسويق</p></div>
-        </article>
-        <article class="team-card reveal">
-          <img src="<?php echo tq_site_asset('img/team-2.webp'); ?>" width="130" height="130" loading="lazy"
-               decoding="async" alt="">
-          <div class="team-card__body"><h3>د. نورة العتيبي</h3><p>مديرة المحتوى التعليمي</p></div>
-        </article>
-        <article class="team-card reveal">
-          <img src="<?php echo tq_site_asset('img/team-3.webp'); ?>" width="130" height="130" loading="lazy"
-               decoding="async" alt="">
-          <div class="team-card__body"><h3>خالد اليامي</h3><p>مدير العمليات</p></div>
-        </article>
-        <article class="team-card reveal">
-          <img src="<?php echo tq_site_asset('img/team-4.webp'); ?>" width="130" height="130" loading="lazy"
-               decoding="async" alt="">
-          <div class="team-card__body"><h3>سارة المطيري</h3><p>مديرة تجربة المستخدم</p></div>
-        </article>
-        <article class="team-card reveal">
-          <img src="<?php echo tq_site_asset('img/team-5.webp'); ?>" width="130" height="130" loading="lazy"
-               decoding="async" alt="">
-          <div class="team-card__body"><h3>إبراهيم القحطاني</h3><p>مدير التقنية</p></div>
-        </article>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- ══════════ نداء الختام ══════════ -->
 <section class="section">

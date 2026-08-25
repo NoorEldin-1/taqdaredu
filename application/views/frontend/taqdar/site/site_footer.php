@@ -27,7 +27,6 @@ $tq_year  = date('Y');
         <h3>عن المنصة</h3>
         <a href="<?php echo base_url('about'); ?>">من نحن</a>
         <a href="<?php echo base_url('about'); ?>#vision">رؤيتنا ورسالتنا</a>
-        <a href="<?php echo base_url('about'); ?>#team">فريق العمل</a>
         <a href="<?php echo base_url('blog'); ?>">المدونة</a>
       </nav>
 

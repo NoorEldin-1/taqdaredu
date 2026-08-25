@@ -1551,8 +1551,13 @@ if (!function_exists('tqs_p26_cards')) {
      * وصورة الطالب تُشتق من **درجة الباقة** في العرض لا من القاعدة:
      * الصورة قرار واجهة، وتخزينها في عمود يجعل تبديلها تعديل بيانات.
      */
-    function tqs_p26_cards($items = null)
+    function tqs_p26_cards($items = null, $opts = array())
     {
+        /* `cta` وجهة الزر: `plan` صفحة الباقة (الرئيسية) · `checkout` شاشة
+           التأكيد (صفحة الباقات). و`more` رابط «ما في هذه الباقة؟» تحته.
+           خياران لا نسختان من الدالّة: نسخةٌ ثانية تشيخ وحدها. */
+        $cta  = isset($opts['cta'])  ? $opts['cta']  : 'plan';
+        $more = !empty($opts['more']);
         $items = ($items === null) ? tqs_bundles() : $items;
         if (empty($items)) return '';
 
@@ -1571,6 +1576,7 @@ if (!function_exists('tqs_p26_cards')) {
             $tier = tqs_p26_tier($b['code']);
             $hot  = !empty($b['featured']);
             $h .= '  <article class="p26-card' . ($hot ? ' p26-card--hot' : '') . '"'
+                . ' id="' . html_escape($b['code']) . '"'
                 . ' data-stage="' . html_escape($b['stage']) . '"'
                 . (($hide && $b['stage'] !== $first) ? ' hidden' : '') . '>' . "\n";
             if ($hot) {
@@ -1616,8 +1622,14 @@ if (!function_exists('tqs_p26_cards')) {
                 $h .= '    </ul>' . "\n";
             }
             $h .= '    </div>' . "\n";
-            $h .= '    <span class="p26-card__cta"><a href="' . base_url('plan/' . $b['code'])
+            $h .= '    <span class="p26-card__cta"><a href="'
+                . base_url(($cta === 'checkout' ? 'checkout/' : 'plan/') . $b['code'])
                 . '">اشترك الآن</a></span>' . "\n";
+            if ($more) {
+                $h .= '    <a class="p26-card__more" href="' . base_url('plan/' . $b['code'])
+                    . '">ما في هذه الباقة؟'
+                    . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></a>' . "\n";
+            }
             $h .= '  </article>' . "\n";
         }
         return $h . '</div>' . "\n";

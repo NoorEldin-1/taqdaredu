@@ -26,7 +26,7 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/shell.css'); ?>">
 <?php /* TQ-P26 · ورقة قسم الباقات — الرئيسية وحدها، وكل قاعدة فيها
         مقيَّدة بـ`body.tq-p26`. حذف هذه الكتلة يعيد القسم إلى شكله السابق. */ ?>
-<?php if (isset($page_name) && in_array($page_name, array('home', 'home_elegant'), true)): ?>
+<?php if (isset($page_name) && in_array($page_name, array('home', 'home_elegant', 'plans'), true)): ?>
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/plans26.css'); ?>">
 <?php endif; ?>
 <?php else: ?>

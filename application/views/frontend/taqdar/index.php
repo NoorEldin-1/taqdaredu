@@ -89,7 +89,7 @@ $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_si
 
 <body class="tq-body<?php echo $tq_is_portal ? ' tq-body--portal' : ''; ?><?php
     /* TQ-P26 · مِشبك قسم الباقات. لا أثر له خارج الرئيسية. */
-    echo (isset($page_name) && in_array($page_name, array('home', 'home_elegant'), true)) ? ' tq-p26' : ''; ?>">
+    echo (isset($page_name) && in_array($page_name, array('home', 'home_elegant', 'plans'), true)) ? ' tq-p26' : ''; ?>">
 
     <a class="tq-skip-link" href="#tq-main">تخط إلى المحتوى</a>
 
