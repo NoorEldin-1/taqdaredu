@@ -153,6 +153,82 @@ if (!function_exists('tqs_cat_toggle')) {
     }
 }
 
+if (!function_exists('tqs_cat_cover')) {
+    /**
+     * اسم غلاف البطاقة — صورة العنصر إن كانت، وإلا غلاف يشتق من نوعه ومادته.
+     *
+     * وهذا موضع عرض لا بيانات: القاعدة تكتب في `plans.image` القيمة النائبة
+     * `logo`، فتعرض ست باقات **الشعار نفسه** ممطوطا 620×380 وجها للبطاقة؛
+     * وسبعة عشر كورسا بلا مصغرة تسقط كلها على `subj-math` فيصير غلاف
+     * الرياضيات وجه اللغة العربية والعلوم والإنجليزية معا.
+     *
+     * فالنائبة تعامل معاملة الفراغ، ويشتق الغلاف مما يعرفه العنصر عن نفسه:
+     * الباقة من مرحلتها (`path-<المرحلة>`)، والكورس من مادته (`cov-<المادة>`).
+     * وما لا يعرف يرد فارغا فيبقى البديل المخبوز كما هو — صفر تغير سلوك.
+     */
+    function tqs_cat_cover($it)
+    {
+        $img = isset($it['image']) ? trim((string) $it['image']) : '';
+        if ($img === 'logo') $img = '';
+        if ($img !== '') return $img;
+
+        /* المرحلة: مسمى الفئة الجذر، وفيه واحد عربي (`المرحلة-المتوسطة`)
+           لا يطابق اسم الملف — فبدون التطبيع تأخذ باقات المتوسطة غلاف
+           الابتدائية بلا خطأ ولا أثر. */
+        $stages = array(
+            'primary'          => 'primary',
+            'middle'           => 'middle',
+            'المرحلة-المتوسطة' => 'middle',
+            'secondary'        => 'secondary',
+            'qudurat'          => 'qudurat',
+            'digital'          => 'digital',
+        );
+        $cat   = isset($it['cat']) ? (string) $it['cat'] : '';
+        $stage = isset($stages[$cat]) ? $stages[$cat] : '';
+
+        if (isset($it['kind']) && $it['kind'] === 'plan') {
+            if ($stage === '') return '';
+            /* غلاف باقة مرسوم إن وجد لمرحلتها، وإلا غلاف المرحلة القائم.
+               والفحص على القرص لا على قائمة مكتوبة: المراحل خمس ولا يبيع
+               الموقع اليوم إلا اثنتين، فقائمة مكتوبة تصدق اليوم وتكذب غدا. */
+            if (is_file(FCPATH . 'assets/taqdar/site/img/cov-plan-' . $stage . '.webp')) {
+                return 'cov-plan-' . $stage;
+            }
+            return 'path-' . $stage;
+        }
+
+        /* خريطة `subjects.name_ar` حرفية لا مشتقة من النص: الاسم يكتب من
+           اللوحة، فأي مطابقة جزئية تكسر عند أول تعديل فيه. */
+        $subjects = array(
+            'الرياضيات'                         => 'math',
+            'اللغة العربية'                     => 'arabic',
+            'العلوم'                            => 'science',
+            'القرآن الكريم والدراسات الإسلامية' => 'islamic',
+            'الدراسات الإسلامية'                => 'islamic',
+            'اللغة الإنجليزية'                  => 'english',
+            'المهارات الرقمية'                  => 'digital',
+            'الدراسات الاجتماعية'               => 'social',
+        );
+        $subj = isset($it['subject']) ? trim((string) $it['subject']) : '';
+        if (isset($subjects[$subj])) return 'cov-' . $subjects[$subj];
+
+        /* ملاذ أخير: الكورس يقرأ مادته من برنامجه، فكورس بلا برنامج
+           (خمسة اليوم، منها ثلاثة للصف الخامس حقيقية) يخرج بلا مادة
+           فيسقط على غلاف الرياضيات وهو إنجليزي أو رقمي. وعنوانه يبدأ
+           بالمادة حرفيا، فتطابق **البداية** بالاسم الكامل — لا بجزء منه
+           كي لا تلتبس «اللغة العربية» بـ«اللغة الإنجليزية». وما لا يبدأ
+           باسم مادة يبقى على البديل المخبوز. */
+        $title = isset($it['title']) ? trim((string) $it['title']) : '';
+        if ($title !== '') {
+            foreach ($subjects as $name => $slug) {
+                if (strpos($title, $name) === 0) return 'cov-' . $slug;
+            }
+        }
+
+        return '';
+    }
+}
+
 if (!function_exists('tqs_cat_media')) {
     /**
      * وجه البطاقة — ويختلف بالنوع.
@@ -193,7 +269,7 @@ if (!function_exists('tqs_cat_media')) {
 
         $fallback = ($it['fallback'] !== '') ? $it['fallback'] : 'subj-math';
         return '<div class="ccard__media"><img src="'
-             . html_escape(tqs_img($it['image'], $fallback))
+             . html_escape(tqs_img(tqs_cat_cover($it), $fallback))
              . '" width="620" height="380" loading="lazy" decoding="async" alt=""></div>';
     }
 }
