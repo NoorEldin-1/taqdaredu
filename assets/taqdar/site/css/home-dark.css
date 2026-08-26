@@ -28,18 +28,23 @@
   --d-ink:#FFFFFF;
   --d-mute:rgba(233,236,234,.74);   /* 8.4:1 على --d-bg2 */
   --d-r:20px;
-  --d-pad:clamp(18px,1.5vw,26px);
+  --d-pad:clamp(15px,1.25vw,21px);
 }
 
 /* ══════════════════════════════════════════════════════════════════
    ١) قسم الباقات
    ══════════════════════════════════════════════════════════════════ */
+/* لوحة داخل الغلاف لا شريط يملأ عرض الشاشة: الشريط الممتد جعل
+   الأخضر يبتلع الصفحة وبدت الباقات أكبر مما هي. فالإطار يحيط
+   بالبطاقات وحدها، وأرضية الصفحة البيج تبقى ظاهرة حوله. */
 .p26d{
   position:relative;isolation:isolate;
-  background:radial-gradient(120% 90% at 50% 0%,#0B302D 0%,var(--d-bg) 62%);
+  background:radial-gradient(120% 90% at 50% 0%,#0B302D 0%,var(--d-bg) 68%);
   color:var(--d-ink);
-  padding-block:clamp(38px,4.4vw,72px);
-  margin-block-start:clamp(26px,3vw,48px);
+  border:1px solid var(--d-line);
+  border-radius:var(--d-r);
+  padding:clamp(24px,2.8vw,44px) clamp(16px,2.2vw,34px);
+  box-shadow:0 26px 60px -40px rgba(0,0,0,.85);
   overflow:hidden;
 }
 /* الزخرفة العربية: البلاطة نفسها التي في التذييل ونداء الختام —
@@ -52,19 +57,13 @@
   -webkit-mask-size:var(--script-tile) auto;mask-size:var(--script-tile) auto;
   opacity:.05;
 }
-/* حدّان ذهبيان رفيعان يفصلان الكتلة عمّا فوقها وتحتها */
-.p26d::after{
-  content:'';position:absolute;inset-inline:0;inset-block:0 auto;block-size:1px;
-  background:linear-gradient(90deg,transparent,var(--d-line-hot),transparent);
-  z-index:1;pointer-events:none;
-}
 .p26d>*{position:relative;z-index:2}
 
 /* ── الترويسة ───────────────────────────────────────────────────── */
 .p26d__head{text-align:center;max-inline-size:52ch;margin-inline:auto}
 .p26d__head h2{
   color:var(--d-ink);font-family:'Cairo',sans-serif;font-weight:700;
-  font-size:clamp(23px,2.5vw,38px);line-height:1.35;margin:0;
+  font-size:clamp(20px,2.05vw,31px);line-height:1.35;margin:0;
 }
 .p26d__head p{
   margin-block-start:10px;color:var(--d-mute);
@@ -151,8 +150,8 @@
 /* ── الشبكة ─────────────────────────────────────────────────────── */
 .p26d__grid{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:clamp(14px,1.5vw,24px);
-  margin-block-start:clamp(24px,2.6vw,40px);
+  gap:clamp(12px,1.15vw,18px);
+  margin-block-start:clamp(20px,2.1vw,30px);
   align-items:stretch;
 }
 
@@ -183,7 +182,7 @@
   /* بيج دافئ لا أبيض ناصع: الطلاب في ثوب أبيض وخلفياتهم مقصوصة،
      فعلى لوح أبيض يختفون تماما — جربناه فبدت البطاقات فارغة. */
   background:linear-gradient(176deg,#FAF5EB 0%,#F3EBDC 62%,#E9DECA 100%);
-  aspect-ratio:1/1;overflow:hidden;
+  aspect-ratio:4/3;overflow:hidden;
 }
 /* `inset:0` + `object-fit:contain` لا نسبة مئوية على الارتفاع:
    `block-size:%` لا يُحلّ من `aspect-ratio` وحدها فيعود إلى `auto`،
@@ -227,7 +226,7 @@
 .p26d-card__title{
   margin:0;color:var(--d-gold-lt);
   font-family:'Cairo',sans-serif;font-weight:700;
-  font-size:clamp(17px,1.5vw,23px);line-height:1.4;
+  font-size:clamp(15.5px,1.25vw,19px);line-height:1.4;
 }
 .p26d-card__stage{
   display:block;margin-block-start:4px;color:var(--d-mute);
@@ -245,7 +244,7 @@
 .p26d-card__price b{
   display:block;color:var(--d-gold);
   font-family:'Cairo',sans-serif;font-weight:700;
-  font-size:clamp(36px,3.9vw,58px);letter-spacing:-1px;
+  font-size:clamp(30px,2.9vw,44px);letter-spacing:-.5px;
   font-variant-numeric:tabular-nums;
 }
 .p26d-card__price span{
@@ -257,13 +256,13 @@
 /* المزايا */
 .p26d-card__list{
   list-style:none;margin:clamp(16px,1.6vw,22px) 0 0;padding:0;
-  display:flex;flex-direction:column;gap:10px;text-align:start;
+  display:flex;flex-direction:column;gap:8px;text-align:start;
   border-block-start:1px solid var(--d-line);
   padding-block-start:clamp(14px,1.4vw,20px);
 }
 .p26d-card__list li{
   display:flex;align-items:flex-start;gap:9px;
-  color:var(--d-mute);font-size:clamp(12px,.95vw,14px);line-height:1.6;
+  color:var(--d-mute);font-size:clamp(11.5px,.88vw,13px);line-height:1.55;
 }
 .p26d-card__list svg{
   inline-size:16px;block-size:16px;flex:0 0 16px;margin-block-start:3px;
@@ -276,7 +275,7 @@
 }
 .p26d-card__cta a{
   display:flex;align-items:center;justify-content:center;
-  min-block-size:48px;border-radius:999px;text-decoration:none;
+  min-block-size:44px;border-radius:999px;text-decoration:none;
   font-family:'Cairo',sans-serif;font-weight:700;
   font-size:clamp(13px,1.05vw,15.5px);
   color:#08221F;background:linear-gradient(180deg,#E4CB98,var(--d-gold));
@@ -409,7 +408,7 @@
 @media (max-width:600px){
   .p26d__grid{grid-template-columns:minmax(0,1fr);max-inline-size:420px;
     margin-inline:auto}
-  .p26d-card__art{aspect-ratio:4/3}
+  .p26d-card__art{aspect-ratio:16/11}
 }
 @media (max-width:420px){
   .whyd__grid{grid-template-columns:minmax(0,1fr)}

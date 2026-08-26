@@ -898,10 +898,23 @@ if (!function_exists('tqs_universities_slides')) {
     {
         $u = tqs_universities();
         if (empty($u)) return '';
+        /* الأبعاد الحقيقية لكل شعار لا 300×140 لكلها: الشعارات قُصَّت
+           على محتواها (٢٠٢٦-٠٨-٢٦) فصارت نسبها مختلفة، وقبل القصّ كان
+           ثلث الملف رسمًا وثلثاه فراغًا فيُصغَّر الرسم إلى ٣٦px ويُرى
+           مبكسلًا. ووسم يكذب على الأبعاد يقفز عند التحميل. */
         $h = '';
         foreach ($u as $src) {
+            $dim = '';
+            $rel = ltrim(str_replace(base_url(), '', preg_replace('/\?.*$/', '', $src)), '/');
+            $abs = FCPATH . $rel;
+            if (is_file($abs)) {
+                $sz = @getimagesize($abs);
+                if (is_array($sz) && !empty($sz[0])) {
+                    $dim = ' width="' . (int) $sz[0] . '" height="' . (int) $sz[1] . '"';
+                }
+            }
             $h .= '    <span class="unislide"><img src="' . html_escape($src)
-                . '" alt="" loading="lazy" decoding="async" width="300" height="140"></span>' . "\n";
+                . '" alt="" loading="lazy" decoding="async"' . $dim . '></span>' . "\n";
         }
         return $h;
     }
