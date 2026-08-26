@@ -576,6 +576,37 @@ p{margin:0}
   transition:background-color var(--t-route) var(--ease),transform var(--t-route) var(--ease)}
 .socials a:hover{background:rgba(212,180,118,.16);transform:translateY(-2px)}
 .socials svg{width:15px;height:15px}
+/* ══════════════════════════════════════════════════════════════════
+   TQ-PAYBAR · وسائل الدفع في التذييل
+   الشعارات صور بيضاء الخلفية، فتوضع على بطاقات بيضاء بنصف قطر —
+   لا شفافية: شعار ملون على تدرج بترولي يفقد قراءته. والارتفاع هو
+   ما يوحدها، لا العرض: نسب الشعارات مختلفة (Apple Pay أعرض بثلاثة
+   أمثال mada)، فتوحيد العرض يمطها.
+   ══════════════════════════════════════════════════════════════════ */
+.paybar{
+  margin-block-start:clamp(22px,2.6vw,38px);padding-block-start:clamp(18px,2vw,26px);
+  border-block-start:1px solid rgba(212,180,118,.22);
+  display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center
+}
+.paybar__t{
+  font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(11.5px,.9vw,13.5px);color:var(--gold-on-dark);
+  letter-spacing:.2px;margin:0
+}
+.paybar__list{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
+  gap:clamp(8px,.9vw,12px);list-style:none;padding:0;margin:0}
+.paybar__list li{display:flex}
+.paybar__list img{
+  block-size:clamp(26px,2.2vw,32px);inline-size:auto;display:block;
+  background:#fff;border-radius:7px;padding:3px 7px;
+  box-shadow:0 1px 3px rgba(0,0,0,.18)
+}
+/* tamara شعار بخلفيته المتدرجة — لا حشو أبيض حوله وإلا ظهر إطارا */
+.paybar__list img.is-bleed{padding:0;background:transparent}
+@media (max-width:520px){
+  .paybar__list img{block-size:24px}
+}
+
 .footer-bottom{margin-block-start:clamp(22px,2.6vw,38px);padding-block-start:16px;
   border-block-start:1px solid rgba(212,180,118,.22);text-align:center;
   font-size:clamp(11px,.84vw,13px);color:rgba(220,231,227,.62)}

@@ -65,69 +65,106 @@ css: pages
   </div>
 </section>
 
-<!-- ══════════ شريط المميزات ══════════ -->
-<section class="features">
+<?php /* ══════════════════════════════════════════════════════════════
+        ترتيب الأقسام بقرار المالك (٢٠٢٦-٠٨-٢٦): الباقة وحدة البيع
+        فهي تلي الهيرو مباشرة، ثم لماذا تختار، ثم الجامعات، ثم آراء
+        أولياء الأمور آخر ما يقرأ قبل نداء الختام. وشريط المميزات
+        الأربع حذف: مكرر لما اندمج في الهيرو نفسه.
+        ══════════════════════════════════════════════════════════════ */ ?>
+<?php /* ══════════════════════════════════════════════════════════════
+        قسم الباقات — الكساء الداكن (`css/home-dark.css`) بقرار المالك
+        ٢٠٢٦-٠٨-٢٦. الباقة وحدة البيع فهي تلي الهيرو مباشرة.
+        والبيانات من `tqs_bundles()` نفسها التي تقرؤها صفحة `/plans`
+        البيضاء — كساءان لمصدر واحد، صفر استعلام جديد.
+        ══════════════════════════════════════════════════════════════ */ ?>
+<section class="section p26d" id="bundles">
   <div class="shell">
-    <div class="features__bar reveal">
-      <div class="feature">
-        <span class="feature__icon"><svg aria-hidden="true"><use href="#i-badge"></use></svg></span>
-        <div><b class="feature__t"><?php echo tq_text('home', 'feat_1_t', 'مناهج معتمدة'); ?></b>
-             <p><?php echo tq_text('home', 'feat_1_d', 'وفق أحدث المعايير'); ?></p></div>
+    <div class="p26d__head reveal">
+      <h2><?php echo tq_text('home', 'plans_title', 'اختر الباقة المناسبة لرحلة التعلم'); ?></h2>
+      <p><?php echo tq_text('home', 'plans_lede',
+             'خطط مرنة ومصممة بعناية لتلبية احتياجات كل مرحلة دراسية'); ?></p>
+      <div class="p26d__rule" aria-hidden="true"><i></i></div>
+    </div>
+
+<?php /* التبويب والمبدّل قرار واحد «أي مرحلة وبأي دورة» — فيقربان
+        في غلاف واحد بدل أن يبدو كل منهما قرارا مستقلا. */ ?>
+    <div class="p26d__switch reveal">
+<?php $tq_tabs = tqs_stage_tabs(); if ($tq_tabs !== ''): ?>
+      <div class="p26d__tabs"><?php echo $tq_tabs; ?></div>
+<?php endif; ?>
+<?php /* مبدّل الدورة — **عرض لا فوترة**: كل الباقات سنوية في القاعدة،
+        فالشهري يعرض المعادل ومعه «تدفع سنويا». والزران مبدلان لا
+        روابط، ويعملان بلا تنقل ولا استعلام. */ ?>
+      <div class="p26d__cycle">
+        <div class="p26d__cycle-in" role="group" aria-label="دورة عرض السعر">
+          <button type="button" data-tq-cycle="year" aria-pressed="true">سنوي<span class="p26d__cycle-save">الأوفر</span></button>
+          <button type="button" data-tq-cycle="month" aria-pressed="false">شهري</button>
+        </div>
       </div>
-      <div class="feature">
-        <span class="feature__icon"><svg aria-hidden="true"><use href="#i-spark"></use></svg></span>
-        <div><b class="feature__t"><?php echo tq_text('home', 'feat_2_t', 'تعلم تفاعلي'); ?></b>
-             <p><?php echo tq_text('home', 'feat_2_d', 'تجربة ممتعة وفعالة'); ?></p></div>
-      </div>
-      <div class="feature">
-        <span class="feature__icon"><svg aria-hidden="true"><use href="#i-teacher"></use></svg></span>
-        <div><b class="feature__t"><?php echo tq_text('home', 'feat_3_t', 'معلمون متميزون'); ?></b>
-             <p><?php echo tq_text('home', 'feat_3_d', 'ذوو خبرة عالية'); ?></p></div>
-      </div>
-      <div class="feature">
-        <span class="feature__icon"><svg aria-hidden="true"><use href="#i-report"></use></svg></span>
-        <div><b class="feature__t"><?php echo tq_text('home', 'feat_4_t', 'متابعة مستمرة'); ?></b>
-             <p><?php echo tq_text('home', 'feat_4_d', 'تقارير دورية للأهالي'); ?></p></div>
-      </div>
+    </div>
+
+<?php echo tqs_bundles_dark(); ?>
+
+    <div class="p26d__more">
+      <a href="<?php echo base_url('plans'); ?>">قارن الباقات كاملة
+        <svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></a>
     </div>
   </div>
 </section>
-
-
-
 
 
 <!-- ══════════ لماذا تختار تقدر؟ ══════════ -->
+<?php /* شريط داكن بخمسة أعمدة على تصميم المالك. وكل نص هنا افتراضي
+        يحرر من «المحتوى والموقع › نصوص الصفحات» — فما يوصف وعدا
+        تجاريا يبقى بيد المالك لا بيد القالب. */ ?>
 <section class="section" id="teachers">
   <div class="shell">
-    <div class="why">
-      <h2>لماذا تختار منصة تقدر؟</h2>
-      <div class="why__grid">
-        <div class="why__item">
-          <span class="ico"><svg aria-hidden="true"><use href="#i-shield"></use></svg></span>
-          <h3>تجربة تعليمية<span>آمنة ومحفزة</span></h3>
+    <div class="whyd reveal">
+      <div class="whyd__head">
+        <h2><?php echo tq_text('home', 'why_title', 'لماذا تختار منصة تقدر؟'); ?></h2>
+      </div>
+      <div class="whyd__grid">
+<?php
+/* الأيقونة من سبرايت الموقع نفسه — لا نخلة ولا سيفين بقرار المالك،
+   والمنهج يمثله كتاب. */
+$tq_why = array(
+    array('i-price',   'why_1_t', 'باقات مرنة',            'why_1_d', 'خيارات تناسب كل أسرة'),
+    array('i-book',    'why_2_t', 'المنهج السعودي',        'why_2_d', 'مواكب للمنهج الرسمي'),
+    array('i-teacher', 'why_3_t', 'معلمون متخصصون',        'why_3_d', 'خبرة وكفاءة في كل مادة'),
+    array('i-chart',   'why_4_t', 'تقارير دورية للأولياء', 'why_4_d', 'متابعة شفافة وتقدم مستمر'),
+    array('i-badge',   'why_5_t', 'نتائج حقيقية',          'why_5_d', 'تحسن ملحوظ في الأداء الدراسي'),
+);
+foreach ($tq_why as $w):
+?>
+        <div class="whyd__item">
+          <span class="whyd__ico" aria-hidden="true"><svg><use href="#<?php echo $w[0]; ?>"></use></svg></span>
+          <h3><?php echo tq_text('home', $w[1], $w[2]); ?></h3>
+          <p><?php echo tq_text('home', $w[3], $w[4]); ?></p>
         </div>
-        <div class="why__item">
-          <span class="ico"><svg aria-hidden="true"><use href="#i-price"></use></svg></span>
-          <h3>أسعار مناسبة<span>وباقات مرنة</span></h3>
-        </div>
-        <div class="why__item">
-          <span class="ico"><svg aria-hidden="true"><use href="#i-support"></use></svg></span>
-          <h3>دعم فني<span>على مدار الساعة</span></h3>
-        </div>
-        <div class="why__item">
-          <span class="ico"><svg aria-hidden="true"><use href="#i-curriculum"></use></svg></span>
-          <h3>متوافق مع<span>المناهج السعودية</span></h3>
-        </div>
-        <div class="why__item">
-          <span class="ico"><svg aria-hidden="true"><use href="#i-quality"></use></svg></span>
-          <h3>محتوى عربي<span>بجودة عالية</span></h3>
-        </div>
+<?php endforeach; ?>
       </div>
     </div>
   </div>
 </section>
 
+<!-- ══════════ الجامعات ══════════ -->
+<?php $tq_unis = tqs_universities(); ?>
+<?php if (!empty($tq_unis)): ?>
+<section class="section unis" id="universities">
+  <div class="shell">
+    <div class="section-head reveal">
+      <h2><span>نعد طلابنا لجامعات المملكة</span></h2>
+      <p>وجهات يلتحق بها خريجو الثانوية في السعودية. ومنصة تقدر تعد لاختباراتها،
+         ولا ترتبط بأي منها ولا تمثلها.</p>
+    </div>
+  </div>
+  <?php /* الشريط يمر خارج الغلاف ليبلغ حافتي الشاشة. والحركة تتوقف عند
+           التحويم وعند `prefers-reduced-motion` — شريط لا يقف لا يقرأ. */ ?>
+  <div class="shell">
+    <?php echo tqs_carousel(tqs_universities_slides(), 'جامعات المملكة'); ?>
+  </div>
+</section>
+<?php endif; ?>
 <!-- ══════════ آراء أولياء الأمور ══════════ -->
 <?php
 /* المصدر واحد مع `/parents`: الآراء من اللوحة
@@ -191,59 +228,6 @@ if (!$tq_quotes) {
 
 
 
-<?php /* ══════════ TQ-HOME-BUNDLES ══════════
-        الباقة وحدة البيع، فهي قلب الصفحة. والمواد تحتها **محتوى**
-        يطمئن لا سلعة تشترى — ولذلك بلا سعر ولا زر شراء. */ ?>
-<?php /* ══════════════════════════════════════════════════════════════
-        قسم الباقات — نظام تصميم المالك (ورقة `css/plans26.css` المحصورة
-        بـ`body.tq-p26`). لا يمس هذا القسم غيره: الهيرو والخلفية العربية
-        وكل قسم آخر في الصفحة كما هي.
-        والبيانات من `tqs_bundles()` نفسها — صفر استعلام جديد.
-        ══════════════════════════════════════════════════════════════ */ ?>
-<section class="section p26" id="bundles">
-  <div class="shell">
-    <div class="p26__head reveal">
-      <h2><?php echo tq_text('home', 'plans_title', 'اختر ما يناسبك'); ?></h2>
-      <p><?php echo tq_text('home', 'plans_lede', 'باقات تعليمية مرنة لتناسب جميع احتياجاتك'); ?></p>
-<?php /* هوية هندسية لا تصويرية: نجمة ثمانية بين خطّين. */ ?>
-      <div class="p26__rule" aria-hidden="true"><svg><use href="#i-star8"></use></svg></div>
-    </div>
-<?php /* التبويب يبقى: الباقات ست عبر مرحلتين، وحذفه يخفي نصفها. */ ?>
-<?php $tq_tabs = tqs_stage_tabs(); if ($tq_tabs !== ''): ?>
-    <div class="p26__tabs"><?php echo $tq_tabs; ?></div>
-<?php endif; ?>
-<?php /* مبدّل الدورة — **عرض لا فوترة**: كل الباقات سنوية في القاعدة،
-        فالشهريّ يعرض المعادل ومعه «يُدفع سنويًّا». والزرّان مبدّلان لا
-        روابط، ويعملان بلا تنقّل ولا استعلام. */ ?>
-    <div class="p26__cycle">
-      <div class="p26__cycle-in" role="group" aria-label="دورة عرض السعر">
-        <button type="button" data-tq-cycle="year" aria-pressed="true">سنوي<span class="p26__cycle-save">الأوفر</span></button>
-        <button type="button" data-tq-cycle="month" aria-pressed="false">شهري</button>
-      </div>
-    </div>
-<?php echo tqs_p26_cards(); ?>
-  </div>
-</section>
-
-
-<!-- ══════════ الجامعات ══════════ -->
-<?php $tq_unis = tqs_universities(); ?>
-<?php if (!empty($tq_unis)): ?>
-<section class="section unis" id="universities">
-  <div class="shell">
-    <div class="section-head reveal">
-      <h2><span>نعد طلابنا لجامعات المملكة</span></h2>
-      <p>وجهات يلتحق بها خريجو الثانوية في السعودية. ومنصة تقدر تعد لاختباراتها،
-         ولا ترتبط بأي منها ولا تمثلها.</p>
-    </div>
-  </div>
-  <?php /* الشريط يمر خارج الغلاف ليبلغ حافتي الشاشة. والحركة تتوقف عند
-           التحويم وعند `prefers-reduced-motion` — شريط لا يقف لا يقرأ. */ ?>
-  <div class="shell">
-    <?php echo tqs_carousel(tqs_universities_slides(), 'جامعات المملكة'); ?>
-  </div>
-</section>
-<?php endif; ?>
 <!-- ══════════ نداء الختام ══════════ -->
 <section class="section" id="signup">
   <div class="shell">

@@ -62,6 +62,32 @@ $tq_year  = date('Y');
       </div>
 
     </div>
+<?php /* وسائل الدفع — قرار المالك. والبطاقة (مدى/فيزا/ماستركارد)
+        والتحويل البنكي هما ما تنفذه شاشة الدفع فعلا اليوم. */ ?>
+    <div class="paybar">
+      <p class="paybar__t">نستقبل وسائل دفع متعددة وآمنة</p>
+      <ul class="paybar__list">
+<?php
+/* العرض والارتفاع الحقيقيان لكل شعار: نسبها مختلفة، و`width="auto"`
+   ليس قيمة صالحة — فبدونهما يقفز التذييل عند التحميل (CLS). */
+$tq_pays = array(
+    'pay-mada'       => array('مدى',          151, 90),
+    'pay-visa'       => array('فيزا',          151, 90),
+    'pay-mastercard' => array('ماستركارد',    150, 90),
+    'pay-applepay'   => array('Apple Pay',    252, 91),
+    'pay-tamara'     => array('تمارا',         280, 91),
+    'pay-bank'       => array('تحويل بنكي',   153, 92),
+);
+foreach ($tq_pays as $tq_f => $tq_p):
+?>
+        <li><img src="<?php echo tq_site_asset('img/pay/' . $tq_f . '.webp'); ?>"
+                 alt="<?php echo html_escape($tq_p[0]); ?>"
+                 width="<?php echo $tq_p[1]; ?>" height="<?php echo $tq_p[2]; ?>"
+                 class="<?php echo $tq_f === 'pay-tamara' ? 'is-bleed' : ''; ?>"
+                 loading="lazy" decoding="async"></li>
+<?php endforeach; ?>
+      </ul>
+    </div>
     <p class="footer-bottom">جميع الحقوق محفوظة © <?php echo $tq_year; ?> <?php echo html_escape(get_settings('system_title') ?: 'منصة تقدر التعليمية'); ?></p>
   </div>
 </footer>

@@ -1175,7 +1175,10 @@ document.documentElement.classList.add('js');
     Array.prototype.forEach.call(btns, function (b) {
       b.setAttribute('aria-pressed', String(b.getAttribute('data-tq-cycle') === cycle));
     });
-    var prices = document.querySelectorAll('.p26-card__price[data-cycle]');
+    /* الكساءان معًا: `.p26-card__price` في صفحة الباقات البيضاء،
+       و`.p26d-card__price` في الكتلة الداكنة بالرئيسية. */
+    var prices = document.querySelectorAll(
+      '.p26-card__price[data-cycle],.p26d-card__price[data-cycle]');
     Array.prototype.forEach.call(prices, function (p) {
       p.hidden = (p.getAttribute('data-cycle') !== cycle);
     });

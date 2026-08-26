@@ -1553,6 +1553,95 @@ if (!function_exists('tqs_p26_tier')) {
     }
 }
 
+if (!function_exists('tqs_bundles_dark')) {
+    /**
+     * بطاقات الباقات — الكساء الداكن للصفحة الرئيسية (`css/home-dark.css`).
+     *
+     * نسخة كساء لا نسخة منطق: المصدر `tqs_bundles()` نفسه، والدرجة
+     * والمرحلة والسعر والمزايا تقرأ كما تقرؤها `tqs_p26_cards()` حرفا
+     * بحرف. وما يختلف هو الوسم وحده — ولذلك لا تحسب هنا قاعدة عمل
+     * جديدة تشيخ بعيدا عن أختها.
+     *
+     * وسمات التبديل تبقى كما هي (`data-tq-bundles` · `data-stage` ·
+     * `hidden` · `data-cycle`): سكربت التبويب ومبدّل الدورة يمسكانها
+     * بالاسم، فتغيير حرف فيها يعطلهما صامتا.
+     */
+    function tqs_bundles_dark($items = null, $opts = array())
+    {
+        $cta   = isset($opts['cta']) ? $opts['cta'] : 'plan';
+        $items = ($items === null) ? tqs_bundles() : $items;
+        if (empty($items)) return '';
+
+        /* أول مرحلة ظاهرة والباقي `hidden` — يعمل بلا سكربت. */
+        $stages = tqs_bundle_stages();
+        $hide   = (count($stages) > 1);
+        $ks     = array_keys($stages);
+        $first  = $ks ? $ks[0] : '';
+
+        $h = '<div class="p26d__grid" data-tq-bundles>' . "\n";
+        foreach ($items as $b) {
+            $tier = tqs_p26_tier($b['code']);
+            $hot  = !empty($b['featured']);
+
+            $h .= '  <article class="p26d-card' . ($hot ? ' p26d-card--hot' : '') . '"'
+                . ' id="' . html_escape($b['code']) . '"'
+                . ' data-stage="' . html_escape($b['stage']) . '"'
+                . (($hide && $b['stage'] !== $first) ? ' hidden' : '') . '>' . "\n";
+
+            if ($hot) {
+                $h .= '    <span class="p26d-card__flag">'
+                    . '<svg aria-hidden="true"><use href="#i-star"></use></svg>'
+                    . 'الأكثر اختيارا</span>' . "\n";
+            }
+
+            /* الصورة زينة لا خبر: `alt` فارغة و`aria-hidden` — قارئ الشاشة
+               يقرأ اسم الباقة، ووصف «طالب» قبله لا يزيده معنى. */
+            $h .= '    <span class="p26d-card__art" aria-hidden="true">'
+                . '<img src="' . tq_site_asset('img/p26-' . $tier . '.webp') . '" alt=""'
+                . ' width="480" height="620" loading="lazy" decoding="async"></span>' . "\n";
+
+            $h .= '    <div class="p26d-card__body">' . "\n";
+            $h .= '      <h3 class="p26d-card__title">' . html_escape(tqs_bundle_tier($b['name']))
+                . '<span class="p26d-card__stage">' . html_escape(tqs_stage_label($b['stage']))
+                . '</span></h3>' . "\n";
+            $h .= '      <span class="p26d-card__dot" aria-hidden="true"></span>' . "\n";
+
+            /* السعر بنسختين — عرضا لا فوترة: كل الباقات سنوية في القاعدة،
+               فالشهري يقول صراحة «تدفع سنويا». */
+            $tq_sar   = (int) round($b['price'] / 100);
+            $tq_year  = ($b['days'] >= 360);
+            $tq_month = $tq_year ? (int) round($tq_sar / 12) : 0;
+
+            $h .= '      <p class="p26d-card__price" data-cycle="year">'
+                . '<b class="tq-ltr">' . number_format($tq_sar) . '</b>'
+                . '<span>ر.س / ' . ($tq_year ? 'سنويا' : 'كل ' . (int) $b['days'] . ' يوما')
+                . '</span></p>' . "\n";
+            if ($tq_year) {
+                $h .= '      <p class="p26d-card__price" data-cycle="month" hidden>'
+                    . '<b class="tq-ltr">' . number_format($tq_month) . '</b>'
+                    . '<span>ر.س / شهريا — تدفع سنويا ' . number_format($tq_sar) . ' ر.س'
+                    . '</span></p>' . "\n";
+            }
+
+            if (!empty($b['features'])) {
+                $h .= '      <ul class="p26d-card__list">' . "\n";
+                foreach ($b['features'] as $f) {
+                    $h .= '        <li><svg aria-hidden="true"><use href="#i-check"></use></svg>'
+                        . '<span>' . html_escape($f) . '</span></li>' . "\n";
+                }
+                $h .= '      </ul>' . "\n";
+            }
+
+            $h .= '      <span class="p26d-card__cta"><a href="'
+                . base_url(($cta === 'checkout' ? 'checkout/' : 'plan/') . $b['code'])
+                . '">اشترك الآن</a></span>' . "\n";
+            $h .= '    </div>' . "\n";
+            $h .= '  </article>' . "\n";
+        }
+        return $h . '</div>' . "\n";
+    }
+}
+
 if (!function_exists('tqs_p26_cards')) {
     /**
      * بطاقات الباقات.

@@ -26,8 +26,16 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/shell.css'); ?>">
 <?php /* TQ-P26 · ورقة قسم الباقات — الرئيسية وحدها، وكل قاعدة فيها
         مقيَّدة بـ`body.tq-p26`. حذف هذه الكتلة يعيد القسم إلى شكله السابق. */ ?>
-<?php if (isset($page_name) && in_array($page_name, array('home', 'home_elegant', 'plans'), true)): ?>
+<?php /* p26 لصفحة الباقات وحدها بعد أن صارت الرئيسية داكنة —
+        ورقة لا يستعملها أحد على الصفحة وزنٌ يُنزَّل بلا مقابل. */ ?>
+<?php if (isset($page_name) && $page_name === 'plans'): ?>
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/plans26.css'); ?>">
+<?php endif; ?>
+<?php /* TQ-HOME-DARK · كتلة الرئيسية الداكنة (الباقات + لماذا تختار).
+        كل قاعدة فيها مقيَّدة بـ`.p26d` أو `.whyd` — اسمان لا وجود لهما
+        في ورقة أخرى. وحذف هذا السطر وحده يعيد القسمين إلى شكلهما. */ ?>
+<?php if (isset($page_name) && in_array($page_name, array('home', 'home_elegant'), true)): ?>
+    <link rel="stylesheet" href="<?php echo tq_site_asset('css/home-dark.css'); ?>">
 <?php endif; ?>
 <?php else: ?>
 <?php /* TQ-FONTS-MOVED — خطوط البوابة تسبق للبوابة وحدها.

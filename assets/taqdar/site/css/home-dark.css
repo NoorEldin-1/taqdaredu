@@ -1,0 +1,428 @@
+@charset "utf-8";
+/* ══════════════════════════════════════════════════════════════════════
+   TQ-HOME-DARK · كتلة الرئيسية الداكنة — الباقات ولماذا تختار
+   ----------------------------------------------------------------------
+   قرار المالك (٢٠٢٦-٠٨-٢٦): قسما الباقات و«لماذا تختار» يصيران كتلة
+   واحدة داكنة فخمة تلي الهيرو، بينما تبقى صفحة `/plans` على تصميم p26
+   الأبيض — التصفح واجهة تسويق، والشراء واجهة هادئة.
+
+   الحصر: **كل** قاعدة هنا تبدأ بـ`.p26d` أو `.whyd`، وهما اسمان لا
+   وجود لهما في أي ورقة أخرى. فحذف هذا الملف وسطر تحميله يعيد الصفحة
+   إلى ما كانت عليه حرفا بحرف، ولا تسري قاعدة منه على غيرهما.
+
+   والورقة تحمل للرئيسية وحدها من `includes_top.php`.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── التوكنات ────────────────────────────────────────────────────────
+   على القسمين معا لا على `:root`: توكن عام يسري على الموقع كله، وهذه
+   الكتلة وحدها الداكنة. */
+.p26d,
+.whyd{
+  --d-bg:#082523;            /* أرضية الكتلة */
+  --d-bg2:#0C302D;           /* سطح البطاقة */
+  --d-bg3:#103A36;           /* سطح البطاقة المميزة */
+  --d-line:rgba(201,165,95,.26);
+  --d-line-hot:rgba(212,180,118,.62);
+  --d-gold:#D4B476;
+  --d-gold-lt:#E9DCC0;       /* 10.9:1 على --d-bg2 */
+  --d-ink:#FFFFFF;
+  --d-mute:rgba(233,236,234,.74);   /* 8.4:1 على --d-bg2 */
+  --d-r:20px;
+  --d-pad:clamp(18px,1.5vw,26px);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ١) قسم الباقات
+   ══════════════════════════════════════════════════════════════════ */
+.p26d{
+  position:relative;isolation:isolate;
+  background:radial-gradient(120% 90% at 50% 0%,#0B302D 0%,var(--d-bg) 62%);
+  color:var(--d-ink);
+  padding-block:clamp(38px,4.4vw,72px);
+  margin-block-start:clamp(26px,3vw,48px);
+  overflow:hidden;
+}
+/* الزخرفة العربية: البلاطة نفسها التي في التذييل ونداء الختام —
+   مصدر واحد للطابع، لا رسم جديد يشبهه ولا يطابقه. */
+.p26d::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-color:var(--d-gold);
+  -webkit-mask-image:url('../img/script-tile.webp');
+  mask-image:url('../img/script-tile.webp');
+  -webkit-mask-size:var(--script-tile) auto;mask-size:var(--script-tile) auto;
+  opacity:.05;
+}
+/* حدّان ذهبيان رفيعان يفصلان الكتلة عمّا فوقها وتحتها */
+.p26d::after{
+  content:'';position:absolute;inset-inline:0;inset-block:0 auto;block-size:1px;
+  background:linear-gradient(90deg,transparent,var(--d-line-hot),transparent);
+  z-index:1;pointer-events:none;
+}
+.p26d>*{position:relative;z-index:2}
+
+/* ── الترويسة ───────────────────────────────────────────────────── */
+.p26d__head{text-align:center;max-inline-size:52ch;margin-inline:auto}
+.p26d__head h2{
+  color:var(--d-ink);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(23px,2.5vw,38px);line-height:1.35;margin:0;
+}
+.p26d__head p{
+  margin-block-start:10px;color:var(--d-mute);
+  font-size:clamp(12.5px,1vw,15.5px);line-height:1.7;
+}
+/* الفاصل: معينة ذهبية بين خطّين — الهوية هندسية لا تصويرية */
+.p26d__rule{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  margin-block-start:clamp(12px,1.2vw,18px);
+}
+.p26d__rule::before,.p26d__rule::after{
+  content:'';inline-size:clamp(46px,7vw,104px);block-size:1px;
+  background:linear-gradient(90deg,transparent,var(--d-line-hot));
+}
+.p26d__rule::after{transform:scaleX(-1)}
+.p26d__rule i{
+  inline-size:9px;block-size:9px;background:var(--d-gold);
+  transform:rotate(45deg);border-radius:2px;flex:0 0 auto;
+}
+
+/* ── التبويبات والمبدّل: مضغوطان معا ───────────────────────────────
+   كانت بينهما ٦٩px فبدا كل واحد قرارا مستقلا. وهما قرار واحد:
+   «أي مرحلة وبأي دورة». فيقربان حتى يقرآ صفا واحدا. */
+.p26d__switch{
+  display:flex;flex-direction:column;align-items:center;
+  gap:10px;margin-block-start:clamp(18px,2vw,28px);
+}
+.p26d__switch>*{margin:0}
+
+/* أزرار المرحلة داخل الكتلة الداكنة */
+/* الوسم من `tqs_stage_tabs()` نفسه: `.stage-tabs > .stage-tab.is-on`.
+   نعيد كساءه هنا ولا نولّد وسما ثانيا — مصدر واحد للتبويب، وسكربت
+   التبديل يمسك `data-tq-stage` كما هو. */
+.p26d__tabs .stage-tabs{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0;
+  background:none;border:0;padding:0;
+}
+.p26d__tabs .stage-tab{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-block-size:44px;padding:0 22px;border-radius:999px;cursor:pointer;
+  font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(12.5px,.98vw,14.5px);
+  color:var(--d-mute);background:rgba(255,255,255,.05);
+  border:1px solid var(--d-line);
+  transition:background .18s ease,color .18s ease,border-color .18s ease;
+}
+.p26d__tabs .stage-tab:hover{
+  color:var(--d-gold-lt);border-color:var(--d-line-hot);
+  background:rgba(212,180,118,.10);
+}
+.p26d__tabs .stage-tab.is-on,
+.p26d__tabs .stage-tab[aria-selected="true"]{
+  color:#08221F;background:linear-gradient(180deg,#E4CB98,var(--d-gold));
+  border-color:transparent;
+}
+
+/* مبدّل الدورة */
+.p26d__cycle{display:flex;justify-content:center}
+.p26d__cycle-in{
+  display:inline-flex;align-items:center;gap:4px;padding:4px;
+  background:rgba(255,255,255,.05);border:1px solid var(--d-line);
+  border-radius:999px;
+}
+.p26d__cycle-in button{
+  display:inline-flex;align-items:center;gap:7px;
+  min-block-size:36px;padding:0 18px;border:0;border-radius:999px;
+  background:transparent;color:var(--d-mute);cursor:pointer;
+  font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(12px,.95vw,14px);
+  transition:background .18s ease,color .18s ease;
+}
+.p26d__cycle-in button:hover{color:var(--d-gold-lt)}
+.p26d__cycle-in button[aria-pressed="true"]{
+  background:linear-gradient(180deg,#E4CB98,var(--d-gold));color:#08221F;
+}
+.p26d__cycle-save{
+  font-size:.78em;font-weight:700;padding:2px 8px;border-radius:999px;
+  background:rgba(8,34,31,.16);color:#5A3F12;
+}
+.p26d__cycle-in button[aria-pressed="false"] .p26d__cycle-save{
+  background:rgba(212,180,118,.16);color:var(--d-gold-lt);
+}
+
+/* ── الشبكة ─────────────────────────────────────────────────────── */
+.p26d__grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:clamp(14px,1.5vw,24px);
+  margin-block-start:clamp(24px,2.6vw,40px);
+  align-items:stretch;
+}
+
+/* ── البطاقة ────────────────────────────────────────────────────── */
+.p26d-card{
+  position:relative;display:flex;flex-direction:column;
+  background:var(--d-bg2);border:1px solid var(--d-line);
+  border-radius:var(--d-r);overflow:hidden;
+  box-shadow:0 18px 40px -28px rgba(0,0,0,.9);
+  transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;
+}
+.p26d-card:hover{
+  transform:translateY(-4px);border-color:var(--d-line-hot);
+  box-shadow:0 26px 54px -28px rgba(0,0,0,.95);
+}
+.p26d-card--hot{
+  background:var(--d-bg3);border-color:var(--d-line-hot);
+  box-shadow:0 0 0 1px rgba(212,180,118,.20),0 24px 54px -26px rgba(0,0,0,.95);
+}
+
+/* الصورة: لوح فاتح يحمل الطالب — قصاصة على سطح داكن تبدو معلّقة في
+   الهواء، وعلى سطح فاتح تبدو مشهدا. والتدرّج يذيبها في جسم البطاقة. */
+.p26d-card__art{
+  position:relative;display:block;
+  /* الأعلى أبيض ناصع: صورة الباقة المميزة مقصوصة من خلفية بيضاء
+     وتبقى فيها بقايا بيض حول اللابتوب لا يفصلها لون عن الحجاب —
+     فاللوح يبيضّ في أعلاه حتى تذوب، ويدفأ في أسفله. */
+  /* بيج دافئ لا أبيض ناصع: الطلاب في ثوب أبيض وخلفياتهم مقصوصة،
+     فعلى لوح أبيض يختفون تماما — جربناه فبدت البطاقات فارغة. */
+  background:linear-gradient(176deg,#FAF5EB 0%,#F3EBDC 62%,#E9DECA 100%);
+  aspect-ratio:1/1;overflow:hidden;
+}
+/* `inset:0` + `object-fit:contain` لا نسبة مئوية على الارتفاع:
+   `block-size:%` لا يُحلّ من `aspect-ratio` وحدها فيعود إلى `auto`،
+   فتقود الصورة ارتفاعها الطبيعي ويُقصّ أعلاها — فلا يظهر إلا سطح
+   الطاولة الأبيض على لوح فاتح، أي لوح يبدو فارغا وهو ممتلئ. */
+.p26d-card__art img{
+  position:absolute;inset:0;
+  inline-size:100%;block-size:100%;
+  object-fit:contain;object-position:bottom center;display:block;
+}
+/* تلاش سفلي بلون البطاقة: الحدّ الأفقي الحادّ بين اللوح والجسم يقطع
+   الطالب نصفين — والتلاش يجعله يقف في البطاقة لا فوقها. */
+.p26d-card__art::after{
+  content:'';position:absolute;inset-inline:0;inset-block-end:0;
+  block-size:26%;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(12,48,45,0),var(--d-bg2));
+}
+.p26d-card--hot .p26d-card__art::after{
+  background:linear-gradient(to bottom,rgba(16,58,54,0),var(--d-bg3));
+}
+
+/* شارة الأكثر اختيارا */
+.p26d-card__flag{
+  position:absolute;inset-block-start:14px;inset-inline-start:0;z-index:3;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px 7px 12px;
+  border-start-end-radius:999px;border-end-end-radius:999px;
+  background:linear-gradient(180deg,#E4CB98,var(--d-gold));color:#08221F;
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(10.5px,.82vw,12.5px);letter-spacing:.2px;
+  box-shadow:0 6px 16px -8px rgba(0,0,0,.8);
+}
+.p26d-card__flag svg{inline-size:1em;block-size:1em;fill:currentColor}
+
+/* ── الجسم ──────────────────────────────────────────────────────── */
+.p26d-card__body{
+  display:flex;flex-direction:column;flex:1 1 auto;
+  padding:0 var(--d-pad) var(--d-pad);text-align:center;
+  margin-block-start:-8px;
+}
+.p26d-card__title{
+  margin:0;color:var(--d-gold-lt);
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(17px,1.5vw,23px);line-height:1.4;
+}
+.p26d-card__stage{
+  display:block;margin-block-start:4px;color:var(--d-mute);
+  font-size:clamp(11.5px,.9vw,13.5px);
+}
+.p26d-card__dot{
+  inline-size:7px;block-size:7px;margin:10px auto 0;
+  background:var(--d-gold);transform:rotate(45deg);border-radius:1px;
+}
+
+/* السعر: الرقم هو البطل، والوحدة تحته صغيرة */
+.p26d-card__price{
+  margin:clamp(10px,1vw,14px) 0 0;line-height:1;
+}
+.p26d-card__price b{
+  display:block;color:var(--d-gold);
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(36px,3.9vw,58px);letter-spacing:-1px;
+  font-variant-numeric:tabular-nums;
+}
+.p26d-card__price span{
+  display:block;margin-block-start:6px;color:var(--d-mute);
+  font-size:clamp(11px,.88vw,13px);
+}
+.p26d-card__price[hidden]{display:none}
+
+/* المزايا */
+.p26d-card__list{
+  list-style:none;margin:clamp(16px,1.6vw,22px) 0 0;padding:0;
+  display:flex;flex-direction:column;gap:10px;text-align:start;
+  border-block-start:1px solid var(--d-line);
+  padding-block-start:clamp(14px,1.4vw,20px);
+}
+.p26d-card__list li{
+  display:flex;align-items:flex-start;gap:9px;
+  color:var(--d-mute);font-size:clamp(12px,.95vw,14px);line-height:1.6;
+}
+.p26d-card__list svg{
+  inline-size:16px;block-size:16px;flex:0 0 16px;margin-block-start:3px;
+  color:var(--d-gold);fill:none;stroke:currentColor;stroke-width:2.2;
+}
+
+/* الزر: واحد لكل بطاقة، عرض كامل، وثابت في القاع مهما اختلف عدد المزايا */
+.p26d-card__cta{
+  margin-block-start:auto;padding-block-start:clamp(16px,1.6vw,22px);
+}
+.p26d-card__cta a{
+  display:flex;align-items:center;justify-content:center;
+  min-block-size:48px;border-radius:999px;text-decoration:none;
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(13px,1.05vw,15.5px);
+  color:#08221F;background:linear-gradient(180deg,#E4CB98,var(--d-gold));
+  border:1px solid transparent;
+  box-shadow:0 10px 24px -14px rgba(212,180,118,.75);
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;
+}
+.p26d-card__cta a:hover{
+  transform:translateY(-2px);filter:brightness(1.06);
+  box-shadow:0 16px 30px -14px rgba(212,180,118,.85);
+}
+/* غير المميزة: زر محدد لا ممتلئ — نداء واحد أول لكل شاشة */
+.p26d-card:not(.p26d-card--hot) .p26d-card__cta a{
+  background:transparent;color:var(--d-gold-lt);
+  border-color:var(--d-line-hot);box-shadow:none;
+}
+.p26d-card:not(.p26d-card--hot) .p26d-card__cta a:hover{
+  background:rgba(212,180,118,.12);color:#F3E8CE;
+  box-shadow:none;filter:none;
+}
+
+/* رابط «كل المزايا» تحت الشبكة */
+.p26d__more{
+  display:flex;justify-content:center;
+  margin-block-start:clamp(18px,2vw,28px);
+}
+.p26d__more a{
+  display:inline-flex;align-items:center;gap:8px;min-block-size:44px;
+  padding:0 20px;border-radius:999px;text-decoration:none;
+  color:var(--d-mute);border:1px solid var(--d-line);
+  font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(12px,.95vw,14px);
+}
+.p26d__more a:hover{color:var(--d-gold-lt);border-color:var(--d-line-hot)}
+.p26d__more svg{inline-size:1em;block-size:1em}
+
+/* ══════════════════════════════════════════════════════════════════
+   ٢) لماذا تختار منصة تقدر — شريط داكن بخمسة أعمدة
+   ══════════════════════════════════════════════════════════════════ */
+.whyd{
+  position:relative;isolation:isolate;overflow:hidden;
+  border-radius:var(--d-r);
+  background:linear-gradient(160deg,#0B302D,#082523 60%,#061D1C);
+  border:1px solid var(--d-line);
+  padding:clamp(26px,3vw,44px) clamp(16px,2.2vw,36px);
+  box-shadow:0 26px 60px -40px rgba(0,0,0,.95);
+}
+.whyd::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-color:var(--d-gold);
+  -webkit-mask-image:url('../img/script-tile.webp');
+  mask-image:url('../img/script-tile.webp');
+  -webkit-mask-size:var(--script-tile) auto;mask-size:var(--script-tile) auto;
+  opacity:.045;
+}
+.whyd>*{position:relative;z-index:1}
+
+.whyd__head{
+  display:flex;align-items:center;justify-content:center;gap:clamp(10px,1.4vw,20px);
+  margin-block-end:clamp(20px,2.4vw,34px);
+}
+.whyd__head::before,.whyd__head::after{
+  content:'';flex:0 1 clamp(40px,9vw,150px);block-size:1px;
+  background:linear-gradient(90deg,transparent,var(--d-line-hot));
+}
+.whyd__head::after{transform:scaleX(-1)}
+.whyd__head h2{
+  margin:0;color:var(--d-gold-lt);white-space:nowrap;
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(18px,2vw,30px);
+}
+
+.whyd__grid{
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:clamp(10px,1.2vw,18px);
+}
+.whyd__item{
+  position:relative;text-align:center;
+  padding-inline:clamp(6px,1vw,14px);
+}
+/* الفاصل بين الأعمدة — على البادئ لا الأخير، فلا فاصل معلّق في الطرف */
+.whyd__item+.whyd__item::before{
+  content:'';position:absolute;inset-block:6% auto;inset-inline-end:100%;
+  block-size:88%;inline-size:1px;
+  background:linear-gradient(180deg,transparent,var(--d-line),transparent);
+}
+.whyd__ico{
+  display:inline-flex;align-items:center;justify-content:center;
+  inline-size:clamp(44px,3.6vw,56px);block-size:clamp(44px,3.6vw,56px);
+  border-radius:50%;margin-block-end:12px;
+  color:var(--d-gold);
+  background:radial-gradient(circle at 50% 35%,rgba(212,180,118,.20),rgba(212,180,118,.06));
+  border:1px solid var(--d-line);
+}
+.whyd__ico svg{inline-size:52%;block-size:52%;fill:currentColor}
+.whyd__item h3{
+  margin:0;color:var(--d-gold-lt);
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(12.5px,1.05vw,16px);line-height:1.45;
+}
+.whyd__item p{
+  margin:6px 0 0;color:var(--d-mute);
+  font-size:clamp(10.5px,.85vw,13px);line-height:1.6;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ٣) الاستجابة
+   القاعدة: البطاقة المميزة تصعد أولا متى صار العمود واحدا — وهي
+   التوصية المكتوبة في نظام المالك.
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width:1080px){
+  .whyd__grid{grid-template-columns:repeat(3,minmax(0,1fr));
+    row-gap:clamp(20px,3vw,30px)}
+  /* الفواصل تعاد على أساس ثلاثة: لا فاصل في أول كل صف */
+  .whyd__item+.whyd__item::before{content:none}
+  .whyd__item:not(:nth-child(3n+1))::before{content:'';position:absolute;
+    inset-block:6% auto;inset-inline-end:100%;block-size:88%;inline-size:1px;
+    background:linear-gradient(180deg,transparent,var(--d-line),transparent)}
+}
+@media (max-width:900px){
+  .p26d__grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .p26d-card--hot{order:-1}
+}
+@media (max-width:680px){
+  .whyd__grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .whyd__item:not(:nth-child(3n+1))::before{content:none}
+  .whyd__item:not(:nth-child(2n+1))::before{content:'';position:absolute;
+    inset-block:6% auto;inset-inline-end:100%;block-size:88%;inline-size:1px;
+    background:linear-gradient(180deg,transparent,var(--d-line),transparent)}
+}
+@media (max-width:600px){
+  .p26d__grid{grid-template-columns:minmax(0,1fr);max-inline-size:420px;
+    margin-inline:auto}
+  .p26d-card__art{aspect-ratio:4/3}
+}
+@media (max-width:420px){
+  .whyd__grid{grid-template-columns:minmax(0,1fr)}
+  .whyd__item::before{content:none !important}
+  .whyd__item+.whyd__item{padding-block-start:18px;
+    border-block-start:1px solid var(--d-line)}
+  .p26d__cycle-in button{padding:0 13px}
+  .p26d__tabs .stage-tab{padding:0 15px}
+}
+
+/* الحركة تحترم تفضيل النظام */
+@media (prefers-reduced-motion:reduce){
+  .p26d-card,.p26d-card__cta a{transition:none}
+  .p26d-card:hover{transform:none}
+  .p26d-card__cta a:hover{transform:none}
+}
