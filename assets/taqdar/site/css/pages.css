@@ -1696,11 +1696,18 @@ html[dir='ltr'] .unis .carousel2__nav--next{right:0;left:auto}
   block-size:clamp(84px,8.6vw,96px);padding:10px 12px;
   background:#fff;border:1px solid var(--gold-line-soft);border-radius:14px
 }
-/* الصورة تملأ الصندوق و`object-fit` يحفظ نسبتها — لا `auto` مع سقف
-   نسبيّ: `max-block-size:100%` لا يُحلّ هنا فيقود الشعارَ الطوليَّ
-   ارتفاعُه الطبيعي فيفيض خارج بطاقته (قيس: 160px في بطاقة 96px). */
+/* `place-self:stretch` هو بيت القصيد لا النسبة المئوية.
+   البطاقة `place-items:center`، فالصورة عنصر شبكة بـ`align-self:center`
+   **لا يمتدّ** — وارتفاع نسبيّ على عنصر لا يمتدّ لا يُحلّ فيعود إلى
+   `auto`، فيقود الشعارَ الطوليَّ ارتفاعُه الطبيعي ويفيض خارج بطاقته
+   (قيس: 160px في بطاقة 96px، و26 شعارًا من 43 فائض).
+   و`stretch` يعطي الخليةَ قياسًا صريحًا، ثم `contain` يحفظ النسبة. */
 .carousel2__track .unislide img{
-  inline-size:100%;block-size:100%;object-fit:contain
+  place-self:stretch;
+  inline-size:auto;block-size:auto;
+  max-inline-size:100%;max-block-size:100%;
+  min-inline-size:0;min-block-size:0;
+  object-fit:contain
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -2074,7 +2081,6 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
 /* لا `mix-blend-mode` على الشعار: الشعارات الرسمية منها ما أرضيته
    ملوّنة صلبة (أخضر · كحليّ · أسود)، والمزج يطفئ ألوانها ويجعلها
    متّسخة على البطاقة البيضاء. تُعرض كما هي. */
-.unislide{display:flex;align-items:center;justify-content:center;padding:10px 14px}
 
 /* صفحة ٤٠٤: نص متوسط وأزرار لا تلتف ٢+١ */
 .err-card{text-align:center}
