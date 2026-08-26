@@ -239,8 +239,11 @@
 }
 
 /* السعر: الرقم بطل السطر، والوحدة بجانبه لا تحته */
+/* عمود لا صفّ: وصف السعر يجلس **تحت** الرقم بقرار المالك. وكان
+   بجانبه، فنصّ الدورة السنوية («بدل 4,788، وفّرت 958 ر.س») يلتفّ
+   سطرين إلى جوار رقم ضخم فيبدو مزاحمًا له. */
 .p26d-card__price{
-  display:flex;align-items:baseline;justify-content:center;gap:8px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
   margin:clamp(12px,1.1vw,16px) 0 0;padding-block-start:clamp(12px,1.1vw,16px);
   border-block-start:1px solid var(--gold-line-soft);
 }
@@ -249,7 +252,14 @@
   font-size:clamp(30px,2.7vw,40px);line-height:1;letter-spacing:-.5px;
   font-variant-numeric:tabular-nums;
 }
-.p26d-card__price span{color:var(--ink-3);font-size:clamp(10.5px,.82vw,12.5px)}
+.p26d-card__price span{
+  color:var(--ink-3);font-size:clamp(10.5px,.82vw,12.5px);line-height:1.5;
+}
+/* الحاشية: أصغر وأخفت — تُقرأ بعد الرقم ووحدته لا معهما */
+.p26d-card__price small{
+  display:block;color:var(--ink-3);opacity:.9;
+  font-size:clamp(9.5px,.74vw,11.5px);line-height:1.5;text-align:center;
+}
 .p26d-card__price[hidden]{display:none}
 
 /* الزرّ ثابت في القاع فتتحاذى الأزرار مهما اختلف طول القوائم */

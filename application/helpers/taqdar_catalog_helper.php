@@ -396,8 +396,17 @@ if (!function_exists('tqs_cat_card')) {
            وهي ليست مجانية بل تفتح بالباقة. */
         $h .= '    <div class="ccard__foot">' . "\n";
         if ($it['kind'] === 'plan') {
+            /* الشهريّ لا السنويّ بقرار المالك: البطاقة هنا كانت تطبع
+               الرقم المخزَّن عاريًا بلا وسم زمنيّ، فيقرؤه الزائر بحسب
+               ما رآه في الصفحة السابقة. و«شهريا» تُكتب صراحةً — رقمٌ
+               بلا وحدته الزمنية يقرأ خطأ مهما كان صحيحًا.
+               والحساب من `tqs_plan_cycle()` نفسها التي تحكم البطاقة
+               في الرئيسية وصفحة الباقات — مصدر واحد لا ثلاثة. */
+            $cy = function_exists('tqs_plan_cycle')
+                ? tqs_plan_cycle(max(0, (int) $it['price']))
+                : array('month' => (int) round(max(0, (int) $it['price']) / 100));
             $h .= '      <p class="ccard__price"><b class="tq-ltr">'
-                . number_format(max(0, (int) $it['price']) / 100) . '</b><span>ر.س</span></p>' . "\n";
+                . number_format($cy['month']) . '</b><span>ر.س / شهريا</span></p>' . "\n";
             $h .= '      <span class="ccard__cta">تفاصيل الباقة'
                 . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";
         } elseif ($it['kind'] === 'book') {

@@ -1738,15 +1738,19 @@ if (!function_exists('tqs_bundles_dark')) {
             $tq_c    = tqs_plan_cycle($b['price']);
 
             if ($tq_year) {
+                /* سطران مقصودان لا التفاف عشوائي: الوحدة الزمنية سطرا،
+                   والحاشية سطرا تحته — فالنص الطويل لا ينكسر حيث اتفق. */
                 $h .= '      <p class="p26d-card__price" data-cycle="month">'
                     . '<b class="tq-ltr">' . number_format($tq_c['month']) . '</b>'
-                    . '<span>ر.س / شهريا — تدفع سنويا ' . number_format($tq_c['year']) . ' ر.س'
-                    . '</span></p>' . "\n";
+                    . '<span>ر.س / شهريا</span>'
+                    . '<small>تدفع سنويا ' . number_format($tq_c['year']) . ' ر.س</small>'
+                    . '</p>' . "\n";
                 $h .= '      <p class="p26d-card__price" data-cycle="year" hidden>'
                     . '<b class="tq-ltr">' . number_format($tq_c['year']) . '</b>'
-                    . '<span>ر.س / سنويا — بدل ' . number_format($tq_c['month'] * 12)
-                    . '، وفرت ' . number_format($tq_c['save']) . ' ر.س'
-                    . '</span></p>' . "\n";
+                    . '<span>ر.س / سنويا</span>'
+                    . '<small>بدل ' . number_format($tq_c['month'] * 12)
+                    . ' — وفرت ' . number_format($tq_c['save']) . ' ر.س</small>'
+                    . '</p>' . "\n";
             } else {
                 /* باقة بمدّة غير سنويّة: لا معادل شهريّ يُحسب لها. */
                 $h .= '      <p class="p26d-card__price" data-cycle="month">'
