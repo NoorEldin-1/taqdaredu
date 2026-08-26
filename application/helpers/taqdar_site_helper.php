@@ -1582,6 +1582,7 @@ if (!function_exists('tqs_bundles_dark')) {
     function tqs_bundles_dark($items = null, $opts = array())
     {
         $cta   = isset($opts['cta']) ? $opts['cta'] : 'plan';
+        $more  = !empty($opts['more']);
         $items = ($items === null) ? tqs_bundles() : $items;
         if (empty($items)) return '';
 
@@ -1648,6 +1649,11 @@ if (!function_exists('tqs_bundles_dark')) {
             $h .= '      <span class="p26d-card__cta"><a href="'
                 . base_url(($cta === 'checkout' ? 'checkout/' : 'plan/') . $b['code'])
                 . '">اشترك الآن</a></span>' . "\n";
+            if ($more) {
+                $h .= '      <a class="p26d-card__more" href="' . base_url('plan/' . $b['code'])
+                    . '">ما في هذه الباقة؟'
+                    . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></a>' . "\n";
+            }
             $h .= '    </div>' . "\n";
             $h .= '  </article>' . "\n";
         }

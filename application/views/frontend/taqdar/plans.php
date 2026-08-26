@@ -33,7 +33,7 @@ foreach ((array) $tq_ci->tq_b->plans(true) as $tq_p) {
     if ((string) $tq_p['scope'] === 'grade') $tq_rows[] = $tq_p;
 }
 ?>
-<section class="section p26" id="bundles">
+<section class="section" id="bundles">
   <div class="shell">
     <?php if ($tq_f = $tq_ci->session->flashdata('flash_message')): ?>
       <p class="tq-flash tq-flash--ok" role="status"><?php echo html_escape($tq_f); ?></p>
@@ -43,19 +43,24 @@ foreach ((array) $tq_ci->tq_b->plans(true) as $tq_p) {
     <?php endif; ?>
 
 <?php if ($tq_rows): ?>
-    <?php echo tqs_stage_tabs(); ?>
+   <div class="p26d">
+<?php /* التبويب والمبدّل قرار واحد «أي مرحلة وبأي دورة» — فيقربان. */ ?>
+    <div class="p26d__switch">
+      <div class="p26d__tabs"><?php echo tqs_stage_tabs(); ?></div>
 <?php /* مبدّل الدورة — **عرض لا فوترة**: كل الباقات سنوية في القاعدة،
-        فالشهريّ يعرض المعادل ومعه «يُدفع سنويًّا». */ ?>
-    <div class="p26__cycle">
-      <div class="p26__cycle-in" role="group" aria-label="دورة عرض السعر">
-        <button type="button" data-tq-cycle="year" aria-pressed="true">سنوي<span class="p26__cycle-save">الأوفر</span></button>
-        <button type="button" data-tq-cycle="month" aria-pressed="false">شهري</button>
+        فالشهريّ يعرض المعادل ومعه «تدفع سنويا». */ ?>
+      <div class="p26d__cycle">
+        <div class="p26d__cycle-in" role="group" aria-label="دورة عرض السعر">
+          <button type="button" data-tq-cycle="year" aria-pressed="true">سنوي<span class="p26d__cycle-save">الأوفر</span></button>
+          <button type="button" data-tq-cycle="month" aria-pressed="false">شهري</button>
+        </div>
       </div>
     </div>
 <?php /* البطاقات من مولّد واحد يخدم الرئيسية وهذه الصفحة — نسخةٌ ثانية
         من الوسم تشيخ وحدها. والزر هنا يقود إلى شاشة التأكيد لا إلى
         صفحة الباقة، وتحته رابط التفاصيل. */ ?>
-<?php echo tqs_p26_cards(null, array('cta' => 'checkout', 'more' => true)); ?>
+<?php echo tqs_bundles_dark(null, array('cta' => 'checkout', 'more' => true)); ?>
+   </div>
 
     <p class="bundles__foot tq-caption">
       الأسعار بالريال السعودي وتشمل ما هو مذكور في الباقة. ويمكنك الترقية في أي وقت،

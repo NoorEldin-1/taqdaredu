@@ -25,7 +25,7 @@
   --p26-line:#E7EBF0;        /* الحدود */
   --p26-r:18px;              /* استدارة واضحة على كل الأطراف */
   --p26-r-btn:999px;      /* حوافّ مشطوفة تمامًا */
-  --p26-pad:clamp(20px,1.7vw,26px);
+  --p26-pad:clamp(15px,1.25vw,20px);
   --p26-gap:clamp(16px,1.3vw,20px);
 }
 
@@ -57,7 +57,9 @@
 /* تبويب المرحلة ─────────────────────────────────── */
 .tq-p26 .p26__tabs{
   display:flex; justify-content:center; gap:10px; flex-wrap:wrap;
-  margin-block-end:clamp(20px,1.9vw,28px)
+  /* القرار واحد «أي مرحلة وبأي دورة»، فالمبدّل يلتصق بالتبويب تحته
+     بدل ٢٨px كانت تجعل كل واحد يقرأ قرارا مستقلا. */
+  margin-block-end:10px
 }
 .tq-p26 .p26__tabs .stage-tab{
   background:#fff; border:1px solid var(--p26-line); color:var(--p26-navy);
@@ -107,7 +109,8 @@
 .tq-p26 .p26__grid{
   display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
   gap:var(--p26-gap); align-items:stretch;
-  max-inline-size:min(1200px,100%); margin-inline:auto
+  /* صف أضيق بقرار المالك: البطاقات كانت كبيرة على الشاشة الواسعة. */
+  max-inline-size:min(1000px,100%); margin-inline:auto
 }
 
 /* الكارت ───────────────────────────────────────────
@@ -160,18 +163,18 @@
 }
 
 .tq-p26 .p26-card__title{
-  margin:14px 0 0; position:relative; z-index:2;
+  margin:12px 0 0; position:relative; z-index:2;
   color:var(--p26-navy); font-family:'Cairo','Plex Arabic',system-ui,sans-serif;
-  font-weight:700; font-size:clamp(14px,1.2vw,18px); line-height:1.45
+  font-weight:700; font-size:clamp(13.5px,1.05vw,16px); line-height:1.45
 }
 .tq-p26 .p26-card__sub{
   margin:5px 0 0; position:relative; z-index:2;
   color:var(--p26-mute); font-size:clamp(10.5px,.82vw,12.5px)
 }
 .tq-p26 .p26-card__price{
-  margin:14px 0 0; position:relative; z-index:2;
+  margin:12px 0 0; position:relative; z-index:2;
   font-family:'Cairo','Plex Arabic',system-ui,sans-serif; font-weight:700;
-  font-size:clamp(14px,1.2vw,18px); color:var(--p26-gold-ink)
+  font-size:clamp(13.5px,1.05vw,16.5px); color:var(--p26-gold-ink)
 }
 .tq-p26 .p26-card__price b{ color:var(--p26-teal); font-weight:700 }
 /* المعادل الشهري يقول صراحةً كيف يُدفع — رقمٌ بلا سياقه وعدٌ مضلّل */
@@ -185,13 +188,13 @@
      كاملًا، فتُقرأ المزايا في عمود واحد بدل سطرين قصيرين بجوار الصورة.
      وفوقها فاصل رفيع يفصل «ما هي الباقة» عن «ماذا فيها». */
   clear:both; list-style:none; padding:0; position:relative; z-index:2;
-  margin:16px 0 0; padding-block-start:16px;
+  margin:13px 0 0; padding-block-start:13px;
   border-block-start:1px solid var(--p26-line);
-  display:flex; flex-direction:column; gap:8px
+  display:flex; flex-direction:column; gap:7px
 }
 .tq-p26 .p26-card__list li{
   display:flex; align-items:flex-start; gap:8px;
-  color:var(--p26-mute); font-size:clamp(11px,.86vw,13px); line-height:1.6
+  color:var(--p26-mute); font-size:clamp(10.5px,.8vw,12px); line-height:1.55
 }
 .tq-p26 .p26-card__list svg{
   inline-size:1em; block-size:1em; aspect-ratio:1; flex:none;
