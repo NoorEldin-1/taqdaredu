@@ -11,8 +11,10 @@
 #      bash deploy.sh
 #
 #  خيارات:
-#      bash deploy.sh --no-backup   تخطّي نسخ قاعدة البيانات
-#      bash deploy.sh --dry-run     عرض ما سيتغيّر ثمّ الخروج
+#      bash deploy.sh --no-backup       تخطي نسخ قاعدة البيانات
+#      bash deploy.sh --dry-run         عرض ما سيتغير ثم الخروج
+#      bash deploy.sh --discard-server  المتابعة رغم شغل غير مرفوع هنا
+#                                       (يفقد — لا يستعمل إلا بقصد)
 #
 #  كلّ خطوة عديمة الأثر عند التكرار — آمنٌ تشغيله في كلّ نشر.
 #
@@ -33,11 +35,12 @@ set -euo pipefail
 deploy() {
   cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-  local DO_BACKUP=1 DRY_RUN=0
+  local DO_BACKUP=1 DRY_RUN=0 DISCARD=0
   for arg in "$@"; do
     case "$arg" in
-      --no-backup) DO_BACKUP=0 ;;
-      --dry-run)   DRY_RUN=1 ;;
+      --no-backup)      DO_BACKUP=0 ;;
+      --dry-run)        DRY_RUN=1 ;;
+      --discard-server) DISCARD=1 ;;
       *) echo "خيار غير معروف: $arg"; exit 2 ;;
     esac
   done
@@ -87,19 +90,63 @@ deploy() {
     git --no-pager log --oneline "$LOCAL..$REMOTE" 2>/dev/null | sed 's/^/     /' || true
   fi
 
-  #   ملفّات متتبَّعة عُدِّلت على الخادم مباشرةً ستُمحى بـ reset --hard.
-  #   إظهارها الآن يمنع ضياع تعديلٍ عاجلٍ أُجري على الخادم ولم يُرفَع.
-  if ! git diff --quiet HEAD 2>/dev/null; then
+  #   شغل على الخادم لا وجود له على GitHub — و`reset --hard` يمحوه.
+  #   صورتان مختلفتان، ولا تغني إحداهما عن الأخرى:
+  #
+  #     AHEAD  commits عملت هنا ولم ترفع. الشجرة معها **نظيفة**،
+  #            فلا يمسكها فحص `git diff` أدناه. وكان السطر الوحيد
+  #            الذي يقارن يطبع `LOCAL..REMOTE` — أي ما ينقص الخادم
+  #            من origin، والاتجاه المعاكس لا يظهر قط. فمر خادم
+  #            عليه اثنا عشر commit غير مرفوعة بلا تحذير واحد
+  #            (2026-08-26)، ونجا بالفحص اليدوي لا بهذا السكربت.
+  #     DIRTY  تعديل على ملف متتبع بلا commit. لا يجلبه `git fetch`
+  #            مهما فعل — لأنه لم يصر كائنا في المستودع بعد.
+  #
+  #   والملفات غير المتتبعة تنجو من `reset --hard` فلا تعد هنا.
+  local AHEAD DIRTY=0
+  AHEAD=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
+  git diff --quiet HEAD 2>/dev/null || DIRTY=1
+
+  if [ "$AHEAD" -gt 0 ]; then
     echo ""
-    echo "   ⚠️  تعديلات محلّية على ملفّات متتبَّعة ستُفقَد:"
+    echo "   ⛔ $AHEAD commit على الخادم ليست على origin/main — وستصير غير مبلوغة:"
+    git --no-pager log --oneline "origin/main..HEAD" | sed 's/^/     /'
+    echo "      الفرع هنا: $(git rev-parse --abbrev-ref HEAD)"
+  fi
+
+  if [ "$DIRTY" -eq 1 ]; then
+    echo ""
+    echo "   ⛔ تعديلات على ملفات متتبعة بلا commit — ستمحى:"
     git --no-pager diff --stat HEAD | sed 's/^/     /'
-    echo "      (انسخها قبل المتابعة إن كانت مقصودة)"
   fi
 
   if [ "$DRY_RUN" -eq 1 ]; then
     echo ""
-    echo "🧪 --dry-run — لم يتغيّر شيء."
+    if [ "$AHEAD" -gt 0 ] || [ "$DIRTY" -eq 1 ]; then
+      echo "🧪 --dry-run — لم يتغير شيء. (وللعلم: النشر الفعلي كان سيتوقف)"
+    else
+      echo "🧪 --dry-run — لم يتغير شيء."
+    fi
     exit 0
+  fi
+
+  #   الوقوف لا التحذير: تحذير يقرأ بعد أن يمضي السكربت لا يرجع شيئا.
+  if [ "$AHEAD" -gt 0 ] || [ "$DIRTY" -eq 1 ]; then
+    if [ "$DISCARD" -eq 1 ]; then
+      echo ""
+      echo "   ⚠️  --discard-server — يتابع، وما سبق يفقد بطلبك."
+    else
+      echo ""
+      echo "   ⛔ توقف النشر. لم يتغير شيء."
+      echo ""
+      echo "      احفظ ما هنا قبل أي شيء:"
+      [ "$AHEAD" -gt 0 ] && echo "        git push origin HEAD:<فرع>      # ثم ادمجه في main"
+      [ "$DIRTY" -eq 1 ] && echo "        git diff HEAD > ~/server.patch  # لا يجلبه fetch"
+      echo ""
+      echo "      ولا تدمج بـ force ولا بترجيح جانب على آخر: الشغلان يجتمعان."
+      echo "      وإن كان الفقد مقصودا فعلا:  bash deploy.sh --discard-server"
+      exit 3
+    fi
   fi
 
   # ── 2/7  نسخة قاعدة البيانات ───────────────────────────────
