@@ -1568,12 +1568,15 @@ if (!function_exists('tqs_p26_tier')) {
 
 if (!function_exists('tqs_bundles_dark')) {
     /**
-     * بطاقات الباقات — الكساء الداكن للصفحة الرئيسية (`css/home-dark.css`).
+     * بطاقات الباقات — بطابع الموقع نفسه (`css/home-dark.css`).
      *
      * نسخة كساء لا نسخة منطق: المصدر `tqs_bundles()` نفسه، والدرجة
      * والمرحلة والسعر والمزايا تقرأ كما تقرؤها `tqs_p26_cards()` حرفا
-     * بحرف. وما يختلف هو الوسم وحده — ولذلك لا تحسب هنا قاعدة عمل
-     * جديدة تشيخ بعيدا عن أختها.
+     * بحرف. وما يختلف هو الوسم وحده.
+     *
+     * والصورة داخل **قوس عربي** هو قناع `#tqArch` نفسه الذي تستعمله
+     * أهيرة الصفحات الداخلية، وإطاره الذهبي هو `svg.frame` نفسه —
+     * فالطابع مصدره واحد ولا يُرسم شكل ثانٍ يشبه القوس ولا يطابقه.
      *
      * وسمات التبديل تبقى كما هي (`data-tq-bundles` · `data-stage` ·
      * `hidden` · `data-cycle`): سكربت التبويب ومبدّل الدورة يمسكانها
@@ -1592,6 +1595,12 @@ if (!function_exists('tqs_bundles_dark')) {
         $ks     = array_keys($stages);
         $first  = $ks ? $ks[0] : '';
 
+        /* إطار القوس: مسار واحد يكتب مرة ويعاد استعماله — وهو نص
+           `site/site_arch.php` نفسه. */
+        $frame = '<svg class="frame" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
+               . '<path d="M6,100 C2,100 0,98 0,94 L0,46 C0,26 16,9 50,0 C84,9 100,26 100,46'
+               . ' L100,94 C100,98 98,100 94,100 Z"/></svg>';
+
         $h = '<div class="p26d__grid" data-tq-bundles>' . "\n";
         foreach ($items as $b) {
             $tier = tqs_p26_tier($b['code']);
@@ -1603,22 +1612,25 @@ if (!function_exists('tqs_bundles_dark')) {
                 . (($hide && $b['stage'] !== $first) ? ' hidden' : '') . '>' . "\n";
 
             if ($hot) {
-                $h .= '    <span class="p26d-card__flag">'
-                    . '<svg aria-hidden="true"><use href="#i-star"></use></svg>'
-                    . 'الأكثر اختيارا</span>' . "\n";
+                $h .= '    <span class="p26d-card__badge">الأكثر اختيارا</span>' . "\n";
             }
 
             /* الصورة زينة لا خبر: `alt` فارغة و`aria-hidden` — قارئ الشاشة
                يقرأ اسم الباقة، ووصف «طالب» قبله لا يزيده معنى. */
-            $h .= '    <span class="p26d-card__art" aria-hidden="true">'
+            $h .= '    <span class="p26d-card__arch" aria-hidden="true">'
+                . '<span class="p26d-card__arch-in">'
                 . '<img src="' . tq_site_asset('img/p26-' . $tier . '.webp') . '" alt=""'
-                . ' width="480" height="620" loading="lazy" decoding="async"></span>' . "\n";
+                . ' width="480" height="620" loading="lazy" decoding="async"></span>'
+                . $frame . '</span>' . "\n";
 
             $h .= '    <div class="p26d-card__body">' . "\n";
             $h .= '      <h3 class="p26d-card__title">' . html_escape(tqs_bundle_tier($b['name']))
                 . '<span class="p26d-card__stage">' . html_escape(tqs_stage_label($b['stage']))
                 . '</span></h3>' . "\n";
-            $h .= '      <span class="p26d-card__dot" aria-hidden="true"></span>' . "\n";
+            /* الفاصل نجمة ثمانية بين خطّين — هوية هندسية لا تصويرية،
+               وهي نفسها التي تفصل عناوين الأقسام في الموقع. */
+            $h .= '      <div class="p26d-card__rule" aria-hidden="true">'
+                . '<svg><use href="#i-star8"></use></svg></div>' . "\n";
 
             /* السعر بنسختين — عرضا لا فوترة: كل الباقات سنوية في القاعدة،
                فالشهري يقول صراحة «تدفع سنويا». */

@@ -60,12 +60,12 @@ foreach ((array) $tq_ci->tq_b->plans(true) as $tq_p) {
         من الوسم تشيخ وحدها. والزر هنا يقود إلى شاشة التأكيد لا إلى
         صفحة الباقة، وتحته رابط التفاصيل. */ ?>
 <?php echo tqs_bundles_dark(null, array('cta' => 'checkout', 'more' => true)); ?>
-   </div>
 
     <p class="bundles__foot tq-caption">
       الأسعار بالريال السعودي وتشمل ما هو مذكور في الباقة. ويمكنك الترقية في أي وقت،
       فيحتسب لك ما دفعته. واطلع على <a href="<?php echo base_url('refund'); ?>">سياسة الاسترجاع</a>.
     </p>
+   </div>
 <?php else: ?>
     <p class="dir-empty">لا توجد باقات متاحة الآن.</p>
 <?php endif; ?>

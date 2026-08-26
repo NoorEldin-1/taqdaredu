@@ -1001,7 +1001,7 @@ a.contact-card:hover .contact-card__go svg{transform:translateX(-3px)}
    فقوس أدرج في غير موضعه يبتلع الصفحة كاملة. الحارس يجعل الخطأ
    غير مرئي بدل أن يكون كارثيا. */
 svg.frame path{fill:none}
-:not(.page-hero__arch)>svg.frame{display:none}
+:not(.page-hero__arch):not(.p26d-card__arch)>svg.frame{display:none}
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-FORMS · أصناف صفحات الدخول والتسجيل
@@ -1661,16 +1661,21 @@ html[dir='ltr'] .carousel2__nav--prev svg{transform:scaleX(-1)}
 .bundle{padding-block-start:0}
 .bundle__name{margin-block-start:0}
 
-/* شريحة الجامعة داخل الكاروسل */
+/* شريحة الجامعة داخل الكاروسل.
+   بطاقة شبه مربّعة لا عريضة: شعارات الجامعات السعودية مربّعة (٤١ من ٤٣)،
+   وبطاقة نسبتها 2:1 كانت تعرض الشعار ٦٠×٦٠ وسط فراغ أفقيّ يساوي ضعفه —
+   وهو ما كان يُرى «مبكسلًا» وهو في الحقيقة صغير. */
 .carousel2__track .unislide{
-  flex:0 0 clamp(150px,16vw,190px);scroll-snap-align:start;
+  flex:0 0 clamp(104px,10.5vw,132px);scroll-snap-align:start;
   display:grid;place-items:center;
-  block-size:clamp(78px,8vw,96px);padding:10px 14px;
+  block-size:clamp(84px,8.6vw,96px);padding:10px 12px;
   background:#fff;border:1px solid var(--gold-line-soft);border-radius:14px
 }
+/* الصورة تملأ الصندوق و`object-fit` يحفظ نسبتها — لا `auto` مع سقف
+   نسبيّ: `max-block-size:100%` لا يُحلّ هنا فيقود الشعارَ الطوليَّ
+   ارتفاعُه الطبيعي فيفيض خارج بطاقته (قيس: 160px في بطاقة 96px). */
 .carousel2__track .unislide img{
-  max-inline-size:100%;max-block-size:100%;
-  inline-size:auto;block-size:auto;object-fit:contain
+  inline-size:100%;block-size:100%;object-fit:contain
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -2041,11 +2046,11 @@ a.gate-card:hover{ text-decoration:none }
 .page-hero__lede,.hero__lede,.section-head p,.bundle__note{ text-wrap:pretty }
 h1,h2,h3,.bundle__name{ text-wrap:balance }
 
-/* شعارات الجامعات: مقاس واحد ولا صندوق ملون */
-.unislide img{
-  inline-size:100%;block-size:100%;object-fit:contain;
-  max-block-size:56px;mix-blend-mode:multiply
-}
+/* شعارات الجامعات: `multiply` وحده يبقى هنا — يذيب أرضية الشعار
+   البيضاء في بطاقته البيضاء. وسقف الارتفاع ٥٦px حُذف: كان مهزومًا
+   بالخصوصية فلم يكن يسري، ثم صار يسري بعد ضبط القاعدة الأقوى فحبس
+   الشعار في ٥٦px داخل بطاقة ٩٦px — والقياس في القاعدة الأقوى وحدها. */
+.unislide img{ mix-blend-mode:multiply }
 .unislide{display:flex;align-items:center;justify-content:center;padding:10px 14px}
 
 /* صفحة ٤٠٤: نص متوسط وأزرار لا تلتف ٢+١ */

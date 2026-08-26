@@ -113,8 +113,8 @@ foreach ($tq_why as $w):
         ══════════════════════════════════════════════════════════════ */ ?>
 <section class="section" id="bundles">
   <div class="shell">
-   <div class="p26d reveal">
-    <div class="p26d__head">
+   <div class="p26d">
+    <div class="p26d__head reveal">
       <h2><?php echo tq_text('home', 'plans_title', 'اختر الباقة المناسبة لرحلة التعلم'); ?></h2>
       <p><?php echo tq_text('home', 'plans_lede',
              'خطط مرنة ومصممة بعناية لتلبية احتياجات كل مرحلة دراسية'); ?></p>
