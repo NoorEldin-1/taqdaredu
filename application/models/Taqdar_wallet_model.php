@@ -1409,4 +1409,104 @@ class Taqdar_wallet_model extends CI_Model
         return $n > 0;
     }
 
+    /* ================================================================
+     *  الحصص الخاصة — TQ-SESSION-PAY
+     * ================================================================ */
+
+    /**
+     * يقيد حصة خاصة **انعقدت** في دفتر معلمها.
+     *
+     * والفرق عن بيع الباقة ليس في الحساب بل في **لحظته**: الباقة تقيد
+     * حين تدفع لأن ما بيع محتوى قائم يسلم نفسه، والحصة تقيد حين **تنتهي**
+     * لأن ما بيع وقت معلم لم يمض بعد. ولو قيدت عند الدفع لصار كل معلم
+     * لم يحضر حصة يملك مالها في دفتره، وصار الاسترداد عكسا لقيد كان
+     * ينبغي ألا يكتب.
+     *
+     * والقسمة هنا لا في `Taqdar_revenue_model`: ذاك يقسم وعاء مغلقا على
+     * معلمين كثر لأن الباقة تفتح محتوى كلهم، وهذه حصة لمعلم واحد بعينه —
+     * فلا وعاء ولا أوزان ولا أكبر بواق، ونسبة واحدة تكفي. واستدعاء
+     * القاسم لصف واحد يقحم أوزان الدروس على بيعة لا دروس فيها.
+     *
+     * `$gross` هو سعر الحصة **بلا ضريبة**: الضريبة مال الدولة لا إيراد
+     * يقسم — وهي القاعدة نفسها في اشتراك الباقة (`$sub['price']`).
+     *
+     * متكرر الأمان: `ref` مقيد بالمحفظة والمستند، فنداء ثان لا يكتب صفا.
+     *
+     * @return array ok · wallet_id · share · commission
+     */
+    public function credit_session($teacher_id, $session_id, $gross_halalas,
+                                   $share_halalas, $subject = null)
+    {
+        $this->install_schema();
+
+        $teacher_id = (int) $teacher_id;
+        $gross      = (int) $gross_halalas;
+        $share      = (int) $share_halalas;
+
+        if ($teacher_id < 1 || $gross <= 0) {
+            return array('ok' => false, 'errors' => array('لا معلم للحصة أو لا مبلغ.'));
+        }
+        if ($share < 0 || $share > $gross) {
+            return array('ok' => false, 'errors' => array('حصة لا تطابق سعرها.'));
+        }
+
+        $wallet  = $this->wallet_of($teacher_id);
+        $wid     = $wallet['id'];
+        $origin  = 'session:' . (int) $session_id;
+        $subject = ($subject !== null && $subject !== '') ? $subject : 'حصة خاصة';
+        $release = $this->at(time() + $this->hold_days() * 86400);
+        $cut     = $gross - $share;
+
+        $this->post($wid, 'sale', self::B_PENDING, $gross,
+                    $this->ref_key($wid, $origin, 'sale'), $origin, $subject, null, $release);
+
+        if ($cut > 0) {
+            $this->post($wid, 'commission', self::B_PENDING, -$cut,
+                        $this->ref_key($wid, $origin, 'commission'), $origin, $subject, null, $release);
+        }
+
+        $this->recompute($wid);
+
+        return array('ok' => true, 'wallet_id' => $wid,
+                     'share' => $share, 'commission' => $cut, 'gross' => $gross);
+    }
+
+    /**
+     * يعكس حصة استردت — بالباب نفسه الذي يعكس به بيع كورس أو باقة.
+     * ولا يشترط أن يكون القيد قائما: حصة استردت قبل أن تنعقد لا قيد لها،
+     * فيرد `false` بهدوء ولا يعد ذلك خطأ.
+     */
+    public function reverse_session($teacher_id, $session_id, $reason = '')
+    {
+        $wallet = $this->wallet_of((int) $teacher_id);
+        $n = $this->reverse_origin($wallet['id'], 'session:' . (int) $session_id, $reason);
+        if ($n > 0) $this->recompute($wallet['id']);
+        return $n > 0;
+    }
+
+    /**
+     * ملخص كسب الحصص الخاصة لمعلم — لشاشته ولشاشة الإدارة.
+     *
+     * يقرأ من الدفتر لا من `tutoring_sessions`: الدفتر هو ما يصرف منه،
+     * وجدول الحصص قد يحمل حصة انتهت ولم تقيد بعد. ورقمان يفترقان في
+     * شاشتين يجعلان المعلم يسأل عن الفرق ولا أحد يعرف أيهما الصحيح.
+     */
+    public function session_earnings($user_id)
+    {
+        $this->install_schema();
+        $wallet = $this->wallet_of((int) $user_id);
+
+        $r = $this->db->query(
+            'SELECT COUNT(DISTINCT `origin`) n, COALESCE(SUM(`amount`),0) net
+               FROM `wallet_entries`
+              WHERE `wallet_id` = ? AND `origin` LIKE "session:%"
+                AND `type` IN ("sale","commission","refund")',
+            array((int) $wallet['id'])
+        )->row_array();
+
+        return array(
+            'sessions' => (int) ($r['n'] ?? 0),
+            'net'      => (int) ($r['net'] ?? 0),
+        );
+    }
 }

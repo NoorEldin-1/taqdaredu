@@ -2,30 +2,90 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
- * الحصص بالطلب.
+ * الحصص بالطلب — ودورتها المالية.
  *
  * دورة الحصة: المعلم يفتح وقتا (`availability_slots`) · الطالب يحجزه
- * فينشأ `tutoring_sessions` بحالة `requested` · المعلم يقبل أو يرفض.
- * ولم يكن في اللوحة شاشة واحدة تراها — فالإدارة تعرف بالشكوى وحدها،
- * وطلب علق أسبوعا لا يظهر في مكان.
+ * فينشأ `tutoring_sessions` بحالة `requested` · المعلم يؤكد فتصدر فاتورة
+ * وتنتظر الدفع · يدفع الطالب فتثبت · تنعقد · يعلن المعلم انتهاءها فيقيد
+ * نصيبه. ولم يكن في اللوحة شاشة واحدة تراها — فالإدارة تعرف بالشكوى
+ * وحدها، وطلب علق أسبوعا لا يظهر في مكان.
+ *
+ * والتسعيرة تحرر في ذيل هذه الشاشة لا في «إعدادات المنصة»: هذه هي الشاشة
+ * التي يظهر فيها أثرها — بجوار الحصص التي بيعت بها. وهو مبدأ TQ-REVIEW-KNOBS
+ * نفسه: مفتاح يدفن في شاشة لا تفتح ميزة لا توجد.
+ *
+ * وعمود «الرابط» كان يقرأ `room_id` — وهو معرف غرفة BigBlueButton لا
+ * عنوان لقاء. فالرابط الذي يكتبه المعلم (`meet_url`) لم يكن يظهر في
+ * اللوحة قط، وما كان يظهر مكانه رابط مكسور إن وجد معرف غرفة.
  */
 
 $labels = array(
-    'requested' => 'بانتظار رد المعلم',
-    'confirmed' => 'مؤكدة',
-    'live'      => 'جارية الآن',
-    'completed' => 'انتهت',
-    'declined'  => 'رفضت أو ألغيت',
-    'expired'   => 'فات موعدها',
-    'refunded'  => 'استردت',
+    'requested'        => 'بانتظار رد المعلم',
+    'awaiting_payment' => 'بانتظار الدفع',
+    'confirmed'        => 'مؤكدة ومدفوعة',
+    'live'             => 'جارية الآن',
+    'completed'        => 'انتهت',
+    'declined'         => 'ألغيت',
+    'expired'          => 'مضت مهلتها',
+    'refunded'         => 'مستردة',
 );
 $tones = array(
-    'requested' => 'warn', 'confirmed' => 'ok',    'live' => 'info',
-    'completed' => 'muted','declined'  => 'danger','expired' => 'muted', 'refunded' => 'danger',
+    'requested' => 'warn',  'awaiting_payment' => 'warn', 'confirmed' => 'ok',
+    'live'      => 'info',  'completed'        => 'muted','declined'  => 'danger',
+    'expired'   => 'muted', 'refunded'         => 'danger',
 );
+
+/** مبلغ بالهللات إلى ريال مقروء — وموضع القسمة على مئة واحد في الشاشة. */
+$sar = function ($halalas) {
+    return '<span class="tqa-num">' . number_format(((int) $halalas) / 100, 2) . '</span> ر.س';
+};
+
+$cfg   = isset($cfg) ? $cfg : array('price' => 0, 'percent' => 0, 'minutes' => 60,
+                                    'pay_hours' => 12, 'lead_min' => 30, 'grace_hours' => 6);
+$money = isset($money) ? $money : array();
+$tap_ready = !empty($tap_ready);
 ?>
 
-<?php tqa_head('الحصص', 'كل حصة طلبت، ومن طلبها، ومن يدرسها، وأين وقفت.', 'video'); ?>
+<?php tqa_head('الحصص', 'كل حصة طلبت، ومن طلبها، ومن يدرسها، وبكم بيعت، وأين وقفت.', 'video'); ?>
+
+<?php /* سطر المال أولا: من يفتح هذه الشاشة يسأل «كم دخل وكم خرج» قبل أن
+         يسأل عن صف بعينه، وقائمة ثلاثمئة صف لا تجمع نفسها. */ ?>
+<?php if ($cfg['price'] > 0 || !empty($money['gross'])): ?>
+<div class="tqa-grid tqa-grid--4" style="margin-block-end:var(--tq-space-xl)">
+    <?php
+    $tq_tiles = array(
+        array('محصل من الحصص', $money['gross']    ?? 0, 'كل حصة وصل ثمنها، بلا ضريبة',        'wallet',  'tqa-mint'),
+        array('نصيب المعلمين',  $money['teachers'] ?? 0, 'عن حصص انعقدت — وهي وحدها التي تقيد', 'users',   'tqa-sky'),
+        array('نصيب المنصة',    $money['platform'] ?? 0, 'الباقي من ثمن الحصص المنعقدة',        'shield',  'tqa-lilac'),
+        array('ينتظر الدفع',    $money['awaiting'] ?? 0, 'حصص أكدها معلموها ولم تدفع بعد',      'clock',   'tqa-peach'),
+    );
+    foreach ($tq_tiles as $t): ?>
+        <div class="tqa-stat">
+            <div class="tqa-stat__top">
+                <span class="tqa-stat__label"><?php echo html_escape($t[0]); ?></span>
+                <span class="tqa-stat__icon <?php echo $t[4]; ?>"><?php echo tq_icon($t[3], 17); ?></span>
+            </div>
+            <span class="tqa-stat__value"><?php echo $sar($t[1]); ?></span>
+            <span class="tqa-stat__hint"><?php echo html_escape($t[2]); ?></span>
+        </div>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<?php /* حصة انعقدت ودفعت ولم يقيد نصيب معلمها: قيد تعثر ولم يكتب. وهو
+         الخبر الذي لا يظهر إلا هنا — المعلم يرى محفظته ناقصة ولا يعرف
+         لماذا، والدفتر لا يشتكي. */ ?>
+<?php if (!empty($money['uncredited'])): ?>
+    <div class="tqa-note tqa-note--warn tqa-section">
+        <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+        <span>
+            <strong><span class="tqa-num"><?php echo (int) $money['uncredited']; ?></span></strong>
+            حصة انعقدت ودفع ثمنها ولم يقيد نصيب معلمها في محفظته. وهو قيد تعثر لا حصة
+            ناقصة — يعاد بتشغيل <code class="tqa-code">taqdar_cron expire_sessions</code>،
+            وإن بقي فالسبب في سجل الأخطاء بوسم <code class="tqa-code">TQ-SESSION-CREDIT</code>.
+        </span>
+    </div>
+<?php endif; ?>
 
 <?php /* المرشحات: العدد جزء من التسمية — «بانتظار رد» بلا رقم لا تخبر
          إن كان الانتظار واحدا أو أربعين. */ ?>
@@ -62,7 +122,7 @@ $tones = array(
                 <th>الموعد</th>
                 <th>الطالب</th>
                 <th>المعلم</th>
-                <th>سبب الحصة</th>
+                <th>المال</th>
                 <th>الحالة</th>
                 <th>الرابط</th>
                 <th><span class="tqa-sr">إجراء</span></th>
@@ -73,8 +133,16 @@ $tones = array(
             $st   = (string) $r['status'];
             $tone = $tones[$st] ?? 'muted';
             $when = !empty($r['starts_at']) ? strtotime($r['starts_at']) : 0;
-            /* الحصة الملغاة أو المنتهية لا تلغى ثانية: زر يعتذر أسوأ من زر غائب. */
-            $can_cancel = !in_array($st, array('completed', 'declined', 'refunded'), true);
+            $price = (int) ($r['price_halalas'] ?? 0);
+            $share = (int) ($r['teacher_share_halalas'] ?? 0);
+            $paid  = !empty($r['paid_at']);
+            /* الحصة المغلقة لا تلغى ثانية: زر يعتذر أسوأ من زر غائب.
+               وحصة **انعقدت ودفعت** تسترد: هذا أكثر ما يقع — يتخلف المعلم
+               أو يشتكي الطالب بعد الحصة لا قبلها، والقيد قائم في محفظة
+               معلمها حتى يعكس. */
+            $can_cancel = !in_array($st, array('declined', 'expired', 'refunded'), true)
+                       && !($st === 'completed' && !$paid);
+            $can_mark   = $st === 'awaiting_payment' && (int) ($r['invoice_id'] ?? 0) > 0;
         ?>
             <tr>
                 <td data-label="الموعد">
@@ -95,40 +163,87 @@ $tones = array(
                         <?php echo html_escape($r['student_email'] ?: ''); ?></span>
                 </td>
                 <td data-label="المعلم"><?php echo html_escape($r['teacher_name'] ?: '—'); ?></td>
-                <td data-label="سبب الحصة">
-                    <?php if (!empty($r['objective_text'])): ?>
-                        <?php echo html_escape(mb_strimwidth($r['objective_text'], 0, 60, '…', 'UTF-8')); ?>
+
+                <?php /* ثلاثة أرقام في خانة: الثمن، ونصيب المعلم منه، ورقم
+                         الفاتورة. و«باعوا حصتي ولم يصلني شيء» أول ما يسأل
+                         عنه معلم، ولم يكن في اللوحة موضع واحد يجيب. */ ?>
+                <td data-label="المال">
+                    <?php if ($price <= 0): ?>
+                        <span style="color:var(--tq-text3)">بلا ثمن</span>
                     <?php else: ?>
-                        <span style="color:var(--tq-text3)">حصة عامة</span>
+                        <strong><?php echo $sar($price); ?></strong><br>
+                        <span style="color:var(--tq-text2);font-size:12px">
+                            للمعلم <?php echo $sar($share); ?>
+                            <?php if (!empty($r['credited_at'])): ?>
+                                · <span style="color:var(--tq-ok,green)">قيد</span>
+                            <?php elseif ($st === 'completed' && $paid): ?>
+                                · <span style="color:var(--tq-warn,orange)">لم يقيد</span>
+                            <?php endif; ?>
+                        </span>
+                        <?php if (!empty($r['invoice_no'])): ?>
+                            <br><span class="tqa-num" style="color:var(--tq-text3);font-size:11px">
+                                <?php echo html_escape($r['invoice_no']); ?></span>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </td>
+
                 <td data-label="الحالة">
                     <span class="tqa-badge tqa-badge--<?php echo $tone; ?>">
                         <?php echo html_escape($labels[$st] ?? $st); ?>
                     </span>
+                    <?php if ($st === 'awaiting_payment' && !empty($r['pay_deadline'])): ?>
+                        <br><span class="tqa-num" style="color:var(--tq-text3);font-size:11px">
+                            حتى <?php echo date('Y-m-d H:i', strtotime($r['pay_deadline'])); ?></span>
+                    <?php elseif (!empty($r['cancel_reason'])): ?>
+                        <br><span style="color:var(--tq-text3);font-size:11px">
+                            <?php echo html_escape($r['cancel_reason']); ?></span>
+                    <?php endif; ?>
                 </td>
+
                 <td data-label="الرابط">
-                    <?php if (!empty($r['room_id'])): ?>
-                        <a href="<?php echo html_escape($r['room_id']); ?>" target="_blank" rel="noopener">افتح</a>
+                    <?php $link = trim((string) ($r['meet_url'] ?? '')); ?>
+                    <?php if ($link !== ''): ?>
+                        <a href="<?php echo html_escape($link); ?>" target="_blank" rel="noopener">افتح</a>
                     <?php else: ?>
                         <span style="color:var(--tq-text3)">—</span>
                     <?php endif; ?>
                 </td>
+
                 <td data-label="إجراء">
+                    <?php if ($can_mark): ?>
+                        <?php /* التحويل البنكي: يسجله من رآه في الحساب. وبلا
+                                 هذا الزر يبقى التحويل بابا مسدودا في الحصص
+                                 وحدها — والاشتراك يفعل يدويا منذ كتب. */ ?>
+                        <form action="<?php echo site_url('taqdar_admin/session_mark_paid'); ?>" method="post"
+                              data-tqa-confirm-title="تسجيل دفع الحصة"
+                              data-tqa-confirm="تثبت الحصة ويفتح رابطها للطالب. سجل هذا بعد أن ترى الحوالة في الحساب لا قبله."
+                              data-tqa-confirm-ok="سجل الدفع"
+                              style="margin:0 0 6px;display:flex;gap:6px;align-items:center">
+                            <?php echo tq_csrf(); ?>
+                            <input type="hidden" name="session_id" value="<?php echo (int) $r['id']; ?>">
+                            <input class="tqa-input tqa-btn--sm" type="text" name="reference"
+                                   placeholder="مرجع الحوالة" style="min-block-size:34px;inline-size:130px">
+                            <button class="tqa-btn tqa-btn--sm" type="submit">سجل الدفع</button>
+                        </form>
+                    <?php endif; ?>
+
                     <?php if ($can_cancel): ?>
                         <?php /* الإلغاء POST لا رابط: يكتب في القاعدة ويحرر وقتا،
                                  ورابط يفعل ذلك بمجرد فتحه يستدعيه استباق المتصفح. */ ?>
                         <form action="<?php echo site_url('taqdar_admin/session_cancel'); ?>" method="post"
                               data-tqa-confirm-title="إلغاء الحصة"
-                              data-tqa-confirm="سيحرر وقتها ويخطر الطالب والمعلم."
-                              data-tqa-confirm-ok="ألغ الحصة"
+                              data-tqa-confirm="<?php echo $paid
+                                  ? 'هذه الحصة مدفوعة: توسم مستردة، ويعكس قيد معلمها. ورد المبلغ نفسه يجرى من لوحة تاب — المنصة لا تردها بنفسها.'
+                                  : 'سيحرر وقتها، وتشطب فاتورتها، ويخطر الطالب والمعلم.'; ?>"
+                              data-tqa-confirm-ok="<?php echo $paid ? 'وسمها مستردة' : 'ألغ الحصة'; ?>"
                               data-tqa-confirm-tone="danger"
                               style="margin:0;display:flex;gap:6px;align-items:center">
                             <?php echo tq_csrf(); ?>
                             <input type="hidden" name="session_id" value="<?php echo (int) $r['id']; ?>">
                             <input class="tqa-input tqa-btn--sm" type="text" name="reason"
-                                   placeholder="السبب (اختياري)" style="min-block-size:34px;inline-size:150px">
-                            <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit">إلغاء</button>
+                                   placeholder="السبب (اختياري)" style="min-block-size:34px;inline-size:130px">
+                            <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit">
+                                <?php echo $paid ? 'استرداد' : 'إلغاء'; ?></button>
                         </form>
                     <?php else: ?>
                         <span style="color:var(--tq-text3)">—</span>
@@ -140,4 +255,111 @@ $tones = array(
     </table>
     </div>
 <?php endif; ?>
+</div>
+
+<?php /* ====================================================================
+         تسعيرة الحصص
+         ==================================================================== */ ?>
+<div class="tqa-card" id="tqa-pricing" style="margin-block-start:var(--tq-space-xl)">
+    <div class="tqa-card__head">
+        <h2 class="tqa-card__title"><?php echo tq_icon('card', 18); ?> تسعيرة الحصص</h2>
+    </div>
+    <p class="tqa-card__lead">
+        سعر الحصة الواحدة، ونصيب المعلم منه — والباقي للمنصة. والرقمان يقرآن
+        في شاشة الطالب قبل أن يحجز، وفي شاشة المعلم قبل أن يؤكد.
+        <strong>والسعر يجمد على الحصة وقت طلبها</strong>، فتعديله اليوم لا يغير ثمن ما طلب أمس.
+    </p>
+
+    <?php if (!$tap_ready && $cfg['price'] > 0): ?>
+        <div class="tqa-note tqa-note--warn tqa-section">
+            <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+            <span>
+                سعر الحصة موضوع وبوابة البطاقة غير مفعلة، فلا يعرض للطالب زر دفع.
+                يبقى له التحويل البنكي، وتسجل دفعته من زر «سجل الدفع» في الجدول أعلاه.
+                <a href="<?php echo site_url('taqdar_admin/tap'); ?>">اضبط بوابة تاب</a>.
+            </span>
+        </div>
+    <?php endif; ?>
+
+    <form method="post" action="<?php echo site_url('taqdar_admin/session_pricing_save'); ?>">
+        <?php echo tq_csrf(); ?>
+
+        <div class="tqa-grid tqa-grid--2">
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="p-price">سعر الحصة (ريال)</label>
+                <input class="tqa-input tqa-input--ltr" id="p-price" name="tq_session_price_sar" type="number"
+                       min="0" step="0.01" dir="ltr"
+                       value="<?php echo html_escape(number_format($cfg['price'] / 100, 2, '.', '')); ?>">
+                <span class="tqa-field__hint">
+                    بلا ضريبة — تضاف عند إصدار الفاتورة بنسبة «ضريبة القيمة المضافة» في إعدادات المنصة.
+                    و<strong>صفر يعني حصصا مجانية</strong>: لا فاتورة ولا شاشة دفع، وتؤكد الحصة في الحال كما كانت.
+                </span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="p-percent">نصيب المعلم (٪ من السعر)</label>
+                <input class="tqa-input tqa-input--ltr" id="p-percent" name="tq_session_teacher_percent" type="number"
+                       min="0" max="100" step="0.01" dir="ltr"
+                       value="<?php echo html_escape(rtrim(rtrim(number_format($cfg['percent'], 2, '.', ''), '0'), '.')); ?>">
+                <span class="tqa-field__hint">
+                    والباقي للمنصة — ولا يخزن رقمان: نسبة المنصة مرآة محسوبة، ورقمان في عمودين يفترقان عند أول تعديل.
+                    <?php if ($cfg['price'] > 0): ?>
+                        <br>بالسعر الحالي: للمعلم
+                        <strong><?php echo $sar((int) round($cfg['price'] * $cfg['percent'] / 100)); ?></strong>،
+                        وللمنصة
+                        <strong><?php echo $sar($cfg['price'] - (int) round($cfg['price'] * $cfg['percent'] / 100)); ?></strong>.
+                    <?php endif; ?>
+                </span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="p-minutes">مدة الحصة (دقيقة)</label>
+                <input class="tqa-input tqa-input--ltr" id="p-minutes" name="tq_session_minutes" type="number"
+                       min="15" max="300" step="5" dir="ltr" value="<?php echo (int) $cfg['minutes']; ?>">
+                <span class="tqa-field__hint">
+                    فترة المعلم في شبكته إتاحة لا حصة: «مساء» خمس ساعات، تفرش إلى مواعيد بهذا الطول
+                    فيحجزها أكثر من طالب. وتغييرها يعيد فرش <strong>المواعيد المفتوحة</strong> عند أول حفظ
+                    لشبكة كل معلم، ولا يمس موعدا حجز بمدته.
+                </span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="p-pay">مهلة الدفع (ساعة)</label>
+                <input class="tqa-input tqa-input--ltr" id="p-pay" name="tq_session_pay_hours" type="number"
+                       min="1" max="168" dir="ltr" value="<?php echo (int) $cfg['pay_hours']; ?>">
+                <span class="tqa-field__hint">
+                    بعد تأكيد المعلم. ومهلة الرد على الطلب هي نفسها.
+                    وتقصر تلقائيا إلى بداية الحصة: مهلة تمتد بعد موعدها تعني طالبا يدفع ثمن حصة فاتت.
+                </span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="p-lead">يفتح الرابط قبل الموعد بـ (دقيقة)</label>
+                <input class="tqa-input tqa-input--ltr" id="p-lead" name="tq_session_join_lead_min" type="number"
+                       min="0" max="240" dir="ltr" value="<?php echo (int) $cfg['lead_min']; ?>">
+                <span class="tqa-field__hint">
+                    رابط يفتح قبل يومين يجعل الطالب يدخل غرفة فارغة ويظن أن معلمه تخلف.
+                </span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="p-grace">مهلة الإغلاق بعد الحصة (ساعة)</label>
+                <input class="tqa-input tqa-input--ltr" id="p-grace" name="tq_session_grace_hours" type="number"
+                       min="1" max="72" dir="ltr" value="<?php echo (int) $cfg['grace_hours']; ?>">
+                <span class="tqa-field__hint">
+                    حصة مضت ولم يعلن معلمها انتهاءها تنهى بعد هذه المهلة <strong>ويقيد نصيبه</strong> —
+                    فمن نسي الزر لا يخسر ماله، ولا يبقى رابط حصة حيا لأن أحدا لم يضغط شيئا.
+                </span>
+            </div>
+        </div>
+
+        <div class="tqa-actions">
+            <button class="tqa-btn tqa-btn--primary" type="submit">
+                <?php echo tq_icon('check', 16); ?> حفظ التسعيرة
+            </button>
+            <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/slots'); ?>">
+                استثناءات المعلمين
+            </a>
+        </div>
+    </form>
 </div>

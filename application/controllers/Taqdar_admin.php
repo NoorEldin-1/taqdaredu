@@ -93,10 +93,25 @@ class Taqdar_admin extends CI_Controller
     public function sessions()
     {
         $status = (string) $this->input->get('status');
+        $this->load->model('taqdar_sessions_model');
+        $this->load->model('taqdar_tap_model');
+
+        /* البنية أولا: أعمدة المال تنشأ عند أول كتابة، وقد لا تكون أنشئت
+           بعد على تركيب لم يطلب فيه أحد حصة. و`safe_rows` تبتلع الخطأ
+           فتخرج الشاشة **فارغة** لا معطلة — وهو أسوأ: يقرأ المسؤول
+           «لا حصص بعد» على قاعدة فيها أربعون. */
+        $this->taqdar_sessions_model->install_schema();
+
         $this->render('tqa_sessions', 'الحصص', array(
             'rows'   => $this->taqdar_admin_model->sessions($status),
             'tally'  => $this->taqdar_admin_model->session_tally(),
+            'money'  => $this->taqdar_admin_model->session_money(),
             'status' => $status,
+            /* التسعيرة تحرر في ذيل هذه الشاشة لا في «إعدادات المنصة»:
+               هذه هي الشاشة التي يظهر فيها أثرها — بجوار الحصص التي
+               بيعت بها. وهو مبدأ TQ-REVIEW-KNOBS نفسه. */
+            'cfg'       => $this->taqdar_sessions_model->config(true),
+            'tap_ready' => $this->taqdar_tap_model->ready(),
         ));
     }
 
@@ -112,21 +127,98 @@ class Taqdar_admin extends CI_Controller
         if ($this->input->method(true) !== 'POST') show_404();
 
         $id = (int) $this->input->post('session_id');
-        $ok = $this->taqdar_admin_model->cancel_session($id, (string) $this->input->post('reason'));
+        $r  = $this->taqdar_admin_model->cancel_session($id, (string) $this->input->post('reason'));
 
-        $this->session->set_flashdata($ok ? 'flash_message' : 'error_message', $ok
-            ? 'ألغيت الحصة، وحرر وقتها، وأخطر الطرفان.'
-            : 'تعذر الإلغاء — الحصة غير موجودة أو انتهت أصلا.');
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
+            isset($r['msg']) ? $r['msg'] : 'تعذر الإلغاء — الحصة غير موجودة أو أغلقت أصلا.');
         redirect(site_url('taqdar_admin/sessions'), 'location', 302);
     }
 
-    /** أوقات المعلمين المفتوحة — من فتح وقتا ومن لم يفتح. */
+    /**
+     * تسجيل دفع حصة بالتحويل البنكي.
+     *
+     * وهي الباب الثاني للحصة كما `activate_manually()` باب الاشتراك
+     * الثاني: بوابة البطاقة تثبت بنفسها، والحوالة يثبتها من رآها في
+     * الحساب. وبلاه يبقى التحويل مسدودا في الحصص وحدها.
+     */
+    public function session_mark_paid()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $r = $this->taqdar_admin_model->mark_session_paid(
+            (int) $this->input->post('session_id'),
+            (string) $this->input->post('reference'));
+
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
+            isset($r['msg']) ? $r['msg'] : 'تعذر تسجيل الدفع.');
+        redirect(site_url('taqdar_admin/sessions'), 'location', 302);
+    }
+
+    /**
+     * حفظ تسعيرة الحصص العامة.
+     *
+     * والحدود تفرض في `Taqdar_sessions_model::config()` لا هنا: قيمة قد
+     * تكتب بسكربت أو بيد في القاعدة، وفحص في المتحكم وحده يحرسها من
+     * النموذج ولا يحرسها من القاعدة.
+     */
+    public function session_pricing_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_sessions_model');
+        $vals = array();
+        foreach (array_keys(Taqdar_sessions_model::$DEFAULTS) as $k) {
+            $vals[$k] = (string) $this->input->post($k);
+        }
+        $cfg = $this->taqdar_sessions_model->save_config($vals);
+
+        $this->session->set_flashdata('flash_message',
+            $cfg['price'] > 0
+                ? 'حفظت التسعيرة. سعر الحصة ' . number_format($cfg['price'] / 100, 2)
+                  . ' ريال، ونصيب المعلم ' . rtrim(rtrim(number_format($cfg['percent'], 2), '0'), '.')
+                  . '٪ منه، والباقي للمنصة.'
+                : 'حفظت — والسعر صفر، فتبقى الحصص مجانية ولا تصدر لها فواتير.');
+        redirect(site_url('taqdar_admin/sessions#tqa-pricing'), 'location', 302);
+    }
+
+    /** أوقات المعلمين المفتوحة — من فتح وقتا ومن لم يفتح، وبأي تسعيرة. */
     public function slots()
     {
+        $this->load->model('taqdar_sessions_model');
+        $this->taqdar_sessions_model->install_schema();
+
         $this->render('tqa_slots', 'أوقات المعلمين', array(
             'rows'     => $this->taqdar_admin_model->slots(),
             'teachers' => $this->taqdar_admin_model->teacher_slot_summary(),
+            'cfg'      => $this->taqdar_sessions_model->config(),
         ));
+    }
+
+    /**
+     * استثناء تسعيرة معلم بعينه.
+     *
+     * وموضعه هذه الشاشة لا شاشة الحسابات: هنا يقرأ المسؤول من يعرض حصصا
+     * فعلا، والسعر سؤال عن معلم **يبيع** لا عن كل من في الجدول. والحقل
+     * الفارغ يمحو الاستثناء ويعيده إلى التسعيرة العامة.
+     */
+    public function slot_pricing_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_sessions_model');
+        $tid = (int) $this->input->post('teacher_id');
+        $this->taqdar_sessions_model->save_teacher_pricing(
+            $tid,
+            (string) $this->input->post('price_sar'),
+            (string) $this->input->post('percent'));
+
+        $p = $this->taqdar_sessions_model->pricing_for($tid);
+        $this->session->set_flashdata('flash_message',
+            'حفظت تسعيرة هذا المعلم: '
+            . number_format($p['price'] / 100, 2) . ' ريال للحصة، نصيبه منها '
+            . number_format($p['share'] / 100, 2) . ' ريال'
+            . ($p['from_teacher'] ? ' (استثناء له).' : ' (التسعيرة العامة).'));
+        redirect(site_url('taqdar_admin/slots'), 'location', 302);
     }
 
     /* =====================================================================
@@ -1485,6 +1577,45 @@ class Taqdar_admin extends CI_Controller
 
         $this->session->set_flashdata('flash_message', 'حفظت ' . $n . ' قيمة. والفارغ منها لا يعرض على الموقع.');
         redirect(site_url('taqdar_admin/stats'), 'location', 302);
+    }
+
+    /* =====================================================================
+       التتبع الإعلاني
+       ===================================================================== */
+
+    /** بكسل ميتا — معرف واحد وشاشة تقول أين يعمل وكيف يتحقق منه. */
+    public function tracking()
+    {
+        $this->render('tqa_tracking', 'بكسل ميتا');
+    }
+
+    /**
+     * حفظ المعرف — upsert كأخواته، وأرقام وحدها.
+     *
+     * والصف يكتب **ولو كانت القيمة فارغة**: وجود الصف هو ما يميز
+     * «أطفأه مسؤول» عن «لم يضبط أحد شيئا»، والثاني وحده يرجع إلى
+     * الافتراضي في الشيفرة. فلولا كتابة الصف الفارغ لتعذر الإطفاء.
+     */
+    public function tracking_save()
+    {
+        if ($this->input->method(true) !== "POST") show_404();
+
+        $val = preg_replace('/\D+/', '', (string) $this->input->post('tq_meta_pixel_id'));
+
+        $was = $this->db->where('key', 'tq_meta_pixel_id')->get('settings')->row('value');
+
+        if ($was !== null) $this->db->where('key', 'tq_meta_pixel_id')->update('settings', array('value' => $val));
+        else               $this->db->insert('settings', array('key' => 'tq_meta_pixel_id', 'value' => $val));
+
+        /* أثر مقصود: من يجد الإعلانات توقفت عن القياس غدا يحتاج أن يعرف
+           من غير المعرف ومتى — والقيمة قبل التغيير هي نصف الجواب. */
+        $this->taqdar_admin_model->audit('tracking.meta_pixel', 'settings',
+            array('tq_meta_pixel_id' => $was), array('tq_meta_pixel_id' => $val));
+
+        $this->session->set_flashdata('flash_message', $val !== ''
+            ? 'حفظ المعرف، والبكسل يعمل الآن على كل صفحات الموقع والبوابات.'
+            : 'أطفئ البكسل. لا يحمل سكربت ميتا في أي صفحة حتى يكتب معرف من جديد.');
+        redirect(site_url('taqdar_admin/tracking'), 'location', 302);
     }
 
 

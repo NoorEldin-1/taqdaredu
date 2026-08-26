@@ -598,3 +598,115 @@ if (!function_exists('tq_clean_url')) {
         return in_array($scheme, array('http', 'https'), true) ? $s : '';
     }
 }
+
+/* =====================================================================
+   بكسل ميتا — قياس الإعلان
+   ===================================================================== */
+
+if (!defined('TQ_META_PIXEL_DEFAULT')) {
+    /**
+     * معرف البكسل الذي سلمه فريق التسويق. وهو **ليس سرا**: يطبع في وسم
+     * كل صفحة يقرؤها كل زائر، ويقرأ من أدوات المتصفح في ثانية. فمكانه
+     * الشيفرة كالنص الافتراضي في القالب، لا `taqdar_secret.php`.
+     */
+    define('TQ_META_PIXEL_DEFAULT', '1616041446836504');
+}
+
+if (!function_exists('tq_meta_pixel_id')) {
+    /**
+     * المعرف الفعال. والمفتاح في `settings` يعلو على الافتراضي أعلاه،
+     * بقاعدة تفرق بين حالين يخلطهما `empty()`:
+     *
+     *   لا صف أصلا (NULL)   ⇐ لم يضبط أحد شيئا  ⇐ الافتراضي
+     *   صف بقيمة فارغة ('') ⇐ مسؤول مسحه عمدا   ⇐ لا بكسل
+     *
+     * فبلا هذا التفريق لا يوجد سبيل إلى **إيقاف** البكسل من اللوحة:
+     * كل مسح يعيده من الشيفرة، ومن يطفئه يجده يعمل.
+     */
+    function tq_meta_pixel_id()
+    {
+        $v = get_settings('tq_meta_pixel_id');
+        if ($v === null) $v = TQ_META_PIXEL_DEFAULT;
+
+        /* أرقام وحدها: القيمة تدخل حرفيا في سلسلة جافاسكربت وفي رابط
+           صورة، فما ليس رقما لا يكتب أصلا. */
+        $v = preg_replace('/\D+/', '', (string) $v);
+        return $v !== '' ? $v : '';
+    }
+}
+
+if (!function_exists('tq_meta_pixel')) {
+    /**
+     * وسم البكسل — يطبع **مرة واحدة لكل صفحة**.
+     *
+     * وهذا الشرط ليس حرصا زائدا: `fbq('init')` مرتين بالمعرف نفسه يسجل
+     * زيارتين لكل زائر، فيرى فريق الإعلان ضعف الزيارات ونصف نسبة
+     * التحويل — والرقم يبدو معقولا فلا يشك فيه أحد. وقد وصلت القصاصة
+     * من العميل **مكررة** حرفا بحرف، وهي أول طريق إلى ذلك الخطأ.
+     *
+     * والرفض يحترم: من ضغط «رفض غير الضروري» في شريط الارتباط لا يحمل
+     * له السكربت أصلا — والشريط يقول ذلك، فبلا أثر يصير الزر تمثيلا.
+     * وشرط `denied` لا `!== 'accepted'`: الشريط قد يكون مطفأ من اللوحة،
+     * فلا قرار يكتب أبدا، فينتظر البكسل موافقة لا تجيء.
+     */
+    function tq_meta_pixel()
+    {
+        static $printed = false;
+        if ($printed) return '';
+
+        $id = tq_meta_pixel_id();
+        if ($id === '') return '';
+        $printed = true;
+
+        ob_start(); ?>
+<!-- Meta Pixel Code -->
+<script>
+(function () {
+    try { if (localStorage.getItem('tq-cookie') === 'denied') return; } catch (e) {}
+
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+
+    fbq('init', '<?php echo $id; ?>');
+    fbq('track', 'PageView');
+})();
+</script>
+<noscript><img height="1" width="1" style="display:none" alt=""
+src="https://www.facebook.com/tr?id=<?php echo $id; ?>&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
+<?php
+        return ob_get_clean();
+    }
+}
+
+if (!function_exists('tq_meta_track')) {
+    /**
+     * حدث تحويل — يطبع في الصفحة التي وقع فيها الحدث لا في كل صفحة.
+     *
+     *   echo tq_meta_track('Purchase', array('value' => 299, 'currency' => 'SAR'));
+     *
+     * ولا يطبع شيئا إن كان البكسل مطفأ، ولا يبني `fbq` بنفسه: هو يفترض
+     * أن `tq_meta_pixel()` سبقه في الوسم — وهي في الرأس، فأي موضع في
+     * المتن بعدها. والحارس `window.fbq` يبقى: من رفض الارتباط لا تعرف
+     * صفحته `fbq` أصلا، ونداء دالة غير موجودة يوقف بقية سكربت الصفحة.
+     */
+    function tq_meta_track($event, $params = array())
+    {
+        if (tq_meta_pixel_id() === '') return '';
+
+        $event = preg_replace('/[^A-Za-z0-9_]/', '', (string) $event);
+        if ($event === '') return '';
+
+        $json = json_encode($params ? $params : new stdClass(),
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+
+        return "<script>window.fbq && fbq('track', '" . $event . "', " . $json . ");</script>\n";
+    }
+}

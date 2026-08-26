@@ -9,15 +9,20 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  * ولا يشترط أحدهما للآخر.
  *
  * ولا يخصم مبلغ الحصة إلا بعد تأكيد المعلم: الحجز غير المؤكد لا
- * يحتجز عليه مال ولا تجمد به بطاقة. «بانتظار التأكيد» تعني بالضبط
- * أن شيئا لم يدفع بعد.
+ * يحتجز عليه مال ولا تجمد به بطاقة. «بانتظار رد المعلم» تعني بالضبط
+ * أن شيئا لم يدفع بعد — والوعد صار له سند: الفاتورة لا تصدر إلا عند
+ * التأكيد (TQ-SESSION-PAY في `Taqdar_sessions_model`).
  *
  * موصول بالقاعدة: course + category (عدد معلمي كل مادة) · `availability_slots`
  * (المعلمون المتاحون ومواعيدهم) · `tutoring_sessions` (طلبات الطالب وحالتها).
  * وكان هذا الملف يعد الإتاحة «بلا جدول» وهي في `availability_slots` أمامه.
  *
- * بلا مصدر بعد: أسعار الحصص وتقييمات المعلمين وسنوات خبرتهم — لا عمود لها
- * في taqd_lms، فلا تعرض أرقام مخترعة بجوار اسم معلم حقيقي.
+ * **والسعر يعرض قبل الحجز لا بعده.** كان يقال هنا إنه «بلا مصدر»، وصار له
+ * مصدر: تسعيرة الإدارة، واستثناء المعلم إن كتب له. وشاشة تعرض معلمين بلا
+ * أثمان تجعل الاختيار يقع ثم ينكشف الثمن بعده.
+ *
+ * ولا تقييمات ولا سنوات خبرة: لا عمود لها في taqd_lms، فلا تعرض أرقام
+ * مخترعة بجوار اسم معلم حقيقي.
  */
 
 $tq_uid = (int) $this->session->userdata('user_id');
@@ -26,21 +31,16 @@ $tq_uid = (int) $this->session->userdata('user_id');
    المحمل مرة واحدة قبل التصيير، فما حمل بعد بدء التصيير لا يظهر في `$this`. */
 $tq_CI = get_instance();
 $tq_CI->load->model('taqdar_sessions_model');
+$tq_CI->load->model('taqdar_tap_model');
 $tq_m = $tq_CI->taqdar_sessions_model;
 
-/* ---- الكتابة قبل أي إخراج، ثم تحويل: تحديث الصفحة لا يعيد الطلب ------
-   وكل شرط (الموعد قائم ومفتوح ولم يمض ولا طلب سابق عليه) يفحص في النموذج
-   داخل الاستعلام لا في الواجهة. */
-if ((string) $this->input->post('tq_action') === 'request_session') {
-    $tq_res  = $tq_m->request_session($tq_uid, (int) $this->input->post('slot_id'));
-    $this->session->set_flashdata($tq_res['ok'] ? 'flash_message' : 'error_message', $tq_res['msg']);
-
-    $tq_back = (string) $this->input->post('subject', true);
-    /* `location` لا `refresh`: الثانية ترسل ترويسة `Refresh` لا يتبعها
-       curl فيبدو الفحص ناجحا وهو لم يصل، وتكسر زر الرجوع في المتصفح —
-       وهي القاعدة المعمول بها في مسارات الكتابة كلها. */
-    redirect(site_url('student/on-demand') . ($tq_back !== '' ? '?subject=' . rawurlencode($tq_back) : ''), 'location', 302);
-}
+/* ---- العرض يعرض ولا يكتب --------------------------------------------
+   كانت هذه الشاشة تعالج POST بنفسها: تقرأ `tq_action` وتكتب صف الطلب ثم
+   تحول، والنموذج يرسل إلى مسار العرض `student/on-demand`. وهي مخالفة
+   صريحة لقاعدة المشروع («مسارات الكتابة قبل مسارات العرض») تلتف على
+   `write_guard` كله — وصارت أخطر بعد أن صار للطلب ثمن يجمد على صفه.
+   والكتابة الآن في `Taqdar::session_request()` و`session_pay()`
+   و`session_cancel()`، ومنها يخرج إشعار المعلم أيضا. */
 
 include 'tq_student_styles.php';
 include 'tq_student_data.php';
@@ -66,8 +66,28 @@ $tq_tutors = $tq_m->available_teachers(12, 6, (int) $f_subject);
 /** حجوزات الطالب — من `tutoring_sessions` بحالاتها كما في القاعدة. */
 $tq_bookings = $tq_m->bookings_for_student($tq_uid);
 
+$tq_cfg  = $tq_m->config();
+$tq_paid = $tq_cfg['price'] > 0;               // هل للحصص ثمن أصلا؟
+$tq_card = $tq_CI->taqdar_tap_model->ready();  // وهل يستطاع دفعه بالبطاقة؟
+
 $tq_ses_photo = function ($image) {
     return tqs_person_img($image);
+};
+
+/** ثمن بالهللات إلى ريال — القسمة على مئة في موضع واحد. */
+$tq_sar = function ($halalas) {
+    return TQ_LRI . number_format(((int) $halalas) / 100, 2) . TQ_PDI . ' ر.س';
+};
+
+/** ما بقي من مهلة الدفع بعبارة تقرأ — «ساعتان» أوضح من طابع زمني. */
+$tq_left = function ($deadline) {
+    $ts = strtotime((string) $deadline);
+    if (!$ts) return '';
+    $d = $ts - time();
+    if ($d <= 0)      return 'انتهت المهلة';
+    if ($d < 3600)    return 'يتبقى ' . max(1, (int) round($d / 60)) . ' دقيقة';
+    if ($d < 86400)   return 'يتبقى ' . (int) floor($d / 3600) . ' ساعة';
+    return 'يتبقى ' . (int) floor($d / 86400) . ' يوما';
 };
 
 include 'portal_open.php';
@@ -88,7 +108,11 @@ include 'portal_open.php';
                 <h2 class="tq-display" style="margin-block-end:var(--tq-space-s)">تعلم بطريقتك الخاصة</h2>
                 <p class="tq-body">
                     احجز حصة مباشرة مع معلم خبير، واحصل على شرح مخصص لاحتياجك أنت —
-                    ولا يخصم مبلغ الحصة إلا بعد تأكيد المعلم.
+                    <?php if ($tq_paid): ?>
+                        وثمن الحصة مكتوب عند كل معلم، ولا يخصم إلا بعد أن يؤكد موعدك.
+                    <?php else: ?>
+                        ولا يخصم مبلغ الحصة إلا بعد تأكيد المعلم.
+                    <?php endif; ?>
                 </p>
                 <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/on-demand#tq-tutors'); ?>">
                     <?php echo tq_icon('calendar'); ?> اطلب حصة الآن
@@ -179,13 +203,28 @@ include 'portal_open.php';
                                 <?php endif; ?>
                                 <p class="tq-micro" style="margin-block-start:var(--tq-space-xs)">
                                     <?php echo tq_iso(count($t['slots']) . ' موعد متاح'); ?>
+                                    <?php echo tq_iso(' · ' . $t['slots'][0]['minutes'] . ' دقيقة للحصة'); ?>
                                 </p>
                             </div>
+
+                            <?php /* الثمن بجوار الاسم لا في خطوة تالية: هو أول ما
+                                     يقارن به الطالب بين معلمين، وإخفاؤه إلى ما بعد
+                                     الاختيار يجعل الاختيار يقع ثم ينكشف ثمنه. */ ?>
+                            <?php if ((int) $t['pricing']['price'] > 0): ?>
+                                <div style="text-align:center;flex:0 0 auto">
+                                    <span class="tq-strong" style="color:var(--tq-navy);font-size:1.15rem;display:block">
+                                        <?php echo $tq_sar($t['pricing']['price']); ?>
+                                    </span>
+                                    <span class="tq-micro">للحصة</span>
+                                </div>
+                            <?php else: ?>
+                                <?php echo tq_badge('mastered', 'مجانية'); ?>
+                            <?php endif; ?>
                         </div>
 
-                        <form method="post" action="<?php echo base_url('student/on-demand'); ?>"
+                        <form method="post" action="<?php echo base_url('student/sessions/request'); ?>"
                               class="tq-row" style="gap:var(--tq-space-m);flex-wrap:wrap;margin-block-start:var(--tq-space-l)">
-                            <input type="hidden" name="tq_action" value="request_session">
+                            <?php echo tq_csrf(); ?>
                             <input type="hidden" name="subject" value="<?php echo html_escape($f_subject); ?>">
 
                             <label class="tq-sr" for="tq-slot-<?php echo (int) $t['id']; ?>">
@@ -199,6 +238,14 @@ include 'portal_open.php';
                             </select>
 
                             <button class="tq-btn tq-btn--mastery tq-btn--sm" type="submit">اطلب هذا الموعد</button>
+
+                            <?php if ((int) $t['pricing']['price'] > 0): ?>
+                                <span class="tq-micro" style="flex-basis:100%">
+                                    الطلب مجاني ولا يخصم منك شيء. يؤكد المعلم أولا، ثم تدفع
+                                    <?php echo $tq_sar($t['pricing']['price']); ?> خلال
+                                    <?php echo tq_iso($tq_cfg['pay_hours'] . ' ساعة'); ?> لتثبيت الموعد.
+                                </span>
+                            <?php endif; ?>
                         </form>
                     </article>
                 <?php endforeach; ?>
@@ -214,12 +261,23 @@ include 'portal_open.php';
             <div class="tq-card__head"><h2 class="tq-card__title">كيف تعمل حصص بالطلب؟</h2></div>
             <ol class="tq-s-steps">
                 <?php
+                /* الخطوات تصف ما يقع فعلا لا ما يحسن وقعه: كانت أربعا تقفز
+                   من «حدد الوقت» إلى «ابدأ الحصة» — فلا رد معلم ولا دفع.
+                   والطالب الذي لا يعرف أن معلمه يرد أولا يقرأ «بانتظار رد
+                   المعلم» على أنها عطل، والذي لا يعرف أن ثمة دفعا يفاجأ
+                   بفاتورة. */
                 $steps = [
-                    ['اختر المادة',  'اختر المادة التي تحتاج مساعدة فيها.'],
-                    ['اختر معلما', 'تصفح المعلمين المتاحين واختر الأنسب لك.'],
-                    ['حدد الوقت',   'اختر الوقت المناسب لك من الأوقات المتاحة.'],
-                    ['ابدأ الحصة',  'انضم للحصة واستفد من شرح مباشر ومخصص.'],
+                    ['اختر معلما وموعدا', 'تصفح المعلمين المتاحين، وثمن الحصة مكتوب عند كل واحد.'],
+                    ['يرد معلمك',        'يؤكد الموعد أو يعتذر عنه. ولا يخصم منك شيء في هذه الخطوة.'],
                 ];
+                if ($tq_paid) {
+                    $steps[] = ['ادفع لتثبيت الموعد',
+                        'بعد التأكيد تصلك فاتورة الحصة. تدفعها خلال '
+                        . $tq_cfg['pay_hours'] . ' ساعة فيثبت الموعد لك وحدك.'];
+                }
+                $steps[] = ['ادخل الحصة',
+                    'يفتح الرابط هنا قبل الموعد بـ' . $tq_cfg['lead_min']
+                    . ' دقيقة، ويغلق حين يعلن معلمك انتهاءها.'];
                 foreach ($steps as $i => $s):
                     ?>
                     <li class="tq-s-step">
@@ -232,7 +290,12 @@ include 'portal_open.php';
                 <?php endforeach; ?>
             </ol>
             <p class="tq-micro" style="margin-block-start:var(--tq-space-l);margin-block-end:0">
-                لا يخصم مبلغ الحصة إلا بعد تأكيد المعلم.
+                <?php if ($tq_paid): ?>
+                    لا يخصم مبلغ الحصة إلا بعد تأكيد المعلم — والطلب نفسه مجاني.
+                    وإن اعتذر معلمك أو مضت مهلة الدفع فلا يخصم شيء أصلا.
+                <?php else: ?>
+                    الحصص مجانية حاليا: تطلب موعدا، ويؤكده معلمك، وتدخل.
+                <?php endif; ?>
             </p>
         </section>
 
@@ -268,11 +331,57 @@ include 'portal_open.php';
                                 <?php echo tq_badge($badge[0], $badge[1]); ?>
                             </div>
 
+                            <?php /* الثمن يقرأ في البطاقة نفسها: «كم دفعت في هذه
+                                     الحصة» سؤال يطرح بعد الحجز لا قبله فقط. */ ?>
+                            <?php if ((int) $b['price'] > 0): ?>
+                                <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
+                                    <?php echo $tq_sar($b['price']); ?>
+                                    <?php if ($b['invoice_no'] !== ''): ?>
+                                        · فاتورة <span class="tq-ltr"><?php echo html_escape($b['invoice_no']); ?></span>
+                                    <?php endif; ?>
+                                </p>
+                            <?php endif; ?>
+
+                            <?php /* بانتظار الدفع: هذه هي البطاقة التي تقرر مصير
+                                     الحصة. المهلة تعرض بما بقي منها لا بطابع زمني،
+                                     ويقال صراحة ما يقع إن مضت — الموعد يعود لغيره،
+                                     وطالب لم يقل له ذلك يظن حجزه محفوظا إلى الأبد. */ ?>
+                            <?php if ($b['needs_pay']): ?>
+                                <div class="tq-pastel tq-pastel--peach" style="margin-block-start:var(--tq-space-s);padding:var(--tq-space-m)">
+                                    <p class="tq-pastel__body" style="margin:0 0 var(--tq-space-s);font-size:.85rem">
+                                        أكد المعلم الموعد. ادفع
+                                        <strong><?php echo $tq_sar($b['invoice_total'] ?: $b['price']); ?></strong>
+                                        لتثبيته
+                                        <?php if ($b['pay_deadline']): ?>
+                                            — <strong><?php echo tq_iso($tq_left($b['pay_deadline'])); ?></strong>،
+                                            وبعدها يعود الموعد متاحا لغيرك.
+                                        <?php endif; ?>
+                                    </p>
+
+                                    <?php if ($tq_card): ?>
+                                        <form method="post" action="<?php echo base_url('student/sessions/pay'); ?>" style="margin:0">
+                                            <?php echo tq_csrf(); ?>
+                                            <input type="hidden" name="session_id" value="<?php echo (int) $b['id']; ?>">
+                                            <button class="tq-btn tq-btn--primary tq-btn--sm tq-btn--block" type="submit">
+                                                <?php echo tq_icon('card', 16); ?> ادفع الآن بالبطاقة
+                                            </button>
+                                        </form>
+                                    <?php else: ?>
+                                        <?php /* بلا مفاتيح بوابة لا يعرض زر يقود إلى رفض:
+                                                 يقال الطريق القائم فعلا. */ ?>
+                                        <p class="tq-micro" style="margin:0">
+                                            الدفع بالبطاقة غير متاح الآن. حول المبلغ بنكيا بمرجع رقم الفاتورة،
+                                            <a href="<?php echo base_url('student/payments'); ?>">وبيانات الحساب هنا</a>.
+                                        </p>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+
                             <?php /* باب الحصة.
                                      الخطوة الرابعة في «كيف تعمل حصص بالطلب؟» تقول «انضم للحصة»
                                      ولم يكن في الشاشة كلها ما ينضم به: يؤكد المعلم الموعد فيرى
                                      الطالب شارة «مؤكد» ولا يعرف أين تعقد. والرابط يضعه المعلم
-                                     عند التأكيد، ولا يعرض إلا وقت نفعه — انظر `can_join`. */ ?>
+                                     عند التأكيد، ولا يعرض إلا وقت نفعه — انظر `join_state()`. */ ?>
                             <?php if ($b['can_join']): ?>
                                 <a class="tq-btn tq-btn--mastery tq-btn--sm tq-btn--block"
                                    href="<?php echo html_escape($b['meet_url']); ?>"
@@ -282,14 +391,39 @@ include 'portal_open.php';
                                     <?php echo $b['status'] === 'live' ? 'ادخل الحصة الجارية' : 'ادخل الحصة'; ?>
                                     <span class="tq-sr">— يفتح في نافذة جديدة</span>
                                 </a>
-                            <?php elseif ($b['status'] === 'requested'): ?>
+                            <?php elseif ($b['note'] !== '' && !$b['needs_pay']): ?>
+                                <?php /* والنص من `join_state()` لا من فروع مكتوبة هنا:
+                                         «لم يدفع» غير «لا رابط» غير «انتهت»، والشاشة
+                                         التي تخلطها تقول للطالب شيئا لا يطابق حاله. */ ?>
                                 <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
-                                    يظهر رابط الحصة هنا فور تأكيد المعلم.
+                                    <?php echo html_escape($b['note']); ?>
                                 </p>
-                            <?php elseif (in_array($b['status'], ['confirmed', 'live'], true) && $b['is_over']): ?>
-                                <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
-                                    انتهى وقت هذه الحصة، وأغلق رابطها.
+                            <?php endif; ?>
+
+                            <?php if ($b['cancel_reason'] !== ''
+                                      && in_array($b['status'], ['declined', 'expired', 'refunded'], true)): ?>
+                                <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0;color:var(--tq-text3)">
+                                    <?php echo html_escape($b['cancel_reason']); ?>
                                 </p>
+                            <?php endif; ?>
+
+                            <?php /* الإلغاء قبل الدفع وحده. وبعده يوجه إلى الإدارة:
+                                     زر يلغي حصة دفع ثمنها بلا رد يترك الطالب بلا
+                                     حصة وبلا مال. */ ?>
+                            <?php if ($b['can_cancel']): ?>
+                                <form method="post" action="<?php echo base_url('student/sessions/cancel'); ?>"
+                                      class="tq-form-inline" style="margin-block-start:var(--tq-space-xs)"
+                                      data-tq-confirm-title="إلغاء هذا الحجز؟"
+                                      data-tq-confirm="يعود الموعد متاحا لغيرك، ويصل معلمك أنك ألغيت."
+                                      data-tq-confirm-note="لم يخصم منك شيء بعد، فالإلغاء الآن بلا تكلفة."
+                                      data-tq-confirm-ok="ألغ الحجز"
+                                      data-tq-confirm-tone="danger">
+                                    <?php echo tq_csrf(); ?>
+                                    <input type="hidden" name="session_id" value="<?php echo (int) $b['id']; ?>">
+                                    <button class="tq-btn tq-btn--ghost tq-btn--sm tq-btn--block" type="submit">
+                                        إلغاء الحجز
+                                    </button>
+                                </form>
                             <?php endif; ?>
                         </li>
                     <?php endforeach; ?>

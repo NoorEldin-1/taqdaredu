@@ -2053,12 +2053,194 @@ class Taqdar extends CI_Controller
             isset($r['msg']) ? $r['msg'] : 'حفظ ردك على الطلب.');
     }
 
+    /**
+     * POST teacher/sessions/complete — يعلن المعلم انتهاء الحصة.
+     *
+     * وهي اللحظة التي يقيد فيها نصيبه، ويموت فيها رابط اللقاء. والقواعد
+     * كلها في `Taqdar_sessions_model::complete()`: لا تنهى حصة لم تبدأ،
+     * ولا حصة ليست له، ولا تقيد مرتين.
+     */
+    public function sessions_complete()
+    {
+        $user = $this->write_guard('teacher');
+        $tid  = (int) $user['id'];
+        $sid  = (int) $this->input->post('session_id');
+
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->complete($sid, $tid, 'teacher');
+
+        $this->trace('teacher.sessions.complete', 'tutoring_sessions:' . $sid,
+            array('ok' => !empty($r['ok']), 'share' => (int) ($r['credited']['share'] ?? 0)));
+
+        if (!empty($r['ok']) && empty($r['already'])) {
+            $this->notify_session_completed($sid, $r);
+        }
+
+        $this->done('teacher/sessions', !empty($r['ok']),
+            isset($r['msg']) ? $r['msg'] : 'حفظ.');
+    }
+
+    /**
+     * يخبر الطالب أن حصته أغلقت.
+     *
+     * وليس تفصيلا: الرابط يموت بالانتهاء، فطالب لا يخبر يعود إليه فيجده
+     * لا يعمل ولا يعرف أوقع خلل أم انتهت الحصة قصدا.
+     */
+    private function notify_session_completed($session_id, $r)
+    {
+        try {
+            $sid = (int) ($r['student_id'] ?? 0);
+            if ($sid <= 0) return;
+
+            $this->load->model('taqdar_admin_model');
+            $this->taqdar_admin_model->push_notification(
+                $sid, 'انتهت حصتك الخاصة',
+                'أعلن معلمك انتهاء الحصة، وأغلق رابطها. تجد سجلها في شاشة «حصص بالطلب».',
+                'session'
+            );
+        } catch (Throwable $e) {
+            // الحصة انتهت فعلا، والإشعار زيادة لا شرط
+        }
+    }
+
+    /* =====================================================================
+       الحصص عند الطالب — الطلب والدفع والإلغاء
+       ===================================================================== */
+
+    /**
+     * POST student/sessions/request — طلب حصة على موعد.
+     *
+     * وكانت هذه الكتابة تقع **داخل العرض**: `tq_on_demand.php` يقرأ
+     * `tq_action` من POST ويكتب صف الطلب ثم يحول، والنموذج يرسل إلى مسار
+     * العرض `student/on-demand`. وهو العطل نفسه الذي أصلح في شاشة المعلم
+     * (`sessions_decide()` أعلاه) وبقي هنا: كتابة تلتف على `write_guard`
+     * كله، وصارت أخطر بعد أن صار للطلب ثمن يجمد على صفه.
+     */
+    public function session_request()
+    {
+        $user = $this->write_guard('student');
+        $uid  = (int) $user['id'];
+
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->request_session(
+            $uid, (int) $this->input->post('slot_id'));
+
+        $this->trace('student.sessions.request', 'availability_slots:' . (int) $this->input->post('slot_id'),
+            array('ok' => !empty($r['ok']), 'session' => (int) ($r['id'] ?? 0)));
+
+        if (!empty($r['ok'])) $this->notify_session_requested($r, $uid);
+
+        $back = trim((string) $this->input->post('subject', true));
+        $this->done('student/on-demand' . ($back !== '' ? '?subject=' . rawurlencode($back) : ''),
+            !empty($r['ok']), isset($r['msg']) ? $r['msg'] : 'أرسل طلبك.');
+    }
+
+    /** يخبر المعلم أن طلبا ينتظر رده — وإلا لم يعرف إلا إن فتح شاشته. */
+    private function notify_session_requested($r, $student_id)
+    {
+        try {
+            $tid = (int) ($r['teacher_id'] ?? 0);
+            if ($tid <= 0) return;
+
+            $this->load->model('taqdar_admin_model');
+            $this->taqdar_admin_model->push_notification(
+                $tid, 'طلب حصة خاصة جديد',
+                'طلب أحد طلابك حصة خاصة على أحد مواعيدك. أكدها أو اعتذر عنها من شاشة «الحصص»'
+                . ' — والطلب بلا رد يلغى تلقائيا ويعاد للطالب.',
+                'session'
+            );
+        } catch (Throwable $e) {
+            // الطلب سجل فعلا
+        }
+    }
+
+    /**
+     * POST student/sessions/pay — يدفع الطالب ثمن حصة أكدت.
+     *
+     * ولا يستقبل رقم فاتورة من النموذج: يستقبل رقم **الحصة** ويشتق
+     * فاتورتها. ورقم فاتورة يرسل من متصفح يجعل من خمن رقما يفتح صفحة دفع
+     * لفاتورة غيره — و`Taqdar_tap_model::start()` تفحص الملكية، ولكن
+     * الفحص المزدوج هنا أرخص من الاعتماد على فحص واحد بعيد.
+     */
+    public function session_pay()
+    {
+        $user = $this->write_guard('student');
+        $uid  = (int) $user['id'];
+        $sid  = (int) $this->input->post('session_id');
+
+        $this->load->model('taqdar_sessions_model');
+        $row = $this->db->where('id', $sid)->where('student_id', $uid)
+                        ->get('tutoring_sessions')->row_array();
+
+        if (!$row || $row['status'] !== 'awaiting_payment' || (int) $row['invoice_id'] <= 0) {
+            $this->done('student/on-demand', false,
+                'هذه الحصة ليست في انتظار الدفع. حدث الصفحة واقرأ حالها.');
+        }
+
+        $this->load->model('taqdar_tap_model');
+        if (!$this->taqdar_tap_model->ready()) {
+            /* بلا مفاتيح بوابة لا يعرض للطالب زر دفع أصلا، وهذا الباب
+               يبلغه لو وصل بطريق آخر: يقال له كيف يدفع لا «تعذر». */
+            $this->done('student/on-demand', false,
+                'الدفع بالبطاقة غير مفعل حاليا. ادفع بالتحويل البنكي وأبلغ الإدارة برقم الفاتورة '
+                . ((string) $this->invoice_no_of((int) $row['invoice_id'])) . '.');
+        }
+
+        $r = $this->taqdar_tap_model->start((int) $row['invoice_id'], $uid);
+        if (empty($r['ok'])) {
+            $this->done('student/on-demand', false, implode(' ', (array) $r['errors']));
+        }
+
+        // تحويل إلى خارج الموقع بلا صفحة وسيطة — كل شاشة بين الضغط والدفع تسقط مشترين
+        redirect($r['url'], 'location', 302);
+    }
+
+    private function invoice_no_of($invoice_id)
+    {
+        $i = $this->db->select('invoice_no')->where('id', (int) $invoice_id)
+                      ->get('invoices')->row_array();
+        return $i ? $i['invoice_no'] : '';
+    }
+
+    /**
+     * POST student/sessions/cancel — يلغي الطالب حجزه قبل الدفع.
+     *
+     * وبعد الدفع لا يلغي بنفسه — النموذج يرفض ويقول لماذا: لا مسار
+     * استرداد آلي في هذا التركيب، وزر يلغي بلا رد يترك الطالب بلا حصة
+     * وبلا مال.
+     */
+    public function session_cancel()
+    {
+        $user = $this->write_guard('student');
+        $uid  = (int) $user['id'];
+        $sid  = (int) $this->input->post('session_id');
+
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->student_cancel(
+            $sid, $uid, (string) $this->input->post('reason'));
+
+        $this->trace('student.sessions.cancel', 'tutoring_sessions:' . $sid,
+            array('ok' => !empty($r['ok'])));
+
+        if (!empty($r['ok']) && !empty($r['teacher_id'])) {
+            try {
+                $this->load->model('taqdar_admin_model');
+                $this->taqdar_admin_model->push_notification(
+                    (int) $r['teacher_id'], 'ألغى الطالب طلب الحصة',
+                    'ألغى الطالب حجزه، وعاد الموعد متاحا في جدولك.', 'session');
+            } catch (Throwable $e) { /* الإلغاء وقع فعلا */ }
+        }
+
+        $this->done('student/on-demand', !empty($r['ok']),
+            isset($r['msg']) ? $r['msg'] : 'حفظ.');
+    }
+
     /** إشعار الطالب برد معلمه على طلب حصته. */
     private function notify_session_decision($session_id, $teacher_id, $decision)
     {
         try {
             $row = $this->db->query(
-                'SELECT s.student_id, a.starts_at
+                'SELECT s.student_id, s.status, a.starts_at, a.duration_min
                    FROM `tutoring_sessions` s
               LEFT JOIN `availability_slots` a ON a.id = s.slot_id
                   WHERE s.id = ? AND s.teacher_id = ? LIMIT 1',
@@ -2068,7 +2250,27 @@ class Taqdar extends CI_Controller
 
             $this->load->model('taqdar_sessions_model');
             $when = !empty($row['starts_at'])
-                ? $this->taqdar_sessions_model->when_text($row['starts_at']) : '';
+                ? $this->taqdar_sessions_model->when_text($row['starts_at'], (int) $row['duration_min']) : '';
+
+            /* والتأكيد صار جوابين لا جوابا: حصة بلا ثمن تفتح رابطها في
+               الحال، وحصة بثمن تنتظر الدفع. ورسالة واحدة تقول «رابط
+               الدخول في صفحة حصصك» ترسل طالبا لم يدفع بعد يبحث عن رابط
+               لن يجده، ثم يظن العطل في الشاشة. */
+            $priced = $decision === 'confirm'
+                   && (string) ($row['status'] ?? '') === 'awaiting_payment';
+
+            if ($decision !== 'confirm') {
+                $title = 'اعتذر المعلم عن حصتك';
+                $text  = 'اعتذر معلمك عن الموعد' . ($when !== '' ? ' — ' . $when : '')
+                       . '، واختر موعدا آخر من حصص بالطلب. ولم يخصم منك شيء.';
+            } elseif ($priced) {
+                $title = 'أكد المعلم حصتك — ادفع لتثبيتها';
+                $text  = 'أكد معلمك الحصة' . ($when !== '' ? ' — ' . $when : '')
+                       . '. ادفع ثمنها من شاشة «حصص بالطلب» قبل انتهاء المهلة، وإلا عاد الموعد لغيرك.';
+            } else {
+                $title = 'أكدت حصتك الخاصة';
+                $text  = 'أكد معلمك الحصة' . ($when !== '' ? ' — ' . $when : '') . '. رابط الدخول في صفحة حصصك.';
+            }
 
             $this->load->model('taqdar_events_model');
             $this->taqdar_events_model->notify(
@@ -2078,10 +2280,8 @@ class Taqdar extends CI_Controller
                     'key'         => 'session:' . (int) $session_id . ':' . $decision,
                     'from_user'   => (int) $teacher_id,
                     'window_days' => 30,
-                    'title'       => $decision === 'confirm' ? 'أكدت حصتك الخاصة' : 'اعتذر المعلم عن حصتك',
-                    'text'        => $decision === 'confirm'
-                        ? 'أكد معلمك الحصة' . ($when !== '' ? ' — ' . $when : '') . '. رابط الدخول في صفحة حصصك.'
-                        : 'اعتذر معلمك عن الموعد' . ($when !== '' ? ' — ' . $when : '') . '، واختر موعدا آخر من حصص بالطلب.',
+                    'title'       => $title,
+                    'text'        => $text,
                 )
             );
         } catch (Throwable $e) {

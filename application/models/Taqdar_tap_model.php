@@ -449,30 +449,59 @@ class Taqdar_tap_model extends CI_Model
             return $this->fail('المبلغ المحصل لا يطابق قيمة الفاتورة. راجعنا ولا تعد الدفع.');
         }
 
-        $this->load->model('taqdar_billing_model');
-        $ok = $this->taqdar_billing_model->activate_from_gateway(
-            (int) $att['subscription_id'], 'tap', $charge_id, (int) $att['invoice_id']);
+        /* ما الذي اشتري بهذه الفاتورة؟
+           الفاتورة هي المرساة، وليست كل فاتورة اشتراكا: الحصة الخاصة
+           تصدر فاتورة بـ`subscription_id = 0` (TQ-SESSION-PAY). فلو مضى
+           النداء إلى `activate_from_gateway(0, …)` لبحث عن اشتراك رقمه
+           صفر، ولم يجده، ورد `false` — فيقرأ الطالب «وصل الدفع ولم يفعل
+           اشتراكك» وهو لم يشتر اشتراكا، وتبقى حصته التي دفع ثمنها
+           `awaiting_payment` إلى أن تمضي مهلتها. */
+        $kind       = 'subscription';
+        $session_id = 0;
+
+        if ((int) $att['subscription_id'] > 0) {
+            $this->load->model('taqdar_billing_model');
+            $ok = $this->taqdar_billing_model->activate_from_gateway(
+                (int) $att['subscription_id'], 'tap', $charge_id, (int) $att['invoice_id']);
+            $done_msg = $ok ? 'فعل الاشتراك.' : 'حصل المال ولم يفعل الاشتراك — يراجع بيد.';
+            $good_msg = 'نجح الدفع وفعل اشتراكك.';
+            $bad_msg  = 'وصل الدفع وسجل، ويفعل اشتراكك بعد مراجعة سريعة. لا تعد الدفع.';
+        } else {
+            $this->load->model('taqdar_sessions_model');
+            $s          = $this->taqdar_sessions_model->settle_invoice(
+                              (int) $att['invoice_id'], $charge_id, 'tap');
+            $ok         = !empty($s['ok']);
+            $kind       = 'session';
+            $session_id = (int) ($s['session_id'] ?? 0);
+            $done_msg   = $ok ? 'ثبتت الحصة.' : 'حصل المال ولم تثبت الحصة — يراجع بيد.';
+            $good_msg   = isset($s['msg']) ? $s['msg'] : 'نجح الدفع وثبتت حصتك.';
+            $bad_msg    = isset($s['msg']) ? $s['msg']
+                        : 'وصل الدفع وسجل، وتثبت حصتك بعد مراجعة سريعة. لا تعد الدفع.';
+        }
 
         $this->touch($att['id'], array(
             'status'         => 'paid',
             'gateway_status' => $gstatus,
-            'message'        => $ok ? 'فعل الاشتراك.' : 'حصل المال ولم يفعل الاشتراك — يراجع بيد.',
+            'message'        => $done_msg,
             'raw'            => $r['body'],
         ));
 
         if (!$ok) {
-            /* حالة تستحق أن تصرخ: المال حصل والاشتراك لم يفتح. تسجل
-               بصراحة ليفعله المسؤول من شاشة الاشتراكات، ولا يقال للطالب
-               «فشل الدفع» وقد خصم منه. */
+            /* حالة تستحق أن تصرخ: المال حصل والمشترى لم يفتح. تسجل
+               بصراحة ليفعله المسؤول من شاشة الاشتراكات أو شاشة الحصص،
+               ولا يقال للطالب «فشل الدفع» وقد خصم منه. */
             log_message('error', 'TQ-TAP-STUCK: حصلت الدفعة ' . $charge_id
-                . ' ولم يفعل الاشتراك #' . (int) $att['subscription_id']);
-            return array('ok' => false, 'state' => 'stuck',
-                'errors' => array('وصل الدفع وسجل، ويفعل اشتراكك بعد مراجعة سريعة. لا تعد الدفع.'),
+                . ' ولم يفتح ' . $kind . ' #'
+                . ($kind === 'session' ? $session_id : (int) $att['subscription_id']));
+            return array('ok' => false, 'state' => 'stuck', 'kind' => $kind,
+                'errors' => array($bad_msg),
+                'session_id' => $session_id,
                 'subscription_id' => (int) $att['subscription_id'],
                 'invoice_id' => (int) $att['invoice_id']);
         }
 
-        return array('ok' => true, 'state' => 'paid', 'message' => 'نجح الدفع وفعل اشتراكك.',
+        return array('ok' => true, 'state' => 'paid', 'kind' => $kind, 'message' => $good_msg,
+            'session_id' => $session_id,
             'subscription_id' => (int) $att['subscription_id'],
             'invoice_id' => (int) $att['invoice_id'], 'errors' => array());
     }

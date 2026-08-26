@@ -29,37 +29,35 @@ class Taqdar_cron extends CI_Controller
     }
 
     /**
-     * ينهي طلبات الحصص التي لم يرد عليها معلمها خلال ٢٤ ساعة،
-     * ويعيد موعدها متاحا. النص المعروض للطالب يعد بهذا، ولم يكن
-     * شيء يكتبه — فالطلب يبقى «معلقا» أبدا ويحجز موعدا لا يستعمل.
+     * دورة حياة الحصص كلها — TQ-SESSION-PAY.
+     *
+     * كانت هذه المهمة تفعل واحدة من أربع: تنهي الطلب بلا رد. وثلاث بقيت
+     * بلا كاتب، وكل واحدة منها تترك حالا لا تخرج منها أبدا:
+     *
+     *   ــ تأكيد بلا دفع يبقى `awaiting_payment` إلى الأبد، والموعد معه.
+     *   ــ حصة يحل وقتها ولا يقول جدول اللوحة إنها جارية.
+     *   ــ حصة تمر ولا يعلن معلمها انتهاءها: رابطها حي، ونصيبه لا يقيد.
+     *
+     * والقواعد كلها في `Taqdar_sessions_model::lifecycle_tick()` — هنا
+     * نداء وطباعة، فالكرون بابها لا صاحبها. والاسم بقي `expire_sessions`
+     * لأن `crontab` الخادم ينادي به، وتغييره يعني مهمة تتوقف بصمت حتى
+     * يعدل السطر هناك.
      */
     public function expire_sessions()
     {
-        $cut = date('Y-m-d H:i:s', strtotime('-24 hours'));
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->lifecycle_tick();
 
-        $rows = $this->db->select('ts.id, ts.slot_id')
-                         ->from('tutoring_sessions ts')
-                         ->join('availability_slots av', 'av.id = ts.slot_id', 'left')
-                         ->where('ts.status', 'requested')
-                         ->where('av.starts_at <', $cut)
-                         ->get()->result_array();
-
-        $n = 0;
-        foreach ($rows as $r) {
-            $this->db->where('id', (int) $r['id'])
-                     ->where('status', 'requested')
-                     ->update('tutoring_sessions', array('status' => 'expired'));
-            if ($this->db->affected_rows() > 0) {
-                $n++;
-                // الموعد يعود متاحا: حجز لطلب ميت يضيق جدول المعلم بلا سبب
-                $this->db->where('id', (int) $r['slot_id'])
-                         ->where('status', 'held')
-                         ->update('availability_slots', array('status' => 'open'));
-            }
-        }
-
-        echo date('Y-m-d H:i:s') . " sessions_expired={$n}\n";
+        echo date('Y-m-d H:i:s')
+           . " sessions_expired={$r['expired_requests']}"
+           . " unpaid_expired={$r['expired_unpaid']}"
+           . " went_live={$r['went_live']}"
+           . " completed={$r['completed']}"
+           . " credited_halalas={$r['credited']}\n";
     }
+
+    /** المرادف الذي يقرأ اسمه ما يفعله — للتشغيل اليدوي. */
+    public function sessions() { $this->expire_sessions(); }
 
     /** ينهي الاشتراكات التي مضى أجلها. */
     public function expire()

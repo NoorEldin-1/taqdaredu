@@ -118,6 +118,9 @@ $tqa_nav = [
         [['tqa_content', 'tqa_content_edit'],
                              'نصوص الصفحات',     'taqdar_admin/content',                     'edit',   null],
         ['tqa_stats',        'أرقام الموقع',      'taqdar_admin/stats',                       'chart',  null],
+        /* التتبع تحت «المحتوى والموقع» لا تحت «النظام»: من يفتحه هو من
+           يدير الحملات والصفحات، لا من يضبط المنصة. */
+        ['tqa_tracking',     'بكسل ميتا',         'taqdar_admin/tracking',                    'target', null],
         ['tqa_testimonials', 'آراء أولياء الأمور', 'taqdar_admin/module/testimonials',  'chat',   null],
         ['tqa_books',        'الكتب',            'taqdar_admin/module/books',                'book',   null],
         ['tqa_competitions', 'المسابقات',        'taqdar_admin/module/competitions',         'trophy', null],

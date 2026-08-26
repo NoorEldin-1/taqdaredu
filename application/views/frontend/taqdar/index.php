@@ -85,6 +85,11 @@ $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_si
 
     <?php include 'seo.php'; ?>
     <?php include 'includes_top.php'; ?>
+
+    <?php /* بكسل ميتا — في الرأس لا في الذيل: قياس الزيارة يبدأ قبل أن
+             يقرر الزائر أن الصفحة بطيئة فيغلقها، والذيل قد لا يبلغ.
+             والدالة تحرس نفسها من التكرار، وتصمت متى أطفئ من اللوحة. */ ?>
+    <?php echo tq_meta_pixel(); ?>
 </head>
 
 <body class="tq-body<?php echo $tq_is_portal ? ' tq-body--portal' : ''; ?><?php

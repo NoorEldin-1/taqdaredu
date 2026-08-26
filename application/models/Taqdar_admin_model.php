@@ -1505,26 +1505,35 @@ class Taqdar_admin_model extends CI_Model
        الحصص بالطلب
        ===================================================================== */
 
+    /** الحالات الثمان — مصدر واحد يقرأ منه المرشح والعداد. */
+    public static $SESSION_STATES = array('requested', 'awaiting_payment', 'confirmed',
+                                          'declined', 'expired', 'live', 'completed', 'refunded');
+
     public function sessions($status = '')
     {
         $where = '';
         $args  = array();
-        if ($status !== '' && in_array($status, array('requested', 'confirmed', 'declined', 'expired', 'live', 'completed', 'refunded'), true)) {
+        if ($status !== '' && in_array($status, self::$SESSION_STATES, true)) {
             $where = ' WHERE s.`status` = ?';
             $args[] = $status;
         }
 
+        /* السعر والنصيب والفاتورة تقرأ مع الصف: «كم دفع في هذه الحصة ومن
+           أخذ ماذا» أول ما يسأل عنه من يفتح هذه الشاشة، واستعلام ثان لكل
+           صف يجعل ثلاثمئة صف ثلاثمئة استعلام. */
         return $this->safe_rows(
             'SELECT s.*, sl.`starts_at`, sl.`duration_min`,
                     TRIM(CONCAT(COALESCE(st.`first_name`,""), " ", COALESCE(st.`last_name`,""))) student_name,
                     st.`email` student_email,
                     TRIM(CONCAT(COALESCE(te.`first_name`,""), " ", COALESCE(te.`last_name`,""))) teacher_name,
-                    o.`text` objective_text
+                    o.`text` objective_text,
+                    i.`invoice_no`, i.`status` invoice_status, i.`total` invoice_total
                FROM `tutoring_sessions` s
                LEFT JOIN `availability_slots` sl ON sl.`id` = s.`slot_id`
                LEFT JOIN `users` st ON st.`id` = s.`student_id`
                LEFT JOIN `users` te ON te.`id` = s.`teacher_id`
-               LEFT JOIN `objectives` o ON o.`id` = s.`context_objective_id`'
+               LEFT JOIN `objectives` o ON o.`id` = s.`context_objective_id`
+               LEFT JOIN `invoices` i ON i.`id` = s.`invoice_id`'
             . $where . ' ORDER BY sl.`starts_at` IS NULL, sl.`starts_at` DESC, s.`id` DESC LIMIT 300',
             $args
         );
@@ -1533,8 +1542,7 @@ class Taqdar_admin_model extends CI_Model
     /** عد كل حالة — الشاشة تعرضها مرشحات فوق الجدول. */
     public function session_tally()
     {
-        $out = array('requested' => 0, 'confirmed' => 0, 'declined' => 0,
-                     'expired' => 0, 'live' => 0, 'completed' => 0, 'refunded' => 0);
+        $out = array_fill_keys(self::$SESSION_STATES, 0);
         foreach ($this->safe_rows('SELECT `status`, COUNT(*) c FROM `tutoring_sessions` GROUP BY `status`') as $r) {
             $out[$r['status']] = (int) $r['c'];
         }
@@ -1542,31 +1550,100 @@ class Taqdar_admin_model extends CI_Model
     }
 
     /**
-     * إلغاء حصة: الحصة تلغى **ووقتها يحرر**.
+     * أرقام المال في الحصص — سطر واحد فوق الجدول.
      *
-     * إلغاء يترك الفسحة `booked` يفقد المعلم ساعة من أسبوعه بلا سبب،
-     * ولا يظهر ذلك في شاشة — يظهر في أنه لا أحد يستطيع حجزها.
+     * «كم أدخلت الحصص هذا الشهر، وكم منها للمعلمين، وكم ينتظر دفعا» ثلاثة
+     * أسئلة تطرح معا ولا تجيبها قائمة صفوف: من يقرأ ثلاثمئة صف لا يجمعها
+     * بعينه.
+     */
+    public function session_money()
+    {
+        $r = $this->safe_rows(
+            'SELECT
+                COALESCE(SUM(CASE WHEN `paid_at` IS NOT NULL THEN `price_halalas` ELSE 0 END), 0)         gross,
+                COALESCE(SUM(CASE WHEN `status` = "completed" AND `paid_at` IS NOT NULL
+                             THEN `teacher_share_halalas` ELSE 0 END), 0)                                 teachers,
+                COALESCE(SUM(CASE WHEN `status` = "completed" AND `paid_at` IS NOT NULL
+                             THEN `price_halalas` - `teacher_share_halalas` ELSE 0 END), 0)               platform,
+                COALESCE(SUM(CASE WHEN `status` = "awaiting_payment" THEN `price_halalas` ELSE 0 END), 0) awaiting,
+                COALESCE(SUM(CASE WHEN `status` = "refunded" THEN `price_halalas` ELSE 0 END), 0)         refunded,
+                SUM(CASE WHEN `status` = "completed" AND `paid_at` IS NOT NULL AND `credited_at` IS NULL
+                         THEN 1 ELSE 0 END)                                                              uncredited
+               FROM `tutoring_sessions`'
+        );
+        $r = $r ? $r[0] : array();
+
+        return array(
+            'gross'      => (int) ($r['gross'] ?? 0),
+            'teachers'   => (int) ($r['teachers'] ?? 0),
+            'platform'   => (int) ($r['platform'] ?? 0),
+            'awaiting'   => (int) ($r['awaiting'] ?? 0),
+            'refunded'   => (int) ($r['refunded'] ?? 0),
+            'uncredited' => (int) ($r['uncredited'] ?? 0),
+        );
+    }
+
+    /**
+     * إلغاء حصة من الإدارة — والقرار في `Taqdar_sessions_model` لا هنا.
+     *
+     * كانت هذه الدالة تقلب الحالة وتفتح الموعد بيدها. وبعد أن صار للحصة
+     * ثمن لم يعد ذلك كافيا: فاتورة تبقى «غير مدفوعة» على حصة ألغيت، وقيد
+     * في محفظة معلم عن حصة استردت، وموعد يفتح وعليه طلب آخر حي. فالإلغاء
+     * صار قرار مال، وقرار المال في طبقته.
      */
     public function cancel_session($session_id, $reason = '')
     {
-        $session_id = (int) $session_id;
-        $row = $this->db->where('id', $session_id)->get('tutoring_sessions')->row_array();
-        if (!$row) return false;
-        if (in_array($row['status'], array('completed', 'declined'), true)) return false;
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->admin_cancel(
+            (int) $session_id, (string) $reason, $this->tq_actor());
 
-        $this->db->where('id', $session_id)->update('tutoring_sessions', array('status' => 'declined'));
-
-        if (!empty($row['slot_id'])) {
-            $this->db->where('id', (int) $row['slot_id'])->update('availability_slots', array('status' => 'open'));
-        }
+        if (empty($r['ok'])) return $r;
 
         $note = trim((string) $reason) !== '' ? ' — ' . trim((string) $reason) : '';
-        foreach (array((int) $row['student_id'], (int) $row['teacher_id']) as $uid) {
-            if ($uid > 0) $this->push_notification($uid, 'ألغيت الحصة', 'ألغت الإدارة الحصة المتفق عليها' . $note . '.', 'session');
+        $body = !empty($r['refunded'])
+              ? 'ألغت الإدارة الحصة المتفق عليها' . $note . '، ويرد مبلغها إليك.'
+              : 'ألغت الإدارة الحصة المتفق عليها' . $note . '.';
+
+        foreach (array((int) ($r['student_id'] ?? 0), (int) ($r['teacher_id'] ?? 0)) as $uid) {
+            if ($uid > 0) $this->push_notification($uid, 'ألغيت الحصة', $body, 'session');
+        }
+        return $r;
+    }
+
+    /**
+     * تفعيل حصة دفع ثمنها **بالتحويل البنكي**.
+     *
+     * وبلاها يبقى التحويل البنكي بابا مسدودا في الحصص وحدها: الاشتراك
+     * يفعل بـ`activate_manually()` منذ كتب، والحصة لا يفعلها شيء إلا
+     * بوابة البطاقة — فمن حول بنكيا ينتظر مهلة الدفع حتى تمضي.
+     */
+    public function mark_session_paid($session_id, $reference = '')
+    {
+        $this->load->model('taqdar_sessions_model');
+        $row = $this->db->where('id', (int) $session_id)->get('tutoring_sessions')->row_array();
+        if (!$row) return array('ok' => false, 'msg' => 'الحصة غير موجودة.');
+        if ((int) $row['invoice_id'] <= 0) {
+            return array('ok' => false, 'msg' => 'هذه الحصة بلا فاتورة، فلا شيء يسدد.');
         }
 
-        $this->audit('session_cancel', 'tutoring_sessions#' . $session_id, $row, array('reason' => $reason));
-        return true;
+        $r = $this->taqdar_sessions_model->settle_invoice(
+            (int) $row['invoice_id'], trim((string) $reference) ?: 'تحويل بنكي', 'manual');
+
+        if (!empty($r['ok']) && empty($r['already'])) {
+            foreach (array((int) $row['student_id'], (int) $row['teacher_id']) as $uid) {
+                if ($uid > 0) {
+                    $this->push_notification($uid, 'ثبتت الحصة',
+                        'سجلت الإدارة دفع ثمن الحصة، وصار الموعد مثبتا.', 'session');
+                }
+            }
+        }
+        return $r;
+    }
+
+    /** معرف المسؤول الحالي — صفر في سطر الأوامر. */
+    private function tq_actor()
+    {
+        return isset($this->session) ? (int) $this->session->userdata('user_id') : 0;
     }
 
     public function slots()
@@ -1591,7 +1668,7 @@ class Taqdar_admin_model extends CI_Model
     {
         return $this->safe_rows(
             'SELECT u.`id`, TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) name,
-                    u.`email`,
+                    u.`email`, u.`tq_session_price`, u.`tq_session_percent`,
                     COALESCE(SUM(CASE WHEN sl.`status` = "open"   AND sl.`starts_at` >= NOW() THEN 1 ELSE 0 END), 0) open_slots,
                     COALESCE(SUM(CASE WHEN sl.`status` = "booked" AND sl.`starts_at` >= NOW() THEN 1 ELSE 0 END), 0) booked_slots
                FROM `users` u

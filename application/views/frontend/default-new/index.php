@@ -32,6 +32,10 @@
 
         </style>
 
+        <?php /* بكسل ميتا — الثيم القديم كذلك: مفتاح الثيم يقلب من
+                 اللوحة، وقياس يسقط عند قلبه لا يلاحظه أحد. */ ?>
+        <?php echo tq_meta_pixel(); ?>
+
     </head>
 
     <body class="<?php echo $this->session->userdata('theme_mode'); ?>">

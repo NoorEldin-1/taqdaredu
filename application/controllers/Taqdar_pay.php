@@ -53,12 +53,18 @@ class Taqdar_pay extends CI_Controller
             return;
         }
 
-        $r = $this->taqdar_tap_model->start((int) $this->input->post('invoice_id'), $uid);
+        $invoice_id = (int) $this->input->post('invoice_id');
+
+        /* أين يرجع لو تعثر البدء؟ الفاتورة وحدها تقول: فاتورة حصة ترجع
+           صاحبها إلى شاشة حصصه لا إلى «اشتراكي» — وهي شاشة لا يجد فيها
+           ما دفع من أجله ولا زر يعيد المحاولة. */
+        $home = $this->invoice_home($invoice_id);
+
+        $r = $this->taqdar_tap_model->start($invoice_id, $uid);
 
         if (empty($r['ok'])) {
-            $this->session->set_flashdata('error_message', implode(' ', $r['errors']));
-            $this->session->set_flashdata('tq_error', implode(' ', $r['errors']));
-            redirect(site_url('student/subscription'), 'location', 302);
+            $this->flash(false, implode(' ', $r['errors']));
+            redirect(site_url($home), 'location', 302);
             return;
         }
 
@@ -96,8 +102,29 @@ class Taqdar_pay extends CI_Controller
 
         $r = $this->taqdar_tap_model->settle($cid, 'return');
 
+        /* والوجهة تتبع ما اشتري: الحصة ترجع إلى شاشة الحصص حيث رابط
+           الدخول وموعده، والاشتراك إلى محتواه. وشاشة واحدة للاثنين تعني
+           أن نصف من يدفع يعود إلى صفحة لا يجد فيها ما دفع من أجله.
+
+           و`kind` لا يرد إلا حين تبلغ التسوية فحص المبلغ: دفعة رفضتها
+           البوابة أو لم تكتمل ترجع بلا نوع — وهي **الحال التي يحتاج فيها
+           الطالب أن يعود إلى مكانه** ليعيد المحاولة. فالنوع يقرأ منه إن
+           جاء، ومن الفاتورة إن لم يجئ. */
+        $session = (string) ($r['kind'] ?? '') === 'session';
+        if (!$session && !empty($r['invoice_id'])) {
+            $session = $this->invoice_home((int) $r['invoice_id']) === 'student/on-demand';
+        }
+        if ($session) $home = 'student/on-demand';
+
         if (!empty($r['ok'])) {
             $this->notify_paid($r);
+            if ($session) {
+                $this->flash(true, !empty($r['already'])
+                    ? 'دفعتك مسجلة وحصتك مثبتة.'
+                    : 'نجح الدفع وثبتت حصتك. رابط الدخول في بطاقتها أدناه.');
+                redirect(site_url('student/on-demand'), 'location', 302);
+                return;
+            }
             $this->flash(true, !empty($r['already'])
                 ? 'دفعتك مسجلة واشتراكك مفعل.'
                 : 'نجح الدفع وفعل اشتراكك. المحتوى مفتوح لك الآن.');
@@ -107,6 +134,20 @@ class Taqdar_pay extends CI_Controller
 
         $this->flash(false, isset($r['errors']) ? implode(' ', $r['errors']) : 'تعذر التحقق من الدفعة.');
         redirect(site_url($home), 'location', 302);
+    }
+
+    /**
+     * الشاشة التي تخص فاتورة — تسأل الحصص أولا.
+     *
+     * وهي قراءة واحدة لا فرع في كل موضع: `start()` و`back()` يحتاجان
+     * الجواب نفسه، ونسختان منه تفترقان عند إضافة ما يباع ثالثا.
+     */
+    private function invoice_home($invoice_id)
+    {
+        if ((int) $invoice_id <= 0) return 'student/subscription';
+        $this->load->model('taqdar_sessions_model');
+        $s = $this->taqdar_sessions_model->by_invoice((int) $invoice_id);
+        return $s ? 'student/on-demand' : 'student/subscription';
     }
 
     /* =====================================================================
@@ -163,6 +204,14 @@ class Taqdar_pay extends CI_Controller
      */
     private function notify_paid($r)
     {
+        /* الحصة يخبر بها **طرفاها**: الطالب ليعرف أن حصته ثبتت، والمعلم
+           ليعرف أن موعده صار حقا لا انتظارا — وهو الطرف الذي كان يبقى
+           بلا خبر فيقرأ «بانتظار الدفع» في شاشته ولا يدري متى تغيرت. */
+        if ((string) ($r['kind'] ?? '') === 'session') {
+            $this->notify_session_paid((int) ($r['session_id'] ?? 0));
+            return;
+        }
+
         $sid = (int) ($r['subscription_id'] ?? 0);
         if ($sid <= 0) return;
 
@@ -180,6 +229,44 @@ class Taqdar_pay extends CI_Controller
             . (!empty($sub['ends_at']) ? ' حتى ' . date('Y-m-d', strtotime($sub['ends_at'])) : '')
             . '. صار المحتوى مفتوحا لك الآن.',
             'subscription'
+        );
+    }
+
+    /** يخبر طرفي الحصة أن ثمنها وصل وأن الموعد ثبت. */
+    private function notify_session_paid($session_id)
+    {
+        if ((int) $session_id <= 0) return;
+
+        $row = $this->db->query(
+            'SELECT t.`student_id`, t.`teacher_id`, t.`price_halalas`, t.`teacher_share_halalas`,
+                    a.`starts_at`, a.`duration_min`
+               FROM `tutoring_sessions` t
+          LEFT JOIN `availability_slots` a ON a.`id` = t.`slot_id`
+              WHERE t.`id` = ? LIMIT 1',
+            array((int) $session_id)
+        )->row_array();
+        if (!$row) return;
+
+        $this->load->model('taqdar_sessions_model');
+        $this->load->model('taqdar_admin_model');
+
+        $when = !empty($row['starts_at'])
+              ? $this->taqdar_sessions_model->when_text($row['starts_at'], (int) $row['duration_min'])
+              : '';
+
+        $this->taqdar_admin_model->push_notification(
+            (int) $row['student_id'], 'ثبتت حصتك الخاصة',
+            'وصل دفعك وثبتت الحصة' . ($when !== '' ? ' — ' . $when : '')
+            . '. رابط الدخول في شاشة «حصص بالطلب».',
+            'session'
+        );
+
+        $this->taqdar_admin_model->push_notification(
+            (int) $row['teacher_id'], 'دفع الطالب ثمن الحصة',
+            'ثبتت الحصة' . ($when !== '' ? ' — ' . $when : '')
+            . '. ونصيبك ' . number_format(((int) $row['teacher_share_halalas']) / 100, 2)
+            . ' ريال يقيد في محفظتك حين تعلن انتهاءها.',
+            'session'
         );
     }
 

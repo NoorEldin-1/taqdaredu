@@ -176,6 +176,7 @@ $route['teacher/marking/approve']   = 'taqdar/marking_approve';
 $route['teacher/marking/homework']  = 'taqdar/marking_homework';
 $route['teacher/sessions/save']     = 'taqdar/sessions_save';
 $route['teacher/sessions/decide']   = 'taqdar/sessions_decide';
+$route['teacher/sessions/complete'] = 'taqdar/sessions_complete';
 $route['teacher/wallet/withdraw']   = 'taqdar/wallet_withdraw';
 $route['teacher/wallet/cancel']     = 'taqdar/wallet_cancel';
 $route['teacher/questions/import']  = 'taqdar/questions_import';
@@ -201,6 +202,10 @@ $route['taqdar/teacher/marking/approve']  = 'taqdar/marking_approve';
 $route['taqdar/teacher/marking/homework'] = 'taqdar/marking_homework';
 $route['taqdar/teacher/sessions/save']    = 'taqdar/sessions_save';
 $route['taqdar/teacher/sessions/decide']  = 'taqdar/sessions_decide';
+$route['taqdar/teacher/sessions/complete'] = 'taqdar/sessions_complete';
+$route['taqdar/student/sessions/request'] = 'taqdar/session_request';
+$route['taqdar/student/sessions/pay']     = 'taqdar/session_pay';
+$route['taqdar/student/sessions/cancel']  = 'taqdar/session_cancel';
 $route['taqdar/teacher/wallet/withdraw']  = 'taqdar/wallet_withdraw';
 $route['taqdar/teacher/questions/import'] = 'taqdar/questions_import';
 $route['taqdar/teacher/settings/save']    = 'taqdar/teacher_settings_save';
@@ -237,6 +242,12 @@ $route['student/on-demand']      = 'taqdar/on_demand';
 $route['student/lesson/(:num)']            = 'taqdar/lesson/$1';
 $route['student/lesson/(:num)/(:num)']     = 'taqdar/lesson/$1/$2';
 $route['student/settings/save']        = 'taqdar/settings_save';
+/* الحصص عند الطالب — كتابة، فقواعدها قبل قواعد العرض.
+   وكانت الثلاث غائبة كلها: النموذج يرسل إلى `student/on-demand` نفسه
+   والعرض يكتب في القاعدة (TQ-SESSION-PAY). */
+$route['student/sessions/request']     = 'taqdar/session_request';
+$route['student/sessions/pay']         = 'taqdar/session_pay';
+$route['student/sessions/cancel']      = 'taqdar/session_cancel';
 $route['student/reviews']              = 'taqdar/reviews';
 $route['teacher/students/message']     = 'taqdar/students_message';
 $route['taqdar/teacher/students/message'] = 'taqdar/students_message';
