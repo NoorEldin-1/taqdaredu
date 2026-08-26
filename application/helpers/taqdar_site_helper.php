@@ -277,21 +277,21 @@ if (!function_exists('tqs_uni_ord')) {
 
 if (!function_exists('tqs_person_avatar')) {
     /**
-     * صورة الشخص، أو حرفه الأول في دائرة إن لم تكن له صورة.
+     * صورة الشخص، أو حرفه الأول في دائرة إن لم تكن له صورة ولا ظل.
      *
      * لا وجه مولَّد لشخص حقيقي: نسبة وجه ليس وجهه أسوأ من غياب الصورة.
-     * والحرف وحده لا يميز (أربعة من سبعة يبدؤون بـ«أ»، والحرفان يبقيان
-     * ثلاثة متشابهين) — فالتمييز من الاسم المكتوب تحته، واللون يمنع
-     * تطابق الدوائر المتجاورة بصريا. واللون يشتق من الاسم بثبات: الشخص
-     * نفسه يأخذ لونه نفسه في كل صفحة وفي كل زيارة.
+     * ومن لا صورة له يحمل في `users.image` اسم ظله الرمادي المحايد
+     * (`avatar-m` / `avatar-f`) فيمر من الفرع الأول — والحرف تحته شبكة
+     * أمان لمن لا صورة له ولا ظل: لونه يشتق من الاسم بثبات فلا تتطابق
+     * الدوائر المتجاورة، والتمييز يبقى من الاسم المكتوب تحتها.
      *
      * وهي **موضع واحد** لثلاثة: بطاقة المعلم · صفحة المعلم · «من يدرس؟».
      */
-    function tqs_person_avatar($image, $name, $class = '', $size = 360)
+    function tqs_person_avatar($image, $name, $class = '', $size = 360, $full = false)
     {
         $img = trim((string) $image);
         if ($img !== '') {
-            return '<img src="' . tqs_person_img($img) . '"'
+            return '<img src="' . tqs_person_img($img, '', $full) . '"'
                  . ($class !== '' ? ' class="' . html_escape($class) . '"' : '')
                  . ' width="' . (int) $size . '" height="' . (int) $size . '"'
                  . ' loading="lazy" decoding="async" alt="">';
@@ -343,7 +343,7 @@ if (!function_exists('tqs_person_img')) {
      * @param string $fallback اسم أصل في سمة الموقع؛ وبلا اسم يستعمل
      *                         بديل Academy القائم (`placeholder.png`)
      */
-    function tqs_person_img($image, $fallback = '')
+    function tqs_person_img($image, $fallback = '', $full = false)
     {
         $miss = ($fallback !== '')
               ? tqs_asset_img('', $fallback)
@@ -357,8 +357,13 @@ if (!function_exists('tqs_person_img')) {
         if (strpos($name, '/') !== false)          return base_url(ltrim($name, '/'));
 
         /* رفع فعلي — Academy تكتب `<hash>.jpg` وتصنع نسخة مصغرة بجوارها.
-           والمصغرة أولا: هي 220px بدل الأصل الذي قد يكون ميغابايتين. */
-        foreach (array('uploads/user_image/optimized/', 'uploads/user_image/') as $dir) {
+           والمصغرة أولا: الأصل قد يكون ميغابايتين، وهي تكفي البطاقات.
+           و`$full` يعكس الترتيب لمن يعرض الصورة كبيرة — صفحة المعلم
+           تعرضها بـ450px، فالمصغرة تكبر عندها وتبكسل. */
+        $dirs = $full
+              ? array('uploads/user_image/', 'uploads/user_image/optimized/')
+              : array('uploads/user_image/optimized/', 'uploads/user_image/');
+        foreach ($dirs as $dir) {
             $abs = FCPATH . $dir . $name . '.jpg';
             if (is_file($abs)) {
                 /* `?v=` بزمن التعديل: استبدال صورة معلّم لا يغيّر الرابط،

@@ -66,11 +66,11 @@ $roster = [
      'email' => 'mohamed.abouelnil@taqdaredu.com', 'subject' => 'علوم',
      'title' => 'معلم العلوم', 'stage' => 'middle', 'bio' => 'أول متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'first' => 'أحمد', 'last' => 'محمود محمد',
+    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'أحمد', 'last' => 'محمود محمد',
      'email' => 'ahmed.mahmoud@taqdaredu.com', 'subject' => 'علوم',
      'title' => 'معلم العلوم', 'stage' => 'primary', 'bio' => 'الرابع والخامس والسادس الابتدائي',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'first' => 'أميرة', 'last' => 'محمد السيد الطويل',
+    ['photo' => null, 'avatar' => 'avatar-f', 'first' => 'أميرة', 'last' => 'محمد السيد الطويل',
      'email' => 'amira.eltawil@taqdaredu.com', 'subject' => 'علوم',
      'title' => 'معلمة العلوم', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
@@ -83,7 +83,7 @@ $roster = [
      'email' => 'abdullah.elbaz@taqdaredu.com', 'subject' => 'رياضيات',
      'title' => 'معلم الرياضيات', 'stage' => 'middle', 'bio' => 'أول متوسط والسادس الابتدائي',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'first' => 'محمد صبري', 'last' => 'سعد محمد',
+    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'محمد صبري', 'last' => 'سعد محمد',
      'email' => 'mohamed.sabry@taqdaredu.com', 'subject' => 'رياضيات',
      'title' => 'معلم الرياضيات', 'stage' => 'middle', 'bio' => 'ثاني متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
@@ -100,7 +100,7 @@ $roster = [
      'email' => 'ahmed.aldesouky@taqdaredu.com', 'subject' => 'دراسات اجتماعية',
      'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'middle', 'bio' => 'أول متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'first' => 'عبد الرحمن', 'last' => 'زاهر',
+    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'عبد الرحمن', 'last' => 'زاهر',
      'email' => 'abdelrahman.zaher@taqdaredu.com', 'subject' => 'دراسات اجتماعية',
      'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'middle', 'bio' => 'ثاني متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
@@ -113,11 +113,11 @@ $roster = [
      'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'primary', 'bio' => 'الرابع والخامس والسادس الابتدائي',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
 
-    ['photo' => null, 'first' => 'أحمد', 'last' => 'البلتاجي',
+    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'أحمد', 'last' => 'البلتاجي',
      'email' => 'ahmed.elbeltagy@taqdaredu.com', 'subject' => 'اللغة العربية',
      'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'أول متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'first' => 'عبدالله صلاح', 'last' => 'البرلسي',
+    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'عبدالله صلاح', 'last' => 'البرلسي',
      'email' => 'abdullah.elborolosy@taqdaredu.com', 'subject' => 'اللغة العربية',
      'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'ثاني متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
@@ -125,7 +125,7 @@ $roster = [
      'email' => 'mohamed.hegazy@taqdaredu.com', 'subject' => 'اللغة العربية',
      'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'first' => 'أحمد محمد', 'last' => 'رجب القفاص',
+    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'أحمد محمد', 'last' => 'رجب القفاص',
      'email' => 'ahmed.elkaffas@taqdaredu.com', 'subject' => 'اللغة العربية',
      'title' => 'معلم اللغة العربية', 'stage' => 'primary', 'bio' => 'الرابع والخامس والسادس الابتدائي',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
@@ -234,8 +234,9 @@ foreach ((array) glob(rtrim($photos, '/') . '/*.png') as $f) {
 $plan    = [];
 $missing = [];
 foreach ($roster as $t) {
-    /* `photo => null` معلّم بلا صورة: يمرّ بلا مصدر، و`image` تبقى فارغة
-       فيرسم له العرضُ أفاتار الحرف. ولا يُعدّ نقصًا ولا يوقف المرور. */
+    /* `photo => null` معلّم بلا صورة: يمرّ بلا مصدر، و`avatar` تحمل اسم
+       ظلّه الرمادي في أصول السمة — `tqs_person_img()` تحل الاسم المجرد
+       إلى `assets/taqdar/site/img/<name>.webp`. ولا يُعدّ نقصًا. */
     if (empty($t['photo'])) {
         $t['photo'] = null;
         $src = null;
@@ -248,7 +249,9 @@ foreach ($roster as $t) {
     $q->execute([$t['email']]);
     $t['existing'] = $q->fetch(PDO::FETCH_ASSOC) ?: null;
     $t['src']      = $src;
-    $t['hash']     = $src ? md5('tq-teacher:' . $t['email']) : '';
+    /* `hash` اسم الملف المرفوع، أو اسم أصل الظلّ حين لا صورة. */
+    $t['hash']     = $src ? md5('tq-teacher:' . $t['email'])
+                   : (isset($t['avatar']) ? $t['avatar'] : '');
     $plan[] = $t;
 }
 
@@ -336,10 +339,13 @@ try {
 
         if (isset($t['inherits'])) $id_of[(int) $t['inherits']] = $id;
 
-        /* الأصل 720px والمصغرة 220px — و`tqs_person_img()` تفضل الثانية. */
+        /* `tqs_person_img()` تفضل نسخة `optimized/` — فهي المخدومة فعلا.
+           و220px كانت تكبر إلى 496 على بطاقة 248px بشاشة مضاعفة فتبكسل:
+           720 تغطي البطاقة والبروفايل معا، والأصل 1100 (أقصى مربع في
+           المصدر 1122) يبقى للاستعمال اللاحق. */
         if ($t['src']) {
-            tq_square_jpeg($t['src'], $updir  . $t['hash'] . '.jpg', 720);
-            tq_square_jpeg($t['src'], $optdir . $t['hash'] . '.jpg', 220);
+            tq_square_jpeg($t['src'], $updir  . $t['hash'] . '.jpg', 1100);
+            tq_square_jpeg($t['src'], $optdir . $t['hash'] . '.jpg', 720);
         }
 
         echo "  [ok] #$id  {$t['first']} {$t['last']}\n";

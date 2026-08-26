@@ -65,10 +65,11 @@ include __DIR__ . '/site/site_pagehero.php';
 
     <aside>
       <div class="icard icard--sticky">
-<?php /* الصورة أو حرف الاسم — دالة واحدة تخدم البطاقة وهذه الصفحة
+<?php /* الصورة أو الظل الرمادي — دالة واحدة تخدم البطاقة وهذه الصفحة
         و«من يدرس؟»، فلا ثلاث نسخ من القرار نفسه. */ ?>
         <div class="tq-profile-photo"><?php
-          echo tqs_person_avatar($tq_t['img'] ?? '', $tq_t['name'] ?? '', 'tq-ini--lg');
+          /* `true`: الصورة هنا تعرض بـ450px فتلزمها النسخة الأصل. */
+          echo tqs_person_avatar($tq_t['img'] ?? '', $tq_t['name'] ?? '', 'tq-ini--lg', 360, true);
         ?></div>
 
 
