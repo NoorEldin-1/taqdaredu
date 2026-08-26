@@ -1591,6 +1591,48 @@ html[dir='ltr'] .unis .carousel2__nav--next{right:0;left:auto}
 .stage-tab:focus-visible{outline:2px solid var(--petrol);outline-offset:3px}
 
 /* ══════════════════════════════════════════════════════════════════
+   TQ-INI · أفاتار الحرف — لمن لا صورة له
+   لا وجه مولَّد لشخص حقيقي: نسبة وجه ليس وجهه أسوأ من غياب الصورة.
+   واللون يأتي من `--ini-bg` التي يحسبها `tqs_person_avatar()` من الاسم،
+   فيثبت للشخص نفسه في كل صفحة ولا تتطابق دوائر المتجاورين.
+   ══════════════════════════════════════════════════════════════════ */
+.tq-ini{
+  display:grid;place-items:center;
+  inline-size:100%;aspect-ratio:1;
+  background:var(--ini-bg,#023331);color:var(--gold-warm);
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(38px,4.4vw,64px);line-height:1;
+  user-select:none;
+}
+/* داخل بطاقة المعلّم: البطاقة تحدّد القياس، والدائرة تملؤه */
+.teacher-card__media .tq-ini{block-size:100%}
+/* في صفحة المعلّم: أكبر وبنصف قطر البطاقة */
+.tq-ini--lg{border-radius:14px;font-size:clamp(56px,6vw,92px)}
+/* في «من يدرس؟» — دائرة صغيرة بجوار الاسم */
+.tlist__l .tq-ini{
+  inline-size:64px;block-size:64px;border-radius:50%;flex:none;
+  font-size:26px;
+}
+.tq-profile-photo{margin-block-end:12px;border-radius:14px;overflow:hidden}
+.tq-profile-photo img{inline-size:100%;block-size:auto;display:block}
+
+/* عنوان المعلّم وصفوفه على البطاقة */
+.teacher-card__title{
+  margin-block-start:4px;color:var(--gold-text);
+  font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(11.5px,.9vw,13.5px)
+}
+.teacher-card__grades{
+  display:flex;align-items:flex-start;gap:6px;
+  margin-block-start:8px;color:var(--ink-3);
+  font-size:clamp(10.5px,.82vw,12.5px);line-height:1.6
+}
+.teacher-card__grades svg{
+  inline-size:1em;block-size:1em;aspect-ratio:1;flex:none;
+  margin-block-start:.28em;color:var(--gold-deep)
+}
+
+/* ══════════════════════════════════════════════════════════════════
    TQ-UNIGRID · الجامعات شبكة: خمس في الصف ترى دفعة
    ══════════════════════════════════════════════════════════════════ */
 .unigrid{

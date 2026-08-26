@@ -62,70 +62,90 @@ foreach ($argv as $a) if (strpos($a, '--photos=') === 0) $photos = substr($a, 9)
    المراحل الثلاث كلها ممثلة: مرشح `/teachers` يعرض `primary|middle|secondary`،
    وطاقم بمرحلة واحدة يجعل خيارين من ثلاثة يردان «لا نتائج». */
 $roster = [
-    ['photo' => 'احمد الدسوقي.png', 'first' => 'احمد', 'last' => 'الدسوقي',
-     'email' => 'ahmed.aldesouky@taqdaredu.com', 'subject' => 'الرياضيات',
-     'stage' => 'primary', 'bio' => 'ماجستير في الرياضيات',
-     'rating' => 4.9, 'reviews' => 2340, 'courses' => 28, 'inherits' => 147],
-
-    ['photo' => 'أحمد حسين قدح.png', 'first' => 'أحمد حسين', 'last' => 'قدح',
-     'email' => 'ahmed.qadah@taqdaredu.com', 'subject' => 'العلوم',
-     'stage' => 'primary', 'bio' => 'ماجستير في العلوم',
-     'rating' => 4.9, 'reviews' => 3120, 'courses' => 35, 'inherits' => 149],
-
-    ['photo' => 'حازم إسلام.png', 'first' => 'حازم', 'last' => 'إسلام',
-     'email' => 'hazem.eslam@taqdaredu.com', 'subject' => 'اللغة العربية',
-     'stage' => 'primary', 'bio' => 'دكتوراه في اللغة العربية',
-     'rating' => 4.8, 'reviews' => 1890, 'courses' => 24, 'inherits' => 148],
-
-    ['photo' => 'شيماء عادل.png', 'first' => 'شيماء', 'last' => 'عادل',
-     'email' => 'shaimaa.adel@taqdaredu.com', 'subject' => 'اللغة الإنجليزية',
-     'stage' => 'primary', 'bio' => 'ماجستير في TESOL',
-     'rating' => 4.8, 'reviews' => 2110, 'courses' => 22, 'inherits' => 151],
-
-    ['photo' => 'عبد الرحمن خالد.png', 'first' => 'عبد الرحمن', 'last' => 'خالد',
-     'email' => 'abdelrahman.khaled@taqdaredu.com', 'subject' => 'الدراسات الإسلامية',
-     'stage' => 'primary', 'bio' => 'دكتوراه في الشريعة',
-     'rating' => 4.9, 'reviews' => 1670, 'courses' => 18, 'inherits' => 150],
+    ['photo' => 'محمد ابو النيل.png', 'first' => 'محمد إبراهيم', 'last' => 'محمد ابوالنيل',
+     'email' => 'mohamed.abouelnil@taqdaredu.com', 'subject' => 'علوم',
+     'title' => 'معلم العلوم', 'stage' => 'middle', 'bio' => 'أول متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => null, 'first' => 'أحمد', 'last' => 'محمود محمد',
+     'email' => 'ahmed.mahmoud@taqdaredu.com', 'subject' => 'علوم',
+     'title' => 'معلم العلوم', 'stage' => 'primary', 'bio' => 'الرابع والخامس والسادس الابتدائي',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => null, 'first' => 'أميرة', 'last' => 'محمد السيد الطويل',
+     'email' => 'amira.eltawil@taqdaredu.com', 'subject' => 'علوم',
+     'title' => 'معلمة العلوم', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => 'عبد الرحمن خالد.png', 'first' => 'عبدالرحمن خالد', 'last' => 'احمد أبوزيد',
+     'email' => 'abdelrahman.khaled@taqdaredu.com', 'subject' => 'علوم',
+     'title' => 'معلم العلوم', 'stage' => 'middle', 'bio' => 'ثاني متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
 
     ['photo' => 'عبد الله الباز.png', 'first' => 'عبد الله', 'last' => 'الباز',
-     'email' => 'abdullah.elbaz@taqdaredu.com', 'subject' => 'الرياضيات',
-     'stage' => 'middle', 'bio' => 'ماجستير في الرياضيات التطبيقية',
-     'rating' => 4.8, 'reviews' => 1420, 'courses' => 19],
+     'email' => 'abdullah.elbaz@taqdaredu.com', 'subject' => 'رياضيات',
+     'title' => 'معلم الرياضيات', 'stage' => 'middle', 'bio' => 'أول متوسط والسادس الابتدائي',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => null, 'first' => 'محمد صبري', 'last' => 'سعد محمد',
+     'email' => 'mohamed.sabry@taqdaredu.com', 'subject' => 'رياضيات',
+     'title' => 'معلم الرياضيات', 'stage' => 'middle', 'bio' => 'ثاني متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => 'عماء الكومي.png', 'first' => 'عماد أحمد', 'last' => 'السيد حامد',
+     'email' => 'emad.elkomy@taqdaredu.com', 'subject' => 'رياضيات',
+     'title' => 'معلم الرياضيات', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => 'حازم إسلام.png', 'first' => 'حازم إسلام', 'last' => 'عبد الرحيم علي',
+     'email' => 'hazem.eslam@taqdaredu.com', 'subject' => 'رياضيات',
+     'title' => 'معلم الرياضيات', 'stage' => 'primary', 'bio' => 'الرابع والخامس الابتدائي',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
 
-    ['photo' => 'عماء الكومي.png', 'first' => 'عماد', 'last' => 'الكومي',
-     'email' => 'emad.elkomy@taqdaredu.com', 'subject' => 'العلوم',
-     'stage' => 'middle', 'bio' => 'ماجستير في الفيزياء',
-     'rating' => 4.7, 'reviews' => 1180, 'courses' => 16],
-
-    ['photo' => 'محمد ابو النيل.png', 'first' => 'محمد', 'last' => 'ابو النيل',
-     'email' => 'mohamed.abouelnil@taqdaredu.com', 'subject' => 'اللغة العربية',
-     'stage' => 'middle', 'bio' => 'ماجستير في النحو والصرف',
-     'rating' => 4.8, 'reviews' => 1560, 'courses' => 21],
-
-    ['photo' => 'محمد البوهي.png', 'first' => 'محمد', 'last' => 'البوهي',
-     'email' => 'mohamed.elbouhy@taqdaredu.com', 'subject' => 'المهارات الرقمية',
-     'stage' => 'middle', 'bio' => 'ماجستير في علوم الحاسب',
-     'rating' => 4.9, 'reviews' => 1330, 'courses' => 17],
-
+    ['photo' => 'احمد الدسوقي.png', 'first' => 'أحمد', 'last' => 'الدسوقي',
+     'email' => 'ahmed.aldesouky@taqdaredu.com', 'subject' => 'دراسات اجتماعية',
+     'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'middle', 'bio' => 'أول متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => null, 'first' => 'عبد الرحمن', 'last' => 'زاهر',
+     'email' => 'abdelrahman.zaher@taqdaredu.com', 'subject' => 'دراسات اجتماعية',
+     'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'middle', 'bio' => 'ثاني متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => 'محمد العجمي.png', 'first' => 'محمد', 'last' => 'العجمي',
-     'email' => 'mohamed.elagamy@taqdaredu.com', 'subject' => 'الدراسات الاجتماعية',
-     'stage' => 'middle', 'bio' => 'ماجستير في التاريخ',
-     'rating' => 4.7, 'reviews' => 980, 'courses' => 14],
+     'email' => 'mohamed.elagamy@taqdaredu.com', 'subject' => 'دراسات اجتماعية',
+     'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => 'أحمد حسين قدح.png', 'first' => 'أحمد حسين', 'last' => 'قدح',
+     'email' => 'ahmed.qadah@taqdaredu.com', 'subject' => 'دراسات اجتماعية',
+     'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'primary', 'bio' => 'الرابع والخامس والسادس الابتدائي',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
 
+    ['photo' => null, 'first' => 'أحمد', 'last' => 'البلتاجي',
+     'email' => 'ahmed.elbeltagy@taqdaredu.com', 'subject' => 'اللغة العربية',
+     'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'أول متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => null, 'first' => 'عبدالله صلاح', 'last' => 'البرلسي',
+     'email' => 'abdullah.elborolosy@taqdaredu.com', 'subject' => 'اللغة العربية',
+     'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'ثاني متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => 'محمد حجازي.png', 'first' => 'محمد', 'last' => 'حجازي',
-     'email' => 'mohamed.hegazy@taqdaredu.com', 'subject' => 'الرياضيات',
-     'stage' => 'secondary', 'bio' => 'دكتوراه في الرياضيات',
-     'rating' => 4.9, 'reviews' => 2650, 'courses' => 31],
+     'email' => 'mohamed.hegazy@taqdaredu.com', 'subject' => 'اللغة العربية',
+     'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => null, 'first' => 'أحمد محمد', 'last' => 'رجب القفاص',
+     'email' => 'ahmed.elkaffas@taqdaredu.com', 'subject' => 'اللغة العربية',
+     'title' => 'معلم اللغة العربية', 'stage' => 'primary', 'bio' => 'الرابع والخامس والسادس الابتدائي',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
 
-    ['photo' => 'محمد نصر.png', 'first' => 'محمد', 'last' => 'نصر',
-     'email' => 'mohamed.nasr@taqdaredu.com', 'subject' => 'اللغة الإنجليزية',
-     'stage' => 'secondary', 'bio' => 'ماجستير في الأدب الإنجليزي',
-     'rating' => 4.8, 'reviews' => 2020, 'courses' => 26],
-
-    ['photo' => 'ياسين طارق.png', 'first' => 'ياسين', 'last' => 'طارق',
-     'email' => 'yassin.tarek@taqdaredu.com', 'subject' => 'المهارات الرقمية',
-     'stage' => 'secondary', 'bio' => 'ماجستير في هندسة البرمجيات',
-     'rating' => 4.9, 'reviews' => 1740, 'courses' => 23],
+    ['photo' => 'محمد البوهي.png', 'first' => 'محمد رضا', 'last' => 'صبحي البوهي',
+     'email' => 'mohamed.elbouhy@taqdaredu.com', 'subject' => 'لغة إنجليزية',
+     'title' => 'معلم اللغة الإنجليزية', 'stage' => 'middle', 'bio' => 'أول متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => 'ياسين طارق.png', 'first' => 'ياسين طارق', 'last' => 'حسنين أحمد',
+     'email' => 'yassin.tarek@taqdaredu.com', 'subject' => 'لغة إنجليزية',
+     'title' => 'معلم اللغة الإنجليزية', 'stage' => 'middle', 'bio' => 'ثاني متوسط والسادس الابتدائي',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => 'محمد نصر.png', 'first' => 'محمد نصر', 'last' => 'معوض خلف الله',
+     'email' => 'mohamed.nasr@taqdaredu.com', 'subject' => 'لغة إنجليزية',
+     'title' => 'معلم اللغة الإنجليزية', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => 'شيماء عادل.png', 'first' => 'شيماء', 'last' => 'عادل محمد',
+     'email' => 'shaimaa.adel@taqdaredu.com', 'subject' => 'لغة إنجليزية',
+     'title' => 'معلمة اللغة الإنجليزية', 'stage' => 'primary', 'bio' => 'الرابع والخامس الابتدائي',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
 ];
 
 /* ── نقل ما تحت حساب البذرة ──────────────────────────────────────────────
@@ -214,14 +234,21 @@ foreach ((array) glob(rtrim($photos, '/') . '/*.png') as $f) {
 $plan    = [];
 $missing = [];
 foreach ($roster as $t) {
-    $key = tq_photo_key($t['photo']);
-    $src = isset($dir_map[$key]) ? $dir_map[$key] : rtrim($photos, '/') . '/' . $t['photo'];
-    if (!is_file($src)) $missing[] = $t['photo'];
+    /* `photo => null` معلّم بلا صورة: يمرّ بلا مصدر، و`image` تبقى فارغة
+       فيرسم له العرضُ أفاتار الحرف. ولا يُعدّ نقصًا ولا يوقف المرور. */
+    if (empty($t['photo'])) {
+        $t['photo'] = null;
+        $src = null;
+    } else {
+        $key = tq_photo_key($t['photo']);
+        $src = isset($dir_map[$key]) ? $dir_map[$key] : rtrim($photos, '/') . '/' . $t['photo'];
+        if (!is_file($src)) $missing[] = $t['photo'];
+    }
     $q = $pdo->prepare("SELECT id FROM users WHERE email = ?");
     $q->execute([$t['email']]);
     $t['existing'] = $q->fetch(PDO::FETCH_ASSOC) ?: null;
     $t['src']      = $src;
-    $t['hash']     = md5('tq-teacher:' . $t['email']);
+    $t['hash']     = $src ? md5('tq-teacher:' . $t['email']) : '';
     $plan[] = $t;
 }
 
@@ -259,7 +286,8 @@ try {
             'email'           => $t['email'],
             'skills'          => $t['subject'],
             'biography'       => $t['bio'],
-            'title'           => 'معلم ' . $t['subject'],
+            /* العنوان من الطاقم: «معلّمة» لا تُشتقّ من اسم المادة. */
+            'title'           => isset($t['title']) ? $t['title'] : ('معلم ' . $t['subject']),
             'role_id'         => 2,
             'is_instructor'   => 1,
             'is_public'       => 1,
@@ -309,8 +337,10 @@ try {
         if (isset($t['inherits'])) $id_of[(int) $t['inherits']] = $id;
 
         /* الأصل 720px والمصغرة 220px — و`tqs_person_img()` تفضل الثانية. */
-        tq_square_jpeg($t['src'], $updir  . $t['hash'] . '.jpg', 720);
-        tq_square_jpeg($t['src'], $optdir . $t['hash'] . '.jpg', 220);
+        if ($t['src']) {
+            tq_square_jpeg($t['src'], $updir  . $t['hash'] . '.jpg', 720);
+            tq_square_jpeg($t['src'], $optdir . $t['hash'] . '.jpg', 220);
+        }
 
         echo "  [ok] #$id  {$t['first']} {$t['last']}\n";
     }

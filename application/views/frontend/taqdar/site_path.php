@@ -194,8 +194,8 @@ $tq_dur = function ($m) {
           <ul class="tlist">
             <li class="tlist__i">
               <?php
-              $tq_tl  = '<img src="' . tqs_person_img($tq_p['teacher_image']) . '" alt=""'
-                      . ' width="64" height="64" loading="lazy" decoding="async">'
+              /* الصورة أو حرف الاسم — الدالّة نفسها في البطاقة والبروفايل. */
+              $tq_tl  = tqs_person_avatar($tq_p['teacher_image'], $tq_p['teacher_name'], '', 64)
                       . '<span class="tlist__b"><b>' . html_escape($tq_p['teacher_name']) . '</b>'
                       . '<small>معلم هذا البرنامج</small></span>';
               /* الرابط لمن أعلن ملفه وحده: المعروض علنا اختيار صريح لا أثر

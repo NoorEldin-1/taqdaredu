@@ -265,6 +265,55 @@ if (!function_exists('tqs_img')) {
     }
 }
 
+if (!function_exists('tqs_uni_ord')) {
+    /** نقطة ترميز حرف UTF-8 — `ord()` تقرأ البايت الأول وحده فتخلط العربية. */
+    function tqs_uni_ord($c)
+    {
+        $k = mb_convert_encoding($c, 'UCS-4BE', 'UTF-8');
+        $a = unpack('N', $k);
+        return $a ? (int) $a[1] : 0;
+    }
+}
+
+if (!function_exists('tqs_person_avatar')) {
+    /**
+     * صورة الشخص، أو حرفه الأول في دائرة إن لم تكن له صورة.
+     *
+     * لا وجه مولَّد لشخص حقيقي: نسبة وجه ليس وجهه أسوأ من غياب الصورة.
+     * والحرف وحده لا يميز (أربعة من سبعة يبدؤون بـ«أ»، والحرفان يبقيان
+     * ثلاثة متشابهين) — فالتمييز من الاسم المكتوب تحته، واللون يمنع
+     * تطابق الدوائر المتجاورة بصريا. واللون يشتق من الاسم بثبات: الشخص
+     * نفسه يأخذ لونه نفسه في كل صفحة وفي كل زيارة.
+     *
+     * وهي **موضع واحد** لثلاثة: بطاقة المعلم · صفحة المعلم · «من يدرس؟».
+     */
+    function tqs_person_avatar($image, $name, $class = '', $size = 360)
+    {
+        $img = trim((string) $image);
+        if ($img !== '') {
+            return '<img src="' . tqs_person_img($img) . '"'
+                 . ($class !== '' ? ' class="' . html_escape($class) . '"' : '')
+                 . ' width="' . (int) $size . '" height="' . (int) $size . '"'
+                 . ' loading="lazy" decoding="async" alt="">';
+        }
+
+        $name = trim((string) $name);
+        $ini  = ($name !== '') ? mb_substr($name, 0, 1, 'UTF-8') : '؟';
+
+        $pal = array('#023331', '#0C786C', '#0A5A50', '#93631D');
+        $h   = 0;
+        $len = mb_strlen($name, 'UTF-8');
+        for ($i = 0; $i < $len; $i++) {
+            $h = ($h * 31 + tqs_uni_ord(mb_substr($name, $i, 1, 'UTF-8'))) % 100000;
+        }
+        $bg = $pal[$h % count($pal)];
+
+        return '<span class="tq-ini' . ($class !== '' ? ' ' . html_escape($class) : '') . '"'
+             . ' style="--ini-bg:' . $bg . '" aria-hidden="true">'
+             . html_escape($ini) . '</span>';
+    }
+}
+
 if (!function_exists('tqs_person_img')) {
     /**
      * صورة شخص — والحقل `users.image` يحمل **ثلاثة أشكال** لا شكلا واحدا.
@@ -366,23 +415,28 @@ if (!function_exists('tqs_teachers')) {
                كي لا يمر الوصول بالمفتاح على رابطين إلى وجهة واحدة. */
             $h .= '          <a class="teacher-card__media" href="' . html_escape($t['url']) . '"'
                 . ' tabindex="-1" aria-hidden="true">'
-                . '<img src="' . tqs_person_img($t['img'], 'teacher-1') . '" width="360" height="360"'
-                . ' loading="lazy" decoding="async" alt=""></a>' . "\n";
+                . tqs_person_avatar($t['img'], $t['name'])
+                . '</a>' . "\n";
             $h .= '          <div class="teacher-card__body">' . "\n";
             /* الاسم رابط: النموذج يبني `url` ولم يستعمله أحد،
                فبطاقات المعلمين تبدو قابلة للنقر ولا تنقر. */
             $h .= '            <h3><a href="' . html_escape($t['url']) . '">'
                 . html_escape($t['name']) . '</a></h3>' . "\n";
 
-            if ($t['chips']) {
-                $h .= '            <div class="teacher-card__chips">';
-                foreach ($t['chips'] as $c) {
-                    $h .= '<span class="teacher-card__chip">' . html_escape($c) . '</span>';
-                }
-                $h .= '</div>' . "\n";
+            /* العنوان («معلم العلوم») تحت الاسم: النموذج يختاره من
+               القاعدة ولم يستعمله أحد، وهو أدق من الشريحة وحدها. */
+            if (!empty($t['title'])) {
+                $h .= '            <p class="teacher-card__title">' . html_escape($t['title']) . '</p>' . "\n";
             }
+            /* الشريحة حُذفت: كانت تقول «اللغة العربية» والعنوان فوقها
+               يقول «معلم اللغة العربية» — الشيء نفسه مرّتين، والعنوان
+               أدقّ لأنه يميّز المعلّمة من المعلّم. والمادة تبقى في
+               `data-search` فالبحث بها يعمل كما كان. */
+            /* `bio` تحمل الصفوف التي يدرسها — لا نبذة. */
             if ($t['bio'] !== '') {
-                $h .= '            <p>' . html_escape($t['bio']) . '</p>' . "\n";
+                $h .= '            <p class="teacher-card__grades">'
+                    . '<svg aria-hidden="true"><use href="#i-cap"></use></svg>'
+                    . html_escape($t['bio']) . '</p>' . "\n";
             }
 
             $h .= '            <div class="teacher-card__meta">';

@@ -164,6 +164,7 @@ class Taqdar_site_model extends CI_Model
                 'id'      => (int) $r['id'],
                 'name'    => $name,
                 'bio'     => (string) $r['biography'],
+                'title'   => (string) $r['title'],
                 'chips'   => array_filter(array_map('trim', explode('·', (string) $r['skills']))),
                 'img'     => (string) $r['image'],
                 'stage'   => (string) $r['teacher_stage'],

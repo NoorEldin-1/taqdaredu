@@ -196,8 +196,8 @@ $tier  = tqs_bundle_tier($b['name']);
                  وحدها تعرف الفرق. كان هنا `base_url($tt['image'])` فينتج
                  `…/teacher-3`: خمسة مربعات مكسورة تحت «من يدرس؟».
                  والاسم يربط بصفحته إن كان معلنا وحسب — انظر `bundle_by_code()`. */
-              $tt_img = '<img src="' . tqs_person_img($tt['image']) . '" alt=""'
-                      . ' width="64" height="64" loading="lazy" decoding="async">';
+              /* الصورة أو حرف الاسم — الدالّة نفسها في البطاقة والبروفايل. */
+              $tt_img = tqs_person_avatar($tt['image'], $tt['name'], '', 64);
               $tt_b   = '<span class="tlist__b"><b>' . html_escape($tt['name']) . '</b>'
                       . '<small>' . (int) $tt['n'] . ' برنامجا في هذه الباقة</small></span>';
               ?>

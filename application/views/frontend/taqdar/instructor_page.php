@@ -19,8 +19,18 @@ include __DIR__ . '/site/site_pagehero.php';
   <div class="shell tq-cols-2">
     <div class="path-main">
       <div class="icard">
-        <h2>نبذة</h2>
-        <p><?php echo html_escape($tq_t['bio'] ?? '') ?: 'لم تكتب نبذة هذا المعلم بعد.'; ?></p>
+        <h2>التخصص والصفوف</h2>
+<?php /* الأربعة وحدها بقرار المالك: الصورة والاسم والتخصص والصفوف.
+        ولا معلومة تواصل — والنموذج لا يختار `email` ولا `phone` أصلا. */ ?>
+        <?php if (!empty($tq_t['title'])): ?>
+          <p class="tq-lead"><?php echo html_escape($tq_t['title']); ?></p>
+        <?php endif; ?>
+        <?php if (trim((string) ($tq_t['bio'] ?? '')) !== ''): ?>
+          <p class="path-facts"><span>
+            <svg aria-hidden="true"><use href="#i-cap"></use></svg>
+            يدرس: <?php echo html_escape($tq_t['bio']); ?>
+          </span></p>
+        <?php endif; ?>
 
         <?php if (!empty($tq_t['chips'])): ?>
           <div class="chips">
@@ -55,20 +65,12 @@ include __DIR__ . '/site/site_pagehero.php';
 
     <aside>
       <div class="icard icard--sticky">
-        <?php if (!empty($tq_t['img'])): ?>
-          <?php /* `tqs_person_img` لا `tqs_img`: من رفع صورته فعلا يحمل
-                   `users.image` عنده بصمة لا اسم أصل — انظر المساعد. */ ?>
-          <img src="<?php echo tqs_person_img($tq_t['img'], 'teacher-1'); ?>" alt=""
-               width="360" height="360" style="width:100%;height:auto;border-radius:14px;display:block;margin-block-end:12px">
-        <?php endif; ?>
+<?php /* الصورة أو حرف الاسم — دالة واحدة تخدم البطاقة وهذه الصفحة
+        و«من يدرس؟»، فلا ثلاث نسخ من القرار نفسه. */ ?>
+        <div class="tq-profile-photo"><?php
+          echo tqs_person_avatar($tq_t['img'] ?? '', $tq_t['name'] ?? '', 'tq-ini--lg');
+        ?></div>
 
-        <?php if ((float) ($tq_t['rating'] ?? 0) > 0): ?>
-          <p class="path-price">
-            <span class="tq-ltr"><?php echo html_escape(number_format((float) $tq_t['rating'], 1)); ?></span>
-            <svg aria-hidden="true" style="width:20px;height:20px"><use href="#i-star"></use></svg>
-          </p>
-          <p class="tq-caption"><span class="tq-ltr"><?php echo html_escape(number_format((int) $tq_t['reviews'])); ?></span> تقييما</p>
-        <?php endif; ?>
 
         <?php /* `teacher_stage` مفتاح إنجليزي في القاعدة (`secondary`)،
                  وكان يطبع خاما فيقرأ الزائر «المرحلة: secondary» في صفحة
