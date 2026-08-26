@@ -1566,6 +1566,35 @@ if (!function_exists('tqs_p26_tier')) {
     }
 }
 
+if (!function_exists('tqs_plan_img')) {
+    /**
+     * اسم صورة الباقة من رمزها ومرحلتها — أو فارغ إن لم توجد.
+     *
+     * موضع واحد يستعمله كساء البطاقة وبطاقة الكتالوج معًا، فلا يكتب
+     * التطبيع مرتين ولا تفترق الصفحتان عند أول تعديل.
+     *
+     * والتطبيع لازم: `plans.stage` مختلط الصيغة في القاعدة — `primary`
+     * لاتينية و`المرحلة-المتوسطة` عربية، واسم الملف لاتيني.
+     *
+     * والوجود يفحص على القرص لا على قائمة مكتوبة: باقة بلا صورة ترد
+     * فارغا فيبقى ما كان، ولا تكسر بطاقةٌ لأن ملفا لم يرفع بعد.
+     */
+    function tqs_plan_img($code, $stage)
+    {
+        $map = array(
+            'primary'          => 'primary',
+            'middle'           => 'middle',
+            'المرحلة-المتوسطة' => 'middle',
+            'secondary'        => 'secondary',
+        );
+        $st = (string) $stage;
+        if (!isset($map[$st])) return '';
+
+        $name = 'plan-' . tqs_p26_tier($code) . '-' . $map[$st];
+        return is_file(FCPATH . 'assets/taqdar/site/img/' . $name . '.webp') ? $name : '';
+    }
+}
+
 if (!function_exists('tqs_feature_icon')) {
     /**
      * أيقونة الميزة — مشتقة من كلمة في نصّها لا مخترعة.
@@ -1638,9 +1667,19 @@ if (!function_exists('tqs_bundles_dark')) {
                 $h .= '    <span class="p26d-card__badge">الأكثر اختيارا</span>' . "\n";
             }
 
-            /* الرأس: أيقونة الدرجة واسمها ومرحلتها. وصور الطلاب حُذفت
-               بقرار المالك (٢٠٢٦-٠٨-٢٦) — الرأس أنظف بلا صورة صغيرة
-               مقصوصة لا يقرأ منها الزائر شيئا. */
+            /* الغلاف: صورة الباقة بعرض البطاقة فوق اسمها بقرار المالك.
+               زينة لا خبر — `alt` فارغة و`aria-hidden`، فقارئ الشاشة
+               يقرأ اسم الباقة يليها مباشرة ولا يسمع وصف صورة قبله.
+               ولا يحمل `data-stage`: سكربت المراحل يمسك السليل لا الابن
+               المباشر، فسمة كهذه عليه تخفيه مع تبديل المرحلة. */
+            $cover = tqs_plan_img($b['code'], $b['stage']);
+            if ($cover !== '') {
+                $h .= '    <span class="p26d-card__cover" aria-hidden="true">'
+                    . '<img src="' . tq_site_asset('img/' . $cover . '.webp') . '" alt=""'
+                    . ' width="700" height="700" loading="lazy" decoding="async"></span>' . "\n";
+            }
+
+            /* الرأس: أيقونة الدرجة واسمها ومرحلتها. */
             $h .= '    <div class="p26d-card__head">' . "\n";
             $h .= '      <span class="p26d-card__ico" aria-hidden="true">'
                 . '<svg><use href="#' . $ico[$tier] . '"></use></svg></span>' . "\n";

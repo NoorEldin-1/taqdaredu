@@ -140,6 +140,34 @@
   font-size:clamp(10.5px,.8vw,12.5px);line-height:1;
 }
 
+/* ── الغلاف: صورة الباقة بعرض البطاقة فوق اسمها ─────────────────
+   `aspect-ratio` يحجز المساحة قبل وصول الصورة ⇒ صفر قفز في التخطيط.
+   و`cover` لا `contain`: الصور مربّعة والغلاف عريض، فـ`contain` يترك
+   هامضين كبيرين ويصغّر المشهد — وهو ما رُفض حين كانت الصورة صغيرة.
+   والقصّ من 28%: الوجهان في النصف العلوي والأدوات في السفلي. */
+.p26d-card__cover{
+  position:relative;display:block;overflow:hidden;
+  aspect-ratio:3/2;
+  background:var(--beige);
+  border-block-end:2px solid var(--gold);
+}
+.p26d-card__cover img{
+  inline-size:100%;block-size:100%;
+  object-fit:cover;object-position:50% 28%;display:block;
+}
+
+/* تعديلات الرأس **مشروطة بوجود غلاف قبله**: بلا غلاف تبقى البطاقة
+   كما هي حرفًا بحرف، فرفعُ الصور لاحقًا هو ما يبدّل الشكل لا نشر
+   الورقة. والشقيق المجاور `+` لأن الغلاف يسبق الرأس مباشرة. */
+.p26d-card__cover + .p26d-card__head{
+  border-block-end:0;                       /* الحدّ الذهبي انتقل للغلاف */
+  min-block-size:clamp(66px,5.4vw,80px);    /* أوطأ تعويضًا لطول الغلاف */
+}
+/* الشارة صارت فوق الغلاف لا فوق الرأس، فحشوتها التعويضية تصير فراغًا */
+.p26d-card--hot .p26d-card__cover + .p26d-card__head{
+  padding-block-start:clamp(14px,1.2vw,18px);
+}
+
 /* ── الرأس البترولي ─────────────────────────────────────────────
    ارتفاع يكفي لتجلس صورة الطالب على قاعه — والصورة مقصوصة الخلفية
    فتبرز على الأخضر بلا لوح وسيط. */
@@ -275,6 +303,7 @@
 }
 @media (max-width:600px){
   .p26d__grid{grid-template-columns:minmax(0,1fr);max-inline-size:400px}
+  .p26d-card__cover{aspect-ratio:16/9}
 }
 @media (max-width:420px){
   .p26d__cycle-in button{padding:0 13px}

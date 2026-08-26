@@ -187,10 +187,21 @@ if (!function_exists('tqs_cat_cover')) {
         $stage = isset($stages[$cat]) ? $stages[$cat] : '';
 
         if (isset($it['kind']) && $it['kind'] === 'plan') {
+            /* صورة الباقة نفسها التي تعلو بطاقتها في الرئيسية وصفحة
+               الباقات — مصدر واحد للصورة فلا تفترق الصفحات الثلاث.
+               و`tqs_plan_img()` تشتق الدرجة من الرمز وتطبّع المرحلة. */
+            /* الرمز يعيش في الرابط لا في العنصر: `shape()` لا تحمل
+               `code` ولا `stage`، و`href` هي `…/plan/<code>` — فيؤخذ
+               منها، والمرحلة من `cat` (مسمى الفئة الجذر). */
+            if (function_exists('tqs_plan_img')) {
+                $code = basename(rawurldecode((string) parse_url((string) $it['href'], PHP_URL_PATH)));
+                $pi   = ($code !== '') ? tqs_plan_img($code, (string) $it['cat']) : '';
+                if ($pi !== '') return $pi;
+            }
             if ($stage === '') return '';
-            /* غلاف باقة مرسوم إن وجد لمرحلتها، وإلا غلاف المرحلة القائم.
-               والفحص على القرص لا على قائمة مكتوبة: المراحل خمس ولا يبيع
-               الموقع اليوم إلا اثنتين، فقائمة مكتوبة تصدق اليوم وتكذب غدا. */
+            /* وإلا الغلاف المرسوم بالمرحلة كما كان. والفحص على القرص لا
+               على قائمة مكتوبة: المراحل خمس ولا يبيع الموقع اليوم إلا
+               اثنتين، فقائمة مكتوبة تصدق اليوم وتكذب غدا. */
             if (is_file(FCPATH . 'assets/taqdar/site/img/cov-plan-' . $stage . '.webp')) {
                 return 'cov-plan-' . $stage;
             }
