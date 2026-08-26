@@ -110,147 +110,149 @@
   align-items:stretch;
 }
 
-/* ── البطاقة ────────────────────────────────────────────────────── */
+/* ── البطاقة ────────────────────────────────────────────────────
+   على تصميم المالك [٢٠٢٦-٠٨-٢٦]: رأس بترولي يحمل أيقونة الدرجة
+   واسمها وصورة الطالب، وجسم أبيض فيه المزايا بأيقونة لكل سطر،
+   ثم السعر، ثم زرّ واحد. والمميّزة بإطار ذهبي وشريط فوقها.
+   ──────────────────────────────────────────────────────────────── */
 .p26d-card{
   position:relative;display:flex;flex-direction:column;
-  background:var(--paper);border:1px solid var(--gold-line-soft);
-  border-radius:var(--r-card);
-  padding:clamp(16px,1.4vw,22px) clamp(14px,1.2vw,20px) clamp(14px,1.2vw,20px);
+  background:#fff;border:1px solid var(--gold-line-soft);
+  border-radius:var(--r-card);overflow:hidden;
   box-shadow:var(--sh-soft);
-  transition:transform .22s var(--ease),border-color .22s ease,box-shadow .22s ease;
+  transition:transform .22s var(--ease),box-shadow .22s ease,border-color .22s ease;
 }
 .p26d-card:hover{
-  transform:translateY(-4px);border-color:var(--gold-line);
-  box-shadow:var(--sh-card);
+  transform:translateY(-4px);border-color:var(--gold-line);box-shadow:var(--sh-card);
 }
 .p26d-card--hot{
   border:1.5px solid var(--gold);
-  box-shadow:0 18px 40px -22px rgba(160,108,32,.42);
+  box-shadow:0 18px 40px -22px rgba(160,108,32,.45);
 }
 
-/* شارة الأكثر اختيارا */
+/* شارة الأكثر اختيارا — شريط فوق الرأس */
 .p26d-card__badge{
-  position:absolute;inset-block-start:-11px;inset-inline-start:50%;
-  transform:translateX(50%);z-index:3;
-  padding:6px 16px;border-radius:999px;white-space:nowrap;
+  position:absolute;inset-block-start:0;inset-inline:0;z-index:4;
+  display:flex;align-items:center;justify-content:center;
+  block-size:30px;
   background:linear-gradient(180deg,#E7CB90,var(--gold));color:var(--petrol-deep);
   font-family:'Cairo',sans-serif;font-weight:700;
-  font-size:clamp(10px,.78vw,12px);line-height:1;
-  box-shadow:0 6px 14px -8px rgba(160,108,32,.7);
+  font-size:clamp(10.5px,.8vw,12.5px);line-height:1;
 }
 
-/* ── القوس العربي: القناع والإطار نفسهما اللذان في أهيرة الصفحات ── */
-.p26d-card__arch{
-  position:relative;display:block;
-  inline-size:min(100%,208px);margin-inline:auto;
-  filter:drop-shadow(0 14px 24px rgba(5,44,43,.14));
+/* ── الرأس البترولي ─────────────────────────────────────────────
+   ارتفاع يكفي لتجلس صورة الطالب على قاعه — والصورة مقصوصة الخلفية
+   فتبرز على الأخضر بلا لوح وسيط. */
+.p26d-card__head{
+  position:relative;display:flex;align-items:flex-end;gap:8px;
+  min-block-size:clamp(76px,6.4vw,92px);
+  padding:clamp(14px,1.2vw,18px) clamp(14px,1.2vw,18px) clamp(10px,.9vw,14px);
+  background:linear-gradient(150deg,var(--petrol) 0%,var(--petrol-deep) 100%);
+  border-block-end:2px solid var(--gold);
+  overflow:hidden;
 }
-.p26d-card__arch-in{
-  position:relative;display:block;inline-size:100%;aspect-ratio:.82;
-  clip-path:url(#tqArch);
-  background:linear-gradient(180deg,rgba(212,180,118,.26),rgba(250,244,236,.9) 62%);
+.p26d-card--hot .p26d-card__head{padding-block-start:calc(clamp(14px,1.2vw,18px) + 26px)}
+/* الزخرفة العربية على الرأس — البلاطة نفسها التي في التذييل */
+.p26d-card__head::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-color:var(--gold-warm);
+  -webkit-mask-image:url('../img/script-tile.webp');
+  mask-image:url('../img/script-tile.webp');
+  -webkit-mask-size:var(--script-tile) auto;mask-size:var(--script-tile) auto;
+  opacity:.07;
 }
-.p26d-card__arch img{
-  inline-size:100%;block-size:100%;object-fit:cover;object-position:50% 8%;
-  display:block;
+.p26d-card__head>*{position:relative;z-index:1}
+
+.p26d-card__ico{
+  flex:none;display:grid;place-items:center;
+  inline-size:clamp(40px,3.4vw,50px);block-size:clamp(40px,3.4vw,50px);
+  border-radius:50%;color:var(--gold-warm);
+  border:1px solid var(--gold-line);
+  background:radial-gradient(circle at 50% 32%,rgba(212,180,118,.20),rgba(212,180,118,.05));
+  margin-block-end:2px;
 }
-.p26d-card__arch svg.frame{
-  position:absolute;inset:0;inline-size:100%;block-size:100%;pointer-events:none;
+.p26d-card__ico svg{inline-size:52%;block-size:52%;fill:none;stroke:currentColor;stroke-width:1.7}
+
+.p26d-card__title{
+  margin:0 0 3px;color:#fff;min-inline-size:0;
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(14px,1.15vw,17.5px);line-height:1.35;
 }
-.p26d-card__arch svg.frame path{
-  fill:none;stroke:var(--gold);stroke-width:1.4;vector-effect:non-scaling-stroke;
+.p26d-card__stage{
+  display:block;margin-block-start:2px;color:var(--gold-on-dark);font-weight:400;
+  font-size:clamp(10px,.78vw,12px);
 }
 
 /* ── الجسم ──────────────────────────────────────────────────────── */
 .p26d-card__body{
-  display:flex;flex-direction:column;flex:1 1 auto;text-align:center;
-  margin-block-start:clamp(12px,1.1vw,16px);
-}
-.p26d-card__title{
-  margin:0;color:var(--ink);
-  font-family:'Cairo',sans-serif;font-weight:700;
-  font-size:clamp(15px,1.2vw,18.5px);line-height:1.4;
-}
-.p26d-card__stage{
-  display:block;margin-block-start:3px;color:var(--ink-3);font-weight:400;
-  font-size:clamp(10.5px,.8vw,12.5px);
-}
-/* الفاصل تحت العنوان: نجمة ثمانية ذهبية بين خطّين */
-.p26d-card__rule{
-  display:flex;align-items:center;justify-content:center;gap:9px;
-  margin-block-start:clamp(9px,.9vw,13px);
-}
-.p26d-card__rule::before,.p26d-card__rule::after{
-  content:'';inline-size:clamp(28px,3.4vw,52px);block-size:1px;
-  background:linear-gradient(90deg,transparent,var(--gold-line));
-}
-.p26d-card__rule::after{transform:scaleX(-1)}
-.p26d-card__rule svg{
-  inline-size:13px;block-size:13px;aspect-ratio:1;flex:none;color:var(--gold-deep);
+  display:flex;flex-direction:column;flex:1 1 auto;
+  padding:clamp(12px,1.1vw,16px) clamp(14px,1.2vw,18px) clamp(14px,1.2vw,18px);
 }
 
-.p26d-card__price{margin:clamp(9px,.9vw,13px) 0 0;line-height:1}
-.p26d-card__price b{
-  display:block;color:var(--gold-text);
-  font-family:'Cairo',sans-serif;font-weight:700;
-  font-size:clamp(30px,2.8vw,42px);letter-spacing:-.5px;
-  font-variant-numeric:tabular-nums;
-}
-.p26d-card__price span{
-  display:block;margin-block-start:5px;color:var(--ink-3);
-  font-size:clamp(10.5px,.82vw,12.5px);
-}
-.p26d-card__price[hidden]{display:none}
-
+/* `margin-block-end:auto` على القائمة يدفع السعر والزرّ إلى القاع،
+   فتتحاذى الأسعار الثلاثة رغم أن باقةً مزاياها سبع وأخرى ثمان. */
 .p26d-card__list{
-  list-style:none;padding:0;text-align:start;
-  margin:clamp(13px,1.2vw,18px) 0 0;
-  padding-block-start:clamp(12px,1.1vw,16px);
-  border-block-start:1px solid var(--gold-line-soft);
-  display:flex;flex-direction:column;gap:clamp(7px,.7vw,9px);
+  list-style:none;margin:0 0 auto;padding:0;display:flex;flex-direction:column;
 }
 .p26d-card__list li{
-  display:flex;align-items:flex-start;gap:8px;
-  color:var(--ink-2);font-size:clamp(11px,.85vw,12.8px);line-height:1.6;
+  display:flex;align-items:center;gap:10px;
+  padding-block:clamp(7px,.7vw,10px);
+  color:var(--ink-2);font-size:clamp(11px,.85vw,13px);line-height:1.55;
+  border-block-end:1px dashed var(--gold-line-soft);
 }
-.p26d-card__list svg{
-  inline-size:1em;block-size:1em;aspect-ratio:1;flex:none;
-  margin-block-start:.3em;color:var(--emerald);
-  fill:none;stroke:currentColor;stroke-width:2.2;
+.p26d-card__list li:last-child{border-block-end:0}
+.p26d-card__fico{
+  flex:none;display:grid;place-items:center;
+  inline-size:clamp(28px,2.4vw,34px);block-size:clamp(28px,2.4vw,34px);
+  border-radius:50%;background:var(--beige);color:var(--gold-deep);
+}
+.p26d-card__fico svg{
+  inline-size:52%;block-size:52%;fill:none;stroke:currentColor;stroke-width:1.8;
 }
 
+/* السعر: الرقم بطل السطر، والوحدة بجانبه لا تحته */
+.p26d-card__price{
+  display:flex;align-items:baseline;justify-content:center;gap:8px;
+  margin:clamp(12px,1.1vw,16px) 0 0;padding-block-start:clamp(12px,1.1vw,16px);
+  border-block-start:1px solid var(--gold-line-soft);
+}
+.p26d-card__price b{
+  color:var(--petrol);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(30px,2.7vw,40px);line-height:1;letter-spacing:-.5px;
+  font-variant-numeric:tabular-nums;
+}
+.p26d-card__price span{color:var(--ink-3);font-size:clamp(10.5px,.82vw,12.5px)}
+.p26d-card__price[hidden]{display:none}
+
 /* الزرّ ثابت في القاع فتتحاذى الأزرار مهما اختلف طول القوائم */
-.p26d-card__cta{margin-block-start:auto;padding-block-start:clamp(14px,1.3vw,19px)}
+.p26d-card__cta{padding-block-start:clamp(12px,1.1vw,16px)}
 .p26d-card__cta a{
-  display:flex;align-items:center;justify-content:center;
+  display:flex;align-items:center;justify-content:center;gap:8px;
   min-block-size:46px;border-radius:var(--r-btn);text-decoration:none;
   font-family:'Cairo',sans-serif;font-weight:700;
   font-size:clamp(12.5px,.98vw,14.5px);
-  color:var(--petrol);background:transparent;
-  border:1.5px solid var(--gold-line);
-  transition:background .18s ease,border-color .18s ease,transform .18s ease;
+  color:#fff;background:var(--petrol);border:1px solid transparent;
+  transition:background .18s ease,transform .18s ease,filter .18s ease;
 }
-.p26d-card__cta a:hover{
-  background:rgba(201,165,95,.1);border-color:var(--gold);transform:translateY(-2px);
-}
-/* نداء أول واحد لكل شاشة: المميّزة وحدها ممتلئة */
+.p26d-card__cta a:hover{background:var(--petrol-lift);transform:translateY(-2px)}
+.p26d-card__cta svg{inline-size:1em;block-size:1em}
+/* نداء أول واحد لكل شاشة: المميّزة ذهبية */
 .p26d-card--hot .p26d-card__cta a{
-  color:var(--petrol-deep);border-color:transparent;
+  color:var(--petrol-deep);
   background:linear-gradient(180deg,#E7CB90,var(--gold));
   box-shadow:0 10px 22px -14px rgba(160,108,32,.8);
 }
-.p26d-card--hot .p26d-card__cta a:hover{filter:brightness(1.05)}
+.p26d-card--hot .p26d-card__cta a:hover{filter:brightness(1.05);background:linear-gradient(180deg,#EED5A0,#CFAA68)}
 
 /* رابط «ما في هذه الباقة؟» — صفحة الباقات تعرضه تحت الزرّ */
 .p26d-card__more{
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  margin-block-start:10px;min-block-size:32px;text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center;
+  margin-block-start:9px;min-block-size:30px;text-decoration:none;
   color:var(--ink-3);font-family:'Cairo',sans-serif;font-weight:600;
   font-size:clamp(10.5px,.82vw,12.5px);
 }
-.p26d-card__more:hover{color:var(--petrol);text-decoration:underline;
-  text-underline-offset:4px}
-.p26d-card__more svg{inline-size:1em;block-size:1em}
+.p26d-card__more:hover{color:var(--petrol);text-decoration:underline;text-underline-offset:4px}
+
 
 /* رابط «قارن الباقات كاملة» تحت الشبكة */
 .p26d__more{display:flex;justify-content:center;margin-block-start:clamp(18px,2vw,28px)}
@@ -273,7 +275,6 @@
 }
 @media (max-width:600px){
   .p26d__grid{grid-template-columns:minmax(0,1fr);max-inline-size:400px}
-  .p26d-card__arch{inline-size:min(100%,184px)}
 }
 @media (max-width:420px){
   .p26d__cycle-in button{padding:0 13px}
@@ -287,6 +288,18 @@
 /* ══════════════════════════════════════════════════════════════════
    ٢) لماذا تختار منصة تقدر — شريط داكن بخمسة أعمدة
    ══════════════════════════════════════════════════════════════════ */
+/* توكنات اللوح الداكن — كانت على `.p26d,.whyd` معًا، ولمّا صار قسم
+   الباقات فاتحًا حُذفت معه فبقي هذا اللوح يشير إلى متغيّرات لا وجود
+   لها: النص بلا لون فيُقرأ باهتًا. فهي هنا على `.whyd` وحدها. */
+.whyd{
+  --d-bg:#082523;
+  --d-line:rgba(201,165,95,.26);
+  --d-line-hot:rgba(212,180,118,.62);
+  --d-gold:#D4B476;
+  --d-gold-lt:#E9DCC0;              /* 10.9:1 على أرضية اللوح */
+  --d-mute:rgba(233,236,234,.80);   /* 9.1:1 على أرضية اللوح */
+  --d-r:26px;                       /* حواف مشطوفة كبطاقات الموقع */
+}
 .whyd{
   position:relative;isolation:isolate;overflow:hidden;
   border-radius:var(--d-r);

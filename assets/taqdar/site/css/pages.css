@@ -1823,17 +1823,17 @@ a.gate-card:hover{ text-decoration:none }
    النص إلى القاع. فيرتفع السقف **ومعه** حد الشريط الأدنى، وإلا عاد
    ذلك العطب نفسه.
    ══════════════════════════════════════════════════════════════════ */
-/* TQ-CTA-BIGGER — الطفلان كانا يسبحان في شريط أعرض منهما بكثير.
-   الصورة تكبر ويضيق عمودها قليلا حتى تملأ ارتفاع الشريط وتجلس على
-   قاعه. والنسبة 660x990 تجعل العرض هو القيد، فيرفع الاثنان معا. */
-.cta{ min-block-size:clamp(320px,29vw,460px) }
+/* TQ-CTA-FLAT — شريط مستطيل أوطأ بقرار المالك: كان مربّعا تقريبا
+   فأخذ من الصفحة أكثر مما يقول. الأطراف فوق الصورة وتحتها تُقلَّص،
+   والصورة تجلس على القاع فتملأ ما بقي. */
+.cta{ min-block-size:clamp(230px,20vw,300px) }
 .cta__art img{
-  inline-size:min(100%,660px);
-  max-block-size:clamp(380px,42vw,600px)
+  inline-size:min(100%,470px);
+  max-block-size:clamp(250px,25vw,340px)
 }
 @media (max-width:980px){
   .cta{ min-block-size:0 }
-  .cta__art img{ inline-size:min(100%,460px);max-block-size:clamp(280px,50vw,400px) }
+  .cta__art img{ inline-size:min(100%,380px);max-block-size:clamp(220px,38vw,300px) }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -2046,11 +2046,9 @@ a.gate-card:hover{ text-decoration:none }
 .page-hero__lede,.hero__lede,.section-head p,.bundle__note{ text-wrap:pretty }
 h1,h2,h3,.bundle__name{ text-wrap:balance }
 
-/* شعارات الجامعات: `multiply` وحده يبقى هنا — يذيب أرضية الشعار
-   البيضاء في بطاقته البيضاء. وسقف الارتفاع ٥٦px حُذف: كان مهزومًا
-   بالخصوصية فلم يكن يسري، ثم صار يسري بعد ضبط القاعدة الأقوى فحبس
-   الشعار في ٥٦px داخل بطاقة ٩٦px — والقياس في القاعدة الأقوى وحدها. */
-.unislide img{ mix-blend-mode:multiply }
+/* لا `mix-blend-mode` على الشعار: الشعارات الرسمية منها ما أرضيته
+   ملوّنة صلبة (أخضر · كحليّ · أسود)، والمزج يطفئ ألوانها ويجعلها
+   متّسخة على البطاقة البيضاء. تُعرض كما هي. */
 .unislide{display:flex;align-items:center;justify-content:center;padding:10px 14px}
 
 /* صفحة ٤٠٤: نص متوسط وأزرار لا تلتف ٢+١ */

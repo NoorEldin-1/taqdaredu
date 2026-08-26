@@ -1566,21 +1566,47 @@ if (!function_exists('tqs_p26_tier')) {
     }
 }
 
+if (!function_exists('tqs_feature_icon')) {
+    /**
+     * أيقونة الميزة — مشتقة من كلمة في نصّها لا مخترعة.
+     *
+     * مزايا الباقات نصوص حرّة في `plans.features`، والتصميم يطلب أيقونة
+     * لكل سطر. فتُطابق كلمة مفتاحية واحدة، وما لا يُطابق يأخذ علامة
+     * الصحّ — أيقونة محايدة لا تدّعي معنى ليس في النصّ.
+     */
+    function tqs_feature_icon($text)
+    {
+        $map = array(
+            'اختبار' => 'i-clipboard', 'امتحان' => 'i-clipboard',
+            'تقرير'  => 'i-chart',     'تقارير' => 'i-chart',
+            'لوحة'   => 'i-monitor',   'متابعة' => 'i-growth',
+            'دعم'    => 'i-headphones','مادة'   => 'i-book', 'المواد' => 'i-book',
+            'درس'    => 'i-play',      'دروس'   => 'i-play',
+            'مهارات' => 'i-bulb',      'مراجعة' => 'i-quality',
+            'واجب'   => 'i-pen',       'واجبات' => 'i-pen',
+            'خطة'    => 'i-target',    'تمارين' => 'i-list',
+            'رقمية'  => 'i-monitor',   'شهادة'  => 'i-certificate',
+        );
+        foreach ($map as $k => $ico) {
+            if (mb_strpos($text, $k) !== false) return $ico;
+        }
+        return 'i-check';
+    }
+}
+
 if (!function_exists('tqs_bundles_dark')) {
     /**
-     * بطاقات الباقات — بطابع الموقع نفسه (`css/home-dark.css`).
+     * بطاقات الباقات — على تصميم المالك [٢٠٢٦-٠٨-٢٦]: رأس بترولي يحمل
+     * أيقونة الدرجة واسمها، وجسم أبيض فيه المزايا بأيقونة لكل سطر،
+     * ثم السعر، ثم زرّ واحد.
      *
      * نسخة كساء لا نسخة منطق: المصدر `tqs_bundles()` نفسه، والدرجة
-     * والمرحلة والسعر والمزايا تقرأ كما تقرؤها `tqs_p26_cards()` حرفا
+     * والمرحلة والسعر والمزايا تُقرأ كما تقرؤها `tqs_p26_cards()` حرفا
      * بحرف. وما يختلف هو الوسم وحده.
-     *
-     * والصورة داخل **قوس عربي** هو قناع `#tqArch` نفسه الذي تستعمله
-     * أهيرة الصفحات الداخلية، وإطاره الذهبي هو `svg.frame` نفسه —
-     * فالطابع مصدره واحد ولا يُرسم شكل ثانٍ يشبه القوس ولا يطابقه.
      *
      * وسمات التبديل تبقى كما هي (`data-tq-bundles` · `data-stage` ·
      * `hidden` · `data-cycle`): سكربت التبويب ومبدّل الدورة يمسكانها
-     * بالاسم، فتغيير حرف فيها يعطلهما صامتا.
+     * بالاسم، فتغيير حرف فيها يعطّلهما صامتا.
      */
     function tqs_bundles_dark($items = null, $opts = array())
     {
@@ -1595,11 +1621,8 @@ if (!function_exists('tqs_bundles_dark')) {
         $ks     = array_keys($stages);
         $first  = $ks ? $ks[0] : '';
 
-        /* إطار القوس: مسار واحد يكتب مرة ويعاد استعماله — وهو نص
-           `site/site_arch.php` نفسه. */
-        $frame = '<svg class="frame" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
-               . '<path d="M6,100 C2,100 0,98 0,94 L0,46 C0,26 16,9 50,0 C84,9 100,26 100,46'
-               . ' L100,94 C100,98 98,100 94,100 Z"/></svg>';
+        /* أيقونة الدرجة — من سبرايت الموقع، بلا سبرايت ثانٍ */
+        $ico = array('basic' => 'i-book', 'plus' => 'i-badge', 'full' => 'i-rocket');
 
         $h = '<div class="p26d__grid" data-tq-bundles>' . "\n";
         foreach ($items as $b) {
@@ -1615,22 +1638,28 @@ if (!function_exists('tqs_bundles_dark')) {
                 $h .= '    <span class="p26d-card__badge">الأكثر اختيارا</span>' . "\n";
             }
 
-            /* الصورة زينة لا خبر: `alt` فارغة و`aria-hidden` — قارئ الشاشة
-               يقرأ اسم الباقة، ووصف «طالب» قبله لا يزيده معنى. */
-            $h .= '    <span class="p26d-card__arch" aria-hidden="true">'
-                . '<span class="p26d-card__arch-in">'
-                . '<img src="' . tq_site_asset('img/p26-' . $tier . '.webp') . '" alt=""'
-                . ' width="480" height="620" loading="lazy" decoding="async"></span>'
-                . $frame . '</span>' . "\n";
-
-            $h .= '    <div class="p26d-card__body">' . "\n";
+            /* الرأس: أيقونة الدرجة واسمها ومرحلتها. وصور الطلاب حُذفت
+               بقرار المالك (٢٠٢٦-٠٨-٢٦) — الرأس أنظف بلا صورة صغيرة
+               مقصوصة لا يقرأ منها الزائر شيئا. */
+            $h .= '    <div class="p26d-card__head">' . "\n";
+            $h .= '      <span class="p26d-card__ico" aria-hidden="true">'
+                . '<svg><use href="#' . $ico[$tier] . '"></use></svg></span>' . "\n";
             $h .= '      <h3 class="p26d-card__title">' . html_escape(tqs_bundle_tier($b['name']))
                 . '<span class="p26d-card__stage">' . html_escape(tqs_stage_label($b['stage']))
                 . '</span></h3>' . "\n";
-            /* الفاصل نجمة ثمانية بين خطّين — هوية هندسية لا تصويرية،
-               وهي نفسها التي تفصل عناوين الأقسام في الموقع. */
-            $h .= '      <div class="p26d-card__rule" aria-hidden="true">'
-                . '<svg><use href="#i-star8"></use></svg></div>' . "\n";
+            $h .= '    </div>' . "\n";
+
+            $h .= '    <div class="p26d-card__body">' . "\n";
+
+            if (!empty($b['features'])) {
+                $h .= '      <ul class="p26d-card__list">' . "\n";
+                foreach ($b['features'] as $f) {
+                    $h .= '        <li><span class="p26d-card__fico" aria-hidden="true">'
+                        . '<svg><use href="#' . tqs_feature_icon($f) . '"></use></svg></span>'
+                        . '<span>' . html_escape($f) . '</span></li>' . "\n";
+                }
+                $h .= '      </ul>' . "\n";
+            }
 
             /* السعر بنسختين — عرضا لا فوترة: كل الباقات سنوية في القاعدة،
                فالشهري يقول صراحة «تدفع سنويا». */
@@ -1649,22 +1678,14 @@ if (!function_exists('tqs_bundles_dark')) {
                     . '</span></p>' . "\n";
             }
 
-            if (!empty($b['features'])) {
-                $h .= '      <ul class="p26d-card__list">' . "\n";
-                foreach ($b['features'] as $f) {
-                    $h .= '        <li><svg aria-hidden="true"><use href="#i-check"></use></svg>'
-                        . '<span>' . html_escape($f) . '</span></li>' . "\n";
-                }
-                $h .= '      </ul>' . "\n";
-            }
-
             $h .= '      <span class="p26d-card__cta"><a href="'
                 . base_url(($cta === 'checkout' ? 'checkout/' : 'plan/') . $b['code'])
-                . '">اشترك الآن</a></span>' . "\n";
+                . '">اختر هذه الباقة'
+                . '<svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg>'
+                . '</a></span>' . "\n";
             if ($more) {
                 $h .= '      <a class="p26d-card__more" href="' . base_url('plan/' . $b['code'])
-                    . '">ما في هذه الباقة؟'
-                    . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></a>' . "\n";
+                    . '">ما في هذه الباقة؟</a>' . "\n";
             }
             $h .= '    </div>' . "\n";
             $h .= '  </article>' . "\n";
