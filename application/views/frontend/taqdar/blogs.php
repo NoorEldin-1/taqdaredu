@@ -30,6 +30,20 @@ css: pages
           مقالات ونصائح وأفكار تربوية وتعليمية ملهمة لمساعدتك على دعم
           رحلة التعلم لطفلك.
         </p>
+        <div class="hero-mini">
+          <div class="hero-mini__item">
+            <span class="ico"><svg aria-hidden="true"><use href="#i-book"></use></svg></span>
+            <div><b>مقالات ونصائح</b><span>تربوية وتعليمية</span></div>
+          </div>
+          <div class="hero-mini__item">
+            <span class="ico"><svg aria-hidden="true"><use href="#i-bulb"></use></svg></span>
+            <div><b>أفكار ملهمة</b><span>تدعم رحلة التعلم</span></div>
+          </div>
+          <div class="hero-mini__item">
+            <span class="ico"><svg aria-hidden="true"><use href="#i-users"></use></svg></span>
+            <div><b>كتبت لولي الأمر</b><span>خطوات عملية للبيت</span></div>
+          </div>
+        </div>
         <div class="blog-filter">
           <label class="field field--grow">
             <svg aria-hidden="true"><use href="#i-search"></use></svg>

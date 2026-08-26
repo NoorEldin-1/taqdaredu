@@ -44,6 +44,7 @@ css: pages
                والمكتوب هنا هو الافتراضي الذي يعرض ما لم يحرر — فالصفحة
                تعمل بقاعدة فارغة كما تعمل بقاعدة ممتلئة. */ ?>
       <div class="hero__copy reveal">
+        <p class="hero__eyebrow"><?php echo tq_text('home', 'hero_eyebrow', 'منصة تعليمية سعودية'); ?></p>
         <h1><?php echo tq_text('home', 'hero_title_1', 'نبني العقول'); ?><br><?php
             echo tq_text('home', 'hero_title_2', 'ونصنع'); ?>
             <span class="gold"><?php echo tq_text('home', 'hero_title_3', 'المستقبل'); ?></span></h1>
@@ -60,6 +61,26 @@ css: pages
             <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg>
           </a>
         </div>
+      </div>
+
+      <?php /* شريط المميزات: كان أربعة أعمدة تحت الهيرو فحذف لتكراره،
+               ويعود هنا **داخل** الإطار ثلاثة لا أربعة — على الفيديو لا
+               تحته. وحقوله الثلاثة هي نفسها في اللوحة، فما كان يحرر
+               بلا أثر صار له أثر. */ ?>
+      <div class="hero__feats reveal">
+<?php foreach (array(
+    array('i-spark',   'feat_1_t', 'تعلم تفاعلي',    'feat_1_d', 'تجربة ممتعة وفعالة'),
+    array('i-teacher', 'feat_2_t', 'معلمون متميزون', 'feat_2_d', 'ذوو خبرة عالية'),
+    array('i-report',  'feat_3_t', 'متابعة المنهاج', 'feat_3_d', 'تقرير يومي للأهل'),
+) as $tq_f): ?>
+        <div class="hero__feat">
+          <span class="ico"><svg aria-hidden="true"><use href="#<?php echo $tq_f[0]; ?>"></use></svg></span>
+          <div>
+            <b><?php echo tq_text('home', $tq_f[1], $tq_f[2]); ?></b>
+            <span><?php echo tq_text('home', $tq_f[3], $tq_f[4]); ?></span>
+          </div>
+        </div>
+<?php endforeach; ?>
       </div>
     </div>
   </div>

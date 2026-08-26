@@ -1285,7 +1285,10 @@ svg.frame path{fill:none}
   position:relative;isolation:isolate;overflow:hidden;
   border-radius:var(--r-panel);
   min-block-size:clamp(400px,58vh,580px);
-  display:grid;align-items:center;
+  /* صفان لا صف: `align-items:center` وحدها كانت تدفع النص والشريط
+     إلى الوسط معا. الأول `1fr` فيبقى النص متمركزا، والثاني `auto`
+     فيجلس الشريط في القاع بارتفاعه هو. */
+  display:grid;grid-template-rows:1fr auto;align-items:center;
   box-shadow:var(--sh-raise);
   /* TQ-HERO-GOLDRIM — إطار ذهبي خفيف جدا حول مربع الفيديو.
      حلقتان لا واحدة: حد خارجي يرسم الشكل، وحلقة داخلية شفافة
@@ -1334,6 +1337,54 @@ svg.frame path{fill:none}
   display:inline-flex;align-items:center;gap:8px
 }
 .hero--video .btn--ghost-light:hover{background:rgba(255,255,255,.12);border-color:#fff}
+
+/* ── السطر الذهبي وشريط المميزات داخل الإطار ───────────────────── */
+.hero__eyebrow{
+  margin:0 0 10px;font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(12px,1.05vw,15px);letter-spacing:.4px;
+  color:var(--gold-on-dark)
+}
+/* الشريط على الفيديو لا تحته: بطاقة داكنة شفافة تفصل النص عن
+   المشهد المتحرك، وحدها الفاتح يرسم حافتها فوق أي إطار. */
+.hero__feats{
+  margin:0 clamp(20px,3.4vw,52px) clamp(20px,2.6vw,34px);
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;
+  padding:clamp(14px,1.6vw,20px) clamp(10px,1.6vw,22px);
+  border-radius:var(--r-card);
+  background:rgba(1,33,31,.42);border:1px solid rgba(255,255,255,.16);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)
+}
+.hero__feat{
+  position:relative;display:flex;align-items:center;gap:11px;
+  padding-inline:clamp(8px,1.2vw,18px);min-inline-size:0
+}
+/* فاصل بين عمودين لا حول الشريط — كأسلوب `.stat-strip__item` */
+.hero__feat+.hero__feat::after{
+  content:'';position:absolute;inset-inline-end:100%;inset-block:14%;
+  inline-size:1px;background:rgba(255,255,255,.18)
+}
+.hero__feat .ico{
+  flex:0 0 auto;inline-size:clamp(36px,2.9vw,44px);aspect-ratio:1;border-radius:50%;
+  display:grid;place-items:center;color:var(--gold-warm);
+  background:rgba(255,255,255,.06);border:1px solid rgba(212,180,118,.55)
+}
+.hero__feat .ico svg{inline-size:48%;block-size:48%}
+.hero__feat>div{min-inline-size:0}
+.hero__feat b{
+  display:block;font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(12.5px,1vw,15px);color:#fff;line-height:1.5
+}
+.hero__feat span{
+  display:block;font-size:clamp(11px,.85vw,13px);
+  color:rgba(255,255,255,.72);line-height:1.5
+}
+@media (max-width:980px){
+  .hero__feats{
+    grid-template-columns:minmax(0,1fr);gap:12px;
+    margin-inline:clamp(14px,3vw,24px);margin-block-end:clamp(16px,3vw,24px)
+  }
+  .hero__feat+.hero__feat::after{display:none}
+}
 
 /* ── القادم قريبا ──────────────────────────────────────────────── */
 .section--tint{background:var(--beige)}
@@ -2085,9 +2136,10 @@ a.gate-card:hover{ text-decoration:none }
 }
 .form-remember input{inline-size:17px;block-size:17px;accent-color:var(--petrol);flex:none}
 
-/* زر إيقاف الفيديو — ركن لا يزاحم النص */
+/* زر إيقاف الفيديو — ركن لا يزاحم النص. وصار أعلى الإطار بعد أن
+   شغل شريط المميزات قاعه: زر يجلس فوق نص يخفيه. */
 .hero__vtoggle{
-  position:absolute;inset-block-end:16px;inset-inline-end:16px;z-index:3;
+  position:absolute;inset-block-start:16px;inset-inline-end:16px;z-index:3;
   inline-size:40px;block-size:40px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;cursor:pointer;
   background:rgba(1,33,31,.55);border:1px solid rgba(255,255,255,.28);color:#fff;

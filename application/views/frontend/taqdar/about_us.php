@@ -21,7 +21,19 @@ css: pages
           <?php echo tq_text('about_us', 'hero_lede',
               'تقدر منصة تعليمية سعودية رائدة تهدف إلى تقديم تجربة تعلم متكاملة تجمع بين الجودة والتقنية والقيم، لنسهم في بناء جيل واع ومبدع وقادر على صناعة المستقبل.'); ?>
         </p>
-        <div class="page-hero__cta">
+        <div class="hero-mini">
+          <div class="hero-mini__item">
+            <span class="ico"><svg aria-hidden="true"><use href="#i-badge"></use></svg></span>
+            <div><b>مناهج معتمدة</b><span>وفق المنهج الرسمي</span></div>
+          </div>
+          <div class="hero-mini__item">
+            <span class="ico"><svg aria-hidden="true"><use href="#i-teacher"></use></svg></span>
+            <div><b>معلمون متخصصون</b><span>لكل مادة وصف</span></div>
+          </div>
+          <div class="hero-mini__item">
+            <span class="ico"><svg aria-hidden="true"><use href="#i-report"></use></svg></span>
+            <div><b>تقارير لولي الأمر</b><span>أولا بأول</span></div>
+          </div>
         </div>
       </div>
 

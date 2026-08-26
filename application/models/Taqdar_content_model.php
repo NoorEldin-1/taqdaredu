@@ -56,6 +56,8 @@ class Taqdar_content_model extends CI_Model
                 'icon'   => 'home',
                 'lead'   => 'أول ما يراه الزائر: الهيرو وشريط المميزات.',
                 'fields' => array(
+                    'hero_eyebrow'  => array('label' => 'السطر الذهبي فوق العنوان', 'type' => 'label',
+                                             'default' => 'منصة تعليمية سعودية'),
                     'hero_title_1'  => array('label' => 'العنوان — السطر الأول', 'type' => 'line',
                                              'default' => 'نبني العقول'),
                     'hero_title_2'  => array('label' => 'العنوان — السطر الثاني', 'type' => 'line',
@@ -69,14 +71,14 @@ class Taqdar_content_model extends CI_Model
                                              'default' => 'ابدأ رحلة التعلم'),
                     'hero_cta_2'    => array('label' => 'الزر الثاني', 'type' => 'label',
                                              'default' => 'تصفح البرامج'),
-                    'feat_1_t'      => array('label' => 'الميزة الأولى — العنوان', 'type' => 'label', 'default' => 'مناهج معتمدة'),
-                    'feat_1_d'      => array('label' => 'الميزة الأولى — الوصف', 'type' => 'label', 'default' => 'وفق أحدث المعايير'),
-                    'feat_2_t'      => array('label' => 'الميزة الثانية — العنوان', 'type' => 'label', 'default' => 'تعلم تفاعلي'),
-                    'feat_2_d'      => array('label' => 'الميزة الثانية — الوصف', 'type' => 'label', 'default' => 'تجربة ممتعة وفعالة'),
-                    'feat_3_t'      => array('label' => 'الميزة الثالثة — العنوان', 'type' => 'label', 'default' => 'معلمون متميزون'),
-                    'feat_3_d'      => array('label' => 'الميزة الثالثة — الوصف', 'type' => 'label', 'default' => 'ذوو خبرة عالية'),
-                    'feat_4_t'      => array('label' => 'الميزة الرابعة — العنوان', 'type' => 'label', 'default' => 'متابعة مستمرة'),
-                    'feat_4_d'      => array('label' => 'الميزة الرابعة — الوصف', 'type' => 'label', 'default' => 'تقارير دورية للأهالي'),
+                    /* ثلاث لا أربع: شريط الهيرو ثلاثة أعمدة، وحقل بلا
+                       أثر في الصفحة يضلل من يحرره. */
+                    'feat_1_t'      => array('label' => 'الميزة الأولى — العنوان', 'type' => 'label', 'default' => 'تعلم تفاعلي'),
+                    'feat_1_d'      => array('label' => 'الميزة الأولى — الوصف', 'type' => 'label', 'default' => 'تجربة ممتعة وفعالة'),
+                    'feat_2_t'      => array('label' => 'الميزة الثانية — العنوان', 'type' => 'label', 'default' => 'معلمون متميزون'),
+                    'feat_2_d'      => array('label' => 'الميزة الثانية — الوصف', 'type' => 'label', 'default' => 'ذوو خبرة عالية'),
+                    'feat_3_t'      => array('label' => 'الميزة الثالثة — العنوان', 'type' => 'label', 'default' => 'متابعة المنهاج'),
+                    'feat_3_d'      => array('label' => 'الميزة الثالثة — الوصف', 'type' => 'label', 'default' => 'تقرير يومي للأهل'),
                 ),
             ),
 
