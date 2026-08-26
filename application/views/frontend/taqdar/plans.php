@@ -51,8 +51,8 @@ foreach ((array) $tq_ci->tq_b->plans(true) as $tq_p) {
         فالشهريّ يعرض المعادل ومعه «تدفع سنويا». */ ?>
       <div class="p26d__cycle">
         <div class="p26d__cycle-in" role="group" aria-label="دورة عرض السعر">
-          <button type="button" data-tq-cycle="year" aria-pressed="true">سنوي<span class="p26d__cycle-save">الأوفر</span></button>
-          <button type="button" data-tq-cycle="month" aria-pressed="false">شهري</button>
+          <button type="button" data-tq-cycle="year" aria-pressed="false">سنوي<span class="p26d__cycle-save">وفر 20%</span></button>
+          <button type="button" data-tq-cycle="month" aria-pressed="true">شهري</button>
         </div>
       </div>
     </div>

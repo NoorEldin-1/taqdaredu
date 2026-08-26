@@ -1101,6 +1101,35 @@ if (!function_exists('tqs_date_ar')) {
    الباقة — سعرها ومدتها ومنهجها وبيانات تحويلها
    ═══════════════════════════════════════════════════════════════════ */
 
+if (!function_exists('tqs_plan_cycle')) {
+    /**
+     * سعرا الباقة: الشهريّ المعروض والسنويّ المدفوع — من رقم واحد.
+     *
+     * القاعدة تخزّن **السنويّ** (وهو ما تحصّله البوّابة حرفًا بحرف:
+     * `plans.price` ⟵ `subscriptions.price` ⟵ `invoices.total` ⟵ تاب).
+     * والشهريّ المعروض هو أصله قبل الخصم — فلا يُشتقّ بالقسمة على
+     * اثني عشر: القسمة تعطي 319 لا 399 لأن الخصم مطبَّق في المخزَّن.
+     * الاشتقاق الصحيح `السنويّ ÷ (12 × (1 − الخصم))`، وقد تحقّقت
+     * العودة على الأسعار الثلاثة: 3830 ⟵ 399 · 5750 ⟵ 599 · 6710 ⟵ 699.
+     *
+     * والخصم ثابت واحد هنا: كتابته في كل موضع عرض تجعل تغييره خمسة
+     * تعديلات يُنسى أحدها فيعرض رقمين متناقضين في صفحتين.
+     */
+    function tqs_plan_cycle($halalas)
+    {
+        $off   = 0.20;                              /* نسبة خصم الدفع السنويّ */
+        $year  = (int) round(((int) $halalas) / 100);
+        $div   = 12 * (1 - $off);
+        $month = ($div > 0) ? (int) round($year / $div) : 0;
+        return array(
+            'year'  => $year,
+            'month' => $month,
+            'save'  => max(0, $month * 12 - $year),
+            'off'   => (int) round($off * 100),
+        );
+    }
+}
+
 if (!function_exists('tqs_money')) {
     /**
      * السعر من الهللات إلى ريال مقروء.
@@ -1700,21 +1729,29 @@ if (!function_exists('tqs_bundles_dark')) {
                 $h .= '      </ul>' . "\n";
             }
 
-            /* السعر بنسختين — عرضا لا فوترة: كل الباقات سنوية في القاعدة،
-               فالشهري يقول صراحة «تدفع سنويا». */
-            $tq_sar   = (int) round($b['price'] / 100);
-            $tq_year  = ($b['days'] >= 360);
-            $tq_month = $tq_year ? (int) round($tq_sar / 12) : 0;
+            /* السعر بنسختين — **عرضٌ لا فوترة**: المنصّة لا تعرف اشتراكا
+               شهريّا متكرّرا (لا تجديد تلقائيّ ولا خصم متكرّر ولا حفظ
+               بطاقة)، فالشهريّ معادلٌ يُعرض والدفعة سنويّة واحدة —
+               ولذلك يقترن بسطر «تدفع سنويا …» يمنع مفاجأة شاشة الدفع.
+               والافتراضيّ هو الشهريّ بقرار المالك. */
+            $tq_year = ($b['days'] >= 360);
+            $tq_c    = tqs_plan_cycle($b['price']);
 
-            $h .= '      <p class="p26d-card__price" data-cycle="year">'
-                . '<b class="tq-ltr">' . number_format($tq_sar) . '</b>'
-                . '<span>ر.س / ' . ($tq_year ? 'سنويا' : 'كل ' . (int) $b['days'] . ' يوما')
-                . '</span></p>' . "\n";
             if ($tq_year) {
-                $h .= '      <p class="p26d-card__price" data-cycle="month" hidden>'
-                    . '<b class="tq-ltr">' . number_format($tq_month) . '</b>'
-                    . '<span>ر.س / شهريا — تدفع سنويا ' . number_format($tq_sar) . ' ر.س'
+                $h .= '      <p class="p26d-card__price" data-cycle="month">'
+                    . '<b class="tq-ltr">' . number_format($tq_c['month']) . '</b>'
+                    . '<span>ر.س / شهريا — تدفع سنويا ' . number_format($tq_c['year']) . ' ر.س'
                     . '</span></p>' . "\n";
+                $h .= '      <p class="p26d-card__price" data-cycle="year" hidden>'
+                    . '<b class="tq-ltr">' . number_format($tq_c['year']) . '</b>'
+                    . '<span>ر.س / سنويا — بدل ' . number_format($tq_c['month'] * 12)
+                    . '، وفرت ' . number_format($tq_c['save']) . ' ر.س'
+                    . '</span></p>' . "\n";
+            } else {
+                /* باقة بمدّة غير سنويّة: لا معادل شهريّ يُحسب لها. */
+                $h .= '      <p class="p26d-card__price" data-cycle="month">'
+                    . '<b class="tq-ltr">' . number_format($tq_c['year']) . '</b>'
+                    . '<span>ر.س / كل ' . (int) $b['days'] . ' يوما</span></p>' . "\n";
             }
 
             $h .= '      <span class="p26d-card__cta"><a href="'
