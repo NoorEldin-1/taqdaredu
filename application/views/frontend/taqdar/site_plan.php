@@ -287,6 +287,19 @@ $tier  = tqs_bundle_tier($b['name']);
                     echo $promo['duration'] !== '' ? ' · ' . html_escape($promo['duration']) : ''; ?></i>
               </span>
             </a>
+            <?php
+            /* المشغّل في `<template>`: محتواه خامل فلا يحمّل الإطار قبل
+               النقر، فلا تدفع الصفحة ثمن فيديو قد لا يفتح. والسكربت
+               ينقله مكان الصورة عند النقر. وبلا سكربت يبقى الرابط
+               عاملا كما هو — لا زر يعد بما لا يفتح. */
+            $tq_pv = tqs_video_embed(
+                isset($promo['vtype']) ? $promo['vtype'] : '',
+                isset($promo['vurl'])  ? $promo['vurl']  : '',
+                $promo['title']);
+            ?>
+            <?php if ($tq_pv !== ''): ?>
+              <template data-tq-inline-video><?php echo $tq_pv; ?></template>
+            <?php endif; ?>
           <?php else: ?>
             <div class="plan-card__media">
               <img src="<?php echo tqs_asset_img($b['image'], 'path-primary'); ?>" alt=""
@@ -295,10 +308,120 @@ $tier  = tqs_bundle_tier($b['name']);
           <?php endif; ?>
         <?php endif; ?>
 
-        <p class="plan-card__price">
-          <?php echo tqs_money($b['price']); ?>
-          <small><?php echo html_escape(tqs_period_label($b['days'])); ?></small>
-        </p>
+        <?php
+        /* **عرض لا فوترة**: القاعدة تحفظ السعر السنويّ، والشهريّ معادله
+           المعروض ومعه «تدفع سنويا». والمدفوع لا يتغير بحرف — ولذلك لا
+           يمس هذا المبدّل الزر ولا الرابط ولا الخادم. والافتراضيّ شهريّ
+           بقرار المالك، وبلا سكربت يبقى الشهريّ ظاهرا وهو المطلوب.
+           والباقة غير السنويّة لا معادل شهريّ لها فتبقى بفقرة واحدة. */
+        $tq_cyc = tqs_plan_cycle($b['price']);
+        $tq_yr  = ((int) $b['days'] >= 360);
+        ?>
+        <?php if ($tq_yr): ?>
+          <div class="plan-cycle" role="group" aria-label="دورة عرض السعر">
+            <button type="button" data-tq-cycle="year" aria-pressed="false">سنوي<span class="plan-cycle__save">وفر <span class="tq-ltr">20%</span></span></button>
+            <button type="button" data-tq-cycle="month" aria-pressed="true">شهري</button>
+          </div>
+          <p class="plan-card__price" data-cycle="month">
+            <b class="tq-ltr"><?php echo number_format($tq_cyc['month']); ?></b> <span>ر.س</span>
+            <small>شهريا — تدفع سنويا <span class="tq-ltr"><?php echo number_format($tq_cyc['year']); ?></span> ر.س</small>
+          </p>
+          <p class="plan-card__price" data-cycle="year" hidden>
+            <b class="tq-ltr"><?php echo number_format($tq_cyc['year']); ?></b> <span>ر.س</span>
+            <small><?php echo html_escape(tqs_period_label($b['days'])); ?></small>
+          </p>
+        <?php else: ?>
+          <p class="plan-card__price">
+            <?php echo tqs_money($b['price']); ?>
+            <small><?php echo html_escape(tqs_period_label($b['days'])); ?></small>
+          </p>
+        <?php endif; ?>
+
+<?php if ($uid <= 0): ?>
+<?php
+/* TQ-PLAN-AUTH — «اشترك» كان ينقل الزائر إلى صفحة دخول ثم **لا يعيده**:
+   `checkout()` يكتب `tq_next` و`?next=` ولا أحد يقرؤهما، و`url_history`
+   لا يكتب لأنها لا تمر بـ`tq_guard`. فالوعد المكتوب تحت الزر مكسور.
+
+   والنافذة هنا **عرض لا منطق**: النموذجان يرسلان إلى `login/register`
+   و`login/validate_login` كما هما، بحقولهما نفسها، وCSRF يحقن آليا في
+   كل `<form method=post>`. فلا مسار جديد ولا لمس لمنطق الدخول ولا
+   للدفع. وبلا سكربت يعمل الزر كما كان بالضبط. */
+$tq_grades = array();
+$tq_gq = $this->db->select('id, name_ar', false)->from('grades')
+                  ->where('active', 1)->order_by('id', 'ASC')->get();
+if ($tq_gq) $tq_grades = $tq_gq->result_array();
+?>
+<dialog class="tq-auth" data-tq-auth data-tq-next="<?php echo html_escape('checkout/' . $b['code']); ?>"
+        aria-label="الدخول أو إنشاء حساب">
+  <button class="tq-auth__x" type="button" data-tq-auth-close aria-label="إغلاق">
+    <svg aria-hidden="true"><use href="#i-close"></use></svg>
+  </button>
+
+  <p class="tq-auth__lede">
+    خطوة واحدة قبل الدفع: <b><?php echo html_escape($b['name']); ?></b>
+  </p>
+
+  <div class="tq-auth__tabs" role="group" aria-label="اختر طريقة المتابعة">
+    <button type="button" data-tq-auth-tab="new"  aria-pressed="true">حساب جديد</button>
+    <button type="button" data-tq-auth-tab="have" aria-pressed="false">لدي حساب</button>
+  </div>
+
+  <form class="tq-auth__form" data-tq-auth-pane="new"
+        action="<?php echo site_url('login/register'); ?>" method="post">
+    <input type="hidden" name="tq_gate" value="student">
+    <div class="tq-auth__row">
+      <label><span>الاسم الأول</span>
+        <input type="text" name="first_name" required minlength="2" maxlength="40" autocomplete="given-name"></label>
+      <label><span>اسم العائلة</span>
+        <input type="text" name="last_name" required minlength="2" maxlength="40" autocomplete="family-name"></label>
+    </div>
+    <label><span>البريد الإلكتروني</span>
+      <input type="email" name="email" required maxlength="50" autocomplete="email"></label>
+    <div class="tq-auth__row">
+      <label><span>كلمة المرور</span>
+        <input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+      <label><span>تأكيد كلمة المرور</span>
+        <input type="password" name="password_confirm" required minlength="8" autocomplete="new-password"></label>
+    </div>
+    <div class="tq-auth__row">
+      <label><span>عمر الطالب</span>
+        <input type="number" name="age" required min="5" max="99" inputmode="numeric"></label>
+      <label><span>الصف</span>
+        <select name="grade_id" required>
+          <option value="">اختر الصف</option>
+<?php foreach ($tq_grades as $tq_g): ?>
+          <option value="<?php echo (int) $tq_g['id']; ?>"><?php echo html_escape($tq_g['name_ar']); ?></option>
+<?php endforeach; ?>
+        </select></label>
+    </div>
+    <label><span>بريد ولي الأمر <i>— يلزم إن كان عمر الطالب أقل من ١٥</i></span>
+      <input type="email" name="guardian_email" maxlength="190" autocomplete="email"></label>
+    <label class="tq-auth__terms">
+      <input type="checkbox" name="accept_terms" value="1" required>
+      <span>أوافق على <a href="<?php echo base_url('terms'); ?>" target="_blank" rel="noopener">الشروط والأحكام</a>
+        و<a href="<?php echo base_url('privacy'); ?>" target="_blank" rel="noopener">سياسة الخصوصية</a></span>
+    </label>
+    <button class="btn btn--primary btn--block" type="submit">أنشئ الحساب وتابع</button>
+    <p class="tq-caption tq-auth__note">
+      سيصلك رمز تأكيد على بريدك. وبعد تأكيده تعود إلى هذه الباقة لإتمام الدفع.
+    </p>
+  </form>
+
+  <form class="tq-auth__form" data-tq-auth-pane="have" hidden
+        action="<?php echo site_url('login/validate_login'); ?>" method="post">
+    <input type="hidden" name="tq_gate" value="student">
+    <label><span>البريد الإلكتروني</span>
+      <input type="email" name="email" required autocomplete="email"></label>
+    <label><span>كلمة المرور</span>
+      <input type="password" name="password" required autocomplete="current-password"></label>
+    <button class="btn btn--primary btn--block" type="submit">ادخل وتابع</button>
+    <p class="tq-caption tq-auth__note">
+      <a href="<?php echo base_url('forgot_password'); ?>">نسيت كلمة المرور؟</a>
+    </p>
+  </form>
+</dialog>
+<?php endif; ?>
 
         <?php if ($owns): ?>
           <p class="plan-card__owned">
@@ -402,10 +525,23 @@ $tier  = tqs_bundle_tier($b['name']);
     <h2>ابدأ سنة ابنك من اليوم</h2>
     <p class="plan-cta__lead"><?php echo html_escape($b['name']); ?></p>
 
-    <p class="plan-cta__price">
-      <?php echo tqs_money($b['price']); ?>
-      <small><?php echo html_escape(tqs_period_label($b['days'])); ?></small>
-    </p>
+    <?php /* يتبع المبدّل الذي في بطاقة الشراء — مبدّلان في صفحة واحدة
+             يسألان السؤال نفسه مرتين. */ ?>
+    <?php if ($tq_yr): ?>
+      <p class="plan-cta__price" data-cycle="month">
+        <b class="tq-ltr"><?php echo number_format($tq_cyc['month']); ?></b> <span>ر.س</span>
+        <small>شهريا — تدفع سنويا <span class="tq-ltr"><?php echo number_format($tq_cyc['year']); ?></span> ر.س</small>
+      </p>
+      <p class="plan-cta__price" data-cycle="year" hidden>
+        <b class="tq-ltr"><?php echo number_format($tq_cyc['year']); ?></b> <span>ر.س</span>
+        <small><?php echo html_escape(tqs_period_label($b['days'])); ?></small>
+      </p>
+    <?php else: ?>
+      <p class="plan-cta__price">
+        <?php echo tqs_money($b['price']); ?>
+        <small><?php echo html_escape(tqs_period_label($b['days'])); ?></small>
+      </p>
+    <?php endif; ?>
 
     <div class="plan-cta__acts">
       <a class="btn btn--gold" href="<?php echo base_url('checkout/' . $b['code']); ?>">اشترك الآن</a>

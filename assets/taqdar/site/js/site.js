@@ -1169,21 +1169,149 @@ document.documentElement.classList.add('js');
    ولو لم يعمل هذا السكربت بقي السعر السنويّ ظاهرًا — وهو الصحيح.
    ══════════════════════════════════════════════════════════════════ */
 (function () {
+  /* الأكسية الأربعة: `.p26-card__price` في صفحة الباقات البيضاء،
+     و`.p26d-card__price` في الكتلة الداكنة بالرئيسية، و`.plan-card__price`
+     و`.plan-cta__price` في صفحة الباقة المفردة. */
+  var SEL = '.p26-card__price[data-cycle],.p26d-card__price[data-cycle],' +
+            '.plan-card__price[data-cycle],.plan-cta__price[data-cycle]';
+  var KEY  = 'tq-cycle';
   var btns = document.querySelectorAll('[data-tq-cycle]');
-  if (!btns.length) return;
+  if (!btns.length && !document.querySelector(SEL)) return;
+
   function apply(cycle) {
     Array.prototype.forEach.call(btns, function (b) {
       b.setAttribute('aria-pressed', String(b.getAttribute('data-tq-cycle') === cycle));
     });
-    /* الكساءان معًا: `.p26-card__price` في صفحة الباقات البيضاء،
-       و`.p26d-card__price` في الكتلة الداكنة بالرئيسية. */
-    var prices = document.querySelectorAll(
-      '.p26-card__price[data-cycle],.p26d-card__price[data-cycle]');
-    Array.prototype.forEach.call(prices, function (p) {
+    Array.prototype.forEach.call(document.querySelectorAll(SEL), function (p) {
       p.hidden = (p.getAttribute('data-cycle') !== cycle);
     });
   }
+
+  /* الاختيار يعبر الصفحات: من بدّل إلى السنويّ في «الباقات» يجد
+     السنويّ في صفحة الباقة نفسها. وتخزين المتصفّح قد يرمي في وضع
+     التصفّح الخاص، فكل مساس به داخل `try`. */
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  if (saved === 'year' || saved === 'month') apply(saved);
+
   Array.prototype.forEach.call(btns, function (b) {
-    b.addEventListener('click', function () { apply(b.getAttribute('data-tq-cycle')); });
+    b.addEventListener('click', function () {
+      var c = b.getAttribute('data-tq-cycle');
+      apply(c);
+      try { localStorage.setItem(KEY, c); } catch (e) {}
+    });
   });
+})();
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-PLAN-PREVIEW · معاينة الباقة تشتغل في مربّعها
+   الرابط يبقى رابطًا: من لا يعمل عنده هذا السكربت يذهب إلى صفحة
+   المعاينة كما كان. والقالب خامل فلا يحمّل الإطار قبل النقر.
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+  var link = document.querySelector('a.plan-card__media--promo');
+  if (!link || !link.parentNode) return;
+  var tpl = link.parentNode.querySelector('template[data-tq-inline-video]');
+  if (!tpl || !('content' in tpl)) return;   /* بلا مقطع: الرابط كما هو */
+
+  link.addEventListener('click', function (e) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;  /* فتح في تبويب */
+    e.preventDefault();
+
+    var box = document.createElement('div');
+    box.className = 'plan-promo__player';
+    box.appendChild(tpl.content.cloneNode(true));
+
+    var media = box.querySelector('iframe, video');
+    if (media && media.tagName === 'IFRAME') {
+      /* النقرة تجيز التشغيل — وبلا `autoplay` يقف المشغّل عند شاشته
+         فيحتاج الزائر نقرة ثانية داخل إطار ليس لنا. */
+      var src = media.getAttribute('src') || '';
+      if (src.indexOf('autoplay=') === -1) {
+        media.setAttribute('src', src + (src.indexOf('?') === -1 ? '?' : '&') + 'autoplay=1');
+      }
+    }
+
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'plan-promo__close';
+    close.setAttribute('aria-label', 'إغلاق المعاينة');
+    close.innerHTML = '<svg aria-hidden="true"><use href="#i-close"></use></svg>';
+    box.appendChild(close);
+
+    link.hidden = true;
+    link.parentNode.insertBefore(box, link);
+
+    close.addEventListener('click', function () {
+      /* إزالة العقدة لا إيقافها: إطار مخفي يبقى يصدح. */
+      if (box.parentNode) box.parentNode.removeChild(box);
+      link.hidden = false;
+      link.focus();
+    });
+
+    if (media && media.tagName === 'VIDEO') {
+      var g = media.play();
+      if (g && g.catch) g.catch(function () {});
+    }
+  });
+})();
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-PLAN-AUTH · الدخول أو التسجيل في صفحة الباقة نفسها
+   النموذجان يرسلان إلى مسارَي الموقع القائمين بحقولهما نفسها — فلا
+   شيء هنا يمس الدخول ولا الدفع. وبلا سكربت يعمل الزر كما كان.
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+  var dlg = document.querySelector('dialog[data-tq-auth]');
+  if (!dlg || !dlg.showModal) return;              /* متصفّح بلا `<dialog>` */
+  var next = dlg.getAttribute('data-tq-next') || '';
+
+  function panes(which) {
+    var t = dlg.querySelectorAll('[data-tq-auth-tab]');
+    Array.prototype.forEach.call(t, function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-tq-auth-tab') === which));
+    });
+    var p = dlg.querySelectorAll('[data-tq-auth-pane]');
+    Array.prototype.forEach.call(p, function (f) {
+      f.hidden = (f.getAttribute('data-tq-auth-pane') !== which);
+    });
+  }
+  Array.prototype.forEach.call(dlg.querySelectorAll('[data-tq-auth-tab]'), function (b) {
+    b.addEventListener('click', function () { panes(b.getAttribute('data-tq-auth-tab')); });
+  });
+  var x = dlg.querySelector('[data-tq-auth-close]');
+  if (x) x.addEventListener('click', function () { dlg.close(); });
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+
+  /* الوجهة تحفظ قبل المغادرة: الخادم لا يعرف من أين جاء الزائر —
+     `tq_next` يكتب ولا يقرأ. ومفتاح الجلسة يمحى بعد أول قفزة. */
+  Array.prototype.forEach.call(dlg.querySelectorAll('form'), function (f) {
+    f.addEventListener('submit', function () {
+      try { sessionStorage.setItem('tq-after-auth', next); } catch (err) {}
+    });
+  });
+
+  var links = document.querySelectorAll('a[href*="/checkout/"]');
+  Array.prototype.forEach.call(links, function (a) {
+    a.addEventListener('click', function (e) {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+      e.preventDefault();
+      panes('new');
+      dlg.showModal();
+      var first = dlg.querySelector('[data-tq-auth-pane="new"] input');
+      if (first) first.focus();
+    });
+  });
+})();
+
+/* العودة إلى ما كان الزائر يشتريه، بعد أن تصير له جلسة.
+   والإشارة من الترويسة نفسها: غير الداخل وحده يرى رابط «إنشاء حساب». */
+(function () {
+  var back = null;
+  try { back = sessionStorage.getItem('tq-after-auth'); } catch (e) { return; }
+  if (!back) return;
+  if (document.querySelector('.header-actions a[href$="/sign_up"]')) return;  /* لا جلسة بعد */
+  try { sessionStorage.removeItem('tq-after-auth'); } catch (e) {}
+  var to = location.origin + '/' + String(back).replace(/^\/+/, '');
+  if (location.href.indexOf(to) !== 0) location.replace(to);
 })();
