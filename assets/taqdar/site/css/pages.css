@@ -2411,6 +2411,101 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
   .plan-card__media--promo img,.plan-promo__play{transition:none}
   .plan-card__media--promo:hover img{transform:none}
 }
+/* ── معاينة الباقة في مربّعها ───────────────────────────────────── */
+.plan-promo__player{
+  position:relative;aspect-ratio:16/9;overflow:hidden;
+  border-radius:var(--r-card);background:#0B2B2E
+}
+.plan-promo__player iframe,.plan-promo__player video{
+  position:absolute;inset:0;inline-size:100%;block-size:100%;border:0;display:block
+}
+.plan-promo__close{
+  position:absolute;inset-block-start:10px;inset-inline-end:10px;z-index:2;
+  inline-size:34px;block-size:34px;border-radius:50%;cursor:pointer;
+  display:grid;place-items:center;
+  background:rgba(1,33,31,.62);border:1px solid rgba(255,255,255,.28);color:#fff;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)
+}
+.plan-promo__close svg{inline-size:15px;block-size:15px}
+.plan-promo__close:hover{background:rgba(1,33,31,.86)}
+/* ── مبدّل دورة السعر في صفحة الباقة ────────────────────────────── */
+/* `home-dark.css` (وفيها `.p26d__cycle`) لا تحمّل على `site_plan`،
+   فالتنسيق هنا لا مستورد. */
+.plan-cycle{
+  display:inline-flex;align-items:center;gap:4px;margin-block-end:12px;
+  padding:4px;border-radius:999px;
+  background:var(--beige);border:1px solid var(--gold-line-soft)
+}
+.plan-cycle button{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  padding:6px 15px;border-radius:999px;background:transparent;border:0;
+  color:var(--ink-2);font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(11.5px,.85vw,13px);
+  transition:background var(--t-route) var(--ease),color var(--t-route) var(--ease)
+}
+.plan-cycle button[aria-pressed="true"]{background:var(--petrol);color:#fff}
+.plan-cycle__save{
+  padding:1px 7px;border-radius:999px;font-size:.82em;font-weight:700;
+  background:var(--gold-line-soft);color:var(--gold-text)
+}
+.plan-cycle button[aria-pressed="true"] .plan-cycle__save{
+  background:rgba(212,180,118,.3);color:var(--gold-warm)
+}
+.plan-card__price[hidden],.plan-cta__price[hidden]{display:none}
+/* ── نافذة الدخول/التسجيل في صفحة الباقة ───────────────────────── */
+.tq-auth{
+  inline-size:min(560px,92vw);max-block-size:88vh;padding:0;overflow:auto;
+  border:1px solid var(--gold-line);border-radius:var(--r-panel);
+  background:var(--paper);color:var(--ink);box-shadow:var(--sh-raise)
+}
+.tq-auth::backdrop{background:rgba(1,33,31,.62);backdrop-filter:blur(3px)}
+.tq-auth>*{margin-inline:clamp(18px,3vw,30px)}
+.tq-auth__x{
+  position:sticky;inset-block-start:12px;inset-inline-start:12px;z-index:2;
+  margin:12px 12px 0 auto;display:grid;place-items:center;cursor:pointer;
+  inline-size:34px;block-size:34px;border-radius:50%;
+  background:var(--beige);border:1px solid var(--gold-line-soft);color:var(--ink-2)
+}
+.tq-auth__x svg{inline-size:14px;block-size:14px}
+.tq-auth__x:hover{background:var(--gold-line-soft)}
+.tq-auth__lede{margin:0 clamp(18px,3vw,30px) 14px;color:var(--ink-2);font-size:.95rem}
+.tq-auth__lede b{color:var(--ink)}
+.tq-auth__tabs{
+  display:flex;gap:4px;padding:4px;margin-block-end:16px;
+  border-radius:999px;background:var(--beige);border:1px solid var(--gold-line-soft)
+}
+.tq-auth__tabs button{
+  flex:1;padding:8px 12px;border:0;border-radius:999px;cursor:pointer;
+  background:transparent;color:var(--ink-2);
+  font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(12px,.9vw,13.5px)
+}
+.tq-auth__tabs button[aria-pressed="true"]{background:var(--petrol);color:#fff}
+.tq-auth__form{display:grid;gap:11px;padding-block-end:clamp(18px,3vw,28px)}
+.tq-auth__form[hidden]{display:none}
+.tq-auth__row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.tq-auth__form label{display:grid;gap:5px;min-inline-size:0}
+.tq-auth__form label>span{font-size:clamp(11.5px,.86vw,13px);color:var(--ink-2);font-weight:600}
+.tq-auth__form label>span i{font-style:normal;font-weight:400;color:var(--ink-3)}
+.tq-auth__form input:not([type="checkbox"]),.tq-auth__form select{
+  inline-size:100%;padding:11px 13px;border-radius:var(--r-btn);
+  border:1px solid var(--gold-line-soft);background:#fff;color:var(--ink);
+  font-family:inherit;font-size:clamp(13px,.95vw,14.5px)
+}
+.tq-auth__form input:focus-visible,.tq-auth__form select:focus-visible{
+  outline:2px solid var(--gold);outline-offset:1px
+}
+.tq-auth__terms{
+  display:flex!important;align-items:flex-start;gap:9px;
+  font-size:clamp(12px,.88vw,13px);color:var(--ink-2);line-height:1.7
+}
+.tq-auth__terms input{inline-size:17px;block-size:17px;flex:none;margin-block-start:3px;accent-color:var(--petrol)}
+.tq-auth__note{margin:2px 0 0;text-align:center}
+@media (max-width:520px){
+  .tq-auth__row{grid-template-columns:minmax(0,1fr)}
+}
+
+/* المبدّل لا يتمدّد على عرض البطاقة: الأب عمود، والامتداد افتراضه. */
+.plan-cycle{align-self:flex-start}
 .plan-card__price{margin:0;font-size:clamp(26px,2.8vw,38px);font-weight:800;color:var(--ink);
   line-height:1.15;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px}
 .plan-card__price span{font-size:.46em;font-weight:700;color:var(--ink-2)}

@@ -1510,12 +1510,22 @@ if (!function_exists('tqs_free_preview')) {
                     /* الاختبار المجاني ليس معاينة: لا فيديو فيه يشاهد،
                        وشارة تشغيل فوقه تعد بما لا يفتح. */
                     if (empty($l['is_free']) || !empty($l['is_quiz'])) continue;
+                    /* مصدر المقطع بنداء واحد لدرس واحد — لا بعمودين
+                       يضافان إلى `bundle_by_code()` فيحملان مع كل درس
+                       في الباقة وهي مئات. وبه تشتغل المعاينة في مكانها
+                       بدل أن تنقل الزائر إلى صفحة أخرى. */
+                    $tq_ci = &get_instance();
+                    $tq_v  = $tq_ci->db->select('video_type, video_url', false)
+                                       ->where('id', (int) $l['id'])
+                                       ->get('lesson')->row_array();
                     return array(
                         'course_id' => (int) $s['course_id'],
                         'lesson_id' => (int) $l['id'],
                         'title'     => (string) $l['title'],
                         'subject'   => (string) $s['title'],
                         'duration'  => tqs_dur($l['duration']),
+                        'vtype'     => (string) (isset($tq_v['video_type']) ? $tq_v['video_type'] : ''),
+                        'vurl'      => (string) (isset($tq_v['video_url'])  ? $tq_v['video_url']  : ''),
                     );
                 }
             }
