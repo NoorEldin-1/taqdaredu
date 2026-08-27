@@ -1035,6 +1035,33 @@ if (!function_exists('tqs_subject_grid')) {
     }
 }
 
+if (!function_exists('tqs_comp_state')) {
+    /**
+     * حال المسابقة من تاريخيها — لا من عمود `status` وحده.
+     *
+     * `status='open'` تبقى «مفتوحة» بعد انقضاء الموعد، فكانت البطاقة
+     * تدعو إلى مسابقة انتهت. والتاريخ هو الذي يعرف.
+     *
+     * @return array label · kind (open|soon|over)
+     */
+    function tqs_comp_state($starts, $ends)
+    {
+        $today = date('Y-m-d');
+        $s = substr(trim((string) $starts), 0, 10);
+        $e = substr(trim((string) $ends), 0, 10);
+
+        if ($e !== '' && $e < $today) {
+            return array('label' => 'انتهت', 'kind' => 'over');
+        }
+        if ($s !== '' && $s > $today) {
+            $days = (int) floor((strtotime($s) - strtotime($today)) / 86400);
+            $lbl  = ($days <= 1) ? 'تبدأ غدا' : 'تبدأ بعد ' . $days . ' يوما';
+            return array('label' => $lbl, 'kind' => 'soon');
+        }
+        return array('label' => 'مفتوحة الآن', 'kind' => 'open');
+    }
+}
+
 if (!function_exists('tqs_competitions_strip')) {
     /**
      * المسابقات المفتوحة — ويخفي القسم كله إن لم تكن هناك واحدة.
@@ -1056,23 +1083,50 @@ if (!function_exists('tqs_competitions_strip')) {
         $h .= '      <h2><span>مسابقات مفتوحة الآن</span></h2>' . "\n";
         $h .= '      <p>يشترك فيها طلاب الباقات بلا رسوم إضافية — تدريب على المنافسة، وجوائز لأوائل كل مرحلة.</p>' . "\n";
         $h .= '    </div>' . "\n";
-        $h .= '    <div class="compgrid">' . "\n";
+        $h .= '    <div class="cmp-grid">' . "\n";
         foreach ($rows as $r) {
-            $h .= '      <article class="compcard">' . "\n";
+            $st = tqs_comp_state($r['when'], isset($r['till']) ? $r['till'] : '');
+            $h .= '      <article class="cmp-card">' . "\n";
+
+            /* رأس ملون بدل صورة لا وجود لها: عمود `cover` فارغ في كل
+               الصفوف، وصورة مخترعة أسوأ من لون يحمل المرحلة والحال. */
+            $h .= '        <div class="cmp-card__head">' . "\n";
             if ((string) $r['stage'] !== '') {
-                $h .= '        <span class="post-tag">' . html_escape($r['stage']) . '</span>' . "\n";
+                $h .= '          <span class="cmp-card__stage">' . html_escape($r['stage']) . '</span>' . "\n";
             }
-            $h .= '        <h3>' . html_escape($r['title']) . '</h3>' . "\n";
+            $h .= '          <span class="cmp-state cmp-state--' . $st['kind'] . '">'
+                . html_escape($st['label']) . '</span>' . "\n";
+            $h .= '        </div>' . "\n";
+
+            $h .= '        <div class="cmp-card__body">' . "\n";
+            $h .= '          <h3><a href="' . html_escape($r['href']) . '">'
+                . html_escape($r['title']) . '</a></h3>' . "\n";
             if ((string) $r['blurb'] !== '') {
-                $h .= '        <p>' . html_escape($r['blurb']) . '</p>' . "\n";
+                $h .= '          <p>' . html_escape($r['blurb']) . '</p>' . "\n";
             }
+
+            /* التاريخ بأرقام لاتينية داخل `tq-ltr`: الأرقام العربية
+               الشرقية تنقلب ترتيبا في بعض الخطوط، والتاريخ يقرأ خطأ. */
+            $facts = '';
             if ((string) $r['when'] !== '') {
-                /* التاريخ بأرقام لاتينية داخل `tq-ltr`: الأرقام العربية
-                   الشرقية تنقلب ترتيبا في بعض الخطوط، والتاريخ يقرأ خطأ. */
-                $h .= '        <p class="compcard__when"><svg aria-hidden="true"><use href="#i-calendar"></use></svg>'
-                    . 'تبدأ <b>' . html_escape(tqs_date_ar($r['when'])) . '</b></p>' . "\n";
+                $facts .= '            <span><svg aria-hidden="true"><use href="#i-calendar"></use></svg>'
+                       . 'تبدأ <b class="tq-ltr">' . html_escape(tqs_date_ar($r['when'])) . '</b></span>' . "\n";
             }
-            $h .= '        <a class="pcard__link" href="' . html_escape($r['href']) . '">تفاصيل المسابقة</a>' . "\n";
+            if (!empty($r['till'])) {
+                $facts .= '            <span><svg aria-hidden="true"><use href="#i-clock"></use></svg>'
+                       . 'تنتهي <b class="tq-ltr">' . html_escape(tqs_date_ar($r['till'])) . '</b></span>' . "\n";
+            }
+            if (!empty($r['prize'])) {
+                $facts .= '            <span><svg aria-hidden="true"><use href="#i-badge"></use></svg>'
+                       . html_escape($r['prize']) . '</span>' . "\n";
+            }
+            if ($facts !== '') {
+                $h .= '          <div class="cmp-card__facts">' . "\n" . $facts . '          </div>' . "\n";
+            }
+            $h .= '        </div>' . "\n";
+
+            $h .= '        <a class="btn btn--ghost btn--block cmp-card__cta" href="'
+                . html_escape($r['href']) . '">تفاصيل المسابقة</a>' . "\n";
             $h .= '      </article>' . "\n";
         }
         $h .= '    </div>' . "\n";

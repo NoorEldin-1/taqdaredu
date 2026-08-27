@@ -222,21 +222,35 @@ class Taqdar_site_model extends CI_Model
     public function open_competitions($limit = 3)
     {
         if (!$this->db->table_exists('competitions')) return array();
-        $rows = $this->db->select('c.id, c.title, c.slug, c.tagline, c.starts_at, c.ends_at,
-                                   cat.name AS stage', false)
+        /* `ends_at >= اليوم`: صفحة المسابقات تفلتر بها، وهذه لم تكن —
+           فمسابقة انقضت تعرض «مفتوحة» هنا و«مغلقة» هناك في اليوم نفسه. */
+        $today = date('Y-m-d');
+        $rows = $this->db->select('c.id, c.title, c.slug, c.tagline, c.prize,
+                                   c.starts_at, c.ends_at, cat.name AS stage', false)
                          ->from('competitions c')
                          ->join('category cat', 'cat.id = c.category_id', 'left')
                          ->where('c.status', 'open')
+                         ->group_start()
+                             ->where('c.ends_at IS NULL', null, false)
+                             ->or_where('c.ends_at >=', $today)
+                         ->group_end()
                          ->order_by('c.starts_at', 'ASC')->limit((int) $limit)
                          ->get()->result_array();
         $out = array();
         foreach ($rows as $r) {
+            /* الرابط إلى المسابقة نفسها: `slug` كان يجلب ثم يرمى، فكانت
+               كل بطاقة تقود إلى فهرس المسابقات لا إلى تفاصيلها. */
+            $slug = trim((string) $r['slug']);
             $out[] = array(
                 'title' => (string) $r['title'],
                 'blurb' => (string) $r['tagline'],
                 'stage' => (string) $r['stage'],
+                'prize' => (string) $r['prize'],
                 'when'  => (string) $r['starts_at'],
-                'href'  => base_url('competitions'),
+                'till'  => (string) $r['ends_at'],
+                'href'  => $slug !== ''
+                         ? base_url('competition/' . rawurlencode($slug))
+                         : base_url('competitions'),
             );
         }
         return $out;

@@ -148,49 +148,64 @@ foreach ($tq_comps as $tq_c) {
     <?php if ($tq_comps): ?>
       <?php /* TQ-DIR-FEW: مسابقة واحدة في شبكة رباعية تجلس في ربع
                الصف وتترك ثلاثة أرباعه فراغا. والمرن يتوسط ما وجد. */ ?>
-      <div class="grid-4 comp-grid">
+      <div class="cmp-grid">
         <?php foreach ($tq_comps as $tq_c):
           $tq_open  = ($tq_c['status'] === 'open')
                    && (empty($tq_c['ends_at']) || $tq_c['ends_at'] >= $tq_now);
           $tq_in    = isset($tq_mine[(int) $tq_c['id']]);
           $tq_full  = ((int) $tq_c['seats'] > 0 && (int) $tq_c['entries'] >= (int) $tq_c['seats']);
+          /* الحال المعروضة من التاريخين، والمنطق أدناه من `status` كما كان:
+             العرض يقول للزائر أين هو من الموعد، والزر يقول ما يستطيعه. */
+          $tq_st    = tqs_comp_state($tq_c['starts_at'], $tq_c['ends_at']);
         ?>
-          <article class="icard reveal comp-card">
-            <?php if (!empty($tq_c['cat_name'])): ?>
-              <span class="post-tag"><?php echo html_escape($tq_c['cat_name']); ?></span>
-            <?php endif; ?>
+          <article class="cmp-card reveal">
+            <div class="cmp-card__head">
+              <?php if (!empty($tq_c['cat_name'])): ?>
+                <span class="cmp-card__stage"><?php echo html_escape($tq_c['cat_name']); ?></span>
+              <?php endif; ?>
+              <span class="cmp-state cmp-state--<?php echo $tq_st['kind']; ?>"><?php
+                echo html_escape($tq_st['label']); ?></span>
+            </div>
+
+            <div class="cmp-card__body">
             <?php /* العنوان رابط إلى صفحة المسابقة المفردة (`/competition/<slug>`)
                      — وفيها وصفها وشروطها. وكانت البطاقة تعرض سطرا واحدا
                      وزر تسجيل، فيسجل الطالب في مسابقة لم يقرأ عنها شيئا.
                      وبلا `slug` لا رابط: `competition_by_slug` تقبل الرقم
                      أيضا، لكن الرابط الرقمي لا يقرأ ولا يشارك. */ ?>
-            <h3>
-              <?php if (!empty($tq_c['slug'])): ?>
-                <a href="<?php echo base_url('competition/' . rawurlencode((string) $tq_c['slug'])); ?>">
+              <h3>
+                <?php if (!empty($tq_c['slug'])): ?>
+                  <a href="<?php echo base_url('competition/' . rawurlencode((string) $tq_c['slug'])); ?>">
+                    <?php echo html_escape($tq_c['title']); ?>
+                  </a>
+                <?php else: ?>
                   <?php echo html_escape($tq_c['title']); ?>
-                </a>
-              <?php else: ?>
-                <?php echo html_escape($tq_c['title']); ?>
+                <?php endif; ?>
+              </h3>
+              <?php if (!empty($tq_c['tagline'])): ?>
+                <p><?php echo html_escape($tq_c['tagline']); ?></p>
               <?php endif; ?>
-            </h3>
-            <?php if (!empty($tq_c['tagline'])): ?>
-              <p><?php echo html_escape($tq_c['tagline']); ?></p>
-            <?php endif; ?>
 
-            <div class="path-facts">
-              <?php if (!empty($tq_c['starts_at'])): ?>
-                <span><svg aria-hidden="true"><use href="#i-calendar"></use></svg>
-                  تبدأ <span class="tq-ltr"><?php echo html_escape(tqs_date_ar($tq_c['starts_at'])); ?></span></span>
-              <?php endif; ?>
-              <?php if ((int) $tq_c['entries'] > 0): ?>
-                <span><svg aria-hidden="true"><use href="#i-users"></use></svg>
-                  <span class="tq-ltr"><?php echo (int) $tq_c['entries']; ?></span> مشارك</span>
-              <?php endif; ?>
-              <?php if (!empty($tq_c['prize'])): ?>
-                <span><svg aria-hidden="true"><use href="#i-badge"></use></svg><?php echo html_escape($tq_c['prize']); ?></span>
-              <?php endif; ?>
+              <div class="cmp-card__facts">
+                <?php if (!empty($tq_c['starts_at'])): ?>
+                  <span><svg aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    تبدأ <b class="tq-ltr"><?php echo html_escape(tqs_date_ar($tq_c['starts_at'])); ?></b></span>
+                <?php endif; ?>
+                <?php if (!empty($tq_c['ends_at'])): ?>
+                  <span><svg aria-hidden="true"><use href="#i-clock"></use></svg>
+                    تنتهي <b class="tq-ltr"><?php echo html_escape(tqs_date_ar($tq_c['ends_at'])); ?></b></span>
+                <?php endif; ?>
+                <?php if ((int) $tq_c['entries'] > 0): ?>
+                  <span><svg aria-hidden="true"><use href="#i-users"></use></svg>
+                    <b class="tq-ltr"><?php echo (int) $tq_c['entries']; ?></b> مشارك</span>
+                <?php endif; ?>
+                <?php if (!empty($tq_c['prize'])): ?>
+                  <span><svg aria-hidden="true"><use href="#i-badge"></use></svg><?php echo html_escape($tq_c['prize']); ?></span>
+                <?php endif; ?>
+              </div>
             </div>
 
+            <div class="cmp-card__act">
             <?php if ($tq_in): ?>
               <p class="comp-state comp-state--in">
                 <svg aria-hidden="true"><use href="#i-check"></use></svg>أنت مسجل في هذه المسابقة
@@ -210,6 +225,7 @@ foreach ($tq_comps as $tq_c) {
               <a class="btn btn--primary btn--block" href="<?php echo base_url('login'); ?>">سجل الدخول للمشاركة</a>
               <p class="tq-caption">المشاركة لطلاب المنصة — فالنتائج تقاس والشهادات تنسب.</p>
             <?php endif; ?>
+            </div>
           </article>
         <?php endforeach; ?>
       </div>
