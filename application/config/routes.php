@@ -148,9 +148,53 @@ $route['api/v1/student/invoices/(:num)/pay'] = 'api_v1/invoice_pay/$1';
 $route['api/v1/student/invoices/(:num)']     = 'api_v1/student_invoice/$1';
 $route['api/v1/student/invoices']            = 'api_v1/student_invoices';
 
+// ---- الطالب · الرئيسية ----
+// شاشة الفتح — نداء واحد يجمع الخطوة والسلسلة والهدف والكورسات
+// والمواعيد والشارات.
+$route['api/v1/student/home'] = 'api_v1/student_home';
+
+// ---- الطالب · التعلم ----
+// `courses/(:num)` قبل `courses`: الأخص أولا كما في هذا الملف كله.
+$route['api/v1/student/courses/(:num)'] = 'api_v1/student_course/$1';
+$route['api/v1/student/courses']        = 'api_v1/student_courses';
+
+// ---- الطالب · الدرس والتقدم ----
+// **الكتابة قبل العرض** — وهي القاعدة نفسها التي تحمي `teacher/upload/save`
+// في هذا الملف: `(:num)` تلتقط مقطعا واحدا، فبلا القواعد الثلاث الأولى
+// يسقط `lessons/88/progress` إلى `student_lesson(88)` — تعرض الدرس ردا
+// على نبضة تقدم: لا حفظ، ولا خطأ، ولا شيء يقول لماذا لا يتقدم الشريط.
+$route['api/v1/student/lessons/(:num)/progress'] = 'api_v1/lesson_progress/$1';
+$route['api/v1/student/lessons/(:num)/complete'] = 'api_v1/lesson_complete/$1';
+$route['api/v1/student/lessons/(:num)/notes']    = 'api_v1/lesson_notes/$1';
+// اختبار الدرس ثلاثة مقاطع، فقاعدته قبل `lessons/(:num)` كذلك.
+$route['api/v1/student/lessons/(:num)/quiz/start'] = 'api_v1/quiz_start/$1';
+$route['api/v1/student/lessons/(:num)']            = 'api_v1/student_lesson/$1';
+$route['api/v1/student/notes/(:num)']              = 'api_v1/note_delete/$1';
+$route['api/v1/student/lessons']                   = 'api_v1/student_lessons';
+// المقطع الأخير رمز موقع بـbase64url — حروف وأرقام و`-` و`_`، فلا
+// `(:num)` ولا `(:any)`: الثانية تقبله لكن الأولى ترفضه صامتة.
+$route['api/v1/student/media/(:any)'] = 'api_v1/student_media/$1';
+
+// ---- الطالب · التقييم ----
+$route['api/v1/student/quiz/attempts/(:num)/submit'] = 'api_v1/quiz_submit/$1';
+$route['api/v1/student/quiz/attempts/(:num)']        = 'api_v1/quiz_attempt/$1';
+$route['api/v1/student/exams']                       = 'api_v1/student_exams';
+
+// ---- الطالب · التمرين ----
+// `reviews/answer` قبل `reviews`: كتابة قبل عرض.
+$route['api/v1/student/reviews/answer'] = 'api_v1/review_answer';
+$route['api/v1/student/reviews']        = 'api_v1/student_reviews';
+$route['api/v1/student/mistakes']       = 'api_v1/student_mistakes';
+
 // ---- الفهرس وما لا قاعدة له ----
 $route['api/v1']         = 'api_v1/index';
 $route['api/v1/(:any)']  = 'api_v1/not_found';
+// و`(:any)` تعني `[^/]+` أي **مقطعا واحدا**، فمسار مجهول من مقطعين
+// (`api/v1/student/x`) كان يفلت منها إلى التوجيه الافتراضي فيرد CI
+// صفحة 404 بـHTML كامل — وعميل Dart يقرأ `<!doctype html` فيرمي
+// FormatException بدل أن يعرض «المسار غير موجود». والوعد أن كل رد
+// على شكلين لا ثالث لهما، فالقاعدة التالية تمسك البقية.
+$route['api/v1/(.+)']    = 'api_v1/not_found';
 
 // ---- taqdar write routes ----
 // مسارات الكتابة قبل قواعد العرض دائما.

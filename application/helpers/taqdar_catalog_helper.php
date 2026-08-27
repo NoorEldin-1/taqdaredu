@@ -187,25 +187,12 @@ if (!function_exists('tqs_cat_cover')) {
         $stage = isset($stages[$cat]) ? $stages[$cat] : '';
 
         if (isset($it['kind']) && $it['kind'] === 'plan') {
-            /* صورة الباقة نفسها التي تعلو بطاقتها في الرئيسية وصفحة
-               الباقات — مصدر واحد للصورة فلا تفترق الصفحات الثلاث.
-               و`tqs_plan_img()` تشتق الدرجة من الرمز وتطبّع المرحلة. */
-            /* الرمز يعيش في الرابط لا في العنصر: `shape()` لا تحمل
-               `code` ولا `stage`، و`href` هي `…/plan/<code>` — فيؤخذ
-               منها، والمرحلة من `cat` (مسمى الفئة الجذر). */
-            if (function_exists('tqs_plan_img')) {
-                $code = basename(rawurldecode((string) parse_url((string) $it['href'], PHP_URL_PATH)));
-                $pi   = ($code !== '') ? tqs_plan_img($code, (string) $it['cat']) : '';
-                if ($pi !== '') return $pi;
-            }
-            if ($stage === '') return '';
-            /* وإلا الغلاف المرسوم بالمرحلة كما كان. والفحص على القرص لا
-               على قائمة مكتوبة: المراحل خمس ولا يبيع الموقع اليوم إلا
-               اثنتين، فقائمة مكتوبة تصدق اليوم وتكذب غدا. */
-            if (is_file(FCPATH . 'assets/taqdar/site/img/cov-plan-' . $stage . '.webp')) {
-                return 'cov-plan-' . $stage;
-            }
-            return 'path-' . $stage;
+            /* الباقة لا تمر من هنا: غلافها من `tqs_plan_cover()` وحدها
+               — وهي التي تقرأ `plans.image` أولا ثم تشتق. وكان هذا
+               الفرع ينادي `tqs_plan_img()` قبل أن ينظر إلى ما رفعه
+               المسؤول، فتفترق بطاقة الكتالوج عن بطاقة الرئيسية للباقة
+               الواحدة. انظر `tqs_cat_media()`. */
+            return '';
         }
 
         /* خريطة `subjects.name_ar` حرفية لا مشتقة من النص: الاسم يكتب من
@@ -279,6 +266,19 @@ if (!function_exists('tqs_cat_media')) {
         }
 
         $fallback = ($it['fallback'] !== '') ? $it['fallback'] : 'subj-math';
+
+        /* TQ-PLAN-IMG — الباقة غلافها من مصدرها الواحد، فلا تعرض
+           الرئيسية صورة والكتالوج أخرى للباقة نفسها. */
+        if ($it['kind'] === 'plan' && function_exists('tqs_plan_cover')) {
+            $src = tqs_plan_cover(array(
+                'image' => isset($it['extra']['image']) ? $it['extra']['image'] : (string) $it['image'],
+                'code'  => isset($it['extra']['code'])  ? $it['extra']['code']  : '',
+                'stage' => isset($it['extra']['stage']) ? $it['extra']['stage'] : (string) $it['cat'],
+            ), $fallback);
+            return '<div class="ccard__media"><img src="' . html_escape($src)
+                 . '" width="620" height="380" loading="lazy" decoding="async" alt=""></div>';
+        }
+
         return '<div class="ccard__media"><img src="'
              . html_escape(tqs_img(tqs_cat_cover($it), $fallback))
              . '" width="620" height="380" loading="lazy" decoding="async" alt=""></div>';
@@ -402,11 +402,21 @@ if (!function_exists('tqs_cat_card')) {
                بلا وحدته الزمنية يقرأ خطأ مهما كان صحيحًا.
                والحساب من `tqs_plan_cycle()` نفسها التي تحكم البطاقة
                في الرئيسية وصفحة الباقات — مصدر واحد لا ثلاثة. */
-            $cy = function_exists('tqs_plan_cycle')
-                ? tqs_plan_cycle(max(0, (int) $it['price']))
-                : array('month' => (int) round(max(0, (int) $it['price']) / 100));
-            $h .= '      <p class="ccard__price"><b class="tq-ltr">'
-                . number_format($cy['month']) . '</b><span>ر.س / شهريا</span></p>' . "\n";
+            /* TQ-PLAN-CYCLE — السعر بدورته هو، لا «شهريا» على كل شيء.
+               كانت البطاقة تنادي `tqs_plan_cycle()` وحدها — وهي تفترض
+               السنوية فتقسم على `12×0.8`؛ فباقة شهرية سعرها ٩٩٩ تقرأ
+               «١٠٤ ر.س / شهريا»، ورقم لا يقابل ما يدفع. */
+            $cy = tqs_plan_price(array(
+                'price'  => max(0, (int) $it['price']),
+                'period' => isset($it['extra']['period']) ? $it['extra']['period'] : '',
+                'days'   => isset($it['extra']['days'])   ? (int) $it['extra']['days'] : 0,
+            ));
+            if ($cy['free']) {
+                $h .= '      <p class="ccard__price ccard__price--free">مجاني</p>' . "\n";
+            } else {
+                $h .= '      <p class="ccard__price"><b class="tq-ltr">'
+                    . number_format($cy['month']) . '</b><span>ر.س / شهريا</span></p>' . "\n";
+            }
             $h .= '      <span class="ccard__cta">تفاصيل الباقة'
                 . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";
         } elseif ($it['kind'] === 'book') {

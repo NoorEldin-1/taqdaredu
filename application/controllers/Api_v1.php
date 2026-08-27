@@ -4,8 +4,14 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 /**
  * واجهة برمجة تقدر — الإصدار الأول.
  *
- * مدخل واحد لتطبيق Flutter: الدخول، وثلاث شاشات من بوابة الطالب (الملف
- * والإعدادات والاشتراك). وما سواها يبقى في الويب حتى يطلب.
+ * مدخل واحد لتطبيق Flutter: الدخول، وشاشات الحساب من بوابة الطالب (الملف
+ * والإعدادات والاشتراك)، **وحلقة التعلم** — الرئيسية والكورسات والمنهج
+ * والمشغل واختبار الدرس والمراجعة المتباعدة. وما سواها يبقى في الويب حتى
+ * يطلب.
+ *
+ * والوحدات الخمس الأخيرة مرتبة بالاعتماد لا بالسهولة: الرئيسية تقرر ما
+ * يفعله الطالب، والتعلم يعطي معرف الدرس، والدرس يشغله ويقيسه، والتقييم
+ * يفتح ما بعده، والتمرين يعيد ما تعلم. وهي حلقة تعود إلى أولها.
  *
  * ------------------------------------------------------------------
  * قواعد لا تخرق في هذا الملف
@@ -173,6 +179,24 @@ class Api_v1 extends CI_Controller
      */
     private function respond($payload, $status = 200, $headers = array())
     {
+        /* ما تسرب قبل الرد يرمى هنا ويسجل.
+           تنبيه PHP واحد — `Undefined array key` من نموذج غير معد — يطبع
+           كتلة HTML **قبل** JSON، فيقرأ عميل Dart `<div style=` ويرمي
+           `FormatException`. والوعد أن كل رد على شكلين لا ثالث لهما،
+           و`guard_fatals()` كتبت لأجل نصفه الآخر (الاستثناء القاتل)؛
+           وهذا نصفه الأول. والحارس نفسه في `Taqdar_gate::respond()`
+           منذ TQ-GATE-CLEAN — وغيابه هنا يعني أن الواجهة التي تعد
+           بالغلاف أضعف من البوابة التي لا تعد به.
+
+           والتسرب يسجل ولا يبتلع صامتا: تنبيه يخفى يبقى إلى أن يصير
+           عطلا. */
+        $stray = '';
+        while (ob_get_level() > 0) $stray .= (string) ob_get_clean();
+        if (trim($stray) !== '') {
+            log_message('error', 'API[' . $this->request_id . '] stray output before JSON: '
+                . substr(trim($stray), 0, 400));
+        }
+
         $this->output
              ->set_status_header($status)
              ->set_content_type('application/json', 'utf-8')
@@ -1632,6 +1656,1393 @@ class Api_v1 extends CI_Controller
         }
 
         $this->respond(tq_api_ok($data, $r['message']), 200);
+    }
+
+
+    /* ================================================================
+       الجسر إلى بوابة الإتقان
+       ================================================================
+
+       الوحدات الخمس التالية (الرئيسية · التعلم · الدرس · التقييم ·
+       التمرين) لا تحمل قاعدة عمل واحدة: كلها تنادي `Taqdar_repo_model`
+       و`Taqdar_learn_model` — الطبقة نفسها التي تناديها `Taqdar_gate`
+       من الويب. فالقفل والتغطية والتباعد والاستحقاق تحسب مرة واحدة،
+       ولا يقع أن يفتح التطبيق درسا يقفله الموقع.
+
+       وما يضاف هنا شيئان لا ثالث لهما: ترجمة **الغلاف** (غلاف البوابة
+       `{error:{code,…}}` إلى غلاف الواجهة `{message,code,errors}`)،
+       وتشكيل **الأسماء** بما يقرؤه Dart. */
+
+    /** النموذجان اللذان تقوم عليهما الوحدات الخمس. */
+    private function repo()
+    {
+        $this->load->model('taqdar_repo_model', 'tq_repo');
+        return $this->tq_repo;
+    }
+
+    private function learn()
+    {
+        $this->load->model('taqdar_learn_model', 'tq_learn');
+        return $this->tq_learn;
+    }
+
+    /**
+     * يترجم خطأ البوابة إلى غلاف الواجهة — أو يمرر النتيجة سليمة.
+     *
+     * رموز البوابة (`MASTERY_LOCKED` · `NOT_ENTITLED` · …) صارخة الحروف
+     * وغلافها `{error:{code,message,message_ar,details}}`، وغلاف هذه
+     * الواجهة `{message,code,errors}` ورموزه صغيرة. وتركهما يخرجان كما
+     * هما يعني **غلافا ثالثا** في واجهة تعد بأن لا ثالث لها — وهو الوعد
+     * الذي كتب `guard_fatals()` لأجله وحده.
+     *
+     * و`details` تخرج في `errors` ولا تلقى: `blocking_lesson_id` هو ما
+     * يجعل التطبيق يقول «أكمل درس الكسور أولا» بدل «هذا الدرس مقفل» —
+     * وهو الفرق بين رسالة تدل ورسالة تسد.
+     */
+    private function gate($result)
+    {
+        $repo = $this->repo();
+        if (!$repo->is_error($result)) return $result;
+
+        $e      = $result['error'];
+        $code   = (string) $e['code'];
+        $status = (int) $repo->http_status($code);
+
+        $details = (array) $e['details'];
+        $errors  = $details ? array('details' => $details) : array();
+
+        $this->fail((string) $e['message_ar'], strtolower($code), $status, $errors);
+    }
+
+    /* ================================================================
+       ١ · الرئيسية
+       ================================================================ */
+
+    /**
+     * GET /api/v1/student/home
+     *
+     * شاشة الفتح — نداء واحد لا سبعة.
+     *
+     * التطبيق يفتح عليها في كل تشغيل، وهي في الويب تجمع سبعة مصادر:
+     * الخطوة التالية والسلسلة وهدف اليوم وموضع التوقف والكورسات
+     * والمواعيد والشارات. وسبعة نداءات لرسم شاشة واحدة تعني سبعة أشواط
+     * على شبكة جوال ووميضا سبعة أضعاف — والمستخدم يقرأ ذلك بطئا لا
+     * معمارا.
+     *
+     * و**الخطوة التالية من `next_step()` نفسها** التي تقرأ منها الويب:
+     * قاعدة «ما الذي يفعله الطالب الآن؟» فيها سبعة فروع مرتبة (تهيئة ·
+     * مراجعة مستحقة · وضع امتحان · واجب · استكمال · درس تال · تصفح)،
+     * ونسخة ثانية منها هنا تفترق عن أختها عند أول تعديل — فيقرأ الطالب
+     * في التطبيق «ابدأ درسا جديدا» وفي الموقع «راجع أسئلة اليوم» في
+     * اللحظة نفسها.
+     *
+     * و`web_url` يبقى كما ترده الطبقة: رابط ويب مطلق ينفع التطبيق متى
+     * لم يعرف الشاشة. ومعه `kind` و`meta` وهما ما يوجه بهما التطبيق
+     * نفسه إلى شاشته الأصيلة.
+     */
+    public function student_home()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid   = (int) $u['id'];
+        $learn = $this->learn();
+        $repo  = $this->repo();
+
+        $step   = $learn->next_step($uid);
+        $streak = $learn->streak($uid);
+
+        /* الكورسات مختصرة لا كاملة: أربع بطاقات هي ما يعرض، والقائمة
+           كلها لها `/student/courses`. */
+        $courses = $this->courses_of($uid);
+
+        /* موضع التوقف: أول كورس بدئ ولم يكتمل. و`next_lesson_id` يأتي من
+           `path_progress()` — أي من `lesson_progress` نفسه الذي يقرؤه
+           القفل، لا من `watch_histories`. انظر `courses_of()`. */
+        $resume = null;
+        foreach ($courses as $c) {
+            if ($c['progress']['next_lesson_id'] && $c['progress']['percent'] > 0) {
+                $resume = array(
+                    'course_id' => $c['id'],
+                    'course'    => $c['title'],
+                    'lesson_id' => $c['progress']['next_lesson_id'],
+                    'percent'   => $c['progress']['percent'],
+                );
+                break;
+            }
+        }
+
+        $this->read(array(
+            'user' => array(
+                'id'         => $uid,
+                'name'       => trim($u['first_name'] . ' ' . $u['last_name']),
+                'avatar_url' => tq_api_avatar($u['image'] ?? ''),
+            ),
+            'next_step' => array(
+                'kind'     => (string) $step['kind'],
+                'title'    => (string) $step['title'],
+                'subtitle' => (string) $step['subtitle'],
+                'cta'      => (string) $step['cta'],
+                'icon'     => (string) $step['icon'],
+                'web_url'  => (string) $step['href'],
+                'meta'     => (object) $step['meta'],
+            ),
+            'streak' => array(
+                'days'  => (int) $streak['days'],
+                'best'  => (int) $streak['best'],
+                'today' => (bool) $streak['today'],
+            ),
+            'goal_today' => $learn->goal_today($uid),
+            'exam_mode'  => $learn->exam_mode($uid),
+            'resume'     => $resume,
+            'courses'    => array_slice($courses, 0, 4),
+            'deadlines'  => $this->deadlines_of($uid, 5),
+            'badges'     => array(
+                'reviews'       => (int) $repo->count_due_reviews($uid),
+                'tasks'         => $this->pending_tasks_count($uid),
+                'messages'      => (int) $this->db->where('receiver', $uid)
+                                        ->where('read_status', 0)->count_all_results('message'),
+                'notifications' => (int) $this->db->where('to_user', $uid)
+                                        ->where('status', 0)->count_all_results('notifications'),
+            ),
+        ), '', array('courses_total' => count($courses)), $h);
+    }
+
+    /**
+     * المواعيد القريبة — الواجبات غير المسلمة، الأقرب أولا.
+     *
+     * لا جدول مواعيد في القاعدة: الواجب **هو** الموعد، وتاريخه `due_at`
+     * إن كتب. وما لا تاريخ له يذهب إلى الذيل لا يسقط — واجب بلا موعد
+     * واجب قائم.
+     */
+    private function deadlines_of($uid, $limit = 5)
+    {
+        try {
+            $rows = $this->db->query(
+                'SELECT a.`id`, a.`type`, a.`due_at`,
+                        l.`id` AS lesson_id, l.`title` AS lesson_title,
+                        c.`id` AS course_id, c.`title` AS course_title
+                   FROM `assessments` a
+                   JOIN `lesson` l ON l.`id` = a.`lesson_id`
+                   JOIN `course` c ON c.`id` = l.`course_id`
+                   JOIN `enrol`  e ON e.`course_id` = c.`id` AND e.`user_id` = ?
+                  WHERE a.`type` = "homework"
+                    AND NOT EXISTS (SELECT 1 FROM `attempts` t
+                                     WHERE t.`assessment_id` = a.`id` AND t.`student_id` = ?
+                                       AND t.`submitted_at` IS NOT NULL)
+                  ORDER BY (a.`due_at` IS NULL) ASC, a.`due_at` ASC, a.`id` ASC
+                  LIMIT ' . (int) $limit,
+                array((int) $uid, (int) $uid))->result_array();
+        } catch (Throwable $e) {
+            return array();     // قائمة ناقصة أهون من شاشة لا تفتح
+        }
+
+        $out = array();
+        foreach ($rows as $r) {
+            $out[] = array(
+                'assessment_id' => (int) $r['id'],
+                'kind'          => (string) $r['type'],
+                'title'         => (string) $r['lesson_title'],
+                'lesson_id'     => (int) $r['lesson_id'],
+                'course'        => array('id' => (int) $r['course_id'], 'title' => $r['course_title']),
+                'due_at'        => tq_api_date($r['due_at'] ?? null),
+            );
+        }
+        return $out;
+    }
+
+    /** عدد الواجبات المعلقة — الاستعلام نفسه الذي تعد به `Taqdar::counts()`. */
+    private function pending_tasks_count($uid)
+    {
+        try {
+            return (int) $this->db->query(
+                'SELECT COUNT(*) AS n
+                   FROM `assessments` a
+                   JOIN `lesson` l ON l.`id` = a.`lesson_id`
+                   JOIN `enrol`  e ON e.`course_id` = l.`course_id` AND e.`user_id` = ?
+                  WHERE a.`type` = "homework"
+                    AND NOT EXISTS (SELECT 1 FROM `attempts` t
+                                     WHERE t.`assessment_id` = a.`id` AND t.`student_id` = ?
+                                       AND t.`submitted_at` IS NOT NULL)',
+                array((int) $uid, (int) $uid))->row('n');
+        } catch (Throwable $e) {
+            return 0;
+        }
+    }
+
+    /* ================================================================
+       ٢ · التعلم — الكورسات والمنهج والدروس
+       ================================================================ */
+
+    /**
+     * GET /api/v1/student/courses
+     *
+     * كورسات الطالب وتقدمه فيها.
+     *
+     * **والتقدم يقرأ من `lesson_progress` لا من `watch_histories`.**
+     * وهذا فرق يهم: شاشة «كورساتي» في الويب تقرأ `course_progress`
+     * و`completed_lesson` من `watch_histories` — وهو عمود Academy
+     * الموروث يكتبه المشغل القديم — بينما القفل ونسبة الدرس وبوابة
+     * الإتقان كلها تقرأ `lesson_progress`. ورقمان يفترقان يجعلان
+     * «٪١٠٠» تقف أمام درس مقفل (CLAUDE.md، المشغل والتقدم). فالواجهة
+     * تقرأ ما يقرؤه القفل، ولا تنقل الانقسام إلى التطبيق.
+     *
+     * والمرشحات في الخادم كما في الكتالوج: `state` و`q` معاملات `GET`،
+     * فالرابط يحمل الحال ويعمل الترقيم فوقه بلا أن ينسى البحث.
+     */
+    public function student_courses()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $all = $this->courses_of((int) $u['id']);
+
+        $state = (string) $this->input->get('state');
+        if (!in_array($state, array('progress', 'done', 'idle'), true)) $state = '';
+
+        $q = trim((string) $this->input->get('q'));
+
+        $list = array();
+        foreach ($all as $c) {
+            if ($state !== '' && $c['status'] !== $state) continue;
+            if ($q !== '' && mb_stripos($c['title'], $q) === false
+                          && mb_stripos((string) $c['subject'], $q) === false) continue;
+            $list[] = $c;
+        }
+
+        list($page, $per, $offset) = tq_api_page(
+            $this->input->get('page'), $this->input->get('per_page'), 50, 20);
+
+        $by_state = array('all' => count($all), 'progress' => 0, 'done' => 0, 'idle' => 0);
+        foreach ($all as $c) $by_state[$c['status']]++;
+
+        $this->read(array_slice($list, $offset, $per), '',
+            array_merge(
+                tq_api_meta_page($page, $per, count($list)),
+                array('counts' => $by_state, 'filters' => array('state' => $state, 'q' => $q))
+            ), $h);
+    }
+
+    /**
+     * كورسات الطالب — مصدر واحد لثلاث نقاط (الرئيسية والقائمة والمنهج).
+     *
+     * والاستحقاق من `enrol` هنا لا من `subscription_grants()`: هذه
+     * **قائمة** لا **وصول**، والقائمة هي ما يجسده `sync_enrolments()`
+     * (TQ-ENROL-STALE). ومن كان اشتراكه أحدث من آخر تجسيد يقرأ كورسا
+     * ناقصا هنا ويفتحه هناك — وذلك عيب التجسيد لا عيب هذه النقطة،
+     * و`taqdar_cron enrolments` تصلحه في نصف ساعة.
+     */
+    private function courses_of($uid)
+    {
+        static $cache = array();
+        $uid = (int) $uid;
+        if (isset($cache[$uid])) return $cache[$uid];
+
+        $repo = $this->repo();
+
+        $rows = $this->db->select('c.id, c.title, c.thumbnail, c.level, c.category_id,'
+                        . ' c.short_description, e.date_added AS enrolled_at,'
+                        . ' p.id AS path_id, s.name_ar AS subject_ar,'
+                        . ' TRIM(CONCAT(COALESCE(t.first_name,""), " ", COALESCE(t.last_name,""))) AS teacher_name')
+                ->from('enrol e')
+                ->join('course c', 'c.id = e.course_id', 'inner')
+                ->join('paths p', 'p.course_id = c.id', 'left')
+                ->join('subjects s', 's.id = p.subject_id', 'left')
+                ->join('users t', 't.id = c.user_id', 'left')
+                ->where('e.user_id', $uid)
+                ->group_by('c.id')
+                ->order_by('e.date_added', 'DESC')
+                ->get()->result_array();
+
+        $out = array();
+        foreach ($rows as $r) {
+            $cid = (int) $r['id'];
+            $pr  = $repo->path_progress($uid, $cid);
+
+            $out[] = array(
+                'id'          => $cid,
+                'title'       => (string) $r['title'],
+                'subject'     => $r['subject_ar'] ?: null,
+                'level'       => (string) $r['level'],
+                'summary'     => (string) $r['short_description'],
+                'teacher'     => trim((string) $r['teacher_name']) ?: null,
+                'path_id'     => $r['path_id'] ? (int) $r['path_id'] : null,
+                'thumbnail'   => $this->thumb_url($r['thumbnail']),
+                'enrolled_at' => tq_api_date($r['enrolled_at']),
+                'progress'    => array(
+                    'total_lessons'  => (int) $pr['total_lessons'],
+                    'completed'      => (int) $pr['completed'],
+                    'mastered'       => (int) $pr['mastered'],
+                    'percent'        => (int) $pr['percent'],
+                    'next_lesson_id' => $pr['next_lesson_id'] ? (int) $pr['next_lesson_id'] : null,
+                ),
+                'status' => $pr['percent'] >= 100 ? 'done'
+                          : ($pr['percent'] > 0 ? 'progress' : 'idle'),
+            );
+        }
+
+        return $cache[$uid] = $out;
+    }
+
+    /**
+     * رابط الغلاف كاملا لا رمزا.
+     *
+     * `course.thumbnail` يخزن **اسم ملف** لا مسارا، وموضعه
+     * `uploads/thumbnails/course_thumbnails/` — والقاعدة نفسها في
+     * `tq_s_cover()` بالويب. والتطبيق لا يملك أن يعرفها، وهو الدرس نفسه
+     * الذي علمته `tq_api_avatar()`: رمز بلا امتداد كسر عشر شاشات قبل
+     * `tqs_person_img`.
+     *
+     * و`is_file()` قبل الرد: صف يحمل اسم ملف حذف يعطي رابطا يرد 404،
+     * وصورة مكسورة في البطاقة أسوأ من غلاف بديل. فالمعدوم يرد **بديل
+     * المنصة** لا `null` — فلا يحتاج التطبيق فرعا لغلاف غائب.
+     */
+    private function thumb_url($raw)
+    {
+        $fallback = base_url('assets/taqdar/brand/course-placeholder.png');
+
+        $t = trim((string) $raw);
+        if ($t === '') return $fallback;
+        if (filter_var($t, FILTER_VALIDATE_URL)) return $t;
+
+        $rel = (strpos($t, 'uploads/') === 0)
+             ? $t
+             : 'uploads/thumbnails/course_thumbnails/' . $t;
+
+        return is_file(FCPATH . $rel) ? base_url($rel) : $fallback;
+    }
+
+    /**
+     * GET /api/v1/student/courses/{id}
+     *
+     * منهج الكورس: وحدات فدروسا، ومع كل درس **حال قفله**.
+     *
+     * والقفل يحسب هنا لا في التطبيق: `lesson_lock_state()` تقرأ ترتيب
+     * الدروس وإتقان ما قبلها وأي درس يحجب — وقاعدة ثانية في Dart تعني
+     * شاشة تعرض قفلا يفتحه الخادم أو تعرض فتحا يقفله. والقفل قفل: من
+     * فتح درسا مقفلا برقمه يرد عليه `get_lesson()` بـ`mastery_locked`
+     * على كل حال، فما هنا **عرض** لا حراسة.
+     */
+    public function student_course($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid = (int) $u['id'];
+        $cid = (int) $id;
+
+        $course = $this->db->select('c.id, c.title, c.thumbnail, c.level, c.short_description,'
+                          . ' c.description, c.video_url,'
+                          . ' TRIM(CONCAT(COALESCE(t.first_name,""), " ", COALESCE(t.last_name,""))) AS teacher_name,'
+                          . ' t.id AS teacher_id')
+                  ->from('course c')
+                  ->join('users t', 't.id = c.user_id', 'left')
+                  ->where('c.id', $cid)->get()->row_array();
+
+        if (!$course) $this->fail('لا كورس بهذا الرقم.', 'not_found', 404);
+
+        $repo = $this->repo();
+        if (!$repo->is_entitled($uid, $cid)) {
+            $this->fail('هذا المحتوى غير متاح ضمن اشتراكك.', 'not_entitled', 403,
+                        array('details' => array('course_id' => $cid)));
+        }
+
+        /* `ordered_lessons()` هي ترتيب القفل نفسه — الوحدة فالترتيب فالمعرف.
+           وترتيب ثان هنا يجعل «الدرس التالي» في الشاشة غير «الدرس التالي»
+           في البوابة. */
+        $lessons = $repo->ordered_lessons($cid);
+
+        $section_ids = array();
+        foreach ($lessons as $l) $section_ids[(int) $l['section_id']] = true;
+
+        $sections = array();
+        if ($section_ids) {
+            foreach ($this->db->select('id, title, order')
+                        ->where_in('id', array_keys($section_ids))
+                        ->order_by('order', 'ASC')->order_by('id', 'ASC')
+                        ->get('section')->result_array() as $s) {
+                $sections[(int) $s['id']] = array(
+                    'id' => (int) $s['id'], 'title' => (string) $s['title'], 'lessons' => array(),
+                );
+            }
+        }
+        /* درس بلا وحدة لا يسقط: الصف قد يحمل `section_id` صفرا أو معرفا
+           لوحدة حذفت، ودرس لا يظهر في المنهج أسوأ من وحدة بلا اسم. */
+        $sections[0] = array('id' => 0, 'title' => 'دروس عامة', 'lessons' => array());
+
+        $prog = array();
+        foreach ($this->db->where('student_id', $uid)
+                    ->where('course_id', $cid)
+                    ->select('lp.*', false)
+                    ->from('lesson_progress lp')
+                    ->join('lesson l', 'l.id = lp.lesson_id', 'inner')
+                    ->get()->result_array() as $p) {
+            $prog[(int) $p['lesson_id']] = $p;
+        }
+
+        foreach ($lessons as $l) {
+            $lid = (int) $l['id'];
+            $sid = isset($sections[(int) $l['section_id']]) ? (int) $l['section_id'] : 0;
+            $st  = $repo->lesson_lock_state($uid, $lid);
+            $p   = isset($prog[$lid]) ? $prog[$lid] : null;
+
+            $sections[$sid]['lessons'][] = array(
+                'id'           => $lid,
+                'title'        => (string) $l['title'],
+                'lesson_type'  => (string) $l['lesson_type'],
+                'duration_sec' => (int) $repo->lesson_duration($l),
+                'is_free'      => ((int) $l['is_free'] === 1),
+                'trackable'    => (bool) $repo->trackable($l),
+                'has_quiz'     => (bool) $repo->review_assessment($lid, false),
+                'unlocked'     => !empty($st['unlocked']),
+                'lock_reason'  => $st['reason'],
+                'blocking_lesson_id' => isset($st['blocking_lesson_id']) && $st['blocking_lesson_id']
+                                        ? (int) $st['blocking_lesson_id'] : null,
+                'completed_at' => $p ? tq_api_date($p['completed_at']) : null,
+                'mastered_at'  => $p ? tq_api_date($p['mastered_at'])  : null,
+                'position_sec' => $p ? (int) $p['position_sec'] : 0,
+            );
+        }
+
+        $out = array();
+        foreach ($sections as $s) {
+            if (!$s['lessons']) continue;      // وحدة فارغة لا تعرض
+            $out[] = $s;
+        }
+
+        $pr = $repo->path_progress($uid, $cid);
+
+        $this->read(array(
+            'course' => array(
+                'id'        => (int) $course['id'],
+                'title'     => (string) $course['title'],
+                'level'     => (string) $course['level'],
+                'summary'   => (string) $course['short_description'],
+                'about'     => (string) $course['description'],
+                'preview'   => trim((string) $course['video_url']) ?: null,
+                'thumbnail' => $this->thumb_url($course['thumbnail']),
+                'teacher'   => array(
+                    'id'   => $course['teacher_id'] ? (int) $course['teacher_id'] : null,
+                    'name' => trim((string) $course['teacher_name']) ?: null,
+                ),
+            ),
+            'progress' => array(
+                'total_lessons'  => (int) $pr['total_lessons'],
+                'completed'      => (int) $pr['completed'],
+                'mastered'       => (int) $pr['mastered'],
+                'percent'        => (int) $pr['percent'],
+                'next_lesson_id' => $pr['next_lesson_id'] ? (int) $pr['next_lesson_id'] : null,
+            ),
+            'sections' => $out,
+        ), '', array('sections' => count($out), 'lessons' => count($lessons)), $h);
+    }
+
+    /**
+     * GET /api/v1/student/lessons
+     *
+     * الدروس أنفسها لا الكورسات — والفرق ليس تسمية.
+     *
+     * كانت شاشة «دروسي» في الويب تعرض بطاقات كورسات، فلم يكن في البوابة
+     * كلها مدخل إلى **درس** بعينه: من أراد «درس الكسور» فتح الكورس ومسح
+     * منهجه بعينه. وهذه النقطة تقرأ الدرس وحدة صف، وترشح بالكورس
+     * وبالحالة وبالنص.
+     *
+     * والاختبارات (`lesson_type = 'quiz'`) تستثنى: لها `/student/exams`،
+     * وخلطها بالدروس يجعل «٣٥ من ١١٢ درسا» يخالف عداد الكورسات.
+     */
+    public function student_lessons()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid    = (int) $u['id'];
+        $course = (int) $this->input->get('course_id');
+        $state  = (string) $this->input->get('state');
+        if (!in_array($state, array('done', 'current', 'todo'), true)) $state = '';
+        $q = trim((string) $this->input->get('q'));
+
+        $this->db->select('l.id, l.title, l.duration, l.duration_sec, l.lesson_type,'
+                        . ' l.video_type, l.is_free, l.section_id, l.course_id,'
+                        . ' sec.title AS unit, c.title AS course_title, c.level, c.thumbnail,'
+                        . ' lp.completed_at, lp.mastered_at, lp.position_sec', false)
+                 ->from('lesson l')
+                 ->join('enrol e', 'e.course_id = l.course_id AND e.user_id = ' . $uid, 'inner')
+                 ->join('course c', 'c.id = l.course_id', 'inner')
+                 ->join('section sec', 'sec.id = l.section_id', 'left')
+                 ->join('lesson_progress lp', 'lp.lesson_id = l.id AND lp.student_id = ' . $uid, 'left')
+                 ->where('l.lesson_type !=', 'quiz');
+
+        if ($course > 0) $this->db->where('l.course_id', $course);
+        if ($q !== '')   $this->db->group_start()
+                                  ->like('l.title', $q)
+                                  ->or_like('c.title', $q)
+                                  ->group_end();
+
+        /* الحالة ترشح في الخادم: `completed_at` عمود، فالشرط عليه لا على
+           صفوف تجلب ثم ترمى — وإلا كان ترقيم الصفحة يعد ما لا يعرض. */
+        if ($state === 'done')    $this->db->where('lp.completed_at IS NOT NULL', null, false);
+        if ($state === 'todo')    $this->db->where('lp.completed_at IS NULL', null, false);
+        if ($state === 'current') $this->db->where('lp.completed_at IS NULL', null, false)
+                                           ->where('lp.position_sec >', 0);
+
+        $total = $this->db->count_all_results('', false);
+
+        list($page, $per, $offset) = tq_api_page(
+            $this->input->get('page'), $this->input->get('per_page'), 100, 20);
+
+        $rows = $this->db->order_by('l.course_id', 'ASC')
+                         ->order_by('l.section_id', 'ASC')
+                         ->order_by('l.order', 'ASC')
+                         ->order_by('l.id', 'ASC')
+                         ->limit($per, $offset)->get()->result_array();
+
+        $repo = $this->repo();
+        $out  = array();
+        foreach ($rows as $r) {
+            $done = !empty($r['completed_at']);
+            $out[] = array(
+                'id'           => (int) $r['id'],
+                'title'        => (string) $r['title'],
+                'unit'         => $r['unit'] ?: null,
+                'lesson_type'  => (string) $r['lesson_type'],
+                'duration_sec' => (int) $repo->lesson_duration($r),
+                'is_free'      => ((int) $r['is_free'] === 1),
+                'course'       => array(
+                    'id'    => (int) $r['course_id'],
+                    'title' => (string) $r['course_title'],
+                    'level' => (string) $r['level'],
+                ),
+                'thumbnail'    => $this->thumb_url($r['thumbnail']),
+                'position_sec' => (int) $r['position_sec'],
+                'completed_at' => tq_api_date($r['completed_at']),
+                'mastered_at'  => tq_api_date($r['mastered_at']),
+                'state'        => $done ? 'done'
+                                : (((int) $r['position_sec'] > 0) ? 'current' : 'todo'),
+            );
+        }
+
+        $this->read($out, '',
+            array_merge(tq_api_meta_page($page, $per, $total),
+                        array('filters' => array('course_id' => $course ?: null,
+                                                 'state' => $state, 'q' => $q))), $h);
+    }
+
+    /* ================================================================
+       ٣ · الدرس — المشغل والتقدم والملاحظات
+       ================================================================ */
+
+    /**
+     * GET /api/v1/student/lessons/{id}
+     *
+     * الدرس الواحد: مصدر التشغيل والأهداف والتقدم وبطاقة الاختبار.
+     *
+     * والقرار كله من `Taqdar_repo_model::get_lesson()` — هي التي تفحص
+     * الاستحقاق ثم القفل ثم ترد، **ولا ترد رابط تشغيل لمن لم يفتح له
+     * الدرس** (ولا حتى ملخصه: القفل قفل). فالمتحكم هنا يترجم الغلاف
+     * ويعيد التسمية، ولا يحكم في شيء.
+     *
+     * و`trackable` صفة الخادم لا صفة المشغل: «هل يعد هذا المصدر مقيسا؟»
+     * وعليها يقرر التطبيق أيعرض شريط تقدم أم زر إقرار (TQ-BLIND).
+     */
+    public function student_lesson($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $r = $this->gate($this->repo()->get_lesson((int) $id, (int) $u['id']));
+
+        $l = $r['lesson'];
+        $p = $r['playback'];
+
+        $this->read(array(
+            'lesson' => array(
+                'id'           => (int) $l['id'],
+                'title'        => (string) $l['title'],
+                'course_id'    => (int) $l['course_id'],
+                'section_id'   => (int) $l['section_id'],
+                'lesson_type'  => (string) $l['lesson_type'],
+                'duration'     => (string) $l['duration'],
+                'duration_sec' => (int) $l['duration_sec'],
+                'summary'      => (string) $l['summary'],
+                'is_free'      => ((int) $l['is_free'] === 1),
+                'trackable'    => ((int) $l['trackable'] === 1),
+            ),
+            'playback' => $this->playback_out($p),
+            'objectives' => array_map(function ($o) {
+                return array(
+                    'id'         => (int) $o['id'],
+                    'text'       => (string) $o['text'],
+                    'at_second'  => (int) $o['at_second'],
+                );
+            }, (array) $r['objectives']),
+            'progress' => array(
+                'position_sec'  => (int) $r['progress']['position_sec'],
+                'watch_seconds' => (int) $r['progress']['watch_seconds'],
+                'covered_sec'   => (int) $r['progress']['covered_sec'],
+                'percent'       => (int) $r['progress']['percent'],
+                'completed_at'  => tq_api_date($r['progress']['completed_at']),
+                'mastered_at'   => tq_api_date($r['progress']['mastered_at']),
+            ),
+            'quiz' => $r['review'] ? array(
+                'assessment_id'  => (int) $r['review']['assessment_id'],
+                'question_count' => (int) $r['review']['question_count'],
+                'pass_mark'      => (int) $r['review']['pass_mark'],
+                'attempts'       => (int) $r['review']['attempts'],
+            ) : null,
+            'prev_lesson_id' => $r['prev_lesson_id'] ? (int) $r['prev_lesson_id'] : null,
+            'next_lesson_id' => $r['next_lesson_id'] ? (int) $r['next_lesson_id'] : null,
+        ), '', array(), $h);
+    }
+
+    /**
+     * مصدر التشغيل كما يفهمه التطبيق.
+     *
+     * **والرابط الموقع يحول إلى نقطة هذه الواجهة لا إلى البوابة.**
+     * `playback_for()` يبني `taqdar_gate/media/<token>` وهي تستوثق
+     * بكعكة الجلسة (`$this->user_id()`) — والتطبيق لا يحمل كعكة، فكل
+     * درس مرفوع (`file` · `system` · درايف) كان **يرد 401 على التطبيق
+     * وحده** بينما يعمل في المتصفح. ويوتيوب وفيميو لا يوقعان
+     * (`protection_for()` تعدهما `unprotected`) — فلو أن أول تجربة
+     * وقعت على درس يوتيوب لما ظهر العطل إلا بعد النشر.
+     *
+     * والرمز نفسه لا يعاد توليده: هو موقع بـHMAC على
+     * `(lesson_id، student_id، exp)`، فينقل كما هو ويفحص هناك.
+     */
+    private function playback_out($p)
+    {
+        $url = (string) $p['video_url'];
+
+        if (($p['protection'] ?? '') === 'signed'
+            && preg_match('~/taqdar_gate/media/([^/?#]+)~', $url, $m)) {
+            $url = base_url('api/v1/student/media/' . $m[1]);
+        }
+
+        return array(
+            'video_type' => (string) $p['video_type'],
+            'video_url'  => $url,
+            'audio_url'  => trim((string) $p['audio_url']) ?: null,
+            'attachment' => trim((string) $p['attachment']) ?: null,
+            'resume_at'  => (int) $p['resume_at'],
+            'protection' => (string) $p['protection'],
+            'expires_in' => isset($p['expires_in']) ? (int) $p['expires_in'] : null,
+        );
+    }
+
+    /**
+     * GET /api/v1/student/media/{token}
+     *
+     * يمرر المقطع المحمي لصاحبه — بترويسة `Authorization` لا بكعكة.
+     *
+     * وثلاثة فحوص لا اثنان: الرمز موقع (HMAC ويحمل صاحبه)، **وصاحبه هو
+     * حامل رمز الدخول** (وإلا كفى أن يشارك طالب رمز مقطعه في محادثة)،
+     * والدرس مفتوح له ومستحق الآن (الرمز يعيش خمس دقائق، وقد يفقد
+     * الاستحقاق فيها).
+     *
+     * ولا يمر بـ`respond()`: هذه ترد **ملفا** بترويسات `Range`، وغلاف
+     * JSON فوقه يفسد المقطع. والفشل وحده يرد بالغلاف.
+     *
+     * و`video_player` في Flutter يقبل `httpHeaders`، فالترويسة تصل.
+     */
+    public function student_media($token = '')
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid = (int) $u['id'];
+
+        $this->load->model('taqdar_studio_model', 'tq_studio');
+        $lesson_id = (int) $this->tq_studio->verify($token, $uid);
+
+        if (!$lesson_id) {
+            $this->fail('انتهت صلاحية رابط التشغيل. أعد فتح الدرس.', 'media_token_expired', 403);
+        }
+
+        $repo = $this->repo();
+        if (!$repo->is_lesson_unlocked($uid, $lesson_id)) {
+            $this->fail('أكمل مراجعة الدرس السابق أولا.', 'mastery_locked', 403);
+        }
+
+        $lesson = $this->db->select('video_url, course_id, is_free')
+                           ->where('id', $lesson_id)->get('lesson')->row_array();
+        if (!$lesson) $this->fail('لا درس بهذا الرقم.', 'not_found', 404);
+
+        if ((int) $lesson['is_free'] !== 1 && !$repo->is_entitled($uid, (int) $lesson['course_id'])) {
+            $this->fail('هذا المحتوى غير متاح ضمن اشتراكك.', 'not_entitled', 403);
+        }
+
+        /* الملف داخل `uploads/` وحدها. و`realpath` قبل المقارنة لا بعدها:
+           `../` في العمود يخرج من المجلد بلا هذا الفحص. */
+        $rel  = ltrim(str_replace('\\', '/', (string) $lesson['video_url']), '/');
+        $base = realpath(FCPATH . 'uploads');
+        $path = realpath(FCPATH . $rel);
+
+        if (!$base || !$path || strpos($path, $base) !== 0 || !is_file($path)) {
+            $this->fail('ملف الدرس غير موجود.', 'not_found', 404);
+        }
+
+        $this->answered = true;                 // لا يكتب حارس الأخطاء فوق الملف
+        while (ob_get_level() > 0) { @ob_end_clean(); }
+        $this->stream_file($path);
+    }
+
+    /** يمرر ملفا مع دعم `Range` — ويخرج بعده. نسخة `Taqdar_gate::stream()` نفسها. */
+    private function stream_file($path)
+    {
+        $size = filesize($path);
+        $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $map  = array('webm' => 'video/webm', 'ogg' => 'video/ogg', 'ogv' => 'video/ogg',
+                      'm4v' => 'video/mp4', 'mp3' => 'audio/mpeg', 'm4a' => 'audio/mp4');
+        $mime = isset($map[$ext]) ? $map[$ext] : 'video/mp4';
+
+        $start = 0;
+        $end   = $size - 1;
+        $partial = false;
+        $range = (string) $this->input->server('HTTP_RANGE');
+
+        if ($range !== '' && preg_match('/bytes=(\d*)-(\d*)/', $range, $m)) {
+            if ($m[1] !== '') $start = (int) $m[1];
+            if ($m[2] !== '') $end   = (int) $m[2];
+            if ($start > $end || $start >= $size) {
+                header('HTTP/1.1 416 Range Not Satisfiable');
+                header('Content-Range: bytes */' . $size);
+                exit;
+            }
+            $end = min($end, $size - 1);
+            $partial = true;
+        }
+
+        $length = $end - $start + 1;
+
+        header($partial ? 'HTTP/1.1 206 Partial Content' : 'HTTP/1.1 200 OK');
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . $length);
+        header('Accept-Ranges: bytes');
+        if ($partial) header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
+        header('Cache-Control: private, no-store, max-age=0');
+        header('X-Content-Type-Options: nosniff');
+        header('X-Request-Id: ' . $this->request_id);
+        header('Content-Disposition: inline');
+
+        $fp = fopen($path, 'rb');
+        if (!$fp) { header('HTTP/1.1 500 Internal Server Error'); exit; }
+
+        fseek($fp, $start);
+        $left = $length;
+        while ($left > 0 && !feof($fp)) {
+            $chunk = fread($fp, min(262144, $left));
+            if ($chunk === false) break;
+            echo $chunk;
+            $left -= strlen($chunk);
+            flush();
+        }
+        fclose($fp);
+        exit;
+    }
+
+    /**
+     * POST /api/v1/student/lessons/{id}/progress
+     *
+     * نبضة المشاهدة — الموضع والزمن **ودلاء التغطية**.
+     *
+     * `covered` قائمة أرقام دلاء عشر ثوان مر عليها التشغيل منذ آخر نبضة
+     * (`floor(sec/10)`)، وبها يقاس الإتمام لا بعداد يزيد: السحب إلى
+     * النهاية لا يكمل درسا (TQ-COVERAGE). والحد مئة في النبضة كما في
+     * البوابة — سد أمام حمولة تدعي تغطية درس كامل في نداء واحد.
+     *
+     * و`media_sec` طول المقطع كما أعلنه مشغل هذا الطالب. **وهو شهادة
+     * لا حكم**: `save_progress()` تكتبه في `lesson_progress.media_sec`
+     * لهذا الطالب وحده، ولا يصحح مدة الدرس إلا باتفاق شاهدين مستقلين
+     * (TQ-DURATION). فطالب يعدل عميله يفسد رقمه هو ولا يفسده على زملائه.
+     *
+     * ورقم الدرس **من المسار لا من الجسم**: هو مورد النقطة، ونسخة ثانية
+     * منه في الجسم تعني نداء يحفظ في درس غير الذي في رابطه.
+     */
+    public function lesson_progress($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+
+        $covered = isset($b['covered']) && is_array($b['covered']) ? $b['covered'] : array();
+        $covered = array_slice($covered, 0, 100);
+
+        /* `duration_sec` يقبل باسمه القديم توافقا مع عميل الويب: معناهما
+           واحد — ما أعلنه المشغل. */
+        $media = (int) ($b['media_sec'] ?? 0);
+        if ($media <= 0) $media = (int) ($b['duration_sec'] ?? 0);
+
+        $r = $this->gate($this->repo()->save_progress(
+            (int) $u['id'], (int) $id,
+            (int) ($b['position_sec'] ?? 0),
+            (int) ($b['watched_delta'] ?? 0),
+            $covered, $media));
+
+        $this->respond(tq_api_ok($this->progress_out($r)), 200);
+    }
+
+    /**
+     * POST /api/v1/student/lessons/{id}/complete
+     *
+     * إقرار الطالب بإتمام درس **لا يقاس**.
+     *
+     * درايف والإطار الخارجي لا يعلنان موضعا، فلا شيء يقاس والبديل أن
+     * يبقى التالي مقفلا إلى الأبد. و`confirm_complete()` ترفض الإقرار
+     * على مصدر **يقاس** فلا يصير مخرجا من كل درس — إلا بشهادة عجز
+     * يختمها الخادم (`blind_at`) ومهلة تمضي (TQ-BLIND).
+     *
+     * فالرفض هنا **جواب لا عطل**: التطبيق يقرؤه ويقول «حدث الصفحة» بدل
+     * أن يعرض زرا يرد بالخطأ في كل ضغطة.
+     */
+    public function lesson_complete($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $r = $this->gate($this->repo()->confirm_complete((int) $u['id'], (int) $id));
+
+        $this->respond(tq_api_ok($this->progress_out($r), 'سجل إتمامك للدرس.'), 200);
+    }
+
+    /** شكل واحد لرد النبضة والإقرار — فلا يفرع العميل على النقطة. */
+    private function progress_out($r)
+    {
+        $r = (array) $r;
+        return array(
+            'lesson_id'    => isset($r['lesson_id']) ? (int) $r['lesson_id'] : null,
+            'position_sec' => isset($r['position_sec']) ? (int) $r['position_sec'] : 0,
+            'covered_sec'  => isset($r['covered_sec'])  ? (int) $r['covered_sec']  : 0,
+            'duration_sec' => isset($r['duration_sec']) ? (int) $r['duration_sec'] : 0,
+            'percent'      => isset($r['percent'])      ? (int) $r['percent']      : 0,
+            'completed_at' => tq_api_date($r['completed_at'] ?? null),
+            'mastered_at'  => tq_api_date($r['mastered_at'] ?? null),
+            'declared'     => !empty($r['declared']),
+            'blind'        => !empty($r['blind']),
+            'can_declare'  => !empty($r['can_declare']),
+        );
+    }
+
+    /**
+     * GET · POST /api/v1/student/lessons/{id}/notes
+     *
+     * ملاحظات الطالب على الدرس، ولكل ملاحظة **ثانيتها**: «راجع الدقيقة
+     * ٤:١٢» لا تعني شيئا بلا موضع، والملاحظة بلا موضع مفكرة لا أداة درس.
+     */
+    public function lesson_notes($id = 0)
+    {
+        $m = $this->method(array('GET', 'POST'));
+        $u = $this->require_student();
+
+        $uid = (int) $u['id'];
+        $lid = (int) $id;
+
+        /* الملكية أولا: الملاحظة تكتب على درس، ودرس لا يملكه صاحبها
+           يجعل كتابة الملاحظة بابا يعرف به وجود الدرس ورقمه. */
+        $this->gate($this->repo()->get_lesson($lid, $uid));
+
+        if ($m === 'GET') {
+            $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+            $this->read($this->notes_out($this->learn()->notes($uid, $lid), $lid), '',
+                        array('lesson_id' => $lid), $h);
+        }
+
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+        $errors = tq_api_validate($b, array('body' => 'required|max:2000'));
+        if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+        $this->learn()->add_note($uid, $lid, (int) ($b['at_second'] ?? 0), (string) $b['body']);
+
+        $this->respond(tq_api_ok($this->notes_out($this->learn()->notes($uid, $lid), $lid),
+                                 'حفظت ملاحظتك.'), 201);
+    }
+
+    /** DELETE /api/v1/student/notes/{id} */
+    public function note_delete($id = 0)
+    {
+        $this->method(array('DELETE', 'POST'));
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        /* `delete_note()` تشترط الطالب في `WHERE` نفسه، فرقم مخمن لا يحذف
+           ملاحظة غيره. والرد واحد للمحذوف وللمعدوم عمدا: التفريق يقول
+           لمن خمن أن الرقم موجود. */
+        $this->learn()->delete_note((int) $u['id'], (int) $id);
+
+        $this->respond(tq_api_ok(null, 'حذفت الملاحظة.'), 200);
+    }
+
+    /**
+     * شكل الملاحظة.
+     *
+     * `notes()` ترد `id` و`at_second` و`body` و`created_at` و`at_label`
+     * — **ولا ترد `lesson_id`**: الاستعلام مرشح به أصلا فلا معنى لتكراره
+     * في كل صف. فيؤخذ من الوسيط، ولا يقرأ من مفتاح غير موجود.
+     *
+     * و`at_label` (`04:12`) يعاد كما هي: التنسيق نفسه في التطبيق والويب،
+     * ونسخة ثانية منه في Dart تكتب `4:12` وأخرى `04:12`.
+     */
+    private function notes_out($rows, $lesson_id)
+    {
+        $out = array();
+        foreach ((array) $rows as $r) {
+            $out[] = array(
+                'id'         => (int) $r['id'],
+                'lesson_id'  => (int) $lesson_id,
+                'at_second'  => (int) $r['at_second'],
+                'at_label'   => (string) ($r['at_label'] ?? ''),
+                'body'       => (string) $r['body'],
+                'created_at' => tq_api_date($r['created_at'] ?? null),
+            );
+        }
+        return $out;
+    }
+
+    /* ================================================================
+       ٤ · التقييم — اختبار الدرس والمحاولات
+       ================================================================ */
+
+    /**
+     * POST /api/v1/student/lessons/{id}/quiz/start
+     *
+     * يفتح محاولة — أو **يستأنف المفتوحة**.
+     *
+     * `start_attempt()` تعيد المحاولة غير المسلمة إن وجدت بدل أن تفتح
+     * ثانية: من أغلق التطبيق في منتصف الاختبار يعود إلى محاولته لا إلى
+     * محاولة جديدة تعد عليه. وعلى الجوال هذا الحال هي الشائعة لا النادرة
+     * — مكالمة واردة تكفي.
+     *
+     * والأسئلة تخرج **بلا إجاباتها الصحيحة**: `review_questions()` تحذفها،
+     * والتصحيح في الخادم. وقائمة خيارات ومعها الصواب في الحمولة تجعل
+     * الاختبار عرضا لا قياسا — ومن يفتح أدوات المطور يقرأها.
+     */
+    public function quiz_start($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $r = $this->gate($this->repo()->start_attempt((int) $u['id'], (int) $id));
+
+        $this->respond(tq_api_ok(array(
+            'attempt_id'     => (int) $r['attempt_id'],
+            'attempt_no'     => (int) $r['attempt_no'],
+            'assessment_id'  => (int) $r['assessment_id'],
+            'lesson_id'      => (int) $r['lesson_id'],
+            'pass_mark'      => (int) $r['pass_mark'],
+            'time_limit_sec' => $r['time_limit_sec'] !== null ? (int) $r['time_limit_sec'] : null,
+            'questions'      => $this->questions_out($r['questions']),
+        )), 200);
+    }
+
+    /**
+     * POST /api/v1/student/quiz/attempts/{id}/submit
+     *
+     * يسلم المحاولة ويرد **قرار البوابة** لا الدرجة وحدها.
+     *
+     * والقرار هو ما يرسم الشاشة التالية، وله ثلاثة وجوه بحسب رقم
+     * المحاولة (`submit_attempt()`):
+     *   · أتقن            ⇐ `mastered`، وفتح الدرس التالي
+     *   · أخفق والأولى    ⇐ `retry` ومعه `seek_to` — ارجع إلى الدقيقة
+     *   · أخفق والثانية   ⇐ `retry` ومعه شرح بديل
+     *   · أخفق والثالثة   ⇐ `suggest_session` — حصة بالطلب، والقفل باق
+     *
+     * **ولا إجابات صحيحة في هذا الرد**: التلميح بالحل بعد التسليم
+     * مباشرة يفسد المحاولة التالية. ومن أراد المراجعة فلها نقطتها،
+     * ولا تفتح إلا على محاولة **مسلمة**.
+     */
+    public function quiz_submit($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $raw = $this->in('answers', array());
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            $raw = is_array($decoded) ? $decoded : array();
+        }
+        if (!is_array($raw)) $raw = array();
+
+        $answers = $this->answers_in($raw);
+
+        /* شكل لم يفهم يقال، ولا يمرر صفرا.
+           `submit_attempt()` تتخطى بصمت كل بند لا تفهمه — فحمولة بشكل
+           آخر تصحح على أنها **صفر من ثلاثة**: الطالب أجاب إجاباته كلها
+           صحيحة ويقرأ أنه رسب، ولا خطأ في أي موضع. وهو الصمت نفسه الذي
+           تحذر منه CLAUDE.md في أول قواعد التوجيه، وقد وقع هنا فعلا في
+           أول نداء جرب. */
+        if ($raw && !$answers) {
+            $this->fail('صيغة الإجابات غير مفهومة.', 'validation_failed', 422,
+                array('answers' => array(
+                    'أرسلها قائمة: [{"question_id":7781,"given":["٢٥"]}] — أو خريطة {"7781":["٢٥"]}.')));
+        }
+
+        $r = $this->gate($this->repo()->submit_attempt((int) $u['id'], (int) $id, $answers));
+
+        $this->respond(tq_api_ok($r), 200);
+    }
+
+    /**
+     * يقبل الشكلين ويرد الشكل الذي يفهمه النموذج.
+     *
+     * القياسي قائمة `[{question_id, given, took_ms}]` — وهو ما يرسله
+     * عميل الويب وما تقرؤه `submit_attempt()`. والخريطة
+     * `{"7781": ["٢٥"]}` أطبع في JSON وأول ما يكتبه من يقرأ الوثيقة،
+     * فتقبل وتحول هنا. والتحويل في موضع واحد لا في النموذج: ذاك تناديه
+     * الويب كذلك، وتوسيع مدخله يوسع ما يجب أن تفهمه شاشتان.
+     *
+     * و`given` يقبل نصا مفردا كما يقبل قائمة: سؤال باختيار واحد يرسل
+     * `"٢٥"` طبعا، ورفضه لأنه ليس قائمة تحكم بلا فائدة.
+     */
+    private function answers_in($raw)
+    {
+        $out = array();
+
+        foreach ($raw as $key => $item) {
+            if (is_array($item) && isset($item['question_id'])) {
+                $qid   = (int) $item['question_id'];
+                $given = isset($item['given']) ? $item['given'] : null;
+                $ms    = isset($item['took_ms']) ? (int) $item['took_ms'] : null;
+            } elseif (is_numeric($key)  && !is_array($item)) {
+                /* قائمة قيم عارية بلا معرفات: لا سبيل إلى معرفة أي سؤال
+                   تخص — ورقم الفهرس ليس رقم السؤال. تهمل فيرد 422 أعلاه
+                   بدل أن تصحح على أنها إجابة عن السؤال الأول. */
+                continue;
+            } else {
+                $qid   = (int) $key;
+                $given = $item;
+                $ms    = null;
+            }
+
+            if ($qid <= 0) continue;
+
+            if (is_string($given)) {
+                $decoded = json_decode($given, true);
+                $given   = is_array($decoded) ? $decoded : array($given);
+            } elseif (!is_array($given)) {
+                $given = ($given === null) ? array() : array($given);
+            }
+
+            $one = array('question_id' => $qid, 'given' => array_values($given));
+            if ($ms !== null) $one['took_ms'] = max(0, $ms);
+            $out[] = $one;
+        }
+
+        return $out;
+    }
+
+    /**
+     * GET /api/v1/student/quiz/attempts/{id}
+     *
+     * مراجعة محاولة **مسلمة** — وهنا وحدها تخرج الإجابات الصحيحة.
+     *
+     * منفصلة عن التسليم عمدا لا تكاسلا: رد التسليم يبقى بلا حل، وهذه
+     * طلب ثان يختاره الطالب بعد أن ينتهي. و`attempt_review()` تفحص
+     * صاحب المحاولة وتفحص أنها سلمت — فرقم مخمن لا يقرأ إجابات غيره،
+     * ومحاولة مفتوحة لا تقرأ حلها.
+     */
+    public function quiz_attempt($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $r = $this->gate($this->repo()->attempt_review((int) $u['id'], (int) $id));
+
+        unset($r['ok']);
+        $this->read($r, '', array(), $h);
+    }
+
+    /**
+     * GET /api/v1/student/exams
+     *
+     * اختبارات الطالب ونتائجها — **آخر محاولة لكل اختبار** لا كلها.
+     * السؤال «أين هو الآن؟» لا «ماذا فعل عبر الشهر».
+     *
+     * TQ-EXAM-SOURCE: هذه تقرأ نظام التقييمات (`assessments` +
+     * `attempts`) وهو ما يؤلف به اليوم — لا `quiz_results` الموروث الذي
+     * لم يعد يكتب فيه شيء، وكانت شاشة الويب تعد منه وحده فتقول «لا
+     * اختبارات بعد» لطالب سلم أربع محاولات الأسبوع الماضي.
+     *
+     * والاختبار بلا سؤال واحد لا يعرض: هو صف تقييم أنشئ عند فتح المحرر
+     * ولم يؤلف.
+     */
+    public function student_exams()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid = (int) $u['id'];
+
+        $rows = $this->db->query(
+            'SELECT s.`id` AS assessment_id, s.`type`, s.`pass_mark`, s.`time_limit_sec`,
+                    l.`id` AS lesson_id, l.`title` AS lesson_title,
+                    c.`id` AS course_id, c.`title` AS course_title,
+                    (SELECT COUNT(*) FROM `question` q WHERE q.`assessment_id` = s.`id`) AS questions,
+                    t.`id` AS attempt_id, t.`attempt_no`, t.`score`, t.`passed`, t.`submitted_at`,
+                    (SELECT MAX(t2.`score`) FROM `attempts` t2
+                      WHERE t2.`assessment_id` = s.`id` AND t2.`student_id` = ?) AS best_score,
+                    (SELECT COUNT(*) FROM `attempts` t3
+                      WHERE t3.`assessment_id` = s.`id` AND t3.`student_id` = ?
+                        AND t3.`submitted_at` IS NOT NULL) AS tries
+               FROM `assessments` s
+               JOIN `lesson` l ON l.`id` = s.`lesson_id`
+               JOIN `course` c ON c.`id` = l.`course_id`
+               JOIN `enrol`  e ON e.`course_id` = c.`id` AND e.`user_id` = ?
+               LEFT JOIN `attempts` t
+                      ON t.`id` = (SELECT t4.`id` FROM `attempts` t4
+                                    WHERE t4.`assessment_id` = s.`id` AND t4.`student_id` = ?
+                                      AND t4.`submitted_at` IS NOT NULL
+                                    ORDER BY t4.`submitted_at` DESC, t4.`id` DESC LIMIT 1)
+              WHERE s.`lesson_id` IS NOT NULL
+              HAVING questions > 0
+              ORDER BY (t.`submitted_at` IS NULL) ASC, t.`submitted_at` DESC, s.`id` DESC',
+            array($uid, $uid, $uid, $uid))->result_array();
+
+        $out = array();
+        $done = 0; $passed = 0;
+        foreach ($rows as $r) {
+            $has = !empty($r['attempt_id']);
+            if ($has) {
+                $done++;
+                if ((int) $r['passed'] === 1) $passed++;
+            }
+            $out[] = array(
+                'assessment_id'  => (int) $r['assessment_id'],
+                'kind'           => (string) $r['type'],
+                'lesson'         => array('id' => (int) $r['lesson_id'], 'title' => $r['lesson_title']),
+                'course'         => array('id' => (int) $r['course_id'], 'title' => $r['course_title']),
+                'question_count' => (int) $r['questions'],
+                'pass_mark'      => (int) $r['pass_mark'],
+                'time_limit_sec' => $r['time_limit_sec'] !== null ? (int) $r['time_limit_sec'] : null,
+                'tries'          => (int) $r['tries'],
+                'best_score'     => $r['best_score'] !== null ? (int) $r['best_score'] : null,
+                'last_attempt'   => $has ? array(
+                    'attempt_id'   => (int) $r['attempt_id'],
+                    'attempt_no'   => (int) $r['attempt_no'],
+                    'score'        => (int) $r['score'],
+                    'passed'       => ((int) $r['passed'] === 1),
+                    'submitted_at' => tq_api_date($r['submitted_at']),
+                ) : null,
+                'state' => !$has ? 'not_started'
+                         : (((int) $r['passed'] === 1) ? 'passed' : 'failed'),
+            );
+        }
+
+        $this->read($out, '', array(
+            'total'  => count($out),
+            'taken'  => $done,
+            'passed' => $passed,
+        ), $h);
+    }
+
+    /**
+     * شكل السؤال المعروض — **بلا `correct_answers` بحال**.
+     *
+     * `review_questions()` تحذفها قبل أن ترد، والتعداد هنا يعدد ما يخرج
+     * لا ما يحجب: عمود جديد في `question` غدا لا يتسرب لأن أحدا نسي أن
+     * يضيفه إلى قائمة الحجب. وهو مبدأ `tq_api_user()` نفسه.
+     */
+    private function questions_out($rows)
+    {
+        $out = array();
+        foreach ((array) $rows as $r) {
+            $opts = $r['options'] ?? array();
+            if (is_string($opts)) $opts = json_decode($opts, true);
+
+            $out[] = array(
+                'id'           => (int) $r['id'],
+                'title'        => (string) $r['title'],
+                'type'         => (string) $r['type'],
+                'options'      => is_array($opts) ? array_values($opts) : array(),
+                'objective_id' => !empty($r['objective_id']) ? (int) $r['objective_id'] : null,
+            );
+        }
+        return $out;
+    }
+
+    /* ================================================================
+       ٥ · التمرين — المراجعة المتباعدة ودفتر الأخطاء
+       ================================================================ */
+
+    /**
+     * GET /api/v1/student/reviews
+     *
+     * أسئلة اليوم المستحقة — دفعة واحدة لا القائمة كلها.
+     *
+     * `review_daily_batch` في `settings` هو حجم الدفعة، و`get_due_reviews()`
+     * تسقفه بخمسين. ولا يفتح للطالب أن يجر الطابور كله: التباعد يعمل
+     * بالدفعة اليومية، ومن راجع مئتي سؤال في جلسة لم يثبت شيئا — والحد
+     * قاعدة تعليمية لا حماية خادم.
+     *
+     * والترتيب من النموذج: الأقدم استحقاقا، فالأكثر تعثرا، فالأصعب
+     * (`ease` الأدنى). وترتيب ثان في العميل يهدم التباعد.
+     */
+    public function student_reviews()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $repo  = $this->repo();
+        $limit = (int) $this->input->get('limit');
+        $rows  = $repo->get_due_reviews((int) $u['id'], $limit);
+
+        $out = array();
+        foreach ($rows as $r) {
+            $out[] = array(
+                'question_id'   => (int) $r['question_id'],
+                'title'         => (string) $r['title'],
+                'type'          => (string) $r['type'],
+                'options'       => is_array($r['options']) ? array_values($r['options']) : array(),
+                'objective'     => array(
+                    'id'        => $r['objective_id'] ? (int) $r['objective_id'] : null,
+                    'text'      => $r['objective_text'] ?: null,
+                    'at_second' => (int) $r['at_second'],
+                ),
+                'lesson'        => array(
+                    'id'    => $r['lesson_id'] ? (int) $r['lesson_id'] : null,
+                    'title' => $r['lesson_title'] ?: null,
+                ),
+                'course'        => array(
+                    'id'    => $r['course_id'] ? (int) $r['course_id'] : null,
+                    'title' => $r['course_title'] ?: null,
+                ),
+                'due_at'        => tq_api_date($r['due_at']),
+                'interval_days' => (int) $r['interval_days'],
+                'lapses'        => (int) $r['lapses'],
+            );
+        }
+
+        $this->read($out, '', array(
+            'count'       => count($out),
+            'total_due'   => (int) $repo->count_due_reviews((int) $u['id']),
+            'daily_batch' => (int) $repo->setting('review_daily_batch', 10),
+        ), $h);
+    }
+
+    /**
+     * POST /api/v1/student/reviews/answer
+     *
+     * إجابة سؤال مراجعة — **والصواب يقرره الخادم**.
+     *
+     * `correct` لا يقبل من الجسم بحال: العميل يرسل ما اختاره
+     * (`given`)، و`is_answer_correct()` تقابله بـ`correct_answers`. ولو
+     * قبل من العميل لصار الجدول الزمني لعبة — يعلن الطالب صوابا فيتباعد
+     * السؤال ستين يوما وهو لم يجب.
+     *
+     * وشرط ثان قبل ذلك: السؤال **في طابور هذا الطالب**. وبلاه يجيب من
+     * يخمن الأرقام على أسئلة لم تسند إليه فيحرك حالة مهارات لم يدرسها.
+     */
+    public function review_answer()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $uid = (int) $u['id'];
+        $qid = (int) $this->in('question_id', 0);
+        if (!$qid) {
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422,
+                        array('question_id' => array('هذا الحقل مطلوب.')));
+        }
+
+        $in_queue = $this->db->where('student_id', $uid)->where('question_id', $qid)
+                             ->count_all_results('review_queue');
+        if (!$in_queue) {
+            $this->fail('هذا السؤال ليس في مراجعتك اليوم.', 'not_entitled', 403);
+        }
+
+        $q = $this->db->where('id', $qid)->get('question')->row_array();
+        if (!$q) $this->fail('لا سؤال بهذا الرقم.', 'not_found', 404);
+
+        $given = $this->in('given', array());
+        if (is_string($given)) {
+            $decoded = json_decode($given, true);
+            $given   = is_array($decoded) ? $decoded : array($given);
+        }
+        if (!is_array($given)) $given = ($given === null) ? array() : array($given);
+
+        $repo    = $this->repo();
+        $correct = $repo->is_answer_correct($q, $given);
+        $r       = $repo->answer_review($uid, $qid, $correct);
+
+        $repo->audit($uid, 'review.answer', 'question:' . $qid, null, array(
+            'correct'       => (bool) $correct,
+            'interval_days' => $r['interval_days'],
+            'via'           => 'api',
+        ));
+
+        $this->respond(tq_api_ok(array(
+            'question_id'   => (int) $r['question_id'],
+            'correct'       => (bool) $r['correct'],
+            'interval_days' => (int) $r['interval_days'],
+            'lapses'        => (int) $r['lapses'],
+            'due_at'        => tq_api_date($r['due_at']),
+            'remaining_due' => (int) $r['remaining_due'],
+        )), 200);
+    }
+
+    /**
+     * GET /api/v1/student/mistakes
+     *
+     * دفتر الأخطاء — يشتق من `answers` حيث `is_correct = 0`، لا جدول
+     * مستقل، حتى لا يفترق الدفتر عن الحقيقة.
+     *
+     * والصف سؤال لا محاولة: `wrong_count` كم مرة أخطئ فيه، و`due_at`
+     * متى يعود في المراجعة. وسؤال أخطئ فيه أربع مرات ليس أربعة أسطر —
+     * هو خطأ واحد متكرر، وذاك ما يقرؤه الطالب.
+     */
+    public function student_mistakes()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $rows = $this->repo()->get_mistakes((int) $u['id']);
+
+        list($page, $per, $offset) = tq_api_page(
+            $this->input->get('page'), $this->input->get('per_page'), 100, 20);
+
+        $out = array();
+        foreach (array_slice($rows, $offset, $per) as $r) {
+            $out[] = array(
+                'question_id' => (int) $r['question_id'],
+                'title'       => (string) $r['title'],
+                'type'        => (string) $r['type'],
+                'wrong_count' => (int) $r['wrong_count'],
+                'last_wrong_at' => tq_api_date($r['last_wrong_at']),
+                'objective'   => array(
+                    'id'        => $r['objective_id'] ? (int) $r['objective_id'] : null,
+                    'text'      => $r['objective_text'] ?: null,
+                    'at_second' => (int) $r['at_second'],
+                ),
+                'lesson'      => array(
+                    'id'    => $r['lesson_id'] ? (int) $r['lesson_id'] : null,
+                    'title' => $r['lesson_title'] ?: null,
+                ),
+                'course'      => array(
+                    'id'    => $r['course_id'] ? (int) $r['course_id'] : null,
+                    'title' => $r['course_title'] ?: null,
+                ),
+                'due_at'        => tq_api_date($r['due_at'] ?? null),
+                'interval_days' => (int) $r['interval_days'],
+                'lapses'        => (int) $r['lapses'],
+            );
+        }
+
+        $this->read($out, '', tq_api_meta_page($page, $per, count($rows)), $h);
     }
 
     /**

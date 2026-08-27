@@ -25,6 +25,11 @@ if (!is_array($tq_old)) { $tq_old = array(); }
 $tq_v = function ($k) use ($tq_old) {
     return isset($tq_old[$k]) ? html_escape((string) $tq_old[$k]) : '';
 };
+/* الخام لما يهرب بنفسه: `tq_phone_field()` تبني وسمها وتهرب قيمها،
+   فتمرير المهرب إليها يهرب مرتين — فيعود `+966` رقما فيه `&#43;`. */
+$tq_v_raw = function ($k) use ($tq_old) {
+    return isset($tq_old[$k]) ? (string) $tq_old[$k] : '';
+};
 
 /* ثلاث بوابات لا اثنتان: «ولي أمر» عادت. والمحرك يعرفها أصلا —
    `tq_role()` يرد `parent` لمن `tq_gate` عنده `parent`، ولوحة ولي
@@ -212,10 +217,7 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
           <h2 class="form-sect__t"><svg aria-hidden="true"><use href="#i-teacher"></use></svg>بيانات المعلم</h2>
 
           <div class="form-cell">
-            <label class="form-field">
-              <svg aria-hidden="true"><use href="#i-phone"></use></svg>
-              <span class="sr-only">رقم الجوال</span>
-              <?php /* بلا `pattern`: الخادم يطبع الرقم قبل فحصه فيقبل
+            <?php /* بلا `pattern`: الخادم يطبع الرقم قبل فحصه فيقبل
                       `0501234567` و`+966 50 123 4567`، وكان النمط هنا
                       يرفض ما سيقبله — شرطان مختلفان لحقل واحد.
 
@@ -225,11 +227,15 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
                       `name="phone"`. و`hidden` لا يمنع الإرسال — فالطلب
                       يحمل الحقلين، وPHP يبقي **الأخير**: حقل ولي الأمر
                       الفارغ. فكل تسجيل معلم كان يرد «رقم الجوال غير صحيح»
-                      مهما كتب فيه، وهو أول ما يقابل من يريد أن يدرس هنا. */ ?>
-              <input type="tel" name="teacher_phone" data-req="1" placeholder="05XXXXXXXX"
-                     inputmode="tel" autocomplete="tel"
-                     value="<?php echo $tq_v('phone'); ?>">
-            </label>
+                      مهما كتب فيه، وهو أول ما يقابل من يريد أن يدرس هنا.
+                      والمنتقي يحمل الاسم نفسه ببادئة `_cc` لهذا السبب. */ ?>
+            <?php echo tq_phone_field('teacher_phone', array(
+                'required' => true,
+                'value'    => $tq_v_raw('phone'),
+                'iso'      => $tq_v_raw('teacher_phone_cc'),
+                'id'       => 'tqPhoneTeacher',
+                'hint'     => 'يستعمل للتواصل معك، وقد يصلك عليه رمز تأكيد الحساب عبر واتساب.',
+            )); ?>
           </div>
 
           <?php /* الحقل `div` لا `label`: `label` يلف `input[type=file]`
@@ -309,15 +315,14 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
           <h2 class="form-sect__t"><svg aria-hidden="true"><use href="#i-users"></use></svg>بيانات ولي الأمر</h2>
 
           <div class="form-cell">
-            <label class="form-field">
-              <svg aria-hidden="true"><use href="#i-phone"></use></svg>
-              <span class="sr-only">رقم الجوال</span>
-              <?php /* اسم مستقل عن حقل المعلم — انظر TQ-PHONE-DUP أعلاه. */ ?>
-              <input type="tel" name="parent_phone" data-req="1" placeholder="05XXXXXXXX"
-                     inputmode="tel" autocomplete="tel"
-                     value="<?php echo $tq_v('phone'); ?>">
-            </label>
-            <p class="form-hint">نراسلك عليه في تنبيهات أبنائك المهمة.</p>
+            <?php /* اسم مستقل عن حقل المعلم — انظر TQ-PHONE-DUP أعلاه. */ ?>
+            <?php echo tq_phone_field('parent_phone', array(
+                'required' => true,
+                'value'    => $tq_v_raw('phone'),
+                'iso'      => $tq_v_raw('parent_phone_cc'),
+                'id'       => 'tqPhoneParent',
+                'hint'     => 'نراسلك عليه في تنبيهات أبنائك المهمة.',
+            )); ?>
           </div>
 
           <?php $tq_otp_for = 'parent'; include __DIR__ . '/_tq_otp_channel.php'; ?>

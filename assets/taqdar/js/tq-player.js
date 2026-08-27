@@ -267,9 +267,16 @@
 
     return loadScript('https://player.vimeo.com/api/player.js').then(function () {
       el.innerHTML = '';
-      var vp = new global.Vimeo.Player(el, {
-        id: id, responsive: true, playsinline: true
-      });
+      /* TQ-VIMEO-BOX — `responsive: true` **يبني صندوق نسبة ثانيا**.
+         الخيار يطلب من oEmbed وسما ملفوفا: `<div style="padding:56.25% 0 0 0
+         ;position:relative"><iframe …></div>`. وحاويتنا `.tq-player__frame`
+         صندوق نسبة أصلا (`padding-block-end:56.25%`)، فيجتمع الصندوقان:
+         الإطار يرسم بطوله الطبيعي في أعلى الحاوية، ثم تليه حشوة الحاوية
+         كلها فراغا داكنا بطول شاشة — وهو ما ظهر في الإنتاج.
+         وأسوأ منه أن `.tq-player__frame > iframe` لا يطابق شيئا حينها:
+         الإطار صار حفيدا لا ابنا، فلا يمتد ولا يتموضع.
+         فالنسبة تترك لحاويتنا وحدها، والسمة تخرج إطارا مباشرا. */
+      var vp = new global.Vimeo.Player(el, { id: id, playsinline: true });
 
       vp.on('play',        function () { bus.fire('play'); });
       vp.on('pause',       function () { bus.fire('pause'); });

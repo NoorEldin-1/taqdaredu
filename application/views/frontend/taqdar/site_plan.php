@@ -257,7 +257,12 @@ $tier  = tqs_bundle_tier($b['name']);
     <aside class="plan-buy">
       <div class="icard icard--sticky plan-card">
 
-        <?php if ((string) $b['image'] !== ''): ?>
+        <?php /* الغلاف يعرض دائما: `tqs_plan_cover()` ترد صورة بحال —
+                 رفع المسؤول، أو المشتقة، أو غلاف المرحلة. وكان الشرط
+                 `plans.image !== ''` يترك بطاقة الشراء بلا وجه لباقة
+                 لم يرفع لها المسؤول شيئا، بينما بطاقتها في الرئيسية
+                 تحمل صورة — الصفحتان للباقة الواحدة. */ ?>
+        <?php if (true): ?>
           <?php
           /* الصورة تصير مشغلا حين يكون في الباقة درس مفتوح للمعاينة:
              علامة تشغيل وشارة تقول ما هي، ونقرة تفتح الدرس نفسه. وبلا
@@ -271,8 +276,8 @@ $tier  = tqs_bundle_tier($b['name']);
               <?php /* لا `lazy` هنا: البطاقة أعلى العمود الجانبي وتظهر مع
                        أول رسم، والتأجيل يجعل مربعا بيجيا يومض تحت علامة
                        التشغيل قبل أن تصل الصورة. */ ?>
-              <img src="<?php echo tqs_asset_img($b['image'], 'path-primary'); ?>" alt=""
-                   width="880" height="587" decoding="async" fetchpriority="high">
+              <img src="<?php echo html_escape(tqs_plan_cover($b)); ?>" alt=""
+                   width="1200" height="800" decoding="async" fetchpriority="high">
               <span class="plan-promo__scrim" aria-hidden="true"></span>
               <span class="plan-promo__play" aria-hidden="true">
                 <svg><use href="#i-play"></use></svg>
@@ -302,8 +307,8 @@ $tier  = tqs_bundle_tier($b['name']);
             <?php endif; ?>
           <?php else: ?>
             <div class="plan-card__media">
-              <img src="<?php echo tqs_asset_img($b['image'], 'path-primary'); ?>" alt=""
-                   width="880" height="587" loading="lazy" decoding="async">
+              <img src="<?php echo html_escape(tqs_plan_cover($b)); ?>" alt=""
+                   width="1200" height="800" loading="lazy" decoding="async">
             </div>
           <?php endif; ?>
         <?php endif; ?>
@@ -314,20 +319,30 @@ $tier  = tqs_bundle_tier($b['name']);
            يمس هذا المبدّل الزر ولا الرابط ولا الخادم. والافتراضيّ شهريّ
            بقرار المالك، وبلا سكربت يبقى الشهريّ ظاهرا وهو المطلوب.
            والباقة غير السنويّة لا معادل شهريّ لها فتبقى بفقرة واحدة. */
-        $tq_cyc = tqs_plan_cycle($b['price']);
-        $tq_yr  = ((int) $b['days'] >= 360);
+        /* TQ-PLAN-CYCLE — الدورة من `period` لا من المدة، والأربع دورات
+           كلها. وكان الشرط `days >= 360` وحده: الباقة الشهرية تطبع
+           فقرة واحدة بلا `data-cycle`، فمن بدل إلى «سنوي» في صفحة
+           الباقات ثم فتح هذه وجد الرقم كما هو ولا مبدل يفسره. */
+        $tq_p = tqs_plan_price($b);
         ?>
-        <?php if ($tq_yr): ?>
+        <?php if ($tq_p['has_alt']): ?>
           <div class="plan-cycle" role="group" aria-label="دورة عرض السعر">
             <button type="button" data-tq-cycle="year" aria-pressed="false">سنوي<span class="plan-cycle__save">وفر <span class="tq-ltr">20%</span></span></button>
             <button type="button" data-tq-cycle="month" aria-pressed="true">شهري</button>
           </div>
+        <?php endif; ?>
+        <?php if ($tq_p['free']): ?>
+          <p class="plan-card__price">
+            <b>مجانا</b>
+            <small>بلا رسوم — يفتح بالتسجيل وحده.</small>
+          </p>
+        <?php elseif ($tq_p['has_alt']): ?>
           <p class="plan-card__price" data-cycle="month">
-            <b class="tq-ltr"><?php echo number_format($tq_cyc['month']); ?></b> <span>ر.س</span>
-            <small>شهريا — تدفع سنويا <span class="tq-ltr"><?php echo number_format($tq_cyc['year']); ?></span> ر.س</small>
+            <b class="tq-ltr"><?php echo number_format($tq_p['month']); ?></b> <span>ر.س</span>
+            <small>شهريا — <?php echo html_escape($tq_p['note']); ?></small>
           </p>
           <p class="plan-card__price" data-cycle="year" hidden>
-            <b class="tq-ltr"><?php echo number_format($tq_cyc['year']); ?></b> <span>ر.س</span>
+            <b class="tq-ltr"><?php echo number_format($tq_p['total']); ?></b> <span>ر.س</span>
             <small><?php echo html_escape(tqs_period_label($b['days'])); ?></small>
           </p>
         <?php else: ?>
@@ -526,14 +541,18 @@ if ($tq_gq) $tq_grades = $tq_gq->result_array();
     <p class="plan-cta__lead"><?php echo html_escape($b['name']); ?></p>
 
     <?php /* يتبع المبدّل الذي في بطاقة الشراء — مبدّلان في صفحة واحدة
-             يسألان السؤال نفسه مرتين. */ ?>
-    <?php if ($tq_yr): ?>
+             يسألان السؤال نفسه مرتين. و`$tq_p` نفسها التي حسبتها
+             البطاقة أعلاه: حسابان للسعر في صفحة واحدة يفترقان عند أول
+             تعديل، فيقرأ الزائر رقمين لباقة واحدة. */ ?>
+    <?php if ($tq_p['free']): ?>
+      <p class="plan-cta__price"><b>مجانا</b><small>بلا رسوم</small></p>
+    <?php elseif ($tq_p['has_alt']): ?>
       <p class="plan-cta__price" data-cycle="month">
-        <b class="tq-ltr"><?php echo number_format($tq_cyc['month']); ?></b> <span>ر.س</span>
-        <small>شهريا — تدفع سنويا <span class="tq-ltr"><?php echo number_format($tq_cyc['year']); ?></span> ر.س</small>
+        <b class="tq-ltr"><?php echo number_format($tq_p['month']); ?></b> <span>ر.س</span>
+        <small>شهريا — <?php echo html_escape($tq_p['note']); ?></small>
       </p>
       <p class="plan-cta__price" data-cycle="year" hidden>
-        <b class="tq-ltr"><?php echo number_format($tq_cyc['year']); ?></b> <span>ر.س</span>
+        <b class="tq-ltr"><?php echo number_format($tq_p['total']); ?></b> <span>ر.س</span>
         <small><?php echo html_escape(tqs_period_label($b['days'])); ?></small>
       </p>
     <?php else: ?>
@@ -573,7 +592,9 @@ $ld = array(
         'url'           => base_url('plan/' . $b['code']),
     ),
 );
-if ((string) $b['image'] !== '') $ld['image'] = tqs_asset_img($b['image'], 'path-primary');
+/* بيانات الوسم المهيكل تقرأ الغلاف من مصدره الواحد كما تقرؤه
+   البطاقة: صورة في جوجل تخالف صورة الصفحة تربك من يقارنهما. */
+$ld['image'] = tqs_plan_cover($b);
 ?>
 <script type="application/ld+json"><?php
 echo json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

@@ -136,6 +136,16 @@ if (!function_exists('tqa_cell')) {
                 if ($more > 0) $out .= '<span class="tqa-dim">و' . $more . ' غيرها</span>';
                 return $out;
 
+            /* الصورة تعرض صورة لا مسارا: `uploads/plans/plan-31-a3f9.webp`
+               اسم لا يقول أي صورة هي، والعمود موجود ليقال به «أهذه
+               الباقة لها وجه؟». */
+            case 'file':
+                $src = (strpos((string) $value, '/') !== false)
+                     ? base_url(ltrim((string) $value, '/'))
+                     : base_url('assets/taqdar/site/img/' . $value . '.webp');
+                return '<img class="tqa-thumb" src="' . html_escape($src) . '" alt=""'
+                     . ' loading="lazy" decoding="async" width="72" height="48">';
+
             /* `refswitch` عمود واحد يفسر حسب حقل آخر، والخلية لا تعرف
                ذلك الحقل — فالرقم وحده، وشاشة التعديل تقول ما هو. */
             case 'refswitch':

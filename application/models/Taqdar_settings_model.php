@@ -279,8 +279,14 @@ class Taqdar_settings_model extends CI_Model
         if ($email === '')                          $errors[] = 'اكتب بريدك الإلكتروني.';
         elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'صيغة البريد غير صحيحة — مثال: name@example.com';
         elseif (mb_strlen($email) > 50)             $errors[] = 'البريد أطول من الحقل المتاح (50 حرفا).';
-        if ($phone !== '' && !preg_match('/^[0-9+()\-\s]{6,25}$/u', $phone)) {
-            $errors[] = 'رقم الجوال يقبل الأرقام و + و - والمسافات فقط.';
+        /* TQ-PHONE-INTL — الرقم يفحص في دولته ويخزن `+<رمز><وطني>`.
+           كان الفحص «أرقاما و+ و- ومسافات، من ست إلى خمس وعشرين» —
+           وهو يقبل `123456` ويخزنه كما جاء، فيقرأه `to_e164()` رقما
+           غير صالح ولا يخرج له واتساب أبدا ولا يقول أحد لماذا. */
+        if ($phone !== '') {
+            $ph = tq_phone_check($phone, $in->post('phone_cc', true));
+            if (!$ph['ok']) $errors[] = $ph['error'];
+            else            $phone = $ph['e164'];
         }
 
         if (!$errors) {

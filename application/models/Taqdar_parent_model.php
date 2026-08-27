@@ -835,6 +835,15 @@ class Taqdar_parent_model extends CI_Model
                                 ->count_all_results('users');
         if ($taken > 0) return $this->fail('هذا البريد مستعمل في حساب آخر.');
 
+        /* TQ-PHONE-INTL — يخزن `+<رمز><وطني>` كما يخزنه التسجيل.
+           وعلى هذا الرقم تصل تنبيهات الأبناء بواتساب، فرقم يحفظ عاريا
+           من رمز دولته يذهب إلى بلد آخر أو لا يذهب. */
+        if ($phone !== '') {
+            $ph = tq_phone_check($phone, $data['phone_cc'] ?? '');
+            if (!$ph['ok']) return $this->fail($ph['error']);
+            $phone = $ph['e164'];
+        }
+
         $this->db->where('id', $parent_id)->update('users', [
             'first_name'    => $first,
             'last_name'     => $last,

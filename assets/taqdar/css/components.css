@@ -120,6 +120,22 @@
 .tq-input[disabled],
 .tq-select[disabled] { background: var(--tq-ground); border-color: transparent; color: var(--tq-text3); }
 
+/* TQ-PHONE-INTL — منتقي الدولة والرقم صفا واحدا لا حقلين.
+   الرمز والجسم قيمة واحدة، فيقرآن معا. والمنتقي لا يتمدد: عرضه محسوب
+   والرقم يأخذ ما بقي — وبلا ذلك يأخذ المنتقي نصف الصف. */
+.tq-phone { display: flex; gap: var(--tq-space-s); align-items: stretch; }
+.tq-phone__cc {
+  flex: 0 0 auto;
+  inline-size: clamp(9rem, 30%, 13rem);
+  padding-inline: var(--tq-space-m);
+  cursor: pointer;
+}
+.tq-phone__num { flex: 1 1 auto; min-inline-size: 0; direction: ltr; text-align: left; letter-spacing: .04em; }
+@media (max-width: 40rem) {
+  .tq-phone { flex-wrap: wrap; }
+  .tq-phone__cc { inline-size: 100%; }
+}
+
 .tq-field__msg { display: block; margin-block-start: var(--tq-space-s); font: var(--tq-type-micro); }
 .tq-field[data-state='error'] .tq-field__msg { color: var(--tq-danger); }
 .tq-field__hint { color: var(--tq-text2); }

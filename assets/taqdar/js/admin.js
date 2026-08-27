@@ -567,3 +567,37 @@
     });
 
 })(window, document);
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-PLAN-IMG · معاينة الصورة المختارة قبل الحفظ
+   الرفع يقص إلى 3:2 على الخادم، والمعاينة هنا تقص بالنسبة نفسها
+   (`object-fit: cover` في الورقة) — فما يراه المسؤول قبل الحفظ هو ما
+   سيخرج بعده. وبلا معاينة يحفظ ويرجع إلى القائمة ليكتشف القص.
+   وتعطيل مربع «احذف» عند اختيار ملف: اختيار بديل ومحو معا أمران
+   متناقضان، وأحدهما يبطل الآخر صامتا.
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+  var boxes = document.querySelectorAll('[data-tqa-file]');
+  if (!boxes.length) return;
+
+  Array.prototype.forEach.call(boxes, function (box) {
+    var inp  = box.querySelector('[data-tqa-file-input]');
+    var pane = box.querySelector('[data-tqa-file-preview]');
+    var img  = box.querySelector('[data-tqa-file-img]');
+    var clr  = box.querySelector('input[type=checkbox]');
+    if (!inp) return;
+
+    inp.addEventListener('change', function () {
+      var f = inp.files && inp.files[0];
+      if (clr) { clr.checked = false; clr.disabled = !!f; }
+      if (!pane || !img) return;
+      if (!f) { pane.hidden = true; img.removeAttribute('src'); return; }
+      /* الرابط المؤقت يحرر بعد التحميل: تركه يبقي الملف في الذاكرة
+         حتى تغلق الصفحة، وصورة من هاتف قد تكون ثمانية ميغابايت. */
+      var url = URL.createObjectURL(f);
+      img.onload = function () { URL.revokeObjectURL(url); };
+      img.src = url;
+      pane.hidden = false;
+    });
+  });
+})();

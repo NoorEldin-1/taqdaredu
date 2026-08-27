@@ -173,7 +173,17 @@ class Taqdar_repo_model extends CI_Model
         if (isset($this->_lesson_order_cache[$course_id])) {
             return $this->_lesson_order_cache[$course_id];
         }
+        /* `video_type` و`duration_sec` عمودان يقرؤهما **من ينادي هذه**
+           لا هي: `trackable()` تقرأ الأول، و`lesson_duration()` تفضل
+           الثاني على النص المكتوب. وكانا غائبين عن هذا الاختيار، فيرد
+           `trackable()` كذبا على كل درس يوتيوب — وهي كل دروس المنصة —
+           وترد `lesson_duration()` المدة **المكتوبة بيد** بدل المقاسة.
+           و`get_path()` أدناه تعلق على ذلك بأنها تقرأ «العمود الرقمي لا
+           النص»، وهي لم تكن تقرؤه قط: التعليق يصف نية والاستعلام لا
+           يسلمها. وهو TQ-DURATION من بابه الآخر — المدة المكتوبة خطأ
+           تقفل المقرر على كل من اشترك. */
         $sql = 'SELECT l.`id`, l.`title`, l.`section_id`, l.`course_id`, l.`duration`,
+                       l.`duration_sec`, l.`video_type`,
                        l.`is_free`, l.`lesson_type`, l.`order` AS lesson_order,
                        COALESCE(s.`order`, 0) AS section_order, s.`title` AS section_title
                 FROM `lesson` l
@@ -184,7 +194,7 @@ class Taqdar_repo_model extends CI_Model
         $rows = $this->db->query($sql, array($course_id))->result_array();
         foreach ($rows as &$r) {
             $this->cast_ints($r, array('id', 'section_id', 'course_id', 'is_free',
-                                       'lesson_order', 'section_order'));
+                                       'duration_sec', 'lesson_order', 'section_order'));
         }
         unset($r);
         $this->_lesson_order_cache[$course_id] = $rows;

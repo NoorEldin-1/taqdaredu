@@ -24,14 +24,18 @@ include __DIR__ . '/site/site_pagehero.php';
 
 $tq_ci = &get_instance();
 $tq_ci->load->model('taqdar_site_model', 'tq_m');
-$tq_ci->load->model('taqdar_billing_model', 'tq_b');
 $tq_uid   = (int) $tq_ci->session->userdata('user_id');
 
-/* الباقات من `plans` بنطاق الصفوف — ومعها معرفاتها للشراء. */
-$tq_rows = array();
-foreach ((array) $tq_ci->tq_b->plans(true) as $tq_p) {
-    if ((string) $tq_p['scope'] === 'grade') $tq_rows[] = $tq_p;
-}
+/* الباقات من `tqs_bundles()` — **وهي المصدر الواحد**.
+   كانت الصفحة تستعلم بنفسها عبر `Taqdar_billing_model::plans()` ثم
+   ترشح `scope === 'grade'` بيدها، ثم تترك التوليد لـ`tqs_bundles()`
+   يستعلم ثانية بالشرط نفسه. استعلامان لشيء واحد، **وشكلان مختلفان**:
+   صف القاعدة يسمي العمود `name_ar` و`duration_days` ويحمل `features`
+   نصا JSON، ومولد البطاقات يقرأ `name` و`days` و`features` مصفوفة.
+   فتمرير أحدهما مكان الآخر يطبع بطاقة بلا اسم وبلا مزايا ولا يخطئ.
+   والدالة ترشح `active` و`scope='grade'` في الاستعلام نفسه، فلا
+   ترشيح هنا. */
+$tq_rows = tqs_bundles();
 ?>
 <section class="section" id="bundles">
   <div class="shell">
@@ -47,19 +51,19 @@ foreach ((array) $tq_ci->tq_b->plans(true) as $tq_p) {
 <?php /* التبويب والمبدّل قرار واحد «أي مرحلة وبأي دورة» — فيقربان. */ ?>
     <div class="p26d__switch">
       <div class="p26d__tabs"><?php echo tqs_stage_tabs(); ?></div>
-<?php /* مبدّل الدورة — **عرض لا فوترة**: كل الباقات سنوية في القاعدة،
-        فالشهريّ يعرض المعادل ومعه «تدفع سنويا». */ ?>
-      <div class="p26d__cycle">
-        <div class="p26d__cycle-in" role="group" aria-label="دورة عرض السعر">
-          <button type="button" data-tq-cycle="year" aria-pressed="false">سنوي<span class="p26d__cycle-save">وفر 20%</span></button>
-          <button type="button" data-tq-cycle="month" aria-pressed="true">شهري</button>
-        </div>
-      </div>
+<?php /* مبدل الدورة — **عرض لا فوترة**: الباقة السنوية تعرض معادلها
+        الشهري ومعه «تدفع سنويا». ولا يطبع أصلا إن لم تكن في المعروض
+        باقة لها دورتان — زر يبدل رقما برقمه نفسه يقرأ عطلا.
+        (TQ-PLAN-CYCLE) */ ?>
+      <?php echo tqs_plan_cycle_switch($tq_rows); ?>
     </div>
 <?php /* البطاقات من مولّد واحد يخدم الرئيسية وهذه الصفحة — نسخةٌ ثانية
         من الوسم تشيخ وحدها. والزر هنا يقود إلى شاشة التأكيد لا إلى
         صفحة الباقة، وتحته رابط التفاصيل. */ ?>
-<?php echo tqs_bundles_dark(null, array('cta' => 'checkout', 'more' => true)); ?>
+<?php /* البطاقات من القائمة التي رشحها `$tq_rows` أعلاه — فالمبدل
+        والشبكة يقرآن المجموعة عينها، ولا يقرر أحدهما عن مجموعة لا
+        يعرضها الآخر. */ ?>
+<?php echo tqs_bundles_dark($tq_rows, array('cta' => 'checkout', 'more' => true)); ?>
 
     <p class="bundles__foot tq-caption">
       الأسعار بالريال السعودي وتشمل ما هو مذكور في الباقة. ويمكنك الترقية في أي وقت،

@@ -151,13 +151,24 @@ include 'portal_open.php';
               <input type="radio" name="plan_id" value="<?php echo (int) $p['id']; ?>"
                      <?php echo $i === 0 ? ' checked' : ''; ?> required>
               <span class="tq-pp-plan__t"><?php echo html_escape($p['name_ar']); ?></span>
+              <?php /* المرحلة باسمها لا بمسماها: `plans.stage` يحمل `primary`،
+                       وطباعته خاما تضع كلمة لاتينية وسط شاشة عربية —
+                       و`tqs_stage_label()` هي الموضع الواحد لأسمائها. */ ?>
               <?php if (!empty($p['stage'])): ?>
-                <span class="tq-pp-plan__s"><?php echo html_escape($p['stage']); ?></span>
+                <span class="tq-pp-plan__s"><?php echo html_escape(tqs_stage_label((string) $p['stage'])); ?></span>
               <?php endif; ?>
+              <?php /* السعر هنا **ما يدفع فعلا** لا معادلا شهريا: هذه شاشة
+                       إصدار فاتورة، والرقم فيها هو رقم الفاتورة. ومعه
+                       دورته — «٩٩٩ ريال» بلا «كل ٣٠ يوما» تقرأ سنويا. */ ?>
               <span class="tq-pp-plan__p"><?php
                 echo (int) $p['price'] > 0
                    ? tq_num(number_format((int) $p['price'] / 100, 0)) . ' ريال'
-                   : 'مجانية'; ?></span>
+                   : 'مجانية'; ?><?php
+                $tq_pp = tqs_plan_price(array('price' => (int) $p['price'],
+                                              'period' => (string) $p['period'],
+                                              'days' => (int) $p['duration_days']));
+                if (!$tq_pp['free'] && $tq_pp['unit'] !== ''):
+                ?><small> / <?php echo html_escape($tq_pp['unit']); ?></small><?php endif; ?></span>
             </label>
           <?php endforeach; ?>
         </div>

@@ -332,10 +332,18 @@ class Taqdar_admin_model extends CI_Model
                                              'refs' => array('subject' => 'subjects', 'path' => 'paths'),
                                              'show_when' => array('scope' => array('subject', 'path'))),
 
-                    'image'         => array('label' => 'صورة البطاقة', 'type' => 'pick', 'ref' => 'site_images',
+                    /* TQ-PLAN-IMG — رفع لا انتقاء من مجلد السمة.
+                       كان `pick` من `assets/taqdar/site/img`، وهو مجلد
+                       يملؤه مبرمج بـFTP — فمسؤول يريد صورة لباقته
+                       الجديدة لا يملك سبيلا إليها إلا أن يطلب نشرا.
+                       والمرفوع يقص ويقاس عند الرفع (`tq_img_store`)
+                       فيخرج ١٢٠٠×٨٠٠ بنسبة صندوق البطاقة نفسها. */
+                    'image'         => array('label' => 'صورة البطاقة', 'type' => 'file',
                                              'section' => 'العرض والترتيب',
-                                             'preview' => 'site_image',
-                                             'hint' => 'من صور السمة في `assets/taqdar/site/img`. وبلا صورة تعرض البطاقة نصا فقط.'),
+                                             'bucket' => 'plans', 'img_w' => 1200, 'img_h' => 800,
+                                             'accept' => '.jpg,.jpeg,.png,.webp',
+                                             'hint' => 'ترفع من جهازك وتقص تلقائيا إلى 1200×800 — وهي نسبة البطاقة نفسها، '
+                                                     . 'فما تراه هنا هو ما يراه الزائر. وبلا صورة تعرض البطاقة غلاف مرحلتها.'),
                     'features'      => array('label' => 'المزايا', 'type' => 'lines',
                                              'hint' => 'ميزة في كل سطر — تعرض في بطاقة الباقة كما تكتب هنا. وهي وعد يقرؤه المشتري، فلا تكتب فيها ما ليس في الصفوف أعلاه.'),
                     'featured'      => array('label' => 'الأكثر ملاءمة', 'type' => 'bool', 'default' => 0, 'list' => true,
@@ -688,7 +696,7 @@ class Taqdar_admin_model extends CI_Model
      *
      * @return array ok|errors
      */
-    public function save($key, $id, $post)
+    public function save($key, $id, $post, $files = null)
     {
         $spec = $this->spec($key);
         if (!$spec || !empty($spec['readonly'])) {
@@ -698,6 +706,13 @@ class Taqdar_admin_model extends CI_Model
 
         $data   = array();
         $errors = array();
+        /* الملفات تقرأ من `$_FILES` مباشرة حين لا تمرر: `$this->input->post()`
+           لا تحملها، والمتحكم لم يكن يمررها — فحقل ملف بلا هذا لا يصل
+           إليه شيء أبدا. */
+        $files  = ($files === null) ? $_FILES : $files;
+        /* الصف كما هو الآن — يحتاجه حقل الملف ليعرف ما يبقيه وما يحذف. */
+        $row_now = ((int) $id > 0) ? $this->row($key, (int) $id) : null;
+        $drop    = array();   /* ملفات تحذف بعد نجاح الحفظ لا قبله */
 
         foreach ($spec['fields'] as $name => $f) {
             $raw = isset($post[$name]) ? $post[$name] : null;
@@ -750,6 +765,41 @@ class Taqdar_admin_model extends CI_Model
                     $data[$name] = ($key_val !== '' && isset($opts[$key_val])) ? $key_val : '';
                     break;
 
+                /* ملف صورة — TQ-PLAN-IMG.
+                   ثلاث حالات لا واحدة، وخلطها يمحو صور الناس:
+                     · رفع جديد        ⇐ يخزن ويحل محل القديم ويحذفه
+                     · «احذف الصورة»   ⇐ يفرغ العمود ويحذف الملف
+                     · لا هذا ولا ذاك ⇐ **لا يمس العمود**
+                   والثالثة هي المهمة: `$_FILES` تصل فارغة في كل حفظ لا
+                   يختار فيه المسؤول ملفا — وهو أكثر الحفظ. فكتابة ''
+                   حينها تمحو الصورة عند أول تعديل في السعر. */
+                case 'file':
+                    $keep = ($row_now !== null && array_key_exists($name, $row_now))
+                          ? (string) $row_now[$name] : '';
+                    $sent = (isset($files[$name]) && is_array($files[$name])
+                             && (int) $files[$name]['error'] !== UPLOAD_ERR_NO_FILE
+                             && (string) $files[$name]['name'] !== '');
+
+                    if ($sent) {
+                        $up = tq_img_store($files[$name], array(
+                            'bucket' => isset($f['bucket']) ? $f['bucket'] : $key,
+                            'w'      => isset($f['img_w']) ? (int) $f['img_w'] : 1200,
+                            'h'      => isset($f['img_h']) ? (int) $f['img_h'] : 800,
+                            'prefix' => $key . ($id ? '-' . (int) $id : ''),
+                        ));
+                        if (!$up['ok']) { $errors[] = $up['error']; break; }
+                        $data[$name] = $up['path'];
+                        /* الاسم بصمة المحتوى، فرفع الصورة نفسها ثانية
+                           يعطي المسار نفسه — وحذف «القديم» حينها يحذف
+                           الجديد. فالشرط لا زينة. */
+                        if ($keep !== '' && $keep !== $up['path']) $drop[] = $keep;
+                    } elseif (!empty($post[$name . '__clear'])) {
+                        $data[$name] = '';
+                        if ($keep !== '') $drop[] = $keep;
+                    }
+                    /* وإلا لا يكتب المفتاح أصلا فيبقى العمود كما هو. */
+                    break;
+
                 case 'money':
                     // يدخل بالريال ويخزن بالهللات — التقريب مرة واحدة هنا
                     $data[$name] = (int) round(((float) str_replace(',', '', (string) $raw)) * 100);
@@ -777,14 +827,21 @@ class Taqdar_admin_model extends CI_Model
             }
 
             if (!empty($f['required'])) {
-                $empty = ($f['type'] === 'ref') ? ($data[$name] <= 0) : ($data[$name] === '' || $data[$name] === null);
-                if ($empty) $errors[] = 'الحقل «' . $f['label'] . '» مطلوب.';
+                /* حقل لم يكتب مفتاحه لم يرسل أصلا (حقل ملف بلا اختيار)،
+                   فقياس فراغه على `$data` يرفض حفظا لم يخطئ فيه أحد. */
+                if (!array_key_exists($name, $data)) {
+                    $cur = ($row_now && array_key_exists($name, $row_now)) ? (string) $row_now[$name] : '';
+                    if ($cur === '') $errors[] = 'الحقل «' . $f['label'] . '» مطلوب.';
+                } else {
+                    $empty = ($f['type'] === 'ref') ? ($data[$name] <= 0) : ($data[$name] === '' || $data[$name] === null);
+                    if ($empty) $errors[] = 'الحقل «' . $f['label'] . '» مطلوب.';
+                }
             }
 
             /* الفرادة تفحص هنا لا تترك للقاعدة: `UNIQUE` يرمي استثناء
                يبيض الشاشة ويضيع ما كتب في النموذج، والرسالة التي تظهر
                عنه إنجليزية عن فهرس لا يعرفه المسؤول. */
-            if (!empty($f['unique']) && (string) $data[$name] !== '') {
+            if (!empty($f['unique']) && array_key_exists($name, $data) && (string) $data[$name] !== '') {
                 $this->db->where($name, $data[$name]);
                 if ((int) $id > 0) $this->db->where('id !=', (int) $id);
                 if ($this->db->count_all_results($spec['table']) > 0) {
@@ -822,6 +879,7 @@ class Taqdar_admin_model extends CI_Model
            `subscribe()` و`sync_enrolments()` يقرآن العمود لا الشاشة. */
         if ($key === 'plans') {
             $scope = isset($data['scope']) ? $data['scope'] : 'grade';
+            /* `image` قد لا يكتب في هذا الحفظ — انظر `case 'file'`. */
 
             if ($scope !== 'grade')                      $data['scope_ids'] = '';
             if (!in_array($scope, array('subject', 'path'), true)) $data['scope_id'] = 0;
@@ -886,6 +944,21 @@ class Taqdar_admin_model extends CI_Model
             }
         }
 
+        /* الملف القديم يحذف **بعد** أن يكتب الصف الجديد: حذفه قبله
+           يترك بطاقة بلا صورة لو فشلت الكتابة. والحذف مقصور على ما
+           تحت `uploads/` — انظر `tq_img_drop()`.
+           وصف آخر قد يشير إلى الملف نفسه (نسخ باقة بصورتها)، فيسأل
+           الجدول قبل أن يمحى ملف تحته صف حي. */
+        foreach (array_unique($drop) as $old_file) {
+            if ((string) $old_file === '') continue;
+            $still = 0;
+            foreach ($spec['fields'] as $fn => $ff) {
+                if ($ff['type'] !== 'file') continue;
+                $still += (int) $this->db->where($fn, $old_file)->count_all_results($spec['table']);
+            }
+            if ($still === 0) tq_img_drop($old_file);
+        }
+
         $this->audit($id ? 'update' : 'create', $spec['table'] . '#' . $new_id, $before, $after);
         return array('ok' => true, 'id' => $new_id);
     }
@@ -917,13 +990,44 @@ class Taqdar_admin_model extends CI_Model
         return $base . '-' . time();
     }
 
+    /** سبب آخر رفض حذف — يقرؤه المتحكم ليقول للمسؤول ما المانع. */
+    public $delete_error = '';
+
     public function remove($key, $id)
     {
+        $this->delete_error = '';
+
         $spec = $this->spec($key);
-        if (!$spec || !empty($spec['nodelete']) || !empty($spec['readonly'])) return false;
+        if (!$spec || !empty($spec['nodelete']) || !empty($spec['readonly'])) {
+            $this->delete_error = 'هذه الوحدة لا تسمح بالحذف.';
+            return false;
+        }
 
         $before = $this->row($key, $id);
-        if (!$before) return false;
+        if (!$before) {
+            $this->delete_error = 'الصف غير موجود — قد يكون حذف من قبل.';
+            return false;
+        }
+
+        /* TQ-PLAN-DELETE — **باقة بيعت لا تحذف، توقف.**
+           `subscriptions.plan_id` و`invoices` و`revenue_shares` تشير
+           إليها بمعرفها، وحذف الصف يترك كل تلك السجلات تشير إلى لا
+           شيء: شاشة الاشتراكات تعرض اسم باقة فارغا، وكشف حساب المعلم
+           يقول «باقة #31» ولا يعرف أحد أيها كانت، وسجل مالي لا يقرأ.
+           والوصول لا ينقطع (`subscription_items` نسخت النطاق وقت
+           التفعيل) — فالضرر كله في القراءة، وهو ضرر لا يرجع.
+           و«متاحة = لا» تخفيها من كل صفحة عامة وتمنع شراءها، وهو ما
+           يريده من ضغط «حذف». */
+        if ($key === 'plans') {
+            $sold = (int) $this->db->where('plan_id', (int) $id)->count_all_results('subscriptions');
+            if ($sold > 0) {
+                $this->delete_error = 'لا تحذف باقة اشترك بها أحد (' . $sold . ' اشتراكا): '
+                                    . 'فواتيرها وقسمة إيرادها تشير إليها بمعرفها، وحذفها يترك سجلا ماليا لا يقرأ. '
+                                    . 'اجعل «متاحة» = لا — فتختفي من صفحة الباقات ومن الكتالوج ولا تشترى، '
+                                    . 'ويبقى من دفع على ما دفع.';
+                return false;
+            }
+        }
 
         /* حذف الاختبار التشخيصي يجر اسئلته: سؤال بلا اختباره لا يعرض ولا
            يصحح ولا يحرر — صفوف ميتة تكبر في الجدول ولا يراها احد.
@@ -934,6 +1038,19 @@ class Taqdar_admin_model extends CI_Model
         }
 
         $this->db->where('id', (int) $id)->delete($spec['table']);
+
+        /* صور هذا الصف تذهب معه: ملف لا صف يشير إليه يبقى في
+           `uploads/` إلى الأبد ولا يعرف أحد لمن كان. والفحص قبله لأن
+           صفا آخر قد يشير إلى الملف نفسه. */
+        foreach ($spec['fields'] as $fn => $ff) {
+            if ($ff['type'] !== 'file') continue;
+            $old_file = isset($before[$fn]) ? (string) $before[$fn] : '';
+            if ($old_file === '') continue;
+            if ((int) $this->db->where($fn, $old_file)->count_all_results($spec['table']) === 0) {
+                tq_img_drop($old_file);
+            }
+        }
+
         $this->audit('delete', $spec['table'] . '#' . (int) $id, $before, null);
         return true;
     }
@@ -1121,6 +1238,26 @@ class Taqdar_admin_model extends CI_Model
         if ((string) $row['period'] !== 'free' && (int) $row['price'] <= 0) {
             return array('tone' => 'warn', 'label' => 'تظهر ولا تشترى',
                          'why'  => 'لم تسعر — والشراء يرد بخطأ. ضع سعرها أو اجعل دورتها «مجانية».');
+        }
+
+        /* TQ-PLAN-CYCLE — **الدورة والمدة يقرأهما اثنان مختلفان.**
+           `period` اسم تجاري يقرؤه المشتري على البطاقة («كل ثلاثة أشهر»)،
+           و`duration_days` هو ما يحسب عليه `ends_at` فعلا. وباقة دورتها
+           «ربع سنوية» ومدتها ٣٦٥ يوما تعد المشتري بثلاثة أشهر وتعطيه سنة
+           — أو العكس، وهو أسوأ: يدفع سنة ويغلق عليه بعد شهر.
+           ولا يرفض عند الحفظ: باقة سنوية بـ٣٩٠ يوما هدية مقصودة. فيقال
+           هنا حيث تقرأ حال الباقة، والمسؤول يقرر. */
+        $tq_days = (int) $row['duration_days'];
+        $tq_rng  = array('monthly' => array(21, 45), 'quarterly' => array(75, 120),
+                         'annual'  => array(300, 400));
+        $tq_per  = (string) $row['period'];
+        if (isset($tq_rng[$tq_per]) && ($tq_days < $tq_rng[$tq_per][0] || $tq_days > $tq_rng[$tq_per][1])) {
+            $tq_lbl = array('monthly' => 'شهرية', 'quarterly' => 'ربع سنوية', 'annual' => 'سنوية');
+            return array('tone' => 'warn', 'label' => 'الدورة والمدة لا تتفقان',
+                         'why'  => 'الدورة «' . $tq_lbl[$tq_per] . '» وهي ما يقرؤه المشتري على البطاقة، '
+                                 . 'والمدة ' . $tq_days . ' يوما وهي ما يحسب عليه انتهاء الاشتراك فعلا. '
+                                 . 'المتوقع من ' . $tq_rng[$tq_per][0] . ' إلى ' . $tq_rng[$tq_per][1] . ' يوما — '
+                                 . 'صحح إحداهما، أو اتركهما إن كان الفرق مقصودا.');
         }
 
         $reach = $this->plan_reach($row);

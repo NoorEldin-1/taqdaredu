@@ -2854,6 +2854,9 @@ class Taqdar extends CI_Controller
                 'last_name'  => $this->input->post('last_name'),
                 'email'      => $this->input->post('email'),
                 'phone'      => $this->input->post('phone'),
+                /* دولة الرقم تسافر معه — TQ-PHONE-INTL. وبلاها يقرأ
+                   النموذج رقما مصريا سعوديا فيرفضه أو يخزنه خطأ. */
+                'phone_cc'   => $this->input->post('phone_cc'),
                 'address'    => $this->input->post('address'),
             );
             $r = $this->delegate(array(

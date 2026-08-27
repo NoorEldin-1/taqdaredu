@@ -2377,3 +2377,37 @@ a.tqa-chip .tqa-num { color: var(--tq-text3, var(--tq-text2)); }
   .tqa-page { padding: 0; }
   .tqa-card, body.tqa .card { box-shadow: none; border-color: #ddd; }
 }
+
+/* --------------------------------------------------------------------------
+   TQ-PLAN-IMG · حقل الصورة — يرى ما هو محفوظ وما سيحل محله
+   -------------------------------------------------------------------------- */
+.tqa-filefield { display: grid; gap: var(--tq-space-m); }
+.tqa-filefield__now,
+.tqa-filefield__next img {
+  inline-size: 100%;
+  max-inline-size: 22rem;
+  aspect-ratio: 3 / 2;                 /* نسبة بطاقة الباقة نفسها */
+  overflow: hidden;
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tq-radius-small);
+  background: var(--tq-ground);
+}
+.tqa-filefield__now img {
+  inline-size: 100%; block-size: 100%;
+  object-fit: cover; object-position: 50% 28%;
+  display: block;
+}
+.tqa-filefield__next img { object-fit: cover; object-position: 50% 28%; display: block; }
+.tqa-filefield__ctl { display: grid; gap: var(--tq-space-s); }
+.tqa-filefield__next { display: grid; gap: var(--tq-space-s); }
+
+.tqa-check { display: inline-flex; align-items: center; gap: var(--tq-space-s); cursor: pointer; }
+
+/* المصغرة في القائمة: صف الجدول لا يطول لأن للباقة صورة */
+.tqa-thumb {
+  inline-size: 4.5rem; block-size: 3rem;
+  object-fit: cover; object-position: 50% 28%;
+  border-radius: var(--tq-radius-small);
+  border: 1px solid var(--tq-line);
+  display: block;
+}

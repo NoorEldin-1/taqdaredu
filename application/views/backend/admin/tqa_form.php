@@ -53,7 +53,11 @@ $tqa_now = function ($field_name) use ($row, $spec) {
     </div>
 <?php endif; ?>
 
+<?php /* `enctype` شرط حقل الملف — TQ-PLAN-IMG. وبلاها يصل `$_FILES`
+         فارغا ويصل اسم الملف نصا في `$_POST`، فيحفظ الصف بلا صورة ولا
+         خطأ يظهر: المسؤول يرفع ويحفظ ويقرأ «تم الحفظ» ولا يرى شيئا. */ ?>
 <form method="post" action="<?php echo site_url('taqdar_admin/save/' . $mkey . '/' . (int) $rid); ?>"
+      enctype="multipart/form-data"
       data-tqa-form="<?php echo html_escape($mkey); ?>">
     <?php echo tq_csrf(); ?>
 
@@ -113,6 +117,50 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                             </option>
                         <?php endforeach; ?>
                     </select>
+
+                <?php elseif ($f['type'] === 'file'):
+                    /* ثلاثة أشياء في مكان واحد: ما هو محفوظ الآن، وزر
+                       يختار بديلا، ومربع يمحو. والمحفوظ **يعرض صورة لا
+                       اسم ملف**: `plan-31-a3f9c1d2.webp` لا يقول أي
+                       صورة هي، والمسؤول يفتح الشاشة ليرى ما اختار. */
+                    $cur = trim((string) $val);
+                    $cur_src = '';
+                    if ($cur !== '') {
+                        $cur_src = (strpos($cur, '/') !== false)
+                                 ? base_url(ltrim($cur, '/'))
+                                 : base_url('assets/taqdar/site/img/' . $cur . '.webp');
+                    }
+                ?>
+
+                    <div class="tqa-filefield" data-tqa-file>
+                        <?php if ($cur_src !== ''): ?>
+                            <div class="tqa-filefield__now">
+                                <img src="<?php echo html_escape($cur_src); ?>" alt=""
+                                     loading="lazy" decoding="async" data-tqa-file-cur>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="tqa-filefield__ctl">
+                            <input class="tqa-input" type="file" id="<?php echo $id; ?>"
+                                   name="<?php echo $name; ?>" data-tqa-file-input
+                                   accept="<?php echo html_escape(isset($f['accept']) ? $f['accept'] : 'image/*'); ?>">
+
+                            <?php if ($cur !== ''): ?>
+                                <?php /* المحو صريح: حفظ بلا اختيار ملف **لا يمس**
+                                         الصورة (انظر `case 'file'` في النموذج)،
+                                         فمن أراد إزالتها يقولها. */ ?>
+                                <label class="tqa-check">
+                                    <input type="checkbox" name="<?php echo $name; ?>__clear" value="1">
+                                    <span>احذف الصورة الحالية</span>
+                                </label>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="tqa-filefield__next" data-tqa-file-preview hidden>
+                            <span class="tqa-dim">المختارة الآن:</span>
+                            <img alt="" data-tqa-file-img>
+                        </div>
+                    </div>
 
                 <?php elseif ($f['type'] === 'pick'):
                     $opts = $M->options($f['ref']);

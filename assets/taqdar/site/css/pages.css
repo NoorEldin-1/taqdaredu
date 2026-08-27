@@ -758,6 +758,7 @@ a.contact-card:hover .contact-card__go svg{transform:translateX(-3px)}
 /* `stretch` لا `flex-start`: الأخيرة تقلص الخانة إلى ارتفاع نصها
    فيبقى الصف الممدد فارغا تحتها. والأيقونة تعلق أعلاها بـ`align-self`
    الخاص بها فلا تتمدد معها. */
+
 .form-field--full{grid-column:1/-1;align-items:stretch}
 .form-field--invalid{border-color:#C2556A;box-shadow:0 0 0 3px rgba(194,85,106,.14)}
 .form-prefix{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding-inline-end:10px;
@@ -2885,7 +2886,9 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 /* ── الحقل ────────────────────────────────────────────────────────
    الحرف يكبر: ‎14px‎ سقفا لحقل يكتب فيه بريد وكلمة سر عربية النقاط
    والهمزات هو أول ما يجهد العين. */
-.form-field{ padding:12px 15px;border-radius:14px;align-items:center }
+/* والحشوة الأفقية متغير لا رقم: سهم القائمة المنسدلة يرسو عليها،
+   ورقمان منسوخان يفترقان حين يعدل أحدهما — فيقف السهم خارج حقله. */
+.form-field{ --ff-pad-i:15px;padding:12px var(--ff-pad-i);border-radius:14px;align-items:center }
 .form-field input,.form-field textarea,.form-field select{
   font-size:max(14px,clamp(14px,1vw,15.5px));line-height:1.8
 }
@@ -2904,7 +2907,7 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 /* القائمة المنسدلة سهمها في جهة القراءة، ولا يكتب فوقها سهم النظام */
 .form-field select{ appearance:none;-webkit-appearance:none;cursor:pointer }
 .form-field:has(select)::after{
-  content:'';position:absolute;inset-inline-end:15px;inset-block-start:calc(50% - 2px);
+  content:'';position:absolute;inset-inline-end:var(--ff-pad-i);inset-block-start:calc(50% - 2px);
   inline-size:8px;block-size:8px;border:solid var(--gold-deep);
   border-width:0 0 1.6px 1.6px;transform:translateY(-50%) rotate(-45deg);pointer-events:none
 }
@@ -3092,6 +3095,93 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 }
 /* مساحة تكفي السهم: `22px` تترك آخر حرف يلامسه في الأسماء الطويلة */
 .form-field:has(select) select{ padding-inline-end:26px }
+
+/* ═════════════════════════════════════════════════════════════════
+   TQ-PHONE-BOX · منتقي الدولة لا يأخذ موضع الرقم
+
+   الحقل صف واحد: أيقونة، ثم منتقي الدولة، ثم الرقم الوطني — وهو
+   يقرأ قيمة واحدة، رمزا وجسما، لا حقلين متجاورين.
+
+   **وموضع هذه الكتلة نصف علاجها.** كانت مكتوبة فوق بجوار
+   `.form-card`، وبعدها بمئات الأسطر ثلاث كتل تعيد وصف `.form-field`
+   وأبنائه بمحددات **أخص منها**، فتغلبها ولا يظهر ذلك في قراءة
+   الكتلة وحدها:
+
+   ١ — `.form-field input,.form-field select{width:100%}` (TQ-INPUT-SHRINK)
+       تغلب `.form-phone__cc{width:clamp(...)}`: محدد فيه صنف ونوع أخص
+       من محدد فيه صنف، و`flex:0 0 auto` تقرأ أساسها من `width`.
+       فيأخذ المنتقي **عرض الحقل كله** وينكمش الرقم إلى صفر
+       (`min-width:0` تأذن بذلك): حقل تسجيل فيه قائمة دول ولا موضع
+       يكتب فيه رقمه أصلا — وهو ما كان يقع في `/sign_up` حرفيا.
+   ٢ — `.form-field select{appearance:none}` تنزع سهم المنتقي الأصلي
+       الذي كانت الكتلة القديمة تطلبه بـ`appearance:menulist`.
+   ٣ — `.form-field:has(select)::after` ترسم سهم الحقل عند طرفه،
+       وطرف حقل الجوال **خانة الرقم** لا المنتقي — فيقع السهم
+       فوق ما يكتب فيه صاحبه ويشير إلى غير ما يفتح.
+
+   فصارت الكتلة **آخر ما يقرأ** في باب الحقول، ومحدداتها
+   `.form-field.form-phone > …` أخص مما سبق — فلا تغلب بقاعدة عامة
+   رابعة تكتب غدا، ولا تحتاج `!important` يخفي التصادم ولا يحله.
+   ═════════════════════════════════════════════════════════════════ */
+.form-field.form-phone{
+  /* المدى يسع أطول الأسماء («موريتانيا +222») ويبقي للرقم عامة
+     الحقل — والاسم الطويل يقص بـ`ellipsis` ولا يزحم الرقم. */
+  --cc-w:clamp(124px,11vw,156px);
+  gap:0                     /* الرمز والرقم يتلاصقان: قيمة واحدة */
+}
+/* والأيقونة تحتفظ بمسافتها — `gap:0` تسقطها معهما فتلاصق
+   الأيقونة اسم الدولة. */
+.form-field.form-phone>svg{ margin-inline-end:10px }
+
+.form-field.form-phone>.form-phone__cc{
+  flex:0 0 auto;
+  inline-size:var(--cc-w);
+  /* والفاصل خط رفيع كخط `.form-prefix` نفسه، فيقرأ المنتقي
+     بادئة لا حقلا ثانيا. والحشوة تسع السهم. */
+  padding-inline:0 20px;    /* مساحة السهم، ثم الفاصل بعدها */
+  margin-inline-end:9px;
+  border-inline-end:1px solid var(--gold-line-soft);
+  border-radius:0;
+  font-size:clamp(10.5px,.82vw,12.5px);
+  color:var(--ink-2);
+  /* الاسم الطويل يقص في الزر ويظهر كاملا في القائمة المفتوحة
+     — وهو سلوك `select` الأصلي، فلا يكتب له شيء. */
+  text-overflow:ellipsis;
+  /* **والسهم على المنتقي نفسه لا على الحقل.** سهم `.form-field` مرساه
+     طرف الحقل، وطرف حقل الجوال خانة الرقم — فيقع فوق ما يكتب فيه
+     صاحبه. ونقله بحساب من حشوة الحقل وعرض المنتقي يعيد المرض نفسه
+     في صورة أخف: ثلاثة أرقام في `calc` يشيخ أولها فيزحف السهم على
+     «‎+966‎» — وقد وقع ذلك حرفيا قبل هذا السطر. وخلفية المنتقي تتبع
+     طرفه مهما تغير عرضه أو حشوة الحقل، بلا رقم يتابع رقما.
+     و`left` لأن الواجهة `rtl` كلها، وطرف القراءة فيها هو اليسار. */
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23A06C20' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.4 4.6 6 8.2l3.6-3.6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:left 6px center;
+  background-size:10px 10px;
+}
+
+/* الرقم يأخذ ما بقي من الصف وحده. و`inline-size:auto` ترد
+   `width:100%` الموروثة من TQ-INPUT-SHRINK: أساس مرن من صفر
+   يحسب الباقي مباشرة، وأساس من `100%` يبلغ المقدار نفسه
+   بطريق الفيض ثم الانكماش — وأول بند ثالث يضاف إلى الصف
+   يفرق بينهما.
+   والمحاذاة تأتي من `.form-field input[type=tel]` (TQ-FORM-TEL): الأرقام
+   `ltr` تلاصق المنتقي، فيقرأ الرقم ورمزه سطرا واحدا. ولو حوذي
+   إلى الطرف المقابل لبقي بينه وبين رمزه عرض الحقل كله. */
+.form-field.form-phone>.form-phone__num{
+  flex:1 1 0;
+  inline-size:auto;
+  min-inline-size:0;
+  letter-spacing:.04em;
+}
+
+/* وسهم الحقل يرفع: صار على المنتقي، وسهمان لقائمة واحدة أحدهما
+   في الطرف الخطأ أسوأ من سهم واحد. */
+.form-field.form-phone::after{ content:none }
+
+@media (max-width:560px){
+  .form-field.form-phone{ --cc-w:clamp(96px,26vw,124px) }
+}
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-CATALOG · الكتالوج الموحد

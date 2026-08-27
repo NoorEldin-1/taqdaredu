@@ -96,4 +96,6 @@ foreach ($tq_pays as $tq_f => $tq_p):
         نفسها، مقابل ٥٧px تقتطع دائما من شاشة ضيقة. والملف باق
         (`site/site_tabbar.php`) فإعادته سطر واحد. */ ?>
 
+<?php /* حقل الجوال يعيش في الجهتين — انظر `tq-phone.js`. */ ?>
+<script src="<?php echo tq_asset('js/tq-phone.js'); ?>" defer></script>
 <script src="<?php echo tq_site_asset('js/site.js'); ?>" defer></script>

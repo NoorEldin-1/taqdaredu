@@ -525,7 +525,9 @@ class Taqdar_admin extends CI_Controller
         // الكتابة بـ POST وحده: رابط GET يكتب يمكن أن يستدعيه زاحف أو صورة
         if ($this->input->method(true) !== 'POST') show_404();
 
-        $r = $this->taqdar_admin_model->save($key, (int) $id, $this->input->post(null, false));
+        /* `$_FILES` تمرر صراحة — TQ-PLAN-IMG. `$this->input->post()` لا
+           تحملها، والنموذج لا يعرف عنها شيئا بدونها. */
+        $r = $this->taqdar_admin_model->save($key, (int) $id, $this->input->post(null, false), $_FILES);
 
         if (!$r['ok']) {
             $this->session->set_flashdata('error_message', implode(' ', $r['errors']));
@@ -540,9 +542,14 @@ class Taqdar_admin extends CI_Controller
     {
         if ($this->input->method(true) !== 'POST') show_404();
 
-        $ok = $this->taqdar_admin_model->remove($key, (int) $id);
+        /* الرفض يقول سببه — TQ-PLAN-DELETE. كانت الرسالة واحدة («الوحدة
+           لا تسمح به») لكل رفض، وهي كاذبة على من منع لأن باقته بيعت:
+           الوحدة تسمح، والصف هو الذي لا يحذف — والفرق هو ما يقول له
+           ماذا يفعل بدلا من ذلك. */
+        $ok  = $this->taqdar_admin_model->remove($key, (int) $id);
+        $why = trim((string) $this->taqdar_admin_model->delete_error);
         $this->session->set_flashdata($ok ? 'flash_message' : 'error_message',
-            $ok ? 'تم الحذف.' : 'تعذر الحذف — الوحدة لا تسمح به.');
+            $ok ? 'تم الحذف.' : ($why !== '' ? $why : 'تعذر الحذف — الوحدة لا تسمح به.'));
         redirect(site_url('taqdar_admin/module/' . $key));
     }
 

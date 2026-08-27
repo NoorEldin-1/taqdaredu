@@ -788,8 +788,48 @@ document.documentElement.classList.add('js');
      الخادم حرفا بحرف في `Login::register`. فما يقبله أحدهما يقبله
      الآخر، ولا يرد المتصفح رقما سيقبله الخادم. */
   function normPhone(v) {
-    return String(v).replace(/[٠-٩]/g, toLatin)
-      .replace(/[^0-9]/g, '').replace(/^(?:00966|966)/, '').replace(/^0/, '');
+    return String(v).replace(/[٠-٩]/g, toLatin).replace(/[^0-9]/g, '');
+  }
+
+  /* TQ-PHONE-INTL — قواعد الدولة من خيار المنتقي لا من سطر هنا.
+     كان الفحص `^5[0-9]{8}$` مكتوبا في هذا الملف، فيرد رقما مصريا
+     صحيحا سيقبله الخادم — والمستخدم يرى رفضا لا سبب له. وكل ما
+     يحتاجه الفاحص يسافر مع الخيار المنتقى (`data-min` · `data-max` ·
+     `data-starts` · `data-ex` · `data-cname`)، فإضافة دولة في
+     `tq_dial_codes()` تصل إلى هنا بلا سطر يكتب. */
+  function phoneRule(el) {
+    var box = el.closest('[data-tq-phone]');
+    var cc  = box && box.querySelector('[data-tq-phone-cc]');
+    var opt = cc && cc.options[cc.selectedIndex];
+    if (!opt) return null;
+    return {
+      min: parseInt(opt.getAttribute('data-min'), 10) || 0,
+      max: parseInt(opt.getAttribute('data-max'), 10) || 15,
+      starts: opt.getAttribute('data-starts') || '',
+      ex: opt.getAttribute('data-ex') || '',
+      name: opt.getAttribute('data-cname') || '',
+      dial: opt.getAttribute('data-dial') || ''
+    };
+  }
+
+  /* الرقم الوطني من أي صورة كتبت — مرشحان كما في
+     `tq_phone_national()` في الخادم: الكامل بلا أصفاره، والمقصوص منه
+     رمز الدولة. والأول أولا كي لا يقص رقم تونسي يبدأ برمز بلده. */
+  function phoneNat(v, r) {
+    var d = normPhone(v).replace(/^0+/, '');
+    if (!d) return '';
+    var alt = '';
+    if (r && r.dial && d.indexOf(r.dial) === 0) alt = d.slice(r.dial.length).replace(/^0+/, '');
+    var cands = alt ? [d, alt] : [d];
+    for (var strict = 1; strict >= 0; strict--) {
+      for (var i = 0; i < cands.length; i++) {
+        var n = cands[i];
+        if (!r || n.length < r.min || n.length > r.max) continue;
+        if (strict && r.starts && r.starts.indexOf(n[0]) < 0) continue;
+        return n;
+      }
+    }
+    return cands[0];
   }
 
   /* اسم الحقل كما يقرؤه صاحبه: `.sr-only` بجانبه هو تسميته الحقيقية،
@@ -879,8 +919,24 @@ document.documentElement.classList.add('js');
     if (el.type === 'email' && !RE_MAIL.test(v)) {
       return mark(el, 'اكتب بريدا إلكترونيا صحيحا، مثل name@example.com');
     }
-    if (el.type === 'tel' && !/^5[0-9]{8}$/.test(normPhone(v))) {
-      return mark(el, 'رقم جوال سعودي من عشر خانات، مثل 0512345678');
+    if (el.type === 'tel') {
+      var r = phoneRule(el);
+      if (r) {
+        var nat = phoneNat(v, r);
+        if (nat.length < r.min || nat.length > r.max) {
+          var need = (r.min === r.max) ? (r.min + ' أرقام')
+                   : ('من ' + r.min + ' إلى ' + r.max + ' أرقام');
+          return mark(el, 'رقم الجوال في ' + r.name + ' يكون ' + need
+                        + ' بعد رمز الدولة — مثل: ' + r.ex + '.');
+        }
+        if (r.starts && r.starts.indexOf(nat[0]) < 0) {
+          return mark(el, 'هذا ليس رقم جوال في ' + r.name + ' — جوالها يبدأ بـ'
+                        + r.starts.split('').join(' أو ') + '، مثل: ' + r.ex + '.');
+        }
+      } else if (!/^5[0-9]{8}$/.test(normPhone(v).replace(/^(?:00966|966)/, '').replace(/^0/, ''))) {
+        /* حقل هاتف بلا منتقي دولة — نموذج قديم أو شاشة لم تنقل بعد. */
+        return mark(el, 'رقم جوال سعودي من عشر خانات، مثل 0512345678');
+      }
     }
 
     var minLen = parseInt(el.getAttribute('minlength'), 10);
@@ -1178,12 +1234,32 @@ document.documentElement.classList.add('js');
   var btns = document.querySelectorAll('[data-tq-cycle]');
   if (!btns.length && !document.querySelector(SEL)) return;
 
+  /* TQ-PLAN-CYCLE — **البطاقة لا تبقى بلا سعر أبدا.**
+     كان الإخفاء يقع على كل فقرة لا تحمل الدورة المختارة، والخادم يطبع
+     فقرة واحدة (`month`) للباقة غير السنوية — فيضغط الزائر «سنوي»
+     فتذهب الفقرة الوحيدة وتبقى بطاقة بلا رقم. والخادم صار يطبع
+     الدورتين لكل بطاقة، وهذا حارس ثان: البطاقة التي لا فقرة لها
+     بالدورة المطلوبة تبقي فقرتها الأخرى ظاهرة.
+     والمجال البطاقة لا الصفحة، وإلا حسبت فقرات بطاقة عن أخرى. */
   function apply(cycle) {
     Array.prototype.forEach.call(btns, function (b) {
       b.setAttribute('aria-pressed', String(b.getAttribute('data-tq-cycle') === cycle));
     });
-    Array.prototype.forEach.call(document.querySelectorAll(SEL), function (p) {
-      p.hidden = (p.getAttribute('data-cycle') !== cycle);
+
+    var all = document.querySelectorAll(SEL);
+    var groups = [];
+    Array.prototype.forEach.call(all, function (p) {
+      var card = p.closest('article, .plan-card, .plan-cta') || p.parentNode;
+      var g = null;
+      for (var i = 0; i < groups.length; i++) if (groups[i].card === card) { g = groups[i]; break; }
+      if (!g) { g = { card: card, els: [] }; groups.push(g); }
+      g.els.push(p);
+    });
+
+    groups.forEach(function (g) {
+      var wanted = g.els.filter(function (p) { return p.getAttribute('data-cycle') === cycle; });
+      var show = wanted.length ? wanted : g.els.slice(0, 1);
+      g.els.forEach(function (p) { p.hidden = (show.indexOf(p) < 0); });
     });
   }
 

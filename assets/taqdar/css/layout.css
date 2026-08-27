@@ -183,11 +183,25 @@
    -------------------------------------------------------------------------- */
 .tq-player { background: var(--tq-navyDeep); }
 .tq-player__frame { position: relative; padding-block-end: 56.25%; }
-.tq-player__frame > iframe,
-.tq-player__frame > video {
+
+/* TQ-VIMEO-BOX — الإطار يملأ الصندوق **سليلا كان أو ابنا**.
+   كان المحدد `> iframe` وحده، وهو يفترض أن كل مشغل يضع إطاره ابنا
+   مباشرا. وفيميو لا يفعل حين يطلب منه وسم «responsive»: يلف إطاره في
+   `div` بحشوة نسبة خاصة به، فيسقط المحدد صامتا — لا خطأ ولا تحذير،
+   إطار بطوله الطبيعي وتحته فراغ داكن بطول الحاوية كلها.
+   ووسم يلصقه صاحبه في درس «إطار خارجي» قد يلف إطاره مثله.
+   فالمحدد سليل، والحاوية الملفوفة تجرد من حشوتها وتفرد على الصندوق —
+   `!important` لأن فيميو يكتب حشوته سمة `style` على العنصر نفسه. */
+.tq-player__frame iframe,
+.tq-player__frame video {
   position: absolute; inset: 0;
   inline-size: 100%; block-size: 100%;
   border: 0; display: block; background: #000;
+}
+.tq-player__frame > div:not(.tq-empty) {
+  position: absolute; inset: 0;
+  inline-size: 100%; block-size: 100%;
+  padding: 0 !important;
 }
 .tq-player__frame .tq-empty { position: absolute; inset: 0; color: rgba(255,255,255,.8); }
 .tq-player__frame .tq-empty__text { color: rgba(255,255,255,.8); }

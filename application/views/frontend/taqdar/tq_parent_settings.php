@@ -72,10 +72,14 @@ include 'portal_open.php';
                 </div>
 
                 <div class="tq-grid tq-grid--2">
+                    <?php /* TQ-PHONE-INTL — انظر التعليق في `tq_settings.php`. */ ?>
                     <div class="tq-field">
                         <label class="tq-field__label" for="tq-phone">الجوال</label>
-                        <input class="tq-input tq-ltr" id="tq-phone" name="phone" type="text" inputmode="tel"
-                               value="<?php echo html_escape((string) ($u['phone'] ?? '')); ?>">
+                        <?php echo tq_phone_field('phone', array(
+                            'skin'  => 'portal',
+                            'id'    => 'tq-phone',
+                            'value' => (string) ($u['phone'] ?? ''),
+                        )); ?>
                     </div>
                     <div class="tq-field">
                         <label class="tq-field__label" for="tq-address">المدينة أو العنوان</label>

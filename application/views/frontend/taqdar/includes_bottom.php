@@ -1,3 +1,4 @@
+<script src="<?php echo tq_asset('js/tq-phone.js'); ?>" defer></script>
 <script src="<?php echo tq_asset('js/taqdar.js'); ?>" defer></script>
 
 <?php /* سكربت المشغل يحمل على صفحته وحدها — لا يثقل بقية الشاشات.

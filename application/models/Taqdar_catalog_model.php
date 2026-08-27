@@ -156,8 +156,15 @@ class Taqdar_catalog_model extends CI_Model
                     array('i-calendar', ((int) $r['duration_days'] >= 360)
                         ? 'العام الدراسي كاملا' : tq_days((int) $r['duration_days'])),
                 ),
+                /* الدورة والمرحلة والرمز يسافرون مع العنصر: بطاقة الكتالوج
+                   كانت تستخرج الرمز من `href` بـ`basename()` وتخمن الدورة
+                   من لا شيء — فتطبع «شهريا» على باقة شهرية سعرها ٩٩٩ وكأنه
+                   معادل سنوي. والمصدر عمود، فيمر عمودا. */
                 'extra'    => array('features' => $feat, 'code' => (string) $r['code'],
-                                    'days' => (int) $r['duration_days']),
+                                    'days'   => (int) $r['duration_days'],
+                                    'period' => (string) $r['period'],
+                                    'stage'  => (string) $r['stage'],
+                                    'image'  => (string) $r['image']),
                 'text'     => implode(' ', array_merge(
                     array((string) $r['name_ar'], (string) $r['note'], (string) $r['name_en']),
                     $feat,

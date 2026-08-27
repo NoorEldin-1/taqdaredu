@@ -148,15 +148,11 @@ foreach ($tq_why as $w):
 <?php $tq_tabs = tqs_stage_tabs(); if ($tq_tabs !== ''): ?>
       <div class="p26d__tabs"><?php echo $tq_tabs; ?></div>
 <?php endif; ?>
-<?php /* مبدّل الدورة — **عرض لا فوترة**: كل الباقات سنوية في القاعدة،
-        فالشهري يعرض المعادل ومعه «تدفع سنويا». والزران مبدلان لا
-        روابط، ويعملان بلا تنقل ولا استعلام. */ ?>
-      <div class="p26d__cycle">
-        <div class="p26d__cycle-in" role="group" aria-label="دورة عرض السعر">
-          <button type="button" data-tq-cycle="year" aria-pressed="false">سنوي<span class="p26d__cycle-save">وفر 20%</span></button>
-          <button type="button" data-tq-cycle="month" aria-pressed="true">شهري</button>
-        </div>
-      </div>
+<?php /* مبدل الدورة — **عرض لا فوترة**: الباقة السنوية تعرض معادلها
+        الشهري ومعه «تدفع سنويا». والزران مبدلان لا روابط، ويعملان بلا
+        تنقل ولا استعلام. ولا يطبعان إن لم تكن في المعروض باقة لها
+        دورتان (TQ-PLAN-CYCLE). */ ?>
+      <?php echo tqs_plan_cycle_switch(); ?>
     </div>
 
 <?php echo tqs_bundles_dark(); ?>

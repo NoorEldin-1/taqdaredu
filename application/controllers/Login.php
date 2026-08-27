@@ -255,15 +255,38 @@ class Login extends CI_Controller
      * وهو دالة لا سطور مكررة: بوابتا المعلم وولي الأمر تسألان الرقم نفسه،
      * ونسختان من قاعدة واحدة تفترقان عند أول تعديل يصيب إحداهما.
      */
-    private function tq_normalize_phone($raw)
+    private function tq_normalize_phone($raw, $iso = null)
     {
-        $p = strtr((string) $raw, array(
-            '٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4',
-            '٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9',
-        ));
-        $p = preg_replace('/[^0-9]/', '', $p);
-        $p = preg_replace('/^(?:00966|966)/', '', $p);
-        return preg_replace('/^0/', '', $p);
+        $r = tq_phone_check($raw, ($iso === null ? tq_phone_default_iso() : $iso));
+        return $r['ok'] ? $r['e164'] : '';
+    }
+
+    /**
+     * TQ-PHONE-INTL — دولة الرقم كما انتقيت في البوابة المختارة.
+     *
+     * ومنتقيان في الصفحة كحقلي الرقم (TQ-PHONE-DUP): اسم واحد لهما
+     * يجعل PHP يبقي الأخير، فيقرأ طلب المعلم دولة ولي الأمر.
+     */
+    private function tq_gate_iso($gate)
+    {
+        foreach (array($gate . '_phone_cc', 'phone_cc') as $field) {
+            $raw = trim((string) $this->input->post($field));
+            if ($raw !== '') return tq_phone_iso_ok($raw);
+        }
+        return tq_phone_default_iso();
+    }
+
+    /**
+     * الرقم كما كتب، بلا فحص ولا تطبيع — لإعادته إلى النموذج بعد الرفض.
+     * من أخطأ في حقل آخر لا يجد جواله ممسوحا.
+     */
+    private function tq_gate_phone_raw($gate)
+    {
+        foreach (array($gate . '_phone', 'phone') as $field) {
+            $raw = trim((string) $this->input->post($field));
+            if ($raw !== '') return $raw;
+        }
+        return '';
     }
 
     /**
@@ -281,13 +304,23 @@ class Login extends CI_Controller
      */
     private function tq_gate_phone($gate)
     {
-        foreach (array($gate . '_phone', 'phone') as $field) {
-            $raw = trim((string) $this->input->post($field));
-            if ($raw !== '') {
-                return $this->tq_normalize_phone($raw);
-            }
-        }
-        return '';
+        $raw = $this->tq_gate_phone_raw($gate);
+        if ($raw === '') return '';
+        $r = tq_phone_check($raw, $this->tq_gate_iso($gate));
+        return $r['ok'] ? $r['e164'] : '';
+    }
+
+    /**
+     * الفحص كاملا برسالته — لا `true`/`false`.
+     *
+     * TQ-PHONE-INTL: «رقم الجوال غير صحيح. اكتبه هكذا: 0501234567» كانت
+     * الرسالة الوحيدة، وهي تكذب على من انتقى مصر: رقمه صحيح في بلده،
+     * والشكل المقترح ليس شكل بلده. فالرسالة تخرج من `tq_phone_check()`
+     * بمثال الدولة المنتقاة نفسها.
+     */
+    private function tq_gate_phone_check($gate)
+    {
+        return tq_phone_check($this->tq_gate_phone_raw($gate), $this->tq_gate_iso($gate));
     }
 
     public function register()
@@ -327,7 +360,12 @@ class Login extends CI_Controller
             'age'            => ($tq_age > 0 ? $tq_age : ''),
             'grade_id'       => ($tq_grade > 0 ? $tq_grade : ''),
             'guardian_email' => $tq_guard,
-            'phone'          => $this->tq_gate_phone($tq_gate),
+            /* ما كتب لا ما طبع: الرقم يعود إلى الحقل كما كتبه صاحبه،
+               ودولته تعود إلى المنتقي — فرفض بسبب حقل آخر لا يمسح
+               اختيار البلد فيعيد الرقم يقرأ سعوديا. */
+            'phone'          => $this->tq_gate_phone_raw($tq_gate),
+            'teacher_phone_cc' => $this->tq_gate_iso('teacher'),
+            'parent_phone_cc'  => $this->tq_gate_iso('parent'),
             'message'        => trim((string) $this->input->post('message')),
             /* قناة الرمز تعود كما اختيرت: من رفض طلبه لخطأ في حقل آخر
                لا يعيد اختيارها. */
@@ -381,14 +419,15 @@ class Login extends CI_Controller
             if (!get_settings('allow_instructor')) {
                 $tq_err = 'التسجيل معلما متوقف حاليا. تواصل معنا للانضمام.';
             } else {
-                $tq_phone = $this->tq_gate_phone('teacher');
+                $tq_ph    = $this->tq_gate_phone_check('teacher');
+                $tq_phone = $tq_ph['ok'] ? $tq_ph['e164'] : '';
 
                 $tq_doc = isset($_FILES['document']) ? $_FILES['document'] : NULL;
                 $tq_doc_ext = ($tq_doc && !empty($tq_doc['name']))
                             ? strtolower((string) pathinfo($tq_doc['name'], PATHINFO_EXTENSION)) : '';
 
-                if (!preg_match('/^5[0-9]{8}$/', $tq_phone)) {
-                    $tq_err = 'رقم الجوال غير صحيح. اكتبه هكذا: 0501234567';
+                if (!$tq_ph['ok']) {
+                    $tq_err = $tq_ph['error'];
                 } elseif ($tq_doc === NULL || empty($tq_doc['name'])) {
                     $tq_err = 'مستند التعريف مطلوب لطلب الانضمام معلما.';
                 } elseif ((int) $tq_doc['error'] !== UPLOAD_ERR_OK) {
@@ -410,10 +449,9 @@ class Login extends CI_Controller
                لا تكشف بيانات أحد، والتقارير لا تفتح إلا برابط يوافق عليه
                الطالب نفسه (`parent_links` ولها مشغلا موافقة في القاعدة).
                والجوال مطلوب: عليه تصل تنبيهات الأبناء. */
-            $tq_phone = $this->tq_gate_phone('parent');
-            if (!preg_match('/^5[0-9]{8}$/', $tq_phone)) {
-                $tq_err = 'رقم الجوال غير صحيح. اكتبه هكذا: 0501234567';
-            }
+            $tq_ph    = $this->tq_gate_phone_check('parent');
+            $tq_phone = $tq_ph['ok'] ? $tq_ph['e164'] : '';
+            if (!$tq_ph['ok']) { $tq_err = $tq_ph['error']; }
         }
         if ($tq_err !== '') {
             $this->session->set_flashdata('error_message', $tq_err);

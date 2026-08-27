@@ -745,17 +745,27 @@ if (!function_exists('tqs_bundles')) {
         if ($cache !== null) return $cache;
         $CI = get_instance();
         $CI->load->database();
-        $rows = $CI->db->select('code, name_ar, note, image, price, duration_days, features, featured, stage')
+        /* الترتيب الثاني `id` لا زينة: باقتان بالترتيب نفسه (وهو `0`
+           لكل ما يضاف من اللوحة بلا تحديد) تخرجان بترتيب لا يضمنه
+           MySQL — فتتبدل مواضعهما بين طلب وطلب على الصفحة نفسها.
+           و`period` عمود يقرأ الآن: كانت الدورة تخمن من `duration_days`
+           وحدها، فباقة «ربع سنوية» تقرأ شهرية وباقة «مجانية» بسعر صفر
+           تعرض «0 ر.س». */
+        $rows = $CI->db->select('id, code, name_ar, note, image, price, period,'
+                              . ' duration_days, features, featured, stage, `order`', false)
                        ->from('plans')->where('active', 1)->where('scope', 'grade')
-                       ->order_by('`order`', 'ASC', false)->get()->result_array();
+                       ->order_by('`order`', 'ASC', false)->order_by('id', 'ASC')
+                       ->get()->result_array();
         $out = array();
         foreach ($rows as $r) {
             $f = json_decode((string) $r['features'], true);
             $out[] = array(
+                'id'       => (int) $r['id'],
                 'code'     => (string) $r['code'],
                 'name'     => (string) $r['name_ar'],
                 'note'     => (string) $r['note'],
                 'price'    => (int) $r['price'],
+                'period'   => (string) $r['period'],
                 'days'     => (int) $r['duration_days'],
                 'features' => is_array($f) ? $f : array(),
                 'featured' => (int) $r['featured'] === 1,
@@ -772,6 +782,13 @@ if (!function_exists('tqs_bundle_cards')) {
      * بطاقات الباقات — درجات صاعدة والوسطى مبرزة.
      * السعر يقسم على مئة **مرة واحدة**: القيمة هللات في القاعدة،
      * وقسمتها في موضعين تنتج رقما يختلف بين صفحتين.
+     *
+     * @deprecated لا ينادى من قالب واحد اليوم: الرئيسية و`/plans`
+     * كلتاهما على `tqs_bundles_dark()`. ويبقى لأن حذفه يكسر قالبا
+     * لم يبحث عنه أحد — ولا يعدل: من أراد بطاقة باقة فمولدها هناك،
+     * وإصلاح ينزل هنا ولا ينزل هناك هو أصل «صفحتان تعرضان رقمين».
+     * وهذا الوسم لا يقرأ `plans.image` ولا `period` — انظر
+     * `tqs_plan_cover()` و`tqs_plan_price()`.
      */
     function tqs_bundle_cards($items = null)
     {
@@ -873,15 +890,31 @@ if (!function_exists('tqs_program_slides')) {
 }
 
 if (!function_exists('tqs_bundle_stages')) {
-    /** المراحل التي لها باقات — بترتيب ظهورها، ولا تكتب أسماؤها هنا مرتين. */
+    /**
+     * المراحل التي لها باقات — بترتيب ظهورها، ولا تكتب أسماؤها هنا مرتين.
+     *
+     * TQ-PLAN-STAGE — **وباقة بلا مرحلة كانت تختفي إلى الأبد.**
+     * السطر كان `if ($k === '') continue;` فتسقط من قائمة التبويبات؛
+     * ثم يطبع مولد البطاقات `data-stage=""` عليها ويخفيها لأنها ليست
+     * المرحلة الأولى — ولا تبويب يطابق الفراغ فيظهرها. فباقة متاحة
+     * مسعرة لها صفوف لا يراها زائر واحد، ولا شيء في اللوحة ولا في
+     * الصفحة يقول لماذا.
+     *
+     * والحفظ يشترط المرحلة على باقة الصفوف اليوم، فهذا لصف قديم كتب
+     * قبل الشرط — أو لصف عدل بيد في القاعدة. ومفتاحه `''` واسمه
+     * «باقات أخرى»: تبويب يصل إليها بدل صمت يبتلعها.
+     */
     function tqs_bundle_stages()
     {
-        $seen = array();
+        $seen  = array();
+        $blank = false;
         foreach (tqs_bundles() as $b) {
             $k = (string) $b['stage'];
-            if ($k === '' || isset($seen[$k])) continue;
+            if ($k === '') { $blank = true; continue; }
+            if (isset($seen[$k])) continue;
             $seen[$k] = tqs_stage_label($k);   /* الأسماء في موضع واحد */
         }
+        if ($blank) $seen[''] = 'باقات أخرى';
         return $seen;
     }
 }
@@ -896,7 +929,9 @@ if (!function_exists('tqs_stage_tabs')) {
     {
         $stages = tqs_bundle_stages();
         if (count($stages) < 2) return '';
-        if ($active === '') { $keys = array_keys($stages); $active = $keys[0]; }
+        if ($active === '' || !isset($stages[$active])) {
+            $keys = array_keys($stages); $active = $keys[0];
+        }
         $h = '<div class="stage-tabs" role="tablist" aria-label="اختر المرحلة">' . "\n";
         foreach ($stages as $k => $label) {
             $on = ($k === $active);
@@ -1775,6 +1810,256 @@ if (!function_exists('tqs_feature_icon')) {
     }
 }
 
+if (!function_exists('tqs_plan_cover')) {
+    /**
+     * صورة الباقة — **مصدر واحد لأربع شاشات**.
+     *
+     * TQ-PLAN-IMG — كانت الصورة تشتق من الرمز والمرحلة
+     * (`plan-<الدرجة>-<المرحلة>.webp`) و**تتجاهل `plans.image` تجاهلا
+     * تاما** في الرئيسية وصفحة الباقات. و`tqs_p26_tier()` ترد `basic`
+     * لكل رمز لا يبدأ حرفيا بـ`basic|plus|full` — أي لكل رمز في
+     * القاعدة (`p6-basic` يبدأ بـ`p6`). فالبطاقات الثلاث تعرض
+     * `plan-basic-primary.webp` **نفسها**، ومسؤول يرفع صورة من اللوحة
+     * لا يرى أثرها في صفحة واحدة، ويظن العطب في رفعه.
+     *
+     * والترتيب هنا: **ما اختاره المسؤول أولا** — رفعا كان أو اسم أصل
+     * من السمة — ثم المشتق، ثم غلاف المرحلة، ثم بديل ثابت. فمن لم يرفع
+     * شيئا يبقى على ما كان يرى حرفا بحرف.
+     *
+     * و`logo` قيمة نائبة قديمة في القاعدة (تعرض الشعار ممطوطا وجها
+     * للبطاقة)، فتعامل معاملة الفراغ — كما تعاملها `tqs_cat_cover()`.
+     *
+     * @return string رابط جاهز للطباعة، أو '' إن لا صورة بحال.
+     */
+    function tqs_plan_cover($plan, $fallback = 'path-primary')
+    {
+        $img   = isset($plan['image']) ? trim((string) $plan['image']) : '';
+        $code  = isset($plan['code'])  ? (string) $plan['code']  : '';
+        $stage = isset($plan['stage']) ? (string) $plan['stage'] : '';
+
+        if ($img === 'logo') $img = '';
+
+        /* رفع المسؤول: مسار تحت `uploads/` بامتداده. و`tqs_img()` تعرف
+           الفرق بين مسار واسم أصل، فلا يكتب هنا ثانية. */
+        if ($img !== '') return tqs_img($img, $fallback);
+
+        $derived = tqs_plan_img($code, $stage);
+        if ($derived !== '') return tq_site_asset('img/' . $derived . '.webp');
+
+        $st = tqs_stage_asset_key($stage);
+        if ($st !== '' && is_file(FCPATH . 'assets/taqdar/site/img/cov-plan-' . $st . '.webp')) {
+            return tq_site_asset('img/cov-plan-' . $st . '.webp');
+        }
+        if ($st !== '' && is_file(FCPATH . 'assets/taqdar/site/img/path-' . $st . '.webp')) {
+            return tq_site_asset('img/path-' . $st . '.webp');
+        }
+        return $fallback !== '' ? tq_site_asset('img/' . $fallback . '.webp') : '';
+    }
+}
+
+if (!function_exists('tqs_stage_asset_key')) {
+    /**
+     * مسمى المرحلة ⟵ الجزء اللاتيني في أسماء الملفات.
+     *
+     * `plans.stage` مختلط الصيغة في القاعدة: `primary` لاتينية
+     * و`المرحلة-المتوسطة` عربية — واسم الملف لاتيني دائما. والخريطة
+     * كانت مكتوبة في ثلاثة مواضع، فقسم جديد يضاف في اللوحة يظهر في
+     * واحد ويسقط من اثنين.
+     */
+    function tqs_stage_asset_key($stage)
+    {
+        $map = array(
+            'primary'           => 'primary',
+            'middle'            => 'middle',
+            'المرحلة-المتوسطة'  => 'middle',
+            'secondary'         => 'secondary',
+            'qudurat'           => 'qudurat',
+            'digital'           => 'digital',
+        );
+        $st = (string) $stage;
+        return isset($map[$st]) ? $map[$st] : '';
+    }
+}
+
+if (!function_exists('tqs_plan_price')) {
+    /**
+     * سعر الباقة بدورتيه — **الأربع دورات لا دورتان**.
+     *
+     * TQ-PLAN-CYCLE — كان العرض يقرأ `duration_days >= 360` وحده:
+     * فما دونها «باقة غير سنوية» تطبع فقرة سعر واحدة بـ
+     * `data-cycle="month"`. ومبدل الدورة يخفي كل فقرة لا تحمل الدورة
+     * المختارة — فمن ضغط «سنوي» **اختفى سعر تلك البطاقة كله**: بطاقة
+     * بلا رقم، ولا خطأ، ولا شيء يقول لماذا. والباقة الشهرية في القاعدة
+     * اليوم هي الحال.
+     *
+     * وثلاثة قرارات:
+     *
+     * ١ — **الدورة من العمود لا من المدة.** `period` هو ما يكتبه
+     *     المسؤول ويقرؤه المشتري، و`duration_days` هو ما يحسب عليه
+     *     الانتهاء. وهما قد يفترقان بقصد (باقة «سنوية» مدتها ٣٩٠ يوما
+     *     هدية)، فقراءة المدة مكان الدورة تسمي الشيء بغير اسمه.
+     *
+     * ٢ — **الشهري معادل معروض لا فوترة.** المنصة لا تعرف اشتراكا
+     *     متكررا: لا تجديد تلقائي ولا حفظ بطاقة. فالمعروض شهريا يقترن
+     *     دائما بسطر «تدفع … مرة واحدة» — رقم بلا سياقه وعد مضلل.
+     *
+     * ٣ — **من لا معادل له يطبع الرقم نفسه في الدورتين.** لا فقرة
+     *     تخفى فتترك بطاقة بلا سعر: الشهرية شهرية في الوضعين،
+     *     والمجانية مجانية فيهما.
+     *
+     * @return array period · free · months · total · month · save ·
+     *               unit · note · has_alt
+     */
+    function tqs_plan_price($b)
+    {
+        $period = isset($b['period']) ? (string) $b['period'] : '';
+        $days   = isset($b['days'])   ? (int) $b['days']      : 0;
+        $sar    = (int) round(max(0, (int) $b['price']) / 100);
+
+        /* الدورة تشتق من المدة حين يخلو العمود — صف قديم كتب قبل أن
+           يوجد `period`، وقراءته فارغا تطبع «مجانية» على باقة مدفوعة. */
+        if ($period === '') {
+            if ($days >= 360)     $period = 'annual';
+            elseif ($days >= 80)  $period = 'quarterly';
+            else                  $period = 'monthly';
+        }
+
+        $months = array('annual' => 12, 'quarterly' => 3, 'monthly' => 1, 'free' => 0);
+        $m      = isset($months[$period]) ? $months[$period] : 12;
+
+        $out = array(
+            'period'  => $period,
+            'free'    => ($period === 'free' || $sar <= 0),
+            'months'  => $m,
+            'total'   => $sar,
+            'month'   => $sar,
+            'save'    => 0,
+            'unit'    => 'شهريا',
+            'note'    => '',
+            'has_alt' => false,
+        );
+
+        if ($out['free']) {
+            $out['total'] = 0;
+            $out['month'] = 0;
+            $out['unit']  = '';
+            $out['note']  = 'بلا رسوم';
+            return $out;
+        }
+
+        if ($m === 12) {
+            /* الخصم السنوي عشرون بالمئة — والشهري **أصل السعر قبله**،
+               لا السنوي مقسوما على اثني عشر: القسمة تعطي 319 لا 399
+               لأن الخصم مطبق في المخزن. والاشتقاق مكتوب في
+               `tqs_plan_cycle()` منذ كتبت، فتنادى ولا يكتب ثانية. */
+            $c = tqs_plan_cycle((int) $b['price']);
+            $out['month']   = $c['month'];
+            $out['save']    = $c['save'];
+            $out['unit']    = 'سنويا';
+            $out['note']    = 'تدفع سنويا ' . number_format($c['year']) . ' ر.س';
+            $out['has_alt'] = true;
+            return $out;
+        }
+
+        if ($m === 3) {
+            /* ربع سنوية: المعادل الشهري قسمة مستقيمة بلا خصم مخترع —
+               الخصم السنوي قرار تسعير معلن، وإسقاطه على الربع يعد
+               بتوفير لا وجود له. */
+            $out['month']   = (int) round($sar / 3);
+            $out['unit']    = 'كل ثلاثة أشهر';
+            $out['note']    = 'تدفع ' . number_format($sar) . ' ر.س كل ثلاثة أشهر';
+            $out['has_alt'] = true;
+            return $out;
+        }
+
+        /* شهرية: الدورتان رقم واحد، فلا سطر «تدفع…» يكرر ما فوقه. */
+        $out['unit'] = 'شهريا';
+        $out['note'] = ($days > 0 && $days !== 30) ? ('لكل ' . $days . ' يوما') : '';
+        return $out;
+    }
+}
+
+if (!function_exists('tqs_plan_price_html')) {
+    /**
+     * فقرتا السعر — الشهرية والدورية — بوسم واحد لكل شاشة.
+     *
+     * TQ-PLAN-CYCLE — **كل بطاقة تطبع الدورتين دائما.** كانت الشهرية
+     * وحدها تطبع لغير السنوية، ومبدل الدورة يخفي ما لا يحمل المختارة:
+     * فيضغط الزائر «سنوي» فتبقى بطاقة بلا سعر. والذي لا معادل له يطبع
+     * رقمه نفسه في الفقرتين — رقم مكرر خير من رقم غائب.
+     *
+     * والمجانية تكتب «مجانا» ولا تطبع صفرا: `0 ر.س` تقرأ عطلا في
+     * التسعير لا عرضا.
+     */
+    function tqs_plan_price_html($b, $cls)
+    {
+        $p = tqs_plan_price($b);
+        $h = '';
+
+        if ($p['free']) {
+            foreach (array('month', 'year') as $cyc) {
+                $h .= '      <p class="' . $cls . ' ' . $cls . '--free" data-cycle="' . $cyc . '"'
+                    . ($cyc === 'year' ? ' hidden' : '') . '>'
+                    . '<b>مجانا</b><span>بلا رسوم</span></p>' . "\n";
+            }
+            return $h;
+        }
+
+        /* الشهري: المعروض دائما — وهو الافتراضي بقرار المالك. */
+        $h .= '      <p class="' . $cls . '" data-cycle="month">'
+            . '<b class="tq-ltr">' . number_format($p['month']) . '</b>'
+            . '<span>ر.س / شهريا</span>'
+            . ($p['note'] !== '' ? '<small>' . html_escape($p['note']) . '</small>' : '')
+            . '</p>' . "\n";
+
+        /* الدورية: السعر المدفوع فعلا بوحدته. ومن لا معادل شهريا له
+           (الشهرية نفسها) تكرر رقمه — فلا فقرة تخفى إلى فراغ. */
+        $h .= '      <p class="' . $cls . '" data-cycle="year" hidden>'
+            . '<b class="tq-ltr">' . number_format($p['total']) . '</b>'
+            . '<span>ر.س / ' . html_escape($p['unit']) . '</span>';
+        if ($p['has_alt'] && $p['save'] > 0) {
+            $h .= '<small>بدل ' . number_format($p['month'] * $p['months'])
+                . ' — وفرت ' . number_format($p['save']) . ' ر.س</small>';
+        } elseif (!$p['has_alt'] && $p['note'] !== '') {
+            $h .= '<small>' . html_escape($p['note']) . '</small>';
+        }
+        $h .= '</p>' . "\n";
+
+        return $h;
+    }
+}
+
+if (!function_exists('tqs_plan_cycle_switch')) {
+    /**
+     * مبدل الدورة — **ولا يعرض لمن لا دورتين له**.
+     *
+     * زر «سنوي» فوق شبكة كل باقاتها شهرية يبدل رقما برقمه نفسه: تفاعل
+     * لا يفعل شيئا، وأول ما يظنه الزائر أن الصفحة معطلة. فيسأل المعروض
+     * أولا: أفيه باقة لها معادل؟
+     *
+     * @param array $items الباقات المعروضة فعلا — لا كل ما في الجدول.
+     */
+    function tqs_plan_cycle_switch($items = null)
+    {
+        $items = ($items === null) ? tqs_bundles() : $items;
+        $alt   = false;
+        $off   = 20;
+        foreach ($items as $b) {
+            $p = tqs_plan_price($b);
+            if (!empty($p['has_alt'])) { $alt = true; break; }
+        }
+        if (!$alt) return '';
+
+        return '<div class="p26d__cycle">' . "\n"
+             . '  <div class="p26d__cycle-in" role="group" aria-label="دورة عرض السعر">' . "\n"
+             . '    <button type="button" data-tq-cycle="year" aria-pressed="false">سنوي'
+             . '<span class="p26d__cycle-save">وفر ' . $off . '%</span></button>' . "\n"
+             . '    <button type="button" data-tq-cycle="month" aria-pressed="true">شهري</button>' . "\n"
+             . '  </div>' . "\n"
+             . '</div>' . "\n";
+    }
+}
+
 if (!function_exists('tqs_bundles_dark')) {
     /**
      * بطاقات الباقات — على تصميم المالك [٢٠٢٦-٠٨-٢٦]: رأس بترولي يحمل
@@ -1824,11 +2109,17 @@ if (!function_exists('tqs_bundles_dark')) {
                يقرأ اسم الباقة يليها مباشرة ولا يسمع وصف صورة قبله.
                ولا يحمل `data-stage`: سكربت المراحل يمسك السليل لا الابن
                المباشر، فسمة كهذه عليه تخفيه مع تبديل المرحلة. */
-            $cover = tqs_plan_img($b['code'], $b['stage']);
+            /* TQ-PLAN-IMG — `plans.image` هي المصدر الأول، ثم المشتق.
+               وكانت `tqs_plan_img()` تنادى هنا وحدها فتتجاهل ما رفعه
+               المسؤول تجاهلا تاما — انظر `tqs_plan_cover()`.
+               والمقاس المعلن `1200×800` (3:2) هو ما يطبع عليه الرفع
+               فعلا، وهو نسبة الصندوق نفسها — فلا قفزة تخطيط قبل أن
+               تصل الصورة. */
+            $cover = tqs_plan_cover($b);
             if ($cover !== '') {
                 $h .= '    <span class="p26d-card__cover" aria-hidden="true">'
-                    . '<img src="' . tq_site_asset('img/' . $cover . '.webp') . '" alt=""'
-                    . ' width="700" height="700" loading="lazy" decoding="async"></span>' . "\n";
+                    . '<img src="' . html_escape($cover) . '" alt=""'
+                    . ' width="1200" height="800" loading="lazy" decoding="async"></span>' . "\n";
             }
 
             /* الرأس: أيقونة الدرجة واسمها ومرحلتها. */
@@ -1857,29 +2148,7 @@ if (!function_exists('tqs_bundles_dark')) {
                بطاقة)، فالشهريّ معادلٌ يُعرض والدفعة سنويّة واحدة —
                ولذلك يقترن بسطر «تدفع سنويا …» يمنع مفاجأة شاشة الدفع.
                والافتراضيّ هو الشهريّ بقرار المالك. */
-            $tq_year = ($b['days'] >= 360);
-            $tq_c    = tqs_plan_cycle($b['price']);
-
-            if ($tq_year) {
-                /* سطران مقصودان لا التفاف عشوائي: الوحدة الزمنية سطرا،
-                   والحاشية سطرا تحته — فالنص الطويل لا ينكسر حيث اتفق. */
-                $h .= '      <p class="p26d-card__price" data-cycle="month">'
-                    . '<b class="tq-ltr">' . number_format($tq_c['month']) . '</b>'
-                    . '<span>ر.س / شهريا</span>'
-                    . '<small>تدفع سنويا ' . number_format($tq_c['year']) . ' ر.س</small>'
-                    . '</p>' . "\n";
-                $h .= '      <p class="p26d-card__price" data-cycle="year" hidden>'
-                    . '<b class="tq-ltr">' . number_format($tq_c['year']) . '</b>'
-                    . '<span>ر.س / سنويا</span>'
-                    . '<small>بدل ' . number_format($tq_c['month'] * 12)
-                    . ' — وفرت ' . number_format($tq_c['save']) . ' ر.س</small>'
-                    . '</p>' . "\n";
-            } else {
-                /* باقة بمدّة غير سنويّة: لا معادل شهريّ يُحسب لها. */
-                $h .= '      <p class="p26d-card__price" data-cycle="month">'
-                    . '<b class="tq-ltr">' . number_format($tq_c['year']) . '</b>'
-                    . '<span>ر.س / كل ' . (int) $b['days'] . ' يوما</span></p>' . "\n";
-            }
+            $h .= tqs_plan_price_html($b, 'p26d-card__price');
 
             $h .= '      <span class="p26d-card__cta"><a href="'
                 . base_url(($cta === 'checkout' ? 'checkout/' : 'plan/') . $b['code'])
@@ -1904,6 +2173,9 @@ if (!function_exists('tqs_p26_cards')) {
      * البيانات من `tqs_bundles()` نفسها — لا استعلام جديد ولا عمود جديد.
      * وصورة الطالب تُشتق من **درجة الباقة** في العرض لا من القاعدة:
      * الصورة قرار واجهة، وتخزينها في عمود يجعل تبديلها تعديل بيانات.
+     *
+     * @deprecated كأختها `tqs_bundle_cards()`: بلا مناد، ولا تقرأ
+     * `plans.image` ولا `period`. والمولد الحي `tqs_bundles_dark()`.
      */
     function tqs_p26_cards($items = null, $opts = array())
     {

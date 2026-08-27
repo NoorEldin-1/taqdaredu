@@ -142,12 +142,19 @@ include 'portal_open.php';
                                 </span>
                             </div>
 
+                            <?php /* TQ-PHONE-INTL — الدولة تنتقى هنا كما تنتقى في
+                                     التسجيل: الرقم يخزن `+<رمز><وطني>` وعليه يرسل
+                                     واتساب. وشاشة تحفظ `05…` عارية بينما التسجيل
+                                     يحفظ `+9665…` تجعل معلما يعدل عنوانه فيفقد
+                                     إشعاراته. */ ?>
                             <div class="tq-field">
                                 <label class="tq-field__label" for="tq-phone">رقم الجوال</label>
-                                <input class="tq-input" id="tq-phone" name="phone" type="tel" dir="ltr"
-                                       maxlength="25" autocomplete="tel" inputmode="tel"
-                                       placeholder="05XXXXXXXX"
-                                       value="<?php echo html_escape($u['phone'] ?? ''); ?>">
+                                <?php echo tq_phone_field('phone', array(
+                                    'skin'  => 'portal',
+                                    'id'    => 'tq-phone',
+                                    'value' => (string) ($u['phone'] ?? ''),
+                                    'hint'  => 'عليه تصلك رسائل واتساب من المنصة.',
+                                )); ?>
                             </div>
 
                             <div class="tq-formbar">
