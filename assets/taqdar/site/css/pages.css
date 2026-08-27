@@ -2504,8 +2504,9 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
   .tq-auth__row{grid-template-columns:minmax(0,1fr)}
 }
 
-/* المبدّل لا يتمدّد على عرض البطاقة: الأب عمود، والامتداد افتراضه. */
-.plan-cycle{align-self:flex-start}
+/* المبدّل لا يتمدّد على عرض البطاقة. والأب **شبكة** لا عمود فليكس،
+   فـ`align-self` تحكم المحور الكتليّ وحده — والمحور الآخر `justify-self`. */
+.plan-cycle{justify-self:start;align-self:start}
 .plan-card__price{margin:0;font-size:clamp(26px,2.8vw,38px);font-weight:800;color:var(--ink);
   line-height:1.15;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px}
 .plan-card__price span{font-size:.46em;font-weight:700;color:var(--ink-2)}
