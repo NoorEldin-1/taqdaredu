@@ -1241,6 +1241,103 @@ svg.frame path{fill:none}
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   TQ-CMP · بطاقة المسابقة — واحدة تخدم صفحة الباقات وصفحة المسابقات
+   كان النظامان `.compgrid/.compcard` و`.comp-grid/.comp-card` يتشابهان
+   في الاسم ويختلفان في كل شيء آخر، ولا يجمعهما إلا `.post-tag`.
+   ══════════════════════════════════════════════════════════════════ */
+/* فليكس لا شبكة: `auto-fit` تمدّ البطاقة الواحدة على عرض الصف كله،
+   ومسابقة واحدة بعرض ألف بكسل تقرأ خطأ لا تصميما. */
+.cmp-grid{
+  display:flex;flex-wrap:wrap;justify-content:center;
+  gap:clamp(14px,1.8vw,24px);
+  max-inline-size:min(100%,1040px);margin-inline:auto
+}
+.cmp-grid>.cmp-card{flex:1 1 290px;max-inline-size:360px}
+.cmp-card{
+  display:flex;flex-direction:column;overflow:hidden;min-inline-size:0;
+  background:var(--paper);border:1px solid var(--gold-line-soft);
+  border-radius:var(--r-card);box-shadow:var(--sh-soft);
+  transition:transform var(--t-entry) var(--ease),box-shadow var(--t-entry) var(--ease),
+             border-color var(--t-entry) var(--ease)
+}
+.cmp-card:hover{transform:translateY(-3px);box-shadow:var(--sh-raise);border-color:var(--gold-line)}
+
+/* رأس ملون بدل صورة: عمود `cover` فارغ في كل الصفوف، وصورة مخترعة
+   أسوأ من لون يحمل المرحلة والحال. */
+.cmp-card__head{
+  position:relative;display:flex;align-items:center;gap:10px;overflow:hidden;
+  padding:12px clamp(14px,1.5vw,18px);
+  background:linear-gradient(120deg,var(--petrol),var(--petrol-deep));color:#fff
+}
+/* بلاطة الخط العربي زخرفة الرأس — كرأس بطاقة الباقة في الرئيسية.
+   وكانت نجمة مطلقة تجلس خلف اسم المرحلة فتقرأ لطخة لا زخرفة. */
+.cmp-card__head::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:url('../img/script-tile.webp') repeat;
+  background-size:190px auto;opacity:.07;mix-blend-mode:screen
+}
+.cmp-card__stage{
+  position:relative;font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(11px,.85vw,13px);color:var(--gold-warm)
+}
+.cmp-state{
+  position:relative;margin-inline-start:auto;padding:3px 11px;border-radius:999px;
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(10px,.75vw,11.5px);white-space:nowrap
+}
+.cmp-state--open{background:rgba(46,160,110,.24);color:#9BE7C4;border:1px solid rgba(155,231,196,.42)}
+.cmp-state--soon{background:rgba(212,180,118,.18);color:var(--gold-warm);border:1px solid rgba(212,180,118,.42)}
+.cmp-state--over{background:rgba(255,255,255,.10);color:rgba(255,255,255,.68);border:1px solid rgba(255,255,255,.20)}
+
+.cmp-card__body{
+  flex:1;display:flex;flex-direction:column;gap:9px;min-inline-size:0;
+  padding:clamp(15px,1.7vw,22px)
+}
+.cmp-card__body h3{margin:0;font-size:clamp(15px,1.15vw,17.5px);line-height:1.55}
+.cmp-card__body h3 a{color:var(--ink)}
+.cmp-card__body h3 a:hover{color:var(--gold-text)}
+/* سطران لا أكثر: الأوصاف تتفاوت طولا فتتفاوت البطاقات ارتفاعا. */
+.cmp-card__body>p{
+  margin:0;color:var(--ink-3);font-size:clamp(12.5px,.9vw,13.5px);line-height:1.75;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+}
+.cmp-card__facts{
+  display:flex;flex-direction:column;gap:7px;margin-block-start:auto;
+  padding-block-start:11px;border-block-start:1px dashed var(--gold-line-soft)
+}
+.cmp-card__facts span{
+  display:flex;align-items:center;gap:8px;min-inline-size:0;
+  color:var(--ink-2);font-size:clamp(12px,.88vw,13px)
+}
+.cmp-card__facts svg{inline-size:15px;block-size:15px;aspect-ratio:1;flex:none;color:var(--gold-deep)}
+.cmp-card__facts b{font-weight:700;color:var(--ink)}
+.cmp-card__cta{margin:0 clamp(15px,1.7vw,22px) clamp(15px,1.7vw,22px)}
+
+/* في صفحة المسابقات تحمل البطاقة أزرار الحالات الخمس بدل زر التفاصيل */
+.cmp-card__act{padding:0 clamp(15px,1.7vw,22px) clamp(15px,1.7vw,22px)}
+.cmp-card__act .btn{inline-size:100%}
+.cmp-card__act form{margin:0}
+.cmp-card__act .tq-caption{margin:8px 0 0;text-align:center}
+
+/* TQ-PATHFACTS — `.path-facts` كان بلا تعريف أساسي في المشروع كله:
+   القاعدة الوحيدة له داخل `@media 680px` تضبط خصائص فليكس على عنصر
+   ليس فليكس أصلا. فالحقائق تتراكم سطورا بلا فراغ، وأيقوناتها بلا
+   `viewBox` ترسم بمقاس الكائن الافتراضي ٣٠٠×١٥٠. */
+.path-facts{
+  display:flex;flex-wrap:wrap;align-items:center;
+  gap:8px clamp(12px,1.6vw,22px);margin:0
+}
+.path-facts>span{
+  display:inline-flex;align-items:center;gap:7px;min-inline-size:0;
+  color:var(--ink-2);font-size:clamp(12px,.9vw,13.5px)
+}
+.path-facts svg{inline-size:16px;block-size:16px;aspect-ratio:1;flex:none;color:var(--gold-deep)}
+
+@media (max-width:560px){
+  .cmp-grid>.cmp-card{flex:1 1 100%;max-inline-size:none}
+}
+
+/* ══════════════════════════════════════════════════════════════════
    TQ-COMP · المسابقات
    ══════════════════════════════════════════════════════════════════ */
 
@@ -1838,9 +1935,8 @@ html[dir='ltr'] .unis .carousel2__nav--next{right:0;left:auto}
 .compcard__when{display:flex;align-items:center;gap:7px;color:var(--ink-2);font-weight:600}
 .compcard__when svg{inline-size:1em;block-size:1em;color:var(--emerald);flex:none}
 .compcard .pcard__link{margin-block-start:auto;padding-block-start:6px}
-@media (max-width:560px){
-  .compgrid{grid-template-columns:1fr}
-}
+/* `.compgrid` لم يعد يولد — بقي تعريفه لأي وسم قديم مخبوء، والقاعدة
+   الميتة التي كانت هنا تضبط `grid-template-columns` على حاوية فليكس. */
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-BUNDLE-FACE · الشارة إلى الركن
