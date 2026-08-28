@@ -2412,7 +2412,7 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
   .plan-card__media--promo img,.plan-promo__play{transition:none}
   .plan-card__media--promo:hover img{transform:none}
 }
-/* ── معاينة الباقة في مربّعها ───────────────────────────────────── */
+/* ── معاينة الباقة في مربعها ───────────────────────── */
 .plan-promo__player{
   position:relative;aspect-ratio:16/9;overflow:hidden;
   border-radius:var(--r-card);background:#0B2B2E
@@ -2429,6 +2429,123 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
 }
 .plan-promo__close svg{inline-size:15px;block-size:15px}
 .plan-promo__close:hover{background:rgba(1,33,31,.86)}
+/* ── TQ-PREVIEW-MODAL · نافذة المعاينة ───────────────────
+   تطبع من `site.js` لا من قالب: فالوسم لا يوجد إلا بعد نقرة،
+   وصفحة تحمل وسم نافذة مغلقة تدفع ثمنها في كل زيارة.
+   والأسماء `tqpv-*` لا `plan-*`: المنهج يطبع في أربع صفحات،
+   واسم يقول «باقة» على نافذة تفتح في صفحة برنامج يكذب مرة واحدة
+   ثم ينسخ معه أبدا. */
+
+/* الصفحة تتجمد خلف النافذة: منهج يمرر تحت مقطع يشتغل يفقد
+   الزائر موضعه الذي جاءت النافذة تحفظه عليه. */
+.tqpv-lock{overflow:hidden}
+
+.tqpv{
+  position:fixed;inset:0;z-index:1000;                 /* فوق الشريط اللزج (950) */
+  display:grid;place-items:center;padding:clamp(10px,3vw,44px);
+  opacity:0;transition:opacity 200ms var(--ease)
+}
+.tqpv.is-on{opacity:1}
+
+/* التمويه على الحجاب لا على الصفحة: `filter` على المحتوى ينشئ
+   سياق طبقات جديدا يحبس كل `position:fixed` تحته — فيسقط الشريط
+   اللزج والنافذة نفسها إن كانت من أبنائه. ومن لا يعرف جهازه
+   `backdrop-filter` يرى التعتيم وحده — وهو يكفي لفصل الطبقتين. */
+.tqpv__veil{
+  position:absolute;inset:0;cursor:pointer;
+  background:rgba(1,33,31,.64);
+  backdrop-filter:blur(16px) saturate(118%);
+  -webkit-backdrop-filter:blur(16px) saturate(118%)
+}
+
+.tqpv__box{
+  position:relative;display:flex;flex-direction:column;overflow:hidden;
+  inline-size:min(1180px,100%);
+  /* والعرض يحده ارتفاع الشاشة كذلك: المسرح 16:9، فبلا هذا
+     يخرج أسفله تحت طية الشاشة على شاشة عريضة قصيرة (حاسوب محمول). */
+  inline-size:min(1180px,100%,calc((100vh - 190px) * 16 / 9));
+  border-radius:clamp(16px,2vw,26px);
+  background:var(--petrol-deep);
+  border:1px solid rgba(227,207,163,.22);
+  box-shadow:0 44px 90px -34px rgba(1,20,19,.9),0 0 0 1px rgba(1,20,19,.35);
+  transform:translateY(14px) scale(.984);
+  transition:transform 280ms var(--ease)
+}
+.tqpv.is-on .tqpv__box{transform:none}
+
+.tqpv__head{
+  display:flex;align-items:center;gap:12px;flex:none;
+  padding:13px clamp(13px,1.8vw,20px);
+  border-block-end:1px solid rgba(227,207,163,.16);
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,0))
+}
+
+.tqpv__badge{
+  display:inline-flex;align-items:center;gap:6px;flex:none;
+  padding:6px 12px;border-radius:999px;
+  background:var(--emerald);color:#fff;font-size:.8rem;font-weight:700
+}
+.tqpv__badge svg{inline-size:14px;block-size:14px;flex:none}
+
+/* العنوان يقص ولا يلتف: سطران في الرأس يدفعان المسرح إلى أسفل. */
+.tqpv__id{flex:1 1 auto;min-inline-size:0;display:grid;gap:1px;line-height:1.45}
+.tqpv__id b{color:#fff;font-size:1rem;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tqpv__id i{font-style:normal;font-size:.82rem;color:var(--gold-on-dark);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tqpv__id i:empty{display:none}
+
+.tqpv__x{
+  margin-inline-start:auto;flex:none;inline-size:38px;block-size:38px;
+  border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#fff;
+  transition:background var(--t-route) var(--ease),transform var(--t-route) var(--ease)
+}
+.tqpv__x svg{inline-size:16px;block-size:16px}
+.tqpv__x:hover{background:rgba(255,255,255,.18);transform:rotate(90deg)}
+.tqpv__x:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.tqpv__stage{
+  position:relative;inline-size:100%;aspect-ratio:16/9;
+  background:#000;display:grid;place-items:center
+}
+/* سليل لا ابن (TQ-VIMEO-BOX): وسم oEmbed قد يأتي ملفوفا في `<div>`،
+   ومحدد يشترط البنوة لا يطابق شيئا حينها فيرسم الإطار بطوله
+   الطبيعي في أعلى مربع أسود طويل. */
+.tqpv__stage iframe,.tqpv__stage video{
+  position:absolute;inset:0;inline-size:100%;block-size:100%;border:0;display:block
+}
+.tqpv__stage>div{position:absolute;inset:0;padding:0 !important;block-size:100%}
+
+.tqpv__wait{
+  display:flex;align-items:center;gap:10px;margin:0;
+  color:var(--gold-on-dark);font-size:.9rem
+}
+.tqpv__spin{
+  inline-size:20px;block-size:20px;border-radius:50%;flex:none;
+  border:2px solid rgba(227,207,163,.26);border-block-start-color:var(--gold-on-dark);
+  animation:tqpv-spin .8s linear infinite
+}
+@keyframes tqpv-spin{to{transform:rotate(360deg)}}
+
+@media (max-width:560px){
+  /* تبقى بطاقة لا شريطا يمتد إلى حافتي الشاشة: حاشية رقيقة تبقي
+     المموه ظاهرا حولها، فيقرأ أنها طبقة فوق الصفحة لا صفحة جديدة. */
+  .tqpv{padding:12px}
+  .tqpv__box{inline-size:100%;border-radius:18px}
+  .tqpv__head{padding:10px 12px;gap:8px}
+  .tqpv__badge{padding:5px 10px;font-size:.74rem}
+  .tqpv__badge svg{inline-size:13px;block-size:13px}
+  .tqpv__id b{font-size:.9rem}
+  .tqpv__id i{font-size:.76rem}
+  .tqpv__x{inline-size:34px;block-size:34px}
+}
+@media (prefers-reduced-motion:reduce){
+  .tqpv,.tqpv__box,.tqpv__x{transition:none}
+  .tqpv__box{transform:none}
+  .tqpv__x:hover{transform:none}
+  .tqpv__spin{animation-duration:2.4s}
+}
 /* ── مبدّل دورة السعر في صفحة الباقة ────────────────────────────── */
 /* `home-dark.css` (وفيها `.p26d__cycle`) لا تحمّل على `site_plan`،
    فالتنسيق هنا لا مستورد. */

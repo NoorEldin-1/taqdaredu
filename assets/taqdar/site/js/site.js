@@ -1279,11 +1279,14 @@ document.documentElement.classList.add('js');
   });
 })();
 
-/* ══════════════════════════════════════════════════════════════════
+/* ═════════════════════════════════════════════════════════════════
    TQ-PLAN-PREVIEW · معاينة الباقة تشتغل في مربّعها
    الرابط يبقى رابطًا: من لا يعمل عنده هذا السكربت يذهب إلى صفحة
    المعاينة كما كان. والقالب خامل فلا يحمّل الإطار قبل النقر.
-   ══════════════════════════════════════════════════════════════════ */
+
+   وهذا **غير** نافذة المنهج (TQ-PREVIEW-MODAL): البطاقة صورة في مكانها
+   تصير مشغلا في مكانها، ولا شيء حولها يحجب ليرى مقطع هي إطاره.
+   ═════════════════════════════════════════════════════════════════ */
 (function () {
   var link = document.querySelector('a.plan-card__media--promo');
   if (!link || !link.parentNode) return;
@@ -1329,6 +1332,171 @@ document.documentElement.classList.add('js');
       var g = media.play();
       if (g && g.catch) g.catch(function () {});
     }
+  });
+})();
+
+/* ═════════════════════════════════════════════════════════════════
+   TQ-PREVIEW-MODAL · المعاينة تفتح فوق الصفحة لا في صفحة أخرى
+   شارة «معاينة مجانية» كانت تنقل الزائر إلى `/preview/…`: يفقد موضعه
+   من المنهج، وتغيب عنه بطاقة الشراء التي كان ينظر إليها، ويحتاج رجوعا
+   ليكمل تصفحه — وثلاثتها ثمن يدفعه عن نقرة معناها «أرني هذا».
+   فالنافذة تعرض المقطع والصفحة خلفها مموهة، والإغلاق يعيده إلى السطر
+   الذي كان عنده.
+
+   **والرابط يبقى رابطا.** بلا سكربت — أو إن تعذر جلب الوسم — يذهب إلى
+   الصفحة الكاملة كما كان: لا زر يعد بما لا يفتح.
+
+   ومن كان داخلا لا يمس: `tqs_preview_url()` تعطيه `student/lesson/…`
+   وهناك تقدمه وبوابته، والشرط هنا على شكل الرابط وحده.
+   ═════════════════════════════════════════════════════════════════ */
+(function () {
+  var SEL = 'a.curric__free';
+  var IDS = /\/preview\/(\d+)\/(\d+)\/?$/;
+
+  var box = null, opener = null, keys = null;
+
+  function txt(el) { return el ? (el.textContent || '').replace(/\s+/g, ' ').trim() : ''; }
+
+  /* العنوان يقرأ من الصفحة نفسها لا من الخادم: النافذة تفتح باسم
+     الدرس في اللحظة، ثم تصححه الحمولة إن اختلفت — لا رأس فارغ ينتظر شبكة. */
+  function captionOf(link) {
+    var li = link.closest ? link.closest('.curric__lesson') : null;
+    if (!li) return { t: txt(link), m: '' };
+
+    var meta = [];
+    var subj = li.closest('.curric__subj');
+    if (subj) { var n = txt(subj.querySelector('.curric__name')); if (n) meta.push(n); }
+    var d = txt(li.querySelector('.curric__dur'));
+    if (d) meta.push(d);
+    return { t: txt(li.querySelector('.curric__t')), m: meta.join(' · ') };
+  }
+
+  function build(cap) {
+    var el = document.createElement('div');
+    el.className = 'tqpv';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-label', 'معاينة مجانية' + (cap.t ? ': ' + cap.t : ''));
+    el.innerHTML =
+      '<div class="tqpv__veil"></div>' +
+      '<div class="tqpv__box">' +
+        '<header class="tqpv__head">' +
+          '<span class="tqpv__badge">' +
+            '<svg aria-hidden="true"><use href="#i-unlock"></use></svg><span>معاينة مجانية</span></span>' +
+          '<span class="tqpv__id"><b></b><i></i></span>' +
+          '<button type="button" class="tqpv__x" aria-label="إغلاق المعاينة">' +
+            '<svg aria-hidden="true"><use href="#i-close"></use></svg></button>' +
+        '</header>' +
+        '<div class="tqpv__stage">' +
+          '<p class="tqpv__wait"><span class="tqpv__spin" aria-hidden="true"></span>' +
+          'جار فتح المعاينة…</p>' +
+        '</div>' +
+      '</div>';
+    /* `textContent` لا `innerHTML`: العنوان نص يكتبه معلم في اللوحة. */
+    el.querySelector('.tqpv__id b').textContent = cap.t;
+    el.querySelector('.tqpv__id i').textContent = cap.m;
+    return el;
+  }
+
+  function close() {
+    if (!box) return;
+    document.removeEventListener('keydown', keys, true);
+    /* إزالة العقدة لا إخفاؤها: إطار مخفي يبقى يصدح. */
+    if (box.parentNode) box.parentNode.removeChild(box);
+    document.documentElement.classList.remove('tqpv-lock');
+    box = null;
+    if (opener && opener.focus) opener.focus();
+    opener = null;
+  }
+
+  function mount(node) {
+    if (!box) return;
+    var stage = box.querySelector('.tqpv__stage');
+    stage.innerHTML = '';
+    stage.appendChild(node);
+
+    var m = stage.querySelector('iframe, video');
+    if (!m) return;
+
+    if (m.tagName === 'IFRAME') {
+      /* النقرة تجيز التشغيل — وبلا `autoplay` يقف المشغل عند شاشته
+         فيحتاج الزائر نقرة ثانية داخل إطار ليس لنا. والإذن يضاف إلى
+         `allow` كذلك: بلاه يرفض المتصفح التشغيل ولو طلبه الرابط. */
+      var src = m.getAttribute('src') || '';
+      if (src.indexOf('autoplay=') === -1) {
+        m.setAttribute('src', src + (src.indexOf('?') === -1 ? '?' : '&') + 'autoplay=1');
+      }
+      var allow = m.getAttribute('allow') || '';
+      if (allow.indexOf('autoplay') === -1) {
+        m.setAttribute('allow', allow ? allow + '; autoplay' : 'autoplay');
+      }
+    } else {
+      var g = m.play();
+      if (g && g.catch) g.catch(function () {});
+    }
+  }
+
+  function pull(url, link) {
+    if (!window.fetch) { window.location.href = link.href; return; }
+
+    fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!box) return;                       /* أغلقها قبل أن يرد */
+        if (!j || !j.ok || !j.html) throw new Error('no embed');
+        if (j.title) box.querySelector('.tqpv__id b').textContent = j.title;
+        if (j.meta)  box.querySelector('.tqpv__id i').textContent = j.meta;
+        var w = document.createElement('div');
+        w.innerHTML = j.html;
+        mount(w.firstElementChild || w);
+      })
+      .catch(function () {
+        /* الدرس مفتوح فعلا وإنما تعذر جلب وسمه — فالصفحة الكاملة هي
+           الإجابة، لا رسالة عطل في نافذة لا تعرض شيئا. */
+        close();
+        window.location.href = link.href;
+      });
+  }
+
+  function open(link) {
+    opener = link;
+    box = build(captionOf(link));
+    document.body.appendChild(box);
+    document.documentElement.classList.add('tqpv-lock');
+
+    box.querySelector('.tqpv__x').addEventListener('click', close);
+    box.querySelector('.tqpv__veil').addEventListener('click', close);
+
+    keys = function (e) {
+      if (e.key === 'Escape' || e.keyCode === 27) { e.preventDefault(); close(); return; }
+      if (e.key !== 'Tab' || !box) return;
+      /* حبس التركيز: نافذة تحجب الصفحة ثم يخرج إليها `Tab` تجعل من
+         يتنقل بلوحة المفاتيح يجول في وسم لا يراه. */
+      var f = box.querySelectorAll('button, a[href], iframe, video');
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', keys, true);
+
+    if (window.requestAnimationFrame) {
+      requestAnimationFrame(function () { if (box) box.classList.add('is-on'); });
+    } else { box.classList.add('is-on'); }
+    box.querySelector('.tqpv__x').focus();
+
+    pull(link.href.replace(IDS, '/preview/embed/$1/$2'), link);
+  }
+
+  /* تفويض على المستند: المنهج يطبع من مساعد واحد في أربع صفحات،
+     ومستمع يعلق على العناصر وقت التحميل يفقد كل ما جاء بعده. */
+  document.addEventListener('click', function (e) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;   /* فتح في تبويب */
+    var link = e.target && e.target.closest ? e.target.closest(SEL) : null;
+    if (!link) return;
+    if (!IDS.test(link.getAttribute('href') || '')) return;   /* المشترك إلى مشغله */
+    e.preventDefault();
+    open(link);
   });
 })();
 

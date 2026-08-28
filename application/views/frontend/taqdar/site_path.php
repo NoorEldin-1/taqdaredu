@@ -169,7 +169,7 @@ $tq_dur = function ($m) {
                                  المنهج ليعرف كم فيه مما يدفع مقابله، وقفل
                                  صامت يقرأ عطبا لا سياسة. */ ?>
                         <?php if (!empty($tq_l['free'])): ?>
-                          <a class="curric__free" href="<?php echo base_url('student/lesson/' . $tq_course . '/' . (int) $tq_l['id']); ?>">
+                          <a class="curric__free" href="<?php echo tqs_preview_url($tq_course, (int) $tq_l['id']); ?>">
                             <svg aria-hidden="true"><use href="#i-unlock"></use></svg> معاينة مجانية
                           </a>
                         <?php else: ?>
