@@ -279,9 +279,21 @@ class Taqdar_content_model extends CI_Model
             return array();
         }
 
-        $out = array();
+        /* TQ-QUOTE-DEDUP — الرأي نصه لا اسمه: صفان بالنص نفسه رأي واحد
+           كتب مرتين، ولو اختلف الاسم فوقهما. وقد ظهرت في الرئيسية بطاقتان
+           متطابقتان النص باسمين مختلفين — والقارئ يقرؤها تلفيقا لا شهادة.
+           والمنع هنا لا في القالب: المصدر واحد، والصفحتان تقرآن منه. */
+        $out  = array();
+        $seen = array();
         foreach ($rows as $r) {
-            if (trim((string) $r['body']) === '') continue;
+            $body = trim((string) $r['body']);
+            if ($body === '') continue;
+
+            $key = mb_strtolower(preg_replace('~[\s\p{P}]+~u', ' ', $body), 'UTF-8');
+            $key = trim($key);
+            if ($key === '' || isset($seen[$key])) continue;
+            $seen[$key] = true;
+
             $stars = (int) $r['rating'];
             $out[] = array(
                 'name'   => (string) $r['name'],

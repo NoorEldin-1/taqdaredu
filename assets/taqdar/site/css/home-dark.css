@@ -456,3 +456,27 @@
 
 /* حاشية صفحة الباقات ورسائل الفلاش داخل الكتلة الخضراء: ألوانها
    الافتراضية رمادية على فاتح فترسب هنا. */
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-TOUCH · على شاشة في اليد: خط يقرأ وهدف يلمس
+   قياس على ٣٩٠: «وفر 20%» كان ٩٫٤px، واسم المرحلة ١٠px، وبنود
+   المزايا ١١px. ورابط «اعرف المزيد» ارتفاعه ٣٠px.
+   وهنا لا في `pages.css`: هذا الملف يحمّل بعده فيغلبه.
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width:720px){
+  .p26d__cycle-save{font-size:11px}
+  .p26d-card__stage{font-size:12px}
+  .p26d-card__list li,.p26d-card__list li span,.p26d-card__list li b{font-size:13px}
+
+  .p26d-card__more{min-block-size:44px;display:inline-flex;align-items:center;gap:6px}
+  .p26d__cycle-in button{
+    min-block-size:44px;display:inline-flex;align-items:center;justify-content:center
+  }
+  .p26d-card__cta{min-block-size:44px}
+}
+
+@media (max-width:720px){
+  /* حد أدنى ١٢px لكل نص في هذه الكتلة — و`1em` تبقي ما هو أكبر كما هو،
+     فلا يكبر شيء لا يحتاج. وهي حيلة القاعدة القائمة في `pages.css`. */
+  .p26d small,.p26d span,.p26d a,.p26d li,.p26d b{font-size:max(12px,1em)}
+}

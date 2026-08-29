@@ -780,14 +780,52 @@ class Login extends CI_Controller
         $this->session->unset_userdata('tq_otp');
         $this->session->unset_userdata('register_email');
 
+        /* ── الدخول بعد التأكيد ──────────────────────────────────────
+           من أثبت أنه صاحب البريد أثبت هويته، فشاشة دخول ثانية بعدها
+           حاجز بلا فائدة — وأشد ما تؤذي من جاء يشتري: يترك سلته عند
+           الباب. والمعلم وحده يبقى خارج هذا: حسابه موقوف لسبب ثان لا
+           يرفعه رمز، وهو اعتماد الإدارة لأوراقه.
+
+           و`set_login_userdata()` لا تصلح هنا: كل مساراتها تنتهي
+           بـ`redirect()`، وهذا رد JSON لا صفحة. فتضبط المفاتيح نفسها
+           التي تضبطها هي، بالترتيب نفسه. */
+        $tq_next = site_url('login');
+        if ($uid > 0 && $gate !== 'teacher') {
+            $tq_u = $this->db->get_where('users', array('id' => $uid))->row();
+            if ($tq_u) {
+                /* `true` = جهاز موثوق: من أدخل الرمز للتو أثبت أنه صاحب
+                   البريد. وبدونها قد يحول تتبع الأجهزة إلى صفحة تأكيد
+                   **داخل رد JSON** فيضيع الرد كله. */
+                $this->user_model->new_device_login_tracker($uid, true);
+
+                $this->session->set_userdata('custom_session_limit', (time() + 864000));
+                $this->session->set_userdata('user_id', $tq_u->id);
+                $this->session->set_userdata('role_id', $tq_u->role_id);
+                $this->session->set_userdata('role', get_user_role('user_role', $tq_u->id));
+                $this->session->set_userdata('name', $tq_u->first_name . ' ' . $tq_u->last_name);
+                $this->session->set_userdata('is_instructor', $tq_u->is_instructor);
+                $this->session->set_userdata('user_login', '1');
+
+                /* وإلى حيث كان ذاهبا: `url_history` هو ما يقرؤه الدخول
+                   العادي أصلا، ويستهلك مرة واحدة. */
+                $tq_back = $this->session->userdata('url_history');
+                if ($tq_back) {
+                    $this->session->unset_userdata('url_history');
+                    $tq_next = $tq_back;
+                } else {
+                    $tq_next = tq_home_for(tq_role($tq_u->id));
+                }
+            }
+        }
+
         $this->session->set_flashdata('flash_message', $gate === 'teacher'
             ? 'أكدنا بياناتك. طلب الانضمام معلما عند الإدارة الآن، ونتواصل معك — '
             . 'ولن يفتح الدخول قبل الاعتماد.'
             : ($gate === 'parent'
-                ? 'فتح حسابك. سجل الدخول ثم اربط أبناءك من لوحتك.'
-                : 'فتح حسابك. سجل الدخول للمتابعة.'));
+                ? 'فتح حسابك ودخلت. اربط أبناءك من لوحتك.'
+                : 'فتح حسابك ودخلت.'));
 
-        $this->tq_json(array('ok' => true, 'next' => site_url('login')));
+        $this->tq_json(array('ok' => true, 'next' => $tq_next));
     }
 
     /** POST login/otp/resend — رمز جديد على القناة نفسها. */

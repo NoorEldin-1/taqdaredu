@@ -3504,16 +3504,49 @@ class Taqdar extends CI_Controller
 
         $uid = (int) $this->session->userdata('user_id');
         if ($uid <= 0) {
-            /* TQ-AUTH-NEXT — والدورة تسافر مع الوجهة: `?cycle=` يسقط هنا
-               فيعود من اختار الشهري الى السنوي بعد ان سجل دخوله — وهو
-               عطل TQ-CYCLE-BUY نفسه عائدا من باب الدخول. */
-            $tq_cycle = (string) $this->input->get('cycle');
-            $tq_next  = 'checkout/' . $b['code']
-                      . ($tq_cycle !== '' ? '?cycle=' . rawurlencode($tq_cycle) : '');
-            $tq_next  = tqs_safe_next($tq_next);
-            $this->session->set_userdata('tq_next', $tq_next);
-            redirect(site_url('login?next=' . rawurlencode($tq_next)), 'location', 302);
+            /* TQ-GUEST-CHECKOUT + TQ-CYCLE-BUY — الزائر لا يطرد، والدورة
+               لا تسقط. الطرد كان يقع ولا يعود: `tq_next` و`?next=` يكتبان
+               هنا **ولا يقرؤهما احد**، و`url_history` — وهو الوحيد الذي
+               يقرا فعلا (`User_model::set_login_userdata`) — لا يكتب اصلا
+               لان هذه الدالة لا تمر بـ`tq_guard`.
+
+               فيكتب هنا **ومعه الدورة**، وتعرض الشاشة نفسها ومعها نموذجا
+               التسجيل والدخول. وبلا الدورة يعود من اختار الشهري الى
+               السنوي بعد ان سجل دخوله — عطل TQ-CYCLE-BUY عائدا من باب
+               الدخول. ولا حساب ينشا في هذا الملف: التسجيل يمضي الى
+               `login/register` بحقوله وقواعده كما هي، والدخول الى
+               `login/validate_login`. */
+            $tq_cycle_q = (string) $this->input->get('cycle');
+            $this->session->set_userdata('url_history',
+                site_url('checkout/' . $b['code'])
+                . ($tq_cycle_q !== '' ? '?cycle=' . rawurlencode($tq_cycle_q) : ''));
+
+            /* الشاشة تعرض الدورتين للزائر كما تعرضهما للداخل: من يقرا
+               سعرا هنا هو من سيدفعه هناك، والمصدر واحد. */
+            $tq_plan_row = array(
+                'period'        => $b['period'],
+                'price'         => $b['price'],
+                'duration_days' => $b['days'],
+            );
+            $this->load->model('taqdar_billing_model');
+            $this->load->model('taqdar_tap_model');
+            $this->show('site_checkout', 'اشترك في ' . $b['name'], array(
+                'tq_bundle'    => $b,
+                'tq_current'   => null,
+                'user_id'      => 0,
+                'tq_guest'     => true,
+                'tq_cycles'    => $this->taqdar_billing_model->plan_cycles($tq_plan_row),
+                'tq_cycle'     => $this->taqdar_billing_model->cycle_of($tq_plan_row, $tq_cycle_q),
+                'tq_card'      => $this->taqdar_tap_model->ready(),
+                'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
+            ));
             return;
+        }
+
+        /* عاد بجلسة: `url_history` أدى غرضه، ولا يترك ليقفز بمن دخل لاحقا
+           من باب آخر إلى صفحة دفع لم يطلبها. */
+        if ($this->session->userdata('url_history')) {
+            $this->session->unset_userdata('url_history');
         }
 
         /* المعلم ولي الأمر لا يشتريان باقة طالب: الشراء يفتح محتوى

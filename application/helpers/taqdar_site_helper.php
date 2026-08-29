@@ -1097,6 +1097,228 @@ if (!function_exists('tqs_comp_state')) {
     }
 }
 
+if (!function_exists('tqs_plans_guide')) {
+    /**
+     * دليل اختيار الباقة لولي الأمر.
+     *
+     * الجدول يقول **ما الفرق**، وهذا يقول **أيها تناسبني** — وهما
+     * سؤالان لا سؤال. ومن يقرأ اثنتي عشرة ميزة في ثلاثة أعمدة يعرف
+     * الفرق ولا يعرف أين يقف هو من الثلاثة.
+     *
+     * والنص يعلق بموضع الباقة في سلم السعر لا بكودها: أرخصها «الأساس»،
+     * وأغلاها «الأشمل»، وما بينهما «الأوسع». فلو بدل المالك الأكواد أو
+     * أضاف مرحلة ثالثة بقي الدليل صحيحا، ولو زاد باقة رابعة أخذت نص
+     * الوسط — ولا تسقط بلا نص.
+     *
+     * والاسم والسعر والرابط من `plans` — فلا رقم يكتب هنا ويشيخ.
+     */
+    function tqs_plans_guide()
+    {
+        $CI = &get_instance();
+        $CI->load->model('taqdar_billing_model', 'tq_b');
+
+        $by = array();
+        foreach ((array) $CI->tq_b->plans(true) as $p) {
+            if ((string) $p['scope'] !== 'grade') continue;
+            $by[(string) $p['stage']][] = $p;
+        }
+        if (!$by) return '';
+
+        /* ثلاثة مواضع لا ثلاثة أكواد. */
+        $copy = array(
+            'first' => array(
+                'when' => 'إن كان الأساس يكفيك',
+                'why'  => 'مواد الصف الأساسية مشروحة، واختبار وواجب بعد كل درس، وتقرير '
+                        . 'يصلك أولا بأول. تكفي إن كان ابنك يتابع في مدرسته ويحتاج من '
+                        . 'يثبت الأساس ويريك أين يقف.',
+                'icon' => 'i-book',
+            ),
+            'mid' => array(
+                'when' => 'إن أردت المنهج كاملا',
+                'why'  => 'كل مواد الصف لا الأساسية وحدها، ومعها المهارات الرقمية وتمارين '
+                        . 'ومراجعات دورية. تناسب من لا يريد أن يبقى في منهج ابنه ما لم يشرح.',
+                'icon' => 'i-target',
+            ),
+            'last' => array(
+                'when' => 'إن أردت خطة لابنك وحده',
+                'why'  => 'كل ما في التي قبلها، ومعه متابعة فردية وخطة لكل طالب، ومهارات '
+                        . 'خارج المقرر: ذكاء اصطناعي وتصميم وحاسوب.',
+                'icon' => 'i-rocket',
+            ),
+        );
+
+        $h = '<div class="pguide" data-tq-bundles>' . "\n";
+        $first_pane = true;
+
+        foreach ($by as $stage => $plans) {
+            if (count($plans) < 2) continue;
+            usort($plans, 'tqs_plan_price_cmp');
+
+            $h .= '  <div class="pguide__pane" data-stage="' . html_escape($stage) . '"'
+                . ($first_pane ? '' : ' hidden') . '>' . "\n";
+            $first_pane = false;
+
+            $last = count($plans) - 1;
+            foreach ($plans as $i => $p) {
+                $k = ($i === 0) ? 'first' : (($i === $last) ? 'last' : 'mid');
+                $t = $copy[$k];
+                $c = tqs_plan_cycle($p['price']);
+
+                $h .= '    <article class="pguide__card' . (!empty($p['featured']) ? ' is-hot' : '') . '">' . "\n";
+                $h .= '      <span class="pguide__ico"><svg aria-hidden="true"><use href="#'
+                    . $t['icon'] . '"></use></svg></span>' . "\n";
+                $h .= '      <h3>' . html_escape($t['when']) . '</h3>' . "\n";
+                $h .= '      <p>' . html_escape($t['why']) . '</p>' . "\n";
+                $h .= '      <div class="pguide__foot">' . "\n";
+                $h .= '        <b>' . html_escape(tqs_bundle_tier($p['name_ar'])) . '</b>' . "\n";
+                $h .= '        <span><i class="tq-ltr">' . number_format($c['month'])
+                    . '</i> ر.س / شهريا</span>' . "\n";
+                $h .= '      </div>' . "\n";
+                $h .= '      <a class="btn btn--ghost btn--block" href="'
+                    . base_url('plan/' . rawurlencode((string) $p['code']))
+                    . '">تفاصيل الباقة</a>' . "\n";
+                $h .= '    </article>' . "\n";
+            }
+            $h .= '  </div>' . "\n";
+        }
+
+        return $h . '</div>' . "\n";
+    }
+}
+
+if (!function_exists('tqs_plans_compare')) {
+    /**
+     * جدول مقارنة الباقات — صف لكل ميزة، وعمود لكل باقة.
+     *
+     * البطاقات تعرض مزايا كل باقة وحدها، فمن أراد أن يعرف **الفرق**
+     * قرأ ثلاث قوائم وقارن بينها بعينه. والجدول يقول الفرق مرة واحدة.
+     *
+     * والصفوف تشتق من `plans.features` نفسها لا من قائمة موازية تكتب
+     * هنا: قائمة ثانية تشيخ وحدها، فيحرر المالك ميزة في اللوحة ولا
+     * تظهر في الجدول. وعبارة «كل ما في…» ترث مزايا الباقة الأرخص —
+     * وإلا صارت صفا وحيدا بعلامة واحدة لا يقول شيئا.
+     *
+     * ومرحلتان في جدولين، يتبعان تبويب المرحلة نفسه الذي تتبعه
+     * البطاقات (`[data-tq-bundles] [data-stage]` في `site.js`) — فلا
+     * سكربت جديد ولا تبويب ثان.
+     */
+    function tqs_plans_compare()
+    {
+        $CI = &get_instance();
+        $CI->load->model('taqdar_billing_model', 'tq_b');
+
+        $by = array();
+        foreach ((array) $CI->tq_b->plans(true) as $p) {
+            if ((string) $p['scope'] !== 'grade') continue;
+            $by[(string) $p['stage']][] = $p;
+        }
+        if (!$by) return '';
+
+        $h = '<div class="pcmp" data-tq-bundles>' . "\n";
+        $first = true;
+
+        foreach ($by as $stage => $plans) {
+            if (count($plans) < 2) continue;      /* لا مقارنة بباقة واحدة */
+
+            usort($plans, 'tqs_plan_price_cmp');
+
+            /* اتحاد المزايا بترتيب أول ظهور، ومن يملك ماذا. */
+            $rows = array();
+            $has  = array();
+            $prev = array();
+            foreach ($plans as $p) {
+                $f = json_decode((string) $p['features'], true);
+                if (!is_array($f)) $f = array();
+
+                $mine = array();
+                foreach ($f as $one) {
+                    $one = trim((string) $one);
+                    if ($one === '') continue;
+                    if (mb_strpos($one, 'كل ما في') === 0) {
+                        foreach ($prev as $inh) $mine[$inh] = true;
+                        continue;
+                    }
+                    $mine[$one] = true;
+                }
+                foreach (array_keys($mine) as $one) {
+                    if (!isset($rows[$one])) $rows[$one] = true;
+                }
+                $has[(string) $p['code']] = $mine;
+                $prev = array_keys($mine);
+            }
+            if (!$rows) continue;
+
+            $h .= '  <div class="pcmp__pane" data-stage="' . html_escape($stage) . '"'
+                . ($first ? '' : ' hidden') . '>' . "\n";
+            $first = false;
+
+            /* `<details>` لا `div`: جدول عرضه الأدنى ٥٦٠ في شاشة عرضها
+               ٣٩٠ **يوسع منفذ العرض نفسه** فتنزاح الصفحة كلها — الترويسة
+               والبطاقات معا. والمطوي `display:none` فلا يدخل التخطيط أصلا.
+               ومفتوح افتراضا فمن تعثر عنده السكربت يراه كما كان. */
+            $h .= '    <details class="pcmp__box" open>' . "\n";
+            $h .= '      <summary class="pcmp__sum">' . "\n";
+            $h .= '        <span>اعرض المقارنة الكاملة</span>' . "\n";
+            $h .= '        <svg aria-hidden="true"><use href="#i-chevron"></use></svg>' . "\n";
+            $h .= '      </summary>' . "\n";
+            $h .= '    <div class="pcmp__scroll">' . "\n";
+            $h .= '      <table class="pcmp__t">' . "\n";
+            $h .= '        <caption class="sr-only">مقارنة الباقات</caption>' . "\n";
+
+            /* ── الرأس: اسم وسعر شهري وزر ─────────────────────────── */
+            $h .= '        <thead><tr><th scope="col" class="pcmp__lead">ما في الباقة</th>' . "\n";
+            foreach ($plans as $p) {
+                $c   = tqs_plan_cycle($p['price']);
+                $hot = !empty($p['featured']);
+                $h .= '          <th scope="col" class="pcmp__h' . ($hot ? ' is-hot' : '') . '">' . "\n";
+                if ($hot) $h .= '            <span class="pcmp__flag">الأكثر اختيارا</span>' . "\n";
+                $h .= '            <b>' . html_escape(tqs_bundle_tier($p['name_ar'])) . '</b>' . "\n";
+                $h .= '            <span class="pcmp__price"><i class="tq-ltr">'
+                    . number_format($c['month']) . '</i> ر.س / شهريا</span>' . "\n";
+                $h .= '            <a class="btn btn--primary" href="'
+                    . base_url('plan/' . rawurlencode((string) $p['code'])) . '">اختر</a>' . "\n";
+                $h .= '          </th>' . "\n";
+            }
+            $h .= '        </tr></thead>' . "\n";
+
+            /* ── الصفوف ────────────────────────────────────────────── */
+            $h .= '        <tbody>' . "\n";
+            foreach (array_keys($rows) as $feat) {
+                $h .= '          <tr><th scope="row">' . html_escape($feat) . '</th>' . "\n";
+                foreach ($plans as $p) {
+                    $on = isset($has[(string) $p['code']][$feat]);
+                    $h .= '            <td' . (!empty($p['featured']) ? ' class="is-hot"' : '') . '>';
+                    if ($on) {
+                        $h .= '<svg class="pcmp__yes" aria-hidden="true"><use href="#i-check"></use></svg>'
+                            . '<span class="sr-only">متاح</span>';
+                    } else {
+                        $h .= '<span class="pcmp__no" aria-hidden="true">—</span>'
+                            . '<span class="sr-only">غير متاح</span>';
+                    }
+                    $h .= '</td>' . "\n";
+                }
+                $h .= '          </tr>' . "\n";
+            }
+            $h .= '        </tbody>' . "\n";
+            $h .= '      </table>' . "\n";
+            $h .= '    </div>' . "\n";
+            $h .= '    </details>' . "\n";
+            $h .= '  </div>' . "\n";
+        }
+
+        return $h . '</div>' . "\n";
+    }
+}
+
+if (!function_exists('tqs_plan_price_cmp')) {
+    /** الأرخص أولا — ودالة مسماة لا مغلقة: الملف كله على هذا النسق. */
+    function tqs_plan_price_cmp($a, $b)
+    {
+        $x = (int) $a['price']; $y = (int) $b['price'];
+        return ($x === $y) ? 0 : (($x < $y) ? -1 : 1);
+    }
+}
+
 if (!function_exists('tqs_competitions_strip')) {
     /**
      * المسابقات المفتوحة — ويخفي القسم كله إن لم تكن هناك واحدة.
@@ -1118,7 +1340,10 @@ if (!function_exists('tqs_competitions_strip')) {
         $h .= '      <h2><span>مسابقات مفتوحة الآن</span></h2>' . "\n";
         $h .= '      <p>يشترك فيها طلاب الباقات بلا رسوم إضافية — تدريب على المنافسة، وجوائز لأوائل كل مرحلة.</p>' . "\n";
         $h .= '    </div>' . "\n";
-        $h .= '    <div class="cmp-grid">' . "\n";
+        /* مسابقة واحدة لا تعرض كبطاقة عرضها ٣٦٠ في شاشة عرضها ألف:
+           الفراغ حولها يقرأ نقصا لا تصميما. فتمد شريطا أفقيا يملأ عرضه،
+           وحين تكون اثنتين فأكثر تعود الشبكة كما هي. */
+        $h .= '    <div class="cmp-grid' . (count($rows) === 1 ? ' cmp-grid--solo' : '') . '">' . "\n";
         foreach ($rows as $r) {
             $st = tqs_comp_state($r['when'], isset($r['till']) ? $r['till'] : '');
             $h .= '      <article class="cmp-card">' . "\n";

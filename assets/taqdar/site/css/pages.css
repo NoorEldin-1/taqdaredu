@@ -1253,7 +1253,7 @@ svg.frame path{fill:none}
   gap:clamp(14px,1.8vw,24px);
   max-inline-size:min(100%,1040px);margin-inline:auto
 }
-.cmp-grid>.cmp-card{flex:1 1 290px;max-inline-size:360px}
+.cmp-grid>.cmp-card{flex:1 1 300px;max-inline-size:404px}
 .cmp-card{
   display:flex;flex-direction:column;overflow:hidden;min-inline-size:0;
   background:var(--paper);border:1px solid var(--gold-line-soft);
@@ -3937,3 +3937,349 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 
 /* رابط «كل الأسئلة» يقع داخل شبكة الأسئلة، فيمتد على عرضها ويتوسط. */
 .faq-more{grid-column:1/-1;text-align:center;margin-block-start:clamp(10px,1.2vw,16px)}
+
+/* ── بطاقة الحساب في صفحة الدفع ────────────────────────────────── */
+.co-acct{margin-block-end:clamp(14px,1.8vw,22px)}
+.co-acct h2{margin:0 0 4px}
+.co-acct__lede{margin:0 0 14px}
+.co-acct__tabs{
+  display:flex;gap:4px;padding:4px;margin-block-end:16px;
+  border-radius:999px;background:var(--beige);border:1px solid var(--gold-line-soft)
+}
+.co-acct__tabs button{
+  flex:1;padding:9px 12px;border:0;border-radius:999px;cursor:pointer;
+  background:transparent;color:var(--ink-2);
+  font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(12px,.9vw,13.5px);
+  transition:background var(--t-route) var(--ease),color var(--t-route) var(--ease)
+}
+.co-acct__tabs button[aria-pressed="true"]{background:var(--petrol);color:#fff}
+.co-acct__form{display:grid;gap:11px}
+.co-acct__form[hidden]{display:none}
+.co-acct__row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.co-acct__form label{display:grid;gap:5px;min-inline-size:0}
+.co-acct__form label[hidden]{display:none}
+.co-acct__form label>span{font-size:clamp(11.5px,.86vw,13px);color:var(--ink-2);font-weight:600}
+.co-acct__form label>span i{font-style:normal;font-weight:400;color:var(--ink-3)}
+.co-acct__form input:not([type="checkbox"]),.co-acct__form select{
+  inline-size:100%;padding:11px 13px;border-radius:var(--r-btn);
+  border:1px solid var(--gold-line-soft);background:#fff;color:var(--ink);
+  font-family:inherit;font-size:clamp(13px,.95vw,14.5px)
+}
+.co-acct__form input:focus-visible,.co-acct__form select:focus-visible{
+  outline:2px solid var(--gold);outline-offset:1px
+}
+.co-acct__terms{
+  display:flex!important;align-items:flex-start;gap:9px;
+  font-size:clamp(12px,.88vw,13px);color:var(--ink-2);line-height:1.7
+}
+.co-acct__terms input{
+  inline-size:17px;block-size:17px;flex:none;margin-block-start:3px;accent-color:var(--petrol)
+}
+.co-acct__note{margin:2px 0 0;text-align:center}
+
+/* لا زر شراء للزائر — إرشاد مكانه */
+.co-side__guest{
+  display:flex;align-items:flex-start;gap:9px;margin:0;
+  padding:12px 14px;border-radius:var(--r-btn);
+  background:var(--beige);border:1px solid var(--gold-line-soft);
+  color:var(--ink-2);font-size:clamp(12px,.9vw,13.5px);line-height:1.7
+}
+.co-side__guest svg{
+  inline-size:16px;block-size:16px;aspect-ratio:1;flex:none;
+  color:var(--gold-deep);margin-block-start:3px
+}
+
+/* سطر الاستئناف بعد العودة */
+.co-resume{
+  grid-column:1/-1;margin:0 0 14px;padding:12px 15px;border-radius:var(--r-btn);
+  background:#F0F7F3;border:1px solid #CFE6D8;color:#14512F;
+  font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(12.5px,.95vw,14px)
+}
+
+@media (max-width:560px){
+  .co-acct__row{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-QUOTES · بطاقة رأي ولي الأمر
+   كانت اسما وسطرا ونجوما على سطح أبيض: لا علامة اقتباس تقول إنها
+   شهادة، ولا شيء يميز قائلها. والصور حذفت عمدا (وجه من بنك صور يعرض
+   على أنه ولي أمر حقيقي تلفيق) — فالحرف يميز ولا يدعي.
+   ══════════════════════════════════════════════════════════════════ */
+.quote-card{position:relative;overflow:hidden;text-align:start}
+.quote-card__mark{
+  position:absolute;inset-block-start:-8px;inset-inline-end:12px;
+  inline-size:58px;block-size:58px;aspect-ratio:1;
+  color:var(--gold-line-soft);pointer-events:none
+}
+.quote-card__head{position:relative;align-items:center}
+.quote-card__ini{
+  flex:0 0 auto;inline-size:clamp(38px,3.1vw,46px);aspect-ratio:1;border-radius:50%;
+  display:grid;place-items:center;
+  background:linear-gradient(145deg,var(--petrol),var(--petrol-deep));
+  color:var(--gold-warm);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(16px,1.4vw,20px);line-height:1;user-select:none
+}
+.quote-card>p{position:relative;margin:0}
+/* النجوم تختم البطاقة، وفاصل خفيف يفصلها عن النص فلا تقرأ امتدادا له */
+.quote-card .stars{
+  margin-block-start:auto;padding-block-start:13px;
+  border-block-start:1px dashed var(--gold-line-soft)
+}
+
+/* داخل الكاروسل: البطاقات تتساوى ارتفاعا والنص يملأ ما بينها، فلا
+   تقف النجوم عند ثلاثة مستويات مختلفة. ونفس ما تفعله `.tcard` في
+   آراء `/parents` — والرفع عند المرور يقص عند حافة المسار الأفقي،
+   فيهبط هنا إلى ظل وحده. */
+.carousel2--quotes .quote-card{block-size:100%}
+.carousel2--quotes .quote-card>p{flex:1}
+.carousel2--quotes .quote-card:hover{transform:none;box-shadow:var(--sh-raise)}
+
+/* ── مسابقة واحدة: شريط أفقي لا بطاقة يتيمة ────────────────────── */
+/* بطاقة عرضها ٣٦٠ في شاشة عرضها ألف تترك فراغا يقرأ نقصا. والصنف
+   يوضع من `tqs_competitions_strip()` حين يكون الصف واحدا وحده. */
+.cmp-grid--solo>.cmp-card{
+  flex:1 1 100%;max-inline-size:min(100%,880px);
+  display:grid;grid-template-columns:minmax(150px,auto) minmax(0,1fr) auto;
+  align-items:stretch
+}
+.cmp-grid--solo .cmp-card__head{
+  flex-direction:column;align-items:flex-start;justify-content:center;
+  gap:9px;padding:clamp(16px,2vw,26px)
+}
+.cmp-grid--solo .cmp-state{margin-inline-start:0}
+.cmp-grid--solo .cmp-card__body{justify-content:center;padding-block:clamp(16px,2vw,24px)}
+/* الحقائق تصطف أفقيا: العمود يطيل الشريط بلا داع */
+.cmp-grid--solo .cmp-card__facts{
+  flex-direction:row;flex-wrap:wrap;gap:6px clamp(14px,2vw,26px);
+  border-block-start:0;padding-block-start:2px;margin-block-start:8px
+}
+.cmp-grid--solo .cmp-card__cta{
+  align-self:center;margin:0 clamp(16px,2vw,26px);
+  inline-size:auto;white-space:nowrap
+}
+@media (max-width:760px){
+  .cmp-grid--solo>.cmp-card{grid-template-columns:minmax(0,1fr)}
+  .cmp-grid--solo .cmp-card__head{flex-direction:row;align-items:center;padding:12px clamp(14px,1.5vw,18px)}
+  .cmp-grid--solo .cmp-state{margin-inline-start:auto}
+  .cmp-grid--solo .cmp-card__facts{
+    flex-direction:column;gap:7px;
+    border-block-start:1px dashed var(--gold-line-soft);padding-block-start:11px
+  }
+  .cmp-grid--solo .cmp-card__cta{
+    inline-size:auto;margin:0 clamp(15px,1.7vw,22px) clamp(15px,1.7vw,22px)
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-PCMP · جدول مقارنة الباقات
+   البطاقات تعرض مزايا كل باقة وحدها؛ والجدول يقول الفرق مرة واحدة.
+   وأربعة أعمدة لا تدخل شاشة يد، فالجدول يمرر أفقيا داخل حاويته
+   وحدها — والصفحة لا تمرر أفقيا أبدا.
+   ══════════════════════════════════════════════════════════════════ */
+.pcmp__pane[hidden]{display:none}
+.pcmp__scroll{
+  overflow-x:auto;overflow-y:visible;
+  border:1px solid var(--gold-line-soft);border-radius:var(--r-card);
+  background:var(--paper);box-shadow:var(--sh-soft);
+  -webkit-overflow-scrolling:touch
+}
+.pcmp__t{
+  inline-size:100%;min-inline-size:640px;
+  border-collapse:collapse;font-size:clamp(12.5px,.92vw,14.5px)
+}
+.pcmp__t th,.pcmp__t td{
+  padding:clamp(11px,1.2vw,16px) clamp(10px,1.1vw,16px);
+  border-block-end:1px solid var(--gold-line-soft);vertical-align:middle
+}
+.pcmp__t tbody tr:last-child th,.pcmp__t tbody tr:last-child td{border-block-end:0}
+
+/* ── الرأس ─────────────────────────────────────────────────────── */
+.pcmp__t thead th{
+  position:sticky;inset-block-start:0;z-index:2;
+  background:var(--beige);border-block-end:2px solid var(--gold-line);
+  text-align:center;vertical-align:top
+}
+.pcmp__lead{
+  text-align:start!important;color:var(--ink-2);font-weight:700;
+  inline-size:34%;min-inline-size:180px
+}
+.pcmp__h{min-inline-size:132px}
+.pcmp__h b{
+  display:block;font-family:'Cairo',sans-serif;font-weight:800;
+  font-size:clamp(13px,1.02vw,16px);color:var(--petrol);line-height:1.5
+}
+.pcmp__price{
+  display:block;margin-block:4px 10px;
+  color:var(--ink-3);font-size:clamp(10.5px,.8vw,12.5px)
+}
+.pcmp__price i{font-style:normal;font-weight:800;color:var(--ink);font-size:1.22em}
+.pcmp__h .btn{padding:8px 20px;font-size:clamp(11.5px,.85vw,13px)}
+.pcmp__flag{
+  display:inline-block;margin-block-end:7px;padding:2px 10px;border-radius:999px;
+  background:var(--gold-line-soft);color:var(--gold-text);
+  font-family:'Cairo',sans-serif;font-weight:700;font-size:clamp(9.5px,.72vw,11px)
+}
+
+/* ── الصفوف ────────────────────────────────────────────────────── */
+.pcmp__t tbody th{
+  text-align:start;font-weight:600;color:var(--ink-2);line-height:1.75
+}
+.pcmp__t tbody td{text-align:center}
+.pcmp__t tbody tr:nth-child(even) th,
+.pcmp__t tbody tr:nth-child(even) td{background:rgba(245,240,230,.42)}
+.pcmp__yes{
+  inline-size:19px;block-size:19px;aspect-ratio:1;color:#1E7A4F;display:inline-block
+}
+.pcmp__no{color:var(--ink-3);font-size:1.1em;line-height:1}
+
+/* عمود الباقة المرشحة يبرز في الرأس والصفوف معا */
+.pcmp__t .is-hot{background:rgba(212,180,118,.13)}
+.pcmp__t thead th.is-hot{background:rgba(212,180,118,.22)}
+.pcmp__t tbody tr:nth-child(even) td.is-hot{background:rgba(212,180,118,.19)}
+
+@media (max-width:560px){
+  .pcmp__t{min-inline-size:560px}
+  .pcmp__lead{min-inline-size:150px}
+  .pcmp__h{min-inline-size:112px}
+}
+
+/* ── المنتهية تخفت فتبرز المفتوحة ──────────────────────────────── */
+/* بطاقتان بالبروز نفسه تسويان بين ما يستقبل مشتركين وما أغلق. و`:has`
+   تقرأ الحال من الشريحة نفسها، فلا صنف ثان يضاف في PHP ولا يتفرقان.
+   ومن لا يدعمها متصفحه يرى البطاقتين كما كانتا — لا كسر. */
+.cmp-card:has(.cmp-state--over){opacity:.86}
+.cmp-card:has(.cmp-state--over) .cmp-card__head{
+  background:linear-gradient(120deg,#48534F,#39423F)
+}
+.cmp-card:has(.cmp-state--over) .cmp-card__stage{color:rgba(255,255,255,.72)}
+.cmp-card:has(.cmp-state--over):hover{opacity:1}
+
+/* التي تبدأ قريبا: رأسها ذهبي داكن — تقرأ «قادمة» لا «جارية» */
+.cmp-card:has(.cmp-state--soon) .cmp-card__head{
+  background:linear-gradient(120deg,#5A4A26,#3E3319)
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-PGUIDE · دليل اختيار الباقة لولي الأمر
+   الجدول يقول ما الفرق، وهذا يقول أيها تناسبني — سؤالان لا سؤال.
+   ══════════════════════════════════════════════════════════════════ */
+.pguide__pane{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,268px),1fr));
+  gap:clamp(14px,1.8vw,24px);margin-block-end:clamp(26px,3.4vw,46px)
+}
+.pguide__pane[hidden]{display:none}
+.pguide__card{
+  display:flex;flex-direction:column;gap:10px;min-inline-size:0;
+  padding:clamp(18px,2vw,28px);
+  background:var(--paper);border:1px solid var(--gold-line-soft);
+  border-radius:var(--r-card);box-shadow:var(--sh-soft);
+  transition:transform var(--t-entry) var(--ease),box-shadow var(--t-entry) var(--ease),
+             border-color var(--t-entry) var(--ease)
+}
+.pguide__card:hover{transform:translateY(-3px);box-shadow:var(--sh-raise);border-color:var(--gold-line)}
+/* المرشحة تحمل حدا ذهبيا لا لونا كاملا: التوصية إشارة لا إعلان */
+.pguide__card.is-hot{border-color:var(--gold);box-shadow:var(--sh-card)}
+
+.pguide__ico{
+  inline-size:clamp(40px,3.4vw,50px);aspect-ratio:1;border-radius:30%;
+  display:grid;place-items:center;color:var(--petrol);
+  background:linear-gradient(150deg,#FFFDF8,#FAF2E4);border:1px solid var(--gold-line)
+}
+.pguide__ico svg{inline-size:50%;block-size:50%;aspect-ratio:1}
+.pguide__card h3{
+  margin:0;font-size:clamp(14.5px,1.15vw,18px);color:var(--petrol);line-height:1.5
+}
+.pguide__card>p{
+  margin:0;color:var(--ink-2);font-size:clamp(12.5px,.92vw,14px);line-height:1.9
+}
+/* الاسم والسعر يختمان البطاقة على خط واحد فوق الزر */
+.pguide__foot{
+  display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;
+  gap:6px 12px;margin-block-start:auto;padding-block-start:13px;
+  border-block-start:1px dashed var(--gold-line-soft)
+}
+.pguide__foot b{
+  font-family:'Cairo',sans-serif;font-weight:800;color:var(--ink);
+  font-size:clamp(13px,1vw,15px)
+}
+.pguide__foot span{color:var(--ink-3);font-size:clamp(11px,.84vw,13px)}
+.pguide__foot i{font-style:normal;font-weight:800;color:var(--ink);font-size:1.2em}
+.pguide__card .btn{margin-block-start:2px}
+
+/* عنوان الجدول بعد الدليل: مسافة تفصل السؤالين */
+.pcmp__head{margin-block-start:clamp(8px,1.2vw,16px)}
+
+/* ── طيّ جدول المقارنة على الشاشة الضيقة ───────────────────────── */
+/* جدول عرضه الأدنى ٥٦٠ في شاشة ٣٩٠ يوسع منفذ العرض فتنزاح الصفحة
+   كلها. والمطوي `display:none` فلا يدخل التخطيط. */
+.pcmp__box{margin:0}
+.pcmp__sum{
+  display:none;                       /* يظهر على الضيقة وحدها */
+  align-items:center;justify-content:space-between;gap:10px;cursor:pointer;
+  padding:13px 16px;border-radius:var(--r-btn);
+  background:var(--beige);border:1px solid var(--gold-line-soft);
+  color:var(--petrol);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(12.5px,.95vw,14px);list-style:none
+}
+.pcmp__sum::-webkit-details-marker{display:none}
+.pcmp__sum svg{
+  inline-size:15px;block-size:15px;aspect-ratio:1;flex:none;
+  color:var(--gold-deep);transition:transform var(--t-route) var(--ease)
+}
+.pcmp__box[open] .pcmp__sum svg{transform:rotate(180deg)}
+.pcmp__box[open] .pcmp__sum{margin-block-end:12px}
+.pcmp__sum:hover{border-color:var(--gold-line)}
+
+@media (max-width:720px){
+  .pcmp__sum{display:flex}
+  /* داخل الطي: تلميح أن الجدول يسحب أفقيا — وإلا ظنه القارئ مقصوصا */
+  .pcmp__scroll{position:relative}
+  .pcmp__scroll::after{
+    content:'اسحب أفقيا لرؤية باقي الأعمدة';
+    position:sticky;inset-inline-start:0;display:block;
+    padding:7px 12px;background:var(--beige);
+    color:var(--ink-3);font-size:11.5px;text-align:center;
+    border-block-start:1px solid var(--gold-line-soft)
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-TOUCH · الحد الأدنى للخط وهدف اللمس على الشاشة الضيقة
+   قياس على ٣٩٠: «وفر 20%» كان ٩٫٤px، واسم المرحلة ١٠px، وبنود
+   المزايا ١١px — ودون الثانية عشرة لا يقرأ على شاشة في اليد.
+   ورابط «اعرف المزيد» ارتفاعه ٣٠px، وأصابع الناس ليست مؤشرات فأرة.
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width:720px){
+  /* قواعد `.p26d*` في `home-dark.css`: يحمّل بعد هذا الملف فيغلبه
+     عند تساوي الخصوصية. */
+  .pguide__foot span{font-size:12.5px}
+  .cmp-card__facts span{font-size:12.5px}
+
+  /* ٤٤ هو الحد الذي توصي به إرشادات النظامين، ولا يكسر تخطيطا:
+     زيادة ارتفاع لا عرض. */
+  .btn,
+  .plan-cycle button,
+  .stage-tab,
+  .co-acct__tabs button,
+  .pcmp__sum,
+  .sitesearch input,
+  .sitesearch button{
+    min-block-size:44px
+  }
+  .plan-cycle button,.stage-tab,.co-acct__tabs button{
+    display:inline-flex;align-items:center;justify-content:center
+  }
+}
+
+@media (max-width:720px){
+  .pguide small,.pguide span,.pguide a,
+  .pcmp small,.pcmp span,.pcmp td,.pcmp th,
+  .cmp-card span,.cmp-card b{font-size:max(12px,1em)}
+
+  /* روابط التذييل: ارتفاع ٢١px لا يلمس. والحشو يوسع مساحة النقر بلا
+     أن يفكك القوائم — و`min-block-size` كان سيباعد بينها بعدا يقطعها. */
+  .site-footer a,.footer-col a,.foot-links a{
+    display:inline-block;padding-block:6px
+  }
+}
