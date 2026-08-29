@@ -4104,3 +4104,53 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 .cmp-card:has(.cmp-state--soon) .cmp-card__head{
   background:linear-gradient(120deg,#5A4A26,#3E3319)
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-PGUIDE · دليل اختيار الباقة لولي الأمر
+   الجدول يقول ما الفرق، وهذا يقول أيها تناسبني — سؤالان لا سؤال.
+   ══════════════════════════════════════════════════════════════════ */
+.pguide__pane{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,268px),1fr));
+  gap:clamp(14px,1.8vw,24px);margin-block-end:clamp(26px,3.4vw,46px)
+}
+.pguide__pane[hidden]{display:none}
+.pguide__card{
+  display:flex;flex-direction:column;gap:10px;min-inline-size:0;
+  padding:clamp(18px,2vw,28px);
+  background:var(--paper);border:1px solid var(--gold-line-soft);
+  border-radius:var(--r-card);box-shadow:var(--sh-soft);
+  transition:transform var(--t-entry) var(--ease),box-shadow var(--t-entry) var(--ease),
+             border-color var(--t-entry) var(--ease)
+}
+.pguide__card:hover{transform:translateY(-3px);box-shadow:var(--sh-raise);border-color:var(--gold-line)}
+/* المرشحة تحمل حدا ذهبيا لا لونا كاملا: التوصية إشارة لا إعلان */
+.pguide__card.is-hot{border-color:var(--gold);box-shadow:var(--sh-card)}
+
+.pguide__ico{
+  inline-size:clamp(40px,3.4vw,50px);aspect-ratio:1;border-radius:30%;
+  display:grid;place-items:center;color:var(--petrol);
+  background:linear-gradient(150deg,#FFFDF8,#FAF2E4);border:1px solid var(--gold-line)
+}
+.pguide__ico svg{inline-size:50%;block-size:50%;aspect-ratio:1}
+.pguide__card h3{
+  margin:0;font-size:clamp(14.5px,1.15vw,18px);color:var(--petrol);line-height:1.5
+}
+.pguide__card>p{
+  margin:0;color:var(--ink-2);font-size:clamp(12.5px,.92vw,14px);line-height:1.9
+}
+/* الاسم والسعر يختمان البطاقة على خط واحد فوق الزر */
+.pguide__foot{
+  display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;
+  gap:6px 12px;margin-block-start:auto;padding-block-start:13px;
+  border-block-start:1px dashed var(--gold-line-soft)
+}
+.pguide__foot b{
+  font-family:'Cairo',sans-serif;font-weight:800;color:var(--ink);
+  font-size:clamp(13px,1vw,15px)
+}
+.pguide__foot span{color:var(--ink-3);font-size:clamp(11px,.84vw,13px)}
+.pguide__foot i{font-style:normal;font-weight:800;color:var(--ink);font-size:1.2em}
+.pguide__card .btn{margin-block-start:2px}
+
+/* عنوان الجدول بعد الدليل: مسافة تفصل السؤالين */
+.pcmp__head{margin-block-start:clamp(8px,1.2vw,16px)}

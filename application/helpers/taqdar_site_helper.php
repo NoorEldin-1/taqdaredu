@@ -1097,6 +1097,95 @@ if (!function_exists('tqs_comp_state')) {
     }
 }
 
+if (!function_exists('tqs_plans_guide')) {
+    /**
+     * دليل اختيار الباقة لولي الأمر.
+     *
+     * الجدول يقول **ما الفرق**، وهذا يقول **أيها تناسبني** — وهما
+     * سؤالان لا سؤال. ومن يقرأ اثنتي عشرة ميزة في ثلاثة أعمدة يعرف
+     * الفرق ولا يعرف أين يقف هو من الثلاثة.
+     *
+     * والنص يعلق بموضع الباقة في سلم السعر لا بكودها: أرخصها «الأساس»،
+     * وأغلاها «الأشمل»، وما بينهما «الأوسع». فلو بدل المالك الأكواد أو
+     * أضاف مرحلة ثالثة بقي الدليل صحيحا، ولو زاد باقة رابعة أخذت نص
+     * الوسط — ولا تسقط بلا نص.
+     *
+     * والاسم والسعر والرابط من `plans` — فلا رقم يكتب هنا ويشيخ.
+     */
+    function tqs_plans_guide()
+    {
+        $CI = &get_instance();
+        $CI->load->model('taqdar_billing_model', 'tq_b');
+
+        $by = array();
+        foreach ((array) $CI->tq_b->plans(true) as $p) {
+            if ((string) $p['scope'] !== 'grade') continue;
+            $by[(string) $p['stage']][] = $p;
+        }
+        if (!$by) return '';
+
+        /* ثلاثة مواضع لا ثلاثة أكواد. */
+        $copy = array(
+            'first' => array(
+                'when' => 'إن كان الأساس يكفيك',
+                'why'  => 'مواد الصف الأساسية مشروحة، واختبار وواجب بعد كل درس، وتقرير '
+                        . 'يصلك أولا بأول. تكفي إن كان ابنك يتابع في مدرسته ويحتاج من '
+                        . 'يثبت الأساس ويريك أين يقف.',
+                'icon' => 'i-book',
+            ),
+            'mid' => array(
+                'when' => 'إن أردت المنهج كاملا',
+                'why'  => 'كل مواد الصف لا الأساسية وحدها، ومعها المهارات الرقمية وتمارين '
+                        . 'ومراجعات دورية. تناسب من لا يريد أن يبقى في منهج ابنه ما لم يشرح.',
+                'icon' => 'i-target',
+            ),
+            'last' => array(
+                'when' => 'إن أردت خطة لابنك وحده',
+                'why'  => 'كل ما في التي قبلها، ومعه متابعة فردية وخطة لكل طالب، ومهارات '
+                        . 'خارج المقرر: ذكاء اصطناعي وتصميم وحاسوب.',
+                'icon' => 'i-rocket',
+            ),
+        );
+
+        $h = '<div class="pguide" data-tq-bundles>' . "\n";
+        $first_pane = true;
+
+        foreach ($by as $stage => $plans) {
+            if (count($plans) < 2) continue;
+            usort($plans, 'tqs_plan_price_cmp');
+
+            $h .= '  <div class="pguide__pane" data-stage="' . html_escape($stage) . '"'
+                . ($first_pane ? '' : ' hidden') . '>' . "\n";
+            $first_pane = false;
+
+            $last = count($plans) - 1;
+            foreach ($plans as $i => $p) {
+                $k = ($i === 0) ? 'first' : (($i === $last) ? 'last' : 'mid');
+                $t = $copy[$k];
+                $c = tqs_plan_cycle($p['price']);
+
+                $h .= '    <article class="pguide__card' . (!empty($p['featured']) ? ' is-hot' : '') . '">' . "\n";
+                $h .= '      <span class="pguide__ico"><svg aria-hidden="true"><use href="#'
+                    . $t['icon'] . '"></use></svg></span>' . "\n";
+                $h .= '      <h3>' . html_escape($t['when']) . '</h3>' . "\n";
+                $h .= '      <p>' . html_escape($t['why']) . '</p>' . "\n";
+                $h .= '      <div class="pguide__foot">' . "\n";
+                $h .= '        <b>' . html_escape(tqs_bundle_tier($p['name_ar'])) . '</b>' . "\n";
+                $h .= '        <span><i class="tq-ltr">' . number_format($c['month'])
+                    . '</i> ر.س / شهريا</span>' . "\n";
+                $h .= '      </div>' . "\n";
+                $h .= '      <a class="btn btn--ghost btn--block" href="'
+                    . base_url('plan/' . rawurlencode((string) $p['code']))
+                    . '">تفاصيل الباقة</a>' . "\n";
+                $h .= '    </article>' . "\n";
+            }
+            $h .= '  </div>' . "\n";
+        }
+
+        return $h . '</div>' . "\n";
+    }
+}
+
 if (!function_exists('tqs_plans_compare')) {
     /**
      * جدول مقارنة الباقات — صف لكل ميزة، وعمود لكل باقة.
