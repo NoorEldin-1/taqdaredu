@@ -3440,17 +3440,10 @@ class Taqdar extends CI_Controller
             return;
         }
 
-        /* الاختبار التشخيصي قبل الدفع لا بعده — وهو كل الغرض منه: أن
-           يعرف الطالب موضعه قبل أن يختار، لا أن يكتشفه بعد أن دفع.
-           والمنع الحقيقي في `Taqdar_billing_model::subscribe()`؛ وهذا
-           هنا لئلا يقرأ شاشة تأكيد كاملة ثم يرد عند الزر. */
-        $this->load->model('taqdar_diag_model');
-        if ($this->taqdar_diag_model->gate($uid)) {
-            $this->session->set_flashdata('error_message',
-                'قبل الاشتراك: اختبار قصير يحدد موضعك فنرشح لك الباقة المناسبة. لا رسوب فيه.');
-            redirect(base_url('student/placement'), 'location', 302);
-            return;
-        }
+        /* الاختبار التشخيصي لا يحجب الشراء (قرار المالك ٢٠٢٦-٠٨-٢٩):
+           المشتري ولي الأمر لا الطالب. ورفع الحجب هنا وحده لا يكفي —
+           المنع الفعلي كان في `Taqdar_billing_model::subscribe()` وهناك
+           رفع أيضا، وإلا قرأ المشتري شاشة كاملة ثم رد عند الزر. */
 
         $this->load->model('taqdar_billing_model');
         $cur = $this->taqdar_billing_model->active_subscription($uid);
