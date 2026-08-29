@@ -3972,8 +3972,10 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
   border-block-start:1px dashed var(--gold-line-soft)
 }
 
-/* الشبكة تتكيف في قسم الآراء وحده: ستة آراء في ثلاثة أعمدة ثابتة تترك
-   بطاقة يتيمة على الشاشة المتوسطة. و`.cards-3` صنف عام لا يمس. */
-#parents .cards-3{
-  grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr))
-}
+/* داخل الكاروسل: البطاقات تتساوى ارتفاعا والنص يملأ ما بينها، فلا
+   تقف النجوم عند ثلاثة مستويات مختلفة. ونفس ما تفعله `.tcard` في
+   آراء `/parents` — والرفع عند المرور يقص عند حافة المسار الأفقي،
+   فيهبط هنا إلى ظل وحده. */
+.carousel2--quotes .quote-card{block-size:100%}
+.carousel2--quotes .quote-card>p{flex:1}
+.carousel2--quotes .quote-card:hover{transform:none;box-shadow:var(--sh-raise)}

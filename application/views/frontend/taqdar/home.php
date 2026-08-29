@@ -194,9 +194,9 @@ foreach ($tq_why as $w):
    والثلاث فقط: الرئيسية عرض لا سرد، وصفحة `/parents` تعرضها كلها في
    كاروسل. والفارغ يرجع إلى ما كان — قاعدة بلا صف منشور تعرض الآراء
    الثلاث الأصلية بصورها حرفا بحرف، كما يرد `tq_text()` نص القالب. */
-/* ستة لا ثلاثة: الرئيسية تعرضها في شبكة تلتف — صفان على الشاشة
-   العريضة، وواحد تحت الآخر على الضيقة. */
-$tq_quotes = array_slice(tq_testimonials(), 0, 6);
+/* كلها لا ثلاث: الكاروسل يسحب فلا يطول العمود بعدد الآراء، وصفحة
+   `/parents` تعرضها في كاروسل مثله — فمصدر واحد وعرض واحد. */
+$tq_quotes = tq_testimonials();
 if (!$tq_quotes) {
     $tq_quotes = array(
         array('name' => 'فاطمة القحطاني', 'role' => 'الرياض', 'rating' => 5,
@@ -219,9 +219,15 @@ if (!$tq_quotes) {
         <div class="rule"><svg aria-hidden="true"><use href="#i-star8"></use></svg></div>
       </div>
 
-      <div class="cards-3">
+      <?php /* كاروسل لا شبكة: الآراء تسعة وتزيد، وشبكة تلتف تطيل
+               الصفحة بلا أن تزيد ما يقرأ. و`tqs_carousel()` هي نفسها
+               التي تعرض آراء `/parents` — سحب بالإصبع و`scroll-snap`،
+               وأزرار من `site.js`، وبلا سكربت تبقى تسحب باليد.
+               و`ob_start()` ليبقى الوسم مقروءا في القالب بدل أن يبنى
+               سلسلة في PHP. */ ?>
+      <?php ob_start(); ?>
         <?php foreach ($tq_quotes as $q): ?>
-        <article class="quote-card reveal">
+        <article class="quote-card">
           <svg class="quote-card__mark" aria-hidden="true"><use href="#i-quote"></use></svg>
           <div class="quote-card__head">
             <?php /* حرف الاسم في دائرة: الرأي بلا وجه يقرأ أفقر، ووجه
@@ -249,7 +255,7 @@ if (!$tq_quotes) {
           <?php endif; ?>
         </article>
         <?php endforeach; ?>
-      </div>
+      <?php echo tqs_carousel(ob_get_clean(), 'آراء أولياء الأمور', 'carousel2--quotes'); ?>
     </div>
   </div>
 </section>
