@@ -1252,6 +1252,15 @@ if (!function_exists('tqs_plans_compare')) {
                 . ($first ? '' : ' hidden') . '>' . "\n";
             $first = false;
 
+            /* `<details>` لا `div`: جدول عرضه الأدنى ٥٦٠ في شاشة عرضها
+               ٣٩٠ **يوسع منفذ العرض نفسه** فتنزاح الصفحة كلها — الترويسة
+               والبطاقات معا. والمطوي `display:none` فلا يدخل التخطيط أصلا.
+               ومفتوح افتراضا فمن تعثر عنده السكربت يراه كما كان. */
+            $h .= '    <details class="pcmp__box" open>' . "\n";
+            $h .= '      <summary class="pcmp__sum">' . "\n";
+            $h .= '        <span>اعرض المقارنة الكاملة</span>' . "\n";
+            $h .= '        <svg aria-hidden="true"><use href="#i-chevron"></use></svg>' . "\n";
+            $h .= '      </summary>' . "\n";
             $h .= '    <div class="pcmp__scroll">' . "\n";
             $h .= '      <table class="pcmp__t">' . "\n";
             $h .= '        <caption class="sr-only">مقارنة الباقات</caption>' . "\n";
@@ -1293,6 +1302,7 @@ if (!function_exists('tqs_plans_compare')) {
             $h .= '        </tbody>' . "\n";
             $h .= '      </table>' . "\n";
             $h .= '    </div>' . "\n";
+            $h .= '    </details>' . "\n";
             $h .= '  </div>' . "\n";
         }
 

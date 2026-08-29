@@ -1638,3 +1638,32 @@ document.documentElement.classList.add('js');
     else root.submit();
   }, 900);
 })();
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-PCMP-FOLD · جدول المقارنة يطوى على الشاشة الضيقة
+   يفتح في الوسم فمن تعثر عنده هذا الملف يراه كما كان — وهذا يطويه
+   حيث لا يتسع، ولا يلمسه حيث يتسع.
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+  var boxes = document.querySelectorAll('details.pcmp__box');
+  if (!boxes.length) return;
+  var mq = window.matchMedia('(max-width: 720px)');
+
+  function sync(e) {
+    /* المطوي وحده يخرج من التخطيط، فالطي هو ما يمنع اتساع المنفذ. */
+    Array.prototype.forEach.call(boxes, function (d) {
+      if (e.matches) { if (!d.dataset.tqTouched) d.open = false; }
+      else           { d.open = true; }
+    });
+  }
+  /* من فتحه بيده لا يغلق عليه عند أول دوران للشاشة. */
+  Array.prototype.forEach.call(boxes, function (d) {
+    d.addEventListener('toggle', function () {
+      if (mq.matches && d.open) d.dataset.tqTouched = '1';
+    });
+  });
+
+  sync(mq);
+  if (mq.addEventListener) mq.addEventListener('change', sync);
+  else if (mq.addListener) mq.addListener(sync);
+})();

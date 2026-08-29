@@ -4154,3 +4154,77 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 
 /* عنوان الجدول بعد الدليل: مسافة تفصل السؤالين */
 .pcmp__head{margin-block-start:clamp(8px,1.2vw,16px)}
+
+/* ── طيّ جدول المقارنة على الشاشة الضيقة ───────────────────────── */
+/* جدول عرضه الأدنى ٥٦٠ في شاشة ٣٩٠ يوسع منفذ العرض فتنزاح الصفحة
+   كلها. والمطوي `display:none` فلا يدخل التخطيط. */
+.pcmp__box{margin:0}
+.pcmp__sum{
+  display:none;                       /* يظهر على الضيقة وحدها */
+  align-items:center;justify-content:space-between;gap:10px;cursor:pointer;
+  padding:13px 16px;border-radius:var(--r-btn);
+  background:var(--beige);border:1px solid var(--gold-line-soft);
+  color:var(--petrol);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(12.5px,.95vw,14px);list-style:none
+}
+.pcmp__sum::-webkit-details-marker{display:none}
+.pcmp__sum svg{
+  inline-size:15px;block-size:15px;aspect-ratio:1;flex:none;
+  color:var(--gold-deep);transition:transform var(--t-route) var(--ease)
+}
+.pcmp__box[open] .pcmp__sum svg{transform:rotate(180deg)}
+.pcmp__box[open] .pcmp__sum{margin-block-end:12px}
+.pcmp__sum:hover{border-color:var(--gold-line)}
+
+@media (max-width:720px){
+  .pcmp__sum{display:flex}
+  /* داخل الطي: تلميح أن الجدول يسحب أفقيا — وإلا ظنه القارئ مقصوصا */
+  .pcmp__scroll{position:relative}
+  .pcmp__scroll::after{
+    content:'اسحب أفقيا لرؤية باقي الأعمدة';
+    position:sticky;inset-inline-start:0;display:block;
+    padding:7px 12px;background:var(--beige);
+    color:var(--ink-3);font-size:11.5px;text-align:center;
+    border-block-start:1px solid var(--gold-line-soft)
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-TOUCH · الحد الأدنى للخط وهدف اللمس على الشاشة الضيقة
+   قياس على ٣٩٠: «وفر 20%» كان ٩٫٤px، واسم المرحلة ١٠px، وبنود
+   المزايا ١١px — ودون الثانية عشرة لا يقرأ على شاشة في اليد.
+   ورابط «اعرف المزيد» ارتفاعه ٣٠px، وأصابع الناس ليست مؤشرات فأرة.
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width:720px){
+  /* قواعد `.p26d*` في `home-dark.css`: يحمّل بعد هذا الملف فيغلبه
+     عند تساوي الخصوصية. */
+  .pguide__foot span{font-size:12.5px}
+  .cmp-card__facts span{font-size:12.5px}
+
+  /* ٤٤ هو الحد الذي توصي به إرشادات النظامين، ولا يكسر تخطيطا:
+     زيادة ارتفاع لا عرض. */
+  .btn,
+  .plan-cycle button,
+  .stage-tab,
+  .co-acct__tabs button,
+  .pcmp__sum,
+  .sitesearch input,
+  .sitesearch button{
+    min-block-size:44px
+  }
+  .plan-cycle button,.stage-tab,.co-acct__tabs button{
+    display:inline-flex;align-items:center;justify-content:center
+  }
+}
+
+@media (max-width:720px){
+  .pguide small,.pguide span,.pguide a,
+  .pcmp small,.pcmp span,.pcmp td,.pcmp th,
+  .cmp-card span,.cmp-card b{font-size:max(12px,1em)}
+
+  /* روابط التذييل: ارتفاع ٢١px لا يلمس. والحشو يوسع مساحة النقر بلا
+     أن يفكك القوائم — و`min-block-size` كان سيباعد بينها بعدا يقطعها. */
+  .site-footer a,.footer-col a,.foot-links a{
+    display:inline-block;padding-block:6px
+  }
+}
