@@ -243,9 +243,13 @@ class Admin extends CI_Controller
         check_permission('instructor');
 
         if ($param1 == 'add_instructor_form') {
-            $page_data['page_name']  = 'instructor_add';
-            $page_data['page_title'] = get_phrase('instructor_add');
-            $this->load->view('backend/index', $page_data);
+            /* TQ-TEACHER-ADD — بابان ينشئان معلما يفترقان عند أول تعديل.
+               وهذا الباب الموروث يكتب `is_instructor` وحده: بلا
+               `tq_gate` وبلا ختم تأكيد وبلا فحص جوال في دولته، ويهرب
+               كلمة المرور قبل تجزئتها. فيحول إلى الشاشة التي تكتب
+               الأربعة، ولا يعاد بناؤها هنا. */
+            redirect(site_url('taqdar_admin/teacher_new'), 'location', 301);
+            return;
         } elseif ($param1 == 'edit_instructor_form') {
             $page_data['page_name']  = 'instructor_edit';
             $page_data['user_id']    = $param2;
@@ -1411,6 +1415,7 @@ class Admin extends CI_Controller
 
             $this->crud_model->update_course($param2);
             $this->tq_sync_course_link($param2);
+            $this->tq_sync_course_sale($param2);
 
             // CHECK IF LIVE CLASS ADDON EXISTS, ADD OR UPDATE IT TO ADDON MODEL
             if (addon_status('live-class')) {
@@ -1455,6 +1460,39 @@ class Admin extends CI_Controller
      * ترسل حقولها وحدها، فحفظ «التسعير» لا يحمل صفا ولا مادة — ولو قرئت
      * منه لفهم غيابهما «احذف الربط».
      */
+    /**
+     * TQ-COURSE-SALE — يحفظ علمي البيع المفرد بعد حفظ التسعير.
+     *
+     * ولا ينادى إلا حين يرسل تبويب التسعير علامته (`tq_sale_sent`):
+     * تبويبات التحرير ترسل حقولها وحدها، فحفظ «تحسين البحث» لا يحمل
+     * خانة البيع — ولو قرئ غيابها «أطفئ» لسحب كل كورس معروض من البيع
+     * عند أول تصحيح في وصف محركات البحث. وهي علة TQ-TAB-WIPE نفسها.
+     *
+     * والكتابة **بعد** `update_course()` عمدا: فحص «لا بيع بلا سعر»
+     * يقرأ السعر الذي كتب للتو لا الذي كان.
+     */
+    private function tq_sync_course_sale($course_id)
+    {
+        $course_id = (int) $course_id;
+        if ($course_id <= 0) return;
+        if ($this->input->post('tq_sale_sent') === null) return;
+
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+        $r = $this->tq_cs->save_flags(
+            $course_id,
+            (string) $this->input->post('tq_sell') === '1',
+            $this->input->post('tq_teacher_percent')
+        );
+
+        /* التحذير يلحق بالرسالة القائمة ولا يستبدلها: «حفظ الكورس» صحيح
+           وقع، و«ولم يعرض للبيع لأن…» خبر ثان يقال معه. */
+        if (!empty($r['note'])) {
+            $old = (string) $this->session->flashdata('flash_message');
+            $this->session->set_flashdata('flash_message',
+                ($old !== '' ? $old . ' ' : '') . 'وعلمته «يباع مفردا» ولم يعرض بعد: ' . $r['note']);
+        }
+    }
+
     private function tq_sync_course_link($course_id)
     {
         $course_id = (int) $course_id;

@@ -41,6 +41,136 @@ class Taqdar_billing_model extends CI_Model
     }
 
     /* =====================================================================
+       دورات الشراء — TQ-CYCLE-BUY
+       ===================================================================== */
+
+    /**
+     * الدورات التي **تشترى** بها هذه الباقة — لا التي تعرض بها.
+     *
+     * ═══ لماذا هنا لا في صف ثان ═══
+     *
+     * كان الشهري رقما يعرض ولا يباع: `subscribe()` تقرأ `plans.price`
+     * فيدفع من ضغط «شهري» السعر السنوي. والمخرج الظاهر ان يكتب صف باقة
+     * شهري بجوار السنوي — وهو ما يفسده شرط المالك ان **السعر يشتق**:
+     * صفان يحملان رقمين لحقيقة واحدة يفترقان اول ما يعدل السنوي، ثم لا
+     * شيء يقول ايهما الصحيح. فالدورة **معامل في الشراء** والصف واحد.
+     *
+     * ═══ ثلاثة قرارات ═══
+     *
+     * ١ — **الشهري للسنوية وحدها.** الخصم عشرون بالمئة قرار تسعير معلن
+     *     على الدفع السنوي، واسقاطه على الربع سنوية يخترع توفيرا لا
+     *     وجود له (وهو ما ترفضه `tqs_plan_price()` منذ كتبت). والباقة
+     *     الشهرية شهرية اصلا فلا بديل لها.
+     *
+     * ٢ — **الاشتقاق من `tqs_plan_cycle()` وحدها.** هي الموضع الواحد
+     *     لنسبة الخصم منذ كتبت، ومساعد `taqdar_site` محمل تلقائيا
+     *     (`autoload.php`) فينادى من النموذج كما ينادى من القالب.
+     *     ورقم يحسب هنا مرة وهناك مرة يعني ان الشاشة تعد بـ42 والفاتورة
+     *     تطلب 43 — والفارق ريال لا يراه احد حتى يشتكي مشتر.
+     *
+     * ٣ — **`days` تخزن ولا تشتق وقت التفعيل.** التحويل البنكي يفعل بعد
+     *     ايام، و`duration_days` قد تكون تغيرت. والمشتري وافق على «30
+     *     يوما بـ42»، فالرقمان يجمدان معا — وهو مبدأ `subscription_items`
+     *     نفسه.
+     *
+     * @return array مفتاحها اسم الدورة: key · price (هللات) · days ·
+     *               label · unit · default
+     */
+    public function plan_cycles($plan)
+    {
+        $period = (string) (isset($plan['period']) ? $plan['period'] : '');
+        $price  = max(0, (int) (isset($plan['price']) ? $plan['price'] : 0));
+        $days   = max(1, (int) (isset($plan['duration_days']) ? $plan['duration_days'] : 365));
+
+        /* المجانية: لا دورة تشترى، وصف واحد يقول ذلك بدل مصفوفة فارغة
+           يفحصها كل مستدع بنفسه. */
+        if ($period === 'free' || $price <= 0) {
+            return array('free' => array(
+                'key' => 'free', 'price' => 0, 'days' => $days,
+                'label' => 'مجانا', 'unit' => '', 'default' => true,
+            ));
+        }
+
+        $own = array(
+            'annual'    => array('label' => 'سنوي',      'unit' => 'سنويا'),
+            'quarterly' => array('label' => 'ربع سنوي',  'unit' => 'كل ثلاثة أشهر'),
+            'monthly'   => array('label' => 'شهري',      'unit' => 'شهريا'),
+        );
+        /* صف قديم بلا `period`: يقرأ من مدته لا يرد بخطأ — والقاعدة فيها
+           صفوف كتبت قبل ان يوجد العمود. */
+        if (!isset($own[$period])) {
+            $period = ($days >= 300) ? 'annual' : (($days >= 80) ? 'quarterly' : 'monthly');
+        }
+
+        $out = array($period => array(
+            'key'   => $period, 'price' => $price, 'days' => $days,
+            'label' => $own[$period]['label'], 'unit' => $own[$period]['unit'],
+            'default' => true,
+        ));
+
+        if ($period === 'annual') {
+            $c = tqs_plan_cycle($price);              // الاشتقاق الواحد
+            $m = ((int) $c['month']) * 100;
+            if ($m > 0) {
+                $out['monthly'] = array(
+                    'key' => 'monthly', 'price' => $m, 'days' => 30,
+                    'label' => 'شهري', 'unit' => 'شهريا', 'default' => false,
+                );
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * دورة واحدة بمفتاحها — **والمجهول يرد الى دورة الباقة لا الى الارخص.**
+     *
+     * `cycle` يصل من `$_POST` ومن `?cycle=` في الرابط، وكلاهما يكتبه من
+     * يشاء. فمفتاح لا تعرفه الباقة (شهري على باقة ربع سنوية، او كلمة
+     * مخترعة) يقع على الافتراضي — وهو دورتها هي واعلى سعرا. والعكس —
+     * السقوط الى ارخص ما وجد — يجعل تعديل حرف في الرابط يشتري باقة
+     * السنة بسعر الشهر.
+     */
+    public function cycle_of($plan, $key = null)
+    {
+        $cy = $this->plan_cycles($plan);
+        $k  = trim((string) $key);
+
+        /* مرادفات العرض: مبدل الصفحة يكتب `month`/`year` في وسمه منذ
+           كتب، فيفهمان هنا بدل ان يعاد تسمية كل `data-cycle` في اربعة
+           اكسية وسكربت. و`year` تعني «دورة الباقة» لا السنوية حرفا:
+           على باقة ربع سنوية هي الربع سنوية. */
+        if ($k === 'month') $k = 'monthly';
+        if ($k === 'year')  $k = '';
+
+        if ($k !== '' && isset($cy[$k])) return $cy[$k];
+        foreach ($cy as $c) if (!empty($c['default'])) return $c;
+        return reset($cy);
+    }
+
+    /**
+     * عمودا الدورة على `subscriptions` — ينشآن وقت التشغيل كاخوتهما.
+     *
+     * لا هجرات في هذا المستودع، والقراءة قبل الانشاء ترد «عمود مجهول».
+     * فينادى من مسار الكتابة (`subscribe()`) لا من مسار العرض.
+     */
+    public function install_cycle_schema()
+    {
+        static $done = false;
+        if ($done) return true;
+        $done = true;
+        try {
+            $this->db->query("ALTER TABLE `subscriptions`
+                ADD COLUMN IF NOT EXISTS `cycle` VARCHAR(12) NOT NULL DEFAULT '' AFTER `price`,
+                ADD COLUMN IF NOT EXISTS `days`  INT(10) NOT NULL DEFAULT 0 AFTER `cycle`");
+            return true;
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-CYCLE-BUY: تعذر انشاء عمودي الدورة — ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /* =====================================================================
        الاشتراك النشط
        ===================================================================== */
 
@@ -58,19 +188,48 @@ class Taqdar_billing_model extends CI_Model
      */
     public function active_subscription($user_id)
     {
+        foreach ($this->active_subscriptions($user_id) as $row) {
+            /* TQ-COURSE-SALE — شراء كورس مفرد **ليس «اشتراكك»**.
+               أحد عشر مستدعيا يسألون هذه الدالة سؤالا واحدا: «ما باقة
+               هذا الطالب؟» — يطبعون اسمها، ويقيسون أجلها، ويمنعون شراء
+               ثان فوقها. ومن اشترى مادة بمئة وتسعين يصير صفه هو الجواب
+               (والترتيب على `ends_at` يقدمه متى كان وصوله دائما)، فتقرأ
+               شاشته «باقتك: —» ويرد عليه شراء الباقة بـ«لديك اشتراك
+               نشط بالفعل». والاستحقاق لا يمس: `subscription_grants()`
+               تقرأ **كل** الصفوف السارية أدناه. */
+            if ((int) (isset($row['course_id']) ? $row['course_id'] : 0) > 0) continue;
+            return $row;
+        }
+        return null;
+    }
+
+    /**
+     * TQ-COURSE-SALE — **كل** ما يسري للمستخدم الآن، لا أوله.
+     *
+     * الاستحقاق كان يقرأ صفا واحدا (`active_subscription()`)، وكان ذلك
+     * كافيا ما دام الطالب لا يملك إلا اشتراكا واحدا. وبيع الكورس المفرد
+     * يكسر ذلك: من له باقة صف واشترى فوقها مادة إثرائية يملك صفين، وصف
+     * واحد يقرأ يعني أن **أحد الشراءين لا يفتح شيئا** — لا خطأ ولا
+     * رسالة، بابا مقفلا على من دفع ثمنه.
+     *
+     * والترتيب `ends_at DESC` يبقى: من يقرأ صفا واحدا يقرأ أبعدها أجلا.
+     */
+    public function active_subscriptions($user_id)
+    {
         $rows = $this->db->where('user_id', (int) $user_id)
                          ->where_in('status', array('active', 'cancelled'))
                          ->order_by('ends_at', 'DESC')
                          ->get('subscriptions')->result_array();
 
+        $out = array();
         foreach ($rows as $row) {
             // مضى أجله وإن لم يمر عليه الكرون بعد
             if (!empty($row['ends_at']) && strtotime($row['ends_at']) < time()) continue;
             // ألغي قبل أن يفعل أصلا: لا مدة له تكمل
             if ($row['status'] === 'cancelled' && empty($row['ends_at']))         continue;
-            return $row;
+            $out[] = $row;
         }
-        return null;
+        return $out;
     }
 
     public function subscriptions_of($user_id)
@@ -113,11 +272,20 @@ class Taqdar_billing_model extends CI_Model
      */
     public function subscription_grants($user_id, $course_id, $lesson_id = null)
     {
-        $sub = $this->active_subscription($user_id);
-        if (!$sub) return false;
+        /* TQ-COURSE-SALE — **كل** اشتراك ساري لا أوله.
+           كان السطر `active_subscription()` وحده، وهو صواب ما دام
+           للطالب صف واحد. ومع بيع الكورس المفرد صار يملك اثنين: باقة
+           صفه، ومادة اشتراها فوقها. فأيهما قرئ، سقط الآخر — والوصول
+           الذي دفع ثمنه يرد بـ«هذا الدرس يفتح بالاشتراك» وهو مشترك.
+           والبنود تجمع من الصفوف كلها: أول بند يمنح يكفي. */
+        $subs = $this->active_subscriptions($user_id);
+        if (!$subs) return false;
 
         $course_id = (int) $course_id;
-        $items     = $this->items_of($sub['id']);
+        $items     = array();
+        foreach ($subs as $s) {
+            foreach ($this->items_of($s['id']) as $it) $items[] = $it;
+        }
         if (!$items) return false;
 
         foreach ($items as $it) {
@@ -273,6 +441,136 @@ class Taqdar_billing_model extends CI_Model
     }
 
     /* =====================================================================
+       البيع بالكورس المفرد — TQ-COURSE-SALE
+       ===================================================================== */
+
+    /**
+     * يشتري الطالب كورسا بعينه: اشتراك معلق وفاتورته. لا يمنح قبل التفعيل.
+     *
+     * وهي أخت `subscribe_path()` حرفا بحرف في بنيتها، وللسبب نفسه: صف
+     * `subscriptions` ببنده وفاتورته، فتسويه تاب بالفرع نفسه ويفعله
+     * المسؤول بالزر نفسه ويجسده الكرون بالمرور نفسه.
+     *
+     * وثلاثة فروق عن الباقة، ولكل واحد سببه:
+     *
+     * ١ — **لا يمنع باقة قائمة ولا يمنعه اشتراك.** الباقة تمنع الباقة
+     *     لأنهما شيء واحد يشترى مرتين؛ والكورس المفرد شيء آخر. ومن له
+     *     باقة صفه واشترى مادة إثرائية فوقها اشترى شيئين لا شيئا مكررا.
+     *     ومنع ذلك يعني رفض مال يريد صاحبه أن يدفعه.
+     *
+     * ٢ — **يمنع تكرار نفسه.** الكورس نفسه لا يشترى مرتين، ولا يشترى
+     *     كورس تفتحه باقة سارية: من دفع مرة يقرأ «هذا مفتوح لك» لا
+     *     يدفع ثانية. والفحص على `subscription_grants()` نفسها التي
+     *     تحرس المشغل، فلا تعد الشاشة بما يمنعه الحارس.
+     *
+     * ٣ — **لا حارس تشخيصي.** `TQ-PLACEMENT` يحرس الباقة لأنها تفتح
+     *     منهج مرحلة، والاختبار يقول أي مرحلة تناسب. والمادة الواحدة
+     *     يختارها صاحبها بعينها، فاعتراض اختبار في طريقها اعتراض بلا
+     *     سؤال يجاب.
+     *
+     * @return array ok · subscription_id · invoice_id · errors · code
+     */
+    public function subscribe_course($user_id, $course_id, $method = 'manual')
+    {
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+        $this->tq_cs->install_schema();
+
+        $user_id   = (int) $user_id;
+        $course_id = (int) $course_id;
+
+        if (!$user_id)   return array('ok' => false, 'errors' => array('لا مستخدم.'));
+        if (!$course_id) return array('ok' => false, 'errors' => array('لا كورس.'));
+
+        /* العرض من مصدره الواحد: السعر والأجل والنسبة كلها من `offer()`،
+           فما تعد به الشاشة هو ما تقيده الفاتورة بالهللة. */
+        $offer = $this->tq_cs->offer($course_id);
+        if (!$offer['sellable']) {
+            return array('ok' => false, 'code' => 'NOT_SELLABLE',
+                         'errors' => array($offer['reason'] === 'free'
+                             ? 'هذا الكورس مجاني — افتحه بلا دفع.'
+                             : 'هذا الكورس لا يباع مفردا الآن.'));
+        }
+
+        if ($this->has_course($user_id, $course_id)) {
+            return array('ok' => false, 'code' => 'ALREADY_OWNED',
+                         'errors' => array('هذا الكورس مفتوح لك بالفعل.'));
+        }
+
+        /* TQ-SUB-REUSE بوجهه الثاني: معلق بفاتورة لم تدفع يعاد استعماله.
+           من أكد ثم تردد ثم أكد مرة أخرى كان يخرج بصفين وفاتورتين،
+           تسدد إحداهما وتبقى الأخرى «غير مدفوعة» في سجل مالي أبدا.
+           والسعر يفحص مع الرقم: من عدل سعر الكورس بعد إصدارها لا يشترى
+           بسعر أمس. */
+        $pend = $this->db->where('user_id', $user_id)
+                         ->where('course_id', $course_id)
+                         ->where('status', 'pending')
+                         ->where('price', (int) $offer['price'])
+                         ->order_by('id', 'DESC')->limit(1)
+                         ->get('subscriptions')->row_array();
+
+        if ($pend) {
+            $old = $this->invoice_of_subscription((int) $pend['id']);
+            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === (int) $offer['price']) {
+                $this->db->where('id', (int) $pend['id'])
+                         ->update('subscriptions', array('method' => $method));
+                $this->db->where('id', (int) $old['id'])
+                         ->update('invoices', array('method' => $method));
+
+                return array('ok' => true, 'subscription_id' => (int) $pend['id'],
+                             'invoice_id' => (int) $old['id'], 'reused' => true,
+                             'offer' => $offer);
+            }
+        }
+
+        $this->db->insert('subscriptions', array(
+            'user_id'    => $user_id,
+            'plan_id'    => 0,
+            'path_id'    => 0,
+            'course_id'  => $course_id,
+            'status'     => 'pending',
+            'price'      => (int) $offer['price'],   // السعر وقت الشراء
+            'auto_renew' => 0,
+            'method'     => $method,
+            'created_at' => date('Y-m-d H:i:s'),
+        ));
+        $sid = (int) $this->db->insert_id();
+
+        $inv = $this->issue_invoice($sid, $user_id, (int) $offer['price'], $method);
+        $this->notify_invoice_issued($inv, $method);
+
+        return array('ok' => true, 'subscription_id' => $sid,
+                     'invoice_id' => $inv, 'free' => false, 'offer' => $offer);
+    }
+
+    /**
+     * هل هذا الكورس مفتوح لهذا الطالب الآن — بأي سبب؟
+     *
+     * والسببان يقرآن معا عمدا: شراء مفرد سار، **أو** اشتراك يمنحه.
+     * ولو قرئ الأول وحده لبيع لمن يملك: يفتح صفحة مادة في باقته
+     * فيقرأ سعرا وزر شراء، ويدفع ثمن ما يشاهده اليوم.
+     */
+    public function has_course($user_id, $course_id)
+    {
+        $user_id   = (int) $user_id;
+        $course_id = (int) $course_id;
+        if ($user_id <= 0 || $course_id <= 0) return false;
+
+        if ($this->subscription_grants($user_id, $course_id)) return true;
+
+        try {
+            $rows = $this->db->where('user_id', $user_id)
+                             ->where('course_id', $course_id)
+                             ->where_in('status', array('active', 'cancelled'))
+                             ->get('subscriptions')->result_array();
+        } catch (Throwable $e) { return false; }
+
+        foreach ($rows as $r) {
+            if (empty($r['ends_at']) || strtotime($r['ends_at']) >= time()) return true;
+        }
+        return false;
+    }
+
+    /* =====================================================================
        الشراء والتفعيل
        ===================================================================== */
 
@@ -281,10 +579,24 @@ class Taqdar_billing_model extends CI_Model
      *
      * الباقة المجانية تفعل فورا: لا فاتورة تدفع فلا معنى لتعليقها.
      *
-     * @return array ok · subscription_id · invoice_id · errors
+     * TQ-CYCLE-BUY — **والدورة معامل هنا، وهي التي تحدد المبلغ والمدة.**
+     * `plan_cycles()` تقول ما يشترى وبكم، و`cycle_of()` تحرس المفتاح
+     * الوارد. والمكتوب في الصف هو **المحصل** لا المعروض: `price` مبلغ
+     * هذه الدورة، و`cycle` اسمها، و`days` مدتها — ثلاثتها تجمد وقت
+     * الشراء فلا يغيرها تعديل على الباقة بعد ذلك.
+     *
+     * وما بعد هذه الدالة يتبعها بلا تعديل: `issue_invoice()` تأخذ المبلغ
+     * معاملا، و`Taqdar_tap_model::start()` تقرأ `invoices.total`، و
+     * `Taqdar_revenue_model::credit_plan_sale()` تقسم `subscriptions.price`
+     * — فبيعة الشهر تقسم على الشهر لا على السنة.
+     *
+     * @param string|null $cycle مفتاح الدورة — وما لا تعرفه الباقة يرد
+     *                           الى دورتها هي، لا الى الارخص.
+     * @return array ok · subscription_id · invoice_id · errors · cycle
      */
-    public function subscribe($user_id, $plan_id, $method = 'manual')
+    public function subscribe($user_id, $plan_id, $method = 'manual', $cycle = null)
     {
+        $this->install_cycle_schema();
         $user_id = (int) $user_id;
         $plan    = $this->plan($plan_id);
 
@@ -306,22 +618,49 @@ class Taqdar_billing_model extends CI_Model
             ));
         }
 
-        // اشتراك نشط قائم: لا يشترى فوقه اشتراك ثان صامتا.
-        // و«النشط» هنا بالحرف: من أوقف التجديد فقد أعلن انصرافه عن هذه
-        // الباقة، فلا يحبس عن غيرها إلى أن يمضي أجل ما ألغاه.
-        $current = $this->active_subscription($user_id);
-        if ($current && $current['status'] === 'active') {
-            return array('ok' => false, 'errors' => array('لديك اشتراك نشط بالفعل. ألغه أو انتظر انتهاءه.'));
-        }
-
         // «مجانية» صفة الباقة لا نتيجة خلو سعرها.
         // لولا هذا التمييز لصارت كل باقة لم تسعر بعد بابا لفتح المحتوى
         // مجانا — وهو ما يحدث تحديدا في منصة لم تضبط أسعارها بعد.
-        $free = ($plan['period'] === 'free');
+        //
+        /* TQ-CYCLE-BUY — والدورة تحل **قبل** كل فحص يمس المال أو الحال:
+           فحص التجديد أدناه يقرأ `$free`، وما بعده يقرأ `$gross` مكان
+           `plans.price`. وقراءة متغير قبل اسناده لا ترمي في PHP — تقرأ
+           `null` فيمر الحارس صامتا، وهو أسوأ من خطأ يظهر. */
+        $cy    = $this->cycle_of($plan, $cycle);
+        $gross = (int) $cy['price'];
+        $free  = ($plan['period'] === 'free');
+
         if (!$free && (int) $plan['price'] <= 0) {
             return array('ok' => false, 'errors' => array(
                 'هذه الباقة لم تسعر بعد، فلا يمكن الاشتراك فيها.'
             ), 'code' => 'PLAN_NOT_PRICED');
+        }
+
+        // اشتراك نشط قائم: لا يشترى فوقه اشتراك ثان صامتا.
+        // و«النشط» هنا بالحرف: من أوقف التجديد فقد أعلن انصرافه عن هذه
+        // الباقة، فلا يحبس عن غيرها إلى أن يمضي أجل ما ألغاه.
+        //
+        // TQ-CYCLE-RENEW — **الا الباقة نفسها: فذاك تجديد لا شراء ثان.**
+        // الشرط كان يمنع كل شراء فوق نشط، وهو محتمل على باقة سنوية —
+        // يشترى مرة في العام. اما الشهري فيشترى اثنتي عشرة مرة، ومن يجدد
+        // لا يستطيع الا بعد ان **ينقطع** وصوله: ينتظر انتهاء شهره، ثم
+        // يتذكر ان يعود (ولا تجديد تلقائي ولا تذكير كان)، ويدرس في
+        // الفجوة بلا محتوى. فمنتج شهري لا يجدد ليس منتجا شهريا.
+        //
+        // والتجديد يشترط الباقة نفسها: الترقية الى باقة اخرى فوق نشطة
+        // مسألة اخرى (احتساب ما دفع)، وخلطها بالتجديد يجعل الشراء
+        // الخاطئ يمر صامتا.
+        $current = $this->active_subscription($user_id);
+        $renew   = false;
+        if ($current && $current['status'] === 'active') {
+            $renew = ((int) $current['plan_id'] === (int) $plan['id'])
+                  && ((int) $current['path_id'] === 0);
+            if (!$renew) {
+                return array('ok' => false, 'errors' => array('لديك اشتراك نشط بالفعل. ألغه أو انتظر انتهاءه.'));
+            }
+            if ($free) {
+                return array('ok' => false, 'errors' => array('باقتك المجانية سارية بالفعل.'));
+            }
         }
 
         $now = date('Y-m-d H:i:s');
@@ -332,27 +671,35 @@ class Taqdar_billing_model extends CI_Model
            فيتردد ويرجع، فيؤكد مرة أخرى. بلا هذا الفرع يخرج من ذلك صفان
            في `subscriptions` وفاتورتان برقمين متسلسلين — ثم تسدد إحداهما
            وتبقى الأخرى «غير مدفوعة» في سجل مالي إلى الأبد. والسعر يفحص
-           مع الرقم: من عدلت الباقة بعد إصداره لا يشترى بسعر أمس. */
+           مع الرقم: من عدلت الباقة بعد إصداره لا يشترى بسعر أمس.
+
+           TQ-CYCLE-BUY — **والدورة تفحص مع السعر.** من ترك معلقا شهريا
+           ثم عاد فاختار السنوي يجب ان يصدر له صف جديد لا ان يعاد اليه
+           صف الشهر بسعره: `price` وحده كان يميزهما، وهو يميزهما فعلا
+           اليوم — لكنه يستوي متى تساوى الرقمان (باقة سنوية سعرها 12
+           ضعف شهريها بالحرف)، فيشترط الاسم معه صراحة. */
         /* والمجانية مستثناة: لا فاتورة تدفع فيها، وإعادة استعمال صفها
            تعود بلا تفعيل — والتفعيل هو كل ما تفعله الباقة المجانية. */
         $pend = $free ? null : $this->db->where('user_id', $user_id)
                          ->where('plan_id', (int) $plan['id'])
                          ->where('path_id', 0)
                          ->where('status', 'pending')
-                         ->where('price', (int) $plan['price'])
+                         ->where('price', $gross)
+                         ->where('cycle', (string) $cy['key'])
                          ->order_by('id', 'DESC')->limit(1)
                          ->get('subscriptions')->row_array();
 
         if ($pend) {
             $old = $this->invoice_of_subscription((int) $pend['id']);
-            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === (int) $plan['price']) {
+            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === $gross) {
                 $this->db->where('id', (int) $pend['id'])
                          ->update('subscriptions', array('method' => $method));
                 $this->db->where('id', (int) $old['id'])
                          ->update('invoices', array('method' => $method));
 
                 return array('ok' => true, 'subscription_id' => (int) $pend['id'],
-                             'invoice_id' => (int) $old['id'], 'free' => false, 'reused' => true);
+                             'invoice_id' => (int) $old['id'], 'free' => false,
+                             'reused' => true, 'cycle' => $cy);
             }
         }
 
@@ -360,14 +707,16 @@ class Taqdar_billing_model extends CI_Model
             'user_id'    => $user_id,
             'plan_id'    => (int) $plan['id'],
             'status'     => 'pending',
-            'price'      => (int) $plan['price'],   // السعر وقت الشراء
+            'price'      => $gross,                 // مبلغ هذه الدورة وقت الشراء
+            'cycle'      => (string) $cy['key'],    // واسمها — بها يقرأ السجل
+            'days'       => (int) $cy['days'],      // ومدتها، تجمد ولا تشتق بعد
             'auto_renew' => 0,
             'method'     => $method,
             'created_at' => $now,
         ));
         $sid = (int) $this->db->insert_id();
 
-        $inv = $this->issue_invoice($sid, $user_id, (int) $plan['price'], $method);
+        $inv = $this->issue_invoice($sid, $user_id, $gross, $method);
 
         if ($free) {
             $this->activate($sid, $method, 'free');
@@ -376,7 +725,8 @@ class Taqdar_billing_model extends CI_Model
             $this->notify_invoice_issued($inv, $method);
         }
 
-        return array('ok' => true, 'subscription_id' => $sid, 'invoice_id' => $inv, 'free' => $free);
+        return array('ok' => true, 'subscription_id' => $sid, 'invoice_id' => $inv,
+                     'free' => $free, 'cycle' => $cy);
     }
 
     /**
@@ -396,34 +746,72 @@ class Taqdar_billing_model extends CI_Model
         if ((string) $method !== 'manual') return false;
 
         try {
-            /* الباقة والمسار كلاهما يصدر فاتورة، وصفهما واحد في
-               `subscriptions` يفرق بـ`plan_id`/`path_id`. فيقرأ الاسمان
-               معا ويؤخذ الموجود — وإلا قرأ مشتري المسار «الباقة». */
-            $inv = $this->db->select('i.invoice_no, i.total, i.user_id,'
-                            . ' p.name_ar AS plan_name, t.title AS path_name', false)
-                            ->from('invoices i')
-                            ->join('subscriptions s', 's.id = i.subscription_id', 'left')
-                            ->join('plans p', 'p.id = s.plan_id', 'left')
-                            ->join('paths t', 't.id = s.path_id', 'left')
-                            ->where('i.id', (int) $invoice_id)->get()->row_array();
+            /* الباقة والمسار **والكورس المفرد** كلها تصدر فاتورة، وصفها
+               واحد في `subscriptions` يفرق بـ`plan_id`/`path_id`/`course_id`.
+               فتقرأ الأسماء الثلاثة معا ويؤخذ الموجود — وإلا قرأ مشتري
+               المادة الواحدة «قيمة الاشتراك في الباقة». */
+            /* TQ-INVOICE-COL — **العمود يفحص قبل أن يضم.**
+               `subscriptions.course_id` ينشئه `Taqdar_course_sale_model`
+               وقت التشغيل، لا هجرة. فعلى قاعدة لم يمر عليها بيع كورس مفرد
+               بعد — وهي حال هذه القاعدة — يرمي هذا الاستعلام «Unknown
+               column s.course_id»، فيبتلعه `catch` أدناه: **فلا إشعار
+               فاتورة يخرج لأحد قط**، وكل مشتر بالتحويل البنكي يغلق صفحته
+               بلا رقم فاتورة ولا آيبان. ولا سطر خطأ يظهر لأحد.
+               فالضم مشروط، ومن لا عمود عنده يقرأ الاسمين الآخرين كما كان
+               يقرأ قبل أن يوجد بيع الكورس المفرد. */
+            $has_course = (bool) $this->db->field_exists('course_id', 'subscriptions');
+
+            $sel = 'i.invoice_no, i.total, i.user_id,'
+                 . ' p.name_ar AS plan_name, t.title AS path_name'
+                 . ($has_course ? ', c.title AS course_name' : '');
+
+            $this->db->select($sel, false)
+                     ->from('invoices i')
+                     ->join('subscriptions s', 's.id = i.subscription_id', 'left')
+                     ->join('plans p', 'p.id = s.plan_id', 'left')
+                     ->join('paths t', 't.id = s.path_id', 'left');
+            if ($has_course) $this->db->join('course c', 'c.id = s.course_id', 'left');
+            $inv = $this->db->where('i.id', (int) $invoice_id)->get()->row_array();
             if (!$inv || empty($inv['user_id'])) return false;
 
-            $what = trim((string) ($inv['plan_name'] !== null && $inv['plan_name'] !== ''
-                                   ? $inv['plan_name'] : (string) $inv['path_name']));
+            $what = '';
+            foreach (array('plan_name', 'path_name', 'course_name') as $k) {
+                if (isset($inv[$k]) && trim((string) $inv[$k]) !== '') {
+                    $what = trim((string) $inv[$k]); break;
+                }
+            }
             $iban = trim((string) get_settings('tq_bank_iban'));
+
+            /* المبلغ **هللات** في العمود، والرسالة تقول «ر.س».
+               `number_format(59900)` كان يطبع «59,900 ر.س» على فاتورة
+               قيمتها ٥٩٩ — فيقرأ من ينتظر التحويل رقما أكبر مئة مرة،
+               ويحول به أو يتصل. و`tqs_money()` هي القاسم الواحد ولكنها
+               ترد وسما، والإشعار نص. */
+            $sar = number_format(((int) $inv['total']) / 100, 0, '.', ',');
 
             $this->load->model('taqdar_admin_model');
             return (bool) $this->taqdar_admin_model->push_notification(
                 (int) $inv['user_id'],
                 'صدرت فاتورتك ' . $inv['invoice_no'],
                 'قيمة الاشتراك في «' . ($what !== '' ? $what : 'الباقة') . '» هي '
-                . number_format((int) $inv['total']) . ' ر.س. حول المبلغ'
+                . $sar . ' ر.س. حول المبلغ'
                 . ($iban !== '' ? ' إلى الآيبان ' . $iban : '')
                 . ' واذكر رقم الفاتورة في التحويل، ويفعل اشتراكك بعد التحقق من الحوالة.',
                 'invoice'
             );
         } catch (Throwable $e) {
-            /* إخطار يفشل لا يمنع فاتورة صدرت. */
+            /* إخطار يفشل لا يمنع فاتورة صدرت.
+
+               TQ-BUILDER-DIRTY — **ويترك بناء الاستعلام نظيفا خلفه.**
+               استثناء يقع **وسط** سلسلة `select()->from()->join()` يترك
+               حالتها في `CI_DB_query_builder` كما هي: `_reset_select()`
+               لا ينادى إلا بعد `get()` الناجحة. فكل استعلام تال في الطلب
+               نفسه يرث `from('invoices i')` وضمومها الثلاثة — و
+               `$this->db->where('id', $x)->get('subscriptions')` يرد
+               «Column 'id' is ambiguous» في موضع لا علاقة له بالفاتورة.
+               والذي يظهره: الطلب الذي يشتري ثم يفعل (الباقة المجانية،
+               والتجديد) — يسقط تفعيله على خطأ منشؤه إشعار ابتلع. */
+            $this->db->reset_query();
             log_message('error', 'TQ-BILLING: تعذر إخطار إصدار الفاتورة — ' . $e->getMessage());
             return false;
         }
@@ -446,11 +834,41 @@ class Taqdar_billing_model extends CI_Model
             return $this->activate_path_subscription($sub, $method, $transaction_id);
         }
 
+        /* TQ-COURSE-SALE — واشتراك كورس مفرد: بنده `course` ونصيب معلمه
+           نسبة واحدة. والفرع هنا **قبل** قراءة الباقة: `plan_id = 0`
+           فترد `plan()` فارغا و`activate()` ترد `false` — أي أن الطالب
+           يدفع، وتحصل تاب المال، ولا يفتح شيء، وتقرأ الشاشة «حصل المال
+           ولم يفعل الاشتراك». */
+        if ((int) (isset($sub['course_id']) ? $sub['course_id'] : 0) > 0) {
+            return $this->activate_course_subscription($sub, $method, $transaction_id);
+        }
+
         $plan = $this->plan($sub['plan_id']);
         if (!$plan) return false;
 
-        $days  = max(1, (int) $plan['duration_days']);
+        /* TQ-CYCLE-BUY — المدة من الصف لا من الباقة.
+           المشتري وافق على «كذا يوما بكذا» وقت الشراء، والتحويل البنكي
+           يفعل بعد ايام قد تكون `duration_days` تغيرت فيها. والصفر يعني
+           صفا كتب قبل العمود، فيرتد الى الباقة كما كان. */
+        $days  = (int) (isset($sub['days']) ? $sub['days'] : 0);
+        if ($days < 1) $days = max(1, (int) $plan['duration_days']);
+
+        /* TQ-CYCLE-RENEW — التجديد يبدأ من حيث ينتهي السابق لا من الان.
+           لو بدأ من الان لضاع ما بقي من الشهر الجاري: من جدد قبل انتهائه
+           بعشرة ايام دفع عن ثلاثين وأخذ عشرين. والصف الجاري يبقى كما هو
+           ويطفئه `expire_due()` في وقته — فلا سجل يعدل بأثر رجعي. */
         $start = time();
+        $prev  = $this->db->select('ends_at')
+                          ->where('user_id', (int) $sub['user_id'])
+                          ->where('plan_id', (int) $sub['plan_id'])
+                          ->where('id !=', (int) $subscription_id)
+                          ->where_in('status', array('active', 'cancelled'))
+                          ->where('ends_at >', date('Y-m-d H:i:s'))
+                          ->order_by('ends_at', 'DESC')->limit(1)
+                          ->get('subscriptions')->row_array();
+        if ($prev && !empty($prev['ends_at'])) {
+            $start = max($start, (int) strtotime($prev['ends_at']));
+        }
         $data  = array(
             'status'     => 'active',
             'started_at' => date('Y-m-d H:i:s', $start),
@@ -724,6 +1142,85 @@ class Taqdar_billing_model extends CI_Model
     }
 
 
+
+    /**
+     * TQ-COURSE-SALE — تفعيل شراء كورس مفرد.
+     *
+     * ثلاثة أشياء لا أكثر: أجل من `offer()`، وبند `course` واحد، وقيد
+     * في دفتر معلمه. وكلها بالمبادئ التي تحكم أخويه:
+     *
+     * · **الأجل ينسخ ولا يشتق كل مرة.** `expiry_period` قد تتغير بين
+     *   إصدار الفاتورة وتحويل الحوالة، والمشتري وافق على ما قرأ. وصفر
+     *   يعني وصولا دائما، فـ`ends_at` تبقى `NULL` — و`expire_due()`
+     *   تشترط `ends_at IS NOT NULL` فلا تلمسه، و`active_subscriptions()`
+     *   تعده ساريا أبدا كما تعد اشتراكا بلا أجل.
+     *
+     * · **البند ينظف قبل أن يكتب.** تفعيل ثان كان يضيف بندا فوق بند في
+     *   فرع الصفوف حتى أصلح (TQ-GRADE-SCOPE)، والعلة واحدة هنا.
+     *
+     * · **وفشل القيد لا يبطل التفعيل.** الطالب دفع واستحق وصوله، ودفتر
+     *   المعلم يصالح لاحقا — ومنع الطالب لأن دفترا لم يكتب يعاقب من لا
+     *   ذنب له. وهي القاعدة نفسها في المسار والباقة.
+     */
+    private function activate_course_subscription($sub, $method = null, $transaction_id = null)
+    {
+        $cid = (int) $sub['course_id'];
+
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+        $course = $this->tq_cs->course($cid);
+        if (!$course) return false;
+
+        $offer = $this->tq_cs->offer($course);
+        $days  = (int) $offer['days'];
+        $start = time();
+
+        $data = array(
+            'status'     => 'active',
+            'started_at' => date('Y-m-d H:i:s', $start),
+            /* الوصول الدائم `NULL` لا تاريخ بعيد: تاريخ مخترع ينتهي يوما
+               ويقفل ما بيع على أنه دائم، ولا أحد يذكر لماذا. */
+            'ends_at'    => $days > 0
+                          ? date('Y-m-d H:i:s', strtotime('+' . $days . ' days', $start))
+                          : null,
+        );
+        if ($method)         $data['method']         = $method;
+        if ($transaction_id) $data['transaction_id'] = $transaction_id;
+
+        $this->db->where('id', (int) $sub['id'])->update('subscriptions', $data);
+
+        $this->db->where('subscription_id', (int) $sub['id'])->delete('subscription_items');
+        $this->db->insert('subscription_items', array(
+            'subscription_id' => (int) $sub['id'],
+            'entity_type'     => 'course',
+            'entity_id'       => $cid,
+        ));
+
+        /* التجسيد بعد البند مباشرة: البند يجيب الاستحقاق، وصفوف `enrol`
+           تجيب الشاشات التي لا تسأل غيره — «كورساتي» و«طلابي» والتقارير
+           والشهادات. */
+        $this->sync_enrolments((int) $sub['id']);
+
+        /* نصيب المعلم — نسبة واحدة لا وعاء: الكورس لمعلم واحد
+           (`course.creator`)، فلا أوزان ولا أكبر بواق. والنسبة تقرأ من
+           `offer()` نفسها التي عرضت السعر، فما وعد به المعلم في شاشته
+           هو ما يقيد في دفتره. */
+        if ((int) $sub['price'] > 0 && (int) $offer['teacher_id'] > 0) {
+            try {
+                $this->load->model('taqdar_wallet_model');
+                $this->taqdar_wallet_model->credit_course_sale(
+                    (int) $offer['teacher_id'], $cid, (int) $sub['id'],
+                    (int) $sub['price'], $offer['percent'], (string) $course['title']
+                );
+            } catch (Exception $e) {
+                log_message('error', 'TQ-COURSE-SALE: تعذر قيد بيع كورس #' . $cid
+                    . ' لاشتراك #' . (int) $sub['id'] . ' — ' . $e->getMessage());
+            }
+        }
+
+        $this->audit('subscription_activate_course', 'subscriptions#' . (int) $sub['id'],
+                     $sub, $this->subscription($sub['id']));
+        return true;
+    }
 
     /**
      * تفعيل اشتراك مسار: المدة من `expected_weeks`، والبند `path`،

@@ -181,6 +181,129 @@ class Taqdar_admin extends CI_Controller
         redirect(site_url('taqdar_admin/sessions#tqa-pricing'), 'location', 302);
     }
 
+    /* =====================================================================
+       بيع الكورسات المفردة — TQ-COURSE-SALE
+
+       شاشة واحدة تجيب ثلاثة أسئلة لم يكن في اللوحة موضع يجيب أيا منها:
+       **أي الكورسات تباع مفردة؟** و**بكم ونصيب من؟** و**ماذا بيع منها؟**
+       وبلا هذه الشاشة يفتح المسؤول كورسا كورسا في تبويب تسعيره ليعرف،
+       ولا يعرف ما فاته.
+
+       والمفتاح العام في ذيلها لا في «إعدادات المنصة»: هذه هي الشاشة التي
+       يظهر فيها أثره — بجوار الكورسات التي يفتحها. وهو مبدأ تسعيرة الحصص
+       نفسه (TQ-REVIEW-KNOBS).
+       ===================================================================== */
+
+    public function course_sales()
+    {
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+
+        /* البنية أولا: الأعمدة تنشأ عند أول كتابة، وقراءة قبلها ترد
+           «عمود مجهول» فتخرج الشاشة فارغة لا معطلة — يقرأ المسؤول «لا
+           كورسات معروضة» على قاعدة فيها عشرة. */
+        $this->tq_cs->install_schema();
+
+        /* **كل ما علم للبيع** لا ما يباع فعلا وحده: الكورس الذي علم ولم
+           يعرض (لأنه غير منشور أو بلا سعر) هو أول ما يحتاج المسؤول أن
+           يراه — وقائمة تسقطه تخفي عنه العطل الذي جاء يصلحه. */
+        $offers = $this->tq_cs->offers(false);
+
+        /* والكورسات التي لم تعلن بعد: منها يعلن الجديد، فلا يخرج المسؤول
+           من هذه الشاشة إلى «الكورسات» ليبحث عن واحد يعرضه. */
+        $rest = array();
+        foreach ($this->db->select('id, title, status, price, creator, is_free_course')
+                          ->from('course')->where('tq_sell', 0)
+                          ->where('status', 'active')
+                          ->order_by('id', 'DESC')->limit(60)
+                          ->get()->result_array() as $r) {
+            if ((int) $r['is_free_course'] === 1) continue;   // المجاني لا يباع
+            $rest[] = $r;
+        }
+
+        $this->render('tqa_course_sales', 'بيع الكورسات', array(
+            'offers' => $offers,
+            'sold'   => $this->tq_cs->sold_counts(),
+            'sales'  => $this->tq_cs->sales(0, 60),
+            'totals' => $this->tq_cs->totals(),
+            'rest'   => $rest,
+            'cfg'    => $this->tq_cs->config(true),
+        ));
+    }
+
+    /**
+     * حفظ المفاتيح العامة لبيع الكورسات.
+     *
+     * والحدود تفرض في `Taqdar_course_sale_model::config()` لا هنا: قيمة
+     * قد تكتب بسكربت أو بيد في القاعدة، وفحص في المتحكم وحده يحرسها من
+     * النموذج ولا يحرسها من القاعدة.
+     */
+    public function course_sales_config()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+
+        $vals = array();
+        foreach (array_keys(Taqdar_course_sale_model::$DEFAULTS) as $k) {
+            /* خانة التأشير غير المؤشرة لا ترسل أصلا، فلا يفرق «لم يرسل»
+               عن «أطفئ» — وحقل مرافق يفصل. وبلاه لا يطفأ الباب أبدا. */
+            if ($k === 'tq_course_sales_enabled') {
+                $vals[$k] = ((string) $this->input->post($k) === '1') ? '1' : '0';
+                continue;
+            }
+            $vals[$k] = (string) $this->input->post($k);
+        }
+        $cfg = $this->tq_cs->save_config($vals);
+
+        $this->session->set_flashdata('flash_message',
+            $cfg['enabled']
+                ? 'حفظت — باب البيع المفرد مفتوح. نصيب المعلم الافتراضي '
+                  . rtrim(rtrim(number_format($cfg['percent'], 2), '0'), '.')
+                  . '٪، والباقي عمولة المنصة. ولا يعرض كورس حتى يعلم «يباع مفردا».'
+                : 'حفظت — والباب مغلق، فلا يعرض كورس للبيع المفرد ولا يتغير شيء في الموقع.');
+        redirect(site_url('taqdar_admin/course_sales#tqa-pricing'), 'location', 302);
+    }
+
+    /**
+     * حفظ عرض كورس واحد من صف في القائمة.
+     *
+     * والحفظ يمر بـ`save_offer()` نفسها لا بنسخة هنا: قاعدة «لا بيع بلا
+     * سعر» تكتب مرة، فلا تقبل هذه الشاشة ما يرفضه تبويب التسعير.
+     */
+    public function course_sale_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+        $cid = (int) $this->input->post('course_id');
+
+        $r = $this->tq_cs->save_offer(
+            $cid,
+            (string) $this->input->post('tq_sell') === '1',
+            (string) $this->input->post('price_sar'),
+            (string) $this->input->post('discount_sar'),
+            (string) $this->input->post('discount_on') === '1',
+            (string) $this->input->post('percent')
+        );
+
+        if (empty($r['ok'])) {
+            $this->session->set_flashdata('error_message',
+                implode(' ', (array) ($r['errors'] ?? array('تعذر الحفظ.'))));
+        } else {
+            $o = $r['offer'];
+            /* الرسالة تقول **ما يراه المشتري الآن** لا «حفظ»: مسؤول علم
+               كورسا غير منشور يظن أنه عرضه، ولا شيء يقول له غير ذلك. */
+            $this->session->set_flashdata('flash_message',
+                $o['sellable']
+                    ? 'حفظ — يباع الآن بـ' . number_format($o['price'] / 100, 2) . ' ر.س،'
+                      . ' للمعلم ' . number_format($o['share'] / 100, 2) . ' ر.س'
+                      . ' وللمنصة ' . number_format($o['platform'] / 100, 2) . ' ر.س.'
+                    : 'حفظ — ولا يعرض للبيع: ' . $o['why']);
+        }
+
+        redirect(site_url('taqdar_admin/course_sales'), 'location', 302);
+    }
+
     /** أوقات المعلمين المفتوحة — من فتح وقتا ومن لم يفتح، وبأي تسعيرة. */
     public function slots()
     {
@@ -437,6 +560,198 @@ class Taqdar_admin extends CI_Controller
                  'location', 302);
     }
 
+    /**
+     * TQ-TEACHER-ADD — شاشة «إضافة معلم».
+     *
+     * القرار كله في `Taqdar_admin_model::create_teacher()`؛ وهنا العرض
+     * وحده، وإعادة ما كتب بعد الرفض — عدا كلمتي المرور.
+     */
+    public function teacher_new()
+    {
+        $this->render('tqa_teacher_form', 'إضافة معلم', array(
+            'row'     => null,
+            'old'     => (array) $this->session->flashdata('tqa_teacher_old'),
+            'errors'  => (array) $this->session->flashdata('tqa_teacher_errors'),
+            'nav_key' => 'tqa_people',
+        ));
+    }
+
+    /**
+     * POST — إنشاء الحساب.
+     *
+     * مسار كتابة، فيرد GET بـ404 كسائر مسارات الكتابة في اللوحة: رابط
+     * ينشئ حسابا بمجرد فتحه لا يصلح لفعل يكتب في `users`.
+     */
+    public function teacher_create()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $r = $this->taqdar_admin_model->create_teacher();
+
+        if (empty($r['ok'])) {
+            /* ما كتب يعود إلى الحقول: من رفض طلبه لخطأ في حقل واحد لا
+               يعيد كتابة النبذة كلها. وكلمتا المرور لا تعودان أبدا. */
+            $this->session->set_flashdata('tqa_teacher_errors', $r['errors']);
+            $this->session->set_flashdata('tqa_teacher_old', $this->teacher_posted());
+            $this->session->set_flashdata('error_message', $r['errors'][0]);
+            redirect(site_url('taqdar_admin/teacher_new'), 'location', 302);
+            return;
+        }
+
+        /* بيانات الدخول تبلغ صاحبها — إن اختار المسؤول ذلك.
+           والاختيار لا الفعل الدائم: كلمة المرور تسافر نصا في البريد،
+           وقد يكون المسؤول سلمها بيده أو باتفاق آخر. */
+        if ((string) $this->input->post('notify') === '1') {
+            $this->notify_teacher_created(
+                (int) $r['user_id'],
+                trim((string) $this->input->post('first_name') . ' ' . (string) $this->input->post('last_name')),
+                trim((string) $this->input->post('email')),
+                (string) $this->input->post('password')
+            );
+        }
+
+        $this->session->set_flashdata('flash_message', $r['message']);
+        /* إلى صفحته لا إلى القائمة: من أنشأ حسابا يريد أن يراه، والقائمة
+           تعرض أربعمئة صف يبحث في أولها عن الذي كتبه للتو. */
+        redirect(site_url('taqdar_admin/teacher/' . (int) $r['user_id']), 'location', 302);
+    }
+
+    /**
+     * تفاصيل المعلم — ما يقوله الرقم عنه قبل أن يعدل أو يحذف.
+     *
+     * وشاشة قراءة لا تحرير: التحرير بابه `teacher_edit`، والفصل بينهما
+     * يجعل من فتح الصفحة ليقرأ لا يحفظ بالخطأ صفا لم يقصده.
+     */
+    public function teacher($id = 0)
+    {
+        $row = $this->taqdar_admin_model->teacher_row($id);
+        if (!$row) {
+            $this->session->set_flashdata('error_message', 'هذا الحساب ليس حساب معلم، أو لم يعد موجودا.');
+            redirect(site_url('taqdar_admin/people?role=teacher'), 'location', 302);
+            return;
+        }
+
+        $this->render('tqa_teacher', 'المعلم: ' . trim($row['first_name'] . ' ' . $row['last_name']), array(
+            'row'      => $row,
+            'stats'    => $this->taqdar_admin_model->teacher_stats((int) $row['id']),
+            'blockers' => $this->taqdar_admin_model->teacher_delete_blockers((int) $row['id']),
+            'nav_key'  => 'tqa_people',
+        ));
+    }
+
+    /** شاشة تعديل المعلم — القالب نفسه الذي ينشئ، بصف محفوظ. */
+    public function teacher_edit($id = 0)
+    {
+        $row = $this->taqdar_admin_model->teacher_row($id);
+        if (!$row) {
+            $this->session->set_flashdata('error_message', 'هذا الحساب ليس حساب معلم، أو لم يعد موجودا.');
+            redirect(site_url('taqdar_admin/people?role=teacher'), 'location', 302);
+            return;
+        }
+
+        $this->render('tqa_teacher_form', 'تعديل المعلم', array(
+            'row'     => $row,
+            'old'     => (array) $this->session->flashdata('tqa_teacher_old'),
+            'errors'  => (array) $this->session->flashdata('tqa_teacher_errors'),
+            'nav_key' => 'tqa_people',
+        ));
+    }
+
+    /** POST — حفظ التعديل. */
+    public function teacher_update($id = 0)
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $r = $this->taqdar_admin_model->update_teacher($id);
+
+        if (empty($r['ok'])) {
+            $this->session->set_flashdata('tqa_teacher_errors', $r['errors']);
+            $this->session->set_flashdata('tqa_teacher_old', $this->teacher_posted());
+            $this->session->set_flashdata('error_message', $r['errors'][0]);
+            redirect(site_url('taqdar_admin/teacher_edit/' . (int) $id), 'location', 302);
+            return;
+        }
+
+        $this->session->set_flashdata('flash_message', $r['message']);
+        redirect(site_url('taqdar_admin/teacher/' . (int) $id), 'location', 302);
+    }
+
+    /**
+     * POST — حذف حساب المعلم.
+     *
+     * والقرار في النموذج (TQ-TEACHER-DELETE): حساب بدأ يدرس أو دخل في
+     * قيد مال لا يحذف، ويرد برسالته وبالبديل — الإغلاق.
+     */
+    public function teacher_delete()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $id = (int) $this->input->post('user_id');
+        $r  = $this->taqdar_admin_model->delete_teacher($id);
+
+        $this->session->set_flashdata($r['ok'] ? 'flash_message' : 'error_message', $r['message']);
+
+        /* الرد يعود إلى القائمة إن حذف، وإلى صفحة المعلم إن رد — فمن
+           منع من الحذف يجد أمامه زر الإغلاق لا شاشة لا تذكر حسابه. */
+        redirect(site_url($r['ok'] ? 'taqdar_admin/people?role=teacher' : 'taqdar_admin/teacher/' . $id),
+                 'location', 302);
+    }
+
+    /** ما كتب في نموذج المعلم — يعود بعد الرفض، عدا كلمتي المرور. */
+    private function teacher_posted()
+    {
+        $out = array();
+        foreach (array('first_name', 'last_name', 'email', 'phone', 'phone_cc',
+                       'title', 'skills', 'biography', 'is_public', 'notify', 'status') as $f) {
+            $out[$f] = (string) $this->input->post($f);
+        }
+        /* مربع لم يعلم لا يرسل أصلا، فالفراغ يعني «لا» — و`$tq_o` تقرأ
+           الفراغ افتراضا، فلولا هذا السطر عاد المربع معلما بعد رفض
+           أطفأه صاحبه فيه. */
+        $out['is_public'] = ((string) $this->input->post('is_public') === '1') ? '1' : '0';
+        $out['notify']    = ((string) $this->input->post('notify') === '1') ? '1' : '0';
+        return $out;
+    }
+
+    /**
+     * يبلغ المعلم أن حسابه فتح، وبم يدخل.
+     *
+     * والباب واحد (`push_notification`): الإشعار داخل المنصة يكتب أولا
+     * وهو السجل الذي يقرؤه صاحبه متى دخل، والبريد تابع لا شرط — بريد
+     * غير مضبوط يرد `false` بهدوء فلا يسقط حساب أنشئ فعلا.
+     *
+     * ولا واتساب: كلمة المرور ليست من أنواع المال ولا رموز التحقق
+     * (`Taqdar_wa_model::$PAY_TYPES`)، والمعامل السادس يقول ذلك صراحة.
+     */
+    private function notify_teacher_created($uid, $name, $email, $password)
+    {
+        $lines = array(
+            'مرحبا ' . ($name !== '' ? $name : 'أستاذنا') . '،',
+            'أنشأت الإدارة لك حساب معلم على منصة تقدر، وهو مفتوح الآن — '
+            . 'لا ينتظر مراجعة ولا رمز تأكيد.',
+            'بريد الدخول: ' . $email,
+            'كلمة المرور: ' . $password,
+            'غيرها من «إعدادات» لوحتك بعد أول دخول.',
+        );
+
+        $this->taqdar_admin_model->push_notification(
+            (int) $uid,
+            'فتح حسابك معلما في تقدر',
+            'حسابك جاهز للدخول. غير كلمة المرور من إعدادات لوحتك بعد أول دخول.',
+            /* بلا بريد من هذا الباب: رسالة بيانات الدخول تخرج بعده
+               بسطورها، وبريدان عن حدث واحد يجعل الثاني يقرأ تكرارا. */
+            'system', false, false
+        );
+
+        if ($email === '') return;
+
+        $this->load->model('taqdar_mail_model');
+        $this->taqdar_mail_model->send_lines(
+            $email, 'فتح حسابك معلما في تقدر', $lines,
+            array('label' => 'ادخل إلى لوحتك', 'href' => site_url('login'))
+        );
+    }
+
     /* =====================================================================
        نصوص الموقع العام
 
@@ -559,11 +874,22 @@ class Taqdar_admin extends CI_Controller
 
     public function subscriptions()
     {
+        /* البنية أولا: `subscriptions.course_id` ينشأ وقت التشغيل، وقراءة
+           قبل إنشائه ترد «عمود مجهول» فتبيض الشاشة. TQ-COURSE-SALE. */
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+        $this->tq_cs->install_schema();
+
         // الاسم يجلب بضمة واحدة لا باستعلام لكل صف
+        /* والاسم الثلاثة معا: الباقة والمسار **والكورس المفرد**. وكان
+           الضم على `plans` وحده، فيقرأ صف الشراء المفرد عمودا فارغا —
+           والقالب يطبع «—» على بيعة لها اسم ومشتر ومبلغ. */
         $rows = $this->db->select('s.*, p.name_ar AS plan_name,'
+                . ' t.title AS path_name, c.title AS course_name,'
                 . ' TRIM(CONCAT(COALESCE(u.first_name, ""), " ", COALESCE(u.last_name, ""))) AS user_name', false)
             ->from('subscriptions s')
             ->join('plans p', 'p.id = s.plan_id', 'left')
+            ->join('paths t', 't.id = s.path_id', 'left')
+            ->join('course c', 'c.id = s.course_id', 'left')
             ->join('users u', 'u.id = s.user_id', 'left')
             ->order_by('s.id', 'DESC')->limit(300)
             ->get()->result_array();
@@ -667,16 +993,33 @@ class Taqdar_admin extends CI_Controller
            كان التفعيل يقع في القاعدة بلا خبر: من حول حوالة بنكية ينتظر
            ولا يعرف متى تراجع، فيدخل كل يوم يجرب — أو يتصل بالدعم. */
         if ($ok) {
-            $sub = $this->db->select('s.user_id, p.name_ar AS plan_name, s.ends_at', false)
+            /* TQ-COURSE-SALE — الاسم من الثلاثة: الباقة والمسار والكورس
+               المفرد. وكان الضم على `plans` وحده، فيصل من حول قيمة كورس
+               اشتراه خبر يقول «فعلت باقة الاشتراك». */
+            $sub = $this->db->select('s.user_id, s.ends_at, s.course_id,'
+                            . ' p.name_ar AS plan_name, t.title AS path_name,'
+                            . ' c.title AS course_name', false)
                             ->from('subscriptions s')
                             ->join('plans p', 'p.id = s.plan_id', 'left')
+                            ->join('paths t', 't.id = s.path_id', 'left')
+                            ->join('course c', 'c.id = s.course_id', 'left')
                             ->where('s.id', (int) $id)->get()->row_array();
             if ($sub && !empty($sub['user_id'])) {
+                $is_course = (int) ($sub['course_id'] ?? 0) > 0;
+                $what = '';
+                foreach (array('plan_name', 'path_name', 'course_name') as $k) {
+                    if (isset($sub[$k]) && trim((string) $sub[$k]) !== '') {
+                        $what = trim((string) $sub[$k]); break;
+                    }
+                }
                 $this->taqdar_admin_model->push_notification(
                     (int) $sub['user_id'],
-                    'فعل اشتراكك',
-                    'فعلت باقة «' . ($sub['plan_name'] ?: 'الاشتراك') . '»'
-                    . (!empty($sub['ends_at']) ? ' حتى ' . date('Y-m-d', strtotime($sub['ends_at'])) : '')
+                    $is_course ? 'فتح الكورس الذي اشتريته' : 'فعل اشتراكك',
+                    ($is_course ? 'وصلت حوالتك وفتح كورس ' : 'فعلت باقة ')
+                    . '«' . ($what !== '' ? $what : 'الاشتراك') . '»'
+                    . (!empty($sub['ends_at'])
+                        ? ' حتى ' . date('Y-m-d', strtotime($sub['ends_at']))
+                        : ($is_course ? ' بوصول دائم' : ''))
                     . '. صار المحتوى مفتوحا لك الآن.',
                     'subscription'
                 );

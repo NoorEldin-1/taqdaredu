@@ -327,6 +327,13 @@ class Taqdar_catalog_model extends CI_Model
             $count[(int) $r['course_id']] = array('n' => (int) $r['n'], 'q' => (int) $r['q']);
         }
 
+        /* عروض البيع المفرد دفعة واحدة لا نداء لكل بطاقة — الكتالوج
+           يعرض عشرات الصفوف. وترد فارغة متى كان الباب مطفأ، فتعرض
+           البطاقات ما كانت تعرضه حرفا بحرف. */
+        $CI = get_instance();
+        $CI->load->model('taqdar_course_sale_model', 'tq_cs_cat');
+        $sale_offers = $CI->tq_cs_cat->offers(true);
+
         $cats = $this->categories();
         $out  = array();
         foreach ($rows as $r) {
@@ -339,11 +346,18 @@ class Taqdar_catalog_model extends CI_Model
             if ($st['n'] > 0) $stats[] = array('i-play',      tq_lessons_word($st['n']));
             if ($st['q'] > 0) $stats[] = array('i-clipboard', tq_exams_word($st['q']));
 
-            /* السعر: الكورس هنا محتوى الباقة لا سلعة مستقلة — ما دام له
-               برنامج فهو يفتح بالاشتراك. والحر (`is_free_course`) وحده
-               يقرأ مجانا، وما عداه «ضمن الباقات» كما يقرأ البرنامج. */
+            /* السعر: الكورس محتوى الباقة **إلا أن يعلن للبيع مفردا**.
+               فما دام له برنامج وحده فهو يفتح بالاشتراك (`-1` أي «ضمن
+               الباقات»)، والحر (`is_free_course`) يقرأ مجانا.
+
+               TQ-COURSE-SALE — والمعلن للبيع يقرأ سعره: بلا هذا يسقط من
+               مرشح «مدفوع» (الشرط `price < 0` يسقطه من الوجهين)، ولا
+               يرتب مع الأسعار، وتعرض بطاقته «ضمن الباقات» بينما صفحته
+               تعرض زر شراء بمئة وتسعين. والعرض يقرأ من `offer()` نفسها
+               التي تقرأ منها الصفحة وشاشة الدفع. */
             $free  = ((int) $r['is_free_course'] === 1);
             $price = $free ? 0 : -1;
+            if (!$free && isset($sale_offers[$cid])) $price = (int) $sale_offers[$cid]['price'];
 
             $out[] = $this->shape(array(
                 'kind'       => 'course',

@@ -1338,6 +1338,114 @@ class Taqdar_wallet_model extends CI_Model
     }
 
     /**
+     * TQ-COURSE-SALE — يقيد بيع كورس مفرد في محفظة معلمه.
+     *
+     * القسمة هنا لا في `Taqdar_revenue_model`: ذاك يقسم وعاء مغلقا على
+     * معلمين كثر لأن الباقة تفتح محتواهم جميعا، والكورس المفرد **لمعلم
+     * واحد** (`course.creator`) — فلا وعاء ولا أوزان ولا أكبر بواق،
+     * ونسبة واحدة تكفي. وهو الحكم نفسه في `credit_session()` وللسبب
+     * نفسه: استدعاء القاسم لصف واحد يقحم أوزان الدروس على بيعة لا وعاء
+     * فيها.
+     *
+     * وقيدان لا سطر صاف: `sale` بكامل المقبوض ثم `commission` بما تأخذه
+     * المنصة، فمجموعهما حصة المعلم **بحكم البناء** ويبقى المقبوض ظاهرا
+     * في كشفه بدل رقم صاف لا يراجع. وهو ما يفعله `credit_path_sale()`.
+     *
+     * والدلو `pending` بتاريخ تحرر محسوب من نافذة الاسترداد، فتحرره
+     * `release_matured()` كما تحرر بقية المبيعات — لا آلية ثانية.
+     *
+     * `$gross` هو **سعر الكورس بلا ضريبة**: الضريبة مال الدولة لا إيراد
+     * يقسم، وهي القاعدة في الباقة (`$sub['price']`) وفي الحصة.
+     *
+     * متكرر الأمان: المفتاح `coursesub:<subscription_id>` فريد، فتفعيل
+     * مكرر أو ويبهوك يصل مرتين لا يضاعف المال.
+     *
+     * @return array ok · wallet_id · share · commission · percent
+     */
+    public function credit_course_sale($teacher_id, $course_id, $subscription_id,
+                                       $gross_halalas, $share_percent = null, $title = '')
+    {
+        $this->install_schema();
+
+        $teacher_id = (int) $teacher_id;
+        $gross      = (int) $gross_halalas;
+        if ($teacher_id < 1 || $gross <= 0) {
+            return array('ok' => false, 'errors' => array('لا معلم للكورس أو لا مبلغ.'));
+        }
+
+        if ($share_percent === null || $share_percent === '') {
+            /* الافتراض من مفتاح بيع الكورسات لا من مفتاح المسارات:
+               رقمان لمعنيين، وخلطهما يعطي معلم الكورس نسبة المسار. */
+            $share_percent = $this->setting('tq_course_teacher_percent', 60);
+        }
+        $share_percent = max(0, min(100, (float) $share_percent));
+
+        // التقريب مرة واحدة، والباقي للمنصة — فلا تضيع هللة ولا تخترع
+        $share = (int) round($gross * $share_percent / 100);
+        $cut   = $gross - $share;
+
+        $wallet  = $this->wallet_of($teacher_id);
+        $wid     = $wallet['id'];
+        $origin  = 'coursesub:' . (int) $subscription_id;
+        $title   = trim((string) $title);
+        $subject = ($title !== '' ? $title : ('كورس #' . (int) $course_id)) . ' — بيع مفرد';
+        $release = $this->at(time() + $this->hold_days() * 86400);
+
+        $this->post($wid, 'sale', self::B_PENDING, $gross,
+                    $this->ref_key($wid, $origin, 'sale'), $origin, $subject, null, $release);
+
+        if ($cut > 0) {
+            $this->post($wid, 'commission', self::B_PENDING, -$cut,
+                        $this->ref_key($wid, $origin, 'commission'), $origin, $subject,
+                        null, $release);
+        }
+
+        $this->recompute($wid);
+
+        return array('ok' => true, 'wallet_id' => $wid, 'share' => $share,
+                     'commission' => $cut, 'percent' => $share_percent, 'gross' => $gross);
+    }
+
+    /**
+     * يعكس بيع كورس استرد — بالباب نفسه الذي يعكس به بيع الباقة والحصة.
+     * ولا يشترط قيدا قائما: بيع ألغي قبل أن يفعل لا قيد له، فيرد `false`
+     * بهدوء ولا يعد ذلك خطأ.
+     */
+    public function reverse_course_sale($teacher_id, $subscription_id, $reason = '')
+    {
+        $wallet = $this->wallet_of((int) $teacher_id);
+        $n = $this->reverse_origin($wallet['id'], 'coursesub:' . (int) $subscription_id, $reason);
+        if ($n > 0) $this->recompute($wallet['id']);
+        return $n > 0;
+    }
+
+    /**
+     * ملخص كسب الكورسات المباعة مفردة لمعلم — لشاشته ولشاشة الإدارة.
+     *
+     * يقرأ من الدفتر لا من `subscriptions`: الدفتر هو ما يصرف منه، وجدول
+     * الاشتراكات قد يحمل بيعة فعلت ولم يقيد نصيبها بعد. ورقمان يفترقان
+     * في شاشتين يجعلان المعلم يسأل عن الفرق ولا أحد يعرف أيهما الصحيح.
+     */
+    public function course_sale_earnings($user_id)
+    {
+        $this->install_schema();
+        $wallet = $this->wallet_of((int) $user_id);
+
+        $zero = array('n' => 0, 'net' => 0);
+        try {
+            $r = $this->db->query(
+                'SELECT COUNT(DISTINCT `origin`) n, COALESCE(SUM(`amount`),0) net
+                   FROM `wallet_entries`
+                  WHERE `wallet_id` = ? AND `origin` LIKE "coursesub:%"
+                    AND `type` IN ("sale","commission","retained","refund")',
+                array($wallet['id'])
+            )->row_array();
+        } catch (Throwable $e) { return $zero; }
+
+        return $r ? array('n' => (int) $r['n'], 'net' => (int) $r['net']) : $zero;
+    }
+
+    /**
      * يقيد حصة معلم من بيعة **باقة** في دفتره.
      *
      * الفرق عن `credit_path_sale()` أن القسمة لا تقع هنا: `Taqdar_revenue_model`

@@ -73,8 +73,14 @@
   color:#fff;background:var(--petrol);border-color:transparent;
 }
 
-/* مبدّل الدورة */
-.p26d__cycle{display:flex;justify-content:center}
+/* مبدل الدورة — وهو **عدسة لا دورة فوترة**،
+   فله كلمة تسبقه تقول ذلك (TQ-CYCLE-CHARGE) */
+.p26d__cycle{display:flex;justify-content:center;align-items:center;
+  gap:10px;flex-wrap:wrap}
+.p26d__cycle-lead{
+  color:var(--ink-3);font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(11.5px,.88vw,13px);
+}
 .p26d__cycle-in{
   display:inline-flex;align-items:center;gap:4px;padding:4px;
   background:var(--paper);border:1px solid var(--gold-line-soft);
@@ -259,6 +265,13 @@
 .p26d-card__price small{
   display:block;color:var(--ink-3);opacity:.9;
   font-size:clamp(9.5px,.74vw,11.5px);line-height:1.5;text-align:center;
+}
+/* TQ-CYCLE-CHARGE — **والمخصوم ليس حاشية.**
+   هو المبلغ الذي ستطلبه شاشة التأكيد بعد نقرة، وإخفاته تحت
+   رقم ضخم هو ما يجعل الزائر يقرأ 62 ويفاجأ بـ599. */
+.p26d-card__price small.tq-pay{
+  margin-block-start:2px;opacity:1;color:var(--ink-2);font-weight:700;
+  font-size:clamp(11px,.86vw,13px);
 }
 .p26d-card__price[hidden]{display:none}
 

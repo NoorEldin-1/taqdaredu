@@ -175,6 +175,87 @@ include 'portal_open.php';
       <?php endif; ?>
     </section>
 
+    <?php /* ── 2ب · لكم مدة ────────────────────────────────────── */ ?>
+    <?php
+    /* TQ-CYCLE-BUY — **باب الشراء الثاني يعرف الدورة كما يعرفها الأول.**
+       `parent_pay_start()` تمرر `cycle` إلى `subscribe()`، وشاشة بلا هذا
+       الحقل ترسل فارغا — فيرتد إلى دورة الباقة، ويبقى ولي الأمر لا يملك
+       شراء الشهري أبدا مهما عرضته عليه صفحة الباقات.
+
+       والمعروض هنا الدورات الممكنة لكل باقة معا، ويخفي السكربت ما لا
+       يخص المختارة. وبلا سكربت تظهر كلها بأسماء باقاتها — أطول قليلا
+       ولا يضل أحد: الاسم مكتوب في كل خيار. */
+    $tq_cyc_map = array();
+    if (!empty($tq_plans)) {
+        $tq_bci = &get_instance();
+        $tq_bci->load->model('taqdar_billing_model');
+        foreach ($tq_plans as $p) {
+            $tq_cyc_map[(int) $p['id']] = $tq_bci->taqdar_billing_model->plan_cycles($p);
+        }
+    }
+    $tq_any_alt = false;
+    foreach ($tq_cyc_map as $cs) { if (count($cs) > 1) { $tq_any_alt = true; break; } }
+    ?>
+    <?php if ($tq_any_alt): ?>
+    <section class="tq-card" data-tq-cycles>
+      <div class="tq-card__head">
+        <h2 class="tq-card__title">لكم مدة؟</h2>
+      </div>
+      <div class="tq-pp-kids" role="radiogroup" aria-label="مدة الاشتراك">
+        <?php $tq_first = true; foreach ($tq_cyc_map as $tq_pid => $tq_cs): ?>
+          <?php foreach ($tq_cs as $tq_k => $tq_c): ?>
+            <label class="tq-pick<?php echo $tq_first ? ' is-on' : ''; ?>"
+                   data-tq-for-plan="<?php echo (int) $tq_pid; ?>">
+              <input type="radio" name="cycle" value="<?php echo html_escape((string) $tq_k); ?>"
+                     <?php echo $tq_first ? ' checked' : ''; ?>>
+              <span class="tq-pick__label"><?php echo html_escape((string) $tq_c['label']); ?></span>
+              <span class="tq-pick__note">
+                <?php echo tq_num(number_format($tq_c['price'] / 100, 0)); ?> ريال —
+                يفتح <?php echo (int) $tq_c['days']; ?> يوما، بلا تجديد تلقائي
+              </span>
+            </label>
+          <?php $tq_first = false; endforeach; ?>
+        <?php endforeach; ?>
+      </div>
+    </section>
+    <script>
+    /* تحسين تدريجي: يخفي دورات الباقات غير المختارة ويعلم أول ما بقي.
+       وبلا هذا الملف تظهر الدورات كلها ويختار ولي الأمر بنفسه — والخادم
+       يحرس على كل حال (`cycle_of()` ترتد إلى دورة الباقة). */
+    (function () {
+      var form = document.querySelector('form');
+      var box  = document.querySelector('[data-tq-cycles]');
+      if (!form || !box) return;
+      var opts = box.querySelectorAll('[data-tq-for-plan]');
+
+      function sync() {
+        var p = form.querySelector('input[name="plan_id"]:checked');
+        var id = p ? p.value : '';
+        var first = null, hasChecked = false;
+        Array.prototype.forEach.call(opts, function (o) {
+          var on = (o.getAttribute('data-tq-for-plan') === id);
+          o.hidden = !on;
+          var r = o.querySelector('input');
+          if (!on) { r.checked = false; return; }
+          if (!first) first = r;
+          if (r.checked) hasChecked = true;
+        });
+        if (first && !hasChecked) first.checked = true;
+        Array.prototype.forEach.call(opts, function (o) {
+          o.classList.toggle('is-on', o.querySelector('input').checked);
+        });
+        box.hidden = !first || box.querySelectorAll('[data-tq-for-plan]:not([hidden])').length < 2;
+      }
+
+      form.addEventListener('change', function (e) {
+        if (e.target && e.target.name === 'plan_id') sync();
+        if (e.target && e.target.name === 'cycle')  sync();
+      });
+      sync();
+    })();
+    </script>
+    <?php endif; ?>
+
     <?php /* ── 3 · كيف تدفع ─────────────────────────────────────── */ ?>
     <section class="tq-card">
       <div class="tq-card__head">
@@ -207,6 +288,100 @@ include 'portal_open.php';
     </section>
   </form>
 
+  <?php
+  /* ══ TQ-COURSE-SALE — كورس مفرد لابنك ═══════════════════════════════
+     **نموذج ثان مستقل، لا خطوة في الأول.** والسبب أن المشترى مختلف
+     اختلافا يغير كل خطوة بعده: الباقة لها دورة ومدة وصفوف، والكورس
+     المفرد ليس له إلا سعر وأجل. وحشرهما في نموذج واحد يعني حقولا تظهر
+     وتختفي بحسب اختيار أول — وهي الشاشة التي يضغط فيها الأب «أصدر
+     الفاتورة» فيشتري غير ما ظن.
+
+     ولا يعرض إلا إن كان في المنصة كورس معروض فعلا: قسم فارغ يقول «لا
+     كورسات تباع مفردة» يزحم شاشة شراء ليعتذر. */
+  $tq_pc_ci = &get_instance();
+  $tq_pc_ci->load->model('taqdar_course_sale_model', 'tq_cs');
+  $tq_pc_offers = $tq_pc_ci->tq_cs->offers(true);
+  if ($tq_pc_offers):
+  ?>
+  <form method="post" action="<?php echo base_url('parent/pay/course'); ?>" class="tq-pp"
+        style="margin-block-start:var(--tq-space-xl)">
+    <?php echo tq_csrf(); ?>
+
+    <section class="tq-card">
+      <div class="tq-card__head">
+        <h2 class="tq-card__title">أو اشتر كورسا مفردا</h2>
+        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('catalog?type=course'); ?>"
+           target="_blank" rel="noopener">تصفح الكورسات</a>
+      </div>
+
+      <p class="tq-caption">
+        الكورس المفرد يفتح <strong>هذه المادة وحدها</strong> لا منهج المرحلة، ولا يجدد
+        تلقائيا. وهو مستقل عن الباقة: من له باقة سارية يشتريه فوقها، ومن لا باقة له
+        يشتريه بلا اشتراك.
+      </p>
+
+      <?php /* «لمن» يسأل هنا كذلك لا يقرأ من النموذج الأول: نموذجان
+               منفصلان لا يتشاركان حقلا، وقراءة اختيار من نموذج آخر تعني
+               أن الأب يبدل الابن في الأعلى ويشتري للأول في الأسفل. */ ?>
+      <div class="tq-pp-kids" role="radiogroup" aria-label="اختر الابن">
+        <?php foreach ($tq_kids as $i => $k):
+          $kid = (int) ($k['student_id'] ?? 0);
+          if ($kid < 1) continue;
+          $name = trim(($k['first_name'] ?? '') . ' ' . ($k['last_name'] ?? '')) ?: 'ابنك';
+        ?>
+          <label class="tq-pick<?php echo $i === 0 ? ' is-on' : ''; ?>">
+            <input type="radio" name="child_id" value="<?php echo $kid; ?>"
+                   <?php echo $i === 0 ? ' checked' : ''; ?> required>
+            <span class="tq-pick__label"><?php echo html_escape($name); ?></span>
+          </label>
+        <?php endforeach; ?>
+      </div>
+
+      <div class="tq-pp-plans" role="radiogroup" aria-label="اختر الكورس"
+           style="margin-block-start:var(--tq-space-l)">
+        <?php $tq_pc_first = true; foreach ($tq_pc_offers as $tq_pc_id => $tq_pc_o): ?>
+          <label class="tq-pp-plan<?php echo $tq_pc_first ? ' is-on' : ''; ?>">
+            <input type="radio" name="course_id" value="<?php echo (int) $tq_pc_id; ?>"
+                   <?php echo $tq_pc_first ? ' checked' : ''; ?> required>
+            <span class="tq-pp-plan__t"><?php echo html_escape($tq_pc_o['title']); ?></span>
+            <span class="tq-pp-plan__s"><?php echo (int) $tq_pc_o['days'] > 0
+                ? 'وصول ' . (int) round($tq_pc_o['days'] / 30) . ' شهرا'
+                : 'وصول دائم'; ?></span>
+            <?php /* السعر هنا **ما يدفع فعلا** لا معادلا: هذه شاشة إصدار
+                     فاتورة، والرقم فيها هو رقم الفاتورة. */ ?>
+            <span class="tq-pp-plan__p"><?php
+              echo tq_num(number_format($tq_pc_o['price'] / 100, 0)); ?> ريال</span>
+          </label>
+        <?php $tq_pc_first = false; endforeach; ?>
+      </div>
+
+      <div class="tq-pp-kids" role="radiogroup" aria-label="طريقة الدفع"
+           style="margin-block-start:var(--tq-space-l)">
+        <?php if ($tq_card_ready): ?>
+          <label class="tq-pick is-on">
+            <input type="radio" name="method" value="card" checked>
+            <span class="tq-pick__label">بطاقة</span>
+            <span class="tq-pick__note">يفتح الكورس فور نجاح الدفع</span>
+          </label>
+        <?php endif; ?>
+        <label class="tq-pick<?php echo $tq_card_ready ? '' : ' is-on'; ?>">
+          <input type="radio" name="method" value="bank" <?php echo $tq_card_ready ? '' : ' checked'; ?>>
+          <span class="tq-pick__label">تحويل بنكي</span>
+          <span class="tq-pick__note">يفتح بعد أن تعتمد الإدارة التحويل</span>
+        </label>
+      </div>
+
+      <p class="tq-caption" style="margin-block-start:var(--tq-space-l)">
+        الكورس يفتح في حساب ابنك، ويظهر في تقاريره هو. والفاتورة تسجل في مدفوعاتك.
+      </p>
+
+      <div class="tq-formbar">
+        <button class="tq-btn tq-btn--primary" type="submit">أصدر فاتورة الكورس</button>
+      </div>
+    </section>
+  </form>
+  <?php endif; ?>
+
 <?php endif; ?>
 
 <style>
@@ -237,19 +412,27 @@ include 'portal_open.php';
 </style>
 
 <script>
-/* تظليل الاختيار في متصفح بلا `:has`. والنموذج يعمل كاملا بلا هذا. */
+/* تظليل الاختيار في متصفح بلا `:has`. والنموذج يعمل كاملا بلا هذا.
+   و**كل** نموذج `.tq-pp` لا أوله: صار في الصفحة نموذجان — الباقة والكورس
+   المفرد (TQ-COURSE-SALE) — واسما `child_id` و`method` مكرران بينهما.
+   و`querySelector` يمسك الأول وحده، فيبقى الثاني بلا تظليل؛ والأسوأ أن
+   بحث الأقران داخل النموذج نفسه لا خارجه، وإلا ظلل اختيار أحدهما نظيره
+   في الآخر — فيقرأ الأب أنه اختار ابنا في نموذج لم يلمسه. */
 (function () {
-  var f = document.querySelector('.tq-pp');
-  if (!f) return;
-  f.addEventListener('change', function (e) {
-    var i = e.target;
-    if (i.type !== 'radio' || !i.name) return;
-    var peers = f.querySelectorAll('input[name="' + i.name + '"]');
-    for (var n = 0; n < peers.length; n++) {
-      var box = peers[n].closest('.tq-pick, .tq-pp-plan');
-      if (box) box.classList.toggle('is-on', peers[n].checked);
-    }
-  });
+  var forms = document.querySelectorAll('.tq-pp');
+  for (var k = 0; k < forms.length; k++) {
+    (function (f) {
+      f.addEventListener('change', function (e) {
+        var i = e.target;
+        if (i.type !== 'radio' || !i.name) return;
+        var peers = f.querySelectorAll('input[name="' + i.name + '"]');
+        for (var n = 0; n < peers.length; n++) {
+          var box = peers[n].closest('.tq-pick, .tq-pp-plan');
+          if (box) box.classList.toggle('is-on', peers[n].checked);
+        }
+      });
+    })(forms[k]);
+  }
 })();
 </script>
 

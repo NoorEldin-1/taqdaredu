@@ -551,7 +551,132 @@ if ($tq_gaps): ?>
                 <label class="tqa-field__label" for="number_of_month">عدد الأشهر</label>
                 <input class="tqa-input tqa-input--ltr" type="number" id="number_of_month" name="number_of_month"
                        min="1" value="<?php echo (int) $tq_course['expiry_period']; ?>">
+                <span class="tqa-field__hint">وهي مدة وصول <b>المشتري المفرد</b> كذلك: من اشترى
+                    الكورس وحده يفتح له هذه المدة، و«وصول دائم» يعني بلا انتهاء.</span>
             </div>
+        </div>
+
+        <?php
+        /* TQ-COURSE-SALE — البيع المفرد في بطاقته لا مبعثرا بين حقول السعر.
+           والسبب أنه سؤال آخر: «بكم يباع» سؤال، و«أيباع أصلا خارج الباقة»
+           سؤال ثان — وخانة تسبح بين حقول السعر تقرأ إعدادا فنيا لا قرار
+           عمل.
+
+           وكل ما فيها يقرأ من `offer()` نفسها التي تعرض في الموقع، فما
+           تراه هنا هو ما يراه المشتري بالهللة. */
+        $tq_cs_ci = get_instance();
+        $tq_cs_ci->load->model('taqdar_course_sale_model', 'tq_cs');
+        $tq_offer = $tq_cs_ci->tq_cs->offer($course_id);
+        $tq_scfg  = $tq_cs_ci->tq_cs->config();
+        $tq_sold  = $tq_cs_ci->tq_cs->sold_counts();
+        $tq_sold  = isset($tq_sold[(int) $course_id]) ? $tq_sold[(int) $course_id] : null;
+        $tq_pc    = $tq_course['tq_teacher_percent'] ?? null;
+        ?>
+
+        <div class="tqa-card tqa-section">
+            <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
+                <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('card', 20); ?></span>
+                <div>
+                    <h2>البيع المفرد</h2>
+                    <p class="tqa-card__lead">بيع هذا الكورس وحده خارج الباقات — لمن يريد مادة
+                        بعينها لا منهج مرحلة كاملا.</p>
+                </div>
+            </div>
+
+            <?php /* العلامة تقول للمتحكم إن هذا التبويب عرض الخانة — بلاها
+                     يقرأ غيابها «أطفئ» فيسحب كل كورس معروض من البيع عند
+                     حفظ أي تبويب آخر. وهي علة TQ-TAB-WIPE نفسها. */ ?>
+            <input type="hidden" name="tq_sale_sent" value="1">
+
+            <div class="tqa-prefrow">
+                <div class="tqa-prefrow__main">
+                    <label class="tqa-prefrow__title" for="tq_sell">يباع مفردا</label>
+                    <span class="tqa-prefrow__hint">يظهر بسعره في «المواد والبرامج» وفي صفحته،
+                        ويشترى بالبطاقة أو بتحويل بنكي كما تشترى الباقة.</span>
+                </div>
+                <div class="tqa-prefrow__end">
+                    <span class="tqa-switch">
+                        <input type="checkbox" id="tq_sell" name="tq_sell" value="1" data-tqa-sell
+                               <?php echo !empty($tq_offer['marked']) ? 'checked' : ''; ?>>
+                        <span class="tqa-switch__track" aria-hidden="true"></span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="tqa-fieldgrid" style="margin-block-start:var(--tq-space-l)">
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="tq_teacher_percent">نصيب المعلم %</label>
+                    <input class="tqa-input tqa-input--ltr" type="number" id="tq_teacher_percent"
+                           name="tq_teacher_percent" min="0" max="100" step="0.01" data-tqa-share
+                           placeholder="<?php echo html_escape($tq_scfg['percent']); ?> — الافتراض العام"
+                           value="<?php echo $tq_pc === null ? '' : html_escape($tq_pc); ?>">
+                    <?php /* **الفارغ غير الصفر.** وقوله صراحة يمنع أن يكتب
+                             مسؤول صفرا ظانا أنه «يرجعه إلى الافتراضي»
+                             فيحرم معلما من نصيبه بلا أن يقصد. */ ?>
+                    <span class="tqa-field__hint">اتركه فارغا ليأخذ الافتراض العام
+                        (<span class="tqa-num"><?php echo html_escape($tq_scfg['percent']); ?>٪</span>).
+                        والصفر يعني <b>صفرا بقرار</b> لا «الافتراضي». والباقي عمولة المنصة.</span>
+                </div>
+
+                <div class="tqa-field">
+                    <span class="tqa-field__label">القسمة على السعر المحفوظ</span>
+                    <p class="tqa-note" style="margin:0">
+                        <span aria-hidden="true"><?php echo tq_icon('money', 18); ?></span>
+                        <span style="flex:1">
+                            <?php if ((int) $tq_offer['price'] > 0): ?>
+                                من <b class="tqa-num"><?php
+                                    echo number_format($tq_offer['price'] / 100, 2); ?></b> ر.س:
+                                للمعلم <b class="tqa-num"><?php
+                                    echo number_format($tq_offer['share'] / 100, 2); ?></b> ر.س،
+                                وللمنصة <b class="tqa-num"><?php
+                                    echo number_format($tq_offer['platform'] / 100, 2); ?></b> ر.س.
+                                <?php /* «المحفوظ» لا «المكتوب»: هذه الأرقام
+                                         من الصف لا من الحقول أعلاه، وتتغير
+                                         بعد الحفظ لا قبله. وقولها يمنع أن
+                                         يظنها المسؤول لا تستجيب. */ ?>
+                            <?php else: ?>
+                                لا سعر بعد — اكتب السعر أعلاه واحفظ لترى القسمة.
+                            <?php endif; ?>
+                        </span>
+                    </p>
+                </div>
+            </div>
+
+            <?php /* **الحال تقال، لا تترك للمسؤول أن يستنتجها.** كورس علم
+                     للبيع وهو غير منشور، أو بلا سعر، أو بلا درس — يجلس
+                     معلما ولا يعرض، ولا شيء في الشاشة يفسر. و`why` تقول
+                     أول ما يمنع بترتيب معالجته. */ ?>
+            <p class="tqa-note<?php echo $tq_offer['sellable'] ? '' : ' tqa-note--warn'; ?>"
+               style="margin-block-start:var(--tq-space-l)">
+                <span aria-hidden="true"><?php echo tq_icon($tq_offer['sellable'] ? 'check-badge' : 'alert', 18); ?></span>
+                <span style="flex:1">
+                    <strong><?php echo $tq_offer['sellable']
+                        ? 'معروض للبيع المفرد الآن.' : 'لا يباع مفردا الآن.'; ?></strong>
+                    <span style="display:block"><?php echo html_escape($tq_offer['why']); ?></span>
+                </span>
+                <?php if ($tq_offer['reason'] === 'disabled'): ?>
+                    <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                       href="<?php echo site_url('taqdar_admin/course_sales'); ?>">افتح الباب</a>
+                <?php elseif ($tq_offer['sellable']): ?>
+                    <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                       href="<?php echo site_url('course-checkout/' . (int) $course_id); ?>"
+                       target="_blank" rel="noopener">شاشة الشراء</a>
+                <?php endif; ?>
+            </p>
+
+            <?php if ($tq_sold): ?>
+                <p class="tqa-note" style="margin-block-start:var(--tq-space-m)">
+                    <span aria-hidden="true"><?php echo tq_icon('chart', 18); ?></span>
+                    <span style="flex:1">
+                        <strong>بيع مفردا <span class="tqa-num"><?php echo (int) $tq_sold['n']; ?></span> مرة</strong>
+                        <span style="display:block">بمحصل
+                            <span class="tqa-num"><?php echo number_format($tq_sold['gross'] / 100); ?></span> ر.س.
+                            <?php /* وتعديل السعر لا يمس ما بيع: `subscriptions.price`
+                                     ينسخ وقت الشراء. وقولها هنا يمنع سؤالا يتكرر. */ ?>
+                            وتعديل السعر لا يغير ما بيع — السعر ينسخ وقت الشراء.</span>
+                    </span>
+                </p>
+            <?php endif; ?>
         </div>
 
 

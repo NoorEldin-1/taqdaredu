@@ -230,6 +230,11 @@ $route['parent/children/link']      = 'taqdar/parent_child_link';
 $route['parent/settings/save']      = 'taqdar/parent_settings_save';
 // الدفع نيابة عن الابن — مقطعان، فلا تلتقطها `parent/(:any)`.
 $route['parent/pay/start']          = 'taqdar/parent_pay_start';
+/* TQ-COURSE-SALE — ولي الأمر يشتري كورسا مفردا لابنه. كتابة، فقاعدتها
+   قبل `parent/(:any)` — وهي تطابق مقطعا واحدا، فبلاها يسقط الطلب إلى
+   `Taqdar::parent_portal('pay')`: تعرض الشاشة ردا على طلب شراء، بلا
+   شراء ولا خطأ. */
+$route['parent/pay/course']         = 'taqdar/parent_pay_course';
 
 // حقا تصدير البيانات وحذف الحساب لا يخصان الطالب وحده — الدالتان
 // `Taqdar::export_data()` و`delete_account()` تشترطان تسجيل الدخول لا دورا
@@ -296,6 +301,10 @@ $route['student/reviews']              = 'taqdar/reviews';
 $route['teacher/students/message']     = 'taqdar/students_message';
 $route['taqdar/teacher/students/message'] = 'taqdar/students_message';
 $route['student/subscribe-path']       = 'taqdar/subscribe_path';
+/* TQ-COURSE-SALE — شراء كورس مفرد. كتابة، فقاعدته قبل قواعد العرض
+   وقبل `student/(:any)` — وهي تطابق مقطعا واحدا، فبلا هذه القاعدة يسقط
+   الطلب إلى `Taqdar::buy('course')` ولا دالة بهذا الاسم. */
+$route['student/buy-course']           = 'taqdar/buy_course';
 // ---- التهيئة ووضع الامتحان والتلعيب ----
 // الكتابة قبل العرض كما في كل هذا الملف: `student/(:any)` تطابق مقطعا
 // واحدا، فبلا `student/setup/save` صريحة يسقط الطلب إلى
@@ -399,6 +408,11 @@ $route['course/(:any)/(:num)'] = 'home/course/$1/$2';
 $route['path/(:any)']          = 'taqdar/path_page/$1';
 $route['plan/(:any)']          = 'taqdar/plan_page/$1';
 $route['checkout/(:any)']      = 'taqdar/checkout/$1';
+/* TQ-COURSE-SALE — شاشة تأكيد شراء كورس مفرد.
+   ورقم لا مسمى: الرمز في `/checkout/<code>` عمود فريد في `plans`، ولا
+   نظير له في `course` — و`slugify(title)` يتكرر بين كورسين بالاسم نفسه
+   فيفتح الرابط ما لم يقصد. */
+$route['course-checkout/(:num)'] = 'taqdar/course_checkout/$1';
 
 // ---- بوابة تاب ----
 // البادئة `payment/` مقصودة لا مصادفة: `csrf_exclude_uris` في

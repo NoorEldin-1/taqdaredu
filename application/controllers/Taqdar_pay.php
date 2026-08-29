@@ -215,18 +215,37 @@ class Taqdar_pay extends CI_Controller
         $sid = (int) ($r['subscription_id'] ?? 0);
         if ($sid <= 0) return;
 
-        $sub = $this->db->select('s.user_id, s.ends_at, p.name_ar AS plan_name', false)
+        /* TQ-COURSE-SALE — والاسم من الثلاثة: الباقة والمسار والكورس
+           المفرد. وكان الضم على `plans` وحده، فيقرأ من اشترى مادة بعينها
+           «فعلت باقة الاشتراك» — عبارة لا تعني شيئا، وتجعله يظن أن
+           المنصة باعته غير ما اختار. */
+        $sub = $this->db->select('s.user_id, s.ends_at, s.course_id,'
+                        . ' p.name_ar AS plan_name, t.title AS path_name,'
+                        . ' c.title AS course_name', false)
                         ->from('subscriptions s')
                         ->join('plans p', 'p.id = s.plan_id', 'left')
+                        ->join('paths t', 't.id = s.path_id', 'left')
+                        ->join('course c', 'c.id = s.course_id', 'left')
                         ->where('s.id', $sid)->get()->row_array();
         if (!$sub || empty($sub['user_id'])) return;
+
+        $is_course = (int) ($sub['course_id'] ?? 0) > 0;
+        $what = '';
+        foreach (array('plan_name', 'path_name', 'course_name') as $k) {
+            if (isset($sub[$k]) && trim((string) $sub[$k]) !== '') {
+                $what = trim((string) $sub[$k]); break;
+            }
+        }
 
         $this->load->model('taqdar_admin_model');
         $this->taqdar_admin_model->push_notification(
             (int) $sub['user_id'],
-            'نجح الدفع وفعل اشتراكك',
-            'استلمنا دفعتك وفعلت باقة «' . ($sub['plan_name'] ?: 'الاشتراك') . '»'
-            . (!empty($sub['ends_at']) ? ' حتى ' . date('Y-m-d', strtotime($sub['ends_at'])) : '')
+            $is_course ? 'نجح الدفع وفتح الكورس' : 'نجح الدفع وفعل اشتراكك',
+            'استلمنا دفعتك وفتح ' . ($is_course ? 'كورس' : '')
+            . ' «' . ($what !== '' ? $what : 'الاشتراك') . '»'
+            . (!empty($sub['ends_at'])
+                ? ' حتى ' . date('Y-m-d', strtotime($sub['ends_at']))
+                : ($is_course ? ' بوصول دائم' : ''))
             . '. صار المحتوى مفتوحا لك الآن.',
             'subscription'
         );

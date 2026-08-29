@@ -1220,9 +1220,22 @@ document.documentElement.classList.add('js');
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-P26-CYCLE · مبدّل عرض السعر في قسم الباقات
-   يبدّل **ما يُعرض** لا ما يُدفع: كل الباقات سنوية، والشهريّ معادلها
-   ومعه سطر «يُدفع سنويًّا». ولذلك لا يمسّ الزرّ ولا الرابط ولا الخادم.
-   ولو لم يعمل هذا السكربت بقي السعر السنويّ ظاهرًا — وهو الصحيح.
+   يبدل **ما يعرض** لا ما يدفع، والمخزن في `plans.price` هو المخصوم
+   حرفا بحرف: `subscribe()` تكتبه كما هو وتكتب `auto_renew = 0`، فلا
+   فوترة شهرية في هذا المحرك أصلا. ولذلك لا يمس الزر ولا الرابط ولا
+   الخادم، ولا يحمل معه شيئا إلى شاشة التأكيد.
+
+   TQ-CYCLE-CHARGE — **ولذلك يسمى عدسة لا دورة فوترة.**
+   زران مكتوب عليهما «شهري» و«سنوي» فوق شبكة أسعار يقرأهما كل من رأى
+   صفحة تسعير قبلها على أنهما اختيار للدفع؛ فمن ضغط «شهري» ثم بلغ
+   `/checkout` وجد السعر السنوي وظن أن اختياره ضاع — ولم يكن اختيارا.
+   فصارت الكلمة «اعرض السعر: شهريا / الإجمالي»، وصار المخصوم مكتوبا
+   تحت الرقم في الوضعين (`pay_note`)، وصارت شاشة التأكيد تذكر الرقمين
+   معا. وهذا السكربت لا يعرف شيئا من ذلك: الخادم يطبع الفقرتين
+   كاملتين، وهو يظهر ويخفي لا أكثر.
+
+   ولو لم يعمل هذا السكربت بقيت الفقرة الشهرية ظاهرة — وهي تحمل
+   المخصوم في متنها، فلا يقرأ أحد رقما بلا ثمنه.
    ══════════════════════════════════════════════════════════════════ */
 (function () {
   /* الأكسية الأربعة: `.p26-card__price` في صفحة الباقات البيضاء،
@@ -1260,6 +1273,39 @@ document.documentElement.classList.add('js');
       var wanted = g.els.filter(function (p) { return p.getAttribute('data-cycle') === cycle; });
       var show = wanted.length ? wanted : g.els.slice(0, 1);
       g.els.forEach(function (p) { p.hidden = (show.indexOf(p) < 0); });
+    });
+
+    buyLinks(cycle);
+  }
+
+  /* TQ-CYCLE-BUY — **والزر يتبع الرقم.**
+     بعد أن صار الشهري يشترى فعلا، صار الرابط العاري يعني «دورة الباقة»
+     أي السنوي. فزر لا يحمل الدورة تحت رقم شهري يرسل المشتري إلى شاشة
+     تطلب ضعف ما رأى — وهو العطل الأول عائدا من باب آخر.
+
+     والخادم يكتب الدورة المعروضة ابتداء (`tqs_checkout_url()`)، وهذا
+     يبدلها وحدها ويترك ما سواها من الرابط كما هو: `URL` تعيد بناء
+     الاستعلام فلا يضيع معامل آخر لو أضيف يوما. */
+  function buyLinks(cycle) {
+    var links = document.querySelectorAll('a[data-tq-buy]');
+    Array.prototype.forEach.call(links, function (a) {
+      var href = a.getAttribute('href');
+      if (!href) return;
+      var u;
+      try { u = new URL(href, window.location.href); } catch (e) { return; }
+
+      /* البطاقة نفسها تقول أللشهري سعر يشترى: فقرة `month` تحمل رقما
+         يخالف فقرة `year`. وباقة بلا معادل تبقى على رابطها العاري مهما
+         بدل المبدل — لا دورة شهرية تشترى منها. */
+      var card = a.closest('article, .plan-card, .plan-cta') || a.parentNode;
+      var mo = card && card.querySelector('[data-cycle="month"]');
+      var yr = card && card.querySelector('[data-cycle="year"]');
+      var alt = !!(mo && yr && mo.textContent.trim() !== yr.textContent.trim());
+
+      if (cycle === 'month' && alt) u.searchParams.set('cycle', 'monthly');
+      else                          u.searchParams.delete('cycle');
+
+      a.setAttribute('href', u.pathname + (u.search || '') + (u.hash || ''));
     });
   }
 
@@ -1501,14 +1547,42 @@ document.documentElement.classList.add('js');
 })();
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-PLAN-AUTH · الدخول أو التسجيل في صفحة الباقة نفسها
-   النموذجان يرسلان إلى مسارَي الموقع القائمين بحقولهما نفسها — فلا
-   شيء هنا يمس الدخول ولا الدفع. وبلا سكربت يعمل الزر كما كان.
+   TQ-PLAN-AUTH · الدخول أو التسجيل في مكان الضغط لا في صفحة أخرى
+
+   «اشترك» بلا جلسة كان ينقل الزائر إلى `/login` كاملة: يغادر الباقة
+   التي كان يقرؤها، ويفقد الدورة التي بدلها، ويحتاج رجوعا ليكمل. وهو
+   ثمن يدفع على كل رابط شراء في الموقع — والنافذة كانت في صفحة الباقة
+   وحدها، أي في آخر مكان يصله الزائر لا أولها.
+
+   فالمستمع **مفوض على المستند** ويمسك كل رابط شراء أينما طبع: شبكة
+   `/plans`، وبطاقة الباقة، والنداء الختامي، وبطاقة يحقنها الكتالوج
+   بعد التحميل. والنافذة واحدة في المستند يطبعها ذيل الموقع.
+
+   وهي عرض لا منطق: النموذجان يرسلان إلى مساري الموقع القائمين بحقولهما
+   نفسها. وبلا سكربت يعمل الرابط كما كان — `/checkout/<code>` يحول إلى
+   الدخول بـ`?next=`، وهي الوجهة نفسها.
    ══════════════════════════════════════════════════════════════════ */
 (function () {
+  var SEL = 'a[href*="/checkout/"], a[href*="/course-checkout/"]';
+
   var dlg = document.querySelector('dialog[data-tq-auth]');
   if (!dlg || !dlg.showModal) return;              /* متصفّح بلا `<dialog>` */
-  var next = dlg.getAttribute('data-tq-next') || '';
+
+  /* الوجهة **نسبية إلى جذر التركيب** لا إلى جذر المضيف: الخادم يعيد
+     بناءها بـ`base_url()`، فمسار كامل من موقع في مجلد فرعي يضاعف
+     المجلد. والجذر من الوسم لا من حزر في السكربت. */
+  var BASE = dlg.getAttribute('data-tq-base') || '/';
+
+  function nextOf(href) {
+    var u;
+    try { u = new URL(href, window.location.href); } catch (e) { return ''; }
+    if (u.origin !== window.location.origin) return '';
+    var path = u.pathname + u.search;
+    var b;
+    try { b = new URL(BASE, window.location.href).pathname; } catch (e) { b = '/'; }
+    if (b !== '/' && path.indexOf(b) === 0) path = path.slice(b.length);
+    return path.replace(/^\/+/, '');
+  }
 
   function panes(which) {
     var t = dlg.querySelectorAll('[data-tq-auth-tab]');
@@ -1527,35 +1601,38 @@ document.documentElement.classList.add('js');
   if (x) x.addEventListener('click', function () { dlg.close(); });
   dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
 
-  /* الوجهة تحفظ قبل المغادرة: الخادم لا يعرف من أين جاء الزائر —
-     `tq_next` يكتب ولا يقرأ. ومفتاح الجلسة يمحى بعد أول قفزة. */
-  Array.prototype.forEach.call(dlg.querySelectorAll('form'), function (f) {
-    f.addEventListener('submit', function () {
-      try { sessionStorage.setItem('tq-after-auth', next); } catch (err) {}
-    });
-  });
+  /* اسم الباقة يقرأ من الرابط المضغوط: نافذة واحدة تخدم كل بطاقة في
+     الشبكة، فاسم مطبوع في القالب يعني اسم أول باقة فوق كل ضغطة. */
+  function open(link) {
+    var name = link.getAttribute('data-tq-plan') || '';
+    var box  = dlg.querySelector('[data-tq-auth-name]');
+    if (box) {
+      var b = box.querySelector('b');
+      if (b) b.textContent = name;
+      box.hidden = (name === '');
+    }
 
-  var links = document.querySelectorAll('a[href*="/checkout/"]');
-  Array.prototype.forEach.call(links, function (a) {
-    a.addEventListener('click', function (e) {
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
-      e.preventDefault();
-      panes('new');
-      dlg.showModal();
-      var first = dlg.querySelector('[data-tq-auth-pane="new"] input');
-      if (first) first.focus();
+    /* TQ-AUTH-NEXT — الوجهة من الرابط نفسه، فتحمل الباقة **ودورتها**
+       كما بدلها المبدل. ويقرؤها الخادم بعد الدخول (`url_history`) — لا
+       `sessionStorage` يقرأ في صفحة تالية: صفحة الهبوط بعد الدخول لوحة
+       بوابة لا تحمل `site.js` أصلا، فالعودة لم تكن تقع أبدا. */
+    var next = nextOf(link.href);
+    Array.prototype.forEach.call(dlg.querySelectorAll('[data-tq-auth-next]'), function (i) {
+      i.value = next;
     });
-  });
-})();
 
-/* العودة إلى ما كان الزائر يشتريه، بعد أن تصير له جلسة.
-   والإشارة من الترويسة نفسها: غير الداخل وحده يرى رابط «إنشاء حساب». */
-(function () {
-  var back = null;
-  try { back = sessionStorage.getItem('tq-after-auth'); } catch (e) { return; }
-  if (!back) return;
-  if (document.querySelector('.header-actions a[href$="/sign_up"]')) return;  /* لا جلسة بعد */
-  try { sessionStorage.removeItem('tq-after-auth'); } catch (e) {}
-  var to = location.origin + '/' + String(back).replace(/^\/+/, '');
-  if (location.href.indexOf(to) !== 0) location.replace(to);
+    panes('new');
+    dlg.showModal();
+    var first = dlg.querySelector('[data-tq-auth-pane="new"] input');
+    if (first) first.focus();
+  }
+
+  document.addEventListener('click', function (e) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;   /* فتح في تبويب */
+    var link = e.target && e.target.closest ? e.target.closest(SEL) : null;
+    if (!link) return;
+    if (!nextOf(link.href)) return;                 /* رابط خارجي: يترك كما هو */
+    e.preventDefault();
+    open(link);
+  });
 })();

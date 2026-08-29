@@ -58,6 +58,14 @@ $tq_gates = array(
    «دخلت من بوابة طالب» في كل مرة — تنبيه عن اختيار لم يختره.
    فالحقل يبقى فارغا حتى يأتي `?as=` أو تنقر بطاقة. */
 $tq_as     = (string) $this->input->get('as');
+/* TQ-AUTH-NEXT — الوجهة تعبر الصفحة كما تعبر البوابة.
+   من ضغط «اشترك» بلا جلسة يصل الى هنا بـ`?next=checkout/<code>?cycle=…`،
+   ولم يكن في الصفحة ما يحمله: النموذج يرسل بلا وجهة، وبطاقات البوابة
+   روابط تعيد بناء الرابط فتسقطها. فيهبط من دخل في لوحته وقد ترك شراءه.
+   والتصفية في `tqs_safe_next()` وحدها. */
+$tq_next = tqs_safe_next($this->input->get('next'));
+if ($tq_next === '') $tq_next = tqs_safe_next($this->session->userdata('tq_next'));
+$tq_next_q = $tq_next !== '' ? '&next=' . rawurlencode($tq_next) : '';
 $tq_chosen = isset($tq_gates[$tq_as]);
 if (!$tq_chosen) { $tq_as = 'student'; }
 ?>
@@ -70,7 +78,7 @@ if (!$tq_chosen) { $tq_as = 'student'; }
           <a class="gate-card<?php echo $tq_as === $tq_k ? ' is-on' : ''; ?>"
              role="radio" aria-checked="<?php echo $tq_as === $tq_k ? 'true' : 'false'; ?>"
              data-gate="<?php echo $tq_k; ?>"
-             href="<?php echo base_url('login'); ?>?as=<?php echo $tq_k; ?>">
+             href="<?php echo base_url('login'); ?>?as=<?php echo $tq_k . $tq_next_q; ?>">
             <svg aria-hidden="true"><use href="#<?php echo $tq_g[1]; ?>"></use></svg>
             <b><?php echo $tq_g[0]; ?></b><span><?php echo $tq_g[2]; ?></span>
           </a>
@@ -81,6 +89,9 @@ if (!$tq_chosen) { $tq_as = 'student'; }
             id="login-form" data-tq-auth novalidate>
         <input type="hidden" name="tq_gate" id="loginGateValue"
                value="<?php echo $tq_chosen ? html_escape($tq_as) : ''; ?>">
+<?php if ($tq_next !== ''): ?>
+        <input type="hidden" name="tq_next" value="<?php echo html_escape($tq_next); ?>">
+<?php endif; ?>
         <div class="form-stack">
           <div class="form-cell">
             <label class="form-field">

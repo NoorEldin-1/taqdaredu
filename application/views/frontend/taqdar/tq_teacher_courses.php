@@ -67,6 +67,27 @@ foreach ($tq_courses as $tq_c) {
     $tq_total_students += (int) $tq_c['students'];
 }
 
+/* TQ-COURSE-SALE — **وثمن كورسه ونصيبه منه يقرؤهما صاحبه.**
+   السعر والنسبة قرار إدارة (المعلم لا يسعر محتوى المنصة)، ولكن **قرارا
+   لا يعلمه صاحبه ليس شفافية**: معلم يبيع كورسه بمئتين ولا يعرف كم يصله
+   منها يسأل الدعم عند أول قيد في دفتره، أو يظن أن المنصة أخذت أكثر مما
+   أخذت. فيقرأ الرقمين هنا بجوار كورسه، من `offer()` نفسها التي تعرض
+   للمشتري وتقيد في المحفظة.
+
+   ويرد فارغا متى كان الباب مغلقا، فلا يظهر عمود ولا يتغير شيء. */
+$tq_ci_cs = &get_instance();
+$tq_ci_cs->load->model('taqdar_course_sale_model', 'tq_cs');
+$tq_offers   = $tq_ci_cs->tq_cs->offers(false);
+$tq_sale_on  = $tq_ci_cs->tq_cs->enabled();
+$tq_sold_map = $tq_sale_on ? $tq_ci_cs->tq_cs->sold_counts() : array();
+
+/* والعمود لا يعرض إلا إن كان لهذا المعلم كورس معلن: عمود فارغ في كل صف
+   يزحم جدولا ضيقا على الجوال ليقول لا شيء. */
+$tq_show_sale = false;
+foreach ($tq_courses as $tq_c) {
+    if ($tq_sale_on && isset($tq_offers[(int) $tq_c['id']])) { $tq_show_sale = true; break; }
+}
+
 include 'portal_open.php';
 ?>
 
@@ -130,6 +151,9 @@ include 'portal_open.php';
                             <th scope="col">المسجلون</th>
                             <th scope="col">الدروس</th>
                             <th scope="col">نسبة الإكمال</th>
+                            <?php if ($tq_show_sale): ?>
+                                <th scope="col">البيع المفرد</th>
+                            <?php endif; ?>
                             <th scope="col"><span class="tq-sr">إجراءات</span></th>
                         </tr>
                     </thead>
@@ -158,6 +182,46 @@ include 'portal_open.php';
                                 <td data-label="نسبة الإكمال" style="min-inline-size:180px">
                                     <?php echo tq_progress($tq_completion, 'متوسط إكمال ' . $tq_c['title']); ?>
                                 </td>
+                                <?php if ($tq_show_sale): ?>
+                                    <?php
+                                    /* TQ-COURSE-SALE — الثمن ونصيبه منه، وكم بيع.
+                                       والسعر قرار إدارة ولكن **معلوما لصاحبه**:
+                                       معلم يقرأ قيدا في دفتره ولا يعرف من أين
+                                       جاء يسأل الدعم، أو يظن أن المنصة أخذت
+                                       أكثر مما أخذت. */
+                                    $tq_o  = $tq_offers[(int) $tq_c['id']] ?? null;
+                                    $tq_sn = $tq_sold_map[(int) $tq_c['id']] ?? null;
+                                    ?>
+                                    <td data-label="البيع المفرد">
+                                        <?php if (!$tq_o): ?>
+                                            <span class="tq-micro">ضمن الباقات وحدها</span>
+                                        <?php else: ?>
+                                            <span class="tq-strong tq-ltr" dir="ltr"><?php
+                                                echo number_format($tq_o['price'] / 100); ?></span>
+                                            <span class="tq-micro">ر.س</span>
+                                            <span class="tq-micro" style="display:block">
+                                                لك <span class="tq-ltr" dir="ltr"><?php
+                                                    echo number_format($tq_o['share'] / 100); ?></span> ر.س
+                                                (<?php echo html_escape(rtrim(rtrim(
+                                                    number_format((float) $tq_o['percent'], 2, '.', ''), '0'), '.')); ?>٪)
+                                            </span>
+                                            <?php /* والسبب يقال متى لم يعرض: كورس علم
+                                                     للبيع وهو غير منشور أو بلا سعر يجلس
+                                                     ولا يظهر، ولا شيء في شاشة صاحبه
+                                                     يفسر — فيظن أن أحدا لا يشتري. */ ?>
+                                            <?php if (empty($tq_o['sellable'])): ?>
+                                                <span class="tq-micro" style="display:block;color:var(--tq-text3)">
+                                                    لا يعرض: <?php echo html_escape($tq_o['why']); ?>
+                                                </span>
+                                            <?php elseif ($tq_sn): ?>
+                                                <span class="tq-micro" style="display:block">
+                                                    بيع <span class="tq-ltr" dir="ltr"><?php
+                                                        echo (int) $tq_sn['n']; ?></span> مرة
+                                                </span>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                    </td>
+                                <?php endif; ?>
                                 <?php /* كان الإجراء الوحيد «طلابه»: صف كورس بلا باب إلى محتواه.
                                          والوجهات الثلاث كلها قائمة تعمل، وكل واحدة تحمل معرف
                                          الكورس فتفتح مقيدة به لا على كل شيء. */ ?>

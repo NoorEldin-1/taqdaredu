@@ -2460,6 +2460,444 @@ class Taqdar_admin_model extends CI_Model
             : 'أغلق الحساب. ولا يحذف شيء من بياناته — الإغلاق يمنع الدخول وحده.');
     }
 
+    /* =====================================================================
+       TQ-TEACHER-ADD — حساب معلم تنشئه الإدارة، يفتح بلا مراجعة ولا رمز
+
+       باب الانضمام الوحيد كان صفحة التسجيل، ومساره ثلاث محطات: رمز تحقق
+       يخرج إلى بريد المتقدم، ثم توثيق هوية، ثم اعتماد إدارة — والحساب
+       مغلق (`status = 0`) حتى تمر الثلاث. وهو الصواب لمن يطرق الباب من
+       خارج، **ولا معنى له لمن تعرفه الإدارة أصلا**: معلم تعاقدت معه
+       وبيدها بياناته. فكانت تسجل له حسابا من صفحة التسجيل ثم تعود إلى
+       «طلبات المعلمين» توثقه وتعتمده — بشرط أن يكون قد استقبل الرمز
+       أولا وكتبه، وهو رمز يذهب إلى بريده هو لا إليها. فباب لا يعبر إلا
+       بيد صاحبه، والإدارة تنتظره ليدخل حسابا هي التي أنشأته.
+
+       وهذه الشاشة تنشئ الحساب **مفتوحا معتمدا مؤكدا** في خطوة واحدة:
+       - `status = 1` — الدخول مفتوح في الحال، ولا شاشة اعتماد بعده.
+       - `is_instructor = 1` مع `tq_gate = "teacher"` — الاثنان معا:
+         الأول تشتق منه `tq_role()` وعليه تقوم لوحة المعلم، والثاني
+         تقرؤه شاشة الدخول ورسائلها. وحساب بأحدهما دون الآخر يهبط في
+         لوحة الطالب أو يقرأ «طلبك قيد المراجعة» بلا طلب.
+       - `tq_verified_at` مختوم — لا رمز يطلب منه ولا شاشة تأكيد.
+
+       **ولا صف في `applications`**: ذاك سجل مراجعة، وما لا يراجع لا
+       يكتب فيه صف «معتمد» يوهم من يفتح الشاشة أن لجنة نظرت في أوراق.
+       والأثر يترك في `audit_log` — وهو موضعه.
+       ===================================================================== */
+
+    /**
+     * ينشئ حساب معلم من اللوحة.
+     *
+     * القواعد كلها هنا: الشاشة تعرض الحقول وترد الأخطاء ولا تحكم. وشروط
+     * الاسم والبريد وكلمة المرور هي شروط `Login::register` نفسها —
+     * وشرطان مختلفان لحقل واحد يجعلان اللوحة تقبل بريدا يرفضه التسجيل،
+     * فينشأ حساب لا يستطيع صاحبه استعادة كلمة مروره.
+     *
+     * ويرد مصفوفة: `ok` و`errors` و`user_id` و`message`.
+     */
+    public function create_teacher()
+    {
+        $in    = $this->input;
+        $first = trim((string) $in->post('first_name'));
+        $last  = trim((string) $in->post('last_name'));
+        $email = trim((string) $in->post('email'));
+        $pass  = (string) $in->post('password');
+        $conf  = (string) $in->post('password_confirm');
+        $phone = trim((string) $in->post('phone'));
+        $title = trim((string) $in->post('title'));
+        $skill = trim((string) $in->post('skills'));
+        $bio   = trim((string) $in->post('biography'));
+
+        $errors = array();
+
+        if (mb_strlen($first) < 2 || mb_strlen($first) > 40) {
+            $errors[] = 'اكتب الاسم الأول (حرفان على الأقل، وأربعون على الأكثر).';
+        }
+        if (mb_strlen($last) < 2 || mb_strlen($last) > 40) {
+            $errors[] = 'اكتب اسم العائلة (حرفان على الأقل، وأربعون على الأكثر).';
+        }
+        /* خمسون: طول `users.email`. وما زاد يقص عند الحفظ فينشأ حساب
+           ببريد لا يصل إليه شيء — ولا استعادة له. */
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 50) {
+            $errors[] = 'البريد الإلكتروني غير صحيح، أو أطول من خمسين محرفا.';
+        } elseif ($this->db->where('email', $email)->count_all_results('users') > 0) {
+            $errors[] = 'هذا البريد مسجل لحساب آخر. ابحث عنه في «كل الحسابات».';
+        }
+        if (mb_strlen($pass) < 8) {
+            $errors[] = 'كلمة المرور ثمانية محارف على الأقل.';
+        } elseif (strlen($pass) > 72) {
+            /* bcrypt يقص عند اثنتين وسبعين بايت بلا إشعار: كلمة أطول
+               تحفظ مقصوصة، فيدخل صاحبها بأولها ويظن الباقي محسوبا. */
+            $errors[] = 'كلمة المرور أطول من اللازم. اجعلها دون اثنتين وسبعين خانة.';
+        } elseif ($pass !== $conf) {
+            $errors[] = 'كلمتا المرور غير متطابقتين.';
+        }
+
+        /* TQ-PHONE-INTL — الرقم يفحص في دولته ويخزن `+<رمز><وطني>`.
+           وهو اختياري هنا: الدخول لا يتوقف عليه، وواتساب وحده يحتاجه. */
+        $e164 = '';
+        if ($phone !== '') {
+            $ph = tq_phone_check($phone, (string) $in->post('phone_cc'));
+            if (!$ph['ok']) $errors[] = $ph['error'];
+            else            $e164 = $ph['e164'];
+        }
+
+        if (mb_strlen($title) > 160) $errors[] = 'الصفة أطول من المسموح (160 حرفا).';
+        if (mb_strlen($skill) > 255) $errors[] = 'قائمة المواد أطول من المسموح (255 حرفا).';
+        if (mb_strlen($bio) > 1500)  $errors[] = 'النبذة أطول من المسموح (1500 حرف).';
+
+        if ($errors) {
+            return array('ok' => false, 'errors' => $errors, 'user_id' => 0, 'message' => '');
+        }
+
+        /* أربعة أعمدة `NOT NULL` بلا افتراض في مخطط Academy
+           (`skills` · `payment_keys` · `sessions` · `social_links`):
+           تركها للقاعدة يرد الإدراج كله في وضع صارم. */
+        $now  = time();
+        $data = array(
+            'first_name'        => $first,
+            'last_name'         => $last,
+            'email'             => $email,
+            'password'          => tq_password_hash($pass),
+            'phone'             => $e164,
+            /* تجرد الوسوم عند الحفظ لا عند العرض: النبذة والصفة تعرضان
+               في صفحة المعلم العامة، وتجريد عند العرض ينسى في شاشة. */
+            'title'             => strip_tags($title),
+            'skills'            => strip_tags($skill),
+            'biography'         => strip_tags($bio),
+            'role_id'           => 2,
+            'is_instructor'     => 1,
+            'tq_gate'           => 'teacher',
+            'status'            => 1,
+            'is_public'         => ((string) $in->post('is_public') === '1') ? 1 : 0,
+            'date_added'        => $now,
+            'last_modified'     => $now,
+            'wishlist'          => json_encode(array()),
+            'payment_keys'      => json_encode(array()),
+            'social_links'      => json_encode(array('facebook' => '', 'twitter' => '', 'linkedin' => '')),
+            'sessions'          => '',
+            'verification_code' => '',
+            'terms_accepted_at' => date('Y-m-d H:i:s'),
+        );
+
+        $this->db->insert('users', $data);
+        $user_id = (int) $this->db->insert_id();
+        if ($user_id < 1) {
+            return array('ok' => false, 'user_id' => 0, 'message' => '',
+                         'errors' => array('تعذر إنشاء الحساب. أعد المحاولة.'));
+        }
+
+        /* التأكيد يختم بعد الإدراج لا فيه: العمود ينشأ وقت التشغيل
+           (`Taqdar_otp_model::ensure_schema()`)، وقاعدة لم يمر عليها
+           تسجيل بعد لا تحمله — فكتابته في صف الإدراج ترد الإدراج كله
+           بـ«Unknown column» فلا ينشأ حساب ولا يظهر سبب. */
+        $this->stamp_verified($user_id);
+
+        $img = $this->store_avatar($user_id);
+        if ($img !== '') {
+            $this->db->where('id', $user_id)->update('users', array('image' => $img));
+        }
+
+        $this->audit('teacher_created', 'users#' . $user_id, null, array(
+            'email'     => $email,
+            'name'      => trim($first . ' ' . $last),
+            'is_public' => (int) $data['is_public'],
+            'source'    => 'admin',
+        ));
+
+        return array('ok' => true, 'errors' => array(), 'user_id' => $user_id,
+                     'message' => 'أنشئ حساب المعلم مفتوحا. يستطيع الدخول الآن ببريده وكلمة مروره.');
+    }
+
+    /** صف المعلم، أو `null` — والدور يفحص هنا لا في الشاشة. */
+    public function teacher_row($user_id)
+    {
+        $u = $this->db->where('id', (int) $user_id)->get('users')->row_array();
+        if (!$u || (int) $u['is_instructor'] !== 1) return null;
+        return $u;
+    }
+
+    /**
+     * ما يقوله الرقم عن هذا المعلم قبل أن يعدل أو يحذف.
+     *
+     * وكل استعلام ملفوف (`safe_scalar`): جدول لم يستعمل بعد يرمي استثناء
+     * يبيض الشاشة كلها، ورقم ناقص أهون من شاشة لا تفتح.
+     *
+     * والنطاق نطاق `Taqdar_teacher_model` نفسه — منشئ الكورس أو أحد
+     * معلميه (`FIND_IN_SET`)، ونطاق ثان يقول للمسؤول «بلا كورسات» عن
+     * معلم يدرس ثلاثة.
+     */
+    public function teacher_stats($user_id)
+    {
+        $id = (int) $user_id;
+        $own = '(c.`creator` = ? OR FIND_IN_SET(?, c.`user_id`) > 0)';
+
+        return array(
+            'courses'   => $this->safe_scalar("SELECT COUNT(*) n FROM `course` c WHERE $own", array($id, $id)),
+            'published' => $this->safe_scalar("SELECT COUNT(*) n FROM `course` c WHERE $own AND c.`status` = 'active'", array($id, $id)),
+            'lessons'   => $this->safe_scalar(
+                "SELECT COUNT(*) n FROM `lesson` l JOIN `course` c ON c.`id` = l.`course_id` WHERE $own",
+                array($id, $id)),
+            'students'  => $this->safe_scalar(
+                "SELECT COUNT(DISTINCT e.`user_id`) n FROM `enrol` e JOIN `course` c ON c.`id` = e.`course_id` WHERE $own",
+                array($id, $id)),
+            'paths'     => $this->safe_scalar(
+                "SELECT COUNT(*) n FROM `paths` p JOIN `course` c ON c.`id` = p.`course_id` WHERE $own",
+                array($id, $id)),
+            /* `paths.teacher_id` عمود مستقل عن ملكية الكورس: برنامج قد
+               يسند إلى معلم لا يملك كورسه، وحذفه يترك المسار يشير إلى
+               معرف لا يقابل أحدا. */
+            'own_paths' => $this->safe_scalar('SELECT COUNT(*) n FROM `paths` WHERE `teacher_id` = ?', array($id)),
+            'sessions'  => $this->safe_scalar('SELECT COUNT(*) n FROM `tutoring_sessions` WHERE `teacher_id` = ?', array($id)),
+            'shares'    => $this->safe_scalar('SELECT COUNT(*) n FROM `revenue_shares` WHERE `teacher_id` = ?', array($id)),
+            'entries'   => $this->safe_scalar('SELECT COUNT(*) n FROM `wallet_entries` WHERE `wallet_id` IN
+                                               (SELECT `id` FROM `wallets` WHERE `owner_user_id` = ?)', array($id)),
+            'payouts'   => $this->safe_scalar('SELECT COUNT(*) n FROM `payout` WHERE `user_id` = ?', array($id)),
+            'apps'      => $this->safe_scalar('SELECT COUNT(*) n FROM `applications` WHERE `user_id` = ?', array($id)),
+        );
+    }
+
+    /**
+     * تعديل حساب المعلم.
+     *
+     * قواعده قواعد `create_teacher()` نفسها — الدالة الوحيدة التي تفحص
+     * اسما وبريدا وجوالا، فلا يقبل التعديل ما يرده الإنشاء. والفارقان:
+     *
+     * ١ — **كلمة المرور تترك فارغة فلا تمس.** حقل يفرض كلمة في كل حفظ
+     *     يجعل تصحيح حرف في النبذة يبدل كلمة مرور صاحبها بلا أن يطلب
+     *     أحد ذلك، ويخرجه من كل أجهزته.
+     * ٢ — **البريد يفحص فرادته إلا على نفسه.** وبلا استثناء الصف نفسه
+     *     يرد كل حفظ لا يغير البريد بـ«هذا البريد مسجل لحساب آخر».
+     *
+     * و`is_instructor` و`tq_gate` لا يمسان: تحويل معلم إلى طالب بحفظ
+     * نموذج تعديل يقطع كورساته عن أصحابها بلا سؤال.
+     */
+    public function update_teacher($user_id)
+    {
+        $user_id = (int) $user_id;
+        $row     = $this->teacher_row($user_id);
+        if (!$row) {
+            return array('ok' => false, 'user_id' => 0, 'message' => '',
+                         'errors' => array('هذا الحساب ليس حساب معلم، أو لم يعد موجودا.'));
+        }
+
+        $in    = $this->input;
+        $first = trim((string) $in->post('first_name'));
+        $last  = trim((string) $in->post('last_name'));
+        $email = trim((string) $in->post('email'));
+        $pass  = (string) $in->post('password');
+        $conf  = (string) $in->post('password_confirm');
+        $phone = trim((string) $in->post('phone'));
+        $title = trim((string) $in->post('title'));
+        $skill = trim((string) $in->post('skills'));
+        $bio   = trim((string) $in->post('biography'));
+
+        $errors = array();
+
+        if (mb_strlen($first) < 2 || mb_strlen($first) > 40) {
+            $errors[] = 'اكتب الاسم الأول (حرفان على الأقل، وأربعون على الأكثر).';
+        }
+        if (mb_strlen($last) < 2 || mb_strlen($last) > 40) {
+            $errors[] = 'اكتب اسم العائلة (حرفان على الأقل، وأربعون على الأكثر).';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 50) {
+            $errors[] = 'البريد الإلكتروني غير صحيح، أو أطول من خمسين محرفا.';
+        } elseif ($this->db->where('email', $email)->where('id !=', $user_id)
+                           ->count_all_results('users') > 0) {
+            $errors[] = 'هذا البريد مسجل لحساب آخر. ابحث عنه في «كل الحسابات».';
+        }
+
+        /* الفراغ يعني «لا تمس»، وما كتب يفحص بشروط الإنشاء نفسها. */
+        if ($pass !== '') {
+            if (mb_strlen($pass) < 8)        $errors[] = 'كلمة المرور ثمانية محارف على الأقل.';
+            elseif (strlen($pass) > 72)      $errors[] = 'كلمة المرور أطول من اللازم. اجعلها دون اثنتين وسبعين خانة.';
+            elseif ($pass !== $conf)         $errors[] = 'كلمتا المرور غير متطابقتين.';
+        }
+
+        $e164 = '';
+        if ($phone !== '') {
+            $ph = tq_phone_check($phone, (string) $in->post('phone_cc'));
+            if (!$ph['ok']) $errors[] = $ph['error'];
+            else            $e164 = $ph['e164'];
+        }
+
+        if (mb_strlen($title) > 160) $errors[] = 'الصفة أطول من المسموح (160 حرفا).';
+        if (mb_strlen($skill) > 255) $errors[] = 'قائمة المواد أطول من المسموح (255 حرفا).';
+        if (mb_strlen($bio) > 1500)  $errors[] = 'النبذة أطول من المسموح (1500 حرف).';
+
+        if ($errors) {
+            return array('ok' => false, 'errors' => $errors, 'user_id' => $user_id, 'message' => '');
+        }
+
+        $data = array(
+            'first_name'    => $first,
+            'last_name'     => $last,
+            'email'         => $email,
+            'phone'         => $e164,
+            'title'         => strip_tags($title),
+            'skills'        => strip_tags($skill),
+            'biography'     => strip_tags($bio),
+            'is_public'     => ((string) $in->post('is_public') === '1') ? 1 : 0,
+            'status'        => ((string) $in->post('status') === '0') ? 0 : 1,
+            'last_modified' => time(),
+        );
+        if ($pass !== '') $data['password'] = tq_password_hash($pass);
+
+        $this->db->where('id', $user_id)->update('users', $data);
+
+        $img = $this->store_avatar($user_id);
+        if ($img !== '') {
+            $this->db->where('id', $user_id)->update('users', array('image' => $img));
+        }
+
+        /* الأثر يحمل ما تغير لا الصف كله — وكلمة المرور لا تكتب في السجل
+           لا قبلها ولا بعدها، إنما يقال إنها بدلت. */
+        $this->audit('teacher_updated', 'users#' . $user_id, array(
+            'email'     => (string) $row['email'],
+            'name'      => trim($row['first_name'] . ' ' . $row['last_name']),
+            'status'    => (int) $row['status'],
+            'is_public' => (int) $row['is_public'],
+        ), array(
+            'email'     => $email,
+            'name'      => trim($first . ' ' . $last),
+            'status'    => (int) $data['status'],
+            'is_public' => (int) $data['is_public'],
+            'password'  => ($pass !== '' ? 'changed' : 'kept'),
+        ));
+
+        return array('ok' => true, 'errors' => array(), 'user_id' => $user_id,
+                     'message' => 'حفظت بيانات المعلم.'
+                                . ($pass !== '' ? ' وبدلت كلمة مروره — سلمها إليه.' : ''));
+    }
+
+    /* =====================================================================
+       TQ-TEACHER-DELETE — معلم درس لا يحذف، يغلق
+
+       المبدأ مبدأ TQ-PLAN-DELETE نفسه: `course.creator` و`revenue_shares`
+       و`wallet_entries` و`tutoring_sessions` تشير إلى المعلم **بمعرفه**،
+       وحذف الصف يترك سجلا لا يقرأ — كشف حساب يقول «معلم #407» ولا يعرف
+       أحد من كان، وكورس بلا صاحب في «المواد والبرامج»، وطالب يفتح درسا
+       معلمه محذوف. والضرر كله في القراءة وهو لا يرجع.
+
+       فالحذف مقصور على **حساب لم يبدأ**: بلا كورس ولا حصة ولا قيد مال
+       ولا طلب انضمام. وما سواه يرد برسالته — و**الإغلاق هو ما يريده** من
+       ضغط «احذف»: يمنع الدخول ويخفي الحساب، ولا يفقد شيئا.
+       ===================================================================== */
+
+    /** ما يمنع حذف هذا المعلم — قائمة أسباب، فارغة إن كان الحساب نظيفا. */
+    public function teacher_delete_blockers($user_id)
+    {
+        $s = $this->teacher_stats($user_id);
+        $out = array();
+
+        if ($s['courses'] > 0)   $out[] = 'له ' . $s['courses'] . ' كورس' . ($s['courses'] > 1 ? 'ا' : '');
+        if ($s['own_paths'] > 0) $out[] = 'أسند إليه ' . $s['own_paths'] . ' برنامج';
+        if ($s['sessions'] > 0) $out[] = 'له ' . $s['sessions'] . ' حصة خاصة';
+        if ($s['shares'] > 0)   $out[] = 'له ' . $s['shares'] . ' قيد قسمة إيراد';
+        if ($s['entries'] > 0)  $out[] = 'في محفظته ' . $s['entries'] . ' حركة';
+        if ($s['payouts'] > 0)  $out[] = 'له ' . $s['payouts'] . ' طلب سحب';
+
+        return $out;
+    }
+
+    /**
+     * يحذف حساب معلم لم يبدأ — وما سواه يرد.
+     *
+     * والتوابع تنظف قبل الصف: `wallets` الصفرية و`applications`
+     * و`notifications` و`permissions`. وهي التي لا معنى لها بلا صاحبها،
+     * ولا يشير إليها مال ولا محتوى.
+     */
+    public function delete_teacher($user_id)
+    {
+        $user_id = (int) $user_id;
+        $row     = $this->teacher_row($user_id);
+        if (!$row) {
+            return array('ok' => false, 'message' => 'هذا الحساب ليس حساب معلم، أو لم يعد موجودا.');
+        }
+        if ($user_id === $this->tq_actor_id()) {
+            return array('ok' => false, 'message' => 'لا تحذف حسابك أنت.');
+        }
+
+        $blockers = $this->teacher_delete_blockers($user_id);
+        if ($blockers) {
+            return array('ok' => false, 'message' =>
+                'لا يحذف هذا الحساب: ' . implode(' · ', $blockers) . '. '
+              . 'وحذفه يترك سجلا ماليا ومحتوى بلا صاحب يقرأ. أغلق الحساب بدلا من ذلك — '
+              . 'يمنع الدخول ولا يفقد شيئا.');
+        }
+
+        $name  = trim($row['first_name'] . ' ' . $row['last_name']);
+        $email = (string) $row['email'];
+
+        try {
+            $this->db->where('owner_user_id', $user_id)->delete('wallets');
+            $this->db->where('user_id', $user_id)->delete('applications');
+            $this->db->where('to_user', $user_id)->or_where('from_user', $user_id)->delete('notifications');
+            $this->db->where('admin_id', $user_id)->delete('permissions');
+            $this->db->where('id', $user_id)->delete('users');
+        } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء يترك بناء الاستعلام نظيفا خلفه. */
+            $this->db->reset_query();
+            log_message('error', 'TQ-TEACHER-DELETE: ' . $e->getMessage());
+            return array('ok' => false, 'message' => 'تعذر حذف الحساب. أغلقه بدلا من ذلك، وراجع السجل.');
+        }
+
+        /* الصورة تحذف بنسختيها بعد الصف: ملف يبقى لصاحب ذهب لا يقرؤه
+           أحد، ومقصور على `uploads/user_image/` فلا يمس أصلا من السمة. */
+        $code = trim((string) $row['image']);
+        if ($code !== '' && strpos($code, '/') === false) {
+            $dir = rtrim(FCPATH, '/') . '/uploads/user_image/';
+            @unlink($dir . $code . '.jpg');
+            @unlink($dir . 'optimized/' . $code . '.jpg');
+        }
+
+        $this->audit('teacher_deleted', 'users#' . $user_id,
+                     array('email' => $email, 'name' => $name), null);
+
+        return array('ok' => true, 'message' => 'حذف حساب «' . $name . '» وما لا معنى له بلا صاحبه.');
+    }
+
+    /** يختم الحساب مؤكدا، ويصمت إن كان العمود لم ينشأ بعد. */
+    private function stamp_verified($user_id)
+    {
+        try {
+            $CI = get_instance();
+            $CI->load->model('taqdar_otp_model');
+            $CI->taqdar_otp_model->ensure_schema();
+            $this->db->where('id', (int) $user_id)
+                     ->update('users', array('tq_verified_at' => date('Y-m-d H:i:s')));
+        } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء يترك بناء الاستعلام نظيفا خلفه. */
+            $this->db->reset_query();
+            log_message('error', 'TQ-TEACHER-ADD: تعذر ختم التأكيد — ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * صورة الحساب — بمعالج بوابة المعلم نفسه لا بنسخة ثانية منه.
+     *
+     * `Taqdar_settings_model::store_image()` هو الذي يفحص المحتوى ويعيد
+     * الترميز ويكتب في `uploads/user_image/`؛ وشاشة اللوحة ترفع إلى
+     * المجلد نفسه، فالفحص واحد ولا يفترق عند أول تشديد.
+     *
+     * وفشل الصورة لا يبطل الحساب: الصف كتب، ورد الشاشة كلها بخطأ صورة
+     * بعده يترك المسؤول يظن أنه لم ينشأ فيعيد الإنشاء ببريد مكرر.
+     */
+    private function store_avatar($user_id)
+    {
+        if (empty($_FILES['user_image']['name'])) return '';
+
+        $CI = get_instance();
+        $CI->load->model('taqdar_settings_model');
+        $r = $CI->taqdar_settings_model->store_image((int) $user_id);
+
+        if (empty($r['ok'])) {
+            log_message('error', 'TQ-TEACHER-ADD: صورة لم ترفع — ' . (string) $r['error']);
+            return '';
+        }
+        return (string) $r['code'];
+    }
+
     /**
      * الفاعل: المستخدم في الطلب الوبي، و0 (النظام) في المهام الدورية.
      * مكتبة الجلسة غير محملة في سطر الأوامر، وقراءتها هناك تسقط العملية.

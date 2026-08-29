@@ -144,6 +144,20 @@ foreach ($plans as $p) {   // المرشحة إن وجدت تسبق الأرخص
     if ((int) $p['featured'] === 1) { $pick = $p; break; }
 }
 
+/* --- TQ-COURSE-SALE — وهل تباع هذه الدورة مفردة كذلك؟ ---
+   والسؤالان لا يلغي أحدهما الآخر: الدورة قد تباع مفردة **و** تفتحها
+   باقة، وهما عرضان مختلفان لمشتريين مختلفين. فيعرضان معا مرتبين —
+   الشراء المفرد أولا لأنه أرخص وأضيق، والباقة تحته بما تزيده. وكانت
+   الصفحة تعرض الباقة وحدها فتطلب من يريد مادة واحدة ثمن المرحلة كلها.
+
+   ولا يعرض شيء منهما لمن يملك: `$has` تسبق. */
+$CI->load->model('taqdar_course_sale_model', 'tq_cs');
+$offer = $has ? array('sellable' => false) : $CI->tq_cs->offer($course);
+
+/* فاتورة معلقة لم تسدد: لا يعرض زر شراء ثان فوقها — يقال أين هي. */
+$sale_pending = (!$has && !empty($offer['sellable']) && $uid > 0 && $role === 'student')
+              ? $CI->tq_cs->pending_of($uid, $cid) : null;
+
 $thumb_url = (string) $CI->crud_model->get_course_thumbnail_url($cid);
 if (rtrim($thumb_url, '/') === rtrim(base_url(), '/')) $thumb_url = '';
 
@@ -371,16 +385,30 @@ $play = function ($lesson_id = 0) use ($cid) {
               $qa[] = array($f['title'], (string) ($f['description'] ?? ''));
           }
           if (!$qa) {
+              /* TQ-COURSE-SALE — والجواب يتبع ما يعرض فعلا. كان يقول
+                 «تفتح بالاشتراك في باقة صفك» لكل دورة، فيقرؤه من يرى
+                 فوقه زر «اشتر هذه الدورة» — سؤال شائع يجيب بغير ما
+                 تفعله الصفحة يقرأ صفحة لا تعرف نفسها. */
               $qa[] = array('كيف أفتح هذه الدورة؟', $is_free
                   ? 'هذه الدورة مجانية: سجل دخولك واضغط «ابدأ الدورة مجانا» فتفتح لك في الحال.'
-                  : 'تفتح بالاشتراك في باقة صفك — والباقة الواحدة تفتح مواد المرحلة كلها لا هذه الدورة وحدها.');
+                  : (!empty($offer['sellable'])
+                      ? 'بطريقتين: تشتريها مفردة بـ' . number_format((int) $offer['price'] / 100)
+                        . ' ر.س فتفتح لك وحدها'
+                        . ((int) $offer['days'] > 0
+                            ? ' مدة ' . (int) round($offer['days'] / 30) . ' شهرا،'
+                            : ' بلا انتهاء،')
+                        . ' أو تشترك في باقة صفك فتفتح لك مع بقية مواد المرحلة.'
+                      : 'تفتح بالاشتراك في باقة صفك — والباقة الواحدة تفتح مواد المرحلة كلها لا هذه الدورة وحدها.'));
               $qa[] = array('هل أعاين قبل أن أشترك؟', $n_free > 0
                   ? 'نعم — ' . (int) $n_free . ' درسا في هذه الدورة مفتوح للمعاينة، تجده بعلامة «معاينة مجانية» في المنهج أعلاه.'
                   : 'دروس المعاينة في هذه الدورة قيد التجهيز، وتجد في الباقة المجانية دروسا تجريبية تتصفحها بلا دفع.');
               $qa[] = array('كم يدوم وصولي إليها؟',
                   (int) $course['expiry_period'] > 0
                       ? 'وصولك إليها ' . (int) $course['expiry_period'] . ' شهرا من يوم فتحها.'
-                      : 'ما دام اشتراكك ساريا، ولا تنتهي صلاحيتها في مدة أقصر.');
+                      : (!empty($offer['sellable'])
+                          ? 'من اشتراها مفردة فوصوله دائم لا ينتهي. ومن فتحها باشتراك فوصوله '
+                            . 'ما دام اشتراكه ساريا.'
+                          : 'ما دام اشتراكك ساريا، ولا تنتهي صلاحيتها في مدة أقصر.'));
               $qa[] = array('هل أحصل على شهادة؟',
                   'تصدر لك شهادة إتمام عند اجتياز اختبارات الدورة، وتحمل رمزا يتحقق منه أي جهة.');
           }
@@ -428,9 +456,19 @@ $play = function ($lesson_id = 0) use ($cid) {
         <?php endif; ?>
 
         <?php if ($has): ?>
+          <?php
+          /* TQ-COURSE-SALE — **ولماذا هي مفتوحة** ليس تفصيلا.
+             كان السطر يقرأ `is_purchased()` وهي تقرأ `enrol`، و`enrol`
+             يمتلئ من الباقة كذلك (`sync_enrolments()`) — فمن فتحتها له
+             باقته يقرأ «أنت مسجل في هذه الدورة»، ثم تنتهي باقته فتقفل،
+             ولا شيء قاله له إن فتحها كان معلقا على اشتراك. والسبب
+             يقرأ من مصدره: شراء مفرد في `subscriptions.course_id`. */
+          $bought = ($uid > 0 && $role === 'student') ? $CI->tq_cs->owns($uid, $cid) : false;
+          ?>
           <p class="plan-card__owned">
             <svg aria-hidden="true"><use href="#i-check"></use></svg>
-            <?php echo $enrolled ? 'أنت مسجل في هذه الدورة' : 'باقتك تفتح هذه الدورة'; ?>
+            <?php echo $bought ? 'اشتريت هذه الدورة'
+                 : ($granted ? 'باقتك تفتح هذه الدورة' : 'أنت مسجل في هذه الدورة'); ?>
           </p>
           <a class="btn btn--primary btn--block" href="<?php echo $play(); ?>">تابع الدراسة</a>
           <p class="tq-caption plan-card__hint">تفتح من حيث توقفت، لا من أول الدورة.</p>
@@ -445,9 +483,88 @@ $play = function ($lesson_id = 0) use ($cid) {
             <p class="tq-caption plan-card__hint">ستسجل الدخول أولا، ثم تعود إلى هذه الصفحة.</p>
           <?php endif; ?>
 
+        <?php elseif (!empty($offer['sellable'])): ?>
+          <?php
+          /* TQ-COURSE-SALE — **الشراء المفرد أولا، والباقة تحته.**
+             وترتيبهما ليس ذوقا: من فتح صفحة مادة بعينها جاء يسأل عن
+             هذه المادة، فالجواب المباشر أولا. والباقة تحته **بفارق
+             السعر لا بسعرها وحده** — «وبكذا زيادة تفتح المرحلة كلها»
+             يقارن ما يقارن؛ ورقمان متجاوران بلا جسر يجعلان المشتري
+             يوازن بين خيارين ولا يعرف ما يشتريه أحدهما زيادة. */
+          ?>
+          <?php if ((int) $offer['list_price'] > 0): ?>
+            <p class="plan-card__was">
+              <span class="tq-ltr"><?php echo number_format((int) $offer['list_price'] / 100); ?></span> ر.س
+              <b>خصم <?php echo (int) $offer['off']; ?>٪</b>
+            </p>
+          <?php endif; ?>
+
+          <p class="plan-card__price">
+            <?php echo tqs_money((int) $offer['price']); ?>
+            <small><?php echo (int) $offer['days'] > 0
+                ? 'وصول ' . html_escape(tq_count_units((int) round($offer['days'] / 30),
+                      'شهر', 'شهران', 'شهرين', 'أشهر', 'شهرا', '', 'obl'))
+                : 'وصول دائم'; ?></small>
+          </p>
+
+          <p class="tq-pay">
+            يخصم <b class="tq-ltr"><?php echo number_format((int) $offer['price'] / 100); ?></b> ر.س
+            مرة واحدة لهذه الدورة وحدها — دروسها واختباراتها وشهادتها.
+          </p>
+
+          <?php if ($sale_pending): ?>
+            <?php /* فاتورة صدرت ولم تسدد: يقال أين هي بدل أن يعرض زر
+                     شراء ثان يظنه صاحبه شراء جديدا. والزر يبقى — و
+                     `subscribe_course()` تعيد استعمال الصف نفسه. */ ?>
+            <p class="plan-card__owned">
+              <svg aria-hidden="true"><use href="#i-clock"></use></svg>
+              فاتورتك <span class="tq-ltr"><?php echo html_escape($sale_pending['invoice']['invoice_no']); ?></span>
+              صدرت وتنتظر السداد
+            </p>
+            <a class="btn btn--primary btn--block" href="<?php echo base_url('student/subscription'); ?>">
+              أكمل الدفع
+            </a>
+          <?php else: ?>
+            <a class="btn btn--primary btn--block"
+               href="<?php echo base_url('course-checkout/' . $cid); ?>">
+              اشتر هذه الدورة
+            </a>
+          <?php endif; ?>
+
+          <?php if ($pick): ?>
+            <?php
+            /* فارق السعر لا السعر: «وبـ٤٠٠ زيادة تفتح المرحلة كلها»
+               يقرأ عرضا، و«٥٩٩ ر.س» بجوار «١٩٩ ر.س» يقرأ خيارا ثانيا
+               أغلى بلا سبب ظاهر. وحين تكون الباقة **أرخص** — وهو ممكن
+               مع خصم موسمي — يقال ذلك بدل فارق سالب لا معنى له. */
+            $gap = (int) $pick['price'] - (int) $offer['price'];
+            ?>
+            <p class="path-inbundle">
+              <svg aria-hidden="true"><use href="#i-check"></use></svg>
+              <?php if ($gap > 0): ?>
+                وبـ<b class="tq-ltr"><?php echo number_format($gap / 100); ?></b> ر.س زيادة
+                تفتح <?php echo html_escape(tqs_bundle_tier($pick['name_ar'])); ?>:
+                منهج المرحلة كاملا لا هذه الدورة وحدها.
+              <?php else: ?>
+                و<?php echo html_escape(tqs_bundle_tier($pick['name_ar'])); ?>
+                بـ<b class="tq-ltr"><?php echo number_format((int) $pick['price'] / 100); ?></b> ر.س
+                تفتح منهج المرحلة كاملا.
+              <?php endif; ?>
+            </p>
+            <a class="btn btn--ghost btn--block" href="<?php echo base_url('checkout/' . $pick['code']); ?>">
+              اشترك في الباقة بدلا منها
+            </a>
+          <?php endif; ?>
+
+          <?php if ($uid <= 0): ?>
+            <p class="tq-caption plan-card__hint">ستسجل الدخول أولا، ثم تعود إلى شاشة الشراء.</p>
+          <?php endif; ?>
+
         <?php elseif ($pick): ?>
           <?php /* لا سعر للدورة هنا: الذي يدفع هو ثمن الباقة، وسعران على
-                   شاشة واحدة يجعلان المشتري يوازن بين خيارين أحدهما وهم. */ ?>
+                   شاشة واحدة يجعلان المشتري يوازن بين خيارين أحدهما وهم.
+                   وهذا الفرع هو ما تعرضه دورة **لا تباع مفردة** — وهو
+                   ما كانت تعرضه كل دورة قبل TQ-COURSE-SALE. */ ?>
           <p class="path-inbundle">
             <svg aria-hidden="true"><use href="#i-check"></use></svg>
             هذه الدورة ضمن <?php echo html_escape(tqs_bundle_tier($pick['name_ar'])); ?>
@@ -521,9 +638,17 @@ $play = function ($lesson_id = 0) use ($cid) {
                   'اختبارات', 'اختبارا', '', 'nom')); ?></li>
           <?php endif; ?>
           <li><svg aria-hidden="true"><use href="#i-lock"></use></svg>
-            <?php echo (int) $course['expiry_period'] > 0
-                ? 'وصول ' . (int) $course['expiry_period'] . ' شهرا'
-                : 'وصول ما دام اشتراكك ساريا'; ?></li>
+            <?php
+            /* TQ-COURSE-SALE — «ما دام اشتراكك ساريا» تكذب على من اشترى
+               مفردا: هو لم يشترك، ووصوله لا يتعلق باشتراك. */
+            if ((int) $course['expiry_period'] > 0) {
+                echo 'وصول ' . (int) $course['expiry_period'] . ' شهرا من يوم فتحها';
+            } elseif (!empty($offer['sellable'])) {
+                echo 'وصول دائم لمن اشتراها — أو ما دام اشتراكك ساريا';
+            } else {
+                echo 'وصول ما دام اشتراكك ساريا';
+            }
+            ?></li>
           <li><svg aria-hidden="true"><use href="#i-certificate"></use></svg>
             شهادة إتمام عند اجتياز الاختبارات</li>
         </ul>
@@ -534,9 +659,11 @@ $play = function ($lesson_id = 0) use ($cid) {
 </section>
 
 <?php
-/* وسم الدورة للمحركات. `offers` من الباقة التي تفتحها لا من `course.price`:
-   ذاك السعر لا يباع به شيء على هذه المنصة، ووسمه يعرض للمحرك ثمنا لا
-   يجده الزائر على الصفحة. */
+/* وسم الدورة للمحركات — و`offers` **هي ما يشتريه الزائر على هذه الصفحة**.
+   كان يقرأ من الباقة دائما لأن الدورة لم تكن تباع مفردة، فكان صوابا؛
+   ومع TQ-COURSE-SALE صار السعر المعروض هو سعر الدورة متى بيعت. ومحرك
+   يقرأ ٥٩٩ وصفحة تعرض ١٩٩ يريان منتجين مختلفين، ويعاقب المحرك على ذلك.
+   و`course.price` بالريال، وسعر العرض بالهللات — فلا يقسم مرتين. */
 $ld = array(
     '@context'    => 'https://schema.org',
     '@type'       => 'Course',
@@ -545,7 +672,15 @@ $ld = array(
     'provider'    => array('@type' => 'Organization', 'name' => 'تقدر', 'sameAs' => base_url()),
 );
 if ($thumb_url !== '') $ld['image'] = $thumb_url;
-if ($pick) {
+if (!empty($offer['sellable'])) {
+    $ld['offers'] = array(
+        '@type'         => 'Offer',
+        'price'         => number_format((int) $offer['price'] / 100, 2, '.', ''),
+        'priceCurrency' => 'SAR',
+        'availability'  => 'https://schema.org/InStock',
+        'url'           => base_url('course-checkout/' . $cid),
+    );
+} elseif ($pick) {
     $ld['offers'] = array(
         '@type'         => 'Offer',
         'price'         => number_format((int) $pick['price'] / 100, 2, '.', ''),

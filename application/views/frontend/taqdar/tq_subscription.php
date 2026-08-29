@@ -288,6 +288,88 @@ include 'portal_open.php';
         </div>
     <?php endif; ?>
 
+    <?php
+    /* TQ-COURSE-SALE — الكورسات المشتراة مفردة.
+       بطاقة مستقلة عن الباقة لا صف فيها: ما اشتري مفردا **لا ينتهي
+       بانتهاء الاشتراك**، وعرضه داخل بطاقة الباقة يجعل الطالب يظن أن
+       إيقاف تجديده يقفل ما اشتراه. وهو لا يقفل — والصفحة تقول ذلك.
+
+       والمعلقة تعرض مع السارية: فاتورة صدرت ولم تحول هي ما ينتظره
+       صاحبها فعلا، وشاشة تخفيها تتركه ينتظر بلا رقم يحول به. */
+    $tq_oc = isset($tq_owned_courses) ? (array) $tq_owned_courses : array();
+    if ($tq_oc):
+        $tq_oc_labels = array('pending' => 'بانتظار السداد', 'active' => 'مفتوح',
+                              'cancelled' => 'مفتوح حتى أجله');
+        $tq_oc_tones  = array('pending' => 'due', 'active' => 'mastered', 'cancelled' => 'idle');
+    ?>
+        <div class="tq-card tq-card--panel">
+            <div class="tq-card__head">
+                <h2 class="tq-card__title">كورسات اشتريتها مفردة</h2>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('catalog?type=course'); ?>">
+                    تصفح المزيد
+                </a>
+            </div>
+
+            <p class="tq-caption">
+                هذه مشتراة بذاتها، فلا يقفلها انتهاء اشتراكك في باقة ولا إيقاف تجديده.
+            </p>
+
+            <ul class="tqb-subj">
+                <?php foreach ($tq_oc as $tq_c):
+                    $tq_cs_st = (string) $tq_c['status'];
+                    /* منته فعليا وإن لم يمر الكرون بعد — كما في بطاقة الباقة. */
+                    if (in_array($tq_cs_st, array('active', 'cancelled'), true)
+                        && !empty($tq_c['ends_at']) && strtotime($tq_c['ends_at']) < time()) {
+                        continue;   // انتهى: لا يعرض على أنه مفتوح
+                    }
+                ?>
+                    <li class="tqb-subj__i">
+                        <b>
+                            <?php if ($tq_cs_st === 'pending'): ?>
+                                <?php echo html_escape($tq_c['title']); ?>
+                            <?php else: ?>
+                                <a href="<?php echo base_url('student/lesson/' . (int) $tq_c['course_id']); ?>">
+                                    <?php echo html_escape($tq_c['title']); ?>
+                                </a>
+                            <?php endif; ?>
+                        </b>
+                        <span>
+                            <span class="tq-badge tq-badge--<?php echo $tq_oc_tones[$tq_cs_st] ?? 'idle'; ?>">
+                                <?php echo html_escape($tq_oc_labels[$tq_cs_st] ?? $tq_cs_st); ?>
+                            </span>
+                            <?php if ($tq_cs_st === 'pending' && !empty($tq_c['invoice_no'])): ?>
+                                <?php /* رقم الفاتورة هو مرجع الحوالة، وبلاه تصل
+                                         حوالة بلا اسم يطابق فتفعل بالتخمين أو
+                                         لا تفعل. */ ?>
+                                <span class="tq-ltr" dir="ltr"><?php
+                                    echo html_escape($tq_c['invoice_no']); ?></span>
+                            <?php elseif (!empty($tq_c['ends_at'])): ?>
+                                حتى <span class="tq-ltr" dir="ltr"><?php
+                                    echo html_escape(substr((string) $tq_c['ends_at'], 0, 10)); ?></span>
+                            <?php else: ?>
+                                وصول دائم
+                            <?php endif; ?>
+                        </span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+
+            <?php
+            /* «حول قيمتها» يقال هنا كذلك لا في بطاقة الباقة وحدها: من
+               اشترى كورسا بالتحويل ولا اشتراك له لا يرى تلك البطاقة
+               أصلا، فلا يصله بيان الحساب. */
+            $tq_oc_due = false;
+            foreach ($tq_oc as $tq_c) if ((string) $tq_c['status'] === 'pending') $tq_oc_due = true;
+            if ($tq_oc_due && !$current):
+            ?>
+                <p class="tq-caption">
+                    حول قيمة الفاتورة واذكر رقمها في التحويل، ويفتح الكورس بعد التحقق من الحوالة.
+                </p>
+                <?php echo tqs_bank_block(); ?>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
     <div class="tq-card tq-card--panel">
         <div class="tq-card__head">
             <h2 class="tq-card__title">الفواتير</h2>

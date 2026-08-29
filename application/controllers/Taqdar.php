@@ -611,17 +611,50 @@ class Taqdar extends CI_Controller
         $uid = $this->session->userdata('user_id');
         $this->load->model('taqdar_billing_model');
 
+        /* TQ-COURSE-SALE — البنية أولا: `subscriptions.course_id` ينشأ
+           وقت التشغيل، وقراءة قبل إنشائه ترد «عمود مجهول» فتبيض الشاشة. */
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+        $this->tq_cs->install_schema();
+
         $cur = $this->taqdar_billing_model->active_subscription($uid);
         if (!$cur) {
             // آخر اشتراك مهما كانت حاله: المعلق تنتظره فاتورة، والمنتهي
             // يحتاج صاحبه أن يعرف أنه انتهى — لا أن يقال له «لا اشتراك لك».
+            //
+            /* TQ-COURSE-SALE — **والباقة وحدها.** الشراء المفرد صف في
+               الجدول نفسه، فآخر صف قد يكون كورسا اشتري أمس — فتقرأ بطاقة
+               «باقتك الحالية: —» على من لا باقة له، ويقال لمن اشترى مادة
+               إن اشتراكه «منته». والكورسات لها بطاقاتها أدناه. */
             $cur = $this->db->where('user_id', (int) $uid)
+                            ->where('course_id', 0)
                             ->order_by('id', 'DESC')->limit(1)
                             ->get('subscriptions')->row_array();
         }
         if ($cur) {
             $plan = $this->taqdar_billing_model->plan($cur['plan_id']);
             $cur['plan_name'] = $plan ? $plan['name_ar'] : '—';
+        }
+
+        /* الكورسات المشتراة مفردة — سارية ومعلقة معا.
+           والمعلقة تعرض لأنها التي تنتظر فعلا من صاحبها: فاتورة صدرت ولم
+           تحول، وشاشة تخفيها تترك المشتري ينتظر ما ينتظره هو. */
+        $own_courses = array();
+        try {
+            $own_courses = $this->db->query(
+                'SELECT s.`id`, s.`course_id`, s.`status`, s.`price`, s.`method`,
+                        s.`started_at`, s.`ends_at`, s.`created_at`,
+                        c.`title`, c.`thumbnail`,
+                        i.`invoice_no`, i.`status` AS invoice_status, i.`total` AS invoice_total
+                   FROM `subscriptions` s
+                   JOIN `course` c ON c.`id` = s.`course_id`
+              LEFT JOIN `invoices` i ON i.`id` = (
+                        SELECT MAX(`id`) FROM `invoices` WHERE `subscription_id` = s.`id`)
+                  WHERE s.`user_id` = ? AND s.`course_id` > 0
+                    AND s.`status` IN ("pending","active","cancelled")
+               ORDER BY s.`id` DESC', array((int) $uid)
+            )->result_array();
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-COURSE-SALE subscription(): ' . $e->getMessage());
         }
 
         $this->load->model('taqdar_tap_model');
@@ -640,6 +673,7 @@ class Taqdar extends CI_Controller
             'invoices'  => $this->taqdar_billing_model->invoices_of($uid),
             'tq_card'   => $this->taqdar_tap_model->ready(),
             'tq_level'  => $this->taqdar_diag_model->latest_result($uid),
+            'tq_owned_courses' => $own_courses,
         ));
     }
 
@@ -768,11 +802,15 @@ class Taqdar extends CI_Controller
         $by_card = ((string) $this->input->post('pay_method') === 'tap')
                 && $this->taqdar_tap_model->ready();
 
+        /* TQ-CYCLE-BUY — الدورة تمرر ولا تفسر هنا: `cycle_of()` تحرسها،
+           فمفتاح لا تعرفه الباقة يقع على دورتها هي لا على الأرخص. وفحصها
+           في المتحكم يعني نسخة ثانية من قواعد التسعير في طبقة العرض. */
         $this->load->model('taqdar_billing_model');
         $r = $this->taqdar_billing_model->subscribe(
             $uid,
             (int) $this->input->post('plan_id'),
-            $by_card ? 'tap' : 'manual'
+            $by_card ? 'tap' : 'manual',
+            (string) $this->input->post('cycle')
         );
 
         if (!$r['ok']) {
@@ -2799,8 +2837,11 @@ class Taqdar extends CI_Controller
             $this->done('parent/pay', false, 'اختر باقة أولا.');
         }
 
+        /* TQ-CYCLE-BUY — وولي الأمر يشتري بالدورة التي اختارها كذلك:
+           باب ثان بلا دورة يعني أن ابنه يدفع السنوي مهما اختار. */
         $this->load->model('taqdar_billing_model');
-        $r = $this->taqdar_billing_model->subscribe($child_id, $plan_id, $method);
+        $r = $this->taqdar_billing_model->subscribe(
+            $child_id, $plan_id, $method, (string) $this->input->post('cycle'));
 
         if (empty($r['ok'])) {
             $msg = !empty($r['errors']) ? implode(' ', $r['errors']) : 'تعذر إنشاء الاشتراك.';
@@ -2824,6 +2865,67 @@ class Taqdar extends CI_Controller
 
         $this->done('parent/payments', true,
             'صدرت الفاتورة باسم ابنك. حول قيمتها ثم ترسل الإدارة التفعيل.');
+    }
+
+    /**
+     * TQ-COURSE-SALE — ولي الأمر يشتري كورسا مفردا لابنه.
+     *
+     * أخت `parent_pay_start()` بمبادئها نفسها: الاشتراك والفاتورة يكتبان
+     * **باسم الابن** لا باسم الأب — هو صاحب المحتوى، وعليه يقاس التقدم،
+     * وله تجسد `sync_enrolments()` صفوف `enrol`. وولي الأمر يدفع ولا
+     * يملك.
+     *
+     * ولا حارس تشخيصي هنا كما لا حارس في `subscribe_course()`: الاختبار
+     * يقول أي **مرحلة** تناسب، والمادة الواحدة يختارها صاحبها بعينها.
+     */
+    public function parent_pay_course()
+    {
+        $this->write_guard('parent');
+        $pid = (int) $this->session->userdata('user_id');
+
+        $child_id  = (int) $this->input->post('child_id');
+        $course_id = (int) $this->input->post('course_id');
+        $method    = (string) $this->input->post('method') === 'card' ? 'card' : 'bank';
+
+        if (!$this->parent_owns_child($pid, $child_id)) {
+            $this->done('parent/pay', false, 'هذا الطالب غير مرتبط بحسابك برابط نشط.');
+        }
+        if ($course_id < 1) {
+            $this->done('parent/pay', false, 'اختر كورسا أولا.');
+        }
+
+        /* الوسيلة تترجم إلى ما يفهمه المحرك: `card` هنا و`tap` هناك.
+           وترك الكلمة كما هي يجعل `subscribe_course()` تكتب `method`
+           لا تعرفها البوابة، فتصدر الفاتورة ولا يبدأ دفع. */
+        $this->load->model('taqdar_tap_model');
+        $by_card = ($method === 'card') && $this->taqdar_tap_model->ready();
+
+        $this->load->model('taqdar_billing_model');
+        $r = $this->taqdar_billing_model->subscribe_course(
+            $child_id, $course_id, $by_card ? 'tap' : 'manual');
+
+        if (empty($r['ok'])) {
+            $msg = !empty($r['errors']) ? implode(' ', $r['errors']) : 'تعذر إنشاء الشراء.';
+            $this->done('parent/pay', false, $msg);
+        }
+
+        $this->trace('parent.pay.course', 'user#' . $child_id,
+                     array('course_id' => $course_id, 'invoice_id' => $r['invoice_id'] ?? 0));
+
+        /* البطاقة: تسلم إلى `Taqdar_pay::start` بنموذج ذاتي الإرسال في
+           شاشة الدفع — وهو مسار POST يشترط رمز CSRF، فلا يحول إليه بـ302.
+           والتحويل البنكي: تعليمات الحوالة في شاشة المدفوعات كما هي
+           للباقة، فلا يعاد بناؤها هنا. */
+        if ($by_card && !empty($r['invoice_id'])) {
+            $this->session->set_flashdata('flash_message',
+                'صدرت فاتورة الكورس باسم ابنك. أكمل الدفع بالبطاقة.');
+            $this->session->set_userdata('tq_pay_invoice', (int) $r['invoice_id']);
+            redirect(base_url('parent/pay?invoice=' . (int) $r['invoice_id']), 'location', 302);
+            return;
+        }
+
+        $this->done('parent/payments', true,
+            'صدرت فاتورة الكورس باسم ابنك. حول قيمتها ثم ترسل الإدارة التفعيل.');
     }
 
     public function parent_settings_save()
@@ -3402,8 +3504,15 @@ class Taqdar extends CI_Controller
 
         $uid = (int) $this->session->userdata('user_id');
         if ($uid <= 0) {
-            $this->session->set_userdata('tq_next', 'checkout/' . $b['code']);
-            redirect(site_url('login?next=' . rawurlencode('checkout/' . $b['code'])), 'location', 302);
+            /* TQ-AUTH-NEXT — والدورة تسافر مع الوجهة: `?cycle=` يسقط هنا
+               فيعود من اختار الشهري الى السنوي بعد ان سجل دخوله — وهو
+               عطل TQ-CYCLE-BUY نفسه عائدا من باب الدخول. */
+            $tq_cycle = (string) $this->input->get('cycle');
+            $tq_next  = 'checkout/' . $b['code']
+                      . ($tq_cycle !== '' ? '?cycle=' . rawurlencode($tq_cycle) : '');
+            $tq_next  = tqs_safe_next($tq_next);
+            $this->session->set_userdata('tq_next', $tq_next);
+            redirect(site_url('login?next=' . rawurlencode($tq_next)), 'location', 302);
             return;
         }
 
@@ -3436,10 +3545,28 @@ class Taqdar extends CI_Controller
            تعرض الشاشة ما كانت تعرضه قبل تاب حرفا بحرف. */
         $this->load->model('taqdar_tap_model');
 
+        /* TQ-CYCLE-BUY — الدورة تصل من الرابط (`?cycle=monthly`) لأن
+           المبدل في صفحة الباقات يكتبها في كل زر. والقرار للمحرك:
+           `plan_cycles()` تقول ما يشترى فعلا، و`cycle_of()` تختار
+           المطلوب أو ترتد إلى دورة الباقة — فلا تعرض الشاشة خيارا
+           سيرفضه `subscribe()` بعد نقرة. */
+        $tq_cycles = $this->taqdar_billing_model->plan_cycles(array(
+            'period'        => $b['period'],
+            'price'         => $b['price'],
+            'duration_days' => $b['days'],
+        ));
+        $tq_pick = $this->taqdar_billing_model->cycle_of(array(
+            'period'        => $b['period'],
+            'price'         => $b['price'],
+            'duration_days' => $b['days'],
+        ), (string) $this->input->get('cycle'));
+
         $this->show('site_checkout', 'تأكيد الاشتراك — ' . $b['name'], array(
             'tq_bundle'  => $b,
             'tq_current' => $cur,
             'user_id'    => $uid,
+            'tq_cycles'  => $tq_cycles,
+            'tq_cycle'   => $tq_pick,
             'tq_card'    => $this->taqdar_tap_model->ready(),
             'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
         ));
@@ -3516,6 +3643,123 @@ class Taqdar extends CI_Controller
         log_message('error', 'TQ-GATEWAY: نداء على بادئة pay/ القديمة — ' . $gateway
             . ' — والنقطة العاملة payment/tap/return');
         show_404();
+    }
+
+    /* ---- الكورس المفرد: شاشته وشراؤه — TQ-COURSE-SALE ------------- */
+
+    /**
+     * تأكيد شراء كورس مفرد — شاشة واحدة بلا سلة.
+     *
+     * وهي أخت `checkout()` في كل شيء: تقرأ من مصدر واحد، وتصدر الفاتورة
+     * أولا في الحالين، وتعرض ما تقبله البوابة وحده. والفرق ما يشترى.
+     *
+     * والدخول شرط هنا لا في الزر السابق: من يعود بعد التسجيل يجد الشاشة
+     * نفسها لا صفحة الكورس من أولها.
+     */
+    public function course_checkout($course_id = 0)
+    {
+        $course_id = (int) $course_id;
+
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+        $offer = $this->tq_cs->offer($course_id);
+
+        /* غير معروض = غير موجود في هذا الباب. و404 لا صفحة تشرح: عنوان
+           لا يشترى منه شيء ليس شاشة شراء ناقصة. */
+        if (!$offer['sellable']) show_404();
+
+        $uid = (int) $this->session->userdata('user_id');
+        if ($uid <= 0) {
+            $next = 'course-checkout/' . $course_id;
+            $this->session->set_userdata('tq_next', $next);
+            redirect(site_url('login?next=' . rawurlencode($next)), 'location', 302);
+            return;
+        }
+
+        /* المعلم وولي الأمر لا يشتريان لأنفسهما: الشراء يفتح محتوى يقاس
+           تقدمه لصاحب الحساب. وولي الأمر يشتري **لابنه** من بوابته. */
+        if (function_exists('tq_role') && tq_role() !== 'student') {
+            $this->session->set_flashdata('error_message',
+                'شراء الكورسات لحسابات الطلاب. وولي الأمر يشتري لابنه من «مدفوعاتي».');
+            redirect(base_url('course/' . rawurlencode(slugify($offer['title'])) . '/' . $course_id),
+                     'location', 302);
+            return;
+        }
+
+        $this->load->model('taqdar_billing_model');
+        $this->load->model('taqdar_tap_model');
+
+        /* مفتوح له أصلا: لا تعرض شاشة دفع لمن لا يدفع. والسبب يقال —
+           «باقتك تفتحه» غير «اشتريته». */
+        if ($this->taqdar_billing_model->has_course($uid, $course_id)) {
+            $this->session->set_flashdata('flash_message', 'هذا الكورس مفتوح لك بالفعل.');
+            redirect(base_url('student/lesson/' . $course_id), 'location', 302);
+            return;
+        }
+
+        $this->show('site_course_checkout', 'تأكيد شراء — ' . $offer['title'], array(
+            'tq_offer'     => $offer,
+            'tq_course'    => $this->tq_cs->course($course_id),
+            'tq_pending'   => $this->tq_cs->pending_of($uid, $course_id),
+            'user_id'      => $uid,
+            'tq_card'      => $this->taqdar_tap_model->ready(),
+            'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
+        ));
+    }
+
+    /**
+     * POST student/buy-course — يصدر الفاتورة ثم يدفعها بالبطاقة أو يترك
+     * تحويلها.
+     *
+     * الترتيب هو ترتيب كل شراء في المنصة: **الفاتورة أولا في الحالين**.
+     * لو أنشئت الدفعة عند تاب قبل أن تكتب الفاتورة، لصار من دفع ثم سقط
+     * اتصاله قد دفع بلا صف عندنا يقابل دفعته.
+     */
+    public function buy_course()
+    {
+        $this->require_role('student');
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $uid       = (int) $this->session->userdata('user_id');
+        $course_id = (int) $this->input->post('course_id');
+
+        $this->load->model('taqdar_tap_model');
+        $by_card = ((string) $this->input->post('pay_method') === 'tap')
+                && $this->taqdar_tap_model->ready();
+
+        $this->load->model('taqdar_billing_model');
+        $r = $this->taqdar_billing_model->subscribe_course(
+            $uid, $course_id, $by_card ? 'tap' : 'manual'
+        );
+
+        if (empty($r['ok'])) {
+            $this->session->set_flashdata('error_message', implode(' ', (array) $r['errors']));
+            redirect(base_url('course-checkout/' . $course_id), 'location', 302);
+            return;
+        }
+
+        $this->trace('student.course.buy', 'course#' . $course_id,
+                     array('subscription_id' => $r['subscription_id'] ?? 0,
+                           'invoice_id'      => $r['invoice_id'] ?? 0));
+
+        if ($by_card) {
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid);
+            if (!empty($pay['ok'])) {
+                redirect($pay['url'], 'location', 302);
+                return;
+            }
+            /* تعذر بدء الدفع: الفاتورة صدرت ولم تضع، فيقال ما وقع ويدل
+               على البديل القائم — لا يعاد الطالب إلى صفحة الكورس وقد
+               صار له اشتراك معلق يظنه لم يقع. */
+            $this->session->set_flashdata('error_message',
+                implode(' ', $pay['errors'])
+                . ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا أو إعادة المحاولة من هنا.');
+            redirect(base_url('student/subscription'), 'location', 302);
+            return;
+        }
+
+        $this->session->set_flashdata('flash_message',
+            'صدرت فاتورتك. حول قيمتها ويفتح الكورس بعد التحقق من الحوالة.');
+        redirect(base_url('student/subscription'), 'location', 302);
     }
 
 }

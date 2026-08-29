@@ -132,6 +132,11 @@ $tq_stale = (int) get_instance()->db->query(
                             <th>#</th>
                             <th>المشترك</th>
                             <th>الباقة</th>
+                            <?php /* TQ-CYCLE-BUY — الدورة عمود لا حاشية: بعد ان صار
+                                     الشهري يباع صار في القائمة صفان لباقة واحدة
+                                     بمبلغين، و«399» و«42» تحت اسم واحد بلا عمود يفرق
+                                     بينهما تقرآن خطأ في الحساب لا اختلاف مدة. */ ?>
+                            <th>الدورة</th>
                             <th>المدفوع</th>
                             <th>الحالة</th>
                             <th>يبدأ</th>
@@ -151,7 +156,46 @@ $tq_stale = (int) get_instance()->db->query(
                         <tr>
                             <td><span class="tq-ltr" dir="ltr"><?php echo (int) $r['id']; ?></span></td>
                             <td><?php echo html_escape($r['user_name'] ?: ('#' . $r['user_id'])); ?></td>
-                            <td><?php echo html_escape($r['plan_name'] ?: '—'); ?></td>
+                            <?php
+                            /* TQ-COURSE-SALE — **ثلاث وحدات بيع في جدول واحد.**
+                               وكان العمود يقرأ `plan_name` وحده، فيطبع «—»
+                               على كل شراء مسار أو كورس مفرد: يقرأ المسؤول
+                               صفا بمبلغ ومشتر وحالة ولا يعرف ما بيع فيه،
+                               فيفعل حوالة على العمياء. والنوع يقال مع
+                               الاسم — «كورس مفرد» غير «باقة». */
+                            $tq_what = ''; $tq_kind = '';
+                            if (trim((string) ($r['plan_name'] ?? '')) !== '') {
+                                $tq_what = (string) $r['plan_name']; $tq_kind = '';
+                            } elseif (trim((string) ($r['course_name'] ?? '')) !== '') {
+                                $tq_what = (string) $r['course_name']; $tq_kind = 'كورس مفرد';
+                            } elseif (trim((string) ($r['path_name'] ?? '')) !== '') {
+                                $tq_what = (string) $r['path_name']; $tq_kind = 'مسار';
+                            }
+                            ?>
+                            <td>
+                                <?php echo html_escape($tq_what !== '' ? $tq_what : '—'); ?>
+                                <?php if ($tq_kind !== ''): ?>
+                                    <br><small class="tqa-dim"><?php echo html_escape($tq_kind); ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <?php
+                            /* الصف القديم بلا `cycle` (كتب قبل العمود) يقرأ من
+                               مدته لا يعرض فراغا: كل ما في القاعدة قبل اليوم
+                               دورة الباقة نفسها. */
+                            $tq_cl = array('annual' => 'سنوي', 'quarterly' => 'ربع سنوي',
+                                           'monthly' => 'شهري', 'free' => 'مجانية');
+                            $tq_ck = isset($r['cycle']) ? (string) $r['cycle'] : '';
+                            $tq_dy = (int) (isset($r['days']) ? $r['days'] : 0);
+                            if ($tq_ck === '' && $tq_dy > 0) {
+                                $tq_ck = ($tq_dy >= 300) ? 'annual' : (($tq_dy >= 80) ? 'quarterly' : 'monthly');
+                            }
+                            ?>
+                            <td><?php if ($tq_ck !== '' && isset($tq_cl[$tq_ck])): ?>
+                                  <span class="badge badge-light"><?php echo $tq_cl[$tq_ck]; ?></span>
+                                  <?php if ($tq_dy > 0): ?>
+                                    <small class="tqa-dim"><?php echo tqa_ltr($tq_dy); ?> يوما</small>
+                                  <?php endif; ?>
+                                <?php else: ?><span class="tqa-dim">—</span><?php endif; ?></td>
                             <td><?php echo tqa_money($r['price']); ?></td>
                             <td><span class="badge badge-<?php echo $tones[$st]; ?>"><?php echo $labels[$st]; ?></span></td>
                             <td><?php echo $r['started_at'] ? tqa_ltr(date('Y-m-d', strtotime($r['started_at']))) : '<span class="tqa-dim">—</span>'; ?></td>

@@ -2625,11 +2625,35 @@ h1,h2,h3,.bundle__name{ text-wrap:balance }
 /* المبدّل لا يتمدّد على عرض البطاقة. والأب **شبكة** لا عمود فليكس،
    فـ`align-self` تحكم المحور الكتليّ وحده — والمحور الآخر `justify-self`. */
 .plan-cycle{justify-self:start;align-self:start}
+/* TQ-CYCLE-CHARGE — كلمة تسبق المبدل تقول إنه يبدل العرض
+   لا الفوترة. وهي `p` لا `label`: لا حقل هنا تسميه، والربط
+   بـ`aria-labelledby` على المجموعة نفسها. */
+.plan-cycle__lead{
+  justify-self:start;margin:0 0 -4px;color:var(--ink-3);
+  font-weight:600;font-size:clamp(11.5px,.88vw,13px)
+}
 .plan-card__price{margin:0;font-size:clamp(26px,2.8vw,38px);font-weight:800;color:var(--ink);
   line-height:1.15;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px}
 .plan-card__price span{font-size:.46em;font-weight:700;color:var(--ink-2)}
 .plan-card__price small{flex-basis:100%;font-size:.42em;font-weight:600;color:var(--ink-2);
   line-height:1.5;margin-block-start:2px}
+/* المخصوم يقرأ مع الرقم لا بعده — TQ-CYCLE-CHARGE */
+.plan-card__price small.tq-pay{font-size:.4em;font-weight:700;color:var(--ink);
+  margin-block-start:6px}
+/* TQ-COURSE-SALE — سعر ما قبل الخصم، فوق السعر لا بجواره.
+   بجواره يقرأ رقمين متنافسين، وفوقه بحجم أصغر ومشطوب يقرأ ما هو:
+   مرجعا لما وفر. و`line-through` وحدها لا تكفي — اللون يبعده عن
+   الرقم الذي يدفع، وإلا استوى المشطوب والمطلوب في العين. */
+.plan-card__was{margin:0 0 -4px;font-size:.92rem;font-weight:700;color:var(--ink-3);
+  display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.plan-card__was .tq-ltr{text-decoration:line-through;text-decoration-thickness:1.5px}
+.plan-card__was b{font-size:.86em;font-weight:800;color:var(--emerald);
+  background:rgba(12,120,108,.1);border-radius:999px;padding:2px 9px}
+/* «يخصم كذا مرة واحدة» — TQ-CYCLE-CHARGE بوجهه في الكورس المفرد:
+   الثمن يقال **مع** الرقم لا في حاشية تحته، فلا تقرأ العين السعر
+   وتترك ما يفسره. */
+p.tq-pay{margin:0;font-size:.9rem;font-weight:600;color:var(--ink-2);line-height:1.6}
+p.tq-pay b{color:var(--ink);font-weight:800}
 .plan-card__owned{margin:0;display:flex;align-items:center;gap:8px;padding:10px 13px;
   background:rgba(12,120,108,.09);border:1px solid rgba(12,120,108,.28);border-radius:13px;
   color:var(--emerald);font-weight:700;font-size:.92rem}
@@ -2720,6 +2744,9 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 .plan-cta__price b{font-family:'Cairo',sans-serif;font-weight:800;line-height:1;
   font-size:clamp(30px,3.2vw,42px);color:#fff}
 .plan-cta__price>span{font-size:clamp(13px,1vw,15px);font-weight:700;color:var(--gold-warm)}
+/* المخصوم يقرأ مع الرقم لا بعده — TQ-CYCLE-CHARGE */
+.plan-cta__price small.tq-pay{color:#F2E4C6;font-weight:700;
+  font-size:clamp(12.5px,.98vw,14.5px)}
 .plan-cta__price small{font-size:clamp(12.5px,.95vw,14px);font-weight:600;
   color:var(--gold-on-dark)}
 
@@ -2755,8 +2782,33 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 .co-item__dur{margin:6px 0 0;display:flex;align-items:center;gap:7px;
   font-size:.9rem;color:var(--ink-2)}
 .co-item__dur svg{inline-size:15px;block-size:15px;flex:none;color:var(--gold-deep)}
-.co-item__price{margin:0;flex:none;font-size:1.35rem;font-weight:800;color:var(--ink)}
+.co-item__price{margin:0;flex:none;font-size:1.35rem;font-weight:800;color:var(--ink);
+  text-align:start}
 .co-item__price span{font-size:.62em;font-weight:700;color:var(--ink-2)}
+/* TQ-CYCLE-CHARGE — المعادل الشهري تحت المخصوم: هو الرقم
+   الذي رآه المشتري في صفحة الباقات، فيجده هنا ولا يظن أنه ضاع. */
+.co-item__price small{display:block;margin-block-start:3px;
+  font-size:.56em;font-weight:600;color:var(--ink-3);white-space:nowrap}
+.co-cycle{margin:12px 0 0;padding:11px 13px;border-radius:12px;
+  background:rgba(12,120,108,.06);border:1px solid rgba(12,120,108,.18);
+  color:var(--ink-2);font-size:.88rem;font-weight:600;line-height:1.75}
+.co-cycle b{color:var(--ink);font-weight:800}
+/* TQ-CYCLE-BUY — منتقي مدة الاشتراك: روابط لا أزرار راديو، فالاختيار
+   يعيد بناء الصفحة من الخادم ولا يبقى رقم قديما لأن سكربتا تعثر. */
+.co-cyc{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;
+  margin-block-start:4px}
+.co-cyc__opt{display:grid;gap:3px;padding:13px 15px;border-radius:14px;text-decoration:none;
+  border:1.5px solid var(--gold-line-soft);background:var(--paper);color:var(--ink);
+  transition:border-color var(--t-route) var(--ease),background var(--t-route) var(--ease)}
+.co-cyc__opt:hover{border-color:var(--gold-line);text-decoration:none}
+.co-cyc__opt.is-on{border-color:var(--emerald);background:rgba(12,120,108,.06)}
+.co-cyc__name{font-weight:700;font-size:.95rem;color:var(--ink-2)}
+.co-cyc__opt.is-on .co-cyc__name{color:var(--emerald)}
+.co-cyc__price{font-size:1.4rem;font-weight:800;line-height:1.15}
+.co-cyc__price b{font-variant-numeric:tabular-nums}
+.co-cyc__note{font-size:.8rem;font-weight:600;color:var(--ink-3);line-height:1.6}
+.co-cyc__foot{margin:12px 0 0}
+
 
 .co-opens{margin:14px 0 0;font-size:.9rem;color:var(--ink-2);line-height:1.8}
 .co-opens b{color:var(--ink)}
@@ -2822,6 +2874,9 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 .co-side__total span{color:var(--ink-2);font-size:.92rem}
 .co-side__total b{font-size:1.3rem;font-weight:800;color:var(--ink)}
 .co-side__total b span{font-size:.6em;color:var(--ink-2)}
+.co-side__cycle{margin:2px 0 0;color:var(--ink-3);font-size:.82rem;
+  font-weight:600;line-height:1.7}
+.co-side__cycle b{color:var(--ink-2);font-weight:800}
 .co-form{margin:0}
 .co-side__note{margin:12px 0 0;text-align:center;line-height:1.7}
 .co-side__note a{color:var(--gold-text);font-weight:700;text-decoration:underline}

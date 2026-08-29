@@ -179,6 +179,24 @@ class Login extends CI_Controller
             }
         }
 
+        /* TQ-AUTH-NEXT — من جاء ليشتري يعود الى شراءه لا الى لوحته.
+           `checkout()` كان يكتب `tq_next` و`?next=` **ولا احد يقرؤهما**،
+           و`url_history` لا تكتب لان مسار الشراء لا يمر بحارس يكتبها.
+           فمن ضغط «اشترك» وسجل دخوله هبط في لوحة الطالب: الباقة التي
+           اختارها والدورة التي بدلها ذهبتا معا، ولا شيء يقول له اين
+           صارتا. والوجهة تصفى في موضع واحد (`tqs_safe_next()`) — نص يصل
+           من الطلب ويوضع في `Location:` بلا تصفية يقذف من دخل الى موقع
+           اخر بعد ان كتب كلمته. */
+        $tq_next = tqs_safe_next($this->input->post('tq_next'));
+        if ($tq_next === '') $tq_next = tqs_safe_next($this->session->userdata('tq_next'));
+        if ($tq_next !== '') {
+            /* يستهلك مرة: وجهة تبقى في الجلسة تقذف كل دخول تال الى
+               شراء انتهى امره. و`url_history` هو ما يقرؤه
+               `set_login_userdata()` اصلا — فلا مسار عودة ثان. */
+            $this->session->unset_userdata('tq_next');
+            $this->session->set_userdata('url_history', base_url($tq_next));
+        }
+
         $this->user_model->new_device_login_tracker($row->id);
         $this->user_model->set_login_userdata($row->id);
     }
@@ -326,6 +344,12 @@ class Login extends CI_Controller
     public function register()
     {
         $this->tq_guard_origin('sign_up');
+
+        /* TQ-AUTH-NEXT — والتسجيل رحلة لا خطوة: انشاء ثم رمز تاكيد ثم
+           دخول. فالوجهة تحفظ في الجلسة هنا ويقراها `validate_login()`
+           في اخرها، وحقل مخفي في نموذج الدخول وحده يفقدها عند اول قفزة. */
+        $tq_next_in = tqs_safe_next($this->input->post('tq_next'));
+        if ($tq_next_in !== '') $this->session->set_userdata('tq_next', $tq_next_in);
 
         if ($this->crud_model->check_recaptcha() == false && (get_frontend_settings('recaptcha_status') == true || get_frontend_settings('recaptcha_status_v3') == true)) {
             $this->session->set_flashdata('error_message', 'تعذر التحقق من أنك لست آليا. أعد المحاولة.');

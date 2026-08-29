@@ -1883,98 +1883,99 @@ if (!function_exists('tqs_stage_asset_key')) {
 
 if (!function_exists('tqs_plan_price')) {
     /**
-     * سعر الباقة بدورتيه — **الأربع دورات لا دورتان**.
+     * سعر الباقة بدوراتها — **وهي الدورات التي تشترى، لا التي تعرض.**
      *
-     * TQ-PLAN-CYCLE — كان العرض يقرأ `duration_days >= 360` وحده:
-     * فما دونها «باقة غير سنوية» تطبع فقرة سعر واحدة بـ
-     * `data-cycle="month"`. ومبدل الدورة يخفي كل فقرة لا تحمل الدورة
-     * المختارة — فمن ضغط «سنوي» **اختفى سعر تلك البطاقة كله**: بطاقة
-     * بلا رقم، ولا خطأ، ولا شيء يقول لماذا. والباقة الشهرية في القاعدة
-     * اليوم هي الحال.
+     * TQ-CYCLE-BUY — الحساب انتقل الى `Taqdar_billing_model::plan_cycles()`
+     * ولم يبق هنا. والسبب ان الشهري صار **يباع**: كان رقما يعرض ولا يقابله
+     * شيء في القاعدة، فمن ضغط «شهري» دفع السنوي؛ وصار الان دورة شراء لها
+     * سعرها ومدتها. وشاشة العرض التي تحسب سعرها بنفسها تعد بـ42 والفاتورة
+     * تطلب 43 — والفارق ريال لا يراه احد حتى يشتكي مشتر. فالمصدر واحد:
+     * ما تحسبه هذه الدالة هو ما يخصم حرفا بحرف.
      *
-     * وثلاثة قرارات:
+     * وقرار ثالث بقي كما كان: **الشهري للسنوية وحدها.** الباقة ربع
+     * السنوية كانت تعرض «333 ر.س / شهريا» ولا يشترى منها شهر واحد —
+     * وهو العطل نفسه بوجه اخر. فصارت تعرض سعرها بدورته هو.
      *
-     * ١ — **الدورة من العمود لا من المدة.** `period` هو ما يكتبه
-     *     المسؤول ويقرؤه المشتري، و`duration_days` هو ما يحسب عليه
-     *     الانتهاء. وهما قد يفترقان بقصد (باقة «سنوية» مدتها ٣٩٠ يوما
-     *     هدية)، فقراءة المدة مكان الدورة تسمي الشيء بغير اسمه.
-     *
-     * ٢ — **الشهري معادل معروض لا فوترة.** المنصة لا تعرف اشتراكا
-     *     متكررا: لا تجديد تلقائي ولا حفظ بطاقة. فالمعروض شهريا يقترن
-     *     دائما بسطر «تدفع … مرة واحدة» — رقم بلا سياقه وعد مضلل.
-     *
-     * ٣ — **من لا معادل له يطبع الرقم نفسه في الدورتين.** لا فقرة
-     *     تخفى فتترك بطاقة بلا سعر: الشهرية شهرية في الوضعين،
-     *     والمجانية مجانية فيهما.
-     *
-     * @return array period · free · months · total · month · save ·
-     *               unit · note · has_alt
+     * @return array period · free · months · total · month · month_days ·
+     *               save · unit · note · has_alt · charge · pay_note ·
+     *               span · month_note · own_note · cycles
      */
     function tqs_plan_price($b)
     {
-        $period = isset($b['period']) ? (string) $b['period'] : '';
-        $days   = isset($b['days'])   ? (int) $b['days']      : 0;
-        $sar    = (int) round(max(0, (int) $b['price']) / 100);
+        $CI = get_instance();
+        if (!isset($CI->taqdar_billing_model)) $CI->load->model('taqdar_billing_model');
 
-        /* الدورة تشتق من المدة حين يخلو العمود — صف قديم كتب قبل أن
-           يوجد `period`، وقراءته فارغا تطبع «مجانية» على باقة مدفوعة. */
-        if ($period === '') {
-            if ($days >= 360)     $period = 'annual';
-            elseif ($days >= 80)  $period = 'quarterly';
-            else                  $period = 'monthly';
-        }
+        $plan = array(
+            'period'        => isset($b['period']) ? (string) $b['period'] : '',
+            'price'         => max(0, (int) (isset($b['price']) ? $b['price'] : 0)),
+            'duration_days' => (int) (isset($b['days']) ? $b['days'] : 0),
+        );
+        $cycles = $CI->taqdar_billing_model->plan_cycles($plan);
+
+        $own = null;
+        foreach ($cycles as $c) { if (!empty($c['default'])) { $own = $c; break; } }
+        if ($own === null) $own = reset($cycles);
+
+        $mon     = isset($cycles['monthly']) ? $cycles['monthly'] : null;
+        $has_alt = ($mon !== null && $own['key'] !== 'monthly');
+
+        $own_sar = (int) round($own['price'] / 100);
+        $mon_sar = $has_alt ? (int) round($mon['price'] / 100) : $own_sar;
 
         $months = array('annual' => 12, 'quarterly' => 3, 'monthly' => 1, 'free' => 0);
-        $m      = isset($months[$period]) ? $months[$period] : 12;
+        $m      = isset($months[$own['key']]) ? $months[$own['key']] : 12;
 
         $out = array(
-            'period'  => $period,
-            'free'    => ($period === 'free' || $sar <= 0),
-            'months'  => $m,
-            'total'   => $sar,
-            'month'   => $sar,
-            'save'    => 0,
-            'unit'    => 'شهريا',
-            'note'    => '',
-            'has_alt' => false,
+            'period'     => $own['key'],
+            'free'       => ($own['key'] === 'free' || $own_sar <= 0),
+            'months'     => $m,
+            'total'      => $own_sar,
+            'charge'     => $own_sar,
+            'month'      => $mon_sar,
+            'month_days' => $has_alt ? (int) $mon['days'] : (int) $own['days'],
+            'save'       => 0,
+            'unit'       => (string) $own['unit'],
+            'note'       => '',
+            'has_alt'    => $has_alt,
+            'span'       => '',
+            'pay_note'   => '',
+            'month_note' => '',
+            'own_note'   => '',
+            'cycles'     => $cycles,
         );
 
         if ($out['free']) {
-            $out['total'] = 0;
-            $out['month'] = 0;
+            $out['total'] = 0; $out['month'] = 0; $out['charge'] = 0;
             $out['unit']  = '';
             $out['note']  = 'بلا رسوم';
             return $out;
         }
 
-        if ($m === 12) {
-            /* الخصم السنوي عشرون بالمئة — والشهري **أصل السعر قبله**،
-               لا السنوي مقسوما على اثني عشر: القسمة تعطي 319 لا 399
-               لأن الخصم مطبق في المخزن. والاشتقاق مكتوب في
-               `tqs_plan_cycle()` منذ كتبت، فتنادى ولا يكتب ثانية. */
-            $c = tqs_plan_cycle((int) $b['price']);
-            $out['month']   = $c['month'];
-            $out['save']    = $c['save'];
-            $out['unit']    = 'سنويا';
-            $out['note']    = 'تدفع سنويا ' . number_format($c['year']) . ' ر.س';
-            $out['has_alt'] = true;
-            return $out;
+        /* ما يفتحه المبلغ من زمن — بعبارة يقرؤها ولي الامر لا بعدد ايام. */
+        $span = array('annual'    => 'للعام الدراسي كاملا',
+                      'quarterly' => 'لثلاثة أشهر',
+                      'monthly'   => 'لشهر واحد');
+        $out['span']     = isset($span[$own['key']]) ? $span[$own['key']] : tqs_period_label($own['days']);
+        $out['own_note'] = 'يفتح ' . $out['span'];
+
+        if ($has_alt) {
+            /* **الشهري شراء لا معادل.** فجملته تقول ما يشتريه وما بعده:
+               لا تجديد تلقائي في هذا المحرك، ومن لا يجدد ينقطع وصوله —
+               وقوله هنا خير من ان يكتشفه بعد ثلاثين يوما. */
+            $out['month_note'] = 'يفتح ' . (int) $mon['days'] . ' يوما — تجدده بالشراء، ولا يخصم تلقائيا';
+            $out['pay_note']   = $out['month_note'];
+
+            /* والتوفير مقارنة حقيقية الان: 42 × 12 هو ما يدفعه فعلا من
+               اشترى شهرا شهرا. وكان يقارن بسعر مرجعي لا يباع. */
+            $out['save'] = max(0, $mon_sar * $m - $own_sar);
+            $out['note'] = 'تدفع سنويا ' . number_format($own_sar) . ' ر.س';
+        } else {
+            $out['pay_note'] = $out['own_note'];
+            $out['note']     = ($own['key'] === 'monthly'
+                                && (int) $own['days'] > 0 && (int) $own['days'] !== 30)
+                             ? ('لكل ' . (int) $own['days'] . ' يوما') : '';
         }
 
-        if ($m === 3) {
-            /* ربع سنوية: المعادل الشهري قسمة مستقيمة بلا خصم مخترع —
-               الخصم السنوي قرار تسعير معلن، وإسقاطه على الربع يعد
-               بتوفير لا وجود له. */
-            $out['month']   = (int) round($sar / 3);
-            $out['unit']    = 'كل ثلاثة أشهر';
-            $out['note']    = 'تدفع ' . number_format($sar) . ' ر.س كل ثلاثة أشهر';
-            $out['has_alt'] = true;
-            return $out;
-        }
-
-        /* شهرية: الدورتان رقم واحد، فلا سطر «تدفع…» يكرر ما فوقه. */
-        $out['unit'] = 'شهريا';
-        $out['note'] = ($days > 0 && $days !== 30) ? ('لكل ' . $days . ' يوما') : '';
         return $out;
     }
 }
@@ -1990,6 +1991,11 @@ if (!function_exists('tqs_plan_price_html')) {
      *
      * والمجانية تكتب «مجانا» ولا تطبع صفرا: `0 ر.س` تقرأ عطلا في
      * التسعير لا عرضا.
+     *
+     * TQ-CYCLE-BUY — **والرقمان صارا سعرين يشتريان، لا رقما ومعادله.**
+     * فتحت كل واحد جملته: الشهري يقول كم يوما يفتح وان التجديد بالشراء،
+     * والسنوي يقول انه يفتح العام وكم يوفر عن اثني عشر شهرا مشتراة
+     * منفصلة — وهي مقارنة حقيقية الان لان الشهر يباع فعلا.
      */
     function tqs_plan_price_html($b, $cls)
     {
@@ -2005,27 +2011,48 @@ if (!function_exists('tqs_plan_price_html')) {
             return $h;
         }
 
-        /* الشهري: المعروض دائما — وهو الافتراضي بقرار المالك. */
+        /* الشهري: سعر شراء متى وجد، وسعر الباقة نفسه متى لم يوجد — فلا
+           فقرة تخفى الى فراغ حين يبدل الزائر الدورة. */
         $h .= '      <p class="' . $cls . '" data-cycle="month">'
             . '<b class="tq-ltr">' . number_format($p['month']) . '</b>'
-            . '<span>ر.س / شهريا</span>'
-            . ($p['note'] !== '' ? '<small>' . html_escape($p['note']) . '</small>' : '')
-            . '</p>' . "\n";
+            . '<span>ر.س / ' . ($p['has_alt'] ? 'شهريا' : html_escape($p['unit'])) . '</span>'
+            . '<small class="tq-pay">'
+            . html_escape($p['has_alt'] ? $p['month_note'] : $p['own_note'])
+            . '</small></p>' . "\n";
 
-        /* الدورية: السعر المدفوع فعلا بوحدته. ومن لا معادل شهريا له
-           (الشهرية نفسها) تكرر رقمه — فلا فقرة تخفى إلى فراغ. */
+        /* الدورية: سعر الباقة بدورته. */
         $h .= '      <p class="' . $cls . '" data-cycle="year" hidden>'
             . '<b class="tq-ltr">' . number_format($p['total']) . '</b>'
-            . '<span>ر.س / ' . html_escape($p['unit']) . '</span>';
+            . '<span>ر.س / ' . html_escape($p['unit']) . '</span>'
+            . '<small class="tq-pay">' . html_escape($p['own_note']);
         if ($p['has_alt'] && $p['save'] > 0) {
-            $h .= '<small>بدل ' . number_format($p['month'] * $p['months'])
-                . ' — وفرت ' . number_format($p['save']) . ' ر.س</small>';
-        } elseif (!$p['has_alt'] && $p['note'] !== '') {
-            $h .= '<small>' . html_escape($p['note']) . '</small>';
+            $h .= ' — توفر ' . number_format($p['save']) . ' ر.س عن الشهري';
         }
-        $h .= '</p>' . "\n";
+        $h .= '</small></p>' . "\n";
 
         return $h;
+    }
+}
+
+if (!function_exists('tqs_checkout_url')) {
+    /**
+     * رابط شراء الباقة **بدورته** — TQ-CYCLE-BUY.
+     *
+     * الزر كان `checkout/<code>` عاريا، والدورة لا تسافر معه. وبعد ان صار
+     * الشهري يشترى فعلا صار الرابط العاري يعني «دورة الباقة» — اي السنوي.
+     * فمن رأى 42 وضغط، وسكربته لا يعمل او لم يلمس المبدل، بلغ شاشة تطلب
+     * 399: العطل الاول عائدا بحذافيره على من لا جافاسكربت عنده.
+     *
+     * فيكتب الخادم في الرابط **الدورة التي يعرضها الوسم الان** — والوسم
+     * يفتح على الشهري بقرار المالك — ويبدلها السكربت مع المبدل. فمن لا
+     * سكربت عنده يشتري ما رأى، ومن بدل يشتري ما بدل اليه.
+     */
+    function tqs_checkout_url($b, $cycle = 'monthly')
+    {
+        $u = base_url('checkout/' . $b['code']);
+        $p = tqs_plan_price($b);
+        if ($cycle === 'monthly' && !empty($p['has_alt'])) $u .= '?cycle=monthly';
+        return $u;
     }
 }
 
@@ -2036,6 +2063,15 @@ if (!function_exists('tqs_plan_cycle_switch')) {
      * زر «سنوي» فوق شبكة كل باقاتها شهرية يبدل رقما برقمه نفسه: تفاعل
      * لا يفعل شيئا، وأول ما يظنه الزائر أن الصفحة معطلة. فيسأل المعروض
      * أولا: أفيه باقة لها معادل؟
+     *
+     * TQ-CYCLE-CHARGE — **ويسمى ما هو: عدسة لا دورة فوترة.**
+     * زران مكتوب عليهما «شهري» و«سنوي» فوق شبكة أسعار يقرأهما كل من
+     * رأى صفحة تسعير قبلها على أنهما اختيار: «ادفع شهريا». وهذا المحرك
+     * لا يعرف فوترة شهرية أصلا (`auto_renew = 0`، ولا بطاقة تحفظ)، فمن
+     * ضغط «شهري» ثم بلغ شاشة التأكيد وجد السعر السنوي — لا لأن شيئا
+     * تبدل، بل لأنه لم يختر شيئا قط. فسبقت المجموعة كلمة تقول ما تفعل،
+     * وصار «سنوي» «الإجمالي»: الأول اسم دورة تشترى، والثاني اسم رقم
+     * يعرض. والمخصوم مكتوب تحت الرقم في الحالين (`pay_note`).
      *
      * @param array $items الباقات المعروضة فعلا — لا كل ما في الجدول.
      */
@@ -2051,10 +2087,11 @@ if (!function_exists('tqs_plan_cycle_switch')) {
         if (!$alt) return '';
 
         return '<div class="p26d__cycle">' . "\n"
-             . '  <div class="p26d__cycle-in" role="group" aria-label="دورة عرض السعر">' . "\n"
-             . '    <button type="button" data-tq-cycle="year" aria-pressed="false">سنوي'
+             . '  <span class="p26d__cycle-lead" id="tqCycleLead">اعرض السعر</span>' . "\n"
+             . '  <div class="p26d__cycle-in" role="group" aria-labelledby="tqCycleLead">' . "\n"
+             . '    <button type="button" data-tq-cycle="month" aria-pressed="true">شهريا</button>' . "\n"
+             . '    <button type="button" data-tq-cycle="year" aria-pressed="false">الإجمالي'
              . '<span class="p26d__cycle-save">وفر ' . $off . '%</span></button>' . "\n"
-             . '    <button type="button" data-tq-cycle="month" aria-pressed="true">شهري</button>' . "\n"
              . '  </div>' . "\n"
              . '</div>' . "\n";
     }
@@ -2150,8 +2187,17 @@ if (!function_exists('tqs_bundles_dark')) {
                والافتراضيّ هو الشهريّ بقرار المالك. */
             $h .= tqs_plan_price_html($b, 'p26d-card__price');
 
-            $h .= '      <span class="p26d-card__cta"><a href="'
-                . base_url(($cta === 'checkout' ? 'checkout/' : 'plan/') . $b['code'])
+            /* TQ-CYCLE-BUY — رابط الشراء يحمل الدورة المعروضة، و
+               `data-tq-buy` يمسكه السكربت ليبدلها مع المبدل. ورابط صفحة
+               الباقة لا يحملها: هي شاشة تفصيل لا شراء، ومبدلها فيها. */
+            $h .= '      <span class="p26d-card__cta"><a'
+                . ($cta === 'checkout' ? ' data-tq-buy="' . html_escape($b['code']) . '"'
+                    /* TQ-PLAN-AUTH — واسم الباقة يسافر مع الرابط: النافذة
+                       واحدة في المستند تخدم كل بطاقة في الشبكة، فاسم
+                       مطبوع فيها يعني اسم اول باقة فوق كل ضغطة. */
+                    . ' data-tq-plan="' . html_escape($b['name']) . '"' : '')
+                . ' href="'
+                . ($cta === 'checkout' ? tqs_checkout_url($b) : base_url('plan/' . $b['code']))
                 . '">اختر هذه الباقة'
                 . '<svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg>'
                 . '</a></span>' . "\n";
@@ -2223,22 +2269,15 @@ if (!function_exists('tqs_p26_cards')) {
                العنوان سطرين بلا فائدة. و`tqs_bundle_tier()` قائمة أصلًا. */
             $h .= '    <h3 class="p26-card__title">' . html_escape(tqs_bundle_tier($b['name'])) . '</h3>' . "\n";
             $h .= '    <p class="p26-card__sub">' . html_escape(tqs_stage_label($b['stage'])) . '</p>' . "\n";
-            /* السعر بنسختين: سنويّة كما هي في القاعدة، ومعادِل شهريّ **عرضًا
-               لا فوترة**. كل الباقات `period='annual'`، فالشهريّ يقول صراحةً
-               «يُدفع سنويًّا» — رقم بلا سياقه وعدٌ مضلّل. */
-            $tq_sar   = (int) round($b['price'] / 100);
-            $tq_year  = ($b['days'] >= 360);
-            $tq_month = $tq_year ? (int) round($tq_sar / 12) : 0;
-
-            $h .= '    <p class="p26-card__price" data-cycle="year"><b class="tq-ltr">'
-                . number_format($tq_sar) . '</b> ريال / '
-                . ($tq_year ? 'سنويا' : 'كل ' . (int) $b['days'] . ' يوما') . '</p>' . "\n";
-            if ($tq_year) {
-                $h .= '    <p class="p26-card__price" data-cycle="month" hidden><b class="tq-ltr">'
-                    . number_format($tq_month) . '</b> ريال / شهريا'
-                    . '<small class="p26-card__note">تدفع سنويا '
-                    . number_format($tq_sar) . ' ر.س</small></p>' . "\n";
-            }
+            /* TQ-CYCLE-CHARGE — **السعر من المولد الواحد لا من حساب هنا.**
+               كانت هذه الكتلة نسخة ثالثة من قواعد التسعير: تقرأ
+               `days >= 360` مكان `period` فتسمي الباقة الشهرية بغير
+               اسمها، وتقسم على اثني عشر فتعطي 319 مكان 399 (الخصم
+               مطبق في المخزن أصلا)، وتكتب المخصوم في حاشية خافتة.
+               والدالة معطلة اليوم — لا يناديها شيء — فالنسخة تشيخ في
+               صمت ثم تطبع أرقاما تخالف أختها يوم توصل. فتفوض إلى
+               `tqs_plan_price_html()`: كسوة تختلف وقاعدة واحدة. */
+            $h .= tqs_plan_price_html($b, 'p26-card__price');
             if (!empty($b['features'])) {
                 $h .= '    <ul class="p26-card__list">' . "\n";
                 foreach ($b['features'] as $f) {
@@ -2249,7 +2288,7 @@ if (!function_exists('tqs_p26_cards')) {
             }
             $h .= '    </div>' . "\n";
             $h .= '    <span class="p26-card__cta"><a href="'
-                . base_url(($cta === 'checkout' ? 'checkout/' : 'plan/') . $b['code'])
+                . ($cta === 'checkout' ? tqs_checkout_url($b) : base_url('plan/' . $b['code']))
                 . '">اشترك الآن</a></span>' . "\n";
             if ($more) {
                 $h .= '    <a class="p26-card__more" href="' . base_url('plan/' . $b['code'])
@@ -2259,5 +2298,41 @@ if (!function_exists('tqs_p26_cards')) {
             $h .= '  </article>' . "\n";
         }
         return $h . '</div>' . "\n";
+    }
+}
+
+if (!function_exists('tqs_safe_next')) {
+    /**
+     * TQ-AUTH-NEXT — الوجهة بعد الدخول، مصفاة في موضع واحد.
+     *
+     * `next` يصل من `$_GET` ومن `$_POST` ومن جلسة كتبها `checkout()`،
+     * وكلها يكتبها من يشاء. فرابط كامل فيها يجعل نموذج دخول المنصة يقذف
+     * من دخل إلى موقع آخر بعد أن يكتب كلمته — والصفحة التي جاء منها
+     * صفحتنا، فلا شيء يشك فيه.
+     *
+     * فيقبل **مسار داخلي نسبي وحده**: بلا مخطط ولا مضيف ولا `//` في
+     * أوله، وبمعاملات استعلام بسيطة (الدورة تسافر فيها — TQ-CYCLE-BUY).
+     * وما لا يقبل يرد فارغا، فيهبط الداخل في لوحته كما كان.
+     */
+    function tqs_safe_next($v)
+    {
+        $v = trim((string) $v);
+        if ($v === '') return '';
+
+        /* «//evil.com» **قبل** قص الاسبقة لا بعده: القص يبتلع الشرطتين
+           فيصير مضيف موقع اخر مسارا داخليا بريئا. */
+        if (strpos($v, '//') === 0) return '';
+        $v = ltrim($v, '/');                      /* «/checkout/x» و«checkout/x» سواء */
+        if ($v === '') return '';
+        if (strpos($v, ':') !== false) return ''; /* مخطط: http · javascript · data */
+        if (strpos($v, chr(92)) !== false) return '';
+        if (strpos($v, '..') !== false) return '';
+
+        /* الحرف الأبيض والسطر الجديد يقصان الترويسة في `Location:` */
+        if (preg_match('/[\x00-\x1F\x7F\s]/', $v)) return '';
+
+        if (!preg_match('~^[A-Za-z0-9\-_/\.]+(\?[A-Za-z0-9\-_=&%\.]*)?$~', $v)) return '';
+
+        return $v;
     }
 }

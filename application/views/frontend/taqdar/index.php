@@ -59,6 +59,11 @@ $tq_is_portal = isset($page_name)
    يقول له إنه غادر الموقع — لأنه لم يغادره. */
 $tq_site_pages = array('home', 'home_elegant', 'courses_page', 'course_page', 'site_teachers', 'site_students', 'site_parents', 'blogs', 'about_us', 'contact_us', 'site_path', 'login', 'sign_up', 'forgot_password',
     'change_password_from_forgot_password', 'verification_code', 'terms_and_condition', 'privacy_policy', 'refund_policy', 'website_faq', '404', 'plans', 'categories', 'blog_details', 'instructor_page', 'competitions', 'site_search', 'site_plan', 'site_checkout',
+    /* TQ-COURSE-SALE — شاشة تأكيد شراء الكورس المفرد، بجوار أختها.
+       وبلا إدراجها هنا تفتح بترويسة الثيم القديمة: ينتقل المشتري من
+       صفحة الكورس إلى شاشة دفع تبدو من موقع آخر — وهي آخر شاشة يحسن
+       أن يشك فيها. */
+    'site_course_checkout',
     /* الكتالوج وصفحتا مفرداته: بلا إدراجها هنا تفتح بترويسة الثيم
        القديمة وخلفية بيضاء — يهبط الزائر من الموقع إلى موقع آخر بلا
        شيء يقول له إنه غادر، لأنه لم يغادره. */

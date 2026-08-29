@@ -414,8 +414,16 @@ if (!function_exists('tqs_cat_card')) {
             if ($cy['free']) {
                 $h .= '      <p class="ccard__price ccard__price--free">مجاني</p>' . "\n";
             } else {
+                /* TQ-CYCLE-BUY — الشهري متى كان **يشترى**، وسعر الباقة
+                   بدورته متى لم يكن. و`month` ترد سعر الباقة نفسه لمن لا
+                   معادل له، فطباعتها بـ«شهريا» دائما تكتب «1,000 ر.س /
+                   شهريا» على باقة ربع سنوية ثمنها ألف لثلاثة أشهر —
+                   رقم صحيح بوحدة كاذبة، وهو أسوأ من رقم خاطئ يظهر. */
                 $h .= '      <p class="ccard__price"><b class="tq-ltr">'
-                    . number_format($cy['month']) . '</b><span>ر.س / شهريا</span></p>' . "\n";
+                    . number_format($cy['has_alt'] ? $cy['month'] : $cy['total'])
+                    . '</b><span>ر.س / '
+                    . ($cy['has_alt'] ? 'شهريا' : html_escape($cy['unit']))
+                    . '</span></p>' . "\n";
             }
             $h .= '      <span class="ccard__cta">تفاصيل الباقة'
                 . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";
@@ -435,9 +443,21 @@ if (!function_exists('tqs_cat_card')) {
             /* الكورس محتوى الباقة لا سلعة بجوارها: «ضمن الباقات» كما يقرأ
                البرنامج، إلا ما وسم مجانيا فيقرأ مجانا. وبطاقة تقول سعرا
                لشيء لا يباع مفردا توازن الزائر بين خيارين أحدهما وهم.
-               والدعوة تقول ما يجده: كورس بلا درس واحد لا يعد بمنهج. */
-            $h .= '      <p class="ccard__price ccard__price--'
-                . (!empty($it['free']) ? 'free">مجاني' : 'in">ضمن الباقات') . '</p>' . "\n";
+               والدعوة تقول ما يجده: كورس بلا درس واحد لا يعد بمنهج.
+
+               TQ-COURSE-SALE — **إلا ما أعلن للبيع مفردا، فسعره يقال.**
+               والصمت هنا كان أسوأ من رقم: بطاقة تقول «ضمن الباقات» ثم
+               تفتح على زر «اشتر هذه الدورة بـ١٩٩ ر.س» تجعل الزائر يشك
+               في أيهما الصحيح. والسعر من `$it['price']` الذي كتبه
+               `Taqdar_catalog_model::courses()` من `offer()` نفسها. */
+            if (!empty($it['free'])) {
+                $h .= '      <p class="ccard__price ccard__price--free">مجاني</p>' . "\n";
+            } elseif ((int) $it['price'] > 0) {
+                $h .= '      <p class="ccard__price"><b class="tq-ltr">'
+                    . number_format(((int) $it['price']) / 100) . '</b><span>ر.س</span></p>' . "\n";
+            } else {
+                $h .= '      <p class="ccard__price ccard__price--in">ضمن الباقات</p>' . "\n";
+            }
             $h .= '      <span class="ccard__cta">'
                 . (!empty($it['ready']) ? 'استعرض دروسه' : 'تفاصيل الكورس')
                 . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";

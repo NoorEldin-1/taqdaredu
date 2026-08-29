@@ -84,8 +84,8 @@ $tqa_nav = [
     ]],
 
     ['الأشخاص', 'users', [
-        [['tqa_people', 'users', 'user_add', 'user_edit', 'instructors', 'instructor_add',
-          'instructor_edit', 'instructor_settings', 'enrol_student', 'enrol_history'],
+        [['tqa_people', 'tqa_teacher_new', 'users', 'user_add', 'user_edit', 'instructors',
+          'instructor_add', 'instructor_edit', 'instructor_settings', 'enrol_student', 'enrol_history'],
                             'كل الحسابات',          'taqdar_admin/people',                     'users',   null],
         ['tqa_teachers',    'طلبات المعلمين',       'taqdar_admin/teachers',                   'file',    'teacher_apps'],
         ['tqa_teacher_assignments', 'إسناد المعلمين', 'taqdar_admin/module/teacher_assignments', 'link',  null],
@@ -101,6 +101,10 @@ $tqa_nav = [
 
     ['المالية', 'wallet', [
         ['tqa_plans',          'الباقات',              'taqdar_admin/module/plans',          'card',    null],
+        /* TQ-COURSE-SALE — «بيع الكورسات» تحت الباقات مباشرة: هما وحدتا
+           البيع، والثانية تقرأ في سياق الأولى — «وماذا عمن يريد مادة
+           واحدة؟». وبند في «المنهج» كان يخفيها عمن يدير المال. */
+        ['tqa_course_sales',   'بيع الكورسات',         'taqdar_admin/course_sales',          'book',    null],
         ['tqa_subscriptions',  'الاشتراكات',           'taqdar_admin/subscriptions',         'refresh', 'subs_pending'],
         ['tqa_invoices',       'الفواتير',             'taqdar_admin/module/invoices',       'file-text', null],
         ['tqa_payouts',        'طلبات السحب',          'taqdar_admin/payouts',               'send',    'payouts'],

@@ -58,6 +58,13 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
                href="<?php echo site_url('taqdar_admin/people' . ($role ? '?role=' . $role : '')); ?>">امسح البحث</a>
         <?php endif; ?>
     </form>
+
+    <?php /* TQ-TEACHER-ADD — الباب من هنا: من يفتح «كل الحسابات» ليضيف
+             معلما لا يخطر له أن يبحث عنه في شاشة أخرى. */ ?>
+    <a class="tqa-btn tqa-btn--primary tqa-btn--sm" style="margin-inline-start:auto"
+       href="<?php echo site_url('taqdar_admin/teacher_new'); ?>">
+        <?php echo tq_icon('user-check', 16); ?> أضف معلما
+    </a>
 </div>
 
 <div class="tqa-card tqa-card--flush">
@@ -67,7 +74,7 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
         $q !== '' ? 'لا حساب يطابق البحث' : 'لا حسابات في هذه الفئة',
         $q !== ''
             ? 'جرب جزءا من الاسم أو البريد، أو ابحث برقم الجوال بلا مفتاح الدولة.'
-            : 'الحسابات تنشأ من صفحة التسجيل في الموقع. وولي الأمر يظهر هنا بعد أن يختار بوابته عند التسجيل.',
+            : 'الحسابات تنشأ من صفحة التسجيل في الموقع، وحساب المعلم ينشأ من هنا كذلك بزر «أضف معلما». وولي الأمر يظهر هنا بعد أن يختار بوابته عند التسجيل.',
         '', '', 'users'
     ); ?>
 
@@ -121,6 +128,19 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
                 </td>
 
                 <td data-label="إجراء">
+                  <div style="display:flex;gap:var(--tq-space-xs);flex-wrap:wrap;align-items:center">
+                    <?php /* TQ-TEACHER-ADD — التفاصيل والتعديل للمعلم وحده:
+                             نموذجهما نموذج معلم (صفة ومواد ونبذة وعرض علني)،
+                             وفتحه على طالب يعرض حقولا لا معنى لها في حسابه.
+                             والحذف بابه صفحة المعلم — هناك يقرأ ما يمنعه
+                             بالرقم قبل أن يضغط. */ ?>
+                    <?php if ((int) $u['is_instructor'] === 1): ?>
+                        <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                           href="<?php echo site_url('taqdar_admin/teacher/' . (int) $u['id']); ?>">تفاصيل</a>
+                        <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                           href="<?php echo site_url('taqdar_admin/teacher_edit/' . (int) $u['id']); ?>">عدل</a>
+                    <?php endif; ?>
+
                     <?php /* الفتح والإغلاق POST: يغير من يستطيع الدخول، ورابط
                              يفعل ذلك بمجرد فتحه لا يصلح لفعل يكتب. */ ?>
                     <form action="<?php echo site_url('taqdar_admin/people_toggle'); ?>" method="post"
@@ -138,6 +158,7 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
                             <?php echo $on ? 'أغلق' : 'افتح'; ?>
                         </button>
                     </form>
+                  </div>
                 </td>
             </tr>
         <?php endforeach; ?>
