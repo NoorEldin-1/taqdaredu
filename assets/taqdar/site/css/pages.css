@@ -3944,3 +3944,36 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 @media (max-width:560px){
   .co-acct__row{grid-template-columns:minmax(0,1fr)}
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-QUOTES · بطاقة رأي ولي الأمر
+   كانت اسما وسطرا ونجوما على سطح أبيض: لا علامة اقتباس تقول إنها
+   شهادة، ولا شيء يميز قائلها. والصور حذفت عمدا (وجه من بنك صور يعرض
+   على أنه ولي أمر حقيقي تلفيق) — فالحرف يميز ولا يدعي.
+   ══════════════════════════════════════════════════════════════════ */
+.quote-card{position:relative;overflow:hidden;text-align:start}
+.quote-card__mark{
+  position:absolute;inset-block-start:-8px;inset-inline-end:12px;
+  inline-size:58px;block-size:58px;aspect-ratio:1;
+  color:var(--gold-line-soft);pointer-events:none
+}
+.quote-card__head{position:relative;align-items:center}
+.quote-card__ini{
+  flex:0 0 auto;inline-size:clamp(38px,3.1vw,46px);aspect-ratio:1;border-radius:50%;
+  display:grid;place-items:center;
+  background:linear-gradient(145deg,var(--petrol),var(--petrol-deep));
+  color:var(--gold-warm);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(16px,1.4vw,20px);line-height:1;user-select:none
+}
+.quote-card>p{position:relative;margin:0}
+/* النجوم تختم البطاقة، وفاصل خفيف يفصلها عن النص فلا تقرأ امتدادا له */
+.quote-card .stars{
+  margin-block-start:auto;padding-block-start:13px;
+  border-block-start:1px dashed var(--gold-line-soft)
+}
+
+/* الشبكة تتكيف في قسم الآراء وحده: ستة آراء في ثلاثة أعمدة ثابتة تترك
+   بطاقة يتيمة على الشاشة المتوسطة. و`.cards-3` صنف عام لا يمس. */
+#parents .cards-3{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr))
+}
