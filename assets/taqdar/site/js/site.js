@@ -1559,3 +1559,82 @@ document.documentElement.classList.add('js');
   var to = location.origin + '/' + String(back).replace(/^\/+/, '');
   if (location.href.indexOf(to) !== 0) location.replace(to);
 })();
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-GUEST-CHECKOUT · الشراء بلا حساب سابق
+   ثلاثة أشياء لا أكثر: تبديل التبويبين، وإظهار بريد ولي الأمر لمن هو
+   دون الخامسة عشرة، وحفظ نية الشراء لتستأنف بعد أن تصير للزائر جلسة.
+   ولا شيء هنا يشتري: الشراء `POST` إلى `student/subscribe` كما كان.
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+  var KEY  = 'tq-buy';
+  var root = document.getElementById('tqCheckout');
+  if (!root) return;
+
+  /* ── الزائر: تبويبان ونية تحفظ ─────────────────────────────────── */
+  var acct = root.querySelector('[data-tq-acct]');
+  if (acct) {
+    var tabs  = acct.querySelectorAll('[data-tq-acct-tab]');
+    var panes = acct.querySelectorAll('[data-tq-acct-pane]');
+
+    function show(which) {
+      Array.prototype.forEach.call(tabs, function (b) {
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-tq-acct-tab') === which));
+      });
+      Array.prototype.forEach.call(panes, function (f) {
+        f.hidden = (f.getAttribute('data-tq-acct-pane') !== which);
+      });
+    }
+    Array.prototype.forEach.call(tabs, function (b) {
+      b.addEventListener('click', function () { show(b.getAttribute('data-tq-acct-tab')); });
+    });
+
+    /* بريد ولي الأمر يظهر حين يلزم: الخادم يشترطه دون الخامسة عشرة،
+       وحقل يطلب بلا سبب ظاهر يقرأ فضولا. */
+    var age = acct.querySelector('[data-tq-age]');
+    var gw  = acct.querySelector('[data-tq-guardian]');
+    if (age && gw) {
+      var sync = function () {
+        var v = parseInt(age.value, 10);
+        var need = (v > 0 && v < 15);
+        gw.hidden = !need;
+        var f = gw.querySelector('input');
+        if (f) { if (need) { f.setAttribute('required', 'required'); } else { f.removeAttribute('required'); } }
+      };
+      age.addEventListener('input', sync);
+      age.addEventListener('change', sync);
+      sync();
+    }
+
+    /* النية تحفظ قبل المغادرة، فيستأنف الشراء عند العودة. ورقم الباقة
+       معها: من بدل رأيه واشترى غيرها لا يشتري القديمة بلا أن يطلبها. */
+    var plan = root.getAttribute('data-tq-plan') || '';
+    Array.prototype.forEach.call(acct.querySelectorAll('[data-tq-intent]'), function (f) {
+      f.addEventListener('submit', function () {
+        try { sessionStorage.setItem(KEY, plan); } catch (e) {}
+      });
+    });
+    return;                                  /* الزائر لا يشتري بعد */
+  }
+
+  /* ── العائد بجلسة: النية تستأنف مرة واحدة ──────────────────────── */
+  if (root.tagName !== 'FORM') return;
+  var want = null;
+  try { want = sessionStorage.getItem(KEY); } catch (e) { return; }
+  if (!want) return;
+  try { sessionStorage.removeItem(KEY); } catch (e) {}   /* مرة واحدة لا حلقة */
+
+  var field = root.querySelector('input[name="plan_id"]');
+  if (!field || String(field.value) !== String(want)) return;
+
+  var note = document.createElement('p');
+  note.className = 'co-resume';
+  note.textContent = 'فتح حسابك ودخلت — ننقلك إلى الدفع الآن…';
+  root.insertBefore(note, root.firstChild);
+
+  /* مهلة قصيرة ليقرأ السطر قبل أن تغادر الصفحة. */
+  setTimeout(function () {
+    if (typeof root.requestSubmit === 'function') root.requestSubmit();
+    else root.submit();
+  }, 900);
+})();

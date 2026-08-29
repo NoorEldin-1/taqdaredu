@@ -31,6 +31,13 @@ $tq_test = !empty($tq_card_test);
    إلى لا شيء وسط شاشة فيها خيار يعمل. */
 $tq_bank = (tqs_bank() !== null) || !$tq_card;
 $tq_both = $tq_card && $tq_bank;
+
+/* TQ-GUEST-CHECKOUT — الزائر يرى الشاشة نفسها ومعها بطاقة الحساب: يقرأ
+   ما يشتريه وهو يكتب بياناته، فلا يطرد إلى شاشة دخول ثم لا يعود.
+   والنموذج هنا **لا يشتري**: الشراء يبقى `POST` إلى `student/subscribe`
+   بعد أن تصير له جلسة. وهذان النموذجان يمضيان إلى مسارَي الموقع
+   القائمين بحقولهما وقواعدهما كما هي — لا حساب ينشأ في هذا الملف. */
+$tq_guest = !empty($tq_guest);
 ?>
 
 <section class="page-hero page-hero--checkout">
@@ -74,13 +81,109 @@ $tq_both = $tq_card && $tq_bank;
      يرسل بحقل مخفي يحدثه JS فيسقط الاختيار كله متى تعثر ملف.
      و`<form>` حاوية شبكة صحيحة: الأصناف كما كانت على الحاوية نفسها. */
   ?>
+<?php if ($tq_guest): ?>
+  <?php /* حاوية لا نموذج: `<form>` داخل `<form>` غير صالح، ونموذجا
+           الحساب أدناه مستقلان. */ ?>
+  <div class="shell co-cols" id="tqCheckout" data-tq-guest
+       data-tq-plan="<?php echo (int) $b['plan_id']; ?>">
+<?php else: ?>
   <form class="shell co-cols" method="post" action="<?php echo base_url('student/subscribe'); ?>"
         id="tqCheckout">
     <?php echo tq_csrf(); ?>
     <?php /* `plan_id` وحده يرسل، والسعر يقرأ في المحرك من الباقة. */ ?>
     <input type="hidden" name="plan_id" value="<?php echo (int) $b['plan_id']; ?>">
+<?php endif; ?>
 
     <div class="co-main">
+<?php if ($tq_guest): ?>
+<?php
+/* الصفوف تقرأ هنا كما تقرأ في `sign_up.php` بالضبط — نفس الاستعلام
+   ونفس الترتيب، فلا تختلف قائمتان لشيء واحد. */
+$tq_ci_g = &get_instance();
+$tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active', 1)
+                         ->order_by('`order`', 'ASC')->get()->result_array();
+?>
+      <div class="icard co-acct" data-tq-acct>
+        <h2>بياناتك</h2>
+        <p class="tq-caption co-acct__lede">
+          خطوة واحدة: أنشئ حسابك أو ادخل إليه، ثم تكمل الدفع مباشرة — وتعود
+          إلى هذه الصفحة نفسها.
+        </p>
+
+        <div class="co-acct__tabs" role="group" aria-label="اختر طريقة المتابعة">
+          <button type="button" data-tq-acct-tab="new"  aria-pressed="true">حساب جديد</button>
+          <button type="button" data-tq-acct-tab="have" aria-pressed="false">لدي حساب</button>
+        </div>
+
+        <?php /* حقول `sign_up.php` بعينها، وإلى مسارها نفسه: أي حقل يزاد
+                 أو ينقص هنا يرد الخادم النموذج كله. */ ?>
+        <form class="co-acct__form" data-tq-acct-pane="new" data-tq-intent
+              action="<?php echo site_url('login/register'); ?>" method="post">
+          <?php echo tq_csrf(); ?>
+          <input type="hidden" name="tq_gate" value="student">
+          <div class="co-acct__row">
+            <label><span>الاسم الأول</span>
+              <input type="text" name="first_name" required minlength="2" maxlength="40"
+                     autocomplete="given-name"></label>
+            <label><span>اسم العائلة</span>
+              <input type="text" name="last_name" required minlength="2" maxlength="40"
+                     autocomplete="family-name"></label>
+          </div>
+          <label><span>البريد الإلكتروني</span>
+            <input type="email" name="email" required maxlength="50" autocomplete="email"
+                   autocapitalize="off" spellcheck="false"></label>
+          <div class="co-acct__row">
+            <label><span>كلمة المرور</span>
+              <input type="password" name="password" required minlength="8"
+                     autocomplete="new-password"></label>
+            <label><span>تأكيد كلمة المرور</span>
+              <input type="password" name="password_confirm" required minlength="8"
+                     autocomplete="new-password"></label>
+          </div>
+          <div class="co-acct__row">
+            <label><span>عمر الطالب</span>
+              <input type="number" name="age" required min="5" max="99" inputmode="numeric"
+                     data-tq-age></label>
+            <label><span>الصف الدراسي <i>— اختياري</i></span>
+              <select name="grade_id">
+                <option value="">اختر الصف</option>
+<?php foreach ($tq_grades as $tq_gr): ?>
+                <option value="<?php echo (int) $tq_gr['id']; ?>"><?php
+                  echo html_escape($tq_gr['name_ar']); ?></option>
+<?php endforeach; ?>
+              </select></label>
+          </div>
+          <label data-tq-guardian hidden><span>بريد ولي الأمر <i>— يلزم دون الخامسة عشرة</i></span>
+            <input type="email" name="guardian_email" maxlength="190" autocomplete="email"
+                   autocapitalize="off" spellcheck="false"></label>
+          <label class="co-acct__terms">
+            <input type="checkbox" name="accept_terms" value="1" required>
+            <span>أوافق على <a href="<?php echo base_url('terms'); ?>" target="_blank" rel="noopener">الشروط</a>
+              و<a href="<?php echo base_url('privacy'); ?>" target="_blank" rel="noopener">سياسة الخصوصية</a></span>
+          </label>
+          <button class="btn btn--primary btn--block" type="submit">أنشئ حسابي وتابع الدفع</button>
+          <p class="tq-caption co-acct__note">
+            يصلك رمز تأكيد على بريدك. وبإدخاله يفتح حسابك وتدخل إليه مباشرة،
+            وتعود إلى هنا لإتمام الدفع.
+          </p>
+        </form>
+
+        <form class="co-acct__form" data-tq-acct-pane="have" data-tq-intent hidden
+              action="<?php echo site_url('login/validate_login'); ?>" method="post">
+          <?php echo tq_csrf(); ?>
+          <input type="hidden" name="tq_gate" value="student">
+          <label><span>البريد الإلكتروني</span>
+            <input type="email" name="email" required autocomplete="email"
+                   autocapitalize="off" spellcheck="false"></label>
+          <label><span>كلمة المرور</span>
+            <input type="password" name="password" required autocomplete="current-password"></label>
+          <button class="btn btn--primary btn--block" type="submit">ادخل وتابع الدفع</button>
+          <p class="tq-caption co-acct__note">
+            <a href="<?php echo base_url('forgot_password'); ?>">نسيت كلمة المرور؟</a>
+          </p>
+        </form>
+      </div>
+<?php endif; ?>
 
         <div class="icard co-summary">
           <h2>ملخص الطلب</h2>
@@ -252,6 +355,14 @@ $tq_both = $tq_card && $tq_bank;
           <b><?php echo tqs_money($b['price']); ?></b>
         </p>
 
+<?php if ($tq_guest): ?>
+        <?php /* لا زر شراء هنا للزائر: الشراء يحتاج جلسة، وزر يعد بما لا
+                 يقع أسوأ من لا زر. وزر المتابعة في بطاقة بياناتك أعلاه. */ ?>
+        <p class="co-side__guest">
+          <svg aria-hidden="true"><use href="#i-lock"></use></svg>
+          أكمل بياناتك في الأعلى، ثم تنتقل إلى الدفع مباشرة.
+        </p>
+<?php else: ?>
         <?php /* نص الزر يوافق الطريقة المختارة: «إصدار الفاتورة» على زر
                  يفتح صفحة بطاقة يخالف ما يقع بعد الضغط. */ ?>
         <button type="submit" class="btn btn--primary btn--block" data-tq-submit
@@ -259,6 +370,7 @@ $tq_both = $tq_card && $tq_bank;
                 data-tq-label-bank="تأكيد الاشتراك وإصدار الفاتورة">
           <?php echo $tq_card ? 'تابع إلى الدفع الآمن' : 'تأكيد الاشتراك وإصدار الفاتورة'; ?>
         </button>
+<?php endif; ?>
 
         <p class="tq-caption co-side__note">
           لا تجديد تلقائي ولا خصم متكرر. وبتأكيدك توافق على
@@ -272,7 +384,11 @@ $tq_both = $tq_card && $tq_bank;
       </div>
     </aside>
 
+<?php if ($tq_guest): ?>
+  </div>
+<?php else: ?>
   </form>
+<?php endif; ?>
 </section>
 
 <?php if ($tq_both): ?>

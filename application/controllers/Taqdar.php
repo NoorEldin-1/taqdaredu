@@ -3402,9 +3402,33 @@ class Taqdar extends CI_Controller
 
         $uid = (int) $this->session->userdata('user_id');
         if ($uid <= 0) {
-            $this->session->set_userdata('tq_next', 'checkout/' . $b['code']);
-            redirect(site_url('login?next=' . rawurlencode('checkout/' . $b['code'])), 'location', 302);
+            /* TQ-GUEST-CHECKOUT — الزائر الذي قرر الشراء لا يطرد إلى شاشة
+               دخول. كان يطرد ولا يعود: `tq_next` و`?next=` يكتبان هنا
+               **ولا يقرؤهما أحد**، و`url_history` — وهو الوحيد الذي يقرأ
+               فعلا (`User_model::set_login_userdata`) — لا يكتب أصلا لأن
+               هذه الدالة لا تمر بـ`tq_guard`.
+
+               فيكتب هنا، وتعرض الشاشة نفسها ومعها نموذجا التسجيل والدخول.
+               ولا حساب ينشأ في هذا الملف: التسجيل يمضي إلى `login/register`
+               بحقوله وقواعده كما هي، والدخول إلى `login/validate_login`. */
+            $this->session->set_userdata('url_history', site_url('checkout/' . $b['code']));
+
+            $this->load->model('taqdar_tap_model');
+            $this->show('site_checkout', 'اشترك في ' . $b['name'], array(
+                'tq_bundle'    => $b,
+                'tq_current'   => null,
+                'user_id'      => 0,
+                'tq_guest'     => true,
+                'tq_card'      => $this->taqdar_tap_model->ready(),
+                'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
+            ));
             return;
+        }
+
+        /* عاد بجلسة: `url_history` أدى غرضه، ولا يترك ليقفز بمن دخل لاحقا
+           من باب آخر إلى صفحة دفع لم يطلبها. */
+        if ($this->session->userdata('url_history')) {
+            $this->session->unset_userdata('url_history');
         }
 
         /* المعلم ولي الأمر لا يشتريان باقة طالب: الشراء يفتح محتوى

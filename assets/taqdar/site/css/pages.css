@@ -3882,3 +3882,65 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 
 /* رابط «كل الأسئلة» يقع داخل شبكة الأسئلة، فيمتد على عرضها ويتوسط. */
 .faq-more{grid-column:1/-1;text-align:center;margin-block-start:clamp(10px,1.2vw,16px)}
+
+/* ── بطاقة الحساب في صفحة الدفع ────────────────────────────────── */
+.co-acct{margin-block-end:clamp(14px,1.8vw,22px)}
+.co-acct h2{margin:0 0 4px}
+.co-acct__lede{margin:0 0 14px}
+.co-acct__tabs{
+  display:flex;gap:4px;padding:4px;margin-block-end:16px;
+  border-radius:999px;background:var(--beige);border:1px solid var(--gold-line-soft)
+}
+.co-acct__tabs button{
+  flex:1;padding:9px 12px;border:0;border-radius:999px;cursor:pointer;
+  background:transparent;color:var(--ink-2);
+  font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(12px,.9vw,13.5px);
+  transition:background var(--t-route) var(--ease),color var(--t-route) var(--ease)
+}
+.co-acct__tabs button[aria-pressed="true"]{background:var(--petrol);color:#fff}
+.co-acct__form{display:grid;gap:11px}
+.co-acct__form[hidden]{display:none}
+.co-acct__row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.co-acct__form label{display:grid;gap:5px;min-inline-size:0}
+.co-acct__form label[hidden]{display:none}
+.co-acct__form label>span{font-size:clamp(11.5px,.86vw,13px);color:var(--ink-2);font-weight:600}
+.co-acct__form label>span i{font-style:normal;font-weight:400;color:var(--ink-3)}
+.co-acct__form input:not([type="checkbox"]),.co-acct__form select{
+  inline-size:100%;padding:11px 13px;border-radius:var(--r-btn);
+  border:1px solid var(--gold-line-soft);background:#fff;color:var(--ink);
+  font-family:inherit;font-size:clamp(13px,.95vw,14.5px)
+}
+.co-acct__form input:focus-visible,.co-acct__form select:focus-visible{
+  outline:2px solid var(--gold);outline-offset:1px
+}
+.co-acct__terms{
+  display:flex!important;align-items:flex-start;gap:9px;
+  font-size:clamp(12px,.88vw,13px);color:var(--ink-2);line-height:1.7
+}
+.co-acct__terms input{
+  inline-size:17px;block-size:17px;flex:none;margin-block-start:3px;accent-color:var(--petrol)
+}
+.co-acct__note{margin:2px 0 0;text-align:center}
+
+/* لا زر شراء للزائر — إرشاد مكانه */
+.co-side__guest{
+  display:flex;align-items:flex-start;gap:9px;margin:0;
+  padding:12px 14px;border-radius:var(--r-btn);
+  background:var(--beige);border:1px solid var(--gold-line-soft);
+  color:var(--ink-2);font-size:clamp(12px,.9vw,13.5px);line-height:1.7
+}
+.co-side__guest svg{
+  inline-size:16px;block-size:16px;aspect-ratio:1;flex:none;
+  color:var(--gold-deep);margin-block-start:3px
+}
+
+/* سطر الاستئناف بعد العودة */
+.co-resume{
+  grid-column:1/-1;margin:0 0 14px;padding:12px 15px;border-radius:var(--r-btn);
+  background:#F0F7F3;border:1px solid #CFE6D8;color:#14512F;
+  font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(12.5px,.95vw,14px)
+}
+
+@media (max-width:560px){
+  .co-acct__row{grid-template-columns:minmax(0,1fr)}
+}
