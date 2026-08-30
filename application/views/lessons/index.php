@@ -1,17 +1,13 @@
 <?php
-$language_dir = 'ltr';
-$language_dirs = get_settings('language_dirs');
-if($language_dirs){
-	$current_language = $this->session->userdata('language');
-	$language_dirs_arr = json_decode($language_dirs, true);
-	if(array_key_exists($current_language, $language_dirs_arr)){
-		$language_dir = $language_dirs_arr[$current_language];
-	}
-}
+/* TQ-I18N — الاتجاه واللغة من `tq_lang()` وحدها.
+   وكان `lang="en"` مكتوبا حرفيا على صفحة المشغل كلها بينما محتواها عربي:
+   فقارئ الشاشة ينطق العربية بلفظ إنجليزي، ومترجم المتصفح يعرض «ترجم هذه
+   الصفحة من الإنجليزية» فوق صفحة لا حرف إنجليزي فيها. */
+$language_dir = tq_dir();
 ?>
 
 <!DOCTYPE html>
-<html lang="en" dir="<?php echo $language_dir; ?>">
+<html lang="<?php echo html_escape(tq_iso()); ?>" dir="<?php echo html_escape($language_dir); ?>">
 <head>
 	<title><?php echo $course_details['title'].' | '.get_settings('system_name'); ?></title>
 	<meta charset="utf-8">

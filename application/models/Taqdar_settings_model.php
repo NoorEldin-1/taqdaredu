@@ -119,16 +119,21 @@ class Taqdar_settings_model extends CI_Model
         );
     }
 
-    /** اللغات = أعمدة جدول language فعلا، لا قائمة مكتوبة يدويا. */
+    /**
+     * اللغات المتاحة — من `tq_languages()` وحدها (TQ-I18N).
+     *
+     * وكانت تشتق من **أعمدة جدول `language`**، وهو يحمل اليوم `english` و
+     * `arabic` وقد يحمل غدا عمودا أنشأه `get_phrase()` وحده لأن مسؤولا فتح
+     * لغة مرة ثم تركها: فتظهر في منتقي اللغة لغة **بلا قاموس واحد**، يختارها
+     * الطالب فتعرض له الواجهة عربية كما هي ولا شيء يقول لماذا.
+     * فالقائمة صارت ما نملك له ترجمة، لا ما بقي في المخطط من أثر.
+     */
     public function languages()
     {
-        $labels = array('arabic' => 'العربية', 'english' => 'English', 'hindi' => 'हिन्दी');
         $out = array();
-        foreach ($this->db->list_fields('language') as $col) {
-            if ($col === 'phrase_id' || $col === 'phrase' || $col === '') continue;
-            $out[$col] = isset($labels[$col]) ? $labels[$col] : ucfirst($col);
+        foreach (tq_languages() as $code => $meta) {
+            $out[$code] = $meta['label'];
         }
-        if (!$out) $out = array('arabic' => 'العربية');
         return $out;
     }
 
@@ -532,6 +537,23 @@ class Taqdar_settings_model extends CI_Model
         }
 
         return $this->ok('حفظت تفضيلاتك.', 'prefs');
+    }
+
+    /**
+     * يثبت لغة الحساب — يناديه مبدل اللغة في ترويسة اللوحات الأربع.
+     *
+     * وهو `save_prefs()` نفسه منزوعا عنه قراءة `$_POST` ورسالة الشاشة:
+     * المبدل يكتب سطرا واحدا ولا يعرض نموذجا، ونداؤه `save_prefs()` كان
+     * سيمحو تفضيلات أخرى لأنها لا ترسل معه.
+     */
+    public function set_language($user_id, $lang)
+    {
+        $langs = $this->languages();
+        $lang  = strtolower(trim((string) $lang));
+        if (!isset($langs[$lang])) return false;
+
+        $this->upsert_prefs((int) $user_id, array('language' => $lang));
+        return true;
     }
 
     /** كتابة جزئية في صف التفضيلات — تنشئه إن لم يكن. */

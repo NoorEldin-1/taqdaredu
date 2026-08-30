@@ -85,6 +85,11 @@ $route['translate_uri_dashes'] = false;
 //
 // والقواعد صريحة وإن كانت `login/(:any)` غير موجودة: مقطعان، فلو أضيفت
 // يوما قاعدة عرض عامة تحت `login/` سقطت هذه الثلاثة إليها بلا خطأ ظاهر.
+// ---- تبديل اللغة (TQ-I18N) ----
+// كتابة، فقاعدتها قبل قواعد العرض — و`language` مقطع لا يملكه متحكم اليوم،
+// ولكن `(:any)` في قاعدة عرض تضاف غدا تبتلعه فيرد المبدل صفحة بلا تبديل.
+$route['language/set'] = 'taqdar_lang/set';
+
 $route['login/otp/verify']  = 'login/otp_verify';
 $route['login/otp/resend']  = 'login/otp_resend';
 $route['login/otp/channel'] = 'login/otp_channel';

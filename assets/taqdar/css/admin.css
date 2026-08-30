@@ -2411,3 +2411,38 @@ a.tqa-chip .tqa-num { color: var(--tq-text3, var(--tq-text2)); }
   border: 1px solid var(--tq-line);
   display: block;
 }
+
+/* ==========================================================================
+   TQ-I18N — مبدل اللغة (جلد اللوحة)
+   ==========================================================================
+   نسخة `tqa-*` من `.tq-langsw`، وهي هنا لا في `components.css` لأن اللوحة
+   لا تحمل ورقة البوابة — انظر رأس هذا الملف. والقيم من التوكنات نفسها،
+   فالمبدلان توأمان بلا أن يشترك ملفاهما. */
+body.tqa .tqa-langsw{
+  display:inline-flex;
+  align-items:center;
+  gap:2px;
+  padding:2px;
+  margin:0;
+  border:1px solid var(--tq-line);
+  border-radius:var(--tq-radius-m, 10px);
+  background:var(--tq-surface2, #fff);
+}
+body.tqa .tqa-langsw__opt{
+  min-inline-size:34px;
+  padding-block:5px;
+  padding-inline:8px;
+  border:0;
+  border-radius:calc(var(--tq-radius-m, 10px) - 3px);
+  background:transparent;
+  color:var(--tq-ink2, #5a6b73);
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+  line-height:1;
+  cursor:pointer;
+  transition:background .15s, color .15s;
+}
+body.tqa .tqa-langsw__opt:hover:not(:disabled){ background:var(--tq-navyWash); color:var(--tq-navy); }
+body.tqa .tqa-langsw__opt:focus-visible{ outline:2px solid var(--tq-navy); outline-offset:1px; }
+body.tqa .tqa-langsw__opt.is-on{ background:var(--tq-navy); color:#fff; cursor:default; opacity:1; }

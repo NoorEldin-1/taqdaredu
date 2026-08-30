@@ -6,12 +6,14 @@
  * ولا يقرأ من تفضيل منفصل. وصفحات البوابات تفتح غلافها بنفسها عبر
  * portal_open.php / portal_close.php، فالغلاف هنا لا يعرف بها.
  */
-$tq_lang     = get_settings('language') ?: 'arabic';
-$tq_dirs     = json_decode(get_settings('language_dirs') ?: '{}', true);
-$tq_session  = $this->session->userdata('language');
-$tq_active   = $tq_session ?: $tq_lang;
-$tq_dir      = $tq_dirs[$tq_active] ?? 'ltr';
-$tq_iso      = getIsoCode(ucfirst($tq_active)) ?: 'ar';
+/* TQ-I18N — اللغة والاتجاه من `tq_lang()` وحدها.
+   وكانا يشتقان هنا وفي `backend/index.php` بترتيبين مختلفين، والاتجاه من
+   صف `language_dirs` في القاعدة — وفيه `hindi: rtl` ومفتاح فارغ بقيمة
+   `null`، ولغة لا صف لها تسقط على `'ltr'` فتفتح صفحة عربية من اليسار. */
+$tq_active   = tq_lang();
+$tq_dir      = tq_dir();
+$tq_iso      = tq_iso();
+$tq_lang     = $tq_active;   // متروك: قوالب تحته تقرؤه
 
 /**
  * صفحات البوابة تعرض بلا ترويسة الموقع العام ولا تذييله.

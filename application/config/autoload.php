@@ -89,7 +89,7 @@ $autoload['drivers'] = array();
 |
 |	$autoload['helper'] = array('url', 'file');
 */
-$autoload['helper'] = array('url','file','form','security','string','inflector','directory','download','user','multi_language', 'common', 'pagination', 'addon', 'taqdar', 'taqdar_icons', 'taqdar_role', 'taqdar_admin', 'taqdar_site', 'taqdar_catalog', 'taqdar_inbox', 'taqdar_curriculum', 'taqdar_phone', 'taqdar_image');
+$autoload['helper'] = array('url','file','form','security','string','inflector','directory','download','user','multi_language', 'common', 'pagination', 'addon', 'taqdar_i18n', 'taqdar', 'taqdar_icons', 'taqdar_role', 'taqdar_admin', 'taqdar_site', 'taqdar_catalog', 'taqdar_inbox', 'taqdar_curriculum', 'taqdar_phone', 'taqdar_image');
 
 /*
 | -------------------------------------------------------------------

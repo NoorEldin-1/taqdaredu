@@ -67,7 +67,7 @@
 // }
 
 //All common helper functions
-if (!function_exists('get_phrase')) {
+if (!function_exists('get_phrase_')) {
     function get_phrase_($phrase = "", $replaces = array())
     {
         if(!is_array($replaces)){
@@ -81,98 +81,122 @@ if (!function_exists('get_phrase')) {
     }
 }
 
+/**
+ * TQ-I18N-CACHE — جدول `language` يقرأ مرة واحدة لكل طلب، لا مرة لكل عبارة.
+ *
+ * كانت `get_phrase()` تنادي `field_exists()` ثم `get_where()` في **كل** نداء،
+ * وفي الشجرة الفان ومئتا نداء: صفحة اللوحة الواحدة تفتح مئة استعلام لتطبع
+ * مئة كلمة. والجدول الفا وتسعمئة صف — قراءته كلها مرة أرخص من عشرة استعلامات.
+ *
+ * والصف المفقود يكتب مرة واحدة كذلك: `$missing` يمنع محاولتين في الطلب نفسه،
+ * فنص يتكرر عشرين مرة في صفحة لا يحاول الإدراج عشرين مرة.
+ */
+if (!function_exists('tq_lang_table')) {
+    function tq_lang_table($reload = false)
+    {
+        static $rows = null;
+        if ($rows !== null && !$reload) return $rows;
+
+        $rows = array();
+        $CI = get_instance();
+        try {
+            $CI->load->database();
+            foreach ($CI->db->get('language')->result_array() as $r) {
+                if (!isset($r['phrase'])) continue;
+                $rows[$r['phrase']] = $r;
+            }
+        } catch (Exception $e) {
+            if (isset($CI->db)) $CI->db->reset_query(); // TQ-BUILDER-DIRTY
+            $rows = array();
+        }
+        return $rows;
+    }
+}
+
+if (!function_exists('tq_lang_column')) {
+    /** عمود اللغة الجاري في جدول `language`، وينشأ إن لم يكن. */
+    function tq_lang_column($code)
+    {
+        static $checked = array();
+        if (isset($checked[$code])) return $checked[$code];
+
+        $CI = get_instance();
+        try {
+            $CI->load->database();
+            if (!$CI->db->field_exists($code, 'language')) {
+                $CI->load->dbforge();
+                $CI->dbforge->add_column('language', array(
+                    $code => array('type' => 'LONGTEXT', 'default' => null, 'null' => TRUE)
+                ));
+                tq_lang_table(true);
+            }
+        } catch (Exception $e) {
+            if (isset($CI->db)) $CI->db->reset_query();
+        }
+        return $checked[$code] = $code;
+    }
+}
+
+if (!function_exists('tq_phrase_lookup')) {
+    /**
+     * جوهر العبارات الثلاث (`get_phrase` · `site_phrase` · `api_phrase`).
+     *
+     * وكانت الثلاث نسخا متطابقة تفترق في **سطر واحد**: من أين تقرأ اللغة.
+     * فصارت اللغة معاملا، والقاعدة واحدة — ونسخة ثالثة تفترق عند أول تعديل.
+     */
+    function tq_phrase_lookup($phrase, $code)
+    {
+        static $missing = array();
+
+        $key = strtolower(preg_replace('/\s+/', '_', (string) $phrase));
+        if ($key === '') return '';
+
+        $code = tq_lang_column($code);
+        $rows = tq_lang_table();
+
+        if (isset($rows[$key])) {
+            if (!empty($rows[$key][$code])) return $rows[$key][$code];
+            $fallback = ucfirst(str_replace('_', ' ', $key));
+            if (!isset($missing[$key . '|' . $code])) {
+                $missing[$key . '|' . $code] = true;
+                try {
+                    $CI = get_instance();
+                    $CI->db->where('phrase', $key)->update('language', array($code => $fallback));
+                } catch (Exception $e) { if (isset($CI->db)) $CI->db->reset_query(); }
+            }
+            return $fallback;
+        }
+
+        $fallback = ucfirst(str_replace('_', ' ', $key));
+        if (!isset($missing[$key])) {
+            $missing[$key] = true;
+            try {
+                $CI = get_instance();
+                $CI->db->insert('language', array('phrase' => $key, $code => $fallback));
+            } catch (Exception $e) { if (isset($CI->db)) $CI->db->reset_query(); }
+        }
+        return $fallback;
+    }
+}
+
 // This function helps us to get the translated phrase from the file. If it does not exist this function will save the phrase and by default it will have the same form as given
 if (!function_exists('get_phrase')) {
     function get_phrase($phrase = '')
     {
-        $CI = get_instance();
-        $CI->load->database();
-        $CI->load->dbforge();
-        if($CI->session->userdata('language')){
-            $language_code = $CI->session->userdata('language');
-        }else{
-            $language_code = $CI->db->get_where('settings', array('key' => 'language'))->row()->value;
-        }
-
-        $key = strtolower(preg_replace('/\s+/', '_', $phrase));
-
-        /**LANGUAGE HANDLING USING DATABASE**/
-        // CHECK IF A COLUMN EXISTS IN LANGUAGE TABLE
-        if (!$CI->db->field_exists($language_code, 'language')) {
-            $fields = array(
-                $language_code => array(
-                    'type' => 'LONGTEXT',
-                    'default' => null,
-                    'null' => TRUE,
-                    'collation' => 'utf8_unicode_ci'
-                )
-            );
-            $CI->dbforge->add_column('language', $fields);
-        }
-
-        $phrase_query = $CI->db->get_where('language', array('phrase' => $key))->row_array();
-
-        if (is_array($phrase_query) && count($phrase_query) > 0) {
-            if (!empty($phrase_query[$language_code])) {
-                return $phrase_query[$language_code];
-            } else {
-                $phrase = ucfirst(str_replace('_', ' ', $key));
-                $checker = array('phrase' => $key);
-                $updater = array($language_code => $phrase);
-                $CI->db->where($checker);
-                $CI->db->update('language', $updater);
-                return $phrase;
-            }
-        } else {
-            $phrase = ucfirst(str_replace('_', ' ', $key));
-            $CI->db->insert('language', array('phrase' => $key, $language_code => $phrase));
-            return $phrase;
-        }
+        /* اللغة من `tq_lang()` — المصدر الواحد (TQ-I18N). وكانت تقرأ الجلسة
+           ثم `settings` بترتيبها الخاص، فتفترق عن اشتقاق الاتجاه في الغلاف:
+           صفحة تعرض عربية بترويسة `dir="ltr"`. */
+        $code = function_exists('tq_lang') ? tq_lang() : 'english';
+        return tq_phrase_lookup($phrase, $code);
     }
 }
 
-if ( ! function_exists('api_phrase'))
-{
-    function api_phrase($phrase = '') {
-        $CI = get_instance();
-        $CI->load->database();
-        $CI->load->dbforge();
-        $language_code = $CI->db->get_where('settings', array('key' => 'language'))->row()->value;
-
-        $key = strtolower(preg_replace('/\s+/', '_', $phrase));
-
-        /**LANGUAGE HANDLING USING DATABASE**/
-        // CHECK IF A COLUMN EXISTS IN LANGUAGE TABLE
-        if (!$CI->db->field_exists($language_code, 'language')) {
-            $fields = array(
-                $language_code => array(
-                    'type' => 'LONGTEXT',
-                    'default' => null,
-                    'null' => TRUE,
-                    'collation' => 'utf8_unicode_ci'
-                )
-            );
-            $CI->dbforge->add_column('language', $fields);
-        }
-
-        $phrase_query = $CI->db->get_where('language', array('phrase' => $key))->row_array();
-
-        if ($phrase_query != null && count($phrase_query) > 0) {
-            if (!empty($phrase_query[$language_code])) {
-                return $phrase_query[$language_code];
-            } else {
-                $phrase = ucfirst(str_replace('_', ' ', $key));
-                $checker = array('phrase' => $key);
-                $updater = array($language_code => $phrase);
-                $CI->db->where($checker);
-                $CI->db->update('language', $updater);
-                return $phrase;
-            }
-        } else {
-            $phrase = ucfirst(str_replace('_', ' ', $key));
-            $CI->db->insert('language', array('phrase' => $key, $language_code => $phrase));
-            return $phrase;
-        }
+if (!function_exists('api_phrase')) {
+    function api_phrase($phrase = '')
+    {
+        /* الواجهة بلا جلسة عمدا، فلغتها لغة المنصة إلا أن يثبتها الطلب. */
+        $code = function_exists('tq_lang') ? tq_lang() : 'english';
+        return tq_phrase_lookup($phrase, $code);
     }
 }
 
@@ -180,47 +204,8 @@ if ( ! function_exists('api_phrase'))
 if (!function_exists('site_phrase')) {
     function site_phrase($phrase = '')
     {
-        $CI = get_instance();
-        $CI->load->database();
-        $CI->load->dbforge();
-        if(!$CI->session->userdata('language')){
-            $CI->session->set_userdata('language', 'english');
-        }
-        $language_code = $CI->session->userdata('language');
-        $key = strtolower(preg_replace('/\s+/', '_', $phrase));
-
-        /**LANGUAGE HANDLING USING DATABASE**/
-        // CHECK IF A COLUMN EXISTS IN LANGUAGE TABLE
-        if (!$CI->db->field_exists($language_code, 'language')) {
-            $fields = array(
-                $language_code => array(
-                    'type' => 'LONGTEXT',
-                    'default' => null,
-                    'null' => TRUE,
-                    'collation' => 'utf8_unicode_ci'
-                )
-            );
-            $CI->dbforge->add_column('language', $fields);
-        }
-
-        $phrase_query = $CI->db->get_where('language', array('phrase' => $key))->row_array();
-
-        if (is_array($phrase_query) && count($phrase_query) > 0) {
-            if (!empty($phrase_query[$language_code])) {
-                return $phrase_query[$language_code];
-            } else {
-                $phrase = ucfirst(str_replace('_', ' ', $key));
-                $checker = array('phrase' => $key);
-                $updater = array($language_code => $phrase);
-                $CI->db->where($checker);
-                $CI->db->update('language', $updater);
-                return $phrase;
-            }
-        } else {
-            $phrase = ucfirst(str_replace('_', ' ', $key));
-            $CI->db->insert('language', array('phrase' => $key, $language_code => $phrase));
-            return $phrase;
-        }
+        $code = function_exists('tq_lang') ? tq_lang() : 'english';
+        return tq_phrase_lookup($phrase, $code);
     }
 }
 

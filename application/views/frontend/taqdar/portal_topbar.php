@@ -77,6 +77,11 @@ else                   $tq_greet = 'مساء الخير';
 
     <div class="tq-topbar__actions">
 
+        <?php /* TQ-I18N — مبدل اللغة في ترويسة البوابة، لا في شاشة الإعدادات
+                 وحدها: من فتح شاشة بالعربية وهو لا يقرؤها لا يعرف أن
+                 «الإعدادات» هي الباب، ولا يقرأ اسمها ليصل إليه. */ ?>
+        <?php $skin = 'portal'; include APPPATH . 'views/components/tq_lang_switch.php'; ?>
+
         <?php if (!empty($tq_bar['messages'])): ?>
             <a class="tq-iconbtn" href="<?php echo base_url($tq_bar['messages']); ?>" aria-label="الرسائل" title="الرسائل">
                 <?php echo tq_icon('chat'); ?>

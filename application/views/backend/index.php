@@ -18,12 +18,11 @@ $logged_in_user_role = strtolower($this->session->userdata('role'));
 $page_name           = isset($page_name) ? $page_name : 'dashboard';
 $page_title          = isset($page_title) ? $page_title : 'لوحة الإدارة';
 
-/* الاتجاه نتيجة للغة لا إعداد مستقل — نفس قاعدة الواجهة الأمامية. */
-$tqa_lang   = get_settings('language') ?: 'arabic';
-$tqa_dirs   = json_decode(get_settings('language_dirs') ?: '{}', true);
-$tqa_active = $this->session->userdata('language') ?: $tqa_lang;
-$tqa_dir    = $tqa_dirs[$tqa_active] ?? 'rtl';
-$tqa_iso    = getIsoCode(ucfirst($tqa_active)) ?: 'ar';
+/* TQ-I18N — اللغة والاتجاه من `tq_lang()` وحدها، كالواجهة الأمامية. */
+$tqa_active = tq_lang();
+$tqa_dir    = tq_dir();
+$tqa_iso    = tq_iso();
+$tqa_lang   = $tqa_active;
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo html_escape($tqa_iso); ?>" dir="<?php echo html_escape($tqa_dir); ?>">

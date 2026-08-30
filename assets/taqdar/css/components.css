@@ -892,3 +892,50 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   border:1px solid var(--tq-line, rgba(0,0,0,.08));
   background:var(--tq-surface2, #fff)
 }
+
+/* ==========================================================================
+   TQ-I18N — مبدل اللغة (جلد البوابة)
+   ==========================================================================
+   زران متجاوران لا `select`: القائمة تحتاج نقرتين وتخفي خياراتها حتى تفتح،
+   والزران يقرآن قبل أن ينقرا. والجاري معطل — زر يعيد ما أنت عليه يقرأ عطلا.
+
+   والأنماط كلها منطقية (`inline-*`) لا مادية: المبدل يعرض في الاتجاهين
+   بحكم وظيفته، وقاعدة `margin-left` فيه تنقلب خطأ أول ما تبدل اللغة. */
+.tq-langsw{
+  display:inline-flex;
+  align-items:center;
+  gap:2px;
+  padding:2px;
+  margin:0;
+  border:1px solid var(--tq-line);
+  border-radius:var(--tq-radius-m, 10px);
+  background:var(--tq-surface2, #fff);
+}
+.tq-langsw__opt{
+  min-inline-size:34px;
+  padding-block:5px;
+  padding-inline:8px;
+  border:0;
+  border-radius:calc(var(--tq-radius-m, 10px) - 3px);
+  background:transparent;
+  color:var(--tq-ink2, #5a6b73);
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+  line-height:1;
+  cursor:pointer;
+  transition:background .15s, color .15s;
+}
+.tq-langsw__opt:hover:not(:disabled){ background:var(--tq-navyWash); color:var(--tq-navy); }
+.tq-langsw__opt:focus-visible{ outline:2px solid var(--tq-navy); outline-offset:1px; }
+.tq-langsw__opt.is-on{
+  background:var(--tq-navy);
+  color:#fff;
+  cursor:default;
+  opacity:1;              /* `disabled` يبهت الزر افتراضا، والجاري أظهرها لا أبهتها */
+}
+
+/* الشاشات الضيقة: الترويسة مزدحمة أصلا، فيبقى المبدل ويضيق. */
+@media (max-width:640px){
+  .tq-langsw__opt{ min-inline-size:30px; padding-inline:6px; }
+}

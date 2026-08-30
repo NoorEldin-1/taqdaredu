@@ -40,6 +40,12 @@ $tqa_first = explode(' ', $tqa_name)[0];
 
     <div class="tqa-topbar__actions">
 
+        <?php /* TQ-I18N — مبدل اللغة. ولم يكن في اللوحة باب واحد يغير لغتها:
+                 شاشة `manage_profile` تحرر الاسم والصورة وكلمة المرور ولا
+                 تعرف اللغة، و«إعدادات المنصة» تحمل لغة **المنصة** لا لغة من
+                 يقرأ — فمن يدير المنصة يقلبها على كل مستخدميها ليقرأها هو. */ ?>
+        <?php $skin = 'admin'; include APPPATH . 'views/components/tq_lang_switch.php'; ?>
+
         <a class="tqa-iconbtn" href="<?php echo site_url('admin/message'); ?>"
            aria-label="الرسائل" title="الرسائل">
             <?php echo tq_icon('chat'); ?>
