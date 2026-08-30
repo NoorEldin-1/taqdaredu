@@ -124,6 +124,13 @@ $tq_CI_fav  = get_instance();
 $tq_CI_fav->load->model('taqdar_favourites_model');
 $tq_wish    = array_flip($tq_CI_fav->taqdar_favourites_model->course_ids($tq_uid));
 
+/* TQ-COURSE-SALE — أي هذه الكورسات اشتري مفردا؟
+   يقرأ من `subscriptions` لا من `enrol`: الثاني يمتلئ من الباقة أيضا،
+   فمن يسأل «أهذا لي أم لباقتي؟» لا يجد فيه جوابا. ونداء واحد للصفحة
+   كلها لا نداء لكل بطاقة. */
+$tq_CI_fav->load->model('taqdar_course_sale_model', 'tq_cs');
+$tq_bought = $tq_CI_fav->tq_cs->owned_by($tq_uid);
+
 $tq_fav_btn = static function ($course_id, $on) {
     ob_start(); ?>
     <form method="post" action="<?php echo base_url('student/favourite'); ?>" class="tq-form-inline">
@@ -360,6 +367,16 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                         </div>
                         <p class="tq-micro" style="margin:0">
                             <?php echo html_escape($c['level'] !== '' ? tq_s_level($c['level']) : tq_s_subject($c['category_id'], 'كورس', $c['id'])); ?>
+                            <?php
+                            /* TQ-COURSE-SALE — **ولماذا هو مفتوح.**
+                               «كورساتي» تقرأ `enrol`، وهو يمتلئ من الباقة
+                               ومن الشراء المفرد معا — فالبطاقتان تبدوان
+                               سواء. وليستا: ما اشتري مفردا يبقى بعد انتهاء
+                               الاشتراك، وما فتحته الباقة يقفل معها. وطالب
+                               لا يعرف الفرق يظن أنه فقد ما دفع ثمنه. */
+                            if (isset($tq_bought[(int) $c['id']])): ?>
+                                · <span style="color:var(--tq-teal);font-weight:700">مشتراة مفردة</span>
+                            <?php endif; ?>
                         </p>
                         <?php echo tq_progress($c['progress'], 'تقدمك في ' . $c['title']); ?>
                         <p class="tq-caption" style="margin:0"><?php echo tq_s_lessons_word($c['done'], $c['lessons']); ?></p>

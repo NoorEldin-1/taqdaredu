@@ -709,6 +709,56 @@ class Taqdar_course_sale_model extends CI_Model
     }
 
     /**
+     * TQ-COURSE-SALE-DELETE — **كورس بيع مفردا لا يحذف، يرفع إعلانه.**
+     *
+     * المبدأ مبدأ TQ-PLAN-DELETE نفسه: `subscriptions.course_id` و
+     * `invoices` و`wallet_entries` تشير إليه بمعرفه، وحذف الصف يترك
+     * كشف حساب معلم يقول «كورس #106» لا يعرف أحد ما كان، وفاتورة بمبلغ
+     * لا يقابله شيء، **ومشتريا دفع ثمن محتوى اختفى**. والضرر كله في
+     * القراءة وهو لا يرجع.
+     *
+     * والفرق عن الباقة أن الوصول ينقطع هنا فعلا: بند `course` يشير إلى
+     * صف محذوف، و`grantable_course_ids()` تسقطه بضمها على `course` —
+     * فمن دفع يفتح «كورساتي» ولا يجد ما اشترى. فالمنع أشد لزوما.
+     *
+     * ويرد بالرقم لا بـ«غير مسموح»: من قرأ «لا يحذف» بلا سبب يظن الشاشة
+     * معطلة، ومن قرأ «بيع اثنتي عشرة مرة» يعرف ما يفعل. والبديل يقال
+     * معه — رفع الإعلان يوقف البيع ويخفيه من كل صفحة عامة، وهو ما
+     * يريده من ضغط «حذف».
+     *
+     * @return array سطور المنع — فارغة تعني «يحذف»
+     */
+    public function delete_blockers($course_id)
+    {
+        $this->install_schema();
+        $course_id = (int) $course_id;
+        $out = array();
+        if ($course_id <= 0) return $out;
+
+        try {
+            $r = $this->db->query(
+                'SELECT COUNT(*) n, COALESCE(SUM(`price`),0) g
+                   FROM `subscriptions`
+                  WHERE `course_id` = ? AND `status` IN ("active","cancelled","expired")',
+                array($course_id))->row_array();
+            if ($r && (int) $r['n'] > 0) {
+                $out[] = 'بيع مفردا ' . (int) $r['n'] . ' مرة بمحصل '
+                       . number_format(((int) $r['g']) / 100) . ' ر.س';
+            }
+
+            /* والمعلق يعد كذلك: فاتورة صدرت ولم تحول بعد، وحذف الكورس
+               تحتها يترك مشتريا يحول ثمن شيء لم يعد موجودا. */
+            $p = $this->db->where('course_id', $course_id)
+                          ->where('status', 'pending')
+                          ->count_all_results('subscriptions');
+            if ($p > 0) $out[] = $p . ' فاتورة صدرت وتنتظر السداد';
+        } catch (Throwable $e) {
+            /* عمود لم ينشأ بعد = لا بيع مفرد وقع = لا مانع. */
+        }
+        return $out;
+    }
+
+    /**
      * يحفظ **علمي البيع وحدهما** — لتبويب التسعير في شاشة الكورس.
      *
      * والفرق عن `save_offer()` أن السعر والخصم كتبا للتو بمسار الحفظ

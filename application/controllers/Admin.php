@@ -1440,6 +1440,22 @@ class Admin extends CI_Controller
 
             $this->is_drafted_course($param2);
 
+            /* TQ-COURSE-SALE-DELETE — كورس بيع مفردا لا يحذف، يرفع
+               إعلانه. المبدأ مبدأ TQ-PLAN-DELETE نفسه، وأشد لزوما هنا:
+               بند الاستحقاق يشير إلى `course.id`، فحذف الصف **يقطع
+               وصولا اشتري** لا يترك أثرا لا يقرأ وحسب. */
+            $this->load->model('taqdar_course_sale_model', 'tq_cs');
+            $tq_block = $this->tq_cs->delete_blockers($param2);
+            if ($tq_block) {
+                $this->session->set_flashdata('error_message',
+                    'لا يحذف هذا الكورس: ' . implode('، و', $tq_block) . '. '
+                  . 'وحذفه يقطع وصولا دفع ثمنه ويترك فواتير لا يقرأ ما فيها. '
+                  . 'ارفع عنه «يباع مفردا» أو أنزله إلى مسودة — يختفي من كل صفحة '
+                  . 'عامة ولا يشترى، ويبقى لمن اشتراه.');
+                redirect(site_url('admin/course_form/course_edit/' . (int) $param2 . '?tab=pricing'));
+                return;
+            }
+
             /* البرنامج المرتبط ينزل إلى مسودة **قبل** حذف الكورس، وإلا
                بقي معروضا في «المواد والبرامج» بعنوان يفتح على لا شيء.
                ولا يحذف: قد تشير إليه بنود اشتراك قائمة في
