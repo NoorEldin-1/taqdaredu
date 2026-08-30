@@ -256,15 +256,15 @@ include 'portal_open.php';
                                         <span><?php echo tq_icon('clock', 16); ?><?php echo tq_s_minutes($t['minutes']); ?></span>
                                     <?php endif; ?>
                                     <?php if (!empty($t['points'])): ?>
-                                        <span><?php echo tq_icon('award', 16); ?><?php echo tq_iso($t['points'] . t('بندا')); ?></span>
+                                        <span><?php echo tq_icon('award', 16); ?><?php echo tq_iso($t['points'] . t(' بندا')); ?></span>
                                     <?php endif; ?>
                                     <?php if (!empty($t['pass'])): ?>
-                                        <span><?php echo tq_icon('target', 16); ?>درجة النجاح <?php echo tq_num($t['pass'] . '%', 'tq-num--sm'); ?></span>
+                                        <span><?php echo tq_icon('target', 16); ?><?php echo t('درجة النجاح'); ?> <?php echo tq_num($t['pass'] . '%', 'tq-num--sm'); ?></span>
                                     <?php endif; ?>
                                     <?php if ($key === 'done' && !empty($t['graded']) && $t['score'] !== null): ?>
-                                        <span><?php echo tq_icon('check', 16); ?>الدرجة <?php echo tq_num(((float) $t['score'] == (int) $t['score'] ? (int) $t['score'] : $t['score']) . '%', 'tq-num--sm'); ?></span>
+                                        <span><?php echo tq_icon('check', 16); ?><?php echo t('الدرجة'); ?> <?php echo tq_num(((float) $t['score'] == (int) $t['score'] ? (int) $t['score'] : $t['score']) . '%', 'tq-num--sm'); ?></span>
                                     <?php elseif ($key === 'done'): ?>
-                                        <span><?php echo tq_icon('clock', 16); ?>ينتظر تصحيح معلمك</span>
+                                        <span><?php echo tq_icon('clock', 16); ?><?php echo t('ينتظر تصحيح معلمك'); ?></span>
                                     <?php endif; ?>
                                 </div>
 
@@ -369,7 +369,7 @@ include 'portal_open.php';
                             <?php if (!empty($t['points'])): ?>
                                 <span class="tq-caption" style="text-align:center">
                                     <?php echo tq_num($t['points'], 'tq-num--sm'); ?><br>
-                                    <span class="tq-micro"><?php echo t('بندا'); ?></span>
+                                    <span class="tq-micro"><?php echo t(' بندا'); ?></span>
                                 </span>
                             <?php endif; ?>
                         </li>

@@ -50,14 +50,14 @@ $tq_stale = (int) get_instance()->db->query(
     <div class="tqa-note tqa-note--warn">
         <?php if ($tq_broken > 0): ?>
             <p style="margin:0 0 6px">
-                <strong><?php echo $tq_broken; ?> اشتراكا نشطا بلا بنود.</strong>
+                <strong><?php echo $tq_broken; ?> <?php echo t('اشتراكا نشطا بلا بنود.'); ?></strong>
                 <?php echo t('هذه الاشتراكات مدفوعة وحالتها نشطة، لكن محتواها'); ?> <strong><?php echo t('لا يفتح للطالب'); ?></strong>
                 <?php echo t('لأن نطاقها لم ينسخ بنودا. يقع هذا حين يفعل الاشتراك من خارج زر التفعيل.'); ?>
             </p>
         <?php endif; ?>
         <?php if ($tq_stale > 0): ?>
             <p style="margin:0">
-                <strong><?php echo $tq_stale; ?> اشتراكا نشطا ينقصه تسجيل.</strong>
+                <strong><?php echo $tq_stale; ?> <?php echo t('اشتراكا نشطا ينقصه تسجيل.'); ?></strong>
                 <?php echo t('محتوى نشر'); ?> <strong><?php echo t('بعد'); ?></strong> <?php echo t('شرائهم، فهو يفتح لهم فعلا ولا يظهر في «كورساتي» ولا «دروسي» ولا في قوائم طلاب معلمه — لأن تلك الشاشات تقرأ جدول التسجيل، وهو يكتب مرة واحدة يوم التفعيل.'); ?>
             </p>
         <?php endif; ?>
@@ -96,7 +96,7 @@ $tq_stale = (int) get_instance()->db->query(
     ) as $label => $num): ?>
         <div>
             <div class="tqa-stat">
-                <span class="tqa-stat-label"><?php echo $label; ?></span>
+                <span class="tqa-stat-label"><?php echo te($label); ?></span>
                 <span class="tqa-stat-num tq-ltr" dir="ltr"><?php echo (int) $num; ?></span>
             </div>
         </div>
@@ -106,7 +106,7 @@ $tq_stale = (int) get_instance()->db->query(
 <div class="tqa-card">
     <div class="tqa-card__head">
         <h4 class="header-title">
-            إجمالي المحصل: <?php echo tqa_money($stats['revenue']); ?>
+            <?php echo t('إجمالي المحصل:'); ?> <?php echo tqa_money($stats['revenue']); ?>
         </h4>
     </div>
     <div class="tqa-card__body">
@@ -187,7 +187,7 @@ $tq_stale = (int) get_instance()->db->query(
                             <td><?php if ($tq_ck !== '' && isset($tq_cl[$tq_ck])): ?>
                                   <span class="badge badge-light"><?php echo $tq_cl[$tq_ck]; ?></span>
                                   <?php if ($tq_dy > 0): ?>
-                                    <small class="tqa-dim"><?php echo tqa_ltr($tq_dy); ?> يوما</small>
+                                    <small class="tqa-dim"><?php echo tqa_ltr($tq_dy); ?> <?php echo t('يوما'); ?></small>
                                   <?php endif; ?>
                                 <?php else: ?><span class="tqa-dim">—</span><?php endif; ?></td>
                             <td><?php echo tqa_money($r['price']); ?></td>
@@ -202,8 +202,8 @@ $tq_stale = (int) get_instance()->db->query(
                                     <form method="post" class="tqa-activate"
                                           action="<?php echo site_url('taqdar_admin/subscription_activate/' . (int) $r['id']); ?>"
                                           data-tqa-confirm-title="<?php echo te('تفعيل الاشتراك'); ?>"
-                                          data-tqa-confirm="سيسدد الاشتراك وتفتح باقته للطالب فورا. تأكد من وصول الحوالة أولا."
-                                          data-tqa-confirm-ok="فعل الاشتراك">
+                                          data-tqa-confirm="<?php echo te('سيسدد الاشتراك وتفتح باقته للطالب فورا. تأكد من وصول الحوالة أولا.'); ?>"
+                                          data-tqa-confirm-ok="<?php echo te('فعل الاشتراك'); ?>">
                                         <?php echo tq_csrf(); ?>
                                         <input type="text" name="reference" class="tqa-input tq-ltr" dir="ltr"
                                                placeholder="<?php echo te('مرجع الحوالة'); ?>" required>
@@ -215,8 +215,8 @@ $tq_stale = (int) get_instance()->db->query(
                                     <form method="post" class="tqa-cancel"
                                           action="<?php echo site_url('taqdar_admin/subscription_cancel/' . (int) $r['id']); ?>"
                                           data-tqa-confirm-title="<?php echo te('إلغاء التجديد'); ?>"
-                                          data-tqa-confirm="يبقى الاشتراك صالحا حتى تاريخ انتهائه، ولا يجدد بعده."
-                                          data-tqa-confirm-ok="ألغ التجديد"
+                                          data-tqa-confirm="<?php echo te('يبقى الاشتراك صالحا حتى تاريخ انتهائه، ولا يجدد بعده.'); ?>"
+                                          data-tqa-confirm-ok="<?php echo te('ألغ التجديد'); ?>"
                                           data-tqa-confirm-tone="danger">
                                         <?php echo tq_csrf(); ?>
                                         <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)"><?php echo t('إلغاء'); ?></button>
@@ -243,8 +243,7 @@ $tq_stale = (int) get_instance()->db->query(
                                                     <li>
                                                         <?php echo html_escape($tq_s['teacher_name'] ?: ('#' . $tq_s['teacher_id'])); ?>
                                                         — <?php echo tqa_money($tq_s['amount_halalas']); ?>
-                                                        <span class="tqa-dim">(<?php echo (int) $tq_s['lessons']; ?>
-                                                        من <?php echo (int) $tq_s['lessons_total']; ?> درسا)</span>
+                                                        <span class="tqa-dim"><?php echo t('(____ من ____ درسا)', array((int) $tq_s['lessons'], (int) $tq_s['lessons_total'])); ?></span>
                                                     </li>
                                                 <?php endforeach; ?>
                                             </ul>
@@ -256,8 +255,8 @@ $tq_stale = (int) get_instance()->db->query(
                                         <form method="post"
                                               action="<?php echo site_url('taqdar_admin/subscription_resplit/' . (int) $r['id']); ?>"
                                               data-tqa-confirm-title="<?php echo te('إعادة قسمة الإيراد'); ?>"
-                                              data-tqa-confirm="تعكس القيود القائمة على هذه البيعة وتقسمها من جديد على المستحقين الآن. ينقل مال بين المحافظ، ويسجل في سجل التدقيق."
-                                              data-tqa-confirm-ok="أعد القسمة"
+                                              data-tqa-confirm="<?php echo te('تعكس القيود القائمة على هذه البيعة وتقسمها من جديد على المستحقين الآن. ينقل مال بين المحافظ، ويسجل في سجل التدقيق.'); ?>"
+                                              data-tqa-confirm-ok="<?php echo te('أعد القسمة'); ?>"
                                               data-tqa-confirm-tone="danger">
                                             <?php echo tq_csrf(); ?>
                                             <input type="text" name="reason" class="tqa-input tq-ltr" dir="auto"

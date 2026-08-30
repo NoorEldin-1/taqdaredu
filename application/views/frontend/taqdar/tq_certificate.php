@@ -55,7 +55,7 @@ include 'portal_open.php';
           echo html_escape($c['milestone_title'] ?: ($c['path_title'] ?: t('محطة تعليمية'))); ?></h2>
 
         <?php if (!empty($c['path_title']) && !empty($c['milestone_title'])): ?>
-          <p class="tq-cert__path">ضمن برنامج <?php echo html_escape($c['path_title']); ?></p>
+          <p class="tq-cert__path"><?php echo t('ضمن برنامج'); ?> <?php echo html_escape($c['path_title']); ?></p>
         <?php endif; ?>
 
         <dl class="tq-cert__meta">
@@ -79,7 +79,7 @@ include 'portal_open.php';
                 يحمل الرابط نصا فمن لا يرى الصورة يقرأ الوجهة. */ ?>
         <img class="tq-cert__qr"
              src="<?php echo base_url('student/certificate/' . (int) $c['id'] . '/qr'); ?>"
-             alt="رمز التحقق — <?php echo html_escape(base_url('verify/' . $tq_code)); ?>"
+             alt="<?php echo te('رمز التحقق — ____', array(html_escape(base_url('verify/' . $tq_code)))); ?>"
              width="120" height="120" loading="lazy">
         <div class="tq-cert__verify">
           <p><strong><?php echo t('تحقق من هذه الشهادة'); ?></strong></p>

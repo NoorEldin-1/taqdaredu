@@ -167,9 +167,9 @@ if (!function_exists('tq_cur_field')) {
                         ? (string) $value
                         : base_url((isset($f['dir']) ? $f['dir'] : 'uploads/lesson_files') . '/' . basename((string) $value));
                     echo '<p class="' . $c['hint'] . '" style="margin-block-end:var(--tq-space-s)">'
-                       . 'الملف الحالي: <a href="' . html_escape($href) . '" target="_blank" rel="noopener">'
+                       . t('الملف الحالي: <a href="') . html_escape($href) . '" target="_blank" rel="noopener">'
                        . html_escape(basename((string) $value)) . '</a>'
-                       . ' — واختيار ملف جديد يستبدله.</p>';
+                       . t(' — واختيار ملف جديد يستبدله.</p>');
                 }
                 echo '<input type="file" id="' . $id . '" name="' . html_escape($name) . '"'
                    . (isset($f['accept']) ? ' accept="' . html_escape($f['accept']) . '"' : '')
@@ -285,7 +285,7 @@ if (!function_exists('tq_cur_type_picker')) {
         $types = tq_cur_types();
         $cls   = $skin === 'tq' ? 'tqc-pick' : 'tqc-pick tqc-pick--admin';
 
-        echo '<div class="' . $cls . '" role="radiogroup" aria-label="نوع الدرس">';
+        echo '<div class="' . $cls . t('" role="radiogroup" aria-label="نوع الدرس">');
         foreach ($types as $k => $t) {
             $on = ($k === $current);
             echo '<label class="tqc-pick__one' . ($on ? ' is-on' : '') . '">'
@@ -325,17 +325,17 @@ if (!function_exists('tq_cur_track_note')) {
         if ($track === 'api') {
             echo '<p class="' . $c['note'] . '">'
                . '<span aria-hidden="true">' . tq_icon('help', 18) . '</span>'
-               . '<span>تقاس مشاهدة الطالب من مشغل المصدر نفسه، فتحسب الثواني التي شوهدت فعلا.'
-               . ' والرابط عام دائم بحكم استضافته عند غيرنا — فلا تضع فيه ما لا يعرض لغير المشترك.</span>'
+               . t('<span>تقاس مشاهدة الطالب من مشغل المصدر نفسه، فتحسب الثواني التي شوهدت فعلا.')
+               . t(' والرابط عام دائم بحكم استضافته عند غيرنا — فلا تضع فيه ما لا يعرض لغير المشترك.</span>')
                . '</p>';
             return;
         }
 
         echo '<p class="' . $c['note'] . ($skin === 'tqa' ? ' tqa-note--warn' : '') . '">'
            . '<span aria-hidden="true">' . tq_icon('alert', 18) . '</span>'
-           . '<span><strong>هذا المصدر لا يعلن موضع تشغيله.</strong>'
-           . ' فلا تقاس مشاهدة الطالب فيه، ويفتح الدرس التالي بإقرار الطالب أنه أنهاه لا بقياس.'
-           . ' واستعمل يوتيوب أو ملفا مرفوعا حيث يهمك القياس.</span>'
+           . t('<span><strong>هذا المصدر لا يعلن موضع تشغيله.</strong>')
+           . t(' فلا تقاس مشاهدة الطالب فيه، ويفتح الدرس التالي بإقرار الطالب أنه أنهاه لا بقياس.')
+           . t(' واستعمل يوتيوب أو ملفا مرفوعا حيث يهمك القياس.</span>')
            . '</p>';
     }
 }
@@ -407,7 +407,7 @@ if (!function_exists('tq_cur_course_field')) {
 
             case 'category':
                 echo '<select class="' . $c['select'] . '" id="' . $id . '" name="' . html_escape($name) . '">'
-                   . '<option value="0">— بلا مرحلة</option>'
+                   . t('<option value="0">— بلا مرحلة</option>')
                    . tqa_category_options((int) $val)
                    . '</select>';
                 break;
@@ -453,7 +453,7 @@ if (!function_exists('tq_cur_course_field')) {
                     echo '<img src="' . html_escape($src) . '" alt=""'
                        . ' style="max-inline-size:220px;border-radius:var(--tq-radius-small);'
                        . 'margin-block-end:var(--tq-space-s);display:block">';
-                    echo '<p class="' . $c['hint'] . '">واختيار صورة جديدة يستبدلها.</p>';
+                    echo '<p class="' . $c['hint'] . t('">واختيار صورة جديدة يستبدلها.</p>');
                 }
                 echo '<input type="file" id="' . $id . '" name="' . html_escape($name) . '"'
                    . ' accept="' . html_escape(isset($f['accept']) ? $f['accept'] : 'image/*') . '">';
@@ -576,17 +576,17 @@ if (!function_exists('tq_cur_duration_flag')) {
            ٢:٤٨» خبر، و«لن يبلغ طالبك حد الإتمام أبدا» سبب يدفع إلى
            الإصلاح. */
         $harm = ($a > $m)
-            ? 'وما دام المكتوب أطول من المقطع فلن يبلغ الطالب حد الإتمام مهما شاهد، ويبقى الدرس التالي مقفلا عليه.'
-            : 'وما دام المكتوب أقصر من المقطع فالدرس يعد مكتملا قبل أن يشاهده الطالب إلى آخره.';
+            ? t('وما دام المكتوب أطول من المقطع فلن يبلغ الطالب حد الإتمام مهما شاهد، ويبقى الدرس التالي مقفلا عليه.')
+            : t('وما دام المكتوب أقصر من المقطع فالدرس يعد مكتملا قبل أن يشاهده الطالب إلى آخره.');
 
         echo '<p class="' . $c['note'] . ($skin === 'tqa' ? ' tqa-note--warn' : '') . '">'
            . '<span aria-hidden="true">' . tq_icon('alert', 18) . '</span>'
-           . '<span><strong>المدة المكتوبة تخالف المقطع.</strong> '
-           . 'المكتوب ' . html_escape($a > 0 ? $hms($a) : '00:00:00')
-           . ' ومشغلات الطلاب تقول ' . html_escape($hms($m))
-           . ' (' . ($n === 1 ? 'شاهد واحد' : 'من ' . (int) $n . ' شهود') . '). '
+           . t('<span><strong>المدة المكتوبة تخالف المقطع.</strong> ')
+           . t('المكتوب ') . html_escape($a > 0 ? $hms($a) : '00:00:00')
+           . t(' ومشغلات الطلاب تقول ') . html_escape($hms($m))
+           . ' (' . ($n === 1 ? t('شاهد واحد') : t('من ') . (int) $n . t(' شهود')) . '). '
            . html_escape($harm)
-           . ' صححها في «المدة» من تحرير هذا الدرس.</span>'
+           . t(' صححها في «المدة» من تحرير هذا الدرس.</span>')
            . '</p>';
     }
 }
@@ -596,10 +596,10 @@ if (!function_exists('tq_cur_status_face')) {
     function tq_cur_status_face($status)
     {
         switch ((string) $status) {
-            case 'published': return array('ok',    'منشور');
-            case 'review':    return array('warn',  'قيد المراجعة');
-            case 'rejected':  return array('danger', 'رد للتعديل');
-            default:          return array('muted', 'مسودة');
+            case 'published': return array('ok',    t('منشور'));
+            case 'review':    return array('warn',  t('قيد المراجعة'));
+            case 'rejected':  return array('danger', t('رد للتعديل'));
+            default:          return array('muted', t('مسودة'));
         }
     }
 }

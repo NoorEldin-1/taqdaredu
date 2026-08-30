@@ -196,7 +196,7 @@ if (!function_exists('tq_spam_notice')) {
         $compact = !empty($o['compact']);
         $id      = (isset($o['id']) && $o['id'] !== '') ? (string) $o['id'] : 'tq-spam';
         $extra   = isset($o['class']) ? ' ' . (string) $o['class'] : '';
-        $what    = (isset($o['what']) && $o['what'] !== '') ? (string) $o['what'] : 'رسالتنا';
+        $what    = (isset($o['what']) && $o['what'] !== '') ? (string) $o['what'] : t('رسالتنا');
 
         $email  = tq_inbox_email(isset($o['email']) ? $o['email'] : '');
         $key    = tq_inbox_key($email);
@@ -216,48 +216,48 @@ if (!function_exists('tq_spam_notice')) {
            [Gmail]» كانت تعرض زرين متجاورين أحدهما اسم مزود عاريا بعد زر
            يذكر المزود نفسه — فيقرأ الثاني كأنه تكرار للأول. */
         $one     = (count($show) === 1);
-        $lead_go = $one ? 'افتح بريدك مباشرة:' : 'افتح مجلد «غير المرغوبة» في:';
+        $lead_go = $one ? t('افتح بريدك مباشرة:') : t('افتح مجلد «غير المرغوبة» في:');
 
         /* عنوان المرسل حين يعرف، واسم المنصة حين لا يعرف: البحث بالاسم
            يجد الرسالة كذلك، وعنوان مخترع لا يجد شيئا. */
-        $needle = ($sender !== '') ? $sender : 'تقدر';
+        $needle = ($sender !== '') ? $sender : t('تقدر');
 
         $h = static function ($s) { return html_escape((string) $s); };
 
         $addr = '<span class="tq-spam__addr"><b class="tq-ltr" dir="ltr">' . $h($needle) . '</b>';
         if ($sender !== '') {
             $addr .= '<button type="button" class="tq-spam__copy" data-tq-copy="' . $h($sender) . '"'
-                   . ' aria-label="انسخ عنوان المرسل">'
-                   . tq_icon('copy', 14) . '<span>انسخ</span></button>';
+                   . t(' aria-label="انسخ عنوان المرسل">')
+                   . tq_icon('copy', 14) . t('<span>انسخ</span></button>');
         }
         $addr .= '</span>';
 
         /* الخطوة الثالثة هي المقصودة من التنبيه كله، وتعلم بـ`is-key`:
            الأولى والثانية تجدان رسالة واحدة، وهي وحدها تصلح ما بعدها. */
         $steps = array(
-            array('١',
-                'افتح بريدك ثم افتح مجلد <b>«الرسائل غير المرغوبة»</b> — واسمه عند '
-                . 'بعض المزودين <span class="tq-ltr" dir="ltr">Spam</span> أو '
-                . '<span class="tq-ltr" dir="ltr">Junk</span> أو «البريد المزعج»، '
-                . 'وقد يكون مطويا تحت «المزيد».',
+            array(t('١'),
+                t('افتح بريدك ثم افتح مجلد <b>«الرسائل غير المرغوبة»</b> — واسمه عند ')
+                . t('بعض المزودين <span class="tq-ltr" dir="ltr">Spam</span> أو ')
+                . t('<span class="tq-ltr" dir="ltr">Junk</span> أو «البريد المزعج»، ')
+                . t('وقد يكون مطويا تحت «المزيد».'),
                 false),
-            array('٢',
-                'ابحث فيه عن رسالة من ' . $addr . ' — أو اكتب <b>تقدر</b> في خانة البحث.',
+            array(t('٢'),
+                t('ابحث فيه عن رسالة من ') . $addr . t(' — أو اكتب <b>تقدر</b> في خانة البحث.'),
                 false),
-            array('٣',
-                'افتح الرسالة ثم اضغط <b>«ليس بريدا غير مرغوب»</b> '
+            array(t('٣'),
+                t('افتح الرسالة ثم اضغط <b>«ليس بريدا غير مرغوب»</b> ')
                 . '(<span class="tq-ltr" dir="ltr">Report not spam</span> · '
-                . '<span class="tq-ltr" dir="ltr">Not junk</span> · «ليس مزعجا»). '
-                . '<b>هذه الضغطة هي المهمة</b> — بها تعود بقية إشعاراتنا كلها '
-                . '(الرموز والفواتير وتنبيهات حصصك ودرجاتك) إلى صندوق الوارد مباشرة، '
-                . 'ولا تعود إلى هذا المجلد.',
+                . t('<span class="tq-ltr" dir="ltr">Not junk</span> · «ليس مزعجا»). ')
+                . t('<b>هذه الضغطة هي المهمة</b> — بها تعود بقية إشعاراتنا كلها ')
+                . t('(الرموز والفواتير وتنبيهات حصصك ودرجاتك) إلى صندوق الوارد مباشرة، ')
+                . t('ولا تعود إلى هذا المجلد.'),
                 true),
-            array('٤',
-                'وليطمئن قلبك: أضف '
+            array(t('٤'),
+                t('وليطمئن قلبك: أضف ')
                 . ($sender !== ''
                     ? '<span class="tq-ltr" dir="ltr">' . $h($sender) . '</span>'
-                    : 'عنوان مراسلات تقدر')
-                . ' إلى جهات الاتصال عندك، فلا يعاد تصنيفه بعد اليوم.',
+                    : t('عنوان مراسلات تقدر'))
+                . t(' إلى جهات الاتصال عندك، فلا يعاد تصنيفه بعد اليوم.'),
                 false),
         );
 
@@ -267,8 +267,8 @@ if (!function_exists('tq_spam_notice')) {
 <details class="tq-spam tq-spam--compact<?php echo $extra; ?>" id="<?php echo $h($id); ?>">
   <summary class="tq-spam__sum">
     <span class="tq-spam__chip" aria-hidden="true"><?php echo tq_icon('mail', 18); ?></span>
-    <span class="tq-spam__sumt">لم تصلك رسالتنا بالبريد؟ ابحث عنها في «الرسائل غير المرغوبة»</span>
-    <span class="tq-spam__more" aria-hidden="true">الخطوات</span>
+    <span class="tq-spam__sumt"><?php echo t('لم تصلك رسالتنا بالبريد؟ ابحث عنها في «الرسائل غير المرغوبة»'); ?></span>
+    <span class="tq-spam__more" aria-hidden="true"><?php echo t('الخطوات'); ?></span>
   </summary>
   <div class="tq-spam__body">
 <?php else: ?>
@@ -277,16 +277,14 @@ if (!function_exists('tq_spam_notice')) {
   <div class="tq-spam__top">
     <span class="tq-spam__chip" aria-hidden="true"><?php echo tq_icon('alert', 22); ?></span>
     <div class="tq-spam__intro">
-      <p class="tq-spam__eyebrow">تنبيه مهم</p>
+      <p class="tq-spam__eyebrow"><?php echo t('تنبيه مهم'); ?></p>
       <h2 class="tq-spam__title" id="<?php echo $h($id); ?>-t">
-        لم تجد <?php echo $h($what); ?> في صندوق الوارد؟ ابحث في «الرسائل غير المرغوبة»
+        <?php echo t('لم تجد ____ في صندوق الوارد؟ ابحث في «الرسائل غير المرغوبة»', array($h($what))); ?>
       </h2>
       <p class="tq-spam__lead">
-        قد يضع مزود بريدك رسائل تقدر — رمز التأكيد، ورابط استعادة كلمة المرور،
-        وإشعارات الفواتير والاشتراكات — في مجلد
-        <span class="tq-ltr" dir="ltr">Spam</span> أو
-        <span class="tq-ltr" dir="ltr">Junk</span> بدل صندوق الوارد. وهذه أربع
-        خطوات تحلها في دقيقة، ونهائيا.
+        <?php echo t('قد يضع مزود بريدك رسائل تقدر — رمز التأكيد، ورابط استعادة كلمة المرور، وإشعارات الفواتير والاشتراكات — في مجلد'); ?>
+        <span class="tq-ltr" dir="ltr">Spam</span> <?php echo t('أو'); ?>
+        <span class="tq-ltr" dir="ltr">Junk</span> <?php echo t('بدل صندوق الوارد. وهذه أربع خطوات تحلها في دقيقة، ونهائيا.'); ?>
       </p>
     </div>
   </div>
@@ -306,20 +304,18 @@ if (!function_exists('tq_spam_notice')) {
       <span class="tq-spam__gol"><?php echo tq_icon('external', 16); ?> <?php echo $h($lead_go); ?></span>
       <?php if ($search !== ''): ?>
         <a class="tq-spam__btn tq-spam__btn--key" href="<?php echo $h($search); ?>"
-           target="_blank" rel="noopener noreferrer">ابحث عن رسالتنا في Gmail</a>
+           target="_blank" rel="noopener noreferrer"><?php echo t('ابحث عن رسالتنا في Gmail'); ?></a>
       <?php endif; ?>
       <?php foreach ($show as $p): ?>
         <a class="tq-spam__btn" href="<?php echo $h($p[1]); ?>"
            target="_blank" rel="noopener noreferrer"><?php
-             echo $h($one ? 'مجلد «غير المرغوبة» في ' . $p[0] : $p[0]); ?></a>
+             echo $h($one ? t('مجلد «غير المرغوبة» في ') . $p[0] : $p[0]); ?></a>
       <?php endforeach; ?>
     </div>
 
     <p class="tq-spam__fine">
-      الروابط تفتح بريدك في تبويب جديد. وإن كان بريدك على تطبيق الجوال فافتح
-      القائمة الجانبية ثم «الرسائل غير المرغوبة». ولم تجدها هناك أيضا؟ راجع
-      «كل الرسائل» وتبويبي «العروض» و«الاجتماعية»، ثم
-      <a href="<?php echo base_url('contact'); ?>">تواصل معنا</a> ونساعدك.
+      <?php echo t('الروابط تفتح بريدك في تبويب جديد. وإن كان بريدك على تطبيق الجوال فافتح القائمة الجانبية ثم «الرسائل غير المرغوبة». ولم تجدها هناك أيضا؟ راجع «كل الرسائل» وتبويبي «العروض» و«الاجتماعية»، ثم'); ?>
+      <a href="<?php echo base_url('contact'); ?>"><?php echo t('تواصل معنا'); ?></a> <?php echo t('ونساعدك.'); ?>
     </p>
 
 <?php if ($compact): ?>

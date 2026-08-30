@@ -41,6 +41,9 @@
          يحمل هنا لا في الذيل: يعرف `confirm_modal()` و`ajax_confirm_modal()`
          فوق نسختي القالب القديم، وسمات `data-tqa-confirm` قد ترد في أول
          شاشة قبل أن يصل الذيل. و`defer` يبقيه غير حاجب للرسم. */ ?>
+<?php /* TQ-I18N — قاموس المتصفح قبل `admin.js`: نافذة التأكيد ورسائل
+         الحفظ كلها تنادي `TQA.t()`. */ ?>
+<script src="<?php echo tq_asset('js/tq-i18n.js'); ?>" defer></script>
 <script src="<?php echo tq_asset('js/admin.js'); ?>" defer></script>
 
 <?php if (config_item('csrf_protection')): ?>

@@ -216,8 +216,8 @@ $tq_kind_of = static function ($t) {
     return $t['student'] ? t('طالب في كورساتك') : t('طالب');
 };
 
-$tq_ok  = $this->session->flashdata('flash_message');
-$tq_err = $this->session->flashdata('error_message');
+$tq_ok  = tq_flash('flash_message');
+$tq_err = tq_flash('error_message');
 
 include 'portal_open.php';
 include 'tq_chat_styles.php';
@@ -279,7 +279,7 @@ include 'tq_chat_styles.php';
                                <?php echo ($tq_open && $t['code'] === $tq_open['code']) ? ' aria-current="page"' : ''; ?>>
                                 <span class="tq-conv__ava">
                                     <img class="tq-avatar" src="<?php echo html_escape(tq_chat_photo($t['person'])); ?>"
-                                         alt="صورة <?php echo html_escape(tq_chat_name($t['person'])); ?>">
+                                         alt="<?php echo te('صورة ____', array(html_escape(tq_chat_name($t['person'])))); ?>">
                                     <span class="tq-conv__on" aria-hidden="true"></span>
                                 </span>
                                 <span>
@@ -354,7 +354,7 @@ include 'tq_chat_styles.php';
             <?php else: ?>
                 <header class="tq-thread__head">
                     <img class="tq-avatar" src="<?php echo html_escape(tq_chat_photo($tq_open['person'])); ?>"
-                         alt="صورة <?php echo html_escape(tq_chat_name($tq_open['person'])); ?>">
+                         alt="<?php echo te('صورة ____', array(html_escape(tq_chat_name($tq_open['person'])))); ?>">
                     <span style="flex:1;min-inline-size:0">
                         <span class="tq-strong" style="display:block;color:var(--tq-navy)" id="tq-thread-h">
                             <?php echo html_escape(tq_chat_name($tq_open['person'])); ?>
@@ -457,7 +457,7 @@ include 'tq_chat_styles.php';
             <?php else: ?>
                 <div style="display:grid;justify-items:center;gap:var(--tq-space-s);margin-block-end:var(--tq-space-xl)">
                     <img class="tq-avatar tq-avatar--lg" src="<?php echo html_escape(tq_chat_photo($tq_open['person'])); ?>"
-                         alt="صورة <?php echo html_escape(tq_chat_name($tq_open['person'])); ?>">
+                         alt="<?php echo te('صورة ____', array(html_escape(tq_chat_name($tq_open['person'])))); ?>">
                     <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape(tq_chat_name($tq_open['person'])); ?></span>
                     <span class="tq-micro"><?php echo html_escape($tq_kind_of($tq_open)); ?></span>
                 </div>
@@ -493,10 +493,10 @@ include 'tq_chat_styles.php';
                 <?php /* الحذف فعل خطر: حوار التأكيد الموحد في البوابات لا ضغطة واحدة. */ ?>
                 <form method="post" action="<?php echo base_url('teacher/messages'); ?>"
                       style="margin-block-start:var(--tq-space-xl)"
-                      data-tq-confirm-title="حذف محادثتك مع <?php echo html_escape(tq_chat_name($tq_open['person'])); ?>؟"
+                      data-tq-confirm-title="<?php echo te('حذف محادثتك مع ____؟', array(html_escape(tq_chat_name($tq_open['person'])))); ?>"
                       data-tq-confirm="<?php echo te('يحذف سجل المحادثة من الطرفين ولا يمكن التراجع.'); ?>"
-                      data-tq-confirm-note="ما كتبته من ملاحظات على المحاولات يبقى في صفحة التصحيح، فهو ليس من الرسائل."
-                      data-tq-confirm-ok="أحذف المحادثة"
+                      data-tq-confirm-note="<?php echo te('ما كتبته من ملاحظات على المحاولات يبقى في صفحة التصحيح، فهو ليس من الرسائل.'); ?>"
+                      data-tq-confirm-ok="<?php echo te('أحذف المحادثة'); ?>"
                       data-tq-confirm-tone="danger">
                     <?php echo tq_csrf(); ?>
                     <input type="hidden" name="thread" value="<?php echo html_escape($tq_open['code']); ?>">

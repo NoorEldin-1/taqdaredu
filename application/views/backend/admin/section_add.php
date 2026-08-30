@@ -23,7 +23,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
     <div class="tqa-actions">
         <button class="tqa-btn tqa-btn--primary tqa-btn--block" type="submit">
-            <?php echo tq_icon('plus', 16); ?> أضف القسم
+            <?php echo tq_icon('plus', 16); ?> <?php echo t('أضف القسم'); ?>
         </button>
     </div>
 </form>

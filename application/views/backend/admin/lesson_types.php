@@ -87,7 +87,7 @@ $tq_shortcut = isset($param2) && $param2 === 'add_shortcut_lesson';
 
 <div class="tqa-actions">
     <button type="button" class="tqa-btn tqa-btn--primary tqa-btn--block" data-tqa-lesson-next>
-        التالي <?php echo tq_icon('chev-next', 16); ?>
+        <?php echo t('التالي'); ?> <?php echo tq_icon('chev-next', 16); ?>
     </button>
 </div>
 

@@ -71,8 +71,8 @@ foreach ($tq_w['statement'] as $tq_s) {
     if ((int) $tq_s['retained'] !== 0) $tq_has_retained = true;
 }
 
-$tq_ok  = $this->session->flashdata('wallet_ok')    ?: $this->session->flashdata('flash_message');
-$tq_err = $this->session->flashdata('wallet_error') ?: $this->session->flashdata('error_message');
+$tq_ok  = tq_flash('wallet_ok')    ?: tq_flash('flash_message');
+$tq_err = tq_flash('wallet_error') ?: tq_flash('error_message');
 
 include 'portal_open.php';
 ?>
@@ -109,7 +109,7 @@ include 'portal_open.php';
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)"><?php echo $tq_money($tq_w['pending']); ?></p>
                 <p class="tq-pastel__body tq-caption" style="margin:0">
-                    <?php echo tq_iso(t('يتحرر بعد') . (int) $tq_w['refund_days'] . t('يوما من البيع')); ?>
+                    <?php echo tq_iso(t('يتحرر بعد ') . (int) $tq_w['refund_days'] . t(' يوما من البيع')); ?>
                 </p>
             </div>
 
@@ -161,8 +161,8 @@ include 'portal_open.php';
                                     /* «يتحرر بعد 4 يوما» خطأ في تمييز العدد، و«بعد 0 يوما»
                                        أسوأ منه: بيع بلغ موعد تحرره يقال عنه إنه ينتظر صفرا. */
                                     $tq_label .= (int) $tq_s['days_left'] > 0
-                                        ? t('· يتحرر بعد') . tq_days((int) $tq_s['days_left'])
-                                        : t('· يتحرر مع أول تحديث');
+                                        ? t(' · يتحرر بعد ') . tq_days((int) $tq_s['days_left'])
+                                        : t(' · يتحرر مع أول تحديث');
                                 }
                                 ?>
                                 <?php
@@ -182,10 +182,10 @@ include 'portal_open.php';
                                         ?>
                                             <span class="tq-micro tq-stmt__why">
                                                 <?php echo tq_iso(
-                                                    t('باقة بـ') . number_format(((int) $tq_sh['gross_halalas']) / 100, 2) . t('ر.س ·')
-                                                    . t('وعاء المعلمين') . rtrim(rtrim(number_format((float) $tq_sh['pool_percent'], 2), '0'), '.')
-                                                    . '% = ' . number_format(((int) $tq_sh['pool_halalas']) / 100, 2) . t('ر.س ·')
-                                                    . t('دروسك') . (int) $tq_sh['lessons'] . t('من') . (int) $tq_sh['lessons_total']
+                                                    t('باقة بـ') . number_format(((int) $tq_sh['gross_halalas']) / 100, 2) . t(' ر.س · ')
+                                                    . t('وعاء المعلمين ') . rtrim(rtrim(number_format((float) $tq_sh['pool_percent'], 2), '0'), '.')
+                                                    . '% = ' . number_format(((int) $tq_sh['pool_halalas']) / 100, 2) . t(' ر.س · ')
+                                                    . t('دروسك ') . (int) $tq_sh['lessons'] . t(' من ') . (int) $tq_sh['lessons_total']
                                                     . ' (' . $tq_wt . t('% من الوعاء)')
                                                 ); ?>
                                             </span>
@@ -203,8 +203,7 @@ include 'portal_open.php';
                         </tbody>
                     </table>
                     <p class="tq-caption" style="margin-block-start:var(--tq-space-l)">
-                        مجموع عمولة المنصة في هذا الكشف: <?php echo $tq_money($tq_commission_total); ?> —
-                        وهو حاصل جمع العمولات أعلاه لا رقم مستقل عنها.
+                        <?php echo t('مجموع عمولة المنصة في هذا الكشف: ____ — وهو حاصل جمع العمولات أعلاه لا رقم مستقل عنها.', array($tq_money($tq_commission_total))); ?>
                     </p>
                 </div>
             <?php else: ?>
@@ -264,10 +263,10 @@ include 'portal_open.php';
                                     <td data-label="إجراءات">
                                         <?php if ((int) $tq_p['status'] === 0): ?>
                                             <form method="post" action="<?php echo base_url('teacher/wallet/cancel'); ?>"
-                                                  data-tq-confirm-title="إلغاء طلب سحب <?php echo html_escape(trim(strip_tags($tq_money($tq_p['amount_halalas'])))); ?>؟"
+                                                  data-tq-confirm-title="<?php echo te('إلغاء طلب سحب ____؟', array(html_escape(trim(strip_tags($tq_money($tq_p['amount_halalas'])))))); ?>"
                                                   data-tq-confirm="<?php echo te('يعود المبلغ إلى رصيدك المتاح فورا، ويقيد ذلك في دفترك.'); ?>"
-                                                  data-tq-confirm-note="يبقى الطلب في السجل بحالة «ألغي» — الدفتر لا يمحو سطرا."
-                                                  data-tq-confirm-ok="ألغي الطلب"
+                                                  data-tq-confirm-note="<?php echo te('يبقى الطلب في السجل بحالة «ألغي» — الدفتر لا يمحو سطرا.'); ?>"
+                                                  data-tq-confirm-ok="<?php echo te('ألغي الطلب'); ?>"
                                                   data-tq-confirm-tone="danger">
                                                 <?php echo tq_csrf(); ?>
                                                 <input type="hidden" name="payout_id" value="<?php echo (int) $tq_p['id']; ?>">
@@ -335,9 +334,7 @@ include 'portal_open.php';
                        step="0.01" inputmode="decimal" required
                        <?php echo $tq_can_withdraw ? '' : 'disabled'; ?>>
                 <span class="tq-field__msg tq-field__hint">
-                    المتاح الآن <?php echo $tq_money($tq_w['available']); ?> —
-                    <?php echo tq_iso(t('والحد الأدنى للسحب') . number_format($tq_w['min_payout'] / 100, 2) . t('ريال.')); ?>
-                    والمعلق لا يسحب قبل أن يتحرر.
+                    <?php echo t('المتاح الآن ____ — ____ والمعلق لا يسحب قبل أن يتحرر.', array($tq_money($tq_w['available']), tq_iso(t('والحد الأدنى للسحب ') . number_format($tq_w['min_payout'] / 100, 2) . t(' ريال.')))); ?>
                 </span>
             </div>
 
@@ -382,7 +379,7 @@ include 'portal_open.php';
                        <?php echo $tq_can_withdraw ? '' : 'disabled'; ?>>
                 <span class="tq-field__msg tq-field__hint" data-tq-dest-hint>
                     <?php echo tq_iso(reset($tq_ch_js)['error']); ?>
-                    وتحفظ الوجهة مع الطلب، ولا تظهر بعدها إلا بأربع خاناتها الأخيرة.
+                    <?php echo t('وتحفظ الوجهة مع الطلب، ولا تظهر بعدها إلا بأربع خاناتها الأخيرة.'); ?>
                 </span>
             </div>
 
@@ -416,12 +413,11 @@ include 'portal_open.php';
             </button>
             <p class="tq-field__msg tq-field__hint" id="tq-withdraw-note" style="margin-block-start:var(--tq-space-m)">
                 <?php if (!$tq_can_withdraw): ?>
-                    <?php echo tq_iso(t('رصيدك المتاح') . number_format((int) $tq_w['available'] / 100, 2)
-                        . t('ريال، ولم يبلغ الحد الأدنى للسحب (') . number_format((int) $tq_w['min_payout'] / 100, 2)
-                        . t('ريال) بعد. والمعلق يتحرر بعد نافذة الاسترداد فينضم إلى المتاح.')); ?>
+                    <?php echo tq_iso(t('رصيدك المتاح ') . number_format((int) $tq_w['available'] / 100, 2)
+                        . t(' ريال، ولم يبلغ الحد الأدنى للسحب (') . number_format((int) $tq_w['min_payout'] / 100, 2)
+                        . t(' ريال) بعد. والمعلق يتحرر بعد نافذة الاسترداد فينضم إلى المتاح.')); ?>
                 <?php else: ?>
-                    عند إرسال الطلب يحجز المبلغ من رصيدك المتاح فورا ويقيد في دفترك،
-                    فلا يمكن طلبه مرتين.
+                    <?php echo t('عند إرسال الطلب يحجز المبلغ من رصيدك المتاح فورا ويقيد في دفترك، فلا يمكن طلبه مرتين.'); ?>
                 <?php endif; ?>
             </p>
         </form>
@@ -442,8 +438,8 @@ include 'portal_open.php';
                 </p>
                 <ol style="margin:0 0 var(--tq-space-s);padding-inline-start:var(--tq-space-l);list-style:decimal">
                     <li>
-                        <?php echo t('يخرج من سعرها'); ?> <b><?php echo t('وعاء المعلمين'); ?></b> —
-                        <?php echo tq_iso(t('نسبته')
+                        <?php echo t('يخرج من سعرها'); ?> <b><?php echo t('وعاء المعلمين '); ?></b> —
+                        <?php echo tq_iso(t('نسبته ')
                             . rtrim(rtrim(number_format((float) $tq_pool_default, 2), '0'), '.')
                             . t('% افتراضا، وقد تخص الباقة بنسبتها. والباقي عمولة المنصة.')); ?>
                     </li>
@@ -461,7 +457,7 @@ include 'portal_open.php';
             <span class="tq-pastel__label tq-micro"><?php echo t('كيف يتحرر المال'); ?></span>
             <ol class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0;padding-inline-start:var(--tq-space-l);list-style:decimal">
                 <li><?php echo t('يشتري الطالب كورسك أو باقة فيها محتواك، فتقيد العملية في دفترك بحصتك وعمولة المنصة عليها.'); ?></li>
-                <li><?php echo tq_iso(t('تظل الحصة معلقة') . (int) $tq_w['refund_days'] . t('يوما — نافذة استرداد الطالب.')); ?></li>
+                <li><?php echo tq_iso(t('تظل الحصة معلقة ') . (int) $tq_w['refund_days'] . t(' يوما — نافذة استرداد الطالب.')); ?></li>
                 <li><?php echo t('بعدها تنتقل إلى «متاح للسحب» بقيد في دفترك، لا بإعادة حساب.'); ?></li>
                 <li><?php echo t('لو استرد بيع بعد تحرره، يقيد عكسه ويظهر في كشفك — ولا يمحى سطره.'); ?></li>
             </ol>

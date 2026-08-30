@@ -58,7 +58,7 @@ foreach ($wmap as $entries) {
 /** هللات ⇐ نص ريالات. الخانتان تظهران حين يكون فيه هللات، فلا يدور مال. */
 $money = function ($halalas) {
     $h = (int) $halalas;
-    return number_format($h / 100, ($h % 100 === 0) ? 0 : 2) . t('ر.س');
+    return number_format($h / 100, ($h % 100 === 0) ? 0 : 2) . t(' ر.س');
 };
 ?>
 
@@ -115,12 +115,10 @@ $money = function ($halalas) {
             <b><?php echo t('لا معلم يستحق'); ?></b>
             <span data-tqa-split-empty-why>
                 <?php if (!$REV->plan_grade_ids($plan) && $plan['scope'] === 'grade'): ?>
-                    اختر صفوف الباقة أولا — القسمة تقرأ مسارات هذه الصفوف.
+                    <?php echo t('اختر صفوف الباقة أولا — القسمة تقرأ مسارات هذه الصفوف.'); ?>
                 <?php else: ?>
-                    لا مسار منشور بمعلم مسند في نطاق هذه الباقة. فلو بيعت اليوم لبقي
-                    وعاء <?php echo $money($split['pool']); ?> بلا صاحب، واحتفظت
-                    به المنصة بلا قرار. أسند معلما لمسارات هذه الصفوف من شاشة
-                    «المسارات التعليمية».
+                    <?php echo t('لا مسار منشور بمعلم مسند في نطاق هذه الباقة. فلو بيعت اليوم لبقي وعاء ____ بلا صاحب، واحتفظت به المنصة بلا قرار. أسند معلما لمسارات هذه الصفوف من شاشة «المسارات التعليمية».',
+                        $money($split['pool'])); ?>
                 <?php endif; ?>
             </span>
         </div>
@@ -147,13 +145,13 @@ $money = function ($halalas) {
                                     $titles = array();
                                     foreach ($r['paths'] as $p) $titles[] = $p['title'];
                                     echo html_escape(implode(' · ', array_slice($titles, 0, 3)));
-                                    if (count($titles) > 3) echo t('وغيرها');
+                                    if (count($titles) > 3) echo t(' وغيرها');
                                     ?>
                                 </span>
                             </td>
                             <td>
                                 <?php echo (int) $r['lessons']; ?>
-                                <span class="tqa-dim">من <?php echo (int) $split['lessons_total']; ?></span>
+                                <span class="tqa-dim"><?php echo t('من'); ?> <?php echo (int) $split['lessons_total']; ?></span>
                             </td>
                             <td><?php echo (float) $r['weight_pct']; ?>%</td>
                             <td><b data-tqa-split-share><?php echo $money($r['share']); ?></b></td>
@@ -163,7 +161,7 @@ $money = function ($halalas) {
                 <tfoot>
                     <tr>
                         <td><?php echo t('مجموع المعلمين'); ?></td>
-                        <td data-tqa-split-n="lessons_total"><?php echo (int) $split['lessons_total']; ?> درسا</td>
+                        <td data-tqa-split-n="lessons_total"><?php echo (int) $split['lessons_total']; ?> <?php echo t('درسا'); ?></td>
                         <td>100%</td>
                         <td><b data-tqa-split-n="pool_money2"><?php echo $money($split['pool']); ?></b></td>
                     </tr>
@@ -179,11 +177,9 @@ $money = function ($halalas) {
         <?php /* المحتوى الذي لا صاحب له: يعلن هنا لا يكتشف من شكوى. */ ?>
         <?php if ((int) $split['orphans']['paths'] > 0): ?>
             <p class="tqa-reach__note">
-                <?php echo t('و'); ?><b><?php echo (int) $split['orphans']['paths']; ?></b> مسارا في نطاق هذه
-                الباقة خارج القسمة — بلا معلم مسند أو بلا دورة مرتبطة أو بلا درس منشور.
+                <?php echo t('و'); ?><b><?php echo (int) $split['orphans']['paths']; ?></b> <?php echo t('مسارا في نطاق هذه الباقة خارج القسمة — بلا معلم مسند أو بلا دورة مرتبطة أو بلا درس منشور.'); ?>
                 <?php if ((int) $split['orphans']['lessons'] > 0): ?>
-                    ومنها <b><?php echo (int) $split['orphans']['lessons']; ?></b> درسا يفتحه
-                    المشتري ولا يستحق عنه أحد شيئا.
+                    <?php echo t('ومنها'); ?> <b><?php echo (int) $split['orphans']['lessons']; ?></b> <?php echo t('درسا يفتحه المشتري ولا يستحق عنه أحد شيئا.'); ?>
                 <?php endif; ?>
             </p>
         <?php endif; ?>

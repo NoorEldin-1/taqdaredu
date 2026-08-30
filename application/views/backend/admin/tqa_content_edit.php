@@ -17,7 +17,7 @@ foreach ($spec['fields'] as $k => $f) {
 
 <?php
 $tools = '<a class="tqa-btn tqa-btn--ghost" href="' . base_url($spec['route']) . '" target="_blank" rel="noopener">'
-       . tq_icon('eye', 16) . t('عاين الصفحة</a>')
+       . tq_icon('eye', 16) . t(' عاين الصفحة</a>')
        . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('taqdar_admin/content') . t('">كل الصفحات</a>');
 tqa_head($spec['title'], $spec['lead'], $spec['icon'], $tools);
 ?>
@@ -65,7 +65,7 @@ tqa_head($spec['title'], $spec['lead'], $spec['icon'], $tools);
                         <?php echo html_escape($f['hint']); ?>
                         <br>
                     <?php endif; ?>
-                    الأصلي: <span style="color:var(--tq-text3)">«<?php
+                    <?php echo t('الأصلي:'); ?> <span style="color:var(--tq-text3)">«<?php
                         echo html_escape(mb_strimwidth($f['default'], 0, 110, '…', 'UTF-8')); ?>»</span>
                 </span>
             </div>

@@ -112,7 +112,7 @@ $tq_meta += array('total_marks' => 0, 'pass_mark' => 0, 'drip_content_for_passin
 
     <div class="tqa-actions">
         <button class="tqa-btn tqa-btn--primary tqa-btn--block" type="submit">
-            <?php echo tq_icon('check', 16); ?> احفظ التعديل
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ التعديل'); ?>
         </button>
     </div>
 </form>

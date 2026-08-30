@@ -171,7 +171,7 @@ $tap_ready = !empty($tap_ready);
                     <?php else: ?>
                         <strong><?php echo $sar($price); ?></strong><br>
                         <span style="color:var(--tq-text2);font-size:12px">
-                            للمعلم <?php echo $sar($share); ?>
+                            <?php echo t('للمعلم'); ?> <?php echo $sar($share); ?>
                             <?php if (!empty($r['credited_at'])): ?>
                                 · <span style="color:var(--tq-ok,green)"><?php echo t('قيد'); ?></span>
                             <?php elseif ($st === 'completed' && $paid): ?>
@@ -191,10 +191,13 @@ $tap_ready = !empty($tap_ready);
                     </span>
                     <?php if ($st === 'awaiting_payment' && !empty($r['pay_deadline'])): ?>
                         <br><span class="tqa-num" style="color:var(--tq-text3);font-size:11px">
-                            حتى <?php echo date('Y-m-d H:i', strtotime($r['pay_deadline'])); ?></span>
+                            <?php echo t('حتى'); ?> <?php echo date('Y-m-d H:i', strtotime($r['pay_deadline'])); ?></span>
                     <?php elseif (!empty($r['cancel_reason'])): ?>
                         <br><span style="color:var(--tq-text3);font-size:11px">
-                            <?php echo html_escape($r['cancel_reason']); ?></span>
+                            <?php /* TQ-I18N — السبب مخزن في الصف: يكتب مرة بلغة وقت الحدث،
+                                     ويقرؤه بعد ذلك من يشاء بلغته. فالترجمة عند
+                                     العرض لا عند الكتابة. */ ?>
+                            <?php echo html_escape(t($r['cancel_reason'])); ?></span>
                     <?php endif; ?>
                 </td>
 
@@ -214,8 +217,8 @@ $tap_ready = !empty($tap_ready);
                                  وحدها — والاشتراك يفعل يدويا منذ كتب. */ ?>
                         <form action="<?php echo site_url('taqdar_admin/session_mark_paid'); ?>" method="post"
                               data-tqa-confirm-title="<?php echo te('تسجيل دفع الحصة'); ?>"
-                              data-tqa-confirm="تثبت الحصة ويفتح رابطها للطالب. سجل هذا بعد أن ترى الحوالة في الحساب لا قبله."
-                              data-tqa-confirm-ok="سجل الدفع"
+                              data-tqa-confirm="<?php echo te('تثبت الحصة ويفتح رابطها للطالب. سجل هذا بعد أن ترى الحوالة في الحساب لا قبله.'); ?>"
+                              data-tqa-confirm-ok="<?php echo te('سجل الدفع'); ?>"
                               style="margin:0 0 6px;display:flex;gap:6px;align-items:center">
                             <?php echo tq_csrf(); ?>
                             <input type="hidden" name="session_id" value="<?php echo (int) $r['id']; ?>">
@@ -260,7 +263,7 @@ $tap_ready = !empty($tap_ready);
          ==================================================================== */ ?>
 <div class="tqa-card" id="tqa-pricing" style="margin-block-start:var(--tq-space-xl)">
     <div class="tqa-card__head">
-        <h2 class="tqa-card__title"><?php echo tq_icon('card', 18); ?> تسعيرة الحصص</h2>
+        <h2 class="tqa-card__title"><?php echo tq_icon('card', 18); ?> <?php echo t('تسعيرة الحصص'); ?></h2>
     </div>
     <p class="tqa-card__lead">
         <?php echo t('سعر الحصة الواحدة، ونصيب المعلم منه — والباقي للمنصة. والرقمان يقرآن في شاشة الطالب قبل أن يحجز، وفي شاشة المعلم قبل أن يؤكد.'); ?>
@@ -297,7 +300,7 @@ $tap_ready = !empty($tap_ready);
                        min="0" max="100" step="0.01" dir="ltr"
                        value="<?php echo html_escape(rtrim(rtrim(number_format($cfg['percent'], 2, '.', ''), '0'), '.')); ?>">
                 <span class="tqa-field__hint">
-                    والباقي للمنصة — ولا يخزن رقمان: نسبة المنصة مرآة محسوبة، ورقمان في عمودين يفترقان عند أول تعديل.
+                    <?php echo t('والباقي للمنصة — ولا يخزن رقمان: نسبة المنصة مرآة محسوبة، ورقمان في عمودين يفترقان عند أول تعديل.'); ?>
                     <?php if ($cfg['price'] > 0): ?>
                         <br><?php echo t('بالسعر الحالي: للمعلم'); ?>
                         <strong><?php echo $sar((int) round($cfg['price'] * $cfg['percent'] / 100)); ?></strong><?php echo t('، وللمنصة'); ?>
@@ -345,7 +348,7 @@ $tap_ready = !empty($tap_ready);
 
         <div class="tqa-actions">
             <button class="tqa-btn tqa-btn--primary" type="submit">
-                <?php echo tq_icon('check', 16); ?> حفظ التسعيرة
+                <?php echo tq_icon('check', 16); ?> <?php echo t('حفظ التسعيرة'); ?>
             </button>
             <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/slots'); ?>">
                 <?php echo t('استثناءات المعلمين'); ?>

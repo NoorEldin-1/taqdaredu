@@ -22,7 +22,7 @@ $tq_url = function ($t, $p = 1) use ($search) {
     t('كل رسالة وحالتها. والمتعثرة تعاد يدويا من هنا.'),
     'receipt',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newsletters') . '">'
-  . tq_icon('chev-prev', 16) . t('قوالب النشرة</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' قوالب النشرة</a>')); ?>
 
 <nav class="tqa-tabs" aria-label="<?php echo te('تصفية السجل بالحالة'); ?>">
     <?php foreach ($tq_tabs as $tq_k => [$tq_label, $tq_tone]): ?>
@@ -37,7 +37,7 @@ $tq_url = function ($t, $p = 1) use ($search) {
     <label class="tqa-sr" for="q"><?php echo t('ابحث في السجل'); ?></label>
     <input class="tqa-input" type="search" id="q" name="q" placeholder="<?php echo te('ابحث ببريد أو عنوان…'); ?>"
            value="<?php echo html_escape($search); ?>">
-    <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> ابحث</button>
+    <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> <?php echo t('ابحث'); ?></button>
     <?php if ($search !== ''): ?>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/newsletter_history/' . $type); ?>">
             <?php echo t('مسح البحث'); ?>
@@ -95,8 +95,8 @@ $tq_url = function ($t, $p = 1) use ($search) {
                         <form method="post"
                               action="<?php echo site_url('admin/newsletter_history/send/' . (int) $tq_r['id']); ?>"
                               data-tqa-confirm-title="<?php echo $tq_r['status'] === 'sent' ? t('إعادة الإرسال') : t('إرسال الآن'); ?>"
-                              data-tqa-confirm="سترسل الرسالة إلى <?php echo html_escape($tq_r['email']); ?> الآن."
-                              data-tqa-confirm-ok="أرسل">
+                              data-tqa-confirm="<?php echo te('سترسل الرسالة إلى ____ الآن.', array(html_escape($tq_r['email']))); ?>"
+                              data-tqa-confirm-ok="<?php echo te('أرسل'); ?>">
                             <?php echo tq_csrf(); ?>
                             <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm">
                                 <?php echo tq_icon('send', 14); ?>

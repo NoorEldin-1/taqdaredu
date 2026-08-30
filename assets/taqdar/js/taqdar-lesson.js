@@ -58,7 +58,7 @@
       return r.json().then(function (j) {
         if (!r.ok || (j && j.error)) {
           var e = (j && j.error) || {};
-          throw { code: e.code || 'HTTP_' + r.status, message: e.message_ar || 'تعذر إتمام الطلب', details: e.details || {} };
+          throw { code: e.code || 'HTTP_' + r.status, message: e.message_ar || TQ.t('تعذر إتمام الطلب'), details: e.details || {} };
         }
         return j.data !== undefined ? j.data : j;
       });
@@ -89,7 +89,7 @@
         text('[data-tq-locked-msg]', e.message);
         var b = e.details && e.details.blocking_lesson_id;
         var back = $('[data-tq-locked-back]');
-        if (b && back) { back.href = back.href.replace(/\/lessons.*$/, '/lesson/0/' + b); back.textContent = 'اذهب إلى الدرس المطلوب'; }
+        if (b && back) { back.href = back.href.replace(/\/lessons.*$/, '/lesson/0/' + b); back.textContent = TQ.t('اذهب إلى الدرس المطلوب'); }
         return;
       }
       show('[data-tq-lesson-error]', true);
@@ -107,7 +107,7 @@
     show('[data-tq-lesson-body]', true);
 
     var L = d.lesson || {};
-    document.title = (L.title || 'الدرس') + ' | تقدر';
+    document.title = TQ.t('____ | تقدر', L.title || TQ.t('الدرس'));
     text('[data-tq-lesson-title]', L.title || '');
     text('[data-tq-lesson-course]', L.course_title || '');
     text('[data-tq-lesson-duration]', L.duration ? iso(L.duration) : '');
@@ -136,9 +136,9 @@
     var badge = $('[data-tq-lesson-badge]');
     if (badge) {
       badge.innerHTML = p.mastered_at
-        ? '<span class="tq-badge tq-badge--mastered">متقن</span>'
-        : (p.completed_at ? '<span class="tq-badge tq-badge--progress">شوهد</span>'
-                          : '<span class="tq-badge tq-badge--idle">لم يبدأ</span>');
+        ? TQ.t('<span class="tq-badge tq-badge--mastered">متقن</span>')
+        : (p.completed_at ? TQ.t('<span class="tq-badge tq-badge--progress">شوهد</span>')
+                          : TQ.t('<span class="tq-badge tq-badge--idle">لم يبدأ</span>'));
     }
 
     mountPlayer(d.playback || {}, L);
@@ -166,12 +166,12 @@
     var url = pb.video_url || pb.audio_url || '';
 
     if (!url) {
-      frame.innerHTML = '<div class="tq-empty"><p class="tq-empty__text">لا يوجد مقطع لهذا الدرس.</p></div>';
+      frame.innerHTML = TQ.t('<div class="tq-empty"><p class="tq-empty__text">لا يوجد مقطع لهذا الدرس.</p></div>');
       show('[data-tq-declare]', false);
       return;
     }
     if (!window.TQPlayer) {
-      frame.innerHTML = '<div class="tq-empty"><p class="tq-empty__text">تعذر تحميل المشغل. حدث الصفحة.</p></div>';
+      frame.innerHTML = TQ.t('<div class="tq-empty"><p class="tq-empty__text">تعذر تحميل المشغل. حدث الصفحة.</p></div>');
       return;
     }
 
@@ -336,11 +336,9 @@
     if (state.blindTimer) { clearTimeout(state.blindTimer); state.blindTimer = null; }
 
     if (why === 'nosignal') {
-      text('[data-tq-blind-title]', 'تعذر قياس مشاهدتك لهذا الدرس');
+      text('[data-tq-blind-title]', TQ.t('تعذر قياس مشاهدتك لهذا الدرس'));
       text('[data-tq-blind-body]',
-        'المشغل لم يعلن موضع التشغيل ولا مدة المقطع — قد يكون الفيديو محجوبا على شبكتك '
-        + 'أو حذف من مصدره. جرب تحديث الصفحة أولا؛ فإن بقي الحال، أعلن إتمامك ليفتح لك '
-        + 'الاختبار. وسيصل معلمك أن هذا الإتمام أقر ولم يقس.');
+        TQ.t('المشغل لم يعلن موضع التشغيل ولا مدة المقطع — قد يكون الفيديو محجوبا على شبكتك أو حذف من مصدره. جرب تحديث الصفحة أولا؛ فإن بقي الحال، أعلن إتمامك ليفتح لك الاختبار. وسيصل معلمك أن هذا الإتمام أقر ولم يقس.'));
     }
     show('[data-tq-blind-note]', true);
     show('[data-tq-declare]', !state.completed);
@@ -413,7 +411,7 @@
     }
     var badge = $('[data-tq-lesson-badge]');
     if (badge && r.completed_at) {
-      badge.innerHTML = '<span class="tq-badge tq-badge--progress">شوهد</span>';
+      badge.innerHTML = TQ.t('<span class="tq-badge tq-badge--progress">شوهد</span>');
     }
   }
 
@@ -446,7 +444,7 @@
       openGate();
     }).catch(function (e) {
       declareBtn.removeAttribute('data-loading');
-      alert(e && e.message ? e.message : 'تعذر تسجيل الإتمام.');
+      alert(e && e.message ? e.message : TQ.t('تعذر تسجيل الإتمام.'));
     });
   });
 
@@ -454,7 +452,7 @@
     var box = $('[data-tq-objectives]');
     if (!box) return;
     if (!list.length) {
-      box.innerHTML = '<li class="tq-caption tq-muted">لم تضف أهداف لهذا الدرس بعد.</li>';
+      box.innerHTML = TQ.t('<li class="tq-caption tq-muted">لم تضف أهداف لهذا الدرس بعد.</li>');
       return;
     }
     box.innerHTML = list.map(function (o, i) {
@@ -468,7 +466,8 @@
     if (!att) return;
     var card = $('[data-tq-attachments-card]'), box = $('[data-tq-attachments]');
     if (!box) return;
-    box.innerHTML = '<a class="tq-btn tq-btn--secondary tq-btn--block" href="' + escapeHtml(att) + '" download>تنزيل المرفق</a>';
+    box.innerHTML = '<a class="tq-btn tq-btn--secondary tq-btn--block" href="' + escapeHtml(att)
+              + '" download>' + escapeHtml(TQ.t('تنزيل المرفق')) + '</a>';
     if (card) card.hidden = false;
   }
 
@@ -503,8 +502,10 @@
   });
 
   function renderQuestions() {
-    text('[data-tq-gate-counter]', state.questions.length + ' أسئلة');
-    $('[data-tq-gate-counter]').textContent = iso(state.questions.length) + ' أسئلة';
+    /* سطران كانا يكتبان الشيء نفسه، والثاني يمحو الأول — وهو الصحيح
+       (الأرقام معزولة بـ`iso()`). فبقي واحد، وصار الرقم بديلا في الجملة
+       فتقرأ «5 أسئلة» عربيا و«5 questions» إنجليزيا بترتيب كل لغة. */
+    text('[data-tq-gate-counter]', TQ.t('____ أسئلة', iso(state.questions.length)));
     var box = $('[data-tq-gate-questions]');
     box.innerHTML = state.questions.map(function (q, i) {
       var opts = (q.options || []).map(function (o, j) {
@@ -533,7 +534,7 @@
       return { question_id: q.id, given: sel ? sel.value : '' };
     });
     if (answers.some(function (a) { return a.given === ''; })) {
-      alertBox('أجب عن كل الأسئلة قبل التسليم.');
+      alertBox(TQ.t('أجب عن كل الأسئلة قبل التسليم.'));
       return;
     }
     var btn = $('[data-tq-gate-submit]');
@@ -554,16 +555,19 @@
    */
   function renderVerdict(r) {
     var icon = $('[data-tq-result-icon]'), acts = $('[data-tq-result-actions]');
-    var score = iso(r.score) + ' من ' + iso(r.out_of);
+    /* TQ-I18N — الدرجة جملة واحدة بمكانين، لا ثلاث قطع تلصق.
+       ولصقها كان يفرض ترتيب العربية على كل لغة: «5 من 7» تصير في
+       الإنجليزية «5 out of 7» لا «5 from 7»، وكلمة الوصل بينهما تختلف. */
+    var score = TQ.t('____ من ____', iso(r.score), iso(r.out_of));
 
     if (r.passed) {
       icon.className = 'tq-icon-box tq-pastel--mint';
       icon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>';
-      text('[data-tq-result-title]', 'أتقنت هذا الدرس');
-      text('[data-tq-result-text]', 'أجبت ' + score + '. فتح الدرس التالي، وأسئلة هذا الدرس ستعود إليك غدا للتثبيت.');
+      text('[data-tq-result-title]', TQ.t('أتقنت هذا الدرس'));
+      text('[data-tq-result-text]', TQ.t('أجبت ____. فتح الدرس التالي، وأسئلة هذا الدرس ستعود إليك غدا للتثبيت.', score));
       acts.innerHTML = r.unlocked_lesson_id
-        ? '<a class="tq-btn tq-btn--mastery" href="../' + root.getAttribute('data-tq-course') + '/' + r.unlocked_lesson_id + '">الدرس التالي</a>'
-        : '<a class="tq-btn tq-btn--mastery" href="' + baseLessons() + '">عد إلى دروسك</a>';
+        ? '<a class="tq-btn tq-btn--mastery" href="../' + root.getAttribute('data-tq-course') + '/' + r.unlocked_lesson_id + '">' + TQ.t('الدرس التالي') + '</a>'
+        : '<a class="tq-btn tq-btn--mastery" href="' + baseLessons() + '">' + TQ.t('عد إلى دروسك') + '</a>';
       show('[data-tq-gate-result]', true);
       load();
       return;
@@ -573,32 +577,32 @@
     icon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg>';
 
     if (r.suggest_session) {
-      text('[data-tq-result-title]', 'لنسأل معلمك');
-      text('[data-tq-result-text]', 'أجبت ' + score + '. المفهوم المتعثر سيصل معلمك ومعه موضعه في الدرس، فيبدأ من حيث تعثرت لا من الصفر.');
-      acts.innerHTML = '<a class="tq-btn tq-btn--primary" href="' + baseMessages() + '">اسأل المعلم</a>'
-        + '<button class="tq-btn tq-btn--secondary" type="button" data-tq-gate-again>حاول مرة أخرى</button>';
+      text('[data-tq-result-title]', TQ.t('لنسأل معلمك'));
+      text('[data-tq-result-text]', TQ.t('أجبت ____. المفهوم المتعثر سيصل معلمك ومعه موضعه في الدرس، فيبدأ من حيث تعثرت لا من الصفر.', score));
+      acts.innerHTML = '<a class="tq-btn tq-btn--primary" href="' + baseMessages() + '">' + TQ.t('اسأل المعلم') + '</a>'
+        + '<button class="tq-btn tq-btn--secondary" type="button" data-tq-gate-again>' + TQ.t('حاول مرة أخرى') + '</button>';
     } else if (r.alternate_explanation_id) {
-      text('[data-tq-result-title]', 'نشرحها بطريقة أخرى');
-      text('[data-tq-result-text]', 'أجبت ' + score + '. هذا شرح آخر للمفهوم نفسه — ثم أعد المراجعة.');
-      acts.innerHTML = '<a class="tq-btn tq-btn--primary" href="../' + root.getAttribute('data-tq-course') + '/' + r.alternate_explanation_id + '">اشرح تاني</a>'
-        + '<button class="tq-btn tq-btn--secondary" type="button" data-tq-gate-again>أعد المراجعة</button>';
+      text('[data-tq-result-title]', TQ.t('نشرحها بطريقة أخرى'));
+      text('[data-tq-result-text]', TQ.t('أجبت ____. هذا شرح آخر للمفهوم نفسه — ثم أعد المراجعة.', score));
+      acts.innerHTML = '<a class="tq-btn tq-btn--primary" href="../' + root.getAttribute('data-tq-course') + '/' + r.alternate_explanation_id + '">' + TQ.t('اشرح تاني') + '</a>'
+        + '<button class="tq-btn tq-btn--secondary" type="button" data-tq-gate-again>' + TQ.t('أعد المراجعة') + '</button>';
     } else {
       var at = r.seek_to || 0;
-      text('[data-tq-result-title]', 'راجع الدقيقة ' + mmss(at));
+      text('[data-tq-result-title]', TQ.t('راجع الدقيقة ____', mmss(at)));
       // المحاولة الثانية بلا شرح بديل: لا تعاد كلمات الأولى حرفيا. تكرار
       // النص نفسه يقرأه الطالب على أنه عطب، ويخفي أن الدعم تصاعد فعلا.
       text('[data-tq-result-text]', (r.attempt_no > 1)
-        ? 'أجبت ' + score + '. لا يوجد شرح بديل لهذا المفهوم بعد، فارجع إلى اللحظة نفسها بتركيز — وإن تعثرت مرة أخرى نمرر المفهوم إلى معلمك.'
-        : 'أجبت ' + score + '. لن نعطيك الإجابة — لكن المفهوم شرح عند هذه اللحظة بالضبط، فارجع إليها ثم أعد المراجعة.');
-      acts.innerHTML = '<button class="tq-btn tq-btn--primary" type="button" data-tq-seek="' + at + '">شغل من هناك</button>'
-        + '<button class="tq-btn tq-btn--secondary" type="button" data-tq-gate-again>أعد المراجعة</button>';
+        ? TQ.t('أجبت ____. لا يوجد شرح بديل لهذا المفهوم بعد، فارجع إلى اللحظة نفسها بتركيز — وإن تعثرت مرة أخرى نمرر المفهوم إلى معلمك.', score)
+        : TQ.t('أجبت ____. لن نعطيك الإجابة — لكن المفهوم شرح عند هذه اللحظة بالضبط، فارجع إليها ثم أعد المراجعة.', score));
+      acts.innerHTML = '<button class="tq-btn tq-btn--primary" type="button" data-tq-seek="' + at + '">' + TQ.t('شغل من هناك') + '</button>'
+        + '<button class="tq-btn tq-btn--secondary" type="button" data-tq-gate-again>' + TQ.t('أعد المراجعة') + '</button>';
     }
     /* «راجع إجاباتك» في كل حالة: يلحق بعد بناء أزرار الحالة، فلا
        يكرر في أربعة فروع ولا ينسى في واحد. */
     if (acts && r.attempt_id) {
       acts.insertAdjacentHTML('beforeend',
         ' <button class="tq-btn tq-btn--secondary" type="button" data-tq-open-review="'
-        + r.attempt_id + '">راجع إجاباتك</button>');
+        + r.attempt_id + '">' + TQ.t('راجع إجاباتك') + '</button>');
     }
     show('[data-tq-gate-result]', true);
     $('[data-tq-gate-result]').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -642,7 +646,7 @@
       show('[data-tq-tr-grp]', true);
       renderCues('');
       var c = $('[data-tq-tr-count]');
-      if (c) c.textContent = 'نص الدرس في ' + state.cues.length + ' مقطعا. اضغط أي مقطع لتشغيله من موضعه.';
+      if (c) c.textContent = TQ.t('نص الدرس في ____ مقطعا. اضغط أي مقطع لتشغيله من موضعه.', state.cues.length);
     }).catch(function () { /* النص إضافة؛ غيابه لا يمس الدرس */ });
   }
 
@@ -715,7 +719,7 @@
         + o.at_label + '</button>'
         + '<span class="tq-notes__b">' + escapeHtml(o.body) + '</span>'
         + '<button class="tq-notes__del" type="button" data-tq-note-del="' + o.id
-        + '" aria-label="احذف الملاحظة">&times;</button></li>';
+        + '" aria-label="' + escapeHtml(TQ.t('احذف الملاحظة')) + '">&times;</button></li>';
     }).join('');
   }
 
@@ -730,7 +734,7 @@
     if (state.player) state.player.pause();
 
     var lbl = $('[data-tq-note-at]');
-    if (lbl) lbl.textContent = 'ملاحظة عند ' + mmss(at);
+    if (lbl) lbl.textContent = TQ.t('ملاحظة عند ____', mmss(at));
     form.hidden = false;
     var ta = $('[data-tq-note-body]');
     if (ta) { ta.value = ''; ta.focus(); }
@@ -750,7 +754,7 @@
       renderNotes();
       form.hidden = true;
       ta.value = '';
-    }).catch(function (e) { alertBox(e.message || 'تعذر حفظ الملاحظة.'); });
+    }).catch(function (e) { alertBox(e.message || TQ.t('تعذر حفظ الملاحظة.')); });
   }
 
   function deleteNote(id) {
@@ -793,7 +797,7 @@
         var frame = $('[data-tq-player-frame]');
         if (frame) frame.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
-        alertBox('ارجع إلى الدقيقة ' + mmss(at) + ' في المشغل.');
+        alertBox(TQ.t('ارجع إلى الدقيقة ____ في المشغل.', mmss(at)));
       }
       return;
     }
@@ -822,7 +826,7 @@
     if (seek) {
       var v = root.querySelector('video'), sec = parseInt(seek.getAttribute('data-tq-seek'), 10) || 0;
       if (v) { v.currentTime = sec; v.play(); v.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-      else alertBox('ارجع إلى الدقيقة ' + mmss(sec) + ' في المشغل.');
+      else alertBox(TQ.t('ارجع إلى الدقيقة ____ في المشغل.', mmss(sec)));
       return;
     }
     if (ev.target.closest('[data-tq-gate-again]')) {
@@ -882,18 +886,18 @@
       var d = res && (res.data || res);
       if (!d || !d.items) return;
 
-      score.textContent = 'نتيجتك ' + d.score + ' من ' + d.total
-        + (d.best > d.score ? ' · أعلى درجة لك ' + d.best : '')
-        + (d.tries > 1 ? ' · المحاولة ' + d.tries : '');
+      score.textContent = TQ.t('نتيجتك ____ من ____', d.score, d.total)
+        + (d.best > d.score ? TQ.t(' · أعلى درجة لك ____', d.best) : '')
+        + (d.tries > 1 ? TQ.t(' · المحاولة ____', d.tries) : '');
 
       list.innerHTML = d.items.map(function (it) {
         var right = it.is_right;
-        var given = (it.given || []).join('، ') || '—';
-        var corr  = (it.correct || []).join('، ');
+        var given = (it.given || []).join(TQ.t('، ')) || '—';
+        var corr  = (it.correct || []).join(TQ.t('، '));
         return '<li class="tq-review__item ' + (right ? 'is-right' : 'is-wrong') + '">'
           + '<p class="tq-review__q">' + esc(it.question) + '</p>'
-          + '<p class="tq-review__a"><span>إجابتك:</span> ' + esc(given) + '</p>'
-          + (right ? '' : '<p class="tq-review__a tq-review__a--ok"><span>الصواب:</span> ' + esc(corr) + '</p>')
+          + '<p class="tq-review__a"><span>' + esc(TQ.t('إجابتك:')) + '</span> ' + esc(given) + '</p>'
+          + (right ? '' : '<p class="tq-review__a tq-review__a--ok"><span>' + esc(TQ.t('الصواب:')) + '</span> ' + esc(corr) + '</p>')
           + '</li>';
       }).join('');
 

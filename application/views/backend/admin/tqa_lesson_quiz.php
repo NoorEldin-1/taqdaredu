@@ -57,7 +57,7 @@ foreach ($tq_stats as $s) $tq_answered += (int) $s['answered'];
     ($tq_course
         ? '<a class="tqa-btn tqa-btn--ghost" href="'
           . site_url('admin/course_form/course_edit/' . (int) $tq_course['id']) . '?tab=curriculum">'
-          . tq_icon('chev-prev', 16) . t('مقرر «') . html_escape($tq_course['title']) . '»</a>'
+          . tq_icon('chev-prev', 16) . t(' مقرر «') . html_escape($tq_course['title']) . '»</a>'
         : '')); ?>
 
 <?php /* ── ما يفعله هذا الاختبار بالطالب ─────────────────────────── */ ?>
@@ -134,7 +134,7 @@ foreach ($tq_stats as $s) $tq_answered += (int) $s['answered'];
 
             <div class="tqa-actions">
                 <button class="tqa-btn tqa-btn--primary" type="submit">
-                    <?php echo tq_icon('check', 16); ?> احفظ الإعدادات
+                    <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الإعدادات'); ?>
                 </button>
             </div>
         </form>
@@ -151,9 +151,9 @@ foreach ($tq_stats as $s) $tq_answered += (int) $s['answered'];
         $q_hidden     = array('lesson_id' => $lid);
         $q_objectives = $tq_objectives;
         $q_rows       = $tq_rows;
-        $q_intro      = t('سؤال اختيار من متعدد. والموصى به خمسة أسئلة تغطي أهداف الدرس كلها —')
+        $q_intro      = t('سؤال اختيار من متعدد. والموصى به خمسة أسئلة تغطي أهداف الدرس كلها — ')
                       . t('سؤالان يقيسان الحظ، وعشرون يرهقان.')
-                      . ($tq_objectives ? '' : t('<strong>وهذا الدرس بلا أهداف بعد</strong> — أضفها من شاشة الأهداف التعليمية ليمكن ربط كل سؤال بما يقيسه.'));
+                      . ($tq_objectives ? '' : t(' <strong>وهذا الدرس بلا أهداف بعد</strong> — أضفها من شاشة الأهداف التعليمية ليمكن ربط كل سؤال بما يقيسه.'));
 
         include APPPATH . 'views/components/tq_question_editor.php';
         ?>

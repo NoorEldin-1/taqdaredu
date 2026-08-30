@@ -39,16 +39,16 @@ if (!function_exists('tqs_nav')) {
            وبند الكتب حذف لا لأن الكتب حذفت بل لأنها صارت نوعا في
            الكتالوج — وبند يقود إلى مرشح واحد من أربعة يقسم ما جمع. */
         $items = array(
-            array('home',     '',          'الرئيسية'),
-            array('catalog',  'catalog',   'المواد والبرامج التعليمية'),
-            array('plans',    'plans',     'الباقات'),
-            array('teachers', 'teachers',  'المعلمون'),
-            array('students', 'students',  'الطلاب'),
-            array('parents',  'parents',   'أولياء الأمور'),
-            array('competitions', 'competitions', 'المسابقات'),
-            array('blog',     'blog',      'المدونة'),
-            array('about',    'about',     'عن المنصة'),
-            array('contact',  'contact',   'تواصل معنا'),
+            array('home',     '',          t('الرئيسية')),
+            array('catalog',  'catalog',   t('المواد والبرامج التعليمية')),
+            array('plans',    'plans',     t('الباقات')),
+            array('teachers', 'teachers',  t('المعلمون')),
+            array('students', 'students',  t('الطلاب')),
+            array('parents',  'parents',   t('أولياء الأمور')),
+            array('competitions', 'competitions', t('المسابقات')),
+            array('blog',     'blog',      t('المدونة')),
+            array('about',    'about',     t('عن المنصة')),
+            array('contact',  'contact',   t('تواصل معنا')),
         );
 
         $out = array();
@@ -88,7 +88,7 @@ if (!function_exists('tqs_categories')) {
         $h  = '<div class="stage-picker" id="catPicker">' . "\n";
         $h .= '        <button class="stage-card reveal" type="button" aria-pressed="true" data-cat="">' . "\n";
         $h .= '          <span class="ico"><svg aria-hidden="true"><use href="#i-grid"></use></svg></span>' . "\n";
-        $h .= '          <b>جميع الفئات</b><span>اعرض كل المواد</span>' . "\n";
+        $h .= t('          <b>جميع الفئات</b><span>اعرض كل المواد</span>') . "\n";
         $h .= '        </button>' . "\n";
 
         foreach ($cats as $c) {
@@ -154,17 +154,17 @@ if (!function_exists('tqs_materials')) {
             $h .= '            <p>' . html_escape($m['blurb']) . '</p>' . "\n";
             $h .= '            <div class="subject-card__meta">' . "\n";
             $h .= '              <span><svg aria-hidden="true"><use href="#i-play"></use></svg>'
-                . html_escape($m['lessons']) . ' درسا</span>' . "\n";
+                . html_escape($m['lessons']) . t(' درسا</span>') . "\n";
             $h .= '              <span><svg aria-hidden="true"><use href="#i-clipboard"></use></svg>'
-                . html_escape($m['quizzes']) . ' اختبارا</span>' . "\n";
+                . html_escape($m['quizzes']) . t(' اختبارا</span>') . "\n";
             $h .= '            </div>' . "\n";
-            $h .= '            <a class="btn btn--primary" href="' . html_escape($href) . '">ابدأ البرنامج</a>' . "\n";
+            $h .= '            <a class="btn btn--primary" href="' . html_escape($href) . t('">ابدأ البرنامج</a>') . "\n";
             $h .= '          </div>' . "\n";
             $h .= '        </article>' . "\n";
         }
 
         return $h . '      </div>' . "\n"
-             . '      <p class="dir-empty" id="materialEmpty" hidden>لا توجد مواد في هذه الفئة بعد.</p>';
+             . t('      <p class="dir-empty" id="materialEmpty" hidden>لا توجد مواد في هذه الفئة بعد.</p>');
     }
 }
 
@@ -201,15 +201,15 @@ if (!function_exists('tqs_books')) {
             $h .= '            <h3>' . html_escape($b['title']) . '</h3>' . "\n";
             $h .= '            <p><svg aria-hidden="true"><use href="#i-book"></use></svg>'
                 . html_escape($b['subject']) . ' · <span class="tq-ltr">'
-                . html_escape($b['pages']) . '</span> صفحة</p>' . "\n";
+                . html_escape($b['pages']) . t('</span> صفحة</p>') . "\n";
 
             if (!empty($b['file'])) {
                 $h .= '            <a class="btn btn--primary" href="' . tq_site_asset('files/' . $b['file'])
-                    . '" download><svg aria-hidden="true"><use href="#i-download"></use></svg>تحميل الكتاب</a>' . "\n";
+                    . t('" download><svg aria-hidden="true"><use href="#i-download"></use></svg>تحميل الكتاب</a>') . "\n";
             } else {
                 // زر معطل أصدق من رابط يقود إلى لا شيء
                 $h .= '            <button class="btn btn--primary" type="button" disabled>'
-                    . '<svg aria-hidden="true"><use href="#i-clock"></use></svg>قريبا</button>' . "\n";
+                    . t('<svg aria-hidden="true"><use href="#i-clock"></use></svg>قريبا</button>') . "\n";
             }
 
             $h .= '          </div>' . "\n";
@@ -217,7 +217,7 @@ if (!function_exists('tqs_books')) {
         }
 
         return $h . '      </div>' . "\n"
-             . '      <p class="dir-empty" id="bookEmpty" hidden>لا توجد كتب في هذه الفئة بعد.</p>';
+             . t('      <p class="dir-empty" id="bookEmpty" hidden>لا توجد كتب في هذه الفئة بعد.</p>');
     }
 }
 
@@ -233,12 +233,12 @@ if (!function_exists('tqs_social')) {
         /* الترتيب ترتيب الحضور: ما للمنصة عليه حساب نشط أولا.
            وما لا رابط له يحذف في الحلقة أدناه، فبقاؤه هنا لا يضر. */
         $nets = array(
-            'instagram' => array('i-instagram', 'إنستغرام'),
-            'tiktok'    => array('i-tiktok',    'تيك توك'),
-            'facebook'  => array('i-facebook',  'فيسبوك'),
-            'x'         => array('i-x',         'إكس'),
-            'youtube'   => array('i-youtube',   'يوتيوب'),
-            'snapchat'  => array('i-snapchat',  'سناب شات'),
+            'instagram' => array('i-instagram', t('إنستغرام')),
+            'tiktok'    => array('i-tiktok',    t('تيك توك')),
+            'facebook'  => array('i-facebook',  t('فيسبوك')),
+            'x'         => array('i-x',         t('إكس')),
+            'youtube'   => array('i-youtube',   t('يوتيوب')),
+            'snapchat'  => array('i-snapchat',  t('سناب شات')),
         );
 
         $out = array();
@@ -298,7 +298,7 @@ if (!function_exists('tqs_person_avatar')) {
         }
 
         $name = trim((string) $name);
-        $ini  = ($name !== '') ? mb_substr($name, 0, 1, 'UTF-8') : '؟';
+        $ini  = ($name !== '') ? mb_substr($name, 0, 1, 'UTF-8') : t('؟');
 
         $pal = array('#023331', '#0C786C', '#0A5A50', '#93631D');
         $h   = 0;
@@ -452,7 +452,7 @@ if (!function_exists('tqs_teachers')) {
             }
             if ($t['courses'] > 0) {
                 $h .= '<span class="teacher-card__courses"><svg aria-hidden="true"><use href="#i-play"></use></svg>'
-                    . html_escape($t['courses']) . ' دورة</span>';
+                    . html_escape($t['courses']) . t(' دورة</span>');
             }
             $h .= '</div>' . "\n";
             $h .= '          </div>' . "\n";
@@ -466,7 +466,7 @@ if (!function_exists('tqs_post_tabs')) {
     /** تبويبات تصنيفات المدونة — أولها «الكل» بـ`data-cat` فارغة. */
     function tqs_post_tabs($cats)
     {
-        $h = '            <a href="#posts" class="is-active" data-cat="">الكل</a>' . "\n";
+        $h = t('            <a href="#posts" class="is-active" data-cat="">الكل</a>') . "\n";
         foreach ($cats as $c) {
             $h .= '            <a href="#posts" data-cat="' . html_escape($c['title']) . '">'
                 . html_escape($c['title']) . '</a>' . "\n";
@@ -504,7 +504,7 @@ if (!function_exists('tqs_feat_post')) {
              . '            <span class="post-tag">' . html_escape($p['cat']) . '</span>' . "\n"
              . '            <h2>' . html_escape($p['title']) . '</h2>' . "\n"
              . '            <p>' . html_escape($p['excerpt']) . '</p>' . "\n"
-             . '            <a class="btn btn--primary" href="' . html_escape($p['url']) . '">اقرأ المقال</a>' . "\n"
+             . '            <a class="btn btn--primary" href="' . html_escape($p['url']) . t('">اقرأ المقال</a>') . "\n"
              . '          </div>' . "\n"
              . '        </article>';
     }
@@ -527,7 +527,7 @@ if (!function_exists('tqs_post_cards')) {
                 . '              <span class="post-tag">' . html_escape($p['cat']) . '</span>' . "\n"
                 . '              <h3>' . html_escape($p['title']) . '</h3>' . "\n"
                 . '              <p>' . html_escape($p['excerpt']) . '</p>' . "\n"
-                . '              <a class="post-card__more" href="' . html_escape($p['url']) . '">اقرأ المزيد</a>' . "\n"
+                . '              <a class="post-card__more" href="' . html_escape($p['url']) . t('">اقرأ المزيد</a>') . "\n"
                 . '            </div>' . "\n"
                 . '          </article>' . "\n";
         }
@@ -586,7 +586,7 @@ if (!function_exists('tqs_phone_text')) {
     function tqs_phone_text()
     {
         $p = trim((string) get_settings('phone'));
-        return $p === '' ? 'قريبا' : html_escape($p);
+        return $p === '' ? t('قريبا') : html_escape($p);
     }
 }
 
@@ -602,7 +602,7 @@ if (!function_exists('tqs_whatsapp_text')) {
     function tqs_whatsapp_text()
     {
         $w = trim((string) get_settings('social_whatsapp'));
-        return $w === '' ? 'قريبا' : html_escape($w);
+        return $w === '' ? t('قريبا') : html_escape($w);
     }
 }
 
@@ -704,11 +704,11 @@ if (!function_exists('tqs_path_cards')) {
             $h .= '      <p>' . html_escape($m['blurb']) . '</p>' . "\n";
             $h .= '      <div class="subject-card__meta">' . "\n";
             $h .= '        <span><svg aria-hidden="true"><use href="#i-play"></use></svg>'
-                . html_escape($m['lessons']) . ' درسا</span>' . "\n";
+                . html_escape($m['lessons']) . t(' درسا</span>') . "\n";
             $h .= '        <span><svg aria-hidden="true"><use href="#i-clipboard"></use></svg>'
-                . html_escape($m['quizzes']) . ' اختبارا</span>' . "\n";
+                . html_escape($m['quizzes']) . t(' اختبارا</span>') . "\n";
             $h .= '      </div>' . "\n";
-            $h .= '      <a class="btn btn--primary" href="' . html_escape($href) . '">ابدأ البرنامج</a>' . "\n";
+            $h .= '      <a class="btn btn--primary" href="' . html_escape($href) . t('">ابدأ البرنامج</a>') . "\n";
             $h .= '    </div>' . "\n";
             $h .= '  </article>' . "\n";
         }
@@ -806,7 +806,7 @@ if (!function_exists('tqs_bundle_cards')) {
             $h .= '  <article class="' . $cls . ' reveal" data-stage="' . html_escape($b['stage']) . '"'
                 . (($tq_hide && $b['stage'] !== $tq_first) ? ' hidden' : '') . '>' . "\n";
             if ($b['featured']) {
-                $h .= '    <span class="bundle__flag">الأكثر طلبا</span>' . "\n";
+                $h .= t('    <span class="bundle__flag">الأكثر طلبا</span>') . "\n";
             }
             if ((string) $b['image'] !== '') {
                 /* الصورة تقول ما في الباقة، ولا تحمل معلومة لا يقولها النص —
@@ -826,8 +826,8 @@ if (!function_exists('tqs_bundle_cards')) {
                 $h .= '    <p class="bundle__note">' . html_escape($b['note']) . '</p>' . "\n";
             }
             $h .= '    <p class="bundle__price"><b class="tq-ltr">' . number_format($b['price'] / 100)
-                . '</b> <span>ر.س</span>'
-                . '<small>' . ($b['days'] >= 360 ? 'للعام الدراسي كاملا' : 'لكل ' . (int) $b['days'] . ' يوما') . '</small></p>' . "\n";
+                . t('</b> <span>ر.س</span>')
+                . '<small>' . ($b['days'] >= 360 ? t('للعام الدراسي كاملا') : t('لكل ') . (int) $b['days'] . t(' يوما')) . '</small></p>' . "\n";
             if ($b['features']) {
                 $h .= '    <ul class="bundle__list">' . "\n";
                 foreach ($b['features'] as $f) {
@@ -837,7 +837,7 @@ if (!function_exists('tqs_bundle_cards')) {
                 $h .= '    </ul>' . "\n";
             }
             $h .= '    <a class="btn ' . ($b['featured'] ? 'btn--primary' : 'btn--ghost')
-                . '" href="' . base_url('plan/' . $b['code']) . '">اشترك الآن</a>' . "\n";
+                . '" href="' . base_url('plan/' . $b['code']) . t('">اشترك الآن</a>') . "\n";
             $h .= '  </article>' . "\n";
         }
         return $h . '</div>' . "\n";
@@ -859,14 +859,14 @@ if (!function_exists('tqs_carousel')) {
         $h  = '<div class="carousel2' . ($class !== '' ? ' ' . html_escape($class) : '')
             . '" data-tq-carousel>' . "\n";
         $h .= '  <button class="carousel2__nav carousel2__nav--prev" type="button" data-tq-car-prev'
-            . ' aria-label="السابق"><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>' . "\n";
+            . t(' aria-label="السابق"><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>') . "\n";
         $h .= '  <div class="carousel2__track" data-tq-car-track tabindex="0" role="region"'
             . ($track_id !== '' ? ' id="' . html_escape($track_id) . '"' : '')
             . ($label !== '' ? ' aria-label="' . html_escape($label) . '"' : '') . '>' . "\n";
         $h .= $inner . "\n";
         $h .= '  </div>' . "\n";
         $h .= '  <button class="carousel2__nav carousel2__nav--next" type="button" data-tq-car-next'
-            . ' aria-label="التالي"><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>' . "\n";
+            . t(' aria-label="التالي"><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>') . "\n";
         return $h . '</div>' . "\n";
     }
 }
@@ -914,7 +914,7 @@ if (!function_exists('tqs_bundle_stages')) {
             if (isset($seen[$k])) continue;
             $seen[$k] = tqs_stage_label($k);   /* الأسماء في موضع واحد */
         }
-        if ($blank) $seen[''] = 'باقات أخرى';
+        if ($blank) $seen[''] = t('باقات أخرى');
         return $seen;
     }
 }
@@ -932,7 +932,7 @@ if (!function_exists('tqs_stage_tabs')) {
         if ($active === '' || !isset($stages[$active])) {
             $keys = array_keys($stages); $active = $keys[0];
         }
-        $h = '<div class="stage-tabs" role="tablist" aria-label="اختر المرحلة">' . "\n";
+        $h = t('<div class="stage-tabs" role="tablist" aria-label="اختر المرحلة">') . "\n";
         foreach ($stages as $k => $label) {
             $on = ($k === $active);
             $h .= '  <button class="stage-tab' . ($on ? ' is-on' : '') . '" type="button" role="tab"'
@@ -978,7 +978,8 @@ if (!function_exists('tqs_excerpt')) {
         $cut = mb_substr($t, 0, $len, 'UTF-8');
         $sp  = mb_strrpos($cut, ' ', 0, 'UTF-8');
         if ($sp !== false && $sp > $len * 0.6) $cut = mb_substr($cut, 0, $sp, 'UTF-8');
-        return rtrim($cut, " \t\n\r\0\x0B،.:;-") . '…';
+        return rtrim($cut, t(' 	
+ ،.:;-')) . '…';
     }
 }
 
@@ -1036,16 +1037,16 @@ if (!function_exists('tqs_program_card')) {
         $meta = '';
         if ((int) $m['lessons'] > 0) {
             $meta .= '<span><svg aria-hidden="true"><use href="#i-play"></use></svg>'
-                  . html_escape($m['lessons']) . ' درسا</span>';
+                  . html_escape($m['lessons']) . t(' درسا</span>');
         }
         if ((int) $m['quizzes'] > 0) {
             $meta .= '<span><svg aria-hidden="true"><use href="#i-clipboard"></use></svg>'
-                  . html_escape($m['quizzes']) . ' اختبارا</span>';
+                  . html_escape($m['quizzes']) . t(' اختبارا</span>');
         }
         if ($meta !== '') {
             $h .= '        <div class="pcard__meta">' . $meta . '</div>' . "\n";
         }
-        $h .= '        <a class="pcard__link" href="' . html_escape($href) . '">ما في هذا البرنامج</a>' . "\n";
+        $h .= '        <a class="pcard__link" href="' . html_escape($href) . t('">ما في هذا البرنامج</a>') . "\n";
         $h .= '      </div>' . "\n";
         $h .= '    </article>' . "\n";
         return $h;
@@ -1086,14 +1087,14 @@ if (!function_exists('tqs_comp_state')) {
         $e = substr(trim((string) $ends), 0, 10);
 
         if ($e !== '' && $e < $today) {
-            return array('label' => 'انتهت', 'kind' => 'over');
+            return array('label' => t('انتهت'), 'kind' => 'over');
         }
         if ($s !== '' && $s > $today) {
             $days = (int) floor((strtotime($s) - strtotime($today)) / 86400);
-            $lbl  = ($days <= 1) ? 'تبدأ غدا' : 'تبدأ بعد ' . $days . ' يوما';
+            $lbl  = ($days <= 1) ? t('تبدأ غدا') : t('تبدأ بعد ') . $days . t(' يوما');
             return array('label' => $lbl, 'kind' => 'soon');
         }
-        return array('label' => 'مفتوحة الآن', 'kind' => 'open');
+        return array('label' => t('مفتوحة الآن'), 'kind' => 'open');
     }
 }
 
@@ -1127,22 +1128,22 @@ if (!function_exists('tqs_plans_guide')) {
         /* ثلاثة مواضع لا ثلاثة أكواد. */
         $copy = array(
             'first' => array(
-                'when' => 'إن كان الأساس يكفيك',
-                'why'  => 'مواد الصف الأساسية مشروحة، واختبار وواجب بعد كل درس، وتقرير '
-                        . 'يصلك أولا بأول. تكفي إن كان ابنك يتابع في مدرسته ويحتاج من '
-                        . 'يثبت الأساس ويريك أين يقف.',
+                'when' => t('إن كان الأساس يكفيك'),
+                'why'  => t('مواد الصف الأساسية مشروحة، واختبار وواجب بعد كل درس، وتقرير ')
+                        . t('يصلك أولا بأول. تكفي إن كان ابنك يتابع في مدرسته ويحتاج من ')
+                        . t('يثبت الأساس ويريك أين يقف.'),
                 'icon' => 'i-book',
             ),
             'mid' => array(
-                'when' => 'إن أردت المنهج كاملا',
-                'why'  => 'كل مواد الصف لا الأساسية وحدها، ومعها المهارات الرقمية وتمارين '
-                        . 'ومراجعات دورية. تناسب من لا يريد أن يبقى في منهج ابنه ما لم يشرح.',
+                'when' => t('إن أردت المنهج كاملا'),
+                'why'  => t('كل مواد الصف لا الأساسية وحدها، ومعها المهارات الرقمية وتمارين ')
+                        . t('ومراجعات دورية. تناسب من لا يريد أن يبقى في منهج ابنه ما لم يشرح.'),
                 'icon' => 'i-target',
             ),
             'last' => array(
-                'when' => 'إن أردت خطة لابنك وحده',
-                'why'  => 'كل ما في التي قبلها، ومعه متابعة فردية وخطة لكل طالب، ومهارات '
-                        . 'خارج المقرر: ذكاء اصطناعي وتصميم وحاسوب.',
+                'when' => t('إن أردت خطة لابنك وحده'),
+                'why'  => t('كل ما في التي قبلها، ومعه متابعة فردية وخطة لكل طالب، ومهارات ')
+                        . t('خارج المقرر: ذكاء اصطناعي وتصميم وحاسوب.'),
                 'icon' => 'i-rocket',
             ),
         );
@@ -1172,11 +1173,11 @@ if (!function_exists('tqs_plans_guide')) {
                 $h .= '      <div class="pguide__foot">' . "\n";
                 $h .= '        <b>' . html_escape(tqs_bundle_tier($p['name_ar'])) . '</b>' . "\n";
                 $h .= '        <span><i class="tq-ltr">' . number_format($c['month'])
-                    . '</i> ر.س / شهريا</span>' . "\n";
+                    . t('</i> ر.س / شهريا</span>') . "\n";
                 $h .= '      </div>' . "\n";
                 $h .= '      <a class="btn btn--ghost btn--block" href="'
                     . base_url('plan/' . rawurlencode((string) $p['code']))
-                    . '">تفاصيل الباقة</a>' . "\n";
+                    . t('">تفاصيل الباقة</a>') . "\n";
                 $h .= '    </article>' . "\n";
             }
             $h .= '  </div>' . "\n";
@@ -1234,7 +1235,7 @@ if (!function_exists('tqs_plans_compare')) {
                 foreach ($f as $one) {
                     $one = trim((string) $one);
                     if ($one === '') continue;
-                    if (mb_strpos($one, 'كل ما في') === 0) {
+                    if (mb_strpos($one, t('كل ما في')) === 0) {
                         foreach ($prev as $inh) $mine[$inh] = true;
                         continue;
                     }
@@ -1258,25 +1259,25 @@ if (!function_exists('tqs_plans_compare')) {
                ومفتوح افتراضا فمن تعثر عنده السكربت يراه كما كان. */
             $h .= '    <details class="pcmp__box" open>' . "\n";
             $h .= '      <summary class="pcmp__sum">' . "\n";
-            $h .= '        <span>اعرض المقارنة الكاملة</span>' . "\n";
+            $h .= t('        <span>اعرض المقارنة الكاملة</span>') . "\n";
             $h .= '        <svg aria-hidden="true"><use href="#i-chevron"></use></svg>' . "\n";
             $h .= '      </summary>' . "\n";
             $h .= '    <div class="pcmp__scroll">' . "\n";
             $h .= '      <table class="pcmp__t">' . "\n";
-            $h .= '        <caption class="sr-only">مقارنة الباقات</caption>' . "\n";
+            $h .= t('        <caption class="sr-only">مقارنة الباقات</caption>') . "\n";
 
             /* ── الرأس: اسم وسعر شهري وزر ─────────────────────────── */
-            $h .= '        <thead><tr><th scope="col" class="pcmp__lead">ما في الباقة</th>' . "\n";
+            $h .= t('        <thead><tr><th scope="col" class="pcmp__lead">ما في الباقة</th>') . "\n";
             foreach ($plans as $p) {
                 $c   = tqs_plan_cycle($p['price']);
                 $hot = !empty($p['featured']);
                 $h .= '          <th scope="col" class="pcmp__h' . ($hot ? ' is-hot' : '') . '">' . "\n";
-                if ($hot) $h .= '            <span class="pcmp__flag">الأكثر اختيارا</span>' . "\n";
+                if ($hot) $h .= t('            <span class="pcmp__flag">الأكثر اختيارا</span>') . "\n";
                 $h .= '            <b>' . html_escape(tqs_bundle_tier($p['name_ar'])) . '</b>' . "\n";
                 $h .= '            <span class="pcmp__price"><i class="tq-ltr">'
-                    . number_format($c['month']) . '</i> ر.س / شهريا</span>' . "\n";
+                    . number_format($c['month']) . t('</i> ر.س / شهريا</span>') . "\n";
                 $h .= '            <a class="btn btn--primary" href="'
-                    . base_url('plan/' . rawurlencode((string) $p['code'])) . '">اختر</a>' . "\n";
+                    . base_url('plan/' . rawurlencode((string) $p['code'])) . t('">اختر</a>') . "\n";
                 $h .= '          </th>' . "\n";
             }
             $h .= '        </tr></thead>' . "\n";
@@ -1290,10 +1291,10 @@ if (!function_exists('tqs_plans_compare')) {
                     $h .= '            <td' . (!empty($p['featured']) ? ' class="is-hot"' : '') . '>';
                     if ($on) {
                         $h .= '<svg class="pcmp__yes" aria-hidden="true"><use href="#i-check"></use></svg>'
-                            . '<span class="sr-only">متاح</span>';
+                            . t('<span class="sr-only">متاح</span>');
                     } else {
                         $h .= '<span class="pcmp__no" aria-hidden="true">—</span>'
-                            . '<span class="sr-only">غير متاح</span>';
+                            . t('<span class="sr-only">غير متاح</span>');
                     }
                     $h .= '</td>' . "\n";
                 }
@@ -1337,8 +1338,8 @@ if (!function_exists('tqs_competitions_strip')) {
         $h  = '<section class="section section--tint">' . "\n";
         $h .= '  <div class="shell">' . "\n";
         $h .= '    <div class="section-head">' . "\n";
-        $h .= '      <h2><span>مسابقات مفتوحة الآن</span></h2>' . "\n";
-        $h .= '      <p>يشترك فيها طلاب الباقات بلا رسوم إضافية — تدريب على المنافسة، وجوائز لأوائل كل مرحلة.</p>' . "\n";
+        $h .= t('      <h2><span>مسابقات مفتوحة الآن</span></h2>') . "\n";
+        $h .= t('      <p>يشترك فيها طلاب الباقات بلا رسوم إضافية — تدريب على المنافسة، وجوائز لأوائل كل مرحلة.</p>') . "\n";
         $h .= '    </div>' . "\n";
         /* مسابقة واحدة لا تعرض كبطاقة عرضها ٣٦٠ في شاشة عرضها ألف:
            الفراغ حولها يقرأ نقصا لا تصميما. فتمد شريطا أفقيا يملأ عرضه،
@@ -1370,11 +1371,11 @@ if (!function_exists('tqs_competitions_strip')) {
             $facts = '';
             if ((string) $r['when'] !== '') {
                 $facts .= '            <span><svg aria-hidden="true"><use href="#i-calendar"></use></svg>'
-                       . 'تبدأ <b class="tq-ltr">' . html_escape(tqs_date_ar($r['when'])) . '</b></span>' . "\n";
+                       . t('تبدأ <b class="tq-ltr">') . html_escape(tqs_date_ar($r['when'])) . '</b></span>' . "\n";
             }
             if (!empty($r['till'])) {
                 $facts .= '            <span><svg aria-hidden="true"><use href="#i-clock"></use></svg>'
-                       . 'تنتهي <b class="tq-ltr">' . html_escape(tqs_date_ar($r['till'])) . '</b></span>' . "\n";
+                       . t('تنتهي <b class="tq-ltr">') . html_escape(tqs_date_ar($r['till'])) . '</b></span>' . "\n";
             }
             if (!empty($r['prize'])) {
                 $facts .= '            <span><svg aria-hidden="true"><use href="#i-badge"></use></svg>'
@@ -1386,7 +1387,7 @@ if (!function_exists('tqs_competitions_strip')) {
             $h .= '        </div>' . "\n";
 
             $h .= '        <a class="btn btn--ghost btn--block cmp-card__cta" href="'
-                . html_escape($r['href']) . '">تفاصيل المسابقة</a>' . "\n";
+                . html_escape($r['href']) . t('">تفاصيل المسابقة</a>') . "\n";
             $h .= '      </article>' . "\n";
         }
         $h .= '    </div>' . "\n";
@@ -1409,9 +1410,9 @@ if (!function_exists('tqs_stage_label')) {
     function tqs_stage_label($key)
     {
         $labels = array(
-            'primary'   => 'المرحلة الابتدائية',
-            'middle'    => 'المرحلة المتوسطة',
-            'secondary' => 'المرحلة الثانوية',
+            'primary'   => t('المرحلة الابتدائية'),
+            'middle'    => t('المرحلة المتوسطة'),
+            'secondary' => t('المرحلة الثانوية'),
         );
         $k = (string) $key;
         if ($k === '') return '';
@@ -1464,8 +1465,8 @@ if (!function_exists('tqs_date_ar')) {
     {
         $ts = is_numeric($date) ? (int) $date : strtotime((string) $date);
         if (!$ts) return (string) $date;
-        $m = array('', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-                   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر');
+        $m = array('', t('يناير'), t('فبراير'), t('مارس'), t('أبريل'), t('مايو'), t('يونيو'),
+                   t('يوليو'), t('أغسطس'), t('سبتمبر'), t('أكتوبر'), t('نوفمبر'), t('ديسمبر'));
         return (int) date('j', $ts) . ' ' . $m[(int) date('n', $ts)] . ' ' . date('Y', $ts);
     }
 }
@@ -1513,7 +1514,7 @@ if (!function_exists('tqs_money')) {
     function tqs_money($halalas, $unit = true)
     {
         $v = number_format(((int) $halalas) / 100, 0, '.', ',');
-        return '<b class="tq-ltr">' . $v . '</b>' . ($unit ? ' <span>ر.س</span>' : '');
+        return '<b class="tq-ltr">' . $v . '</b>' . ($unit ? t(' <span>ر.س</span>') : '');
     }
 }
 
@@ -1522,11 +1523,11 @@ if (!function_exists('tqs_period_label')) {
     function tqs_period_label($days)
     {
         $d = (int) $days;
-        if ($d >= 360) return 'للعام الدراسي كاملا';
-        if ($d >= 180) return 'لفصل دراسي';
-        if ($d >= 28 && $d <= 31) return 'لشهر واحد';
-        if ($d === 14) return 'أربعة عشر يوما';
-        return 'لمدة ' . $d . ' يوما';
+        if ($d >= 360) return t('للعام الدراسي كاملا');
+        if ($d >= 180) return t('لفصل دراسي');
+        if ($d >= 28 && $d <= 31) return t('لشهر واحد');
+        if ($d === 14) return t('أربعة عشر يوما');
+        return t('لمدة ') . $d . t(' يوما');
     }
 }
 
@@ -1564,24 +1565,24 @@ if (!function_exists('tqs_bank_block')) {
 
         $h  = '<div class="bankbox">' . "\n";
         $h .= '  <h3 class="bankbox__h"><svg aria-hidden="true"><use href="#i-bank"></use></svg>'
-            . ' بيانات التحويل البنكي</h3>' . "\n";
+            . t(' بيانات التحويل البنكي</h3>') . "\n";
 
         if (!$b) {
             /* لا يعرض نص افتراضي ولا حساب مخترع: يقال الحق ويعطى باب
                يطرق. الصمت هنا يوقف الشراء، والكذب يوقف الثقة. */
-            $h .= '  <p class="bankbox__empty">لم تنشر بيانات الحساب بعد. '
-                . '<a href="' . base_url('contact') . '">تواصل معنا</a> '
-                . 'ونرسل لك تفاصيل التحويل فورا.</p>' . "\n";
+            $h .= t('  <p class="bankbox__empty">لم تنشر بيانات الحساب بعد. ')
+                . '<a href="' . base_url('contact') . t('">تواصل معنا</a> ')
+                . t('ونرسل لك تفاصيل التحويل فورا.</p>') . "\n";
             return $h . '</div>' . "\n";
         }
 
         $rows = array(
-            array('المستفيد', $b['beneficiary'], false),
-            array('الآيبان',  $b['iban'],        true),
+            array(t('المستفيد'), $b['beneficiary'], false),
+            array(t('الآيبان'),  $b['iban'],        true),
         );
-        if ($b['bank'] !== '') $rows[] = array('البنك', $b['bank'], false);
-        if ((string) $ref !== '') $rows[] = array('مرجع الحوالة', (string) $ref, true);
-        if ($amount !== null)     $rows[] = array('المبلغ', trim(strip_tags(tqs_money($amount))), true);
+        if ($b['bank'] !== '') $rows[] = array(t('البنك'), $b['bank'], false);
+        if ((string) $ref !== '') $rows[] = array(t('مرجع الحوالة'), (string) $ref, true);
+        if ($amount !== null)     $rows[] = array(t('المبلغ'), trim(strip_tags(tqs_money($amount))), true);
 
         $h .= '  <dl class="bankbox__rows">' . "\n";
         foreach ($rows as $r) {
@@ -1590,7 +1591,7 @@ if (!function_exists('tqs_bank_block')) {
             $h .= '      <dd' . ($r[2] ? ' dir="ltr" class="tq-ltr"' : '') . '>'
                 . '<span>' . html_escape($r[1]) . '</span>'
                 . '<button type="button" class="bankbox__copy" data-tq-copy="' . html_escape($r[1]) . '"'
-                . ' aria-label="انسخ ' . html_escape($r[0]) . '">'
+                . t(' aria-label="انسخ ') . html_escape($r[0]) . '">'
                 . '<svg aria-hidden="true"><use href="#i-copy"></use></svg></button>'
                 . '</dd>' . "\n";
             $h .= '    </div>' . "\n";
@@ -1600,8 +1601,8 @@ if (!function_exists('tqs_bank_block')) {
         if ($b['note'] !== '') {
             $h .= '  <p class="bankbox__note">' . html_escape($b['note']) . '</p>' . "\n";
         }
-        $h .= '  <p class="bankbox__note">اكتب مرجع الحوالة في خانة الملاحظات، '
-            . 'ويفعل اشتراكك بعد التحقق منها.</p>' . "\n";
+        $h .= t('  <p class="bankbox__note">اكتب مرجع الحوالة في خانة الملاحظات، ')
+            . t('ويفعل اشتراكك بعد التحقق منها.</p>') . "\n";
         return $h . '</div>' . "\n";
     }
 }
@@ -1627,9 +1628,9 @@ if (!function_exists('tqs_dur')) {
         if ($sec <= 0) return '';
         $h = intdiv($sec, 3600);
         $m = intdiv($sec % 3600, 60);
-        if ($h > 0) return $m > 0 ? $h . ' س ' . $m . ' د' : $h . ' س';
-        if ($m > 0) return $m . ' د';
-        return $sec . ' ث';
+        if ($h > 0) return $m > 0 ? $h . t(' س') . $m . t(' د') : $h . t(' س');
+        if ($m > 0) return $m . t(' د');
+        return $sec . t(' ث');
     }
 }
 
@@ -1661,9 +1662,9 @@ if (!function_exists('tqs_curriculum')) {
         foreach ($bundle['subjects'] as $s) {
             $i++;
             $meta = array();
-            if (count($s['units']) > 0) $meta[] = count($s['units']) . ' وحدة';
-            if ($s['lessons'] > 0)      $meta[] = $s['lessons'] . ' درسا';
-            if ($s['quizzes'] > 0)      $meta[] = $s['quizzes'] . ' اختبارا';
+            if (count($s['units']) > 0) $meta[] = count($s['units']) . t(' وحدة');
+            if ($s['lessons'] > 0)      $meta[] = $s['lessons'] . t(' درسا');
+            if ($s['quizzes'] > 0)      $meta[] = $s['quizzes'] . t(' اختبارا');
 
             /* برنامج بلا محتوى لا يخفى: الباقة تشمله والمشتري يجب أن
                يعرف أنه قيد الإعداد — إخفاؤه وعد ضمني بأنه جاهز. */
@@ -1676,7 +1677,7 @@ if (!function_exists('tqs_curriculum')) {
             if ($meta) {
                 $h .= '      <span class="curric__meta">' . html_escape(implode(' · ', $meta)) . '</span>' . "\n";
             } else {
-                $h .= '      <span class="curric__meta curric__meta--soon">قيد الإعداد</span>' . "\n";
+                $h .= t('      <span class="curric__meta curric__meta--soon">قيد الإعداد</span>') . "\n";
             }
             if ($mode === 'student' && isset($prog[$s['course_id']])) {
                 $p = (int) $prog[$s['course_id']];
@@ -1689,13 +1690,13 @@ if (!function_exists('tqs_curriculum')) {
 
             $h .= '    <div class="curric__body">' . "\n";
             if (!$s['units']) {
-                $h .= '      <p class="curric__soon">دروس هذه المادة قيد التجهيز، '
-                    . 'وتفتح لك تلقائيا بمجرد نشرها.</p>' . "\n";
+                $h .= t('      <p class="curric__soon">دروس هذه المادة قيد التجهيز، ')
+                    . t('وتفتح لك تلقائيا بمجرد نشرها.</p>') . "\n";
             }
             foreach ($s['units'] as $u) {
                 $h .= '      <section class="curric__unit">' . "\n";
                 $h .= '        <h4 class="curric__unit-h">' . html_escape($u['title'])
-                    . ' <small>' . count($u['lessons']) . ' درسا</small></h4>' . "\n";
+                    . ' <small>' . count($u['lessons']) . t(' درسا</small></h4>') . "\n";
                 $h .= '        <ol class="curric__lessons">' . "\n";
                 foreach ($u['lessons'] as $l) {
                     $icon = $l['is_quiz'] ? 'i-clipboard' : 'i-play';
@@ -1721,14 +1722,14 @@ if (!function_exists('tqs_curriculum')) {
                         if ($l['is_free']) {
                             $h .= '            <a class="curric__free" href="'
                                 . tqs_preview_url($s['course_id'], $l['id'])
-                                . '"><svg aria-hidden="true"><use href="#i-unlock"></use></svg> معاينة مجانية</a>' . "\n";
+                                . t('"><svg aria-hidden="true"><use href="#i-unlock"></use></svg> معاينة مجانية</a>') . "\n";
                         } else {
                             /* الشارة مرئية عمدا: المشتري يمسح المنهج
                                بعينه ليعرف كم فيه مما يدفع مقابله. وقفل
                                صامت يقرأ عطبا لا سياسة. */
                             $h .= '            <span class="curric__soonlock">'
                                 . '<svg class="curric__lock" aria-hidden="true"><use href="#i-lock"></use></svg>'
-                                . 'يفتح بالاشتراك</span>' . "\n";
+                                . t('يفتح بالاشتراك</span>') . "\n";
                         }
                     }
                     $h .= '          </li>' . "\n";
@@ -1948,11 +1949,22 @@ if (!function_exists('tqs_video_embed')) {
         }
 
         if ($type === 'vimeo' || preg_match('~vimeo~i', $url)) {
-            preg_match('~vimeo\.com/(\d+)~', $url, $m);
+            /* TQ-VIMEO-HASH — والمعرف وحده لا يفتح فيديو غير مدرج.
+               رابط «نسخ الرابط» في فيميو يحمل بصمة خصوصية بعد المعرف
+               (`vimeo.com/1222349070/314f355cd6`) او في `?h=`، وبلاها
+               يرد المشغل «Sorry, we're having a little trouble» في
+               نافذة المعاينة وفي صفحة الباقة. والقاعدة نفسها في
+               `vimeoRef()` بـ`tq-player.js`، فلا يفترق سطح عن سطح. */
+            $clean = html_entity_decode($url, ENT_QUOTES, 'UTF-8');
+            preg_match('~vimeo\.com/(?:[\w-]+/)*?(\d{6,})(?:/([0-9a-zA-Z]+))?~', $clean, $m);
             $id = isset($m[1]) ? $m[1] : '';
             if ($id === '') return '';
-            return '<iframe src="https://player.vimeo.com/video/' . html_escape($id) . '"'
-                 . ' title="' . $t . '" allowfullscreen loading="lazy"></iframe>';
+            $h = isset($m[2]) ? $m[2] : '';
+            if ($h === '' && preg_match('~[?&]h(?:ash)?=([0-9a-zA-Z]+)~', $clean, $q)) $h = $q[1];
+            return '<iframe src="https://player.vimeo.com/video/' . html_escape($id)
+                 . ($h !== '' ? '?h=' . html_escape($h) : '') . '"'
+                 . ' title="' . $t . '" allow="autoplay; fullscreen; picture-in-picture"'
+                 . ' allowfullscreen loading="lazy"></iframe>';
         }
 
         return '<video controls preload="metadata" playsinline'
@@ -2172,33 +2184,33 @@ if (!function_exists('tqs_plan_price')) {
         if ($out['free']) {
             $out['total'] = 0; $out['month'] = 0; $out['charge'] = 0;
             $out['unit']  = '';
-            $out['note']  = 'بلا رسوم';
+            $out['note']  = t('بلا رسوم');
             return $out;
         }
 
         /* ما يفتحه المبلغ من زمن — بعبارة يقرؤها ولي الامر لا بعدد ايام. */
-        $span = array('annual'    => 'للعام الدراسي كاملا',
-                      'quarterly' => 'لثلاثة أشهر',
-                      'monthly'   => 'لشهر واحد');
+        $span = array('annual'    => t('للعام الدراسي كاملا'),
+                      'quarterly' => t('لثلاثة أشهر'),
+                      'monthly'   => t('لشهر واحد'));
         $out['span']     = isset($span[$own['key']]) ? $span[$own['key']] : tqs_period_label($own['days']);
-        $out['own_note'] = 'يفتح ' . $out['span'];
+        $out['own_note'] = t('يفتح ') . $out['span'];
 
         if ($has_alt) {
             /* **الشهري شراء لا معادل.** فجملته تقول ما يشتريه وما بعده:
                لا تجديد تلقائي في هذا المحرك، ومن لا يجدد ينقطع وصوله —
                وقوله هنا خير من ان يكتشفه بعد ثلاثين يوما. */
-            $out['month_note'] = 'يفتح ' . (int) $mon['days'] . ' يوما — تجدده بالشراء، ولا يخصم تلقائيا';
+            $out['month_note'] = t('يفتح ') . (int) $mon['days'] . t(' يوما — تجدده بالشراء، ولا يخصم تلقائيا');
             $out['pay_note']   = $out['month_note'];
 
             /* والتوفير مقارنة حقيقية الان: 42 × 12 هو ما يدفعه فعلا من
                اشترى شهرا شهرا. وكان يقارن بسعر مرجعي لا يباع. */
             $out['save'] = max(0, $mon_sar * $m - $own_sar);
-            $out['note'] = 'تدفع سنويا ' . number_format($own_sar) . ' ر.س';
+            $out['note'] = t('تدفع سنويا ') . number_format($own_sar) . t(' ر.س');
         } else {
             $out['pay_note'] = $out['own_note'];
             $out['note']     = ($own['key'] === 'monthly'
                                 && (int) $own['days'] > 0 && (int) $own['days'] !== 30)
-                             ? ('لكل ' . (int) $own['days'] . ' يوما') : '';
+                             ? (t('لكل ') . (int) $own['days'] . t(' يوما')) : '';
         }
 
         return $out;
@@ -2231,7 +2243,7 @@ if (!function_exists('tqs_plan_price_html')) {
             foreach (array('month', 'year') as $cyc) {
                 $h .= '      <p class="' . $cls . ' ' . $cls . '--free" data-cycle="' . $cyc . '"'
                     . ($cyc === 'year' ? ' hidden' : '') . '>'
-                    . '<b>مجانا</b><span>بلا رسوم</span></p>' . "\n";
+                    . t('<b>مجانا</b><span>بلا رسوم</span></p>') . "\n";
             }
             return $h;
         }
@@ -2240,7 +2252,7 @@ if (!function_exists('tqs_plan_price_html')) {
            فقرة تخفى الى فراغ حين يبدل الزائر الدورة. */
         $h .= '      <p class="' . $cls . '" data-cycle="month">'
             . '<b class="tq-ltr">' . number_format($p['month']) . '</b>'
-            . '<span>ر.س / ' . ($p['has_alt'] ? 'شهريا' : html_escape($p['unit'])) . '</span>'
+            . t('<span>ر.س / ') . ($p['has_alt'] ? t('شهريا') : html_escape($p['unit'])) . '</span>'
             . '<small class="tq-pay">'
             . html_escape($p['has_alt'] ? $p['month_note'] : $p['own_note'])
             . '</small></p>' . "\n";
@@ -2248,10 +2260,10 @@ if (!function_exists('tqs_plan_price_html')) {
         /* الدورية: سعر الباقة بدورته. */
         $h .= '      <p class="' . $cls . '" data-cycle="year" hidden>'
             . '<b class="tq-ltr">' . number_format($p['total']) . '</b>'
-            . '<span>ر.س / ' . html_escape($p['unit']) . '</span>'
+            . t('<span>ر.س / ') . html_escape($p['unit']) . '</span>'
             . '<small class="tq-pay">' . html_escape($p['own_note']);
         if ($p['has_alt'] && $p['save'] > 0) {
-            $h .= ' — توفر ' . number_format($p['save']) . ' ر.س عن الشهري';
+            $h .= t(' — توفر ') . number_format($p['save']) . t(' ر.س عن الشهري');
         }
         $h .= '</small></p>' . "\n";
 
@@ -2312,11 +2324,11 @@ if (!function_exists('tqs_plan_cycle_switch')) {
         if (!$alt) return '';
 
         return '<div class="p26d__cycle">' . "\n"
-             . '  <span class="p26d__cycle-lead" id="tqCycleLead">اعرض السعر</span>' . "\n"
+             . t('  <span class="p26d__cycle-lead" id="tqCycleLead">اعرض السعر</span>') . "\n"
              . '  <div class="p26d__cycle-in" role="group" aria-labelledby="tqCycleLead">' . "\n"
-             . '    <button type="button" data-tq-cycle="month" aria-pressed="true">شهريا</button>' . "\n"
-             . '    <button type="button" data-tq-cycle="year" aria-pressed="false">الإجمالي'
-             . '<span class="p26d__cycle-save">وفر ' . $off . '%</span></button>' . "\n"
+             . t('    <button type="button" data-tq-cycle="month" aria-pressed="true">شهريا</button>') . "\n"
+             . t('    <button type="button" data-tq-cycle="year" aria-pressed="false">الإجمالي')
+             . t('<span class="p26d__cycle-save">وفر ') . $off . '%</span></button>' . "\n"
              . '  </div>' . "\n"
              . '</div>' . "\n";
     }
@@ -2363,7 +2375,7 @@ if (!function_exists('tqs_bundles_dark')) {
                 . (($hide && $b['stage'] !== $first) ? ' hidden' : '') . '>' . "\n";
 
             if ($hot) {
-                $h .= '    <span class="p26d-card__badge">الأكثر اختيارا</span>' . "\n";
+                $h .= t('    <span class="p26d-card__badge">الأكثر اختيارا</span>') . "\n";
             }
 
             /* الغلاف: صورة الباقة بعرض البطاقة فوق اسمها بقرار المالك.
@@ -2423,12 +2435,12 @@ if (!function_exists('tqs_bundles_dark')) {
                     . ' data-tq-plan="' . html_escape($b['name']) . '"' : '')
                 . ' href="'
                 . ($cta === 'checkout' ? tqs_checkout_url($b) : base_url('plan/' . $b['code']))
-                . '">اختر هذه الباقة'
+                . t('">اختر هذه الباقة')
                 . '<svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg>'
                 . '</a></span>' . "\n";
             if ($more) {
                 $h .= '      <a class="p26d-card__more" href="' . base_url('plan/' . $b['code'])
-                    . '">ما في هذه الباقة؟</a>' . "\n";
+                    . t('">ما في هذه الباقة؟</a>') . "\n";
             }
             $h .= '    </div>' . "\n";
             $h .= '  </article>' . "\n";
@@ -2477,7 +2489,7 @@ if (!function_exists('tqs_p26_cards')) {
                 . ' data-stage="' . html_escape($b['stage']) . '"'
                 . (($hide && $b['stage'] !== $first) ? ' hidden' : '') . '>' . "\n";
             if ($hot) {
-                $h .= '    <span class="p26-card__badge">الأكثر اختيارا</span>' . "\n";
+                $h .= t('    <span class="p26-card__badge">الأكثر اختيارا</span>') . "\n";
             }
             /* الجسم صندوق تنسيق مستقل: الصورة تطفو داخله فتلتف حولها
                الكتابة، والزر خارجه فيلتصق بقاع البطاقة. */
@@ -2514,10 +2526,10 @@ if (!function_exists('tqs_p26_cards')) {
             $h .= '    </div>' . "\n";
             $h .= '    <span class="p26-card__cta"><a href="'
                 . ($cta === 'checkout' ? tqs_checkout_url($b) : base_url('plan/' . $b['code']))
-                . '">اشترك الآن</a></span>' . "\n";
+                . t('">اشترك الآن</a></span>') . "\n";
             if ($more) {
                 $h .= '    <a class="p26-card__more" href="' . base_url('plan/' . $b['code'])
-                    . '">ما في هذه الباقة؟'
+                    . t('">ما في هذه الباقة؟')
                     . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></a>' . "\n";
             }
             $h .= '  </article>' . "\n";

@@ -100,11 +100,11 @@
   Panel.prototype.offer = function (sec, onUse) {
     if (!this.el) return;
     this.el.hidden = false;
-    this.el.textContent = 'المقاس من المصدر: ' + iso(hms(sec)) + ' — ';
+    this.el.textContent = TQ.t('المقاس من المصدر: ____ — ', iso(hms(sec)));
     var b = doc.createElement('button');
     b.type = 'button';
     b.className = 'tq-linkish';
-    b.textContent = 'استعمله';
+    b.textContent = TQ.t('استعمله');
     b.style.cssText = 'background:none;border:0;padding:0;font:inherit;'
                     + 'color:var(--tq-navy,#0b3b36);text-decoration:underline;cursor:pointer';
     b.addEventListener('click', function () { onUse(sec); });
@@ -134,7 +134,7 @@
     }
 
     if (!global.TQPlayer || !global.TQPlayer.mount) {
-      finish(0, 'المشغل لم يحمل في هذه الصفحة.');
+      finish(0, TQ.t('المشغل لم يحمل في هذه الصفحة.'));
       return function () {};
     }
 
@@ -144,7 +144,7 @@
     host().appendChild(box);
 
     timer = setTimeout(function () {
-      finish(0, 'لم يرد المصدر بمدته. اكتبها بيدك.');
+      finish(0, TQ.t('لم يرد المصدر بمدته. اكتبها بيدك.'));
     }, READY_MS);
 
     try {
@@ -164,15 +164,15 @@
              أو السكربت حجب — وهذا عطل يصلح. */
           if (p.kind === 'none') {
             finish(0, p.degraded
-              ? 'تعذر فتح المصدر بمشغله — تحقق من الرابط، أو اكتب المدة بيدك.'
-              : 'هذا المصدر لا يعلن مدته — اكتبها بيدك.');
+              ? TQ.t('تعذر فتح المصدر بمشغله — تحقق من الرابط، أو اكتب المدة بيدك.')
+              : TQ.t('هذا المصدر لا يعلن مدته — اكتبها بيدك.'));
           }
         })
         .catch(function () {
-          finish(0, 'تعذر فتح المصدر. تحقق من الرابط.');
+          finish(0, TQ.t('تعذر فتح المصدر. تحقق من الرابط.'));
         });
     } catch (e) {
-      finish(0, 'تعذر فتح المصدر.');
+      finish(0, TQ.t('تعذر فتح المصدر.'));
     }
 
     return function () { finish(0, ''); };
@@ -228,7 +228,7 @@
       if (!url) { out.hide(); return; }
       if (!/^https?:\/\//i.test(url)) { out.hide(); return; }
 
-      out.say('يقرأ مدة المقطع…');
+      out.say(TQ.t('يقرأ مدة المقطع…'));
 
       cancel = measure(url, kindFor(input), function (sec, why) {
         if (!sec) { if (why) out.say(why); else out.hide(); return; }
@@ -239,7 +239,7 @@
              لا يسمع الكتابة بالبرمجة. */
           dur.dispatchEvent(new Event('input',  { bubbles: true }));
           dur.dispatchEvent(new Event('change', { bubbles: true }));
-          out.say('قرئت المدة من المصدر: ' + iso(hms(sec)));
+          out.say(TQ.t('قرئت المدة من المصدر: ____', iso(hms(sec))));
           return;
         }
 
@@ -252,7 +252,7 @@
           dur.value = hms(s);
           dur.dispatchEvent(new Event('input',  { bubbles: true }));
           dur.dispatchEvent(new Event('change', { bubbles: true }));
-          out.say('كتبت المدة المقاسة: ' + iso(hms(s)));
+          out.say(TQ.t('كتبت المدة المقاسة: ____', iso(hms(s))));
         });
       });
     }
@@ -302,24 +302,24 @@
       var url = URL.createObjectURL(f);
       var done = false;
 
-      out.say('يقرأ مدة الملف…');
+      out.say(TQ.t('يقرأ مدة الملف…'));
 
       function finish(sec, why) {
         if (done) return;
         done = true;
         try { URL.revokeObjectURL(url); } catch (e) {}
-        if (!sec) { out.say(why || 'تعذر قراءة مدة هذا الملف. اكتبها بيدك.'); return; }
+        if (!sec) { out.say(why || TQ.t('تعذر قراءة مدة هذا الملف. اكتبها بيدك.')); return; }
         if (!hasValue(dur)) {
           dur.value = hms(sec);
           dur.dispatchEvent(new Event('input',  { bubbles: true }));
           dur.dispatchEvent(new Event('change', { bubbles: true }));
-          out.say('قرئت المدة من الملف: ' + iso(hms(sec)));
+          out.say(TQ.t('قرئت المدة من الملف: ____', iso(hms(sec))));
         } else {
           out.offer(sec, function (s) {
             dur.value = hms(s);
             dur.dispatchEvent(new Event('input',  { bubbles: true }));
             dur.dispatchEvent(new Event('change', { bubbles: true }));
-            out.say('كتبت المدة المقاسة: ' + iso(hms(s)));
+            out.say(TQ.t('كتبت المدة المقاسة: ____', iso(hms(s))));
           });
         }
       }

@@ -77,7 +77,7 @@ if ($tq_ids) {
             <input class="tqa-input" type="text" id="reply" name="message" required
                    placeholder="<?php echo te('اكتب ردك…'); ?>" autocomplete="off">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('send', 16); ?> أرسل
+                <?php echo tq_icon('send', 16); ?> <?php echo t('أرسل'); ?>
             </button>
         </form>
     </div>

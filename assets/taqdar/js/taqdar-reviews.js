@@ -51,7 +51,7 @@
           var e = (j && j.error) || {};
           throw {
             code: e.code || 'HTTP_' + r.status,
-            message: e.message_ar || 'تعذر إتمام الطلب',
+            message: e.message_ar || TQ.t('تعذر إتمام الطلب'),
             details: e.details || {}
           };
         }
@@ -68,19 +68,19 @@
   /** المثنى والجمع في العربية ليسا s تضاف — «بعد 2 يوم» خطأ لغوي ظاهر. */
   function whenBack(n) {
     n = int(n);
-    if (n <= 0) return 'اليوم نفسه';
-    if (n === 1) return 'غدا';
-    if (n === 2) return 'بعد يومين';
-    if (n <= 10) return 'بعد ' + iso(n) + ' أيام';
-    return 'بعد ' + iso(n) + ' يوما';
+    if (n <= 0) return TQ.t('اليوم نفسه');
+    if (n === 1) return TQ.t('غدا');
+    if (n === 2) return TQ.t('بعد يومين');
+    if (n <= 10) return TQ.t('بعد ____ أيام', iso(n));
+    return TQ.t('بعد ____ يوما', iso(n));
   }
 
   function questions(n) {
     n = int(n);
-    if (n === 1) return 'سؤال واحد';
-    if (n === 2) return 'سؤالان';
-    if (n <= 10) return iso(n) + ' أسئلة';
-    return iso(n) + ' سؤالا';
+    if (n === 1) return TQ.t('سؤال واحد');
+    if (n === 2) return TQ.t('سؤالان');
+    if (n <= 10) return TQ.t('____ أسئلة', iso(n));
+    return TQ.t('____ سؤالا', iso(n));
   }
 
   function escapeHtml(s) {
@@ -149,13 +149,13 @@
     show('[data-tq-rv-empty]', false);
     show('[data-tq-rv-hint]', false);
 
-    text('[data-tq-rv-counter]', 'السؤال ' + iso(state.index + 1) + ' من ' + iso(state.queue.length));
+    text('[data-tq-rv-counter]', TQ.t('السؤال ____ من ____', iso(state.index + 1), iso(state.queue.length)));
 
     var pct = Math.round(state.index / state.queue.length * 100);
     var pw = $('[data-tq-rv-progress]');
     if (pw) {
       pw.innerHTML = '<div class="tq-progress" role="progressbar" aria-valuenow="' + pct + '"'
-        + ' aria-valuemin="0" aria-valuemax="100" aria-label="تقدم جلسة المراجعة">'
+        + ' aria-valuemin="0" aria-valuemax="100" aria-label="' + escapeHtml(TQ.t('تقدم جلسة المراجعة')) + '">'
         + '<div class="tq-progress__track"><div class="tq-progress__fill" style="inline-size:' + pct + '%"></div></div>'
         + '<span class="tq-progress__value">' + iso(pct + '%') + '</span></div>';
     }
@@ -190,7 +190,7 @@
 
     if (!opts.length) {
       return '<label class="tq-field" for="tq-rv-typed">'
-        + '<span class="tq-field__label">اكتب إجابتك</span>'
+        + '<span class="tq-field__label">' + escapeHtml(TQ.t('اكتب إجابتك')) + '</span>'
         + '<input class="tq-input" id="tq-rv-typed" type="text" autocomplete="off"'
         + ' spellcheck="false" data-tq-rv-input></label>';
     }
@@ -198,7 +198,7 @@
     var multi = (q.type === 'multiple_choice');
     var kind = multi ? 'checkbox' : 'radio';
     var head = multi
-      ? '<p class="tq-caption" style="margin-block-end:var(--tq-space-m)">اختر كل الإجابات الصحيحة.</p>'
+      ? TQ.t('<p class="tq-caption" style="margin-block-end:var(--tq-space-m)">اختر كل الإجابات الصحيحة.</p>')
       : '';
 
     return head + opts.map(function (o, j) {
@@ -277,23 +277,23 @@
     }
 
     if (r.correct) {
-      text('[data-tq-rv-verdict-title]', 'إجابة صحيحة');
-      text('[data-tq-rv-verdict-text]', 'ثبت هذا المفهوم أكثر، فتباعد موعده: يعود إليك ' + back + '.');
+      text('[data-tq-rv-verdict-title]', TQ.t('إجابة صحيحة'));
+      text('[data-tq-rv-verdict-text]', TQ.t('ثبت هذا المفهوم أكثر، فتباعد موعده: يعود إليك ____.', back));
     } else {
-      text('[data-tq-rv-verdict-title]', 'ليست الإجابة الصحيحة');
+      text('[data-tq-rv-verdict-title]', TQ.t('ليست الإجابة الصحيحة'));
       text('[data-tq-rv-verdict-text]',
-        'لن نعطيك الحل — يعود السؤال ' + back + ' لتجيبه بنفسك. وإن أردت أن تراجع شرحه فهو في درسه.');
+        TQ.t('لن نعطيك الحل — يعود السؤال ____ لتجيبه بنفسك. وإن أردت أن تراجع شرحه فهو في درسه.', back));
     }
 
     if (acts) {
       var html = '';
       var last = (state.index >= state.queue.length - 1);
       html += '<button class="tq-btn tq-btn--primary" type="button" data-tq-rv-next>'
-        + (last ? 'أنه الجلسة' : 'السؤال التالي') + '</button>';
+        + (last ? TQ.t('أنه الجلسة') : TQ.t('السؤال التالي')) + '</button>';
 
       var href = lessonHref(q);
       if (!r.correct && href) {
-        html += '<a class="tq-btn tq-btn--secondary" href="' + escapeHtml(href) + '">راجع الدرس</a>';
+        html += '<a class="tq-btn tq-btn--secondary" href="' + escapeHtml(href) + '">' + escapeHtml(TQ.t('راجع الدرس')) + '</a>';
       }
       acts.innerHTML = html;
     }
@@ -313,15 +313,15 @@
     text('[data-tq-rv-done-remaining]', iso(state.remaining));
 
     text('[data-tq-rv-done-text]', state.remaining > 0
-      ? 'ما زال لديك ' + questions(state.remaining) + ' مستحقا اليوم — تعرض في دفعة تالية.'
-      : 'أنهيت كل ما استحق اليوم. عد غدا لما يحل موعده.');
+      ? TQ.t('ما زال لديك ____ مستحقا اليوم — تعرض في دفعة تالية.', questions(state.remaining))
+      : TQ.t('أنهيت كل ما استحق اليوم. عد غدا لما يحل موعده.'));
 
     var acts = $('[data-tq-rv-done-actions]');
     if (acts) {
       acts.innerHTML = (state.remaining > 0
-        ? '<button class="tq-btn tq-btn--primary" type="button" data-tq-rv-more>تابع الدفعة التالية</button>'
+        ? TQ.t('<button class="tq-btn tq-btn--primary" type="button" data-tq-rv-more>تابع الدفعة التالية</button>')
         : '')
-        + '<a class="tq-btn tq-btn--secondary" href="' + escapeHtml(LESSONS) + '">عد إلى دروسك</a>';
+        + '<a class="tq-btn tq-btn--secondary" href="' + escapeHtml(LESSONS) + '">' + escapeHtml(TQ.t('عد إلى دروسك')) + '</a>';
     }
 
     show('[data-tq-rv-done]', true);

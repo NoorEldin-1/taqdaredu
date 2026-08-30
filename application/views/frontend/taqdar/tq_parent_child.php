@@ -293,15 +293,14 @@ include 'portal_open.php';
                 <p class="tq-caption" style="margin-block-end:var(--tq-space-m)"><?php echo t('الالتزام'); ?></p>
                 <?php echo tq_ring($tq_commitment, 120, 10, t('من خطة أسبوعه')); ?>
                 <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
-                    <?php echo tq_iso(t('حضر') . $tq_days_this . t('أيام من') . $tq_plan_days); ?>
+                    <?php echo tq_iso(t('حضر ') . $tq_days_this . t(' أيام من ') . $tq_plan_days); ?>
                 </p>
                 <p class="tq-micro" style="margin:0">
                     <?php if ($tq_plan_is_default): ?>
-                        خطة أسبوعه غير محددة، فالحساب على
-                        <?php echo TQ_LRI . $tq_plan_days . TQ_PDI; ?> أيام افتراضيا —
+                        <?php echo t('خطة أسبوعه غير محددة، فالحساب على ____ أيام افتراضيا —', TQ_LRI . $tq_plan_days . TQ_PDI); ?>
                         <a href="<?php echo base_url('parent/settings'); ?>"><?php echo t('حددها'); ?></a>.
                     <?php else: ?>
-                        حسب خطة <?php echo TQ_LRI . $tq_plan_days . TQ_PDI; ?> أيام التي حددتها له.
+                        <?php echo t('حسب خطة ____ أيام التي حددتها له.', TQ_LRI . $tq_plan_days . TQ_PDI); ?>
                     <?php endif; ?>
                 </p>
             </div>
@@ -311,7 +310,7 @@ include 'portal_open.php';
                 <?php if ($tq_skill['open'] > 0): ?>
                     <?php echo tq_ring($tq_skill['percent'], 120, 10, t('من أهدافه المفتوحة')); ?>
                     <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
-                        <?php echo tq_iso(t('أتقن') . $tq_skill['mastered'] . t('هدفا من') . $tq_skill['open']); ?>
+                        <?php echo tq_iso(t('أتقن ') . $tq_skill['mastered'] . t(' هدفا من ') . $tq_skill['open']); ?>
                     </p>
                     <p class="tq-micro" style="margin:0">
                         <?php echo t('الهدف يفتح بفتح درسه، ويعد متقنا حين يجيب عنه إجابة ثابتة لا إجابة واحدة.'); ?>
@@ -365,11 +364,11 @@ include 'portal_open.php';
                                             : t('لم يبدأ بعد'); ?>
                                     </span>
                                 </div>
-                                <?php echo tq_progress((int) $tq_s['progress'], t('ما أنهاه في') . $tq_s['title']); ?>
+                                <?php echo tq_progress((int) $tq_s['progress'], t('ما أنهاه في ') . $tq_s['title']); ?>
                                 <?php /* الرقم تحت الشريط: النسبة وحدها لا تقول من كم. */ ?>
                                 <?php if ((int) $tq_s['lessons_n'] > 0): ?>
                                     <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
-                                        <?php echo tq_iso(t('أنهى') . (int) $tq_s['done_n'] . t('من')
+                                        <?php echo tq_iso(t('أنهى ') . (int) $tq_s['done_n'] . t(' من ')
                                             . tq_lessons_word((int) $tq_s['lessons_n'])); ?>
                                     </p>
                                 <?php else: ?>
@@ -458,7 +457,7 @@ include 'portal_open.php';
                 <?php endforeach; ?>
             </ul>
             <p class="tq-caption" style="margin-block-start:var(--tq-space-l)">
-                <?php echo tq_iso(t('أنهى') . $tq_completed . t('درسا حتى الآن.')); ?>
+                <?php echo tq_iso(t('أنهى ') . $tq_completed . t(' درسا حتى الآن.')); ?>
             </p>
         </div>
 
@@ -483,7 +482,7 @@ include 'portal_open.php';
                                 <span class="tq-micro" style="display:block">
                                     <?php echo $tq_ts > 0
                                         ? tq_iso(html_escape(date('Y-m-d', $tq_ts) . ' — ' . date('H:i', $tq_ts)
-                                            . ' · ' . (int) $tq_ss['duration_min'] . t('دقيقة')))
+                                            . ' · ' . (int) $tq_ss['duration_min'] . t(' دقيقة')))
                                         : t('الموعد لم يثبت بعد'); ?>
                                 </span>
                                 <span style="display:inline-block;margin-block-start:var(--tq-space-xs)">

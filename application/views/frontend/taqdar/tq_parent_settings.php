@@ -142,14 +142,14 @@ include 'portal_open.php';
                             <span class="tq-prefrow__hint tq-ltr" style="direction:ltr;text-align:start"><?php echo html_escape((string) $l['email']); ?></span>
                             <span class="tq-prefrow__hint">
                                 <?php if (!empty($l['consent_at']) && $l['status'] === 'active'): ?>
-                                    وافق بتاريخ <?php echo TQ_LRI . html_escape((string) $l['consent_at']) . TQ_PDI; ?>
+                                    <?php echo t('وافق بتاريخ ____', TQ_LRI . html_escape((string) $l['consent_at']) . TQ_PDI); ?>
                                 <?php elseif ($l['status'] === 'pending'): ?>
-                                    لا تاريخ موافقة بعد — لا يفتح شيء من بياناته
+                                    <?php echo t('لا تاريخ موافقة بعد — لا يفتح شيء من بياناته'); ?>
                                 <?php elseif (!empty($l['prefs']['rejected']['at'])): ?>
-                                    رفض الطلب بتاريخ <?php echo TQ_LRI . html_escape((string) $l['prefs']['rejected']['at']) . TQ_PDI; ?>
+                                    <?php echo t('رفض الطلب بتاريخ ____', TQ_LRI . html_escape((string) $l['prefs']['rejected']['at']) . TQ_PDI); ?>
                                 <?php elseif (!empty($l['prefs']['revoked']['at'])): ?>
                                     <?php $tq_by_student = ($l['prefs']['revoked']['by_role'] ?? '') === 'student'; ?>
-                                    <?php echo $tq_by_student ? t('سحب موافقته بتاريخ') : t('ألغيت الربط بتاريخ'); ?>
+                                    <?php echo $tq_by_student ? t('سحب موافقته بتاريخ ') : t('ألغيت الربط بتاريخ '); ?>
                                     <?php echo TQ_LRI . html_escape((string) $l['prefs']['revoked']['at']) . TQ_PDI; ?>
                                 <?php endif; ?>
                             </span>
@@ -159,10 +159,10 @@ include 'portal_open.php';
 
                             <?php if ($l['status'] === 'pending'): ?>
                                 <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
-                                      data-tq-confirm-title="سحب طلب ربط <?php echo html_escape($l['name']); ?>؟"
+                                      data-tq-confirm-title="<?php echo te('سحب طلب ربط ____؟', array(html_escape($l['name']))); ?>"
                                       data-tq-confirm="<?php echo te('لن يصله الطلب بعد الآن، ولا يفتح شيء من بياناته — ولم يكن مفتوحا أصلا.'); ?>"
-                                      data-tq-confirm-note="تستطيع إرسال طلب جديد إليه متى شئت."
-                                      data-tq-confirm-ok="سحب الطلب">
+                                      data-tq-confirm-note="<?php echo te('تستطيع إرسال طلب جديد إليه متى شئت.'); ?>"
+                                      data-tq-confirm-ok="<?php echo te('سحب الطلب'); ?>">
                                     <?php echo tq_csrf(); ?>
                                     <input type="hidden" name="tq_action" value="link_cancel">
                                     <input type="hidden" name="link_id" value="<?php echo (int) $l['id']; ?>">
@@ -170,10 +170,10 @@ include 'portal_open.php';
                                 </form>
                             <?php elseif ($l['status'] === 'active'): ?>
                                 <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
-                                      data-tq-confirm-title="إلغاء ربط <?php echo html_escape($l['name']); ?>؟"
+                                      data-tq-confirm-title="<?php echo te('إلغاء ربط ____؟', array(html_escape($l['name']))); ?>"
                                       data-tq-confirm="<?php echo te('لن ترى شيئا من بياناته بعدها: لا تقدمه ولا نتائجه ولا مدفوعاته.'); ?>"
-                                      data-tq-confirm-note="يبقى في السجل تاريخ موافقته وتاريخ الإلغاء. وإعادة المتابعة تحتاج طلبا جديدا وموافقة جديدة منه."
-                                      data-tq-confirm-ok="إلغاء الربط"
+                                      data-tq-confirm-note="<?php echo te('يبقى في السجل تاريخ موافقته وتاريخ الإلغاء. وإعادة المتابعة تحتاج طلبا جديدا وموافقة جديدة منه.'); ?>"
+                                      data-tq-confirm-ok="<?php echo te('إلغاء الربط'); ?>"
                                       data-tq-confirm-tone="danger">
                                     <?php echo tq_csrf(); ?>
                                     <input type="hidden" name="tq_action" value="link_revoke">
@@ -234,7 +234,7 @@ include 'portal_open.php';
                    من لا يعرف ما المحطة، وهو مصطلح المنصة لا مصطلح الناس. */
                 $tq_hints = [
                     'exam_result'      => t('حين تعتمد درجة اختبار لابنك.'),
-                    'placement_result' => t('حين يؤدي اختبار تحديد المستوى — يقول لك أين موضعه')
+                    'placement_result' => t('حين يؤدي اختبار تحديد المستوى — يقول لك أين موضعه ')
                                         . t('وأي باقة تناسبه، ويصلك بالبريد كذلك.'),
                     'station_failed'   => t('حين لا يجتاز اختبار نهاية وحدة، وهو أول ما يستحق تدخلك.'),
                     'inactivity_3days' => t('حين يمر ثلاثة أيام بلا أن يفتح المنصة.'),
@@ -279,9 +279,7 @@ include 'portal_open.php';
                 <?php if ($tq_active_links): ?>
                     <h3 class="tq-strong" style="margin-block:var(--tq-space-xl) var(--tq-space-s)"><?php echo t('أيام الدراسة المتوقعة أسبوعيا'); ?></h3>
                     <p class="tq-caption" style="margin-block-start:0">
-                        عليها يقاس «ما بقي من خطة أسبوعه» في التقرير. وما لم تحددها،
-                        يحسب على <?php echo TQ_LRI . Taqdar_parent_model::PLAN_DAYS_DEFAULT . TQ_PDI; ?> أيام
-                        ويكتب في التقرير أنها الافتراضية لا خطتك.
+                        <?php echo t('عليها يقاس «ما بقي من خطة أسبوعه» في التقرير. وما لم تحددها، يحسب على ____ أيام ويكتب في التقرير أنها الافتراضية لا خطتك.', array(TQ_LRI . Taqdar_parent_model::PLAN_DAYS_DEFAULT . TQ_PDI)); ?>
                     </p>
                     <p class="tq-micro" style="margin-block-start:0">
                         <?php echo t('وهي عن ابنك لا عنك، فتحفظ في نطاق رابطه — بخلاف خانات التنبيه فوق وهي عن حسابك أنت.'); ?>
@@ -304,7 +302,7 @@ include 'portal_open.php';
                                              سطرين متجاورين. */ ?>
                                     <select class="tq-select" id="tq-plan-<?php echo $sid; ?>" name="plan_days[<?php echo $sid; ?>]">
                                         <option value="" <?php echo $plan['is_default'] ? 'selected' : ''; ?>>
-                                            غير محددة — يحسب على <?php echo TQ_LRI . Taqdar_parent_model::PLAN_DAYS_DEFAULT . TQ_PDI; ?> أيام
+                                            <?php echo t('غير محددة — يحسب على ____ أيام', array(TQ_LRI . Taqdar_parent_model::PLAN_DAYS_DEFAULT . TQ_PDI)); ?>
                                         </option>
                                         <?php for ($d = 1; $d <= 7; $d++): ?>
                                             <option value="<?php echo $d; ?>" <?php echo (!$plan['is_default'] && (int) $plan['days'] === $d) ? 'selected' : ''; ?>>
@@ -363,7 +361,7 @@ include 'portal_open.php';
                     <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('login/logout'); ?>"
                        data-tq-confirm-title="<?php echo te('تسجيل الخروج؟'); ?>"
                        data-tq-confirm="<?php echo te('تنتهي جلستك على هذا الجهاز، وتحتاج بريدك وكلمة مرورك للدخول من جديد.'); ?>"
-                       data-tq-confirm-ok="تسجيل الخروج"
+                       data-tq-confirm-ok="<?php echo te('تسجيل الخروج'); ?>"
                        data-tq-confirm-tone="danger"><?php echo t('تسجيل الخروج'); ?></a>
                 </span>
             </div>

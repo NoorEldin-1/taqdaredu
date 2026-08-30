@@ -72,7 +72,7 @@ include 'portal_open.php';
                                 <td data-label="الحالة"><?php echo tq_badge($kind, $word); ?></td>
                                 <td data-label="الفاتورة">
                                     <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('home/invoice/' . (int) $o['id']); ?>">
-                                        <?php echo tq_icon('download'); ?> تحميل
+                                        <?php echo tq_icon('download'); ?> <?php echo t('تحميل'); ?>
                                     </a>
                                 </td>
                             </tr>

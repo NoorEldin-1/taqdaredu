@@ -49,7 +49,7 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
 
     <?php tqa_empty(
         t('لا طلبات انضمام بعد'),
-        t('الطلب ينشأ حين يختار أحدهم بوابة «معلم» في صفحة إنشاء الحساب ويرفق مستند تعريفه.')
+        t('الطلب ينشأ حين يختار أحدهم بوابة «معلم» في صفحة إنشاء الحساب ويرفق مستند تعريفه. ')
         . t('وإن كان التسجيل معلما موقوفا في إعدادات المنصة فلا تصل طلبات أصلا.'),
         '', '', 'file'
     ); ?>
@@ -122,7 +122,7 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                         <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                            href="<?php echo base_url('uploads/document/' . rawurlencode($a['document'])); ?>"
                            target="_blank" rel="noopener">
-                            <?php echo tq_icon('eye', 15); ?> المؤهل
+                            <?php echo tq_icon('eye', 15); ?> <?php echo t('المؤهل'); ?>
                         </a>
                     <?php else: ?>
                         <?php /* الطلب بلا مرفق قائم ويصح اعتماده — ولكن يقال
@@ -137,7 +137,7 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                         <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                            href="<?php echo html_escape($a['sample_url']); ?>"
                            target="_blank" rel="noopener">
-                            <?php echo tq_icon('play', 15); ?> العينة
+                            <?php echo tq_icon('play', 15); ?> <?php echo t('العينة'); ?>
                         </a>
                     <?php else: ?>
                         <span class="tqa-badge tqa-badge--warn"><?php echo t('بلا عينة'); ?></span>
@@ -188,23 +188,23 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                             <form method="post" style="margin:0"
                                   action="<?php echo site_url('taqdar_admin/teacher_review'); ?>"
                                   data-tqa-confirm-title="<?php echo te('اعتماد المعلم'); ?>"
-                                  data-tqa-confirm="سيفتح حساب <?php echo html_escape($name ?: t('هذا المتقدم')); ?> ولوحته، ويصير بإمكانه رفع الدروس والتدريس. راجع مستنده أولا."
-                                  data-tqa-confirm-ok="اعتمد">
+                                  data-tqa-confirm="<?php echo te('سيفتح حساب ____ ولوحته، ويصير بإمكانه رفع الدروس والتدريس. راجع مستنده أولا.', array(html_escape($name ?: t('هذا المتقدم')))); ?>"
+                                  data-tqa-confirm-ok="<?php echo te('اعتمد'); ?>">
                                 <?php echo tq_csrf(); ?>
                                 <input type="hidden" name="app_id" value="<?php echo (int) $a['id']; ?>">
                                 <input type="hidden" name="act" value="approve">
                                 <button type="submit" class="tqa-btn tqa-btn--primary tqa-btn--sm"
                                         <?php echo $tq_ready ? '' : 'disabled'; ?>
                                         title="<?php echo html_escape($tq_why); ?>">
-                                    <?php echo tq_icon('check', 15); ?> اعتماد
+                                    <?php echo tq_icon('check', 15); ?> <?php echo t('اعتماد'); ?>
                                 </button>
                             </form>
 
                             <form method="post" style="margin:0"
                                   action="<?php echo site_url('taqdar_admin/teacher_review'); ?>"
                                   data-tqa-confirm-title="<?php echo te('رفض الطلب'); ?>"
-                                  data-tqa-confirm="يبقى الحساب مغلقا ولا يستطيع صاحبه الدخول. ويسجل القرار باسمك."
-                                  data-tqa-confirm-ok="ارفض الطلب"
+                                  data-tqa-confirm="<?php echo te('يبقى الحساب مغلقا ولا يستطيع صاحبه الدخول. ويسجل القرار باسمك.'); ?>"
+                                  data-tqa-confirm-ok="<?php echo te('ارفض الطلب'); ?>"
                                   data-tqa-confirm-tone="danger">
                                 <?php echo tq_csrf(); ?>
                                 <input type="hidden" name="app_id" value="<?php echo (int) $a['id']; ?>">

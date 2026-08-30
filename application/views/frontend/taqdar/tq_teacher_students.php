@@ -168,7 +168,7 @@ include 'portal_open.php';
                             <li class="tq-row" style="gap:var(--tq-space-l);padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
                                 <img class="tq-avatar"
                                      src="<?php echo tqs_person_img($tq_s['image']); ?>"
-                                     alt="صورة <?php echo html_escape($tq_name); ?>">
+                                     alt="<?php echo te('صورة ____', array(html_escape($tq_name))); ?>">
                                 <div style="flex:1;min-inline-size:0">
                                     <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></p>
                                     <p class="tq-micro" style="margin:0"><?php echo html_escape($tq_s['course_title']); ?></p>
@@ -176,9 +176,9 @@ include 'portal_open.php';
                                 <?php /* «غاب 6 يوما» خطأ ظاهر يقرؤه كل عربي: تمييز العدد من
                                          ثلاثة إلى عشرة جمع قلة. و`tq_days()` في المساعدات تحسمه
                                          منذ كتبت، وهذه الشاشة كانت تلصق « يوما» بيدها. */ ?>
-                                <?php echo tq_badge('due', t('غاب') . tq_days((int) $tq_s['days'])); ?>
+                                <?php echo tq_badge('due', t('غاب ') . tq_days((int) $tq_s['days'])); ?>
                                 <div style="inline-size:160px">
-                                    <?php echo tq_progress((int) $tq_s['progress'], t('تقدم') . $tq_name); ?>
+                                    <?php echo tq_progress((int) $tq_s['progress'], t('تقدم ') . $tq_name); ?>
                                 </div>
                                 <?php if ($tq_msg_ready): ?>
                                     <a class="tq-btn tq-btn--secondary tq-btn--sm"
@@ -233,13 +233,13 @@ include 'portal_open.php';
                                         <span class="tq-row" style="gap:var(--tq-space-s)">
                                             <img class="tq-avatar tq-avatar--sm"
                                                  src="<?php echo tqs_person_img($tq_s['image']); ?>"
-                                                 alt="صورة <?php echo html_escape($tq_name); ?>">
+                                                 alt="<?php echo te('صورة ____', array(html_escape($tq_name))); ?>">
                                             <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></span>
                                         </span>
                                     </td>
                                     <td data-label="الكورس"><?php echo html_escape($tq_s['course_title']); ?></td>
                                     <td data-label="التقدم" style="min-inline-size:170px">
-                                        <?php echo tq_progress((int) $tq_s['progress'], t('تقدم') . $tq_name); ?>
+                                        <?php echo tq_progress((int) $tq_s['progress'], t('تقدم ') . $tq_name); ?>
                                     </td>
                                     <td data-label="متوسط الاختبارات">
                                         <?php if ($tq_s['attempts'] > 0): ?>
@@ -285,12 +285,12 @@ include 'portal_open.php';
             <?php /* المتحكم يكتب نتيجته بمفتاحي `tq_ok`/`tq_error` ومفتاحي
                      المنصة `flash_message`/`error_message` معا — تقرأ هنا
                      بالاصطلاحين، فرسالة لا تقرأ كأنها لم تكتب. */ ?>
-            <?php if ($tq_flash_ok = ($this->session->flashdata('tq_ok') ?: $this->session->flashdata('flash_message'))): ?>
+            <?php if ($tq_flash_ok = (tq_flash('tq_ok') ?: tq_flash('flash_message'))): ?>
                 <div class="tq-pastel tq-pastel--mint" style="margin-block-end:var(--tq-space-l)" role="status">
                     <p class="tq-pastel__body" style="margin:0"><?php echo html_escape($tq_flash_ok); ?></p>
                 </div>
             <?php endif; ?>
-            <?php if ($tq_flash_no = ($this->session->flashdata('tq_error') ?: $this->session->flashdata('error_message'))): ?>
+            <?php if ($tq_flash_no = (tq_flash('tq_error') ?: tq_flash('error_message'))): ?>
                 <div class="tq-pastel tq-pastel--rose" style="margin-block-end:var(--tq-space-l)" role="alert">
                     <p class="tq-pastel__body" style="margin:0"><?php echo html_escape($tq_flash_no); ?></p>
                 </div>

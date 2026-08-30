@@ -55,7 +55,7 @@ $tq_lessons = $this->crud_model->get_lessons('section', $tq_section['id'])->resu
 <div class="tqa-actions">
     <button type="button" class="tqa-btn tqa-btn--primary tqa-btn--block" data-tqa-sort-save
             data-url="<?php echo site_url('admin/ajax_sort_lesson'); ?>" disabled>
-        <?php echo tq_icon('check', 16); ?> احفظ الترتيب
+        <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الترتيب'); ?>
     </button>
 </div>
 

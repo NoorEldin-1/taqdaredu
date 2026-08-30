@@ -44,7 +44,7 @@ if (!function_exists('tq_sar')) {
     function tq_sar($amount, $decimals = 0)
     {
         $n = number_format((float) $amount, $decimals, '.', ',');
-        return '<span class="tq-money">' . TQ_LRI . $n . TQ_PDI . ' ريال</span>';
+        return '<span class="tq-money">' . TQ_LRI . $n . TQ_PDI . t(' ريال</span>');
     }
 }
 
@@ -122,11 +122,11 @@ if (!function_exists('tq_since')) {
     function tq_since($timestamp)
     {
         $d = time() - (int) $timestamp;
-        if ($d < 60)      return 'الآن';
-        if ($d < 3600)    return tq_units(intdiv($d, 60), 'دقيقة', 'دقيقتين', 'دقائق');
-        if ($d < 86400)   return tq_units(intdiv($d, 3600), 'ساعة', 'ساعتين', 'ساعات');
-        if ($d < 2592000) return tq_units(intdiv($d, 86400), 'يوم', 'يومين', 'أيام');
-        return tq_units(intdiv($d, 2592000), 'شهر', 'شهرين', 'أشهر');
+        if ($d < 60)      return t('الآن');
+        if ($d < 3600)    return tq_units(intdiv($d, 60), t('دقيقة'), t('دقيقتين'), t('دقائق'));
+        if ($d < 86400)   return tq_units(intdiv($d, 3600), t('ساعة'), t('ساعتين'), t('ساعات'));
+        if ($d < 2592000) return tq_units(intdiv($d, 86400), t('يوم'), t('يومين'), t('أيام'));
+        return tq_units(intdiv($d, 2592000), t('شهر'), t('شهرين'), t('أشهر'));
     }
 }
 
@@ -134,10 +134,10 @@ if (!function_exists('tq_units')) {
     /** المثنى والجمع في العربية ليسا s تضاف — «منذ 2 ساعة» خطأ لغوي ظاهر. */
     function tq_units($n, $one, $two, $many)
     {
-        if ($n == 1) return 'منذ ' . $one;
-        if ($n == 2) return 'منذ ' . $two;
-        if ($n <= 10) return 'منذ ' . TQ_LRI . $n . TQ_PDI . ' ' . $many;
-        return 'منذ ' . TQ_LRI . $n . TQ_PDI . ' ' . $one;
+        if ($n == 1) return t('منذ ') . $one;
+        if ($n == 2) return t('منذ ') . $two;
+        if ($n <= 10) return t('منذ ') . TQ_LRI . $n . TQ_PDI . ' ' . $many;
+        return t('منذ ') . TQ_LRI . $n . TQ_PDI . ' ' . $one;
     }
 }
 
@@ -211,8 +211,8 @@ if (!function_exists('tq_count_units')) {
         $n = (int) $n;
         if ($singular_acc === null) $singular_acc = $one;
 
-        if ($n <= 0)  return $zero !== null ? $zero : 'لا ' . $one;
-        if ($n === 1) return $one . ($fem ? ' واحدة' : ' واحد');
+        if ($n <= 0)  return $zero !== null ? $zero : t('لا ') . $one;
+        if ($n === 1) return $one . ($fem ? t(' واحدة') : t(' واحد'));
         if ($n === 2) return $case === 'nom' ? $two_nom : $two_obl;
         if ($n <= 10) return $n . ' ' . $many;
         return $n . ' ' . $singular_acc;
@@ -223,7 +223,7 @@ if (!function_exists('tq_days')) {
     /** «٥ أيام» · «يومين»/«يومان» · «يوم واحد» · «٢٩ يوما». */
     function tq_days($n, $zero = 'لا يوم', $case = 'obl')
     {
-        return tq_count_units($n, 'يوم', 'يومان', 'يومين', 'أيام', 'يوما', $zero, $case);
+        return tq_count_units($n, t('يوم'), t('يومان'), t('يومين'), t('أيام'), t('يوما'), $zero, $case);
     }
 }
 
@@ -231,7 +231,7 @@ if (!function_exists('tq_lessons_word')) {
     /** «٤ دروس» · «درسين»/«درسان» · «درس واحد» · «٣٥ درسا». */
     function tq_lessons_word($n, $zero = 'لا دروس', $case = 'obl')
     {
-        return tq_count_units($n, 'درس', 'درسان', 'درسين', 'دروس', 'درسا', $zero, $case);
+        return tq_count_units($n, t('درس'), t('درسان'), t('درسين'), t('دروس'), t('درسا'), $zero, $case);
     }
 }
 
@@ -239,7 +239,7 @@ if (!function_exists('tq_homework_word')) {
     /** «٤ واجبات» · «واجبين»/«واجبان» · «واجب واحد» · «١٢ واجبا». */
     function tq_homework_word($n, $zero = 'لا واجبات', $case = 'obl')
     {
-        return tq_count_units($n, 'واجب', 'واجبان', 'واجبين', 'واجبات', 'واجبا', $zero, $case);
+        return tq_count_units($n, t('واجب'), t('واجبان'), t('واجبين'), t('واجبات'), t('واجبا'), $zero, $case);
     }
 }
 
@@ -247,7 +247,7 @@ if (!function_exists('tq_minutes_word')) {
     /** «٤٥ دقيقة» · «دقيقتين»/«دقيقتان» · «دقيقة واحدة» · «٥ دقائق». مؤنث. */
     function tq_minutes_word($n, $zero = 'لا دقائق', $case = 'obl')
     {
-        return tq_count_units($n, 'دقيقة', 'دقيقتان', 'دقيقتين', 'دقائق', 'دقيقة', $zero, $case, true);
+        return tq_count_units($n, t('دقيقة'), t('دقيقتان'), t('دقيقتين'), t('دقائق'), t('دقيقة'), $zero, $case, true);
     }
 }
 
@@ -255,7 +255,7 @@ if (!function_exists('tq_students_word')) {
     /** «٤ طلاب» · «طالبين»/«طالبان» · «طالب واحد» · «١٢ طالبا». */
     function tq_students_word($n, $zero = 'لا طلاب', $case = 'obl')
     {
-        return tq_count_units($n, 'طالب', 'طالبان', 'طالبين', 'طلاب', 'طالبا', $zero, $case);
+        return tq_count_units($n, t('طالب'), t('طالبان'), t('طالبين'), t('طلاب'), t('طالبا'), $zero, $case);
     }
 }
 
@@ -263,7 +263,7 @@ if (!function_exists('tq_sessions_word')) {
     /** «٤ حصص» · «حصتين»/«حصتان» · «حصة واحدة» · «١٢ حصة». مؤنث. */
     function tq_sessions_word($n, $zero = 'لا حصص', $case = 'obl')
     {
-        return tq_count_units($n, 'حصة', 'حصتان', 'حصتين', 'حصص', 'حصة', $zero, $case, true);
+        return tq_count_units($n, t('حصة'), t('حصتان'), t('حصتين'), t('حصص'), t('حصة'), $zero, $case, true);
     }
 }
 
@@ -271,7 +271,7 @@ if (!function_exists('tq_exams_word')) {
     /** «٤ اختبارات» · «اختبارين»/«اختباران» · «اختبار واحد» · «١٢ اختبارا». */
     function tq_exams_word($n, $zero = 'لا اختبارات', $case = 'obl')
     {
-        return tq_count_units($n, 'اختبار', 'اختباران', 'اختبارين', 'اختبارات', 'اختبارا', $zero, $case);
+        return tq_count_units($n, t('اختبار'), t('اختباران'), t('اختبارين'), t('اختبارات'), t('اختبارا'), $zero, $case);
     }
 }
 

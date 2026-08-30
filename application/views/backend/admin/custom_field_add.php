@@ -100,7 +100,7 @@ foreach ($this->db->select('custom_type, custom_title')->where('course_id', (int
                         <span class="tqa-field__label"><?php echo t('الصورة'); ?></span>
                         <div class="tqa-file">
                             <input type="file" name="image_file[]" accept="image/*" data-tqa-file>
-                            <label class="tqa-file__btn"><?php echo tq_icon('image', 16); ?> اختر صورة</label>
+                            <label class="tqa-file__btn"><?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورة'); ?></label>
                             <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
                         </div>
                     </div>
@@ -133,7 +133,7 @@ foreach ($this->db->select('custom_type, custom_title')->where('course_id', (int
                         <span class="tqa-field__label"><?php echo t('الصور'); ?></span>
                         <div class="tqa-file">
                             <input type="file" name="gallery_images[]" accept="image/*" multiple data-tqa-file>
-                            <label class="tqa-file__btn"><?php echo tq_icon('image', 16); ?> اختر صورا</label>
+                            <label class="tqa-file__btn"><?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورا'); ?></label>
                             <span class="tqa-file__name" data-tqa-file-name><?php echo t('يمكن اختيار عدة صور معا'); ?></span>
                         </div>
                     </div>
@@ -142,7 +142,7 @@ foreach ($this->db->select('custom_type, custom_title')->where('course_id', (int
                 <div class="tqa-actions" style="margin-block-start:var(--tq-space-s)">
                     <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-remove
                             style="color:var(--tq-danger)">
-                        <?php echo tq_icon('trash', 14); ?> احذف هذا البند
+                        <?php echo tq_icon('trash', 14); ?> <?php echo t('احذف هذا البند'); ?>
                     </button>
                 </div>
             </div>
@@ -151,7 +151,7 @@ foreach ($this->db->select('custom_type, custom_title')->where('course_id', (int
         <?php if ($tq_k !== 'gallery'): ?>
             <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                     data-tqa-rep-add="<?php echo $tq_k; ?>">
-                <?php echo tq_icon('plus', 14); ?> أضف بندا
+                <?php echo tq_icon('plus', 14); ?> <?php echo t('أضف بندا'); ?>
             </button>
         <?php endif; ?>
     </div>
@@ -159,7 +159,7 @@ foreach ($this->db->select('custom_type, custom_title')->where('course_id', (int
 
     <div class="tqa-actions" data-tqa-cf-save hidden>
         <button class="tqa-btn tqa-btn--primary tqa-btn--block" type="submit">
-            <?php echo tq_icon('check', 16); ?> أضف القسم
+            <?php echo tq_icon('check', 16); ?> <?php echo t('أضف القسم'); ?>
         </button>
     </div>
 </form>

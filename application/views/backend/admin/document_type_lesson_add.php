@@ -15,7 +15,7 @@
     <div class="tqa-file">
         <input type="file" id="attachment" name="attachment" required data-tqa-file
                accept=".pdf,.doc,.docx,.txt">
-        <label class="tqa-file__btn" for="attachment"><?php echo tq_icon('upload', 16); ?> اختر ملفا</label>
+        <label class="tqa-file__btn" for="attachment"><?php echo tq_icon('upload', 16); ?> <?php echo t('اختر ملفا'); ?></label>
         <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
     </div>
 </div>

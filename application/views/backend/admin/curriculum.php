@@ -51,23 +51,23 @@ $tq_kind = function ($lesson) {
 <div class="tqa-toolbar">
     <button type="button" class="tqa-btn tqa-btn--primary"
             onclick="showAjaxModal('<?php echo site_url('modal/popup/section_add/' . (int) $course_id); ?>', 'إضافة قسم')">
-        <?php echo tq_icon('plus', 16); ?> إضافة قسم
+        <?php echo tq_icon('plus', 16); ?> <?php echo t('إضافة قسم'); ?>
     </button>
 
     <button type="button" class="tqa-btn tqa-btn--ghost"
             onclick="showAjaxModal('<?php echo site_url('modal/popup/lesson_types/' . (int) $course_id); ?>', 'إضافة درس')">
-        <?php echo tq_icon('plus', 16); ?> إضافة درس
+        <?php echo tq_icon('plus', 16); ?> <?php echo t('إضافة درس'); ?>
     </button>
 
     <?php if ($tq_sections): ?>
         <button type="button" class="tqa-btn tqa-btn--ghost"
                 onclick="showAjaxModal('<?php echo site_url('modal/popup/quiz_add/' . (int) $course_id); ?>', 'إضافة اختبار')">
-            <?php echo tq_icon('plus', 16); ?> إضافة اختبار
+            <?php echo tq_icon('plus', 16); ?> <?php echo t('إضافة اختبار'); ?>
         </button>
 
         <button type="button" class="tqa-btn tqa-btn--ghost"
                 onclick="showLargeModal('<?php echo site_url('modal/popup/sort_section/' . (int) $course_id); ?>', 'ترتيب الأقسام')">
-            <?php echo tq_icon('layers', 16); ?> ترتيب الأقسام
+            <?php echo tq_icon('layers', 16); ?> <?php echo t('ترتيب الأقسام'); ?>
         </button>
     <?php endif; ?>
 </div>
@@ -107,9 +107,9 @@ $tq_kind = function ($lesson) {
                         <?php echo html_escape($tq_s['title']); ?>
                     </h2>
                     <span class="tqa-media__sub">
-                        <span class="tqa-num"><?php echo count($tq_lessons); ?></span> درسا
+                        <span class="tqa-num"><?php echo count($tq_lessons); ?></span> <?php echo t('درسا'); ?>
                         <?php if ($tq_plan): ?>
-                            · خطة دراسة
+                            <?php echo t('· خطة دراسة'); ?>
                             <span class="tq-ltr" dir="ltr"><?php echo date('Y-m-d', (int) $tq_s['start_date']); ?></span>
                             —
                             <span class="tq-ltr" dir="ltr"><?php echo date('Y-m-d', (int) $tq_s['end_date']); ?></span>
@@ -121,19 +121,19 @@ $tq_kind = function ($lesson) {
                     <?php if (count($tq_lessons) > 1): ?>
                         <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                 onclick="showLargeModal('<?php echo site_url('modal/popup/sort_lesson/' . (int) $tq_s['id']); ?>', 'ترتيب الدروس')">
-                            <?php echo tq_icon('layers', 14); ?> ترتيب
+                            <?php echo tq_icon('layers', 14); ?> <?php echo t('ترتيب'); ?>
                         </button>
                     <?php endif; ?>
 
                     <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                             onclick="showAjaxModal('<?php echo site_url('modal/popup/section_edit/' . (int) $tq_s['id'] . '/' . (int) $course_id); ?>', 'تعديل القسم')">
-                        <?php echo tq_icon('edit', 14); ?> تعديل
+                        <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
                     </button>
 
                     <form method="post" action="<?php echo site_url('admin/sections/' . (int) $course_id . '/delete/' . (int) $tq_s['id']); ?>"
                           data-tqa-confirm-title="<?php echo te('حذف القسم'); ?>"
-                          data-tqa-confirm="سيحذف «<?php echo html_escape($tq_s['title']); ?>» وكل دروسه. لا رجعة في هذا."
-                          data-tqa-confirm-ok="نعم، احذف"
+                          data-tqa-confirm="<?php echo te('سيحذف «____» وكل دروسه. لا رجعة في هذا.', array(html_escape($tq_s['title']))); ?>"
+                          data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                           data-tqa-confirm-tone="danger">
                         <?php echo tq_csrf(); ?>
                         <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
@@ -177,12 +177,12 @@ $tq_kind = function ($lesson) {
                             <?php if ($tq_is_quiz): ?>
                                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                         onclick="showLargeModal('<?php echo site_url('modal/popup/quiz_questions/' . (int) $tq_l['id']); ?>', 'أسئلة الاختبار')">
-                                    <?php echo tq_icon('help', 14); ?> الأسئلة
+                                    <?php echo tq_icon('help', 14); ?> <?php echo t('الأسئلة'); ?>
                                 </button>
 
                                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                         onclick="showAjaxModal('<?php echo site_url('modal/popup/quiz_edit/' . (int) $tq_l['id'] . '/' . (int) $course_id); ?>', 'تعديل الاختبار')">
-                                    <?php echo tq_icon('edit', 14); ?> تعديل
+                                    <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
                                 </button>
                             <?php else: ?>
                                 <?php /* اختبار الدرس — بجوار درسه لا في شاشة بعيدة: هو
@@ -200,26 +200,26 @@ $tq_kind = function ($lesson) {
 
                                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                         onclick="showAjaxModal('<?php echo site_url('modal/popup/resource_files/' . (int) $tq_l['id']); ?>', 'ملفات الدرس')">
-                                    <?php echo tq_icon('folder', 14); ?> الملفات
+                                    <?php echo tq_icon('folder', 14); ?> <?php echo t('الملفات'); ?>
                                 </button>
 
                                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                         onclick="showAjaxModal('<?php echo site_url('modal/popup/lesson_edit/' . (int) $tq_l['id'] . '/' . (int) $course_id); ?>', 'تعديل الدرس')">
-                                    <?php echo tq_icon('edit', 14); ?> تعديل
+                                    <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
                                 </button>
                             <?php endif; ?>
 
                             <form method="post"
                                   action="<?php echo site_url('admin/lessons/' . (int) $course_id . '/delete/' . (int) $tq_l['id']); ?>"
                                   data-tqa-confirm-title="<?php echo $tq_is_quiz ? t('حذف الاختبار') : t('حذف الدرس'); ?>"
-                                  data-tqa-confirm="سيحذف «<?php echo html_escape($tq_l['title']); ?>» نهائيا."
-                                  data-tqa-confirm-ok="نعم، احذف"
+                                  data-tqa-confirm="<?php echo te('سيحذف «____» نهائيا.', array(html_escape($tq_l['title']))); ?>"
+                                  data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                   data-tqa-confirm-tone="danger">
                                 <?php echo tq_csrf(); ?>
                                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                         style="color:var(--tq-danger)">
                                     <?php echo tq_icon('trash', 14); ?>
-                                    <span class="tqa-sr">حذف <?php echo html_escape($tq_l['title']); ?></span>
+                                    <span class="tqa-sr"><?php echo t('حذف'); ?> <?php echo html_escape($tq_l['title']); ?></span>
                                 </button>
                             </form>
                         </div>

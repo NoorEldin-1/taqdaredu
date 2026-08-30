@@ -63,7 +63,7 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
              معلما لا يخطر له أن يبحث عنه في شاشة أخرى. */ ?>
     <a class="tqa-btn tqa-btn--primary tqa-btn--sm" style="margin-inline-start:auto"
        href="<?php echo site_url('taqdar_admin/teacher_new'); ?>">
-        <?php echo tq_icon('user-check', 16); ?> أضف معلما
+        <?php echo tq_icon('user-check', 16); ?> <?php echo t('أضف معلما'); ?>
     </a>
 </div>
 

@@ -22,7 +22,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 <?php tqa_head(t('إضافة كورس'), t('الكورس وعاء الدروس. تضاف أقسامه ودروسه بعد حفظه.'), 'book',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/courses') . '">'
-  . tq_icon('chev-prev', 16) . t('كل الكورسات</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل الكورسات</a>')); ?>
 
 <form class="required-form" action="<?php echo site_url('admin/course_actions/add'); ?>" method="post"
       enctype="multipart/form-data" style="max-inline-size:900px">
@@ -132,7 +132,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
                         <input type="file" id="upcoming_image_thumbnail" name="upcoming_image_thumbnail"
                                accept="image/*" data-tqa-file>
                         <label class="tqa-file__btn" for="upcoming_image_thumbnail">
-                            <?php echo tq_icon('image', 16); ?> اختر صورة
+                            <?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورة'); ?>
                         </label>
                         <span class="tqa-file__name" data-tqa-file-name><?php echo t('المقاس المفضل ‎365 × 460‎'); ?></span>
                     </div>
@@ -191,14 +191,14 @@ defined('BASEPATH') or exit('No direct script access allowed');
             <div class="tqa-fieldgrid">
                 <div class="tqa-field">
                     <label class="tqa-field__label" for="price">
-                        السعر (<?php echo html_escape(currency_code_and_symbol()); ?>)
+                        <?php echo t('السعر ('); ?><?php echo html_escape(currency_code_and_symbol()); ?>)
                     </label>
                     <input class="tqa-input tqa-input--ltr" type="number" id="price" name="price" min="0" step="0.01">
                 </div>
 
                 <div class="tqa-field">
                     <label class="tqa-field__label" for="discounted_price">
-                        السعر بعد الخصم (<?php echo html_escape(currency_code_and_symbol()); ?>)
+                        <?php echo t('السعر بعد الخصم ('); ?><?php echo html_escape(currency_code_and_symbol()); ?>)
                     </label>
                     <input class="tqa-input tqa-input--ltr" type="number" id="discounted_price"
                            name="discounted_price" min="0" step="0.01" data-tqa-discount>
@@ -291,7 +291,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
                 </div>
             </div>
             <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-add="requirements">
-                <?php echo tq_icon('plus', 14); ?> أضف متطلبا
+                <?php echo tq_icon('plus', 14); ?> <?php echo t('أضف متطلبا'); ?>
             </button>
         </div>
 
@@ -308,7 +308,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
                 </div>
             </div>
             <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-add="outcomes">
-                <?php echo tq_icon('plus', 14); ?> أضف مخرجا
+                <?php echo tq_icon('plus', 14); ?> <?php echo t('أضف مخرجا'); ?>
             </button>
         </div>
 
@@ -324,13 +324,13 @@ defined('BASEPATH') or exit('No direct script access allowed');
                     <div class="tqa-actions" style="margin-block-start:var(--tq-space-s)">
                         <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-remove
                                 style="color:var(--tq-danger)">
-                            <?php echo tq_icon('trash', 14); ?> احذف هذا السؤال
+                            <?php echo tq_icon('trash', 14); ?> <?php echo t('احذف هذا السؤال'); ?>
                         </button>
                     </div>
                 </div>
             </div>
             <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-add="faqs">
-                <?php echo tq_icon('plus', 14); ?> أضف سؤالا
+                <?php echo tq_icon('plus', 14); ?> <?php echo t('أضف سؤالا'); ?>
             </button>
         </div>
     </div>
@@ -360,7 +360,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('check', 16); ?> أنشئ الكورس
+            <?php echo tq_icon('check', 16); ?> <?php echo t('أنشئ الكورس'); ?>
         </button>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/courses'); ?>"><?php echo t('إلغاء'); ?></a>
     </div>

@@ -30,9 +30,9 @@ try {
 
 <?php tqa_head(t('أقسام المدونة'), t('كل مقال يسند إلى قسم واحد، والقسم يظهر مرشحا في صفحة المدونة.'), 'grid',
     '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_blog_category') . '">'
-  . tq_icon('plus', 17) . t('قسم جديد</a>')
+  . tq_icon('plus', 17) . t(' قسم جديد</a>')
   . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog') . '">'
-  . tq_icon('file', 16) . t('المقالات</a>')); ?>
+  . tq_icon('file', 16) . t(' المقالات</a>')); ?>
 
 <?php if (empty($tq_cats)): ?>
 
@@ -65,18 +65,18 @@ try {
                 <div class="tqa-item__foot">
                     <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                        href="<?php echo site_url('admin/edit_blog_category/' . $tq_id); ?>">
-                        <?php echo tq_icon('edit', 15); ?> تعديل
+                        <?php echo tq_icon('edit', 15); ?> <?php echo t('تعديل'); ?>
                     </a>
 
                     <form method="post" style="margin-inline-start:auto"
                           action="<?php echo site_url('admin/blog_category/delete/' . $tq_id); ?>"
                           data-tqa-confirm-title="<?php echo te('حذف القسم'); ?>"
-                          data-tqa-confirm="سيحذف «<?php echo html_escape($tq_c['title']); ?>». والمقالات المصنفة تحته تبقى بلا قسم."
-                          data-tqa-confirm-ok="نعم، احذف"
+                          data-tqa-confirm="<?php echo te('سيحذف «____». والمقالات المصنفة تحته تبقى بلا قسم.', array(html_escape($tq_c['title']))); ?>"
+                          data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                           data-tqa-confirm-tone="danger">
                         <?php echo tq_csrf(); ?>
                         <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
-                            <?php echo tq_icon('trash', 15); ?> حذف
+                            <?php echo tq_icon('trash', 15); ?> <?php echo t('حذف'); ?>
                         </button>
                     </form>
                 </div>

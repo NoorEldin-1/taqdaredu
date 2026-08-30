@@ -6,7 +6,7 @@
     <span class="tqa-field__label"><?php echo t('ملف الفيديو'); ?> <span class="tqa-field__req" aria-hidden="true">*</span></span>
     <div class="tqa-file">
         <input type="file" id="system_video_file" name="system_video_file" accept="video/*" required data-tqa-file>
-        <label class="tqa-file__btn" for="system_video_file"><?php echo tq_icon('upload', 16); ?> اختر ملفا</label>
+        <label class="tqa-file__btn" for="system_video_file"><?php echo tq_icon('upload', 16); ?> <?php echo t('اختر ملفا'); ?></label>
         <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
     </div>
     <?php /* حدود الخادم تعلن قبل الرفع لا بعده: الملف الأكبر من الحد كان
@@ -28,7 +28,7 @@
     <span class="tqa-field__label"><?php echo t('ملف الترجمة'); ?></span>
     <div class="tqa-file">
         <input type="file" id="caption" name="caption" accept=".vtt" data-tqa-file>
-        <label class="tqa-file__btn" for="caption"><?php echo tq_icon('file-text', 16); ?> اختر ملفا</label>
+        <label class="tqa-file__btn" for="caption"><?php echo tq_icon('file-text', 16); ?> <?php echo t('اختر ملفا'); ?></label>
         <span class="tqa-file__name" data-tqa-file-name><?php echo t('صيغة'); ?> <span class="tq-ltr" dir="ltr">.vtt</span> <?php echo t('وحدها'); ?></span>
     </div>
 </div>

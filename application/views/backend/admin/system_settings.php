@@ -319,7 +319,7 @@ $tq_yes = function ($key, $on = 'enable') { return get_settings($key) === $on; }
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('check', 16); ?> احفظ الإعدادات
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الإعدادات'); ?>
         </button>
     </div>
 </form>

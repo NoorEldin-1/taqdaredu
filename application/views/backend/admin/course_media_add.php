@@ -45,7 +45,7 @@ $tq_row = isset($course_details) ? $course_details : null;
 
         <div class="tqa-checker" style="min-block-size:130px">
             <?php if ($tq_src !== ''): ?>
-                <img src="<?php echo html_escape($tq_src); ?>" alt="<?php echo html_escape($tq_label); ?> الحالية">
+                <img src="<?php echo html_escape($tq_src); ?>" alt="<?php echo te('____ الحالية', array(html_escape($tq_label))); ?>">
             <?php else: ?>
                 <span style="font:var(--tq-type-caption);color:var(--tq-text2)"><?php echo t('لا صورة'); ?></span>
             <?php endif; ?>
@@ -55,7 +55,7 @@ $tq_row = isset($course_details) ? $course_details : null;
             <input type="file" id="m_<?php echo html_escape($tq_key); ?>" name="<?php echo html_escape($tq_key); ?>"
                    accept="image/*" data-tqa-file>
             <label class="tqa-file__btn" for="m_<?php echo html_escape($tq_key); ?>">
-                <?php echo tq_icon('image', 16); ?> اختر صورة
+                <?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورة'); ?>
             </label>
             <span class="tqa-file__name" data-tqa-file-name>
                 <?php echo t('المقاس المفضل'); ?> <span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_size); ?></span>

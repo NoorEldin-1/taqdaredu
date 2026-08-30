@@ -13,6 +13,6 @@ $tq_skills = true;
     t('الحساب ينشأ هنا، والإسناد إلى المواد والصفوف من شاشة «إسناد المعلمين».'),
     'graduation',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/instructors') . '">'
-  . tq_icon('chev-prev', 16) . t('كل المعلمين</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل المعلمين</a>')); ?>
 
 <?php include '_tq_account_form.php'; ?>

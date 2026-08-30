@@ -19,7 +19,7 @@
     <span class="tqa-field__label"><?php echo t('صورة الدرس'); ?></span>
     <div class="tqa-file">
         <input type="file" id="thumbnail" name="thumbnail" accept="image/*" data-tqa-file>
-        <label class="tqa-file__btn" for="thumbnail"><?php echo tq_icon('image', 16); ?> اختر صورة</label>
+        <label class="tqa-file__btn" for="thumbnail"><?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورة'); ?></label>
         <span class="tqa-file__name" data-tqa-file-name><?php echo t('المقاس المفضل ‎979 × 551‎'); ?></span>
     </div>
 </div>
@@ -28,7 +28,7 @@
     <span class="tqa-field__label"><?php echo t('ملف الترجمة'); ?></span>
     <div class="tqa-file">
         <input type="file" id="caption" name="caption" accept=".vtt" data-tqa-file>
-        <label class="tqa-file__btn" for="caption"><?php echo tq_icon('file-text', 16); ?> اختر ملفا</label>
+        <label class="tqa-file__btn" for="caption"><?php echo tq_icon('file-text', 16); ?> <?php echo t('اختر ملفا'); ?></label>
         <span class="tqa-file__name" data-tqa-file-name><?php echo t('صيغة'); ?> <span class="tq-ltr" dir="ltr">.vtt</span> <?php echo t('وحدها'); ?></span>
     </div>
 </div>

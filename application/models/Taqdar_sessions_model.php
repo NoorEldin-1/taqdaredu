@@ -349,20 +349,20 @@ class Taqdar_sessions_model extends CI_Model
     /** الفترات الثلاث: ساعة البدء ومدتها بالدقائق ونصها كما يعرض. */
     public function periods()
     {
-        return [
+        return tq_t_deep([
             'morning' => ['label' => 'صباحا', 'range' => '8:00 – 12:00',  'hour' => 8,  'duration' => 240],
             'noon'    => ['label' => 'ظهرا',  'range' => '12:00 – 16:00', 'hour' => 12, 'duration' => 240],
             'evening' => ['label' => 'مساء',  'range' => '16:00 – 21:00', 'hour' => 16, 'duration' => 300],
-        ];
+        ]);
     }
 
     /** أيام الأسبوع بترتيب `date('w')` نفسه: الأحد أولا. */
     public function days()
     {
-        return [
+        return tq_t_deep([
             0 => 'الأحد', 1 => 'الاثنين', 2 => 'الثلاثاء', 3 => 'الأربعاء',
             4 => 'الخميس', 5 => 'الجمعة', 6 => 'السبت',
-        ];
+        ]);
     }
 
     /** أسماء الشهور الميلادية كما تكتب في السوق السعودي. */
@@ -371,7 +371,8 @@ class Taqdar_sessions_model extends CI_Model
         static $names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
                          'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
         $i = ((int) $m) - 1;
-        return $names[$i] ?? '';
+        /* TQ-I18N — الترجمة عند الخروج: `static` لا يقبل نداء في تهيئته. */
+        return isset($names[$i]) ? t($names[$i]) : '';
     }
 
     /** عدد المواعيد التي تفرش إليها فترة، ومدة كل موعد. */
@@ -1094,7 +1095,9 @@ class Taqdar_sessions_model extends CI_Model
             'is_over'      => $is_over,
             'starts_ts'    => $starts,
             'ends_ts'      => $ends,
-            'note'         => $note,
+            /* TQ-I18N — الملاحظة تحسب في كل طلب ولا تخزن، فتترجم هنا بلغة
+               من يقرؤها. وترجمتها عند الكتابة لا معنى له: لا كتابة أصلا. */
+            'note'         => t($note),
         );
     }
 
@@ -1591,7 +1594,9 @@ class Taqdar_sessions_model extends CI_Model
             'expired'          => ['late',     'مضت مهلتها'],
             'refunded'         => ['idle',     'مستردة'],
         ];
-        return $map[$status] ?? ['idle', $status];
+        /* TQ-I18N — الشارة تسمية تعرض ولا تخزن، فتترجم عند الخروج.
+           والمفتاح (`idle`/`late`) صنف CSS لا نص، فيمر كما هو. */
+        return tq_t_deep($map[$status] ?? ['idle', $status]);
     }
 
     /* =====================================================================

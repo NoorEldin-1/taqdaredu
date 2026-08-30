@@ -63,7 +63,7 @@
     var on = railCollapsed();
     $$('[data-tq-rail-collapse]').forEach(function (b) {
       b.setAttribute('aria-expanded', on ? 'false' : 'true');
-      var label = on ? 'توسيع القائمة الجانبية' : 'طي القائمة الجانبية';
+      var label = on ? TQ.t('توسيع القائمة الجانبية') : TQ.t('طي القائمة الجانبية');
       b.setAttribute('aria-label', label);
       b.setAttribute('title', label);
     });
@@ -177,7 +177,7 @@
         '</div>' +
         '<p class="tq-confirm__note" data-note hidden></p>' +
         '<div class="tq-confirm__acts">' +
-          '<button type="button" class="tq-btn tq-btn--ghost" data-cancel>إلغاء</button>' +
+          '<button type="button" class="tq-btn tq-btn--ghost" data-cancel>' + TQ.t('إلغاء') + '</button>' +
           '<button type="button" class="tq-btn tq-btn--primary" data-ok></button>' +
         '</div>' +
       '</div>';
@@ -233,7 +233,7 @@
     box.setAttribute('data-tone', tone);
 
     box.querySelector('#tq-confirm-t').textContent =
-      el.getAttribute('data-tq-confirm-title') || 'تأكيد';
+      el.getAttribute('data-tq-confirm-title') || TQ.t('تأكيد');
     box.querySelector('#tq-confirm-b').textContent = el.getAttribute('data-tq-confirm') || '';
 
     var note = box.querySelector('[data-note]');
@@ -242,7 +242,7 @@
     note.hidden = noteText === '';
 
     var ok = box.querySelector('[data-ok]');
-    ok.textContent = el.getAttribute('data-tq-confirm-ok') || 'تأكيد';
+    ok.textContent = el.getAttribute('data-tq-confirm-ok') || TQ.t('تأكيد');
     ok.className = 'tq-btn ' + (tone === 'danger' ? 'tq-btn--danger' : 'tq-btn--primary');
 
     cfTarget = el;

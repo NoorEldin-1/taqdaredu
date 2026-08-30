@@ -25,9 +25,18 @@ foreach ($argv as $a) if (strpos($a, '--max=') === 0) $max = (int) substr($a, 6)
 
 /* ---- القاموس ---- */
 $cat = array();
+$hand = array();   // مفاتيح الملفات اليدوية — لا تعد ترجمة ميتة
 foreach (glob('application/language/tq/english/*.php') as $f) {
     $part = include $f;
-    if (is_array($part)) foreach ($part as $k => $v) $cat[tq_key($k)] = $v;
+    if (!is_array($part)) continue;
+    $isHand = (basename($f)[0] === '_');
+    foreach ($part as $k => $v) {
+        $cat[tq_key($k)] = $v;
+        /* الملف اليدوي مفاتيحه من القاعدة لا من الشيفرة (نص شريط الارتباط،
+           اسم المنصة)، فالفاحص لا يجدها في مرور الشيفرة — وعدها «ميتة»
+           يجعل العداد يشكو أبدا مما هو صحيح. */
+        if ($isHand) $hand[tq_key($k)] = true;
+    }
 }
 
 $unwrapped = array();   // نص ظاهر لم يلف
@@ -47,7 +56,8 @@ foreach (tq_i18n_targets() as $gname => $group) {
             $k = tq_key(tq_tok_value($tok));
             $reason = tq_php_reject($toks, $i);
 
-            if ($reason === 'already') { $used[$k] = $gname; continue; }
+            if ($reason === 'already')   { $used[$k] = $gname; continue; }
+            if ($reason === 'db-phrase') continue;   // جدول `language` يترجمه
             if ($reason !== null) continue;                    // لا يترجم عمدا
 
             /* في القوالب: نص لم يلف. وفي الطبقة تحتها: مفتاح ينتظر ترجمة
@@ -83,11 +93,24 @@ foreach (tq_i18n_targets() as $gname => $group) {
     }
 }
 
+/* والسكربتات كذلك — `TQ.t()`/`TQA.t()`.
+   وبلا هذه الجولة يعد الفاحص كل مفتاح جافاسكربت **ترجمة ميتة**: مئة وواحد
+   مفتاح تقول الشاشة إنها لا تستعمل، وهي تعرض في كل نافذة تأكيد. */
+foreach (glob('assets/taqdar/js/*.js') as $f) {
+    $src = file_get_contents($f);
+    if (preg_match_all("/\\b(?:TQ|TQA)\\.t\\(\\s*(['\"])((?:(?!\\1)[^\\\\]|\\\\.)*)\\1/u", $src, $m)) {
+        foreach ($m[2] as $raw) {
+            $k = tq_key(stripslashes($raw));
+            if ($k !== '' && tq_has_arabic($k)) $used[$k] = 'js';
+        }
+    }
+}
+
 $missing = array();
 foreach ($used as $k => $g) if (!isset($cat[$k]) || $cat[$k] === '' || $cat[$k] === null) $missing[$k] = $g;
 
 $dead = array();
-foreach ($cat as $k => $v) if (!isset($used[$k])) $dead[$k] = true;
+foreach ($cat as $k => $v) if (!isset($used[$k]) && !isset($hand[$k])) $dead[$k] = true;
 
 /* ---- التقرير ---- */
 echo "keys used in code      : " . count($used) . "\n";

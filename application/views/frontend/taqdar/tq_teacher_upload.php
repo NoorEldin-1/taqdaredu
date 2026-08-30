@@ -44,13 +44,13 @@ $tq_recent     = $tq_model->recent_lessons($tq_uid, 5);
    الرسائل تقرأ بالصيغتين: المفتاح العام في المنصة (flash_message /
    error_message) والمفتاح المفصل الذي يعيده النموذج (قائمة أخطاء +
    ما كتبه المعلم). فأيهما ضبطه المتحكم عمل، ولا يفقد المعلم مدخلاته. */
-$tq_ok_msg  = $CI->session->flashdata('flash_message');
-$tq_err_msg = $CI->session->flashdata('error_message');
-$tq_errors  = $CI->session->flashdata('tq_upload_errors');
+$tq_ok_msg  = tq_flash('flash_message');
+$tq_err_msg = tq_flash('error_message');
+$tq_errors  = tq_flash('tq_upload_errors');
 if (!is_array($tq_errors)) $tq_errors = array();
 if ($tq_err_msg && !$tq_errors) $tq_errors[] = $tq_err_msg;
 
-$tq_old = $CI->session->flashdata('tq_upload_old');
+$tq_old = tq_flash('tq_upload_old');
 if (!is_array($tq_old)) $tq_old = array();
 
 /** قيمة سابقة لحقل، أو الافتراضي. */
@@ -195,7 +195,7 @@ include 'portal_open.php';
                     <?php for ($tq_i = 1; $tq_i <= 3; $tq_i++): ?>
                         <div class="tq-field">
                             <label class="tq-field__label" for="tq-obj-<?php echo $tq_i; ?>">
-                                <?php echo tq_iso(t('الهدف') . $tq_i . ($tq_i === 1 ? t('(مطلوب)') : t('(اختياري)'))); ?>
+                                <?php echo tq_iso(t('الهدف ') . $tq_i . ($tq_i === 1 ? t(' (مطلوب)') : t(' (اختياري)'))); ?>
                             </label>
                             <input class="tq-input" id="tq-obj-<?php echo $tq_i; ?>" type="text"
                                    name="objectives[]" maxlength="160"

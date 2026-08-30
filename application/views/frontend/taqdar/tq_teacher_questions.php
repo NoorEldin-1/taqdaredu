@@ -120,12 +120,12 @@ include 'portal_open.php';
 
         <?php /* نتيجة الاستيراد: المتحكم يكتبها بمفتاحي `tq_ok`/`tq_error`
                  ومفتاحي المنصة معا — تقرأ هنا بالاصطلاحين. */ ?>
-        <?php if ($tq_ok = ($this->session->flashdata('tq_ok') ?: $this->session->flashdata('flash_message'))): ?>
+        <?php if ($tq_ok = (tq_flash('tq_ok') ?: tq_flash('flash_message'))): ?>
             <div class="tq-pastel tq-pastel--mint tq-section" role="status">
                 <p class="tq-pastel__body" style="margin:0"><?php echo html_escape($tq_ok); ?></p>
             </div>
         <?php endif; ?>
-        <?php if ($tq_no = ($this->session->flashdata('tq_error') ?: $this->session->flashdata('error_message'))): ?>
+        <?php if ($tq_no = (tq_flash('tq_error') ?: tq_flash('error_message'))): ?>
             <div class="tq-pastel tq-pastel--rose tq-section" role="alert">
                 <p class="tq-pastel__body" style="margin:0"><?php echo html_escape($tq_no); ?></p>
             </div>
@@ -182,7 +182,7 @@ include 'portal_open.php';
                 </table>
                 <?php if ($tq_total_count > count($tq_questions)): ?>
                     <p class="tq-caption" style="margin-block-start:var(--tq-space-l)">
-                        <?php echo tq_iso(t('تعرض هنا أحدث') . count($tq_questions) . t('سؤالا من') . $tq_total_count
+                        <?php echo tq_iso(t('تعرض هنا أحدث ') . count($tq_questions) . t(' سؤالا من ') . $tq_total_count
                             . t('. صفي بكورس بعينه من الأعلى لترى بنكه كاملا.')); ?>
                     </p>
                 <?php endif; ?>
@@ -238,7 +238,7 @@ include 'portal_open.php';
                 <label class="tq-field__label" for="tq-csv"><?php echo t('ملف الأسئلة'); ?></label>
                 <input class="tq-input" id="tq-csv" type="file" name="csv" accept=".csv,.txt" required>
                 <span class="tq-field__msg tq-field__hint">
-                    ترميز UTF-8، وأول سطر أسماء الأعمدة، والحد الأقصى <?php echo TQ_LRI . '2' . TQ_PDI; ?> ميغابايت.
+                    <?php echo t('ترميز UTF-8، وأول سطر أسماء الأعمدة، والحد الأقصى ____ ميغابايت.', array(TQ_LRI . '2' . TQ_PDI)); ?>
                 </span>
             </div>
 
@@ -265,8 +265,7 @@ include 'portal_open.php';
                 <?php echo $tq_quizzes
                     ? t('برنامج الاستيراد غير مفعل على الخادم بعد، ولن يعرض زر رفع قبل معالجه.')
                     : t('لا اختبار في كورساتك بعد، فلا وجهة للاستيراد.'); ?>
-                جهز ملفك على هذه الأعمدة الآن ليستورد كما هو حين يفتح. الترميز UTF-8،
-                وأول سطر أسماء الأعمدة:
+                <?php echo t('جهز ملفك على هذه الأعمدة الآن ليستورد كما هو حين يفتح. الترميز UTF-8، وأول سطر أسماء الأعمدة:'); ?>
             </p>
             <ul class="tq-micro" style="margin:0 0 var(--tq-space-l);padding-inline-start:var(--tq-space-l);list-style:disc">
                 <li><?php echo t('objective — نص الهدف أو رقمه (إلزامي)'); ?></li>

@@ -74,7 +74,7 @@ $tq_code = substr(md5((string) rand(0, 1000000)), 0, 10);
                 <div class="tqa-file">
                     <input type="file" id="cat_cover" name="category_thumbnail" accept="image/*" data-tqa-file>
                     <label class="tqa-file__btn" for="cat_cover">
-                        <?php echo tq_icon('image', 16); ?> اختر صورة
+                        <?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورة'); ?>
                     </label>
                     <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
                 </div>
@@ -86,7 +86,7 @@ $tq_code = substr(md5((string) rand(0, 1000000)), 0, 10);
                 <div class="tqa-file">
                     <input type="file" id="cat_cover_sub" name="sub_category_thumbnail" accept="image/*" data-tqa-file>
                     <label class="tqa-file__btn" for="cat_cover_sub">
-                        <?php echo tq_icon('image', 16); ?> اختر صورة
+                        <?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورة'); ?>
                     </label>
                     <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
                 </div>
@@ -96,7 +96,7 @@ $tq_code = substr(md5((string) rand(0, 1000000)), 0, 10);
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('check', 16); ?> احفظ القسم
+                <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ القسم'); ?>
             </button>
             <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/categories'); ?>"><?php echo t('إلغاء'); ?></a>
         </div>

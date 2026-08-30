@@ -107,7 +107,7 @@ $tq_id = (int) $tq_row['id'];
                              src="<?php echo html_escape($this->user_model->get_user_image_url($tq_id)); ?>">
                         <input type="file" id="user_image" name="user_image" accept="image/*" data-tqa-file>
                         <label class="tqa-file__btn" for="user_image">
-                            <?php echo tq_icon('image', 16); ?> استبدل الصورة
+                            <?php echo tq_icon('image', 16); ?> <?php echo t('استبدل الصورة'); ?>
                         </label>
                         <span class="tqa-file__name" data-tqa-file-name><?php echo t('صورة مربعة تخرج أفضل'); ?></span>
                     </div>
@@ -140,7 +140,7 @@ $tq_id = (int) $tq_row['id'];
 
             <div class="tqa-actions">
                 <button type="submit" class="tqa-btn tqa-btn--primary">
-                    <?php echo tq_icon('check', 16); ?> احفظ التعديل
+                    <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ التعديل'); ?>
                 </button>
             </div>
         </form>
@@ -183,7 +183,7 @@ $tq_id = (int) $tq_row['id'];
 
             <div class="tqa-actions">
                 <button type="submit" class="tqa-btn tqa-btn--mastery tqa-btn--block">
-                    <?php echo tq_icon('lock', 16); ?> غير كلمة المرور
+                    <?php echo tq_icon('lock', 16); ?> <?php echo t('غير كلمة المرور'); ?>
                 </button>
             </div>
         </form>

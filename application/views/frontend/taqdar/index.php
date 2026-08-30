@@ -90,6 +90,12 @@ $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_si
         في الموقع، فيظهر شريط بلون غريب على الجوال. */ ?>
     <meta name="theme-color" content="#023331">
 
+    <?php /* TQ-I18N — عنوان الصفحة يترجم هنا لا في كل متحكم.
+             المتحكم يمرره نصا عربيا (`show($page, 'الرئيسية')`) في مئة موضع،
+             ولفها كلها يعني مئة تعديل تنسى منها واحدة فيبقى عنوان التبويب
+             عربيا فوق صفحة إنجليزية. والمفتاح هو النص نفسه، فالترجمة عند
+             العرض تكفي. */ ?>
+    <?php if (isset($page_title)) $page_title = t($page_title); ?>
     <?php include 'seo.php'; ?>
     <?php include 'includes_top.php'; ?>
 
@@ -97,13 +103,20 @@ $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_si
              يقرر الزائر أن الصفحة بطيئة فيغلقها، والذيل قد لا يبلغ.
              والدالة تحرس نفسها من التكرار، وتصمت متى أطفئ من اللوحة. */ ?>
     <?php echo tq_meta_pixel(); ?>
+<?php /* TQ-I18N — قاموس المتصفح.
+         السكربتات تحمل نصوصها العربية مكتوبة فيها («تعذر الحفظ»، «هل أنت
+         متأكد؟»)، وهي أخطر ما في الشاشة: نافذة تأكيد قبل حذف لا يرجع.
+         والقاموس واحد للجهتين — ملف `.js` بنسخته الثانية يفترق عن أخيه
+         عند أول تعديل. ويطبع في الرأس قبل كل سكربت، فما يقرؤه أولها
+         يقرؤه آخرها. */ ?>
+    <?php echo tq_i18n_js(); ?>
 </head>
 
 <body class="tq-body<?php echo $tq_is_portal ? ' tq-body--portal' : ''; ?><?php
     /* TQ-P26 · مِشبك قسم الباقات. لا أثر له خارج الرئيسية. */
     echo (isset($page_name) && in_array($page_name, array('home', 'home_elegant', 'plans'), true)) ? ' tq-p26' : ''; ?>">
 
-    <a class="tq-skip-link" href="#tq-main">تخط إلى المحتوى</a>
+    <a class="tq-skip-link" href="#tq-main"><?php echo t('تخط إلى المحتوى'); ?></a>
 
     <?php
     $my_wishlist_items = [];

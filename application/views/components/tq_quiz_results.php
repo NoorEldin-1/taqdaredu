@@ -105,7 +105,7 @@ $rq = ($r_skin === 'tqa');
                         <?php endif; ?>
                     </td>
                     <td class="tqr-res__n">
-                        <?php echo tq_iso($score); ?> من <?php echo tq_iso($total ?: (int) $r['pass_mark']); ?>
+                        <?php echo tq_iso($score); ?> <?php echo t('من'); ?> <?php echo tq_iso($total ?: (int) $r['pass_mark']); ?>
                     </td>
                     <td>
                         <span class="<?php echo $pass ? 'tqr-pass' : 'tqr-fail'; ?>">

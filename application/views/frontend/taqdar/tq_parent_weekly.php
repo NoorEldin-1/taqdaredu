@@ -51,7 +51,7 @@ $tq_elapsed    = (int) date('w') + 1;   // ما مضى من الأسبوع بم�
 
 $tq_sub = $tq_elapsed === 1
     ? t('من صباح الأحد إلى الآن — مقارنا بأحد الأسبوع الماضي')
-    : t('من الأحد إلى') . $tq_day_ar[(int) date('w')] . t('— مقارنا بالأيام نفسها من الأسبوع الماضي');
+    : t('من الأحد إلى ') . $tq_day_ar[(int) date('w')] . t(' — مقارنا بالأيام نفسها من الأسبوع الماضي');
 
 $tq_children = $tq_pm->children($tq_uid);
 
@@ -184,27 +184,27 @@ include 'portal_open.php';
                 /* الجملة تبنى نفيا لا بحشو «لا شيء» في موضع المفعول:
                    «أنهى لا دروس» ليست عربية. والفعل نفسه ينفى. */
                 $tq_l1 = (int) $tq_c['done'] > 0
-                    ? t('أنهى') . tq_lessons_word((int) $tq_c['done'])
+                    ? t('أنهى ') . tq_lessons_word((int) $tq_c['done'])
                     : t('لم ينه درسا');
                 $tq_l1 .= (int) $tq_c['quizzes'] > 0
-                    ? t('وسلم') . tq_exams_word((int) $tq_c['quizzes'])
-                    : t('ولم يسلم اختبارا');
+                    ? t(' وسلم ') . tq_exams_word((int) $tq_c['quizzes'])
+                    : t(' ولم يسلم اختبارا');
 
                 $tq_lines[] = [
                     ((int) $tq_c['done'] > 0 || (int) $tq_c['quizzes'] > 0) ? 'check-badge' : 'clock',
                     ((int) $tq_c['done'] > 0 || (int) $tq_c['quizzes'] > 0) ? 'mint' : 'sand',
-                    $tq_l1 . t('هذا الأسبوع'),
+                    $tq_l1 . t(' هذا الأسبوع'),
                 ];
 
                 $tq_lines[] = ['chart',
                     $tq_c['days_this'] > $tq_c['days_prev'] ? 'mint'
                         : ($tq_c['days_this'] < $tq_c['days_prev'] ? 'peach' : 'sky'),
                     $tq_c['days_this'] > $tq_c['days_prev']
-                        ? t('نشاطه ارتفع من') . tq_days($tq_c['days_prev'], t('صفر')) . t('إلى') . tq_days($tq_c['days_this']) . t('مقارنة بأسبوعه الماضي')
+                        ? t('نشاطه ارتفع من ') . tq_days($tq_c['days_prev'], t('صفر')) . t(' إلى ') . tq_days($tq_c['days_this']) . t(' مقارنة بأسبوعه الماضي')
                         : ($tq_c['days_this'] < $tq_c['days_prev']
-                            ? t('نشاطه نزل من') . tq_days($tq_c['days_prev']) . t('إلى') . tq_days($tq_c['days_this'], t('صفر')) . t('مقارنة بأسبوعه الماضي')
+                            ? t('نشاطه نزل من ') . tq_days($tq_c['days_prev']) . t(' إلى ') . tq_days($tq_c['days_this'], t('صفر')) . t(' مقارنة بأسبوعه الماضي')
                             : ($tq_c['days_this'] > 0
-                                ? t('نشاطه ثابت عند') . tq_days($tq_c['days_this']) . t('كأسبوعه الماضي')
+                                ? t('نشاطه ثابت عند ') . tq_days($tq_c['days_this']) . t(' كأسبوعه الماضي')
                                 : t('لم يدرس في هذه الأيام ولا في مثلها من أسبوعه الماضي')))];
 
                 if (!empty($tq_c['stalled'])) {
@@ -217,26 +217,26 @@ include 'portal_open.php';
                         ? $tq_c['stalled']['title'] . t(': لم يبدأها بعد')
                         : ($tq_gap < 1
                             ? $tq_c['stalled']['title'] . t(': أقل مواده نشاطا، وآخر عهده بها اليوم')
-                            : $tq_c['stalled']['title'] . t(': لم يفتحها منذ') . tq_days($tq_gap))];
+                            : $tq_c['stalled']['title'] . t(': لم يفتحها منذ ') . tq_days($tq_gap))];
                 }
 
                 $tq_plan_days = (int) $tq_c['plan_days'];
                 $tq_need = max(0, $tq_plan_days - (int) $tq_c['days_this']);
                 $tq_plan_note = $tq_c['plan_is_default']
-                    ? t('(خطة أسبوعه غير محددة، فالحساب على') . tq_days($tq_plan_days) . t('افتراضيا)')
+                    ? t(' (خطة أسبوعه غير محددة، فالحساب على ') . tq_days($tq_plan_days) . t(' افتراضيا)')
                     : '';
                 /* «يومان باقيان» مرفوعان لأنهما مبتدأ الجملة، و«من خطة
                    يومين» مجروران بحرف الجر — والمثنى وحده يفرق بينهما. */
                 $tq_lines[] = ['target', $tq_need > 0 ? 'lilac' : 'mint', $tq_need > 0
-                    ? t('المقترح:') . tq_days($tq_need, t('لا يوم'), 'nom')
-                        . ($tq_need === 2 ? t('باقيان') : ($tq_need === 1 ? t('باق') : t('باقية')))
-                        . t('من خطة') . tq_days($tq_plan_days) . $tq_plan_note
+                    ? t('المقترح: ') . tq_days($tq_need, t('لا يوم'), 'nom')
+                        . ($tq_need === 2 ? t(' باقيان') : ($tq_need === 1 ? t(' باق') : t(' باقية')))
+                        . t(' من خطة ') . tq_days($tq_plan_days) . $tq_plan_note
                     : t('المقترح: أتم خطة أسبوعه — يكفي أن يحافظ على هذا الإيقاع') . $tq_plan_note];
                 ?>
 
                 <article class="tq-card tq-card--panel tq-section">
                     <h2 class="tq-h2" style="margin-block-end:var(--tq-space-l)">
-                        <?php echo html_escape($tq_first); ?> هذا الأسبوع:
+                        <?php echo html_escape($tq_first); ?> <?php echo t('هذا الأسبوع:'); ?>
                     </h2>
                     <ul class="tq-stack">
                         <?php foreach ($tq_lines as [$tq_ic, $tq_fam, $tq_txt]): ?>
@@ -252,13 +252,13 @@ include 'portal_open.php';
 
                     <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
                         <?php /* «حصيلته درسان» و«بقي يومان» مرفوعان — خبر وفاعل. */ ?>
-                        <?php echo tq_iso(t('حصيلته منذ البداية') . tq_lessons_word((int) $tq_c['done_all'], t('لا دروس بعد'), 'nom')
-                            . t('. وبقي من هذا الأسبوع') . tq_days($tq_days_left, t('يومه الأخير'), 'nom') . '.'); ?>
+                        <?php echo tq_iso(t('حصيلته منذ البداية ') . tq_lessons_word((int) $tq_c['done_all'], t('لا دروس بعد'), 'nom')
+                            . t('. وبقي من هذا الأسبوع ') . tq_days($tq_days_left, t('يومه الأخير'), 'nom') . '.'); ?>
                     </p>
 
                     <a class="tq-btn tq-btn--secondary tq-btn--sm" style="margin-block-start:var(--tq-space-l)"
                        href="<?php echo base_url('parent/child'); ?>?id=<?php echo (int) $tq_c['id']; ?>">
-                        تفاصيل <?php echo html_escape($tq_first); ?>
+                        <?php echo t('تفاصيل'); ?> <?php echo html_escape($tq_first); ?>
                     </a>
                 </article>
             <?php endforeach; ?>

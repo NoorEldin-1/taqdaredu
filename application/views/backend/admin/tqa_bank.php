@@ -37,11 +37,10 @@ $tq_ready = trim((string) get_settings('tq_bank_beneficiary')) !== ''
     <span aria-hidden="true"><?php echo tq_icon($tq_ready ? 'check-badge' : 'alert', 18); ?></span>
     <span>
         <?php if ($tq_ready): ?>
-            الحساب معروض للطلاب الآن. أي تعديل هنا يظهر فورا في شاشة الدفع.
+            <?php echo t('الحساب معروض للطلاب الآن. أي تعديل هنا يظهر فورا في شاشة الدفع.'); ?>
         <?php else: ?>
             <strong><?php echo t('لا يعرض شيء للطالب حاليا.'); ?></strong>
-            ما دام «اسم المستفيد» أو «الآيبان» فارغا تظهر للطالب دعوة للتواصل بدلا من الحساب —
-            وهو أصدق من حساب ناقص يحول إليه فيضيع.
+            <?php echo t('ما دام «اسم المستفيد» أو «الآيبان» فارغا تظهر للطالب دعوة للتواصل بدلا من الحساب — وهو أصدق من حساب ناقص يحول إليه فيضيع.'); ?>
         <?php endif; ?>
     </span>
 </div>
@@ -76,7 +75,7 @@ $tq_ready = trim((string) get_settings('tq_bank_beneficiary')) !== ''
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('check', 16); ?> احفظ البيانات
+                <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ البيانات'); ?>
             </button>
         </div>
     </form>

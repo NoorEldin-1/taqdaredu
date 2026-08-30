@@ -245,9 +245,9 @@ $tq_count_sr = [
                     <span class="tq-pastel__label tq-micro"><?php echo t('اشتراكك نشط'); ?></span>
                     <p class="tq-pastel__body tq-strong" style="margin:var(--tq-space-xs) 0 var(--tq-space-m)">
                         <?php if ($tq_rail_days > 0): ?>
-                            يتبقى <?php echo TQ_LRI . $tq_rail_days . TQ_PDI; ?> يوما
+                            <?php echo t('يتبقى ____ يوما', TQ_LRI . $tq_rail_days . TQ_PDI); ?>
                         <?php else: ?>
-                            ينتهي اليوم
+                            <?php echo t('ينتهي اليوم'); ?>
                         <?php endif; ?>
                     </p>
                     <a class="tq-btn tq-btn--secondary tq-btn--sm tq-btn--block" href="<?php echo base_url('student/subscription'); ?>">

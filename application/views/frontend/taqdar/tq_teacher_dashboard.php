@@ -134,10 +134,10 @@ if ($tq_in !== '') {
         }
 
         $tq_reason = $tq_fails > 0
-            ? t('رسب في') . tq_exams_word($tq_fails)
+            ? t('رسب في ') . tq_exams_word($tq_fails)
             : ($tq_days >= 5
-                ? t('انقطع') . tq_days($tq_days)
-                : t('تقدمه') . TQ_LRI . $tq_prog . '%' . TQ_PDI . t('فقط'));
+                ? t('انقطع ') . tq_days($tq_days)
+                : t('تقدمه ') . TQ_LRI . $tq_prog . '%' . TQ_PDI . t(' فقط'));
 
         $tq_r['days']   = $tq_days;
         $tq_r['fails']  = $tq_fails;
@@ -255,7 +255,7 @@ include 'portal_open.php';
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0"><?php echo tq_num($tq_pending_marking, 'tq-num--xl'); ?></p>
                 <p class="tq-pastel__body tq-caption" style="margin:0">
                     <?php echo tq_iso($tq_pending_marking > 0
-                        ? tq_exams_word($tq_pending_quizzes) . t('و') . tq_homework_word($tq_pending_homework) . t('تنتظر اعتمادك')
+                        ? tq_exams_word($tq_pending_quizzes) . t(' و') . tq_homework_word($tq_pending_homework) . t(' تنتظر اعتمادك')
                         : t('لا شيء ينتظر اعتمادك')); ?>
                 </p>
             </div>
@@ -301,13 +301,13 @@ include 'portal_open.php';
                             ?>
                             <li class="tq-row" style="gap:var(--tq-space-l);padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
                                 <img class="tq-avatar" src="<?php echo $tq_photo; ?>"
-                                     alt="صورة <?php echo html_escape($tq_name); ?>">
+                                     alt="<?php echo te('صورة ____', array(html_escape($tq_name))); ?>">
                                 <div style="flex:1;min-inline-size:0">
                                     <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></p>
                                     <p class="tq-micro" style="margin:0"><?php echo html_escape($tq_s['course_title']); ?></p>
                                 </div>
                                 <div style="inline-size:180px">
-                                    <?php echo tq_progress((int) $tq_s['progress'], t('تقدم') . $tq_name); ?>
+                                    <?php echo tq_progress((int) $tq_s['progress'], t('تقدم ') . $tq_name); ?>
                                 </div>
                                 <?php echo tq_badge($tq_s['fails'] > 0 ? 'late' : ($tq_s['days'] >= 5 ? 'due' : 'idle'), $tq_s['reason']); ?>
                                 <a class="tq-btn tq-btn--ghost tq-btn--sm"
@@ -322,7 +322,7 @@ include 'portal_open.php';
                              له باب، لا يبتلع صامتا. */ ?>
                     <?php if ($tq_attention_total > count($tq_attention)): ?>
                         <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
-                            <?php echo tq_iso(t('و') . tq_students_word($tq_attention_total - count($tq_attention)) . t('غيرهم يحتاجون انتباهك.')); ?>
+                            <?php echo tq_iso(t(' و') . tq_students_word($tq_attention_total - count($tq_attention)) . t(' غيرهم يحتاجون انتباهك.')); ?>
                         </p>
                     <?php endif; ?>
                     <a class="tq-btn tq-btn--ghost tq-btn--block tq-btn--sm" style="margin-block-start:var(--tq-space-m)"
@@ -349,8 +349,7 @@ include 'portal_open.php';
             <?php if ($tq_hard_lessons): ?>
                 <div class="tq-card">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                        درس يرسب فيه كثيرون مشكلته في الشرح غالبا لا في الطلاب — راجعه قبل أن تراجعهم.
-                        الرسوب هنا محسوب بعتبة النجاح المعتمدة في المنصة: <?php echo TQ_LRI . $tq_pass_pct . '%' . TQ_PDI; ?>.
+                        <?php echo t('درس يرسب فيه كثيرون مشكلته في الشرح غالبا لا في الطلاب — راجعه قبل أن تراجعهم. الرسوب هنا محسوب بعتبة النجاح المعتمدة في المنصة:'); ?> <?php echo TQ_LRI . $tq_pass_pct . '%' . TQ_PDI; ?>.
                     </p>
                     <table class="tq-table">
                         <caption class="tq-sr"><?php echo t('الدروس الأعلى نسبة رسوب في كورساتك'); ?></caption>
@@ -369,7 +368,7 @@ include 'portal_open.php';
                                     <td data-label="الدرس"><span class="tq-strong"><?php echo html_escape($tq_l['title']); ?></span></td>
                                     <td data-label="الكورس"><?php echo html_escape($tq_l['course_title']); ?></td>
                                     <td data-label="المحاولات"><?php echo tq_num($tq_l['attempts'], 'tq-num--sm'); ?></td>
-                                    <td data-label="نسبة الرسوب"><?php echo tq_badge('due', t('رسب') . TQ_LRI . $tq_rate . '%' . TQ_PDI); ?></td>
+                                    <td data-label="نسبة الرسوب"><?php echo tq_badge('due', t('رسب ') . TQ_LRI . $tq_rate . '%' . TQ_PDI); ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -425,7 +424,7 @@ include 'portal_open.php';
                 </ul>
                 <?php if ($tq_sessions_count > count($tq_sessions)): ?>
                     <p class="tq-micro" style="margin-block-start:var(--tq-space-m)">
-                        <?php echo tq_iso(t('و') . tq_sessions_word($tq_sessions_count - count($tq_sessions)) . t('أخرى خلال الأسبوع.')); ?>
+                        <?php echo tq_iso(t(' و') . tq_sessions_word($tq_sessions_count - count($tq_sessions)) . t(' أخرى خلال الأسبوع.')); ?>
                     </p>
                 <?php endif; ?>
                 <a class="tq-btn tq-btn--ghost tq-btn--block tq-btn--sm" style="margin-block-start:var(--tq-space-l)"

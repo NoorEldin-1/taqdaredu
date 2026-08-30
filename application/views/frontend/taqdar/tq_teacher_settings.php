@@ -46,8 +46,8 @@ $tq_langs    = $tq_set->languages();
 $tq_avatar = tqs_person_img($u['image'] ?? '');
 
 $tq_save = base_url('teacher/settings/save');
-$tq_ok   = $CI->session->flashdata('flash_message');
-$tq_err  = $CI->session->flashdata('error_message');
+$tq_ok   = tq_flash('flash_message');
+$tq_err  = tq_flash('error_message');
 
 $sections = [
     ['profile', t('الملف الشخصي'),      'users'],
@@ -108,8 +108,7 @@ include 'portal_open.php';
                                            accept="image/jpeg,image/png,image/webp"
                                            aria-describedby="tq-avatar-hint">
                                     <span class="tq-field__msg tq-field__hint" id="tq-avatar-hint">
-                                        JPG أو PNG أو WebP، الحد الأقصى <?php echo tq_iso(t('2 ميجابايت')); ?>.
-                                        وهي الصورة التي يراها طلابك في رسائلك وصفحتك.
+                                        <?php echo t('JPG أو PNG أو WebP، الحد الأقصى ____. وهي الصورة التي يراها طلابك في رسائلك وصفحتك.', array(tq_iso(t('2 ميجابايت')))); ?>
                                     </span>
                                 </div>
                             </div>
@@ -162,9 +161,7 @@ include 'portal_open.php';
                         </form>
 
                         <p class="tq-micro tq-muted" style="margin-block-start:var(--tq-space-l)">
-                            توقيت المنصة كلها
-                            <?php echo tq_iso(html_escape(function_exists('get_settings') ? (get_settings('timezone') ?: 'Asia/Riyadh') : 'Asia/Riyadh')); ?>،
-                            وليس إعدادا لكل حساب على حدة. ومواعيد حصصك تحسب به.
+                            <?php echo t('توقيت المنصة كلها ____، وليس إعدادا لكل حساب على حدة. ومواعيد حصصك تحسب به.', array(tq_iso(html_escape(function_exists('get_settings') ? (get_settings('timezone') ?: 'Asia/Riyadh') : 'Asia/Riyadh')))); ?>
                         </p>
                     </section>
 
@@ -209,10 +206,9 @@ include 'portal_open.php';
                                 <p class="tq-strong" style="margin:0"><?php echo t('ظهورك على الموقع'); ?></p>
                                 <p class="tq-micro" style="margin:0">
                                     <?php if (!empty($u['is_public'])): ?>
-                                        صفحتك منشورة ويصل إليها الزوار.
+                                        <?php echo t('صفحتك منشورة ويصل إليها الزوار.'); ?>
                                     <?php else: ?>
-                                        صفحتك غير منشورة بعد. النشر قرار إدارة لا مفتاح في إعداداتك،
-                                        فما يعرض على الموقع تراجعه المنصة قبل نشره.
+                                        <?php echo t('صفحتك غير منشورة بعد. النشر قرار إدارة لا مفتاح في إعداداتك، فما يعرض على الموقع تراجعه المنصة قبل نشره.'); ?>
                                     <?php endif; ?>
                                 </p>
                             </div>
@@ -280,9 +276,7 @@ include 'portal_open.php';
                     <section class="tq-card">
                         <h2 class="tq-card__title"><?php echo t('الجلسات والأجهزة'); ?></h2>
                         <p class="tq-caption">
-                            كل جهاز سجلت منه دخولا ولم تخرج منه بعد. والحد
-                            <?php echo tq_iso(html_escape((string) (get_settings('allowed_device_number_of_loging') ?: '—'))); ?>
-                            جلسة في الوقت نفسه — وبعده يطلب منك تأكيد الجهاز الجديد.
+                            <?php echo t('كل جهاز سجلت منه دخولا ولم تخرج منه بعد. والحد ____ جلسة في الوقت نفسه — وبعده يطلب منك تأكيد الجهاز الجديد.', array(tq_iso(html_escape((string) (get_settings('allowed_device_number_of_loging') ?: '—'))))); ?>
                         </p>
 
                         <?php if (!$tq_sessions): ?>
@@ -338,7 +332,7 @@ include 'portal_open.php';
                                 <p class="tq-micro" style="margin:0"><?php echo t('ملف بكل ما يخص حسابك، ينزل مباشرة.'); ?></p>
                             </div>
                             <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/export-data'); ?>">
-                                <?php echo tq_icon('download'); ?> طلب نسخة
+                                <?php echo tq_icon('download'); ?> <?php echo t('طلب نسخة'); ?>
                             </a>
                         </div>
                         <div class="tq-s-row">
@@ -519,8 +513,8 @@ include 'portal_open.php';
                         <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('login/logout'); ?>"
                            data-tq-confirm-title="<?php echo te('تسجيل الخروج؟'); ?>"
                            data-tq-confirm="<?php echo te('تنتهي جلستك على هذا الجهاز، وتحتاج بريدك وكلمة مرورك للدخول من جديد.'); ?>"
-                           data-tq-confirm-note="ما لم يحفظ من نموذج مفتوح لا يحفظ بالخروج."
-                           data-tq-confirm-ok="تسجيل الخروج"
+                           data-tq-confirm-note="<?php echo te('ما لم يحفظ من نموذج مفتوح لا يحفظ بالخروج.'); ?>"
+                           data-tq-confirm-ok="<?php echo te('تسجيل الخروج'); ?>"
                            data-tq-confirm-tone="danger"><?php echo t('تسجيل الخروج'); ?></a>
                     </div>
                 </section>

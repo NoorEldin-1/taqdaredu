@@ -85,9 +85,7 @@ $stats = array(
                         <span class="tqa-warn"><?php echo t('لا مسار منشور في هذا الصف بعد'); ?></span>
                     <?php else: ?>
                         <span>
-                            <?php echo (int) $g['paths']; ?> برنامجا ·
-                            <?php echo (int) $g['lessons']; ?> درسا ·
-                            <?php echo (int) $g['quizzes']; ?> اختبارا
+                            <?php echo t('____ برنامجا · ____ درسا · ____ اختبارا', array((int) $g['paths'], (int) $g['lessons'], (int) $g['quizzes'])); ?>
                         </span>
                     <?php endif; ?>
                 </div>

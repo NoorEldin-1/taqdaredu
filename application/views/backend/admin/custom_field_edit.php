@@ -50,7 +50,7 @@ $tq_src  = ($tq_file !== '' && is_file(FCPATH . 'uploads/custom_fields/' . $tq_f
     <span aria-hidden="true"><?php echo tq_icon('grid', 18); ?></span>
     <span>
         <?php echo t('القسم:'); ?> <strong><?php echo html_escape($tq_f['custom_title']); ?></strong>
-        — نوعه <?php echo html_escape($tq_names[$tq_type] ?? $tq_type); ?>.
+        <?php echo t('— نوعه'); ?> <?php echo html_escape($tq_names[$tq_type] ?? $tq_type); ?>.
     </span>
 </div>
 
@@ -82,7 +82,7 @@ $tq_src  = ($tq_file !== '' && is_file(FCPATH . 'uploads/custom_fields/' . $tq_f
             <?php endif; ?>
             <div class="tqa-file">
                 <input type="file" id="cf_file" name="image_file[]" accept="image/*" data-tqa-file>
-                <label class="tqa-file__btn" for="cf_file"><?php echo tq_icon('image', 16); ?> استبدل الصورة</label>
+                <label class="tqa-file__btn" for="cf_file"><?php echo tq_icon('image', 16); ?> <?php echo t('استبدل الصورة'); ?></label>
                 <span class="tqa-file__name" data-tqa-file-name><?php echo t('اترك الحقل ليبقى ما هو محفوظ'); ?></span>
             </div>
         </div>
@@ -131,7 +131,7 @@ $tq_src  = ($tq_file !== '' && is_file(FCPATH . 'uploads/custom_fields/' . $tq_f
                      متعدد هنا يعد بما لا يفعل. الصور تضاف من «أضف قسما». */ ?>
             <div class="tqa-file">
                 <input type="file" id="cf_gal" name="image_file[]" accept="image/*" data-tqa-file>
-                <label class="tqa-file__btn" for="cf_gal"><?php echo tq_icon('image', 16); ?> استبدل الصورة</label>
+                <label class="tqa-file__btn" for="cf_gal"><?php echo tq_icon('image', 16); ?> <?php echo t('استبدل الصورة'); ?></label>
                 <span class="tqa-file__name" data-tqa-file-name><?php echo t('صورة واحدة — تستبدل المحفوظة'); ?></span>
             </div>
         </div>
@@ -140,7 +140,7 @@ $tq_src  = ($tq_file !== '' && is_file(FCPATH . 'uploads/custom_fields/' . $tq_f
 
     <div class="tqa-actions">
         <button class="tqa-btn tqa-btn--primary tqa-btn--block" type="submit">
-            <?php echo tq_icon('check', 16); ?> احفظ التعديل
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ التعديل'); ?>
         </button>
     </div>
 </form>

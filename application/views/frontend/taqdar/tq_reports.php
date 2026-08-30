@@ -224,7 +224,7 @@ foreach ($tq_quizzes as $q) {
     $tq_activity[] = [
         'ts'   => (int) $q['date_added'],
         'icon' => 'check-badge',
-        'text' => t('سلمت اختبارا ونتيجتك') . $pct . '%',
+        'text' => t('سلمت اختبارا ونتيجتك ') . $pct . '%',
     ];
 }
 usort($tq_activity, static function ($a, $b) { return $b['ts'] <=> $a['ts']; });
@@ -362,7 +362,7 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                         <?php else: ?>
                             <span class="tq-kpi__delta tq-kpi__delta--<?php echo $tq_completion_delta > 0 ? 'up' : ($tq_completion_delta < 0 ? 'down' : 'flat'); ?>">
                                 <?php echo tq_num(($tq_completion_delta > 0 ? '+' : '') . $tq_completion_delta . '%', 'tq-num--sm'); ?>
-                                من الأسبوع الماضي
+                                <?php echo t('من الأسبوع الماضي'); ?>
                             </span>
                         <?php endif; ?>
                         <?php echo $tq_spark($tq_completion_series, 'teal'); ?>
@@ -395,7 +395,7 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                         <?php else: ?>
                             <span class="tq-kpi__delta tq-kpi__delta--<?php echo $tq_grade_delta > 0 ? 'up' : ($tq_grade_delta < 0 ? 'down' : 'flat'); ?>">
                                 <?php echo tq_num(($tq_grade_delta > 0 ? '+' : '') . $tq_grade_delta . '%', 'tq-num--sm'); ?>
-                                من الأسبوع الماضي
+                                <?php echo t('من الأسبوع الماضي'); ?>
                             </span>
                         <?php endif; ?>
                         <?php echo $tq_spark($tq_grade_series, 'teal'); ?>
@@ -413,7 +413,7 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                 <section class="tq-card tq-card--panel tq-section" aria-labelledby="tq-curve-h">
                     <div class="tq-card__head">
                         <h2 class="tq-card__title" id="tq-curve-h"><?php echo t('تقدمك خلال الأسابيع'); ?></h2>
-                        <span class="tq-pill" aria-hidden="true">آخر <?php echo tq_num(8, 'tq-num--sm'); ?> أسابيع</span>
+                        <span class="tq-pill" aria-hidden="true"><?php echo t('آخر ____ أسابيع', array(tq_num(8, 'tq-num--sm'))); ?></span>
                     </div>
 
                     <div class="tq-legend" style="margin-block-end:var(--tq-space-l)">
@@ -486,7 +486,7 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                                 foreach ($seg as $pt) {
                                     [$x, $y] = $xy($pt[0], $pt[1]);
                                     $svg .= '<circle cx="' . $x . '" cy="' . $y . '" r="4" fill="' . $color . '">'
-                                          . '<title>' . html_escape($label . t('— الأسبوع') . ($pt[0] + 1)
+                                          . '<title>' . html_escape($label . t(' — الأسبوع ') . ($pt[0] + 1)
                                                                    . ': ' . $pt[1] . '%') . '</title>'
                                           . '</circle>';
                                 }
@@ -554,9 +554,9 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                             <?php echo tq_ring($pct, 96, 9); ?>
                             <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($s['name']); ?></span>
                             <span class="tq-micro">
-                                <?php echo tq_iso($s['courses'] . t('كورس مسجل')); ?>
+                                <?php echo tq_iso($s['courses'] . t(' كورس مسجل')); ?>
                                 <?php if ($s['lessons'] > 0): ?>
-                                    · <?php echo tq_iso($s['lessons'] . ($s['lessons'] > 10 ? t('درسا') : t('دروس'))); ?>
+                                    · <?php echo tq_iso($s['lessons'] . ($s['lessons'] > 10 ? t(' درسا') : t(' دروس'))); ?>
                                 <?php endif; ?>
                             </span>
                             <?php /* بطاقة **مادة** تحمل عدد كورساتها، فوجهتها «كورساتي»
@@ -697,8 +697,7 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                     echo tq_progress($tq_done_pct, t('الدروس المكتملة'));
                     ?>
                     <span class="tq-micro">
-                        <?php echo tq_num($tq_done_lessons, 'tq-num--sm'); ?>
-                        من <?php echo tq_num($tq_total_lessons, 'tq-num--sm'); ?> درسا
+                        <?php echo t('____ من ____ درسا', array(tq_num($tq_done_lessons, 'tq-num--sm'), tq_num($tq_total_lessons, 'tq-num--sm'))); ?>
                     </span>
                 </div>
             </div>

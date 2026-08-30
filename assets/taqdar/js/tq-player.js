@@ -162,9 +162,28 @@
     var m = String(u).match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{6,})/);
     return m ? m[1] : '';
   }
-  function vimeoId(u) {
-    var m = String(u).match(/vimeo\.com\/(?:video\/)?(\d+)/);
-    return m ? m[1] : '';
+  /* فيميو — المعرف وحده لا يكفي.
+     TQ-VIMEO-HASH: الفيديو غير المدرج (وهو ما يخرجه زر «نسخ الرابط»
+     في فيميو) يحمل **بصمة خصوصية** بعد معرفه:
+     `vimeo.com/1222349070/314f355cd6?share=copy`، أو `?h=…` في صيغة
+     المشغل. والبصمة إذن لا زينة: بلاها يرد المشغل «Sorry, we're having
+     a little trouble» — ولا خطأ يفسره، ثم يسقط `ready()` فيرتد التركيب
+     إلى الإطار العاري على `vimeo.com` وهو **يرفض التأطير أصلا**
+     (`refused to connect`). فقارئ المدة يقرأ صفرا، ولوحة الإدارة ترد
+     «Invalid lesson url and duration»، والطالب يفتح درسا فارغا. */
+  function vimeoRef(u) {
+    var s = String(u || '');
+    var m = s.match(/vimeo\.com\/(?:[\w-]+\/)*?(\d{6,})(?:\/([0-9a-zA-Z]+))?/);
+    if (!m) return null;
+    var h = m[2] || '';
+    if (!h) {
+      var q = s.match(/[?&]h(?:ash)?=([0-9a-zA-Z]+)/);
+      if (q) h = q[1];
+    }
+    return { id: m[1], h: h };
+  }
+  function vimeoFrameUrl(ref) {
+    return 'https://player.vimeo.com/video/' + ref.id + (ref.h ? '?h=' + ref.h : '');
   }
   function driveId(u) {
     var m = String(u).match(/\/d\/([\w-]+)/) || String(u).match(/[?&]id=([\w-]+)/);
@@ -176,7 +195,7 @@
      ================================================================== */
   function mountYouTube(el, opt, bus) {
     var id = youtubeId(opt.url);
-    if (!id) return Promise.reject(new Error('youtube: لا معرف في الرابط'));
+    if (!id) return Promise.reject(new Error(TQ.t('youtube: لا معرف في الرابط')));
 
     return loadScript('https://www.youtube.com/iframe_api').then(function () {
       return new Promise(function (ok, no) {
@@ -209,7 +228,7 @@
                 else if (e.data === S.PAUSED)  bus.fire('pause');
                 else if (e.data === S.ENDED)   { bus.fire('pause'); bus.fire('ended'); }
               },
-              onError: function () { no(new Error('youtube: تعذر تشغيل الفيديو')); }
+              onError: function () { no(new Error(TQ.t('youtube: تعذر تشغيل الفيديو'))); }
             }
           });
 
@@ -262,8 +281,8 @@
      فيميو — عبر Player SDK
      ================================================================== */
   function mountVimeo(el, opt, bus) {
-    var id = vimeoId(opt.url);
-    if (!id) return Promise.reject(new Error('vimeo: لا معرف في الرابط'));
+    var ref = vimeoRef(opt.url);
+    if (!ref) return Promise.reject(new Error(TQ.t('vimeo: لا معرف في الرابط')));
 
     return loadScript('https://player.vimeo.com/api/player.js').then(function () {
       el.innerHTML = '';
@@ -276,7 +295,10 @@
          وأسوأ منه أن `.tq-player__frame > iframe` لا يطابق شيئا حينها:
          الإطار صار حفيدا لا ابنا، فلا يمتد ولا يتموضع.
          فالنسبة تترك لحاويتنا وحدها، والسمة تخرج إطارا مباشرا. */
-      var vp = new global.Vimeo.Player(el, { id: id, playsinline: true });
+      var cfg = { id: parseInt(ref.id, 10), playsinline: true };
+      /* وبصمة الخصوصية تمرر حين توجد — TQ-VIMEO-HASH أعلاه. */
+      if (ref.h) cfg.h = ref.h;
+      var vp = new global.Vimeo.Player(el, cfg);
 
       vp.on('play',        function () { bus.fire('play'); });
       vp.on('pause',       function () { bus.fire('pause'); });
@@ -360,12 +382,33 @@
      شريط تقدم يتحرك بمؤقت على شيء قد يكون الطالب أوقفه كذب أسوأ من
      الصمت — والشاشة تعرض «أنهيت الدرس» بدلا منه.
   */
-  function mountEmbed(el, opt, bus, drive) {
-    var src = opt.url;
-    if (drive) {
-      var id = driveId(opt.url);
-      if (id) src = 'https://drive.google.com/file/d/' + id + '/preview';
+  /**
+   * رابط يقبل التأطير من رابط الصفحة.
+   *
+   * `vimeo.com/<id>` و`youtube.com/watch?v=…` صفحتان تمنعان التأطير
+   * (`X-Frame-Options`)، فالارتداد إليهما كما هما يعرض «refused to
+   * connect» لا الفيديو. ولكل مصدر نطاق تضمين هو ما يؤطر.
+   */
+  function embedSrc(kind, url) {
+    var id;
+    if (kind === 'drive') {
+      id = driveId(url);
+      return id ? 'https://drive.google.com/file/d/' + id + '/preview' : url;
     }
+    if (kind === 'vimeo') {
+      var ref = vimeoRef(url);
+      return ref ? vimeoFrameUrl(ref) : url;
+    }
+    if (kind === 'youtube') {
+      id = youtubeId(url);
+      return id ? 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1' : url;
+    }
+    return url;
+  }
+
+  function mountEmbed(el, opt, bus, kind) {
+    var drive = kind === 'drive';
+    var src = embedSrc(kind, opt.url);
 
     el.innerHTML = '';
     /* الوسم الكامل يقبل كما هو حين يلصقه صاحبه: بعض الأدوات لا تعمل
@@ -419,15 +462,15 @@
       else if (kind === 'vimeo')   p = mountVimeo(el, opt, bus);
       else if (kind === 'html5')   p = mountNative(el, opt, bus, false);
       else if (kind === 'audio')   p = mountNative(el, opt, bus, true);
-      else if (kind === 'drive')   p = mountEmbed(el, opt, bus, true);
-      else                         p = mountEmbed(el, opt, bus, false);
+      else if (kind === 'drive')   p = mountEmbed(el, opt, bus, 'drive');
+      else                         p = mountEmbed(el, opt, bus, kind);
 
       return p.then(function (player) {
         player.on = bus.on;
         return player;
       }).catch(function (err) {
         if (global.console && console.warn) console.warn('TQPlayer:', err && err.message);
-        return mountEmbed(el, opt, bus, kind === 'drive').then(function (player) {
+        return mountEmbed(el, opt, bus, kind).then(function (player) {
           player.on = bus.on;
           player.degraded = true;
           return player;

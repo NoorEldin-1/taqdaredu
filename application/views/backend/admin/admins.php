@@ -19,9 +19,9 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * أمكن لمسؤول أن يقفل اللوحة على الجميع.
  */
 $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/admin_form/add_admin_form') . '">'
-          . tq_icon('plus', 17) . t('إضافة مسؤول</a>')
+          . tq_icon('plus', 17) . t(' إضافة مسؤول</a>')
           . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/export_admins_csv') . '">'
-          . tq_icon('download', 16) . t('تصدير CSV</a>');
+          . tq_icon('download', 16) . t(' تصدير CSV</a>');
 ?>
 
 <?php tqa_head(t('المسؤولون والصلاحيات'),
@@ -86,30 +86,30 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/admin
                     <td data-label="إجراءات">
                         <?php if ($tq_root): ?>
                             <span class="tqa-badge tqa-badge--ok">
-                                <?php echo tq_icon('shield', 13); ?> مشرف الجذر
+                                <?php echo tq_icon('shield', 13); ?> <?php echo t('مشرف الجذر'); ?>
                             </span>
                         <?php else: ?>
                             <div class="tqa-rowacts">
                                 <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                    href="<?php echo site_url('admin/permissions?permission_assing_to=' . $tq_id); ?>">
-                                    <?php echo tq_icon('key', 14); ?> الصلاحيات
+                                    <?php echo tq_icon('key', 14); ?> <?php echo t('الصلاحيات'); ?>
                                 </a>
 
                                 <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                    href="<?php echo site_url('admin/admin_form/edit_admin_form/' . $tq_id); ?>">
-                                    <?php echo tq_icon('edit', 14); ?> تعديل
+                                    <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
                                 </a>
 
                                 <form method="post" action="<?php echo site_url('admin/admins/delete/' . $tq_id); ?>"
                                       data-tqa-confirm-title="<?php echo te('حذف المسؤول'); ?>"
-                                      data-tqa-confirm="سيحذف حساب «<?php echo html_escape($tq_name); ?>» ولن يستطيع الدخول بعدها."
-                                      data-tqa-confirm-ok="نعم، احذف"
+                                      data-tqa-confirm="<?php echo te('سيحذف حساب «____» ولن يستطيع الدخول بعدها.', array(html_escape($tq_name))); ?>"
+                                      data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                       data-tqa-confirm-tone="danger">
                                     <?php echo tq_csrf(); ?>
                                     <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                             style="color:var(--tq-danger)">
                                         <?php echo tq_icon('trash', 14); ?>
-                                        <span class="tqa-sr">حذف <?php echo html_escape($tq_name); ?></span>
+                                        <span class="tqa-sr"><?php echo t('حذف'); ?> <?php echo html_escape($tq_name); ?></span>
                                     </button>
                                 </form>
                             </div>

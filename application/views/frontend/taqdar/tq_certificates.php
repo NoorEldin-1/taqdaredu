@@ -85,7 +85,7 @@ include 'portal_open.php';
                                      تفتح في المتصفح — لا ملف ولا تنزيل. والاسم يقول ما يقع،
                                      وفي الصفحة نفسها زر حفظ نسخة PDF. */ ?>
                             <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/certificate/' . (int) $c['id']); ?>">
-                                <?php echo tq_icon('award'); ?> افتح الشهادة
+                                <?php echo tq_icon('award'); ?> <?php echo t('افتح الشهادة'); ?>
                             </a>
                             <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/verify/' . (int) $c['id']); ?>"><?php echo t('صفحة التحقق'); ?></a>
                         </div>

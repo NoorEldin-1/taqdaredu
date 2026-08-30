@@ -142,7 +142,7 @@
     <meta name="keywords" content="<?php echo htmlspecialchars($meta_keywords, ENT_QUOTES, 'UTF-8'); ?>">
     <meta name="robots" content="<?php echo $meta_robot; ?>">
     <meta name="author" content="<?php echo htmlspecialchars($meta_author, ENT_QUOTES, 'UTF-8'); ?>">
-    <title><?php echo htmlspecialchars($meta_title, ENT_QUOTES, 'UTF-8') . ' | ' . get_settings('system_name'); ?></title>
+    <title><?php echo htmlspecialchars($meta_title, ENT_QUOTES, 'UTF-8') . ' | ' . t(get_settings('system_name')); ?></title>
 
     <!-- Canonical URL -->
     <link rel="canonical" href="<?php echo htmlspecialchars($canonical_url, ENT_QUOTES, 'UTF-8'); ?>">

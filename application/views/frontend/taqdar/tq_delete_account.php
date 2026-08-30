@@ -49,8 +49,8 @@ include 'portal_open.php';
                 <form method="post" action="<?php echo base_url('student/delete_account'); ?>"
                       data-tq-confirm-title="<?php echo te('حذف حسابك نهائيا؟'); ?>"
                       data-tq-confirm="<?php echo te('تستبدل بياناتك بقيم مجهولة وتغلق جلستك في الحال. ولا يمكن استعادة الحساب بعدها.'); ?>"
-                      data-tq-confirm-note="تبقى فواتيرك بمعرف مجهول لأن حفظها التزام نظامي — ولا تحمل اسمك ولا بريدك."
-                      data-tq-confirm-ok="نعم، احذف حسابي"
+                      data-tq-confirm-note="<?php echo te('تبقى فواتيرك بمعرف مجهول لأن حفظها التزام نظامي — ولا تحمل اسمك ولا بريدك.'); ?>"
+                      data-tq-confirm-ok="<?php echo te('نعم، احذف حسابي'); ?>"
                       data-tq-confirm-tone="danger">
                     <input type="hidden" name="confirm" value="yes">
                     <button class="tq-btn tq-btn--danger" type="submit"><?php echo t('نعم، احذف حسابي'); ?></button>

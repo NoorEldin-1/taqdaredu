@@ -18,7 +18,7 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
     <label class="tqa-sr" for="q"><?php echo t('ابحث في الحسابات'); ?></label>
     <input class="tqa-input" type="search" id="q" name="q" placeholder="<?php echo te('ابحث بالاسم أو البريد أو الهاتف…'); ?>"
            value="<?php echo html_escape($search); ?>" style="min-inline-size:280px">
-    <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> ابحث</button>
+    <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> <?php echo t('ابحث'); ?></button>
     <?php if ($search !== ''): ?>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url($tq_base); ?>"><?php echo t('مسح البحث'); ?></a>
     <?php endif; ?>
@@ -94,7 +94,7 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
                         <div class="tqa-rowacts">
                             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                href="<?php echo site_url($tq_form . '/' . $tq_id); ?>">
-                                <?php echo tq_icon('edit', 14); ?> تعديل
+                                <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
                             </a>
 
                             <?php if ($tq_kind === 'instructor'): ?>
@@ -108,14 +108,14 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
 
                             <form method="post" action="<?php echo site_url($tq_base . '/delete/' . $tq_id); ?>"
                                   data-tqa-confirm-title="<?php echo te('حذف الحساب'); ?>"
-                                  data-tqa-confirm="سيحذف حساب «<?php echo html_escape($tq_n); ?>» وتسجيلاته. لا رجعة في هذا."
-                                  data-tqa-confirm-ok="نعم، احذف"
+                                  data-tqa-confirm="<?php echo te('سيحذف حساب «____» وتسجيلاته. لا رجعة في هذا.', array(html_escape($tq_n))); ?>"
+                                  data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                   data-tqa-confirm-tone="danger">
                                 <?php echo tq_csrf(); ?>
                                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                         style="color:var(--tq-danger)">
                                     <?php echo tq_icon('trash', 14); ?>
-                                    <span class="tqa-sr">حذف <?php echo html_escape($tq_n); ?></span>
+                                    <span class="tqa-sr"><?php echo t('حذف'); ?> <?php echo html_escape($tq_n); ?></span>
                                 </button>
                             </form>
                         </div>

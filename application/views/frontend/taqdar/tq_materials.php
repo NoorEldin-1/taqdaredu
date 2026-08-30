@@ -102,7 +102,7 @@ $tq_fav_btn = static function ($id, $on, $title) use ($f_type, $f_q) {
         <input type="hidden" name="back_q" value="<?php echo html_escape($f_q); ?>">
         <button class="tq-fav-heart" type="submit" aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"
                 title="<?php echo $on ? t('إزالة من المفضلة') : t('إضافة إلى المفضلة'); ?>"
-                aria-label="<?php echo html_escape(($on ? t('إزالة') : t('إضافة')) . $title . ($on ? t('من المفضلة') : t('إلى المفضلة'))); ?>">
+                aria-label="<?php echo html_escape(($on ? t('إزالة ') : t('إضافة ')) . $title . ($on ? t(' من المفضلة') : t(' إلى المفضلة'))); ?>">
             <?php echo tq_icon('heart', 18); ?>
         </button>
     </form>
@@ -311,7 +311,7 @@ include 'portal_open.php';
 
             <?php if ($tq_quota > 0): ?>
                 <p class="tq-caption" style="margin-block-end:var(--tq-space-s)">
-                    <?php echo tq_iso(tq_s_size($tq_bytes) . t('من') . tq_s_size($tq_quota) . t('مستخدمة')); ?>
+                    <?php echo tq_iso(tq_s_size($tq_bytes) . t(' من ') . tq_s_size($tq_quota) . t(' مستخدمة')); ?>
                 </p>
                 <?php echo tq_progress((int) round($tq_bytes * 100 / $tq_quota), t('نسبة المساحة المستخدمة')); ?>
             <?php else: ?>

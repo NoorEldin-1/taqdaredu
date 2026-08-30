@@ -79,9 +79,9 @@ $tq_gaps  = $CI->tq_link_m->diagnose($course_id);
 
 <?php tqa_head(t('تحرير الكورس'), $tq_course['title'], 'book',
     '<a class="tqa-btn tqa-btn--ghost" href="' . $tq_live . '" target="_blank" rel="noopener">'
-  . tq_icon('external', 16) . t('صفحته في الموقع</a>')
+  . tq_icon('external', 16) . t(' صفحته في الموقع</a>')
   . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/courses') . '">'
-  . tq_icon('chev-prev', 16) . t('كل الكورسات</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل الكورسات</a>')); ?>
 
 <nav class="tqa-tabs tqa-tabs--scroll" aria-label="<?php echo te('أقسام تحرير الكورس'); ?>">
     <?php foreach ($tq_tabs as $tq_k => [$tq_label, $tq_ic]): ?>
@@ -350,7 +350,7 @@ if ($tq_gaps): ?>
                         <input type="file" id="upcoming_image_thumbnail" name="upcoming_image_thumbnail"
                                accept="image/*" data-tqa-file>
                         <label class="tqa-file__btn" for="upcoming_image_thumbnail">
-                            <?php echo tq_icon('image', 16); ?> اختر صورة
+                            <?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورة'); ?>
                         </label>
                         <span class="tqa-file__name" data-tqa-file-name><?php echo t('المقاس المفضل ‎365 × 460‎'); ?></span>
                         <input type="hidden" name="old_upcoming_image_thumbnail"
@@ -423,7 +423,7 @@ if ($tq_gaps): ?>
                     <?php endforeach; ?>
                 </div>
                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-add="requirements">
-                    <?php echo tq_icon('plus', 14); ?> أضف متطلبا
+                    <?php echo tq_icon('plus', 14); ?> <?php echo t('أضف متطلبا'); ?>
                 </button>
             </div>
 
@@ -442,7 +442,7 @@ if ($tq_gaps): ?>
                     <?php endforeach; ?>
                 </div>
                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-add="outcomes">
-                    <?php echo tq_icon('plus', 14); ?> أضف مخرجا
+                    <?php echo tq_icon('plus', 14); ?> <?php echo t('أضف مخرجا'); ?>
                 </button>
             </div>
 
@@ -460,14 +460,14 @@ if ($tq_gaps): ?>
                             <div class="tqa-actions" style="margin-block-start:var(--tq-space-s)">
                                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-remove
                                         style="color:var(--tq-danger)">
-                                    <?php echo tq_icon('trash', 14); ?> احذف هذا السؤال
+                                    <?php echo tq_icon('trash', 14); ?> <?php echo t('احذف هذا السؤال'); ?>
                                 </button>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-add="faqs">
-                    <?php echo tq_icon('plus', 14); ?> أضف سؤالا
+                    <?php echo tq_icon('plus', 14); ?> <?php echo t('أضف سؤالا'); ?>
                 </button>
             </div>
         </div>
@@ -499,7 +499,7 @@ if ($tq_gaps): ?>
                 <div class="tqa-fieldgrid">
                     <div class="tqa-field">
                         <label class="tqa-field__label" for="price">
-                            السعر (<?php echo html_escape(currency_code_and_symbol()); ?>)
+                            <?php echo t('السعر ('); ?><?php echo html_escape(currency_code_and_symbol()); ?>)
                         </label>
                         <input class="tqa-input tqa-input--ltr" type="number" id="price" name="price"
                                min="0" step="0.01" value="<?php echo html_escape($tq_course['price']); ?>">
@@ -507,7 +507,7 @@ if ($tq_gaps): ?>
 
                     <div class="tqa-field">
                         <label class="tqa-field__label" for="discounted_price">
-                            السعر بعد الخصم (<?php echo html_escape(currency_code_and_symbol()); ?>)
+                            <?php echo t('السعر بعد الخصم ('); ?><?php echo html_escape(currency_code_and_symbol()); ?>)
                         </label>
                         <input class="tqa-input tqa-input--ltr" type="number" id="discounted_price"
                                name="discounted_price" min="0" step="0.01" data-tqa-discount
@@ -605,12 +605,12 @@ if ($tq_gaps): ?>
                     <label class="tqa-field__label" for="tq_teacher_percent"><?php echo t('نصيب المعلم %'); ?></label>
                     <input class="tqa-input tqa-input--ltr" type="number" id="tq_teacher_percent"
                            name="tq_teacher_percent" min="0" max="100" step="0.01" data-tqa-share
-                           placeholder="<?php echo html_escape($tq_scfg['percent']); ?> — الافتراض العام"
+                           placeholder="<?php echo te('____ — الافتراض العام', array(html_escape($tq_scfg['percent']))); ?>"
                            value="<?php echo $tq_pc === null ? '' : html_escape($tq_pc); ?>">
                     <?php /* **الفارغ غير الصفر.** وقوله صراحة يمنع أن يكتب
                              مسؤول صفرا ظانا أنه «يرجعه إلى الافتراضي»
                              فيحرم معلما من نصيبه بلا أن يقصد. */ ?>
-                    <span class="tqa-field__hint"><?php echo t('اتركه فارغا ليأخذ الافتراض العام ('); ?><span class="tqa-num"><?php echo html_escape($tq_scfg['percent']); ?>٪</span><?php echo t('). والصفر يعني'); ?> <b><?php echo t('صفرا بقرار'); ?></b> <?php echo t('لا «الافتراضي». والباقي عمولة المنصة.'); ?></span>
+                    <span class="tqa-field__hint"><?php echo t('اتركه فارغا ليأخذ الافتراض العام ('); ?><span class="tqa-num"><?php echo html_escape($tq_scfg['percent']); ?><?php echo t('٪'); ?></span><?php echo t('). والصفر يعني'); ?> <b><?php echo t('صفرا بقرار'); ?></b> <?php echo t('لا «الافتراضي». والباقي عمولة المنصة.'); ?></span>
                 </div>
 
                 <div class="tqa-field">
@@ -619,16 +619,16 @@ if ($tq_gaps): ?>
                         <span aria-hidden="true"><?php echo tq_icon('money', 18); ?></span>
                         <span style="flex:1">
                             <?php if ((int) $tq_offer['price'] > 0): ?>
-                                من <b class="tqa-num"><?php
+                                <?php echo t('من'); ?> <b class="tqa-num"><?php
                                     echo number_format($tq_offer['price'] / 100, 2); ?></b> <?php echo t('ر.س: للمعلم'); ?> <b class="tqa-num"><?php
                                     echo number_format($tq_offer['share'] / 100, 2); ?></b> <?php echo t('ر.س، وللمنصة'); ?> <b class="tqa-num"><?php
-                                    echo number_format($tq_offer['platform'] / 100, 2); ?></b> ر.س.
+                                    echo number_format($tq_offer['platform'] / 100, 2); ?></b> <?php echo t('ر.س.'); ?>
                                 <?php /* «المحفوظ» لا «المكتوب»: هذه الأرقام
                                          من الصف لا من الحقول أعلاه، وتتغير
                                          بعد الحفظ لا قبله. وقولها يمنع أن
                                          يظنها المسؤول لا تستجيب. */ ?>
                             <?php else: ?>
-                                لا سعر بعد — اكتب السعر أعلاه واحفظ لترى القسمة.
+                                <?php echo t('لا سعر بعد — اكتب السعر أعلاه واحفظ لترى القسمة.'); ?>
                             <?php endif; ?>
                         </span>
                     </p>
@@ -663,10 +663,10 @@ if ($tq_gaps): ?>
                     <span style="flex:1">
                         <strong><?php echo t('بيع مفردا'); ?> <span class="tqa-num"><?php echo (int) $tq_sold['n']; ?></span> <?php echo t('مرة'); ?></strong>
                         <span style="display:block"><?php echo t('بمحصل'); ?>
-                            <span class="tqa-num"><?php echo number_format($tq_sold['gross'] / 100); ?></span> ر.س.
+                            <span class="tqa-num"><?php echo number_format($tq_sold['gross'] / 100); ?></span> <?php echo t('ر.س.'); ?>
                             <?php /* وتعديل السعر لا يمس ما بيع: `subscriptions.price`
                                      ينسخ وقت الشراء. وقولها هنا يمنع سؤالا يتكرر. */ ?>
-                            وتعديل السعر لا يغير ما بيع — السعر ينسخ وقت الشراء.</span>
+                            <?php echo t('وتعديل السعر لا يغير ما بيع — السعر ينسخ وقت الشراء.'); ?></span>
                     </span>
                 </p>
             <?php endif; ?>
@@ -736,7 +736,7 @@ if ($tq_gaps): ?>
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('check', 16); ?> احفظ التعديل
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ التعديل'); ?>
         </button>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/courses'); ?>"><?php echo t('إلغاء'); ?></a>
     </div>

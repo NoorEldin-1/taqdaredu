@@ -127,6 +127,6 @@ if (!function_exists('tq_chat_daylabel')) {
         if ($d === 86400) return t('أمس');
         $days   = [t('الأحد'), t('الاثنين'), t('الثلاثاء'), t('الأربعاء'), t('الخميس'), t('الجمعة'), t('السبت')];
         $months = [t('يناير'), t('فبراير'), t('مارس'), t('أبريل'), t('مايو'), t('يونيو'), t('يوليو'), t('أغسطس'), t('سبتمبر'), t('أكتوبر'), t('نوفمبر'), t('ديسمبر')];
-        return $days[(int) date('w', $ts)] . t('،') . TQ_LRI . date('j', $ts) . TQ_PDI . ' ' . $months[(int) date('n', $ts) - 1];
+        return $days[(int) date('w', $ts)] . t('، ') . TQ_LRI . date('j', $ts) . TQ_PDI . ' ' . $months[(int) date('n', $ts) - 1];
     }
 }

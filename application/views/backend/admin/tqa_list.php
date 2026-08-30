@@ -26,7 +26,7 @@ foreach ($spec['fields'] as $name => $f) {
 
 $tools = $readonly ? '' :
     '<a class="tqa-btn tqa-btn--primary" href="' . site_url('taqdar_admin/form/' . $mkey) . '">'
-  . tq_icon('plus', 17) . t('إضافة</a>');
+  . tq_icon('plus', 17) . t(' إضافة</a>');
 ?>
 
 <?php tqa_head($spec['title'], $spec['lead'], isset($spec['icon']) ? $spec['icon'] : 'circle', $tools); ?>
@@ -42,7 +42,7 @@ $tools = $readonly ? '' :
 <?php if (empty($rows)): ?>
 
     <?php tqa_empty(
-        t('لا') . $spec['title'] . t('بعد'),
+        t('لا ') . $spec['title'] . t(' بعد'),
         $readonly
             ? t('تمتلئ هذه الشاشة وحدها حين يبدأ النظام في التسجيل — ولا يضاف إليها بيد.')
             : t('ابدأ بإضافة أول عنصر؛ وحدات أخرى تعتمد عليه.'),
@@ -109,7 +109,7 @@ $tools = $readonly ? '' :
 
                             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                href="<?php echo site_url('taqdar_admin/form/' . $mkey . '/' . (int) $r['id']); ?>">
-                                <?php echo tq_icon('edit', 15); ?> تعديل
+                                <?php echo tq_icon('edit', 15); ?> <?php echo t('تعديل'); ?>
                             </a>
 
                             <?php if (empty($spec['nodelete'])): ?>
@@ -118,8 +118,8 @@ $tools = $readonly ? '' :
                                 <form method="post" style="margin:0"
                                       action="<?php echo site_url('taqdar_admin/delete/' . $mkey . '/' . (int) $r['id']); ?>"
                                       data-tqa-confirm-title="<?php echo te('حذف نهائي'); ?>"
-                                      data-tqa-confirm="لا رجعة في هذا الحذف. وقد تعتمد عليه وحدات أخرى."
-                                      data-tqa-confirm-ok="نعم، احذف"
+                                      data-tqa-confirm="<?php echo te('لا رجعة في هذا الحذف. وقد تعتمد عليه وحدات أخرى.'); ?>"
+                                      data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                       data-tqa-confirm-tone="danger">
                                     <?php echo tq_csrf(); ?>
                                     <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
@@ -140,9 +140,9 @@ $tools = $readonly ? '' :
 
     <p style="padding:var(--tq-space-m) var(--tq-space-xl);margin:0;border-block-start:1px solid var(--tq-line);
               font:var(--tq-type-caption);color:var(--tq-text2)">
-        <?php echo t('المعروض'); ?> <span class="tqa-num"><?php echo count($rows); ?></span> عنصرا
+        <?php echo t('المعروض'); ?> <span class="tqa-num"><?php echo count($rows); ?></span> <?php echo t('عنصرا'); ?>
         <?php if (count($rows) >= 200): ?>
-            — وهو حد العرض. المزيد موجود ولا يظهر هنا.
+            <?php echo t('— وهو حد العرض. المزيد موجود ولا يظهر هنا.'); ?>
         <?php endif; ?>
     </p>
 

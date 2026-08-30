@@ -26,7 +26,7 @@ if (!$tq_f) {
 
     <div class="tqa-actions">
         <button class="tqa-btn tqa-btn--primary tqa-btn--block" type="submit">
-            <?php echo tq_icon('check', 16); ?> احفظ التعديل
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ التعديل'); ?>
         </button>
     </div>
 </form>

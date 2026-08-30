@@ -58,7 +58,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
                href="<?php echo site_url('taqdar_admin/content/' . $key); ?>"><?php echo t('حرر النصوص'); ?></a>
             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                href="<?php echo base_url($p['route']); ?>" target="_blank" rel="noopener">
-                <?php echo tq_icon('eye', 15); ?> عاين
+                <?php echo tq_icon('eye', 15); ?> <?php echo t('عاين'); ?>
             </a>
         </div>
     </article>

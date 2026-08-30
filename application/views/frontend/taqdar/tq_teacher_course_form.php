@@ -48,7 +48,7 @@ if ($tq_cid > 0 && !$tq_row) {
 }
 
 $tq_new   = $tq_cid <= 0;
-$tq_title = $tq_new ? t('كورس جديد') : t('إعدادات:') . (string) ($tq_row['title'] ?? '');
+$tq_title = $tq_new ? t('كورس جديد') : t('إعدادات: ') . (string) ($tq_row['title'] ?? '');
 $tq_sub   = $tq_new
     ? t('عرفه أولا، ثم ابن مقرره.')
     : t('بيانات هذا الكورس وما يفصله عن الطالب.');
@@ -70,19 +70,19 @@ tq_cur_styles();   /* `tqc-grid` و`tqc-check` و`tqc-note` — مكون الم�
 <div class="tq-row tq-row--between tq-section" style="flex-wrap:wrap;gap:var(--tq-space-m)">
     <?php if (!$tq_new): ?>
         <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/course/' . $tq_cid); ?>">
-            <?php echo tq_icon('layers', 16); ?> مقرر هذا الكورس
+            <?php echo tq_icon('layers', 16); ?> <?php echo t('مقرر هذا الكورس'); ?>
         </a>
     <?php else: ?><span></span><?php endif; ?>
 
     <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('teacher/courses'); ?>">
-        <?php echo tq_icon('chev-prev', 16); ?> كل كورساتي
+        <?php echo tq_icon('chev-prev', 16); ?> <?php echo t('كل كورساتي'); ?>
     </a>
 </div>
 
-<?php if ($m = $this->session->flashdata('tq_ok')): ?>
+<?php if ($m = tq_flash('tq_ok')): ?>
     <div class="tq-alert tq-alert--ok tq-section" role="status"><?php echo html_escape($m); ?></div>
 <?php endif; ?>
-<?php if ($m = $this->session->flashdata('tq_error')): ?>
+<?php if ($m = tq_flash('tq_error')): ?>
     <div class="tq-alert tq-alert--no tq-section" role="alert"><?php echo html_escape($m); ?></div>
 <?php endif; ?>
 
@@ -113,11 +113,9 @@ tq_cur_styles();   /* `tqc-grid` و`tqc-check` و`tqc-note` — مكون الم�
         <span aria-hidden="true"><?php echo tq_icon('help', 18); ?></span>
         <span>
             <?php if ($tq_may_publish): ?>
-                عرف الكورس هنا، ثم ابن مقرره. و<strong><?php echo t('الصف والمادة'); ?></strong> هما ما يجعله
-                يظهر في «المواد والبرامج» وتفتحه باقة — وبغيرهما يبقى محتوى داخليا.
+                <?php echo t('عرف الكورس هنا، ثم ابن مقرره. و'); ?><strong><?php echo t('الصف والمادة'); ?></strong> <?php echo t('هما ما يجعله يظهر في «المواد والبرامج» وتفتحه باقة — وبغيرهما يبقى محتوى داخليا.'); ?>
             <?php else: ?>
-                الكورس الجديد يبدأ <strong><?php echo t('بانتظار مراجعة الإدارة'); ?></strong><?php echo t('، وتستطيع رفع دروسه من الآن. و'); ?><strong><?php echo t('الصف والمادة'); ?></strong> هما ما يجعله يظهر في «المواد والبرامج»
-                وتفتحه باقة — وبغيرهما يبقى محتوى داخليا لا يعرض في الموقع العام.
+                <?php echo t('الكورس الجديد يبدأ'); ?> <strong><?php echo t('بانتظار مراجعة الإدارة'); ?></strong><?php echo t('، وتستطيع رفع دروسه من الآن. و'); ?><strong><?php echo t('الصف والمادة'); ?></strong> <?php echo t('هما ما يجعله يظهر في «المواد والبرامج» وتفتحه باقة — وبغيرهما يبقى محتوى داخليا لا يعرض في الموقع العام.'); ?>
             <?php endif; ?>
         </span>
     </p>

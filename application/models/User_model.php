@@ -839,9 +839,18 @@ class User_model extends CI_Model
             $this->session->set_userdata('cart_items', array());
         }
 
-        if (!$this->session->userdata('language')) {
-            $this->session->set_userdata('language', get_settings('language'));
-        }
+        /* TQ-I18N — اللغة لم تعد تكتب هنا.
+           كان السطر `set_userdata('language', get_settings('language'))`،
+           وينادى من `Login::__construct` — أي **قبل أن يعرف المستخدم**.
+           فيثبت لغة المنصة في الجلسة ومعرف المستخدم صفر، ثم يدخل صاحبها
+           فتبقى الجلسة على تلك اللغة إلى آخرها: `tq_lang()` تقرأ الجلسة
+           أولا فلا تبلغ تفضيل الحساب أبدا. أي أن من بدل لغته على جهاز
+           يجدها عربية على جهازه الثاني، والتفضيل محفوظ في `tq_prefs_user`
+           لا يقرؤه شيء.
+
+           و`tq_lang()` تملك القرار وحدها الآن: ترتب الجلسة ثم تفضيل
+           الحساب ثم كعكة الزائر ثم إعداد المنصة، وتكتب الجلسة **متى عرفت
+           جوابا حقيقيا** لا قبله. فحذف السطر هو الإصلاح، لا تعديله. */
 
         if($user_type == 'admin'){
             if($this->session->userdata('custom_session_limit') >= time()){

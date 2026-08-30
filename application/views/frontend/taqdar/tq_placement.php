@@ -80,7 +80,7 @@ include 'portal_open.php';
         <p><?php echo nl2br(html_escape(
             trim((string) $exam['intro']) !== ''
                 ? $exam['intro']
-                : t('اسئلة اختيار من متعدد تقيس اين انت الان في منهج صفك. ولا رسوب فيه:')
+                : t('اسئلة اختيار من متعدد تقيس اين انت الان في منهج صفك. ولا رسوب فيه: ')
                 . t('كل نتيجة لها باقتها، والغرض ان تبدا من حيث انت لا من حيث يفترض غيرك.')
         )); ?></p>
 
@@ -93,11 +93,11 @@ include 'portal_open.php';
         <ol class="tqp-steps">
             <li><b>1</b><span>
                 <?php echo tq_count_units($tq_n, t('سؤال'), t('سؤالان'), t('سؤالين'), t('اسئلة'), t('سؤالا')); ?>
-                من اختيار من متعدد
+                <?php echo t('من اختيار من متعدد'); ?>
                 <?php if ((int) $exam['time_limit_sec'] > 0): ?>
-                    — والوقت <?php echo (int) ceil($exam['time_limit_sec'] / 60); ?> دقيقة.
+                    <?php echo t('— والوقت ____ دقيقة.', (int) ceil($exam['time_limit_sec'] / 60)); ?>
                 <?php else: ?>
-                    — بلا حد زمني، فخذ وقتك.
+                    <?php echo t('— بلا حد زمني، فخذ وقتك.'); ?>
                 <?php endif; ?>
             </span></li>
             <li><b>2</b><span><?php echo t('تظهر نتيجتك فورا: مبتدئ او متوسط او متقدم.'); ?></span></li>
@@ -107,7 +107,7 @@ include 'portal_open.php';
         <?php if ((int) $exam['allow_retake'] !== 1): ?>
             <p class="tq-caption">
                 <?php echo tq_icon('alert', 15); ?>
-                الاختبار مرة واحدة، فاجب بما تعرفه فعلا — النتيجة ترشدك انت.
+                <?php echo t('الاختبار مرة واحدة، فاجب بما تعرفه فعلا — النتيجة ترشدك انت.'); ?>
             </p>
         <?php endif; ?>
 
@@ -181,7 +181,7 @@ include 'portal_open.php';
 
     <div class="tq-card tq-card--panel">
         <span class="tq-eyebrow"><?php echo t('نتيجتك'); ?></span>
-        <h2 class="tq-card__title">موضعك الان: <?php echo html_escape($meta['label']); ?></h2>
+        <h2 class="tq-card__title"><?php echo t('موضعك الان:'); ?> <?php echo html_escape($meta['label']); ?></h2>
         <p><?php echo html_escape($meta['lead']); ?></p>
 
         <?php /* الترتيب الصاعد يقرا مسارا لا ثلاث خانات: الطالب يرى اين هو

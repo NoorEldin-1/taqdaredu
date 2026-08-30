@@ -46,7 +46,7 @@ $tq_names = array(
     t('عنوان كل صفحة ووصفها كما يقرؤهما محرك البحث ومنصات التواصل. اضغط اسم الصفحة لفتح حقولها.'),
     'search',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/sitemap_settings') . '">'
-  . tq_icon('layers', 16) . t('خريطة الموقع</a>')); ?>
+  . tq_icon('layers', 16) . t(' خريطة الموقع</a>')); ?>
 
 <div class="tqa-stack" style="max-inline-size:900px">
 <?php foreach ($seo_meta_tags as $tq_t):
@@ -169,7 +169,7 @@ $tq_names = array(
                              style="inline-size:120px;block-size:64px">
                         <input type="file" id="oi-<?php echo $tq_slug; ?>" name="og_image" accept="image/*" data-tqa-file>
                         <label class="tqa-file__btn" for="oi-<?php echo $tq_slug; ?>">
-                            <?php echo tq_icon('image', 16); ?> استبدل الصورة
+                            <?php echo tq_icon('image', 16); ?> <?php echo t('استبدل الصورة'); ?>
                         </label>
                         <span class="tqa-file__name" data-tqa-file-name><?php echo t('المقاس المفضل ‎1200 × 630‎ بكسل'); ?></span>
                         <input type="hidden" name="old_og_image" value="<?php echo html_escape($tq_t['og_image']); ?>">
@@ -188,7 +188,7 @@ $tq_names = array(
 
             <div class="tqa-actions">
                 <button type="submit" class="tqa-btn tqa-btn--primary">
-                    <?php echo tq_icon('check', 16); ?> احفظ <?php echo html_escape($tq_label); ?>
+                    <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ'); ?> <?php echo html_escape($tq_label); ?>
                 </button>
             </div>
         </form>

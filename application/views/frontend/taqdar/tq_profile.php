@@ -91,12 +91,11 @@ include 'portal_open.php';
         echo html_escape(trim(($tq_me['first_name'] ?? '') . ' ' . ($tq_me['last_name'] ?? '')) ?: t('طالب في تقدر')); ?></h2>
       <p class="tq-caption" style="margin:2px 0 0">
         <?php if ($tq_grade): ?><?php echo html_escape($tq_grade); ?> · <?php endif; ?>
-        عضو منذ <?php echo tq_num(tq_s_date(tq_s_ts($tq_me['date_added'] ?? 0))); ?>
+        <?php echo t('عضو منذ'); ?> <?php echo tq_num(tq_s_date(tq_s_ts($tq_me['date_added'] ?? 0))); ?>
       </p>
       <?php if (!empty($tq_exam['active'])): ?>
         <p class="tq-pf-exam">
-          <?php echo tq_icon('check-badge', 14); ?>
-          وضع الامتحان سار — بقي <?php echo tq_num((int) $tq_exam['days_left']); ?> يوما
+          <?php echo t('____ وضع الامتحان سار — بقي ____ يوما', array(tq_icon('check-badge', 14), tq_num((int) $tq_exam['days_left']))); ?>
         </p>
       <?php endif; ?>
     </div>
@@ -109,7 +108,7 @@ include 'portal_open.php';
     if (!empty($tq_goal['gamify'])) {
         echo tq_s_stat(tq_num((int) $tq_streak['days']), t('يوما متتاليا'), 'flame', 'peach',
               (int) $tq_streak['best'] > (int) $tq_streak['days']
-                  ? t('أطول سلسلة لك') . (int) $tq_streak['best'] : '');
+                  ? t('أطول سلسلة لك ') . (int) $tq_streak['best'] : '');
     }
     echo tq_s_stat(tq_num($tq_active_days), t('يوم دراسة في تسعين'), 'calendar', 'sky');
     echo tq_s_stat(
@@ -128,14 +127,14 @@ include 'portal_open.php';
       <span class="tq-caption"><?php echo t('آخر ثلاثة أشهر'); ?></span>
     </div>
     <div class="tq-pf-heat" role="img"
-         aria-label="خريطة أيام الدراسة في آخر ثلاثة أشهر: <?php echo (int) $tq_active_days; ?> يوما نشطا">
+         aria-label="<?php echo te('خريطة أيام الدراسة في آخر ثلاثة أشهر: ____ يوما نشطا', array((int) $tq_active_days)); ?>">
       <?php foreach ($tq_days as $d):
         $n = (int) $d['lessons'] + (int) $d['reviews'];
         $lv = !$d['active'] ? 0 : ($n >= 8 ? 3 : ($n >= 3 ? 2 : 1));
       ?>
         <span class="tq-pf-cell tq-pf-cell--<?php echo $lv; ?>"
               title="<?php echo html_escape($d['day']); ?><?php
-                echo $d['active'] ? ' — ' . $n . t('نشاطا') : t('— لا نشاط'); ?>"></span>
+                echo $d['active'] ? ' — ' . $n . t(' نشاطا') : t(' — لا نشاط'); ?>"></span>
       <?php endforeach; ?>
     </div>
     <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">

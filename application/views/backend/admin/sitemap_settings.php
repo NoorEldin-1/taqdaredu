@@ -45,7 +45,7 @@ $tq_lists = array(
     t('ما يقرؤه محرك البحث ليعرف صفحات الموقع. تولد تلقائيا ولا تحرر من هنا.'),
     'layers',
     '<a class="tqa-btn tqa-btn--ghost" href="' . base_url('sitemap.xml') . '" target="_blank" rel="noopener">'
-  . tq_icon('external', 16) . t('افتح sitemap.xml</a>')); ?>
+  . tq_icon('external', 16) . t(' افتح sitemap.xml</a>')); ?>
 
 <div class="tqa-grid tqa-grid--2">
 <?php foreach ($tq_lists as [$tq_title, $tq_sub, $tq_icon, $tq_urls]): ?>

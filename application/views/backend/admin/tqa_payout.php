@@ -97,9 +97,9 @@ $when = function ($ts) {
         <span class="tqa-stat__value"><?php echo tqa_money((int) $w['balance_locked']); ?></span>
         <span class="tqa-stat__hint">
             <?php if ($st === 0): ?>
-                يبقى <?php echo tqa_money(max(0, $after)); ?> بعد هذا التحويل
+                <?php echo t('يبقى ____ بعد هذا التحويل', tqa_money(max(0, $after))); ?>
             <?php else: ?>
-                مقابل طلبات قائمة أخرى
+                <?php echo t('مقابل طلبات قائمة أخرى'); ?>
             <?php endif; ?>
         </span>
     </div>
@@ -111,7 +111,7 @@ $when = function ($ts) {
         </div>
         <span class="tqa-stat__value"><?php echo tqa_money((int) $w['balance_available']); ?></span>
         <span class="tqa-stat__hint">
-            ومعلق <?php echo tqa_money((int) $w['balance_pending']); ?> لم يتحرر بعد
+            <?php echo t('ومعلق ____ لم يتحرر بعد', array(tqa_money((int) $w['balance_pending']))); ?>
         </span>
     </div>
 </div>
@@ -145,7 +145,7 @@ $when = function ($ts) {
 
                     <dt><?php echo t('المبلغ'); ?></dt>
                     <dd><b><?php echo tqa_money($amount); ?></b>
-                        <span class="tqa-dim">(<?php echo tqa_ltr($amount); ?> هللة)</span></dd>
+                        <span class="tqa-dim">(<?php echo tqa_ltr($amount); ?> <?php echo t('هللة)'); ?></span></dd>
 
                     <dt><?php echo t('تاريخ الطلب'); ?></dt>
                     <dd><span class="tqa-num"><?php echo $when($p['date_added']); ?></span></dd>
@@ -198,7 +198,7 @@ $when = function ($ts) {
         <?php if ($d['entries']): ?>
             <details class="tqa-card">
                 <summary class="tqa-card__head" style="cursor:pointer">
-                    <h2 class="tqa-card__title">آخر حركات الدفتر (<?php echo count($d['entries']); ?>)</h2>
+                    <h2 class="tqa-card__title"><?php echo t('آخر حركات الدفتر ('); ?><?php echo count($d['entries']); ?>)</h2>
                 </summary>
                 <div class="tqa-card__body">
                     <p class="tqa-reach__lead" style="margin-block-end:var(--tq-space-m)">
@@ -253,12 +253,12 @@ $when = function ($ts) {
                     <div style="display:flex;gap:var(--tq-space-s);flex-wrap:wrap">
                         <button class="tqa-btn tqa-btn--mastery" type="submit" name="act" value="pay"
                                 data-tqa-confirm-title="<?php echo te('اعتماد التحويل'); ?>"
-                                data-tqa-confirm="سيخصم المبلغ من المحجوز نهائيا ويخطر المعلم. تأكد من تنفيذ الحوالة أولا."
-                                data-tqa-confirm-ok="نعم، حولت"><?php echo t('حولت'); ?></button>
+                                data-tqa-confirm="<?php echo te('سيخصم المبلغ من المحجوز نهائيا ويخطر المعلم. تأكد من تنفيذ الحوالة أولا.'); ?>"
+                                data-tqa-confirm-ok="<?php echo te('نعم، حولت'); ?>"><?php echo t('حولت'); ?></button>
                         <button class="tqa-btn tqa-btn--ghost" type="submit" name="act" value="reject"
                                 data-tqa-confirm-title="<?php echo te('رفض طلب السحب'); ?>"
-                                data-tqa-confirm="سيعاد المبلغ إلى رصيد المعلم المتاح، ويصله سبب الرفض كما كتبته."
-                                data-tqa-confirm-ok="ارفض الطلب"
+                                data-tqa-confirm="<?php echo te('سيعاد المبلغ إلى رصيد المعلم المتاح، ويصله سبب الرفض كما كتبته.'); ?>"
+                                data-tqa-confirm-ok="<?php echo te('ارفض الطلب'); ?>"
                                 data-tqa-confirm-tone="danger"><?php echo t('رفض'); ?></button>
                     </div>
                 </div>
@@ -325,7 +325,7 @@ $when = function ($ts) {
                     <dt><?php echo t('طلبات سابقة'); ?></dt>
                     <dd><?php echo max(0, (int) $h['total'] - 1); ?></dd>
                     <dt><?php echo t('حول إليه'); ?></dt>
-                    <dd><?php echo (int) $h['paid']; ?> مرة · <b><?php echo tqa_money((int) $h['paid_sum']); ?></b></dd>
+                    <dd><?php echo (int) $h['paid']; ?> <?php echo t('مرة ·'); ?> <b><?php echo tqa_money((int) $h['paid_sum']); ?></b></dd>
                     <dt><?php echo t('رفض له'); ?></dt>
                     <dd><?php echo (int) $h['rejected']; ?></dd>
                     <dt><?php echo t('أول طلب'); ?></dt>

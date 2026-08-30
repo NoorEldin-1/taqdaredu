@@ -1,3 +1,6 @@
+<?php /* TQ-I18N — قاموس المتصفح أولا: كل سكربت بعده ينادي `TQ.t()`.
+         وهو `defer` كإخوته فينفذ بترتيب وروده قبلهم. */ ?>
+<script src="<?php echo tq_asset('js/tq-i18n.js'); ?>" defer></script>
 <script src="<?php echo tq_asset('js/tq-phone.js'); ?>" defer></script>
 <script src="<?php echo tq_asset('js/taqdar.js'); ?>" defer></script>
 

@@ -23,14 +23,12 @@ $tq_default = ($tq_saved === null);
     <span aria-hidden="true"><?php echo tq_icon($tq_on ? 'check-badge' : 'alert', 18); ?></span>
     <span>
         <?php if ($tq_on): ?>
-            <strong><?php echo t('يعمل الآن'); ?></strong> بالمعرف <?php echo tq_num($tq_live); ?> —
-            على صفحات الموقع العام وبوابات الطالب والمعلم وولي الأمر جميعا،
-            ولا يحمل في لوحة الإدارة.
+            <strong><?php echo t('يعمل الآن'); ?></strong> <?php echo t('بالمعرف ____ — على صفحات الموقع العام وبوابات الطالب والمعلم وولي الأمر جميعا، ولا يحمل في لوحة الإدارة.', tq_num($tq_live)); ?>
             <?php if ($tq_default): ?>
-                وهو المعرف الافتراضي المكتوب في الشيفرة؛ الحفظ من هنا يعلو عليه.
+                <?php echo t('وهو المعرف الافتراضي المكتوب في الشيفرة؛ الحفظ من هنا يعلو عليه.'); ?>
             <?php endif; ?>
         <?php else: ?>
-            <strong><?php echo t('مطفأ.'); ?></strong> لا يحمل سكربت ميتا في أي صفحة، ولا تقاس أي زيارة.
+            <strong><?php echo t('مطفأ.'); ?></strong> <?php echo t('لا يحمل سكربت ميتا في أي صفحة، ولا تقاس أي زيارة.'); ?>
         <?php endif; ?>
     </span>
 </div>
@@ -53,7 +51,7 @@ $tq_default = ($tq_saved === null);
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('check', 16); ?> احفظ
+                <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ'); ?>
             </button>
         </div>
     </form>

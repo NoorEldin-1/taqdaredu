@@ -44,7 +44,7 @@ $tq_current = isset($current_message_thread_code) ? $current_message_thread_code
 
 <?php tqa_head(t('الرسائل الخاصة'), t('محادثات الإدارة مع الطلاب والمعلمين.'), 'chat',
     '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/message/message_new') . '">'
-  . tq_icon('edit', 16) . t('رسالة جديدة</a>')); ?>
+  . tq_icon('edit', 16) . t(' رسالة جديدة</a>')); ?>
 
 <div class="tqa-chat">
 

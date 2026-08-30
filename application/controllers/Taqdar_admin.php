@@ -363,7 +363,7 @@ class Taqdar_admin extends CI_Controller
         $this->render('tqa_payouts', 'طلبات السحب', array(
             'rows'     => $this->taqdar_admin_model->payouts((string) $this->input->get('status')),
             'status'   => (string) $this->input->get('status'),
-            'channels' => Taqdar_wallet_model::$CHANNELS,
+            'channels' => Taqdar_wallet_model::channels(),
             'totals'   => $this->taqdar_admin_model->payout_totals(),
         ));
     }
@@ -382,7 +382,7 @@ class Taqdar_admin extends CI_Controller
 
         $this->render('tqa_payout', 'طلب سحب #' . (int) $id, array(
             'd'        => $d,
-            'channels' => Taqdar_wallet_model::$CHANNELS,
+            'channels' => Taqdar_wallet_model::channels(),
             'nav_key'  => 'tqa_payouts',
         ));
     }
@@ -1292,7 +1292,7 @@ class Taqdar_admin extends CI_Controller
         $tpl_notice = strtolower(trim((string) $this->input->post('tq_wa_tpl_notice')));
         foreach (array('قالب الرمز' => $tpl_otp, 'قالب الإشعارات' => $tpl_notice) as $lbl => $nm) {
             if ($nm !== '' && !preg_match('/^[a-z0-9_]{1,512}$/', $nm)) {
-                $errors[] = $lbl . ': الاسم حروف لاتينية صغيرة وأرقام وشرطة سفلية فقط.';
+                $errors[] = t($lbl) . t(': الاسم حروف لاتينية صغيرة وأرقام وشرطة سفلية فقط.');
             }
         }
 

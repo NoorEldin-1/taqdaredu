@@ -64,9 +64,9 @@ $tq_fields = array(
                            placeholder="<?php echo te('اتركه فارغا فلا يعرض'); ?>">
                     <span class="tqa-field__hint">
                         <?php if ($tq_m[1] !== ''): ?>
-                            يظهر في: <?php echo html_escape($tq_m[1]); ?>
+                            <?php echo t('يظهر في: ____', html_escape($tq_m[1])); ?>
                         <?php else: ?>
-                            لا صفحة تعرضه حاليا.
+                            <?php echo t('لا صفحة تعرضه حاليا.'); ?>
                         <?php endif; ?>
                     </span>
                 </div>
@@ -75,7 +75,7 @@ $tq_fields = array(
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('check', 16); ?> احفظ الأرقام
+                <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الأرقام'); ?>
             </button>
         </div>
     </form>

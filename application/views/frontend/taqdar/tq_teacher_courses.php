@@ -94,10 +94,10 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
-        <?php if ($m = $this->session->flashdata('tq_ok')): ?>
+        <?php if ($m = tq_flash('tq_ok')): ?>
             <div class="tq-alert tq-alert--ok tq-section" role="status"><?php echo html_escape($m); ?></div>
         <?php endif; ?>
-        <?php if ($m = $this->session->flashdata('tq_error')): ?>
+        <?php if ($m = tq_flash('tq_error')): ?>
             <div class="tq-alert tq-alert--no tq-section" role="alert"><?php echo html_escape($m); ?></div>
         <?php endif; ?>
 
@@ -125,7 +125,7 @@ include 'portal_open.php';
                     </p>
                 </div>
                 <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/course/new'); ?>">
-                    <?php echo tq_icon('plus', 16); ?> كورس جديد
+                    <?php echo tq_icon('plus', 16); ?> <?php echo t('كورس جديد'); ?>
                 </a>
             </div>
         </div>
@@ -165,7 +165,7 @@ include 'portal_open.php';
                             <tr>
                                 <td data-label="الكورس">
                                     <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_c['title']); ?></span>
-                                    <span class="tq-micro" style="display:block">أضيف <?php echo html_escape(tq_since((int) $tq_c['date_added'])); ?></span>
+                                    <span class="tq-micro" style="display:block"><?php echo t('أضيف'); ?> <?php echo html_escape(tq_since((int) $tq_c['date_added'])); ?></span>
                                 </td>
                                 <td data-label="الحالة"><?php echo tq_badge($tq_kind, $tq_text); ?></td>
                                 <td data-label="المسجلون"><?php echo tq_num($tq_c['students'], 'tq-num--sm'); ?></td>
@@ -173,13 +173,13 @@ include 'portal_open.php';
                                          فمن أراد أن يعرف **أي** الدروس لم يجد إليها سبيلا. */ ?>
                                 <td data-label="الدروس">
                                     <a href="<?php echo base_url('teacher/lessons') . '?course=' . (int) $tq_c['id']; ?>"
-                                       title="دروس <?php echo html_escape($tq_c['title']); ?>">
+                                       title="<?php echo te('دروس ____', array(html_escape($tq_c['title']))); ?>">
                                         <?php echo tq_num($tq_c['lessons'], 'tq-num--sm'); ?>
                                         <span class="tq-sr"><?php echo t('درسا — اضغط لعرضها'); ?></span>
                                     </a>
                                 </td>
                                 <td data-label="نسبة الإكمال" style="min-inline-size:180px">
-                                    <?php echo tq_progress($tq_completion, t('متوسط إكمال') . $tq_c['title']); ?>
+                                    <?php echo tq_progress($tq_completion, t('متوسط إكمال ') . $tq_c['title']); ?>
                                 </td>
                                 <?php if ($tq_show_sale): ?>
                                     <?php
@@ -200,9 +200,8 @@ include 'portal_open.php';
                                             <span class="tq-micro"><?php echo t('ر.س'); ?></span>
                                             <span class="tq-micro" style="display:block">
                                                 <?php echo t('لك'); ?> <span class="tq-ltr" dir="ltr"><?php
-                                                    echo number_format($tq_o['share'] / 100); ?></span> ر.س
-                                                (<?php echo html_escape(rtrim(rtrim(
-                                                    number_format((float) $tq_o['percent'], 2, '.', ''), '0'), '.')); ?>٪)
+                                                    echo number_format($tq_o['share'] / 100); ?></span> <?php echo t('ر.س (____٪)', array(html_escape(rtrim(rtrim(
+                                                    number_format((float) $tq_o['percent'], 2, '.', ''), '0'), '.')))); ?>
                                             </span>
                                             <?php /* والسبب يقال متى لم يعرض: كورس علم
                                                      للبيع وهو غير منشور أو بلا سعر يجلس
@@ -210,7 +209,7 @@ include 'portal_open.php';
                                                      يفسر — فيظن أن أحدا لا يشتري. */ ?>
                                             <?php if (empty($tq_o['sellable'])): ?>
                                                 <span class="tq-micro" style="display:block;color:var(--tq-text3)">
-                                                    لا يعرض: <?php echo html_escape($tq_o['why']); ?>
+                                                    <?php echo t('لا يعرض:'); ?> <?php echo html_escape($tq_o['why']); ?>
                                                 </span>
                                             <?php elseif ($tq_sn): ?>
                                                 <span class="tq-micro" style="display:block">
@@ -232,7 +231,7 @@ include 'portal_open.php';
                                                  نموذج رفع درس وحده، بلا قسم يضعه فيه. */ ?>
                                         <a class="tq-btn tq-btn--secondary tq-btn--sm"
                                            href="<?php echo base_url('teacher/course/' . (int) $tq_c['id']); ?>">
-                                            <?php echo tq_icon('layers', 14); ?> المقرر
+                                            <?php echo tq_icon('layers', 14); ?> <?php echo t('المقرر'); ?>
                                         </a>
                                         <?php /* «إعداداته» — البيانات نفسها التي تحررها
                                                  اللوحة. ولم يكن للمعلم إليها باب: كورس
@@ -240,7 +239,7 @@ include 'portal_open.php';
                                                  يصلحه (TQ-COURSE-SPLIT). */ ?>
                                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                            href="<?php echo base_url('teacher/course/' . (int) $tq_c['id'] . '/settings'); ?>">
-                                            <?php echo tq_icon('pen', 14); ?> إعداداته
+                                            <?php echo tq_icon('pen', 14); ?> <?php echo t('إعداداته'); ?>
                                         </a>
                                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                            href="<?php echo base_url('teacher/lessons'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
@@ -275,10 +274,9 @@ include 'portal_open.php';
                 </h2>
                 <p class="tq-empty__text">
                     <?php if ($tq_status === ''): ?>
-                        هذه الصفحة تعرض ما أسند إليك وحده — لا تعرض كورسات زملائك ولو كانت في مادتك نفسها.
-                        تواصل مع إدارة المنصة لإسناد مادتك وصفك، أو ابدأ برفع درسك الأول.
+                        <?php echo t('هذه الصفحة تعرض ما أسند إليك وحده — لا تعرض كورسات زملائك ولو كانت في مادتك نفسها. تواصل مع إدارة المنصة لإسناد مادتك وصفك، أو ابدأ برفع درسك الأول.'); ?>
                     <?php else: ?>
-                        غير التصفية لتعود إلى كل كورساتك.
+                        <?php echo t('غير التصفية لتعود إلى كل كورساتك.'); ?>
                     <?php endif; ?>
                 </p>
                 <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/upload'); ?>"><?php echo t('ارفع درسا جديدا'); ?></a>

@@ -22,6 +22,6 @@ $tq_skills = false;
 
 <?php tqa_head(t('تعديل الطالب'), $tq_name, 'users',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/users') . '">'
-  . tq_icon('chev-prev', 16) . t('كل الطلاب</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل الطلاب</a>')); ?>
 
 <?php include '_tq_account_form.php'; ?>

@@ -22,8 +22,8 @@ $tq_skills = true;
 
 <?php tqa_head(t('تعديل المعلم'), $tq_name, 'graduation',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('home/instructor_page/' . (int) $user_id) . '"'
-  . ' target="_blank" rel="noopener">' . tq_icon('external', 16) . t('صفحته في الموقع</a>')
+  . ' target="_blank" rel="noopener">' . tq_icon('external', 16) . t(' صفحته في الموقع</a>')
   . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/instructors') . '">'
-  . tq_icon('chev-prev', 16) . t('كل المعلمين</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل المعلمين</a>')); ?>
 
 <?php include '_tq_account_form.php'; ?>

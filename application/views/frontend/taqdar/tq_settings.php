@@ -64,8 +64,8 @@ $tq_last_pay = $CI->db->table_exists('subscriptions')
 $tq_pay_names = ['manual' => t('تحويل بنكي يدوي'), 'free' => t('باقة مجانية')];
 
 $tq_save = base_url('student/settings/save');
-$tq_ok   = $CI->session->flashdata('flash_message');
-$tq_err  = $CI->session->flashdata('error_message');
+$tq_ok   = tq_flash('flash_message');
+$tq_err  = tq_flash('error_message');
 
 $sections = [
     ['profile',  t('الملف الشخصي'),      'users'],
@@ -157,10 +157,10 @@ include 'portal_open.php';
                                         </form>
 
                                         <form method="post" action="<?php echo base_url('student/parent-link'); ?>" class="tq-form-inline"
-                                              data-tq-confirm-title="رفض طلب <?php echo html_escape($tq_pl['name']); ?>؟"
+                                              data-tq-confirm-title="<?php echo te('رفض طلب ____؟', array(html_escape($tq_pl['name']))); ?>"
                                               data-tq-confirm="<?php echo te('لن يفتح شيء من بياناتك، ويصله أنك لم توافق.'); ?>"
-                                              data-tq-confirm-note="القرار قرارك وحدك، ولك أن تقبل طلبا جديدا منه لاحقا."
-                                              data-tq-confirm-ok="أرفض الطلب">
+                                              data-tq-confirm-note="<?php echo te('القرار قرارك وحدك، ولك أن تقبل طلبا جديدا منه لاحقا.'); ?>"
+                                              data-tq-confirm-ok="<?php echo te('أرفض الطلب'); ?>">
                                             <?php echo tq_csrf(); ?>
                                             <input type="hidden" name="link_id" value="<?php echo (int) $tq_pl['id']; ?>">
                                             <input type="hidden" name="act" value="reject">
@@ -183,15 +183,15 @@ include 'portal_open.php';
                                         <span style="flex:1;min-inline-size:0">
                                             <span class="tq-strong" style="display:block"><?php echo html_escape($tq_al['name'] ?: $tq_al['email']); ?></span>
                                             <span class="tq-micro" style="display:block">
-                                                وافقت بتاريخ <?php echo TQ_LRI . html_escape((string) $tq_al['consent_at']) . TQ_PDI; ?>
+                                                <?php echo t('وافقت بتاريخ'); ?> <?php echo TQ_LRI . html_escape((string) $tq_al['consent_at']) . TQ_PDI; ?>
                                             </span>
                                         </span>
                                         <?php echo tq_badge('mastered', t('يتابعك')); ?>
                                         <form method="post" action="<?php echo base_url('student/parent-link'); ?>" class="tq-form-inline"
-                                              data-tq-confirm-title="سحب موافقتك على متابعة <?php echo html_escape($tq_al['name']); ?>؟"
+                                              data-tq-confirm-title="<?php echo te('سحب موافقتك على متابعة ____؟', array(html_escape($tq_al['name']))); ?>"
                                               data-tq-confirm="<?php echo te('لن يرى شيئا من بياناتك بعدها، ويصله إشعار بأنك سحبت موافقتك.'); ?>"
-                                              data-tq-confirm-note="يبقى في السجل تاريخ موافقتك وتاريخ سحبها. ولك أن توافق من جديد متى شئت."
-                                              data-tq-confirm-ok="أسحب موافقتي"
+                                              data-tq-confirm-note="<?php echo te('يبقى في السجل تاريخ موافقتك وتاريخ سحبها. ولك أن توافق من جديد متى شئت.'); ?>"
+                                              data-tq-confirm-ok="<?php echo te('أسحب موافقتي'); ?>"
                                               data-tq-confirm-tone="danger">
                                             <?php echo tq_csrf(); ?>
                                             <input type="hidden" name="link_id" value="<?php echo (int) $tq_al['id']; ?>">
@@ -219,8 +219,7 @@ include 'portal_open.php';
                                            accept="image/jpeg,image/png,image/webp"
                                            aria-describedby="tq-avatar-hint">
                                     <span class="tq-field__msg tq-field__hint" id="tq-avatar-hint">
-                                        JPG أو PNG أو WebP، الحد الأقصى <?php echo tq_iso(t('2 ميجابايت')); ?>.
-                                        اتركه فارغا لتبقى صورتك كما هي.
+                                        <?php echo t('JPG أو PNG أو WebP، الحد الأقصى ____. اتركه فارغا لتبقى صورتك كما هي.', array(tq_iso(t('2 ميجابايت')))); ?>
                                     </span>
                                 </div>
                             </div>
@@ -274,9 +273,7 @@ include 'portal_open.php';
 
                         <?php /* التوقيت إعداد منصة لا إعداد حساب، فيقال كذلك ولا يوضع في نموذج. */ ?>
                         <p class="tq-micro tq-muted" style="margin-block-start:var(--tq-space-l)">
-                            توقيت المنصة كلها
-                            <?php echo tq_iso(html_escape(function_exists('get_settings') ? (get_settings('timezone') ?: 'Asia/Riyadh') : 'Asia/Riyadh')); ?>،
-                            وليس إعدادا لكل حساب على حدة.
+                            <?php echo t('توقيت المنصة كلها ____، وليس إعدادا لكل حساب على حدة.', array(tq_iso(html_escape(function_exists('get_settings') ? (get_settings('timezone') ?: 'Asia/Riyadh') : 'Asia/Riyadh')))); ?>
                         </p>
                     </section>
 
@@ -341,9 +338,7 @@ include 'portal_open.php';
                     <section class="tq-card">
                         <h2 class="tq-card__title"><?php echo t('الجلسات والأجهزة'); ?></h2>
                         <p class="tq-caption">
-                            كل جهاز سجلت منه دخولا ولم تخرج منه بعد. والحد
-                            <?php echo tq_iso(html_escape((string) (get_settings('allowed_device_number_of_loging') ?: '—'))); ?>
-                            جلسة في الوقت نفسه — وبعده يطلب منك تأكيد الجهاز الجديد.
+                            <?php echo t('كل جهاز سجلت منه دخولا ولم تخرج منه بعد. والحد ____ جلسة في الوقت نفسه — وبعده يطلب منك تأكيد الجهاز الجديد.', array(tq_iso(html_escape((string) (get_settings('allowed_device_number_of_loging') ?: '—'))))); ?>
                         </p>
 
                         <?php if (!$tq_sessions): ?>
@@ -402,7 +397,7 @@ include 'portal_open.php';
                                 <p class="tq-micro" style="margin:0"><?php echo t('ملف بكل ما يخص حسابك، يبنى ثم يصلك برابط مؤقت.'); ?></p>
                             </div>
                             <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/export_data'); ?>">
-                                <?php echo tq_icon('download'); ?> طلب نسخة
+                                <?php echo tq_icon('download'); ?> <?php echo t('طلب نسخة'); ?>
                             </a>
                         </div>
                         <div class="tq-s-row">
@@ -655,7 +650,7 @@ include 'portal_open.php';
                         <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('login/logout'); ?>"
                            data-tq-confirm-title="<?php echo te('تسجيل الخروج؟'); ?>"
                            data-tq-confirm="<?php echo te('تنتهي جلستك على هذا الجهاز، وتحتاج بريدك وكلمة مرورك للدخول من جديد.'); ?>"
-                           data-tq-confirm-ok="تسجيل الخروج"
+                           data-tq-confirm-ok="<?php echo te('تسجيل الخروج'); ?>"
                            data-tq-confirm-tone="danger"><?php echo t('تسجيل الخروج'); ?></a>
                     </div>
                 </section>

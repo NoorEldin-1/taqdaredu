@@ -18,7 +18,8 @@ if (!function_exists('tq_s_month')) {
         static $names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
                          'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
         $i = ((int) $m) - 1;
-        return $names[$i] ?? '';
+        /* TQ-I18N — الترجمة عند الخروج: `static` لا يقبل نداء في تهيئته. */
+        return isset($names[$i]) ? t($names[$i]) : '';
     }
 }
 
@@ -76,8 +77,8 @@ if (!function_exists('tq_s_hours')) {
         $s = max(0, (int) $seconds);
         $h = intdiv($s, 3600);
         $m = intdiv($s % 3600, 60);
-        if ($h > 0) return $h . t('س') . $m . t('د');
-        return $m . t('د');
+        if ($h > 0) return $h . t(' س ') . $m . t(' د');
+        return $m . t(' د');
     }
 }
 
@@ -86,10 +87,10 @@ if (!function_exists('tq_s_minutes')) {
     function tq_s_minutes($minutes)
     {
         $n = (int) $minutes;
-        if ($n === 1) return t('دقيقة');
+        if ($n === 1) return t(' دقيقة');
         if ($n === 2) return t('دقيقتان');
-        if ($n <= 10) return tq_iso($n . t('دقائق'));
-        return tq_iso($n . t('دقيقة'));
+        if ($n <= 10) return tq_iso($n . t(' دقائق'));
+        return tq_iso($n . t(' دقيقة'));
     }
 }
 
@@ -111,7 +112,8 @@ if (!function_exists('tq_s_level')) {
             'expert'       => 'مستوى متقدم',
         ];
         $k = strtolower(trim((string) $level));
-        return $map[$k] ?? trim((string) $level);
+        /* TQ-I18N — الترجمة عند الخروج: `static` لا يقبل نداء دالة في تهيئته. */
+        return t($map[$k] ?? trim((string) $level));
     }
 }
 
@@ -121,7 +123,7 @@ if (!function_exists('tq_s_lessons_word')) {
     {
         $total = (int) $total;
         $word = $total === 1 ? t('درس') : ($total === 2 ? t('درسان') : ($total <= 10 ? t('دروس') : t('درسا')));
-        return tq_iso((int) $done . t('من') . $total . ' ' . $word);
+        return tq_iso((int) $done . t(' من ') . $total . ' ' . $word);
     }
 }
 
@@ -164,17 +166,20 @@ if (!function_exists('tq_file_kind')) {
             'zip' => 'doc', 'rar' => 'doc',
         ];
 
+        /* TQ-I18N — التسمية وحدها تترجم؛ و`key` و`icon` و`pastel` رموز. */
+        $out = function ($row) { $row['label'] = t($row['label']); return $row; };
+
         $name = trim((string) $file_name);
-        if ($name !== '' && preg_match('~^https?://~i', $name)) return $map['link'];
+        if ($name !== '' && preg_match('~^https?://~i', $name)) return $out($map['link']);
 
         $e = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        if ($e !== '' && isset($ext[$e])) return $map[$ext[$e]];
+        if ($e !== '' && isset($ext[$e])) return $out($map[$ext[$e]]);
 
         $h = strtolower(trim((string) $hint));
-        if (isset($map[$h])) return $map[$h];
-        if ($h !== '' && isset($ext[$h])) return $map[$ext[$h]];
+        if (isset($map[$h])) return $out($map[$h]);
+        if ($h !== '' && isset($ext[$h])) return $out($map[$ext[$h]]);
 
-        return $map['doc'];
+        return $out($map['doc']);
     }
 }
 
@@ -200,7 +205,7 @@ if (!function_exists('tq_s_thumb')) {
         $fam  = tq_pastel($index);
         $html = '<div class="tq-s-thumb tq-s-thumb--' . $fam . '">';
         if ($src !== '') {
-            $html .= '<img src="' . html_escape($src) . '" alt="' . html_escape(t('غلاف') . $title) . '" loading="lazy">';
+            $html .= '<img src="' . html_escape($src) . '" alt="' . html_escape(t('غلاف ') . $title) . '" loading="lazy">';
         } else {
             $html .= '<span class="tq-s-thumb__glyph" aria-hidden="true">'
                   . html_escape(mb_substr(trim((string) $title), 0, 1, 'UTF-8')) . '</span>';
@@ -252,8 +257,8 @@ if (!function_exists('tq_s_when')) {
         if ($d === 0) return ['kind' => 'late', 'text' => t('اليوم')];
         if ($d === 1) return ['kind' => 'due',  'text' => t('غدا')];
         if ($d === 2) return ['kind' => 'due',  'text' => t('بعد يومين')];
-        if ($d <= 10) return ['kind' => 'due',  'text' => tq_iso(t('بعد') . $d . t('أيام'))];
-        return ['kind' => 'progress', 'text' => tq_iso(t('بعد') . $d . t('يوما'))];
+        if ($d <= 10) return ['kind' => 'due',  'text' => tq_iso(t('بعد ') . $d . t(' أيام'))];
+        return ['kind' => 'progress', 'text' => tq_iso(t('بعد ') . $d . t(' يوما'))];
     }
 }
 

@@ -104,16 +104,16 @@ if ($tq_rows) {
 
                     <td data-label="التواريخ">
                         <span class="tqa-media__sub">
-                            سجل: <?php echo tqa_when($tq_e['date_added'], 'Y-m-d'); ?>
+                            <?php echo t('سجل:'); ?> <?php echo tqa_when($tq_e['date_added'], 'Y-m-d'); ?>
                         </span>
                         <span class="tqa-media__sub">
-                            آخر فتح:
+                            <?php echo t('آخر فتح:'); ?>
                             <?php echo !empty($tq_w['date_updated'])
                                 ? tqa_when($tq_w['date_updated'], 'Y-m-d')
                                 : t('<span class="tqa-dim">لم يبدأ بعد</span>'); ?>
                         </span>
                         <span class="tqa-media__sub">
-                            أكمله:
+                            <?php echo t('أكمله:'); ?>
                             <?php echo !empty($tq_w['completed_date'])
                                 ? tqa_when($tq_w['completed_date'], 'Y-m-d')
                                 : t('<span class="tqa-dim">لم يكمل بعد</span>'); ?>
@@ -133,7 +133,7 @@ if ($tq_rows) {
                             <?php echo t('من'); ?> <span class="tqa-num"><?php echo $tq_total; ?></span> <?php echo t('درسا'); ?>
                         </span>
                         <span class="tqa-media__sub">
-                            شاهد <?php echo html_escape(seconds_to_time_format($tq_secs[$tq_uid] ?? 0)); ?>
+                            <?php echo t('شاهد'); ?> <?php echo html_escape(seconds_to_time_format($tq_secs[$tq_uid] ?? 0)); ?>
                         </span>
                     </td>
 
@@ -141,7 +141,7 @@ if ($tq_rows) {
                         <div class="tqa-rowacts">
                             <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                     onclick="showLargeModal('<?php echo site_url('admin/student_academic_quiz_result/' . $tq_cid . '/' . $tq_uid); ?>', 'نتائج الاختبارات')">
-                                <?php echo tq_icon('clipboard', 14); ?> الاختبارات
+                                <?php echo tq_icon('clipboard', 14); ?> <?php echo t('الاختبارات'); ?>
                             </button>
                         </div>
                     </td>

@@ -182,7 +182,7 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
 
             <div class="tqa-field">
                 <label class="tqa-field__label" for="password">
-                    كلمة المرور
+                    <?php echo t('كلمة المرور'); ?>
                     <?php if (!$tq_edit): ?><span class="tqa-field__req" aria-hidden="true">*</span><?php endif; ?>
                 </label>
                 <input class="tqa-input tqa-input--ltr" type="text" id="password" name="password"
@@ -197,7 +197,7 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
 
             <div class="tqa-field">
                 <label class="tqa-field__label" for="password_confirm">
-                    تأكيد كلمة المرور
+                    <?php echo t('تأكيد كلمة المرور'); ?>
                     <?php if (!$tq_edit): ?><span class="tqa-field__req" aria-hidden="true">*</span><?php endif; ?>
                 </label>
                 <input class="tqa-input tqa-input--ltr" type="text" id="password_confirm"
@@ -205,7 +205,7 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
                        autocomplete="new-password" <?php echo $tq_edit ? '' : 'required'; ?> data-tqa-pass2>
                 <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="button"
                         style="margin-block-start:var(--tq-space-s)" data-tqa-passgen hidden>
-                    <?php echo tq_icon('key', 16); ?> ولد كلمة مرور
+                    <?php echo tq_icon('key', 16); ?> <?php echo t('ولد كلمة مرور'); ?>
                 </button>
             </div>
 

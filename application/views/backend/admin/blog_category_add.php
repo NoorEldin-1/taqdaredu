@@ -2,7 +2,7 @@
 
 <?php tqa_head(t('قسم مدونة جديد'), t('القسم يظهر مرشحا في صفحة المدونة، وكل مقال يسند إلى واحد.'), 'grid',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog_category') . '">'
-  . tq_icon('chev-prev', 16) . t('كل الأقسام</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل الأقسام</a>')); ?>
 
 <form class="tqa-card" action="<?php echo site_url('admin/blog_category/add'); ?>" method="post"
       style="max-inline-size:640px">
@@ -24,7 +24,7 @@
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('check', 16); ?> احفظ القسم
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ القسم'); ?>
         </button>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/blog_category'); ?>"><?php echo t('إلغاء'); ?></a>
     </div>

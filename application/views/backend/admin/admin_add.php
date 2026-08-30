@@ -26,7 +26,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 <?php tqa_head(t('إضافة مسؤول'), t('الحساب الجديد يرى كل شيء حتى تضبط له صلاحيات من شاشة المسؤولين.'), 'shield',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/admins') . '">'
-  . tq_icon('chev-prev', 16) . t('كل المسؤولين</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل المسؤولين</a>')); ?>
 
 <form action="<?php echo site_url('admin/admins/add'); ?>" enctype="multipart/form-data" method="post"
       style="max-inline-size:860px">
@@ -75,7 +75,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
                 <div class="tqa-file">
                     <input type="file" id="user_image" name="user_image" accept="image/*" data-tqa-file>
                     <label class="tqa-file__btn" for="user_image">
-                        <?php echo tq_icon('image', 16); ?> اختر صورة
+                        <?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورة'); ?>
                     </label>
                     <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
                 </div>
@@ -134,7 +134,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('check', 16); ?> أنشئ الحساب
+            <?php echo tq_icon('check', 16); ?> <?php echo t('أنشئ الحساب'); ?>
         </button>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/admins'); ?>"><?php echo t('إلغاء'); ?></a>
     </div>

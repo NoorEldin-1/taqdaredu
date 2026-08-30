@@ -67,7 +67,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
 
 <?php tqa_head(t('إعدادات الموقع العام'), t('ما يراه الزائر: البانر والشعار والسياسات وبيانات التواصل.'), 'globe',
     '<a class="tqa-btn tqa-btn--ghost" href="' . base_url() . '" target="_blank" rel="noopener">'
-  . tq_icon('external', 16) . t('افتح الموقع</a>')); ?>
+  . tq_icon('external', 16) . t(' افتح الموقع</a>')); ?>
 
 <nav class="tqa-tabs tqa-tabs--scroll" aria-label="<?php echo te('أقسام إعدادات الموقع'); ?>">
     <?php foreach ($tq_tabs as $tq_k => [$tq_label, $tq_ic]): ?>
@@ -206,7 +206,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('check', 16); ?> احفظ التعديل
+                <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ التعديل'); ?>
             </button>
         </div>
     </form>
@@ -245,7 +245,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('check', 16); ?> احفظ البيانات
+                <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ البيانات'); ?>
             </button>
         </div>
     </form>
@@ -276,7 +276,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
             <?php foreach ($tq_faqs as $tq_i => $tq_f): ?>
                 <fieldset class="tqa-card" data-tqa-faq-item
                           style="box-shadow:none;margin-block-end:var(--tq-space-m);border-style:dashed">
-                    <legend class="tqa-sr">سؤال رقم <?php echo $tq_i + 1; ?></legend>
+                    <legend class="tqa-sr"><?php echo t('سؤال رقم'); ?> <?php echo $tq_i + 1; ?></legend>
 
                     <div class="tqa-field">
                         <label class="tqa-field__label"><?php echo t('السؤال'); ?></label>
@@ -294,7 +294,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
                     <div class="tqa-actions" style="margin-block-start:var(--tq-space-m)">
                         <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                 style="color:var(--tq-danger)" data-tqa-faq-remove>
-                            <?php echo tq_icon('trash', 14); ?> احذف هذا السؤال
+                            <?php echo tq_icon('trash', 14); ?> <?php echo t('احذف هذا السؤال'); ?>
                         </button>
                     </div>
                 </fieldset>
@@ -303,10 +303,10 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
 
         <div class="tqa-actions">
             <button type="button" class="tqa-btn tqa-btn--ghost" data-tqa-faq-add>
-                <?php echo tq_icon('plus', 16); ?> أضف سؤالا
+                <?php echo tq_icon('plus', 16); ?> <?php echo t('أضف سؤالا'); ?>
             </button>
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('check', 16); ?> احفظ الأسئلة
+                <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الأسئلة'); ?>
             </button>
         </div>
     </form>
@@ -408,7 +408,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
                          من الفراغ — فيرفع شعار بحواف بيضاء ولا يلاحظ. */ ?>
                 <div class="tqa-checker">
                     <?php if ($tq_src !== ''): ?>
-                        <img src="<?php echo html_escape($tq_src); ?>" alt="<?php echo html_escape($tq_label); ?> الحالي">
+                        <img src="<?php echo html_escape($tq_src); ?>" alt="<?php echo te('____ الحالي', array(html_escape($tq_label))); ?>">
                     <?php else: ?>
                         <span style="font:var(--tq-type-caption);color:var(--tq-text2)"><?php echo t('لا صورة مرفوعة'); ?></span>
                     <?php endif; ?>
@@ -421,14 +421,14 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
                     <input type="file" id="<?php echo $tq_field; ?>" name="<?php echo $tq_field; ?>"
                            accept="image/*" data-tqa-file required>
                     <label class="tqa-file__btn" for="<?php echo $tq_field; ?>">
-                        <?php echo tq_icon('upload', 16); ?> اختر صورة
+                        <?php echo tq_icon('upload', 16); ?> <?php echo t('اختر صورة'); ?>
                     </label>
                     <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
                 </div>
 
                 <div class="tqa-actions">
                     <button type="submit" class="tqa-btn tqa-btn--primary tqa-btn--sm">
-                        <?php echo tq_icon('check', 15); ?> ارفع
+                        <?php echo tq_icon('check', 15); ?> <?php echo t('ارفع'); ?>
                     </button>
                 </div>
             </form>
@@ -457,7 +457,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
             <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('star', 20); ?></span>
             <h2><?php echo t('آراء تعرض في الموقع'); ?></h2>
             <a class="tqa-btn tqa-btn--primary tqa-btn--sm" href="<?php echo site_url('admin/review_add'); ?>">
-                <?php echo tq_icon('plus', 15); ?> أضف رأيا
+                <?php echo tq_icon('plus', 15); ?> <?php echo t('أضف رأيا'); ?>
             </a>
         </div>
 
@@ -508,13 +508,13 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
                                 <div class="tqa-rowacts">
                                     <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                        href="<?php echo site_url('admin/review_edit/' . (int) $tq_r['id']); ?>">
-                                        <?php echo tq_icon('edit', 14); ?> تعديل
+                                        <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
                                     </a>
 
                                     <form method="post" action="<?php echo site_url('admin/review/delete/' . (int) $tq_r['id']); ?>"
                                           data-tqa-confirm-title="<?php echo te('حذف الرأي'); ?>"
-                                          data-tqa-confirm="لن يظهر في الموقع بعدها."
-                                          data-tqa-confirm-ok="نعم، احذف"
+                                          data-tqa-confirm="<?php echo te('لن يظهر في الموقع بعدها.'); ?>"
+                                          data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                           data-tqa-confirm-tone="danger">
                                         <?php echo tq_csrf(); ?>
                                         <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
@@ -592,7 +592,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('check', 16); ?> احفظ الإعداد
+                <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الإعداد'); ?>
             </button>
         </div>
     </form>
@@ -637,7 +637,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('check', 16); ?> احفظ الأكواد
+                <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الأكواد'); ?>
             </button>
         </div>
     </form>
@@ -740,7 +740,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
                     <?php endif; ?>
                     <input type="file" id="water_mark_image" name="water_mark_image" accept="image/*" data-tqa-file>
                     <label class="tqa-file__btn" for="water_mark_image">
-                        <?php echo tq_icon('upload', 16); ?> اختر صورة
+                        <?php echo tq_icon('upload', 16); ?> <?php echo t('اختر صورة'); ?>
                     </label>
                     <span class="tqa-file__name" data-tqa-file-name><?php echo t('المقاس المفضل ‎330 × 70‎ بكسل'); ?></span>
                 </div>
@@ -749,7 +749,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('check', 16); ?> احفظ العلامة
+                <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ العلامة'); ?>
             </button>
         </div>
     </form>

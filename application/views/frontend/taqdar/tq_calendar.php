@@ -121,7 +121,7 @@ if ($uid > 0) {
             $tq_events[] = [
                 'ts'    => $ts,
                 'cat'   => 'exams',
-                'title' => ($done ? t('سلمت:') : t('بدأت:')) . $r['title'],
+                'title' => ($done ? t('سلمت: ') : t('بدأت: ')) . $r['title'],
                 'sub'   => $tq_my_courses[$cid] ?? '',
                 'href'  => base_url('student/lesson/' . $cid . '/' . (int) $r['quiz_id']),
             ];
@@ -143,7 +143,7 @@ if ($uid > 0) {
         $tq_events[] = [
             'ts'    => $ts,
             'cat'   => 'tasks',
-            'title' => ($done ? t('سلمت واجب:') : t('بدأت واجب:')) . $r['title'],
+            'title' => ($done ? t('سلمت واجب: ') : t('بدأت واجب: ')) . $r['title'],
             'sub'   => $tq_my_courses[$cid] ?? '',
             'href'  => base_url('student/lesson/' . $cid . '/' . (int) $r['lesson_id']),
         ];
@@ -164,9 +164,9 @@ if ($uid > 0) {
         $tq_events[] = [
             'ts'    => $ts,
             'cat'   => 'on_demand',
-            'title' => t('حصة') . ($who !== '' ? t('مع') . $who : ''),
+            'title' => t('حصة') . ($who !== '' ? t(' مع ') . $who : ''),
             /* نص خام: العزل يقع عند العرض مرة واحدة، فلا يعزل الرقم مرتين */
-            'sub'   => ((int) $r['duration_min']) . t('دقيقة'),
+            'sub'   => ((int) $r['duration_min']) . t(' دقيقة'),
             'href'  => base_url('student/on-demand'),
         ];
     }
@@ -319,7 +319,7 @@ include 'portal_open.php';
             </nav>
         </div>
 
-        <section class="tq-card tq-card--panel tq-section" aria-label="تقويم <?php echo html_escape($tq_month_names[$tq_month - 1]); ?>">
+        <section class="tq-card tq-card--panel tq-section" aria-label="<?php echo te('تقويم ____', array(html_escape($tq_month_names[$tq_month - 1]))); ?>">
 
             <?php if ($tq_view === 'month'): ?>
                 <div class="tq-cal">
@@ -453,7 +453,7 @@ include 'portal_open.php';
         <section class="tq-card tq-card--panel tq-section" aria-labelledby="tq-day-h">
             <div class="tq-card__head">
                 <h2 class="tq-card__title" id="tq-day-h">
-                    جدول اليوم — <?php echo html_escape($tq_day_names[(int) date('w', $tq_today)]); ?>
+                    <?php echo t('جدول اليوم —'); ?> <?php echo html_escape($tq_day_names[(int) date('w', $tq_today)]); ?>
                     <?php echo tq_num(date('Y-m-d', $tq_today), 'tq-num--sm'); ?>
                 </h2>
                 <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo $tq_link('week', $tq_today); ?>"><?php echo t('عرض الجدول الأسبوعي'); ?></a>
@@ -568,7 +568,7 @@ include 'portal_open.php';
                 }
                 ?>
                 <p class="tq-caption">
-                    <?php echo tq_iso(t('لديك') . count($tq_today_events) . t('موعدا اليوم')); ?>
+                    <?php echo tq_iso(t('لديك ') . count($tq_today_events) . t(' موعدا اليوم')); ?>
                 </p>
                 <?php echo tq_progress((int) round($tq_passed * 100 / count($tq_today_events)), t('ما مضى من مواعيد اليوم')); ?>
                 <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo $tq_link('day', $tq_today); ?>" style="margin-block-start:var(--tq-space-m)">

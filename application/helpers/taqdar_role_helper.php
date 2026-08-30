@@ -117,15 +117,15 @@ if (!function_exists('tq_guard')) {
         if ($role === $required) return $role;
 
         $names = [
-            'admin'   => 'الإدارة',
-            'teacher' => 'المعلم',
-            'parent'  => 'ولي الأمر',
-            'student' => 'الطالب',
+            'admin'   => t('الإدارة'),
+            'teacher' => t('المعلم'),
+            'parent'  => t('ولي الأمر'),
+            'student' => t('الطالب'),
         ];
         $CI->session->set_flashdata(
             'error_message',
-            'هذه الصفحة تخص بوابة ' . ($names[$required] ?? $required) .
-            '، وحسابك مسجل بصفة ' . ($names[$role] ?? $role) . '.'
+            t('هذه الصفحة تخص بوابة ') . ($names[$required] ?? $required) .
+            t('، وحسابك مسجل بصفة ') . ($names[$role] ?? $role) . '.'
         );
         redirect(tq_home_for($role), 'location', 302);
     }

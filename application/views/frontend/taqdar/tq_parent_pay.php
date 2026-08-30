@@ -86,7 +86,7 @@ include 'portal_open.php';
       </div>
       <p class="tq-body">
         <?php echo t('فاتورة باسم'); ?> <strong><?php echo html_escape($tq_inv_row['holder'] ?: t('ابنك')); ?></strong>
-        بقيمة <?php echo tq_num(number_format((int) $tq_inv_row['total'] / 100, 2)); ?> ريال.
+        <?php echo t('بقيمة ____ ريال.', array(tq_num(number_format((int) $tq_inv_row['total'] / 100, 2)))); ?>
       </p>
 
       <?php if ($tq_card_ready): ?>
@@ -161,7 +161,7 @@ include 'portal_open.php';
                        دورته — «٩٩٩ ريال» بلا «كل ٣٠ يوما» تقرأ سنويا. */ ?>
               <span class="tq-pp-plan__p"><?php
                 echo (int) $p['price'] > 0
-                   ? tq_num(number_format((int) $p['price'] / 100, 0)) . t('ريال')
+                   ? tq_num(number_format((int) $p['price'] / 100, 0)) . t(' ريال')
                    : t('مجانية'); ?><?php
                 $tq_pp = tqs_plan_price(array('price' => (int) $p['price'],
                                               'period' => (string) $p['period'],
@@ -209,8 +209,7 @@ include 'portal_open.php';
                      <?php echo $tq_first ? ' checked' : ''; ?>>
               <span class="tq-pick__label"><?php echo html_escape((string) $tq_c['label']); ?></span>
               <span class="tq-pick__note">
-                <?php echo tq_num(number_format($tq_c['price'] / 100, 0)); ?> ريال —
-                يفتح <?php echo (int) $tq_c['days']; ?> يوما، بلا تجديد تلقائي
+                <?php echo t('____ ريال — يفتح ____ يوما، بلا تجديد تلقائي', array(tq_num(number_format($tq_c['price'] / 100, 0)), (int) $tq_c['days'])); ?>
               </span>
             </label>
           <?php $tq_first = false; endforeach; ?>
@@ -342,12 +341,12 @@ include 'portal_open.php';
                    <?php echo $tq_pc_first ? ' checked' : ''; ?> required>
             <span class="tq-pp-plan__t"><?php echo html_escape($tq_pc_o['title']); ?></span>
             <span class="tq-pp-plan__s"><?php echo (int) $tq_pc_o['days'] > 0
-                ? t('وصول') . (int) round($tq_pc_o['days'] / 30) . t('شهرا')
+                ? t('وصول ') . (int) round($tq_pc_o['days'] / 30) . t(' شهرا')
                 : t('وصول دائم'); ?></span>
             <?php /* السعر هنا **ما يدفع فعلا** لا معادلا: هذه شاشة إصدار
                      فاتورة، والرقم فيها هو رقم الفاتورة. */ ?>
             <span class="tq-pp-plan__p"><?php
-              echo tq_num(number_format($tq_pc_o['price'] / 100, 0)); ?> ريال</span>
+              echo tq_num(number_format($tq_pc_o['price'] / 100, 0)); ?> <?php echo t(' ريال'); ?></span>
           </label>
         <?php $tq_pc_first = false; endforeach; ?>
       </div>

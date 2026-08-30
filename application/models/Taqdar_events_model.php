@@ -90,7 +90,7 @@ class Taqdar_events_model extends CI_Model
         foreach ($this->catalog as $type => $meta) {
             $out[$type] = $meta['label'];
         }
-        return $out;
+        return tq_t_deep($out);   // TQ-I18N — التسمية تعرض، والمفتاح يخزن
     }
 
     /* =====================================================================

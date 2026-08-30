@@ -37,9 +37,9 @@ if ($tq_cids) {
 }
 
 $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_blog') . '">'
-          . tq_icon('plus', 17) . t('مقال جديد</a>')
+          . tq_icon('plus', 17) . t(' مقال جديد</a>')
           . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog_category') . '">'
-          . tq_icon('grid', 16) . t('أقسام المدونة</a>');
+          . tq_icon('grid', 16) . t(' أقسام المدونة</a>');
 ?>
 
 <?php tqa_head(t('المدونة'), t('المقال المعطل يبقى في القاعدة ولا يظهر في الموقع العام.'), 'file', $tq_tools); ?>
@@ -120,7 +120,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
                         <div class="tqa-rowacts">
                             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                href="<?php echo site_url('admin/edit_blog/' . $tq_id); ?>">
-                                <?php echo tq_icon('edit', 14); ?> تحرير
+                                <?php echo tq_icon('edit', 14); ?> <?php echo t('تحرير'); ?>
                             </a>
 
                             <?php if ($tq_on): ?>
@@ -141,13 +141,13 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
 
                             <form method="post" action="<?php echo site_url('admin/blog/delete/' . $tq_id); ?>"
                                   data-tqa-confirm-title="<?php echo te('حذف المقال'); ?>"
-                                  data-tqa-confirm="سيحذف «<?php echo html_escape($tq_b['title']); ?>» نهائيا."
-                                  data-tqa-confirm-ok="نعم، احذف"
+                                  data-tqa-confirm="<?php echo te('سيحذف «____» نهائيا.', array(html_escape($tq_b['title']))); ?>"
+                                  data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                   data-tqa-confirm-tone="danger">
                                 <?php echo tq_csrf(); ?>
                                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
                                     <?php echo tq_icon('trash', 14); ?>
-                                    <span class="tqa-sr">حذف <?php echo html_escape($tq_b['title']); ?></span>
+                                    <span class="tqa-sr"><?php echo t('حذف'); ?> <?php echo html_escape($tq_b['title']); ?></span>
                                 </button>
                             </form>
                         </div>

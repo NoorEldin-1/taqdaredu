@@ -16,7 +16,7 @@ $tq_src    = ($tq_banner !== '' && is_file(FCPATH . $tq_rel)) ? base_url($tq_rel
 
 <?php tqa_head(t('إعدادات المدونة'), t('ما يظهر أعلى صفحة المدونة في الموقع العام.'), 'file',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog') . '">'
-  . tq_icon('chev-prev', 16) . t('المقالات</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' المقالات</a>')); ?>
 
 <form class="tqa-card" action="<?php echo site_url('admin/blog_settings/update'); ?>" method="post"
       enctype="multipart/form-data" style="max-inline-size:760px">
@@ -88,7 +88,7 @@ $tq_src    = ($tq_banner !== '' && is_file(FCPATH . $tq_rel)) ? base_url($tq_rel
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('check', 16); ?> احفظ الإعدادات
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الإعدادات'); ?>
         </button>
     </div>
 </form>

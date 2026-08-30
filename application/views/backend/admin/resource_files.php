@@ -52,14 +52,14 @@ $tq_files = $this->db->where('lesson_id', (int) $tq_l['id'])
         <span class="tqa-field__label"><?php echo t('الملف'); ?> <span class="tqa-field__req" aria-hidden="true">*</span></span>
         <div class="tqa-file">
             <input type="file" id="rf_file" name="resource_file" required data-tqa-file>
-            <label class="tqa-file__btn" for="rf_file"><?php echo tq_icon('upload', 16); ?> اختر ملفا</label>
+            <label class="tqa-file__btn" for="rf_file"><?php echo tq_icon('upload', 16); ?> <?php echo t('اختر ملفا'); ?></label>
             <span class="tqa-file__name" data-tqa-file-name><?php echo t('PDF أو مستند أو صورة أو صوت'); ?></span>
         </div>
     </div>
 
     <div class="tqa-actions">
         <button class="tqa-btn tqa-btn--primary tqa-btn--block" type="submit">
-            <?php echo tq_icon('plus', 16); ?> أضف الملف
+            <?php echo tq_icon('plus', 16); ?> <?php echo t('أضف الملف'); ?>
         </button>
     </div>
 </form>
@@ -90,7 +90,7 @@ $tq_files = $this->db->where('lesson_id', (int) $tq_l['id'])
             </span>
             <span class="tqa-media__sub">
                 <?php if ($tq_here): ?>
-                    <?php echo html_escape(number_format(filesize(FCPATH . $tq_rel) / 1024, 0)); ?> ك.ب
+                    <?php echo html_escape(number_format(filesize(FCPATH . $tq_rel) / 1024, 0)); ?> <?php echo t('ك.ب'); ?>
                 <?php else: ?>
                     <span style="color:var(--tq-danger)"><?php echo t('الملف مفقود على الخادم'); ?></span>
                 <?php endif; ?>
@@ -101,15 +101,15 @@ $tq_files = $this->db->where('lesson_id', (int) $tq_l['id'])
             <?php if ($tq_here): ?>
                 <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo base_url($tq_rel); ?>"
                    target="_blank" rel="noopener">
-                    <?php echo tq_icon('download', 14); ?> افتح
+                    <?php echo tq_icon('download', 14); ?> <?php echo t('افتح'); ?>
                 </a>
             <?php endif; ?>
 
             <form method="post"
                   action="<?php echo site_url('admin/resource_file_delete/' . (int) $tq_f['id']); ?>"
                   data-tqa-confirm-title="<?php echo te('حذف الملف'); ?>"
-                  data-tqa-confirm="سيحذف «<?php echo html_escape($tq_f['title'] !== '' ? $tq_f['title'] : $tq_f['file_name']); ?>» من الدرس ومن الخادم."
-                  data-tqa-confirm-ok="نعم، احذف"
+                  data-tqa-confirm="<?php echo te('سيحذف «____» من الدرس ومن الخادم.', array(html_escape($tq_f['title'] !== '' ? $tq_f['title'] : $tq_f['file_name']))); ?>"
+                  data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                   data-tqa-confirm-tone="danger">
                 <?php echo tq_csrf(); ?>
                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">

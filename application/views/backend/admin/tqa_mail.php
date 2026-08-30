@@ -88,8 +88,8 @@ foreach ((array) $health as $tq_h) {
         <span class="tqa-badge tqa-badge--<?php
             echo $tq_fail ? 'danger' : ($tq_warn ? 'warn' : 'ok'); ?>" style="margin-inline-start:auto">
             <?php
-            if ($tq_fail)      echo t('يمنع الوصول:') . $tq_fail;
-            elseif ($tq_warn)  echo t('يستحسن إصلاحه:') . $tq_warn;
+            if ($tq_fail)      echo t('يمنع الوصول: ') . $tq_fail;
+            elseif ($tq_warn)  echo t('يستحسن إصلاحه: ') . $tq_warn;
             else               echo t('كل الفحوص سليمة');
             ?>
         </span>
@@ -187,7 +187,7 @@ foreach ((array) $health as $tq_h) {
                         </div>
 
                         <div class="tqa-field">
-                            <label class="tqa-field__label" for="m_pass">كلمة المرور <?php echo $has ? '' : '<span class="tqa-field__req" aria-hidden="true">*</span>'; ?></label>
+                            <label class="tqa-field__label" for="m_pass"><?php echo t('كلمة المرور'); ?> <?php echo $has ? '' : '<span class="tqa-field__req" aria-hidden="true">*</span>'; ?></label>
                             <input class="tqa-input tqa-input--ltr" dir="ltr" type="password" id="m_pass" name="smtp_pass"
                                    autocomplete="new-password"
                                    placeholder="<?php echo $has ? t('محفوظة — اتركه فارغا للإبقاء عليها') : t('كلمة مرور الصندوق أو كلمة مرور التطبيق'); ?>">
@@ -216,7 +216,7 @@ foreach ((array) $health as $tq_h) {
                         </div>
                     </div>
 
-                    <div class="tqa-actions"><button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('check', 16); ?> احفظ الإعدادات</button></div>
+                    <div class="tqa-actions"><button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الإعدادات'); ?></button></div>
                 </form>
             </div>
         </div>

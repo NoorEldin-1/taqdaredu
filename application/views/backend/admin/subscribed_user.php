@@ -6,7 +6,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * انظر TQ-DT-GONE في [Admin::subscribed_user()] لسبب سقوط DataTables.
  */
 $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newsletters') . '">'
-          . tq_icon('send', 16) . t('النشرات المرسلة</a>');
+          . tq_icon('send', 16) . t(' النشرات المرسلة</a>');
 ?>
 
 <?php tqa_head(t('مشتركو النشرة البريدية'),
@@ -17,7 +17,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newslet
     <label class="tqa-sr" for="q"><?php echo t('ابحث ببريد المشترك'); ?></label>
     <input class="tqa-input" type="search" id="q" name="q" placeholder="<?php echo te('ابحث ببريد المشترك…'); ?>"
            value="<?php echo html_escape($search); ?>" dir="ltr">
-    <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> ابحث</button>
+    <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> <?php echo t('ابحث'); ?></button>
     <?php if ($search !== ''): ?>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/subscribed_user'); ?>"><?php echo t('مسح البحث'); ?></a>
     <?php endif; ?>
@@ -77,12 +77,12 @@ $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newslet
                     <td data-label="إجراءات">
                         <form method="post" action="<?php echo site_url('admin/subscribed_user/delete/' . (int) $tq_r['id']); ?>"
                               data-tqa-confirm-title="<?php echo te('إلغاء الاشتراك'); ?>"
-                              data-tqa-confirm="لن تصل النشرة إلى هذا البريد بعدها."
-                              data-tqa-confirm-ok="نعم، ألغ"
+                              data-tqa-confirm="<?php echo te('لن تصل النشرة إلى هذا البريد بعدها.'); ?>"
+                              data-tqa-confirm-ok="<?php echo te('نعم، ألغ'); ?>"
                               data-tqa-confirm-tone="danger">
                             <?php echo tq_csrf(); ?>
                             <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
-                                <?php echo tq_icon('trash', 14); ?> إلغاء
+                                <?php echo tq_icon('trash', 14); ?> <?php echo t('إلغاء'); ?>
                             </button>
                         </form>
                     </td>

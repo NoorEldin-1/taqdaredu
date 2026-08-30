@@ -54,9 +54,9 @@ $tq_ago = function ($ts) {
     $ts = (int) $ts;
     if ($ts <= 0) return '—';
     $d = time() - $ts;
-    if ($d < 3600)  return t('منذ') . max(1, intdiv($d, 60)) . t('دقيقة');
-    if ($d < 86400) return t('منذ') . intdiv($d, 3600) . t('ساعة');
-    return t('منذ') . intdiv($d, 86400) . t('يوما');
+    if ($d < 3600)  return t('منذ ') . max(1, intdiv($d, 60)) . t(' دقيقة');
+    if ($d < 86400) return t('منذ ') . intdiv($d, 3600) . t(' ساعة');
+    return t('منذ ') . intdiv($d, 86400) . t(' يوما');
 };
 ?>
 
@@ -150,8 +150,8 @@ $tq_ago = function ($ts) {
                         <?php echo $tq_course_row ? t('كورس جديد') : ($tq_new ? t('درس جديد') : t('تعديل على منشور')); ?>
                     </span>
                     <?php if ($tq_course_row): ?>
-                        <span><?php echo tq_num((int) $tq_it['sections']); ?> قسما</span>
-                        <span><?php echo tq_num((int) $tq_it['lessons']); ?> درسا</span>
+                        <span><?php echo tq_num((int) $tq_it['sections']); ?> <?php echo t('قسما'); ?></span>
+                        <span><?php echo tq_num((int) $tq_it['lessons']); ?> <?php echo t('درسا'); ?></span>
                         <?php if ($tq_it['grade'] !== ''): ?>
                             <span><?php echo html_escape($tq_it['grade']); ?></span>
                         <?php endif; ?>
@@ -164,11 +164,11 @@ $tq_ago = function ($ts) {
                             <span><?php echo html_escape($tq_it['course']); ?></span>
                         <?php endif; ?>
                         <?php if ($tq_it['section'] !== ''): ?>
-                            <span>قسم: <?php echo html_escape($tq_it['section']); ?></span>
+                            <span><?php echo t('قسم:'); ?> <?php echo html_escape($tq_it['section']); ?></span>
                         <?php endif; ?>
                     <?php endif; ?>
                     <?php if ($tq_it['author'] !== ''): ?>
-                        <span>المعلم: <?php echo html_escape($tq_it['author']); ?></span>
+                        <span><?php echo t('المعلم:'); ?> <?php echo html_escape($tq_it['author']); ?></span>
                     <?php endif; ?>
                     <span title="<?php echo html_escape(date('Y-m-d H:i', (int) $tq_it['at'])); ?>">
                         <?php echo html_escape($tq_ago($tq_it['at'])); ?>

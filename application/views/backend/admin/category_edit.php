@@ -31,7 +31,7 @@ $tq_par_img = $tq_shot(isset($tq_cat['thumbnail']) ? $tq_cat['thumbnail'] : '');
 
 <?php tqa_head(t('تعديل القسم'), html_escape($tq_cat['name']), 'grid',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/categories') . '">'
-  . tq_icon('chev-prev', 16) . t('كل الأقسام</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل الأقسام</a>')); ?>
 
 <div class="tqa-card" style="max-inline-size:760px">
 
@@ -116,7 +116,7 @@ $tq_par_img = $tq_shot(isset($tq_cat['thumbnail']) ? $tq_cat['thumbnail'] : '');
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('check', 16); ?> احفظ التعديل
+                <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ التعديل'); ?>
             </button>
             <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/categories'); ?>"><?php echo t('إلغاء'); ?></a>
         </div>
@@ -134,12 +134,12 @@ $tq_par_img = $tq_shot(isset($tq_cat['thumbnail']) ? $tq_cat['thumbnail'] : '');
                 <form method="post"
                       action="<?php echo site_url('admin/categories/sub_category_image/' . (int) $tq_cat['id']); ?>"
                       data-tqa-confirm-title="<?php echo te('حذف الأيقونة'); ?>"
-                      data-tqa-confirm="سيحذف ملف الأيقونة من الخادم."
-                      data-tqa-confirm-ok="نعم، احذف"
+                      data-tqa-confirm="<?php echo te('سيحذف ملف الأيقونة من الخادم.'); ?>"
+                      data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                       data-tqa-confirm-tone="danger">
                     <?php echo tq_csrf(); ?>
                     <button type="submit" class="tqa-btn tqa-btn--ghost" style="color:var(--tq-danger)">
-                        <?php echo tq_icon('trash', 15); ?> حذف الأيقونة
+                        <?php echo tq_icon('trash', 15); ?> <?php echo t('حذف الأيقونة'); ?>
                     </button>
                 </form>
             </div>

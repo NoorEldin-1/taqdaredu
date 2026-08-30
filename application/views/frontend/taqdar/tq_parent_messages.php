@@ -188,9 +188,9 @@ include 'portal_open.php';
                                 <?php foreach ($tq_teachers as $tq_t2): ?>
                                     <option value="<?php echo (int) $tq_t2['id']; ?>">
                                         <?php echo html_escape($tq_t2['name']); ?>
-                                        — <?php echo html_escape(implode(t('،'), $tq_t2['courses'])); ?><?php
+                                        — <?php echo html_escape(implode(t('، '), $tq_t2['courses'])); ?><?php
                                         echo !empty($tq_t2['children'])
-                                            ? ' (' . html_escape(implode(t('،'), $tq_t2['children'])) . ')'
+                                            ? ' (' . html_escape(implode(t('، '), $tq_t2['children'])) . ')'
                                             : ''; ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -213,10 +213,9 @@ include 'portal_open.php';
                         <h3 class="tq-empty__title"><?php echo t('لا أحد تجوز مراسلته الآن'); ?></h3>
                         <p class="tq-empty__text">
                             <?php if (!$tq_children): ?>
-                                لا ابن مربوط بحسابك بعد. المراسلة تفتح بعد ربط حساب ابنك وموافقته.
+                                <?php echo t('لا ابن مربوط بحسابك بعد. المراسلة تفتح بعد ربط حساب ابنك وموافقته.'); ?>
                             <?php else: ?>
-                                أبناؤك المربوطون غير مسجلين في أي مادة لها معلم بعد،
-                                فلا أحد نراسله باسمهم. وتظهر القائمة هنا فور تسجيلهم في مادة.
+                                <?php echo t('أبناؤك المربوطون غير مسجلين في أي مادة لها معلم بعد، فلا أحد نراسله باسمهم. وتظهر القائمة هنا فور تسجيلهم في مادة.'); ?>
                             <?php endif; ?>
                         </p>
                         <?php if (!$tq_children): ?>
@@ -248,7 +247,7 @@ include 'portal_open.php';
                             <li>
                                 <a class="tq-row" style="gap:var(--tq-space-l);padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)"
                                    href="<?php echo base_url('parent/messages'); ?>?thread=<?php echo rawurlencode($tq_t['message_thread_code']); ?>">
-                                    <img class="tq-avatar" src="<?php echo $tq_photo; ?>" alt="صورة <?php echo html_escape($tq_other_name); ?>">
+                                    <img class="tq-avatar" src="<?php echo $tq_photo; ?>" alt="<?php echo te('صورة ____', array(html_escape($tq_other_name))); ?>">
                                     <span style="flex:1;min-inline-size:0">
                                         <span class="tq-strong" style="display:block;color:var(--tq-navy)"><?php echo html_escape($tq_other_name); ?></span>
                                         <span class="tq-micro" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">

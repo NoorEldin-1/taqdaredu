@@ -69,11 +69,11 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
     t('الكورسات التي تباع مفردة خارج الباقات — بسعرها ونصيب معلمها وما بيع منها.'),
     'card'); ?>
 
-<?php if ($m = $this->session->flashdata('flash_message')): ?>
+<?php if ($m = tq_flash('flash_message')): ?>
     <p class="tqa-note tqa-section"><span aria-hidden="true"><?php echo tq_icon('check-badge', 18); ?></span>
         <span style="flex:1"><?php echo html_escape($m); ?></span></p>
 <?php endif; ?>
-<?php if ($m = $this->session->flashdata('error_message')): ?>
+<?php if ($m = tq_flash('error_message')): ?>
     <p class="tqa-note tqa-note--warn tqa-section"><span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
         <span style="flex:1"><?php echo html_escape($m); ?></span></p>
 <?php endif; ?>
@@ -100,11 +100,11 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
         array(t('محصل البيع المفرد'), $sar($totals['gross']),
               t('من بيعات فعلت — والمعلق لا يعد إيرادا'), 'wallet', 'tqa-mint'),
         array(t('بيعة مفردة'), '<span class="tqa-num">' . (int) $totals['sold'] . '</span>',
-              t('في') . (int) $totals['courses'] . t('كورسا'), 'chart', 'tqa-sky'),
+              t('في ') . (int) $totals['courses'] . t(' كورسا'), 'chart', 'tqa-sky'),
         array(t('ينتظر الحوالة'), $sar($totals['pending_amount']),
-              (int) $totals['pending'] . t('فاتورة صدرت ولم تسدد'), 'clock', 'tqa-peach'),
+              (int) $totals['pending'] . t(' فاتورة صدرت ولم تسدد'), 'clock', 'tqa-peach'),
         array(t('معروض للبيع'), '<span class="tqa-num">' . $open_n . '</span>',
-              t('من') . count($offers) . t('كورسا علم'), 'card', 'tqa-lilac'),
+              t('من ') . count($offers) . t(' كورسا علم'), 'card', 'tqa-lilac'),
     );
     foreach ($tiles as $t): ?>
         <div class="tqa-stat">
@@ -122,11 +122,11 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
          الكورسات المعلنة للبيع
          ==================================================================== */ ?>
 <section class="tqa-card tqa-card--flush">
-    <div class="tqa-card__head"><h2><?php echo tq_icon('book', 18); ?> الكورسات المعلنة للبيع</h2></div>
+    <div class="tqa-card__head"><h2><?php echo tq_icon('book', 18); ?> <?php echo t('الكورسات المعلنة للبيع'); ?></h2></div>
 
     <?php if (!$offers): ?>
         <?php tqa_empty(t('لم يعلن كورس للبيع المفرد بعد'),
-            t('أعلن كورسا من الجدول أدناه، أو من تبويب «التسعير» في شاشته. والإعلان وحده')
+            t('أعلن كورسا من الجدول أدناه، أو من تبويب «التسعير» في شاشته. والإعلان وحده ')
           . t('لا يكفي: الكورس يحتاج سعرا ودرسا واحدا على الأقل وأن يكون منشورا.'),
             t('الكورسات'), site_url('admin/courses'), 'book'); ?>
     <?php else: ?>
@@ -172,15 +172,11 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
 
                     <td data-label="القسمة">
                         <?php if ((int) $o['price'] > 0): ?>
-                            من <?php echo $sar($o['price']); ?>
+                            <?php echo t('من '); ?> <?php echo $sar($o['price']); ?>
                             <br><span style="color:var(--tq-text2);font-size:12px">
-                                للمعلم <?php echo $sar($o['share']); ?>
-                                (<?php echo html_escape($pct($o['percent'])); ?>)
-                                · للمنصة <?php echo $sar($o['platform']); ?></span>
+                                <?php echo t('للمعلم ____ (____) · للمنصة ____', array($sar($o['share']), html_escape($pct($o['percent'])), $sar($o['platform']))); ?></span>
                             <?php if ((int) $o['list_price'] > 0): ?>
-                                <br><span class="tqa-dim" style="font-size:12px">بدل
-                                    <?php echo number_format($o['list_price'] / 100, 2); ?> —
-                                    خصم <?php echo (int) $o['off']; ?>٪</span>
+                                <br><span class="tqa-dim" style="font-size:12px"><?php echo t('بدل ____ — خصم ____٪', array(number_format($o['list_price'] / 100, 2), (int) $o['off'])); ?></span>
                             <?php endif; ?>
                         <?php else: ?>
                             <span class="tqa-dim"><?php echo t('لا سعر'); ?></span>
@@ -264,7 +260,7 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
          ==================================================================== */ ?>
 <?php if ($rest): ?>
 <section class="tqa-card tqa-card--flush" style="margin-block-start:var(--tq-space-xl)">
-    <div class="tqa-card__head"><h2><?php echo tq_icon('plus', 18); ?> منشورة ولم تعلن للبيع</h2></div>
+    <div class="tqa-card__head"><h2><?php echo tq_icon('plus', 18); ?> <?php echo t('منشورة ولم تعلن للبيع'); ?></h2></div>
 
     <p style="margin:0;padding:var(--tq-space-l) var(--tq-space-xl) 0;color:var(--tq-text2)">
         <?php echo t('هذه تفتح بالباقة وحدها اليوم. وإعلان واحد منها للبيع'); ?> <strong><?php echo t('لا يخرجه من الباقة'); ?></strong> <?php echo t('— يبقى فيها ويباع مفردا كذلك: فمن اشترك في باقة صفه يفتح له بها، ومن أراد هذه المادة وحدها يشتريها بثمنها.'); ?>
@@ -309,11 +305,11 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
          ما بيع
          ==================================================================== */ ?>
 <section class="tqa-card tqa-card--flush" style="margin-block-start:var(--tq-space-xl)">
-    <div class="tqa-card__head"><h2><?php echo tq_icon('receipt', 18); ?> ما بيع مفردا</h2></div>
+    <div class="tqa-card__head"><h2><?php echo tq_icon('receipt', 18); ?> <?php echo t('ما بيع مفردا'); ?></h2></div>
 
     <?php if (!$sales): ?>
         <?php tqa_empty(t('لا بيعة مفردة بعد'),
-            t('كل شراء كورس منفرد يظهر هنا بمشتريه وفاتورته ونصيب معلمه. وتفعيل الحوالة')
+            t('كل شراء كورس منفرد يظهر هنا بمشتريه وفاتورته ونصيب معلمه. وتفعيل الحوالة ')
           . t('البنكية يقع من شاشة «الاشتراكات»: البيعة اشتراك صفه في الجدول نفسه.'),
             t('الاشتراكات'), site_url('taqdar_admin/subscriptions'), 'refresh'); ?>
     <?php else: ?>
@@ -373,7 +369,7 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
          الإعدادات العامة
          ==================================================================== */ ?>
 <section class="tqa-card" id="tqa-pricing" style="margin-block-start:var(--tq-space-xl)">
-    <div class="tqa-card__head"><h2><?php echo tq_icon('cog', 18); ?> الإعدادات العامة</h2></div>
+    <div class="tqa-card__head"><h2><?php echo tq_icon('cog', 18); ?> <?php echo t('الإعدادات العامة'); ?></h2></div>
 
     <p class="tqa-card__lead" style="color:var(--tq-text2)">
         <?php echo t('هذه تحكم الباب كله.'); ?> <strong><?php echo t('ولا يعرض كورس للبيع حتى يعلم «يباع مفردا»'); ?></strong> <?php echo t('في تبويب تسعيره أو في الجدول أعلاه — فتح الباب وحده لا يعرض شيئا.'); ?>
@@ -404,8 +400,7 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
                        type="number" min="0" max="100" step="0.01" dir="ltr"
                        value="<?php echo html_escape(rtrim(rtrim(number_format($cfg['percent'], 2, '.', ''), '0'), '.')); ?>">
                 <span class="tqa-field__hint">
-                    يؤخذ لكل كورس لم يكتب له نصيب خاص — والباقي عمولة المنصة. ولا يخزن رقمان:
-                    نسبة المنصة مرآة محسوبة، ورقمان في عمودين يفترقان عند أول تعديل.
+                    <?php echo t('يؤخذ لكل كورس لم يكتب له نصيب خاص — والباقي عمولة المنصة. ولا يخزن رقمان: نسبة المنصة مرآة محسوبة، ورقمان في عمودين يفترقان عند أول تعديل.'); ?>
                     <?php /* الفارق عن الباقة يقال هنا: القسمة في الباقة وعاء
                              على معلمين كثر، وهنا نسبة واحدة لمعلم واحد —
                              ومسؤول يظنهما شيئا واحدا يضبط أحدهما ويترك الآخر. */ ?>
@@ -425,7 +420,7 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
         </div>
 
         <div class="tqa-actions">
-            <button class="tqa-btn" type="submit"><?php echo tq_icon('check', 16); ?> احفظ</button>
+            <button class="tqa-btn" type="submit"><?php echo tq_icon('check', 16); ?> <?php echo t('احفظ'); ?></button>
         </div>
     </form>
 </section>

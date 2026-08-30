@@ -37,7 +37,7 @@ if ($tq_rows) {
 <div class="tqa-toolbar">
     <a class="tqa-btn tqa-btn--ghost"
        href="<?php echo site_url('admin/export_enrol_history_csv/' . (int) $course_id); ?>">
-        <?php echo tq_icon('download', 16); ?> صدر جدولا
+        <?php echo tq_icon('download', 16); ?> <?php echo t('صدر جدولا'); ?>
     </a>
 </div>
 

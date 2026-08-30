@@ -101,7 +101,7 @@
         var close = document.createElement('button');
         close.type = 'button';
         close.className = 'tqa-toast__x';
-        close.setAttribute('aria-label', 'إغلاق الرسالة');
+        close.setAttribute('aria-label', TQ.t('إغلاق الرسالة'));
         close.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none"' +
                           ' stroke="currentColor" stroke-width="2" stroke-linecap="round"' +
                           ' aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
@@ -249,11 +249,11 @@
             ' stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
             (ICON_TONE[tone] || ICON_TONE.ask) + '</svg>';
 
-        dlgParts.title.textContent  = o.title || 'تأكيد الإجراء';
-        dlgParts.body.textContent   = o.body  || 'هل تريد المتابعة؟';
+        dlgParts.title.textContent  = o.title || TQ.t('تأكيد الإجراء');
+        dlgParts.body.textContent   = o.body  || TQ.t('هل تريد المتابعة؟');
         dlgParts.body.hidden        = !dlgParts.body.textContent;
-        dlgParts.go.textContent     = o.confirm || (tone === 'danger' ? 'نعم، احذف' : 'متابعة');
-        dlgParts.cancel.textContent = o.cancel  || 'رجوع';
+        dlgParts.go.textContent     = o.confirm || (tone === 'danger' ? TQ.t('نعم، احذف') : TQ.t('متابعة'));
+        dlgParts.cancel.textContent = o.cancel  || TQ.t('رجوع');
 
         dlgParts.go.className = 'tqa-btn ' + (tone === 'danger' ? 'tqa-btn--danger' : 'tqa-btn--primary');
 
@@ -425,17 +425,17 @@
 
         $.extend(true, $.fn.dataTable.defaults, {
             language: {
-                sSearch:       'ابحث:',
-                sLengthMenu:   'اعرض _MENU_ صفا',
-                sInfo:         'المعروض _START_ إلى _END_ من _TOTAL_',
-                sInfoEmpty:    'لا صفوف',
-                sInfoFiltered: '(مرشحة من _MAX_)',
-                sZeroRecords:  'لا نتائج تطابق البحث.',
-                sEmptyTable:   'لا بيانات بعد.',
-                sProcessing:   'جار التحميل…',
-                sLoadingRecords: 'جار التحميل…',
-                oPaginate: { sFirst: 'الأولى', sLast: 'الأخيرة', sNext: 'التالي', sPrevious: 'السابق' },
-                oAria: { sSortAscending: ': رتب تصاعديا', sSortDescending: ': رتب تنازليا' }
+                sSearch:       TQ.t('ابحث:'),
+                sLengthMenu:   TQ.t('اعرض _MENU_ صفا'),
+                sInfo:         TQ.t('المعروض _START_ إلى _END_ من _TOTAL_'),
+                sInfoEmpty:    TQ.t('لا صفوف'),
+                sInfoFiltered: TQ.t('(مرشحة من _MAX_)'),
+                sZeroRecords:  TQ.t('لا نتائج تطابق البحث.'),
+                sEmptyTable:   TQ.t('لا بيانات بعد.'),
+                sProcessing:   TQ.t('جار التحميل…'),
+                sLoadingRecords: TQ.t('جار التحميل…'),
+                oPaginate: { sFirst: TQ.t('الأولى'), sLast: TQ.t('الأخيرة'), sNext: TQ.t('التالي'), sPrevious: TQ.t('السابق') },
+                oAria: { sSortAscending: TQ.t(': رتب تصاعديا'), sSortDescending: TQ.t(': رتب تنازليا') }
             }
         });
     })(window.jQuery);
@@ -452,9 +452,9 @@
     window.confirm_modal = function (url, message) {
         TQA.confirm({
             tone:    'danger',
-            title:   'تأكيد الحذف',
-            body:    message || 'هذا الإجراء لا رجعة فيه. هل تريد المتابعة؟',
-            confirm: 'نعم، نفذ'
+            title:   TQ.t('تأكيد الحذف'),
+            body:    message || TQ.t('هذا الإجراء لا رجعة فيه. هل تريد المتابعة؟'),
+            confirm: TQ.t('نعم، نفذ')
         }).then(function (yes) { if (yes) window.location.href = url; });
     };
 
@@ -462,9 +462,9 @@
     window.ajax_confirm_modal = function (url, elem_id, message) {
         TQA.confirm({
             tone:    'danger',
-            title:   'تأكيد الحذف',
-            body:    message || 'هذا الإجراء لا رجعة فيه. هل تريد المتابعة؟',
-            confirm: 'نعم، نفذ'
+            title:   TQ.t('تأكيد الحذف'),
+            body:    message || TQ.t('هذا الإجراء لا رجعة فيه. هل تريد المتابعة؟'),
+            confirm: TQ.t('نعم، نفذ')
         }).then(function (yes) {
             if (!yes) return;
             if (!window.jQuery) { window.location.href = url; return; }
@@ -476,12 +476,12 @@
                     if (r && r.status === 'success') {
                         var row = document.getElementById(elem_id);
                         if (row) window.jQuery(row).fadeOut(400);
-                        TQA.ok(r.message || 'تم.');
+                        TQA.ok(r.message || TQ.t('تم.'));
                     } else {
-                        TQA.error((r && r.message) || 'تعذر تنفيذ الإجراء.');
+                        TQA.error((r && r.message) || TQ.t('تعذر تنفيذ الإجراء.'));
                     }
                 },
-                error: function () { TQA.error('تعذر الاتصال بالخادم. أعد المحاولة.'); }
+                error: function () { TQA.error(TQ.t('تعذر الاتصال بالخادم. أعد المحاولة.')); }
             });
         });
     };
@@ -536,7 +536,7 @@
         });
 
         var note = box.parentNode.querySelector('[data-tqa-filter-count]');
-        if (note) note.textContent = q ? ('يطابق ' + shown) : '';
+        if (note) note.textContent = q ? TQ.t('يطابق ____', shown) : '';
     });
 
     document.addEventListener('DOMContentLoaded', function () {

@@ -104,7 +104,7 @@ include 'portal_open.php';
                 <span class="tq-pick__label"><?php echo html_escape($s['name_ar']); ?></span>
                 <?php if ((int) $s['paths'] > 0): ?>
                   <span class="tq-pick__note"><?php
-                    echo tq_num((int) $s['paths']); ?> برنامجا</span>
+                    echo tq_num((int) $s['paths']); ?> <?php echo t('برنامجا'); ?></span>
                 <?php endif; ?>
               </label>
             <?php endforeach; ?>

@@ -99,11 +99,11 @@ $rev_diff = $rev_prev > 0 ? (int) round((($rev_now - $rev_prev) * 100) / $rev_pr
             <span class="tqa-stat__value"><?php echo $sar($rev_now); ?></span>
             <span class="tqa-stat__hint">
                 <?php if ($rev_diff === null): ?>
-                    لا إيراد في الشهر الماضي فلا مقارنة
+                    <?php echo t('لا إيراد في الشهر الماضي فلا مقارنة'); ?>
                 <?php elseif ($rev_diff >= 0): ?>
-                    أعلى بـ <span class="tqa-num"><?php echo $rev_diff; ?>%</span> عن الشهر الماضي
+                    <?php echo t('أعلى بـ'); ?> <span class="tqa-num"><?php echo $rev_diff; ?>%</span> <?php echo t('عن الشهر الماضي'); ?>
                 <?php else: ?>
-                    أقل بـ <span class="tqa-num"><?php echo abs($rev_diff); ?>%</span> عن الشهر الماضي
+                    <?php echo t('أقل بـ'); ?> <span class="tqa-num"><?php echo abs($rev_diff); ?>%</span> <?php echo t('عن الشهر الماضي'); ?>
                 <?php endif; ?>
             </span>
         </div>
@@ -145,9 +145,9 @@ $rev_diff = $rev_prev > 0 ? (int) round((($rev_now - $rev_prev) * 100) / $rev_pr
             <span class="tqa-stat__value"><?php echo (int) $pulse['paths_live']; ?></span>
             <span class="tqa-stat__hint">
                 <?php if ((int) $pulse['paths_draft'] > 0): ?>
-                    و<span class="tqa-num"><?php echo (int) $pulse['paths_draft']; ?></span> مسودة لم تنشر بعد
+                    <?php echo t('و'); ?><span class="tqa-num"><?php echo (int) $pulse['paths_draft']; ?></span> <?php echo t('مسودة لم تنشر بعد'); ?>
                 <?php else: ?>
-                    ولا مسودة معلقة
+                    <?php echo t('ولا مسودة معلقة'); ?>
                 <?php endif; ?>
             </span>
         </a>
@@ -190,12 +190,10 @@ $rev_diff = $rev_prev > 0 ? (int) round((($rev_now - $rev_prev) * 100) / $rev_pr
         <h2><?php echo t('جاهزية المنهج'); ?></h2>
         <?php if ($blocked): ?>
             <p class="tqa-pagehead__sub" style="margin-block:var(--tq-space-s) var(--tq-space-l)">
-                دورة التعلم متوقفة عند «<?php echo html_escape($blocked['label']); ?>».
-                <?php echo html_escape($blocked['need']); ?>. وما دامت هذه الخطوة فارغة
-                فبوابة الإتقان لا تجد ما تحكم به، ويبقى كل درس بعد الأول مقفلا أمام الطالب.
+                <?php echo t('دورة التعلم متوقفة عند «____». ____. وما دامت هذه الخطوة فارغة فبوابة الإتقان لا تجد ما تحكم به، ويبقى كل درس بعد الأول مقفلا أمام الطالب.', array(html_escape($blocked['label']), html_escape($blocked['need']))); ?>
             </p>
             <a class="tqa-btn tqa-btn--primary" href="<?php echo site_url('taqdar_admin/module/' . $blocked['k']); ?>">
-                ابدأ من <?php echo html_escape($readiness[$blocked['k']]['title']); ?>
+                <?php echo t('ابدأ من'); ?> <?php echo html_escape($readiness[$blocked['k']]['title']); ?>
             </a>
         <?php else: ?>
             <p class="tqa-pagehead__sub" style="margin-block:var(--tq-space-s) var(--tq-space-l)">
@@ -221,7 +219,7 @@ $rev_diff = $rev_prev > 0 ? (int) round((($rev_now - $rev_prev) * 100) / $rev_pr
         </p>
 
         <div class="tqa-bar" role="img"
-             aria-label="مربوط <?php echo $pct; ?> بالمئة من الأسئلة">
+             aria-label="<?php echo te('مربوط ____ بالمئة من الأسئلة', array($pct)); ?>">
             <div class="tqa-bar__fill" style="inline-size:<?php echo $pct; ?>%"></div>
         </div>
         <p style="margin-block:var(--tq-space-s) var(--tq-space-l);font:var(--tq-type-caption);color:var(--tq-text2)">

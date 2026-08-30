@@ -58,30 +58,32 @@ if (!function_exists('tq_dial_codes')) {
         static $c = null;
         if ($c !== null) return $c;
 
-        return $c = array(
-            'SA' => array('dial' => '966', 'name' => 'السعودية',    'flag' => '🇸🇦', 'len' => array(9, 9),  'starts' => array('5'),                'ex' => '512345678'),
-            'AE' => array('dial' => '971', 'name' => 'الإمارات',    'flag' => '🇦🇪', 'len' => array(9, 9),  'starts' => array('5'),                'ex' => '501234567'),
-            'EG' => array('dial' => '20',  'name' => 'مصر',         'flag' => '🇪🇬', 'len' => array(10, 10), 'starts' => array('1'),               'ex' => '1012345678'),
-            'KW' => array('dial' => '965', 'name' => 'الكويت',      'flag' => '🇰🇼', 'len' => array(8, 8),  'starts' => array('5', '6', '9'),      'ex' => '51234567'),
-            'QA' => array('dial' => '974', 'name' => 'قطر',         'flag' => '🇶🇦', 'len' => array(8, 8),  'starts' => array('3', '5', '6', '7'), 'ex' => '33123456'),
-            'BH' => array('dial' => '973', 'name' => 'البحرين',     'flag' => '🇧🇭', 'len' => array(8, 8),  'starts' => array('3', '6'),           'ex' => '36123456'),
-            'OM' => array('dial' => '968', 'name' => 'عمان',        'flag' => '🇴🇲', 'len' => array(8, 8),  'starts' => array('7', '9'),           'ex' => '92123456'),
-            'JO' => array('dial' => '962', 'name' => 'الأردن',      'flag' => '🇯🇴', 'len' => array(9, 9),  'starts' => array('7'),                'ex' => '791234567'),
-            'PS' => array('dial' => '970', 'name' => 'فلسطين',      'flag' => '🇵🇸', 'len' => array(9, 9),  'starts' => array('5'),                'ex' => '592123456'),
-            'LB' => array('dial' => '961', 'name' => 'لبنان',       'flag' => '🇱🇧', 'len' => array(7, 8),  'starts' => array(),                   'ex' => '71123456'),
-            'SY' => array('dial' => '963', 'name' => 'سوريا',       'flag' => '🇸🇾', 'len' => array(9, 9),  'starts' => array('9'),                'ex' => '944567890'),
-            'IQ' => array('dial' => '964', 'name' => 'العراق',      'flag' => '🇮🇶', 'len' => array(10, 10), 'starts' => array('7'),               'ex' => '7912345678'),
-            'YE' => array('dial' => '967', 'name' => 'اليمن',       'flag' => '🇾🇪', 'len' => array(9, 9),  'starts' => array('7'),                'ex' => '712345678'),
-            'SD' => array('dial' => '249', 'name' => 'السودان',     'flag' => '🇸🇩', 'len' => array(9, 9),  'starts' => array('9', '1'),           'ex' => '912345678'),
-            'LY' => array('dial' => '218', 'name' => 'ليبيا',       'flag' => '🇱🇾', 'len' => array(9, 9),  'starts' => array('9'),                'ex' => '912345678'),
-            'TN' => array('dial' => '216', 'name' => 'تونس',        'flag' => '🇹🇳', 'len' => array(8, 8),  'starts' => array('2', '4', '5', '9'), 'ex' => '20123456'),
-            'DZ' => array('dial' => '213', 'name' => 'الجزائر',     'flag' => '🇩🇿', 'len' => array(9, 9),  'starts' => array('5', '6', '7'),      'ex' => '551234567'),
-            'MA' => array('dial' => '212', 'name' => 'المغرب',      'flag' => '🇲🇦', 'len' => array(9, 9),  'starts' => array('6', '7'),           'ex' => '612345678'),
-            'MR' => array('dial' => '222', 'name' => 'موريتانيا',   'flag' => '🇲🇷', 'len' => array(8, 8),  'starts' => array('2', '3', '4'),      'ex' => '22123456'),
-            'SO' => array('dial' => '252', 'name' => 'الصومال',     'flag' => '🇸🇴', 'len' => array(7, 9),  'starts' => array(),                   'ex' => '612345678'),
-            'DJ' => array('dial' => '253', 'name' => 'جيبوتي',      'flag' => '🇩🇯', 'len' => array(8, 8),  'starts' => array('7'),                'ex' => '77123456'),
-            'KM' => array('dial' => '269', 'name' => 'جزر القمر',   'flag' => '🇰🇲', 'len' => array(7, 7),  'starts' => array('3', '4'),           'ex' => '3212345'),
-        );
+        /* TQ-I18N — اسم الدولة يعرض في منتقي رمز الاتصال، فيترجم. والرمز
+           والعلم والأطوال بلا نص، فتمر كما هي. */
+        return $c = tq_t_deep(array(
+            'SA' => array('dial' => '966', 'name' => t('السعودية'),    'flag' => '🇸🇦', 'len' => array(9, 9),  'starts' => array('5'),                'ex' => '512345678'),
+            'AE' => array('dial' => '971', 'name' => t('الإمارات'),    'flag' => '🇦🇪', 'len' => array(9, 9),  'starts' => array('5'),                'ex' => '501234567'),
+            'EG' => array('dial' => '20',  'name' => t('مصر'),         'flag' => '🇪🇬', 'len' => array(10, 10), 'starts' => array('1'),               'ex' => '1012345678'),
+            'KW' => array('dial' => '965', 'name' => t('الكويت'),      'flag' => '🇰🇼', 'len' => array(8, 8),  'starts' => array('5', '6', '9'),      'ex' => '51234567'),
+            'QA' => array('dial' => '974', 'name' => t('قطر'),         'flag' => '🇶🇦', 'len' => array(8, 8),  'starts' => array('3', '5', '6', '7'), 'ex' => '33123456'),
+            'BH' => array('dial' => '973', 'name' => t('البحرين'),     'flag' => '🇧🇭', 'len' => array(8, 8),  'starts' => array('3', '6'),           'ex' => '36123456'),
+            'OM' => array('dial' => '968', 'name' => t('عمان'),        'flag' => '🇴🇲', 'len' => array(8, 8),  'starts' => array('7', '9'),           'ex' => '92123456'),
+            'JO' => array('dial' => '962', 'name' => t('الأردن'),      'flag' => '🇯🇴', 'len' => array(9, 9),  'starts' => array('7'),                'ex' => '791234567'),
+            'PS' => array('dial' => '970', 'name' => t('فلسطين'),      'flag' => '🇵🇸', 'len' => array(9, 9),  'starts' => array('5'),                'ex' => '592123456'),
+            'LB' => array('dial' => '961', 'name' => t('لبنان'),       'flag' => '🇱🇧', 'len' => array(7, 8),  'starts' => array(),                   'ex' => '71123456'),
+            'SY' => array('dial' => '963', 'name' => t('سوريا'),       'flag' => '🇸🇾', 'len' => array(9, 9),  'starts' => array('9'),                'ex' => '944567890'),
+            'IQ' => array('dial' => '964', 'name' => t('العراق'),      'flag' => '🇮🇶', 'len' => array(10, 10), 'starts' => array('7'),               'ex' => '7912345678'),
+            'YE' => array('dial' => '967', 'name' => t('اليمن'),       'flag' => '🇾🇪', 'len' => array(9, 9),  'starts' => array('7'),                'ex' => '712345678'),
+            'SD' => array('dial' => '249', 'name' => t('السودان'),     'flag' => '🇸🇩', 'len' => array(9, 9),  'starts' => array('9', '1'),           'ex' => '912345678'),
+            'LY' => array('dial' => '218', 'name' => t('ليبيا'),       'flag' => '🇱🇾', 'len' => array(9, 9),  'starts' => array('9'),                'ex' => '912345678'),
+            'TN' => array('dial' => '216', 'name' => t('تونس'),        'flag' => '🇹🇳', 'len' => array(8, 8),  'starts' => array('2', '4', '5', '9'), 'ex' => '20123456'),
+            'DZ' => array('dial' => '213', 'name' => t('الجزائر'),     'flag' => '🇩🇿', 'len' => array(9, 9),  'starts' => array('5', '6', '7'),      'ex' => '551234567'),
+            'MA' => array('dial' => '212', 'name' => t('المغرب'),      'flag' => '🇲🇦', 'len' => array(9, 9),  'starts' => array('6', '7'),           'ex' => '612345678'),
+            'MR' => array('dial' => '222', 'name' => t('موريتانيا'),   'flag' => '🇲🇷', 'len' => array(8, 8),  'starts' => array('2', '3', '4'),      'ex' => '22123456'),
+            'SO' => array('dial' => '252', 'name' => t('الصومال'),     'flag' => '🇸🇴', 'len' => array(7, 9),  'starts' => array(),                   'ex' => '612345678'),
+            'DJ' => array('dial' => '253', 'name' => t('جيبوتي'),      'flag' => '🇩🇯', 'len' => array(8, 8),  'starts' => array('7'),                'ex' => '77123456'),
+            'KM' => array('dial' => '269', 'name' => t('جزر القمر'),   'flag' => '🇰🇲', 'len' => array(7, 7),  'starts' => array('3', '4'),           'ex' => '3212345'),
+        ));
     }
 }
 
@@ -189,7 +191,7 @@ if (!function_exists('tq_phone_check')) {
                       'iso' => $iso, 'error' => '');
 
         if ($nat === '') {
-            $out['error'] = $label . ' مطلوب.';
+            $out['error'] = $label . t(' مطلوب.');
             return $out;
         }
 
@@ -198,17 +200,17 @@ if (!function_exists('tq_phone_check')) {
             /* الرسالة تقول البلد والطول والمثال: «غير صحيح» وحدها تترك
                صاحبها يخمن أي جزء أخطأ فيه. */
             $need = ($c['len'][0] === $c['len'][1])
-                  ? ($c['len'][0] . ' أرقام')
-                  : ('من ' . $c['len'][0] . ' إلى ' . $c['len'][1] . ' أرقام');
-            $out['error'] = $label . ' في ' . $c['name'] . ' يكون ' . $need
-                          . ' بعد رمز الدولة — مثل: ' . $c['ex'] . '.';
+                  ? ($c['len'][0] . t(' أرقام'))
+                  : (t('من ') . $c['len'][0] . t(' إلى ') . $c['len'][1] . t(' أرقام'));
+            $out['error'] = $label . t(' في ') . $c['name'] . t(' يكون ') . $need
+                          . t(' بعد رمز الدولة — مثل: ') . $c['ex'] . '.';
             return $out;
         }
 
         if ($c['starts'] && !in_array($nat[0], $c['starts'], true)) {
-            $out['error'] = 'هذا ليس رقم جوال في ' . $c['name']
-                          . ' — جوالها يبدأ بـ' . implode(' أو ', $c['starts'])
-                          . '، مثل: ' . $c['ex'] . '.';
+            $out['error'] = t('هذا ليس رقم جوال في ') . $c['name']
+                          . t(' — جوالها يبدأ بـ') . implode(t(' أو '), $c['starts'])
+                          . t('، مثل: ') . $c['ex'] . '.';
             return $out;
         }
 
@@ -298,7 +300,7 @@ if (!function_exists('tq_phone_field')) {
         $skin = isset($o['skin']) ? $o['skin'] : 'site';
         $val  = isset($o['value']) ? (string) $o['value'] : '';
         $req  = !empty($o['required']);
-        $lbl  = isset($o['label']) ? (string) $o['label'] : 'رقم الجوال';
+        $lbl  = isset($o['label']) ? (string) $o['label'] : t('رقم الجوال');
         $id   = isset($o['id']) ? (string) $o['id'] : ('tqph-' . preg_replace('/\W+/', '-', $name));
         $all  = tq_dial_codes();
 
@@ -344,7 +346,7 @@ if (!function_exists('tq_phone_field')) {
         if ($skin === 'portal') {
             $h  = '<div class="tq-phone" data-tq-phone>';
             $h .= '<select class="tq-input tq-phone__cc" name="' . html_escape($name) . '_cc"'
-                . ' data-tq-phone-cc aria-label="رمز الدولة">' . $opts . '</select>';
+                . t(' data-tq-phone-cc aria-label="رمز الدولة">') . $opts . '</select>';
             $h .= $num . ' class="tq-input tq-phone__num"></div>';
             if (!empty($o['hint'])) {
                 $h .= '<p class="tq-caption">' . html_escape($o['hint']) . '</p>';
@@ -356,7 +358,7 @@ if (!function_exists('tq_phone_field')) {
         $h .= '<svg aria-hidden="true"><use href="#i-phone"></use></svg>';
         $h .= '<label class="sr-only" for="' . html_escape($id) . '">' . html_escape($lbl) . '</label>';
         $h .= '<select class="form-phone__cc" name="' . html_escape($name) . '_cc"'
-            . ' data-tq-phone-cc aria-label="رمز الدولة">' . $opts . '</select>';
+            . t(' data-tq-phone-cc aria-label="رمز الدولة">') . $opts . '</select>';
         $h .= $num . ' class="form-phone__num"></div>';
         if (!empty($o['hint'])) {
             $h .= '<p class="form-hint">' . html_escape($o['hint']) . '</p>';

@@ -21,7 +21,7 @@
     <span class="tqa-field__label"><?php echo t('الملف'); ?></span>
     <div class="tqa-file">
         <input type="file" id="attachment" name="attachment" accept=".pdf,.doc,.docx,.txt" data-tqa-file>
-        <label class="tqa-file__btn" for="attachment"><?php echo tq_icon('upload', 16); ?> استبدل الملف</label>
+        <label class="tqa-file__btn" for="attachment"><?php echo tq_icon('upload', 16); ?> <?php echo t('استبدل الملف'); ?></label>
         <span class="tqa-file__name" data-tqa-file-name><?php echo t('اتركه فارغا لإبقاء الملف الحالي'); ?></span>
     </div>
 </div>

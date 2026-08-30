@@ -85,16 +85,18 @@ class Taqdar_billing_model extends CI_Model
         /* المجانية: لا دورة تشترى، وصف واحد يقول ذلك بدل مصفوفة فارغة
            يفحصها كل مستدع بنفسه. */
         if ($period === 'free' || $price <= 0) {
+            /* TQ-I18N — التسمية والوحدة تعرضان في البطاقة والمبدل، ولا
+               تخزنان. والمفتاح (`free`/`annual`) يشترى به فيمر كما هو. */
             return array('free' => array(
                 'key' => 'free', 'price' => 0, 'days' => $days,
-                'label' => 'مجانا', 'unit' => '', 'default' => true,
+                'label' => t('مجانا'), 'unit' => '', 'default' => true,
             ));
         }
 
         $own = array(
-            'annual'    => array('label' => 'سنوي',      'unit' => 'سنويا'),
-            'quarterly' => array('label' => 'ربع سنوي',  'unit' => 'كل ثلاثة أشهر'),
-            'monthly'   => array('label' => 'شهري',      'unit' => 'شهريا'),
+            'annual'    => array('label' => t('سنوي'),      'unit' => t('سنويا')),
+            'quarterly' => array('label' => t('ربع سنوي'),  'unit' => t('كل ثلاثة أشهر')),
+            'monthly'   => array('label' => t('شهري'),      'unit' => t('شهريا')),
         );
         /* صف قديم بلا `period`: يقرأ من مدته لا يرد بخطأ — والقاعدة فيها
            صفوف كتبت قبل ان يوجد العمود. */
@@ -114,7 +116,7 @@ class Taqdar_billing_model extends CI_Model
             if ($m > 0) {
                 $out['monthly'] = array(
                     'key' => 'monthly', 'price' => $m, 'days' => 30,
-                    'label' => 'شهري', 'unit' => 'شهريا', 'default' => false,
+                    'label' => t('شهري'), 'unit' => t('شهريا'), 'default' => false,
                 );
             }
         }

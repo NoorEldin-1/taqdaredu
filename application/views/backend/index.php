@@ -13,10 +13,10 @@
  * أضعافها — وكانت كل شاشة تعرضها بيدها أو لا تعرضها. فمن يحفظ في شاشة
  * لم تكتب سطر العرض لا يقال له «حفظ» ولا «لم يحفظ».
  */
-$system_title        = get_settings('system_title') ?: t('منصة تقدر التعليمية');
+$system_title        = t(get_settings('system_title') ?: 'منصة تقدر التعليمية');
 $logged_in_user_role = strtolower($this->session->userdata('role'));
 $page_name           = isset($page_name) ? $page_name : 'dashboard';
-$page_title          = isset($page_title) ? $page_title : t('لوحة الإدارة');
+$page_title          = t(isset($page_title) ? $page_title : 'لوحة الإدارة');
 
 /* TQ-I18N — اللغة والاتجاه من `tq_lang()` وحدها، كالواجهة الأمامية. */
 $tqa_active = tq_lang();
@@ -38,6 +38,13 @@ $tqa_lang   = $tqa_active;
 
     <?php include 'metas.php'; ?>
     <?php include 'includes_top.php'; ?>
+<?php /* TQ-I18N — قاموس المتصفح.
+         السكربتات تحمل نصوصها العربية مكتوبة فيها («تعذر الحفظ»، «هل أنت
+         متأكد؟»)، وهي أخطر ما في الشاشة: نافذة تأكيد قبل حذف لا يرجع.
+         والقاموس واحد للجهتين — ملف `.js` بنسخته الثانية يفترق عن أخيه
+         عند أول تعديل. ويطبع في الرأس قبل كل سكربت، فما يقرؤه أولها
+         يقرؤه آخرها. */ ?>
+    <?php echo tq_i18n_js(); ?>
 </head>
 
 <body class="tqa" data-layout="detached">
@@ -77,7 +84,7 @@ $tqa_lang   = $tqa_active;
                 'flash_message' => 'ok',
                 'info_message'  => 'ok',
             ) as $tqa_fk => $tqa_fc):
-                $tqa_fm = $this->session->flashdata($tqa_fk);
+                $tqa_fm = tq_flash($tqa_fk);
                 if (empty($tqa_fm)) continue; ?>
                 <p class="tqa-flash tqa-flash--<?php echo $tqa_fc; ?>"
                    role="<?php echo $tqa_fc === 'err' ? 'alert' : 'status'; ?>">

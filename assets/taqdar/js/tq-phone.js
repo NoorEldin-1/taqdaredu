@@ -53,6 +53,7 @@
        هنا يجب أن يكون ما سيخزن. */
     num.addEventListener('blur', function () {
       var v = num.value.replace(/[٠-٩]/g, function (d) {
+        /* جدول تحويل لا نص يعرض — ترجمته تكسر التحويل، فتبقى كما هي. */
         return '٠١٢٣٤٥٦٧٨٩'.indexOf(d);
       });
       var o = cc.options[cc.selectedIndex];

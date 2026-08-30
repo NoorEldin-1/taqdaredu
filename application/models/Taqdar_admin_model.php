@@ -506,8 +506,16 @@ class Taqdar_admin_model extends CI_Model
             ),
         );
 
-        if ($key === null) return $modules;
-        return isset($modules[$key]) ? $modules[$key] : null;
+        /* TQ-I18N — الوصف يترجم عند الخروج، مرة واحدة للوحدة كلها.
+           والوصف فيه عناوين وتسميات وتلميحات وأقسام واختيارات مبعثرة على
+           سبعة مستويات، ولف كل واحدة بـ`t()` هنا يعني خمسمئة نداء مكتوبة
+           بيد — تنسى منها واحدة فيظهر حقل عربي وسط نموذج إنجليزي.
+
+           و`tq_t_deep()` مأمونة على ما ليس نصا: القاموس مفاتيحه عربية،
+           فـ`'text'` و`'bool'` و`'name_ar'` لا تجد مدخلا وترد كما هي.
+           والمفاتيح لا تمس أصلا — وهي التي تصل إلى أعمدة القاعدة. */
+        if ($key === null) return tq_t_deep($modules);
+        return isset($modules[$key]) ? tq_t_deep($modules[$key]) : null;
     }
 
     /* =====================================================================
@@ -645,7 +653,7 @@ class Taqdar_admin_model extends CI_Model
                 foreach ($this->db->order_by('`order`', 'ASC', false)->order_by('id', 'ASC')
                                   ->get('plans')->result_array() as $r) {
                     $out[$r['id']] = $r['name_ar']
-                        . ((int) $r['active'] === 1 ? '' : ' (معطلة)');
+                        . ((int) $r['active'] === 1 ? '' : ' (' . t('معطلة') . ')');
                 }
                 break;
 
@@ -681,8 +689,13 @@ class Taqdar_admin_model extends CI_Model
                 break;
         }
 
-        $cache[$ref] = $out;
-        return $out;
+        /* TQ-I18N — الخيارات أكثرها **بيانات** يكتبها المسؤول (عناوين
+           الكورسات والمسارات وأسماء المعلمين)، وهي لا تترجم بقرار: من
+           سمى كورسه سماه. والقاموس مفاتيحه عربية بعينها، فما لم يكتبه
+           مبرمج لا يجد مدخلا ويمر كما هو — والذي يجده هو المكتوب في هذا
+           الملف وحده، مثل «(معطلة)» بجوار اسم باقة موقوفة. */
+        $cache[$ref] = tq_t_deep($out);
+        return $cache[$ref];
     }
 
     /* =====================================================================
@@ -1215,29 +1228,29 @@ class Taqdar_admin_model extends CI_Model
     public function plan_visibility($row)
     {
         if (empty($row['active'])) {
-            return array('tone' => 'no', 'label' => 'موقوفة',
-                         'why'  => 'غير متاحة — لا تظهر ولا تشترى حتى تفعل.');
+            return tq_t_deep(array('tone' => 'no', 'label' => 'موقوفة',
+                         'why'  => 'غير متاحة — لا تظهر ولا تشترى حتى تفعل.'));
         }
 
         if ((string) $row['scope'] !== 'grade') {
-            return array('tone' => 'warn', 'label' => 'خارج الصفحة العامة',
+            return tq_t_deep(array('tone' => 'warn', 'label' => 'خارج الصفحة العامة',
                          'why'  => 'صفحة الباقات تعرض باقات الصفوف وحدها. وهذه تشترى برابطها '
-                                 . base_url('checkout/' . (string) $row['code']) . ' أو تمنح من اللوحة.');
+                                 . base_url('checkout/' . (string) $row['code']) . ' أو تمنح من اللوحة.'));
         }
 
         if (!$this->plan_grade_ids($row)) {
-            return array('tone' => 'no', 'label' => 'لا تظهر',
-                         'why'  => 'بلا صفوف — لا محتوى تفتحه.');
+            return tq_t_deep(array('tone' => 'no', 'label' => 'لا تظهر',
+                         'why'  => 'بلا صفوف — لا محتوى تفتحه.'));
         }
 
         if (trim((string) $row['stage']) === '') {
-            return array('tone' => 'no', 'label' => 'لا تظهر',
-                         'why'  => 'بلا مرحلة — وصفحة الباقات تبوب بالمرحلة فتسقط من التبويب.');
+            return tq_t_deep(array('tone' => 'no', 'label' => 'لا تظهر',
+                         'why'  => 'بلا مرحلة — وصفحة الباقات تبوب بالمرحلة فتسقط من التبويب.'));
         }
 
         if ((string) $row['period'] !== 'free' && (int) $row['price'] <= 0) {
-            return array('tone' => 'warn', 'label' => 'تظهر ولا تشترى',
-                         'why'  => 'لم تسعر — والشراء يرد بخطأ. ضع سعرها أو اجعل دورتها «مجانية».');
+            return tq_t_deep(array('tone' => 'warn', 'label' => 'تظهر ولا تشترى',
+                         'why'  => 'لم تسعر — والشراء يرد بخطأ. ضع سعرها أو اجعل دورتها «مجانية».'));
         }
 
         /* TQ-PLAN-CYCLE — **الدورة والمدة يقرأهما اثنان مختلفان.**
@@ -1253,21 +1266,21 @@ class Taqdar_admin_model extends CI_Model
         $tq_per  = (string) $row['period'];
         if (isset($tq_rng[$tq_per]) && ($tq_days < $tq_rng[$tq_per][0] || $tq_days > $tq_rng[$tq_per][1])) {
             $tq_lbl = array('monthly' => 'شهرية', 'quarterly' => 'ربع سنوية', 'annual' => 'سنوية');
-            return array('tone' => 'warn', 'label' => 'الدورة والمدة لا تتفقان',
+            return tq_t_deep(array('tone' => 'warn', 'label' => 'الدورة والمدة لا تتفقان',
                          'why'  => 'الدورة «' . $tq_lbl[$tq_per] . '» وهي ما يقرؤه المشتري على البطاقة، '
                                  . 'والمدة ' . $tq_days . ' يوما وهي ما يحسب عليه انتهاء الاشتراك فعلا. '
                                  . 'المتوقع من ' . $tq_rng[$tq_per][0] . ' إلى ' . $tq_rng[$tq_per][1] . ' يوما — '
-                                 . 'صحح إحداهما، أو اتركهما إن كان الفرق مقصودا.');
+                                 . 'صحح إحداهما، أو اتركهما إن كان الفرق مقصودا.'));
         }
 
         $reach = $this->plan_reach($row);
         if ($reach['paths'] === 0) {
-            return array('tone' => 'warn', 'label' => 'تظهر فارغة',
-                         'why'  => 'لا مسار منشور في صفوفها — تباع ولا يفتح المشتري شيئا.');
+            return tq_t_deep(array('tone' => 'warn', 'label' => 'تظهر فارغة',
+                         'why'  => 'لا مسار منشور في صفوفها — تباع ولا يفتح المشتري شيئا.'));
         }
 
-        return array('tone' => 'ok', 'label' => 'تظهر',
-                     'why'  => 'في صفحة الباقات تحت ' . tqs_stage_label((string) $row['stage']) . '.');
+        return tq_t_deep(array('tone' => 'ok', 'label' => 'تظهر',
+                     'why'  => 'في صفحة الباقات تحت ' . tqs_stage_label((string) $row['stage']) . '.'));
     }
 
     /**
@@ -1286,38 +1299,39 @@ class Taqdar_admin_model extends CI_Model
         if ($cid > 0) {
             $c = $this->db->select('id, status')->where('id', $cid)->get('course')->row_array();
             if (!$c) {
-                return array('tone' => 'no', 'label' => 'وعاؤه محذوف',
+                return tq_t_deep(array('tone' => 'no', 'label' => 'وعاؤه محذوف',
                              'why'  => 'الدورة المرتبطة (#' . $cid . ') لم تعد موجودة، فالبرنامج '
-                                     . 'يعرض ويباع ويفتح فارغا. اربطه بدورة أخرى أو أنزله إلى مسودة.');
+                                     . 'يعرض ويباع ويفتح فارغا. اربطه بدورة أخرى أو أنزله إلى مسودة.'));
             }
             if ((string) $c['status'] !== 'active' && (string) $row['status'] === 'published') {
-                return array('tone' => 'warn', 'label' => 'دورته غير منشورة',
+                return tq_t_deep(array('tone' => 'warn', 'label' => 'دورته غير منشورة',
                              'why'  => 'البرنامج منشور ودورته حالتها «' . html_escape((string) $c['status'])
-                                     . '»، فيعرض عنوانه ولا يفتح محتواه.');
+                                     . '»، فيعرض عنوانه ولا يفتح محتواه.'));
             }
         }
 
         if ((string) $row['status'] !== 'published') {
-            return array('tone' => 'no', 'label' => 'مسودة',
-                         'why'  => 'لا يعرض في الكتالوج ولا تفتحه باقة حتى ينشر.');
+            return tq_t_deep(array('tone' => 'no', 'label' => 'مسودة',
+                         'why'  => 'لا يعرض في الكتالوج ولا تفتحه باقة حتى ينشر.'));
         }
 
         if ($cid <= 0) {
-            return array('tone' => 'warn', 'label' => 'يظهر فارغا',
-                         'why'  => 'بلا دورة مرتبطة — يعرض في الكتالوج بعنوانه ووصفه، '
-                                 . 'ولا درس واحد تحته.');
+            /* الجملة مفتاح واحد لا شطرين: شطر مترجم وشطر عربي يقرأ ركيكا،
+               ونصفان يترجمان منفصلين لا يركبان في لغة أخرى. */
+            return tq_t_deep(array('tone' => 'warn', 'label' => 'يظهر فارغا',
+                         'why'  => 'بلا دورة مرتبطة — يعرض في الكتالوج بعنوانه ووصفه، ولا درس واحد تحته.'));
         }
 
         $n = (int) $this->db->where('course_id', $cid)
                             ->where('COALESCE(`tq_status`, "published") =', 'published')
                             ->count_all_results('lesson');
         if ($n === 0) {
-            return array('tone' => 'warn', 'label' => 'يظهر بلا دروس',
-                         'why'  => 'دورته المرتبطة بلا درس منشور واحد.');
+            return tq_t_deep(array('tone' => 'warn', 'label' => 'يظهر بلا دروس',
+                         'why'  => 'دورته المرتبطة بلا درس منشور واحد.'));
         }
 
-        return array('tone' => 'ok', 'label' => 'يظهر',
-                     'why'  => 'في «المواد والبرامج» بـ' . $n . ' درسا منشورا.');
+        return tq_t_deep(array('tone' => 'ok', 'label' => 'يظهر',
+                     'why'  => 'في «المواد والبرامج» بـ' . $n . ' درسا منشورا.'));
     }
 
     /**
@@ -1335,19 +1349,19 @@ class Taqdar_admin_model extends CI_Model
         $n = isset($r['total']) ? (int) $r['total'] : 0;
 
         if ((string) $row['status'] !== 'published') {
-            return array('tone' => 'muted', 'label' => 'مسودة',
+            return tq_t_deep(array('tone' => 'muted', 'label' => 'مسودة',
                          'why'  => $r['ok']
                              ? 'مكتمل ولم ينشر — لا يعرض ولا يحبس احدا.'
-                             : 'قيد الاعداد: ' . implode(' ', $r['why']));
+                             : 'قيد الاعداد: ' . implode(' ', $r['why'])));
         }
 
         if (!$r['ok']) {
-            return array('tone' => 'no', 'label' => 'منشور وناقص',
-                         'why'  => implode(' ', $r['why']));
+            return tq_t_deep(array('tone' => 'no', 'label' => 'منشور وناقص',
+                         'why'  => implode(' ', $r['why'])));
         }
 
-        return array('tone' => 'ok', 'label' => 'يعمل',
-                     'why'  => 'يعرض على طلاب هذا الصف قبل الاشتراك — ' . $n . ' سؤالا.');
+        return tq_t_deep(array('tone' => 'ok', 'label' => 'يعمل',
+                     'why'  => 'يعرض على طلاب هذا الصف قبل الاشتراك — ' . $n . ' سؤالا.'));
     }
 
     /**
@@ -1364,29 +1378,29 @@ class Taqdar_admin_model extends CI_Model
     {
         $when = trim((string) (isset($row['notified_at']) ? $row['notified_at'] : ''));
         if ($when !== '') {
-            return array('tone' => 'ok', 'label' => 'ابلغ',
-                         'why'  => 'ارسلت النتيجة الى بريد ولي الامر في ' . $when . '.');
+            return tq_t_deep(array('tone' => 'ok', 'label' => 'ابلغ',
+                         'why'  => 'ارسلت النتيجة الى بريد ولي الامر في ' . $when . '.'));
         }
 
         $this->load->model('taqdar_mail_model');
         if (!$this->taqdar_mail_model->configured()) {
-            return array('tone' => 'warn', 'label' => 'ينتظر البريد',
+            return tq_t_deep(array('tone' => 'warn', 'label' => 'ينتظر البريد',
                          'why'  => 'البريد الصادر غير مضبوط — الناقص: '
                                  . implode('، ', $this->taqdar_mail_model->missing())
-                                 . '. تضبطه من «البريد الصادر» فترسل ما ادي في الاسبوعين الاخيرين.');
+                                 . '. تضبطه من «البريد الصادر» فترسل ما ادي في الاسبوعين الاخيرين.'));
         }
 
         $this->load->model('taqdar_diag_model');
         $to = $this->taqdar_diag_model->result_audience((int) $row['student_id']);
         if (!$to) {
-            return array('tone' => 'muted', 'label' => 'لا بريد',
+            return tq_t_deep(array('tone' => 'muted', 'label' => 'لا بريد',
                          'why'  => 'لا ولي امر مربوط بموافقة نشطة، ولا بريد ولي امر على الحساب، '
-                                 . 'ولا بريد صالح للطالب نفسه.');
+                                 . 'ولا بريد صالح للطالب نفسه.'));
         }
 
-        return array('tone' => 'warn', 'label' => 'في الطابور',
+        return tq_t_deep(array('tone' => 'warn', 'label' => 'في الطابور',
                      'why'  => 'تعذر الارسال حين سلم الاختبار. يعيده المسح الدوري '
-                             . '(taqdar_cron_events placements) الى ' . count($to) . ' مستلما.');
+                             . '(taqdar_cron_events placements) الى ' . count($to) . ' مستلما.'));
     }
 
     /* =====================================================================

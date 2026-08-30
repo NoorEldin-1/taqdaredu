@@ -31,9 +31,9 @@ $tq_live = site_url('blog/details/' . rawurlencode(slugify($blog['title'])) . '/
 
 <?php tqa_head(t('تعديل المقال'), $blog['title'], 'file',
     '<a class="tqa-btn tqa-btn--ghost" href="' . $tq_live . '" target="_blank" rel="noopener">'
-  . tq_icon('external', 16) . t('اقرأه في الموقع</a>')
+  . tq_icon('external', 16) . t(' اقرأه في الموقع</a>')
   . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog') . '">'
-  . tq_icon('chev-prev', 16) . t('كل المقالات</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل المقالات</a>')); ?>
 
 <form action="<?php echo site_url('admin/blog/edit/' . (int) $blog['blog_id']); ?>" method="post"
       enctype="multipart/form-data" style="max-inline-size:860px">
@@ -103,7 +103,7 @@ $tq_live = site_url('blog/details/' . rawurlencode(slugify($blog['title'])) . '/
 
                     <?php if ($tq_src !== ''): ?>
                         <div class="tqa-checker" style="min-block-size:90px">
-                            <img src="<?php echo html_escape($tq_src); ?>" alt="<?php echo $tq_label; ?> الحالية">
+                            <img src="<?php echo html_escape($tq_src); ?>" alt="<?php echo te('____ الحالية', array($tq_label)); ?>">
                         </div>
                     <?php endif; ?>
 
@@ -139,7 +139,7 @@ $tq_live = site_url('blog/details/' . rawurlencode(slugify($blog['title'])) . '/
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('check', 16); ?> احفظ التعديل
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ التعديل'); ?>
         </button>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/blog'); ?>"><?php echo t('إلغاء'); ?></a>
     </div>

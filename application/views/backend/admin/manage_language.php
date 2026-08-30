@@ -32,9 +32,9 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
 
 <?php if ($tq_editing !== ''): ?>
 
-    <?php tqa_head(t('ترجمة') . ucwords($tq_editing), t('العبارة تحفظ فور تعديلها — لا زر حفظ عام.'), 'translate',
+    <?php tqa_head(t('ترجمة ') . ucwords($tq_editing), t('العبارة تحفظ فور تعديلها — لا زر حفظ عام.'), 'translate',
         '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/manage_language') . '">'
-      . tq_icon('chev-prev', 16) . t('كل اللغات</a>')); ?>
+      . tq_icon('chev-prev', 16) . t(' كل اللغات</a>')); ?>
 
     <?php $tq_phrases = openJSONFile($tq_editing); ?>
 
@@ -51,7 +51,7 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
     <div class="tqa-card tqa-card--flush">
         <div class="tqa-table__wrap">
             <table class="tqa-table">
-                <caption class="tqa-sr">مفاتيح الترجمة وقيمها في لغة <?php echo html_escape($tq_editing); ?></caption>
+                <caption class="tqa-sr"><?php echo t('مفاتيح الترجمة وقيمها في لغة'); ?> <?php echo html_escape($tq_editing); ?></caption>
                 <thead>
                     <tr>
                         <th style="inline-size:34%"><?php echo t('المفتاح'); ?></th>
@@ -71,9 +71,9 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
                                 <input class="tqa-input" type="text" id="p-<?php echo $tq_slug; ?>"
                                        value="<?php echo html_escape($tq_val); ?>"
                                        data-tqa-phrase="<?php echo html_escape($tq_key); ?>"
-                                       aria-label="ترجمة <?php echo html_escape($tq_key); ?>">
+                                       aria-label="<?php echo te('ترجمة ____', array(html_escape($tq_key))); ?>">
                                 <span class="tqa-badge tqa-badge--ok" hidden data-tqa-phrase-ok>
-                                    <?php echo tq_icon('check', 12); ?> حفظ
+                                    <?php echo tq_icon('check', 12); ?> <?php echo t('حفظ'); ?>
                                 </span>
                             </div>
                         </td>
@@ -214,25 +214,25 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
                             <div class="tqa-rowacts">
                                 <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                    href="<?php echo site_url('admin/manage_language/edit_phrase/' . rawurlencode($tq_l)); ?>">
-                                    <?php echo tq_icon('edit', 14); ?> تحرير العبارات
+                                    <?php echo tq_icon('edit', 14); ?> <?php echo t('تحرير العبارات'); ?>
                                 </a>
 
                                 <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                    href="<?php echo site_url('admin/export_language/' . rawurlencode($tq_l)); ?>">
-                                    <?php echo tq_icon('download', 14); ?> تصدير
+                                    <?php echo tq_icon('download', 14); ?> <?php echo t('تصدير'); ?>
                                 </a>
 
                                 <?php if (!$tq_is): ?>
                                     <form method="post"
                                           action="<?php echo site_url('admin/manage_language/delete_language/' . rawurlencode($tq_l)); ?>"
                                           data-tqa-confirm-title="<?php echo te('حذف اللغة'); ?>"
-                                          data-tqa-confirm="سيحذف ملف ترجمة «<?php echo html_escape(ucwords($tq_l)); ?>» كاملا. لا رجعة في هذا."
-                                          data-tqa-confirm-ok="نعم، احذف"
+                                          data-tqa-confirm="<?php echo te('سيحذف ملف ترجمة «____» كاملا. لا رجعة في هذا.', array(html_escape(ucwords($tq_l)))); ?>"
+                                          data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                           data-tqa-confirm-tone="danger">
                                         <?php echo tq_csrf(); ?>
                                         <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                                 style="color:var(--tq-danger)">
-                                            <?php echo tq_icon('trash', 14); ?> حذف
+                                            <?php echo tq_icon('trash', 14); ?> <?php echo t('حذف'); ?>
                                         </button>
                                     </form>
                                 <?php else: ?>
@@ -265,7 +265,7 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
 
             <div class="tqa-actions">
                 <button type="submit" class="tqa-btn tqa-btn--primary">
-                    <?php echo tq_icon('plus', 16); ?> أضف اللغة
+                    <?php echo tq_icon('plus', 16); ?> <?php echo t('أضف اللغة'); ?>
                 </button>
             </div>
         </form>
@@ -289,7 +289,7 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
 
             <div class="tqa-actions">
                 <button type="submit" class="tqa-btn tqa-btn--primary">
-                    <?php echo tq_icon('plus', 16); ?> أضف العبارة
+                    <?php echo tq_icon('plus', 16); ?> <?php echo t('أضف العبارة'); ?>
                 </button>
             </div>
         </form>
@@ -308,7 +308,7 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
                     <input type="file" id="language_files" name="language_files[]" accept=".json" multiple required
                            data-tqa-file>
                     <label class="tqa-file__btn" for="language_files">
-                        <?php echo tq_icon('upload', 16); ?> اختر ملفات
+                        <?php echo tq_icon('upload', 16); ?> <?php echo t('اختر ملفات'); ?>
                     </label>
                     <span class="tqa-file__name" data-tqa-file-name><?php echo t('مثال: english.json'); ?></span>
                 </div>
@@ -317,7 +317,7 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
 
             <div class="tqa-actions">
                 <button type="submit" class="tqa-btn tqa-btn--primary">
-                    <?php echo tq_icon('import', 16); ?> استورد
+                    <?php echo tq_icon('import', 16); ?> <?php echo t('استورد'); ?>
                 </button>
             </div>
         </form>

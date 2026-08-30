@@ -33,7 +33,7 @@ $tq_course = $tq_lesson
     ? $CI->db->select('id, title')->where('id', (int) $tq_lesson['course_id'])->get('course')->row_array()
     : null;
 
-$tq_title = t('اختبار:') . (string) ($tq_lesson['title'] ?? '');
+$tq_title = t('اختبار: ') . (string) ($tq_lesson['title'] ?? '');
 $tq_sub   = t('الأسئلة التي يجيب عنها الطالب بعد الدرس — وبها يفتح الدرس التالي.');
 
 $tq_quiz  = $CI->tq_quiz->quiz_of($tq_lid);
@@ -74,11 +74,11 @@ include 'portal_open.php';
     <?php if ($tq_course): ?>
         <a class="tq-btn tq-btn--ghost tq-btn--sm"
            href="<?php echo base_url('teacher/course/' . (int) $tq_course['id']); ?>">
-            <?php echo tq_icon('chev-prev', 14); ?> مقرر «<?php echo html_escape($tq_course['title']); ?>»
+            <?php echo tq_icon('chev-prev', 14); ?> <?php echo t('مقرر «'); ?><?php echo html_escape($tq_course['title']); ?>»
         </a>
         <a class="tq-btn tq-btn--ghost tq-btn--sm"
            href="<?php echo base_url('teacher/course/' . (int) $tq_course['id']) . '?lesson=' . $tq_lid; ?>">
-            <?php echo tq_icon('pen', 14); ?> تحرير الدرس
+            <?php echo tq_icon('pen', 14); ?> <?php echo t('تحرير الدرس'); ?>
         </a>
     <?php endif; ?>
 </div>
@@ -155,7 +155,7 @@ include 'portal_open.php';
         </div>
 
         <button class="tq-btn tq-btn--primary" type="submit">
-            <?php echo tq_icon('check', 16); ?> احفظ الإعدادات
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الإعدادات'); ?>
         </button>
     </form>
 </details>
@@ -169,11 +169,11 @@ include 'portal_open.php';
     $q_hidden     = array('lesson_id' => $tq_lid);
     $q_objectives = $tq_objectives;
     $q_rows       = $tq_rows;
-    $q_intro      = t('سؤال اختيار من متعدد. والموصى به خمسة أسئلة تغطي أهداف الدرس')
+    $q_intro      = t('سؤال اختيار من متعدد. والموصى به خمسة أسئلة تغطي أهداف الدرس ')
                   . t('كلها — سؤالان يقيسان الحظ، وعشرون يرهقان.');
 
     if (!$tq_objectives) {
-        $q_intro .= t('<strong>وهذا الدرس بلا أهداف بعد</strong> — أضفها من شاشة تحرير الدرس')
+        $q_intro .= t(' <strong>وهذا الدرس بلا أهداف بعد</strong> — أضفها من شاشة تحرير الدرس ')
                   . t('ليمكن ربط كل سؤال بما يقيسه.');
     }
 
@@ -234,7 +234,7 @@ foreach ($tq_stats as $tq_s) $tq_answered += (int) $tq_s['answered'];
 <div class="tq-card tq-section">
     <div class="tq-card__head">
         <h2 class="tq-card__title"><?php echo t('من أدى هذا الاختبار'); ?></h2>
-        <span class="tq-caption"><?php echo tq_iso(count($tq_att)); ?> محاولة مسلمة</span>
+        <span class="tq-caption"><?php echo tq_iso(count($tq_att)); ?> <?php echo t('محاولة مسلمة'); ?></span>
     </div>
     <table class="tq-table">
         <caption class="tq-sr"><?php echo t('محاولات اختبار هذا الدرس: الطالب ورقم المحاولة ونتيجتها'); ?></caption>
@@ -255,7 +255,7 @@ foreach ($tq_stats as $tq_s) $tq_answered += (int) $tq_s['answered'];
                 </td>
                 <td data-label="المحاولة"><?php echo tq_iso((int) $tq_a['attempt_no']); ?></td>
                 <td data-label="الصحيح">
-                    <?php echo tq_iso((int) $tq_a['score']); ?> من <?php echo tq_iso(count($tq_rows)); ?>
+                    <?php echo tq_iso((int) $tq_a['score']); ?> <?php echo t('من'); ?> <?php echo tq_iso(count($tq_rows)); ?>
                 </td>
                 <td data-label="النتيجة">
                     <?php echo tq_badge((int) $tq_a['passed'] === 1 ? 'mastered' : 'late',

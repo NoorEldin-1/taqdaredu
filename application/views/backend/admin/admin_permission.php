@@ -42,7 +42,7 @@ if ($tq_name === '') $tq_name = $permission_assign_to['email'];
 
 <?php tqa_head(t('الصلاحيات'), $tq_name, 'key',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/admins') . '">'
-  . tq_icon('chev-prev', 16) . t('كل المسؤولين</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل المسؤولين</a>')); ?>
 
 <div class="tqa-note tqa-section">
     <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
@@ -54,7 +54,7 @@ if ($tq_name === '') $tq_name = $permission_assign_to['email'];
 <div class="tqa-card tqa-card--flush" style="max-inline-size:820px">
     <div class="tqa-card__head">
         <span class="tqa-iconbox" aria-hidden="true"><?php echo tq_icon('key', 20); ?></span>
-        <h2>ما يستطيع <?php echo html_escape($tq_name); ?> الوصول إليه</h2>
+        <h2><?php echo t('ما يستطيع ____ الوصول إليه', array(html_escape($tq_name))); ?></h2>
     </div>
 
     <div class="tqa-card__body">

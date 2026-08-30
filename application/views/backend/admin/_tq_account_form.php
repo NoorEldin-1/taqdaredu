@@ -136,7 +136,7 @@ $tq_v = function ($key) use ($tq_row) {
 
             <div class="tqa-field">
                 <label class="tqa-field__label" for="password">
-                    كلمة المرور
+                    <?php echo t('كلمة المرور'); ?>
                     <?php if (!$tq_row): ?><span class="tqa-field__req" aria-hidden="true">*</span><?php endif; ?>
                 </label>
                 <input class="tqa-input tqa-input--ltr" type="password" id="password" name="password" dir="ltr"

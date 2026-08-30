@@ -60,7 +60,7 @@ else                   $tq_greet = t('مساء الخير');
 
     <div class="tq-topbar__greet">
         <p class="tq-strong" style="margin:0;color:var(--tq-navy)">
-            <?php echo html_escape($tq_greet . ($tq_name ? t('،') . explode(' ', $tq_name)[0] : '')); ?> 👋
+            <?php echo html_escape($tq_greet . ($tq_name ? t('، ') . explode(' ', $tq_name)[0] : '')); ?> 👋
         </p>
         <p class="tq-micro" style="margin:0"><?php echo t('مستعد لتتعلم شيئا جديدا اليوم؟'); ?></p>
     </div>

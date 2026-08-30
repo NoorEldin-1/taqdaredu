@@ -263,7 +263,7 @@ include 'tq_chat_styles.php';
                                <?php echo ($tq_open && $t['code'] === $tq_open['code']) ? ' aria-current="page"' : ''; ?>>
                                 <span class="tq-conv__ava">
                                     <img class="tq-avatar" src="<?php echo html_escape($tq_photo_of($t['person'])); ?>"
-                                         alt="صورة <?php echo html_escape($tq_name_of($t['person'])); ?>">
+                                         alt="<?php echo te('صورة ____', array(html_escape($tq_name_of($t['person'])))); ?>">
                                     <span class="tq-conv__on" aria-hidden="true"></span>
                                 </span>
                                 <span>
@@ -336,7 +336,7 @@ include 'tq_chat_styles.php';
             <?php else: ?>
                 <header class="tq-thread__head">
                     <img class="tq-avatar" src="<?php echo html_escape($tq_photo_of($tq_open['person'])); ?>"
-                         alt="صورة <?php echo html_escape($tq_name_of($tq_open['person'])); ?>">
+                         alt="<?php echo te('صورة ____', array(html_escape($tq_name_of($tq_open['person'])))); ?>">
                     <span>
                         <span class="tq-strong" style="display:block;color:var(--tq-navy)" id="tq-thread-h">
                             <?php echo html_escape($tq_name_of($tq_open['person'])); ?>
@@ -440,7 +440,7 @@ include 'tq_chat_styles.php';
             <?php else: ?>
                 <div style="display:grid;justify-items:center;gap:var(--tq-space-s);margin-block-end:var(--tq-space-xl)">
                     <img class="tq-avatar tq-avatar--lg" src="<?php echo html_escape($tq_photo_of($tq_open['person'])); ?>"
-                         alt="صورة <?php echo html_escape($tq_name_of($tq_open['person'])); ?>">
+                         alt="<?php echo te('صورة ____', array(html_escape($tq_name_of($tq_open['person'])))); ?>">
                     <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_name_of($tq_open['person'])); ?></span>
                     <span class="tq-micro"><?php echo !empty($tq_open['person']['is_instructor']) ? t('معلم') : t('الدعم الفني'); ?></span>
                     <a class="tq-btn tq-btn--secondary tq-btn--sm tq-btn--block"
@@ -471,7 +471,7 @@ include 'tq_chat_styles.php';
                             <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon('search', 18); ?></span>
                             <?php echo t('البحث في المحادثة'); ?>
                         </span>
-                        <span class="tq-micro"><?php echo tq_num(count($tq_messages), 'tq-num--sm'); ?> رسالة</span>
+                        <span class="tq-micro"><?php echo tq_num(count($tq_messages), 'tq-num--sm'); ?> <?php echo t('رسالة'); ?></span>
                     </div>
 
                     <!-- كتم بمفتاح تبديل -->

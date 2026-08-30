@@ -40,7 +40,7 @@ $tq_targets = array(
 
 <?php tqa_head(t('إرسال النشرة'), $newsletter['subject'], 'send',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newsletters') . '">'
-  . tq_icon('chev-prev', 16) . t('كل القوالب</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل القوالب</a>')); ?>
 
 <div class="tqa-note tqa-note--warn tqa-section" style="max-inline-size:820px">
     <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
@@ -53,8 +53,8 @@ $tq_targets = array(
 <form class="tqa-card" action="<?php echo site_url('admin/newsletters/send'); ?>" method="post"
       style="max-inline-size:820px"
       data-tqa-confirm-title="<?php echo te('إرسال النشرة'); ?>"
-      data-tqa-confirm="ستدخل الرسائل الطابور فورا، ولا يمكن سحبها بعدها."
-      data-tqa-confirm-ok="نعم، أرسل">
+      data-tqa-confirm="<?php echo te('ستدخل الرسائل الطابور فورا، ولا يمكن سحبها بعدها.'); ?>"
+      data-tqa-confirm-ok="<?php echo te('نعم، أرسل'); ?>">
     <?php echo tq_csrf(); ?>
 
     <div class="tqa-field">
@@ -107,7 +107,7 @@ $tq_targets = array(
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('send', 16); ?> أرسل النشرة
+            <?php echo tq_icon('send', 16); ?> <?php echo t('أرسل النشرة'); ?>
         </button>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/newsletters'); ?>"><?php echo t('إلغاء'); ?></a>
     </div>

@@ -34,7 +34,7 @@ $tqa_first = explode(' ', $tqa_name)[0];
     </button>
 
     <div class="tqa-topbar__title">
-        <strong><?php echo html_escape($tqa_greet . t('،') . $tqa_first); ?> 👋</strong>
+        <strong><?php echo html_escape($tqa_greet . t('، ') . $tqa_first); ?> 👋</strong>
         <span><?php echo html_escape(isset($page_title) ? $page_title : t('لوحة الإدارة')); ?></span>
     </div>
 
@@ -78,8 +78,8 @@ $tqa_first = explode(' ', $tqa_name)[0];
         <form action="<?php echo site_url('login/logout'); ?>" method="post" style="margin:0"
               data-tqa-nolock
               data-tqa-confirm-title="<?php echo te('تسجيل الخروج'); ?>"
-              data-tqa-confirm="ستخرج من لوحة الإدارة، وما لم يحفظ في الشاشة المفتوحة يضيع."
-              data-tqa-confirm-ok="اخرج">
+              data-tqa-confirm="<?php echo te('ستخرج من لوحة الإدارة، وما لم يحفظ في الشاشة المفتوحة يضيع.'); ?>"
+              data-tqa-confirm-ok="<?php echo te('اخرج'); ?>">
             <?php echo tq_csrf(); ?>
             <button class="tqa-iconbtn" type="submit" aria-label="<?php echo te('تسجيل الخروج'); ?>" title="<?php echo te('تسجيل الخروج'); ?>">
                 <?php echo tq_icon('logout'); ?>

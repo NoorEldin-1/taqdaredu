@@ -83,9 +83,9 @@ $audiences = array(
                      يرسل إلى الجميع ولا يعلم إلا بعد الإرسال — ولا سبيل للسحب. */ ?>
             <button class="tqa-btn tqa-btn--primary" type="submit"
                     data-tqa-confirm-title="<?php echo te('تأكيد الإرسال'); ?>"
-                    data-tqa-confirm="لا يمكن سحب الإشعار بعد إرساله. هل تريد المتابعة؟"
-                    data-tqa-confirm-ok="أرسل الآن">
-                <?php echo tq_icon('send', 18); ?> أرسل الإشعار
+                    data-tqa-confirm="<?php echo te('لا يمكن سحب الإشعار بعد إرساله. هل تريد المتابعة؟'); ?>"
+                    data-tqa-confirm-ok="<?php echo te('أرسل الآن'); ?>">
+                <?php echo tq_icon('send', 18); ?> <?php echo t('أرسل الإشعار'); ?>
             </button>
         </form>
     </section>

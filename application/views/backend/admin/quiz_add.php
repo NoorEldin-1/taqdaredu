@@ -108,7 +108,7 @@ $tq_sections = $this->crud_model->get_section('course', $param2)->result_array()
 
     <div class="tqa-actions">
         <button class="tqa-btn tqa-btn--primary tqa-btn--block" type="submit">
-            <?php echo tq_icon('plus', 16); ?> أضف الاختبار
+            <?php echo tq_icon('plus', 16); ?> <?php echo t('أضف الاختبار'); ?>
         </button>
     </div>
 </form>

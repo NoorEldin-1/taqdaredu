@@ -76,13 +76,13 @@ class Taqdar_settings_model extends CI_Model
     /** أنواع التنبيه المعروضة — رمزها هو ما يمرره المرسل إلى allows(). */
     public function notify_types()
     {
-        return array(
+        return tq_t_deep(array(
             'review_due'        => array('تذكير المراجعة',   'حين يحين موعد مراجعة درس سبق'),
             'station_unlocked'  => array('فتح محطة جديدة',   'حين تفتح محطة تالية في مسارك'),
             'quiz_result'       => array('نتيجة اختبار',     'حين ترصد نتيجة اختبار أديته'),
             'purchase_confirmed'=> array('تأكيد الشراء',     'حين يسجل اشتراك أو دفعة على حسابك'),
             'session_confirmed' => array('تأكيد حصة',        'حين تثبت حصة بالطلب أو يتغير موعدها'),
-        );
+        ));
     }
 
     /** القناتان القائمتان فعلا. */
@@ -112,11 +112,11 @@ class Taqdar_settings_model extends CI_Model
     /** الوجوه الثلاثة: يتبع الجهاز، أو يثبت فاتحا، أو داكنا. */
     public function themes()
     {
-        return array(
+        return tq_t_deep(array(
             'auto'  => 'يتبع جهازي',
             'light' => 'فاتح دائما',
             'dark'  => 'داكن دائما',
-        );
+        ));
     }
 
     /**

@@ -34,9 +34,9 @@ $tq_when = function ($ts) {
     if ($ts <= 0) return array('', '');
     $d = time() - $ts;
     if ($d < 60)      $rel = t('الآن');
-    elseif ($d < 3600)   $rel = t('قبل') . (int) ($d / 60) . t('دقيقة');
-    elseif ($d < 86400)  $rel = t('قبل') . (int) ($d / 3600) . t('ساعة');
-    elseif ($d < 604800) $rel = t('قبل') . (int) ($d / 86400) . t('يوم');
+    elseif ($d < 3600)   $rel = t('قبل ') . (int) ($d / 60) . t(' دقيقة');
+    elseif ($d < 86400)  $rel = t('قبل ') . (int) ($d / 3600) . t(' ساعة');
+    elseif ($d < 604800) $rel = t('قبل ') . (int) ($d / 86400) . t(' يوم');
     else                 $rel = date('Y/m/d', $ts);
     return array($rel, date('Y/m/d — H:i', $ts));
 };
@@ -53,7 +53,7 @@ $tq_when = function ($ts) {
     <?php /* المرشحات القائمة تركب في نموذج البحث، وإلا مسحها أول بحث. */ ?>
     <?php if ($state !== ''): ?><input type="hidden" name="state" value="<?php echo html_escape($state); ?>"><?php endif; ?>
     <?php if ($subject !== ''): ?><input type="hidden" name="subject" value="<?php echo html_escape($subject); ?>"><?php endif; ?>
-    <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> ابحث</button>
+    <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> <?php echo t('ابحث'); ?></button>
     <?php if ($search !== ''): ?>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo $tq_url(array('q' => '')); ?>"><?php echo t('مسح البحث'); ?></a>
     <?php endif; ?>
@@ -108,7 +108,7 @@ $tq_when = function ($ts) {
                 t('مسح البحث'), $tq_url(array('q' => '')), 'mail'); ?>
         <?php elseif ($tq_filtered): ?>
             <?php tqa_empty(t('لا رسالة في هذا المرشح'),
-                t('الجدول فيه') . (int) $all_n . t('رسالة — لكن لا شيء يطابق ما اخترت.'),
+                t('الجدول فيه ') . (int) $all_n . t(' رسالة — لكن لا شيء يطابق ما اخترت.'),
                 t('اعرض الكل'), site_url('admin/contact'), 'mail'); ?>
         <?php else: ?>
             <?php tqa_empty(t('لا رسائل بعد'),
@@ -125,8 +125,8 @@ $tq_when = function ($ts) {
     <form method="post" action="<?php echo site_url('admin/contact/delete_selected_contact'); ?>"
           data-tqa-bulk
           data-tqa-confirm-title="<?php echo te('حذف الرسائل المحددة'); ?>"
-          data-tqa-confirm="لا رجعة في هذا الحذف."
-          data-tqa-confirm-ok="نعم، احذف"
+          data-tqa-confirm="<?php echo te('لا رجعة في هذا الحذف.'); ?>"
+          data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
           data-tqa-confirm-tone="danger">
         <?php echo tq_csrf(); ?>
 
@@ -137,7 +137,7 @@ $tq_when = function ($ts) {
             </label>
             <button type="submit" class="tqa-btn tqa-btn--ghost" style="color:var(--tq-danger)">
                 <?php echo tq_icon('trash', 15); ?>
-                احذف المحدد (<span data-tqa-bulk-count class="tqa-num">0</span>)
+                <?php echo t('احذف المحدد ('); ?><span data-tqa-bulk-count class="tqa-num">0</span>)
             </button>
         </div>
 
@@ -157,7 +157,7 @@ $tq_when = function ($ts) {
                     <div class="tqa-row" style="align-items:flex-start">
                         <label class="tqa-check" style="padding:0">
                             <input type="checkbox" name="ids[]" value="<?php echo $tq_id; ?>" data-tqa-bulk-item>
-                            <span class="tqa-sr">حدد رسالة <?php echo html_escape($tq_name); ?></span>
+                            <span class="tqa-sr"><?php echo t('حدد رسالة'); ?> <?php echo html_escape($tq_name); ?></span>
                         </label>
 
                         <div>
@@ -177,7 +177,7 @@ $tq_when = function ($ts) {
                             <div class="tqa-row" style="gap:var(--tq-space-xs);margin-block-start:var(--tq-space-xs)">
                                 <?php if ($tq_role !== null): ?>
                                     <span class="tqa-badge tqa-badge--<?php echo $tq_kind[$tq_role][0]; ?>">
-                                        <?php echo $tq_kind[$tq_role][1]; ?> مسجل
+                                        <?php echo $tq_kind[$tq_role][1]; ?> <?php echo t('مسجل'); ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="tqa-badge tqa-badge--muted"><?php echo t('غير مسجل في المنصة'); ?></span>
@@ -185,7 +185,7 @@ $tq_when = function ($ts) {
 
                                 <?php if ($tq_replied): ?>
                                     <span class="tqa-badge tqa-badge--ok">
-                                        <?php echo tq_icon('check', 12); ?> رد عليها
+                                        <?php echo tq_icon('check', 12); ?> <?php echo t('رد عليها'); ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="tqa-badge tqa-badge--warn"><?php echo t('بانتظار الرد'); ?></span>
@@ -197,7 +197,7 @@ $tq_when = function ($ts) {
                     <div class="tqa-rowacts">
                         <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                            href="mailto:<?php echo html_escape($tq_r['email']); ?>">
-                            <?php echo tq_icon('mail', 14); ?> راسله مباشرة
+                            <?php echo tq_icon('mail', 14); ?> <?php echo t('راسله مباشرة'); ?>
                         </a>
                     </div>
                 </div>
@@ -259,7 +259,7 @@ $tq_when = function ($ts) {
                             <div class="tqa-actions">
                                 <button type="submit" form="reply-form-<?php echo $tq_id; ?>"
                                         class="tqa-btn tqa-btn--primary tqa-btn--sm">
-                                    <?php echo tq_icon('send', 15); ?> أرسل الرد
+                                    <?php echo tq_icon('send', 15); ?> <?php echo t('أرسل الرد'); ?>
                                 </button>
                             </div>
                         </div>
@@ -269,7 +269,7 @@ $tq_when = function ($ts) {
                              فحذف رسالة واحدة لا يكتب داخل نموذج الحذف الجماعي. */ ?>
                     <button type="submit" form="del-form-<?php echo $tq_id; ?>"
                             class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
-                        <?php echo tq_icon('trash', 14); ?> احذفها
+                        <?php echo tq_icon('trash', 14); ?> <?php echo t('احذفها'); ?>
                     </button>
                 </div>
             </article>
@@ -287,8 +287,8 @@ $tq_when = function ($ts) {
         <form id="del-form-<?php echo $tq_id; ?>" method="post" hidden
               action="<?php echo site_url('admin/contact/delete/' . $tq_id); ?>"
               data-tqa-confirm-title="<?php echo te('حذف الرسالة'); ?>"
-              data-tqa-confirm="لا رجعة في هذا الحذف."
-              data-tqa-confirm-ok="نعم، احذف"
+              data-tqa-confirm="<?php echo te('لا رجعة في هذا الحذف.'); ?>"
+              data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
               data-tqa-confirm-tone="danger">
             <?php echo tq_csrf(); ?>
         </form>

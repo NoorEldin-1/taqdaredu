@@ -75,7 +75,7 @@ foreach ($teachers as $t) $open_total += (int) $t['open_slots'];
                  يقرأ فيها المسؤول من **يبيع** حصصا فعلا، والسعر سؤال عن
                  معلم يعرض وقتا لا عن كل من في جدول المستخدمين. */ ?>
         <p class="tqa-card__lead" style="padding-inline:var(--tq-space-l)">
-            <?php echo t('الحقلان فارغان يعنيان «التسعيرة العامة» ('); ?><strong><?php echo number_format($tq_cfg['price'] / 100, 2); ?></strong> <?php echo t('ر.س للحصة، نصيب المعلم'); ?> <strong><?php echo rtrim(rtrim(number_format($tq_cfg['percent'], 2), '0'), '.'); ?>٪</strong><?php echo t('). واكتب فيهما لتستثني معلما بعينه —'); ?> <strong><?php echo t('وصفر ليس فراغا'); ?></strong><?php echo t(': من كتب له صفر يدرس مجانا بقرار، ومن ترك فارغا يبيع بسعر المنصة.'); ?>
+            <?php echo t('الحقلان فارغان يعنيان «التسعيرة العامة» ('); ?><strong><?php echo number_format($tq_cfg['price'] / 100, 2); ?></strong> <?php echo t('ر.س للحصة، نصيب المعلم'); ?> <strong><?php echo rtrim(rtrim(number_format($tq_cfg['percent'], 2), '0'), '.'); ?><?php echo t('٪'); ?></strong><?php echo t('). واكتب فيهما لتستثني معلما بعينه —'); ?> <strong><?php echo t('وصفر ليس فراغا'); ?></strong><?php echo t(': من كتب له صفر يدرس مجانا بقرار، ومن ترك فارغا يبيع بسعر المنصة.'); ?>
             <a href="<?php echo site_url('taqdar_admin/sessions#tqa-pricing'); ?>"><?php echo t('عدل التسعيرة العامة'); ?></a>.
         </p>
 

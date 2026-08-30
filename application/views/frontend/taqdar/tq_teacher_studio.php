@@ -169,9 +169,8 @@ include 'portal_open.php';
 
     <?php if ($tq_asset['state'] === 'rejected'): ?>
       <p class="tq-flash tq-flash--err" style="margin-block-start:var(--tq-space-m)">
-        رفض الدرس<?php echo !empty($tq_asset['reason'])
-          ? ': ' . html_escape($tq_asset['reason']) : '.'; ?>
-        أصلح ما ذكر ثم أعد إرساله.
+        <?php echo t('رفض الدرس____ أصلح ما ذكر ثم أعد إرساله.', array(!empty($tq_asset['reason'])
+          ? ': ' . html_escape($tq_asset['reason']) : '.')); ?>
       </p>
     <?php endif; ?>
 
@@ -179,9 +178,9 @@ include 'portal_open.php';
             يوتيوب وفيميو رابطهما عام دائم بحكم استضافتهما. */ ?>
     <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
       <?php if (($tq_asset['protection'] ?? '') === 'signed'): ?>
-        الحماية: رابط موقع ينتهي بعد خمس دقائق ومقيد بحساب الطالب. لا يعمل من حساب آخر ولا بعد انتهائه.
+        <?php echo t('الحماية: رابط موقع ينتهي بعد خمس دقائق ومقيد بحساب الطالب. لا يعمل من حساب آخر ولا بعد انتهائه.'); ?>
       <?php else: ?>
-        الحماية: لا شيء — المقطع مستضاف خارج المنصة برابط عام دائم. ارفع الملف إلى المنصة ليحمى.
+        <?php echo t('الحماية: لا شيء — المقطع مستضاف خارج المنصة برابط عام دائم. ارفع الملف إلى المنصة ليحمى.'); ?>
       <?php endif; ?>
     </p>
 
@@ -289,7 +288,7 @@ include 'portal_open.php';
                       <input type="hidden" name="kind" value="<?php echo html_escape($kind); ?>">
                       <input type="hidden" name="act" value="approve">
                       <button class="tq-btn tq-btn--primary tq-btn--sm" type="submit">
-                        اعتمد «<?php echo html_escape($label); ?>»
+                        <?php echo t('اعتمد «'); ?><?php echo html_escape($label); ?>»
                       </button>
                     </form>
                   <?php else: ?>
@@ -300,7 +299,7 @@ include 'portal_open.php';
                       <input type="hidden" name="act" value="reject">
                       <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit"><?php echo t('اسحب الاعتماد'); ?></button>
                     </form>
-                    <span class="tq-caption">اعتمد في <?php
+                    <span class="tq-caption"><?php echo t('اعتمد في'); ?> <?php
                       echo tq_num(html_escape((string) $o['approved_at'])); ?></span>
                   <?php endif; ?>
                 </div>
@@ -318,7 +317,7 @@ include 'portal_open.php';
         <div class="tq-card__head">
           <h2 class="tq-card__title"><?php echo t('نص الدرس'); ?></h2>
           <?php if ($tq_cues): ?>
-            <span class="tq-caption"><?php echo tq_num(count($tq_cues)); ?> مقطعا</span>
+            <span class="tq-caption"><?php echo tq_num(count($tq_cues)); ?> <?php echo t('مقطعا'); ?></span>
           <?php endif; ?>
         </div>
 

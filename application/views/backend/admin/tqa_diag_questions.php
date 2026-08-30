@@ -53,12 +53,12 @@ $correct_of = function ($q) {
 
 <div class="tqa-head">
     <div>
-        <h1>أسئلة: <?php echo html_escape($exam['title']); ?></h1>
+        <h1><?php echo t('أسئلة:'); ?> <?php echo html_escape($exam['title']); ?></h1>
         <p><?php echo t('لكل سؤال مستواه، والمستوى هو ما يحسب به موضع الطالب — لا مجموع الإجابات.'); ?></p>
     </div>
     <div class="tqa-actions">
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/form/diag_exams/' . $exam_id); ?>">
-            <?php echo tq_icon('edit', 16); ?> إعدادات الاختبار
+            <?php echo tq_icon('edit', 16); ?> <?php echo t('إعدادات الاختبار'); ?>
         </a>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/module/diag_exams'); ?>"><?php echo t('رجوع'); ?></a>
     </div>
@@ -107,7 +107,7 @@ $correct_of = function ($q) {
                     — <span style="color:var(--tq-danger)"><?php echo t('بلا باقة مربوطة'); ?></span>
                 <?php endif; ?>
                 <?php if ($went > 0): ?>
-                    · خرج به <?php echo $went; ?> طالبا
+                    <?php echo t('· خرج به ____ طالبا', $went); ?>
                 <?php endif; ?>
             </span>
         </div>
@@ -175,15 +175,15 @@ $correct_of = function ($q) {
                     <div class="tqd-opt">
                         <input type="radio" name="correct" value="<?php echo $i; ?>"
                                <?php echo $i === 0 ? 'checked' : ''; ?>
-                               aria-label="الخيار <?php echo $i + 1; ?> هو الصحيح">
+                               aria-label="<?php echo te('الخيار ____ هو الصحيح', array($i + 1)); ?>">
                         <input class="tqa-input" type="text" name="options[<?php echo $i; ?>]"
-                               placeholder="الخيار <?php echo $i + 1; ?><?php echo $i < 2 ? '' : t('(اختياري)'); ?>">
+                               placeholder="<?php echo te('الخيار ________', array($i + 1, $i < 2 ? '' : t(' (اختياري)'))); ?>">
                     </div>
                 <?php endfor; ?>
             </div>
 
             <div class="tqa-actions">
-                <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('plus', 16); ?> أضف السؤال</button>
+                <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('plus', 16); ?> <?php echo t('أضف السؤال'); ?></button>
             </div>
         </form>
     </div>
@@ -208,7 +208,7 @@ $correct_of = function ($q) {
                 <div class="tqd-lvl__head" style="inline-size:100%">
                     <h4 class="header-title"><?php echo html_escape($meta['label']); ?></h4>
                     <span class="tqa-badge tqa-badge--<?php echo count($rows) ? 'ok' : 'muted'; ?>">
-                        <?php echo count($rows); ?> سؤالا
+                        <?php echo count($rows); ?> <?php echo t('سؤالا'); ?>
                     </span>
                 </div>
             </div>
@@ -245,8 +245,8 @@ $correct_of = function ($q) {
                             <form method="post" style="margin:0"
                                   action="<?php echo site_url('taqdar_admin/diag_question_delete/' . $exam_id . '/' . (int) $q['id']); ?>"
                                   data-tqa-confirm-title="<?php echo te('حذف السؤال'); ?>"
-                                  data-tqa-confirm="لا رجعة في هذا الحذف. وإجابات من أداه تبقى في سجل نتائجهم."
-                                  data-tqa-confirm-ok="نعم، احذف"
+                                  data-tqa-confirm="<?php echo te('لا رجعة في هذا الحذف. وإجابات من أداه تبقى في سجل نتائجهم.'); ?>"
+                                  data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                   data-tqa-confirm-tone="danger">
                                 <?php echo tq_csrf(); ?>
                                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
@@ -307,10 +307,10 @@ $correct_of = function ($q) {
                                         <div class="tqd-opt">
                                             <input type="radio" name="correct" value="<?php echo $i; ?>"
                                                    <?php echo ($v !== '' && (string) $v === $right) ? 'checked' : ''; ?>
-                                                   aria-label="الخيار <?php echo $i + 1; ?> هو الصحيح">
+                                                   aria-label="<?php echo te('الخيار ____ هو الصحيح', array($i + 1)); ?>">
                                             <input class="tqa-input" type="text" name="options[<?php echo $i; ?>]"
                                                    value="<?php echo html_escape($v); ?>"
-                                                   placeholder="الخيار <?php echo $i + 1; ?>">
+                                                   placeholder="<?php echo te('الخيار ____', array($i + 1)); ?>">
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -328,9 +328,7 @@ $correct_of = function ($q) {
     <?php endforeach; ?>
 
     <p class="tqa-count">
-        <?php echo $total; ?> سؤالا في هذا الاختبار.
-        وعتبة اتقان المستوى <?php echo (int) $exam['level_threshold']; ?>% —
-        يبلغ الطالب أعلى مستوى بلغ عتبته، وإلا فما دونه، وإلا فمبتدئ.
+        <?php echo t('____ سؤالا في هذا الاختبار. وعتبة اتقان المستوى ____% — يبلغ الطالب أعلى مستوى بلغ عتبته، وإلا فما دونه، وإلا فمبتدئ.', array($total, (int) $exam['level_threshold'])); ?>
     </p>
 
 <?php endif; ?>

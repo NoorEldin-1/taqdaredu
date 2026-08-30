@@ -14,7 +14,7 @@ $tq_cats = $this->crud_model->get_blog_categories()->result_array();
 
 <?php tqa_head(t('مقال جديد'), t('المقال ينشر في مدونة الموقع العام.'), 'file',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog') . '">'
-  . tq_icon('chev-prev', 16) . t('كل المقالات</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل المقالات</a>')); ?>
 
 <?php if (empty($tq_cats)): ?>
     <div class="tqa-note tqa-note--warn tqa-section" style="max-inline-size:860px">
@@ -88,7 +88,7 @@ $tq_cats = $this->crud_model->get_blog_categories()->result_array();
                 <div class="tqa-file">
                     <input type="file" id="thumbnail" name="thumbnail" accept="image/*" data-tqa-file>
                     <label class="tqa-file__btn" for="thumbnail">
-                        <?php echo tq_icon('image', 16); ?> اختر صورة
+                        <?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورة'); ?>
                     </label>
                     <span class="tqa-file__name" data-tqa-file-name><?php echo t('المقاس المفضل ‎800 × 500‎'); ?></span>
                 </div>
@@ -100,7 +100,7 @@ $tq_cats = $this->crud_model->get_blog_categories()->result_array();
                 <div class="tqa-file">
                     <input type="file" id="banner" name="banner" accept="image/*" data-tqa-file>
                     <label class="tqa-file__btn" for="banner">
-                        <?php echo tq_icon('image', 16); ?> اختر صورة
+                        <?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورة'); ?>
                     </label>
                     <span class="tqa-file__name" data-tqa-file-name><?php echo t('المقاس المفضل ‎2000 × 500‎'); ?></span>
                 </div>
@@ -124,7 +124,7 @@ $tq_cats = $this->crud_model->get_blog_categories()->result_array();
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('check', 16); ?> انشر المقال
+            <?php echo tq_icon('check', 16); ?> <?php echo t('انشر المقال'); ?>
         </button>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/blog'); ?>"><?php echo t('إلغاء'); ?></a>
     </div>

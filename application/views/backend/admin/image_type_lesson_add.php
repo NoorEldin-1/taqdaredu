@@ -5,7 +5,7 @@
     <span class="tqa-field__label"><?php echo t('الصورة'); ?> <span class="tqa-field__req" aria-hidden="true">*</span></span>
     <div class="tqa-file">
         <input type="file" id="attachment" name="attachment" accept="image/*" required data-tqa-file>
-        <label class="tqa-file__btn" for="attachment"><?php echo tq_icon('image', 16); ?> اختر صورة</label>
+        <label class="tqa-file__btn" for="attachment"><?php echo tq_icon('image', 16); ?> <?php echo t('اختر صورة'); ?></label>
         <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
     </div>
 </div>

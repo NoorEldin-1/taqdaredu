@@ -64,18 +64,18 @@ $tq_ses_photo = function ($image) {
 
 /** ثمن بالهللات إلى ريال — القسمة على مئة في موضع واحد. */
 $tq_sar = function ($halalas) {
-    return TQ_LRI . number_format(((int) $halalas) / 100, 2) . TQ_PDI . t('ر.س');
+    return TQ_LRI . number_format(((int) $halalas) / 100, 2) . TQ_PDI . t(' ر.س');
 };
 
 include 'portal_open.php';
 ?>
 
-<?php if ($tq_flash = $this->session->flashdata('flash_message')): ?>
+<?php if ($tq_flash = tq_flash('flash_message')): ?>
     <div class="tq-pastel tq-pastel--mint" style="margin-block-end:var(--tq-space-l)">
         <p class="tq-pastel__body" style="margin:0"><?php echo tq_iso($tq_flash); ?></p>
     </div>
 <?php endif; ?>
-<?php if ($tq_err = $this->session->flashdata('error_message')): ?>
+<?php if ($tq_err = tq_flash('error_message')): ?>
     <div class="tq-pastel tq-pastel--rose" style="margin-block-end:var(--tq-space-l)">
         <p class="tq-pastel__body" style="margin:0"><?php echo tq_iso($tq_err); ?></p>
     </div>
@@ -100,7 +100,7 @@ include 'portal_open.php';
                             <li style="padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
                                 <div class="tq-row" style="gap:var(--tq-space-l)">
                                     <img class="tq-avatar" src="<?php echo html_escape($tq_ses_photo($tq_r['image'])); ?>"
-                                         alt="<?php echo html_escape(t('صورة') . $tq_r['student_name']); ?>">
+                                         alt="<?php echo html_escape(t('صورة ') . $tq_r['student_name']); ?>">
                                     <div style="flex:1;min-inline-size:0">
                                         <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_r['student_name']); ?></p>
                                         <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_r['when_text']); ?></p>
@@ -109,7 +109,7 @@ include 'portal_open.php';
                                                      الحصة وقت طلبها، فتعديل الإدارة للتسعيرة بعده لا
                                                      يغير ما يقيد لك عنه. */ ?>
                                             <p class="tq-micro" style="margin:0">
-                                                <?php echo $tq_sar($tq_r['price']); ?> · نصيبك
+                                                <?php echo $tq_sar($tq_r['price']); ?> <?php echo t('· نصيبك'); ?>
                                                 <strong><?php echo $tq_sar($tq_r['share']); ?></strong>
                                             </p>
                                         <?php endif; ?>
@@ -117,10 +117,10 @@ include 'portal_open.php';
                                     <?php /* الاعتذار يلغي حصة طالب انتظرها: حوار التأكيد الموحد
                                              في البوابات لا ضغطة واحدة. */ ?>
                                     <form method="post" action="<?php echo base_url('teacher/sessions/decide'); ?>" class="tq-form-inline"
-                                          data-tq-confirm-title="الاعتذار عن حصة <?php echo html_escape($tq_r['student_name']); ?>؟"
+                                          data-tq-confirm-title="<?php echo te('الاعتذار عن حصة ____؟', array(html_escape($tq_r['student_name']))); ?>"
                                           data-tq-confirm="<?php echo te('يصله أنك اعتذرت، ويعود الموعد متاحا لغيره.'); ?>"
-                                          data-tq-confirm-note="الاعتذار المبكر أفضل للطالب من انتظار لا ينتهي. ولك أن تفتح الفترة نفسها من جديد."
-                                          data-tq-confirm-ok="أعتذر عن الطلب"
+                                          data-tq-confirm-note="<?php echo te('الاعتذار المبكر أفضل للطالب من انتظار لا ينتهي. ولك أن تفتح الفترة نفسها من جديد.'); ?>"
+                                          data-tq-confirm-ok="<?php echo te('أعتذر عن الطلب'); ?>"
                                           data-tq-confirm-tone="danger">
                                         <?php echo tq_csrf(); ?>
                                         <input type="hidden" name="decision" value="decline">
@@ -138,7 +138,7 @@ include 'portal_open.php';
                                     <input type="hidden" name="decision" value="confirm">
                                     <input type="hidden" name="session_id" value="<?php echo (int) $tq_r['id']; ?>">
                                     <label class="tq-sr" for="tq-meet-<?php echo (int) $tq_r['id']; ?>">
-                                        رابط لقاء الحصة مع <?php echo html_escape($tq_r['student_name']); ?>
+                                        <?php echo t('رابط لقاء الحصة مع'); ?> <?php echo html_escape($tq_r['student_name']); ?>
                                     </label>
                                     <input class="tq-input" id="tq-meet-<?php echo (int) $tq_r['id']; ?>"
                                            name="meet_url" type="url" dir="ltr" required
@@ -147,14 +147,13 @@ include 'portal_open.php';
                                            aria-describedby="tq-meet-h-<?php echo (int) $tq_r['id']; ?>">
                                     <button class="tq-btn tq-btn--mastery tq-btn--sm" type="submit"><?php echo t('تأكيد وإرسال الرابط'); ?></button>
                                     <span class="tq-micro" id="tq-meet-h-<?php echo (int) $tq_r['id']; ?>" style="flex-basis:100%">
-                                        <?php echo html_escape(t('رابط') . $tq_m->meet_hosts_text() . ' — '); ?>
+                                        <?php echo html_escape(t('رابط ') . $tq_m->meet_hosts_text() . ' — '); ?>
                                         <?php if ($tq_r['price'] > 0): ?>
                                             <?php /* التأكيد لا يثبت الموعد إن كان بثمن. وقولها هنا
                                                      يمنع أن يعتمد المعلم على وقت لم يشتر بعد. */ ?>
-                                            يصل الطالب فاتورة الحصة، ويظهر له الرابط بعد أن يدفع.
-                                            والموعد لا يثبت لك حتى ذلك الحين.
+                                            <?php echo t('يصل الطالب فاتورة الحصة، ويظهر له الرابط بعد أن يدفع. والموعد لا يثبت لك حتى ذلك الحين.'); ?>
                                         <?php else: ?>
-                                            يظهر للطالب في شاشته بعد التأكيد.
+                                            <?php echo t('يظهر للطالب في شاشته بعد التأكيد.'); ?>
                                         <?php endif; ?>
                                     </span>
                                 </form>
@@ -168,9 +167,9 @@ include 'portal_open.php';
                     <h3 class="tq-empty__title"><?php echo t('لا طلبات حجز الآن'); ?></h3>
                     <p class="tq-empty__text">
                         <?php echo tq_iso(t('حين يطلب أحد طلابك حصة خاصة، يظهر طلبه هنا بموعده')
-                            . ($tq_paid ? t('وثمنه ونصيبك منه') : '')
-                            . t('، فتؤكده أو تعتذر عنه خلال') . $tq_cfg['pay_hours']
-                            . t('ساعة. حدد أوقاتك المتاحة أدناه ليعرف الطالب متى يطلب.')); ?>
+                            . ($tq_paid ? t(' وثمنه ونصيبك منه') : '')
+                            . t('، فتؤكده أو تعتذر عنه خلال ') . $tq_cfg['pay_hours']
+                            . t(' ساعة. حدد أوقاتك المتاحة أدناه ليعرف الطالب متى يطلب.')); ?>
                     </p>
                     <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher'); ?>"><?php echo t('عودة إلى اللوحة'); ?></a>
                 </div>
@@ -197,13 +196,13 @@ include 'portal_open.php';
                             <?php $tq_b = $tq_m->status_badge($tq_c['status']); ?>
                             <li class="tq-row" style="gap:var(--tq-space-l);padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
                                 <img class="tq-avatar" src="<?php echo html_escape($tq_ses_photo($tq_c['image'])); ?>"
-                                     alt="<?php echo html_escape(t('صورة') . $tq_c['student_name']); ?>">
+                                     alt="<?php echo html_escape(t('صورة ') . $tq_c['student_name']); ?>">
                                 <div style="flex:1;min-inline-size:0">
                                     <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_c['student_name']); ?></p>
                                     <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_c['when_text']); ?></p>
                                     <?php if ($tq_c['pay_deadline']): ?>
                                         <p class="tq-micro" style="margin:0">
-                                            مهلة الدفع حتى
+                                            <?php echo t('مهلة الدفع حتى'); ?>
                                             <?php echo tq_iso(date('Y-m-d H:i', strtotime($tq_c['pay_deadline']))); ?>
                                         </p>
                                     <?php endif; ?>
@@ -236,7 +235,7 @@ include 'portal_open.php';
                             <li style="padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
                                 <div class="tq-row" style="gap:var(--tq-space-l)">
                                     <img class="tq-avatar" src="<?php echo html_escape($tq_ses_photo($tq_c['image'])); ?>"
-                                         alt="<?php echo html_escape(t('صورة') . $tq_c['student_name']); ?>">
+                                         alt="<?php echo html_escape(t('صورة ') . $tq_c['student_name']); ?>">
                                     <div style="flex:1;min-inline-size:0">
                                         <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_c['student_name']); ?></p>
                                         <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_c['when_text']); ?></p>
@@ -255,7 +254,7 @@ include 'portal_open.php';
                                     <?php if ($tq_c['meet_url'] !== '' && !$tq_c['is_over']): ?>
                                         <a class="tq-btn tq-btn--mastery tq-btn--sm" target="_blank" rel="noopener"
                                            href="<?php echo html_escape($tq_c['meet_url']); ?>">
-                                            <?php echo tq_icon('video', 16); ?> ادخل الحصة
+                                            <?php echo tq_icon('video', 16); ?> <?php echo t('ادخل الحصة'); ?>
                                         </a>
                                     <?php endif; ?>
                                     <?php echo tq_badge($tq_b[0], $tq_b[1]); ?>
@@ -268,16 +267,16 @@ include 'portal_open.php';
                                 <?php if ($tq_c['can_complete']): ?>
                                     <form method="post" action="<?php echo base_url('teacher/sessions/complete'); ?>"
                                           class="tq-form-inline" style="margin-block-start:var(--tq-space-m)"
-                                          data-tq-confirm-title="أنهيت الحصة مع <?php echo html_escape($tq_c['student_name']); ?>؟"
+                                          data-tq-confirm-title="<?php echo te('أنهيت الحصة مع ____؟', array(html_escape($tq_c['student_name']))); ?>"
                                           data-tq-confirm="<?php echo $tq_c['price'] > 0
                                               ? t('يغلق رابط اللقاء، ويقيد نصيبك في محفظتك.')
                                               : t('يغلق رابط اللقاء، ولا يستطيع الطالب الدخول بعده.'); ?>"
-                                          data-tq-confirm-note="لا تضغط قبل أن تنتهي فعلا — الرابط لا يفتح مرة أخرى."
-                                          data-tq-confirm-ok="نعم، انتهت">
+                                          data-tq-confirm-note="<?php echo te('لا تضغط قبل أن تنتهي فعلا — الرابط لا يفتح مرة أخرى.'); ?>"
+                                          data-tq-confirm-ok="<?php echo te('نعم، انتهت'); ?>">
                                         <?php echo tq_csrf(); ?>
                                         <input type="hidden" name="session_id" value="<?php echo (int) $tq_c['id']; ?>">
                                         <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">
-                                            <?php echo tq_icon('check', 16); ?> أعلن انتهاء الحصة
+                                            <?php echo tq_icon('check', 16); ?> <?php echo t('أعلن انتهاء الحصة'); ?>
                                             <?php if ($tq_c['price'] > 0): ?>
                                                 <span class="tq-sr"><?php echo t('— ويقيد نصيبك'); ?></span>
                                             <?php endif; ?>
@@ -342,12 +341,8 @@ include 'portal_open.php';
                          يولد موعدا واحدا يحجزه طالب فيقفلها كلها — فيرد أربعة
                          طلاب على وقت هو فارغ. وصارت تفرش إلى مواعيد بطول الحصة. */ ?>
                 <p class="tq-caption">
-                    <strong>كل فترة تفرش إلى مواعيد بطول
-                    <?php echo tq_iso($tq_cfg['minutes'] . t('دقيقة')); ?></strong> —
-                    فترة «مساء» مثلا تعطي
-                    <?php echo tq_iso((string) max(1, intdiv(300, $tq_cfg['minutes'])) . t('مواعيد')); ?>
-                    يحجزها طلاب مختلفون، لا موعدا واحدا يشغلها كلها.
-                    ومدة الحصة تحددها الإدارة.
+                    <strong><?php echo t('كل فترة تفرش إلى مواعيد بطول'); ?>
+                    <?php echo tq_iso($tq_cfg['minutes'] . t(' دقيقة')); ?></strong> <?php echo t('— فترة «مساء» مثلا تعطي ____ يحجزها طلاب مختلفون، لا موعدا واحدا يشغلها كلها. ومدة الحصة تحددها الإدارة.', array(tq_iso((string) max(1, intdiv(300, $tq_cfg['minutes'])) . t(' مواعيد')))); ?>
                 </p>
 
                 <div style="overflow-x:auto">
@@ -414,15 +409,13 @@ include 'portal_open.php';
                 </p>
                 <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
                     <?php echo t('نصيبك منها'); ?> <strong><?php echo $tq_sar($tq_pricing['share']); ?></strong>
-                    (<?php echo tq_iso(rtrim(rtrim(number_format($tq_pricing['percent'], 2), '0'), '.') . t('٪')); ?>)،
-                    والباقي <?php echo $tq_sar($tq_pricing['platform']); ?> عمولة المنصة.
-                    ومدة الحصة <?php echo tq_iso($tq_cfg['minutes'] . t('دقيقة')); ?>.
+                    <?php echo t('(____)، والباقي ____ عمولة المنصة. ومدة الحصة ____.', array(tq_iso(rtrim(rtrim(number_format($tq_pricing['percent'], 2), '0'), '.') . t('٪')), $tq_sar($tq_pricing['platform']), tq_iso($tq_cfg['minutes'] . t(' دقيقة')))); ?>
                 </p>
                 <p class="tq-micro" style="margin:var(--tq-space-m) 0 0">
                     <?php echo $tq_pricing['from_teacher']
                         ? t('تسعيرة خاصة بك حددتها الإدارة.')
                         : t('التسعيرة العامة للمنصة، وتحددها الإدارة.'); ?>
-                    ونصيبك يقيد في محفظتك <strong><?php echo t('حين تعلن انتهاء الحصة'); ?></strong> <?php echo t('لا حين يدفع الطالب.'); ?>
+                    <?php echo t('ونصيبك يقيد في محفظتك'); ?> <strong><?php echo t('حين تعلن انتهاء الحصة'); ?></strong> <?php echo t('لا حين يدفع الطالب.'); ?>
                 </p>
             </div>
         <?php endif; ?>
@@ -430,13 +423,13 @@ include 'portal_open.php';
         <div class="tq-pastel tq-pastel--sky">
             <span class="tq-pastel__label tq-micro"><?php echo t('قاعدة الحصص'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                <?php echo tq_iso(t('طلب بلا رد') . $tq_cfg['pay_hours']
-                    . t('ساعة يلغى تلقائيا ويعاد للطالب. الاعتذار المبكر أفضل للطالب من انتظار لا ينتهي.')); ?>
+                <?php echo tq_iso(t('طلب بلا رد ') . $tq_cfg['pay_hours']
+                    . t(' ساعة يلغى تلقائيا ويعاد للطالب. الاعتذار المبكر أفضل للطالب من انتظار لا ينتهي.')); ?>
             </p>
             <?php if ($tq_paid): ?>
                 <p class="tq-pastel__body" style="margin:var(--tq-space-m) 0 0">
-                    <?php echo tq_iso(t('والموعد لا يثبت لك إلا بعد أن يدفع الطالب خلال')
-                        . $tq_cfg['pay_hours'] . t('ساعة من تأكيدك — وحتى ذلك الحين يبقى معروضا لغيره.')); ?>
+                    <?php echo tq_iso(t('والموعد لا يثبت لك إلا بعد أن يدفع الطالب خلال ')
+                        . $tq_cfg['pay_hours'] . t(' ساعة من تأكيدك — وحتى ذلك الحين يبقى معروضا لغيره.')); ?>
                 </p>
             <?php endif; ?>
         </div>

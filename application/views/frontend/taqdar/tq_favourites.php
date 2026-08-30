@@ -214,8 +214,8 @@ $tq_heart = static function ($kind, $id, $noun) use ($tq_type, $tq_sort) {
         <input type="hidden" name="back_type" value="<?php echo html_escape($tq_type); ?>">
         <input type="hidden" name="back_sort" value="<?php echo html_escape($tq_sort); ?>">
         <button class="tq-fav-heart" type="submit" aria-pressed="true"
-                title="<?php echo html_escape(t('إزالة') . $noun . t('من المفضلة')); ?>"
-                aria-label="<?php echo html_escape(t('إزالة') . $noun . t('من المفضلة')); ?>">
+                title="<?php echo html_escape(t('إزالة ') . $noun . t(' من المفضلة')); ?>"
+                aria-label="<?php echo html_escape(t('إزالة ') . $noun . t(' من المفضلة')); ?>">
             <?php echo tq_icon('heart'); ?>
         </button>
     </form>
@@ -328,7 +328,7 @@ include 'portal_open.php';
                     <?php foreach ($tq_fav_lessons as $i => $ls): ?>
                         <article class="tq-lesson-card">
                             <a class="tq-lesson-card__cover" href="<?php echo html_escape($ls['href']); ?>"
-                               aria-label="<?php echo html_escape(t('افتح درس') . $ls['title']); ?>">
+                               aria-label="<?php echo html_escape(t('افتح درس ') . $ls['title']); ?>">
                                 <span class="tq-lesson-card__play" aria-hidden="true"><?php echo tq_icon('play'); ?></span>
                                 <span class="tq-lesson-card__time"><?php echo TQ_LRI . html_escape($ls['duration']) . TQ_PDI; ?></span>
                             </a>
@@ -389,8 +389,8 @@ include 'portal_open.php';
                                 <?php /* الملف يفتح فعلا، والقلب يزيله فعلا — لا بطاقة تعرض
                                          اسما وحده ولا فعل تحتها. */ ?>
                                 <a class="tq-fav-heart" href="<?php echo html_escape($f['url']); ?>" download
-                                   aria-label="<?php echo html_escape(t('تنزيل') . $f['title']); ?>"
-                                   title="<?php echo te('تنزيل'); ?>"><?php echo tq_icon('download'); ?></a>
+                                   aria-label="<?php echo html_escape(t('تنزيل ') . $f['title']); ?>"
+                                   title="<?php echo te('تنزيل '); ?>"><?php echo tq_icon('download'); ?></a>
                                 <?php echo $tq_heart('material', $f['id'], t('الملف')); ?>
                             </div>
                         </article>
@@ -438,7 +438,7 @@ include 'portal_open.php';
                         <article class="tq-course-row">
                             <div class="tq-course-row__art">
                                 <?php if ($thumb !== ''): ?>
-                                    <img src="<?php echo html_escape($thumb); ?>" alt="غلاف كورس <?php echo html_escape($c['title']); ?>">
+                                    <img src="<?php echo html_escape($thumb); ?>" alt="<?php echo te('غلاف كورس ____', array(html_escape($c['title']))); ?>">
                                 <?php else: ?>
                                     <span aria-hidden="true"><?php echo tq_icon('book', 28); ?></span>
                                 <?php endif; ?>
@@ -519,7 +519,7 @@ include 'portal_open.php';
                                 <span class="tq-icon-box tq-pastel--<?php echo tq_pastel($i); ?>" aria-hidden="true"><?php echo tq_icon('folder', 18); ?></span>
                                 <span>
                                     <span class="tq-caption" style="display:block;color:var(--tq-navy)"><?php echo html_escape($l['name']); ?></span>
-                                    <span class="tq-micro"><?php echo tq_iso($l['count'] . t('عناصر')); ?></span>
+                                    <span class="tq-micro"><?php echo tq_iso($l['count'] . t(' عناصر')); ?></span>
                                 </span>
                             </span>
                         </li>
@@ -543,7 +543,7 @@ include 'portal_open.php';
                         <?php
                         $h = intdiv($m['secs'], 3600);
                         $mn = intdiv($m['secs'] % 3600, 60);
-                        $spent = $h > 0 ? $h . t('س') . $mn . t('د') : $mn . t('د');
+                        $spent = $h > 0 ? $h . t(' س ') . $mn . t(' د') : $mn . t(' د');
                         ?>
                         <li class="tq-row tq-row--between">
                             <a class="tq-caption tq-s-trunc" style="color:var(--tq-navy)" href="<?php echo html_escape($m['href']); ?>">

@@ -127,35 +127,35 @@ if (!function_exists('tq_img_store')) {
 
         $fail = function ($msg) { return array('ok' => false, 'path' => '', 'error' => $msg); };
 
-        if (!is_array($file) || !isset($file['error'])) return $fail('لم يصل ملف.');
+        if (!is_array($file) || !isset($file['error'])) return $fail(t('لم يصل ملف.'));
 
         if ((int) $file['error'] !== UPLOAD_ERR_OK) {
             /* الرفع الفاشل يصل بـ`name` مملوءا و`tmp_name` فارغا —
                فبلا هذا الفرع يحفظ الصف باسم ملف لم ينسخ. */
             if (in_array((int) $file['error'], array(UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE), true)) {
-                return $fail('حجم الصورة أكبر مما يقبله الخادم. اختر صورة أصغر.');
+                return $fail(t('حجم الصورة أكبر مما يقبله الخادم. اختر صورة أصغر.'));
             }
-            if ((int) $file['error'] === UPLOAD_ERR_NO_FILE) return $fail('لم تختر صورة.');
-            return $fail('تعذر رفع الصورة. حاول مرة أخرى.');
+            if ((int) $file['error'] === UPLOAD_ERR_NO_FILE) return $fail(t('لم تختر صورة.'));
+            return $fail(t('تعذر رفع الصورة. حاول مرة أخرى.'));
         }
 
         if ((int) $file['size'] > $maxmb * 1024 * 1024) {
-            return $fail('حجم الصورة أكبر من ' . rtrim(rtrim(number_format($maxmb, 1), '0'), '.') . ' ميغابايت.');
+            return $fail(t('حجم الصورة أكبر من ') . rtrim(rtrim(number_format($maxmb, 1), '0'), '.') . t(' ميغابايت.'));
         }
 
         $tmp = (string) $file['tmp_name'];
-        if (!is_uploaded_file($tmp)) return $fail('مصدر الملف غير مقبول.');
+        if (!is_uploaded_file($tmp)) return $fail(t('مصدر الملف غير مقبول.'));
 
         $src = tq_img_read($tmp);
-        if (!$src) return $fail('هذا ليس ملف صورة مقروءا. المقبول: JPG · PNG · WebP · GIF.');
+        if (!$src) return $fail(t('هذا ليس ملف صورة مقروءا. المقبول: JPG · PNG · WebP · GIF.'));
 
         if ($src['w'] < $minw || $src['h'] < $minh) {
             /* صورة صغيرة تكبر إلى حجم البطاقة فتخرج مهترئة، والرافع
                يراها سليمة في اللوحة ولا يراها الزائر كذلك. فترد
                بمقاسها المطلوب لا برفض غامض. */
             imagedestroy($src['im']);
-            return $fail('الصورة صغيرة (' . $src['w'] . '×' . $src['h'] . ') وتظهر مهترئة في البطاقة. '
-                       . 'أقل مقاس ' . $minw . '×' . $minh . '، والأفضل ' . $tw . '×' . $th . '.');
+            return $fail(t('الصورة صغيرة (') . $src['w'] . '×' . $src['h'] . t(') وتظهر مهترئة في البطاقة. ')
+                       . t('أقل مقاس ') . $minw . '×' . $minh . t('، والأفضل ') . $tw . '×' . $th . '.');
         }
 
         $out = tq_img_cover($src['im'], $src['w'], $src['h'], $tw, $th);
@@ -180,15 +180,15 @@ if (!function_exists('tq_img_store')) {
         $bytes = ob_get_clean();
         imagedestroy($out);
 
-        if ($bytes === '' || $bytes === false) return $fail('تعذر معالجة الصورة.');
+        if ($bytes === '' || $bytes === false) return $fail(t('تعذر معالجة الصورة.'));
 
         $name = $prefix . '-' . substr(sha1($bytes), 0, 12) . '.' . $ext;
         $dir  = tq_img_dir($bucket);
         if (!is_dir($dir) || !is_writable($dir)) {
-            return $fail('مجلد الرفع غير قابل للكتابة: uploads/' . $bucket);
+            return $fail(t('مجلد الرفع غير قابل للكتابة: uploads/') . $bucket);
         }
         if (@file_put_contents($dir . $name, $bytes) === false) {
-            return $fail('تعذر حفظ الصورة على الخادم.');
+            return $fail(t('تعذر حفظ الصورة على الخادم.'));
         }
         @chmod($dir . $name, 0644);
 

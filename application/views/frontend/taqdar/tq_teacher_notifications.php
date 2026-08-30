@@ -216,7 +216,7 @@ include 'tq_notif_styles.php';
             <?php foreach ($tq_groups as $label => $items): ?>
                 <?php if (!$items) { continue; } ?>
                 <section class="tq-daygroup" aria-labelledby="tq-g-<?php echo md5($label); ?>">
-                    <span class="tq-daygroup__label" id="tq-g-<?php echo md5($label); ?>"><?php echo html_escape($label); ?></span>
+                    <span class="tq-daygroup__label" id="tq-g-<?php echo md5($label); ?>"><?php echo te($label); ?></span>
                     <div class="tq-card tq-card--panel" style="padding:var(--tq-space-s)">
                         <?php foreach ($items as $n): ?>
                             <?php
@@ -239,7 +239,7 @@ include 'tq_notif_styles.php';
                                     <span class="tq-notif__title"><?php echo tq_iso(html_escape($n['title'])); ?></span>
                                     <span class="tq-notif__line"><?php echo tq_iso(html_escape(mb_substr($text, 0, 90))); ?></span>
                                     <span class="tq-notif__line"><?php echo html_escape($kind_label); ?></span>
-                                    <?php if ($unread): ?><span class="tq-sr">غير مقروء — اضغط لتحديده كمقروء<?php echo $kind_href !== '' ? t('والانتقال إليه') : ''; ?></span><?php endif; ?>
+                                    <?php if ($unread): ?><span class="tq-sr"><?php echo t('غير مقروء — اضغط لتحديده كمقروء'); ?><?php echo $kind_href !== '' ? t(' والانتقال إليه') : ''; ?></span><?php endif; ?>
                                 </span>
                                 <span class="tq-notif__time">
                                     <?php echo tq_num(date('g:i', $ts), 'tq-num--sm'); ?> <?php echo (int) date('G', $ts) < 12 ? t('ص') : t('م'); ?>

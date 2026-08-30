@@ -6,7 +6,7 @@
     <span class="tqa-field__label"><?php echo t('ملف الفيديو'); ?></span>
     <div class="tqa-file">
         <input type="file" id="system_video_file" name="system_video_file" accept="video/*" data-tqa-file>
-        <label class="tqa-file__btn" for="system_video_file"><?php echo tq_icon('upload', 16); ?> استبدل الملف</label>
+        <label class="tqa-file__btn" for="system_video_file"><?php echo tq_icon('upload', 16); ?> <?php echo t('استبدل الملف'); ?></label>
         <span class="tqa-file__name" data-tqa-file-name><?php echo t('اتركه فارغا لإبقاء الملف الحالي'); ?></span>
     </div>
     <span class="tqa-field__hint">
@@ -27,7 +27,7 @@
     <span class="tqa-field__label"><?php echo t('ملف الترجمة'); ?></span>
     <div class="tqa-file">
         <input type="file" id="caption" name="caption" accept=".vtt" data-tqa-file>
-        <label class="tqa-file__btn" for="caption"><?php echo tq_icon('file-text', 16); ?> استبدل الملف</label>
+        <label class="tqa-file__btn" for="caption"><?php echo tq_icon('file-text', 16); ?> <?php echo t('استبدل الملف'); ?></label>
         <span class="tqa-file__name" data-tqa-file-name><?php echo t('اتركه فارغا لإبقاء الملف الحالي'); ?></span>
     </div>
 </div>

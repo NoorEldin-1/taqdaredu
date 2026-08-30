@@ -73,7 +73,7 @@ foreach ($tq_people as $tq_p) {
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
-                <?php echo tq_icon('send', 16); ?> أرسل الرسالة
+                <?php echo tq_icon('send', 16); ?> <?php echo t('أرسل الرسالة'); ?>
             </button>
             <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/message'); ?>"><?php echo t('إلغاء'); ?></a>
         </div>

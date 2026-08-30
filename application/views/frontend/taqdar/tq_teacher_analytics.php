@@ -118,7 +118,7 @@ include 'portal_open.php';
                     دقيقة يعيد مشاهدتها. */ ?>
             <?php if ($h['duration_sec'] > 0): ?>
               <div class="tq-heat__bar" role="img"
-                   aria-label="<?php echo $fin === null ? t('لا بيانات') : t('الإكمال') . (int) $fin . t('بالمئة'); ?>">
+                   aria-label="<?php echo $fin === null ? t('لا بيانات') : t('الإكمال ') . (int) $fin . t(' بالمئة'); ?>">
                 <span class="tq-heat__fill" style="inline-size:<?php echo (int) $fin; ?>%"></span>
                 <?php if ($h['drop_percent'] !== null): ?>
                   <span class="tq-heat__drop" style="inset-inline-start:<?php
@@ -129,11 +129,11 @@ include 'portal_open.php';
             <?php endif; ?>
 
             <div class="tq-heat__nums">
-              <span><?php echo tq_num((int) $h['starters']); ?> بدأ</span>
-              <span><?php echo $fin === null ? '—' : tq_num($fin . '%'); ?> أكمل</span>
-              <span><?php echo $mas === null ? '—' : tq_num($mas . '%'); ?> أتقن</span>
+              <span><?php echo tq_num((int) $h['starters']); ?> <?php echo t('بدأ'); ?></span>
+              <span><?php echo $fin === null ? '—' : tq_num($fin . '%'); ?> <?php echo t('أكمل'); ?></span>
+              <span><?php echo $mas === null ? '—' : tq_num($mas . '%'); ?> <?php echo t('أتقن'); ?></span>
               <?php if ($h['drop_at'] > 0): ?>
-                <span>ينصرف عند <?php echo tq_num(sprintf('%d:%02d', intdiv($h['drop_at'], 60), $h['drop_at'] % 60)); ?></span>
+                <span><?php echo t('ينصرف عند'); ?> <?php echo tq_num(sprintf('%d:%02d', intdiv($h['drop_at'], 60), $h['drop_at'] % 60)); ?></span>
               <?php endif; ?>
             </div>
 
@@ -173,7 +173,7 @@ include 'portal_open.php';
                 <div class="tq-an-row__m">
                   <span class="tq-an-row__t"><?php echo html_escape($w['text']); ?></span>
                   <span class="tq-an-row__s"><?php echo html_escape($w['lesson_title']); ?>
-                    · <?php echo tq_num((int) $w['students']); ?> طالبا</span>
+                    · <?php echo tq_num((int) $w['students']); ?> <?php echo t('طالبا'); ?></span>
                 </div>
                 <span class="tq-an-pct tq-an-pct--<?php
                   echo $lv < 50 ? 'low' : ($lv < 80 ? 'mid' : 'high'); ?>"><?php

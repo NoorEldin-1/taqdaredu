@@ -2,7 +2,7 @@
 
 <?php tqa_head(t('قالب نشرة جديد'), t('القالب يكتب مرة ويرسل مرات. والإرسال شاشة أخرى.'), 'send',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newsletters') . '">'
-  . tq_icon('chev-prev', 16) . t('كل القوالب</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل القوالب</a>')); ?>
 
 <form class="tqa-card" action="<?php echo site_url('admin/newsletters/add'); ?>" method="post"
       style="max-inline-size:820px">
@@ -24,7 +24,7 @@
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('check', 16); ?> احفظ القالب
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ القالب'); ?>
         </button>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/newsletters'); ?>"><?php echo t('إلغاء'); ?></a>
     </div>

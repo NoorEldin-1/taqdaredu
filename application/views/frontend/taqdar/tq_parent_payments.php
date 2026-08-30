@@ -43,7 +43,7 @@ $tq_people = [
 foreach ($tq_pm->children($tq_uid) as $tq_c) {
     $tq_people[] = [
         'id'   => (int) $tq_c['student_id'],
-        'name' => t('مدفوعات') . $tq_c['name'],
+        'name' => t('مدفوعات ') . $tq_c['name'],
         'self' => false,
     ];
 }
@@ -126,7 +126,7 @@ include 'portal_open.php';
                     <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)"><?php echo tq_sar($tq_due_total); ?></p>
                     <p class="tq-pastel__body tq-caption" style="margin:0">
                         <?php echo tq_count_units($tq_due_count, t('فاتورة'), t('فاتورتان'), t('فاتورتين'), t('فواتير'), t('فاتورة'), null, 'nom'); ?>
-                        لم يفعل اشتراكها بعد
+                        <?php echo t('لم يفعل اشتراكها بعد'); ?>
                     </p>
                 </div>
             <?php endif; ?>
@@ -145,7 +145,7 @@ include 'portal_open.php';
                     <div class="tq-card">
                         <div class="tq-table-wrap">
                         <table class="tq-table">
-                            <caption class="tq-sr">فواتير <?php echo html_escape($tq_p['name']); ?></caption>
+                            <caption class="tq-sr"><?php echo t('فواتير'); ?> <?php echo html_escape($tq_p['name']); ?></caption>
                             <thead>
                                 <tr>
                                     <th scope="col"><?php echo t('التاريخ'); ?></th>

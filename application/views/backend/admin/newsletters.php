@@ -29,9 +29,9 @@ $tq_has_cron = is_file(FCPATH . $tq_cron);
     t('القالب يكتب مرة ويرسل مرات. والإرسال يمر بطابور — عشرون رسالة في الدقيقة.'),
     'send',
     '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/newsletter_add_form') . '">'
-  . tq_icon('plus', 17) . t('قالب جديد</a>')
+  . tq_icon('plus', 17) . t(' قالب جديد</a>')
   . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/subscribed_user') . '">'
-  . tq_icon('users', 16) . t('المشتركون</a>')); ?>
+  . tq_icon('users', 16) . t(' المشتركون</a>')); ?>
 
 <?php include 'newsletter_statistics.php'; ?>
 
@@ -60,18 +60,18 @@ $tq_has_cron = is_file(FCPATH . $tq_cron);
                         <div class="tqa-rowacts">
                             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                href="<?php echo site_url('admin/newsletter_send_form/' . $tq_id); ?>">
-                                <?php echo tq_icon('send', 14); ?> أرسل
+                                <?php echo tq_icon('send', 14); ?> <?php echo t('أرسل'); ?>
                             </a>
 
                             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                href="<?php echo site_url('admin/newsletter_edit_form/' . $tq_id); ?>">
-                                <?php echo tq_icon('edit', 14); ?> تعديل
+                                <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
                             </a>
 
                             <form method="post" action="<?php echo site_url('admin/newsletters/delete/' . $tq_id); ?>"
                                   data-tqa-confirm-title="<?php echo te('حذف القالب'); ?>"
-                                  data-tqa-confirm="سيحذف «<?php echo html_escape($tq_n['subject']); ?>». والرسائل المرسلة منه تبقى في السجل."
-                                  data-tqa-confirm-ok="نعم، احذف"
+                                  data-tqa-confirm="<?php echo te('سيحذف «____». والرسائل المرسلة منه تبقى في السجل.', array(html_escape($tq_n['subject']))); ?>"
+                                  data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                   data-tqa-confirm-tone="danger">
                                 <?php echo tq_csrf(); ?>
                                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
@@ -86,7 +86,7 @@ $tq_has_cron = is_file(FCPATH . $tq_cron);
                     <details style="margin-block-start:var(--tq-space-m)"
                              <?php echo $tq_open === (string) $tq_id ? 'open' : ''; ?>>
                         <summary class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="display:inline-flex">
-                            <?php echo tq_icon('eye', 14); ?> اعرض نص القالب
+                            <?php echo tq_icon('eye', 14); ?> <?php echo t('اعرض نص القالب'); ?>
                         </summary>
                         <div style="margin-block-start:var(--tq-space-m);padding:var(--tq-space-l);
                                     background:var(--tq-ground);border-radius:var(--tqa-radius-sm);
@@ -126,19 +126,19 @@ $tq_has_cron = is_file(FCPATH . $tq_cron);
 
                 <form method="post" action="<?php echo site_url('admin/cronjob/stop'); ?>"
                       data-tqa-confirm-title="<?php echo te('حذف ملف المهمة'); ?>"
-                      data-tqa-confirm="سيعود الإرسال معتمدا على إبقاء الصفحة مفتوحة."
-                      data-tqa-confirm-ok="نعم، احذف"
+                      data-tqa-confirm="<?php echo te('سيعود الإرسال معتمدا على إبقاء الصفحة مفتوحة.'); ?>"
+                      data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                       data-tqa-confirm-tone="danger">
                     <?php echo tq_csrf(); ?>
                     <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--block" style="color:var(--tq-danger)">
-                        <?php echo tq_icon('trash', 15); ?> احذف ملف المهمة
+                        <?php echo tq_icon('trash', 15); ?> <?php echo t('احذف ملف المهمة'); ?>
                     </button>
                 </form>
             <?php else: ?>
                 <form method="post" action="<?php echo site_url('admin/cronjob/start'); ?>">
                     <?php echo tq_csrf(); ?>
                     <button type="submit" class="tqa-btn tqa-btn--primary tqa-btn--block">
-                        <?php echo tq_icon('plus', 15); ?> أنشئ ملف المهمة
+                        <?php echo tq_icon('plus', 15); ?> <?php echo t('أنشئ ملف المهمة'); ?>
                     </button>
                 </form>
             <?php endif; ?>

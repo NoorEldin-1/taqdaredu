@@ -107,7 +107,7 @@ $tq_link = function ($over = array()) use ($selected_category_id, $selected_inst
 };
 
 $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/course_form/add_course') . '">'
-          . tq_icon('plus', 17) . t('إضافة كورس</a>');
+          . tq_icon('plus', 17) . t(' إضافة كورس</a>');
 ?>
 
 <?php tqa_head(t('الكورسات'), t('كل كورسات المنصة — والنشر قرار إدارة لا قرار معلم.'), 'book', $tq_tools); ?>
@@ -158,7 +158,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
     <input type="hidden" name="status" value="<?php echo html_escape($selected_status); ?>">
 
     <button type="submit" class="tqa-btn tqa-btn--primary">
-        <?php echo tq_icon('filter', 16); ?> رشح
+        <?php echo tq_icon('filter', 16); ?> <?php echo t('رشح'); ?>
     </button>
 
     <?php if ($search_term !== '' || $selected_category_id !== 'all' || $selected_instructor_id !== 'all' || $selected_price !== 'all'): ?>
@@ -218,7 +218,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
                         <a class="tqa-media__title" href="<?php echo site_url('admin/course_form/course_edit/' . $tq_id); ?>">
                             <?php echo html_escape($tq_c['title']); ?>
                         </a>
-                        <span class="tqa-media__sub">المعلم: <?php echo html_escape($tq_owner); ?></span>
+                        <span class="tqa-media__sub"><?php echo t('المعلم:'); ?> <?php echo html_escape($tq_owner); ?></span>
                     </td>
 
                     <td data-label="المرحلة والمادة">
@@ -267,7 +267,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
                         <?php endif; ?>
                         <span class="tqa-media__sub">
                             <?php echo (int) $tq_c['expiry_period'] > 0
-                                ? t('لمدة') . (int) $tq_c['expiry_period'] . t('شهرا')
+                                ? t('لمدة ') . (int) $tq_c['expiry_period'] . t(' شهرا')
                                 : t('وصول دائم'); ?>
                         </span>
                     </td>
@@ -279,7 +279,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
                         <div class="tqa-rowacts">
                             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                href="<?php echo site_url('admin/course_form/course_edit/' . $tq_id); ?>">
-                                <?php echo tq_icon('edit', 14); ?> تحرير
+                                <?php echo tq_icon('edit', 14); ?> <?php echo t('تحرير'); ?>
                             </a>
 
                             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_slug; ?>"
@@ -301,7 +301,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
                             ?>
                             <form method="post" action="<?php echo $tq_url; ?>"
                                   data-tqa-confirm-title="<?php echo html_escape($tq_verb); ?>"
-                                  data-tqa-confirm="سيتغير ظهور «<?php echo html_escape($tq_c['title']); ?>» في الموقع العام."
+                                  data-tqa-confirm="<?php echo te('سيتغير ظهور «____» في الموقع العام.', array(html_escape($tq_c['title']))); ?>"
                                   data-tqa-confirm-ok="<?php echo html_escape($tq_verb); ?>">
                                 <?php echo tq_csrf(); ?>
                                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm">
@@ -312,14 +312,14 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
 
                             <form method="post" action="<?php echo site_url('admin/course_actions/delete/' . $tq_id); ?>"
                                   data-tqa-confirm-title="<?php echo te('حذف الكورس'); ?>"
-                                  data-tqa-confirm="سيحذف «<?php echo html_escape($tq_c['title']); ?>» ودروسه وتسجيلات طلابه. لا رجعة في هذا."
-                                  data-tqa-confirm-ok="نعم، احذف"
+                                  data-tqa-confirm="<?php echo te('سيحذف «____» ودروسه وتسجيلات طلابه. لا رجعة في هذا.', array(html_escape($tq_c['title']))); ?>"
+                                  data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                   data-tqa-confirm-tone="danger">
                                 <?php echo tq_csrf(); ?>
                                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                         style="color:var(--tq-danger)">
                                     <?php echo tq_icon('trash', 14); ?>
-                                    <span class="tqa-sr">حذف <?php echo html_escape($tq_c['title']); ?></span>
+                                    <span class="tqa-sr"><?php echo t('حذف'); ?> <?php echo html_escape($tq_c['title']); ?></span>
                                 </button>
                             </form>
                         </div>

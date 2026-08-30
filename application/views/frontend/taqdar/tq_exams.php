@@ -116,16 +116,13 @@ include 'portal_open.php';
   <div class="tq-card__head">
     <h2 class="tq-card__title"><?php echo t('وضع الامتحان'); ?></h2>
     <?php if (!empty($tq_exam['active'])): ?>
-      <span class="tq-badge tq-badge--due">سار — بقي <?php
-        echo tq_num((int) $tq_exam['days_left']); ?> يوما</span>
+      <span class="tq-badge tq-badge--due"><?php echo t('سار — بقي ____ يوما', array(tq_num((int) $tq_exam['days_left']))); ?></span>
     <?php endif; ?>
   </div>
 
   <?php if (!empty($tq_exam['active'])): ?>
     <p class="tq-body" style="margin-block-end:var(--tq-space-l)">
-      شاشاتك الآن خطة مراجعة: خطوتك اليومية مراجعة لا درس جديد، والإشعارات
-      التسويقية موقوفة حتى <?php echo tq_num(html_escape((string) $tq_exam['to'])); ?>.
-      وإشعارات النتائج والحصص تصلك كما هي.
+      <?php echo t('شاشاتك الآن خطة مراجعة: خطوتك اليومية مراجعة لا درس جديد، والإشعارات التسويقية موقوفة حتى ____. وإشعارات النتائج والحصص تصلك كما هي.', array(tq_num(html_escape((string) $tq_exam['to'])))); ?>
     </p>
     <form method="post" action="<?php echo base_url('student/exam-mode'); ?>">
       <?php echo tq_csrf(); ?>
@@ -202,7 +199,7 @@ include 'portal_open.php';
         <?php if ($show('upcoming') && $tq_quizzes): ?>
             <section class="tq-section">
                 <div class="tq-sectionhead">
-                    <h2><?php echo tq_icon('clock', 18); ?> الاختبارات القادمة</h2>
+                    <h2><?php echo tq_icon('clock', 18); ?> <?php echo t('الاختبارات القادمة'); ?></h2>
                     <?php if ($tq_upcoming): ?>
                         <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_upcoming) . TQ_PDI; ?></span>
                     <?php endif; ?>
@@ -238,7 +235,7 @@ include 'portal_open.php';
                                 <div class="tq-s-meta" style="margin-block-end:var(--tq-space-m)">
                                     <?php /* «٥ درجة» و«٥ سؤالا» رقم واحد بتسميتين — الدرجة في هذا
                                              النموذج هي عدد الأسئلة نفسه. فيقال مرة واحدة. */ ?>
-                                    <span><?php echo tq_icon('help', 16); ?><?php echo tq_iso($q['marks'] . t('سؤالا، والدرجة من') . $q['marks']); ?></span>
+                                    <span><?php echo tq_icon('help', 16); ?><?php echo tq_iso($q['marks'] . t(' سؤالا، والدرجة من ') . $q['marks']); ?></span>
                                     <?php if (!empty($tq_limits[$q['id']])): ?>
                                         <span><?php echo tq_icon('clock', 16); ?><?php echo tq_s_minutes((int) round($tq_limits[$q['id']] / 60)); ?></span>
                                     <?php endif; ?>
@@ -308,9 +305,9 @@ include 'portal_open.php';
 
                             <div class="tq-s-meta">
                                 <?php if ($q['started_at']): ?>
-                                    <span><?php echo tq_icon('play', 16); ?>بدأ <?php echo tq_since($q['started_at']); ?></span>
+                                    <span><?php echo tq_icon('play', 16); ?><?php echo t('بدأ'); ?> <?php echo tq_since($q['started_at']); ?></span>
                                 <?php endif; ?>
-                                <span><?php echo tq_icon('award', 16); ?><?php echo tq_iso($q['marks'] . t('درجة')); ?></span>
+                                <span><?php echo tq_icon('award', 16); ?><?php echo tq_iso($q['marks'] . t(' درجة')); ?></span>
                             </div>
 
                             <a class="tq-btn tq-btn--primary" href="<?php echo tq_s_lesson_url($q['course_id'], $q['id']); ?>">
@@ -336,7 +333,7 @@ include 'portal_open.php';
                                 <div class="tq-row" style="gap:var(--tq-space-s)">
                                     <?php echo tq_badge('late', t('انتهى وقت هذه المحاولة')); ?>
                                     <span class="tq-micro">
-                                        مدتها <?php echo tq_s_minutes($duration_min); ?>، وقد مضت.
+                                        <?php echo t('مدتها ____، وقد مضت.', array(tq_s_minutes($duration_min))); ?>
                                     </span>
                                 </div>
                             <?php else: ?>
@@ -354,7 +351,7 @@ include 'portal_open.php';
         <?php if ($show('done') && $tq_quizzes): ?>
             <section class="tq-section">
                 <div class="tq-sectionhead">
-                    <h2><?php echo tq_icon('check', 18); ?> الاختبارات المنتهية</h2>
+                    <h2><?php echo tq_icon('check', 18); ?> <?php echo t('الاختبارات المنتهية'); ?></h2>
                     <?php if ($tq_done): ?>
                         <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_done) . TQ_PDI; ?></span>
                     <?php endif; ?>

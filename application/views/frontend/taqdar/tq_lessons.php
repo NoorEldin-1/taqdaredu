@@ -335,7 +335,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                 <?php echo tq_s_empty(
                     'play', 'sky',
                     t('لا دروس بعد'),
-                    t('دروس كورساتك تظهر هنا واحدا واحدا: اسم الدرس ووحدته ومدته وحالتك فيه.')
+                    t('دروس كورساتك تظهر هنا واحدا واحدا: اسم الدرس ووحدته ومدته وحالتك فيه. ')
                     . t('سجل في كورس أو اشترك في باقة صفك ليمتلئ هذا المكان.'),
                     t('عرض الباقات'),
                     base_url('plans')
@@ -359,7 +359,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
             <p class="tq-caption" style="margin-block-end:var(--tq-space-m)">
                 <?php echo tq_iso(tq_lessons_word(count($tq_list), t('لا دروس'), 'nom')); ?>
                 <?php echo count($tq_groups) > 1
-                    ? tq_iso(t('في') . tq_count_units(count($tq_groups), t('كورس'), t('كورسان'), t('كورسين'), t('كورسات'), t('كورسا'), '', 'obl'))
+                    ? tq_iso(t('في ') . tq_count_units(count($tq_groups), t('كورس'), t('كورسان'), t('كورسين'), t('كورسات'), t('كورسا'), '', 'obl'))
                     : ''; ?>
             </p>
 
@@ -384,7 +384,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                             </span>
                         </span>
                         <span class="tq-lgroup__n">
-                            <?php echo tq_iso($g['done'] . t('من') . $g['total']); ?>
+                            <?php echo tq_iso($g['done'] . t(' من ') . $g['total']); ?>
                         </span>
                     </summary>
 
@@ -479,8 +479,8 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                         <?php /* `tq_iso` لا `tq_num`: النص «٣٤ س ١٤ د» عربي فيه أرقام،
                                  و`tq_num` يعزله كوحدة **يسارية** فينقلب ترتيبه على الشاشة
                                  («س ٣٤ د ١٤»). و`tq_iso` يعزل تتابع الأرقام وحده. */ ?>
-                        يتبقى من دروسك <?php echo tq_iso(tq_s_hours($tq_left)); ?>
-                        من أصل <?php echo tq_iso(tq_s_hours($tq_secs)); ?>.
+                        <?php echo t('يتبقى من دروسك ____ من أصل ____.',
+                            array(tq_iso(tq_s_hours($tq_left)), tq_iso(tq_s_hours($tq_secs)))); ?>
                     </p>
                 <?php endif; ?>
             <?php endif; ?>
@@ -493,7 +493,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
             <p class="tq-caption" style="margin:0">
                 <?php echo tq_iso(tq_count_units(count($tq_courses), t('كورس مسجل'), t('كورسان مسجلان'),
                     t('كورسين مسجلين'), t('كورسات مسجلة'), t('كورسا مسجلا'), t('لا كورسات مسجلة'), 'nom')); ?>
-                — بأغلفتها وحالاتها ونسبة تقدمك في كل واحد.
+                <?php echo t('— بأغلفتها وحالاتها ونسبة تقدمك في كل واحد.'); ?>
             </p>
             <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-l)"
                href="<?php echo base_url('student/courses'); ?>"><?php echo t('افتح كورساتي'); ?></a>

@@ -75,7 +75,7 @@ include 'portal_open.php';
                         إلى موضع واحد يقرآن خيارين. */ ?>
                 <?php if ($tq_resume !== null && $tq_step['kind'] !== 'resume'): ?>
                     <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
-                        <?php echo t('أو'); ?> <a href="<?php echo tq_s_lesson_url($tq_resume['id'], $tq_resume['resume_id']); ?>">واصل
+                        <?php echo t('أو'); ?> <a href="<?php echo tq_s_lesson_url($tq_resume['id'], $tq_resume['resume_id']); ?>"><?php echo t('واصل'); ?>
                         <?php echo html_escape($tq_resume['title']); ?></a>
                         <?php echo t('حيث توقفت.'); ?>
                     </p>
@@ -93,8 +93,7 @@ include 'portal_open.php';
               ?>
               <div class="tq-s-goal" aria-hidden="false">
                 <div class="tq-s-goal__ring" role="img"
-                     aria-label="أنجزت <?php echo (int) $tq_goal['done']; ?> من <?php
-                       echo (int) $tq_goal['target']; ?> <?php echo html_escape($tq_goal['plural']); ?> اليوم">
+                     aria-label="<?php echo te('أنجزت ____ من ____ ____ اليوم', array((int) $tq_goal['done'], (int) $tq_goal['target'], html_escape($tq_goal['plural']))); ?>">
                   <svg viewBox="0 0 42 42" width="96" height="96">
                     <circle class="tq-s-goal__track" cx="21" cy="21" r="15.9" fill="none" stroke-width="4"></circle>
                     <circle class="tq-s-goal__fill<?php echo $tq_goal['met'] ? ' is-met' : ''; ?>"
@@ -108,12 +107,12 @@ include 'portal_open.php';
                 <p class="tq-s-goal__label"><?php
                   echo $tq_goal['met']
                      ? t('بلغت هدف اليوم')
-                     : html_escape($tq_goal['plural']) . t('اليوم'); ?></p>
+                     : html_escape($tq_goal['plural']) . t(' اليوم'); ?></p>
 
                 <?php if ((int) $tq_streak['days'] > 0): ?>
                   <p class="tq-s-goal__streak">
                     <?php echo tq_icon('flame', 14); ?>
-                    <?php echo tq_num((int) $tq_streak['days']); ?> يوما متتاليا
+                    <?php echo tq_num((int) $tq_streak['days']); ?> <?php echo t('يوما متتاليا'); ?>
                   </p>
                 <?php else: ?>
                   <?php /* لا سلسلة: تدعى ولا تلام. «انقطعت» تقرأ عتابا. */ ?>
@@ -130,8 +129,7 @@ include 'portal_open.php';
             <span class="tq-s-examstrip__i" aria-hidden="true"><?php echo tq_icon('check-badge', 18); ?></span>
             <p>
               <strong><?php echo t('وضع الامتحان سار.'); ?></strong>
-              بقي <?php echo tq_num((int) $tq_exam['days_left']); ?> يوما.
-              خطوتك اليوم مراجعة لا درس جديد، والإشعارات التسويقية موقوفة.
+              <?php echo t('بقي ____ يوما. خطوتك اليوم مراجعة لا درس جديد، والإشعارات التسويقية موقوفة.', array(tq_num((int) $tq_exam['days_left']))); ?>
             </p>
             <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/exams'); ?>"><?php echo t('اضبطه'); ?></a>
           </div>
@@ -179,7 +177,7 @@ include 'portal_open.php';
                             <?php if ($c['level']): ?>
                                 <p class="tq-micro" style="margin:0"><?php echo html_escape(tq_s_level($c['level'])); ?></p>
                             <?php endif; ?>
-                            <?php echo tq_progress($c['progress'], t('تقدمك في') . $c['title']); ?>
+                            <?php echo tq_progress($c['progress'], t('تقدمك في ') . $c['title']); ?>
                             <p class="tq-caption" style="margin:0"><?php echo tq_s_lessons_word($c['done'], $c['lessons']); ?></p>
                         </article>
                     <?php endforeach; ?>
@@ -226,12 +224,12 @@ include 'portal_open.php';
                                    style="color:var(--tq-navy)"><?php echo html_escape($c['title']); ?></a>
                             </h3>
                             <div class="tq-s-meta">
-                                <span><?php echo tq_icon('book', 16); ?><?php echo tq_iso($c['lessons'] . t('درسا')); ?></span>
+                                <span><?php echo tq_icon('book', 16); ?><?php echo tq_iso($c['lessons'] . t(' درسا')); ?></span>
                                 <?php if ($c['seconds']): ?>
                                     <span><?php echo tq_icon('clock', 16); ?><?php echo tq_iso(tq_s_hours($c['seconds'])); ?></span>
                                 <?php endif; ?>
                             </div>
-                            <?php echo tq_progress($c['progress'], t('تقدمك في') . $c['title']); ?>
+                            <?php echo tq_progress($c['progress'], t('تقدمك في ') . $c['title']); ?>
                         </article>
                     <?php endforeach; ?>
                 </div>
@@ -340,7 +338,7 @@ include 'portal_open.php';
 
                     $score_note = $tq_act['score_delta'] === null
                         ? t('من اختباراتك المصححة')
-                        : tq_iso(($tq_act['score_delta'] >= 0 ? '+' : '') . $tq_act['score_delta'] . t('نقطة عن الأسبوع الماضي'));
+                        : tq_iso(($tq_act['score_delta'] >= 0 ? '+' : '') . $tq_act['score_delta'] . t(' نقطة عن الأسبوع الماضي'));
                     echo tq_s_stat(
                         tq_num($tq_act['score'] . '%'),
                         t('متوسط الدرجات'), 'award', 'lilac',

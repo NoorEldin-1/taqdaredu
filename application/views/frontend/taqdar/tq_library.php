@@ -108,7 +108,7 @@ include 'portal_open.php';
             <p class="tq-lib-card__m"><?php echo html_escape(implode(' · ', $meta)); ?></p>
           <?php endif; ?>
           <?php if ((int) $b['pages'] > 0): ?>
-            <p class="tq-lib-card__m"><?php echo tq_num((int) $b['pages']); ?> صفحة</p>
+            <p class="tq-lib-card__m"><?php echo tq_num((int) $b['pages']); ?> <?php echo t('صفحة'); ?></p>
           <?php endif; ?>
 
           <div class="tq-lib-card__act">
@@ -139,7 +139,7 @@ include 'portal_open.php';
        aria-label="<?php echo te('قارئ الكتب'); ?>">
     <header class="tq-reader__bar">
       <button class="tq-btn tq-btn--ghost tq-btn--sm" type="button" data-tq-rd-close>
-        <?php echo tq_icon('close', 16); ?> إغلاق
+        <?php echo tq_icon('close', 16); ?> <?php echo t('إغلاق'); ?>
       </button>
       <strong class="tq-reader__t" data-tq-rd-title></strong>
       <div class="tq-reader__nav">

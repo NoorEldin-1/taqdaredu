@@ -56,9 +56,9 @@ $tq_keynames = array(
     t('عملة النظام، وبوابات Academy الست عشرة. والدفع في تقدر لا يمر بأي منها.'),
     'cog',
     '<a class="tqa-btn tqa-btn--primary" href="' . site_url('taqdar_admin/tap') . '">'
-  . tq_icon('card', 16) . t('بوابة الدفع بالبطاقة</a>')
+  . tq_icon('card', 16) . t(' بوابة الدفع بالبطاقة</a>')
   . ' <a class="tqa-btn tqa-btn--ghost" href="' . site_url('taqdar_admin/bank') . '">'
-  . tq_icon('bank', 16) . t('بيانات التحويل البنكي</a>')); ?>
+  . tq_icon('bank', 16) . t(' بيانات التحويل البنكي</a>')); ?>
 
 <?php /* TQ-PAY-TRAP — هذه الشاشة كانت أول ما يفتحه من يريد «ضبط الدفع»،
          وتعرض ست عشرة بوابة كلها `status = 1` — فيقرؤها المسؤول فيظن أن
@@ -121,7 +121,7 @@ $tq_keynames = array(
 
             <div class="tqa-actions">
                 <button type="submit" class="tqa-btn tqa-btn--primary">
-                    <?php echo tq_icon('check', 16); ?> احفظ عملة النظام
+                    <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ عملة النظام'); ?>
                 </button>
             </div>
         </form>
@@ -248,7 +248,7 @@ $tq_keynames = array(
 
                 <div class="tqa-actions">
                     <button type="submit" class="tqa-btn tqa-btn--primary">
-                        <?php echo tq_icon('check', 16); ?> احفظ <?php echo html_escape($tq_g['title']); ?>
+                        <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ'); ?> <?php echo html_escape($tq_g['title']); ?>
                     </button>
                 </div>
             </form>

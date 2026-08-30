@@ -62,7 +62,7 @@ $tq_hours_of = static function ($seconds) {
     $s = max(0, (int) $seconds);
     $h = intdiv($s, 3600);
     $m = intdiv($s % 3600, 60);
-    return $h > 0 ? $h . t('س') . $m . t('د') : $m . t('د');
+    return $h > 0 ? $h . t(' س ') . $m . t(' د') : $m . t(' د');
 };
 
 /* الكل مرة (للأعداد التي لا تتبدل بالتصفية) والمصفى مرة. */
@@ -210,7 +210,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
 <div class="tq-cols">
     <div>
 
-        <?php if ($m = $CI->session->flashdata('tq_ok')): ?>
+        <?php if ($m = tq_flash('tq_ok')): ?>
             <div class="tq-alert tq-alert--ok tq-section" role="status"><?php echo html_escape($m); ?></div>
         <?php endif; ?>
 
@@ -222,7 +222,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                 <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
                     <?php echo tq_iso(tq_count_units(count($tq_empty_quizzes), t('اختبار'), t('اختباران'), t('اختبارين'),
                         t('اختبارات'), t('اختبارا'), '', 'nom')); ?>
-                    عندك بلا سؤال واحد — ومن يفتحه من طلابك يجد شاشة فارغة.
+                    <?php echo t('عندك بلا سؤال واحد — ومن يفتحه من طلابك يجد شاشة فارغة.'); ?>
                 </p>
                 <ul class="tq-stack" style="--tq-space-l:var(--tq-space-xs);margin-block-start:var(--tq-space-m)">
                     <?php foreach (array_slice($tq_empty_quizzes, 0, 4) as $q): ?>
@@ -332,7 +332,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
             <p class="tq-caption" style="margin-block-end:var(--tq-space-m)">
                 <?php echo tq_iso(tq_count_units(count($tq_rows), t('درس'), t('درسان'), t('درسين'), t('دروس'), t('درسا'), t('لا دروس'), 'nom')); ?>
                 <?php echo count($tq_groups) > 1
-                    ? tq_iso(t('في') . tq_count_units(count($tq_groups), t('كورس'), t('كورسان'), t('كورسين'), t('كورسات'), t('كورسا'), '', 'obl'))
+                    ? tq_iso(t('في ') . tq_count_units(count($tq_groups), t('كورس'), t('كورسان'), t('كورسين'), t('كورسات'), t('كورسا'), '', 'obl'))
                     : ''; ?>
             </p>
 
@@ -427,7 +427,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                                            href="<?php echo base_url('teacher/upload') . '?course=' . (int) $l['course_id']
                                                . (!empty($l['section_id']) ? '&section=' . (int) $l['section_id'] : ''); ?>">
                                             <?php echo t('أضف هنا'); ?>
-                                            <span class="tq-sr">— درسا جديدا في <?php echo html_escape($unit_title); ?></span>
+                                            <span class="tq-sr"><?php echo t('— درسا جديدا في'); ?> <?php echo html_escape($unit_title); ?></span>
                                         </a>
                                     <?php endif; ?>
                                 </span>

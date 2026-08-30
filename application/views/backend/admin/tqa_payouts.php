@@ -113,13 +113,12 @@ $states = array(
                              لأول مرة، والفرق يقرر قبل أن يفتح الملف. */ ?>
                     <br><span style="color:var(--tq-text2);font-size:11px">
                         <?php if ((int) $hist['paid'] > 0): ?>
-                            حول إليه <?php echo (int) $hist['paid']; ?> مرة
-                            (<?php echo tqa_money((int) $hist['paid_sum']); ?>)
+                            <?php echo t('حول إليه ____ مرة (____)', array((int) $hist['paid'], tqa_money((int) $hist['paid_sum']))); ?>
                         <?php else: ?>
-                            لم يحول إليه من قبل
+                            <?php echo t('لم يحول إليه من قبل'); ?>
                         <?php endif; ?>
                         <?php if ((int) $hist['rejected'] > 0): ?>
-                            · رفض له <?php echo (int) $hist['rejected']; ?>
+                            <?php echo t('· رفض له'); ?> <?php echo (int) $hist['rejected']; ?>
                         <?php endif; ?>
                     </span>
                 </td>
@@ -130,9 +129,7 @@ $states = array(
                              لم يطلب أكثر مما يملك — والدفتر يمنع ذلك، لكن
                              عرضه يجعل الرقم مفهوما لا مسلما به. */ ?>
                     <br><span style="color:var(--tq-text2);font-size:12px">
-                        متاح <?php echo tqa_money((int) $p['balance_available']); ?>
-                        · معلق <?php echo tqa_money((int) $p['balance_pending']); ?>
-                        · محجوز <?php echo tqa_money((int) $p['balance_locked']); ?>
+                        <?php echo t('متاح ____ · معلق ____ · محجوز ____', array(tqa_money((int) $p['balance_available']), tqa_money((int) $p['balance_pending']), tqa_money((int) $p['balance_locked']))); ?>
                     </span>
                 </td>
 
@@ -161,7 +158,7 @@ $states = array(
                     <?php if ($st === 0 && !empty($p['date_added'])):
                         $days = (int) floor((time() - (int) $p['date_added']) / 86400); ?>
                         <br><span style="font-size:11px;color:var(--tq-<?php echo $days >= 3 ? 'amber' : 'text2'; ?>)">
-                            <?php echo $days <= 0 ? t('اليوم') : t('منتظر') . $days . t('يوما'); ?>
+                            <?php echo $days <= 0 ? t('اليوم') : t('منتظر ') . $days . t(' يوما'); ?>
                         </span>
                     <?php endif; ?>
                 </td>
@@ -182,7 +179,7 @@ $states = array(
                         </span>
                         <?php if (!empty($p['reference'])): ?>
                             <br><span class="tqa-num" style="font-size:11px;color:var(--tq-text2)">
-                                مرجع: <?php echo html_escape((string) $p['reference']); ?></span>
+                                <?php echo t('مرجع:'); ?> <?php echo html_escape((string) $p['reference']); ?></span>
                         <?php endif; ?>
                         <?php if (!empty($p['reject_reason'])): ?>
                             <br><span style="font-size:11px;color:var(--tq-text2)">
@@ -219,14 +216,14 @@ $states = array(
                                          سؤالان لا سؤال واحد. */ ?>
                                 <button class="tqa-btn tqa-btn--mastery tqa-btn--sm" type="submit" name="act" value="pay"
                                         data-tqa-confirm-title="<?php echo te('اعتماد التحويل'); ?>"
-                                        data-tqa-confirm="سيخصم المبلغ من المحجوز نهائيا ويخطر المعلم. تأكد من تنفيذ الحوالة أولا."
-                                        data-tqa-confirm-ok="نعم، حولت">
+                                        data-tqa-confirm="<?php echo te('سيخصم المبلغ من المحجوز نهائيا ويخطر المعلم. تأكد من تنفيذ الحوالة أولا.'); ?>"
+                                        data-tqa-confirm-ok="<?php echo te('نعم، حولت'); ?>">
                                     <?php echo t('حولت'); ?>
                                 </button>
                                 <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit" name="act" value="reject"
                                         data-tqa-confirm-title="<?php echo te('رفض طلب السحب'); ?>"
-                                        data-tqa-confirm="سيعاد المبلغ إلى رصيد المعلم المتاح، ويصله سبب الرفض كما كتبته."
-                                        data-tqa-confirm-ok="ارفض الطلب"
+                                        data-tqa-confirm="<?php echo te('سيعاد المبلغ إلى رصيد المعلم المتاح، ويصله سبب الرفض كما كتبته.'); ?>"
+                                        data-tqa-confirm-ok="<?php echo te('ارفض الطلب'); ?>"
                                         data-tqa-confirm-tone="danger">
                                     <?php echo t('رفض'); ?>
                                 </button>

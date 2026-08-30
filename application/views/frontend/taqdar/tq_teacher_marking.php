@@ -57,12 +57,12 @@ $tq_hw_one = $tq_hwid ? $tq_mark->homework_attempt($tq_hwid, $tq_uid) : null;
 include 'portal_open.php';
 ?>
 
-<?php if ($tq_msg = $this->session->flashdata('flash_message')): ?>
+<?php if ($tq_msg = tq_flash('flash_message')): ?>
     <p class="tq-card tq-section" role="status" style="border-inline-start:4px solid var(--tq-mint-ink)">
         <?php echo tq_iso(html_escape($tq_msg)); ?>
     </p>
 <?php endif; ?>
-<?php if ($tq_err = $this->session->flashdata('error_message')): ?>
+<?php if ($tq_err = tq_flash('error_message')): ?>
     <p class="tq-card tq-section" role="alert" style="border-inline-start:4px solid var(--tq-rose-ink)">
         <?php echo tq_iso(html_escape($tq_err)); ?>
     </p>
@@ -91,7 +91,7 @@ include 'portal_open.php';
                 <div class="tq-row" style="gap:var(--tq-space-l);margin-block-end:var(--tq-space-xl)">
                     <img class="tq-avatar tq-avatar--lg"
                          src="<?php echo tqs_person_img($tq_single['image']); ?>"
-                         alt="صورة <?php echo html_escape($tq_name); ?>">
+                         alt="<?php echo te('صورة ____', array(html_escape($tq_name))); ?>">
                     <div style="flex:1;min-inline-size:0">
                         <h2 class="tq-h2" style="margin:0"><?php echo html_escape($tq_name); ?></h2>
                         <p class="tq-caption" style="margin:0">
@@ -111,7 +111,7 @@ include 'portal_open.php';
                                 ? (int) $tq_single['teacher_score'] : (float) $tq_single['teacher_score']) . ' / ' . $tq_total); ?>
                         </p>
                         <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-s) 0 0">
-                            <?php echo tq_iso(t('اعتمدتها') . tq_since((int) $tq_single['approved_at']) . t('، وهي ظاهرة للطالب الآن. تعديلها يحل محلها.')); ?>
+                            <?php echo tq_iso(t('اعتمدتها ') . tq_since((int) $tq_single['approved_at']) . t('، وهي ظاهرة للطالب الآن. تعديلها يحل محلها.')); ?>
                         </p>
                     </div>
                 <?php endif; ?>
@@ -122,10 +122,9 @@ include 'portal_open.php';
                         <?php echo tq_num($tq_auto . ' / ' . $tq_total); ?>
                     </p>
                     <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-s) 0 0">
-                        محسوب من الأسئلة الموضوعية وحدها. التصحيح الآلي مساعد لا بديل —
-                        عدل الدرجة متى رأيت في الإجابة ما لا يراه الحاسوب.
+                        <?php echo t('محسوب من الأسئلة الموضوعية وحدها. التصحيح الآلي مساعد لا بديل — عدل الدرجة متى رأيت في الإجابة ما لا يراه الحاسوب.'); ?>
                         <?php if ($tq_essays > 0): ?>
-                            <br><?php echo tq_iso(t('وفي هذا الاختبار') . $tq_essays . t('من الأسئلة لا يقرؤها السكربت أصلا.')); ?>
+                            <br><?php echo tq_iso(t('وفي هذا الاختبار ') . $tq_essays . t(' من الأسئلة لا يقرؤها السكربت أصلا.')); ?>
                         <?php endif; ?>
                     </p>
                 </div>
@@ -137,7 +136,7 @@ include 'portal_open.php';
                                min="0" max="<?php echo $tq_total; ?>" step="0.5" inputmode="decimal"
                                value="<?php echo html_escape((string) $tq_value); ?>" required>
                         <span class="tq-field__msg tq-field__hint">
-                            <?php echo tq_iso(t('من 0 إلى') . $tq_total . t('درجة.')); ?>
+                            <?php echo tq_iso(t('من 0 إلى ') . $tq_total . t(' درجة.')); ?>
                         </span>
                     </div>
 
@@ -169,9 +168,9 @@ include 'portal_open.php';
                 </div>
                 <p class="tq-field__msg tq-field__hint" id="tq-approve-note" style="margin-block-start:var(--tq-space-m)">
                     <?php if ($tq_essays > 0): ?>
-                        الدرجة النهائية للسؤال المقالي لا تظهر للطالب قبل اعتمادك — والحجب مطبق في الاستعلام لا في الشاشة.
+                        <?php echo t('الدرجة النهائية للسؤال المقالي لا تظهر للطالب قبل اعتمادك — والحجب مطبق في الاستعلام لا في الشاشة.'); ?>
                     <?php else: ?>
-                        كل أسئلة هذا الاختبار موضوعية، فدرجته ظاهرة لصاحبها. واعتمادك يثبتها ويضيف ملاحظتك إليها.
+                        <?php echo t('كل أسئلة هذا الاختبار موضوعية، فدرجته ظاهرة لصاحبها. واعتمادك يثبتها ويضيف ملاحظتك إليها.'); ?>
                     <?php endif; ?>
                 </p>
             </form>
@@ -183,10 +182,10 @@ include 'portal_open.php';
             <?php if ($tq_is_appr): ?>
                 <form class="tq-card tq-section" method="post"
                       action="<?php echo base_url('teacher/marking/approve'); ?>"
-                      data-tq-confirm-title="سحب اعتماد درجة <?php echo html_escape($tq_name); ?>؟"
+                      data-tq-confirm-title="<?php echo te('سحب اعتماد درجة ____؟', array(html_escape($tq_name))); ?>"
                       data-tq-confirm="<?php echo te('تعود الدرجة محجوبة عن الطالب حتى تعتمدها من جديد.'); ?>"
-                      data-tq-confirm-note="الدرجة والملاحظة تبقيان محفوظتين كما هما، ويرفع الاعتماد وحده."
-                      data-tq-confirm-ok="أسحب الاعتماد"
+                      data-tq-confirm-note="<?php echo te('الدرجة والملاحظة تبقيان محفوظتين كما هما، ويرفع الاعتماد وحده.'); ?>"
+                      data-tq-confirm-ok="<?php echo te('أسحب الاعتماد'); ?>"
                       data-tq-confirm-tone="danger">
                     <?php echo tq_csrf(); ?>
                     <input type="hidden" name="result_id" value="<?php echo (int) $tq_single['quiz_result_id']; ?>">
@@ -222,11 +221,11 @@ include 'portal_open.php';
                 <div class="tq-row" style="gap:var(--tq-space-l);margin-block-end:var(--tq-space-xl)">
                     <img class="tq-avatar tq-avatar--lg"
                          src="<?php echo tqs_person_img($tq_hw_one['image']); ?>"
-                         alt="صورة <?php echo html_escape($tq_hname); ?>">
+                         alt="<?php echo te('صورة ____', array(html_escape($tq_hname))); ?>">
                     <div style="flex:1;min-inline-size:0">
                         <h2 class="tq-h2" style="margin:0"><?php echo html_escape($tq_hname); ?></h2>
                         <p class="tq-caption" style="margin:0">
-                            <?php echo html_escape(t('واجب:') . $tq_hw_one['lesson_title'] . ' · ' . $tq_hw_one['course_title']); ?>
+                            <?php echo html_escape(t('واجب: ') . $tq_hw_one['lesson_title'] . ' · ' . $tq_hw_one['course_title']); ?>
                         </p>
                     </div>
                     <?php echo $tq_happr ? tq_badge('mastered', t('معتمد')) : tq_badge('due', t('ينتظر اعتمادك')); ?>
@@ -240,9 +239,9 @@ include 'portal_open.php';
                             : tq_num(($tq_hauto == (int) $tq_hauto ? (int) $tq_hauto : $tq_hauto) . '%'); ?>
                     </p>
                     <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-s) 0 0">
-                        <?php echo tq_iso(t('سلم') . tq_since(strtotime((string) $tq_hw_one['submitted_at']))
-                            . t('· درجة العبور') . $tq_hpass . '%.'); ?>
-                        والواجب عمل يقرؤه معلم — درجته لا تظهر لصاحبه قبل اعتمادك.
+                        <?php echo tq_iso(t('سلم ') . tq_since(strtotime((string) $tq_hw_one['submitted_at']))
+                            . t(' · درجة العبور ') . $tq_hpass . '%.'); ?>
+                        <?php echo t('والواجب عمل يقرؤه معلم — درجته لا تظهر لصاحبه قبل اعتمادك.'); ?>
                     </p>
                 </div>
 
@@ -288,9 +287,9 @@ include 'portal_open.php';
             <?php if ($tq_happr): ?>
                 <form class="tq-card tq-section" method="post"
                       action="<?php echo base_url('teacher/marking/homework'); ?>"
-                      data-tq-confirm-title="سحب اعتماد واجب <?php echo html_escape($tq_hname); ?>؟"
+                      data-tq-confirm-title="<?php echo te('سحب اعتماد واجب ____؟', array(html_escape($tq_hname))); ?>"
                       data-tq-confirm="<?php echo te('تعود الدرجة محجوبة عن الطالب حتى تعتمدها من جديد.'); ?>"
-                      data-tq-confirm-ok="أسحب الاعتماد"
+                      data-tq-confirm-ok="<?php echo te('أسحب الاعتماد'); ?>"
                       data-tq-confirm-tone="danger">
                     <?php echo tq_csrf(); ?>
                     <input type="hidden" name="attempt_id" value="<?php echo (int) $tq_hw_one['id']; ?>">

@@ -6,7 +6,7 @@
     <span class="tqa-field__label"><?php echo t('الملف الصوتي'); ?> <span class="tqa-field__req" aria-hidden="true">*</span></span>
     <div class="tqa-file">
         <input type="file" id="system_audio_file" name="system_audio_file" accept="audio/*" required data-tqa-file>
-        <label class="tqa-file__btn" for="system_audio_file"><?php echo tq_icon('upload', 16); ?> اختر ملفا</label>
+        <label class="tqa-file__btn" for="system_audio_file"><?php echo tq_icon('upload', 16); ?> <?php echo t('اختر ملفا'); ?></label>
         <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
     </div>
 </div>

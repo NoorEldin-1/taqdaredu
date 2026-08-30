@@ -150,10 +150,10 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
                 <div class="tqq-opt">
                     <input type="radio" name="correct" value="<?php echo $i; ?>"
                            <?php echo $on ? 'checked' : ''; ?>
-                           aria-label="الخيار <?php echo $i + 1; ?> هو الصحيح">
+                           aria-label="<?php echo te('الخيار ____ هو الصحيح', array($i + 1)); ?>">
                     <input class="<?php echo $c['input']; ?>" type="text" name="options[<?php echo $i; ?>]"
                            value="<?php echo html_escape($val); ?>"
-                           placeholder="الخيار <?php echo $i + 1; ?><?php echo $i < 2 ? '' : t('(اختياري)'); ?>">
+                           placeholder="<?php echo te('الخيار ________', array($i + 1, $i < 2 ? '' : t(' (اختياري)'))); ?>">
                 </div>
             <?php endfor; ?>
         </div>
@@ -216,7 +216,7 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
 <?php /* ── الأسئلة القائمة ───────────────────────────────────────── */ ?>
 <?php if ($q_rows): ?>
     <h3 style="font:var(--tq-type-h3);margin:var(--tq-space-xl) 0 var(--tq-space-m)">
-        أسئلة هذا الاختبار (<?php echo tq_iso(count($q_rows)); ?>)
+        <?php echo t('أسئلة هذا الاختبار ('); ?><?php echo tq_iso(count($q_rows)); ?>)
     </h3>
 
     <?php /* «كذا من الأسئلة بلا هدف مرتبط» يقال في لوح الجاهزية أعلى
@@ -236,12 +236,12 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
                         <?php foreach ((array) $q['options'] as $o): ?>
                             <li class="<?php echo ((string) $o === $right) ? 'is-right' : ''; ?>">
                                 <?php echo html_escape($o); ?>
-                                <?php if ((string) $o === $right): ?> — الصحيح<?php endif; ?>
+                                <?php if ((string) $o === $right): ?> <?php echo t('— الصحيح'); ?><?php endif; ?>
                             </li>
                         <?php endforeach; ?>
                     </ol>
                     <?php if (!empty($q['objective_text'])): ?>
-                        <p class="tqq-q__meta">يقيس: <?php echo html_escape($q['objective_text']); ?></p>
+                        <p class="tqq-q__meta"><?php echo t('يقيس:'); ?> <?php echo html_escape($q['objective_text']); ?></p>
                     <?php elseif ($q_objectives): ?>
                         <p class="tqq-q__meta" style="color:var(--tq-danger)">
                             <?php echo t('بلا هدف — لا يدخل خريطة الإتقان ولا دفتر الأخطاء.'); ?>

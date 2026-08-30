@@ -101,6 +101,23 @@ class Taqdar_gate extends CI_Controller
             log_message('error', 'TQ-GATE: إخراج عارض قبل JSON — ' . substr(trim($stray), 0, 400));
         }
 
+        /* TQ-I18N — الرسالة تترجم هنا، وهي وحدها.
+           والحمولة تحمل نص المستخدم كذلك: عنوان درسه وملاحظته وجوابه.
+           فالمرور على الحمولة كلها يعني أن ملاحظة كتبها طالب ووافقت مفتاحا
+           في القاموس تعرض له مترجمة — بياناته هو تبدل تحت يده. فيقصر على
+           حقول الرسالة: هي وحدها ما تكتبه المنصة. */
+        if (is_array($payload)) {
+            if (isset($payload['message']) && is_string($payload['message'])) {
+                $payload['message'] = t($payload['message']);
+            }
+            if (isset($payload['error']['message']) && is_string($payload['error']['message'])) {
+                $payload['error']['message'] = t($payload['error']['message']);
+            }
+            if (isset($payload['error']['hint']) && is_string($payload['error']['hint'])) {
+                $payload['error']['hint'] = t($payload['error']['hint']);
+            }
+        }
+
         $this->output
              ->set_status_header($status)
              ->set_content_type('application/json', 'utf-8')

@@ -46,7 +46,7 @@ $tq_rows = $this->db->where('course_id', (int) $param2)
 <div class="tqa-actions">
     <button type="button" class="tqa-btn tqa-btn--primary tqa-btn--block" data-tqa-sort-save
             data-url="<?php echo site_url('admin/custom_field_section_sort_update'); ?>" disabled>
-        <?php echo tq_icon('check', 16); ?> احفظ الترتيب
+        <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الترتيب'); ?>
     </button>
 </div>
 

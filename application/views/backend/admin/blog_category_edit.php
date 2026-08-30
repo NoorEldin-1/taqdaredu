@@ -13,7 +13,7 @@ if (!$blog_category) {
 
 <?php tqa_head(t('تعديل قسم المدونة'), $blog_category['title'], 'grid',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog_category') . '">'
-  . tq_icon('chev-prev', 16) . t('كل الأقسام</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل الأقسام</a>')); ?>
 
 <form class="tqa-card" method="post" style="max-inline-size:640px"
       action="<?php echo site_url('admin/blog_category/update/' . (int) $blog_category['blog_category_id']); ?>">
@@ -36,7 +36,7 @@ if (!$blog_category) {
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('check', 16); ?> احفظ التعديل
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ التعديل'); ?>
         </button>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/blog_category'); ?>"><?php echo t('إلغاء'); ?></a>
     </div>

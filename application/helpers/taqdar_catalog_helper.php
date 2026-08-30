@@ -31,8 +31,8 @@ if (!function_exists('tqs_norm_ar')) {
            الزائر في صندوق البحث ليس كذلك — ولوحة مفاتيح الجوال تدرجهما. */
         $s = preg_replace('/[\x{064B}-\x{0652}\x{0640}\x{0670}]/u', '', $s);
         $s = strtr($s, array(
-            'أ' => 'ا', 'إ' => 'ا', 'آ' => 'ا', 'ٱ' => 'ا',
-            'ة' => 'ه', 'ى' => 'ي', 'ؤ' => 'و', 'ئ' => 'ي',
+            'أ' => t('ا'), 'إ' => t('ا'), 'آ' => t('ا'), 'ٱ' => t('ا'),
+            'ة' => t('ه'), 'ى' => t('ي'), 'ؤ' => t('و'), 'ئ' => t('ي'),
         ));
         /* الترقيم يصير فراغا لا يحذف: «الرياضيات — السادس» كلمتان لا واحدة */
         $s = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $s);
@@ -370,7 +370,7 @@ if (!function_exists('tqs_cat_card')) {
             . html_escape($kind['icon']) . '"></use></svg>' . html_escape($kind['one']) . '</span>' . "\n";
 
         if ($it['kind'] === 'plan' && !empty($it['featured'])) {
-            $h .= '  <span class="ccard__flag">الاكثر طلبا</span>' . "\n";
+            $h .= t('  <span class="ccard__flag">الاكثر طلبا</span>') . "\n";
         }
 
         $h .= '  <div class="ccard__body">' . "\n";
@@ -412,7 +412,7 @@ if (!function_exists('tqs_cat_card')) {
                 'days'   => isset($it['extra']['days'])   ? (int) $it['extra']['days'] : 0,
             ));
             if ($cy['free']) {
-                $h .= '      <p class="ccard__price ccard__price--free">مجاني</p>' . "\n";
+                $h .= t('      <p class="ccard__price ccard__price--free">مجاني</p>') . "\n";
             } else {
                 /* TQ-CYCLE-BUY — الشهري متى كان **يشترى**، وسعر الباقة
                    بدورته متى لم يكن. و`month` ترد سعر الباقة نفسه لمن لا
@@ -421,23 +421,23 @@ if (!function_exists('tqs_cat_card')) {
                    رقم صحيح بوحدة كاذبة، وهو أسوأ من رقم خاطئ يظهر. */
                 $h .= '      <p class="ccard__price"><b class="tq-ltr">'
                     . number_format($cy['has_alt'] ? $cy['month'] : $cy['total'])
-                    . '</b><span>ر.س / '
-                    . ($cy['has_alt'] ? 'شهريا' : html_escape($cy['unit']))
+                    . t('</b><span>ر.س / ')
+                    . ($cy['has_alt'] ? t('شهريا') : html_escape($cy['unit']))
                     . '</span></p>' . "\n";
             }
-            $h .= '      <span class="ccard__cta">تفاصيل الباقة'
+            $h .= t('      <span class="ccard__cta">تفاصيل الباقة')
                 . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";
         } elseif ($it['kind'] === 'book') {
             /* «اقرا وحمل» فوق كتاب لم يرفع ملفه وعد مكسور: الزائر يضغط
                فيجد زرا معطلا. والدعوة تقول ما يجده فعلا. */
             $has = (isset($it['extra']['file']) && (string) $it['extra']['file'] !== '');
-            $h .= '      <p class="ccard__price ccard__price--free">مجاني</p>' . "\n";
-            $h .= '      <span class="ccard__cta">' . ($has ? 'اقرا وحمل' : 'تفاصيل الكتاب')
+            $h .= t('      <p class="ccard__price ccard__price--free">مجاني</p>') . "\n";
+            $h .= '      <span class="ccard__cta">' . ($has ? t('اقرا وحمل') : t('تفاصيل الكتاب'))
                 . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";
         } elseif ($it['kind'] === 'competition') {
             $h .= '      <p class="ccard__price ccard__price--free">'
-                . (((string) $it['state'] === 'open') ? 'التسجيل مفتوح' : 'التسجيل مغلق') . '</p>' . "\n";
-            $h .= '      <span class="ccard__cta">تفاصيل المسابقة'
+                . (((string) $it['state'] === 'open') ? t('التسجيل مفتوح') : t('التسجيل مغلق')) . '</p>' . "\n";
+            $h .= t('      <span class="ccard__cta">تفاصيل المسابقة')
                 . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";
         } elseif ($it['kind'] === 'course') {
             /* الكورس محتوى الباقة لا سلعة بجوارها: «ضمن الباقات» كما يقرأ
@@ -451,19 +451,19 @@ if (!function_exists('tqs_cat_card')) {
                في أيهما الصحيح. والسعر من `$it['price']` الذي كتبه
                `Taqdar_catalog_model::courses()` من `offer()` نفسها. */
             if (!empty($it['free'])) {
-                $h .= '      <p class="ccard__price ccard__price--free">مجاني</p>' . "\n";
+                $h .= t('      <p class="ccard__price ccard__price--free">مجاني</p>') . "\n";
             } elseif ((int) $it['price'] > 0) {
                 $h .= '      <p class="ccard__price"><b class="tq-ltr">'
-                    . number_format(((int) $it['price']) / 100) . '</b><span>ر.س</span></p>' . "\n";
+                    . number_format(((int) $it['price']) / 100) . t('</b><span>ر.س</span></p>') . "\n";
             } else {
-                $h .= '      <p class="ccard__price ccard__price--in">ضمن الباقات</p>' . "\n";
+                $h .= t('      <p class="ccard__price ccard__price--in">ضمن الباقات</p>') . "\n";
             }
             $h .= '      <span class="ccard__cta">'
-                . (!empty($it['ready']) ? 'استعرض دروسه' : 'تفاصيل الكورس')
+                . (!empty($it['ready']) ? t('استعرض دروسه') : t('تفاصيل الكورس'))
                 . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";
         } else {
-            $h .= '      <p class="ccard__price ccard__price--in">ضمن الباقات</p>' . "\n";
-            $h .= '      <span class="ccard__cta">ما في هذا البرنامج'
+            $h .= t('      <p class="ccard__price ccard__price--in">ضمن الباقات</p>') . "\n";
+            $h .= t('      <span class="ccard__cta">ما في هذا البرنامج')
                 . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";
         }
         $h .= '    </div>' . "\n";
@@ -511,8 +511,8 @@ if (!function_exists('tqs_cat_pager')) {
         if (!in_array(1, $win, true))      array_unshift($win, 1);
         if (!in_array($pages, $win, true)) $win[] = $pages;
 
-        $h  = '<nav class="cpager" aria-label="صفحات النتائج">' . "\n";
-        $h .= ($page > 1) ? $link($page - 1, $arrow, 'cpager__i--nav', 'الصفحة السابقة') : $off('');
+        $h  = t('<nav class="cpager" aria-label="صفحات النتائج">') . "\n";
+        $h .= ($page > 1) ? $link($page - 1, $arrow, 'cpager__i--nav', t('الصفحة السابقة')) : $off('');
 
         $prev = 0;
         foreach ($win as $p) {
@@ -522,7 +522,7 @@ if (!function_exists('tqs_cat_pager')) {
         }
 
         $h .= ($page < $pages)
-            ? $link($page + 1, $arrow, 'cpager__i--nav cpager__i--next', 'الصفحة التالية')
+            ? $link($page + 1, $arrow, 'cpager__i--nav cpager__i--next', t('الصفحة التالية'))
             : $off('cpager__i--next');
 
         return $h . '</nav>' . "\n";
@@ -533,11 +533,11 @@ if (!function_exists('tqs_cat_count_line')) {
     /** سطر «تعرض ١٢ من ٣١» — ويقول «لا شيء» صراحة حين لا نتيجة. */
     function tqs_cat_count_line($res)
     {
-        if ((int) $res['total'] === 0) return 'لا نتائج';
+        if ((int) $res['total'] === 0) return t('لا نتائج');
         if ((int) $res['total'] <= (int) $res['per']) {
-            return 'كل النتائج: <b class="tq-ltr">' . (int) $res['total'] . '</b>';
+            return t('كل النتائج: <b class="tq-ltr">') . (int) $res['total'] . '</b>';
         }
-        return 'تعرض <b class="tq-ltr">' . (int) $res['from'] . '–' . (int) $res['to']
-             . '</b> من <b class="tq-ltr">' . (int) $res['total'] . '</b>';
+        return t('تعرض <b class="tq-ltr">') . (int) $res['from'] . '–' . (int) $res['to']
+             . t('</b> من <b class="tq-ltr">') . (int) $res['total'] . '</b>';
     }
 }

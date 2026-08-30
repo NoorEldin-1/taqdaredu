@@ -132,7 +132,7 @@ include 'portal_open.php';
                     <?php if ($tq_child['subjects']): ?>
                         <div class="tq-card">
                             <table class="tq-table">
-                                <caption class="tq-sr">مواد <?php echo html_escape($tq_name); ?>: ما أنهاه ونتائجه وآخر نشاط</caption>
+                                <caption class="tq-sr"><?php echo t('مواد ____: ما أنهاه ونتائجه وآخر نشاط', array(html_escape($tq_name))); ?></caption>
                                 <thead>
                                     <tr>
                                         <th scope="col"><?php echo t('المادة'); ?></th>
@@ -149,13 +149,13 @@ include 'portal_open.php';
                                                 <span class="tq-micro" style="display:block"><?php echo tq_iso(tq_lessons_word((int) $tq_s['lessons'])); ?></span>
                                             </td>
                                             <td data-label="ما أنهاه" style="min-inline-size:180px">
-                                                <?php echo tq_progress((int) $tq_s['progress'], t('ما أنهاه في') . $tq_s['title']); ?>
+                                                <?php echo tq_progress((int) $tq_s['progress'], t('ما أنهاه في ') . $tq_s['title']); ?>
                                             </td>
                                             <td data-label="نتائج الاختبارات">
                                                 <?php if ($tq_s['attempts'] > 0): ?>
                                                     <?php echo tq_num($tq_s['avg_pct'] . '%', 'tq-num--sm'); ?>
                                                     <span class="tq-micro" style="display:block">
-                                                        <?php echo tq_iso(t('من') . tq_exams_word((int) $tq_s['attempts'])); ?>
+                                                        <?php echo tq_iso(t('من ') . tq_exams_word((int) $tq_s['attempts'])); ?>
                                                     </span>
                                                 <?php elseif ($tq_s['held'] > 0): ?>
                                                     <span class="tq-caption"><?php echo t('ينتظر اعتماد معلمه'); ?></span>
@@ -166,7 +166,7 @@ include 'portal_open.php';
                                                          مقالي ينتظر تصحيحا، وصمت الشاشة عنه يقرأ إهمالا. */ ?>
                                                 <?php if ($tq_s['attempts'] > 0 && $tq_s['held'] > 0): ?>
                                                     <span class="tq-micro" style="display:block">
-                                                        <?php echo tq_iso(t('و') . tq_exams_word((int) $tq_s['held'], t('لا اختبارات'), 'nom') . ((int) $tq_s['held'] === 1 ? t('ينتظر') : t('تنتظر')) . t('اعتماد معلمه')); ?>
+                                                        <?php echo tq_iso(t('و') . tq_exams_word((int) $tq_s['held'], t('لا اختبارات'), 'nom') . ((int) $tq_s['held'] === 1 ? t(' ينتظر') : t(' تنتظر')) . t(' اعتماد معلمه')); ?>
                                                     </span>
                                                 <?php endif; ?>
                                             </td>
@@ -183,7 +183,7 @@ include 'portal_open.php';
                     <?php else: ?>
                         <div class="tq-card tq-empty">
                             <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('book', 24); ?></span>
-                            <h3 class="tq-empty__title">لا مواد مسجلة لـ<?php echo html_escape(explode(' ', $tq_name)[0]); ?></h3>
+                            <h3 class="tq-empty__title"><?php echo t('لا مواد مسجلة لـ'); ?><?php echo html_escape(explode(' ', $tq_name)[0]); ?></h3>
                             <p class="tq-empty__text"><?php echo t('حين يسجل في مادة يظهر تقريرها هنا في سطر واحد.'); ?></p>
                             <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/payments'); ?>"><?php echo t('المدفوعات'); ?></a>
                         </div>

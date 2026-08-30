@@ -58,9 +58,9 @@ include 'portal_open.php';
             </h2>
             <p class="tq-caption">
                 <?php if ($eff === 'pending'): ?>
-                    صدرت فاتورتك، ويفتح المحتوى فور التحقق من حوالتك.
+                    <?php echo t('صدرت فاتورتك، ويفتح المحتوى فور التحقق من حوالتك.'); ?>
                 <?php else: ?>
-                    يمكنك الاشتراك من جديد ويعود ما كنت تدرسه كما تركته.
+                    <?php echo t('يمكنك الاشتراك من جديد ويعود ما كنت تدرسه كما تركته.'); ?>
                 <?php endif; ?>
             </p>
             <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/subscription'); ?>"><?php echo t('تفاصيل اشتراكي'); ?></a>

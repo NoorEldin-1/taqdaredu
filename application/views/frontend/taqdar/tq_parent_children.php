@@ -84,7 +84,7 @@ include 'portal_open.php';
                         <div class="tq-row" style="gap:var(--tq-space-l)">
                             <img class="tq-avatar tq-avatar--lg"
                                  src="<?php echo tqs_person_img($tq_c['image']); ?>"
-                                 alt="صورة <?php echo html_escape($tq_name); ?>">
+                                 alt="<?php echo te('صورة ____', array(html_escape($tq_name))); ?>">
                             <div style="flex:1;min-inline-size:0">
                                 <h2 class="tq-h2" style="margin:0"><?php echo html_escape($tq_name); ?></h2>
                                 <p class="tq-caption" style="margin:0">
@@ -93,34 +93,33 @@ include 'portal_open.php';
                                     <?php echo tq_iso((int) $tq_c['courses'] === 2
                                         ? t('مادتان مسجلتان')
                                         : tq_count_units((int) $tq_c['courses'], t('مادة'), t('مادتان'), t('مادتين'),
-                                            t('مواد'), t('مادة'), t('لا مواد'), 'nom', true) . t('مسجلة')); ?>
+                                            t('مواد'), t('مادة'), t('لا مواد'), 'nom', true) . t(' مسجلة')); ?>
                                 </p>
                             </div>
                             <?php echo $tq_ok
                                 ? tq_badge('mastered', t('نشط'))
-                                : tq_badge('due', $tq_c['days'] === null ? t('لم يبدأ بعد') : t('غاب') . TQ_LRI . $tq_c['days'] . TQ_PDI . t('يوما')); ?>
+                                : tq_badge('due', $tq_c['days'] === null ? t('لم يبدأ بعد') : t('غاب ') . TQ_LRI . $tq_c['days'] . TQ_PDI . t(' يوما')); ?>
                         </div>
 
                         <div style="margin-block:var(--tq-space-xl)">
                             <p class="tq-caption" style="margin-block-end:var(--tq-space-s)"><?php echo t('أنهى من دروسه'); ?></p>
-                            <?php echo tq_progress($tq_c['progress'], t('ما أنهاه') . $tq_name . t('من دروسه')); ?>
+                            <?php echo tq_progress($tq_c['progress'], t('ما أنهاه ') . $tq_name . t(' من دروسه')); ?>
                         </div>
 
                         <a class="tq-btn tq-btn--primary tq-btn--block"
                            href="<?php echo base_url('parent/child'); ?>?id=<?php echo $tq_sid; ?>">
-                            تفاصيل <?php echo html_escape(explode(' ', $tq_name)[0]); ?>
+                            <?php echo t('تفاصيل'); ?> <?php echo html_escape(explode(' ', $tq_name)[0]); ?>
                         </a>
 
                         <p class="tq-micro" style="margin:var(--tq-space-m) 0 0">
-                            ربط بموافقة <?php echo html_escape(explode(' ', $tq_name)[0]); ?> بتاريخ
-                            <?php echo TQ_LRI . html_escape((string) $tq_c['consent_at']) . TQ_PDI; ?>
+                            <?php echo t('ربط بموافقة ____ بتاريخ ____', array(html_escape(explode(' ', $tq_name)[0]), TQ_LRI . html_escape((string) $tq_c['consent_at']) . TQ_PDI)); ?>
                         </p>
 
                         <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
-                              data-tq-confirm-title="إلغاء ربط <?php echo html_escape($tq_name); ?>؟"
+                              data-tq-confirm-title="<?php echo te('إلغاء ربط ____؟', array(html_escape($tq_name))); ?>"
                               data-tq-confirm="<?php echo te('لن ترى شيئا من بياناته بعدها: لا تقدمه ولا نتائجه ولا مدفوعاته.'); ?>"
-                              data-tq-confirm-note="يبقى في السجل تاريخ موافقته وتاريخ الإلغاء. وإعادة المتابعة تحتاج طلبا جديدا وموافقة جديدة منه."
-                              data-tq-confirm-ok="إلغاء الربط"
+                              data-tq-confirm-note="<?php echo te('يبقى في السجل تاريخ موافقته وتاريخ الإلغاء. وإعادة المتابعة تحتاج طلبا جديدا وموافقة جديدة منه.'); ?>"
+                              data-tq-confirm-ok="<?php echo te('إلغاء الربط'); ?>"
                               data-tq-confirm-tone="danger">
                             <?php echo tq_csrf(); ?>
                             <input type="hidden" name="tq_action" value="link_revoke">
@@ -164,10 +163,10 @@ include 'portal_open.php';
                             <span class="tq-prefrow__end">
                                 <?php echo tq_badge('due', t('بانتظار موافقته')); ?>
                                 <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
-                                      data-tq-confirm-title="سحب طلب ربط <?php echo html_escape($tq_p['name']); ?>؟"
+                                      data-tq-confirm-title="<?php echo te('سحب طلب ربط ____؟', array(html_escape($tq_p['name']))); ?>"
                                       data-tq-confirm="<?php echo te('لن يصله الطلب بعد الآن، ولا يفتح شيء من بياناته — ولم يكن مفتوحا أصلا.'); ?>"
-                                      data-tq-confirm-note="تستطيع إرسال طلب جديد إليه متى شئت."
-                                      data-tq-confirm-ok="سحب الطلب">
+                                      data-tq-confirm-note="<?php echo te('تستطيع إرسال طلب جديد إليه متى شئت.'); ?>"
+                                      data-tq-confirm-ok="<?php echo te('سحب الطلب'); ?>">
                                     <?php echo tq_csrf(); ?>
                                     <input type="hidden" name="tq_action" value="link_cancel">
                                     <input type="hidden" name="link_id" value="<?php echo (int) $tq_p['id']; ?>">

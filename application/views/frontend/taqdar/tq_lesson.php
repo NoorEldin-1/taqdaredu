@@ -106,7 +106,7 @@ include 'portal_open.php';
                     </div>
 
                     <button class="tq-btn tq-btn--ghost tq-btn--sm" type="button" data-tq-note-add>
-                        <?php echo tq_icon('pen', 16); ?> ملاحظة هنا
+                        <?php echo tq_icon('pen', 16); ?> <?php echo t('ملاحظة هنا'); ?>
                     </button>
                 </div>
 
@@ -172,7 +172,7 @@ include 'portal_open.php';
                             <?php echo t('المنصة لا تقرأ موضع التشغيل في هذا النوع من المصادر، فلا يسجل تقدمك فيه من تلقائه. اضغط «أنهيت الدرس» حين تكمله ليفتح لك الاختبار.'); ?>
                         </p>
                         <button class="tq-btn tq-btn--primary" type="button" data-tq-declare hidden>
-                            <?php echo tq_icon('check', 16); ?> أنهيت هذا الدرس
+                            <?php echo tq_icon('check', 16); ?> <?php echo t('أنهيت هذا الدرس'); ?>
                         </button>
                     </div>
                 </div>
@@ -278,7 +278,7 @@ include 'portal_open.php';
                     <a class="tq-btn tq-btn--secondary tq-btn--block" data-tq-prev hidden><?php echo t('الدرس السابق'); ?></a>
                     <a class="tq-btn tq-btn--primary tq-btn--block" data-tq-next hidden><?php echo t('الدرس التالي'); ?></a>
                     <span class="tq-caption tq-row" data-tq-next-locked hidden style="gap:var(--tq-space-xs)">
-                        <?php echo tq_icon('lock', 16); ?> الدرس التالي يفتح بعد اجتياز المراجعة
+                        <?php echo tq_icon('lock', 16); ?> <?php echo t('الدرس التالي يفتح بعد اجتياز المراجعة'); ?>
                     </span>
                     <a class="tq-btn tq-btn--ghost tq-btn--block" href="<?php echo base_url('student/lessons'); ?>"><?php echo t('كل دروسي'); ?></a>
                 </div>

@@ -19,7 +19,7 @@ if (!function_exists('tqa_money')) {
     /** الهللات تخزن أعدادا صحيحة وتعرض ريالات — القسمة هنا وحدها. */
     function tqa_money($halalas)
     {
-        return '<span class="tq-ltr" dir="ltr">' . number_format(((int) $halalas) / 100, 2) . '</span> ر.س';
+        return '<span class="tq-ltr" dir="ltr">' . number_format(((int) $halalas) / 100, 2) . t('</span> ر.س');
     }
 }
 
@@ -70,8 +70,8 @@ if (!function_exists('tqa_cell')) {
 
             case 'bool':
                 return $value
-                    ? '<span class="badge badge-success">نعم</span>'
-                    : '<span class="tqa-dim">لا</span>';
+                    ? t('<span class="badge badge-success">نعم</span>')
+                    : t('<span class="tqa-dim">لا</span>');
 
             case 'money':
                 return tqa_money($value);
@@ -108,7 +108,7 @@ if (!function_exists('tqa_cell')) {
                 $opts = $model->options($field['ref']);
                 return isset($opts[$value])
                     ? html_escape($opts[$value])
-                    : '<span class="tqa-dim">#' . (int) $value . ' (محذوف)</span>';
+                    : '<span class="tqa-dim">#' . (int) $value . t(' (محذوف)</span>');
 
             /* المفتاح النصي يعرض باسمه لا بمفتاحه: عمود يقرأ `primary`
                في شاشة عربية لا يقرأ. */
@@ -116,7 +116,7 @@ if (!function_exists('tqa_cell')) {
                 $opts = $model->options($field['ref']);
                 return isset($opts[$value])
                     ? html_escape($opts[$value])
-                    : '<span class="tqa-dim">' . html_escape((string) $value) . ' (غير معروف)</span>';
+                    : '<span class="tqa-dim">' . html_escape((string) $value) . t(' (غير معروف)</span>');
 
             /* قائمة معرفات: الأسماء لا الأرقام، وما زاد على أربعة يعد
                ولا يسرد — اثنا عشر صفا في خلية تكسر الجدول. */
@@ -133,7 +133,7 @@ if (!function_exists('tqa_cell')) {
                 $more  = count($names) - count($shown);
                 $out   = '';
                 foreach ($shown as $n) $out .= '<span class="tqa-chip">' . html_escape($n) . '</span> ';
-                if ($more > 0) $out .= '<span class="tqa-dim">و' . $more . ' غيرها</span>';
+                if ($more > 0) $out .= t('<span class="tqa-dim">و') . $more . t(' غيرها</span>');
                 return $out;
 
             /* الصورة تعرض صورة لا مسارا: `uploads/plans/plan-31-a3f9.webp`

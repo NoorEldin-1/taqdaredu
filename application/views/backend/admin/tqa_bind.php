@@ -47,7 +47,7 @@ foreach ($questions as $q) {
 
 <div class="tqa-head">
     <div>
-        <h1>ربط أسئلة: <?php echo html_escape($course['title']); ?></h1>
+        <h1><?php echo t('ربط أسئلة:'); ?> <?php echo html_escape($course['title']); ?></h1>
         <p><?php echo t('لكل سؤال هدف واحد — هو ما يحدد إلى أين يعاد الطالب حين يخطئ.'); ?></p>
     </div>
     <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/bindings'); ?>"><?php echo t('رجوع'); ?></a>

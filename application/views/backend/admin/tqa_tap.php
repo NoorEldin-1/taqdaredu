@@ -57,7 +57,7 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
     t('الدفع بالبطاقة: مدى وفيزا وماستركارد. المفاتيح تحفظ هنا، والدفعات تسوى من رد تاب لا من رد المتصفح.'),
     'card',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('taqdar_admin/bank') . '">'
-  . tq_icon('bank', 16) . t('بيانات التحويل البنكي</a>')); ?>
+  . tq_icon('bank', 16) . t(' بيانات التحويل البنكي</a>')); ?>
 
 <?php /* الحال قبل الحقول: من يفتح الشاشة يريد أولا أن يعرف ماذا يرى
          الطالب الآن — لا أن يقرأ نموذجا ليستنتجه. */ ?>
@@ -82,8 +82,7 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
         <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
         <span>
             <strong><?php echo t('مفعلة بلا مفتاح سري.'); ?></strong>
-            لا مفتاح سري محفوظ لوضع <?php echo $mode === 'live' ? t('الإنتاج') : t('الاختبار'); ?>،
-            فلا يعرض للطالب خيار البطاقة — ويبقى التحويل البنكي وحده. الصق المفتاح أدناه.
+            <?php echo t('لا مفتاح سري محفوظ لوضع ____، فلا يعرض للطالب خيار البطاقة — ويبقى التحويل البنكي وحده. الصق المفتاح أدناه.', array($mode === 'live' ? t('الإنتاج') : t('الاختبار'))); ?>
         </span>
     </div>
 <?php else: ?>
@@ -103,7 +102,7 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
             <span class="tqa-stat__icon tqa-mint" aria-hidden="true"><?php echo tq_icon('check', 18); ?></span>
         </div>
         <span class="tqa-stat__value"><?php echo (int) $totals['paid']; ?></span>
-        <span class="tqa-stat__hint">بمجموع <?php echo tqa_money((int) $totals['sum_paid']); ?></span>
+        <span class="tqa-stat__hint"><?php echo t('بمجموع'); ?> <?php echo tqa_money((int) $totals['sum_paid']); ?></span>
     </div>
 
     <div class="tqa-stat">
@@ -126,7 +125,7 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
         </div>
         <span class="tqa-stat__value"><?php echo (int) $totals['failed'] + (int) $totals['mismatch']; ?></span>
         <span class="tqa-stat__hint">
-            <?php echo (int) $totals['mismatch']; ?> منها مبلغها لا يطابق الفاتورة
+            <?php echo (int) $totals['mismatch']; ?> <?php echo t('منها مبلغها لا يطابق الفاتورة'); ?>
         </span>
     </div>
 </div>
@@ -238,7 +237,7 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
                             <span class="tqa-field__hint">
                                 <?php echo html_escape($tq_meta[2]); ?>
                                 <?php if ($tq_has): ?>
-                                    اتركه فارغا ليبقى المحفوظ كما هو.
+                                    <?php echo t('اتركه فارغا ليبقى المحفوظ كما هو.'); ?>
                                     <label style="display:inline-flex;align-items:center;gap:6px;margin-inline-start:8px">
                                         <input type="checkbox" name="clear[]" value="<?php echo $tq_k; ?>">
                                         <?php echo t('امسح هذا المفتاح'); ?>
@@ -253,9 +252,9 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
             <div class="tqa-actions">
                 <button type="submit" class="tqa-btn tqa-btn--primary"
                         data-tqa-confirm-title="<?php echo te('حفظ إعدادات بوابة الدفع'); ?>"
-                        data-tqa-confirm="ما يحفظ هنا يظهر فورا في شاشة الدفع أمام الطلاب."
-                        data-tqa-confirm-ok="احفظ">
-                    <?php echo tq_icon('check', 16); ?> احفظ الإعدادات
+                        data-tqa-confirm="<?php echo te('ما يحفظ هنا يظهر فورا في شاشة الدفع أمام الطلاب.'); ?>"
+                        data-tqa-confirm-ok="<?php echo te('احفظ'); ?>">
+                    <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الإعدادات'); ?>
                 </button>
             </div>
         </form>
@@ -301,9 +300,7 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
                 <strong><?php echo t('عنوان الويبهوك'); ?></strong> <?php echo t('— يرسل مع كل دفعة تلقائيا، ولا يحتاج تسجيلا في لوحة تاب:'); ?>
                 <br><code class="tq-ltr" dir="ltr" style="font-size:12px"><?php echo html_escape($tq_hook); ?></code>
                 <?php if (!$tq_public): ?>
-                    <br><strong><?php echo t('ولا يرسل من هذا الخادم:'); ?></strong> العنوان محلي أو بلا
-                    HTTPS، فلا تصل إليه تاب. والتسوية تقع عند عودة الطالب — وهي تحقق
-                    كامل لأنها تجلب الدفعة من تاب لا تقرأ الرابط.
+                    <br><strong><?php echo t('ولا يرسل من هذا الخادم:'); ?></strong> <?php echo t('العنوان محلي أو بلا HTTPS، فلا تصل إليه تاب. والتسوية تقع عند عودة الطالب — وهي تحقق كامل لأنها تجلب الدفعة من تاب لا تقرأ الرابط.'); ?>
                 <?php endif; ?>
             </span>
         </div>
@@ -417,7 +414,7 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
                             <?php echo tq_csrf(); ?>
                             <input type="hidden" name="charge_id" value="<?php echo html_escape($a['charge_id']); ?>">
                             <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm">
-                                <?php echo tq_icon('refresh', 15); ?> اسأل تاب
+                                <?php echo tq_icon('refresh', 15); ?> <?php echo t('اسأل تاب'); ?>
                             </button>
                         </form>
                     <?php endif; ?>

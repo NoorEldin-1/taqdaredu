@@ -16,7 +16,7 @@ $tq_users = $this->db->select('id, first_name, last_name, email')
 
 <?php tqa_head(t('إضافة رأي'), t('يعرض في الصفحة الرئيسية باسم صاحبه وصورته.'), 'star',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/frontend_settings?tab=reviews') . '">'
-  . tq_icon('chev-prev', 16) . t('كل الآراء</a>')); ?>
+  . tq_icon('chev-prev', 16) . t(' كل الآراء</a>')); ?>
 
 <form class="tqa-card" action="<?php echo site_url('admin/frontend_settings/review_store'); ?>" method="post"
       style="max-inline-size:680px">
@@ -47,7 +47,7 @@ $tq_users = $this->db->select('id, first_name, last_name, email')
         <select class="tqa-select" id="rating" name="rating" required>
             <option value=""><?php echo t('— اختر تقييما'); ?></option>
             <?php for ($tq_i = 5; $tq_i >= 1; $tq_i--): ?>
-                <option value="<?php echo $tq_i; ?>"><?php echo $tq_i; ?> من 5</option>
+                <option value="<?php echo $tq_i; ?>"><?php echo $tq_i; ?> <?php echo t('من 5'); ?></option>
             <?php endfor; ?>
         </select>
     </div>
@@ -61,7 +61,7 @@ $tq_users = $this->db->select('id, first_name, last_name, email')
 
     <div class="tqa-actions">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo tq_icon('check', 16); ?> احفظ الرأي
+            <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ الرأي'); ?>
         </button>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/frontend_settings?tab=reviews'); ?>"><?php echo t('إلغاء'); ?></a>
     </div>

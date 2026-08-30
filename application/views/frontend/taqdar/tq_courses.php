@@ -310,7 +310,7 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                             <span class="tq-map__label"><?php echo html_escape($label); ?></span>
                             <span class="tq-map__hint"><?php echo html_escape($hint); ?></span>
                             <span class="tq-sr">
-                                <?php echo tq_iso((int) $n . t('كورسا')); ?><?php echo $is ? t('— المحطة المعروضة الآن') : ''; ?>
+                                <?php echo tq_iso((int) $n . t(' كورسا')); ?><?php echo $is ? t(' — المحطة المعروضة الآن') : ''; ?>
                             </span>
                         </a>
                     <?php endforeach; ?>
@@ -378,7 +378,7 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                                 · <span style="color:var(--tq-teal);font-weight:700"><?php echo t('مشتراة مفردة'); ?></span>
                             <?php endif; ?>
                         </p>
-                        <?php echo tq_progress($c['progress'], t('تقدمك في') . $c['title']); ?>
+                        <?php echo tq_progress($c['progress'], t('تقدمك في ') . $c['title']); ?>
                         <p class="tq-caption" style="margin:0"><?php echo tq_s_lessons_word($c['done'], $c['lessons']); ?></p>
 
                         <?php /* بابان لا باب: الغلاف والعنوان يستأنفان من موضع التوقف —

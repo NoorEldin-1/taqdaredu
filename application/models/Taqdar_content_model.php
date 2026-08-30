@@ -202,8 +202,14 @@ class Taqdar_content_model extends CI_Model
             ),
         );
 
-        if ($page === null) return $pages;
-        return isset($pages[$page]) ? $pages[$page] : null;
+        /* TQ-I18N — تسميات الشاشة تترجم، و`default` لا.
+           ذاك **النص الافتراضي للصفحة العامة**: هو ما تعرضه `tq_text()`
+           حين لا صف في القاعدة، وهو ما يملأ به المسؤول الحقل حين يحرر.
+           فترجمته تجعل من يفتح الشاشة بالإنجليزية يحفظ نصا إنجليزيا على
+           صفحة عربية يقرؤها كل زائر، وهو يظن أنه لم يغير شيئا. */
+        $skip = array('default');
+        if ($page === null) return tq_t_deep($pages, $skip);
+        return isset($pages[$page]) ? tq_t_deep($pages[$page], $skip) : null;
     }
 
     /**

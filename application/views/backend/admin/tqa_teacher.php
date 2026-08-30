@@ -18,7 +18,7 @@ $tq_img   = $this->user_model->get_user_image_url((int) $row['id']);
 $tq_phone = tq_phone_pretty((string) $row['phone']);
 
 $tq_cards = array(
-    array(t('كورساته'),        (int) $stats['courses'],   t('المنشور منها') . (int) $stats['published'], 'book'),
+    array(t('كورساته'),        (int) $stats['courses'],   t('المنشور منها ') . (int) $stats['published'], 'book'),
     array(t('دروسه'),          (int) $stats['lessons'],   t('في كل كورساته'),                             'play'),
     array(t('طلابه'),          (int) $stats['students'],  t('المسجلون في كورساته'),                        'users'),
     array(t('برامجه'),         (int) $stats['paths'],     t('مسارات تعرض كورساته'),                        'route'),
@@ -27,7 +27,7 @@ $tq_cards = array(
 );
 ?>
 
-<?php tqa_head(t('المعلم:') . $tq_name,
+<?php tqa_head(t('المعلم: ') . $tq_name,
     t('ما يدرسه، وكم عنده، وما دخل فيه من مال — قبل أن تعدل أو تحذف.'),
     'user-check'); ?>
 
@@ -94,7 +94,7 @@ $tq_cards = array(
     <div class="tqa-actions" style="margin-block-start:var(--tq-space-l)">
         <a class="tqa-btn tqa-btn--primary"
            href="<?php echo site_url('taqdar_admin/teacher_edit/' . (int) $row['id']); ?>">
-            <?php echo tq_icon('edit', 16); ?> عدل بياناته
+            <?php echo tq_icon('edit', 16); ?> <?php echo t('عدل بياناته'); ?>
         </a>
 
         <?php /* الفتح والإغلاق POST كما في القائمة: يغير من يستطيع الدخول. */ ?>
@@ -117,13 +117,13 @@ $tq_cards = array(
         <?php if (empty($blockers)): ?>
             <form action="<?php echo site_url('taqdar_admin/teacher_delete'); ?>" method="post" style="margin:0"
                   data-tqa-confirm-title="<?php echo te('حذف الحساب'); ?>"
-                  data-tqa-confirm="يحذف الحساب وما لا معنى له بلا صاحبه. ولا رجعة فيه."
-                  data-tqa-confirm-ok="احذف الحساب"
+                  data-tqa-confirm="<?php echo te('يحذف الحساب وما لا معنى له بلا صاحبه. ولا رجعة فيه.'); ?>"
+                  data-tqa-confirm-ok="<?php echo te('احذف الحساب'); ?>"
                   data-tqa-confirm-tone="danger">
                 <?php echo tq_csrf(); ?>
                 <input type="hidden" name="user_id" value="<?php echo (int) $row['id']; ?>">
                 <button class="tqa-btn tqa-btn--danger" type="submit">
-                    <?php echo tq_icon('trash', 16); ?> احذف الحساب
+                    <?php echo tq_icon('trash', 16); ?> <?php echo t('احذف الحساب'); ?>
                 </button>
             </form>
         <?php endif; ?>
@@ -158,9 +158,7 @@ $tq_cards = array(
     <div class="tqa-note tqa-note--warn">
         <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
         <span>
-            <strong><?php echo t('هذا الحساب لا يحذف:'); ?></strong> <?php echo html_escape(implode(' · ', $blockers)); ?>.
-            وحذفه يترك كورسا بلا صاحب وسجلا ماليا يقول «معلم #<?php echo (int) $row['id']; ?>»
-            لا يعرف أحد من كان — والضرر في القراءة وهو لا يرجع.
+            <strong><?php echo t('هذا الحساب لا يحذف:'); ?></strong> <?php echo t('____. وحذفه يترك كورسا بلا صاحب وسجلا ماليا يقول «معلم #____» لا يعرف أحد من كان — والضرر في القراءة وهو لا يرجع.', array(html_escape(implode(' · ', $blockers)), (int) $row['id'])); ?>
             <strong><?php echo t('والإغلاق هو ما تريده غالبا'); ?></strong><?php echo t(': يمنع الدخول ولا يفقد شيئا.'); ?>
         </span>
     </div>

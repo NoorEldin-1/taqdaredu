@@ -726,7 +726,8 @@ class Taqdar_parent_model extends CI_Model
         /* فواتير تقدر — المبلغ بالهللات، والحالة تعرض كما هي:
            «مدفوعة» و«بانتظار التحويل» و«مستردة» ثلاث حقائق لا واحدة. */
         if ($this->db->table_exists('invoices')) {
-            $labels = ['paid' => 'مدفوعة', 'unpaid' => 'بانتظار التحويل', 'refunded' => 'مستردة'];
+            /* TQ-I18N — تسميات تعرض ولا تخزن، فتترجم بلغة من يقرؤها. */
+            $labels = ['paid' => t('مدفوعة'), 'unpaid' => t('بانتظار التحويل'), 'refunded' => t('مستردة')];
             foreach ($this->db->query(
                 "SELECT i.id, i.invoice_no, i.total, i.status, i.method, i.transaction_id,
                         i.issued_at, i.paid_at, p.name_ar AS plan_name
@@ -741,7 +742,9 @@ class Taqdar_parent_model extends CI_Model
                 $rows[] = [
                     'ts'     => $when ? strtotime($when) : 0,
                     'amount' => ((int) $r['total']) / 100,
-                    'title'  => $r['plan_name'] ?: 'اشتراك',
+                    /* اسم الباقة بيانات صاحبها فلا يترجم؛ والبديل حين لا اسم
+                       نص من الشيفرة فيترجم. */
+                    'title'  => $r['plan_name'] ?: t('اشتراك'),
                     'ref'    => $r['transaction_id'] ?: $r['invoice_no'],
                     'method' => (string) $r['method'],
                     'status' => $r['status'],
@@ -765,11 +768,11 @@ class Taqdar_parent_model extends CI_Model
             $rows[] = [
                 'ts'     => (int) $r['date_added'],
                 'amount' => (float) $r['amount'],
-                'title'  => $r['course_title'] ?: 'شراء',
+                'title'  => $r['course_title'] ?: t('شراء'),
                 'ref'    => (string) $r['transaction_id'],
                 'method' => (string) $r['payment_type'],
                 'status' => 'paid',
-                'label'  => 'مدفوعة',
+                'label'  => t('مدفوعة'),
                 'source' => 'payment',
             ];
         }

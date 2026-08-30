@@ -50,7 +50,7 @@ $tq_role = $tq_role ?? 'student';
                 'flash_message' => 'ok',
                 'info_message'  => 'ok',
             ) as $tq_fk => $tq_fc):
-                $tq_fm = $this->session->flashdata($tq_fk);
+                $tq_fm = tq_flash($tq_fk);
                 if (empty($tq_fm)) continue; ?>
                 <p class="tq-flash tq-flash--<?php echo $tq_fc; ?>"
                    role="<?php echo $tq_fc === 'err' ? 'alert' : 'status'; ?>">

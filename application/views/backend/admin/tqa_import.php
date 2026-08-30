@@ -91,7 +91,7 @@ if ($preview) {
         ) as $label => $pair): ?>
             <div>
                 <div class="tqa-stat">
-                    <span class="tqa-stat-label"><?php echo $label; ?></span>
+                    <span class="tqa-stat-label"><?php echo te($label); ?></span>
                     <span class="tqa-stat-num tq-ltr" dir="ltr"><?php echo (int) $pair[0]; ?></span>
                 </div>
             </div>

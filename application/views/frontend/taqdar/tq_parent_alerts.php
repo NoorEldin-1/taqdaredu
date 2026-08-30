@@ -217,7 +217,7 @@ include 'portal_open.php';
                 <?php endforeach; ?>
             </ul>
             <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
-                هذه وحدها تقاطعك. ما عداها ينتظر تقرير الأحد
+                <?php echo t('هذه وحدها تقاطعك. ما عداها ينتظر تقرير الأحد'); ?>
                 <?php echo !empty($tq_prefs['weekly']) ? t('(وهو مفعل عندك)') : t('(وقد أوقفته أنت)'); ?>.
                 <a href="<?php echo base_url('parent/settings'); ?>"><?php echo t('غير ما يصلك'); ?></a>.
             </p>

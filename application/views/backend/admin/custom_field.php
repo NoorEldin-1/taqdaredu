@@ -44,13 +44,13 @@ $tq_ytid = function ($url) {
 <div class="tqa-toolbar">
     <button type="button" class="tqa-btn tqa-btn--primary"
             onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_add/' . (int) $course_id); ?>', 'إضافة قسم مخصص')">
-        <?php echo tq_icon('plus', 16); ?> أضف قسما
+        <?php echo tq_icon('plus', 16); ?> <?php echo t('أضف قسما'); ?>
     </button>
 
     <?php if (count($tq_fields) > 1): ?>
         <button type="button" class="tqa-btn tqa-btn--ghost"
                 onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_section_sorting/' . (int) $course_id); ?>', 'ترتيب الأقسام')">
-            <?php echo tq_icon('layers', 16); ?> رتب الأقسام
+            <?php echo tq_icon('layers', 16); ?> <?php echo t('رتب الأقسام'); ?>
         </button>
     <?php endif; ?>
 </div>
@@ -100,17 +100,17 @@ $tq_ytid = function ($url) {
             <div class="tqa-rowacts tqa-section">
                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                         onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_section_edit/' . $tq_id); ?>', 'تعديل القسم')">
-                    <?php echo tq_icon('edit', 14); ?> تعديل القسم
+                    <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل القسم'); ?>
                 </button>
 
                 <form method="post" action="<?php echo site_url('admin/custom_field_section_delete/' . $tq_id); ?>"
                       data-tqa-confirm-title="<?php echo te('حذف القسم المخصص'); ?>"
-                      data-tqa-confirm="سيحذف «<?php echo html_escape($tq_f['custom_title']); ?>» وكل عناصره."
-                      data-tqa-confirm-ok="نعم، احذف"
+                      data-tqa-confirm="<?php echo te('سيحذف «____» وكل عناصره.', array(html_escape($tq_f['custom_title']))); ?>"
+                      data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                       data-tqa-confirm-tone="danger">
                     <?php echo tq_csrf(); ?>
                     <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
-                        <?php echo tq_icon('trash', 14); ?> حذف القسم
+                        <?php echo tq_icon('trash', 14); ?> <?php echo t('حذف القسم'); ?>
                     </button>
                 </form>
             </div>
@@ -131,14 +131,14 @@ $tq_ytid = function ($url) {
                     <div class="tqa-rowacts" style="margin-block-start:var(--tq-space-s)">
                         <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                 onclick="showLargeModal('<?php echo site_url('modal/popup/custom_field_edit/' . $tq_id . '/' . html_escape($tq_it['id'])); ?>', 'تعديل العنصر')">
-                            <?php echo tq_icon('edit', 14); ?> تعديل
+                            <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
                         </button>
 
                         <form method="post"
                               action="<?php echo site_url('admin/custom_field_item_delete/' . $tq_id . '/' . html_escape($tq_it['id'])); ?>"
                               data-tqa-confirm-title="<?php echo te('حذف العنصر'); ?>"
-                              data-tqa-confirm="لا رجعة في هذا الحذف."
-                              data-tqa-confirm-ok="نعم، احذف"
+                              data-tqa-confirm="<?php echo te('لا رجعة في هذا الحذف.'); ?>"
+                              data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                               data-tqa-confirm-tone="danger">
                             <?php echo tq_csrf(); ?>
                             <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">

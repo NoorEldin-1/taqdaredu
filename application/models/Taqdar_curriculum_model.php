@@ -175,7 +175,7 @@ class Taqdar_curriculum_model extends CI_Model
      */
     public static function lesson_types()
     {
-        return array(
+        return tq_t_deep(array(
 
             'youtube' => array(
                 'label' => 'فيديو يوتيوب',
@@ -340,7 +340,7 @@ class Taqdar_curriculum_model extends CI_Model
                                           'hint' => 'الصق وسم <iframe> كما يعطيه الموقع، أو رابطه وحده.'),
                 ),
             ),
-        );
+        ));
     }
 
     /** نوع بمفتاحه، أو null. */
@@ -501,13 +501,13 @@ class Taqdar_curriculum_model extends CI_Model
     /** حالات الكورس ووصف كل منها — مصدر واحد للقائمتين. */
     public static function course_statuses()
     {
-        return array(
+        return tq_t_deep(array(
             'active'   => array('منشور',        'يظهر في الموقع العام ويمكن الاشتراك فيه.'),
             'private'  => array('خاص',          'لا يظهر في القوائم — يفتح برابطه وحده.'),
             'upcoming' => array('قادم',         'يعرض بتاريخ نشر ولا يفتح قبله.'),
             'pending'  => array('قيد المراجعة', 'أرسله معلم وينتظر قرار الإدارة.'),
             'draft'    => array('مسودة',        'غير مكتمل ولا يعرض لأحد.'),
-        );
+        ));
     }
 
     /**
@@ -593,12 +593,15 @@ class Taqdar_curriculum_model extends CI_Model
                 'label' => 'وصف محرك البحث', 'full' => true),
         );
 
-        if ($admin) return $f;
+        /* TQ-I18N — الوصف يترجم عند الخروج (كما في `Taqdar_admin_model::spec()`).
+           و`col` و`kind` و`owner` رموز لا نص، فلا تجد مدخلا في قاموس
+           مفاتيحه عربية وتمر كما هي. */
+        if ($admin) return tq_t_deep($f);
 
         foreach ($f as $k => $d) {
             if ($d['owner'] === 'admin') unset($f[$k]);
         }
-        return $f;
+        return tq_t_deep($f);
     }
 
     /** صف الكورس مع صفه ومادته — القراءة التي تغذي شاشة التحرير. */

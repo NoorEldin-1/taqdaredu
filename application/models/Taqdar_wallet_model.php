@@ -78,6 +78,18 @@ class Taqdar_wallet_model extends CI_Model
      * وسعرا — فتعلم في شاشة الإدارة كي لا يفتح المحول تطبيق بنكه ثم
      * يكتشف أنه أمام قناة أخرى.
      */
+    /**
+     * TQ-I18N — القنوات بتسمياتها مترجمة.
+     *
+     * و`$CHANNELS` تبقى كما هي: خاصية ساكنة لا يقبل PHP نداء دالة في
+     * تهيئتها. والقارئ ينادي هذه بدلها — والنمط والمثال والدولة رموز لا
+     * نص فتمر كما هي، والتسمية والتلميح ورسالة الخطأ هي التي تعرض.
+     */
+    public static function channels()
+    {
+        return tq_t_deep(self::$CHANNELS);
+    }
+
     public static $CHANNELS = array(
         'bank' => array(
             'label'   => 'تحويل بنكي',
@@ -689,7 +701,7 @@ class Taqdar_wallet_model extends CI_Model
 
         if (!isset(self::$CHANNELS[$channel])) {
             return $this->fail('CHANNEL', 'اختر قناة تحويل معتمدة: '
-                . implode(' أو ', array_column(self::$CHANNELS, 'label')) . '.');
+                . implode(t(' أو '), array_column(self::channels(), 'label')) . '.');
         }
         if ($dest === '') {
             return $this->fail('DESTINATION', 'أدخل بيانات التحويل — لا نرسل طلب مال بقناة بلا وجهة.');
@@ -748,7 +760,7 @@ class Taqdar_wallet_model extends CI_Model
         }
 
         $origin  = 'payout:' . $payout_id;
-        $subject = 'طلب سحب — ' . self::$CHANNELS[$channel]['label'];
+        $subject = 'طلب سحب — ' . self::channels()[$channel]['label'];
         $this->post($wid, 'payout_hold', self::B_AVAILABLE, -$amount,
                     $this->ref_key($wid, $origin, 'hold'), $origin, $subject);
         $this->post($wid, 'payout_lock', self::B_LOCKED, $amount,
@@ -765,7 +777,7 @@ class Taqdar_wallet_model extends CI_Model
             'ok' => true, 'code' => 'OK', 'payout_id' => $payout_id,
             'amount_halalas' => $amount, 'channel' => $channel,
             'message' => 'استلمنا طلب سحب ' . $this->sar($amount) . ' ريال عبر '
-                       . self::$CHANNELS[$channel]['label'] . '، وحجز المبلغ من رصيدك المتاح.',
+                       . self::channels()[$channel]['label'] . '، وحجز المبلغ من رصيدك المتاح.',
         );
     }
 
@@ -828,7 +840,7 @@ class Taqdar_wallet_model extends CI_Model
     public function destination_error($channel, $value)
     {
         if (!isset(self::$CHANNELS[$channel])) return 'قناة غير معتمدة.';
-        $c = self::$CHANNELS[$channel];
+        $c = self::channels()[$channel];
         if (empty($c['pattern'])) return '';
         if (preg_match($c['pattern'], (string) $value)) return '';
         return $c['error'] . ' مثال: ' . $c['example'];
@@ -866,7 +878,7 @@ class Taqdar_wallet_model extends CI_Model
             if ($amount <= 0) continue;
 
             $ch      = $p['requested_channel'] ?: $p['payment_type'];
-            $label   = isset(self::$CHANNELS[$ch]) ? self::$CHANNELS[$ch]['label'] : 'قناة تحدد مع الإدارة';
+            $label   = isset(self::$CHANNELS[$ch]) ? self::channels()[$ch]['label'] : t('قناة تحدد مع الإدارة');
             $subject = 'طلب سحب — ' . $label;
             $when    = $p['date_added'] ? $this->at((int) $p['date_added']) : $this->now();
 
@@ -1211,7 +1223,7 @@ class Taqdar_wallet_model extends CI_Model
             'refund_days' => $this->hold_days(),
             'refund_window' => $this->refund_window_days(),
             'min_payout'  => $this->payout_min_halalas(),
-            'channels'    => self::$CHANNELS,
+            'channels'    => self::channels(),
             'statement'   => $this->statement($wid, 100),
             'payouts'     => $this->payouts_of($user_id, 20),
         );

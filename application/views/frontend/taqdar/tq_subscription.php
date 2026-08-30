@@ -62,10 +62,10 @@ include 'portal_open.php';
 
 <div class="tq-stack">
 
-    <?php if ($flash = $this->session->flashdata('flash_message')): ?>
+    <?php if ($flash = tq_flash('flash_message')): ?>
         <div class="tq-alert tq-alert--ok"><?php echo html_escape($flash); ?></div>
     <?php endif; ?>
-    <?php if ($err = $this->session->flashdata('error_message')): ?>
+    <?php if ($err = tq_flash('error_message')): ?>
         <div class="tq-alert tq-alert--no"><?php echo html_escape($err); ?></div>
     <?php endif; ?>
 
@@ -84,7 +84,7 @@ include 'portal_open.php';
             <div class="tq-row tq-row--between">
                 <div>
                     <span class="tq-eyebrow"><?php echo t('اختبار تحديد المستوى'); ?></span>
-                    <p class="tq-card__title" style="margin:0">موضعك: <?php echo html_escape($tq_lvl); ?></p>
+                    <p class="tq-card__title" style="margin:0"><?php echo t('موضعك:'); ?> <?php echo html_escape($tq_lvl); ?></p>
                     <p class="tq-caption" style="margin:0">
                         <span class="tq-ltr"><?php echo (int) $tq_lv['score']; ?></span>
                         <?php echo t('من'); ?> <span class="tq-ltr"><?php echo (int) $tq_lv['total']; ?></span> <?php echo t('اجابة صحيحة'); ?>
@@ -133,7 +133,7 @@ include 'portal_open.php';
             /* الحقائق الأربع في صف بطاقات لا في `<dl>` عارية: المصطلح
                فوق قيمته، والقيمة بخط الأرقام — فتمسح العين الصف مرة. */
             $tq_facts = array(
-                array(t('القيمة'), number_format(((int) $current['price']) / 100, 2) . t('ر.س'), 'wallet'),
+                array(t('القيمة'), number_format(((int) $current['price']) / 100, 2) . t(' ر.س'), 'wallet'),
             );
             if ($current['started_at']) {
                 $tq_facts[] = array(t('بدأ في'), date('Y-m-d', strtotime($current['started_at'])), 'calendar');
@@ -170,9 +170,9 @@ include 'portal_open.php';
                 </p>
             <?php elseif ($eff === 'active'): ?>
                 <p class="tq-caption">
-                    اشتراكك لا يجدد تلقائيا ولا يخصم منك شيء بلا طلبك.
+                    <?php echo t('اشتراكك لا يجدد تلقائيا ولا يخصم منك شيء بلا طلبك.'); ?>
                     <?php if ($tq_trial): ?>
-                        وللانتقال إلى باقة مدفوعة أوقف التجربة أولا ثم اختر باقتك.
+                        <?php echo t('وللانتقال إلى باقة مدفوعة أوقف التجربة أولا ثم اختر باقتك.'); ?>
                     <?php endif; ?>
                 </p>
                 <?php /* الإلغاء فعل لا يسترد، فيكون POST — ورابط GET ينفذ بمجرد جلبه. */ ?>
@@ -227,7 +227,7 @@ include 'portal_open.php';
                         <input type="hidden" name="invoice_id" value="<?php echo (int) $tq_due['id']; ?>">
                         <button type="submit" class="tq-btn tq-btn--primary tq-btn--sm">
                             <?php echo tq_icon('card', 16); ?>
-                            ادفع الآن بالبطاقة
+                            <?php echo t('ادفع الآن بالبطاقة'); ?>
                         </button>
                     </form>
                 </div>
@@ -267,9 +267,9 @@ include 'portal_open.php';
                         <b><?php echo html_escape($tq_s['title']); ?></b>
                         <span>
                             <?php if ($tq_s['ready']): ?>
-                                <?php echo (int) $tq_s['lessons']; ?> درسا
+                                <?php echo (int) $tq_s['lessons']; ?> <?php echo t('درسا'); ?>
                             <?php else: ?>
-                                قيد الإعداد
+                                <?php echo t('قيد الإعداد'); ?>
                             <?php endif; ?>
                         </span>
                     </li>
@@ -340,10 +340,10 @@ include 'portal_open.php';
                                 <span class="tq-ltr" dir="ltr"><?php
                                     echo html_escape($tq_c['invoice_no']); ?></span>
                             <?php elseif (!empty($tq_c['ends_at'])): ?>
-                                حتى <span class="tq-ltr" dir="ltr"><?php
+                                <?php echo t('حتى'); ?> <span class="tq-ltr" dir="ltr"><?php
                                     echo html_escape(substr((string) $tq_c['ends_at'], 0, 10)); ?></span>
                             <?php else: ?>
-                                وصول دائم
+                                <?php echo t('وصول دائم'); ?>
                             <?php endif; ?>
                         </span>
                     </li>
@@ -388,7 +388,7 @@ include 'portal_open.php';
                     <?php foreach ($invoices as $inv): ?>
                         <tr>
                             <td><span class="tq-ltr" dir="ltr"><?php echo html_escape($inv['invoice_no']); ?></span></td>
-                            <td><span class="tq-ltr" dir="ltr"><?php echo number_format(((int) $inv['total']) / 100, 2); ?></span> <?php echo t('ر.س'); ?></td>
+                            <td><span class="tq-ltr" dir="ltr"><?php echo number_format(((int) $inv['total']) / 100, 2); ?></span> <?php echo t(' ر.س'); ?></td>
                             <td>
                                 <?php
                                 $tq_ist = $inv['status'] === 'paid' ? array(t('مدفوعة'), 'mastered')

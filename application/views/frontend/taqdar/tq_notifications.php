@@ -232,7 +232,7 @@ include 'tq_notif_styles.php';
             <?php foreach ($tq_groups as $label => $items): ?>
                 <?php if (!$items) { continue; } ?>
                 <section class="tq-daygroup" aria-labelledby="tq-g-<?php echo md5($label); ?>">
-                    <span class="tq-daygroup__label" id="tq-g-<?php echo md5($label); ?>"><?php echo html_escape($label); ?></span>
+                    <span class="tq-daygroup__label" id="tq-g-<?php echo md5($label); ?>"><?php echo te($label); ?></span>
                     <div class="tq-card tq-card--panel" style="padding:var(--tq-space-s)">
                         <?php foreach ($items as $n): ?>
                             <?php

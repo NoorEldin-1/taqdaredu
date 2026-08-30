@@ -64,7 +64,7 @@ if (!function_exists('tq_api_money')) {
             'amount'    => $minor,                       // هللات — هو المرجع
             'decimal'   => number_format($minor / 100, 2, '.', ''),
             'currency'  => $currency,
-            'formatted' => number_format($minor / 100, 2) . ' ' . ($currency === 'SAR' ? 'ر.س' : $currency),
+            'formatted' => number_format($minor / 100, 2) . ' ' . ($currency === 'SAR' ? t('ر.س') : $currency),
         );
     }
 }
@@ -164,7 +164,7 @@ if (!function_exists('tq_api_validate')) {
             $blank    = ($value === null || (is_string($value) && trim($value) === ''));
 
             if ($required && $blank) {
-                $errors[$field][] = 'هذا الحقل مطلوب.';
+                $errors[$field][] = t('هذا الحقل مطلوب.');
                 continue;
             }
             if (!$has || $blank) continue;   // اختياري وغائب: لا يفحص
@@ -176,44 +176,44 @@ if (!function_exists('tq_api_validate')) {
                 switch ($rule) {
                     case 'email':
                         if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                            $errors[$field][] = 'صيغة البريد غير صحيحة — مثال: name@example.com';
+                            $errors[$field][] = t('صيغة البريد غير صحيحة — مثال: name@example.com');
                         }
                         break;
 
                     case 'int':
                         if (!is_numeric($value) || (int) $value != $value) {
-                            $errors[$field][] = 'القيمة يجب أن تكون رقما صحيحا.';
+                            $errors[$field][] = t('القيمة يجب أن تكون رقما صحيحا.');
                         }
                         break;
 
                     case 'bool':
                         if (!in_array($value, array(true, false, 0, 1, '0', '1', 'true', 'false'), true)) {
-                            $errors[$field][] = 'القيمة يجب أن تكون صحيحة أو خاطئة.';
+                            $errors[$field][] = t('القيمة يجب أن تكون صحيحة أو خاطئة.');
                         }
                         break;
 
                     case 'min':
                         if (mb_strlen((string) $value) < (int) $arg) {
-                            $errors[$field][] = 'أقل طول مسموح ' . (int) $arg . ' محارف.';
+                            $errors[$field][] = t('أقل طول مسموح ') . (int) $arg . t(' محارف.');
                         }
                         break;
 
                     case 'max':
                         if (mb_strlen((string) $value) > (int) $arg) {
-                            $errors[$field][] = 'أكثر طول مسموح ' . (int) $arg . ' محرفا.';
+                            $errors[$field][] = t('أكثر طول مسموح ') . (int) $arg . t(' محرفا.');
                         }
                         break;
 
                     case 'in':
                         $allowed = explode(',', (string) $arg);
                         if (!in_array((string) $value, $allowed, true)) {
-                            $errors[$field][] = 'القيمة غير مقبولة. المتاح: ' . implode(' · ', $allowed);
+                            $errors[$field][] = t('القيمة غير مقبولة. المتاح: ') . implode(' · ', $allowed);
                         }
                         break;
 
                     case 'phone':
                         if (!preg_match('/^[0-9+()\-\s]{6,25}$/u', (string) $value)) {
-                            $errors[$field][] = 'رقم الجوال يقبل الأرقام و + و - والمسافات فقط.';
+                            $errors[$field][] = t('رقم الجوال يقبل الأرقام و + و - والمسافات فقط.');
                         }
                         break;
                 }

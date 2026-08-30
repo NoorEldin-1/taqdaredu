@@ -116,7 +116,7 @@ $tq_smtp = array(
 
             <div class="tqa-actions">
                 <button type="submit" class="tqa-btn tqa-btn--primary">
-                    <?php echo tq_icon('check', 16); ?> احفظ إعدادات البريد
+                    <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ إعدادات البريد'); ?>
                 </button>
             </div>
         </form>
@@ -177,7 +177,7 @@ $tq_smtp = array(
                             <td data-label="إجراءات">
                                 <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                    href="<?php echo site_url('admin/edit_email_template/' . (int) $tq_r['id']); ?>">
-                                    <?php echo tq_icon('edit', 14); ?> تحرير
+                                    <?php echo tq_icon('edit', 14); ?> <?php echo t('تحرير'); ?>
                                 </a>
                             </td>
                         </tr>
