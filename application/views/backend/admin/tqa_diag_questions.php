@@ -54,13 +54,13 @@ $correct_of = function ($q) {
 <div class="tqa-head">
     <div>
         <h1>أسئلة: <?php echo html_escape($exam['title']); ?></h1>
-        <p>لكل سؤال مستواه، والمستوى هو ما يحسب به موضع الطالب — لا مجموع الإجابات.</p>
+        <p><?php echo t('لكل سؤال مستواه، والمستوى هو ما يحسب به موضع الطالب — لا مجموع الإجابات.'); ?></p>
     </div>
     <div class="tqa-actions">
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/form/diag_exams/' . $exam_id); ?>">
             <?php echo tq_icon('edit', 16); ?> إعدادات الاختبار
         </a>
-        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/module/diag_exams'); ?>">رجوع</a>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/module/diag_exams'); ?>"><?php echo t('رجوع'); ?></a>
     </div>
 </div>
 
@@ -70,8 +70,8 @@ $correct_of = function ($q) {
         <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
         <span>
             <strong><?php echo ((string) $exam['status'] === 'published')
-                ? 'هذا الاختبار منشور وناقص — وطلاب هذا الصف محبوسون عنده:'
-                : 'ينقص هذا الاختبار قبل أن ينشر:'; ?></strong>
+                ? t('هذا الاختبار منشور وناقص — وطلاب هذا الصف محبوسون عنده:')
+                : t('ينقص هذا الاختبار قبل أن ينشر:'); ?></strong>
             <?php echo html_escape(implode(' ', $readiness['why'])); ?>
         </span>
     </div>
@@ -79,8 +79,8 @@ $correct_of = function ($q) {
     <div class="tqa-note" style="margin-block-end:var(--tq-space-l)">
         <span aria-hidden="true"><?php echo tq_icon('check-badge', 18); ?></span>
         <span>
-            الاختبار مكتمل ولم ينشر بعد — فلا يعرض على أحد ولا يحبس أحدا.
-            <a href="<?php echo site_url('taqdar_admin/form/diag_exams/' . $exam_id); ?>">انشره من إعداداته</a>.
+            <?php echo t('الاختبار مكتمل ولم ينشر بعد — فلا يعرض على أحد ولا يحبس أحدا.'); ?>
+            <a href="<?php echo site_url('taqdar_admin/form/diag_exams/' . $exam_id); ?>"><?php echo t('انشره من إعداداته'); ?></a>.
         </span>
     </div>
 <?php endif; ?>
@@ -100,11 +100,11 @@ $correct_of = function ($q) {
             </div>
             <span class="tqa-stat__value"><?php echo $n; ?></span>
             <span class="tqa-stat__hint">
-                <?php echo $n > 0 ? 'سؤالا' : 'لا أسئلة في هذا المستوى'; ?>
+                <?php echo $n > 0 ? t('سؤالا') : t('لا أسئلة في هذا المستوى'); ?>
                 <?php if ((int) $exam['plan_' . $key] > 0): ?>
-                    — <?php echo html_escape(isset($plans[$exam['plan_' . $key]]) ? $plans[$exam['plan_' . $key]] : 'باقة'); ?>
+                    — <?php echo html_escape(isset($plans[$exam['plan_' . $key]]) ? $plans[$exam['plan_' . $key]] : t('باقة')); ?>
                 <?php elseif ($n > 0): ?>
-                    — <span style="color:var(--tq-danger)">بلا باقة مربوطة</span>
+                    — <span style="color:var(--tq-danger)"><?php echo t('بلا باقة مربوطة'); ?></span>
                 <?php endif; ?>
                 <?php if ($went > 0): ?>
                     · خرج به <?php echo $went; ?> طالبا
@@ -126,7 +126,7 @@ $correct_of = function ($q) {
 </style>
 <?php /* ── إضافة سؤال ──────────────────────────────────────────────── */ ?>
 <div class="tqa-card" style="margin-block-end:var(--tq-space-xl)">
-    <div class="tqa-card__head"><h4 class="header-title">أضف سؤالا</h4></div>
+    <div class="tqa-card__head"><h4 class="header-title"><?php echo t('أضف سؤالا'); ?></h4></div>
     <div class="tqa-card__body">
         <?php /* TQ-QIMG · `enctype` شرط لا زينة: بدونه يصل الطلب بلا
                  `$_FILES` اصلا، فيحفظ السؤال ولا صورة معه ولا خطأ يقال. */ ?>
@@ -136,41 +136,40 @@ $correct_of = function ($q) {
 
             <div class="tqa-fieldgrid">
                 <div class="tqa-field tqa-field--full">
-                    <label class="tqa-field__label" for="tqd-title">نص السؤال <span class="tqa-field__req">*</span></label>
+                    <label class="tqa-field__label" for="tqd-title"><?php echo t('نص السؤال'); ?> <span class="tqa-field__req">*</span></label>
                     <textarea class="tqa-textarea" id="tqd-title" name="title" rows="2" required></textarea>
                 </div>
 
                 <div class="tqa-field">
-                    <label class="tqa-field__label" for="tqd-level">المستوى <span class="tqa-field__req">*</span></label>
+                    <label class="tqa-field__label" for="tqd-level"><?php echo t('المستوى'); ?> <span class="tqa-field__req">*</span></label>
                     <select class="tqa-select" id="tqd-level" name="level">
                         <?php foreach ($levels as $key => $meta): ?>
                             <option value="<?php echo html_escape($key); ?>"><?php echo html_escape($meta['label']); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <span class="tqa-field__hint">مستوى السؤال هو ما يقاس به، لا صعوبته في نظر كاتبه.</span>
+                    <span class="tqa-field__hint"><?php echo t('مستوى السؤال هو ما يقاس به، لا صعوبته في نظر كاتبه.'); ?></span>
                 </div>
 
                 <div class="tqa-field">
-                    <label class="tqa-field__label" for="tqd-order">الترتيب</label>
+                    <label class="tqa-field__label" for="tqd-order"><?php echo t('الترتيب'); ?></label>
                     <input class="tqa-input" id="tqd-order" name="order" type="number" value="0">
-                    <span class="tqa-field__hint">صفر = في آخر المستوى.</span>
+                    <span class="tqa-field__hint"><?php echo t('صفر = في آخر المستوى.'); ?></span>
                 </div>
 
                 <div class="tqa-field tqa-field--full">
-                    <label class="tqa-field__label" for="tqd-image">صورة السؤال</label>
+                    <label class="tqa-field__label" for="tqd-image"><?php echo t('صورة السؤال'); ?></label>
                     <input class="tqa-input" id="tqd-image" name="image" type="file"
                            accept="image/png,image/jpeg,image/gif,image/webp">
                     <span class="tqa-field__hint">
-                        للمعادلات والرسوم البيانية ولقطات الشاشة — تعرض تحت نص السؤال.
-                        jpg · png · gif · webp، وحتى <span class="tq-ltr">4</span> ميجابايت.
+                        <?php echo t('للمعادلات والرسوم البيانية ولقطات الشاشة — تعرض تحت نص السؤال. jpg · png · gif · webp، وحتى'); ?> <span class="tq-ltr">4</span> <?php echo t('ميجابايت.'); ?>
                     </span>
                 </div>
             </div>
 
             <div class="tqa-field">
-                <label class="tqa-field__label">الخيارات والإجابة الصحيحة <span class="tqa-field__req">*</span></label>
+                <label class="tqa-field__label"><?php echo t('الخيارات والإجابة الصحيحة'); ?> <span class="tqa-field__req">*</span></label>
                 <span class="tqa-field__hint" style="margin-block-end:var(--tq-space-s)">
-                    خياران على الأقل وستة على الأكثر. علم الدائرة أمام الصحيح، والفارغ يهمل.
+                    <?php echo t('خياران على الأقل وستة على الأكثر. علم الدائرة أمام الصحيح، والفارغ يهمل.'); ?>
                 </span>
                 <?php for ($i = 0; $i < 6; $i++): ?>
                     <div class="tqd-opt">
@@ -178,7 +177,7 @@ $correct_of = function ($q) {
                                <?php echo $i === 0 ? 'checked' : ''; ?>
                                aria-label="الخيار <?php echo $i + 1; ?> هو الصحيح">
                         <input class="tqa-input" type="text" name="options[<?php echo $i; ?>]"
-                               placeholder="الخيار <?php echo $i + 1; ?><?php echo $i < 2 ? '' : ' (اختياري)'; ?>">
+                               placeholder="الخيار <?php echo $i + 1; ?><?php echo $i < 2 ? '' : t('(اختياري)'); ?>">
                     </div>
                 <?php endfor; ?>
             </div>
@@ -194,8 +193,8 @@ $correct_of = function ($q) {
 <?php if ($total < 1): ?>
 
     <?php tqa_empty(
-        'لا أسئلة بعد',
-        'ابدأ بأسئلة المستوى المبتدئ، ثم اصعد. والتدرج الصاعد هو ما يبني ثقة الطالب قبل أن يقيس حده.',
+        t('لا أسئلة بعد'),
+        t('ابدأ بأسئلة المستوى المبتدئ، ثم اصعد. والتدرج الصاعد هو ما يبني ثقة الطالب قبل أن يقيس حده.'),
         '', '', 'help'
     ); ?>
 
@@ -217,8 +216,7 @@ $correct_of = function ($q) {
 
                 <?php if (!$rows): ?>
                     <p class="tqa-dim">
-                        لا سؤال في هذا المستوى — ويتخطى في الحساب، فلا يحبس أحدا.
-                        وحين تضيف إليه أسئلة لا تنس ربط باقته.
+                        <?php echo t('لا سؤال في هذا المستوى — ويتخطى في الحساب، فلا يحبس أحدا. وحين تضيف إليه أسئلة لا تنس ربط باقته.'); ?>
                     </p>
                 <?php endif; ?>
 
@@ -236,7 +234,7 @@ $correct_of = function ($q) {
                                         <li class="<?php echo ((string) $o === $right) ? 'is-right' : ''; ?>">
                                             <?php echo html_escape($o); ?>
                                             <?php if ((string) $o === $right): ?>
-                                                <span class="tqa-badge tqa-badge--ok">الصحيح</span>
+                                                <span class="tqa-badge tqa-badge--ok"><?php echo t('الصحيح'); ?></span>
                                             <?php endif; ?>
                                         </li>
                                     <?php endforeach; ?>
@@ -246,32 +244,32 @@ $correct_of = function ($q) {
                             <?php /* الحذف نموذج لا رابط: رابط GET يحذف ينفذ بمجرد جلبه. */ ?>
                             <form method="post" style="margin:0"
                                   action="<?php echo site_url('taqdar_admin/diag_question_delete/' . $exam_id . '/' . (int) $q['id']); ?>"
-                                  data-tqa-confirm-title="حذف السؤال"
+                                  data-tqa-confirm-title="<?php echo te('حذف السؤال'); ?>"
                                   data-tqa-confirm="لا رجعة في هذا الحذف. وإجابات من أداه تبقى في سجل نتائجهم."
                                   data-tqa-confirm-ok="نعم، احذف"
                                   data-tqa-confirm-tone="danger">
                                 <?php echo tq_csrf(); ?>
                                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
-                                    <?php echo tq_icon('trash', 15); ?><span class="tqa-sr">حذف</span>
+                                    <?php echo tq_icon('trash', 15); ?><span class="tqa-sr"><?php echo t('حذف'); ?></span>
                                 </button>
                             </form>
                         </div>
 
                         <details class="tqd-edit">
-                            <summary>تحرير هذا السؤال</summary>
+                            <summary><?php echo t('تحرير هذا السؤال'); ?></summary>
                             <form method="post" enctype="multipart/form-data"
                                   action="<?php echo site_url('taqdar_admin/diag_question_save/' . $exam_id . '/' . (int) $q['id']); ?>"
                                   style="margin-block-start:var(--tq-space-m)">
                                 <?php echo tq_csrf(); ?>
 
                                 <div class="tqa-field">
-                                    <label class="tqa-field__label">نص السؤال</label>
+                                    <label class="tqa-field__label"><?php echo t('نص السؤال'); ?></label>
                                     <textarea class="tqa-textarea" name="title" rows="2" required><?php echo html_escape($q['title']); ?></textarea>
                                 </div>
 
                                 <div class="tqa-fieldgrid">
                                     <div class="tqa-field">
-                                        <label class="tqa-field__label">المستوى</label>
+                                        <label class="tqa-field__label"><?php echo t('المستوى'); ?></label>
                                         <select class="tqa-select" name="level">
                                             <?php foreach ($levels as $lk => $lm): ?>
                                                 <option value="<?php echo html_escape($lk); ?>"
@@ -282,13 +280,13 @@ $correct_of = function ($q) {
                                         </select>
                                     </div>
                                     <div class="tqa-field">
-                                        <label class="tqa-field__label">الترتيب</label>
+                                        <label class="tqa-field__label"><?php echo t('الترتيب'); ?></label>
                                         <input class="tqa-input" name="order" type="number" value="<?php echo (int) $q['order']; ?>">
                                     </div>
                                 </div>
 
                                 <div class="tqa-field">
-                                    <label class="tqa-field__label">صورة السؤال</label>
+                                    <label class="tqa-field__label"><?php echo t('صورة السؤال'); ?></label>
                                     <input class="tqa-input" name="image" type="file"
                                            accept="image/png,image/jpeg,image/gif,image/webp">
                                     <?php if (tq_qimage_url($q['image'] ?? '') !== ''): ?>
@@ -296,15 +294,15 @@ $correct_of = function ($q) {
                                                  فارغ يعني «اترك ما هو موجود» لا «احذفه». */ ?>
                                         <label class="tqa-check" style="margin-block-start:var(--tq-space-s)">
                                             <input type="checkbox" name="image_remove" value="1">
-                                            <span>احذف الصورة الحالية</span>
+                                            <span><?php echo t('احذف الصورة الحالية'); ?></span>
                                         </label>
                                     <?php else: ?>
-                                        <span class="tqa-field__hint">jpg · png · gif · webp، وحتى <span class="tq-ltr">4</span> ميجابايت.</span>
+                                        <span class="tqa-field__hint"><?php echo t('jpg · png · gif · webp، وحتى'); ?> <span class="tq-ltr">4</span> <?php echo t('ميجابايت.'); ?></span>
                                     <?php endif; ?>
                                 </div>
 
                                 <div class="tqa-field">
-                                    <label class="tqa-field__label">الخيارات والإجابة الصحيحة</label>
+                                    <label class="tqa-field__label"><?php echo t('الخيارات والإجابة الصحيحة'); ?></label>
                                     <?php foreach ($vals as $i => $v): ?>
                                         <div class="tqd-opt">
                                             <input type="radio" name="correct" value="<?php echo $i; ?>"
@@ -318,7 +316,7 @@ $correct_of = function ($q) {
                                 </div>
 
                                 <div class="tqa-actions">
-                                    <button type="submit" class="tqa-btn tqa-btn--primary tqa-btn--sm">حفظ التعديل</button>
+                                    <button type="submit" class="tqa-btn tqa-btn--primary tqa-btn--sm"><?php echo t('حفظ التعديل'); ?></button>
                                 </div>
                             </form>
                         </details>

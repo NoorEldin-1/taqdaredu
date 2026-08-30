@@ -31,7 +31,7 @@ $tq_dur  = isset($tq_dur) ? $tq_dur : '';
 $tq_kind = isset($tq_kind) ? $tq_kind : 'youtube';
 ?>
 <div class="tqa-field">
-    <label class="tqa-field__label" for="video_url">رابط الفيديو</label>
+    <label class="tqa-field__label" for="video_url"><?php echo t('رابط الفيديو'); ?></label>
     <input class="tqa-input tqa-input--ltr" type="url" id="video_url" name="video_url" dir="ltr"
            value="<?php echo html_escape($tq_url); ?>"
            data-tq-cur="url" data-tq-probe="<?php echo html_escape($tq_kind); ?>"
@@ -41,11 +41,11 @@ $tq_kind = isset($tq_kind) ? $tq_kind : 'youtube';
 </div>
 
 <div class="tqa-field">
-    <label class="tqa-field__label" for="duration">المدة</label>
+    <label class="tqa-field__label" for="duration"><?php echo t('المدة'); ?></label>
     <input class="tqa-input tqa-input--ltr" type="text" id="duration" name="duration" dir="ltr"
            data-tq-cur="duration"
            value="<?php echo html_escape($tq_dur); ?>" placeholder="00:00:00">
-    <span class="tqa-field__hint">تقرأ تلقائيا من الرابط، وتكتب بيد إن تعذر.</span>
+    <span class="tqa-field__hint"><?php echo t('تقرأ تلقائيا من الرابط، وتكتب بيد إن تعذر.'); ?></span>
 </div>
 
 <?php

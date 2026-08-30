@@ -48,36 +48,34 @@ foreach ($questions as $q) {
 <div class="tqa-head">
     <div>
         <h1>ربط أسئلة: <?php echo html_escape($course['title']); ?></h1>
-        <p>لكل سؤال هدف واحد — هو ما يحدد إلى أين يعاد الطالب حين يخطئ.</p>
+        <p><?php echo t('لكل سؤال هدف واحد — هو ما يحدد إلى أين يعاد الطالب حين يخطئ.'); ?></p>
     </div>
-    <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/bindings'); ?>">رجوع</a>
+    <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/bindings'); ?>"><?php echo t('رجوع'); ?></a>
 </div>
 
 
 <?php if (empty($objectives)): ?>
 
     <div class="tqa-block">
-        <h3>هذه الدورة بلا أهداف</h3>
+        <h3><?php echo t('هذه الدورة بلا أهداف'); ?></h3>
         <p>
-            أضف أهدافا لدروس الفيديو فيها أولا، فالربط يحتاج طرفين.
-            والهدف يعلق على درس الفيديو لا على درس الاختبار: إليه يعيد النظام
-            الطالب، وعند لحظته من الشرح تحديدا.
+            <?php echo t('أضف أهدافا لدروس الفيديو فيها أولا، فالربط يحتاج طرفين. والهدف يعلق على درس الفيديو لا على درس الاختبار: إليه يعيد النظام الطالب، وعند لحظته من الشرح تحديدا.'); ?>
         </p>
-        <a class="tqa-btn tqa-btn--primary" href="<?php echo site_url('taqdar_admin/form/objectives'); ?>">أضف هدفا</a>
+        <a class="tqa-btn tqa-btn--primary" href="<?php echo site_url('taqdar_admin/form/objectives'); ?>"><?php echo t('أضف هدفا'); ?></a>
     </div>
 
 <?php elseif (empty($questions)): ?>
 
     <div class="tqa-empty">
-        <h3>لا أسئلة في اختبارات هذه الدورة</h3>
-        <p>أضف درس اختبار وأسئلته من شاشة الدورات، ثم عد إلى هنا لتربطها بالأهداف.</p>
+        <h3><?php echo t('لا أسئلة في اختبارات هذه الدورة'); ?></h3>
+        <p><?php echo t('أضف درس اختبار وأسئلته من شاشة الدورات، ثم عد إلى هنا لتربطها بالأهداف.'); ?></p>
     </div>
 
 <?php else: ?>
 
     <div class="tqa-card">
         <div class="tqa-card__head">
-            <h4 class="header-title">أهداف دروس هذه الدورة</h4>
+            <h4 class="header-title"><?php echo t('أهداف دروس هذه الدورة'); ?></h4>
         </div>
         <div class="tqa-card__body">
             <?php foreach ($obj_by_lesson as $lid => $g): ?>
@@ -98,11 +96,9 @@ foreach ($questions as $q) {
 
     <?php if ($broken): ?>
         <div class="tqa-note">
-            <strong>تنبيه:</strong>
+            <strong><?php echo t('تنبيه:'); ?></strong>
             <span class="tq-ltr" dir="ltr"><?php echo $broken; ?></span>
-            سؤالا مربوط بهدف خارج هذه الدورة أو بهدف محذوف — والبوابة لا تراه.
-            هذه الأسئلة تظهر أدناه «بلا هدف»، فاختر لها هدفا صحيحا قبل الحفظ،
-            وإلا ألغي ربطها المكسور.
+            <?php echo t('سؤالا مربوط بهدف خارج هذه الدورة أو بهدف محذوف — والبوابة لا تراه. هذه الأسئلة تظهر أدناه «بلا هدف»، فاختر لها هدفا صحيحا قبل الحفظ، وإلا ألغي ربطها المكسور.'); ?>
         </div>
     <?php endif; ?>
 
@@ -114,8 +110,8 @@ foreach ($questions as $q) {
                         <thead>
                             <tr>
                                 <th style="inline-size:56px">#</th>
-                                <th>السؤال</th>
-                                <th style="inline-size:340px">الهدف</th>
+                                <th><?php echo t('السؤال'); ?></th>
+                                <th style="inline-size:340px"><?php echo t('الهدف'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -124,9 +120,9 @@ foreach ($questions as $q) {
                                 <td colspan="3">
                                     <strong><?php echo html_escape($grp['title']); ?></strong>
                                     <span class="tqa-dim">
-                                        — اختبار،
+                                        <?php echo t('— اختبار،'); ?>
                                         <span class="tq-ltr" dir="ltr"><?php echo count($grp['items']); ?></span>
-                                        سؤالا
+                                        <?php echo t('سؤالا'); ?>
                                     </span>
                                 </td>
                             </tr>
@@ -140,12 +136,12 @@ foreach ($questions as $q) {
                                 <td>
                                     <?php echo html_escape(strip_tags($q['title'])); ?>
                                     <?php if ($cur && !$in_this): ?>
-                                        <span class="tqa-warn">ربطه الحالي خارج هذه الدورة — يلغى ما لم تختر هدفا.</span>
+                                        <span class="tqa-warn"><?php echo t('ربطه الحالي خارج هذه الدورة — يلغى ما لم تختر هدفا.'); ?></span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
                                     <select class="tqa-input" name="objective[<?php echo (int) $q['id']; ?>]">
-                                        <option value="0">— بلا هدف —</option>
+                                        <option value="0"><?php echo t('— بلا هدف —'); ?></option>
                                         <?php foreach ($obj_by_lesson as $lid => $g): ?>
                                             <optgroup label="<?php echo html_escape($g['title']); ?>">
                                                 <?php foreach ($g['items'] as $o): ?>
@@ -167,15 +163,13 @@ foreach ($questions as $q) {
                 </div>
 
                 <p class="tqa-count">
-                    مربوط الآن <span class="tq-ltr" dir="ltr"><?php echo $bound_now; ?></span>
-                    من <span class="tq-ltr" dir="ltr"><?php echo count($questions); ?></span> سؤالا.
-                    والقائمة تعرض أهداف هذه الدورة وحدها؛ وما وصل من خارجها يرفض في الخادم
-                    ولو غيرت القائمة في المتصفح.
+                    <?php echo t('مربوط الآن'); ?> <span class="tq-ltr" dir="ltr"><?php echo $bound_now; ?></span>
+                    <?php echo t('من'); ?> <span class="tq-ltr" dir="ltr"><?php echo count($questions); ?></span> <?php echo t('سؤالا. والقائمة تعرض أهداف هذه الدورة وحدها؛ وما وصل من خارجها يرفض في الخادم ولو غيرت القائمة في المتصفح.'); ?>
                 </p>
 
                 <div class="tqa-actions">
-                    <button type="submit" class="tqa-btn tqa-btn--primary">حفظ الربط</button>
-                    <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/bindings'); ?>">رجوع</a>
+                    <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo t('حفظ الربط'); ?></button>
+                    <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/bindings'); ?>"><?php echo t('رجوع'); ?></a>
                 </div>
             </div>
         </div>

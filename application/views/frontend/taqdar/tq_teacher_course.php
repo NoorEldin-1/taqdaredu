@@ -41,8 +41,8 @@ $CI->load->model('taqdar_quiz_model', 'tq_quiz');
 $tq_course = $CI->db->select('id, title, status, thumbnail, level')
                     ->where('id', $tq_cid)->get('course')->row_array();
 
-$tq_title = 'مقرر: ' . (string) ($tq_course['title'] ?? '');
-$tq_sub   = 'أقسام هذا الكورس ودروسه — والنشر بعد مراجعة الإدارة.';
+$tq_title = t('مقرر:') . (string) ($tq_course['title'] ?? '');
+$tq_sub   = t('أقسام هذا الكورس ودروسه — والنشر بعد مراجعة الإدارة.');
 
 $tq_outline = $CI->tq_curric->outline($tq_cid);
 $tq_types   = tq_cur_types();
@@ -144,7 +144,7 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
             <?php echo tq_icon('plus', 16); ?> إضافة قسم
         </button>
         <button class="tq-btn tq-btn--secondary" type="button" data-tqc-open="lesDlg" data-tqc-new
-                <?php echo $tq_sections ? '' : 'disabled aria-disabled="true" title="أضف قسما أولا"'; ?>>
+                <?php echo $tq_sections ? '' : t('disabled aria-disabled="true" title="أضف قسما أولا"'); ?>>
             <?php echo tq_icon('plus', 16); ?> إضافة درس
         </button>
     </div>
@@ -165,8 +165,8 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
     <p class="tqc-note tq-section">
         <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
         <span>
-            <strong>هذا الكورس لم ينشر بعد.</strong>
-            ابن مقرره من الآن — والدروس التي تعتمدها الإدارة تظهر لطلابك حين ينشر الكورس.
+            <strong><?php echo t('هذا الكورس لم ينشر بعد.'); ?></strong>
+            <?php echo t('ابن مقرره من الآن — والدروس التي تعتمدها الإدارة تظهر لطلابك حين ينشر الكورس.'); ?>
         </span>
     </p>
 <?php endif; ?>
@@ -178,10 +178,9 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
             <span class="tq-icon-box tq-pastel--sky" style="inline-size:72px;block-size:72px" aria-hidden="true">
                 <?php echo tq_icon('layers', 34); ?>
             </span>
-            <p class="tq-empty__title">لا أقسام في هذا الكورس بعد</p>
+            <p class="tq-empty__title"><?php echo t('لا أقسام في هذا الكورس بعد'); ?></p>
             <p class="tq-empty__text">
-                القسم وعاء الدروس. أضف قسما أولا — مثل «الوحدة الأولى: الأعداد» —
-                ثم ضع دروسه فيه. والدرس لا يحفظ بلا قسم يحمله.
+                <?php echo t('القسم وعاء الدروس. أضف قسما أولا — مثل «الوحدة الأولى: الأعداد» — ثم ضع دروسه فيه. والدرس لا يحفظ بلا قسم يحمله.'); ?>
             </p>
             <button class="tq-btn tq-btn--primary" type="button" data-tqc-open="secDlg" data-tqc-new>
                 <?php echo tq_icon('plus', 16); ?> أضف القسم الأول
@@ -222,10 +221,10 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
 
         <?php if (empty($tq_s['items'])): ?>
             <p class="tq-caption" style="padding:var(--tq-space-l)">
-                لا دروس في هذا القسم بعد.
+                <?php echo t('لا دروس في هذا القسم بعد.'); ?>
                 <button class="tq-btn tq-btn--ghost tq-btn--sm" type="button"
                         data-tqc-open="lesDlg" data-tqc-new data-tqc-section="<?php echo (int) $tq_s['id']; ?>">
-                    أضف درسا هنا
+                    <?php echo t('أضف درسا هنا'); ?>
                 </button>
             </p>
         <?php else: ?>
@@ -251,7 +250,7 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
                             <span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_l['duration']); ?></span>
                         <?php endif; ?>
                         <span><?php echo tq_iso($tq_l['objectives']); ?> هدفا</span>
-                        <?php if ((int) $tq_l['is_free'] === 1): ?><span>معاينة مجانية</span><?php endif; ?>
+                        <?php if ((int) $tq_l['is_free'] === 1): ?><span><?php echo t('معاينة مجانية'); ?></span><?php endif; ?>
                     </div>
                 </div>
                 <div class="tqc-acts">
@@ -264,7 +263,7 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
                     <a class="tq-btn <?php echo $tq_qn > 0 ? 'tq-btn--ghost' : 'tq-btn--secondary'; ?> tq-btn--sm"
                        href="<?php echo base_url('teacher/quiz/' . (int) $tq_l['id']); ?>">
                         <?php echo tq_icon('help', 14); ?>
-                        <?php echo $tq_qn > 0 ? 'الاختبار (' . tq_iso($tq_qn) . ')' : 'أضف اختبارا'; ?>
+                        <?php echo $tq_qn > 0 ? t('الاختبار (') . tq_iso($tq_qn) . ')' : t('أضف اختبارا'); ?>
                     </a>
                     <a class="tq-btn tq-btn--ghost tq-btn--sm"
                        href="<?php echo base_url('teacher/course/' . $tq_cid) . '?lesson=' . (int) $tq_l['id']; ?>">
@@ -284,13 +283,13 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
 
             <?php if ((string) $tq_l['tq_status'] === 'rejected' && $tq_l['tq_review_note']): ?>
                 <p class="tqc-why">
-                    <strong>ردته الإدارة:</strong> <?php echo html_escape($tq_l['tq_review_note']); ?>
+                    <strong><?php echo t('ردته الإدارة:'); ?></strong> <?php echo html_escape($tq_l['tq_review_note']); ?>
                 </p>
             <?php endif; ?>
             <?php if ($tq_wait): ?>
                 <p class="tqc-wait">
-                    <strong>تعديلك على هذا الدرس ينتظر المراجعة.</strong>
-                    والدرس المنشور يعمل أمام طلابك كما هو حتى تعتمده الإدارة.
+                    <strong><?php echo t('تعديلك على هذا الدرس ينتظر المراجعة.'); ?></strong>
+                    <?php echo t('والدرس المنشور يعمل أمام طلابك كما هو حتى تعتمده الإدارة.'); ?>
                 </p>
             <?php endif; ?>
             <?php if (isset($tq_durflags[$tq_l['id']])): ?>
@@ -309,9 +308,9 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
         <div class="tqc-sec__head">
             <span class="tq-icon-box tq-pastel--peach" aria-hidden="true"><?php echo tq_icon('alert', 20); ?></span>
             <div class="tqc-sec__t">
-                <h2>دروس بلا قسم</h2>
+                <h2><?php echo t('دروس بلا قسم'); ?></h2>
                 <span class="tq-caption">
-                    لا تظهر للطالب في المقرر لأن ترتيبه بالأقسام. انقل كلا منها إلى قسم.
+                    <?php echo t('لا تظهر للطالب في المقرر لأن ترتيبه بالأقسام. انقل كلا منها إلى قسم.'); ?>
                 </span>
             </div>
         </div>
@@ -324,13 +323,13 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
                 <?php echo tq_csrf(); ?>
                 <input type="hidden" name="id" value="<?php echo (int) $tq_l['id']; ?>">
                 <input type="hidden" name="course_id" value="<?php echo $tq_cid; ?>">
-                <label class="sr-only" for="mv<?php echo (int) $tq_l['id']; ?>">القسم</label>
+                <label class="sr-only" for="mv<?php echo (int) $tq_l['id']; ?>"><?php echo t('القسم'); ?></label>
                 <select class="tq-select" id="mv<?php echo (int) $tq_l['id']; ?>" name="section_id" required>
                     <?php foreach ($tq_sections as $tq_s): ?>
                         <option value="<?php echo (int) $tq_s['id']; ?>"><?php echo html_escape($tq_s['title']); ?></option>
                     <?php endforeach; ?>
                 </select>
-                <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">انقل</button>
+                <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit"><?php echo t('انقل'); ?></button>
             </form>
         </div>
         <?php endforeach; ?>
@@ -348,20 +347,20 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
                data-tqc-sec-id>
 
         <div class="tqc-dlg__head">
-            <h2 data-tqc-sec-h><?php echo $tq_edit_sec ? 'تعديل القسم' : 'إضافة قسم'; ?></h2>
-            <button class="tqc-x" type="button" data-tqc-close aria-label="إغلاق"><?php echo tq_icon('close', 20); ?></button>
+            <h2 data-tqc-sec-h><?php echo $tq_edit_sec ? t('تعديل القسم') : t('إضافة قسم'); ?></h2>
+            <button class="tqc-x" type="button" data-tqc-close aria-label="<?php echo te('إغلاق'); ?>"><?php echo tq_icon('close', 20); ?></button>
         </div>
 
         <div class="tqc-dlg__body">
             <div class="tq-field">
                 <label class="tq-field__label" for="sec_title">
-                    عنوان القسم <span class="tqc-req" aria-hidden="true">*</span>
+                    <?php echo t('عنوان القسم'); ?> <span class="tqc-req" aria-hidden="true">*</span>
                 </label>
                 <input class="tq-input" type="text" id="sec_title" name="title" required maxlength="190"
                        value="<?php echo html_escape($tq_edit_sec['title'] ?? ''); ?>"
-                       data-tqc-sec-title placeholder="مثال: الوحدة الأولى — الأعداد">
+                       data-tqc-sec-title placeholder="<?php echo te('مثال: الوحدة الأولى — الأعداد'); ?>">
                 <span class="tq-caption">
-                    القسم وعاء الدروس، ويظهر عنوانه للطالب في صفحة الكورس.
+                    <?php echo t('القسم وعاء الدروس، ويظهر عنوانه للطالب في صفحة الكورس.'); ?>
                 </span>
             </div>
         </div>
@@ -370,7 +369,7 @@ dialog.tqc-dlg::backdrop { background: rgba(0,0,0,.45); }
             <button class="tq-btn tq-btn--primary" type="submit">
                 <?php echo tq_icon('check', 16); ?> احفظ القسم
             </button>
-            <button class="tq-btn tq-btn--ghost" type="button" data-tqc-close>إغلاق</button>
+            <button class="tq-btn tq-btn--ghost" type="button" data-tqc-close><?php echo t('إغلاق'); ?></button>
         </div>
     </form>
 </dialog>
@@ -390,8 +389,8 @@ $tq_live_edit = $tq_edit && (string) $tq_edit['tq_status'] === 'published';
         <input type="hidden" name="action" value="draft" data-tqc-action>
 
         <div class="tqc-dlg__head">
-            <h2><?php echo $tq_edit ? 'تعديل الدرس' : 'إضافة درس'; ?></h2>
-            <button class="tqc-x" type="button" data-tqc-close aria-label="إغلاق"><?php echo tq_icon('close', 20); ?></button>
+            <h2><?php echo $tq_edit ? t('تعديل الدرس') : t('إضافة درس'); ?></h2>
+            <button class="tqc-x" type="button" data-tqc-close aria-label="<?php echo te('إغلاق'); ?>"><?php echo tq_icon('close', 20); ?></button>
         </div>
 
         <div class="tqc-dlg__body">
@@ -400,22 +399,22 @@ $tq_live_edit = $tq_edit && (string) $tq_edit['tq_status'] === 'published';
                 <p class="tqc-note">
                     <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
                     <span>
-                        <strong>هذا الدرس منشور.</strong>
-                        تعديلك يرسل للمراجعة، و<strong>الدرس الحالي يبقى يعمل أمام طلابك</strong>
-                        حتى تعتمد الإدارة التعديل — فلا ينقطع عنهم شيء.
+                        <strong><?php echo t('هذا الدرس منشور.'); ?></strong>
+                        <?php echo t('تعديلك يرسل للمراجعة، و'); ?><strong><?php echo t('الدرس الحالي يبقى يعمل أمام طلابك'); ?></strong>
+                        <?php echo t('حتى تعتمد الإدارة التعديل — فلا ينقطع عنهم شيء.'); ?>
                     </span>
                 </p>
             <?php endif; ?>
 
             <?php /* ── النوع ─────────────────────────────────────── */ ?>
             <fieldset style="border:0;padding:0;margin:0 0 var(--tq-space-l)">
-                <legend class="tq-field__label" style="padding:0">نوع الدرس</legend>
+                <legend class="tq-field__label" style="padding:0"><?php echo t('نوع الدرس'); ?></legend>
                 <?php tq_cur_type_picker($tq_kind_now, 'tq'); ?>
             </fieldset>
 
             <div class="tq-field">
                 <label class="tq-field__label" for="les_title">
-                    عنوان الدرس <span class="tqc-req" aria-hidden="true">*</span>
+                    <?php echo t('عنوان الدرس'); ?> <span class="tqc-req" aria-hidden="true">*</span>
                 </label>
                 <input class="tq-input" type="text" id="les_title" name="title" required
                        minlength="3" maxlength="190"
@@ -424,7 +423,7 @@ $tq_live_edit = $tq_edit && (string) $tq_edit['tq_status'] === 'published';
 
             <div class="tq-field">
                 <label class="tq-field__label" for="les_section">
-                    القسم <span class="tqc-req" aria-hidden="true">*</span>
+                    <?php echo t('القسم'); ?> <span class="tqc-req" aria-hidden="true">*</span>
                 </label>
                 <select class="tq-select" id="les_section" name="section_id" required data-tqc-les-section>
                     <?php foreach ($tq_sections as $tq_s): ?>
@@ -449,19 +448,17 @@ $tq_live_edit = $tq_edit && (string) $tq_edit['tq_status'] === 'published';
             <?php endforeach; ?>
 
             <div class="tq-field">
-                <label class="tq-field__label" for="les_summary">ملخص الدرس</label>
+                <label class="tq-field__label" for="les_summary"><?php echo t('ملخص الدرس'); ?></label>
                 <textarea class="tq-textarea" id="les_summary" name="summary" rows="3"
-                          placeholder="سطران يخبران الطالب بما سيخرج به من هذا الدرس"><?php
+                          placeholder="<?php echo te('سطران يخبران الطالب بما سيخرج به من هذا الدرس'); ?>"><?php
                     echo html_escape($tq_edit['summary'] ?? ''); ?></textarea>
             </div>
 
             <?php /* ── الأهداف: بها تحكم بوابة الإتقان ──────────────── */ ?>
             <fieldset style="border:0;padding:0;margin:0 0 var(--tq-space-l)">
-                <legend class="tq-field__label" style="padding:0">الأهداف التعليمية</legend>
+                <legend class="tq-field__label" style="padding:0"><?php echo t('الأهداف التعليمية'); ?></legend>
                 <p class="tq-caption" style="margin-block-end:var(--tq-space-m)">
-                    من هدف إلى ثلاثة. وإليها تنسب أسئلة الاختبار، وبها يعرف النظام أي مفهوم
-                    تعثر فيه الطالب فيعيده إلى ثانيته. والهدف يكتب بفعل يقاس:
-                    «يحلل» · «يحسب» · «يميز» — لا «يفهم».
+                    <?php echo t('من هدف إلى ثلاثة. وإليها تنسب أسئلة الاختبار، وبها يعرف النظام أي مفهوم تعثر فيه الطالب فيعيده إلى ثانيته. والهدف يكتب بفعل يقاس: «يحلل» · «يحسب» · «يميز» — لا «يفهم».'); ?>
                 </p>
                 <?php for ($tq_o = 0; $tq_o < 3; $tq_o++):
                     $tq_ov = $tq_edit_objectives[$tq_o] ?? null; ?>
@@ -470,13 +467,13 @@ $tq_live_edit = $tq_edit && (string) $tq_edit['tq_status'] === 'published';
                                style="flex:1"
                                value="<?php echo html_escape($tq_ov['text'] ?? ''); ?>"
                                placeholder="<?php echo $tq_o === 0
-                                   ? 'الهدف الأول (مطلوب) — مثال: أن يحلل الطالب المقدار الثلاثي إلى عاملين'
-                                   : 'هدف إضافي (اختياري)'; ?>">
-                        <label class="sr-only" for="oat<?php echo $tq_o; ?>">لحظة شرحه (ثانية)</label>
+                                   ? t('الهدف الأول (مطلوب) — مثال: أن يحلل الطالب المقدار الثلاثي إلى عاملين')
+                                   : t('هدف إضافي (اختياري)'); ?>">
+                        <label class="sr-only" for="oat<?php echo $tq_o; ?>"><?php echo t('لحظة شرحه (ثانية)'); ?></label>
                         <input class="tq-input tq-ltr" type="number" min="0" id="oat<?php echo $tq_o; ?>"
                                name="objective_at[]" dir="ltr" style="inline-size:110px"
                                value="<?php echo (int) ($tq_ov['at_second'] ?? 0); ?>"
-                               title="الثانية التي يشرح فيها هذا الهدف في الفيديو">
+                               title="<?php echo te('الثانية التي يشرح فيها هذا الهدف في الفيديو'); ?>">
                     </div>
                 <?php endfor; ?>
             </fieldset>
@@ -484,7 +481,7 @@ $tq_live_edit = $tq_edit && (string) $tq_edit['tq_status'] === 'published';
             <label class="tq-row" style="gap:var(--tq-space-s);cursor:pointer">
                 <input type="checkbox" name="is_free" value="1"
                     <?php echo $tq_edit && (int) $tq_edit['is_free'] === 1 ? 'checked' : ''; ?>>
-                <span class="tq-caption">درس معاينة مجاني — يفتح لغير المشتركين. واحد أو اثنان يكفيان.</span>
+                <span class="tq-caption"><?php echo t('درس معاينة مجاني — يفتح لغير المشتركين. واحد أو اثنان يكفيان.'); ?></span>
             </label>
         </div>
 
@@ -493,9 +490,9 @@ $tq_live_edit = $tq_edit && (string) $tq_edit['tq_status'] === 'published';
                 <?php echo tq_icon('send', 16); ?> احفظ وأرسل للمراجعة
             </button>
             <button class="tq-btn tq-btn--secondary" type="submit" value="draft" data-tqc-submit="draft">
-                احفظ كمسودة
+                <?php echo t('احفظ كمسودة'); ?>
             </button>
-            <button class="tq-btn tq-btn--ghost" type="button" data-tqc-close>إغلاق</button>
+            <button class="tq-btn tq-btn--ghost" type="button" data-tqc-close><?php echo t('إغلاق'); ?></button>
         </div>
     </form>
 </dialog>

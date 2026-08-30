@@ -34,106 +34,106 @@ $tq_role = $tq_role ?? 'student';
 $tq_rail_map = [
     'student' => [
         ['', [
-            ['home', 'الرئيسية', 'student', 'home'],
+            ['home', t('الرئيسية'), 'student', 'home'],
         ]],
-        ['التعلم', [
+        [t('التعلم'), [
             /* الكورس والدرس بندان لا بند: «دروسي» كانت تفتح شبكة كورسات،
                فلا مدخل في القائمة كلها إلى درس بعينه. والترتيب مقصود —
                الكورس وعاء والدرس ما فيه، فيقرأ من الأعم إلى الأخص. */
-            ['courses',    'كورساتي',          'student/courses',    'book'],
-            ['lessons',    'دروسي',            'student/lessons',    'play'],
-            ['bundle',     'محتوى باقتي',      'student/bundle',     'grid'],
+            ['courses',    t('كورساتي'),          'student/courses',    'book'],
+            ['lessons',    t('دروسي'),            'student/lessons',    'play'],
+            ['bundle',     t('محتوى باقتي'),      'student/bundle',     'grid'],
             /* الكتب كانت في الكتالوج العام وفي اللوحة، وبلا قارئ في بوابة
                الطالب: يشتري باقة فيها كتب ولا موضع يفتحها منه. */
-            ['library',    'مكتبتي',           'student/library',    'book'],
-            ['materials',  'المواد التعليمية', 'student/materials',  'folder'],
-            ['favourites', 'المفضلة',          'student/favourites', 'heart'],
+            ['library',    t('مكتبتي'),           'student/library',    'book'],
+            ['materials',  t('المواد التعليمية'), 'student/materials',  'folder'],
+            ['favourites', t('المفضلة'),          'student/favourites', 'heart'],
         ]],
-        ['التمرين والقياس', [
-            ['reviews',  'المراجعة',      'student/reviews',  'flame'],
+        [t('التمرين والقياس'), [
+            ['reviews',  t('المراجعة'),      'student/reviews',  'flame'],
             /* دفتر الأخطاء: محركه (`get_mistakes`) و`endpoint`ه
                (`taqdar_gate/mistakes`) مبنيان منذ أن كتبت بوابة الإتقان،
                ولم يكن في الواجهة كلها سطر يناديهما — ميزة كاملة بلا باب.
                وموضعه هنا لا في «المتابعة»: الدفتر يمرن ولا يخبر. */
-            ['mistakes', 'دفتر الأخطاء', 'student/mistakes', 'help'],
-            ['tasks',    'مهامي',        'student/tasks',    'clipboard'],
-            ['exams',    'اختباراتي',    'student/exams',    'check-badge'],
+            ['mistakes', t('دفتر الأخطاء'), 'student/mistakes', 'help'],
+            ['tasks',    t('مهامي'),        'student/tasks',    'clipboard'],
+            ['exams',    t('اختباراتي'),    'student/exams',    'check-badge'],
         ]],
-        ['المتابعة', [
-            ['reports',      'المتابعة والتقارير', 'student/reports',      'chart'],
+        [t('المتابعة'), [
+            ['reports',      t('المتابعة والتقارير'), 'student/reports',      'chart'],
             /* خريطة الإتقان: يقرؤها المسؤول في `taqdar_admin/mastery`
                ويقاس عليها الطالب وتصدر بها شهادته — ولا يراها هو. */
-            ['mastery',      'خريطة إتقاني',       'student/mastery',      'target'],
-            ['calendar',     'التقويم',            'student/calendar',     'calendar'],
-            ['certificates', 'الشهادات',           'student/certificates', 'award'],
+            ['mastery',      t('خريطة إتقاني'),       'student/mastery',      'target'],
+            ['calendar',     t('التقويم'),            'student/calendar',     'calendar'],
+            ['certificates', t('الشهادات'),           'student/certificates', 'award'],
         ]],
-        ['الدعم والتواصل', [
-            ['on_demand',     'حصص بالطلب', 'student/on-demand',     'video'],
-            ['messages',      'رسائلي',     'student/messages',      'chat'],
-            ['notifications', 'الإشعارات',  'student/notifications', 'bell'],
+        [t('الدعم والتواصل'), [
+            ['on_demand',     t('حصص بالطلب'), 'student/on-demand',     'video'],
+            ['messages',      t('رسائلي'),     'student/messages',      'chat'],
+            ['notifications', t('الإشعارات'),  'student/notifications', 'bell'],
         ]],
-        ['حسابي', [
+        [t('حسابي'), [
             /* الملف الشخصي غير الإعدادات: هذا ما بلغه الطالب — إتقانه
                وشهاداته وسلسلته — وتلك ما يضبطه. وكانا شاشة واحدة. */
-            ['profile',      'ملفي',      'student/profile',      'user'],
-            ['subscription', 'اشتراكي',   'student/subscription', 'wallet'],
-            ['settings',     'الإعدادات', 'student/settings',     'cog'],
+            ['profile',      t('ملفي'),      'student/profile',      'user'],
+            ['subscription', t('اشتراكي'),   'student/subscription', 'wallet'],
+            ['settings',     t('الإعدادات'), 'student/settings',     'cog'],
         ]],
     ],
     'teacher' => [
         ['', [
-            ['dashboard', 'اللوحة', 'teacher', 'home'],
+            ['dashboard', t('اللوحة'), 'teacher', 'home'],
         ]],
-        ['التدريس', [
+        [t('التدريس'), [
             /* كما في بوابة الطالب: الكورس وعاء والدرس ما فيه، ولكل منهما
                شاشة. وكان الدرس بلا شاشة هنا أصلا — رقم في جدول وخمسة في زاوية. */
-            ['courses',   'كورساتي',     'teacher/courses',   'book'],
-            ['lessons',   'دروسي',       'teacher/lessons',   'play'],
-            ['upload',    'رفع الدروس',      'teacher/upload',    'upload'],
+            ['courses',   t('كورساتي'),     'teacher/courses',   'book'],
+            ['lessons',   t('دروسي'),       'teacher/lessons',   'play'],
+            ['upload',    t('رفع الدروس'),      'teacher/upload',    'upload'],
             /* الاستوديو بعد الرفع مباشرة: هو الخطوة التالية في دورة
                الإنتاج — يرفع، ثم يولد ويعتمد، ثم يرسل للمراجعة. */
-            ['studio',    'استوديو المحتوى', 'teacher/studio',    'pen'],
-            ['questions', 'بنك الأسئلة',     'teacher/questions', 'help'],
+            ['studio',    t('استوديو المحتوى'), 'teacher/studio',    'pen'],
+            ['questions', t('بنك الأسئلة'),     'teacher/questions', 'help'],
         ]],
-        ['الطلاب والتصحيح', [
-            ['marking',   'الواجبات والتصحيح', 'teacher/marking',   'clipboard'],
-            ['students',  'طلابي',             'teacher/students',  'users'],
-            ['sessions',  'الحصص',             'teacher/sessions',  'video'],
+        [t('الطلاب والتصحيح'), [
+            ['marking',   t('الواجبات والتصحيح'), 'teacher/marking',   'clipboard'],
+            ['students',  t('طلابي'),             'teacher/students',  'users'],
+            ['sessions',  t('الحصص'),             'teacher/sessions',  'video'],
             /* التحليلات مع الطلاب لا مع التدريس: الخريطة الحرارية تقرأ
                سلوك الطلاب لا حال المحتوى، وكل صف فيها ينتهي بإجراء. */
-            ['analytics', 'التحليلات',         'teacher/analytics', 'chart'],
+            ['analytics', t('التحليلات'),         'teacher/analytics', 'chart'],
         ]],
         /* التواصل: كان المعلم يرسل إلى طلابه من شاشة «طلابي» ولا يملك
            صندوقا يقرأ فيه ردهم، وكانت إشعاراته تعد في `Taqdar::counts()`
            ولا تعرض في شاشة ولا في جرس. */
-        ['التواصل', [
-            ['messages',      'الرسائل',   'teacher/messages',      'chat'],
-            ['notifications', 'الإشعارات', 'teacher/notifications', 'bell'],
+        [t('التواصل'), [
+            ['messages',      t('الرسائل'),   'teacher/messages',      'chat'],
+            ['notifications', t('الإشعارات'), 'teacher/notifications', 'bell'],
         ]],
-        ['حسابي', [
-            ['wallet',   'المحفظة والأرباح', 'teacher/wallet',   'wallet'],
-            ['settings', 'الإعدادات',        'teacher/settings', 'cog'],
+        [t('حسابي'), [
+            ['wallet',   t('المحفظة والأرباح'), 'teacher/wallet',   'wallet'],
+            ['settings', t('الإعدادات'),        'teacher/settings', 'cog'],
         ]],
     ],
     'parent' => [
         ['', [
-            ['children', 'أبنائي', 'parent', 'users'],
+            ['children', t('أبنائي'), 'parent', 'users'],
         ]],
-        ['المتابعة', [
-            ['reports', 'التقارير',         'parent/reports', 'chart'],
-            ['weekly',  'التقرير الأسبوعي', 'parent/weekly',  'clipboard'],
+        [t('المتابعة'), [
+            ['reports', t('التقارير'),         'parent/reports', 'chart'],
+            ['weekly',  t('التقرير الأسبوعي'), 'parent/weekly',  'clipboard'],
         ]],
-        ['التواصل', [
-            ['messages', 'الرسائل',   'parent/messages', 'chat'],
-            ['alerts',   'الإشعارات', 'parent/alerts',   'bell'],
+        [t('التواصل'), [
+            ['messages', t('الرسائل'),   'parent/messages', 'chat'],
+            ['alerts',   t('الإشعارات'), 'parent/alerts',   'bell'],
         ]],
-        ['حسابي', [
+        [t('حسابي'), [
             /* الدفع فعل والمدفوعات سجل، وهما بندان لا بند: كان ولي
                الأمر لا يستطيع الشراء لابنه أصلا — `checkout()` يرده
                برسالة «الاشتراك لحسابات الطلاب». */
-            ['pay',      'ادفع عن ابنك', 'parent/pay',      'card'],
-            ['payments', 'المدفوعات',    'parent/payments', 'wallet'],
-            ['settings', 'الإعدادات',    'parent/settings', 'cog'],
+            ['pay',      t('ادفع عن ابنك'), 'parent/pay',      'card'],
+            ['payments', t('المدفوعات'),    'parent/payments', 'wallet'],
+            ['settings', t('الإعدادات'),    'parent/settings', 'cog'],
         ]],
     ],
 ];
@@ -171,11 +171,11 @@ if ($tq_role === 'student' && !isset($tq_counts['reviews'])) {
 
 /** نص قارئ الشاشة لكل شارة — «غير مقروء» لا يصف سؤالا حل موعده. */
 $tq_count_sr = [
-    'reviews'       => 'سؤال مستحق اليوم',
-    'tasks'         => 'مهمة مستحقة',
-    'messages'      => 'رسالة غير مقروءة',
-    'notifications' => 'إشعار غير مقروء',
-    'alerts'        => 'إشعار غير مقروء',
+    'reviews'       => t('سؤال مستحق اليوم'),
+    'tasks'         => t('مهمة مستحقة'),
+    'messages'      => t('رسالة غير مقروءة'),
+    'notifications' => t('إشعار غير مقروء'),
+    'alerts'        => t('إشعار غير مقروء'),
 ];
 ?>
 <div class="tq-rail-scrim" data-tq-scrim hidden></div>
@@ -186,17 +186,17 @@ $tq_count_sr = [
         <a class="tq-logo tq-rail__logo" href="<?php echo base_url(); ?>">
             <img src="<?php echo tq_asset('brand/icon.png'); ?>" alt="" width="36" height="36" aria-hidden="true">
             <span class="tq-rail__text">
-                <span class="tq-strong" style="color:var(--tq-navy);display:block;line-height:1.2">تقدر</span>
-                <span class="tq-micro">منصة التعليم الذكي</span>
+                <span class="tq-strong" style="color:var(--tq-navy);display:block;line-height:1.2"><?php echo t('تقدر'); ?></span>
+                <span class="tq-micro"><?php echo t('منصة التعليم الذكي'); ?></span>
             </span>
-            <span class="tq-sr">تقدر — الصفحة الرئيسية</span>
+            <span class="tq-sr"><?php echo t('تقدر — الصفحة الرئيسية'); ?></span>
         </a>
 
         <?php /* الطي كان مكتوبا في الورقة (`[data-collapsed]`) وبلا زر يضبطه —
                  نصف ميزة لا تعمل. وهذا زرها، ويحفظ اختياره على الجهاز. */ ?>
         <button class="tq-iconbtn tq-rail__collapse" type="button"
                 data-tq-rail-collapse aria-expanded="true"
-                aria-label="طي القائمة الجانبية" title="طي القائمة الجانبية">
+                aria-label="<?php echo te('طي القائمة الجانبية'); ?>" title="<?php echo te('طي القائمة الجانبية'); ?>">
             <?php echo tq_icon('chev-next', 18); ?>
         </button>
 
@@ -204,12 +204,12 @@ $tq_count_sr = [
                  خلف الطبقة السوداء، فمن فتح لا يجد بابا يخرج منه إلا بالضغط
                  على الطبقة — وهو تصرف لا يعلنه شيء. */ ?>
         <button class="tq-iconbtn tq-rail__close" type="button"
-                data-tq-rail-toggle aria-label="إغلاق القائمة" title="إغلاق القائمة">
+                data-tq-rail-toggle aria-label="<?php echo te('إغلاق القائمة'); ?>" title="<?php echo te('إغلاق القائمة'); ?>">
             <?php echo tq_icon('x', 18); ?>
         </button>
     </div>
 
-    <nav class="tq-rail__nav" aria-label="التنقل الرئيسي">
+    <nav class="tq-rail__nav" aria-label="<?php echo te('التنقل الرئيسي'); ?>">
         <?php foreach ($tq_rail_groups as [$tq_rail_gtitle, $tq_rail_gitems]): ?>
             <?php if ($tq_rail_gtitle !== ''): ?>
                 <p class="tq-rail__group" aria-hidden="true"><?php echo html_escape($tq_rail_gtitle); ?></p>
@@ -224,7 +224,7 @@ $tq_count_sr = [
                         <span class="tq-rail__count<?php echo in_array($key, ['tasks', 'messages'], true) ? ' tq-rail__count--urgent' : ''; ?>">
                             <?php echo TQ_LRI . (int) $tq_counts[$key] . TQ_PDI; ?>
                         </span>
-                        <span class="tq-sr"><?php echo html_escape($tq_count_sr[$key] ?? 'عنصر غير مقروء'); ?></span>
+                        <span class="tq-sr"><?php echo html_escape($tq_count_sr[$key] ?? t('عنصر غير مقروء')); ?></span>
                     <?php endif; ?>
                 </a>
             <?php endforeach; ?>
@@ -242,7 +242,7 @@ $tq_count_sr = [
         <div class="tq-rail__foot">
             <div class="tq-rail__promo tq-pastel tq-pastel--mint">
                 <?php if ($tq_rail_sub): ?>
-                    <span class="tq-pastel__label tq-micro">اشتراكك نشط</span>
+                    <span class="tq-pastel__label tq-micro"><?php echo t('اشتراكك نشط'); ?></span>
                     <p class="tq-pastel__body tq-strong" style="margin:var(--tq-space-xs) 0 var(--tq-space-m)">
                         <?php if ($tq_rail_days > 0): ?>
                             يتبقى <?php echo TQ_LRI . $tq_rail_days . TQ_PDI; ?> يوما
@@ -251,15 +251,15 @@ $tq_count_sr = [
                         <?php endif; ?>
                     </p>
                     <a class="tq-btn tq-btn--secondary tq-btn--sm tq-btn--block" href="<?php echo base_url('student/subscription'); ?>">
-                        تفاصيل الاشتراك
+                        <?php echo t('تفاصيل الاشتراك'); ?>
                     </a>
                 <?php else: ?>
-                    <span class="tq-pastel__label tq-micro">اشتراكك</span>
+                    <span class="tq-pastel__label tq-micro"><?php echo t('اشتراكك'); ?></span>
                     <p class="tq-pastel__body tq-strong" style="margin:var(--tq-space-xs) 0 var(--tq-space-m)">
-                        افتح كل برامج صفك
+                        <?php echo t('افتح كل برامج صفك'); ?>
                     </p>
                     <a class="tq-btn tq-btn--mastery tq-btn--sm tq-btn--block" href="<?php echo base_url('plans'); ?>">
-                        عرض الباقات
+                        <?php echo t('عرض الباقات'); ?>
                     </a>
                 <?php endif; ?>
             </div>
@@ -268,9 +268,9 @@ $tq_count_sr = [
                      أيقونة واحدة تقود إلى الوجهة نفسها. */ ?>
             <a class="tq-rail__item tq-rail__foot-mini"
                href="<?php echo base_url($tq_rail_sub ? 'student/subscription' : 'plans'); ?>"
-               title="<?php echo $tq_rail_sub ? 'تفاصيل الاشتراك' : 'عرض الباقات'; ?>">
+               title="<?php echo $tq_rail_sub ? t('تفاصيل الاشتراك') : t('عرض الباقات'); ?>">
                 <span class="tq-rail__icon" aria-hidden="true"><?php echo tq_icon('wallet'); ?></span>
-                <span class="tq-rail__text"><?php echo $tq_rail_sub ? 'تفاصيل الاشتراك' : 'عرض الباقات'; ?></span>
+                <span class="tq-rail__text"><?php echo $tq_rail_sub ? t('تفاصيل الاشتراك') : t('عرض الباقات'); ?></span>
             </a>
         </div>
     <?php endif; ?>

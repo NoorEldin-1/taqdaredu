@@ -25,11 +25,11 @@ $tq_fields = $this->db->where('course_id', (int) $course_id)
                       ->get('custom_fields')->result_array();
 
 $tq_kinds = array(
-    'image'   => array('صور بعناوين', 'image'),
-    'text'    => array('نص مفصل',     'file-text'),
-    'video'   => array('فيديو',       'play'),
-    'faq'     => array('أسئلة شائعة', 'help'),
-    'gallery' => array('معرض صور',    'grid'),
+    'image'   => array(t('صور بعناوين'), 'image'),
+    'text'    => array(t('نص مفصل'),     'file-text'),
+    'video'   => array(t('فيديو'),       'play'),
+    'faq'     => array(t('أسئلة شائعة'), 'help'),
+    'gallery' => array(t('معرض صور'),    'grid'),
 );
 
 /** معرف فيديو يوتيوب من أي صيغة رابط. */
@@ -59,8 +59,8 @@ $tq_ytid = function ($url) {
 
     <div class="tqa-card tqa-card--flush">
         <?php tqa_empty(
-            'لا أقسام مخصصة في هذا الكورس',
-            'القسم المخصص كتلة إضافية تعرض في صفحة الكورس العامة — صور أو نص أو فيديو أو أسئلة شائعة أو معرض.',
+            t('لا أقسام مخصصة في هذا الكورس'),
+            t('القسم المخصص كتلة إضافية تعرض في صفحة الكورس العامة — صور أو نص أو فيديو أو أسئلة شائعة أو معرض.'),
             '', '', 'grid'
         ); ?>
     </div>
@@ -87,7 +87,7 @@ $tq_ytid = function ($url) {
                     </strong>
                     <span class="tqa-media__sub">
                         <?php echo html_escape($tq_kindname); ?> ·
-                        <span class="tqa-num"><?php echo count($tq_items); ?></span> عنصرا
+                        <span class="tqa-num"><?php echo count($tq_items); ?></span> <?php echo t('عنصرا'); ?>
                     </span>
                 </span>
             </span>
@@ -104,7 +104,7 @@ $tq_ytid = function ($url) {
                 </button>
 
                 <form method="post" action="<?php echo site_url('admin/custom_field_section_delete/' . $tq_id); ?>"
-                      data-tqa-confirm-title="حذف القسم المخصص"
+                      data-tqa-confirm-title="<?php echo te('حذف القسم المخصص'); ?>"
                       data-tqa-confirm="سيحذف «<?php echo html_escape($tq_f['custom_title']); ?>» وكل عناصره."
                       data-tqa-confirm-ok="نعم، احذف"
                       data-tqa-confirm-tone="danger">
@@ -117,7 +117,7 @@ $tq_ytid = function ($url) {
 
             <?php if (empty($tq_items)): ?>
                 <p style="margin:0;font:var(--tq-type-caption);color:var(--tq-text2)">
-                    لا عناصر في هذا القسم بعد.
+                    <?php echo t('لا عناصر في هذا القسم بعد.'); ?>
                 </p>
             <?php else: ?>
 
@@ -136,14 +136,14 @@ $tq_ytid = function ($url) {
 
                         <form method="post"
                               action="<?php echo site_url('admin/custom_field_item_delete/' . $tq_id . '/' . html_escape($tq_it['id'])); ?>"
-                              data-tqa-confirm-title="حذف العنصر"
+                              data-tqa-confirm-title="<?php echo te('حذف العنصر'); ?>"
                               data-tqa-confirm="لا رجعة في هذا الحذف."
                               data-tqa-confirm-ok="نعم، احذف"
                               data-tqa-confirm-tone="danger">
                             <?php echo tq_csrf(); ?>
                             <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
                                 <?php echo tq_icon('trash', 14); ?>
-                                <span class="tqa-sr">حذف</span>
+                                <span class="tqa-sr"><?php echo t('حذف'); ?></span>
                             </button>
                         </form>
                     </div>
@@ -155,13 +155,13 @@ $tq_ytid = function ($url) {
                                 <div style="position:relative;padding-block-end:56.25%;border-radius:var(--tqa-radius-sm);overflow:hidden">
                                     <iframe style="position:absolute;inset:0;inline-size:100%;block-size:100%;border:0"
                                             src="https://www.youtube.com/embed/<?php echo html_escape($tq_vid); ?>"
-                                            title="<?php echo html_escape($tq_it['title'] ?? 'فيديو'); ?>"
+                                            title="<?php echo html_escape($tq_it['title'] ?? t('فيديو')); ?>"
                                             allowfullscreen loading="lazy"></iframe>
                                 </div>
                             <?php else: ?>
                                 <p class="tqa-note tqa-note--warn" style="margin:0">
                                     <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
-                                    <span>رابط يوتيوب غير صالح — لا يعرض شيء للطالب.</span>
+                                    <span><?php echo t('رابط يوتيوب غير صالح — لا يعرض شيء للطالب.'); ?></span>
                                 </p>
                             <?php endif; ?>
                             <?php echo $tq_acts; ?>
@@ -173,7 +173,7 @@ $tq_ytid = function ($url) {
                                 <img src="<?php echo html_escape($tq_src); ?>" alt="" loading="lazy"
                                      style="inline-size:100%;block-size:200px;object-fit:cover;border-radius:var(--tqa-radius-sm)">
                             <?php else: ?>
-                                <span class="tqa-dim">لا صورة</span>
+                                <span class="tqa-dim"><?php echo t('لا صورة'); ?></span>
                             <?php endif; ?>
                             <?php echo $tq_acts; ?>
                         </div>

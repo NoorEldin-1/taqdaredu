@@ -19,33 +19,33 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * أمكن لمسؤول أن يقفل اللوحة على الجميع.
  */
 $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/admin_form/add_admin_form') . '">'
-          . tq_icon('plus', 17) . ' إضافة مسؤول</a>'
+          . tq_icon('plus', 17) . t('إضافة مسؤول</a>')
           . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/export_admins_csv') . '">'
-          . tq_icon('download', 16) . ' تصدير CSV</a>';
+          . tq_icon('download', 16) . t('تصدير CSV</a>');
 ?>
 
-<?php tqa_head('المسؤولون والصلاحيات',
+<?php tqa_head(t('المسؤولون والصلاحيات'),
     'جدول `permissions` فارغ اليوم — ومن لا صف له يرى كل شيء. اضبط صلاحيات كل مسؤول من زر «الصلاحيات».',
     'shield', $tq_tools); ?>
 
 <div class="tqa-card tqa-card--flush">
 <?php if (empty($admins)): ?>
 
-    <?php tqa_empty('لا مسؤولين بعد', 'أضف أول حساب إدارة.', 'إضافة مسؤول',
+    <?php tqa_empty(t('لا مسؤولين بعد'), t('أضف أول حساب إدارة.'), t('إضافة مسؤول'),
         site_url('admin/admin_form/add_admin_form'), 'shield'); ?>
 
 <?php else: ?>
 
     <div class="tqa-table__wrap">
         <table class="tqa-table">
-            <caption class="tqa-sr">حسابات الإدارة وبيانات التواصل بها</caption>
+            <caption class="tqa-sr"><?php echo t('حسابات الإدارة وبيانات التواصل بها'); ?></caption>
             <thead>
                 <tr>
                     <th style="inline-size:60px">#</th>
-                    <th>المسؤول</th>
-                    <th>البريد الإلكتروني</th>
-                    <th>الهاتف</th>
-                    <th style="inline-size:250px"><span class="tqa-sr">إجراءات</span></th>
+                    <th><?php echo t('المسؤول'); ?></th>
+                    <th><?php echo t('البريد الإلكتروني'); ?></th>
+                    <th><?php echo t('الهاتف'); ?></th>
+                    <th style="inline-size:250px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                 </tr>
             </thead>
             <tbody>
@@ -65,7 +65,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/admin
                             <span class="tqa-media__body">
                                 <span class="tqa-media__title"><?php echo html_escape($tq_name); ?></span>
                                 <?php if ($tq_root): ?>
-                                    <span class="tqa-media__sub">مشرف الجذر — لا يعدل ولا يحذف</span>
+                                    <span class="tqa-media__sub"><?php echo t('مشرف الجذر — لا يعدل ولا يحذف'); ?></span>
                                 <?php endif; ?>
                             </span>
                         </span>
@@ -101,7 +101,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/admin
                                 </a>
 
                                 <form method="post" action="<?php echo site_url('admin/admins/delete/' . $tq_id); ?>"
-                                      data-tqa-confirm-title="حذف المسؤول"
+                                      data-tqa-confirm-title="<?php echo te('حذف المسؤول'); ?>"
                                       data-tqa-confirm="سيحذف حساب «<?php echo html_escape($tq_name); ?>» ولن يستطيع الدخول بعدها."
                                       data-tqa-confirm-ok="نعم، احذف"
                                       data-tqa-confirm-tone="danger">
@@ -123,7 +123,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/admin
 
     <p style="padding:var(--tq-space-m) var(--tq-space-xl);margin:0;border-block-start:1px solid var(--tq-line);
               font:var(--tq-type-caption);color:var(--tq-text2)">
-        <span class="tqa-num"><?php echo count($admins); ?></span> حساب إدارة.
+        <span class="tqa-num"><?php echo count($admins); ?></span> <?php echo t('حساب إدارة.'); ?>
     </p>
 
 <?php endif; ?>

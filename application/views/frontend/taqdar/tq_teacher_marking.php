@@ -24,8 +24,8 @@
 
 $tq_nav   = 'marking';
 $tq_role  = 'teacher';
-$tq_title = 'الواجبات والتصحيح';
-$tq_sub   = 'الاقتراح الآلي يسبقك، والاعتماد لك وحدك';
+$tq_title = t('الواجبات والتصحيح');
+$tq_sub   = t('الاقتراح الآلي يسبقك، والاعتماد لك وحدك');
 $tq_icon  = 'clipboard';
 
 $tq_uid = (int) $this->session->userdata('user_id');
@@ -99,25 +99,25 @@ include 'portal_open.php';
                         </p>
                     </div>
                     <?php echo $tq_is_appr
-                        ? tq_badge('mastered', 'معتمدة')
-                        : tq_badge('due', 'ينتظر اعتمادك'); ?>
+                        ? tq_badge('mastered', t('معتمدة'))
+                        : tq_badge('due', t('ينتظر اعتمادك')); ?>
                 </div>
 
                 <?php if ($tq_is_appr): ?>
                     <div class="tq-pastel tq-pastel--mint" style="margin-block-end:var(--tq-space-xl)">
-                        <span class="tq-pastel__label tq-micro">درجة معتمدة</span>
+                        <span class="tq-pastel__label tq-micro"><?php echo t('درجة معتمدة'); ?></span>
                         <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)">
                             <?php echo tq_num(((float) $tq_single['teacher_score'] == (int) $tq_single['teacher_score']
                                 ? (int) $tq_single['teacher_score'] : (float) $tq_single['teacher_score']) . ' / ' . $tq_total); ?>
                         </p>
                         <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-s) 0 0">
-                            <?php echo tq_iso('اعتمدتها ' . tq_since((int) $tq_single['approved_at']) . '، وهي ظاهرة للطالب الآن. تعديلها يحل محلها.'); ?>
+                            <?php echo tq_iso(t('اعتمدتها') . tq_since((int) $tq_single['approved_at']) . t('، وهي ظاهرة للطالب الآن. تعديلها يحل محلها.')); ?>
                         </p>
                     </div>
                 <?php endif; ?>
 
                 <div class="tq-pastel tq-pastel--sky" style="margin-block-end:var(--tq-space-xl)">
-                    <span class="tq-pastel__label tq-micro">اقتراح آلي للدرجة</span>
+                    <span class="tq-pastel__label tq-micro"><?php echo t('اقتراح آلي للدرجة'); ?></span>
                     <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)">
                         <?php echo tq_num($tq_auto . ' / ' . $tq_total); ?>
                     </p>
@@ -125,47 +125,47 @@ include 'portal_open.php';
                         محسوب من الأسئلة الموضوعية وحدها. التصحيح الآلي مساعد لا بديل —
                         عدل الدرجة متى رأيت في الإجابة ما لا يراه الحاسوب.
                         <?php if ($tq_essays > 0): ?>
-                            <br><?php echo tq_iso('وفي هذا الاختبار ' . $tq_essays . ' من الأسئلة لا يقرؤها السكربت أصلا.'); ?>
+                            <br><?php echo tq_iso(t('وفي هذا الاختبار') . $tq_essays . t('من الأسئلة لا يقرؤها السكربت أصلا.')); ?>
                         <?php endif; ?>
                     </p>
                 </div>
 
                 <div class="tq-grid tq-grid--2">
                     <div class="tq-field">
-                        <label class="tq-field__label" for="tq-score">الدرجة</label>
+                        <label class="tq-field__label" for="tq-score"><?php echo t('الدرجة'); ?></label>
                         <input class="tq-input" id="tq-score" type="number" name="score"
                                min="0" max="<?php echo $tq_total; ?>" step="0.5" inputmode="decimal"
                                value="<?php echo html_escape((string) $tq_value); ?>" required>
                         <span class="tq-field__msg tq-field__hint">
-                            <?php echo tq_iso('من 0 إلى ' . $tq_total . ' درجة.'); ?>
+                            <?php echo tq_iso(t('من 0 إلى') . $tq_total . t('درجة.')); ?>
                         </span>
                     </div>
 
                     <div class="tq-field">
-                        <span class="tq-field__label">حالة الهدف</span>
+                        <span class="tq-field__label"><?php echo t('حالة الهدف'); ?></span>
                         <p class="tq-input" style="display:flex;align-items:center;margin:0">
                             <?php echo tq_badge($tq_mastery['key'], $tq_mastery['label']); ?>
                         </p>
                         <span class="tq-field__msg tq-field__hint">
-                            <?php echo tq_iso('تشتق من الدرجة وعتبة النجاح (' . $tq_pass . '%) — لا تسأل عنها مرتين.'); ?>
+                            <?php echo tq_iso(t('تشتق من الدرجة وعتبة النجاح (') . $tq_pass . t('%) — لا تسأل عنها مرتين.')); ?>
                         </span>
                     </div>
                 </div>
 
                 <div class="tq-field">
-                    <label class="tq-field__label" for="tq-note">ملاحظتك للطالب</label>
+                    <label class="tq-field__label" for="tq-note"><?php echo t('ملاحظتك للطالب'); ?></label>
                     <textarea class="tq-textarea" id="tq-note" name="note" rows="4"
-                              placeholder="اكتب ما يفعله في المحاولة القادمة، لا ما أخطأ فيه فقط"><?php
+                              placeholder="<?php echo te('اكتب ما يفعله في المحاولة القادمة، لا ما أخطأ فيه فقط'); ?>"><?php
                         echo html_escape((string) $tq_single['teacher_note']);
                     ?></textarea>
-                    <span class="tq-field__msg tq-field__hint">تظهر للطالب مع الدرجة، ولولي أمره ضمن ملاحظات المعلمين.</span>
+                    <span class="tq-field__msg tq-field__hint"><?php echo t('تظهر للطالب مع الدرجة، ولولي أمره ضمن ملاحظات المعلمين.'); ?></span>
                 </div>
 
                 <div class="tq-row" style="gap:var(--tq-space-m);flex-wrap:wrap">
                     <button class="tq-btn tq-btn--mastery" type="submit" aria-describedby="tq-approve-note">
-                        <?php echo $tq_is_appr ? 'تحديث الدرجة المعتمدة' : 'اعتماد الدرجة'; ?>
+                        <?php echo $tq_is_appr ? t('تحديث الدرجة المعتمدة') : t('اعتماد الدرجة'); ?>
                     </button>
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/marking'); ?>">رجوع إلى الصف</a>
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/marking'); ?>"><?php echo t('رجوع إلى الصف'); ?></a>
                 </div>
                 <p class="tq-field__msg tq-field__hint" id="tq-approve-note" style="margin-block-start:var(--tq-space-m)">
                     <?php if ($tq_essays > 0): ?>
@@ -184,7 +184,7 @@ include 'portal_open.php';
                 <form class="tq-card tq-section" method="post"
                       action="<?php echo base_url('teacher/marking/approve'); ?>"
                       data-tq-confirm-title="سحب اعتماد درجة <?php echo html_escape($tq_name); ?>؟"
-                      data-tq-confirm="تعود الدرجة محجوبة عن الطالب حتى تعتمدها من جديد."
+                      data-tq-confirm="<?php echo te('تعود الدرجة محجوبة عن الطالب حتى تعتمدها من جديد.'); ?>"
                       data-tq-confirm-note="الدرجة والملاحظة تبقيان محفوظتين كما هما، ويرفع الاعتماد وحده."
                       data-tq-confirm-ok="أسحب الاعتماد"
                       data-tq-confirm-tone="danger">
@@ -193,9 +193,9 @@ include 'portal_open.php';
                     <input type="hidden" name="act" value="unapprove">
                     <div class="tq-row tq-row--between" style="gap:var(--tq-space-m);flex-wrap:wrap">
                         <span class="tq-caption" style="flex:1;min-inline-size:14rem">
-                            اعتمدت بالخطأ؟ سحب الاعتماد يعيد الدرجة إلى الحجب عن الطالب.
+                            <?php echo t('اعتمدت بالخطأ؟ سحب الاعتماد يعيد الدرجة إلى الحجب عن الطالب.'); ?>
                         </span>
-                        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">سحب الاعتماد</button>
+                        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit"><?php echo t('سحب الاعتماد'); ?></button>
                     </div>
                 </form>
             <?php endif; ?>
@@ -226,62 +226,62 @@ include 'portal_open.php';
                     <div style="flex:1;min-inline-size:0">
                         <h2 class="tq-h2" style="margin:0"><?php echo html_escape($tq_hname); ?></h2>
                         <p class="tq-caption" style="margin:0">
-                            <?php echo html_escape('واجب: ' . $tq_hw_one['lesson_title'] . ' · ' . $tq_hw_one['course_title']); ?>
+                            <?php echo html_escape(t('واجب:') . $tq_hw_one['lesson_title'] . ' · ' . $tq_hw_one['course_title']); ?>
                         </p>
                     </div>
-                    <?php echo $tq_happr ? tq_badge('mastered', 'معتمد') : tq_badge('due', 'ينتظر اعتمادك'); ?>
+                    <?php echo $tq_happr ? tq_badge('mastered', t('معتمد')) : tq_badge('due', t('ينتظر اعتمادك')); ?>
                 </div>
 
                 <div class="tq-pastel tq-pastel--sand" style="margin-block-end:var(--tq-space-xl)">
-                    <span class="tq-pastel__label tq-micro">ما سجله النظام</span>
+                    <span class="tq-pastel__label tq-micro"><?php echo t('ما سجله النظام'); ?></span>
                     <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)">
                         <?php echo $tq_hauto === null
                             ? '—'
                             : tq_num(($tq_hauto == (int) $tq_hauto ? (int) $tq_hauto : $tq_hauto) . '%'); ?>
                     </p>
                     <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-s) 0 0">
-                        <?php echo tq_iso('سلم ' . tq_since(strtotime((string) $tq_hw_one['submitted_at']))
-                            . ' · درجة العبور ' . $tq_hpass . '%.'); ?>
+                        <?php echo tq_iso(t('سلم') . tq_since(strtotime((string) $tq_hw_one['submitted_at']))
+                            . t('· درجة العبور') . $tq_hpass . '%.'); ?>
                         والواجب عمل يقرؤه معلم — درجته لا تظهر لصاحبه قبل اعتمادك.
                     </p>
                 </div>
 
                 <div class="tq-grid tq-grid--2">
                     <div class="tq-field">
-                        <label class="tq-field__label" for="tq-hw-score">الدرجة (نسبة مئوية)</label>
+                        <label class="tq-field__label" for="tq-hw-score"><?php echo t('الدرجة (نسبة مئوية)'); ?></label>
                         <input class="tq-input" id="tq-hw-score" type="number" name="score"
                                min="0" max="100" step="1" inputmode="numeric"
                                value="<?php echo html_escape((string) $tq_hvalue); ?>" required>
                         <span class="tq-field__msg tq-field__hint">
-                            <?php echo tq_iso('نسبة مئوية من 0 إلى 100 — وهو مقياس الواجبات في المنصة، كما يقرؤه الطالب في «مهامي».'); ?>
+                            <?php echo tq_iso(t('نسبة مئوية من 0 إلى 100 — وهو مقياس الواجبات في المنصة، كما يقرؤه الطالب في «مهامي».')); ?>
                         </span>
                     </div>
 
                     <div class="tq-field">
-                        <span class="tq-field__label">حالة الهدف</span>
+                        <span class="tq-field__label"><?php echo t('حالة الهدف'); ?></span>
                         <p class="tq-input" style="display:flex;align-items:center;margin:0">
                             <?php echo $tq_hmast ? tq_badge($tq_hmast['key'], $tq_hmast['label']) : '—'; ?>
                         </p>
                         <span class="tq-field__msg tq-field__hint">
-                            <?php echo tq_iso('العبور بعتبة هذا الواجب (' . $tq_hpass . '%)، وحالة الهدف بعتبة المنصة (' . $tq_pass . '%).'); ?>
+                            <?php echo tq_iso(t('العبور بعتبة هذا الواجب (') . $tq_hpass . t('%)، وحالة الهدف بعتبة المنصة (') . $tq_pass . '%).'); ?>
                         </span>
                     </div>
                 </div>
 
                 <div class="tq-field">
-                    <label class="tq-field__label" for="tq-hw-note">ملاحظتك للطالب</label>
+                    <label class="tq-field__label" for="tq-hw-note"><?php echo t('ملاحظتك للطالب'); ?></label>
                     <textarea class="tq-textarea" id="tq-hw-note" name="note" rows="4"
-                              placeholder="اكتب ما يفعله في المرة القادمة، لا ما أخطأ فيه فقط"><?php
+                              placeholder="<?php echo te('اكتب ما يفعله في المرة القادمة، لا ما أخطأ فيه فقط'); ?>"><?php
                         echo html_escape((string) $tq_hw_one['teacher_note']);
                     ?></textarea>
-                    <span class="tq-field__msg tq-field__hint">تظهر للطالب مع الدرجة، ولولي أمره ضمن ملاحظات المعلمين.</span>
+                    <span class="tq-field__msg tq-field__hint"><?php echo t('تظهر للطالب مع الدرجة، ولولي أمره ضمن ملاحظات المعلمين.'); ?></span>
                 </div>
 
                 <div class="tq-row" style="gap:var(--tq-space-m);flex-wrap:wrap">
                     <button class="tq-btn tq-btn--mastery" type="submit">
-                        <?php echo $tq_happr ? 'تحديث درجة الواجب' : 'اعتماد درجة الواجب'; ?>
+                        <?php echo $tq_happr ? t('تحديث درجة الواجب') : t('اعتماد درجة الواجب'); ?>
                     </button>
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/marking'); ?>">رجوع إلى الصف</a>
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/marking'); ?>"><?php echo t('رجوع إلى الصف'); ?></a>
                 </div>
             </form>
 
@@ -289,7 +289,7 @@ include 'portal_open.php';
                 <form class="tq-card tq-section" method="post"
                       action="<?php echo base_url('teacher/marking/homework'); ?>"
                       data-tq-confirm-title="سحب اعتماد واجب <?php echo html_escape($tq_hname); ?>؟"
-                      data-tq-confirm="تعود الدرجة محجوبة عن الطالب حتى تعتمدها من جديد."
+                      data-tq-confirm="<?php echo te('تعود الدرجة محجوبة عن الطالب حتى تعتمدها من جديد.'); ?>"
                       data-tq-confirm-ok="أسحب الاعتماد"
                       data-tq-confirm-tone="danger">
                     <?php echo tq_csrf(); ?>
@@ -297,9 +297,9 @@ include 'portal_open.php';
                     <input type="hidden" name="act" value="unapprove">
                     <div class="tq-row tq-row--between" style="gap:var(--tq-space-m);flex-wrap:wrap">
                         <span class="tq-caption" style="flex:1;min-inline-size:14rem">
-                            اعتمدت بالخطأ؟ سحب الاعتماد يعيد الدرجة إلى الحجب عن الطالب.
+                            <?php echo t('اعتمدت بالخطأ؟ سحب الاعتماد يعيد الدرجة إلى الحجب عن الطالب.'); ?>
                         </span>
-                        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">سحب الاعتماد</button>
+                        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit"><?php echo t('سحب الاعتماد'); ?></button>
                     </div>
                 </form>
             <?php endif; ?>
@@ -307,7 +307,7 @@ include 'portal_open.php';
 
         <section aria-labelledby="tq-queue-h">
             <div class="tq-sectionhead">
-                <h2 id="tq-queue-h">صف التصحيح — الاختبارات</h2>
+                <h2 id="tq-queue-h"><?php echo t('صف التصحيح — الاختبارات'); ?></h2>
                 <?php if ($tq_queue): ?>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_queue) . TQ_PDI; ?></span>
                 <?php endif; ?>
@@ -316,17 +316,17 @@ include 'portal_open.php';
             <?php if ($tq_queue): ?>
                 <div class="tq-card">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                        الأقدم أولا: الطالب الذي انتظر أطول يصحح أولا.
+                        <?php echo t('الأقدم أولا: الطالب الذي انتظر أطول يصحح أولا.'); ?>
                     </p>
                     <table class="tq-table">
-                        <caption class="tq-sr">المحاولات المسلمة التي تنتظر اعتمادك</caption>
+                        <caption class="tq-sr"><?php echo t('المحاولات المسلمة التي تنتظر اعتمادك'); ?></caption>
                         <thead>
                             <tr>
-                                <th scope="col">الطالب</th>
-                                <th scope="col">الاختبار</th>
-                                <th scope="col">الاقتراح الآلي</th>
-                                <th scope="col">انتظر</th>
-                                <th scope="col"><span class="tq-sr">إجراءات</span></th>
+                                <th scope="col"><?php echo t('الطالب'); ?></th>
+                                <th scope="col"><?php echo t('الاختبار'); ?></th>
+                                <th scope="col"><?php echo t('الاقتراح الآلي'); ?></th>
+                                <th scope="col"><?php echo t('انتظر'); ?></th>
+                                <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -347,7 +347,7 @@ include 'portal_open.php';
                                     <td data-label="إجراءات">
                                         <a class="tq-btn tq-btn--primary tq-btn--sm"
                                            href="<?php echo base_url('teacher/marking'); ?>?result=<?php echo (int) $tq_r['quiz_result_id']; ?>">
-                                            صحح
+                                            <?php echo t('صحح'); ?>
                                         </a>
                                     </td>
                                 </tr>
@@ -358,12 +358,11 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--mint" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('check', 24); ?></span>
-                    <h3 class="tq-empty__title">لا شيء ينتظر تصحيحا</h3>
+                    <h3 class="tq-empty__title"><?php echo t('لا شيء ينتظر تصحيحا'); ?></h3>
                     <p class="tq-empty__text">
-                        حين يسلم أحد طلابك اختبارا أو واجبا في كورساتك، يظهر هنا مرتبا بالأقدم انتظارا،
-                        ومعه اقتراح آلي للدرجة تعتمده أو تعدله.
+                        <?php echo t('حين يسلم أحد طلابك اختبارا أو واجبا في كورساتك، يظهر هنا مرتبا بالأقدم انتظارا، ومعه اقتراح آلي للدرجة تعتمده أو تعدله.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/students'); ?>">طلابي</a>
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/students'); ?>"><?php echo t('طلابي'); ?></a>
                 </div>
             <?php endif; ?>
         </section>
@@ -371,7 +370,7 @@ include 'portal_open.php';
         <?php /* ---- صف الواجبات: مصدر آخر ودرجة أخرى، فقسم مستقل لا مدمج ---- */ ?>
         <section aria-labelledby="tq-hwq-h" class="tq-section">
             <div class="tq-sectionhead">
-                <h2 id="tq-hwq-h">صف التصحيح — الواجبات</h2>
+                <h2 id="tq-hwq-h"><?php echo t('صف التصحيح — الواجبات'); ?></h2>
                 <?php if ($tq_hw_queue): ?>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_hw_queue) . TQ_PDI; ?></span>
                 <?php endif; ?>
@@ -380,18 +379,17 @@ include 'portal_open.php';
             <?php if ($tq_hw_queue): ?>
                 <div class="tq-card">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                        الواجب عمل يقرؤه معلم لا سكربت — ودرجته لا تظهر لصاحبه قبل اعتمادك.
-                        والأقدم تسليما أولا.
+                        <?php echo t('الواجب عمل يقرؤه معلم لا سكربت — ودرجته لا تظهر لصاحبه قبل اعتمادك. والأقدم تسليما أولا.'); ?>
                     </p>
                     <table class="tq-table">
-                        <caption class="tq-sr">الواجبات المسلمة التي تنتظر اعتمادك</caption>
+                        <caption class="tq-sr"><?php echo t('الواجبات المسلمة التي تنتظر اعتمادك'); ?></caption>
                         <thead>
                             <tr>
-                                <th scope="col">الطالب</th>
-                                <th scope="col">الواجب</th>
-                                <th scope="col">ما سجله النظام</th>
-                                <th scope="col">انتظر</th>
-                                <th scope="col"><span class="tq-sr">إجراءات</span></th>
+                                <th scope="col"><?php echo t('الطالب'); ?></th>
+                                <th scope="col"><?php echo t('الواجب'); ?></th>
+                                <th scope="col"><?php echo t('ما سجله النظام'); ?></th>
+                                <th scope="col"><?php echo t('انتظر'); ?></th>
+                                <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -410,14 +408,14 @@ include 'portal_open.php';
                                     <td data-label="الواجب"><?php echo html_escape($tq_h['lesson_title']); ?></td>
                                     <td data-label="ما سجله النظام">
                                         <?php echo $tq_hs === null
-                                            ? '<span class="tq-caption">لم يسجل</span>'
+                                            ? t('<span class="tq-caption">لم يسجل</span>')
                                             : tq_num(($tq_hs == (int) $tq_hs ? (int) $tq_hs : $tq_hs) . '%', 'tq-num--sm'); ?>
                                     </td>
                                     <td data-label="انتظر"><?php echo html_escape(tq_since($tq_hts)); ?></td>
                                     <td data-label="إجراءات">
                                         <a class="tq-btn tq-btn--primary tq-btn--sm"
                                            href="<?php echo base_url('teacher/marking'); ?>?hw=<?php echo (int) $tq_h['id']; ?>">
-                                            صحح
+                                            <?php echo t('صحح'); ?>
                                         </a>
                                     </td>
                                 </tr>
@@ -428,10 +426,9 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--mint" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('clipboard', 24); ?></span>
-                    <h3 class="tq-empty__title">لا واجب ينتظر تصحيحا</h3>
+                    <h3 class="tq-empty__title"><?php echo t('لا واجب ينتظر تصحيحا'); ?></h3>
                     <p class="tq-empty__text">
-                        حين يسلم أحد طلابك واجبا في دروس كورساتك يظهر هنا بالأقدم انتظارا،
-                        فتضع درجته وملاحظتك عليه.
+                        <?php echo t('حين يسلم أحد طلابك واجبا في دروس كورساتك يظهر هنا بالأقدم انتظارا، فتضع درجته وملاحظتك عليه.'); ?>
                     </p>
                 </div>
             <?php endif; ?>
@@ -440,19 +437,19 @@ include 'portal_open.php';
         <?php if ($tq_hw_approved): ?>
             <section aria-labelledby="tq-hwa-h" class="tq-section">
                 <div class="tq-sectionhead">
-                    <h2 id="tq-hwa-h">واجبات اعتمدتها</h2>
+                    <h2 id="tq-hwa-h"><?php echo t('واجبات اعتمدتها'); ?></h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_hw_approved) . TQ_PDI; ?></span>
                 </div>
                 <div class="tq-card">
                     <table class="tq-table">
-                        <caption class="tq-sr">آخر درجات الواجبات التي اعتمدتها</caption>
+                        <caption class="tq-sr"><?php echo t('آخر درجات الواجبات التي اعتمدتها'); ?></caption>
                         <thead>
                             <tr>
-                                <th scope="col">الطالب</th>
-                                <th scope="col">الواجب</th>
-                                <th scope="col">الدرجة المعتمدة</th>
-                                <th scope="col">منذ</th>
-                                <th scope="col"><span class="tq-sr">إجراءات</span></th>
+                                <th scope="col"><?php echo t('الطالب'); ?></th>
+                                <th scope="col"><?php echo t('الواجب'); ?></th>
+                                <th scope="col"><?php echo t('الدرجة المعتمدة'); ?></th>
+                                <th scope="col"><?php echo t('منذ'); ?></th>
+                                <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -477,7 +474,7 @@ include 'portal_open.php';
                                     <td data-label="إجراءات">
                                         <a class="tq-btn tq-btn--secondary tq-btn--sm"
                                            href="<?php echo base_url('teacher/marking'); ?>?hw=<?php echo (int) $tq_h['id']; ?>">
-                                            راجع
+                                            <?php echo t('راجع'); ?>
                                         </a>
                                     </td>
                                 </tr>
@@ -491,19 +488,19 @@ include 'portal_open.php';
         <?php if ($tq_approved): ?>
             <section aria-labelledby="tq-approved-h" class="tq-section">
                 <div class="tq-sectionhead">
-                    <h2 id="tq-approved-h">اعتمدتها أخيرا</h2>
+                    <h2 id="tq-approved-h"><?php echo t('اعتمدتها أخيرا'); ?></h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_approved) . TQ_PDI; ?></span>
                 </div>
                 <div class="tq-card">
                     <table class="tq-table">
-                        <caption class="tq-sr">آخر الدرجات التي اعتمدتها</caption>
+                        <caption class="tq-sr"><?php echo t('آخر الدرجات التي اعتمدتها'); ?></caption>
                         <thead>
                             <tr>
-                                <th scope="col">الطالب</th>
-                                <th scope="col">الاختبار</th>
-                                <th scope="col">الدرجة المعتمدة</th>
-                                <th scope="col">منذ</th>
-                                <th scope="col"><span class="tq-sr">إجراءات</span></th>
+                                <th scope="col"><?php echo t('الطالب'); ?></th>
+                                <th scope="col"><?php echo t('الاختبار'); ?></th>
+                                <th scope="col"><?php echo t('الدرجة المعتمدة'); ?></th>
+                                <th scope="col"><?php echo t('منذ'); ?></th>
+                                <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -528,7 +525,7 @@ include 'portal_open.php';
                                     <td data-label="إجراءات">
                                         <a class="tq-btn tq-btn--secondary tq-btn--sm"
                                            href="<?php echo base_url('teacher/marking'); ?>?result=<?php echo (int) $tq_a['quiz_result_id']; ?>">
-                                            راجع
+                                            <?php echo t('راجع'); ?>
                                         </a>
                                     </td>
                                 </tr>
@@ -542,29 +539,28 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-pastel tq-pastel--peach">
-            <span class="tq-pastel__label tq-micro">حد التصحيح الآلي</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('حد التصحيح الآلي'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                التصحيح الآلي مساعد لا بديل. يقرأ الاختيار الصحيح، ولا يقرأ محاولة الطالب
-                أن يشرح فكرته بعبارة أخرى.
+                <?php echo t('التصحيح الآلي مساعد لا بديل. يقرأ الاختيار الصحيح، ولا يقرأ محاولة الطالب أن يشرح فكرته بعبارة أخرى.'); ?>
             </p>
             <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-m) 0 0">
-                ولذلك الدرجة النهائية للمقالي تظهر للطالب بعد اعتماد المعلم.
+                <?php echo t('ولذلك الدرجة النهائية للمقالي تظهر للطالب بعد اعتماد المعلم.'); ?>
             </p>
         </div>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">حالة الصف</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('حالة الصف'); ?></h2></div>
             <ul class="tq-stack">
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">اختبارات تنتظر</span>
+                    <span class="tq-caption"><?php echo t('اختبارات تنتظر'); ?></span>
                     <?php echo tq_num(count($tq_queue)); ?>
                 </li>
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">واجبات تنتظر</span>
+                    <span class="tq-caption"><?php echo t('واجبات تنتظر'); ?></span>
                     <?php echo tq_num(count($tq_hw_queue)); ?>
                 </li>
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">أقدم انتظار</span>
+                    <span class="tq-caption"><?php echo t('أقدم انتظار'); ?></span>
                     <span class="tq-caption" style="color:var(--tq-navy)">
                         <?php
                         /* الأقدم بين الصفين لا في أحدهما: المعلم يريد أن يعرف
@@ -580,7 +576,7 @@ include 'portal_open.php';
                     </span>
                 </li>
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">عتبة النجاح</span>
+                    <span class="tq-caption"><?php echo t('عتبة النجاح'); ?></span>
                     <span class="tq-caption" style="color:var(--tq-navy)"><?php echo tq_iso($tq_pass . '%'); ?></span>
                 </li>
             </ul>

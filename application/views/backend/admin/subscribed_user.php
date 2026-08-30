@@ -6,20 +6,20 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * انظر TQ-DT-GONE في [Admin::subscribed_user()] لسبب سقوط DataTables.
  */
 $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newsletters') . '">'
-          . tq_icon('send', 16) . ' النشرات المرسلة</a>';
+          . tq_icon('send', 16) . t('النشرات المرسلة</a>');
 ?>
 
-<?php tqa_head('مشتركو النشرة البريدية',
-    'من سجل بريده من الموقع العام. المسجل في المنصة يعرف باسمه، وغيره ببريده وحده.',
+<?php tqa_head(t('مشتركو النشرة البريدية'),
+    t('من سجل بريده من الموقع العام. المسجل في المنصة يعرف باسمه، وغيره ببريده وحده.'),
     'send', $tq_tools); ?>
 
 <form class="tqa-toolbar" method="get" action="<?php echo site_url('admin/subscribed_user'); ?>">
-    <label class="tqa-sr" for="q">ابحث ببريد المشترك</label>
-    <input class="tqa-input" type="search" id="q" name="q" placeholder="ابحث ببريد المشترك…"
+    <label class="tqa-sr" for="q"><?php echo t('ابحث ببريد المشترك'); ?></label>
+    <input class="tqa-input" type="search" id="q" name="q" placeholder="<?php echo te('ابحث ببريد المشترك…'); ?>"
            value="<?php echo html_escape($search); ?>" dir="ltr">
     <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> ابحث</button>
     <?php if ($search !== ''): ?>
-        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/subscribed_user'); ?>">مسح البحث</a>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/subscribed_user'); ?>"><?php echo t('مسح البحث'); ?></a>
     <?php endif; ?>
 </form>
 
@@ -27,11 +27,11 @@ $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newslet
 <?php if (empty($rows)): ?>
 
     <?php tqa_empty(
-        $search !== '' ? 'لا مشترك يطابق هذا البحث' : 'لا مشتركين بعد',
+        $search !== '' ? t('لا مشترك يطابق هذا البحث') : t('لا مشتركين بعد'),
         $search !== ''
-            ? 'جرب جزءا من البريد بدل البريد كاملا.'
-            : 'يمتلئ هذا الجدول وحده حين يسجل الزوار بريدهم من تذييل الموقع — ولا يضاف إليه بيد.',
-        $search !== '' ? 'مسح البحث' : '',
+            ? t('جرب جزءا من البريد بدل البريد كاملا.')
+            : t('يمتلئ هذا الجدول وحده حين يسجل الزوار بريدهم من تذييل الموقع — ولا يضاف إليه بيد.'),
+        $search !== '' ? t('مسح البحث') : '',
         $search !== '' ? site_url('admin/subscribed_user') : '',
         'send'
     ); ?>
@@ -40,13 +40,13 @@ $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newslet
 
     <div class="tqa-table__wrap">
         <table class="tqa-table">
-            <caption class="tqa-sr">المشتركون في النشرة وحالة كل منهم في المنصة</caption>
+            <caption class="tqa-sr"><?php echo t('المشتركون في النشرة وحالة كل منهم في المنصة'); ?></caption>
             <thead>
                 <tr>
                     <th style="inline-size:60px">#</th>
-                    <th>البريد الإلكتروني</th>
-                    <th>الحساب في المنصة</th>
-                    <th style="inline-size:120px"><span class="tqa-sr">إجراءات</span></th>
+                    <th><?php echo t('البريد الإلكتروني'); ?></th>
+                    <th><?php echo t('الحساب في المنصة'); ?></th>
+                    <th style="inline-size:120px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                 </tr>
             </thead>
             <tbody>
@@ -67,16 +67,16 @@ $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newslet
                                 <?php echo html_escape(trim($tq_user['first_name'] . ' ' . $tq_user['last_name'])); ?>
                             </span>
                             <span class="tqa-badge tqa-badge--<?php echo (int) $tq_user['is_instructor'] === 1 ? 'ok' : 'info'; ?>">
-                                <?php echo (int) $tq_user['is_instructor'] === 1 ? 'معلم' : 'طالب'; ?>
+                                <?php echo (int) $tq_user['is_instructor'] === 1 ? t('معلم') : t('طالب'); ?>
                             </span>
                         <?php else: ?>
-                            <span class="tqa-badge tqa-badge--muted">غير مسجل</span>
+                            <span class="tqa-badge tqa-badge--muted"><?php echo t('غير مسجل'); ?></span>
                         <?php endif; ?>
                     </td>
 
                     <td data-label="إجراءات">
                         <form method="post" action="<?php echo site_url('admin/subscribed_user/delete/' . (int) $tq_r['id']); ?>"
-                              data-tqa-confirm-title="إلغاء الاشتراك"
+                              data-tqa-confirm-title="<?php echo te('إلغاء الاشتراك'); ?>"
                               data-tqa-confirm="لن تصل النشرة إلى هذا البريد بعدها."
                               data-tqa-confirm-ok="نعم، ألغ"
                               data-tqa-confirm-tone="danger">
@@ -101,14 +101,14 @@ $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newslet
         return site_url('admin/subscribed_user') . ($qs ? '?' . http_build_query($qs) : '');
     };
     ?>
-    <nav class="tqa-pager" aria-label="صفحات المشتركين">
+    <nav class="tqa-pager" aria-label="<?php echo te('صفحات المشتركين'); ?>">
         <span class="tqa-pager__info">
-            المعروض <span class="tqa-num"><?php echo count($rows); ?></span>
-            من <span class="tqa-num"><?php echo (int) $total; ?></span> مشتركا
+            <?php echo t('المعروض'); ?> <span class="tqa-num"><?php echo count($rows); ?></span>
+            <?php echo t('من'); ?> <span class="tqa-num"><?php echo (int) $total; ?></span> <?php echo t('مشتركا'); ?>
         </span>
 
         <?php if ($page_no > 1): ?>
-            <a href="<?php echo $tq_url($page_no - 1); ?>" rel="prev" aria-label="الصفحة السابقة">
+            <a href="<?php echo $tq_url($page_no - 1); ?>" rel="prev" aria-label="<?php echo te('الصفحة السابقة'); ?>">
                 <?php echo tq_icon('chev-prev', 16); ?>
             </a>
         <?php endif; ?>
@@ -122,7 +122,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newslet
         <?php endfor; ?>
 
         <?php if ($page_no < $page_count): ?>
-            <a href="<?php echo $tq_url($page_no + 1); ?>" rel="next" aria-label="الصفحة التالية">
+            <a href="<?php echo $tq_url($page_no + 1); ?>" rel="next" aria-label="<?php echo te('الصفحة التالية'); ?>">
                 <?php echo tq_icon('chev-next', 16); ?>
             </a>
         <?php endif; ?>

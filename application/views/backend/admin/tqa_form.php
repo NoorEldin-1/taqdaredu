@@ -26,7 +26,7 @@ $M       = &get_instance()->taqdar_admin_model;
 $is_edit = ($rid > 0 && $row);
 
 $tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('taqdar_admin/module/' . $mkey) . '">'
-       . 'رجوع إلى القائمة</a>';
+       . t('رجوع إلى القائمة</a>');
 
 /**
  * القيمة الحالية لحقل شرطي — من الصف المحفوظ، أو من افتراضه في الوصف.
@@ -40,7 +40,7 @@ $tqa_now = function ($field_name) use ($row, $spec) {
 ?>
 
 <?php tqa_head(
-    ($is_edit ? 'تعديل' : 'إضافة') . ' — ' . $spec['title'],
+    ($is_edit ? t('تعديل') : t('إضافة')) . ' — ' . $spec['title'],
     $spec['lead'],
     isset($spec['icon']) ? $spec['icon'] : 'edit',
     $tools
@@ -103,7 +103,7 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                         <input type="checkbox" id="<?php echo $id; ?>" name="<?php echo $name; ?>"
                                value="1" <?php echo $val ? 'checked' : ''; ?>>
                         <span class="tqa-switch__track" aria-hidden="true"></span>
-                        <span>نعم</span>
+                        <span><?php echo t('نعم'); ?></span>
                     </label>
 
                 <?php elseif ($f['type'] === 'enum'): ?>
@@ -151,13 +151,13 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                                          فمن أراد إزالتها يقولها. */ ?>
                                 <label class="tqa-check">
                                     <input type="checkbox" name="<?php echo $name; ?>__clear" value="1">
-                                    <span>احذف الصورة الحالية</span>
+                                    <span><?php echo t('احذف الصورة الحالية'); ?></span>
                                 </label>
                             <?php endif; ?>
                         </div>
 
                         <div class="tqa-filefield__next" data-tqa-file-preview hidden>
-                            <span class="tqa-dim">المختارة الآن:</span>
+                            <span class="tqa-dim"><?php echo t('المختارة الآن:'); ?></span>
                             <img alt="" data-tqa-file-img>
                         </div>
                     </div>
@@ -170,7 +170,7 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                     <select class="tqa-select" id="<?php echo $id; ?>" name="<?php echo $name; ?>"
                             data-tqa-field="<?php echo html_escape($name); ?>"
                             <?php echo $prev ? 'data-tqa-imgpick="1"' : ''; ?>>
-                        <option value="">— بلا تحديد —</option>
+                        <option value=""><?php echo t('— بلا تحديد —'); ?></option>
                         <?php foreach ($opts as $k => $lbl): ?>
                             <option value="<?php echo html_escape($k); ?>"
                                 <?php echo ((string) $val === (string) $k) ? 'selected' : ''; ?>>
@@ -199,14 +199,14 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                     <div class="tqa-picks" data-tqa-picks="<?php echo html_escape($name); ?>">
                         <?php if (!$opts): ?>
                             <span class="tqa-field__hint" style="color:var(--tq-amber)">
-                                لا عناصر في هذه القائمة بعد — املأ وحدتها أولا ثم عد إلى هنا.
+                                <?php echo t('لا عناصر في هذه القائمة بعد — املأ وحدتها أولا ثم عد إلى هنا.'); ?>
                             </span>
                         <?php else: ?>
                             <div class="tqa-picks__acts">
                                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                        data-tqa-picks-all>حدد الكل</button>
+                                        data-tqa-picks-all><?php echo t('حدد الكل'); ?></button>
                                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                        data-tqa-picks-none>امسح التحديد</button>
+                                        data-tqa-picks-none><?php echo t('امسح التحديد'); ?></button>
                                 <span class="tqa-picks__count" data-tqa-picks-count></span>
                             </div>
                             <div class="tqa-picks__grid">
@@ -239,7 +239,7 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                                 id="<?php echo $id . '_' . $case; ?>"
                                 data-tqa-case="<?php echo html_escape($on_field . ':' . $case); ?>"
                                 <?php echo $act ? '' : 'disabled hidden'; ?>>
-                            <option value="0">— بلا تحديد —</option>
+                            <option value="0"><?php echo t('— بلا تحديد —'); ?></option>
                             <?php foreach ($opts as $k => $lbl): ?>
                                 <option value="<?php echo (int) $k; ?>"
                                     <?php echo ((int) $val === (int) $k) ? 'selected' : ''; ?>>
@@ -255,7 +255,7 @@ $tqa_now = function ($field_name) use ($row, $spec) {
 
                     <select class="tqa-select" id="<?php echo $id; ?>" name="<?php echo $name; ?>"
                             data-tqa-field="<?php echo html_escape($name); ?>">
-                        <option value="0">— بلا تحديد —</option>
+                        <option value="0"><?php echo t('— بلا تحديد —'); ?></option>
                         <?php foreach ($opts as $k => $lbl): ?>
                             <option value="<?php echo (int) $k; ?>"
                                 <?php echo ((int) $val === (int) $k) ? 'selected' : ''; ?>>
@@ -268,7 +268,7 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                                  فيه شيئا يظن الشاشة معطوبة، والصواب أن الوحدة
                                  التي يشير إليها لم تملأ بعد. */ ?>
                         <span class="tqa-field__hint" style="color:var(--tq-amber)">
-                            لا عناصر في هذه القائمة بعد — املأ وحدتها أولا ثم عد إلى هنا.
+                            <?php echo t('لا عناصر في هذه القائمة بعد — املأ وحدتها أولا ثم عد إلى هنا.'); ?>
                         </span>
                     <?php endif; ?>
 
@@ -277,7 +277,7 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                     <textarea class="tqa-textarea" id="<?php echo $id; ?>" name="<?php echo $name; ?>"
                               rows="5"><?php echo html_escape((string) $val); ?></textarea>
                     <?php if ($f['type'] === 'lines'): ?>
-                        <span class="tqa-field__hint">سطر واحد لكل بند.</span>
+                        <span class="tqa-field__hint"><?php echo t('سطر واحد لكل بند.'); ?></span>
                     <?php endif; ?>
 
                 <?php elseif ($f['type'] === 'datetime'): ?>
@@ -323,9 +323,9 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                         <input class="tqa-input tqa-input--ltr" dir="ltr" type="number" min="0" step="0.01"
                                id="<?php echo $id; ?>" name="<?php echo $name; ?>"
                                value="<?php echo html_escape((string) $val); ?>">
-                        <span style="color:var(--tq-text2);font:var(--tq-type-caption);flex:none">ر.س</span>
+                        <span style="color:var(--tq-text2);font:var(--tq-type-caption);flex:none"><?php echo t('ر.س'); ?></span>
                     </div>
-                    <span class="tqa-field__hint">يدخل بالريال ويخزن بالهللات — بلا فقد كسور عند الجمع.</span>
+                    <span class="tqa-field__hint"><?php echo t('يدخل بالريال ويخزن بالهللات — بلا فقد كسور عند الجمع.'); ?></span>
 
                 <?php else: ?>
 
@@ -362,9 +362,9 @@ $tqa_now = function ($field_name) use ($row, $spec) {
 
     <div style="display:flex;gap:var(--tq-space-s);flex-wrap:wrap">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo $is_edit ? 'احفظ التعديل' : 'أضف'; ?>
+            <?php echo $is_edit ? t('احفظ التعديل') : t('أضف'); ?>
         </button>
-        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/module/' . $mkey); ?>">إلغاء</a>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/module/' . $mkey); ?>"><?php echo t('إلغاء'); ?></a>
     </div>
 </form>
 

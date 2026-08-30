@@ -8,7 +8,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $tq_section = $this->crud_model->get_section('section', $param2)->row_array();
 
 if (!$tq_section) {
-    echo '<p class="tqa-note tqa-note--warn">لا قسم بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>';
+    echo t('<p class="tqa-note tqa-note--warn">لا قسم بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>');
     return;
 }
 
@@ -19,7 +19,7 @@ $tq_lessons = $this->crud_model->get_lessons('section', $tq_section['id'])->resu
 
     <p class="tqa-note">
         <span aria-hidden="true"><?php echo tq_icon('help', 18); ?></span>
-        <span>الترتيب يحتاج درسين فأكثر في القسم.</span>
+        <span><?php echo t('الترتيب يحتاج درسين فأكثر في القسم.'); ?></span>
     </p>
 
 <?php else: ?>
@@ -27,8 +27,7 @@ $tq_lessons = $this->crud_model->get_lessons('section', $tq_section['id'])->resu
 <p class="tqa-note tqa-section">
     <span aria-hidden="true"><?php echo tq_icon('layers', 18); ?></span>
     <span>
-        دروس قسم <strong><?php echo html_escape($tq_section['title']); ?></strong>.
-        اسحب الدرس إلى موضعه — والترتيب هنا هو ترتيب فتحه للطالب متى فعلت «الإتاحة التدريجية».
+        <?php echo t('دروس قسم'); ?> <strong><?php echo html_escape($tq_section['title']); ?></strong><?php echo t('. اسحب الدرس إلى موضعه — والترتيب هنا هو ترتيب فتحه للطالب متى فعلت «الإتاحة التدريجية».'); ?>
     </span>
 </p>
 
@@ -45,8 +44,8 @@ $tq_lessons = $this->crud_model->get_lessons('section', $tq_section['id'])->resu
             <span style="flex:1;min-inline-size:0">
                 <span class="tqa-media__title"><?php echo html_escape($tq_l['title']); ?></span>
                 <span class="tqa-media__sub">
-                    <?php echo $tq_is_quiz ? 'اختبار' : 'درس'; ?> ·
-                    <span class="tqa-num" data-tqa-pos><?php echo $tq_i + 1; ?></span> في الترتيب
+                    <?php echo $tq_is_quiz ? t('اختبار') : t('درس'); ?> ·
+                    <span class="tqa-num" data-tqa-pos><?php echo $tq_i + 1; ?></span> <?php echo t('في الترتيب'); ?>
                 </span>
             </span>
         </div>

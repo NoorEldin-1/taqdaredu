@@ -26,8 +26,8 @@
 
 $tq_nav   = 'payments';
 $tq_role  = 'parent';
-$tq_title = 'المدفوعات';
-$tq_sub   = 'كل ما دفعته، ولمن، ومتى';
+$tq_title = t('المدفوعات');
+$tq_sub   = t('كل ما دفعته، ولمن، ومتى');
 $tq_icon  = 'wallet';
 
 $tq_ci = &get_instance();
@@ -37,13 +37,13 @@ $tq_pm = $tq_ci->taqdar_parent_model;
 $tq_uid = (int) $this->session->userdata('user_id');
 
 $tq_people = [
-    ['id' => $tq_uid, 'name' => 'مدفوعاتي', 'self' => true],
+    ['id' => $tq_uid, 'name' => t('مدفوعاتي'), 'self' => true],
 ];
 
 foreach ($tq_pm->children($tq_uid) as $tq_c) {
     $tq_people[] = [
         'id'   => (int) $tq_c['student_id'],
-        'name' => 'مدفوعات ' . $tq_c['name'],
+        'name' => t('مدفوعات') . $tq_c['name'],
         'self' => false,
     ];
 }
@@ -70,16 +70,16 @@ unset($tq_p);
    بوابة عربية بالكامل — وسطر إنجليزي واحد وسط جدول عربي يقرأ خطأ لا
    بيانات. وما لا اسم له يعرض كما هو بدل أن يخفى: قناة مجهولة خبر. */
 $tq_methods = [
-    'manual'        => 'تحويل بنكي',
-    'bank_transfer' => 'تحويل بنكي',
-    'bank'          => 'تحويل بنكي',
-    'mada'          => 'بطاقة مدى',
-    'stcpay'        => 'محفظة STC Pay',
-    'urpay'         => 'محفظة urpay',
-    'stripe'        => 'بطاقة',
-    'paypal'        => 'باي بال',
-    'wallet'        => 'رصيد المحفظة',
-    'free'          => 'مجانا',
+    'manual'        => t('تحويل بنكي'),
+    'bank_transfer' => t('تحويل بنكي'),
+    'bank'          => t('تحويل بنكي'),
+    'mada'          => t('بطاقة مدى'),
+    'stcpay'        => t('محفظة STC Pay'),
+    'urpay'         => t('محفظة urpay'),
+    'stripe'        => t('بطاقة'),
+    'paypal'        => t('باي بال'),
+    'wallet'        => t('رصيد المحفظة'),
+    'free'          => t('مجانا'),
 ];
 
 $tq_has_rows = false;
@@ -99,20 +99,20 @@ include 'portal_open.php';
         <div class="tq-grid tq-grid--<?php echo $tq_due_count > 0 ? '3' : '2'; ?> tq-section">
             <div class="tq-pastel tq-pastel--mint">
                 <div class="tq-row tq-row--between">
-                    <span class="tq-pastel__label tq-micro">هذا الشهر</span>
+                    <span class="tq-pastel__label tq-micro"><?php echo t('هذا الشهر'); ?></span>
                     <span class="tq-pastel__icon" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('wallet'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)"><?php echo tq_sar($tq_month_total); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">ما دفع لك ولأبنائك منذ أول الشهر</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0"><?php echo t('ما دفع لك ولأبنائك منذ أول الشهر'); ?></p>
             </div>
 
             <div class="tq-pastel tq-pastel--sky">
                 <div class="tq-row tq-row--between">
-                    <span class="tq-pastel__label tq-micro">الإجمالي</span>
+                    <span class="tq-pastel__label tq-micro"><?php echo t('الإجمالي'); ?></span>
                     <span class="tq-pastel__icon" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('file'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)"><?php echo tq_sar($tq_all_total); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">منذ أول اشتراك — المدفوع وحده</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0"><?php echo t('منذ أول اشتراك — المدفوع وحده'); ?></p>
             </div>
 
             <?php if ($tq_due_count > 0): ?>
@@ -120,12 +120,12 @@ include 'portal_open.php';
                          أهم ما في الصفحة لأن عليه يتوقف اشتراك الابن. */ ?>
                 <div class="tq-pastel tq-pastel--peach">
                     <div class="tq-row tq-row--between">
-                        <span class="tq-pastel__label tq-micro">بانتظار التحويل</span>
+                        <span class="tq-pastel__label tq-micro"><?php echo t('بانتظار التحويل'); ?></span>
                         <span class="tq-pastel__icon" style="color:var(--tq-peach-ink)" aria-hidden="true"><?php echo tq_icon('clock'); ?></span>
                     </div>
                     <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)"><?php echo tq_sar($tq_due_total); ?></p>
                     <p class="tq-pastel__body tq-caption" style="margin:0">
-                        <?php echo tq_count_units($tq_due_count, 'فاتورة', 'فاتورتان', 'فاتورتين', 'فواتير', 'فاتورة', null, 'nom'); ?>
+                        <?php echo tq_count_units($tq_due_count, t('فاتورة'), t('فاتورتان'), t('فاتورتين'), t('فواتير'), t('فاتورة'), null, 'nom'); ?>
                         لم يفعل اشتراكها بعد
                     </p>
                 </div>
@@ -148,11 +148,11 @@ include 'portal_open.php';
                             <caption class="tq-sr">فواتير <?php echo html_escape($tq_p['name']); ?></caption>
                             <thead>
                                 <tr>
-                                    <th scope="col">التاريخ</th>
-                                    <th scope="col">ما اشتري</th>
-                                    <th scope="col">المبلغ</th>
-                                    <th scope="col">الحالة</th>
-                                    <th scope="col">رقم العملية</th>
+                                    <th scope="col"><?php echo t('التاريخ'); ?></th>
+                                    <th scope="col"><?php echo t('ما اشتري'); ?></th>
+                                    <th scope="col"><?php echo t('المبلغ'); ?></th>
+                                    <th scope="col"><?php echo t('الحالة'); ?></th>
+                                    <th scope="col"><?php echo t('رقم العملية'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -193,12 +193,11 @@ include 'portal_open.php';
 
             <div class="tq-card tq-empty">
                 <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('wallet', 24); ?></span>
-                <h2 class="tq-empty__title">لا مدفوعات بعد</h2>
+                <h2 class="tq-empty__title"><?php echo t('لا مدفوعات بعد'); ?></h2>
                 <p class="tq-empty__text">
-                    كل عملية دفع تخصك أو تخص أبناءك المربوطين بحسابك ستظهر هنا بتاريخها ومبلغها
-                    ورقم عمليتها — بلا مصطلحات ولا رسوم خفية.
+                    <?php echo t('كل عملية دفع تخصك أو تخص أبناءك المربوطين بحسابك ستظهر هنا بتاريخها ومبلغها ورقم عمليتها — بلا مصطلحات ولا رسوم خفية.'); ?>
                 </p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('parent'); ?>">عودة إلى أبنائي</a>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('parent'); ?>"><?php echo t('عودة إلى أبنائي'); ?></a>
             </div>
 
         <?php endif; ?>
@@ -210,31 +209,31 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">طرق الدفع</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('طرق الدفع'); ?></h2></div>
             <ul class="tq-stack tq-caption">
                 <li class="tq-row" style="gap:var(--tq-space-s)">
                     <span aria-hidden="true" style="color:var(--tq-teal)"><?php echo tq_icon('check', 16); ?></span>
-                    بطاقة مدى
+                    <?php echo t('بطاقة مدى'); ?>
                 </li>
                 <li class="tq-row" style="gap:var(--tq-space-s)">
                     <span aria-hidden="true" style="color:var(--tq-teal)"><?php echo tq_icon('check', 16); ?></span>
-                    محفظة STC Pay
+                    <?php echo t('محفظة STC Pay'); ?>
                 </li>
                 <li class="tq-row" style="gap:var(--tq-space-s)">
                     <span aria-hidden="true" style="color:var(--tq-teal)"><?php echo tq_icon('check', 16); ?></span>
-                    محفظة urpay
+                    <?php echo t('محفظة urpay'); ?>
                 </li>
                 <li class="tq-row" style="gap:var(--tq-space-s)">
                     <span aria-hidden="true" style="color:var(--tq-teal)"><?php echo tq_icon('check', 16); ?></span>
-                    تحويل بنكي
+                    <?php echo t('تحويل بنكي'); ?>
                 </li>
             </ul>
         </div>
 
         <div class="tq-pastel tq-pastel--peach">
-            <span class="tq-pastel__label tq-micro">استرداد</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('استرداد'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                <?php echo tq_iso('لك 14 يوما من تاريخ الشراء لطلب الاسترداد. راسلنا من صفحة الرسائل ونعالج طلبك.'); ?>
+                <?php echo tq_iso(t('لك 14 يوما من تاريخ الشراء لطلب الاسترداد. راسلنا من صفحة الرسائل ونعالج طلبك.')); ?>
             </p>
         </div>
     </aside>

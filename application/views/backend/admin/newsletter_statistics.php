@@ -25,10 +25,10 @@ try {
 }
 
 $tq_cards = array(
-    'pending' => array('بانتظار الإرسال', 'في الطابور الآن',           'peach', 'clock'),
-    'sent'    => array('أرسلت',           'وصلت إلى صناديق المستقبلين', 'mint',  'check-badge'),
-    'faild'   => array('تعثرت',           'تعاد في الجولة التالية',     'sand',  'refresh'),
-    'unable'  => array('تعذر إرسالها',    'عشر محاولات فاشلة',          'rose',  'alert'),
+    'pending' => array(t('بانتظار الإرسال'), t('في الطابور الآن'),           'peach', 'clock'),
+    'sent'    => array(t('أرسلت'),           t('وصلت إلى صناديق المستقبلين'), 'mint',  'check-badge'),
+    'faild'   => array(t('تعثرت'),           t('تعاد في الجولة التالية'),     'sand',  'refresh'),
+    'unable'  => array(t('تعذر إرسالها'),    t('عشر محاولات فاشلة'),          'rose',  'alert'),
 );
 ?>
 

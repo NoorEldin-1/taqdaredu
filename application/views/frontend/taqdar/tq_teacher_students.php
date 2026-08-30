@@ -24,8 +24,8 @@
 
 $tq_nav   = 'students';
 $tq_role  = 'teacher';
-$tq_title = 'طلابي';
-$tq_sub   = 'طلاب كورساتك وحدهم، وتقدم كل واحد منهم';
+$tq_title = t('طلابي');
+$tq_sub   = t('طلاب كورساتك وحدهم، وتقدم كل واحد منهم');
 $tq_icon  = 'users';
 
 $tq_uid = (int) $this->session->userdata('user_id');
@@ -136,9 +136,9 @@ include 'portal_open.php';
     <div>
 
         <?php if ($tq_my_courses): ?>
-            <nav class="tq-row tq-section" aria-label="تصفية الطلاب بالكورس" style="flex-wrap:wrap">
+            <nav class="tq-row tq-section" aria-label="<?php echo te('تصفية الطلاب بالكورس'); ?>" style="flex-wrap:wrap">
                 <a class="tq-pill" aria-pressed="<?php echo $tq_course ? 'false' : 'true'; ?>"
-                   href="<?php echo base_url('teacher/students'); ?>">كل كورساتي</a>
+                   href="<?php echo base_url('teacher/students'); ?>"><?php echo t('كل كورساتي'); ?></a>
                 <?php foreach ($tq_my_courses as $tq_c): ?>
                     <a class="tq-pill" aria-pressed="<?php echo $tq_course === (int) $tq_c['id'] ? 'true' : 'false'; ?>"
                        href="<?php echo base_url('teacher/students'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
@@ -151,7 +151,7 @@ include 'portal_open.php';
         <!-- من يوشك على الانقطاع: قبل أن ينقطع، لا بعده -->
         <section class="tq-section" aria-labelledby="tq-risk-h">
             <div class="tq-sectionhead">
-                <h2 id="tq-risk-h">من يوشك على الانقطاع</h2>
+                <h2 id="tq-risk-h"><?php echo t('من يوشك على الانقطاع'); ?></h2>
                 <?php if ($tq_at_risk): ?>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_at_risk) . TQ_PDI; ?></span>
                 <?php endif; ?>
@@ -160,7 +160,7 @@ include 'portal_open.php';
             <?php if ($tq_at_risk): ?>
                 <div class="tq-card tq-card--float">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                        <?php echo tq_iso('طالب بدأ بانتظام ثم غاب 5 أيام أو أكثر. رسالة قصيرة الآن أنفع من تقرير بعد شهر.'); ?>
+                        <?php echo tq_iso(t('طالب بدأ بانتظام ثم غاب 5 أيام أو أكثر. رسالة قصيرة الآن أنفع من تقرير بعد شهر.')); ?>
                     </p>
                     <ul class="tq-stack">
                         <?php foreach ($tq_at_risk as $tq_s): ?>
@@ -176,16 +176,16 @@ include 'portal_open.php';
                                 <?php /* «غاب 6 يوما» خطأ ظاهر يقرؤه كل عربي: تمييز العدد من
                                          ثلاثة إلى عشرة جمع قلة. و`tq_days()` في المساعدات تحسمه
                                          منذ كتبت، وهذه الشاشة كانت تلصق « يوما» بيدها. */ ?>
-                                <?php echo tq_badge('due', 'غاب ' . tq_days((int) $tq_s['days'])); ?>
+                                <?php echo tq_badge('due', t('غاب') . tq_days((int) $tq_s['days'])); ?>
                                 <div style="inline-size:160px">
-                                    <?php echo tq_progress((int) $tq_s['progress'], 'تقدم ' . $tq_name); ?>
+                                    <?php echo tq_progress((int) $tq_s['progress'], t('تقدم') . $tq_name); ?>
                                 </div>
                                 <?php if ($tq_msg_ready): ?>
                                     <a class="tq-btn tq-btn--secondary tq-btn--sm"
-                                       href="<?php echo $tq_msg_link((int) $tq_s['id']); ?>">راسله</a>
+                                       href="<?php echo $tq_msg_link((int) $tq_s['id']); ?>"><?php echo t('راسله'); ?></a>
                                 <?php else: ?>
                                     <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                                       href="<?php echo base_url('home/my_messages'); ?>">صندوق الرسائل</a>
+                                       href="<?php echo base_url('home/my_messages'); ?>"><?php echo t('صندوق الرسائل'); ?></a>
                                 <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
@@ -194,11 +194,11 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--mint" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('flame', 24); ?></span>
-                    <h3 class="tq-empty__title">لا أحد على وشك الانقطاع</h3>
+                    <h3 class="tq-empty__title"><?php echo t('لا أحد على وشك الانقطاع'); ?></h3>
                     <p class="tq-empty__text">
-                        <?php echo tq_iso('نراقب من بدأ بانتظام ثم غاب 5 أيام. ما دامت هذه القائمة فارغة فطلابك مستمرون.'); ?>
+                        <?php echo tq_iso(t('نراقب من بدأ بانتظام ثم غاب 5 أيام. ما دامت هذه القائمة فارغة فطلابك مستمرون.')); ?>
                     </p>
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher'); ?>">عودة إلى اللوحة</a>
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher'); ?>"><?php echo t('عودة إلى اللوحة'); ?></a>
                 </div>
             <?php endif; ?>
         </section>
@@ -206,22 +206,22 @@ include 'portal_open.php';
         <!-- تقدم كل طالب -->
         <section aria-labelledby="tq-students-h">
             <div class="tq-sectionhead">
-                <h2 id="tq-students-h">تقدم كل طالب</h2>
+                <h2 id="tq-students-h"><?php echo t('تقدم كل طالب'); ?></h2>
             </div>
 
             <?php if ($tq_students): ?>
                 <div class="tq-card">
                     <table class="tq-table">
-                        <caption class="tq-sr">طلاب كورساتك: التقدم ومتوسط الاختبارات وآخر نشاط</caption>
+                        <caption class="tq-sr"><?php echo t('طلاب كورساتك: التقدم ومتوسط الاختبارات وآخر نشاط'); ?></caption>
                         <thead>
                             <tr>
-                                <th scope="col">الطالب</th>
-                                <th scope="col">الكورس</th>
-                                <th scope="col">التقدم</th>
-                                <th scope="col">متوسط الاختبارات</th>
-                                <th scope="col">آخر نشاط</th>
+                                <th scope="col"><?php echo t('الطالب'); ?></th>
+                                <th scope="col"><?php echo t('الكورس'); ?></th>
+                                <th scope="col"><?php echo t('التقدم'); ?></th>
+                                <th scope="col"><?php echo t('متوسط الاختبارات'); ?></th>
+                                <th scope="col"><?php echo t('آخر نشاط'); ?></th>
                                 <?php if ($tq_msg_ready): ?>
-                                    <th scope="col"><span class="tq-sr">إجراءات</span></th>
+                                    <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                                 <?php endif; ?>
                             </tr>
                         </thead>
@@ -239,20 +239,20 @@ include 'portal_open.php';
                                     </td>
                                     <td data-label="الكورس"><?php echo html_escape($tq_s['course_title']); ?></td>
                                     <td data-label="التقدم" style="min-inline-size:170px">
-                                        <?php echo tq_progress((int) $tq_s['progress'], 'تقدم ' . $tq_name); ?>
+                                        <?php echo tq_progress((int) $tq_s['progress'], t('تقدم') . $tq_name); ?>
                                     </td>
                                     <td data-label="متوسط الاختبارات">
                                         <?php if ($tq_s['attempts'] > 0): ?>
                                             <?php echo tq_num($tq_s['avg_pct'] . '%', 'tq-num--sm'); ?>
                                         <?php else: ?>
-                                            <span class="tq-caption">لم يبدأ اختبارا</span>
+                                            <span class="tq-caption"><?php echo t('لم يبدأ اختبارا'); ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td data-label="آخر نشاط"><?php echo html_escape(tq_since((int) $tq_s['last_seen'])); ?></td>
                                     <?php if ($tq_msg_ready): ?>
                                         <td data-label="إجراءات">
                                             <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                                               href="<?php echo $tq_msg_link((int) $tq_s['id']); ?>">راسله</a>
+                                               href="<?php echo $tq_msg_link((int) $tq_s['id']); ?>"><?php echo t('راسله'); ?></a>
                                         </td>
                                     <?php endif; ?>
                                 </tr>
@@ -263,12 +263,11 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--sky" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('users', 24); ?></span>
-                    <h3 class="tq-empty__title">لا طلاب في كورساتك بعد</h3>
+                    <h3 class="tq-empty__title"><?php echo t('لا طلاب في كورساتك بعد'); ?></h3>
                     <p class="tq-empty__text">
-                        تظهر هنا أسماء من سجلوا في كورساتك المسندة إليك وحدهم، ومعها تقدم كل واحد
-                        ومتوسط اختباراته وآخر نشاط له.
+                        <?php echo t('تظهر هنا أسماء من سجلوا في كورساتك المسندة إليك وحدهم، ومعها تقدم كل واحد ومتوسط اختباراته وآخر نشاط له.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/courses'); ?>">عرض كورساتي</a>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/courses'); ?>"><?php echo t('عرض كورساتي'); ?></a>
                 </div>
             <?php endif; ?>
         </section>
@@ -279,7 +278,7 @@ include 'portal_open.php';
         <!-- التدخل: رسالة قصيرة الآن، لا تقرير بعد شهر -->
         <section class="tq-card" id="tq-compose" aria-labelledby="tq-compose-h">
             <div class="tq-card__head">
-                <h2 class="tq-card__title" id="tq-compose-h">راسل طالبا</h2>
+                <h2 class="tq-card__title" id="tq-compose-h"><?php echo t('راسل طالبا'); ?></h2>
                 <span class="tq-pastel__icon" style="color:var(--tq-navy)" aria-hidden="true"><?php echo tq_icon('chat'); ?></span>
             </div>
 
@@ -299,7 +298,7 @@ include 'portal_open.php';
 
             <?php if (!$tq_msg_targets): ?>
                 <p class="tq-caption" style="margin:0">
-                    لا طالب مسجل في كورساتك بعد، فلا أحد تراسله من هنا.
+                    <?php echo t('لا طالب مسجل في كورساتك بعد، فلا أحد تراسله من هنا.'); ?>
                 </p>
 
             <?php elseif ($tq_msg_ready): ?>
@@ -307,61 +306,58 @@ include 'portal_open.php';
                     <input type="hidden" name="course_id" value="<?php echo (int) $tq_course; ?>">
 
                     <div class="tq-field">
-                        <label class="tq-field__label" for="tq-msg-student">الطالب</label>
+                        <label class="tq-field__label" for="tq-msg-student"><?php echo t('الطالب'); ?></label>
                         <select class="tq-select" id="tq-msg-student" name="student_id" required>
-                            <option value="">اختر من طلابك…</option>
+                            <option value=""><?php echo t('اختر من طلابك…'); ?></option>
                             <?php foreach ($tq_msg_targets as $tq_tid => $tq_tname): ?>
                                 <option value="<?php echo (int) $tq_tid; ?>"<?php echo $tq_msg_to === (int) $tq_tid ? ' selected' : ''; ?>>
                                     <?php echo html_escape($tq_tname); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <span class="tq-field__msg tq-field__hint">القائمة طلاب كورساتك وحدهم.</span>
+                        <span class="tq-field__msg tq-field__hint"><?php echo t('القائمة طلاب كورساتك وحدهم.'); ?></span>
                     </div>
 
                     <div class="tq-field">
-                        <label class="tq-field__label" for="tq-msg-body">الرسالة</label>
+                        <label class="tq-field__label" for="tq-msg-body"><?php echo t('الرسالة'); ?></label>
                         <textarea class="tq-textarea" id="tq-msg-body" name="message" rows="4"
                                   required maxlength="1000"
-                                  placeholder="سطران يكفيان: ما الذي لاحظته، وما الخطوة التالية."></textarea>
+                                  placeholder="<?php echo te('سطران يكفيان: ما الذي لاحظته، وما الخطوة التالية.'); ?>"></textarea>
                         <span class="tq-field__msg tq-field__hint">
-                            تصل إلى صندوق رسائله في المنصة ويرد عليها من مكانه.
+                            <?php echo t('تصل إلى صندوق رسائله في المنصة ويرد عليها من مكانه.'); ?>
                         </span>
                     </div>
 
-                    <button class="tq-btn tq-btn--primary tq-btn--block" type="submit">أرسل</button>
+                    <button class="tq-btn tq-btn--primary tq-btn--block" type="submit"><?php echo t('أرسل'); ?></button>
                 </form>
 
             <?php else: ?>
                 <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                    الإرسال من هذه الشاشة ينتظر تفعيل برنامج المراسلة على الخادم. ولن يعرض هنا
-                    زر إرسال قبل ذلك — زر لا يرسل أسوأ من غياب الزر. وصندوق رسائل المنصة
-                    يعمل الآن.
+                    <?php echo t('الإرسال من هذه الشاشة ينتظر تفعيل برنامج المراسلة على الخادم. ولن يعرض هنا زر إرسال قبل ذلك — زر لا يرسل أسوأ من غياب الزر. وصندوق رسائل المنصة يعمل الآن.'); ?>
                 </p>
                 <a class="tq-btn tq-btn--secondary tq-btn--block tq-btn--sm"
-                   href="<?php echo base_url('home/my_messages'); ?>">افتح صندوق الرسائل</a>
+                   href="<?php echo base_url('home/my_messages'); ?>"><?php echo t('افتح صندوق الرسائل'); ?></a>
             <?php endif; ?>
         </section>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">ملخص</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('ملخص'); ?></h2></div>
             <ul class="tq-stack">
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">تسجيلات في كورساتك</span>
+                    <span class="tq-caption"><?php echo t('تسجيلات في كورساتك'); ?></span>
                     <?php echo tq_num(count($tq_students)); ?>
                 </li>
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">يوشكون على الانقطاع</span>
+                    <span class="tq-caption"><?php echo t('يوشكون على الانقطاع'); ?></span>
                     <?php echo tq_num(count($tq_at_risk)); ?>
                 </li>
             </ul>
         </div>
 
         <div class="tq-pastel tq-pastel--lilac">
-            <span class="tq-pastel__label tq-micro">لماذا لا أرى بقية الطلاب؟</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('لماذا لا أرى بقية الطلاب؟'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                لأنك ترى طلابك أنت: من سجل في كورس أسند إليك. من ليس في كورساتك ليس في نطاقك،
-                ولا تظهر بياناته لك أصلا.
+                <?php echo t('لأنك ترى طلابك أنت: من سجل في كورس أسند إليك. من ليس في كورساتك ليس في نطاقك، ولا تظهر بياناته لك أصلا.'); ?>
             </p>
         </div>
     </aside>

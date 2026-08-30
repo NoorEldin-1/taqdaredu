@@ -14,11 +14,11 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="section_title">
-            عنوان القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('عنوان القسم'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <input class="tqa-input" type="text" name="title" id="section_title" required maxlength="190"
-               placeholder="مثال: الوحدة الأولى — الأعداد">
-        <span class="tqa-field__hint">القسم وعاء الدروس، ويظهر عنوانه للطالب في صفحة الكورس.</span>
+               placeholder="<?php echo te('مثال: الوحدة الأولى — الأعداد'); ?>">
+        <span class="tqa-field__hint"><?php echo t('القسم وعاء الدروس، ويظهر عنوانه للطالب في صفحة الكورس.'); ?></span>
     </div>
 
     <div class="tqa-actions">

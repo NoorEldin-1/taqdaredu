@@ -14,9 +14,9 @@ $tq_rel    = 'uploads/blog/' . $tq_banner;
 $tq_src    = ($tq_banner !== '' && is_file(FCPATH . $tq_rel)) ? base_url($tq_rel) : '';
 ?>
 
-<?php tqa_head('إعدادات المدونة', 'ما يظهر أعلى صفحة المدونة في الموقع العام.', 'file',
+<?php tqa_head(t('إعدادات المدونة'), t('ما يظهر أعلى صفحة المدونة في الموقع العام.'), 'file',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog') . '">'
-  . tq_icon('chev-prev', 16) . ' المقالات</a>'); ?>
+  . tq_icon('chev-prev', 16) . t('المقالات</a>')); ?>
 
 <form class="tqa-card" action="<?php echo site_url('admin/blog_settings/update'); ?>" method="post"
       enctype="multipart/form-data" style="max-inline-size:760px">
@@ -24,7 +24,7 @@ $tq_src    = ($tq_banner !== '' && is_file(FCPATH . $tq_rel)) ? base_url($tq_rel
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="blog_page_title">
-            عنوان الصفحة <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('عنوان الصفحة'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <input class="tqa-input" type="text" id="blog_page_title" name="blog_page_title" required
                value="<?php echo html_escape(get_frontend_settings('blog_page_title')); ?>">
@@ -32,7 +32,7 @@ $tq_src    = ($tq_banner !== '' && is_file(FCPATH . $tq_rel)) ? base_url($tq_rel
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="blog_page_subtitle">
-            العنوان الفرعي <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('العنوان الفرعي'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <textarea class="tqa-textarea" id="blog_page_subtitle" name="blog_page_subtitle" rows="2"
                   required style="min-block-size:70px"><?php
@@ -40,26 +40,26 @@ $tq_src    = ($tq_banner !== '' && is_file(FCPATH . $tq_rel)) ? base_url($tq_rel
     </div>
 
     <div class="tqa-field">
-        <span class="tqa-field__label">بانر الصفحة</span>
+        <span class="tqa-field__label"><?php echo t('بانر الصفحة'); ?></span>
         <?php if ($tq_src !== ''): ?>
             <div class="tqa-checker" style="min-block-size:90px">
-                <img src="<?php echo html_escape($tq_src); ?>" alt="البانر الحالي">
+                <img src="<?php echo html_escape($tq_src); ?>" alt="<?php echo te('البانر الحالي'); ?>">
             </div>
         <?php endif; ?>
         <div class="tqa-file">
             <input type="file" id="blog_page_banner" name="blog_page_banner" accept="image/*" data-tqa-file>
             <label class="tqa-file__btn" for="blog_page_banner">
                 <?php echo tq_icon('image', 16); ?>
-                <?php echo $tq_src !== '' ? 'استبدل الصورة' : 'اختر صورة'; ?>
+                <?php echo $tq_src !== '' ? t('استبدل الصورة') : t('اختر صورة'); ?>
             </label>
-            <span class="tqa-file__name" data-tqa-file-name>المقاس المفضل ‎2000 × 500‎</span>
+            <span class="tqa-file__name" data-tqa-file-name><?php echo t('المقاس المفضل ‎2000 × 500‎'); ?></span>
         </div>
     </div>
 
     <div class="tqa-prefrow">
         <div class="tqa-prefrow__main">
-            <span class="tqa-prefrow__title">المدونة تظهر في الصفحة الرئيسية</span>
-            <span class="tqa-prefrow__hint">إغلاقها يبقي الصفحة قائمة ويخفي قسمها من الرئيسية.</span>
+            <span class="tqa-prefrow__title"><?php echo t('المدونة تظهر في الصفحة الرئيسية'); ?></span>
+            <span class="tqa-prefrow__hint"><?php echo t('إغلاقها يبقي الصفحة قائمة ويخفي قسمها من الرئيسية.'); ?></span>
         </div>
         <div class="tqa-prefrow__end">
             <input type="hidden" name="blog_visibility_on_the_home_page" value="0">
@@ -73,8 +73,8 @@ $tq_src    = ($tq_banner !== '' && is_file(FCPATH . $tq_rel)) ? base_url($tq_rel
 
     <div class="tqa-prefrow">
         <div class="tqa-prefrow__main">
-            <span class="tqa-prefrow__title">المعلمون يكتبون في المدونة</span>
-            <span class="tqa-prefrow__hint">ما يكتبونه ينتظر اعتماد الإدارة قبل النشر.</span>
+            <span class="tqa-prefrow__title"><?php echo t('المعلمون يكتبون في المدونة'); ?></span>
+            <span class="tqa-prefrow__hint"><?php echo t('ما يكتبونه ينتظر اعتماد الإدارة قبل النشر.'); ?></span>
         </div>
         <div class="tqa-prefrow__end">
             <input type="hidden" name="instructors_blog_permission" value="0">

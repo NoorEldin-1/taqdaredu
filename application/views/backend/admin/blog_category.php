@@ -28,18 +28,18 @@ try {
 }
 ?>
 
-<?php tqa_head('أقسام المدونة', 'كل مقال يسند إلى قسم واحد، والقسم يظهر مرشحا في صفحة المدونة.', 'grid',
+<?php tqa_head(t('أقسام المدونة'), t('كل مقال يسند إلى قسم واحد، والقسم يظهر مرشحا في صفحة المدونة.'), 'grid',
     '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_blog_category') . '">'
-  . tq_icon('plus', 17) . ' قسم جديد</a>'
+  . tq_icon('plus', 17) . t('قسم جديد</a>')
   . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog') . '">'
-  . tq_icon('file', 16) . ' المقالات</a>'); ?>
+  . tq_icon('file', 16) . t('المقالات</a>')); ?>
 
 <?php if (empty($tq_cats)): ?>
 
     <div class="tqa-card tqa-card--flush">
-        <?php tqa_empty('لا أقسام بعد',
-            'المقال لا يحفظ بلا قسم — فهذه أول خطوة قبل الكتابة.',
-            'أضف أول قسم', site_url('admin/add_blog_category'), 'grid'); ?>
+        <?php tqa_empty(t('لا أقسام بعد'),
+            t('المقال لا يحفظ بلا قسم — فهذه أول خطوة قبل الكتابة.'),
+            t('أضف أول قسم'), site_url('admin/add_blog_category'), 'grid'); ?>
     </div>
 
 <?php else: ?>
@@ -58,7 +58,7 @@ try {
                     </div>
 
                     <span class="tqa-badge tqa-badge--muted">
-                        <span class="tqa-num"><?php echo (int) ($tq_counts[$tq_id] ?? 0); ?></span> مقالا
+                        <span class="tqa-num"><?php echo (int) ($tq_counts[$tq_id] ?? 0); ?></span> <?php echo t('مقالا'); ?>
                     </span>
                 </div>
 
@@ -70,7 +70,7 @@ try {
 
                     <form method="post" style="margin-inline-start:auto"
                           action="<?php echo site_url('admin/blog_category/delete/' . $tq_id); ?>"
-                          data-tqa-confirm-title="حذف القسم"
+                          data-tqa-confirm-title="<?php echo te('حذف القسم'); ?>"
                           data-tqa-confirm="سيحذف «<?php echo html_escape($tq_c['title']); ?>». والمقالات المصنفة تحته تبقى بلا قسم."
                           data-tqa-confirm-ok="نعم، احذف"
                           data-tqa-confirm-tone="danger">

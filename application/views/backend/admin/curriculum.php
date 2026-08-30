@@ -35,15 +35,15 @@ $tq_durflags = $CI->tq_curric->duration_conflicts((int) $course_id);
 
 /** نوع الدرس يترجم إلى أيقونة واسم عربي. */
 $tq_kind = function ($lesson) {
-    if ($lesson['lesson_type'] === 'quiz') return array('check-badge', 'اختبار');
+    if ($lesson['lesson_type'] === 'quiz') return array('check-badge', t('اختبار'));
 
     $tq_att = isset($lesson['attachment_type']) ? (string) $lesson['attachment_type'] : '';
     switch ($tq_att) {
-        case 'txt': return array('file-text', 'نص');
+        case 'txt': return array('file-text', t('نص'));
         case 'pdf':
-        case 'doc': return array('file', 'مستند');
-        case 'img': return array('image', 'صورة');
-        default:    return array('play', 'فيديو');
+        case 'doc': return array('file', t('مستند'));
+        case 'img': return array('image', t('صورة'));
+        default:    return array('play', t('فيديو'));
     }
 };
 ?>
@@ -76,8 +76,8 @@ $tq_kind = function ($lesson) {
 
     <div class="tqa-card tqa-card--flush">
         <?php tqa_empty(
-            'لا أقسام في هذا الكورس بعد',
-            'القسم وعاء الدروس. أضف قسما أولا، ثم ضع دروسه فيه — والدرس لا يضاف بلا قسم يحمله.',
+            t('لا أقسام في هذا الكورس بعد'),
+            t('القسم وعاء الدروس. أضف قسما أولا، ثم ضع دروسه فيه — والدرس لا يضاف بلا قسم يحمله.'),
             '', '', 'layers'
         ); ?>
     </div>
@@ -103,7 +103,7 @@ $tq_kind = function ($lesson) {
 
                 <div style="min-inline-size:0">
                     <h2 style="font:var(--tq-type-h2)">
-                        <span style="color:var(--tq-text2);font-weight:500">قسم <span class="tqa-num"><?php echo $tq_i + 1; ?></span>:</span>
+                        <span style="color:var(--tq-text2);font-weight:500"><?php echo t('قسم'); ?> <span class="tqa-num"><?php echo $tq_i + 1; ?></span>:</span>
                         <?php echo html_escape($tq_s['title']); ?>
                     </h2>
                     <span class="tqa-media__sub">
@@ -131,14 +131,14 @@ $tq_kind = function ($lesson) {
                     </button>
 
                     <form method="post" action="<?php echo site_url('admin/sections/' . (int) $course_id . '/delete/' . (int) $tq_s['id']); ?>"
-                          data-tqa-confirm-title="حذف القسم"
+                          data-tqa-confirm-title="<?php echo te('حذف القسم'); ?>"
                           data-tqa-confirm="سيحذف «<?php echo html_escape($tq_s['title']); ?>» وكل دروسه. لا رجعة في هذا."
                           data-tqa-confirm-ok="نعم، احذف"
                           data-tqa-confirm-tone="danger">
                         <?php echo tq_csrf(); ?>
                         <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
                             <?php echo tq_icon('trash', 14); ?>
-                            <span class="tqa-sr">حذف القسم</span>
+                            <span class="tqa-sr"><?php echo t('حذف القسم'); ?></span>
                         </button>
                     </form>
                 </div>
@@ -146,7 +146,7 @@ $tq_kind = function ($lesson) {
 
             <?php if (empty($tq_lessons)): ?>
                 <p style="padding:var(--tq-space-xl);margin:0;font:var(--tq-type-caption);color:var(--tq-text2)">
-                    لا دروس في هذا القسم بعد.
+                    <?php echo t('لا دروس في هذا القسم بعد.'); ?>
                 </p>
             <?php else: ?>
                 <ul style="list-style:none;margin:0;padding:0">
@@ -167,7 +167,7 @@ $tq_kind = function ($lesson) {
                         <div style="flex:1;min-inline-size:0">
                             <span class="tqa-media__title"><?php echo html_escape($tq_l['title']); ?></span>
                             <span class="tqa-media__sub">
-                                <?php echo $tq_is_quiz ? 'اختبار' : 'درس'; ?>
+                                <?php echo $tq_is_quiz ? t('اختبار') : t('درس'); ?>
                                 <span class="tqa-num"><?php echo $tq_is_quiz ? $tq_quiz_no : $tq_lesson_no; ?></span>
                                 · <?php echo html_escape($tq_kindname); ?>
                             </span>
@@ -194,8 +194,8 @@ $tq_kind = function ($lesson) {
                                    href="<?php echo site_url('taqdar_admin/lesson_quiz/' . (int) $tq_l['id']); ?>">
                                     <?php echo tq_icon('help', 14); ?>
                                     <?php echo $tq_qn > 0
-                                        ? 'الاختبار (<span class="tqa-num">' . $tq_qn . '</span>)'
-                                        : 'أضف اختبارا'; ?>
+                                        ? t('الاختبار (<span class="tqa-num">') . $tq_qn . '</span>)'
+                                        : t('أضف اختبارا'); ?>
                                 </a>
 
                                 <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
@@ -211,7 +211,7 @@ $tq_kind = function ($lesson) {
 
                             <form method="post"
                                   action="<?php echo site_url('admin/lessons/' . (int) $course_id . '/delete/' . (int) $tq_l['id']); ?>"
-                                  data-tqa-confirm-title="<?php echo $tq_is_quiz ? 'حذف الاختبار' : 'حذف الدرس'; ?>"
+                                  data-tqa-confirm-title="<?php echo $tq_is_quiz ? t('حذف الاختبار') : t('حذف الدرس'); ?>"
                                   data-tqa-confirm="سيحذف «<?php echo html_escape($tq_l['title']); ?>» نهائيا."
                                   data-tqa-confirm-ok="نعم، احذف"
                                   data-tqa-confirm-tone="danger">

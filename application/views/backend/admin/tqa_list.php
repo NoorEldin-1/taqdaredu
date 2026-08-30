@@ -26,7 +26,7 @@ foreach ($spec['fields'] as $name => $f) {
 
 $tools = $readonly ? '' :
     '<a class="tqa-btn tqa-btn--primary" href="' . site_url('taqdar_admin/form/' . $mkey) . '">'
-  . tq_icon('plus', 17) . ' إضافة</a>';
+  . tq_icon('plus', 17) . t('إضافة</a>');
 ?>
 
 <?php tqa_head($spec['title'], $spec['lead'], isset($spec['icon']) ? $spec['icon'] : 'circle', $tools); ?>
@@ -42,11 +42,11 @@ $tools = $readonly ? '' :
 <?php if (empty($rows)): ?>
 
     <?php tqa_empty(
-        'لا ' . $spec['title'] . ' بعد',
+        t('لا') . $spec['title'] . t('بعد'),
         $readonly
-            ? 'تمتلئ هذه الشاشة وحدها حين يبدأ النظام في التسجيل — ولا يضاف إليها بيد.'
-            : 'ابدأ بإضافة أول عنصر؛ وحدات أخرى تعتمد عليه.',
-        $readonly ? '' : 'إضافة الآن',
+            ? t('تمتلئ هذه الشاشة وحدها حين يبدأ النظام في التسجيل — ولا يضاف إليها بيد.')
+            : t('ابدأ بإضافة أول عنصر؛ وحدات أخرى تعتمد عليه.'),
+        $readonly ? '' : t('إضافة الآن'),
         $readonly ? '' : site_url('taqdar_admin/form/' . $mkey),
         isset($spec['icon']) ? $spec['icon'] : 'folder'
     ); ?>
@@ -62,10 +62,10 @@ $tools = $readonly ? '' :
                         <th><?php echo html_escape($f['label']); ?></th>
                     <?php endforeach; ?>
                     <?php if ($status_fn !== ''): ?>
-                        <th><?php echo html_escape(isset($spec['status_label']) ? $spec['status_label'] : 'الحال'); ?></th>
+                        <th><?php echo html_escape(isset($spec['status_label']) ? $spec['status_label'] : t('الحال')); ?></th>
                     <?php endif; ?>
                     <?php if (!$readonly): ?>
-                        <th style="inline-size:150px"><span class="tqa-sr">إجراءات</span></th>
+                        <th style="inline-size:150px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                     <?php endif; ?>
                 </tr>
             </thead>
@@ -84,7 +84,7 @@ $tools = $readonly ? '' :
                         $st = $M->{$status_fn}($r);
                         $tone = array('ok' => 'ok', 'warn' => 'warn', 'no' => 'danger');
                     ?>
-                        <td data-label="<?php echo html_escape(isset($spec['status_label']) ? $spec['status_label'] : 'الحال'); ?>">
+                        <td data-label="<?php echo html_escape(isset($spec['status_label']) ? $spec['status_label'] : t('الحال')); ?>">
                             <span class="tqa-badge tqa-badge--<?php echo isset($tone[$st['tone']]) ? $tone[$st['tone']] : 'muted'; ?>">
                                 <?php echo html_escape($st['label']); ?>
                             </span>
@@ -117,7 +117,7 @@ $tools = $readonly ? '' :
                                          بمجرد جلبه — من زاحف أو من استباق تحميل. */ ?>
                                 <form method="post" style="margin:0"
                                       action="<?php echo site_url('taqdar_admin/delete/' . $mkey . '/' . (int) $r['id']); ?>"
-                                      data-tqa-confirm-title="حذف نهائي"
+                                      data-tqa-confirm-title="<?php echo te('حذف نهائي'); ?>"
                                       data-tqa-confirm="لا رجعة في هذا الحذف. وقد تعتمد عليه وحدات أخرى."
                                       data-tqa-confirm-ok="نعم، احذف"
                                       data-tqa-confirm-tone="danger">
@@ -125,7 +125,7 @@ $tools = $readonly ? '' :
                                     <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                             style="color:var(--tq-danger)">
                                         <?php echo tq_icon('trash', 15); ?>
-                                        <span class="tqa-sr">حذف</span>
+                                        <span class="tqa-sr"><?php echo t('حذف'); ?></span>
                                     </button>
                                 </form>
                             <?php endif; ?>
@@ -140,7 +140,7 @@ $tools = $readonly ? '' :
 
     <p style="padding:var(--tq-space-m) var(--tq-space-xl);margin:0;border-block-start:1px solid var(--tq-line);
               font:var(--tq-type-caption);color:var(--tq-text2)">
-        المعروض <span class="tqa-num"><?php echo count($rows); ?></span> عنصرا
+        <?php echo t('المعروض'); ?> <span class="tqa-num"><?php echo count($rows); ?></span> عنصرا
         <?php if (count($rows) >= 200): ?>
             — وهو حد العرض. المزيد موجود ولا يظهر هنا.
         <?php endif; ?>

@@ -48,8 +48,8 @@ if (!function_exists('tq_fav_course_url')) {
 
 $tq_nav   = 'favourites';
 $tq_role  = 'student';
-$tq_title = 'المفضلة';
-$tq_sub   = 'كل ما تضيفه إلى المفضلة تجده هنا بسهولة';
+$tq_title = t('المفضلة');
+$tq_sub   = t('كل ما تضيفه إلى المفضلة تجده هنا بسهولة');
 $tq_icon  = 'heart';
 
 $uid = (int) $this->session->userdata('user_id');
@@ -170,10 +170,10 @@ $tq_show = static function ($section) use ($tq_type) {
     return $tq_type === 'all' || $tq_type === $section;
 };
 $tq_types = [
-    'all'       => 'الكل',
-    'lessons'   => 'الدروس',
-    'materials' => 'المواد التعليمية',
-    'courses'   => 'الكورسات',
+    'all'       => t('الكل'),
+    'lessons'   => t('الدروس'),
+    'materials' => t('المواد التعليمية'),
+    'courses'   => t('الكورسات'),
 ];
 
 /* ---- الترتيب: يعمل فعلا على الخادم -----------------------------------
@@ -182,9 +182,9 @@ $tq_types = [
 $tq_sort = $this->input->get('sort', true);
 $tq_sort = in_array($tq_sort, ['recent', 'title', 'progress'], true) ? $tq_sort : 'recent';
 $tq_sorts = [
-    'recent'   => 'الأحدث إضافة',
-    'title'    => 'الاسم',
-    'progress' => 'الأقرب للاكتمال',
+    'recent'   => t('الأحدث إضافة'),
+    'title'    => t('الاسم'),
+    'progress' => t('الأقرب للاكتمال'),
 ];
 
 if ($tq_fav_courses) {
@@ -214,8 +214,8 @@ $tq_heart = static function ($kind, $id, $noun) use ($tq_type, $tq_sort) {
         <input type="hidden" name="back_type" value="<?php echo html_escape($tq_type); ?>">
         <input type="hidden" name="back_sort" value="<?php echo html_escape($tq_sort); ?>">
         <button class="tq-fav-heart" type="submit" aria-pressed="true"
-                title="<?php echo html_escape('إزالة ' . $noun . ' من المفضلة'); ?>"
-                aria-label="<?php echo html_escape('إزالة ' . $noun . ' من المفضلة'); ?>">
+                title="<?php echo html_escape(t('إزالة') . $noun . t('من المفضلة')); ?>"
+                aria-label="<?php echo html_escape(t('إزالة') . $noun . t('من المفضلة')); ?>">
             <?php echo tq_icon('heart'); ?>
         </button>
     </form>
@@ -271,7 +271,7 @@ include 'portal_open.php';
 </style>
 
 <div class="tq-favbar">
-    <nav class="tq-tabs" aria-label="تصفية المفضلة بالنوع" style="margin-block-end:0;border-block-end:0">
+    <nav class="tq-tabs" aria-label="<?php echo te('تصفية المفضلة بالنوع'); ?>" style="margin-block-end:0;border-block-end:0">
         <?php foreach ($tq_types as $key => $label): ?>
             <a class="tq-tab"
                href="<?php echo base_url('student/favourites') . ($key === 'all' ? '' : '?type=' . $key); ?>"
@@ -284,7 +284,7 @@ include 'portal_open.php';
         <?php if ($tq_type !== 'all'): ?>
             <input type="hidden" name="type" value="<?php echo html_escape($tq_type); ?>">
         <?php endif; ?>
-        <label class="tq-sr" for="tq-fav-sort">ترتيب المفضلة</label>
+        <label class="tq-sr" for="tq-fav-sort"><?php echo t('ترتيب المفضلة'); ?></label>
         <select class="tq-select" id="tq-fav-sort" name="sort" style="inline-size:auto">
             <?php foreach ($tq_sorts as $key => $label): ?>
                 <option value="<?php echo html_escape($key); ?>" <?php echo $tq_sort === $key ? 'selected' : ''; ?>>
@@ -292,7 +292,7 @@ include 'portal_open.php';
                 </option>
             <?php endforeach; ?>
         </select>
-        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">رتب</button>
+        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit"><?php echo t('رتب'); ?></button>
     </form>
 </div>
 
@@ -304,10 +304,10 @@ include 'portal_open.php';
         <section class="tq-section" aria-labelledby="tq-fs-lessons">
             <div class="tq-sectionhead">
                 <div class="tq-row">
-                    <h2 id="tq-fs-lessons">الدروس</h2>
+                    <h2 id="tq-fs-lessons"><?php echo t('الدروس'); ?></h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_fav_lessons) . TQ_PDI; ?></span>
                 </div>
-                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/lessons'); ?>">عرض الكل</a>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/lessons'); ?>"><?php echo t('عرض الكل'); ?></a>
             </div>
 
             <?php if (!$tq_fav_lessons): ?>
@@ -316,12 +316,11 @@ include 'portal_open.php';
                         <div class="tq-empty__art tq-pastel tq-pastel--sky" style="display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                             <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('play', 44); ?></span>
                         </div>
-                        <h3 class="tq-empty__title">لا دروس في مفضلتك</h3>
+                        <h3 class="tq-empty__title"><?php echo t('لا دروس في مفضلتك'); ?></h3>
                         <p class="tq-empty__text">
-                            اضغط القلب على أي درس وسيظهر هنا ببطاقته: الغلاف، وزر التشغيل، ومدته، واسم مادته —
-                            فتعود إليه في ثانية بدل البحث عنه.
+                            <?php echo t('اضغط القلب على أي درس وسيظهر هنا ببطاقته: الغلاف، وزر التشغيل، ومدته، واسم مادته — فتعود إليه في ثانية بدل البحث عنه.'); ?>
                         </p>
-                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>">تصفح دروسي</a>
+                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>"><?php echo t('تصفح دروسي'); ?></a>
                     </div>
                 </div>
             <?php else: ?>
@@ -329,7 +328,7 @@ include 'portal_open.php';
                     <?php foreach ($tq_fav_lessons as $i => $ls): ?>
                         <article class="tq-lesson-card">
                             <a class="tq-lesson-card__cover" href="<?php echo html_escape($ls['href']); ?>"
-                               aria-label="<?php echo html_escape('افتح درس ' . $ls['title']); ?>">
+                               aria-label="<?php echo html_escape(t('افتح درس') . $ls['title']); ?>">
                                 <span class="tq-lesson-card__play" aria-hidden="true"><?php echo tq_icon('play'); ?></span>
                                 <span class="tq-lesson-card__time"><?php echo TQ_LRI . html_escape($ls['duration']) . TQ_PDI; ?></span>
                             </a>
@@ -341,7 +340,7 @@ include 'portal_open.php';
                                 </h3>
                                 <div class="tq-lesson-card__foot">
                                     <span class="tq-micro"><?php echo html_escape($ls['subject']); ?></span>
-                                    <?php echo $tq_heart('lesson', $ls['id'], 'الدرس'); ?>
+                                    <?php echo $tq_heart('lesson', $ls['id'], t('الدرس')); ?>
                                 </div>
                             </div>
                         </article>
@@ -356,10 +355,10 @@ include 'portal_open.php';
         <section class="tq-section" aria-labelledby="tq-fs-materials">
             <div class="tq-sectionhead">
                 <div class="tq-row">
-                    <h2 id="tq-fs-materials">المواد التعليمية</h2>
+                    <h2 id="tq-fs-materials"><?php echo t('المواد التعليمية'); ?></h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_fav_materials) . TQ_PDI; ?></span>
                 </div>
-                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/materials'); ?>">عرض الكل</a>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/materials'); ?>"><?php echo t('عرض الكل'); ?></a>
             </div>
 
             <?php if (!$tq_fav_materials): ?>
@@ -368,11 +367,11 @@ include 'portal_open.php';
                         <div class="tq-empty__art tq-pastel tq-pastel--peach" style="display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                             <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('file', 44); ?></span>
                         </div>
-                        <h3 class="tq-empty__title">لا ملفات محفوظة</h3>
+                        <h3 class="tq-empty__title"><?php echo t('لا ملفات محفوظة'); ?></h3>
                         <p class="tq-empty__text">
-                            الملخصات وأوراق العمل التي تحفظها تظهر هنا بامتدادها وحجمها، جاهزة للتنزيل قبل المذاكرة.
+                            <?php echo t('الملخصات وأوراق العمل التي تحفظها تظهر هنا بامتدادها وحجمها، جاهزة للتنزيل قبل المذاكرة.'); ?>
                         </p>
-                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/materials'); ?>">تصفح المواد التعليمية</a>
+                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/materials'); ?>"><?php echo t('تصفح المواد التعليمية'); ?></a>
                     </div>
                 </div>
             <?php else: ?>
@@ -390,9 +389,9 @@ include 'portal_open.php';
                                 <?php /* الملف يفتح فعلا، والقلب يزيله فعلا — لا بطاقة تعرض
                                          اسما وحده ولا فعل تحتها. */ ?>
                                 <a class="tq-fav-heart" href="<?php echo html_escape($f['url']); ?>" download
-                                   aria-label="<?php echo html_escape('تنزيل ' . $f['title']); ?>"
-                                   title="تنزيل"><?php echo tq_icon('download'); ?></a>
-                                <?php echo $tq_heart('material', $f['id'], 'الملف'); ?>
+                                   aria-label="<?php echo html_escape(t('تنزيل') . $f['title']); ?>"
+                                   title="<?php echo te('تنزيل'); ?>"><?php echo tq_icon('download'); ?></a>
+                                <?php echo $tq_heart('material', $f['id'], t('الملف')); ?>
                             </div>
                         </article>
                     <?php endforeach; ?>
@@ -406,13 +405,13 @@ include 'portal_open.php';
         <section class="tq-section" aria-labelledby="tq-fs-courses">
             <div class="tq-sectionhead">
                 <div class="tq-row">
-                    <h2 id="tq-fs-courses">الكورسات</h2>
+                    <h2 id="tq-fs-courses"><?php echo t('الكورسات'); ?></h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_fav_courses) . TQ_PDI; ?></span>
                 </div>
 <?php /* كان `my-courses` — يرد 404. و«عرض الكل» هنا تعني كتالوج الكورسات
                          لا مفضلتها. و`plans` لا `courses`: الثانية تحول بـ301 إلى الأولى،
                          فكتابتها تكلف رحلة ذهاب وإياب على كل نقرة. */ ?>
-                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('plans'); ?>">عرض الكل</a>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('plans'); ?>"><?php echo t('عرض الكل'); ?></a>
             </div>
 
             <?php if (!$tq_fav_courses): ?>
@@ -421,11 +420,11 @@ include 'portal_open.php';
                         <div class="tq-empty__art tq-pastel tq-pastel--lilac" style="display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                             <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('book', 44); ?></span>
                         </div>
-                        <h3 class="tq-empty__title">لا كورسات في مفضلتك</h3>
+                        <h3 class="tq-empty__title"><?php echo t('لا كورسات في مفضلتك'); ?></h3>
                         <p class="tq-empty__text">
-                            أضف كورسا إلى المفضلة لتتابع تقدمك فيه من هنا بشريط ونسبة، وتعود إليه من حيث توقفت.
+                            <?php echo t('أضف كورسا إلى المفضلة لتتابع تقدمك فيه من هنا بشريط ونسبة، وتعود إليه من حيث توقفت.'); ?>
                         </p>
-                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('catalog'); ?>">تصفح الكورسات</a>
+                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('catalog'); ?>"><?php echo t('تصفح الكورسات'); ?></a>
                     </div>
                 </div>
             <?php else: ?>
@@ -451,12 +450,12 @@ include 'portal_open.php';
                                             <?php echo html_escape($c['title']); ?>
                                         </a>
                                     </h3>
-                                    <?php echo $tq_heart('course', $cid, 'الكورس'); ?>
+                                    <?php echo $tq_heart('course', $cid, t('الكورس')); ?>
                                 </div>
                                 <p class="tq-micro" style="margin:0 0 var(--tq-space-s)">
-                                    <?php echo html_escape($tq_teachers[(int) $c['user_id']] ?? 'فريق تقدر'); ?>
+                                    <?php echo html_escape($tq_teachers[(int) $c['user_id']] ?? t('فريق تقدر')); ?>
                                 </p>
-                                <?php echo tq_progress($pct, 'تقدمك في الكورس'); ?>
+                                <?php echo tq_progress($pct, t('تقدمك في الكورس')); ?>
                             </div>
                         </article>
                     <?php endforeach; ?>
@@ -467,7 +466,7 @@ include 'portal_open.php';
 
         <p class="tq-hintbar">
             <span aria-hidden="true"><?php echo tq_icon('heart', 16); ?></span>
-            يمكنك إزالة أي عنصر من المفضلة بالضغط على القلب في البطاقة.
+            <?php echo t('يمكنك إزالة أي عنصر من المفضلة بالضغط على القلب في البطاقة.'); ?>
         </p>
 
     </div>
@@ -476,25 +475,25 @@ include 'portal_open.php';
 
         <!-- ملخص المفضلة -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-favsum-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-favsum-h">ملخص المفضلة</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-favsum-h"><?php echo t('ملخص المفضلة'); ?></h2></div>
             <div class="tq-row" style="gap:var(--tq-space-l);margin-block-end:var(--tq-space-xl)">
                 <span class="tq-icon-box tq-pastel--rose" aria-hidden="true"><?php echo tq_icon('heart', 26); ?></span>
                 <span>
                     <span style="display:block"><?php echo tq_num($tq_total_fav, 'tq-num--xl'); ?></span>
-                    <span class="tq-micro">إجمالي العناصر</span>
+                    <span class="tq-micro"><?php echo t('إجمالي العناصر'); ?></span>
                 </span>
             </div>
             <div>
                 <div class="tq-sumrow">
-                    <span class="tq-row"><span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon('play', 18); ?></span><span class="tq-caption">الدروس</span></span>
+                    <span class="tq-row"><span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon('play', 18); ?></span><span class="tq-caption"><?php echo t('الدروس'); ?></span></span>
                     <?php echo tq_num(count($tq_fav_lessons), 'tq-num--sm'); ?>
                 </div>
                 <div class="tq-sumrow">
-                    <span class="tq-row"><span class="tq-icon-box tq-pastel--peach" aria-hidden="true"><?php echo tq_icon('file', 18); ?></span><span class="tq-caption">المواد التعليمية</span></span>
+                    <span class="tq-row"><span class="tq-icon-box tq-pastel--peach" aria-hidden="true"><?php echo tq_icon('file', 18); ?></span><span class="tq-caption"><?php echo t('المواد التعليمية'); ?></span></span>
                     <?php echo tq_num(count($tq_fav_materials), 'tq-num--sm'); ?>
                 </div>
                 <div class="tq-sumrow">
-                    <span class="tq-row"><span class="tq-icon-box tq-pastel--lilac" aria-hidden="true"><?php echo tq_icon('book', 18); ?></span><span class="tq-caption">الكورسات</span></span>
+                    <span class="tq-row"><span class="tq-icon-box tq-pastel--lilac" aria-hidden="true"><?php echo tq_icon('book', 18); ?></span><span class="tq-caption"><?php echo t('الكورسات'); ?></span></span>
                     <?php echo tq_num(count($tq_fav_courses), 'tq-num--sm'); ?>
                 </div>
             </div>
@@ -507,11 +506,10 @@ include 'portal_open.php';
 
         <!-- القوائم المخصصة: لا جدول قوائم في القاعدة بعد -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-lists-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-lists-h">القوائم المخصصة</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-lists-h"><?php echo t('القوائم المخصصة'); ?></h2></div>
             <?php if (!$tq_lists): ?>
                 <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                    اجمع مفضلتك في قوائم باسمك: «مراجعة الاختبار النهائي» أو «دروس مهمة»،
-                    وسيظهر لكل قائمة عدد عناصرها هنا.
+                    <?php echo t('اجمع مفضلتك في قوائم باسمك: «مراجعة الاختبار النهائي» أو «دروس مهمة»، وسيظهر لكل قائمة عدد عناصرها هنا.'); ?>
                 </p>
             <?php else: ?>
                 <ul class="tq-stack" style="margin-block-end:var(--tq-space-l)">
@@ -521,7 +519,7 @@ include 'portal_open.php';
                                 <span class="tq-icon-box tq-pastel--<?php echo tq_pastel($i); ?>" aria-hidden="true"><?php echo tq_icon('folder', 18); ?></span>
                                 <span>
                                     <span class="tq-caption" style="display:block;color:var(--tq-navy)"><?php echo html_escape($l['name']); ?></span>
-                                    <span class="tq-micro"><?php echo tq_iso($l['count'] . ' عناصر'); ?></span>
+                                    <span class="tq-micro"><?php echo tq_iso($l['count'] . t('عناصر')); ?></span>
                                 </span>
                             </span>
                         </li>
@@ -534,10 +532,10 @@ include 'portal_open.php';
 
         <!-- الأكثر مشاهدة: وقت مسجل من watched_duration، لا عداد فتح مخترع -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-most-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-most-h">الأكثر مشاهدة في مفضلتك</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-most-h"><?php echo t('الأكثر مشاهدة في مفضلتك'); ?></h2></div>
             <?php if (!$tq_most_used): ?>
                 <p class="tq-caption" style="margin:0">
-                    بعد أن تشاهد دروس كورسات مفضلتك سيظهر هنا أكثر ثلاثة قضيت فيها وقتا، بزمن مشاهدتك المسجل.
+                    <?php echo t('بعد أن تشاهد دروس كورسات مفضلتك سيظهر هنا أكثر ثلاثة قضيت فيها وقتا، بزمن مشاهدتك المسجل.'); ?>
                 </p>
             <?php else: ?>
                 <ul class="tq-stack">
@@ -545,7 +543,7 @@ include 'portal_open.php';
                         <?php
                         $h = intdiv($m['secs'], 3600);
                         $mn = intdiv($m['secs'] % 3600, 60);
-                        $spent = $h > 0 ? $h . ' س ' . $mn . ' د' : $mn . ' د';
+                        $spent = $h > 0 ? $h . t('س') . $mn . t('د') : $mn . t('د');
                         ?>
                         <li class="tq-row tq-row--between">
                             <a class="tq-caption tq-s-trunc" style="color:var(--tq-navy)" href="<?php echo html_escape($m['href']); ?>">

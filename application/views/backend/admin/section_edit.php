@@ -8,7 +8,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $tq_section = $this->crud_model->get_section('section', $param2)->row_array();
 
 if (!$tq_section) {
-    echo '<p class="tqa-note tqa-note--warn">لا قسم بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>';
+    echo t('<p class="tqa-note tqa-note--warn">لا قسم بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>');
     return;
 }
 ?>
@@ -17,7 +17,7 @@ if (!$tq_section) {
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="section_title">
-            عنوان القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('عنوان القسم'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <input class="tqa-input" type="text" name="title" id="section_title" required maxlength="190"
                value="<?php echo html_escape($tq_section['title']); ?>">

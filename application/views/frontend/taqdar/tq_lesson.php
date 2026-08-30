@@ -47,10 +47,10 @@ include 'portal_open.php';
             <span class="tq-icon-box tq-pastel--peach" style="inline-size:72px;block-size:72px" aria-hidden="true">
                 <?php echo tq_icon('lock', 34); ?>
             </span>
-            <p class="tq-empty__title">هذا الدرس مقفل</p>
-            <p class="tq-empty__text" data-tq-locked-msg>أكمل مراجعة الدرس السابق أولا.</p>
+            <p class="tq-empty__title"><?php echo t('هذا الدرس مقفل'); ?></p>
+            <p class="tq-empty__text" data-tq-locked-msg><?php echo t('أكمل مراجعة الدرس السابق أولا.'); ?></p>
             <a class="tq-btn tq-btn--primary" data-tq-locked-back href="<?php echo base_url('student/lessons'); ?>">
-                عد إلى دروسك
+                <?php echo t('عد إلى دروسك'); ?>
             </a>
         </div>
     </div>
@@ -58,8 +58,8 @@ include 'portal_open.php';
     <!-- الخطأ: ما حدث + زر إعادة، والتفصيل في السجل لا على الشاشة -->
     <div class="tq-card" data-tq-lesson-error hidden>
         <div class="tq-empty">
-            <p class="tq-empty__title" data-tq-error-msg>تعذر تحميل الدرس</p>
-            <button class="tq-btn tq-btn--secondary" type="button" data-tq-retry>إعادة المحاولة</button>
+            <p class="tq-empty__title" data-tq-error-msg><?php echo t('تعذر تحميل الدرس'); ?></p>
+            <button class="tq-btn tq-btn--secondary" type="button" data-tq-retry><?php echo t('إعادة المحاولة'); ?></button>
         </div>
     </div>
 
@@ -83,26 +83,26 @@ include 'portal_open.php';
                         يجعلها لا تستعمل. */ ?>
                 <div class="tq-ptools" data-tq-ptools hidden>
                     <div class="tq-ptools__grp" data-tq-speed-grp hidden>
-                        <span class="tq-ptools__lbl">السرعة</span>
-                        <div class="tq-ptools__rates" role="group" aria-label="سرعة التشغيل">
+                        <span class="tq-ptools__lbl"><?php echo t('السرعة'); ?></span>
+                        <div class="tq-ptools__rates" role="group" aria-label="<?php echo te('سرعة التشغيل'); ?>">
                             <?php foreach (array('0.75', '1', '1.25', '1.5', '2') as $r): ?>
                                 <button class="tq-ptools__rate<?php echo $r === '1' ? ' is-on' : ''; ?>"
                                         type="button" data-tq-rate="<?php echo $r; ?>"
                                         aria-pressed="<?php echo $r === '1' ? 'true' : 'false'; ?>"><?php
-                                    echo $r === '1' ? 'عادي' : '×' . $r; ?></button>
+                                    echo $r === '1' ? t('عادي') : '×' . $r; ?></button>
                             <?php endforeach; ?>
                         </div>
                     </div>
 
                     <div class="tq-ptools__grp tq-ptools__grp--grow" data-tq-tr-grp hidden>
-                        <label class="sr-only" for="tqTrSearch">ابحث في نص الدرس</label>
+                        <label class="sr-only" for="tqTrSearch"><?php echo t('ابحث في نص الدرس'); ?></label>
                         <span class="tq-ptools__search">
                             <?php echo tq_icon('search', 16); ?>
                             <input id="tqTrSearch" type="search" data-tq-tr-search
-                                   placeholder="ابحث في نص الدرس واقفز إلى موضعه" autocomplete="off">
+                                   placeholder="<?php echo te('ابحث في نص الدرس واقفز إلى موضعه'); ?>" autocomplete="off">
                         </span>
                         <button class="tq-btn tq-btn--ghost tq-btn--sm" type="button" data-tq-tr-toggle
-                                aria-expanded="false">النص</button>
+                                aria-expanded="false"><?php echo t('النص'); ?></button>
                     </div>
 
                     <button class="tq-btn tq-btn--ghost tq-btn--sm" type="button" data-tq-note-add>
@@ -114,17 +114,17 @@ include 'portal_open.php';
                 <div class="tq-transcript" data-tq-transcript hidden>
                     <p class="tq-caption" data-tq-tr-count></p>
                     <ol class="tq-transcript__list" data-tq-tr-list></ol>
-                    <p class="tq-caption" data-tq-tr-none hidden>لا نتيجة لهذا البحث في نص الدرس.</p>
+                    <p class="tq-caption" data-tq-tr-none hidden><?php echo t('لا نتيجة لهذا البحث في نص الدرس.'); ?></p>
                 </div>
 
                 <!-- الملاحظة: تفتح عند الثانية التي كان عندها، ولا تسأله عنها -->
                 <form class="tq-noteform" data-tq-noteform hidden>
                     <p class="tq-caption" data-tq-note-at></p>
                     <textarea data-tq-note-body rows="3" maxlength="2000"
-                              placeholder="ما الذي تريد أن تتذكره من هذه اللحظة؟"></textarea>
+                              placeholder="<?php echo te('ما الذي تريد أن تتذكره من هذه اللحظة؟'); ?>"></textarea>
                     <div class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap">
-                        <button class="tq-btn tq-btn--primary tq-btn--sm" type="submit">احفظ</button>
-                        <button class="tq-btn tq-btn--ghost tq-btn--sm" type="button" data-tq-note-cancel>ألغ</button>
+                        <button class="tq-btn tq-btn--primary tq-btn--sm" type="submit"><?php echo t('احفظ'); ?></button>
+                        <button class="tq-btn tq-btn--ghost tq-btn--sm" type="button" data-tq-note-cancel><?php echo t('ألغ'); ?></button>
                     </div>
                 </form>
 
@@ -167,10 +167,9 @@ include 'portal_open.php';
                 <div class="tq-row" style="gap:var(--tq-space-l);align-items:flex-start">
                     <span class="tq-icon-box tq-pastel--peach" aria-hidden="true"><?php echo tq_icon('alert'); ?></span>
                     <div style="flex:1">
-                        <h2 class="tq-card__title" style="margin:0" data-tq-blind-title>هذا المصدر لا يقاس تلقائيا</h2>
+                        <h2 class="tq-card__title" style="margin:0" data-tq-blind-title><?php echo t('هذا المصدر لا يقاس تلقائيا'); ?></h2>
                         <p class="tq-caption" style="margin:var(--tq-space-xs) 0 var(--tq-space-l)" data-tq-blind-body>
-                            المنصة لا تقرأ موضع التشغيل في هذا النوع من المصادر، فلا يسجل تقدمك فيه من تلقائه.
-                            اضغط «أنهيت الدرس» حين تكمله ليفتح لك الاختبار.
+                            <?php echo t('المنصة لا تقرأ موضع التشغيل في هذا النوع من المصادر، فلا يسجل تقدمك فيه من تلقائه. اضغط «أنهيت الدرس» حين تكمله ليفتح لك الاختبار.'); ?>
                         </p>
                         <button class="tq-btn tq-btn--primary" type="button" data-tq-declare hidden>
                             <?php echo tq_icon('check', 16); ?> أنهيت هذا الدرس
@@ -187,9 +186,9 @@ include 'portal_open.php';
                 <div class="tq-row" style="gap:var(--tq-space-l);align-items:flex-start">
                     <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon('lock'); ?></span>
                     <div style="flex:1">
-                        <h2 class="tq-card__title" style="margin:0">اختبار هذا الدرس</h2>
+                        <h2 class="tq-card__title" style="margin:0"><?php echo t('اختبار هذا الدرس'); ?></h2>
                         <p class="tq-caption" style="margin:var(--tq-space-xs) 0 0">
-                            يفتح حين تكمل مشاهدة الدرس — وباجتيازه يفتح الدرس التالي.
+                            <?php echo t('يفتح حين تكمل مشاهدة الدرس — وباجتيازه يفتح الدرس التالي.'); ?>
                         </p>
                     </div>
                 </div>
@@ -200,12 +199,12 @@ include 'portal_open.php';
                 <div class="tq-row" style="gap:var(--tq-space-l);align-items:flex-start">
                     <span class="tq-icon-box tq-pastel--mint" aria-hidden="true"><?php echo tq_icon('check-badge'); ?></span>
                     <div style="flex:1">
-                        <h2 class="tq-card__title" style="margin:0">هل فهمت؟</h2>
+                        <h2 class="tq-card__title" style="margin:0"><?php echo t('هل فهمت؟'); ?></h2>
                         <p class="tq-caption" style="margin:var(--tq-space-xs) 0 var(--tq-space-l)">
-                            خمسة أسئلة قصيرة تفتح الدرس التالي. لا وقت محدد، ولا حد للمحاولات.
+                            <?php echo t('خمسة أسئلة قصيرة تفتح الدرس التالي. لا وقت محدد، ولا حد للمحاولات.'); ?>
                         </p>
                         <button class="tq-btn tq-btn--primary" type="button" data-tq-gate-start>
-                            ابدأ المراجعة
+                            <?php echo t('ابدأ المراجعة'); ?>
                         </button>
                     </div>
                 </div>
@@ -214,13 +213,13 @@ include 'portal_open.php';
             <!-- المراجعة الخماسية -->
             <section class="tq-card" data-tq-gate-quiz hidden>
                 <div class="tq-card__head">
-                    <h2 class="tq-card__title">مراجعة الدرس</h2>
+                    <h2 class="tq-card__title"><?php echo t('مراجعة الدرس'); ?></h2>
                     <span class="tq-caption" data-tq-gate-counter></span>
                 </div>
                 <form data-tq-gate-form>
                     <div data-tq-gate-questions></div>
                     <div class="tq-row" style="margin-block-start:var(--tq-space-xl)">
-                        <button class="tq-btn tq-btn--primary" type="submit" data-tq-gate-submit>سلم الإجابات</button>
+                        <button class="tq-btn tq-btn--primary" type="submit" data-tq-gate-submit><?php echo t('سلم الإجابات'); ?></button>
                     </div>
                 </form>
             </section>
@@ -228,13 +227,13 @@ include 'portal_open.php';
             <!-- مراجعة الإجابات: تطلب بعد التسليم وحده -->
             <section class="tq-card tq-review" data-tq-gate-review hidden>
                 <div class="tq-row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--tq-space-m)">
-                    <h2 class="tq-card__title" style="margin:0">مراجعة إجاباتك</h2>
+                    <h2 class="tq-card__title" style="margin:0"><?php echo t('مراجعة إجاباتك'); ?></h2>
                     <p class="tq-review__score" data-tq-review-score></p>
                 </div>
                 <ol class="tq-review__list" data-tq-review-list></ol>
                 <div class="tq-row" style="flex-wrap:wrap;gap:var(--tq-space-s)">
-                    <button class="tq-btn tq-btn--primary" type="button" data-tq-review-again>أعد الاختبار</button>
-                    <button class="tq-btn tq-btn--secondary" type="button" data-tq-review-close>إغلاق المراجعة</button>
+                    <button class="tq-btn tq-btn--primary" type="button" data-tq-review-again><?php echo t('أعد الاختبار'); ?></button>
+                    <button class="tq-btn tq-btn--secondary" type="button" data-tq-review-close><?php echo t('إغلاق المراجعة'); ?></button>
                 </div>
             </section>
 
@@ -253,13 +252,13 @@ include 'portal_open.php';
 
         <aside class="tq-aside">
             <div class="tq-card">
-                <h2 class="tq-card__title">أهداف هذا الدرس</h2>
-                <p class="tq-caption">ما ستعرفه بعد هذا الدرس — وكل سؤال في المراجعة مربوط بأحدها.</p>
+                <h2 class="tq-card__title"><?php echo t('أهداف هذا الدرس'); ?></h2>
+                <p class="tq-caption"><?php echo t('ما ستعرفه بعد هذا الدرس — وكل سؤال في المراجعة مربوط بأحدها.'); ?></p>
                 <ol class="tq-s-list" data-tq-objectives></ol>
             </div>
 
             <div class="tq-card" data-tq-attachments-card hidden>
-                <h2 class="tq-card__title">مرفقات الدرس</h2>
+                <h2 class="tq-card__title"><?php echo t('مرفقات الدرس'); ?></h2>
                 <div data-tq-attachments></div>
             </div>
 
@@ -267,21 +266,21 @@ include 'portal_open.php';
                     وهي في الحاشية لا في المتن: تكتب مرة وتقرأ كثيرا. */ ?>
             <div class="tq-card" data-tq-notes-card hidden>
                 <div class="tq-card__head">
-                    <h2 class="tq-card__title">ملاحظاتي</h2>
+                    <h2 class="tq-card__title"><?php echo t('ملاحظاتي'); ?></h2>
                     <span class="tq-caption" data-tq-notes-count></span>
                 </div>
                 <ol class="tq-notes" data-tq-notes></ol>
             </div>
 
             <div class="tq-card">
-                <h2 class="tq-card__title">التنقل</h2>
+                <h2 class="tq-card__title"><?php echo t('التنقل'); ?></h2>
                 <div class="tq-stack" style="--tq-space-l:var(--tq-space-s)">
-                    <a class="tq-btn tq-btn--secondary tq-btn--block" data-tq-prev hidden>الدرس السابق</a>
-                    <a class="tq-btn tq-btn--primary tq-btn--block" data-tq-next hidden>الدرس التالي</a>
+                    <a class="tq-btn tq-btn--secondary tq-btn--block" data-tq-prev hidden><?php echo t('الدرس السابق'); ?></a>
+                    <a class="tq-btn tq-btn--primary tq-btn--block" data-tq-next hidden><?php echo t('الدرس التالي'); ?></a>
                     <span class="tq-caption tq-row" data-tq-next-locked hidden style="gap:var(--tq-space-xs)">
                         <?php echo tq_icon('lock', 16); ?> الدرس التالي يفتح بعد اجتياز المراجعة
                     </span>
-                    <a class="tq-btn tq-btn--ghost tq-btn--block" href="<?php echo base_url('student/lessons'); ?>">كل دروسي</a>
+                    <a class="tq-btn tq-btn--ghost tq-btn--block" href="<?php echo base_url('student/lessons'); ?>"><?php echo t('كل دروسي'); ?></a>
                 </div>
             </div>
         </aside>

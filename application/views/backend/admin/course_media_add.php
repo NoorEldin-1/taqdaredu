@@ -19,9 +19,9 @@ if (!is_array($tq_files)) $tq_files = array();
 if (!is_array($tq_placeholders)) $tq_placeholders = array();
 
 $tq_labels = array(
-    'course_thumbnail' => 'صورة الكورس',
-    'course_banner'    => 'بانر الكورس',
-    'course_overview_image' => 'صورة النظرة العامة',
+    'course_thumbnail' => t('صورة الكورس'),
+    'course_banner'    => t('بانر الكورس'),
+    'course_overview_image' => t('صورة النظرة العامة'),
 );
 
 $tq_row = isset($course_details) ? $course_details : null;
@@ -47,7 +47,7 @@ $tq_row = isset($course_details) ? $course_details : null;
             <?php if ($tq_src !== ''): ?>
                 <img src="<?php echo html_escape($tq_src); ?>" alt="<?php echo html_escape($tq_label); ?> الحالية">
             <?php else: ?>
-                <span style="font:var(--tq-type-caption);color:var(--tq-text2)">لا صورة</span>
+                <span style="font:var(--tq-type-caption);color:var(--tq-text2)"><?php echo t('لا صورة'); ?></span>
             <?php endif; ?>
         </div>
 
@@ -58,7 +58,7 @@ $tq_row = isset($course_details) ? $course_details : null;
                 <?php echo tq_icon('image', 16); ?> اختر صورة
             </label>
             <span class="tqa-file__name" data-tqa-file-name>
-                المقاس المفضل <span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_size); ?></span>
+                <?php echo t('المقاس المفضل'); ?> <span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_size); ?></span>
             </span>
         </div>
     </div>

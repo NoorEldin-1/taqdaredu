@@ -8,7 +8,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $tq_f = $this->db->where('id', (int) $param2)->get('custom_fields')->row_array();
 
 if (!$tq_f) {
-    echo '<p class="tqa-note tqa-note--warn">لا قسم بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>';
+    echo t('<p class="tqa-note tqa-note--warn">لا قسم بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>');
     return;
 }
 ?>
@@ -17,11 +17,11 @@ if (!$tq_f) {
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="custom_title">
-            عنوان القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('عنوان القسم'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <input class="tqa-input" type="text" id="custom_title" name="custom_title" required maxlength="190"
                value="<?php echo html_escape($tq_f['custom_title']); ?>">
-        <span class="tqa-field__hint">يظهر عنوانا فوق هذه الكتلة في صفحة الكورس العامة.</span>
+        <span class="tqa-field__hint"><?php echo t('يظهر عنوانا فوق هذه الكتلة في صفحة الكورس العامة.'); ?></span>
     </div>
 
     <div class="tqa-actions">

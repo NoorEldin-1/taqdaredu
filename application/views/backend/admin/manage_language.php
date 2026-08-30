@@ -32,19 +32,19 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
 
 <?php if ($tq_editing !== ''): ?>
 
-    <?php tqa_head('ترجمة ' . ucwords($tq_editing), 'العبارة تحفظ فور تعديلها — لا زر حفظ عام.', 'translate',
+    <?php tqa_head(t('ترجمة') . ucwords($tq_editing), t('العبارة تحفظ فور تعديلها — لا زر حفظ عام.'), 'translate',
         '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/manage_language') . '">'
-      . tq_icon('chev-prev', 16) . ' كل اللغات</a>'); ?>
+      . tq_icon('chev-prev', 16) . t('كل اللغات</a>')); ?>
 
     <?php $tq_phrases = openJSONFile($tq_editing); ?>
 
     <div class="tqa-toolbar">
-        <label class="tqa-sr" for="phrase_filter">ابحث في العبارات</label>
+        <label class="tqa-sr" for="phrase_filter"><?php echo t('ابحث في العبارات'); ?></label>
         <input class="tqa-input" type="search" id="phrase_filter" data-tqa-filter
-               placeholder="ابحث في المفاتيح والترجمات…" style="min-inline-size:320px">
+               placeholder="<?php echo te('ابحث في المفاتيح والترجمات…'); ?>" style="min-inline-size:320px">
         <span style="font:var(--tq-type-caption);color:var(--tq-text2)">
             <span class="tqa-num" data-tqa-filter-count><?php echo count($tq_phrases); ?></span>
-            من <span class="tqa-num"><?php echo count($tq_phrases); ?></span> عبارة
+            <?php echo t('من'); ?> <span class="tqa-num"><?php echo count($tq_phrases); ?></span> <?php echo t('عبارة'); ?>
         </span>
     </div>
 
@@ -54,8 +54,8 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
                 <caption class="tqa-sr">مفاتيح الترجمة وقيمها في لغة <?php echo html_escape($tq_editing); ?></caption>
                 <thead>
                     <tr>
-                        <th style="inline-size:34%">المفتاح</th>
-                        <th>الترجمة</th>
+                        <th style="inline-size:34%"><?php echo t('المفتاح'); ?></th>
+                        <th><?php echo t('الترجمة'); ?></th>
                     </tr>
                 </thead>
                 <tbody data-tqa-filter-body>
@@ -161,24 +161,24 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
 
 <?php else: ?>
 
-    <?php tqa_head('اللغات والترجمة',
-        'كل لغة ملف ترجمة واحد. واتجاه الكتابة يتبع اللغة ولا يضبط لكل صفحة.',
+    <?php tqa_head(t('اللغات والترجمة'),
+        t('كل لغة ملف ترجمة واحد. واتجاه الكتابة يتبع اللغة ولا يضبط لكل صفحة.'),
         'translate'); ?>
 
     <div class="tqa-card tqa-card--flush tqa-section">
         <div class="tqa-card__head">
             <span class="tqa-iconbox" aria-hidden="true"><?php echo tq_icon('globe', 20); ?></span>
-            <h2>اللغات المركبة</h2>
+            <h2><?php echo t('اللغات المركبة'); ?></h2>
         </div>
 
         <div class="tqa-table__wrap">
             <table class="tqa-table">
-                <caption class="tqa-sr">اللغات المركبة واتجاه كل منها</caption>
+                <caption class="tqa-sr"><?php echo t('اللغات المركبة واتجاه كل منها'); ?></caption>
                 <thead>
                     <tr>
-                        <th>اللغة</th>
-                        <th style="inline-size:220px">اتجاه الكتابة</th>
-                        <th style="inline-size:320px"><span class="tqa-sr">إجراءات</span></th>
+                        <th><?php echo t('اللغة'); ?></th>
+                        <th style="inline-size:220px"><?php echo t('اتجاه الكتابة'); ?></th>
+                        <th style="inline-size:320px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -190,13 +190,13 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
                         <td data-label="اللغة">
                             <span class="tqa-media__title"><?php echo html_escape(ucwords($tq_l)); ?></span>
                             <?php if ($tq_is): ?>
-                                <span class="tqa-badge tqa-badge--ok">لغة النظام</span>
+                                <span class="tqa-badge tqa-badge--ok"><?php echo t('لغة النظام'); ?></span>
                             <?php endif; ?>
                         </td>
 
                         <td data-label="اتجاه الكتابة">
                             <div class="tqa-checkrow">
-                                <?php foreach (array('ltr' => 'من اليسار', 'rtl' => 'من اليمين') as $tq_d => $tq_dl): ?>
+                                <?php foreach (array('ltr' => t('من اليسار'), 'rtl' => t('من اليمين')) as $tq_d => $tq_dl): ?>
                                     <label class="tqa-check">
                                         <?php /* الاسم فريد لكل لغة: الاسم المشترك يجمع الأزرار
                                                  عبر الصفوف، فاختيار اتجاه لغة يلغي اختيار جارتها. */ ?>
@@ -225,7 +225,7 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
                                 <?php if (!$tq_is): ?>
                                     <form method="post"
                                           action="<?php echo site_url('admin/manage_language/delete_language/' . rawurlencode($tq_l)); ?>"
-                                          data-tqa-confirm-title="حذف اللغة"
+                                          data-tqa-confirm-title="<?php echo te('حذف اللغة'); ?>"
                                           data-tqa-confirm="سيحذف ملف ترجمة «<?php echo html_escape(ucwords($tq_l)); ?>» كاملا. لا رجعة في هذا."
                                           data-tqa-confirm-ok="نعم، احذف"
                                           data-tqa-confirm-tone="danger">
@@ -236,7 +236,7 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
                                         </button>
                                     </form>
                                 <?php else: ?>
-                                    <span class="tqa-badge tqa-badge--muted">لا تحذف لغة النظام</span>
+                                    <span class="tqa-badge tqa-badge--muted"><?php echo t('لا تحذف لغة النظام'); ?></span>
                                 <?php endif; ?>
                             </div>
                         </td>
@@ -253,14 +253,14 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
             <?php echo tq_csrf(); ?>
             <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
                 <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('plus', 20); ?></span>
-                <h2>لغة جديدة</h2>
+                <h2><?php echo t('لغة جديدة'); ?></h2>
             </div>
 
             <div class="tqa-field">
-                <label class="tqa-field__label" for="language">اسم اللغة</label>
+                <label class="tqa-field__label" for="language"><?php echo t('اسم اللغة'); ?></label>
                 <input class="tqa-input tqa-input--ltr" type="text" id="language" name="language" dir="ltr"
                        required pattern="[A-Za-z]+" placeholder="French">
-                <span class="tqa-field__hint">حروف لاتينية بلا مسافات ولا رموز.</span>
+                <span class="tqa-field__hint"><?php echo t('حروف لاتينية بلا مسافات ولا رموز.'); ?></span>
             </div>
 
             <div class="tqa-actions">
@@ -277,14 +277,14 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
             <?php echo tq_csrf(); ?>
             <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
                 <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('edit', 20); ?></span>
-                <h2>عبارة جديدة</h2>
+                <h2><?php echo t('عبارة جديدة'); ?></h2>
             </div>
 
             <div class="tqa-field">
-                <label class="tqa-field__label" for="phrase">مفتاح العبارة</label>
+                <label class="tqa-field__label" for="phrase"><?php echo t('مفتاح العبارة'); ?></label>
                 <input class="tqa-input tqa-input--ltr" type="text" id="phrase" name="phrase" dir="ltr"
                        required placeholder="course_completed">
-                <span class="tqa-field__hint">تضاف إلى كل اللغات بقيمة فارغة.</span>
+                <span class="tqa-field__hint"><?php echo t('تضاف إلى كل اللغات بقيمة فارغة.'); ?></span>
             </div>
 
             <div class="tqa-actions">
@@ -299,20 +299,20 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
             <?php echo tq_csrf(); ?>
             <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
                 <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('import', 20); ?></span>
-                <h2>استيراد ملف</h2>
+                <h2><?php echo t('استيراد ملف'); ?></h2>
             </div>
 
             <div class="tqa-field">
-                <span class="tqa-field__label">ملفات JSON</span>
+                <span class="tqa-field__label"><?php echo t('ملفات JSON'); ?></span>
                 <div class="tqa-file">
                     <input type="file" id="language_files" name="language_files[]" accept=".json" multiple required
                            data-tqa-file>
                     <label class="tqa-file__btn" for="language_files">
                         <?php echo tq_icon('upload', 16); ?> اختر ملفات
                     </label>
-                    <span class="tqa-file__name" data-tqa-file-name>مثال: english.json</span>
+                    <span class="tqa-file__name" data-tqa-file-name><?php echo t('مثال: english.json'); ?></span>
                 </div>
-                <span class="tqa-field__hint">اسم الملف هو اسم اللغة — والموجود يستبدل.</span>
+                <span class="tqa-field__hint"><?php echo t('اسم الملف هو اسم اللغة — والموجود يستبدل.'); ?></span>
             </div>
 
             <div class="tqa-actions">

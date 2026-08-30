@@ -23,8 +23,8 @@ $tq_sections = $this->crud_model->get_section('course', $param2)->result_array()
     <div class="tqa-note tqa-note--warn">
         <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
         <span>
-            <strong>لا أقسام في هذا الكورس بعد.</strong>
-            والاختبار لا يحفظ بلا قسم يحمله. أضف قسما أولا من تبويب «المقرر».
+            <strong><?php echo t('لا أقسام في هذا الكورس بعد.'); ?></strong>
+            <?php echo t('والاختبار لا يحفظ بلا قسم يحمله. أضف قسما أولا من تبويب «المقرر».'); ?>
         </span>
     </div>
 
@@ -35,14 +35,14 @@ $tq_sections = $this->crud_model->get_section('course', $param2)->result_array()
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="title">
-            عنوان الاختبار <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('عنوان الاختبار'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <input class="tqa-input" type="text" id="title" name="title" required maxlength="190">
     </div>
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="section_id">
-            القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('القسم'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <select class="tqa-select" id="section_id" name="section_id" required>
             <?php foreach ($tq_sections as $tq_s): ?>
@@ -54,7 +54,7 @@ $tq_sections = $this->crud_model->get_section('course', $param2)->result_array()
     <div class="tqa-fieldgrid">
         <div class="tqa-field">
             <label class="tqa-field__label" for="total_marks">
-                الدرجة الكلية <span class="tqa-field__req" aria-hidden="true">*</span>
+                <?php echo t('الدرجة الكلية'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
             </label>
             <input class="tqa-input tqa-input--ltr" type="number" id="total_marks" name="total_marks"
                    min="1" required dir="ltr">
@@ -62,47 +62,47 @@ $tq_sections = $this->crud_model->get_section('course', $param2)->result_array()
 
         <div class="tqa-field">
             <label class="tqa-field__label" for="pass_mark">
-                درجة النجاح <span class="tqa-field__req" aria-hidden="true">*</span>
+                <?php echo t('درجة النجاح'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
             </label>
             <input class="tqa-input tqa-input--ltr" type="number" id="pass_mark" name="pass_mark"
                    min="0" required dir="ltr">
         </div>
 
         <div class="tqa-field">
-            <label class="tqa-field__label" for="quiz_duration">مدة الاختبار</label>
+            <label class="tqa-field__label" for="quiz_duration"><?php echo t('مدة الاختبار'); ?></label>
             <input class="tqa-input tqa-input--ltr" type="text" id="quiz_duration" name="quiz_duration"
                    dir="ltr" value="00:00:00" placeholder="00:00:00">
-            <span class="tqa-field__hint"><span class="tq-ltr" dir="ltr">00:00:00</span> تعني بلا مؤقت.</span>
+            <span class="tqa-field__hint"><span class="tq-ltr" dir="ltr">00:00:00</span> <?php echo t('تعني بلا مؤقت.'); ?></span>
         </div>
 
         <div class="tqa-field">
-            <label class="tqa-field__label" for="number_of_quiz_retakes">عدد المحاولات الإضافية</label>
+            <label class="tqa-field__label" for="number_of_quiz_retakes"><?php echo t('عدد المحاولات الإضافية'); ?></label>
             <input class="tqa-input tqa-input--ltr" type="number" id="number_of_quiz_retakes"
                    name="number_of_quiz_retakes" min="0" max="50" value="0" dir="ltr">
-            <span class="tqa-field__hint">صفر يعني محاولة واحدة لا غير.</span>
+            <span class="tqa-field__hint"><?php echo t('صفر يعني محاولة واحدة لا غير.'); ?></span>
         </div>
     </div>
 
     <fieldset class="tqa-field">
-        <legend class="tqa-field__label">قاعدة الانتقال إلى الدرس التالي</legend>
+        <legend class="tqa-field__label"><?php echo t('قاعدة الانتقال إلى الدرس التالي'); ?></legend>
         <span class="tqa-field__hint" style="margin-block-end:var(--tq-space-s)">
-            لا أثر لها ما لم تكن «الإتاحة التدريجية» مفعلة في إعدادات الكورس.
+            <?php echo t('لا أثر لها ما لم تكن «الإتاحة التدريجية» مفعلة في إعدادات الكورس.'); ?>
         </span>
 
         <div class="tqa-stack">
             <label class="tqa-check">
                 <input type="radio" name="drip_content_for_passing_rule" value="not_applicable" checked>
-                <span>يكفي تسليم الاختبار — بأي درجة</span>
+                <span><?php echo t('يكفي تسليم الاختبار — بأي درجة'); ?></span>
             </label>
             <label class="tqa-check">
                 <input type="radio" name="drip_content_for_passing_rule" value="applicable">
-                <span>يلزم بلوغ درجة النجاح</span>
+                <span><?php echo t('يلزم بلوغ درجة النجاح'); ?></span>
             </label>
         </div>
     </fieldset>
 
     <div class="tqa-field">
-        <label class="tqa-field__label" for="quiz_summary">تعليمات للطالب</label>
+        <label class="tqa-field__label" for="quiz_summary"><?php echo t('تعليمات للطالب'); ?></label>
         <textarea class="tqa-textarea" id="quiz_summary" name="summary" rows="3"></textarea>
     </div>
 

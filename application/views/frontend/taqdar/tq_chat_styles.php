@@ -105,8 +105,8 @@ if (!function_exists('tq_chat_name')) {
     /** اسم المحدث — والحساب المحذوف يقال عنه ذلك، ولا يترك سطرا فارغا. */
     function tq_chat_name($person)
     {
-        if (empty($person)) return 'مستخدم محذوف';
-        return trim($person['first_name'] . ' ' . $person['last_name']) ?: 'مستخدم';
+        if (empty($person)) return t('مستخدم محذوف');
+        return trim($person['first_name'] . ' ' . $person['last_name']) ?: t('مستخدم');
     }
 }
 
@@ -114,7 +114,7 @@ if (!function_exists('tq_chat_clock')) {
     /** «٣:٤٥ م» — الرقم معزول والفترة عربية. */
     function tq_chat_clock($ts)
     {
-        return tq_num(date('g:i', (int) $ts), 'tq-num--sm') . ' ' . ((int) date('G', (int) $ts) < 12 ? 'ص' : 'م');
+        return tq_num(date('g:i', (int) $ts), 'tq-num--sm') . ' ' . ((int) date('G', (int) $ts) < 12 ? t('ص') : t('م'));
     }
 }
 
@@ -123,10 +123,10 @@ if (!function_exists('tq_chat_daylabel')) {
     function tq_chat_daylabel($ts)
     {
         $d = strtotime('today') - strtotime(date('Y-m-d', (int) $ts));
-        if ($d === 0)     return 'اليوم';
-        if ($d === 86400) return 'أمس';
-        $days   = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-        $months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-        return $days[(int) date('w', $ts)] . '، ' . TQ_LRI . date('j', $ts) . TQ_PDI . ' ' . $months[(int) date('n', $ts) - 1];
+        if ($d === 0)     return t('اليوم');
+        if ($d === 86400) return t('أمس');
+        $days   = [t('الأحد'), t('الاثنين'), t('الثلاثاء'), t('الأربعاء'), t('الخميس'), t('الجمعة'), t('السبت')];
+        $months = [t('يناير'), t('فبراير'), t('مارس'), t('أبريل'), t('مايو'), t('يونيو'), t('يوليو'), t('أغسطس'), t('سبتمبر'), t('أكتوبر'), t('نوفمبر'), t('ديسمبر')];
+        return $days[(int) date('w', $ts)] . t('،') . TQ_LRI . date('j', $ts) . TQ_PDI . ' ' . $months[(int) date('n', $ts) - 1];
     }
 }

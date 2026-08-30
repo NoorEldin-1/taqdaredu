@@ -22,7 +22,7 @@ $tq_l = $this->db->select('l.id, l.title, l.course_id, c.title AS course_title',
                  ->where('l.id', (int) $param2)->get()->row_array();
 
 if (!$tq_l) {
-    echo '<p class="tqa-note tqa-note--warn">لا درس بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>';
+    echo t('<p class="tqa-note tqa-note--warn">لا درس بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>');
     return;
 }
 
@@ -33,8 +33,7 @@ $tq_files = $this->db->where('lesson_id', (int) $tq_l['id'])
 <div class="tqa-note tqa-section">
     <span aria-hidden="true"><?php echo tq_icon('folder', 18); ?></span>
     <span>
-        ملفات درس <strong><?php echo html_escape($tq_l['title']); ?></strong>.
-        تظهر للطالب المسجل في «المواد التعليمية» ويحملها من هناك.
+        <?php echo t('ملفات درس'); ?> <strong><?php echo html_escape($tq_l['title']); ?></strong><?php echo t('. تظهر للطالب المسجل في «المواد التعليمية» ويحملها من هناك.'); ?>
     </span>
 </div>
 
@@ -43,18 +42,18 @@ $tq_files = $this->db->where('lesson_id', (int) $tq_l['id'])
     <?php echo tq_csrf(); ?>
 
     <div class="tqa-field">
-        <label class="tqa-field__label" for="rf_title">اسم الملف كما يراه الطالب</label>
+        <label class="tqa-field__label" for="rf_title"><?php echo t('اسم الملف كما يراه الطالب'); ?></label>
         <input class="tqa-input" type="text" id="rf_title" name="title" maxlength="190"
-               placeholder="مثال: ورقة تدريبات الوحدة الأولى">
-        <span class="tqa-field__hint">اتركه فارغا ليعرض اسم الملف المرفوع.</span>
+               placeholder="<?php echo te('مثال: ورقة تدريبات الوحدة الأولى'); ?>">
+        <span class="tqa-field__hint"><?php echo t('اتركه فارغا ليعرض اسم الملف المرفوع.'); ?></span>
     </div>
 
     <div class="tqa-field">
-        <span class="tqa-field__label">الملف <span class="tqa-field__req" aria-hidden="true">*</span></span>
+        <span class="tqa-field__label"><?php echo t('الملف'); ?> <span class="tqa-field__req" aria-hidden="true">*</span></span>
         <div class="tqa-file">
             <input type="file" id="rf_file" name="resource_file" required data-tqa-file>
             <label class="tqa-file__btn" for="rf_file"><?php echo tq_icon('upload', 16); ?> اختر ملفا</label>
-            <span class="tqa-file__name" data-tqa-file-name>PDF أو مستند أو صورة أو صوت</span>
+            <span class="tqa-file__name" data-tqa-file-name><?php echo t('PDF أو مستند أو صورة أو صوت'); ?></span>
         </div>
     </div>
 
@@ -68,7 +67,7 @@ $tq_files = $this->db->where('lesson_id', (int) $tq_l['id'])
 <?php if (!$tq_files): ?>
 
     <p style="margin-block-start:var(--tq-space-xl);font:var(--tq-type-caption);color:var(--tq-text2)">
-        لا ملفات في هذا الدرس بعد.
+        <?php echo t('لا ملفات في هذا الدرس بعد.'); ?>
     </p>
 
 <?php else: ?>
@@ -93,7 +92,7 @@ $tq_files = $this->db->where('lesson_id', (int) $tq_l['id'])
                 <?php if ($tq_here): ?>
                     <?php echo html_escape(number_format(filesize(FCPATH . $tq_rel) / 1024, 0)); ?> ك.ب
                 <?php else: ?>
-                    <span style="color:var(--tq-danger)">الملف مفقود على الخادم</span>
+                    <span style="color:var(--tq-danger)"><?php echo t('الملف مفقود على الخادم'); ?></span>
                 <?php endif; ?>
             </span>
         </span>
@@ -108,14 +107,14 @@ $tq_files = $this->db->where('lesson_id', (int) $tq_l['id'])
 
             <form method="post"
                   action="<?php echo site_url('admin/resource_file_delete/' . (int) $tq_f['id']); ?>"
-                  data-tqa-confirm-title="حذف الملف"
+                  data-tqa-confirm-title="<?php echo te('حذف الملف'); ?>"
                   data-tqa-confirm="سيحذف «<?php echo html_escape($tq_f['title'] !== '' ? $tq_f['title'] : $tq_f['file_name']); ?>» من الدرس ومن الخادم."
                   data-tqa-confirm-ok="نعم، احذف"
                   data-tqa-confirm-tone="danger">
                 <?php echo tq_csrf(); ?>
                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
                     <?php echo tq_icon('trash', 14); ?>
-                    <span class="tqa-sr">حذف</span>
+                    <span class="tqa-sr"><?php echo t('حذف'); ?></span>
                 </button>
             </form>
         </span>

@@ -20,79 +20,78 @@ $mastered_pct = (int) $summary['skills'] > 0
     : 0;
 ?>
 
-<?php tqa_head('خريطة الإتقان', 'ما يتقنه الطلاب وما يتعثرون فيه — وأي هدف يحتاج إعادة شرح.', 'crosshair'); ?>
+<?php tqa_head(t('خريطة الإتقان'), t('ما يتقنه الطلاب وما يتعثرون فيه — وأي هدف يحتاج إعادة شرح.'), 'crosshair'); ?>
 
 <div class="tqa-grid tqa-grid--4" style="margin-block-end:var(--tq-space-xl)">
 
     <div class="tqa-stat">
         <div class="tqa-stat__top">
-            <span class="tqa-stat__label">نسبة الإجابات الصحيحة</span>
+            <span class="tqa-stat__label"><?php echo t('نسبة الإجابات الصحيحة'); ?></span>
             <span class="tqa-stat__icon tqa-mint" aria-hidden="true"><?php echo tq_icon('check', 18); ?></span>
         </div>
         <span class="tqa-stat__value"><span class="tqa-num"><?php echo $rate; ?></span>%</span>
         <span class="tqa-stat__hint">
-            من <span class="tqa-num"><?php echo (int) $summary['answers']; ?></span> إجابة
+            <?php echo t('من'); ?> <span class="tqa-num"><?php echo (int) $summary['answers']; ?></span> <?php echo t('إجابة'); ?>
         </span>
     </div>
 
     <div class="tqa-stat">
         <div class="tqa-stat__top">
-            <span class="tqa-stat__label">مهارات أتقنت</span>
+            <span class="tqa-stat__label"><?php echo t('مهارات أتقنت'); ?></span>
             <span class="tqa-stat__icon tqa-sky" aria-hidden="true"><?php echo tq_icon('target', 18); ?></span>
         </div>
         <span class="tqa-stat__value"><span class="tqa-num"><?php echo $mastered_pct; ?></span>%</span>
         <span class="tqa-stat__hint">
             <span class="tqa-num"><?php echo (int) $summary['mastered']; ?></span>
-            من <span class="tqa-num"><?php echo (int) $summary['skills']; ?></span> حالة مهارة بلغت ٨٠ فأكثر
+            <?php echo t('من'); ?> <span class="tqa-num"><?php echo (int) $summary['skills']; ?></span> <?php echo t('حالة مهارة بلغت ٨٠ فأكثر'); ?>
         </span>
     </div>
 
     <div class="tqa-stat">
         <div class="tqa-stat__top">
-            <span class="tqa-stat__label">مراجعات مستحقة الآن</span>
+            <span class="tqa-stat__label"><?php echo t('مراجعات مستحقة الآن'); ?></span>
             <span class="tqa-stat__icon tqa-peach" aria-hidden="true"><?php echo tq_icon('flame', 18); ?></span>
         </div>
         <span class="tqa-stat__value"><?php echo (int) $summary['due_reviews']; ?></span>
-        <span class="tqa-stat__hint">سؤال حل موعد مراجعته</span>
+        <span class="tqa-stat__hint"><?php echo t('سؤال حل موعد مراجعته'); ?></span>
     </div>
 
     <div class="tqa-stat">
         <div class="tqa-stat__top">
-            <span class="tqa-stat__label">طلاب يتدربون</span>
+            <span class="tqa-stat__label"><?php echo t('طلاب يتدربون'); ?></span>
             <span class="tqa-stat__icon tqa-lilac" aria-hidden="true"><?php echo tq_icon('users', 18); ?></span>
         </div>
         <span class="tqa-stat__value"><?php echo (int) $summary['learners']; ?></span>
         <span class="tqa-stat__hint">
-            سلموا <span class="tqa-num"><?php echo (int) $summary['attempts']; ?></span> محاولة تقييم
+            <?php echo t('سلموا'); ?> <span class="tqa-num"><?php echo (int) $summary['attempts']; ?></span> <?php echo t('محاولة تقييم'); ?>
         </span>
     </div>
 </div>
 
 <section class="tqa-card tqa-card--flush" style="margin-block-end:var(--tq-space-xl)">
     <div class="tqa-card__head">
-        <h2>أصعب الأهداف</h2>
-        <span class="tqa-badge tqa-badge--muted">خمس إجابات فأكثر</span>
+        <h2><?php echo t('أصعب الأهداف'); ?></h2>
+        <span class="tqa-badge tqa-badge--muted"><?php echo t('خمس إجابات فأكثر'); ?></span>
     </div>
 
     <?php if (!$hardest): ?>
-        <?php tqa_empty('لا بيانات كافية بعد',
-            'الجدول يظهر الأهداف التي أجيب عليها خمس مرات فأكثر — أقل من ذلك عينة لا يقال عنها شيء. ويحتاج أن تكون الأسئلة مربوطة بأهدافها أولا.',
-            'اربط الأسئلة بالأهداف', site_url('taqdar_admin/bindings'), 'crosshair'); ?>
+        <?php tqa_empty(t('لا بيانات كافية بعد'),
+            t('الجدول يظهر الأهداف التي أجيب عليها خمس مرات فأكثر — أقل من ذلك عينة لا يقال عنها شيء. ويحتاج أن تكون الأسئلة مربوطة بأهدافها أولا.'),
+            t('اربط الأسئلة بالأهداف'), site_url('taqdar_admin/bindings'), 'crosshair'); ?>
     <?php else: ?>
         <p style="padding:var(--tq-space-l) var(--tq-space-xl) 0;margin:0;font:var(--tq-type-caption);color:var(--tq-text2)">
-            الهدف الذي يسقط فيه أكثر من مر به ليس مشكلة طالب — إنما شرح ناقص أو سؤال ملتبس.
-            ابدأ من أعلى القائمة.
+            <?php echo t('الهدف الذي يسقط فيه أكثر من مر به ليس مشكلة طالب — إنما شرح ناقص أو سؤال ملتبس. ابدأ من أعلى القائمة.'); ?>
         </p>
         <div class="tqa-table__wrap">
         <table class="tqa-table">
             <thead>
                 <tr>
-                    <th>الهدف</th>
-                    <th>الدرس</th>
-                    <th>نسبة الصواب</th>
-                    <th>الإجابات</th>
-                    <th>الطلاب</th>
-                    <th><span class="tqa-sr">تحرير</span></th>
+                    <th><?php echo t('الهدف'); ?></th>
+                    <th><?php echo t('الدرس'); ?></th>
+                    <th><?php echo t('نسبة الصواب'); ?></th>
+                    <th><?php echo t('الإجابات'); ?></th>
+                    <th><?php echo t('الطلاب'); ?></th>
+                    <th><span class="tqa-sr"><?php echo t('تحرير'); ?></span></th>
                 </tr>
             </thead>
             <tbody>
@@ -126,7 +125,7 @@ $mastered_pct = (int) $summary['skills'] > 0
                     <td data-label="الطلاب"><span class="tqa-num"><?php echo (int) $o['learners']; ?></span></td>
                     <td data-label="تحرير">
                         <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                           href="<?php echo site_url('taqdar_admin/form/objectives/' . (int) $o['id']); ?>">حرر</a>
+                           href="<?php echo site_url('taqdar_admin/form/objectives/' . (int) $o['id']); ?>"><?php echo t('حرر'); ?></a>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -137,17 +136,17 @@ $mastered_pct = (int) $summary['skills'] > 0
 </section>
 
 <section class="tqa-card tqa-card--flush">
-    <div class="tqa-card__head"><h2>متوسط الإتقان في كل مسار</h2></div>
+    <div class="tqa-card__head"><h2><?php echo t('متوسط الإتقان في كل مسار'); ?></h2></div>
 
     <?php if (!$by_path): ?>
-        <?php tqa_empty('لا مسار فيه حالات مهارة بعد',
-            'يظهر المسار هنا حين يبدأ طلابه في الإجابة على أسئلة مربوطة بأهداف دروسه.',
-            'المسارات', site_url('taqdar_admin/module/paths'), 'target'); ?>
+        <?php tqa_empty(t('لا مسار فيه حالات مهارة بعد'),
+            t('يظهر المسار هنا حين يبدأ طلابه في الإجابة على أسئلة مربوطة بأهداف دروسه.'),
+            t('المسارات'), site_url('taqdar_admin/module/paths'), 'target'); ?>
     <?php else: ?>
         <div class="tqa-table__wrap">
         <table class="tqa-table">
             <thead>
-                <tr><th>المسار</th><th>الطلاب</th><th>متوسط الإتقان</th></tr>
+                <tr><th><?php echo t('المسار'); ?></th><th><?php echo t('الطلاب'); ?></th><th><?php echo t('متوسط الإتقان'); ?></th></tr>
             </thead>
             <tbody>
             <?php foreach ($by_path as $p):

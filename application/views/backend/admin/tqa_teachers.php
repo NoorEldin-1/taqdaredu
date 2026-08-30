@@ -26,9 +26,9 @@
  *     يعتمد المراجع حسابا لا وجود له فلا يحدث شيء ولا يقال لماذا.
  */
 $tq_states = array(
-    0 => array('',      'بانتظار المراجعة'),
-    1 => array('--ok',  'معتمد'),
-    2 => array('--no',  'مرفوض'),
+    0 => array('',      t('بانتظار المراجعة')),
+    1 => array('--ok',  t('معتمد')),
+    2 => array('--no',  t('مرفوض')),
 );
 
 $tq_pending = 0;
@@ -36,21 +36,21 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
 ?>
 
 <?php tqa_head(
-    'طلبات المعلمين',
-    'الاعتماد يفتح حساب المعلم ولوحته؛ وقبله لا يستطيع الدخول.',
+    t('طلبات المعلمين'),
+    t('الاعتماد يفتح حساب المعلم ولوحته؛ وقبله لا يستطيع الدخول.'),
     'file',
     $tq_pending
-        ? '<span class="tqa-badge tqa-badge--warn"><span class="tqa-num">' . $tq_pending . '</span> ينتظر قرارك</span>'
-        : '<span class="tqa-badge tqa-badge--ok">لا طلب معلق</span>'
+        ? '<span class="tqa-badge tqa-badge--warn"><span class="tqa-num">' . $tq_pending . t('</span> ينتظر قرارك</span>')
+        : t('<span class="tqa-badge tqa-badge--ok">لا طلب معلق</span>')
 ); ?>
 
 <div class="tqa-card tqa-card--flush">
 <?php if (empty($apps)): ?>
 
     <?php tqa_empty(
-        'لا طلبات انضمام بعد',
-        'الطلب ينشأ حين يختار أحدهم بوابة «معلم» في صفحة إنشاء الحساب ويرفق مستند تعريفه. '
-        . 'وإن كان التسجيل معلما موقوفا في إعدادات المنصة فلا تصل طلبات أصلا.',
+        t('لا طلبات انضمام بعد'),
+        t('الطلب ينشأ حين يختار أحدهم بوابة «معلم» في صفحة إنشاء الحساب ويرفق مستند تعريفه.')
+        . t('وإن كان التسجيل معلما موقوفا في إعدادات المنصة فلا تصل طلبات أصلا.'),
         '', '', 'file'
     ); ?>
 
@@ -59,20 +59,20 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
     <table class="tqa-table">
         <thead>
             <tr>
-                <th>المعلم</th>
-                <th>البريد</th>
-                <th>الجوال</th>
-                <th>النبذة</th>
-                <th>المستند والعينة</th>
-                <th>الهوية</th>
-                <th>الحالة</th>
-                <th><span class="tqa-sr">الإجراء</span></th>
+                <th><?php echo t('المعلم'); ?></th>
+                <th><?php echo t('البريد'); ?></th>
+                <th><?php echo t('الجوال'); ?></th>
+                <th><?php echo t('النبذة'); ?></th>
+                <th><?php echo t('المستند والعينة'); ?></th>
+                <th><?php echo t('الهوية'); ?></th>
+                <th><?php echo t('الحالة'); ?></th>
+                <th><span class="tqa-sr"><?php echo t('الإجراء'); ?></span></th>
             </tr>
         </thead>
         <tbody>
         <?php foreach ($apps as $a):
             $st   = (int) $a['status'];
-            list($tone, $label) = isset($tq_states[$st]) ? $tq_states[$st] : array('', 'غير معروفة');
+            list($tone, $label) = isset($tq_states[$st]) ? $tq_states[$st] : array('', t('غير معروفة'));
 
             $name = trim((string) $a['first_name'] . ' ' . (string) $a['last_name']);
             /* الحساب المحذوف: كل أعمدة الضم فارغة. يقال ذلك ولا يعرض
@@ -82,9 +82,9 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
             <tr>
                 <td data-label="المعلم">
                     <?php if ($orphan): ?>
-                        <span class="tqa-dim">حساب محذوف</span>
+                        <span class="tqa-dim"><?php echo t('حساب محذوف'); ?></span>
                     <?php else: ?>
-                        <strong><?php echo html_escape($name ?: 'بلا اسم'); ?></strong>
+                        <strong><?php echo html_escape($name ?: t('بلا اسم')); ?></strong>
                     <?php endif; ?>
                 </td>
 
@@ -127,7 +127,7 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                     <?php else: ?>
                         <?php /* الطلب بلا مرفق قائم ويصح اعتماده — ولكن يقال
                                  إنه بلا مرفق، لا يترك شرطة تقرأ «لم يفتح». */ ?>
-                        <span class="tqa-badge tqa-badge--warn">بلا مستند</span>
+                        <span class="tqa-badge tqa-badge--warn"><?php echo t('بلا مستند'); ?></span>
                     <?php endif; ?>
 
                     <?php /* عينة الشرح — أهم ما تحكم عليه قبل الاعتماد.
@@ -140,7 +140,7 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                             <?php echo tq_icon('play', 15); ?> العينة
                         </a>
                     <?php else: ?>
-                        <span class="tqa-badge tqa-badge--warn">بلا عينة</span>
+                        <span class="tqa-badge tqa-badge--warn"><?php echo t('بلا عينة'); ?></span>
                     <?php endif; ?>
                     </div>
 
@@ -163,7 +163,7 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                             <button class="tqa-btn tqa-btn--<?php
                                 echo (int) $a['identity_ok'] === 1 ? 'ghost' : 'secondary'; ?> tqa-btn--sm"
                                     type="submit"><?php
-                                echo (int) $a['identity_ok'] === 1 ? 'موثقة — ألغ' : 'وثق الهوية'; ?></button>
+                                echo (int) $a['identity_ok'] === 1 ? t('موثقة — ألغ') : t('وثق الهوية'); ?></button>
                         </form>
                     <?php endif; ?>
                 </td>
@@ -182,13 +182,13 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                                  يرد عليه. */ ?>
                         <?php
                         $tq_ready = (int) $a['identity_ok'] === 1;
-                        $tq_why = $tq_ready ? '' : 'ينتظر توثيق الهوية';
+                        $tq_why = $tq_ready ? '' : t('ينتظر توثيق الهوية');
                         ?>
                         <div style="display:flex;gap:6px;flex-wrap:wrap">
                             <form method="post" style="margin:0"
                                   action="<?php echo site_url('taqdar_admin/teacher_review'); ?>"
-                                  data-tqa-confirm-title="اعتماد المعلم"
-                                  data-tqa-confirm="سيفتح حساب <?php echo html_escape($name ?: 'هذا المتقدم'); ?> ولوحته، ويصير بإمكانه رفع الدروس والتدريس. راجع مستنده أولا."
+                                  data-tqa-confirm-title="<?php echo te('اعتماد المعلم'); ?>"
+                                  data-tqa-confirm="سيفتح حساب <?php echo html_escape($name ?: t('هذا المتقدم')); ?> ولوحته، ويصير بإمكانه رفع الدروس والتدريس. راجع مستنده أولا."
                                   data-tqa-confirm-ok="اعتمد">
                                 <?php echo tq_csrf(); ?>
                                 <input type="hidden" name="app_id" value="<?php echo (int) $a['id']; ?>">
@@ -202,14 +202,14 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
 
                             <form method="post" style="margin:0"
                                   action="<?php echo site_url('taqdar_admin/teacher_review'); ?>"
-                                  data-tqa-confirm-title="رفض الطلب"
+                                  data-tqa-confirm-title="<?php echo te('رفض الطلب'); ?>"
                                   data-tqa-confirm="يبقى الحساب مغلقا ولا يستطيع صاحبه الدخول. ويسجل القرار باسمك."
                                   data-tqa-confirm-ok="ارفض الطلب"
                                   data-tqa-confirm-tone="danger">
                                 <?php echo tq_csrf(); ?>
                                 <input type="hidden" name="app_id" value="<?php echo (int) $a['id']; ?>">
                                 <input type="hidden" name="act" value="reject">
-                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm">رفض</button>
+                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"><?php echo t('رفض'); ?></button>
                             </form>
                         </div>
                     <?php endif; ?>
@@ -225,7 +225,6 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
 <div class="tqa-note" style="margin-block-start:var(--tq-space-l)">
     <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
     <span>
-        الاعتماد يفتح الحساب ويجعله معلما، ويصله بريد بذلك إن كان البريد الصادر مضبوطا.
-        والرفض يبقيه مغلقا ويسجل بمن قرره ومتى. وكلاهما يظهر في سجل التدقيق.
+        <?php echo t('الاعتماد يفتح الحساب ويجعله معلما، ويصله بريد بذلك إن كان البريد الصادر مضبوطا. والرفض يبقيه مغلقا ويسجل بمن قرره ومتى. وكلاهما يظهر في سجل التدقيق.'); ?>
     </span>
 </div>

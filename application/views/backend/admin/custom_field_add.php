@@ -23,11 +23,11 @@ defined('BASEPATH') or exit('No direct script access allowed');
  *     يرسل حقول الأنواع الأربعة الأخرى فارغة مع النوع المختار.
  */
 $tq_types = array(
-    'image'   => array('صور بعناوين', 'صورة وعنوان ووصف لكل بند.',      'image'),
-    'text'    => array('نص مفصل',     'فقرات تعرض تحت وصف الكورس.',      'file-text'),
-    'video'   => array('فيديو',       'روابط يوتيوب تعرض في مشغل.',      'play'),
-    'faq'     => array('أسئلة شائعة', 'سؤال وجواب خاصان بهذا الكورس.',   'help'),
-    'gallery' => array('معرض صور',    'صور بلا عناوين تعرض في شبكة.',    'grid'),
+    'image'   => array(t('صور بعناوين'), t('صورة وعنوان ووصف لكل بند.'),      'image'),
+    'text'    => array(t('نص مفصل'),     t('فقرات تعرض تحت وصف الكورس.'),      'file-text'),
+    'video'   => array(t('فيديو'),       t('روابط يوتيوب تعرض في مشغل.'),      'play'),
+    'faq'     => array(t('أسئلة شائعة'), t('سؤال وجواب خاصان بهذا الكورس.'),   'help'),
+    'gallery' => array(t('معرض صور'),    t('صور بلا عناوين تعرض في شبكة.'),    'grid'),
 );
 
 /** عنوان القسم يثبت متى وجد قسم بالنوع نفسه: الحفظ يدمج فيه. */
@@ -44,7 +44,7 @@ foreach ($this->db->select('custom_type, custom_title')->where('course_id', (int
 
     <fieldset class="tqa-field">
         <legend class="tqa-field__label">
-            نوع القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('نوع القسم'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </legend>
 
         <div class="tqa-stack">
@@ -68,7 +68,7 @@ foreach ($this->db->select('custom_type, custom_title')->where('course_id', (int
 
         <div class="tqa-field">
             <label class="tqa-field__label" for="title_<?php echo $tq_k; ?>">
-                عنوان القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+                <?php echo t('عنوان القسم'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
             </label>
             <input class="tqa-input" type="text" id="title_<?php echo $tq_k; ?>"
                    name="<?php echo $tq_k; ?>_custom_title" maxlength="190"
@@ -76,8 +76,8 @@ foreach ($this->db->select('custom_type, custom_title')->where('course_id', (int
                    <?php echo $tq_fixed ? 'readonly' : ''; ?>>
             <span class="tqa-field__hint">
                 <?php echo $tq_fixed
-                    ? 'يوجد قسم بهذا النوع، وما يضاف هنا ينضم إليه تحت عنوانه.'
-                    : 'يظهر عنوانا فوق هذه الكتلة في صفحة الكورس.'; ?>
+                    ? t('يوجد قسم بهذا النوع، وما يضاف هنا ينضم إليه تحت عنوانه.')
+                    : t('يظهر عنوانا فوق هذه الكتلة في صفحة الكورس.'); ?>
             </span>
         </div>
 
@@ -88,53 +88,53 @@ foreach ($this->db->select('custom_type, custom_title')->where('course_id', (int
 
                 <?php if ($tq_k === 'image'): ?>
                     <div class="tqa-field">
-                        <label class="tqa-field__label">العنوان</label>
+                        <label class="tqa-field__label"><?php echo t('العنوان'); ?></label>
                         <input class="tqa-input" type="text" name="image_title[]" maxlength="190">
                     </div>
                     <div class="tqa-field">
-                        <label class="tqa-field__label">الوصف</label>
+                        <label class="tqa-field__label"><?php echo t('الوصف'); ?></label>
                         <textarea class="tqa-textarea" name="image_description[]" rows="2"
                                   style="min-block-size:70px"></textarea>
                     </div>
                     <div class="tqa-field">
-                        <span class="tqa-field__label">الصورة</span>
+                        <span class="tqa-field__label"><?php echo t('الصورة'); ?></span>
                         <div class="tqa-file">
                             <input type="file" name="image_file[]" accept="image/*" data-tqa-file>
                             <label class="tqa-file__btn"><?php echo tq_icon('image', 16); ?> اختر صورة</label>
-                            <span class="tqa-file__name" data-tqa-file-name>لم تختر ملفا بعد</span>
+                            <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
                         </div>
                     </div>
 
                 <?php elseif ($tq_k === 'text'): ?>
                     <div class="tqa-field">
-                        <label class="tqa-field__label">النص</label>
+                        <label class="tqa-field__label"><?php echo t('النص'); ?></label>
                         <textarea class="tqa-textarea" name="text_content[]" rows="5" data-tqa-rich></textarea>
                     </div>
 
                 <?php elseif ($tq_k === 'video'): ?>
                     <div class="tqa-field">
-                        <label class="tqa-field__label">رابط يوتيوب</label>
+                        <label class="tqa-field__label"><?php echo t('رابط يوتيوب'); ?></label>
                         <input class="tqa-input tqa-input--ltr" type="url" name="video_url[]" dir="ltr"
                                placeholder="https://www.youtube.com/watch?v=...">
                     </div>
 
                 <?php elseif ($tq_k === 'faq'): ?>
                     <div class="tqa-field">
-                        <label class="tqa-field__label">السؤال</label>
+                        <label class="tqa-field__label"><?php echo t('السؤال'); ?></label>
                         <input class="tqa-input" type="text" name="faq_question[]" maxlength="255">
                     </div>
                     <div class="tqa-field">
-                        <label class="tqa-field__label">الإجابة</label>
+                        <label class="tqa-field__label"><?php echo t('الإجابة'); ?></label>
                         <textarea class="tqa-textarea" name="faq_answer[]" rows="3"></textarea>
                     </div>
 
                 <?php else: /* gallery */ ?>
                     <div class="tqa-field">
-                        <span class="tqa-field__label">الصور</span>
+                        <span class="tqa-field__label"><?php echo t('الصور'); ?></span>
                         <div class="tqa-file">
                             <input type="file" name="gallery_images[]" accept="image/*" multiple data-tqa-file>
                             <label class="tqa-file__btn"><?php echo tq_icon('image', 16); ?> اختر صورا</label>
-                            <span class="tqa-file__name" data-tqa-file-name>يمكن اختيار عدة صور معا</span>
+                            <span class="tqa-file__name" data-tqa-file-name><?php echo t('يمكن اختيار عدة صور معا'); ?></span>
                         </div>
                     </div>
                 <?php endif; ?>

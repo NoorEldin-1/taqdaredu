@@ -77,20 +77,20 @@ foreach ($instructors as $tq_i) {
 
 /* حالات Academy الخمس تترجم إلى نبرات الشارة. البرتقالي انتظار لا نجاح. */
 $tq_status_map = array(
-    'active'   => array('ok',     'منشور'),
-    'pending'  => array('warn',   'قيد المراجعة'),
-    'draft'    => array('muted',  'مسودة'),
-    'private'  => array('info',   'خاص'),
-    'upcoming' => array('info',   'قادم'),
+    'active'   => array('ok',     t('منشور')),
+    'pending'  => array('warn',   t('قيد المراجعة')),
+    'draft'    => array('muted',  t('مسودة')),
+    'private'  => array('info',   t('خاص')),
+    'upcoming' => array('info',   t('قادم')),
 );
 
 $tq_statuses = array(
-    'all'      => 'كل الحالات',
-    'active'   => 'منشور',
-    'pending'  => 'قيد المراجعة',
-    'private'  => 'خاص',
-    'upcoming' => 'قادم',
-    'draft'    => 'مسودة',
+    'all'      => t('كل الحالات'),
+    'active'   => t('منشور'),
+    'pending'  => t('قيد المراجعة'),
+    'private'  => t('خاص'),
+    'upcoming' => t('قادم'),
+    'draft'    => t('مسودة'),
 );
 
 /** رابط يحفظ المرشحات الحالية ويغير واحدا منها. */
@@ -107,14 +107,14 @@ $tq_link = function ($over = array()) use ($selected_category_id, $selected_inst
 };
 
 $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/course_form/add_course') . '">'
-          . tq_icon('plus', 17) . ' إضافة كورس</a>';
+          . tq_icon('plus', 17) . t('إضافة كورس</a>');
 ?>
 
-<?php tqa_head('الكورسات', 'كل كورسات المنصة — والنشر قرار إدارة لا قرار معلم.', 'book', $tq_tools); ?>
+<?php tqa_head(t('الكورسات'), t('كل كورسات المنصة — والنشر قرار إدارة لا قرار معلم.'), 'book', $tq_tools); ?>
 
 <?php /* حبات الحالة: ترشيح بضغطة واحدة، والحالة تعيش في الرابط فتحفظ
          وترسل ويعود إليها زر الرجوع. */ ?>
-<nav class="tqa-tabs" aria-label="تصفية الكورسات بالحالة">
+<nav class="tqa-tabs" aria-label="<?php echo te('تصفية الكورسات بالحالة'); ?>">
     <?php foreach ($tq_statuses as $tq_k => $tq_lbl): ?>
         <a href="<?php echo $tq_link(array('status' => $tq_k, 'page' => null)); ?>"
            <?php echo (string) $selected_status === (string) $tq_k ? 'aria-current="page"' : ''; ?>>
@@ -125,21 +125,21 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
 
 <form class="tqa-toolbar" method="get" action="<?php echo site_url('admin/courses'); ?>">
 
-    <label class="tqa-sr" for="f_q">ابحث في الكورسات</label>
-    <input class="tqa-input" type="search" id="f_q" name="q" placeholder="ابحث بعنوان الكورس…"
+    <label class="tqa-sr" for="f_q"><?php echo t('ابحث في الكورسات'); ?></label>
+    <input class="tqa-input" type="search" id="f_q" name="q" placeholder="<?php echo te('ابحث بعنوان الكورس…'); ?>"
            value="<?php echo html_escape($search_term); ?>">
 
     <?php /* المنتقي كان يعرض التصنيفات الفرعية وحدها، ولا فرعي واحد في
              هذه القاعدة — فيخرج بخيار «كل الأقسام» لا غير (TQ-CAT-EMPTY). */ ?>
-    <label class="tqa-sr" for="f_cat">المرحلة</label>
+    <label class="tqa-sr" for="f_cat"><?php echo t('المرحلة'); ?></label>
     <select class="tqa-select" id="f_cat" name="category_id">
-        <option value="all">كل المراحل</option>
+        <option value="all"><?php echo t('كل المراحل'); ?></option>
         <?php echo tqa_category_options((int) $selected_category_id); ?>
     </select>
 
-    <label class="tqa-sr" for="f_ins">المعلم</label>
+    <label class="tqa-sr" for="f_ins"><?php echo t('المعلم'); ?></label>
     <select class="tqa-select" id="f_ins" name="instructor_id">
-        <option value="all">كل المعلمين</option>
+        <option value="all"><?php echo t('كل المعلمين'); ?></option>
         <?php foreach ($instructors as $tq_i): ?>
             <option value="<?php echo (int) $tq_i['id']; ?>"
                 <?php echo (string) $selected_instructor_id === (string) $tq_i['id'] ? 'selected' : ''; ?>>
@@ -148,11 +148,11 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
         <?php endforeach; ?>
     </select>
 
-    <label class="tqa-sr" for="f_price">السعر</label>
+    <label class="tqa-sr" for="f_price"><?php echo t('السعر'); ?></label>
     <select class="tqa-select" id="f_price" name="price">
-        <option value="all">مجاني ومدفوع</option>
-        <option value="free" <?php echo $selected_price === 'free' ? 'selected' : ''; ?>>مجاني</option>
-        <option value="paid" <?php echo $selected_price === 'paid' ? 'selected' : ''; ?>>مدفوع</option>
+        <option value="all"><?php echo t('مجاني ومدفوع'); ?></option>
+        <option value="free" <?php echo $selected_price === 'free' ? 'selected' : ''; ?>><?php echo t('مجاني'); ?></option>
+        <option value="paid" <?php echo $selected_price === 'paid' ? 'selected' : ''; ?>><?php echo t('مدفوع'); ?></option>
     </select>
 
     <input type="hidden" name="status" value="<?php echo html_escape($selected_status); ?>">
@@ -162,7 +162,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
     </button>
 
     <?php if ($search_term !== '' || $selected_category_id !== 'all' || $selected_instructor_id !== 'all' || $selected_price !== 'all'): ?>
-        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/courses'); ?>">مسح المرشحات</a>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/courses'); ?>"><?php echo t('مسح المرشحات'); ?></a>
     <?php endif; ?>
 </form>
 
@@ -170,11 +170,11 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
 <?php if (empty($courses)): ?>
 
     <?php tqa_empty(
-        $total_courses === 0 && $search_term === '' ? 'لا كورسات بعد' : 'لا كورس يطابق هذا الترشيح',
+        $total_courses === 0 && $search_term === '' ? t('لا كورسات بعد') : t('لا كورس يطابق هذا الترشيح'),
         $total_courses === 0 && $search_term === ''
-            ? 'الكورس وعاء الدروس، وهو ما يشترك فيه الطالب. ابدأ بأول كورس.'
-            : 'غير المرشحات أو امسحها لتعود إلى كل الكورسات.',
-        $total_courses === 0 && $search_term === '' ? 'إضافة كورس' : 'مسح المرشحات',
+            ? t('الكورس وعاء الدروس، وهو ما يشترك فيه الطالب. ابدأ بأول كورس.')
+            : t('غير المرشحات أو امسحها لتعود إلى كل الكورسات.'),
+        $total_courses === 0 && $search_term === '' ? t('إضافة كورس') : t('مسح المرشحات'),
         $total_courses === 0 && $search_term === '' ? site_url('admin/course_form/add_course') : site_url('admin/courses'),
         'book'
     ); ?>
@@ -183,17 +183,17 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
 
     <div class="tqa-table__wrap">
         <table class="tqa-table">
-            <caption class="tqa-sr">الكورسات: المرحلة والمادة والمحتوى والمسجلون والحالة والسعر</caption>
+            <caption class="tqa-sr"><?php echo t('الكورسات: المرحلة والمادة والمحتوى والمسجلون والحالة والسعر'); ?></caption>
             <thead>
                 <tr>
                     <th style="inline-size:60px">#</th>
-                    <th>الكورس</th>
-                    <th>المرحلة والمادة</th>
-                    <th>المحتوى</th>
-                    <th>المسجلون</th>
-                    <th>الحالة</th>
-                    <th>السعر</th>
-                    <th style="inline-size:230px"><span class="tqa-sr">إجراءات</span></th>
+                    <th><?php echo t('الكورس'); ?></th>
+                    <th><?php echo t('المرحلة والمادة'); ?></th>
+                    <th><?php echo t('المحتوى'); ?></th>
+                    <th><?php echo t('المسجلون'); ?></th>
+                    <th><?php echo t('الحالة'); ?></th>
+                    <th><?php echo t('السعر'); ?></th>
+                    <th style="inline-size:230px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                 </tr>
             </thead>
             <tbody>
@@ -230,23 +230,23 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
                         <?php if ($tq_cn !== ''): ?>
                             <span class="tqa-badge tqa-badge--muted"><?php echo html_escape($tq_cn); ?></span>
                         <?php else: ?>
-                            <span class="tqa-dim">بلا مرحلة</span>
+                            <span class="tqa-dim"><?php echo t('بلا مرحلة'); ?></span>
                         <?php endif; ?>
 
                         <span class="tqa-media__sub">
                             <?php if ($tq_lk && ($tq_lk['grade_ar'] || $tq_lk['subject_ar'])): ?>
                                 <?php echo html_escape(trim($tq_lk['subject_ar'] . ' · ' . $tq_lk['grade_ar'], ' ·')); ?>
                             <?php else: ?>
-                                <span style="color:var(--tq-danger)">بلا صف ولا مادة — لا يظهر في الموقع</span>
+                                <span style="color:var(--tq-danger)"><?php echo t('بلا صف ولا مادة — لا يظهر في الموقع'); ?></span>
                             <?php endif; ?>
                         </span>
                     </td>
 
                     <td data-label="المحتوى">
                         <?php if ($tq_c['course_type'] === 'general'): ?>
-                            <span class="tqa-num"><?php echo (int) ($tq_lessons[$tq_id] ?? 0); ?></span> درسا
+                            <span class="tqa-num"><?php echo (int) ($tq_lessons[$tq_id] ?? 0); ?></span> <?php echo t('درسا'); ?>
                             <span class="tqa-media__sub">
-                                في <span class="tqa-num"><?php echo (int) ($tq_sections[$tq_id] ?? 0); ?></span> قسما
+                                <?php echo t('في'); ?> <span class="tqa-num"><?php echo (int) ($tq_sections[$tq_id] ?? 0); ?></span> <?php echo t('قسما'); ?>
                             </span>
                         <?php else: ?>
                             <span class="tqa-badge tqa-badge--info"><?php echo html_escape(strtoupper($tq_c['course_type'])); ?></span>
@@ -261,14 +261,14 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
 
                     <td data-label="السعر">
                         <?php if ($tq_free): ?>
-                            <span class="tqa-badge tqa-badge--ok">مجاني</span>
+                            <span class="tqa-badge tqa-badge--ok"><?php echo t('مجاني'); ?></span>
                         <?php else: ?>
                             <span class="tqa-num"><?php echo html_escape(currency($tq_amt)); ?></span>
                         <?php endif; ?>
                         <span class="tqa-media__sub">
                             <?php echo (int) $tq_c['expiry_period'] > 0
-                                ? 'لمدة ' . (int) $tq_c['expiry_period'] . ' شهرا'
-                                : 'وصول دائم'; ?>
+                                ? t('لمدة') . (int) $tq_c['expiry_period'] . t('شهرا')
+                                : t('وصول دائم'); ?>
                         </span>
                     </td>
 
@@ -283,9 +283,9 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
                             </a>
 
                             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_slug; ?>"
-                               target="_blank" rel="noopener" title="صفحة الكورس في الموقع">
+                               target="_blank" rel="noopener" title="<?php echo te('صفحة الكورس في الموقع'); ?>">
                                 <?php echo tq_icon('external', 14); ?>
-                                <span class="tqa-sr">صفحته في الموقع</span>
+                                <span class="tqa-sr"><?php echo t('صفحته في الموقع'); ?></span>
                             </a>
 
                             <?php
@@ -295,7 +295,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
                                الرابط من سجل أو من زر رجوع. وحذف كورس يحذف دروسه
                                وتسجيلات طلابه معه. فصارا نموذجي POST بتوكن. */
                             $tq_to   = $tq_c['status'] === 'active' ? 'pending' : 'active';
-                            $tq_verb = $tq_c['status'] === 'active' ? 'أوقف النشر' : 'انشر';
+                            $tq_verb = $tq_c['status'] === 'active' ? t('أوقف النشر') : t('انشر');
                             $tq_url  = site_url('admin/change_course_status_for_admin/' . $tq_to . '/' . $tq_id
                                      . '/' . $selected_category_id . '/' . $selected_instructor_id . '/all/' . $selected_status);
                             ?>
@@ -311,7 +311,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
                             </form>
 
                             <form method="post" action="<?php echo site_url('admin/course_actions/delete/' . $tq_id); ?>"
-                                  data-tqa-confirm-title="حذف الكورس"
+                                  data-tqa-confirm-title="<?php echo te('حذف الكورس'); ?>"
                                   data-tqa-confirm="سيحذف «<?php echo html_escape($tq_c['title']); ?>» ودروسه وتسجيلات طلابه. لا رجعة في هذا."
                                   data-tqa-confirm-ok="نعم، احذف"
                                   data-tqa-confirm-tone="danger">
@@ -336,14 +336,14 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
     $tq_to_p = min($page_count, $tq_from + 4);
     $tq_from = max(1, $tq_to_p - 4);
     ?>
-    <nav class="tqa-pager" aria-label="صفحات الكورسات">
+    <nav class="tqa-pager" aria-label="<?php echo te('صفحات الكورسات'); ?>">
         <span class="tqa-pager__info">
-            المعروض <span class="tqa-num"><?php echo count($courses); ?></span>
-            من <span class="tqa-num"><?php echo (int) $total_courses; ?></span> كورسا
+            <?php echo t('المعروض'); ?> <span class="tqa-num"><?php echo count($courses); ?></span>
+            <?php echo t('من'); ?> <span class="tqa-num"><?php echo (int) $total_courses; ?></span> <?php echo t('كورسا'); ?>
         </span>
 
         <?php if ($page_no > 1): ?>
-            <a href="<?php echo $tq_link(array('page' => $page_no - 1)); ?>" rel="prev" aria-label="الصفحة السابقة">
+            <a href="<?php echo $tq_link(array('page' => $page_no - 1)); ?>" rel="prev" aria-label="<?php echo te('الصفحة السابقة'); ?>">
                 <?php echo tq_icon('chev-prev', 16); ?>
             </a>
         <?php endif; ?>
@@ -357,7 +357,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
         <?php endfor; ?>
 
         <?php if ($page_no < $page_count): ?>
-            <a href="<?php echo $tq_link(array('page' => $page_no + 1)); ?>" rel="next" aria-label="الصفحة التالية">
+            <a href="<?php echo $tq_link(array('page' => $page_no + 1)); ?>" rel="next" aria-label="<?php echo te('الصفحة التالية'); ?>">
                 <?php echo tq_icon('chev-next', 16); ?>
             </a>
         <?php endif; ?>

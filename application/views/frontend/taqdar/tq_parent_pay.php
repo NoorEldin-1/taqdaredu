@@ -21,8 +21,8 @@ include 'tq_student_styles.php';
 
 $tq_nav   = 'pay';
 $tq_role  = 'parent';
-$tq_title = 'ادفع عن ابنك';
-$tq_sub   = 'اشتر باقة باسم ابنك. الاشتراك يفتح في حسابه هو، والفاتورة تصلك أنت.';
+$tq_title = t('ادفع عن ابنك');
+$tq_sub   = t('اشتر باقة باسم ابنك. الاشتراك يفتح في حسابه هو، والفاتورة تصلك أنت.');
 $tq_icon  = 'wallet';
 
 $CI  = &get_instance();
@@ -68,9 +68,9 @@ include 'portal_open.php';
 <?php if (!$tq_kids): ?>
 
   <section class="tq-card">
-    <?php echo tq_s_empty('users', 'sand', 'لا أبناء مرتبطين بحسابك',
-          'اربط ابنك أولا — يصله طلب موافقة، ولا تفتح بياناته ولا يشترى له قبل أن يوافق.',
-          'اربط ابنا', base_url('parent'), false, 'primary'); ?>
+    <?php echo tq_s_empty('users', 'sand', t('لا أبناء مرتبطين بحسابك'),
+          t('اربط ابنك أولا — يصله طلب موافقة، ولا تفتح بياناته ولا يشترى له قبل أن يوافق.'),
+          t('اربط ابنا'), base_url('parent'), false, 'primary'); ?>
   </section>
 
 <?php else: ?>
@@ -81,11 +81,11 @@ include 'portal_open.php';
   <?php if ($tq_inv_row && $tq_inv_row['status'] !== 'paid'): ?>
     <section class="tq-card tq-pp-due" style="margin-block-end:var(--tq-space-l)">
       <div class="tq-card__head">
-        <h2 class="tq-card__title">فاتورة تنتظر الدفع</h2>
-        <span class="tq-badge tq-badge--due">غير مدفوعة</span>
+        <h2 class="tq-card__title"><?php echo t('فاتورة تنتظر الدفع'); ?></h2>
+        <span class="tq-badge tq-badge--due"><?php echo t('غير مدفوعة'); ?></span>
       </div>
       <p class="tq-body">
-        فاتورة باسم <strong><?php echo html_escape($tq_inv_row['holder'] ?: 'ابنك'); ?></strong>
+        <?php echo t('فاتورة باسم'); ?> <strong><?php echo html_escape($tq_inv_row['holder'] ?: t('ابنك')); ?></strong>
         بقيمة <?php echo tq_num(number_format((int) $tq_inv_row['total'] / 100, 2)); ?> ريال.
       </p>
 
@@ -93,12 +93,11 @@ include 'portal_open.php';
         <form method="post" action="<?php echo base_url('student/pay-invoice'); ?>">
           <?php echo tq_csrf(); ?>
           <input type="hidden" name="invoice_id" value="<?php echo (int) $tq_inv_row['id']; ?>">
-          <button class="tq-btn tq-btn--primary" type="submit">ادفع الآن بالبطاقة</button>
+          <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('ادفع الآن بالبطاقة'); ?></button>
         </form>
       <?php else: ?>
         <p class="tq-caption">
-          الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة بنكيا — تعليمات التحويل
-          في <a href="<?php echo base_url('parent/payments'); ?>">المدفوعات</a>.
+          <?php echo t('الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة بنكيا — تعليمات التحويل في'); ?> <a href="<?php echo base_url('parent/payments'); ?>"><?php echo t('المدفوعات'); ?></a>.
         </p>
       <?php endif; ?>
     </section>
@@ -112,17 +111,17 @@ include 'portal_open.php';
             يجعل الأب يشتري باقة ابنه الأصغر لابنه الأكبر. */ ?>
     <section class="tq-card">
       <div class="tq-card__head">
-        <h2 class="tq-card__title">لمن تشتري؟</h2>
+        <h2 class="tq-card__title"><?php echo t('لمن تشتري؟'); ?></h2>
       </div>
 
-      <div class="tq-pp-kids" role="radiogroup" aria-label="اختر الابن">
+      <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('اختر الابن'); ?>">
         <?php foreach ($tq_kids as $i => $k):
           /* معرف الطالب لا معرف الرابط: `links()` ترجع `pl.id` في `id`،
              و`parent_owns_child()` تفحص `student_id` — فقيمة الرابط هنا
              كانت ترد كل شراء برسالة «غير مرتبط بحسابك». */
           $kid = (int) ($k['student_id'] ?? 0);
           if ($kid < 1) continue;
-          $name = trim(($k['first_name'] ?? '') . ' ' . ($k['last_name'] ?? '')) ?: 'ابنك';
+          $name = trim(($k['first_name'] ?? '') . ' ' . ($k['last_name'] ?? '')) ?: t('ابنك');
         ?>
           <label class="tq-pick<?php echo $i === 0 ? ' is-on' : ''; ?>">
             <input type="radio" name="child_id" value="<?php echo $kid; ?>"
@@ -136,16 +135,16 @@ include 'portal_open.php';
     <?php /* ── 2 · أي باقة ──────────────────────────────────────── */ ?>
     <section class="tq-card">
       <div class="tq-card__head">
-        <h2 class="tq-card__title">أي باقة؟</h2>
+        <h2 class="tq-card__title"><?php echo t('أي باقة؟'); ?></h2>
         <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('plans'); ?>"
-           target="_blank" rel="noopener">قارن الباقات</a>
+           target="_blank" rel="noopener"><?php echo t('قارن الباقات'); ?></a>
       </div>
 
       <?php if (!$tq_plans): ?>
-        <?php echo tq_s_empty('card', 'sand', 'لا باقات معروضة الآن',
-              'تظهر الباقات هنا حالما تنشر. تواصل مع الإدارة إن كنت تنتظر باقة بعينها.', '', '', true); ?>
+        <?php echo tq_s_empty('card', 'sand', t('لا باقات معروضة الآن'),
+              t('تظهر الباقات هنا حالما تنشر. تواصل مع الإدارة إن كنت تنتظر باقة بعينها.'), '', '', true); ?>
       <?php else: ?>
-        <div class="tq-pp-plans" role="radiogroup" aria-label="اختر الباقة">
+        <div class="tq-pp-plans" role="radiogroup" aria-label="<?php echo te('اختر الباقة'); ?>">
           <?php foreach ($tq_plans as $i => $p): ?>
             <label class="tq-pp-plan<?php echo $i === 0 ? ' is-on' : ''; ?>">
               <input type="radio" name="plan_id" value="<?php echo (int) $p['id']; ?>"
@@ -162,8 +161,8 @@ include 'portal_open.php';
                        دورته — «٩٩٩ ريال» بلا «كل ٣٠ يوما» تقرأ سنويا. */ ?>
               <span class="tq-pp-plan__p"><?php
                 echo (int) $p['price'] > 0
-                   ? tq_num(number_format((int) $p['price'] / 100, 0)) . ' ريال'
-                   : 'مجانية'; ?><?php
+                   ? tq_num(number_format((int) $p['price'] / 100, 0)) . t('ريال')
+                   : t('مجانية'); ?><?php
                 $tq_pp = tqs_plan_price(array('price' => (int) $p['price'],
                                               'period' => (string) $p['period'],
                                               'days' => (int) $p['duration_days']));
@@ -199,9 +198,9 @@ include 'portal_open.php';
     <?php if ($tq_any_alt): ?>
     <section class="tq-card" data-tq-cycles>
       <div class="tq-card__head">
-        <h2 class="tq-card__title">لكم مدة؟</h2>
+        <h2 class="tq-card__title"><?php echo t('لكم مدة؟'); ?></h2>
       </div>
-      <div class="tq-pp-kids" role="radiogroup" aria-label="مدة الاشتراك">
+      <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('مدة الاشتراك'); ?>">
         <?php $tq_first = true; foreach ($tq_cyc_map as $tq_pid => $tq_cs): ?>
           <?php foreach ($tq_cs as $tq_k => $tq_c): ?>
             <label class="tq-pick<?php echo $tq_first ? ' is-on' : ''; ?>"
@@ -259,31 +258,31 @@ include 'portal_open.php';
     <?php /* ── 3 · كيف تدفع ─────────────────────────────────────── */ ?>
     <section class="tq-card">
       <div class="tq-card__head">
-        <h2 class="tq-card__title">كيف تدفع؟</h2>
+        <h2 class="tq-card__title"><?php echo t('كيف تدفع؟'); ?></h2>
       </div>
 
-      <div class="tq-pp-kids" role="radiogroup" aria-label="طريقة الدفع">
+      <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('طريقة الدفع'); ?>">
         <?php if ($tq_card_ready): ?>
           <label class="tq-pick is-on">
             <input type="radio" name="method" value="card" checked>
-            <span class="tq-pick__label">بطاقة</span>
-            <span class="tq-pick__note">يفتح الاشتراك فور نجاح الدفع</span>
+            <span class="tq-pick__label"><?php echo t('بطاقة'); ?></span>
+            <span class="tq-pick__note"><?php echo t('يفتح الاشتراك فور نجاح الدفع'); ?></span>
           </label>
         <?php endif; ?>
         <label class="tq-pick<?php echo $tq_card_ready ? '' : ' is-on'; ?>">
           <input type="radio" name="method" value="bank" <?php echo $tq_card_ready ? '' : ' checked'; ?>>
-          <span class="tq-pick__label">تحويل بنكي</span>
-          <span class="tq-pick__note">يفتح بعد أن تعتمد الإدارة التحويل</span>
+          <span class="tq-pick__label"><?php echo t('تحويل بنكي'); ?></span>
+          <span class="tq-pick__note"><?php echo t('يفتح بعد أن تعتمد الإدارة التحويل'); ?></span>
         </label>
       </div>
 
       <p class="tq-caption" style="margin-block-start:var(--tq-space-l)">
-        الاشتراك يفتح في حساب ابنك، ويظهر في تقاريره هو. والفاتورة تسجل في مدفوعاتك.
+        <?php echo t('الاشتراك يفتح في حساب ابنك، ويظهر في تقاريره هو. والفاتورة تسجل في مدفوعاتك.'); ?>
       </p>
 
       <div class="tq-formbar">
         <button class="tq-btn tq-btn--primary" type="submit"
-                <?php echo $tq_plans ? '' : ' disabled'; ?>>أصدر الفاتورة</button>
+                <?php echo $tq_plans ? '' : ' disabled'; ?>><?php echo t('أصدر الفاتورة'); ?></button>
       </div>
     </section>
   </form>
@@ -309,25 +308,23 @@ include 'portal_open.php';
 
     <section class="tq-card">
       <div class="tq-card__head">
-        <h2 class="tq-card__title">أو اشتر كورسا مفردا</h2>
+        <h2 class="tq-card__title"><?php echo t('أو اشتر كورسا مفردا'); ?></h2>
         <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('catalog?type=course'); ?>"
-           target="_blank" rel="noopener">تصفح الكورسات</a>
+           target="_blank" rel="noopener"><?php echo t('تصفح الكورسات'); ?></a>
       </div>
 
       <p class="tq-caption">
-        الكورس المفرد يفتح <strong>هذه المادة وحدها</strong> لا منهج المرحلة، ولا يجدد
-        تلقائيا. وهو مستقل عن الباقة: من له باقة سارية يشتريه فوقها، ومن لا باقة له
-        يشتريه بلا اشتراك.
+        <?php echo t('الكورس المفرد يفتح'); ?> <strong><?php echo t('هذه المادة وحدها'); ?></strong> <?php echo t('لا منهج المرحلة، ولا يجدد تلقائيا. وهو مستقل عن الباقة: من له باقة سارية يشتريه فوقها، ومن لا باقة له يشتريه بلا اشتراك.'); ?>
       </p>
 
       <?php /* «لمن» يسأل هنا كذلك لا يقرأ من النموذج الأول: نموذجان
                منفصلان لا يتشاركان حقلا، وقراءة اختيار من نموذج آخر تعني
                أن الأب يبدل الابن في الأعلى ويشتري للأول في الأسفل. */ ?>
-      <div class="tq-pp-kids" role="radiogroup" aria-label="اختر الابن">
+      <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('اختر الابن'); ?>">
         <?php foreach ($tq_kids as $i => $k):
           $kid = (int) ($k['student_id'] ?? 0);
           if ($kid < 1) continue;
-          $name = trim(($k['first_name'] ?? '') . ' ' . ($k['last_name'] ?? '')) ?: 'ابنك';
+          $name = trim(($k['first_name'] ?? '') . ' ' . ($k['last_name'] ?? '')) ?: t('ابنك');
         ?>
           <label class="tq-pick<?php echo $i === 0 ? ' is-on' : ''; ?>">
             <input type="radio" name="child_id" value="<?php echo $kid; ?>"
@@ -337,7 +334,7 @@ include 'portal_open.php';
         <?php endforeach; ?>
       </div>
 
-      <div class="tq-pp-plans" role="radiogroup" aria-label="اختر الكورس"
+      <div class="tq-pp-plans" role="radiogroup" aria-label="<?php echo te('اختر الكورس'); ?>"
            style="margin-block-start:var(--tq-space-l)">
         <?php $tq_pc_first = true; foreach ($tq_pc_offers as $tq_pc_id => $tq_pc_o): ?>
           <label class="tq-pp-plan<?php echo $tq_pc_first ? ' is-on' : ''; ?>">
@@ -345,8 +342,8 @@ include 'portal_open.php';
                    <?php echo $tq_pc_first ? ' checked' : ''; ?> required>
             <span class="tq-pp-plan__t"><?php echo html_escape($tq_pc_o['title']); ?></span>
             <span class="tq-pp-plan__s"><?php echo (int) $tq_pc_o['days'] > 0
-                ? 'وصول ' . (int) round($tq_pc_o['days'] / 30) . ' شهرا'
-                : 'وصول دائم'; ?></span>
+                ? t('وصول') . (int) round($tq_pc_o['days'] / 30) . t('شهرا')
+                : t('وصول دائم'); ?></span>
             <?php /* السعر هنا **ما يدفع فعلا** لا معادلا: هذه شاشة إصدار
                      فاتورة، والرقم فيها هو رقم الفاتورة. */ ?>
             <span class="tq-pp-plan__p"><?php
@@ -355,28 +352,28 @@ include 'portal_open.php';
         <?php $tq_pc_first = false; endforeach; ?>
       </div>
 
-      <div class="tq-pp-kids" role="radiogroup" aria-label="طريقة الدفع"
+      <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('طريقة الدفع'); ?>"
            style="margin-block-start:var(--tq-space-l)">
         <?php if ($tq_card_ready): ?>
           <label class="tq-pick is-on">
             <input type="radio" name="method" value="card" checked>
-            <span class="tq-pick__label">بطاقة</span>
-            <span class="tq-pick__note">يفتح الكورس فور نجاح الدفع</span>
+            <span class="tq-pick__label"><?php echo t('بطاقة'); ?></span>
+            <span class="tq-pick__note"><?php echo t('يفتح الكورس فور نجاح الدفع'); ?></span>
           </label>
         <?php endif; ?>
         <label class="tq-pick<?php echo $tq_card_ready ? '' : ' is-on'; ?>">
           <input type="radio" name="method" value="bank" <?php echo $tq_card_ready ? '' : ' checked'; ?>>
-          <span class="tq-pick__label">تحويل بنكي</span>
-          <span class="tq-pick__note">يفتح بعد أن تعتمد الإدارة التحويل</span>
+          <span class="tq-pick__label"><?php echo t('تحويل بنكي'); ?></span>
+          <span class="tq-pick__note"><?php echo t('يفتح بعد أن تعتمد الإدارة التحويل'); ?></span>
         </label>
       </div>
 
       <p class="tq-caption" style="margin-block-start:var(--tq-space-l)">
-        الكورس يفتح في حساب ابنك، ويظهر في تقاريره هو. والفاتورة تسجل في مدفوعاتك.
+        <?php echo t('الكورس يفتح في حساب ابنك، ويظهر في تقاريره هو. والفاتورة تسجل في مدفوعاتك.'); ?>
       </p>
 
       <div class="tq-formbar">
-        <button class="tq-btn tq-btn--primary" type="submit">أصدر فاتورة الكورس</button>
+        <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('أصدر فاتورة الكورس'); ?></button>
       </div>
     </section>
   </form>

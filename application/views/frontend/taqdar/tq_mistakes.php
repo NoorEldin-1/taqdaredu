@@ -24,8 +24,8 @@ include 'tq_student_styles.php';
 
 $tq_nav   = 'mistakes';
 $tq_role  = 'student';
-$tq_title = 'دفتر الأخطاء';
-$tq_sub   = 'كل إجابة أخطأتها، مصنفة بمادتها ودرسها ومفهومها. وهنا تدربها حتى تخرج منه.';
+$tq_title = t('دفتر الأخطاء');
+$tq_sub   = t('كل إجابة أخطأتها، مصنفة بمادتها ودرسها ومفهومها. وهنا تدربها حتى تخرج منه.');
 $tq_icon  = 'help';
 
 include 'portal_open.php';
@@ -48,8 +48,8 @@ include 'portal_open.php';
       <span class="tq-s-art tq-pastel tq-pastel--peach" aria-hidden="true">
         <span class="tq-pastel__icon"><?php echo tq_icon('help', 34); ?></span>
       </span>
-      <h3 class="tq-empty__title" data-tq-mk-error-msg>تعذر تحميل دفترك</h3>
-      <button class="tq-btn tq-btn--secondary" type="button" data-tq-mk-retry>إعادة المحاولة</button>
+      <h3 class="tq-empty__title" data-tq-mk-error-msg><?php echo t('تعذر تحميل دفترك'); ?></h3>
+      <button class="tq-btn tq-btn--secondary" type="button" data-tq-mk-retry><?php echo t('إعادة المحاولة'); ?></button>
     </div>
   </div>
 
@@ -57,9 +57,9 @@ include 'portal_open.php';
 
     <!-- لا خطأ: نجاح لا فراغ، فيقال بلغة النجاح -->
     <section class="tq-card" data-tq-mk-empty hidden>
-      <?php echo tq_s_empty('check-badge', 'mint', 'دفترك نظيف',
-            'لا إجابة خاطئة مسجلة عليك بعد. تابع دروسك — وما تخطئه سيظهر هنا لتتدرب عليه، لا لتحاسب به.',
-            'تابع دروسك', base_url('student/lessons'), false, 'primary'); ?>
+      <?php echo tq_s_empty('check-badge', 'mint', t('دفترك نظيف'),
+            t('لا إجابة خاطئة مسجلة عليك بعد. تابع دروسك — وما تخطئه سيظهر هنا لتتدرب عليه، لا لتحاسب به.'),
+            t('تابع دروسك'), base_url('student/lessons'), false, 'primary'); ?>
     </section>
 
     <div data-tq-mk-has hidden>
@@ -71,14 +71,14 @@ include 'portal_open.php';
       <!-- الدفتر -->
       <section class="tq-card" data-tq-mk-list-card>
         <div class="tq-card__head">
-          <h2 class="tq-card__title">أخطاؤك</h2>
+          <h2 class="tq-card__title"><?php echo t('أخطاؤك'); ?></h2>
           <div class="tq-row" style="gap:var(--tq-space-s)">
-            <label class="sr-only" for="tqMkFilter">رشح بالمادة</label>
+            <label class="sr-only" for="tqMkFilter"><?php echo t('رشح بالمادة'); ?></label>
             <select class="tq-select" id="tqMkFilter" data-tq-mk-filter>
-              <option value="">كل المواد</option>
+              <option value=""><?php echo t('كل المواد'); ?></option>
             </select>
             <button class="tq-btn tq-btn--primary tq-btn--sm" type="button" data-tq-mk-start>
-              ابدأ تدريبا مركزا
+              <?php echo t('ابدأ تدريبا مركزا'); ?>
             </button>
           </div>
         </div>
@@ -87,7 +87,7 @@ include 'portal_open.php';
 
         <p class="tq-caption" data-tq-mk-filtered-empty hidden
            style="text-align:center;padding-block:var(--tq-space-xl)">
-          لا أخطاء في هذه المادة. اختر مادة أخرى أو اعرض الكل.
+          <?php echo t('لا أخطاء في هذه المادة. اختر مادة أخرى أو اعرض الكل.'); ?>
         </p>
       </section>
     </div>
@@ -95,7 +95,7 @@ include 'portal_open.php';
     <!-- ── التدريب المركز ─────────────────────────────────────────── -->
     <section class="tq-card" data-tq-mk-drill hidden>
       <div class="tq-card__head">
-        <h2 class="tq-card__title">تدريب مركز</h2>
+        <h2 class="tq-card__title"><?php echo t('تدريب مركز'); ?></h2>
         <span class="tq-caption" data-tq-mk-counter></span>
       </div>
 
@@ -110,13 +110,13 @@ include 'portal_open.php';
         </fieldset>
 
         <p class="tq-field__msg" data-tq-mk-hint hidden style="color:var(--tq-danger)">
-          اختر إجابة قبل التحقق.
+          <?php echo t('اختر إجابة قبل التحقق.'); ?>
         </p>
 
         <div class="tq-row" style="flex-wrap:wrap;margin-block-start:var(--tq-space-xl)">
-          <button class="tq-btn tq-btn--primary" type="submit">تحقق</button>
-          <button class="tq-btn tq-btn--ghost" type="button" data-tq-mk-skip>تخط</button>
-          <button class="tq-btn tq-btn--ghost" type="button" data-tq-mk-quit>أنه التدريب</button>
+          <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('تحقق'); ?></button>
+          <button class="tq-btn tq-btn--ghost" type="button" data-tq-mk-skip><?php echo t('تخط'); ?></button>
+          <button class="tq-btn tq-btn--ghost" type="button" data-tq-mk-quit><?php echo t('أنه التدريب'); ?></button>
         </div>
       </form>
     </section>
@@ -139,11 +139,11 @@ include 'portal_open.php';
         <span class="tq-s-art tq-pastel tq-pastel--mint" aria-hidden="true">
           <span class="tq-pastel__icon"><?php echo tq_icon('check-badge', 34); ?></span>
         </span>
-        <h3 class="tq-empty__title">انتهى التدريب</h3>
+        <h3 class="tq-empty__title"><?php echo t('انتهى التدريب'); ?></h3>
         <p class="tq-empty__text" data-tq-mk-done-text></p>
         <div class="tq-row" style="flex-wrap:wrap;justify-content:center">
-          <button class="tq-btn tq-btn--secondary" type="button" data-tq-mk-back>عد إلى الدفتر</button>
-          <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/reviews'); ?>">راجع المستحق اليوم</a>
+          <button class="tq-btn tq-btn--secondary" type="button" data-tq-mk-back><?php echo t('عد إلى الدفتر'); ?></button>
+          <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/reviews'); ?>"><?php echo t('راجع المستحق اليوم'); ?></a>
         </div>
       </div>
     </section>

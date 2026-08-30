@@ -84,7 +84,7 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
 
         <div class="<?php echo $c['field']; ?>">
             <label class="<?php echo $c['label']; ?>" for="qt<?php echo $u; ?>">
-                نص السؤال <span class="<?php echo $c['req']; ?>" aria-hidden="true">*</span>
+                <?php echo t('نص السؤال'); ?> <span class="<?php echo $c['req']; ?>" aria-hidden="true">*</span>
             </label>
             <textarea class="<?php echo $c['area']; ?>" id="qt<?php echo $u; ?>" name="title"
                       rows="2" required><?php echo html_escape($q['title'] ?? ''); ?></textarea>
@@ -92,7 +92,7 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
 
         <?php if ($q_objectives): ?>
         <div class="<?php echo $c['field']; ?>">
-            <label class="<?php echo $c['label']; ?>" for="qo<?php echo $u; ?>">الهدف الذي يقيسه</label>
+            <label class="<?php echo $c['label']; ?>" for="qo<?php echo $u; ?>"><?php echo t('الهدف الذي يقيسه'); ?></label>
             <?php /* TQ-QOBJ — الافتراضي أول هدف لا «بلا هدف».
                      كان السؤال الجديد يفتح على الخيار الأسوأ: المعلم يكتب
                      سؤاله ويحفظ ولا يمر على القائمة، فتحفظ الأسئلة كلها
@@ -111,11 +111,10 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
                         <?php echo html_escape($otext); ?>
                     </option>
                 <?php endforeach; ?>
-                <option value="0" <?php echo $q_sel === 0 ? 'selected' : ''; ?>>— بلا هدف</option>
+                <option value="0" <?php echo $q_sel === 0 ? 'selected' : ''; ?>><?php echo t('— بلا هدف'); ?></option>
             </select>
             <span class="<?php echo $c['hint']; ?>">
-                بالهدف يعرف النظام أي مفهوم تعثر فيه الطالب، فيعيده إلى دقيقته في الشرح
-                ويكتب الخطأ في دفتره وخريطة إتقانه. وسؤال بلا هدف يصحح ولا يعلم شيئا بعد ذلك.
+                <?php echo t('بالهدف يعرف النظام أي مفهوم تعثر فيه الطالب، فيعيده إلى دقيقته في الشرح ويكتب الخطأ في دفتره وخريطة إتقانه. وسؤال بلا هدف يصحح ولا يعلم شيئا بعد ذلك.'); ?>
             </span>
         </div>
         <?php endif; ?>
@@ -123,28 +122,27 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
         <?php foreach ($q_extra as $x) echo $x; ?>
 
         <div class="<?php echo $c['field']; ?>">
-            <label class="<?php echo $c['label']; ?>" for="qi<?php echo $u; ?>">صورة السؤال</label>
+            <label class="<?php echo $c['label']; ?>" for="qi<?php echo $u; ?>"><?php echo t('صورة السؤال'); ?></label>
             <?php if ($q && !empty($q['image'])): ?>
                 <img class="tqq-img" src="<?php echo html_escape($q['image']); ?>" alt="">
                 <label class="tqq-drop">
                     <input type="checkbox" name="image_remove" value="1">
-                    <span>احذف الصورة الحالية</span>
+                    <span><?php echo t('احذف الصورة الحالية'); ?></span>
                 </label>
             <?php endif; ?>
             <input class="<?php echo $c['input']; ?>" id="qi<?php echo $u; ?>" name="image" type="file"
                    accept="image/png,image/jpeg,image/gif,image/webp">
             <span class="<?php echo $c['hint']; ?>">
-                للمعادلات والرسوم البيانية ولقطات الشاشة — تعرض تحت نص السؤال.
-                jpg · png · gif · webp، وحتى <span class="tq-ltr">4</span> ميجابايت.
+                <?php echo t('للمعادلات والرسوم البيانية ولقطات الشاشة — تعرض تحت نص السؤال. jpg · png · gif · webp، وحتى'); ?> <span class="tq-ltr">4</span> <?php echo t('ميجابايت.'); ?>
             </span>
         </div>
 
         <div class="<?php echo $c['field']; ?>">
             <label class="<?php echo $c['label']; ?>">
-                الخيارات والإجابة الصحيحة <span class="<?php echo $c['req']; ?>" aria-hidden="true">*</span>
+                <?php echo t('الخيارات والإجابة الصحيحة'); ?> <span class="<?php echo $c['req']; ?>" aria-hidden="true">*</span>
             </label>
             <span class="<?php echo $c['hint']; ?>" style="display:block;margin-block-end:var(--tq-space-s)">
-                خياران على الأقل وستة على الأكثر. علم الدائرة أمام الصحيح، والفارغ يهمل.
+                <?php echo t('خياران على الأقل وستة على الأكثر. علم الدائرة أمام الصحيح، والفارغ يهمل.'); ?>
             </span>
             <?php for ($i = 0; $i < 6; $i++):
                 $val = $vals[$i];
@@ -155,7 +153,7 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
                            aria-label="الخيار <?php echo $i + 1; ?> هو الصحيح">
                     <input class="<?php echo $c['input']; ?>" type="text" name="options[<?php echo $i; ?>]"
                            value="<?php echo html_escape($val); ?>"
-                           placeholder="الخيار <?php echo $i + 1; ?><?php echo $i < 2 ? '' : ' (اختياري)'; ?>">
+                           placeholder="الخيار <?php echo $i + 1; ?><?php echo $i < 2 ? '' : t('(اختياري)'); ?>">
                 </div>
             <?php endfor; ?>
         </div>
@@ -163,7 +161,7 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
         <div class="tqq-acts">
             <button class="<?php echo $q_btn; ?> <?php echo $q_btn; ?>--primary" type="submit">
                 <?php echo tq_icon($id ? 'check' : 'plus', 16); ?>
-                <?php echo $id ? 'احفظ التعديل' : 'أضف السؤال'; ?>
+                <?php echo $id ? t('احفظ التعديل') : t('أضف السؤال'); ?>
             </button>
         </div>
     </form>
@@ -206,7 +204,7 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
 
 <?php /* ── نموذج الإضافة ─────────────────────────────────────────── */ ?>
 <div class="tqq-add">
-    <h3 style="font:var(--tq-type-h3);margin:0 0 var(--tq-space-s)">أضف سؤالا</h3>
+    <h3 style="font:var(--tq-type-h3);margin:0 0 var(--tq-space-s)"><?php echo t('أضف سؤالا'); ?></h3>
     <?php if ($q_intro !== ''): ?>
         <p class="<?php echo $c['hint']; ?>" style="margin-block-end:var(--tq-space-l)">
             <?php echo $q_intro; ?>
@@ -246,7 +244,7 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
                         <p class="tqq-q__meta">يقيس: <?php echo html_escape($q['objective_text']); ?></p>
                     <?php elseif ($q_objectives): ?>
                         <p class="tqq-q__meta" style="color:var(--tq-danger)">
-                            بلا هدف — لا يدخل خريطة الإتقان ولا دفتر الأخطاء.
+                            <?php echo t('بلا هدف — لا يدخل خريطة الإتقان ولا دفتر الأخطاء.'); ?>
                         </p>
                     <?php endif; ?>
                 </div>
@@ -261,7 +259,7 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
                     <?php endforeach; ?>
                     <input type="hidden" name="id" value="<?php echo (int) $q['id']; ?>">
                     <button class="<?php echo $q_btn; ?> <?php echo $q_btn; ?>--ghost <?php echo $q_btn; ?>--sm"
-                            type="submit" aria-label="احذف هذا السؤال">
+                            type="submit" aria-label="<?php echo te('احذف هذا السؤال'); ?>">
                         <?php echo tq_icon('trash', 14); ?>
                     </button>
                 </form>
@@ -271,7 +269,7 @@ $q_form = function ($q = null) use ($c, $q_btn, $q_action, $q_hidden, $q_extra,
             <?php /* التحرير مطوي بجوار سؤاله: يفتح بلا سكربت، ويغلقه
                      المتصفح نفسه، ولا يخرج المؤلف من موضعه في الصفحة. */ ?>
             <details class="tqq-edit">
-                <summary>تحرير هذا السؤال</summary>
+                <summary><?php echo t('تحرير هذا السؤال'); ?></summary>
                 <div style="margin-block-start:var(--tq-space-m)"><?php $q_form($q); ?></div>
             </details>
         </div>

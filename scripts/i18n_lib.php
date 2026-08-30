@@ -61,6 +61,11 @@ function tq_php_reject($toks, $i)
     /* حالة `switch` — مقارنة بوجه آخر. */
     if (is_array($prev) && $prev[0] === T_CASE) return 'comparison';
 
+    /* تعبير ثابت: `static $a = [...]` و`const` وقيمة معامل افتراضية وخاصية
+       صنف. PHP لا يقبل نداء دالة في أي منها — والقالب الملفوف لا يفتح
+       أصلا: «Constant expression contains invalid operations». */
+    if (tq_in_const_expr($toks, $i)) return 'const-expr';
+
     $call = tq_enclosing_call($toks, $i);
     if ($call !== null) {
         $c = strtolower($call);
@@ -96,6 +101,50 @@ function tq_tok_near($toks, $i, $dir)
         return $t;
     }
     return null;
+}
+
+/**
+ * هل الرمز داخل تعبير ثابت لا يقبل نداء دالة؟
+ *
+ * يمشي إلى بداية الجملة، فإن بدأت بـ`static` أو `const` أو محدد رؤية فهي
+ * تهيئة ثابتة. ويفحص كذلك قائمة معاملات دالة — القيمة الافتراضية فيها
+ * تعبير ثابت مثلها.
+ */
+function tq_in_const_expr($toks, $i)
+{
+    $depth = 0;
+    for ($j = $i - 1; $j >= 0; $j--) {
+        $t = $toks[$j];
+        $x = is_array($t) ? $t[1] : $t;
+
+        if ($x === ')' || $x === ']') { $depth++; continue; }
+        if ($x === '[') { if ($depth > 0) $depth--; continue; }
+        if ($x === '(') {
+            if ($depth > 0) { $depth--; continue; }
+            /* قوس فاتح بلا اسم دالة قبله = قائمة معاملات أو تجميع. */
+            for ($k = $j - 1; $k >= 0; $k--) {
+                $u = $toks[$k];
+                if (is_array($u) && $u[0] === T_WHITESPACE) continue;
+                if (is_array($u) && in_array($u[0], array(T_FUNCTION, T_FN), true)) return true;
+                if (is_array($u) && $u[0] === T_STRING) {
+                    /* اسم دالة — قد يكون تعريفا: `function f('..')`. */
+                    for ($z = $k - 1; $z >= 0; $z--) {
+                        $w = $toks[$z];
+                        if (is_array($w) && $w[0] === T_WHITESPACE) continue;
+                        return (is_array($w) && $w[0] === T_FUNCTION);
+                    }
+                }
+                break;
+            }
+            return false;
+        }
+        if ($x === ';' || $x === '{' || $x === '}') return false;
+
+        if (is_array($t) && in_array($t[0], array(T_STATIC, T_CONST, T_PUBLIC, T_PRIVATE, T_PROTECTED, T_VAR), true)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /** اسم الدالة التي يقع الرمز داخل قوسيها مباشرة — أو null. */
@@ -139,84 +188,113 @@ function tq_enclosing_call($toks, $i)
  *
  * @return array  شرائح: ['kind'=>text|attr|php|tag, 'text'=>..., 'start'=>, 'len'=>, 'dynamic'=>bool]
  */
+/**
+ * أفي هذه الشريحة عربية **خارج** كتل PHP؟
+ *
+ * وبلا هذا السؤال يقرأ المقطع نصا ملفوفا من قبل نصا خاما: النص المترجم صار
+ * `<?php echo t('احفظ'); ?>` وهو كتلة PHP كلها، فالمقنع `\x01` من طرفه إلى
+ * طرفه — ولكن الأصل الذي يقرأ منه لا يزال يحمل «احفظ». فيعده «نصا متقطعا»
+ * ينتظر يدا، ويرتفع عداد ما ينتظر بعد كل تشغيل بدل أن ينزل.
+ */
+function tq_visible_arabic($raw, $masked)
+{
+    $out = '';
+    $n = min(strlen($raw), strlen($masked));
+    for ($i = 0; $i < $n; $i++) {
+        if ($masked[$i] !== "\x01") $out .= $raw[$i];
+    }
+    return tq_has_arabic($out);
+}
+
 function tq_segment_view($src)
 {
-    $segs = array();
+    /* ---- ١) التقنيع ----
+       كل كتلة PHP تستبدل بحرف حارس بطولها نفسه (`\x01`)، فالإزاحات تبقى
+       صحيحة والوسم يقرأ نظيفا. وبلا التقنيع يخدع البحث عن `>` أول سمة فيها
+       كتلة PHP —
 
-    /* ١ — مواضع كتل PHP، لتترك كما هي ويعلم ما جاورها. */
-    $php = array();
-    if (preg_match_all('/<\?(?:php|=)?.*?(?:\?>|$)/s', $src, $m, PREG_OFFSET_CAPTURE)) {
-        foreach ($m[0] as $x) $php[] = array($x[1], strlen($x[0]));
-    }
+           <a href="<?php echo $u; ?>">تفاصيل</a>
 
-    $inPhp = function ($pos) use ($php) {
-        foreach ($php as $p) if ($pos >= $p[0] && $pos < $p[0] + $p[1]) return true;
-        return false;
-    };
+       فيقرأ المقطع `">تفاصيل` نصا واحدا يبدأ بعقب وسم، ويعلمه «متقطعا»
+       لأن ما قبله `?>`. فيسقط من الترجمة نص **نظيف تماما** — وهو أكثر
+       نصوص الشجرة: كل رابط له وجهة محسوبة، وهي كلها كذلك. */
+    $mask = preg_replace_callback('/<\?(?:php|=)?.*?(?:\?>|$)/s',
+        function ($m) { return str_repeat("\x01", strlen($m[0])); }, $src);
 
-    /* ٢ — الوسوم والتعليقات والسكربتات: مناطق محرمة على النص. */
-    $blocked = array();
+    /* السكربت والنمط والتعليق: نص فيها لا يقرؤه أحد. */
     foreach (array('/<(script|style)\b[^>]*>.*?<\/\1>/is', '/<!--.*?-->/s') as $re) {
-        if (preg_match_all($re, $src, $m, PREG_OFFSET_CAPTURE)) {
-            foreach ($m[0] as $x) $blocked[] = array($x[1], strlen($x[0]));
-        }
+        $mask = preg_replace_callback($re,
+            function ($m) { return str_repeat("\x02", strlen($m[0])); }, $mask);
     }
-    $isBlocked = function ($pos) use ($blocked) {
-        foreach ($blocked as $b) if ($pos >= $b[0] && $pos < $b[0] + $b[1]) return true;
-        return false;
-    };
 
-    /* ٣ — سمات تعرض للمستخدم داخل الوسوم. */
-    $attrRe = '/\b(title|placeholder|alt|aria-label|aria-description|aria-placeholder|data-tq-label)\s*=\s*"([^"]*)"/u';
-    if (preg_match_all($attrRe, $src, $m, PREG_OFFSET_CAPTURE)) {
+    $segs = array();
+    $len  = strlen($mask);
+
+    /* ---- ٢) سمات تعرض للمستخدم ---- */
+    if (preg_match_all(TQ_ATTR_RE, $mask, $m, PREG_OFFSET_CAPTURE)) {
         foreach ($m[2] as $k => $x) {
-            list($val, $off) = $x;
-            if (!tq_has_arabic($val) || $inPhp($off) || $isBlocked($off)) continue;
+            list($masked, $off) = $x;
+            $val = substr($src, $off, strlen($masked));
+            if (!tq_has_arabic($val)) continue;
+            if (strpos($masked, "\x02") !== false) continue;
+            if (!tq_visible_arabic($val, $masked)) continue;
             $segs[] = array(
                 'kind'    => 'attr',
                 'text'    => $val,
                 'start'   => $off,
                 'len'     => strlen($val),
-                'dynamic' => strpos($val, '<?') !== false,
+                'dynamic' => strpos($masked, "\x01") !== false,
                 'attr'    => $m[1][$k][0],
             );
         }
     }
 
-    /* ٤ — نصوص بين الوسوم. */
+    /* ---- ٣) نصوص بين الوسوم ---- */
     $pos = 0;
-    $len = strlen($src);
     while ($pos < $len) {
-        $lt = strpos($src, '<', $pos);
-        if ($lt === false) { $chunk = substr($src, $pos); $chunkAt = $pos; $pos = $len; }
-        else { $chunk = substr($src, $pos, $lt - $pos); $chunkAt = $pos; $pos = $lt + 1;
-               $gt = strpos($src, '>', $lt); $pos = ($gt === false) ? $len : $gt + 1; }
+        $lt = strpos($mask, '<', $pos);
+        $end = ($lt === false) ? $len : $lt;
 
-        if ($chunk === '' || !tq_has_arabic($chunk)) continue;
-        if ($inPhp($chunkAt) || $isBlocked($chunkAt)) continue;
+        if ($end > $pos) {
+            $masked = substr($mask, $pos, $end - $pos);
+            $raw    = substr($src,  $pos, $end - $pos);
 
-        /* هل النص متقطع؟ ينظر إلى ما قبله وما بعده مباشرة. */
-        $before = substr($src, max(0, $chunkAt - 2), 2);
-        $afterAt = $chunkAt + strlen($chunk);
-        $after  = substr($src, $afterAt, 2);
-        $dynamic = ($before === '?>') || ($after === '<?');
+            if (tq_has_arabic($raw) && strpos($masked, "\x02") === false
+                && tq_visible_arabic($raw, $masked)) {
+                /* المسافات البادئة واللاحقة تبقى مكانها. */
+                preg_match('/^(\s*)(.*?)(\s*)$/su', $raw, $mm);
+                $inner = $mm[2];
+                if ($inner !== '' && tq_has_arabic($inner)) {
+                    $start   = $pos + strlen($mm[1]);
+                    $innerMk = substr($mask, $start, strlen($inner));
+                    $segs[] = array(
+                        'kind'    => 'text',
+                        'text'    => $inner,
+                        'start'   => $start,
+                        'len'     => strlen($inner),
+                        /* متقطع = كتلة PHP **داخل** النص نفسه، لا قبله ولا بعده. */
+                        'dynamic' => strpos($innerMk, "\x01") !== false,
+                    );
+                }
+            }
+        }
 
-        /* المسافات البادئة واللاحقة تبقى مكانها، ويقص ما بينهما. */
-        preg_match('/^(\s*)(.*?)(\s*)$/su', $chunk, $mm);
-        if ($mm[2] === '' || !tq_has_arabic($mm[2])) continue;
-
-        $segs[] = array(
-            'kind'    => 'text',
-            'text'    => $mm[2],
-            'start'   => $chunkAt + strlen($mm[1]),
-            'len'     => strlen($mm[2]),
-            'dynamic' => $dynamic,
-        );
+        if ($lt === false) break;
+        $gt = strpos($mask, '>', $lt);
+        $pos = ($gt === false) ? $len : $gt + 1;
     }
 
     usort($segs, function ($a, $b) { return $a['start'] <=> $b['start']; });
     return $segs;
 }
+
+/**
+ * السمات التي تعرض نصا للمستخدم.
+ *
+ * و`data-tq-confirm` منها: هي نص نافذة «هل أنت متأكد؟» يقرؤه السكربت —
+ * وتركها يترك أخطر جملة في الشاشة عربية وحدها، وهي التي تسبق حذفا لا يرجع.
+ */
+const TQ_ATTR_RE = '/\b(title|placeholder|alt|aria-label|aria-description|aria-placeholder|aria-roledescription|data-tq-confirm|data-tq-label|data-tq-empty|data-confirm)\s*=\s*"([^"]*)"/u';
 
 /* ======================================================================
    ٣ — مجموعات الملفات

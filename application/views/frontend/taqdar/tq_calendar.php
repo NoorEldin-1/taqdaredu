@@ -23,8 +23,8 @@
 
 $tq_nav   = 'calendar';
 $tq_role  = 'student';
-$tq_title = 'التقويم';
-$tq_sub   = 'عرض وتنظيم جميع مواعيدك ودروسك وأحداثك';
+$tq_title = t('التقويم');
+$tq_sub   = t('عرض وتنظيم جميع مواعيدك ودروسك وأحداثك');
 $tq_icon  = 'calendar';
 
 $uid = (int) $this->session->userdata('user_id');
@@ -42,18 +42,18 @@ $tq_month   = (int) date('n', $tq_ref);
 $tq_first   = mktime(0, 0, 0, $tq_month, 1, $tq_year);
 $tq_days_in = (int) date('t', $tq_first);
 
-$tq_month_names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+$tq_month_names = [t('يناير'), t('فبراير'), t('مارس'), t('أبريل'), t('مايو'), t('يونيو'), t('يوليو'), t('أغسطس'), t('سبتمبر'), t('أكتوبر'), t('نوفمبر'), t('ديسمبر')];
 /* أسماء الأيام مرتبة من الأحد — الأسبوع يبدأ الأحد في السوق السعودي */
-$tq_day_names   = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-$tq_day_short   = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+$tq_day_names   = [t('الأحد'), t('الاثنين'), t('الثلاثاء'), t('الأربعاء'), t('الخميس'), t('الجمعة'), t('السبت')];
+$tq_day_short   = [t('أحد'), t('اثنين'), t('ثلاثاء'), t('أربعاء'), t('خميس'), t('جمعة'), t('سبت')];
 
 /* ---- خمس فئات ثابتة، ولون كل فئة ثابت لا يتغير بين الشاشات ---------- */
 $tq_cats = [
-    'lessons'   => ['الدروس',        'var(--tq-teal)',  'play',        'انضم إلى الدرس',  'student/lessons'],
-    'exams'     => ['الاختبارات',    'var(--tq-sky-ink)', 'check-badge', 'ابدأ الاختبار',   'student/exams'],
-    'tasks'     => ['المهام',        'var(--tq-amber)', 'clipboard',   'رفع الواجب',      'student/tasks'],
-    'on_demand' => ['حصص بالطلب',    'var(--tq-navy)',  'video',       'دخول الحصة',      'student/on-demand'],
-    'revisions' => ['المراجعات',     'var(--tq-lilac-ink)', 'book',    'بدء المراجعة',    'student/materials'],
+    'lessons'   => [t('الدروس'),        'var(--tq-teal)',  'play',        t('انضم إلى الدرس'),  'student/lessons'],
+    'exams'     => [t('الاختبارات'),    'var(--tq-sky-ink)', 'check-badge', t('ابدأ الاختبار'),   'student/exams'],
+    'tasks'     => [t('المهام'),        'var(--tq-amber)', 'clipboard',   t('رفع الواجب'),      'student/tasks'],
+    'on_demand' => [t('حصص بالطلب'),    'var(--tq-navy)',  'video',       t('دخول الحصة'),      'student/on-demand'],
+    'revisions' => [t('المراجعات'),     'var(--tq-lilac-ink)', 'book',    t('بدء المراجعة'),    'student/materials'],
 ];
 
 /* ---- الأحداث ---------------------------------------------------------
@@ -91,7 +91,7 @@ if ($uid > 0) {
                         ->from('section')->where_in('course_id', $tq_cids)
                         ->get()->result_array() as $s) {
             $cid = (int) $s['course_id'];
-            foreach ([['start_date', 'بداية وحدة'], ['end_date', 'نهاية وحدة']] as [$col, $word]) {
+            foreach ([['start_date', t('بداية وحدة')], ['end_date', t('نهاية وحدة')]] as [$col, $word]) {
                 $ts = $tq_ts($s[$col]);
                 if ($ts <= 0) continue;
                 $tq_events[] = [
@@ -121,7 +121,7 @@ if ($uid > 0) {
             $tq_events[] = [
                 'ts'    => $ts,
                 'cat'   => 'exams',
-                'title' => ($done ? 'سلمت: ' : 'بدأت: ') . $r['title'],
+                'title' => ($done ? t('سلمت:') : t('بدأت:')) . $r['title'],
                 'sub'   => $tq_my_courses[$cid] ?? '',
                 'href'  => base_url('student/lesson/' . $cid . '/' . (int) $r['quiz_id']),
             ];
@@ -143,7 +143,7 @@ if ($uid > 0) {
         $tq_events[] = [
             'ts'    => $ts,
             'cat'   => 'tasks',
-            'title' => ($done ? 'سلمت واجب: ' : 'بدأت واجب: ') . $r['title'],
+            'title' => ($done ? t('سلمت واجب:') : t('بدأت واجب:')) . $r['title'],
             'sub'   => $tq_my_courses[$cid] ?? '',
             'href'  => base_url('student/lesson/' . $cid . '/' . (int) $r['lesson_id']),
         ];
@@ -164,9 +164,9 @@ if ($uid > 0) {
         $tq_events[] = [
             'ts'    => $ts,
             'cat'   => 'on_demand',
-            'title' => 'حصة' . ($who !== '' ? ' مع ' . $who : ''),
+            'title' => t('حصة') . ($who !== '' ? t('مع') . $who : ''),
             /* نص خام: العزل يقع عند العرض مرة واحدة، فلا يعزل الرقم مرتين */
-            'sub'   => ((int) $r['duration_min']) . ' دقيقة',
+            'sub'   => ((int) $r['duration_min']) . t('دقيقة'),
             'href'  => base_url('student/on-demand'),
         ];
     }
@@ -186,7 +186,7 @@ if ($uid > 0) {
         $tq_events[] = [
             'ts'    => $ts,
             'cat'   => 'revisions',
-            'title' => 'مراجعة' . ($title !== '' ? ': ' . $title : ''),
+            'title' => t('مراجعة') . ($title !== '' ? ': ' . $title : ''),
             'sub'   => $tq_my_courses[$cid] ?? '',
             'href'  => $cid > 0
                 ? base_url('student/lesson/' . $cid . '/' . (int) $r['lesson_id'])
@@ -302,16 +302,16 @@ include 'portal_open.php';
 
         <div class="tq-calbar">
             <div class="tq-calnav">
-                <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo $tq_link($tq_view, $tq_today); ?>">اليوم</a>
-                <a class="tq-iconbtn tq-calnav__prev" href="<?php echo $tq_link($tq_view, $tq_prev_month); ?>" aria-label="الشهر السابق"><?php echo tq_icon('chev-prev', 16); ?></a>
+                <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo $tq_link($tq_view, $tq_today); ?>"><?php echo t('اليوم'); ?></a>
+                <a class="tq-iconbtn tq-calnav__prev" href="<?php echo $tq_link($tq_view, $tq_prev_month); ?>" aria-label="<?php echo te('الشهر السابق'); ?>"><?php echo tq_icon('chev-prev', 16); ?></a>
                 <span class="tq-calnav__label">
                     <?php echo html_escape($tq_month_names[$tq_month - 1]); ?> <?php echo tq_num($tq_year); ?>
                 </span>
-                <a class="tq-iconbtn tq-calnav__next" href="<?php echo $tq_link($tq_view, $tq_next_month); ?>" aria-label="الشهر التالي"><?php echo tq_icon('chev-next', 16); ?></a>
+                <a class="tq-iconbtn tq-calnav__next" href="<?php echo $tq_link($tq_view, $tq_next_month); ?>" aria-label="<?php echo te('الشهر التالي'); ?>"><?php echo tq_icon('chev-next', 16); ?></a>
             </div>
 
-            <nav class="tq-views" aria-label="طريقة عرض التقويم">
-                <?php foreach (['month' => 'شهر', 'week' => 'أسبوع', 'day' => 'يوم', 'agenda' => 'جدول'] as $v => $vl): ?>
+            <nav class="tq-views" aria-label="<?php echo te('طريقة عرض التقويم'); ?>">
+                <?php foreach (['month' => t('شهر'), 'week' => t('أسبوع'), 'day' => t('يوم'), 'agenda' => t('جدول')] as $v => $vl): ?>
                     <a class="tq-pill" href="<?php echo $tq_link($v, $tq_ref); ?>" <?php echo tq_active($v, $tq_view); ?>>
                         <?php echo html_escape($vl); ?>
                     </a>
@@ -339,7 +339,7 @@ include 'portal_open.php';
                         <div class="tq-cal__cell<?php echo $out ? ' tq-cal__cell--out' : ''; ?>">
                             <span class="tq-cal__n<?php echo $stamp === $tq_today ? ' tq-cal__n--today' : ''; ?>">
                                 <?php echo TQ_LRI . date('j', $stamp) . TQ_PDI; ?>
-                                <?php if ($stamp === $tq_today): ?><span class="tq-sr">اليوم</span><?php endif; ?>
+                                <?php if ($stamp === $tq_today): ?><span class="tq-sr"><?php echo t('اليوم'); ?></span><?php endif; ?>
                             </span>
                             <?php foreach ($evs as $e): ?>
                                 <?php $c = $tq_cats[$e['cat']] ?? $tq_cats['lessons']; ?>
@@ -364,7 +364,7 @@ include 'portal_open.php';
                                 </span>
                             </div>
                             <?php if (!$evs): ?>
-                                <span class="tq-micro" style="text-align:center">لا مواعيد</span>
+                                <span class="tq-micro" style="text-align:center"><?php echo t('لا مواعيد'); ?></span>
                             <?php else: ?>
                                 <?php foreach ($evs as $e): ?>
                                     <?php $c = $tq_cats[$e['cat']] ?? $tq_cats['lessons']; ?>
@@ -392,7 +392,7 @@ include 'portal_open.php';
                     ?>
                     <div class="tq-hourrow">
                         <span class="tq-tl__time">
-                            <?php echo tq_num(($h % 12 === 0 ? 12 : $h % 12) . ':00', 'tq-num--sm'); ?> <?php echo $h < 12 ? 'ص' : 'م'; ?>
+                            <?php echo tq_num(($h % 12 === 0 ? 12 : $h % 12) . ':00', 'tq-num--sm'); ?> <?php echo $h < 12 ? t('ص') : t('م'); ?>
                         </span>
                         <div>
                             <?php foreach ($slot as $e): ?>
@@ -407,18 +407,17 @@ include 'portal_open.php';
                 <?php endfor; ?>
 
             <?php else: ?>
-                <h2 class="tq-h2" style="margin-block-end:var(--tq-space-l)">جدول الثلاثين يوما القادمة</h2>
+                <h2 class="tq-h2" style="margin-block-end:var(--tq-space-l)"><?php echo t('جدول الثلاثين يوما القادمة'); ?></h2>
                 <?php if (!$tq_upcoming): ?>
                     <div class="tq-empty">
                         <div class="tq-empty__art tq-pastel tq-pastel--sky" style="display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                             <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('calendar', 44); ?></span>
                         </div>
-                        <h3 class="tq-empty__title">لا مواعيد في الجدول</h3>
+                        <h3 class="tq-empty__title"><?php echo t('لا مواعيد في الجدول'); ?></h3>
                         <p class="tq-empty__text">
-                            كل درس تحجزه وكل اختبار يفتح موعده وكل واجب له تاريخ تسليم يظهر هنا مرتبا بيومه،
-                            وبزر يأخذك إليه مباشرة.
+                            <?php echo t('كل درس تحجزه وكل اختبار يفتح موعده وكل واجب له تاريخ تسليم يظهر هنا مرتبا بيومه، وبزر يأخذك إليه مباشرة.'); ?>
                         </p>
-                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/on-demand'); ?>">احجز حصة بالطلب</a>
+                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/on-demand'); ?>"><?php echo t('احجز حصة بالطلب'); ?></a>
                     </div>
                 <?php else: ?>
                     <ul class="tq-stack">
@@ -457,7 +456,7 @@ include 'portal_open.php';
                     جدول اليوم — <?php echo html_escape($tq_day_names[(int) date('w', $tq_today)]); ?>
                     <?php echo tq_num(date('Y-m-d', $tq_today), 'tq-num--sm'); ?>
                 </h2>
-                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo $tq_link('week', $tq_today); ?>">عرض الجدول الأسبوعي</a>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo $tq_link('week', $tq_today); ?>"><?php echo t('عرض الجدول الأسبوعي'); ?></a>
             </div>
 
             <?php if (!$tq_today_events): ?>
@@ -465,12 +464,11 @@ include 'portal_open.php';
                     <div class="tq-empty__art tq-pastel tq-pastel--mint" style="display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                         <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('clock', 44); ?></span>
                     </div>
-                    <h3 class="tq-empty__title">يومك خال من المواعيد</h3>
+                    <h3 class="tq-empty__title"><?php echo t('يومك خال من المواعيد'); ?></h3>
                     <p class="tq-empty__text">
-                        حين يكون لديك درس أو اختبار أو حصة بالطلب يظهر هنا على خط اليوم بوقته،
-                        وبجواره زر واحد يأخذك إليه: انضم إلى الدرس، أو ابدأ الاختبار، أو ادخل الحصة.
+                        <?php echo t('حين يكون لديك درس أو اختبار أو حصة بالطلب يظهر هنا على خط اليوم بوقته، وبجواره زر واحد يأخذك إليه: انضم إلى الدرس، أو ابدأ الاختبار، أو ادخل الحصة.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/on-demand'); ?>">احجز حصة بالطلب</a>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/on-demand'); ?>"><?php echo t('احجز حصة بالطلب'); ?></a>
                 </div>
             <?php else: ?>
                 <div class="tq-timeline">
@@ -481,7 +479,7 @@ include 'portal_open.php';
                                  الطالب أنه أخفى «الاختبارات» وهي أمامه، فيحسب المربع معطلا. */ ?>
                         <div class="tq-tl" data-tq-evcat="<?php echo html_escape($e['cat']); ?>">
                             <span class="tq-tl__time">
-                                <?php echo tq_num(date('g:i', $ts), 'tq-num--sm'); ?> <?php echo (int) date('G', $ts) < 12 ? 'ص' : 'م'; ?>
+                                <?php echo tq_num(date('g:i', $ts), 'tq-num--sm'); ?> <?php echo (int) date('G', $ts) < 12 ? t('ص') : t('م'); ?>
                             </span>
                             <span class="tq-tl__dot" style="background:<?php echo $c[1]; ?>" aria-hidden="true"></span>
                             <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon($c[2]); ?></span>
@@ -506,7 +504,7 @@ include 'portal_open.php';
 
         <!-- التقويمات: مربعات اختيار ملونة قابلة للإخفاء -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-cals-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-cals-h">التقويمات</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-cals-h"><?php echo t('التقويمات'); ?></h2></div>
             <?php foreach ($tq_cats as $key => $c): ?>
                 <div class="tq-calrow">
                     <input type="checkbox" id="tq-cal-<?php echo html_escape($key); ?>" name="cal[]"
@@ -524,16 +522,16 @@ include 'portal_open.php';
                      شيء يدار. والمربعات أعلاه هي الضابط الحقيقي، وهو محلي لهذه
                      الزيارة. وقوله أصدق من زر يقود إلى شاشة لا يجد فيها ما وعد به. */ ?>
             <p class="tq-micro tq-muted" style="margin-block-start:var(--tq-space-m);margin-block-end:0">
-                الفئات الخمس ثابتة ومشتقة من مواعيدك المسجلة. وإخفاء فئة يخص هذه الزيارة وحدها.
+                <?php echo t('الفئات الخمس ثابتة ومشتقة من مواعيدك المسجلة. وإخفاء فئة يخص هذه الزيارة وحدها.'); ?>
             </p>
         </section>
 
         <!-- المواعيد القادمة -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-up-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-up-h">المواعيد القادمة</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-up-h"><?php echo t('المواعيد القادمة'); ?></h2></div>
             <?php if (!$tq_upcoming): ?>
                 <p class="tq-caption" style="margin:0">
-                    أقرب ثلاثة مواعيد ستظهر هنا بوقتها ومادتها، وكل منها رابط يأخذك إليه مباشرة.
+                    <?php echo t('أقرب ثلاثة مواعيد ستظهر هنا بوقتها ومادتها، وكل منها رابط يأخذك إليه مباشرة.'); ?>
                 </p>
             <?php else: ?>
                 <ul class="tq-stack">
@@ -555,10 +553,10 @@ include 'portal_open.php';
 
         <!-- تذكير اليوم -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-rem-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-rem-h">تذكير اليوم</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-rem-h"><?php echo t('تذكير اليوم'); ?></h2></div>
             <?php if (!$tq_today_events): ?>
                 <p class="tq-caption" style="margin:0">
-                    لا شيء يستحق التذكير اليوم. حين يكون لديك مواعيد سيظهر عددها هنا وما مضى منها.
+                    <?php echo t('لا شيء يستحق التذكير اليوم. حين يكون لديك مواعيد سيظهر عددها هنا وما مضى منها.'); ?>
                 </p>
             <?php else: ?>
                 <?php
@@ -570,11 +568,11 @@ include 'portal_open.php';
                 }
                 ?>
                 <p class="tq-caption">
-                    <?php echo tq_iso('لديك ' . count($tq_today_events) . ' موعدا اليوم'); ?>
+                    <?php echo tq_iso(t('لديك') . count($tq_today_events) . t('موعدا اليوم')); ?>
                 </p>
-                <?php echo tq_progress((int) round($tq_passed * 100 / count($tq_today_events)), 'ما مضى من مواعيد اليوم'); ?>
+                <?php echo tq_progress((int) round($tq_passed * 100 / count($tq_today_events)), t('ما مضى من مواعيد اليوم')); ?>
                 <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo $tq_link('day', $tq_today); ?>" style="margin-block-start:var(--tq-space-m)">
-                    عرض التفاصيل
+                    <?php echo t('عرض التفاصيل'); ?>
                 </a>
             <?php endif; ?>
         </section>
@@ -605,7 +603,7 @@ include 'portal_open.php';
                 <?php endfor; ?>
             </div>
             <a class="tq-btn tq-btn--ghost tq-btn--sm tq-btn--block" href="<?php echo $tq_link('month', $tq_next_month); ?>" style="margin-block-start:var(--tq-space-m)">
-                الذهاب إلى الشهر التالي
+                <?php echo t('الذهاب إلى الشهر التالي'); ?>
             </a>
         </section>
 

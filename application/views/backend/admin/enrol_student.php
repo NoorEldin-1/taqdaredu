@@ -1,4 +1,4 @@
-<?php tqa_head('تسجيل الطلاب في كورس', 'التسجيل اليدوي — يفتح الكورس للطالب بلا دفع.', 'clipboard'); ?>
+<?php tqa_head(t('تسجيل الطلاب في كورس'), t('التسجيل اليدوي — يفتح الكورس للطالب بلا دفع.'), 'clipboard'); ?>
 
 <div class="tqa-stack">
     <div>
@@ -25,7 +25,7 @@
                     <div class="tqa-field">
                         <label for="multiple_user_id"><?php echo get_phrase('users'); ?><span class="required">*</span> </label>
                         <input type="search" class="tqa-input mb-2" data-tqa-filter="#multiple_user_id"
-                               placeholder="اكتب للترشيح بالاسم أو البريد…" autocomplete="off">
+                               placeholder="<?php echo te('اكتب للترشيح بالاسم أو البريد…'); ?>" autocomplete="off">
                         <select class="tqa-input" name="user_id[]" id="multiple_user_id"
                                 multiple="multiple" size="10" required>
                             <?php foreach ($tq_users as $tq_u): ?>
@@ -35,13 +35,13 @@
                                 ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <small class="tqa-field__hint">اختر واحدا أو أكثر — بـCtrl أو ⌘ للاختيار المتعدد.</small>
+                        <small class="tqa-field__hint"><?php echo t('اختر واحدا أو أكثر — بـCtrl أو ⌘ للاختيار المتعدد.'); ?></small>
                     </div>
 
                     <div class="tqa-field">
                         <label for="multiple_course_id"><?php echo get_phrase('course_to_enrol'); ?><span class="required">*</span> </label>
                         <input type="search" class="tqa-input mb-2" data-tqa-filter="#multiple_course_id"
-                               placeholder="اكتب للترشيح باسم الدورة…" autocomplete="off">
+                               placeholder="<?php echo te('اكتب للترشيح باسم الدورة…'); ?>" autocomplete="off">
                         <select class="tqa-input" multiple="multiple" size="8" name="course_id[]" id="multiple_course_id" required>
                             <?php /* بلا خيار «اختر دورة» فارغ: في منتق متعدد يصير
                                      سطرا يختار فيرسل قيمة خالية. */ ?>

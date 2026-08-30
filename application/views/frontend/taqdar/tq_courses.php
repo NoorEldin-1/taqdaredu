@@ -34,8 +34,8 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 
 $tq_nav   = 'courses';
 $tq_role  = 'student';
-$tq_title = 'كورساتي';
-$tq_sub   = 'كل الكورسات المسجلة لديك وتقدمك فيها';
+$tq_title = t('كورساتي');
+$tq_sub   = t('كل الكورسات المسجلة لديك وتقدمك فيها');
 $tq_icon  = 'book';
 
 $tq_all = tq_s_enrolled($tq_uid);
@@ -103,10 +103,10 @@ $tq_visible = ($f_all === '1') ? $tq_list : array_slice($tq_list, 0, $tq_limit);
  * في كل زيارة ليس طريقا.
  */
 $tq_stations = [
-    ['',         'كل كورساتي', 'grid',  'sky',   $tq_counts_by['all'],      'كل ما سجلت فيه'],
-    ['idle',     'لم تبدأ',    'book',  'lilac', $tq_counts_by['idle'],     'بانتظار أول درس'],
-    ['progress', 'قيد التقدم', 'flame', 'peach', $tq_counts_by['progress'], 'بدأتها ولم تنهها'],
-    ['done',     'مكتملة',     'award', 'mint',  $tq_counts_by['done'],     'أنهيت دروسها كلها'],
+    ['',         t('كل كورساتي'), 'grid',  'sky',   $tq_counts_by['all'],      t('كل ما سجلت فيه')],
+    ['idle',     t('لم تبدأ'),    'book',  'lilac', $tq_counts_by['idle'],     t('بانتظار أول درس')],
+    ['progress', t('قيد التقدم'), 'flame', 'peach', $tq_counts_by['progress'], t('بدأتها ولم تنهها')],
+    ['done',     t('مكتملة'),     'award', 'mint',  $tq_counts_by['done'],     t('أنهيت دروسها كلها')],
 ];
 
 /* امتلاء الطريق = نسبة الإنجاز الفعلية نفسها المعروضة في الحلقة جانبا،
@@ -139,8 +139,8 @@ $tq_fav_btn = static function ($course_id, $on) {
         <input type="hidden" name="back" value="courses">
         <button class="tq-fav-heart" type="submit"
                 aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"
-                title="<?php echo $on ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'; ?>"
-                aria-label="<?php echo $on ? 'إزالة الكورس من المفضلة' : 'إضافة الكورس إلى المفضلة'; ?>">
+                title="<?php echo $on ? t('إزالة من المفضلة') : t('إضافة إلى المفضلة'); ?>"
+                aria-label="<?php echo $on ? t('إزالة الكورس من المفضلة') : t('إضافة الكورس إلى المفضلة'); ?>">
             <?php echo tq_icon('heart', 18); ?>
         </button>
     </form>
@@ -256,18 +256,18 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
         <section class="tq-card tq-card--panel tq-map tq-section" aria-labelledby="tq-map-h">
             <div class="tq-map__head">
                 <div>
-                    <h2 class="tq-card__title" id="tq-map-h" style="margin:0">رحلتك في كورساتك</h2>
+                    <h2 class="tq-card__title" id="tq-map-h" style="margin:0"><?php echo t('رحلتك في كورساتك'); ?></h2>
                     <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
-                        اضغط أي محطة لترى كورساتها — والطريق يمتد بقدر ما أنجزت من دروسها.
+                        <?php echo t('اضغط أي محطة لترى كورساتها — والطريق يمتد بقدر ما أنجزت من دروسها.'); ?>
                     </p>
                 </div>
                 <span class="tq-pill">
                     <?php echo tq_num($tq_path_pct . '%', 'tq-num--sm'); ?>
-                    <span class="tq-micro">من دروس كورساتك</span>
+                    <span class="tq-micro"><?php echo t('من دروس كورساتك'); ?></span>
                 </span>
             </div>
 
-            <nav class="tq-map__road" aria-label="تصفية الكورسات بمحطة الرحلة">
+            <nav class="tq-map__road" aria-label="<?php echo te('تصفية الكورسات بمحطة الرحلة'); ?>">
                 <?php
                 /* المسار يمر بمراكز الميداليات الأربع: (125,44) (375,100)
                    (625,44) (875,100) — والمنحنيات بينها مكعبة فيصير الطريق
@@ -310,7 +310,7 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                             <span class="tq-map__label"><?php echo html_escape($label); ?></span>
                             <span class="tq-map__hint"><?php echo html_escape($hint); ?></span>
                             <span class="tq-sr">
-                                <?php echo tq_iso((int) $n . ' كورسا'); ?><?php echo $is ? ' — المحطة المعروضة الآن' : ''; ?>
+                                <?php echo tq_iso((int) $n . t('كورسا')); ?><?php echo $is ? t('— المحطة المعروضة الآن') : ''; ?>
                             </span>
                         </a>
                     <?php endforeach; ?>
@@ -323,9 +323,9 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
             <div class="tq-card">
                 <?php echo tq_s_empty(
                     'book', 'mint',
-                    'لا كورسات بعد',
-                    'كل كورس تسجل فيه يظهر هنا ببطاقة تحمل غلافه وحالته ومدته ونسبة تقدمك فيه.',
-                    'تصفح الكورسات',
+                    t('لا كورسات بعد'),
+                    t('كل كورس تسجل فيه يظهر هنا ببطاقة تحمل غلافه وحالته ومدته ونسبة تقدمك فيه.'),
+                    t('تصفح الكورسات'),
                     /* الوجهة `catalog` لا `plans`: الزر يقول «تصفح» فيجب أن يفتح
                        ما يتصفح — «المواد والبرامج التعليمية». و`plans` صفحة
                        شراء، ومن لا كورس له يريد أن يرى ما يدرس قبل أن يرى
@@ -338,9 +338,9 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
             <div class="tq-card">
                 <?php echo tq_s_empty(
                     'search', 'sky',
-                    'لا نتائج لهذه التصفية',
-                    'جرب توسيع التصفية أو امسحها لترى كل كورساتك مرة أخرى.',
-                    'مسح الفلاتر',
+                    t('لا نتائج لهذه التصفية'),
+                    t('جرب توسيع التصفية أو امسحها لترى كل كورساتك مرة أخرى.'),
+                    t('مسح الفلاتر'),
                     base_url('student/courses')
                 ); ?>
             </div>
@@ -350,8 +350,8 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                 <?php foreach ($tq_visible as $c): ?>
                     <?php
                     $badge = $c['status'] === 'done'
-                        ? tq_badge('mastered', 'مكتملة')
-                        : ($c['status'] === 'progress' ? tq_badge('progress', 'قيد التقدم') : tq_badge('idle', 'لم تبدأ'));
+                        ? tq_badge('mastered', t('مكتملة'))
+                        : ($c['status'] === 'progress' ? tq_badge('progress', t('قيد التقدم')) : tq_badge('idle', t('لم تبدأ')));
                     $href = tq_s_lesson_url($c['id'], $c['resume_id']);
                     ?>
                     <article class="tq-card tq-s-course">
@@ -366,7 +366,7 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                             <?php echo $tq_fav_btn($c['id'], isset($tq_wish[(int) $c['id']])); ?>
                         </div>
                         <p class="tq-micro" style="margin:0">
-                            <?php echo html_escape($c['level'] !== '' ? tq_s_level($c['level']) : tq_s_subject($c['category_id'], 'كورس', $c['id'])); ?>
+                            <?php echo html_escape($c['level'] !== '' ? tq_s_level($c['level']) : tq_s_subject($c['category_id'], t('كورس'), $c['id'])); ?>
                             <?php
                             /* TQ-COURSE-SALE — **ولماذا هو مفتوح.**
                                «كورساتي» تقرأ `enrol`، وهو يمتلئ من الباقة
@@ -375,10 +375,10 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                                الاشتراك، وما فتحته الباقة يقفل معها. وطالب
                                لا يعرف الفرق يظن أنه فقد ما دفع ثمنه. */
                             if (isset($tq_bought[(int) $c['id']])): ?>
-                                · <span style="color:var(--tq-teal);font-weight:700">مشتراة مفردة</span>
+                                · <span style="color:var(--tq-teal);font-weight:700"><?php echo t('مشتراة مفردة'); ?></span>
                             <?php endif; ?>
                         </p>
-                        <?php echo tq_progress($c['progress'], 'تقدمك في ' . $c['title']); ?>
+                        <?php echo tq_progress($c['progress'], t('تقدمك في') . $c['title']); ?>
                         <p class="tq-caption" style="margin:0"><?php echo tq_s_lessons_word($c['done'], $c['lessons']); ?></p>
 
                         <?php /* بابان لا باب: الغلاف والعنوان يستأنفان من موضع التوقف —
@@ -388,11 +388,11 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                         <div class="tq-row" style="gap:var(--tq-space-s);margin-block-start:var(--tq-space-m)">
                             <a class="tq-btn tq-btn--secondary tq-btn--sm" style="flex:1"
                                href="<?php echo $href; ?>">
-                                <?php echo $c['status'] === 'idle' ? 'ابدأ الكورس' : 'تابع من حيث توقفت'; ?>
+                                <?php echo $c['status'] === 'idle' ? t('ابدأ الكورس') : t('تابع من حيث توقفت'); ?>
                             </a>
                             <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                href="<?php echo base_url('student/lessons') . '?course=' . (int) $c['id']; ?>">
-                                دروسه
+                                <?php echo t('دروسه'); ?>
                                 <span class="tq-sr">— <?php echo html_escape($c['title']); ?></span>
                             </a>
                         </div>
@@ -403,8 +403,8 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
             <?php if ($f_all !== '1' && count($tq_list) > $tq_limit): ?>
                 <p style="text-align:center;margin-block-start:var(--tq-space-xl)">
                     <a class="tq-btn tq-btn--secondary" href="<?php echo $tq_query(['all' => '1']); ?>">
-                        عرض المزيد
-                        <span class="tq-sr">من الكورسات</span>
+                        <?php echo t('عرض المزيد'); ?>
+                        <span class="tq-sr"><?php echo t('من الكورسات'); ?></span>
                     </a>
                 </p>
             <?php endif; ?>
@@ -417,7 +417,7 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
         <!-- التصفية: نموذج GET يعمل بلا جافاسكربت، وكل حقل له تسمية مرتبطة. -->
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">تصفية الكورسات</h2>
+                <h2 class="tq-card__title"><?php echo t('تصفية الكورسات'); ?></h2>
                 <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('cog'); ?></span>
             </div>
 
@@ -427,34 +427,34 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                      فلا يحتاج الطالب أن ينزل إلى «مسح الفلاتر» ليلغي واحدا. */ ?>
 
             <?php if ($opt_subjects): ?>
-                <p class="tq-field__label" id="tq-flt-subject">المادة</p>
+                <p class="tq-field__label" id="tq-flt-subject"><?php echo t('المادة'); ?></p>
                 <div class="tq-chips" role="group" aria-labelledby="tq-flt-subject" style="margin-block-end:var(--tq-space-l)">
                     <a class="tq-chip" href="<?php echo $tq_query(['subject' => null, 'all' => null]); ?>"
-                       <?php echo $f_subject === '' ? 'aria-current="true"' : ''; ?>>كل المواد</a>
+                       <?php echo $f_subject === '' ? 'aria-current="true"' : ''; ?>><?php echo t('كل المواد'); ?></a>
                     <?php foreach ($opt_subjects as $name): ?>
                         <?php $on = ((string) $name === $f_subject); ?>
                         <a class="tq-chip" href="<?php echo $tq_query(['subject' => $on ? null : $name, 'all' => null]); ?>"
                            <?php echo $on ? 'aria-current="true"' : ''; ?>>
                             <?php echo html_escape($name); ?>
                             <?php if ($on): ?><span class="tq-chip__x" aria-hidden="true"><?php echo tq_icon('x', 14); ?></span><?php endif; ?>
-                            <?php if ($on): ?><span class="tq-sr">— اضغط لإلغاء تصفية هذه المادة</span><?php endif; ?>
+                            <?php if ($on): ?><span class="tq-sr"><?php echo t('— اضغط لإلغاء تصفية هذه المادة'); ?></span><?php endif; ?>
                         </a>
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
 
             <?php if ($opt_stages): ?>
-                <p class="tq-field__label" id="tq-flt-stage">المستوى</p>
+                <p class="tq-field__label" id="tq-flt-stage"><?php echo t('المستوى'); ?></p>
                 <div class="tq-chips" role="group" aria-labelledby="tq-flt-stage">
                     <a class="tq-chip" href="<?php echo $tq_query(['stage' => null, 'all' => null]); ?>"
-                       <?php echo $f_stage === '' ? 'aria-current="true"' : ''; ?>>كل المستويات</a>
+                       <?php echo $f_stage === '' ? 'aria-current="true"' : ''; ?>><?php echo t('كل المستويات'); ?></a>
                     <?php foreach ($opt_stages as $lvl): ?>
                         <?php $on = ((string) $lvl === $f_stage); ?>
                         <a class="tq-chip" href="<?php echo $tq_query(['stage' => $on ? null : $lvl, 'all' => null]); ?>"
                            <?php echo $on ? 'aria-current="true"' : ''; ?>>
                             <?php echo html_escape(tq_s_level($lvl)); ?>
                             <?php if ($on): ?><span class="tq-chip__x" aria-hidden="true"><?php echo tq_icon('x', 14); ?></span><?php endif; ?>
-                            <?php if ($on): ?><span class="tq-sr">— اضغط لإلغاء تصفية هذا المستوى</span><?php endif; ?>
+                            <?php if ($on): ?><span class="tq-sr"><?php echo t('— اضغط لإلغاء تصفية هذا المستوى'); ?></span><?php endif; ?>
                         </a>
                     <?php endforeach; ?>
                 </div>
@@ -465,26 +465,26 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
 
             <?php if ($tq_has_filter): ?>
                 <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-l)"
-                   href="<?php echo base_url('student/courses'); ?>">مسح كل الفلاتر</a>
+                   href="<?php echo base_url('student/courses'); ?>"><?php echo t('مسح كل الفلاتر'); ?></a>
             <?php endif; ?>
         </section>
 
         <!-- ملخص تقدمك -->
         <section class="tq-card tq-card--panel">
-            <div class="tq-card__head"><h2 class="tq-card__title">ملخص تقدمك</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('ملخص تقدمك'); ?></h2></div>
 
             <?php if (empty($tq_all)): ?>
                 <?php echo tq_s_empty(
                     'chart', 'mint',
-                    'لا تقدم بعد',
-                    'حلقة تقدمك وتوزيع حالات كورساتك يظهران هنا بعد أول درس تكمله.',
+                    t('لا تقدم بعد'),
+                    t('حلقة تقدمك وتوزيع حالات كورساتك يظهران هنا بعد أول درس تكمله.'),
                     '', '', true
                 ); ?>
             <?php else: ?>
                 <div class="tq-row" style="gap:var(--tq-space-l)">
                     <?php echo tq_ring($tq_overall, 108, 10); ?>
                     <div>
-                        <p class="tq-strong" style="margin:0;color:var(--tq-navy)">إجمالي التقدم</p>
+                        <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo t('إجمالي التقدم'); ?></p>
                         <p class="tq-caption" style="margin:0">
                             <?php echo tq_s_lessons_word($tq_done_lessons, $tq_total_lessons); ?>
                         </p>
@@ -494,9 +494,9 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                 <ul class="tq-s-list" style="margin-block-start:var(--tq-space-l)">
                     <?php
                     $rows = [
-                        ['done', 'كورسات مكتملة',    $tq_counts_by['done']],
-                        ['due',  'كورسات قيد التقدم', $tq_counts_by['progress']],
-                        ['idle', 'كورسات لم تبدأ',   $tq_counts_by['idle']],
+                        ['done', t('كورسات مكتملة'),    $tq_counts_by['done']],
+                        ['due',  t('كورسات قيد التقدم'), $tq_counts_by['progress']],
+                        ['idle', t('كورسات لم تبدأ'),   $tq_counts_by['idle']],
                     ];
                     foreach ($rows as [$dot, $label, $n]):
                         ?>
@@ -511,18 +511,18 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                 </ul>
 
                 <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-l)"
-                   href="<?php echo base_url('student/reports'); ?>">عرض تقرير تفصيلي</a>
+                   href="<?php echo base_url('student/reports'); ?>"><?php echo t('عرض تقرير تفصيلي'); ?></a>
             <?php endif; ?>
         </section>
 
         <!-- حصص بالطلب -->
         <section class="tq-card tq-card--panel tq-pastel tq-pastel--sky">
             <div class="tq-card__head">
-                <h2 class="tq-card__title tq-pastel__title">حصص بالطلب</h2>
+                <h2 class="tq-card__title tq-pastel__title"><?php echo t('حصص بالطلب'); ?></h2>
                 <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('video', 24); ?></span>
             </div>
-            <p class="tq-pastel__body">احجز حصة مباشرة مع معلم عند حاجتك لفهم أعمق.</p>
-            <a class="tq-btn tq-btn--mastery tq-btn--block" href="<?php echo base_url('student/on-demand'); ?>">احجز الآن</a>
+            <p class="tq-pastel__body"><?php echo t('احجز حصة مباشرة مع معلم عند حاجتك لفهم أعمق.'); ?></p>
+            <a class="tq-btn tq-btn--mastery tq-btn--block" href="<?php echo base_url('student/on-demand'); ?>"><?php echo t('احجز الآن'); ?></a>
         </section>
 
     </aside>

@@ -20,8 +20,8 @@ include 'tq_student_styles.php';
 
 $tq_nav   = 'analytics';
 $tq_role  = 'teacher';
-$tq_title = 'التحليلات والخريطة الحرارية';
-$tq_sub   = 'أين ينصرف طلابك، وأي مفهوم لا يثبت — ومع كل نمط ما تفعله فيه.';
+$tq_title = t('التحليلات والخريطة الحرارية');
+$tq_sub   = t('أين ينصرف طلابك، وأي مفهوم لا يثبت — ومع كل نمط ما تفعله فيه.');
 $tq_icon  = 'chart';
 
 $CI  = &get_instance();
@@ -51,9 +51,9 @@ include 'portal_open.php';
 <?php if (!$tq_courses): ?>
 
   <section class="tq-card">
-    <?php echo tq_s_empty('chart', 'sand', 'لا كورسات في نطاقك بعد',
-          'تظهر التحليلات حين يسند إليك كورس ويبدأ طلابك دروسه.',
-          'ارفع درسك الأول', base_url('teacher/upload'), false, 'primary'); ?>
+    <?php echo tq_s_empty('chart', 'sand', t('لا كورسات في نطاقك بعد'),
+          t('تظهر التحليلات حين يسند إليك كورس ويبدأ طلابك دروسه.'),
+          t('ارفع درسك الأول'), base_url('teacher/upload'), false, 'primary'); ?>
   </section>
 
 <?php else: ?>
@@ -61,41 +61,41 @@ include 'portal_open.php';
   <?php /* مرشح الكورس: نموذج GET لا سكربت — يعمل بلا جافاسكربت، والحال
           في الرابط فينسخ ويشارك ويعود إليه المتصفح. */ ?>
   <form method="get" class="tq-an-filter" action="<?php echo base_url('teacher/analytics'); ?>">
-    <label class="sr-only" for="tqAnCourse">اختر كورسا</label>
+    <label class="sr-only" for="tqAnCourse"><?php echo t('اختر كورسا'); ?></label>
     <select class="tq-select" id="tqAnCourse" name="course" onchange="this.form.submit()">
-      <option value="">كل كورساتي</option>
+      <option value=""><?php echo t('كل كورساتي'); ?></option>
       <?php foreach ($tq_courses as $c): ?>
         <option value="<?php echo (int) $c['id']; ?>"
           <?php echo $tq_cid === (int) $c['id'] ? ' selected' : ''; ?>><?php
           echo html_escape($c['title']); ?></option>
       <?php endforeach; ?>
     </select>
-    <noscript><button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">رشح</button></noscript>
+    <noscript><button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit"><?php echo t('رشح'); ?></button></noscript>
   </form>
 
   <section class="tq-s-grid4" style="margin-block:var(--tq-space-l) var(--tq-space-xl)">
     <?php
-    echo tq_s_stat(tq_num((int) $tq_sum['urgent']), 'درسا يحتاج تدخلا الآن', 'flame',
+    echo tq_s_stat(tq_num((int) $tq_sum['urgent']), t('درسا يحتاج تدخلا الآن'), 'flame',
                    $tq_sum['urgent'] ? 'rose' : 'mint');
-    echo tq_s_stat(tq_num((int) $tq_sum['needs_action']), 'درسا عليه ملاحظة', 'help', 'peach');
+    echo tq_s_stat(tq_num((int) $tq_sum['needs_action']), t('درسا عليه ملاحظة'), 'help', 'peach');
     echo tq_s_stat(
         $tq_sum['avg_finish'] === null ? '<span class="tq-muted">—</span>' : tq_num($tq_sum['avg_finish'] . '%'),
-        'متوسط الإكمال', 'check', 'sky',
-        $tq_sum['avg_finish'] === null ? 'يظهر بعد أول خمسة طلاب' : '');
-    echo tq_s_stat(tq_num((int) $tq_sum['starters']), 'بداية درس مسجلة', 'play', 'lilac');
+        t('متوسط الإكمال'), 'check', 'sky',
+        $tq_sum['avg_finish'] === null ? t('يظهر بعد أول خمسة طلاب') : '');
+    echo tq_s_stat(tq_num((int) $tq_sum['starters']), t('بداية درس مسجلة'), 'play', 'lilac');
     ?>
   </section>
 
   <!-- الخريطة -->
   <section class="tq-card" style="margin-block-end:var(--tq-space-l)">
     <div class="tq-card__head">
-      <h2 class="tq-card__title">الخريطة الحرارية</h2>
-      <span class="tq-caption">مرتبة بالأشد — ابدأ من أعلاها</span>
+      <h2 class="tq-card__title"><?php echo t('الخريطة الحرارية'); ?></h2>
+      <span class="tq-caption"><?php echo t('مرتبة بالأشد — ابدأ من أعلاها'); ?></span>
     </div>
 
     <?php if (!$tq_heat): ?>
-      <?php echo tq_s_empty('chart', 'sand', 'لا بيانات بعد',
-            'تظهر الحرارة حين يبدأ طلابك دروسك. ولا يحكم على درس قبل أن يبدأه خمسة.', '', '', true); ?>
+      <?php echo tq_s_empty('chart', 'sand', t('لا بيانات بعد'),
+            t('تظهر الحرارة حين يبدأ طلابك دروسك. ولا يحكم على درس قبل أن يبدأه خمسة.'), '', '', true); ?>
     <?php else: ?>
       <div class="tq-heat">
         <?php foreach ($tq_heat as $h):
@@ -118,12 +118,12 @@ include 'portal_open.php';
                     دقيقة يعيد مشاهدتها. */ ?>
             <?php if ($h['duration_sec'] > 0): ?>
               <div class="tq-heat__bar" role="img"
-                   aria-label="<?php echo $fin === null ? 'لا بيانات' : 'الإكمال ' . (int) $fin . ' بالمئة'; ?>">
+                   aria-label="<?php echo $fin === null ? t('لا بيانات') : t('الإكمال') . (int) $fin . t('بالمئة'); ?>">
                 <span class="tq-heat__fill" style="inline-size:<?php echo (int) $fin; ?>%"></span>
                 <?php if ($h['drop_percent'] !== null): ?>
                   <span class="tq-heat__drop" style="inset-inline-start:<?php
                     echo min(98, (int) $h['drop_percent']); ?>%"
-                        title="متوسط موضع الانصراف"></span>
+                        title="<?php echo te('متوسط موضع الانصراف'); ?>"></span>
                 <?php endif; ?>
               </div>
             <?php endif; ?>
@@ -142,9 +142,9 @@ include 'portal_open.php';
 
             <div class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap">
               <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                 href="<?php echo base_url('teacher/studio?lesson=' . (int) $h['lesson_id']); ?>">افتح في الاستوديو</a>
+                 href="<?php echo base_url('teacher/studio?lesson=' . (int) $h['lesson_id']); ?>"><?php echo t('افتح في الاستوديو'); ?></a>
               <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                 href="<?php echo base_url('teacher/lessons'); ?>">في دروسي</a>
+                 href="<?php echo base_url('teacher/lessons'); ?>"><?php echo t('في دروسي'); ?></a>
             </div>
           </article>
         <?php endforeach; ?>
@@ -157,13 +157,13 @@ include 'portal_open.php';
       <!-- الأهداف الأضعف -->
       <section class="tq-card">
         <div class="tq-card__head">
-          <h2 class="tq-card__title">أهداف لا تثبت</h2>
-          <span class="tq-caption">متوسط الإتقان عبر طلابك</span>
+          <h2 class="tq-card__title"><?php echo t('أهداف لا تثبت'); ?></h2>
+          <span class="tq-caption"><?php echo t('متوسط الإتقان عبر طلابك'); ?></span>
         </div>
 
         <?php if (!$tq_weak): ?>
-          <?php echo tq_s_empty('target', 'mint', 'لا هدف ضعيفا',
-                'يظهر الهدف هنا حين يقاس على ثلاثة طلاب على الأقل.', '', '', true); ?>
+          <?php echo tq_s_empty('target', 'mint', t('لا هدف ضعيفا'),
+                t('يظهر الهدف هنا حين يقاس على ثلاثة طلاب على الأقل.'), '', '', true); ?>
         <?php else: ?>
           <div class="tq-an-list">
             <?php foreach ($tq_weak as $w):
@@ -189,15 +189,15 @@ include 'portal_open.php';
       <!-- الأسئلة الأصعب -->
       <section class="tq-card">
         <div class="tq-card__head">
-          <h2 class="tq-card__title">أسئلة يخطئها أكثرهم</h2>
+          <h2 class="tq-card__title"><?php echo t('أسئلة يخطئها أكثرهم'); ?></h2>
         </div>
         <p class="tq-caption" style="margin-block-end:var(--tq-space-m)">
-          سؤال يخطئه أكثر من ثلثهم إما صعب بلا داع، أو مكتوب بلبس، أو يقيس ما لم يشرح.
+          <?php echo t('سؤال يخطئه أكثر من ثلثهم إما صعب بلا داع، أو مكتوب بلبس، أو يقيس ما لم يشرح.'); ?>
         </p>
 
         <?php if (!$tq_hard): ?>
-          <?php echo tq_s_empty('help', 'mint', 'لا سؤال لافتا',
-                'يظهر السؤال هنا بعد أن يجيبه خمسة طلاب.', '', '', true); ?>
+          <?php echo tq_s_empty('help', 'mint', t('لا سؤال لافتا'),
+                t('يظهر السؤال هنا بعد أن يجيبه خمسة طلاب.'), '', '', true); ?>
         <?php else: ?>
           <div class="tq-an-list">
             <?php foreach ($tq_hard as $q): ?>

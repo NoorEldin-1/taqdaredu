@@ -36,18 +36,18 @@ $tq_cover = function ($file) {
 };
 
 $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/category_form/add_category') . '">'
-          . tq_icon('plus', 17) . ' ' . 'إضافة قسم' . '</a>';
+          . tq_icon('plus', 17) . ' ' . t('إضافة قسم') . '</a>';
 ?>
 
-<?php tqa_head('أقسام الكورسات', 'القسم وعاء والقسم الفرعي ما فيه — والكورس يسند إلى الفرعي لا إلى الأب.', 'grid', $tq_tools); ?>
+<?php tqa_head(t('أقسام الكورسات'), t('القسم وعاء والقسم الفرعي ما فيه — والكورس يسند إلى الفرعي لا إلى الأب.'), 'grid', $tq_tools); ?>
 
 <?php if (empty($tq_cats)): ?>
 
     <div class="tqa-card tqa-card--flush">
         <?php tqa_empty(
-            'لا أقسام بعد',
-            'القسم هو ما يصنف به الكورس في الموقع العام. ابدأ بقسم أب، ثم أضف تحته أقساما فرعية.',
-            'إضافة أول قسم',
+            t('لا أقسام بعد'),
+            t('القسم هو ما يصنف به الكورس في الموقع العام. ابدأ بقسم أب، ثم أضف تحته أقساما فرعية.'),
+            t('إضافة أول قسم'),
             site_url('admin/category_form/add_category'),
             'grid'
         ); ?>
@@ -75,7 +75,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/categ
                     <div style="min-inline-size:0">
                         <h2 class="tqa-item__title"><?php echo html_escape($tq_c['name']); ?></h2>
                         <span class="tqa-item__sub">
-                            <span class="tqa-num"><?php echo count($tq_subs); ?></span> قسما فرعيا
+                            <span class="tqa-num"><?php echo count($tq_subs); ?></span> <?php echo t('قسما فرعيا'); ?>
                         </span>
                     </div>
                 </div>
@@ -95,7 +95,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/categ
                                     </a>
 
                                     <form method="post" action="<?php echo site_url('admin/categories/delete/' . (int) $tq_s['id']); ?>"
-                                          data-tqa-confirm-title="حذف القسم الفرعي"
+                                          data-tqa-confirm-title="<?php echo te('حذف القسم الفرعي'); ?>"
                                           data-tqa-confirm="سيحذف «<?php echo html_escape($tq_s['name']); ?>». والكورسات المصنفة تحته تبقى بلا تصنيف."
                                           data-tqa-confirm-ok="نعم، احذف"
                                           data-tqa-confirm-tone="danger">
@@ -111,7 +111,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/categ
                     </ul>
                 <?php else: ?>
                     <ul class="tqa-item__list">
-                        <li style="color:var(--tq-text2)">لا أقسام فرعية تحته بعد</li>
+                        <li style="color:var(--tq-text2)"><?php echo t('لا أقسام فرعية تحته بعد'); ?></li>
                     </ul>
                 <?php endif; ?>
 
@@ -123,7 +123,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/categ
 
                     <form method="post" style="margin-inline-start:auto"
                           action="<?php echo site_url('admin/categories/delete/' . (int) $tq_c['id']); ?>"
-                          data-tqa-confirm-title="حذف القسم"
+                          data-tqa-confirm-title="<?php echo te('حذف القسم'); ?>"
                           data-tqa-confirm="سيحذف «<?php echo html_escape($tq_c['name']); ?>» وكل أقسامه الفرعية. لا رجعة في هذا."
                           data-tqa-confirm-ok="نعم، احذف"
                           data-tqa-confirm-tone="danger">

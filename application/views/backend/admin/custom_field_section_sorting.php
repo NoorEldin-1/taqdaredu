@@ -16,14 +16,14 @@ $tq_rows = $this->db->where('course_id', (int) $param2)
 
     <p class="tqa-note">
         <span aria-hidden="true"><?php echo tq_icon('help', 18); ?></span>
-        <span>الترتيب يحتاج قسمين مخصصين فأكثر.</span>
+        <span><?php echo t('الترتيب يحتاج قسمين مخصصين فأكثر.'); ?></span>
     </p>
 
 <?php else: ?>
 
 <p class="tqa-note tqa-section">
     <span aria-hidden="true"><?php echo tq_icon('grid', 18); ?></span>
-    <span>اسحب القسم إلى موضعه. الترتيب هنا هو ترتيب ظهوره في صفحة الكورس العامة.</span>
+    <span><?php echo t('اسحب القسم إلى موضعه. الترتيب هنا هو ترتيب ظهوره في صفحة الكورس العامة.'); ?></span>
 </p>
 
 <div class="tqa-stack" id="tqa-sort-list" data-tqa-sortable>
@@ -36,7 +36,7 @@ $tq_rows = $this->db->where('course_id', (int) $param2)
             <span style="flex:1;min-inline-size:0">
                 <span class="tqa-media__title"><?php echo html_escape($tq_r['custom_title']); ?></span>
                 <span class="tqa-media__sub">
-                    <span class="tqa-num" data-tqa-pos><?php echo $tq_i + 1; ?></span> في الترتيب
+                    <span class="tqa-num" data-tqa-pos><?php echo $tq_i + 1; ?></span> <?php echo t('في الترتيب'); ?>
                 </span>
             </span>
         </div>

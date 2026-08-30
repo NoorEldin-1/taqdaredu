@@ -28,37 +28,37 @@ $tq_sys        = (string) get_settings('system_currency');
 $tq_pos        = (string) get_settings('currency_position');
 
 $tq_positions = array(
-    'left'        => 'قبل الرقم',
-    'right'       => 'بعد الرقم',
-    'left-space'  => 'قبل الرقم بمسافة',
-    'right-space' => 'بعد الرقم بمسافة',
+    'left'        => t('قبل الرقم'),
+    'right'       => t('بعد الرقم'),
+    'left-space'  => t('قبل الرقم بمسافة'),
+    'right-space' => t('بعد الرقم بمسافة'),
 );
 
 /** أسماء المفاتيح — كانت تعرض `get_phrase('secret_key')` فتخرج بالإنجليزية. */
 $tq_keynames = array(
-    'client_id'      => 'معرف العميل',
-    'client_secret'  => 'سر العميل',
-    'secret_key'     => 'المفتاح السري',
-    'publishable_key' => 'المفتاح المنشور',
-    'public_key'     => 'المفتاح العام',
-    'private_key'    => 'المفتاح الخاص',
-    'api_key'        => 'مفتاح الواجهة',
-    'merchant_id'    => 'معرف التاجر',
-    'merchant_key'   => 'مفتاح التاجر',
-    'salt'           => 'الملح',
-    'theme_color'    => 'لون الواجهة',
-    'pos_id'         => 'معرف نقطة البيع',
-    'md5'            => 'بصمة MD5',
+    'client_id'      => t('معرف العميل'),
+    'client_secret'  => t('سر العميل'),
+    'secret_key'     => t('المفتاح السري'),
+    'publishable_key' => t('المفتاح المنشور'),
+    'public_key'     => t('المفتاح العام'),
+    'private_key'    => t('المفتاح الخاص'),
+    'api_key'        => t('مفتاح الواجهة'),
+    'merchant_id'    => t('معرف التاجر'),
+    'merchant_key'   => t('مفتاح التاجر'),
+    'salt'           => t('الملح'),
+    'theme_color'    => t('لون الواجهة'),
+    'pos_id'         => t('معرف نقطة البيع'),
+    'md5'            => t('بصمة MD5'),
 );
 ?>
 
-<?php tqa_head('إعدادات الدفع الموروثة',
-    'عملة النظام، وبوابات Academy الست عشرة. والدفع في تقدر لا يمر بأي منها.',
+<?php tqa_head(t('إعدادات الدفع الموروثة'),
+    t('عملة النظام، وبوابات Academy الست عشرة. والدفع في تقدر لا يمر بأي منها.'),
     'cog',
     '<a class="tqa-btn tqa-btn--primary" href="' . site_url('taqdar_admin/tap') . '">'
-  . tq_icon('card', 16) . ' بوابة الدفع بالبطاقة</a>'
+  . tq_icon('card', 16) . t('بوابة الدفع بالبطاقة</a>')
   . ' <a class="tqa-btn tqa-btn--ghost" href="' . site_url('taqdar_admin/bank') . '">'
-  . tq_icon('bank', 16) . ' بيانات التحويل البنكي</a>'); ?>
+  . tq_icon('bank', 16) . t('بيانات التحويل البنكي</a>')); ?>
 
 <?php /* TQ-PAY-TRAP — هذه الشاشة كانت أول ما يفتحه من يريد «ضبط الدفع»،
          وتعرض ست عشرة بوابة كلها `status = 1` — فيقرؤها المسؤول فيظن أن
@@ -70,14 +70,11 @@ $tq_keynames = array(
 <div class="tqa-note tqa-note--warn tqa-section">
     <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
     <span>
-        <strong>البوابات أدناه لا تحصل ثمن اشتراك واحد.</strong>
-        هي بوابات قالب Academy لشراء الكورسات المفردة — ومحرك الفوترة في تقدر لا
-        يقرأ هذا الجدول أصلا. وحال «مفعلة» هنا لا تعني أن الطالب يستطيع الدفع بها.
+        <strong><?php echo t('البوابات أدناه لا تحصل ثمن اشتراك واحد.'); ?></strong>
+        <?php echo t('هي بوابات قالب Academy لشراء الكورسات المفردة — ومحرك الفوترة في تقدر لا يقرأ هذا الجدول أصلا. وحال «مفعلة» هنا لا تعني أن الطالب يستطيع الدفع بها.'); ?>
         <br>
-        الدفع الفعلي في تقدر طريقان: <a href="<?php echo site_url('taqdar_admin/tap'); ?>">الدفع بالبطاقة (تاب)</a>
-        و<a href="<?php echo site_url('taqdar_admin/bank'); ?>">التحويل البنكي</a>.
-        وما يبقى نافعا في هذه الشاشة هو <strong>عملة النظام</strong> وحدها — وهي
-        العملة التي تحصل بها البطاقة.
+        <?php echo t('الدفع الفعلي في تقدر طريقان:'); ?> <a href="<?php echo site_url('taqdar_admin/tap'); ?>"><?php echo t('الدفع بالبطاقة (تاب)'); ?></a>
+        <?php echo t('و'); ?><a href="<?php echo site_url('taqdar_admin/bank'); ?>"><?php echo t('التحويل البنكي'); ?></a><?php echo t('. وما يبقى نافعا في هذه الشاشة هو'); ?> <strong><?php echo t('عملة النظام'); ?></strong> <?php echo t('وحدها — وهي العملة التي تحصل بها البطاقة.'); ?>
     </span>
 </div>
 
@@ -91,16 +88,16 @@ $tq_keynames = array(
 
             <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
                 <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('money', 20); ?></span>
-                <h2>عملة النظام</h2>
+                <h2><?php echo t('عملة النظام'); ?></h2>
             </div>
 
             <div class="tqa-fieldgrid">
                 <div class="tqa-field">
                     <label class="tqa-field__label" for="system_currency">
-                        العملة <span class="tqa-field__req" aria-hidden="true">*</span>
+                        <?php echo t('العملة'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                     </label>
                     <select class="tqa-select" id="system_currency" name="system_currency" required>
-                        <option value="">— اختر العملة</option>
+                        <option value=""><?php echo t('— اختر العملة'); ?></option>
                         <?php foreach ($tq_currencies as $tq_c): ?>
                             <option value="<?php echo html_escape($tq_c['code']); ?>"
                                 <?php echo $tq_sys === $tq_c['code'] ? 'selected' : ''; ?>>
@@ -111,7 +108,7 @@ $tq_keynames = array(
                 </div>
 
                 <div class="tqa-field">
-                    <label class="tqa-field__label" for="currency_position">موضع رمز العملة</label>
+                    <label class="tqa-field__label" for="currency_position"><?php echo t('موضع رمز العملة'); ?></label>
                     <select class="tqa-select" id="currency_position" name="currency_position" required>
                         <?php foreach ($tq_positions as $tq_k => $tq_l): ?>
                             <option value="<?php echo $tq_k; ?>" <?php echo $tq_pos === $tq_k ? 'selected' : ''; ?>>
@@ -152,10 +149,10 @@ $tq_keynames = array(
 
                     <span class="tqa-row" style="margin-inline-start:auto;gap:var(--tq-space-xs)">
                         <span class="tqa-badge tqa-badge--<?php echo $tq_on ? 'ok' : 'muted'; ?>">
-                            <?php echo $tq_on ? 'مفعلة' : 'معطلة'; ?>
+                            <?php echo $tq_on ? t('مفعلة') : t('معطلة'); ?>
                         </span>
                         <?php if ($tq_on && $tq_test): ?>
-                            <span class="tqa-badge tqa-badge--danger">وضع اختبار — لا يحصل مالا</span>
+                            <span class="tqa-badge tqa-badge--danger"><?php echo t('وضع اختبار — لا يحصل مالا'); ?></span>
                         <?php endif; ?>
                     </span>
                 </div>
@@ -164,19 +161,15 @@ $tq_keynames = array(
                     <div class="tqa-note tqa-note--warn tqa-section">
                         <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
                         <span>
-                            عملة هذه البوابة
-                            (<span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_g['currency']); ?></span>)
-                            تخالف عملة النظام
-                            (<span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_sys); ?></span>) —
-                            فالمبلغ يحصل بعملة غير التي عرضت على الطالب.
+                            <?php echo t('عملة هذه البوابة ('); ?><span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_g['currency']); ?></span><?php echo t(') تخالف عملة النظام ('); ?><span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_sys); ?></span><?php echo t(') — فالمبلغ يحصل بعملة غير التي عرضت على الطالب.'); ?>
                         </span>
                     </div>
                 <?php endif; ?>
 
                 <div class="tqa-prefrow">
                     <div class="tqa-prefrow__main">
-                        <label class="tqa-prefrow__title" for="st-<?php echo $tq_id; ?>">تفعيل البوابة</label>
-                        <span class="tqa-prefrow__hint">المعطلة لا تظهر للطالب في شاشة الدفع.</span>
+                        <label class="tqa-prefrow__title" for="st-<?php echo $tq_id; ?>"><?php echo t('تفعيل البوابة'); ?></label>
+                        <span class="tqa-prefrow__hint"><?php echo t('المعطلة لا تظهر للطالب في شاشة الدفع.'); ?></span>
                     </div>
                     <div class="tqa-prefrow__end">
                         <?php /* الحقل المخفي يسبق المفتاح: مربع الاختيار غير
@@ -192,9 +185,9 @@ $tq_keynames = array(
 
                 <div class="tqa-prefrow">
                     <div class="tqa-prefrow__main">
-                        <label class="tqa-prefrow__title" for="tm-<?php echo $tq_id; ?>">وضع الاختبار</label>
+                        <label class="tqa-prefrow__title" for="tm-<?php echo $tq_id; ?>"><?php echo t('وضع الاختبار'); ?></label>
                         <span class="tqa-prefrow__hint">
-                            الدفع ينجح ظاهريا ولا يصل مال. أطفئه قبل الإطلاق.
+                            <?php echo t('الدفع ينجح ظاهريا ولا يصل مال. أطفئه قبل الإطلاق.'); ?>
                         </span>
                     </div>
                     <div class="tqa-prefrow__end">
@@ -210,10 +203,10 @@ $tq_keynames = array(
                 <div class="tqa-fieldgrid" style="margin-block-start:var(--tq-space-l)">
                     <div class="tqa-field">
                         <label class="tqa-field__label" for="cur-<?php echo $tq_id; ?>">
-                            عملة البوابة <span class="tqa-field__req" aria-hidden="true">*</span>
+                            <?php echo t('عملة البوابة'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                         </label>
                         <select class="tqa-select" id="cur-<?php echo $tq_id; ?>" name="currency" required>
-                            <option value="">— اختر العملة</option>
+                            <option value=""><?php echo t('— اختر العملة'); ?></option>
                             <?php foreach ($tq_currencies as $tq_c): ?>
                                 <option value="<?php echo html_escape($tq_c['code']); ?>"
                                     <?php echo $tq_g['currency'] === $tq_c['code'] ? 'selected' : ''; ?>>
@@ -266,17 +259,15 @@ $tq_keynames = array(
         <div class="tqa-note">
             <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
             <span>
-                <strong>عملة واحدة لا اثنتان.</strong>
-                عملة النظام وعملات البوابات المفعلة يجب أن تتطابق. واختلافها لا يظهر خطأ عند
-                الحفظ — يظهر في المبلغ الذي يخصم من الطالب.
+                <strong><?php echo t('عملة واحدة لا اثنتان.'); ?></strong>
+                <?php echo t('عملة النظام وعملات البوابات المفعلة يجب أن تتطابق. واختلافها لا يظهر خطأ عند الحفظ — يظهر في المبلغ الذي يخصم من الطالب.'); ?>
             </span>
         </div>
 
         <div class="tqa-note tqa-note--warn" style="margin-block-start:var(--tq-space-l)">
             <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
             <span>
-                المفاتيح تحفظ في قاعدة البيانات لا في الشيفرة. ومن يصل إلى هذه الشاشة يصل إليها،
-                فاقصر صلاحية «إعدادات النظام» على من يحتاجها.
+                <?php echo t('المفاتيح تحفظ في قاعدة البيانات لا في الشيفرة. ومن يصل إلى هذه الشاشة يصل إليها، فاقصر صلاحية «إعدادات النظام» على من يحتاجها.'); ?>
             </span>
         </div>
     </aside>

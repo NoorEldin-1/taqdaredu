@@ -26,8 +26,8 @@
 
 $tq_nav   = 'reports';
 $tq_role  = 'parent';
-$tq_title = 'التقارير';
-$tq_sub   = 'كل مادة في سطر واحد';
+$tq_title = t('التقارير');
+$tq_sub   = t('كل مادة في سطر واحد');
 $tq_icon  = 'chart';
 
 $tq_uid = (int) $this->session->userdata('user_id');
@@ -126,7 +126,7 @@ include 'portal_open.php';
                     <div class="tq-sectionhead">
                         <h2 id="tq-child-<?php echo (int) $tq_child['id']; ?>"><?php echo html_escape($tq_name); ?></h2>
                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                           href="<?php echo base_url('parent/child'); ?>?id=<?php echo (int) $tq_child['id']; ?>">التفاصيل</a>
+                           href="<?php echo base_url('parent/child'); ?>?id=<?php echo (int) $tq_child['id']; ?>"><?php echo t('التفاصيل'); ?></a>
                     </div>
 
                     <?php if ($tq_child['subjects']): ?>
@@ -135,10 +135,10 @@ include 'portal_open.php';
                                 <caption class="tq-sr">مواد <?php echo html_escape($tq_name); ?>: ما أنهاه ونتائجه وآخر نشاط</caption>
                                 <thead>
                                     <tr>
-                                        <th scope="col">المادة</th>
-                                        <th scope="col">ما أنهاه</th>
-                                        <th scope="col">نتائج الاختبارات</th>
-                                        <th scope="col">آخر نشاط</th>
+                                        <th scope="col"><?php echo t('المادة'); ?></th>
+                                        <th scope="col"><?php echo t('ما أنهاه'); ?></th>
+                                        <th scope="col"><?php echo t('نتائج الاختبارات'); ?></th>
+                                        <th scope="col"><?php echo t('آخر نشاط'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -149,31 +149,31 @@ include 'portal_open.php';
                                                 <span class="tq-micro" style="display:block"><?php echo tq_iso(tq_lessons_word((int) $tq_s['lessons'])); ?></span>
                                             </td>
                                             <td data-label="ما أنهاه" style="min-inline-size:180px">
-                                                <?php echo tq_progress((int) $tq_s['progress'], 'ما أنهاه في ' . $tq_s['title']); ?>
+                                                <?php echo tq_progress((int) $tq_s['progress'], t('ما أنهاه في') . $tq_s['title']); ?>
                                             </td>
                                             <td data-label="نتائج الاختبارات">
                                                 <?php if ($tq_s['attempts'] > 0): ?>
                                                     <?php echo tq_num($tq_s['avg_pct'] . '%', 'tq-num--sm'); ?>
                                                     <span class="tq-micro" style="display:block">
-                                                        <?php echo tq_iso('من ' . tq_exams_word((int) $tq_s['attempts'])); ?>
+                                                        <?php echo tq_iso(t('من') . tq_exams_word((int) $tq_s['attempts'])); ?>
                                                     </span>
                                                 <?php elseif ($tq_s['held'] > 0): ?>
-                                                    <span class="tq-caption">ينتظر اعتماد معلمه</span>
+                                                    <span class="tq-caption"><?php echo t('ينتظر اعتماد معلمه'); ?></span>
                                                 <?php else: ?>
-                                                    <span class="tq-caption">لم يبدأ اختبارا</span>
+                                                    <span class="tq-caption"><?php echo t('لم يبدأ اختبارا'); ?></span>
                                                 <?php endif; ?>
                                                 <?php /* المحجوب يعلن لا يبتلع: من سلم اختبارا فيه سؤال
                                                          مقالي ينتظر تصحيحا، وصمت الشاشة عنه يقرأ إهمالا. */ ?>
                                                 <?php if ($tq_s['attempts'] > 0 && $tq_s['held'] > 0): ?>
                                                     <span class="tq-micro" style="display:block">
-                                                        <?php echo tq_iso('و' . tq_exams_word((int) $tq_s['held'], 'لا اختبارات', 'nom') . ((int) $tq_s['held'] === 1 ? ' ينتظر' : ' تنتظر') . ' اعتماد معلمه'); ?>
+                                                        <?php echo tq_iso(t('و') . tq_exams_word((int) $tq_s['held'], t('لا اختبارات'), 'nom') . ((int) $tq_s['held'] === 1 ? t('ينتظر') : t('تنتظر')) . t('اعتماد معلمه')); ?>
                                                     </span>
                                                 <?php endif; ?>
                                             </td>
                                             <td data-label="آخر نشاط">
                                                 <?php echo (int) $tq_s['last_seen'] > 0
                                                     ? html_escape(tq_since((int) $tq_s['last_seen']))
-                                                    : '<span class="tq-caption">لم يبدأ بعد</span>'; ?>
+                                                    : t('<span class="tq-caption">لم يبدأ بعد</span>'); ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -184,8 +184,8 @@ include 'portal_open.php';
                         <div class="tq-card tq-empty">
                             <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('book', 24); ?></span>
                             <h3 class="tq-empty__title">لا مواد مسجلة لـ<?php echo html_escape(explode(' ', $tq_name)[0]); ?></h3>
-                            <p class="tq-empty__text">حين يسجل في مادة يظهر تقريرها هنا في سطر واحد.</p>
-                            <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/payments'); ?>">المدفوعات</a>
+                            <p class="tq-empty__text"><?php echo t('حين يسجل في مادة يظهر تقريرها هنا في سطر واحد.'); ?></p>
+                            <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/payments'); ?>"><?php echo t('المدفوعات'); ?></a>
                         </div>
                     <?php endif; ?>
                 </section>
@@ -195,12 +195,11 @@ include 'portal_open.php';
 
             <div class="tq-card tq-empty">
                 <span class="tq-icon-box tq-pastel--sky" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('chart', 24); ?></span>
-                <h2 class="tq-empty__title">لا تقارير قبل ربط حساب ابنك</h2>
+                <h2 class="tq-empty__title"><?php echo t('لا تقارير قبل ربط حساب ابنك'); ?></h2>
                 <p class="tq-empty__text">
-                    بعد الربط تجد هنا كل مادة في سطر واحد: ما أنهاه منها، ونتائج اختباراته فيها،
-                    ومتى كان آخر نشاط له. بلا مصطلحات ولا جداول طويلة.
+                    <?php echo t('بعد الربط تجد هنا كل مادة في سطر واحد: ما أنهاه منها، ونتائج اختباراته فيها، ومتى كان آخر نشاط له. بلا مصطلحات ولا جداول طويلة.'); ?>
                 </p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('parent'); ?>">اربط حساب ابنك</a>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('parent'); ?>"><?php echo t('اربط حساب ابنك'); ?></a>
             </div>
 
         <?php endif; ?>
@@ -208,19 +207,19 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-pastel tq-pastel--sky">
-            <span class="tq-pastel__label tq-micro">كيف تقرأ التقرير</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('كيف تقرأ التقرير'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                انظر إلى «آخر نشاط» أولا: الانقطاع يسبق تراجع النتائج دائما، ومعالجته أسهل.
+                <?php echo t('انظر إلى «آخر نشاط» أولا: الانقطاع يسبق تراجع النتائج دائما، ومعالجته أسهل.'); ?>
             </p>
         </div>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">التقرير الأسبوعي</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('التقرير الأسبوعي'); ?></h2></div>
             <p class="tq-caption">
-                إن أردت الخلاصة وحدها، يصلك كل أحد تقرير من أربعة أسطر تقرأ في عشر ثوان.
+                <?php echo t('إن أردت الخلاصة وحدها، يصلك كل أحد تقرير من أربعة أسطر تقرأ في عشر ثوان.'); ?>
             </p>
             <a class="tq-btn tq-btn--secondary tq-btn--block tq-btn--sm"
-               href="<?php echo base_url('parent/weekly'); ?>">عرض التقرير الأسبوعي</a>
+               href="<?php echo base_url('parent/weekly'); ?>"><?php echo t('عرض التقرير الأسبوعي'); ?></a>
         </div>
     </aside>
 </div>

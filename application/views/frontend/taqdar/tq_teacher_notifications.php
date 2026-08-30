@@ -22,8 +22,8 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 $tq_nav   = 'notifications';
 $tq_role  = 'teacher';
-$tq_title = 'الإشعارات';
-$tq_sub   = 'ما جد على طلابك وكورساتك، مجموعا بيومه';
+$tq_title = t('الإشعارات');
+$tq_sub   = t('ما جد على طلابك وكورساتك، مجموعا بيومه');
 $tq_icon  = 'bell';
 
 $uid = (int) $this->session->userdata('user_id');
@@ -64,26 +64,26 @@ $tq_list = array_values(array_filter($tq_all, static function ($n) use ($tq_stat
  * فالإشعار الذي لا يفتح شيئا خبر لا أداة.
  */
 $tq_kinds = [
-    'exam_result'      => ['تسليم ينتظر تصحيحك',   'clipboard',   'peach', 'teacher/marking'],
-    'station_failed'   => ['رسوب في اختبار محطة',  'target',      'rose',  'teacher/marking'],
-    'inactivity_3days' => ['طالب انقطع',            'clock',       'sand',  'teacher/students'],
-    'session_request'  => ['طلب حصة خاصة',          'video',       'lilac', 'teacher/sessions'],
-    'certificate'      => ['شهادة لطالبك',          'award',       'sky',   'teacher/students'],
-    'weekly_report'    => ['ملخص أسبوعك',           'chart',       'mint',  'teacher'],
+    'exam_result'      => [t('تسليم ينتظر تصحيحك'),   'clipboard',   'peach', 'teacher/marking'],
+    'station_failed'   => [t('رسوب في اختبار محطة'),  'target',      'rose',  'teacher/marking'],
+    'inactivity_3days' => [t('طالب انقطع'),            'clock',       'sand',  'teacher/students'],
+    'session_request'  => [t('طلب حصة خاصة'),          'video',       'lilac', 'teacher/sessions'],
+    'certificate'      => [t('شهادة لطالبك'),          'award',       'sky',   'teacher/students'],
+    'weekly_report'    => [t('ملخص أسبوعك'),           'chart',       'mint',  'teacher'],
 
     // أنواع Academy الأصلية التي قد تصل المعلم
-    'course_purchase'                => ['بيع في كورساتك',   'wallet', 'mint', 'teacher/wallet'],
-    'bundle_purchase'                => ['بيع في كورساتك',   'wallet', 'mint', 'teacher/wallet'],
-    'offline_payment_suspended_mail' => ['المدفوعات',        'wallet', 'peach', 'teacher/wallet'],
-    'noticeboard'                    => ['لوحة المادة',      'clipboard', 'lilac', 'teacher/courses'],
-    'instructor_followups'           => ['متابعة',           'chat',   'mint',  'teacher/messages'],
-    'signup'                         => ['الحساب والأمان',   'users',  'sand',  'teacher/settings'],
-    'email_verification'             => ['الحساب والأمان',   'lock',   'sand',  'teacher/settings'],
-    'forget_password_mail'           => ['الحساب والأمان',   'lock',   'sand',  'teacher/settings?s=security'],
-    'new_device_login_confirmation'  => ['الحساب والأمان',   'lock',   'sand',  'teacher/settings?s=security'],
+    'course_purchase'                => [t('بيع في كورساتك'),   'wallet', 'mint', 'teacher/wallet'],
+    'bundle_purchase'                => [t('بيع في كورساتك'),   'wallet', 'mint', 'teacher/wallet'],
+    'offline_payment_suspended_mail' => [t('المدفوعات'),        'wallet', 'peach', 'teacher/wallet'],
+    'noticeboard'                    => [t('لوحة المادة'),      'clipboard', 'lilac', 'teacher/courses'],
+    'instructor_followups'           => [t('متابعة'),           'chat',   'mint',  'teacher/messages'],
+    'signup'                         => [t('الحساب والأمان'),   'users',  'sand',  'teacher/settings'],
+    'email_verification'             => [t('الحساب والأمان'),   'lock',   'sand',  'teacher/settings'],
+    'forget_password_mail'           => [t('الحساب والأمان'),   'lock',   'sand',  'teacher/settings?s=security'],
+    'new_device_login_confirmation'  => [t('الحساب والأمان'),   'lock',   'sand',  'teacher/settings?s=security'],
 ];
 $tq_kind = static function ($type) use ($tq_kinds) {
-    return $tq_kinds[$type] ?? ['تنبيهات أخرى', 'bell', 'rose', ''];
+    return $tq_kinds[$type] ?? [t('تنبيهات أخرى'), 'bell', 'rose', ''];
 };
 
 /* ---- «هذا الإشعار وحده» ---------------------------------------------
@@ -150,9 +150,9 @@ foreach ($tq_all as $n) {
 }
 
 $tq_states = [
-    'all'    => ['الكل', count($tq_all)],
-    'unread' => ['غير المقروءة', $tq_unread_count],
-    'read'   => ['المقروءة', $tq_read_count],
+    'all'    => [t('الكل'), count($tq_all)],
+    'unread' => [t('غير المقروءة'), $tq_unread_count],
+    'read'   => [t('المقروءة'), $tq_read_count],
 ];
 
 include 'portal_open.php';
@@ -166,10 +166,10 @@ include 'tq_notif_styles.php';
                  هذه الشاشة خبرا لم يصل بريده يقف على الفرق بعينه.
                  وفي العمود الرئيسي لا الجانبي: الجانبي ينتقل تحت القائمة
                  كلها دون 1024 بكسل. */ ?>
-        <?php echo tq_spam_notice(array('what' => 'إشعاراتنا', 'class' => 'tq-spam--top')); ?>
+        <?php echo tq_spam_notice(array('what' => t('إشعاراتنا'), 'class' => 'tq-spam--top')); ?>
 
         <div class="tq-row tq-row--between" style="margin-block-end:var(--tq-space-l);flex-wrap:wrap;gap:var(--tq-space-m)">
-            <nav class="tq-tabs" aria-label="تصفية الإشعارات" style="margin-block-end:0;border-block-end:0">
+            <nav class="tq-tabs" aria-label="<?php echo te('تصفية الإشعارات'); ?>" style="margin-block-end:0;border-block-end:0">
                 <?php foreach ($tq_states as $key => $info): ?>
                     <a class="tq-tab"
                        href="<?php echo base_url('teacher/notifications') . ($key === 'all' ? '' : '?state=' . $key); ?>"
@@ -185,7 +185,7 @@ include 'tq_notif_styles.php';
                     <?php echo tq_csrf(); ?>
                     <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit" name="action" value="mark_all_read">
                         <span aria-hidden="true"><?php echo tq_icon('check', 16); ?></span>
-                        تحديد الكل كمقروء
+                        <?php echo t('تحديد الكل كمقروء'); ?>
                     </button>
                 </form>
             <?php endif; ?>
@@ -198,13 +198,12 @@ include 'tq_notif_styles.php';
                         <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('bell', 44); ?></span>
                     </div>
                     <h2 class="tq-empty__title">
-                        <?php echo $tq_state === 'unread' ? 'لا إشعارات غير مقروءة' : ($tq_state === 'read' ? 'لا إشعارات مقروءة' : 'لا إشعارات بعد'); ?>
+                        <?php echo $tq_state === 'unread' ? t('لا إشعارات غير مقروءة') : ($tq_state === 'read' ? t('لا إشعارات مقروءة') : t('لا إشعارات بعد')); ?>
                     </h2>
                     <p class="tq-empty__text">
-                        هنا يصلك ما يستدعي انتباهك: تسليم ينتظر تصحيحك، وطلب حصة، وطالب انقطع،
-                        وبيع في كورساتك — مجموعا بيومه لا مبعثرا.
+                        <?php echo t('هنا يصلك ما يستدعي انتباهك: تسليم ينتظر تصحيحك، وطلب حصة، وطالب انقطع، وبيع في كورساتك — مجموعا بيومه لا مبعثرا.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher'); ?>">عودة إلى اللوحة</a>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher'); ?>"><?php echo t('عودة إلى اللوحة'); ?></a>
                 </div>
             </div>
         <?php else: ?>
@@ -240,10 +239,10 @@ include 'tq_notif_styles.php';
                                     <span class="tq-notif__title"><?php echo tq_iso(html_escape($n['title'])); ?></span>
                                     <span class="tq-notif__line"><?php echo tq_iso(html_escape(mb_substr($text, 0, 90))); ?></span>
                                     <span class="tq-notif__line"><?php echo html_escape($kind_label); ?></span>
-                                    <?php if ($unread): ?><span class="tq-sr">غير مقروء — اضغط لتحديده كمقروء<?php echo $kind_href !== '' ? ' والانتقال إليه' : ''; ?></span><?php endif; ?>
+                                    <?php if ($unread): ?><span class="tq-sr">غير مقروء — اضغط لتحديده كمقروء<?php echo $kind_href !== '' ? t('والانتقال إليه') : ''; ?></span><?php endif; ?>
                                 </span>
                                 <span class="tq-notif__time">
-                                    <?php echo tq_num(date('g:i', $ts), 'tq-num--sm'); ?> <?php echo (int) date('G', $ts) < 12 ? 'ص' : 'م'; ?>
+                                    <?php echo tq_num(date('g:i', $ts), 'tq-num--sm'); ?> <?php echo (int) date('G', $ts) < 12 ? t('ص') : t('م'); ?>
                                 </span>
                                 <span class="tq-icon-box tq-pastel--<?php echo $kind_tone; ?>" aria-hidden="true">
                                     <?php echo tq_icon($kind_icon); ?>
@@ -261,18 +260,17 @@ include 'tq_notif_styles.php';
     <aside class="tq-aside">
 
         <section class="tq-card tq-card--panel" aria-labelledby="tq-kinds-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-kinds-h">أنواع ما وصلك</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-kinds-h"><?php echo t('أنواع ما وصلك'); ?></h2></div>
             <?php if (!$tq_by_kind): ?>
                 <p class="tq-caption" style="margin:0">
-                    حين تصلك إشعارات ستصنف هنا بأنواعها — تصحيح، وحصص، وانقطاع، ومبيعات —
-                    وبعدد كل نوع.
+                    <?php echo t('حين تصلك إشعارات ستصنف هنا بأنواعها — تصحيح، وحصص، وانقطاع، ومبيعات — وبعدد كل نوع.'); ?>
                 </p>
             <?php else: ?>
                 <div>
                     <div class="tq-kindrow">
                         <span class="tq-row">
                             <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon('menu', 18); ?></span>
-                            <span class="tq-caption">الكل</span>
+                            <span class="tq-caption"><?php echo t('الكل'); ?></span>
                         </span>
                         <?php echo tq_num(count($tq_all), 'tq-num--sm'); ?>
                     </div>
@@ -290,46 +288,45 @@ include 'tq_notif_styles.php';
         </section>
 
         <section class="tq-card tq-card--panel" aria-labelledby="tq-nsum-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-nsum-h">ملخص الإشعارات</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-nsum-h"><?php echo t('ملخص الإشعارات'); ?></h2></div>
             <div class="tq-kindrow">
                 <span class="tq-row">
                     <span class="tq-notif__dot" style="background:var(--tq-navy)" aria-hidden="true"></span>
-                    <span class="tq-caption">غير مقروءة</span>
+                    <span class="tq-caption"><?php echo t('غير مقروءة'); ?></span>
                 </span>
                 <?php echo tq_num($tq_unread_count, 'tq-num--sm'); ?>
             </div>
             <div class="tq-kindrow">
                 <span class="tq-row">
                     <span class="tq-icon-box tq-pastel--mint" aria-hidden="true"><?php echo tq_icon('calendar', 18); ?></span>
-                    <span class="tq-caption">اليوم</span>
+                    <span class="tq-caption"><?php echo t('اليوم'); ?></span>
                 </span>
                 <?php echo tq_num($tq_today_count, 'tq-num--sm'); ?>
             </div>
             <div class="tq-kindrow">
                 <span class="tq-row">
                     <span class="tq-icon-box tq-pastel--lilac" aria-hidden="true"><?php echo tq_icon('clock', 18); ?></span>
-                    <span class="tq-caption">هذا الأسبوع</span>
+                    <span class="tq-caption"><?php echo t('هذا الأسبوع'); ?></span>
                 </span>
                 <?php echo tq_num($tq_week_count, 'tq-num--sm'); ?>
             </div>
         </section>
 
         <section class="tq-card tq-card--panel" aria-labelledby="tq-nset-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-nset-h">إعدادات الإشعارات</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-nset-h"><?php echo t('إعدادات الإشعارات'); ?></h2></div>
             <p class="tq-caption">
-                لكل نوع قناتان مستقلتان: داخل المنصة والبريد. وإيقاف قناة لا يوقف الأخرى.
+                <?php echo t('لكل نوع قناتان مستقلتان: داخل المنصة والبريد. وإيقاف قناة لا يوقف الأخرى.'); ?>
             </p>
             <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('teacher/settings?s=alerts'); ?>">
                 <span aria-hidden="true"><?php echo tq_icon('cog', 18); ?></span>
-                تفضيلات التنبيهات
+                <?php echo t('تفضيلات التنبيهات'); ?>
             </a>
         </section>
 
         <section class="tq-card tq-card--panel tq-pastel tq-pastel--mint" aria-labelledby="tq-tip-h">
-            <h2 class="tq-pastel__title tq-h2" id="tq-tip-h" style="margin-block-end:var(--tq-space-s)">قاعدة المقاطعة</h2>
+            <h2 class="tq-pastel__title tq-h2" id="tq-tip-h" style="margin-block-end:var(--tq-space-s)"><?php echo t('قاعدة المقاطعة'); ?></h2>
             <p class="tq-pastel__body" style="margin:0">
-                ما يستدعي فعلا اليوم يقاطعك، وما عداه ينتظر ملخص الأسبوع. طلب حصة بلا رد
-                أربعا وعشرين ساعة يلغى تلقائيا ويعاد للطالب.
+                <?php echo t('ما يستدعي فعلا اليوم يقاطعك، وما عداه ينتظر ملخص الأسبوع. طلب حصة بلا رد أربعا وعشرين ساعة يلغى تلقائيا ويعاد للطالب.'); ?>
             </p>
         </section>
 

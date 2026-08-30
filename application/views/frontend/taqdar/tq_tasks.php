@@ -27,8 +27,8 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 
 $tq_nav   = 'tasks';
 $tq_role  = 'student';
-$tq_title = 'مهامي';
-$tq_sub   = 'تابع مهامك وحقق أفضل النتائج';
+$tq_title = t('مهامي');
+$tq_sub   = t('تابع مهامك وحقق أفضل النتائج');
 $tq_icon  = 'clipboard';
 
 /**
@@ -40,9 +40,9 @@ $tq_icon  = 'clipboard';
  * استحقاق يقاس عليه التأخر.
  */
 $tq_groups = [
-    'todo'     => ['label' => 'لم تبدأ',     'dot' => 'idle', 'badge' => 'idle',     'items' => []],
-    'progress' => ['label' => 'قيد التنفيذ', 'dot' => 'due',  'badge' => 'progress', 'items' => []],
-    'done'     => ['label' => 'مكتملة',      'dot' => 'done', 'badge' => 'mastered', 'items' => []],
+    'todo'     => ['label' => t('لم تبدأ'),     'dot' => 'idle', 'badge' => 'idle',     'items' => []],
+    'progress' => ['label' => t('قيد التنفيذ'), 'dot' => 'due',  'badge' => 'progress', 'items' => []],
+    'done'     => ['label' => t('مكتملة'),      'dot' => 'done', 'badge' => 'mastered', 'items' => []],
 ];
 
 /* ---- الواجبات من القاعدة ---------------------------------------------
@@ -180,9 +180,9 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
-        <nav class="tq-tabs tq-s-tabs" aria-label="تصفية المهام بالحالة">
+        <nav class="tq-tabs tq-s-tabs" aria-label="<?php echo te('تصفية المهام بالحالة'); ?>">
             <?php
-            $tabs = ['' => ['الكل', $tq_total]];
+            $tabs = ['' => [t('الكل'), $tq_total]];
             foreach ($tq_groups as $k => $g) $tabs[$k] = [$g['label'], count($g['items'])];
             foreach ($tabs as $key => $t):
                 $href = base_url('student/tasks') . ($key !== '' ? '?state=' . $key : '');
@@ -198,9 +198,9 @@ include 'portal_open.php';
             <div class="tq-card">
                 <?php echo tq_s_empty(
                     'clipboard', 'peach',
-                    'لا مهام عليك الآن',
-                    'حين يسند إليك واجب في إحدى موادك يظهر هنا بعدد بنوده ومدته ودرجة نجاحه، مجمعا حسب حالته: لم تبدأ، أو قيد التنفيذ، أو مكتملة بدرجتها.',
-                    'تصفح دروسك',
+                    t('لا مهام عليك الآن'),
+                    t('حين يسند إليك واجب في إحدى موادك يظهر هنا بعدد بنوده ومدته ودرجة نجاحه، مجمعا حسب حالته: لم تبدأ، أو قيد التنفيذ، أو مكتملة بدرجتها.'),
+                    t('تصفح دروسك'),
                     base_url('student/lessons'),
                     false,
                     'primary'
@@ -223,7 +223,7 @@ include 'portal_open.php';
                         $ico = $tq_type_icon[$t['type'] ?? 'homework'] ?? $tq_type_icon['homework'];
                         /* التسمية تصف ما يحمله التاريخ فعلا: تاريخ تسليم أو تاريخ بدء.
                            ولا موعد استحقاق في القاعدة، فلا يكتب «موعد التسليم» فوق فراغ. */
-                        $date_label = $key === 'done' ? 'تم التسليم' : ($key === 'progress' ? 'بدأته' : 'لم تبدأ بعد');
+                        $date_label = $key === 'done' ? t('تم التسليم') : ($key === 'progress' ? t('بدأته') : t('لم تبدأ بعد'));
                         ?>
                         <article class="tq-s-row">
 
@@ -242,7 +242,7 @@ include 'portal_open.php';
                                     <span class="tq-s-date__month"><?php echo tq_s_month(date('n', $t['at'])); ?></span>
                                     <span class="tq-micro" style="color:var(--tq-text2)"><?php echo tq_since($t['at']); ?></span>
                                 <?php else: ?>
-                                    <span class="tq-micro" style="color:var(--tq-text2)">لا موعد محدد</span>
+                                    <span class="tq-micro" style="color:var(--tq-text2)"><?php echo t('لا موعد محدد'); ?></span>
                                 <?php endif; ?>
                             </div>
 
@@ -256,7 +256,7 @@ include 'portal_open.php';
                                         <span><?php echo tq_icon('clock', 16); ?><?php echo tq_s_minutes($t['minutes']); ?></span>
                                     <?php endif; ?>
                                     <?php if (!empty($t['points'])): ?>
-                                        <span><?php echo tq_icon('award', 16); ?><?php echo tq_iso($t['points'] . ' بندا'); ?></span>
+                                        <span><?php echo tq_icon('award', 16); ?><?php echo tq_iso($t['points'] . t('بندا')); ?></span>
                                     <?php endif; ?>
                                     <?php if (!empty($t['pass'])): ?>
                                         <span><?php echo tq_icon('target', 16); ?>درجة النجاح <?php echo tq_num($t['pass'] . '%', 'tq-num--sm'); ?></span>
@@ -272,7 +272,7 @@ include 'portal_open.php';
                                          شاشته ولا تصل صاحبها. */ ?>
                                 <?php if ($key === 'done' && !empty($t['note'])): ?>
                                     <p class="tq-caption" style="margin:var(--tq-space-s) 0 0;padding:var(--tq-space-s) var(--tq-space-m);background:var(--tq-sand-fill);border-radius:var(--tq-radius-medium)">
-                                        <span class="tq-strong">ملاحظة معلمك:</span>
+                                        <span class="tq-strong"><?php echo t('ملاحظة معلمك:'); ?></span>
                                         <?php echo tq_iso(html_escape($t['note'])); ?>
                                     </p>
                                 <?php endif; ?>
@@ -281,18 +281,18 @@ include 'portal_open.php';
                             <!-- شارة الحالة فوق زر الفعل — من القاعدة لا من افتراض -->
                             <div class="tq-s-row__end">
                                 <?php if ($key === 'done' && isset($t['pass_ok']) && $t['pass_ok'] !== null): ?>
-                                    <?php echo tq_badge($t['pass_ok'] ? 'mastered' : 'late', $t['pass_ok'] ? 'ناجح' : 'يحتاج إعادة'); ?>
+                                    <?php echo tq_badge($t['pass_ok'] ? 'mastered' : 'late', $t['pass_ok'] ? t('ناجح') : t('يحتاج إعادة')); ?>
                                 <?php elseif ($key === 'done'): ?>
-                                    <?php echo tq_badge('due', 'ينتظر التصحيح'); ?>
+                                    <?php echo tq_badge('due', t('ينتظر التصحيح')); ?>
                                 <?php else: ?>
                                     <?php echo tq_badge($g['badge'], $g['label']); ?>
                                 <?php endif; ?>
                                 <?php if ($key === 'done'): ?>
-                                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($t['href'] ?? '#'); ?>">عرض التقييم</a>
+                                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($t['href'] ?? '#'); ?>"><?php echo t('عرض التقييم'); ?></a>
                                 <?php elseif ($key === 'progress'): ?>
-                                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($t['href'] ?? '#'); ?>">متابعة</a>
+                                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($t['href'] ?? '#'); ?>"><?php echo t('متابعة'); ?></a>
                                 <?php else: ?>
-                                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($t['href'] ?? '#'); ?>">ابدأ الآن</a>
+                                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($t['href'] ?? '#'); ?>"><?php echo t('ابدأ الآن'); ?></a>
                                 <?php endif; ?>
                             </div>
                         </article>
@@ -307,24 +307,24 @@ include 'portal_open.php';
 
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">ملخص المهام</h2>
+                <h2 class="tq-card__title"><?php echo t('ملخص المهام'); ?></h2>
                 <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('clipboard'); ?></span>
             </div>
 
             <?php if ($tq_total === 0): ?>
                 <?php echo tq_s_empty(
                     'chart', 'sky',
-                    'لا أرقام بعد',
-                    'عدد مهامك التي لم تبدأها وقيد التنفيذ والمكتملة يظهر هنا فور إسناد أول مهمة إليك.',
+                    t('لا أرقام بعد'),
+                    t('عدد مهامك التي لم تبدأها وقيد التنفيذ والمكتملة يظهر هنا فور إسناد أول مهمة إليك.'),
                     '', '', true
                 ); ?>
             <?php else: ?>
                 <div class="tq-s-2x2">
                     <?php
-                    echo tq_s_stat(tq_num(count($tq_groups['todo']['items'])),     'لم تبدأ',      '', 'peach');
-                    echo tq_s_stat(tq_num(count($tq_groups['progress']['items'])), 'قيد التنفيذ',  '', 'rose');
-                    echo tq_s_stat(tq_num(count($tq_groups['done']['items'])),     'مكتملة',       '', 'mint');
-                    echo tq_s_stat(tq_num($tq_total),                              'إجمالي المهام', '', 'sky');
+                    echo tq_s_stat(tq_num(count($tq_groups['todo']['items'])),     t('لم تبدأ'),      '', 'peach');
+                    echo tq_s_stat(tq_num(count($tq_groups['progress']['items'])), t('قيد التنفيذ'),  '', 'rose');
+                    echo tq_s_stat(tq_num(count($tq_groups['done']['items'])),     t('مكتملة'),       '', 'mint');
+                    echo tq_s_stat(tq_num($tq_total),                              t('إجمالي المهام'), '', 'sky');
                     ?>
                 </div>
             <?php endif; ?>
@@ -332,27 +332,27 @@ include 'portal_open.php';
 
         <!-- التقويم: الشهر الجاري واليوم الحقيقي، ولا تعلم أيام بلا مهام فيها. -->
         <section class="tq-card tq-card--panel">
-            <div class="tq-card__head"><h2 class="tq-card__title">التقويم</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('التقويم'); ?></h2></div>
             <?php echo tq_s_calendar(time(), $tq_marks); ?>
             <?php echo tq_s_key([
-                'done' => 'مهام سلمتها',
-                'due'  => 'مهام بدأتها',
+                'done' => t('مهام سلمتها'),
+                'due'  => t('مهام بدأتها'),
             ]); ?>
         </section>
 
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">مهام في انتظارك</h2>
+                <h2 class="tq-card__title"><?php echo t('مهام في انتظارك'); ?></h2>
                 <?php if ($tq_pending): ?>
-                    <a class="tq-caption" href="<?php echo base_url('student/tasks'); ?>">عرض الكل</a>
+                    <a class="tq-caption" href="<?php echo base_url('student/tasks'); ?>"><?php echo t('عرض الكل'); ?></a>
                 <?php endif; ?>
             </div>
 
             <?php if (empty($tq_pending)): ?>
                 <?php echo tq_s_empty(
                     'calendar', 'lilac',
-                    'لا مهام في انتظارك',
-                    'كل واجب لم تسلمه بعد يظهر هنا بمادته وعدد بنوده، لتعرف ما ينتظرك دون فتح القائمة.',
+                    t('لا مهام في انتظارك'),
+                    t('كل واجب لم تسلمه بعد يظهر هنا بمادته وعدد بنوده، لتعرف ما ينتظرك دون فتح القائمة.'),
                     '', '', true
                 ); ?>
             <?php else: ?>
@@ -369,7 +369,7 @@ include 'portal_open.php';
                             <?php if (!empty($t['points'])): ?>
                                 <span class="tq-caption" style="text-align:center">
                                     <?php echo tq_num($t['points'], 'tq-num--sm'); ?><br>
-                                    <span class="tq-micro">بندا</span>
+                                    <span class="tq-micro"><?php echo t('بندا'); ?></span>
                                 </span>
                             <?php endif; ?>
                         </li>

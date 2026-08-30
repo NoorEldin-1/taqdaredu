@@ -46,11 +46,11 @@ include 'portal_open.php';
       <span class="tq-pastel__icon"><?php echo tq_icon('target', 34); ?></span>
     </span>
     <h1 class="tq-display"><?php
-      echo $tq_redo ? 'عدل خطتك' : 'قبل أن نبدأ — ثلاثة أسئلة'; ?></h1>
+      echo $tq_redo ? t('عدل خطتك') : t('قبل أن نبدأ — ثلاثة أسئلة'); ?></h1>
     <p class="tq-body tq-setup__lead"><?php
       echo $tq_redo
-        ? 'ما تختاره هنا يحدد ما يعرض لك، وما يقاس عليه هدفك اليومي.'
-        : 'دقيقة واحدة، ثم تفتح لوحتك على ما يخصك أنت. وتغيرها متى شئت من إعداداتك.';
+        ? t('ما تختاره هنا يحدد ما يعرض لك، وما يقاس عليه هدفك اليومي.')
+        : t('دقيقة واحدة، ثم تفتح لوحتك على ما يخصك أنت. وتغيرها متى شئت من إعداداتك.');
     ?></p>
   </header>
 
@@ -62,13 +62,13 @@ include 'portal_open.php';
     <section class="tq-card tq-setup__step">
       <div class="tq-setup__num" aria-hidden="true">1</div>
       <div class="tq-setup__body">
-        <h2 class="tq-card__title">في أي صف أنت؟</h2>
-        <p class="tq-caption">عليه يبنى الكتالوج والاختبار التشخيصي وباقتك.</p>
+        <h2 class="tq-card__title"><?php echo t('في أي صف أنت؟'); ?></h2>
+        <p class="tq-caption"><?php echo t('عليه يبنى الكتالوج والاختبار التشخيصي وباقتك.'); ?></p>
 
         <?php if (!$tq_gr): ?>
-          <p class="tq-field__msg">لا صفوف مفعلة بعد. تواصل مع الإدارة.</p>
+          <p class="tq-field__msg"><?php echo t('لا صفوف مفعلة بعد. تواصل مع الإدارة.'); ?></p>
         <?php else: ?>
-          <div class="tq-setup__grid" role="radiogroup" aria-label="الصف الدراسي">
+          <div class="tq-setup__grid" role="radiogroup" aria-label="<?php echo te('الصف الدراسي'); ?>">
             <?php foreach ($tq_gr as $g): $gid = (int) $g['id']; ?>
               <label class="tq-pick<?php echo $gid === $tq_gid ? ' is-on' : ''; ?>">
                 <input type="radio" name="grade_id" value="<?php echo $gid; ?>"
@@ -88,12 +88,12 @@ include 'portal_open.php';
     <section class="tq-card tq-setup__step">
       <div class="tq-setup__num" aria-hidden="true">2</div>
       <div class="tq-setup__body">
-        <h2 class="tq-card__title">ما المواد التي تريد التركيز عليها؟</h2>
-        <p class="tq-caption">اختر ما شئت. وترك الكل فارغا يعني «اعرض لي كل شيء».</p>
+        <h2 class="tq-card__title"><?php echo t('ما المواد التي تريد التركيز عليها؟'); ?></h2>
+        <p class="tq-caption"><?php echo t('اختر ما شئت. وترك الكل فارغا يعني «اعرض لي كل شيء».'); ?></p>
 
         <?php if (!$tq_subs): ?>
-          <?php echo tq_s_empty('layers', 'sand', 'لا مواد منشورة لصفك بعد',
-                'ستظهر هنا حالما تنشر برامج صفك. تابع الآن وعدل اختيارك لاحقا.', '', '', true); ?>
+          <?php echo tq_s_empty('layers', 'sand', t('لا مواد منشورة لصفك بعد'),
+                t('ستظهر هنا حالما تنشر برامج صفك. تابع الآن وعدل اختيارك لاحقا.'), '', '', true); ?>
         <?php else: ?>
           <div class="tq-setup__grid">
             <?php foreach ($tq_subs as $s): $sid = (int) $s['id'];
@@ -119,11 +119,11 @@ include 'portal_open.php';
     <section class="tq-card tq-setup__step">
       <div class="tq-setup__num" aria-hidden="true">3</div>
       <div class="tq-setup__body">
-        <h2 class="tq-card__title">كم تريد أن تنجز كل يوم؟</h2>
-        <p class="tq-caption">هدف صغير تبلغه كل يوم خير من كبير تتركه في الأسبوع الأول.</p>
+        <h2 class="tq-card__title"><?php echo t('كم تريد أن تنجز كل يوم؟'); ?></h2>
+        <p class="tq-caption"><?php echo t('هدف صغير تبلغه كل يوم خير من كبير تتركه في الأسبوع الأول.'); ?></p>
 
         <div class="tq-setup__goal">
-          <div class="tq-setup__units" role="radiogroup" aria-label="وحدة الهدف">
+          <div class="tq-setup__units" role="radiogroup" aria-label="<?php echo te('وحدة الهدف'); ?>">
             <?php foreach ($tq_un as $key => $u): ?>
               <label class="tq-pick tq-pick--sm<?php echo $key === $tq_unit ? ' is-on' : ''; ?>">
                 <input type="radio" name="goal_unit" value="<?php echo html_escape($key); ?>"
@@ -135,7 +135,7 @@ include 'portal_open.php';
           </div>
 
           <label class="tq-setup__value">
-            <span class="sr-only">مقدار الهدف</span>
+            <span class="sr-only"><?php echo t('مقدار الهدف'); ?></span>
             <input type="number" name="goal_value" id="tqGoalValue" min="1" max="600"
                    inputmode="numeric" value="<?php echo $tq_value; ?>" required>
             <span class="tq-setup__unit" data-tq-unit-label><?php
@@ -147,9 +147,9 @@ include 'portal_open.php';
 
     <div class="tq-setup__actions">
       <button class="tq-btn tq-btn--primary" type="submit"><?php
-        echo $tq_redo ? 'احفظ التعديل' : 'ابدأ رحلتي'; ?></button>
+        echo $tq_redo ? t('احفظ التعديل') : t('ابدأ رحلتي'); ?></button>
       <?php if ($tq_redo): ?>
-        <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('student'); ?>">عد بلا تعديل</a>
+        <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('student'); ?>"><?php echo t('عد بلا تعديل'); ?></a>
       <?php endif; ?>
     </div>
   </form>

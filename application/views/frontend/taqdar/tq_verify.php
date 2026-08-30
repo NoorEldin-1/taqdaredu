@@ -28,8 +28,8 @@ if ($ok) {
   <div class="shell shell--auth">
     <div class="tq-vf">
 
-      <a class="tq-vf__brand" href="<?php echo base_url(); ?>" aria-label="منصة تقدر">
-        <img src="<?php echo tq_site_asset('img/logo.webp'); ?>" alt="منصة تقدر" width="200" height="112">
+      <a class="tq-vf__brand" href="<?php echo base_url(); ?>" aria-label="<?php echo te('منصة تقدر'); ?>">
+        <img src="<?php echo tq_site_asset('img/logo.webp'); ?>" alt="<?php echo te('منصة تقدر'); ?>" width="200" height="112">
       </a>
 
       <div class="tq-vf__card tq-vf__card--<?php echo $ok ? 'ok' : 'no'; ?>">
@@ -38,66 +38,64 @@ if ($ok) {
           echo $ok ? tq_icon('check-badge', 34) : tq_icon('help', 34); ?></span>
 
         <h1 class="tq-vf__verdict"><?php
-          echo $ok ? 'شهادة صحيحة صادرة من منصة تقدر' : 'لا شهادة بهذا الرمز'; ?></h1>
+          echo $ok ? t('شهادة صحيحة صادرة من منصة تقدر') : t('لا شهادة بهذا الرمز'); ?></h1>
 
         <?php if ($ok): ?>
 
           <dl class="tq-vf__meta">
             <div>
-              <dt>حاملها</dt>
-              <dd><?php echo html_escape($c['holder'] ?: 'غير مذكور'); ?></dd>
+              <dt><?php echo t('حاملها'); ?></dt>
+              <dd><?php echo html_escape($c['holder'] ?: t('غير مذكور')); ?></dd>
             </div>
             <div>
-              <dt>المحطة</dt>
-              <dd><?php echo html_escape($c['milestone_title'] ?: ($c['path_title'] ?: 'محطة تعليمية')); ?></dd>
+              <dt><?php echo t('المحطة'); ?></dt>
+              <dd><?php echo html_escape($c['milestone_title'] ?: ($c['path_title'] ?: t('محطة تعليمية'))); ?></dd>
             </div>
             <?php if (!empty($c['path_title']) && !empty($c['milestone_title'])): ?>
               <div>
-                <dt>البرنامج</dt>
+                <dt><?php echo t('البرنامج'); ?></dt>
                 <dd><?php echo html_escape($c['path_title']); ?></dd>
               </div>
             <?php endif; ?>
             <div>
-              <dt>نسبة الإتقان</dt>
+              <dt><?php echo t('نسبة الإتقان'); ?></dt>
               <dd><?php echo tq_num((int) $c['score'] . '%'); ?></dd>
             </div>
             <div>
-              <dt>تاريخ الإصدار</dt>
+              <dt><?php echo t('تاريخ الإصدار'); ?></dt>
               <dd><?php echo tq_num(date('Y-m-d', strtotime((string) $c['submitted_at']))); ?></dd>
             </div>
             <div>
-              <dt>رمز التحقق</dt>
+              <dt><?php echo t('رمز التحقق'); ?></dt>
               <dd dir="ltr" style="unicode-bidi:isolate"><?php echo html_escape($code); ?></dd>
             </div>
           </dl>
 
           <p class="tq-vf__how">
-            هذه الشهادة صدرت على <strong>إتقان مقاس</strong> لا على مشاهدة: أنهى حاملها
-            محطة تعليمية كاملة، واجتاز اختبارها بأسئلة تقيس أهدافها هدفا هدفا.
+            <?php echo t('هذه الشهادة صدرت على'); ?> <strong><?php echo t('إتقان مقاس'); ?></strong> <?php echo t('لا على مشاهدة: أنهى حاملها محطة تعليمية كاملة، واجتاز اختبارها بأسئلة تقيس أهدافها هدفا هدفا.'); ?>
           </p>
 
         <?php else: ?>
 
           <p class="tq-vf__how">
-            الرمز <span dir="ltr" style="unicode-bidi:isolate"><?php
-              echo html_escape($code !== '' ? $code : '—'); ?></span> لا يقابل شهادة صادرة.
-            راجع الرمز كما هو مكتوب على الوثيقة — وصورته
+            <?php echo t('الرمز'); ?> <span dir="ltr" style="unicode-bidi:isolate"><?php
+              echo html_escape($code !== '' ? $code : '—'); ?></span> <?php echo t('لا يقابل شهادة صادرة. راجع الرمز كما هو مكتوب على الوثيقة — وصورته'); ?>
             <span dir="ltr" style="unicode-bidi:isolate">TQ-000000</span>.
           </p>
 
           <form class="tq-vf__form" method="get" action="<?php echo base_url('verify'); ?>"
                 onsubmit="location.href='<?php echo base_url('verify/'); ?>' + encodeURIComponent(this.code.value); return false;">
-            <label class="sr-only" for="tqVfCode">رمز التحقق</label>
+            <label class="sr-only" for="tqVfCode"><?php echo t('رمز التحقق'); ?></label>
             <input id="tqVfCode" name="code" type="text" dir="ltr" placeholder="TQ-000000"
                    autocomplete="off" spellcheck="false" required>
-            <button class="tq-btn tq-btn--primary" type="submit">تحقق</button>
+            <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('تحقق'); ?></button>
           </form>
 
         <?php endif; ?>
       </div>
 
       <p class="tq-vf__foot">
-        <a href="<?php echo base_url(); ?>">منصة تقدر</a> · منصة تعليمية سعودية
+        <a href="<?php echo base_url(); ?>"><?php echo t('منصة تقدر'); ?></a> <?php echo t('· منصة تعليمية سعودية'); ?>
       </p>
     </div>
   </div>

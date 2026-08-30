@@ -34,12 +34,12 @@ foreach ($gopts as $gid => $gname) {
 }
 
 $stats = array(
-    'grades'   => 'صفا',
-    'subjects' => 'مادة',
-    'paths'    => 'برنامجا',
-    'lessons'  => 'درسا',
-    'quizzes'  => 'اختبارا',
-    'teachers' => 'معلما',
+    'grades'   => t('صفا'),
+    'subjects' => t('مادة'),
+    'paths'    => t('برنامجا'),
+    'lessons'  => t('درسا'),
+    'quizzes'  => t('اختبارا'),
+    'teachers' => t('معلما'),
 );
 ?>
 
@@ -49,10 +49,9 @@ $stats = array(
 
     <div class="tqa-card__head">
         <div>
-            <h2 class="tqa-reach__title">ما تفتحه هذه الباقة</h2>
+            <h2 class="tqa-reach__title"><?php echo t('ما تفتحه هذه الباقة'); ?></h2>
             <p class="tqa-reach__lead">
-                محسوب من الصفوف المختارة أعلاه: كل مسار منشور فيها، ومعه دورته ودروسها.
-                ولا يربط الدرس بالباقة بيد — فالدرس الذي ينشر غدا في هذه الصفوف يدخلها وحده.
+                <?php echo t('محسوب من الصفوف المختارة أعلاه: كل مسار منشور فيها، ومعه دورته ودروسها. ولا يربط الدرس بالباقة بيد — فالدرس الذي ينشر غدا في هذه الصفوف يدخلها وحده.'); ?>
             </p>
         </div>
     </div>
@@ -68,8 +67,8 @@ $stats = array(
         </div>
 
         <p class="tqa-reach__free">
-            ومنها <b data-tqa-reach-n="free"><?php echo (int) $reach['free']; ?></b>
-            درسا مفتوحا للمعاينة قبل الشراء.
+            <?php echo t('ومنها'); ?> <b data-tqa-reach-n="free"><?php echo (int) $reach['free']; ?></b>
+            <?php echo t('درسا مفتوحا للمعاينة قبل الشراء.'); ?>
         </p>
 
         <?php /* التفصيل صفا صفا: المجموع يقول «مئتا درس»، وهذا يقول أي
@@ -83,7 +82,7 @@ $stats = array(
                      <?php echo in_array((int) $gid, $sel, true) ? '' : 'hidden'; ?>>
                     <b><?php echo html_escape($gname); ?></b>
                     <?php if (!$g || (int) $g['paths'] === 0): ?>
-                        <span class="tqa-warn">لا مسار منشور في هذا الصف بعد</span>
+                        <span class="tqa-warn"><?php echo t('لا مسار منشور في هذا الصف بعد'); ?></span>
                     <?php else: ?>
                         <span>
                             <?php echo (int) $g['paths']; ?> برنامجا ·
@@ -105,7 +104,7 @@ $stats = array(
                 <?php if ($vis['tone'] === 'ok'): ?>
                     <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" target="_blank" rel="noopener"
                        href="<?php echo base_url('plan/' . (string) $row['code']); ?>">
-                        عاينها كما يراها المشتري
+                        <?php echo t('عاينها كما يراها المشتري'); ?>
                     </a>
                 <?php endif; ?>
             </div>

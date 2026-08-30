@@ -19,9 +19,9 @@ $tq_people = $this->db->select('id, first_name, last_name, email, is_instructor,
                       ->get('users')->result_array();
 
 $tq_groups = array(
-    'teacher' => array('المعلمون', array()),
-    'student' => array('الطلاب',   array()),
-    'admin'   => array('المسؤولون', array()),
+    'teacher' => array(t('المعلمون'), array()),
+    'student' => array(t('الطلاب'),   array()),
+    'admin'   => array(t('المسؤولون'), array()),
 );
 
 foreach ($tq_people as $tq_p) {
@@ -36,7 +36,7 @@ foreach ($tq_people as $tq_p) {
 <div class="tqa-card">
     <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
         <span class="tqa-iconbox" aria-hidden="true"><?php echo tq_icon('edit', 20); ?></span>
-        <h2>رسالة جديدة</h2>
+        <h2><?php echo t('رسالة جديدة'); ?></h2>
     </div>
 
     <form method="post" action="<?php echo site_url('admin/message/send_new'); ?>">
@@ -44,10 +44,10 @@ foreach ($tq_people as $tq_p) {
 
         <div class="tqa-field">
             <label class="tqa-field__label" for="receiver">
-                المستقبل <span class="tqa-field__req" aria-hidden="true">*</span>
+                <?php echo t('المستقبل'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
             </label>
             <select class="tqa-select" id="receiver" name="receiver" required>
-                <option value="">— اختر حسابا</option>
+                <option value=""><?php echo t('— اختر حسابا'); ?></option>
                 <?php foreach ($tq_groups as [$tq_glabel, $tq_gpeople]): ?>
                     <?php if (empty($tq_gpeople)) continue; ?>
                     <optgroup label="<?php echo html_escape($tq_glabel); ?>">
@@ -65,17 +65,17 @@ foreach ($tq_people as $tq_p) {
 
         <div class="tqa-field">
             <label class="tqa-field__label" for="message">
-                نص الرسالة <span class="tqa-field__req" aria-hidden="true">*</span>
+                <?php echo t('نص الرسالة'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
             </label>
             <textarea class="tqa-textarea" id="message" name="message" rows="6" required
-                      placeholder="اكتب رسالتك…"></textarea>
+                      placeholder="<?php echo te('اكتب رسالتك…'); ?>"></textarea>
         </div>
 
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
                 <?php echo tq_icon('send', 16); ?> أرسل الرسالة
             </button>
-            <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/message'); ?>">إلغاء</a>
+            <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/message'); ?>"><?php echo t('إلغاء'); ?></a>
         </div>
     </form>
 </div>

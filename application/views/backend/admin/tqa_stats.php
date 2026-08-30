@@ -22,29 +22,29 @@
  * الوعد كاذبا.
  */
 $tq_fields = array(
-    'students' => array('طلاب',            'من نحن · الطلاب · المعلمون', 'users'),
-    'teachers' => array('معلمون',          'من نحن · المعلمون',          'graduation'),
-    'paths'    => array('مسارات تعليمية',  'من نحن · الطلاب · المعلمون', 'target'),
-    'subjects' => array('مواد دراسية',     'من نحن · الطلاب · المعلمون', 'layers'),
-    'lessons'  => array('دروس',            'من نحن',                     'play'),
-    'books'    => array('كتب',             'من نحن · الطلاب',            'book'),
-    'hours'    => array('ساعات تعلم',      'الطلاب',                     'clock'),
-    'rating'   => array('مستوى الرضا',     'الطلاب · المعلمون',          'star'),
+    'students' => array(t('طلاب'),            t('من نحن · الطلاب · المعلمون'), 'users'),
+    'teachers' => array(t('معلمون'),          t('من نحن · المعلمون'),          'graduation'),
+    'paths'    => array(t('مسارات تعليمية'),  t('من نحن · الطلاب · المعلمون'), 'target'),
+    'subjects' => array(t('مواد دراسية'),     t('من نحن · الطلاب · المعلمون'), 'layers'),
+    'lessons'  => array(t('دروس'),            t('من نحن'),                     'play'),
+    'books'    => array(t('كتب'),             t('من نحن · الطلاب'),            'book'),
+    'hours'    => array(t('ساعات تعلم'),      t('الطلاب'),                     'clock'),
+    'rating'   => array(t('مستوى الرضا'),     t('الطلاب · المعلمون'),          'star'),
 );
 ?>
 
-<?php tqa_head('أرقام الموقع',
-    'تظهر في أشرطة الأرقام على الصفحات العامة كما تكتبها تماما — بعلاماتها ولواحقها.',
+<?php tqa_head(t('أرقام الموقع'),
+    t('تظهر في أشرطة الأرقام على الصفحات العامة كما تكتبها تماما — بعلاماتها ولواحقها.'),
     'chart'); ?>
 
 <div class="tqa-note tqa-section">
     <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
     <span>
-        اكتب الرقم بصيغته المعروضة:
+        <?php echo t('اكتب الرقم بصيغته المعروضة:'); ?>
         <span class="tq-ltr" dir="ltr">+500</span> ·
         <span class="tq-ltr" dir="ltr">550K</span> ·
         <span class="tq-ltr" dir="ltr">98%</span>.
-        <strong>وما تتركه فارغا لا يعرض إطلاقا</strong> — بنده يختفي من الشريط ولا يظهر صفرا.
+        <strong><?php echo t('وما تتركه فارغا لا يعرض إطلاقا'); ?></strong> <?php echo t('— بنده يختفي من الشريط ولا يظهر صفرا.'); ?>
     </span>
 </div>
 
@@ -61,7 +61,7 @@ $tq_fields = array(
                     <input class="tqa-input tqa-input--ltr" type="text" id="s_<?php echo $tq_k; ?>"
                            name="<?php echo $tq_k; ?>" dir="ltr" autocomplete="off"
                            value="<?php echo html_escape(get_settings('taqdar_stat_' . $tq_k)); ?>"
-                           placeholder="اتركه فارغا فلا يعرض">
+                           placeholder="<?php echo te('اتركه فارغا فلا يعرض'); ?>">
                     <span class="tqa-field__hint">
                         <?php if ($tq_m[1] !== ''): ?>
                             يظهر في: <?php echo html_escape($tq_m[1]); ?>

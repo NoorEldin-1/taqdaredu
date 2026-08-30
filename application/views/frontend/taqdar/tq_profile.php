@@ -23,8 +23,8 @@ include 'tq_student_data.php';
 
 $tq_nav   = 'profile';
 $tq_role  = 'student';
-$tq_title = 'ملفي';
-$tq_sub   = 'ما بلغته حتى اليوم — إتقانك وانتظامك وشهاداتك.';
+$tq_title = t('ملفي');
+$tq_sub   = t('ما بلغته حتى اليوم — إتقانك وانتظامك وشهاداتك.');
 $tq_icon  = 'user';
 
 $CI  = &get_instance();
@@ -88,7 +88,7 @@ include 'portal_open.php';
     </span>
     <div class="tq-pf-head__body">
       <h2 class="tq-h2" style="margin:0"><?php
-        echo html_escape(trim(($tq_me['first_name'] ?? '') . ' ' . ($tq_me['last_name'] ?? '')) ?: 'طالب في تقدر'); ?></h2>
+        echo html_escape(trim(($tq_me['first_name'] ?? '') . ' ' . ($tq_me['last_name'] ?? '')) ?: t('طالب في تقدر')); ?></h2>
       <p class="tq-caption" style="margin:2px 0 0">
         <?php if ($tq_grade): ?><?php echo html_escape($tq_grade); ?> · <?php endif; ?>
         عضو منذ <?php echo tq_num(tq_s_date(tq_s_ts($tq_me['date_added'] ?? 0))); ?>
@@ -100,23 +100,23 @@ include 'portal_open.php';
         </p>
       <?php endif; ?>
     </div>
-    <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/settings'); ?>">اضبط حسابك</a>
+    <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/settings'); ?>"><?php echo t('اضبط حسابك'); ?></a>
   </section>
 
   <!-- الأرقام. والسلسلة تخفى لمن أوقف التلعيب — الإيقاف يوقف فعلا -->
   <section class="tq-s-grid4" style="margin-block:var(--tq-space-xl)">
     <?php
     if (!empty($tq_goal['gamify'])) {
-        echo tq_s_stat(tq_num((int) $tq_streak['days']), 'يوما متتاليا', 'flame', 'peach',
+        echo tq_s_stat(tq_num((int) $tq_streak['days']), t('يوما متتاليا'), 'flame', 'peach',
               (int) $tq_streak['best'] > (int) $tq_streak['days']
-                  ? 'أطول سلسلة لك ' . (int) $tq_streak['best'] : '');
+                  ? t('أطول سلسلة لك') . (int) $tq_streak['best'] : '');
     }
-    echo tq_s_stat(tq_num($tq_active_days), 'يوم دراسة في تسعين', 'calendar', 'sky');
+    echo tq_s_stat(tq_num($tq_active_days), t('يوم دراسة في تسعين'), 'calendar', 'sky');
     echo tq_s_stat(
         $tq_map['count'] ? tq_num(round($tq_map['average_level']) . '%') : '<span class="tq-muted">—</span>',
-        'متوسط إتقانك', 'target', 'mint',
-        $tq_map['count'] ? '' : 'يظهر بعد أول تقييم');
-    echo tq_s_stat(tq_num(count($tq_certs)), 'شهادة', 'award', 'lilac');
+        t('متوسط إتقانك'), 'target', 'mint',
+        $tq_map['count'] ? '' : t('يظهر بعد أول تقييم'));
+    echo tq_s_stat(tq_num(count($tq_certs)), t('شهادة'), 'award', 'lilac');
     ?>
   </section>
 
@@ -124,8 +124,8 @@ include 'portal_open.php';
        ولا رقم فوقها: الشكل يقول القصة، والرقم فوق الشكل يكررها. -->
   <section class="tq-card" style="margin-block-end:var(--tq-space-l)">
     <div class="tq-card__head">
-      <h2 class="tq-card__title">انتظامك</h2>
-      <span class="tq-caption">آخر ثلاثة أشهر</span>
+      <h2 class="tq-card__title"><?php echo t('انتظامك'); ?></h2>
+      <span class="tq-caption"><?php echo t('آخر ثلاثة أشهر'); ?></span>
     </div>
     <div class="tq-pf-heat" role="img"
          aria-label="خريطة أيام الدراسة في آخر ثلاثة أشهر: <?php echo (int) $tq_active_days; ?> يوما نشطا">
@@ -135,11 +135,11 @@ include 'portal_open.php';
       ?>
         <span class="tq-pf-cell tq-pf-cell--<?php echo $lv; ?>"
               title="<?php echo html_escape($d['day']); ?><?php
-                echo $d['active'] ? ' — ' . $n . ' نشاطا' : ' — لا نشاط'; ?>"></span>
+                echo $d['active'] ? ' — ' . $n . t('نشاطا') : t('— لا نشاط'); ?>"></span>
       <?php endforeach; ?>
     </div>
     <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
-      كل مربع يوم. وكلما غمق لونه زاد ما أنجزته فيه.
+      <?php echo t('كل مربع يوم. وكلما غمق لونه زاد ما أنجزته فيه.'); ?>
     </p>
   </section>
 
@@ -149,19 +149,19 @@ include 'portal_open.php';
       <!-- أضعف الأهداف: الجواب العملي، فيسبق كل عرض آخر -->
       <section class="tq-card">
         <div class="tq-card__head">
-          <h2 class="tq-card__title">ما يحتاج عملك</h2>
+          <h2 class="tq-card__title"><?php echo t('ما يحتاج عملك'); ?></h2>
           <a class="tq-btn tq-btn--ghost tq-btn--sm"
-             href="<?php echo base_url('student/mastery'); ?>">الخريطة كاملة</a>
+             href="<?php echo base_url('student/mastery'); ?>"><?php echo t('الخريطة كاملة'); ?></a>
         </div>
 
         <?php $tq_weak = array_filter($tq_map['weakest'], function ($o) { return (float) $o['level'] < 80; }); ?>
         <?php if (!$tq_weak): ?>
           <?php echo tq_s_empty('check-badge', 'mint',
-                $tq_map['count'] ? 'لا هدف ضعيفا الآن' : 'خريطتك تبدأ بأول تقييم',
+                $tq_map['count'] ? t('لا هدف ضعيفا الآن') : t('خريطتك تبدأ بأول تقييم'),
                 $tq_map['count']
-                    ? 'كل ما قيس عليك حتى الآن في مستوى الإتقان. تابع دروسك ليتسع القياس.'
-                    : 'تقاس مستوياتك من إجاباتك على أسئلة الدرس وعلى المراجعة.',
-                'تابع دروسك', base_url('student/lessons'), true); ?>
+                    ? t('كل ما قيس عليك حتى الآن في مستوى الإتقان. تابع دروسك ليتسع القياس.')
+                    : t('تقاس مستوياتك من إجاباتك على أسئلة الدرس وعلى المراجعة.'),
+                t('تابع دروسك'), base_url('student/lessons'), true); ?>
         <?php else: ?>
           <div class="tq-pf-weak">
             <?php foreach ($tq_weak as $o):
@@ -177,7 +177,7 @@ include 'portal_open.php';
             ?>
               <div class="tq-pf-weak__row">
                 <div class="tq-pf-weak__main">
-                  <span class="tq-pf-weak__t"><?php echo html_escape($o['objective_text'] ?: 'هدف'); ?></span>
+                  <span class="tq-pf-weak__t"><?php echo html_escape($o['objective_text'] ?: t('هدف')); ?></span>
                   <?php if (!empty($o['lesson_title'])): ?>
                     <span class="tq-pf-weak__w"><?php echo html_escape($o['lesson_title']); ?></span>
                   <?php endif; ?>
@@ -186,7 +186,7 @@ include 'portal_open.php';
                   echo tq_num($lv . '%'); ?></span>
                 <?php if ($lref !== ''): ?>
                   <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                     href="<?php echo html_escape($lref); ?>">راجع</a>
+                     href="<?php echo html_escape($lref); ?>"><?php echo t('راجع'); ?></a>
                 <?php endif; ?>
               </div>
             <?php endforeach; ?>
@@ -199,16 +199,16 @@ include 'portal_open.php';
       <!-- الشهادات -->
       <section class="tq-card">
         <div class="tq-card__head">
-          <h2 class="tq-card__title">شهاداتك</h2>
+          <h2 class="tq-card__title"><?php echo t('شهاداتك'); ?></h2>
           <?php if ($tq_certs): ?>
             <a class="tq-btn tq-btn--ghost tq-btn--sm"
-               href="<?php echo base_url('student/certificates'); ?>">الكل</a>
+               href="<?php echo base_url('student/certificates'); ?>"><?php echo t('الكل'); ?></a>
           <?php endif; ?>
         </div>
 
         <?php if (!$tq_certs): ?>
-          <?php echo tq_s_empty('award', 'sand', 'لا شهادة بعد',
-                'الشهادة تصدر على إتقان مقاس لا على مشاهدة: تنهي المحطة وتجتاز اختبارها.',
+          <?php echo tq_s_empty('award', 'sand', t('لا شهادة بعد'),
+                t('الشهادة تصدر على إتقان مقاس لا على مشاهدة: تنهي المحطة وتجتاز اختبارها.'),
                 '', '', true); ?>
         <?php else: ?>
           <ul class="tq-pf-certs">
@@ -216,7 +216,7 @@ include 'portal_open.php';
               <li>
                 <a href="<?php echo base_url('student/certificate/' . (int) $c['id']); ?>">
                   <span class="tq-pf-certs__t"><?php
-                    echo html_escape($c['milestone_title'] ?: ($c['path_title'] ?: 'شهادة إتقان')); ?></span>
+                    echo html_escape($c['milestone_title'] ?: ($c['path_title'] ?: t('شهادة إتقان'))); ?></span>
                   <span class="tq-pf-certs__m"><?php
                     echo tq_num((int) $c['score'] . '%'); ?> · <?php
                     echo tq_num(tq_s_date(strtotime((string) $c['submitted_at']))); ?></span>

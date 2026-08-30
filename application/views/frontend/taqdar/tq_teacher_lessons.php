@@ -20,8 +20,8 @@
 
 $tq_nav   = 'lessons';
 $tq_role  = 'teacher';
-$tq_title = 'دروسي';
-$tq_sub   = 'كل ما رفعت، كورسا فوحدة فدرسا';
+$tq_title = t('دروسي');
+$tq_sub   = t('كل ما رفعت، كورسا فوحدة فدرسا');
 $tq_icon  = 'play';
 
 /* `$this` في العرض هو المحمل لا المتحكم، فالنماذج تحمل عبر get_instance(). */
@@ -62,7 +62,7 @@ $tq_hours_of = static function ($seconds) {
     $s = max(0, (int) $seconds);
     $h = intdiv($s, 3600);
     $m = intdiv($s % 3600, 60);
-    return $h > 0 ? $h . ' س ' . $m . ' د' : $m . ' د';
+    return $h > 0 ? $h . t('س') . $m . t('د') : $m . t('د');
 };
 
 /* الكل مرة (للأعداد التي لا تتبدل بالتصفية) والمصفى مرة. */
@@ -114,7 +114,7 @@ foreach ($tq_rows as $l) {
             'total' => 0, 'units' => array(),
         );
     }
-    $unit = trim((string) $l['section_title']) !== '' ? $l['section_title'] : 'دروس بلا وحدة';
+    $unit = trim((string) $l['section_title']) !== '' ? $l['section_title'] : t('دروس بلا وحدة');
     $tq_groups[$cid]['units'][$unit][] = $l;
     $tq_groups[$cid]['total']++;
 }
@@ -130,16 +130,16 @@ if (!$tq_has_filter) {
 }
 
 $tq_status_face = array(
-    'published' => array('mastered', 'منشور'),
-    'review'    => array('progress', 'قيد المراجعة'),
-    'draft'     => array('idle',     'مسودة'),
+    'published' => array('mastered', t('منشور')),
+    'review'    => array('progress', t('قيد المراجعة')),
+    'draft'     => array('idle',     t('مسودة')),
 );
 $tq_course_status_face = array(
-    'active'   => array('mastered', 'منشور'),
-    'pending'  => array('due',      'قيد المراجعة'),
-    'draft'    => array('idle',     'مسودة'),
-    'private'  => array('progress', 'خاص'),
-    'upcoming' => array('progress', 'قادم'),
+    'active'   => array('mastered', t('منشور')),
+    'pending'  => array('due',      t('قيد المراجعة')),
+    'draft'    => array('idle',     t('مسودة')),
+    'private'  => array('progress', t('خاص')),
+    'upcoming' => array('progress', t('قادم')),
 );
 
 include 'portal_open.php';
@@ -218,10 +218,10 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
             <?php /* عطل يقرأه الطالب قبل المعلم: اختبار في كورس منشور بلا سؤال
                      يفتح على شاشة فارغة. فيقال هنا صراحة بعدده وبابه. */ ?>
             <section class="tq-card tq-card--panel tq-pastel tq-pastel--rose tq-section" role="status">
-                <span class="tq-pastel__label tq-micro">يحتاج انتباهك</span>
+                <span class="tq-pastel__label tq-micro"><?php echo t('يحتاج انتباهك'); ?></span>
                 <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                    <?php echo tq_iso(tq_count_units(count($tq_empty_quizzes), 'اختبار', 'اختباران', 'اختبارين',
-                        'اختبارات', 'اختبارا', '', 'nom')); ?>
+                    <?php echo tq_iso(tq_count_units(count($tq_empty_quizzes), t('اختبار'), t('اختباران'), t('اختبارين'),
+                        t('اختبارات'), t('اختبارا'), '', 'nom')); ?>
                     عندك بلا سؤال واحد — ومن يفتحه من طلابك يجد شاشة فارغة.
                 </p>
                 <ul class="tq-stack" style="--tq-space-l:var(--tq-space-xs);margin-block-start:var(--tq-space-m)">
@@ -233,26 +233,26 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                     <?php endforeach; ?>
                 </ul>
                 <a class="tq-btn tq-btn--secondary tq-btn--sm" style="margin-block-start:var(--tq-space-m)"
-                   href="<?php echo base_url('teacher/questions'); ?>">افتح بنك الأسئلة</a>
+                   href="<?php echo base_url('teacher/questions'); ?>"><?php echo t('افتح بنك الأسئلة'); ?></a>
             </section>
         <?php endif; ?>
 
         <?php if ($tq_all): ?>
             <section class="tq-card tq-card--panel tq-section" aria-labelledby="tq-tl-h">
                 <div class="tq-card__head">
-                    <h2 class="tq-card__title" id="tq-tl-h">اعثر على درس</h2>
+                    <h2 class="tq-card__title" id="tq-tl-h"><?php echo t('اعثر على درس'); ?></h2>
                     <?php if ($tq_has_filter): ?>
-                        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('teacher/lessons'); ?>">مسح التصفية</a>
+                        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('teacher/lessons'); ?>"><?php echo t('مسح التصفية'); ?></a>
                     <?php endif; ?>
                 </div>
 
-                <p class="tq-field__label" id="tq-tl-state">الحالة</p>
+                <p class="tq-field__label" id="tq-tl-state"><?php echo t('الحالة'); ?></p>
                 <div class="tq-chips" role="group" aria-labelledby="tq-tl-state" style="margin-block-end:var(--tq-space-l)">
                     <?php foreach (array(
-                        array('',          'الكل',         $tq_n['all']),
-                        array('published', 'منشور',        $tq_n['published']),
-                        array('review',    'قيد المراجعة', $tq_n['review']),
-                        array('draft',     'مسودة',        $tq_n['draft']),
+                        array('',          t('الكل'),         $tq_n['all']),
+                        array('published', t('منشور'),        $tq_n['published']),
+                        array('review',    t('قيد المراجعة'), $tq_n['review']),
+                        array('draft',     t('مسودة'),        $tq_n['draft']),
                     ) as $chip): ?>
                         <?php [$key, $label, $n] = $chip; $on = ($f_status === $key); ?>
                         <a class="tq-chip" href="<?php echo $tq_query(array('status' => $key)); ?>"
@@ -263,12 +263,12 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                     <?php endforeach; ?>
                 </div>
 
-                <p class="tq-field__label" id="tq-tl-type">النوع</p>
+                <p class="tq-field__label" id="tq-tl-type"><?php echo t('النوع'); ?></p>
                 <div class="tq-chips" role="group" aria-labelledby="tq-tl-type" style="margin-block-end:var(--tq-space-l)">
                     <?php foreach (array(
-                        array('',       'الكل',       $tq_n['all']),
-                        array('lesson', 'دروس',       $tq_n['lesson']),
-                        array('quiz',   'اختبارات',   $tq_n['quiz']),
+                        array('',       t('الكل'),       $tq_n['all']),
+                        array('lesson', t('دروس'),       $tq_n['lesson']),
+                        array('quiz',   t('اختبارات'),   $tq_n['quiz']),
                     ) as $chip): ?>
                         <?php [$key, $label, $n] = $chip; $on = ($f_type === $key); ?>
                         <a class="tq-chip" href="<?php echo $tq_query(array('type' => $key)); ?>"
@@ -280,10 +280,10 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                 </div>
 
                 <?php if (count($tq_my_courses) > 1): ?>
-                    <p class="tq-field__label" id="tq-tl-course">الكورس</p>
+                    <p class="tq-field__label" id="tq-tl-course"><?php echo t('الكورس'); ?></p>
                     <div class="tq-chips" role="group" aria-labelledby="tq-tl-course">
                         <a class="tq-chip" href="<?php echo $tq_query(array('course' => '')); ?>"
-                           <?php echo $f_course === 0 ? 'aria-current="true"' : ''; ?>>كل كورساتي</a>
+                           <?php echo $f_course === 0 ? 'aria-current="true"' : ''; ?>><?php echo t('كل كورساتي'); ?></a>
                         <?php foreach ($tq_my_courses as $c): ?>
                             <?php $on = ((int) $c['id'] === $f_course); ?>
                             <a class="tq-chip" href="<?php echo $tq_query(array('course' => $on ? '' : (int) $c['id'])); ?>"
@@ -291,7 +291,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                                 <?php echo html_escape($c['title']); ?>
                                 <?php if ($on): ?>
                                     <span aria-hidden="true"><?php echo tq_icon('x', 14); ?></span>
-                                    <span class="tq-sr">— اضغط لإلغاء تصفية هذا الكورس</span>
+                                    <span class="tq-sr"><?php echo t('— اضغط لإلغاء تصفية هذا الكورس'); ?></span>
                                 <?php endif; ?>
                             </a>
                         <?php endforeach; ?>
@@ -302,10 +302,10 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                     <?php if ($f_course > 0): ?><input type="hidden" name="course" value="<?php echo (int) $f_course; ?>"><?php endif; ?>
                     <?php if ($f_status !== ''): ?><input type="hidden" name="status" value="<?php echo html_escape($f_status); ?>"><?php endif; ?>
                     <?php if ($f_type !== ''): ?><input type="hidden" name="type" value="<?php echo html_escape($f_type); ?>"><?php endif; ?>
-                    <label class="tq-sr" for="tq-tlq">ابحث في دروسك بالاسم أو الوحدة</label>
+                    <label class="tq-sr" for="tq-tlq"><?php echo t('ابحث في دروسك بالاسم أو الوحدة'); ?></label>
                     <input class="tq-input" id="tq-tlq" name="q" type="search" maxlength="80"
-                           value="<?php echo html_escape($f_q); ?>" placeholder="اسم الدرس أو الوحدة…">
-                    <button class="tq-btn tq-btn--secondary" type="submit">ابحث</button>
+                           value="<?php echo html_escape($f_q); ?>" placeholder="<?php echo te('اسم الدرس أو الوحدة…'); ?>">
+                    <button class="tq-btn tq-btn--secondary" type="submit"><?php echo t('ابحث'); ?></button>
                 </form>
             </section>
         <?php endif; ?>
@@ -313,27 +313,26 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
         <?php if (empty($tq_all)): ?>
             <div class="tq-card tq-empty">
                 <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('play', 24); ?></span>
-                <h2 class="tq-empty__title">لم ترفع درسا بعد</h2>
+                <h2 class="tq-empty__title"><?php echo t('لم ترفع درسا بعد'); ?></h2>
                 <p class="tq-empty__text">
-                    كل درس ترفعه يظهر هنا تحت كورسه ووحدته، بمدته وحالته — فتعرف في نظرة
-                    أين وصلت من منهجك وما بقي منه.
+                    <?php echo t('كل درس ترفعه يظهر هنا تحت كورسه ووحدته، بمدته وحالته — فتعرف في نظرة أين وصلت من منهجك وما بقي منه.'); ?>
                 </p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/upload'); ?>">ارفع درسك الأول</a>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/upload'); ?>"><?php echo t('ارفع درسك الأول'); ?></a>
             </div>
 
         <?php elseif (empty($tq_rows)): ?>
             <div class="tq-card tq-empty">
                 <span class="tq-icon-box tq-pastel--sky" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('search', 24); ?></span>
-                <h2 class="tq-empty__title">لا درس بهذه التصفية</h2>
-                <p class="tq-empty__text">غير الحالة أو النوع أو الكورس، أو امسح التصفية لترى كل دروسك.</p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/lessons'); ?>">مسح التصفية</a>
+                <h2 class="tq-empty__title"><?php echo t('لا درس بهذه التصفية'); ?></h2>
+                <p class="tq-empty__text"><?php echo t('غير الحالة أو النوع أو الكورس، أو امسح التصفية لترى كل دروسك.'); ?></p>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/lessons'); ?>"><?php echo t('مسح التصفية'); ?></a>
             </div>
 
         <?php else: ?>
             <p class="tq-caption" style="margin-block-end:var(--tq-space-m)">
-                <?php echo tq_iso(tq_count_units(count($tq_rows), 'درس', 'درسان', 'درسين', 'دروس', 'درسا', 'لا دروس', 'nom')); ?>
+                <?php echo tq_iso(tq_count_units(count($tq_rows), t('درس'), t('درسان'), t('درسين'), t('دروس'), t('درسا'), t('لا دروس'), 'nom')); ?>
                 <?php echo count($tq_groups) > 1
-                    ? tq_iso('في ' . tq_count_units(count($tq_groups), 'كورس', 'كورسان', 'كورسين', 'كورسات', 'كورسا', '', 'obl'))
+                    ? tq_iso(t('في') . tq_count_units(count($tq_groups), t('كورس'), t('كورسان'), t('كورسين'), t('كورسات'), t('كورسا'), '', 'obl'))
                     : ''; ?>
             </p>
 
@@ -354,20 +353,20 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                         <span class="tq-lgroup__name"><?php echo html_escape($g['title']); ?></span>
                         <?php echo tq_badge($cs_kind, $cs_text); ?>
                         <span class="tq-lgroup__n">
-                            <?php echo tq_iso(tq_lessons_word($g['total'], 'لا دروس', 'nom')); ?>
+                            <?php echo tq_iso(tq_lessons_word($g['total'], t('لا دروس'), 'nom')); ?>
                         </span>
                     </summary>
 
                     <?php foreach ($g['units'] as $unit_title => $unit_lessons): ?>
                         <p class="tq-lunit">
                             <?php echo html_escape($unit_title); ?>
-                            · <?php echo tq_iso(tq_lessons_word(count($unit_lessons), 'لا دروس', 'nom')); ?>
+                            · <?php echo tq_iso(tq_lessons_word(count($unit_lessons), t('لا دروس'), 'nom')); ?>
                         </p>
 
                         <?php foreach ($unit_lessons as $l): ?>
                             <?php
                             $is_quiz = ($l['lesson_type'] === 'quiz');
-                            [$st_kind, $st_text] = $tq_status_face[(string) $l['tq_status']] ?? array('idle', 'مسودة');
+                            [$st_kind, $st_text] = $tq_status_face[(string) $l['tq_status']] ?? array('idle', t('مسودة'));
                             ?>
                             <div class="tq-lrow">
                                 <span class="tq-lrow__mark tq-pastel tq-pastel--<?php echo $is_quiz ? 'lilac' : 'sky'; ?>" aria-hidden="true">
@@ -377,24 +376,24 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                                 <div class="tq-lrow__main">
                                     <p class="tq-lrow__title"><?php echo html_escape($l['title']); ?></p>
                                     <p class="tq-lrow__meta">
-                                        <span><?php echo $is_quiz ? 'اختبار' : 'درس'; ?></span>
+                                        <span><?php echo $is_quiz ? t('اختبار') : t('درس'); ?></span>
                                         <?php if ($is_quiz): ?>
                                             <span>·</span>
-                                            <span><?php echo tq_iso(tq_count_units((int) $l['questions'], 'سؤال',
-                                                'سؤالان', 'سؤالين', 'أسئلة', 'سؤالا', 'بلا أسئلة', 'nom')); ?></span>
+                                            <span><?php echo tq_iso(tq_count_units((int) $l['questions'], t('سؤال'),
+                                                t('سؤالان'), t('سؤالين'), t('أسئلة'), t('سؤالا'), t('بلا أسئلة'), 'nom')); ?></span>
                                             <?php if ((int) $l['questions'] === 0): ?>
-                                                <?php echo tq_badge('due', 'يحتاج أسئلة'); ?>
+                                                <?php echo tq_badge('due', t('يحتاج أسئلة')); ?>
                                             <?php endif; ?>
                                         <?php endif; ?>
                                         <?php if (!empty($l['is_free'])): ?>
-                                            <?php echo tq_badge('progress', 'درس تجريبي'); ?>
+                                            <?php echo tq_badge('progress', t('درس تجريبي')); ?>
                                         <?php endif; ?>
                                     </p>
                                 </div>
 
                                 <span class="tq-lrow__time">
                                     <?php if (!$is_quiz && !empty($l['duration']) && $l['duration'] !== '00:00:00'): ?>
-                                        <span class="tq-sr">مدة الدرس</span>
+                                        <span class="tq-sr"><?php echo t('مدة الدرس'); ?></span>
                                         <?php echo TQ_LRI . html_escape($l['duration']) . TQ_PDI; ?>
                                     <?php endif; ?>
                                 </span>
@@ -405,7 +404,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                                     <?php if ($is_quiz): ?>
                                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                            href="<?php echo base_url('teacher/questions') . '?course=' . (int) $l['course_id']; ?>">
-                                            أسئلته
+                                            <?php echo t('أسئلته'); ?>
                                             <span class="tq-sr">— <?php echo html_escape($l['title']); ?></span>
                                         </a>
                                     <?php else: ?>
@@ -416,18 +415,18 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                            href="<?php echo base_url('teacher/course/' . (int) $l['course_id'])
                                                . '?lesson=' . (int) $l['id']; ?>">
-                                            تعديل
+                                            <?php echo t('تعديل'); ?>
                                             <span class="tq-sr">— <?php echo html_escape($l['title']); ?></span>
                                         </a>
                                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                            href="<?php echo base_url('teacher/quiz/' . (int) $l['id']); ?>">
-                                            اختباره
+                                            <?php echo t('اختباره'); ?>
                                             <span class="tq-sr">— <?php echo html_escape($l['title']); ?></span>
                                         </a>
                                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                            href="<?php echo base_url('teacher/upload') . '?course=' . (int) $l['course_id']
                                                . (!empty($l['section_id']) ? '&section=' . (int) $l['section_id'] : ''); ?>">
-                                            أضف هنا
+                                            <?php echo t('أضف هنا'); ?>
                                             <span class="tq-sr">— درسا جديدا في <?php echo html_escape($unit_title); ?></span>
                                         </a>
                                     <?php endif; ?>
@@ -440,10 +439,9 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
 
             <?php if ($tq_courses_empty): ?>
                 <section class="tq-card tq-card--panel" style="margin-block-start:var(--tq-space-xl)">
-                    <div class="tq-card__head"><h2 class="tq-card__title">كورسات بلا دروس بعد</h2></div>
+                    <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('كورسات بلا دروس بعد'); ?></h2></div>
                     <p class="tq-caption">
-                        هذه الكورسات مسندة إليك ولم يرفع فيها درس واحد — والطالب الذي يفتح
-                        أحدها يجد منهجا فارغا.
+                        <?php echo t('هذه الكورسات مسندة إليك ولم يرفع فيها درس واحد — والطالب الذي يفتح أحدها يجد منهجا فارغا.'); ?>
                     </p>
                     <ul class="tq-stack" style="margin-block-start:var(--tq-space-l)">
                         <?php foreach ($tq_courses_empty as $c): ?>
@@ -451,7 +449,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                                 <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($c['title']); ?></span>
                                 <a class="tq-btn tq-btn--secondary tq-btn--sm"
                                    href="<?php echo base_url('teacher/upload') . '?course=' . (int) $c['id']; ?>">
-                                    ارفع أول درس
+                                    <?php echo t('ارفع أول درس'); ?>
                                     <span class="tq-sr">— <?php echo html_escape($c['title']); ?></span>
                                 </a>
                             </li>
@@ -464,50 +462,49 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
 
     <aside class="tq-aside">
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">ملخص</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('ملخص'); ?></h2></div>
             <ul class="tq-stack">
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">دروسك</span>
+                    <span class="tq-caption"><?php echo t('دروسك'); ?></span>
                     <?php echo tq_num($tq_n['lesson']); ?>
                 </li>
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">اختباراتك</span>
+                    <span class="tq-caption"><?php echo t('اختباراتك'); ?></span>
                     <?php echo tq_num($tq_n['quiz']); ?>
                 </li>
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">مدة دروسك</span>
+                    <span class="tq-caption"><?php echo t('مدة دروسك'); ?></span>
                     <?php /* `tq_iso` لا `tq_num`: «١٢ س ٤٥ د» نص عربي فيه أرقام،
                              وعزله كوحدة يسارية يقلب ترتيبه. */ ?>
                     <span class="tq-caption"><?php echo $tq_seconds > 0 ? tq_iso($tq_hours_of($tq_seconds)) : '—'; ?></span>
                 </li>
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">كورساتك</span>
+                    <span class="tq-caption"><?php echo t('كورساتك'); ?></span>
                     <?php echo tq_num(count($tq_my_courses)); ?>
                 </li>
             </ul>
             <a class="tq-btn tq-btn--primary tq-btn--block" style="margin-block-start:var(--tq-space-l)"
-               href="<?php echo base_url('teacher/upload'); ?>">ارفع درسا جديدا</a>
+               href="<?php echo base_url('teacher/upload'); ?>"><?php echo t('ارفع درسا جديدا'); ?></a>
         </div>
 
         <?php /* الشاشة الأخت: الكورس رتبة فوق الدرس، وما يعرض عنه غير ما يعرض
                  عن دروسه — المسجلون ونسبة الإكمال وحالة النشر. */ ?>
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">كورساتي</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('كورساتي'); ?></h2></div>
             <p class="tq-caption" style="margin:0">
-                حالة كل كورس وعدد المسجلين فيه ومتوسط إكمالهم — وهي أرقام الكورس
-                لا أرقام دروسه.
+                <?php echo t('حالة كل كورس وعدد المسجلين فيه ومتوسط إكمالهم — وهي أرقام الكورس لا أرقام دروسه.'); ?>
             </p>
             <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-l)"
-               href="<?php echo base_url('teacher/courses'); ?>">افتح كورساتي</a>
+               href="<?php echo base_url('teacher/courses'); ?>"><?php echo t('افتح كورساتي'); ?></a>
         </div>
 
         <div class="tq-pastel tq-pastel--peach">
-            <span class="tq-pastel__label tq-micro">قاعدة الدرس الواحد</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('قاعدة الدرس الواحد'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                <?php echo tq_iso('من 8 إلى 15 دقيقة · من 1 إلى 3 أهداف · 5 أسئلة على الأقل لكل هدف.'); ?>
+                <?php echo tq_iso(t('من 8 إلى 15 دقيقة · من 1 إلى 3 أهداف · 5 أسئلة على الأقل لكل هدف.')); ?>
             </p>
             <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-m) 0 0">
-                الدرس الأطول يقسم، والهدف الرابع يعني درسا ثانيا.
+                <?php echo t('الدرس الأطول يقسم، والهدف الرابع يعني درسا ثانيا.'); ?>
             </p>
         </div>
     </aside>

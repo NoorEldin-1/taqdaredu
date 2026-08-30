@@ -26,21 +26,21 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 
 $tq_nav   = 'materials';
 $tq_role  = 'student';
-$tq_title = 'المواد التعليمية';
-$tq_sub   = 'جميع الملفات والموارد الخاصة بدروسك';
+$tq_title = t('المواد التعليمية');
+$tq_sub   = t('جميع الملفات والموارد الخاصة بدروسك');
 $tq_icon  = 'folder';
 
 $tq_all = tq_s_materials($tq_uid);
 
 /* --- التصفية: النوع والبحث، كلاهما في الرابط فيمكن حفظه --- */
 $tq_types = [
-    ''      => 'الكل',
-    'pdf'   => 'ملفات PDF',
-    'video' => 'فيديوهات',
-    'slide' => 'عروض تقديمية',
-    'audio' => 'ملفات صوتية',
-    'image' => 'صور',
-    'link'  => 'روابط خارجية',
+    ''      => t('الكل'),
+    'pdf'   => t('ملفات PDF'),
+    'video' => t('فيديوهات'),
+    'slide' => t('عروض تقديمية'),
+    'audio' => t('ملفات صوتية'),
+    'image' => t('صور'),
+    'link'  => t('روابط خارجية'),
 ];
 
 $f_type = (string) $this->input->get('type', true);
@@ -101,8 +101,8 @@ $tq_fav_btn = static function ($id, $on, $title) use ($f_type, $f_q) {
         <input type="hidden" name="back_type" value="<?php echo html_escape($f_type); ?>">
         <input type="hidden" name="back_q" value="<?php echo html_escape($f_q); ?>">
         <button class="tq-fav-heart" type="submit" aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"
-                title="<?php echo $on ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'; ?>"
-                aria-label="<?php echo html_escape(($on ? 'إزالة ' : 'إضافة ') . $title . ($on ? ' من المفضلة' : ' إلى المفضلة')); ?>">
+                title="<?php echo $on ? t('إزالة من المفضلة') : t('إضافة إلى المفضلة'); ?>"
+                aria-label="<?php echo html_escape(($on ? t('إزالة') : t('إضافة')) . $title . ($on ? t('من المفضلة') : t('إلى المفضلة'))); ?>">
             <?php echo tq_icon('heart', 18); ?>
         </button>
     </form>
@@ -115,7 +115,7 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
-        <nav class="tq-tabs tq-s-tabs" aria-label="تصفية المواد بالنوع">
+        <nav class="tq-tabs tq-s-tabs" aria-label="<?php echo te('تصفية المواد بالنوع'); ?>">
             <?php foreach ($tq_types as $key => $label): ?>
                 <?php $n = $key === '' ? count($tq_all) : ($tq_by_type[$key] ?? 0); ?>
                 <a class="tq-tab" href="<?php echo $tq_url(['type' => $key, 'page' => null]); ?>"
@@ -130,9 +130,9 @@ include 'portal_open.php';
             <div class="tq-card">
                 <?php echo tq_s_empty(
                     'folder', 'mint',
-                    'لا مواد بعد',
-                    'ملفات دروسك — من ملازم PDF وفيديوهات وعروض وملفات صوتية — تظهر هنا في جدول واحد بحجمها وتاريخها وزر تحميلها.',
-                    'تصفح دروسك',
+                    t('لا مواد بعد'),
+                    t('ملفات دروسك — من ملازم PDF وفيديوهات وعروض وملفات صوتية — تظهر هنا في جدول واحد بحجمها وتاريخها وزر تحميلها.'),
+                    t('تصفح دروسك'),
                     base_url('student/lessons'),
                     false,
                     'primary'
@@ -144,11 +144,11 @@ include 'portal_open.php';
             <div class="tq-s-grid5 tq-section">
                 <?php
                 $cards = [
-                    ['',      'إجمالي المواد', 'ملف ومورد', 'file',  'sky'],
-                    ['pdf',   'ملفات PDF',    'ملف',       'file',  'rose'],
-                    ['video', 'فيديوهات',      'فيديو',      'video', 'sky'],
-                    ['slide', 'عروض تقديمية',  'عرض',        'chart', 'peach'],
-                    ['audio', 'ملفات صوتية',  'ملف',       'play',  'lilac'],
+                    ['',      t('إجمالي المواد'), t('ملف ومورد'), 'file',  'sky'],
+                    ['pdf',   t('ملفات PDF'),    t('ملف'),       'file',  'rose'],
+                    ['video', t('فيديوهات'),      t('فيديو'),      'video', 'sky'],
+                    ['slide', t('عروض تقديمية'),  t('عرض'),        'chart', 'peach'],
+                    ['audio', t('ملفات صوتية'),  t('ملف'),       'play',  'lilac'],
                 ];
                 foreach ($cards as [$key, $label, $unit, $icon, $pastel]):
                     $n = $key === '' ? count($tq_all) : ($tq_by_type[$key] ?? 0);
@@ -170,7 +170,7 @@ include 'portal_open.php';
             <div class="tq-card">
                 <div class="tq-card__head">
                     <h2 class="tq-card__title">
-                        المواد
+                        <?php echo t('المواد'); ?>
                         <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_list) . TQ_PDI; ?></span>
                     </h2>
 
@@ -178,33 +178,33 @@ include 'portal_open.php';
                         <?php if ($f_type !== ''): ?>
                             <input type="hidden" name="type" value="<?php echo html_escape($f_type); ?>">
                         <?php endif; ?>
-                        <label class="tq-sr" for="tq-m-q">ابحث في المواد</label>
+                        <label class="tq-sr" for="tq-m-q"><?php echo t('ابحث في المواد'); ?></label>
                         <input class="tq-input" id="tq-m-q" name="q" type="search"
-                               value="<?php echo html_escape($f_q); ?>" placeholder="ابحث في المواد…">
-                        <button class="tq-btn tq-btn--secondary" type="submit">بحث</button>
+                               value="<?php echo html_escape($f_q); ?>" placeholder="<?php echo te('ابحث في المواد…'); ?>">
+                        <button class="tq-btn tq-btn--secondary" type="submit"><?php echo t('بحث'); ?></button>
                     </form>
                 </div>
 
                 <?php if (empty($tq_list)): ?>
                     <?php echo tq_s_empty(
                         'search', 'sky',
-                        'لا نتائج',
-                        'لا مادة تطابق بحثك أو النوع المختار. جرب كلمة أخرى أو ارجع إلى كل المواد.',
-                        'كل المواد',
+                        t('لا نتائج'),
+                        t('لا مادة تطابق بحثك أو النوع المختار. جرب كلمة أخرى أو ارجع إلى كل المواد.'),
+                        t('كل المواد'),
                         base_url('student/materials'),
                         true
                     ); ?>
                 <?php else: ?>
                     <table class="tq-table">
-                        <caption class="tq-sr">مواد دروسك التعليمية</caption>
+                        <caption class="tq-sr"><?php echo t('مواد دروسك التعليمية'); ?></caption>
                         <thead>
                             <tr>
-                                <th scope="col">الاسم</th>
-                                <th scope="col">المادة</th>
-                                <th scope="col">النوع</th>
-                                <th scope="col">الحجم</th>
-                                <th scope="col">التاريخ</th>
-                                <th scope="col">الإجراء</th>
+                                <th scope="col"><?php echo t('الاسم'); ?></th>
+                                <th scope="col"><?php echo t('المادة'); ?></th>
+                                <th scope="col"><?php echo t('النوع'); ?></th>
+                                <th scope="col"><?php echo t('الحجم'); ?></th>
+                                <th scope="col"><?php echo t('التاريخ'); ?></th>
+                                <th scope="col"><?php echo t('الإجراء'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -236,7 +236,7 @@ include 'portal_open.php';
                                             <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($m['url']); ?>"
                                                <?php echo $k['key'] === 'link' ? 'rel="noopener"' : 'download'; ?>>
                                                 <?php echo tq_icon($k['key'] === 'link' ? 'play' : 'download', 16); ?>
-                                                <?php echo $k['key'] === 'link' ? 'فتح' : 'تحميل'; ?>
+                                                <?php echo $k['key'] === 'link' ? t('فتح') : t('تحميل'); ?>
                                                 <span class="tq-sr"><?php echo html_escape($m['title']); ?></span>
                                             </a>
                                             <?php /* القلب على ملفات `resource_files` وحدها — مرفق الدرس
@@ -250,21 +250,21 @@ include 'portal_open.php';
                     </table>
 
                     <?php if ($tq_pages > 1): ?>
-                        <nav class="tq-s-pager" aria-label="صفحات المواد">
+                        <nav class="tq-s-pager" aria-label="<?php echo te('صفحات المواد'); ?>">
                             <?php if ($f_page > 1): ?>
-                                <a href="<?php echo $tq_url(['page' => $f_page - 1]); ?>" rel="prev">السابق</a>
+                                <a href="<?php echo $tq_url(['page' => $f_page - 1]); ?>" rel="prev"><?php echo t('السابق'); ?></a>
                             <?php endif; ?>
 
                             <?php for ($p = 1; $p <= $tq_pages; $p++): ?>
                                 <?php if ($p === $f_page): ?>
-                                    <span aria-current="page"><?php echo TQ_LRI . $p . TQ_PDI; ?><span class="tq-sr">الصفحة الحالية</span></span>
+                                    <span aria-current="page"><?php echo TQ_LRI . $p . TQ_PDI; ?><span class="tq-sr"><?php echo t('الصفحة الحالية'); ?></span></span>
                                 <?php else: ?>
                                     <a href="<?php echo $tq_url(['page' => $p]); ?>"><?php echo TQ_LRI . $p . TQ_PDI; ?></a>
                                 <?php endif; ?>
                             <?php endfor; ?>
 
                             <?php if ($f_page < $tq_pages): ?>
-                                <a href="<?php echo $tq_url(['page' => $f_page + 1]); ?>" rel="next">التالي</a>
+                                <a href="<?php echo $tq_url(['page' => $f_page + 1]); ?>" rel="next"><?php echo t('التالي'); ?></a>
                             <?php endif; ?>
                         </nav>
                     <?php endif; ?>
@@ -278,13 +278,13 @@ include 'portal_open.php';
 
         <!-- تصنيف المواد -->
         <section class="tq-card tq-card--panel">
-            <div class="tq-card__head"><h2 class="tq-card__title">تصنيف المواد</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('تصنيف المواد'); ?></h2></div>
 
             <?php if (empty($tq_by_subject)): ?>
                 <?php echo tq_s_empty(
                     'folder', 'sky',
-                    'لا تصنيفات بعد',
-                    'مواد دروسك تجمع هنا حسب المادة مع عدد ملفات كل واحدة.',
+                    t('لا تصنيفات بعد'),
+                    t('مواد دروسك تجمع هنا حسب المادة مع عدد ملفات كل واحدة.'),
                     '', '', true
                 ); ?>
             <?php else: ?>
@@ -307,37 +307,37 @@ include 'portal_open.php';
 
         <!-- مساحة التخزين -->
         <section class="tq-card tq-card--panel">
-            <div class="tq-card__head"><h2 class="tq-card__title">مساحة التخزين</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('مساحة التخزين'); ?></h2></div>
 
             <?php if ($tq_quota > 0): ?>
                 <p class="tq-caption" style="margin-block-end:var(--tq-space-s)">
-                    <?php echo tq_iso(tq_s_size($tq_bytes) . ' من ' . tq_s_size($tq_quota) . ' مستخدمة'); ?>
+                    <?php echo tq_iso(tq_s_size($tq_bytes) . t('من') . tq_s_size($tq_quota) . t('مستخدمة')); ?>
                 </p>
-                <?php echo tq_progress((int) round($tq_bytes * 100 / $tq_quota), 'نسبة المساحة المستخدمة'); ?>
+                <?php echo tq_progress((int) round($tq_bytes * 100 / $tq_quota), t('نسبة المساحة المستخدمة')); ?>
             <?php else: ?>
-                <p class="tq-caption" style="margin-block-end:var(--tq-space-s)">حجم موادك الحالي</p>
+                <p class="tq-caption" style="margin-block-end:var(--tq-space-s)"><?php echo t('حجم موادك الحالي'); ?></p>
                 <p class="tq-strong" style="color:var(--tq-navy);margin-block-end:var(--tq-space-s)">
                     <?php echo $tq_bytes > 0 ? tq_num(tq_s_size($tq_bytes)) : '<span class="tq-muted">—</span>'; ?>
                 </p>
                 <p class="tq-micro" style="margin:0">
-                    شريط النسبة يظهر هنا بعد تحديد حصة التخزين في باقتك.
+                    <?php echo t('شريط النسبة يظهر هنا بعد تحديد حصة التخزين في باقتك.'); ?>
                 </p>
             <?php endif; ?>
 
             <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-l)"
-               href="<?php echo base_url('plans'); ?>">إدارة الباقة</a>
+               href="<?php echo base_url('plans'); ?>"><?php echo t('إدارة الباقة'); ?></a>
         </section>
 
         <!-- المواد المفضلة: تفضيل الملفات لا مصدر له بعد (wishlist للكورسات). -->
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">المواد المفضلة</h2>
+                <h2 class="tq-card__title"><?php echo t('المواد المفضلة'); ?></h2>
                 <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('heart'); ?></span>
             </div>
             <?php echo tq_s_empty(
                 'heart', 'rose',
-                'لا مواد مفضلة',
-                'أضف أي ملف إلى مفضلتك ليظهر هنا وتصل إليه دون بحث.',
+                t('لا مواد مفضلة'),
+                t('أضف أي ملف إلى مفضلتك ليظهر هنا وتصل إليه دون بحث.'),
                 '', '', true
             ); ?>
         </section>

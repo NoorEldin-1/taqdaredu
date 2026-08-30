@@ -57,8 +57,8 @@ $tq_pm = $tq_ci->taqdar_parent_model;
 $tq_child = $tq_cid ? $tq_pm->child($tq_uid, $tq_cid) : null;
 
 $tq_name  = $tq_child ? trim($tq_child['first_name'] . ' ' . $tq_child['last_name']) : '';
-$tq_title = $tq_child ? $tq_name : 'تفاصيل الابن';
-$tq_sub   = $tq_child ? 'صورة أسبوعه في ثلاثة أرقام' : 'يفتح بعد ربط حساب ابنك';
+$tq_title = $tq_child ? $tq_name : t('تفاصيل الابن');
+$tq_sub   = $tq_child ? t('صورة أسبوعه في ثلاثة أرقام') : t('يفتح بعد ربط حساب ابنك');
 
 /* --- الأسبوع يبدأ الأحد (السوق سعودي) --- */
 $tq_week_start = strtotime('today') - ((int) date('w')) * 86400;
@@ -266,7 +266,7 @@ if ($tq_child) {
 }
 
 $tq_commitment = (int) round(100 * min($tq_days_this, $tq_plan_days) / max(1, $tq_plan_days));
-$tq_day_names  = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+$tq_day_names  = [t('الأحد'), t('الاثنين'), t('الثلاثاء'), t('الأربعاء'), t('الخميس'), t('الجمعة'), t('السبت')];
 
 include 'portal_open.php';
 ?>
@@ -275,12 +275,11 @@ include 'portal_open.php';
 
     <div class="tq-card tq-empty">
         <span class="tq-icon-box tq-pastel--sky" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('lock', 24); ?></span>
-        <h2 class="tq-empty__title">لا يفتح حساب قبل ربطه بحسابك</h2>
+        <h2 class="tq-empty__title"><?php echo t('لا يفتح حساب قبل ربطه بحسابك'); ?></h2>
         <p class="tq-empty__text">
-            بيانات أي طالب لا تظهر لولي أمر إلا بعد ربط موثق بين الحسابين.
-            اربط حساب ابنك، وستجد هنا تقدمه ومواده وحصصه وفواتيره.
+            <?php echo t('بيانات أي طالب لا تظهر لولي أمر إلا بعد ربط موثق بين الحسابين. اربط حساب ابنك، وستجد هنا تقدمه ومواده وحصصه وفواتيره.'); ?>
         </p>
-        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('parent'); ?>">عودة إلى أبنائي</a>
+        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('parent'); ?>"><?php echo t('عودة إلى أبنائي'); ?></a>
     </div>
 
 <?php else: ?>
@@ -291,16 +290,16 @@ include 'portal_open.php';
         <!-- المقياس الثلاثي المبسط: ثلاثة أرقام لا لوحة أرقام -->
         <div class="tq-grid tq-grid--3 tq-section">
             <div class="tq-card" style="text-align:center">
-                <p class="tq-caption" style="margin-block-end:var(--tq-space-m)">الالتزام</p>
-                <?php echo tq_ring($tq_commitment, 120, 10, 'من خطة أسبوعه'); ?>
+                <p class="tq-caption" style="margin-block-end:var(--tq-space-m)"><?php echo t('الالتزام'); ?></p>
+                <?php echo tq_ring($tq_commitment, 120, 10, t('من خطة أسبوعه')); ?>
                 <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
-                    <?php echo tq_iso('حضر ' . $tq_days_this . ' أيام من ' . $tq_plan_days); ?>
+                    <?php echo tq_iso(t('حضر') . $tq_days_this . t('أيام من') . $tq_plan_days); ?>
                 </p>
                 <p class="tq-micro" style="margin:0">
                     <?php if ($tq_plan_is_default): ?>
                         خطة أسبوعه غير محددة، فالحساب على
                         <?php echo TQ_LRI . $tq_plan_days . TQ_PDI; ?> أيام افتراضيا —
-                        <a href="<?php echo base_url('parent/settings'); ?>">حددها</a>.
+                        <a href="<?php echo base_url('parent/settings'); ?>"><?php echo t('حددها'); ?></a>.
                     <?php else: ?>
                         حسب خطة <?php echo TQ_LRI . $tq_plan_days . TQ_PDI; ?> أيام التي حددتها له.
                     <?php endif; ?>
@@ -308,48 +307,47 @@ include 'portal_open.php';
             </div>
 
             <div class="tq-card" style="text-align:center">
-                <p class="tq-caption" style="margin-block-end:var(--tq-space-m)">الفهم</p>
+                <p class="tq-caption" style="margin-block-end:var(--tq-space-m)"><?php echo t('الفهم'); ?></p>
                 <?php if ($tq_skill['open'] > 0): ?>
-                    <?php echo tq_ring($tq_skill['percent'], 120, 10, 'من أهدافه المفتوحة'); ?>
+                    <?php echo tq_ring($tq_skill['percent'], 120, 10, t('من أهدافه المفتوحة')); ?>
                     <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
-                        <?php echo tq_iso('أتقن ' . $tq_skill['mastered'] . ' هدفا من ' . $tq_skill['open']); ?>
+                        <?php echo tq_iso(t('أتقن') . $tq_skill['mastered'] . t('هدفا من') . $tq_skill['open']); ?>
                     </p>
                     <p class="tq-micro" style="margin:0">
-                        الهدف يفتح بفتح درسه، ويعد متقنا حين يجيب عنه إجابة ثابتة لا إجابة واحدة.
+                        <?php echo t('الهدف يفتح بفتح درسه، ويعد متقنا حين يجيب عنه إجابة ثابتة لا إجابة واحدة.'); ?>
                     </p>
                 <?php else: ?>
                     <div class="tq-empty" style="padding:var(--tq-space-l) 0">
                         <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('target', 24); ?></span>
                         <p class="tq-empty__text tq-caption">
-                            لم يفتح بعد درسا له أهداف مقاسة. يظهر هنا كم هدفا أتقن من المفتوح له.
+                            <?php echo t('لم يفتح بعد درسا له أهداف مقاسة. يظهر هنا كم هدفا أتقن من المفتوح له.'); ?>
                         </p>
                     </div>
                 <?php endif; ?>
             </div>
 
             <div class="tq-card" style="text-align:center">
-                <p class="tq-caption" style="margin-block-end:var(--tq-space-m)">الاتجاه</p>
+                <p class="tq-caption" style="margin-block-end:var(--tq-space-m)"><?php echo t('الاتجاه'); ?></p>
                 <?php
                 $tq_diff = $tq_days_this - $tq_days_prev;
-                $tq_trend_text = $tq_diff > 0 ? 'أفضل من أسبوعه الماضي'
-                    : ($tq_diff < 0 ? 'أقل من أسبوعه الماضي' : 'كأسبوعه الماضي');
+                $tq_trend_text = $tq_diff > 0 ? t('أفضل من أسبوعه الماضي')
+                    : ($tq_diff < 0 ? t('أقل من أسبوعه الماضي') : t('كأسبوعه الماضي'));
                 $tq_trend_kind = $tq_diff > 0 ? 'mastered' : ($tq_diff < 0 ? 'due' : 'progress');
                 ?>
                 <p style="margin:0;font:var(--tq-type-numeralXl);color:var(--tq-navy)">
                     <?php echo tq_num(($tq_diff > 0 ? '+' : '') . $tq_diff); ?>
                 </p>
-                <p class="tq-caption" style="margin:0">فرق أيام النشاط</p>
+                <p class="tq-caption" style="margin:0"><?php echo t('فرق أيام النشاط'); ?></p>
                 <p style="margin-block-start:var(--tq-space-m)"><?php echo tq_badge($tq_trend_kind, $tq_trend_text); ?></p>
                 <p class="tq-micro" style="margin-block-start:var(--tq-space-s)">
-                    نقارنه بأسبوعه هو — بالأيام نفسها منه لا بالأسبوع كاملا،
-                    ولا نرتبه بين أبنائك ولا بين زملائه.
+                    <?php echo t('نقارنه بأسبوعه هو — بالأيام نفسها منه لا بالأسبوع كاملا، ولا نرتبه بين أبنائك ولا بين زملائه.'); ?>
                 </p>
             </div>
         </div>
 
         <!-- الإتقان لكل مادة -->
         <section class="tq-section" aria-labelledby="tq-subj-h">
-            <div class="tq-sectionhead"><h2 id="tq-subj-h">كل مادة على حدة</h2></div>
+            <div class="tq-sectionhead"><h2 id="tq-subj-h"><?php echo t('كل مادة على حدة'); ?></h2></div>
 
             <?php if ($tq_subjects): ?>
                 <div class="tq-card">
@@ -364,19 +362,19 @@ include 'portal_open.php';
                                     <span class="tq-caption">
                                         <?php echo (int) $tq_s['last_seen'] > 0
                                             ? html_escape(tq_since((int) $tq_s['last_seen']))
-                                            : 'لم يبدأ بعد'; ?>
+                                            : t('لم يبدأ بعد'); ?>
                                     </span>
                                 </div>
-                                <?php echo tq_progress((int) $tq_s['progress'], 'ما أنهاه في ' . $tq_s['title']); ?>
+                                <?php echo tq_progress((int) $tq_s['progress'], t('ما أنهاه في') . $tq_s['title']); ?>
                                 <?php /* الرقم تحت الشريط: النسبة وحدها لا تقول من كم. */ ?>
                                 <?php if ((int) $tq_s['lessons_n'] > 0): ?>
                                     <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
-                                        <?php echo tq_iso('أنهى ' . (int) $tq_s['done_n'] . ' من '
+                                        <?php echo tq_iso(t('أنهى') . (int) $tq_s['done_n'] . t('من')
                                             . tq_lessons_word((int) $tq_s['lessons_n'])); ?>
                                     </p>
                                 <?php else: ?>
                                     <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
-                                        لم ينشر في هذه المادة درس بعد.
+                                        <?php echo t('لم ينشر في هذه المادة درس بعد.'); ?>
                                     </p>
                                 <?php endif; ?>
                             </li>
@@ -386,27 +384,27 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('book', 24); ?></span>
-                    <h3 class="tq-empty__title">لا مواد مسجلة بعد</h3>
-                    <p class="tq-empty__text">حين يسجل ابنك في مادة، تظهر هنا مع ما أنهاه منها.</p>
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/payments'); ?>">المدفوعات</a>
+                    <h3 class="tq-empty__title"><?php echo t('لا مواد مسجلة بعد'); ?></h3>
+                    <p class="tq-empty__text"><?php echo t('حين يسجل ابنك في مادة، تظهر هنا مع ما أنهاه منها.'); ?></p>
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/payments'); ?>"><?php echo t('المدفوعات'); ?></a>
                 </div>
             <?php endif; ?>
         </section>
 
         <!-- المدفوعات والفواتير -->
         <section aria-labelledby="tq-pay-h">
-            <div class="tq-sectionhead"><h2 id="tq-pay-h">المدفوعات والفواتير</h2></div>
+            <div class="tq-sectionhead"><h2 id="tq-pay-h"><?php echo t('المدفوعات والفواتير'); ?></h2></div>
 
             <?php if ($tq_payments): ?>
                 <div class="tq-card">
                     <table class="tq-table">
-                        <caption class="tq-sr">فواتير ما اشتري لهذا الابن</caption>
+                        <caption class="tq-sr"><?php echo t('فواتير ما اشتري لهذا الابن'); ?></caption>
                         <thead>
                             <tr>
-                                <th scope="col">التاريخ</th>
-                                <th scope="col">ما اشتري</th>
-                                <th scope="col">المبلغ</th>
-                                <th scope="col">الحالة</th>
+                                <th scope="col"><?php echo t('التاريخ'); ?></th>
+                                <th scope="col"><?php echo t('ما اشتري'); ?></th>
+                                <th scope="col"><?php echo t('المبلغ'); ?></th>
+                                <th scope="col"><?php echo t('الحالة'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -433,9 +431,9 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--mint" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('wallet', 24); ?></span>
-                    <h3 class="tq-empty__title">لا فواتير لهذا الابن</h3>
-                    <p class="tq-empty__text">كل عملية دفع تخصه ستظهر هنا بتاريخها ومبلغها.</p>
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/payments'); ?>">كل المدفوعات</a>
+                    <h3 class="tq-empty__title"><?php echo t('لا فواتير لهذا الابن'); ?></h3>
+                    <p class="tq-empty__text"><?php echo t('كل عملية دفع تخصه ستظهر هنا بتاريخها ومبلغها.'); ?></p>
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/payments'); ?>"><?php echo t('كل المدفوعات'); ?></a>
                 </div>
             <?php endif; ?>
         </section>
@@ -445,7 +443,7 @@ include 'portal_open.php';
 
         <!-- أيام النشاط: الأسبوع يبدأ الأحد -->
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">أيام هذا الأسبوع</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('أيام هذا الأسبوع'); ?></h2></div>
             <ul class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:wrap">
                 <?php foreach ($tq_day_names as $tq_i => $tq_d): ?>
                     <li style="text-align:center;flex:1;min-inline-size:40px">
@@ -455,17 +453,17 @@ include 'portal_open.php';
                             <?php echo $tq_day_flags[$tq_i] ? tq_icon('check', 16) : ''; ?>
                         </span>
                         <span class="tq-micro" style="display:block;margin-block-start:var(--tq-space-xs)"><?php echo html_escape(mb_substr($tq_d, 0, 3)); ?></span>
-                        <span class="tq-sr"><?php echo html_escape($tq_d . ($tq_day_flags[$tq_i] ? ': نشط' : ': بلا نشاط')); ?></span>
+                        <span class="tq-sr"><?php echo html_escape($tq_d . ($tq_day_flags[$tq_i] ? t(': نشط') : t(': بلا نشاط'))); ?></span>
                     </li>
                 <?php endforeach; ?>
             </ul>
             <p class="tq-caption" style="margin-block-start:var(--tq-space-l)">
-                <?php echo tq_iso('أنهى ' . $tq_completed . ' درسا حتى الآن.'); ?>
+                <?php echo tq_iso(t('أنهى') . $tq_completed . t('درسا حتى الآن.')); ?>
             </p>
         </div>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">الحصص القادمة</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('الحصص القادمة'); ?></h2></div>
 
             <?php if ($tq_sessions): ?>
                 <ul class="tq-stack">
@@ -474,19 +472,19 @@ include 'portal_open.php';
                         $tq_ts   = !empty($tq_ss['starts_at']) ? strtotime($tq_ss['starts_at']) : 0;
                         $tq_st   = (string) $tq_ss['status'];
                         $tq_skind = $tq_st === 'confirmed' ? 'mastered' : ($tq_st === 'live' ? 'progress' : 'due');
-                        $tq_slab = ['requested' => 'بانتظار المعلم', 'confirmed' => 'مؤكدة', 'live' => 'جارية الآن'][$tq_st] ?? $tq_st;
+                        $tq_slab = ['requested' => t('بانتظار المعلم'), 'confirmed' => t('مؤكدة'), 'live' => t('جارية الآن')][$tq_st] ?? $tq_st;
                         ?>
                         <li class="tq-row" style="gap:var(--tq-space-m);align-items:flex-start">
                             <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('video'); ?></span>
                             <span style="flex:1;min-inline-size:0">
                                 <span class="tq-strong" style="display:block;color:var(--tq-navy)">
-                                    <?php echo html_escape($tq_ss['teacher'] ?: 'معلم'); ?>
+                                    <?php echo html_escape($tq_ss['teacher'] ?: t('معلم')); ?>
                                 </span>
                                 <span class="tq-micro" style="display:block">
                                     <?php echo $tq_ts > 0
                                         ? tq_iso(html_escape(date('Y-m-d', $tq_ts) . ' — ' . date('H:i', $tq_ts)
-                                            . ' · ' . (int) $tq_ss['duration_min'] . ' دقيقة'))
-                                        : 'الموعد لم يثبت بعد'; ?>
+                                            . ' · ' . (int) $tq_ss['duration_min'] . t('دقيقة')))
+                                        : t('الموعد لم يثبت بعد'); ?>
                                 </span>
                                 <span style="display:inline-block;margin-block-start:var(--tq-space-xs)">
                                     <?php echo tq_badge($tq_skind, $tq_slab); ?>
@@ -496,27 +494,27 @@ include 'portal_open.php';
                     <?php endforeach; ?>
                 </ul>
                 <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
-                    رابط الدخول يصل ابنك في حسابه — الحصة له لا لك، وحضورك عليه يقرره هو ومعلمه.
+                    <?php echo t('رابط الدخول يصل ابنك في حسابه — الحصة له لا لك، وحضورك عليه يقرره هو ومعلمه.'); ?>
                 </p>
             <?php else: ?>
                 <div class="tq-empty" style="padding:var(--tq-space-l) 0">
                     <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('calendar', 24); ?></span>
-                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لا حصص محجوزة</h3>
-                    <p class="tq-empty__text tq-caption">حين يحجز لابنك موعد مع معلم، يظهر هنا بيومه وساعته.</p>
-                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('parent/messages'); ?>">مراسلة المعلم</a>
+                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)"><?php echo t('لا حصص محجوزة'); ?></h3>
+                    <p class="tq-empty__text tq-caption"><?php echo t('حين يحجز لابنك موعد مع معلم، يظهر هنا بيومه وساعته.'); ?></p>
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('parent/messages'); ?>"><?php echo t('مراسلة المعلم'); ?></a>
                 </div>
             <?php endif; ?>
         </div>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">ملاحظات المعلمين</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('ملاحظات المعلمين'); ?></h2></div>
 
             <?php if ($tq_notes): ?>
                 <ul class="tq-stack">
                     <?php foreach ($tq_notes as $tq_i => $tq_n): ?>
                         <li class="tq-pastel tq-pastel--<?php echo tq_pastel($tq_i); ?>">
                             <span class="tq-pastel__label tq-micro">
-                                <?php echo html_escape($tq_n['teacher'] ?: 'معلم المادة'); ?>
+                                <?php echo html_escape($tq_n['teacher'] ?: t('معلم المادة')); ?>
                                 · <?php echo html_escape((string) ($tq_n['course_title'] ?: $tq_n['lesson_title'])); ?>
                             </span>
                             <p class="tq-pastel__body" style="margin:var(--tq-space-xs) 0 0">
@@ -529,27 +527,27 @@ include 'portal_open.php';
                     <?php endforeach; ?>
                 </ul>
                 <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
-                    تعرض كما كتبها المعلم، وبعد اعتماده الدرجة — فلا تسبق ابنك بخبر عن نفسه.
+                    <?php echo t('تعرض كما كتبها المعلم، وبعد اعتماده الدرجة — فلا تسبق ابنك بخبر عن نفسه.'); ?>
                 </p>
             <?php else: ?>
                 <div class="tq-empty" style="padding:var(--tq-space-l) 0">
                     <span class="tq-icon-box tq-pastel--sky" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('chat', 24); ?></span>
-                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لا ملاحظات بعد</h3>
+                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)"><?php echo t('لا ملاحظات بعد'); ?></h3>
                     <p class="tq-empty__text tq-caption">
-                        كل ملاحظة يعتمدها معلم مع درجة ابنك تصلك هنا كما كتبها.
+                        <?php echo t('كل ملاحظة يعتمدها معلم مع درجة ابنك تصلك هنا كما كتبها.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('parent/reports'); ?>">التقارير</a>
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('parent/reports'); ?>"><?php echo t('التقارير'); ?></a>
                 </div>
             <?php endif; ?>
         </div>
 
         <div class="tq-pastel tq-pastel--peach">
-            <span class="tq-pastel__label tq-micro">ما لا نعرضه لك</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('ما لا نعرضه لك'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                محادثات ابنك مع المساعد الذكي، ومنشوراته، وكل إجابة خاطئة على حدة.
+                <?php echo t('محادثات ابنك مع المساعد الذكي، ومنشوراته، وكل إجابة خاطئة على حدة.'); ?>
             </p>
             <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-m) 0 0">
-                الرقابة الكاملة تنتج طالبا يخفي، لا طالبا يتعلم. نعطيك الصورة التي تكفيك لتساعده.
+                <?php echo t('الرقابة الكاملة تنتج طالبا يخفي، لا طالبا يتعلم. نعطيك الصورة التي تكفيك لتساعده.'); ?>
             </p>
         </div>
     </aside>
@@ -565,8 +563,8 @@ include 'portal_open.php';
     $r_rows  = $CI->tq_quiz->student_results((int) $tq_cid);
     $r_skin  = 'tq';
     $r_who   = 'parent';
-    $r_title = 'نتائج اختبارات الدروس';
-    $r_empty = 'لم يؤد ابنك اختبار درس بعد.';
+    $r_title = t('نتائج اختبارات الدروس');
+    $r_empty = t('لم يؤد ابنك اختبار درس بعد.');
 ?>
 <div class="tq-section">
     <?php include APPPATH . 'views/components/tq_quiz_results.php'; ?>

@@ -45,8 +45,8 @@ if ($tq_rows) {
 <?php if (!$tq_rows): ?>
 
     <?php tqa_empty(
-        'لا مسجل في هذا الكورس بعد',
-        'يظهر هنا كل من سجل فيه: باشتراك في باقة تفتحه، أو بتسجيل مباشر من الإدارة.',
+        t('لا مسجل في هذا الكورس بعد'),
+        t('يظهر هنا كل من سجل فيه: باشتراك في باقة تفتحه، أو بتسجيل مباشر من الإدارة.'),
         '', '', 'users'
     ); ?>
 
@@ -54,12 +54,12 @@ if ($tq_rows) {
 
     <div class="tqa-table__wrap">
         <table class="tqa-table">
-            <caption class="tqa-sr">المسجلون في الكورس: الاسم وتاريخ التسجيل ونهاية الوصول</caption>
+            <caption class="tqa-sr"><?php echo t('المسجلون في الكورس: الاسم وتاريخ التسجيل ونهاية الوصول'); ?></caption>
             <thead>
                 <tr>
-                    <th>الطالب</th>
-                    <th>سجل في</th>
-                    <th>ينتهي وصوله</th>
+                    <th><?php echo t('الطالب'); ?></th>
+                    <th><?php echo t('سجل في'); ?></th>
+                    <th><?php echo t('ينتهي وصوله'); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -73,8 +73,7 @@ if ($tq_rows) {
                             <span class="tqa-media__title"><?php echo html_escape($tq_name ?: $tq_u['email']); ?></span>
                             <span class="tqa-media__sub"><?php echo html_escape($tq_u['email']); ?></span>
                         <?php else: ?>
-                            <span class="tqa-dim">حساب محذوف
-                                (<span class="tqa-num"><?php echo (int) $tq_e['user_id']; ?></span>)</span>
+                            <span class="tqa-dim"><?php echo t('حساب محذوف ('); ?><span class="tqa-num"><?php echo (int) $tq_e['user_id']; ?></span>)</span>
                         <?php endif; ?>
                     </td>
 
@@ -86,7 +85,7 @@ if ($tq_rows) {
                         <?php if (!empty($tq_e['expiry_date'])): ?>
                             <?php echo tqa_when($tq_e['expiry_date'], 'Y-m-d'); ?>
                         <?php else: ?>
-                            <span class="tqa-badge tqa-badge--ok">وصول دائم</span>
+                            <span class="tqa-badge tqa-badge--ok"><?php echo t('وصول دائم'); ?></span>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -96,7 +95,7 @@ if ($tq_rows) {
     </div>
 
     <p class="tqa-pager__info" style="padding:var(--tq-space-l) var(--tq-space-xl)">
-        <span class="tqa-num"><?php echo count($tq_rows); ?></span> مسجلا
+        <span class="tqa-num"><?php echo count($tq_rows); ?></span> <?php echo t('مسجلا'); ?>
     </p>
 
 <?php endif; ?>

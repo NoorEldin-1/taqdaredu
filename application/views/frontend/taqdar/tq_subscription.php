@@ -9,7 +9,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * غائبان — `portal_open.php` و`portal_close.php` — لا خطأ في منطقها.
  * وكل صفحة بوابة تفتح بهما، وهذه كانت الاستثناء الوحيد.
  */
-$labels = array('pending' => 'بانتظار السداد', 'active' => 'نشط', 'cancelled' => 'ملغى التجديد', 'expired' => 'منته');
+$labels = array('pending' => t('بانتظار السداد'), 'active' => t('نشط'), 'cancelled' => t('ملغى التجديد'), 'expired' => t('منته'));
 
 /* الحال الفعلية لا المخزنة: الكرون يمر ليلا، والطالب يقرأ الآن. */
 $eff = $current ? $current['status'] : null;
@@ -53,8 +53,8 @@ $tq_tone = array('pending' => 'due', 'active' => 'mastered',
 
 $tq_nav   = 'subscription';
 $tq_role  = 'student';
-$tq_title = 'اشتراكي';
-$tq_sub   = 'حالة اشتراكك وتاريخ انتهائه وفواتيرك.';
+$tq_title = t('اشتراكي');
+$tq_sub   = t('حالة اشتراكك وتاريخ انتهائه وفواتيرك.');
 $tq_icon  = 'wallet';
 
 include 'portal_open.php';
@@ -83,15 +83,15 @@ include 'portal_open.php';
         <div class="tq-card tq-card--panel">
             <div class="tq-row tq-row--between">
                 <div>
-                    <span class="tq-eyebrow">اختبار تحديد المستوى</span>
+                    <span class="tq-eyebrow"><?php echo t('اختبار تحديد المستوى'); ?></span>
                     <p class="tq-card__title" style="margin:0">موضعك: <?php echo html_escape($tq_lvl); ?></p>
                     <p class="tq-caption" style="margin:0">
                         <span class="tq-ltr"><?php echo (int) $tq_lv['score']; ?></span>
-                        من <span class="tq-ltr"><?php echo (int) $tq_lv['total']; ?></span> اجابة صحيحة
+                        <?php echo t('من'); ?> <span class="tq-ltr"><?php echo (int) $tq_lv['total']; ?></span> <?php echo t('اجابة صحيحة'); ?>
                     </p>
                 </div>
                 <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/placement'); ?>">
-                    التفاصيل والباقة الموصى بها
+                    <?php echo t('التفاصيل والباقة الموصى بها'); ?>
                 </a>
             </div>
         </div>
@@ -104,11 +104,11 @@ include 'portal_open.php';
                 <span class="tq-icon-box tq-pastel--sky" style="inline-size:64px;block-size:64px" aria-hidden="true">
                     <?php echo tq_icon('wallet', 30); ?>
                 </span>
-                <p class="tq-empty__title">لا اشتراك نشط</p>
+                <p class="tq-empty__title"><?php echo t('لا اشتراك نشط'); ?></p>
                 <p class="tq-empty__text">
-                    يمكنك تصفح الدروس المعلمة تجريبية، ويفتح الاشتراك المدفوع بقية المحتوى.
+                    <?php echo t('يمكنك تصفح الدروس المعلمة تجريبية، ويفتح الاشتراك المدفوع بقية المحتوى.'); ?>
                 </p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">اطلع على الباقات</a>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>"><?php echo t('اطلع على الباقات'); ?></a>
             </div>
         </div>
 
@@ -117,7 +117,7 @@ include 'portal_open.php';
         <div class="tq-card tq-card--panel tqs-head">
             <div class="tqs-head__top">
                 <div class="tqs-head__b">
-                    <span class="tq-eyebrow">باقتك الحالية</span>
+                    <span class="tq-eyebrow"><?php echo t('باقتك الحالية'); ?></span>
                     <h2 class="tq-card__title"><?php echo html_escape($current['plan_name']); ?></h2>
                 </div>
 <?php /* `$labels[$eff]` بلا حارس: `subscriptions.status` عمود نصي قد يحمل
@@ -133,17 +133,17 @@ include 'portal_open.php';
             /* الحقائق الأربع في صف بطاقات لا في `<dl>` عارية: المصطلح
                فوق قيمته، والقيمة بخط الأرقام — فتمسح العين الصف مرة. */
             $tq_facts = array(
-                array('القيمة', number_format(((int) $current['price']) / 100, 2) . ' ر.س', 'wallet'),
+                array(t('القيمة'), number_format(((int) $current['price']) / 100, 2) . t('ر.س'), 'wallet'),
             );
             if ($current['started_at']) {
-                $tq_facts[] = array('بدأ في', date('Y-m-d', strtotime($current['started_at'])), 'calendar');
+                $tq_facts[] = array(t('بدأ في'), date('Y-m-d', strtotime($current['started_at'])), 'calendar');
             }
             if ($current['ends_at']) {
-                $tq_facts[] = array($eff === 'cancelled' ? 'صالح حتى' : 'ينتهي في',
+                $tq_facts[] = array($eff === 'cancelled' ? t('صالح حتى') : t('ينتهي في'),
                                     date('Y-m-d', strtotime($current['ends_at'])), 'clock');
             }
             if ($tq_due) {
-                $tq_facts[] = array('مرجع الفاتورة', $tq_due['invoice_no'], 'file');
+                $tq_facts[] = array(t('مرجع الفاتورة'), $tq_due['invoice_no'], 'file');
             }
             ?>
             <dl class="tqs-facts">
@@ -160,15 +160,13 @@ include 'portal_open.php';
 
             <?php if ($tq_trial && in_array($eff, array('active', 'cancelled'), true)): ?>
                 <p class="tq-caption">
-                    هذه باقة تجريبية: تفتح الدروس المعلمة تجريبية وحدها، وبقية الدروس
-                    تبقى مقفلة حتى تشترك في باقة مدفوعة.
+                    <?php echo t('هذه باقة تجريبية: تفتح الدروس المعلمة تجريبية وحدها، وبقية الدروس تبقى مقفلة حتى تشترك في باقة مدفوعة.'); ?>
                 </p>
             <?php endif; ?>
 
             <?php if ($eff === 'pending'): ?>
                 <p class="tq-caption">
-                    صدرت فاتورتك وتنتظر السداد بالتحويل البنكي، ثم يفعل اشتراكك يدويا
-                    بعد التحقق من وصول الحوالة.
+                    <?php echo t('صدرت فاتورتك وتنتظر السداد بالتحويل البنكي، ثم يفعل اشتراكك يدويا بعد التحقق من وصول الحوالة.'); ?>
                 </p>
             <?php elseif ($eff === 'active'): ?>
                 <p class="tq-caption">
@@ -180,29 +178,28 @@ include 'portal_open.php';
                 <?php /* الإلغاء فعل لا يسترد، فيكون POST — ورابط GET ينفذ بمجرد جلبه. */ ?>
                 <div class="tqs-acts">
                     <a class="tq-btn tq-btn--primary tq-btn--sm" href="<?php echo base_url('student/bundle'); ?>">
-                        افتح محتوى الباقة
+                        <?php echo t('افتح محتوى الباقة'); ?>
                     </a>
                     <form method="post" action="<?php echo base_url('student/subscription_cancel'); ?>">
                         <button type="submit" class="tq-btn tq-btn--secondary tq-btn--sm">
-                            <?php echo $tq_trial ? 'إيقاف التجربة' : 'إيقاف التجديد'; ?>
+                            <?php echo $tq_trial ? t('إيقاف التجربة') : t('إيقاف التجديد'); ?>
                         </button>
                     </form>
                 </div>
             <?php elseif ($eff === 'cancelled'): ?>
                 <p class="tq-caption">
-                    أوقفت التجديد، ويبقى اشتراكك صالحا حتى تاريخ انتهائه أعلاه.
-                    ويمكنك من الآن اختيار باقة أخرى من صفحة الباقات.
+                    <?php echo t('أوقفت التجديد، ويبقى اشتراكك صالحا حتى تاريخ انتهائه أعلاه. ويمكنك من الآن اختيار باقة أخرى من صفحة الباقات.'); ?>
                 </p>
                 <div class="tqs-acts">
                     <a class="tq-btn tq-btn--primary tq-btn--sm" href="<?php echo base_url('student/bundle'); ?>">
-                        افتح محتوى الباقة
+                        <?php echo t('افتح محتوى الباقة'); ?>
                     </a>
-                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('plans'); ?>">الباقات</a>
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('plans'); ?>"><?php echo t('الباقات'); ?></a>
                 </div>
             <?php elseif ($eff === 'expired'): ?>
-                <p class="tq-caption">انتهت مدة هذا الاشتراك. يمكنك الاشتراك من جديد متى شئت.</p>
+                <p class="tq-caption"><?php echo t('انتهت مدة هذا الاشتراك. يمكنك الاشتراك من جديد متى شئت.'); ?></p>
                 <div class="tqs-acts">
-                    <a class="tq-btn tq-btn--primary tq-btn--sm" href="<?php echo base_url('plans'); ?>">الباقات</a>
+                    <a class="tq-btn tq-btn--primary tq-btn--sm" href="<?php echo base_url('plans'); ?>"><?php echo t('الباقات'); ?></a>
                 </div>
             <?php endif; ?>
         </div>
@@ -212,7 +209,7 @@ include 'portal_open.php';
     <?php if ($eff === 'pending' && $tq_due): ?>
         <div class="tq-card tq-card--panel">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">كيف تفعل اشتراكك</h2>
+                <h2 class="tq-card__title"><?php echo t('كيف تفعل اشتراكك'); ?></h2>
             </div>
 
             <?php if ($tq_card): ?>
@@ -222,8 +219,7 @@ include 'portal_open.php';
                          فاتورة معلقة، وبلا هذا الزر لا سبيل إلى دفعها بالبطاقة
                          إلا أن يشترك من جديد. */ ?>
                 <p class="tq-caption">
-                    ادفع فاتورتك بالبطاقة فيفعل اشتراكك في لحظته، أو حول قيمتها إلى
-                    الحساب أدناه ويفعل بعد التحقق من الحوالة.
+                    <?php echo t('ادفع فاتورتك بالبطاقة فيفعل اشتراكك في لحظته، أو حول قيمتها إلى الحساب أدناه ويفعل بعد التحقق من الحوالة.'); ?>
                 </p>
                 <div class="tqs-acts">
                     <form method="post" action="<?php echo base_url('student/pay-invoice'); ?>">
@@ -237,7 +233,7 @@ include 'portal_open.php';
                 </div>
             <?php else: ?>
                 <p class="tq-caption">
-                    حول قيمة الفاتورة إلى الحساب أدناه، واكتب رقم الفاتورة في خانة الملاحظات.
+                    <?php echo t('حول قيمة الفاتورة إلى الحساب أدناه، واكتب رقم الفاتورة في خانة الملاحظات.'); ?>
                 </p>
             <?php endif; ?>
 
@@ -249,19 +245,19 @@ include 'portal_open.php';
         <?php $tq_t = $tq_bundle['totals']; ?>
         <div class="tq-card tq-card--panel tqb-incl">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">باقتك تشمل</h2>
+                <h2 class="tq-card__title"><?php echo t('باقتك تشمل'); ?></h2>
                 <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('plan/' . $tq_bundle['code']); ?>">
-                    تفاصيل الباقة
+                    <?php echo t('تفاصيل الباقة'); ?>
                 </a>
             </div>
 
             <?php
             echo tqs_stat_strip(array(
-                array($tq_t['grades'],   'صفوف',    'i-cap'),
-                array($tq_t['subjects'], 'مادة',    'i-book'),
-                array($tq_t['units'],    'وحدة',    'i-grid'),
-                array($tq_t['lessons'],  'درسا',    'i-play'),
-                array($tq_t['quizzes'],  'اختبارا', 'i-clipboard'),
+                array($tq_t['grades'],   t('صفوف'),    'i-cap'),
+                array($tq_t['subjects'], t('مادة'),    'i-book'),
+                array($tq_t['units'],    t('وحدة'),    'i-grid'),
+                array($tq_t['lessons'],  t('درسا'),    'i-play'),
+                array($tq_t['quizzes'],  t('اختبارا'), 'i-clipboard'),
             ), 'tqb-stats');
             ?>
 
@@ -282,7 +278,7 @@ include 'portal_open.php';
 
             <?php if ($eff === 'active' || $eff === 'cancelled'): ?>
                 <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/bundle'); ?>">
-                    افتح محتوى الباقة
+                    <?php echo t('افتح محتوى الباقة'); ?>
                 </a>
             <?php endif; ?>
         </div>
@@ -298,20 +294,20 @@ include 'portal_open.php';
        صاحبها فعلا، وشاشة تخفيها تتركه ينتظر بلا رقم يحول به. */
     $tq_oc = isset($tq_owned_courses) ? (array) $tq_owned_courses : array();
     if ($tq_oc):
-        $tq_oc_labels = array('pending' => 'بانتظار السداد', 'active' => 'مفتوح',
-                              'cancelled' => 'مفتوح حتى أجله');
+        $tq_oc_labels = array('pending' => t('بانتظار السداد'), 'active' => t('مفتوح'),
+                              'cancelled' => t('مفتوح حتى أجله'));
         $tq_oc_tones  = array('pending' => 'due', 'active' => 'mastered', 'cancelled' => 'idle');
     ?>
         <div class="tq-card tq-card--panel">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">كورسات اشتريتها مفردة</h2>
+                <h2 class="tq-card__title"><?php echo t('كورسات اشتريتها مفردة'); ?></h2>
                 <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('catalog?type=course'); ?>">
-                    تصفح المزيد
+                    <?php echo t('تصفح المزيد'); ?>
                 </a>
             </div>
 
             <p class="tq-caption">
-                هذه مشتراة بذاتها، فلا يقفلها انتهاء اشتراكك في باقة ولا إيقاف تجديده.
+                <?php echo t('هذه مشتراة بذاتها، فلا يقفلها انتهاء اشتراكك في باقة ولا إيقاف تجديده.'); ?>
             </p>
 
             <ul class="tqb-subj">
@@ -363,7 +359,7 @@ include 'portal_open.php';
             if ($tq_oc_due && !$current):
             ?>
                 <p class="tq-caption">
-                    حول قيمة الفاتورة واذكر رقمها في التحويل، ويفتح الكورس بعد التحقق من الحوالة.
+                    <?php echo t('حول قيمة الفاتورة واذكر رقمها في التحويل، ويفتح الكورس بعد التحقق من الحوالة.'); ?>
                 </p>
                 <?php echo tqs_bank_block(); ?>
             <?php endif; ?>
@@ -372,32 +368,32 @@ include 'portal_open.php';
 
     <div class="tq-card tq-card--panel">
         <div class="tq-card__head">
-            <h2 class="tq-card__title">الفواتير</h2>
+            <h2 class="tq-card__title"><?php echo t('الفواتير'); ?></h2>
         </div>
 
         <?php if (empty($invoices)): ?>
-            <p class="tq-caption">لا فواتير بعد.</p>
+            <p class="tq-caption"><?php echo t('لا فواتير بعد.'); ?></p>
         <?php else: ?>
             <div class="tq-table-wrap">
                 <table class="tq-table">
                     <thead>
                         <tr>
-                            <th>رقم الفاتورة</th>
-                            <th>الإجمالي</th>
-                            <th>الحالة</th>
-                            <th>التاريخ</th>
+                            <th><?php echo t('رقم الفاتورة'); ?></th>
+                            <th><?php echo t('الإجمالي'); ?></th>
+                            <th><?php echo t('الحالة'); ?></th>
+                            <th><?php echo t('التاريخ'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
                     <?php foreach ($invoices as $inv): ?>
                         <tr>
                             <td><span class="tq-ltr" dir="ltr"><?php echo html_escape($inv['invoice_no']); ?></span></td>
-                            <td><span class="tq-ltr" dir="ltr"><?php echo number_format(((int) $inv['total']) / 100, 2); ?></span> ر.س</td>
+                            <td><span class="tq-ltr" dir="ltr"><?php echo number_format(((int) $inv['total']) / 100, 2); ?></span> <?php echo t('ر.س'); ?></td>
                             <td>
                                 <?php
-                                $tq_ist = $inv['status'] === 'paid' ? array('مدفوعة', 'mastered')
-                                        : ($inv['status'] === 'refunded' ? array('مستردة', 'idle')
-                                                                        : array('غير مدفوعة', 'due'));
+                                $tq_ist = $inv['status'] === 'paid' ? array(t('مدفوعة'), 'mastered')
+                                        : ($inv['status'] === 'refunded' ? array(t('مستردة'), 'idle')
+                                                                        : array(t('غير مدفوعة'), 'due'));
                                 ?>
                                 <span class="tq-badge tq-badge--<?php echo $tq_ist[1]; ?>"><?php echo $tq_ist[0]; ?></span>
                             </td>

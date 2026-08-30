@@ -25,7 +25,7 @@
     <?php /* TQ-QIMG · صورة داخل السؤال. وحقل الملف الفارغ يعني «اترك ما
              هو موجود» لا «احذفه» — والحذف خانة صريحة تحته. */ ?>
     <div class="tqa-field">
-        <label for="question_image">صورة السؤال <small>(اختياري)</small></label>
+        <label for="question_image"><?php echo t('صورة السؤال'); ?> <small><?php echo t('(اختياري)'); ?></small></label>
         <?php $tq_qimg = tq_qimage_url($question_details['image'] ?? ''); ?>
         <?php if ($tq_qimg !== ''): ?>
             <div class="mb-2">
@@ -33,13 +33,13 @@
                      style="max-width:220px;height:auto;border-radius:8px;display:block">
                 <label class="mt-1 d-inline-flex align-items-center" style="gap:6px">
                     <input type="checkbox" name="image_remove" value="1">
-                    <span>احذف الصورة الحالية</span>
+                    <span><?php echo t('احذف الصورة الحالية'); ?></span>
                 </label>
             </div>
         <?php endif; ?>
         <input type="file" name="image" id="question_image" class="tqa-input"
                accept="image/png,image/jpeg,image/gif,image/webp">
-        <small class="text-muted">jpg · png · gif · webp، وحتى 4 ميجابايت. ورفع صورة جديدة يستبدل القديمة.</small>
+        <small class="text-muted"><?php echo t('jpg · png · gif · webp، وحتى 4 ميجابايت. ورفع صورة جديدة يستبدل القديمة.'); ?></small>
     </div>
 
     <div id="quiz_fields_type_wize">

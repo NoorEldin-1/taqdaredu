@@ -38,7 +38,7 @@ if (!function_exists('tq_s_time')) {
     {
         $ts = (int) $ts;
         if ($ts <= 0) return '';
-        $mer = (int) date('G', $ts) < 12 ? 'ص' : 'م';
+        $mer = (int) date('G', $ts) < 12 ? t('ص') : t('م');
         return tq_num(date('g:i', $ts)) . ' ' . $mer;
     }
 }
@@ -76,8 +76,8 @@ if (!function_exists('tq_s_hours')) {
         $s = max(0, (int) $seconds);
         $h = intdiv($s, 3600);
         $m = intdiv($s % 3600, 60);
-        if ($h > 0) return $h . ' س ' . $m . ' د';
-        return $m . ' د';
+        if ($h > 0) return $h . t('س') . $m . t('د');
+        return $m . t('د');
     }
 }
 
@@ -86,10 +86,10 @@ if (!function_exists('tq_s_minutes')) {
     function tq_s_minutes($minutes)
     {
         $n = (int) $minutes;
-        if ($n === 1) return 'دقيقة';
-        if ($n === 2) return 'دقيقتان';
-        if ($n <= 10) return tq_iso($n . ' دقائق');
-        return tq_iso($n . ' دقيقة');
+        if ($n === 1) return t('دقيقة');
+        if ($n === 2) return t('دقيقتان');
+        if ($n <= 10) return tq_iso($n . t('دقائق'));
+        return tq_iso($n . t('دقيقة'));
     }
 }
 
@@ -120,8 +120,8 @@ if (!function_exists('tq_s_lessons_word')) {
     function tq_s_lessons_word($done, $total)
     {
         $total = (int) $total;
-        $word = $total === 1 ? 'درس' : ($total === 2 ? 'درسان' : ($total <= 10 ? 'دروس' : 'درسا'));
-        return tq_iso((int) $done . ' من ' . $total . ' ' . $word);
+        $word = $total === 1 ? t('درس') : ($total === 2 ? t('درسان') : ($total <= 10 ? t('دروس') : t('درسا')));
+        return tq_iso((int) $done . t('من') . $total . ' ' . $word);
     }
 }
 
@@ -200,7 +200,7 @@ if (!function_exists('tq_s_thumb')) {
         $fam  = tq_pastel($index);
         $html = '<div class="tq-s-thumb tq-s-thumb--' . $fam . '">';
         if ($src !== '') {
-            $html .= '<img src="' . html_escape($src) . '" alt="' . html_escape('غلاف ' . $title) . '" loading="lazy">';
+            $html .= '<img src="' . html_escape($src) . '" alt="' . html_escape(t('غلاف') . $title) . '" loading="lazy">';
         } else {
             $html .= '<span class="tq-s-thumb__glyph" aria-hidden="true">'
                   . html_escape(mb_substr(trim((string) $title), 0, 1, 'UTF-8')) . '</span>';
@@ -248,12 +248,12 @@ if (!function_exists('tq_s_when')) {
     function tq_s_when($ts)
     {
         $d = tq_s_days_left($ts);
-        if ($d < 0)  return ['kind' => 'late', 'text' => 'متأخرة'];
-        if ($d === 0) return ['kind' => 'late', 'text' => 'اليوم'];
-        if ($d === 1) return ['kind' => 'due',  'text' => 'غدا'];
-        if ($d === 2) return ['kind' => 'due',  'text' => 'بعد يومين'];
-        if ($d <= 10) return ['kind' => 'due',  'text' => tq_iso('بعد ' . $d . ' أيام')];
-        return ['kind' => 'progress', 'text' => tq_iso('بعد ' . $d . ' يوما')];
+        if ($d < 0)  return ['kind' => 'late', 'text' => t('متأخرة')];
+        if ($d === 0) return ['kind' => 'late', 'text' => t('اليوم')];
+        if ($d === 1) return ['kind' => 'due',  'text' => t('غدا')];
+        if ($d === 2) return ['kind' => 'due',  'text' => t('بعد يومين')];
+        if ($d <= 10) return ['kind' => 'due',  'text' => tq_iso(t('بعد') . $d . t('أيام'))];
+        return ['kind' => 'progress', 'text' => tq_iso(t('بعد') . $d . t('يوما'))];
     }
 }
 
@@ -272,7 +272,7 @@ if (!function_exists('tq_s_calendar')) {
         $days  = (int) date('t', $first);
         $today = (date('Y-n') === $y . '-' . $m) ? (int) date('j') : 0;
 
-        $names = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+        $names = [t('أحد'), t('إثنين'), t('ثلاثاء'), t('أربعاء'), t('خميس'), t('جمعة'), t('سبت')];
 
         $h  = '<table class="tq-s-cal"><caption class="tq-s-cal__cap">'
             . tq_iso(tq_s_month($m) . ' ' . $y) . '</caption><thead><tr>';
@@ -287,7 +287,7 @@ if (!function_exists('tq_s_calendar')) {
             $cls  = 'tq-s-cal__day';
             if ($kind !== '') $cls .= ' tq-s-cal__day--' . $kind;
             if ($d === $today) $cls .= ' tq-s-cal__day--today';
-            $sr = $d === $today ? '<span class="tq-sr">اليوم</span>' : '';
+            $sr = $d === $today ? t('<span class="tq-sr">اليوم</span>') : '';
             $h .= '<td><span class="' . $cls . '">' . tq_num($d, 'tq-num--sm') . $sr . '</span></td>';
             $col++;
         }

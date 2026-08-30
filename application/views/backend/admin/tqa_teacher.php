@@ -18,17 +18,17 @@ $tq_img   = $this->user_model->get_user_image_url((int) $row['id']);
 $tq_phone = tq_phone_pretty((string) $row['phone']);
 
 $tq_cards = array(
-    array('كورساته',        (int) $stats['courses'],   'المنشور منها ' . (int) $stats['published'], 'book'),
-    array('دروسه',          (int) $stats['lessons'],   'في كل كورساته',                             'play'),
-    array('طلابه',          (int) $stats['students'],  'المسجلون في كورساته',                        'users'),
-    array('برامجه',         (int) $stats['paths'],     'مسارات تعرض كورساته',                        'route'),
-    array('حصصه الخاصة',    (int) $stats['sessions'],  'بكل حالاتها',                                'video'),
-    array('قيود إيراده',    (int) $stats['shares'],    'من بيع الباقات',                             'wallet'),
+    array(t('كورساته'),        (int) $stats['courses'],   t('المنشور منها') . (int) $stats['published'], 'book'),
+    array(t('دروسه'),          (int) $stats['lessons'],   t('في كل كورساته'),                             'play'),
+    array(t('طلابه'),          (int) $stats['students'],  t('المسجلون في كورساته'),                        'users'),
+    array(t('برامجه'),         (int) $stats['paths'],     t('مسارات تعرض كورساته'),                        'route'),
+    array(t('حصصه الخاصة'),    (int) $stats['sessions'],  t('بكل حالاتها'),                                'video'),
+    array(t('قيود إيراده'),    (int) $stats['shares'],    t('من بيع الباقات'),                             'wallet'),
 );
 ?>
 
-<?php tqa_head('المعلم: ' . $tq_name,
-    'ما يدرسه، وكم عنده، وما دخل فيه من مال — قبل أن تعدل أو تحذف.',
+<?php tqa_head(t('المعلم:') . $tq_name,
+    t('ما يدرسه، وكم عنده، وما دخل فيه من مال — قبل أن تعدل أو تحذف.'),
     'user-check'); ?>
 
 <div class="tqa-card tqa-section">
@@ -39,12 +39,12 @@ $tq_cards = array(
 
         <div style="flex:1;min-inline-size:240px">
             <h2 style="margin:0 0 var(--tq-space-xs);font:var(--tq-type-h2);color:var(--tq-navy)">
-                <?php echo html_escape($tq_name ?: 'بلا اسم'); ?>
+                <?php echo html_escape($tq_name ?: t('بلا اسم')); ?>
                 <span class="tqa-badge tqa-badge--<?php echo $tq_on ? 'ok' : 'danger'; ?>">
-                    <?php echo $tq_on ? 'مفتوح' : 'مغلق'; ?>
+                    <?php echo $tq_on ? t('مفتوح') : t('مغلق'); ?>
                 </span>
                 <?php if ((int) $row['is_public'] === 1): ?>
-                    <span class="tqa-badge tqa-badge--info">معروض علنا</span>
+                    <span class="tqa-badge tqa-badge--info"><?php echo t('معروض علنا'); ?></span>
                 <?php endif; ?>
             </h2>
 
@@ -56,23 +56,23 @@ $tq_cards = array(
 
             <dl class="tqa-fieldgrid" style="margin:0">
                 <div>
-                    <dt class="tqa-field__label">البريد</dt>
+                    <dt class="tqa-field__label"><?php echo t('البريد'); ?></dt>
                     <dd class="tqa-num" style="margin:0" dir="ltr"><?php echo html_escape($row['email']); ?></dd>
                 </div>
                 <div>
-                    <dt class="tqa-field__label">الجوال</dt>
+                    <dt class="tqa-field__label"><?php echo t('الجوال'); ?></dt>
                     <dd class="tqa-num" style="margin:0" dir="ltr">
                         <?php echo $tq_phone !== '' ? html_escape($tq_phone) : '—'; ?>
                     </dd>
                 </div>
                 <div>
-                    <dt class="tqa-field__label">التسجيل</dt>
+                    <dt class="tqa-field__label"><?php echo t('التسجيل'); ?></dt>
                     <dd class="tqa-num" style="margin:0"><?php
                         echo !empty($row['date_added']) ? date('Y-m-d', (int) $row['date_added']) : '—';
                     ?></dd>
                 </div>
                 <div>
-                    <dt class="tqa-field__label">المعرف</dt>
+                    <dt class="tqa-field__label"><?php echo t('المعرف'); ?></dt>
                     <dd class="tqa-num" style="margin:0">#<?php echo (int) $row['id']; ?></dd>
                 </div>
             </dl>
@@ -81,7 +81,7 @@ $tq_cards = array(
 
     <?php if (trim((string) $row['skills']) !== ''): ?>
         <p style="margin:var(--tq-space-l) 0 0;font:var(--tq-type-caption);color:var(--tq-text2)">
-            <strong>المواد:</strong> <?php echo html_escape($row['skills']); ?>
+            <strong><?php echo t('المواد:'); ?></strong> <?php echo html_escape($row['skills']); ?>
         </p>
     <?php endif; ?>
 
@@ -99,24 +99,24 @@ $tq_cards = array(
 
         <?php /* الفتح والإغلاق POST كما في القائمة: يغير من يستطيع الدخول. */ ?>
         <form action="<?php echo site_url('taqdar_admin/people_toggle'); ?>" method="post" style="margin:0"
-              data-tqa-confirm-title="<?php echo $tq_on ? 'إغلاق الحساب' : 'فتح الحساب'; ?>"
+              data-tqa-confirm-title="<?php echo $tq_on ? t('إغلاق الحساب') : t('فتح الحساب'); ?>"
               data-tqa-confirm="<?php echo $tq_on
-                  ? 'لن يستطيع صاحبه الدخول. ولا يحذف شيء: كورساته وطلابه ومحفظته تبقى كما هي.'
-                  : 'سيستطيع صاحبه الدخول من جديد، ويستعيد كل ما كان له.'; ?>"
-              data-tqa-confirm-ok="<?php echo $tq_on ? 'أغلق الحساب' : 'افتح الحساب'; ?>"
+                  ? t('لن يستطيع صاحبه الدخول. ولا يحذف شيء: كورساته وطلابه ومحفظته تبقى كما هي.')
+                  : t('سيستطيع صاحبه الدخول من جديد، ويستعيد كل ما كان له.'); ?>"
+              data-tqa-confirm-ok="<?php echo $tq_on ? t('أغلق الحساب') : t('افتح الحساب'); ?>"
               <?php echo $tq_on ? 'data-tqa-confirm-tone="danger"' : ''; ?>>
             <?php echo tq_csrf(); ?>
             <input type="hidden" name="user_id" value="<?php echo (int) $row['id']; ?>">
             <input type="hidden" name="back" value="role=teacher">
             <button class="tqa-btn tqa-btn--ghost" type="submit">
                 <?php echo tq_icon($tq_on ? 'lock' : 'key', 16); ?>
-                <?php echo $tq_on ? 'أغلق الحساب' : 'افتح الحساب'; ?>
+                <?php echo $tq_on ? t('أغلق الحساب') : t('افتح الحساب'); ?>
             </button>
         </form>
 
         <?php if (empty($blockers)): ?>
             <form action="<?php echo site_url('taqdar_admin/teacher_delete'); ?>" method="post" style="margin:0"
-                  data-tqa-confirm-title="حذف الحساب"
+                  data-tqa-confirm-title="<?php echo te('حذف الحساب'); ?>"
                   data-tqa-confirm="يحذف الحساب وما لا معنى له بلا صاحبه. ولا رجعة فيه."
                   data-tqa-confirm-ok="احذف الحساب"
                   data-tqa-confirm-tone="danger">
@@ -129,7 +129,7 @@ $tq_cards = array(
         <?php endif; ?>
 
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/people?role=teacher'); ?>">
-            عد إلى الحسابات
+            <?php echo t('عد إلى الحسابات'); ?>
         </a>
     </div>
 </div>
@@ -158,18 +158,17 @@ $tq_cards = array(
     <div class="tqa-note tqa-note--warn">
         <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
         <span>
-            <strong>هذا الحساب لا يحذف:</strong> <?php echo html_escape(implode(' · ', $blockers)); ?>.
+            <strong><?php echo t('هذا الحساب لا يحذف:'); ?></strong> <?php echo html_escape(implode(' · ', $blockers)); ?>.
             وحذفه يترك كورسا بلا صاحب وسجلا ماليا يقول «معلم #<?php echo (int) $row['id']; ?>»
             لا يعرف أحد من كان — والضرر في القراءة وهو لا يرجع.
-            <strong>والإغلاق هو ما تريده غالبا</strong>: يمنع الدخول ولا يفقد شيئا.
+            <strong><?php echo t('والإغلاق هو ما تريده غالبا'); ?></strong><?php echo t(': يمنع الدخول ولا يفقد شيئا.'); ?>
         </span>
     </div>
 <?php else: ?>
     <div class="tqa-note">
         <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
         <span>
-            هذا الحساب لم يبدأ بعد: بلا كورس ولا حصة ولا قيد مال — فالحذف متاح.
-            ومتى نشر درسا أو دخل في قيد صار الإغلاق هو الباب.
+            <?php echo t('هذا الحساب لم يبدأ بعد: بلا كورس ولا حصة ولا قيد مال — فالحذف متاح. ومتى نشر درسا أو دخل في قيد صار الإغلاق هو الباب.'); ?>
         </span>
     </div>
 <?php endif; ?>

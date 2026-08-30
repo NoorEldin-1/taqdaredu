@@ -13,10 +13,10 @@
  * أضعافها — وكانت كل شاشة تعرضها بيدها أو لا تعرضها. فمن يحفظ في شاشة
  * لم تكتب سطر العرض لا يقال له «حفظ» ولا «لم يحفظ».
  */
-$system_title        = get_settings('system_title') ?: 'منصة تقدر التعليمية';
+$system_title        = get_settings('system_title') ?: t('منصة تقدر التعليمية');
 $logged_in_user_role = strtolower($this->session->userdata('role'));
 $page_name           = isset($page_name) ? $page_name : 'dashboard';
-$page_title          = isset($page_title) ? $page_title : 'لوحة الإدارة';
+$page_title          = isset($page_title) ? $page_title : t('لوحة الإدارة');
 
 /* TQ-I18N — اللغة والاتجاه من `tq_lang()` وحدها، كالواجهة الأمامية. */
 $tqa_active = tq_lang();

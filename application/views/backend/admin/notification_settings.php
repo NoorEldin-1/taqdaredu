@@ -28,35 +28,35 @@ $tq_tab  = isset($tab) ? $tab : 'smtp-settings';
 $tq_rows = $this->db->get('notification_settings')->result_array();
 
 $tq_tabs = array(
-    'smtp-settings'  => array('إعدادات البريد الصادر', 'send'),
-    'email-template' => array('قوالب الرسائل',          'mail'),
-    'notification'   => array('ما يرسل ولمن',           'bell'),
+    'smtp-settings'  => array(t('إعدادات البريد الصادر'), 'send'),
+    'email-template' => array(t('قوالب الرسائل'),          'mail'),
+    'notification'   => array(t('ما يرسل ولمن'),           'bell'),
 );
 if (!isset($tq_tabs[$tq_tab])) $tq_tab = 'smtp-settings';
 
 /** أسماء الأدوار — كانت تعرض `get_phrase('To student')` فتخرج إنجليزية. */
 $tq_roles = array(
-    'student'    => 'الطالب',
-    'instructor' => 'المعلم',
-    'teacher'    => 'المعلم',
-    'parent'     => 'ولي الأمر',
-    'admin'      => 'الإدارة',
+    'student'    => t('الطالب'),
+    'instructor' => t('المعلم'),
+    'teacher'    => t('المعلم'),
+    'parent'     => t('ولي الأمر'),
+    'admin'      => t('الإدارة'),
 );
 $tq_role = function ($k) use ($tq_roles) { return $tq_roles[$k] ?? $k; };
 
 $tq_smtp = array(
-    'protocol'        => array('البروتوكول', 'smtp أو ssmtp أو mail', true, 'text'),
-    'smtp_crypto'     => array('التشفير', 'ssl أو tls', false, 'text'),
-    'smtp_host'       => array('الخادم', 'مثال: smtp.gmail.com', true, 'text'),
-    'smtp_port'       => array('المنفذ', '587 مع tls، و465 مع ssl', true, 'text'),
-    'smtp_from_email' => array('يرسل من', 'العنوان الذي يظهر للمستقبل', true, 'email'),
-    'smtp_user'       => array('اسم المستخدم', 'غالبا هو العنوان نفسه', true, 'text'),
+    'protocol'        => array(t('البروتوكول'), t('smtp أو ssmtp أو mail'), true, 'text'),
+    'smtp_crypto'     => array(t('التشفير'), t('ssl أو tls'), false, 'text'),
+    'smtp_host'       => array(t('الخادم'), t('مثال: smtp.gmail.com'), true, 'text'),
+    'smtp_port'       => array(t('المنفذ'), t('587 مع tls، و465 مع ssl'), true, 'text'),
+    'smtp_from_email' => array(t('يرسل من'), t('العنوان الذي يظهر للمستقبل'), true, 'email'),
+    'smtp_user'       => array(t('اسم المستخدم'), t('غالبا هو العنوان نفسه'), true, 'text'),
 );
 ?>
 
-<?php tqa_head('إشعارات الموقع', 'من أين يرسل البريد، وبأي نص، وإلى من.', 'bell'); ?>
+<?php tqa_head(t('إشعارات الموقع'), t('من أين يرسل البريد، وبأي نص، وإلى من.'), 'bell'); ?>
 
-<nav class="tqa-tabs" aria-label="أقسام الإشعارات">
+<nav class="tqa-tabs" aria-label="<?php echo te('أقسام الإشعارات'); ?>">
     <?php foreach ($tq_tabs as $tq_k => [$tq_label, $tq_icon]): ?>
         <a href="<?php echo site_url('admin/notification_settings') . '?tab=' . $tq_k; ?>"
            <?php echo $tq_tab === $tq_k ? 'aria-current="page"' : ''; ?>>
@@ -74,7 +74,7 @@ $tq_smtp = array(
 
             <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
                 <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('send', 20); ?></span>
-                <h2>البريد الصادر</h2>
+                <h2><?php echo t('البريد الصادر'); ?></h2>
             </div>
 
             <div class="tqa-fieldgrid">
@@ -95,7 +95,7 @@ $tq_smtp = array(
 
                 <div class="tqa-field tqa-field--full">
                     <label class="tqa-field__label" for="smtp_pass">
-                        كلمة المرور <span class="tqa-field__req" aria-hidden="true">*</span>
+                        <?php echo t('كلمة المرور'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                     </label>
                     <div class="tqa-row" style="flex-wrap:nowrap">
                         <input class="tqa-input tqa-input--ltr" type="password" id="smtp_pass" name="smtp_pass"
@@ -105,11 +105,11 @@ $tq_smtp = array(
                                  المرور تظهر بمجرد وضع المؤشر في الحقل. */ ?>
                         <button type="button" class="tqa-btn tqa-btn--ghost" data-tqa-reveal="smtp_pass"
                                 aria-pressed="false">
-                            <?php echo tq_icon('eye', 16); ?> <span>أظهر</span>
+                            <?php echo tq_icon('eye', 16); ?> <span><?php echo t('أظهر'); ?></span>
                         </button>
                     </div>
                     <span class="tqa-field__hint">
-                        مع Gmail تستعمل «كلمة مرور التطبيقات» لا كلمة مرور الحساب.
+                        <?php echo t('مع Gmail تستعمل «كلمة مرور التطبيقات» لا كلمة مرور الحساب.'); ?>
                     </span>
                 </div>
             </div>
@@ -125,8 +125,7 @@ $tq_smtp = array(
             <div class="tqa-note tqa-note--warn">
                 <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
                 <span>
-                    كل رسالة تخرج من المنصة تمر من هنا: تأكيد الحساب، واستعادة كلمة المرور،
-                    وتنبيهات ولي الأمر. فإعداد خاطئ هنا لا يظهر في شاشة — يظهر في رسائل لا تصل.
+                    <?php echo t('كل رسالة تخرج من المنصة تمر من هنا: تأكيد الحساب، واستعادة كلمة المرور، وتنبيهات ولي الأمر. فإعداد خاطئ هنا لا يظهر في شاشة — يظهر في رسائل لا تصل.'); ?>
                 </span>
             </div>
         </aside>
@@ -136,17 +135,17 @@ $tq_smtp = array(
 
     <div class="tqa-card tqa-card--flush">
         <?php if (empty($tq_rows)): ?>
-            <?php tqa_empty('لا قوالب بريد', 'تنشأ مع تركيب النظام.', '', '', 'mail'); ?>
+            <?php tqa_empty(t('لا قوالب بريد'), t('تنشأ مع تركيب النظام.'), '', '', 'mail'); ?>
         <?php else: ?>
             <div class="tqa-table__wrap">
                 <table class="tqa-table">
-                    <caption class="tqa-sr">قوالب رسائل البريد وعناوينها لكل دور</caption>
+                    <caption class="tqa-sr"><?php echo t('قوالب رسائل البريد وعناوينها لكل دور'); ?></caption>
                     <thead>
                         <tr>
                             <th style="inline-size:60px">#</th>
-                            <th>نوع الرسالة</th>
-                            <th>العنوان المرسل</th>
-                            <th style="inline-size:120px"><span class="tqa-sr">إجراءات</span></th>
+                            <th><?php echo t('نوع الرسالة'); ?></th>
+                            <th><?php echo t('العنوان المرسل'); ?></th>
+                            <th style="inline-size:120px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -171,7 +170,7 @@ $tq_smtp = array(
                                         </div>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <span class="tqa-dim">بلا عنوان</span>
+                                    <span class="tqa-dim"><?php echo t('بلا عنوان'); ?></span>
                                 <?php endif; ?>
                             </td>
 
@@ -194,11 +193,11 @@ $tq_smtp = array(
     <div class="tqa-card">
         <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
             <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('bell', 20); ?></span>
-            <h2>ما يرسل ولمن</h2>
+            <h2><?php echo t('ما يرسل ولمن'); ?></h2>
         </div>
 
         <p style="margin:0 0 var(--tq-space-l);font:var(--tq-type-caption);color:var(--tq-text2)">
-            «إشعار المنصة» يظهر في جرس الحساب. و«إشعار البريد» يرسل رسالة. والمفتاح يحفظ فور تبديله.
+            <?php echo t('«إشعار المنصة» يظهر في جرس الحساب. و«إشعار البريد» يرسل رسالة. والمفتاح يحفظ فور تبديله.'); ?>
         </p>
 
         <?php foreach ($tq_rows as $tq_r):
@@ -216,7 +215,7 @@ $tq_smtp = array(
                     <span class="tqa-prefrow__title">
                         <?php echo html_escape($tq_r['setting_title']); ?>
                         <?php if ($tq_locked): ?>
-                            <span class="tqa-badge tqa-badge--warn">لا يعدل</span>
+                            <span class="tqa-badge tqa-badge--warn"><?php echo t('لا يعدل'); ?></span>
                         <?php endif; ?>
                     </span>
                     <span class="tqa-prefrow__hint"><?php echo html_escape($tq_r['setting_sub_title']); ?></span>
@@ -230,8 +229,8 @@ $tq_smtp = array(
                             </span>
 
                             <?php foreach (array(
-                                'system' => array('إشعار المنصة', !empty($tq_sys[$tq_t])),
-                                'email'  => array('إشعار البريد', !empty($tq_mail[$tq_t])),
+                                'system' => array(t('إشعار المنصة'), !empty($tq_sys[$tq_t])),
+                                'email'  => array(t('إشعار البريد'), !empty($tq_mail[$tq_t])),
                             ) as $tq_kind => [$tq_lbl, $tq_val]):
                                 $tq_dom = $tq_r['id'] . '-' . $tq_t . '-' . $tq_kind;
                             ?>

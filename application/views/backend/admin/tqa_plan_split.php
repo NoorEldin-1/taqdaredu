@@ -58,7 +58,7 @@ foreach ($wmap as $entries) {
 /** هللات ⇐ نص ريالات. الخانتان تظهران حين يكون فيه هللات، فلا يدور مال. */
 $money = function ($halalas) {
     $h = (int) $halalas;
-    return number_format($h / 100, ($h % 100 === 0) ? 0 : 2) . ' ر.س';
+    return number_format($h / 100, ($h % 100 === 0) ? 0 : 2) . t('ر.س');
 };
 ?>
 
@@ -71,12 +71,9 @@ $money = function ($halalas) {
 
     <div class="tqa-card__head">
         <div>
-            <h2 class="tqa-reach__title">قسمة إيراد هذه الباقة</h2>
+            <h2 class="tqa-reach__title"><?php echo t('قسمة إيراد هذه الباقة'); ?></h2>
             <p class="tqa-reach__lead">
-                الوعاء يقسم على المعلمين <b>بعدد دروسهم</b> لا بعدد كورساتهم — فمن وضع
-                منهجه في كورس واحد فيه مئة درس لا يأخذ مثل من فرق ثلاثين درسا على ثلاثة
-                كورسات. ونسبة كل مسار في شاشة «المسارات التعليمية» تزن دروسه: مسار نسبته
-                30 تزن دروسه ضعف مسار نسبته 15.
+                <?php echo t('الوعاء يقسم على المعلمين'); ?> <b><?php echo t('بعدد دروسهم'); ?></b> <?php echo t('لا بعدد كورساتهم — فمن وضع منهجه في كورس واحد فيه مئة درس لا يأخذ مثل من فرق ثلاثين درسا على ثلاثة كورسات. ونسبة كل مسار في شاشة «المسارات التعليمية» تزن دروسه: مسار نسبته 30 تزن دروسه ضعف مسار نسبته 15.'); ?>
             </p>
         </div>
     </div>
@@ -89,25 +86,24 @@ $money = function ($halalas) {
                  style="flex:<?php echo max(1, (int) $split['platform_percent']); ?>"
                  data-tqa-split-seg="platform">
                 <b data-tqa-split-n="platform_money"><?php echo $money($split['platform']); ?></b>
-                <span>المنصة · <i data-tqa-split-n="platform_pct"><?php echo (float) $split['platform_percent']; ?></i>%</span>
+                <span><?php echo t('المنصة ·'); ?> <i data-tqa-split-n="platform_pct"><?php echo (float) $split['platform_percent']; ?></i>%</span>
             </div>
             <div class="tqa-split__seg tqa-split__seg--pool"
                  style="flex:<?php echo max(1, (int) $split['pool_percent']); ?>"
                  data-tqa-split-seg="pool">
                 <b data-tqa-split-n="pool_money"><?php echo $money($split['pool']); ?></b>
-                <span>المعلمون · <i data-tqa-split-n="pool_pct"><?php echo (float) $split['pool_percent']; ?></i>%</span>
+                <span><?php echo t('المعلمون ·'); ?> <i data-tqa-split-n="pool_pct"><?php echo (float) $split['pool_percent']; ?></i>%</span>
             </div>
         </div>
 
         <p class="tqa-split__basis" data-tqa-split-basis
            <?php echo $is_def ? '' : 'hidden'; ?>>
-            هذه الباقة على النسبة الافتراضية العامة
-            (<b><?php echo (float) $default; ?>%</b>) — اكتب نسبة في الحقل أعلاه لتخصها وحدها.
+            <?php echo t('هذه الباقة على النسبة الافتراضية العامة ('); ?><b><?php echo (float) $default; ?>%</b><?php echo t(') — اكتب نسبة في الحقل أعلاه لتخصها وحدها.'); ?>
         </p>
 
         <p class="tqa-reach__note" data-tqa-split-noprice
            <?php echo ((int) $split['gross'] <= 0) ? '' : 'hidden'; ?>>
-            الباقة بلا سعر بعد، فالأرقام أعلاه أصفار. ضع سعرها لترى القسمة بالريال.
+            <?php echo t('الباقة بلا سعر بعد، فالأرقام أعلاه أصفار. ضع سعرها لترى القسمة بالريال.'); ?>
         </p>
 
         <?php /* ثم من يأخذ ماذا. وهذا ما لا يعرف بحساب ذهني.
@@ -116,7 +112,7 @@ $money = function ($halalas) {
                  للمحفوظ لا لوحة فارغة. */ ?>
         <div class="tqa-reach__vis tqa-reach__vis--no" data-tqa-split-empty
              <?php echo $split['rows'] ? 'hidden' : ''; ?>>
-            <b>لا معلم يستحق</b>
+            <b><?php echo t('لا معلم يستحق'); ?></b>
             <span data-tqa-split-empty-why>
                 <?php if (!$REV->plan_grade_ids($plan) && $plan['scope'] === 'grade'): ?>
                     اختر صفوف الباقة أولا — القسمة تقرأ مسارات هذه الصفوف.
@@ -134,10 +130,10 @@ $money = function ($halalas) {
             <table class="tqa-split__table" data-tqa-split-table>
                 <thead>
                     <tr>
-                        <th>المعلم</th>
-                        <th>دروسه في الباقة</th>
-                        <th>وزنه</th>
-                        <th>حصته من كل بيعة</th>
+                        <th><?php echo t('المعلم'); ?></th>
+                        <th><?php echo t('دروسه في الباقة'); ?></th>
+                        <th><?php echo t('وزنه'); ?></th>
+                        <th><?php echo t('حصته من كل بيعة'); ?></th>
                     </tr>
                 </thead>
                 <tbody data-tqa-split-body>
@@ -151,7 +147,7 @@ $money = function ($halalas) {
                                     $titles = array();
                                     foreach ($r['paths'] as $p) $titles[] = $p['title'];
                                     echo html_escape(implode(' · ', array_slice($titles, 0, 3)));
-                                    if (count($titles) > 3) echo ' وغيرها';
+                                    if (count($titles) > 3) echo t('وغيرها');
                                     ?>
                                 </span>
                             </td>
@@ -166,7 +162,7 @@ $money = function ($halalas) {
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td>مجموع المعلمين</td>
+                        <td><?php echo t('مجموع المعلمين'); ?></td>
                         <td data-tqa-split-n="lessons_total"><?php echo (int) $split['lessons_total']; ?> درسا</td>
                         <td>100%</td>
                         <td><b data-tqa-split-n="pool_money2"><?php echo $money($split['pool']); ?></b></td>
@@ -175,8 +171,7 @@ $money = function ($halalas) {
             </table>
 
             <p class="tqa-split__closed">
-                مجموع الحصص يساوي الوعاء بالضبط مهما كثر المعلمون — لا هللة تضيع ولا هللة
-                تخترع. فدخول معلم ثامن يقسم الوعاء نفسه على ثمانية، ولا يزيد ما تدفعه المنصة.
+                <?php echo t('مجموع الحصص يساوي الوعاء بالضبط مهما كثر المعلمون — لا هللة تضيع ولا هللة تخترع. فدخول معلم ثامن يقسم الوعاء نفسه على ثمانية، ولا يزيد ما تدفعه المنصة.'); ?>
             </p>
 
         </div>
@@ -184,7 +179,7 @@ $money = function ($halalas) {
         <?php /* المحتوى الذي لا صاحب له: يعلن هنا لا يكتشف من شكوى. */ ?>
         <?php if ((int) $split['orphans']['paths'] > 0): ?>
             <p class="tqa-reach__note">
-                و<b><?php echo (int) $split['orphans']['paths']; ?></b> مسارا في نطاق هذه
+                <?php echo t('و'); ?><b><?php echo (int) $split['orphans']['paths']; ?></b> مسارا في نطاق هذه
                 الباقة خارج القسمة — بلا معلم مسند أو بلا دورة مرتبطة أو بلا درس منشور.
                 <?php if ((int) $split['orphans']['lessons'] > 0): ?>
                     ومنها <b><?php echo (int) $split['orphans']['lessons']; ?></b> درسا يفتحه
@@ -197,10 +192,8 @@ $money = function ($halalas) {
         <?php if ($rid > 0): $sold = $REV->plan_sales($rid); ?>
             <?php if ($sold['count'] > 0): ?>
                 <p class="tqa-split__sold">
-                    بيعت هذه الباقة <b><?php echo (int) $sold['count']; ?></b> مرة، ووزع عن مبيعاتها
-                    <b><?php echo $money($sold['paid']); ?></b> على معلميها.
-                    وتعديل النسبة الآن يخص ما يباع بعده وحده — القسمة تجمد وقت التفعيل،
-                    فمن اشترك أمس قسم ماله على نسبة أمس.
+                    <?php echo t('بيعت هذه الباقة'); ?> <b><?php echo (int) $sold['count']; ?></b> <?php echo t('مرة، ووزع عن مبيعاتها'); ?>
+                    <b><?php echo $money($sold['paid']); ?></b> <?php echo t('على معلميها. وتعديل النسبة الآن يخص ما يباع بعده وحده — القسمة تجمد وقت التفعيل، فمن اشترك أمس قسم ماله على نسبة أمس.'); ?>
                 </p>
             <?php endif; ?>
         <?php endif; ?>

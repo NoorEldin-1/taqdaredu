@@ -9,15 +9,14 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 ?>
 
-<?php tqa_head('نصوص الصفحات',
-    'عناوين الصفحات العامة ونصوصها — تحرر من هنا وتظهر على الموقع فورا، بلا نشر.',
+<?php tqa_head(t('نصوص الصفحات'),
+    t('عناوين الصفحات العامة ونصوصها — تحرر من هنا وتظهر على الموقع فورا، بلا نشر.'),
     'edit'); ?>
 
 <div class="tqa-note" style="margin-block-end:var(--tq-space-xl)">
     <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
     <span>
-        الحقل الذي يترك فارغا يرجع إلى النص الأصلي المكتوب في القالب — لا يمسح العنوان.
-        فإن أردت التراجع عن تعديل، امسح الحقل واحفظ.
+        <?php echo t('الحقل الذي يترك فارغا يرجع إلى النص الأصلي المكتوب في القالب — لا يمسح العنوان. فإن أردت التراجع عن تعديل، امسح الحقل واحفظ.'); ?>
     </span>
 </div>
 
@@ -44,19 +43,19 @@ defined('BASEPATH') or exit('No direct script access allowed');
         <div style="display:flex;align-items:center;gap:var(--tq-space-s);margin-block-end:var(--tq-space-l)">
             <?php if ($n > 0): ?>
                 <span class="tqa-badge tqa-badge--ok">
-                    حرر <span class="tqa-num"><?php echo $n; ?></span>
-                    من <span class="tqa-num"><?php echo $total; ?></span>
+                    <?php echo t('حرر'); ?> <span class="tqa-num"><?php echo $n; ?></span>
+                    <?php echo t('من'); ?> <span class="tqa-num"><?php echo $total; ?></span>
                 </span>
             <?php else: ?>
                 <span class="tqa-badge tqa-badge--muted">
-                    <span class="tqa-num"><?php echo $total; ?></span> حقلا بنصها الأصلي
+                    <span class="tqa-num"><?php echo $total; ?></span> <?php echo t('حقلا بنصها الأصلي'); ?>
                 </span>
             <?php endif; ?>
         </div>
 
         <div style="display:flex;gap:var(--tq-space-s)">
             <a class="tqa-btn tqa-btn--primary tqa-btn--sm"
-               href="<?php echo site_url('taqdar_admin/content/' . $key); ?>">حرر النصوص</a>
+               href="<?php echo site_url('taqdar_admin/content/' . $key); ?>"><?php echo t('حرر النصوص'); ?></a>
             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                href="<?php echo base_url($p['route']); ?>" target="_blank" rel="noopener">
                 <?php echo tq_icon('eye', 15); ?> عاين

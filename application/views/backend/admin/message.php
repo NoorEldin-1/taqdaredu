@@ -42,28 +42,28 @@ if ($tq_others) {
 $tq_current = isset($current_message_thread_code) ? $current_message_thread_code : '';
 ?>
 
-<?php tqa_head('الرسائل الخاصة', 'محادثات الإدارة مع الطلاب والمعلمين.', 'chat',
+<?php tqa_head(t('الرسائل الخاصة'), t('محادثات الإدارة مع الطلاب والمعلمين.'), 'chat',
     '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/message/message_new') . '">'
-  . tq_icon('edit', 16) . ' رسالة جديدة</a>'); ?>
+  . tq_icon('edit', 16) . t('رسالة جديدة</a>')); ?>
 
 <div class="tqa-chat">
 
     <aside class="tqa-card tqa-card--flush">
         <div class="tqa-card__head" style="padding:var(--tq-space-m) var(--tq-space-l)">
-            <h2 style="font:var(--tq-type-bodyStrong);font-family:var(--tq-font-title)">المحادثات</h2>
+            <h2 style="font:var(--tq-type-bodyStrong);font-family:var(--tq-font-title)"><?php echo t('المحادثات'); ?></h2>
         </div>
 
         <?php if (empty($tq_threads)): ?>
             <p style="padding:var(--tq-space-l);margin:0;font:var(--tq-type-caption);color:var(--tq-text2)">
-                لا محادثات بعد. ابدأ واحدة من زر «رسالة جديدة».
+                <?php echo t('لا محادثات بعد. ابدأ واحدة من زر «رسالة جديدة».'); ?>
             </p>
         <?php else: ?>
-            <nav class="tqa-threads" style="padding:var(--tq-space-s)" aria-label="قائمة المحادثات">
+            <nav class="tqa-threads" style="padding:var(--tq-space-s)" aria-label="<?php echo te('قائمة المحادثات'); ?>">
                 <?php foreach ($tq_threads as $tq_t):
                     $tq_code  = $tq_t['message_thread_code'];
                     $tq_who   = $tq_people[$tq_others[$tq_code]] ?? null;
                     $tq_label = $tq_who ? trim($tq_who['first_name'] . ' ' . $tq_who['last_name']) : '';
-                    if ($tq_label === '') $tq_label = $tq_who ? $tq_who['email'] : 'حساب محذوف';
+                    if ($tq_label === '') $tq_label = $tq_who ? $tq_who['email'] : t('حساب محذوف');
                     $tq_unread = (int) $this->crud_model->count_unread_message_of_thread($tq_code);
                 ?>
                     <a class="tqa-thread" href="<?php echo site_url('admin/message/message_read/' . $tq_code); ?>"
@@ -71,7 +71,7 @@ $tq_current = isset($current_message_thread_code) ? $current_message_thread_code
                         <span class="tqa-thread__name"><?php echo html_escape($tq_label); ?></span>
                         <?php if ($tq_unread > 0): ?>
                             <span class="tqa-thread__count"><?php echo $tq_unread; ?></span>
-                            <span class="tqa-sr">رسالة غير مقروءة</span>
+                            <span class="tqa-sr"><?php echo t('رسالة غير مقروءة'); ?></span>
                         <?php endif; ?>
                     </a>
                 <?php endforeach; ?>

@@ -47,19 +47,17 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
 ?>
 
 <?php tqa_head(
-    $tq_edit ? 'تعديل المعلم' : 'إضافة معلم',
+    $tq_edit ? t('تعديل المعلم') : t('إضافة معلم'),
     $tq_edit
-        ? 'ما يعدل هنا يظهر في صفحته العامة وفي حسابه. وكلمة المرور تترك فارغة فلا تمس.'
-        : 'حساب يفتح في الحال: لا رمز تأكيد ولا مراجعة طلب — يدخل صاحبه ببريده وكلمة مروره.',
+        ? t('ما يعدل هنا يظهر في صفحته العامة وفي حسابه. وكلمة المرور تترك فارغة فلا تمس.')
+        : t('حساب يفتح في الحال: لا رمز تأكيد ولا مراجعة طلب — يدخل صاحبه ببريده وكلمة مروره.'),
     'user-check'); ?>
 
 <?php if (!$tq_edit): ?>
     <div class="tqa-note tqa-section">
         <span aria-hidden="true"><?php echo tq_icon('check-badge', 18); ?></span>
         <span>
-            هذا الباب <strong>للمعلم الذي تعرفه الإدارة</strong> — من تعاقدت معه وبيدها بياناته.
-            فالحساب ينشأ مفتوحا معتمدا مؤكدا، ولا يمر على «طلبات المعلمين» ولا على رمز
-            التحقق. ومن يطرق الباب من خارج يبقى مساره صفحة التسجيل بمحطاتها الثلاث.
+            <?php echo t('هذا الباب'); ?> <strong><?php echo t('للمعلم الذي تعرفه الإدارة'); ?></strong> <?php echo t('— من تعاقدت معه وبيدها بياناته. فالحساب ينشأ مفتوحا معتمدا مؤكدا، ولا يمر على «طلبات المعلمين» ولا على رمز التحقق. ومن يطرق الباب من خارج يبقى مساره صفحة التسجيل بمحطاتها الثلاث.'); ?>
         </span>
     </div>
 <?php endif; ?>
@@ -68,7 +66,7 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
     <div class="tqa-note tqa-note--warn tqa-section">
         <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
         <span>
-            <strong><?php echo $tq_edit ? 'لم يحفظ التعديل.' : 'لم ينشأ الحساب.'; ?></strong>
+            <strong><?php echo $tq_edit ? t('لم يحفظ التعديل.') : t('لم ينشأ الحساب.'); ?></strong>
             <ul style="margin:var(--tq-space-xs) 0 0;padding-inline-start:var(--tq-space-l)">
                 <?php foreach ($errors as $tq_e): ?>
                     <li><?php echo html_escape($tq_e); ?></li>
@@ -86,13 +84,13 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
     <div class="tqa-card tqa-section">
         <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
             <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('user', 20); ?></span>
-            <h2>هويته</h2>
+            <h2><?php echo t('هويته'); ?></h2>
         </div>
 
         <div class="tqa-fieldgrid">
             <div class="tqa-field">
                 <label class="tqa-field__label" for="first_name">
-                    الاسم الأول <span class="tqa-field__req" aria-hidden="true">*</span>
+                    <?php echo t('الاسم الأول'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                 </label>
                 <input class="tqa-input" type="text" id="first_name" name="first_name"
                        required maxlength="40" value="<?php echo html_escape($tq_o('first_name')); ?>">
@@ -100,7 +98,7 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
 
             <div class="tqa-field">
                 <label class="tqa-field__label" for="last_name">
-                    اسم العائلة <span class="tqa-field__req" aria-hidden="true">*</span>
+                    <?php echo t('اسم العائلة'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                 </label>
                 <input class="tqa-input" type="text" id="last_name" name="last_name"
                        required maxlength="40" value="<?php echo html_escape($tq_o('last_name')); ?>">
@@ -110,7 +108,7 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
                      ومنتقي الدولة يبدل المثال مع اختياره، فمن بدل إلى «مصر» ورأى
                      مثالا سعوديا كتب رقما سعودي الشكل ثم رفض. */ ?>
             <div class="tqa-field">
-                <label class="tqa-field__label" for="phone">الجوال</label>
+                <label class="tqa-field__label" for="phone"><?php echo t('الجوال'); ?></label>
                 <div style="display:flex;gap:var(--tq-space-s)">
                     <select class="tqa-select" id="phone_cc" name="phone_cc"
                             style="inline-size:clamp(140px, 38%, 200px);flex:none"
@@ -129,7 +127,7 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
                            value="<?php echo html_escape($tq_nat); ?>" data-tqa-phone>
                 </div>
                 <span class="tqa-field__hint">
-                    اختياري. الرقم الوطني بلا مفتاح الدولة — وعليه يصل واتساب المال وإشعاراته.
+                    <?php echo t('اختياري. الرقم الوطني بلا مفتاح الدولة — وعليه يصل واتساب المال وإشعاراته.'); ?>
                 </span>
             </div>
 
@@ -137,11 +135,11 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
                      فمعاينة ما اختير قبل الحفظ تعمل بسكربت اللوحة القائم —
                      ووسم ثان يعني معالجا ثانيا ينسى عند أول تعديل. */ ?>
             <div class="tqa-field">
-                <label class="tqa-field__label" for="user_image">الصورة الشخصية</label>
+                <label class="tqa-field__label" for="user_image"><?php echo t('الصورة الشخصية'); ?></label>
                 <div class="tqa-filefield" data-tqa-file>
                     <?php if ($tq_img !== ''): ?>
                         <div class="tqa-filefield__now">
-                            <img src="<?php echo html_escape($tq_img); ?>" alt="الصورة الحالية"
+                            <img src="<?php echo html_escape($tq_img); ?>" alt="<?php echo te('الصورة الحالية'); ?>"
                                  loading="lazy" decoding="async" data-tqa-file-cur>
                         </div>
                     <?php endif; ?>
@@ -150,14 +148,14 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
                                accept="image/jpeg,image/png,image/webp" data-tqa-file-input>
                     </div>
                     <div class="tqa-filefield__next" data-tqa-file-preview hidden>
-                        <span class="tqa-dim">المختارة الآن:</span>
+                        <span class="tqa-dim"><?php echo t('المختارة الآن:'); ?></span>
                         <img alt="" data-tqa-file-img>
                     </div>
                 </div>
                 <span class="tqa-field__hint">
                     <?php echo $tq_edit
-                        ? 'اتركه فارغا فتبقى الصورة الحالية كما هي.'
-                        : 'اختيارية — JPG أو PNG أو WebP، حتى ميجابايتين.'; ?>
+                        ? t('اتركه فارغا فتبقى الصورة الحالية كما هي.')
+                        : t('اختيارية — JPG أو PNG أو WebP، حتى ميجابايتين.'); ?>
                 </span>
             </div>
         </div>
@@ -166,19 +164,19 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
     <div class="tqa-card tqa-section">
         <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
             <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('lock', 20); ?></span>
-            <h2>بيانات الدخول</h2>
+            <h2><?php echo t('بيانات الدخول'); ?></h2>
         </div>
 
         <div class="tqa-fieldgrid">
             <div class="tqa-field tqa-field--full">
                 <label class="tqa-field__label" for="email">
-                    البريد الإلكتروني <span class="tqa-field__req" aria-hidden="true">*</span>
+                    <?php echo t('البريد الإلكتروني'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                 </label>
                 <input class="tqa-input tqa-input--ltr" type="email" id="email" name="email"
                        required dir="ltr" maxlength="50" autocomplete="off"
                        value="<?php echo html_escape($tq_o('email')); ?>">
                 <span class="tqa-field__hint">
-                    به يدخل، وإليه تصل استعادة كلمة المرور. خمسون محرفا على الأكثر — وهو طول العمود.
+                    <?php echo t('به يدخل، وإليه تصل استعادة كلمة المرور. خمسون محرفا على الأكثر — وهو طول العمود.'); ?>
                 </span>
             </div>
 
@@ -192,8 +190,8 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
                        <?php echo $tq_edit ? '' : 'required'; ?> data-tqa-pass>
                 <span class="tqa-field__hint">
                     <?php echo $tq_edit
-                        ? 'اتركها فارغة فلا تمس. وما تكتبه هنا يبدلها في الحال.'
-                        : 'ثمانية محارف فأكثر. تظهر كما تكتب — فأنت من يسلمها لصاحبها.'; ?>
+                        ? t('اتركها فارغة فلا تمس. وما تكتبه هنا يبدلها في الحال.')
+                        : t('ثمانية محارف فأكثر. تظهر كما تكتب — فأنت من يسلمها لصاحبها.'); ?>
                 </span>
             </div>
 
@@ -213,13 +211,13 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
 
             <?php if ($tq_edit): ?>
                 <div class="tqa-field tqa-field--full">
-                    <label class="tqa-field__label" for="status">حال الحساب</label>
+                    <label class="tqa-field__label" for="status"><?php echo t('حال الحساب'); ?></label>
                     <select class="tqa-select" id="status" name="status">
-                        <option value="1" <?php echo $tq_flag('status') ? 'selected' : ''; ?>>مفتوح — يدخل صاحبه</option>
-                        <option value="0" <?php echo $tq_flag('status') ? '' : 'selected'; ?>>مغلق — يمنع الدخول</option>
+                        <option value="1" <?php echo $tq_flag('status') ? 'selected' : ''; ?>><?php echo t('مفتوح — يدخل صاحبه'); ?></option>
+                        <option value="0" <?php echo $tq_flag('status') ? '' : 'selected'; ?>><?php echo t('مغلق — يمنع الدخول'); ?></option>
                     </select>
                     <span class="tqa-field__hint">
-                        الإغلاق يمنع الدخول ولا يحذف شيئا: كورساته وطلابه ومحفظته تبقى كما هي.
+                        <?php echo t('الإغلاق يمنع الدخول ولا يحذف شيئا: كورساته وطلابه ومحفظته تبقى كما هي.'); ?>
                     </span>
                 </div>
             <?php else: ?>
@@ -228,10 +226,9 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
                         <input type="checkbox" name="notify" value="1"
                                <?php echo (!isset($old['notify']) || $old['notify'] === '1') ? 'checked' : ''; ?>>
                         <span>
-                            أرسل إليه بيانات الدخول بالبريد.
+                            <?php echo t('أرسل إليه بيانات الدخول بالبريد.'); ?>
                             <span class="tqa-field__hint" style="display:block">
-                                رسالة فيها بريده وكلمة مروره ودعوة إلى تغييرها بعد أول دخول.
-                                وكلمة المرور تسافر نصا في البريد — فاتركه إن كنت ستسلمها بيدك.
+                                <?php echo t('رسالة فيها بريده وكلمة مروره ودعوة إلى تغييرها بعد أول دخول. وكلمة المرور تسافر نصا في البريد — فاتركه إن كنت ستسلمها بيدك.'); ?>
                             </span>
                         </span>
                     </label>
@@ -243,30 +240,30 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
     <div class="tqa-card tqa-section">
         <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
             <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('globe', 20); ?></span>
-            <h2>صفحته العامة</h2>
+            <h2><?php echo t('صفحته العامة'); ?></h2>
         </div>
 
         <div class="tqa-fieldgrid">
             <div class="tqa-field tqa-field--full">
-                <label class="tqa-field__label" for="title">الصفة</label>
+                <label class="tqa-field__label" for="title"><?php echo t('الصفة'); ?></label>
                 <input class="tqa-input" type="text" id="title" name="title" maxlength="160"
-                       placeholder="مثال: معلم رياضيات — ماجستير مناهج"
+                       placeholder="<?php echo te('مثال: معلم رياضيات — ماجستير مناهج'); ?>"
                        value="<?php echo html_escape($tq_o('title')); ?>">
-                <span class="tqa-field__hint">سطر واحد يظهر تحت اسمه.</span>
+                <span class="tqa-field__hint"><?php echo t('سطر واحد يظهر تحت اسمه.'); ?></span>
             </div>
 
             <div class="tqa-field tqa-field--full">
-                <label class="tqa-field__label" for="skills">المواد التي يدرسها</label>
+                <label class="tqa-field__label" for="skills"><?php echo t('المواد التي يدرسها'); ?></label>
                 <input class="tqa-input" type="text" id="skills" name="skills" maxlength="255"
-                       placeholder="الرياضيات · الفيزياء"
+                       placeholder="<?php echo te('الرياضيات · الفيزياء'); ?>"
                        value="<?php echo html_escape($tq_o('skills')); ?>">
                 <span class="tqa-field__hint">
-                    تفصل بنقطة وسطى «·» — وهي التي تطبع رقاقات في بطاقته.
+                    <?php echo t('تفصل بنقطة وسطى «·» — وهي التي تطبع رقاقات في بطاقته.'); ?>
                 </span>
             </div>
 
             <div class="tqa-field tqa-field--full">
-                <label class="tqa-field__label" for="biography">نبذة</label>
+                <label class="tqa-field__label" for="biography"><?php echo t('نبذة'); ?></label>
                 <textarea class="tqa-textarea" id="biography" name="biography" rows="4"
                           maxlength="1500"><?php echo html_escape($tq_o('biography')); ?></textarea>
             </div>
@@ -276,10 +273,9 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
                     <input type="checkbox" name="is_public" value="1"
                            <?php echo $tq_flag('is_public') ? 'checked' : ''; ?>>
                     <span>
-                        اعرضه في صفحة «المعلمون» العامة.
+                        <?php echo t('اعرضه في صفحة «المعلمون» العامة.'); ?>
                         <span class="tqa-field__hint" style="display:block">
-                            العرض العام اختيار صريح لا أثر جانبي لكونه معلما: من يدرس لا يلزم
-                            أن ينشر اسمه وصورته.
+                            <?php echo t('العرض العام اختيار صريح لا أثر جانبي لكونه معلما: من يدرس لا يلزم أن ينشر اسمه وصورته.'); ?>
                         </span>
                     </span>
                 </label>
@@ -290,12 +286,12 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
     <div class="tqa-actions">
         <button class="tqa-btn tqa-btn--primary" type="submit">
             <?php echo tq_icon('check', 16); ?>
-            <?php echo $tq_edit ? 'احفظ التعديل' : 'أنشئ حساب المعلم'; ?>
+            <?php echo $tq_edit ? t('احفظ التعديل') : t('أنشئ حساب المعلم'); ?>
         </button>
         <a class="tqa-btn tqa-btn--ghost"
            href="<?php echo site_url($tq_edit ? 'taqdar_admin/teacher/' . $tq_id
                                               : 'taqdar_admin/people?role=teacher'); ?>">
-            <?php echo $tq_edit ? 'عد إلى صفحته' : 'عد إلى الحسابات'; ?>
+            <?php echo $tq_edit ? t('عد إلى صفحته') : t('عد إلى الحسابات'); ?>
         </a>
     </div>
 </form>

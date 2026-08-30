@@ -62,8 +62,8 @@ if ($tq_rows) {
 <?php if (!$tq_rows): ?>
 
     <?php tqa_empty(
-        'لا طالب في هذا الكورس بعد',
-        'يظهر هنا تقدم كل مسجل: ما أكمله من دروس، ومتى فتحه آخر مرة، وكم شاهد.',
+        t('لا طالب في هذا الكورس بعد'),
+        t('يظهر هنا تقدم كل مسجل: ما أكمله من دروس، ومتى فتحه آخر مرة، وكم شاهد.'),
         '', '', 'chart'
     ); ?>
 
@@ -71,13 +71,13 @@ if ($tq_rows) {
 
     <div class="tqa-table__wrap">
         <table class="tqa-table">
-            <caption class="tqa-sr">تقدم الطلاب: الاسم والتواريخ ونسبة الإكمال</caption>
+            <caption class="tqa-sr"><?php echo t('تقدم الطلاب: الاسم والتواريخ ونسبة الإكمال'); ?></caption>
             <thead>
                 <tr>
-                    <th>الطالب</th>
-                    <th>التواريخ</th>
-                    <th>التقدم</th>
-                    <th style="inline-size:140px"><span class="tqa-sr">إجراءات</span></th>
+                    <th><?php echo t('الطالب'); ?></th>
+                    <th><?php echo t('التواريخ'); ?></th>
+                    <th><?php echo t('التقدم'); ?></th>
+                    <th style="inline-size:140px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                 </tr>
             </thead>
             <tbody>
@@ -98,7 +98,7 @@ if ($tq_rows) {
                             </span>
                             <span class="tqa-media__sub"><?php echo html_escape($tq_u['email']); ?></span>
                         <?php else: ?>
-                            <span class="tqa-dim">حساب محذوف (<span class="tqa-num"><?php echo $tq_uid; ?></span>)</span>
+                            <span class="tqa-dim"><?php echo t('حساب محذوف ('); ?><span class="tqa-num"><?php echo $tq_uid; ?></span>)</span>
                         <?php endif; ?>
                     </td>
 
@@ -110,13 +110,13 @@ if ($tq_rows) {
                             آخر فتح:
                             <?php echo !empty($tq_w['date_updated'])
                                 ? tqa_when($tq_w['date_updated'], 'Y-m-d')
-                                : '<span class="tqa-dim">لم يبدأ بعد</span>'; ?>
+                                : t('<span class="tqa-dim">لم يبدأ بعد</span>'); ?>
                         </span>
                         <span class="tqa-media__sub">
                             أكمله:
                             <?php echo !empty($tq_w['completed_date'])
                                 ? tqa_when($tq_w['completed_date'], 'Y-m-d')
-                                : '<span class="tqa-dim">لم يكمل بعد</span>'; ?>
+                                : t('<span class="tqa-dim">لم يكمل بعد</span>'); ?>
                         </span>
                     </td>
 
@@ -130,7 +130,7 @@ if ($tq_rows) {
                         <span class="tqa-media__sub">
                             <span class="tqa-num"><?php echo $tq_pct; ?>%</span> ·
                             <span class="tqa-num"><?php echo $tq_done; ?></span>
-                            من <span class="tqa-num"><?php echo $tq_total; ?></span> درسا
+                            <?php echo t('من'); ?> <span class="tqa-num"><?php echo $tq_total; ?></span> <?php echo t('درسا'); ?>
                         </span>
                         <span class="tqa-media__sub">
                             شاهد <?php echo html_escape(seconds_to_time_format($tq_secs[$tq_uid] ?? 0)); ?>

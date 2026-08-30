@@ -38,15 +38,15 @@ $tq_kind_icon = function ($k) use ($tq_types) {
 
 /** الحقول التي يعرض فرقها — وما سواها ضجيج على شاشة قرار. */
 $tq_diff_labels = array(
-    'title'        => 'العنوان',
-    'summary'      => 'الملخص',
-    'video_url'    => 'رابط الفيديو',
-    'audio_url'    => 'الملف الصوتي',
-    'attachment'   => 'المرفق',
-    'duration'     => 'المدة',
-    'section_id'   => 'القسم',
-    'is_free'      => 'معاينة مجانية',
-    'video_type'   => 'المصدر',
+    'title'        => t('العنوان'),
+    'summary'      => t('الملخص'),
+    'video_url'    => t('رابط الفيديو'),
+    'audio_url'    => t('الملف الصوتي'),
+    'attachment'   => t('المرفق'),
+    'duration'     => t('المدة'),
+    'section_id'   => t('القسم'),
+    'is_free'      => t('معاينة مجانية'),
+    'video_type'   => t('المصدر'),
 );
 
 /** «منذ» — والتاريخ الكامل في `title` لمن أراد الدقة. */
@@ -54,9 +54,9 @@ $tq_ago = function ($ts) {
     $ts = (int) $ts;
     if ($ts <= 0) return '—';
     $d = time() - $ts;
-    if ($d < 3600)  return 'منذ ' . max(1, intdiv($d, 60)) . ' دقيقة';
-    if ($d < 86400) return 'منذ ' . intdiv($d, 3600) . ' ساعة';
-    return 'منذ ' . intdiv($d, 86400) . ' يوما';
+    if ($d < 3600)  return t('منذ') . max(1, intdiv($d, 60)) . t('دقيقة');
+    if ($d < 86400) return t('منذ') . intdiv($d, 3600) . t('ساعة');
+    return t('منذ') . intdiv($d, 86400) . t('يوما');
 };
 ?>
 
@@ -88,13 +88,13 @@ $tq_ago = function ($ts) {
                  color: var(--tq-text2); }
 </style>
 
-<?php tqa_head('مراجعة المحتوى',
-    'ما رفعه المعلمون وينتظر قرارك — قبل أن يصل إلى طالب.', 'shield'); ?>
+<?php tqa_head(t('مراجعة المحتوى'),
+    t('ما رفعه المعلمون وينتظر قرارك — قبل أن يصل إلى طالب.'), 'shield'); ?>
 
 <?php if ($tq_courses): ?>
-<nav class="tqa-toolbar" aria-label="تصفية بالكورس">
+<nav class="tqa-toolbar" aria-label="<?php echo te('تصفية بالكورس'); ?>">
     <a class="tqa-chip<?php echo $tq_course === 0 ? ' is-on' : ''; ?>"
-       href="<?php echo site_url('taqdar_admin/review'); ?>">كل الكورسات</a>
+       href="<?php echo site_url('taqdar_admin/review'); ?>"><?php echo t('كل الكورسات'); ?></a>
     <?php foreach ($tq_courses as $tq_c): ?>
         <a class="tqa-chip<?php echo $tq_course === (int) $tq_c['id'] ? ' is-on' : ''; ?>"
            href="<?php echo site_url('taqdar_admin/review') . '?course=' . (int) $tq_c['id']; ?>">
@@ -108,9 +108,9 @@ $tq_ago = function ($ts) {
 
     <div class="tqa-card tqa-card--flush">
         <?php tqa_empty(
-            'لا شيء ينتظر قرارك',
-            'حين يرسل معلم درسا للمراجعة أو يعدل درسا منشورا، يظهر هنا — ويظهر عدده في الشريط الجانبي.',
-            'الكورسات', site_url('admin/courses'), 'check-badge'
+            t('لا شيء ينتظر قرارك'),
+            t('حين يرسل معلم درسا للمراجعة أو يعدل درسا منشورا، يظهر هنا — ويظهر عدده في الشريط الجانبي.'),
+            t('الكورسات'), site_url('admin/courses'), 'check-badge'
         ); ?>
     </div>
 
@@ -119,11 +119,9 @@ $tq_ago = function ($ts) {
     <p class="tqa-note tqa-section">
         <span aria-hidden="true"><?php echo tq_icon('help', 18); ?></span>
         <span>
-            <strong><span class="tqa-num"><?php echo count($tq_items); ?></span> عنصرا ينتظر.</strong>
+            <strong><span class="tqa-num"><?php echo count($tq_items); ?></span> <?php echo t('عنصرا ينتظر.'); ?></strong>
             <span style="display:block">
-                <strong>كورس جديد</strong> أنشأه معلم ولا يظهر في الموقع حتى تعتمده.
-                و<strong>درس جديد</strong> لا يراه طالب حتى تعتمده.
-                و<strong>تعديل على منشور</strong> لا يمس ما يراه الطالب الآن — الدرس القديم يعمل حتى تطبق التعديل.
+                <strong><?php echo t('كورس جديد'); ?></strong> <?php echo t('أنشأه معلم ولا يظهر في الموقع حتى تعتمده. و'); ?><strong><?php echo t('درس جديد'); ?></strong> <?php echo t('لا يراه طالب حتى تعتمده. و'); ?><strong><?php echo t('تعديل على منشور'); ?></strong> <?php echo t('لا يمس ما يراه الطالب الآن — الدرس القديم يعمل حتى تطبق التعديل.'); ?>
             </span>
         </span>
     </p>
@@ -149,7 +147,7 @@ $tq_ago = function ($ts) {
                 <h2 style="font:var(--tq-type-h2)"><?php echo html_escape($tq_it['title']); ?></h2>
                 <div class="tqr-item__meta">
                     <span class="tqa-badge <?php echo $tq_course_row ? 'tqa-badge--warn' : ($tq_new ? 'tqa-badge--ok' : 'tqa-badge--warn'); ?>">
-                        <?php echo $tq_course_row ? 'كورس جديد' : ($tq_new ? 'درس جديد' : 'تعديل على منشور'); ?>
+                        <?php echo $tq_course_row ? t('كورس جديد') : ($tq_new ? t('درس جديد') : t('تعديل على منشور')); ?>
                     </span>
                     <?php if ($tq_course_row): ?>
                         <span><?php echo tq_num((int) $tq_it['sections']); ?> قسما</span>
@@ -180,7 +178,7 @@ $tq_ago = function ($ts) {
 
             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_live; ?>">
                 <?php echo tq_icon('external', 14); ?>
-                <?php echo $tq_course_row ? 'افتح الكورس' : 'افتح المقرر'; ?>
+                <?php echo $tq_course_row ? t('افتح الكورس') : t('افتح المقرر'); ?>
             </a>
         </div>
 
@@ -193,18 +191,16 @@ $tq_ago = function ($ts) {
             <p class="tqa-note tqa-note--warn" style="margin:0 var(--tq-space-l) var(--tq-space-l)">
                 <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
                 <span>
-                    <strong>هذا الكورس بلا صف أو مادة.</strong>
-                    والباقة تمنح صفا ومادة لا كورسا بعينه، والكتالوج يقرأ «المواد والبرامج»
-                    لا جدول الكورسات — فنشره بحالته هذه يجعله <strong>موجودا ولا يصل إليه أحد</strong>.
-                    أكملهما من «افتح الكورس» ثم اعتمده.
+                    <strong><?php echo t('هذا الكورس بلا صف أو مادة.'); ?></strong>
+                    <?php echo t('والباقة تمنح صفا ومادة لا كورسا بعينه، والكتالوج يقرأ «المواد والبرامج» لا جدول الكورسات — فنشره بحالته هذه يجعله'); ?> <strong><?php echo t('موجودا ولا يصل إليه أحد'); ?></strong><?php echo t('. أكملهما من «افتح الكورس» ثم اعتمده.'); ?>
                 </span>
             </p>
         <?php elseif ($tq_course_row && (int) $tq_it['lessons'] === 0): ?>
             <p class="tqa-note tqa-note--warn" style="margin:0 var(--tq-space-l) var(--tq-space-l)">
                 <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
                 <span>
-                    <strong>هذا الكورس بلا درس واحد.</strong>
-                    ينشر فيظهر في «المواد والبرامج» بعنوانه، ويفتحه الطالب على منهج فارغ.
+                    <strong><?php echo t('هذا الكورس بلا درس واحد.'); ?></strong>
+                    <?php echo t('ينشر فيظهر في «المواد والبرامج» بعنوانه، ويفتحه الطالب على منهج فارغ.'); ?>
                 </span>
             </p>
         <?php endif; ?>
@@ -214,9 +210,8 @@ $tq_ago = function ($ts) {
             <p class="tqa-note tqa-note--warn" style="margin:0 var(--tq-space-l) var(--tq-space-l)">
                 <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
                 <span>
-                    <strong>هذا الدرس بلا أهداف.</strong>
-                    وبوابة الإتقان تحكم بالأهداف وأسئلتها — فدرس بلا هدف يبقى الدرس الذي بعده مقفلا،
-                    ولا سبيل إلى فتحه. اعتمده إن شئت، والأولى أن يرده صاحبه بهدف.
+                    <strong><?php echo t('هذا الدرس بلا أهداف.'); ?></strong>
+                    <?php echo t('وبوابة الإتقان تحكم بالأهداف وأسئلتها — فدرس بلا هدف يبقى الدرس الذي بعده مقفلا، ولا سبيل إلى فتحه. اعتمده إن شئت، والأولى أن يرده صاحبه بهدف.'); ?>
                 </span>
             </p>
         <?php endif; ?>
@@ -235,7 +230,7 @@ $tq_ago = function ($ts) {
         ?>
             <div class="tqr-diff">
                 <?php if (empty($tq_rows)): ?>
-                    <p style="margin:0;color:var(--tq-text3)">لا فرق ظاهرا في الحقول الرئيسية — قد يكون التعديل في الأهداف أو المرفقات.</p>
+                    <p style="margin:0;color:var(--tq-text3)"><?php echo t('لا فرق ظاهرا في الحقول الرئيسية — قد يكون التعديل في الأهداف أو المرفقات.'); ?></p>
                 <?php else: ?>
                     <dl>
                     <?php foreach ($tq_rows as $tq_lbl => [$tq_old, $tq_now]): ?>
@@ -254,7 +249,7 @@ $tq_ago = function ($ts) {
 
         <?php if (trim((string) $tq_it['note']) !== ''): ?>
             <p class="tqr-note">
-                <strong>يقول المعلم:</strong> <?php echo html_escape($tq_it['note']); ?>
+                <strong><?php echo t('يقول المعلم:'); ?></strong> <?php echo html_escape($tq_it['note']); ?>
             </p>
         <?php endif; ?>
 
@@ -268,7 +263,7 @@ $tq_ago = function ($ts) {
                 <input type="hidden" name="course"      value="<?php echo $tq_course; ?>">
                 <button class="tqa-btn tqa-btn--primary tqa-btn--sm" type="submit">
                     <?php echo tq_icon('check-badge', 14); ?>
-                    <?php echo $tq_course_row ? 'اعتمد الكورس وانشره' : ($tq_new ? 'اعتمد وانشر' : 'طبق التعديل'); ?>
+                    <?php echo $tq_course_row ? t('اعتمد الكورس وانشره') : ($tq_new ? t('اعتمد وانشر') : t('طبق التعديل')); ?>
                 </button>
             </form>
 
@@ -282,14 +277,14 @@ $tq_ago = function ($ts) {
                 <input type="hidden" name="course"      value="<?php echo $tq_course; ?>">
 
                 <label class="sr-only" for="why-<?php echo html_escape($tq_it['entity']); ?>-<?php echo (int) $tq_it['entity_id']; ?>-<?php echo (int) $tq_it['revision_id']; ?>">
-                    سبب الرد
+                    <?php echo t('سبب الرد'); ?>
                 </label>
                 <input class="tqa-input tqr-acts__why"
                        id="why-<?php echo html_escape($tq_it['entity']); ?>-<?php echo (int) $tq_it['entity_id']; ?>-<?php echo (int) $tq_it['revision_id']; ?>"
                        type="text" name="reason" maxlength="500" required minlength="5"
-                       placeholder="سبب الرد — يقرؤه المعلم ويصلح عليه">
+                       placeholder="<?php echo te('سبب الرد — يقرؤه المعلم ويصلح عليه'); ?>">
                 <button class="tqa-btn tqa-btn--danger tqa-btn--sm" type="submit">
-                    <?php echo tq_icon('close', 14); ?> <?php echo $tq_course_row ? 'رد الكورس' : 'رد إلى المعلم'; ?>
+                    <?php echo tq_icon('close', 14); ?> <?php echo $tq_course_row ? t('رد الكورس') : t('رد إلى المعلم'); ?>
                 </button>
             </form>
         </div>
@@ -307,7 +302,7 @@ $tq_ago = function ($ts) {
         وموضعهما هنا لا في «إعدادات المنصة»: هذه هي الشاشة التي يظهر
         فيها أثرهما، ومفتاح يدفن في شاشة لا تفتح ميزة لا توجد. */ ?>
 <section class="tqa-card tqa-section" style="margin-block-start:var(--tq-space-xl)">
-    <h2 class="tqa-card__title" style="margin-block-end:var(--tq-space-s)">إعدادات المراجعة</h2>
+    <h2 class="tqa-card__title" style="margin-block-end:var(--tq-space-s)"><?php echo t('إعدادات المراجعة'); ?></h2>
     <form method="post" action="<?php echo site_url('taqdar_admin/review_settings'); ?>">
         <?php echo tq_csrf(); ?>
         <input type="hidden" name="direct_sent" value="1">
@@ -316,30 +311,25 @@ $tq_ago = function ($ts) {
             <label class="tqa-field__label">
                 <input type="checkbox" name="tq_teacher_direct_publish" value="1"
                        <?php echo !empty($tq_direct_publish) ? 'checked' : ''; ?>>
-                النشر المباشر للمعلمين
+                <?php echo t('النشر المباشر للمعلمين'); ?>
             </label>
             <span class="tqa-field__hint">
-                حين يفتح، ينشر المعلم كورسه ودروسه بنفسه ولا يمر شيء بهذه الشاشة.
-                وحين يغلق — وهو الافتراض — يحفظ ما يعلنه منشورا «قيد المراجعة» ويقال له ذلك،
-                وينتظر هنا.
+                <?php echo t('حين يفتح، ينشر المعلم كورسه ودروسه بنفسه ولا يمر شيء بهذه الشاشة. وحين يغلق — وهو الافتراض — يحفظ ما يعلنه منشورا «قيد المراجعة» ويقال له ذلك، وينتظر هنا.'); ?>
             </span>
         </div>
 
         <div class="tqa-field">
-            <label class="tqa-field__label" for="tqw">نصاب تصحيح المدة</label>
+            <label class="tqa-field__label" for="tqw"><?php echo t('نصاب تصحيح المدة'); ?></label>
             <input class="tqa-input tq-ltr" type="number" id="tqw" name="tq_duration_witnesses"
                    dir="ltr" min="2" max="20" step="1"
                    value="<?php echo (int) (isset($tq_witnesses) ? $tq_witnesses : 2); ?>"
                    style="max-inline-size:120px">
             <span class="tqa-field__hint">
-                كم طالبا يجب أن تتفق مشغلاتهم — بهامش ١٠٪ — قبل أن تصحح المدة المكتوبة
-                في صف الدرس تلقائيا. وما دون النصاب يعرض تنبيها في شاشة المقرر ولا يكتب.
-                والحد الأدنى اثنان: بشاهد واحد يستطيع طالب يعدل جافاسكربته أن يعلن
-                مدة عشر ثوان فيفسد رقم الدرس على زملائه كلهم.
+                <?php echo t('كم طالبا يجب أن تتفق مشغلاتهم — بهامش ١٠٪ — قبل أن تصحح المدة المكتوبة في صف الدرس تلقائيا. وما دون النصاب يعرض تنبيها في شاشة المقرر ولا يكتب. والحد الأدنى اثنان: بشاهد واحد يستطيع طالب يعدل جافاسكربته أن يعلن مدة عشر ثوان فيفسد رقم الدرس على زملائه كلهم.'); ?>
             </span>
         </div>
 
-        <button class="tqa-btn tqa-btn--primary tqa-btn--sm" type="submit">احفظ</button>
+        <button class="tqa-btn tqa-btn--primary tqa-btn--sm" type="submit"><?php echo t('احفظ'); ?></button>
     </form>
 </section>
 

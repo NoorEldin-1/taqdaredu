@@ -15,12 +15,12 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
 ?>
 
 <form class="tqa-toolbar" method="get" action="<?php echo site_url($tq_base); ?>">
-    <label class="tqa-sr" for="q">ابحث في الحسابات</label>
-    <input class="tqa-input" type="search" id="q" name="q" placeholder="ابحث بالاسم أو البريد أو الهاتف…"
+    <label class="tqa-sr" for="q"><?php echo t('ابحث في الحسابات'); ?></label>
+    <input class="tqa-input" type="search" id="q" name="q" placeholder="<?php echo te('ابحث بالاسم أو البريد أو الهاتف…'); ?>"
            value="<?php echo html_escape($search); ?>" style="min-inline-size:280px">
     <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo tq_icon('search', 16); ?> ابحث</button>
     <?php if ($search !== ''): ?>
-        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url($tq_base); ?>">مسح البحث</a>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url($tq_base); ?>"><?php echo t('مسح البحث'); ?></a>
     <?php endif; ?>
 </form>
 
@@ -28,9 +28,9 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
 <?php if (empty($rows)): ?>
 
     <?php tqa_empty(
-        $search !== '' ? 'لا حساب يطابق هذا البحث' : 'لا حسابات بعد',
-        $search !== '' ? 'جرب جزءا من الاسم أو البريد.' : 'أضف أول حساب من الزر أعلى الشاشة.',
-        $search !== '' ? 'مسح البحث' : 'إضافة حساب',
+        $search !== '' ? t('لا حساب يطابق هذا البحث') : t('لا حسابات بعد'),
+        $search !== '' ? t('جرب جزءا من الاسم أو البريد.') : t('أضف أول حساب من الزر أعلى الشاشة.'),
+        $search !== '' ? t('مسح البحث') : t('إضافة حساب'),
         $search !== '' ? site_url($tq_base) : site_url($tq_form),
         'users'
     ); ?>
@@ -39,15 +39,15 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
 
     <div class="tqa-table__wrap">
         <table class="tqa-table">
-            <caption class="tqa-sr">الحسابات وبيانات التواصل بها وعدد تسجيلاتها</caption>
+            <caption class="tqa-sr"><?php echo t('الحسابات وبيانات التواصل بها وعدد تسجيلاتها'); ?></caption>
             <thead>
                 <tr>
                     <th style="inline-size:60px">#</th>
-                    <th>الحساب</th>
-                    <th>الهاتف</th>
-                    <th style="inline-size:120px">الكورسات</th>
-                    <th style="inline-size:110px">الحالة</th>
-                    <th style="inline-size:190px"><span class="tqa-sr">إجراءات</span></th>
+                    <th><?php echo t('الحساب'); ?></th>
+                    <th><?php echo t('الهاتف'); ?></th>
+                    <th style="inline-size:120px"><?php echo t('الكورسات'); ?></th>
+                    <th style="inline-size:110px"><?php echo t('الحالة'); ?></th>
+                    <th style="inline-size:190px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                 </tr>
             </thead>
             <tbody>
@@ -86,7 +86,7 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
 
                     <td data-label="الحالة">
                         <span class="tqa-badge tqa-badge--<?php echo $tq_on ? 'ok' : 'muted'; ?>">
-                            <?php echo $tq_on ? 'نشط' : 'موقوف'; ?>
+                            <?php echo $tq_on ? t('نشط') : t('موقوف'); ?>
                         </span>
                     </td>
 
@@ -100,14 +100,14 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
                             <?php if ($tq_kind === 'instructor'): ?>
                                 <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" target="_blank" rel="noopener"
                                    href="<?php echo site_url('home/instructor_page/' . $tq_id); ?>"
-                                   title="صفحته في الموقع">
+                                   title="<?php echo te('صفحته في الموقع'); ?>">
                                     <?php echo tq_icon('external', 14); ?>
-                                    <span class="tqa-sr">صفحته في الموقع</span>
+                                    <span class="tqa-sr"><?php echo t('صفحته في الموقع'); ?></span>
                                 </a>
                             <?php endif; ?>
 
                             <form method="post" action="<?php echo site_url($tq_base . '/delete/' . $tq_id); ?>"
-                                  data-tqa-confirm-title="حذف الحساب"
+                                  data-tqa-confirm-title="<?php echo te('حذف الحساب'); ?>"
                                   data-tqa-confirm="سيحذف حساب «<?php echo html_escape($tq_n); ?>» وتسجيلاته. لا رجعة في هذا."
                                   data-tqa-confirm-ok="نعم، احذف"
                                   data-tqa-confirm-tone="danger">
@@ -131,14 +131,14 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
     $tq_last = min($page_count, $tq_from + 4);
     $tq_from = max(1, $tq_last - 4);
     ?>
-    <nav class="tqa-pager" aria-label="صفحات الحسابات">
+    <nav class="tqa-pager" aria-label="<?php echo te('صفحات الحسابات'); ?>">
         <span class="tqa-pager__info">
-            المعروض <span class="tqa-num"><?php echo count($rows); ?></span>
-            من <span class="tqa-num"><?php echo (int) $total; ?></span> حسابا
+            <?php echo t('المعروض'); ?> <span class="tqa-num"><?php echo count($rows); ?></span>
+            <?php echo t('من'); ?> <span class="tqa-num"><?php echo (int) $total; ?></span> <?php echo t('حسابا'); ?>
         </span>
 
         <?php if ($page_no > 1): ?>
-            <a href="<?php echo $tq_url($page_no - 1); ?>" rel="prev" aria-label="الصفحة السابقة">
+            <a href="<?php echo $tq_url($page_no - 1); ?>" rel="prev" aria-label="<?php echo te('الصفحة السابقة'); ?>">
                 <?php echo tq_icon('chev-prev', 16); ?>
             </a>
         <?php endif; ?>
@@ -152,7 +152,7 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
         <?php endfor; ?>
 
         <?php if ($page_no < $page_count): ?>
-            <a href="<?php echo $tq_url($page_no + 1); ?>" rel="next" aria-label="الصفحة التالية">
+            <a href="<?php echo $tq_url($page_no + 1); ?>" rel="next" aria-label="<?php echo te('الصفحة التالية'); ?>">
                 <?php echo tq_icon('chev-next', 16); ?>
             </a>
         <?php endif; ?>

@@ -33,8 +33,8 @@ $LV    = $tq_levels;
 
 $tq_nav   = 'placement';
 $tq_role  = 'student';
-$tq_title = 'اين موضعك؟';
-$tq_sub   = 'اختبار قصير يحدد ما يناسبك، ثم نرشح لك الباقة التي تبدا منها.';
+$tq_title = t('اين موضعك؟');
+$tq_sub   = t('اختبار قصير يحدد ما يناسبك، ثم نرشح لك الباقة التي تبدا منها.');
 $tq_icon  = 'crosshair';
 
 include 'portal_open.php';
@@ -74,14 +74,14 @@ include 'portal_open.php';
 
     <?php /* ── تمهيد: ما هو، وكم يستغرق، وماذا يحدث بعده ────────────── */ ?>
     <div class="tq-card tq-card--panel">
-        <span class="tq-eyebrow">قبل ان تختار باقتك</span>
+        <span class="tq-eyebrow"><?php echo t('قبل ان تختار باقتك'); ?></span>
         <h2 class="tq-card__title"><?php echo html_escape($exam['title']); ?></h2>
 
         <p><?php echo nl2br(html_escape(
             trim((string) $exam['intro']) !== ''
                 ? $exam['intro']
-                : 'اسئلة اختيار من متعدد تقيس اين انت الان في منهج صفك. ولا رسوب فيه: '
-                . 'كل نتيجة لها باقتها، والغرض ان تبدا من حيث انت لا من حيث يفترض غيرك.'
+                : t('اسئلة اختيار من متعدد تقيس اين انت الان في منهج صفك. ولا رسوب فيه:')
+                . t('كل نتيجة لها باقتها، والغرض ان تبدا من حيث انت لا من حيث يفترض غيرك.')
         )); ?></p>
 
         <?php
@@ -92,7 +92,7 @@ include 'portal_open.php';
         ?>
         <ol class="tqp-steps">
             <li><b>1</b><span>
-                <?php echo tq_count_units($tq_n, 'سؤال', 'سؤالان', 'سؤالين', 'اسئلة', 'سؤالا'); ?>
+                <?php echo tq_count_units($tq_n, t('سؤال'), t('سؤالان'), t('سؤالين'), t('اسئلة'), t('سؤالا')); ?>
                 من اختيار من متعدد
                 <?php if ((int) $exam['time_limit_sec'] > 0): ?>
                     — والوقت <?php echo (int) ceil($exam['time_limit_sec'] / 60); ?> دقيقة.
@@ -100,8 +100,8 @@ include 'portal_open.php';
                     — بلا حد زمني، فخذ وقتك.
                 <?php endif; ?>
             </span></li>
-            <li><b>2</b><span>تظهر نتيجتك فورا: مبتدئ او متوسط او متقدم.</span></li>
-            <li><b>3</b><span>نرشح لك الباقة التي تقابل نتيجتك — ويبقى لك ان تختار غيرها.</span></li>
+            <li><b>2</b><span><?php echo t('تظهر نتيجتك فورا: مبتدئ او متوسط او متقدم.'); ?></span></li>
+            <li><b>3</b><span><?php echo t('نرشح لك الباقة التي تقابل نتيجتك — ويبقى لك ان تختار غيرها.'); ?></span></li>
         </ol>
 
         <?php if ((int) $exam['allow_retake'] !== 1): ?>
@@ -113,15 +113,15 @@ include 'portal_open.php';
 
         <form method="post" action="<?php echo base_url('student/placement/start'); ?>" style="margin-block-start:var(--tq-space-l)">
             <?php echo tq_csrf(); ?>
-            <button type="submit" class="tq-btn tq-btn--primary">ابدا الاختبار</button>
+            <button type="submit" class="tq-btn tq-btn--primary"><?php echo t('ابدا الاختبار'); ?></button>
         </form>
     </div>
 
     <?php /* الطالب الذي وضع في صف غير صفه يحتاج بابا يخرج منه: حبسه في
              شاشة بلا مخرج يجعل الخطا الاداري سجنا. */ ?>
     <p class="tq-caption">
-        صفك المسجل غير صحيح؟
-        <a href="<?php echo base_url('contact'); ?>">تواصل معنا</a> لتصحيحه قبل ان تبدا.
+        <?php echo t('صفك المسجل غير صحيح؟'); ?>
+        <a href="<?php echo base_url('contact'); ?>"><?php echo t('تواصل معنا'); ?></a> <?php echo t('لتصحيحه قبل ان تبدا.'); ?>
     </p>
 
 <?php elseif ($state === 'exam'): ?>
@@ -133,15 +133,14 @@ include 'portal_open.php';
         <div class="tq-card tq-card--panel">
             <h2 class="tq-card__title"><?php echo html_escape($exam['title']); ?></h2>
             <p class="tq-caption">
-                اجب عما تعرفه، وما لا تعرفه اتركه — ترك السؤال اصدق من التخمين،
-                والنتيجة ترشدك انت لا تحاسبك.
+                <?php echo t('اجب عما تعرفه، وما لا تعرفه اتركه — ترك السؤال اصدق من التخمين، والنتيجة ترشدك انت لا تحاسبك.'); ?>
             </p>
         </div>
 
         <?php $i = 0; foreach ($tq_questions as $q): $i++; ?>
             <div class="tqp-q">
-                <span class="tqp-q__n">السؤال <span class="tq-ltr"><?php echo $i; ?></span>
-                    من <span class="tq-ltr"><?php echo count($tq_questions); ?></span></span>
+                <span class="tqp-q__n"><?php echo t('السؤال'); ?> <span class="tq-ltr"><?php echo $i; ?></span>
+                    <?php echo t('من'); ?> <span class="tq-ltr"><?php echo count($tq_questions); ?></span></span>
                 <p class="tqp-q__t"><?php echo html_escape($q['title']); ?></p>
                 <?php /* TQ-QIMG · المعادلة والرسم البياني لا يكتبان حروفا،
                          فما رفع مع السؤال يعرض تحت نصه لا بدلا منه. */ ?>
@@ -162,9 +161,9 @@ include 'portal_open.php';
         <?php endforeach; ?>
 
         <div class="tq-card tq-card--panel">
-            <button type="submit" class="tq-btn tq-btn--primary">سلم الاختبار واعرض نتيجتي</button>
+            <button type="submit" class="tq-btn tq-btn--primary"><?php echo t('سلم الاختبار واعرض نتيجتي'); ?></button>
             <p class="tq-caption" style="margin-block-start:var(--tq-space-s)">
-                تصحح اجاباتك عندنا وتظهر نتيجتك في الشاشة التالية.
+                <?php echo t('تصحح اجاباتك عندنا وتظهر نتيجتك في الشاشة التالية.'); ?>
             </p>
         </div>
     </form>
@@ -181,7 +180,7 @@ include 'portal_open.php';
     ?>
 
     <div class="tq-card tq-card--panel">
-        <span class="tq-eyebrow">نتيجتك</span>
+        <span class="tq-eyebrow"><?php echo t('نتيجتك'); ?></span>
         <h2 class="tq-card__title">موضعك الان: <?php echo html_escape($meta['label']); ?></h2>
         <p><?php echo html_escape($meta['lead']); ?></p>
 
@@ -191,14 +190,14 @@ include 'portal_open.php';
             <?php foreach ($LV as $k => $m): ?>
                 <div class="tqp-scale__i<?php echo ($k === $lv) ? ' is-mine' : ''; ?>">
                     <b><?php echo html_escape($m['label']); ?></b>
-                    <?php if ($k === $lv): ?><span class="tq-caption">انت هنا</span><?php endif; ?>
+                    <?php if ($k === $lv): ?><span class="tq-caption"><?php echo t('انت هنا'); ?></span><?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>
 
         <p class="tq-caption">
-            اجبت <span class="tq-ltr"><?php echo $score; ?></span>
-            من <span class="tq-ltr"><?php echo (int) $tq_attempt['total']; ?></span> اجابة صحيحة.
+            <?php echo t('اجبت'); ?> <span class="tq-ltr"><?php echo $score; ?></span>
+            <?php echo t('من'); ?> <span class="tq-ltr"><?php echo (int) $tq_attempt['total']; ?></span> <?php echo t('اجابة صحيحة.'); ?>
         </p>
         <div class="tq-progress tqp-bar">
             <div class="tq-progress__track">
@@ -216,7 +215,7 @@ include 'portal_open.php';
         $tq_feats = is_array($tq_feats) ? array_slice($tq_feats, 0, 4) : array();
         ?>
         <div class="tq-card tq-card--panel">
-            <span class="tq-eyebrow">الباقة التي نرشحها لك</span>
+            <span class="tq-eyebrow"><?php echo t('الباقة التي نرشحها لك'); ?></span>
             <h2 class="tq-card__title"><?php echo html_escape($tq_plan['name_ar']); ?></h2>
 
             <?php if (trim((string) $tq_plan['note']) !== ''): ?>
@@ -236,15 +235,15 @@ include 'portal_open.php';
 
             <div class="tq-row" style="gap:var(--tq-space-m);margin-block-start:var(--tq-space-l)">
                 <a class="tq-btn tq-btn--primary" href="<?php echo html_escape($tq_href); ?>">
-                    اطلع على تفاصيلها
+                    <?php echo t('اطلع على تفاصيلها'); ?>
                 </a>
-                <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('plans'); ?>">قارن بالباقات الاخرى</a>
+                <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('plans'); ?>"><?php echo t('قارن بالباقات الاخرى'); ?></a>
             </div>
 
             <?php /* التوصية ترشد ولا تلزم — يقال صراحة لا بالسكوت. والاداة
                      التي تقيس لا ينبغي ان تكون هي الاداة التي تبيع. */ ?>
             <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
-                هذه توصية لا الزام: كل الباقات مفتوحة لك، واختر ما تراه انسب.
+                <?php echo t('هذه توصية لا الزام: كل الباقات مفتوحة لك، واختر ما تراه انسب.'); ?>
             </p>
 
             <?php /* زر الاعادة يظهر بشرط الاختبار وحده.
@@ -255,7 +254,7 @@ include 'portal_open.php';
                 <form method="post" action="<?php echo base_url('student/placement/start'); ?>"
                       style="margin-block-start:var(--tq-space-m)">
                     <?php echo tq_csrf(); ?>
-                    <button type="submit" class="tq-btn tq-btn--ghost tq-btn--sm">اعد الاختبار</button>
+                    <button type="submit" class="tq-btn tq-btn--ghost tq-btn--sm"><?php echo t('اعد الاختبار'); ?></button>
                 </form>
             <?php endif; ?>
         </div>
@@ -265,9 +264,9 @@ include 'portal_open.php';
         <div class="tq-card tq-card--panel">
             <div class="tq-empty">
                 <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon('card', 26); ?></span>
-                <p class="tq-empty__title">اطلع على الباقات</p>
-                <p class="tq-empty__text">اخترنا لك موضعك، وباقات صفك معروضة كلها — تصفحها واختر ما يناسبك.</p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">عرض الباقات</a>
+                <p class="tq-empty__title"><?php echo t('اطلع على الباقات'); ?></p>
+                <p class="tq-empty__text"><?php echo t('اخترنا لك موضعك، وباقات صفك معروضة كلها — تصفحها واختر ما يناسبك.'); ?></p>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>"><?php echo t('عرض الباقات'); ?></a>
             </div>
         </div>
     <?php endif; ?>

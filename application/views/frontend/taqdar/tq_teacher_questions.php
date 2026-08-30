@@ -26,8 +26,8 @@
 
 $tq_nav   = 'questions';
 $tq_role  = 'teacher';
-$tq_title = 'بنك الأسئلة';
-$tq_sub   = 'كل سؤال مربوط بهدفه — وإلا فهو بلا قيمة تشخيصية';
+$tq_title = t('بنك الأسئلة');
+$tq_sub   = t('كل سؤال مربوط بهدفه — وإلا فهو بلا قيمة تشخيصية');
 $tq_icon  = 'help';
 
 $tq_uid = (int) $this->session->userdata('user_id');
@@ -106,10 +106,10 @@ if ($tq_course_ids) {
 $tq_import_ready = method_exists(get_instance(), 'questions_import');
 
 $tq_type_label = [
-    'radio'    => 'اختيار واحد',
-    'checkbox' => 'اختيار متعدد',
-    'text'     => 'إجابة قصيرة',
-    'essay'    => 'مقالي',
+    'radio'    => t('اختيار واحد'),
+    'checkbox' => t('اختيار متعدد'),
+    'text'     => t('إجابة قصيرة'),
+    'essay'    => t('مقالي'),
 ];
 
 include 'portal_open.php';
@@ -132,9 +132,9 @@ include 'portal_open.php';
         <?php endif; ?>
 
         <?php if ($tq_my_courses): ?>
-            <nav class="tq-row tq-section" aria-label="تصفية الأسئلة بالكورس" style="flex-wrap:wrap">
+            <nav class="tq-row tq-section" aria-label="<?php echo te('تصفية الأسئلة بالكورس'); ?>" style="flex-wrap:wrap">
                 <a class="tq-pill" aria-pressed="<?php echo $tq_course ? 'false' : 'true'; ?>"
-                   href="<?php echo base_url('teacher/questions'); ?>">كل كورساتي</a>
+                   href="<?php echo base_url('teacher/questions'); ?>"><?php echo t('كل كورساتي'); ?></a>
                 <?php foreach ($tq_my_courses as $tq_c): ?>
                     <a class="tq-pill" aria-pressed="<?php echo $tq_course === (int) $tq_c['id'] ? 'true' : 'false'; ?>"
                        href="<?php echo base_url('teacher/questions'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
@@ -147,17 +147,17 @@ include 'portal_open.php';
         <?php if ($tq_questions): ?>
             <div class="tq-card">
                 <div class="tq-card__head">
-                    <h2 class="tq-card__title">الأسئلة</h2>
+                    <h2 class="tq-card__title"><?php echo t('الأسئلة'); ?></h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_questions) . TQ_PDI; ?></span>
                 </div>
                 <table class="tq-table">
-                    <caption class="tq-sr">أسئلة بنك كورساتك مع هدف كل سؤال ونوعه</caption>
+                    <caption class="tq-sr"><?php echo t('أسئلة بنك كورساتك مع هدف كل سؤال ونوعه'); ?></caption>
                     <thead>
                         <tr>
-                            <th scope="col">السؤال</th>
-                            <th scope="col">الهدف المرتبط</th>
-                            <th scope="col">النوع</th>
-                            <th scope="col">الاختبار</th>
+                            <th scope="col"><?php echo t('السؤال'); ?></th>
+                            <th scope="col"><?php echo t('الهدف المرتبط'); ?></th>
+                            <th scope="col"><?php echo t('النوع'); ?></th>
+                            <th scope="col"><?php echo t('الاختبار'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -171,7 +171,7 @@ include 'portal_open.php';
                                     <?php if (!empty($tq_q['objective_text'])): ?>
                                         <span class="tq-strong"><?php echo html_escape($tq_q['objective_text']); ?></span>
                                     <?php else: ?>
-                                        <?php echo tq_badge('due', 'بلا هدف'); ?>
+                                        <?php echo tq_badge('due', t('بلا هدف')); ?>
                                     <?php endif; ?>
                                 </td>
                                 <td data-label="النوع"><?php echo html_escape($tq_type_label[$tq_q['type']] ?? $tq_q['type']); ?></td>
@@ -182,32 +182,31 @@ include 'portal_open.php';
                 </table>
                 <?php if ($tq_total_count > count($tq_questions)): ?>
                     <p class="tq-caption" style="margin-block-start:var(--tq-space-l)">
-                        <?php echo tq_iso('تعرض هنا أحدث ' . count($tq_questions) . ' سؤالا من ' . $tq_total_count
-                            . '. صفي بكورس بعينه من الأعلى لترى بنكه كاملا.'); ?>
+                        <?php echo tq_iso(t('تعرض هنا أحدث') . count($tq_questions) . t('سؤالا من') . $tq_total_count
+                            . t('. صفي بكورس بعينه من الأعلى لترى بنكه كاملا.')); ?>
                     </p>
                 <?php endif; ?>
                 <p class="tq-field__hint tq-micro" style="margin-block-start:var(--tq-space-l)">
-                    التحرير والربط بالهدف والوسم والأرشفة تفتح فور تفعيل الأهداف
-                    وعمود الأرشفة على الخادم. ولا يعرض هنا زر قبل معالجه.
+                    <?php echo t('التحرير والربط بالهدف والوسم والأرشفة تفتح فور تفعيل الأهداف وعمود الأرشفة على الخادم. ولا يعرض هنا زر قبل معالجه.'); ?>
                 </p>
             </div>
         <?php else: ?>
             <div class="tq-card tq-empty">
                 <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('help', 24); ?></span>
-                <h2 class="tq-empty__title">بنك أسئلتك فارغ</h2>
+                <h2 class="tq-empty__title"><?php echo t('بنك أسئلتك فارغ'); ?></h2>
                 <p class="tq-empty__text">
-                    <?php echo tq_iso('ابدأ بهدف واحد ثم اكتب له 5 أسئلة على الأقل. السؤال المربوط بهدفه يخبرك بما لم يتقن، والسؤال الحر يخبرك بأن الطالب أخطأ فقط.'); ?>
+                    <?php echo tq_iso(t('ابدأ بهدف واحد ثم اكتب له 5 أسئلة على الأقل. السؤال المربوط بهدفه يخبرك بما لم يتقن، والسؤال الحر يخبرك بأن الطالب أخطأ فقط.')); ?>
                 </p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/upload'); ?>">ابدأ من درس وأهدافه</a>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/upload'); ?>"><?php echo t('ابدأ من درس وأهدافه'); ?></a>
             </div>
         <?php endif; ?>
     </div>
 
     <aside class="tq-aside">
         <div class="tq-pastel tq-pastel--rose">
-            <span class="tq-pastel__label tq-micro">قاعدة البنك</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('قاعدة البنك'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                السؤال غير المربوط بهدف تعليمي عديم القيمة تشخيصيا: يقول «أخطأ» ولا يقول «في ماذا».
+                <?php echo t('السؤال غير المربوط بهدف تعليمي عديم القيمة تشخيصيا: يقول «أخطأ» ولا يقول «في ماذا».'); ?>
             </p>
         </div>
 
@@ -218,81 +217,81 @@ include 'portal_open.php';
         <?php if ($tq_import_ready && $tq_quizzes): ?>
         <form class="tq-card" method="post" enctype="multipart/form-data"
               action="<?php echo base_url('teacher/questions/import'); ?>">
-            <div class="tq-card__head"><h2 class="tq-card__title">استيراد CSV</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('استيراد CSV'); ?></h2></div>
 
             <input type="hidden" name="course_id" value="<?php echo (int) $tq_course; ?>">
 
             <div class="tq-field">
-                <label class="tq-field__label" for="tq-quiz">وجهة الاستيراد</label>
+                <label class="tq-field__label" for="tq-quiz"><?php echo t('وجهة الاستيراد'); ?></label>
                 <select class="tq-select" id="tq-quiz" name="lesson_id" required>
-                    <option value="">اختر اختبارا من كورساتك…</option>
+                    <option value=""><?php echo t('اختر اختبارا من كورساتك…'); ?></option>
                     <?php foreach ($tq_quizzes as $tq_z): ?>
                         <option value="<?php echo (int) $tq_z['id']; ?>">
                             <?php echo html_escape($tq_z['course_title'] . ' — ' . $tq_z['title']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <span class="tq-field__msg tq-field__hint">اختباراتك وحدها، والخادم يعيد فحص ملكيتها.</span>
+                <span class="tq-field__msg tq-field__hint"><?php echo t('اختباراتك وحدها، والخادم يعيد فحص ملكيتها.'); ?></span>
             </div>
 
             <div class="tq-field">
-                <label class="tq-field__label" for="tq-csv">ملف الأسئلة</label>
+                <label class="tq-field__label" for="tq-csv"><?php echo t('ملف الأسئلة'); ?></label>
                 <input class="tq-input" id="tq-csv" type="file" name="csv" accept=".csv,.txt" required>
                 <span class="tq-field__msg tq-field__hint">
                     ترميز UTF-8، وأول سطر أسماء الأعمدة، والحد الأقصى <?php echo TQ_LRI . '2' . TQ_PDI; ?> ميغابايت.
                 </span>
             </div>
 
-            <p class="tq-caption" style="margin-block-end:var(--tq-space-s)">الأعمدة المتوقعة:</p>
+            <p class="tq-caption" style="margin-block-end:var(--tq-space-s)"><?php echo t('الأعمدة المتوقعة:'); ?></p>
             <ul class="tq-micro" style="margin:0 0 var(--tq-space-l);padding-inline-start:var(--tq-space-l);list-style:disc">
-                <li>objective — نص الهدف أو رقمه (إلزامي)</li>
-                <li>question — نص السؤال</li>
-                <li>type — radio أو checkbox</li>
-                <li><?php echo tq_iso('option_1 … option_4 — الخيارات'); ?></li>
-                <li>correct — رقم الخيار الصحيح أو أرقامه</li>
-                <li>tags — وسوم مفصولة بفاصلة (اختياري)</li>
+                <li><?php echo t('objective — نص الهدف أو رقمه (إلزامي)'); ?></li>
+                <li><?php echo t('question — نص السؤال'); ?></li>
+                <li><?php echo t('type — radio أو checkbox'); ?></li>
+                <li><?php echo tq_iso(t('option_1 … option_4 — الخيارات')); ?></li>
+                <li><?php echo t('correct — رقم الخيار الصحيح أو أرقامه'); ?></li>
+                <li><?php echo t('tags — وسوم مفصولة بفاصلة (اختياري)'); ?></li>
             </ul>
 
-            <button class="tq-btn tq-btn--primary tq-btn--block" type="submit">استيراد</button>
+            <button class="tq-btn tq-btn--primary tq-btn--block" type="submit"><?php echo t('استيراد'); ?></button>
             <p class="tq-field__hint tq-micro" style="margin-block-start:var(--tq-space-m)">
-                الاستيراد يرفض أي صف بلا هدف — ولا يستورد نصفه. وتصلك نتيجته مكتوبة.
+                <?php echo t('الاستيراد يرفض أي صف بلا هدف — ولا يستورد نصفه. وتصلك نتيجته مكتوبة.'); ?>
             </p>
         </form>
         <?php else: ?>
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">مواصفة ملف الاستيراد</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('مواصفة ملف الاستيراد'); ?></h2></div>
 
             <p class="tq-caption" style="margin-block-end:var(--tq-space-s)">
                 <?php echo $tq_quizzes
-                    ? 'برنامج الاستيراد غير مفعل على الخادم بعد، ولن يعرض زر رفع قبل معالجه.'
-                    : 'لا اختبار في كورساتك بعد، فلا وجهة للاستيراد.'; ?>
+                    ? t('برنامج الاستيراد غير مفعل على الخادم بعد، ولن يعرض زر رفع قبل معالجه.')
+                    : t('لا اختبار في كورساتك بعد، فلا وجهة للاستيراد.'); ?>
                 جهز ملفك على هذه الأعمدة الآن ليستورد كما هو حين يفتح. الترميز UTF-8،
                 وأول سطر أسماء الأعمدة:
             </p>
             <ul class="tq-micro" style="margin:0 0 var(--tq-space-l);padding-inline-start:var(--tq-space-l);list-style:disc">
-                <li>objective — نص الهدف أو رقمه (إلزامي)</li>
-                <li>question — نص السؤال</li>
-                <li>type — radio أو checkbox</li>
-                <li><?php echo tq_iso('option_1 … option_4 — الخيارات'); ?></li>
-                <li>correct — رقم الخيار الصحيح أو أرقامه</li>
-                <li>tags — وسوم مفصولة بفاصلة (اختياري)</li>
+                <li><?php echo t('objective — نص الهدف أو رقمه (إلزامي)'); ?></li>
+                <li><?php echo t('question — نص السؤال'); ?></li>
+                <li><?php echo t('type — radio أو checkbox'); ?></li>
+                <li><?php echo tq_iso(t('option_1 … option_4 — الخيارات')); ?></li>
+                <li><?php echo t('correct — رقم الخيار الصحيح أو أرقامه'); ?></li>
+                <li><?php echo t('tags — وسوم مفصولة بفاصلة (اختياري)'); ?></li>
             </ul>
 
             <p class="tq-field__hint tq-micro" style="margin:0">
-                وحين يفتح: يرفض أي صف بلا هدف، ولا يستورد نصف ملف.
+                <?php echo t('وحين يفتح: يرفض أي صف بلا هدف، ولا يستورد نصف ملف.'); ?>
             </p>
         </div>
         <?php endif; ?>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">في كورساتك</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('في كورساتك'); ?></h2></div>
             <ul class="tq-stack">
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">اختبارات</span>
+                    <span class="tq-caption"><?php echo t('اختبارات'); ?></span>
                     <?php echo tq_num($tq_quiz_count); ?>
                 </li>
                 <li class="tq-row tq-row--between">
-                    <span class="tq-caption">أسئلة</span>
+                    <span class="tq-caption"><?php echo t('أسئلة'); ?></span>
                     <?php echo tq_num($tq_total_count); ?>
                 </li>
             </ul>

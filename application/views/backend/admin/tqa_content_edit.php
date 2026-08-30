@@ -17,8 +17,8 @@ foreach ($spec['fields'] as $k => $f) {
 
 <?php
 $tools = '<a class="tqa-btn tqa-btn--ghost" href="' . base_url($spec['route']) . '" target="_blank" rel="noopener">'
-       . tq_icon('eye', 16) . ' عاين الصفحة</a>'
-       . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('taqdar_admin/content') . '">كل الصفحات</a>';
+       . tq_icon('eye', 16) . t('عاين الصفحة</a>')
+       . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('taqdar_admin/content') . t('">كل الصفحات</a>');
 tqa_head($spec['title'], $spec['lead'], $spec['icon'], $tools);
 ?>
 
@@ -32,8 +32,7 @@ tqa_head($spec['title'], $spec['lead'], $spec['icon'], $tools);
                 <span aria-hidden="true"><?php echo tq_icon('edit', 18); ?></span>
                 <span>
                     <span class="tqa-num"><?php echo $edited; ?></span>
-                    من هذه الحقول محرر ويظهر على الموقع الآن.
-                    والباقي يعرض نصه الأصلي — وهو المكتوب بالرمادي في كل حقل فارغ.
+                    <?php echo t('من هذه الحقول محرر ويظهر على الموقع الآن. والباقي يعرض نصه الأصلي — وهو المكتوب بالرمادي في كل حقل فارغ.'); ?>
                 </span>
             </div>
         <?php endif; ?>
@@ -46,7 +45,7 @@ tqa_head($spec['title'], $spec['lead'], $spec['icon'], $tools);
                 <label class="tqa-field__label" for="<?php echo $id; ?>">
                     <?php echo html_escape($f['label']); ?>
                     <?php if ($val !== ''): ?>
-                        <span class="tqa-badge tqa-badge--ok" style="margin-inline-start:6px">محرر</span>
+                        <span class="tqa-badge tqa-badge--ok" style="margin-inline-start:6px"><?php echo t('محرر'); ?></span>
                     <?php endif; ?>
                 </label>
 
@@ -74,15 +73,14 @@ tqa_head($spec['title'], $spec['lead'], $spec['icon'], $tools);
     </div>
 
     <div style="display:flex;gap:var(--tq-space-s);flex-wrap:wrap">
-        <button class="tqa-btn tqa-btn--primary" type="submit">احفظ النصوص</button>
-        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/content'); ?>">رجوع</a>
+        <button class="tqa-btn tqa-btn--primary" type="submit"><?php echo t('احفظ النصوص'); ?></button>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/content'); ?>"><?php echo t('رجوع'); ?></a>
     </div>
 
     <div class="tqa-note" style="margin-block-start:var(--tq-space-l)">
         <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
         <span>
-            الحقول تقبل نصا لا وسوم HTML — والوسوم تجرد عند الحفظ.
-            وحقل يترك فارغا يرجع إلى نصه الأصلي، فامسحه واحفظ لتتراجع عن تعديل.
+            <?php echo t('الحقول تقبل نصا لا وسوم HTML — والوسوم تجرد عند الحفظ. وحقل يترك فارغا يرجع إلى نصه الأصلي، فامسحه واحفظ لتتراجع عن تعديل.'); ?>
         </span>
     </div>
 </form>

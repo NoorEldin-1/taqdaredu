@@ -39,11 +39,11 @@ if ($tq_ids) {
 <div class="tqa-card tqa-card--flush">
     <div class="tqa-card__head">
         <span class="tqa-iconbox" aria-hidden="true"><?php echo tq_icon('chat', 20); ?></span>
-        <h2>المحادثة</h2>
+        <h2><?php echo t('المحادثة'); ?></h2>
     </div>
 
     <?php if (empty($tq_msgs)): ?>
-        <?php tqa_empty('لا رسائل في هذه المحادثة', 'اكتب أول رسالة من الحقل أسفل الشاشة.', '', '', 'chat'); ?>
+        <?php tqa_empty(t('لا رسائل في هذه المحادثة'), t('اكتب أول رسالة من الحقل أسفل الشاشة.'), '', '', 'chat'); ?>
     <?php else: ?>
         <ul class="tqa-msgs">
             <?php foreach ($tq_msgs as $tq_m):
@@ -57,7 +57,7 @@ if ($tq_ids) {
                     <div style="min-inline-size:0">
                         <div class="tqa-msg__body">
                             <span class="tqa-msg__who"><?php
-                                echo html_escape($tq_who[$tq_sid] ?? 'حساب محذوف'); ?></span>
+                                echo html_escape($tq_who[$tq_sid] ?? t('حساب محذوف')); ?></span>
                             <?php echo nl2br(html_escape($tq_m['message'])); ?>
                         </div>
                         <span class="tqa-msg__at tq-ltr" dir="ltr">
@@ -73,9 +73,9 @@ if ($tq_ids) {
         <form class="tqa-composer" method="post"
               action="<?php echo site_url('admin/message/send_reply/' . $tq_code); ?>">
             <?php echo tq_csrf(); ?>
-            <label class="tqa-sr" for="reply">اكتب ردك</label>
+            <label class="tqa-sr" for="reply"><?php echo t('اكتب ردك'); ?></label>
             <input class="tqa-input" type="text" id="reply" name="message" required
-                   placeholder="اكتب ردك…" autocomplete="off">
+                   placeholder="<?php echo te('اكتب ردك…'); ?>" autocomplete="off">
             <button type="submit" class="tqa-btn tqa-btn--primary">
                 <?php echo tq_icon('send', 16); ?> أرسل
             </button>

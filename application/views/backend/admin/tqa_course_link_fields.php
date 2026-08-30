@@ -23,24 +23,24 @@ $tq_link = isset($tq_link) && is_array($tq_link) ? $tq_link : array('grade_id' =
     <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
         <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('target', 20); ?></span>
         <div>
-            <h2>الصف والمادة</h2>
-            <span class="tqa-media__sub">بهما يظهر الكورس في «المواد والبرامج» وتفتحه باقة صفه.</span>
+            <h2><?php echo t('الصف والمادة'); ?></h2>
+            <span class="tqa-media__sub"><?php echo t('بهما يظهر الكورس في «المواد والبرامج» وتفتحه باقة صفه.'); ?></span>
         </div>
     </div>
 
     <div class="tqa-fieldgrid">
         <div class="tqa-field">
-            <label class="tqa-field__label" for="tq_grade_id">الصف الدراسي</label>
+            <label class="tqa-field__label" for="tq_grade_id"><?php echo t('الصف الدراسي'); ?></label>
             <select class="tqa-select" id="tq_grade_id" name="tq_grade_id">
-                <option value="0">— بلا صف</option>
+                <option value="0"><?php echo t('— بلا صف'); ?></option>
                 <?php echo tqa_ref_options('grades', (int) $tq_link['grade_id']); ?>
             </select>
         </div>
 
         <div class="tqa-field">
-            <label class="tqa-field__label" for="tq_subject_id">المادة</label>
+            <label class="tqa-field__label" for="tq_subject_id"><?php echo t('المادة'); ?></label>
             <select class="tqa-select" id="tq_subject_id" name="tq_subject_id">
-                <option value="0">— بلا مادة</option>
+                <option value="0"><?php echo t('— بلا مادة'); ?></option>
                 <?php echo tqa_ref_options('subjects', (int) $tq_link['subject_id']); ?>
             </select>
         </div>
@@ -49,8 +49,7 @@ $tq_link = isset($tq_link) && is_array($tq_link) ? $tq_link : array('grade_id' =
     <p class="tqa-note" style="margin-block-start:var(--tq-space-l)">
         <span aria-hidden="true"><?php echo tq_icon('help', 18); ?></span>
         <span>
-            الباقة تمنح الطالب <strong>صفا ومادة</strong> لا كورسا بعينه. فما لم يحمل الكورس
-            صفا ومادة يبقى محتوى داخليا: يفتحه من سجل فيه صراحة، ولا يعرض في الموقع العام.
+            <?php echo t('الباقة تمنح الطالب'); ?> <strong><?php echo t('صفا ومادة'); ?></strong> <?php echo t('لا كورسا بعينه. فما لم يحمل الكورس صفا ومادة يبقى محتوى داخليا: يفتحه من سجل فيه صراحة، ولا يعرض في الموقع العام.'); ?>
         </span>
     </p>
 </div>

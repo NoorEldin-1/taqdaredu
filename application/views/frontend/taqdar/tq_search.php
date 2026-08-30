@@ -24,13 +24,13 @@ $tq_role = function_exists('tq_role') ? tq_role() : 'student';
 if (!in_array($tq_role, array('student', 'teacher', 'parent'), true)) $tq_role = 'student';
 
 $tq_nav   = '';
-$tq_title = 'نتائج البحث';
+$tq_title = t('نتائج البحث');
 $tq_icon  = 'search';
 
 $tq_q = trim((string) (isset($tq_query) ? $tq_query : $this->input->get('q', true)));
 $tq_sub = $tq_q === ''
-    ? 'اكتب ما تبحث عنه: درسا أو مادة أو ملفا أو معلما.'
-    : 'ما وجدناه لك عن «' . $tq_q . '».';
+    ? t('اكتب ما تبحث عنه: درسا أو مادة أو ملفا أو معلما.')
+    : t('ما وجدناه لك عن «') . $tq_q . '».';
 
 /** مطابقة نصية غير حساسة لحالة الحرف، عربية كانت أو لاتينية. */
 $tq_hit = function ($hay) use ($tq_q) {
@@ -51,8 +51,8 @@ if ($tq_q !== '' && $tq_uid > 0 && $tq_role === 'student') {
             tq_s_lessons_word($c['done'], $c['lessons']),
             tq_s_lesson_url($c['id'], $c['resume_id']),
             'book',
-            $c['status'] === 'done' ? array('mastered', 'مكتمل')
-                : ($c['status'] === 'progress' ? array('progress', 'قيد التقدم') : array('idle', 'لم يبدأ')),
+            $c['status'] === 'done' ? array('mastered', t('مكتمل'))
+                : ($c['status'] === 'progress' ? array('progress', t('قيد التقدم')) : array('idle', t('لم يبدأ'))),
         );
     }
 
@@ -74,7 +74,7 @@ if ($tq_q !== '' && $tq_uid > 0 && $tq_role === 'student') {
                 $r['course_title'],
                 tq_s_lesson_url((int) $r['course_id'], (int) $r['id']),
                 ($r['lesson_type'] === 'quiz') ? 'check-badge' : 'play',
-                ($r['lesson_type'] === 'quiz') ? array('due', 'اختبار') : null,
+                ($r['lesson_type'] === 'quiz') ? array('due', t('اختبار')) : null,
             );
         }
     }
@@ -94,7 +94,7 @@ if ($tq_q !== '' && $tq_uid > 0 && $tq_role === 'student') {
         array($tq_uid, $tq_uid, '%' . $tq_q . '%')
     )->result_array();
     foreach ($tq_rows as $r) {
-        $tq_mine[] = array($r['title'], 'من كورساتك', base_url('teacher/courses'), 'book', null);
+        $tq_mine[] = array($r['title'], t('من كورساتك'), base_url('teacher/courses'), 'book', null);
     }
 
 } elseif ($tq_q !== '' && $tq_uid > 0 && $tq_role === 'parent') {
@@ -107,7 +107,7 @@ if ($tq_q !== '' && $tq_uid > 0 && $tq_role === 'student') {
             ->get()->result_array();
         foreach ($tq_rows as $r) {
             if (!$tq_hit($r['name'])) continue;
-            $tq_mine[] = array($r['name'], 'من أبنائك المرتبطين', base_url('parent'), 'users', null);
+            $tq_mine[] = array($r['name'], t('من أبنائك المرتبطين'), base_url('parent'), 'users', null);
         }
     }
 }
@@ -130,12 +130,12 @@ include 'portal_open.php';
     <form class="tq-card tq-card--panel" role="search" method="get"
           action="<?php echo base_url($tq_role . '/search'); ?>">
         <p class="tq-field" style="margin:0">
-            <label class="tq-field__label" for="tq-search-q">ابحث في المنصة</label>
+            <label class="tq-field__label" for="tq-search-q"><?php echo t('ابحث في المنصة'); ?></label>
             <span class="tq-row" style="gap:var(--tq-space-m);flex-wrap:wrap">
                 <input class="tq-input" id="tq-search-q" name="q" type="search" style="flex:1;min-inline-size:14rem"
                        value="<?php echo html_escape($tq_q); ?>" autocomplete="off"
-                       placeholder="ابحث عن درس أو مادة أو ملف أو معلم…">
-                <button class="tq-btn tq-btn--primary" type="submit">بحث</button>
+                       placeholder="<?php echo te('ابحث عن درس أو مادة أو ملف أو معلم…'); ?>">
+                <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('بحث'); ?></button>
             </span>
         </p>
     </form>
@@ -145,8 +145,8 @@ include 'portal_open.php';
         <div class="tq-card">
             <?php echo tq_s_empty(
                 'search', 'sky',
-                'اكتب ما تبحث عنه',
-                'نبحث في دروسك وملفاتك واختباراتك أولا، ثم في مواد المنصة ومعلميها وكتبها.',
+                t('اكتب ما تبحث عنه'),
+                t('نبحث في دروسك وملفاتك واختباراتك أولا، ثم في مواد المنصة ومعلميها وكتبها.'),
                 '', '', false
             ); ?>
         </div>
@@ -156,9 +156,9 @@ include 'portal_open.php';
         <div class="tq-card">
             <?php echo tq_s_empty(
                 'search', 'peach',
-                'لم نجد شيئا يطابق «' . $tq_q . '»',
-                'جرب كلمة أقصر أو أعم، أو تصفح موادك من قائمة البوابة.',
-                'إلى دروسي',
+                t('لم نجد شيئا يطابق «') . $tq_q . '»',
+                t('جرب كلمة أقصر أو أعم، أو تصفح موادك من قائمة البوابة.'),
+                t('إلى دروسي'),
                 base_url($tq_role === 'student' ? 'student/lessons' : ($tq_role === 'teacher' ? 'teacher/courses' : 'parent'))
             ); ?>
         </div>
@@ -168,7 +168,7 @@ include 'portal_open.php';
         <?php if ($tq_mine): ?>
             <section class="tq-section">
                 <div class="tq-sectionhead">
-                    <h2>في بوابتك</h2>
+                    <h2><?php echo t('في بوابتك'); ?></h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_mine) . TQ_PDI; ?></span>
                 </div>
                 <?php foreach ($tq_mine as $i => $m): ?>
@@ -182,7 +182,7 @@ include 'portal_open.php';
                         </div>
                         <div class="tq-s-row__end">
                             <?php if (!empty($m[4])) echo tq_badge($m[4][0], $m[4][1]); ?>
-                            <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($m[2]); ?>">افتح</a>
+                            <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($m[2]); ?>"><?php echo t('افتح'); ?></a>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -192,7 +192,7 @@ include 'portal_open.php';
         <?php if ((int) $tq_pub['total'] > 0): ?>
             <section class="tq-section">
                 <div class="tq-sectionhead">
-                    <h2>في المنصة</h2>
+                    <h2><?php echo t('في المنصة'); ?></h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . (int) $tq_pub['total'] . TQ_PDI; ?></span>
                 </div>
 
@@ -203,16 +203,16 @@ include 'portal_open.php';
                        تحمل تسمية نوعها. */
                     $tq_cards = array();
                     foreach ($tq_pub['paths'] as $r) {
-                        $tq_cards[] = array($r['title'], (string) $r['blurb'], $r['href'], 'book', 'مادة');
+                        $tq_cards[] = array($r['title'], (string) $r['blurb'], $r['href'], 'book', t('مادة'));
                     }
                     foreach ($tq_pub['teachers'] as $r) {
-                        $tq_cards[] = array($r['name'], (string) $r['bio'], $r['url'], 'users', 'معلم');
+                        $tq_cards[] = array($r['name'], (string) $r['bio'], $r['url'], 'users', t('معلم'));
                     }
                     foreach ($tq_pub['books'] as $r) {
-                        $tq_cards[] = array($r['title'], (string) $r['subject'], $r['href'], 'file', 'كتاب');
+                        $tq_cards[] = array($r['title'], (string) $r['subject'], $r['href'], 'file', t('كتاب'));
                     }
                     foreach ($tq_pub['posts'] as $r) {
-                        $tq_cards[] = array($r['title'], (string) $r['excerpt'], $r['url'], 'chat', 'مقال');
+                        $tq_cards[] = array($r['title'], (string) $r['excerpt'], $r['url'], 'chat', t('مقال'));
                     }
                     foreach (array_slice($tq_cards, 0, 12) as $i => $c):
                         ?>
@@ -228,7 +228,7 @@ include 'portal_open.php';
                                 <p class="tq-micro" style="margin:0"><?php echo html_escape(mb_substr(strip_tags($c[1]), 0, 120, 'UTF-8')); ?></p>
                             <?php endif; ?>
                             <a class="tq-btn tq-btn--ghost tq-btn--sm tq-btn--block" href="<?php echo html_escape($c[2]); ?>">
-                                افتح الصفحة
+                                <?php echo t('افتح الصفحة'); ?>
                             </a>
                         </article>
                     <?php endforeach; ?>

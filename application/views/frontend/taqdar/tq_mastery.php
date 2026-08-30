@@ -21,8 +21,8 @@ include 'tq_student_styles.php';
 
 $tq_nav   = 'mastery';
 $tq_role  = 'student';
-$tq_title = 'خريطة إتقاني';
-$tq_sub   = 'كل هدف تعلمته ومستواك فيه — مرتبا بما يحتاج عملك أولا.';
+$tq_title = t('خريطة إتقاني');
+$tq_sub   = t('كل هدف تعلمته ومستواك فيه — مرتبا بما يحتاج عملك أولا.');
 $tq_icon  = 'target';
 
 include 'portal_open.php';
@@ -42,17 +42,17 @@ include 'portal_open.php';
       <span class="tq-s-art tq-pastel tq-pastel--peach" aria-hidden="true">
         <span class="tq-pastel__icon"><?php echo tq_icon('target', 34); ?></span>
       </span>
-      <h3 class="tq-empty__title" data-tq-ms-error-msg>تعذر تحميل خريطتك</h3>
-      <button class="tq-btn tq-btn--secondary" type="button" data-tq-ms-retry>إعادة المحاولة</button>
+      <h3 class="tq-empty__title" data-tq-ms-error-msg><?php echo t('تعذر تحميل خريطتك'); ?></h3>
+      <button class="tq-btn tq-btn--secondary" type="button" data-tq-ms-retry><?php echo t('إعادة المحاولة'); ?></button>
     </div>
   </div>
 
   <div data-tq-ms-body hidden>
 
     <section class="tq-card" data-tq-ms-empty hidden>
-      <?php echo tq_s_empty('target', 'sand', 'خريطتك تبدأ بأول درس',
-            'تقاس مستوياتك من إجاباتك — على أسئلة الدرس وعلى المراجعة. أكمل درسا واحدا وستظهر أهدافه هنا.',
-            'ابدأ درسا', base_url('student/lessons'), false, 'primary'); ?>
+      <?php echo tq_s_empty('target', 'sand', t('خريطتك تبدأ بأول درس'),
+            t('تقاس مستوياتك من إجاباتك — على أسئلة الدرس وعلى المراجعة. أكمل درسا واحدا وستظهر أهدافه هنا.'),
+            t('ابدأ درسا'), base_url('student/lessons'), false, 'primary'); ?>
     </section>
 
     <div data-tq-ms-has hidden>
@@ -62,19 +62,19 @@ include 'portal_open.php';
       <!-- أضعف خمسة: هذا هو الجواب العملي، فيسبق الخريطة كلها -->
       <section class="tq-card" data-tq-ms-weak-card hidden style="margin-block-end:var(--tq-space-l)">
         <div class="tq-card__head">
-          <h2 class="tq-card__title">ابدأ من هنا</h2>
-          <span class="tq-caption">أضعف أهدافك — وأعلاها عائدا على وقتك</span>
+          <h2 class="tq-card__title"><?php echo t('ابدأ من هنا'); ?></h2>
+          <span class="tq-caption"><?php echo t('أضعف أهدافك — وأعلاها عائدا على وقتك'); ?></span>
         </div>
         <div class="tq-ms-weak" data-tq-ms-weak></div>
       </section>
 
       <section class="tq-card">
         <div class="tq-card__head">
-          <h2 class="tq-card__title">الخريطة كاملة</h2>
+          <h2 class="tq-card__title"><?php echo t('الخريطة كاملة'); ?></h2>
           <div class="tq-row" style="gap:var(--tq-space-s)">
-            <label class="sr-only" for="tqMsFilter">رشح بالكورس</label>
+            <label class="sr-only" for="tqMsFilter"><?php echo t('رشح بالكورس'); ?></label>
             <select class="tq-select" id="tqMsFilter" data-tq-ms-filter>
-              <option value="">كل الكورسات</option>
+              <option value=""><?php echo t('كل الكورسات'); ?></option>
             </select>
           </div>
         </div>

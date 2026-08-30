@@ -27,14 +27,14 @@
 
 $tq_nav   = 'weekly';
 $tq_role  = 'parent';
-$tq_title = 'التقرير الأسبوعي';
-$tq_sub   = 'أربعة أسطر تقرأ في عشر ثوان';
+$tq_title = t('التقرير الأسبوعي');
+$tq_sub   = t('أربعة أسطر تقرأ في عشر ثوان');
 $tq_icon  = 'clipboard';
 
 /* المدى المشمول يكتب صراحة تحت العنوان.
    «هذا الأسبوع» وحدها لا تقول أين ينتهي: من يفتح الشاشة الثلاثاء يقرأ
    أرقام ثلاثة أيام ويحسبها أرقام سبعة، فيظن ابنه أسوأ مما هو. */
-$tq_day_ar = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+$tq_day_ar = [t('الأحد'), t('الاثنين'), t('الثلاثاء'), t('الأربعاء'), t('الخميس'), t('الجمعة'), t('السبت')];
 
 $tq_uid = (int) $this->session->userdata('user_id');
 
@@ -50,8 +50,8 @@ $tq_days_left  = 6 - (int) date('w');
 $tq_elapsed    = (int) date('w') + 1;   // ما مضى من الأسبوع بما فيه اليوم
 
 $tq_sub = $tq_elapsed === 1
-    ? 'من صباح الأحد إلى الآن — مقارنا بأحد الأسبوع الماضي'
-    : 'من الأحد إلى ' . $tq_day_ar[(int) date('w')] . ' — مقارنا بالأيام نفسها من الأسبوع الماضي';
+    ? t('من صباح الأحد إلى الآن — مقارنا بأحد الأسبوع الماضي')
+    : t('من الأحد إلى') . $tq_day_ar[(int) date('w')] . t('— مقارنا بالأيام نفسها من الأسبوع الماضي');
 
 $tq_children = $tq_pm->children($tq_uid);
 
@@ -184,28 +184,28 @@ include 'portal_open.php';
                 /* الجملة تبنى نفيا لا بحشو «لا شيء» في موضع المفعول:
                    «أنهى لا دروس» ليست عربية. والفعل نفسه ينفى. */
                 $tq_l1 = (int) $tq_c['done'] > 0
-                    ? 'أنهى ' . tq_lessons_word((int) $tq_c['done'])
-                    : 'لم ينه درسا';
+                    ? t('أنهى') . tq_lessons_word((int) $tq_c['done'])
+                    : t('لم ينه درسا');
                 $tq_l1 .= (int) $tq_c['quizzes'] > 0
-                    ? ' وسلم ' . tq_exams_word((int) $tq_c['quizzes'])
-                    : ' ولم يسلم اختبارا';
+                    ? t('وسلم') . tq_exams_word((int) $tq_c['quizzes'])
+                    : t('ولم يسلم اختبارا');
 
                 $tq_lines[] = [
                     ((int) $tq_c['done'] > 0 || (int) $tq_c['quizzes'] > 0) ? 'check-badge' : 'clock',
                     ((int) $tq_c['done'] > 0 || (int) $tq_c['quizzes'] > 0) ? 'mint' : 'sand',
-                    $tq_l1 . ' هذا الأسبوع',
+                    $tq_l1 . t('هذا الأسبوع'),
                 ];
 
                 $tq_lines[] = ['chart',
                     $tq_c['days_this'] > $tq_c['days_prev'] ? 'mint'
                         : ($tq_c['days_this'] < $tq_c['days_prev'] ? 'peach' : 'sky'),
                     $tq_c['days_this'] > $tq_c['days_prev']
-                        ? 'نشاطه ارتفع من ' . tq_days($tq_c['days_prev'], 'صفر') . ' إلى ' . tq_days($tq_c['days_this']) . ' مقارنة بأسبوعه الماضي'
+                        ? t('نشاطه ارتفع من') . tq_days($tq_c['days_prev'], t('صفر')) . t('إلى') . tq_days($tq_c['days_this']) . t('مقارنة بأسبوعه الماضي')
                         : ($tq_c['days_this'] < $tq_c['days_prev']
-                            ? 'نشاطه نزل من ' . tq_days($tq_c['days_prev']) . ' إلى ' . tq_days($tq_c['days_this'], 'صفر') . ' مقارنة بأسبوعه الماضي'
+                            ? t('نشاطه نزل من') . tq_days($tq_c['days_prev']) . t('إلى') . tq_days($tq_c['days_this'], t('صفر')) . t('مقارنة بأسبوعه الماضي')
                             : ($tq_c['days_this'] > 0
-                                ? 'نشاطه ثابت عند ' . tq_days($tq_c['days_this']) . ' كأسبوعه الماضي'
-                                : 'لم يدرس في هذه الأيام ولا في مثلها من أسبوعه الماضي'))];
+                                ? t('نشاطه ثابت عند') . tq_days($tq_c['days_this']) . t('كأسبوعه الماضي')
+                                : t('لم يدرس في هذه الأيام ولا في مثلها من أسبوعه الماضي')))];
 
                 if (!empty($tq_c['stalled'])) {
                     $tq_gap = (int) $tq_c['stalled']['last_seen'] > 0
@@ -214,24 +214,24 @@ include 'portal_open.php';
                     /* «لم يفتح المنصة» كانت خطأ في المرجع: المتوقف مادة
                        بعينها لا المنصة كلها، وقد يكون نشطا في غيرها. */
                     $tq_lines[] = ['clock', 'peach', $tq_gap === null
-                        ? $tq_c['stalled']['title'] . ': لم يبدأها بعد'
+                        ? $tq_c['stalled']['title'] . t(': لم يبدأها بعد')
                         : ($tq_gap < 1
-                            ? $tq_c['stalled']['title'] . ': أقل مواده نشاطا، وآخر عهده بها اليوم'
-                            : $tq_c['stalled']['title'] . ': لم يفتحها منذ ' . tq_days($tq_gap))];
+                            ? $tq_c['stalled']['title'] . t(': أقل مواده نشاطا، وآخر عهده بها اليوم')
+                            : $tq_c['stalled']['title'] . t(': لم يفتحها منذ') . tq_days($tq_gap))];
                 }
 
                 $tq_plan_days = (int) $tq_c['plan_days'];
                 $tq_need = max(0, $tq_plan_days - (int) $tq_c['days_this']);
                 $tq_plan_note = $tq_c['plan_is_default']
-                    ? ' (خطة أسبوعه غير محددة، فالحساب على ' . tq_days($tq_plan_days) . ' افتراضيا)'
+                    ? t('(خطة أسبوعه غير محددة، فالحساب على') . tq_days($tq_plan_days) . t('افتراضيا)')
                     : '';
                 /* «يومان باقيان» مرفوعان لأنهما مبتدأ الجملة، و«من خطة
                    يومين» مجروران بحرف الجر — والمثنى وحده يفرق بينهما. */
                 $tq_lines[] = ['target', $tq_need > 0 ? 'lilac' : 'mint', $tq_need > 0
-                    ? 'المقترح: ' . tq_days($tq_need, 'لا يوم', 'nom')
-                        . ($tq_need === 2 ? ' باقيان' : ($tq_need === 1 ? ' باق' : ' باقية'))
-                        . ' من خطة ' . tq_days($tq_plan_days) . $tq_plan_note
-                    : 'المقترح: أتم خطة أسبوعه — يكفي أن يحافظ على هذا الإيقاع' . $tq_plan_note];
+                    ? t('المقترح:') . tq_days($tq_need, t('لا يوم'), 'nom')
+                        . ($tq_need === 2 ? t('باقيان') : ($tq_need === 1 ? t('باق') : t('باقية')))
+                        . t('من خطة') . tq_days($tq_plan_days) . $tq_plan_note
+                    : t('المقترح: أتم خطة أسبوعه — يكفي أن يحافظ على هذا الإيقاع') . $tq_plan_note];
                 ?>
 
                 <article class="tq-card tq-card--panel tq-section">
@@ -252,8 +252,8 @@ include 'portal_open.php';
 
                     <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
                         <?php /* «حصيلته درسان» و«بقي يومان» مرفوعان — خبر وفاعل. */ ?>
-                        <?php echo tq_iso('حصيلته منذ البداية ' . tq_lessons_word((int) $tq_c['done_all'], 'لا دروس بعد', 'nom')
-                            . '. وبقي من هذا الأسبوع ' . tq_days($tq_days_left, 'يومه الأخير', 'nom') . '.'); ?>
+                        <?php echo tq_iso(t('حصيلته منذ البداية') . tq_lessons_word((int) $tq_c['done_all'], t('لا دروس بعد'), 'nom')
+                            . t('. وبقي من هذا الأسبوع') . tq_days($tq_days_left, t('يومه الأخير'), 'nom') . '.'); ?>
                     </p>
 
                     <a class="tq-btn tq-btn--secondary tq-btn--sm" style="margin-block-start:var(--tq-space-l)"
@@ -267,12 +267,11 @@ include 'portal_open.php';
 
             <div class="tq-card tq-empty">
                 <span class="tq-icon-box tq-pastel--mint" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('clipboard', 24); ?></span>
-                <h2 class="tq-empty__title">لا تقرير قبل ربط حساب ابنك</h2>
+                <h2 class="tq-empty__title"><?php echo t('لا تقرير قبل ربط حساب ابنك'); ?></h2>
                 <p class="tq-empty__text">
-                    بعد الربط يصلك كل أحد صباحا تقرير من أربعة أسطر: ماذا أنجز هذا الأسبوع،
-                    وما الذي تحسن، وما الذي يقلق، وما الخطوة الصغيرة التي تكفي هذا الأسبوع.
+                    <?php echo t('بعد الربط يصلك كل أحد صباحا تقرير من أربعة أسطر: ماذا أنجز هذا الأسبوع، وما الذي تحسن، وما الذي يقلق، وما الخطوة الصغيرة التي تكفي هذا الأسبوع.'); ?>
                 </p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('parent'); ?>">اربط حساب ابنك</a>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('parent'); ?>"><?php echo t('اربط حساب ابنك'); ?></a>
             </div>
 
         <?php endif; ?>
@@ -280,20 +279,19 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-pastel tq-pastel--lilac">
-            <span class="tq-pastel__label tq-micro">موعد التقرير</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('موعد التقرير'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                صباح كل أحد، مع بداية أسبوع ابنك الدراسي.
+                <?php echo t('صباح كل أحد، مع بداية أسبوع ابنك الدراسي.'); ?>
             </p>
             <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-m) 0 0">
-                وما لا يستحق المقاطعة ينتظر هذا التقرير بدل أن يقطع يومك بإشعار.
+                <?php echo t('وما لا يستحق المقاطعة ينتظر هذا التقرير بدل أن يقطع يومك بإشعار.'); ?>
             </p>
         </div>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">لماذا أربعة أسطر</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('لماذا أربعة أسطر'); ?></h2></div>
             <p class="tq-caption">
-                التقرير الطويل لا يقرأ، وما لا يقرأ لا يغير شيئا.
-                أربعة أسطر تكفي لتعرف أين ابنك وماذا تفعل اليوم.
+                <?php echo t('التقرير الطويل لا يقرأ، وما لا يقرأ لا يغير شيئا. أربعة أسطر تكفي لتعرف أين ابنك وماذا تفعل اليوم.'); ?>
             </p>
         </div>
     </aside>

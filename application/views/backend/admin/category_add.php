@@ -25,7 +25,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $tq_code = substr(md5((string) rand(0, 1000000)), 0, 10);
 ?>
 
-<?php tqa_head('إضافة قسم', 'اترك «القسم الأب» فارغا لإنشاء قسم رئيسي، أو اخترـه لإنشاء قسم فرعي تحته.', 'grid'); ?>
+<?php tqa_head(t('إضافة قسم'), t('اترك «القسم الأب» فارغا لإنشاء قسم رئيسي، أو اخترـه لإنشاء قسم فرعي تحته.'), 'grid'); ?>
 
 <div class="tqa-card" style="max-inline-size:760px">
 
@@ -36,61 +36,61 @@ $tq_code = substr(md5((string) rand(0, 1000000)), 0, 10);
 
             <div class="tqa-field">
                 <label class="tqa-field__label" for="cat_name">
-                    اسم القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+                    <?php echo t('اسم القسم'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                 </label>
                 <input class="tqa-input" type="text" id="cat_name" name="name" required maxlength="190"
                        autocomplete="off">
-                <span class="tqa-field__hint">هذا ما يقرؤه الزائر في صفحة الكورسات.</span>
+                <span class="tqa-field__hint"><?php echo t('هذا ما يقرؤه الزائر في صفحة الكورسات.'); ?></span>
             </div>
 
             <div class="tqa-field">
-                <label class="tqa-field__label" for="cat_parent">القسم الأب</label>
+                <label class="tqa-field__label" for="cat_parent"><?php echo t('القسم الأب'); ?></label>
                 <select class="tqa-select" id="cat_parent" name="parent" data-tqa-parent>
-                    <option value="0">— بلا أب (قسم رئيسي)</option>
+                    <option value="0"><?php echo t('— بلا أب (قسم رئيسي)'); ?></option>
                     <?php foreach ($categories as $tq_c): ?>
                         <?php if ((int) $tq_c['parent'] !== 0) continue; ?>
                         <option value="<?php echo (int) $tq_c['id']; ?>"><?php echo html_escape($tq_c['name']); ?></option>
                     <?php endforeach; ?>
                 </select>
-                <span class="tqa-field__hint">اختياره يجعل هذا قسما فرعيا — والكورس يسند إلى الفرعي.</span>
+                <span class="tqa-field__hint"><?php echo t('اختياره يجعل هذا قسما فرعيا — والكورس يسند إلى الفرعي.'); ?></span>
             </div>
 
             <div class="tqa-field">
-                <label class="tqa-field__label" for="cat_code">رمز القسم</label>
+                <label class="tqa-field__label" for="cat_code"><?php echo t('رمز القسم'); ?></label>
                 <input class="tqa-input tqa-input--ltr" type="text" id="cat_code" name="code"
                        value="<?php echo html_escape($tq_code); ?>" readonly>
-                <span class="tqa-field__hint">يولد تلقائيا ولا يعدل.</span>
+                <span class="tqa-field__hint"><?php echo t('يولد تلقائيا ولا يعدل.'); ?></span>
             </div>
 
             <div class="tqa-field">
-                <label class="tqa-field__label" for="cat_icon">صنف الأيقونة</label>
+                <label class="tqa-field__label" for="cat_icon"><?php echo t('صنف الأيقونة'); ?></label>
                 <input class="tqa-input tqa-input--ltr" type="text" id="cat_icon" name="font_awesome_class"
                        autocomplete="off" placeholder="fas fa-book">
-                <span class="tqa-field__hint">اختياري — صنف Font Awesome يعرض بجانب الاسم.</span>
+                <span class="tqa-field__hint"><?php echo t('اختياري — صنف Font Awesome يعرض بجانب الاسم.'); ?></span>
             </div>
 
             <div class="tqa-field tqa-field--full" data-tqa-cover="parent">
-                <span class="tqa-field__label">غلاف القسم الرئيسي</span>
+                <span class="tqa-field__label"><?php echo t('غلاف القسم الرئيسي'); ?></span>
                 <div class="tqa-file">
                     <input type="file" id="cat_cover" name="category_thumbnail" accept="image/*" data-tqa-file>
                     <label class="tqa-file__btn" for="cat_cover">
                         <?php echo tq_icon('image', 16); ?> اختر صورة
                     </label>
-                    <span class="tqa-file__name" data-tqa-file-name>لم تختر ملفا بعد</span>
+                    <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
                 </div>
-                <span class="tqa-field__hint">المقاس المفضل ‎400 × 255‎ بكسل.</span>
+                <span class="tqa-field__hint"><?php echo t('المقاس المفضل ‎400 × 255‎ بكسل.'); ?></span>
             </div>
 
             <div class="tqa-field tqa-field--full" data-tqa-cover="sub" hidden>
-                <span class="tqa-field__label">أيقونة القسم الفرعي</span>
+                <span class="tqa-field__label"><?php echo t('أيقونة القسم الفرعي'); ?></span>
                 <div class="tqa-file">
                     <input type="file" id="cat_cover_sub" name="sub_category_thumbnail" accept="image/*" data-tqa-file>
                     <label class="tqa-file__btn" for="cat_cover_sub">
                         <?php echo tq_icon('image', 16); ?> اختر صورة
                     </label>
-                    <span class="tqa-file__name" data-tqa-file-name>لم تختر ملفا بعد</span>
+                    <span class="tqa-file__name" data-tqa-file-name><?php echo t('لم تختر ملفا بعد'); ?></span>
                 </div>
-                <span class="tqa-field__hint">المقاس المفضل ‎100 × 100‎ بكسل.</span>
+                <span class="tqa-field__hint"><?php echo t('المقاس المفضل ‎100 × 100‎ بكسل.'); ?></span>
             </div>
         </div>
 
@@ -98,7 +98,7 @@ $tq_code = substr(md5((string) rand(0, 1000000)), 0, 10);
             <button type="submit" class="tqa-btn tqa-btn--primary">
                 <?php echo tq_icon('check', 16); ?> احفظ القسم
             </button>
-            <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/categories'); ?>">إلغاء</a>
+            <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/categories'); ?>"><?php echo t('إلغاء'); ?></a>
         </div>
     </form>
 </div>

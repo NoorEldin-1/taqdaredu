@@ -16,7 +16,7 @@ $tq_user  = $tq_uid ? $this->user_model->get_all_user($tq_uid)->row_array() : nu
 $tq_name  = $tq_user ? trim($tq_user['first_name'] . ' ' . $tq_user['last_name']) : '';
 $tq_photo = tqs_person_img($tq_user ? $tq_user['image'] : '');
 
-$tq_role_label = ['student' => 'طالب', 'teacher' => 'معلم', 'parent' => 'ولي أمر'][$tq_role] ?? 'طالب';
+$tq_role_label = ['student' => t('طالب'), 'teacher' => t('معلم'), 'parent' => t('ولي أمر')][$tq_role] ?? t('طالب');
 
 /**
  * وجهات الترويسة لكل دور. `null` تعني «لا شاشة لها في هذه البوابة بعد».
@@ -49,27 +49,27 @@ $tq_bar = $tq_bar_map[$tq_role] ?? $tq_bar_map['student'];
 /* ثلاث فترات لا اثنتان: الفرع الأوسط كان يعيد نص الفرع الأخير حرفا بحرف،
    فكان الشرط يحسب ولا يغير شيئا. */
 $tq_hour = (int) date('G');
-if     ($tq_hour < 12) $tq_greet = 'صباح الخير';
-elseif ($tq_hour < 18) $tq_greet = 'طاب يومك';
-else                   $tq_greet = 'مساء الخير';
+if     ($tq_hour < 12) $tq_greet = t('صباح الخير');
+elseif ($tq_hour < 18) $tq_greet = t('طاب يومك');
+else                   $tq_greet = t('مساء الخير');
 ?>
 <header class="tq-topbar">
-    <button class="tq-iconbtn tq-rail-toggle" type="button" data-tq-rail-toggle aria-label="فتح القائمة" aria-expanded="false">
+    <button class="tq-iconbtn tq-rail-toggle" type="button" data-tq-rail-toggle aria-label="<?php echo te('فتح القائمة'); ?>" aria-expanded="false">
         <?php echo tq_icon('menu'); ?>
     </button>
 
     <div class="tq-topbar__greet">
         <p class="tq-strong" style="margin:0;color:var(--tq-navy)">
-            <?php echo html_escape($tq_greet . ($tq_name ? '، ' . explode(' ', $tq_name)[0] : '')); ?> 👋
+            <?php echo html_escape($tq_greet . ($tq_name ? t('،') . explode(' ', $tq_name)[0] : '')); ?> 👋
         </p>
-        <p class="tq-micro" style="margin:0">مستعد لتتعلم شيئا جديدا اليوم؟</p>
+        <p class="tq-micro" style="margin:0"><?php echo t('مستعد لتتعلم شيئا جديدا اليوم؟'); ?></p>
     </div>
 
     <form class="tq-topbar__search" role="search" action="<?php echo base_url($tq_bar['search']); ?>" method="get">
-        <label class="tq-sr" for="tq-q">ابحث في الدروس والمواد والمعلمين</label>
+        <label class="tq-sr" for="tq-q"><?php echo t('ابحث في الدروس والمواد والمعلمين'); ?></label>
         <input class="tq-input" id="tq-q" name="q" type="search"
                value="<?php echo html_escape((string) $this->input->get('q', true)); ?>"
-               placeholder="ابحث عن درس أو مادة أو معلم…" data-tq-search>
+               placeholder="<?php echo te('ابحث عن درس أو مادة أو معلم…'); ?>" data-tq-search>
         <?php /* الاختصار يكتب باسمه على المنصة التي يقرأ عليها: `taqdar.js`
                  يبدل النص إلى Ctrl K على غير أجهزة أبل. */ ?>
         <kbd class="tq-topbar__kbd" aria-hidden="true" data-tq-kbd><span class="tq-ltr">⌘K</span></kbd>
@@ -83,29 +83,29 @@ else                   $tq_greet = 'مساء الخير';
         <?php $skin = 'portal'; include APPPATH . 'views/components/tq_lang_switch.php'; ?>
 
         <?php if (!empty($tq_bar['messages'])): ?>
-            <a class="tq-iconbtn" href="<?php echo base_url($tq_bar['messages']); ?>" aria-label="الرسائل" title="الرسائل">
+            <a class="tq-iconbtn" href="<?php echo base_url($tq_bar['messages']); ?>" aria-label="<?php echo te('الرسائل'); ?>" title="<?php echo te('الرسائل'); ?>">
                 <?php echo tq_icon('chat'); ?>
                 <?php if (!empty($tq_counts['messages'])): ?>
                     <span class="tq-iconbtn__dot"><?php echo TQ_LRI . (int) $tq_counts['messages'] . TQ_PDI; ?></span>
-                    <span class="tq-sr">رسائل غير مقروءة</span>
+                    <span class="tq-sr"><?php echo t('رسائل غير مقروءة'); ?></span>
                 <?php endif; ?>
             </a>
         <?php endif; ?>
 
         <?php if (!empty($tq_bar['notifications'])): ?>
-            <a class="tq-iconbtn" href="<?php echo base_url($tq_bar['notifications']); ?>" aria-label="الإشعارات" title="الإشعارات">
+            <a class="tq-iconbtn" href="<?php echo base_url($tq_bar['notifications']); ?>" aria-label="<?php echo te('الإشعارات'); ?>" title="<?php echo te('الإشعارات'); ?>">
                 <?php echo tq_icon('bell'); ?>
                 <?php if (!empty($tq_counts['notifications'])): ?>
                     <span class="tq-iconbtn__dot"><?php echo TQ_LRI . (int) $tq_counts['notifications'] . TQ_PDI; ?></span>
-                    <span class="tq-sr">إشعارات غير مقروءة</span>
+                    <span class="tq-sr"><?php echo t('إشعارات غير مقروءة'); ?></span>
                 <?php endif; ?>
             </a>
         <?php endif; ?>
 
-        <a class="tq-topbar__me" href="<?php echo base_url($tq_bar['account']); ?>" title="<?php echo html_escape($tq_name ?: 'حسابي'); ?>">
+        <a class="tq-topbar__me" href="<?php echo base_url($tq_bar['account']); ?>" title="<?php echo html_escape($tq_name ?: t('حسابي')); ?>">
             <img class="tq-avatar tq-avatar--sm" src="<?php echo $tq_photo; ?>" alt="">
             <span class="tq-topbar__me-name">
-                <span class="tq-caption" style="color:var(--tq-navy);font-weight:700"><?php echo html_escape($tq_name ?: 'حسابي'); ?></span>
+                <span class="tq-caption" style="color:var(--tq-navy);font-weight:700"><?php echo html_escape($tq_name ?: t('حسابي')); ?></span>
                 <span class="tq-micro"><?php echo html_escape($tq_role_label); ?></span>
             </span>
         </a>

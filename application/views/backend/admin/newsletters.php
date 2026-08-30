@@ -25,13 +25,13 @@ $tq_cron = 'uploads/cronjob/newsletter_cron.php';
 $tq_has_cron = is_file(FCPATH . $tq_cron);
 ?>
 
-<?php tqa_head('النشرة البريدية',
-    'القالب يكتب مرة ويرسل مرات. والإرسال يمر بطابور — عشرون رسالة في الدقيقة.',
+<?php tqa_head(t('النشرة البريدية'),
+    t('القالب يكتب مرة ويرسل مرات. والإرسال يمر بطابور — عشرون رسالة في الدقيقة.'),
     'send',
     '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/newsletter_add_form') . '">'
-  . tq_icon('plus', 17) . ' قالب جديد</a>'
+  . tq_icon('plus', 17) . t('قالب جديد</a>')
   . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/subscribed_user') . '">'
-  . tq_icon('users', 16) . ' المشتركون</a>'); ?>
+  . tq_icon('users', 16) . t('المشتركون</a>')); ?>
 
 <?php include 'newsletter_statistics.php'; ?>
 
@@ -41,9 +41,9 @@ $tq_has_cron = is_file(FCPATH . $tq_cron);
         <?php if (empty($tq_rows)): ?>
 
             <div class="tqa-card tqa-card--flush">
-                <?php tqa_empty('لا قوالب نشرة بعد',
-                    'القالب نص واحد يرسل إلى كل المشتركين. اكتب أولها.',
-                    'أنشئ قالبا', site_url('admin/newsletter_add_form'), 'send'); ?>
+                <?php tqa_empty(t('لا قوالب نشرة بعد'),
+                    t('القالب نص واحد يرسل إلى كل المشتركين. اكتب أولها.'),
+                    t('أنشئ قالبا'), site_url('admin/newsletter_add_form'), 'send'); ?>
             </div>
 
         <?php else: ?>
@@ -69,7 +69,7 @@ $tq_has_cron = is_file(FCPATH . $tq_cron);
                             </a>
 
                             <form method="post" action="<?php echo site_url('admin/newsletters/delete/' . $tq_id); ?>"
-                                  data-tqa-confirm-title="حذف القالب"
+                                  data-tqa-confirm-title="<?php echo te('حذف القالب'); ?>"
                                   data-tqa-confirm="سيحذف «<?php echo html_escape($tq_n['subject']); ?>». والرسائل المرسلة منه تبقى في السجل."
                                   data-tqa-confirm-ok="نعم، احذف"
                                   data-tqa-confirm-tone="danger">
@@ -77,7 +77,7 @@ $tq_has_cron = is_file(FCPATH . $tq_cron);
                                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                         style="color:var(--tq-danger)">
                                     <?php echo tq_icon('trash', 14); ?>
-                                    <span class="tqa-sr">حذف</span>
+                                    <span class="tqa-sr"><?php echo t('حذف'); ?></span>
                                 </button>
                             </form>
                         </div>
@@ -103,9 +103,8 @@ $tq_has_cron = is_file(FCPATH . $tq_cron);
         <div class="tqa-note">
             <span aria-hidden="true"><?php echo tq_icon('clock', 18); ?></span>
             <span>
-                <strong>الإرسال على دفعات.</strong>
-                أكثر من عشرين مشتركا يقسم إلى دفعات من عشرين، ودفعة كل دقيقة.
-                وما دام الإرسال يعتمد على المتصفح وجب إبقاء هذه الصفحة مفتوحة حتى تنتهي.
+                <strong><?php echo t('الإرسال على دفعات.'); ?></strong>
+                <?php echo t('أكثر من عشرين مشتركا يقسم إلى دفعات من عشرين، ودفعة كل دقيقة. وما دام الإرسال يعتمد على المتصفح وجب إبقاء هذه الصفحة مفتوحة حتى تنتهي.'); ?>
             </span>
         </div>
 
@@ -114,11 +113,11 @@ $tq_has_cron = is_file(FCPATH . $tq_cron);
                 <span class="tqa-iconbox tqa-sky" aria-hidden="true" style="inline-size:36px;block-size:36px">
                     <?php echo tq_icon('refresh', 18); ?>
                 </span>
-                <h2 style="font:var(--tq-type-bodyStrong);font-family:var(--tq-font-title)">إرسال بلا متصفح</h2>
+                <h2 style="font:var(--tq-type-bodyStrong);font-family:var(--tq-font-title)"><?php echo t('إرسال بلا متصفح'); ?></h2>
             </div>
 
             <p style="margin:0 0 var(--tq-space-m);font:var(--tq-type-caption);color:var(--tq-text2)">
-                مهمة دورية على الخادم ترسل الطابور وحدها، فلا حاجة إلى إبقاء الصفحة مفتوحة.
+                <?php echo t('مهمة دورية على الخادم ترسل الطابور وحدها، فلا حاجة إلى إبقاء الصفحة مفتوحة.'); ?>
             </p>
 
             <?php if ($tq_has_cron): ?>
@@ -126,7 +125,7 @@ $tq_has_cron = is_file(FCPATH . $tq_cron);
                     echo html_escape(realpath(FCPATH . $tq_cron)); ?></p>
 
                 <form method="post" action="<?php echo site_url('admin/cronjob/stop'); ?>"
-                      data-tqa-confirm-title="حذف ملف المهمة"
+                      data-tqa-confirm-title="<?php echo te('حذف ملف المهمة'); ?>"
                       data-tqa-confirm="سيعود الإرسال معتمدا على إبقاء الصفحة مفتوحة."
                       data-tqa-confirm-ok="نعم، احذف"
                       data-tqa-confirm-tone="danger">

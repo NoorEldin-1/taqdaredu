@@ -28,8 +28,8 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 $tq_nav   = 'messages';
 $tq_role  = 'teacher';
-$tq_title = 'الرسائل';
-$tq_sub   = 'ردود طلابك على ما كتبته لهم، ومراسلة الإدارة';
+$tq_title = t('الرسائل');
+$tq_sub   = t('ردود طلابك على ما كتبته لهم، ومراسلة الإدارة');
 $tq_icon  = 'chat';
 
 $uid = (int) $this->session->userdata('user_id');
@@ -62,7 +62,7 @@ if ($this->input->post('action') === 'delete_thread') {
     if ($tq_del !== '' && $tq_own > 0) {
         $this->db->where('message_thread_code', $tq_del)->delete('message');
         $this->db->where('message_thread_code', $tq_del)->delete('message_thread');
-        $this->session->set_flashdata('flash_message', 'حذفت المحادثة من صندوقك.');
+        $this->session->set_flashdata('flash_message', t('حذفت المحادثة من صندوقك.'));
     }
     redirect(site_url('teacher/messages'), 'location', 302);
 }
@@ -75,7 +75,7 @@ if ($tq_send === 'send_new' || $tq_send === 'send_reply') {
     $tq_to   = 'teacher/messages';
 
     if ($tq_body === '') {
-        $this->session->set_flashdata('error_message', 'اكتب نص الرسالة قبل الإرسال.');
+        $this->session->set_flashdata('error_message', t('اكتب نص الرسالة قبل الإرسال.'));
         redirect(site_url($tq_to), 'location', 302);
     }
 
@@ -85,12 +85,12 @@ if ($tq_send === 'send_new' || $tq_send === 'send_reply') {
         $tq_ok  = in_array($tq_rcv, $tq_scope_ids, true) || ($tq_admin_id && $tq_rcv === $tq_admin_id);
 
         if (!$tq_ok) {
-            $this->session->set_flashdata('error_message', 'لا ترسل الرسائل إلا إلى طلاب كورساتك أو إلى الإدارة.');
+            $this->session->set_flashdata('error_message', t('لا ترسل الرسائل إلا إلى طلاب كورساتك أو إلى الإدارة.'));
             redirect(site_url($tq_to), 'location', 302);
         }
 
         $tq_code = $this->crud_model->send_new_private_message();
-        $this->session->set_flashdata('flash_message', 'وصلت رسالتك.');
+        $this->session->set_flashdata('flash_message', t('وصلت رسالتك.'));
         redirect(site_url($tq_to . '?t=' . urlencode((string) $tq_code)), 'location', 302);
     }
 
@@ -100,12 +100,12 @@ if ($tq_send === 'send_new' || $tq_send === 'send_reply') {
         ->count_all_results('message_thread');
 
     if ($tq_code === '' || $tq_mine < 1) {
-        $this->session->set_flashdata('error_message', 'هذه المحادثة ليست لك.');
+        $this->session->set_flashdata('error_message', t('هذه المحادثة ليست لك.'));
         redirect(site_url($tq_to), 'location', 302);
     }
 
     $this->crud_model->send_reply_message($tq_code);
-    $this->session->set_flashdata('flash_message', 'أرسل ردك.');
+    $this->session->set_flashdata('flash_message', t('أرسل ردك.'));
     redirect(site_url($tq_to . '?t=' . urlencode($tq_code)), 'location', 302);
 }
 
@@ -160,10 +160,10 @@ $tq_threads = array_values(array_filter($tq_threads, static function ($t) use ($
 }));
 
 $tq_filters = [
-    'all'      => 'الكل',
-    'unread'   => 'غير مقروءة',
-    'students' => 'طلابي',
-    'admin'    => 'الإدارة',
+    'all'      => t('الكل'),
+    'unread'   => t('غير مقروءة'),
+    'students' => t('طلابي'),
+    'admin'    => t('الإدارة'),
 ];
 $tq_unread_total = 0;
 foreach ($tq_all_threads as $t) {
@@ -201,19 +201,19 @@ $tq_allowed = [];
 foreach ($tq_scope_students as $s) {
     $tq_allowed[] = [
         'id'   => (int) $s['id'],
-        'name' => trim($s['first_name'] . ' ' . $s['last_name']) ?: 'طالب',
-        'kind' => 'طالب',
+        'name' => trim($s['first_name'] . ' ' . $s['last_name']) ?: t('طالب'),
+        'kind' => t('طالب'),
     ];
 }
 if ($tq_admin_id) {
-    $tq_allowed[] = ['id' => $tq_admin_id, 'name' => 'إدارة المنصة', 'kind' => 'إدارة'];
+    $tq_allowed[] = ['id' => $tq_admin_id, 'name' => t('إدارة المنصة'), 'kind' => t('إدارة')];
 }
 
 /** صفة المحدث كما تكتب في الترويسة والشريط الجانبي. */
 $tq_kind_of = static function ($t) {
-    if ((int) ($t['person']['role_id'] ?? 0) === 1) return 'إدارة المنصة';
-    if (!empty($t['person']['is_instructor']))      return 'معلم';
-    return $t['student'] ? 'طالب في كورساتك' : 'طالب';
+    if ((int) ($t['person']['role_id'] ?? 0) === 1) return t('إدارة المنصة');
+    if (!empty($t['person']['is_instructor']))      return t('معلم');
+    return $t['student'] ? t('طالب في كورساتك') : t('طالب');
 };
 
 $tq_ok  = $this->session->flashdata('flash_message');
@@ -239,9 +239,9 @@ include 'tq_chat_styles.php';
 
         <!-- العمود الأول: قائمة المحادثات -->
         <section class="tq-convlist" aria-labelledby="tq-conv-h">
-            <h2 class="tq-sr" id="tq-conv-h">قائمة المحادثات</h2>
+            <h2 class="tq-sr" id="tq-conv-h"><?php echo t('قائمة المحادثات'); ?></h2>
 
-            <nav class="tq-tabs" aria-label="تصفية المحادثات" style="margin-block-end:0;gap:var(--tq-space-l)">
+            <nav class="tq-tabs" aria-label="<?php echo te('تصفية المحادثات'); ?>" style="margin-block-end:0;gap:var(--tq-space-l)">
                 <?php foreach ($tq_filters as $key => $label): ?>
                     <a class="tq-tab"
                        href="<?php echo base_url('teacher/messages') . ($key === 'all' ? '' : '?filter=' . $key); ?>"
@@ -255,8 +255,8 @@ include 'tq_chat_styles.php';
             </nav>
 
             <form class="tq-convsearch" role="search" method="get" action="<?php echo base_url('teacher/messages'); ?>">
-                <label class="tq-sr" for="tq-conv-q">ابحث في المحادثات</label>
-                <input class="tq-input" id="tq-conv-q" name="q" type="search" placeholder="ابحث باسم الطالب أو نص الرسالة…"
+                <label class="tq-sr" for="tq-conv-q"><?php echo t('ابحث في المحادثات'); ?></label>
+                <input class="tq-input" id="tq-conv-q" name="q" type="search" placeholder="<?php echo te('ابحث باسم الطالب أو نص الرسالة…'); ?>"
                        value="<?php echo html_escape($tq_query); ?>">
             </form>
 
@@ -265,12 +265,11 @@ include 'tq_chat_styles.php';
                     <div class="tq-empty__art tq-pastel tq-pastel--sky" style="inline-size:88px;block-size:88px;display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                         <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('chat', 36); ?></span>
                     </div>
-                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لا محادثات بعد</h3>
+                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)"><?php echo t('لا محادثات بعد'); ?></h3>
                     <p class="tq-empty__text tq-caption">
-                        ابدأ من «طلابي»: رسالة قصيرة لمن انقطع أو تعثر تعيده قبل أن يبتعد.
-                        وكل محادثة تظهر هنا بآخر رسالة ووقتها.
+                        <?php echo t('ابدأ من «طلابي»: رسالة قصيرة لمن انقطع أو تعثر تعيده قبل أن يبتعد. وكل محادثة تظهر هنا بآخر رسالة ووقتها.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/students'); ?>">طلابي</a>
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/students'); ?>"><?php echo t('طلابي'); ?></a>
                 </div>
             <?php else: ?>
                 <ul>
@@ -291,7 +290,7 @@ include 'tq_chat_styles.php';
                                     <span class="tq-micro"><?php echo tq_chat_clock($t['ts']); ?></span>
                                     <?php if ($t['unread'] > 0): ?>
                                         <span class="tq-conv__count"><?php echo TQ_LRI . $t['unread'] . TQ_PDI; ?></span>
-                                        <span class="tq-sr">رسائل غير مقروءة</span>
+                                        <span class="tq-sr"><?php echo t('رسائل غير مقروءة'); ?></span>
                                     <?php endif; ?>
                                 </span>
                             </a>
@@ -303,18 +302,18 @@ include 'tq_chat_styles.php';
             <details style="margin-block-start:var(--tq-space-l)">
                 <summary class="tq-btn tq-btn--secondary tq-btn--block" style="list-style:none">
                     <span aria-hidden="true"><?php echo tq_icon('plus', 18); ?></span>
-                    رسالة جديدة
+                    <?php echo t('رسالة جديدة'); ?>
                 </summary>
                 <?php if (!$tq_allowed): ?>
                     <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
-                        لا طالب مسجل في كورساتك بعد، فلا أحد تراسله من هنا.
+                        <?php echo t('لا طالب مسجل في كورساتك بعد، فلا أحد تراسله من هنا.'); ?>
                     </p>
                 <?php else: ?>
                     <form method="post" action="<?php echo base_url('teacher/messages'); ?>" style="margin-block-start:var(--tq-space-m)">
                         <?php echo tq_csrf(); ?>
                         <input type="hidden" name="action" value="send_new">
                         <div class="tq-field">
-                            <label class="tq-field__label" for="tq-new-to">إلى</label>
+                            <label class="tq-field__label" for="tq-new-to"><?php echo t('إلى'); ?></label>
                             <select class="tq-select" id="tq-new-to" name="receiver" required>
                                 <?php foreach ($tq_allowed as $p): ?>
                                     <option value="<?php echo (int) $p['id']; ?>">
@@ -323,15 +322,15 @@ include 'tq_chat_styles.php';
                                 <?php endforeach; ?>
                             </select>
                             <span class="tq-field__msg tq-field__hint">
-                                طلاب كورساتك وحدهم، ومعهم الإدارة. والخادم يعيد فحص النطاق عند الإرسال.
+                                <?php echo t('طلاب كورساتك وحدهم، ومعهم الإدارة. والخادم يعيد فحص النطاق عند الإرسال.'); ?>
                             </span>
                         </div>
                         <div class="tq-field">
-                            <label class="tq-field__label" for="tq-new-body">نص الرسالة</label>
+                            <label class="tq-field__label" for="tq-new-body"><?php echo t('نص الرسالة'); ?></label>
                             <textarea class="tq-textarea" id="tq-new-body" name="message" required
-                                      placeholder="سطران يكفيان: ما الذي لاحظته، وما الخطوة التالية."></textarea>
+                                      placeholder="<?php echo te('سطران يكفيان: ما الذي لاحظته، وما الخطوة التالية.'); ?>"></textarea>
                         </div>
-                        <button class="tq-btn tq-btn--primary tq-btn--block" type="submit">إرسال</button>
+                        <button class="tq-btn tq-btn--primary tq-btn--block" type="submit"><?php echo t('إرسال'); ?></button>
                     </form>
                 <?php endif; ?>
             </details>
@@ -341,15 +340,14 @@ include 'tq_chat_styles.php';
         <section class="tq-thread" aria-labelledby="tq-thread-h">
             <?php if (!$tq_open): ?>
                 <div class="tq-thread__body" style="justify-content:center">
-                    <h2 class="tq-sr" id="tq-thread-h">نافذة الحوار</h2>
+                    <h2 class="tq-sr" id="tq-thread-h"><?php echo t('نافذة الحوار'); ?></h2>
                     <div class="tq-empty">
                         <div class="tq-empty__art tq-pastel tq-pastel--lilac" style="display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                             <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('chat', 44); ?></span>
                         </div>
-                        <h3 class="tq-empty__title">اختر محادثة لتبدأ</h3>
+                        <h3 class="tq-empty__title"><?php echo t('اختر محادثة لتبدأ'); ?></h3>
                         <p class="tq-empty__text">
-                            حين تفتح محادثة تظهر هنا رسائلك ورسائل طالبك مرتبة بالتاريخ،
-                            ومعها إيصال قراءة لكل رسالة أرسلتها.
+                            <?php echo t('حين تفتح محادثة تظهر هنا رسائلك ورسائل طالبك مرتبة بالتاريخ، ومعها إيصال قراءة لكل رسالة أرسلتها.'); ?>
                         </p>
                     </div>
                 </div>
@@ -366,20 +364,20 @@ include 'tq_chat_styles.php';
                     <?php if ($tq_open['student']): ?>
                         <a class="tq-btn tq-btn--ghost tq-btn--sm"
                            href="<?php echo base_url('teacher/students'); ?>#student-<?php echo (int) $tq_open['other']; ?>">
-                            تقدمه
+                            <?php echo t('تقدمه'); ?>
                         </a>
                     <?php endif; ?>
                 </header>
 
                 <p class="tq-thread__pin">
                     <span aria-hidden="true"><?php echo tq_icon('lock', 18); ?></span>
-                    محادثة مشرف عليها بين معلم وطالب. لا تطلب بيانات دفع ولا تشارك كلمة مرورك في الرسائل.
+                    <?php echo t('محادثة مشرف عليها بين معلم وطالب. لا تطلب بيانات دفع ولا تشارك كلمة مرورك في الرسائل.'); ?>
                 </p>
 
                 <div class="tq-thread__body">
                     <?php if (!$tq_messages): ?>
                         <p class="tq-caption" style="text-align:center;margin:0">
-                            لا رسائل في هذه المحادثة بعد — اكتب أول رسالة من الشريط أسفل الشاشة.
+                            <?php echo t('لا رسائل في هذه المحادثة بعد — اكتب أول رسالة من الشريط أسفل الشاشة.'); ?>
                         </p>
                     <?php else: ?>
                         <?php $tq_last_day = ''; ?>
@@ -407,7 +405,7 @@ include 'tq_chat_styles.php';
                                         <span class="tq-icon-box tq-pastel--rose" aria-hidden="true"><?php echo tq_icon('file', 20); ?></span>
                                         <span>
                                             <span class="tq-caption" style="display:block;color:var(--tq-navy)"><?php echo html_escape(basename($attach)); ?></span>
-                                            <span class="tq-micro">اضغط للتنزيل</span>
+                                            <span class="tq-micro"><?php echo t('اضغط للتنزيل'); ?></span>
                                         </span>
                                         <span style="margin-inline-start:auto;color:var(--tq-navy)" aria-hidden="true"><?php echo tq_icon('download', 18); ?></span>
                                     </a>
@@ -420,7 +418,7 @@ include 'tq_chat_styles.php';
                                         <span class="tq-bubble__seen<?php echo $seen ? '' : ' tq-bubble__seen--sent'; ?>" aria-hidden="true">
                                             <?php echo tq_icon('check', 14); ?><?php echo $seen ? tq_icon('check', 14) : ''; ?>
                                         </span>
-                                        <span class="tq-sr"><?php echo $seen ? 'قرئت' : 'أرسلت'; ?></span>
+                                        <span class="tq-sr"><?php echo $seen ? t('قرئت') : t('أرسلت'); ?></span>
                                     <?php endif; ?>
                                 </span>
                             </div>
@@ -434,10 +432,10 @@ include 'tq_chat_styles.php';
                         <input type="hidden" name="action" value="send_reply">
                         <input type="hidden" name="thread" value="<?php echo html_escape($tq_open['code']); ?>">
                         <span>
-                            <label class="tq-sr" for="tq-reply">اكتب ردك</label>
-                            <input class="tq-input" id="tq-reply" name="message" type="text" required placeholder="اكتب ردك هنا…">
+                            <label class="tq-sr" for="tq-reply"><?php echo t('اكتب ردك'); ?></label>
+                            <input class="tq-input" id="tq-reply" name="message" type="text" required placeholder="<?php echo te('اكتب ردك هنا…'); ?>">
                         </span>
-                        <button class="tq-composer__send" type="submit" aria-label="إرسال الرسالة">
+                        <button class="tq-composer__send" type="submit" aria-label="<?php echo te('إرسال الرسالة'); ?>">
                             <?php echo tq_icon('play', 18); ?>
                         </button>
                     </form>
@@ -450,11 +448,11 @@ include 'tq_chat_styles.php';
     <!-- العمود الثالث: معلومات المحادثة -->
     <aside class="tq-aside">
         <section class="tq-card tq-card--panel" aria-labelledby="tq-info-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-info-h">معلومات المحادثة</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-info-h"><?php echo t('معلومات المحادثة'); ?></h2></div>
 
             <?php if (!$tq_open): ?>
                 <p class="tq-caption" style="margin:0">
-                    اختر محادثة لترى صورة مراسلك وعدد رسائلها وخيار حذفها.
+                    <?php echo t('اختر محادثة لترى صورة مراسلك وعدد رسائلها وخيار حذفها.'); ?>
                 </p>
             <?php else: ?>
                 <div style="display:grid;justify-items:center;gap:var(--tq-space-s);margin-block-end:var(--tq-space-xl)">
@@ -468,7 +466,7 @@ include 'tq_chat_styles.php';
                     <div class="tq-inforow">
                         <span class="tq-row">
                             <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon('chat', 18); ?></span>
-                            رسائل المحادثة
+                            <?php echo t('رسائل المحادثة'); ?>
                         </span>
                         <span class="tq-micro"><?php echo tq_num(count($tq_messages), 'tq-num--sm'); ?></span>
                     </div>
@@ -476,7 +474,7 @@ include 'tq_chat_styles.php';
                     <div class="tq-inforow">
                         <span class="tq-row">
                             <span class="tq-icon-box tq-pastel--mint" aria-hidden="true"><?php echo tq_icon('folder', 18); ?></span>
-                            المرفقات
+                            <?php echo t('المرفقات'); ?>
                         </span>
                         <span class="tq-micro">
                             <?php
@@ -496,7 +494,7 @@ include 'tq_chat_styles.php';
                 <form method="post" action="<?php echo base_url('teacher/messages'); ?>"
                       style="margin-block-start:var(--tq-space-xl)"
                       data-tq-confirm-title="حذف محادثتك مع <?php echo html_escape(tq_chat_name($tq_open['person'])); ?>؟"
-                      data-tq-confirm="يحذف سجل المحادثة من الطرفين ولا يمكن التراجع."
+                      data-tq-confirm="<?php echo te('يحذف سجل المحادثة من الطرفين ولا يمكن التراجع.'); ?>"
                       data-tq-confirm-note="ما كتبته من ملاحظات على المحاولات يبقى في صفحة التصحيح، فهو ليس من الرسائل."
                       data-tq-confirm-ok="أحذف المحادثة"
                       data-tq-confirm-tone="danger">
@@ -504,17 +502,16 @@ include 'tq_chat_styles.php';
                     <input type="hidden" name="thread" value="<?php echo html_escape($tq_open['code']); ?>">
                     <button class="tq-btn tq-btn--danger tq-btn--sm tq-btn--block" type="submit" name="action" value="delete_thread">
                         <span aria-hidden="true"><?php echo tq_icon('x', 18); ?></span>
-                        حذف المحادثة
+                        <?php echo t('حذف المحادثة'); ?>
                     </button>
                 </form>
             <?php endif; ?>
         </section>
 
         <div class="tq-pastel tq-pastel--peach">
-            <span class="tq-pastel__label tq-micro">متى تكتب</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('متى تكتب'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                رسالة قصيرة عند أول انقطاع أنفع من تقرير بعد شهر. وشاشة «طلابي» تقول لك
-                من يستحقها اليوم.
+                <?php echo t('رسالة قصيرة عند أول انقطاع أنفع من تقرير بعد شهر. وشاشة «طلابي» تقول لك من يستحقها اليوم.'); ?>
             </p>
         </div>
     </aside>

@@ -15,8 +15,8 @@
 
 $tq_nav   = 'dashboard';
 $tq_role  = 'teacher';
-$tq_title = 'لوحة المعلم';
-$tq_sub   = 'ما يحتاج انتباهك اليوم، قبل أي رقم آخر';
+$tq_title = t('لوحة المعلم');
+$tq_sub   = t('ما يحتاج انتباهك اليوم، قبل أي رقم آخر');
 $tq_icon  = 'home';
 
 $tq_uid = (int) $this->session->userdata('user_id');
@@ -134,10 +134,10 @@ if ($tq_in !== '') {
         }
 
         $tq_reason = $tq_fails > 0
-            ? 'رسب في ' . tq_exams_word($tq_fails)
+            ? t('رسب في') . tq_exams_word($tq_fails)
             : ($tq_days >= 5
-                ? 'انقطع ' . tq_days($tq_days)
-                : 'تقدمه ' . TQ_LRI . $tq_prog . '%' . TQ_PDI . ' فقط');
+                ? t('انقطع') . tq_days($tq_days)
+                : t('تقدمه') . TQ_LRI . $tq_prog . '%' . TQ_PDI . t('فقط'));
 
         $tq_r['days']   = $tq_days;
         $tq_r['fails']  = $tq_fails;
@@ -240,49 +240,49 @@ include 'portal_open.php';
         <div class="tq-grid tq-grid--4 tq-stagger tq-section">
             <div class="tq-pastel tq-pastel--sky">
                 <div class="tq-row tq-row--between">
-                    <span class="tq-pastel__label tq-micro">طلابي</span>
+                    <span class="tq-pastel__label tq-micro"><?php echo t('طلابي'); ?></span>
                     <span class="tq-pastel__icon" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('users'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0"><?php echo tq_num($tq_students, 'tq-num--xl'); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">مسجلون في كورساتك</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0"><?php echo t('مسجلون في كورساتك'); ?></p>
             </div>
 
             <div class="tq-pastel tq-pastel--peach">
                 <div class="tq-row tq-row--between">
-                    <span class="tq-pastel__label tq-micro">ينتظر تصحيحا</span>
+                    <span class="tq-pastel__label tq-micro"><?php echo t('ينتظر تصحيحا'); ?></span>
                     <span class="tq-pastel__icon" style="color:var(--tq-peach-ink)" aria-hidden="true"><?php echo tq_icon('clipboard'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0"><?php echo tq_num($tq_pending_marking, 'tq-num--xl'); ?></p>
                 <p class="tq-pastel__body tq-caption" style="margin:0">
                     <?php echo tq_iso($tq_pending_marking > 0
-                        ? tq_exams_word($tq_pending_quizzes) . ' و' . tq_homework_word($tq_pending_homework) . ' تنتظر اعتمادك'
-                        : 'لا شيء ينتظر اعتمادك'); ?>
+                        ? tq_exams_word($tq_pending_quizzes) . t('و') . tq_homework_word($tq_pending_homework) . t('تنتظر اعتمادك')
+                        : t('لا شيء ينتظر اعتمادك')); ?>
                 </p>
             </div>
 
             <div class="tq-pastel tq-pastel--mint">
                 <div class="tq-row tq-row--between">
-                    <span class="tq-pastel__label tq-micro">أرباح هذا الشهر</span>
+                    <span class="tq-pastel__label tq-micro"><?php echo t('أرباح هذا الشهر'); ?></span>
                     <span class="tq-pastel__icon" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('wallet'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)"><?php echo tq_sar($tq_month_revenue); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">حصتك من مبيعات كورساتك</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0"><?php echo t('حصتك من مبيعات كورساتك'); ?></p>
             </div>
 
             <div class="tq-pastel tq-pastel--lilac">
                 <div class="tq-row tq-row--between">
-                    <span class="tq-pastel__label tq-micro">الحصص القادمة</span>
+                    <span class="tq-pastel__label tq-micro"><?php echo t('الحصص القادمة'); ?></span>
                     <span class="tq-pastel__icon" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('video'); ?></span>
                 </div>
                 <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0"><?php echo tq_num($tq_sessions_count, 'tq-num--xl'); ?></p>
-                <p class="tq-pastel__body tq-caption" style="margin:0">حصة مؤكدة خلال سبعة أيام</p>
+                <p class="tq-pastel__body tq-caption" style="margin:0"><?php echo t('حصة مؤكدة خلال سبعة أيام'); ?></p>
             </div>
         </div>
 
         <!-- أهم قسم في اللوحة: الطلاب المتعثرون مرتبين بالأولوية -->
         <section class="tq-section" aria-labelledby="tq-attention-h">
             <div class="tq-sectionhead">
-                <h2 id="tq-attention-h">يحتاج انتباهك</h2>
+                <h2 id="tq-attention-h"><?php echo t('يحتاج انتباهك'); ?></h2>
                 <?php if ($tq_attention): ?>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . $tq_attention_total . TQ_PDI; ?></span>
                 <?php endif; ?>
@@ -291,8 +291,7 @@ include 'portal_open.php';
             <?php if ($tq_attention): ?>
                 <div class="tq-card tq-card--float">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                        مرتبون بالأولوية: الانقطاع أولا، ثم الرسوب المتكرر، ثم بطء التقدم.
-                        وكل طالب مرة واحدة بأثقل كورساته حالا.
+                        <?php echo t('مرتبون بالأولوية: الانقطاع أولا، ثم الرسوب المتكرر، ثم بطء التقدم. وكل طالب مرة واحدة بأثقل كورساته حالا.'); ?>
                     </p>
                     <ul class="tq-stack">
                         <?php foreach ($tq_attention as $tq_i => $tq_s): ?>
@@ -308,12 +307,12 @@ include 'portal_open.php';
                                     <p class="tq-micro" style="margin:0"><?php echo html_escape($tq_s['course_title']); ?></p>
                                 </div>
                                 <div style="inline-size:180px">
-                                    <?php echo tq_progress((int) $tq_s['progress'], 'تقدم ' . $tq_name); ?>
+                                    <?php echo tq_progress((int) $tq_s['progress'], t('تقدم') . $tq_name); ?>
                                 </div>
                                 <?php echo tq_badge($tq_s['fails'] > 0 ? 'late' : ($tq_s['days'] >= 5 ? 'due' : 'idle'), $tq_s['reason']); ?>
                                 <a class="tq-btn tq-btn--ghost tq-btn--sm"
                                    href="<?php echo base_url('teacher/students'); ?>#student-<?php echo (int) $tq_s['id']; ?>">
-                                    تابعه
+                                    <?php echo t('تابعه'); ?>
                                 </a>
                             </li>
                         <?php endforeach; ?>
@@ -323,21 +322,20 @@ include 'portal_open.php';
                              له باب، لا يبتلع صامتا. */ ?>
                     <?php if ($tq_attention_total > count($tq_attention)): ?>
                         <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
-                            <?php echo tq_iso('و' . tq_students_word($tq_attention_total - count($tq_attention)) . ' غيرهم يحتاجون انتباهك.'); ?>
+                            <?php echo tq_iso(t('و') . tq_students_word($tq_attention_total - count($tq_attention)) . t('غيرهم يحتاجون انتباهك.')); ?>
                         </p>
                     <?php endif; ?>
                     <a class="tq-btn tq-btn--ghost tq-btn--block tq-btn--sm" style="margin-block-start:var(--tq-space-m)"
-                       href="<?php echo base_url('teacher/students'); ?>">قائمة طلابي كاملة</a>
+                       href="<?php echo base_url('teacher/students'); ?>"><?php echo t('قائمة طلابي كاملة'); ?></a>
                 </div>
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--mint" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('check', 24); ?></span>
-                    <h3 class="tq-empty__title">لا أحد متعثر الآن</h3>
+                    <h3 class="tq-empty__title"><?php echo t('لا أحد متعثر الآن'); ?></h3>
                     <p class="tq-empty__text">
-                        حين ينقطع طالب أو يرسب في اختبار أو يتوقف تقدمه، سيظهر هنا مرتبا بالأولوية.
-                        القائمة تبنى من نشاط طلاب كورساتك وحدهم.
+                        <?php echo t('حين ينقطع طالب أو يرسب في اختبار أو يتوقف تقدمه، سيظهر هنا مرتبا بالأولوية. القائمة تبنى من نشاط طلاب كورساتك وحدهم.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/students'); ?>">افتح قائمة طلابي</a>
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/students'); ?>"><?php echo t('افتح قائمة طلابي'); ?></a>
                 </div>
             <?php endif; ?>
         </section>
@@ -345,7 +343,7 @@ include 'portal_open.php';
         <!-- الدروس عالية الفشل: مشكلة الدرس لا مشكلة الطالب -->
         <section class="tq-section" aria-labelledby="tq-hard-h">
             <div class="tq-sectionhead">
-                <h2 id="tq-hard-h">الدروس عالية الفشل</h2>
+                <h2 id="tq-hard-h"><?php echo t('الدروس عالية الفشل'); ?></h2>
             </div>
 
             <?php if ($tq_hard_lessons): ?>
@@ -355,13 +353,13 @@ include 'portal_open.php';
                         الرسوب هنا محسوب بعتبة النجاح المعتمدة في المنصة: <?php echo TQ_LRI . $tq_pass_pct . '%' . TQ_PDI; ?>.
                     </p>
                     <table class="tq-table">
-                        <caption class="tq-sr">الدروس الأعلى نسبة رسوب في كورساتك</caption>
+                        <caption class="tq-sr"><?php echo t('الدروس الأعلى نسبة رسوب في كورساتك'); ?></caption>
                         <thead>
                             <tr>
-                                <th scope="col">الدرس</th>
-                                <th scope="col">الكورس</th>
-                                <th scope="col">المحاولات</th>
-                                <th scope="col">نسبة الرسوب</th>
+                                <th scope="col"><?php echo t('الدرس'); ?></th>
+                                <th scope="col"><?php echo t('الكورس'); ?></th>
+                                <th scope="col"><?php echo t('المحاولات'); ?></th>
+                                <th scope="col"><?php echo t('نسبة الرسوب'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -371,7 +369,7 @@ include 'portal_open.php';
                                     <td data-label="الدرس"><span class="tq-strong"><?php echo html_escape($tq_l['title']); ?></span></td>
                                     <td data-label="الكورس"><?php echo html_escape($tq_l['course_title']); ?></td>
                                     <td data-label="المحاولات"><?php echo tq_num($tq_l['attempts'], 'tq-num--sm'); ?></td>
-                                    <td data-label="نسبة الرسوب"><?php echo tq_badge('due', 'رسب ' . TQ_LRI . $tq_rate . '%' . TQ_PDI); ?></td>
+                                    <td data-label="نسبة الرسوب"><?php echo tq_badge('due', t('رسب') . TQ_LRI . $tq_rate . '%' . TQ_PDI); ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -380,11 +378,11 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--sky" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('chart', 24); ?></span>
-                    <h3 class="tq-empty__title">لا توجد نتائج اختبارات بعد</h3>
+                    <h3 class="tq-empty__title"><?php echo t('لا توجد نتائج اختبارات بعد'); ?></h3>
                     <p class="tq-empty__text">
-                        يظهر هنا الدرس الذي يرسب في اختباره أكثر طلابك، بعد أن يسلم طلابك أول اختباراتهم.
+                        <?php echo t('يظهر هنا الدرس الذي يرسب في اختباره أكثر طلابك، بعد أن يسلم طلابك أول اختباراتهم.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/questions'); ?>">افتح بنك الأسئلة</a>
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('teacher/questions'); ?>"><?php echo t('افتح بنك الأسئلة'); ?></a>
                 </div>
             <?php endif; ?>
         </section>
@@ -392,7 +390,7 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">الحصص القادمة</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('الحصص القادمة'); ?></h2></div>
             <?php if ($tq_sessions): ?>
                 <ul class="tq-stack">
                     <?php foreach ($tq_sessions as $tq_v): ?>
@@ -400,13 +398,13 @@ include 'portal_open.php';
                         $tq_at   = strtotime($tq_v['starts_at']);
                         $tq_who  = trim($tq_v['first_name'] . ' ' . $tq_v['last_name']);
                         if ($tq_who === '') {
-                            $tq_who = 'طالب لم يعد في المنصة';
+                            $tq_who = t('طالب لم يعد في المنصة');
                         }
                         $tq_day  = date('Y-m-d', $tq_at);
                         $tq_when = $tq_day === date('Y-m-d')
-                            ? 'اليوم'
+                            ? t('اليوم')
                             : ($tq_day === date('Y-m-d', strtotime('+1 day'))
-                                ? 'غدا'
+                                ? t('غدا')
                                 : TQ_LRI . $tq_day . TQ_PDI);
                         ?>
                         <li class="tq-row" style="gap:var(--tq-space-m);padding-block:var(--tq-space-s)">
@@ -420,32 +418,32 @@ include 'portal_open.php';
                                 </span>
                             </span>
                             <?php echo $tq_v['status'] === 'live'
-                                ? tq_badge('late', 'جارية الآن')
-                                : tq_badge('progress', 'مؤكدة'); ?>
+                                ? tq_badge('late', t('جارية الآن'))
+                                : tq_badge('progress', t('مؤكدة')); ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>
                 <?php if ($tq_sessions_count > count($tq_sessions)): ?>
                     <p class="tq-micro" style="margin-block-start:var(--tq-space-m)">
-                        <?php echo tq_iso('و' . tq_sessions_word($tq_sessions_count - count($tq_sessions)) . ' أخرى خلال الأسبوع.'); ?>
+                        <?php echo tq_iso(t('و') . tq_sessions_word($tq_sessions_count - count($tq_sessions)) . t('أخرى خلال الأسبوع.')); ?>
                     </p>
                 <?php endif; ?>
                 <a class="tq-btn tq-btn--ghost tq-btn--block tq-btn--sm" style="margin-block-start:var(--tq-space-l)"
-                   href="<?php echo base_url('teacher/sessions'); ?>">كل حصصي</a>
+                   href="<?php echo base_url('teacher/sessions'); ?>"><?php echo t('كل حصصي'); ?></a>
             <?php else: ?>
                 <div class="tq-empty" style="padding:var(--tq-space-l) 0">
                     <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('calendar', 24); ?></span>
-                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لا حصص مجدولة</h3>
+                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)"><?php echo t('لا حصص مجدولة'); ?></h3>
                     <p class="tq-empty__text tq-caption">
-                        حين يحجز طالب حصة خاصة معك يظهر موعدها هنا، وتؤكدها أو تعتذر من صفحة الحصص.
+                        <?php echo t('حين يحجز طالب حصة خاصة معك يظهر موعدها هنا، وتؤكدها أو تعتذر من صفحة الحصص.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/sessions'); ?>">أوقاتي المتاحة</a>
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/sessions'); ?>"><?php echo t('أوقاتي المتاحة'); ?></a>
                 </div>
             <?php endif; ?>
         </div>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">كورساتك</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('كورساتك'); ?></h2></div>
             <?php if ($tq_my_courses): ?>
                 <ul class="tq-stack">
                     <?php foreach (array_slice($tq_my_courses, 0, 5) as $tq_i => $tq_c): ?>
@@ -459,15 +457,15 @@ include 'portal_open.php';
                     <?php endforeach; ?>
                 </ul>
                 <a class="tq-btn tq-btn--ghost tq-btn--block tq-btn--sm" style="margin-block-start:var(--tq-space-l)"
-                   href="<?php echo base_url('teacher/courses'); ?>">كل كورساتي</a>
+                   href="<?php echo base_url('teacher/courses'); ?>"><?php echo t('كل كورساتي'); ?></a>
             <?php else: ?>
                 <div class="tq-empty" style="padding:var(--tq-space-l) 0">
                     <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('book', 24); ?></span>
-                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لم يسند إليك كورس بعد</h3>
+                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)"><?php echo t('لم يسند إليك كورس بعد'); ?></h3>
                     <p class="tq-empty__text tq-caption">
-                        لوحتك تعرض ما أسند إليك وحده. تواصل مع إدارة المنصة لإسناد مادتك وصفك.
+                        <?php echo t('لوحتك تعرض ما أسند إليك وحده. تواصل مع إدارة المنصة لإسناد مادتك وصفك.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/upload'); ?>">ارفع درسا</a>
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/upload'); ?>"><?php echo t('ارفع درسا'); ?></a>
                 </div>
             <?php endif; ?>
         </div>

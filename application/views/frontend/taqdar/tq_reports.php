@@ -18,8 +18,8 @@
 
 $tq_nav   = 'reports';
 $tq_role  = 'student';
-$tq_title = 'المتابعة والتقارير';
-$tq_sub   = 'نظرة شاملة على تقدمك الدراسي وأدائك';
+$tq_title = t('المتابعة والتقارير');
+$tq_sub   = t('نظرة شاملة على تقدمك الدراسي وأدائك');
 $tq_icon  = 'chart';
 
 $uid = (int) $this->session->userdata('user_id');
@@ -205,7 +205,7 @@ foreach ($tq_history as $row) {
         $tq_activity[] = [
             'ts'   => (int) $row['date_updated'],
             'icon' => 'play',
-            'text' => 'تقدمك في «' . ($title ?: 'كورس') . '»',
+            'text' => t('تقدمك في «') . ($title ?: t('كورس')) . '»',
         ];
     }
 }
@@ -217,14 +217,14 @@ foreach ($tq_quizzes as $q) {
     }
     if (!tq_grade_visible($q)) {
         $tq_activity[] = array('ts' => (int) $q['date_added'], 'icon' => 'clipboard',
-                               'text' => 'سلمت اختبارا، وينتظر اعتماد معلمك');
+                               'text' => t('سلمت اختبارا، وينتظر اعتماد معلمك'));
         continue;
     }
     $pct = (int) round(((float) $q['total_obtained_marks'] / $count) * 100);
     $tq_activity[] = [
         'ts'   => (int) $q['date_added'],
         'icon' => 'check-badge',
-        'text' => 'سلمت اختبارا ونتيجتك ' . $pct . '%',
+        'text' => t('سلمت اختبارا ونتيجتك') . $pct . '%',
     ];
 }
 usort($tq_activity, static function ($a, $b) { return $b['ts'] <=> $a['ts']; });
@@ -300,11 +300,11 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
 }
 </style>
 
-<div class="tq-tabs" role="tablist" data-tq-tabs aria-label="أقسام التقارير">
-    <button class="tq-tab" role="tab" id="tq-rt-overview" aria-controls="tq-rp-overview" aria-selected="true" tabindex="0" type="button">نظرة عامة</button>
-    <button class="tq-tab" role="tab" id="tq-rt-subjects" aria-controls="tq-rp-subjects" aria-selected="false" tabindex="-1" type="button">المواد</button>
-    <button class="tq-tab" role="tab" id="tq-rt-quizzes" aria-controls="tq-rp-quizzes" aria-selected="false" tabindex="-1" type="button">الاختبارات</button>
-    <button class="tq-tab" role="tab" id="tq-rt-activity" aria-controls="tq-rp-activity" aria-selected="false" tabindex="-1" type="button">سجل النشاط</button>
+<div class="tq-tabs" role="tablist" data-tq-tabs aria-label="<?php echo te('أقسام التقارير'); ?>">
+    <button class="tq-tab" role="tab" id="tq-rt-overview" aria-controls="tq-rp-overview" aria-selected="true" tabindex="0" type="button"><?php echo t('نظرة عامة'); ?></button>
+    <button class="tq-tab" role="tab" id="tq-rt-subjects" aria-controls="tq-rp-subjects" aria-selected="false" tabindex="-1" type="button"><?php echo t('المواد'); ?></button>
+    <button class="tq-tab" role="tab" id="tq-rt-quizzes" aria-controls="tq-rp-quizzes" aria-selected="false" tabindex="-1" type="button"><?php echo t('الاختبارات'); ?></button>
+    <button class="tq-tab" role="tab" id="tq-rt-activity" aria-controls="tq-rp-activity" aria-selected="false" tabindex="-1" type="button"><?php echo t('سجل النشاط'); ?></button>
 </div>
 
 <div class="tq-cols">
@@ -318,12 +318,11 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                         <div class="tq-empty__art tq-pastel tq-pastel--sky" style="display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                             <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('chart', 44); ?></span>
                         </div>
-                        <h2 class="tq-empty__title">تقريرك يبدأ مع أول درس</h2>
+                        <h2 class="tq-empty__title"><?php echo t('تقريرك يبدأ مع أول درس'); ?></h2>
                         <p class="tq-empty__text">
-                            هنا سيظهر وقت دراستك الفعلي داخل الدروس، ونسبة إنجازك، ومتوسط درجاتك،
-                            ومنحنى تقدمك أسبوعا بعد أسبوع. سجل في مادة واحدة ليبدأ القياس.
+                            <?php echo t('هنا سيظهر وقت دراستك الفعلي داخل الدروس، ونسبة إنجازك، ومتوسط درجاتك، ومنحنى تقدمك أسبوعا بعد أسبوع. سجل في مادة واحدة ليبدأ القياس.'); ?>
                         </p>
-                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">تصفح المواد</a>
+                        <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>"><?php echo t('تصفح المواد'); ?></a>
                     </div>
                 </div>
             <?php else: ?>
@@ -336,14 +335,14 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                             <span class="tq-icon-box tq-pastel--sky" aria-hidden="true">
                                 <span class="tq-pastel__icon"><?php echo tq_icon('clock'); ?></span>
                             </span>
-                            <span class="tq-kpi__label">وقت الدراسة داخل المحتوى</span>
+                            <span class="tq-kpi__label"><?php echo t('وقت الدراسة داخل المحتوى'); ?></span>
                         </div>
                         <p class="tq-kpi__value">
-                            <?php echo tq_num($tq_hours, 'tq-num--xl'); ?><span class="tq-kpi__unit">ساعة</span>
-                            <?php echo tq_num($tq_minutes); ?><span class="tq-kpi__unit">دقيقة</span>
+                            <?php echo tq_num($tq_hours, 'tq-num--xl'); ?><span class="tq-kpi__unit"><?php echo t('ساعة'); ?></span>
+                            <?php echo tq_num($tq_minutes); ?><span class="tq-kpi__unit"><?php echo t('دقيقة'); ?></span>
                         </p>
                         <span class="tq-kpi__delta tq-kpi__delta--flat">
-                            زمن تشغيل فعلي مسجل، لا زمن فتح الصفحة
+                            <?php echo t('زمن تشغيل فعلي مسجل، لا زمن فتح الصفحة'); ?>
                         </span>
                         <?php /* لا خط أسبوعي هنا: watched_duration يخزن مجموع الثواني
                                  لكل درس بلا طابع زمني، فلا يمكن تقطيعه أسابيع.
@@ -355,11 +354,11 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                             <span class="tq-icon-box tq-pastel--mint" aria-hidden="true">
                                 <span class="tq-pastel__icon"><?php echo tq_icon('check'); ?></span>
                             </span>
-                            <span class="tq-kpi__label">نسبة الإنجاز</span>
+                            <span class="tq-kpi__label"><?php echo t('نسبة الإنجاز'); ?></span>
                         </div>
                         <p class="tq-kpi__value"><?php echo tq_num($tq_completion . '%', 'tq-num--xl'); ?></p>
                         <?php if ($tq_completion_delta === null): ?>
-                            <span class="tq-kpi__delta tq-kpi__delta--flat">تقارن بنفسك بعد أول أسبوع كامل</span>
+                            <span class="tq-kpi__delta tq-kpi__delta--flat"><?php echo t('تقارن بنفسك بعد أول أسبوع كامل'); ?></span>
                         <?php else: ?>
                             <span class="tq-kpi__delta tq-kpi__delta--<?php echo $tq_completion_delta > 0 ? 'up' : ($tq_completion_delta < 0 ? 'down' : 'flat'); ?>">
                                 <?php echo tq_num(($tq_completion_delta > 0 ? '+' : '') . $tq_completion_delta . '%', 'tq-num--sm'); ?>
@@ -374,12 +373,12 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                             <span class="tq-icon-box tq-pastel--lilac" aria-hidden="true">
                                 <span class="tq-pastel__icon"><?php echo tq_icon('target'); ?></span>
                             </span>
-                            <span class="tq-kpi__label">الدروس المكتملة</span>
+                            <span class="tq-kpi__label"><?php echo t('الدروس المكتملة'); ?></span>
                         </div>
                         <p class="tq-kpi__value">
                             <?php echo tq_num($tq_done_lessons . ' / ' . $tq_total_lessons, 'tq-num--xl'); ?>
                         </p>
-                        <span class="tq-kpi__delta tq-kpi__delta--flat">من دروس موادك المسجلة</span>
+                        <span class="tq-kpi__delta tq-kpi__delta--flat"><?php echo t('من دروس موادك المسجلة'); ?></span>
                         <?php echo $tq_spark($tq_lessons_series, 'teal'); ?>
                     </div>
 
@@ -388,11 +387,11 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                             <span class="tq-icon-box tq-pastel--peach" aria-hidden="true">
                                 <span class="tq-pastel__icon"><?php echo tq_icon('star'); ?></span>
                             </span>
-                            <span class="tq-kpi__label">المتوسط العام</span>
+                            <span class="tq-kpi__label"><?php echo t('المتوسط العام'); ?></span>
                         </div>
                         <p class="tq-kpi__value"><?php echo tq_num($tq_average . '%', 'tq-num--xl'); ?></p>
                         <?php if ($tq_grade_delta === null): ?>
-                            <span class="tq-kpi__delta tq-kpi__delta--flat">تقارن بنفسك بعد أول أسبوع كامل</span>
+                            <span class="tq-kpi__delta tq-kpi__delta--flat"><?php echo t('تقارن بنفسك بعد أول أسبوع كامل'); ?></span>
                         <?php else: ?>
                             <span class="tq-kpi__delta tq-kpi__delta--<?php echo $tq_grade_delta > 0 ? 'up' : ($tq_grade_delta < 0 ? 'down' : 'flat'); ?>">
                                 <?php echo tq_num(($tq_grade_delta > 0 ? '+' : '') . $tq_grade_delta . '%', 'tq-num--sm'); ?>
@@ -413,29 +412,28 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                 ?>
                 <section class="tq-card tq-card--panel tq-section" aria-labelledby="tq-curve-h">
                     <div class="tq-card__head">
-                        <h2 class="tq-card__title" id="tq-curve-h">تقدمك خلال الأسابيع</h2>
+                        <h2 class="tq-card__title" id="tq-curve-h"><?php echo t('تقدمك خلال الأسابيع'); ?></h2>
                         <span class="tq-pill" aria-hidden="true">آخر <?php echo tq_num(8, 'tq-num--sm'); ?> أسابيع</span>
                     </div>
 
                     <div class="tq-legend" style="margin-block-end:var(--tq-space-l)">
                         <span class="tq-legend__key">
                             <span class="tq-legend__dot" style="background:var(--tq-navy)" aria-hidden="true"></span>
-                            نسبة الإنجاز
+                            <?php echo t('نسبة الإنجاز'); ?>
                         </span>
                         <span class="tq-legend__key">
                             <span class="tq-legend__dot" style="background:var(--tq-teal)" aria-hidden="true"></span>
-                            متوسط الدرجات
+                            <?php echo t('متوسط الدرجات'); ?>
                         </span>
                     </div>
 
                     <?php if (!$tq_has_curve): ?>
                         <div class="tq-empty">
-                            <h3 class="tq-empty__title">لا قياس أسبوعي بعد</h3>
+                            <h3 class="tq-empty__title"><?php echo t('لا قياس أسبوعي بعد'); ?></h3>
                             <p class="tq-empty__text">
-                                يرسم المنحنى خطين: نسبة إنجازك ومتوسط درجاتك، أسبوعا بعد أسبوع.
-                                يبدأ الرسم بمجرد إكمال أول درس أو تسليم أول اختبار.
+                                <?php echo t('يرسم المنحنى خطين: نسبة إنجازك ومتوسط درجاتك، أسبوعا بعد أسبوع. يبدأ الرسم بمجرد إكمال أول درس أو تسليم أول اختبار.'); ?>
                             </p>
-                            <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/lessons'); ?>">ابدأ درسا الآن</a>
+                            <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/lessons'); ?>"><?php echo t('ابدأ درسا الآن'); ?></a>
                         </div>
                     <?php else: ?>
                         <?php
@@ -488,7 +486,7 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                                 foreach ($seg as $pt) {
                                     [$x, $y] = $xy($pt[0], $pt[1]);
                                     $svg .= '<circle cx="' . $x . '" cy="' . $y . '" r="4" fill="' . $color . '">'
-                                          . '<title>' . html_escape($label . ' — الأسبوع ' . ($pt[0] + 1)
+                                          . '<title>' . html_escape($label . t('— الأسبوع') . ($pt[0] + 1)
                                                                    . ': ' . $pt[1] . '%') . '</title>'
                                           . '</circle>';
                                 }
@@ -505,15 +503,15 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                             <div>
                                 <div class="tq-chart__plot">
                                     <svg class="tq-chart__svg" viewBox="0 0 <?php echo $cw . ' ' . $ch; ?>" preserveAspectRatio="none"
-                                         role="img" aria-label="منحنى نسبة الإنجاز ومتوسط الدرجات خلال الأسابيع الثمانية الأخيرة">
+                                         role="img" aria-label="<?php echo te('منحنى نسبة الإنجاز ومتوسط الدرجات خلال الأسابيع الثمانية الأخيرة'); ?>">
                                         <?php foreach ([0, 25, 50, 75, 100] as $g): ?>
                                             <line x1="<?php echo $pad; ?>" x2="<?php echo $cw - $pad; ?>"
                                                   y1="<?php echo round($ch - $pad - ($g / 100) * ($ch - 2 * $pad), 1); ?>"
                                                   y2="<?php echo round($ch - $pad - ($g / 100) * ($ch - 2 * $pad), 1); ?>"
                                                   stroke="var(--tq-line)" stroke-width="1"/>
                                         <?php endforeach; ?>
-                                        <?php echo $line($tq_completion_series, 'var(--tq-navy)', 'نسبة الإنجاز'); ?>
-                                        <?php echo $line($tq_grade_series, 'var(--tq-teal)', 'متوسط الدرجات'); ?>
+                                        <?php echo $line($tq_completion_series, 'var(--tq-navy)', t('نسبة الإنجاز')); ?>
+                                        <?php echo $line($tq_grade_series, 'var(--tq-teal)', t('متوسط الدرجات')); ?>
                                     </svg>
                                 </div>
                                 <?php /* الرقم وحده على المحور. ثمانية عناوين بنص «الأسبوع ن»
@@ -523,7 +521,7 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                                          لقارئ الشاشة. */ ?>
                                 <div class="tq-chart__xaxis">
                                     <?php foreach ($tq_weeks as $i => $w): ?>
-                                        <span class="tq-micro"><span class="tq-sr">الأسبوع </span><?php echo tq_num($i + 1, 'tq-num--sm'); ?></span>
+                                        <span class="tq-micro"><span class="tq-sr"><?php echo t('الأسبوع'); ?> </span><?php echo tq_num($i + 1, 'tq-num--sm'); ?></span>
                                     <?php endforeach; ?>
                                 </div>
                             </div>
@@ -540,13 +538,13 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
             <?php if ($tq_has_data): ?>
             <section class="tq-card tq-card--panel tq-section" aria-labelledby="tq-subj-h">
             <div class="tq-card__head">
-                <h2 class="tq-card__title" id="tq-subj-h">أداؤك في المواد</h2>
+                <h2 class="tq-card__title" id="tq-subj-h"><?php echo t('أداؤك في المواد'); ?></h2>
             </div>
             <?php if (!$tq_subjects): ?>
                 <div class="tq-empty">
-                    <h3 class="tq-empty__title">لا مواد مسجلة بعد</h3>
-                    <p class="tq-empty__text">لكل مادة حلقة تظهر نسبة إتقانك فيها وعدد دروسها المكتملة، بمجرد تسجيلك في مادة.</p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">تصفح المواد</a>
+                    <h3 class="tq-empty__title"><?php echo t('لا مواد مسجلة بعد'); ?></h3>
+                    <p class="tq-empty__text"><?php echo t('لكل مادة حلقة تظهر نسبة إتقانك فيها وعدد دروسها المكتملة، بمجرد تسجيلك في مادة.'); ?></p>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>"><?php echo t('تصفح المواد'); ?></a>
                 </div>
             <?php else: ?>
                 <div class="tq-subjects">
@@ -556,9 +554,9 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                             <?php echo tq_ring($pct, 96, 9); ?>
                             <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($s['name']); ?></span>
                             <span class="tq-micro">
-                                <?php echo tq_iso($s['courses'] . ' كورس مسجل'); ?>
+                                <?php echo tq_iso($s['courses'] . t('كورس مسجل')); ?>
                                 <?php if ($s['lessons'] > 0): ?>
-                                    · <?php echo tq_iso($s['lessons'] . ($s['lessons'] > 10 ? ' درسا' : ' دروس')); ?>
+                                    · <?php echo tq_iso($s['lessons'] . ($s['lessons'] > 10 ? t('درسا') : t('دروس'))); ?>
                                 <?php endif; ?>
                             </span>
                             <?php /* بطاقة **مادة** تحمل عدد كورساتها، فوجهتها «كورساتي»
@@ -567,7 +565,7 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                                      `category` وهناك من `paths.subject_id`، والمصدران
                                      يختلفان — فتصفية باسم من أحدهما ترد قائمة فارغة.) */ ?>
                             <a class="tq-btn tq-btn--ghost tq-btn--sm tq-btn--block"
-                               href="<?php echo base_url('student/courses'); ?>">عرض التفاصيل</a>
+                               href="<?php echo base_url('student/courses'); ?>"><?php echo t('عرض التفاصيل'); ?></a>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -580,27 +578,27 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
         <!-- المواد: تفصيل كل كورس مسجل بتقدمه المسجل -->
         <section class="tq-card tq-card--panel tq-section" id="tq-rp-subjects" role="tabpanel" aria-labelledby="tq-rt-subjects" hidden>
             <div class="tq-card__head">
-                <h2 class="tq-card__title">تقدمك في كل مادة</h2>
+                <h2 class="tq-card__title"><?php echo t('تقدمك في كل مادة'); ?></h2>
             </div>
             <?php if (!$tq_enrolled): ?>
                 <div class="tq-empty">
-                    <h3 class="tq-empty__title">لا مواد مسجلة بعد</h3>
-                    <p class="tq-empty__text">بعد تسجيلك في مادة يظهر لكل كورس صف بتقدمك المسجل فيه ونسبته.</p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">تصفح المواد</a>
+                    <h3 class="tq-empty__title"><?php echo t('لا مواد مسجلة بعد'); ?></h3>
+                    <p class="tq-empty__text"><?php echo t('بعد تسجيلك في مادة يظهر لكل كورس صف بتقدمك المسجل فيه ونسبته.'); ?></p>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>"><?php echo t('تصفح المواد'); ?></a>
                 </div>
             <?php else: ?>
                 <table class="tq-table">
-                    <caption class="tq-sr">تقدمك في كل كورس مسجل</caption>
+                    <caption class="tq-sr"><?php echo t('تقدمك في كل كورس مسجل'); ?></caption>
                     <thead>
-                        <tr><th scope="col">الكورس</th><th scope="col">التقدم</th><th scope="col">الحالة</th></tr>
+                        <tr><th scope="col"><?php echo t('الكورس'); ?></th><th scope="col"><?php echo t('التقدم'); ?></th><th scope="col"><?php echo t('الحالة'); ?></th></tr>
                     </thead>
                     <tbody>
                         <?php foreach ($tq_enrolled as $row): ?>
                             <?php $p = $tq_progress_by_course[(int) $row['id']] ?? 0; ?>
                             <tr>
                                 <td data-label="الكورس"><?php echo html_escape($row['title']); ?></td>
-                                <td data-label="التقدم"><?php echo tq_progress($p, 'تقدمك في الكورس'); ?></td>
-                                <td data-label="الحالة"><?php echo tq_badge($p >= 100 ? 'mastered' : ($p > 0 ? 'progress' : 'idle'), $p >= 100 ? 'مكتمل' : ($p > 0 ? 'قيد التقدم' : 'لم يبدأ')); ?></td>
+                                <td data-label="التقدم"><?php echo tq_progress($p, t('تقدمك في الكورس')); ?></td>
+                                <td data-label="الحالة"><?php echo tq_badge($p >= 100 ? 'mastered' : ($p > 0 ? 'progress' : 'idle'), $p >= 100 ? t('مكتمل') : ($p > 0 ? t('قيد التقدم') : t('لم يبدأ'))); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -611,26 +609,26 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
         <!-- الاختبارات -->
         <section class="tq-card tq-card--panel tq-section" id="tq-rp-quizzes" role="tabpanel" aria-labelledby="tq-rt-quizzes" hidden>
             <div class="tq-card__head">
-                <h2 class="tq-card__title">نتائج اختباراتك</h2>
+                <h2 class="tq-card__title"><?php echo t('نتائج اختباراتك'); ?></h2>
             </div>
             <?php if (!$tq_quiz_points): ?>
                 <div class="tq-empty">
-                    <h3 class="tq-empty__title">لم تسلم اختبارا بعد</h3>
-                    <p class="tq-empty__text">هنا تظهر كل نتيجة سلمتها بتاريخها ونسبتها، وتقارن بنتيجتك أنت في الأسبوع الماضي.</p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/exams'); ?>">اذهب إلى اختباراتي</a>
+                    <h3 class="tq-empty__title"><?php echo t('لم تسلم اختبارا بعد'); ?></h3>
+                    <p class="tq-empty__text"><?php echo t('هنا تظهر كل نتيجة سلمتها بتاريخها ونسبتها، وتقارن بنتيجتك أنت في الأسبوع الماضي.'); ?></p>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/exams'); ?>"><?php echo t('اذهب إلى اختباراتي'); ?></a>
                 </div>
             <?php else: ?>
                 <table class="tq-table">
-                    <caption class="tq-sr">نتائج الاختبارات المسلمة مرتبة من الأحدث</caption>
+                    <caption class="tq-sr"><?php echo t('نتائج الاختبارات المسلمة مرتبة من الأحدث'); ?></caption>
                     <thead>
-                        <tr><th scope="col">التاريخ</th><th scope="col">النسبة</th><th scope="col">الحالة</th></tr>
+                        <tr><th scope="col"><?php echo t('التاريخ'); ?></th><th scope="col"><?php echo t('النسبة'); ?></th><th scope="col"><?php echo t('الحالة'); ?></th></tr>
                     </thead>
                     <tbody>
                         <?php foreach (array_reverse($tq_quiz_points, true) as $ts => $pct): ?>
                             <tr>
                                 <td data-label="التاريخ"><?php echo tq_num(date('Y-m-d', $ts), 'tq-num--sm'); ?></td>
-                                <td data-label="النسبة"><?php echo tq_progress($pct, 'نسبة الاختبار'); ?></td>
-                                <td data-label="الحالة"><?php echo tq_badge($pct >= 80 ? 'mastered' : ($pct >= 50 ? 'progress' : 'late'), $pct >= 80 ? 'متقن' : ($pct >= 50 ? 'قيد التقدم' : 'يحتاج مراجعة')); ?></td>
+                                <td data-label="النسبة"><?php echo tq_progress($pct, t('نسبة الاختبار')); ?></td>
+                                <td data-label="الحالة"><?php echo tq_badge($pct >= 80 ? 'mastered' : ($pct >= 50 ? 'progress' : 'late'), $pct >= 80 ? t('متقن') : ($pct >= 50 ? t('قيد التقدم') : t('يحتاج مراجعة'))); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -641,13 +639,13 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
         <!-- سجل النشاط -->
         <section class="tq-card tq-card--panel tq-section" id="tq-rp-activity" role="tabpanel" aria-labelledby="tq-rt-activity" hidden>
             <div class="tq-card__head">
-                <h2 class="tq-card__title">سجل النشاط الكامل</h2>
+                <h2 class="tq-card__title"><?php echo t('سجل النشاط الكامل'); ?></h2>
             </div>
             <?php if (!$tq_activity): ?>
                 <div class="tq-empty">
-                    <h3 class="tq-empty__title">السجل فارغ</h3>
-                    <p class="tq-empty__text">كل درس تكمله وكل اختبار تسلمه يسجل هنا بوقته، فترى بنفسك أين ذهب وقتك.</p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>">ابدأ درسا الآن</a>
+                    <h3 class="tq-empty__title"><?php echo t('السجل فارغ'); ?></h3>
+                    <p class="tq-empty__text"><?php echo t('كل درس تكمله وكل اختبار تسلمه يسجل هنا بوقته، فترى بنفسك أين ذهب وقتك.'); ?></p>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>"><?php echo t('ابدأ درسا الآن'); ?></a>
                 </div>
             <?php else: ?>
                 <ul>
@@ -672,7 +670,7 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
 
         <!-- ملخص الأداء -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-sum-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-sum-h">ملخص الأداء</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-sum-h"><?php echo t('ملخص الأداء'); ?></h2></div>
             <?php /* TQ-REPORT-DOUBLE — الحلقة كانت تسمى «أداؤك العام» وقيمتها
                      `$tq_completion` نفسها — أي **نسبة الإنجاز** حرفا بحرف، وهي
                      معروضة تحتها بشريط باسمها الصحيح. فيقرأ الطالب 44% مرتين
@@ -684,19 +682,19 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                      رقم «عام» بمعادلة من عندنا: رقم يجمع الإنجاز بالدرجات قرار
                      تربوي لا تنسيق شاشة. */ ?>
             <div style="display:grid;justify-items:center;gap:var(--tq-space-l)">
-                <?php echo tq_ring($tq_completion, 150, 13, 'نسبة الإنجاز'); ?>
+                <?php echo tq_ring($tq_completion, 150, 13, t('نسبة الإنجاز')); ?>
             </div>
             <div class="tq-stack" style="margin-block-start:var(--tq-space-xl)">
                 <div>
-                    <span class="tq-caption">متوسط الدرجات</span>
-                    <?php echo tq_progress($tq_average, 'متوسط الدرجات'); ?>
+                    <span class="tq-caption"><?php echo t('متوسط الدرجات'); ?></span>
+                    <?php echo tq_progress($tq_average, t('متوسط الدرجات')); ?>
                 </div>
                 <div>
-                    <span class="tq-caption">الدروس المكتملة</span>
+                    <span class="tq-caption"><?php echo t('الدروس المكتملة'); ?></span>
                     <?php
                     $tq_done_pct = $tq_total_lessons
                         ? (int) round($tq_done_lessons * 100 / $tq_total_lessons) : 0;
-                    echo tq_progress($tq_done_pct, 'الدروس المكتملة');
+                    echo tq_progress($tq_done_pct, t('الدروس المكتملة'));
                     ?>
                     <span class="tq-micro">
                         <?php echo tq_num($tq_done_lessons, 'tq-num--sm'); ?>
@@ -705,53 +703,51 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                 </div>
             </div>
             <p class="tq-micro" style="margin-block-start:var(--tq-space-l);margin-block-end:0">
-                كل رقم هنا يقارنك بنفسك أنت — لا ترتيب بين الطلاب ولا متوسط فصل.
+                <?php echo t('كل رقم هنا يقارنك بنفسك أنت — لا ترتيب بين الطلاب ولا متوسط فصل.'); ?>
             </p>
         </section>
 
         <!-- أهداف هذا الشهر: لا جدول أهداف في القاعدة بعد -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-goals-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-goals-h">أهداف هذا الشهر</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-goals-h"><?php echo t('أهداف هذا الشهر'); ?></h2></div>
             <div class="tq-empty" style="padding-block:var(--tq-space-xl)">
                 <div class="tq-empty__art tq-pastel tq-pastel--peach" style="inline-size:72px;block-size:72px;display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                     <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('target', 32); ?></span>
                 </div>
-                <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">تحديد الأهداف لم يفتح بعد</h3>
+                <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)"><?php echo t('تحديد الأهداف لم يفتح بعد'); ?></h3>
                 <?php /* كان الزر «حدد هدفك الأول» يقود إلى الإعدادات، وليس فيها ولا في
                          القاعدة كلها جدول أهداف. فيضغطه الطالب ويقلب الأقسام الستة
                          يبحث عما ليس فيها، ثم يظن أنه أخطأ هو. والنقص يقال ولا يخبأ
                          خلف زر — وهو الأسلوب المتبع في بقية بطاقات هذه الشاشة. */ ?>
                 <p class="tq-empty__text tq-caption">
-                    حين تفتح الأهداف الشهرية ستحدد هدفا واحدا — ساعات دراسة أو دروسا تكملها —
-                    ويظهر تقدمك نحوه هنا بشريط ورقم. وحتى ذلك الحين تجد قياسك الفعلي في
-                    «نظرة عامة» أعلاه.
+                    <?php echo t('حين تفتح الأهداف الشهرية ستحدد هدفا واحدا — ساعات دراسة أو دروسا تكملها — ويظهر تقدمك نحوه هنا بشريط ورقم. وحتى ذلك الحين تجد قياسك الفعلي في «نظرة عامة» أعلاه.'); ?>
                 </p>
             </div>
         </section>
 
         <!-- ملاحظات المعلم: لا جدول ملاحظات في القاعدة بعد -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-notes-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-notes-h">ملاحظات المعلم</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-notes-h"><?php echo t('ملاحظات المعلم'); ?></h2></div>
             <div class="tq-empty" style="padding-block:var(--tq-space-xl)">
                 <div class="tq-empty__art tq-pastel tq-pastel--lilac" style="inline-size:72px;block-size:72px;display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
                     <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('chat', 32); ?></span>
                 </div>
-                <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لا ملاحظات بعد</h3>
+                <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)"><?php echo t('لا ملاحظات بعد'); ?></h3>
                 <p class="tq-empty__text tq-caption">
-                    حين يكتب معلمك ملاحظة على أدائك تظهر هنا باسمه وتاريخها. يمكنك أن تسأله مباشرة الآن.
+                    <?php echo t('حين يكتب معلمك ملاحظة على أدائك تظهر هنا باسمه وتاريخها. يمكنك أن تسأله مباشرة الآن.'); ?>
                 </p>
-                <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/messages'); ?>">راسل معلمك</a>
+                <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/messages'); ?>"><?php echo t('راسل معلمك'); ?></a>
             </div>
         </section>
 
         <!-- سجل النشاط الأخير -->
         <section class="tq-card tq-card--panel" aria-labelledby="tq-act-h">
             <div class="tq-card__head">
-                <h2 class="tq-card__title" id="tq-act-h">سجل النشاط الأخير</h2>
+                <h2 class="tq-card__title" id="tq-act-h"><?php echo t('سجل النشاط الأخير'); ?></h2>
             </div>
             <?php if (!$tq_activity): ?>
                 <p class="tq-caption" style="margin:0">
-                    لا نشاط مسجل بعد. أول درس تفتحه وأول اختبار تسلمه يظهران هنا بوقتهما.
+                    <?php echo t('لا نشاط مسجل بعد. أول درس تفتحه وأول اختبار تسلمه يظهران هنا بوقتهما.'); ?>
                 </p>
             <?php else: ?>
                 <ul>

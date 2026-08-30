@@ -24,9 +24,9 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $tq_row = is_array($edit_data) ? reset($edit_data) : $edit_data->row_array();
 
 if (!$tq_row) {
-    tqa_head('حسابي', '', 'cog');
+    tqa_head(t('حسابي'), '', 'cog');
     echo '<div class="tqa-card tqa-card--flush">';
-    tqa_empty('تعذر قراءة بيانات الحساب', 'سجل الخروج ثم الدخول مرة أخرى.', '', '', 'cog');
+    tqa_empty(t('تعذر قراءة بيانات الحساب'), t('سجل الخروج ثم الدخول مرة أخرى.'), '', '', 'cog');
     echo '</div>';
     return;
 }
@@ -38,7 +38,7 @@ $tq_social += array('facebook' => '', 'twitter' => '', 'linkedin' => '');
 $tq_id = (int) $tq_row['id'];
 ?>
 
-<?php tqa_head('حسابي', 'بياناتك أنت وكلمة مرورك — لا حسابات المسؤولين الآخرين.', 'cog'); ?>
+<?php tqa_head(t('حسابي'), t('بياناتك أنت وكلمة مرورك — لا حسابات المسؤولين الآخرين.'), 'cog'); ?>
 
 <div class="tqa-cols">
 
@@ -49,13 +49,13 @@ $tq_id = (int) $tq_row['id'];
 
             <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
                 <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('users', 20); ?></span>
-                <h2>معلومات أساسية</h2>
+                <h2><?php echo t('معلومات أساسية'); ?></h2>
             </div>
 
             <div class="tqa-fieldgrid">
                 <div class="tqa-field">
                     <label class="tqa-field__label" for="first_name">
-                        الاسم الأول <span class="tqa-field__req" aria-hidden="true">*</span>
+                        <?php echo t('الاسم الأول'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                     </label>
                     <input class="tqa-input" type="text" id="first_name" name="first_name" required
                            value="<?php echo html_escape($tq_row['first_name']); ?>">
@@ -63,7 +63,7 @@ $tq_id = (int) $tq_row['id'];
 
                 <div class="tqa-field">
                     <label class="tqa-field__label" for="last_name">
-                        اسم العائلة <span class="tqa-field__req" aria-hidden="true">*</span>
+                        <?php echo t('اسم العائلة'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                     </label>
                     <input class="tqa-input" type="text" id="last_name" name="last_name" required
                            value="<?php echo html_escape($tq_row['last_name']); ?>">
@@ -71,45 +71,45 @@ $tq_id = (int) $tq_row['id'];
 
                 <div class="tqa-field tqa-field--full">
                     <label class="tqa-field__label" for="email">
-                        البريد الإلكتروني <span class="tqa-field__req" aria-hidden="true">*</span>
+                        <?php echo t('البريد الإلكتروني'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                     </label>
                     <input class="tqa-input tqa-input--ltr" type="email" id="email" name="email" required dir="ltr"
                            value="<?php echo html_escape($tq_row['email']); ?>">
-                    <span class="tqa-field__hint">هو اسم دخولك — تغييره يغير ما تسجل به.</span>
+                    <span class="tqa-field__hint"><?php echo t('هو اسم دخولك — تغييره يغير ما تسجل به.'); ?></span>
                 </div>
 
                 <div class="tqa-field tqa-field--full">
-                    <label class="tqa-field__label" for="title">سطر تعريفي</label>
+                    <label class="tqa-field__label" for="title"><?php echo t('سطر تعريفي'); ?></label>
                     <input class="tqa-input" type="text" id="title" name="title" maxlength="255"
                            value="<?php echo html_escape($tq_row['title']); ?>">
                 </div>
 
                 <div class="tqa-field tqa-field--full">
-                    <label class="tqa-field__label" for="skills_in">المهارات</label>
+                    <label class="tqa-field__label" for="skills_in"><?php echo t('المهارات'); ?></label>
                     <div class="tqa-tags" data-tqa-tags>
                         <input type="hidden" name="skills" value="<?php echo html_escape($tq_row['skills']); ?>"
                                data-tqa-tags-value>
                         <input class="tqa-tags__in" type="text" id="skills_in" autocomplete="off"
-                               placeholder="اكتب مهارة ثم اضغط Enter" data-tqa-tags-input>
+                               placeholder="<?php echo te('اكتب مهارة ثم اضغط Enter'); ?>" data-tqa-tags-input>
                     </div>
                 </div>
 
                 <div class="tqa-field tqa-field--full">
-                    <label class="tqa-field__label" for="biography">نبذة</label>
+                    <label class="tqa-field__label" for="biography"><?php echo t('نبذة'); ?></label>
                     <textarea class="tqa-textarea" id="biography" name="biography" rows="4"><?php
                         echo html_escape($tq_row['biography']); ?></textarea>
                 </div>
 
                 <div class="tqa-field tqa-field--full">
-                    <span class="tqa-field__label">الصورة الشخصية</span>
+                    <span class="tqa-field__label"><?php echo t('الصورة الشخصية'); ?></span>
                     <div class="tqa-file">
-                        <img class="tqa-avatar" width="38" height="38" alt="صورتك الحالية"
+                        <img class="tqa-avatar" width="38" height="38" alt="<?php echo te('صورتك الحالية'); ?>"
                              src="<?php echo html_escape($this->user_model->get_user_image_url($tq_id)); ?>">
                         <input type="file" id="user_image" name="user_image" accept="image/*" data-tqa-file>
                         <label class="tqa-file__btn" for="user_image">
                             <?php echo tq_icon('image', 16); ?> استبدل الصورة
                         </label>
-                        <span class="tqa-file__name" data-tqa-file-name>صورة مربعة تخرج أفضل</span>
+                        <span class="tqa-file__name" data-tqa-file-name><?php echo t('صورة مربعة تخرج أفضل'); ?></span>
                     </div>
                 </div>
             </div>
@@ -117,22 +117,22 @@ $tq_id = (int) $tq_row['id'];
             <div class="tqa-card__head" style="padding:var(--tq-space-l) 0 var(--tq-space-l);
                  margin-block:var(--tq-space-l);border-block-end:1px solid var(--tq-line);border-block-start:1px solid var(--tq-line)">
                 <span class="tqa-iconbox tqa-lilac" aria-hidden="true"><?php echo tq_icon('link', 20); ?></span>
-                <h2>روابط التواصل</h2>
+                <h2><?php echo t('روابط التواصل'); ?></h2>
             </div>
 
             <div class="tqa-fieldgrid tqa-fieldgrid--3">
                 <div class="tqa-field">
-                    <label class="tqa-field__label" for="facebook_link">فيسبوك</label>
+                    <label class="tqa-field__label" for="facebook_link"><?php echo t('فيسبوك'); ?></label>
                     <input class="tqa-input tqa-input--ltr" type="url" id="facebook_link" name="facebook_link" dir="ltr"
                            value="<?php echo html_escape($tq_social['facebook']); ?>">
                 </div>
                 <div class="tqa-field">
-                    <label class="tqa-field__label" for="twitter_link">إكس (تويتر)</label>
+                    <label class="tqa-field__label" for="twitter_link"><?php echo t('إكس (تويتر)'); ?></label>
                     <input class="tqa-input tqa-input--ltr" type="url" id="twitter_link" name="twitter_link" dir="ltr"
                            value="<?php echo html_escape($tq_social['twitter']); ?>">
                 </div>
                 <div class="tqa-field">
-                    <label class="tqa-field__label" for="linkedin_link">لينكدإن</label>
+                    <label class="tqa-field__label" for="linkedin_link"><?php echo t('لينكدإن'); ?></label>
                     <input class="tqa-input tqa-input--ltr" type="url" id="linkedin_link" name="linkedin_link" dir="ltr"
                            value="<?php echo html_escape($tq_social['linkedin']); ?>">
                 </div>
@@ -153,12 +153,12 @@ $tq_id = (int) $tq_row['id'];
 
             <div class="tqa-card__head" style="padding:0 0 var(--tq-space-l);margin-block-end:var(--tq-space-l)">
                 <span class="tqa-iconbox tqa-peach" aria-hidden="true"><?php echo tq_icon('lock', 20); ?></span>
-                <h2>كلمة المرور</h2>
+                <h2><?php echo t('كلمة المرور'); ?></h2>
             </div>
 
             <div class="tqa-field">
                 <label class="tqa-field__label" for="current_password">
-                    كلمة المرور الحالية <span class="tqa-field__req" aria-hidden="true">*</span>
+                    <?php echo t('كلمة المرور الحالية'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                 </label>
                 <input class="tqa-input tqa-input--ltr" type="password" id="current_password"
                        name="current_password" required autocomplete="current-password" dir="ltr">
@@ -166,16 +166,16 @@ $tq_id = (int) $tq_row['id'];
 
             <div class="tqa-field">
                 <label class="tqa-field__label" for="new_password">
-                    كلمة المرور الجديدة <span class="tqa-field__req" aria-hidden="true">*</span>
+                    <?php echo t('كلمة المرور الجديدة'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                 </label>
                 <input class="tqa-input tqa-input--ltr" type="password" id="new_password"
                        name="new_password" required minlength="8" autocomplete="new-password" dir="ltr">
-                <span class="tqa-field__hint">ثمانية محارف على الأقل.</span>
+                <span class="tqa-field__hint"><?php echo t('ثمانية محارف على الأقل.'); ?></span>
             </div>
 
             <div class="tqa-field">
                 <label class="tqa-field__label" for="confirm_password">
-                    تأكيد الجديدة <span class="tqa-field__req" aria-hidden="true">*</span>
+                    <?php echo t('تأكيد الجديدة'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
                 </label>
                 <input class="tqa-input tqa-input--ltr" type="password" id="confirm_password"
                        name="confirm_password" required minlength="8" autocomplete="new-password" dir="ltr">
@@ -190,7 +190,7 @@ $tq_id = (int) $tq_row['id'];
 
         <div class="tqa-note" style="margin-block-start:var(--tq-space-l)">
             <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
-            <span>تغيير كلمة المرور لا يخرجك من الجلسة الحالية، ويخرج أي جلسة أخرى لك عند الدخول التالي.</span>
+            <span><?php echo t('تغيير كلمة المرور لا يخرجك من الجلسة الحالية، ويخرج أي جلسة أخرى لك عند الدخول التالي.'); ?></span>
         </div>
     </aside>
 </div>

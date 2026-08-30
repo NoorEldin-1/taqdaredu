@@ -36,16 +36,16 @@ $tq_dynamic = array_merge(
 );
 
 $tq_lists = array(
-    array('روابط ثابتة',  'صفحات الموقع التي لا تتغير — تضبط في إعدادات النظام.', 'layers', $tq_static),
-    array('روابط متغيرة', 'تولد من الكورسات والأقسام والمقالات، وتحدث وحدها.',     'refresh', $tq_dynamic),
+    array(t('روابط ثابتة'),  t('صفحات الموقع التي لا تتغير — تضبط في إعدادات النظام.'), 'layers', $tq_static),
+    array(t('روابط متغيرة'), t('تولد من الكورسات والأقسام والمقالات، وتحدث وحدها.'),     'refresh', $tq_dynamic),
 );
 ?>
 
-<?php tqa_head('خريطة الموقع',
-    'ما يقرؤه محرك البحث ليعرف صفحات الموقع. تولد تلقائيا ولا تحرر من هنا.',
+<?php tqa_head(t('خريطة الموقع'),
+    t('ما يقرؤه محرك البحث ليعرف صفحات الموقع. تولد تلقائيا ولا تحرر من هنا.'),
     'layers',
     '<a class="tqa-btn tqa-btn--ghost" href="' . base_url('sitemap.xml') . '" target="_blank" rel="noopener">'
-  . tq_icon('external', 16) . ' افتح sitemap.xml</a>'); ?>
+  . tq_icon('external', 16) . t('افتح sitemap.xml</a>')); ?>
 
 <div class="tqa-grid tqa-grid--2">
 <?php foreach ($tq_lists as [$tq_title, $tq_sub, $tq_icon, $tq_urls]): ?>
@@ -63,7 +63,7 @@ $tq_lists = array(
 
         <?php if (empty($tq_urls)): ?>
             <p style="padding:var(--tq-space-xl);margin:0;font:var(--tq-type-caption);color:var(--tq-text2)">
-                لا روابط في هذه المجموعة بعد.
+                <?php echo t('لا روابط في هذه المجموعة بعد.'); ?>
             </p>
         <?php else: ?>
             <?php /* قائمة طويلة تمرر داخل نفسها: مئتا رابط تحت بعضها تدفع

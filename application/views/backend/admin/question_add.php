@@ -21,10 +21,10 @@
              الشاشة. والنص وحده يجبر المعلم على كتابة كسر مركب في سطر
              واحد بلا بسط ولا مقام، أو ترك السؤال. */ ?>
     <div class="tqa-field">
-        <label for="question_image">صورة السؤال <small>(اختياري)</small></label>
+        <label for="question_image"><?php echo t('صورة السؤال'); ?> <small><?php echo t('(اختياري)'); ?></small></label>
         <input type="file" name="image" id="question_image" class="tqa-input"
                accept="image/png,image/jpeg,image/gif,image/webp">
-        <small class="text-muted">jpg · png · gif · webp، وحتى 4 ميجابايت. تعرض تحت نص السؤال.</small>
+        <small class="text-muted"><?php echo t('jpg · png · gif · webp، وحتى 4 ميجابايت. تعرض تحت نص السؤال.'); ?></small>
     </div>
 
     <div id="quiz_fields_type_wize"></div>

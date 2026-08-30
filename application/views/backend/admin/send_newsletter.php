@@ -13,10 +13,10 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * والحسابات هنا تملأ من الخادم، وفوقها حقل ترشيح يعمل في المتصفح.
  */
 if (!$newsletter) {
-    tqa_head('قالب غير موجود', '', 'send');
+    tqa_head(t('قالب غير موجود'), '', 'send');
     echo '<div class="tqa-card tqa-card--flush">';
-    tqa_empty('لا قالب بهذا المعرف', 'قد يكون حذف من شاشة أخرى.',
-        'كل القوالب', site_url('admin/newsletters'), 'send');
+    tqa_empty(t('لا قالب بهذا المعرف'), t('قد يكون حذف من شاشة أخرى.'),
+        t('كل القوالب'), site_url('admin/newsletters'), 'send');
     echo '</div>';
     return;
 }
@@ -28,39 +28,38 @@ $tq_users = $this->db->select('id, first_name, last_name, email')
                      ->get('users')->result_array();
 
 $tq_targets = array(
-    'selected_user'             => 'مستخدمون أختارهم',
-    'all'                       => 'كل الحسابات',
-    'student'                   => 'الطلاب وحدهم',
-    'instructor'                => 'المعلمون وحدهم',
-    'all_subscriber'            => 'كل مشتركي النشرة',
-    'registered_subscriber'     => 'مشتركو النشرة المسجلون في المنصة',
-    'non_registered_subscriber' => 'مشتركو النشرة غير المسجلين',
+    'selected_user'             => t('مستخدمون أختارهم'),
+    'all'                       => t('كل الحسابات'),
+    'student'                   => t('الطلاب وحدهم'),
+    'instructor'                => t('المعلمون وحدهم'),
+    'all_subscriber'            => t('كل مشتركي النشرة'),
+    'registered_subscriber'     => t('مشتركو النشرة المسجلون في المنصة'),
+    'non_registered_subscriber' => t('مشتركو النشرة غير المسجلين'),
 );
 ?>
 
-<?php tqa_head('إرسال النشرة', $newsletter['subject'], 'send',
+<?php tqa_head(t('إرسال النشرة'), $newsletter['subject'], 'send',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newsletters') . '">'
-  . tq_icon('chev-prev', 16) . ' كل القوالب</a>'); ?>
+  . tq_icon('chev-prev', 16) . t('كل القوالب</a>')); ?>
 
 <div class="tqa-note tqa-note--warn tqa-section" style="max-inline-size:820px">
     <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
     <span>
-        <strong>لا رجعة بعد الإرسال.</strong>
-        الرسائل تدخل الطابور فورا، وترسل على دفعات من عشرين في الدقيقة.
-        راجع النص والوجهة قبل الضغط.
+        <strong><?php echo t('لا رجعة بعد الإرسال.'); ?></strong>
+        <?php echo t('الرسائل تدخل الطابور فورا، وترسل على دفعات من عشرين في الدقيقة. راجع النص والوجهة قبل الضغط.'); ?>
     </span>
 </div>
 
 <form class="tqa-card" action="<?php echo site_url('admin/newsletters/send'); ?>" method="post"
       style="max-inline-size:820px"
-      data-tqa-confirm-title="إرسال النشرة"
+      data-tqa-confirm-title="<?php echo te('إرسال النشرة'); ?>"
       data-tqa-confirm="ستدخل الرسائل الطابور فورا، ولا يمكن سحبها بعدها."
       data-tqa-confirm-ok="نعم، أرسل">
     <?php echo tq_csrf(); ?>
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="send_to">
-            الوجهة <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('الوجهة'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <select class="tqa-select" id="send_to" name="send_to" required data-tqa-target>
             <?php foreach ($tq_targets as $tq_k => $tq_l): ?>
@@ -70,10 +69,10 @@ $tq_targets = array(
     </div>
 
     <div class="tqa-field" data-tqa-picklist>
-        <label class="tqa-field__label" for="multiple_user_id">اختر الحسابات</label>
+        <label class="tqa-field__label" for="multiple_user_id"><?php echo t('اختر الحسابات'); ?></label>
 
         <input class="tqa-input" type="search" data-tqa-filter="multiple_user_id"
-               placeholder="اكتب للترشيح بالاسم أو البريد…" autocomplete="off"
+               placeholder="<?php echo te('اكتب للترشيح بالاسم أو البريد…'); ?>" autocomplete="off"
                style="margin-block-end:var(--tq-space-s)">
 
         <select class="tqa-select" id="multiple_user_id" name="user_id[]" multiple size="10"
@@ -87,22 +86,21 @@ $tq_targets = array(
             <?php endforeach; ?>
         </select>
         <span class="tqa-field__hint">
-            اختر واحدا أو أكثر — بـ<span class="tq-ltr" dir="ltr">Ctrl</span> أو
-            <span class="tq-ltr" dir="ltr">⌘</span> للاختيار المتعدد.
-            المعروض <span class="tqa-num"><?php echo count($tq_users); ?></span> حسابا.
+            <?php echo t('اختر واحدا أو أكثر — بـ'); ?><span class="tq-ltr" dir="ltr">Ctrl</span> <?php echo t('أو'); ?>
+            <span class="tq-ltr" dir="ltr">⌘</span> <?php echo t('للاختيار المتعدد. المعروض'); ?> <span class="tqa-num"><?php echo count($tq_users); ?></span> <?php echo t('حسابا.'); ?>
         </span>
     </div>
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="newsletter_subject">
-            عنوان الرسالة <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('عنوان الرسالة'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <input class="tqa-input" type="text" id="newsletter_subject" name="subject" required maxlength="190"
                value="<?php echo html_escape($newsletter['subject']); ?>">
     </div>
 
     <div class="tqa-field">
-        <label class="tqa-field__label" for="newsletter_description">نص الرسالة</label>
+        <label class="tqa-field__label" for="newsletter_description"><?php echo t('نص الرسالة'); ?></label>
         <textarea class="tqa-textarea" id="newsletter_description" name="description" rows="10"
                   data-tqa-rich><?php echo html_escape($newsletter['description']); ?></textarea>
     </div>
@@ -111,7 +109,7 @@ $tq_targets = array(
         <button type="submit" class="tqa-btn tqa-btn--primary">
             <?php echo tq_icon('send', 16); ?> أرسل النشرة
         </button>
-        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/newsletters'); ?>">إلغاء</a>
+        <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('admin/newsletters'); ?>"><?php echo t('إلغاء'); ?></a>
     </div>
 </form>
 

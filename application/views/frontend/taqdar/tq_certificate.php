@@ -31,9 +31,9 @@ include 'portal_open.php';
 <?php if (!$c): ?>
 
   <section class="tq-card">
-    <?php echo tq_s_empty('award', 'sand', 'لا شهادة بهذا الرقم',
-          'الشهادة تصدر على إتقان مقاس لا على مشاهدة: تنهي المحطة، وتجتاز اختبارها، فتصدر باسمك ورمز تحققها.',
-          'شهاداتي', base_url('student/certificates'), false, 'primary'); ?>
+    <?php echo tq_s_empty('award', 'sand', t('لا شهادة بهذا الرقم'),
+          t('الشهادة تصدر على إتقان مقاس لا على مشاهدة: تنهي المحطة، وتجتاز اختبارها، فتصدر باسمك ورمز تحققها.'),
+          t('شهاداتي'), base_url('student/certificates'), false, 'primary'); ?>
   </section>
 
 <?php else: ?>
@@ -43,16 +43,16 @@ include 'portal_open.php';
     <article class="tq-cert" id="tqCert">
       <header class="tq-cert__top">
         <img class="tq-cert__logo" src="<?php echo tq_site_asset('img/logo.webp'); ?>"
-             alt="منصة تقدر" width="180" height="101">
-        <span class="tq-cert__kind">شهادة إتقان</span>
+             alt="<?php echo te('منصة تقدر'); ?>" width="180" height="101">
+        <span class="tq-cert__kind"><?php echo t('شهادة إتقان'); ?></span>
       </header>
 
       <div class="tq-cert__body">
-        <p class="tq-cert__lead">تشهد منصة تقدر بأن</p>
-        <h1 class="tq-cert__name"><?php echo html_escape($c['holder'] ?: 'الطالب'); ?></h1>
-        <p class="tq-cert__lead">قد أتقن</p>
+        <p class="tq-cert__lead"><?php echo t('تشهد منصة تقدر بأن'); ?></p>
+        <h1 class="tq-cert__name"><?php echo html_escape($c['holder'] ?: t('الطالب')); ?></h1>
+        <p class="tq-cert__lead"><?php echo t('قد أتقن'); ?></p>
         <h2 class="tq-cert__subject"><?php
-          echo html_escape($c['milestone_title'] ?: ($c['path_title'] ?: 'محطة تعليمية')); ?></h2>
+          echo html_escape($c['milestone_title'] ?: ($c['path_title'] ?: t('محطة تعليمية'))); ?></h2>
 
         <?php if (!empty($c['path_title']) && !empty($c['milestone_title'])): ?>
           <p class="tq-cert__path">ضمن برنامج <?php echo html_escape($c['path_title']); ?></p>
@@ -60,15 +60,15 @@ include 'portal_open.php';
 
         <dl class="tq-cert__meta">
           <div>
-            <dt>نسبة الإتقان</dt>
+            <dt><?php echo t('نسبة الإتقان'); ?></dt>
             <dd><?php echo tq_num((int) $c['score'] . '%'); ?></dd>
           </div>
           <div>
-            <dt>تاريخ الإصدار</dt>
+            <dt><?php echo t('تاريخ الإصدار'); ?></dt>
             <dd><?php echo tq_num(tq_s_date(strtotime((string) $c['submitted_at']))); ?></dd>
           </div>
           <div>
-            <dt>رمز التحقق</dt>
+            <dt><?php echo t('رمز التحقق'); ?></dt>
             <dd class="tq-cert__code"><?php echo html_escape($tq_code); ?></dd>
           </div>
         </dl>
@@ -82,22 +82,22 @@ include 'portal_open.php';
              alt="رمز التحقق — <?php echo html_escape(base_url('verify/' . $tq_code)); ?>"
              width="120" height="120" loading="lazy">
         <div class="tq-cert__verify">
-          <p><strong>تحقق من هذه الشهادة</strong></p>
-          <p>امسح الرمز، أو افتح<br>
+          <p><strong><?php echo t('تحقق من هذه الشهادة'); ?></strong></p>
+          <p><?php echo t('امسح الرمز، أو افتح'); ?><br>
             <span class="tq-cert__url" dir="ltr"><?php echo html_escape(base_url('verify/' . $tq_code)); ?></span>
           </p>
           <p class="tq-cert__note">
-            الشهادة تصدر على إتقان مقاس بأسئلة تقيس الأهداف، لا على مشاهدة.
+            <?php echo t('الشهادة تصدر على إتقان مقاس بأسئلة تقيس الأهداف، لا على مشاهدة.'); ?>
           </p>
         </div>
       </footer>
     </article>
 
     <div class="tq-cert__acts">
-      <button class="tq-btn tq-btn--primary" type="button" onclick="window.print()">اطبع أو احفظ PDF</button>
+      <button class="tq-btn tq-btn--primary" type="button" onclick="window.print()"><?php echo t('اطبع أو احفظ PDF'); ?></button>
       <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('verify/' . $tq_code); ?>"
-         target="_blank" rel="noopener">افتح صفحة التحقق</a>
-      <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('student/certificates'); ?>">كل شهاداتي</a>
+         target="_blank" rel="noopener"><?php echo t('افتح صفحة التحقق'); ?></a>
+      <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('student/certificates'); ?>"><?php echo t('كل شهاداتي'); ?></a>
     </div>
   </div>
 

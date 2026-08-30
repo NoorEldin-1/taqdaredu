@@ -34,27 +34,27 @@ $tq_partials = array(
 );
 
 $tq_names = array(
-    'youtube'            => 'فيديو يوتيوب',
-    'vimeo'              => 'فيديو فيميو',
-    'html5'              => 'رابط ملف مباشر',
-    'video'              => 'ملف فيديو',
-    'audio'              => 'ملف صوتي',
-    'google_drive_video' => 'فيديو جوجل درايف',
-    'document'           => 'مستند',
-    'text'               => 'نص',
-    'image'              => 'صورة',
-    'iframe'             => 'تضمين خارجي',
+    'youtube'            => t('فيديو يوتيوب'),
+    'vimeo'              => t('فيديو فيميو'),
+    'html5'              => t('رابط ملف مباشر'),
+    'video'              => t('ملف فيديو'),
+    'audio'              => t('ملف صوتي'),
+    'google_drive_video' => t('فيديو جوجل درايف'),
+    'document'           => t('مستند'),
+    'text'               => t('نص'),
+    'image'              => t('صورة'),
+    'iframe'             => t('تضمين خارجي'),
 );
 ?>
 
 <div class="tqa-note tqa-section">
     <span aria-hidden="true"><?php echo tq_icon('play', 18); ?></span>
     <span style="flex:1">
-        نوع الدرس: <strong><?php echo html_escape($tq_names[$tq_kind] ?? $tq_kind); ?></strong>
+        <?php echo t('نوع الدرس:'); ?> <strong><?php echo html_escape($tq_names[$tq_kind] ?? $tq_kind); ?></strong>
     </span>
     <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
             onclick="showAjaxModal('<?php echo site_url('modal/popup/lesson_types/' . (int) $param2 . '/' . html_escape($tq_kind)); ?>', 'إضافة درس')">
-        غيره
+        <?php echo t('غيره'); ?>
     </button>
 </div>
 
@@ -63,8 +63,8 @@ $tq_names = array(
     <div class="tqa-note tqa-note--warn">
         <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
         <span>
-            <strong>لا أقسام في هذا الكورس بعد.</strong>
-            والدرس لا يحفظ بلا قسم يحمله. أغلق هذه النافذة وأضف قسما أولا من تبويب «المقرر».
+            <strong><?php echo t('لا أقسام في هذا الكورس بعد.'); ?></strong>
+            <?php echo t('والدرس لا يحفظ بلا قسم يحمله. أغلق هذه النافذة وأضف قسما أولا من تبويب «المقرر».'); ?>
         </span>
     </div>
 
@@ -77,14 +77,14 @@ $tq_names = array(
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="lesson_title">
-            عنوان الدرس <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('عنوان الدرس'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <input class="tqa-input" type="text" id="lesson_title" name="title" required maxlength="190">
     </div>
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="section_id">
-            القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('القسم'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <select class="tqa-select" id="section_id" name="section_id" required>
             <?php foreach ($tq_sections as $tq_s): ?>
@@ -101,14 +101,14 @@ $tq_names = array(
     ?>
 
     <div class="tqa-field">
-        <label class="tqa-field__label" for="lesson_summary">ملخص الدرس</label>
+        <label class="tqa-field__label" for="lesson_summary"><?php echo t('ملخص الدرس'); ?></label>
         <textarea class="tqa-textarea" id="lesson_summary" name="summary" rows="3"></textarea>
     </div>
 
     <div class="tqa-prefrow">
         <div class="tqa-prefrow__main">
-            <label class="tqa-prefrow__title" for="free_lesson">درس معاينة مجاني</label>
-            <span class="tqa-prefrow__hint">يفتح لغير المشتركين — واحد أو اثنان يكفيان.</span>
+            <label class="tqa-prefrow__title" for="free_lesson"><?php echo t('درس معاينة مجاني'); ?></label>
+            <span class="tqa-prefrow__hint"><?php echo t('يفتح لغير المشتركين — واحد أو اثنان يكفيان.'); ?></span>
         </div>
         <div class="tqa-prefrow__end">
             <span class="tqa-switch">

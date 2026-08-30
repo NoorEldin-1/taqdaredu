@@ -2,14 +2,14 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 $M = &get_instance()->taqdar_admin_model;
 
-$labels = array('pending' => 'معلق', 'active' => 'نشط', 'cancelled' => 'ملغى', 'expired' => 'منته');
+$labels = array('pending' => t('معلق'), 'active' => t('نشط'), 'cancelled' => t('ملغى'), 'expired' => t('منته'));
 $tones  = array('pending' => 'warning', 'active' => 'success', 'cancelled' => 'danger', 'expired' => 'danger');
 ?>
 
 <div class="tqa-head">
     <div>
-        <h1>الاشتراكات</h1>
-        <p>حالة كل مشترك، وتفعيل التحويلات البنكية بعد التحقق منها.</p>
+        <h1><?php echo t('الاشتراكات'); ?></h1>
+        <p><?php echo t('حالة كل مشترك، وتفعيل التحويلات البنكية بعد التحقق منها.'); ?></p>
     </div>
 </div>
 
@@ -51,22 +51,20 @@ $tq_stale = (int) get_instance()->db->query(
         <?php if ($tq_broken > 0): ?>
             <p style="margin:0 0 6px">
                 <strong><?php echo $tq_broken; ?> اشتراكا نشطا بلا بنود.</strong>
-                هذه الاشتراكات مدفوعة وحالتها نشطة، لكن محتواها <strong>لا يفتح للطالب</strong>
-                لأن نطاقها لم ينسخ بنودا. يقع هذا حين يفعل الاشتراك من خارج زر التفعيل.
+                <?php echo t('هذه الاشتراكات مدفوعة وحالتها نشطة، لكن محتواها'); ?> <strong><?php echo t('لا يفتح للطالب'); ?></strong>
+                <?php echo t('لأن نطاقها لم ينسخ بنودا. يقع هذا حين يفعل الاشتراك من خارج زر التفعيل.'); ?>
             </p>
         <?php endif; ?>
         <?php if ($tq_stale > 0): ?>
             <p style="margin:0">
                 <strong><?php echo $tq_stale; ?> اشتراكا نشطا ينقصه تسجيل.</strong>
-                محتوى نشر <strong>بعد</strong> شرائهم، فهو يفتح لهم فعلا ولا يظهر في
-                «كورساتي» ولا «دروسي» ولا في قوائم طلاب معلمه — لأن تلك الشاشات تقرأ
-                جدول التسجيل، وهو يكتب مرة واحدة يوم التفعيل.
+                <?php echo t('محتوى نشر'); ?> <strong><?php echo t('بعد'); ?></strong> <?php echo t('شرائهم، فهو يفتح لهم فعلا ولا يظهر في «كورساتي» ولا «دروسي» ولا في قوائم طلاب معلمه — لأن تلك الشاشات تقرأ جدول التسجيل، وهو يكتب مرة واحدة يوم التفعيل.'); ?>
             </p>
         <?php endif; ?>
         <form method="post" action="<?php echo site_url('taqdar_admin/subscriptions_repair'); ?>"
               style="margin-block-start:10px">
             <?php echo tq_csrf(); ?>
-            <button type="submit" class="tqa-btn tqa-btn--primary">أعد بناء البنود والتسجيلات</button>
+            <button type="submit" class="tqa-btn tqa-btn--primary"><?php echo t('أعد بناء البنود والتسجيلات'); ?></button>
         </form>
     </div>
 <?php endif; ?>
@@ -76,20 +74,17 @@ $tq_stale = (int) get_instance()->db->query(
     <div class="tqa-note tqa-note--warn">
         <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
         <span>
-            <strong>لا دفع أونلاين اليوم.</strong>
-            بوابة تاب غير مفعلة أو بلا مفتاح سري، فالمسار العامل هو التحويل البنكي وحده:
-            يشترك الطالب فينشأ اشتراك «معلق» وفاتورة، ثم تفعله من هنا بعد أن تتحقق من الحوالة.
-            <a href="<?php echo site_url('taqdar_admin/tap'); ?>">اضبط بوابة تاب</a>
-            ليصير الاشتراك يفعل نفسه عند الدفع.
+            <strong><?php echo t('لا دفع أونلاين اليوم.'); ?></strong>
+            <?php echo t('بوابة تاب غير مفعلة أو بلا مفتاح سري، فالمسار العامل هو التحويل البنكي وحده: يشترك الطالب فينشأ اشتراك «معلق» وفاتورة، ثم تفعله من هنا بعد أن تتحقق من الحوالة.'); ?>
+            <a href="<?php echo site_url('taqdar_admin/tap'); ?>"><?php echo t('اضبط بوابة تاب'); ?></a>
+            <?php echo t('ليصير الاشتراك يفعل نفسه عند الدفع.'); ?>
         </span>
     </div>
 <?php else: ?>
     <div class="tqa-note">
         <span aria-hidden="true"><?php echo tq_icon('card', 18); ?></span>
         <span>
-            الدفع بالبطاقة مفعل: من يدفع يفعل اشتراكه بنفسه ولا ينتظر تفعيلا يدويا.
-            وما يظهر «معلقا» هنا هو من اختار التحويل البنكي أو من لم يكمل دفعته —
-            وحال كل دفعة في <a href="<?php echo site_url('taqdar_admin/tap'); ?>">شاشة بوابة تاب</a>.
+            <?php echo t('الدفع بالبطاقة مفعل: من يدفع يفعل اشتراكه بنفسه ولا ينتظر تفعيلا يدويا. وما يظهر «معلقا» هنا هو من اختار التحويل البنكي أو من لم يكمل دفعته — وحال كل دفعة في'); ?> <a href="<?php echo site_url('taqdar_admin/tap'); ?>"><?php echo t('شاشة بوابة تاب'); ?></a>.
         </span>
     </div>
 <?php endif; ?>
@@ -118,9 +113,8 @@ $tq_stale = (int) get_instance()->db->query(
         <?php if (empty($rows)): ?>
 
             <div class="tqa-empty">
-                <h3>لا اشتراكات بعد</h3>
-                <p>أضف الباقات أولا من <a href="<?php echo site_url('taqdar_admin/module/plans'); ?>">شاشة الباقات</a>،
-                   ثم ستظهر هنا اشتراكات الطلاب.</p>
+                <h3><?php echo t('لا اشتراكات بعد'); ?></h3>
+                <p><?php echo t('أضف الباقات أولا من'); ?> <a href="<?php echo site_url('taqdar_admin/module/plans'); ?>"><?php echo t('شاشة الباقات'); ?></a><?php echo t('، ثم ستظهر هنا اشتراكات الطلاب.'); ?></p>
             </div>
 
         <?php else: ?>
@@ -130,19 +124,19 @@ $tq_stale = (int) get_instance()->db->query(
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>المشترك</th>
-                            <th>الباقة</th>
+                            <th><?php echo t('المشترك'); ?></th>
+                            <th><?php echo t('الباقة'); ?></th>
                             <?php /* TQ-CYCLE-BUY — الدورة عمود لا حاشية: بعد ان صار
                                      الشهري يباع صار في القائمة صفان لباقة واحدة
                                      بمبلغين، و«399» و«42» تحت اسم واحد بلا عمود يفرق
                                      بينهما تقرآن خطأ في الحساب لا اختلاف مدة. */ ?>
-                            <th>الدورة</th>
-                            <th>المدفوع</th>
-                            <th>الحالة</th>
-                            <th>يبدأ</th>
-                            <th>ينتهي</th>
-                            <th>الوسيلة</th>
-                            <th style="inline-size:180px">إجراءات</th>
+                            <th><?php echo t('الدورة'); ?></th>
+                            <th><?php echo t('المدفوع'); ?></th>
+                            <th><?php echo t('الحالة'); ?></th>
+                            <th><?php echo t('يبدأ'); ?></th>
+                            <th><?php echo t('ينتهي'); ?></th>
+                            <th><?php echo t('الوسيلة'); ?></th>
+                            <th style="inline-size:180px"><?php echo t('إجراءات'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -167,9 +161,9 @@ $tq_stale = (int) get_instance()->db->query(
                             if (trim((string) ($r['plan_name'] ?? '')) !== '') {
                                 $tq_what = (string) $r['plan_name']; $tq_kind = '';
                             } elseif (trim((string) ($r['course_name'] ?? '')) !== '') {
-                                $tq_what = (string) $r['course_name']; $tq_kind = 'كورس مفرد';
+                                $tq_what = (string) $r['course_name']; $tq_kind = t('كورس مفرد');
                             } elseif (trim((string) ($r['path_name'] ?? '')) !== '') {
-                                $tq_what = (string) $r['path_name']; $tq_kind = 'مسار';
+                                $tq_what = (string) $r['path_name']; $tq_kind = t('مسار');
                             }
                             ?>
                             <td>
@@ -182,8 +176,8 @@ $tq_stale = (int) get_instance()->db->query(
                             /* الصف القديم بلا `cycle` (كتب قبل العمود) يقرأ من
                                مدته لا يعرض فراغا: كل ما في القاعدة قبل اليوم
                                دورة الباقة نفسها. */
-                            $tq_cl = array('annual' => 'سنوي', 'quarterly' => 'ربع سنوي',
-                                           'monthly' => 'شهري', 'free' => 'مجانية');
+                            $tq_cl = array('annual' => t('سنوي'), 'quarterly' => t('ربع سنوي'),
+                                           'monthly' => t('شهري'), 'free' => t('مجانية'));
                             $tq_ck = isset($r['cycle']) ? (string) $r['cycle'] : '';
                             $tq_dy = (int) (isset($r['days']) ? $r['days'] : 0);
                             if ($tq_ck === '' && $tq_dy > 0) {
@@ -207,25 +201,25 @@ $tq_stale = (int) get_instance()->db->query(
                                              ونموذج يعتمد عليه ليحفظ يسقط صامتا متى تعثر ملف. */ ?>
                                     <form method="post" class="tqa-activate"
                                           action="<?php echo site_url('taqdar_admin/subscription_activate/' . (int) $r['id']); ?>"
-                                          data-tqa-confirm-title="تفعيل الاشتراك"
+                                          data-tqa-confirm-title="<?php echo te('تفعيل الاشتراك'); ?>"
                                           data-tqa-confirm="سيسدد الاشتراك وتفتح باقته للطالب فورا. تأكد من وصول الحوالة أولا."
                                           data-tqa-confirm-ok="فعل الاشتراك">
                                         <?php echo tq_csrf(); ?>
                                         <input type="text" name="reference" class="tqa-input tq-ltr" dir="ltr"
-                                               placeholder="مرجع الحوالة" required>
-                                        <button type="submit" class="tqa-btn tqa-btn--mastery tqa-btn--sm">فعل</button>
+                                               placeholder="<?php echo te('مرجع الحوالة'); ?>" required>
+                                        <button type="submit" class="tqa-btn tqa-btn--mastery tqa-btn--sm"><?php echo t('فعل'); ?></button>
                                     </form>
                                 <?php elseif (in_array($r['status'], array('active'), true)): ?>
                                     <?php /* الإلغاء لا يصادر المدفوع — المدة تكمل. يقال ذلك
                                              في نص التأكيد نفسه لا بعده. */ ?>
                                     <form method="post" class="tqa-cancel"
                                           action="<?php echo site_url('taqdar_admin/subscription_cancel/' . (int) $r['id']); ?>"
-                                          data-tqa-confirm-title="إلغاء التجديد"
+                                          data-tqa-confirm-title="<?php echo te('إلغاء التجديد'); ?>"
                                           data-tqa-confirm="يبقى الاشتراك صالحا حتى تاريخ انتهائه، ولا يجدد بعده."
                                           data-tqa-confirm-ok="ألغ التجديد"
                                           data-tqa-confirm-tone="danger">
                                         <?php echo tq_csrf(); ?>
-                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">إلغاء</button>
+                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)"><?php echo t('إلغاء'); ?></button>
                                     </form>
                                 <?php else: ?>
                                     <span class="tqa-dim">—</span>
@@ -242,7 +236,7 @@ $tq_stale = (int) get_instance()->db->query(
                                 <?php $tq_sh = isset($shares[(int) $r['id']]) ? $shares[(int) $r['id']] : array(); ?>
                                 <?php if ($tq_sh || (int) $r['price'] > 0 && in_array($r['status'], array('active','cancelled'), true)): ?>
                                     <details style="margin-block-start:8px">
-                                        <summary class="tqa-dim" style="cursor:pointer;font-size:12px">قسمة الإيراد</summary>
+                                        <summary class="tqa-dim" style="cursor:pointer;font-size:12px"><?php echo t('قسمة الإيراد'); ?></summary>
                                         <?php if ($tq_sh): ?>
                                             <ul style="margin:6px 0;padding-inline-start:16px;font-size:12px">
                                                 <?php foreach ($tq_sh as $tq_s): ?>
@@ -256,20 +250,20 @@ $tq_stale = (int) get_instance()->db->query(
                                             </ul>
                                         <?php else: ?>
                                             <p class="tqa-dim" style="margin:6px 0;font-size:12px">
-                                                لم يقيد لأحد. لا مسار منشور بمعلم في نطاق الباقة وقت البيع.
+                                                <?php echo t('لم يقيد لأحد. لا مسار منشور بمعلم في نطاق الباقة وقت البيع.'); ?>
                                             </p>
                                         <?php endif; ?>
                                         <form method="post"
                                               action="<?php echo site_url('taqdar_admin/subscription_resplit/' . (int) $r['id']); ?>"
-                                              data-tqa-confirm-title="إعادة قسمة الإيراد"
+                                              data-tqa-confirm-title="<?php echo te('إعادة قسمة الإيراد'); ?>"
                                               data-tqa-confirm="تعكس القيود القائمة على هذه البيعة وتقسمها من جديد على المستحقين الآن. ينقل مال بين المحافظ، ويسجل في سجل التدقيق."
                                               data-tqa-confirm-ok="أعد القسمة"
                                               data-tqa-confirm-tone="danger">
                                             <?php echo tq_csrf(); ?>
                                             <input type="text" name="reason" class="tqa-input tq-ltr" dir="auto"
-                                                   placeholder="السبب" maxlength="200" required
+                                                   placeholder="<?php echo te('السبب'); ?>" maxlength="200" required
                                                    style="font-size:12px">
-                                            <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm">أعد القسمة</button>
+                                            <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"><?php echo t('أعد القسمة'); ?></button>
                                         </form>
                                     </details>
                                 <?php endif; ?>

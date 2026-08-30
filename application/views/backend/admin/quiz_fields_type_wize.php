@@ -55,15 +55,15 @@
     ?>
     <div class="tqa-field">
         <label class="tqa-field__label" for="correct_answers_in">
-            الكلمات التي تخفى من السؤال
+            <?php echo t('الكلمات التي تخفى من السؤال'); ?>
         </label>
         <div class="tqa-tags" data-tqa-tags>
             <input type="hidden" name="correct_answers" value="<?php echo html_escape($tq_answers); ?>"
                    data-tqa-tags-value>
             <input class="tqa-tags__in" type="text" id="correct_answers_in" autocomplete="off"
-                   placeholder="اكتب كلمة ثم اضغط Enter" data-tqa-tags-input>
+                   placeholder="<?php echo te('اكتب كلمة ثم اضغط Enter'); ?>" data-tqa-tags-input>
         </div>
-        <span class="tqa-field__hint">كل كلمة تكتبها تعرض للطالب فراغا يملؤه.</span>
+        <span class="tqa-field__hint"><?php echo t('كل كلمة تكتبها تعرض للطالب فراغا يملؤه.'); ?></span>
     </div>
 
     <?php include 'tqa_tags_js.php'; ?>

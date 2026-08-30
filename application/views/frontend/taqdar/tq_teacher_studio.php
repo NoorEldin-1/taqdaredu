@@ -21,8 +21,8 @@ include 'tq_student_styles.php';
 
 $tq_nav   = 'studio';
 $tq_role  = 'teacher';
-$tq_title = 'استوديو المحتوى';
-$tq_sub   = 'ولد مخرجات الدرس، راجعها، ثم اعتمد كل واحد — لا ينشر شيء قبل اعتمادك.';
+$tq_title = t('استوديو المحتوى');
+$tq_sub   = t('ولد مخرجات الدرس، راجعها، ثم اعتمد كل واحد — لا ينشر شيء قبل اعتمادك.');
 $tq_icon  = 'pen';
 
 $CI  = &get_instance();
@@ -54,10 +54,10 @@ try {
 /** حالة الدرس بعبارة تقرأ في قائمة منسدلة. */
 $tq_status_word = function ($s) {
     $s = (string) $s;
-    if ($s === 'review')   return 'قيد المراجعة';
-    if ($s === 'rejected') return 'مرفوض';
-    if ($s === 'draft')    return 'مسودة';
-    return 'منشور';
+    if ($s === 'review')   return t('قيد المراجعة');
+    if ($s === 'rejected') return t('مرفوض');
+    if ($s === 'draft')    return t('مسودة');
+    return t('منشور');
 };
 
 /**
@@ -100,15 +100,15 @@ include 'portal_open.php';
 <?php if (!$tq_lessons): ?>
 
   <section class="tq-card">
-    <?php echo tq_s_empty('pen', 'sand', 'لا دروس في نطاقك بعد',
-          'ارفع درسك الأول، ثم عد إلى هنا لتوليد ملخصه وبطاقاته وأسئلته.',
-          'ارفع درسا', base_url('teacher/upload'), false, 'primary'); ?>
+    <?php echo tq_s_empty('pen', 'sand', t('لا دروس في نطاقك بعد'),
+          t('ارفع درسك الأول، ثم عد إلى هنا لتوليد ملخصه وبطاقاته وأسئلته.'),
+          t('ارفع درسا'), base_url('teacher/upload'), false, 'primary'); ?>
   </section>
 
 <?php else: ?>
 
   <form method="get" class="tq-st-pick" action="<?php echo base_url('teacher/studio'); ?>">
-    <label class="sr-only" for="tqStLesson">اختر درسا</label>
+    <label class="sr-only" for="tqStLesson"><?php echo t('اختر درسا'); ?></label>
     <?php /* مجمع بالكورس والقسم كما يراه الطالب — لا قائمة مسطحة
              بمئتي صف. والحالة مع كل درس: مسودة في وسط القائمة تشبه
              المنشور تماما بلا هذا. */ ?>
@@ -130,13 +130,13 @@ include 'portal_open.php';
       <?php endforeach; ?>
       <?php if ($tq_g !== '') echo '</optgroup>'; ?>
     </select>
-    <noscript><button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">افتح</button></noscript>
+    <noscript><button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit"><?php echo t('افتح'); ?></button></noscript>
   </form>
 
   <?php if (!$tq_lid): ?>
     <section class="tq-card" style="margin-block-start:var(--tq-space-l)">
-      <?php echo tq_s_empty('lock', 'peach', 'هذا الدرس ليس في نطاقك',
-            'اختر درسا من دروسك في القائمة أعلاه.', '', '', true); ?>
+      <?php echo tq_s_empty('lock', 'peach', t('هذا الدرس ليس في نطاقك'),
+            t('اختر درسا من دروسك في القائمة أعلاه.'), '', '', true); ?>
     </section>
   <?php else: ?>
 
@@ -145,9 +145,9 @@ include 'portal_open.php';
           من الطريق، لا اسم محطته وحدها. */ ?>
   <section class="tq-card" style="margin-block:var(--tq-space-l)">
     <div class="tq-card__head">
-      <h2 class="tq-card__title">حالة الدرس</h2>
+      <h2 class="tq-card__title"><?php echo t('حالة الدرس'); ?></h2>
       <?php if (!empty($tq_asset['legacy'])): ?>
-        <span class="tq-caption">رفع قبل أن توجد المراجعة، فيعامل منشورا</span>
+        <span class="tq-caption"><?php echo t('رفع قبل أن توجد المراجعة، فيعامل منشورا'); ?></span>
       <?php endif; ?>
     </div>
 
@@ -194,8 +194,8 @@ include 'portal_open.php';
           echo $tq_asset['state'] === 'uploading' ? 'processed' : 'in_review'; ?>">
         <button class="tq-btn tq-btn--primary" type="submit"><?php
           echo $tq_asset['state'] === 'uploading'
-             ? 'علمه جاهزا للمراجعة'
-             : 'أرسله للمراجعة العلمية والفنية'; ?></button>
+             ? t('علمه جاهزا للمراجعة')
+             : t('أرسله للمراجعة العلمية والفنية'); ?></button>
       </form>
     <?php endif; ?>
   </section>
@@ -206,17 +206,16 @@ include 'portal_open.php';
       <?php /* ── المخرجات ──────────────────────────────────────────── */ ?>
       <section class="tq-card">
         <div class="tq-card__head">
-          <h2 class="tq-card__title">مخرجات الدرس</h2>
+          <h2 class="tq-card__title"><?php echo t('مخرجات الدرس'); ?></h2>
           <form method="post" action="<?php echo base_url('teacher/studio/generate'); ?>">
             <?php echo tq_csrf(); ?>
             <input type="hidden" name="lesson_id" value="<?php echo $tq_lid; ?>">
-            <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">ولد المسودات</button>
+            <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit"><?php echo t('ولد المسودات'); ?></button>
           </form>
         </div>
 
         <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-          التوليد يكتب مسودات فقط. ولا يصل الطالب مخرجا حتى تعتمده بعينه —
-          والمعتمد لا يمس عند إعادة التوليد.
+          <?php echo t('التوليد يكتب مسودات فقط. ولا يصل الطالب مخرجا حتى تعتمده بعينه — والمعتمد لا يمس عند إعادة التوليد.'); ?>
         </p>
 
         <?php foreach ($tq_kinds as $kind => $label):
@@ -227,13 +226,13 @@ include 'portal_open.php';
             <summary>
               <span class="tq-st-out__t"><?php echo html_escape($label); ?></span>
               <span class="tq-st-out__b tq-st-out__b--<?php echo $state; ?>"><?php
-                echo $state === 'approved' ? 'معتمد — يعرض للطالب'
-                   : ($state === 'draft' ? 'مسودة — لا تعرض' : 'لم يولد بعد'); ?></span>
+                echo $state === 'approved' ? t('معتمد — يعرض للطالب')
+                   : ($state === 'draft' ? t('مسودة — لا تعرض') : t('لم يولد بعد')); ?></span>
             </summary>
 
             <div class="tq-st-out__body">
               <?php if (!$o): ?>
-                <p class="tq-caption">اضغط «ولد المسودات» أعلاه، أو اكتبه بنفسك أدناه.</p>
+                <p class="tq-caption"><?php echo t('اضغط «ولد المسودات» أعلاه، أو اكتبه بنفسك أدناه.'); ?></p>
               <?php elseif (!empty($o['reason'])): ?>
                 <p class="tq-flash tq-flash--err"><?php echo html_escape($o['reason']); ?></p>
               <?php endif; ?>
@@ -259,7 +258,7 @@ include 'portal_open.php';
                       ? json_encode($o['data'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
                       : ''); ?></textarea>
                 <div class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap;margin-block-start:var(--tq-space-s)">
-                  <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">احفظ مسودة</button>
+                  <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit"><?php echo t('احفظ مسودة'); ?></button>
                 </div>
               </form>
 
@@ -273,14 +272,12 @@ include 'portal_open.php';
                       فيقال هنا صراحة، ويوضع الباب. */ ?>
               <?php if ($kind === 'questions'): ?>
                 <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
-                  <strong>هذه مسودات لا اختبار.</strong>
-                  اختبار الدرس — وهو الذي يفتح الدرس التالي — يؤلف في
-                  <a href="<?php echo base_url('teacher/quiz/' . $tq_lid); ?>">محرر الاختبار</a>،
-                  وأسئلته تربط بأهداف الدرس فتغذي خريطة الإتقان ودفتر الأخطاء.
-                  انقل ما أعجبك من هنا إلى هناك.
+                  <strong><?php echo t('هذه مسودات لا اختبار.'); ?></strong>
+                  <?php echo t('اختبار الدرس — وهو الذي يفتح الدرس التالي — يؤلف في'); ?>
+                  <a href="<?php echo base_url('teacher/quiz/' . $tq_lid); ?>"><?php echo t('محرر الاختبار'); ?></a><?php echo t('، وأسئلته تربط بأهداف الدرس فتغذي خريطة الإتقان ودفتر الأخطاء. انقل ما أعجبك من هنا إلى هناك.'); ?>
                 </p>
                 <a class="tq-btn tq-btn--ghost tq-btn--sm" style="margin-block-start:var(--tq-space-s)"
-                   href="<?php echo base_url('teacher/quiz/' . $tq_lid); ?>">افتح محرر الاختبار</a>
+                   href="<?php echo base_url('teacher/quiz/' . $tq_lid); ?>"><?php echo t('افتح محرر الاختبار'); ?></a>
               <?php endif; ?>
 
               <?php if ($o): ?>
@@ -301,7 +298,7 @@ include 'portal_open.php';
                       <input type="hidden" name="lesson_id" value="<?php echo $tq_lid; ?>">
                       <input type="hidden" name="kind" value="<?php echo html_escape($kind); ?>">
                       <input type="hidden" name="act" value="reject">
-                      <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit">اسحب الاعتماد</button>
+                      <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit"><?php echo t('اسحب الاعتماد'); ?></button>
                     </form>
                     <span class="tq-caption">اعتمد في <?php
                       echo tq_num(html_escape((string) $o['approved_at'])); ?></span>
@@ -319,28 +316,27 @@ include 'portal_open.php';
               مادة التوليد، ومصدر البحث والقفز في مشغل الطالب. */ ?>
       <section class="tq-card">
         <div class="tq-card__head">
-          <h2 class="tq-card__title">نص الدرس</h2>
+          <h2 class="tq-card__title"><?php echo t('نص الدرس'); ?></h2>
           <?php if ($tq_cues): ?>
             <span class="tq-caption"><?php echo tq_num(count($tq_cues)); ?> مقطعا</span>
           <?php endif; ?>
         </div>
 
         <p class="tq-caption" style="margin-block-end:var(--tq-space-m)">
-          سطر لكل مقطع، يبدأ بوقته: <code dir="ltr">1:20 نص المقطع</code>.
-          ومنه يبحث الطالب في الدرس ويقفز إلى موضع أي جملة، ومنه يولد الملخص.
+          <?php echo t('سطر لكل مقطع، يبدأ بوقته:'); ?> <code dir="ltr"><?php echo t('1:20 نص المقطع'); ?></code><?php echo t('. ومنه يبحث الطالب في الدرس ويقفز إلى موضع أي جملة، ومنه يولد الملخص.'); ?>
         </p>
 
         <form method="post" action="<?php echo base_url('teacher/studio/transcript'); ?>">
           <?php echo tq_csrf(); ?>
           <input type="hidden" name="lesson_id" value="<?php echo $tq_lid; ?>">
           <textarea name="transcript" rows="14" class="tq-st-json"
-                    placeholder="0:00 مقدمة الدرس&#10;1:20 تعريف المفهوم"><?php
+                    placeholder="<?php echo te('0:00 مقدمة الدرس&#10;1:20 تعريف المفهوم'); ?>"><?php
             $lines = array();
             foreach ($tq_cues as $c) $lines[] = $c['at_label'] . ' ' . $c['text'];
             echo html_escape(implode("\n", $lines));
           ?></textarea>
           <div class="tq-row" style="margin-block-start:var(--tq-space-s)">
-            <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">احفظ النص</button>
+            <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit"><?php echo t('احفظ النص'); ?></button>
           </div>
         </form>
       </section>

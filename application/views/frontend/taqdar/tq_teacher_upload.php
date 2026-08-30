@@ -18,8 +18,8 @@
 
 $tq_nav   = 'upload';
 $tq_role  = 'teacher';
-$tq_title = 'رفع الدروس';
-$tq_sub   = 'درس واحد، هدف واضح، وأسئلة تقيسه';
+$tq_title = t('رفع الدروس');
+$tq_sub   = t('درس واحد، هدف واضح، وأسئلة تقيسه');
 $tq_icon  = 'upload';
 
 /**
@@ -82,14 +82,14 @@ include 'portal_open.php';
 
         <?php if ($tq_ok_msg): ?>
             <div class="tq-pastel tq-pastel--mint" role="status" style="margin-block-end:var(--tq-space-l)">
-                <span class="tq-pastel__label tq-micro">تم</span>
+                <span class="tq-pastel__label tq-micro"><?php echo t('تم'); ?></span>
                 <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0"><?php echo html_escape($tq_ok_msg); ?></p>
             </div>
         <?php endif; ?>
 
         <?php if ($tq_errors): ?>
             <div class="tq-pastel tq-pastel--rose" role="alert" style="margin-block-end:var(--tq-space-l)">
-                <span class="tq-pastel__label tq-micro">لم يحفظ الدرس</span>
+                <span class="tq-pastel__label tq-micro"><?php echo t('لم يحفظ الدرس'); ?></span>
                 <ul class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0;padding-inline-start:var(--tq-space-l)">
                     <?php foreach ($tq_errors as $tq_e): ?>
                         <li><?php echo html_escape($tq_e); ?></li>
@@ -102,12 +102,11 @@ include 'portal_open.php';
 
             <div class="tq-card tq-empty">
                 <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('upload', 24); ?></span>
-                <h2 class="tq-empty__title">لا كورس لترفع إليه بعد</h2>
+                <h2 class="tq-empty__title"><?php echo t('لا كورس لترفع إليه بعد'); ?></h2>
                 <p class="tq-empty__text">
-                    الرفع يكون إلى كورس مسند إليك. تواصل مع إدارة المنصة لإسناد مادتك وصفك،
-                    وستجد هنا كورساتك وأقسامها جاهزة.
+                    <?php echo t('الرفع يكون إلى كورس مسند إليك. تواصل مع إدارة المنصة لإسناد مادتك وصفك، وستجد هنا كورساتك وأقسامها جاهزة.'); ?>
                 </p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/courses'); ?>">عرض كورساتي</a>
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('teacher/courses'); ?>"><?php echo t('عرض كورساتي'); ?></a>
             </div>
 
         <?php else: ?>
@@ -115,11 +114,11 @@ include 'portal_open.php';
             <form class="tq-card tq-card--panel" method="post" enctype="multipart/form-data"
                   action="<?php echo base_url('teacher/upload/save'); ?>" data-tq-upload>
 
-                <h2 class="tq-h2">بيانات الدرس</h2>
+                <h2 class="tq-h2"><?php echo t('بيانات الدرس'); ?></h2>
 
                 <div class="tq-grid tq-grid--2">
                     <label class="tq-field">
-                        <span class="tq-field__label" id="tq-lbl-course">الكورس</span>
+                        <span class="tq-field__label" id="tq-lbl-course"><?php echo t('الكورس'); ?></span>
                         <select class="tq-select" name="course_id" id="tq-course"
                                 aria-labelledby="tq-lbl-course" required>
                             <?php foreach ($tq_my_courses as $tq_c): ?>
@@ -132,9 +131,9 @@ include 'portal_open.php';
                     </label>
 
                     <label class="tq-field">
-                        <span class="tq-field__label" id="tq-lbl-section">القسم</span>
+                        <span class="tq-field__label" id="tq-lbl-section"><?php echo t('القسم'); ?></span>
                         <select class="tq-select" name="section_id" id="tq-section" aria-labelledby="tq-lbl-section">
-                            <option value="">أول قسم في الكورس</option>
+                            <option value=""><?php echo t('أول قسم في الكورس'); ?></option>
                             <?php foreach ($tq_my_courses as $tq_c): ?>
                                 <?php if (!empty($tq_sections[(int) $tq_c['id']])): ?>
                                     <optgroup label="<?php echo html_escape($tq_c['title']); ?>"
@@ -151,16 +150,16 @@ include 'portal_open.php';
                             <?php endforeach; ?>
                         </select>
                         <span class="tq-field__msg tq-field__hint">
-                            إن لم يكن للكورس أقسام بعد، أنشئ «الوحدة الأولى» وأضيف الدرس إليها.
+                            <?php echo t('إن لم يكن للكورس أقسام بعد، أنشئ «الوحدة الأولى» وأضيف الدرس إليها.'); ?>
                         </span>
                     </label>
                 </div>
 
                 <label class="tq-field">
-                    <span class="tq-field__label">عنوان الدرس</span>
+                    <span class="tq-field__label"><?php echo t('عنوان الدرس'); ?></span>
                     <input class="tq-input" type="text" name="title" maxlength="140" required
                            value="<?php echo html_escape($tq_v('title')); ?>"
-                           placeholder="مثال: تحليل المقدار الثلاثي إلى عوامل">
+                           placeholder="<?php echo te('مثال: تحليل المقدار الثلاثي إلى عوامل'); ?>">
                 </label>
 
                 <?php /* ── نوع الدرس: الأنواع العشرة من الوحدة الموصوفة ──────
@@ -172,7 +171,7 @@ include 'portal_open.php';
                          والوصف الآن واحد (`lesson_types()`) والشاشتان تطبعان
                          منه، فالنوع الجديد يظهر فيهما بلا قالب يكتب. */ ?>
                 <fieldset style="border:0;padding:0;margin:0 0 var(--tq-space-xl)">
-                    <legend class="tq-field__label" style="padding:0">نوع الدرس</legend>
+                    <legend class="tq-field__label" style="padding:0"><?php echo t('نوع الدرس'); ?></legend>
                     <?php tq_cur_type_picker($tq_kind_old, 'tq'); ?>
                 </fieldset>
 
@@ -188,34 +187,34 @@ include 'portal_open.php';
 
                 <!-- الأهداف التعليمية: الدرس بلا هدف محتوى، لا تعلم -->
                 <fieldset style="border:0;padding:0;margin:0 0 var(--tq-space-xl)">
-                    <legend class="tq-h2" style="padding:0">الأهداف التعليمية</legend>
+                    <legend class="tq-h2" style="padding:0"><?php echo t('الأهداف التعليمية'); ?></legend>
                     <p class="tq-caption">
-                        <?php echo tq_iso('لكل درس هدف واحد إلى ثلاثة، ولكل هدف 5 أسئلة على الأقل في بنك الأسئلة. الهدف يكتب بفعل يقاس: «يحلل»، «يحسب»، «يميز» — لا «يفهم».'); ?>
+                        <?php echo tq_iso(t('لكل درس هدف واحد إلى ثلاثة، ولكل هدف 5 أسئلة على الأقل في بنك الأسئلة. الهدف يكتب بفعل يقاس: «يحلل»، «يحسب»، «يميز» — لا «يفهم».')); ?>
                     </p>
 
                     <?php for ($tq_i = 1; $tq_i <= 3; $tq_i++): ?>
                         <div class="tq-field">
                             <label class="tq-field__label" for="tq-obj-<?php echo $tq_i; ?>">
-                                <?php echo tq_iso('الهدف ' . $tq_i . ($tq_i === 1 ? ' (مطلوب)' : ' (اختياري)')); ?>
+                                <?php echo tq_iso(t('الهدف') . $tq_i . ($tq_i === 1 ? t('(مطلوب)') : t('(اختياري)'))); ?>
                             </label>
                             <input class="tq-input" id="tq-obj-<?php echo $tq_i; ?>" type="text"
                                    name="objectives[]" maxlength="160"
                                    value="<?php echo html_escape(isset($tq_old_objectives[$tq_i - 1]) ? $tq_old_objectives[$tq_i - 1] : ''); ?>"
                                    <?php echo $tq_i === 1 ? 'required' : ''; ?>
-                                   placeholder="<?php echo $tq_i === 1 ? 'أن يحلل الطالب المقدار الثلاثي إلى عاملين' : ''; ?>">
+                                   placeholder="<?php echo $tq_i === 1 ? t('أن يحلل الطالب المقدار الثلاثي إلى عاملين') : ''; ?>">
                         </div>
                     <?php endfor; ?>
                 </fieldset>
 
                 <label class="tq-field">
-                    <span class="tq-field__label">ملخص الدرس</span>
+                    <span class="tq-field__label"><?php echo t('ملخص الدرس'); ?></span>
                     <textarea class="tq-textarea" name="summary" rows="4"
-                              placeholder="سطران يخبران الطالب بما سيخرج به من هذا الدرس"><?php echo html_escape($tq_v('summary')); ?></textarea>
+                              placeholder="<?php echo te('سطران يخبران الطالب بما سيخرج به من هذا الدرس'); ?>"><?php echo html_escape($tq_v('summary')); ?></textarea>
                 </label>
 
                 <label class="tq-row" style="gap:var(--tq-space-xs);margin-block-end:var(--tq-space-xl)">
                     <input type="checkbox" name="is_free" value="1" <?php echo $tq_v('is_free') ? 'checked' : ''; ?>>
-                    <span class="tq-caption">درس مجاني — يفتح لغير المشتركين كمعاينة.</span>
+                    <span class="tq-caption"><?php echo t('درس مجاني — يفتح لغير المشتركين كمعاينة.'); ?></span>
                 </label>
 
                 <?php /* النية في حقل مخفي لا في `<button value>`: انظر
@@ -224,18 +223,17 @@ include 'portal_open.php';
 
                 <div class="tq-row" style="gap:var(--tq-space-m);flex-wrap:wrap">
                     <button class="tq-btn tq-btn--primary" type="submit" data-tqc-submit="published">
-                        حفظ ونشر
+                        <?php echo t('حفظ ونشر'); ?>
                     </button>
                     <button class="tq-btn tq-btn--secondary" type="submit" data-tqc-submit="review">
-                        إرسال للمراجعة
+                        <?php echo t('إرسال للمراجعة'); ?>
                     </button>
                     <button class="tq-btn tq-btn--ghost" type="submit" data-tqc-submit="draft">
-                        حفظ كمسودة
+                        <?php echo t('حفظ كمسودة'); ?>
                     </button>
                 </div>
                 <p class="tq-field__msg tq-field__hint" style="margin-block-start:var(--tq-space-m)">
-                    المسودة تبقى عندك، والمراجعة ترسل الدرس إلى الإدارة، والنشر قرار إدارة —
-                    فما لم يفتح لك النشر المباشر يحفظ «قيد المراجعة» ويقال لك ذلك.
+                    <?php echo t('المسودة تبقى عندك، والمراجعة ترسل الدرس إلى الإدارة، والنشر قرار إدارة — فما لم يفتح لك النشر المباشر يحفظ «قيد المراجعة» ويقال لك ذلك.'); ?>
                 </p>
             </form>
 
@@ -280,21 +278,21 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-pastel tq-pastel--peach">
-            <span class="tq-pastel__label tq-micro">قاعدة الدرس الواحد</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('قاعدة الدرس الواحد'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                <?php echo tq_iso('من 8 إلى 15 دقيقة · من 1 إلى 3 أهداف · 5 أسئلة على الأقل لكل هدف.'); ?>
+                <?php echo tq_iso(t('من 8 إلى 15 دقيقة · من 1 إلى 3 أهداف · 5 أسئلة على الأقل لكل هدف.')); ?>
             </p>
             <p class="tq-pastel__body tq-caption" style="margin:var(--tq-space-m) 0 0">
-                الدرس الأطول يقسم، والهدف الرابع يعني درسا ثانيا.
+                <?php echo t('الدرس الأطول يقسم، والهدف الرابع يعني درسا ثانيا.'); ?>
             </p>
         </div>
 
         <div class="tq-card">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">آخر ما رفعت</h2>
+                <h2 class="tq-card__title"><?php echo t('آخر ما رفعت'); ?></h2>
                 <?php /* خمسة وحدها لا تكفي معلما عنده أربعون درسا — والقائمة
                          الكاملة صارت لها شاشة. */ ?>
-                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('teacher/lessons'); ?>">كل دروسي</a>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('teacher/lessons'); ?>"><?php echo t('كل دروسي'); ?></a>
             </div>
             <?php if ($tq_recent): ?>
                 <ul class="tq-stack">
@@ -302,7 +300,7 @@ include 'portal_open.php';
                         <?php
                         $tq_st = isset($tq_l['tq_status']) ? $tq_l['tq_status'] : 'published';
                         $tq_badge_kind = $tq_st === 'published' ? 'mastered' : ($tq_st === 'review' ? 'progress' : 'idle');
-                        $tq_badge_text = $tq_st === 'published' ? 'منشور' : ($tq_st === 'review' ? 'قيد المراجعة' : 'مسودة');
+                        $tq_badge_text = $tq_st === 'published' ? t('منشور') : ($tq_st === 'review' ? t('قيد المراجعة') : t('مسودة'));
                         ?>
                         <li class="tq-row" style="gap:var(--tq-space-m)">
                             <span class="tq-icon-box tq-pastel--<?php echo tq_pastel($tq_i); ?>" aria-hidden="true"><?php echo tq_icon('play'); ?></span>
@@ -322,9 +320,9 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-empty" style="padding:var(--tq-space-l) 0">
                     <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('file', 24); ?></span>
-                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)">لا دروس بعد</h3>
-                    <p class="tq-empty__text tq-caption">أول درس ترفعه يظهر هنا مع مدته وكورسه.</p>
-                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/lessons'); ?>">كل دروسي</a>
+                    <h3 class="tq-empty__title" style="font:var(--tq-type-bodyStrong)"><?php echo t('لا دروس بعد'); ?></h3>
+                    <p class="tq-empty__text tq-caption"><?php echo t('أول درس ترفعه يظهر هنا مع مدته وكورسه.'); ?></p>
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/lessons'); ?>"><?php echo t('كل دروسي'); ?></a>
                 </div>
             <?php endif; ?>
         </div>

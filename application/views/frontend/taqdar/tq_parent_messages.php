@@ -30,8 +30,8 @@ $tq_pm->handle_post('messages');
 
 $tq_nav   = 'messages';
 $tq_role  = 'parent';
-$tq_title = 'الرسائل';
-$tq_sub   = 'محادثاتك مع معلمي أبنائك وإدارة المنصة';
+$tq_title = t('الرسائل');
+$tq_sub   = t('محادثاتك مع معلمي أبنائك وإدارة المنصة');
 $tq_icon  = 'chat';
 
 $tq_uid = (int) $this->session->userdata('user_id');
@@ -120,9 +120,9 @@ include 'portal_open.php';
 
 <?php if (!empty($tq_thread_denied)): ?>
     <div class="tq-pastel tq-pastel--rose" role="alert" style="margin-block-end:var(--tq-space-xl)">
-        <span class="tq-pastel__label tq-micro">لم تفتح</span>
+        <span class="tq-pastel__label tq-micro"><?php echo t('لم تفتح'); ?></span>
         <p class="tq-pastel__body" style="margin:var(--tq-space-xs) 0 0">
-            لا محادثة بهذا الرمز في حسابك. المحادثات تفتح لأطرافها وحدهم.
+            <?php echo t('لا محادثة بهذا الرمز في حسابك. المحادثات تفتح لأطرافها وحدهم.'); ?>
         </p>
     </div>
 <?php endif; ?>
@@ -133,8 +133,8 @@ include 'portal_open.php';
 
             <div class="tq-card tq-card--panel tq-section">
                 <div class="tq-card__head">
-                    <h2 class="tq-card__title">المحادثة</h2>
-                    <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('parent/messages'); ?>">كل المحادثات</a>
+                    <h2 class="tq-card__title"><?php echo t('المحادثة'); ?></h2>
+                    <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('parent/messages'); ?>"><?php echo t('كل المحادثات'); ?></a>
                 </div>
 
                 <?php if ($tq_messages): ?>
@@ -144,7 +144,7 @@ include 'portal_open.php';
                             <li style="padding:var(--tq-space-l);border-radius:var(--tq-radius-medium);
                                        background:<?php echo $tq_mine ? 'var(--tq-navyWash)' : 'var(--tq-ground)'; ?>">
                                 <p class="tq-micro" style="margin:0 0 var(--tq-space-xs)">
-                                    <?php echo html_escape($tq_mine ? 'أنت' : trim($tq_m['first_name'] . ' ' . $tq_m['last_name'])); ?>
+                                    <?php echo html_escape($tq_mine ? t('أنت') : trim($tq_m['first_name'] . ' ' . $tq_m['last_name'])); ?>
                                     · <?php echo html_escape(tq_since((int) $tq_m['timestamp'])); ?>
                                 </p>
                                 <p style="margin:0"><?php echo tq_iso(html_escape($tq_m['message'])); ?></p>
@@ -152,7 +152,7 @@ include 'portal_open.php';
                         <?php endforeach; ?>
                     </ul>
                 <?php else: ?>
-                    <p class="tq-caption">لا رسائل في هذه المحادثة بعد.</p>
+                    <p class="tq-caption"><?php echo t('لا رسائل في هذه المحادثة بعد.'); ?></p>
                 <?php endif; ?>
 
                 <form method="post" style="margin-block-start:var(--tq-space-xl)"
@@ -161,11 +161,11 @@ include 'portal_open.php';
                     <input type="hidden" name="tq_action" value="message_reply">
                     <input type="hidden" name="thread" value="<?php echo html_escape($tq_open['message_thread_code']); ?>">
                     <div class="tq-field">
-                        <label class="tq-field__label" for="tq-reply">ردك</label>
+                        <label class="tq-field__label" for="tq-reply"><?php echo t('ردك'); ?></label>
                         <textarea class="tq-textarea" id="tq-reply" name="message" rows="3" required
-                                  placeholder="اكتب ردك هنا"></textarea>
+                                  placeholder="<?php echo te('اكتب ردك هنا'); ?>"></textarea>
                     </div>
-                    <button class="tq-btn tq-btn--primary" type="submit">إرسال</button>
+                    <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('إرسال'); ?></button>
                 </form>
             </div>
 
@@ -173,7 +173,7 @@ include 'portal_open.php';
 
         <!-- بدء محادثة جديدة -->
         <section class="tq-section" aria-labelledby="tq-new-h">
-            <div class="tq-sectionhead"><h2 id="tq-new-h">محادثة جديدة</h2></div>
+            <div class="tq-sectionhead"><h2 id="tq-new-h"><?php echo t('محادثة جديدة'); ?></h2></div>
 
             <div class="tq-card">
                 <?php if ($tq_teachers): ?>
@@ -182,36 +182,35 @@ include 'portal_open.php';
                         <input type="hidden" name="tq_action" value="message_new">
 
                         <div class="tq-field">
-                            <label class="tq-field__label" for="tq-receiver">إلى</label>
+                            <label class="tq-field__label" for="tq-receiver"><?php echo t('إلى'); ?></label>
                             <select class="tq-select" id="tq-receiver" name="receiver" required>
-                                <option value="">اختر من تراسل…</option>
+                                <option value=""><?php echo t('اختر من تراسل…'); ?></option>
                                 <?php foreach ($tq_teachers as $tq_t2): ?>
                                     <option value="<?php echo (int) $tq_t2['id']; ?>">
                                         <?php echo html_escape($tq_t2['name']); ?>
-                                        — <?php echo html_escape(implode('، ', $tq_t2['courses'])); ?><?php
+                                        — <?php echo html_escape(implode(t('،'), $tq_t2['courses'])); ?><?php
                                         echo !empty($tq_t2['children'])
-                                            ? ' (' . html_escape(implode('، ', $tq_t2['children'])) . ')'
+                                            ? ' (' . html_escape(implode(t('،'), $tq_t2['children'])) . ')'
                                             : ''; ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                             <p class="tq-field__hint">
-                                معلمو مواد أبنائك المربوطين وإدارة المنصة — لا أحد سواهم.
-                                والقائمة تفحص في الخادم عند الإرسال لا عند رسمها.
+                                <?php echo t('معلمو مواد أبنائك المربوطين وإدارة المنصة — لا أحد سواهم. والقائمة تفحص في الخادم عند الإرسال لا عند رسمها.'); ?>
                             </p>
                         </div>
 
                         <div class="tq-field">
-                            <label class="tq-field__label" for="tq-new-message">رسالتك</label>
+                            <label class="tq-field__label" for="tq-new-message"><?php echo t('رسالتك'); ?></label>
                             <textarea class="tq-textarea" id="tq-new-message" name="message" rows="4" required
-                                      placeholder="اكتب سؤالك القصير — «كيف حال ابني في الرياضيات هذا الأسبوع؟»"></textarea>
+                                      placeholder="<?php echo te('اكتب سؤالك القصير — «كيف حال ابني في الرياضيات هذا الأسبوع؟»'); ?>"></textarea>
                         </div>
 
-                        <button class="tq-btn tq-btn--primary" type="submit">إرسال</button>
+                        <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('إرسال'); ?></button>
                     </form>
                 <?php else: ?>
                     <div class="tq-empty">
-                        <h3 class="tq-empty__title">لا أحد تجوز مراسلته الآن</h3>
+                        <h3 class="tq-empty__title"><?php echo t('لا أحد تجوز مراسلته الآن'); ?></h3>
                         <p class="tq-empty__text">
                             <?php if (!$tq_children): ?>
                                 لا ابن مربوط بحسابك بعد. المراسلة تفتح بعد ربط حساب ابنك وموافقته.
@@ -221,7 +220,7 @@ include 'portal_open.php';
                             <?php endif; ?>
                         </p>
                         <?php if (!$tq_children): ?>
-                            <a class="tq-btn tq-btn--primary" href="<?php echo base_url('parent'); ?>">اربط حساب ابنك</a>
+                            <a class="tq-btn tq-btn--primary" href="<?php echo base_url('parent'); ?>"><?php echo t('اربط حساب ابنك'); ?></a>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
@@ -230,7 +229,7 @@ include 'portal_open.php';
 
         <section aria-labelledby="tq-threads-h">
             <div class="tq-sectionhead">
-                <h2 id="tq-threads-h">محادثاتك</h2>
+                <h2 id="tq-threads-h"><?php echo t('محادثاتك'); ?></h2>
                 <?php if ($tq_threads): ?>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_threads) . TQ_PDI; ?></span>
                 <?php endif; ?>
@@ -243,7 +242,7 @@ include 'portal_open.php';
                             <?php
                             $tq_other_name = $tq_t['other']
                                 ? trim($tq_t['other']['first_name'] . ' ' . $tq_t['other']['last_name'])
-                                : 'إدارة المنصة';
+                                : t('إدارة المنصة');
                             $tq_photo = tqs_person_img(isset($tq_t['other']['image']) ? $tq_t['other']['image'] : '');
                             ?>
                             <li>
@@ -261,7 +260,7 @@ include 'portal_open.php';
                                         <span class="tq-rail__count tq-rail__count--urgent" style="margin-inline-start:0">
                                             <?php echo TQ_LRI . $tq_t['unread'] . TQ_PDI; ?>
                                         </span>
-                                        <span class="tq-sr">رسائل غير مقروءة</span>
+                                        <span class="tq-sr"><?php echo t('رسائل غير مقروءة'); ?></span>
                                     <?php endif; ?>
                                 </a>
                             </li>
@@ -271,10 +270,9 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--sky" style="color:var(--tq-sky-ink)" aria-hidden="true"><?php echo tq_icon('chat', 24); ?></span>
-                    <h3 class="tq-empty__title">لا محادثات بعد</h3>
+                    <h3 class="tq-empty__title"><?php echo t('لا محادثات بعد'); ?></h3>
                     <p class="tq-empty__text">
-                        ابدأ محادثة من النموذج فوق، أو انتظر رسالة من معلم أو من إدارة المنصة —
-                        تجدها هنا في سطر واحد: من أرسل، وآخر ما قيل، ومتى.
+                        <?php echo t('ابدأ محادثة من النموذج فوق، أو انتظر رسالة من معلم أو من إدارة المنصة — تجدها هنا في سطر واحد: من أرسل، وآخر ما قيل، ومتى.'); ?>
                     </p>
                 </div>
             <?php endif; ?>
@@ -283,18 +281,16 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-pastel tq-pastel--mint">
-            <span class="tq-pastel__label tq-micro">متى تراسل المعلم</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('متى تراسل المعلم'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                حين تلاحظ انقطاعا أو تراجعا في مادة. سؤال قصير من ولي الأمر يفتح للمعلم
-                ما لا تفتحه التقارير.
+                <?php echo t('حين تلاحظ انقطاعا أو تراجعا في مادة. سؤال قصير من ولي الأمر يفتح للمعلم ما لا تفتحه التقارير.'); ?>
             </p>
         </div>
 
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">ما لا نعرضه</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('ما لا نعرضه'); ?></h2></div>
             <p class="tq-caption">
-                محادثات ابنك مع المساعد الذكي ومنشوراته في المجتمع ليست هنا ولا في أي صفحة أخرى.
-                نعطيك ما يساعدك على مساعدته، لا ما يجعله يخفي.
+                <?php echo t('محادثات ابنك مع المساعد الذكي ومنشوراته في المجتمع ليست هنا ولا في أي صفحة أخرى. نعطيك ما يساعدك على مساعدته، لا ما يجعله يخفي.'); ?>
             </p>
         </div>
     </aside>

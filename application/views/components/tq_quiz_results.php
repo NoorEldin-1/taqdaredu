@@ -32,8 +32,8 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $r_rows  = isset($r_rows)  ? $r_rows  : array();
 $r_skin  = isset($r_skin)  ? $r_skin  : 'tq';
 $r_who   = isset($r_who)   ? $r_who   : 'student';
-$r_title = isset($r_title) ? $r_title : 'نتائج اختبارات الدروس';
-$r_empty = isset($r_empty) ? $r_empty : 'لا نتائج بعد.';
+$r_title = isset($r_title) ? $r_title : t('نتائج اختبارات الدروس');
+$r_empty = isset($r_empty) ? $r_empty : t('لا نتائج بعد.');
 
 $rq = ($r_skin === 'tqa');
 ?>
@@ -72,10 +72,10 @@ $rq = ($r_skin === 'tqa');
            style="margin-block-end:var(--tq-space-m)">
             <?php
             echo $r_who === 'parent'
-                ? 'آخر نتيجة في كل درس. واختبار الدرس هو ما يفتح الدرس الذي بعده، فالدرس الذي لم يجتز يقف عنده الطريق.'
+                ? t('آخر نتيجة في كل درس. واختبار الدرس هو ما يفتح الدرس الذي بعده، فالدرس الذي لم يجتز يقف عنده الطريق.')
                 : ($r_who === 'teacher'
-                    ? 'آخر نتيجة لكل طالب في كل درس. وعدد المحاولات يقرأ عن الشرح: من اجتاز من الرابعة لم يفهم من الأولى.'
-                    : 'آخر نتيجة في كل درس. وباجتياز اختبار الدرس يفتح الدرس الذي بعده.');
+                    ? t('آخر نتيجة لكل طالب في كل درس. وعدد المحاولات يقرأ عن الشرح: من اجتاز من الرابعة لم يفهم من الأولى.')
+                    : t('آخر نتيجة في كل درس. وباجتياز اختبار الدرس يفتح الدرس الذي بعده.'));
             ?>
         </p>
 
@@ -83,11 +83,11 @@ $rq = ($r_skin === 'tqa');
         <table class="tqr-res">
             <thead>
                 <tr>
-                    <th scope="col">الدرس</th>
-                    <th scope="col">الصحيح</th>
-                    <th scope="col">النتيجة</th>
-                    <th scope="col">المحاولات</th>
-                    <th scope="col">التاريخ</th>
+                    <th scope="col"><?php echo t('الدرس'); ?></th>
+                    <th scope="col"><?php echo t('الصحيح'); ?></th>
+                    <th scope="col"><?php echo t('النتيجة'); ?></th>
+                    <th scope="col"><?php echo t('المحاولات'); ?></th>
+                    <th scope="col"><?php echo t('التاريخ'); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -109,7 +109,7 @@ $rq = ($r_skin === 'tqa');
                     </td>
                     <td>
                         <span class="<?php echo $pass ? 'tqr-pass' : 'tqr-fail'; ?>">
-                            <?php echo $pass ? 'اجتاز' : 'لم يجتز بعد'; ?>
+                            <?php echo $pass ? t('اجتاز') : t('لم يجتز بعد'); ?>
                         </span>
                     </td>
                     <td>
@@ -117,14 +117,14 @@ $rq = ($r_skin === 'tqa');
                         <?php if (!$pass): ?>
                             <span class="tqr-tries" style="display:block">
                                 <?php echo $r_who === 'student'
-                                    ? 'أعد المحاولة — لا حد لعددها'
-                                    : 'الدرس التالي مقفل'; ?>
+                                    ? t('أعد المحاولة — لا حد لعددها')
+                                    : t('الدرس التالي مقفل'); ?>
                             </span>
                         <?php elseif ($tries >= 3): ?>
                             <span class="tqr-tries" style="display:block">
                                 <?php echo $r_who === 'student'
-                                    ? 'اجتزته بعد محاولات — راجعه ثانية'
-                                    : 'اجتاز بعد محاولات — يستحق إعادة شرح'; ?>
+                                    ? t('اجتزته بعد محاولات — راجعه ثانية')
+                                    : t('اجتاز بعد محاولات — يستحق إعادة شرح'); ?>
                             </span>
                         <?php endif; ?>
                     </td>

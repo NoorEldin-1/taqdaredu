@@ -23,16 +23,16 @@ $tq_picked = (isset($param3) && $param3 !== '') ? $param3 : 'youtube';
 
 /** النوع: [التسمية، الشرح، الأيقونة]. الترتيب من الأكثر استعمالا. */
 $tq_types = array(
-    'youtube'            => array('فيديو يوتيوب', 'الصق رابط الفيديو — تقرأ مدته تلقائيا.', 'play'),
-    'video'              => array('ملف فيديو', 'يرفع إلى الخادم. الأثقل تخزينا والأضمن بقاء.', 'upload'),
-    'html5'              => array('رابط ملف مباشر', 'رابط ينتهي بـ .mp4 على خادم آخر.', 'link'),
-    'vimeo'              => array('فيديو فيميو', 'يتطلب مفتاح فيميو في إعدادات المنصة.', 'play'),
-    'google_drive_video' => array('فيديو جوجل درايف', 'يتطلب تفعيل خدمة درايف في مفتاح يوتيوب.', 'folder'),
-    'audio'              => array('ملف صوتي', 'درس بلا صورة — للتلاوة والاستماع.', 'video'),
-    'document'           => array('مستند', 'PDF أو Word يفتح داخل المشغل.', 'file'),
-    'text'               => array('نص', 'درس مكتوب بلا وسائط.', 'file-text'),
-    'image'              => array('صورة', 'لوحة أو مخطط يعرض كاملا.', 'image'),
-    'iframe'             => array('تضمين خارجي', 'أداة تفاعلية من موقع آخر.', 'globe'),
+    'youtube'            => array(t('فيديو يوتيوب'), t('الصق رابط الفيديو — تقرأ مدته تلقائيا.'), 'play'),
+    'video'              => array(t('ملف فيديو'), t('يرفع إلى الخادم. الأثقل تخزينا والأضمن بقاء.'), 'upload'),
+    'html5'              => array(t('رابط ملف مباشر'), t('رابط ينتهي بـ .mp4 على خادم آخر.'), 'link'),
+    'vimeo'              => array(t('فيديو فيميو'), t('يتطلب مفتاح فيميو في إعدادات المنصة.'), 'play'),
+    'google_drive_video' => array(t('فيديو جوجل درايف'), t('يتطلب تفعيل خدمة درايف في مفتاح يوتيوب.'), 'folder'),
+    'audio'              => array(t('ملف صوتي'), t('درس بلا صورة — للتلاوة والاستماع.'), 'video'),
+    'document'           => array(t('مستند'), t('PDF أو Word يفتح داخل المشغل.'), 'file'),
+    'text'               => array(t('نص'), t('درس مكتوب بلا وسائط.'), 'file-text'),
+    'image'              => array(t('صورة'), t('لوحة أو مخطط يعرض كاملا.'), 'image'),
+    'iframe'             => array(t('تضمين خارجي'), t('أداة تفاعلية من موقع آخر.'), 'globe'),
 );
 
 $tq_shortcut = isset($param2) && $param2 === 'add_shortcut_lesson';
@@ -42,12 +42,12 @@ $tq_shortcut = isset($param2) && $param2 === 'add_shortcut_lesson';
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="course_id_for_lesson">
-            الكورس <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('الكورس'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <?php /* مملوء من الخادم: الكورسات هنا عشرات لا آلاف، والمنتقي
                  الذي يجلب بـAJAX كان لا يجلب شيئا أصلا. */ ?>
         <select class="tqa-select" id="course_id_for_lesson" name="course_id_for_lesson" required>
-            <option value="">— اختر كورسا</option>
+            <option value=""><?php echo t('— اختر كورسا'); ?></option>
             <?php foreach ($this->db->select('id, title')->where('course_type', 'general')
                                     ->order_by('title', 'ASC')->get('course')->result_array() as $tq_c): ?>
                 <option value="<?php echo (int) $tq_c['id']; ?>"><?php echo html_escape($tq_c['title']); ?></option>
@@ -60,7 +60,7 @@ $tq_shortcut = isset($param2) && $param2 === 'add_shortcut_lesson';
     <div class="tqa-note tqa-section">
         <span aria-hidden="true"><?php echo tq_icon('book', 18); ?></span>
         <span>
-            الكورس:
+            <?php echo t('الكورس:'); ?>
             <strong><?php echo html_escape($this->crud_model->get_course_by_id($param2)->row('title')); ?></strong>
         </span>
     </div>
@@ -69,7 +69,7 @@ $tq_shortcut = isset($param2) && $param2 === 'add_shortcut_lesson';
 <?php endif; ?>
 
 <fieldset class="tqa-field">
-    <legend class="tqa-field__label">نوع الدرس</legend>
+    <legend class="tqa-field__label"><?php echo t('نوع الدرس'); ?></legend>
 
     <div class="tqa-stack">
         <?php foreach ($tq_types as $tq_k => [$tq_label, $tq_hint, $tq_ic]): ?>

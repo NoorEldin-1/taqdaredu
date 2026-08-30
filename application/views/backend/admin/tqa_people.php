@@ -12,26 +12,26 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * والبحث يشمل الجوال: الدعم يصل غالبا برقم لا ببريد.
  */
 $filters = array(
-    ''         => array('كل الحسابات', 'all'),
-    'student'  => array('الطلاب',      'student'),
-    'teacher'  => array('المعلمون',    'teacher'),
-    'parent'   => array('أولياء الأمور', 'parent'),
-    'admin'    => array('المسؤولون',   'admin'),
-    'disabled' => array('حسابات مغلقة', 'disabled'),
+    ''         => array(t('كل الحسابات'), 'all'),
+    'student'  => array(t('الطلاب'),      'student'),
+    'teacher'  => array(t('المعلمون'),    'teacher'),
+    'parent'   => array(t('أولياء الأمور'), 'parent'),
+    'admin'    => array(t('المسؤولون'),   'admin'),
+    'disabled' => array(t('حسابات مغلقة'), 'disabled'),
 );
 
 /** الدور يشتق بقواعد `tq_role()` نفسها — لا استعلام لكل صف. */
 $role_of = function ($u) {
-    if ((int) $u['is_instructor'] === 1) return array('معلم', 'info');
-    if ((string) $u['tq_gate'] === 'parent') return array('ولي أمر', 'warn');
-    if ((int) $u['role_id'] === 1) return array('مسؤول', 'danger');
-    return array('طالب', 'muted');
+    if ((int) $u['is_instructor'] === 1) return array(t('معلم'), 'info');
+    if ((string) $u['tq_gate'] === 'parent') return array(t('ولي أمر'), 'warn');
+    if ((int) $u['role_id'] === 1) return array(t('مسؤول'), 'danger');
+    return array(t('طالب'), 'muted');
 };
 
 $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen'));
 ?>
 
-<?php tqa_head('كل الحسابات', 'الأدوار الأربعة في مكان واحد: طالب · معلم · ولي أمر · مسؤول.', 'users'); ?>
+<?php tqa_head(t('كل الحسابات'), t('الأدوار الأربعة في مكان واحد: طالب · معلم · ولي أمر · مسؤول.'), 'users'); ?>
 
 <div class="tqa-tabs">
     <?php foreach ($filters as $k => [$label, $tally_key]): ?>
@@ -48,14 +48,14 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
         <?php if ($role !== ''): ?>
             <input type="hidden" name="role" value="<?php echo html_escape($role); ?>">
         <?php endif; ?>
-        <label class="tqa-sr" for="tqa-people-q">ابحث بالاسم أو البريد أو الجوال</label>
+        <label class="tqa-sr" for="tqa-people-q"><?php echo t('ابحث بالاسم أو البريد أو الجوال'); ?></label>
         <input class="tqa-input" id="tqa-people-q" type="search" name="q"
                value="<?php echo html_escape($q); ?>"
-               placeholder="الاسم أو البريد أو الجوال…">
-        <button class="tqa-btn tqa-btn--primary tqa-btn--sm" type="submit">ابحث</button>
+               placeholder="<?php echo te('الاسم أو البريد أو الجوال…'); ?>">
+        <button class="tqa-btn tqa-btn--primary tqa-btn--sm" type="submit"><?php echo t('ابحث'); ?></button>
         <?php if ($q !== ''): ?>
             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-               href="<?php echo site_url('taqdar_admin/people' . ($role ? '?role=' . $role : '')); ?>">امسح البحث</a>
+               href="<?php echo site_url('taqdar_admin/people' . ($role ? '?role=' . $role : '')); ?>"><?php echo t('امسح البحث'); ?></a>
         <?php endif; ?>
     </form>
 
@@ -71,10 +71,10 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
 <?php if (!$rows): ?>
 
     <?php tqa_empty(
-        $q !== '' ? 'لا حساب يطابق البحث' : 'لا حسابات في هذه الفئة',
+        $q !== '' ? t('لا حساب يطابق البحث') : t('لا حسابات في هذه الفئة'),
         $q !== ''
-            ? 'جرب جزءا من الاسم أو البريد، أو ابحث برقم الجوال بلا مفتاح الدولة.'
-            : 'الحسابات تنشأ من صفحة التسجيل في الموقع، وحساب المعلم ينشأ من هنا كذلك بزر «أضف معلما». وولي الأمر يظهر هنا بعد أن يختار بوابته عند التسجيل.',
+            ? t('جرب جزءا من الاسم أو البريد، أو ابحث برقم الجوال بلا مفتاح الدولة.')
+            : t('الحسابات تنشأ من صفحة التسجيل في الموقع، وحساب المعلم ينشأ من هنا كذلك بزر «أضف معلما». وولي الأمر يظهر هنا بعد أن يختار بوابته عند التسجيل.'),
         '', '', 'users'
     ); ?>
 
@@ -84,12 +84,12 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
         <thead>
             <tr>
                 <th>#</th>
-                <th>الاسم</th>
-                <th>البريد والجوال</th>
-                <th>الدور</th>
-                <th>الحالة</th>
-                <th>التسجيل</th>
-                <th><span class="tqa-sr">إجراء</span></th>
+                <th><?php echo t('الاسم'); ?></th>
+                <th><?php echo t('البريد والجوال'); ?></th>
+                <th><?php echo t('الدور'); ?></th>
+                <th><?php echo t('الحالة'); ?></th>
+                <th><?php echo t('التسجيل'); ?></th>
+                <th><span class="tqa-sr"><?php echo t('إجراء'); ?></span></th>
             </tr>
         </thead>
         <tbody>
@@ -101,7 +101,7 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
             <tr>
                 <td data-label="#"><span class="tqa-num"><?php echo (int) $u['id']; ?></span></td>
 
-                <td data-label="الاسم"><?php echo html_escape($name ?: 'بلا اسم'); ?></td>
+                <td data-label="الاسم"><?php echo html_escape($name ?: t('بلا اسم')); ?></td>
 
                 <td data-label="البريد والجوال">
                     <span class="tqa-num" style="font-size:13px"><?php echo html_escape($u['email']); ?></span>
@@ -117,7 +117,7 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
 
                 <td data-label="الحالة">
                     <span class="tqa-badge tqa-badge--<?php echo $on ? 'ok' : 'danger'; ?>">
-                        <?php echo $on ? 'مفتوح' : 'مغلق'; ?>
+                        <?php echo $on ? t('مفتوح') : t('مغلق'); ?>
                     </span>
                 </td>
 
@@ -136,26 +136,26 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
                              بالرقم قبل أن يضغط. */ ?>
                     <?php if ((int) $u['is_instructor'] === 1): ?>
                         <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                           href="<?php echo site_url('taqdar_admin/teacher/' . (int) $u['id']); ?>">تفاصيل</a>
+                           href="<?php echo site_url('taqdar_admin/teacher/' . (int) $u['id']); ?>"><?php echo t('تفاصيل'); ?></a>
                         <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                           href="<?php echo site_url('taqdar_admin/teacher_edit/' . (int) $u['id']); ?>">عدل</a>
+                           href="<?php echo site_url('taqdar_admin/teacher_edit/' . (int) $u['id']); ?>"><?php echo t('عدل'); ?></a>
                     <?php endif; ?>
 
                     <?php /* الفتح والإغلاق POST: يغير من يستطيع الدخول، ورابط
                              يفعل ذلك بمجرد فتحه لا يصلح لفعل يكتب. */ ?>
                     <form action="<?php echo site_url('taqdar_admin/people_toggle'); ?>" method="post"
                           style="margin:0"
-                          data-tqa-confirm-title="<?php echo $on ? 'إغلاق الحساب' : 'فتح الحساب'; ?>"
+                          data-tqa-confirm-title="<?php echo $on ? t('إغلاق الحساب') : t('فتح الحساب'); ?>"
                           data-tqa-confirm="<?php echo $on
-                              ? 'لن يستطيع صاحبه الدخول. ولا يحذف شيء: اشتراكاته وتقدمه وفواتيره تبقى كما هي.'
-                              : 'سيستطيع صاحبه الدخول من جديد، ويستعيد كل ما كان له.'; ?>"
-                          data-tqa-confirm-ok="<?php echo $on ? 'أغلق الحساب' : 'افتح الحساب'; ?>"
+                              ? t('لن يستطيع صاحبه الدخول. ولا يحذف شيء: اشتراكاته وتقدمه وفواتيره تبقى كما هي.')
+                              : t('سيستطيع صاحبه الدخول من جديد، ويستعيد كل ما كان له.'); ?>"
+                          data-tqa-confirm-ok="<?php echo $on ? t('أغلق الحساب') : t('افتح الحساب'); ?>"
                           <?php echo $on ? 'data-tqa-confirm-tone="danger"' : ''; ?>>
                         <?php echo tq_csrf(); ?>
                         <input type="hidden" name="user_id" value="<?php echo (int) $u['id']; ?>">
                         <input type="hidden" name="back" value="<?php echo html_escape($back); ?>">
                         <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit">
-                            <?php echo $on ? 'أغلق' : 'افتح'; ?>
+                            <?php echo $on ? t('أغلق') : t('افتح'); ?>
                         </button>
                     </form>
                   </div>
@@ -168,7 +168,7 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
 
     <?php if (count($rows) >= 400): ?>
         <p style="padding:var(--tq-space-l) var(--tq-space-xl);margin:0;font:var(--tq-type-caption);color:var(--tq-text2)">
-            تعرض أول <span class="tqa-num">400</span> حساب. استعمل البحث للوصول إلى ما بعدها.
+            <?php echo t('تعرض أول'); ?> <span class="tqa-num">400</span> <?php echo t('حساب. استعمل البحث للوصول إلى ما بعدها.'); ?>
         </p>
     <?php endif; ?>
 <?php endif; ?>
@@ -177,8 +177,6 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
 <div class="tqa-note" style="margin-block-start:var(--tq-space-l)">
     <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
     <span>
-        الإغلاق يمنع الدخول ولا يحذف شيئا: الاشتراكات والتقدم والفواتير تبقى كما هي،
-        ويستعيدها صاحبها كاملة متى فتح حسابه. وحذف الحساب فعل آخر يبدأ من صاحبه
-        في إعدادات بوابته.
+        <?php echo t('الإغلاق يمنع الدخول ولا يحذف شيئا: الاشتراكات والتقدم والفواتير تبقى كما هي، ويستعيدها صاحبها كاملة متى فتح حسابه. وحذف الحساب فعل آخر يبدأ من صاحبه في إعدادات بوابته.'); ?>
     </span>
 </div>

@@ -20,8 +20,8 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  */
 $tq_nav   = 'reviews';
 $tq_role  = 'student';
-$tq_title = 'المراجعة';
-$tq_sub   = 'أسئلة سبق أن أتقنتها تعود اليوم لتثبت. لا تظهر قبل موعدها، ولا تعرض دفعة أكبر مما ينجز.';
+$tq_title = t('المراجعة');
+$tq_sub   = t('أسئلة سبق أن أتقنتها تعود اليوم لتثبت. لا تظهر قبل موعدها، ولا تعرض دفعة أكبر مما ينجز.');
 $tq_icon  = 'flame';
 
 include 'portal_open.php';
@@ -49,8 +49,8 @@ include 'portal_open.php';
             <span class="tq-icon-box tq-pastel--peach" style="inline-size:72px;block-size:72px" aria-hidden="true">
                 <?php echo tq_icon('help', 34); ?>
             </span>
-            <p class="tq-empty__title" data-tq-rv-error-msg>تعذر تحميل مراجعاتك</p>
-            <button class="tq-btn tq-btn--secondary" type="button" data-tq-rv-retry>إعادة المحاولة</button>
+            <p class="tq-empty__title" data-tq-rv-error-msg><?php echo t('تعذر تحميل مراجعاتك'); ?></p>
+            <button class="tq-btn tq-btn--secondary" type="button" data-tq-rv-retry><?php echo t('إعادة المحاولة'); ?></button>
         </div>
     </div>
 
@@ -63,18 +63,18 @@ include 'portal_open.php';
                     <span class="tq-icon-box tq-pastel--mint" style="inline-size:72px;block-size:72px" aria-hidden="true">
                         <?php echo tq_icon('check-badge', 34); ?>
                     </span>
-                    <p class="tq-empty__title">لا مراجعة مستحقة اليوم</p>
+                    <p class="tq-empty__title"><?php echo t('لا مراجعة مستحقة اليوم'); ?></p>
                     <p class="tq-empty__text" data-tq-rv-empty-text>
-                        أسئلتك السابقة ما زالت في موعدها البعيد. تابع دروسك، وستعود إليك هنا حين يحين وقتها.
+                        <?php echo t('أسئلتك السابقة ما زالت في موعدها البعيد. تابع دروسك، وستعود إليك هنا حين يحين وقتها.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>">تابع دروسك</a>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>"><?php echo t('تابع دروسك'); ?></a>
                 </div>
             </section>
 
             <!-- السؤال -->
             <section class="tq-card" data-tq-rv-question hidden>
                 <div class="tq-card__head">
-                    <h2 class="tq-card__title">سؤال المراجعة</h2>
+                    <h2 class="tq-card__title"><?php echo t('سؤال المراجعة'); ?></h2>
                     <span class="tq-caption" data-tq-rv-counter></span>
                 </div>
 
@@ -89,13 +89,13 @@ include 'portal_open.php';
                     </fieldset>
 
                     <p class="tq-field__msg" data-tq-rv-hint hidden style="color:var(--tq-danger)">
-                        اختر إجابة قبل التحقق.
+                        <?php echo t('اختر إجابة قبل التحقق.'); ?>
                     </p>
 
                     <div class="tq-row" style="flex-wrap:wrap;margin-block-start:var(--tq-space-xl)">
-                        <button class="tq-btn tq-btn--primary" type="submit" data-tq-rv-submit>تحقق</button>
+                        <button class="tq-btn tq-btn--primary" type="submit" data-tq-rv-submit><?php echo t('تحقق'); ?></button>
                         <button class="tq-btn tq-btn--ghost" type="button" data-tq-rv-skip>
-                            تخط الآن — يبقى مستحقا
+                            <?php echo t('تخط الآن — يبقى مستحقا'); ?>
                         </button>
                     </div>
                 </form>
@@ -116,20 +116,20 @@ include 'portal_open.php';
             <!-- خلاصة الجلسة -->
             <section class="tq-card" data-tq-rv-done hidden>
                 <div class="tq-card__head">
-                    <h2 class="tq-card__title">انتهت جلسة اليوم</h2>
+                    <h2 class="tq-card__title"><?php echo t('انتهت جلسة اليوم'); ?></h2>
                 </div>
                 <div class="tq-stats" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--tq-space-l)">
                     <div class="tq-stat">
                         <span class="tq-stat__value" data-tq-rv-done-answered>0</span>
-                        <span class="tq-stat__label">سؤالا أجبته</span>
+                        <span class="tq-stat__label"><?php echo t('سؤالا أجبته'); ?></span>
                     </div>
                     <div class="tq-stat">
                         <span class="tq-stat__value" data-tq-rv-done-correct>0</span>
-                        <span class="tq-stat__label">إجابة صحيحة</span>
+                        <span class="tq-stat__label"><?php echo t('إجابة صحيحة'); ?></span>
                     </div>
                     <div class="tq-stat">
                         <span class="tq-stat__value" data-tq-rv-done-remaining>0</span>
-                        <span class="tq-stat__label">ما زال مستحقا</span>
+                        <span class="tq-stat__label"><?php echo t('ما زال مستحقا'); ?></span>
                     </div>
                 </div>
                 <p class="tq-caption" style="margin-block-start:var(--tq-space-l)" data-tq-rv-done-text></p>
@@ -139,36 +139,36 @@ include 'portal_open.php';
 
         <aside class="tq-aside">
             <div class="tq-card">
-                <h2 class="tq-card__title">مستحق اليوم</h2>
+                <h2 class="tq-card__title"><?php echo t('مستحق اليوم'); ?></h2>
                 <div class="tq-stats" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--tq-space-l)">
                     <div class="tq-stat">
                         <span class="tq-stat__value" data-tq-rv-total>—</span>
-                        <span class="tq-stat__label">سؤالا مستحقا</span>
+                        <span class="tq-stat__label"><?php echo t('سؤالا مستحقا'); ?></span>
                     </div>
                     <div class="tq-stat">
                         <span class="tq-stat__value" data-tq-rv-batch>—</span>
-                        <span class="tq-stat__label">في دفعة الآن</span>
+                        <span class="tq-stat__label"><?php echo t('في دفعة الآن'); ?></span>
                     </div>
                 </div>
             </div>
 
             <div class="tq-card">
-                <h2 class="tq-card__title">كيف تعمل المراجعة</h2>
+                <h2 class="tq-card__title"><?php echo t('كيف تعمل المراجعة'); ?></h2>
                 <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                    الفاصل بين المرة والتي تليها يطول كلما أجبت صوابا، ويعود إلى الغد كلما تعثرت.
+                    <?php echo t('الفاصل بين المرة والتي تليها يطول كلما أجبت صوابا، ويعود إلى الغد كلما تعثرت.'); ?>
                 </p>
                 <ul class="tq-stack" style="--tq-space-l:var(--tq-space-m);list-style:none;padding:0;margin:0">
                     <li class="tq-row" style="gap:var(--tq-space-s);align-items:flex-start">
                         <span class="tq-icon-box tq-pastel--mint" aria-hidden="true"><?php echo tq_icon('check', 16); ?></span>
-                        <span class="tq-caption">إجابة صحيحة تباعد الموعد، حتى ستين يوما على الأكثر.</span>
+                        <span class="tq-caption"><?php echo t('إجابة صحيحة تباعد الموعد، حتى ستين يوما على الأكثر.'); ?></span>
                     </li>
                     <li class="tq-row" style="gap:var(--tq-space-s);align-items:flex-start">
                         <span class="tq-icon-box tq-pastel--peach" aria-hidden="true"><?php echo tq_icon('clock', 16); ?></span>
-                        <span class="tq-caption">إجابة خاطئة تعيد السؤال غدا — ولا تعطيك الحل.</span>
+                        <span class="tq-caption"><?php echo t('إجابة خاطئة تعيد السؤال غدا — ولا تعطيك الحل.'); ?></span>
                     </li>
                     <li class="tq-row" style="gap:var(--tq-space-s);align-items:flex-start">
                         <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon('target', 16); ?></span>
-                        <span class="tq-caption">كل سؤال مربوط بهدف في درسه، فتعرف أين تراجع لا أن تعيد الدرس كله.</span>
+                        <span class="tq-caption"><?php echo t('كل سؤال مربوط بهدف في درسه، فتعرف أين تراجع لا أن تعيد الدرس كله.'); ?></span>
                     </li>
                 </ul>
             </div>

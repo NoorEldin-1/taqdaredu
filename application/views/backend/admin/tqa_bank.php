@@ -18,17 +18,17 @@
  * `.tqa-input` و`.tqa-textarea` كما في بقية اللوحة.
  */
 $tq_fields = array(
-    'tq_bank_beneficiary' => array('اسم المستفيد', 'كما هو مسجل في البنك حرفا بحرف — الاسم المخالف يرد الحوالة.', 'rtl'),
-    'tq_bank_iban'        => array('الآيبان', 'يبدأ بـ SA ويتبعه اثنان وعشرون رقما.', 'ltr'),
-    'tq_bank_name'        => array('اسم البنك', 'اختياري — يطمئن المحول قبل أن يلصق الرقم.', 'rtl'),
+    'tq_bank_beneficiary' => array(t('اسم المستفيد'), t('كما هو مسجل في البنك حرفا بحرف — الاسم المخالف يرد الحوالة.'), 'rtl'),
+    'tq_bank_iban'        => array(t('الآيبان'), t('يبدأ بـ SA ويتبعه اثنان وعشرون رقما.'), 'ltr'),
+    'tq_bank_name'        => array(t('اسم البنك'), t('اختياري — يطمئن المحول قبل أن يلصق الرقم.'), 'rtl'),
 );
 $tq_note  = (string) get_settings('tq_bank_note');
 $tq_ready = trim((string) get_settings('tq_bank_beneficiary')) !== ''
          && trim((string) get_settings('tq_bank_iban')) !== '';
 ?>
 
-<?php tqa_head('بيانات التحويل البنكي',
-    'تعرض في شاشة تأكيد الاشتراك وصفحة اشتراك الطالب، مع رقم الفاتورة مرجعا للحوالة.',
+<?php tqa_head(t('بيانات التحويل البنكي'),
+    t('تعرض في شاشة تأكيد الاشتراك وصفحة اشتراك الطالب، مع رقم الفاتورة مرجعا للحوالة.'),
     'bank'); ?>
 
 <?php /* الحالة تعلن قبل الحقول: من يفتح الشاشة يريد أن يعرف أولا
@@ -39,7 +39,7 @@ $tq_ready = trim((string) get_settings('tq_bank_beneficiary')) !== ''
         <?php if ($tq_ready): ?>
             الحساب معروض للطلاب الآن. أي تعديل هنا يظهر فورا في شاشة الدفع.
         <?php else: ?>
-            <strong>لا يعرض شيء للطالب حاليا.</strong>
+            <strong><?php echo t('لا يعرض شيء للطالب حاليا.'); ?></strong>
             ما دام «اسم المستفيد» أو «الآيبان» فارغا تظهر للطالب دعوة للتواصل بدلا من الحساب —
             وهو أصدق من حساب ناقص يحول إليه فيضيع.
         <?php endif; ?>
@@ -68,10 +68,10 @@ $tq_ready = trim((string) get_settings('tq_bank_beneficiary')) !== ''
         <?php endforeach; ?>
 
         <div class="tqa-field">
-            <label class="tqa-field__label" for="f_note">ملاحظة تظهر تحت البيانات</label>
+            <label class="tqa-field__label" for="f_note"><?php echo t('ملاحظة تظهر تحت البيانات'); ?></label>
             <textarea class="tqa-textarea" id="f_note" name="tq_bank_note" rows="2"
-                      placeholder="مثال: تراجع الحوالات خلال يوم عمل واحد."><?php echo html_escape($tq_note); ?></textarea>
-            <span class="tqa-field__hint">اختيارية — تترك فارغة فلا تظهر.</span>
+                      placeholder="<?php echo te('مثال: تراجع الحوالات خلال يوم عمل واحد.'); ?>"><?php echo html_escape($tq_note); ?></textarea>
+            <span class="tqa-field__hint"><?php echo t('اختيارية — تترك فارغة فلا تظهر.'); ?></span>
         </div>
 
         <div class="tqa-actions">

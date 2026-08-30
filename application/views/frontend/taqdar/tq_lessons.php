@@ -39,8 +39,8 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 
 $tq_nav   = 'lessons';
 $tq_role  = 'student';
-$tq_title = 'دروسي';
-$tq_sub   = 'كل دروس كورساتك، درسا درسا';
+$tq_title = t('دروسي');
+$tq_sub   = t('كل دروس كورساتك، درسا درسا');
 $tq_icon  = 'play';
 
 $tq_all      = tq_s_lessons($tq_uid);
@@ -87,7 +87,7 @@ foreach ($tq_list as $l) {
             'level' => $l['level'], 'done' => 0, 'total' => 0, 'units' => [],
         ];
     }
-    $unit = $l['unit'] !== '' ? $l['unit'] : 'دروس بلا وحدة';
+    $unit = $l['unit'] !== '' ? $l['unit'] : t('دروس بلا وحدة');
     $tq_groups[$cid]['units'][$unit][] = $l;
     $tq_groups[$cid]['total']++;
     if ($l['state'] === 'done') $tq_groups[$cid]['done']++;
@@ -143,8 +143,8 @@ $tq_heart = static function ($lesson_id, $on) use ($f_course, $f_state, $f_q) {
         <input type="hidden" name="back_q" value="<?php echo html_escape($f_q); ?>">
         <button class="tq-fav-heart" type="submit"
                 aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"
-                title="<?php echo $on ? 'إزالة الدرس من المفضلة' : 'إضافة الدرس إلى المفضلة'; ?>"
-                aria-label="<?php echo $on ? 'إزالة الدرس من المفضلة' : 'إضافة الدرس إلى المفضلة'; ?>">
+                title="<?php echo $on ? t('إزالة الدرس من المفضلة') : t('إضافة الدرس إلى المفضلة'); ?>"
+                aria-label="<?php echo $on ? t('إزالة الدرس من المفضلة') : t('إضافة الدرس إلى المفضلة'); ?>">
             <?php echo tq_icon('heart', 18); ?>
         </button>
     </form>
@@ -153,9 +153,9 @@ $tq_heart = static function ($lesson_id, $on) use ($f_course, $f_state, $f_q) {
 
 /** شكل الحالة: أيقونة وعائلة لون وكلمة — الثلاثة معا لا اللون وحده. */
 $tq_state_face = [
-    'done'    => ['award', 'mint',  'أتممته'],
-    'current' => ['flame', 'peach', 'تشاهده الآن'],
-    'todo'    => ['play',  'sky',   'لم يبدأ'],
+    'done'    => ['award', 'mint',  t('أتممته')],
+    'current' => ['flame', 'peach', t('تشاهده الآن')],
+    'todo'    => ['play',  'sky',   t('لم يبدأ')],
 ];
 
 include 'portal_open.php';
@@ -246,7 +246,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                 <div class="tq-row tq-row--between" style="gap:var(--tq-space-l);flex-wrap:wrap">
                     <div style="flex:1;min-inline-size:220px">
                         <span class="tq-pastel__label tq-micro">
-                            <?php echo $tq_current['state'] === 'current' ? 'توقفت هنا' : 'درسك التالي'; ?>
+                            <?php echo $tq_current['state'] === 'current' ? t('توقفت هنا') : t('درسك التالي'); ?>
                         </span>
                         <h2 class="tq-card__title tq-pastel__title" style="margin:var(--tq-space-xs) 0 0">
                             <?php echo html_escape($tq_current['title']); ?>
@@ -263,7 +263,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                     </div>
                     <a class="tq-btn tq-btn--mastery" href="<?php echo html_escape($tq_current['url']); ?>">
                         <?php echo tq_icon('play', 18); ?>
-                        <?php echo $tq_current['state'] === 'current' ? 'أكمل الدرس' : 'ابدأ الدرس'; ?>
+                        <?php echo $tq_current['state'] === 'current' ? t('أكمل الدرس') : t('ابدأ الدرس'); ?>
                     </a>
                 </div>
             </section>
@@ -272,20 +272,20 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
         <?php if ($tq_all): ?>
             <section class="tq-card tq-card--panel tq-section" aria-labelledby="tq-lf-h">
                 <div class="tq-card__head">
-                    <h2 class="tq-card__title" id="tq-lf-h">اعثر على درس</h2>
+                    <h2 class="tq-card__title" id="tq-lf-h"><?php echo t('اعثر على درس'); ?></h2>
                     <?php if ($tq_has_filter): ?>
-                        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/lessons'); ?>">مسح التصفية</a>
+                        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/lessons'); ?>"><?php echo t('مسح التصفية'); ?></a>
                     <?php endif; ?>
                 </div>
 
-                <p class="tq-field__label" id="tq-lf-state">الحالة</p>
+                <p class="tq-field__label" id="tq-lf-state"><?php echo t('الحالة'); ?></p>
                 <div class="tq-chips" role="group" aria-labelledby="tq-lf-state" style="margin-block-end:var(--tq-space-l)">
                     <?php
                     $tq_state_chips = [
-                        ['',        'كل دروسي',   $tq_by_state['all']],
-                        ['current', 'قيد المشاهدة', $tq_by_state['current']],
-                        ['todo',    'لم تبدأ',     $tq_by_state['todo']],
-                        ['done',    'أتممتها',     $tq_by_state['done']],
+                        ['',        t('كل دروسي'),   $tq_by_state['all']],
+                        ['current', t('قيد المشاهدة'), $tq_by_state['current']],
+                        ['todo',    t('لم تبدأ'),     $tq_by_state['todo']],
+                        ['done',    t('أتممتها'),     $tq_by_state['done']],
                     ];
                     foreach ($tq_state_chips as [$key, $label, $n]):
                         $on = ($f_state === $key);
@@ -299,10 +299,10 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                 </div>
 
                 <?php if (count($tq_courses) > 1): ?>
-                    <p class="tq-field__label" id="tq-lf-course">الكورس</p>
+                    <p class="tq-field__label" id="tq-lf-course"><?php echo t('الكورس'); ?></p>
                     <div class="tq-chips" role="group" aria-labelledby="tq-lf-course">
                         <a class="tq-chip" href="<?php echo $tq_query(['course' => '']); ?>"
-                           <?php echo $f_course === 0 ? 'aria-current="true"' : ''; ?>>كل الكورسات</a>
+                           <?php echo $f_course === 0 ? 'aria-current="true"' : ''; ?>><?php echo t('كل الكورسات'); ?></a>
                         <?php foreach ($tq_courses as $tq_c): ?>
                             <?php $on = ((int) $tq_c['id'] === $f_course); ?>
                             <a class="tq-chip" href="<?php echo $tq_query(['course' => $on ? '' : (int) $tq_c['id']]); ?>"
@@ -310,7 +310,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                                 <?php echo html_escape($tq_c['title']); ?>
                                 <?php if ($on): ?>
                                     <span class="tq-chip__x" aria-hidden="true"><?php echo tq_icon('x', 14); ?></span>
-                                    <span class="tq-sr">— اضغط لإلغاء تصفية هذا الكورس</span>
+                                    <span class="tq-sr"><?php echo t('— اضغط لإلغاء تصفية هذا الكورس'); ?></span>
                                 <?php endif; ?>
                             </a>
                         <?php endforeach; ?>
@@ -322,10 +322,10 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                 <form class="tq-lsearch" method="get" action="<?php echo base_url('student/lessons'); ?>" role="search">
                     <?php if ($f_course > 0): ?><input type="hidden" name="course" value="<?php echo (int) $f_course; ?>"><?php endif; ?>
                     <?php if ($f_state !== ''): ?><input type="hidden" name="state" value="<?php echo html_escape($f_state); ?>"><?php endif; ?>
-                    <label class="tq-sr" for="tq-lq">ابحث في دروسك بالاسم أو الوحدة</label>
+                    <label class="tq-sr" for="tq-lq"><?php echo t('ابحث في دروسك بالاسم أو الوحدة'); ?></label>
                     <input class="tq-input" id="tq-lq" name="q" type="search" maxlength="80"
-                           value="<?php echo html_escape($f_q); ?>" placeholder="اسم الدرس أو الوحدة…">
-                    <button class="tq-btn tq-btn--secondary" type="submit">ابحث</button>
+                           value="<?php echo html_escape($f_q); ?>" placeholder="<?php echo te('اسم الدرس أو الوحدة…'); ?>">
+                    <button class="tq-btn tq-btn--secondary" type="submit"><?php echo t('ابحث'); ?></button>
                 </form>
             </section>
         <?php endif; ?>
@@ -334,10 +334,10 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
             <div class="tq-card">
                 <?php echo tq_s_empty(
                     'play', 'sky',
-                    'لا دروس بعد',
-                    'دروس كورساتك تظهر هنا واحدا واحدا: اسم الدرس ووحدته ومدته وحالتك فيه. '
-                    . 'سجل في كورس أو اشترك في باقة صفك ليمتلئ هذا المكان.',
-                    'عرض الباقات',
+                    t('لا دروس بعد'),
+                    t('دروس كورساتك تظهر هنا واحدا واحدا: اسم الدرس ووحدته ومدته وحالتك فيه.')
+                    . t('سجل في كورس أو اشترك في باقة صفك ليمتلئ هذا المكان.'),
+                    t('عرض الباقات'),
                     base_url('plans')
                 ); ?>
             </div>
@@ -346,20 +346,20 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
             <div class="tq-card">
                 <?php echo tq_s_empty(
                     'search', 'lilac',
-                    'لا درس بهذه التصفية',
+                    t('لا درس بهذه التصفية'),
                     $f_q !== ''
-                        ? 'لا درس في كورساتك يحمل هذه الكلمة. جرب كلمة أقصر أو امسح التصفية.'
-                        : 'جرب حالة أخرى أو كورسا آخر، أو امسح التصفية لترى كل دروسك.',
-                    'مسح التصفية',
+                        ? t('لا درس في كورساتك يحمل هذه الكلمة. جرب كلمة أقصر أو امسح التصفية.')
+                        : t('جرب حالة أخرى أو كورسا آخر، أو امسح التصفية لترى كل دروسك.'),
+                    t('مسح التصفية'),
                     base_url('student/lessons')
                 ); ?>
             </div>
 
         <?php else: ?>
             <p class="tq-caption" style="margin-block-end:var(--tq-space-m)">
-                <?php echo tq_iso(tq_lessons_word(count($tq_list), 'لا دروس', 'nom')); ?>
+                <?php echo tq_iso(tq_lessons_word(count($tq_list), t('لا دروس'), 'nom')); ?>
                 <?php echo count($tq_groups) > 1
-                    ? tq_iso('في ' . tq_count_units(count($tq_groups), 'كورس', 'كورسان', 'كورسين', 'كورسات', 'كورسا', '', 'obl'))
+                    ? tq_iso(t('في') . tq_count_units(count($tq_groups), t('كورس'), t('كورسان'), t('كورسين'), t('كورسات'), t('كورسا'), '', 'obl'))
                     : ''; ?>
             </p>
 
@@ -377,14 +377,14 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                         <span class="tq-lgroup__name">
                             <?php echo html_escape($g['title']); ?>
                             <span class="tq-lgroup__sub">
-                                <?php echo html_escape($g['subject'] !== '' ? $g['subject'] : 'كورس'); ?>
+                                <?php echo html_escape($g['subject'] !== '' ? $g['subject'] : t('كورس')); ?>
                                 <?php if ($g['level'] !== ''): ?>
                                     · <?php echo html_escape(tq_s_level($g['level'])); ?>
                                 <?php endif; ?>
                             </span>
                         </span>
                         <span class="tq-lgroup__n">
-                            <?php echo tq_iso($g['done'] . ' من ' . $g['total']); ?>
+                            <?php echo tq_iso($g['done'] . t('من') . $g['total']); ?>
                         </span>
                     </summary>
 
@@ -407,14 +407,14 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                                     <p class="tq-lrow__meta">
                                         <span><?php echo html_escape($state_word); ?></span>
                                         <?php if ($l['free']): ?>
-                                            <?php echo tq_badge('progress', 'درس تجريبي'); ?>
+                                            <?php echo tq_badge('progress', t('درس تجريبي')); ?>
                                         <?php endif; ?>
                                     </p>
                                 </div>
 
                                 <span class="tq-lrow__time">
                                     <?php if ($l['seconds'] > 0): ?>
-                                        <span class="tq-sr">مدة الدرس</span>
+                                        <span class="tq-sr"><?php echo t('مدة الدرس'); ?></span>
                                         <?php echo TQ_LRI . html_escape(tq_s_clock($l['seconds'])) . TQ_PDI; ?>
                                     <?php endif; ?>
                                 </span>
@@ -422,7 +422,7 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                                 <span class="tq-lrow__acts">
                                     <?php echo $tq_heart($l['id'], isset($tq_fav_ids[(int) $l['id']])); ?>
                                     <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo html_escape($l['url']); ?>">
-                                        <?php echo $l['state'] === 'done' ? 'راجعه' : ($l['state'] === 'current' ? 'أكمله' : 'شاهده'); ?>
+                                        <?php echo $l['state'] === 'done' ? t('راجعه') : ($l['state'] === 'current' ? t('أكمله') : t('شاهده')); ?>
                                         <span class="tq-sr">— <?php echo html_escape($l['title']); ?></span>
                                     </a>
                                 </span>
@@ -438,16 +438,16 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
     <aside class="tq-aside">
 
         <section class="tq-card tq-card--panel">
-            <div class="tq-card__head"><h2 class="tq-card__title">دروسك بالأرقام</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('دروسك بالأرقام'); ?></h2></div>
 
             <?php if (empty($tq_all)): ?>
-                <?php echo tq_s_empty('chart', 'mint', 'لا أرقام بعد',
-                    'يظهر هنا عدد ما أتممت من دروسك وما بقي، وكم يستغرق الباقي.', '', '', true); ?>
+                <?php echo tq_s_empty('chart', 'mint', t('لا أرقام بعد'),
+                    t('يظهر هنا عدد ما أتممت من دروسك وما بقي، وكم يستغرق الباقي.'), '', '', true); ?>
             <?php else: ?>
                 <div class="tq-row" style="gap:var(--tq-space-l)">
                     <?php echo tq_ring($tq_pct, 108, 10); ?>
                     <div>
-                        <p class="tq-strong" style="margin:0;color:var(--tq-navy)">من دروسك</p>
+                        <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo t('من دروسك'); ?></p>
                         <p class="tq-caption" style="margin:0">
                             <?php echo tq_s_lessons_word($tq_by_state['done'], $tq_by_state['all']); ?>
                         </p>
@@ -457,9 +457,9 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                 <ul class="tq-s-list" style="margin-block-start:var(--tq-space-l)">
                     <?php
                     $rows = [
-                        ['done', 'دروس أتممتها',    $tq_by_state['done']],
-                        ['due',  'دروس قيد المشاهدة', $tq_by_state['current']],
-                        ['idle', 'دروس لم تبدأ',    $tq_by_state['todo']],
+                        ['done', t('دروس أتممتها'),    $tq_by_state['done']],
+                        ['due',  t('دروس قيد المشاهدة'), $tq_by_state['current']],
+                        ['idle', t('دروس لم تبدأ'),    $tq_by_state['todo']],
                     ];
                     foreach ($rows as [$dot, $label, $n]):
                         ?>
@@ -489,26 +489,26 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
         <?php /* الشاشة الأخت: من فتح «دروسي» يريد درسا، ومن أراد الكورس كاملا
                  — غلافه وحالته ونسبته — بابه هنا بنقرة واحدة لا بحثا في القائمة. */ ?>
         <section class="tq-card tq-card--panel">
-            <div class="tq-card__head"><h2 class="tq-card__title">كورساتك</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('كورساتك'); ?></h2></div>
             <p class="tq-caption" style="margin:0">
-                <?php echo tq_iso(tq_count_units(count($tq_courses), 'كورس مسجل', 'كورسان مسجلان',
-                    'كورسين مسجلين', 'كورسات مسجلة', 'كورسا مسجلا', 'لا كورسات مسجلة', 'nom')); ?>
+                <?php echo tq_iso(tq_count_units(count($tq_courses), t('كورس مسجل'), t('كورسان مسجلان'),
+                    t('كورسين مسجلين'), t('كورسات مسجلة'), t('كورسا مسجلا'), t('لا كورسات مسجلة'), 'nom')); ?>
                 — بأغلفتها وحالاتها ونسبة تقدمك في كل واحد.
             </p>
             <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-l)"
-               href="<?php echo base_url('student/courses'); ?>">افتح كورساتي</a>
+               href="<?php echo base_url('student/courses'); ?>"><?php echo t('افتح كورساتي'); ?></a>
         </section>
 
         <section class="tq-card tq-card--panel tq-pastel tq-pastel--lilac">
             <div class="tq-card__head">
-                <h2 class="tq-card__title tq-pastel__title">دروسك المفضلة</h2>
+                <h2 class="tq-card__title tq-pastel__title"><?php echo t('دروسك المفضلة'); ?></h2>
                 <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('heart', 24); ?></span>
             </div>
             <p class="tq-pastel__body">
-                اضغط القلب بجوار أي درس هنا ليصير في متناولك من شاشة المفضلة، بلا بحث في القائمة.
+                <?php echo t('اضغط القلب بجوار أي درس هنا ليصير في متناولك من شاشة المفضلة، بلا بحث في القائمة.'); ?>
             </p>
             <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('student/favourites'); ?>">
-                افتح المفضلة
+                <?php echo t('افتح المفضلة'); ?>
             </a>
         </section>
 

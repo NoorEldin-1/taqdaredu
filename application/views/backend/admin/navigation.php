@@ -50,115 +50,115 @@ $tqa_counts = tqa_nav_counts();
 $tqa_nav = [
 
     ['', '', [
-        ['tqa_overview', 'لوحة القيادة', 'taqdar_admin/overview', 'meter', null],
+        ['tqa_overview', t('لوحة القيادة'), 'taqdar_admin/overview', 'meter', null],
     ]],
 
-    ['المنهج', 'graduation', [
-        ['tqa_subjects',    'المواد الدراسية', 'taqdar_admin/module/subjects',   'layers',      null],
-        ['tqa_grades',      'الصفوف الدراسية', 'taqdar_admin/module/grades',     'award',       null],
-        ['tqa_paths',       'المسارات',        'taqdar_admin/module/paths',      'target',      null],
-        ['tqa_milestones',  'المحطات',         'taqdar_admin/module/milestones', 'flag',        null],
+    [t('المنهج'), 'graduation', [
+        ['tqa_subjects',    t('المواد الدراسية'), 'taqdar_admin/module/subjects',   'layers',      null],
+        ['tqa_grades',      t('الصفوف الدراسية'), 'taqdar_admin/module/grades',     'award',       null],
+        ['tqa_paths',       t('المسارات'),        'taqdar_admin/module/paths',      'target',      null],
+        ['tqa_milestones',  t('المحطات'),         'taqdar_admin/module/milestones', 'flag',        null],
         [['course_add', 'course_edit', 'courses-server-side', 'curriculum',
           'lessons', 'video_player', 'course_enrol_list', 'change_course_author'],
-                            'الكورسات',        'admin/courses',                  'book',        'pending_courses'],
+                            t('الكورسات'),        'admin/courses',                  'book',        'pending_courses'],
         /* مراجعة المحتوى — تحت الكورسات لأنها بابها: ما يعتمد هنا يظهر
            هناك. وكانت غائبة كلها، فيكتب المعلم `tq_status='review'` ولا
            شيء في اللوحة يقرؤه. */
-        ['tqa_review',      'مراجعة المحتوى',  'taqdar_admin/review',            'shield',      'content_review'],
+        ['tqa_review',      t('مراجعة المحتوى'),  'taqdar_admin/review',            'shield',      'content_review'],
         [['categories', 'category_add', 'category_edit'],
-                            'أقسام الكورسات',  'admin/categories',               'grid',        null],
-        ['tqa_import',      'استيراد المنهج',  'taqdar_admin/import',            'import',      null],
+                            t('أقسام الكورسات'),  'admin/categories',               'grid',        null],
+        ['tqa_import',      t('استيراد المنهج'),  'taqdar_admin/import',            'import',      null],
     ]],
 
-    ['الإتقان والتقييم', 'crosshair', [
-        ['tqa_objectives',  'الأهداف التعليمية',    'taqdar_admin/module/objectives',  'target',      null],
+    [t('الإتقان والتقييم'), 'crosshair', [
+        ['tqa_objectives',  t('الأهداف التعليمية'),    'taqdar_admin/module/objectives',  'target',      null],
         [['tqa_bindings', 'tqa_bind'],
-                            'ربط الأسئلة بالأهداف', 'taqdar_admin/bindings',           'link',        null],
-        ['tqa_assessments', 'التقييمات',            'taqdar_admin/module/assessments', 'check-badge', null],
+                            t('ربط الأسئلة بالأهداف'), 'taqdar_admin/bindings',           'link',        null],
+        ['tqa_assessments', t('التقييمات'),            'taqdar_admin/module/assessments', 'check-badge', null],
         /* الاختبار التشخيصي: بندان لا واحد — الاختبار يبنى، والنتائج تقرأ.
            وشاشة الأسئلة تفتح من جدول الاختبارات (`row_action`) فلا بند
            ثالث لها: بند في القائمة لشيء يحتاج معرفا يقود إلى لا شيء. */
-        ['tqa_diag_exams',    'الاختبارات التشخيصية', 'taqdar_admin/module/diag_exams',    'crosshair', null],
-        ['tqa_diag_attempts', 'نتائج التشخيص',        'taqdar_admin/module/diag_attempts', 'chart',     null],
-        ['tqa_mastery',     'خريطة الإتقان',        'taqdar_admin/mastery',            'chart',       null],
+        ['tqa_diag_exams',    t('الاختبارات التشخيصية'), 'taqdar_admin/module/diag_exams',    'crosshair', null],
+        ['tqa_diag_attempts', t('نتائج التشخيص'),        'taqdar_admin/module/diag_attempts', 'chart',     null],
+        ['tqa_mastery',     t('خريطة الإتقان'),        'taqdar_admin/mastery',            'chart',       null],
     ]],
 
-    ['الأشخاص', 'users', [
+    [t('الأشخاص'), 'users', [
         [['tqa_people', 'tqa_teacher_new', 'users', 'user_add', 'user_edit', 'instructors',
           'instructor_add', 'instructor_edit', 'instructor_settings', 'enrol_student', 'enrol_history'],
-                            'كل الحسابات',          'taqdar_admin/people',                     'users',   null],
-        ['tqa_teachers',    'طلبات المعلمين',       'taqdar_admin/teachers',                   'file',    'teacher_apps'],
-        ['tqa_teacher_assignments', 'إسناد المعلمين', 'taqdar_admin/module/teacher_assignments', 'link',  null],
-        ['tqa_parent_links','روابط أولياء الأمور',  'taqdar_admin/module/parent_links',        'heart',   'parent_links'],
+                            t('كل الحسابات'),          'taqdar_admin/people',                     'users',   null],
+        ['tqa_teachers',    t('طلبات المعلمين'),       'taqdar_admin/teachers',                   'file',    'teacher_apps'],
+        ['tqa_teacher_assignments', t('إسناد المعلمين'), 'taqdar_admin/module/teacher_assignments', 'link',  null],
+        ['tqa_parent_links',t('روابط أولياء الأمور'),  'taqdar_admin/module/parent_links',        'heart',   'parent_links'],
         [['admins', 'admin_add', 'admin_edit', 'admin_permission'],
-                            'المسؤولون والصلاحيات', 'admin/admins',                            'shield',  null],
+                            t('المسؤولون والصلاحيات'), 'admin/admins',                            'shield',  null],
     ]],
 
-    ['التعليم المباشر', 'video', [
-        ['tqa_sessions',    'الحصص',          'taqdar_admin/sessions', 'video', 'sessions'],
-        ['tqa_slots',       'أوقات المعلمين', 'taqdar_admin/slots',    'clock', null],
+    [t('التعليم المباشر'), 'video', [
+        ['tqa_sessions',    t('الحصص'),          'taqdar_admin/sessions', 'video', 'sessions'],
+        ['tqa_slots',       t('أوقات المعلمين'), 'taqdar_admin/slots',    'clock', null],
     ]],
 
-    ['المالية', 'wallet', [
-        ['tqa_plans',          'الباقات',              'taqdar_admin/module/plans',          'card',    null],
+    [t('المالية'), 'wallet', [
+        ['tqa_plans',          t('الباقات'),              'taqdar_admin/module/plans',          'card',    null],
         /* TQ-COURSE-SALE — «بيع الكورسات» تحت الباقات مباشرة: هما وحدتا
            البيع، والثانية تقرأ في سياق الأولى — «وماذا عمن يريد مادة
            واحدة؟». وبند في «المنهج» كان يخفيها عمن يدير المال. */
-        ['tqa_course_sales',   'بيع الكورسات',         'taqdar_admin/course_sales',          'book',    null],
-        ['tqa_subscriptions',  'الاشتراكات',           'taqdar_admin/subscriptions',         'refresh', 'subs_pending'],
-        ['tqa_invoices',       'الفواتير',             'taqdar_admin/module/invoices',       'file-text', null],
-        ['tqa_payouts',        'طلبات السحب',          'taqdar_admin/payouts',               'send',    'payouts'],
-        ['tqa_wallets',        'المحافظ',              'taqdar_admin/module/wallets',        'wallet',  null],
-        ['tqa_wallet_entries', 'قيود المحافظ',         'taqdar_admin/module/wallet_entries', 'receipt', null],
-        ['tqa_tap',            'الدفع بالبطاقة',        'taqdar_admin/tap',                   'card',    null],
-        ['tqa_bank',           'بيانات التحويل البنكي', 'taqdar_admin/bank',                  'bank',    null],
+        ['tqa_course_sales',   t('بيع الكورسات'),         'taqdar_admin/course_sales',          'book',    null],
+        ['tqa_subscriptions',  t('الاشتراكات'),           'taqdar_admin/subscriptions',         'refresh', 'subs_pending'],
+        ['tqa_invoices',       t('الفواتير'),             'taqdar_admin/module/invoices',       'file-text', null],
+        ['tqa_payouts',        t('طلبات السحب'),          'taqdar_admin/payouts',               'send',    'payouts'],
+        ['tqa_wallets',        t('المحافظ'),              'taqdar_admin/module/wallets',        'wallet',  null],
+        ['tqa_wallet_entries', t('قيود المحافظ'),         'taqdar_admin/module/wallet_entries', 'receipt', null],
+        ['tqa_tap',            t('الدفع بالبطاقة'),        'taqdar_admin/tap',                   'card',    null],
+        ['tqa_bank',           t('بيانات التحويل البنكي'), 'taqdar_admin/bank',                  'bank',    null],
         /* «بوابات الدفع» الموروثة تبقى في القائمة ولا تصير الأولى: هي شاشة
            Academy لست عشرة بوابة لا واحدة منها تمس اشتراكات تقدر — وبند
            الدفع الفعلي هو «الدفع بالبطاقة» أعلاه. */
-        [['payment_settings'], 'إعدادات الدفع الموروثة', 'admin/payment_settings',            'cog',     null],
+        [['payment_settings'], t('إعدادات الدفع الموروثة'), 'admin/payment_settings',            'cog',     null],
     ]],
 
-    ['المحتوى والموقع', 'globe', [
+    [t('المحتوى والموقع'), 'globe', [
         [['tqa_content', 'tqa_content_edit'],
-                             'نصوص الصفحات',     'taqdar_admin/content',                     'edit',   null],
-        ['tqa_stats',        'أرقام الموقع',      'taqdar_admin/stats',                       'chart',  null],
+                             t('نصوص الصفحات'),     'taqdar_admin/content',                     'edit',   null],
+        ['tqa_stats',        t('أرقام الموقع'),      'taqdar_admin/stats',                       'chart',  null],
         /* التتبع تحت «المحتوى والموقع» لا تحت «النظام»: من يفتحه هو من
            يدير الحملات والصفحات، لا من يضبط المنصة. */
-        ['tqa_tracking',     'بكسل ميتا',         'taqdar_admin/tracking',                    'target', null],
-        ['tqa_testimonials', 'آراء أولياء الأمور', 'taqdar_admin/module/testimonials',  'chat',   null],
-        ['tqa_books',        'الكتب',            'taqdar_admin/module/books',                'book',   null],
-        ['tqa_competitions', 'المسابقات',        'taqdar_admin/module/competitions',         'trophy', null],
-        ['tqa_competition_entries', 'المشاركون في المسابقات', 'taqdar_admin/module/competition_entries', 'users', null],
+        ['tqa_tracking',     t('بكسل ميتا'),         'taqdar_admin/tracking',                    'target', null],
+        ['tqa_testimonials', t('آراء أولياء الأمور'), 'taqdar_admin/module/testimonials',  'chat',   null],
+        ['tqa_books',        t('الكتب'),            'taqdar_admin/module/books',                'book',   null],
+        ['tqa_competitions', t('المسابقات'),        'taqdar_admin/module/competitions',         'trophy', null],
+        ['tqa_competition_entries', t('المشاركون في المسابقات'), 'taqdar_admin/module/competition_entries', 'users', null],
         [['blog', 'blog_add', 'blog_edit', 'blog_category', 'blog_category_add', 'blog_category_edit',
           'blog_settings', 'instructors_pending_blog'],
-                             'المدونة',          'admin/blog',                               'file',   'pending_blogs'],
+                             t('المدونة'),          'admin/blog',                               'file',   'pending_blogs'],
     ]],
 
-    ['التواصل', 'chat', [
+    [t('التواصل'), 'chat', [
         [['message', 'message_new', 'message_read', 'message_home'],
-                             'الرسائل',            'admin/message',            'chat',  'messages'],
-        ['tqa_notify',       'إرسال إشعار',        'taqdar_admin/notify',      'bell',  null],
+                             t('الرسائل'),            'admin/message',            'chat',  'messages'],
+        ['tqa_notify',       t('إرسال إشعار'),        'taqdar_admin/notify',      'bell',  null],
         [['contact', 'contact_reply_form'],
-                             'رسائل التواصل',      'admin/contact',            'mail',  'contact'],
+                             t('رسائل التواصل'),      'admin/contact',            'mail',  'contact'],
         [['subscribed_user', 'newsletters', 'newsletter_history',
           'add_newsletter', 'edit_newsletter', 'send_newsletter'],
-                             'النشرة البريدية',    'admin/subscribed_user',    'send',  null],
-        ['tqa_mail',         'البريد الصادر',      'taqdar_admin/mail',        'mail',  null],
+                             t('النشرة البريدية'),    'admin/subscribed_user',    'send',  null],
+        ['tqa_mail',         t('البريد الصادر'),      'taqdar_admin/mail',        'mail',  null],
         /* القناة الثانية، وتحت البريد لا فوقه: البريد يحمل كل شيء
            وواتساب يحمل المال ورموز التحقق وحدها. */
-        ['tqa_whatsapp',     'إشعارات واتساب',     'taqdar_admin/whatsapp',    'whatsapp', null],
+        ['tqa_whatsapp',     t('إشعارات واتساب'),     'taqdar_admin/whatsapp',    'whatsapp', null],
     ]],
 
-    ['النظام', 'cog', [
-        [['system_settings'],   'إعدادات المنصة',       'admin/system_settings',       'cog',    null],
+    [t('النظام'), 'cog', [
+        [['system_settings'],   t('إعدادات المنصة'),       'admin/system_settings',       'cog',    null],
         [['frontend_settings', 'review_add', 'review_edit'],
-                                'إعدادات الموقع',       'admin/frontend_settings',     'globe',  null],
-        [['seo_settings'],      'تحسين محركات البحث',   'admin/seo_settings',          'search', null],
-        [['sitemap_settings'],  'خريطة الموقع',         'admin/sitemap_settings',      'layers', null],
-        [['manage_language'],   'اللغات والترجمة',      'admin/manage_language',       'file',   null],
-        [['notification_settings'], 'قوالب الإشعارات',  'admin/notification_settings', 'bell',   null],
-        ['tqa_audit_log',       'سجل التدقيق',          'taqdar_admin/module/audit_log', 'shield', null],
-        [['manage_profile'],    'حسابي',                'admin/manage_profile',        'cog',    null],
+                                t('إعدادات الموقع'),       'admin/frontend_settings',     'globe',  null],
+        [['seo_settings'],      t('تحسين محركات البحث'),   'admin/seo_settings',          'search', null],
+        [['sitemap_settings'],  t('خريطة الموقع'),         'admin/sitemap_settings',      'layers', null],
+        [['manage_language'],   t('اللغات والترجمة'),      'admin/manage_language',       'file',   null],
+        [['notification_settings'], t('قوالب الإشعارات'),  'admin/notification_settings', 'bell',   null],
+        ['tqa_audit_log',       t('سجل التدقيق'),          'taqdar_admin/module/audit_log', 'shield', null],
+        [['manage_profile'],    t('حسابي'),                'admin/manage_profile',        'cog',    null],
     ]],
 ];
 
@@ -175,8 +175,8 @@ $tqa_is_active = function ($keys) use ($tqa_active_key) {
         <a class="tqa-rail__logo" href="<?php echo site_url('taqdar_admin/overview'); ?>">
             <img src="<?php echo tq_asset('brand/icon.png'); ?>" alt="" width="36" height="36">
             <span>
-                <span class="tqa-rail__wordmark">تقدر</span>
-                <span class="tqa-rail__tagline">لوحة الإدارة</span>
+                <span class="tqa-rail__wordmark"><?php echo t('تقدر'); ?></span>
+                <span class="tqa-rail__tagline"><?php echo t('لوحة الإدارة'); ?></span>
             </span>
         </a>
 
@@ -189,17 +189,17 @@ $tqa_is_active = function ($keys) use ($tqa_active_key) {
                  التي تقلب `tq-dir-icon` لا تحمل في اللوحة. */ ?>
         <button class="tqa-iconbtn tqa-rail__collapse" type="button"
                 data-tqa-collapse aria-expanded="true"
-                aria-label="طي القائمة الجانبية" title="طي القائمة الجانبية">
+                aria-label="<?php echo te('طي القائمة الجانبية'); ?>" title="<?php echo te('طي القائمة الجانبية'); ?>">
             <?php echo tq_icon('chev-next', 18); ?>
         </button>
 
         <button class="tqa-iconbtn tqa-rail__close" type="button"
-                data-tqa-toggle aria-label="إغلاق القائمة" title="إغلاق القائمة">
+                data-tqa-toggle aria-label="<?php echo te('إغلاق القائمة'); ?>" title="<?php echo te('إغلاق القائمة'); ?>">
             <?php echo tq_icon('x', 18); ?>
         </button>
     </div>
 
-    <nav class="tqa-rail__nav" aria-label="التنقل الرئيسي">
+    <nav class="tqa-rail__nav" aria-label="<?php echo te('التنقل الرئيسي'); ?>">
         <?php foreach ($tqa_nav as [$tqa_gtitle, $tqa_gicon, $tqa_gitems]): ?>
 
             <?php if ($tqa_gtitle !== ''): ?>
@@ -227,7 +227,7 @@ $tqa_is_active = function ($keys) use ($tqa_active_key) {
                         <span class="tqa-rail__count<?php echo in_array($tqa_badge, ['payouts', 'teacher_apps', 'sessions'], true) ? ' tqa-rail__count--urgent' : ''; ?>"><bdi><?php
                             echo $tqa_n > 99 ? '99+' : $tqa_n;
                         ?></bdi></span>
-                        <span class="tqa-sr">بند ينتظر إجراء</span>
+                        <span class="tqa-sr"><?php echo t('بند ينتظر إجراء'); ?></span>
                     <?php endif; ?>
                 </a>
             <?php endforeach; ?>
@@ -240,8 +240,8 @@ $tqa_is_active = function ($keys) use ($tqa_active_key) {
              والاسم في `tqa-rail__text` فتخفيه قاعدة الطي نفسها. */ ?>
     <div class="tqa-rail__foot">
         <a class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--block" href="<?php echo base_url(); ?>"
-           target="_blank" rel="noopener" title="زيارة الموقع">
-            <?php echo tq_icon('eye', 16); ?> <span class="tqa-rail__text">زيارة الموقع</span>
+           target="_blank" rel="noopener" title="<?php echo te('زيارة الموقع'); ?>">
+            <?php echo tq_icon('eye', 16); ?> <span class="tqa-rail__text"><?php echo t('زيارة الموقع'); ?></span>
         </a>
     </div>
 </aside>

@@ -36,22 +36,22 @@ $tq_spec  = $CI->tq_curric->course_fields($tq_actor);
 $tq_row   = $tq_cid > 0 ? ($CI->tq_curric->course($tq_cid) ?: array()) : array();
 
 if ($tq_cid > 0 && !$tq_row) {
-    $tq_title = 'كورس غير موجود';
+    $tq_title = t('كورس غير موجود');
     $tq_sub   = '';
     include 'portal_open.php';
     echo '<div class="tq-card"><div class="tq-empty">'
-       . '<p class="tq-empty__title">لا كورس بهذا المعرف</p>'
-       . '<a class="tq-btn tq-btn--primary" href="' . base_url('teacher/courses') . '">كل كورساتي</a>'
+       . t('<p class="tq-empty__title">لا كورس بهذا المعرف</p>')
+       . '<a class="tq-btn tq-btn--primary" href="' . base_url('teacher/courses') . t('">كل كورساتي</a>')
        . '</div></div>';
     include 'portal_close.php';
     return;
 }
 
 $tq_new   = $tq_cid <= 0;
-$tq_title = $tq_new ? 'كورس جديد' : 'إعدادات: ' . (string) ($tq_row['title'] ?? '');
+$tq_title = $tq_new ? t('كورس جديد') : t('إعدادات:') . (string) ($tq_row['title'] ?? '');
 $tq_sub   = $tq_new
-    ? 'عرفه أولا، ثم ابن مقرره.'
-    : 'بيانات هذا الكورس وما يفصله عن الطالب.';
+    ? t('عرفه أولا، ثم ابن مقرره.')
+    : t('بيانات هذا الكورس وما يفصله عن الطالب.');
 
 /* هل يستطيع هذا المعلم النشر؟ الجواب يغير ما يقال عن «الحالة» — ولا
    يغير ما يعرض: النموذج هو من يحكم، والشاشة تشرح. */
@@ -103,8 +103,8 @@ tq_cur_styles();   /* `tqc-grid` و`tqc-check` و`tqc-note` — مكون الم�
 <?php elseif (!$tq_new && (int) $tq_link['path_id'] > 0): ?>
     <p class="tqc-note tq-section">
         <span aria-hidden="true"><?php echo tq_icon('check-badge', 18); ?></span>
-        <span><strong>هذا الكورس يصل إلى الطالب.</strong>
-              منشور، وله صف ومادة، وباقة تفتحه.</span>
+        <span><strong><?php echo t('هذا الكورس يصل إلى الطالب.'); ?></strong>
+              <?php echo t('منشور، وله صف ومادة، وباقة تفتحه.'); ?></span>
     </p>
 <?php endif; ?>
 
@@ -113,11 +113,10 @@ tq_cur_styles();   /* `tqc-grid` و`tqc-check` و`tqc-note` — مكون الم�
         <span aria-hidden="true"><?php echo tq_icon('help', 18); ?></span>
         <span>
             <?php if ($tq_may_publish): ?>
-                عرف الكورس هنا، ثم ابن مقرره. و<strong>الصف والمادة</strong> هما ما يجعله
+                عرف الكورس هنا، ثم ابن مقرره. و<strong><?php echo t('الصف والمادة'); ?></strong> هما ما يجعله
                 يظهر في «المواد والبرامج» وتفتحه باقة — وبغيرهما يبقى محتوى داخليا.
             <?php else: ?>
-                الكورس الجديد يبدأ <strong>بانتظار مراجعة الإدارة</strong>، وتستطيع رفع دروسه
-                من الآن. و<strong>الصف والمادة</strong> هما ما يجعله يظهر في «المواد والبرامج»
+                الكورس الجديد يبدأ <strong><?php echo t('بانتظار مراجعة الإدارة'); ?></strong><?php echo t('، وتستطيع رفع دروسه من الآن. و'); ?><strong><?php echo t('الصف والمادة'); ?></strong> هما ما يجعله يظهر في «المواد والبرامج»
                 وتفتحه باقة — وبغيرهما يبقى محتوى داخليا لا يعرض في الموقع العام.
             <?php endif; ?>
         </span>
@@ -126,9 +125,8 @@ tq_cur_styles();   /* `tqc-grid` و`tqc-check` و`tqc-note` — مكون الم�
     <p class="tqc-note tq-section">
         <span aria-hidden="true"><?php echo tq_icon('help', 18); ?></span>
         <span>
-            <strong>النشر قرار الإدارة.</strong>
-            ما تختاره «منشورا» أو «خاصا» أو «قادما» يحفظ <strong>قيد المراجعة</strong>،
-            وتقرره الإدارة — كما هو الحال في نشر الدروس.
+            <strong><?php echo t('النشر قرار الإدارة.'); ?></strong>
+            <?php echo t('ما تختاره «منشورا» أو «خاصا» أو «قادما» يحفظ'); ?> <strong><?php echo t('قيد المراجعة'); ?></strong><?php echo t('، وتقرره الإدارة — كما هو الحال في نشر الدروس.'); ?>
         </span>
     </p>
 <?php endif; ?>
@@ -143,10 +141,10 @@ tq_cur_styles();   /* `tqc-grid` و`tqc-check` و`tqc-note` — مكون الم�
     <div class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap">
         <button class="tq-btn tq-btn--primary" type="submit">
             <?php echo tq_icon('check', 16); ?>
-            <?php echo $tq_new ? 'أنشئ الكورس' : 'احفظ التعديل'; ?>
+            <?php echo $tq_new ? t('أنشئ الكورس') : t('احفظ التعديل'); ?>
         </button>
         <a class="tq-btn tq-btn--ghost"
-           href="<?php echo base_url($tq_new ? 'teacher/courses' : 'teacher/course/' . $tq_cid); ?>">إلغاء</a>
+           href="<?php echo base_url($tq_new ? 'teacher/courses' : 'teacher/course/' . $tq_cid); ?>"><?php echo t('إلغاء'); ?></a>
     </div>
 </form>
 

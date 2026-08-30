@@ -20,8 +20,8 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 
 $tq_nav   = 'certificates';
 $tq_role  = 'student';
-$tq_title = 'الشهادات';
-$tq_sub   = 'ما أتقنته، موثقا وقابلا للتحقق';
+$tq_title = t('الشهادات');
+$tq_sub   = t('ما أتقنته، موثقا وقابلا للتحقق');
 $tq_icon  = 'award';
 
 $tq_certs = [];
@@ -48,12 +48,11 @@ include 'portal_open.php';
                     <span class="tq-icon-box tq-pastel--mint" style="inline-size:72px;block-size:72px" aria-hidden="true">
                         <?php echo tq_icon('award', 36); ?>
                     </span>
-                    <p class="tq-empty__title">لا شهادات بعد</p>
+                    <p class="tq-empty__title"><?php echo t('لا شهادات بعد'); ?></p>
                     <p class="tq-empty__text">
-                        الشهادة تصدر على إتقان مقاس لا على مشاهدة: تنهي المحطة،
-                        وتجتاز اختبارها، فتصلك شهادة بأهدافها ورمز تحقق.
+                        <?php echo t('الشهادة تصدر على إتقان مقاس لا على مشاهدة: تنهي المحطة، وتجتاز اختبارها، فتصلك شهادة بأهدافها ورمز تحقق.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>">تابع دروسك</a>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>"><?php echo t('تابع دروسك'); ?></a>
                 </div>
             </div>
         <?php else: ?>
@@ -62,22 +61,22 @@ include 'portal_open.php';
                     $fam = tq_pastel($i); ?>
                     <article class="tq-card tq-card--raised">
                         <div class="tq-pastel tq-pastel--<?php echo $fam; ?>" style="margin-block-end:var(--tq-space-l)">
-                            <span class="tq-pastel__label tq-micro">شهادة إتقان</span>
+                            <span class="tq-pastel__label tq-micro"><?php echo t('شهادة إتقان'); ?></span>
                             <h3 class="tq-pastel__title" style="margin:var(--tq-space-xs) 0 0">
-                                <?php echo html_escape($c['milestone_title'] ?: $c['path_title'] ?: 'محطة'); ?>
+                                <?php echo html_escape($c['milestone_title'] ?: $c['path_title'] ?: t('محطة')); ?>
                             </h3>
                         </div>
                         <dl class="tq-s-list">
                             <div class="tq-s-row">
-                                <dt class="tq-caption">نسبة الإتقان</dt>
+                                <dt class="tq-caption"><?php echo t('نسبة الإتقان'); ?></dt>
                                 <dd style="margin:0"><?php echo tq_num(((int) $c['score']) . '%'); ?></dd>
                             </div>
                             <div class="tq-s-row">
-                                <dt class="tq-caption">تاريخ الإصدار</dt>
+                                <dt class="tq-caption"><?php echo t('تاريخ الإصدار'); ?></dt>
                                 <dd style="margin:0"><?php echo tq_iso(html_escape((string) $c['submitted_at'])); ?></dd>
                             </div>
                             <div class="tq-s-row">
-                                <dt class="tq-caption">رمز التحقق</dt>
+                                <dt class="tq-caption"><?php echo t('رمز التحقق'); ?></dt>
                                 <dd style="margin:0"><?php echo tq_num('TQ-' . str_pad((string) $c['id'], 6, '0', STR_PAD_LEFT), 'tq-num--sm'); ?></dd>
                             </div>
                         </dl>
@@ -88,7 +87,7 @@ include 'portal_open.php';
                             <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/certificate/' . (int) $c['id']); ?>">
                                 <?php echo tq_icon('award'); ?> افتح الشهادة
                             </a>
-                            <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/verify/' . (int) $c['id']); ?>">صفحة التحقق</a>
+                            <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/verify/' . (int) $c['id']); ?>"><?php echo t('صفحة التحقق'); ?></a>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -98,16 +97,16 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-card">
-            <h2 class="tq-card__title">كيف تصدر الشهادة</h2>
+            <h2 class="tq-card__title"><?php echo t('كيف تصدر الشهادة'); ?></h2>
             <?php /* `<li>` لا `<div>`: `<ol>` لا يقبل إلا عناصر قائمة، و`<div>` داخلها
                      يخرج من الشجرة فيقرؤها قارئ الشاشة قائمة **فارغة** بجوار ثلاث فقرات
                      سائبة — فيضيع الترتيب وهو كل معنى الخطوات. و`counter-reset` كان
                      مكتوبا بلا عداد يستعمله، فحذف. */ ?>
             <ol class="tq-s-list">
                 <?php foreach ([
-                    'تنهي دروس المحطة وتتقنها واحدا واحدا',
-                    'تجتاز اختبار المحطة',
-                    'تصلك شهادة بأهدافك المتقنة ورمز تحقق',
+                    t('تنهي دروس المحطة وتتقنها واحدا واحدا'),
+                    t('تجتاز اختبار المحطة'),
+                    t('تصلك شهادة بأهدافك المتقنة ورمز تحقق'),
                 ] as $n => $step): ?>
                     <li class="tq-s-row">
                         <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_num($n + 1, 'tq-num--sm'); ?></span>
@@ -116,7 +115,7 @@ include 'portal_open.php';
                 <?php endforeach; ?>
             </ol>
             <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
-                رمز التحقق يفتح صفحة عامة تؤكد صحة الشهادة لأي جهة.
+                <?php echo t('رمز التحقق يفتح صفحة عامة تؤكد صحة الشهادة لأي جهة.'); ?>
             </p>
         </div>
     </aside>

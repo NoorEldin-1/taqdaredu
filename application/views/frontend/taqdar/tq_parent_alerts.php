@@ -33,8 +33,8 @@
 
 $tq_nav   = 'alerts';
 $tq_role  = 'parent';
-$tq_title = 'الإشعارات';
-$tq_sub   = 'ما يستحق أن يقطع يومك — وما ينتظر الأحد';
+$tq_title = t('الإشعارات');
+$tq_sub   = t('ما يستحق أن يقطع يومك — وما ينتظر الأحد');
 $tq_icon  = 'bell';
 
 $tq_uid = (int) $this->session->userdata('user_id');
@@ -57,12 +57,12 @@ $tq_prefs = $tq_ci->taqdar_parent_model->prefs($tq_uid);
    يعرض هنا هو ما يملك ولي الأمر إيقافه من شاشة إعداداته، لا قائمة ثانية
    تفترق عنها. */
 $tq_urgent_types = [
-    'exam_result'      => ['نتيجة امتحان',          'check-badge', 'mint'],
-    'placement_result' => ['نتيجة تحديد المستوى',   'crosshair',   'sand'],
-    'station_failed'   => ['رسوب في اختبار محطة',   'target',      'rose'],
-    'inactivity_3days' => ['انقطاع ثلاثة أيام',     'clock',       'peach'],
-    'session_request'  => ['طلب حصة خاصة',          'video',       'lilac'],
-    'certificate'      => ['شهادة جديدة',           'award',       'sky'],
+    'exam_result'      => [t('نتيجة امتحان'),          'check-badge', 'mint'],
+    'placement_result' => [t('نتيجة تحديد المستوى'),   'crosshair',   'sand'],
+    'station_failed'   => [t('رسوب في اختبار محطة'),   'target',      'rose'],
+    'inactivity_3days' => [t('انقطاع ثلاثة أيام'),     'clock',       'peach'],
+    'session_request'  => [t('طلب حصة خاصة'),          'video',       'lilac'],
+    'certificate'      => [t('شهادة جديدة'),           'award',       'sky'],
 ];
 
 $tq_all = $this->db->query(
@@ -93,7 +93,7 @@ if ($tq_unread > 0) {
               . tq_csrf()
               . '<input type="hidden" name="tq_action" value="alerts_read_all">'
               . '<button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">'
-              . 'تحديد الكل كمقروء (' . TQ_LRI . $tq_unread . TQ_PDI . ')</button></form>';
+              . t('تحديد الكل كمقروء (') . TQ_LRI . $tq_unread . TQ_PDI . ')</button></form>';
 }
 
 include 'portal_open.php';
@@ -105,12 +105,12 @@ include 'portal_open.php';
         <?php /* TQ-SPAM — ما يصل ولي الأمر بالبريد هو رسوب ابنه وانقطاعه
                  وتقرير أحده، وهي أخبار لا يعلم أنها فاتته أصلا: لا شيء
                  ينبهه إلى غيابها. فالتنبيه في أعلى شاشة تنبيهاته. */ ?>
-        <?php echo tq_spam_notice(array('what' => 'تنبيهاتنا', 'class' => 'tq-spam--top')); ?>
+        <?php echo tq_spam_notice(array('what' => t('تنبيهاتنا'), 'class' => 'tq-spam--top')); ?>
 
         <!-- ما يستحق المقاطعة -->
         <section class="tq-section" aria-labelledby="tq-urgent-h">
             <div class="tq-sectionhead">
-                <h2 id="tq-urgent-h">يستحق انتباهك الآن</h2>
+                <h2 id="tq-urgent-h"><?php echo t('يستحق انتباهك الآن'); ?></h2>
                 <?php if ($tq_urgent): ?>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_urgent) . TQ_PDI; ?></span>
                 <?php endif; ?>
@@ -140,10 +140,10 @@ include 'portal_open.php';
                                 </div>
                                 <span class="tq-micro"><?php echo html_escape(tq_since((int) $tq_n['created_at'])); ?></span>
                                 <?php if (empty($tq_prefs[$tq_n['type']])): ?>
-                                    <?php echo tq_badge('idle', 'نوع أوقفته'); ?>
+                                    <?php echo tq_badge('idle', t('نوع أوقفته')); ?>
                                 <?php endif; ?>
                                 <?php if ((int) $tq_n['status'] === 0): ?>
-                                    <?php echo tq_badge('due', 'جديد'); ?>
+                                    <?php echo tq_badge('due', t('جديد')); ?>
                                 <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
@@ -152,12 +152,11 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--mint" style="color:var(--tq-mint-ink)" aria-hidden="true"><?php echo tq_icon('bell', 24); ?></span>
-                    <h3 class="tq-empty__title">لا شيء يستدعي المقاطعة</h3>
+                    <h3 class="tq-empty__title"><?php echo t('لا شيء يستدعي المقاطعة'); ?></h3>
                     <p class="tq-empty__text">
-                        لا نقاطعك إلا بنتيجة امتحان، أو نتيجة تحديد مستوى، أو رسوب في
-                        اختبار محطة، أو انقطاع ثلاثة أيام، أو طلب حصة خاصة، أو شهادة جديدة.
+                        <?php echo t('لا نقاطعك إلا بنتيجة امتحان، أو نتيجة تحديد مستوى، أو رسوب في اختبار محطة، أو انقطاع ثلاثة أيام، أو طلب حصة خاصة، أو شهادة جديدة.'); ?>
                     </p>
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/weekly'); ?>">التقرير الأسبوعي</a>
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/weekly'); ?>"><?php echo t('التقرير الأسبوعي'); ?></a>
                 </div>
             <?php endif; ?>
         </section>
@@ -165,7 +164,7 @@ include 'portal_open.php';
         <!-- ما ينتظر التقرير الأسبوعي -->
         <section aria-labelledby="tq-later-h">
             <div class="tq-sectionhead">
-                <h2 id="tq-later-h">ينتظر التقرير الأسبوعي</h2>
+                <h2 id="tq-later-h"><?php echo t('ينتظر التقرير الأسبوعي'); ?></h2>
                 <?php if ($tq_later): ?>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_later) . TQ_PDI; ?></span>
                 <?php endif; ?>
@@ -174,7 +173,7 @@ include 'portal_open.php';
             <?php if ($tq_later): ?>
                 <div class="tq-card">
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                        هذه أحداث مفيدة لكنها لا تستدعي أن تقطع يومك. تصلك مجمعة صباح الأحد.
+                        <?php echo t('هذه أحداث مفيدة لكنها لا تستدعي أن تقطع يومك. تصلك مجمعة صباح الأحد.'); ?>
                     </p>
                     <ul class="tq-stack">
                         <?php foreach ($tq_later as $tq_n): ?>
@@ -193,9 +192,9 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-card tq-empty">
                     <span class="tq-icon-box tq-pastel--sand" style="color:var(--tq-sand-ink)" aria-hidden="true"><?php echo tq_icon('clipboard', 24); ?></span>
-                    <h3 class="tq-empty__title">لا شيء مؤجل</h3>
-                    <p class="tq-empty__text">كل ما لا يستحق المقاطعة يجمع هنا ويصلك في تقرير الأحد.</p>
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent'); ?>">أبنائي</a>
+                    <h3 class="tq-empty__title"><?php echo t('لا شيء مؤجل'); ?></h3>
+                    <p class="tq-empty__text"><?php echo t('كل ما لا يستحق المقاطعة يجمع هنا ويصلك في تقرير الأحد.'); ?></p>
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent'); ?>"><?php echo t('أبنائي'); ?></a>
                 </div>
             <?php endif; ?>
         </section>
@@ -203,7 +202,7 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-card">
-            <div class="tq-card__head"><h2 class="tq-card__title">ما الذي يقاطعك</h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('ما الذي يقاطعك'); ?></h2></div>
             <ul class="tq-stack">
                 <?php foreach ($tq_urgent_types as $tq_key => $tq_t): ?>
                     <?php $tq_on = !empty($tq_prefs[$tq_key]); ?>
@@ -213,22 +212,21 @@ include 'portal_open.php';
                             <?php echo tq_icon($tq_t[1]); ?>
                         </span>
                         <span class="tq-strong" style="flex:1;color:var(--tq-navy)"><?php echo html_escape($tq_t[0]); ?></span>
-                        <?php echo $tq_on ? tq_badge('mastered', 'يصلك') : tq_badge('idle', 'أوقفته'); ?>
+                        <?php echo $tq_on ? tq_badge('mastered', t('يصلك')) : tq_badge('idle', t('أوقفته')); ?>
                     </li>
                 <?php endforeach; ?>
             </ul>
             <p class="tq-micro" style="margin-block-start:var(--tq-space-l)">
                 هذه وحدها تقاطعك. ما عداها ينتظر تقرير الأحد
-                <?php echo !empty($tq_prefs['weekly']) ? '(وهو مفعل عندك)' : '(وقد أوقفته أنت)'; ?>.
-                <a href="<?php echo base_url('parent/settings'); ?>">غير ما يصلك</a>.
+                <?php echo !empty($tq_prefs['weekly']) ? t('(وهو مفعل عندك)') : t('(وقد أوقفته أنت)'); ?>.
+                <a href="<?php echo base_url('parent/settings'); ?>"><?php echo t('غير ما يصلك'); ?></a>.
             </p>
         </div>
 
         <div class="tq-pastel tq-pastel--lilac">
-            <span class="tq-pastel__label tq-micro">لماذا نقلل الإشعارات</span>
+            <span class="tq-pastel__label tq-micro"><?php echo t('لماذا نقلل الإشعارات'); ?></span>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                الإشعار الذي يتكرر بلا سبب يغلق كله، فيضيع معه الإشعار المهم.
-                نقاطعك قليلا لتنتبه حين نقاطعك.
+                <?php echo t('الإشعار الذي يتكرر بلا سبب يغلق كله، فيضيع معه الإشعار المهم. نقاطعك قليلا لتنتبه حين نقاطعك.'); ?>
             </p>
         </div>
     </aside>

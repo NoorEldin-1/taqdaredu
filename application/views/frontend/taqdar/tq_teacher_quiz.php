@@ -33,8 +33,8 @@ $tq_course = $tq_lesson
     ? $CI->db->select('id, title')->where('id', (int) $tq_lesson['course_id'])->get('course')->row_array()
     : null;
 
-$tq_title = 'اختبار: ' . (string) ($tq_lesson['title'] ?? '');
-$tq_sub   = 'الأسئلة التي يجيب عنها الطالب بعد الدرس — وبها يفتح الدرس التالي.';
+$tq_title = t('اختبار:') . (string) ($tq_lesson['title'] ?? '');
+$tq_sub   = t('الأسئلة التي يجيب عنها الطالب بعد الدرس — وبها يفتح الدرس التالي.');
 
 $tq_quiz  = $CI->tq_quiz->quiz_of($tq_lid);
 $tq_rows  = $CI->tq_quiz->questions($tq_lid, true);
@@ -85,27 +85,24 @@ include 'portal_open.php';
 
 <?php /* ── ما يحدث للطالب: يقال أولا، لا بعد أن يؤلف عشرين سؤالا ─── */ ?>
 <div class="tq-card tq-section">
-    <h2 class="tq-card__title">ما الذي يفعله هذا الاختبار</h2>
+    <h2 class="tq-card__title"><?php echo t('ما الذي يفعله هذا الاختبار'); ?></h2>
     <p class="tq-caption" style="margin-block:var(--tq-space-s) var(--tq-space-m)">
-        الطالب يشاهد الدرس، ثم يفتح له هذا الاختبار.
-        <strong>ولا يفتح له الدرس التالي حتى يجتازه</strong> —
-        ومن لم يجتز يعاد إلى دقيقة المفهوم الذي أخطأ فيه، ثم يعرض له شرح بديل،
-        ثم يحال إلى معلمه في المحاولة الثالثة. ولا حد لعدد المحاولات: العقاب بقاء
-        القفل لا منع الإعادة.
+        <?php echo t('الطالب يشاهد الدرس، ثم يفتح له هذا الاختبار.'); ?>
+        <strong><?php echo t('ولا يفتح له الدرس التالي حتى يجتازه'); ?></strong> <?php echo t('— ومن لم يجتز يعاد إلى دقيقة المفهوم الذي أخطأ فيه، ثم يعرض له شرح بديل، ثم يحال إلى معلمه في المحاولة الثالثة. ولا حد لعدد المحاولات: العقاب بقاء القفل لا منع الإعادة.'); ?>
     </p>
 
     <div class="tqz-gate">
         <div class="tqz-gate__c">
             <span class="tqz-gate__n"><?php echo tq_iso($tq_ready['questions']); ?></span>
-            <span class="tqz-gate__l">سؤالا في الاختبار</span>
+            <span class="tqz-gate__l"><?php echo t('سؤالا في الاختبار'); ?></span>
         </div>
         <div class="tqz-gate__c">
             <span class="tqz-gate__n"><?php echo tq_iso($tq_pass); ?></span>
-            <span class="tqz-gate__l">حد النجاح — الصحيح اللازم للاجتياز</span>
+            <span class="tqz-gate__l"><?php echo t('حد النجاح — الصحيح اللازم للاجتياز'); ?></span>
         </div>
         <div class="tqz-gate__c">
             <span class="tqz-gate__n"><?php echo $tq_secs > 0 ? tq_iso(intdiv($tq_secs, 60)) : '∞'; ?></span>
-            <span class="tqz-gate__l"><?php echo $tq_secs > 0 ? 'دقيقة حدا زمنيا' : 'بلا حد زمني'; ?></span>
+            <span class="tqz-gate__l"><?php echo $tq_secs > 0 ? t('دقيقة حدا زمنيا') : t('بلا حد زمني'); ?></span>
         </div>
     </div>
 
@@ -114,8 +111,8 @@ include 'portal_open.php';
              role="<?php echo $tq_ready['ok'] ? 'status' : 'alert'; ?>">
             <strong>
                 <?php echo $tq_ready['ok']
-                    ? 'الاختبار يعمل، وهذا ما يمكن تحسينه:'
-                    : 'هذا الاختبار لا يعمل بعد:'; ?>
+                    ? t('الاختبار يعمل، وهذا ما يمكن تحسينه:')
+                    : t('هذا الاختبار لا يعمل بعد:'); ?>
             </strong>
             <ul style="margin:var(--tq-space-s) 0 0;padding-inline-start:var(--tq-space-l)">
                 <?php foreach ($tq_ready['why'] as $tq_w): ?>
@@ -124,8 +121,7 @@ include 'portal_open.php';
             </ul>
             <?php if ($tq_ready['questions'] === 0): ?>
                 <p style="margin-block-start:var(--tq-space-s)">
-                    وما دام بلا أسئلة فالبوابة تعمل بالطريقة القديمة:
-                    أسئلة مربوطة بأهداف هذا الدرس إن وجدت، وإلا فتح الدرس التالي بإتمام المشاهدة وحدها.
+                    <?php echo t('وما دام بلا أسئلة فالبوابة تعمل بالطريقة القديمة: أسئلة مربوطة بأهداف هذا الدرس إن وجدت، وإلا فتح الدرس التالي بإتمام المشاهدة وحدها.'); ?>
                 </p>
             <?php endif; ?>
         </div>
@@ -134,29 +130,27 @@ include 'portal_open.php';
 
 <?php /* ── إعدادات الاختبار ──────────────────────────────────────── */ ?>
 <details class="tq-card tq-section">
-    <summary class="tq-card__title" style="cursor:pointer">إعدادات الاختبار</summary>
+    <summary class="tq-card__title" style="cursor:pointer"><?php echo t('إعدادات الاختبار'); ?></summary>
     <form method="post" action="<?php echo base_url('teacher/quiz/settings'); ?>"
           style="margin-block-start:var(--tq-space-l)">
         <?php echo tq_csrf(); ?>
         <input type="hidden" name="lesson_id" value="<?php echo $tq_lid; ?>">
 
         <div class="tq-field">
-            <label class="tq-field__label" for="qz_pass">حد النجاح</label>
+            <label class="tq-field__label" for="qz_pass"><?php echo t('حد النجاح'); ?></label>
             <input class="tq-input tq-ltr" type="number" id="qz_pass" name="pass_mark" dir="ltr"
                    min="1" max="50" value="<?php echo $tq_pass; ?>">
             <span class="tq-caption">
-                عدد الإجابات الصحيحة اللازمة للاجتياز. ولا يكون أكبر من عدد الأسئلة —
-                وإلا لم يجتزه أحد أبدا وبقي الدرس التالي مقفلا على الجميع.
+                <?php echo t('عدد الإجابات الصحيحة اللازمة للاجتياز. ولا يكون أكبر من عدد الأسئلة — وإلا لم يجتزه أحد أبدا وبقي الدرس التالي مقفلا على الجميع.'); ?>
             </span>
         </div>
 
         <div class="tq-field">
-            <label class="tq-field__label" for="qz_secs">الحد الزمني (بالثواني)</label>
+            <label class="tq-field__label" for="qz_secs"><?php echo t('الحد الزمني (بالثواني)'); ?></label>
             <input class="tq-input tq-ltr" type="number" id="qz_secs" name="time_limit_sec" dir="ltr"
                    min="0" step="30" value="<?php echo $tq_secs; ?>">
             <span class="tq-caption">
-                صفر = بلا حد. والضغط الزمني يقيس السرعة لا الفهم — فاتركه صفرا
-                إلا أن يكون الاختبار عن سرعة الحساب نفسها.
+                <?php echo t('صفر = بلا حد. والضغط الزمني يقيس السرعة لا الفهم — فاتركه صفرا إلا أن يكون الاختبار عن سرعة الحساب نفسها.'); ?>
             </span>
         </div>
 
@@ -175,12 +169,12 @@ include 'portal_open.php';
     $q_hidden     = array('lesson_id' => $tq_lid);
     $q_objectives = $tq_objectives;
     $q_rows       = $tq_rows;
-    $q_intro      = 'سؤال اختيار من متعدد. والموصى به خمسة أسئلة تغطي أهداف الدرس '
-                  . 'كلها — سؤالان يقيسان الحظ، وعشرون يرهقان.';
+    $q_intro      = t('سؤال اختيار من متعدد. والموصى به خمسة أسئلة تغطي أهداف الدرس')
+                  . t('كلها — سؤالان يقيسان الحظ، وعشرون يرهقان.');
 
     if (!$tq_objectives) {
-        $q_intro .= ' <strong>وهذا الدرس بلا أهداف بعد</strong> — أضفها من شاشة تحرير الدرس '
-                  . 'ليمكن ربط كل سؤال بما يقيسه.';
+        $q_intro .= t('<strong>وهذا الدرس بلا أهداف بعد</strong> — أضفها من شاشة تحرير الدرس')
+                  . t('ليمكن ربط كل سؤال بما يقيسه.');
     }
 
     include APPPATH . 'views/components/tq_question_editor.php';
@@ -194,18 +188,17 @@ foreach ($tq_stats as $tq_s) $tq_answered += (int) $tq_s['answered'];
 ?>
 <?php if ($tq_answered > 0): ?>
 <div class="tq-card tq-section">
-    <h2 class="tq-card__title">أداء الطلاب في كل سؤال</h2>
+    <h2 class="tq-card__title"><?php echo t('أداء الطلاب في كل سؤال'); ?></h2>
     <p class="tq-caption" style="margin-block:var(--tq-space-s) var(--tq-space-m)">
-        سؤال يخطئ فيه أكثر الطلاب يقرأ عن الشرح لا عن الطلاب: إما أن صياغته ملتبسة،
-        وإما أن مفهومه لم يشرح في الدرس.
+        <?php echo t('سؤال يخطئ فيه أكثر الطلاب يقرأ عن الشرح لا عن الطلاب: إما أن صياغته ملتبسة، وإما أن مفهومه لم يشرح في الدرس.'); ?>
     </p>
     <table class="tq-table">
         <thead>
             <tr>
-                <th scope="col">السؤال</th>
-                <th scope="col">أجاب</th>
-                <th scope="col">أصاب</th>
-                <th scope="col">نسبة الإصابة</th>
+                <th scope="col"><?php echo t('السؤال'); ?></th>
+                <th scope="col"><?php echo t('أجاب'); ?></th>
+                <th scope="col"><?php echo t('أصاب'); ?></th>
+                <th scope="col"><?php echo t('نسبة الإصابة'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -222,7 +215,7 @@ foreach ($tq_stats as $tq_s) $tq_answered += (int) $tq_s['answered'];
                         <?php echo tq_iso($tq_p . '%'); ?>
                     </span>
                     <?php if ($tq_n >= 5 && $tq_p < 40): ?>
-                        <span class="tq-caption" style="display:block">راجع صياغته أو أعد شرح مفهومه</span>
+                        <span class="tq-caption" style="display:block"><?php echo t('راجع صياغته أو أعد شرح مفهومه'); ?></span>
                     <?php endif; ?>
                 </td>
             </tr>
@@ -240,18 +233,18 @@ foreach ($tq_stats as $tq_s) $tq_answered += (int) $tq_s['answered'];
 <?php if ($tq_att): ?>
 <div class="tq-card tq-section">
     <div class="tq-card__head">
-        <h2 class="tq-card__title">من أدى هذا الاختبار</h2>
+        <h2 class="tq-card__title"><?php echo t('من أدى هذا الاختبار'); ?></h2>
         <span class="tq-caption"><?php echo tq_iso(count($tq_att)); ?> محاولة مسلمة</span>
     </div>
     <table class="tq-table">
-        <caption class="tq-sr">محاولات اختبار هذا الدرس: الطالب ورقم المحاولة ونتيجتها</caption>
+        <caption class="tq-sr"><?php echo t('محاولات اختبار هذا الدرس: الطالب ورقم المحاولة ونتيجتها'); ?></caption>
         <thead>
             <tr>
-                <th scope="col">الطالب</th>
-                <th scope="col">المحاولة</th>
-                <th scope="col">الصحيح</th>
-                <th scope="col">النتيجة</th>
-                <th scope="col">التسليم</th>
+                <th scope="col"><?php echo t('الطالب'); ?></th>
+                <th scope="col"><?php echo t('المحاولة'); ?></th>
+                <th scope="col"><?php echo t('الصحيح'); ?></th>
+                <th scope="col"><?php echo t('النتيجة'); ?></th>
+                <th scope="col"><?php echo t('التسليم'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -266,7 +259,7 @@ foreach ($tq_stats as $tq_s) $tq_answered += (int) $tq_s['answered'];
                 </td>
                 <td data-label="النتيجة">
                     <?php echo tq_badge((int) $tq_a['passed'] === 1 ? 'mastered' : 'late',
-                                        (int) $tq_a['passed'] === 1 ? 'اجتاز' : 'لم يجتز'); ?>
+                                        (int) $tq_a['passed'] === 1 ? t('اجتاز') : t('لم يجتز')); ?>
                 </td>
                 <td data-label="التسليم">
                     <span class="tq-ltr" dir="ltr"><?php echo html_escape(substr((string) $tq_a['submitted_at'], 0, 16)); ?></span>

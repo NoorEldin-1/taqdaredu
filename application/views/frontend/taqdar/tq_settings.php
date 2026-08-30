@@ -34,8 +34,8 @@ if (!isset($tq_counts)) $tq_counts = tq_s_counts($tq_uid);
 
 $tq_nav   = 'settings';
 $tq_role  = $tq_role ?? 'student';
-$tq_title = 'الإعدادات';
-$tq_sub   = 'إدارة حسابك وتفضيلاتك';
+$tq_title = t('الإعدادات');
+$tq_sub   = t('إدارة حسابك وتفضيلاتك');
 $tq_icon  = 'cog';
 
 $u = $CI->db->where('id', $tq_uid)->get('users')->row_array() ?: [];
@@ -61,19 +61,19 @@ $tq_last_pay = $CI->db->table_exists('subscriptions')
              ->order_by('id', 'DESC')->limit(1)
              ->get('subscriptions')->row_array()
     : null;
-$tq_pay_names = ['manual' => 'تحويل بنكي يدوي', 'free' => 'باقة مجانية'];
+$tq_pay_names = ['manual' => t('تحويل بنكي يدوي'), 'free' => t('باقة مجانية')];
 
 $tq_save = base_url('student/settings/save');
 $tq_ok   = $CI->session->flashdata('flash_message');
 $tq_err  = $CI->session->flashdata('error_message');
 
 $sections = [
-    ['profile',  'الملف الشخصي',      'users'],
-    ['security', 'الأمان والخصوصية',  'lock'],
-    ['alerts',   'التنبيهات',         'bell'],
-    ['prefs',    'التفضيلات العامة',  'cog'],
-    ['billing',  'طريقة الدفع',       'wallet'],
-    ['offline',  'تحميلاتك',          'download'],
+    ['profile',  t('الملف الشخصي'),      'users'],
+    ['security', t('الأمان والخصوصية'),  'lock'],
+    ['alerts',   t('التنبيهات'),         'bell'],
+    ['prefs',    t('التفضيلات العامة'),  'cog'],
+    ['billing',  t('طريقة الدفع'),       'wallet'],
+    ['offline',  t('تحميلاتك'),          'download'],
 ];
 $active = (string) $CI->input->get('s', true);
 if (!in_array($active, array_column($sections, 0), true)) $active = 'profile';
@@ -97,7 +97,7 @@ include 'portal_open.php';
 
         <div class="tq-grid" style="grid-template-columns:220px minmax(0,1fr);gap:var(--tq-space-xxl)">
 
-            <nav class="tq-card" aria-label="أقسام الإعدادات" style="padding:var(--tq-space-s)">
+            <nav class="tq-card" aria-label="<?php echo te('أقسام الإعدادات'); ?>" style="padding:var(--tq-space-s)">
                 <?php foreach ($sections as [$key, $label, $icon]): ?>
                     <a class="tq-rail__item" href="?s=<?php echo $key; ?>"
                        <?php echo $key === $active ? ' aria-current="page"' : ''; ?>>
@@ -130,14 +130,13 @@ include 'portal_open.php';
                         ?>
                         <?php if ($tq_pending_links): ?>
                             <div class="tq-card tq-card--panel" style="margin-block-end:var(--tq-space-xl)">
-                                <h2 class="tq-card__title">طلب متابعة من ولي أمر</h2>
+                                <h2 class="tq-card__title"><?php echo t('طلب متابعة من ولي أمر'); ?></h2>
                                 <p class="tq-caption">
-                                    الموافقة تمنحه الاطلاع على تقدمك ونتائجك. وهي قرارك أنت،
-                                    ويمكنك سحبها متى شئت.
+                                    <?php echo t('الموافقة تمنحه الاطلاع على تقدمك ونتائجك. وهي قرارك أنت، ويمكنك سحبها متى شئت.'); ?>
                                 </p>
 
                                 <div class="tq-pastel tq-pastel--sand" style="margin-block:var(--tq-space-l)">
-                                    <span class="tq-pastel__label tq-micro">نص ما توقع عليه</span>
+                                    <span class="tq-pastel__label tq-micro"><?php echo t('نص ما توقع عليه'); ?></span>
                                     <p class="tq-pastel__body" style="margin:var(--tq-space-xs) 0 0">
                                         <?php echo html_escape(Taqdar_parent_model::CONSENT_TEXT); ?>
                                     </p>
@@ -154,18 +153,18 @@ include 'portal_open.php';
                                             <?php echo tq_csrf(); ?>
                                             <input type="hidden" name="link_id" value="<?php echo (int) $tq_pl['id']; ?>">
                                             <input type="hidden" name="act" value="approve">
-                                            <button type="submit" class="tq-btn tq-btn--mastery tq-btn--sm">أوافق</button>
+                                            <button type="submit" class="tq-btn tq-btn--mastery tq-btn--sm"><?php echo t('أوافق'); ?></button>
                                         </form>
 
                                         <form method="post" action="<?php echo base_url('student/parent-link'); ?>" class="tq-form-inline"
                                               data-tq-confirm-title="رفض طلب <?php echo html_escape($tq_pl['name']); ?>؟"
-                                              data-tq-confirm="لن يفتح شيء من بياناتك، ويصله أنك لم توافق."
+                                              data-tq-confirm="<?php echo te('لن يفتح شيء من بياناتك، ويصله أنك لم توافق.'); ?>"
                                               data-tq-confirm-note="القرار قرارك وحدك، ولك أن تقبل طلبا جديدا منه لاحقا."
                                               data-tq-confirm-ok="أرفض الطلب">
                                             <?php echo tq_csrf(); ?>
                                             <input type="hidden" name="link_id" value="<?php echo (int) $tq_pl['id']; ?>">
                                             <input type="hidden" name="act" value="reject">
-                                            <button type="submit" class="tq-btn tq-btn--secondary tq-btn--sm">أرفض</button>
+                                            <button type="submit" class="tq-btn tq-btn--secondary tq-btn--sm"><?php echo t('أرفض'); ?></button>
                                         </form>
                                     </div>
                                 <?php endforeach; ?>
@@ -174,10 +173,9 @@ include 'portal_open.php';
 
                         <?php if ($tq_active_links): ?>
                             <div class="tq-card tq-card--panel" style="margin-block-end:var(--tq-space-xl)">
-                                <h2 class="tq-card__title">من يتابع حسابك</h2>
+                                <h2 class="tq-card__title"><?php echo t('من يتابع حسابك'); ?></h2>
                                 <p class="tq-caption">
-                                    يرى تقدمك في المواد وأيام نشاطك ونتائج اختباراتك ومدفوعاتك وملاحظات معلميك.
-                                    ولا يرى محادثاتك مع المساعد الذكي ولا منشوراتك ولا إجاباتك الخاطئة مفردة.
+                                    <?php echo t('يرى تقدمك في المواد وأيام نشاطك ونتائج اختباراتك ومدفوعاتك وملاحظات معلميك. ولا يرى محادثاتك مع المساعد الذكي ولا منشوراتك ولا إجاباتك الخاطئة مفردة.'); ?>
                                 </p>
 
                                 <?php foreach ($tq_active_links as $tq_al): ?>
@@ -188,24 +186,24 @@ include 'portal_open.php';
                                                 وافقت بتاريخ <?php echo TQ_LRI . html_escape((string) $tq_al['consent_at']) . TQ_PDI; ?>
                                             </span>
                                         </span>
-                                        <?php echo tq_badge('mastered', 'يتابعك'); ?>
+                                        <?php echo tq_badge('mastered', t('يتابعك')); ?>
                                         <form method="post" action="<?php echo base_url('student/parent-link'); ?>" class="tq-form-inline"
                                               data-tq-confirm-title="سحب موافقتك على متابعة <?php echo html_escape($tq_al['name']); ?>؟"
-                                              data-tq-confirm="لن يرى شيئا من بياناتك بعدها، ويصله إشعار بأنك سحبت موافقتك."
+                                              data-tq-confirm="<?php echo te('لن يرى شيئا من بياناتك بعدها، ويصله إشعار بأنك سحبت موافقتك.'); ?>"
                                               data-tq-confirm-note="يبقى في السجل تاريخ موافقتك وتاريخ سحبها. ولك أن توافق من جديد متى شئت."
                                               data-tq-confirm-ok="أسحب موافقتي"
                                               data-tq-confirm-tone="danger">
                                             <?php echo tq_csrf(); ?>
                                             <input type="hidden" name="link_id" value="<?php echo (int) $tq_al['id']; ?>">
                                             <input type="hidden" name="act" value="withdraw">
-                                            <button type="submit" class="tq-btn tq-btn--ghost tq-btn--sm">أسحب موافقتي</button>
+                                            <button type="submit" class="tq-btn tq-btn--ghost tq-btn--sm"><?php echo t('أسحب موافقتي'); ?></button>
                                         </form>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
 
-                        <h2 class="tq-card__title">الملف الشخصي</h2>
+                        <h2 class="tq-card__title"><?php echo t('الملف الشخصي'); ?></h2>
 
                         <form method="post" action="<?php echo $tq_save; ?>" enctype="multipart/form-data">
                             <?php echo tq_csrf(); ?>
@@ -214,14 +212,14 @@ include 'portal_open.php';
 
                             <div class="tq-row" style="gap:var(--tq-space-l);margin-block:var(--tq-space-l) var(--tq-space-xl)">
                                 <img class="tq-avatar tq-avatar--lg" src="<?php echo html_escape($tq_avatar); ?>"
-                                     alt="صورتك الحالية">
+                                     alt="<?php echo te('صورتك الحالية'); ?>">
                                 <div class="tq-field" style="flex:1;min-inline-size:0;margin-block-end:0">
-                                    <label class="tq-field__label" for="tq-avatar">الصورة الشخصية</label>
+                                    <label class="tq-field__label" for="tq-avatar"><?php echo t('الصورة الشخصية'); ?></label>
                                     <input class="tq-input" id="tq-avatar" name="user_image" type="file"
                                            accept="image/jpeg,image/png,image/webp"
                                            aria-describedby="tq-avatar-hint">
                                     <span class="tq-field__msg tq-field__hint" id="tq-avatar-hint">
-                                        JPG أو PNG أو WebP، الحد الأقصى <?php echo tq_iso('2 ميجابايت'); ?>.
+                                        JPG أو PNG أو WebP، الحد الأقصى <?php echo tq_iso(t('2 ميجابايت')); ?>.
                                         اتركه فارغا لتبقى صورتك كما هي.
                                     </span>
                                 </div>
@@ -229,13 +227,13 @@ include 'portal_open.php';
 
                             <div class="tq-fieldgrid">
                                 <div class="tq-field">
-                                    <label class="tq-field__label" for="tq-first">الاسم الأول</label>
+                                    <label class="tq-field__label" for="tq-first"><?php echo t('الاسم الأول'); ?></label>
                                     <input class="tq-input" id="tq-first" name="first_name" type="text"
                                            required maxlength="120" autocomplete="given-name"
                                            value="<?php echo html_escape($u['first_name'] ?? ''); ?>">
                                 </div>
                                 <div class="tq-field">
-                                    <label class="tq-field__label" for="tq-last">الاسم الأخير</label>
+                                    <label class="tq-field__label" for="tq-last"><?php echo t('الاسم الأخير'); ?></label>
                                     <input class="tq-input" id="tq-last" name="last_name" type="text"
                                            maxlength="120" autocomplete="family-name"
                                            value="<?php echo html_escape($u['last_name'] ?? ''); ?>">
@@ -243,15 +241,14 @@ include 'portal_open.php';
                             </div>
 
                             <div class="tq-field">
-                                <label class="tq-field__label" for="tq-email">البريد الإلكتروني</label>
+                                <label class="tq-field__label" for="tq-email"><?php echo t('البريد الإلكتروني'); ?></label>
                                 <input class="tq-input" id="tq-email" name="email" type="email" dir="ltr"
                                        required maxlength="50" autocomplete="email"
                                        aria-describedby="tq-email-hint"
                                        value="<?php echo html_escape($u['email'] ?? ''); ?>">
                                 <span class="tq-field__msg tq-field__hint" id="tq-email-hint">
-                                    بريدك هو اسم دخولك — تغييره يغير ما تسجل به الدخول.
-                                    ولا تصلك رسائلنا عليه؟
-                                    <a href="<?php echo base_url('student/settings?s=alerts#tq-spam'); ?>">اقرأ ما تفعله في دقيقة</a>.
+                                    <?php echo t('بريدك هو اسم دخولك — تغييره يغير ما تسجل به الدخول. ولا تصلك رسائلنا عليه؟'); ?>
+                                    <a href="<?php echo base_url('student/settings?s=alerts#tq-spam'); ?>"><?php echo t('اقرأ ما تفعله في دقيقة'); ?></a>.
                                 </span>
                             </div>
 
@@ -261,17 +258,17 @@ include 'portal_open.php';
                                      يحفظ `+9665…` تجعل معلما يعدل عنوانه فيفقد
                                      إشعاراته. */ ?>
                             <div class="tq-field">
-                                <label class="tq-field__label" for="tq-phone">رقم الجوال</label>
+                                <label class="tq-field__label" for="tq-phone"><?php echo t('رقم الجوال'); ?></label>
                                 <?php echo tq_phone_field('phone', array(
                                     'skin'  => 'portal',
                                     'id'    => 'tq-phone',
                                     'value' => (string) ($u['phone'] ?? ''),
-                                    'hint'  => 'عليه تصلك رسائل واتساب من المنصة.',
+                                    'hint'  => t('عليه تصلك رسائل واتساب من المنصة.'),
                                 )); ?>
                             </div>
 
                             <div class="tq-formbar">
-                                <button class="tq-btn tq-btn--primary" type="submit">حفظ بيانات الملف</button>
+                                <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('حفظ بيانات الملف'); ?></button>
                             </div>
                         </form>
 
@@ -285,36 +282,36 @@ include 'portal_open.php';
 
                 <?php elseif ($active === 'security'): ?>
                     <section class="tq-card">
-                        <h2 class="tq-card__title">كلمة المرور</h2>
+                        <h2 class="tq-card__title"><?php echo t('كلمة المرور'); ?></h2>
                         <form method="post" action="<?php echo $tq_save; ?>">
                             <?php echo tq_csrf(); ?>
                             <input type="hidden" name="action" value="password">
                             <input type="hidden" name="s" value="security">
 
                             <div class="tq-field">
-                                <label class="tq-field__label" for="tq-pw-cur">كلمة المرور الحالية</label>
+                                <label class="tq-field__label" for="tq-pw-cur"><?php echo t('كلمة المرور الحالية'); ?></label>
                                 <input class="tq-input" id="tq-pw-cur" name="current_password" type="password"
                                        required autocomplete="current-password">
                             </div>
                             <div class="tq-fieldgrid">
                                 <div class="tq-field">
-                                    <label class="tq-field__label" for="tq-pw-new">كلمة المرور الجديدة</label>
+                                    <label class="tq-field__label" for="tq-pw-new"><?php echo t('كلمة المرور الجديدة'); ?></label>
                                     <input class="tq-input" id="tq-pw-new" name="new_password" type="password"
                                            required minlength="8" autocomplete="new-password"
                                            aria-describedby="tq-pw-hint">
                                     <span class="tq-field__msg tq-field__hint" id="tq-pw-hint">
-                                        <?php echo tq_iso('ثمانية محارف فأكثر.'); ?>
+                                        <?php echo tq_iso(t('ثمانية محارف فأكثر.')); ?>
                                     </span>
                                 </div>
                                 <div class="tq-field">
-                                    <label class="tq-field__label" for="tq-pw-again">تأكيد كلمة المرور</label>
+                                    <label class="tq-field__label" for="tq-pw-again"><?php echo t('تأكيد كلمة المرور'); ?></label>
                                     <input class="tq-input" id="tq-pw-again" name="confirm_password" type="password"
                                            required minlength="8" autocomplete="new-password">
                                 </div>
                             </div>
 
                             <div class="tq-formbar">
-                                <button class="tq-btn tq-btn--primary" type="submit">تغيير كلمة المرور</button>
+                                <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('تغيير كلمة المرور'); ?></button>
                             </div>
                         </form>
                     </section>
@@ -342,7 +339,7 @@ include 'portal_open.php';
                     $tq_here = session_id();
                     ?>
                     <section class="tq-card">
-                        <h2 class="tq-card__title">الجلسات والأجهزة</h2>
+                        <h2 class="tq-card__title"><?php echo t('الجلسات والأجهزة'); ?></h2>
                         <p class="tq-caption">
                             كل جهاز سجلت منه دخولا ولم تخرج منه بعد. والحد
                             <?php echo tq_iso(html_escape((string) (get_settings('allowed_device_number_of_loging') ?: '—'))); ?>
@@ -350,16 +347,16 @@ include 'portal_open.php';
                         </p>
 
                         <?php if (!$tq_sessions): ?>
-                            <p class="tq-caption" style="margin-block-end:0">لا جلسة مسجلة غير هذه.</p>
+                            <p class="tq-caption" style="margin-block-end:0"><?php echo t('لا جلسة مسجلة غير هذه.'); ?></p>
                         <?php else: ?>
                             <div class="tq-table-wrap">
                                 <table class="tq-table">
-                                    <caption class="tq-sr">جلسات حسابك المفتوحة</caption>
+                                    <caption class="tq-sr"><?php echo t('جلسات حسابك المفتوحة'); ?></caption>
                                     <thead>
                                         <tr>
-                                            <th scope="col">الجهاز</th>
-                                            <th scope="col">عنوان الاتصال</th>
-                                            <th scope="col">آخر نشاط</th>
+                                            <th scope="col"><?php echo t('الجهاز'); ?></th>
+                                            <th scope="col"><?php echo t('عنوان الاتصال'); ?></th>
+                                            <th scope="col"><?php echo t('آخر نشاط'); ?></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -368,9 +365,9 @@ include 'portal_open.php';
                                             <tr>
                                                 <td data-label="الجهاز">
                                                     <?php if ($tq_is_here): ?>
-                                                        <span class="tq-badge tq-badge--mastered">هذا الجهاز</span>
+                                                        <span class="tq-badge tq-badge--mastered"><?php echo t('هذا الجهاز'); ?></span>
                                                     <?php else: ?>
-                                                        <span class="tq-caption">جهاز آخر</span>
+                                                        <span class="tq-caption"><?php echo t('جهاز آخر'); ?></span>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td data-label="عنوان الاتصال">
@@ -390,21 +387,19 @@ include 'portal_open.php';
                                  مسار كتابة لا وجود له في المتحكم، وزر يعد بما لا يقع أسوأ
                                  من غيابه. والخروج من هذا الجهاز بالزر أسفل الصفحة. */ ?>
                         <p class="tq-micro tq-muted" style="margin-block-end:0">
-                            إنهاء جلسة على جهاز آخر عن بعد غير متاح بعد. وتغيير كلمة المرور أعلاه
-                            يبقي الجلسات القائمة كما هي.
+                            <?php echo t('إنهاء جلسة على جهاز آخر عن بعد غير متاح بعد. وتغيير كلمة المرور أعلاه يبقي الجلسات القائمة كما هي.'); ?>
                         </p>
                     </section>
 
                     <section class="tq-card">
-                        <h2 class="tq-card__title">بياناتك</h2>
+                        <h2 class="tq-card__title"><?php echo t('بياناتك'); ?></h2>
                         <p class="tq-caption">
-                            حقان ينفذان كإجراءين لا كنص في سياسة: أن تأخذ نسخة من بياناتك،
-                            وأن تنهي حسابك.
+                            <?php echo t('حقان ينفذان كإجراءين لا كنص في سياسة: أن تأخذ نسخة من بياناتك، وأن تنهي حسابك.'); ?>
                         </p>
                         <div class="tq-s-row">
                             <div class="tq-s-row__main">
-                                <p class="tq-strong" style="margin:0">تصدير بياناتي</p>
-                                <p class="tq-micro" style="margin:0">ملف بكل ما يخص حسابك، يبنى ثم يصلك برابط مؤقت.</p>
+                                <p class="tq-strong" style="margin:0"><?php echo t('تصدير بياناتي'); ?></p>
+                                <p class="tq-micro" style="margin:0"><?php echo t('ملف بكل ما يخص حسابك، يبنى ثم يصلك برابط مؤقت.'); ?></p>
                             </div>
                             <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/export_data'); ?>">
                                 <?php echo tq_icon('download'); ?> طلب نسخة
@@ -412,22 +407,20 @@ include 'portal_open.php';
                         </div>
                         <div class="tq-s-row">
                             <div class="tq-s-row__main">
-                                <p class="tq-strong" style="margin:0">حذف الحساب</p>
+                                <p class="tq-strong" style="margin:0"><?php echo t('حذف الحساب'); ?></p>
                                 <p class="tq-micro" style="margin:0">
-                                    تستبدل بياناتك الشخصية بقيم مجهولة. وتبقى الفواتير بمعرف مجهول
-                                    لأن الالتزام الضريبي يوجب حفظها.
+                                    <?php echo t('تستبدل بياناتك الشخصية بقيم مجهولة. وتبقى الفواتير بمعرف مجهول لأن الالتزام الضريبي يوجب حفظها.'); ?>
                                 </p>
                             </div>
-                            <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('student/delete_account'); ?>">حذف حسابي</a>
+                            <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('student/delete_account'); ?>"><?php echo t('حذف حسابي'); ?></a>
                         </div>
                     </section>
 
                 <?php elseif ($active === 'alerts'): ?>
                     <section class="tq-card">
-                        <h2 class="tq-card__title">التنبيهات</h2>
+                        <h2 class="tq-card__title"><?php echo t('التنبيهات'); ?></h2>
                         <p class="tq-caption">
-                            لكل نوع قناتان مستقلتان — إيقاف قناة لا يوقف الأخرى.
-                            وليست هناك قناة «إشعار على الجهاز» لأن المنصة لا ترسل إشعارات دفع بعد.
+                            <?php echo t('لكل نوع قناتان مستقلتان — إيقاف قناة لا يوقف الأخرى. وليست هناك قناة «إشعار على الجهاز» لأن المنصة لا ترسل إشعارات دفع بعد.'); ?>
                         </p>
 
                         <?php /* TQ-SPAM — قناة البريد مفعلة في الجدول أدناه ولا يصل
@@ -436,7 +429,7 @@ include 'portal_open.php';
                                  كلها. فالتنبيه فوق الجدول لا تحته. */ ?>
                         <?php echo tq_spam_notice(array(
                             'email' => (string) ($u['email'] ?? ''),
-                            'what'  => 'إشعاراتنا',
+                            'what'  => t('إشعاراتنا'),
                         )); ?>
 
                         <form method="post" action="<?php echo $tq_save; ?>">
@@ -447,7 +440,7 @@ include 'portal_open.php';
                             <table class="tq-table">
                                 <thead>
                                     <tr>
-                                        <th scope="col">النوع</th>
+                                        <th scope="col"><?php echo t('النوع'); ?></th>
                                         <?php foreach ($tq_channels as $ck => $clabel): ?>
                                             <th scope="col"><?php echo html_escape($clabel); ?></th>
                                         <?php endforeach; ?>
@@ -482,12 +475,12 @@ include 'portal_open.php';
                                 </tbody>
                             </table>
 
-                            <h3 class="tq-card__title" style="font:var(--tq-type-h2);margin-block-start:var(--tq-space-xl)">ساعات الصمت</h3>
+                            <h3 class="tq-card__title" style="font:var(--tq-type-h2);margin-block-start:var(--tq-space-xl)"><?php echo t('ساعات الصمت'); ?></h3>
 
                             <div class="tq-prefrow">
                                 <span class="tq-prefrow__main">
-                                    <label class="tq-prefrow__title" for="tq-quiet-on">تفعيل ساعات الصمت</label>
-                                    <span class="tq-prefrow__hint">لا تنبيهات داخل النافذة التي تختارها.</span>
+                                    <label class="tq-prefrow__title" for="tq-quiet-on"><?php echo t('تفعيل ساعات الصمت'); ?></label>
+                                    <span class="tq-prefrow__hint"><?php echo t('لا تنبيهات داخل النافذة التي تختارها.'); ?></span>
                                 </span>
                                 <span class="tq-prefrow__end">
                                     <span class="tq-switchcell">
@@ -503,7 +496,7 @@ include 'portal_open.php';
 
                             <div class="tq-fieldgrid" style="margin-block-start:var(--tq-space-l)">
                                 <div class="tq-field">
-                                    <label class="tq-field__label" for="tq-quiet-from">تبدأ الساعة</label>
+                                    <label class="tq-field__label" for="tq-quiet-from"><?php echo t('تبدأ الساعة'); ?></label>
                                     <select class="tq-select" id="tq-quiet-from" name="quiet_from">
                                         <?php for ($h = 0; $h < 24; $h++): ?>
                                             <option value="<?php echo $h; ?>"
@@ -514,7 +507,7 @@ include 'portal_open.php';
                                     </select>
                                 </div>
                                 <div class="tq-field">
-                                    <label class="tq-field__label" for="tq-quiet-to">تنتهي الساعة</label>
+                                    <label class="tq-field__label" for="tq-quiet-to"><?php echo t('تنتهي الساعة'); ?></label>
                                     <select class="tq-select" id="tq-quiet-to" name="quiet_to">
                                         <?php for ($h = 0; $h < 24; $h++): ?>
                                             <option value="<?php echo $h; ?>"
@@ -527,12 +520,11 @@ include 'portal_open.php';
                             </div>
 
                             <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
-                                ساعات الصمت تؤجل التنبيه ولا تلغيه: يصلك بعد انتهائها، ويبقى
-                                في شاشة إشعاراتك طوالها. وتنبيهات المال والحصص لا تؤجل.
+                                <?php echo t('ساعات الصمت تؤجل التنبيه ولا تلغيه: يصلك بعد انتهائها، ويبقى في شاشة إشعاراتك طوالها. وتنبيهات المال والحصص لا تؤجل.'); ?>
                             </p>
 
                             <div class="tq-formbar">
-                                <button class="tq-btn tq-btn--primary" type="submit">حفظ تفضيلات التنبيهات</button>
+                                <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('حفظ تفضيلات التنبيهات'); ?></button>
                             </div>
                         </form>
 
@@ -548,7 +540,7 @@ include 'portal_open.php';
                         $tq_gam = (int) $CI_g->tq_learn->setup((int) $tq_uid)['gamify'] === 1;
                         ?>
                         <h3 class="tq-card__title"
-                            style="font:var(--tq-type-h2);margin-block-start:var(--tq-space-h1)">التحفيز</h3>
+                            style="font:var(--tq-type-h2);margin-block-start:var(--tq-space-h1)"><?php echo t('التحفيز'); ?></h3>
 
                         <form method="post" action="<?php echo base_url('student/gamify'); ?>">
                             <?php echo tq_csrf(); ?>
@@ -556,17 +548,17 @@ include 'portal_open.php';
 
                             <div class="tq-prefrow">
                                 <span class="tq-prefrow__main">
-                                    <span class="tq-prefrow__title">السلسلة وحلقة الهدف</span>
+                                    <span class="tq-prefrow__title"><?php echo t('السلسلة وحلقة الهدف'); ?></span>
                                     <span class="tq-prefrow__hint">
                                         <?php echo $tq_gam
-                                            ? 'تظهر في لوحتك أيامك المتتالية وتقدمك نحو هدف اليوم.'
-                                            : 'موقوفة الآن: لا سلسلة ولا حلقة هدف ولا أرقام تحفيز في أي شاشة.'; ?>
+                                            ? t('تظهر في لوحتك أيامك المتتالية وتقدمك نحو هدف اليوم.')
+                                            : t('موقوفة الآن: لا سلسلة ولا حلقة هدف ولا أرقام تحفيز في أي شاشة.'); ?>
                                     </span>
                                 </span>
                                 <span class="tq-prefrow__end">
                                     <button class="tq-btn <?php echo $tq_gam ? 'tq-btn--secondary' : 'tq-btn--primary'; ?>"
                                             type="submit"><?php
-                                        echo $tq_gam ? 'أوقف التلعيب' : 'أعد التلعيب'; ?></button>
+                                        echo $tq_gam ? t('أوقف التلعيب') : t('أعد التلعيب'); ?></button>
                                 </span>
                             </div>
                         </form>
@@ -574,7 +566,7 @@ include 'portal_open.php';
 
                 <?php elseif ($active === 'prefs'): ?>
                     <section class="tq-card">
-                        <h2 class="tq-card__title">التفضيلات العامة</h2>
+                        <h2 class="tq-card__title"><?php echo t('التفضيلات العامة'); ?></h2>
 
                         <form method="post" action="<?php echo $tq_save; ?>">
                             <?php echo tq_csrf(); ?>
@@ -582,7 +574,7 @@ include 'portal_open.php';
                             <input type="hidden" name="s" value="prefs">
 
                             <div class="tq-field">
-                                <label class="tq-field__label" for="tq-lang">لغة الواجهة</label>
+                                <label class="tq-field__label" for="tq-lang"><?php echo t('لغة الواجهة'); ?></label>
                                 <select class="tq-select" id="tq-lang" name="language" aria-describedby="tq-lang-hint">
                                     <?php foreach ($tq_langs as $lk => $ll): ?>
                                         <option value="<?php echo html_escape($lk); ?>"
@@ -592,12 +584,12 @@ include 'portal_open.php';
                                     <?php endforeach; ?>
                                 </select>
                                 <span class="tq-field__msg tq-field__hint" id="tq-lang-hint">
-                                    اتجاه الصفحة نتيجة للغة لا إعداد مستقل — فاختيار الإنجليزية يقلب الاتجاه معها.
+                                    <?php echo t('اتجاه الصفحة نتيجة للغة لا إعداد مستقل — فاختيار الإنجليزية يقلب الاتجاه معها.'); ?>
                                 </span>
                             </div>
 
                             <div class="tq-formbar">
-                                <button class="tq-btn tq-btn--primary" type="submit">حفظ التفضيلات</button>
+                                <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('حفظ التفضيلات'); ?></button>
                             </div>
                         </form>
                     </section>
@@ -605,16 +597,15 @@ include 'portal_open.php';
 
                 <?php elseif ($active === 'billing'): ?>
                     <section class="tq-card">
-                        <h2 class="tq-card__title">طريقة الدفع</h2>
+                        <h2 class="tq-card__title"><?php echo t('طريقة الدفع'); ?></h2>
                         <p class="tq-caption">
-                            المنصة لا تحفظ بيانات بطاقتك ولا تخزن وسيلة دفع على حسابك — تدفع كل فاتورة
-                            عند إصدارها، ويبقى سجلها في صفحة المدفوعات.
+                            <?php echo t('المنصة لا تحفظ بيانات بطاقتك ولا تخزن وسيلة دفع على حسابك — تدفع كل فاتورة عند إصدارها، ويبقى سجلها في صفحة المدفوعات.'); ?>
                         </p>
 
                         <?php if ($tq_last_pay): ?>
                             <div class="tq-s-row">
                                 <div class="tq-s-row__main">
-                                    <p class="tq-strong" style="margin:0">آخر وسيلة استعملتها</p>
+                                    <p class="tq-strong" style="margin:0"><?php echo t('آخر وسيلة استعملتها'); ?></p>
                                     <p class="tq-micro" style="margin:0">
                                         <?php
                                         $m = (string) $tq_last_pay['method'];
@@ -625,28 +616,27 @@ include 'portal_open.php';
                                         ?>
                                     </p>
                                 </div>
-                                <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/payments'); ?>">المدفوعات والفواتير</a>
+                                <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/payments'); ?>"><?php echo t('المدفوعات والفواتير'); ?></a>
                             </div>
                         <?php else: ?>
                             <div class="tq-empty">
-                                <p class="tq-empty__title">لم تسجل لك دفعة بعد</p>
+                                <p class="tq-empty__title"><?php echo t('لم تسجل لك دفعة بعد'); ?></p>
                                 <p class="tq-empty__text">
-                                    عند أول اشتراك تظهر وسيلة الدفع التي استعملتها هنا، وتظهر فاتورتها في صفحة المدفوعات.
+                                    <?php echo t('عند أول اشتراك تظهر وسيلة الدفع التي استعملتها هنا، وتظهر فاتورتها في صفحة المدفوعات.'); ?>
                                 </p>
-                                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">تصفح الباقات</a>
+                                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>"><?php echo t('تصفح الباقات'); ?></a>
                             </div>
                         <?php endif; ?>
                     </section>
 
                 <?php else: ?>
                     <section class="tq-card">
-                        <h2 class="tq-card__title">تحميلاتك</h2>
+                        <h2 class="tq-card__title"><?php echo t('تحميلاتك'); ?></h2>
                         <p class="tq-caption">
-                            التحميل للعمل دون اتصال غير متاح في نسخة الويب بعد، فلا سجل تحميلات ولا مساحة
-                            مستخدمة نعرضها لك. والمواد تشاهد داخل المنصة بصلاحية زمنية — تشاهد ولا تملك نسخة.
+                            <?php echo t('التحميل للعمل دون اتصال غير متاح في نسخة الويب بعد، فلا سجل تحميلات ولا مساحة مستخدمة نعرضها لك. والمواد تشاهد داخل المنصة بصلاحية زمنية — تشاهد ولا تملك نسخة.'); ?>
                         </p>
                         <div style="margin-block-start:var(--tq-space-l)">
-                            <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('student/materials'); ?>">المواد التعليمية</a>
+                            <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('student/materials'); ?>"><?php echo t('المواد التعليمية'); ?></a>
                         </div>
                     </section>
                 <?php endif; ?>
@@ -654,8 +644,8 @@ include 'portal_open.php';
                 <section class="tq-card">
                     <div class="tq-s-row">
                         <div class="tq-s-row__main">
-                            <p class="tq-strong" style="margin:0">تسجيل الخروج</p>
-                            <p class="tq-micro" style="margin:0">إنهاء جلستك على هذا الجهاز.</p>
+                            <p class="tq-strong" style="margin:0"><?php echo t('تسجيل الخروج'); ?></p>
+                            <p class="tq-micro" style="margin:0"><?php echo t('إنهاء جلستك على هذا الجهاز.'); ?></p>
                         </div>
                         <?php /* السؤال قبل الخروج — كما في بوابة ولي الأمر حرفا بحرف.
                                  كان الرابط هنا ينهي الجلسة بنقرة واحدة وبجواره أزرار
@@ -663,10 +653,10 @@ include 'portal_open.php';
                                  و`data-tq-confirm` يقرأه `taqdar.js` المحمل في كل شاشة
                                  بوابة، فلا سكربت جديدا هنا. */ ?>
                         <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('login/logout'); ?>"
-                           data-tq-confirm-title="تسجيل الخروج؟"
-                           data-tq-confirm="تنتهي جلستك على هذا الجهاز، وتحتاج بريدك وكلمة مرورك للدخول من جديد."
+                           data-tq-confirm-title="<?php echo te('تسجيل الخروج؟'); ?>"
+                           data-tq-confirm="<?php echo te('تنتهي جلستك على هذا الجهاز، وتحتاج بريدك وكلمة مرورك للدخول من جديد.'); ?>"
                            data-tq-confirm-ok="تسجيل الخروج"
-                           data-tq-confirm-tone="danger">تسجيل الخروج</a>
+                           data-tq-confirm-tone="danger"><?php echo t('تسجيل الخروج'); ?></a>
                     </div>
                 </section>
             </div>
@@ -675,22 +665,22 @@ include 'portal_open.php';
 
     <aside class="tq-aside">
         <div class="tq-card">
-            <h2 class="tq-card__title">حسابي</h2>
+            <h2 class="tq-card__title"><?php echo t('حسابي'); ?></h2>
             <div class="tq-row" style="gap:var(--tq-space-m)">
                 <img class="tq-avatar" src="<?php echo html_escape($tq_avatar); ?>" alt="">
                 <div>
                     <p class="tq-strong" style="margin:0"><?php echo html_escape(trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''))); ?></p>
-                    <p class="tq-micro" style="margin:0"><?php echo $tq_role === 'teacher' ? 'معلم' : 'طالب'; ?></p>
+                    <p class="tq-micro" style="margin:0"><?php echo $tq_role === 'teacher' ? t('معلم') : t('طالب'); ?></p>
                 </div>
             </div>
         </div>
 
         <div class="tq-card">
-            <h2 class="tq-card__title">الدعم والمساعدة</h2>
+            <h2 class="tq-card__title"><?php echo t('الدعم والمساعدة'); ?></h2>
             <div class="tq-stack" style="--tq-space-l:var(--tq-space-s)">
-                <a href="<?php echo base_url('faq'); ?>">الأسئلة الشائعة</a>
-                <a href="<?php echo base_url('contact'); ?>">تواصل معنا</a>
-                <a href="<?php echo base_url('privacy'); ?>">سياسة الخصوصية</a>
+                <a href="<?php echo base_url('faq'); ?>"><?php echo t('الأسئلة الشائعة'); ?></a>
+                <a href="<?php echo base_url('contact'); ?>"><?php echo t('تواصل معنا'); ?></a>
+                <a href="<?php echo base_url('privacy'); ?>"><?php echo t('سياسة الخصوصية'); ?></a>
             </div>
         </div>
     </aside>

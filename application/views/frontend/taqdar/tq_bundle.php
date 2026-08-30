@@ -31,8 +31,8 @@ $live = in_array($eff, array('active', 'cancelled'), true);
 
 $tq_nav   = 'bundle';
 $tq_role  = 'student';
-$tq_title = 'محتوى باقتي';
-$tq_sub   = 'كل ما فتحته باقتك — بمواده ووحداته ودروسه.';
+$tq_title = t('محتوى باقتي');
+$tq_sub   = t('كل ما فتحته باقتك — بمواده ووحداته ودروسه.');
 $tq_icon  = 'grid';
 
 include 'portal_open.php';
@@ -43,9 +43,9 @@ include 'portal_open.php';
     <?php if (!$sub): ?>
 
         <div class="tq-card tq-card--panel">
-            <h2 class="tq-card__title">لا اشتراك بعد</h2>
-            <p class="tq-caption">اختر باقة تفتح منهج صفك كاملا — لا مادة مادة.</p>
-            <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>">اطلع على الباقات</a>
+            <h2 class="tq-card__title"><?php echo t('لا اشتراك بعد'); ?></h2>
+            <p class="tq-caption"><?php echo t('اختر باقة تفتح منهج صفك كاملا — لا مادة مادة.'); ?></p>
+            <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>"><?php echo t('اطلع على الباقات'); ?></a>
         </div>
 
     <?php elseif (!$live): ?>
@@ -54,7 +54,7 @@ include 'portal_open.php';
                  كامل هنا يوهم بأنه متاح. يقال سبب الإغلاق ويدل على بابه. */ ?>
         <div class="tq-card tq-card--panel">
             <h2 class="tq-card__title">
-                <?php echo $eff === 'pending' ? 'اشتراكك بانتظار السداد' : 'انتهت مدة اشتراكك'; ?>
+                <?php echo $eff === 'pending' ? t('اشتراكك بانتظار السداد') : t('انتهت مدة اشتراكك'); ?>
             </h2>
             <p class="tq-caption">
                 <?php if ($eff === 'pending'): ?>
@@ -63,15 +63,15 @@ include 'portal_open.php';
                     يمكنك الاشتراك من جديد ويعود ما كنت تدرسه كما تركته.
                 <?php endif; ?>
             </p>
-            <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/subscription'); ?>">تفاصيل اشتراكي</a>
+            <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/subscription'); ?>"><?php echo t('تفاصيل اشتراكي'); ?></a>
         </div>
 
     <?php elseif (!$b || empty($b['subjects'])): ?>
 
         <div class="tq-card tq-card--panel">
-            <h2 class="tq-card__title">باقتك نشطة</h2>
+            <h2 class="tq-card__title"><?php echo t('باقتك نشطة'); ?></h2>
             <p class="tq-caption">
-                برامج هذه الباقة قيد التجهيز، وتظهر لك هنا تلقائيا فور نشرها.
+                <?php echo t('برامج هذه الباقة قيد التجهيز، وتظهر لك هنا تلقائيا فور نشرها.'); ?>
             </p>
         </div>
 
@@ -84,23 +84,23 @@ include 'portal_open.php';
                 <h2 class="tq-card__title"><?php echo html_escape($b['name']); ?></h2>
                 <?php if (!empty($sub['ends_at'])): ?>
                     <p class="tq-caption">
-                        <?php echo $eff === 'cancelled' ? 'صالح حتى' : 'ينتهي في'; ?>
+                        <?php echo $eff === 'cancelled' ? t('صالح حتى') : t('ينتهي في'); ?>
                         <span class="tq-ltr" dir="ltr"><?php echo date('Y-m-d', strtotime($sub['ends_at'])); ?></span>
                     </p>
                 <?php endif; ?>
             </div>
             <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/subscription'); ?>">
-                تفاصيل الاشتراك
+                <?php echo t('تفاصيل الاشتراك'); ?>
             </a>
         </div>
 
         <?php
         /* الإجماليات — وما كان صفرا لا يعرض بندا فارغا. */
         echo tqs_stat_strip(array(
-            array($t['subjects'], 'مادة',    'i-book'),
-            array($t['units'],    'وحدة',     'i-grid'),
-            array($t['lessons'],  'درسا',    'i-play'),
-            array($t['quizzes'],  'اختبارا', 'i-clipboard'),
+            array($t['subjects'], t('مادة'),    'i-book'),
+            array($t['units'],    t('وحدة'),     'i-grid'),
+            array($t['lessons'],  t('درسا'),    'i-play'),
+            array($t['quizzes'],  t('اختبارا'), 'i-clipboard'),
         ), 'tqb-stats');
         ?>
 
@@ -118,7 +118,7 @@ include 'portal_open.php';
             ?>
             <div class="tq-card tqb-prog">
                 <div class="tqb-prog__t">
-                    <span>تقدمك في الباقة</span>
+                    <span><?php echo t('تقدمك في الباقة'); ?></span>
                     <b class="tq-ltr"><?php echo $pct; ?>%</b>
                 </div>
                 <div class="tqb-prog__bar"><i style="inline-size:<?php echo $pct; ?>%"></i></div>
@@ -127,10 +127,10 @@ include 'portal_open.php';
 
         <div class="tq-card tq-card--panel">
             <div class="tq-card__head">
-                <h2 class="tq-card__title">المنهج</h2>
+                <h2 class="tq-card__title"><?php echo t('المنهج'); ?></h2>
             </div>
             <p class="tq-caption">
-                يفتح الدرس التالي بعد إتقان الذي قبله — فلا يبنى على أساس لم يتقن.
+                <?php echo t('يفتح الدرس التالي بعد إتقان الذي قبله — فلا يبنى على أساس لم يتقن.'); ?>
             </p>
             <?php echo tqs_curriculum($b, array(
                 'mode' => 'student', 'open' => 1, 'progress' => $prog,

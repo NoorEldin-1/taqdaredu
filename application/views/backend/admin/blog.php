@@ -37,33 +37,33 @@ if ($tq_cids) {
 }
 
 $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_blog') . '">'
-          . tq_icon('plus', 17) . ' مقال جديد</a>'
+          . tq_icon('plus', 17) . t('مقال جديد</a>')
           . '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/blog_category') . '">'
-          . tq_icon('grid', 16) . ' أقسام المدونة</a>';
+          . tq_icon('grid', 16) . t('أقسام المدونة</a>');
 ?>
 
-<?php tqa_head('المدونة', 'المقال المعطل يبقى في القاعدة ولا يظهر في الموقع العام.', 'file', $tq_tools); ?>
+<?php tqa_head(t('المدونة'), t('المقال المعطل يبقى في القاعدة ولا يظهر في الموقع العام.'), 'file', $tq_tools); ?>
 
 <div class="tqa-card tqa-card--flush">
 <?php if (empty($tq_blogs)): ?>
 
-    <?php tqa_empty('لا مقالات بعد',
-        'المدونة صفحة عامة في الموقع؛ وما دامت فارغة تعرض حالة فراغ للزائر.',
-        'اكتب أول مقال', site_url('admin/add_blog'), 'file'); ?>
+    <?php tqa_empty(t('لا مقالات بعد'),
+        t('المدونة صفحة عامة في الموقع؛ وما دامت فارغة تعرض حالة فراغ للزائر.'),
+        t('اكتب أول مقال'), site_url('admin/add_blog'), 'file'); ?>
 
 <?php else: ?>
 
     <div class="tqa-table__wrap">
         <table class="tqa-table">
-            <caption class="tqa-sr">مقالات المدونة: الكاتب والقسم والحالة</caption>
+            <caption class="tqa-sr"><?php echo t('مقالات المدونة: الكاتب والقسم والحالة'); ?></caption>
             <thead>
                 <tr>
                     <th style="inline-size:60px">#</th>
-                    <th>المقال</th>
-                    <th>الكاتب</th>
-                    <th>القسم</th>
-                    <th>الحالة</th>
-                    <th style="inline-size:230px"><span class="tqa-sr">إجراءات</span></th>
+                    <th><?php echo t('المقال'); ?></th>
+                    <th><?php echo t('الكاتب'); ?></th>
+                    <th><?php echo t('القسم'); ?></th>
+                    <th><?php echo t('الحالة'); ?></th>
+                    <th style="inline-size:230px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                 </tr>
             </thead>
             <tbody>
@@ -97,7 +97,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
                                 </span>
                             </span>
                         <?php else: ?>
-                            <span class="tqa-dim">حساب محذوف</span>
+                            <span class="tqa-dim"><?php echo t('حساب محذوف'); ?></span>
                         <?php endif; ?>
                     </td>
 
@@ -106,13 +106,13 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
                         <?php if ($tq_cn !== ''): ?>
                             <span class="tqa-badge tqa-badge--muted"><?php echo html_escape($tq_cn); ?></span>
                         <?php else: ?>
-                            <span class="tqa-dim">بلا قسم</span>
+                            <span class="tqa-dim"><?php echo t('بلا قسم'); ?></span>
                         <?php endif; ?>
                     </td>
 
                     <td data-label="الحالة">
                         <span class="tqa-badge tqa-badge--<?php echo $tq_on ? 'ok' : 'muted'; ?>">
-                            <?php echo $tq_on ? 'منشور' : 'معطل'; ?>
+                            <?php echo $tq_on ? t('منشور') : t('معطل'); ?>
                         </span>
                     </td>
 
@@ -125,9 +125,9 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
 
                             <?php if ($tq_on): ?>
                                 <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_url; ?>"
-                                   target="_blank" rel="noopener" title="اقرأه في الموقع">
+                                   target="_blank" rel="noopener" title="<?php echo te('اقرأه في الموقع'); ?>">
                                     <?php echo tq_icon('external', 14); ?>
-                                    <span class="tqa-sr">اقرأه في الموقع</span>
+                                    <span class="tqa-sr"><?php echo t('اقرأه في الموقع'); ?></span>
                                 </a>
                             <?php endif; ?>
 
@@ -135,12 +135,12 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
                                 <?php echo tq_csrf(); ?>
                                 <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm">
                                     <?php echo tq_icon($tq_on ? 'eye' : 'check', 14); ?>
-                                    <?php echo $tq_on ? 'عطل' : 'انشر'; ?>
+                                    <?php echo $tq_on ? t('عطل') : t('انشر'); ?>
                                 </button>
                             </form>
 
                             <form method="post" action="<?php echo site_url('admin/blog/delete/' . $tq_id); ?>"
-                                  data-tqa-confirm-title="حذف المقال"
+                                  data-tqa-confirm-title="<?php echo te('حذف المقال'); ?>"
                                   data-tqa-confirm="سيحذف «<?php echo html_escape($tq_b['title']); ?>» نهائيا."
                                   data-tqa-confirm-ok="نعم، احذف"
                                   data-tqa-confirm-tone="danger">
@@ -160,7 +160,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
 
     <p style="padding:var(--tq-space-m) var(--tq-space-xl);margin:0;border-block-start:1px solid var(--tq-line);
               font:var(--tq-type-caption);color:var(--tq-text2)">
-        <span class="tqa-num"><?php echo count($tq_blogs); ?></span> مقالا.
+        <span class="tqa-num"><?php echo count($tq_blogs); ?></span> <?php echo t('مقالا.'); ?>
     </p>
 
 <?php endif; ?>

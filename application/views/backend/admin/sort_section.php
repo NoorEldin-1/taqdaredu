@@ -28,14 +28,14 @@ $tq_sections = $this->crud_model->get_section('course', $param2)->result_array()
 
     <p class="tqa-note">
         <span aria-hidden="true"><?php echo tq_icon('help', 18); ?></span>
-        <span>الترتيب يحتاج قسمين فأكثر.</span>
+        <span><?php echo t('الترتيب يحتاج قسمين فأكثر.'); ?></span>
     </p>
 
 <?php else: ?>
 
 <p class="tqa-note tqa-section">
     <span aria-hidden="true"><?php echo tq_icon('layers', 18); ?></span>
-    <span>اسحب القسم إلى موضعه. الترتيب هنا هو ترتيب ظهوره للطالب في صفحة الكورس.</span>
+    <span><?php echo t('اسحب القسم إلى موضعه. الترتيب هنا هو ترتيب ظهوره للطالب في صفحة الكورس.'); ?></span>
 </p>
 
 <div class="tqa-stack" id="tqa-sort-list" data-tqa-sortable>
@@ -48,7 +48,7 @@ $tq_sections = $this->crud_model->get_section('course', $param2)->result_array()
             <span style="flex:1;min-inline-size:0">
                 <span class="tqa-media__title"><?php echo html_escape($tq_s['title']); ?></span>
                 <span class="tqa-media__sub">
-                    <span class="tqa-num" data-tqa-pos><?php echo $tq_i + 1; ?></span> في الترتيب
+                    <span class="tqa-num" data-tqa-pos><?php echo $tq_i + 1; ?></span> <?php echo t('في الترتيب'); ?>
                 </span>
             </span>
         </div>

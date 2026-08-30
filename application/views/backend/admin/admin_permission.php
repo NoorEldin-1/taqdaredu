@@ -19,20 +19,20 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * `.tqa-switch` المبني هنا، وهو المفتاح نفسه المستعمل في إعدادات البوابات.
  */
 $tq_modules = array(
-    'course'     => array('الكورسات',           'الإضافة والتحرير والنشر والحذف',        'book'),
-    'category'   => array('أقسام الكورسات',     'شجرة الأقسام والأقسام الفرعية',         'grid'),
-    'user'       => array('الحسابات',           'كل حسابات المنصة',                      'users'),
-    'instructor' => array('المعلمون',           'الطلبات والملفات والإسناد',             'graduation'),
-    'student'    => array('الطلاب',             'ملفات الطلاب وتقدمهم',                  'users'),
-    'enrolment'  => array('التسجيل في الكورسات', 'تسجيل الطلاب وسجل التسجيل',            'clipboard'),
-    'revenue'    => array('الإيرادات',          'المدفوعات والفواتير وطلبات السحب',      'wallet'),
-    'messaging'  => array('الرسائل',            'صندوق رسائل الإدارة',                   'chat'),
-    'blog'       => array('المدونة',            'المقالات وأقسامها',                     'file'),
-    'newsletter' => array('النشرة البريدية',    'المشتركون والإرسال',                    'send'),
-    'contact'    => array('رسائل التواصل',      'ما يرسل من صفحة «تواصل معنا»',          'mail'),
-    'admin'      => array('المسؤولون',          'إضافة المسؤولين وضبط صلاحياتهم',        'shield'),
-    'settings'   => array('إعدادات النظام',     'الموقع والدفع والبريد وتحسين البحث',    'cog'),
-    'taqdar'     => array('وحدات تقدر',         'المسارات والمحطات والإتقان والاشتراكات', 'target'),
+    'course'     => array(t('الكورسات'),           t('الإضافة والتحرير والنشر والحذف'),        'book'),
+    'category'   => array(t('أقسام الكورسات'),     t('شجرة الأقسام والأقسام الفرعية'),         'grid'),
+    'user'       => array(t('الحسابات'),           t('كل حسابات المنصة'),                      'users'),
+    'instructor' => array(t('المعلمون'),           t('الطلبات والملفات والإسناد'),             'graduation'),
+    'student'    => array(t('الطلاب'),             t('ملفات الطلاب وتقدمهم'),                  'users'),
+    'enrolment'  => array(t('التسجيل في الكورسات'), t('تسجيل الطلاب وسجل التسجيل'),            'clipboard'),
+    'revenue'    => array(t('الإيرادات'),          t('المدفوعات والفواتير وطلبات السحب'),      'wallet'),
+    'messaging'  => array(t('الرسائل'),            t('صندوق رسائل الإدارة'),                   'chat'),
+    'blog'       => array(t('المدونة'),            t('المقالات وأقسامها'),                     'file'),
+    'newsletter' => array(t('النشرة البريدية'),    t('المشتركون والإرسال'),                    'send'),
+    'contact'    => array(t('رسائل التواصل'),      t('ما يرسل من صفحة «تواصل معنا»'),          'mail'),
+    'admin'      => array(t('المسؤولون'),          t('إضافة المسؤولين وضبط صلاحياتهم'),        'shield'),
+    'settings'   => array(t('إعدادات النظام'),     t('الموقع والدفع والبريد وتحسين البحث'),    'cog'),
+    'taqdar'     => array(t('وحدات تقدر'),         t('المسارات والمحطات والإتقان والاشتراكات'), 'target'),
 );
 
 $tq_uid  = (int) $permission_assign_to['id'];
@@ -40,15 +40,14 @@ $tq_name = trim($permission_assign_to['first_name'] . ' ' . $permission_assign_t
 if ($tq_name === '') $tq_name = $permission_assign_to['email'];
 ?>
 
-<?php tqa_head('الصلاحيات', $tq_name, 'key',
+<?php tqa_head(t('الصلاحيات'), $tq_name, 'key',
     '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/admins') . '">'
-  . tq_icon('chev-prev', 16) . ' كل المسؤولين</a>'); ?>
+  . tq_icon('chev-prev', 16) . t('كل المسؤولين</a>')); ?>
 
 <div class="tqa-note tqa-section">
     <span aria-hidden="true"><?php echo tq_icon('shield', 18); ?></span>
     <span>
-        جدول الصلاحيات فارغ في هذه القاعدة، ومن لا صف له فيه <strong>يرى كل شيء</strong>.
-        فأول مفتاح تطفئه هنا هو ما يبدأ التقييد فعلا — قبله لا فرق بين مسؤول ومسؤول.
+        <?php echo t('جدول الصلاحيات فارغ في هذه القاعدة، ومن لا صف له فيه'); ?> <strong><?php echo t('يرى كل شيء'); ?></strong><?php echo t('. فأول مفتاح تطفئه هنا هو ما يبدأ التقييد فعلا — قبله لا فرق بين مسؤول ومسؤول.'); ?>
     </span>
 </div>
 

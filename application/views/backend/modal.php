@@ -80,7 +80,7 @@ function tqModalLoad(sel, url, header) {
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="largeModalTitle"></h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق">&times;</button>
+                <button type="button" class="close" data-dismiss="modal" aria-label="<?php echo te('إغلاق'); ?>">&times;</button>
             </div>
             <div class="modal-body"></div>
         </div>
@@ -93,11 +93,11 @@ function tqModalLoad(sel, url, header) {
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="scrollableModalTitle"></h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق">&times;</button>
+                <button type="button" class="close" data-dismiss="modal" aria-label="<?php echo te('إغلاق'); ?>">&times;</button>
             </div>
             <div class="modal-body"></div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo t('إغلاق'); ?></button>
             </div>
         </div>
     </div>
@@ -109,7 +109,7 @@ function tqModalLoad(sel, url, header) {
         <div class="modal-content h-100">
             <div class="modal-header">
                 <h4 class="modal-title" id="rightModalTitle"></h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق">&times;</button>
+                <button type="button" class="close" data-dismiss="modal" aria-label="<?php echo te('إغلاق'); ?>">&times;</button>
             </div>
             <div class="modal-body"></div>
         </div>

@@ -25,7 +25,7 @@ $tq_lesson   = $this->crud_model->get_lessons('lesson', $param2)->row_array();
 $tq_sections = $this->crud_model->get_section('course', $param3)->result_array();
 
 if (!$tq_lesson) {
-    echo '<p class="tqa-note tqa-note--warn">لا درس بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>';
+    echo t('<p class="tqa-note tqa-note--warn">لا درس بهذا المعرف — قد يكون حذف من نافذة أخرى.</p>');
     return;
 }
 
@@ -39,25 +39,25 @@ $tq_att  = strtolower((string) $tq_lesson['attachment_type']);
 
 if ($tq_type === 'video') {
     switch ($tq_vid) {
-        case 'youtube':      $tq_kind = array('youtube', 'فيديو يوتيوب'); break;
-        case 'vimeo':        $tq_kind = array('vimeo', 'فيديو فيميو'); break;
-        case 'html5':        $tq_kind = array('html5', 'رابط ملف مباشر'); break;
-        case 'system':       $tq_kind = array('video', 'ملف فيديو'); break;
-        case 'google_drive': $tq_kind = array('google_drive_video', 'فيديو جوجل درايف'); break;
-        default:             $tq_kind = array('youtube', 'فيديو'); break;
+        case 'youtube':      $tq_kind = array('youtube', t('فيديو يوتيوب')); break;
+        case 'vimeo':        $tq_kind = array('vimeo', t('فيديو فيميو')); break;
+        case 'html5':        $tq_kind = array('html5', t('رابط ملف مباشر')); break;
+        case 'system':       $tq_kind = array('video', t('ملف فيديو')); break;
+        case 'google_drive': $tq_kind = array('google_drive_video', t('فيديو جوجل درايف')); break;
+        default:             $tq_kind = array('youtube', t('فيديو')); break;
     }
 } elseif ($tq_type === 'audio') {
-    $tq_kind = array('audio', 'ملف صوتي');
+    $tq_kind = array('audio', t('ملف صوتي'));
 } elseif ($tq_type === 'text' && $tq_att === 'description') {
-    $tq_kind = array('text', 'نص');
+    $tq_kind = array('text', t('نص'));
 } elseif ($tq_type === 'other' && in_array($tq_att, array('doc', 'pdf', 'txt'), true)) {
-    $tq_kind = array('document', 'مستند');
+    $tq_kind = array('document', t('مستند'));
 } elseif ($tq_type === 'other' && $tq_att === 'img') {
-    $tq_kind = array('image', 'صورة');
+    $tq_kind = array('image', t('صورة'));
 } elseif ($tq_type === 'other' && $tq_att === 'iframe') {
-    $tq_kind = array('iframe', 'تضمين خارجي');
+    $tq_kind = array('iframe', t('تضمين خارجي'));
 } else {
-    $tq_kind = array('', 'غير معروف');
+    $tq_kind = array('', t('غير معروف'));
 }
 
 /* القوالب الموجودة فعلا. */
@@ -80,7 +80,7 @@ $lesson_details = $tq_lesson;
 
 <div class="tqa-note tqa-section">
     <span aria-hidden="true"><?php echo tq_icon('play', 18); ?></span>
-    <span>نوع الدرس: <strong><?php echo html_escape($tq_kind[1]); ?></strong> — ولا يغير بعد الإنشاء.</span>
+    <span><?php echo t('نوع الدرس:'); ?> <strong><?php echo html_escape($tq_kind[1]); ?></strong> <?php echo t('— ولا يغير بعد الإنشاء.'); ?></span>
 </div>
 
 <form class="ajaxFormSubmission" method="post" enctype="multipart/form-data"
@@ -90,7 +90,7 @@ $lesson_details = $tq_lesson;
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="lesson_title">
-            عنوان الدرس <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('عنوان الدرس'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <input class="tqa-input" type="text" id="lesson_title" name="title" required maxlength="190"
                value="<?php echo html_escape($tq_lesson['title']); ?>">
@@ -98,7 +98,7 @@ $lesson_details = $tq_lesson;
 
     <div class="tqa-field">
         <label class="tqa-field__label" for="section_id">
-            القسم <span class="tqa-field__req" aria-hidden="true">*</span>
+            <?php echo t('القسم'); ?> <span class="tqa-field__req" aria-hidden="true">*</span>
         </label>
         <select class="tqa-select" id="section_id" name="section_id" required>
             <?php foreach ($tq_sections as $tq_s): ?>
@@ -117,15 +117,15 @@ $lesson_details = $tq_lesson;
     ?>
 
     <div class="tqa-field">
-        <label class="tqa-field__label" for="lesson_summary">ملخص الدرس</label>
+        <label class="tqa-field__label" for="lesson_summary"><?php echo t('ملخص الدرس'); ?></label>
         <textarea class="tqa-textarea" id="lesson_summary" name="summary" rows="3"><?php
             echo html_escape(htmlspecialchars_decode_($tq_lesson['summary'])); ?></textarea>
     </div>
 
     <div class="tqa-prefrow">
         <div class="tqa-prefrow__main">
-            <label class="tqa-prefrow__title" for="free_lesson">درس معاينة مجاني</label>
-            <span class="tqa-prefrow__hint">يفتح لغير المشتركين.</span>
+            <label class="tqa-prefrow__title" for="free_lesson"><?php echo t('درس معاينة مجاني'); ?></label>
+            <span class="tqa-prefrow__hint"><?php echo t('يفتح لغير المشتركين.'); ?></span>
         </div>
         <div class="tqa-prefrow__end">
             <span class="tqa-switch">

@@ -20,8 +20,8 @@ include 'tq_student_styles.php';
 
 $tq_nav   = 'library';
 $tq_role  = 'student';
-$tq_title = 'مكتبتي';
-$tq_sub   = 'كتب مرحلتك — تقرأ هنا صفحة صفحة، بلا تحميل ولا تطبيق ثان.';
+$tq_title = t('مكتبتي');
+$tq_sub   = t('كتب مرحلتك — تقرأ هنا صفحة صفحة، بلا تحميل ولا تطبيق ثان.');
 $tq_icon  = 'book';
 
 $CI  = &get_instance();
@@ -73,16 +73,16 @@ include 'portal_open.php';
 <?php if (!$tq_books): ?>
 
   <section class="tq-card">
-    <?php echo tq_s_empty('book', 'sand', 'لا كتب في مكتبتك بعد',
-          'كتب مرحلتك تظهر هنا حالما تنشر. وحتى ذلك، تصفح البرامج والدروس.',
-          'تصفح الكتالوج', base_url('catalog'), false, 'primary'); ?>
+    <?php echo tq_s_empty('book', 'sand', t('لا كتب في مكتبتك بعد'),
+          t('كتب مرحلتك تظهر هنا حالما تنشر. وحتى ذلك، تصفح البرامج والدروس.'),
+          t('تصفح الكتالوج'), base_url('catalog'), false, 'primary'); ?>
   </section>
 
 <?php else: ?>
 
   <?php if ($tq_cat_id === 0): ?>
     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-      لا كتب مخصصة لمرحلتك بعد، فهذه كتب المنصة كلها.
+      <?php echo t('لا كتب مخصصة لمرحلتك بعد، فهذه كتب المنصة كلها.'); ?>
     </p>
   <?php endif; ?>
 
@@ -115,14 +115,14 @@ include 'portal_open.php';
             <?php if ($has_file): ?>
               <button class="tq-btn tq-btn--primary tq-btn--sm" type="button"
                       data-tq-read="<?php echo base_url(html_escape($b['file'])); ?>"
-                      data-tq-title="<?php echo html_escape($b['title']); ?>">افتح الكتاب</button>
+                      data-tq-title="<?php echo html_escape($b['title']); ?>"><?php echo t('افتح الكتاب'); ?></button>
             <?php else: ?>
               <?php /* لا ملف: يقال ذلك صراحة. زر يفتح لا شيء أسوأ من غيابه. */ ?>
-              <span class="tq-caption">الملف لم يرفع بعد</span>
+              <span class="tq-caption"><?php echo t('الملف لم يرفع بعد'); ?></span>
             <?php endif; ?>
             <?php if (trim((string) $b['slug']) !== ''): ?>
               <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                 href="<?php echo base_url('book/' . rawurlencode($b['slug'])); ?>">تفاصيله</a>
+                 href="<?php echo base_url('book/' . rawurlencode($b['slug'])); ?>"><?php echo t('تفاصيله'); ?></a>
             <?php endif; ?>
           </div>
         </div>
@@ -136,21 +136,21 @@ include 'portal_open.php';
        يفتح فوق الصفحة لا في تبويب: من فتح كتابا في تبويب ثان خرج من
        بوابته، ولا يعود إلى موضعه إلا بأن يبحث عنه. -->
   <div class="tq-reader" data-tq-reader hidden role="dialog" aria-modal="true"
-       aria-label="قارئ الكتب">
+       aria-label="<?php echo te('قارئ الكتب'); ?>">
     <header class="tq-reader__bar">
       <button class="tq-btn tq-btn--ghost tq-btn--sm" type="button" data-tq-rd-close>
         <?php echo tq_icon('close', 16); ?> إغلاق
       </button>
       <strong class="tq-reader__t" data-tq-rd-title></strong>
       <div class="tq-reader__nav">
-        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="button" data-tq-rd-prev>السابقة</button>
+        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="button" data-tq-rd-prev><?php echo t('السابقة'); ?></button>
         <span class="tq-reader__pos" data-tq-rd-pos></span>
-        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="button" data-tq-rd-next>التالية</button>
+        <button class="tq-btn tq-btn--secondary tq-btn--sm" type="button" data-tq-rd-next><?php echo t('التالية'); ?></button>
       </div>
     </header>
 
     <div class="tq-reader__stage">
-      <p class="tq-reader__msg" data-tq-rd-msg>يفتح الكتاب…</p>
+      <p class="tq-reader__msg" data-tq-rd-msg><?php echo t('يفتح الكتاب…'); ?></p>
       <canvas data-tq-rd-canvas></canvas>
     </div>
   </div>
