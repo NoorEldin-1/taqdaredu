@@ -476,7 +476,8 @@ class Taqdar_admin extends CI_Controller
         }
 
         $by_mail = ((string) $this->input->post('by_mail') === '1');
-        $n = $this->taqdar_admin_model->broadcast($to, $title, $body, $by_mail);
+        $by_wa   = ((string) $this->input->post('by_wa')   === '1');
+        $n = $this->taqdar_admin_model->broadcast($to, $title, $body, $by_mail, $by_wa);
 
         if ($n <= 0) {
             $this->session->set_flashdata('error_message', 'لم يرسل الإشعار — لا مستخدم في هذه الفئة.');
@@ -492,6 +493,14 @@ class Taqdar_admin extends CI_Controller
             $msg .= $m > 0
                 ? ' ووصلت نسخة بريدية إلى ' . $m . ' منهم.'
                 : ' ولم ترسل نسخة بريدية — البريد الصادر غير مضبوط أو لا بريد لهم.';
+        }
+        if ($by_wa) {
+            /* «أودعت» لا «وصلت»: واتساب يصرف على الكرون، فما وصل لا
+               يعرف بعد — وقوله الآن كذب يقرأ في شاشة إدارة. */
+            $w = (int) $this->taqdar_admin_model->last_broadcast_wa;
+            $msg .= $w > 0
+                ? ' وأودعت نسخة واتساب لـ' . $w . ' منهم، تخرج تباعا على مدى الدقائق القادمة.'
+                : ' ولم تودع نسخة واتساب — القناة غير مضبوطة أو لا جوال لهم.';
         }
 
         $this->session->set_flashdata('flash_message', $msg);
@@ -1242,9 +1251,15 @@ class Taqdar_admin extends CI_Controller
 
         /* التشخيص ينادي ميتا مرتين، فقد يتأخر ثانية أو ثانيتين — وهو ثمن
            مقبول في شاشة تفتح عند الضبط، ولا يدفع في أي مسار يراه مستخدم. */
+        /* والعائلات موصوفة لا خام: `config()['families']` خريطة
+           `مفتاح => bool` تكفي المحرك، والشاشة تحتاج التسمية والمثال
+           وحال الصمت معها — و`families()` هي التي تصفها. */
+        $tq_cfg = $this->taqdar_wa_model->config();
+        $tq_cfg['families'] = $this->taqdar_wa_model->families();
+
         $this->render('tqa_whatsapp', 'إشعارات واتساب', array(
             'wa'         => $this->wa_values(),
-            'cfg'        => $this->taqdar_wa_model->config(),
+            'cfg'        => $tq_cfg,
             'configured' => $this->taqdar_wa_model->configured(),
             'health'     => $this->taqdar_wa_model->diagnose(),
             'log'        => $this->taqdar_wa_model->recent(25),
@@ -1323,9 +1338,21 @@ class Taqdar_admin extends CI_Controller
             'tq_wa_tpl_notice'        => $tpl_notice,
             'tq_wa_tpl_notice_lang'   => $lang_notice ?: 'ar',
             'tq_wa_tpl_notice_params' => ((int) $this->input->post('tq_wa_tpl_notice_params') === 1) ? '1' : '2',
-            'tq_wa_notify_payments'   => (string) $this->input->post('tq_wa_notify_payments') === '1' ? '1' : '0',
             'tq_wa_otp_allowed'       => (string) $this->input->post('tq_wa_otp_allowed') === '1' ? '1' : '0',
         );
+
+        /* ومفاتيح العائلات تكتب **ولو كانت مطفأة** — كلها في كل حفظ.
+           مربع لا يعلم لا يصل في `$_POST` أصلا، فمن اكتفى بكتابة ما وصل
+           لا يطفئ عائلة أبدا: كل حفظ يترك الصف القديم مشعلا. وهي قاعدة
+           TQ-META-PIXEL نفسها — الصف الفارغ قرار، وغيابه لا قرار.
+
+           و«المال» يكتب مفتاحه القديم كذلك (`tq_wa_notify_payments`)،
+           فلا يبقى صف قديم مطفأ يغلب الاختيار الجديد في `config()`. */
+        foreach (array_keys(Taqdar_wa_model::$FAMILIES) as $tq_fk) {
+            $tq_on = (string) $this->input->post('tq_wa_fam_' . $tq_fk) === '1';
+            $vals['tq_wa_fam_' . $tq_fk] = $tq_on ? '1' : '0';
+            if ($tq_fk === 'money') $vals['tq_wa_notify_payments'] = $tq_on ? '1' : '0';
+        }
 
         $this->settings_put($vals);
 
@@ -2108,20 +2135,21 @@ class Taqdar_admin extends CI_Controller
                 'يبقى حسابك مغلقا. وإن كان لديك ما يستدرك فتواصل معنا وسنعيد النظر.',
               );
 
-        /* داخل المنصة: يقرؤه متى دخل، ولا يعتمد على وصول بريد. */
-        try {
-            $this->db->insert('notifications', array(
-                'status'      => 0,
-                'type'        => $approved ? 'teacher_approved' : 'teacher_rejected',
-                'from_user'   => (int) $this->session->userdata('user_id'),
-                'to_user'     => (int) $uid,
-                'title'       => $title,
-                'description' => implode(' ', array_slice($lines, 1)),
-                'created_at'  => time(),      // طابع يونكس نصا — كما تقرؤه الشاشات
-            ));
-        } catch (Throwable $e) {
-            log_message('error', 'teacher_review notification: ' . $e->getMessage());
-        }
+        /* والباب واحد: `push_notification()` (TQ-WA-ALL).
+           وكان هذا الموضع يكتب صف `notifications` **بيده** ثم يرسل
+           البريد بيده — فيفوت القناة الثالثة كلها: من اعتمد حسابه معلما
+           لا يعلم به في واتساب مهما ضبط، لأن الباب الذي يعرف واتساب
+           لم يمر به أحد هنا. ونسخة ثانية من الكتابة تفترق عن أختها كذلك:
+           `updated_at` لا يكتب هنا، و`type` قد يخطئ اسمه.
+
+           و`$mail = false` لأن رسالة الاعتماد أطول من سطر الإشعار —
+           فيها ترحيب وسطر إرشاد ورابط اللوحة، وهي تخرج بعد قليل بنصها
+           الكامل. ونسخة الباب القصيرة فوقها تجعل رسالتين على قرار واحد. */
+        $type = $approved ? 'teacher_approved' : 'teacher_rejected';
+        $body = implode(' ', array_slice($lines, 1));
+
+        $this->taqdar_admin_model->push_notification(
+            (int) $uid, $title, $body, $type, false);
 
         if (empty($email)) {
             return;

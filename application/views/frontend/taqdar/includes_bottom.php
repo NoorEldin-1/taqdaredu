@@ -17,6 +17,12 @@
 <script src="<?php echo tq_asset('js/taqdar-reviews.js'); ?>" defer></script>
 <?php endif; ?>
 
+<?php /* TQ-PREVIEW-CAP — حاجز الخمس دقائق. صفحة المعاينة وحدها: لا
+         يحمل على مشغل الدرس المدفوع فيقف على من دفع. */ ?>
+<?php if (isset($page_name) && $page_name === 'site_preview'): ?>
+<script src="<?php echo tq_asset('js/tq-preview-gate.js'); ?>" defer></script>
+<?php endif; ?>
+
 <?php /* واجهة تقدر بلا jQuery وتستعمل fetch — فيلف fetch نفسه.
        اللف لنفس الأصل وطرق الكتابة وحدها: توكن يرسل إلى طرف ثالث
        تسريب لسر الجلسة لا حماية. */ ?>

@@ -152,6 +152,16 @@ class Taqdar_cron extends CI_Controller
             log_message('error', 'TQ-CRON purge: ' . $e->getMessage());
         }
 
-        echo date('Y-m-d H:i:s') . " otp_purged={$n} wa_log_purged={$w}\n";
+        /* سجل حراسة «تواصل معنا» (TQ-CONTACT-SPAM): تعد منه السقوف، وما
+           مضى عليه شهر لا يعد في سقف ساعة ولا يوم. */
+        $c = 0;
+        try {
+            $this->load->model('taqdar_contact_model');
+            $c = $this->taqdar_contact_model->purge(30);
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-CRON purge contact: ' . $e->getMessage());
+        }
+
+        echo date('Y-m-d H:i:s') . " otp_purged={$n} wa_log_purged={$w} contact_log_purged={$c}\n";
     }
 }

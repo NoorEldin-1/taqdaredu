@@ -62,6 +62,8 @@ class Taqdar_wa_model extends CI_Model
     /** مفاتيح الإعدادات — كلها في `settings` بالبادئة `tq_wa_`. */
     public static $KEYS = array(
         'tq_wa_enabled',
+        /* ومفاتيح العائلات تلحق في `boot_keys()` أسفل الصنف: قائمة تكتب
+           بيد بجوار قائمة تشتق تفترقان عند أول عائلة تضاف. */
         'tq_wa_token',
         'tq_wa_phone_id',
         'tq_wa_waba_id',
@@ -74,6 +76,125 @@ class Taqdar_wa_model extends CI_Model
         'tq_wa_tpl_notice_params',
         'tq_wa_notify_payments',
         'tq_wa_otp_allowed',
+    );
+
+    /**
+     * عائلات الإشعارات — وحدة القرار في هذه القناة.
+     *
+     * TQ-WA-ALL. وكانت القناة تعرف نوعين لا غير: رمز التحقق وإشعارات
+     * المال (`$PAY_TYPES` أدناه). وما سواهما لا يخرج بواتساب أبدا —
+     * فمن أكد له معلمه حصة، ومن اعتمد حسابه معلما، ومن رسب في اختبار
+     * محطة، ومن صدرت له شهادة: كل أولئك يخبرون بالبريد وداخل المنصة،
+     * ولا يعلمون بشيء في القناة التي يقرؤونها فعلا.
+     *
+     * والمفتاح **عائلة لا نوع**: أنواع الإشعارات في هذه الشجرة أربعون
+     * وتزيد بكل ميزة تكتب، ومفتاح لكل نوع يعني شاشة إعدادات بأربعين
+     * مربعا لا يقرؤها أحد، ونوعا جديدا يولد **بلا مفتاح** فلا يخرج ولا
+     * يعرف أحد لماذا. والعائلة تصف السؤال الذي يجيبه الإشعار — «مالي؟
+     * حسابي؟ دراستي؟» — وهو ما يقرر به المسؤول لا اسم النوع في الشيفرة.
+     *
+     * ولكل عائلة:
+     *   `label`   ما يقرؤه المسؤول في شاشة الإعدادات.
+     *   `hint`    مثال مما يخرج منها، فلا يقلب مفتاحا لا يعرف أثره.
+     *   `default` حالها حين لا يكتب المسؤول شيئا.
+     *   `quiet`   أتؤجل إلى ما بعد ساعات صمت صاحبها؟
+     *
+     * و`marketing` وحدها مطفأة افتراضا: البريد يبتلع الإعلان وواتساب
+     * **يسد** — ومن يصله عرض تسويقي يبلغ عن الرقم، وبلاغات المستلمين
+     * تخفض جودة الرقم عند ميتا ثم حد إرساله اليومي، فتضيع معها إشعارات
+     * المال نفسها. وهذا هو الثمن الحقيقي: القناة لا تفقد رسالة، بل تفقد
+     * أهليتها.
+     */
+    public static $FAMILIES = array(
+        'money' => array(
+            'label'   => 'المال',
+            'hint'    => 'الفواتير · نجاح الدفع · تفعيل الاشتراك · قرار السحب',
+            'default' => true,
+            'quiet'   => false,
+        ),
+        'account' => array(
+            'label'   => 'الحساب والأمان',
+            'hint'    => 'اعتماد حساب المعلم · ربط ولي الأمر · تنبيهات الدخول',
+            'default' => true,
+            'quiet'   => false,
+        ),
+        'sessions' => array(
+            'label'   => 'الحصص الخاصة',
+            'hint'    => 'طلب حصة · تأكيدها · اعتذار المعلم · اقتراب موعدها',
+            'default' => true,
+            'quiet'   => false,
+        ),
+        'learning' => array(
+            'label'   => 'الدراسة والنتائج',
+            'hint'    => 'نتيجة اختبار · رسوب محطة · شهادة · تقرير أسبوعي',
+            'default' => true,
+            'quiet'   => true,
+        ),
+        'content' => array(
+            'label'   => 'المحتوى والمراجعة',
+            'hint'    => 'درس جديد · اعتماد كورس · رد المراجعة على المعلم',
+            'default' => true,
+            'quiet'   => true,
+        ),
+        'admin' => array(
+            'label'   => 'رسائل الإدارة',
+            'hint'    => 'إشعار تكتبه الإدارة · رسالة داخل المنصة · رد على تواصل',
+            'default' => true,
+            'quiet'   => true,
+        ),
+        'marketing' => array(
+            'label'   => 'التسويق والتذكير',
+            'hint'    => 'انقطاع عن الدراسة · عرض على باقة · تذكير بسلة',
+            'default' => false,
+            'quiet'   => true,
+        ),
+    );
+
+    /**
+     * النوع إلى عائلته.
+     *
+     * والمفاتيح هي أنواع `notifications.type` كما تكتب فعلا من كل باب:
+     * أنواع تقدر، وأحداث `Taqdar_events_model`، وما بقي من Academy.
+     * وما ليس هنا يقع على `admin` — لا على الصمت: نوع جديد يكتبه مبرمج
+     * غدا ولا يسجله هنا يجب أن **يخرج** ويرى، لا أن يبتلع بلا أثر.
+     */
+    public static $TYPE_FAMILY = array(
+        // المال
+        'subscription' => 'money',  'invoice' => 'money',   'payment' => 'money',
+        'payout'       => 'money',  'wallet'  => 'money',
+        'course_purchase' => 'money', 'bundle_purchase' => 'money',
+        'offline_payment_suspended_mail' => 'money',
+
+        // الحساب والأمان
+        'teacher_approved' => 'account', 'teacher_rejected' => 'account',
+        'parent_link_request' => 'account', 'parent_link_granted' => 'account',
+        'parent_link_revoked' => 'account', 'signup' => 'account',
+        'email_verification' => 'account', 'forget_password_mail' => 'account',
+        'new_device_login_confirmation' => 'account', 'otp' => 'account',
+
+        // الحصص
+        'session' => 'sessions', 'session_request' => 'sessions',
+        'session_confirmed' => 'sessions',
+
+        // الدراسة
+        'exam_result' => 'learning', 'station_failed' => 'learning',
+        'quiz_result' => 'learning', 'review_due' => 'learning',
+        'station_unlocked' => 'learning', 'certificate' => 'learning',
+        'certificate_eligibility' => 'learning', 'course_completion_mail' => 'learning',
+        'weekly_report' => 'learning', 'placement_result' => 'learning',
+        'task' => 'learning',
+
+        // المحتوى والمراجعة
+        'content' => 'content', 'review' => 'content', 'course_gift' => 'content',
+        'noticeboard' => 'content',
+
+        // الإدارة
+        'system' => 'admin', 'admin' => 'admin', 'contact' => 'admin',
+        'message' => 'admin', 'instructor_followups' => 'admin',
+
+        // التسويق
+        'inactivity_3days' => 'marketing', 'promo' => 'marketing',
+        'broadcast' => 'marketing',
     );
 
     /**
@@ -110,7 +231,7 @@ class Taqdar_wa_model extends CI_Model
 
         $v = array();
         try {
-            $rows = $this->db->select('key, value')->where_in('key', self::$KEYS)
+            $rows = $this->db->select('key, value')->where_in('key', self::boot_keys())
                              ->get('settings')->result_array();
             foreach ($rows as $r) $v[$r['key']] = (string) $r['value'];
         } catch (Throwable $e) {
@@ -146,6 +267,25 @@ class Taqdar_wa_model extends CI_Model
             'notify_payments' => !isset($v['tq_wa_notify_payments']) || $v['tq_wa_notify_payments'] === '1',
             'otp_allowed'     => !isset($v['tq_wa_otp_allowed'])     || $v['tq_wa_otp_allowed'] === '1',
         );
+
+        /* سياسة العائلات — صف لكل عائلة، وما لا صف له يقع على افتراضه.
+           و`isset` لا `empty`: صف بقيمة `'0'` يعني «أطفأها مسؤول» وهو
+           غير «لم يضبط أحد شيئا» الذي يأخذ الافتراض. وهي قاعدة
+           TQ-META-PIXEL نفسها (NULL غير '')، وبلاها يصير إطفاء عائلة
+           من اللوحة مستحيلا: كل حفظ يعيدها من الشيفرة. */
+        $fam = array();
+        foreach (self::$FAMILIES as $key => $meta) {
+            $k = 'tq_wa_fam_' . $key;
+            $fam[$key] = isset($v[$k]) ? ($v[$k] === '1') : (bool) $meta['default'];
+        }
+        $this->cfg['families'] = $fam;
+
+        /* و«المال» يبقى تحت مفتاحه القديم كذلك.
+           `tq_wa_notify_payments` مكتوب في قاعدة كل منصة تعمل اليوم،
+           وإسقاطه يعني أن من أطفأ إشعارات المال عمدا يجدها عادت تخرج
+           بعد التحديث — وهو أسوأ ما يفعله ترحيل: يقلب قرارا اتخذ. */
+        if (!$this->cfg['notify_payments']) $this->cfg['families']['money'] = false;
+
         return $this->cfg;
     }
 
@@ -194,6 +334,75 @@ class Taqdar_wa_model extends CI_Model
     public function otp_on()
     {
         return $this->configured() && $this->config()['otp_allowed'];
+    }
+
+    /**
+     * مفاتيح الإعدادات كلها — المكتوبة بيد ومفاتيح العائلات معا.
+     *
+     * تنادى من شاشة الإعدادات ومن `config()`. وقائمة ثانية تكتب بيد
+     * تنسى عائلة تضاف، فتقرأ الشاشة مفتاحا لا يحفظ ولا يشكو.
+     */
+    public static function boot_keys()
+    {
+        $out = self::$KEYS;
+        foreach (array_keys(self::$FAMILIES) as $k) $out[] = 'tq_wa_fam_' . $k;
+        return $out;
+    }
+
+    /**
+     * عائلة نوع الإشعار. وما لا يعرف يقع على `admin` لا على الصمت —
+     * انظر `$TYPE_FAMILY`.
+     */
+    public function family_of($type)
+    {
+        $t = (string) $type;
+        return isset(self::$TYPE_FAMILY[$t]) ? self::$TYPE_FAMILY[$t] : 'admin';
+    }
+
+    /**
+     * أتخرج إشعارات هذه العائلة بواتساب الآن؟ نية وقدرة معا — كما
+     * `payments_on()` تماما، وهي اليوم حالة خاصة منها.
+     */
+    public function family_on($family)
+    {
+        if (!$this->configured()) return false;
+        $f = $this->config()['families'];
+        return isset($f[(string) $family]) ? (bool) $f[(string) $family] : false;
+    }
+
+    /** أيخرج هذا النوع بعينه؟ الباب الذي يسأله `push_notification()`. */
+    public function type_on($type)
+    {
+        return $this->family_on($this->family_of($type));
+    }
+
+    /**
+     * أتؤجل هذه العائلة إلى ما بعد ساعات صمت صاحبها؟
+     *
+     * المال والحساب والحصص لا تؤجل: من دفع الآن ينتظر جوابا الآن، ورمز
+     * تحقق يصل بعد تسع ساعات رمز ميت. وما سواها يطرق بابا لا يحتاج أن
+     * يطرق في الثانية صباحا.
+     */
+    public function family_quiets($family)
+    {
+        $f = (string) $family;
+        return isset(self::$FAMILIES[$f]) ? (bool) self::$FAMILIES[$f]['quiet'] : true;
+    }
+
+    /** العائلات بحالها الساري — تقرؤها شاشة الإعدادات. */
+    public function families()
+    {
+        $on  = $this->configured() ? $this->config()['families'] : array();
+        $out = array();
+        foreach (self::$FAMILIES as $key => $meta) {
+            $out[$key] = array(
+                'label' => t($meta['label']),
+                'hint'  => t($meta['hint']),
+                'quiet' => (bool) $meta['quiet'],
+                'on'    => isset($on[$key]) ? (bool) $on[$key] : (bool) $meta['default'],
+            );
+        }
+        return $out;
     }
 
     /* =====================================================================

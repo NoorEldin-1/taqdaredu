@@ -85,6 +85,14 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php?/$1 [L]
 </IfModule>
 
+# رد مفهوم على الطلب الكبير.
+#
+# ملف يتجاوز `post_max_size` يرده الخادم بـ413 **قبل أن يعمل PHP**، فلا
+# ينفذ فحص الصيغة والحجم في `Taqdar::questions_import()` مهما كان محكما،
+# ويقرأ المعلم صفحة خام بالإنجليزية لا تقول ما العمل. والحارس الأول في
+# `taqdar.js` يمنع الوصول إلى هنا من الشاشة، وهذا سياج تحته.
+ErrorDocument 413 /assets/taqdar/site/413.html
+
 # صفحات إعدادات لوحة الإدارة تتجاوز 1000 حقل
 php_value max_input_vars 5000
 

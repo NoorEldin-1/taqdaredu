@@ -301,9 +301,9 @@ if (!function_exists('tq_is_rtl')) {
     function tq_is_rtl($lang = null) { return tq_dir($lang) === 'rtl'; }
 }
 
-if (!function_exists('tq_iso')) {
+if (!function_exists('tq_lang_iso')) {
     /** رمز اللغة الأيزو — يكتب في `<html lang>` وفي ترويسات البريد. */
-    function tq_iso($lang = null)
+    function tq_lang_iso($lang = null)
     {
         $lang  = $lang ?: tq_lang();
         $langs = tq_languages();
@@ -315,7 +315,7 @@ if (!function_exists('tq_locale')) {
     /** الموضع الكامل — للتواريخ والأرقام. */
     function tq_locale($lang = null)
     {
-        return tq_iso($lang) === 'en' ? 'en_US' : 'ar_SA';
+        return tq_lang_iso($lang) === 'en' ? 'en_US' : 'ar_SA';
     }
 }
 
@@ -495,7 +495,7 @@ if (!function_exists('tq_n')) {
    الأرقام والتواريخ
    ==================================================================== */
 
-if (!function_exists('tq_num')) {
+if (!function_exists('tq_fmt_num')) {
     /**
      * رقم بفواصل الموضع.
      *
@@ -504,7 +504,7 @@ if (!function_exists('tq_num')) {
      * للعربية وحدها يجعل رقما يقرؤه المسؤول في اللوحة غير الرقم الذي يبحث
      * به في القاعدة.
      */
-    function tq_num($n, $decimals = 0)
+    function tq_fmt_num($n, $decimals = 0)
     {
         return number_format((float) $n, (int) $decimals, '.', ',');
     }
@@ -579,7 +579,7 @@ if (!function_exists('tq_i18n_js')) {
         return '<script>window.TQ_I18N=' . json_encode(array(
             'lang' => $lang,
             'dir'  => tq_dir($lang),
-            'iso'  => tq_iso($lang),
+            'iso'  => tq_lang_iso($lang),
             'map'  => (object) $map,
         ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';</script>';
     }

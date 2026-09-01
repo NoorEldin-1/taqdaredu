@@ -1,0 +1,618 @@
+/* ==========================================================================
+   Dashboard Design System — طبقة التطبيق
+   المصدر: claude.ai/design/p/a8b6157e-da24-465d-960e-4a0b4ff48711
+           «Dashboard Design System.dc.html»
+
+   ═══ لماذا ملف مستقل ═══
+
+   `tokens.css` **مولد آليا** من `lib/core/theme/*.dart` في مستودع تطبيق
+   تقدر، ورأسه يحذر أن إعادة التوليد تدهس التعديل اليدوي. فلو كتب الـDS
+   هناك لمحته أول إعادة توليد صامتة. وهذا الملف يحمل بعده فيتجاوزه،
+   وينجو منها، ويجمع كل ما غيره الـDS في موضع واحد — وإلغاؤه كله حذف
+   سطري تحميل.
+
+   ═══ لماذا مقيد لا عام ═══
+
+   `frontend/taqdar/includes_top.php` يخدم **الموقع العام والبوابات
+   معا**. فكتلة `:root` هنا كانت ستعيد تصميم صفحات البيع والباقات
+   والمدونة — وهي خارج النطاق صراحة. فكل قاعدة مقيدة بجذر لوحة:
+
+     body.tqa                → لوحة الإدارة (الصنف على `<body>` في
+                               `backend/index.php:50`)
+     body.tq-body--portal    → بوابات الطالب والمعلم وولي الأمر
+                               (`frontend/taqdar/index.php:115`،
+                                يحسبها `$tq_is_portal` ولا تظهر في
+                                صفحة عامة قط)
+
+   والمشبكان **قائمان في الوسم أصلا** — فلم يعدل ملف PHP واحد، ولا
+   أضيفت صنف، ولا مس زر. واستحالة حذف زر أو تعطيله هنا خاصية بنيوية
+   لا وعد.
+
+   ═══ قواعد الـDS المنقولة نصا ═══
+
+   · بيان أخضر واحد في الشاشة — بطاقة أو زر واحد يحمل التوكيد.
+   · اللوحات على الرمادي الغائر داخل غلاف أبيض؛ لا أبيض على أبيض.
+   · لا تدرج في الأخضر ولا لون هوية ثان.
+   · لا شيء دون ١٢px، ولا هدف لمس دون **٤٤px**.
+   · لا يجتمع حد وظل على البطاقة نفسها.
+   ========================================================================== */
+
+/* ══════════════════════════════════════════════════════════════════════
+   ١ · الرموز — تعاد قيمها ولا يحذف رمز
+   حذف رمز قائم يسقط ٧٤٩ نداء في `admin.css` وحدها بلا صوت، فكل ما
+   هنا **إعادة قيمة** لرمز موجود، أو رمز جديد يضاف.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tqa,
+body.tq-body--portal {
+
+  /* ---- الأخضر: الهوية كلها لون واحد ---- */
+  --tq-navy:        #0B3B26;   /* forest-800 — حبر العناوين والأسطح الداكنة */
+  --tq-navyDeep:    #062A1A;   /* forest-900 — أعمق سطح */
+  --tq-navySoft:    #14523A;   /* بين الاثنين: حد ونبرة ثانوية */
+  --tq-teal:        #0F7B4A;   /* green-600 — الأساسي */
+  --tq-tealLift:    #2F9E67;   /* green-500 */
+  --tq-tealSoft:    #E7F4EC;   /* green-050 */
+
+  /* ---- المحايد ---- */
+  --tq-ink:         #171A1C;
+  --tq-text:        #171A1C;   /* ink        — 15.3:1 على الأبيض (AAA) */
+  --tq-text2:       #4A5257;   /* slate-700 */
+  /* الوثيقة تعلن «Slate 500 on white = 4.6:1»، والقياس على أسطح اللوحة
+     أعطى **٣٫٩:١** — لأن سطحها `#FAFBFB` لا أبيض ناصع. فيغمق درجة:
+     ٥٫٠:١ على الأبيض و٤٫٨:١ على سطح اللوحة، ويبقى ثالثيا بالنبرة. */
+  --tq-text3:       #666F76;
+  --tq-line:        #E4E6E7;
+  --tq-ground:      #EDEEEE;   /* page */
+  --tq-sunken:      #F5F6F6;   /* surface-sunken */
+  --tq-panel:       #FAFBFB;   /* surface-panel */
+  --tq-surface:     #FFFFFF;   /* card */
+
+  /* ---- الحالة: ثلاثة ألوان لا أكثر ---- */
+  /* `--tq-danger` **يخدم غرضين متضادين**: سطحا يحمل نصا أبيض (نقاط العد،
+     أزرار الحذف)، وحبرا على تعبئة فاتحة (شارة «رسب»). فيلزمه أن يجتاز
+     الاختبارين معا:
+       الوثيقة `#E0362B` → أبيض عليه ٤٫٤٢ ✗ · على التعبئة ٣٫٨ ✗
+       محاولتي `#D6332A` → أبيض عليه ٤٫٧٦ ✓ · على التعبئة ٤٫١ ✗
+       المعتمد  `#C0392B` → أبيض عليه **٧٫٥** ✓ · على التعبئة **٦٫٥** ✓
+     وهو قيمة المنصة الأصلية — كانت أصح من الوثيقة في هذا. */
+  --tq-danger:      #C0392B;
+  --tq-dangerSoft:  #FDEAE8;
+  /* ⚠︎ `--tq-amber` **حبر لا تعبئة**: القوالب تستعمله في نصوص صغيرة
+     (`.tqa-warn`، وسطور «منتظر ٨ يوما»). و`#C77A12` من الوثيقة يعطي
+     **٣٫٤:١ على الأبيض** — يصلح حدا وأيقونة كبيرة، لا حبرا لنص ١١px.
+     فيبقى على قيمة المنصة المقيسة (**٥٫١:١**)، وتبقى التعبئة من الـDS. */
+  --tq-amber:       #8A5D18;
+  --tq-amberSoft:   #FEF1E1;
+  --tq-success:     #0F7B4A;
+  --tq-successSoft: #E7F4EC;
+
+  /* ---- أسطح الفعل ----
+     ⚠︎ مزلق مسجل في المشروع: `--tq-navy` و`--tq-teal` **حبر لا سطح**،
+     ووضع نص أبيض عليهما مباشرة أعطى 2.10:1 في وجه داكن. ولهذا وجدت
+     هذه الرموز المستقلة. والـDS يوثق قياسه: أبيض على green-600 =
+     **4.9:1 AA**. فالأساسي هنا green-600 لا forest. */
+  --tq-actionPrimary:      #0F7B4A;
+  --tq-actionPrimaryHover: #0B3B26;
+  --tq-actionMastery:      #0B3B26;
+  --tq-actionDanger:       #C0392B;   /* أبيض عليه ٧٫٥:١ — انظر `--tq-danger` أعلاه */
+  --tq-onAction:           #FFFFFF;
+
+  --tq-navBar:      #062A1A;
+  --tq-navInkOn:    #FFFFFF;
+  --tq-navInkOff:   #8FBBA3;   /* نص ثانوي على السطح الداكن — نص الـDS */
+  --tq-navDivider:  rgba(255, 255, 255, 0.12);
+
+  --tq-navyWash:       rgba(11, 59, 38, 0.055);
+  --tq-navyWashStrong: rgba(11, 59, 38, 0.10);
+  --tq-focusRing:      rgba(15, 123, 74, 0.32);
+
+  /* ---- الباستيل الست ----
+     ⚠︎ **درس كلفني قياسا**: أول ما فعلت أني نقلت ألوان الحالة من الوثيقة
+     حرفيا إلى رموز **الحبر** — فسقط التباين في ١٨ موضعا:
+       `warning #C77A12` على تعبئته = **٣٫٠:١**  (وكان `#8A5D18` = ٥٫١)
+       `danger  #E0362B` على تعبئته = **٣٫٨:١**  (وكان `#A6473A` يمر)
+     وألوان الوثيقة **زخرفية لا AA**: تصلح تعبئة وحدودا وأيقونات كبيرة،
+     ولا تصلح حبرا لنص بحجم ١٠–١٢px. والوثيقة نفسها تشترط ٤٫٥:١.
+
+     فالتعبئة من الـDS كما هي، و**الحبر مقيس**: هذا هو مبدأ المنصة
+     المكتوب أصلا — «كل تعبئة مقترنة بحبرها، ولا تفصل». */
+  --tq-mint-fill:  #E7F4EC;  --tq-mint-ink:  #0F7B4A;   /* ٤٫٧:١ */
+  --tq-sky-fill:   #E9EFF3;  --tq-sky-ink:   #1F5A73;   /* ٦٫٤:١ */
+  --tq-peach-fill: #FEF1E1;  --tq-peach-ink: #8A5D18;   /* ٥٫١:١ */
+  --tq-lilac-fill: #EFEDF4;  --tq-lilac-ink: #574A78;   /* ٧٫١:١ */
+  --tq-rose-fill:  #FDEAE8;  --tq-rose-ink:  #9E241B;   /* ٦٫٧:١ */
+  --tq-sand-fill:  #F3F2EA;  --tq-sand-ink:  #5F5A28;   /* ٦٫٩:١ */
+
+  /* ---- المسافات: أساس ٨px ---- */
+  --tq-space-xs: 4px;
+  --tq-space-s:  8px;    /* sp-1 */
+  --tq-space-m:  12px;   /* sp-2 */
+  --tq-space-l:  16px;   /* sp-3 */
+  --tq-space-xl: 20px;   /* لا مقابل في الـDS (يقفز ١٦→٢٤) — أبقي كما هو
+                            لأن تغييره يزيح تخطيطات قائمة بلا مكسب */
+  --tq-space-xxl: 24px;  /* sp-4 */
+  --tq-space-h1: 32px;
+  --tq-space-h2: 40px;   /* sp-5 */
+  --tq-space-h3: 56px;   /* sp-6 */
+
+  /* ---- أنصاف الأقطار ---- */
+  --tq-radius-soft:   28px;  /* r-xl  — كان ٣٢ */
+  --tq-radius-card:   28px;  /* r-xl  — مطابق سلفا */
+  --tq-radius-medium: 20px;  /* r-lg  — مطابق سلفا */
+  --tq-radius-small:  12px;  /* r-md  — كان ١٤ */
+  --tq-radius-xs:     8px;   /* r-sm  — جديد */
+  --tq-radius-pill:   999px;
+
+  /* ---- الظلال: لا يجتمع ظل وحد ---- */
+  --tq-shadow-card:   0 2px 8px rgba(23, 26, 28, 0.06);
+  --tq-shadow-soft:   0 2px 8px rgba(23, 26, 28, 0.06);
+  --tq-shadow-raised: 0 12px 32px rgba(23, 26, 28, 0.12);
+  --tq-shadow-float:  0 12px 32px rgba(23, 26, 28, 0.12);
+
+  /* ---- الحركة: أرقام الـDS نصا ---- */
+  --tq-motion-hover:        120ms;
+  --tq-motion-menu:         200ms;
+  --tq-motion-route:        320ms;
+  --tq-motion-elementEntry: 320ms;
+  --tq-motion-ringFill:     900ms;
+  --tq-ease-enter: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --tq-ease-out:   cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ---- الطباعة ----
+     الخطان مثبتان ذاتيا سلفا: `Plex Arabic` هو IBM Plex Sans Arabic
+     الذي يطلبه الـDS نصا، و`Cairo` يحمل الوزن ٧٠٠ الذي يطلبه للعناوين
+     ولا يملكه Plex محليا (٤٠٠/٥٠٠/٦٠٠ فقط). فلا يحمل خط جديد ولا
+     يطلب من شبكة ثالثة. */
+  --tq-font-title: 'Cairo', 'Plex Arabic', system-ui, sans-serif;
+  --tq-font-body:  'Plex Arabic', 'Cairo', system-ui, sans-serif;
+  /* الـDS يطلب IBM Plex Mono للأرقام «لتصطف الأعمدة». والمثبت محليا
+     `SpaceGrotesk` وهو غير أحادي العرض — فتحقق **الغاية** بـ
+     `tabular-nums` أدناه بدل تحميل خط رابع. */
+  --tq-font-num:   'SpaceGrotesk', 'Plex Arabic', system-ui, sans-serif;
+
+  --tq-type-display:    800 40px/1.05 var(--tq-font-title);
+  --tq-type-hero:       800 34px/1.10 var(--tq-font-title);
+  --tq-type-h1:         700 28px/1.25 var(--tq-font-title);
+  --tq-type-h2:         700 21px/1.35 var(--tq-font-title);
+  --tq-type-cardTitle:  700 17px/1.40 var(--tq-font-title);
+  --tq-type-body:       500 14.5px/1.60 var(--tq-font-body);
+  --tq-type-bodyStrong: 600 14.5px/1.60 var(--tq-font-body);
+  --tq-type-caption:    500 12.5px/1.55 var(--tq-font-body);
+  --tq-type-micro:      600 11.5px/1.40 var(--tq-font-body);
+  --tq-type-overline:   600 11px/1.40 var(--tq-font-body);
+  --tq-type-numeralXl:  800 34px/1.10 var(--tq-font-num);
+  --tq-type-numeralMd:  700 18px/1.20 var(--tq-font-num);
+  --tq-type-numeralSm:  600 13px/1.20 var(--tq-font-num);
+
+  /* ---- الهيكل ---- */
+  --tq-rail-open:      232px;   /* الـDS — كان ٢٤٠ */
+  --tqa-rail:          232px;
+  --tq-rail-collapsed: 72px;    /* مطابق سلفا */
+  --tqa-rail-collapsed: 72px;
+  --tqa-topbar-h:      72px;    /* الـDS — كان ٦٨ */
+  --tq-nav-item-h:     44px;
+  --tq-touch-min:      44px;    /* «لا هدف لمس دون ٤٤» */
+  --tqa-field-h:       44px;
+  --tqa-radius:        20px;
+  --tqa-radius-sm:     12px;
+
+  --tq-z-nav:   10;
+  --tq-z-menu:  40;
+  --tq-z-modal: 60;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٢ · الأرضية والسطح — «لا أبيض على أبيض»
+   ══════════════════════════════════════════════════════════════════════ */
+body.tqa,
+body.tq-body--portal {
+  background: var(--tq-ground);
+  color: var(--tq-text);
+  font: var(--tq-type-body);
+  -webkit-font-smoothing: antialiased;
+
+  /* TQ-RTL-ALIGN — عطب في الاتجاه، لا في اللون.
+
+     `assets/backend/css/app.min.css` (ريبوت بوتستراب داخل قالب Academy)
+     يكتب `body { text-align: left }` — افتراض إنجليزي مثبت في ورقة طرف
+     ثالث. وترثه اللوحة العربية كلها: بالقياس **١٩٨ نصا من ٢١٩** محاذاته
+     يسار في صفحة `dir="rtl"`.
+
+     ولا يظهر العطب إلا حيث تكون الحاوية أعرض من الكلمة — كبنود الرصيف
+     (حاوية ١٤٥px تحمل «المسارات»): فتهرب الكلمة إلى أقصى اليسار وتترك
+     فجوة بينها وبين أيقونتها.
+
+     و`start` لا `right`: القيمة المنطقية تصح في الاتجاهين، فلا تنكسر
+     اللوحة إن بدلت لغتها إلى الإنجليزية. والمشروع كان يقاوم هذا يدويا
+     أصلا — `admin.css:747` يكتب `text-align: start` صراحة. */
+  text-align: start;
+}
+
+/* الأرقام تصطف: هذه غاية «IBM Plex Mono» في الـDS، وتتحقق بلا خط رابع. */
+body.tqa .tqa-num,
+body.tqa [class*="num"],
+body.tq-body--portal .tq-num,
+body.tq-body--portal [class*="num"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٣ · الأزرار — مواصفة الـDS بالقياس
+   ارتفاع ٤٤ · حشوة ٠ ٢٢ · حبة كاملة · ١٤٫٥/٦٠٠ · فجوة ٨ أيقونة→نص
+   ولا يقل هدف اللمس عن ٤٤ في أي حال.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tqa .tqa-btn,
+body.tq-body--portal .tq-btn {
+  min-height: 44px;
+  padding-inline: 22px;
+  border-radius: var(--tq-radius-pill);
+  font: 600 14.5px/1 var(--tq-font-body);
+  gap: 8px;
+  transition: background var(--tq-motion-hover) var(--tq-ease-out),
+              color      var(--tq-motion-hover) var(--tq-ease-out),
+              border     var(--tq-motion-hover) var(--tq-ease-out);
+}
+
+/* الزر الصغير له مواصفته في الوثيقة ولا يرث الكبير:
+     **sm: ارتفاع 34 · حشوة 0 14px · 12.5/600**
+   وكنت أطبق مواصفة الكبير (٢٢px) على الجميع، فاتسع كل زر صغير من ١٠٨
+   إلى ١٣٠px — وهي أزرار تسكن أشرطة أفقية، فزاد تجاوز الشريط **٢٢px
+   بالضبط** وظهر تمرير أفقي على الجوال. القياس أمسكه، لا النظر.
+
+   والارتفاع يبقى ٤٤ لا ٣٤: الوثيقة نفسها تنص «لا هدف لمس دون ٤٤»،
+   والمنصة تعرف `--tq-touch-min`. الحشوة وحدها هي ما يضبط العرض. */
+body.tqa .tqa-btn--sm,
+body.tq-body--portal .tq-btn--sm {
+  padding-inline: 14px;
+  font-size: 12.5px;
+}
+
+body.tqa .tqa-btn--primary,
+body.tq-body--portal .tq-btn--primary {
+  background: var(--tq-actionPrimary);
+  color: var(--tq-onAction);
+  border: 0;
+}
+body.tqa .tqa-btn--primary:hover,
+body.tq-body--portal .tq-btn--primary:hover {
+  background: var(--tq-actionPrimaryHover);
+}
+
+/* الثانوي: أبيض بحد — ولا ظل معه (قاعدة «لا حد وظل معا») */
+body.tqa .tqa-btn--ghost,
+body.tq-body--portal .tq-btn--secondary {
+  background: var(--tq-surface);
+  color: var(--tq-text);
+  border: 1px solid #D8DADB;
+  box-shadow: none;
+}
+
+/* الناعم: أخضر على أخضر فاتح */
+body.tqa .tqa-btn--mastery,
+body.tq-body--portal .tq-btn--mastery {
+  background: var(--tq-tealSoft);
+  color: var(--tq-teal);
+  border: 0;
+}
+
+body.tqa .tqa-btn--danger,
+body.tq-body--portal .tq-btn--danger {
+  background: var(--tq-actionDanger);
+  color: var(--tq-onAction);
+  border: 0;
+}
+
+/* المعطل يبقى **مرئيا ومقروءا**: إخفاؤه يخالف شرط المالك صراحة. */
+body.tqa .tqa-btn:disabled,
+body.tqa .tqa-btn[aria-disabled="true"],
+body.tq-body--portal .tq-btn:disabled {
+  background: var(--tq-sunken);
+  color: #B4BABE;
+  border-color: var(--tq-line);
+  opacity: 1;             /* لا تخفيت: الشفافية تجعله شبحا لا معطلا */
+  cursor: not-allowed;
+}
+
+/* الحلقة تحيط ولا تزيح: `outline` لا `border` فلا يتغير مقاس الزر. */
+body.tqa .tqa-btn:focus-visible,
+body.tq-body--portal .tq-btn:focus-visible {
+  outline: 3px solid var(--tq-focusRing);
+  outline-offset: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٤ · البطاقات واللوحات — «لوحات على الغائر داخل غلاف أبيض»
+   ══════════════════════════════════════════════════════════════════════ */
+body.tqa .tqa-card,
+body.tq-body--portal .tq-card {
+  background: var(--tq-surface);
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tq-radius-medium);
+  box-shadow: none;              /* لا حد وظل معا */
+}
+
+body.tq-body--portal .tq-card--panel {
+  background: var(--tq-panel);
+  border: 0;
+  border-radius: var(--tq-radius-medium);
+  box-shadow: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٥ · الحقول — ارتفاع ٤٤، حد ١px، وحلقة تركيز خضراء
+   ══════════════════════════════════════════════════════════════════════ */
+body.tqa .tqa-input,
+body.tqa .tqa-select,
+body.tq-body--portal .tq-input,
+body.tq-body--portal .tq-select {
+  min-height: 44px;
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tq-radius-md, 12px);
+  background: var(--tq-surface);
+  color: var(--tq-text);
+  font: var(--tq-type-body);
+  transition: border-color var(--tq-motion-hover) var(--tq-ease-out),
+              box-shadow   var(--tq-motion-hover) var(--tq-ease-out);
+}
+body.tqa .tqa-input:focus,
+body.tqa .tqa-select:focus,
+body.tq-body--portal .tq-input:focus,
+body.tq-body--portal .tq-select:focus {
+  border-color: var(--tq-teal);
+  box-shadow: 0 0 0 3px var(--tq-focusRing);
+  outline: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٦ · الشريط الجانبي — منقول حرفيا من «Applied — dashboard shell»
+
+   ⚠︎ **خطأ صححته**: كنت قد جعلت الرصيف كله داكنا (`--tq-navBar`)، وهو
+   مخالف للتصميم من أصله: في الوثيقة وفي الصورة المرجعية الشريط
+   **فاتح `#FAFBFB`**، والأخضر لا يظهر فيه إلا في **العنصر النشط**.
+
+   وكان للخطأ أثر أسوأ من مخالفة الشكل: `.tqa-rail__item` **يضبط لونه
+   بنفسه** (`color: var(--tq-text2)`)، فلون الأب لا يصل إليه — فصار حبر
+   `#4A5257` على خلفية `#062A1A` بنسبة ١٫٣:١، أي نص لا يقرأ.
+   **ولذلك لا يكفي تبييض الحبر: الصواب إعادة السطح فاتحا كما في التصميم.**
+
+   المواصفة كما وردت:
+     aside  : #FAFBFB · radius 20 · padding 20px 14px
+     التسمية: 10.5/600 · تباعد .12em · #9AA1A6
+     البند  : ارتفاع 40 · حشوة 0 10 · radius 10 · 13.5px
+     النشط  : خلفية بيضاء · وزن 700 · شريط أخضر 4×24 عند الحافة
+     التمرير: خلفية بيضاء
+     الشارة : #E7F4EC على #0F7B4A · radius 6 · 10px/700
+
+   وخالفتها في شيء واحد عمدا: **الارتفاع 44 لا 40**. الوثيقة نفسها تنص
+   «لا هدف لمس دون ٤٤px»، والمقاس 40 في النموذج مخالف لقاعدتها. والمنصة
+   تعرف الرمز `--tq-nav-item-h: 44px` أصلا. القاعدة تغلب الرسم.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tqa .tqa-rail {
+  background: var(--tq-panel);
+  color: var(--tq-text);
+  border-radius: var(--tqa-radius);
+}
+
+/* تسمية المجموعة: صغيرة ومتباعدة الحروف، ورمادية لا خضراء */
+/* النموذج يرسمها `#9AA1A6` بـ10.5px، وكلاهما **يخالف قواعد وثيقته**:
+   القياس أعطى ٢٫٥:١ والوثيقة تشترط ٤٫٥، وتنص «لا شيء دون ١٢px».
+   فالقيمة المعتمدة `slate-500` وهي **الوحيدة الموثقة بقياسها** في
+   الوثيقة: «Slate 500 on white — 4.6:1، لا تحت ١٢px». القاعدة تغلب الرسم. */
+/* ⚠︎ **الوثيقة تقول ما لا يصمد للقياس**: تعلن «Slate 500 on white =
+   4.6:1»، والقياس على سطح الرصيف `#FAFBFB` أعطى **٣٫٨:١** — لأن السطح
+   ليس أبيض ناصعا. فاعتمد `slate-700` (**٧٫٥:١**): يبقى ثانويا بالنبرة
+   (٧٫٥ مقابل ١٧٫٥ للعنوان) ويقرأ. **القياس يغلب الإعلان.** */
+body.tqa .tqa-rail__group {
+  color: var(--tq-text2);
+  font: 600 12px/1.4 var(--tq-font-body);
+  letter-spacing: 0.12em;
+}
+
+/* البند الساكن: حبر slate-700 على #FAFBFB = نحو ٧:١ — فوق AA بمراحل */
+body.tqa .tqa-rail__item {
+  min-block-size: 44px;
+  padding-inline: 10px;
+  border-radius: 10px;
+  color: var(--tq-text2);
+  font: 500 13.5px/1.4 var(--tq-font-body);
+  gap: 11px;
+}
+body.tqa .tqa-rail__item .tqa-rail__icon { color: var(--tq-text3); }
+
+/* التمرير: بطاقة بيضاء ترتفع عن سطح اللوحة */
+body.tqa .tqa-rail__item:hover {
+  background: var(--tq-surface);
+  color: var(--tq-text);
+}
+body.tqa .tqa-rail__item:hover .tqa-rail__icon { color: var(--tq-teal); }
+
+/* النشط: بطاقة بيضاء + شريط أخضر عند الحافة الداخلية.
+   والشريط `::before` لا عنصر جديد — فلا يمس وسم ولا يضاف زر. */
+body.tqa .tqa-rail__item[aria-current='page'] {
+  background: var(--tq-surface);
+  color: var(--tq-text);
+  font-weight: 700;
+  box-shadow: var(--tq-shadow-card);
+}
+body.tqa .tqa-rail__item[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -14px;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  inline-size: 4px;
+  block-size: 24px;
+  border-start-end-radius: 4px;
+  border-end-end-radius: 4px;
+  background: var(--tq-teal);
+}
+body.tqa .tqa-rail__item[aria-current='page'] .tqa-rail__icon { color: var(--tq-teal); }
+
+/* `admin.css:246` يجعل شارة البند النشط **أبيض على ٢٢٪ أبيض** — وهي قاعدة
+   صيغت للخلفية الخضراء القديمة. ولما صارت البطاقة بيضاء بمقتضى التصميم
+   صار النص أبيض على أبيض: **١:١، لا يرى**. فتعاد الشارة إلى ألوانها. */
+body.tqa .tqa-rail__item[aria-current='page'] .tqa-rail__count {
+  background: var(--tq-tealSoft);
+  color: var(--tq-teal);
+}
+body.tqa .tqa-rail__item[aria-current='page'] .tqa-rail__count--urgent {
+  background: var(--tq-dangerSoft);
+  color: #9E241B;
+}
+
+/* الشارة: أخضر فاتح على أخضر — ٤٫٩:١ بقياس الوثيقة */
+body.tqa .tqa-rail__count {
+  background: var(--tq-tealSoft);
+  color: var(--tq-teal);
+  border-radius: 6px;
+  font: 700 11.5px/1.5 var(--tq-font-body);   /* النموذج ١٠px، والوثيقة تمنع ما دون ١٢
+                                                 — و١١٫٥ أقرب ما لا يوسع الشارة فيدفع البند */
+  font-variant-numeric: tabular-nums;
+}
+/* `--tq-danger` على `--tq-dangerSoft` = **٣٫٨:١** بالقياس، ورقم الشارة
+   نص صغير يلزمه ٤٫٥. فيغمق الحبر وحده وتبقى التعبئة كما هي — فلا
+   تتغير لغة اللون ولا يفقد الأحمر دلالته. */
+body.tqa .tqa-rail__count--urgent {
+  background: var(--tq-dangerSoft);
+  color: #9E241B;
+}
+
+/* الهوية والذيل يبقيان على السطح الفاتح */
+body.tqa .tqa-rail__wordmark { color: var(--tq-text); }
+body.tqa .tqa-rail__tagline  { color: var(--tq-text2); }   /* ٧٫٥:١ — انظر أعلاه */
+body.tqa .tqa-rail hr,
+body.tqa .tqa-rail__sep { border-color: var(--tq-line); }
+
+/* البوابات: الرصيف نفسه، بأصنافها هي */
+body.tq-body--portal .tq-rail {
+  background: var(--tq-panel);
+  color: var(--tq-text);
+}
+/* `:not([aria-current])` ليست تجميلا: بند البوابة النشط خلفيته **داكنة**
+   ونصه أبيض بتصميمها. وقاعدتي كانت تشمله فتفرض عليه حبرا رماديا فوق
+   الداكن ⇒ **١٫٥:١**. فتستثنيه صراحة، ويبقى أبيضه كما صمم. */
+body.tq-body--portal .tq-rail__item:not([aria-current='page']) { color: var(--tq-text2); }
+body.tq-body--portal .tq-rail__item:not([aria-current='page']):hover {
+  background: var(--tq-surface);
+  color: var(--tq-text);
+}
+body.tq-body--portal .tq-rail hr { border-color: var(--tq-line); }
+
+/* شارة البند النشط في البوابة: خلفيتها `rgba(255,255,255,.22)` وحبرها
+   أبيض — صيغت لبند خلفيته كحلي داكن (`#023331`)، فمرت. ولما صار البند
+   أخضر `#0F7B4A` بمقتضى الـDS خف السطح تحتها فسقط الأبيض إلى **٣٫٥:١**.
+   فتعتم الشارة ويصير حبرها أخضر: **٤٫٧:١**، والنبرة أوضح مما كانت. */
+body.tq-body--portal .tq-rail__item[aria-current='page'] .tq-rail__count {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--tq-actionPrimary);
+}
+body.tq-body--portal .tq-rail__item[aria-current='page'] .tq-rail__count--urgent {
+  background: rgba(255, 255, 255, 0.92);
+  color: #9E241B;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٧ · الشارات — **لا قاعدة هنا، عمدا**
+
+   كنت كتبت هنا ثلاث قواعد تعطي الشارة `--tq-amber` و`--tq-danger`.
+   وكشف فحص القواعد المتطابقة أنها كانت **تلتف على خريطة المنصة**:
+   `admin.css` يعطي الشارة `--tq-peach-ink` و`--tq-rose-ink` — وهي
+   الأحبار المقيسة — فتجاوزتها بألوان الوثيقة الزخرفية، فسقط التباين
+   إلى ٣٫٠:١، **ولم ينفع إصلاح التوكن لأن قاعدتي تسبقه**.
+
+   فحذفت قواعدي. خريطة المنصة أصح من زيادتي، وقد ضبطت أحبارها في
+   كتلة الرموز أعلاه — فالشارات تأخذ ألوان الـDS في التعبئة وأحبارا
+   تجتاز AA، بلا سطر واحد هنا.
+
+   **الدرس: طبقة التجاوز تصلح للقيم، لا لإعادة كتابة ما هو صحيح.**
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* الأرقام: `.tqa-num` كانت ترث أزرق قالب Academy `#727CF5` (**٣٫٥:١**)،
+   وهو لون غريب عن الهوية أصلا. يعاد إلى حبر المنصة ويأخذ أرقاما جدولية
+   كما تطلب الوثيقة «لتصطف الأعمدة». */
+body.tqa .tqa-num {
+  color: var(--tq-text2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   اتجاه الأرقام — TQ-NUM-DIR
+
+   `admin.css` يضع `direction: ltr` على حاملات الأرقام (`tqa-stat__value`
+   و`tqa-num`) حماية لترتيب الرقم. والحماية سليمة في غايتها، لكنها
+   **قلبت المحاذاة معها**: محاذاة هذه العناصر `start`، و«البداية» في
+   صندوق إنجليزي هي **اليسار** — فيهرب الرقم إلى يسار كتلة عرضها ٢٥٢px
+   بينما عنوانه على اليمين. القياس: الرقم عند ٥٤–٧٤ وحافة البطاقة ٣٢٣.
+
+   ولا يلزم إلغاء الحماية: العنصران يحملان `unicode-bidi: isolate` أصلا،
+   **وهو ما يحمي ترتيب الرقم فعلا** لا `direction`. فيرد الاتجاه إلى
+   اتجاه الصفحة ويبقى العزل. القياس بعد التصحيح: الرقم عند ٢٨٦–٣٠٦،
+   و**نص المبلغ وعرضه لم يتغيرا** («0 ر.س»، ٨٨px) — أي لا انقلاب.
+
+   و`inherit` لا `rtl`: لو بدلت اللوحة إلى الإنجليزية عاد الرقم يسارا
+   من نفسه. ولا يمس `<bdi>` ولا نقطة العد: محاذاتهما `center`،
+   والتوسيط لا يتأثر بالاتجاه أصلا. */
+body.tqa .tqa-stat__value,
+body.tqa .tqa-num,
+body.tq-body--portal .tq-stat__value,
+body.tq-body--portal .tq-num {
+  direction: inherit;
+  unicode-bidi: isolate;
+}
+
+/* مؤشر الصفحة الحالية: الرابط خلفيته `--tq-actionPrimary` وحبره أبيض،
+   لكن `<span>` بداخله يرث `--tq-text2` — فيقع حبر رمادي على أخضر
+   (**١٫٥:١**، وكان ٢٫٤ قبل تغميقي للرمادي). فيلزم السليل حبر الفعل. */
+body.tqa .tqa-pager [aria-current='page'],
+body.tqa .tqa-pager [aria-current='page'] * {
+  color: var(--tq-onAction);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٨ · حماية الاستخدام — قواعد تمنع ما نهى عنه المالك صراحة
+   لا تجميل هنا: كل قاعدة تمنع عطبا يمكن أن يحدثه أي تنسيق.
+   ══════════════════════════════════════════════════════════════════════ */
+
+
+/* ⚠︎ لا يوضع هنا `overflow-x: clip` على الـbody ولا يقلب `white-space`
+   في الأزرار: الأول **يخفي** العنصر الخارج بدل أن يمنعه فيعمي الفحص،
+   والثاني يغير سلوك تخطيط لم يطلبه أحد فيجعل الزر سطرين. الخروج
+   يكشفه الفحص الآلي ويصلح في موضعه.
+
+   والجداول العريضة تمرر **داخل** وعائها لا تدفع الصفحة: */
+body.tqa .tqa-table__wrap,
+body.tq-body--portal .tq-table-wrap { overflow-x: auto; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٩ · درج الرصيف المغلق يخرج من الشاشة — TQ-RAIL-OFFCANVAS
+
+   عطب **قائم قبل هذه الطبقة**، كشفه القياس لا النظر:
+
+     [dir='rtl'] .tqa-rail { inset-inline-end: 0; transform: translateX(102%); }
+
+   في RTL يترجم `inset-inline-end: 0` إلى **`left: 0`**، فالدرج يثبت عند
+   الحافة اليسرى ثم يدفع يمينا بمقدار **عرضه هو**. وعرضه أصغر من الشاشة،
+   فهو يعبرها ولا يخرج منها: بعرض ٢٦٤ على شاشة ٣٧٥ يبقى **١٠٥٫٧px**
+   منه فوق المحتوى، تحجب النقر عن كل ما تحتها.
+
+   ولأن الإزاحة بعرضه، فتضييقه إلى ٢٣٢ (مقاس الـDS) يزيد المكشوف إلى
+   ١٣٨٫٤px — أي أن تطبيق التصميم وحده كان **يضاعف عطبا قائما**.
+
+   والإصلاح `100vw` لا `102%`: النسبة تقاس من العنصر، والوحدة من الشاشة —
+   ومن أراد إخراج شيء من الشاشة يقيس بالشاشة. النتيجة صفر تغطية.
+
+   وحالة الفتح تبقى كما هي بمحدد أعلى وزنا، فلا يتغير سلوك زر القائمة. */
+@media (max-width: 991.98px) {
+  [dir='rtl'] body.tqa .tqa-rail { transform: translateX(100vw); }
+  [dir='rtl'] body.tqa .tqa-shell[data-open='true'] .tqa-rail { transform: none; }
+}
+
+/* من يوقف الحركة يوقفها */
+@media (prefers-reduced-motion: reduce) {
+  body.tqa *,
+  body.tq-body--portal * {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

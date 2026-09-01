@@ -674,7 +674,7 @@ class Taqdar_site_model extends CI_Model
         $byCourse = array();   // course_id → إحصاء + دروس بلا وحدة
         if ($cids) {
             $rows = $this->db->select('id, title, duration, course_id, section_id,
-                                       lesson_type, is_free, `order`', false)
+                                       lesson_type, is_free, video_url, `order`', false)
                              ->from('lesson')->where_in('course_id', $cids)
                              ->where('COALESCE(`tq_status`, "published") =', 'published')
                              ->order_by('`order`', 'ASC', false)->order_by('id', 'ASC')
@@ -684,6 +684,17 @@ class Taqdar_site_model extends CI_Model
                 $sid  = (int) $r['section_id'];
                 $quiz = ((string) $r['lesson_type'] === 'quiz');
                 $free = ((int) $r['is_free'] === 1);
+
+                /* TQ-EMPTY-LESSON — درس فيديو بلا مقطع لا يعرض ولا يعد.
+                   وليس هذا تجميلا: الدرس الذي لا `video_url` له **لا يفتح
+                   لأحد** — لا لزائر ولا لمشترك — فعده في «٢٤ درسا» وعد
+                   يكتشفه المشتري بعد الدفع. ووسم «معاينة مجانية» عليه
+                   أسوأ: يفتح صفحة تقول «لا يوجد مقطع لهذا الدرس بعد».
+                   والاختبار مستثنى: المقطع ليس شرطه، وأسئلته هي محتواه.
+                   و`video_url` يقرأ للعد وحده ولا يوضع في العقدة — فالعقدة
+                   تطبع في صفحة عامة، ووضعه فيها يسرب مقاطع المدفوع. */
+                $has_video = (trim((string) $r['video_url']) !== '');
+                if (!$quiz && !$has_video) continue;
 
                 $node = array(
                     'id'       => (int) $r['id'],
@@ -695,11 +706,13 @@ class Taqdar_site_model extends CI_Model
                 );
 
                 if (!isset($byCourse[$cid])) {
-                    $byCourse[$cid] = array('lessons' => 0, 'quizzes' => 0, 'free' => 0, 'loose' => array());
+                    $byCourse[$cid] = array('lessons' => 0, 'quizzes' => 0, 'free' => 0,
+                                            'videos' => 0, 'loose' => array());
                 }
                 $byCourse[$cid]['lessons']++;
-                if ($quiz) $byCourse[$cid]['quizzes']++;
-                if ($free) $byCourse[$cid]['free']++;
+                if ($quiz)      $byCourse[$cid]['quizzes']++;
+                if ($free)      $byCourse[$cid]['free']++;
+                if ($has_video) $byCourse[$cid]['videos']++;
 
                 /* درس بلا وحدة ليس خطأ يسكت عنه: يجمع في وحدة ضمنية
                    تسمى «الدروس» فيظهر بدل أن يسقط من المنهج صامتا. */
@@ -715,7 +728,8 @@ class Taqdar_site_model extends CI_Model
         foreach ($paths as $p) {
             $cid   = (int) $p['course_id'];
             $stat  = isset($byCourse[$cid]) ? $byCourse[$cid]
-                                            : array('lessons' => 0, 'quizzes' => 0, 'free' => 0, 'loose' => array());
+                                            : array('lessons' => 0, 'quizzes' => 0, 'free' => 0,
+                                                    'videos' => 0, 'loose' => array());
 
             $uts = array();
             if ($cid > 0 && isset($units[$cid])) {
@@ -749,17 +763,25 @@ class Taqdar_site_model extends CI_Model
                 'lessons'      => (int) $stat['lessons'],
                 'quizzes'      => (int) $stat['quizzes'],
                 'free'         => (int) $stat['free'],
-                'ready'        => ($cid > 0 && (int) $stat['lessons'] > 0),
+                /* TQ-EMPTY-LESSON — «جاهز» = فيه مقطع واحد على الأقل، لا
+                   «فيه صفوف». فمادة كل دروسها عناوين بلا فيديو تقرأ «قيد
+                   الإعداد»، وتعود وحدها حين ترفع مقاطعها. */
+                'ready'        => ($cid > 0 && (int) $stat['videos'] > 0),
             );
 
             $b['subjects'][] = $node;
             $gid = (int) $p['grade_id'];
             if (isset($grades[$gid])) $grades[$gid]['subjects'][] = $node;
 
-            $b['totals']['units']   += count($uts);
-            $b['totals']['lessons'] += (int) $stat['lessons'];
-            $b['totals']['quizzes'] += (int) $stat['quizzes'];
-            $b['totals']['free']    += (int) $stat['free'];
+            /* والمجاميع تعد **الجاهز وحده**: ترويسة «ن مادة · م وحدة»
+               فوق قائمة نصفها «قيد الإعداد» رقم لا يقابله ما تحته —
+               والقارئ يعد بعينه فيجد الفرق. */
+            if ($node['ready']) {
+                $b['totals']['units']   += count($uts);
+                $b['totals']['lessons'] += (int) $stat['lessons'];
+                $b['totals']['quizzes'] += (int) $stat['quizzes'];
+                $b['totals']['free']    += (int) $stat['free'];
+            }
             $weeks = max($weeks, (int) $p['expected_weeks']);
 
             $tid = (int) $p['teacher_id'];
@@ -786,7 +808,8 @@ class Taqdar_site_model extends CI_Model
 
         $b['teachers'] = array_values($teachers);
         $b['totals']['grades']   = count($b['grades']);
-        $b['totals']['subjects'] = count($b['subjects']);
+        $b['totals']['subjects'] = 0;
+        foreach ($b['subjects'] as $sx) if (!empty($sx['ready'])) $b['totals']['subjects']++;
         $b['totals']['teachers'] = count($b['teachers']);
         $b['totals']['weeks']    = $weeks;
 

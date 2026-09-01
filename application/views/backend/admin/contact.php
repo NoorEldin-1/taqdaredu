@@ -94,6 +94,50 @@ $tq_when = function ($ts) {
     <?php endif; ?>
 </div>
 
+<?php /* ══════════ TQ-CONTACT-SPAM · تنظيف ما دخل قبل الحارس ══════════
+         نموذج «تواصل معنا» كان يقبل كل ما يرسل، فامتلأ الجدول بدعاية.
+         والحارس اليوم يمنع الوارد ولا يمس ما جلس من قبل، فهذا زره —
+         والعدد من `score_row()` نفسها التي يحذف بها، فلا يعد اثني عشر
+         ويحذف ثمانيا. ولا يظهر أصلا حين لا شيء مشبوه. */ ?>
+<?php if (!empty($spam_n)): ?>
+    <form method="post" action="<?php echo site_url('admin/contact/delete_spam'); ?>"
+          class="tqa-toolbar"
+          data-tqa-confirm-title="<?php echo te('حذف الرسائل المشبوهة'); ?>"
+          data-tqa-confirm="<?php echo te('لا رجعة في هذا الحذف.'); ?>"
+          data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
+          data-tqa-confirm-tone="danger">
+        <?php echo tq_csrf(); ?>
+        <span class="tqa-hint" style="display:inline">
+            <?php echo t('في الجدول '); ?><strong><?php echo (int) $spam_n; ?></strong><?php echo t(' رسالة يعدها المرشح دعاية (روابط أو حروف أجنبية عن المنصة).'); ?>
+        </span>
+        <button type="submit" class="tqa-btn tqa-btn--ghost" style="color:var(--tq-danger)">
+            <?php echo tq_icon('trash', 15); ?>
+            <?php echo t('احذفها كلها'); ?>
+        </button>
+    </form>
+<?php endif; ?>
+
+<?php /* TQ-CONTACT-RESET · تصفير الجدول كله.
+         المرشح يحكم على كل رسالة وحدها، فيبقي ما لا يعده دعاية حين يغرق
+         الجدول. وهذا الباب لمن اراد ان يبدا من فراغ: يمسح `contact` كله. */ ?>
+<?php if (!empty($all_n)): ?>
+    <form method="post" action="<?php echo site_url('admin/contact/delete_all_contact'); ?>"
+          class="tqa-toolbar"
+          data-tqa-confirm-title="<?php echo te('حذف كل الرسائل'); ?>"
+          data-tqa-confirm="<?php echo te('يمسح الجدول كله — المشبوه وغيره. لا رجعة في هذا الحذف.'); ?>"
+          data-tqa-confirm-ok="<?php echo te('نعم، احذف الكل'); ?>"
+          data-tqa-confirm-tone="danger">
+        <?php echo tq_csrf(); ?>
+        <span class="tqa-hint" style="display:inline">
+            <?php echo t('في الجدول '); ?><strong><?php echo (int) $all_n; ?></strong><?php echo t(' رسالة. الحذف يشملها كلها ولا يمس شيئا سواها.'); ?>
+        </span>
+        <button type="submit" class="tqa-btn tqa-btn--ghost" style="color:var(--tq-danger)">
+            <?php echo tq_icon('trash', 15); ?>
+            <?php echo t('احذف كل الرسائل'); ?>
+        </button>
+    </form>
+<?php endif; ?>
+
 <?php if (empty($rows)): ?>
 
     <?php /* الفراغ ثلاثة أحوال لا حالان: لا رسائل أصلا · لا رسالة تطابق

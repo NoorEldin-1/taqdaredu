@@ -33,117 +33,17 @@ $tq_icon  = 'clipboard';
 
 /**
  * شكل المهمة الواحدة الذي يقرأه العارض:
- *   id · title · subject · stage · at (طابع زمني مسجل أو صفر) · minutes
- *   points · pass · type · score · max (للمكتملة) · href
+ *   id · course_id · title · subject · stage · at · minutes · points ·
+ *   pass · type · score · max (للمكتملة) · href
  *
- * والمجموعات ثلاث بحالات القاعدة نفسها — لا حالة «متأخر» لأن لا موعد
- * استحقاق يقاس عليه التأخر.
+ * والقاعدة كلها في `Taqdar_student_model::tasks()`: المجموعات الثلاث
+ * بحالات القاعدة نفسها، ولا حالة «متأخر» لأن لا موعد استحقاق يقاس
+ * عليه التأخر. والواجهة (`Api_v1`) تنادي الدالة نفسها، فما يقرؤه
+ * الطالب في التطبيق هو ما يقرؤه هنا.
  */
-$tq_groups = [
-    'todo'     => ['label' => t('لم تبدأ'),     'dot' => 'idle', 'badge' => 'idle',     'items' => []],
-    'progress' => ['label' => t('قيد التنفيذ'), 'dot' => 'due',  'badge' => 'progress', 'items' => []],
-    'done'     => ['label' => t('مكتملة'),      'dot' => 'done', 'badge' => 'mastered', 'items' => []],
-];
-
-/* ---- الواجبات من القاعدة ---------------------------------------------
-   get_instance() صراحة: $this في العرض ليس المتحكم. */
-if ($tq_uid > 0) {
-    $CI = get_instance();
-
-    $tq_hw = $CI->db
-        ->select('a.id AS assessment_id, a.time_limit_sec, a.pass_mark,'
-               . ' l.id AS lesson_id, l.title, l.course_id,'
-               . ' c.title AS course_title, c.level, c.category_id')
-        ->from('assessments a')
-        ->join('lesson l', 'l.id = a.lesson_id', 'inner')
-        ->join('course c', 'c.id = l.course_id', 'inner')
-        ->join('enrol e', 'e.course_id = c.id', 'inner')
-        ->where('e.user_id', $tq_uid)
-        ->where('a.type', 'homework')
-        ->order_by('c.id', 'ASC')
-        ->order_by('l.order', 'ASC')
-        ->get()->result_array();
-
-    if ($tq_hw) {
-        $a_ids = array_map(static function ($r) { return (int) $r['assessment_id']; }, $tq_hw);
-        $l_ids = array_map(static function ($r) { return (int) $r['lesson_id']; }, $tq_hw);
-
-        /* آخر محاولة لكل تقييم — الترتيب تصاعدي فالأحدث يغلب.
-           وأعمدة اعتماد المعلم تقرأ معها: الواجب عمل يقرؤه معلم، ودرجته
-           لا تعرض قبل اعتماده. والحكم في `Taqdar_marking_model` لا هنا،
-           فيقرأه كل عارض من موضع واحد. */
-        $CI->load->model('taqdar_marking_model');
-        $CI->taqdar_marking_model->ensure_schema();
-
-        $tq_att = [];
-        foreach ($CI->db->select('assessment_id, score, passed, started_at, submitted_at,'
-                               . ' teacher_score, teacher_note, approved_at')
-                        ->from('attempts')
-                        ->where('student_id', $tq_uid)
-                        ->where_in('assessment_id', $a_ids)
-                        ->order_by('attempt_no', 'ASC')
-                        ->get()->result_array() as $r) {
-            $tq_att[(int) $r['assessment_id']] = $r;
-        }
-
-        // عدد بنود الواجب — الأسئلة معلقة بمعرف الدرس
-        $tq_items_n = [];
-        foreach ($CI->db->select('quiz_id, COUNT(*) AS n')
-                        ->from('question')->where_in('quiz_id', $l_ids)
-                        ->group_by('quiz_id')->get()->result_array() as $r) {
-            $tq_items_n[(int) $r['quiz_id']] = (int) $r['n'];
-        }
-
-        // اسم المادة من التصنيف — والعنوان بديلا حين لا تصنيف
-        $tq_cat_names = [];
-        $cat_ids = array_values(array_unique(array_filter(array_map(static function ($r) {
-            return (int) $r['category_id'];
-        }, $tq_hw))));
-        if ($cat_ids) {
-            foreach ($CI->db->select('id, name')->from('category')
-                            ->where_in('id', $cat_ids)->get()->result_array() as $r) {
-                $tq_cat_names[(int) $r['id']] = $r['name'];
-            }
-        }
-
-        foreach ($tq_hw as $r) {
-            $lid = (int) $r['lesson_id'];
-            $att = $tq_att[(int) $r['assessment_id']] ?? null;
-            $max = $tq_items_n[$lid] ?? 0;
-
-            $submitted = ($att && !empty($att['submitted_at'])) ? (int) strtotime($att['submitted_at']) : 0;
-            $started   = ($att && !empty($att['started_at']))   ? (int) strtotime($att['started_at'])   : 0;
-
-            $key = $submitted ? 'done' : ($started ? 'progress' : 'todo');
-
-            $item = [
-                'id'      => $lid,
-                'title'   => (string) $r['title'],
-                'subject' => $tq_cat_names[(int) $r['category_id']] ?? (string) $r['course_title'],
-                'stage'   => (string) $r['level'],
-                'at'      => $submitted ?: $started,
-                'minutes' => (int) round(((int) $r['time_limit_sec']) / 60),
-                'points'  => $max,
-                'pass'    => (int) $r['pass_mark'],
-                'type'    => 'homework',
-                'href'    => base_url('student/lesson/' . (int) $r['course_id'] . '/' . $lid),
-            ];
-            if ($key === 'done') {
-                /* ما يعرض من الدرجة يقرره النموذج: قبل اعتماد المعلم لا
-                   تعرض. كان الطالب يقرأ رقما كتبه سكربت ويحسبه درجته
-                   النهائية، ثم يأتي اعتماد المعلم فيغيره — أو لا يأتي
-                   أصلا لأن الواجب لم يكن يصل معلما. */
-                $view = $CI->taqdar_marking_model->homework_student_view($att);
-                $item['graded']  = $view['visible'];
-                $item['score']   = $view['score'];
-                $item['max']     = 100;   // مقياس الواجب في المنصة نسبة مئوية
-                $item['note']    = $view['note'];
-                $item['pass_ok'] = $view['visible'] ? $view['passed'] : null;
-            }
-            $tq_groups[$key]['items'][] = $item;
-        }
-    }
-}
+$CI = get_instance();
+$CI->load->model('taqdar_student_model', 'tq_stu');
+$tq_groups = $CI->tq_stu->tasks($tq_uid);
 
 $tq_total = 0;
 foreach ($tq_groups as $g) $tq_total += count($g['items']);

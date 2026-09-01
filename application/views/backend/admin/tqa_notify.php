@@ -79,6 +79,28 @@ $audiences = array(
                 </p>
             <?php endif; ?>
 
+            <?php
+            /* ونسخة واتساب مثلها — أضيق منها وأثقل ثمنا.
+               البريد يخرج بنسخة مخفية (ألفا مستلم أربعون رسالة)، وواتساب
+               رسالة لكل رقم يدفع ثمنها. فهي تودع في الطابور وتخرج تباعا،
+               ولا ترسل من هذه الصفحة. */
+            $CI_mail->load->model('taqdar_wa_model');
+            $tq_wa_on = $CI_mail->taqdar_wa_model->ready();
+            ?>
+            <label class="tqa-switch" style="margin-block-end:var(--tq-space-l)">
+                <input type="checkbox" name="by_wa" value="1" <?php echo $tq_wa_on ? '' : 'disabled'; ?>>
+                <span class="tqa-switch__track" aria-hidden="true"></span>
+                <span><?php echo t('وأرسل نسخة بواتساب أيضا'); ?></span>
+            </label>
+            <p class="tqa-field__hint" style="margin-block-start:calc(-1 * var(--tq-space-m));margin-block-end:var(--tq-space-l)">
+                <?php if ($tq_wa_on): ?>
+                    <?php echo t('تخرج تباعا لا دفعة واحدة، ولمن له رقم جوال وحده. وواتساب يدفع ثمن كل رسالة، ومن يصله ما لم يطلبه يبلغ عن الرقم — فتضعف القناة عند ميتا وتضيع معها إشعارات المال. فهذه لما يعني كل مستلم.'); ?>
+                <?php else: ?>
+                    <?php echo t('واتساب غير مضبوط، فنسخته معطلة.'); ?>
+                    <a href="<?php echo site_url('taqdar_admin/whatsapp'); ?>"><?php echo t('اضبطه من هنا'); ?></a>.
+                <?php endif; ?>
+            </p>
+
             <?php /* التأكيد يذكر العدد: «أرسل» بلا رقم يجعل من يقصد الطلاب
                      يرسل إلى الجميع ولا يعلم إلا بعد الإرسال — ولا سبيل للسحب. */ ?>
             <button class="tqa-btn tqa-btn--primary" type="submit"

@@ -38,7 +38,7 @@ languages/                ملفات الترجمة
 | الأصل (Academy LMS) | طبقة تقدر |
 |---|---|
 | `Home.php` · `Admin.php` · `Api.php` | `Taqdar.php` · `Taqdar_admin.php` · `Taqdar_gate.php` · `Taqdar_pay.php` · `Taqdar_cron_events.php` |
-| `Crud_model.php` (226 ك.ب) · `User_model.php` | `Taqdar_repo_model.php` · `Taqdar_wallet_model.php` · `Taqdar_billing_model.php` · `Taqdar_tap_model.php` · `Taqdar_teacher_model.php` · `Taqdar_parent_model.php` · `Taqdar_marking_model.php` · `Taqdar_content_model.php` · `Taqdar_revenue_model.php` |
+| `Crud_model.php` (226 ك.ب) · `User_model.php` | `Taqdar_repo_model.php` · `Taqdar_wallet_model.php` · `Taqdar_billing_model.php` · `Taqdar_tap_model.php` · `Taqdar_teacher_model.php` · `Taqdar_parent_model.php` · `Taqdar_marking_model.php` · `Taqdar_content_model.php` · `Taqdar_revenue_model.php` · `Taqdar_student_model.php` |
 | `views/frontend`, `views/backend` | `views/frontend/tq_*` و `assets/taqdar/` |
 
 الميزات الجديدة تكتب في طبقة `Taqdar_*`. تعديل `Crud_model.php` أو
@@ -1213,11 +1213,12 @@ requested ──يؤكد المعلم──> awaiting_payment ──يدفع ا�
 
 ## واجهة البرمجة للتطبيق (api/v1)
 
-مدخل تطبيق Flutter. يغطي **الدخول**، وشاشات الحساب من بوابة الطالب (الملف
-والإعدادات والاشتراك)، و**حلقة التعلم** في خمس وحدات. وما ليس مذكورا في
-المواصفة ليس موجودا.
+مدخل تطبيق Flutter. يغطي **بوابة الطالب كاملة**: الدخول، وحلقة التعلم في
+خمس وحدات، وما يحيط بها — الإشعارات والرسائل والمهام والتقويم والتقارير
+والشهادات والمكتبة والمواد والمفضلة والبحث والتهيئة والتشخيص والحصص
+والمتجر. وما ليس مذكورا في المواصفة ليس موجودا.
 
-**والخمس مرتبة بالاعتماد لا بالسهولة، وهي حلقة تعود إلى أولها:**
+**وحلقة التعلم مرتبة بالاعتماد لا بالسهولة، وهي حلقة تعود إلى أولها:**
 
 | # | الوحدة | النقاط | تعتمد على |
 |---|---|---|---|
@@ -1227,9 +1228,60 @@ requested ──يؤكد المعلم──> awaiting_payment ──يدفع ا�
 | ٤ | `Assessment` | `lessons/{id}/quiz/start` · `quiz/attempts/{id}` · `/submit` · `student/exams` | ٣ (يفتح بعد الإتمام) |
 | ٥ | `Practice` | `student/reviews` · `/answer` · `student/mistakes` | ٤ (يتغذى من إجاباتها) |
 
+**وما يحيط بالحلقة ست مجموعات** — وهي ما يجعلها تستعمل يوما بعد يوم:
+
+| المجموعة | النقاط |
+|---|---|
+| `Inbox` | `student/notifications` · `/read` · `student/messages` · `/recipients` · `/{code}` |
+| `Progress` | `student/tasks` · `student/calendar` · `student/reports` · `student/certificates` |
+| `Library` | `student/library` · `student/materials` · `student/favourites` · `/toggle` · `student/search` |
+| `Onboarding` | `student/setup` · `student/exam-mode` · `student/gamify` · `student/placement` · `/start` · `/submit` |
+| `Sessions` | `student/sessions` (عرض وطلب) · `/{id}/pay` · `/{id}/cancel` |
+| `Store` | `student/plans` · `/{code}` · `student/subscribe` · `subscribe-path` · `buy-course` · `store/courses` · `/{id}` · `student/purchases` |
+
+- **وست شاشات كانت قواعدها في القوالب** — الإشعارات والرسائل والشهادات
+  والمهام والتقويم والمكتبة والتقارير والبحث تكتب استعلاماتها **داخل ملف
+  العرض**. وذلك يعمل ما دام القارئ متصفحا؛ فلما جاءت الواجهة تسأل الأسئلة
+  نفسها لم تجد ما تناديه إلا قالبا يطبع HTML. فنقلت إلى
+  [Taqdar_student_model](application/models/Taqdar_student_model.php)،
+  والقوالب تنادي منه — والنسختان كانتا تفترقان عند أول تعديل: يضاف نوع
+  إشعار في القالب ولا يضاف في الواجهة، فيقرأ الطالب في التطبيق «تنبيهات
+  أخرى» وفي الموقع «رسوب في اختبار محطة» عن الحدث الواحد.
+  ومعه [taqdar_student_helper.php](application/helpers/taqdar_student_helper.php)
+  — وهو `views/frontend/taqdar/tq_student_data.php` نفسه بعد أن صار
+  مساعدا يحمل تلقائيا: طبقة بيانات في مجلد عرض، وأخوها
+  `tq_student_styles.php` يطبع كتلة `<style>` عند ضمه، فأول نداء منها
+  يكتب CSS فوق JSON.
+- **والمرسل معامل لا حالة جلسة.** `Crud_model::send_new_private_message()`
+  تقرأ المرسل من `$this->session` والنص من `$this->input->post()` — أي
+  أنها تعمل من متصفح وحده، ونداؤها من طبقة بلا جلسة يكتب صفا مرسله صفر.
+  فـ`send_message($uid,$to,$body)` و`reply_message()` في النموذج،
+  و`Crud_model` لا تمس لأنها مشتركة مع مسارات LMS الأصلية.
+- **والمسار يربط لا الطريقة.** قاعدة `routes.php` تربط المسار كله، فنقطتان
+  بدالتين على المسار نفسه تعنيان أن الثانية لا تنادى أبدا — يصل `POST`
+  إلى دالة القراءة فيرد 405 على طلب صحيح. فـ`student/messages` و
+  `student/sessions` موزعتان على الطريقة داخل الدالة، كما `lesson_notes()`.
+- **والشراء يرد رابطا ولا يقبض مالا**، والفاتورة تصدر أولا في الحالين —
+  الترتيب نفسه في الويب. وتحويل 302 إلى تاب على واجهة JSON يجعل عميل Dart
+  يتبعه فيقرأ HTML صفحة الدفع ويرمي `FormatException`. **وتعذر بدء الدفع
+  يرد نجاحا** بـ`payment_url: null` وتعليمات الحوالة: الفاتورة صدرت فعلا،
+  ورد خطأ عار يجعل صاحبه يعيد الشراء فيصير له اشتراكان معلقان.
+- **TQ-MULTI-SUB في الواجهة**: `student/subscription` تجيب «ما **باقة** هذا
+  الطالب؟» وترد صفا واحدا يتخطى الشراء المفرد عمدا، و`student/purchases`
+  تجيب «ماذا يملك؟» فترد `active_subscriptions()` كلها. ومن له باقة صفه
+  واشترى فوقها مادة يملك صفين، وصف واحد يقرأ يعني أن أحد الشراءين لا يظهر
+  لصاحبه في شاشة واحدة.
+- **والرفض يقول كيف يفتح**: `courses/{id}` على كورس لا يملكه ترد
+  `not_entitled` **ومعها عرض بيعه المفرد** في `errors.details.offer` متى
+  كان معروضا (TQ-COURSE-SALE) — وبلاها يقرأ من أراد مادة واحدة بابا مقفلا
+  ولا يجد ما يشتريه، فيدفع ثمن الباقة أو ينصرف.
+
 - **ولا قاعدة عمل واحدة في هذه الطبقة.** الخمس تنادي `Taqdar_repo_model`
   و`Taqdar_learn_model` — الطبقة نفسها التي تناديها `Taqdar_gate` من
-  الويب. فالقفل والتغطية والتباعد والاستحقاق تحسب مرة، ولا يفتح التطبيق
+  الويب. وما سواها ينادي نموذجه: `Taqdar_favourites_model` للمفضلة، و
+  `Taqdar_sessions_model` للحصص، و`Taqdar_billing_model` للشراء، و
+  `Taqdar_diag_model` للتشخيص، و`Taqdar_student_model` لما نقل من
+  القوالب. فالقفل والتغطية والتباعد والاستحقاق تحسب مرة، ولا يفتح التطبيق
   درسا يقفله الموقع. وما يضاف في `Api_v1` شيئان: `gate()` تترجم غلاف
   البوابة (`{error:{code,…}}`) إلى غلاف الواجهة، والتشكيل بأسماء يقرؤها
   Dart.

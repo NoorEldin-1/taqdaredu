@@ -2135,26 +2135,113 @@ class Taqdar_admin_model extends CI_Model
      * ولا يرمي شيئا: النداء يقع في ويبهوك دفع وفي شاشة إدارة، واستثناء
      * هنا يعني دفعة بلا تفعيل أو شاشة بيضاء للمسؤول.
      */
+    /**
+     * إشعار واتساب وحده — لمن كتب صف `notifications` بيده.
+     *
+     * وليس بابا ثانيا: هو `wa_user()` نفسها بحارسها كله (سياسة العائلة،
+     * وتفضيل صاحب الحساب، وساعات الصمت). ومن يكتب صفه بيده — لأن
+     * `from_user` عنده طرف بعينه لا الفاعل في الجلسة، كما في روابط ولي
+     * الأمر — يحتاج القناة بلا الصف، ونسخة ثانية من الحارس عنده تفترق
+     * عن هذه عند أول تشديد.
+     */
+    public function notify_wa($user_id, $title, $body, $type = 'system')
+    {
+        return $this->wa_user((int) $user_id, $title, $body, (string) $type, false);
+    }
+
     private function wa_user($user_id, $title, $body, $type = 'system', $force = false)
     {
         try {
-            /* النموذج يحمل هنا لا في `push_notification`: الثابت
-               `$PAY_TYPES` يقرأ من الصنف، وقراءته قبل تحميله خطأ قاتل
-               في CI3 — لا محمل أصناف يوجد. */
+            /* النموذج يحمل هنا لا في `push_notification`: ثوابت الصنف
+               تقرأ منه، وقراءتها قبل تحميله خطأ قاتل في CI3 — لا محمل
+               أصناف يوجد. */
             $this->load->model('taqdar_wa_model');
 
-            if (!$force && !in_array((string) $type, Taqdar_wa_model::$PAY_TYPES, true)) {
-                return false;
-            }
-            if (!$this->taqdar_wa_model->payments_on()) return false;
+            $user_id = (int) $user_id;
+            $type    = (string) $type;
+            $family  = $this->taqdar_wa_model->family_of($type);
 
-            $to = $this->taqdar_wa_model->phone_of((int) $user_id);
+            /* ١) سياسة المنصة: أتخرج هذه العائلة أصلا؟ */
+            if (!$force && !$this->taqdar_wa_model->family_on($family)) return false;
+            if ($force && !$this->taqdar_wa_model->ready())            return false;
+
+            /* ٢) وتفضيل صاحب الحساب فوقها.
+                  القناة الثالثة **تطرق الباب**، والبريد ينتظر في صندوق
+                  حتى يفتح. فمن أطفأ نوعا في شاشة إعداداته أطفأه هنا قبل
+                  غيره — وإرسال ما رفضه صراحة إلى جواله هو ما يجعله يسد
+                  الرقم، فتضيع معه إشعارات المال التي لم يرفضها. */
+            if (!$force && !$this->tq_wa_wanted($user_id, $type)) return false;
+
+            /* ٣) وساعات الصمت — للعائلات التي تحتملها وحدها.
+                  المال والحساب والحصص تمر: من دفع الآن ينتظر جوابا الآن.
+                  وما سواها **يؤجل ولا يسقط**: الطابور يخرجه أول لحظة بعد
+                  الصمت. وإسقاطه هنا يجعل من نام يفقد خبره لا يؤجله. */
+            if (!$force && $this->taqdar_wa_model->family_quiets($family)
+                && $this->tq_wa_quiet_now($user_id)) {
+                return $this->tq_wa_defer($user_id, $type, $title, $body, $family);
+            }
+
+            $to = $this->taqdar_wa_model->phone_of($user_id);
             if ($to === '') return false;   /* لا رقم: لا محاولة ولا سطر سجل */
 
             return (bool) $this->taqdar_wa_model->send_notice($to, $title, $body,
-                array('purpose' => mb_substr((string) $type, 0, 24), 'user_id' => (int) $user_id));
+                array('purpose' => mb_substr($type, 0, 24), 'user_id' => $user_id));
         } catch (Throwable $e) {
             log_message('error', 'push_notification wa: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * أيريد صاحب الحساب هذا النوع على واتساب؟
+     *
+     * المصدر `Taqdar_settings_model::allows()` وحدها — وهي التي تقرؤها
+     * شاشة إعداداته. ونسخة ثانية من القاعدة هنا تجعل المربع الذي يطفئه
+     * الطالب لا يطفئ شيئا، وهو أسوأ من غياب الإعداد: الغياب يرى فيطلب،
+     * والمربع الكاذب يصدق فلا يطلب.
+     *
+     * وما لا رأي لصاحبه فيه مسموح: `allows()` ترد `true` لنوع خارج
+     * قائمتها — فنوع جديد يخرج ويرى، ولا يبتلع بلا أن يعرف أحد لماذا.
+     */
+    private function tq_wa_wanted($user_id, $type)
+    {
+        try {
+            $this->load->model('taqdar_settings_model');
+            return (bool) $this->taqdar_settings_model->allows(
+                (int) $user_id, (string) $type, 'whatsapp');
+        } catch (Throwable $e) {
+            return true;   /* تعذر القراءة لا يصادر قرارا لم يتخذ */
+        }
+    }
+
+    /** أهو داخل ساعات صمته الآن؟ الحكم من `Taqdar_events_model` وحده. */
+    private function tq_wa_quiet_now($user_id)
+    {
+        try {
+            $this->load->model('taqdar_events_model');
+            return (bool) $this->taqdar_events_model->is_quiet_now((int) $user_id);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * يؤجل رسالة واتساب إلى ما بعد الصمت — في الطابور نفسه لا في ثان.
+     *
+     * `tq_notify_queue` يحمل عمود `channel` منذ كتب، ونصه في الشيفرة
+     * صريح: «يوم يضاف الواتساب يصير صفا بقناة أخرى في الطابور نفسه، بلا
+     * طابور ثان يعاد فيه التأجيل والإعادة». وهذا ذلك اليوم.
+     */
+    private function tq_wa_defer($user_id, $type, $title, $body, $family)
+    {
+        try {
+            $this->load->model('taqdar_events_model');
+            return (bool) $this->taqdar_events_model->enqueue(
+                (int) $user_id, (string) $type, (string) $title, strip_tags((string) $body),
+                $family === 'marketing' ? 'marketing' : 'learning',
+                null, 'whatsapp');
+        } catch (Throwable $e) {
+            log_message('error', 'push_notification wa defer: ' . $e->getMessage());
             return false;
         }
     }
@@ -2234,7 +2321,7 @@ class Taqdar_admin_model extends CI_Model
      *        مسار الطلب نفسه يعلق الصفحة حتى تنتهي مهلة PHP. فيرسل
      *        بنسخة مخفية على دفعات من خمسين، ويقال للمسؤول ما وصل.
      */
-    public function broadcast($audience, $title, $description, $by_mail = false)
+    public function broadcast($audience, $title, $description, $by_mail = false, $by_wa = false)
     {
         $ids = $this->audience_ids($audience);
         if (!$ids) return 0;
@@ -2269,17 +2356,94 @@ class Taqdar_admin_model extends CI_Model
         }
 
         $mailed = $by_mail ? $this->broadcast_mail($ids, $title, $description) : 0;
+        $waed   = $by_wa   ? $this->broadcast_wa($ids, $title, $description)   : 0;
 
         $this->audit('broadcast', 'notifications', null,
                      array('audience' => $audience, 'title' => $title,
-                           'count' => $sent, 'mailed' => $mailed));
+                           'count' => $sent, 'mailed' => $mailed, 'wa' => $waed));
 
         $this->last_broadcast_mailed = $mailed;
+        $this->last_broadcast_wa     = $waed;
         return $sent;
     }
 
     /** كم مستلما وصلته النسخة البريدية من آخر إشعار جماعي. */
     public $last_broadcast_mailed = 0;
+
+    /** وكم أودع منه في طابور واتساب. */
+    public $last_broadcast_wa = 0;
+
+    /**
+     * النسخة الواتسابية من الإشعار الجماعي — **تودع في الطابور ولا ترسل
+     * هنا**.
+     *
+     * والفارق ليس أناقة: البريد يخرج بنسخة مخفية، فألفا مستلم أربعون
+     * رسالة. وواتساب **رسالة لكل رقم** — لا نسخة مخفية فيه ولا مجموعات:
+     * ألفا مستلم ألفا نداء إلى `graph.facebook.com`، كل واحد منها رحلة
+     * شبكة كاملة. وذلك يعلق الصفحة حتى تنتهي مهلة PHP، فيقرأ المسؤول
+     * خطأ ويعيد الإرسال، فيصل من وصله مرتين.
+     *
+     * فالإيداع هنا (استعلام واحد لكل خمسمئة)، والصرف على الكرون بمهلته
+     * وإعادة محاولته وساعات صمت كل مستلم — وهو الطابور القائم أصلا.
+     *
+     * ويعود **عدد ما أودع** لا عدد ما وصل: الثاني لا يعرف بعد، وقوله
+     * الآن كذب على المسؤول.
+     */
+    private function broadcast_wa($ids, $title, $description)
+    {
+        try {
+            $this->load->model('taqdar_wa_model');
+            if (!$this->taqdar_wa_model->ready()) return 0;
+
+            $this->load->model('taqdar_events_model');
+            $this->taqdar_events_model->ensure_queue();
+        } catch (Throwable $e) {
+            log_message('error', 'broadcast wa: ' . $e->getMessage());
+            return 0;
+        }
+
+        /* ومن لا رقم له لا يودع له صف: الطابور يصرفه ثم يفشل ثم يعيد
+           خمس مرات ثم يموت — خمس محاولات على من لا سبيل إليه أصلا. */
+        try {
+            $rows = $this->db->select('id')->where_in('id', $ids)
+                             ->where('phone IS NOT NULL', null, false)
+                             ->where('phone !=', '')
+                             ->get('users')->result_array();
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            return 0;
+        }
+
+        $now  = time();
+        $done = 0;
+        $body = strip_tags((string) $description);
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            $batch = array();
+            foreach ($chunk as $r) {
+                $batch[] = array(
+                    'user_id'     => (int) $r['id'],
+                    'type'        => 'admin',
+                    'category'    => 'marketing',
+                    'channel'     => 'whatsapp',
+                    'title'       => mb_substr((string) $title, 0, 250),
+                    'body'        => $body,
+                    'state'       => 'queued',
+                    'attempts'    => 0,
+                    'next_try_at' => $now,
+                    'created_at'  => $now,
+                );
+            }
+            try {
+                $this->db->insert_batch('tq_notify_queue', $batch);
+                $done += count($batch);
+            } catch (Throwable $e) {
+                // دفعة تعثرت لا تسقط الباقي
+            }
+        }
+
+        return $done;
+    }
 
     /**
      * النسخة البريدية من الإشعار الجماعي — بنسخة مخفية وعلى دفعات.

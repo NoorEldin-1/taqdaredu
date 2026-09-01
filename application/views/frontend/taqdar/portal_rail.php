@@ -236,8 +236,21 @@ $tq_count_sr = [
         $tq_ci = &get_instance();
         $tq_ci->load->model('taqdar_billing_model');
         $tq_rail_sub = $tq_ci->taqdar_billing_model->active_subscription($tq_ci->session->userdata('user_id'));
-        $tq_rail_days = $tq_rail_sub && !empty($tq_rail_sub['ends_at'])
-            ? (int) ceil((strtotime($tq_rail_sub['ends_at']) - time()) / 86400) : 0;
+        /* الأيام تعد بالتقويم لا بالطابع الزمني. `activate()` تكتب في
+           `ends_at` **ساعة التفعيل** لا منتصف الليل، وبطاقة الاشتراك تعرض
+           تاريخها وحده (`date('Y-m-d', …)`). فقسمة الفارق على 86400 ثم
+           `ceil` ترفع الرقم يوما كاملا ما دامت ساعة اليوم أقل من ساعة
+           التفعيل: الطالب يقرأ «يتبقى 359 يوما» صباحا و«358» مساء، وكلاهما
+           لا يوافق «ينتهي في 2027-08-23» المكتوب أمامه. فالطرح بين
+           **تاريخين** — ثابت مهما فتحت الشاشة، وموافق للتاريخ المعروض. */
+        $tq_rail_days = 0;
+        if ($tq_rail_sub && !empty($tq_rail_sub['ends_at'])) {
+            $tq_rail_end = strtotime(substr((string) $tq_rail_sub['ends_at'], 0, 10));
+            if ($tq_rail_end) {
+                $tq_rail_days = (int) round(($tq_rail_end - strtotime(date('Y-m-d'))) / 86400);
+                if ($tq_rail_days < 0) $tq_rail_days = 0;
+            }
+        }
     ?>
         <div class="tq-rail__foot">
             <div class="tq-rail__promo tq-pastel tq-pastel--mint">

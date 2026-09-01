@@ -287,18 +287,31 @@ foreach ((array) $health as $tq_h) {
                         <?php echo t('ماذا يخرج من هذه القناة'); ?>
                     </h3>
 
+                    <p class="tqa-field__hint" style="margin-block-end:var(--tq-space-m)">
+                        <?php echo t('كل ما تكتبه المنصة من إشعارات يخرج في هذه القناة كما يخرج في البريد، والمربعات تحته تقول أي عائلة منها تخرج. وثلاثة حراس بعد هذا الاختيار: تفضيل صاحب الحساب في شاشة إعداداته، وساعات صمته (تؤجل ما يحتمل التأجيل ولا تسقطه)، ووجود رقم جوال عنده أصلا.'); ?>
+                    </p>
+
+                    <?php foreach ($C['families'] as $tq_fk => $tq_fam): ?>
                     <div class="tqa-field">
                         <label class="tqa-check" style="display:flex;gap:10px;align-items:flex-start">
-                            <input type="checkbox" name="tq_wa_notify_payments" value="1"
-                                   <?php echo $C['notify_payments'] ? 'checked' : ''; ?>>
+                            <input type="checkbox" name="tq_wa_fam_<?php echo html_escape($tq_fk); ?>" value="1"
+                                   <?php echo $tq_fam['on'] ? 'checked' : ''; ?>>
                             <span>
-                                <strong><?php echo t('إشعارات الدفع'); ?></strong>
+                                <strong><?php echo html_escape($tq_fam['label']); ?></strong>
                                 <small class="tqa-field__hint" style="display:block">
-                                    <?php echo t('صدور الفاتورة · نجاح الدفع بالبطاقة · تفعيل الاشتراك بعد الحوالة · تحويل مبلغ السحب · رفضه. وهذه وحدها — نتيجة امتحان أو حصة ألغيت أو تنبيه انقطاع لا يخرج شيء منها بواتساب، لأن قناة تزعج يسدها المستلم فتضيع معها إشعارات المال نفسها.'); ?>
+                                    <?php echo html_escape($tq_fam['hint']); ?>
+                                    <?php if ($tq_fam['quiet']): ?>
+                                        — <?php echo t('ويؤجل إلى ما بعد ساعات صمت صاحبه.'); ?>
+                                    <?php endif; ?>
                                 </small>
                             </span>
                         </label>
                     </div>
+                    <?php endforeach; ?>
+
+                    <p class="tqa-field__hint" style="margin-block-end:var(--tq-space-l)">
+                        <?php echo t('و«التسويق» مطفأ افتراضا عن قصد: البريد يبتلع الإعلان وواتساب يسده المستلم — وبلاغاته تخفض جودة الرقم عند ميتا ثم حد إرساله اليومي، فتضيع معها إشعارات المال نفسها. فالثمن ليس رسالة تفقد، بل القناة كلها.'); ?>
+                    </p>
 
                     <div class="tqa-field">
                         <label class="tqa-check" style="display:flex;gap:10px;align-items:flex-start">
@@ -517,30 +530,33 @@ foreach ((array) $health as $tq_h) {
                 <?php
                 /* الجدول يذكر ما يقع فعلا حين لا يضبط واتساب — لا «معطلة»
                    وحدها. ولا شيء هنا «متوقف»: لكل بند طريق ثان قائم. */
-                $tq_pay = $C['notify_payments'] && $configured;
-                $tq_otp = $C['otp_allowed'] && $configured;
-
-                $tq_rows = array(
-                    array(t('صدور الفاتورة'),       'invoice',      $tq_pay),
-                    array(t('نجاح الدفع بالبطاقة'),  'subscription', $tq_pay),
-                    array(t('تفعيل الاشتراك بعد الحوالة'), 'subscription', $tq_pay),
-                    array(t('تحويل مبلغ السحب'),     'wallet',       $tq_pay),
-                    array(t('رفض طلب السحب'),        'wallet',       $tq_pay),
-                    array(t('رمز تأكيد الحساب'),     'otp',          $tq_otp),
-                );
+                /* والصفوف تشتق من العائلات لا تكتب بيد: عائلة تضاف في
+                   `Taqdar_wa_model::$FAMILIES` تظهر هنا بلا أن يتذكر
+                   كاتبها هذا القالب — وسطر يكتب بيد بجوار قائمة تشتق
+                   يفترقان عند أول إضافة، فتقول الشاشة «لا يخرج» عن
+                   عائلة تخرج فعلا. */
+                $tq_rows = array();
+                foreach ($C['families'] as $tq_fam) {
+                    $tq_rows[] = array($tq_fam['label'], $tq_fam['hint'],
+                                       $tq_fam['on'] && $configured, $tq_fam['quiet']);
+                }
+                $tq_rows[] = array(t('رمز تأكيد الحساب'),
+                                   t('يخرج للمعلم ولولي الأمر إن اختاره عند التسجيل.'),
+                                   $C['otp_allowed'] && $configured, false);
                 ?>
                 <table class="tqa-table" style="margin-block-end:var(--tq-space-l)">
                     <tbody>
-                    <?php foreach ($tq_rows as list($tq_what, $tq_type, $tq_on)): ?>
+                    <?php foreach ($tq_rows as list($tq_what, $tq_hint, $tq_on, $tq_quiet)): ?>
                         <tr>
                             <td style="padding-inline:0">
-                                <strong><?php echo $tq_what; ?></strong><br>
+                                <strong><?php echo html_escape($tq_what); ?></strong><br>
+                                <span class="tqa-hint"><?php echo html_escape($tq_hint); ?></span><br>
                                 <span class="tqa-hint">
                                     <?php echo $tq_on
-                                        ? t('يخرج بواتساب وبالبريد وفي المنصة.')
-                                        : ($tq_type === 'otp'
-                                            ? t('الرمز بالبريد وحده.')
-                                            : t('في المنصة وبالبريد، بلا واتساب.')); ?>
+                                        ? ($tq_quiet
+                                            ? t('يخرج بواتساب وبالبريد وفي المنصة — ويؤجل في ساعات الصمت.')
+                                            : t('يخرج بواتساب وبالبريد وفي المنصة.'))
+                                        : t('في المنصة وبالبريد، بلا واتساب.'); ?>
                                 </span>
                             </td>
                             <td style="padding-inline:0;text-align:end">

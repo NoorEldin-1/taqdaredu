@@ -979,7 +979,8 @@ if (!function_exists('tqs_excerpt')) {
         $sp  = mb_strrpos($cut, ' ', 0, 'UTF-8');
         if ($sp !== false && $sp > $len * 0.6) $cut = mb_substr($cut, 0, $sp, 'UTF-8');
         return rtrim($cut, t(' 	
- ،.:;-')) . '…';
+
+ ،.:;-')) . '…';
     }
 }
 
@@ -1669,12 +1670,27 @@ if (!function_exists('tqs_curriculum')) {
             /* برنامج بلا محتوى لا يخفى: الباقة تشمله والمشتري يجب أن
                يعرف أنه قيد الإعداد — إخفاؤه وعد ضمني بأنه جاهز. */
             $ready = !empty($s['ready']);
+            /* والمشترك يرى ما عنده كاملا: «قيد الإعداد» وعد يقال للمشتري
+               في الصفحة العامة، أما من دفع فلا يحجب عنه اختبار موجود. */
+            $soon  = (!$ready && $mode !== 'student');
 
             $h .= '  <details class="curric__subj' . ($ready ? '' : ' is-soon') . '"'
                 . ($i <= $open && $ready ? ' open' : '') . '>' . "\n";
             $h .= '    <summary class="curric__sum">' . "\n";
-            $h .= '      <span class="curric__name">' . html_escape($s['title']) . '</span>' . "\n";
-            if ($meta) {
+            /* TQ-SUBJ-GRADE — الاسم يحمل صفه. الباقة تفتح ست صفوف، فمادة
+               واحدة تتكرر بعددها: «اللغة الإنجليزية» مرتين تقرآن تكرارا
+               وهما صفان. والصف محسوب سلفا في `bundle_by_code()` ولم يكن
+               يطبع — فلا استعلام جديد. ومحروسة لأن `course_page.php`
+               يبني عقدة يدويا بلا صف. */
+            $nm = (string) $s['title'];
+            $gr = (string) (isset($s['grade']) ? $s['grade'] : '');
+            /* وعنوان يحمل تمييزه أصلا لا يزاد عليه: «برنامج الرياضيات —
+               السادس» + «— الصف السادس الابتدائي» شرطتان في سطر واحد. */
+            if ($gr !== '' && mb_strpos($nm, '—') === false && mb_strpos($nm, $gr) === false) {
+                $nm .= ' — ' . $gr;
+            }
+            $h .= '      <span class="curric__name">' . html_escape($nm) . '</span>' . "\n";
+            if ($meta && !$soon) {
                 $h .= '      <span class="curric__meta">' . html_escape(implode(' · ', $meta)) . '</span>' . "\n";
             } else {
                 $h .= t('      <span class="curric__meta curric__meta--soon">قيد الإعداد</span>') . "\n";
@@ -1689,11 +1705,11 @@ if (!function_exists('tqs_curriculum')) {
             $h .= '    </summary>' . "\n";
 
             $h .= '    <div class="curric__body">' . "\n";
-            if (!$s['units']) {
+            if ($soon || !$s['units']) {
                 $h .= t('      <p class="curric__soon">دروس هذه المادة قيد التجهيز، ')
                     . t('وتفتح لك تلقائيا بمجرد نشرها.</p>') . "\n";
             }
-            foreach ($s['units'] as $u) {
+            foreach (($soon ? array() : $s['units']) as $u) {
                 $h .= '      <section class="curric__unit">' . "\n";
                 $h .= '        <h4 class="curric__unit-h">' . html_escape($u['title'])
                     . ' <small>' . count($u['lessons']) . t(' درسا</small></h4>') . "\n";
@@ -1911,9 +1927,36 @@ if (!function_exists('tqs_preview_url')) {
         $course_id = (int) $course_id;
         $lesson_id = (int) $lesson_id;
 
-        $ci = &get_instance();
-        if ((int) $ci->session->userdata('user_id') > 0 && tq_role($ci->session->userdata('user_id')) === 'student') {
-            return base_url('student/lesson/' . $course_id . '/' . $lesson_id);
+        $ci  = &get_instance();
+        $uid = (int) $ci->session->userdata('user_id');
+
+        /* TQ-PREVIEW-CAP — الطالب **المستحق** وحده يذهب إلى المشغل، ومن
+           لا اشتراك له يذهب إلى المعاينة كالزائر.
+
+           وكان كل طالب يحول إلى `student/lesson/…`، والبوابة تسمح بالدرس
+           المجاني لمن لا يستحق (`Taqdar_gate` تستثني `is_free`) — فحد
+           الخمس دقائق في صفحة المعاينة كان **يتجاوز بتسجيل حساب مجاني**.
+           والتسجيل مجاني، فالثغرة نقرتان لا ثغرة نظرية.
+
+           والمعاينة سطح واحد لا خاصية درس: من دفع يرى الدرس، ومن لم يدفع
+           يرى المعاينة — سجل أو لم يسجل. */
+        if ($uid > 0 && tq_role($uid) === 'student') {
+            /* والنموذج يحمل في هذه الشجرة **باسمين**: `taqdar_repo_model`
+               مرة و`tq_repo` مرة — فلا يفترض أيهما قائم. والحارس يجعل
+               أسوأ الحالات **معاينة** لا صفحة بيضاء: هذه الدالة تنادى من
+               صفحة الباقة ومن الكتالوج، وخطأ قاتل فيها يسقط الصفحتين. */
+            $repo = null;
+            if (isset($ci->tq_repo))               $repo = $ci->tq_repo;
+            elseif (isset($ci->taqdar_repo_model)) $repo = $ci->taqdar_repo_model;
+            else {
+                $ci->load->model('taqdar_repo_model');
+                if (isset($ci->taqdar_repo_model)) $repo = $ci->taqdar_repo_model;
+            }
+
+            if ($repo && method_exists($repo, 'is_entitled')
+                && $repo->is_entitled($uid, $course_id)) {
+                return base_url('student/lesson/' . $course_id . '/' . $lesson_id);
+            }
         }
         return base_url('preview/' . $course_id . '/' . $lesson_id);
     }

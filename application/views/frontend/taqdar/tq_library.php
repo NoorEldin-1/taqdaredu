@@ -27,41 +27,14 @@ $tq_icon  = 'book';
 $CI  = &get_instance();
 $uid = isset($user_id) ? (int) $user_id : (int) $CI->session->userdata('user_id');
 
-/* مرحلة الطالب من صفه. و`category` هي جدول المراحل الذي يربط به الكتاب
-   (`books.category_id`)، وهو نفسه الذي يبوب به الكتالوج — فلا تصنيف ثان
-   يفترق عنه. */
-$tq_cat_id = 0;
-try {
-    $row = $CI->db->query(
-        'SELECT c.`id`
-           FROM `users` u
-           JOIN `grades` g ON g.`id` = u.`grade_id`
-           LEFT JOIN `category` c ON c.`id` = g.`category_id`
-          WHERE u.`id` = ? LIMIT 1', array($uid))->row_array();
-    $tq_cat_id = $row ? (int) $row['id'] : 0;
-} catch (Throwable $e) {
-    $tq_cat_id = 0;
-}
-
-$tq_books = array();
-try {
-    $CI->db->select('b.id, b.title, b.slug, b.subject, b.author, b.pages, b.tone, b.cover, b.file, b.description')
-           ->from('books b')->where('b.status', 'published');
-    if ($tq_cat_id > 0) $CI->db->where('b.category_id', $tq_cat_id);
-    $tq_books = $CI->db->order_by('b.tq_order', 'ASC')->order_by('b.id', 'DESC')
-                       ->get()->result_array();
-
-    /* لا كتاب لمرحلته: الكل خير من شاشة فارغة تقول «لا شيء هنا» — وهي
-       وجهة ميتة في قائمة ثابتة. */
-    if (!$tq_books && $tq_cat_id > 0) {
-        $tq_books = $CI->db->select('b.id, b.title, b.slug, b.subject, b.author, b.pages, b.tone, b.cover, b.file, b.description')
-                           ->from('books b')->where('b.status', 'published')
-                           ->order_by('b.tq_order', 'ASC')->limit(24)->get()->result_array();
-        $tq_cat_id = 0;
-    }
-} catch (Throwable $e) {
-    $tq_books = array();
-}
+/* القاعدة في `Taqdar_student_model::library()`: الكتب ترشح بمرحلة
+   الطالب (`category` — الجدول نفسه الذي يبوب به الكتالوج، فلا تصنيف
+   ثان يفترق عنه)، ومن لا كتاب لمرحلته يرى الكل. والواجهة (`Api_v1`)
+   تنادي الدالة نفسها. */
+$CI->load->model('taqdar_student_model', 'tq_stu');
+$tq_lib    = $CI->tq_stu->library($uid);
+$tq_books  = $tq_lib['books'];
+$tq_cat_id = (int) $tq_lib['category_id'];
 
 include 'portal_open.php';
 ?>

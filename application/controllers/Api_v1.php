@@ -1340,8 +1340,21 @@ class Api_v1 extends CI_Controller
             $level = $this->tq_diag->latest_result($uid);
         } catch (Throwable $e) {}
 
+        /* TQ-MULTI-SUB — **وما يملكه غير باقته.**
+           `active_subscription()` بالمفرد ترد صفا واحدا و**تتخطى الشراء
+           المفرد عمدا**: أحد عشر مستدعيا يسألونها «ما باقة هذا الطالب؟».
+           فالحقل `subscription` يبقى جواب ذلك السؤال، و`purchases` جواب
+           السؤال الآخر — «ماذا يملك؟». ومن له باقة صف واشترى فوقها مادة
+           يملك صفين، وصف واحد يقرأ يعني أن أحد الشراءين لا يظهر لصاحبه
+           في شاشة واحدة: بابا مقفلا في العرض على من دفع ثمنه. */
+        $purchases = array();
+        foreach ((array) $this->tq_bill->active_subscriptions($uid) as $row) {
+            $purchases[] = $this->purchase_out($row);
+        }
+
         $out = array(
             'subscription'  => $sub,
+            'purchases'     => $purchases,
             'due_invoice'   => $due ? $this->invoice_out($due) : null,
             'invoices'      => array_map(array($this, 'invoice_out'), array_slice((array) $invoices, 0, 20)),
             'payment'       => array(
@@ -1376,6 +1389,15 @@ class Api_v1 extends CI_Controller
         $this->read($out, '', array(), $h);
     }
 
+    /**
+     * شكل الباقة — **وبدوراتها** (TQ-CYCLE-BUY).
+     *
+     * `price` سعر صف الباقة، و`cycles` ما يشترى فعلا: الشهري والسنوي
+     * سعران لصف واحد لا صفان (صفان يحملان رقمين لحقيقة واحدة يفترقان
+     * أول ما يعدل السنوي، ولا شيء يقول أيهما الصحيح). ومفتاح الدورة هو
+     * ما يرسله التطبيق في `POST /student/subscribe` — وواجهة تعرض سعر
+     * الشهر ثم تشتري بلا مفتاح تجعل من ضغط «شهري» يدفع سعر السنة.
+     */
     private function plan_out($p)
     {
         $features = array();
@@ -1383,6 +1405,20 @@ class Api_v1 extends CI_Controller
             $d = json_decode($p['features'], true);
             if (is_array($d)) $features = $d;
         }
+
+        $this->load->model('taqdar_billing_model', 'tq_bill');
+        $cycles = array();
+        foreach ((array) $this->tq_bill->plan_cycles($p) as $k => $c) {
+            $cycles[] = array(
+                'key'     => (string) $c['key'],
+                'label'   => (string) $c['label'],
+                'unit'    => (string) $c['unit'],
+                'price'   => tq_api_money($c['price']),
+                'days'    => (int) $c['days'],
+                'default' => (bool) $c['default'],
+            );
+        }
+
         return array(
             'id'       => (int) $p['id'],
             'code'     => (string) $p['code'],
@@ -1394,15 +1430,31 @@ class Api_v1 extends CI_Controller
             'scope'    => (string) $p['scope'],
             'stage'    => $p['stage'],
             'is_trial' => ((string) $p['scope'] === 'trial'),
+            'cycles'   => $cycles,
             'features' => $features,
+            'cover_url'=> function_exists('tqs_plan_cover') ? tqs_plan_cover($p) : null,
             'web_url'  => base_url('plan/' . rawurlencode((string) $p['code'])),
         );
     }
 
+    /**
+     * شكل الفاتورة — **ومعها اسم ما بيع**.
+     *
+     * ومن يقرأ اسم ما بيع يقرأ الثلاثة: الباقة والمسار والكورس المفرد.
+     * والضم على `plans` وحده يطبع «—» على شراء مسار أو كورس — وقد كان
+     * يفعل في شاشة الاشتراكات وفي إشعار إصدار الفاتورة وفي إشعار نجاح
+     * الدفع وفي التفعيل اليدوي. وفاتورة بلا اسم لما اشتري تجعل صاحبها
+     * يحول مبلغا لا يعرف مقابله.
+     *
+     * و`subscription_id = 0` ليست عيبا: **فاتورة الحصة يتيمة** بحكم
+     * `Taqdar_sessions_model` (وبها يفترق مسار التسوية)، فتخرج `item`
+     * نوعها `session` لا `null` يقرؤه التطبيق فراغا.
+     */
     private function invoice_out($i)
     {
         $labels = array('unpaid' => 'غير مدفوعة', 'paid' => 'مدفوعة', 'refunded' => 'مستردة');
         return array(
+            'item'         => $this->invoice_item($i),
             'id'           => (int) $i['id'],
             'invoice_no'   => (string) $i['invoice_no'],
             'status'       => (string) $i['status'],
@@ -1415,6 +1467,42 @@ class Api_v1 extends CI_Controller
             'paid_at'      => tq_api_date($i['paid_at']),
             'payable'      => ($i['status'] === 'unpaid'),
         );
+    }
+
+    /** ما اشترته هذه الفاتورة: باقة أو مسار أو كورس مفرد أو حصة. */
+    private function invoice_item($i)
+    {
+        $sid = (int) ($i['subscription_id'] ?? 0);
+
+        if ($sid <= 0) {
+            /* الفاتورة اليتيمة حصة خاصة — و`by_invoice()` هي التي تعرف،
+               وهي الفرع نفسه الذي تفرعه `Taqdar_tap_model::settle()`. */
+            $this->load->model('taqdar_sessions_model', 'tq_sess');
+            $row = $this->tq_sess->by_invoice((int) $i['id']);
+            return $row
+                ? array('kind' => 'session', 'ref_id' => (int) $row['id'], 'title' => t('حصة خاصة'))
+                : null;
+        }
+
+        $s = $this->db->select('plan_id, path_id, course_id')->where('id', $sid)
+                      ->get('subscriptions')->row_array();
+        if (!$s) return null;
+
+        if ((int) ($s['course_id'] ?? 0) > 0) {
+            return array('kind' => 'course', 'ref_id' => (int) $s['course_id'],
+                'title' => (string) $this->db->select('title')->where('id', (int) $s['course_id'])
+                                             ->get('course')->row('title'));
+        }
+        if ((int) ($s['path_id'] ?? 0) > 0) {
+            return array('kind' => 'path', 'ref_id' => (int) $s['path_id'],
+                'title' => (string) $this->db->select('title')->where('id', (int) $s['path_id'])
+                                             ->get('paths')->row('title'));
+        }
+
+        $this->load->model('taqdar_billing_model', 'tq_bill');
+        $plan = $this->tq_bill->plan((int) $s['plan_id']);
+        return array('kind' => 'plan', 'ref_id' => (int) $s['plan_id'],
+                     'title' => $plan ? (string) $plan['name_ar'] : '');
     }
 
     /**
@@ -2046,8 +2134,29 @@ class Api_v1 extends CI_Controller
 
         $repo = $this->repo();
         if (!$repo->is_entitled($uid, $cid)) {
+            /* TQ-COURSE-SALE — **والرفض يقول كيف يفتح.**
+               كان الرد بابا مقفلا وحده: «غير متاح ضمن اشتراكك» ولا شيء
+               بعده. والكورس قد يكون **معروضا للبيع مفردا** — فمن أراد
+               مادة واحدة لا منهج مرحلة يقرأ رفضا ولا يجد ما يشتريه،
+               فيدفع ثمن الباقة أو ينصرف؛ والثاني هو ما يقع. فيخرج العرض
+               مع الرفض، ويفتح التطبيق شاشة الشراء من الرد نفسه.
+
+               وخروجه في `errors.details` لا في `data`: الغلاف ثابت بلا
+               استثناء، ورد خطأ يحمل `data` هو الغلاف الثالث الذي تعد
+               هذه الواجهة بألا ثالث لها. */
+            $details = array('course_id' => $cid);
+            try {
+                $this->load->model('taqdar_course_sale_model', 'tq_cs');
+                $offer = $this->tq_cs->offer($cid);
+                if (!empty($offer['sellable'])) $details['offer'] = $this->offer_out($offer, $uid);
+            } catch (Throwable $e) {
+                /* بيع الكورسات مطفأ أو جدوله لم ينشأ بعد: الرفض يبقى
+                   رفضا كما كان، ولا يسقط على استثناء عرض. */
+                $this->db->reset_query();
+            }
+
             $this->fail('هذا المحتوى غير متاح ضمن اشتراكك.', 'not_entitled', 403,
-                        array('details' => array('course_id' => $cid)));
+                        array('details' => $details));
         }
 
         /* `ordered_lessons()` هي ترتيب القفل نفسه — الوحدة فالترتيب فالمعرف.
@@ -3043,6 +3152,1818 @@ class Api_v1 extends CI_Controller
         }
 
         $this->read($out, '', tq_api_meta_page($page, $per, count($rows)), $h);
+    }
+
+    /* ================================================================
+       ٦ · بقية بوابة الطالب — الشاشات التي كانت في الويب وحدها
+       ================================================================
+
+       الوحدات الخمس أعلاه هي **حلقة التعلم**، وهي التي بنيت أولا لأن
+       التطبيق بلا درس يشغل ليس تطبيقا. وما هنا بقية البوابة: ما يحيط
+       بالحلقة ويجعلها قابلة للاستعمال يوما بعد يوم — الإشعار الذي يخبر،
+       والرسالة التي تسأل المعلم، والمهمة التي تنتظر، والتقويم الذي يرتب،
+       والتقرير الذي يقيس، والشراء الذي يفتح.
+
+       والقاعدة واحدة لم تتغير: **لا قاعدة عمل في هذه الطبقة.** ما كان
+       في نموذج ينادى من نموذجه (`Taqdar_favourites_model` ·
+       `Taqdar_sessions_model` · `Taqdar_billing_model` ·
+       `Taqdar_learn_model` · `Taqdar_diag_model`)، وما كان في قالب نقل
+       إلى `Taqdar_student_model` وصارت الشاشة والواجهة تقرآن منه معا.
+       ونسخة ثانية هنا تعني أن التطبيق يعرض ما يخفيه الموقع. */
+
+    /** نموذج بقية شاشات الطالب. */
+    private function stu()
+    {
+        $this->load->model('taqdar_student_model', 'tq_stu');
+        return $this->tq_stu;
+    }
+
+    /* ---- الإشعارات ------------------------------------------------- */
+
+    /**
+     * GET /api/v1/student/notifications
+     *
+     * والعدادات تحسب على **الكل** لا على المعروض: تبويب «غير مقروءة»
+     * يعد ما بداخله وحده يقول صفرا حين تفتحه وقد قرأت آخر إشعار، فيبدو
+     * التبويب معطلا.
+     */
+    public function student_notifications()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $state = (string) $this->input->get('state');
+        if (!in_array($state, array('unread', 'read'), true)) $state = 'all';
+
+        $feed = $this->stu()->notifications((int) $u['id'], $state);
+        list($page, $per, $offset) = tq_api_page(
+            $this->input->get('page'), $this->input->get('per_page'), 50, 20);
+
+        $items = array();
+        foreach (array_slice($feed['items'], $offset, $per) as $n) {
+            $items[] = $this->notification_out($n);
+        }
+
+        $this->read($items, '', array_merge(
+            tq_api_meta_page($page, $per, count($feed['items'])),
+            array('counts' => $feed['counts'], 'by_kind' => (object) $feed['by_kind'],
+                  'filters' => array('state' => $state))
+        ), $h);
+    }
+
+    /**
+     * شكل الإشعار.
+     *
+     * `notifications.created_at` طابع يونكس **نصا** في مخطط Academy،
+     * و`tq_api_date()` تعرف الاثنين. و`kind_label` يخرج مع `type` لا بدلا
+     * منه: الأول تسمية تعرض والثاني مفتاح يفرع عليه التطبيق.
+     *
+     * **والنص في `description` لا في `message`**، ولا عمود `url` في
+     * الجدول أصلا (`id · from_user · to_user · type · title · description ·
+     * status · created_at · updated_at`). وقراءة اسم مفترض ترد سلسلة
+     * فارغة بلا خطأ — فيخرج كل إشعار بعنوانه وبلا نصه، وهو أسوأ من خطأ
+     * لأنه يبدو عاملا.
+     */
+    private function notification_out($n)
+    {
+        list($label, $icon, $tone) = $this->stu()->notification_kind($n['type']);
+
+        return array(
+            'id'         => (int) $n['id'],
+            'type'       => (string) $n['type'],
+            'kind_label' => $label,
+            'icon'       => $icon,
+            'tone'       => $tone,
+            'title'      => (string) ($n['title'] ?? ''),
+            'body'       => (string) ($n['description'] ?? ''),
+            'is_read'    => ((int) $n['status'] === 1),
+            'created_at' => tq_api_date($n['created_at'] ?? null),
+        );
+    }
+
+    /**
+     * POST /api/v1/student/notifications/read — إشعار بعينه أو الكل.
+     *
+     * `{"id": 12}` يقرأ واحدا، و`{"all": true}` يقرأ الكل. والرد يحمل
+     * العدادات بعد التغيير لا «تم»: الشارة في التطبيق تحدث من الرد نفسه
+     * بلا نداء ثان.
+     */
+    public function notifications_read()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $uid = (int) $u['id'];
+        $all = tq_api_bool($this->in('all', false));
+        $id  = (int) $this->in('id', 0);
+
+        if (!$all && $id <= 0) {
+            $this->fail('حدد إشعارا برقمه أو اطلب قراءة الكل.', 'validation_failed', 422,
+                        array('id' => array(t('هذا الحقل مطلوب.'))));
+        }
+
+        $n = $all ? $this->stu()->mark_all_notifications_read($uid)
+                  : $this->stu()->mark_notification_read($uid, $id);
+
+        $feed = $this->stu()->notifications($uid, 'all');
+
+        $this->respond(tq_api_ok(
+            array('changed' => (int) $n, 'counts' => $feed['counts']),
+            $all ? 'قرئت كل الإشعارات.' : 'قرئ الإشعار.'
+        ), 200);
+    }
+
+    /* ---- الرسائل --------------------------------------------------- */
+
+    /**
+     * GET /api/v1/student/messages — المحادثات.
+     *
+     * والتصفية في الخادم لا في التطبيق: نسختان من قاعدة «المعلمون»
+     * تفترقان عند أول تعديل، وهي القاعدة نفسها التي تحكم `/catalog`.
+     */
+    public function student_messages()
+    {
+        /* بابان على مسار واحد: القراءة والإرسال. والقاعدة في `routes.php`
+           تربط **المسار** لا الطريقة، فنقطتان بدالتين على المسار نفسه
+           تعنيان أن الثانية لا تنادى أبدا — يصل `POST` إلى دالة القراءة
+           فيرد 405 على طلب صحيح. وهو التوزيع نفسه في `lesson_notes()`
+           و`student_setup()`. */
+        if ($this->method(array('GET', 'POST')) === 'POST') {
+            $this->message_send();
+            return;
+        }
+
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid = (int) $u['id'];
+        $all = $this->stu()->threads($uid);
+
+        $filter = (string) $this->input->get('filter');
+        if (!in_array($filter, array('unread', 'teachers', 'support'), true)) $filter = 'all';
+        $q = trim((string) $this->input->get('q'));
+
+        $list = array();
+        $unread_total = 0;
+        foreach ($all as $t) {
+            $unread_total += (int) $t['unread'];
+
+            if ($filter === 'unread'   && $t['unread'] < 1) continue;
+            if ($filter === 'teachers' && empty($t['person']['is_instructor'])) continue;
+            if ($filter === 'support'  && (int) ($t['person']['role_id'] ?? 0) !== 1) continue;
+            if ($q !== '') {
+                $hay = ($t['person']['first_name'] ?? '') . ' ' . ($t['person']['last_name'] ?? '')
+                     . ' ' . ($t['last']['message'] ?? '');
+                if (mb_stripos($hay, $q) === false) continue;
+            }
+            $list[] = $this->thread_out($t);
+        }
+
+        list($page, $per, $offset) = tq_api_page(
+            $this->input->get('page'), $this->input->get('per_page'), 50, 20);
+
+        $this->read(array_slice($list, $offset, $per), '', array_merge(
+            tq_api_meta_page($page, $per, count($list)),
+            array('unread_total' => $unread_total,
+                  'filters' => array('filter' => $filter, 'q' => $q))
+        ), $h);
+    }
+
+    /** شكل المحادثة في القائمة. */
+    private function thread_out($t)
+    {
+        $p = (array) $t['person'];
+        $is_support = ((int) ($p['role_id'] ?? 0) === 1) && empty($p['is_instructor']);
+
+        return array(
+            'code'   => (string) $t['code'],
+            'unread' => (int) $t['unread'],
+            'person' => array(
+                'id'         => (int) $t['other'],
+                'name'       => $is_support ? t('الدعم الفني')
+                              : trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '')),
+                'role'       => !empty($p['is_instructor']) ? 'teacher' : ($is_support ? 'support' : 'user'),
+                'avatar_url' => tq_api_avatar($p['image'] ?? ''),
+            ),
+            'last' => empty($t['last']) ? null : array(
+                'body' => (string) $t['last']['message'],
+                'mine' => ((int) $t['last']['sender'] === (int) $this->me['id']),
+                'at'   => tq_api_date($t['last']['timestamp']),
+            ),
+            'updated_at' => tq_api_date($t['ts']),
+        );
+    }
+
+    /**
+     * GET /api/v1/student/messages/recipients — من يجوز مراسلته.
+     *
+     * ومن القائمة نفسها التي يفحص بها الإرسال: منتق يعرض حسابا يرده
+     * الحارس يجعل الطالب يقرأ «لا ترسل الرسائل إلا إلى معلمي موادك» عن
+     * اسم اختاره من قائمة عرضناها نحن.
+     */
+    public function message_recipients()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $out = array();
+        foreach ($this->stu()->messageable((int) $u['id']) as $p) {
+            $is_support = ((int) ($p['role_id'] ?? 0) === 1) && empty($p['is_instructor']);
+            $out[] = array(
+                'id'         => (int) $p['id'],
+                'name'       => $is_support ? t('الدعم الفني')
+                              : trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '')),
+                'role'       => !empty($p['is_instructor']) ? 'teacher' : ($is_support ? 'support' : 'user'),
+                'avatar_url' => tq_api_avatar($p['image'] ?? ''),
+            );
+        }
+
+        $this->read($out, '', array('note' => t('المراسلة متاحة مع معلميك والدعم فقط، ولا رسائل خاصة بين الطلاب.')), $h);
+    }
+
+    /**
+     * POST /api/v1/student/messages — رسالة جديدة إلى حساب مسموح.
+     *
+     * والنطاق يفحص في الخادم: `crud_model::send_new_private_message()`
+     * تقرأ `receiver` من الطلب ولا تفحصه، فبدون هذا الشرط يبدل من شاء
+     * رقما فيراسل أي حساب في المنصة.
+     */
+    private function message_send()
+    {
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $uid = (int) $u['id'];
+        $b   = $this->body();
+
+        $errors = tq_api_validate($b, array(
+            'receiver' => 'required|int',
+            'body'     => 'required|max:5000',
+        ));
+        if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+        $to = (int) $b['receiver'];
+        if (!$this->stu()->may_message($uid, $to)) {
+            $this->fail('لا ترسل الرسائل إلا إلى معلمي موادك أو الدعم الفني.',
+                        'recipient_not_allowed', 403);
+        }
+
+        /* والحفظ في `Taqdar_student_model` لا في `crud_model`: تلك تقرأ
+           المرسل من **الجلسة**، وهذه الطبقة بلا جلسة بحكم أول قاعدة
+           فيها — فنداؤها من هنا يكتب صفا مرسله صفر. والمرسل هنا معامل. */
+        $code = (string) $this->stu()->send_message($uid, $to, (string) $b['body']);
+
+        $this->api->audit('api.message.send', $uid, array('to' => $to));
+
+        $this->respond(tq_api_ok(array('thread_code' => $code), 'وصلت رسالتك.'), 201);
+    }
+
+    /**
+     * GET · POST · DELETE /api/v1/student/messages/{code}
+     *
+     * والملكية تفحص في النموذج في `WHERE` نفسه: رمز مخمن لا يفتح محادثة
+     * غيرك ولا يحقن فيها ردا ولا يحذفها.
+     */
+    public function message_thread($code = '')
+    {
+        $m = $this->method(array('GET', 'POST', 'DELETE'));
+        $u = $this->require_student();
+
+        $uid  = (int) $u['id'];
+        $code = (string) rawurldecode((string) $code);
+
+        if (!$this->stu()->owns_thread($uid, $code)) {
+            /* رد واحد للمعدوم ولمحادثة غيره عمدا: التفريق يقول لمن خمن
+               أن الرمز موجود. */
+            $this->fail('لا محادثة بهذا الرمز.', 'not_found', 404);
+        }
+
+        if ($m === 'DELETE') {
+            $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+            $this->stu()->delete_thread($uid, $code);
+            $this->api->audit('api.message.delete_thread', $uid, array('thread' => $code));
+            $this->respond(tq_api_ok(null, 'حذفت المحادثة.'), 200);
+        }
+
+        if ($m === 'POST') {
+            $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+            $b = $this->body();
+            $errors = tq_api_validate($b, array('body' => 'required|max:5000'));
+            if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+            $this->stu()->reply_message($uid, $code, (string) $b['body']);
+
+            $this->respond(tq_api_ok(
+                $this->messages_out($this->stu()->messages($uid, $code), $uid),
+                'أرسل ردك.'), 201);
+        }
+
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        /* فتح المحادثة يجعلها مقروءة — كما يتوقع من فتحها فعلا. */
+        $this->stu()->read_thread($uid, $code);
+
+        $this->read($this->messages_out($this->stu()->messages($uid, $code), $uid), '',
+                    array('thread_code' => $code), $h);
+    }
+
+    /**
+     * شكل الرسالة الواحدة — و`mine` تغني التطبيق عن مقارنة المعرفات.
+     *
+     * والمفتاح `message_id` لا `id`: جدول `message` من مخطط Academy
+     * ويسمي مفتاحه باسم الجدول. وقراءة `id` ترد صفرا لكل صف بلا خطأ —
+     * فيقرأ التطبيق قائمة رسائل مفاتيحها كلها صفر، ولا يفرق بينها.
+     */
+    private function messages_out($rows, $uid)
+    {
+        $out = array();
+        foreach ((array) $rows as $r) {
+            $out[] = array(
+                'id'      => (int) $r['message_id'],
+                'body'    => (string) $r['message'],
+                'mine'    => ((int) $r['sender'] === (int) $uid),
+                'is_read' => ((int) $r['read_status'] === 1),
+                'sent_at' => tq_api_date($r['timestamp']),
+            );
+        }
+        return $out;
+    }
+
+    /* ---- الشهادات --------------------------------------------------- */
+
+    /**
+     * GET /api/v1/student/certificates
+     *
+     * والشهادة على **إتقان مقاس** لا على مشاهدة: من لم يجتز امتحان محطة
+     * بعد يقرأ قائمة فارغة، لا شهادة مبنية على وقت تشغيل.
+     */
+    public function student_certificates()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $stu = $this->stu();
+        $out = array();
+        foreach ($stu->certificates((int) $u['id']) as $c) {
+            $out[] = array(
+                'id'          => (int) $c['id'],
+                'code'        => $stu->certificate_code($c['id']),
+                'title'       => (string) ($c['milestone_title'] ?: $c['path_title'] ?: t('محطة')),
+                'score'       => (int) $c['score'],
+                'issued_at'   => tq_api_date($c['submitted_at']),
+                /* الشهادة صفحة تطبع وتوقع، فلا نموذج JSON لها: التطبيق
+                   يفتح رابطها في متصفح داخلي كما يفتح صفحة الدفع. */
+                'web_url'     => base_url('student/certificate/' . (int) $c['id']),
+                'verify_url'  => base_url('student/verify/' . (int) $c['id']),
+            );
+        }
+
+        $this->read($out, '', array('count' => count($out)), $h);
+    }
+
+    /* ---- المهام ------------------------------------------------------ */
+
+    /**
+     * GET /api/v1/student/tasks — الواجبات في ثلاث مجموعات.
+     *
+     * ولا حالة «متأخر»: لا موعد استحقاق في المخطط يقاس عليه التأخر.
+     * ودرجة لم يعتمدها المعلم لا تخرج — `Taqdar_marking_model` هو من
+     * يقرر، فلا يقرأ الطالب رقما يحسبه نهائيا ثم يأتي الاعتماد فيغيره.
+     */
+    public function student_tasks()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $groups = $this->stu()->tasks((int) $u['id']);
+
+        $out = array(); $counts = array(); $total = 0;
+        foreach ($groups as $key => $g) {
+            $items = array();
+            foreach ($g['items'] as $i) {
+                $items[] = array(
+                    'lesson_id' => (int) $i['id'],
+                    'course_id' => (int) $i['course_id'],
+                    'title'     => (string) $i['title'],
+                    'subject'   => (string) $i['subject'],
+                    'stage'     => (string) $i['stage'],
+                    'minutes'   => (int) $i['minutes'],
+                    'questions' => (int) $i['points'],
+                    'pass_mark' => (int) $i['pass'],
+                    'at'        => tq_api_date($i['at'] ?: null),
+                    /* المكتملة وحدها تحمل الدرجة، و`graded=false` تعني
+                       «سلمت وتنتظر معلمك» — وهي حال مختلفة عن صفر. */
+                    'graded'    => isset($i['graded']) ? (bool) $i['graded'] : null,
+                    'score'     => isset($i['score'])  ? $i['score'] : null,
+                    'max'       => isset($i['max'])    ? (int) $i['max'] : null,
+                    'passed'    => isset($i['pass_ok']) ? $i['pass_ok'] : null,
+                    'note'      => isset($i['note'])   ? (string) $i['note'] : null,
+                    'web_url'   => (string) $i['href'],
+                );
+            }
+            $counts[$key] = count($items);
+            $total += count($items);
+            $out[] = array('key' => $key, 'label' => $g['label'], 'items' => $items);
+        }
+
+        $this->read($out, '', array('counts' => $counts, 'total' => $total), $h);
+    }
+
+    /* ---- التقويم ------------------------------------------------------ */
+
+    /**
+     * GET /api/v1/student/calendar
+     *
+     * قائمة مسطحة مرتبة زمنيا — لا شبكة شهر. الشبكة رسم، ورسمها في Dart
+     * أسهل وأصح من نقل مصفوفة صفوف وأعمدة عبر الشبكة؛ وما يحتاجه الرسم
+     * هو الأحداث بتواريخها، وهي ما يخرج هنا.
+     *
+     * و`from`/`to` نافذة اختيارية (`YYYY-MM-DD`): بلاها يخرج كل ما يعرفه
+     * التقويم، وهو مئات الصفوف على حساب قديم.
+     */
+    public function student_calendar()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $day = function ($v) {
+            $v = trim((string) $v);
+            return preg_match('/^\d{4}-\d{2}-\d{2}$/', $v) ? strtotime($v) : 0;
+        };
+        $from = $day($this->input->get('from'));
+        $to   = $day($this->input->get('to'));
+        if ($to > 0) $to += 86400;          // شامل ليومه كله لا حتى منتصف ليله
+
+        $cat = (string) $this->input->get('cat');
+        $cats = $this->stu()->calendar_categories();
+        if (!isset($cats[$cat])) $cat = '';
+
+        $events = array(); $by_cat = array();
+        foreach ($this->stu()->calendar_events((int) $u['id']) as $e) {
+            $by_cat[$e['cat']] = (isset($by_cat[$e['cat']]) ? $by_cat[$e['cat']] : 0) + 1;
+
+            if ($from > 0 && $e['ts'] <  $from) continue;
+            if ($to   > 0 && $e['ts'] >= $to)   continue;
+            if ($cat !== '' && $e['cat'] !== $cat) continue;
+
+            $events[] = array(
+                'at'         => tq_api_date($e['ts']),
+                'date'       => date('Y-m-d', (int) $e['ts']),
+                'category'   => (string) $e['cat'],
+                'category_label' => $cats[$e['cat']][0],
+                'icon'       => $cats[$e['cat']][2],
+                'title'      => (string) $e['title'],
+                'subtitle'   => (string) $e['sub'],
+                'web_url'    => (string) $e['href'],
+            );
+        }
+
+        $legend = array();
+        foreach ($cats as $k => $c) {
+            $legend[] = array('key' => $k, 'label' => $c[0], 'icon' => $c[2],
+                              'action' => $c[3], 'count' => isset($by_cat[$k]) ? $by_cat[$k] : 0);
+        }
+
+        $this->read($events, '', array(
+            'categories' => $legend,
+            'filters'    => array('from' => $this->input->get('from'),
+                                  'to'   => $this->input->get('to'),
+                                  'cat'  => $cat),
+            'total'      => count($events),
+        ), $h);
+    }
+
+    /* ---- المكتبة ------------------------------------------------------ */
+
+    /**
+     * GET /api/v1/student/library — كتب مرحلة الطالب.
+     *
+     * **والملف يرد رابطه ولا يخفى**: القارئ داخل الصفحة في الويب
+     * (`pdf.js`) يمنع النسخ العرضي، والتطبيق له قارئه هو. وحجب الرابط
+     * هنا يعني كتابا لا يفتح في التطبيق أصلا — وهو حجب لا حماية:
+     * المحتوى نفسه يصل إلى القارئ في الحالين.
+     */
+    public function student_library()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $lib = $this->stu()->library((int) $u['id']);
+
+        $asset = function ($rel, $dir) {
+            $v = trim((string) $rel);
+            if ($v === '') return null;
+            if (filter_var($v, FILTER_VALIDATE_URL)) return $v;
+            $path = (strpos($v, 'uploads/') === 0) ? $v : $dir . $v;
+            return is_file(FCPATH . $path) ? base_url($path) : null;
+        };
+
+        $out = array();
+        foreach ($lib['books'] as $b) {
+            $out[] = array(
+                'id'          => (int) $b['id'],
+                'title'       => (string) $b['title'],
+                'slug'        => (string) $b['slug'],
+                'subject'     => (string) $b['subject'],
+                'author'      => (string) $b['author'],
+                'pages'       => (int) $b['pages'],
+                'description' => (string) $b['description'],
+                'cover_url'   => $asset($b['cover'], 'uploads/books/'),
+                'file_url'    => $asset($b['file'],  'uploads/books/'),
+                'web_url'     => base_url('book/' . rawurlencode((string) $b['slug'])),
+            );
+        }
+
+        $this->read($out, '', array(
+            'count'  => count($out),
+            /* `scoped` تقول أيهما وقع: كتب مرحلته، أم الكل لأن مرحلته
+               بلا كتاب. وشاشة تعد بواحدة وتعرض الأخرى تربك صاحبها. */
+            'scoped' => (bool) $lib['scoped'],
+        ), $h);
+    }
+
+    /* ---- المواد التعليمية والمفضلة ----------------------------------- */
+
+    /**
+     * GET /api/v1/student/materials — ملفات كورساته المسجلة.
+     *
+     * مصدران في واحد: `resource_files` المعلقة بالدرس، ومرفق الدرس
+     * نفسه. و`favourite` تخرج مع كل صف: شاشة تعرض قلبا فارغا على ملف
+     * محفوظ تجعل الطالب يحفظه مرتين ثم يجده مرة.
+     */
+    public function student_materials()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid = (int) $u['id'];
+
+        $this->load->model('taqdar_favourites_model', 'tq_fav');
+        $fav = array_flip(array_map('intval', (array) $this->tq_fav->ids($uid, 'material')));
+
+        $type = (string) $this->input->get('type');
+        if (!in_array($type, array('pdf', 'video', 'slide', 'audio', 'image', 'link', 'doc'), true)) $type = '';
+        $q = trim((string) $this->input->get('q'));
+
+        $all = tq_s_materials($uid);
+
+        $by_type = array();
+        $list = array();
+        foreach ($all as $m) {
+            $k = $m['kind']['key'];
+            $by_type[$k] = (isset($by_type[$k]) ? $by_type[$k] : 0) + 1;
+
+            if ($type !== '' && $k !== $type) continue;
+            if ($q !== '' && mb_stripos($m['title'], $q) === false
+                          && mb_stripos((string) $m['course'], $q) === false) continue;
+
+            $list[] = array(
+                'id'         => (int) ($m['fav_id'] ?? 0),
+                'title'      => (string) $m['title'],
+                'lesson'     => (string) $m['lesson'],
+                'course'     => (string) $m['course'],
+                'subject'    => (string) $m['subject'],
+                'kind'       => $k,
+                'kind_label' => $m['kind']['label'],
+                'url'        => (string) $m['url'],
+                'bytes'      => (int) $m['bytes'],
+                'added_at'   => tq_api_date($m['at'] ?: null),
+                /* `fav_id` صفر يعني مرفق درس: لا صف له في جدول فلا معرف
+                   ثابت يفضل به — وقلب لا يعرف ما يحفظ لا يعرض. */
+                'favourable' => ((int) ($m['fav_id'] ?? 0) > 0),
+                'favourite'  => isset($fav[(int) ($m['fav_id'] ?? 0)]) && (int) ($m['fav_id'] ?? 0) > 0,
+            );
+        }
+
+        list($page, $per, $offset) = tq_api_page(
+            $this->input->get('page'), $this->input->get('per_page'), 60, 20);
+
+        $this->read(array_slice($list, $offset, $per), '', array_merge(
+            tq_api_meta_page($page, $per, count($list)),
+            array('by_type' => (object) $by_type, 'filters' => array('type' => $type, 'q' => $q))
+        ), $h);
+    }
+
+    /**
+     * GET /api/v1/student/favourites — الكورسات والدروس والملفات المحفوظة.
+     *
+     * ثلاثة أنواع في نقطة واحدة: الشاشة تبويبات فوق قائمة واحدة، وثلاث
+     * نقاط لرسمها تعني ثلاثة أشواط على شبكة جوال لعرض تبويب واحد.
+     */
+    public function student_favourites()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid = (int) $u['id'];
+        $this->load->model('taqdar_favourites_model', 'tq_fav');
+
+        $type = (string) $this->input->get('type');
+        if (!in_array($type, array('courses', 'lessons', 'materials'), true)) $type = '';
+
+        $courses = array();
+        $ids = array_map('intval', (array) $this->tq_fav->course_ids($uid));
+        if ($ids) {
+            $owned = array();
+            foreach ($this->courses_of($uid) as $c) $owned[(int) $c['id']] = $c;
+            foreach ($this->db->select('id, title, thumbnail, level, short_description')
+                              ->where_in('id', $ids)->get('course')->result_array() as $c) {
+                $cid = (int) $c['id'];
+                $courses[] = array(
+                    'id'         => $cid,
+                    'title'      => (string) $c['title'],
+                    'level'      => (string) $c['level'],
+                    'summary'    => (string) $c['short_description'],
+                    'thumbnail'  => $this->thumb_url($c['thumbnail']),
+                    /* «مسجل» غير «محفوظ»: يحفظ الطالب كورسا لا يملكه بعد
+                       ليشتريه، فبطاقة تعده بزر «تابع» على محتوى مقفل
+                       تعطل عند أول ضغطة. */
+                    'enrolled'   => isset($owned[$cid]),
+                    'progress'   => isset($owned[$cid]) ? $owned[$cid]['progress'] : null,
+                );
+            }
+        }
+
+        /* والنموذج يرد **صفوف القاعدة خاما** لا شكلا معدا: `duration`
+           نص ساعة و`course_title` اسم العمود. والتشكيل هنا كما تشكله
+           الشاشة — `tq_s_secs()` هي نفسها التي تقرأ المدة في المشغل. */
+        $lessons = array();
+        foreach ((array) $this->tq_fav->lessons($uid) as $l) {
+            $lessons[] = array(
+                'id'        => (int) $l['id'],
+                'course_id' => (int) $l['course_id'],
+                'title'     => (string) $l['title'],
+                'course'    => (string) $l['course_title'],
+                'subject'   => tq_s_subject($l['category_id'], (string) $l['course_title'], (int) $l['course_id']),
+                'type'      => (string) $l['lesson_type'],
+                'seconds'   => tq_s_secs($l['duration']),
+            );
+        }
+
+        $materials = array();
+        foreach ((array) $this->tq_fav->materials($uid) as $m) {
+            $rel  = 'uploads/resource_files/' . $m['file_name'];
+            $kind = tq_file_kind($m['file_name']);
+            $materials[] = array(
+                'id'         => (int) $m['id'],
+                'title'      => (string) ($m['title'] !== '' ? $m['title'] : $m['file_name']),
+                'lesson'     => (string) $m['lesson_title'],
+                'course'     => (string) $m['course_title'],
+                'subject'    => tq_s_subject($m['category_id'], (string) $m['course_title'], (int) $m['course_id']),
+                'kind'       => $kind['key'],
+                'kind_label' => $kind['label'],
+                'url'        => base_url($rel),
+                'bytes'      => is_file(FCPATH . $rel) ? (int) filesize(FCPATH . $rel) : 0,
+            );
+        }
+
+        $data = array('courses' => $courses, 'lessons' => $lessons, 'materials' => $materials);
+        if ($type !== '') $data = array($type => $data[$type]);
+
+        $this->read($data, '', array(
+            'counts' => array('courses' => count($courses), 'lessons' => count($lessons),
+                              'materials' => count($materials)),
+            'filters' => array('type' => $type),
+        ), $h);
+    }
+
+    /**
+     * POST /api/v1/student/favourites — يقلب القلب.
+     *
+     * والرد يحمل `on` — الحال بعد القلب لا «تم»: التطبيق يرسم القلب من
+     * الرد بلا نداء ثان، ولا يخمن حاله فيخالف الخادم عند أول تعثر شبكة.
+     */
+    public function favourite_toggle()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+        $errors = tq_api_validate($b, array(
+            'kind'    => 'required|in:course,lesson,material',
+            'item_id' => 'required|int',
+        ));
+        if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+        $uid  = (int) $u['id'];
+        $kind = (string) $b['kind'];
+        $id   = (int) $b['item_id'];
+
+        $this->load->model('taqdar_favourites_model', 'tq_fav');
+        $r = ($kind === 'course')
+           ? $this->tq_fav->toggle_course($uid, $id)
+           : $this->tq_fav->toggle($uid, $kind, $id);
+
+        if (empty($r['ok'])) {
+            $this->fail(isset($r['msg']) ? $r['msg'] : 'تعذر حفظ المفضلة.', 'favourite_failed', 422);
+        }
+
+        $this->respond(tq_api_ok(
+            array('kind' => $kind, 'item_id' => $id, 'on' => !empty($r['on'])),
+            isset($r['msg']) ? $r['msg'] : ''), 200);
+    }
+
+    /* ---- التقارير ----------------------------------------------------- */
+
+    /**
+     * GET /api/v1/student/reports — «المتابعة والتقارير».
+     *
+     * والسلاسل ترد **بفراغاتها**: أسبوع بلا قياس يخرج `null` لا صفرا.
+     * وصفر مخترع مكان الفراغ يجعل الرسم يهبط إلى القاع فيقرأ الطالب
+     * «تراجعت» عن أسبوع لم يقس له شيء أصلا. وهو سبب `has_delta` نفسه.
+     */
+    public function student_reports()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $r = $this->stu()->reports((int) $u['id']);
+
+        $weeks = array();
+        foreach ($r['weeks'] as $i => $w) {
+            $weeks[] = array(
+                'from'       => date('Y-m-d', (int) $w['from']),
+                'to'         => date('Y-m-d', (int) $w['to'] - 86400),
+                'grade'      => $r['grade_series'][$i],
+                'completion' => $r['completion_series'][$i],
+                'lessons'    => $r['lessons_series'][$i],
+            );
+        }
+
+        $subjects = array();
+        foreach ($r['subjects'] as $s) {
+            $subjects[] = array(
+                'name'     => (string) $s['name'],
+                'courses'  => (int) $s['courses'],
+                'lessons'  => (int) $s['lessons'],
+                'percent'  => $s['courses'] > 0 ? (int) round($s['sum'] / $s['courses']) : 0,
+            );
+        }
+
+        $this->read(array(
+            'has_data' => (bool) $r['has_data'],
+            'totals'   => array(
+                'study_seconds' => (int) $r['seconds'],
+                'study_hours'   => (int) $r['hours'],
+                'study_minutes' => (int) $r['minutes'],
+                'completion'    => (int) $r['completion'],
+                'average_score' => (int) $r['average'],
+                'lessons_done'  => (int) $r['done_lessons'],
+                'lessons_total' => (int) $r['total_lessons'],
+                'courses'       => count($r['enrolled']),
+            ),
+            'deltas'  => array(
+                'grade'      => $r['grade_delta'],
+                'completion' => $r['completion_delta'],
+            ),
+            'weeks'    => $weeks,
+            'subjects' => $subjects,
+        ), '', array(), $h);
+    }
+
+    /* ---- البحث داخل البوابة ------------------------------------------- */
+
+    /**
+     * GET /api/v1/student/search — في **ما يملكه** لا في الكتالوج.
+     *
+     * الكتالوج العام سؤال آخر وله بابه؛ وهذا السؤال «أين ذلك الدرس الذي
+     * شاهدته؟». والمصادر الثلاثة من `tq_s_*` نفسها التي تبني شاشاتها،
+     * فلا يفترق ما يجده البحث عما يفتحه بعده.
+     */
+    public function student_search()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $q = trim((string) $this->input->get('q'));
+        if (mb_strlen($q) > 120) $q = mb_substr($q, 0, 120);
+
+        $r = $this->stu()->search((int) $u['id'], $q);
+
+        $courses = array();
+        foreach ($r['courses'] as $c) {
+            $courses[] = array(
+                'id'        => (int) $c['id'],
+                'title'     => (string) $c['title'],
+                'subject'   => (string) $c['subject'],
+                'progress'  => (int) $c['progress'],
+                'thumbnail' => $this->thumb_url($c['thumbnail']),
+            );
+        }
+
+        $lessons = array();
+        foreach ($r['lessons'] as $l) {
+            $lessons[] = array(
+                'id'        => (int) $l['id'],
+                'course_id' => (int) $l['course_id'],
+                'title'     => (string) $l['title'],
+                'course'    => (string) $l['course'],
+                'subject'   => (string) $l['subject'],
+                'seconds'   => (int) $l['seconds'],
+                'state'     => (string) $l['state'],
+            );
+        }
+
+        $materials = array();
+        foreach ($r['materials'] as $m) {
+            $materials[] = array(
+                'title'  => (string) $m['title'],
+                'course' => (string) $m['course'],
+                'kind'   => $m['kind']['key'],
+                'url'    => (string) $m['url'],
+            );
+        }
+
+        $this->read(array('courses' => $courses, 'lessons' => $lessons, 'materials' => $materials),
+            '', array('query' => $q, 'total' => (int) $r['total']), $h);
+    }
+
+    /* ---- التهيئة ووضع الامتحان والتلعيب -------------------------------- */
+
+    /**
+     * GET · POST /api/v1/student/setup — خطة الطالب.
+     *
+     * والقرار في `Taqdar_learn_model` نفسه الذي تمر به شاشة الويب:
+     * الصف والمواد وهدف اليوم بوحدته. ونسخة ثانية من قواعده هنا تجعل
+     * التطبيق يقبل هدفا يرفضه الموقع.
+     */
+    public function student_setup()
+    {
+        $m = $this->method(array('GET', 'POST'));
+        $u = $this->require_student();
+        $uid = (int) $u['id'];
+
+        if ($m === 'POST') {
+            $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+            $b = $this->body();
+
+            $r = $this->learn()->save_setup($uid, array(
+                'grade_id'    => isset($b['grade_id']) ? $b['grade_id'] : null,
+                'subject_ids' => isset($b['subject_ids']) ? $b['subject_ids'] : array(),
+                'goal_unit'   => isset($b['goal_unit']) ? $b['goal_unit'] : null,
+                'goal_value'  => isset($b['goal_value']) ? $b['goal_value'] : null,
+            ));
+
+            if (empty($r['ok'])) {
+                $this->fail(isset($r['message']) ? $r['message'] : 'راجع البيانات المدخلة.',
+                            'validation_failed', 422);
+            }
+
+            /* الوجهة بعد الحفظ ليست الرئيسية دائما: من بقي عليه تشخيص
+               يذهب إليه — وهي القاعدة نفسها في `setup_save()` بالويب. */
+            $this->load->model('taqdar_diag_model', 'tq_diag');
+            $this->respond(tq_api_ok(array(
+                'setup' => $this->learn()->setup($uid),
+                'next'  => $this->tq_diag->gate($uid) ? 'placement' : 'home',
+            ), $r['message']), 200);
+        }
+
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        /* النموذج يحمل **قبل** النداء الساكن: `Taqdar_learn_model::units()`
+           تحتاج الصنف معرفا، و`$this->learn()` هي التي تحمله. وترتيبهما
+           بالعكس يرمي «Class not found» على شاشة التهيئة كلها. */
+        $learn = $this->learn();
+
+        $grades = array();
+        foreach ($this->db->select('id, name_ar')->from('grades')->where('active', 1)
+                          ->order_by('`order`', 'ASC', false)->get()->result_array() as $g) {
+            $grades[] = array('id' => (int) $g['id'], 'name' => (string) $g['name_ar']);
+        }
+
+        $units = array();
+        foreach (Taqdar_learn_model::units() as $k => $v) {
+            $units[] = array(
+                'key'     => (string) $k,
+                'label'   => t((string) $v['label']),
+                'plural'  => t((string) $v['plural']),
+                'default' => (int) $v['default'],
+            );
+        }
+
+        $this->read(array(
+            'setup'      => $learn->setup($uid),
+            'needs'      => (bool) $learn->needs_setup($uid),
+            'subjects'   => $learn->subjects_for($uid),
+            'grades'     => $grades,
+            'goal_units' => $units,
+            'grade_id'   => (int) $this->db->select('grade_id')->where('id', $uid)
+                                           ->get('users')->row('grade_id'),
+        ), '', array(), $h);
+    }
+
+    /**
+     * POST /api/v1/student/exam-mode — يفتح وضع الامتحان أو يطفئه.
+     *
+     * `{"off": true}` يطفئه، و`{"from","to"}` يفتحه. والتواريخ تفحص في
+     * النموذج لا هنا: مدى مقلوب أو ماض يرد برسالته من الموضع الذي يرد
+     * منه في الويب.
+     */
+    public function exam_mode()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $uid = (int) $u['id'];
+        $b   = $this->body();
+
+        $r = tq_api_bool($this->in('off', false))
+           ? $this->learn()->set_exam_mode($uid, null, null)
+           : $this->learn()->set_exam_mode($uid, (string) ($b['from'] ?? ''), (string) ($b['to'] ?? ''));
+
+        if (empty($r['ok'])) {
+            $this->fail(isset($r['message']) ? $r['message'] : 'راجع التواريخ.', 'validation_failed', 422);
+        }
+
+        $this->respond(tq_api_ok($this->learn()->exam_mode($uid), $r['message']), 200);
+    }
+
+    /**
+     * POST /api/v1/student/gamify — السلسلة وحلقة الهدف.
+     *
+     * وهو تفضيل لا إعداد نظام: من أطفأه لا يرى رقما تحفيزيا واحدا، لا
+     * في الويب ولا في التطبيق — والقراءة من `Taqdar_learn_model` نفسه.
+     */
+    public function gamify()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $on = tq_api_bool($this->in('on', $this->in('gamify', false)));
+        $this->learn()->set_gamify((int) $u['id'], $on);
+
+        $this->respond(tq_api_ok(array('gamify' => $on), $on
+            ? 'أعاد التلعيب: تظهر لك السلسلة وحلقة الهدف.'
+            : 'أوقف التلعيب: لا سلسلة ولا حلقة هدف ولا أرقام تحفيز.'), 200);
+    }
+
+    /* ---- اختبار تحديد المستوى ------------------------------------------ */
+
+    /**
+     * GET /api/v1/student/placement — حال الاختبار التشخيصي.
+     *
+     * ثلاث حالات كما في الويب: `intro` قبل البدء، و`exam` أثناءه بأسئلته
+     * **بلا إجاباتها**، و`result` بعده بمستواه والباقة الموصى بها.
+     *
+     * **والمحاولة المفتوحة تقرأ قبل المسلمة** لا بعدها: من فتح محاولة
+     * ثانية بإذن المسؤول له مفتوحة ومسلمة معا، فقراءة المسلمة أولا تعيده
+     * إلى نتيجته القديمة أبدا ويصير «يسمح بالإعادة» إعدادا بلا باب.
+     */
+    public function student_placement()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid = (int) $u['id'];
+        $this->load->model('taqdar_diag_model', 'tq_diag');
+
+        $exam = $this->placement_exam($uid);
+        if (!$exam) {
+            /* لا اختبار لصفه — أو لا صف له. وهي حال طبيعية لا خطأ:
+               الشاشة تدل على الباقات كما تفعل في الويب. */
+            $this->read(array('state' => 'unavailable', 'exam' => null,
+                              'reason' => t('لا اختبار تحديد مستوى لصفك بعد.')),
+                        '', array(), $h);
+        }
+
+        $open = $this->db->where('student_id', $uid)->where('exam_id', (int) $exam['id'])
+                         ->where('submitted_at IS NULL', null, false)
+                         ->order_by('id', 'DESC')->limit(1)
+                         ->get('tq_diag_attempts')->row_array();
+
+        $done  = $this->tq_diag->latest_attempt($uid, (int) $exam['id']);
+        $state = $open ? 'exam' : ($done ? 'result' : 'intro');
+
+        $questions = array();
+        if ($state === 'exam') {
+            foreach ($this->tq_diag->ordered_questions((int) $exam['id']) as $q) {
+                /* بلا `with_answers`: قائمة خيارات ومعها الصواب في الحمولة
+                   تجعل الاختبار عرضا لا قياسا. و`options` تصل **مصفوفة
+                   مفكوكة** من النموذج لا نص JSON، ففكها هنا من جديد يرد
+                   `null` على كل سؤال. */
+                $questions[] = array(
+                    'id'      => (int) $q['id'],
+                    'title'   => (string) $q['title'],
+                    'type'    => (string) ($q['type'] ?? 'single'),
+                    'level'   => (string) ($q['level'] ?? ''),
+                    'image'   => trim((string) ($q['image'] ?? '')) ?: null,
+                    'options' => array_values((array) $q['options']),
+                );
+            }
+        }
+
+        $plan = null;
+        if ($done && (int) $done['plan_id'] > 0) {
+            $this->load->model('taqdar_site_model', 'tq_site');
+            $row = $this->tq_site->plan_row((int) $done['plan_id']);
+            /* **ومن بوابة عنوانها العام** (TQ-DIAG-404): الرابط يفتح
+               `active = 1` وحدها، فباقة أوقفت بعد أن ربطت بمستوى كانت
+               تعرض بسعرها وزرها يرد 404. */
+            if ($row && $this->tq_site->plan_url($row)) $plan = $this->plan_out($row);
+        }
+
+        $this->read(array(
+            'state' => $state,
+            'exam'  => array(
+                'id'    => (int) $exam['id'],
+                'title' => (string) ($exam['title'] ?? ''),
+                'count' => count($questions) ?: (int) array_sum($this->tq_diag->level_tally((int) $exam['id'])),
+            ),
+            'questions' => $questions,
+            'result'    => $done ? array(
+                'attempt_id' => (int) $done['id'],
+                'level'      => (string) $done['result_level'],
+                'level_label'=> Taqdar_diag_model::level_label($done['result_level']),
+                'score'      => (int) $done['score'],
+                'total'      => (int) $done['total'],
+                'taken_at'   => tq_api_date($done['submitted_at']),
+            ) : null,
+            'recommended_plan' => $plan,
+            'levels'           => Taqdar_diag_model::levels(),
+        ), '', array(), $h);
+    }
+
+    /** اختبار صف هذا الطالب — الاشتقاق نفسه في الشاشات الثلاث. */
+    private function placement_exam($uid)
+    {
+        $this->load->model('taqdar_diag_model', 'tq_diag');
+        $grade = (int) $this->db->select('grade_id')->where('id', (int) $uid)
+                                ->get('users')->row('grade_id');
+        $exam = $this->tq_diag->exam_for_grade($grade);
+
+        /* اختبار بلا سؤال واحد ليس اختبارا: صف أنشئ ولم يؤلف. والفحص
+           نفسه في `placement()` بالويب. */
+        if (!$exam || array_sum($this->tq_diag->level_tally((int) $exam['id'])) < 1) return null;
+        return $exam;
+    }
+
+    /** POST /api/v1/student/placement/start — يبدأ المحاولة ويضبط لحظة بدئها. */
+    public function placement_start()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $exam = $this->placement_exam((int) $u['id']);
+        if (!$exam) $this->fail('لا اختبار تحديد مستوى لصفك بعد.', 'placement_unavailable', 409);
+
+        $this->tq_diag->start((int) $u['id'], (int) $exam['id']);
+
+        $this->respond(tq_api_ok(array('exam_id' => (int) $exam['id']), 'بدأ الاختبار.'), 201);
+    }
+
+    /**
+     * POST /api/v1/student/placement/submit
+     *
+     * `{"answers": {"<رقم السؤال>": "<نص الخيار>"}}` — والصحة تقرر في
+     * `submit()` من `correct_answers` المقروءة من القاعدة، فمن أضاف
+     * حقلا في حمولته لم يضف إلى نتيجته شيئا.
+     */
+    public function placement_submit()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $uid  = (int) $u['id'];
+        $exam = $this->placement_exam($uid);
+        if (!$exam) $this->fail('لا اختبار تحديد مستوى لصفك بعد.', 'placement_unavailable', 409);
+
+        $given = $this->in('answers', array());
+        if (!is_array($given)) {
+            $this->fail('حقل الإجابات يجب أن يكون خريطة «رقم السؤال ← الخيار».',
+                        'validation_failed', 422, array('answers' => array(t('القيمة غير مقبولة.'))));
+        }
+
+        $r = $this->tq_diag->submit($uid, (int) $exam['id'], $given);
+        if (empty($r['ok'])) {
+            $this->fail(implode(' ', (array) $r['errors']), 'placement_failed', 422);
+        }
+
+        /* الإبلاغ **بعد** حفظ النتيجة: من يقرر أمر الباقة هو من يدفع،
+           وهو في الغالب ليس صاحب هذه الشاشة. وما لم يرسل يبقى بلا دمغة
+           فيلتقطه `taqdar_cron_events placements`. */
+        try { $this->tq_diag->notify_result((int) $r['attempt_id']); } catch (Throwable $e) {}
+
+        $this->api->audit('api.placement.submit', $uid,
+                          array('level' => $r['level'], 'score' => $r['score']));
+
+        $this->respond(tq_api_ok(array(
+            'attempt_id'  => (int) $r['attempt_id'],
+            'level'       => (string) $r['level'],
+            'level_label' => Taqdar_diag_model::level_label($r['level']),
+            'score'       => (int) $r['score'],
+            'total'       => (int) $r['total'],
+        ), 'سجلت نتيجتك.'), 201);
+    }
+
+
+    /* ================================================================
+       ٧ · الحصص بالطلب — وقت يباع لا محتوى
+       ================================================================
+
+       ودورة الحياة كلها في `Taqdar_sessions_model` (TQ-SESSION-PAY):
+       يطلب الطالب، فيؤكد المعلم، فتصير `awaiting_payment` بمهلة، فيدفع
+       فتصير `confirmed`، فيفتح الرابط قبل الموعد بمهلة، فينهيها المعلم
+       فيقيد نصيبه. والواجهة تعرض وتنقل الطلب ولا تحكم في شيء منها. */
+
+    /** نموذج الحصص. */
+    private function sess()
+    {
+        $this->load->model('taqdar_sessions_model', 'tq_sess');
+        return $this->tq_sess;
+    }
+
+    /**
+     * GET /api/v1/student/sessions — حجوزاته والتسعيرة والمعلمون المتاحون.
+     *
+     * نداء واحد لا ثلاثة: الشاشة تعرض الثلاثة معا، وثلاثة أشواط على شبكة
+     * جوال لرسم شاشة واحدة تقرأ بطئا لا معمارا. وهي قاعدة `student/home`
+     * نفسها.
+     */
+    public function student_sessions()
+    {
+        /* بابان على مسار واحد كما في `student_messages()`: القراءة والطلب.
+           والقاعدة في `routes.php` تربط المسار لا الطريقة. */
+        if ($this->method(array('GET', 'POST')) === 'POST') {
+            $this->session_request();
+            return;
+        }
+
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $m   = $this->sess();
+        $cfg = $m->config();
+
+        $subject = (int) $this->input->get('subject');
+
+        $bookings = array();
+        foreach ((array) $m->bookings_for_student((int) $u['id']) as $b) {
+            $bookings[] = $this->booking_out($b);
+        }
+
+        $this->load->model('taqdar_tap_model', 'tq_tap');
+
+        $this->read(array(
+            'bookings' => $bookings,
+            'teachers' => $this->tutors_out($m->available_teachers(12, 6, $subject)),
+            'pricing'  => array(
+                /* صفر يعني **مجانية بقرار** لا «لم تسعر»: حينها يؤكد
+                   المعلم فتصير الحصة `confirmed` في الحال بلا فاتورة
+                   ولا مهلة، وهو ما كان قبل TQ-SESSION-PAY حرفا بحرف. */
+                'price'        => tq_api_money($cfg['price']),
+                'free'         => ((int) $cfg['price'] <= 0),
+                'minutes'      => (int) $cfg['minutes'],
+                'pay_hours'    => (int) $cfg['pay_hours'],
+                'join_lead_min'=> (int) $cfg['lead_min'],
+                'grace_hours'  => (int) $cfg['grace_hours'],
+            ),
+            'card_enabled' => (bool) $this->tq_tap->ready(),
+            /* `teacher_subjects()` ترد خريطة **معلم ← مادة** لا قائمة
+               مواد، فتشتق القائمة من قيمها مفردة — وقراءة مفتاح مخترع
+               هنا ترد فارغا صامتا فيقرأ التطبيق منتقيا بلا خيار. */
+            'subjects'     => array_values(array_unique(array_filter(
+                                  (array) ($m->teacher_subjects()['name'] ?? array())))),
+        ), '', array('filters' => array('subject' => $subject)), $h);
+    }
+
+    /**
+     * شكل الحجز.
+     *
+     * و`can_*` تخرج من `join_state()` نفسها التي تحرس الفتح في الويب:
+     * زر «ادخل» يعرضه التطبيق بقاعدته هو يفتح غرفة قبل يومين أو بعد أن
+     * انتهت — والحكم للخادم لا للساعة على الجهاز.
+     */
+    private function booking_out($b)
+    {
+        return array(
+            'id'            => (int) $b['id'],
+            'status'        => (string) $b['status'],
+            /* `status_badge()` ترد `[نغمة, تسمية]` بمفاتيح رقمية لا
+               `['label']`: مفتاح مخترع يطبع اسم الحالة الخام للطالب. */
+            'status_label'  => (string) $this->sess()->status_badge($b['status'])[1],
+            'teacher'       => array(
+                'id'         => (int) $b['tutor_id'],
+                'name'       => (string) $b['tutor'],
+                'avatar_url' => tq_api_avatar($b['image']),
+            ),
+            'subject'    => (string) $b['subject'],
+            'starts_at'  => tq_api_date($b['starts_at']),
+            'when_text'  => (string) $b['when_text'],
+            'minutes'    => (int) $b['minutes'],
+            'price'      => tq_api_money($b['price']),
+            'invoice'    => ((int) $b['invoice_id'] > 0) ? array(
+                'id'     => (int) $b['invoice_id'],
+                'no'     => (string) $b['invoice_no'],
+                'total'  => tq_api_money($b['invoice_total']),
+            ) : null,
+            'pay_deadline'  => tq_api_date($b['pay_deadline']),
+            'meet_url'      => $b['can_join'] ? (string) $b['meet_url'] : null,
+            'cancel_reason' => (string) $b['cancel_reason'],
+            'note'          => (string) $b['note'],
+            'can_pay'       => (bool) $b['needs_pay'],
+            'can_cancel'    => (bool) $b['can_cancel'],
+            'can_join'      => (bool) $b['can_join'],
+            'is_over'       => (bool) $b['is_over'],
+        );
+    }
+
+    /** شكل المعلم المتاح ومواعيده. */
+    private function tutors_out($rows)
+    {
+        $out = array();
+        foreach ((array) $rows as $t) {
+            $slots = array();
+            foreach ((array) $t['slots'] as $s) {
+                $slots[] = array(
+                    'id'        => (int) $s['id'],
+                    'starts_at' => tq_api_date($s['starts_at']),
+                    'when_text' => (string) $s['when_text'],
+                    'minutes'   => (int) $s['minutes'],
+                );
+            }
+            /* **والتسعيرة تسعيرة هذا المعلم** لا العامة: العمود الفارغ
+               يعني «خذ العام» والصفر يعني «مجانا بقرار»، و`pricing_for()`
+               هي التي تفرق — ورقم عام يعرض على معلم له استثناء يجعل
+               الطالب يقرأ ثمنا ويدفع آخر. */
+            $out[] = array(
+                'id'         => (int) $t['id'],
+                'name'       => (string) $t['name'],
+                'title'      => (string) $t['title'],
+                'subject'    => (string) $t['subject'],
+                'avatar_url' => tq_api_avatar($t['image']),
+                'price'      => tq_api_money($t['pricing']['price']),
+                'free'       => ((int) $t['pricing']['price'] <= 0),
+                'slots'      => $slots,
+            );
+        }
+        return $out;
+    }
+
+    /** POST /api/v1/student/sessions — يطلب موعدا من جدول معلم. */
+    private function session_request()
+    {
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+        $errors = tq_api_validate($b, array('slot_id' => 'required|int'));
+        if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+        $uid = (int) $u['id'];
+        $r   = $this->sess()->request_session($uid, (int) $b['slot_id']);
+
+        if (empty($r['ok'])) {
+            $this->fail(isset($r['msg']) ? $r['msg'] : 'تعذر إرسال الطلب.', 'session_request_failed', 409);
+        }
+
+        /* يخبر المعلم أن طلبا ينتظر رده — وإلا لم يعرف إلا إن فتح شاشته.
+           وفشل الإشعار لا يبطل الطلب: الصف كتب فعلا. */
+        try {
+            $tid = (int) ($r['teacher_id'] ?? 0);
+            if ($tid > 0) {
+                $this->load->model('taqdar_admin_model');
+                $this->taqdar_admin_model->push_notification($tid, 'طلب حصة خاصة جديد',
+                    'طلب أحد طلابك حصة خاصة على أحد مواعيدك. أكدها أو اعتذر عنها من شاشة «الحصص»'
+                    . ' — والطلب بلا رد يلغى تلقائيا ويعاد للطالب.', 'session');
+            }
+        } catch (Throwable $e) {}
+
+        $this->api->audit('api.session.request', $uid, array('slot_id' => (int) $b['slot_id']));
+
+        $this->respond(tq_api_ok(array('session_id' => (int) ($r['id'] ?? 0)),
+                                 isset($r['msg']) ? $r['msg'] : 'أرسل طلبك.'), 201);
+    }
+
+    /**
+     * POST /api/v1/student/sessions/{id}/pay
+     *
+     * ولا يستقبل رقم فاتورة: يستقبل رقم **الحصة** ويشتق فاتورتها. ورقم
+     * فاتورة يرسل من عميل يجعل من خمن رقما يفتح صفحة دفع لفاتورة غيره.
+     */
+    public function session_pay($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $uid = (int) $u['id'];
+        $row = $this->db->where('id', (int) $id)->where('student_id', $uid)
+                        ->get('tutoring_sessions')->row_array();
+
+        if (!$row) $this->fail('لا حصة بهذا الرقم في حسابك.', 'not_found', 404);
+
+        if ($row['status'] !== 'awaiting_payment' || (int) $row['invoice_id'] <= 0) {
+            $this->fail('هذه الحصة ليست في انتظار الدفع. حدث الشاشة واقرأ حالها.',
+                        'session_not_payable', 409);
+        }
+
+        $this->load->model('taqdar_tap_model', 'tq_tap');
+        if (!$this->tq_tap->ready()) {
+            $no = (string) $this->db->select('invoice_no')->where('id', (int) $row['invoice_id'])
+                                    ->get('invoices')->row('invoice_no');
+            $this->fail('الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة ' . $no
+                        . ' بنكيا وأبلغ الإدارة.', 'card_payment_disabled', 503);
+        }
+
+        $r = $this->tq_tap->start((int) $row['invoice_id'], $uid);
+        if (empty($r['ok'])) {
+            $this->fail(implode(' ', (array) $r['errors']), 'payment_start_failed', 502);
+        }
+
+        $this->respond(tq_api_ok(array(
+            'payment_url' => $r['url'],
+            'session_id'  => (int) $row['id'],
+            'note'        => 'افتح الرابط في متصفح داخلي. تؤكد حصتك تلقائيا بعد نجاح الدفع.',
+        ), 'جهزت صفحة الدفع.'), 200);
+    }
+
+    /**
+     * POST /api/v1/student/sessions/{id}/cancel — قبل الدفع وحده.
+     *
+     * وبعد الدفع لا يلغي بنفسه: لا مسار استرداد آلي في هذا التركيب، وزر
+     * يلغي بلا رد يترك الطالب بلا حصة وبلا مال. والنموذج يرفض ويقول لماذا.
+     */
+    public function session_cancel($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $uid = (int) $u['id'];
+        $r = $this->sess()->student_cancel((int) $id, $uid, (string) $this->in('reason', ''));
+
+        if (empty($r['ok'])) {
+            $this->fail(isset($r['msg']) ? $r['msg'] : 'تعذر إلغاء الحصة.', 'session_cancel_failed', 409);
+        }
+
+        try {
+            if (!empty($r['teacher_id'])) {
+                $this->load->model('taqdar_admin_model');
+                $this->taqdar_admin_model->push_notification((int) $r['teacher_id'],
+                    'ألغى الطالب طلب الحصة',
+                    'ألغى الطالب حجزه، وعاد الموعد متاحا في جدولك.', 'session');
+            }
+        } catch (Throwable $e) {}
+
+        $this->api->audit('api.session.cancel', $uid, array('session_id' => (int) $id));
+
+        $this->respond(tq_api_ok(null, isset($r['msg']) ? $r['msg'] : 'ألغي حجزك.'), 200);
+    }
+
+    /* ================================================================
+       ٨ · المتجر — الباقة والمسار والكورس المفرد
+       ================================================================
+
+       ثلاث وحدات بيع على **مرساة واحدة**: الفاتورة. `subscribe()`
+       للباقة و`subscribe_path()` للمسار و`subscribe_course()` للكورس
+       المفرد — وثلاثتها تكتب صفا في `subscriptions` يفرق بـ`plan_id`/
+       `path_id`/`course_id`، فكل ما بعد الفاتورة يتبعها بلا تعديل: تاب
+       والتحويل البنكي والتفعيل والتجسيد وقسمة الإيراد.
+
+       **والترتيب في كل شراء: الفاتورة أولا في الحالين.** لو أنشئت
+       الدفعة عند تاب قبل أن تكتب الفاتورة لصار من دفع ثم سقط اتصاله قد
+       دفع بلا صف عندنا يقابل دفعته. */
+
+    /**
+     * GET /api/v1/student/plans — الباقات المعروضة بدوراتها.
+     *
+     * **والدورة تشترى** (TQ-CYCLE-BUY): الشهري والسنوي سعران لصف باقة
+     * واحد، لا صفان. فتخرج `cycles` مع كل باقة، ومفتاحها هو ما يرسله
+     * التطبيق في الشراء — وواجهة تعرض سعر الشهر ثم تشتري بلا مفتاح
+     * تجعل من ضغط «شهري» يدفع سعر السنة.
+     *
+     * والمعروضة هي `scope = 'grade'` وحدها كما في `/plans`: باقة بنطاق
+     * آخر تشترى برمزها ولا تظهر في قائمة عامة.
+     */
+    public function student_plans()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $this->load->model('taqdar_billing_model', 'tq_bill');
+
+        $out = array();
+        foreach ((array) $this->tq_bill->plans(true) as $p) {
+            if ((string) $p['scope'] !== 'grade') continue;
+            $out[] = $this->plan_out($p);
+        }
+
+        $this->load->model('taqdar_tap_model', 'tq_tap');
+
+        $this->read($out, '', array(
+            'count'        => count($out),
+            'card_enabled' => (bool) $this->tq_tap->ready(),
+            'bank'         => $this->bank_out(null),
+            'current'      => $this->tq_bill->active_subscription((int) $u['id']) ? true : false,
+        ), $h);
+    }
+
+    /**
+     * GET /api/v1/student/plans/{code} — باقة بعينها ومحتواها.
+     *
+     * ومحتوى الباقة **مستنتج لا مسرود**: السلسلة
+     * `plans.scope_ids → grades → paths → course → section → lesson`.
+     * ولا حقل يربط درسا بباقة، ولو وجد لصار كل درس جديد يحتاج مرورا على
+     * كل باقة — ولنسي.
+     */
+    public function student_plan($code = '')
+    {
+        $this->method('GET');
+        $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $this->load->model('taqdar_billing_model', 'tq_bill');
+        $plan = $this->tq_bill->plan_by_code(rawurldecode((string) $code));
+
+        if (!$plan || (int) $plan['active'] !== 1) {
+            $this->fail('لا باقة بهذا الرمز.', 'not_found', 404);
+        }
+
+        $out = $this->plan_out($plan);
+
+        $this->load->model('taqdar_site_model', 'tq_site');
+        $bundle = $this->tq_site->bundle_by_code($plan['code']);
+        $out['contents'] = $bundle ? array(
+            'totals'   => $bundle['totals'],
+            'features' => $bundle['features'],
+            'grades'   => array_values($bundle['grades']),
+        ) : null;
+
+        $this->read($out, '', array(), $h);
+    }
+
+    /**
+     * POST /api/v1/student/subscribe — يشترك في باقة بدورة.
+     *
+     * `cycle` يمرر ولا يفسر هنا: `cycle_of()` تحرسه، فمفتاح لا تعرفه
+     * الباقة يقع على **دورتها هي** لا على الأرخص — والارتداد إلى الأرخص
+     * يجعل تعديل حرف في الحمولة يشتري السنة بسعر الشهر.
+     */
+    public function student_subscribe()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+        $errors = tq_api_validate($b, array('plan_id' => 'required|int'));
+        if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+        $this->buy(function ($uid, $method) use ($b) {
+            $this->load->model('taqdar_billing_model', 'tq_bill');
+            return $this->tq_bill->subscribe($uid, (int) $b['plan_id'], $method,
+                                             (string) ($b['cycle'] ?? ''));
+        }, 'api.subscribe.plan', 'صدرت فاتورتك. حول قيمتها ويفعل اشتراكك بعد التحقق من الحوالة.');
+    }
+
+    /** POST /api/v1/student/subscribe-path — يشتري مسارا مفردا. */
+    public function subscribe_path()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+        $errors = tq_api_validate($b, array('path_id' => 'required|int'));
+        if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+        $this->buy(function ($uid, $method) use ($b) {
+            $this->load->model('taqdar_billing_model', 'tq_bill');
+            return $this->tq_bill->subscribe_path($uid, (int) $b['path_id'], $method);
+        }, 'api.subscribe.path', 'صدرت فاتورتك. حول قيمتها ويفتح المسار بعد التحقق من الحوالة.');
+    }
+
+    /**
+     * POST /api/v1/student/buy-course — TQ-COURSE-SALE.
+     *
+     * **ولا يمنع الباقة ولا تمنعه**: الباقة تمنع الباقة لأنهما شيء واحد
+     * يشترى مرتين؛ والكورس المفرد شيء آخر — ومن له باقة صفه واشترى فوقها
+     * مادة إثرائية اشترى شيئين لا شيئا مكررا. ويمنع **تكرار نفسه** وحده،
+     * والفحص في `subscribe_course()` على `has_course()` نفسها التي تحرس
+     * المشغل: فلا يباع لمن يملك، ولا تعد الشاشة بما يمنعه الحارس.
+     */
+    public function buy_course()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+        $errors = tq_api_validate($b, array('course_id' => 'required|int'));
+        if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+        $this->buy(function ($uid, $method) use ($b) {
+            $this->load->model('taqdar_billing_model', 'tq_bill');
+            return $this->tq_bill->subscribe_course($uid, (int) $b['course_id'], $method);
+        }, 'api.buy.course', 'صدرت فاتورتك. حول قيمتها ويفتح الكورس بعد التحقق من الحوالة.');
+    }
+
+    /**
+     * مسار الشراء الواحد للوحدات الثلاث.
+     *
+     * الفاتورة أولا ثم الدفع — في الباقة والمسار والكورس سواء. وثلاث
+     * نسخ من هذا الترتيب تعني أن واحدة منها ستكتب يوما بالعكس: دفعة قبل
+     * صف، فمن دفع ثم سقط اتصاله دفع بلا شيء عندنا يقابله.
+     *
+     * و**الرد لا يحول**: الويب يعيد التوجيه إلى تاب، والتطبيق يفتح
+     * `payment_url` في متصفح داخلي. وتحويل 302 على واجهة JSON يجعل عميل
+     * Dart يتبعه فيقرأ HTML صفحة الدفع ويرمي `FormatException`.
+     */
+    private function buy(callable $run, $audit, $bank_message)
+    {
+        $uid = (int) $this->me['id'];
+
+        $this->load->model('taqdar_tap_model', 'tq_tap');
+        $by_card = ((string) $this->in('pay_method', 'manual') === 'tap')
+                && $this->tq_tap->ready();
+
+        $r = $run($uid, $by_card ? 'tap' : 'manual');
+
+        if (empty($r['ok'])) {
+            /* رمز النموذج يخرج كما هو حين يوجد (`PLACEMENT_REQUIRED` ·
+               `ALREADY_OWNED` · `NOT_SELLABLE`): عليه يفرع التطبيق فيفتح
+               شاشة التشخيص أو يقول «تملكه بالفعل» — ورمز واحد لكل رفض
+               يجعله يعرض الرسالة ولا يعرف ماذا يفعل بعدها. */
+            $code = isset($r['code']) ? strtolower((string) $r['code']) : 'purchase_failed';
+            $this->fail(implode(' ', (array) $r['errors']), $code, 409);
+        }
+
+        $this->api->audit($audit, $uid, array(
+            'subscription_id' => (int) ($r['subscription_id'] ?? 0),
+            'invoice_id'      => (int) ($r['invoice_id'] ?? 0),
+        ));
+
+        /* الباقة المجانية تفعل في الحال: لا فاتورة تدفع ولا رابط يفتح. */
+        if (!empty($r['free'])) {
+            $this->respond(tq_api_ok(array(
+                'subscription_id' => (int) $r['subscription_id'],
+                'free'            => true,
+                'invoice'         => null,
+                'payment_url'     => null,
+            ), 'فعلت باقتك المجانية.'), 201);
+        }
+
+        $inv = $this->db->where('id', (int) $r['invoice_id'])->get('invoices')->row_array();
+
+        if ($by_card) {
+            $pay = $this->tq_tap->start((int) $r['invoice_id'], $uid);
+            if (!empty($pay['ok'])) {
+                $this->respond(tq_api_ok(array(
+                    'subscription_id' => (int) $r['subscription_id'],
+                    'free'            => false,
+                    'invoice'         => $inv ? $this->invoice_out($inv) : null,
+                    'payment_url'     => $pay['url'],
+                ), 'جهزت صفحة الدفع.'), 201);
+            }
+
+            /* تعذر بدء الدفع: **الفاتورة صدرت ولم تضع**، فيقال ما وقع
+               ويدل على البديل القائم — ولا يرد بخطأ عار يجعل صاحبه يعيد
+               الشراء فيصير له اشتراكان معلقان. */
+            $this->respond(tq_api_ok(array(
+                'subscription_id' => (int) $r['subscription_id'],
+                'free'            => false,
+                'invoice'         => $inv ? $this->invoice_out($inv) : null,
+                'payment_url'     => null,
+                'bank'            => $this->bank_out($inv ? (string) $inv['invoice_no'] : null),
+            ), implode(' ', (array) $pay['errors'])
+               . ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا أو إعادة المحاولة.'), 201);
+        }
+
+        $this->respond(tq_api_ok(array(
+            'subscription_id' => (int) $r['subscription_id'],
+            'free'            => false,
+            'invoice'         => $inv ? $this->invoice_out($inv) : null,
+            'payment_url'     => null,
+            'bank'            => $this->bank_out($inv ? (string) $inv['invoice_no'] : null),
+        ), $bank_message), 201);
+    }
+
+    /**
+     * GET /api/v1/student/store/courses — الكورسات المعروضة مفردة.
+     *
+     * **وبلا مفتاح لا شيء يظهر**: `tq_course_sales_enabled` مطفأ افتراضا،
+     * وحينها ترد `offer()` «لا يباع» لكل كورس فتخرج القائمة فارغة —
+     * كما تعرض الصفحات في الويب ما كانت تعرضه حرفا بحرف.
+     */
+    public function store_courses()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid = (int) $u['id'];
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+        $this->load->model('taqdar_billing_model', 'tq_bill');
+
+        $q = trim((string) $this->input->get('q'));
+
+        $list = array();
+        foreach ((array) $this->tq_cs->offers(true) as $o) {
+            if (!$o['sellable']) continue;
+            if ($q !== '' && mb_stripos($o['title'], $q) === false) continue;
+            $list[] = $this->offer_out($o, $uid);
+        }
+
+        list($page, $per, $offset) = tq_api_page(
+            $this->input->get('page'), $this->input->get('per_page'), 50, 20);
+
+        $this->load->model('taqdar_tap_model', 'tq_tap');
+
+        $this->read(array_slice($list, $offset, $per), '', array_merge(
+            tq_api_meta_page($page, $per, count($list)),
+            array('enabled' => (bool) $this->tq_cs->enabled(),
+                  'card_enabled' => (bool) $this->tq_tap->ready(),
+                  'filters' => array('q' => $q))
+        ), $h);
+    }
+
+    /**
+     * GET /api/v1/student/store/courses/{id} — عرض كورس واحد.
+     *
+     * ويعرض **العرضين مرتبين**: الشراء المفرد أولا لأن من فتح مادة بعينها
+     * جاء يسأل عنها، والباقة تحته **بفارق السعر لا بسعرها** — «وبكذا
+     * زيادة تفتح المرحلة كلها» يقارن ما يقارن؛ ورقمان متجاوران بلا جسر
+     * يجعلان المشتري يوازن بين خيارين ولا يعرف ما يشتريه أحدهما زيادة.
+     */
+    public function store_course($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid = (int) $u['id'];
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+
+        $offer = $this->tq_cs->offer((int) $id);
+        if ((int) $offer['course_id'] <= 0) $this->fail('لا كورس بهذا الرقم.', 'not_found', 404);
+
+        $out = $this->offer_out($offer, $uid);
+
+        /* الباقات التي تفتح هذا الكورس — بفارق السعر لا بسعرها. */
+        $this->load->model('taqdar_site_model', 'tq_site');
+        $plans = array();
+        foreach ((array) $this->tq_site->plans_for_course((int) $offer['course_id']) as $p) {
+            $row = isset($p['id']) ? $p : null;
+            if (!$row) continue;
+            $card = $this->plan_out($row);
+            $card['extra_over_course'] = ($offer['sellable'] && (int) $row['price'] > (int) $offer['price'])
+                ? tq_api_money((int) $row['price'] - (int) $offer['price'])
+                : null;
+            $plans[] = $card;
+        }
+        $out['plans'] = $plans;
+
+        $this->read($out, '', array(), $h);
+    }
+
+    /**
+     * شكل العرض المفرد.
+     *
+     * و`sellable` و`reason` يخرجان معا: الأول يفرع عليه التطبيق، والثاني
+     * يقول **لماذا** — «مجاني» غير «لم يعلن للبيع» غير «تملكه». ورد واحد
+     * لكل امتناع يجعل الزر يختفي بلا سبب يقرأ.
+     */
+    private function offer_out($o, $uid)
+    {
+        $this->load->model('taqdar_billing_model', 'tq_bill');
+        $owned = $this->tq_bill->has_course((int) $uid, (int) $o['course_id']);
+
+        /* الأعمدة **مؤهلة بالاسم المستعار**: `users` فيه `id` كذلك،
+           فـ`select('id, …')` مع ضم عليه يرد «Column 'id' is ambiguous»
+           — خطأ لا يظهر إلا حين يوجد الضم، فيمر في الاختبار على جدول
+           بلا ضم ويسقط في الشاشة التي تعرض اسم المعلم. */
+        $c = $this->db->select('c.id, c.title, c.thumbnail, c.level, c.short_description,'
+                    . ' TRIM(CONCAT(COALESCE(t.first_name,""), " ", COALESCE(t.last_name,""))) AS teacher_name')
+             ->from('course c')->join('users t', 't.id = c.creator', 'left')
+             ->where('c.id', (int) $o['course_id'])->get()->row_array();
+
+        return array(
+            'course_id'  => (int) $o['course_id'],
+            'title'      => (string) $o['title'],
+            'summary'    => (string) ($c['short_description'] ?? ''),
+            'level'      => (string) ($c['level'] ?? ''),
+            'teacher'    => trim((string) ($c['teacher_name'] ?? '')) ?: null,
+            'thumbnail'  => $this->thumb_url($c['thumbnail'] ?? ''),
+            'sellable'   => (bool) $o['sellable'],
+            'reason'     => (string) $o['reason'],
+            'why'        => (string) $o['why'],
+            'owned'      => (bool) $owned,
+            'price'      => tq_api_money($o['price']),
+            /* `list_price` صفر يعني «لا خصم» — و`null` أوضح للعميل من صفر
+               يرسمه شطبا فوق مجانية لا وجود لها. */
+            'list_price' => ((int) $o['list_price'] > 0) ? tq_api_money($o['list_price']) : null,
+            'discount'   => (int) $o['off'],
+            /* صفر يوما يعني وصولا **دائما**: `ends_at` تبقى `NULL` و
+               `expire_due()` تشترط `IS NOT NULL` فلا تلمسه. وتاريخ بعيد
+               مخترع ينتهي يوما ويقفل ما بيع على أنه دائم. */
+            'access_days'=> (int) $o['days'],
+            'lifetime'   => ((int) $o['days'] <= 0),
+            'web_url'    => base_url('course-checkout/' . (int) $o['course_id']),
+        );
+    }
+
+    /**
+     * GET /api/v1/student/purchases — كل ما يسري لا أوله.
+     *
+     * TQ-MULTI-SUB — `active_subscription()` بالمفرد ترد **صفا واحدا**
+     * وتتخطى الشراء المفرد عمدا، لأن أحد عشر مستدعيا يسألونها سؤالا
+     * واحدا: «ما **باقة** هذا الطالب؟». وهذه النقطة تسأل غيره: «ماذا
+     * يملك؟» — ومن له باقة صف واشترى فوقها مادة يملك صفين، وصف واحد
+     * يقرأ يعني أن أحد الشراءين لا يظهر لصاحبه في شاشة واحدة.
+     */
+    public function student_purchases()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid = (int) $u['id'];
+        $this->load->model('taqdar_billing_model', 'tq_bill');
+
+        $out = array();
+        foreach ((array) $this->tq_bill->active_subscriptions($uid) as $s) {
+            $out[] = $this->purchase_out($s);
+        }
+
+        $this->read($out, '', array('count' => count($out)), $h);
+    }
+
+    /**
+     * شكل الشراء — والاسم يقرأ من الثلاثة لا من `plans` وحده.
+     *
+     * الضم على `plans` وحده يطبع «—» على شراء مسار أو كورس، وقد كان
+     * يفعل في شاشة الاشتراكات وفي إشعار إصدار الفاتورة وفي إشعار نجاح
+     * الدفع وفي التفعيل اليدوي.
+     */
+    private function purchase_out($s)
+    {
+        $this->load->model('taqdar_billing_model', 'tq_bill');
+
+        $kind = 'plan'; $title = ''; $ref = 0; $code = null;
+
+        if ((int) ($s['course_id'] ?? 0) > 0) {
+            $kind  = 'course';
+            $ref   = (int) $s['course_id'];
+            $title = (string) $this->db->select('title')->where('id', $ref)
+                                       ->get('course')->row('title');
+        } elseif ((int) ($s['path_id'] ?? 0) > 0) {
+            $kind  = 'path';
+            $ref   = (int) $s['path_id'];
+            $title = (string) $this->db->select('title')->where('id', $ref)
+                                       ->get('paths')->row('title');
+        } else {
+            $ref  = (int) $s['plan_id'];
+            $plan = $this->tq_bill->plan($ref);
+            /* TQ-PLAN-DELETE — صف باقة حذفت يترك اشتراكا يشير إلى معرف لا
+               يقابله شيء. فيقال «باقة #8» بالرقم لا «شراء»: الرقم يقابل
+               به السجل المالي، والكلمة العامة لا تقابل شيئا. */
+            $title = $plan ? (string) $plan['name_ar'] : (t('باقة') . ' #' . $ref);
+            $code  = $plan ? (string) $plan['code'] : null;
+        }
+
+        $days_left = null;
+        if (!empty($s['ends_at'])) {
+            $days_left = max(0, (int) ceil((strtotime($s['ends_at']) - time()) / 86400));
+        }
+
+        return array(
+            'id'         => (int) $s['id'],
+            'kind'       => $kind,
+            'ref_id'     => $ref,
+            'code'       => $code,
+            'title'      => $title !== '' ? $title : t('شراء'),
+            'status'     => (string) $s['status'],
+            'price'      => tq_api_money($s['price']),
+            /* الفارغ يخرج `null` لا `""`: عمود `cycle` أضيف بعد أن بيعت
+               اشتراكات، فصفوفها القديمة تحمله فارغا — وسلسلة فارغة ترسم
+               رقاقة دورة بلا نص. */
+            'cycle'      => trim((string) ($s['cycle'] ?? '')) ?: null,
+            'started_at' => tq_api_date($s['started_at']),
+            'ends_at'    => tq_api_date($s['ends_at']),
+            /* `null` يعني **دائما** لا «مجهولا»: الكورس المفرد بأجل صفر
+               لا `ends_at` له، وعدد أيام مخترع يقفل ما بيع على أنه دائم. */
+            'days_left'  => $days_left,
+            'lifetime'   => empty($s['ends_at']),
+        );
     }
 
     /**

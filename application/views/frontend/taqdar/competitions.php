@@ -377,6 +377,15 @@ $tq_faq = array(
         <a class="cta__login" href="<?php echo base_url('login'); ?>">أو تسجيل الدخول</a>
 <?php endif; ?>
       </div>
+
+      <?php /* العمود الثاني: `.cta` شبكة عمودين (`1.15fr .85fr`) — وكانت هذه
+               الصفحة وحدها بلا `.cta__art`، فيبقى نصف البانر فراغا داكنا.
+               والصورة نفسها التي في الرئيسية والمدونة والكتالوج وصفحة
+               الطلاب، فينظر الزائر إلى بانر واحد لا خمسة. */ ?>
+      <div class="cta__art">
+        <img src="<?php echo tq_site_asset('img/cta-kids-cut.webp'); ?>" width="660" height="990"
+             alt="طفلان سعوديان يبتسمان ويحملان جهازا لوحيا" loading="lazy" decoding="async">
+      </div>
     </div>
   </div>
 </section>

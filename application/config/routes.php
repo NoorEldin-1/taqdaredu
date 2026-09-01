@@ -191,6 +191,54 @@ $route['api/v1/student/reviews/answer'] = 'api_v1/review_answer';
 $route['api/v1/student/reviews']        = 'api_v1/student_reviews';
 $route['api/v1/student/mistakes']       = 'api_v1/student_mistakes';
 
+// ---- الطالب · الإشعارات والرسائل ----
+// `notifications/read` قبل `notifications`، و`messages/recipients` قبل
+// `messages/(:any)`: الكتابة والمقطع الثابت قبل العام، وإلا سقط
+// `recipients` على `message_thread('recipients')` فقرأ محادثة بهذا الرمز.
+$route['api/v1/student/notifications/read'] = 'api_v1/notifications_read';
+$route['api/v1/student/notifications']      = 'api_v1/student_notifications';
+$route['api/v1/student/messages/recipients'] = 'api_v1/message_recipients';
+$route['api/v1/student/messages/(:any)']     = 'api_v1/message_thread/$1';
+$route['api/v1/student/messages']            = 'api_v1/student_messages';
+
+// ---- الطالب · الشاشات المحيطة بحلقة التعلم ----
+$route['api/v1/student/certificates'] = 'api_v1/student_certificates';
+$route['api/v1/student/tasks']        = 'api_v1/student_tasks';
+$route['api/v1/student/calendar']     = 'api_v1/student_calendar';
+$route['api/v1/student/library']      = 'api_v1/student_library';
+$route['api/v1/student/reports']      = 'api_v1/student_reports';
+$route['api/v1/student/materials']    = 'api_v1/student_materials';
+$route['api/v1/student/favourites/toggle'] = 'api_v1/favourite_toggle';
+$route['api/v1/student/favourites']       = 'api_v1/student_favourites';
+$route['api/v1/student/search']       = 'api_v1/student_search';
+$route['api/v1/student/setup']        = 'api_v1/student_setup';
+$route['api/v1/student/exam-mode']    = 'api_v1/exam_mode';
+$route['api/v1/student/gamify']       = 'api_v1/gamify';
+
+// ---- الطالب · التشخيص ----
+// مسارا الكتابة قبل مسار العرض — وهي قاعدة هذا الملف كله.
+$route['api/v1/student/placement/start']  = 'api_v1/placement_start';
+$route['api/v1/student/placement/submit'] = 'api_v1/placement_submit';
+$route['api/v1/student/placement']        = 'api_v1/student_placement';
+
+// ---- الطالب · الحصص بالطلب ----
+// الأطول أولا: `sessions/12/pay` ثلاثة مقاطع، و`sessions` مقطع واحد.
+$route['api/v1/student/sessions/(:num)/pay']    = 'api_v1/session_pay/$1';
+$route['api/v1/student/sessions/(:num)/cancel'] = 'api_v1/session_cancel/$1';
+$route['api/v1/student/sessions']               = 'api_v1/student_sessions';
+
+// ---- الطالب · المتجر (TQ-COURSE-SALE · TQ-CYCLE-BUY) ----
+// `store/courses/(:num)` قبل `store/courses`، وكلاهما قبل `plans/(:any)`
+// كي لا يبتلع الأخير مقطعا ليس رمز باقة.
+$route['api/v1/student/store/courses/(:num)'] = 'api_v1/store_course/$1';
+$route['api/v1/student/store/courses']        = 'api_v1/store_courses';
+$route['api/v1/student/buy-course']           = 'api_v1/buy_course';
+$route['api/v1/student/subscribe-path']       = 'api_v1/subscribe_path';
+$route['api/v1/student/subscribe']            = 'api_v1/student_subscribe';
+$route['api/v1/student/purchases']            = 'api_v1/student_purchases';
+$route['api/v1/student/plans/(:any)']         = 'api_v1/student_plan/$1';
+$route['api/v1/student/plans']                = 'api_v1/student_plans';
+
 // ---- الفهرس وما لا قاعدة له ----
 $route['api/v1']         = 'api_v1/index';
 $route['api/v1/(:any)']  = 'api_v1/not_found';

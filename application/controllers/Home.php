@@ -1851,6 +1851,15 @@ class Home extends CI_Controller
     {
 
         if ($param1 == 'submit') {
+
+            /* TQ-CONTACT-SPAM · الكتابة بـPOST وحدها.
+               `contact_us/submit` كانت تقبل أي طريقة، فرابط واحد يجلبه
+               زاحف يمر في مسار الحفظ — وهي قاعدة «مسارات الكتابة POST
+               فقط» نفسها التي يفرضها `write_guard()` في بوابات تقدر. */
+            if (strtoupper((string) $this->input->method(TRUE)) !== 'POST') {
+                show_404();
+            }
+
             if ($this->crud_model->check_recaptcha() == false && (get_frontend_settings('recaptcha_status') == true || get_frontend_settings('recaptcha_status_v3') == true)) {
                 $this->session->set_flashdata('error_message', get_phrase('recaptcha_verification_failed'));
                 redirect(site_url('login'), 'refresh');
@@ -1880,14 +1889,58 @@ class Home extends CI_Controller
             $data['first_name'] = $this->input->post('first_name');
             $data['last_name'] = $this->input->post('last_name');
             $data['email'] = $this->input->post('email');
-            $data['phone'] = $this->input->post('phone');
+            /* TQ-PHONE-INTL · الجوال يفحص في دولته ويخزن `+<رمز><وطني>` —
+               القاعدة نفسها التي تحكم التسجيل والإعدادات. ورقم يخزن بلا رمز
+               دولة يرد عليه فريق الدعم في الدولة الخطأ. وما كتب يعود إلى
+               النموذج مع دولته: من أخطأ رقما لا يعيد كتابة رسالته كلها. */
+            /* والفحص لمن أرسل الحقل الدولي (`phone_cc`) وحده: قالب Academy
+               الموروث يطبع حقل هاتف نصيا اختياريا، وفحصه بقواعد دولة يرد
+               رسالة صحيحة وصلت من شاشة لا تعرف المنتقي أصلا. */
+            $tq_cc = (string) $this->input->post('phone_cc');
+            $tq_ph = $tq_cc !== ''
+                   ? tq_phone_check($this->input->post('phone'), $tq_cc)
+                   : array('ok' => true, 'e164' => (string) $this->input->post('phone'), 'error' => '');
+            if (!$tq_ph['ok']) {
+                $this->session->set_flashdata('tq_contact_old', array(
+                    'phone'    => (string) $this->input->post('phone'),
+                    'phone_cc' => (string) $this->input->post('phone_cc'),
+                ));
+                $this->session->set_flashdata('error_message', $tq_ph['error']);
+                redirect('contact', 'refresh');
+            }
+            $data['phone'] = $tq_ph['e164'];
             $data['address'] = $this->input->post('address');
             $data['message'] = $this->input->post('message');
             // الحقل معروض ومطلوب في النموذج، وإسقاطه هنا يرمي ما كتبه الزائر
             $data['subject'] = $this->input->post('subject');
             $data['created_at'] = time();
 
+            /* TQ-CONTACT-SPAM · الحكم قبل الكتابة، والقواعد في النموذج.
+               وما يرد **لا يكتب صفا في `contact`**: الجدول سجل رسائل يقرؤه
+               مسؤول، لا سلة لكل ما وصل. والمحاولة تسجل في `tq_contact_log`
+               (بلا نصها) لأن السقوف تعد منه.
 
+               و«الصامت» يعرض نجاحا ولا يكتب شيئا: رسالة خطأ صريحة على
+               المصيدة أو الختم تعلم البوت أي حقل يصلح في المحاولة التالية. */
+            $ip = (string) $this->input->ip_address();
+            $this->load->model('taqdar_contact_model');
+
+            $verdict = $this->taqdar_contact_model->screen(array_merge($data, array(
+                'website' => $this->input->post('website'),
+                'company' => $this->input->post('company'),
+                'tq_ts'   => $this->input->post('tq_ts'),
+            )), $ip);
+
+            $this->taqdar_contact_model->note($ip, $data['email'], $verdict);
+
+            if (!$verdict['ok']) {
+                if ($verdict['silent']) {
+                    $this->session->set_flashdata('flash_message', site_phrase('Your contact request has been sent successfully'));
+                } else {
+                    $this->session->set_flashdata('error_message', $verdict['msg']);
+                }
+                redirect('contact', 'refresh');
+            }
 
             $this->db->insert('contact', $data);
             $contact_id = (int) $this->db->insert_id();
@@ -1971,16 +2024,23 @@ class Home extends CI_Controller
         );
 
         /* وإلى صاحبها إيصال: الصفحة تعده بالرد خلال أربع وعشرين ساعة،
-           ومن أرسل ولم يصله شيء لا يعرف أوصلت رسالته أم ضاعت. */
+           ومن أرسل ولم يصله شيء لا يعرف أوصلت رسالته أم ضاعت.
+
+           TQ-CONTACT-SPAM · **ولا يعاد فيه شيء مما كتب**. كان يحمل نسخة
+           من الرسالة إلى عنوان يكتبه المرسل نفسه — أي أن من وضع نص إعلانه
+           في «الرسالة» وبريد ضحيته في «البريد» جعل خادمنا يسلم إعلانه
+           موقعا باسم المنصة. والاسم يمر من فحص المحتوى، والموضوع من قائمة
+           مغلقة، فلا يبقى في الإيصال حرف يختاره غريب.
+           والثمن الذي كان يدفع ليس رسائل في اللوحة: سمعة النطاق عند مزودي
+           البريد، ومعها كل رسالة تفعيل واستعادة كلمة مرور تخرج بعدها. */
         if (filter_var((string) $d['email'], FILTER_VALIDATE_EMAIL)) {
             $this->taqdar_mail_model->send_lines(
                 (string) $d['email'],
                 'استلمنا رسالتك — منصة تقدر',
                 array(
-                    'مرحبا ' . ($name !== '' ? $name : 'بك') . '،',
+                    'مرحبا بك،',
                     'وصلتنا رسالتك بخصوص: ' . $subj . '. سنعود إليك خلال 24 ساعة.',
-                    'وهذه نسخة مما أرسلت:',
-                    (string) $d['message'],
+                    'وإن لم تكن أنت من راسلنا فأهمل هذه الرسالة.',
                 )
             );
         }

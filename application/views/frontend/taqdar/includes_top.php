@@ -49,6 +49,12 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
 <link rel="stylesheet" href="<?php echo tq_asset('css/base.css'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/components.css'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/layout.css'); ?>">
+<?php /* TQ-DS — طبقة الـDesign System لبوابات الطالب والمعلم وولي الأمر.
+         تحمل بعد الرموز والمكونات فتتجاوزها، وكل قواعدها مقيدة بـ
+         `body.tq-body--portal` — والصنف لا يوضع إلا على صفحة بوابة
+         (`index.php:52`)، فالموقع العام لا يمسه شيء منها.
+         وحذف هذا السطر وحده يلغي التصميم عن البوابات الثلاث. */ ?>
+<link rel="stylesheet" href="<?php echo tq_asset('css/ds.css'); ?>">
 <?php /* المكونات المشتركة — المنهج وبيانات التحويل وشرائط الأرقام. وسمها
         يخرج من مساعد واحد للجهتين، وورقتها تجسر توكناتها إلى توكنات
         البوابة. وهي **بعد** أوراق البوابة عمدا: الجسر يعرف على

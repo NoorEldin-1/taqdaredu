@@ -262,55 +262,60 @@ $tier  = tqs_bundle_tier($b['name']);
                  `plans.image !== ''` يترك بطاقة الشراء بلا وجه لباقة
                  لم يرفع لها المسؤول شيئا، بينما بطاقتها في الرئيسية
                  تحمل صورة — الصفحتان للباقة الواحدة. */ ?>
-        <?php if (true): ?>
-          <?php
-          /* الصورة تصير مشغلا حين يكون في الباقة درس مفتوح للمعاينة:
-             علامة تشغيل وشارة تقول ما هي، ونقرة تفتح الدرس نفسه. وبلا
-             درس مجاني تبقى صورة — لا علامة تشغيل تعد بفيديو لا يفتح. */
-          $promo = tqs_free_preview($b);
-          ?>
-          <?php if ($promo): ?>
-            <a class="plan-card__media plan-card__media--promo"
-               href="<?php echo tqs_preview_url($promo['course_id'], $promo['lesson_id']); ?>"
-               aria-label="شاهد معاينة مجانية: <?php echo html_escape($promo['title']); ?>">
-              <?php /* لا `lazy` هنا: البطاقة أعلى العمود الجانبي وتظهر مع
-                       أول رسم، والتأجيل يجعل مربعا بيجيا يومض تحت علامة
-                       التشغيل قبل أن تصل الصورة. */ ?>
-              <img src="<?php echo html_escape(tqs_plan_cover($b)); ?>" alt=""
-                   width="1200" height="800" decoding="async" fetchpriority="high">
-              <span class="plan-promo__scrim" aria-hidden="true"></span>
-              <span class="plan-promo__play" aria-hidden="true">
-                <svg><use href="#i-play"></use></svg>
-              </span>
-              <span class="plan-promo__tag">
-                <svg aria-hidden="true"><use href="#i-video"></use></svg>
-                معاينة مجانية
-              </span>
-              <span class="plan-promo__cap">
-                <b><?php echo html_escape($promo['title']); ?></b>
-                <i><?php echo html_escape($promo['subject']); ?><?php
-                    echo $promo['duration'] !== '' ? ' · ' . html_escape($promo['duration']) : ''; ?></i>
-              </span>
-            </a>
-            <?php
-            /* المشغّل في `<template>`: محتواه خامل فلا يحمّل الإطار قبل
-               النقر، فلا تدفع الصفحة ثمن فيديو قد لا يفتح. والسكربت
-               ينقله مكان الصورة عند النقر. وبلا سكربت يبقى الرابط
-               عاملا كما هو — لا زر يعد بما لا يفتح. */
-            $tq_pv = tqs_video_embed(
-                isset($promo['vtype']) ? $promo['vtype'] : '',
-                isset($promo['vurl'])  ? $promo['vurl']  : '',
-                $promo['title']);
-            ?>
-            <?php if ($tq_pv !== ''): ?>
-              <template data-tq-inline-video><?php echo $tq_pv; ?></template>
-            <?php endif; ?>
-          <?php else: ?>
-            <div class="plan-card__media">
-              <img src="<?php echo html_escape(tqs_plan_cover($b)); ?>" alt=""
-                   width="1200" height="800" loading="lazy" decoding="async">
-            </div>
-          <?php endif; ?>
+        <?php
+        /* TQ-PLAN-PROMO — **الفيديو التعريفي، لا معاينة الدرس.**
+
+           كانت هذه البطاقة تعرض `tqs_free_preview($b)`: أول درس مجاني في
+           الباقة. والصنف اسمه `--promo` منذ كتب، فكان الاسم يقول برومو
+           والمحتوى يعطي درسا — ومر بريئا يوم لم يكن في المنصة فيديو
+           واحد. فلما دخل درس حقيقي انكشف: بطاقة الشراء يعلوها درس واحد
+           في مادة واحدة، والباقة مرحلة كاملة بموادها.
+
+           والصحيح مقطع **واحد للمنصة كلها** فوق السعر. ومعاينة الدرس لم
+           تفقد: شارة «معاينة مجانية» في المنهج أسفل الصفحة هي موضعها،
+           وهناك تقرأ على أنها ما هي.
+
+           والرابط يحرر من اللوحة: «نصوص الصفحات» ← «صفحة الباقة الواحدة».
+           والفارغ يعني صورة **بلا علامة تشغيل** — لا زر يعد بما لا يفتح. */
+        $tq_promo_url   = trim((string) tq_text_raw('plan_detail', 'promo_video', ''));
+        $tq_promo_label = trim((string) tq_text_raw('plan_detail', 'promo_label', 'فيديو تعريفي'));
+        if ($tq_promo_label === '') $tq_promo_label = 'فيديو تعريفي';
+
+        /* والنوع يشتق من الرابط نفسه — `tqs_video_embed()` تعرف فيميو
+           ويوتيوب وتعد ما سواهما ملفا. فلا حقل ثان يطلب من المحرر أن
+           يصنف ما لصقه، ولا رابط يكسر لأن أحدا نسي اختيار نوعه. */
+        $tq_promo_embed = $tq_promo_url !== ''
+            ? tqs_video_embed('', $tq_promo_url, $tq_promo_label)
+            : '';
+        ?>
+        <?php if ($tq_promo_embed !== ''): ?>
+          <a class="plan-card__media plan-card__media--promo"
+             href="<?php echo html_escape($tq_promo_url); ?>"
+             aria-label="<?php echo html_escape($tq_promo_label); ?>">
+            <?php /* لا `lazy` هنا: البطاقة أعلى العمود الجانبي وتظهر مع
+                     أول رسم، والتأجيل يجعل مربعا بيجيا يومض تحت علامة
+                     التشغيل قبل أن تصل الصورة. */ ?>
+            <img src="<?php echo html_escape(tqs_plan_cover($b)); ?>" alt=""
+                 width="1200" height="800" decoding="async" fetchpriority="high">
+            <span class="plan-promo__scrim" aria-hidden="true"></span>
+            <span class="plan-promo__play" aria-hidden="true">
+              <svg><use href="#i-play"></use></svg>
+            </span>
+            <span class="plan-promo__tag">
+              <svg aria-hidden="true"><use href="#i-video"></use></svg>
+              <?php echo html_escape($tq_promo_label); ?>
+            </span>
+          </a>
+          <?php /* المشغل في `<template>`: محتواه خامل فلا يحمل الإطار قبل
+                   النقر، فلا تدفع الصفحة ثمن فيديو قد لا يفتح. والسكربت
+                   في `site.js` ينقله مكان الصورة عند النقر. وبلا سكربت
+                   يبقى الرابط عاملا — يفتح المقطع كما هو. */ ?>
+          <template data-tq-inline-video><?php echo $tq_promo_embed; ?></template>
+        <?php else: ?>
+          <div class="plan-card__media">
+            <img src="<?php echo html_escape(tqs_plan_cover($b)); ?>" alt=""
+                 width="1200" height="800" loading="lazy" decoding="async">
+          </div>
         <?php endif; ?>
 
         <?php

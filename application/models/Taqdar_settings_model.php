@@ -14,9 +14,10 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  *   tq_prefs_user    صف واحد لكل مستخدم: الوجه واللغة وساعات الصمت.
  *   tq_prefs_notify  صف لكل (مستخدم، نوع، قناة).
  *
- * القناتان اثنتان لا ثلاث: `inapp` لها جدول `notifications`، و`email` له
- * `Email_model`. ولا قناة «إشعار الجهاز» لأن المنصة لا تملك بنية دفع —
- * ومفتاح لقناة غير موجودة وعد لا إعداد.
+ * والقنوات **ثلاث**: `inapp` لها جدول `notifications`، و`email` له
+ * `Taqdar_mail_model`، و`whatsapp` له `Taqdar_wa_model` (TQ-WA-ALL).
+ * ولا قناة «إشعار الجهاز» لأن المنصة لا تملك بنية دفع — ومفتاح لقناة
+ * غير موجودة وعد لا إعداد.
  */
 class Taqdar_settings_model extends CI_Model
 {
@@ -85,13 +86,28 @@ class Taqdar_settings_model extends CI_Model
         ));
     }
 
-    /** القناتان القائمتان فعلا. */
+    /**
+     * القنوات القائمة فعلا.
+     *
+     * وواتساب يعرض **متى كان مضبوطا على هذه المنصة وحده**: عمود مربعات
+     * لقناة لا رمز وصول لها وعد لا إعداد — يطفئه صاحبه ويظن أنه صنع
+     * شيئا، أو يشعله فلا يصله شيء ويحسب العطل في حسابه.
+     */
     public function notify_channels()
     {
-        return array(
-            'inapp' => 'داخل المنصة',
-            'email' => 'بريد إلكتروني',
+        $out = array(
+            'inapp' => t('داخل المنصة'),
+            'email' => t('بريد إلكتروني'),
         );
+
+        try {
+            $this->load->model('taqdar_wa_model');
+            if ($this->taqdar_wa_model->ready()) $out['whatsapp'] = t('واتساب');
+        } catch (Throwable $e) {
+            // قناة لا تقرأ لا تعرض
+        }
+
+        return $out;
     }
 
     /**
@@ -100,12 +116,20 @@ class Taqdar_settings_model extends CI_Model
      */
     public function notify_defaults()
     {
+        /* وواتساب يبدأ من حيث يبدأ البريد — القناتان تخرجان الشيء
+           نفسه، فافتراضان مختلفان لهما يعنيان أن الطالب يقرأ نتيجته في
+           بريده ولا يقرؤها في جواله ولا يعرف لماذا. ومن أراد التضييق
+           ضيق بمربعه، ومن أراد إطفاء عائلة كاملة أطفأها من اللوحة.
+
+           وما هو مطفأ في البريد يبقى مطفأ هنا (تذكير المراجعة، وفتح
+           المحطة): ذانك تنبيهان يتكرران كل يوم، وقناة تطرق الباب بهما
+           يوميا يسدها صاحبها — فتضيع معها إشعارات المال نفسها. */
         return array(
-            'review_due'         => array('inapp' => 1, 'email' => 0),
-            'station_unlocked'   => array('inapp' => 1, 'email' => 0),
-            'quiz_result'        => array('inapp' => 1, 'email' => 1),
-            'purchase_confirmed' => array('inapp' => 1, 'email' => 1),
-            'session_confirmed'  => array('inapp' => 1, 'email' => 1),
+            'review_due'         => array('inapp' => 1, 'email' => 0, 'whatsapp' => 0),
+            'station_unlocked'   => array('inapp' => 1, 'email' => 0, 'whatsapp' => 0),
+            'quiz_result'        => array('inapp' => 1, 'email' => 1, 'whatsapp' => 1),
+            'purchase_confirmed' => array('inapp' => 1, 'email' => 1, 'whatsapp' => 1),
+            'session_confirmed'  => array('inapp' => 1, 'email' => 1, 'whatsapp' => 1),
         );
     }
 
@@ -207,6 +231,8 @@ class Taqdar_settings_model extends CI_Model
      */
     public function allows($user_id, $notify_type, $channel)
     {
+        $notify_type = $this->pref_key_of($notify_type);
+
         $types = $this->notify_types();
         if (!isset($types[$notify_type])) return true;
 
@@ -214,6 +240,47 @@ class Taqdar_settings_model extends CI_Model
         if (!isset($matrix[$notify_type][$channel])) return true;
 
         return (bool) $matrix[$notify_type][$channel];
+    }
+
+    /**
+     * نوع `notifications.type` إلى مفتاح التفضيل الذي يحكمه.
+     *
+     * TQ-PREF-BRIDGE. وبلا هذا الجسر كانت مربعات شاشة الإعدادات **زينة
+     * لا تحكم شيئا**: مفاتيحها خمسة (`quiz_result` · `purchase_confirmed`
+     * …) وما يمرره المرسل أنواع أخرى (`subscription` · `session` ·
+     * `exam_result`)، فلا يطابق مفتاح نوعا واحدا و`allows()` ترد `true`
+     * لكل شيء. أي أن الطالب يطفئ «تأكيد الشراء» فتظل تصله تأكيدات
+     * الشراء، ولا شيء يخطئ.
+     *
+     * والاتجاه واحد: كل نوع يقع على مفتاح أو على نفسه. وما لا مفتاح له
+     * يسمح به — الإعداد يمنع ما عرض على صاحبه، لا ما لم يعرض عليه قط.
+     */
+    public function pref_key_of($type)
+    {
+        $map = array(
+            // الشراء والمال
+            'subscription' => 'purchase_confirmed',
+            'invoice'      => 'purchase_confirmed',
+            'payment'      => 'purchase_confirmed',
+            'course_purchase' => 'purchase_confirmed',
+            'bundle_purchase' => 'purchase_confirmed',
+
+            // الحصص
+            'session'           => 'session_confirmed',
+            'session_request'   => 'session_confirmed',
+
+            // النتائج
+            'exam_result'      => 'quiz_result',
+            'station_failed'   => 'quiz_result',
+            'placement_result' => 'quiz_result',
+
+            // المراجعة والمحطات
+            'review_due'       => 'review_due',
+            'station_unlocked' => 'station_unlocked',
+        );
+
+        $t = (string) $type;
+        return isset($map[$t]) ? $map[$t] : $t;
     }
 
     /**

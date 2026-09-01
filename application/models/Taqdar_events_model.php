@@ -308,7 +308,20 @@ class Taqdar_events_model extends CI_Model
             $delay_to = $this->quiet_ends_at($user_id);
         }
 
-        $this->enqueue($user_id, $type, $title, $text, $category, $delay_to);
+        $this->enqueue($user_id, $type, $title, $text, $category, $delay_to, 'email');
+
+        /* والواتساب صفا ثانيا بقناته (TQ-WA-ALL).
+           وكانت أحداث تقدر السبعة — نتيجة امتحان، ورسوب محطة، وشهادة،
+           والتقرير الأسبوعي — تخرج بالبريد وحده: تكتب هنا ولا تمر
+           بـ`push_notification()` أصلا، فبوابة الواتساب فيها لا تراها.
+           فالطالب يقرأ في جواله خبر كل فاتورة ولا يقرأ خبر رسوبه.
+
+           و`wa_ready()` تفحص قبل الإيداع: بلاها يمتلئ الطابور صفوفا
+           تشطب في كل دورة على منصة لا واتساب فيها أصلا. */
+        if ($this->wa_ready()) {
+            $this->enqueue($user_id, $type, $title, $text, $category, $delay_to, 'whatsapp');
+        }
+
         return $id;
     }
 
@@ -355,16 +368,26 @@ class Taqdar_events_model extends CI_Model
              ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
     }
 
-    /** يضع رسالة في الطابور. `$delay_to` طابع يونكس أو null للفور. */
-    public function enqueue($user_id, $type, $title, $text, $category = 'learning', $delay_to = null)
+    /**
+     * يضع رسالة في الطابور. `$delay_to` طابع يونكس أو null للفور.
+     *
+     * و`$channel` معامل لا ثابت (TQ-WA-ALL): الصف يحمل قناته، و
+     * `drain()` يوجهه إلى منفذها. وطابور ثان للواتساب كان يعني نسخة
+     * ثانية من التأجيل وإعادة المحاولة والتراجع الأسي — تفترق عن أختها
+     * عند أول تعديل، فيعاد المحاولة في قناة ولا يعاد في الأخرى.
+     */
+    public function enqueue($user_id, $type, $title, $text, $category = 'learning',
+                            $delay_to = null, $channel = 'email')
     {
         try {
+            $channel = in_array((string) $channel, array('email', 'whatsapp'), true)
+                     ? (string) $channel : 'email';
             $this->ensure_queue();
             $this->db->insert('tq_notify_queue', array(
                 'user_id'     => (int) $user_id,
                 'type'        => (string) $type,
                 'category'    => (string) $category,
-                'channel'     => 'email',
+                'channel'     => $channel,
                 'title'       => mb_substr((string) $title, 0, 250),
                 'body'        => (string) $text,
                 'state'       => 'queued',
@@ -409,6 +432,24 @@ class Taqdar_events_model extends CI_Model
         }
     }
 
+    /**
+     * ونظيره للواتساب — القدرة وحدها هنا.
+     *
+     * ولا مفتاح نية ثالث يخترع له: النية تعبر عنها **عائلة النوع** في
+     * `Taqdar_wa_model::$FAMILIES`، وهي التي يقلبها المسؤول في شاشة
+     * واحدة. ومفتاح `taqdar_events_wa` بجوارها يعني موضعين يطفئان الشيء
+     * نفسه — فيطفئ المسؤول أحدهما ويقرأ القناة صامتة ولا يعرف أيهما.
+     */
+    public function wa_ready()
+    {
+        try {
+            $this->load->model('taqdar_wa_model');
+            return (bool) $this->taqdar_wa_model->ready();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
     public function drain($limit = 50)
     {
         $out = array('sent' => 0, 'failed' => 0, 'dead' => 0, 'held' => 0, 'skipped' => 0);
@@ -427,14 +468,34 @@ class Taqdar_events_model extends CI_Model
 
         /* لا قناة: يوسم ما استحق `skipped` ولا يحاول ولا يعاد. والإشعار
            داخل المنصة كتب قبل هذا، وهو ما يراه صاحبه فعلا. */
-        if ($rows && !$this->outbound_ready()) {
-            $ids = array_map('intval', array_column($rows, 'id'));
-            $this->db->where_in('id', $ids)->update('tq_notify_queue', array(
-                'state'      => 'skipped',
-                'last_error' => 'البريد غير مفعل على هذه المنصة — الإشعار داخل المنصة كتب.',
-            ));
-            $out['skipped'] = count($ids);
-            return $out;
+        /* الفحص المسبق **لكل قناة على حدة**.
+           وكان `outbound_ready()` واحدا يحكم على الطابور كله: منصة أطفأت
+           البريد وأبقت واتساب كانت تشطب صفوف الواتساب معه بحجة «البريد
+           غير مفعل» — قناة تعمل توسم معطلة بسبب قناة أخرى. */
+        if ($rows) {
+            $ready = array(
+                'email'    => $this->outbound_ready(),
+                'whatsapp' => $this->wa_ready(),
+            );
+            $dead_ch = array();
+            foreach ($rows as $r) {
+                $ch = isset($r['channel']) ? (string) $r['channel'] : 'email';
+                if (empty($ready[$ch])) $dead_ch[$ch][] = (int) $r['id'];
+            }
+            foreach ($dead_ch as $ch => $ids) {
+                $this->db->where_in('id', $ids)->update('tq_notify_queue', array(
+                    'state'      => 'skipped',
+                    'last_error' => ($ch === 'whatsapp' ? 'واتساب' : 'البريد')
+                                  . ' غير مفعل على هذه المنصة — الإشعار داخل المنصة كتب.',
+                ));
+                $out['skipped'] += count($ids);
+            }
+            if ($out['skipped']) {
+                $skipped = array_merge(array(), ...array_values($dead_ch));
+                $rows = array_values(array_filter($rows,
+                    function ($r) use ($skipped) { return !in_array((int) $r['id'], $skipped, true); }));
+            }
+            if (!$rows) return $out;
         }
 
         $max = 5;
@@ -458,7 +519,9 @@ class Taqdar_events_model extends CI_Model
             $err = '';
 
             try {
-                $ok = (bool) $this->maybe_email($uid, $r['title'], (string) $r['body']);
+                $ok = ((string) $r['channel'] === 'whatsapp')
+                    ? (bool) $this->maybe_whatsapp($uid, $r['title'], (string) $r['body'], (string) $r['type'])
+                    : (bool) $this->maybe_email($uid, $r['title'], (string) $r['body']);
             } catch (Throwable $e) {
                 $ok  = false;
                 $err = $e->getMessage();
@@ -810,5 +873,38 @@ class Taqdar_events_model extends CI_Model
             array($text),
             array('label' => 'افتح لوحتك', 'href' => site_url('student'))
         );
+    }
+
+    /**
+     * واتساب — وسياسة العائلة وتفضيل صاحبه يفحصان **عند الصرف** لا عند
+     * الإيداع وحده.
+     *
+     * وهو مبدأ الصمت نفسه في `drain()`: من أطفأ عائلة بعد أن أودعت
+     * رسالته لا ينبغي أن تخرج إليه، ورسالة قد تنتظر في الطابور ساعات
+     * قبل أن يحل وقتها.
+     *
+     * ولا يرمي: النداء في مسار كرون يمر على مئة طالب، واستثناء واحد
+     * يقطع الدورة على من بعده.
+     */
+    private function maybe_whatsapp($user_id, $title, $text, $type = '')
+    {
+        $this->load->model('taqdar_wa_model');
+        if (!$this->taqdar_wa_model->type_on((string) $type)) return false;
+
+        try {
+            $this->load->model('taqdar_settings_model');
+            if (!$this->taqdar_settings_model->allows((int) $user_id, (string) $type, 'whatsapp')) {
+                return false;
+            }
+        } catch (Throwable $e) {
+            // تعذر قراءة التفضيل لا يصادر قرارا لم يتخذ
+        }
+
+        $to = $this->taqdar_wa_model->phone_of((int) $user_id);
+        if ($to === '') return false;   /* لا رقم: لا محاولة ولا سطر سجل */
+
+        return (bool) $this->taqdar_wa_model->send_notice(
+            $to, (string) $title, strip_tags((string) $text),
+            array('purpose' => mb_substr((string) $type, 0, 24), 'user_id' => (int) $user_id));
     }
 }

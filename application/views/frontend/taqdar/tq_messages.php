@@ -20,18 +20,16 @@ $tq_icon  = 'chat';
 
 $uid = (int) $this->session->userdata('user_id');
 
+/* القواعد كلها في `Taqdar_student_model`: الملكية ونطاق المستقبل
+   وبناء المحادثات — والواجهة (`Api_v1`) تنادي الدوال نفسها، فلا يرسل
+   التطبيق رسالة يرفضها الموقع ولا العكس. والحفظ يبقى في `crud_model`:
+   هو المشترك مع مسارات LMS الأصلية ولا يكرر. */
+$this->load->model('taqdar_student_model', 'tq_stu');
+
 /* ---- حذف المحادثة: ينفذ قبل أي إخراج، وبتحقق ملكية على الخادم ------
-   زر الخطر يجب أن يفعل ما يقوله. والتحقق هنا لا يكفي وحده: الصلاحية
-   تفرض في الخادم لا في الواجهة، وهذا الشرط جزء من الخادم لا من العرض. */
+   زر الخطر يجب أن يفعل ما يقوله. والتحقق في النموذج لا في الواجهة. */
 if ($this->input->post('action') === 'delete_thread') {
-    $tq_del = (string) $this->input->post('thread', true);
-    $tq_own = $this->db->where('message_thread_code', $tq_del)
-        ->group_start()->where('sender', (string) $uid)->or_where('receiver', (string) $uid)->group_end()
-        ->count_all_results('message_thread');
-    if ($tq_del !== '' && $tq_own > 0) {
-        $this->db->where('message_thread_code', $tq_del)->delete('message');
-        $this->db->where('message_thread_code', $tq_del)->delete('message_thread');
-    }
+    $this->tq_stu->delete_thread($uid, (string) $this->input->post('thread', true));
     redirect(site_url('student/messages'), 'location', 302);
 }
 
@@ -44,13 +42,11 @@ if ($this->input->post('action') === 'delete_thread') {
  * الصفحة: يضغط الطالب «إرسال» فيرى نصف صفحة ثم «404 Page Not Found»،
  * ورسالته قد وصلت وهو لا يدري. (وهو عطل `home/my_wishlist` نفسه.)
  *
- * والحفظ يبقى في `crud_model` — هو المشترك مع مسارات LMS الأصلية ولا يكرر —
- * وهذه الطبقة تضيف ما كان ناقصا فيه:
+ * وهذه الطبقة تضيف ما كان ناقصا في `crud_model`:
  *
  *   ١ — **نطاق المستقبل.** `send_new_private_message()` تقرأ `receiver` من
  *       الطلب ولا تفحصه، والشاشة تقول للطالب «المراسلة متاحة مع معلميك
- *       والدعم فقط، ولا رسائل خاصة بين الطلاب». فكان القيد وعدا في العرض
- *       لا شرطا في الخادم — يبدل معرفا في النموذج فيراسل أي حساب.
+ *       والدعم فقط». فكان القيد وعدا في العرض لا شرطا في الخادم.
  *   ٢ — **ملكية الخيط.** `send_reply_message()` تقرأ الخيط برمزه وتستنتج
  *       الطرف الآخر، ولا تتحقق أن المرسل طرف فيه أصلا — فمن خمن رمزا حقن
  *       رسالة في محادثة غيره.
@@ -68,19 +64,7 @@ if ($tq_send === 'send_new' || $tq_send === 'send_reply') {
     }
 
     if ($tq_send === 'send_new') {
-        /* المستقبلون المسموح بهم: معلمو كورساته المسجلة، وحساب الإدارة (الدعم).
-           و`course.user_id` قائمة معرفات مفصولة بفواصل لا معرفا واحدا، فـ
-           `(int)` عليها تقرأ «148,289» على أنها 148: يسقط كل معلم ثان في
-           كورس مشترك من قائمة من يجوز للطالب مراسلتهم — فيراسل الأول
-           ويقال له عن الثاني إنه ليس من معلميه، وهو معلمه فعلا. */
-        $tq_ok_ids = tq_course_owner_ids($this->db->select('c.user_id')
-            ->from('enrol e')->join('course c', 'c.id = e.course_id', 'inner')
-            ->where('e.user_id', $uid)->get()->result_array());
-        foreach ($this->db->select('id')->where('role_id', 1)->limit(1)->get('users')->result_array() as $tq_a) {
-            $tq_ok_ids[] = (int) $tq_a['id'];
-        }
-
-        if (!in_array((int) $this->input->post('receiver'), array_filter($tq_ok_ids), true)) {
+        if (!$this->tq_stu->may_message($uid, (int) $this->input->post('receiver'))) {
             $this->session->set_flashdata('error_message', t('لا ترسل الرسائل إلا إلى معلمي موادك أو الدعم الفني.'));
             redirect(site_url($tq_to), 'location', 302);
         }
@@ -91,11 +75,7 @@ if ($tq_send === 'send_new' || $tq_send === 'send_reply') {
     }
 
     $tq_code = (string) $this->input->post('thread', true);
-    $tq_mine = $this->db->where('message_thread_code', $tq_code)
-        ->group_start()->where('sender', (string) $uid)->or_where('receiver', (string) $uid)->group_end()
-        ->count_all_results('message_thread');
-
-    if ($tq_code === '' || $tq_mine < 1) {
+    if (!$this->tq_stu->owns_thread($uid, $tq_code)) {
         $this->session->set_flashdata('error_message', t('هذه المحادثة ليست لك.'));
         redirect(site_url($tq_to), 'location', 302);
     }
@@ -106,36 +86,7 @@ if ($tq_send === 'send_new' || $tq_send === 'send_reply') {
 }
 
 /* ---- المحادثات ------------------------------------------------------- */
-$tq_threads_raw = $this->db
-    ->group_start()->where('sender', (string) $uid)->or_where('receiver', (string) $uid)->group_end()
-    ->order_by('last_message_timestamp', 'DESC')
-    ->get('message_thread')->result_array();
-
-$tq_threads = [];
-foreach ($tq_threads_raw as $t) {
-    $code  = $t['message_thread_code'];
-    $other = ((int) $t['sender'] === $uid) ? (int) $t['receiver'] : (int) $t['sender'];
-
-    $last = $this->db->where('message_thread_code', $code)
-        ->order_by('timestamp', 'DESC')->limit(1)
-        ->get('message')->row_array();
-
-    $unread = (int) $this->db->where('message_thread_code', $code)
-        ->where('receiver', $uid)->where('read_status', 0)
-        ->count_all_results('message');
-
-    $person = $this->db->select('id, first_name, last_name, image, is_instructor, role_id')
-        ->where('id', $other)->get('users')->row_array();
-
-    $tq_threads[] = [
-        'code'    => $code,
-        'other'   => $other,
-        'person'  => $person,
-        'last'    => $last,
-        'unread'  => $unread,
-        'ts'      => (int) ($last['timestamp'] ?? $t['last_message_timestamp']),
-    ];
-}
+$tq_threads = $this->tq_stu->threads($uid);
 
 /* ---- تصفية القائمة: تبويبات وبحث يعملان على الخادم فعلا -------------- */
 $tq_filter = $this->input->get('filter', true);
@@ -178,32 +129,29 @@ if ($tq_open === null && $tq_threads) {
     $tq_open = $tq_threads[0];
 }
 
-/* فتح المحادثة يجعلها مقروءة — كما يتوقع من فتحها فعلا. */
+/* فتح المحادثة يجعلها مقروءة — كما يتوقع من فتحها فعلا. والنموذج يشترط
+   الملكية في `UPDATE` نفسه، فرمز مخمن لا يمسح «غير مقروء» عن غيره. */
 if ($tq_open && $tq_open_code === $tq_open['code'] && $tq_open['unread'] > 0) {
-    $this->crud_model->mark_thread_messages_read($tq_open['code']);
+    $this->tq_stu->read_thread($uid, $tq_open['code']);
     $tq_open['unread'] = 0;
 }
 
-$tq_messages = [];
-if ($tq_open) {
-    $tq_messages = $this->db->where('message_thread_code', $tq_open['code'])
-        ->order_by('timestamp', 'ASC')
-        ->get('message')->result_array();
-}
+$tq_messages = $tq_open ? $this->tq_stu->messages($uid, $tq_open['code']) : [];
 
-/* ---- المستقبلون المسموح بهم: معلمو موادك + الدعم ------------------- */
+/* ---- المستقبلون المسموح بهم: معلمو موادك + الدعم -------------------
+   من `messageable()` نفسها التي يفحص بها الحفظ أعلاه: قائمتان تبنيان
+   من استعلامين تفترقان عند أول تعديل، فيعرض المنتقي حسابا يرده الحارس
+   — ويقرأ الطالب «لا ترسل الرسائل إلا إلى معلمي موادك» عن اسم اختاره
+   من قائمة عرضناها نحن. */
 $tq_allowed = [];
-$tq_teacher_ids = tq_course_owner_ids($this->db->select('c.user_id')
-    ->from('enrol e')->join('course c', 'c.id = e.course_id', 'inner')
-    ->where('e.user_id', $uid)
-    ->get()->result_array());
-if ($tq_teacher_ids) {
-    foreach ($this->db->select('id, first_name, last_name')->where_in('id', $tq_teacher_ids)->get('users')->result_array() as $u) {
-        $tq_allowed[] = ['id' => (int) $u['id'], 'name' => trim($u['first_name'] . ' ' . $u['last_name']), 'kind' => t('معلم')];
-    }
-}
-foreach ($this->db->select('id, first_name, last_name')->where('role_id', 1)->limit(1)->get('users')->result_array() as $u) {
-    $tq_allowed[] = ['id' => (int) $u['id'], 'name' => t('الدعم الفني'), 'kind' => t('دعم')];
+foreach ($this->tq_stu->messageable($uid) as $p) {
+    $tq_support = ((int) ($p['role_id'] ?? 0) === 1) && empty($p['is_instructor']);
+    $tq_allowed[] = [
+        'id'   => (int) $p['id'],
+        'name' => $tq_support ? t('الدعم الفني')
+                              : trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '')),
+        'kind' => $tq_support ? t('دعم') : t('معلم'),
+    ];
 }
 
 /* ---- أدوات عرض ------------------------------------------------------

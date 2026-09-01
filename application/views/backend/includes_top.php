@@ -36,6 +36,10 @@
 <link rel="stylesheet" href="<?php echo tq_asset('css/fonts.css'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/tokens.css'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/admin.css'); ?>">
+<?php /* TQ-DS — طبقة الـDesign System. تحمل **بعد** الرموز والهوية فتتجاوزهما،
+         وكل قواعدها مقيدة بـ`body.tqa` فلا تمس صفحة عامة. وحذف هذا السطر
+         وحده يلغي الـDesign System كله ويرجع اللوحة كما كانت. */ ?>
+<link rel="stylesheet" href="<?php echo tq_asset('css/ds.css'); ?>">
 
 <?php /* سلوك اللوحة المشترك — الرسائل الطائرة ونافذة التأكيد.
          يحمل هنا لا في الذيل: يعرف `confirm_modal()` و`ajax_confirm_modal()`

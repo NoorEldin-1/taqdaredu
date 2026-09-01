@@ -319,6 +319,13 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   block-size: 100vh;
   block-size: 100dvh;
   transition: inline-size var(--tq-motion-route) var(--tq-ease-enter);
+  /* TQ-RAIL-RTL — المحاذاة تعلن هنا ولا تورث. البوابات لا تحمل
+     Bootstrap فلا يتسرب إليها `body { text-align: left }` كما يتسرب إلى
+     اللوحة — وهناك كان يفصل اسم البند عن أيقونته بعرض الشريط كله (انظر
+     التعليق في `admin.css`). والشريط واحد يخدم البوابات الثلاث ونظيره
+     يخدم اللوحة، وأربع شاشات تقوم على وراثة لا تعلنها تفترق أول ما
+     تحمل إحداها ورقة ثالثة. و`start` لا تغير بكسلا في أي اتجاه اليوم. */
+  text-align: start;
 }
 
 /* الترويسة: الشعار + زر الطي، ولا تمرر مع القائمة */

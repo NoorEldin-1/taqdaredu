@@ -157,7 +157,12 @@ include 'portal_open.php';
 .tq-exam-mode__form {
   display: flex; flex-wrap: wrap; gap: var(--tq-space-m); align-items: flex-end;
 }
-.tq-exam-mode__form .tq-field { min-inline-size: 160px; }
+/* `align-items:flex-end` يحاذي **صندوق الهامش** لا الحد السفلي للحقل، و
+   `.tq-field` يحمل `margin-block-end: var(--tq-space-l)` من `components.css`
+   — فيقف الزر أخفض من الحقلين بمقدار ذلك الهامش، بلا أن يخطئ شيء. وصفره
+   هنا كما يصفر في `.tq-prefrow__end .tq-field`. */
+.tq-exam-mode__form .tq-field { min-inline-size: 160px; margin-block-end: 0; }
+.tq-exam-mode__form .tq-btn   { flex: 0 0 auto; }
 </style>
 
 <div class="tq-cols">

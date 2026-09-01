@@ -294,6 +294,119 @@ class Taqdar_marking_model extends CI_Model
      * ================================================================ */
 
     /**
+     * ورقة إجابات الطالب — ما يعتمد عليه المعلم قبل أن يوقع الدرجة.
+     *
+     * كان لوح التصحيح يعرض **اقتراحا آليا وحقل درجة** ولا يعرض سؤالا واحدا
+     * ولا إجابة واحدة: يطلب من المعلم أن يعتمد رقما بلا أن يريه ما بني
+     * عليه. والبيانات كانت أمامه في الصف نفسه — `quiz_results.user_answers`
+     * و`correct_answers` — ولم تقرأ في هذه الشاشة قط.
+     *
+     * والحارس هو `attempt()` نفسه لا نسخة ثانية منه: من لا يملك الاختبار لا
+     * يقرأ ورقته، وشرط ملكية يكتب مرتين يفترق عند أول تعديل.
+     *
+     * @return array صفوف: number · title · type · options · chosen · correct
+     *               · is_correct · manual
+     */
+    public function answers_of($result_id, $teacher_id)
+    {
+        $row = $this->attempt($result_id, $teacher_id);
+        if (!$row) return array();
+
+        /* الموروث يفك بـ`strtolower()` — يصلح لمفاتيح رقمية ويفسد نص إجابة
+           كتبت بيد. فالنص يترك كما كتبه صاحبه. */
+        $given = json_decode((string) $row['user_answers'], true);
+        $right = json_decode((string) $row['correct_answers'], true);
+        $given = is_array($given) ? $given : array();
+        $right = is_array($right) ? $right : array();
+
+        /* `quiz_results.correct_answers` يفترض أن يحمل **معرفات** الأسئلة
+           التي أصابها الطالب. وفي صفوف كتبت بغير مسار Academy يحمل حشوا
+           (`["a","a",…]`) لا معرفا واحدا. فيقبل مصدرا للحكم متى كان أرقاما،
+           وإلا حكم بالمقارنة — ووسم كل إجابة «خطأ» لأن العمود حشو أسوأ من
+           ألا يوسم شيء. */
+        $ids_ok = false;
+        foreach ($right as $v) { if (is_numeric($v)) { $ids_ok = true; break; } }
+        $right_ids = $ids_ok ? array_map('intval', array_filter($right, 'is_numeric')) : array();
+
+        $qs = $this->db->query(
+            'SELECT `id`, `title`, `type`, `options`, `correct_answers`
+               FROM `question` WHERE `quiz_id` = ? ORDER BY `id` ASC',
+            array((int) $row['quiz_id'])
+        )->result_array();
+
+        $out = array();
+        foreach ($qs as $i => $q) {
+            $qid  = (int) $q['id'];
+            $type = (string) $q['type'];
+            $opts = json_decode((string) $q['options'], true);
+            $opts = is_array($opts) ? array_values($opts) : array();
+
+            /* شكلان للتخزين لا واحد: خريطة بمعرف السؤال (مسار Academy)،
+               وقائمة بترتيب الأسئلة. وقراءة أحدهما مكان الآخر ترد فراغا
+               بلا خطأ — فتعرض الورقة «لم يجب» على طالب أجاب كل سؤال. */
+            $mine = array();
+            if (array_key_exists($qid, $given))        $mine = $given[$qid];
+            elseif (array_key_exists($i, $given))      $mine = $given[$i];
+            if (!is_array($mine)) $mine = ($mine === '' || $mine === null) ? array() : array($mine);
+
+            /* الأساسان مختلفان، وهما مقروءان من القالب الموروث
+               `views/lessons/quiz_result.php`: إجابة الطالب **موضع من صفر**
+               (`in_array($key, $user_answers)` و`$key` مفتاح `foreach` على
+               الخيارات)، والصحيح **موضع من واحد** (`$correct_answer - 1`).
+               وأساس واحد لهما يطبع الخيار المجاور صحيحا — خطأ يقرأ صحيحا
+               فلا يشك فيه أحد. */
+            $chosen = array();
+            foreach ($mine as $v) $chosen[] = $this->option_label($v, $opts, 0);
+
+            $ca      = json_decode((string) $q['correct_answers'], true);
+            $ca      = is_array($ca) ? $ca : array();
+            $correct = array();
+            foreach ($ca as $v) $correct[] = $this->option_label($v, $opts, 1);
+
+            $manual = !in_array($type, $this->auto_types, true);
+            if ($ids_ok)      $ok = in_array($qid, $right_ids, true);
+            else if ($manual) $ok = false;                       // حكمه للمعلم
+            else              $ok = $chosen && !array_diff($correct, $chosen)
+                                            && !array_diff($chosen, $correct);
+
+            $out[] = array(
+                'number'     => $i + 1,
+                'id'         => $qid,
+                'title'      => (string) $q['title'],
+                'type'       => $type,
+                'options'    => $opts,
+                'chosen'     => $chosen,
+                'correct'    => $correct,
+                'is_correct' => $ok,
+                /* المقالي لا يصححه السكربت، فلا يوسم «خطأ» لأنه غاب عن
+                   قائمة الصحيح — هو ينتظر عين المعلم لا حكمها الآلي. */
+                'manual'     => $manual,
+            );
+        }
+
+        return $out;
+    }
+
+    /**
+     * قيمة مخزنة إلى نص يقرأ، بأساس الموضع الذي يخص عمودها.
+     *
+     * و`$base` معامل لا يحزر: العمودان يخزنان بأساسين، ومن يقرأ بأساس
+     * واحد يطبع الخيار المجاور. وصفوف تقدر تخزن **نص الخيار** نفسه لا
+     * موضعه، فما ليس موضعا صالحا يرد كما هو.
+     */
+    private function option_label($value, $opts, $base = 0)
+    {
+        if (is_array($value)) $value = reset($value);
+        $v = (string) $value;
+
+        if ($opts && is_numeric($v)) {
+            $n = (int) $v - (int) $base;
+            if (isset($opts[$n])) return (string) $opts[$n];
+        }
+        return $v;   // نص الخيار كما خزن، أو قيمة لا تفهم فتقال كما هي
+    }
+
+    /**
      * عدد أسئلة الاختبار التي لا يصححها السكربت — المقالي وما شابهه.
      * وجود واحد منها يعني أن الاقتراح الآلي ناقص بالضرورة.
      */

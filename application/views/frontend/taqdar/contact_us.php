@@ -31,6 +31,14 @@ $tq_maps_href = 'https://www.google.com/maps/search/?api=1&query='
    بالزائر إلى أعلى الصفحة — وعد بشيء ثم نقضه. */
 $tq_has_tel = tqs_tel_href() !== '#';
 $tq_has_wa  = tqs_whatsapp_href() !== '#';
+
+/* ما كتبه الزائر قبل أن يرد الخادم رسالته — يعاد إلى الحقل ومعه دولته،
+   فلا يعيد كتابة رقمه من أوله. والخام لا المهرب: `tq_phone_field()`
+   تهرب قيمها بنفسها. */
+$tq_old_c     = $this->session->flashdata('tq_contact_old');
+if (!is_array($tq_old_c)) { $tq_old_c = array(); }
+$tq_phone_old = isset($tq_old_c['phone']) ? (string) $tq_old_c['phone'] : '';
+$tq_phone_iso = isset($tq_old_c['phone_cc']) ? (string) $tq_old_c['phone_cc'] : '';
 ?>
 
 <!-- ══════════ الهيرو ══════════ -->
@@ -150,6 +158,9 @@ $tq_has_wa  = tqs_whatsapp_href() !== '#';
                    يسقط صامتا متى تعثر الملف. */ ?>
           <form method="post" action="<?php echo base_url('home/contact_us/submit'); ?>" data-validate novalidate>
             <?php echo tq_csrf(); ?>
+            <?php /* TQ-CONTACT-SPAM · مصيدتان وختم موقع بوقت طبع الصفحة —
+        بلاها كان النموذج يقبل ألف طلب في الدقيقة من آلة واحدة. */ ?>
+            <?php tq_contact_shield(); ?>
             <div class="form-grid">
               <label class="form-field">
                 <svg aria-hidden="true"><use href="#i-user"></use></svg>
@@ -163,14 +174,18 @@ $tq_has_wa  = tqs_whatsapp_href() !== '#';
                 <input type="email" name="email" id="cMail" required
                        autocomplete="email" placeholder="البريد الإلكتروني">
               </label>
-              <label class="form-field">
-                <svg aria-hidden="true"><use href="#i-phone"></use></svg>
-                <span class="sr-only">رقم الجوال</span>
-                <span class="form-prefix tq-ltr">+966</span>
-                <input type="tel" name="phone" id="cTel" required inputmode="numeric"
-                       autocomplete="tel-national"
-                       pattern="5[0-9]{8}" placeholder="5XXXXXXXX">
-              </label>
+              <?php /* TQ-PHONE-INTL · حقل الجوال هو حقل التسجيل نفسه —
+        منتقي دولة من `tq_dial_codes()` وحقل للرقم الوطني. وكان مكتوبا
+        هنا بيده: `+966` ثابتة و`pattern="5[0-9]{8}"`، فمن يكتب إلينا من
+        القاهرة أو عمان يرد عليه رقمه الصحيح ولا شيء يقول إن بلده غير
+        مقبول. ونسخة ثانية من قائمة الدول تشيخ في شاشة ولا تشيخ في
+        أختها. */ ?>
+              <?php echo tq_phone_field('phone', array(
+                  'required' => true,
+                  'value'    => $tq_phone_old,
+                  'iso'      => $tq_phone_iso,
+                  'id'       => 'cTel',
+              )); ?>
               <label class="form-field">
                 <svg aria-hidden="true"><use href="#i-list"></use></svg>
                 <span class="sr-only">الموضوع</span>
@@ -178,11 +193,11 @@ $tq_has_wa  = tqs_whatsapp_href() !== '#';
                   <?php /* `disabled` لا `value=""` وحدها: بدونها يمر النموذج بموضوع
         فارغ، فتصل رسالة لا يعرف إلى أي فريق توجه. */ ?>
                   <option value="" disabled selected>اختر الموضوع…</option>
-                  <option>استفسار عن البرامج</option>
-                  <option>الدعم الفني</option>
-                  <option>الاشتراكات والفواتير</option>
-                  <option>الانضمام كمعلم</option>
-                  <option>أخرى</option>
+                  <?php /* الخيارات من `Taqdar_contact_model` — الخادم يرد ما
+          ليس منها، وقائمتان تفترقان تجعل كل رسالة صحيحة ترد. */ ?>
+                  <?php foreach (tq_contact_subjects() as $tq_sub): ?>
+                  <option><?php echo html_escape($tq_sub); ?></option>
+                  <?php endforeach; ?>
                 </select>
               </label>
               <label class="form-field form-field--full">

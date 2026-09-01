@@ -27,7 +27,8 @@ include 'portal_open.php';
 
 <div class="tq-lesson" data-tq-lesson="<?php echo $tq_lesson_id; ?>"
      data-tq-course="<?php echo $tq_course_id; ?>"
-     data-tq-gate="<?php echo base_url('taqdar_gate'); ?>">
+     data-tq-gate="<?php echo base_url('taqdar_gate'); ?>"
+     data-tq-back="<?php echo base_url('student/lessons'); ?>">
 
     <!-- حالة التحميل: هيكل عظمي بشكل المحتوى القادم، لا دوار وسط الشاشة -->
     <div class="tq-cols" data-tq-lesson-skeleton>
@@ -174,6 +175,28 @@ include 'portal_open.php';
                         <button class="tq-btn tq-btn--primary" type="button" data-tq-declare hidden>
                             <?php echo tq_icon('check', 16); ?> <?php echo t('أنهيت هذا الدرس'); ?>
                         </button>
+                    </div>
+                </div>
+            </section>
+
+            <?php /* ── أتممت الدرس: الخطوة التالية تقال هنا ─────────────
+                     كان بلوغ ١٠٠٪ لا يغير شيئا في المتن: بطاقة الاختبار لا
+                     تظهر إلا لدرس **له اختبار**، وزر «الدرس التالي» يعيش في
+                     حاشية جانبية تنزل تحت الطية في الجوال ولا يتغير عند
+                     الإتمام. وعلى **آخر درس في الكورس** لا يعرض شيء البتة —
+                     `mountNav()` تخرج مبكرا حين لا درس تال، فلا زر ولا سطر
+                     قفل. فيقف الطالب على درس مكتمل بلا باب واحد يقال له.
+
+                     وهذه البطاقة تقول الحالات الثلاث بنصها ووجهتها، ويملؤها
+                     `taqdar-lesson.js` من الحالة نفسها التي تقرر القفل — فلا
+                     تعد بما يرده الحارس. */ ?>
+            <section class="tq-card tq-lesson-done" data-tq-done hidden>
+                <div class="tq-row" style="gap:var(--tq-space-l);align-items:flex-start">
+                    <span class="tq-icon-box tq-pastel--mint" aria-hidden="true"><?php echo tq_icon('check-badge'); ?></span>
+                    <div style="flex:1">
+                        <h2 class="tq-card__title" style="margin:0"><?php echo t('أتممت هذا الدرس'); ?></h2>
+                        <p class="tq-body" style="margin:var(--tq-space-s) 0 var(--tq-space-l)" data-tq-done-text></p>
+                        <div class="tq-row" style="flex-wrap:wrap;gap:var(--tq-space-s)" data-tq-done-actions></div>
                     </div>
                 </div>
             </section>

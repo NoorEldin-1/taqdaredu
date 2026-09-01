@@ -2884,6 +2884,36 @@ class Admin extends CI_Controller
         }
     }
 
+    /**
+     * معرفات الرسائل التي يعدها مقياس المحتوى دعاية — يقرؤها العداد وزر
+     * الحذف معا، فلا يقال «١٢» ويحذف ثمانيا.
+     *
+     * والقراءة بلا `message` كاملة لا تكفي: النص هو موضع الرابط والحرف
+     * الأجنبي. والسقف ألفان لئلا يقرأ جدول ضخم في كل فتح شاشة.
+     */
+    private function contact_spam_ids()
+    {
+        try {
+            $this->load->model('taqdar_contact_model');
+            $min = (int) $this->taqdar_contact_model->block_score();
+
+            $rows = $this->db->select('id, first_name, last_name, email, phone, subject, address, message')
+                             ->order_by('id', 'DESC')->limit(2000)
+                             ->get('contact')->result_array();
+
+            $ids = array();
+            foreach ($rows as $r) {
+                $s = $this->taqdar_contact_model->score_row($r);
+                if ($s['score'] >= $min) $ids[] = (int) $r['id'];
+            }
+            return $ids;
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-CONTACT spam scan: ' . $e->getMessage());
+            return array();
+        }
+    }
+
     public function contact($type = "", $id = "")
     {
         /**
@@ -2898,6 +2928,53 @@ class Admin extends CI_Controller
          * `!empty($ids)` كان صادقا أبدا — والحذف ينفذ بـ`WHERE id IN ('')`،
          * فيقال «حذفت الرسائل» ولم يحذف شيء.
          */
+        /**
+         * TQ-CONTACT-SPAM · تنظيف ما دخل قبل الحارس.
+         *
+         * الحارس في `Taqdar_contact_model` يمنع ما يأتي بعده، ولا يمس ما
+         * جلس في الجدول من قبل — وهو الذي يغرق الشاشة اليوم. والحكم من
+         * `score_row()` نفسها التي تحكم على الوارد: قائمتان تفترقان تجعلان
+         * الزر يحذف غير ما وعد عداده.
+         */
+        if ($type == 'delete_spam') {
+            /* بـPOST وحده: رابط يحذف بمجرد جلبه يمر عليه زاحف. */
+            if (strtoupper((string) $this->input->method(TRUE)) !== 'POST') show_404();
+
+            $ids = $this->contact_spam_ids();
+
+            if ($ids) {
+                $this->db->where_in('id', $ids)->delete('contact');
+                $this->session->set_flashdata('flash_message', t('حذفت ____ رسالة مشبوهة.', count($ids)));
+            } else {
+                $this->session->set_flashdata('error_message', t('لا رسالة مشبوهة في الجدول.'));
+            }
+
+            redirect(site_url('admin/contact'), 'refresh');
+        }
+
+        /**
+         * TQ-CONTACT-RESET · تصفير الجدول كله.
+         *
+         * مرشح الدعاية يحكم على كل رسالة وحدها، وحين يغرق الجدول بالسبام
+         * يبقى فيه ما لا يعده مشبوها. وحذفها صفحة صفحة عمل ساعة، فهذا
+         * الباب الواحد: يمسح `contact` كله ولا يمس شيئا سواه.
+         * وبـPOST وحده كأخيه — رابط يمسح الجدول بمجرد جلبه يمر عليه زاحف.
+         */
+        if ($type == 'delete_all_contact') {
+            if (strtoupper((string) $this->input->method(TRUE)) !== 'POST') show_404();
+
+            $n = (int) $this->db->count_all_results('contact');
+
+            if ($n > 0) {
+                $this->db->empty_table('contact');
+                $this->session->set_flashdata('flash_message', t('حذفت ____ رسالة — الجدول فارغ الآن.', $n));
+            } else {
+                $this->session->set_flashdata('error_message', t('لا رسالة في الجدول أصلا.'));
+            }
+
+            redirect(site_url('admin/contact'), 'refresh');
+        }
+
         if ($type == 'delete_selected_contact') {
             $ids = array_filter(array_map('intval', (array) $this->input->post('ids')));
 
@@ -3030,6 +3107,8 @@ class Admin extends CI_Controller
             $page_data['subjects']   = $subjects;
             $page_data['open_n']     = $open_n;
             $page_data['all_n']      = (int) $this->db->count_all_results('contact');
+
+            $page_data['spam_n']     = count($this->contact_spam_ids());
 
             $page_data['page_name']  = 'contact';
             $page_data['page_title'] = get_phrase('Contact');

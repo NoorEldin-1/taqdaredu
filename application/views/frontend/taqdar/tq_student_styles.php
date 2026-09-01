@@ -44,17 +44,11 @@ if (!function_exists('tq_s_time')) {
     }
 }
 
-if (!function_exists('tq_s_secs')) {
-    /** «45:30» أو «01:12:40» إلى ثوان. مدد Academy تخزن كنص ساعة. */
-    function tq_s_secs($hms)
-    {
-        $parts = array_map('intval', explode(':', trim((string) $hms)));
-        $n = count($parts);
-        if ($n === 3) return $parts[0] * 3600 + $parts[1] * 60 + $parts[2];
-        if ($n === 2) return $parts[0] * 60 + $parts[1];
-        return $n === 1 ? $parts[0] : 0;
-    }
-}
+/* `tq_s_secs` و`tq_file_kind` انتقلتا إلى
+   [taqdar_student_helper.php](../../../helpers/taqdar_student_helper.php)
+   — تحملان تلقائيا، ويقرؤهما `Api_v1` كما يقرؤهما القالب. وضمهما هنا
+   كان يعني أن كل نداء عليهما من الواجهة يطبع كتلة `<style>` هذا الملف
+   فوق JSON. */
 
 if (!function_exists('tq_s_clock')) {
     /** ثوان إلى «45:30» — وحدة واحدة معزولة لا طرفان. */
@@ -140,48 +134,6 @@ if (!function_exists('tq_s_size')) {
     }
 }
 
-if (!function_exists('tq_file_kind')) {
-    /**
-     * نوع الملف: أيقونة ولون ثابتان لكل نوع في كل شاشة من المنصة.
-     * تغييرهما في شاشة واحدة يجعل الطالب يعيد التعرف على النوع في كل صفحة.
-     */
-    function tq_file_kind($file_name, $hint = '')
-    {
-        static $map = [
-            'pdf'   => ['key' => 'pdf',   'label' => 'PDF',        'icon' => 'file',     'pastel' => 'rose'],
-            'video' => ['key' => 'video', 'label' => 'فيديو',      'icon' => 'video',    'pastel' => 'sky'],
-            'slide' => ['key' => 'slide', 'label' => 'عرض تقديمي', 'icon' => 'chart',    'pastel' => 'peach'],
-            'audio' => ['key' => 'audio', 'label' => 'ملف صوتي',  'icon' => 'play',     'pastel' => 'lilac'],
-            'image' => ['key' => 'image', 'label' => 'صورة',       'icon' => 'folder',   'pastel' => 'mint'],
-            'link'  => ['key' => 'link',  'label' => 'رابط',       'icon' => 'clipboard','pastel' => 'sand'],
-            'doc'   => ['key' => 'doc',   'label' => 'مستند',      'icon' => 'file',     'pastel' => 'sand'],
-        ];
-        static $ext = [
-            'pdf' => 'pdf',
-            'mp4' => 'video', 'mkv' => 'video', 'webm' => 'video', 'mov' => 'video', 'avi' => 'video',
-            'ppt' => 'slide', 'pptx' => 'slide', 'key' => 'slide', 'odp' => 'slide',
-            'mp3' => 'audio', 'wav' => 'audio', 'm4a' => 'audio', 'ogg' => 'audio', 'aac' => 'audio',
-            'jpg' => 'image', 'jpeg' => 'image', 'png' => 'image', 'gif' => 'image', 'webp' => 'image', 'svg' => 'image',
-            'doc' => 'doc', 'docx' => 'doc', 'txt' => 'doc', 'rtf' => 'doc', 'xls' => 'doc', 'xlsx' => 'doc',
-            'zip' => 'doc', 'rar' => 'doc',
-        ];
-
-        /* TQ-I18N — التسمية وحدها تترجم؛ و`key` و`icon` و`pastel` رموز. */
-        $out = function ($row) { $row['label'] = t($row['label']); return $row; };
-
-        $name = trim((string) $file_name);
-        if ($name !== '' && preg_match('~^https?://~i', $name)) return $out($map['link']);
-
-        $e = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        if ($e !== '' && isset($ext[$e])) return $out($map[$ext[$e]]);
-
-        $h = strtolower(trim((string) $hint));
-        if (isset($map[$h])) return $out($map[$h]);
-        if ($h !== '' && isset($ext[$h])) return $out($map[$ext[$h]]);
-
-        return $out($map['doc']);
-    }
-}
 
 if (!function_exists('tq_s_cover')) {
     /** برنامج غلاف الكورس إن وجد فعلا على القرص، وإلا فارغ فيرسم بديل CSS. */

@@ -446,7 +446,19 @@ document.documentElement.classList.add('js');
         /* الفراغ في حقل اختياري ليس بريدا خاطئا: فحص الصيغة على قيمة
            موجودة وحدها، وإلا رد النموذج بحقل تركه صاحبه عمدا. */
         if (valid && f.type === 'email' && value) valid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
-        if (valid && f.type === 'tel' && value) valid = /^5[0-9]{8}$/.test(value);
+        /* TQ-PHONE-INTL — قواعد الدولة من منتقيها لا من سطر هنا:
+           كان `^5[0-9]{8}$` يرد كل رقم غير سعودي في نموذج تواصل معنا،
+           والخادم يقبله. وحقل بلا منتقي يبقى على القاعدة القديمة. */
+        if (valid && f.type === 'tel' && value) {
+          var pr = TQPhoneRules.rule(f);
+          if (pr) {
+            var pn = TQPhoneRules.nat(value, pr);
+            valid = pn.length >= pr.min && pn.length <= pr.max
+                 && (!pr.starts || pr.starts.indexOf(pn[0]) >= 0);
+          } else {
+            valid = /^5[0-9]{8}$/.test(value);
+          }
+        }
 
         var field = f.closest('.form-field');
         if (field) field.classList.toggle('form-field--invalid', !valid);
@@ -759,28 +771,14 @@ document.documentElement.classList.add('js');
 
 })();
 
-/* ==== تحقق نماذج الحساب ==============================================
-   الدخول والتسجيل والاستعادة نماذج تكتب فيها كلمات سر وأعمار وأرقام،
-   وكانت بلا تحقق في المتصفح إطلاقا: `sign_up` يحمل `novalidate` ولا
-   يحمل `data-validate`، فيبطل تحقق المتصفح ولا يحل محله شيء. والنتيجة
-   أن كل خطأ — حرف ناقص في كلمة المرور، بريد بلا نقطة — يسافر إلى
-   الخادم، فيعود ردا يمسح النموذج كله برسالة واحدة أعلى الصفحة.
-
-   وهذا يتحقق **قبل** الإرسال ويقول لكل حقل ما به تحته مباشرة. وهو
-   طبقة راحة لا طبقة أمان: الخادم يعيد الفحص كله في `Login::register`،
-   فمن عطل السكربت لا يمر بشيء.
-
-   والقواعد تقرأ من الوسم نفسه (`required` و`minlength` و`min`/`max`
-   و`type`) كي لا يفترق الحقل عن قاعدته حين يعدل أحدهما دون الآخر،
-   ويزاد عليها `data-match` للتأكيد و`data-msg` لرسالة خاصة.
-   ==================================================================== */
-(function () {
+/* TQ-PHONE-INTL — قواعد الجوال موضع واحد يقرأ منه فاحصان.
+   فاحص نماذج الحساب (`data-tq-auth`) وفاحص نماذج الموقع
+   (`data-validate` — ومنها تواصل معنا) يسألان السؤال نفسه.
+   وكان الثاني يكتب `^5[0-9]{8}$` في سطره، فيرد رقما مصريا
+   صحيحا سيقبله الخادم — وشرطان مختلفان لحقل واحد أسوأ من
+   شرط واحد ضيق. */
+var TQPhoneRules = (function () {
   'use strict';
-
-  var forms = document.querySelectorAll('form[data-tq-auth]');
-  if (!forms.length) return;
-
-  var RE_MAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   var AR_DIGITS = { '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9' };
   var toLatin = function (d) { return AR_DIGITS[d]; };
 
@@ -831,6 +829,36 @@ document.documentElement.classList.add('js');
     }
     return cands[0];
   }
+
+
+  return { norm: normPhone, rule: phoneRule, nat: phoneNat };
+})();
+
+/* ==== تحقق نماذج الحساب ==============================================
+   الدخول والتسجيل والاستعادة نماذج تكتب فيها كلمات سر وأعمار وأرقام،
+   وكانت بلا تحقق في المتصفح إطلاقا: `sign_up` يحمل `novalidate` ولا
+   يحمل `data-validate`، فيبطل تحقق المتصفح ولا يحل محله شيء. والنتيجة
+   أن كل خطأ — حرف ناقص في كلمة المرور، بريد بلا نقطة — يسافر إلى
+   الخادم، فيعود ردا يمسح النموذج كله برسالة واحدة أعلى الصفحة.
+
+   وهذا يتحقق **قبل** الإرسال ويقول لكل حقل ما به تحته مباشرة. وهو
+   طبقة راحة لا طبقة أمان: الخادم يعيد الفحص كله في `Login::register`،
+   فمن عطل السكربت لا يمر بشيء.
+
+   والقواعد تقرأ من الوسم نفسه (`required` و`minlength` و`min`/`max`
+   و`type`) كي لا يفترق الحقل عن قاعدته حين يعدل أحدهما دون الآخر،
+   ويزاد عليها `data-match` للتأكيد و`data-msg` لرسالة خاصة.
+   ==================================================================== */
+(function () {
+  'use strict';
+
+  var forms = document.querySelectorAll('form[data-tq-auth]');
+  if (!forms.length) return;
+
+  var RE_MAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  var normPhone = TQPhoneRules.norm;
+  var phoneRule = TQPhoneRules.rule;
+  var phoneNat  = TQPhoneRules.nat;
 
   /* اسم الحقل كما يقرؤه صاحبه: `.sr-only` بجانبه هو تسميته الحقيقية،
      و`placeholder` بديل — فلا تكتب الرسالة «هذا الحقل مطلوب». */

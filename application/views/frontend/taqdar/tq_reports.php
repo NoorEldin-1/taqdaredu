@@ -24,178 +24,36 @@ $tq_icon  = 'chart';
 
 $uid = (int) $this->session->userdata('user_id');
 
-/* ---- الكورسات المسجلة ------------------------------------------------- */
-$tq_enrolled = $this->db->select('c.id, c.title, c.category_id')
-    ->from('enrol e')
-    ->join('course c', 'c.id = e.course_id', 'inner')
-    ->where('e.user_id', $uid)
-    ->get()->result_array();
-
-$tq_course_ids = array_map(static function ($r) { return (int) $r['id']; }, $tq_enrolled);
-$tq_has_data   = count($tq_course_ids) > 0;
-
-/* ---- وقت الدراسة الفعلي داخل المحتوى ---------------------------------- */
-$tq_seconds = (int) $this->db->select_sum('current_duration', 'total')
-    ->where('watched_student_id', $uid)
-    ->get('watched_duration')->row('total');
-$tq_hours   = intdiv($tq_seconds, 3600);
-$tq_minutes = intdiv($tq_seconds % 3600, 60);
-
-/* ---- تقدم الكورسات ----------------------------------------------------
-   مقيد بالكورسات المسجلة — وهي نفسها مقام «الدروس المكتملة» أدناه.
-   وكان يقرأ `watch_histories` كلها: البسط من كل كورس مر به الطالب ولو
-   حذف، والمقام من `enrol` وحده. فتطبع الشاشة «٦ من ٠ درسا» — رقم يفضح
-   نفسه ولا يفسر. والرقمان الآن من مجموعة واحدة. */
-$tq_history = $tq_course_ids
-    ? $this->db->where('student_id', $uid)
-               ->where_in('course_id', $tq_course_ids)
-               ->get('watch_histories')->result_array()
-    : [];
-
-$tq_progress_sum = 0;
-$tq_done_lessons = 0;
-$tq_progress_by_course = [];
-foreach ($tq_history as $row) {
-    $tq_progress_sum += (int) $row['course_progress'];
-    $tq_progress_by_course[(int) $row['course_id']] = (int) $row['course_progress'];
-    /* `completed_lesson` قائمة معرفات يضاف إليها عند كل إكمال، وقد يكرر
-       المعرف نفسه فيها. فعدها خاما كان يعطي «١٤ من ١٢ درسا» — رقما
-       يفضح نفسه. والتفريد هنا هو نفسه المعمول به في `tq_s_enrolled()`،
-       فلا يفترق رقم الشاشتين. */
-    $done = json_decode($row['completed_lesson'], true);
-    if (is_array($done)) {
-        $tq_done_lessons += count(array_unique($done));
-    }
-}
-$tq_completion = $tq_history ? (int) round($tq_progress_sum / count($tq_history)) : 0;
-
-/* عدد الدروس — والاختبار ليس درسا، فلا يحسب في مقام «الدروس المكتملة» */
-$tq_total_lessons = 0;
-$tq_lessons_by_course = [];
-if ($tq_course_ids) {
-    foreach ($this->db->select('course_id, COUNT(*) AS n')
-                      ->from('lesson')
-                      ->where_in('course_id', $tq_course_ids)
-                      ->where('lesson_type !=', 'quiz')
-                      ->group_by('course_id')->get()->result_array() as $r) {
-        $tq_lessons_by_course[(int) $r['course_id']] = (int) $r['n'];
-        $tq_total_lessons += (int) $r['n'];
-    }
-}
-
-/* ---- الاختبارات: العلامة نسبة إلى عدد الأسئلة ------------------------- */
-$tq_quizzes = $this->db->where('user_id', $uid)->where('is_submitted', 1)
-    ->order_by('date_added', 'ASC')
-    ->get('quiz_results')->result_array();
-
-$tq_quiz_points = [];   // [الطابع الزمني => النسبة]
-foreach ($tq_quizzes as $q) {
-    $answers = json_decode($q['correct_answers'], true);
-    $count   = is_array($answers) ? count($answers) : 0;
-    if ($count < 1) {
-        continue;
-    }
-    // درجة لم يعتمدها المعلم بعد لا تدخل متوسطا يقرؤه الطالب على أنه أداؤه
-    if (!tq_grade_visible($q)) { continue; }
-    $tq_quiz_points[(int) $q['date_added']] = max(0, min(100, (int) round(((float) $q['total_obtained_marks'] / $count) * 100)));
-}
-$tq_average = $tq_quiz_points ? (int) round(array_sum($tq_quiz_points) / count($tq_quiz_points)) : 0;
-
-/* ---- الأسابيع الثمانية الأخيرة — والأسبوع يبدأ الأحد ------------------- */
-$tq_today_start = strtotime('today');
-$tq_week_start  = $tq_today_start - ((int) date('w', $tq_today_start)) * 86400;
-
-$tq_weeks = [];
-for ($i = 7; $i >= 0; $i--) {
-    $from = $tq_week_start - $i * 7 * 86400;
-    $tq_weeks[] = ['from' => $from, 'to' => $from + 7 * 86400];
-}
-
-/* متوسط الدرجات لكل أسبوع — بيانات فعلية من تواريخ تسليم الاختبارات */
-$tq_grade_series = [];
-foreach ($tq_weeks as $w) {
-    $vals = [];
-    foreach ($tq_quiz_points as $ts => $pct) {
-        if ($ts >= $w['from'] && $ts < $w['to']) {
-            $vals[] = $pct;
-        }
-    }
-    $tq_grade_series[] = $vals ? (int) round(array_sum($vals) / count($vals)) : null;
-}
-
-/* نسبة الإنجاز لكل أسبوع — التقدم المسجل للكورسات التي جرى تحديثها في ذلك
-   الأسبوع. قيمة مسجلة لا مستنتجة، ولذلك تترك فارغة في الأسابيع بلا تحديث. */
-$tq_completion_series = [];
-foreach ($tq_weeks as $w) {
-    $vals = [];
-    foreach ($tq_history as $row) {
-        $ts = (int) $row['date_updated'];
-        if ($ts >= $w['from'] && $ts < $w['to']) {
-            $vals[] = (int) $row['course_progress'];
-        }
-    }
-    $tq_completion_series[] = $vals ? (int) round(array_sum($vals) / count($vals)) : null;
-}
-
-/* دلتا «من الأسبوع الماضي» — تحسب فقط حين يوجد قياس فعلي للأسبوعين. */
-$tq_delta = static function ($series) {
-    $n = count($series);
-    if ($n < 2 || $series[$n - 1] === null || $series[$n - 2] === null) {
-        return null;
-    }
-    return $series[$n - 1] - $series[$n - 2];
-};
-$tq_grade_delta      = $tq_delta($tq_grade_series);
-$tq_completion_delta = $tq_delta($tq_completion_series);
-
-/* ---- الدروس المكتملة أسبوعا بعد أسبوع ---------------------------------
-   مصدرها lesson_progress.completed_at — الطابع الزمني الوحيد في القاعدة
-   لإكمال درس بعينه. (watch_histories.completed_lesson مصفوفة معرفات بلا
-   تاريخ لكل عنصر، فلا تصلح سلسلة زمنية.) والخط تراكمي لأن «المكتملة»
-   عدد لا يتناقص. */
+/* الأرقام كلها من `Taqdar_student_model::reports()` — البسط والمقام من
+   **مجموعة واحدة** (الكورسات المسجلة)، والدرجة التي لم يعتمدها المعلم
+   لا تدخل المتوسط، والدلتا تحسب حيث يوجد قياس للأسبوعين لا حيث يخترع
+   صفر. والواجهة (`Api_v1`) تنادي الدالة نفسها، فلا يقرأ الطالب رقمين
+   لحقيقة واحدة. */
 $CI = get_instance();
-$tq_lesson_done_ts = [];
-foreach ($CI->db->select('completed_at')->from('lesson_progress')
-                ->where('student_id', $uid)
-                ->where('completed_at IS NOT NULL', null, false)
-                ->get()->result_array() as $r) {
-    $ts = strtotime((string) $r['completed_at']);
-    if ($ts) $tq_lesson_done_ts[] = $ts;
-}
+$CI->load->model('taqdar_student_model', 'tq_stu');
+$tq_rep = $CI->tq_stu->reports($uid);
 
-$tq_lessons_series = [];
-foreach ($tq_weeks as $w) {
-    $n = 0;
-    foreach ($tq_lesson_done_ts as $ts) {
-        if ($ts < $w['to']) $n++;
-    }
-    $tq_lessons_series[] = $n > 0 ? $n : null;
-}
-
-/* ---- أداؤك في المواد: تجميع الكورسات بالتصنيف ------------------------- */
-$tq_subjects = [];
-if ($tq_enrolled) {
-    $cat_ids = array_values(array_unique(array_filter(array_map(static function ($r) {
-        return (int) $r['category_id'];
-    }, $tq_enrolled))));
-    $cat_names = [];
-    if ($cat_ids) {
-        foreach ($this->db->where_in('id', $cat_ids)->get('category')->result_array() as $c) {
-            $cat_names[(int) $c['id']] = $c['name'];
-        }
-    }
-    foreach ($tq_enrolled as $row) {
-        $key = (int) $row['category_id'];
-        $name = $cat_names[$key] ?? $row['title'];
-        if (!isset($tq_subjects[$key])) {
-            $tq_subjects[$key] = ['name' => $name, 'sum' => 0, 'courses' => 0, 'lessons' => 0];
-        }
-        $tq_subjects[$key]['sum']     += $tq_progress_by_course[(int) $row['id']] ?? 0;
-        $tq_subjects[$key]['lessons'] += $tq_lessons_by_course[(int) $row['id']] ?? 0;
-        $tq_subjects[$key]['courses']++;
-    }
-    $tq_subjects = array_slice($tq_subjects, 0, 5, true);
-}
+$tq_enrolled      = $tq_rep['enrolled'];
+$tq_has_data      = $tq_rep['has_data'];
+$tq_seconds       = $tq_rep['seconds'];
+$tq_hours         = $tq_rep['hours'];
+$tq_minutes       = $tq_rep['minutes'];
+$tq_history       = $tq_rep['history'];
+$tq_completion    = $tq_rep['completion'];
+$tq_done_lessons  = $tq_rep['done_lessons'];
+$tq_total_lessons = $tq_rep['total_lessons'];
+$tq_quizzes       = $tq_rep['quizzes'];
+$tq_quiz_points   = $tq_rep['quiz_points'];
+$tq_average       = $tq_rep['average'];
+$tq_weeks         = $tq_rep['weeks'];
+$tq_grade_series      = $tq_rep['grade_series'];
+$tq_completion_series = $tq_rep['completion_series'];
+$tq_lessons_series    = $tq_rep['lessons_series'];
+$tq_grade_delta       = $tq_rep['grade_delta'];
+$tq_completion_delta  = $tq_rep['completion_delta'];
+$tq_subjects          = $tq_rep['subjects'];
+$tq_progress_by_course = $tq_rep['progress_by_course'];
+$tq_lessons_by_course  = $tq_rep['lessons_by_course'];
 
 /* ---- سجل النشاط: أحدث ما سجلته القاعدة فعلا ------------------------- */
 $tq_activity = [];

@@ -1152,6 +1152,7 @@ class Taqdar_parent_model extends CI_Model
         ]);
 
         $this->announce_by_mail($to_user, $title, $body);
+        $this->announce_by_wa($to_user, $title, $body, $type);
     }
 
     /**
@@ -1185,6 +1186,24 @@ class Taqdar_parent_model extends CI_Model
             );
         } catch (Throwable $e) {
             log_message('error', 'parent_links mail: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * وواتساب معه (TQ-WA-ALL) — للحجة نفسها المكتوبة أعلاه، وهي هنا
+     * أقوى: ولي الأمر لا يفتح المنصة يوميا، وقد لا يفتح بريده كذلك.
+     *
+     * والحارس ليس هنا: `Taqdar_admin_model::notify_wa()` هي الباب، وفيه
+     * سياسة العائلة وتفضيل صاحب الحساب وساعات صمته.
+     */
+    private function announce_by_wa($to_user, $title, $body, $type)
+    {
+        try {
+            $this->load->model('taqdar_admin_model');
+            $this->taqdar_admin_model->notify_wa(
+                (int) $to_user, (string) $title, strip_tags((string) $body), (string) $type);
+        } catch (Throwable $e) {
+            log_message('error', 'parent_links wa: ' . $e->getMessage());
         }
     }
 

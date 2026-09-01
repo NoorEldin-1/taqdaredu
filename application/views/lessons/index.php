@@ -7,7 +7,7 @@ $language_dir = tq_dir();
 ?>
 
 <!DOCTYPE html>
-<html lang="<?php echo html_escape(tq_iso()); ?>" dir="<?php echo html_escape($language_dir); ?>">
+<html lang="<?php echo html_escape(tq_lang_iso()); ?>" dir="<?php echo html_escape($language_dir); ?>">
 <head>
 	<title><?php echo $course_details['title'].' | '.get_settings('system_name'); ?></title>
 	<meta charset="utf-8">

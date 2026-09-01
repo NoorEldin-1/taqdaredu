@@ -21,7 +21,7 @@ $page_title          = t(isset($page_title) ? $page_title : 'لوحة الإدا
 /* TQ-I18N — اللغة والاتجاه من `tq_lang()` وحدها، كالواجهة الأمامية. */
 $tqa_active = tq_lang();
 $tqa_dir    = tq_dir();
-$tqa_iso    = tq_iso();
+$tqa_iso    = tq_lang_iso();
 $tqa_lang   = $tqa_active;
 ?>
 <!DOCTYPE html>

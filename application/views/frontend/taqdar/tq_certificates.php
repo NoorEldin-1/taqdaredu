@@ -24,18 +24,11 @@ $tq_title = t('الشهادات');
 $tq_sub   = t('ما أتقنته، موثقا وقابلا للتحقق');
 $tq_icon  = 'award';
 
-$tq_certs = [];
-if ($this->db->table_exists('attempts')) {
-    $tq_certs = $this->db->query(
-        "SELECT a.id, a.score, a.submitted_at, p.title AS path_title, m.title AS milestone_title
-           FROM attempts a
-           JOIN assessments s ON s.id = a.assessment_id AND s.type = 'exam'
-           LEFT JOIN milestones m ON m.id = s.milestone_id
-           LEFT JOIN paths p ON p.id = COALESCE(s.path_id, m.path_id)
-          WHERE a.student_id = ? AND a.passed = 1
-          ORDER BY a.submitted_at DESC", [$tq_uid]
-    )->result_array();
-}
+/* القاعدة في `Taqdar_student_model` لا هنا: الواجهة تسأل السؤال نفسه،
+   ونسخة ثانية من شرط «اجتاز امتحان محطة» تفترق عن أختها عند أول تعديل. */
+$CI = get_instance();
+$CI->load->model('taqdar_student_model', 'tq_stu');
+$tq_certs = $CI->tq_stu->certificates($tq_uid);
 
 include 'portal_open.php';
 ?>
@@ -77,7 +70,7 @@ include 'portal_open.php';
                             </div>
                             <div class="tq-s-row">
                                 <dt class="tq-caption"><?php echo t('رمز التحقق'); ?></dt>
-                                <dd style="margin:0"><?php echo tq_num('TQ-' . str_pad((string) $c['id'], 6, '0', STR_PAD_LEFT), 'tq-num--sm'); ?></dd>
+                                <dd style="margin:0"><?php echo tq_num($CI->tq_stu->certificate_code($c['id']), 'tq-num--sm'); ?></dd>
                             </div>
                         </dl>
                         <div class="tq-row" style="margin-block-start:var(--tq-space-l)">

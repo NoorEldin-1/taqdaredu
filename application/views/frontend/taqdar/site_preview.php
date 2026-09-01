@@ -9,8 +9,22 @@ $tq_l = isset($tq_lesson) ? $tq_lesson : array();
 $tq_c = isset($tq_course) ? $tq_course : array();
 $tq_p = isset($tq_plan)   ? $tq_plan   : null;
 
-$tq_h1   = (string) ($tq_l['title'] ?? 'معاينة');
-$tq_lead = 'درس مجاني من ' . (string) ($tq_c['title'] ?? 'المنصة') . ' — شاهده كاملا قبل أن تشترك.';
+$tq_h1 = (string) ($tq_l['title'] ?? 'معاينة');
+
+/* TQ-PREVIEW-CAP — حد المعاينة صف في `settings` لا رقم في قالب، فتغيير
+   السياسة لا يحتاج نشر شيفرة. وصفر أو غياب = المعاينة كاملة كما كانت،
+   فالصفحة لا تنكسر إن حذف الصف. */
+$tq_cap     = (int) get_settings('tq_preview_seconds');
+$tq_cap_min = $tq_cap > 0 ? (int) round($tq_cap / 60) : 0;
+
+/* والنص يقول ما يحدث فعلا. كان «شاهده كاملا» وهو صادق يوم كتب، فلما
+   صار الدرس يقف عند الحد وجب أن يتغير معه — وإلا صار وعدا يكتشف
+   الزائر كذبه عند الدقيقة الخامسة، وذلك أسوأ من ألا يوعد أصلا. */
+$tq_lead = $tq_cap > 0
+    ? 'درس مجاني من ' . (string) ($tq_c['title'] ?? 'المنصة')
+      . ' — أول ' . $tq_cap_min . ' دقائق منه مفتوحة بلا اشتراك.'
+    : 'درس مجاني من ' . (string) ($tq_c['title'] ?? 'المنصة') . ' — شاهده كاملا قبل أن تشترك.';
+
 include __DIR__ . '/site/site_pagehero.php';
 
 $tq_embed = tqs_video_embed($tq_l['video_type'] ?? '', $tq_l['video_url'] ?? '', $tq_h1);
@@ -26,15 +40,44 @@ $tq_dur   = tqs_dur($tq_l['duration'] ?? '');
     </nav>
 
     <div class="icard preview-card">
-      <div class="preview-player">
-        <?php if ($tq_embed !== ''): ?>
-          <?php echo $tq_embed; ?>
-        <?php else: ?>
-          <div class="tq-empty">
-            <p class="dir-empty">لا يوجد مقطع لهذا الدرس بعد.</p>
-          </div>
-        <?php endif; ?>
+      <div class="preview-player" data-tq-preview-cap="<?php echo (int) $tq_cap; ?>">
+        <div data-tq-preview-player>
+          <?php if ($tq_embed !== ''): ?>
+            <?php echo $tq_embed; ?>
+          <?php else: ?>
+            <div class="tq-empty">
+              <p class="dir-empty">لا يوجد مقطع لهذا الدرس بعد.</p>
+            </div>
+          <?php endif; ?>
+        </div>
       </div>
+
+      <?php
+      /* بطاقة تحل محل المشغل عند الحد — لا طبقة شفافة فوقه: الطبقة
+         تبقي الصوت يعمل خلفها، وتترك المؤشر يسحب من تحتها. والبطاقة
+         تطبع هنا مخفية لا يبنيها السكربت، فنصها يترجم بـ`t()` ويرثه
+         من لا جافاسكربت عنده معطلا لا مكسورا. */
+      if ($tq_cap > 0 && $tq_embed !== ''):
+      ?>
+        <div class="tq-empty preview-wall" data-tq-preview-wall hidden>
+          <p class="tq-empty__title"><?php echo t('انتهت المعاينة'); ?></p>
+          <p class="dir-empty">
+            <?php echo t('شاهدت أول'); ?> <?php echo (int) $tq_cap_min; ?> <?php echo t('دقائق من الدرس. وبقيته — وبقية المنهج مادة مادة — تفتح بالاشتراك.'); ?>
+          </p>
+          <div class="cta__actions">
+            <?php if ($tq_p): ?>
+              <a class="btn btn--primary" href="<?php echo base_url('plan/' . rawurlencode((string) $tq_p['code'])); ?>">
+                <?php echo t('اشترك الآن'); ?>
+              </a>
+            <?php else: ?>
+              <a class="btn btn--primary" href="<?php echo base_url('plans'); ?>"><?php echo t('اشترك الآن'); ?></a>
+            <?php endif; ?>
+            <button class="btn btn--ghost" type="button" data-tq-preview-again>
+              <?php echo t('أعد المعاينة من البداية'); ?>
+            </button>
+          </div>
+        </div>
+      <?php endif; ?>
 
       <div class="preview-meta">
         <span class="post-tag"><svg aria-hidden="true"><use href="#i-unlock"></use></svg> معاينة مجانية</span>

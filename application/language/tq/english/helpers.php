@@ -175,7 +175,6 @@ return array(
     'جيبوتي' => 'Djibouti',
     'حجم الصورة أكبر مما يقبله الخادم. اختر صورة أصغر.' => 'The image is larger than the server accepts. Choose a smaller one.',
     'حجم الصورة أكبر من' => 'The image is larger than',
-    'حصة' => 'session',
     'حصتان' => 'two sessions',
     'حصتين' => 'two sessions',
     'حصص' => 'sessions',

@@ -12,7 +12,7 @@
    `null`، ولغة لا صف لها تسقط على `'ltr'` فتفتح صفحة عربية من اليسار. */
 $tq_active   = tq_lang();
 $tq_dir      = tq_dir();
-$tq_iso      = tq_iso();
+$tq_iso      = tq_lang_iso();
 $tq_lang     = $tq_active;   // متروك: قوالب تحته تقرؤه
 
 /**

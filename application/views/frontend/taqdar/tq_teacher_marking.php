@@ -51,6 +51,9 @@ $tq_hw_approved = $tq_mark->homework_recent($tq_uid, 8);
 $tq_rid    = (int) $this->input->get('result');
 $tq_single = $tq_rid ? $tq_mark->attempt($tq_rid, $tq_uid) : null;
 
+/* ورقة الإجابات — الحارس فيها هو `attempt()` نفسه، فلا شرط ملكية ثان. */
+$tq_sheet  = $tq_rid ? $tq_mark->answers_of($tq_rid, $tq_uid) : array();
+
 $tq_hwid   = (int) $this->input->get('hw');
 $tq_hw_one = $tq_hwid ? $tq_mark->homework_attempt($tq_hwid, $tq_uid) : null;
 
@@ -70,6 +73,31 @@ include 'portal_open.php';
 
 <div class="tq-cols">
     <div>
+
+        <?php /* طلب لم يجب — ولا يسكت عنه.
+                 «راجع» يحمل معرفا في الرابط، و`attempt()`/`homework_attempt()`
+                 تردان `null` لثلاثة أسباب لا تفرق بينها: الصف غير موجود، أو
+                 ليس في كورسات هذا المعلم، أو أنه في **النظام الموروث**
+                 (`quiz_results`) الذي لم يعد يؤلف به شيء — انظر TQ-EXAM-SOURCE.
+                 وكانت الشاشة حينها تعيد رسم القوائم كما هي بلا لوح ولا سطر،
+                 فيضغط المعلم «راجع» ولا يقع شيء يقرأ: لا بيانات ولا سبب ولا
+                 خطأ. فيظن الزر معطلا ويعيد الضغط. والقول أهون من الصمت. */ ?>
+        <?php if (($tq_rid && !$tq_single) || ($tq_hwid && !$tq_hw_one)): ?>
+            <section class="tq-card tq-card--panel tq-section" role="alert" id="tq-marking-detail">
+                <div class="tq-row" style="gap:var(--tq-space-l);align-items:flex-start">
+                    <span class="tq-icon-box tq-pastel--peach" aria-hidden="true"><?php echo tq_icon('alert'); ?></span>
+                    <div style="flex:1">
+                        <h2 class="tq-card__title" style="margin:0"><?php echo t('لم نفتح هذا التسليم'); ?></h2>
+                        <p class="tq-body" style="margin:var(--tq-space-s) 0 var(--tq-space-l)">
+                            <?php echo t('لم نجد تسليما بهذا المعرف في كورساتك. قد يكون حذف، أو أنه في كورس ليس لك، أو أنه سجل قديم لا تفتحه هذه الشاشة.'); ?>
+                        </p>
+                        <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('teacher/marking'); ?>">
+                            <?php echo t('عد إلى صف التصحيح'); ?>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
 
         <?php if ($tq_single): ?>
             <?php
@@ -128,6 +156,47 @@ include 'portal_open.php';
                         <?php endif; ?>
                     </p>
                 </div>
+
+                <?php /* ورقة الطالب قبل حقل الدرجة لا بعده: من يوقع درجة يقرأ ما
+                         يوقع عليه أولا. وكان اللوح يعرض اقتراحا آليا وحقل رقم
+                         بلا سؤال واحد ولا إجابة واحدة — فالمعلم يعتمد رقما لا
+                         يعرف على أي شيء بني، والبيانات في الصف نفسه أمامه. */ ?>
+                <?php if ($tq_sheet): ?>
+                    <details class="tq-card tq-sheet" style="margin-block-end:var(--tq-space-xl)" open>
+                        <summary class="tq-strong" style="cursor:pointer;color:var(--tq-navy)">
+                            <?php echo t('إجابات الطالب — ____ سؤالا', array(TQ_LRI . count($tq_sheet) . TQ_PDI)); ?>
+                        </summary>
+                        <ol class="tq-sheet__list">
+                            <?php foreach ($tq_sheet as $tq_q): ?>
+                                <li class="tq-sheet__q<?php echo $tq_q['manual'] ? ' is-manual' : ($tq_q['is_correct'] ? ' is-right' : ' is-wrong'); ?>">
+                                    <p class="tq-strong" style="margin:0 0 var(--tq-space-xs)">
+                                        <?php echo tq_num($tq_q['number']); ?>.
+                                        <?php echo html_escape(strip_tags($tq_q['title'])); ?>
+                                    </p>
+                                    <p class="tq-caption" style="margin:0">
+                                        <?php echo t('إجابته:'); ?>
+                                        <?php echo $tq_q['chosen']
+                                            ? html_escape(implode(t('، '), $tq_q['chosen']))
+                                            : '<span class="tq-muted">' . t('لم يجب') . '</span>'; ?>
+                                    </p>
+                                    <?php if ($tq_q['manual']): ?>
+                                        <p class="tq-micro tq-muted" style="margin:var(--tq-space-xs) 0 0">
+                                            <?php echo t('سؤال لا يصححه السكربت — حكمه لك.'); ?>
+                                        </p>
+                                    <?php elseif (!$tq_q['is_correct'] && $tq_q['correct']): ?>
+                                        <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
+                                            <?php echo t('الصحيح:'); ?> <?php echo html_escape(implode(t('، '), $tq_q['correct'])); ?>
+                                        </p>
+                                    <?php endif; ?>
+                                </li>
+                            <?php endforeach; ?>
+                        </ol>
+                    </details>
+                <?php else: ?>
+                    <p class="tq-caption tq-muted" style="margin-block-end:var(--tq-space-xl)">
+                        <?php echo t('لم يحفظ لهذا التسليم تفصيل إجابات — الاقتراح الآلي وحده متاح، فاعتمد بما تعرفه عن الطالب.'); ?>
+                    </p>
+                <?php endif; ?>
 
                 <div class="tq-grid tq-grid--2">
                     <div class="tq-field">
@@ -582,5 +651,24 @@ include 'portal_open.php';
         </div>
     </aside>
 </div>
+
+<style>
+/* ورقة الإجابات — الألوان من `tokens.css` وحدها، فلا قيمة مباشرة تخرج
+   عن الهوية. والحد الجانبي هو الفارق: يقرأ الصحيح من الخطأ بلمحة قبل
+   أن يقرأ النص. */
+.tq-sheet__list { margin: var(--tq-space-l) 0 0; padding: 0; list-style: none; }
+.tq-sheet__q {
+  padding: var(--tq-space-m) var(--tq-space-l);
+  border-inline-start: 3px solid var(--tq-line);
+  border-radius: var(--tq-radius-small);
+  background: var(--tq-surface);
+  margin-block-end: var(--tq-space-s);
+}
+.tq-sheet__q.is-right  { border-inline-start-color: var(--tq-mint-ink); }
+.tq-sheet__q.is-wrong  { border-inline-start-color: var(--tq-rose-ink); }
+.tq-sheet__q.is-manual { border-inline-start-color: var(--tq-amber); }
+.tq-sheet summary { list-style: none; }
+.tq-sheet summary::-webkit-details-marker { display: none; }
+</style>
 
 <?php include 'portal_close.php'; ?>

@@ -47,155 +47,16 @@ $tq_month_names = [t('يناير'), t('فبراير'), t('مارس'), t('أبر�
 $tq_day_names   = [t('الأحد'), t('الاثنين'), t('الثلاثاء'), t('الأربعاء'), t('الخميس'), t('الجمعة'), t('السبت')];
 $tq_day_short   = [t('أحد'), t('اثنين'), t('ثلاثاء'), t('أربعاء'), t('خميس'), t('جمعة'), t('سبت')];
 
-/* ---- خمس فئات ثابتة، ولون كل فئة ثابت لا يتغير بين الشاشات ---------- */
-$tq_cats = [
-    'lessons'   => [t('الدروس'),        'var(--tq-teal)',  'play',        t('انضم إلى الدرس'),  'student/lessons'],
-    'exams'     => [t('الاختبارات'),    'var(--tq-sky-ink)', 'check-badge', t('ابدأ الاختبار'),   'student/exams'],
-    'tasks'     => [t('المهام'),        'var(--tq-amber)', 'clipboard',   t('رفع الواجب'),      'student/tasks'],
-    'on_demand' => [t('حصص بالطلب'),    'var(--tq-navy)',  'video',       t('دخول الحصة'),      'student/on-demand'],
-    'revisions' => [t('المراجعات'),     'var(--tq-lilac-ink)', 'book',    t('بدء المراجعة'),    'student/materials'],
-];
+/* ---- خمس فئات ثابتة، ولون كل فئة ثابت لا يتغير بين الشاشات ----------
+   والفئات والأحداث كلاهما من `Taqdar_student_model`: خمسة مصادر
+   (وحدات المنهج · الاختبارات · الواجبات · الحصص · المراجعات) تجمع مرة
+   واحدة، وتنادي الواجهة (`Api_v1`) الدالة نفسها — فلا يقرأ الطالب
+   موعدا في تقويم التطبيق لا يجده في تقويم الموقع. */
+$CI = get_instance();
+$CI->load->model('taqdar_student_model', 'tq_stu');
 
-/* ---- الأحداث ---------------------------------------------------------
-   شكل الحدث الواحد:
-   ['ts' => طابع زمني, 'cat' => مفتاح فئة, 'title' => نص, 'sub' => نص, 'href' => رابط]
-   وكل حدث يحمل رابطه، فالتقويم ينقر منه كما تنص قاعدة الشاشة أعلاه.
-
-   get_instance() صراحة: $this في العرض ليس المتحكم، ونموذج أو قاعدة
-   تحمل أثناء العرض لا تظهر فيه. */
-$tq_events = [];
-
-if ($uid > 0) {
-    $CI = get_instance();
-
-    /** Academy يخزن الوقت نصا: طابعا زمنيا أحيانا وتاريخا أحيانا. */
-    $tq_ts = static function ($value) {
-        $v = trim((string) $value);
-        if ($v === '' || $v === '0') return 0;
-        if (ctype_digit($v)) return (int) $v;
-        $t = strtotime($v);
-        return $t ?: 0;
-    };
-
-    $tq_my_courses = [];
-    foreach ($CI->db->select('c.id, c.title')->from('enrol e')
-                    ->join('course c', 'c.id = e.course_id', 'inner')
-                    ->where('e.user_id', $uid)->get()->result_array() as $c) {
-        $tq_my_courses[(int) $c['id']] = (string) $c['title'];
-    }
-    $tq_cids = array_keys($tq_my_courses);
-
-    /* 1) الدروس — بداية الوحدة ونهايتها، وهما التاريخان الوحيدان المخزنان للمنهج */
-    if ($tq_cids) {
-        foreach ($CI->db->select('id, title, course_id, start_date, end_date')
-                        ->from('section')->where_in('course_id', $tq_cids)
-                        ->get()->result_array() as $s) {
-            $cid = (int) $s['course_id'];
-            foreach ([['start_date', t('بداية وحدة')], ['end_date', t('نهاية وحدة')]] as [$col, $word]) {
-                $ts = $tq_ts($s[$col]);
-                if ($ts <= 0) continue;
-                $tq_events[] = [
-                    'ts'    => $ts,
-                    'cat'   => 'lessons',
-                    'title' => $word . ': ' . $s['title'],
-                    'sub'   => $tq_my_courses[$cid] ?? '',
-                    'href'  => base_url('student/lessons'),
-                ];
-            }
-        }
-    }
-
-    /* 2) الاختبارات — من نتائج الطالب نفسه: تسليم أو بدء بلا تسليم */
-    if ($tq_cids) {
-        foreach ($CI->db->select('qr.quiz_id, qr.is_submitted, qr.date_added, qr.date_updated,'
-                               . ' l.title, l.course_id')
-                        ->from('quiz_results qr')
-                        ->join('lesson l', 'l.id = qr.quiz_id', 'inner')
-                        ->where('qr.user_id', $uid)
-                        ->where_in('l.course_id', $tq_cids)
-                        ->get()->result_array() as $r) {
-            $done = ((int) $r['is_submitted'] === 1);
-            $ts   = $tq_ts($done ? $r['date_updated'] : $r['date_added']);
-            if ($ts <= 0) continue;
-            $cid  = (int) $r['course_id'];
-            $tq_events[] = [
-                'ts'    => $ts,
-                'cat'   => 'exams',
-                'title' => ($done ? t('سلمت: ') : t('بدأت: ')) . $r['title'],
-                'sub'   => $tq_my_courses[$cid] ?? '',
-                'href'  => base_url('student/lesson/' . $cid . '/' . (int) $r['quiz_id']),
-            ];
-        }
-    }
-
-    /* 3) المهام — محاولات الطالب على تقييمات نوعها homework */
-    foreach ($CI->db->select('ap.started_at, ap.submitted_at, l.id AS lesson_id, l.title, l.course_id')
-                    ->from('attempts ap')
-                    ->join('assessments a', 'a.id = ap.assessment_id', 'inner')
-                    ->join('lesson l', 'l.id = a.lesson_id', 'inner')
-                    ->where('ap.student_id', $uid)
-                    ->where('a.type', 'homework')
-                    ->get()->result_array() as $r) {
-        $done = !empty($r['submitted_at']);
-        $ts   = $tq_ts($done ? $r['submitted_at'] : $r['started_at']);
-        if ($ts <= 0) continue;
-        $cid  = (int) $r['course_id'];
-        $tq_events[] = [
-            'ts'    => $ts,
-            'cat'   => 'tasks',
-            'title' => ($done ? t('سلمت واجب: ') : t('بدأت واجب: ')) . $r['title'],
-            'sub'   => $tq_my_courses[$cid] ?? '',
-            'href'  => base_url('student/lesson/' . $cid . '/' . (int) $r['lesson_id']),
-        ];
-    }
-
-    /* 4) حصص بالطلب — وقتها من الفترة المحجوزة لا من الحصة نفسها */
-    foreach ($CI->db->select('sl.starts_at, sl.duration_min, ts.status,'
-                           . ' u.first_name, u.last_name')
-                    ->from('tutoring_sessions ts')
-                    ->join('availability_slots sl', 'sl.id = ts.slot_id', 'inner')
-                    ->join('users u', 'u.id = ts.teacher_id', 'left')
-                    ->where('ts.student_id', $uid)
-                    ->where_in('ts.status', ['requested', 'confirmed', 'live', 'completed'])
-                    ->get()->result_array() as $r) {
-        $ts = $tq_ts($r['starts_at']);
-        if ($ts <= 0) continue;
-        $who = trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''));
-        $tq_events[] = [
-            'ts'    => $ts,
-            'cat'   => 'on_demand',
-            'title' => t('حصة') . ($who !== '' ? t(' مع ') . $who : ''),
-            /* نص خام: العزل يقع عند العرض مرة واحدة، فلا يعزل الرقم مرتين */
-            'sub'   => ((int) $r['duration_min']) . t(' دقيقة'),
-            'href'  => base_url('student/on-demand'),
-        ];
-    }
-
-    /* 5) المراجعات — استحقاقات طابور التكرار المتباعد */
-    foreach ($CI->db->select('rq.due_at, l.id AS lesson_id, l.title AS lesson_title, l.course_id')
-                    ->from('review_queue rq')
-                    ->join('question q', 'q.id = rq.question_id', 'inner')
-                    ->join('lesson l', 'l.id = q.quiz_id', 'left')
-                    ->where('rq.student_id', $uid)
-                    ->order_by('rq.due_at', 'ASC')
-                    ->limit(200)->get()->result_array() as $r) {
-        $ts = $tq_ts($r['due_at']);
-        if ($ts <= 0) continue;
-        $cid   = (int) $r['course_id'];
-        $title = trim((string) $r['lesson_title']);
-        $tq_events[] = [
-            'ts'    => $ts,
-            'cat'   => 'revisions',
-            'title' => t('مراجعة') . ($title !== '' ? ': ' . $title : ''),
-            'sub'   => $tq_my_courses[$cid] ?? '',
-            'href'  => $cid > 0
-                ? base_url('student/lesson/' . $cid . '/' . (int) $r['lesson_id'])
-                : base_url('student/materials'),
-        ];
-    }
-
-    usort($tq_events, static function ($a, $b) { return $a['ts'] <=> $b['ts']; });
-}
+$tq_cats   = $CI->tq_stu->calendar_categories();
+$tq_events = $CI->tq_stu->calendar_events($uid);
 
 $tq_by_day = [];
 foreach ($tq_events as $e) {

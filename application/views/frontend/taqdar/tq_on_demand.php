@@ -114,8 +114,13 @@ include 'portal_open.php';
                         <?php echo t('ولا يخصم مبلغ الحصة إلا بعد تأكيد المعلم.'); ?>
                     <?php endif; ?>
                 </p>
-                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/on-demand#tq-tutors'); ?>">
-                    <?php echo tq_icon('calendar'); ?> <?php echo t('اطلب حصة الآن'); ?>
+                <?php /* مرساة محضة لا رابط صفحة. كان `base_url('student/on-demand#tq-tutors')`
+                         عنوانا كاملا للصفحة نفسها، فيعيد المتصفح تحميلها كلها ليصل إلى
+                         قسم فيها — وهو «التحديث بلا وظيفة» الذي رصد. والمرساة تنقل
+                         في مكانها بلا طلب خادم. */ ?>
+                <a class="tq-btn tq-btn--primary" href="#tq-tutors">
+                    <?php echo tq_icon('calendar'); ?>
+                    <?php echo $tq_tutors ? t('اطلب حصة الآن') : t('اعرض المعلمين المتاحين'); ?>
                 </a>
             </div>
             <span class="tq-s-banner__art" aria-hidden="true"><?php echo tq_icon('video', 56); ?></span>
@@ -144,7 +149,7 @@ include 'portal_open.php';
                     <?php foreach ($tq_subjects as $i => $s): ?>
                         <?php $active = ((string) $s['id'] === $f_subject); ?>
                         <a class="tq-card tq-s-course" style="text-align:center;align-items:center<?php echo $active ? ';border:var(--tq-field-border) solid var(--tq-navy)' : ''; ?>"
-                           href="<?php echo base_url('student/on-demand?subject=' . $s['id']); ?>"
+                           href="<?php echo base_url('student/on-demand?subject=' . $s['id']); ?>#tq-tutors"
                            <?php echo $active ? 'aria-current="true"' : ''; ?>>
                             <span class="tq-icon-box tq-pastel tq-pastel--<?php echo tq_pastel($i); ?>" aria-hidden="true">
                                 <span class="tq-pastel__icon"><?php echo tq_icon('book'); ?></span>
@@ -156,7 +161,7 @@ include 'portal_open.php';
                 </div>
                 <?php if ($f_subject !== ''): ?>
                     <p style="margin-block-start:var(--tq-space-m)">
-                        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/on-demand'); ?>">
+                        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('student/on-demand'); ?>#tq-tutors">
                             <?php echo t('إلغاء تصفية المادة'); ?>
                         </a>
                     </p>
@@ -179,13 +184,27 @@ include 'portal_open.php';
                              الإعدادات — ولا في `notify_types()` — تنبيه بهذا المعنى. فالزر
                              يعد بتنبيه لا يوجد من يرسله، والوجهة لا تحوي ما يبحث عنه.
                              والبديل فعل قائم فعلا: مراسلة معلم من صندوق الرسائل. */ ?>
-                    <?php echo tq_s_empty(
-                        'users', 'mint',
-                        t('لا معلم متاح الآن'),
-                        t('حين يفتح المعلمون أوقاتهم يظهر كل واحد هنا باسمه ومادته ومواعيده المتاحة، وبجواره زر طلب مباشر. وحتى ذلك الحين يمكنك مراسلة معلم مادتك مباشرة.'),
-                        t('راسل معلمك'),
-                        base_url('student/messages')
-                    ); ?>
+                    <?php /* حالتان لا واحدة. كان النص واحدا في الحالتين، فيضغط الطالب
+                             مادة فتعيد الصفحة نفسها بالنص نفسه — ولا شيء يقول إن
+                             اختياره وصل ولا إن التصفية هي التي أفرغت القائمة. فيقرؤها
+                             «تحديث بلا وظيفة» وهي تصفية عملت ونتيجتها فارغة. */ ?>
+                    <?php if ($f_subject !== ''): ?>
+                        <?php echo tq_s_empty(
+                            'users', 'mint',
+                            t('لا معلم متاح في هذه المادة الآن'),
+                            t('اختيارك وصل، ولا معلم فتح وقتا في هذه المادة بعد. اعرض كل المواد لترى من فتح وقته الآن، أو راسل معلم مادتك مباشرة.'),
+                            t('اعرض كل المواد'),
+                            base_url('student/on-demand') . '#tq-tutors'
+                        ); ?>
+                    <?php else: ?>
+                        <?php echo tq_s_empty(
+                            'users', 'mint',
+                            t('لا معلم متاح الآن'),
+                            t('حين يفتح المعلمون أوقاتهم يظهر كل واحد هنا باسمه ومادته ومواعيده المتاحة، وبجواره زر طلب مباشر. وحتى ذلك الحين يمكنك مراسلة معلم مادتك مباشرة.'),
+                            t('راسل معلمك'),
+                            base_url('student/messages')
+                        ); ?>
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <?php foreach ($tq_tutors as $t): ?>

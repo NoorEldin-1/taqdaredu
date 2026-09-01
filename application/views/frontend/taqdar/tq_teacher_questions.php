@@ -236,7 +236,13 @@ include 'portal_open.php';
 
             <div class="tq-field">
                 <label class="tq-field__label" for="tq-csv"><?php echo t('ملف الأسئلة'); ?></label>
-                <input class="tq-input" id="tq-csv" type="file" name="csv" accept=".csv,.txt" required>
+                <?php /* `accept` ترشيح لا فرض — ونافذة الملفات تعرض «كل الملفات»،
+                                 والسحب والإفلات يتخطاها. و`data-tq-maxmb` يجعل حارس
+                                 `taqdar.js` يرد الملف قبل الإرسال: ملف كبير يتجاوز
+                                 `post_max_size` يرده الخادم بـ413 خاما **قبل أن يعمل
+                                 PHP**، فلا تنفذ فحوص `questions_import()` مهما أحكمت. */ ?>
+                <input class="tq-input" id="tq-csv" type="file" name="csv"
+                       accept=".csv,.txt" data-tq-maxmb="2" required>
                 <span class="tq-field__msg tq-field__hint">
                     <?php echo t('ترميز UTF-8، وأول سطر أسماء الأعمدة، والحد الأقصى ____ ميغابايت.', array(TQ_LRI . '2' . TQ_PDI)); ?>
                 </span>

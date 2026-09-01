@@ -31,7 +31,10 @@
        و`sawTime` أن نبضة موضع واحدة على الأقل وصلت. وبهما وحدهما يعرف
        أن القياس **تعذر** — فيفتح المخرج المشروط بدل حبس لا نهاية له. */
     media: 0, sawTime: false, blind: false, blindTimer: null,
-    completed: false, mastered: false
+    completed: false, mastered: false,
+    /* وجهة الدرس التالي — تملأ في `mountNav()` وتقرأ في `paintDone()`.
+       وفراغها يعني «آخر درس»، فلا راية ثانية تقول ما يقوله الفراغ. */
+    nextUrl: ''
   };
 
   /* ---- نداء الخادم: مغلف موحد، والرسالة العربية تأتي منه لا نخترعها ---- */
@@ -426,6 +429,56 @@
     var done = state.completed || (state.lesson && state.lesson.mastered);
     show('[data-tq-gate-intro]', has && done && !state.mastered);
     show('[data-tq-gate-wait]',  has && !done);
+    paintDone(has, done);
+  }
+
+  /**
+   * بطاقة «أتممت هذا الدرس» — الخطوة التالية في المتن لا في الحاشية.
+   *
+   * ثلاث حالات لا واحدة، ونصها ووجهتها من الحالة التي يقرر بها القفل
+   * نفسه (`review` و`mastered` و`nextUrl`) — فلا تعد بباب يرده الحارس:
+   *   له اختبار ولم يتقن   ⟵ الاختبار هو الباب، والبطاقة تحيل إليه.
+   *   له درس تال مفتوح     ⟵ زر الدرس التالي هنا كذلك.
+   *   آخر درس في الكورس     ⟵ يقال إنه الأخير، والباب إلى المقرر.
+   */
+  function paintDone(has, done) {
+    var card = $('[data-tq-done]');
+    if (!card) return;
+    if (!done) { card.hidden = true; return; }
+
+    var txt = $('[data-tq-done-text]'), acts = $('[data-tq-done-actions]');
+    var open = has && !state.mastered;   // اختبار ينتظر
+    var html = '';
+
+    if (open) {
+      if (txt) txt.textContent = TQ.t('بقيت خطوة: مراجعة قصيرة تثبت ما فهمته، وباجتيازها يفتح الدرس التالي.');
+      html = '<button class="tq-btn tq-btn--primary" type="button" data-tq-done-toquiz>'
+           + escapeHtml(TQ.t('ابدأ المراجعة')) + '</button>';
+    } else if (state.nextUrl) {
+      if (txt) txt.textContent = TQ.t('أحسنت. الدرس التالي مفتوح لك الآن.');
+      html = '<a class="tq-btn tq-btn--primary" href="' + escapeHtml(state.nextUrl) + '">'
+           + escapeHtml(TQ.t('الدرس التالي')) + '</a>';
+    } else {
+      if (txt) txt.textContent = TQ.t('أحسنت — هذا آخر درس في هذا المقرر.');
+      html = '';
+    }
+
+    var back = root.getAttribute('data-tq-back') || '';
+    if (back) {
+      html += '<a class="tq-btn tq-btn--secondary" href="' + escapeHtml(back) + '">'
+            + escapeHtml(TQ.t('كل دروسي')) + '</a>';
+    }
+
+    if (acts) acts.innerHTML = html;
+    card.hidden = false;
+
+    var jump = acts && acts.querySelector('[data-tq-done-toquiz]');
+    if (jump) jump.addEventListener('click', function () {
+      var intro = $('[data-tq-gate-intro]');
+      if (intro) intro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var s = $('[data-tq-gate-start]');
+      if (s) s.focus();
+    });
   }
 
   addEventListener('beforeunload', function () {
@@ -475,10 +528,16 @@
     var base = root.getAttribute('data-tq-course');
     var prev = $('[data-tq-prev]'), next = $('[data-tq-next]'), lock = $('[data-tq-next-locked]');
     if (prev && d.prev_lesson_id) { prev.href = '../' + base + '/' + d.prev_lesson_id; prev.hidden = false; }
+
+    /* الوجهة تحفظ في الحالة لا في الحاشية وحدها: بطاقة الإتمام في المتن
+       تقرأ منها، وحاشية تنزل تحت الطية في الجوال لا تكفي جوابا على
+       «وماذا الآن؟». وكان `return` هنا يترك آخر درس بلا شيء يعرض. */
+    state.nextUrl = d.next_lesson_id ? ('../' + base + '/' + d.next_lesson_id) : '';
+
     if (!d.next_lesson_id) return;
     var mastered = d.progress && d.progress.mastered_at;
     if (mastered || !d.review) {
-      if (next) { next.href = '../' + base + '/' + d.next_lesson_id; next.hidden = false; }
+      if (next) { next.href = state.nextUrl; next.hidden = false; }
     } else if (lock) { lock.hidden = false; }
   }
 

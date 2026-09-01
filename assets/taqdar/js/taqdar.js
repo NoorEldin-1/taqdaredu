@@ -258,6 +258,22 @@
     });
   }
 
+  /* في مرحلة الالتقاط وقبل حارس التأكيد: نموذج يوقف هنا لا يفتح نافذة
+     تأكيد على شيء لن يرسل. */
+  document.addEventListener('submit', function (e) {
+    var f = e.target;
+    if (!f || f.tagName !== 'FORM') return;
+    var bad = null;
+    Array.prototype.forEach.call(f.querySelectorAll('input[type="file"]'), function (inp) {
+      if (!fgCheck(inp) && !bad) bad = inp;
+    });
+    if (bad) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      bad.focus();
+    }
+  }, true);
+
   document.addEventListener('submit', function (e) {
     var f = e.target;
     if (!f || f.tagName !== 'FORM' || !f.hasAttribute('data-tq-confirm')) return;
@@ -279,6 +295,60 @@
     e.preventDefault();
     cfOpen(a, a);
   }, true);
+
+  /* ---- حارس الملف المرفوع -------------------------------------------
+     `accept` وسم **ترشيح لا فرض**: نافذة الملفات تعرض «كل الملفات»، والسحب
+     والإفلات يتخطاها أصلا. فيصل ملف عرض تقديمي إلى الخادم، وحجمه يتجاوز
+     `post_max_size` — فيرد الخادم **413 خاما قبل أن يعمل PHP**، ولا تنفذ
+     فحوص المتحكم مهما أحكمت، ويقرأ المعلم صفحة خطأ إنجليزية بلا سبب.
+     فالفحص هنا قبل الإرسال: الصيغة والحجم، برسالة تقول ما العمل. */
+  function fgErr(field, msg) {
+    var box = field.closest('.tq-field') || field.parentNode;
+    var m = box.querySelector('[data-tq-fileerr]');
+    if (!m) {
+      m = document.createElement('span');
+      m.className = 'tq-field__msg';
+      m.setAttribute('data-tq-fileerr', '1');
+      m.setAttribute('role', 'alert');
+      box.appendChild(m);
+    }
+    m.textContent = msg || '';
+    m.hidden = !msg;
+    if (msg) box.setAttribute('data-state', 'error');
+    else     box.removeAttribute('data-state');
+  }
+
+  /* يقرأ `accept` نفسه فلا قائمة صيغ ثانية تفترق عن وسم الحقل. */
+  function fgCheck(inp) {
+    var f = inp.files && inp.files[0];
+    if (!f) { fgErr(inp, ''); return true; }
+
+    var acc = (inp.getAttribute('accept') || '')
+      .split(',').map(function (x) { return x.trim().toLowerCase(); })
+      .filter(function (x) { return x.charAt(0) === '.'; });
+    if (acc.length) {
+      var name = f.name.toLowerCase();
+      var ok = acc.some(function (x) { return name.slice(-x.length) === x; });
+      if (!ok) {
+        fgErr(inp, TQ.t('هذا الملف بصيغة لا تقبل هنا. المقبول: ____', acc.join(' · ')));
+        return false;
+      }
+    }
+
+    var mb = parseFloat(inp.getAttribute('data-tq-maxmb') || '0');
+    if (mb > 0 && f.size > mb * 1024 * 1024) {
+      fgErr(inp, TQ.t('حجم الملف ____ ميغابايت، والحد الأقصى ____ ميغابايت.',
+        (f.size / 1048576).toFixed(1), String(mb)));
+      return false;
+    }
+    fgErr(inp, '');
+    return true;
+  }
+
+  document.addEventListener('change', function (e) {
+    var inp = e.target;
+    if (inp && inp.tagName === 'INPUT' && inp.type === 'file') fgCheck(inp);
+  });
 
   /* ---- حالة «بلا اتصال» ---------------------------------------------- */
   function net() {

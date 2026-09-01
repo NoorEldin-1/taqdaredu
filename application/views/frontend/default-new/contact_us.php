@@ -76,6 +76,7 @@
             </div>
             <div class="col-lg-6 col-md-6">
                 <form action="<?php echo site_url('home/contact_us/submit'); ?>" method="post" class="form-section" id="contactus-form">
+                    <?php tq_contact_shield(); ?>
                     <div class="row">
                         <div class="col-lg-6 col-md-6 col-sm-6 col-6">
                             <div class="mb-3">
