@@ -208,12 +208,24 @@ class Taqdar extends CI_Controller
             }
 
             if ($lesson_id < 1) {
+                /* TQ-SOON-LESSON — والدرس المختار لا بد أن يكون منشورا:
+                   مسار يبدأ بنائب («قيد الإعداد») كان يفتح على موضع فارغ
+                   لأن الاحتياطي يأخذ أصغر معرف بلا فلتر حالة. */
                 $lesson_id = (int) $this->db->select('id')
                     ->where('course_id', $course_id)
                     ->where('lesson_type !=', 'quiz')
+                    ->where('COALESCE(`tq_status`, "published") =', 'published')
                     ->order_by('id', 'ASC')->limit(1)
                     ->get('lesson')->row('id');
             }
+        }
+
+        /* TQ-SOON-LESSON — ورابط مكتوب يدويا إلى نائب لا يفتح: الموضع
+           محجوز لا مخفي، والشاشة تقول «قيد الإعداد» قبل النقرة لا بعدها. */
+        if ($lesson_id > 0) {
+            $st = (string) $this->db->select('tq_status')
+                ->where('id', $lesson_id)->get('lesson')->row('tq_status');
+            if ($st !== '' && $st !== 'published') show_404();
         }
 
         $this->show('tq_lesson', 'الدرس', array(

@@ -1711,14 +1711,32 @@ if (!function_exists('tqs_curriculum')) {
             }
             foreach (($soon ? array() : $s['units']) as $u) {
                 $h .= '      <section class="curric__unit">' . "\n";
+                /* العدّاد يعد ما يفتح، لا ما في المصفوفة: النائب معروض
+                   في القائمة ومستثنى من الرقم فوقها، وإلا قالت الوحدة
+                   «٤ دروس» وقالت الترويسة ٣ — والقارئ يعد بعينه. */
+                $u_n = 0;
+                foreach ($u['lessons'] as $ul) if (empty($ul['is_soon'])) $u_n++;
                 $h .= '        <h4 class="curric__unit-h">' . html_escape($u['title'])
-                    . ' <small>' . count($u['lessons']) . t(' درسا</small></h4>') . "\n";
+                    . ' <small>' . $u_n . t(' درسا</small></h4>') . "\n";
                 $h .= '        <ol class="curric__lessons">' . "\n";
                 foreach ($u['lessons'] as $l) {
-                    $icon = $l['is_quiz'] ? 'i-clipboard' : 'i-play';
-                    $cls  = 'curric__lesson' . ($l['is_free'] ? ' is-free' : '');
+                    $l_soon = !empty($l['is_soon']);
+                    $icon = $l_soon ? 'i-clock' : ($l['is_quiz'] ? 'i-clipboard' : 'i-play');
+                    $cls  = 'curric__lesson' . ($l['is_free'] ? ' is-free' : '')
+                          . ($l_soon ? ' is-soon' : '');
                     $h .= '          <li class="' . $cls . '">' . "\n";
                     $h .= '            <svg class="curric__ico" aria-hidden="true"><use href="#' . $icon . '"></use></svg>' . "\n";
+
+                    /* TQ-SOON-LESSON — موضع محجوز: اسم بلا رابط وبلا مدة،
+                       وشارة تقول متى. ولا يستثنى المشترك من هذا: الرابط
+                       يفتح صفحة تقول «لا يوجد مقطع»، والشارة تقول الصدق
+                       قبل النقرة. */
+                    if ($l_soon) {
+                        $h .= '            <span class="curric__t">' . html_escape($l['title']) . '</span>' . "\n";
+                        $h .= t('            <span class="curric__prep">قيد الإعداد</span>') . "\n";
+                        $h .= '          </li>' . "\n";
+                        continue;
+                    }
 
                     $title = html_escape($l['title']);
                     if ($mode === 'student') {

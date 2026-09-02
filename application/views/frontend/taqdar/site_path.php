@@ -145,7 +145,9 @@ $tq_dur = function ($m) {
                 <summary class="curric__sum">
                   <span class="curric__name"><?php echo html_escape($tq_u['title']); ?></span>
                   <span class="curric__meta"><?php
-                    $tq_meta = array(count($tq_u['lessons']) . ' درسا');
+                    $tq_n = 0;
+                    foreach ($tq_u['lessons'] as $tq_c) if (empty($tq_c['soon'])) $tq_n++;
+                    $tq_meta = array($tq_n . ' درسا');
                     if ($tq_u['quizzes'] > 0) $tq_meta[] = $tq_u['quizzes'] . ' اختبارا';
                     if ($tq_u['minutes'] > 0) $tq_meta[] = $tq_dur($tq_u['minutes']);
                     echo html_escape(implode(' · ', $tq_meta));
@@ -156,9 +158,17 @@ $tq_dur = function ($m) {
                 <div class="curric__body">
                   <ol class="curric__lessons">
                     <?php foreach ($tq_u['lessons'] as $tq_l): ?>
-                      <li class="curric__lesson<?php echo !empty($tq_l['free']) ? ' is-free' : ''; ?>">
-                        <svg class="curric__ico" aria-hidden="true"><use href="#<?php echo $tq_l['quiz'] ? 'i-clipboard' : 'i-play'; ?>"></use></svg>
+                      <?php $tq_soon = !empty($tq_l['soon']); ?>
+                      <li class="curric__lesson<?php echo !empty($tq_l['free']) ? ' is-free' : ''; ?><?php echo $tq_soon ? ' is-soon' : ''; ?>">
+                        <svg class="curric__ico" aria-hidden="true"><use href="#<?php echo $tq_soon ? 'i-clock' : ($tq_l['quiz'] ? 'i-clipboard' : 'i-play'); ?>"></use></svg>
                         <span class="curric__t"><?php echo html_escape($tq_l['title']); ?></span>
+
+                        <?php /* TQ-SOON-LESSON — موضع محجوز لدرس لم يرفع
+                                 مقطعه: بلا رابط وبلا مدة، وشارة تقول متى. */ ?>
+                        <?php if ($tq_soon): ?>
+                          <span class="curric__prep">قيد الإعداد</span>
+                        </li>
+                        <?php continue; endif; ?>
 
                         <?php if ($tq_l['minutes'] > 0): ?>
                           <span class="curric__dur"><span class="tq-ltr"><?php echo (int) $tq_l['minutes']; ?></span> د</span>

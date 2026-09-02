@@ -204,9 +204,13 @@ class Taqdar_catalog_model extends CI_Model
 
         $count = array();
         if ($cids) {
-            $q = $this->db->select('course_id, COUNT(*) AS n,
+            $q = $this->db->select('course_id,
+                                    SUM(CASE WHEN lesson_type = "quiz"
+                                              OR COALESCE(video_url, "") <> ""
+                                             THEN 1 ELSE 0 END) AS n,
                                     SUM(CASE WHEN lesson_type = "quiz" THEN 1 ELSE 0 END) AS q', false)
                           ->from('lesson')->where_in('course_id', $cids)
+                          ->where('COALESCE(`tq_status`, "published") =', 'published')
                           ->group_by('course_id')->get()->result_array();
             foreach ($q as $r) {
                 $count[(int) $r['course_id']] = array('n' => (int) $r['n'], 'q' => (int) $r['q']);
@@ -319,9 +323,13 @@ class Taqdar_catalog_model extends CI_Model
 
         /* عدد الدروس والاختبارات باستعلام واحد للكورسات كلها. */
         $count = array();
-        $q = $this->db->select('course_id, COUNT(*) AS n,
+        $q = $this->db->select('course_id,
+                                SUM(CASE WHEN lesson_type = "quiz"
+                                          OR COALESCE(video_url, "") <> ""
+                                         THEN 1 ELSE 0 END) AS n,
                                 SUM(CASE WHEN lesson_type = "quiz" THEN 1 ELSE 0 END) AS q', false)
                       ->from('lesson')->where_in('course_id', $cids)
+                      ->where('COALESCE(`tq_status`, "published") =', 'published')
                       ->group_by('course_id')->get()->result_array();
         foreach ($q as $r) {
             $count[(int) $r['course_id']] = array('n' => (int) $r['n'], 'q' => (int) $r['q']);

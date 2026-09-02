@@ -173,6 +173,17 @@ a.curric__t:hover{color:var(--gold-text);text-decoration:underline}
   .curric__soonlock .curric__lock{inline-size:14px;block-size:14px}
 }
 
+/* TQ-SOON-LESSON — موضع محجوز لدرس لم يرفع مقطعه بعد. باهت كي يقرأ
+   «ليس بعد» لا «مقفول»، وشارته بلون التمهيد نفسه المستعمل في
+   `.tqb-subj__i.is-soon` فلا تتعلم العين لغتين لمعنى واحد. */
+.curric__lesson.is-soon{opacity:.72}
+.curric__lesson.is-soon .curric__t{color:var(--ink-3);font-weight:500}
+.curric__lesson.is-soon .curric__ico{opacity:.55}
+.curric__prep{display:inline-flex;align-items:center;flex:none;
+  padding:4px 9px;border-radius:99px;background:var(--beige);
+  border:1px dashed var(--gold-line-soft);color:var(--gold-text);
+  font-size:.82rem;font-weight:700;white-space:nowrap}
+
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-PORTAL-FLASH · شريط الرسائل داخل البوابة

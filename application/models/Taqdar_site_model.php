@@ -444,10 +444,12 @@ class Taqdar_site_model extends CI_Model
 
         /* `tq_status` يستبعد ما لم ينشر: درس مسودة في صفحة عامة يعد بما
            لا يفتح، ويعده في المجموع فيكذب الرقم كذلك. */
-        $lessons = $this->db->select('id, title, duration, lesson_type, is_free, section_id, `order`', false)
+        $lessons = $this->db->select('id, title, duration, lesson_type, is_free,
+                                     section_id, video_url, tq_status, `order`', false)
                             ->from('lesson')
                             ->where('course_id', $course_id)
-                            ->where('tq_status', 'published')
+                            ->where('(COALESCE(`tq_status`, "published") = "published"'
+                                  . ' OR `tq_status` = "soon")', null, false)
                             ->order_by('`order`', 'ASC', false)->order_by('id', 'ASC')
                             ->get()->result_array();
 
@@ -472,15 +474,28 @@ class Taqdar_site_model extends CI_Model
             if (!isset($bag[$sid])) $sid = 0;
 
             $quiz = ((string) $l['lesson_type'] === 'quiz');
-            $mins = (int) round($this->hms_seconds((string) $l['duration']) / 60);
+            $soon = ((string) $l['tq_status'] === 'soon');
+
+            /* TQ-EMPTY-LESSON — هنا كذلك، لا في صفحة الباقة وحدها. كانت
+               هذه الصفحة تعرض دروس البذرة الفارغة كاملة («٢٤ درسا» بأسماء
+               وحدات ومدد) وكلها «يفتح بالاشتراك»، بينما صفحة الباقة تقول
+               عن المادة نفسها «قيد الإعداد». سطحان يتناقضان في وعد واحد،
+               والزائر يصدق الأسخى. */
+            $has_video = (trim((string) $l['video_url']) !== '');
+            if (!$quiz && !$has_video && !$soon) continue;
+
+            $mins = $soon ? 0 : (int) round($this->hms_seconds((string) $l['duration']) / 60);
 
             $bag[$sid]['lessons'][] = array(
                 'id'      => (int) $l['id'],
                 'title'   => (string) $l['title'],
                 'quiz'    => $quiz,
-                'free'    => ((int) $l['is_free'] === 1),
+                'free'    => (!$soon && (int) $l['is_free'] === 1),
                 'minutes' => $mins,
+                'soon'    => $soon,
             );
+            if ($soon) continue;          // يعرض ولا يعد
+
             $bag[$sid]['minutes'] += $mins;
             if ($quiz) $bag[$sid]['quizzes']++;
 
@@ -674,16 +689,25 @@ class Taqdar_site_model extends CI_Model
         $byCourse = array();   // course_id → إحصاء + دروس بلا وحدة
         if ($cids) {
             $rows = $this->db->select('id, title, duration, course_id, section_id,
-                                       lesson_type, is_free, video_url, `order`', false)
+                                       lesson_type, is_free, video_url, tq_status, `order`', false)
                              ->from('lesson')->where_in('course_id', $cids)
-                             ->where('COALESCE(`tq_status`, "published") =', 'published')
+                             ->where('(COALESCE(`tq_status`, "published") = "published"'
+                                   . ' OR `tq_status` = "soon")', null, false)
                              ->order_by('`order`', 'ASC', false)->order_by('id', 'ASC')
                              ->get()->result_array();
             foreach ($rows as $r) {
                 $cid  = (int) $r['course_id'];
                 $sid  = (int) $r['section_id'];
                 $quiz = ((string) $r['lesson_type'] === 'quiz');
-                $free = ((int) $r['is_free'] === 1);
+
+                /* TQ-SOON-LESSON — نائب يحجز موضع درس لم يرفع مقطعه بعد.
+                   يعرض موسوما «قيد الإعداد» ولا يعد في أي مجموع ولا يفتح
+                   لأحد. وهو غير الدرس البذرة الفارغ: ذاك يبقى مخفيا لأن
+                   لا أحد وعد به، وهذا وعد صريح بموعد. والعلامة في
+                   `tq_status` لا في عمود جديد، لأن `Preview::free_lesson()`
+                   يقارن `!== 'published'` فيرد النائب ٤٠٤ بلا سطر يضاف. */
+                $soon = ((string) $r['tq_status'] === 'soon');
+                $free = (!$soon && (int) $r['is_free'] === 1);
 
                 /* TQ-EMPTY-LESSON — درس فيديو بلا مقطع لا يعرض ولا يعد.
                    وليس هذا تجميلا: الدرس الذي لا `video_url` له **لا يفتح
@@ -694,25 +718,30 @@ class Taqdar_site_model extends CI_Model
                    و`video_url` يقرأ للعد وحده ولا يوضع في العقدة — فالعقدة
                    تطبع في صفحة عامة، ووضعه فيها يسرب مقاطع المدفوع. */
                 $has_video = (trim((string) $r['video_url']) !== '');
-                if (!$quiz && !$has_video) continue;
+                if (!$quiz && !$has_video && !$soon) continue;
 
                 $node = array(
                     'id'       => (int) $r['id'],
                     'title'    => (string) $r['title'],
-                    'duration' => (string) $r['duration'],
+                    'duration' => $soon ? '' : (string) $r['duration'],
                     'type'     => (string) $r['lesson_type'],
                     'is_quiz'  => $quiz,
                     'is_free'  => $free,
+                    'is_soon'  => $soon,
                 );
 
                 if (!isset($byCourse[$cid])) {
                     $byCourse[$cid] = array('lessons' => 0, 'quizzes' => 0, 'free' => 0,
                                             'videos' => 0, 'loose' => array());
                 }
-                $byCourse[$cid]['lessons']++;
-                if ($quiz)      $byCourse[$cid]['quizzes']++;
-                if ($free)      $byCourse[$cid]['free']++;
-                if ($has_video) $byCourse[$cid]['videos']++;
+                /* النائب يعرض ولا يعد: رقم فوق قائمة فيها موضع محجوز
+                   يجب أن يقابل ما يفتح فعلا، لا ما سيفتح. */
+                if (!$soon) {
+                    $byCourse[$cid]['lessons']++;
+                    if ($quiz)      $byCourse[$cid]['quizzes']++;
+                    if ($free)      $byCourse[$cid]['free']++;
+                    if ($has_video) $byCourse[$cid]['videos']++;
+                }
 
                 /* درس بلا وحدة ليس خطأ يسكت عنه: يجمع في وحدة ضمنية
                    تسمى «الدروس» فيظهر بدل أن يسقط من المنهج صامتا. */
