@@ -569,35 +569,363 @@
 })(window, document);
 
 /* ══════════════════════════════════════════════════════════════════
-   TQ-PLAN-IMG · معاينة الصورة المختارة قبل الحفظ
-   الرفع يقص إلى 3:2 على الخادم، والمعاينة هنا تقص بالنسبة نفسها
-   (`object-fit: cover` في الورقة) — فما يراه المسؤول قبل الحفظ هو ما
-   سيخرج بعده. وبلا معاينة يحفظ ويرجع إلى القائمة ليكتشف القص.
-   وتعطيل مربع «احذف» عند اختيار ملف: اختيار بديل ومحو معا أمران
-   متناقضان، وأحدهما يبطل الآخر صامتا.
+   TQ-PLAN-IMG · معاينة الصورة المختارة — انتقلت
+
+   كانت هنا كتلة تعاين ما اختير وتعطل مربع «احذف» معه، وهي تعرف
+   `[data-tqa-file]` وحده — أي حقل الوحدة الموصوفة. وحقول الملفات في
+   اللوحة ثلاثون في ثلاثين شاشة، ونصفها بلا معاينة ولا مربع محو ولا
+   شيء يقول ما هو محفوظ الآن.
+
+   فصار الحقل كله مكونا واحدا: [assets/taqdar/js/tqa-file.js] — يمسح
+   كل `input[type=file]` ويبني الصندوق نفسه، والمعاينة والقص والمحو
+   والتراجع فيه. وهي القاعدة نفسها التي جعلت قائمة الصف دالة واحدة:
+   **ما يتكرر في ثلاثين شاشة يعرف مرة**.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-CARD-BLIND · بطاقة الجوال بلا تسميات
+
+   دون ٦٤٠ بكسلا يصير كل جدول `tqa-table` بطاقات: الرأس يخفى، وكل خلية
+   تطبع تسميتها من `data-label` ثم قيمتها. وهو يعمل حيث كتبت الصفة —
+   وأربع شاشات لم تكتبها (`enrol_history` · `instructors_pending_blog` ·
+   `tqa_mail` · `tqa_whatsapp`)، فتخرج البطاقة عمودا من قيم عارية:
+   تاريخ ورقم واسم بلا كلمة تقول ما هو أي منها.
+
+   والعلاج هنا لا في الشاشات الأربع: التسمية موجودة أصلا في `thead` بنفس
+   ترتيب الخلية، فتنسخ منها. فالشاشة الخامسة التي تكتب جدولا غدا تحصل
+   على بطاقة صحيحة بلا أن يتذكر كاتبها الصفة — وما كتبها بيده لا يمس.
    ══════════════════════════════════════════════════════════════════ */
 (function () {
-  var boxes = document.querySelectorAll('[data-tqa-file]');
-  if (!boxes.length) return;
+    'use strict';
 
-  Array.prototype.forEach.call(boxes, function (box) {
-    var inp  = box.querySelector('[data-tqa-file-input]');
-    var pane = box.querySelector('[data-tqa-file-preview]');
-    var img  = box.querySelector('[data-tqa-file-img]');
-    var clr  = box.querySelector('input[type=checkbox]');
-    if (!inp) return;
+    function label(table) {
+        var head = table.tHead && table.tHead.rows[0];
+        if (!head) return;
 
-    inp.addEventListener('change', function () {
-      var f = inp.files && inp.files[0];
-      if (clr) { clr.checked = false; clr.disabled = !!f; }
-      if (!pane || !img) return;
-      if (!f) { pane.hidden = true; img.removeAttribute('src'); return; }
-      /* الرابط المؤقت يحرر بعد التحميل: تركه يبقي الملف في الذاكرة
-         حتى تغلق الصفحة، وصورة من هاتف قد تكون ثمانية ميغابايت. */
-      var url = URL.createObjectURL(f);
-      img.onload = function () { URL.revokeObjectURL(url); };
-      img.src = url;
-      pane.hidden = false;
+        var names = Array.prototype.map.call(head.cells, function (th) {
+            /* `<span class="tqa-sr">إجراءات</span>` تسمية لقارئ الشاشة،
+               وهي التسمية الصحيحة هنا كذلك. والرأس الفارغ يبقى فارغا:
+               تسمية مخترعة أسوأ من لا تسمية. */
+            return (th.textContent || '').replace(/\s+/g, ' ').trim();
+        });
+
+        Array.prototype.forEach.call(table.tBodies, function (body) {
+            Array.prototype.forEach.call(body.rows, function (row) {
+                Array.prototype.forEach.call(row.cells, function (cell, i) {
+                    if (cell.hasAttribute('data-label')) return;
+                    /* صف يمتد على الجدول كله (رسالة «لا نتائج») لا عمود
+                       له، فلا تسمية له. */
+                    if (cell.colSpan > 1) return;
+                    var n = names[i];
+                    if (n) cell.setAttribute('data-label', n);
+                });
+            });
+        });
+    }
+
+    function run() {
+        Array.prototype.forEach.call(document.querySelectorAll('table.tqa-table'), label);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', run);
+    } else {
+        run();
+    }
+})();
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-FORM-DIRTY · التعديل الذي لم يحفظ يقال قبل أن يضيع
+
+   نموذج الباقة ستة عشر حقلا، وشاشة الكورس تسعة تبويبات، وشاشة المعلم
+   بضعة عشر حقلا. ومن عدل ثم ضغط بندا في الشريط الجانبي — أو زر الرجوع —
+   يفقد كل ما كتب بلا سؤال ولا أثر: لا رسالة، ولا مسودة، ولا شيء في
+   الشاشة التالية يقول إن شيئا ضاع.
+
+   وهما إشارتان لا واحدة:
+
+     ١ — **في الشريط** (`.tqa-formbar__dirty`) وهو ظاهر دائما: «فيه
+         تعديل لم يحفظ» تقرأ **قبل** قرار المغادرة لا بعده.
+     ٢ — **عند المغادرة** نافذة تقدر (`TQA.confirm`) — انظر أدناه.
+
+   والحارس يرفع نفسه عند الإرسال: تحذير يظهر بعد ضغط «احفظ» يقرأ عطلا.
+
+   ── TQ-LEAVE-NATIVE — ولماذا لا يكفي `beforeunload` ────────────────
+
+   `beforeunload` يرسم **صندوق المتصفح**: «Leave site? / Changes you
+   made may not be saved.» — نص إنجليزي ثابت لا تملك تغييره (المواصفة
+   نفسها تلزم المتصفحات بتجاهل نصك منذ ٢٠١٦)، بلا هوية ولا اتجاه ولا
+   ذكر لما ستفقده، وزراه «Leave» و«Cancel» لا يقولان أي منهما يحفظ.
+   فمن ضغط «إلغاء» في شريط الحفظ — وهو **يقصد الرجوع** — يقابله سؤال
+   إنجليزي عن شيء آخر بكلمة «Cancel» تعني عنده ما ضغطه للتو.
+
+   ولا يمكن **استبداله**: الحدث يقع بعد أن يبدأ المتصفح المغادرة، وما
+   يعرض فيه ليس لنا. فالعلاج أن نسبقه: كل مغادرة **نملك اعتراضها**
+   (نقرة على رابط — وهي كل «إلغاء» وكل بند في الشريط الجانبي وكل
+   «رجوع إلى القائمة») تعترض هنا، ويسأل عنها سؤال عربي يقول ما يضيع،
+   ثم ينزع الحارس ويغادر. فلا يبلغ الصندوق الأصلي إلا ما لا نملكه:
+   إغلاق اللسان، وزر الرجوع، وكتابة عنوان في الشريط. وذلك موضعه
+   الصحيح — هناك لا شيء ينوب عنه.
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+    'use strict';
+
+    var forms = document.querySelectorAll('form[data-tqa-dirty]');
+    if (!forms.length) return;
+
+    var live = [];   /* النماذج التي فيها تعديل لم يحفظ */
+
+    function dirtyNow() {
+        for (var i = 0; i < live.length; i++) if (live[i]()) return true;
+        return false;
+    }
+
+    Array.prototype.forEach.call(forms, function (form) {
+        var dirty = false;
+        var saving = false;
+
+        function mark() {
+            if (dirty) return;
+            dirty = true;
+            form.classList.add('is-dirty');
+        }
+
+        /* `input` للكتابة و`change` للمنتقي ومربع الاختيار وحقل الملف —
+           ولا يكفي أحدهما: `input` لا يقع على `<select>` في كل متصفح،
+           و`change` لا يقع على حقل نص إلا بعد مغادرته. */
+        form.addEventListener('input', mark);
+        form.addEventListener('change', mark);
+
+        form.addEventListener('submit', function () {
+            saving = true;
+            dirty = false;
+            form.classList.remove('is-dirty');
+        });
+
+        live.push(function () { return dirty && !saving; });
     });
-  });
+
+    /* ---- المغادرة التي نملك اعتراضها ----
+       طور الفقاعة لا الالتقاط: حارس `data-tqa-confirm` يلتقط في طور
+       الالتقاط ويوقف الانتشار، فبند الحذف يسأل سؤاله وحده — وسؤالان
+       متتاليان عن ضغطة واحدة أسوأ من واحد. */
+    var leaving = false;
+
+    document.addEventListener('click', function (e) {
+        if (leaving || !dirtyNow()) return;
+
+        var a = e.target.closest ? e.target.closest('a[href]') : null;
+        if (!a) return;
+        if (a.hasAttribute('data-tqa-confirm')) return;      /* له سؤاله */
+        if (a.hasAttribute('download')) return;
+        if (a.target && a.target !== '_self') return;         /* لسان آخر لا يغادر */
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+
+        var href = a.getAttribute('href') || '';
+        if (!href || href.charAt(0) === '#' || /^(javascript|mailto|tel):/i.test(href)) return;
+        /* رابط إلى موضع في الصفحة نفسها لا يغادرها. */
+        if (a.href.split('#')[0] === window.location.href.split('#')[0]) return;
+
+        e.preventDefault();
+
+        TQA.confirm({
+            tone:    'warn',
+            title:   TQ.t('تعديل لم يحفظ'),
+            body:    TQ.t('غادرت هذه الصفحة الآن فسيضيع ما كتبته ولم تحفظه. لا مسودة تحفظ، ولا رجعة بعد المغادرة.'),
+            confirm: TQ.t('غادر بلا حفظ'),
+            cancel:  TQ.t('ابق في الصفحة'),
+            opener:  a
+        }).then(function (yes) {
+            if (!yes) return;
+            /* ينزع الحارس ثم يغادر: بلا نزعه يسأل صندوق المتصفح السؤال
+               نفسه بالإنجليزية بعد أن أجيب عنه بالعربية. */
+            leaving = true;
+            window.location.href = a.href;
+        });
+    });
+
+    /* ---- ما لا نملك اعتراضه ----
+       إغلاق اللسان وزر الرجوع وكتابة عنوان. والمتصفحات الحديثة تعرض
+       نصها هي لا نصنا، والمطلوب `preventDefault` وقيمة عائدة معا
+       لتغطية القديم منها. */
+    window.addEventListener('beforeunload', function (e) {
+        if (leaving || !dirtyNow()) return;
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+    });
+})();
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-ROW-CLUTTER · قائمة الصف — محركها
+
+   الوسم يبنيه `tqa_rowmenu()` في [taqdar_admin_helper.php]، وهذا يفتحه
+   ويغلقه ويضعه في موضعه. وثلاث قواعد تحكمه:
+
+   ١ — **الموضع يحسب هنا لا في الورقة.** اللوح `position: fixed` لأن
+       `.tqa-table__wrap` عليها `overflow: auto` تقص كل مطلق؛ والثابت
+       بلا إحداثيات يقف في ركن الشاشة. فيقاس مستطيل الزر ويوضع اللوح
+       تحته، وينقلب فوقه إن لم يبق تحته مكان — وقائمة الصف الأخير هي
+       الحالة الشائعة لا النادرة.
+
+   ٢ — **الطبقة هي ما يغلق بالنقر خارجها، لا مستمع على المستند.**
+       المستمع العام يلتقط النقرة **بعد** أن تصل إلى ما تحتها، فمن ضغط
+       زر صف آخر فتح قائمته ثم أغلقها في اللحظة نفسها. والطبقة تبتلع
+       النقرة الأولى — وهو سلوك القائمة في كل نظام.
+
+   ٣ — **لا يغلق بالنقر داخله.** فيه حقول تكتب (مرجع الحوالة) وقوائم
+       تقرأ (قسمة الإيراد)، وقائمة تغلق عند أول نقرة داخلها تجعل كتابة
+       المرجع مستحيلة.
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+    'use strict';
+
+    var open = null;   /* .tqa-menu المفتوحة الآن */
+    var veil = null;
+    var GAP  = 6;
+    var EDGE = 8;
+
+    function sheet() { return window.innerWidth < 640; }
+
+    function pop(menu)     { return menu.querySelector('.tqa-menu__pop'); }
+    function trigger(menu) { return menu.querySelector('.tqa-menu__trigger'); }
+
+    /* الموضع: تحت الزر ومحاذى لطرفه المنطقي.
+
+       والمحاذاة على الطرف **المنتهي** في العربية: عمود الإجراءات آخر
+       عمود، أي على يسار الشاشة في صفحة عربية — فقائمة تبدأ من يمين
+       الزر وتمتد يسارا تخرج من الشاشة. والقص إلى داخل الإطار بعده
+       شبكة أمان لا بديل عنه. */
+    function place(menu) {
+        var p = pop(menu), t = trigger(menu);
+        if (!p || !t) return;
+
+        if (sheet()) { p.classList.add('is-sheet'); p.style.top = p.style.left = ''; return; }
+        p.classList.remove('is-sheet');
+
+        /* القياس يحتاج اللوح معروضا: `hidden` يجعل أبعاده صفرا. */
+        var r  = t.getBoundingClientRect();
+        var w  = p.offsetWidth;
+        var h  = p.offsetHeight;
+        var rtl = (document.documentElement.getAttribute('dir') || '').toLowerCase() === 'rtl'
+               || getComputedStyle(document.documentElement).direction === 'rtl';
+
+        var left = rtl ? (r.right - w) : r.left;
+        left = Math.max(EDGE, Math.min(left, window.innerWidth - w - EDGE));
+
+        var top = r.bottom + GAP;
+        if (top + h > window.innerHeight - EDGE) {
+            var up = r.top - h - GAP;
+            /* فوق الزر إن اتسع، وإلا ألصق بالقاع مع حد للارتفاع: لوح
+               يخرج نصفه من الشاشة لا يمرر إليه شيء. */
+            if (up >= EDGE) top = up;
+            else {
+                top = EDGE;
+                p.style.maxBlockSize = (window.innerHeight - EDGE * 2) + 'px';
+            }
+        }
+        p.style.top  = Math.round(top) + 'px';
+        p.style.left = Math.round(left) + 'px';
+    }
+
+    function shut(back) {
+        if (!open) return;
+        var menu = open, t = trigger(menu), p = pop(menu);
+        open = null;
+        menu.classList.remove('is-open');
+        if (t) t.setAttribute('aria-expanded', 'false');
+        if (p) { p.hidden = true; p.style.maxBlockSize = ''; }
+        if (veil) { veil.remove(); veil = null; }
+        /* التركيز يعود إلى الزر متى أغلق بلوحة المفاتيح لا متى ضغط
+           المستخدم في مكان آخر: إعادته دائما تسحب الصفحة إلى الجدول
+           كلما نقر أحد في الفراغ. */
+        if (back && t) t.focus();
+    }
+
+    function show(menu) {
+        if (open === menu) { shut(true); return; }
+        shut(false);
+
+        var t = trigger(menu), p = pop(menu);
+        if (!p || !t) return;
+
+        veil = document.createElement('div');
+        veil.className = 'tqa-menu-veil';
+        veil.addEventListener('mousedown', function (e) { e.preventDefault(); shut(false); });
+        document.body.appendChild(veil);
+
+        p.hidden = false;
+        menu.classList.add('is-open');
+        t.setAttribute('aria-expanded', 'true');
+        open = menu;
+        place(menu);
+
+        /* أول بند يستقبل التركيز، فلوحة المفاتيح تعمل من الضغطة
+           الأولى. والحقل إن كان أول ما في اللوح فهو المقصود أصلا. */
+        var first = p.querySelector('input:not([type=hidden]), .tqa-menu__item');
+        if (first) setTimeout(function () { first.focus(); }, 0);
+    }
+
+    /* ---- الفتح ---- */
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest ? e.target.closest('.tqa-menu__trigger') : null;
+        if (!t) return;
+        e.preventDefault();
+        var menu = t.closest('.tqa-menu');
+        if (menu) show(menu);
+    });
+
+    /* والنقر **داخل** اللوح لا يغلقه بلا سطر واحد: الطبقة تحته
+       (`z-index` ١٢٨٠ مقابل ١٢٩٠)، فنقرة على حقل «مرجع الحوالة» تصيب
+       الحقل ولا تبلغ الطبقة أصلا. وحارس يعترض `mousedown` في طور
+       الالتقاط ليمنع ذلك كان يمنع الحقل من استقبال الحدث كذلك. */
+
+    /* ---- لوحة المفاتيح ---- */
+    document.addEventListener('keydown', function (e) {
+        if (!open) return;
+
+        if (e.key === 'Escape') { e.preventDefault(); shut(true); return; }
+
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        var p = pop(open);
+        if (!p) return;
+        /* الحقول تتخطى بالأسهم: من يكتب في «مرجع الحوالة» يحرك مؤشره
+           لا يتنقل بين البنود. */
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        var items = Array.prototype.slice.call(p.querySelectorAll('.tqa-menu__item:not([aria-disabled=true])'));
+        if (!items.length) return;
+        e.preventDefault();
+        var i = items.indexOf(document.activeElement);
+        var n = e.key === 'ArrowDown' ? i + 1 : i - 1;
+        if (n < 0) n = items.length - 1;
+        if (n >= items.length) n = 0;
+        items[n].focus();
+    });
+
+    /* ---- الإرسال يغلق ----
+       النموذج يذهب إلى الخادم، ولوح معلق فوق صفحة تعيد تحميل نفسها يقرأ
+       تعليقا. والمستمع في طور الفقاعة، فهو لا يبلغ النماذج التي تحمل
+       `data-tqa-confirm`: حارسها يوقف الانتشار في طور الالتقاط. وهو
+       الصواب هناك — نافذة التأكيد فوق القائمة (١٣٠٠ مقابل ١٢٩٠)، ومن
+       ضغط «رجوع» يجد قائمته كما تركها بدل أن يعيد فتحها ليختار غير ما
+       اختار. */
+    document.addEventListener('submit', function (e) {
+        if (open && pop(open) && pop(open).contains(e.target)) shut(false);
+    });
+
+    /* ---- الموضع يتبع الصفحة ----
+       التقاط (`true`) لأن الجدول نفسه حاوية تمرر، وحدث تمررها لا
+       يصعد إلى النافذة. ويغلق حين يخرج زره من الإطار: لوح معلق فوق
+       صف لا يرى يشير إلى لا شيء. */
+    function follow() {
+        if (!open) return;
+        var t = trigger(open);
+        if (!t) return;
+        var r = t.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight) { shut(false); return; }
+        place(open);
+    }
+    window.addEventListener('scroll', follow, true);
+    window.addEventListener('resize', function () { if (open) place(open); });
 })();

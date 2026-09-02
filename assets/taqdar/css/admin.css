@@ -828,7 +828,7 @@ a.tqa-stat:hover { border-color: var(--tq-navy); transform: translateY(-2px); te
 .tqa-btn--ghost   { background: var(--tq-surface); border-color: var(--tq-line); color: var(--tq-navy); }
 .tqa-btn--ghost:hover { background: var(--tq-navyWash); border-color: var(--tq-navy); color: var(--tq-navy); }
 .tqa-btn--sm { min-block-size: 34px; padding: 0 var(--tq-space-m); font: var(--tq-type-micro); }
-.tqa-btn--block { display: flex; inline-size: 100%; }
+.tqa-btn--block { display: flex; inline-size: 100%; justify-content: center; }
 .tqa-btn[disabled], .tqa-btn.is-disabled { opacity: .55; pointer-events: none; }
 
 /* الضغط يهبط بالزر قليلا: أثر لمسي يؤكد أن الضغطة سجلت — وغيابه يجعل
@@ -841,7 +841,10 @@ a.tqa-stat:hover { border-color: var(--tq-navy); transform: translateY(-2px); te
 
 /* ---- الحقول (المحرك الجديد) ---- */
 .tqa-field { display: block; margin-block-end: var(--tq-space-l); }
-.tqa-field__label { display: block; margin-block-end: var(--tq-space-xs); font: var(--tq-type-caption); font-weight: 700; color: var(--tq-navy); }
+/* المسافة `s` لا `xs`: حلقة الحقل الخاطئ (و`:focus`) ثلاث بكسلات فوق
+   حده، والمسافة أربع — فيلامس الحد الأحمر ذيول حروف التسمية ويقرأ خطا
+   مشطوبا فوقها. قيست الحال وظهرت. */
+.tqa-field__label { display: block; margin-block-end: var(--tq-space-s); font: var(--tq-type-caption); font-weight: 700; color: var(--tq-navy); }
 .tqa-field__hint  { display: block; margin-block-start: var(--tq-space-xs); font: var(--tq-type-micro); color: var(--tq-text2); }
 .tqa-field__req   { color: var(--tq-danger); }
 
@@ -2009,10 +2012,16 @@ body.tqa .on-hover-action:focus-within [id^='category-delete-btn-'] {
 .tqa-warn { display: block; margin-block-start: var(--tq-space-xs); font: var(--tq-type-micro); color: var(--tq-amber); }
 .tqa-dim  { color: var(--tq-text3); }
 
+/* صف أزرار الشاشة أو النافذة. والفاصل فوقه ليس زخرفة: كان «حفظ» يقف
+   ملاصقا للحقل الذي قبله بثمانية بكسلات فيقرأ جزءا منه، وفي نافذة من
+   عشرة حقول هو آخر ما يبحث عنه البصر. */
 .tqa-actions {
-  display: flex; gap: var(--tq-space-s); flex-wrap: wrap;
-  margin-block-start: var(--tq-space-l);
+  display: flex; align-items: center; gap: var(--tq-space-s); flex-wrap: wrap;
+  margin-block-start: var(--tq-space-xl);
+  padding-block-start: var(--tq-space-l);
+  border-block-start: 1px solid var(--tq-line);
 }
+.tqa-actions--end { justify-content: flex-end; }
 
 .tqa-money { display: flex; align-items: center; gap: var(--tq-space-s); }
 .tqa-money-unit { color: var(--tq-text2); font: var(--tq-type-caption); flex: none; }
@@ -2395,11 +2404,18 @@ a.tqa-chip .tqa-num { color: var(--tq-text3, var(--tq-text2)); }
 }
 
 /* --------------------------------------------------------------------------
-   TQ-PLAN-IMG · حقل الصورة — يرى ما هو محفوظ وما سيحل محله
+   TQ-PLAN-IMG · حقل الصورة — الحال **بلا جافاسكربت**
+
+   هذه هي الصورة التي يخدمها الخادم: الصورة المحفوظة، وحقل يرفع، ومربع
+   يمحو. و[tqa-file.js] يستوعبها فيبني عليها صندوق السحب (الكتلة ١١٫٢)
+   ويحذف هذه الأجزاء — فما يبقى منها معروضا هو حال من تعثر عنده الملف.
+   ولا تحذف من هنا لذلك: تركها هو ما يجعل الشاشة تعمل بلا سكربت.
+
+   ولوح «المختارة الآن» (`__next`) ذهب: المعاينة صارت في صف الملف داخل
+   الصندوق، وهي تعرض المختار **والمحفوظ** معا — والقديم كان يعرض أحدهما.
    -------------------------------------------------------------------------- */
 .tqa-filefield { display: grid; gap: var(--tq-space-m); }
-.tqa-filefield__now,
-.tqa-filefield__next img {
+.tqa-filefield__now {
   inline-size: 100%;
   max-inline-size: 22rem;
   aspect-ratio: 3 / 2;                 /* نسبة بطاقة الباقة نفسها */
@@ -2413,9 +2429,7 @@ a.tqa-chip .tqa-num { color: var(--tq-text3, var(--tq-text2)); }
   object-fit: cover; object-position: 50% 28%;
   display: block;
 }
-.tqa-filefield__next img { object-fit: cover; object-position: 50% 28%; display: block; }
 .tqa-filefield__ctl { display: grid; gap: var(--tq-space-s); }
-.tqa-filefield__next { display: grid; gap: var(--tq-space-s); }
 
 .tqa-check { display: inline-flex; align-items: center; gap: var(--tq-space-s); cursor: pointer; }
 
@@ -2462,3 +2476,1343 @@ body.tqa .tqa-langsw__opt{
 body.tqa .tqa-langsw__opt:hover:not(:disabled){ background:var(--tq-navyWash); color:var(--tq-navy); }
 body.tqa .tqa-langsw__opt:focus-visible{ outline:2px solid var(--tq-navy); outline-offset:1px; }
 body.tqa .tqa-langsw__opt.is-on{ background:var(--tq-navy); color:#fff; cursor:default; opacity:1; }
+
+/* ==========================================================================
+   التصفح: رأس يفرز، ورأس يلتصق، وذيل يرقم
+   ========================================================================== */
+
+/* ---- رأس العمود الذي يفرز ----
+   الرابط يملأ الخلية لا يجلس فيها: رأس عمود نصفه قابل للنقر ونصفه لا
+   يجعل النقرة تخطئ هدفها وتبدو معطلة. */
+.tqa-table th > .tqa-sort {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-xs);
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  border-radius: var(--tq-radius-small);
+  margin: calc(var(--tq-space-xs) * -1) calc(var(--tq-space-s) * -1);
+  padding: var(--tq-space-xs) var(--tq-space-s);
+  transition: background-color var(--tq-motion-hover) ease, color var(--tq-motion-hover) ease;
+}
+.tqa-table th > .tqa-sort:hover { background: var(--tq-navyWash); color: var(--tq-navy); text-decoration: none; }
+.tqa-table th > .tqa-sort.is-on { color: var(--tq-navy); }
+
+/* العلامة: `↕` باهتة تقول «هذا العمود يفرز» قبل أن يفرز به أحد — وبلاها
+   لا شيء في الرأس يعلن أنه قابل للنقر إلا التمرير فوقه، وهو لا يقع على
+   لمس. والمفروز به يظهر اتجاهه كاملا. */
+.tqa-sort__mark { font: var(--tq-type-micro); opacity: .32; flex: none; line-height: 1; }
+.tqa-sort:hover .tqa-sort__mark { opacity: .6; }
+.tqa-sort.is-on .tqa-sort__mark { opacity: 1; color: var(--tq-actionMastery); }
+
+/* ---- الرأس اللاصق ----
+   خمسون صفا تعني أن أسماء الأعمدة تخرج من الشاشة عند أول تمرير، فيقرأ
+   المسؤول أرقاما لا يعرف عمودها ويعود إلى الأعلى ليتذكر.
+
+   و`position: sticky` وحدها لا تكفي: `.tqa-table__wrap` عليها
+   `overflow-x: auto`، و`overflow-y` تحسب `auto` معها — فهي حاوية تمرير
+   بلا ارتفاع محدود، أي أن الرأس لاصق بشيء لا يمرر عموديا أبدا. فالحد
+   الأعلى هو ما يجعل القاعدة تعمل، وهو يترك الجدول القصير كما هو لأنه
+   لا يبلغه. وذيل الترقيم خارج الحاوية فيبقى ظاهرا مع الرأس. */
+.tqa-table__wrap { max-block-size: calc(100vh - 260px); overflow: auto; }
+
+/* والخلفية معتمة لا شفافة: تحتها صفوف تمر. */
+.tqa-table thead th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  background: var(--tq-ground);
+}
+/* والحد السفلي `box-shadow` لا `border`: حد الخلية اللاصقة لا يلتصق معها
+   في أكثر المتصفحات، فيبقى في مكانه ويمر الصف فوقه. */
+.tqa-table thead th { box-shadow: inset 0 -1px 0 var(--tq-line); }
+
+/* ---- ذيل الجدول ---- */
+.tqa-tablefoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--tq-space-s);
+  padding: var(--tq-space-m) var(--tq-space-xl);
+  border-block-start: 1px solid var(--tq-line);
+}
+.tqa-tablefoot .tqa-pager { margin: 0; }
+
+/* دون 640 يصير الجدول بطاقات، فلا رأس يلتصق ولا عمود يفرز */
+@media (max-width: 640px) {
+  .tqa-table thead th { position: static; box-shadow: none; }
+  .tqa-table__wrap { max-block-size: none; overflow: visible; }
+}
+
+/* ==========================================================================
+   ٩ · ترقية نظام اللوحة — الجدول والزر والنموذج
+
+   القاعدة التي تحكم هذه الكتلة: **ما يتكرر في ثلاث وخمسين وحدة يعرف
+   مرة**. كل ما يلي كان مكتوبا `style="..."` في القوالب، أو لم يكن
+   مكتوبا أصلا فحل محله شكل أضعف — زر أيقوني يخرج مستطيلا، وحذف بلون
+   مضمن، وشريط حفظ يهرب تحت الطية في نموذج من ستة عشر حقلا.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   ٩٫٠ · صندوق الحد لا صندوق المحتوى
+
+   كل مكون `tqa-*` يقيس نفسه بـ`inline-size: 100%` **ومعه حشو وحد**، وهو
+   يصح ما دام `box-sizing: border-box` قائما. وهو قائم اليوم من `reboot`
+   في `app.min.css` وحده — أي أن الورقة تعتمد على ورقة أخرى تحمل قبلها.
+   فلو تعثر تحميل Bootstrap، أو حملت هذه الورقة في سياق بلا Bootstrap
+   (معاينة، أو شاشة تبنى غدا على `tqa-*` وحدها)، لجاوز كل حقل حاويته
+   ستا وعشرين بكسلا: قيست الحال، فخرج الحقل من بطاقته من طرف وقصر عنها
+   من الطرف الآخر.
+
+   والتصريح مقصور على مكوناتنا: `*` عام يعيد ما تتجنبه هذه الورقة أصلا
+   (انظر رأس الملف)، وهذه القيمة هي التي يعطيها Bootstrap فلا يتغير
+   بكسل في اللوحة. */
+.tqa-input, .tqa-select, .tqa-textarea,
+.tqa-btn, .tqa-card, .tqa-stat, .tqa-formbar,
+.tqa-table__wrap, .tqa-picks__grid, .tqa-file__btn { box-sizing: border-box; }
+
+/* --------------------------------------------------------------------------
+   ٩٫١ · الجدول
+   -------------------------------------------------------------------------- */
+
+/* TQ-SCROLL-BLIND — الجدول العريض يمرر أفقيا ولا شيء يقول ذلك.
+   «الاشتراكات» تسعة أعمدة و«قيود المحافظ» ثمانية، وعلى شاشة لوح تخرج
+   ثلاثة منها من الإطار — بلا شريط تمرير ظاهر (المتصفحات الحديثة تخفيه
+   حتى يمرر) وبلا حافة مقصوصة تلفت. فيقرأ المسؤول ستة أعمدة ويظن أنها
+   كل ما في الجدول، ويسأل «أين عمود المبلغ؟» وهو على بعد إصبع.
+
+   والظل من التدرجات لا من جافاسكربت: الطبقتان الأوليان بيضاوان
+   `local` فتمران مع المحتوى وتغطيان الظل عند الطرف، والأخريان
+   `scroll` فتبقيان مكانهما. فالظل يظهر حيث بقي محتوى ويختفي حيث
+   انتهى — بلا مستمع تمرير ولا حساب عرض.
+
+   وارتفاع الطبقتين ٦٠٠٠ لا `100%`: الحاوية تمرر **عموديا كذلك** (الرأس
+   اللاصق يحتاج حدا أعلى للارتفاع)، و`100%` في طبقة `local` تحسب من
+   الصندوق المرئي لا من المحتوى — فتنزلق الطبقة الساترة إلى أعلى مع
+   التمرير، ويظهر ظل جانبي دائم على جدول لا يمرر أفقيا أصلا. والرقم
+   يغطي خمسين صفا بأريح مما تحتاج، وما جاوزه يعرض ظلا زائدا لا أكثر. */
+.tqa-table__wrap {
+  background:
+    linear-gradient(to right, var(--tq-surface) 30%, rgba(255, 255, 255, 0)) 0 0 / 32px 6000px no-repeat local,
+    linear-gradient(to left, var(--tq-surface) 30%, rgba(255, 255, 255, 0)) 100% 0 / 32px 6000px no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(2, 51, 49, .11), rgba(2, 51, 49, 0)) 0 0 / 14px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(2, 51, 49, .11), rgba(2, 51, 49, 0)) 100% 0 / 14px 100% no-repeat scroll;
+}
+
+/* الصف يستجيب للوحة المفاتيح كما يستجيب للفأرة: من يتنقل بـTab بين أزرار
+   الصفوف كان يرى الزر مطوقا ولا يرى **أي صف** هو فيه — وفي جدول من خمسين
+   صفا هذا هو السؤال كله. */
+.tqa-table tbody tr:focus-within { background: var(--tq-navyWash); }
+
+/* الأرقام تقارن رأسيا: خانات متساوية العرض تجعل المبالغ تصطف تحت بعضها
+   فتقرأ العين الفرق بلا أن تعد الخانات.
+
+   و`nowrap` ليست تجميلا: التاريخ `2026-01-14` والجوال `+966501234567`
+   يكسران في المنتصف حين يضيق عمودهما — قيست الحال، فخرج التاريخ سطرين
+   «‎2026-‎» و«‎01-14‎»، وهو رقم واحد لا رقمان. والعمود يتسع بدل أن
+   يكسر. */
+.tqa-table td .tqa-num,
+.tqa-table td .tqa-mono,
+.tqa-table td .tq-ltr {
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+/* والبريد يستثنى: هو الوحيد الذي يطول حتى يجاوز عمودا معقولا. */
+.tqa-table td .tqa-media__sub.tqa-mono { white-space: normal; }
+
+/* عمود ضيق: رقم أو شارة أو تاريخ — لا يستحق سدس عرض الجدول.
+   ولا يكتب على عمود الإجراءات: `inline-size: 1%` تنكمش بالعمود إلى
+   عرض أوسع زر فيه، فيقف «تفاصيل» فوق «عدل» في كل صف. */
+.tqa-table .tqa-col--tight { inline-size: 1%; white-space: nowrap; }
+
+/* جدول كثيف: خمسون صفا من سطر واحد لا تحتاج حشو الصف الذي فيه صورة
+   وعنوان وسطر تحته. و«سجل التدقيق» و«قيود المحافظ» منها. */
+.tqa-table--compact th,
+.tqa-table--compact td { padding-block: var(--tq-space-s); }
+
+@media (max-width: 639.98px) {
+  /* بطاقة الجوال: الخلية بلا `data-label` كانت تطبع فراغا بعرض نصف
+     السطر ثم قيمتها — عمودان أحدهما فارغ. و`admin.js` يملأ ما نسي من
+     رأس الجدول، وهذه شبكة أمان لما لا رأس له أصلا. */
+  .tqa-table td:not([data-label])::before { content: none; }
+  .tqa-table td:not([data-label]) { display: block; }
+
+  /* أدوات الصف تأخذ سطرها كاملا في البطاقة: زران وثلاثة على طرف سطر
+     مشترك مع عنوانه ينضغطان إلى أيقونتين بلا اسم. والمجموعة الملتحمة
+     مثلها — الكورسات تستعملها مكان صف الأدوات. */
+  .tqa-table td .tqa-rowacts { justify-content: flex-start; inline-size: 100%; }
+  .tqa-table td:has(.tqa-rowacts),
+  .tqa-table td:has(.tqa-menu),
+  .tqa-table td:has(.tqa-btngroup) {
+    display: block;
+    margin-block-start: var(--tq-space-s);
+    padding-block-start: var(--tq-space-s);
+    border-block-start: 1px solid var(--tq-line);
+  }
+  .tqa-table td:has(.tqa-rowacts)::before,
+  .tqa-table td:has(.tqa-menu)::before,
+  .tqa-table td:has(.tqa-btngroup)::before { content: none; }
+  .tqa-table__wrap { background: none; }
+}
+
+/* --------------------------------------------------------------------------
+   ٩٫٢ · الأزرار
+   -------------------------------------------------------------------------- */
+
+/* الزر الأيقوني: مربع لا مستطيل.
+   `padding: 0 16px` من القاعدة يعطي زرا فيه أيقونة ١٤ بكسلا عرضا يقارب
+   ضعف ارتفاعه، وأربعة منها في عمود إجراءات تدفع العمود إلى ٢٣٠ بكسلا.
+   وهو العلاج نفسه الذي كتب لـ`.btn.btn-icon` في طبقة Bootstrap — ولم
+   يكن له نظير في المحرك الجديد. */
+.tqa-btn--icon {
+  padding: 0;
+  inline-size: var(--tqa-field-h);
+  min-inline-size: var(--tqa-field-h);
+}
+.tqa-btn--icon.tqa-btn--sm { inline-size: 34px; min-inline-size: 34px; }
+
+/* الحذف الهادئ: حبر خطر على زر شبحي.
+   كان يكتب `style="color:var(--tq-danger)"` في كل صف جدول، و`style`
+   المضمنة لا تحمل حالة تمرير — فالزر الأحمر يمر عليه المؤشر فيصير حبره
+   كحليا (من `.tqa-btn:hover`) ويقرأ كأنه بطل. */
+.tqa-btn--quiet-danger { color: var(--tq-danger); }
+.tqa-btn--quiet-danger:hover {
+  background: var(--tq-dangerSoft);
+  border-color: var(--tq-danger);
+  color: var(--tq-danger);
+}
+
+/* مجموعة أزرار ملتحمة: الإجراءات المتقاربة تقرأ وحدة واحدة، ولا تترك
+   بين كل زرين فجوة تكسر صف الجدول إلى أربع جزر. */
+.tqa-btngroup { display: inline-flex; align-items: center; }
+.tqa-btngroup > .tqa-btn,
+.tqa-btngroup > form > .tqa-btn { border-radius: 0; margin-inline-start: -1px; }
+.tqa-btngroup > form { margin: 0; display: inline-flex; }
+.tqa-btngroup > :first-child > .tqa-btn,
+.tqa-btngroup > .tqa-btn:first-child {
+  border-start-start-radius: var(--tqa-radius-sm);
+  border-end-start-radius: var(--tqa-radius-sm);
+  margin-inline-start: 0;
+}
+.tqa-btngroup > :last-child > .tqa-btn,
+.tqa-btngroup > .tqa-btn:last-child {
+  border-start-end-radius: var(--tqa-radius-sm);
+  border-end-end-radius: var(--tqa-radius-sm);
+}
+/* الزر المحوم عليه يرتفع فوق جاريه فيظهر حده كاملا لا نصفه. */
+.tqa-btngroup .tqa-btn:hover,
+.tqa-btngroup .tqa-btn:focus-visible { position: relative; z-index: 1; }
+
+/* الزر المشغول يدور: الشفافية وحدها تقرأ «معطل» لا «يعمل الآن»، ومن
+   ظنه معطلا ضغط ثانية أو أعاد تحميل الصفحة وسط حفظ. */
+.tqa-btn.is-busy, body.tqa .btn.is-busy {
+  position: relative;
+  color: transparent !important;
+  cursor: progress;
+  opacity: 1;
+}
+.tqa-btn.is-busy > *, body.tqa .btn.is-busy > * { visibility: hidden; }
+.tqa-btn.is-busy::after, body.tqa .btn.is-busy::after {
+  content: '';
+  position: absolute;
+  inline-size: 16px; block-size: 16px;
+  border: 2px solid currentColor;
+  border-block-start-color: transparent;
+  border-radius: 50%;
+  color: var(--tq-navy);
+  animation: tqa-spin .7s linear infinite;
+}
+.tqa-btn--primary.is-busy::after,
+.tqa-btn--mastery.is-busy::after,
+.tqa-btn--danger.is-busy::after,
+body.tqa .btn-primary.is-busy::after,
+body.tqa .btn-success.is-busy::after,
+body.tqa .btn-danger.is-busy::after,
+body.tqa .btn-info.is-busy::after,
+body.tqa .btn-dark.is-busy::after { color: var(--tq-onAction); }
+@keyframes tqa-spin { to { transform: rotate(360deg); } }
+
+/* --------------------------------------------------------------------------
+   ٩٫٣ · شريط الأدوات
+   -------------------------------------------------------------------------- */
+
+/* «إلى الطرف الآخر» — كان `style="margin-inline-start:auto"` في ست شاشات. */
+.tqa-toolbar__end { margin-inline-start: auto; }
+.tqa-toolbar__sep {
+  inline-size: 1px; align-self: stretch; min-block-size: 24px;
+  background: var(--tq-line); margin-inline: var(--tq-space-xs);
+}
+
+/* رقاقة مرشح فعال مع زر نزعها: من رشح ثم مرر لأسفل ينسى بماذا رشح،
+   فيقرأ عددا ناقصا ويظن أن صفوفا ضاعت. والرقاقة تقول وتنزع في موضع
+   واحد — ونزع مرشح واحد غير «مسح الكل». */
+.tqa-activefilters {
+  display: flex; align-items: center; gap: var(--tq-space-xs);
+  flex-wrap: wrap;
+  margin-block-end: var(--tq-space-l);
+  font: var(--tq-type-micro); color: var(--tq-text2);
+}
+.tqa-activefilters .tqa-chip { padding-inline-end: 4px; }
+.tqa-chip__x {
+  display: inline-grid; place-items: center;
+  inline-size: 18px; block-size: 18px;
+  margin-inline-start: 2px;
+  border: 0; border-radius: 50%;
+  background: transparent; color: inherit;
+  font: inherit; line-height: 1; cursor: pointer;
+  text-decoration: none;
+}
+.tqa-chip__x:hover { background: rgba(2, 51, 49, .12); color: inherit; }
+
+/* --------------------------------------------------------------------------
+   ٩٫٤ · النموذج
+   -------------------------------------------------------------------------- */
+
+/* TQ-SAVE-BELOW — شريط الحفظ يلتصق بأسفل الشاشة.
+   نموذج الباقة ستة عشر حقلا، وشاشة الكورس تسعة تبويبات، وإعدادات الموقع
+   أطول منهما. وزر «احفظ» في ذيل الصفحة يعني أن كل تعديل — ولو حرفا
+   واحدا في الحقل الأول — يكلف تمريرة كاملة إلى القاع. وأثقل منه أن من
+   لا يرى زر حفظ **لا يعرف أن الصفحة تحفظ**: يعدل ثم ينتقل ثم يعود
+   فيجد ما كتبه ذهب.
+
+   والشريط ليس زخرفة لاصقة: `position: sticky` بـ`bottom: 0` يبقيه في
+   مجرى المستند، فهو في القاع حين تكون الصفحة قصيرة، ويرتفع مع الطية
+   حين تطول. */
+.tqa-formbar {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-s);
+  flex-wrap: wrap;
+  margin-block-start: var(--tq-space-l);
+  /* يمتد إلى حواف الصفحة ثم يعيد حشوه: شريط بعرض المحتوى وحده يترك
+     خطين فارغين على طرفيه فيبدو بطاقة عائمة لا شريطا. */
+  margin-inline: calc(var(--tq-space-xl) * -1);
+  padding: var(--tq-space-m) var(--tq-space-xl);
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(8px);
+  border-block-start: 1px solid var(--tq-line);
+  box-shadow: 0 -6px 18px -14px rgba(16, 24, 40, .28);
+}
+.tqa-formbar__note {
+  margin: 0;
+  font: var(--tq-type-micro);
+  color: var(--tq-text2);
+}
+.tqa-formbar__end { margin-inline-start: auto; display: flex; gap: var(--tq-space-s); flex-wrap: wrap; }
+/* «فيه تعديل لم يحفظ» — يعلن نفسه في الشريط لا في نافذة عند المغادرة
+   وحدها: التحذير الذي يقع وقت الخروج يأتي بعد فوات القرار. */
+.tqa-formbar__dirty { display: none; align-items: center; gap: var(--tq-space-xs); color: var(--tq-amber); }
+.tqa-formbar__dirty::before {
+  content: '';
+  inline-size: 7px; block-size: 7px; border-radius: 50%;
+  background: currentColor; flex: none;
+}
+form.is-dirty .tqa-formbar__dirty { display: inline-flex; }
+
+/* الشريط داخل نموذج محدود العرض لا ينزف إلى حواف الصفحة: النزف يجعله
+   يتجاوز النموذج من طرف ويقصر عنه من طرف، فيقرأ خطأ محاذاة لا شريطا.
+   فيصير صندوقا بحد كامل ونصف قطر — وهو لاصق كما هو. */
+.tqa-formbar--inset {
+  margin-inline: 0;
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius);
+}
+@media (max-width: 639.98px) {
+  .tqa-formbar { margin-inline: calc(var(--tq-space-l) * -1); padding-inline: var(--tq-space-l); }
+  .tqa-formbar__end { inline-size: 100%; }
+}
+
+/* فاصل المجموعة يصير عنوانا يقرأ.
+   كان سطرا صغيرا رماديا بلا وزن ولا خط، يضيع بين أربعة عناوين حقول
+   أثقل منه — فالمجموعة لا تفصل شيئا عن شيء. والخط الشعري إلى جانبه لا
+   تحته: خط عرضي كامل في شبكة حقول يقرأ نهاية نموذج لا بداية مجموعة. */
+.tqa-formsec {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-m);
+  margin: var(--tq-space-xl) 0 var(--tq-space-xs);
+  font: var(--tq-type-micro);
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--tq-navy);
+}
+.tqa-formsec::after {
+  content: '';
+  flex: 1;
+  block-size: 1px;
+  background: var(--tq-line);
+}
+.tqa-formsec:first-child { margin-block-start: 0; }
+
+/* الحقل الخاطئ يقول ذلك بالحد لا بالرسالة وحدها — والمحرك الجديد لم
+   يكن له نظير `is-invalid` كالذي في طبقة Bootstrap. */
+.tqa-input.is-invalid,
+.tqa-select.is-invalid,
+.tqa-textarea.is-invalid {
+  border-color: var(--tq-danger);
+  box-shadow: 0 0 0 3px var(--tq-dangerSoft);
+}
+.tqa-field__err {
+  display: block;
+  margin-block-start: var(--tq-space-xs);
+  font: var(--tq-type-micro);
+  color: var(--tq-danger);
+}
+
+/* حقل ووحدته في سطر (٩٩ ر.س · ١٥٪): كان `style="display:flex;..."`
+   مكتوبا ثلاث مرات في `tqa_form.php` وحدها. */
+.tqa-field__row {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-s);
+  flex-wrap: wrap;
+}
+.tqa-field__unit {
+  flex: none;
+  font: var(--tq-type-caption);
+  color: var(--tq-text2);
+}
+.tqa-field__row > .tqa-input { inline-size: auto; flex: 0 1 11rem; min-inline-size: 0; }
+
+/* --------------------------------------------------------------------------
+   ٩٫٥ · البطاقة وبطاقة الرقم
+   -------------------------------------------------------------------------- */
+
+/* ذيل البطاقة: أزرارها تفصل عن جسمها كما يفصل رأسها. */
+.tqa-card__foot {
+  display: flex; align-items: center; gap: var(--tq-space-s);
+  flex-wrap: wrap;
+  padding: var(--tq-space-l) var(--tq-space-xl);
+  border-block-start: 1px solid var(--tq-line);
+}
+
+/* البطاقة التي تنقر تقول إنها تنقر.
+   نصف بطاقات لوحة القيادة روابط ونصفها أرقام ساكنة، وهي متطابقة في
+   الشكل حرفا بحرف — فمن نقر واحدة ولم يحدث شيء لم يعد ينقر الأخريات.
+   والسهم يظهر عند التمرير وحده فلا يزحم الشاشة بستة أسهم. */
+a.tqa-stat { position: relative; }
+a.tqa-stat::after {
+  content: '';
+  position: absolute;
+  inset-block-end: var(--tq-space-l);
+  inset-inline-end: var(--tq-space-l);
+  inline-size: 7px; block-size: 7px;
+  border-block-start: 2px solid var(--tq-text3);
+  border-inline-end: 2px solid var(--tq-text3);
+  transform: rotate(45deg);
+  opacity: 0;
+  transition: opacity var(--tq-motion-hover) ease;
+}
+[dir='rtl'] a.tqa-stat::after { transform: rotate(-135deg); }
+a.tqa-stat:hover::after,
+a.tqa-stat:focus-visible::after { opacity: 1; border-color: var(--tq-navy); }
+a.tqa-stat:hover { box-shadow: var(--tq-shadow-raised); }
+
+/* الرقم الضخم (٣٤ بكسلا) يصلح لأربع بطاقات في صف؛ وفي بطاقة عرضها ثلث
+   الشاشة وفيها عنوان من أربع كلمات يزن الرقم أكثر مما يعني. فيهبط درجة
+   حين تكون البطاقة بندا في قائمة عمل لا رصيدا، ويثقل عنوانها بدله —
+   الفعل المطلوب هو الخبر هنا، لا مقداره. */
+.tqa-stat--task .tqa-stat__value { font-size: 28px; }
+.tqa-stat--task .tqa-stat__label { font: var(--tq-type-caption); font-weight: 700; color: var(--tq-navy); }
+
+/* --------------------------------------------------------------------------
+   ٩٫٦ · هوية الصف: وجه واسم وسطر تحته
+   -------------------------------------------------------------------------- */
+
+/* `.tqa-media` كانت تعرف لكن جداول الناس لا تستعملها: الاسم في عمود
+   والبريد في عمود، والوجه غائب. وجدول من أربعمئة حساب بلا وجوه يمسح
+   بالقراءة سطرا سطرا — والوجه هو ما تمسكه العين قبل الحرف. */
+.tqa-media__title { text-decoration: none; }
+a.tqa-media__title:hover { color: var(--tq-teal); text-decoration: underline; }
+/* `break-word` لا `anywhere`: الثانية تجعل أصغر عرض ممكن للخلية **حرفا
+   واحدا**، فيقرر الجدول أن عمود البريد يكفيه ست بكسلات وينكسر
+   `admin.test@taqdaredu.com` سبعة أسطر رأسية. والأولى تبقي أصغر عرض
+   عند أطول كلمة، فيتسع العمود لها ولا ينكسر إلا عند الضرورة. */
+.tqa-media__sub { overflow-wrap: break-word; }
+
+/* البريد والجوال: لاتيني معزول بخانات متساوية، وكان يكتب
+   `style="font-size:13px"` في السطر. */
+.tqa-mono {
+  font-family: var(--tq-font-num);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: 12.5px;
+  unicode-bidi: isolate;
+  direction: ltr;
+  display: inline-block;
+}
+.tqa-mono--dim { color: var(--tq-text2); font-size: 12px; }
+
+/* الشارة بنقطة: الحالة تقرأ باللون وحده اليوم، ومن لا يفرق الأخضر عن
+   البرتقالي (وهو واحد من كل اثني عشر رجلا) يقرأ شارتين متطابقتين. */
+.tqa-badge--dot::before {
+  content: '';
+  inline-size: 6px; block-size: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+/* ==========================================================================
+   ١٠ · الترقية الثانية: الشريط الممرر · الحقل · الجدول · قائمة الصف ·
+        النافذة · بطاقة الرقم
+
+   القاعدة الحاكمة هنا هي قاعدة الكتلة التي قبلها: **ما يتكرر في ثلاث
+   وخمسين شاشة يعرف مرة**. وما يلي كله علاج لأشياء تعمل ولا تقرأ —
+   شريط تمرير لا يرى، ومنتق بسهم المتصفح وسط حقول من التوكنات، وعمود
+   إجراءات فيه أربعة أزرار وحقل نص فيصير عرضه ثلث الجدول، ونافذة درس
+   بعرض خمسمئة بكسل فيها نموذج من عشرة حقول.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   ١٠٫١ · الشريط الممرر — TQ-SCROLL-BLIND، الوجه الثاني
+
+   الكتلة ٩٫١ عالجت الأثر: ظل على حافة الجدول يقول إن وراءه محتوى. وهذا
+   يعالج السبب: **المتصفح لا يرسم شريطا حتى يمرر**. فمن لا يمرر لا يعرف
+   أن ثمة ما يمرر إليه، ومن مرر رأى شريطا رماديا نحيلا من نظام التشغيل
+   لا صلة له بالهوية — وهو نفسه في لوح النافذة وقائمة الشريط الجانبي
+   وشبكة الاختيار المتعدد.
+
+   وتعريف `::-webkit-scrollbar` يجعل الشريط **دائم الظهور** لا طبقة تظهر
+   وتغيب: وهو المقصود هنا بالضبط. والحجم اثنتا عشرة بكسلة والحبة داخلها
+   ستة (الحد الشفاف مع `background-clip` هو ما يصنع الحشو، فلا خاصية
+   `padding` لهذا الزائف).
+
+   و`scrollbar-width`/`scrollbar-color` **موروثتان**، فتكتبان على `body`
+   مرة وتنزلان إلى كل سليل — ولا حاجة إلى `*` الذي يتجنبه رأس الملف.
+   -------------------------------------------------------------------------- */
+body.tqa {
+  --tqa-sb-size: 12px;
+  --tqa-sb-thumb: rgba(2, 51, 49, .22);
+  --tqa-sb-thumb-hot: rgba(2, 51, 49, .46);
+  --tqa-sb-track: rgba(2, 51, 49, .045);
+  scrollbar-width: thin;
+  scrollbar-color: var(--tqa-sb-thumb) transparent;
+}
+body.tqa::-webkit-scrollbar,
+body.tqa ::-webkit-scrollbar {
+  width: var(--tqa-sb-size);
+  height: var(--tqa-sb-size);
+  background: transparent;
+}
+body.tqa::-webkit-scrollbar-track,
+body.tqa ::-webkit-scrollbar-track {
+  background: var(--tqa-sb-track);
+  border-radius: 999px;
+}
+body.tqa::-webkit-scrollbar-thumb,
+body.tqa ::-webkit-scrollbar-thumb {
+  background: var(--tqa-sb-thumb);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 999px;
+}
+body.tqa::-webkit-scrollbar-thumb:hover,
+body.tqa ::-webkit-scrollbar-thumb:hover { background: var(--tqa-sb-thumb-hot); background-clip: padding-box; }
+body.tqa::-webkit-scrollbar-thumb:active,
+body.tqa ::-webkit-scrollbar-thumb:active { background: var(--tq-navy); background-clip: padding-box; }
+/* الركن الذي يلتقي فيه الشريطان: افتراضه لون نظام لا يشبه الجدول. */
+body.tqa::-webkit-scrollbar-corner,
+body.tqa ::-webkit-scrollbar-corner { background: transparent; }
+/* زرا السهمين في ويندوز: مربعان رماديان لا يضغطهما أحد. */
+body.tqa ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+
+/* الحاوية الصغيرة تأخذ شريطا أنحف: اثنتا عشرة بكسلة في لوح عرضه مئتان
+   وأربعون تأكل خمسة بالمئة منه وتزاحم نص بنوده. */
+.tqa-menu__pop,
+.tqa-picks__grid,
+body.tqa .dropdown-menu { scrollbar-width: thin; }
+.tqa-menu__pop::-webkit-scrollbar,
+.tqa-picks__grid::-webkit-scrollbar,
+body.tqa .dropdown-menu::-webkit-scrollbar { width: 9px; height: 9px; }
+.tqa-menu__pop::-webkit-scrollbar-thumb,
+.tqa-picks__grid::-webkit-scrollbar-thumb,
+body.tqa .dropdown-menu::-webkit-scrollbar-thumb { border-width: 2px; }
+
+/* التمرير داخل صندوق لا يجر الصفحة خلفه: من بلغ آخر الجدول ثم واصل
+   الدولاب كان يمرر الصفحة كلها فجأة، فيفقد موضعه من القائمة. */
+.tqa-table__wrap,
+.tqa-menu__pop,
+.tqa-picks__grid,
+body.tqa .modal-body { overscroll-behavior: contain; }
+
+/* --------------------------------------------------------------------------
+   ١٠٫٢ · الحقل: منتق بسهم المنصة، وحد يستجيب قبل أن يركز عليه
+   -------------------------------------------------------------------------- */
+
+/* السهم: `appearance: none` تنزع سهم النظام — وهو رمادي بحجم النظام
+   وموضعه **يمين الحقل دائما**، أي في وسط النص في صفحة عربية على بعض
+   المتصفحات. فيرسم من التوكنات ويوضع على الطرف المنطقي.
+
+   والاستثناءان مقصودان: `[multiple]` و`[size]` قائمتان مفتوحتان لا
+   منتق ينسدل، وسهم فوقهما يعد بما لا يقع. */
+.tqa-select,
+body.tqa select.form-control,
+body.tqa .custom-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-inline-end: 38px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235A6672' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9.5 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 15px 15px;
+  background-position: left 13px center;
+}
+[dir='ltr'] .tqa-select,
+[dir='ltr'] body.tqa select.form-control,
+[dir='ltr'] body.tqa .custom-select { background-position: right 13px center; }
+
+.tqa-select[multiple], .tqa-select[size],
+body.tqa select.form-control[multiple], body.tqa select.form-control[size],
+body.tqa .custom-select[multiple], body.tqa .custom-select[size] {
+  background-image: none;
+  padding-inline-end: var(--tq-space-s);
+}
+
+/* الحد يستجيب قبل التركيز: حقل لا يتغير تحت المؤشر يقرأ نصا محاطا
+   بخط، وشبكة من ستة عشر حقلا كلها بالحد نفسه لا تدل العين على أيها
+   تحتها الآن. */
+.tqa-input:hover:not(:disabled):not([readonly]),
+.tqa-select:hover:not(:disabled),
+.tqa-textarea:hover:not(:disabled):not([readonly]),
+body.tqa .form-control:hover:not(:disabled):not([readonly]),
+body.tqa .custom-select:hover:not(:disabled) { border-color: var(--tq-text3); }
+
+/* حلقة التركيز أوضح: `navyWash` شفافية خمسة بالمئة ونصف — تقرأ ظلا لا
+   حلقة على أرضية بيضاء. والحد نفسه هو الذي يحمل الإشارة، والحلقة
+   تسنده. */
+.tqa-input:focus, .tqa-select:focus, .tqa-textarea:focus,
+body.tqa .form-control:focus, body.tqa .custom-select:focus {
+  border-color: var(--tq-navy);
+  box-shadow: 0 0 0 3px var(--tq-navyWashStrong);
+}
+
+.tqa-input::placeholder, .tqa-textarea::placeholder { color: var(--tq-text3); opacity: 1; }
+
+/* المعطل والمقروء فقط يفترقان: الأول لا يرسل قيمته والثاني يرسلها.
+   وكانا يخرجان بمظهر واحد، فيظن المسؤول أن الحقل المقروء عطل. */
+.tqa-input:disabled, .tqa-select:disabled, .tqa-textarea:disabled {
+  background: var(--tq-ground);
+  color: var(--tq-text3);
+  cursor: not-allowed;
+}
+.tqa-input[readonly], .tqa-textarea[readonly] {
+  background: var(--tq-ground);
+  border-style: dashed;
+}
+
+/* حقل صغير: في شريط أدوات أو داخل قائمة صف — والارتفاع ٤٤ هناك يجعل
+   الشريط سطرين. */
+.tqa-input--sm, .tqa-select--sm {
+  min-block-size: 36px;
+  padding-block: 5px;
+  font: var(--tq-type-caption);
+}
+.tqa-select--sm { padding-inline-end: 32px; background-size: 13px 13px; background-position: left 10px center; }
+[dir='ltr'] .tqa-select--sm { background-position: right 10px center; }
+
+/* حقل البحث: زر المسح الذي يرسمه المتصفح صليب أسود من التسعينيات،
+   وموضعه في العربية يقع على أول الكلمة. */
+.tqa-input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.tqa-search { position: relative; display: flex; align-items: center; }
+.tqa-search > .tqa-input { padding-inline-start: 40px; }
+.tqa-search__ic {
+  position: absolute;
+  inset-inline-start: 13px;
+  display: grid; place-items: center;
+  color: var(--tq-text3);
+  pointer-events: none;
+}
+.tqa-search:focus-within .tqa-search__ic { color: var(--tq-navy); }
+
+/* المنتقي المفتوح (`multiple`) صندوق يمرر: كان يطول بطول خياراته
+   فيدفع زر الحفظ تحت الطية متى كانت الخيارات أربعين. */
+body.tqa select[multiple], .tqa-select[multiple] {
+  max-block-size: 240px;
+  overflow-y: auto;
+}
+body.tqa select[multiple] option:checked, .tqa-select[multiple] option:checked { font-weight: 700; }
+
+/* --------------------------------------------------------------------------
+   ١٠٫٣ · الاختيار المتعدد (`multiref`): قائمة تبحث وتعد
+
+   شبكة الحبات تعمل على اثني عشر صفا؛ وعلى أربعين مادة تصير جدارا يمسح
+   بالعين سطرا سطرا، ويطول حتى يدفع بقية النموذج تحت الطية. فصارت
+   **صندوقا محدود الارتفاع فيه حقل يرشح** — والترشيح في المتصفح هنا
+   لأنه لا يغير قيمة: ما خفي يبقى محددا ويرسل، وهذا هو الفرق بينه وبين
+   ترشيح الكتالوج.
+   -------------------------------------------------------------------------- */
+.tqa-picks__grid {
+  max-block-size: 268px;
+  overflow-y: auto;
+  gap: 2px;
+}
+/* الحبة المحددة تعلن نفسها: مربع مؤشر بعرض سبعة عشر بكسلا وسط أربعين
+   اسما لا تمسكه العين، فيعد المسؤول المحدد بإصبعه على الشاشة. */
+.tqa-pick:has(input:checked) {
+  background: var(--tq-mint-fill);
+  color: var(--tq-mint-ink);
+  font-weight: 600;
+}
+.tqa-pick:has(input:focus-visible) { outline: 2px solid var(--tq-focusRing); outline-offset: -2px; }
+.tqa-pick[hidden] { display: none; }
+
+.tqa-picks__count {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--tq-navyWash);
+  color: var(--tq-navy);
+  font-weight: 700;
+}
+.tqa-picks__search { flex: 1; min-inline-size: 150px; max-inline-size: 260px; }
+/* «لا اسم يطابق» داخل الصندوق — وبلاها يقرأ الصندوق الفارغ عطلا. */
+.tqa-picks__none {
+  grid-column: 1 / -1;
+  padding: var(--tq-space-m);
+  text-align: center;
+  font: var(--tq-type-micro);
+  color: var(--tq-text2);
+}
+
+/* --------------------------------------------------------------------------
+   ١٠٫٤ · الجدول: أعمدة تفصل، ورأس يثقل، وصف يعلن نفسه
+   -------------------------------------------------------------------------- */
+
+/* الرأس يثقل درجة: هو الوحيد الذي يقرأ **مرة** ثم يرجع إليه البصر عند
+   كل شك، فوزنه ليس زخرفة. والحد السفلي طبقتان — خط الهوية وفوقه خط
+   أثقل يفصل الرأس عن أول صف فصلا يرى من طرف الشاشة. */
+.tqa-table thead th,
+body.tqa .table thead th {
+  font-weight: 700;
+  letter-spacing: .015em;
+  color: var(--tq-navy);
+}
+.tqa-table thead th { box-shadow: inset 0 -2px 0 var(--tq-line); }
+
+/* الفاصل الرأسي: جدول الاشتراكات عشرة أعمدة، والمبلغ والدورة والحالة
+   والتاريخان تقرأ شريطا واحدا بلا خط يفصل رقما عن رقم. واللون أفتح من
+   `--tq-line` ثلاث مرات: خط يرى ولا يحول الجدول إلى شبكة محاسبية. */
+.tqa-table:not(.tqa-table--plain) tbody td + td,
+.tqa-table:not(.tqa-table--plain) thead th + th,
+body.tqa .table:not(.table-bordered) tbody td + td,
+body.tqa .table:not(.table-bordered) thead th + th {
+  border-inline-start: 1px solid rgba(2, 51, 49, .055);
+}
+
+/* الصف تحت المؤشر يعلن نفسه بشريط على طرفه لا بلون خلفية وحده: اللون
+   الفاتح جدا لا يرى على شاشة لوح، والداكن يطمس النص. */
+[dir='rtl'] .tqa-table tbody tr:hover td:first-child,
+[dir='rtl'] .tqa-table tbody tr:focus-within td:first-child { box-shadow: inset -3px 0 0 var(--tq-teal); }
+[dir='ltr'] .tqa-table tbody tr:hover td:first-child,
+[dir='ltr'] .tqa-table tbody tr:focus-within td:first-child { box-shadow: inset 3px 0 0 var(--tq-teal); }
+
+/* الصف الزوجي — يطلب صراحة: جدول الأرقام الطويل يقرأ سطرا سطرا أسهل
+   بخلفية متناوبة، وجدول من ستة صفوف لا يحتاجها. */
+.tqa-table--zebra tbody tr:nth-child(even) { background: rgba(2, 51, 49, .018); }
+.tqa-table--zebra tbody tr:hover { background: var(--tq-navyWash); }
+
+/* عمود المعرف: رقم مرجعي لا معلومة تقرأ. كان بوزن النص نفسه فيسحب
+   العين إلى أول ما لا يعني شيئا في الصف. */
+.tqa-table td:first-child .tqa-num { color: var(--tq-text3); font-weight: 600; }
+
+/* خلية من طبقتين: القيمة وتحتها ما يفسرها — «٣٩٩ ر.س» و«سنوي · ٣٦٥
+   يوما». وكانت تكتب `<br><small>` وهو يرث حجم النص ويلتصق بالسطر. */
+.tqa-cell { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
+.tqa-cell__main { color: var(--tq-text); font-weight: 600; overflow-wrap: break-word; }
+.tqa-cell__sub  { font: var(--tq-type-micro); color: var(--tq-text2); }
+.tqa-cell__row  { display: flex; align-items: center; gap: var(--tq-space-xs); flex-wrap: wrap; }
+/* الرقم في الخلية المزدوجة يبقى بخانات متساوية ولا ينكسر. */
+.tqa-cell__main .tqa-num, .tqa-cell__main.tqa-num {
+  font-family: var(--tq-font-num);
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+
+/* عمود الإجراءات: أضيق ما يمكن، ومحاذاته إلى الطرف. وبعد أن صارت
+   الأزرار قائمة واحدة صار عرضه عرض زر واحد لا مئتي بكسل. */
+.tqa-table th.tqa-col--acts,
+.tqa-table td.tqa-col--acts,
+body.tqa .table th.tqa-col--acts,
+body.tqa .table td.tqa-col--acts {
+  inline-size: 1%;
+  white-space: nowrap;
+  text-align: end;
+}
+
+@media (max-width: 639.98px) {
+  /* في وضع البطاقة لا أعمدة تفصل. */
+  .tqa-table tbody td + td, .tqa-table thead th + th,
+  body.tqa .table tbody td + td { border-inline-start: 0; }
+  .tqa-table tbody tr:hover td:first-child,
+  .tqa-table tbody tr:focus-within td:first-child { box-shadow: none; }
+  .tqa-table td.tqa-col--acts, body.tqa .table td.tqa-col--acts { inline-size: auto; text-align: start; }
+}
+
+/* --------------------------------------------------------------------------
+   ١٠٫٥ · قائمة الصف — TQ-ROW-CLUTTER
+
+   عمود الإجراءات كان يحمل في بعض الشاشات **أربعة أزرار وحقل نص**:
+   «الأسئلة» و«الملفات» و«تعديل» و«حذف» في المقرر، و«مرجع الحوالة» مع
+   «فعل» ثم كاشف فيه نموذج ثان بحقل «السبب» في الاشتراكات. وثلاثة آثار
+   لا واحد:
+
+     ١ — العمود يأخذ ثلث عرض الجدول، فتنضغط الأعمدة التي فيها الخبر.
+     ٢ — أربعة أزرار متساوية الوزن لا تقول أيها الفعل المعتاد وأيها
+         الخطر: الحذف بجوار التعديل بحجمه ولونه إلا حبره.
+     ٣ — حقل نص في خلية جدول يرث ارتفاع الحقل الكامل (٤٤ بكسلا) فيصير
+         الصف ضعف جاره، ويقرأ الجدول متعرجا.
+
+   فصارت **قائمة واحدة لكل صف**: زر واحد في العمود، وفيه كل ما يفعل
+   بالصف — مرتبا: الفعل المقصود أولا، ثم التحرير، ثم الخطر تحت فاصل.
+   والحقول التي تلزم إجراء (المرجع والسبب) لوح داخل القائمة لا حقل في
+   الجدول.
+
+   و`position: fixed` لا `absolute`: القائمة تفتح من داخل
+   `.tqa-table__wrap` وعليها `overflow: auto`، والمطلق يقص عند حافتها —
+   فتفتح قائمة آخر صف نصفها تحت الجدول. والثابت لا يقصه `overflow` (ولا
+   حاوية في هذه الشجرة تنشئ كتلة احتواء له)، وموضعه يحسبه [admin.js] من
+   مستطيل الزر. وهي العلة نفسها التي عولجت لـ`dropright` في الكتلة ٥،
+   وهذه صورتها العامة.
+   -------------------------------------------------------------------------- */
+.tqa-menu { position: relative; display: inline-flex; }
+
+/* الزر: نصف قطر كامل وحد ظاهر — «الإجراءات» فعل يقصد لا رابط يمر عليه
+   البصر. وثلاث نقاط وحدها لا تكفي في عمود بلا رأس: معها سهم فيقرأ
+   الزر «هنا شيء ينفتح» قبل أن يجرب. */
+.tqa-menu__trigger {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-block-size: 34px;
+  padding-inline: 10px;
+  border: 1px solid var(--tq-line);
+  border-radius: 999px;
+  background: var(--tq-surface);
+  color: var(--tq-text2);
+  font: var(--tq-type-micro);
+  font-family: var(--tq-font-body);
+  cursor: pointer;
+  transition: background-color var(--tq-motion-hover) ease,
+              border-color var(--tq-motion-hover) ease,
+              color var(--tq-motion-hover) ease;
+}
+.tqa-menu__trigger:hover { background: var(--tq-navyWash); border-color: var(--tq-navy); color: var(--tq-navy); }
+.tqa-menu__trigger:focus-visible { outline: 2px solid var(--tq-focusRing); outline-offset: 2px; }
+.tqa-menu__trigger svg { flex: none; }
+.tqa-menu__caret { transition: transform var(--tq-motion-hover) var(--tq-ease-enter); }
+/* المفتوح يقلب لونه: من فتح قائمة ثم مرر عينه في الجدول يحتاج أن يعرف
+   أي صف هو فيه — والقائمة العائمة وحدها لا تقول ذلك. */
+.tqa-menu.is-open > .tqa-menu__trigger {
+  background: var(--tq-navy);
+  border-color: var(--tq-navy);
+  color: var(--tq-onAction);
+}
+.tqa-menu.is-open .tqa-menu__caret { transform: rotate(180deg); }
+
+.tqa-menu__pop {
+  position: fixed;
+  /* **فيزيائية لا منطقية هنا وحدها.** [admin.js] يكتب `top`/`left`
+     محسوبين من مستطيل الزر؛ و`inset-inline-start: 0` تحسب في العربية
+     `right: 0`، فيجتمع على العنصر `right` من الورقة و`left` من السكربت
+     — وهي حال مقيدة زائدا، والمواصفة تسقط فيها `left` متى كان اتجاه
+     كتلة الاحتواء من اليمين. فتلتصق كل قائمة بحافة الشاشة اليمنى مهما
+     كان موضع زرها. و`right: auto` صراحة لئلا يرثه من قاعدة أخرى. */
+  top: 0; left: 0; right: auto;
+  z-index: 1290;
+  inline-size: max-content;
+  min-inline-size: 248px;
+  max-inline-size: min(340px, calc(100vw - 24px));
+  max-block-size: min(70vh, 540px);
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--tq-surface);
+  border: 1px solid var(--tq-line);
+  border-radius: 16px;
+  /* ظل من طبقتين: بعيدة تفصل اللوح عن الجدول تحته، وقريبة ترسم حده.
+     والطبقة الواحدة إما باهتة لا تفصل أو داكنة تقرأ سحابة. */
+  box-shadow: 0 20px 46px -20px rgba(2, 51, 49, .40),
+              0 3px 10px -5px rgba(16, 24, 40, .16);
+  animation: tqa-menu-in 140ms var(--tq-ease-enter);
+  text-align: start;
+}
+.tqa-menu__pop[hidden] { display: none; }
+@keyframes tqa-menu-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+/* رأس القائمة: أي صف هذا؟ القائمة تفتح فوق الجدول فتحجب صفها، ومن
+   فتح قائمة الصف الحادي عشر ثم تردد لا يعرف أهي قائمته أم قائمة جاره. */
+.tqa-menu__head {
+  padding: 8px 10px 10px;
+  margin-block-end: 4px;
+  border-block-end: 1px solid var(--tq-line);
+}
+.tqa-menu__head b {
+  display: block;
+  font: var(--tq-type-caption);
+  font-weight: 700;
+  color: var(--tq-navy);
+  overflow-wrap: break-word;
+}
+.tqa-menu__head span { display: block; margin-block-start: 2px; font: var(--tq-type-micro); color: var(--tq-text2); }
+
+.tqa-menu__item {
+  display: flex; align-items: center; gap: 10px;
+  inline-size: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--tq-text);
+  font: var(--tq-type-caption);
+  font-family: var(--tq-font-body);
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--tq-motion-hover) ease, color var(--tq-motion-hover) ease;
+}
+.tqa-menu__item:hover, .tqa-menu__item:focus-visible {
+  background: var(--tq-navyWash);
+  color: var(--tq-navy);
+  text-decoration: none;
+  outline: 0;
+}
+.tqa-menu__item:focus-visible { box-shadow: inset 0 0 0 2px var(--tq-focusRing); }
+.tqa-menu__item[aria-disabled='true'] { opacity: .5; pointer-events: none; }
+
+/* أيقونة البند في صندوقها: ثمانية بنود بأيقونات عارية تقرأ عمودا من
+   خطوط رمادية؛ والصندوق يعطي كل بند مرساة تمسكها العين. */
+.tqa-menu__ic {
+  display: grid; place-items: center;
+  inline-size: 28px; block-size: 28px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--tq-ground);
+  color: var(--tq-text2);
+  transition: background-color var(--tq-motion-hover) ease, color var(--tq-motion-hover) ease;
+}
+.tqa-menu__item:hover .tqa-menu__ic { background: var(--tq-navy); color: var(--tq-onAction); }
+.tqa-menu__txt { flex: 1; min-inline-size: 0; }
+.tqa-menu__txt b { display: block; font-weight: 600; }
+.tqa-menu__txt span { display: block; font: var(--tq-type-micro); color: var(--tq-text2); font-weight: 400; }
+
+/* البند المقصود من الصف — الوحدة تعلنه في `spec()`، وهو سبب فتح
+   القائمة أصلا. فيقرأ قبل «تعديل» ويحمل لون الإتقان. */
+.tqa-menu__item--go .tqa-menu__ic { background: var(--tq-mint-fill); color: var(--tq-mint-ink); }
+.tqa-menu__item--go b { color: var(--tq-navy); }
+.tqa-menu__item--go:hover .tqa-menu__ic { background: var(--tq-actionMastery); color: var(--tq-onAction); }
+
+/* الخطر: حبر لا خلفية حتى يقصد. وهو تحت فاصل دائما — ضغطة تائهة على
+   بند ملاصق للتعديل تحذف صفا. */
+.tqa-menu__item--danger { color: var(--tq-danger); }
+.tqa-menu__item--danger .tqa-menu__ic { background: var(--tq-dangerSoft); color: var(--tq-danger); }
+.tqa-menu__item--danger:hover, .tqa-menu__item--danger:focus-visible { background: var(--tq-dangerSoft); color: var(--tq-danger); }
+.tqa-menu__item--danger:hover .tqa-menu__ic { background: var(--tq-danger); color: var(--tq-onAction); }
+
+.tqa-menu__sep { block-size: 1px; margin: 5px 6px; background: var(--tq-line); }
+.tqa-menu__note { padding: 6px 10px 8px; font: var(--tq-type-micro); color: var(--tq-text2); }
+.tqa-menu__label {
+  display: block;
+  padding: 8px 10px 4px;
+  font: var(--tq-type-micro);
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--tq-text3);
+}
+
+/* لوح داخل القائمة: إجراء يطلب قيمة قبل أن ينفذ (مرجع الحوالة · سبب
+   إعادة القسمة). وهو محاط بأرضية ليقرأ نموذجا مستقلا لا بندا ثالثا —
+   وبلا الأرضية يقف حقل نص وسط قائمة أوامر بلا ما يقول إنه شرط أحدها. */
+.tqa-menu__form {
+  margin: 4px 2px 2px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--tq-ground);
+  border: 1px solid var(--tq-line);
+}
+.tqa-menu__form + .tqa-menu__form { margin-block-start: 6px; }
+.tqa-menu__form > b {
+  display: flex; align-items: center; gap: 7px;
+  margin-block-end: 8px;
+  font: var(--tq-type-caption);
+  font-weight: 700;
+  color: var(--tq-navy);
+}
+.tqa-menu__form > b svg { flex: none; color: var(--tq-text2); }
+.tqa-menu__form .tqa-input, .tqa-menu__form .tqa-select {
+  min-block-size: 36px;
+  padding-block: 5px;
+  font: var(--tq-type-caption);
+  background-color: var(--tq-surface);
+}
+.tqa-menu__form .tqa-input + .tqa-input,
+.tqa-menu__form .tqa-input + .tqa-select { margin-block-start: 6px; }
+.tqa-menu__form .tqa-btn { inline-size: 100%; margin-block-start: 8px; justify-content: center; }
+.tqa-menu__form small { display: block; margin-block-start: 6px; font: var(--tq-type-micro); color: var(--tq-text2); }
+
+/* قائمة داخل القائمة: قسمة الإيراد صف لكل معلم — عرض لا فعل. */
+.tqa-menu__list { margin: 0 0 2px; padding: 0 2px; list-style: none; }
+.tqa-menu__list li {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--tq-space-s);
+  padding: 5px 8px;
+  font: var(--tq-type-micro);
+  color: var(--tq-text2);
+}
+.tqa-menu__list li + li { border-block-start: 1px solid var(--tq-line); }
+.tqa-menu__list b { color: var(--tq-navy); font-weight: 600; }
+
+/* على الجوال لوح يصعد من القاع لا قائمة معلقة: قائمة بعرض ٢٤٨ بكسلا
+   فوق شاشة عرضها ٣٦٠ تغطي نصفها وتقص من طرف. */
+@media (max-width: 639.98px) {
+  .tqa-menu__pop.is-sheet {
+    inset-inline: 10px;
+    inset-block-end: 10px;
+    inset-block-start: auto;
+    inline-size: auto;
+    max-inline-size: none;
+    max-block-size: 76vh;
+    border-radius: 20px;
+    padding: 10px;
+    animation: tqa-sheet-in 180ms var(--tq-ease-enter);
+  }
+  .tqa-menu__pop.is-sheet .tqa-menu__item { padding: 11px 12px; }
+}
+@keyframes tqa-sheet-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+/* الطبقة التي تغلق بالنقر خارج القائمة. شفافة تماما على الشاشة الواسعة
+   — هي مساحة نقر لا تعتيم: تعتيم الجدول لأجل قائمة صف واحد يقرأ نافذة
+   لا قائمة. وعلى الجوال تعتم لأن اللوح هناك نافذة فعلا. */
+.tqa-menu-veil { position: fixed; inset: 0; z-index: 1280; background: transparent; }
+@media (max-width: 639.98px) { .tqa-menu-veil { background: rgba(1, 33, 31, .34); } }
+
+/* --------------------------------------------------------------------------
+   ١٠٫٦ · النافذة الموروثة: عرض يسع نموذجها
+
+   `showAjaxModal` تفتح `#scrollable-modal`، وعرضه من Bootstrap **خمسمئة
+   بكسل**. وما يحمل فيه: نموذج إضافة درس (عشرة حقول) وتعديله وأسئلة
+   الاختبار وملفات الدرس وترتيب الدروس. فحقلان في السطر يصيران حقلا،
+   والعنوان الطويل ينكسر ثلاثة أسطر، وجدول الأسئلة يمرر أفقيا داخل
+   نافذة تمرر عموديا. وهي أكثر شاشات المقرر استعمالا.
+   -------------------------------------------------------------------------- */
+body.tqa .modal-dialog { max-width: min(760px, calc(100vw - 28px)); }
+body.tqa .modal-dialog.modal-lg { max-width: min(1080px, calc(100vw - 28px)); }
+body.tqa .modal-dialog.modal-sm { max-width: min(460px, calc(100vw - 28px)); }
+body.tqa .modal-right.modal-dialog { max-width: min(560px, 100vw); }
+
+/* الحد الأعلى للارتفاع مع `overflow` على الجسم: نافذة أطول من الشاشة
+   تدفع زر الحفظ خارجها، والذي يمرر حينها هو `.modal` نفسها — أي أن
+   الرأس يذهب مع المحتوى فلا يبقى ما يقول أي نافذة هذه. */
+body.tqa .modal-dialog-scrollable .modal-content { max-height: calc(100vh - 56px); }
+/* ونصف القطر يكتب على الرأس نفسه لا `overflow: hidden` على النافذة:
+   الأخيرة تقص كل قائمة مطلقة داخلها — شريط أدوات المحرر ومنتقي التاريخ
+   وقائمة الإكمال — فتفتح تحت حافة النافذة ولا يرى منها شيء. */
+body.tqa .modal-header {
+  border-start-start-radius: var(--tqa-radius);
+  border-start-end-radius: var(--tqa-radius);
+}
+
+/* الرأس يفصل بأرضية لا بخط وحده، والعنوان يأخذ أيقونته. */
+body.tqa .modal-header {
+  gap: var(--tq-space-m);
+  background: var(--tq-ground);
+  padding: var(--tq-space-l) var(--tq-space-xl);
+}
+body.tqa .modal-title { flex: 1; min-inline-size: 0; overflow-wrap: break-word; }
+.tqa-modal-ic {
+  display: grid; place-items: center;
+  inline-size: 38px; block-size: 38px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--tq-navy);
+  color: var(--tq-onAction);
+}
+
+body.tqa .modal-body { padding: var(--tq-space-xxl); }
+/* الذيل يلتصق بقاع النافذة كما يلتصق شريط الحفظ بقاع الصفحة
+   (TQ-SAVE-BELOW): نموذج من عشرة حقول في نافذة تمرر يدفع «إغلاق» إلى
+   أسفل المحتوى، فيمرر المسؤول ليجد زرا كان يراه قبل أن يبدأ. */
+body.tqa .modal-footer {
+  position: sticky;
+  inset-block-end: 0;
+  background: var(--tq-surface);
+  gap: var(--tq-space-s);
+}
+body.tqa .modal-footer > * { margin: 0; }
+
+/* الطبقة الخلفية تموه ما تحتها: نافذة فوق جدول كثيف تقرأ طبقتين
+   متداخلتين، والتمويه يفصلهما بلا تعتيم يطمس السياق كله. */
+body.tqa .modal-backdrop.show {
+  opacity: 1;
+  background: rgba(1, 33, 31, .42);
+  backdrop-filter: blur(3px);
+}
+
+/* الدخول: من الأسفل مع تصغير طفيف — Bootstrap يعطيها انزلاقا من الأعلى
+   بخمسين بكسلا، وهو انزلاق نافذة تنبيه لا لوح عمل. */
+body.tqa .modal.fade .modal-dialog {
+  transform: translateY(16px) scale(.985);
+  transition: transform var(--tq-motion-route) var(--tq-ease-enter), opacity var(--tq-motion-route) ease;
+  opacity: 0;
+}
+body.tqa .modal.show .modal-dialog { transform: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  body.tqa .modal.fade .modal-dialog { transform: none; transition: none; }
+}
+
+/* داخل النافذة لا هامش سفلي على آخر حقل، ولا بطاقة داخل بطاقة:
+   النافذة هي البطاقة. */
+body.tqa .modal-body > .tqa-field:last-child,
+body.tqa .modal-body > form > .tqa-field:last-child { margin-block-end: 0; }
+body.tqa .modal-body > .tqa-card,
+body.tqa .modal-body form > .tqa-card { border: 0; box-shadow: none; padding: 0; }
+/* وشريط الحفظ داخل نافذة يلتصق بقاعها هي لا بقاع الصفحة. */
+body.tqa .modal-body .tqa-formbar { margin-inline: 0; border-radius: var(--tqa-radius-sm); }
+
+/* وصف أزرار النافذة (`.tqa-actions`) رقي في موضعه الأصلي — الكتلة ٦. */
+
+/* --------------------------------------------------------------------------
+   ١٠٫٧ · بطاقة الرقم: صف لا عمود
+
+   `.tqa-stack` شبكة **بعمود واحد**، وأربع شاشات تلف بها بطاقات أرقامها
+   (`tqa_subscriptions` وأخواتها) — فتخرج أربع بطاقات بعرض الشاشة كاملا
+   واحدة تحت أخرى بطول شاشتين، والرقم فيها ٣٤ بكسلا وحده في فراغ عرضه
+   ألف. وهي أول ما يقع عليه البصر في الشاشة.
+
+   والعلاج هنا لا في الشاشات الأربع: المحدد يصف **ما تلف**، فأي
+   `tqa-stack` حولها بطاقات أرقام تصير صفا يتكيف مع العرض.
+   -------------------------------------------------------------------------- */
+.tqa-stack--stats,
+.tqa-stack:has(> * > .tqa-stat),
+.tqa-stack:has(> .tqa-stat) {
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  gap: var(--tq-space-m);
+}
+
+/* البطاقة تحمل شريطا على طرفها بلون معناها: أربعة أرقام بيضاء متطابقة
+   لا تقول أيها خبر سار وأيها عمل ينتظر. */
+.tqa-stat--tone { border-inline-start-width: 3px; }
+.tqa-stat--ok     { border-inline-start-color: var(--tq-actionMastery); }
+.tqa-stat--warn   { border-inline-start-color: var(--tq-amber); }
+.tqa-stat--danger { border-inline-start-color: var(--tq-danger); }
+.tqa-stat--info   { border-inline-start-color: var(--tq-navy); }
+
+/* الرقم يهبط درجة في البطاقة الضيقة: ٣٤ بكسلا مقاس أربع بطاقات في صف،
+   وستة في صف تجعله يزاحم عنوانه. */
+@media (max-width: 1399.98px) {
+  .tqa-stack--stats .tqa-stat__value { font-size: 30px; }
+}
+
+/* ==========================================================================
+   ١١ · الترقية الثالثة: المنتق · حقل الملف · نافذة التأكيد · قائمة الصف
+        · شاشة الأوقات · شاشة الاشتراكات
+
+   القاعدة الحاكمة هي قاعدة الكتلتين قبلها: **ما يتكرر في ثلاث وخمسين
+   شاشة يعرف مرة**. وما هنا كله علاج لشيء يعمل ولا يقرأ — أو يقرأ ولا
+   يقول إنه يعمل، وهو أخبثهما.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   ١١٫١ و ١١٫٢ — المنتق وحقل الملف: انتقلا إلى `css/tqa-controls.css`
+
+   لأن **البوابات الثلاث تحتاجهما كما تحتاجهما اللوحة**: `<select>` الذي
+   يرسمه نظام التشغيل و`<input type=file>` الذي يقول «No file chosen»
+   بالإنجليزية لا يفرقان بين شاشة إدارة وشاشة طالب. ولوحة المفضلة عند
+   الطالب تعرض منتقي فرز عاريا بسهم النظام إلى جوار رقاقات مصممة.
+
+   ونسخة ثانية من أربعمئة وستين سطرا تفترق عن أختها عند أول تعديل —
+   فيصلح سهم المنتق في اللوحة ويبقى في البوابة، ولا شيء يقول لماذا.
+   فالورقة واحدة يقرؤها السطحان: `backend/includes_top.php` و
+   `frontend/taqdar/includes_top.php`.
+
+   وما بقي هنا هو ما يخص اللوحة وحدها: §١١٫٨ (المنتق داخل `input-group`
+   من Bootstrap الموروث) — ولا Bootstrap في البوابات.
+   -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+   ١١٫٣ · نافذة التأكيد — تسأل سؤالا يقرأ
+
+   وهي أخطر ما في اللوحة نصا: تسبق حذفا لا يرجع، وتسبق مغادرة تضيع
+   نموذجا حرر عشرين دقيقة. وكانت بحجم رسالة تنبيه: عنوان بحجم عنوان
+   بطاقة، ونص بحجم `micro`، وزران متساويان لا يقولان أيهما الفعل.
+   -------------------------------------------------------------------------- */
+
+/* التمويه يفصل الطبقتين بلا أن يطمس السياق: من يسأل «أأحذف هذا الصف؟»
+   يحتاج أن يرى أي صف هو خلف النافذة. */
+.tqa-modal__scrim { background: rgba(1, 33, 31, .46); backdrop-filter: blur(3px); }
+.tqa-modal__box {
+  inline-size: min(460px, 100%);
+  padding: var(--tq-space-h1) var(--tq-space-xxl) var(--tq-space-xxl);
+  border-radius: var(--tq-radius-medium);
+  box-shadow: 0 28px 64px -28px rgba(2, 51, 49, .55), 0 6px 16px -8px rgba(16, 24, 40, .18);
+}
+.tqa-modal__icon { inline-size: 58px; block-size: 58px; margin-block-end: var(--tq-space-l); }
+.tqa-modal__title { font: var(--tq-type-h1); font-size: 22px; color: var(--tq-navy); }
+/* النص بحجم النص لا بحجم الحاشية: هذا هو ما يقرر، وقراءته بخط ١١٫٥
+   تجعل نصف الناس يضغطون «متابعة» بلا أن يقرؤوه. */
+.tqa-modal__body { font: var(--tq-type-body); color: var(--tq-text2); max-inline-size: 44ch; margin-inline: auto; }
+.tqa-modal__acts { margin-block-start: var(--tq-space-xxl); justify-content: center; }
+/* «رجوع» يبقى ثانويا ولا يتمدد: زران متساويان بحجم واحد يجعلان الخطر
+   والتراجع سيين، والضغطة السريعة تقع على أيهما. */
+.tqa-modal__acts .tqa-btn { flex: 0 1 auto; min-inline-size: 120px; }
+.tqa-modal__acts .tqa-btn[data-go] { flex: 1 1 auto; }
+
+@media (max-width: 479.98px) {
+  .tqa-modal { padding: 0; place-items: end center; }
+  .tqa-modal__box {
+    inline-size: 100%;
+    border-start-start-radius: 22px;
+    border-start-end-radius: 22px;
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+    animation: tqa-sheet-in 200ms var(--tq-ease-enter);
+  }
+  .tqa-modal__acts { flex-direction: column-reverse; }
+  .tqa-modal__acts .tqa-btn { inline-size: 100%; }
+}
+
+/* --------------------------------------------------------------------------
+   ١١٫٤ · قائمة الصف: عرض قاطع، ولا تمرير أفقي
+
+   العطل الذي رئي في شاشة الاشتراكات: اللوح يعرض **شريط تمرير أفقيا**
+   ويخرج زر «فعل الاشتراك» من طرفه فيقرأ نصفه. وعلته ثنتان تجتمعان:
+
+     ١ — `inline-size: max-content` مع `max-inline-size` سقفا: متى جاوز
+         المحتوى السقف صار الصندوق بالسقف **والمحتوى يفيض منه**، لا
+         ينكسر — وهي حال يخرج فيها كل عنصر مرن لا يقبل الانكماش دون
+         محتواه الأصغر.
+     ٢ — `overflow-y: auto` وحدها **تجعل `overflow-x` تحسب `auto`** بحكم
+         المواصفة. فالفيض السابق يصير شريط تمرير ظاهرا بدل أن يقص.
+
+   فالعرض صار **قاطعا** لا مشتقا (فلا فيض أصلا)، والمحور الأفقي يقص
+   صراحة (فلا شريط ولو فاض)، وكل عنصر مرن يؤذن له بالانكماش
+   (`min-inline-size: 0`) والنص الطويل بالكسر.
+   -------------------------------------------------------------------------- */
+.tqa-menu__pop {
+  inline-size: min(340px, calc(100vw - 24px));
+  max-inline-size: none;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+}
+/* بعض القوائم تحمل تفصيلا لا أمرا — قسمة إيراد بيعة على خمسة معلمين،
+   ولوحين فيهما حقول. تلك تطلب عرضها صراحة. */
+.tqa-menu__pop--wide { inline-size: min(400px, calc(100vw - 24px)); }
+
+.tqa-menu__pop > *,
+.tqa-menu__form,
+.tqa-menu__form > form { min-inline-size: 0; }
+.tqa-menu__head b, .tqa-menu__head span { overflow-wrap: anywhere; }
+.tqa-menu__form > b { min-inline-size: 0; }
+.tqa-menu__form > b > span { min-inline-size: 0; overflow-wrap: anywhere; }
+
+/* اللوح شبكة لا كتلة: بها يتمدد كل ما فيه إلى عرضه بلا نسبة مئوية —
+   والنسبة داخل صندوق يقاس بمحتواه هي ما أنتج الفيض. */
+.tqa-menu__form > form { display: grid; gap: 6px; }
+.tqa-menu__form .tqa-input,
+.tqa-menu__form .tqa-select,
+.tqa-menu__form .tqa-btn { inline-size: auto; min-inline-size: 0; margin-block-start: 0; }
+.tqa-menu__form .tqa-input + .tqa-input,
+.tqa-menu__form .tqa-input + .tqa-select { margin-block-start: 0; }
+.tqa-menu__form .tqa-btn { justify-content: center; }
+
+/* قائمة القسمة: الاسم سطر والمبلغ تحته — لا سطر واحد ينشطر شطرين
+   يتباعدان حتى لا يقرآن معا. وخمسة معلمين في عمود واحد يمسحون بلمحة. */
+.tqa-menu__list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px var(--tq-space-s);
+  min-inline-size: 0;
+}
+.tqa-menu__list b { min-inline-size: 0; overflow-wrap: anywhere; }
+.tqa-menu__list li > span { min-inline-size: 0; text-align: end; font-family: var(--tq-font-num); white-space: nowrap; }
+.tqa-menu__list li > span .tqa-dim { display: block; font-family: var(--tq-font-body); }
+
+/* --------------------------------------------------------------------------
+   ١١٫٥ · شاشة الاشتراكات: البطاقات تفصل عن الجدول
+
+   خمس بطاقات أرقام تلتصق بترويسة الجدول بلا فاصل، فتقرأ الشاشة كتلة
+   واحدة: أين ينتهي الملخص ويبدأ السجل؟ والفصل هو ما يجعل الأولى تمسح
+   بالعين والثاني يقرأ بالبحث.
+   -------------------------------------------------------------------------- */
+.tqa-stack--stats,
+.tqa-stack:has(> * > .tqa-stat),
+.tqa-stack:has(> .tqa-stat) { margin-block-end: var(--tq-space-xxl); }
+
+/* --------------------------------------------------------------------------
+   ١١٫٦ · شاشة أوقات المعلمين
+
+   الشاشة تجيب سؤالين: من فتح وقتا؟ وبكم يبيع؟ والثاني نموذج من حقلين
+   وزر وسطر حساب — وكان يكتب داخل **خلية جدول في عمود عرضه ثلث نصف
+   الشاشة**: فينكسر إلى أربعة أسطر، ويرتفع الصف إلى مئتين وثلاثين
+   بكسلا، ويظهر تمرير أفقي، ويقرأ الجدول عمودا من قصاصات.
+
+   والعلاج ليس تضييق الحقول: هو أن تأخذ التسعيرة عرضها. فالعمودان صارا
+   غير متساويين — التسعيرة أوسع، والفسحات القادمة عمود جانبي يلتصق
+   بأعلى الشاشة ويمرر داخل نفسه.
+   -------------------------------------------------------------------------- */
+.tqa-slots { display: grid; gap: var(--tq-space-l); align-items: start; }
+@media (min-width: 1200px) {
+  .tqa-slots { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+  .tqa-slots > :last-child { position: sticky; inset-block-start: calc(var(--tqa-topbar-h, 72px) + var(--tq-space-l)); }
+}
+
+/* خلية التسعيرة: حقلان بعنوانيهما وزر في صف واحد، وسطر الحساب تحتها
+   شارات لا نصا متصلا — «الساري ١٥٠ · له ٩٧٫٥٠ · للمنصة ٥٢٫٥٠» ثلاثة
+   أرقام تقرأ ثلاثتها معا أو لا تقرأ. */
+.tqa-price { display: grid; gap: var(--tq-space-s); min-inline-size: 0; }
+.tqa-price__row { display: flex; align-items: flex-end; gap: var(--tq-space-s); flex-wrap: wrap; }
+.tqa-price__f { display: grid; gap: 3px; }
+.tqa-price__f > span { font: var(--tq-type-micro); color: var(--tq-text2); }
+.tqa-price__f .tqa-input { inline-size: 96px; min-block-size: 36px; padding-block: 4px; font: var(--tq-type-caption); }
+.tqa-price__f--pct .tqa-input { inline-size: 74px; }
+.tqa-price__row .tqa-btn { min-block-size: 36px; }
+.tqa-price__now { display: flex; align-items: center; gap: var(--tq-space-xs); flex-wrap: wrap; }
+.tqa-price__now .tqa-badge { font-family: var(--tq-font-body); }
+.tqa-price__now .tqa-num { font-family: var(--tq-font-num); }
+/* الصف الذي كتبت له تسعيرة خاصة يعلن نفسه: بلا ذلك يقرأ جدول من عشرين
+   معلما متطابقا، ولا يعرف المسؤول من استثنى قبل أن يقرأ كل حقل. */
+.tqa-price.is-own .tqa-price__own { display: inline-flex; }
+.tqa-price__own { display: none; }
+
+/* البطاقة الجانبية تمرر داخل نفسها لا تطول بطول الأخرى: عمود من ثلاثين
+   فسحة يجعل الشاشة ثلاث شاشات، وما تحت الطية منها لا يقرؤه أحد. */
+.tqa-slots__side .tqa-table__wrap { max-block-size: min(62vh, 520px); }
+
+/* --------------------------------------------------------------------------
+   ١١٫٧ · صف الجدول الذي فيه نموذج
+
+   خلية تحمل حقلا كامل الارتفاع (٤٤) ترفع صفها إلى ضعف جاره فيقرأ
+   الجدول متعرجا. والحقول التي تسكن الجداول تهبط إلى ٣٦ — وهو مقاس
+   `--sm` نفسه، وكان يكتب `style="min-block-size:34px"` في السطر.
+   -------------------------------------------------------------------------- */
+.tqa-table td .tqa-input:not(.tqa-input--lg),
+.tqa-table td .tqa-textarea { min-block-size: 36px; padding-block: 4px; font: var(--tq-type-caption); font-family: var(--tq-font-body); }
+.tqa-table td .tqa-input--ltr { font-family: var(--tq-font-num); }
+.tqa-table td .tqa-btn { min-block-size: 36px; }
+
+/* --------------------------------------------------------------------------
+   ١١٫٨ · المنتق في السياقات الموروثة
+
+   الصندوق يحل محل `<select>` **في مكانه**، فيرث موضعه من الشجرة لا
+   عرضه من الورقة. وثلاثة مواضع في اللوحة تعطي المنتق عرضا غير عرض
+   الحقل، وبلا هذه القواعد يخرج الصندوق فيها بعرض الحاوية كلها:
+   ملصق يلفه (منتق طول الصفحة في DataTables)، ومجموعة حقول
+   (`input-group`)، وخلية شريط.
+   -------------------------------------------------------------------------- */
+label > .tqa-sel,
+.dataTables_length .tqa-sel,
+.dataTables_filter .tqa-sel,
+body.tqa .dataTables_wrapper .tqa-sel {
+  display: inline-block;
+  inline-size: auto;
+  min-inline-size: 104px;
+  vertical-align: middle;
+}
+/* داخل مجموعة حقول: يأخذ ما بقي من العرض ولا يدفع الزر خارجها.
+   و`inline-size: 1%` حيلة Bootstrap نفسها — بها يقبل العنصر المرن
+   الانكماش دون محتواه. */
+body.tqa .input-group > .tqa-sel { flex: 1 1 auto; inline-size: 1%; min-inline-size: 0; }
+body.tqa .input-group > .tqa-sel > .tqa-sel__btn { border-radius: var(--tqa-radius-sm); }
+
+/* الصندوق داخل النافذة الموروثة: لوحه فوقها (١٤٠٠ مقابل ١٠٥٠)، وبلا
+   ذلك يفتح تحتها فلا يرى منه شيء. وهو مكتوب في الورقة أصلا، وهذا
+   توثيقه لا تكراره. */

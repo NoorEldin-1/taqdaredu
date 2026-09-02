@@ -1,8 +1,21 @@
-<?php /* TQ-I18N — قاموس المتصفح أولا: كل سكربت بعده ينادي `TQ.t()`.
-         وهو `defer` كإخوته فينفذ بترتيب وروده قبلهم. */ ?>
-<script src="<?php echo tq_asset('js/tq-i18n.js'); ?>" defer></script>
+<?php /* TQ-I18N — `tq-i18n.js` ليس هنا: انظر `includes_top.php`.
+         كان `defer` في هذا الذيل، والمؤجل ينفذ **بعد أن يفرغ تحليل
+         المستند** — أي بعد كل `<script>` سطري في القوالب. وشاشات
+         البوابة تكتب سكربتها سطريا وتناديه في حينه (`load()` في آخر
+         `tq_mistakes.php` و`tq_mastery.php`)، فتقرأ `TQ` وهي `undefined`.
+         وما دام السطري لا ينادي إلا `fetch` لم يظهر شيء؛ فأول نداء
+         لـ`TQ.gateFetch` منه رمى `TypeError` صامتا وبقيت الشاشة على
+         هيكلها العظمي إلى الأبد — بلا خطأ يعرض ولا زر يعاد به.
+         والملف يعد في رأسه أنه «يحمل قبل كل سكربت آخر»، وهذا يفي بوعده. */ ?>
 <script src="<?php echo tq_asset('js/tq-phone.js'); ?>" defer></script>
 <script src="<?php echo tq_asset('js/taqdar.js'); ?>" defer></script>
+
+<?php /* TQA-SELECT · TQA-FILE — المكونان اللذان بنيا للوحة، بلا نسخة
+         ثانية: كلاهما يمسح `document` ولا يشترط `body.tqa`، فالسطحان
+         سواء عندهما. وورقتهما `css/tqa-controls.css` في الرأس.
+         و`defer` بعد `taqdar.js`: ذاك يبني درج القائمة وقد يحقن حقولا. */ ?>
+<script src="<?php echo tq_asset('js/tqa-select.js'); ?>" defer></script>
+<script src="<?php echo tq_asset('js/tqa-file.js'); ?>" defer></script>
 
 <?php /* سكربت المشغل يحمل على صفحته وحدها — لا يثقل بقية الشاشات.
          و`tq-player.js` **قبله**: `taqdar-lesson.js` ينادي `TQPlayer`

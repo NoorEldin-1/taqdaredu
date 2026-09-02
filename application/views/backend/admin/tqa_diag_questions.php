@@ -249,7 +249,7 @@ $correct_of = function ($q) {
                                   data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                   data-tqa-confirm-tone="danger">
                                 <?php echo tq_csrf(); ?>
-                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
+                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--quiet-danger">
                                     <?php echo tq_icon('trash', 15); ?><span class="tqa-sr"><?php echo t('حذف'); ?></span>
                                 </button>
                             </form>

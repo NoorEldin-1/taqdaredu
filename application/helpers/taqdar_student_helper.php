@@ -789,3 +789,65 @@ if (!function_exists('tq_s_lesson_url')) {
         return base_url($p);
     }
 }
+
+if (!function_exists('tq_s_month')) {
+    /** أسماء الشهور الميلادية كما تكتب في السوق السعودي. */
+    function tq_s_month($m)
+    {
+        static $names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+                         'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+        $i = ((int) $m) - 1;
+        /* TQ-I18N — الترجمة عند الخروج: `static` لا يقبل نداء في تهيئته. */
+        return isset($names[$i]) ? t($names[$i]) : '';
+    }
+}
+
+if (!function_exists('tq_s_date')) {
+    /** «20 مايو 2026» — الرقمان معزولان داخل الجملة. */
+    function tq_s_date($ts)
+    {
+        $ts = (int) $ts;
+        if ($ts <= 0) return '';
+        return tq_iso(date('j', $ts) . ' ' . tq_s_month(date('n', $ts)) . ' ' . date('Y', $ts));
+    }
+}
+
+if (!function_exists('tq_s_time')) {
+    /** «10:00 ص» — الساعة وحدة واحدة لا رقمان. */
+    function tq_s_time($ts)
+    {
+        $ts = (int) $ts;
+        if ($ts <= 0) return '';
+        $mer = (int) date('G', $ts) < 12 ? t('ص') : t('م');
+        return tq_num(date('g:i', $ts)) . ' ' . $mer;
+    }
+}
+
+if (!function_exists('tq_stamp')) {
+    /**
+     * TQ-STAMP-SEC — طابع من القاعدة يقرأ كما يقرأ الناس الوقت.
+     *
+     * `parent_links.consent_at` و أخواتها أعمدة `DATETIME`، وكانت تطبع
+     * **كما هي**: «2026-06-10 23:32:33». والثواني في شاشة يقرؤها أب عن
+     * موافقة ابنه لا تجيب سؤالا سأله أحد، وتجعل السطر أطول من أن يمسح
+     * بالعين — وهي في بطاقة الابن تحت الزر مباشرة، فتقرأ رمزا تقنيا
+     * تسرب إلى واجهة.
+     *
+     * والصيغة صيغة `tq_s_date()` نفسها فلا تفترق شاشتان في شهر واحد،
+     * والوقت يبقى بلا ثوان: «10 يونيو 2026 · 11:32 م».
+     *
+     * @param string $sql      طابع القاعدة، أو أي نص يفهمه strtotime
+     * @param bool   $withTime أيلحق الوقت؟ التاريخ وحده يكفي في القوائم
+     */
+    function tq_stamp($sql, $withTime = true)
+    {
+        $sql = trim((string) $sql);
+        if ($sql === '' || $sql === '0000-00-00 00:00:00') return '';
+        $ts = strtotime($sql);
+        if ($ts === false || $ts <= 0) return '';
+
+        $out = tq_s_date($ts);
+        if ($withTime) $out .= ' · ' . tq_s_time($ts);
+        return $out;
+    }
+}

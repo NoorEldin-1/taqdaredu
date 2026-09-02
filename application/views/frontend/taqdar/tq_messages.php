@@ -24,12 +24,17 @@ $uid = (int) $this->session->userdata('user_id');
    وبناء المحادثات — والواجهة (`Api_v1`) تنادي الدوال نفسها، فلا يرسل
    التطبيق رسالة يرفضها الموقع ولا العكس. والحفظ يبقى في `crud_model`:
    هو المشترك مع مسارات LMS الأصلية ولا يكرر. */
-$this->load->model('taqdar_student_model', 'tq_stu');
+/* `get_instance()` لا `$this`: `$this` في العرض هو `CI_Loader`، وهو ينسخ
+   خصائص المتحكم على نفسه **قبل** تضمين القالب ولا `__get` له — فموديل
+   يحمل من داخل القالب لا يصل عبر `$this` أبدا، وترد الصفحة
+   «Undefined property: CI_Loader::$tq_stu» ثم «threads() on null». */
+$CI = get_instance();
+$CI->load->model('taqdar_student_model', 'tq_stu');
 
 /* ---- حذف المحادثة: ينفذ قبل أي إخراج، وبتحقق ملكية على الخادم ------
    زر الخطر يجب أن يفعل ما يقوله. والتحقق في النموذج لا في الواجهة. */
 if ($this->input->post('action') === 'delete_thread') {
-    $this->tq_stu->delete_thread($uid, (string) $this->input->post('thread', true));
+    $CI->tq_stu->delete_thread($uid, (string) $this->input->post('thread', true));
     redirect(site_url('student/messages'), 'location', 302);
 }
 
@@ -64,7 +69,7 @@ if ($tq_send === 'send_new' || $tq_send === 'send_reply') {
     }
 
     if ($tq_send === 'send_new') {
-        if (!$this->tq_stu->may_message($uid, (int) $this->input->post('receiver'))) {
+        if (!$CI->tq_stu->may_message($uid, (int) $this->input->post('receiver'))) {
             $this->session->set_flashdata('error_message', t('لا ترسل الرسائل إلا إلى معلمي موادك أو الدعم الفني.'));
             redirect(site_url($tq_to), 'location', 302);
         }
@@ -75,7 +80,7 @@ if ($tq_send === 'send_new' || $tq_send === 'send_reply') {
     }
 
     $tq_code = (string) $this->input->post('thread', true);
-    if (!$this->tq_stu->owns_thread($uid, $tq_code)) {
+    if (!$CI->tq_stu->owns_thread($uid, $tq_code)) {
         $this->session->set_flashdata('error_message', t('هذه المحادثة ليست لك.'));
         redirect(site_url($tq_to), 'location', 302);
     }
@@ -86,7 +91,7 @@ if ($tq_send === 'send_new' || $tq_send === 'send_reply') {
 }
 
 /* ---- المحادثات ------------------------------------------------------- */
-$tq_threads = $this->tq_stu->threads($uid);
+$tq_threads = $CI->tq_stu->threads($uid);
 
 /* ---- تصفية القائمة: تبويبات وبحث يعملان على الخادم فعلا -------------- */
 $tq_filter = $this->input->get('filter', true);
@@ -132,11 +137,11 @@ if ($tq_open === null && $tq_threads) {
 /* فتح المحادثة يجعلها مقروءة — كما يتوقع من فتحها فعلا. والنموذج يشترط
    الملكية في `UPDATE` نفسه، فرمز مخمن لا يمسح «غير مقروء» عن غيره. */
 if ($tq_open && $tq_open_code === $tq_open['code'] && $tq_open['unread'] > 0) {
-    $this->tq_stu->read_thread($uid, $tq_open['code']);
+    $CI->tq_stu->read_thread($uid, $tq_open['code']);
     $tq_open['unread'] = 0;
 }
 
-$tq_messages = $tq_open ? $this->tq_stu->messages($uid, $tq_open['code']) : [];
+$tq_messages = $tq_open ? $CI->tq_stu->messages($uid, $tq_open['code']) : [];
 
 /* ---- المستقبلون المسموح بهم: معلمو موادك + الدعم -------------------
    من `messageable()` نفسها التي يفحص بها الحفظ أعلاه: قائمتان تبنيان
@@ -144,7 +149,7 @@ $tq_messages = $tq_open ? $this->tq_stu->messages($uid, $tq_open['code']) : [];
    — ويقرأ الطالب «لا ترسل الرسائل إلا إلى معلمي موادك» عن اسم اختاره
    من قائمة عرضناها نحن. */
 $tq_allowed = [];
-foreach ($this->tq_stu->messageable($uid) as $p) {
+foreach ($CI->tq_stu->messageable($uid) as $p) {
     $tq_support = ((int) ($p['role_id'] ?? 0) === 1) && empty($p['is_instructor']);
     $tq_allowed[] = [
         'id'   => (int) $p['id'],
@@ -174,18 +179,22 @@ include 'tq_chat_styles.php';
         <section class="tq-convlist" aria-labelledby="tq-conv-h">
             <h2 class="tq-sr" id="tq-conv-h"><?php echo t('قائمة المحادثات'); ?></h2>
 
-            <nav class="tq-tabs" aria-label="<?php echo te('تصفية المحادثات'); ?>" style="margin-block-end:0;gap:var(--tq-space-l)">
-                <?php foreach ($tq_filters as $key => $label): ?>
-                    <a class="tq-tab"
-                       href="<?php echo base_url('student/messages') . ($key === 'all' ? '' : '?filter=' . $key); ?>"
-                       <?php echo tq_active($key, $tq_filter); ?>>
-                        <?php echo html_escape($label); ?>
-                        <?php if ($key === 'unread' && $tq_unread_total > 0): ?>
-                            <span class="tq-conv__count"><?php echo TQ_LRI . $tq_unread_total . TQ_PDI; ?></span>
-                        <?php endif; ?>
-                    </a>
-                <?php endforeach; ?>
-            </nav>
+            <?php /* TQ-FILTERBAR — المكون الواحد. انظر `tq_filterbar()`.
+                     والعداد على «غير مقروءة» وحدها: بقية التبويبات لا عدد
+                     محسوبا لها هنا، وعداد يظهر على واحد ويغيب عن جيرانه
+                     يقرأ نقصا لا تخصيصا — فيمرر `null` لما لا يعرف. */ ?>
+            <?php
+            $tq_bar = [];
+            foreach ($tq_filters as $key => $label) {
+                $tq_bar[] = [
+                    'url'    => base_url('student/messages') . ($key === 'all' ? '' : '?filter=' . $key),
+                    'label'  => $label,
+                    'count'  => ($key === 'unread' && $tq_unread_total > 0) ? (int) $tq_unread_total : null,
+                    'active' => $tq_filter === $key,
+                ];
+            }
+            echo tq_filterbar($tq_bar, t('تصفية المحادثات'));
+            ?>
 
             <form class="tq-convsearch" role="search" method="get" action="<?php echo base_url('student/messages'); ?>">
                 <label class="tq-sr" for="tq-conv-q"><?php echo t('ابحث في المحادثات'); ?></label>

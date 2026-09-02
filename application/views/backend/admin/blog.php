@@ -116,41 +116,44 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
                         </span>
                     </td>
 
-                    <td data-label="إجراءات">
-                        <div class="tqa-rowacts">
-                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                               href="<?php echo site_url('admin/edit_blog/' . $tq_id); ?>">
-                                <?php echo tq_icon('edit', 14); ?> <?php echo t('تحرير'); ?>
-                            </a>
-
-                            <?php if ($tq_on): ?>
-                                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_url; ?>"
-                                   target="_blank" rel="noopener" title="<?php echo te('اقرأه في الموقع'); ?>">
-                                    <?php echo tq_icon('external', 14); ?>
-                                    <span class="tqa-sr"><?php echo t('اقرأه في الموقع'); ?></span>
-                                </a>
-                            <?php endif; ?>
-
-                            <form method="post" action="<?php echo site_url('admin/blog/status/' . $tq_id); ?>">
-                                <?php echo tq_csrf(); ?>
-                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm">
-                                    <?php echo tq_icon($tq_on ? 'eye' : 'check', 14); ?>
-                                    <?php echo $tq_on ? t('عطل') : t('انشر'); ?>
-                                </button>
-                            </form>
-
-                            <form method="post" action="<?php echo site_url('admin/blog/delete/' . $tq_id); ?>"
-                                  data-tqa-confirm-title="<?php echo te('حذف المقال'); ?>"
-                                  data-tqa-confirm="<?php echo te('سيحذف «____» نهائيا.', array(html_escape($tq_b['title']))); ?>"
-                                  data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
-                                  data-tqa-confirm-tone="danger">
-                                <?php echo tq_csrf(); ?>
-                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
-                                    <?php echo tq_icon('trash', 14); ?>
-                                    <span class="tqa-sr"><?php echo t('حذف'); ?> <?php echo html_escape($tq_b['title']); ?></span>
-                                </button>
-                            </form>
-                        </div>
+                    <td class="tqa-col--acts" data-label="إجراءات">
+                        <?php
+                        /* TQ-ROW-CLUTTER — أربعة إجراءات في خلية صارت قائمة. */
+                        $tq_acts = array(array(
+                            'label' => t('تحرير المقال'),
+                            'icon'  => 'edit',
+                            'tone'  => 'go',
+                            'href'  => site_url('admin/edit_blog/' . $tq_id),
+                        ));
+                        if ($tq_on):
+                            $tq_acts[] = array(
+                                'label'  => t('اقرأه في الموقع'),
+                                'sub'    => t('يفتح في لسان جديد'),
+                                'icon'   => 'external',
+                                'href'   => $tq_url,
+                                'target' => '_blank',
+                            );
+                        endif;
+                        $tq_acts[] = array(
+                            'label'  => $tq_on ? t('عطل النشر') : t('انشر المقال'),
+                            'icon'   => $tq_on ? 'eye' : 'check',
+                            'action' => 'admin/blog/status/' . $tq_id,
+                        );
+                        $tq_acts[] = array('sep' => true);
+                        $tq_acts[] = array(
+                            'label'   => t('حذف المقال'),
+                            'icon'    => 'trash',
+                            'tone'    => 'danger',
+                            'action'  => 'admin/blog/delete/' . $tq_id,
+                            'confirm' => array(
+                                'title' => t('حذف المقال'),
+                                'body'  => t('سيحذف «____» نهائيا.', array($tq_b['title'])),
+                                'ok'    => t('نعم، احذف'),
+                                'tone'  => 'danger',
+                            ),
+                        );
+                        echo tqa_rowmenu($tq_acts, array('title' => $tq_b['title'], 'sub' => '#' . $tq_id));
+                        ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

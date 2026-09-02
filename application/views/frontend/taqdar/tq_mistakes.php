@@ -264,19 +264,16 @@ include 'portal_open.php';
        فكان كل نداء كتابة يرد 403 قبل أن يبلغ المتحكم. */
     var h = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
     if (opts.method && opts.method !== 'GET') h['X-CSRF-Token'] = tqCsrf();
-    return fetch(GATE + '/' + path, {
+    /* TQ-RAW-ERROR — الغلاف الواحد في `tq-i18n.js`: هو الذي يفرق بين
+       شبكة مقطوعة وجلسة منتهية وخادم متعثر، ويخرج عربية جاهزة للعرض.
+       وكانت هذه الكتلة تعالج خطأ الخادم وحده — وهو الطريق الوحيد الذي
+       يرد نصا عربيا أصلا — فيبقى «Failed to fetch» يكتب حرفا في لوح
+       الخطأ أمام طالب لا يقرأ الإنجليزية ولا يعرف أن يفحص اتصاله. */
+    return TQ.gateFetch(GATE + '/' + path, {
       method: opts.method || 'GET',
       credentials: 'same-origin',
       headers: h,
       body: opts.body ? JSON.stringify(opts.body) : undefined
-    }).then(function (r) {
-      return r.json().then(function (j) {
-        if (!r.ok || (j && j.error)) {
-          var m = (j && j.error && (j.error.message_ar || j.error.message)) || 'تعذر إتمام الطلب.';
-          throw new Error(m);
-        }
-        return j;
-      });
     });
   }
 

@@ -117,31 +117,46 @@ $tq_kind = function ($lesson) {
                     </span>
                 </div>
 
-                <div class="tqa-rowacts">
-                    <?php if (count($tq_lessons) > 1): ?>
-                        <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                onclick="showLargeModal('<?php echo site_url('modal/popup/sort_lesson/' . (int) $tq_s['id']); ?>', 'ترتيب الدروس')">
-                            <?php echo tq_icon('layers', 14); ?> <?php echo t('ترتيب'); ?>
-                        </button>
-                    <?php endif; ?>
-
-                    <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                            onclick="showAjaxModal('<?php echo site_url('modal/popup/section_edit/' . (int) $tq_s['id'] . '/' . (int) $course_id); ?>', 'تعديل القسم')">
-                        <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
-                    </button>
-
-                    <form method="post" action="<?php echo site_url('admin/sections/' . (int) $course_id . '/delete/' . (int) $tq_s['id']); ?>"
-                          data-tqa-confirm-title="<?php echo te('حذف القسم'); ?>"
-                          data-tqa-confirm="<?php echo te('سيحذف «____» وكل دروسه. لا رجعة في هذا.', array(html_escape($tq_s['title']))); ?>"
-                          data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
-                          data-tqa-confirm-tone="danger">
-                        <?php echo tq_csrf(); ?>
-                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
-                            <?php echo tq_icon('trash', 14); ?>
-                            <span class="tqa-sr"><?php echo t('حذف القسم'); ?></span>
-                        </button>
-                    </form>
-                </div>
+                <?php
+                /* TQ-ROW-CLUTTER — أدوات القسم قائمة واحدة.
+                   كانت ثلاثة أزرار في ترويسة كل قسم؛ وفي مقرر من ثمانية
+                   أقسام هي أربعة وعشرون زرا تزاحم عناوين الأقسام نفسها،
+                   وهي ما جاء المسؤول ليقرأه. */
+                $tq_sacts = array();
+                if (count($tq_lessons) > 1):
+                    $tq_sacts[] = array(
+                        'label'   => t('ترتيب الدروس'),
+                        'sub'     => t('اسحب لتغيير التسلسل'),
+                        'icon'    => 'layers',
+                        'onclick' => "showLargeModal('" . site_url('modal/popup/sort_lesson/' . (int) $tq_s['id'])
+                                   . "', '" . t('ترتيب الدروس') . "')",
+                    );
+                endif;
+                $tq_sacts[] = array(
+                    'label'   => t('تعديل القسم'),
+                    'icon'    => 'edit',
+                    'onclick' => "showAjaxModal('" . site_url('modal/popup/section_edit/' . (int) $tq_s['id'] . '/' . (int) $course_id)
+                               . "', '" . t('تعديل القسم') . "')",
+                );
+                $tq_sacts[] = array('sep' => true);
+                $tq_sacts[] = array(
+                    'label'   => t('حذف القسم'),
+                    'sub'     => t('ومعه كل دروسه'),
+                    'icon'    => 'trash',
+                    'tone'    => 'danger',
+                    'action'  => 'admin/sections/' . (int) $course_id . '/delete/' . (int) $tq_s['id'],
+                    'confirm' => array(
+                        'title' => t('حذف القسم'),
+                        'body'  => t('سيحذف «____» وكل دروسه. لا رجعة في هذا.', array($tq_s['title'])),
+                        'ok'    => t('نعم، احذف'),
+                        'tone'  => 'danger',
+                    ),
+                );
+                echo tqa_rowmenu($tq_sacts, array(
+                    'title' => $tq_s['title'],
+                    'sub'   => t('قسم') . ' · ' . count($tq_lessons) . ' ' . t('درسا'),
+                ));
+                ?>
             </div>
 
             <?php if (empty($tq_lessons)): ?>
@@ -173,56 +188,81 @@ $tq_kind = function ($lesson) {
                             </span>
                         </div>
 
-                        <div class="tqa-rowacts">
-                            <?php if ($tq_is_quiz): ?>
-                                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                        onclick="showLargeModal('<?php echo site_url('modal/popup/quiz_questions/' . (int) $tq_l['id']); ?>', 'أسئلة الاختبار')">
-                                    <?php echo tq_icon('help', 14); ?> <?php echo t('الأسئلة'); ?>
-                                </button>
+                        <?php
+                        /* TQ-ROW-CLUTTER — أدوات الدرس قائمة واحدة.
 
-                                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                        onclick="showAjaxModal('<?php echo site_url('modal/popup/quiz_edit/' . (int) $tq_l['id'] . '/' . (int) $course_id); ?>', 'تعديل الاختبار')">
-                                    <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
-                                </button>
-                            <?php else: ?>
-                                <?php /* اختبار الدرس — بجوار درسه لا في شاشة بعيدة: هو
-                                         الذي يفتح الدرس التالي، فموضعه حيث يبنى الدرس.
-                                         والعدد في الزر: «الاختبار» وحدها لا تقول أفيه
-                                         أسئلة أم لا. وهذه الشاشة نفسها عند المعلم. */
-                                      $tq_qn = $tq_qcounts[(int) $tq_l['id']] ?? 0; ?>
-                                <a class="tqa-btn tqa-btn--<?php echo $tq_qn > 0 ? 'ghost' : 'secondary'; ?> tqa-btn--sm"
-                                   href="<?php echo site_url('taqdar_admin/lesson_quiz/' . (int) $tq_l['id']); ?>">
-                                    <?php echo tq_icon('help', 14); ?>
-                                    <?php echo $tq_qn > 0
-                                        ? t('الاختبار (<span class="tqa-num">') . $tq_qn . '</span>)'
-                                        : t('أضف اختبارا'); ?>
-                                </a>
+                           كانت أربعة أزرار في سطر كل درس (الاختبار ·
+                           الملفات · تعديل · حذف)، ومقرر من ستين درسا هو
+                           **مئتان وأربعون زرا** في شاشة واحدة: تأخذ نصف
+                           عرض السطر فينضغط عنوان الدرس — وهو ما يقرأ —
+                           ويقف الحذف بجوار التعديل بحجمه ولونه إلا حبره.
 
-                                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                        onclick="showAjaxModal('<?php echo site_url('modal/popup/resource_files/' . (int) $tq_l['id']); ?>', 'ملفات الدرس')">
-                                    <?php echo tq_icon('folder', 14); ?> <?php echo t('الملفات'); ?>
-                                </button>
+                           والفعل المقصود من كل نوع يقرأ أولا بلون الإتقان:
+                           الأسئلة للاختبار، والاختبار للدرس. */
+                        $tq_lacts = array();
 
-                                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                        onclick="showAjaxModal('<?php echo site_url('modal/popup/lesson_edit/' . (int) $tq_l['id'] . '/' . (int) $course_id); ?>', 'تعديل الدرس')">
-                                    <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
-                                </button>
-                            <?php endif; ?>
+                        if ($tq_is_quiz):
+                            $tq_lacts[] = array(
+                                'label'   => t('أسئلة الاختبار'),
+                                'icon'    => 'help',
+                                'tone'    => 'go',
+                                'onclick' => "showLargeModal('" . site_url('modal/popup/quiz_questions/' . (int) $tq_l['id'])
+                                           . "', '" . t('أسئلة الاختبار') . "')",
+                            );
+                            $tq_lacts[] = array(
+                                'label'   => t('تعديل الاختبار'),
+                                'icon'    => 'edit',
+                                'onclick' => "showAjaxModal('" . site_url('modal/popup/quiz_edit/' . (int) $tq_l['id'] . '/' . (int) $course_id)
+                                           . "', '" . t('تعديل الاختبار') . "')",
+                            );
+                        else:
+                            /* اختبار الدرس — بجوار درسه لا في شاشة بعيدة: هو
+                               الذي يفتح الدرس التالي، فموضعه حيث يبنى الدرس.
+                               والعدد في البند: «الاختبار» وحدها لا تقول أفيه
+                               أسئلة أم لا. وهذه الشاشة نفسها عند المعلم. */
+                            $tq_qn = $tq_qcounts[(int) $tq_l['id']] ?? 0;
+                            $tq_lacts[] = array(
+                                'label' => $tq_qn > 0 ? t('اختبار الدرس') : t('أضف اختبارا'),
+                                'sub'   => $tq_qn > 0
+                                         ? t('____ سؤالا', array($tq_qn))
+                                         : t('بلا اختبار لا يفتح الدرس التالي'),
+                                'icon'  => 'help',
+                                'tone'  => 'go',
+                                'href'  => site_url('taqdar_admin/lesson_quiz/' . (int) $tq_l['id']),
+                            );
+                            $tq_lacts[] = array(
+                                'label'   => t('ملفات الدرس'),
+                                'icon'    => 'folder',
+                                'onclick' => "showAjaxModal('" . site_url('modal/popup/resource_files/' . (int) $tq_l['id'])
+                                           . "', '" . t('ملفات الدرس') . "')",
+                            );
+                            $tq_lacts[] = array(
+                                'label'   => t('تعديل الدرس'),
+                                'icon'    => 'edit',
+                                'onclick' => "showAjaxModal('" . site_url('modal/popup/lesson_edit/' . (int) $tq_l['id'] . '/' . (int) $course_id)
+                                           . "', '" . t('تعديل الدرس') . "')",
+                            );
+                        endif;
 
-                            <form method="post"
-                                  action="<?php echo site_url('admin/lessons/' . (int) $course_id . '/delete/' . (int) $tq_l['id']); ?>"
-                                  data-tqa-confirm-title="<?php echo $tq_is_quiz ? t('حذف الاختبار') : t('حذف الدرس'); ?>"
-                                  data-tqa-confirm="<?php echo te('سيحذف «____» نهائيا.', array(html_escape($tq_l['title']))); ?>"
-                                  data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
-                                  data-tqa-confirm-tone="danger">
-                                <?php echo tq_csrf(); ?>
-                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                        style="color:var(--tq-danger)">
-                                    <?php echo tq_icon('trash', 14); ?>
-                                    <span class="tqa-sr"><?php echo t('حذف'); ?> <?php echo html_escape($tq_l['title']); ?></span>
-                                </button>
-                            </form>
-                        </div>
+                        $tq_lacts[] = array('sep' => true);
+                        $tq_lacts[] = array(
+                            'label'   => $tq_is_quiz ? t('حذف الاختبار') : t('حذف الدرس'),
+                            'icon'    => 'trash',
+                            'tone'    => 'danger',
+                            'action'  => 'admin/lessons/' . (int) $course_id . '/delete/' . (int) $tq_l['id'],
+                            'confirm' => array(
+                                'title' => $tq_is_quiz ? t('حذف الاختبار') : t('حذف الدرس'),
+                                'body'  => t('سيحذف «____» نهائيا.', array($tq_l['title'])),
+                                'ok'    => t('نعم، احذف'),
+                                'tone'  => 'danger',
+                            ),
+                        );
+
+                        echo tqa_rowmenu($tq_lacts, array(
+                            'title' => $tq_l['title'],
+                            'sub'   => ($tq_is_quiz ? t('اختبار') : t('درس')) . ' · ' . $tq_kindname,
+                        ));
+                        ?>
                     </li>
                     <?php if (isset($tq_durflags[(int) $tq_l['id']])): ?>
                         <li style="padding:0 var(--tq-space-xl) var(--tq-space-m);

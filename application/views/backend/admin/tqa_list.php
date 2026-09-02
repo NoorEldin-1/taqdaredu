@@ -24,6 +24,18 @@ foreach ($spec['fields'] as $name => $f) {
     if (!empty($f['list'])) $cols[$name] = $f;
 }
 
+/* اسم الصف كما يقرؤه المسؤول — يستعمله رأس قائمة الإجراءات. وأول
+   عمود نصي معروض هو ما يسمي الصف في كل وحدة تقريبا (`name_ar` ·
+   `title`)؛ وما لا نص فيه يعرف بمعرفه، وهو أصدق من اسم مخترع. */
+$namecol = '';
+foreach ($cols as $cn => $cf) {
+    if ($cf['type'] === 'text') { $namecol = $cn; break; }
+}
+$tq_name = function ($row) use ($namecol) {
+    $v = ($namecol !== '' && isset($row[$namecol])) ? trim((string) $row[$namecol]) : '';
+    return $v !== '' ? $v : ('#' . (int) $row['id']);
+};
+
 $tools = $readonly ? '' :
     '<a class="tqa-btn tqa-btn--primary" href="' . site_url('taqdar_admin/form/' . $mkey) . '">'
   . tq_icon('plus', 17) . t(' إضافة</a>');
@@ -38,18 +50,68 @@ $tools = $readonly ? '' :
     </div>
 <?php endif; ?>
 
+<?php
+/* شريط البحث — يطبع ولو لم يرد الاستعلام شيئا: من بحث فلم يجد يحتاج
+   الحقل ليصحح كلمته، وإخفاؤه مع النتيجة يتركه بلا مخرج غير الرجوع.
+   ولا يطبع على وحدة صغيرة لم تتجاوز صفحة واحدة قط: أداة لا تلزم
+   تزحم الشاشة وتوحي بأن تحتها ما لا يرى. */
+$has_text = false;
+foreach ($cols as $f) {
+    if (in_array($f['type'], array('text', 'textarea', 'lines'), true)) { $has_text = true; break; }
+}
+$show_search = $has_text && ($view['q'] !== '' || $view['total'] > $view['per']);
+?>
+
+<?php if ($show_search): ?>
+    <div class="tqa-toolbar" style="margin-block-end:var(--tq-space-l)">
+        <form method="get" action="<?php echo site_url('taqdar_admin/module/' . $mkey); ?>" role="search">
+            <?php /* الفرز يسافر مع البحث: بحث يمحو ترتيبا اختير قبله يعيد
+                     المسؤول إلى أول القائمة بلا أن يطلب. */ ?>
+            <?php if ($view['sort'] !== ''): ?>
+                <input type="hidden" name="sort" value="<?php echo html_escape($view['sort']); ?>">
+                <input type="hidden" name="dir" value="<?php echo html_escape($view['dir']); ?>">
+            <?php endif; ?>
+            <input class="tqa-input" type="search" name="q" value="<?php echo html_escape($view['q']); ?>"
+                   placeholder="<?php echo te('ابحث في المعروض…'); ?>"
+                   aria-label="<?php echo te('بحث'); ?>">
+            <button class="tqa-btn tqa-btn--ghost" type="submit">
+                <?php echo tq_icon('search', 16); ?> <?php echo t('بحث'); ?>
+            </button>
+            <?php if ($view['q'] !== ''): ?>
+                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                   href="<?php echo html_escape(tqa_url_with('taqdar_admin/module/' . $mkey, array('q' => null, 'p' => null))); ?>">
+                    <?php echo t('مسح'); ?>
+                </a>
+            <?php endif; ?>
+        </form>
+    </div>
+<?php endif; ?>
+
 <div class="tqa-card tqa-card--flush">
 <?php if (empty($rows)): ?>
 
-    <?php tqa_empty(
-        t('لا ') . $spec['title'] . t(' بعد'),
-        $readonly
-            ? t('تمتلئ هذه الشاشة وحدها حين يبدأ النظام في التسجيل — ولا يضاف إليها بيد.')
-            : t('ابدأ بإضافة أول عنصر؛ وحدات أخرى تعتمد عليه.'),
-        $readonly ? '' : t('إضافة الآن'),
-        $readonly ? '' : site_url('taqdar_admin/form/' . $mkey),
-        isset($spec['icon']) ? $spec['icon'] : 'folder'
-    ); ?>
+    <?php if ($view['q'] !== ''): ?>
+        <?php /* «لا نتائج لبحثك» غير «لا صفوف بعد»: الأولى تدعو إلى تعديل
+                 الكلمة، والثانية تدعو إلى الإضافة — ودعوة إلى إضافة صف
+                 موجود أصلا تجعل المسؤول ينشئ ثانيا مكررا. */ ?>
+        <?php tqa_empty(
+            t('لا نتيجة لـ') . ' «' . $view['q'] . '»',
+            t('لا صف في هذه الوحدة يطابق ما كتبت. والبحث على الأعمدة النصية المعروضة وحدها.'),
+            t('اعرض الكل'),
+            tqa_url_with('taqdar_admin/module/' . $mkey, array('q' => null, 'p' => null)),
+            'search'
+        ); ?>
+    <?php else: ?>
+        <?php tqa_empty(
+            t('لا ') . $spec['title'] . t(' بعد'),
+            $readonly
+                ? t('تمتلئ هذه الشاشة وحدها حين يبدأ النظام في التسجيل — ولا يضاف إليها بيد.')
+                : t('ابدأ بإضافة أول عنصر؛ وحدات أخرى تعتمد عليه.'),
+            $readonly ? '' : t('إضافة الآن'),
+            $readonly ? '' : site_url('taqdar_admin/form/' . $mkey),
+            isset($spec['icon']) ? $spec['icon'] : 'folder'
+        ); ?>
+    <?php endif; ?>
 
 <?php else: ?>
 
@@ -57,15 +119,17 @@ $tools = $readonly ? '' :
         <table class="tqa-table">
             <thead>
                 <tr>
-                    <th style="inline-size:64px">#</th>
-                    <?php foreach ($cols as $f): ?>
-                        <th><?php echo html_escape($f['label']); ?></th>
+                    <?php echo tqa_sort_th('taqdar_admin/module/' . $mkey, 'id', '#',
+                        $view['sort'], $view['dir'], $sortable); ?>
+                    <?php foreach ($cols as $cname => $f): ?>
+                        <?php echo tqa_sort_th('taqdar_admin/module/' . $mkey, $cname, $f['label'],
+                            $view['sort'], $view['dir'], $sortable); ?>
                     <?php endforeach; ?>
                     <?php if ($status_fn !== ''): ?>
                         <th><?php echo html_escape(isset($spec['status_label']) ? $spec['status_label'] : t('الحال')); ?></th>
                     <?php endif; ?>
                     <?php if (!$readonly): ?>
-                        <th style="inline-size:150px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
+                        <th class="tqa-col--acts"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                     <?php endif; ?>
                 </tr>
             </thead>
@@ -93,43 +157,57 @@ $tools = $readonly ? '' :
                     <?php endif; ?>
 
                     <?php if (!$readonly): ?>
-                    <td data-label="إجراءات">
-                        <div style="display:flex;gap:6px;align-items:center">
-                            <?php /* إجراء خاص بالوحدة — تعلنه في `spec()` باسمه ومساره.
-                                     وموضعه **قبل** التعديل لا بعده: الوحدة التي تعلنه
-                                     تعلنه لأنه المقصود من الصف (أسئلة الاختبار مثلا)،
-                                     والتحرير بعده تفصيل. */ ?>
-                            <?php if (!empty($spec['row_action'])): $ra = $spec['row_action']; ?>
-                                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                   href="<?php echo site_url($ra['href'] . (int) $r['id']); ?>">
-                                    <?php echo tq_icon(isset($ra['icon']) ? $ra['icon'] : 'link', 15); ?>
-                                    <?php echo html_escape($ra['label']); ?>
-                                </a>
-                            <?php endif; ?>
+                    <?php
+                    /* TQ-ROW-CLUTTER — ما يفعل بالصف قائمة واحدة لا صف
+                       أزرار: كان العمود ثلاثة عناصر متساوية الوزن (إجراء
+                       الوحدة · تعديل · حذف) بعرض مئة وخمسين بكسلا في كل
+                       وحدة من ثلاث وخمسين، والحذف بينها بحجم التعديل
+                       ولونه إلا حبره.
 
-                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                               href="<?php echo site_url('taqdar_admin/form/' . $mkey . '/' . (int) $r['id']); ?>">
-                                <?php echo tq_icon('edit', 15); ?> <?php echo t('تعديل'); ?>
-                            </a>
+                       ورأس القائمة يحمل اسم الصف: اللوح يفتح فوق الجدول
+                       فيحجب صفه، ومن فتح قائمة الصف الحادي عشر ثم تردد
+                       لا يعرف أهي قائمته أم قائمة جاره. والاسم من أول
+                       عمود نصي معروض — وهو الذي يسمي الصف في كل وحدة. */
+                    $tq_acts = array();
 
-                            <?php if (empty($spec['nodelete'])): ?>
-                                <?php /* الحذف نموذج لا رابط: رابط GET يحذف ينفذ
-                                         بمجرد جلبه — من زاحف أو من استباق تحميل. */ ?>
-                                <form method="post" style="margin:0"
-                                      action="<?php echo site_url('taqdar_admin/delete/' . $mkey . '/' . (int) $r['id']); ?>"
-                                      data-tqa-confirm-title="<?php echo te('حذف نهائي'); ?>"
-                                      data-tqa-confirm="<?php echo te('لا رجعة في هذا الحذف. وقد تعتمد عليه وحدات أخرى.'); ?>"
-                                      data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
-                                      data-tqa-confirm-tone="danger">
-                                    <?php echo tq_csrf(); ?>
-                                    <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                            style="color:var(--tq-danger)">
-                                        <?php echo tq_icon('trash', 15); ?>
-                                        <span class="tqa-sr"><?php echo t('حذف'); ?></span>
-                                    </button>
-                                </form>
-                            <?php endif; ?>
-                        </div>
+                    if (!empty($spec['row_action'])):
+                        $ra = $spec['row_action'];
+                        $tq_acts[] = array(
+                            'label' => $ra['label'],
+                            'href'  => site_url($ra['href'] . (int) $r['id']),
+                            'icon'  => isset($ra['icon']) ? $ra['icon'] : 'link',
+                            'tone'  => 'go',
+                        );
+                    endif;
+
+                    $tq_acts[] = array(
+                        'label' => t('تعديل'),
+                        'sub'   => t('افتح النموذج بكل حقول هذا الصف'),
+                        'href'  => site_url('taqdar_admin/form/' . $mkey . '/' . (int) $r['id']),
+                        'icon'  => 'edit',
+                    );
+
+                    if (empty($spec['nodelete'])):
+                        $tq_acts[] = array('sep' => true);
+                        $tq_acts[] = array(
+                            'label'   => t('حذف'),
+                            'action'  => 'taqdar_admin/delete/' . $mkey . '/' . (int) $r['id'],
+                            'icon'    => 'trash',
+                            'tone'    => 'danger',
+                            'confirm' => array(
+                                'title' => t('حذف نهائي'),
+                                'body'  => t('لا رجعة في هذا الحذف. وقد تعتمد عليه وحدات أخرى.'),
+                                'ok'    => t('نعم، احذف'),
+                                'tone'  => 'danger',
+                            ),
+                        );
+                    endif;
+                    ?>
+                    <td class="tqa-col--acts" data-label="<?php echo te('إجراءات'); ?>">
+                        <?php echo tqa_rowmenu($tq_acts, array(
+                            'title' => $tq_name($r),
+                            'sub'   => '#' . (int) $r['id'],
+                        )); ?>
                     </td>
                     <?php endif; ?>
                 </tr>
@@ -138,13 +216,22 @@ $tools = $readonly ? '' :
         </table>
     </div>
 
-    <p style="padding:var(--tq-space-m) var(--tq-space-xl);margin:0;border-block-start:1px solid var(--tq-line);
-              font:var(--tq-type-caption);color:var(--tq-text2)">
-        <?php echo t('المعروض'); ?> <span class="tqa-num"><?php echo count($rows); ?></span> <?php echo t('عنصرا'); ?>
-        <?php if (count($rows) >= 200): ?>
-            <?php echo t('— وهو حد العرض. المزيد موجود ولا يظهر هنا.'); ?>
+    <?php /* الذيل يقول أين المسؤول من الكل، لا كم صفا طبع: «المعروض ٢٠٠»
+             وحدها لا تقول إن تحتها ألفا. وعلى صفحة واحدة يكفي العدد. */ ?>
+    <div class="tqa-tablefoot">
+        <?php if ($view['pages'] > 1): ?>
+            <?php tqa_pager('taqdar_admin/module/' . $mkey, $view['page'], $view['pages'], $view['total']); ?>
+        <?php else: ?>
+            <span class="tqa-pager__info">
+                <?php echo t('المعروض'); ?>
+                <span class="tqa-num"><?php echo count($rows); ?></span> <?php echo t('عنصرا'); ?>
+                <?php if ($view['q'] !== ''): ?>
+                    <?php echo t('— نتيجة بحث، والوحدة فيها'); ?>
+                    <span class="tqa-num"><?php echo (int) $M->count_rows($mkey); ?></span>
+                <?php endif; ?>
+            </span>
         <?php endif; ?>
-    </p>
+    </div>
 
 <?php endif; ?>
 </div>

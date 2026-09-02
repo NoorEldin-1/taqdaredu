@@ -100,7 +100,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/categ
                                           data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                           data-tqa-confirm-tone="danger">
                                         <?php echo tq_csrf(); ?>
-                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
+                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--quiet-danger">
                                             <?php echo tq_icon('trash', 14); ?>
                                             <span class="tqa-sr"><?php echo t('حذف'); ?> <?php echo html_escape($tq_s['name']); ?></span>
                                         </button>
@@ -128,7 +128,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/categ
                           data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                           data-tqa-confirm-tone="danger">
                         <?php echo tq_csrf(); ?>
-                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
+                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--quiet-danger">
                             <?php echo tq_icon('trash', 15); ?> <?php echo t('حذف'); ?>
                         </button>
                     </form>

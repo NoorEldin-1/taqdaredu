@@ -83,7 +83,11 @@ $states = array(
                 <th><?php echo t('الوجهة'); ?></th>
                 <th><?php echo t('التاريخ'); ?></th>
                 <th><?php echo t('الحالة'); ?></th>
-                <th><?php echo t('القرار'); ?></th>
+                <?php /* TQ-ROW-CLUTTER — العمود كان يحمل **نموذجا كاملا**:
+                         حقل مرجع وزرين وربطا إلى الملف، في خلية عرضها سبع
+                         الجدول. فارتفع كل صف إلى ضعف جاره، وانضغط عمود
+                         الوجهة الذي يقرأ قبل أن يقرر أحد. */ ?>
+                <th class="tqa-col--acts"><span class="tqa-sr"><?php echo t('القرار'); ?></span></th>
             </tr>
         </thead>
         <tbody>
@@ -188,48 +192,90 @@ $states = array(
                     <?php endif; ?>
                 </td>
 
-                <td data-label="القرار">
-                    <?php if ($st !== 0): ?>
-                        <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                           href="<?php echo site_url('taqdar_admin/payout/' . (int) $p['id']); ?>"><?php echo t('التفاصيل'); ?></a>
-                    <?php else: ?>
-                        <?php /* المرجع حقل واحد يخدم الفعلين: رقم العملية عند
-                                 الاعتماد، وسبب الرفض عند الرفض. وحقلان
-                                 منفصلان في خلية جدول يضيقان على القارئ بلا فائدة. */ ?>
-                        <form action="<?php echo site_url('taqdar_admin/payout_decide'); ?>" method="post"
-                              style="margin:0;display:grid;gap:6px;min-inline-size:220px">
-                            <?php echo tq_csrf(); ?>
-                            <input type="hidden" name="payout_id" value="<?php echo (int) $p['id']; ?>">
-                            <input class="tqa-input tqa-input--ltr" type="text" name="reference"
-                                   placeholder="<?php echo te('رقم العملية أو سبب الرفض'); ?>"
-                                   style="min-block-size:34px;font-size:13px">
-                            <div style="display:flex;gap:6px;align-items:center">
-                                <?php /* الملف قبل القرار لمن أراد التحقق. والقرار
-                                         من هنا لمن لا يحتاج — القائمة تخدم من يمر
-                                         على عشرة طلبات، والملف من يقف عند واحد. */ ?>
-                                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                   href="<?php echo site_url('taqdar_admin/payout/' . (int) $p['id']); ?>"><?php echo t('التفاصيل'); ?></a>
-                            </div>
-                            <div style="display:flex;gap:6px">
-                                <?php /* التأكيد على الزر لا على النموذج: الزران يرسلان
-                                         النموذج نفسه ويفترقان في `act` وحدها، فالسؤال
-                                         سؤالان لا سؤال واحد. */ ?>
-                                <button class="tqa-btn tqa-btn--mastery tqa-btn--sm" type="submit" name="act" value="pay"
-                                        data-tqa-confirm-title="<?php echo te('اعتماد التحويل'); ?>"
-                                        data-tqa-confirm="<?php echo te('سيخصم المبلغ من المحجوز نهائيا ويخطر المعلم. تأكد من تنفيذ الحوالة أولا.'); ?>"
-                                        data-tqa-confirm-ok="<?php echo te('نعم، حولت'); ?>">
-                                    <?php echo t('حولت'); ?>
-                                </button>
-                                <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit" name="act" value="reject"
-                                        data-tqa-confirm-title="<?php echo te('رفض طلب السحب'); ?>"
-                                        data-tqa-confirm="<?php echo te('سيعاد المبلغ إلى رصيد المعلم المتاح، ويصله سبب الرفض كما كتبته.'); ?>"
-                                        data-tqa-confirm-ok="<?php echo te('ارفض الطلب'); ?>"
-                                        data-tqa-confirm-tone="danger">
-                                    <?php echo t('رفض'); ?>
-                                </button>
-                            </div>
-                        </form>
-                    <?php endif; ?>
+                <?php
+                /* TQ-ROW-CLUTTER — القرار كله في قائمة الصف.
+
+                   وكان نموذجا في خلية: حقل مرجع بارتفاع الحقل الكامل، ثم
+                   سطر فيه «التفاصيل»، ثم سطر فيه «حولت» و«رفض». ثلاثة
+                   أسطر في خلية جدول ترفع الصف إلى مئة وستين بكسلا، وتضغط
+                   عمود «الوجهة» — وهو ما يقرأ قبل أن يقرر أحد.
+
+                   والمرجع كان حقلا واحدا يخدم الفعلين: رقم العملية عند
+                   الاعتماد، وسبب الرفض عند الرفض. وهما شيئان مختلفان
+                   يكتبان في عمودين مختلفين (`reference` و`reject_reason`)،
+                   وحقل واحد بنائب «رقم العملية أو سبب الرفض» يجعل من كتب
+                   رقما ثم ضغط «رفض» يرسل رقم حوالة سببا للرفض. فصار لكل
+                   فعل لوحه ونائبه وسؤاله. */
+                $tq_acts = array();
+
+                if ($st === 0) {
+                    $tq_acts[] = array(
+                        'panel'   => t('اعتماد التحويل'),
+                        'icon'    => 'check-badge',
+                        'action'  => 'taqdar_admin/payout_decide',
+                        'submit'  => t('نعم، حولت'),
+                        'sub'     => t('يخصم المبلغ من المحجوز نهائيا ويخطر المعلم.'),
+                        'hidden'  => array('payout_id' => (int) $p['id'], 'act' => 'pay'),
+                        'fields'  => array(array(
+                            'name'        => 'reference',
+                            'placeholder' => t('رقم العملية في كشف البنك'),
+                            /* شرط في الخادم كذلك: تحويل بلا مرجع لا يطابق
+                               بكشف البنك ولا يجاب به معلم يقول «لم يصلني».
+                               وفحصه هنا يوفر رحلة ترد برسالة حمراء. */
+                            'required'    => true,
+                            'ltr'         => true,
+                            'maxlength'   => 120,
+                        )),
+                        'confirm' => array(
+                            'title' => t('اعتماد التحويل'),
+                            'body'  => t('سيخصم المبلغ من المحجوز نهائيا ويخطر المعلم. تأكد من تنفيذ الحوالة أولا.'),
+                            'ok'    => t('نعم، حولت'),
+                        ),
+                    );
+                }
+
+                /* الملف قبل القرار لمن أراد التحقق. والقرار من هنا لمن لا
+                   يحتاج — القائمة تخدم من يمر على عشرة طلبات، والملف من
+                   يقف عند واحد. */
+                $tq_acts[] = array(
+                    'label' => t('ملف الطلب'),
+                    'sub'   => t('السابقة والرصيد والوجهة كاملة'),
+                    'icon'  => 'file-text',
+                    'tone'  => $st === 0 ? '' : 'go',
+                    'href'  => site_url('taqdar_admin/payout/' . (int) $p['id']),
+                );
+
+                if ($st === 0) {
+                    $tq_acts[] = array('sep' => true);
+                    $tq_acts[] = array(
+                        'panel'   => t('رفض الطلب'),
+                        'icon'    => 'close',
+                        'tone'    => 'danger',
+                        'action'  => 'taqdar_admin/payout_decide',
+                        'submit'  => t('ارفض الطلب'),
+                        'sub'     => t('يعاد المبلغ إلى رصيده المتاح، ويصله السبب كما تكتبه.'),
+                        'hidden'  => array('payout_id' => (int) $p['id'], 'act' => 'reject'),
+                        'fields'  => array(array(
+                            'name'        => 'reference',
+                            'placeholder' => t('سبب الرفض — يقرؤه المعلم'),
+                            'required'    => true,
+                            'maxlength'   => 200,
+                        )),
+                        'confirm' => array(
+                            'title' => t('رفض طلب السحب'),
+                            'body'  => t('سيعاد المبلغ إلى رصيد المعلم المتاح، ويصله سبب الرفض كما كتبته.'),
+                            'ok'    => t('ارفض الطلب'),
+                            'tone'  => 'danger',
+                        ),
+                    );
+                }
+                ?>
+                <td class="tqa-col--acts" data-label="<?php echo te('القرار'); ?>">
+                    <?php echo tqa_rowmenu($tq_acts, array(
+                        'wide'  => true,
+                        'title' => $p['teacher_name'] ?: ('#' . (int) $p['id']),
+                        'sub'   => tqa_money($amount) . ' · ' . $ch_label,
+                    )); ?>
                 </td>
             </tr>
         <?php endforeach; ?>

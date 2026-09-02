@@ -45,18 +45,13 @@
       opt.headers['X-CSRF-Token'] = tqCsrf();
       opt.body = JSON.stringify(body);
     }
-    return fetch(GATE + '/' + path, opt).then(function (r) {
-      return r.json().then(function (j) {
-        if (!r.ok || (j && j.error)) {
-          var e = (j && j.error) || {};
-          throw {
-            code: e.code || 'HTTP_' + r.status,
-            message: e.message_ar || TQ.t('تعذر إتمام الطلب'),
-            details: e.details || {}
-          };
-        }
-        return j.data !== undefined ? j.data : j;
-      });
+    /* TQ-RAW-ERROR — الغلاف الواحد في `tq-i18n.js` هو الذي يقرر نص
+       التعثر: كانت هذه الكتلة تعالج خطأ الخادم وحده، فرفض `fetch` نفسه
+       (شبكة مقطوعة وسط مراجعة) يصل إلى `e.message` بنص المتصفح
+       «Failed to fetch». وما يرمى `Error` لا كائن عاريا، و`code` و
+       `details` باقيان عليه — وعليهما يفرع `taqdar-lesson.js`. */
+    return TQ.gateFetch(GATE + '/' + path, opt).then(function (j) {
+      return j.data !== undefined ? j.data : j;
     });
   }
 

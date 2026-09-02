@@ -271,15 +271,21 @@ include 'portal_open.php';
 </style>
 
 <div class="tq-favbar">
-    <nav class="tq-tabs" aria-label="<?php echo te('تصفية المفضلة بالنوع'); ?>" style="margin-block-end:0;border-block-end:0">
-        <?php foreach ($tq_types as $key => $label): ?>
-            <a class="tq-tab"
-               href="<?php echo base_url('student/favourites') . ($key === 'all' ? '' : '?type=' . $key); ?>"
-               <?php echo tq_active($key, $tq_type); ?>>
-                <?php echo html_escape($label); ?>
-            </a>
-        <?php endforeach; ?>
-    </nav>
+    <?php /* TQ-FILTERBAR — المكون الواحد. انظر `tq_filterbar()`.
+             وهذا الشريط بلا عدادات: المفضلة تعد في لوح جانبي بجواره،
+             وعداد يتكرر مرتين في شاشة واحدة يجعل من يقرأ اختلافا بينهما
+             يوما لا يعرف أيهما يصدق. */ ?>
+    <?php
+    $tq_bar = [];
+    foreach ($tq_types as $key => $label) {
+        $tq_bar[] = [
+            'url'    => base_url('student/favourites') . ($key === 'all' ? '' : '?type=' . $key),
+            'label'  => $label,
+            'active' => $tq_type === $key,
+        ];
+    }
+    echo tq_filterbar($tq_bar, t('تصفية المفضلة بالنوع'));
+    ?>
     <form class="tq-favbar__tools" method="get" action="<?php echo base_url('student/favourites'); ?>">
         <?php if ($tq_type !== 'all'): ?>
             <input type="hidden" name="type" value="<?php echo html_escape($tq_type); ?>">

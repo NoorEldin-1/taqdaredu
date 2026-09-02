@@ -24,6 +24,13 @@
  *
  * ونص التحميل صار عربيا: كان «loading...» و«...» — والأول إنجليزي
  * والثاني لا يقول شيئا.
+ *
+ * ٣ — **والهيكل نفسه رقي**: أيقونة في الرأس تقول أي نافذة هذه قبل أن
+ *     يقرأ العنوان، وذيل بزر إغلاق للنافذة العريضة (كانت بلا ذيل، ومن
+ *     مرر في نموذج طويل يعود إلى أعلاها ليجد الـ×)، وتوسيط رأسي
+ *     للمتوسطة — نموذج من ستة حقول ملصق بأعلى شاشة طويلة يقرأ مقصوصا.
+ *     والعرض من [admin.css] كتلة ١٠٫٦: كان خمسمئة بكسل من Bootstrap،
+ *     وفيها يفتح نموذج الدرس بعشرة حقول.
  */
 ?>
 <script type="text/javascript">
@@ -79,19 +86,24 @@ function tqModalLoad(sel, url, header) {
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
+                <span class="tqa-modal-ic" aria-hidden="true"><?php echo tq_icon('layers', 19); ?></span>
                 <h4 class="modal-title" id="largeModalTitle"></h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="<?php echo te('إغلاق'); ?>">&times;</button>
             </div>
             <div class="modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo t('إغلاق'); ?></button>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- نافذة قابلة للتمرير -->
 <div class="modal fade" id="scrollable-modal" tabindex="-1" role="dialog" aria-labelledby="scrollableModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable" role="document">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
             <div class="modal-header">
+                <span class="tqa-modal-ic" aria-hidden="true"><?php echo tq_icon('pen', 19); ?></span>
                 <h5 class="modal-title" id="scrollableModalTitle"></h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="<?php echo te('إغلاق'); ?>">&times;</button>
             </div>
@@ -108,6 +120,7 @@ function tqModalLoad(sel, url, header) {
     <div class="modal-dialog modal-lg modal-right">
         <div class="modal-content h-100">
             <div class="modal-header">
+                <span class="tqa-modal-ic" aria-hidden="true"><?php echo tq_icon('file-text', 19); ?></span>
                 <h4 class="modal-title" id="rightModalTitle"></h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="<?php echo te('إغلاق'); ?>">&times;</button>
             </div>

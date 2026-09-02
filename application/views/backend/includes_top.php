@@ -35,6 +35,10 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="<?php echo tq_asset('site/fonts/Plex-400-arabic.woff2'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/fonts.css'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/tokens.css'); ?>">
+<?php /* TQA-CONTROLS — المنتق وحقل الملف، وهما مشتركان مع البوابات
+         (`css/tqa-controls.css`). قبل `admin.css` فتبقى §١١٫٨ فيها —
+         وهي تخص `input-group` من Bootstrap — قادرة على تجاوزها. */ ?>
+<link rel="stylesheet" href="<?php echo tq_asset('css/tqa-controls.css'); ?>">
 <link rel="stylesheet" href="<?php echo tq_asset('css/admin.css'); ?>">
 <?php /* TQ-DS — طبقة الـDesign System. تحمل **بعد** الرموز والهوية فتتجاوزهما،
          وكل قواعدها مقيدة بـ`body.tqa` فلا تمس صفحة عامة. وحذف هذا السطر
@@ -47,8 +51,17 @@
          شاشة قبل أن يصل الذيل. و`defer` يبقيه غير حاجب للرسم. */ ?>
 <?php /* TQ-I18N — قاموس المتصفح قبل `admin.js`: نافذة التأكيد ورسائل
          الحفظ كلها تنادي `TQA.t()`. */ ?>
-<script src="<?php echo tq_asset('js/tq-i18n.js'); ?>" defer></script>
+<?php /* `tq-i18n.js` انتقل إلى `index.php` بلا تأجيل: المؤجل ينفذ بعد
+         كل سكربت سطري في الشاشات، وهي تنادي `TQA.t()` وقت التحليل. */ ?>
 <script src="<?php echo tq_asset('js/admin.js'); ?>" defer></script>
+
+<?php /* المنتق وحقل الملف — مكونان يعمان اللوحة بلا أن تكتب شاشة سطرا:
+         كلاهما يمسح الصفحة عند التحميل ثم يراقب ما يضاف بعدها (النوافذ
+         الموروثة تجلب نماذجها بـAJAX). وملفان مستقلان لا كتلتان في
+         `admin.js`: هذا يبقيه مقروءا، ويجعل إسقاط أحدهما سطرا واحدا.
+         و`defer` يحفظ الترتيب — فـ`TQ.t()` معرفة قبل أن ينادى. */ ?>
+<script src="<?php echo tq_asset('js/tqa-select.js'); ?>" defer></script>
+<script src="<?php echo tq_asset('js/tqa-file.js'); ?>" defer></script>
 
 <?php if (config_item('csrf_protection')): ?>
 <script>

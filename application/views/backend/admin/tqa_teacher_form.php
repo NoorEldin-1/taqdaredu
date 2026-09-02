@@ -78,7 +78,10 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
 
 <form action="<?php echo site_url($tq_edit ? 'taqdar_admin/teacher_update/' . $tq_id
                                            : 'taqdar_admin/teacher_create'); ?>"
-      method="post" enctype="multipart/form-data" style="max-inline-size:860px">
+      method="post" enctype="multipart/form-data" style="max-inline-size:860px"
+      <?php /* TQ-FORM-DIRTY — نموذج المعلم بضعة عشر حقلا، ومن عدله ثم
+               ضغط بندا في الشريط الجانبي كان يفقدها كلها بلا سؤال. */ ?>
+      data-tqa-dirty="1">
     <?php echo tq_csrf(); ?>
 
     <div class="tqa-card tqa-section">
@@ -283,7 +286,9 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
         </div>
     </div>
 
-    <div class="tqa-actions">
+    <?php /* TQ-SAVE-BELOW — الشريط يلتصق بأسفل الشاشة: النموذج أطول من
+             شاشة، وزر «احفظ» في قاعه يكلف تمريرة كاملة عن كل تعديل. */ ?>
+    <div class="tqa-formbar tqa-formbar--inset">
         <button class="tqa-btn tqa-btn--primary" type="submit">
             <?php echo tq_icon('check', 16); ?>
             <?php echo $tq_edit ? t('احفظ التعديل') : t('أنشئ حساب المعلم'); ?>
@@ -293,6 +298,7 @@ $tq_img = ($tq_edit && trim((string) $row['image']) !== '')
                                               : 'taqdar_admin/people?role=teacher'); ?>">
             <?php echo $tq_edit ? t('عد إلى صفحته') : t('عد إلى الحسابات'); ?>
         </a>
+        <span class="tqa-formbar__dirty"><?php echo t('فيه تعديل لم يحفظ'); ?></span>
     </div>
 </form>
 

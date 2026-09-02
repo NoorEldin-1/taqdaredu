@@ -110,7 +110,7 @@ $tq_when = function ($ts) {
         <span class="tqa-hint" style="display:inline">
             <?php echo t('في الجدول '); ?><strong><?php echo (int) $spam_n; ?></strong><?php echo t(' رسالة يعدها المرشح دعاية (روابط أو حروف أجنبية عن المنصة).'); ?>
         </span>
-        <button type="submit" class="tqa-btn tqa-btn--ghost" style="color:var(--tq-danger)">
+        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--quiet-danger">
             <?php echo tq_icon('trash', 15); ?>
             <?php echo t('احذفها كلها'); ?>
         </button>
@@ -131,7 +131,7 @@ $tq_when = function ($ts) {
         <span class="tqa-hint" style="display:inline">
             <?php echo t('في الجدول '); ?><strong><?php echo (int) $all_n; ?></strong><?php echo t(' رسالة. الحذف يشملها كلها ولا يمس شيئا سواها.'); ?>
         </span>
-        <button type="submit" class="tqa-btn tqa-btn--ghost" style="color:var(--tq-danger)">
+        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--quiet-danger">
             <?php echo tq_icon('trash', 15); ?>
             <?php echo t('احذف كل الرسائل'); ?>
         </button>
@@ -179,7 +179,7 @@ $tq_when = function ($ts) {
                 <input type="checkbox" data-tqa-bulk-all>
                 <span><?php echo t('حدد كل المعروض'); ?></span>
             </label>
-            <button type="submit" class="tqa-btn tqa-btn--ghost" style="color:var(--tq-danger)">
+            <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--quiet-danger">
                 <?php echo tq_icon('trash', 15); ?>
                 <?php echo t('احذف المحدد ('); ?><span data-tqa-bulk-count class="tqa-num">0</span>)
             </button>
@@ -312,7 +312,7 @@ $tq_when = function ($ts) {
                     <?php /* نموذج الحذف مستقل — النماذج لا تتداخل في HTML،
                              فحذف رسالة واحدة لا يكتب داخل نموذج الحذف الجماعي. */ ?>
                     <button type="submit" form="del-form-<?php echo $tq_id; ?>"
-                            class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
+                            class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--quiet-danger">
                         <?php echo tq_icon('trash', 14); ?> <?php echo t('احذفها'); ?>
                     </button>
                 </div>

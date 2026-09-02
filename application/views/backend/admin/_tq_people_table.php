@@ -42,12 +42,12 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
             <caption class="tqa-sr"><?php echo t('الحسابات وبيانات التواصل بها وعدد تسجيلاتها'); ?></caption>
             <thead>
                 <tr>
-                    <th style="inline-size:60px">#</th>
+                    <th class="tqa-col--tight">#</th>
                     <th><?php echo t('الحساب'); ?></th>
                     <th><?php echo t('الهاتف'); ?></th>
                     <th style="inline-size:120px"><?php echo t('الكورسات'); ?></th>
                     <th style="inline-size:110px"><?php echo t('الحالة'); ?></th>
-                    <th style="inline-size:190px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
+                    <th class="tqa-col--acts"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                 </tr>
             </thead>
             <tbody>
@@ -59,7 +59,7 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
                 $tq_on  = (int) $tq_u['status'] === 1;
             ?>
                 <tr>
-                    <td data-label="#"><span class="tqa-num"><?php echo $tq_ord; ?></span></td>
+                    <td class="tqa-col--tight" data-label="#"><span class="tqa-num"><?php echo $tq_ord; ?></span></td>
 
                     <td data-label="الحساب">
                         <span class="tqa-media">
@@ -90,35 +90,40 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
                         </span>
                     </td>
 
-                    <td data-label="إجراءات">
-                        <div class="tqa-rowacts">
-                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                               href="<?php echo site_url($tq_form . '/' . $tq_id); ?>">
-                                <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
-                            </a>
-
-                            <?php if ($tq_kind === 'instructor'): ?>
-                                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" target="_blank" rel="noopener"
-                                   href="<?php echo site_url('home/instructor_page/' . $tq_id); ?>"
-                                   title="<?php echo te('صفحته في الموقع'); ?>">
-                                    <?php echo tq_icon('external', 14); ?>
-                                    <span class="tqa-sr"><?php echo t('صفحته في الموقع'); ?></span>
-                                </a>
-                            <?php endif; ?>
-
-                            <form method="post" action="<?php echo site_url($tq_base . '/delete/' . $tq_id); ?>"
-                                  data-tqa-confirm-title="<?php echo te('حذف الحساب'); ?>"
-                                  data-tqa-confirm="<?php echo te('سيحذف حساب «____» وتسجيلاته. لا رجعة في هذا.', array(html_escape($tq_n))); ?>"
-                                  data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
-                                  data-tqa-confirm-tone="danger">
-                                <?php echo tq_csrf(); ?>
-                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                        style="color:var(--tq-danger)">
-                                    <?php echo tq_icon('trash', 14); ?>
-                                    <span class="tqa-sr"><?php echo t('حذف'); ?> <?php echo html_escape($tq_n); ?></span>
-                                </button>
-                            </form>
-                        </div>
+                    <td class="tqa-col--acts" data-label="إجراءات">
+                        <?php
+                        /* TQ-ROW-CLUTTER — ثلاثة عناصر في خلية صارت قائمة.
+                           وجدول الحسابات يبلغ أربعمئة صف، فالفرق ألف ومئتا
+                           عنصر تنقر أو لا تنقر مقابل أربعمئة زر واحد. */
+                        $tq_acts = array(array(
+                            'label' => t('تعديل الحساب'),
+                            'icon'  => 'edit',
+                            'href'  => site_url($tq_form . '/' . $tq_id),
+                        ));
+                        if ($tq_kind === 'instructor'):
+                            $tq_acts[] = array(
+                                'label'  => t('صفحته في الموقع'),
+                                'sub'    => t('تفتح في لسان جديد'),
+                                'icon'   => 'external',
+                                'href'   => site_url('home/instructor_page/' . $tq_id),
+                                'target' => '_blank',
+                            );
+                        endif;
+                        $tq_acts[] = array('sep' => true);
+                        $tq_acts[] = array(
+                            'label'   => t('حذف الحساب'),
+                            'icon'    => 'trash',
+                            'tone'    => 'danger',
+                            'action'  => $tq_base . '/delete/' . $tq_id,
+                            'confirm' => array(
+                                'title' => t('حذف الحساب'),
+                                'body'  => t('سيحذف حساب «____» وتسجيلاته. لا رجعة في هذا.', array($tq_n)),
+                                'ok'    => t('نعم، احذف'),
+                                'tone'  => 'danger',
+                            ),
+                        );
+                        echo tqa_rowmenu($tq_acts, array('title' => $tq_n, 'sub' => '#' . $tq_id));
+                        ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

@@ -35,7 +35,11 @@
                                 ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <small class="tqa-field__hint"><?php echo t('اختر واحدا أو أكثر — بـCtrl أو ⌘ للاختيار المتعدد.'); ?></small>
+                        <?php /* TQA-SELECT — «بـCtrl أو ⌘» لم تعد صحيحة: المنتق
+                                 المتعدد صار قائمة بمربعات تفتح وتبحث، والضغطة
+                                 الواحدة تحدد وتلغي. وتعليمة تصف واجهة لم تعد
+                                 قائمة أسوأ من لا تعليمة. */ ?>
+                        <small class="tqa-field__hint"><?php echo t('اختر واحدا أو أكثر — القائمة تبحث بالاسم أو البريد.'); ?></small>
                     </div>
 
                     <div class="tqa-field">

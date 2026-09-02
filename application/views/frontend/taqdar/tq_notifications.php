@@ -27,11 +27,16 @@ $uid = (int) $this->session->userdata('user_id');
    والواجهة (`Api_v1`) تسأل الأسئلة نفسها وتنادي الدوال نفسها، فلا
    يقرأ الطالب في التطبيق «تنبيهات أخرى» وفي الموقع «رسوب في اختبار
    محطة» عن الحدث الواحد. */
-$this->load->model('taqdar_student_model', 'tq_stu');
+/* `get_instance()` لا `$this`: `$this` في العرض هو `CI_Loader`، وهو ينسخ
+   خصائص المتحكم على نفسه **قبل** تضمين القالب ولا `__get` له — فموديل
+   يحمل من داخل القالب لا يصل عبر `$this` أبدا، وترد الصفحة
+   «Undefined property: CI_Loader::$tq_stu» ثم «threads() on null». */
+$CI = get_instance();
+$CI->load->model('taqdar_student_model', 'tq_stu');
 
 /* ---- «تحديد الكل كمقروء» فعل حقيقي، وينفذ قبل أي إخراج ------------- */
 if ($this->input->post('action') === 'mark_all_read') {
-    $this->tq_stu->mark_all_notifications_read($uid);
+    $CI->tq_stu->mark_all_notifications_read($uid);
     redirect(site_url('student/notifications'), 'location', 302);
 }
 
@@ -45,7 +50,7 @@ if ($this->input->post('action') === 'mark_all_read') {
  * والحال يعاد كما كان: من كان يصفي «غير المقروءة» يبقى عليها بعد
  * القراءة، ولا يقذف إلى «الكل» فيفقد موضعه من القائمة. */
 if ($this->input->post('action') === 'mark_read') {
-    $this->tq_stu->mark_notification_read($uid, (int) $this->input->post('id'));
+    $CI->tq_stu->mark_notification_read($uid, (int) $this->input->post('id'));
     $tq_back = $this->input->post('state', true);
     $tq_back = in_array($tq_back, ['unread', 'read'], true) ? '?state=' . $tq_back : '';
     redirect(site_url('student/notifications') . $tq_back, 'location', 302);
@@ -55,7 +60,7 @@ if ($this->input->post('action') === 'mark_read') {
 $tq_state = $this->input->get('state', true);
 $tq_state = in_array($tq_state, ['unread', 'read'], true) ? $tq_state : 'all';
 
-$tq_feed = $this->tq_stu->notifications($uid, $tq_state);
+$tq_feed = $CI->tq_stu->notifications($uid, $tq_state);
 $tq_list = $tq_feed['items'];
 
 $tq_unread_count = (int) $tq_feed['counts']['unread'];
@@ -63,7 +68,7 @@ $tq_read_count   = (int) $tq_feed['counts']['read'];
 $tq_by_kind      = $tq_feed['by_kind'];
 
 /* الكل — يقرأ للمجموعات الزمنية ولعداد الأسبوع، والتصفية وقعت أعلاه. */
-$tq_all = $this->tq_stu->notifications($uid, 'all')['items'];
+$tq_all = $CI->tq_stu->notifications($uid, 'all')['items'];
 
 /* `get_instance()` لا `$this` داخل المغلقة: `$this` في العرض هو المحمل
    لا المتحكم، وربطه في مغلقة يعتمد على سحر `__get` بلا داع. */
@@ -91,7 +96,21 @@ foreach ($tq_all as $n) {
     }
 }
 
-/* ---- تفضيلات الإشعارات المتاحة لدور الطالب --------------------------- */
+/* ---- تفضيلات الإشعارات المتاحة لدور الطالب ---------------------------
+ *
+ * TQ-PREF-DUP — الصف مصنف لا نوع، فيجمع ولا يكرر.
+ * `notification_settings` صف لكل **نوع** (`course_purchase` و
+ * `bundle_purchase` و`course_completion_mail` و`certificate_eligibility`…)،
+ * و`$tq_kind()` تردها إلى بضعة **مصنفات** يقرأها الطالب. فكان اللوح يطبع
+ * «الدروس والكورسات» مرتين و«الإنجاز والشهادات» مرتين بشارتين متطابقتين —
+ * صفان لا يفرق بينهما شيء يقرآن عطلا، ومن رآهما ظن أن الصفحة كررت نفسها.
+ * ولا يصلحها عرض `setting_title`: هو إنجليزي من Academy («Course purchase
+ * notification») فيضع لاتينية وسط لوح عربي.
+ *
+ * والقناة تجمع بـ«أي»: السؤال الذي يسأله الطالب «أتصلني تنبيهات هذا
+ * الصنف؟» — ونوع واحد مفعل يكفي لأن تصله. و«الكل» يجعل صنفا فيه نوع
+ * مطفأ يقرأ مطفأ كله، وهو كذب على من تصله رسائله فعلا.
+ */
 $tq_prefs = [];
 foreach ($this->db->get('notification_settings')->result_array() as $s) {
     $types = json_decode((string) $s['user_types'], true);
@@ -101,13 +120,14 @@ foreach ($this->db->get('notification_settings')->result_array() as $s) {
     $sys   = json_decode((string) $s['system_notification'], true);
     $mail  = json_decode((string) $s['email_notification'], true);
     [$label] = $tq_kind($s['type']);
-    $tq_prefs[] = [
-        'label'  => $label,
-        'title'  => $s['setting_title'],
-        'system' => (int) ($sys['student'] ?? 0) === 1,
-        'email'  => (int) ($mail['student'] ?? 0) === 1,
-    ];
+
+    if (!isset($tq_prefs[$label])) {
+        $tq_prefs[$label] = ['label' => $label, 'system' => false, 'email' => false];
+    }
+    $tq_prefs[$label]['system'] = $tq_prefs[$label]['system'] || (int) ($sys['student'] ?? 0) === 1;
+    $tq_prefs[$label]['email']  = $tq_prefs[$label]['email']  || (int) ($mail['student'] ?? 0) === 1;
 }
+$tq_prefs = array_values($tq_prefs);
 
 $tq_states = [
     'all'    => [t('الكل'), count($tq_all)],
@@ -131,16 +151,19 @@ include 'tq_notif_styles.php';
         <?php echo tq_spam_notice(array('what' => t('إشعاراتنا'), 'class' => 'tq-spam--top')); ?>
 
         <div class="tq-row tq-row--between" style="margin-block-end:var(--tq-space-l);flex-wrap:wrap;gap:var(--tq-space-m)">
-            <nav class="tq-tabs" aria-label="<?php echo te('تصفية الإشعارات'); ?>" style="margin-block-end:0;border-block-end:0">
-                <?php foreach ($tq_states as $key => $info): ?>
-                    <a class="tq-tab"
-                       href="<?php echo base_url('student/notifications') . ($key === 'all' ? '' : '?state=' . $key); ?>"
-                       <?php echo tq_active($key, $tq_state); ?>>
-                        <?php echo html_escape($info[0]); ?>
-                        <span class="tq-tab__n"><?php echo TQ_LRI . (int) $info[1] . TQ_PDI; ?></span>
-                    </a>
-                <?php endforeach; ?>
-            </nav>
+            <?php /* TQ-FILTERBAR — المكون الواحد. انظر `tq_filterbar()`. */ ?>
+            <?php
+            $tq_bar = [];
+            foreach ($tq_states as $key => $info) {
+                $tq_bar[] = [
+                    'url'    => base_url('student/notifications') . ($key === 'all' ? '' : '?state=' . $key),
+                    'label'  => $info[0],
+                    'count'  => (int) $info[1],
+                    'active' => $tq_state === $key,
+                ];
+            }
+            echo tq_filterbar($tq_bar, t('تصفية الإشعارات'));
+            ?>
 
             <?php if ($tq_unread_count > 0): ?>
                 <form method="post" action="<?php echo base_url('student/notifications'); ?>">
@@ -299,13 +322,15 @@ include 'tq_notif_styles.php';
                 </div>
             <?php endif; ?>
 
+            <?php /* زر واحد لا زران. كانا اثنين بنصين مختلفين
+                     («تفضيلات الإشعارات» و«الإشعارات البريدية») و**عنوان
+                     واحد** حرفا بحرف — فمن ضغط الثاني ظانا أنه يبلغ شاشة
+                     البريد وجد نفسه حيث أخذه الأول، ولا شيء يقول لماذا.
+                     وزران يفعلان شيئا واحدا يجعلان الشاشة تبدو أعرض مما
+                     تعطي. */ ?>
             <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('student/settings?s=alerts'); ?>">
                 <span aria-hidden="true"><?php echo tq_icon('cog', 18); ?></span>
                 <?php echo t('تفضيلات الإشعارات'); ?>
-            </a>
-            <a class="tq-btn tq-btn--ghost tq-btn--block" href="<?php echo base_url('student/settings?s=alerts'); ?>" style="margin-block-start:var(--tq-space-s)">
-                <span aria-hidden="true"><?php echo tq_icon('chat', 18); ?></span>
-                <?php echo t('الإشعارات البريدية'); ?>
             </a>
         </section>
 

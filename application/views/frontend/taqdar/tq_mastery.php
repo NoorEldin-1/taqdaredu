@@ -164,15 +164,9 @@ include 'portal_open.php';
   }
 
   function api(p) {
-    return fetch(GATE + '/' + p, {
+    /* TQ-RAW-ERROR — الغلاف الواحد في `tq-i18n.js`. */
+    return TQ.gateFetch(GATE + '/' + p, {
       credentials: 'same-origin', headers: { 'Accept': 'application/json' }
-    }).then(function (r) {
-      return r.json().then(function (j) {
-        if (!r.ok || (j && j.error)) {
-          throw new Error((j && j.error && (j.error.message_ar || j.error.message)) || 'تعذر إتمام الطلب.');
-        }
-        return j;
-      });
     });
   }
 

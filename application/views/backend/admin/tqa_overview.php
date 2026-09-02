@@ -64,9 +64,15 @@ $rev_diff = $rev_prev > 0 ? (int) round((($rev_now - $rev_prev) * 100) / $rev_pr
 <?php if ($waiting): ?>
     <section class="tqa-card" style="margin-block-end:var(--tq-space-xl)">
         <h2 style="margin-block-end:var(--tq-space-l)"><?php echo t('ينتظر إجراء منك'); ?></h2>
-        <div class="tqa-grid tqa-grid--3">
+        <?php /* الشبكة تملأ ما اتسع لا ثلاثة في صف: البنود ستة يظهر منها
+                 ما له عدد فوق الصفر، فقد تكون أربعة — والثلاثية تترك
+                 الرابع وحده يتمدد على عرض الشاشة كله فيقرأ بندا أهم من
+                 إخوته وهو ليس كذلك. */ ?>
+        <div class="tqa-grid tqa-grid--auto">
             <?php foreach ($waiting as $w): ?>
-                <a class="tqa-stat" href="<?php echo site_url($w['href']); ?>">
+                <?php /* هذه بنود عمل لا أرصدة: الفعل المطلوب هو الخبر،
+                         والعدد قيده. فالعنوان يثقل والرقم يهبط درجة. */ ?>
+                <a class="tqa-stat tqa-stat--task" href="<?php echo site_url($w['href']); ?>">
                     <div class="tqa-stat__top">
                         <span class="tqa-stat__label"><?php echo html_escape($w['label']); ?></span>
                         <span class="tqa-stat__icon tqa-<?php echo $w['tone']; ?>" aria-hidden="true">

@@ -128,8 +128,16 @@ $rq = ($r_skin === 'tqa');
                             </span>
                         <?php endif; ?>
                     </td>
-                    <td class="tqr-res__n" dir="ltr">
-                        <?php echo html_escape(substr((string) $r['submitted_at'], 0, 16)); ?>
+                    <?php /* TQ-STAMP-SEC — الطابع بصيغة المنصة لا بصيغة القاعدة.
+                             كان `substr($r['submitted_at'], 0, 16)` يطبع
+                             «2026-08-27 06:42» خاما و`dir="ltr"` معه — وفي
+                             `student/exams` جدولان متجاوران: أحدهما يكتب
+                             «27 أغسطس 2026» والآخر هذا. صيغتان لتاريخ واحد
+                             في شاشة واحدة تجعلان القارئ يحسبهما شيئين.
+                             واللوح يقرأ عند الطالب وولي أمره والمعلم معا،
+                             فإصلاحه هنا يصلح الثلاثة. */ ?>
+                    <td class="tqr-res__n">
+                        <?php echo tq_stamp($r['submitted_at']); ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

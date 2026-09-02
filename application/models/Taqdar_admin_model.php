@@ -558,6 +558,95 @@ class Taqdar_admin_model extends CI_Model
         return $this->db->limit($limit, $offset)->get($spec['table'])->result_array();
     }
 
+    /**
+     * التصفح: بحث وفرز وترقيم فوق `listing()` نفسها.
+     *
+     * كانت الشاشة تعرض مئتي صف ثم تعتذر بسطر: «المزيد موجود ولا يظهر
+     * هنا». وهو محتمل على «المواد الدراسية» وفيها عشرة صفوف، وعطل تام
+     * على «سجل التدقيق» و«الفواتير» و«قيود المحافظ» — تكبر بلا حد، فيصير
+     * كل ما قبل المئتين الأخيرة غير قابل للوصول من اللوحة أصلا. ولا
+     * مخرج: لا بحث ولا صفحة ثانية ولا فرز يقلب الترتيب.
+     *
+     * والقرار هنا لا في القالب: ترشيح في المتصفح يرشح **المعروض وحده**،
+     * فبحث عن صف قديم لا يرد شيئا ويبدو أنه غير موجود.
+     *
+     * والعمودان — المبحوث فيه والمفروز به — **يشتقان من الوصف** لا من
+     * الطلب: اسم عمود يصل من `$_GET` يدخل في `ORDER BY` كما هو.
+     */
+    public function browse($key, $args = array())
+    {
+        $spec = $this->spec($key);
+        if (!$spec) return array('rows' => array(), 'total' => 0, 'page' => 1,
+                                 'pages' => 1, 'per' => 50, 'q' => '', 'sort' => '', 'dir' => 'DESC');
+        $this->ensure_table($spec);
+
+        $per  = 50;
+        $page = max(1, (int) (isset($args['page']) ? $args['page'] : 1));
+        $q    = trim((string) (isset($args['q']) ? $args['q'] : ''));
+
+        /* البحث على الأعمدة النصية المعروضة وحدها: عمود لا يعرض يرد صفا
+           لا يفسر ظهوره، و`ref` يقارن رقما بنص فلا يطابق أبدا. */
+        if ($q !== '') {
+            $text = array();
+            foreach ($spec['fields'] as $name => $f) {
+                if (empty($f['list'])) continue;
+                if (in_array($f['type'], array('text', 'textarea', 'lines'), true)) $text[] = $name;
+            }
+            if ($text) {
+                $this->db->group_start();
+                foreach ($text as $i => $col) {
+                    $i ? $this->db->or_like($col, $q) : $this->db->like($col, $q);
+                }
+                if (ctype_digit($q)) $this->db->or_where('id', (int) $q);
+                $this->db->group_end();
+            } elseif (ctype_digit($q)) {
+                $this->db->where('id', (int) $q);
+            } else {
+                $this->db->where('1 = 0', null, false);
+            }
+        }
+
+        /* العد يقرأ الشروط نفسها، والمعامل `FALSE` يبقيها للاستعلام
+           التالي — وبدونه يعد الجدول كله فيطبع ترقيما لصفحات فارغة.
+           والجدول يعلن **مرة واحدة** بـ`from()` ثم يعد ويجلب بلا اسم:
+           `count_all_results($t, false)` تبقي `qb_from` كما تبقي الشروط،
+           فتمرير الاسم إلى `get()` بعدها يضمه ثانية فيرد
+           «Not unique table/alias» على كل وحدة موصوفة. */
+        $this->db->from($spec['table']);
+        $total = (int) $this->db->count_all_results('', false);
+        $pages = max(1, (int) ceil($total / $per));
+        if ($page > $pages) $page = $pages;
+
+        $sort = (string) (isset($args['sort']) ? $args['sort'] : '');
+        $dir  = strtoupper((string) (isset($args['dir']) ? $args['dir'] : '')) === 'ASC' ? 'ASC' : 'DESC';
+        $sortable = $this->sortable_cols($key);
+        if ($sort !== '' && isset($sortable[$sort])) {
+            $this->db->order_by($sort, $dir);
+        } else {
+            $sort = '';
+            foreach ($spec['order_by'] as $col => $d) $this->db->order_by($col, $d);
+        }
+
+        $rows = $this->db->limit($per, ($page - 1) * $per)->get()->result_array();
+
+        return array('rows' => $rows, 'total' => $total, 'page' => $page, 'pages' => $pages,
+                     'per' => $per, 'q' => $q, 'sort' => $sort, 'dir' => $dir);
+    }
+
+    /** الأعمدة التي يجوز الفرز بها — قائمة بيضاء من الوصف لا من الطلب. */
+    public function sortable_cols($key)
+    {
+        $spec = $this->spec($key);
+        if (!$spec) return array();
+        $out = array('id' => '#');
+        foreach ($spec['fields'] as $name => $f) {
+            if (empty($f['list'])) continue;
+            if (in_array($f['type'], array('file', 'multiref'), true)) continue;
+            $out[$name] = $f['label'];
+        }
+        return $out;
+    }
+
     public function count_rows($key)
     {
         $spec = $this->spec($key);
@@ -2582,7 +2671,25 @@ class Taqdar_admin_model extends CI_Model
      * الطالب افتراضا. واشتقاقه هنا بالقواعد نفسها لا باستدعائها لكل صف
      * — خمسمئة صف تعني خمسمئة استعلام.
      */
-    public function people($role = '', $q = '')
+    /**
+     * كل الحسابات، مرشحة بالدور ومبحوثا فيها ومرقمة.
+     *
+     * TQ-PEOPLE-CAP — كانت `LIMIT 400` وحدها بلا صفحة ثانية، وذيل
+     * الشاشة يعتذر: «تعرض أول ٤٠٠ حساب. استعمل البحث للوصول إلى ما
+     * بعدها». وهو محتمل ما دام في القاعدة أربعمئة حساب؛ ويصير عطلا
+     * تاما عند الألف: **كل حساب سجل قبل آخر أربعمئة لا يبلغ من اللوحة
+     * أصلا** إلا أن يعرف المسؤول اسمه أو بريده مسبقا — وهو لا يعرفه،
+     * لأن الشاشة هي التي يفتحها ليعرف. ولا خطأ يظهر: الجدول يعمل،
+     * والأرقام في التبويبات تقول ألفا، والقائمة تحته تعرض أربعمئة.
+     *
+     * والعد يستعلم مرة بالشروط نفسها: عدد يقدر أو يقرأ من `role_tally`
+     * يفترق عن المعروض متى بحث أحد.
+     *
+     * و`image` تنضم إلى الأعمدة: بناء رابط الصورة كان يستعلم
+     * (`User_model::get_user_image_url`) **صفا صفا** — خمسون استعلاما
+     * لشاشة واحدة، وهي في جدول يقرأ منه أصلا.
+     */
+    public function people($role = '', $q = '', $page = 1, $per = 50)
     {
         $where = array('1 = 1');
         $args  = array();
@@ -2599,15 +2706,25 @@ class Taqdar_admin_model extends CI_Model
             array_push($args, $like, $like, $like, $like);
         }
 
-        return $this->safe_rows(
+        $sql_where = implode(' AND ', $where);
+        $per   = max(1, (int) $per);
+        $total = (int) $this->safe_scalar('SELECT COUNT(*) n FROM `users` u WHERE ' . $sql_where, $args);
+        $pages = max(1, (int) ceil($total / $per));
+        $page  = min(max(1, (int) $page), $pages);
+
+        $rows = $this->safe_rows(
             'SELECT u.`id`, u.`first_name`, u.`last_name`, u.`email`, u.`phone`,
-                    u.`status`, u.`is_instructor`, u.`role_id`, u.`date_added`,
+                    u.`status`, u.`is_instructor`, u.`role_id`, u.`date_added`, u.`image`,
                     COALESCE(u.`tq_gate`, "student") tq_gate
                FROM `users` u
-              WHERE ' . implode(' AND ', $where) . '
-              ORDER BY u.`id` DESC LIMIT 400',
+              WHERE ' . $sql_where . '
+              ORDER BY u.`id` DESC
+              LIMIT ' . $per . ' OFFSET ' . (($page - 1) * $per),
             $args
         );
+
+        return array('rows' => $rows, 'total' => $total, 'page' => $page,
+                     'pages' => $pages, 'per' => $per);
     }
 
     public function role_tally()

@@ -115,16 +115,22 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
-        <nav class="tq-tabs tq-s-tabs" aria-label="<?php echo te('تصفية المواد بالنوع'); ?>">
-            <?php foreach ($tq_types as $key => $label): ?>
-                <?php $n = $key === '' ? count($tq_all) : ($tq_by_type[$key] ?? 0); ?>
-                <a class="tq-tab" href="<?php echo $tq_url(['type' => $key, 'page' => null]); ?>"
-                   <?php echo $f_type === $key ? 'aria-current="page"' : ''; ?>>
-                    <?php echo html_escape($label); ?>
-                    <span class="tq-tab__n"><?php echo TQ_LRI . (int) $n . TQ_PDI; ?></span>
-                </a>
-            <?php endforeach; ?>
-        </nav>
+        <?php /* TQ-FILTERBAR — المكون الواحد للوحات الثلاث. انظر
+                 `tq_filterbar()` في `taqdar_helper.php`: كانت هذه الحلقة
+                 مكتوبة ثماني مرات في ثماني شاشات، وكل نسخة افترقت عن
+                 أختها بـ`style` سطري أو بصنف زائد. */ ?>
+        <?php
+        $tq_bar = [];
+        foreach ($tq_types as $key => $label) {
+            $tq_bar[] = [
+                'url'    => $tq_url(['type' => $key, 'page' => null]),
+                'label'  => $label,
+                'count'  => $key === '' ? count($tq_all) : (int) ($tq_by_type[$key] ?? 0),
+                'active' => $f_type === $key,
+            ];
+        }
+        echo tq_filterbar($tq_bar, t('تصفية المواد بالنوع'));
+        ?>
 
         <?php if (empty($tq_all)): ?>
             <div class="tq-card">

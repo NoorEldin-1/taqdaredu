@@ -138,7 +138,7 @@ $tq_par_img = $tq_shot(isset($tq_cat['thumbnail']) ? $tq_cat['thumbnail'] : '');
                       data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                       data-tqa-confirm-tone="danger">
                     <?php echo tq_csrf(); ?>
-                    <button type="submit" class="tqa-btn tqa-btn--ghost" style="color:var(--tq-danger)">
+                    <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--quiet-danger">
                         <?php echo tq_icon('trash', 15); ?> <?php echo t('حذف الأيقونة'); ?>
                     </button>
                 </form>

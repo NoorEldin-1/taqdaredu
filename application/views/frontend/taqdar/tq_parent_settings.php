@@ -142,7 +142,7 @@ include 'portal_open.php';
                             <span class="tq-prefrow__hint tq-ltr" style="direction:ltr;text-align:start"><?php echo html_escape((string) $l['email']); ?></span>
                             <span class="tq-prefrow__hint">
                                 <?php if (!empty($l['consent_at']) && $l['status'] === 'active'): ?>
-                                    <?php echo t('وافق بتاريخ ____', TQ_LRI . html_escape((string) $l['consent_at']) . TQ_PDI); ?>
+                                    <?php echo t('وافق بتاريخ ____', tq_stamp($l['consent_at'])); ?>
                                 <?php elseif ($l['status'] === 'pending'): ?>
                                     <?php echo t('لا تاريخ موافقة بعد — لا يفتح شيء من بياناته'); ?>
                                 <?php elseif (!empty($l['prefs']['rejected']['at'])): ?>

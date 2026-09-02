@@ -110,6 +110,12 @@ $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_si
          عند أول تعديل. ويطبع في الرأس قبل كل سكربت، فما يقرؤه أولها
          يقرؤه آخرها. */ ?>
     <?php echo tq_i18n_js(); ?>
+<?php /* TQ-I18N — ومحرك القاموس بعده مباشرة، **بلا `defer`**.
+         القاموس أعلاه بيانات (`window.TQ_I18N`)، وهذا ما يحولها إلى
+         `TQ.t()` و`TQ.gateFetch()`. وكل سكربت سطري في قوالب البوابة
+         ينادي إحداهما وقت التحليل، فمؤجل في الذيل يصل بعد فوات الأوان.
+         وهو أربعة كيلوبايت لا يطلب شبكة ولا يمس DOM. */ ?>
+    <script src="<?php echo tq_asset('js/tq-i18n.js'); ?>"></script>
 </head>
 
 <body class="tq-body<?php echo $tq_is_portal ? ' tq-body--portal' : ''; ?><?php

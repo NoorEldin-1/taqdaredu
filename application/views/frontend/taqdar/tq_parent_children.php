@@ -106,13 +106,23 @@ include 'portal_open.php';
                             <?php echo tq_progress($tq_c['progress'], t('ما أنهاه ') . $tq_name . t(' من دروسه')); ?>
                         </div>
 
-                        <a class="tq-btn tq-btn--primary tq-btn--block"
+                        <?php /* TQ-CTA-CROWD — ثانوي لا ممتلئ.
+                                 قاعدة الـDS: «بيان أخضر واحد في الشاشة». وولي أمر له
+                                 خمسة أبناء كان يرى **خمسة أزرار خضراء ممتلئة** بعرض
+                                 بطاقاتها — والتوكيد الذي يعم يبطل: لا يبرز منها واحد،
+                                 ويضيع معها الأخضر حين يلزم فعلا (زر الدفع أدناه).
+                                 والبطاقة نفسها هي الوحدة التي تقرأ، والزر فيها مدخلها
+                                 لا نداء يستوقف. */ ?>
+                        <a class="tq-btn tq-btn--secondary tq-btn--block"
                            href="<?php echo base_url('parent/child'); ?>?id=<?php echo $tq_sid; ?>">
                             <?php echo t('تفاصيل'); ?> <?php echo html_escape(explode(' ', $tq_name)[0]); ?>
                         </a>
 
                         <p class="tq-micro" style="margin:var(--tq-space-m) 0 0">
-                            <?php echo t('ربط بموافقة ____ بتاريخ ____', array(html_escape(explode(' ', $tq_name)[0]), TQ_LRI . html_escape((string) $tq_c['consent_at']) . TQ_PDI)); ?>
+                            <?php /* TQ-STAMP-SEC — طابع القاعدة لا يعرض خاما: «2026-07-01
+                                     23:32:33» في بطاقة يقرؤها أب. و`tq_stamp()` تصوغه
+                                     بصيغة المنصة بلا ثوان. */ ?>
+                            <?php echo t('ربط بموافقة ____ بتاريخ ____', array(html_escape(explode(' ', $tq_name)[0]), tq_stamp($tq_c['consent_at']))); ?>
                         </p>
 
                         <form method="post" action="<?php echo base_url('parent/children/link'); ?>"

@@ -55,9 +55,20 @@
     });
     applyConditions();
 
-    /* ---- مربعات الاختيار المتعددة ---- */
+    /* ---- مربعات الاختيار المتعددة ----
+
+       TQ-PICKS-WALL — شبكة الحبات تعمل على اثني عشر صفا؛ وعلى أربعين
+       مادة تصير جدارا: لا ترتيب يمسك العين، ولا سبيل إلى الوصول إلى
+       «الفيزياء» إلا بالعين سطرا سطرا. فأضيف حقل يرشح.
+
+       والترشيح في المتصفح — خلافا لترشيح الكتالوج الذي في الخادم —
+       لأنه **لا يغير قيمة**: ما خفي يبقى محددا ويرسل مع النموذج. وهو
+       إخفاء عرض لا استبعاد بيانات. */
     Array.prototype.forEach.call(form.querySelectorAll('[data-tqa-picks]'), function (box) {
         var boxes = box.querySelectorAll('.tqa-pick input[type="checkbox"]');
+        var picks = Array.prototype.slice.call(box.querySelectorAll('.tqa-pick'));
+        var grid  = box.querySelector('.tqa-picks__grid');
+        var acts  = box.querySelector('.tqa-picks__acts');
         var count = box.querySelector('[data-tqa-picks-count]');
         var all   = box.querySelector('[data-tqa-picks-all]');
         var none  = box.querySelector('[data-tqa-picks-none]');
@@ -65,12 +76,21 @@
         function tally() {
             var n = 0;
             Array.prototype.forEach.call(boxes, function (b) { if (b.checked) n++; });
-            if (count) count.textContent = n ? ('المحدد ' + n) : 'لم يحدد شيء';
+            if (count) count.textContent = n
+                ? <?php echo json_encode(t('المحدد ')); ?> + n
+                : <?php echo json_encode(t('لم يحدد شيء')); ?>;
             box.dispatchEvent(new CustomEvent('tqa:picks', { bubbles: true }));
         }
 
+        /* «حدد الكل» و«امسح» على **المعروض** لا على الكل: من رشح بكلمة
+           ثم ضغط «حدد الكل» يقصد ما أمامه، وتحديد الأربعين كلها بعده
+           مفاجأة تحفظ. وبلا ترشيح المعروض هو الكل، فلا شيء يتغير. */
         function setAll(on) {
-            Array.prototype.forEach.call(boxes, function (b) { b.checked = on; });
+            picks.forEach(function (p) {
+                if (p.hidden) return;
+                var b = p.querySelector('input[type="checkbox"]');
+                if (b) b.checked = on;
+            });
             tally();
         }
 
@@ -78,6 +98,50 @@
         if (none) none.addEventListener('click', function () { setAll(false); });
         box.addEventListener('change', tally);
         tally();
+
+        /* حقل الترشيح يظهر حيث يلزم وحده: عشرة خيارات لا تبحث، وحقل
+           فوقها يوحي بقائمة أطول مما ترى. */
+        if (!acts || !grid || picks.length < 12) return;
+
+        var wrap = document.createElement('span');
+        wrap.className = 'tqa-search tqa-picks__search';
+        wrap.innerHTML =
+            '<span class="tqa-search__ic" aria-hidden="true">' +
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+            ' stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/>' +
+            '<path d="m16 16 4.5 4.5"/></svg></span>';
+
+        var q = document.createElement('input');
+        q.type = 'search';
+        q.className = 'tqa-input tqa-input--sm';
+        /* بلا `name`: حقل يرسل هنا يصل إلى `save()` معاملا لا عمود له. */
+        q.placeholder = <?php echo json_encode(t('رشح القائمة…')); ?>;
+        q.setAttribute('aria-label', q.placeholder);
+        wrap.appendChild(q);
+        acts.insertBefore(wrap, acts.firstChild);
+
+        var empty = document.createElement('p');
+        empty.className = 'tqa-picks__none';
+        empty.hidden = true;
+        empty.textContent = <?php echo json_encode(t('لا اسم يطابق ما كتبت.')); ?>;
+        grid.appendChild(empty);
+
+        q.addEventListener('input', function () {
+            var s = q.value.trim().toLowerCase();
+            var seen = 0;
+            picks.forEach(function (p) {
+                var hit = !s || (p.textContent || '').toLowerCase().indexOf(s) !== -1;
+                p.hidden = !hit;
+                if (hit) seen++;
+            });
+            empty.hidden = seen > 0;
+        });
+
+        /* Enter في حقل الترشيح لا يرسل النموذج: من رشح ثم ضغط Enter
+           ليؤكد ترشيحه كان يحفظ الباقة نصف محررة. */
+        q.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') e.preventDefault();
+        });
     });
 
     /* ---- النسبة ومتممها ----

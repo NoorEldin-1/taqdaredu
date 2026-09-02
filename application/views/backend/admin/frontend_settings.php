@@ -292,8 +292,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
                     </div>
 
                     <div class="tqa-actions" style="margin-block-start:var(--tq-space-m)">
-                        <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                style="color:var(--tq-danger)" data-tqa-faq-remove>
+                        <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--quiet-danger" data-tqa-faq-remove>
                             <?php echo tq_icon('trash', 14); ?> <?php echo t('احذف هذا السؤال'); ?>
                         </button>
                     </div>
@@ -517,8 +516,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
                                           data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                           data-tqa-confirm-tone="danger">
                                         <?php echo tq_csrf(); ?>
-                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                                style="color:var(--tq-danger)">
+                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--quiet-danger">
                                             <?php echo tq_icon('trash', 14); ?>
                                             <span class="tqa-sr"><?php echo t('حذف'); ?></span>
                                         </button>

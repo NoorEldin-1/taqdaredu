@@ -415,8 +415,7 @@ if ($tq_gaps): ?>
                         <div data-tqa-rep-item class="tqa-row" style="flex-wrap:nowrap;margin-block-end:var(--tq-space-s)">
                             <input class="tqa-input" type="text" name="requirements[]"
                                    value="<?php echo html_escape($tq_r); ?>">
-                            <button type="button" class="tqa-btn tqa-btn--ghost" data-tqa-rep-remove
-                                    style="color:var(--tq-danger)" aria-label="<?php echo te('احذف هذا المتطلب'); ?>">
+                            <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--quiet-danger" data-tqa-rep-remove aria-label="<?php echo te('احذف هذا المتطلب'); ?>">
                                 <?php echo tq_icon('trash', 15); ?>
                             </button>
                         </div>
@@ -434,8 +433,7 @@ if ($tq_gaps): ?>
                         <div data-tqa-rep-item class="tqa-row" style="flex-wrap:nowrap;margin-block-end:var(--tq-space-s)">
                             <input class="tqa-input" type="text" name="outcomes[]"
                                    value="<?php echo html_escape($tq_o); ?>">
-                            <button type="button" class="tqa-btn tqa-btn--ghost" data-tqa-rep-remove
-                                    style="color:var(--tq-danger)" aria-label="<?php echo te('احذف هذا المخرج'); ?>">
+                            <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--quiet-danger" data-tqa-rep-remove aria-label="<?php echo te('احذف هذا المخرج'); ?>">
                                 <?php echo tq_icon('trash', 15); ?>
                             </button>
                         </div>
@@ -458,8 +456,7 @@ if ($tq_gaps): ?>
                             <textarea class="tqa-textarea" name="faq_descriptions[]" rows="2" placeholder="<?php echo te('الإجابة'); ?>"
                                       style="min-block-size:70px"><?php echo html_escape($tq_f['description'] ?? ''); ?></textarea>
                             <div class="tqa-actions" style="margin-block-start:var(--tq-space-s)">
-                                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-remove
-                                        style="color:var(--tq-danger)">
+                                <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--quiet-danger" data-tqa-rep-remove>
                                     <?php echo tq_icon('trash', 14); ?> <?php echo t('احذف هذا السؤال'); ?>
                                 </button>
                             </div>

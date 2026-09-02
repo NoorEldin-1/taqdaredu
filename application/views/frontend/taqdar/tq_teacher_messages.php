@@ -241,18 +241,19 @@ include 'tq_chat_styles.php';
         <section class="tq-convlist" aria-labelledby="tq-conv-h">
             <h2 class="tq-sr" id="tq-conv-h"><?php echo t('قائمة المحادثات'); ?></h2>
 
-            <nav class="tq-tabs" aria-label="<?php echo te('تصفية المحادثات'); ?>" style="margin-block-end:0;gap:var(--tq-space-l)">
-                <?php foreach ($tq_filters as $key => $label): ?>
-                    <a class="tq-tab"
-                       href="<?php echo base_url('teacher/messages') . ($key === 'all' ? '' : '?filter=' . $key); ?>"
-                       <?php echo tq_active($key, $tq_filter); ?>>
-                        <?php echo html_escape($label); ?>
-                        <?php if ($key === 'unread' && $tq_unread_total > 0): ?>
-                            <span class="tq-conv__count"><?php echo TQ_LRI . $tq_unread_total . TQ_PDI; ?></span>
-                        <?php endif; ?>
-                    </a>
-                <?php endforeach; ?>
-            </nav>
+            <?php /* TQ-FILTERBAR — المكون الواحد. انظر `tq_filterbar()`. */ ?>
+            <?php
+            $tq_bar = [];
+            foreach ($tq_filters as $key => $label) {
+                $tq_bar[] = [
+                    'url'    => base_url('teacher/messages') . ($key === 'all' ? '' : '?filter=' . $key),
+                    'label'  => $label,
+                    'count'  => ($key === 'unread' && $tq_unread_total > 0) ? (int) $tq_unread_total : null,
+                    'active' => $tq_filter === $key,
+                ];
+            }
+            echo tq_filterbar($tq_bar, t('تصفية المحادثات'));
+            ?>
 
             <form class="tq-convsearch" role="search" method="get" action="<?php echo base_url('teacher/messages'); ?>">
                 <label class="tq-sr" for="tq-conv-q"><?php echo t('ابحث في المحادثات'); ?></label>

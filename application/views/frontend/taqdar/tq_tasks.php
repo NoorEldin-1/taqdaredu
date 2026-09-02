@@ -80,19 +80,21 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
-        <nav class="tq-tabs tq-s-tabs" aria-label="<?php echo te('تصفية المهام بالحالة'); ?>">
-            <?php
-            $tabs = ['' => [t('الكل'), $tq_total]];
-            foreach ($tq_groups as $k => $g) $tabs[$k] = [$g['label'], count($g['items'])];
-            foreach ($tabs as $key => $t):
-                $href = base_url('student/tasks') . ($key !== '' ? '?state=' . $key : '');
-                ?>
-                <a class="tq-tab" href="<?php echo $href; ?>" <?php echo $f_state === $key ? 'aria-current="page"' : ''; ?>>
-                    <?php echo html_escape($t[0]); ?>
-                    <span class="tq-tab__n"><?php echo TQ_LRI . (int) $t[1] . TQ_PDI; ?></span>
-                </a>
-            <?php endforeach; ?>
-        </nav>
+        <?php /* TQ-FILTERBAR — المكون الواحد. انظر `tq_filterbar()`. */ ?>
+        <?php
+        $tabs = ['' => [t('الكل'), $tq_total]];
+        foreach ($tq_groups as $k => $g) $tabs[$k] = [$g['label'], count($g['items'])];
+        $tq_bar = [];
+        foreach ($tabs as $key => $t) {
+            $tq_bar[] = [
+                'url'    => base_url('student/tasks') . ($key !== '' ? '?state=' . $key : ''),
+                'label'  => $t[0],
+                'count'  => (int) $t[1],
+                'active' => $f_state === $key,
+            ];
+        }
+        echo tq_filterbar($tq_bar, t('تصفية المهام بالحالة'));
+        ?>
 
         <?php if ($tq_total === 0): ?>
             <div class="tq-card">

@@ -1,0 +1,763 @@
+/* ==========================================================================
+   TQ-PORTAL-UI — طبقة ترقية بوابات الطالب والمعلم وولي الأمر
+
+   ═══ لماذا ملف مستقل ═══
+
+   `ds.css` طبقة **الرموز والأوليات** المشتركة بين اللوحة والبوابات: لون
+   وحد وارتفاع حقل وزر. وفوقها في اللوحة `admin.css §٩` و`§١٠` — طبقة
+   **المكونات**: الجدول والنموذج وقائمة الصف والشريط الممرر. وللبوابات
+   لم يكن لها نظير: `components.css` كتبت مع أول شاشة ولم تعد تقرأ بعد
+   أن صارت الشاشات ست وأربعين.
+
+   وهذا الملف هو ذلك النظير. يحمل **بعد** `shared.css` — آخر ورقة في
+   السلسلة — فيتجاوزها، وكل قاعدة فيه مقيدة بـ`body.tq-body--portal`،
+   والصنف لا يوضع إلا على صفحة بوابة (`frontend/taqdar/index.php`). فلا
+   يمس الموقع العام سطر واحد، وحذف سطر تحميله يعيد البوابات إلى ما كانت.
+
+   ═══ القاعدة الحاكمة ═══
+
+   **كل كتلة هنا تصلح عطبا قيس، لا ذوقا.** ما لم يظهر في لقطة أو قياس
+   لا يكتب هنا — طبقة تجاوز تكتب بالذوق تصير طبقة ثانية تختلف مع أختها
+   ولا يعرف أحد أيهما الصحيحة.
+   ========================================================================== */
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ١ · TQ-GRID-LIMP — الصف الذي فيه عنصر واحد لا يعرج
+
+   `.tq-s-grid3` كانت `repeat(3, minmax(0, 1fr))` — ثلاثة أعمدة **ثابتة**.
+   ولطالب له كورس واحد يعني ذلك بطاقة عرضها ٢٦٠px وفراغا عرضه ٥٤٠ إلى
+   جوارها، ثم تسعمئة بكسل بيضاء تحتها. قيس على `/student/courses`: العمود
+   ٨٠٠، والمشغول منه الثلث. وهي حال **كل طالب جديد** — أي أن أول شاشة
+   يراها من اشترك أمس هي أسوأ صورة للشبكة.
+
+   والعلاج ليس `auto-fit, minmax(240px, 1fr)` وحده: بعنصر واحد يصير
+   المسار ٨٠٠px، وغلاف ١٦:٩ فيه يرتفع إلى ٤٥٠ — لافتة لا بطاقة. فالمسار
+   يحد من طرفيه: أدناه يقرر كم عمودا، وأقصاه يمنع البطاقة الوحيدة أن
+   تتمدد. والفائض يذهب إلى `justify-content: start` فتبقى البطاقة عند
+   حافة القراءة لا في وسط فراغ.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-s-grid3 {
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 360px));
+  justify-content: start;
+}
+body.tq-body--portal .tq-s-grid4 {
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 300px));
+  justify-content: start;
+}
+body.tq-body--portal .tq-s-grid5 {
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 240px));
+  justify-content: start;
+}
+/* ومكتبة الكتب: `auto-fill` تولد مسارات فارغة لا يطويها شيء — وهي
+   الصورة نفسها بوجه آخر: ثلاثة كتب في صف يتسع لخمسة تترك مسارين
+   محجوزين، فتبدو الشبكة مقطوعة لا منتهية. */
+body.tq-body--portal .tq-lib-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 260px));
+  justify-content: start;
+}
+
+/* دون ٦٤٠ عمود واحد: السقف يمنع التمدد، وعلى الجوال المطلوب عكسه. */
+@media (max-width: 639.98px) {
+  body.tq-body--portal .tq-s-grid3,
+  body.tq-body--portal .tq-s-grid4,
+  body.tq-body--portal .tq-s-grid5,
+  body.tq-body--portal .tq-lib-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+
+/* TQ-LONE-CARD — والبطاقة الوحيدة تستدير أفقيا، فلا تقف تائهة.
+   السقف أعلاه يمنعها أن تصير لافتة، لكنه لا يملأ الأربعمئة بكسل التي
+   بجوارها. والبطاقة الرأسية شكل يخدم **الصف**: غلاف فوق ونص تحته
+   ليصطف مع جيرانه. وبلا جيران يبطل سببه، ويبقى ضرره — عمود ضيق في
+   فضاء عريض. فبعنصر واحد يصير التخطيط أفقيا: غلاف أكبر إلى جانب
+   نصه، والعرض كله مشغول.
+
+   ولا يحتاج القالب سطرا: الغلاف أول ابن في البطاقة دائما (وهو رابط
+   يلفه)، فيوضع في العمود الأول ممتدا، ويدفع ما سواه إلى الثاني.
+   والشرط `:only-child` لا يصدق إلا على الواحد بعينه. */
+@media (min-width: 900px) {
+  body.tq-body--portal .tq-s-grid3:has(> .tq-s-course:only-child),
+  body.tq-body--portal .tq-s-grid4:has(> .tq-s-course:only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* والتخطيط عائم لا شبكي — وهذا موضع تعلم:
+     `grid-row: 1 / span 99` تبدو الحيلة الظاهرة لتمديد الغلاف على كل
+     صفوف النص، وهي **تنشئ تسعة وتسعين صفا فعلا**. الصفوف الفارغة لا
+     ترى، لكن `row-gap` بينها يرى: ثمانية بكسلات في ثمانية وتسعين فاصلا
+     = ٧٨٤ بكسلا من الفراغ داخل البطاقة، قيست على `/student`.
+     و`1 / -1` لا تصلح بديلا: `-1` تشير إلى آخر خط في الشبكة **الصريحة**،
+     ولا صفوف صريحة هنا، فتنهار إلى الصف الأول.
+     والعائم يفعلها بلا صفوف أصلا: يخرج من التدفق فيلتف النص حوله، و
+     `flow-root` على البطاقة تحتويه فلا ينزف خارجها. */
+  body.tq-body--portal .tq-s-course:only-child {
+    display: flow-root;
+  }
+  body.tq-body--portal .tq-s-course:only-child > a:first-child {
+    display: block;
+    inline-size: min(320px, 38%);
+    margin-block-end: var(--tq-space-m);
+    /* الفجوة على الجهة التي **يقف النص فيها**، وهي `inline-end` في
+       الاتجاهين معا: العائم يمنة في RTL فالنص يساره، ويسرة في LTR
+       فالنص يمينه. و`inline-start` تضعها خلف العائم عند حافة البطاقة
+       حيث لا يراها أحد، ويلتصق النص بالغلاف. */
+    margin-inline-end: var(--tq-space-xxl);
+  }
+  [dir='rtl'] body.tq-body--portal .tq-s-course:only-child > a:first-child { float: right; }
+  [dir='ltr'] body.tq-body--portal .tq-s-course:only-child > a:first-child { float: left; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٢ · TQ-CARD-RAGGED — بطاقات الصف الواحد تنتهي على خط واحد
+
+   عنوان يلف على سطرين يطيل بطاقته وحدها، فتقف أزرار الصف على أربعة
+   مستويات — والعين تقرأ ذلك اضطرابا قبل أن تقرأ محتوى. والشبكة تمدد
+   الصندوق أصلا (`align-items: stretch`)، لكن ما بداخله لا يعرف ذلك:
+   البطاقة كتلة عادية فيتكدس محتواها إلى أعلى ويبقى الفراغ أسفلها.
+
+   فالبطاقة داخل شبكة عمود مرن، وآخر عنصر فيها — صف الأزرار — يدفع
+   نفسه إلى القاع. ولا يطبق على البطاقة المفردة: تمديد بطاقة وحدها
+   إلى ارتفاع لا يملؤه شيء يفتح فجوة تحت محتواها.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-s-grid3 > .tq-card:not(:only-child),
+body.tq-body--portal .tq-s-grid4 > .tq-card:not(:only-child),
+body.tq-body--portal .tq-s-grid5 > .tq-card:not(:only-child),
+body.tq-body--portal .tq-s-grid3 > article:not(:only-child),
+body.tq-body--portal .tq-s-grid4 > article:not(:only-child) {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+}
+/* آخر صف أزرار في البطاقة ينزل إلى القاع. و`:last-child` وحده لا يكفي:
+   البطاقة قد تنتهي بسطر وصف، فيوسم الصف بـ`.tq-row` وهو ما تكتبه
+   الشاشات فعلا. */
+body.tq-body--portal .tq-s-grid3 > .tq-card > .tq-row:last-child,
+body.tq-body--portal .tq-s-grid4 > .tq-card > .tq-row:last-child,
+body.tq-body--portal .tq-s-grid3 > article > .tq-row:last-child,
+body.tq-body--portal .tq-s-grid4 > article > .tq-row:last-child {
+  margin-block-start: auto;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٣ · TQ-NUM-WRAP — المبلغ والتاريخ لا ينكسران سطرين
+
+   قيس على `/teacher/wallet`: ثمانية أعمدة في جدول كشف الحساب، ستة
+   منها أرقام — و**كل خلية مبلغ مكتوبة على سطرين**: «120» ثم «ريال»
+   تحتها. والتاريخ أسوأ: «2026-» ثم «08-07». فالعمود الذي وضع ليقارن
+   رأسيا صار سلما، ومن يمسح الكشف بعينه ليجمع لا يستطيع.
+
+   والسبب أن `.tq-money` تجمع رقما لاتينيا بكلمة عربية، والمتصفح يرى
+   بينهما فرصة كسر مشروعة. وهي مشروعة في جملة، لا في خلية جدول عرضها
+   ٧٠px قررها المتصفح لأن المحتوى «يقبل الكسر».
+
+   والأرقام الجدولية تلزم معها: خانات متساوية العرض تجعل ١٢٠ و٩٦ تصطفان
+   تحت بعضهما مهما اختلفت خانتاهما.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-money,
+body.tq-body--portal .tq-num,
+body.tq-body--portal .tq-progress__value,
+body.tq-body--portal .tq-s-stat__value {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* خلايا الجدول التي تحمل رقما أو مبلغا أو تاريخا: عمود لا يكسر، وعرضه
+   عرض محتواه لا سدس الجدول. و`.tq-money` قد تسكن خلية بلا صنف، فالقاعدة
+   على الخلية التي **تحتويها** — وهي التي يقررها المتصفح. */
+body.tq-body--portal .tq-table td:has(.tq-money),
+body.tq-body--portal .tq-table td:has(> .tq-num),
+body.tq-body--portal .tq-table td.tq-td--num,
+body.tq-body--portal .tq-table th.tq-td--num {
+  white-space: nowrap;
+  inline-size: 1%;
+  font-variant-numeric: tabular-nums;
+}
+/* والتاريخ ISO: تتابع لاتيني بشرطتين، والمتصفح يكسر عند الشرطة. */
+body.tq-body--portal .tq-table td.tq-td--date,
+body.tq-body--portal .tq-table th.tq-td--date { white-space: nowrap; inline-size: 1%; }
+
+/* الشارة داخل خلية لا تكسر كلمتها: «معلق · يتحرر مع أول تحديث» كانت
+   تفرد نفسها على ثلاثة أسطر فترفع الصف كله. */
+body.tq-body--portal .tq-table .tq-badge { white-space: nowrap; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٤ · TQ-STAT-BREAK — بطاقة الرقم: القيمة الطويلة تصغر ولا تلتف
+
+   `.tq-s-stat__value` تأخذ `numeralXl` — ٣٤ بكسلا. وهو مقاس صحيح لـ«36»
+   و«67%»، وخاطئ لـ«6 س 20 د»: تسعة محارف في خلية عرضها ١٥٥px داخل شبكة
+   `2×2` في عمود جانبي عرضه ٣٣٠. فينكسر السطر عند آخر وحدة وتقرأ البطاقة
+   «٦ س ٢٠» ثم «د» وحدها تحتها — رقم بلا وحدته ووحدة بلا رقمها.
+
+   والقياس بالحاوية لا بالشاشة: البطاقة نفسها تعيش في شبكة `2×2` مرة
+   وفي شريط أربعة مرة وفي عمود كامل مرة — والشاشة واحدة في الثلاث،
+   فاستعلام الوسائط لا يفرق بينها. و`cqi` تقرأ عرض البطاقة نفسها.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-s-stat { container-type: inline-size; }
+body.tq-body--portal .tq-s-stat__value {
+  font-size: clamp(22px, 17cqi, 34px);
+  line-height: 1.15;
+}
+
+/* والأدق من التصغير أن تفصل الوحدة عن الرقم: «٦» بحجمه و«س» أصغر
+   بجواره — فالبطاقة تقرأ ساعة ودقيقة كما يقرأ الميقات، والعرض ينقص
+   الثلث بلا أن ينقص الرقم شيئا. */
+body.tq-body--portal .tq-unit {
+  font: var(--tq-type-caption);
+  font-weight: 700;
+  color: var(--tq-text2);
+  margin-inline: 2px 6px;
+}
+body.tq-body--portal .tq-unit:last-child { margin-inline-end: 0; }
+
+
+/* TQ-BIG-DASH — والقيمة الغائبة تقال بحجمها لا بحجم الرقم.
+   الشاشات تكتب `<span class="tq-muted">—</span>` مكان الرقم الذي لا
+   مصدر له، وهو صواب: شرطة أصدق من رقم يخترع. لكنها ترث حجم أختها —
+   ٣٤ بكسلا — فتخرج **شرطة أعرض من الرقم الذي كانت ستحل محله**، وتقرأ
+   من مسافة خطا فاصلا لا قيمة غائبة. قيس على `/student` («سلسلة الأيام»)
+   و`/teacher/analytics`. والحجم هنا هو الرسالة: القيمة غائبة، فلا
+   تأخذ من العين قدر الحاضرة. */
+body.tq-body--portal .tq-s-stat__value .tq-muted,
+body.tq-body--portal .tq-stat__value .tq-muted {
+  font: var(--tq-type-h2);
+  color: var(--tq-text3);
+  opacity: .7;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٥ · TQ-PASTEL-NOISE — لون الحالة يقول حالة، ولا يزين شريط أرقام
+
+   الـDS يقول: «بيان أخضر واحد في الشاشة» و«لا لون هوية ثان». وشريط
+   الأرقام في `/student` و`/student/exams` و`/teacher` يخالفهما بأربع
+   بطاقات بأربعة أسطح: أزرق ثم برتقالي ثم بنفسجي ثم أخضر — بلا أن يعني
+   واحد منها شيئا. فأربعة ألوان تتنافس على العين ولا يفوز أحدها، ويضيع
+   معها اللون الذي **يعني** فعلا: البرتقالي الذي يقول «انتبه».
+
+   فالباستيل المحايد (`sky` · `lilac` · `sand`) داخل بطاقة رقم يعود إلى
+   سطح الأرضية، ويبقى الثلاثة التي تحمل معنى: `mint` نجاح، و`peach`
+   انتباه، و`rose` خطر. والقاعدة على **بطاقة الرقم وحدها**: أغلفة
+   الكتب والدروس تستعمل الباستيل نفسه للتمييز بين عنصر وعنصر، وهو
+   استعمال مقصود لا ضوضاء.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-s-stat.tq-pastel--sky,
+body.tq-body--portal .tq-s-stat.tq-pastel--lilac,
+body.tq-body--portal .tq-s-stat.tq-pastel--sand {
+  background: var(--tq-ground);
+  color: var(--tq-text);
+}
+body.tq-body--portal .tq-s-stat.tq-pastel--sky .tq-pastel__title,
+body.tq-body--portal .tq-s-stat.tq-pastel--lilac .tq-pastel__title,
+body.tq-body--portal .tq-s-stat.tq-pastel--sand .tq-pastel__title { color: var(--tq-navy); }
+body.tq-body--portal .tq-s-stat.tq-pastel--sky .tq-pastel__body,
+body.tq-body--portal .tq-s-stat.tq-pastel--lilac .tq-pastel__body,
+body.tq-body--portal .tq-s-stat.tq-pastel--sand .tq-pastel__body { color: var(--tq-text2); }
+body.tq-body--portal .tq-s-stat.tq-pastel--sky .tq-s-stat__icon,
+body.tq-body--portal .tq-s-stat.tq-pastel--lilac .tq-s-stat__icon,
+body.tq-body--portal .tq-s-stat.tq-pastel--sand .tq-s-stat__icon { color: var(--tq-text3); }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٦ · TQ-EMPTY-LOUD — الفراغ في العمود الجانبي يقال همسا
+
+   قيس على `/student/tasks`: ثلاثة ألواح في العمود الجانبي، كل واحد
+   منها حالة فارغة بأيقونة قطرها ٦٤ وعنوان بوزن `h2` وفقرة من سطرين.
+   ومجموعها أطول من العمود الرئيسي وأثقل عليه بصريا — فالشاشة تعلن
+   ثلاث مرات أن لا شيء فيها، بحجم أكبر مما تعلن به أن فيها شيئا.
+
+   والحالة الفارغة في **العمود الرئيسي** تبقى كما هي: هناك هي الجواب،
+   وتحمل الزر الذي يخرج منها. وفي الجانبي هي حاشية.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-aside .tq-empty {
+  padding: var(--tq-space-l) var(--tq-space-m);
+  gap: var(--tq-space-s);
+}
+body.tq-body--portal .tq-aside .tq-empty__art {
+  inline-size: 40px;
+  block-size: 40px;
+  opacity: .55;
+}
+body.tq-body--portal .tq-aside .tq-empty__title {
+  font: var(--tq-type-bodyStrong);
+  color: var(--tq-text);
+}
+body.tq-body--portal .tq-aside .tq-empty__text { font: var(--tq-type-caption); }
+
+/* واللوح الجانبي الذي كل محتواه فراغ يخف حده كذلك: بطاقة بيضاء بحد
+   كامل تعد بمحتوى، ثم لا تعطيه. */
+body.tq-body--portal .tq-aside .tq-card--panel:has(> .tq-empty:only-child),
+body.tq-body--portal .tq-aside .tq-card--panel:has(> .tq-card__head + .tq-empty:last-child) {
+  background: transparent;
+  box-shadow: none;
+  border: 1px dashed var(--tq-line);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٧ · TQ-SCROLL-BLIND — الجدول العريض يمرر أفقيا ولا شيء يقول ذلك
+
+   قاعدة اللوحة نفسها (`admin.css §٩٫١`) وللسبب نفسه: `overflow-x: auto`
+   يخفي عمودا كاملا ولا يرسم شريطا على ويندوز حتى تلمس اللوحة. فمن فتح
+   كشف حسابه على شاشة ضيقة رأى ستة أعمدة من ثمانية وظن أن ذلك كل شيء.
+
+   والتدرج على الحافة يقول «تحتها المزيد»: يظهر بالتمرير ويختفي عند
+   نهايته، ولا يحجب نصا — عرضه ٢٤px وشفافيته تنتهي قبل الحرف.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-table-wrap {
+  position: relative;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tq-line) transparent;
+}
+body.tq-body--portal .tq-table-wrap::-webkit-scrollbar { block-size: 10px; }
+body.tq-body--portal .tq-table-wrap::-webkit-scrollbar-track { background: transparent; }
+body.tq-body--portal .tq-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--tq-line);
+  border-radius: var(--tq-radius-pill);
+}
+body.tq-body--portal .tq-table-wrap::-webkit-scrollbar-thumb:hover { background: var(--tq-text3); }
+
+/* رأس الجدول يثقل درجة: هو الوحيد الذي يقرأ مرة ثم يرجع إليه البصر
+   عند كل صف — وحبر `text2` على أرضية بيضاء يجعله يقرأ حاشية. */
+body.tq-body--portal .tq-table thead th {
+  background: var(--tq-ground);
+  color: var(--tq-navy);
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+}
+body.tq-body--portal .tq-table thead th:first-child {
+  border-start-start-radius: var(--tq-radius-small);
+}
+body.tq-body--portal .tq-table thead th:last-child {
+  border-start-end-radius: var(--tq-radius-small);
+}
+/* الصف تحت المؤشر يعلن نفسه بشريط على طرفه لا بلون وحده: اللون وحده
+   يضيع على من لا يفرقه، والشريط يقرأ بالشكل. */
+body.tq-body--portal .tq-table tbody tr { position: relative; }
+body.tq-body--portal .tq-table tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 0 var(--tq-teal);
+}
+[dir='rtl'] body.tq-body--portal .tq-table tbody tr:hover td:first-child {
+  box-shadow: inset -3px 0 0 0 var(--tq-teal);
+}
+/* آخر صف بلا حد: الحد الأخير يرسم خطا معلقا تحت الجدول. */
+body.tq-body--portal .tq-table tbody tr:last-child td { border-block-end: 0; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٨ · TQ-CHAT-STUB — شاشة المحادثة تملأ ما أعطيت
+
+   قيس على `/student/messages`: صندوق المحادثة ينتهي عند ١٢٥٠ من صفحة
+   طولها ١٦٥٠، وتحته أربعمئة بكسل بيضاء. وهو ينمو بعدد الرسائل لا بحجم
+   الشاشة — فمحادثة فيها ست رسائل تترك ثلث الشاشة فارغا، ومحادثة فيها
+   ستون تدفع حقل الكتابة تحت الطية فيبحث عنه صاحبه بالتمرير.
+
+   وشاشة المحادثة في كل منتج تعرف هذا: العمود يأخذ ارتفاع الشاشة،
+   والرسائل تمرر **داخله**، وحقل الكتابة ثابت في قاعه. فلا يبحث أحد
+   عن موضع الكتابة ولا يبقى ثلث الشاشة أبيض.
+   ══════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  body.tq-body--portal .tq-thread {
+    display: flex;
+    flex-direction: column;
+    block-size: clamp(420px, calc(100dvh - 210px), 760px);
+    /* `tq_chat_styles.php` تفرض `min-block-size: 640px`، وهي تغلب
+       الارتفاع المحسوب على شاشة قصيرة (لابتوب ٧٦٨) فيعود حقل الكتابة
+       تحت الطية — وهو العطل الذي أصلح. والحد الأدنى في `clamp` أعلاه. */
+    min-block-size: 0;
+  }
+  body.tq-body--portal .tq-thread__body {
+    flex: 1;
+    min-block-size: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--tq-line) transparent;
+  }
+  body.tq-body--portal .tq-thread__foot { flex: none; }
+  /* وقائمة المحادثات تمرر مع أخيها لا مع الصفحة: قائمة تطول بعشرين
+     محادثة تدفع عمود المحادثة كله لأسفل. */
+  body.tq-body--portal .tq-convlist {
+    max-block-size: clamp(320px, calc(100dvh - 330px), 620px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+
+/* TQ-BUBBLE-FLAT — فقاعتا الطرفين يفرق بينهما.
+   كانت رسالتي رمادية باهتة (`#EEF1F3`) ورسالة معلمي بيضاء بحد — والفرق
+   بينهما في اللقطة **درجة واحدة من الرمادي**. ومن يمسح محادثة فيها
+   ثلاثون رسالة لا يعرف أيها قال ولا أيها قيل له إلا بقراءة كل واحدة.
+   والفرق يجب أن يقرأ من مسافة ذراع: لون الهوية لما أرسلت، وسطح أبيض
+   لما ورد — وهو اصطلاح كل شاشة محادثة، ومخالفته لا تكسب شيئا. */
+body.tq-body--portal .tq-bubble--me {
+  background: var(--tq-tealSoft);
+  border: 1px solid color-mix(in srgb, var(--tq-teal) 22%, transparent);
+  color: var(--tq-text);
+}
+body.tq-body--portal .tq-bubble--me .tq-bubble__meta,
+body.tq-body--portal .tq-bubble--me .tq-bubble__time { color: var(--tq-navySoft); }
+body.tq-body--portal .tq-bubble--them {
+  background: var(--tq-surface);
+  border: 1px solid var(--tq-line);
+}
+
+/* الأڤاتار الافتراضي: صورة رمادية واحدة لكل الناس تجعل قائمة المحادثات
+   خمسة صفوف متطابقة. والحرف الأول بلون مشتق يميز بلا أن يخترع وجها. */
+body.tq-body--portal .tq-avatar[data-tq-initial]::after {
+  content: attr(data-tq-initial);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--tq-tealSoft);
+  color: var(--tq-navy);
+  font: var(--tq-type-bodyStrong);
+}
+body.tq-body--portal .tq-avatar { position: relative; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ٩ · TQ-TAB-ZERO — التبويب الفارغ يقول إنه فارغ، ولا يختفي
+
+   قيس على `/student/tasks` و`/student/materials`: شريط بسبعة تبويبات
+   عداداتها كلها صفر. وهي دعوة إلى سبع نقرات لا يرد عليها شيء.
+
+   ولا تخفى: شريط يتغير عدد بنوده بحسب البيانات يجعل الطالب يبحث عن
+   تبويب رآه أمس فلا يجده، ويظن أن الميزة نزعت. فيبقى ويقال عنه إنه
+   فارغ: حبر أخف، وعداد باهت، ونقر لا يزال يعمل — فمن أراد أن يتأكد
+   بنفسه يتأكد.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-tab[data-count='0']:not([aria-selected='true']):not(.is-active) {
+  opacity: .5;
+}
+body.tq-body--portal .tq-tab[data-count='0'] .tq-pill,
+body.tq-body--portal .tq-tab[data-count='0'] .tq-badge { opacity: .7; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ١٠ · TQ-COVER-BLANK — غلاف الكتاب يحمل اسمه
+
+   قيس على `/student/library`: الغلاف مستطيل بنسبة ٥:٧ — أي ٢٢٠×٣٠٨ —
+   وفيه أيقونة كتاب قطرها ٢٤. أي أن **٩٩٪ من الغلاف فراغ ملون**، وثمانية
+   كتب تعرض ثمانية مستطيلات لا يفرق بينها إلا درجة اللون. فمن يبحث عن
+   كتاب بعينه يقرأ ثمانية عناوين من سطرين تحتها، والغلاف — وهو أكبر ما
+   في البطاقة — لا يعينه بشيء.
+
+   وغلاف الكتاب الورقي يحمل اسم المادة والصف بخط كبير، وله كعب. فالمولد
+   هنا يفعل ذلك: كعب على حافة القراءة، واسم المادة بخط الغلاف، والصف
+   تحته. فالتمييز يقع من مسافة، بلا صورة ترفع ولا ملف يخزن.
+
+   والقاعدة على الغلاف الخالي وحده (`:not(:has(img))`): كتاب رفع غلافه
+   يعرضه كما هو.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-lib-card__cover:not(:has(img)) {
+  position: relative;
+  place-items: stretch;
+  padding: var(--tq-space-l) var(--tq-space-m) var(--tq-space-l) var(--tq-space-l);
+  isolation: isolate;
+}
+/* الكعب: شريط أغمق على حافة القراءة، وخيط فاتح بجواره يقرأ حد الطية. */
+body.tq-body--portal .tq-lib-card__cover:not(:has(img))::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 14px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  border-inline-end: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+}
+/* الأيقونة تنزل إلى الزاوية علامة صغيرة، ولا تبقى وحدها في الوسط. */
+body.tq-body--portal .tq-lib-card__cover:not(:has(img)) > svg,
+body.tq-body--portal .tq-lib-card__cover:not(:has(img)) > span[aria-hidden] {
+  position: absolute;
+  inset-block-end: var(--tq-space-m);
+  inset-inline-end: var(--tq-space-m);
+  opacity: .45;
+}
+/* اسم المادة والصف — يطبعهما القالب في `.tq-lib-card__cover-t`. */
+body.tq-body--portal .tq-lib-cover-t {
+  align-self: center;
+  font: var(--tq-type-h2);
+  font-size: clamp(15px, 9cqi, 20px);
+  line-height: 1.35;
+  text-wrap: balance;
+  margin: 0;
+}
+body.tq-body--portal .tq-lib-cover-s {
+  position: absolute;
+  inset-block-start: var(--tq-space-l);
+  inset-inline-end: var(--tq-space-m);
+  font: var(--tq-type-micro);
+  letter-spacing: .04em;
+  opacity: .75;
+  margin: 0;
+}
+body.tq-body--portal .tq-lib-card__cover { container-type: inline-size; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ١١ · TQ-ZERO-BAR — شريط تقدم على الصفر يقول «لم تبدأ» لا يقرأ معطلا
+
+   قيس على `/parent`: ثلاثة أبناء نسبتهم صفر، وشريطهم مسار رمادي فارغ
+   تماما. وشريط فارغ في واجهة يقرأ **عنصرا لم يحمل** لا قيمة صفرا —
+   فولي الأمر لا يعرف أنبنه لم يبدأ أم الصفحة لم تكمل.
+
+   ونقطة عند المبدأ تفرق: هي أصغر من أن تدعي تقدما، وأظهر من أن تقرأ
+   عطلا. والقاعدة على `aria-valuenow="0"` — القيمة نفسها التي يقرؤها
+   قارئ الشاشة، فلا يفترق ما يرى عما يسمع.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-progress[aria-valuenow='0'] .tq-progress__track {
+  background-image: radial-gradient(circle at var(--tq-zero-x, 4px) 50%,
+                    var(--tq-text3) 0 2.5px, transparent 2.6px);
+}
+[dir='rtl'] body.tq-body--portal .tq-progress[aria-valuenow='0'] .tq-progress__track {
+  background-image: radial-gradient(circle at calc(100% - 4px) 50%,
+                    var(--tq-text3) 0 2.5px, transparent 2.6px);
+}
+body.tq-body--portal .tq-progress[aria-valuenow='0'] .tq-progress__value { color: var(--tq-text3); }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ١٢ · TQ-CTA-CROWD — بيان أخضر واحد في الشاشة
+
+   قاعدة الـDS نصا. وأظهر خرق لها `/parent`: خمس بطاقات أبناء، في كل
+   واحدة زر «تفاصيل فلان» أخضر ممتلئ بعرض البطاقة — فخمسة أخضر ممتلئ في
+   شاشة واحدة، ولا واحد منها هو الفعل الأول. والنتيجة أن لا شيء يبرز:
+   التوكيد الذي يعم يبطل.
+
+   والوسم يصلح في موضعه (القالب يكتب `--secondary`)، وهذه القاعدة شبكة
+   أمان لما لم يمر عليه أحد: زر ممتلئ **يتكرر داخل شبكة بطاقات** يخفت
+   إلى ثانوي — والبطاقة كلها قابلة للنقر، فالزر فيها تأكيد لا مدخل وحيد.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-s-grid3 > .tq-card .tq-btn--primary ~ .tq-btn--primary,
+body.tq-body--portal .tq-s-grid4 > .tq-card .tq-btn--primary ~ .tq-btn--primary {
+  background: var(--tq-surface);
+  color: var(--tq-navy);
+  border: 1px solid var(--tq-line);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ١٣ · التركيز يرى — وهو آخر ما يفحص وأول ما يسقط
+
+   حلقة التركيز معرفة على `.tq-btn` في `ds.css`، ولا شيء يعرفها على
+   الرابط ولا على الرقاقة ولا على صف المحادثة ولا على بطاقة تنقر. ومن
+   يتنقل بلوحة المفاتيح — وهو من لا يستطيع الفأرة — يمر على نصف الشاشة
+   بلا أن يرى أين هو.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal a:focus-visible,
+body.tq-body--portal .tq-chip:focus-visible,
+body.tq-body--portal .tq-tab:focus-visible,
+body.tq-body--portal .tq-conv:focus-visible,
+body.tq-body--portal .tq-card a:focus-visible,
+body.tq-body--portal [tabindex]:focus-visible {
+  outline: var(--tq-focus-ring-w) solid var(--tq-focusRing);
+  outline-offset: 2px;
+  border-radius: var(--tq-radius-small);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ١٤ · TQ-FILTERBAR — شريط الترشيح: قطاعات على مسار غائر
+
+   المكون في `tq_filterbar()` بـ[taqdar_helper.php]، وقراره مكتوب هناك.
+   وهذه ورقته، وهي في `portal.css` لا في `components.css` لأنها تحل محل
+   `.tq-tabs` القديمة ولا تمحوها: شاشة لم تحول بعد تبقى تعمل.
+
+   ثلاثة أشياء تصلح هنا وحدها:
+
+   · **شريط تمرير النظام يخرج من التصميم.** `.tq-s-tabs` كانت
+     `overflow-x: auto; scrollbar-width: thin` — فيرسم ويندوز شريطا
+     رماديا بحافتين حادتين ملتصقا بأسفل التبويبات، ويقرأ عطلا لا أداة.
+
+   · **وما زاد عن الشاشة يعلن عن نفسه.** إخفاء التبويب السابع بلا
+     إشارة يجعل من لا يعرف بوجوده لا يجده أبدا. والظل عند الحافة يقول
+     «وراءه شيء»، ويختفي عند نهايته فلا يكذب.
+
+   · **والمختار يقرأ من مسافة.** الخط السفلي رفيع بلونه، ومن يمسح
+     الصفحة بعينه لا يلتقطه — والقطاع المرتفع يلتقط.
+   ══════════════════════════════════════════════════════════════════════ */
+body.tq-body--portal .tq-filterbar {
+  margin-block-end: var(--tq-space-xl);
+  min-inline-size: 0;
+}
+
+body.tq-body--portal .tq-filterbar__track {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  /* المسار يحضن قطاعاته ولا يمتد على العرض: مسار بعرض العمود وفيه
+     أربعة قطاعات يترك ثلثيه فارغا داخل حد — فيقرأ صندوقا ناقصا لا
+     مجموعة أزرار. و`max-inline-size` تعيده إلى التمرير حين يزيد. */
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  padding: 4px;
+  border-radius: var(--tq-radius-pill);
+  border: 1px solid var(--tq-line);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: inline proximity;
+
+  /* شريط النظام يخفى — وما يعوضه الظلان أدناه، وهما أصدق منه: يقولان
+     «وراءه شيء» في الجهة التي فيها شيء وحدها. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  /* TQ-SCROLL-HINT — غطاءان يتحركان مع المحتوى (`local`) وظلان يثبتان
+     عند الحافة (`scroll`). فمتى كان المحتوى عند طرفه غطى الغطاء الظل،
+     ومتى تحرك انكشف. بلا سكربت ولا مراقب حجم. */
+  background-color: var(--tq-ground);
+  background-image:
+    linear-gradient(to right, var(--tq-ground) 40%, rgba(255, 255, 255, 0)),
+    linear-gradient(to left,  var(--tq-ground) 40%, rgba(255, 255, 255, 0)),
+    linear-gradient(to right, var(--tq-navyWashStrong), rgba(2, 51, 49, 0)),
+    linear-gradient(to left,  var(--tq-navyWashStrong), rgba(2, 51, 49, 0));
+  background-position: left center, right center, left center, right center;
+  background-size: 30px 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+body.tq-body--portal .tq-filterbar__track::-webkit-scrollbar { display: none; }
+
+body.tq-body--portal .tq-filterbar__seg {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tq-space-s);
+  flex: none;
+  scroll-snap-align: start;
+  padding: 9px var(--tq-space-l);
+  min-block-size: 38px;
+  border-radius: var(--tq-radius-pill);
+  color: var(--tq-text2);
+  font: var(--tq-type-caption);
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background var(--tq-motion-hover), color var(--tq-motion-hover);
+}
+body.tq-body--portal .tq-filterbar__seg:hover {
+  background: color-mix(in srgb, var(--tq-surface) 70%, transparent);
+  color: var(--tq-navy);
+  text-decoration: none;
+}
+
+/* المختار يرتفع ولا يشتعل — انظر القرار ٢ في `tq_filterbar()`. */
+body.tq-body--portal .tq-filterbar__seg[aria-current='page'] {
+  background: var(--tq-surface);
+  color: var(--tq-navy);
+  font-weight: 700;
+  box-shadow: var(--tq-shadow-raised);
+}
+
+/* العداد: حبة داخل القطاع لا ملحق بجواره. وأرقام جدولية معزولة —
+   الرقم لاتيني في سطر عربي، وبلا عزل يقفز إلى الطرف الخطأ. */
+body.tq-body--portal .tq-filterbar__n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 20px;
+  padding-inline: 6px;
+  block-size: 20px;
+  border-radius: var(--tq-radius-pill);
+  background: var(--tq-navyWash);
+  color: var(--tq-text2);
+  font: var(--tq-type-numeralSm);
+  font-variant-numeric: tabular-nums;
+  unicode-bidi: isolate;
+  direction: ltr;
+}
+body.tq-body--portal .tq-filterbar__seg[aria-current='page'] .tq-filterbar__n {
+  background: var(--tq-tealSoft);
+  color: var(--tq-navy);
+}
+/* الصفر يقال هامسا — انظر القرار ٣. والقطاع يبقى قابلا للنقر: من أراد
+   أن يتأكد بنفسه يتأكد، ومن مسح الشريط بعينه لا يزاحمه. */
+body.tq-body--portal .tq-filterbar__seg[data-empty]:not([aria-current='page']) { color: var(--tq-text3); }
+body.tq-body--portal .tq-filterbar__seg[data-empty] .tq-filterbar__n {
+  background: transparent;
+  color: var(--tq-text3);
+}
+
+/* والشريط في عمود ضيق يضيق معه: قائمة المحادثات عرضها ٣٠٠px وفيها
+   أربعة تبويبات، فالحشو الذي يصلح في عمود عرضه ٨٠٠ يقص آخرها. والقياس
+   بالحاوية لا بالشاشة — الشريط نفسه يعيش في العمودين على الشاشة نفسها. */
+body.tq-body--portal .tq-filterbar { container-type: inline-size; }
+@container (max-width: 380px) {
+  body.tq-body--portal .tq-filterbar__seg {
+    padding-inline: var(--tq-space-s);
+    gap: var(--tq-space-xs);
+    font-size: 12.5px;
+  }
+  body.tq-body--portal .tq-filterbar__n { min-inline-size: 18px; block-size: 18px; padding-inline: 4px; }
+}
+
+body.tq-body--portal .tq-filterbar__seg:focus-visible {
+  outline: var(--tq-focus-ring-w) solid var(--tq-focusRing);
+  outline-offset: -1px;
+}
+
+/* على الجوال يلتصق الشريط بأعلى الشاشة: من مرر خمسين إشعارا ثم أراد
+   تبويبا آخر كان يعود إلى الأعلى بالتمرير. */
+@media (max-width: 767.98px) {
+  body.tq-body--portal .tq-filterbar {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 5;
+    padding-block: var(--tq-space-s);
+    background: var(--tq-surface);
+  }
+}
+
+/* والشريط الموروث (`.tq-tabs`) يأخذ الجلد نفسه حتى تحول شاشته: لوحان
+   بلغتين في منتج واحد أسوأ من لغة واحدة غير مثلى. و`role="tablist"`
+   في `tq_reports` أبناؤه أزرار لا روابط، والقاعدة تشملهما. */
+body.tq-body--portal .tq-tabs {
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--tq-radius-pill);
+  border: 1px solid var(--tq-line);
+  background: var(--tq-ground);
+  border-block-end: 1px solid var(--tq-line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+body.tq-body--portal .tq-tabs::-webkit-scrollbar { display: none; }
+body.tq-body--portal .tq-tab {
+  padding: 9px var(--tq-space-l);
+  min-block-size: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tq-space-s);
+  border-radius: var(--tq-radius-pill);
+  border-block-end: 0;
+  margin-block-end: 0;
+  font-weight: 600;
+}
+body.tq-body--portal .tq-tab[aria-selected='true'],
+body.tq-body--portal .tq-tab[aria-current='page'] {
+  background: var(--tq-surface);
+  color: var(--tq-navy);
+  border-block-end-color: transparent;
+  box-shadow: var(--tq-shadow-raised);
+}
+body.tq-body--portal .tq-tab__n {
+  margin-inline-start: 0;
+  background: var(--tq-navyWash);
+  color: var(--tq-text2);
+  min-inline-size: 20px;
+  block-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 6px;
+}
+body.tq-body--portal .tq-tab[aria-current='page'] .tq-tab__n {
+  background: var(--tq-tealSoft);
+  color: var(--tq-navy);
+}

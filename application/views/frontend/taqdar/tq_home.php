@@ -325,7 +325,7 @@ include 'portal_open.php';
                 <div class="tq-s-2x2">
                     <?php
                     echo tq_s_stat(
-                        tq_iso(tq_s_hours($tq_act['seconds'])),
+                        tq_s_hours_rich($tq_act['seconds']),
                         t('ساعات الدراسة'), 'clock', 'sky',
                         t('منذ بدء اشتراكك')
                     );
@@ -345,10 +345,14 @@ include 'portal_open.php';
                         $score_note
                     );
 
-                    // السلسلة تحتاج سجل نشاط يومي ولا جدول له بعد — والشرطة أصدق من رقم مخترع.
+                    /* السلسلة تحتاج سجل نشاط يومي ولا جدول له بعد — والشرطة أصدق من رقم مخترع.
+                       واللون يتبع الحال: `peach` في هذه اللوحة نبرة **انتباه**، وبطاقة
+                       بلا قيمة أصلا لا شيء فيها ينتبه له — فتلبس نبرة محايدة حتى يكون
+                       فيها رقم يقال. ولون تنبيه على فراغ يستهلك النبرة فلا تعود تعني
+                       شيئا حين تلزم. */
                     echo tq_s_stat(
                         $tq_act['has_streak_source'] ? tq_num($tq_act['streak']) : '<span class="tq-muted">—</span>',
-                        t('سلسلة الأيام'), 'flame', 'peach',
+                        t('سلسلة الأيام'), 'flame', $tq_act['has_streak_source'] ? 'peach' : 'sand',
                         $tq_act['has_streak_source'] ? t('يوما متتاليا') : t('تظهر عند تسجيل نشاطك اليومي')
                     );
                     ?>

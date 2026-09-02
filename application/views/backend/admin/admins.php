@@ -83,36 +83,44 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/admin
                         <?php endif; ?>
                     </td>
 
-                    <td data-label="إجراءات">
+                    <td class="tqa-col--acts" data-label="إجراءات">
                         <?php if ($tq_root): ?>
                             <span class="tqa-badge tqa-badge--ok">
                                 <?php echo tq_icon('shield', 13); ?> <?php echo t('مشرف الجذر'); ?>
                             </span>
                         <?php else: ?>
-                            <div class="tqa-rowacts">
-                                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                   href="<?php echo site_url('admin/permissions?permission_assing_to=' . $tq_id); ?>">
-                                    <?php echo tq_icon('key', 14); ?> <?php echo t('الصلاحيات'); ?>
-                                </a>
-
-                                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                   href="<?php echo site_url('admin/admin_form/edit_admin_form/' . $tq_id); ?>">
-                                    <?php echo tq_icon('edit', 14); ?> <?php echo t('تعديل'); ?>
-                                </a>
-
-                                <form method="post" action="<?php echo site_url('admin/admins/delete/' . $tq_id); ?>"
-                                      data-tqa-confirm-title="<?php echo te('حذف المسؤول'); ?>"
-                                      data-tqa-confirm="<?php echo te('سيحذف حساب «____» ولن يستطيع الدخول بعدها.', array(html_escape($tq_name))); ?>"
-                                      data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
-                                      data-tqa-confirm-tone="danger">
-                                    <?php echo tq_csrf(); ?>
-                                    <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                            style="color:var(--tq-danger)">
-                                        <?php echo tq_icon('trash', 14); ?>
-                                        <span class="tqa-sr"><?php echo t('حذف'); ?> <?php echo html_escape($tq_name); ?></span>
-                                    </button>
-                                </form>
-                            </div>
+                            <?php
+                            /* TQ-ROW-CLUTTER — ثلاثة إجراءات في خلية صارت
+                               قائمة. و«الصلاحيات» أولها بلون الإتقان: هي
+                               ما يفتح لأجله صف مسؤول، والتحرير تفصيل. */
+                            echo tqa_rowmenu(array(
+                                array(
+                                    'label' => t('الصلاحيات'),
+                                    'sub'   => t('ما يرى وما يعدل من الشاشات'),
+                                    'icon'  => 'key',
+                                    'tone'  => 'go',
+                                    'href'  => site_url('admin/permissions?permission_assing_to=' . $tq_id),
+                                ),
+                                array(
+                                    'label' => t('تعديل الحساب'),
+                                    'icon'  => 'edit',
+                                    'href'  => site_url('admin/admin_form/edit_admin_form/' . $tq_id),
+                                ),
+                                array('sep' => true),
+                                array(
+                                    'label'   => t('حذف المسؤول'),
+                                    'icon'    => 'trash',
+                                    'tone'    => 'danger',
+                                    'action'  => 'admin/admins/delete/' . $tq_id,
+                                    'confirm' => array(
+                                        'title' => t('حذف المسؤول'),
+                                        'body'  => t('سيحذف حساب «____» ولن يستطيع الدخول بعدها.', array($tq_name)),
+                                        'ok'    => t('نعم، احذف'),
+                                        'tone'  => 'danger',
+                                    ),
+                                ),
+                            ), array('title' => $tq_name, 'sub' => '#' . $tq_id));
+                            ?>
                         <?php endif; ?>
                     </td>
                 </tr>

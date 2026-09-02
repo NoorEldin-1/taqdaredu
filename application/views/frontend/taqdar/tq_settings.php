@@ -183,7 +183,7 @@ include 'portal_open.php';
                                         <span style="flex:1;min-inline-size:0">
                                             <span class="tq-strong" style="display:block"><?php echo html_escape($tq_al['name'] ?: $tq_al['email']); ?></span>
                                             <span class="tq-micro" style="display:block">
-                                                <?php echo t('وافقت بتاريخ'); ?> <?php echo TQ_LRI . html_escape((string) $tq_al['consent_at']) . TQ_PDI; ?>
+                                                <?php echo t('وافقت بتاريخ'); ?> <?php echo tq_stamp($tq_al['consent_at']); ?>
                                             </span>
                                         </span>
                                         <?php echo tq_badge('mastered', t('يتابعك')); ?>

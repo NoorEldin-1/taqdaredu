@@ -58,7 +58,12 @@ $tqa_now = function ($field_name) use ($row, $spec) {
          خطأ يظهر: المسؤول يرفع ويحفظ ويقرأ «تم الحفظ» ولا يرى شيئا. */ ?>
 <form method="post" action="<?php echo site_url('taqdar_admin/save/' . $mkey . '/' . (int) $rid); ?>"
       enctype="multipart/form-data"
-      data-tqa-form="<?php echo html_escape($mkey); ?>">
+      data-tqa-form="<?php echo html_escape($mkey); ?>"
+      <?php /* TQ-FORM-DIRTY — الحارس يعلم أن في النموذج تعديلا لم يحفظ،
+               فيقوله في الشريط ويسأل عند المغادرة. نموذج الباقة ستة عشر
+               حقلا، ومن عدلها ثم ضغط بندا في الشريط الجانبي كان يفقدها
+               كلها بلا سؤال ولا أثر. */ ?>
+      data-tqa-dirty="1">
     <?php echo tq_csrf(); ?>
 
     <div class="tqa-card" style="margin-block-end:var(--tq-space-l)">
@@ -80,6 +85,17 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                 $when_vals = (array) $f['show_when'][$when_on];
                 $visible   = in_array($tqa_now($when_on), $when_vals, true);
             }
+
+            /* TQ-REQ-HIDDEN — `required` على حقل شرطي يعطل النموذج كله.
+               المتصفح يمنع الإرسال حتى يملأ الحقل المطلوب، ثم يحاول أن
+               يمرر إليه ليقول أين هو — فيصطدم بحقل `hidden`: يرمي
+               «An invalid form control is not focusable» في وحدة التطوير
+               ولا يعرض شيئا في الصفحة. فيضغط المسؤول «احفظ» ولا يقع شيء
+               إطلاقا: لا حفظ ولا رسالة ولا حقل محدد.
+
+               فالإلزام يفرض على ما يظهر دائما وحده، وما يخفيه اختيار آخر
+               يفحص في النموذج حيث يعرف السياق. */
+            $req = !empty($f['required']) && $when_on === '';
         ?>
             <?php if (!empty($f['section'])): ?>
                 <p class="tqa-formsec" style="grid-column:1/-1"><?php echo html_escape($f['section']); ?></p>
@@ -132,7 +148,12 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                     }
                 ?>
 
-                    <div class="tqa-filefield" data-tqa-file>
+                    <?php /* TQA-FILE — الوسم هنا هو **الحال بلا جافاسكربت**:
+                             الصورة المحفوظة معروضة، ومربع المحو ظاهر، والحقل
+                             يرفع. و[tqa-file.js] يستوعبه فيبني عليه صندوق
+                             السحب والمعاينة وزري «احذف/تراجع» — فمن تعثر عنده
+                             الملف يرى حقلا يعمل، ومن وصله يرى الصندوق كاملا. */ ?>
+                    <div class="tqa-filefield">
                         <?php if ($cur_src !== ''): ?>
                             <div class="tqa-filefield__now">
                                 <img src="<?php echo html_escape($cur_src); ?>" alt=""
@@ -141,9 +162,10 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                         <?php endif; ?>
 
                         <div class="tqa-filefield__ctl">
-                            <input class="tqa-input" type="file" id="<?php echo $id; ?>"
-                                   name="<?php echo $name; ?>" data-tqa-file-input
-                                   accept="<?php echo html_escape(isset($f['accept']) ? $f['accept'] : 'image/*'); ?>">
+                            <input type="file" id="<?php echo $id; ?>"
+                                   name="<?php echo $name; ?>"
+                                   accept="<?php echo html_escape(isset($f['accept']) ? $f['accept'] : 'image/*'); ?>"
+                                   <?php if (!empty($f['max_mb'])): ?>data-tqa-max="<?php echo (float) $f['max_mb']; ?>"<?php endif; ?>>
 
                             <?php if ($cur !== ''): ?>
                                 <?php /* المحو صريح: حفظ بلا اختيار ملف **لا يمس**
@@ -154,11 +176,6 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                                     <span><?php echo t('احذف الصورة الحالية'); ?></span>
                                 </label>
                             <?php endif; ?>
-                        </div>
-
-                        <div class="tqa-filefield__next" data-tqa-file-preview hidden>
-                            <span class="tqa-dim"><?php echo t('المختارة الآن:'); ?></span>
-                            <img alt="" data-tqa-file-img>
                         </div>
                     </div>
 
@@ -254,8 +271,12 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                 ?>
 
                     <select class="tqa-select" id="<?php echo $id; ?>" name="<?php echo $name; ?>"
-                            data-tqa-field="<?php echo html_escape($name); ?>">
-                        <option value="0"><?php echo t('— بلا تحديد —'); ?></option>
+                            data-tqa-field="<?php echo html_escape($name); ?>"
+                            <?php echo $req ? 'required' : ''; ?>>
+                        <?php /* الخيار النائب يفرغ قيمته حين يكون الحقل مطلوبا:
+                                 `value="0"` قيمة غير فارغة، و`required` معها
+                                 لا يمنع شيئا — فيمر الحفظ بمرجع صفر. */ ?>
+                        <option value="<?php echo $req ? '' : '0'; ?>"><?php echo t('— بلا تحديد —'); ?></option>
                         <?php foreach ($opts as $k => $lbl): ?>
                             <option value="<?php echo (int) $k; ?>"
                                 <?php echo ((int) $val === (int) $k) ? 'selected' : ''; ?>>
@@ -275,7 +296,8 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                 <?php elseif ($f['type'] === 'textarea' || $f['type'] === 'lines'): ?>
 
                     <textarea class="tqa-textarea" id="<?php echo $id; ?>" name="<?php echo $name; ?>"
-                              rows="5"><?php echo html_escape((string) $val); ?></textarea>
+                              rows="5"
+                              <?php echo $req ? 'required' : ''; ?>><?php echo html_escape((string) $val); ?></textarea>
                     <?php if ($f['type'] === 'lines'): ?>
                         <span class="tqa-field__hint"><?php echo t('سطر واحد لكل بند.'); ?></span>
                     <?php endif; ?>
@@ -290,7 +312,8 @@ $tqa_now = function ($field_name) use ($row, $spec) {
 
                     <input class="tqa-input tqa-input--ltr" dir="ltr" type="number" min="0" step="1"
                            id="<?php echo $id; ?>" name="<?php echo $name; ?>"
-                           value="<?php echo html_escape((string) $val); ?>">
+                           value="<?php echo html_escape((string) $val); ?>"
+                           <?php echo $req ? 'required' : ''; ?>>
 
                 <?php elseif ($f['type'] === 'percent'): ?>
 
@@ -298,9 +321,9 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                              وهو يكتب لا بعد الحفظ: من يكتب ١٥ يجب أن يرى ٨٥
                              فورا، وإلا حفظ وهو يظن أنه ضبط نسبة المنصة.
                              والمخزن رقم واحد — فلا تفترق النسبتان أبدا. */ ?>
-                    <div style="display:flex;align-items:center;gap:var(--tq-space-s);flex-wrap:wrap">
+                    <div class="tqa-field__row">
                         <input class="tqa-input tqa-input--ltr" dir="ltr" type="number"
-                               min="0" max="100" step="0.01" style="max-inline-size:9rem"
+                               min="0" max="100" step="0.01"
                                id="<?php echo $id; ?>" name="<?php echo $name; ?>"
                                data-tqa-percent
                                <?php if (!empty($f['mirror'])): ?>
@@ -310,20 +333,20 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                                    placeholder="<?php echo html_escape((string) $f['placeholder']); ?>"
                                <?php endif; ?>
                                value="<?php echo ($val === null || $val === '') ? '' : html_escape(rtrim(rtrim(number_format((float) $val, 2, '.', ''), '0'), '.')); ?>">
-                        <span style="color:var(--tq-text2);font:var(--tq-type-caption);flex:none">%</span>
+                        <span class="tqa-field__unit">%</span>
                         <?php if (!empty($f['mirror'])): ?>
-                            <span class="tqa-pill" id="<?php echo $id; ?>-mirror"
-                                  style="flex:none"><?php echo html_escape($f['mirror']); ?> —</span>
+                            <span class="tqa-pill" id="<?php echo $id; ?>-mirror"><?php echo html_escape($f['mirror']); ?> —</span>
                         <?php endif; ?>
                     </div>
 
                 <?php elseif ($f['type'] === 'money'): ?>
 
-                    <div style="display:flex;align-items:center;gap:var(--tq-space-s)">
+                    <div class="tqa-field__row">
                         <input class="tqa-input tqa-input--ltr" dir="ltr" type="number" min="0" step="0.01"
                                id="<?php echo $id; ?>" name="<?php echo $name; ?>"
-                               value="<?php echo html_escape((string) $val); ?>">
-                        <span style="color:var(--tq-text2);font:var(--tq-type-caption);flex:none"><?php echo t('ر.س'); ?></span>
+                               value="<?php echo html_escape((string) $val); ?>"
+                               <?php echo $req ? 'required' : ''; ?>>
+                        <span class="tqa-field__unit"><?php echo t('ر.س'); ?></span>
                     </div>
                     <span class="tqa-field__hint"><?php echo t('يدخل بالريال ويخزن بالهللات — بلا فقد كسور عند الجمع.'); ?></span>
 
@@ -333,7 +356,7 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                            <?php echo !empty($f['ltr']) ? 'dir="ltr"' : ''; ?>
                            type="text" id="<?php echo $id; ?>" name="<?php echo $name; ?>"
                            value="<?php echo html_escape((string) $val); ?>"
-                           <?php echo !empty($f['required']) ? 'required' : ''; ?>>
+                           <?php echo $req ? 'required' : ''; ?>>
 
                 <?php endif; ?>
 
@@ -360,11 +383,18 @@ $tqa_now = function ($field_name) use ($row, $spec) {
         <?php endforeach; ?>
     <?php endif; ?>
 
-    <div style="display:flex;gap:var(--tq-space-s);flex-wrap:wrap">
+    <?php /* TQ-SAVE-BELOW — الشريط يلتصق بأسفل الشاشة.
+             نموذج الباقة ستة عشر حقلا، وستة عشر حقلا في شبكة عمودين تعني
+             شاشة ونصفا: زر «احفظ» في القاع يكلف تمريرة كاملة عن كل تعديل
+             ولو كان حرفا في الحقل الأول. وأثقل منه أن من لا يرى زر حفظ
+             لا يعرف أن الشاشة تحفظ أصلا، فينتقل ويعود فيجد ما كتبه ذهب. */ ?>
+    <div class="tqa-formbar">
         <button type="submit" class="tqa-btn tqa-btn--primary">
-            <?php echo $is_edit ? t('احفظ التعديل') : t('أضف'); ?>
+            <?php echo tq_icon('check', 16); ?>
+            <span><?php echo $is_edit ? t('احفظ التعديل') : t('أضف'); ?></span>
         </button>
         <a class="tqa-btn tqa-btn--ghost" href="<?php echo site_url('taqdar_admin/module/' . $mkey); ?>"><?php echo t('إلغاء'); ?></a>
+        <span class="tqa-formbar__dirty"><?php echo t('فيه تعديل لم يحفظ'); ?></span>
     </div>
 </form>
 

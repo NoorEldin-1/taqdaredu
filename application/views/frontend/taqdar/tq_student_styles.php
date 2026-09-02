@@ -11,38 +11,13 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  * كل لون من التوكنات، وكل تخطيط بـ start/end، وكل رقم يمر من tq_num/tq_iso.
  */
 
-if (!function_exists('tq_s_month')) {
-    /** أسماء الشهور الميلادية كما تكتب في السوق السعودي. */
-    function tq_s_month($m)
-    {
-        static $names = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-                         'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-        $i = ((int) $m) - 1;
-        /* TQ-I18N — الترجمة عند الخروج: `static` لا يقبل نداء في تهيئته. */
-        return isset($names[$i]) ? t($names[$i]) : '';
-    }
-}
-
-if (!function_exists('tq_s_date')) {
-    /** «20 مايو 2026» — الرقمان معزولان داخل الجملة. */
-    function tq_s_date($ts)
-    {
-        $ts = (int) $ts;
-        if ($ts <= 0) return '';
-        return tq_iso(date('j', $ts) . ' ' . tq_s_month(date('n', $ts)) . ' ' . date('Y', $ts));
-    }
-}
-
-if (!function_exists('tq_s_time')) {
-    /** «10:00 ص» — الساعة وحدة واحدة لا رقمان. */
-    function tq_s_time($ts)
-    {
-        $ts = (int) $ts;
-        if ($ts <= 0) return '';
-        $mer = (int) date('G', $ts) < 12 ? t('ص') : t('م');
-        return tq_num(date('g:i', $ts)) . ' ' . $mer;
-    }
-}
+/* `tq_s_month` و`tq_s_date` و`tq_s_time` انتقلن إلى
+   [taqdar_student_helper.php](../../../helpers/taqdar_student_helper.php)
+   — تحمل تلقائيا، فتقرؤهن **بوابة ولي الأمر** كما تقرؤهن شاشات الطالب.
+   وكن هنا في ملف عرض يطبع كتلة `<style>` عند ضمه، فقالب ولي الأمر الذي
+   يحتاج تاريخا واحدا كان يضطر إلى ضم ورقة أنماط شاشة الطالب كلها — أو
+   يكتب صيغته بيده، وهو ما وقع: «2026-06-10 23:32:33» بثوانيها في شاشة
+   يقرؤها أب. */
 
 /* `tq_s_secs` و`tq_file_kind` انتقلتا إلى
    [taqdar_student_helper.php](../../../helpers/taqdar_student_helper.php)
@@ -73,6 +48,36 @@ if (!function_exists('tq_s_hours')) {
         $m = intdiv($s % 3600, 60);
         if ($h > 0) return $h . t(' س ') . $m . t(' د');
         return $m . t(' د');
+    }
+}
+
+if (!function_exists('tq_s_hours_rich')) {
+    /**
+     * TQ-STAT-BREAK — المدة في بطاقة رقم: الرقم بحجمه والوحدة أصغر.
+     *
+     * `tq_s_hours()` ترد «6 س 20 د» نصا واحدا، وبطاقة الرقم تكتبه بـ٣٤
+     * بكسلا في خلية عرضها ١٥٥ داخل شبكة `2×2` — فينكسر السطر عند آخر
+     * وحدة وتقرأ البطاقة «٦ س ٢٠» ثم «د» وحدها تحتها: رقم بلا وحدته
+     * ووحدة بلا رقمها، وهو أسوأ ما يقع لبطاقة كل غرضها أن تقرأ في لمحة.
+     *
+     * والوحدة ليست رقما فلا تأخذ حجمه: «س» و«د» علامتان تقرآن بالشكل لا
+     * بالقياس. وبتصغيرهما ينقص العرض الثلث فلا ينكسر السطر أصلا، ويقرأ
+     * الرقمان كما يقرأ الميقات.
+     *
+     * والنص ما زال معزولا رقما رقما (`tq_iso`) — العزل يحمي الترتيب،
+     * والوسم يحمل الحجم، ولا يغني أحدهما عن الآخر.
+     */
+    function tq_s_hours_rich($seconds)
+    {
+        $s = max(0, (int) $seconds);
+        $h = intdiv($s, 3600);
+        $m = intdiv($s % 3600, 60);
+        $u = static function ($w) { return '<span class="tq-unit">' . html_escape($w) . '</span>'; };
+
+        if ($h > 0) {
+            return tq_iso((string) $h) . $u(t('س')) . tq_iso((string) $m) . $u(t('د'));
+        }
+        return tq_iso((string) $m) . $u(t('د'));
     }
 }
 
@@ -327,21 +332,14 @@ if (!function_exists('tq_s_stat')) {
 .tq-s-meta > span { display: inline-flex; align-items: center; gap: var(--tq-space-xs); }
 .tq-s-meta svg { color: var(--tq-text2); }
 
-/* --- التبويبات الرابطة (تصفية من الخادم، تعمل بلا جافاسكربت) --- */
-.tq-s-tabs { overflow-x: auto; scrollbar-width: thin; }
-.tq-s-tabs a.tq-tab { color: var(--tq-text2); }
-.tq-s-tabs a.tq-tab:hover { color: var(--tq-navy); text-decoration: none; }
-.tq-s-tabs a.tq-tab[aria-current='page'] {
-  color: var(--tq-navy); border-block-end-color: var(--tq-navy); font-weight: 700;
-}
-.tq-s-tabs .tq-tab__n {
-  margin-inline-start: var(--tq-space-xs);
-  padding: 1px var(--tq-space-s);
-  border-radius: var(--tq-radius-pill);
-  background: var(--tq-navyWash); color: var(--tq-navy);
-  font: var(--tq-type-numeralSm);
-  unicode-bidi: isolate; direction: ltr;
-}
+/* --- التبويبات الرابطة --- انتقلت إلى TQ-FILTERBAR.
+   كانت `.tq-s-tabs` تحمل `overflow-x: auto; scrollbar-width: thin` — فيرسم
+   ويندوز شريط تمرير رماديا بحافتين حادتين ملتصقا بأسفل التبويبات، ويقرأ
+   عطلا لا أداة. وصارت الشاشات الثماني تطبع شريطها من `tq_filterbar()`
+   وحدها (انظر [taqdar_helper.php] و`portal.css §١٤`)، فلا صنف يبقى هنا
+   يحرسه أحد. وحذفه كاملا لا إبقاؤه معطلا: قاعدة نائمة توقظها شاشة تكتب
+   الصنف سهوا غدا فتخرج بشريط لا يشبه أخواته.
+*/
 
 /* --- الحالة الفارغة --- */
 .tq-s-art {

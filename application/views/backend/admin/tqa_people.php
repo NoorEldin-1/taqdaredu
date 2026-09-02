@@ -28,7 +28,14 @@ $role_of = function ($u) {
     return array(t('طالب'), 'muted');
 };
 
-$back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen'));
+$back = http_build_query(array_filter(array('role' => $role, 'q' => $q, 'p' => (string) $view['page']), 'strlen'));
+
+/* الرقاقة تقول بماذا رشح، وتنزعه وحده. والدور مرشح كالبحث: من فتح
+   «المعلمون» ثم بحث لا يرى في شريط الأدوات ما يقول إن نصف النتيجة
+   محجوب بالتبويب — والتبويب أعلى الصفحة لا يراه من مرر. */
+$active = array();
+if ($q !== '')    $active['q'] = t('بحث:') . ' ' . $q;
+if ($role !== '') $active['role'] = $filters[$role][0];
 ?>
 
 <?php tqa_head(t('كل الحسابات'), t('الأدوار الأربعة في مكان واحد: طالب · معلم · ولي أمر · مسؤول.'), 'users'); ?>
@@ -61,11 +68,13 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
 
     <?php /* TQ-TEACHER-ADD — الباب من هنا: من يفتح «كل الحسابات» ليضيف
              معلما لا يخطر له أن يبحث عنه في شاشة أخرى. */ ?>
-    <a class="tqa-btn tqa-btn--primary tqa-btn--sm" style="margin-inline-start:auto"
+    <a class="tqa-btn tqa-btn--primary tqa-btn--sm tqa-toolbar__end"
        href="<?php echo site_url('taqdar_admin/teacher_new'); ?>">
         <?php echo tq_icon('user-check', 16); ?> <?php echo t('أضف معلما'); ?>
     </a>
 </div>
+
+<?php tqa_active_filters('taqdar_admin/people', $active); ?>
 
 <div class="tqa-card tqa-card--flush">
 <?php if (!$rows): ?>
@@ -81,15 +90,19 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
 <?php else: ?>
     <div class="tqa-table__wrap">
     <table class="tqa-table">
+        <caption class="tqa-sr"><?php echo t('الحسابات: الاسم والتواصل والدور والحالة وتاريخ التسجيل'); ?></caption>
         <thead>
             <tr>
-                <th>#</th>
-                <th><?php echo t('الاسم'); ?></th>
-                <th><?php echo t('البريد والجوال'); ?></th>
-                <th><?php echo t('الدور'); ?></th>
-                <th><?php echo t('الحالة'); ?></th>
-                <th><?php echo t('التسجيل'); ?></th>
-                <th><span class="tqa-sr"><?php echo t('إجراء'); ?></span></th>
+                <th class="tqa-col--tight">#</th>
+                <th><?php echo t('الحساب'); ?></th>
+                <th><?php echo t('الجوال'); ?></th>
+                <th class="tqa-col--tight"><?php echo t('الدور'); ?></th>
+                <th class="tqa-col--tight"><?php echo t('الحالة'); ?></th>
+                <th class="tqa-col--tight"><?php echo t('التسجيل'); ?></th>
+                <?php /* TQ-ROW-CLUTTER — العمود صار زرا واحدا، فعرضه عرضه.
+                         وكان يحمل ثلاثة أزرار متساوية الوزن تلتف سطرين على
+                         شاشة لوح، فيقف «تفاصيل» فوق «عدل» في كل صف من ثلاثين. */ ?>
+                <th class="tqa-col--acts"><span class="tqa-sr"><?php echo t('إجراء'); ?></span></th>
             </tr>
         </thead>
         <tbody>
@@ -101,13 +114,25 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
             <tr>
                 <td data-label="#"><span class="tqa-num"><?php echo (int) $u['id']; ?></span></td>
 
-                <td data-label="الاسم"><?php echo html_escape($name ?: t('بلا اسم')); ?></td>
+                <?php /* الاسم والبريد والوجه شيء واحد يقرأ مرة: كانا عمودين
+                         متجاورين، فالعين تقفز بين خليتين لتجمع هوية شخص
+                         واحد — وفي جدول من خمسين صفا هذه قفزة في كل سطر.
+                         والوجه هو ما تمسكه العين قبل الحرف. */ ?>
+                <td data-label="الحساب">
+                    <span class="tqa-media">
+                        <?php echo tqa_avatar(isset($u['image']) ? $u['image'] : '', $name ?: $u['email']); ?>
+                        <span class="tqa-media__body">
+                            <span class="tqa-media__title"><?php echo html_escape($name ?: t('بلا اسم')); ?></span>
+                            <span class="tqa-media__sub tqa-mono"><?php echo html_escape($u['email']); ?></span>
+                        </span>
+                    </span>
+                </td>
 
-                <td data-label="البريد والجوال">
-                    <span class="tqa-num" style="font-size:13px"><?php echo html_escape($u['email']); ?></span>
-                    <?php if (!empty($u['phone'])): ?>
-                        <br><span class="tqa-num" style="font-size:12px;color:var(--tq-text2)">
-                            <?php echo html_escape($u['phone']); ?></span>
+                <td data-label="الجوال">
+                    <?php if (trim((string) $u['phone']) !== ''): ?>
+                        <span class="tqa-mono"><?php echo html_escape($u['phone']); ?></span>
+                    <?php else: ?>
+                        <span class="tqa-dim">—</span>
                     <?php endif; ?>
                 </td>
 
@@ -115,8 +140,11 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
                     <span class="tqa-badge tqa-badge--<?php echo $role_tone; ?>"><?php echo $role_label; ?></span>
                 </td>
 
+                <?php /* النقطة مع اللون: من لا يفرق الأخضر عن الأحمر — وهو
+                         واحد من كل اثني عشر رجلا — كان يقرأ شارتين
+                         متطابقتين في عمود يفرق بين حساب يدخل وحساب لا. */ ?>
                 <td data-label="الحالة">
-                    <span class="tqa-badge tqa-badge--<?php echo $on ? 'ok' : 'danger'; ?>">
+                    <span class="tqa-badge tqa-badge--dot tqa-badge--<?php echo $on ? 'ok' : 'danger'; ?>">
                         <?php echo $on ? t('مفتوح') : t('مغلق'); ?>
                     </span>
                 </td>
@@ -127,38 +155,63 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
                     ?></span>
                 </td>
 
-                <td data-label="إجراء">
-                  <div style="display:flex;gap:var(--tq-space-xs);flex-wrap:wrap;align-items:center">
-                    <?php /* TQ-TEACHER-ADD — التفاصيل والتعديل للمعلم وحده:
-                             نموذجهما نموذج معلم (صفة ومواد ونبذة وعرض علني)،
-                             وفتحه على طالب يعرض حقولا لا معنى لها في حسابه.
-                             والحذف بابه صفحة المعلم — هناك يقرأ ما يمنعه
-                             بالرقم قبل أن يضغط. */ ?>
-                    <?php if ((int) $u['is_instructor'] === 1): ?>
-                        <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                           href="<?php echo site_url('taqdar_admin/teacher/' . (int) $u['id']); ?>"><?php echo t('تفاصيل'); ?></a>
-                        <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                           href="<?php echo site_url('taqdar_admin/teacher_edit/' . (int) $u['id']); ?>"><?php echo t('عدل'); ?></a>
-                    <?php endif; ?>
+                <?php
+                /* TQ-ROW-CLUTTER — ما يفعل بالحساب في قائمة واحدة.
 
-                    <?php /* الفتح والإغلاق POST: يغير من يستطيع الدخول، ورابط
-                             يفعل ذلك بمجرد فتحه لا يصلح لفعل يكتب. */ ?>
-                    <form action="<?php echo site_url('taqdar_admin/people_toggle'); ?>" method="post"
-                          style="margin:0"
-                          data-tqa-confirm-title="<?php echo $on ? t('إغلاق الحساب') : t('فتح الحساب'); ?>"
-                          data-tqa-confirm="<?php echo $on
-                              ? t('لن يستطيع صاحبه الدخول. ولا يحذف شيء: اشتراكاته وتقدمه وفواتيره تبقى كما هي.')
-                              : t('سيستطيع صاحبه الدخول من جديد، ويستعيد كل ما كان له.'); ?>"
-                          data-tqa-confirm-ok="<?php echo $on ? t('أغلق الحساب') : t('افتح الحساب'); ?>"
-                          <?php echo $on ? 'data-tqa-confirm-tone="danger"' : ''; ?>>
-                        <?php echo tq_csrf(); ?>
-                        <input type="hidden" name="user_id" value="<?php echo (int) $u['id']; ?>">
-                        <input type="hidden" name="back" value="<?php echo html_escape($back); ?>">
-                        <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit">
-                            <?php echo $on ? t('أغلق') : t('افتح'); ?>
-                        </button>
-                    </form>
-                  </div>
+                   كانت الخلية تحمل رابطين ونموذجا بزره، ثلاثتها بوزن واحد
+                   ولون واحد: «تفاصيل» و«عدل» و«أغلق» — والثالث يقطع الدخول
+                   عن صاحبه، وهو ملاصق للأول بحجمه. وعمود يحمل ثلاثة يأخذ
+                   مئتي بكسل من جدول سبعة أعمدة ثم يلتف سطرين.
+
+                   والترتيب هنا يقول ما لا يقوله الصف: المقصود أولا، ثم
+                   التحرير، ثم ما يقطع الدخول تحت فاصل.
+
+                   والتفاصيل والتعديل للمعلم وحده: نموذجهما نموذج معلم (صفة
+                   ومواد ونبذة وعرض علني)، وفتحه على طالب يعرض حقولا لا
+                   معنى لها في حسابه. والحذف بابه صفحة المعلم — هناك يقرأ ما
+                   يمنعه بالرقم قبل أن يضغط (TQ-TEACHER-DELETE). */
+                $tq_acts = array();
+
+                if ((int) $u['is_instructor'] === 1) {
+                    $tq_acts[] = array(
+                        'label' => t('صفحة المعلم'),
+                        'sub'   => t('ماذا يدرس؟ وكم طالبا عنده؟'),
+                        'icon'  => 'meter',
+                        'tone'  => 'go',
+                        'href'  => site_url('taqdar_admin/teacher/' . (int) $u['id']),
+                    );
+                    $tq_acts[] = array(
+                        'label' => t('تعديل البيانات'),
+                        'icon'  => 'edit',
+                        'href'  => site_url('taqdar_admin/teacher_edit/' . (int) $u['id']),
+                    );
+                    $tq_acts[] = array('sep' => true);
+                }
+
+                /* الفتح والإغلاق POST: يغير من يستطيع الدخول، ورابط يفعل
+                   ذلك بمجرد فتحه لا يصلح لفعل يكتب. */
+                $tq_acts[] = array(
+                    'label'   => $on ? t('أغلق الحساب') : t('افتح الحساب'),
+                    'sub'     => $on ? t('يمنع الدخول ولا يحذف شيئا') : t('يستعيد كل ما كان له'),
+                    'icon'    => $on ? 'lock' : 'key',
+                    'tone'    => $on ? 'danger' : '',
+                    'action'  => 'taqdar_admin/people_toggle',
+                    'hidden'  => array('user_id' => (int) $u['id'], 'back' => $back),
+                    'confirm' => array(
+                        'title' => $on ? t('إغلاق الحساب') : t('فتح الحساب'),
+                        'body'  => $on
+                            ? t('لن يستطيع صاحبه الدخول. ولا يحذف شيء: اشتراكاته وتقدمه وفواتيره تبقى كما هي.')
+                            : t('سيستطيع صاحبه الدخول من جديد، ويستعيد كل ما كان له.'),
+                        'ok'    => $on ? t('أغلق الحساب') : t('افتح الحساب'),
+                        'tone'  => $on ? 'danger' : '',
+                    ),
+                );
+                ?>
+                <td class="tqa-col--acts" data-label="<?php echo te('إجراء'); ?>">
+                    <?php echo tqa_rowmenu($tq_acts, array(
+                        'title' => $name ?: $u['email'],
+                        'sub'   => $role_label . ' · #' . (int) $u['id'],
+                    )); ?>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -166,11 +219,19 @@ $back = http_build_query(array_filter(array('role' => $role, 'q' => $q), 'strlen
     </table>
     </div>
 
-    <?php if (count($rows) >= 400): ?>
-        <p style="padding:var(--tq-space-l) var(--tq-space-xl);margin:0;font:var(--tq-type-caption);color:var(--tq-text2)">
-            <?php echo t('تعرض أول'); ?> <span class="tqa-num">400</span> <?php echo t('حساب. استعمل البحث للوصول إلى ما بعدها.'); ?>
-        </p>
-    <?php endif; ?>
+    <?php /* TQ-PEOPLE-CAP — كان هنا اعتذار: «تعرض أول ٤٠٠ حساب، استعمل
+             البحث للوصول إلى ما بعدها». وهو يطلب من المسؤول أن يعرف اسم
+             من يبحث عنه قبل أن يفتح الشاشة التي يفتحها ليعرف. */ ?>
+    <div class="tqa-tablefoot">
+        <?php if ($view['pages'] > 1): ?>
+            <?php tqa_pager('taqdar_admin/people', $view['page'], $view['pages'], $view['total']); ?>
+        <?php else: ?>
+            <span class="tqa-pager__info">
+                <?php echo t('المعروض'); ?>
+                <span class="tqa-num"><?php echo count($rows); ?></span> <?php echo t('حسابا'); ?>
+            </span>
+        <?php endif; ?>
+    </div>
 <?php endif; ?>
 </div>
 

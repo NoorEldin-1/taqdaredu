@@ -1,0 +1,486 @@
+/* ==========================================================================
+   TQA-CONTROLS — المنتق وحقل الملف: مكونان يقرؤهما السطحان
+
+   استخرجا من `admin.css §١١٫١` و`§١١٫٢` حين احتاجتهما بوابات الطالب
+   والمعلم وولي الأمر: `<select>` يرسمه **نظام التشغيل** لا الورقة —
+   خطه خط النظام وقائمته نافذة خارج الصفحة لا يبلغها لون ولا اتجاه —
+   و`<input type=file>` نصه «Choose File» و«No file chosen» بالإنجليزية
+   مهما كانت لغة الصفحة. والعلتان واحدة في اللوحة وفي البوابة.
+
+   ولا نسخة ثانية: هذا الملف هو المصدر، ويحمله:
+     · `application/views/backend/includes_top.php`        (اللوحة)
+     · `application/views/frontend/taqdar/includes_top.php` (البوابات)
+
+   والسلوك من `js/tqa-select.js` و`js/tqa-file.js`، وهما يمسحان
+   `document` كله ولا يشترطان `body.tqa` — فالسطحان سواء عندهما.
+
+   والأصناف هنا **غير مقيدة بجذر** عمدا: هي أصناف لا يولدها إلا هذان
+   السكربتان، فلا تصادف وسما لم يقصدها.
+   ========================================================================== */
+
+/* الرمزان اللذان يستعملهما المكونان — معرفان في `admin.css` كذلك بالقيم
+   نفسها، ويعادان هنا لأن البوابة لا تحمل تلك الورقة. */
+:root {
+  --tqa-radius-sm: 12px;
+  --tqa-field-h: 44px;
+}
+
+/* --------------------------------------------------------------------------
+   ١١٫١ · المنتق — TQA-SELECT
+
+   `<select>` بعد `appearance: none` وسهم مرسوم صار حده حد `<input>`
+   وخلفيته خلفيته وارتفاعه ارتفاعه: **حقل يكتب فيه وحقل يفتح منه
+   يقرآن شيئا واحدا.** ومن يمسح شبكة من ستة عشر حقلا بعينه لا يعرف أيها
+   ينقر وأيها يكتب حتى يجرب — وهو يجرب مرة لكل حقل.
+
+   فصار للمنتق **مقبض** يقول إنه ينفتح: صندوق مغلق على طرفه فيه السهم،
+   بأرضية تفرقه عن جسم الحقل وتقلب لونها عند الفتح. وهو الفرق الذي
+   تمسكه العين قبل أن تقرأ الكلمة.
+
+   والمحرك في [assets/taqdar/js/tqa-select.js]، وثلاث قواعده مشروحة في
+   رأسه. وما هنا شكل وحده.
+   -------------------------------------------------------------------------- */
+
+.tqa-sel { position: relative; display: block; inline-size: 100%; min-inline-size: 0; }
+.tqa-sel[hidden] { display: none; }
+
+/* المنتق الأصلي يبقى **مرسوما** بشفافية تامة فوق الصندوق، لا
+   `display: none`: المتصفح يرفض أن يمرر التركيز إلى حقل غير مرسوم،
+   فيرد على `required` بـ«An invalid form control is not focusable» في
+   وحدة التطوير ولا يعرض شيئا في الصفحة — فيضغط المسؤول «احفظ» ولا يقع
+   شيء إطلاقا. وهو TQ-REQ-HIDDEN نفسه بوجه آخر.
+   وفقاعة التحقق تظهر عند الصندوق لأنه يغطيه تماما.
+   والمحدد يبلغ (٠٬٣٬١) عمدا: `ds.css` يحمل بعد هذه الورقة ويكتب
+   `body.tqa .tqa-select { min-height: 44px; border: … }` بوزن (٠٬٢٬١). */
+.tqa-sel > select.tqa-sel__native,
+body.tqa .tqa-sel > select.tqa-sel__native {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  opacity: 0;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.tqa-sel__btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-s);
+  inline-size: 100%;
+  min-block-size: var(--tqa-field-h);
+  padding-block: 5px;
+  padding-inline: 14px 5px;
+  box-sizing: border-box;
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-surface);
+  color: var(--tq-text);
+  font: var(--tq-type-body);
+  font-family: var(--tq-font-body);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--tq-motion-hover) ease,
+              box-shadow var(--tq-motion-hover) ease,
+              background-color var(--tq-motion-hover) ease;
+}
+.tqa-sel__btn:hover { border-color: var(--tq-text3); }
+.tqa-sel__btn:focus-visible {
+  outline: 0;
+  border-color: var(--tq-teal);
+  box-shadow: 0 0 0 3px var(--tq-focusRing);
+}
+.tqa-sel.is-open > .tqa-sel__btn {
+  border-color: var(--tq-teal);
+  box-shadow: 0 0 0 3px var(--tq-focusRing);
+}
+.tqa-sel.is-disabled > .tqa-sel__btn {
+  background: var(--tq-sunken, var(--tq-ground));
+  color: var(--tq-text3);
+  cursor: not-allowed;
+}
+
+/* القيمة: سطر واحد يقص بنقاط. والعنوان الطويل الذي ينكسر سطرين يجعل
+   صف الحقل أطول من جاره في شبكة عمودين، فتتعرج الشبكة كلها. */
+.tqa-sel__val {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* «— بلا تحديد —» ليست قيمة يقرؤها القارئ اختيارا: تعرض بحبر النائب
+   كما يعرض `placeholder` الحقل النصي — فتفرق العين بين حقل ملئ وحقل
+   لم يملأ في شبكة من ستة عشر حقلا بلمحة واحدة. */
+.tqa-sel__btn.is-empty .tqa-sel__val { color: var(--tq-text3); }
+
+/* المقبض — هو الفرق كله: صندوق مغلق على طرف الحقل بأرضية تخصه. */
+.tqa-sel__caret {
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--tq-sunken, var(--tq-ground));
+  color: var(--tq-text2);
+  transition: background-color var(--tq-motion-hover) ease,
+              color var(--tq-motion-hover) ease,
+              transform var(--tq-motion-hover) var(--tq-ease-enter);
+}
+.tqa-sel__btn:hover .tqa-sel__caret { background: var(--tq-navyWash); color: var(--tq-navy); }
+.tqa-sel.is-open .tqa-sel__caret {
+  background: var(--tq-actionMastery);
+  color: var(--tq-onAction);
+  transform: rotate(180deg);
+}
+
+/* الحجم الصغير: داخل شريط أدوات أو قائمة صف — ٤٤ هناك يجعل الشريط سطرين. */
+.tqa-sel--sm .tqa-sel__btn { min-block-size: 36px; padding-inline: 11px 4px; font: var(--tq-type-caption); font-family: var(--tq-font-body); }
+.tqa-sel--sm .tqa-sel__caret { inline-size: 26px; block-size: 26px; border-radius: 8px; }
+
+/* الحبات: المتعدد يقول ما اختير في زره لا في لوحه — ومن أغلق اللوح
+   بعد أن حدد ستة لا يعرف ماذا حدد إلا بفتحه ثانية. */
+.tqa-sel--multi .tqa-sel__val { white-space: normal; overflow: visible; }
+.tqa-sel__chips { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; overflow: hidden; }
+.tqa-sel__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-inline-size: 15ch;
+  padding: 2px 4px 2px 8px;
+  border-radius: 999px;
+  background: var(--tq-mint-fill);
+  color: var(--tq-mint-ink);
+  font: var(--tq-type-micro);
+  white-space: nowrap;
+}
+[dir='ltr'] .tqa-sel__chip { padding: 2px 8px 2px 4px; }
+.tqa-sel__chip > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.tqa-sel__chipx {
+  display: grid;
+  place-items: center;
+  inline-size: 17px;
+  block-size: 17px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.tqa-sel__chipx:hover { background: var(--tq-actionMastery); color: var(--tq-onAction); }
+.tqa-sel__more {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--tq-navyWash);
+  color: var(--tq-navy);
+  font: var(--tq-type-micro);
+  font-weight: 700;
+}
+
+/* ---- اللوح ----
+   `fixed` لا `absolute`: المنتقيات تعيش داخل `.tqa-table__wrap` وداخل
+   `.tqa-menu__pop` وكلاهما `overflow: auto` — والمطلق يقص عند حافتهما.
+   وهي علة قائمة الصف نفسها (الكتلة ١٠٫٥)، وعلاجها هو هو.
+   و`top`/`left` فيزيائية لأن السكربت يكتبهما محسوبين، والمنطقية معهما
+   حال مقيدة زائدا تسقط فيها المواصفة إحداهما في العربية. */
+.tqa-sel__pop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: auto;
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 224px;
+  max-inline-size: calc(100vw - 16px);
+  max-block-size: min(60vh, 380px);
+  padding: 6px;
+  box-sizing: border-box;
+  background: var(--tq-surface);
+  border: 1px solid var(--tq-line);
+  border-radius: 16px;
+  box-shadow: 0 20px 46px -20px rgba(2, 51, 49, .40),
+              0 3px 10px -5px rgba(16, 24, 40, .16);
+  animation: tqa-sel-in 130ms var(--tq-ease-enter);
+  text-align: start;
+}
+.tqa-sel__pop[hidden] { display: none; }
+@keyframes tqa-sel-in { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+
+.tqa-sel__search { position: relative; display: flex; align-items: center; flex: none; margin-block-end: 4px; }
+.tqa-sel__search[hidden] { display: none; }
+.tqa-sel__searchic { position: absolute; inset-inline-start: 11px; display: grid; place-items: center; color: var(--tq-text3); pointer-events: none; }
+.tqa-sel__q {
+  inline-size: 100%;
+  min-block-size: 36px;
+  padding-block: 4px;
+  padding-inline: 34px 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--tq-line);
+  border-radius: 10px;
+  background: var(--tq-sunken, var(--tq-ground));
+  color: var(--tq-text);
+  font: var(--tq-type-caption);
+  font-family: var(--tq-font-body);
+}
+.tqa-sel__q:focus { outline: 0; border-color: var(--tq-teal); background: var(--tq-surface); }
+
+.tqa-sel__bulk { display: flex; align-items: center; gap: 5px; flex: none; padding: 2px 2px 6px; border-block-end: 1px solid var(--tq-line); margin-block-end: 4px; }
+.tqa-sel__bulk[hidden] { display: none; }
+.tqa-sel__bulkbtn {
+  padding: 3px 9px;
+  border: 1px solid var(--tq-line);
+  border-radius: 999px;
+  background: var(--tq-surface);
+  color: var(--tq-text2);
+  font: var(--tq-type-micro);
+  font-family: var(--tq-font-body);
+  cursor: pointer;
+}
+.tqa-sel__bulkbtn:hover { border-color: var(--tq-navy); color: var(--tq-navy); background: var(--tq-navyWash); }
+.tqa-sel__count { margin-inline-start: auto; padding: 2px 9px; border-radius: 999px; background: var(--tq-navyWash); color: var(--tq-navy); font: var(--tq-type-micro); font-weight: 700; }
+
+/* القائمة هي وحدها التي تمرر: الحقل والأزرار يبقيان ظاهرين مهما طالت.
+   ومن بحث في أربعين خيارا ثم مرر لا ينبغي أن يفقد حقل بحثه. */
+.tqa-sel__list { flex: 1 1 auto; min-block-size: 0; overflow: hidden auto; overscroll-behavior: contain; }
+.tqa-sel__list:focus { outline: 0; }
+
+.tqa-sel__opt {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--tq-text);
+  font: var(--tq-type-caption);
+  cursor: pointer;
+}
+.tqa-sel__opt[hidden] { display: none; }
+.tqa-sel__optlabel { flex: 1; min-inline-size: 0; overflow-wrap: anywhere; }
+.tqa-sel__opt.is-active { background: var(--tq-navyWash); }
+.tqa-sel__opt.is-on { color: var(--tq-mint-ink); font-weight: 700; }
+.tqa-sel__opt.is-on.is-active { background: var(--tq-mint-fill); }
+.tqa-sel__opt.is-off { opacity: .45; cursor: not-allowed; }
+
+/* العلامة: في المفرد صح يظهر عند المختار وحده، وفي المتعدد **مربع
+   دائم** — قائمة يحدد منها كثير بلا مربعات تقرأ قائمة يختار منها واحد،
+   فيظن من فتحها أن اختياره الثاني يلغي الأول. */
+.tqa-sel__tick { display: grid; place-items: center; inline-size: 18px; block-size: 18px; flex: none; color: var(--tq-actionMastery); opacity: 0; }
+.tqa-sel__opt.is-on .tqa-sel__tick { opacity: 1; }
+.tqa-sel--multi .tqa-sel__tick {
+  opacity: 1;
+  border: 1.5px solid var(--tq-line);
+  border-radius: 5px;
+  background: var(--tq-surface);
+  color: transparent;
+}
+.tqa-sel--multi .tqa-sel__opt.is-on .tqa-sel__tick {
+  background: var(--tq-actionMastery);
+  border-color: var(--tq-actionMastery);
+  color: var(--tq-onAction);
+}
+
+.tqa-sel__group + .tqa-sel__group { margin-block-start: 4px; border-block-start: 1px solid var(--tq-line); padding-block-start: 4px; }
+.tqa-sel__group[hidden] { display: none; }
+.tqa-sel__grouplabel { display: block; padding: 7px 10px 3px; font: var(--tq-type-micro); font-weight: 700; letter-spacing: .04em; color: var(--tq-text3); }
+
+.tqa-sel__none { margin: 0; padding: var(--tq-space-l) var(--tq-space-m); text-align: center; font: var(--tq-type-micro); color: var(--tq-text2); }
+.tqa-sel__none[hidden] { display: none; }
+
+.tqa-sel-veil { position: fixed; inset: 0; z-index: 1395; background: transparent; }
+
+/* على الجوال لوح يصعد من القاع: قائمة بعرض ٢٢٤ فوق شاشة ٣٦٠ تغطي
+   نصفها وتقص من طرف. وهي قاعدة قائمة الصف نفسها. */
+@media (max-width: 639.98px) {
+  .tqa-sel__pop.is-sheet {
+    inset-inline: 10px;
+    inset-block: auto 10px;
+    inline-size: auto;
+    max-inline-size: none;
+    max-block-size: 74vh;
+    padding: 10px;
+    border-radius: 20px;
+    animation: tqa-sheet-in 180ms var(--tq-ease-enter);
+  }
+  .tqa-sel__pop.is-sheet .tqa-sel__opt { padding: 11px 12px; }
+  .tqa-sel-veil { background: rgba(1, 33, 31, .34); }
+}
+
+/* ---- المنتق في سياقاته ----
+   القواعد القديمة كانت تصف `.tqa-select` وهو الآن مخفي داخل الصندوق،
+   فتنتقل إلى الصندوق نفسه. وبلا هذا يخرج منتق شريط الأدوات بعرض الشريط
+   كله بدل مئة وثمانين. */
+/* والحد الأعلى ليس زينة: نص القيمة سطر واحد لا ينكسر (وإلا تعرج شريط
+   الأدوات)، فبلا سقف يمتد الصندوق بطول أطول خيار فيه — واسم كورس من
+   عشر كلمات يدفع بقية الشريط خارج الشاشة. */
+.tqa-toolbar .tqa-sel,
+.tqa-toolbar > form .tqa-sel { inline-size: auto; min-inline-size: 180px; max-inline-size: 260px; }
+.tqa-field__row .tqa-sel { flex: 1; min-inline-size: 0; }
+.tqa-menu__form .tqa-sel__btn { min-block-size: 36px; font: var(--tq-type-caption); font-family: var(--tq-font-body); }
+.tqa-menu__form .tqa-sel__caret { inline-size: 26px; block-size: 26px; }
+.tqa-menu__form .tqa-sel + .tqa-input,
+.tqa-menu__form .tqa-input + .tqa-sel { margin-block-start: 6px; }
+/* داخل خلية جدول: الصندوق لا يتمدد على عرض العمود كله — عمود عرضه
+   تسعمئة بكسل يعطي منتقا بعرضه، وهو يقرأ حقل نص لا صندوق اختيار. */
+.tqa-table .tqa-sel { max-inline-size: 260px; }
+
+/* --------------------------------------------------------------------------
+   ١١٫٢ · حقل الملف — TQA-FILE
+
+   `<input type="file">` يخرج بزر النظام ونصه الإنجليزي مهما كانت لغة
+   الصفحة، ولا يقول ثلاثة أشياء يحتاجها من يحرر صفا قائما: ما هو محفوظ
+   الآن، وكيف يحذف، وما اختير قبل الحفظ. والمحرك في
+   [assets/taqdar/js/tqa-file.js]، وما هنا شكل وحده.
+   -------------------------------------------------------------------------- */
+
+.tqa-drop { position: relative; display: grid; gap: var(--tq-space-s); min-inline-size: 0; }
+
+/* الحقل الأصلي يبقى مرسوما فوق منطقة السحب — لعلة `required` نفسها
+   المشروحة في ١١٫١. ويغطي المنطقة وحدها لا الصندوق كله، فتظهر فقاعة
+   التحقق عندها لا تحت قائمة الملفات. */
+.tqa-drop__input {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 76px;
+  inline-size: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tqa-drop__zone {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-m);
+  inline-size: 100%;
+  padding: var(--tq-space-m) var(--tq-space-l);
+  box-sizing: border-box;
+  border: 1.5px dashed var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-sunken, var(--tq-ground));
+  color: var(--tq-text);
+  font: var(--tq-type-caption);
+  font-family: var(--tq-font-body);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--tq-motion-hover) ease, background-color var(--tq-motion-hover) ease;
+}
+.tqa-drop__zone:hover { border-color: var(--tq-teal); background: var(--tq-tealSoft); }
+.tqa-drop__zone:focus-visible { outline: 3px solid var(--tq-focusRing); outline-offset: 2px; }
+/* السحب فوق الصندوق: الحد يمتلئ ويخضر — الإشارة تسبق الإفلات، وبلاها
+   لا يعرف من يسحب أنه فوق هدف يقبل. */
+.tqa-drop.is-over .tqa-drop__zone { border-style: solid; border-color: var(--tq-teal); background: var(--tq-tealSoft); }
+.tqa-drop.is-bad .tqa-drop__zone { border-color: var(--tq-danger); }
+
+.tqa-drop__ic {
+  display: grid;
+  place-items: center;
+  inline-size: 42px;
+  block-size: 42px;
+  flex: none;
+  border-radius: 12px;
+  background: var(--tq-surface);
+  color: var(--tq-teal);
+  box-shadow: inset 0 0 0 1px var(--tq-line);
+}
+.tqa-drop__say { flex: 1; min-inline-size: 0; display: grid; gap: 1px; }
+.tqa-drop__say b { font-weight: 700; color: var(--tq-navy); overflow-wrap: anywhere; }
+.tqa-drop__hint { font: var(--tq-type-micro); color: var(--tq-text2); overflow-wrap: anywhere; }
+.tqa-drop__hint[hidden] { display: none; }
+.tqa-drop__cta {
+  flex: none;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: var(--tq-surface);
+  border: 1px solid var(--tq-line);
+  color: var(--tq-navy);
+  font: var(--tq-type-micro);
+  font-weight: 700;
+}
+.tqa-drop__zone:hover .tqa-drop__cta { background: var(--tq-actionMastery); border-color: var(--tq-actionMastery); color: var(--tq-onAction); }
+
+/* بعد أن يصير في الصندوق ملف تنكمش المنطقة: الملف هو الخبر حينئذ،
+   ومنطقة سحب بارتفاع ٧٦ فوق سطر ملف واحد تجعل الحقل ثلث الشاشة. */
+.tqa-drop.is-full .tqa-drop__zone { padding: var(--tq-space-s) var(--tq-space-m); }
+.tqa-drop.is-full .tqa-drop__ic { inline-size: 32px; block-size: 32px; border-radius: 9px; }
+.tqa-drop.is-full .tqa-drop__input { block-size: 56px; }
+
+.tqa-drop__items { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.tqa-drop__item {
+  display: flex;
+  align-items: center;
+  gap: var(--tq-space-m);
+  padding: 7px;
+  border: 1px solid var(--tq-line);
+  border-radius: var(--tqa-radius-sm);
+  background: var(--tq-surface);
+  min-inline-size: 0;
+}
+.tqa-drop__item.is-current { background: var(--tq-panel, var(--tq-sunken, var(--tq-ground))); }
+/* المحذوف يعرض مشطوبا حتى يحفظ: من ضغط «احذف» سهوا يتراجع قبل أن
+   يفوت، ومن قصده يرى قراره مطبوعا قبل أن يغادر الشاشة. */
+.tqa-drop__item.is-gone { border-color: var(--tq-dangerSoft); background: var(--tq-dangerSoft); }
+.tqa-drop__item.is-gone .tqa-drop__meta b { text-decoration: line-through; color: var(--tq-danger); }
+.tqa-drop__item.is-gone .tqa-drop__thumb { filter: grayscale(1); opacity: .6; }
+
+.tqa-drop__thumb {
+  display: grid;
+  place-items: center;
+  inline-size: 48px;
+  block-size: 48px;
+  flex: none;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--tq-sunken, var(--tq-ground));
+  color: var(--tq-text3);
+}
+.tqa-drop__thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; object-position: 50% 28%; display: block; }
+
+.tqa-drop__meta { flex: 1; min-inline-size: 0; display: grid; gap: 1px; }
+.tqa-drop__meta b { font: var(--tq-type-caption); font-weight: 600; color: var(--tq-navy); overflow-wrap: anywhere; }
+.tqa-drop__meta span { font: var(--tq-type-micro); color: var(--tq-text2); overflow-wrap: anywhere; }
+
+.tqa-drop__acts { display: flex; align-items: center; gap: 5px; flex: none; }
+.tqa-drop__act {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-block-size: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--tq-line);
+  border-radius: 999px;
+  background: var(--tq-surface);
+  color: var(--tq-text2);
+  font: var(--tq-type-micro);
+  font-family: var(--tq-font-body);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--tq-motion-hover) ease, color var(--tq-motion-hover) ease, border-color var(--tq-motion-hover) ease;
+}
+.tqa-drop__act svg { flex: none; }
+.tqa-drop__act:hover { border-color: var(--tq-navy); color: var(--tq-navy); background: var(--tq-navyWash); }
+.tqa-drop__act.is-danger { color: var(--tq-danger); border-color: var(--tq-dangerSoft); }
+.tqa-drop__act.is-danger:hover { background: var(--tq-actionDanger); border-color: var(--tq-actionDanger); color: var(--tq-onAction); }
+.tqa-drop__act.is-undo { color: var(--tq-navy); border-color: var(--tq-navy); }
+
+/* مربع المحو يبقى في النموذج — هو ما يقرؤه الخادم — ويقوده الزر. */
+.tqa-drop__clearbox { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; pointer-events: none; }
+
+.tqa-drop__err { margin: 0; font: var(--tq-type-micro); font-weight: 600; color: var(--tq-danger); }
+.tqa-drop__err[hidden] { display: none; }
+
+@media (max-width: 575.98px) {
+  .tqa-drop__zone { flex-wrap: wrap; }
+  .tqa-drop__cta { inline-size: 100%; text-align: center; }
+}

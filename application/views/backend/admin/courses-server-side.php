@@ -166,6 +166,46 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
     <?php endif; ?>
 </form>
 
+<?php
+/* TQ-FILTER-AMNESIA — المرشح الفعال يقال وينزع في موضع واحد.
+   الشريط أعلى الصفحة، والجدول تحته خمسون صفا: من مرر إلى الصف
+   الأربعين يقرأ «٧ كورسات» ولا يرى في الشاشة ما يقول إن أربعمئة
+   منها محجوبة بمنتق اختاره قبل دقيقتين. و«مسح المرشحات» وحدها لا
+   تكفي — من رشح بثلاثة يريد أن ينزع واحدا لا أن يبدأ من الصفر. */
+$tq_active = array();
+if ($search_term !== '') {
+    $tq_active[] = array(t('بحث:') . ' ' . $search_term, $tq_link(array('q' => '', 'page' => null)));
+}
+if ($selected_category_id !== 'all' && isset($tq_catnames[(int) $selected_category_id])) {
+    $tq_active[] = array($tq_catnames[(int) $selected_category_id],
+                         $tq_link(array('category_id' => 'all', 'page' => null)));
+}
+if ($selected_instructor_id !== 'all' && isset($tq_insnames[(int) $selected_instructor_id])) {
+    $tq_active[] = array($tq_insnames[(int) $selected_instructor_id],
+                         $tq_link(array('instructor_id' => 'all', 'page' => null)));
+}
+if ($selected_price === 'free' || $selected_price === 'paid') {
+    $tq_active[] = array($selected_price === 'free' ? t('مجاني') : t('مدفوع'),
+                         $tq_link(array('price' => 'all', 'page' => null)));
+}
+?>
+<?php if ($tq_active): ?>
+    <div class="tqa-activefilters">
+        <span><?php echo t('مرشح الآن:'); ?></span>
+        <?php foreach ($tq_active as [$tq_lbl, $tq_off]): ?>
+            <span class="tqa-chip"><?php echo html_escape($tq_lbl); ?>
+                <a class="tqa-chip__x" href="<?php echo html_escape($tq_off); ?>"
+                   title="<?php echo te('انزع هذا المرشح'); ?>"
+                   aria-label="<?php echo te('انزع مرشح ____', array($tq_lbl)); ?>">&times;</a>
+            </span>
+        <?php endforeach; ?>
+        <?php if (count($tq_active) > 1): ?>
+            <a class="tqa-chip" href="<?php echo $tq_link(array('q' => '', 'category_id' => 'all',
+                'instructor_id' => 'all', 'price' => 'all', 'page' => null)); ?>"><?php echo t('امسح الكل'); ?></a>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
+
 <div class="tqa-card tqa-card--flush">
 <?php if (empty($courses)): ?>
 
@@ -186,14 +226,14 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
             <caption class="tqa-sr"><?php echo t('الكورسات: المرحلة والمادة والمحتوى والمسجلون والحالة والسعر'); ?></caption>
             <thead>
                 <tr>
-                    <th style="inline-size:60px">#</th>
+                    <th class="tqa-col--tight">#</th>
                     <th><?php echo t('الكورس'); ?></th>
                     <th><?php echo t('المرحلة والمادة'); ?></th>
                     <th><?php echo t('المحتوى'); ?></th>
                     <th><?php echo t('المسجلون'); ?></th>
                     <th><?php echo t('الحالة'); ?></th>
                     <th><?php echo t('السعر'); ?></th>
-                    <th style="inline-size:230px"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
+                    <th class="tqa-col--acts"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                 </tr>
             </thead>
             <tbody>
@@ -272,57 +312,82 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/cours
                         </span>
                     </td>
 
-                    <?php /* الإجراءات أزرار ظاهرة لا قائمة نقاط ثلاث: القائمة
-                             المنسدلة كانت تفتح `dropright` — أي «إلى اليمين»
-                             حرفيا — داخل جدول في صفحة عربية، فتقص عند الحافة. */ ?>
-                    <td data-label="إجراءات">
-                        <div class="tqa-rowacts">
-                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                               href="<?php echo site_url('admin/course_form/course_edit/' . $tq_id); ?>">
-                                <?php echo tq_icon('edit', 14); ?> <?php echo t('تحرير'); ?>
-                            </a>
+                    <?php /* والقائمة هنا **لا تعيد عطل `dropright`**: تلك كانت
+                             تفتح «إلى اليمين» حرفيا داخل جدول في صفحة عربية
+                             فتقص عند حافته، وهذه `position: fixed` يحسب
+                             موضعها [admin.js] من مستطيل زرها — فلا يقصها
+                             `overflow` ولا تخرج من الشاشة. */ ?>
+                    <td class="tqa-col--acts" data-label="<?php echo te('إجراءات'); ?>">
+                        <?php
+                        /* TQ-ROW-CLUTTER — أربعة إجراءات في عمود صارت قائمة.
 
-                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_slug; ?>"
-                               target="_blank" rel="noopener" title="<?php echo te('صفحة الكورس في الموقع'); ?>">
-                                <?php echo tq_icon('external', 14); ?>
-                                <span class="tqa-sr"><?php echo t('صفحته في الموقع'); ?></span>
-                            </a>
+                           كانت مجموعة ملتحمة بعرض ٢٣٠ بكسلا في جدول من
+                           ثمانية أعمدة، فتخرج أعمدة المحتوى والمسجلين
+                           والسعر من الإطار على شاشة لوح — وهي التي يفتح
+                           المسؤول الشاشة ليقرأها.
 
-                            <?php
+                           و«المقرر» أضيف على رأسها: هو ما يفتح لأجله
+                           الكورس تسع مرات من عشر، وكان يبلغ بتبويب داخل
+                           شاشة التحرير — أي نقرتين بعد أن يحمل نموذج من
+                           تسعة تبويبات. */
+                        $tq_to   = $tq_c['status'] === 'active' ? 'pending' : 'active';
+                        $tq_verb = $tq_c['status'] === 'active' ? t('أوقف النشر') : t('انشر');
+
+                        $tq_acts = array(
+                            array(
+                                'label' => t('المقرر'),
+                                'sub'   => t('الأقسام والدروس والاختبارات'),
+                                'icon'  => 'layers',
+                                'tone'  => 'go',
+                                'href'  => site_url('admin/course_form/course_edit/' . $tq_id) . '?tab=curriculum',
+                            ),
+                            array(
+                                'label' => t('تحرير الكورس'),
+                                'sub'   => t('البيانات والتسعير والصورة'),
+                                'icon'  => 'edit',
+                                'href'  => site_url('admin/course_form/course_edit/' . $tq_id),
+                            ),
+                            array(
+                                'label'  => t('صفحته في الموقع'),
+                                'sub'    => t('تفتح في لسان جديد'),
+                                'icon'   => 'external',
+                                'href'   => $tq_slug,
+                                'target' => '_blank',
+                            ),
+                            array('sep' => true),
                             /* TQ-GET-DESTROY — كان الزران رابطين `<a href>`، فالنشر
                                والحذف يقعان **بمجرد جلب العنوان**: التأكيد كان في
                                المتصفح وحده، ولا يقف أمام جالب مسبق ولا أمام فتح
                                الرابط من سجل أو من زر رجوع. وحذف كورس يحذف دروسه
-                               وتسجيلات طلابه معه. فصارا نموذجي POST بتوكن. */
-                            $tq_to   = $tq_c['status'] === 'active' ? 'pending' : 'active';
-                            $tq_verb = $tq_c['status'] === 'active' ? t('أوقف النشر') : t('انشر');
-                            $tq_url  = site_url('admin/change_course_status_for_admin/' . $tq_to . '/' . $tq_id
-                                     . '/' . $selected_category_id . '/' . $selected_instructor_id . '/all/' . $selected_status);
-                            ?>
-                            <form method="post" action="<?php echo $tq_url; ?>"
-                                  data-tqa-confirm-title="<?php echo html_escape($tq_verb); ?>"
-                                  data-tqa-confirm="<?php echo te('سيتغير ظهور «____» في الموقع العام.', array(html_escape($tq_c['title']))); ?>"
-                                  data-tqa-confirm-ok="<?php echo html_escape($tq_verb); ?>">
-                                <?php echo tq_csrf(); ?>
-                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm">
-                                    <?php echo tq_icon($tq_c['status'] === 'active' ? 'eye' : 'check', 14); ?>
-                                    <?php echo html_escape($tq_verb); ?>
-                                </button>
-                            </form>
-
-                            <form method="post" action="<?php echo site_url('admin/course_actions/delete/' . $tq_id); ?>"
-                                  data-tqa-confirm-title="<?php echo te('حذف الكورس'); ?>"
-                                  data-tqa-confirm="<?php echo te('سيحذف «____» ودروسه وتسجيلات طلابه. لا رجعة في هذا.', array(html_escape($tq_c['title']))); ?>"
-                                  data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
-                                  data-tqa-confirm-tone="danger">
-                                <?php echo tq_csrf(); ?>
-                                <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                        style="color:var(--tq-danger)">
-                                    <?php echo tq_icon('trash', 14); ?>
-                                    <span class="tqa-sr"><?php echo t('حذف'); ?> <?php echo html_escape($tq_c['title']); ?></span>
-                                </button>
-                            </form>
-                        </div>
+                               وتسجيلات طلابه معه. فصارا نموذجي POST بتوكن —
+                               و`tqa_rowmenu()` تكتب النموذج والتوكن معا. */
+                            array(
+                                'label'   => $tq_verb,
+                                'icon'    => $tq_c['status'] === 'active' ? 'eye' : 'check',
+                                'action'  => 'admin/change_course_status_for_admin/' . $tq_to . '/' . $tq_id
+                                           . '/' . $selected_category_id . '/' . $selected_instructor_id
+                                           . '/all/' . $selected_status,
+                                'confirm' => array(
+                                    'title' => $tq_verb,
+                                    'body'  => t('سيتغير ظهور «____» في الموقع العام.', array($tq_c['title'])),
+                                    'ok'    => $tq_verb,
+                                ),
+                            ),
+                            array(
+                                'label'   => t('حذف الكورس'),
+                                'icon'    => 'trash',
+                                'tone'    => 'danger',
+                                'action'  => 'admin/course_actions/delete/' . $tq_id,
+                                'confirm' => array(
+                                    'title' => t('حذف الكورس'),
+                                    'body'  => t('سيحذف «____» ودروسه وتسجيلات طلابه. لا رجعة في هذا.', array($tq_c['title'])),
+                                    'ok'    => t('نعم، احذف'),
+                                    'tone'  => 'danger',
+                                ),
+                            ),
+                        );
+                        echo tqa_rowmenu($tq_acts, array('title' => $tq_c['title'], 'sub' => '#' . $tq_id));
+                        ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

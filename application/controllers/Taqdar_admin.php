@@ -536,11 +536,17 @@ class Taqdar_admin extends CI_Controller
 
     public function people()
     {
+        /* الحال في الرابط وحده — قاعدة الكتالوج نفسها: الدور والبحث ورقم
+           الصفحة معاملات `GET`، فالرابط يشارك ويحفظ ويعود إليه بالرجوع. */
+        $view = $this->taqdar_admin_model->people(
+            (string) $this->input->get('role'),
+            (string) $this->input->get('q'),
+            (int) $this->input->get('p')
+        );
+
         $this->render('tqa_people', 'كل الحسابات', array(
-            'rows'  => $this->taqdar_admin_model->people(
-                (string) $this->input->get('role'),
-                (string) $this->input->get('q')
-            ),
+            'rows'  => $view['rows'],
+            'view'  => $view,
             'role'  => (string) $this->input->get('role'),
             'q'     => (string) $this->input->get('q'),
             'tally' => $this->taqdar_admin_model->role_tally(),
@@ -821,12 +827,24 @@ class Taqdar_admin extends CI_Controller
         $spec = $this->taqdar_admin_model->spec($key);
         if (!$spec) show_404();
 
+        /* الحال في الرابط وحده — قاعدة الكتالوج نفسها: البحث والفرز ورقم
+           الصفحة معاملات `GET`، فالرابط يشارك ويحفظ ويعود إليه بالرجوع،
+           ولا حال ثانية في المتصفح تفترق عما يفهمه الخادم. */
+        $view = $this->taqdar_admin_model->browse($key, array(
+            'q'    => (string) $this->input->get('q'),
+            'sort' => (string) $this->input->get('sort'),
+            'dir'  => (string) $this->input->get('dir'),
+            'page' => (int) $this->input->get('p'),
+        ));
+
         $this->render('tqa_list', $spec['title'], array(
             // بند الشريط اسمه `tqa_<المفتاح>` — انظر التعليق على `render()`
             'nav_key' => 'tqa_' . $key,
             'mkey' => $key,
             'spec' => $spec,
-            'rows' => $this->taqdar_admin_model->listing($key),
+            'rows' => $view['rows'],
+            'view' => $view,
+            'sortable' => $this->taqdar_admin_model->sortable_cols($key),
         ));
     }
 
@@ -892,8 +910,13 @@ class Taqdar_admin extends CI_Controller
         /* والاسم الثلاثة معا: الباقة والمسار **والكورس المفرد**. وكان
            الضم على `plans` وحده، فيقرأ صف الشراء المفرد عمودا فارغا —
            والقالب يطبع «—» على بيعة لها اسم ومشتر ومبلغ. */
+        /* والبريد والصورة معه: الصف كان يقول اسما وحده، ومن يفعل حوالة
+           يحتاج أن يتحقق ممن يفعل لها — والاسمان يتشابهان في قائمة من
+           ثلاثمئة، والبريد لا يتشابه. والصورة تمسكها العين قبل الحرف،
+           و`tqa_avatar()` تقرأ الرمز من الصف بلا استعلام لكل سطر. */
         $rows = $this->db->select('s.*, p.name_ar AS plan_name,'
                 . ' t.title AS path_name, c.title AS course_name,'
+                . ' u.email AS user_email, u.image AS user_image,'
                 . ' TRIM(CONCAT(COALESCE(u.first_name, ""), " ", COALESCE(u.last_name, ""))) AS user_name', false)
             ->from('subscriptions s')
             ->join('plans p', 'p.id = s.plan_id', 'left')

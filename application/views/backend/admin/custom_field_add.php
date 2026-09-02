@@ -140,8 +140,7 @@ foreach ($this->db->select('custom_type, custom_title')->where('course_id', (int
                 <?php endif; ?>
 
                 <div class="tqa-actions" style="margin-block-start:var(--tq-space-s)">
-                    <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm" data-tqa-rep-remove
-                            style="color:var(--tq-danger)">
+                    <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--quiet-danger" data-tqa-rep-remove>
                         <?php echo tq_icon('trash', 14); ?> <?php echo t('احذف هذا البند'); ?>
                     </button>
                 </div>

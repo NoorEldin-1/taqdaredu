@@ -1,34 +1,20 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
-<script>
+<?php
 /**
- * اسم الملف المختار.
+ * TQA-FILE — لم يعد هنا سكربت.
  *
- * `<input type="file">` مخفي بصريا في هيكل `.tqa-file` — لأن مظهره
- * الأصلي زر نظام بخطه ونصه الإنجليزي مهما كانت لغة الصفحة. والملصق
- * يقوم مقامه، لكنه لا يعرف ما اختير. فبلا هذه الأسطر يضغط المستخدم
- * «اختر صورة» ويختار ملفا ولا يرى أثرا لاختياره، فيظن أنه لم ينجح.
+ * كان هنا خمسة عشر سطرا تكتب اسم الملف المختار في `.tqa-file__name`،
+ * وتضمن في ست عشرة شاشة. وصار حقل الملف كله مكونا واحدا في
+ * [assets/taqdar/js/tqa-file.js] يحمل مرة في رأس كل صفحة من صفحات
+ * اللوحة: يمسح كل `input[type=file]` — الموسوم منها وغير الموسوم —
+ * ويستوعب الوسم الموروث بما فيه (صورته الحالية ونص ملصقه)، فيخرج
+ * الحقل نفسه في الشاشات الستة عشر وفي التي تكتب غدا.
  *
- * تحميل الصفحة يمر مرة واحدة على كل حقول الملفات فيها؛ ولا شيء هنا
- * شرط للحفظ — النموذج يرسل الملف بلا هذا السطر.
+ * والملف يبقى — لا يحذف — لأن ست عشرة شاشة تضمنه بالاسم: حذفه يرمي
+ * «Failed opening required» في كل واحدة منها. وتفريغه هنا يسقط المحرك
+ * الثاني في موضع واحد بدل ست عشرة تعديلة.
+ *
+ * ومحركان لحقل واحد يفترقان عند أول تشديد: يصلح أحدهما فيبقى الآخر
+ * يكتب فوقه.
  */
-(function () {
-    'use strict';
-
-    Array.prototype.forEach.call(document.querySelectorAll('[data-tqa-file]'), function (input) {
-        var box = input.closest('.tqa-file');
-        var out = box && box.querySelector('[data-tqa-file-name]');
-        if (!out) return;
-
-        /* يضمن في الصفحة وفي النوافذ المجلوبة معا — والحارس يمنع ربطا
-           ثانيا يعيد كتابة الاسم مرتين. */
-        if (input.dataset.tqaFileOn === '1') return;
-        input.dataset.tqaFileOn = '1';
-
-        var idle = out.textContent;
-
-        input.addEventListener('change', function () {
-            out.textContent = input.files && input.files.length ? input.files[0].name : idle;
-        });
-    });
-})();
-</script>
+?>

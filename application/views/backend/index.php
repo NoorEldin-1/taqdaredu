@@ -45,6 +45,8 @@ $tqa_lang   = $tqa_active;
          عند أول تعديل. ويطبع في الرأس قبل كل سكربت، فما يقرؤه أولها
          يقرؤه آخرها. */ ?>
     <?php echo tq_i18n_js(); ?>
+<?php /* ومحركه بعده بلا تأجيل — انظر `frontend/taqdar/index.php`. */ ?>
+    <script src="<?php echo tq_asset('js/tq-i18n.js'); ?>"></script>
 </head>
 
 <body class="tqa" data-layout="detached">

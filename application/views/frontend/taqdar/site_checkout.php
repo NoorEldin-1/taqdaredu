@@ -217,10 +217,17 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
           <h2>ملخص الطلب</h2>
 
           <div class="co-item">
-            <?php if ((string) $b['image'] !== ''): ?>
-              <img class="co-item__img" src="<?php echo tqs_asset_img($b['image'], 'path-primary'); ?>"
-                   alt="" width="220" height="147" loading="lazy" decoding="async">
-            <?php endif; ?>
+            <?php /* TQ-PLAN-IMG — الغلاف من `tqs_plan_cover()` وحدها، وهذه
+                     كانت الصفحة الرابعة التي تشتق صورتها بنفسها. كانت تنادي
+                     `tqs_asset_img($b['image'], …)` وهي تبني **اسم أصل** من
+                     السمة (`assets/taqdar/site/img/<اسم>.webp`)، وما ترفعه
+                     اللوحة **مسار** تحت `uploads/` بامتداده — فيخرج
+                     `…/img/uploads/plans/plans-31-….webp.webp` أي 404: صورة
+                     مكسورة في الشاشة التي يقرأ فيها المشتري ما يدفع ثمنه.
+                     والشرط على `image` كان يحذف الغلاف كله عمن لم يرفع صورة،
+                     وله غلاف مشتق وغلاف مرحلة ترد بهما الدالة. */ ?>
+            <img class="co-item__img" src="<?php echo html_escape(tqs_plan_cover($b)); ?>"
+                 alt="" width="220" height="147" loading="lazy" decoding="async">
             <div class="co-item__b">
               <h3><?php echo html_escape($b['name']); ?></h3>
               <?php if ($b['note'] !== ''): ?>

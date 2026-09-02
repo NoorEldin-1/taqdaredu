@@ -62,6 +62,18 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
 <link rel="stylesheet" href="<?php echo tq_site_asset('css/shared.css'); ?>">
 
 <?php if (!empty($tq_is_portal)): ?>
+<?php /* TQ-PORTAL-UI — طبقة ترقية البوابات: نظير `admin.css §٩` و`§١٠`
+         للوحة. تحمل **آخر السلسلة** فتتجاوز `shared.css` كذلك، وكل
+         قاعدة فيها مقيدة بـ`body.tq-body--portal` — والصنف لا يوضع إلا
+         على صفحة بوابة. وحذف هذا السطر وحده يعيد البوابات الثلاث إلى
+         ما كانت عليه، بلا قالب يعدل. */ ?>
+<?php /* TQA-CONTROLS — المنتق وحقل الملف: الورقة نفسها التي تقرؤها
+         اللوحة، لا نسخة منها. `<select>` يرسمه نظام التشغيل و
+         `<input type=file>` يقول «No file chosen» بالإنجليزية — وهما
+         كذلك في شاشة الطالب كما في شاشة الإدارة، فلوح فرز المفضلة كان
+         يعرض منتقيا عاريا بسهم النظام إلى جوار رقاقات مصممة. */ ?>
+<link rel="stylesheet" href="<?php echo tq_asset('css/tqa-controls.css'); ?>">
+<link rel="stylesheet" href="<?php echo tq_asset('css/portal.css'); ?>">
 <?php /* حالة طي الشريط الجانبي تثبت قبل الرسم لا بعد تحميل السكربت.
         لو كتبت في `taqdar.js` (المؤجل بـ`defer`) لرسم الشريط مفتوحا في كل
         صفحة ثم انطوى أمام العين — وميض في كل تنقل يقرأ عطلا لا ذاكرة. */ ?>

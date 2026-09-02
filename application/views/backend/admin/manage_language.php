@@ -230,8 +230,7 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
                                           data-tqa-confirm-ok="<?php echo te('نعم، احذف'); ?>"
                                           data-tqa-confirm-tone="danger">
                                         <?php echo tq_csrf(); ?>
-                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
-                                                style="color:var(--tq-danger)">
+                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--quiet-danger">
                                             <?php echo tq_icon('trash', 14); ?> <?php echo t('حذف'); ?>
                                         </button>
                                     </form>

@@ -63,7 +63,10 @@ include 'portal_open.php';
     <?php foreach ($tq_books as $i => $b):
       $has_file = trim((string) $b['file']) !== '';
       $tone     = html_escape($b['tone'] ?: 'math');
-      $meta     = array_filter(array($b['subject'], $b['author']));
+      /* المادة صارت وجه الغلاف (TQ-COVER-BLANK)، فسطر «الرياضيات» تحت
+         عنوان «الرياضيات — الصف الأول» يكرر ما قرئ مرتين قبله. ويبقى
+         المؤلف: هو وحده ما لا يقوله الغلاف. */
+      $meta     = array_filter(array($b['author']));
     ?>
       <article class="tq-lib-card">
         <div class="tq-lib-card__cover tq-lib-tone--<?php echo $tone; ?>">
@@ -71,7 +74,26 @@ include 'portal_open.php';
             <img src="<?php echo base_url(html_escape($b['cover'])); ?>" alt=""
                  loading="lazy" width="200" height="280">
           <?php else: ?>
-            <span aria-hidden="true"><?php echo tq_icon('book', 34); ?></span>
+            <?php /* TQ-COVER-BLANK — الغلاف الخالي يحمل اسمه.
+                     كان مستطيلا بنسبة ٥:٧ (٢٢٠×٣٠٨) فيه أيقونة قطرها ٣٤ —
+                     أي أن تسعة وتسعين بالمئة منه فراغ ملون. وثمانية كتب
+                     تعرض ثمانية مستطيلات لا يفرق بينها إلا درجة اللون،
+                     فمن يبحث عن كتاب بعينه يقرأ ثمانية عناوين من سطرين
+                     تحتها — والغلاف، وهو أكبر ما في البطاقة، لا يعينه.
+                     وغلاف الكتاب الورقي يحمل المادة بخط كبير والصف تحته،
+                     فيقرأ من مسافة. والعنوان في القاعدة يجمعهما بشرطة
+                     («الرياضيات — الصف الأول الابتدائي») فيقسم عندها:
+                     المادة للغلاف، والصف شارة في زاويته. وما لا شرطة فيه
+                     يعرض كما هو ولا يخترع له قسمان. */
+              $tq_bits  = preg_split('/\s+[—–-]\s+/u', (string) $b['title'], 2);
+              $tq_face  = trim((string) ($b['subject'] ?: $tq_bits[0]));
+              $tq_stage = isset($tq_bits[1]) ? trim($tq_bits[1]) : '';
+            ?>
+            <p class="tq-lib-cover-t"><?php echo html_escape($tq_face); ?></p>
+            <?php if ($tq_stage !== ''): ?>
+              <p class="tq-lib-cover-s"><?php echo html_escape($tq_stage); ?></p>
+            <?php endif; ?>
+            <span aria-hidden="true"><?php echo tq_icon('book', 22); ?></span>
           <?php endif; ?>
         </div>
 
@@ -90,8 +112,10 @@ include 'portal_open.php';
                       data-tq-read="<?php echo base_url(html_escape($b['file'])); ?>"
                       data-tq-title="<?php echo html_escape($b['title']); ?>"><?php echo t('افتح الكتاب'); ?></button>
             <?php else: ?>
-              <?php /* لا ملف: يقال ذلك صراحة. زر يفتح لا شيء أسوأ من غيابه. */ ?>
-              <span class="tq-caption"><?php echo t('الملف لم يرفع بعد'); ?></span>
+              <?php /* لا ملف: يقال ذلك صراحة. زر يفتح لا شيء أسوأ من غيابه.
+                       وهي ملاحظة لا إجراء، فتأخذ سطرها كاملا ولا تصطف مع
+                       زر: نص رمادي ملاصق لزر يقرأ زرا معطلا فيضغط. */ ?>
+              <span class="tq-lib-card__note"><?php echo t('الملف لم يرفع بعد'); ?></span>
             <?php endif; ?>
             <?php if (trim((string) $b['slug']) !== ''): ?>
               <a class="tq-btn tq-btn--ghost tq-btn--sm"
@@ -155,6 +179,10 @@ include 'portal_open.php';
 .tq-lib-card__act {
   display: flex; flex-wrap: wrap; gap: var(--tq-space-s);
   align-items: center; margin-block-start: auto; padding-block-start: var(--tq-space-m);
+}
+.tq-lib-card__note {
+  flex-basis: 100%; font: var(--tq-type-micro);
+  color: var(--tq-text3); margin-block-end: var(--tq-space-xs);
 }
 
 /* القارئ */
@@ -242,8 +270,35 @@ include 'portal_open.php';
       })
       .catch(function (e) {
         msg.hidden = false;
-        msg.textContent = e.message || 'تعذر فتح هذا الكتاب.';
+        msg.textContent = readerError(e);
       });
+  }
+
+  /* TQ-RAW-ERROR — pdf.js يرمي بالإنجليزية: «Missing PDF»، «Invalid PDF
+     structure»، «Unexpected server response». وكتابتها حرفا تضع جملة
+     إنجليزية وسط قارئ عربي، ولا تقول لصاحبها ما يفعل — والأربعة تعالج
+     بغير ما يعالج به بعضها: هذا يبلغ معلمه، وهذا يعيد المحاولة. فالنوع
+     (`e.name`) هو المفتاح لا النص، وما لا يعرف يرد إلى جملة واحدة. */
+  /* والنصوص تخرج من PHP مترجمة، لا من `TQ.t()`.
+     `tq_i18n_js()` لا يطبع في المتصفح إلا قاموس `js.php`، وهو يبنى من
+     `assets/taqdar/js/*.js` وحدها — فمفتاح يكتب `TQ.t()` داخل قالب PHP
+     يسجل في `portal.php` ولا يصل المتصفح أبدا، فيقرأ الإنجليزي عربيا
+     ولا يخطئ شيء. و`te()` تحل هنا: الترجمة تقع في الخادم قبل الطبع. */
+  var READER_ERR = {
+    missing:  <?php echo json_encode(t('لم يعد ملف هذا الكتاب موجودا. أبلغ معلمك.'), JSON_UNESCAPED_UNICODE); ?>,
+    invalid:  <?php echo json_encode(t('ملف هذا الكتاب تالف ولا يفتح. أبلغ معلمك.'), JSON_UNESCAPED_UNICODE); ?>,
+    locked:   <?php echo json_encode(t('هذا الكتاب محمي بكلمة مرور ولا يفتح هنا.'), JSON_UNESCAPED_UNICODE); ?>,
+    fallback: <?php echo json_encode(t('تعذر فتح هذا الكتاب. أعد المحاولة، وإن تكرر فأبلغ الدعم.'), JSON_UNESCAPED_UNICODE); ?>
+  };
+
+  function readerError(e) {
+    var n = (e && e.name) || '';
+    if (n === 'MissingPDFException')          return READER_ERR.missing;
+    if (n === 'InvalidPDFException')          return READER_ERR.invalid;
+    if (n === 'PasswordException')            return READER_ERR.locked;
+    if (n === 'UnexpectedResponseException')  return TQ.netMessage('offline');
+    if (!navigator.onLine)                    return TQ.netMessage('offline');
+    return READER_ERR.fallback;
   }
 
   function render() {

@@ -168,23 +168,25 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
-        <nav class="tq-tabs tq-s-tabs" aria-label="<?php echo te('تصفية الاختبارات بالحالة'); ?>">
-            <?php
-            $tabs = [
-                ''         => [t('الكل'),    count($tq_quizzes)],
-                'upcoming' => [t('القادمة'), count($tq_upcoming)],
-                'live'     => [t('الجارية'), count($tq_live)],
-                'done'     => [t('المنتهية'), count($tq_done)],
+        <?php /* TQ-FILTERBAR — المكون الواحد. انظر `tq_filterbar()`. */ ?>
+        <?php
+        $tabs = [
+            ''         => [t('الكل'),    count($tq_quizzes)],
+            'upcoming' => [t('القادمة'), count($tq_upcoming)],
+            'live'     => [t('الجارية'), count($tq_live)],
+            'done'     => [t('المنتهية'), count($tq_done)],
+        ];
+        $tq_bar = [];
+        foreach ($tabs as $key => $t) {
+            $tq_bar[] = [
+                'url'    => base_url('student/exams') . ($key !== '' ? '?state=' . $key : ''),
+                'label'  => $t[0],
+                'count'  => (int) $t[1],
+                'active' => $f_state === $key,
             ];
-            foreach ($tabs as $key => $t):
-                $href = base_url('student/exams') . ($key !== '' ? '?state=' . $key : '');
-                ?>
-                <a class="tq-tab" href="<?php echo $href; ?>" <?php echo $f_state === $key ? 'aria-current="page"' : ''; ?>>
-                    <?php echo html_escape($t[0]); ?>
-                    <span class="tq-tab__n"><?php echo TQ_LRI . (int) $t[1] . TQ_PDI; ?></span>
-                </a>
-            <?php endforeach; ?>
-        </nav>
+        }
+        echo tq_filterbar($tq_bar, t('تصفية الاختبارات بالحالة'));
+        ?>
 
         <?php if (empty($tq_quizzes)): ?>
             <div class="tq-card">
@@ -445,9 +447,16 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-s-2x2">
                     <?php
+                    /* TQ-PASTEL-NOISE — والنبرة تتبع الحال لا البطاقة.
+                       `peach` في هذه اللوحة تعني «انتبه»، و«صفر اختبارات
+                       جارية» لا شيء فيه ينتبه له — بل هو الحال الهادئة.
+                       ولون تنبيه على صفر يستهلك النبرة، فلا تعود تعني شيئا
+                       في اليوم الذي يجري فيه اختبار فعلا. */
                     echo tq_s_stat(tq_num(count($tq_upcoming)), t('اختبارات قادمة'), 'calendar', 'sky');
-                    echo tq_s_stat(tq_num(count($tq_live)),     t('اختبار جار'),    'clock',    'peach');
-                    echo tq_s_stat(tq_num(count($tq_done)),     t('اختبارات مكتملة'), 'check',   'mint');
+                    echo tq_s_stat(tq_num(count($tq_live)),     t('اختبار جار'),    'clock',
+                                   count($tq_live) > 0 ? 'peach' : 'sand');
+                    echo tq_s_stat(tq_num(count($tq_done)),     t('اختبارات مكتملة'), 'check',
+                                   count($tq_done) > 0 ? 'mint' : 'sand');
                     echo tq_s_stat(
                         $tq_avg === null ? '<span class="tq-muted">—</span>' : tq_num($tq_avg . '%'),
                         t('متوسط الدرجات'), 'award', 'lilac',

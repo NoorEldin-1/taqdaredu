@@ -81,7 +81,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newslet
                               data-tqa-confirm-ok="<?php echo te('نعم، ألغ'); ?>"
                               data-tqa-confirm-tone="danger">
                             <?php echo tq_csrf(); ?>
-                            <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)">
+                            <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm tqa-btn--quiet-danger">
                                 <?php echo tq_icon('trash', 14); ?> <?php echo t('إلغاء'); ?>
                             </button>
                         </form>

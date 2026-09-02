@@ -169,16 +169,21 @@ include 'tq_notif_styles.php';
         <?php echo tq_spam_notice(array('what' => t('إشعاراتنا'), 'class' => 'tq-spam--top')); ?>
 
         <div class="tq-row tq-row--between" style="margin-block-end:var(--tq-space-l);flex-wrap:wrap;gap:var(--tq-space-m)">
-            <nav class="tq-tabs" aria-label="<?php echo te('تصفية الإشعارات'); ?>" style="margin-block-end:0;border-block-end:0">
-                <?php foreach ($tq_states as $key => $info): ?>
-                    <a class="tq-tab"
-                       href="<?php echo base_url('teacher/notifications') . ($key === 'all' ? '' : '?state=' . $key); ?>"
-                       <?php echo tq_active($key, $tq_state); ?>>
-                        <?php echo html_escape($info[0]); ?>
-                        <span class="tq-tab__n"><?php echo TQ_LRI . (int) $info[1] . TQ_PDI; ?></span>
-                    </a>
-                <?php endforeach; ?>
-            </nav>
+            <?php /* TQ-FILTERBAR — المكون الواحد. انظر `tq_filterbar()`.
+                     وشاشتا الإشعارات (طالب ومعلم) تقرآن منه معا، فما يصلح
+                     في إحداهما لا يبقى في الأخرى. */ ?>
+            <?php
+            $tq_bar = [];
+            foreach ($tq_states as $key => $info) {
+                $tq_bar[] = [
+                    'url'    => base_url('teacher/notifications') . ($key === 'all' ? '' : '?state=' . $key),
+                    'label'  => $info[0],
+                    'count'  => (int) $info[1],
+                    'active' => $tq_state === $key,
+                ];
+            }
+            echo tq_filterbar($tq_bar, t('تصفية الإشعارات'));
+            ?>
 
             <?php if ($tq_unread_count > 0): ?>
                 <form method="post" action="<?php echo base_url('teacher/notifications'); ?>">

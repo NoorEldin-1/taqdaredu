@@ -3,7 +3,11 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $M = &get_instance()->taqdar_admin_model;
 
 $labels = array('pending' => t('معلق'), 'active' => t('نشط'), 'cancelled' => t('ملغى'), 'expired' => t('منته'));
-$tones  = array('pending' => 'warning', 'active' => 'success', 'cancelled' => 'danger', 'expired' => 'danger');
+/* النبرة بأسماء `tqa-badge` لا بأسماء Bootstrap: كانت `warning`/`success`
+   وهما صنفا شارة القالب القديم، فتخرج شارة الحالة بلون الحزمة لا بلون
+   الهوية. و«منته» ليست خطرا — انتهاء الأجل في وقته حال طبيعية، والأحمر
+   عليها يجعل نصف الجدول يقرأ إنذارا. */
+$tq_tone = array('pending' => 'warn', 'active' => 'ok', 'cancelled' => 'danger', 'expired' => 'muted');
 ?>
 
 <div class="tqa-head">
@@ -89,27 +93,60 @@ $tq_stale = (int) get_instance()->db->query(
     </div>
 <?php endif; ?>
 
-<div class="tqa-stack">
-    <?php foreach (array(
-        'الباقات' => $stats['plans'], 'اشتراكات نشطة' => $stats['active'],
-        'بانتظار التفعيل' => $stats['pending'], 'فواتير غير مدفوعة' => $stats['unpaid'],
-    ) as $label => $num): ?>
-        <div>
-            <div class="tqa-stat">
-                <span class="tqa-stat-label"><?php echo te($label); ?></span>
-                <span class="tqa-stat-num tq-ltr" dir="ltr"><?php echo (int) $num; ?></span>
-            </div>
-        </div>
-    <?php endforeach; ?>
+<?php
+/* بطاقات الرأس — كانت أربعة أرقام في `tqa-stack`، وهي شبكة **بعمود
+   واحد**: فتخرج أربع بطاقات بعرض الشاشة كاملا واحدة تحت أخرى بطول
+   شاشتين، والرقم فيها ٣٤ بكسلا وحده في فراغ عرضه ألف — وهي أول ما يقع
+   عليه بصر من يفتح الشاشة.
+
+   وأربعة أرقام بيضاء متطابقة لا تقول أيها خبر وأيها عمل ينتظر:
+   «فواتير غير مدفوعة ١١» و«اشتراكات نشطة ٧» متضادان في المعنى وسيان
+   في الشكل. فصارت لكل واحدة نبرتها وأيقونتها، وسطر تحت الرقم يقول ما
+   يفعل به — و«بانتظار التفعيل» و«غير مدفوعة» هما وحدهما ما يفتح هذه
+   الشاشة أصلا.
+
+   و«إجمالي المحصل» بينها لا في ترويسة الجدول: هو رقم من جنسها. */
+?>
+<div class="tqa-stack tqa-stack--stats">
+    <?php echo tqa_stat(t('إجمالي المحصل'), tqa_money($stats['revenue']),
+        array('icon' => 'wallet', 'tone' => 'ok',
+              'hint' => t('كل ما سدد فعلا'))); ?>
+
+    <?php echo tqa_stat(t('اشتراكات نشطة'), (int) $stats['active'],
+        array('icon' => 'check-badge', 'tone' => 'ok',
+              'hint' => t('محتواها مفتوح الآن'))); ?>
+
+    <?php echo tqa_stat(t('بانتظار التفعيل'), (int) $stats['pending'],
+        array('icon' => 'clock', 'tone' => (int) $stats['pending'] > 0 ? 'warn' : 'info',
+              'hint' => (int) $stats['pending'] > 0
+                    ? t('تحقق من الحوالة ثم فعل من القائمة')
+                    : t('لا شيء ينتظرك'))); ?>
+
+    <?php echo tqa_stat(t('فواتير غير مدفوعة'), (int) $stats['unpaid'],
+        array('icon' => 'receipt', 'tone' => (int) $stats['unpaid'] > 0 ? 'danger' : 'info',
+              'hint' => t('صدرت ولم يصل مقابلها'),
+              'href' => site_url('taqdar_admin/module/invoices'))); ?>
+
+    <?php echo tqa_stat(t('الباقات'), (int) $stats['plans'],
+        array('icon' => 'package', 'tone' => 'info',
+              'hint' => t('المعروض للبيع'),
+              'href' => site_url('taqdar_admin/module/plans'))); ?>
 </div>
 
-<div class="tqa-card">
+<div class="tqa-card tqa-card--flush">
     <div class="tqa-card__head">
-        <h4 class="header-title">
-            <?php echo t('إجمالي المحصل:'); ?> <?php echo tqa_money($stats['revenue']); ?>
-        </h4>
+        <span class="tqa-iconbox tqa-sky" aria-hidden="true"><?php echo tq_icon('receipt', 20); ?></span>
+        <div style="min-inline-size:0">
+            <h2><?php echo t('سجل الاشتراكات'); ?></h2>
+            <span class="tqa-media__sub">
+                <?php echo t('باقة أو مسارا أو كورسا مفردا — أحدثها أولا.'); ?>
+            </span>
+        </div>
+        <span class="tqa-badge tqa-badge--muted">
+            <span class="tqa-num"><?php echo count($rows); ?></span>&nbsp;<?php echo t('صفا'); ?>
+        </span>
     </div>
-    <div class="tqa-card__body">
+    <div>
         <?php if (empty($rows)): ?>
 
             <div class="tqa-empty">
@@ -119,24 +156,33 @@ $tq_stale = (int) get_instance()->db->query(
 
         <?php else: ?>
 
+            <?php /* TQ-ROW-SPLIT — عشرة أعمدة صارت ستة، وما ذهب لم يحذف
+                     بل ضم إلى ما يفسره.
+
+                     كان الصف يقرأ شريطا واحدا: «يبدأ» و«ينتهي» عمودان
+                     متجاوران بتاريخين لا يقول أحدهما شيئا بلا الآخر،
+                     و«الوسيلة» عمود بكلمة واحدة تخص المبلغ الذي يجاوره،
+                     و«الدورة» عمود بشارة ورقم أيام. فصارت كل خلية طبقتين:
+                     القيمة وتحتها ما يفسرها — وهو ترتيب يقرأ بلمحة لا
+                     بمسح أفقي عبر عشرة أعمدة تخرج ثلاثة منها من الإطار.
+
+                     والجدول `tqa-table` لا `table`: به يلتصق الرأس عند
+                     التمرير، وتصير الصفوف بطاقات على الجوال، ويظهر شريط
+                     الصف تحت المؤشر. */ ?>
             <div class="tqa-table__wrap">
-                <table class="table table-hover mb-0">
+                <table class="tqa-table tqa-table--zebra">
                     <thead>
                         <tr>
-                            <th>#</th>
+                            <th class="tqa-col--tight">#</th>
                             <th><?php echo t('المشترك'); ?></th>
-                            <th><?php echo t('الباقة'); ?></th>
+                            <th><?php echo t('ما اشترى'); ?></th>
                             <?php /* TQ-CYCLE-BUY — الدورة عمود لا حاشية: بعد ان صار
                                      الشهري يباع صار في القائمة صفان لباقة واحدة
                                      بمبلغين، و«399» و«42» تحت اسم واحد بلا عمود يفرق
                                      بينهما تقرآن خطأ في الحساب لا اختلاف مدة. */ ?>
-                            <th><?php echo t('الدورة'); ?></th>
                             <th><?php echo t('المدفوع'); ?></th>
-                            <th><?php echo t('الحالة'); ?></th>
-                            <th><?php echo t('يبدأ'); ?></th>
-                            <th><?php echo t('ينتهي'); ?></th>
-                            <th><?php echo t('الوسيلة'); ?></th>
-                            <th style="inline-size:180px"><?php echo t('إجراءات'); ?></th>
+                            <th><?php echo t('الحالة والمدة'); ?></th>
+                            <th class="tqa-col--acts"><span class="tqa-sr"><?php echo t('إجراءات'); ?></span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -146,10 +192,29 @@ $tq_stale = (int) get_instance()->db->query(
                         if ($st === 'active' && !empty($r['ends_at']) && strtotime($r['ends_at']) < time()) {
                             $st = 'expired';
                         }
+                        $tq_uname = trim((string) ($r['user_name'] ?? '')) !== ''
+                                  ? (string) $r['user_name'] : ('#' . (int) $r['user_id']);
                     ?>
                         <tr>
-                            <td><span class="tq-ltr" dir="ltr"><?php echo (int) $r['id']; ?></span></td>
-                            <td><?php echo html_escape($r['user_name'] ?: ('#' . $r['user_id'])); ?></td>
+                            <td class="tqa-col--tight" data-label="#">
+                                <span class="tqa-num"><?php echo (int) $r['id']; ?></span>
+                            </td>
+
+                            <?php /* المشترك: وجه واسم وبريد. والاسمان يتشابهان في
+                                     ثلاثمئة صف، والبريد لا يتشابه — ومن يفعل حوالة
+                                     يتحقق ممن يفعل لها قبل أن يضغط. */ ?>
+                            <td data-label="<?php echo te('المشترك'); ?>">
+                                <div class="tqa-media">
+                                    <?php echo tqa_avatar($r['user_image'] ?? '', $tq_uname); ?>
+                                    <div class="tqa-cell">
+                                        <span class="tqa-cell__main"><?php echo html_escape($tq_uname); ?></span>
+                                        <?php if (trim((string) ($r['user_email'] ?? '')) !== ''): ?>
+                                            <span class="tqa-cell__sub tqa-mono tqa-mono--dim"><?php echo html_escape($r['user_email']); ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </td>
+
                             <?php
                             /* TQ-COURSE-SALE — **ثلاث وحدات بيع في جدول واحد.**
                                وكان العمود يقرأ `plan_name` وحده، فيطبع «—»
@@ -157,21 +222,28 @@ $tq_stale = (int) get_instance()->db->query(
                                صفا بمبلغ ومشتر وحالة ولا يعرف ما بيع فيه،
                                فيفعل حوالة على العمياء. والنوع يقال مع
                                الاسم — «كورس مفرد» غير «باقة». */
-                            $tq_what = ''; $tq_kind = '';
+                            $tq_what = ''; $tq_kind = t('باقة'); $tq_kt = 'info';
                             if (trim((string) ($r['plan_name'] ?? '')) !== '') {
-                                $tq_what = (string) $r['plan_name']; $tq_kind = '';
+                                $tq_what = (string) $r['plan_name'];
                             } elseif (trim((string) ($r['course_name'] ?? '')) !== '') {
-                                $tq_what = (string) $r['course_name']; $tq_kind = t('كورس مفرد');
+                                $tq_what = (string) $r['course_name']; $tq_kind = t('كورس مفرد'); $tq_kt = 'warn';
                             } elseif (trim((string) ($r['path_name'] ?? '')) !== '') {
-                                $tq_what = (string) $r['path_name']; $tq_kind = t('مسار');
+                                $tq_what = (string) $r['path_name']; $tq_kind = t('مسار'); $tq_kt = 'muted';
+                            } else {
+                                $tq_kind = '';
                             }
                             ?>
-                            <td>
-                                <?php echo html_escape($tq_what !== '' ? $tq_what : '—'); ?>
-                                <?php if ($tq_kind !== ''): ?>
-                                    <br><small class="tqa-dim"><?php echo html_escape($tq_kind); ?></small>
-                                <?php endif; ?>
+                            <td data-label="<?php echo te('ما اشترى'); ?>">
+                                <div class="tqa-cell">
+                                    <span class="tqa-cell__main"><?php echo html_escape($tq_what !== '' ? $tq_what : '—'); ?></span>
+                                    <?php if ($tq_kind !== ''): ?>
+                                        <span class="tqa-cell__sub">
+                                            <span class="tqa-badge tqa-badge--<?php echo $tq_kt; ?>"><?php echo html_escape($tq_kind); ?></span>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                             </td>
+
                             <?php
                             /* الصف القديم بلا `cycle` (كتب قبل العمود) يقرأ من
                                مدته لا يعرض فراغا: كل ما في القاعدة قبل اليوم
@@ -184,87 +256,161 @@ $tq_stale = (int) get_instance()->db->query(
                                 $tq_ck = ($tq_dy >= 300) ? 'annual' : (($tq_dy >= 80) ? 'quarterly' : 'monthly');
                             }
                             ?>
-                            <td><?php if ($tq_ck !== '' && isset($tq_cl[$tq_ck])): ?>
-                                  <span class="badge badge-light"><?php echo $tq_cl[$tq_ck]; ?></span>
-                                  <?php if ($tq_dy > 0): ?>
-                                    <small class="tqa-dim"><?php echo tqa_ltr($tq_dy); ?> <?php echo t('يوما'); ?></small>
-                                  <?php endif; ?>
-                                <?php else: ?><span class="tqa-dim">—</span><?php endif; ?></td>
-                            <td><?php echo tqa_money($r['price']); ?></td>
-                            <td><span class="badge badge-<?php echo $tones[$st]; ?>"><?php echo $labels[$st]; ?></span></td>
-                            <td><?php echo $r['started_at'] ? tqa_ltr(date('Y-m-d', strtotime($r['started_at']))) : '<span class="tqa-dim">—</span>'; ?></td>
-                            <td><?php echo $r['ends_at'] ? tqa_ltr(date('Y-m-d', strtotime($r['ends_at']))) : '<span class="tqa-dim">—</span>'; ?></td>
-                            <td><?php echo $r['method'] ? tqa_ltr($r['method']) : '<span class="tqa-dim">—</span>'; ?></td>
-                            <td>
-                                <?php if ($r['status'] === 'pending'): ?>
-                                    <?php /* التوكن يكتب صراحة: الحقن العام يعمل بجافاسكربت،
-                                             ونموذج يعتمد عليه ليحفظ يسقط صامتا متى تعثر ملف. */ ?>
-                                    <form method="post" class="tqa-activate"
-                                          action="<?php echo site_url('taqdar_admin/subscription_activate/' . (int) $r['id']); ?>"
-                                          data-tqa-confirm-title="<?php echo te('تفعيل الاشتراك'); ?>"
-                                          data-tqa-confirm="<?php echo te('سيسدد الاشتراك وتفتح باقته للطالب فورا. تأكد من وصول الحوالة أولا.'); ?>"
-                                          data-tqa-confirm-ok="<?php echo te('فعل الاشتراك'); ?>">
-                                        <?php echo tq_csrf(); ?>
-                                        <input type="text" name="reference" class="tqa-input tq-ltr" dir="ltr"
-                                               placeholder="<?php echo te('مرجع الحوالة'); ?>" required>
-                                        <button type="submit" class="tqa-btn tqa-btn--mastery tqa-btn--sm"><?php echo t('فعل'); ?></button>
-                                    </form>
-                                <?php elseif (in_array($r['status'], array('active'), true)): ?>
-                                    <?php /* الإلغاء لا يصادر المدفوع — المدة تكمل. يقال ذلك
-                                             في نص التأكيد نفسه لا بعده. */ ?>
-                                    <form method="post" class="tqa-cancel"
-                                          action="<?php echo site_url('taqdar_admin/subscription_cancel/' . (int) $r['id']); ?>"
-                                          data-tqa-confirm-title="<?php echo te('إلغاء التجديد'); ?>"
-                                          data-tqa-confirm="<?php echo te('يبقى الاشتراك صالحا حتى تاريخ انتهائه، ولا يجدد بعده.'); ?>"
-                                          data-tqa-confirm-ok="<?php echo te('ألغ التجديد'); ?>"
-                                          data-tqa-confirm-tone="danger">
-                                        <?php echo tq_csrf(); ?>
-                                        <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm" style="color:var(--tq-danger)"><?php echo t('إلغاء'); ?></button>
-                                    </form>
+                            <?php /* المبلغ ووسيلته ودورته في خلية واحدة: الثلاثة
+                                     يجيبون سؤالا واحدا — «بكم بيع وكيف؟» — وكانوا
+                                     ثلاثة أعمدة متباعدة تقرأ بالمسح لا باللمحة. */ ?>
+                            <td data-label="<?php echo te('المدفوع'); ?>">
+                                <div class="tqa-cell">
+                                    <span class="tqa-cell__main tqa-num"><?php echo tqa_money($r['price']); ?></span>
+                                    <span class="tqa-cell__sub tqa-cell__row">
+                                        <?php if ($tq_ck !== '' && isset($tq_cl[$tq_ck])): ?>
+                                            <span><?php echo $tq_cl[$tq_ck]; ?></span>
+                                            <?php if ($tq_dy > 0): ?>
+                                                <span>· <?php echo tqa_ltr($tq_dy); ?> <?php echo t('يوما'); ?></span>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                        <?php if ($r['method']): ?>
+                                            <span>· <?php echo tqa_ltr($r['method']); ?></span>
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+                            </td>
+
+                            <?php /* الحالة ومداها: «نشط» وحدها لا تقول إلى متى،
+                                     و«ينتهي ٢٠٢٦-٠١-١٤» وحدها لا تقول أنشط هو أم
+                                     ملغى. وهما عمودان متباعدان كانا. */ ?>
+                            <td data-label="<?php echo te('الحالة والمدة'); ?>">
+                                <div class="tqa-cell">
+                                    <span class="tqa-cell__main">
+                                        <span class="tqa-badge tqa-badge--dot tqa-badge--<?php echo $tq_tone[$st]; ?>">
+                                            <?php echo $labels[$st]; ?>
+                                        </span>
+                                    </span>
+                                    <span class="tqa-cell__sub tq-ltr" dir="ltr">
+                                        <?php
+                                        $tq_a = $r['started_at'] ? date('Y-m-d', strtotime($r['started_at'])) : '—';
+                                        $tq_b = $r['ends_at']    ? date('Y-m-d', strtotime($r['ends_at']))    : '—';
+                                        echo html_escape($tq_a . ' → ' . $tq_b);
+                                        ?>
+                                    </span>
+                                </div>
+                            </td>
+
+                            <?php
+                            /* TQ-ROW-CLUTTER — كل ما يفعل بالصف في قائمة واحدة.
+
+                               كانت الخلية تحمل **نموذجين وحقلي نص وكاشفا**:
+                               حقل «مرجع الحوالة» مع زر «فعل»، ثم `<details>`
+                               فيه قائمة القسمة ونموذج ثان بحقل «السبب». فصار
+                               الصف ضعف ارتفاع جاره (حقل النص وحده ٤٤ بكسلا)،
+                               وأخذ العمود مئة وثمانين بكسلا من جدول عشرة
+                               أعمدة، والكاشف يفتح **داخل** الصف فيدفع ما تحته.
+
+                               والقائمة تحل الثلاثة: عرض العمود عرض زر، وحقول
+                               الإجراء ألواح داخلها، والقسمة تقرأ حين تطلب. */
+                            $tq_acts = array();
+                            $tq_sh   = isset($shares[(int) $r['id']]) ? $shares[(int) $r['id']] : array();
+
+                            if ($r['status'] === 'pending'):
+                                $tq_acts[] = array(
+                                    'panel'   => t('تفعيل بتحويل بنكي'),
+                                    'icon'    => 'bank',
+                                    'action'  => 'taqdar_admin/subscription_activate/' . (int) $r['id'],
+                                    'submit'  => t('فعل الاشتراك'),
+                                    'sub'     => t('يسدد الاشتراك ويفتح محتواه فورا.'),
+                                    'fields'  => array(array(
+                                        'name'        => 'reference',
+                                        'placeholder' => t('مرجع الحوالة'),
+                                        'required'    => true,
+                                        'ltr'         => true,
+                                    )),
+                                    'confirm' => array(
+                                        'title' => t('تفعيل الاشتراك'),
+                                        'body'  => t('سيسدد الاشتراك وتفتح باقته للطالب فورا. تأكد من وصول الحوالة أولا.'),
+                                        'ok'    => t('فعل الاشتراك'),
+                                    ),
+                                );
+                            elseif ($r['status'] === 'active'):
+                                /* الإلغاء لا يصادر المدفوع — المدة تكمل. يقال ذلك
+                                   في نص التأكيد نفسه لا بعده. */
+                                $tq_acts[] = array(
+                                    'label'   => t('إلغاء التجديد'),
+                                    'sub'     => t('يبقى صالحا حتى تاريخ انتهائه'),
+                                    'icon'    => 'close',
+                                    'tone'    => 'danger',
+                                    'action'  => 'taqdar_admin/subscription_cancel/' . (int) $r['id'],
+                                    'confirm' => array(
+                                        'title' => t('إلغاء التجديد'),
+                                        'body'  => t('يبقى الاشتراك صالحا حتى تاريخ انتهائه، ولا يجدد بعده.'),
+                                        'ok'    => t('ألغ التجديد'),
+                                        'tone'  => 'danger',
+                                    ),
+                                );
+                            endif;
+
+                            /* ── قسمة هذه البيعة — TQ-REVENUE-RESPLIT ──────
+                               «باعوا صفي ولم يصلني شيء» أول ما يسأل عنه معلم،
+                               ولم يكن في اللوحة موضع واحد يجيب. والقسمة تجمد
+                               وقت التفعيل بالقاعدة — ونشر عشرين درسا غدا لا
+                               يعيد حساب بيعة أمس — لكن حين يحذف المحتوى
+                               المقسوم عليه ثم ينشر غيره في الصف نفسه يبقى
+                               القيد لمن لا محتوى له. وهذا اللوح هو المخرج،
+                               بقرار مسؤول لا تلقائيا. */
+                            if ($tq_sh || ((int) $r['price'] > 0 && in_array($r['status'], array('active', 'cancelled'), true))):
+                                if ($tq_acts) $tq_acts[] = array('sep' => true);
+
+                                if ($tq_sh):
+                                    $tq_list = array();
+                                    foreach ($tq_sh as $tq_s) {
+                                        $tq_list[] = array(
+                                            'name'  => $tq_s['teacher_name'] ?: ('#' . $tq_s['teacher_id']),
+                                            'value' => tqa_money($tq_s['amount_halalas']) . ' <span class="tqa-dim">'
+                                                     . t('(____ من ____ درسا)', array((int) $tq_s['lessons'], (int) $tq_s['lessons_total']))
+                                                     . '</span>',
+                                        );
+                                    }
+                                    $tq_acts[] = array('title' => t('قسمة إيراد هذه البيعة'), 'list' => $tq_list);
+                                else:
+                                    $tq_acts[] = array('title' => t('قسمة إيراد هذه البيعة'), 'list' => array());
+                                    $tq_acts[] = array('note' => t('لم يقيد لأحد. لا مسار منشور بمعلم في نطاق الباقة وقت البيع.'));
+                                endif;
+
+                                $tq_acts[] = array(
+                                    'panel'   => t('أعد القسمة'),
+                                    'icon'    => 'refresh',
+                                    'tone'    => 'danger',
+                                    'action'  => 'taqdar_admin/subscription_resplit/' . (int) $r['id'],
+                                    'submit'  => t('أعد القسمة'),
+                                    'sub'     => t('ينقل مالا بين المحافظ، ويسجل في سجل التدقيق.'),
+                                    'fields'  => array(array(
+                                        'name'        => 'reason',
+                                        'placeholder' => t('السبب'),
+                                        'required'    => true,
+                                        'maxlength'   => 200,
+                                    )),
+                                    'confirm' => array(
+                                        'title' => t('إعادة قسمة الإيراد'),
+                                        'body'  => t('تعكس القيود القائمة على هذه البيعة وتقسمها من جديد على المستحقين الآن. ينقل مال بين المحافظ، ويسجل في سجل التدقيق.'),
+                                        'ok'    => t('أعد القسمة'),
+                                        'tone'  => 'danger',
+                                    ),
+                                );
+                            endif;
+                            ?>
+                            <td class="tqa-col--acts" data-label="<?php echo te('إجراءات'); ?>">
+                                <?php if ($tq_acts): ?>
+                                    <?php /* `wide` لأن هذه القائمة تحمل تفصيلا لا
+                                             أمرا: لوح تفعيل بحقله، وقسمة الإيراد
+                                             صفا لكل معلم، ولوح إعادة قسمة بسببه.
+                                             وعرض القائمة القاطع (٣٤٠) يكسر اسم
+                                             المعلم ومبلغه سطرين في كل صف. */ ?>
+                                    <?php echo tqa_rowmenu($tq_acts, array(
+                                        'wide'  => true,
+                                        'title' => $tq_uname,
+                                        'sub'   => ($tq_what !== '' ? $tq_what . ' · ' : '') . '#' . (int) $r['id'],
+                                    )); ?>
                                 <?php else: ?>
                                     <span class="tqa-dim">—</span>
-                                <?php endif; ?>
-
-                                <?php /* ── قسمة هذه البيعة — TQ-REVENUE-RESPLIT ──────
-                                        «باعوا صفي ولم يصلني شيء» أول ما يسأل عنه
-                                        معلم، ولم يكن في اللوحة موضع واحد يجيب.
-                                        والقسمة تجمد وقت التفعيل بالقاعدة — ونشر
-                                        عشرين درسا غدا لا يعيد حساب بيعة أمس — لكن
-                                        حين يحذف المحتوى المقسوم عليه ثم ينشر غيره
-                                        في الصف نفسه يبقى القيد لمن لا محتوى له.
-                                        وهذا الزر هو المخرج، بقرار مسؤول لا تلقائيا. */ ?>
-                                <?php $tq_sh = isset($shares[(int) $r['id']]) ? $shares[(int) $r['id']] : array(); ?>
-                                <?php if ($tq_sh || (int) $r['price'] > 0 && in_array($r['status'], array('active','cancelled'), true)): ?>
-                                    <details style="margin-block-start:8px">
-                                        <summary class="tqa-dim" style="cursor:pointer;font-size:12px"><?php echo t('قسمة الإيراد'); ?></summary>
-                                        <?php if ($tq_sh): ?>
-                                            <ul style="margin:6px 0;padding-inline-start:16px;font-size:12px">
-                                                <?php foreach ($tq_sh as $tq_s): ?>
-                                                    <li>
-                                                        <?php echo html_escape($tq_s['teacher_name'] ?: ('#' . $tq_s['teacher_id'])); ?>
-                                                        — <?php echo tqa_money($tq_s['amount_halalas']); ?>
-                                                        <span class="tqa-dim"><?php echo t('(____ من ____ درسا)', array((int) $tq_s['lessons'], (int) $tq_s['lessons_total'])); ?></span>
-                                                    </li>
-                                                <?php endforeach; ?>
-                                            </ul>
-                                        <?php else: ?>
-                                            <p class="tqa-dim" style="margin:6px 0;font-size:12px">
-                                                <?php echo t('لم يقيد لأحد. لا مسار منشور بمعلم في نطاق الباقة وقت البيع.'); ?>
-                                            </p>
-                                        <?php endif; ?>
-                                        <form method="post"
-                                              action="<?php echo site_url('taqdar_admin/subscription_resplit/' . (int) $r['id']); ?>"
-                                              data-tqa-confirm-title="<?php echo te('إعادة قسمة الإيراد'); ?>"
-                                              data-tqa-confirm="<?php echo te('تعكس القيود القائمة على هذه البيعة وتقسمها من جديد على المستحقين الآن. ينقل مال بين المحافظ، ويسجل في سجل التدقيق.'); ?>"
-                                              data-tqa-confirm-ok="<?php echo te('أعد القسمة'); ?>"
-                                              data-tqa-confirm-tone="danger">
-                                            <?php echo tq_csrf(); ?>
-                                            <input type="text" name="reason" class="tqa-input tq-ltr" dir="auto"
-                                                   placeholder="<?php echo te('السبب'); ?>" maxlength="200" required
-                                                   style="font-size:12px">
-                                            <button type="submit" class="tqa-btn tqa-btn--ghost tqa-btn--sm"><?php echo t('أعد القسمة'); ?></button>
-                                        </form>
-                                    </details>
                                 <?php endif; ?>
                             </td>
                         </tr>
