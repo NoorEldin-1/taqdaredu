@@ -688,6 +688,18 @@ body.tq-body--portal .tq-filterbar__seg[data-empty] .tq-filterbar__n {
    أربعة تبويبات، فالحشو الذي يصلح في عمود عرضه ٨٠٠ يقص آخرها. والقياس
    بالحاوية لا بالشاشة — الشريط نفسه يعيش في العمودين على الشاشة نفسها. */
 body.tq-body--portal .tq-filterbar { container-type: inline-size; }
+
+/* TQ-FILTERBAR-FLEX — واحتواء الحجم يمحو الشريط متى كان بندا في صندوق مرن.
+   `container-type: inline-size` يعني `contain: inline-size`، وهو يقطع صلة
+   العرض بالمحتوى: فبند مرن اساسه `auto` يقاس بمحتواه، ومحتواه هنا لا يقاس،
+   فيحل صفرا — ثم يقص `overflow-x` في المسار ما بقي. فثلاث شاشات كانت تطبع
+   تبويباتها في الوسم ولا تعرض واحدا: المفضلة في `.tq-favbar`، والإشعارات
+   عند الطالب والمعلم في `.tq-row` — وكلاهما صندوق مرن. ولا خطا في الكونسول
+   ولا قاعدة تخفيه: الصفحة تفتح على «الكل» ولا موضع يبدله. اما ما يسكن
+   `.tq-cols` الشبكية (الاختبارات · المواد · المهام) فمساره يقاس بمساره لا
+   بمحتواه فلم يمسه شيء. والنمو صريح لان الجوهري صار صفرا، و`min-inline-size`
+   صفر فوقه يترك التمرير يعمل كما صمم. وفي سياق كتلي تهمل هذه كلها. */
+body.tq-body--portal .tq-filterbar { flex: 1 1 auto; }
 @container (max-width: 380px) {
   body.tq-body--portal .tq-filterbar__seg {
     padding-inline: var(--tq-space-s);
