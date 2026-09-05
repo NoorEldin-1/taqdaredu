@@ -215,38 +215,37 @@ class Taqdar_pay extends CI_Controller
         $sid = (int) ($r['subscription_id'] ?? 0);
         if ($sid <= 0) return;
 
-        /* TQ-COURSE-SALE — والاسم من الثلاثة: الباقة والمسار والكورس
-           المفرد. وكان الضم على `plans` وحده، فيقرأ من اشترى مادة بعينها
-           «فعلت باقة الاشتراك» — عبارة لا تعني شيئا، وتجعله يظن أن
-           المنصة باعته غير ما اختار. */
-        $sub = $this->db->select('s.user_id, s.ends_at, s.course_id,'
-                        . ' p.name_ar AS plan_name, t.title AS path_name,'
-                        . ' c.title AS course_name', false)
-                        ->from('subscriptions s')
-                        ->join('plans p', 'p.id = s.plan_id', 'left')
-                        ->join('paths t', 't.id = s.path_id', 'left')
-                        ->join('course c', 'c.id = s.course_id', 'left')
-                        ->where('s.id', $sid)->get()->row_array();
+        /* TQ-SOLD-NAME — والاسم من `Taqdar_billing_model::sold()` وحدها.
+           كان هنا ضم ثلاثي مكتوب بيده (`plans` · `paths` · `course`)،
+           وهو الضم نفسه في خمسة مواضع أخرى — فوحدة البيع الرابعة (الكتاب)
+           أضيفت في محرك الشراء ولم تبلغ واحدا منها: من دفع ثمن كتاب
+           بالبطاقة يصله «نجح الدفع وفعل اشتراكك … «الاشتراك»». */
+        $sub = $this->db->where('id', $sid)->get('subscriptions')->row_array();
         if (!$sub || empty($sub['user_id'])) return;
 
-        $is_course = (int) ($sub['course_id'] ?? 0) > 0;
-        $what = '';
-        foreach (array('plan_name', 'path_name', 'course_name') as $k) {
-            if (isset($sub[$k]) && trim((string) $sub[$k]) !== '') {
-                $what = trim((string) $sub[$k]); break;
-            }
-        }
+        $this->load->model('taqdar_billing_model');
+        $sold = $this->taqdar_billing_model->sold($sub);
+        $what = (string) $sold['title'];
+        /* «الباقة» تجدد وتنتهي، والمفرد قد يفتح دائما — فالنص يفرق
+           بينهما لا بين الكورس وما سواه وحده. */
+        $single = in_array($sold['kind'], array('course', 'book'), true);
+
+        /* والجملة مفتاح واحد ببدائل `____` لا قطع تلصق: قطعة مثل «وصلت
+           حوالتك وفتح» لا تترجم وحدها — المترجم لا يعرف ما يليها، ولغة
+           أخرى قد ترتبها غير هذا الترتيب. */
+        $when = !empty($sub['ends_at'])
+              ? ' ' . t('حتى ____', date('Y-m-d', strtotime($sub['ends_at'])))
+              : ($single ? ' ' . t('بوصول دائم') : '');
 
         $this->load->model('taqdar_admin_model');
         $this->taqdar_admin_model->push_notification(
             (int) $sub['user_id'],
-            $is_course ? 'نجح الدفع وفتح الكورس' : 'نجح الدفع وفعل اشتراكك',
-            'استلمنا دفعتك وفتح ' . ($is_course ? 'كورس' : '')
-            . ' «' . ($what !== '' ? $what : 'الاشتراك') . '»'
-            . (!empty($sub['ends_at'])
-                ? ' حتى ' . date('Y-m-d', strtotime($sub['ends_at']))
-                : ($is_course ? ' بوصول دائم' : ''))
-            . '. صار المحتوى مفتوحا لك الآن.',
+            $single ? t('نجح الدفع وفتح ____', $sold['noun_def'])
+                    : t('نجح الدفع وفعل اشتراكك'),
+            ($single ? t('استلمنا دفعتك وفتح ____ «____»',
+                         array($sold['noun'], ($what !== '' ? $what : t('الاشتراك'))))
+                     : t('استلمنا دفعتك وفتح «____»', ($what !== '' ? $what : t('الاشتراك'))))
+            . $when . '. ' . t('صار المحتوى مفتوحا لك الآن.'),
             'subscription'
         );
     }

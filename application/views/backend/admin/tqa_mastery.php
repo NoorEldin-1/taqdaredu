@@ -102,17 +102,17 @@ $mastered_pct = (int) $summary['skills'] > 0
                 $tone  = $p < 40 ? 'danger' : ($p < 65 ? 'warn' : 'ok');
             ?>
                 <tr>
-                    <td data-label="الهدف">
+                    <td data-label="<?php echo te('الهدف'); ?>">
                         <?php echo html_escape(mb_strimwidth((string) $o['text'], 0, 70, '…', 'UTF-8')); ?>
                     </td>
-                    <td data-label="الدرس">
+                    <td data-label="<?php echo te('الدرس'); ?>">
                         <?php echo html_escape($o['lesson_title'] ?: '—'); ?>
                         <?php if (!empty($o['course_title'])): ?>
                             <br><span style="color:var(--tq-text2);font-size:12px">
                                 <?php echo html_escape($o['course_title']); ?></span>
                         <?php endif; ?>
                     </td>
-                    <td data-label="نسبة الصواب">
+                    <td data-label="<?php echo te('نسبة الصواب'); ?>">
                         <span class="tqa-badge tqa-badge--<?php echo $tone; ?>">
                             <span class="tqa-num"><?php echo $p; ?>%</span>
                         </span>
@@ -121,9 +121,9 @@ $mastered_pct = (int) $summary['skills'] > 0
                                  background:var(--tq-<?php echo $tone === 'danger' ? 'actionDanger' : ($tone === 'warn' ? 'amber' : 'actionMastery'); ?>)"></div>
                         </div>
                     </td>
-                    <td data-label="الإجابات"><span class="tqa-num"><?php echo $tries; ?></span></td>
-                    <td data-label="الطلاب"><span class="tqa-num"><?php echo (int) $o['learners']; ?></span></td>
-                    <td data-label="تحرير">
+                    <td data-label="<?php echo te('الإجابات'); ?>"><span class="tqa-num"><?php echo $tries; ?></span></td>
+                    <td data-label="<?php echo te('الطلاب'); ?>"><span class="tqa-num"><?php echo (int) $o['learners']; ?></span></td>
+                    <td data-label="<?php echo te('تحرير'); ?>">
                         <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                            href="<?php echo site_url('taqdar_admin/form/objectives/' . (int) $o['id']); ?>"><?php echo t('حرر'); ?></a>
                     </td>
@@ -154,13 +154,13 @@ $mastered_pct = (int) $summary['skills'] > 0
                 $tone = $lv < 40 ? 'danger' : ($lv < 70 ? 'warn' : 'ok');
             ?>
                 <tr>
-                    <td data-label="المسار">
+                    <td data-label="<?php echo te('المسار'); ?>">
                         <a href="<?php echo site_url('taqdar_admin/form/paths/' . (int) $p['id']); ?>">
                             <?php echo html_escape($p['title']); ?>
                         </a>
                     </td>
-                    <td data-label="الطلاب"><span class="tqa-num"><?php echo (int) $p['learners']; ?></span></td>
-                    <td data-label="متوسط الإتقان">
+                    <td data-label="<?php echo te('الطلاب'); ?>"><span class="tqa-num"><?php echo (int) $p['learners']; ?></span></td>
+                    <td data-label="<?php echo te('متوسط الإتقان'); ?>">
                         <span class="tqa-badge tqa-badge--<?php echo $tone; ?>">
                             <span class="tqa-num"><?php echo $lv; ?></span> / 100
                         </span>

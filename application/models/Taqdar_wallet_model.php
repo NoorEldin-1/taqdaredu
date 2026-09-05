@@ -1457,6 +1457,114 @@ class Taqdar_wallet_model extends CI_Model
         return $r ? array('n' => (int) $r['n'], 'net' => (int) $r['net']) : $zero;
     }
 
+
+    /**
+     * TQ-BOOK — يقيد بيع كتاب مفرد في محفظة صاحبه.
+     *
+     * القسمة هنا لا في `Taqdar_revenue_model`: ذاك يقسم وعاء مغلقا على
+     * معلمين كثر لأن الباقة تفتح محتواهم جميعا، والكتاب المفرد **لصاحب
+     * واحد** (`books.teacher_id`) — فلا وعاء ولا أوزان ولا أكبر بواق،
+     * ونسبة واحدة تكفي. وهو حكم `credit_course_sale()` نفسه وللسبب نفسه.
+     *
+     * وكتاب المنصة لا يبلغ هذه الدالة أصلا: `activate_book_subscription()`
+     * تشترط `teacher_id > 0` قبل أن تناديها، فالسعر كله للمنصة بلا قيد
+     * يكتب في دفتر لا صاحب له.
+     *
+     * وقيدان لا سطر صاف: `sale` بكامل المقبوض ثم `commission` بما تأخذه
+     * المنصة، فمجموعهما حصة المعلم **بحكم البناء** ويبقى المقبوض ظاهرا
+     * في كشفه بدل رقم صاف لا يراجع.
+     *
+     * والدلو `pending` بتاريخ تحرر محسوب من نافذة الاسترداد، فتحرره
+     * `release_matured()` كما تحرر بقية المبيعات — لا آلية ثانية.
+     *
+     * متكرر الأمان: المفتاح `booksub:<subscription_id>` فريد، فتفعيل
+     * مكرر أو ويبهوك يصل مرتين لا يضاعف المال.
+     *
+     * @return array ok · wallet_id · share · commission · percent
+     */
+    public function credit_book_sale($teacher_id, $book_id, $subscription_id,
+                                     $gross_halalas, $share_percent = null, $title = '')
+    {
+        $this->install_schema();
+
+        $teacher_id = (int) $teacher_id;
+        $gross      = (int) $gross_halalas;
+        if ($teacher_id < 1 || $gross <= 0) {
+            return array('ok' => false, 'errors' => array(t('لا معلم للكتاب أو لا مبلغ.')));
+        }
+
+        if ($share_percent === null || $share_percent === '') {
+            /* الافتراض من مفتاح الكتب لا من مفتاح الكورسات: رقمان
+               لمعنيين، وخلطهما يعطي صاحب الكتاب نسبة الكورس. */
+            $share_percent = $this->setting('tq_book_teacher_percent', 60);
+        }
+        $share_percent = max(0, min(100, (float) $share_percent));
+
+        // التقريب مرة واحدة، والباقي للمنصة — فلا تضيع هللة ولا تخترع
+        $share = (int) round($gross * $share_percent / 100);
+        $cut   = $gross - $share;
+
+        $wallet  = $this->wallet_of($teacher_id);
+        $wid     = $wallet['id'];
+        $origin  = 'booksub:' . (int) $subscription_id;
+        $title   = trim((string) $title);
+        $subject = ($title !== '' ? $title : (t('كتاب #') . (int) $book_id)) . t(' — بيع مفرد');
+        $release = $this->at(time() + $this->hold_days() * 86400);
+
+        $this->post($wid, 'sale', self::B_PENDING, $gross,
+                    $this->ref_key($wid, $origin, 'sale'), $origin, $subject, null, $release);
+
+        if ($cut > 0) {
+            $this->post($wid, 'commission', self::B_PENDING, -$cut,
+                        $this->ref_key($wid, $origin, 'commission'), $origin, $subject,
+                        null, $release);
+        }
+
+        $this->recompute($wid);
+
+        return array('ok' => true, 'wallet_id' => $wid, 'share' => $share,
+                     'commission' => $cut, 'percent' => $share_percent, 'gross' => $gross);
+    }
+
+    /**
+     * يعكس بيع كتاب استرد — بالباب نفسه الذي يعكس به بيع الكورس والحصة.
+     * ولا يشترط قيدا قائما: بيع ألغي قبل أن يفعل لا قيد له، فيرد `false`
+     * بهدوء ولا يعد ذلك خطأ.
+     */
+    public function reverse_book_sale($teacher_id, $subscription_id, $reason = '')
+    {
+        $wallet = $this->wallet_of((int) $teacher_id);
+        $n = $this->reverse_origin($wallet['id'], 'booksub:' . (int) $subscription_id, $reason);
+        if ($n > 0) $this->recompute($wallet['id']);
+        return $n > 0;
+    }
+
+    /**
+     * ملخص كسب الكتب المباعة مفردة لمعلم — لشاشته ولشاشة الإدارة.
+     *
+     * يقرأ من الدفتر لا من `subscriptions`: الدفتر هو ما يصرف منه،
+     * ورقمان يفترقان في شاشتين يجعلان المعلم يسأل عن الفرق ولا أحد
+     * يعرف أيهما الصحيح.
+     */
+    public function book_sale_earnings($user_id)
+    {
+        $this->install_schema();
+        $wallet = $this->wallet_of((int) $user_id);
+
+        $zero = array('n' => 0, 'net' => 0);
+        try {
+            $r = $this->db->query(
+                'SELECT COUNT(DISTINCT `origin`) n, COALESCE(SUM(`amount`),0) net
+                   FROM `wallet_entries`
+                  WHERE `wallet_id` = ? AND `origin` LIKE "booksub:%"
+                    AND `type` IN ("sale","commission","retained","refund")',
+                array($wallet['id'])
+            )->row_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return $zero; }
+
+        return $r ? array('n' => (int) $r['n'], 'net' => (int) $r['net']) : $zero;
+    }
+
     /**
      * يقيد حصة معلم من بيعة **باقة** في دفتره.
      *

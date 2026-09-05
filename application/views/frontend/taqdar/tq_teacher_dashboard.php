@@ -351,28 +351,30 @@ include 'portal_open.php';
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
                         <?php echo t('درس يرسب فيه كثيرون مشكلته في الشرح غالبا لا في الطلاب — راجعه قبل أن تراجعهم. الرسوب هنا محسوب بعتبة النجاح المعتمدة في المنصة:'); ?> <?php echo TQ_LRI . $tq_pass_pct . '%' . TQ_PDI; ?>.
                     </p>
-                    <table class="tq-table">
-                        <caption class="tq-sr"><?php echo t('الدروس الأعلى نسبة رسوب في كورساتك'); ?></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><?php echo t('الدرس'); ?></th>
-                                <th scope="col"><?php echo t('الكورس'); ?></th>
-                                <th scope="col"><?php echo t('المحاولات'); ?></th>
-                                <th scope="col"><?php echo t('نسبة الرسوب'); ?></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tq_hard_lessons as $tq_l): ?>
-                                <?php $tq_rate = (int) round(100 * $tq_l['fails'] / max(1, (int) $tq_l['attempts'])); ?>
+                    <div class="tq-table-wrap">
+                        <table class="tq-table">
+                            <caption class="tq-sr"><?php echo t('الدروس الأعلى نسبة رسوب في كورساتك'); ?></caption>
+                            <thead>
                                 <tr>
-                                    <td data-label="الدرس"><span class="tq-strong"><?php echo html_escape($tq_l['title']); ?></span></td>
-                                    <td data-label="الكورس"><?php echo html_escape($tq_l['course_title']); ?></td>
-                                    <td data-label="المحاولات"><?php echo tq_num($tq_l['attempts'], 'tq-num--sm'); ?></td>
-                                    <td data-label="نسبة الرسوب"><?php echo tq_badge('due', t('رسب ') . TQ_LRI . $tq_rate . '%' . TQ_PDI); ?></td>
+                                    <th scope="col"><?php echo t('الدرس'); ?></th>
+                                    <th scope="col"><?php echo t('الكورس'); ?></th>
+                                    <th scope="col"><?php echo t('المحاولات'); ?></th>
+                                    <th scope="col"><?php echo t('نسبة الرسوب'); ?></th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($tq_hard_lessons as $tq_l): ?>
+                                    <?php $tq_rate = (int) round(100 * $tq_l['fails'] / max(1, (int) $tq_l['attempts'])); ?>
+                                    <tr>
+                                        <td data-label="<?php echo te('الدرس'); ?>"><span class="tq-strong"><?php echo html_escape($tq_l['title']); ?></span></td>
+                                        <td data-label="<?php echo te('الكورس'); ?>"><?php echo html_escape($tq_l['course_title']); ?></td>
+                                        <td data-label="<?php echo te('المحاولات'); ?>"><?php echo tq_num($tq_l['attempts'], 'tq-num--sm'); ?></td>
+                                        <td data-label="<?php echo te('نسبة الرسوب'); ?>"><?php echo tq_badge('due', t('رسب ') . TQ_LRI . $tq_rate . '%' . TQ_PDI); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             <?php else: ?>
                 <div class="tq-card tq-empty">

@@ -127,29 +127,49 @@ $tq_ago = function ($ts) {
     </p>
 
     <?php foreach ($tq_items as $tq_it):
-        /* ثلاثة أنواع لا نوعان — TQ-COURSE-REVIEW: كورس ينتظر نشرا،
-           ودرس جديد ينتظر نشرا، وتعديل على منشور ينتظر تطبيقا. */
-        $tq_kind_row = $tq_it['kind'];
+        /* أربعة أنواع لا ثلاثة — TQ-BOOK-REVIEW: كورس ينتظر نشرا،
+           ودرس جديد ينتظر نشرا، وتعديل على منشور ينتظر تطبيقا، وكتاب
+           رفعه معلم ينتظر اعتمادا. */
+        $tq_kind_row   = $tq_it['kind'];
         $tq_course_row = $tq_kind_row === 'course';
-        $tq_new  = $tq_kind_row === 'new';
-        $tq_live = $tq_course_row
-            ? site_url('admin/course_form/course_edit/' . (int) $tq_it['course_id']) . '?tab=basic'
-            : site_url('admin/course_form/course_edit/' . (int) $tq_it['course_id']) . '?tab=curriculum';
+        $tq_book_row   = $tq_kind_row === 'book';
+        $tq_new        = $tq_kind_row === 'new';
+        $tq_live = $tq_book_row
+            ? site_url('taqdar_admin/form/books/' . (int) $tq_it['entity_id'])
+            : ($tq_course_row
+                ? site_url('admin/course_form/course_edit/' . (int) $tq_it['course_id']) . '?tab=basic'
+                : site_url('admin/course_form/course_edit/' . (int) $tq_it['course_id']) . '?tab=curriculum');
     ?>
     <article class="tqr-item">
 
         <div class="tqr-item__top">
-            <span class="tqa-iconbox <?php echo $tq_course_row ? 'tqa-sand' : ($tq_new ? 'tqa-mint' : 'tqa-peach'); ?>" aria-hidden="true">
-                <?php echo tq_icon($tq_course_row ? 'book' : $tq_kind_icon($tq_it['tq_kind']), 20); ?>
+            <span class="tqa-iconbox <?php echo $tq_book_row ? 'tqa-sky' : ($tq_course_row ? 'tqa-sand' : ($tq_new ? 'tqa-mint' : 'tqa-peach')); ?>" aria-hidden="true">
+                <?php echo tq_icon(($tq_course_row || $tq_book_row) ? 'book' : $tq_kind_icon($tq_it['tq_kind']), 20); ?>
             </span>
 
             <div class="tqr-item__body">
                 <h2 style="font:var(--tq-type-h2)"><?php echo html_escape($tq_it['title']); ?></h2>
                 <div class="tqr-item__meta">
-                    <span class="tqa-badge <?php echo $tq_course_row ? 'tqa-badge--warn' : ($tq_new ? 'tqa-badge--ok' : 'tqa-badge--warn'); ?>">
-                        <?php echo $tq_course_row ? t('كورس جديد') : ($tq_new ? t('درس جديد') : t('تعديل على منشور')); ?>
+                    <span class="tqa-badge <?php echo ($tq_new && !$tq_book_row) ? 'tqa-badge--ok' : 'tqa-badge--warn'; ?>">
+                        <?php echo $tq_book_row ? t('كتاب جديد')
+                             : ($tq_course_row ? t('كورس جديد')
+                             : ($tq_new ? t('درس جديد') : t('تعديل على منشور'))); ?>
                     </span>
-                    <?php if ($tq_course_row): ?>
+                    <?php if ($tq_book_row): ?>
+                        <?php if ((int) $tq_it['pages'] > 0): ?>
+                            <span><?php echo tq_num((int) $tq_it['pages']); ?> <?php echo t('صفحة'); ?></span>
+                        <?php endif; ?>
+                        <?php if ($tq_it['subject'] !== ''): ?>
+                            <span><?php echo html_escape($tq_it['subject']); ?></span>
+                        <?php endif; ?>
+                        <?php if ($tq_it['grade'] !== ''): ?>
+                            <span><?php echo html_escape($tq_it['grade']); ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($tq_it['sell']) && (int) $tq_it['price'] > 0): ?>
+                            <span><?php echo t('يباع بـ'); ?> <span class="tq-ltr"><?php
+                                echo number_format(((int) $tq_it['price']) / 100, 2); ?></span> <?php echo t('ر.س'); ?></span>
+                        <?php endif; ?>
+                    <?php elseif ($tq_course_row): ?>
                         <span><?php echo tq_num((int) $tq_it['sections']); ?> <?php echo t('قسما'); ?></span>
                         <span><?php echo tq_num((int) $tq_it['lessons']); ?> <?php echo t('درسا'); ?></span>
                         <?php if ($tq_it['grade'] !== ''): ?>
@@ -178,7 +198,8 @@ $tq_ago = function ($ts) {
 
             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_live; ?>">
                 <?php echo tq_icon('external', 14); ?>
-                <?php echo $tq_course_row ? t('افتح الكورس') : t('افتح المقرر'); ?>
+                <?php echo $tq_book_row ? t('افتح الكتاب')
+                     : ($tq_course_row ? t('افتح الكورس') : t('افتح المقرر')); ?>
             </a>
         </div>
 
@@ -205,6 +226,28 @@ $tq_ago = function ($ts) {
             </p>
         <?php endif; ?>
 
+        <?php /* ── الكتاب الجديد: ما يمنعه من الوصول إلى طالب ──────
+                ملفه أولا: كتاب بلا PDF ينشر فيعرض «قريبا» ولا يقرأ ولا
+                يباع. ثم صفه: به وحده تفتحه الباقة (TQ-BOOK-GRADE)، وبلاه
+                ينشر ولا يصل إلى مشترك واحد — ولا شيء يقول لماذا. */ ?>
+        <?php if ($tq_book_row && empty($tq_it['has_file'])): ?>
+            <p class="tqa-note tqa-note--warn" style="margin:0 var(--tq-space-l) var(--tq-space-l)">
+                <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+                <span>
+                    <strong><?php echo t('هذا الكتاب بلا ملف.'); ?></strong>
+                    <?php echo t('ينشر فيظهر بعنوانه وشارة «قريبا»، ولا تفتح منه صفحة واحدة ولا يباع. اطلب ملفه قبل أن تعتمده.'); ?>
+                </span>
+            </p>
+        <?php elseif ($tq_book_row && empty($tq_it['linked'])): ?>
+            <p class="tqa-note tqa-note--warn" style="margin:0 var(--tq-space-l) var(--tq-space-l)">
+                <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
+                <span>
+                    <strong><?php echo t('هذا الكتاب بلا صف.'); ?></strong>
+                    <?php echo t('والباقة تفتح كتب صفوفها — فبلا صف ينشر ولا يصل إلى مشترك واحد، ولا يدخل صاحبه في قسمة وعاء. أسنده إلى صف من «افتح الكتاب» ثم اعتمده، أو اعتمده كتابا حرا يباع مفردا.'); ?>
+                </span>
+            </p>
+        <?php endif; ?>
+
         <?php /* ── الدرس الجديد: ما ينقصه قبل أن يعتمد ─────────────── */ ?>
         <?php if ($tq_new && (int) $tq_it['objectives'] === 0): ?>
             <p class="tqa-note tqa-note--warn" style="margin:0 var(--tq-space-l) var(--tq-space-l)">
@@ -217,7 +260,7 @@ $tq_ago = function ($ts) {
         <?php endif; ?>
 
         <?php /* ── التعديل: فرقه لا حمولته ──────────────────────────── */ ?>
-        <?php if (!$tq_new && !empty($tq_it['payload'])):
+        <?php if (!$tq_new && !$tq_book_row && !empty($tq_it['payload'])):
             $tq_before = $this->db->where('id', (int) $tq_it['entity_id'])->get('lesson')->row_array() ?: array();
             $tq_rows   = array();
             foreach ($tq_diff_labels as $tq_col => $tq_lbl) {

@@ -132,14 +132,14 @@ $audiences = array(
                     $pct  = $rc > 0 ? (int) round(($open * 100) / $rc) : 0;
                 ?>
                     <tr>
-                        <td data-label="العنوان"><?php echo html_escape($n['title']); ?></td>
-                        <td data-label="المستلمون"><span class="tqa-num"><?php echo $rc; ?></span></td>
-                        <td data-label="فتح">
+                        <td data-label="<?php echo te('العنوان'); ?>"><?php echo html_escape($n['title']); ?></td>
+                        <td data-label="<?php echo te('المستلمون'); ?>"><span class="tqa-num"><?php echo $rc; ?></span></td>
+                        <td data-label="<?php echo te('فتح'); ?>">
                             <span class="tqa-badge tqa-badge--<?php echo $pct >= 50 ? 'ok' : ($pct > 0 ? 'warn' : 'muted'); ?>">
                                 <span class="tqa-num"><?php echo $pct; ?>%</span>
                             </span>
                         </td>
-                        <td data-label="التاريخ">
+                        <td data-label="<?php echo te('التاريخ'); ?>">
                             <?php /* الجدول فيه صيغتا وقت — انظر TQ-NOTIF-TIME. */ ?>
                             <?php echo tqa_when($n['created_at']); ?>
                         </td>

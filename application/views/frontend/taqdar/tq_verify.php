@@ -88,7 +88,7 @@ if ($ok) {
             <label class="sr-only" for="tqVfCode"><?php echo t('رمز التحقق'); ?></label>
             <input id="tqVfCode" name="code" type="text" dir="ltr" placeholder="TQ-000000"
                    autocomplete="off" spellcheck="false" required>
-            <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('تحقق'); ?></button>
+            <button class="btn btn--primary" type="submit"><?php echo t('تحقق'); ?></button>
           </form>
 
         <?php endif; ?>
@@ -101,59 +101,79 @@ if ($ok) {
   </div>
 </section>
 
+<?php /* TQ-VERIFY-TOKENS — والورقة تكتب بتوكنات **الموقع** لا البوابة.
+
+   الصفحة معلنة في `$tq_public_tq_pages` أنها صفحة موقع لا بوابة (وهو
+   صواب: يفتحها من لا حساب له)، فتحمل معها `taqdar.css` و`pages.css`
+   وحدهما — و`tokens.css` لا تحمل. وكانت هذه الكتلة مكتوبة كلها بـ
+   `--tq-surface` و`--tq-line` و`--tq-space-*`: توكنات لا وجود لها هنا.
+
+   وقيمة مخصصة غير معرفة **تبطل التصريح كله** عند حساب القيمة، فتسقط
+   الخلفية والحد والحشوة ونصف القطر بلا خطأ يظهر: تفتح جهة توظيف رابط
+   شهادة فتقرأ نصا عاريا على ورق، بلا بطاقة ولا صندوق إدخال ولا زر —
+   وهي أول ما يقاس به صدق الوثيقة. وهو ما تحذر منه `shell.css` حرفا:
+   «توكن غير معرف يعطي لونا شفافا بلا خطأ ينبه».
+
+   والمخرج ليس حقن `tokens.css` هنا — ذلك يجر `h1{font:...}` وأخواتها
+   على صفحة موقع — بل أن تتكلم الصفحة لهجة سطحها. والزر صار `.btn`
+   (طراز الموقع) لا `.tq-btn` (طراز البوابة): ذاك معرف في
+   `components.css` وهي لا تحمل هنا كذلك. */ ?>
 <style>
 .tq-vf { max-inline-size: 560px; margin-inline: auto; text-align: center; }
-.tq-vf__brand { display: inline-block; margin-block-end: var(--tq-space-h2); }
+.tq-vf__brand { display: inline-block; margin-block-end: 40px; }
 .tq-vf__brand img { block-size: auto; inline-size: 180px; }
 
 .tq-vf__card {
-  background: var(--tq-surface); border: 1px solid var(--tq-line);
-  border-radius: var(--tq-radius-card);
-  padding: var(--tq-space-h2) var(--tq-space-xl);
-  border-block-start: 5px solid var(--tq-line);
+  background: var(--paper); border: 1px solid var(--gold-line);
+  border-radius: var(--r-card);
+  padding: clamp(26px, 4vw, 40px) clamp(16px, 2.4vw, 24px);
+  border-block-start: 5px solid var(--gold-line);
+  box-shadow: var(--sh-soft);
 }
-.tq-vf__card--ok { border-block-start-color: var(--tq-actionMastery); }
-.tq-vf__card--no { border-block-start-color: var(--tq-amber); }
+.tq-vf__card--ok { border-block-start-color: var(--emerald); }
+.tq-vf__card--no { border-block-start-color: var(--gold); }
 
 .tq-vf__mark {
   display: grid; place-items: center;
-  inline-size: 72px; block-size: 72px; border-radius: var(--tq-radius-pill);
-  margin-inline: auto; margin-block-end: var(--tq-space-l);
+  inline-size: 72px; block-size: 72px; border-radius: 999px;
+  margin-inline: auto; margin-block-end: 16px;
 }
-.tq-vf__card--ok .tq-vf__mark { background: var(--tq-mint-fill);  color: var(--tq-mint-ink); }
-.tq-vf__card--no .tq-vf__mark { background: var(--tq-peach-fill); color: var(--tq-peach-ink); }
+.tq-vf__card--ok .tq-vf__mark { background: #E8F4F1; color: #0A6157; }
+.tq-vf__card--no .tq-vf__mark { background: var(--beige); color: var(--gold-text); }
 
 .tq-vf__verdict {
   font-size: clamp(1.15rem, 3.4vw, 1.5rem); font-weight: 800;
-  margin: 0 0 var(--tq-space-xl); text-wrap: balance;
+  margin: 0 0 20px; text-wrap: balance; color: var(--ink);
 }
-.tq-vf__card--ok .tq-vf__verdict { color: var(--tq-navy); }
 
 .tq-vf__meta {
-  display: grid; gap: var(--tq-space-m); margin: 0 0 var(--tq-space-xl);
+  display: grid; gap: 12px; margin: 0 0 20px;
   text-align: start;
 }
 .tq-vf__meta div {
-  display: flex; flex-wrap: wrap; gap: var(--tq-space-s);
+  display: flex; flex-wrap: wrap; gap: 8px;
   justify-content: space-between; align-items: baseline;
-  padding-block-end: var(--tq-space-s); border-block-end: 1px dashed var(--tq-line);
+  padding-block-end: 8px; border-block-end: 1px dashed var(--gold-line-soft);
 }
-.tq-vf__meta dt { color: var(--tq-text3); font-size: .84rem; }
-.tq-vf__meta dd { margin: 0; font-weight: 700; }
+.tq-vf__meta dt { color: var(--ink-3); font-size: max(12px, .84rem); }
+.tq-vf__meta dd { margin: 0; font-weight: 700; color: var(--ink); }
 
-.tq-vf__how { color: var(--tq-text2); font-size: .9rem; margin: 0; }
+.tq-vf__how { color: var(--ink-2); font-size: max(12.5px, .9rem); margin: 0; line-height: 1.85; }
 
 .tq-vf__form {
-  display: flex; flex-wrap: wrap; gap: var(--tq-space-s);
-  justify-content: center; margin-block-start: var(--tq-space-xl);
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; margin-block-start: 20px;
 }
+/* والحقل `flex:1` بأساس ١٨٠px: على عرض ٣٤٤ يبقى الصندوق والزر في صف
+   واحد بلا أن ينكمش أحدهما تحت ما يقرأ فيه. */
 .tq-vf__form input {
-  flex: 1; min-inline-size: 180px; font: inherit;
-  border: 1px solid var(--tq-line); border-radius: var(--tq-radius-small);
-  padding: var(--tq-space-m); background: var(--tq-surface); color: inherit;
+  flex: 1 1 140px; min-inline-size: 0; font: inherit;
+  border: 1px solid var(--gold-line); border-radius: 14px;
+  padding: 12px; background: var(--cream); color: var(--ink);
   text-align: center; letter-spacing: 1px;
 }
-.tq-vf__form input:focus { outline: none; border-color: var(--tq-teal); }
+.tq-vf__form input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,165,95,.16); }
 
-.tq-vf__foot { margin-block-start: var(--tq-space-xl); font-size: .82rem; color: var(--tq-text3); }
+.tq-vf__foot { margin-block-start: 20px; font-size: max(12px, .82rem); color: var(--ink-3); }
+.tq-vf__foot a { color: var(--gold-text); font-weight: 700 }
 </style>

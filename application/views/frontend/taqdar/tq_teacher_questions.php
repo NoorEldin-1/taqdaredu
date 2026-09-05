@@ -150,36 +150,38 @@ include 'portal_open.php';
                     <h2 class="tq-card__title"><?php echo t('الأسئلة'); ?></h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_questions) . TQ_PDI; ?></span>
                 </div>
-                <table class="tq-table">
-                    <caption class="tq-sr"><?php echo t('أسئلة بنك كورساتك مع هدف كل سؤال ونوعه'); ?></caption>
-                    <thead>
-                        <tr>
-                            <th scope="col"><?php echo t('السؤال'); ?></th>
-                            <th scope="col"><?php echo t('الهدف المرتبط'); ?></th>
-                            <th scope="col"><?php echo t('النوع'); ?></th>
-                            <th scope="col"><?php echo t('الاختبار'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($tq_questions as $tq_q): ?>
+                <div class="tq-table-wrap">
+                    <table class="tq-table">
+                        <caption class="tq-sr"><?php echo t('أسئلة بنك كورساتك مع هدف كل سؤال ونوعه'); ?></caption>
+                        <thead>
                             <tr>
-                                <td data-label="السؤال">
-                                    <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_q['title']); ?></span>
-                                    <span class="tq-micro" style="display:block"><?php echo html_escape($tq_q['course_title']); ?></span>
-                                </td>
-                                <td data-label="الهدف المرتبط">
-                                    <?php if (!empty($tq_q['objective_text'])): ?>
-                                        <span class="tq-strong"><?php echo html_escape($tq_q['objective_text']); ?></span>
-                                    <?php else: ?>
-                                        <?php echo tq_badge('due', t('بلا هدف')); ?>
-                                    <?php endif; ?>
-                                </td>
-                                <td data-label="النوع"><?php echo html_escape($tq_type_label[$tq_q['type']] ?? $tq_q['type']); ?></td>
-                                <td data-label="الاختبار"><?php echo html_escape($tq_q['quiz_title']); ?></td>
+                                <th scope="col"><?php echo t('السؤال'); ?></th>
+                                <th scope="col"><?php echo t('الهدف المرتبط'); ?></th>
+                                <th scope="col"><?php echo t('النوع'); ?></th>
+                                <th scope="col"><?php echo t('الاختبار'); ?></th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($tq_questions as $tq_q): ?>
+                                <tr>
+                                    <td data-label="<?php echo te('السؤال'); ?>">
+                                        <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_q['title']); ?></span>
+                                        <span class="tq-micro" style="display:block"><?php echo html_escape($tq_q['course_title']); ?></span>
+                                    </td>
+                                    <td data-label="<?php echo te('الهدف المرتبط'); ?>">
+                                        <?php if (!empty($tq_q['objective_text'])): ?>
+                                            <span class="tq-strong"><?php echo html_escape($tq_q['objective_text']); ?></span>
+                                        <?php else: ?>
+                                            <?php echo tq_badge('due', t('بلا هدف')); ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td data-label="<?php echo te('النوع'); ?>"><?php echo html_escape($tq_type_label[$tq_q['type']] ?? $tq_q['type']); ?></td>
+                                    <td data-label="<?php echo te('الاختبار'); ?>"><?php echo html_escape($tq_q['quiz_title']); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
                 <?php if ($tq_total_count > count($tq_questions)): ?>
                     <p class="tq-caption" style="margin-block-start:var(--tq-space-l)">
                         <?php echo tq_iso(t('تعرض هنا أحدث ') . count($tq_questions) . t(' سؤالا من ') . $tq_total_count

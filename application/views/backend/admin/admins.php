@@ -58,7 +58,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/admin
                 <tr>
                     <td data-label="#"><span class="tqa-num"><?php echo $tq_k + 1; ?></span></td>
 
-                    <td data-label="المسؤول">
+                    <td data-label="<?php echo te('المسؤول'); ?>">
                         <span class="tqa-media">
                             <img class="tqa-avatar" alt="" width="38" height="38" loading="lazy"
                                  src="<?php echo html_escape($this->user_model->get_user_image_url($tq_id)); ?>">
@@ -71,11 +71,11 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/admin
                         </span>
                     </td>
 
-                    <td data-label="البريد الإلكتروني">
+                    <td data-label="<?php echo te('البريد الإلكتروني'); ?>">
                         <span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_u['email']); ?></span>
                     </td>
 
-                    <td data-label="الهاتف">
+                    <td data-label="<?php echo te('الهاتف'); ?>">
                         <?php if (trim((string) $tq_u['phone']) !== ''): ?>
                             <span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_u['phone']); ?></span>
                         <?php else: ?>
@@ -83,7 +83,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/admin
                         <?php endif; ?>
                     </td>
 
-                    <td class="tqa-col--acts" data-label="إجراءات">
+                    <td class="tqa-col--acts" data-label="<?php echo te('إجراءات'); ?>">
                         <?php if ($tq_root): ?>
                             <span class="tqa-badge tqa-badge--ok">
                                 <?php echo tq_icon('shield', 13); ?> <?php echo t('مشرف الجذر'); ?>

@@ -219,3 +219,123 @@ if (!function_exists('tq_img_drop')) {
         return @unlink($real);
     }
 }
+
+if (!function_exists('tq_doc_dir')) {
+    /** مجلد الرفع لدلو، ينشأ إن لم يكن — وهو `tq_img_dir()` نفسه بابا. */
+    function tq_doc_dir($bucket)
+    {
+        $bucket = preg_replace('/[^a-z0-9_-]/i', '', (string) $bucket);
+        if ($bucket === '') $bucket = 'docs';
+        $dir = FCPATH . 'uploads/' . $bucket . '/';
+        if (!is_dir($dir)) @mkdir($dir, 0755, true);
+        return $dir;
+    }
+}
+
+if (!function_exists('tq_doc_store')) {
+    /**
+     * TQ-BOOK-FILE — يخزن مستندا مرفوعا (PDF) بعد فحص **محتواه**.
+     *
+     * وهو أخو `tq_img_store()` لا نسخة منه: الصورة تعالج وتقص وتعاد
+     * ترميزا، والمستند يخزن كما جاء — لكن الفحص واحد في مبدئه:
+     *
+     * · **المحتوى لا الامتداد.** ملف اسمه `book.pdf` وأوله `<?php` هو
+     *   شيفرة تنفذ لو وضعت في مجلد يخدم. فالبصمة تقرأ من أول البايتات
+     *   (`%PDF-`)، والامتداد يشتق منها لا من اسم الرافع.
+     *
+     * · **والاسم بصمة محتواه** كما في الصور: فلا يعرض كاش متصفح ولا
+     *   LiteSpeed ملفا قديما بعد استبدال، ورفع الملف نفسه مرتين لا
+     *   يترك نسختين.
+     *
+     * · **والحجم يحد.** كتاب المنهج عشرات الميغابايتات، وحد الصور
+     *   (ثمانية) يرد كتابا صحيحا. فالافتراض هنا أربعون.
+     *
+     * @param  array $file صف من `$_FILES`
+     * @param  array $o    bucket · max_mb
+     * @return array ok · path · error · size
+     */
+    function tq_doc_store($file, $o = array())
+    {
+        $bucket = isset($o['bucket']) ? $o['bucket'] : 'books';
+        $prefix = isset($o['prefix']) ? preg_replace('/[^a-z0-9_-]/i', '', (string) $o['prefix']) : 'doc';
+        $maxmb  = isset($o['max_mb']) ? (float) $o['max_mb'] : 40;
+
+        $fail = function ($msg) { return array('ok' => false, 'path' => '', 'size' => 0, 'error' => $msg); };
+
+        if (!is_array($file) || !isset($file['error'])) return $fail(t('لم يصل ملف.'));
+
+        if ((int) $file['error'] !== UPLOAD_ERR_OK) {
+            if (in_array((int) $file['error'], array(UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE), true)) {
+                return $fail(t('حجم الملف أكبر مما يقبله الخادم. اضغط الملف أو ارفعه مجزأ.'));
+            }
+            if ((int) $file['error'] === UPLOAD_ERR_NO_FILE) return $fail(t('لم تختر ملفا.'));
+            return $fail(t('تعذر رفع الملف. حاول مرة أخرى.'));
+        }
+
+        if ((int) $file['size'] > $maxmb * 1024 * 1024) {
+            return $fail(t('حجم الملف أكبر من ') . rtrim(rtrim(number_format($maxmb, 1), '0'), '.')
+                       . t(' ميغابايت.'));
+        }
+
+        $tmp = (string) $file['tmp_name'];
+        if (!is_uploaded_file($tmp)) return $fail(t('مصدر الملف غير مقبول.'));
+
+        /* البصمة من أول البايتات: `%PDF-` هي ما يقرؤه `pdf.js` نفسه،
+           وما لا يبدأ بها لن يفتحه القارئ مهما كان امتداده. */
+        $head = @file_get_contents($tmp, false, null, 0, 5);
+        if ($head === false || strncmp($head, '%PDF-', 5) !== 0) {
+            return $fail(t('هذا ليس ملف PDF. القارئ في بوابة الطالب لا يفتح غيره.'));
+        }
+
+        $bytes = @file_get_contents($tmp);
+        if ($bytes === false || $bytes === '') return $fail(t('تعذرت قراءة الملف المرفوع.'));
+
+        $name = $prefix . '-' . substr(sha1($bytes), 0, 12) . '.pdf';
+        $dir  = tq_doc_dir($bucket);
+        if (!is_dir($dir) || !is_writable($dir)) {
+            return $fail(t('مجلد الرفع غير قابل للكتابة: uploads/') . $bucket);
+        }
+
+        $dest = $dir . $name;
+        /* الملف نفسه مرفوعا مرتين يعطي المسار نفسه — فلا ينسخ ثانية. */
+        if (!is_file($dest) && !@move_uploaded_file($tmp, $dest)) {
+            if (@file_put_contents($dest, $bytes) === false) {
+                return $fail(t('تعذر حفظ الملف على الخادم.'));
+            }
+        }
+        @chmod($dest, 0644);
+
+        return array('ok' => true, 'path' => 'uploads/' . $bucket . '/' . $name,
+                     'size' => (int) filesize($dest), 'error' => '');
+    }
+}
+
+if (!function_exists('tq_doc_pages')) {
+    /**
+     * عدد صفحات ملف PDF — يقرأ من الملف لا يكتب بيد.
+     *
+     * والعد اقتراح لا فرض (TQ-PROBE نفسه): يملأ الحقل الفارغ وحده،
+     * وما كتبه صاحبه يبقى. والقراءة بلا مكتبة: `/Type /Page` تحصى في
+     * الملف، وهو تقدير يصيب في الأغلب الساحق من ملفات المنهج.
+     */
+    function tq_doc_pages($rel_path)
+    {
+        $p = ltrim(trim((string) $rel_path), '/');
+        if ($p === '' || strpos($p, 'uploads/') !== 0 || strpos($p, '..') !== false) return 0;
+
+        $full = FCPATH . $p;
+        if (!is_file($full)) return 0;
+
+        $raw = @file_get_contents($full);
+        if ($raw === false || $raw === '') return 0;
+
+        /* `/Count n` في شجرة الصفحات أدق من حصر `/Type /Page`، فيجرب
+           أولا — وأكبر قيمة فيه هي جذر الشجرة. */
+        if (preg_match_all('#/Count\s+(\d+)#', $raw, $m) && !empty($m[1])) {
+            $n = max(array_map('intval', $m[1]));
+            if ($n > 0 && $n < 20000) return $n;
+        }
+        $n = preg_match_all('#/Type\s*/Page[^s]#', $raw);
+        return ($n > 0 && $n < 20000) ? $n : 0;
+    }
+}

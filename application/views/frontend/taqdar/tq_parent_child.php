@@ -396,36 +396,38 @@ include 'portal_open.php';
 
             <?php if ($tq_payments): ?>
                 <div class="tq-card">
-                    <table class="tq-table">
-                        <caption class="tq-sr"><?php echo t('فواتير ما اشتري لهذا الابن'); ?></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><?php echo t('التاريخ'); ?></th>
-                                <th scope="col"><?php echo t('ما اشتري'); ?></th>
-                                <th scope="col"><?php echo t('المبلغ'); ?></th>
-                                <th scope="col"><?php echo t('الحالة'); ?></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tq_payments as $tq_p): ?>
+                    <div class="tq-table-wrap">
+                        <table class="tq-table">
+                            <caption class="tq-sr"><?php echo t('فواتير ما اشتري لهذا الابن'); ?></caption>
+                            <thead>
                                 <tr>
-                                    <td data-label="التاريخ">
-                                        <?php echo (int) $tq_p['ts'] > 0
-                                            ? tq_num(date('Y-m-d', (int) $tq_p['ts']), 'tq-num--sm')
-                                            : '<span class="tq-caption">—</span>'; ?>
-                                    </td>
-                                    <td data-label="ما اشتري"><?php echo html_escape($tq_p['title']); ?></td>
-                                    <td data-label="المبلغ"><?php echo tq_sar($tq_p['amount'], 2); ?></td>
-                                    <td data-label="الحالة">
-                                        <?php echo tq_badge(
-                                            $tq_p['status'] === 'paid' ? 'mastered' : ($tq_p['status'] === 'unpaid' ? 'due' : 'idle'),
-                                            $tq_p['label']
-                                        ); ?>
-                                    </td>
+                                    <th scope="col"><?php echo t('التاريخ'); ?></th>
+                                    <th scope="col"><?php echo t('ما اشتري'); ?></th>
+                                    <th scope="col"><?php echo t('المبلغ'); ?></th>
+                                    <th scope="col"><?php echo t('الحالة'); ?></th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($tq_payments as $tq_p): ?>
+                                    <tr>
+                                        <td data-label="<?php echo te('التاريخ'); ?>">
+                                            <?php echo (int) $tq_p['ts'] > 0
+                                                ? tq_num(date('Y-m-d', (int) $tq_p['ts']), 'tq-num--sm')
+                                                : '<span class="tq-caption">—</span>'; ?>
+                                        </td>
+                                        <td data-label="<?php echo te('ما اشتري'); ?>"><?php echo html_escape($tq_p['title']); ?></td>
+                                        <td data-label="<?php echo te('المبلغ'); ?>"><?php echo tq_sar($tq_p['amount'], 2); ?></td>
+                                        <td data-label="<?php echo te('الحالة'); ?>">
+                                            <?php echo tq_badge(
+                                                $tq_p['status'] === 'paid' ? 'mastered' : ($tq_p['status'] === 'unpaid' ? 'due' : 'idle'),
+                                                $tq_p['label']
+                                            ); ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             <?php else: ?>
                 <div class="tq-card tq-empty">

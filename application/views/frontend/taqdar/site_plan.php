@@ -148,6 +148,56 @@ $tier  = tqs_bundle_tier($b['name']);
         <?php echo tqs_curriculum($b, array('mode' => 'public', 'open' => 1)); ?>
       </div>
 
+
+      <?php /* ── كتب الباقة — TQ-BOOK ─────────────────────────────────
+               الباقة تفتح كتب صفوفها كما تفتح برامجها، وصفحتها كانت
+               تعد بالبرامج وحدها: فمن يشتري باقة فيها أربعة كتب لا
+               يعرف بها حتى يفتح مكتبته **بعد** الدفع — قيمة دفع ثمنها
+               ولم تعرض عليه.
+               وموضعها بعد المنهج لا قبله: البرنامج هو ما يشترى، والكتاب
+               ما يرافقه. */ ?>
+      <?php if (!empty($b['books'])): ?>
+        <div class="icard">
+          <h2><?php echo t('وكتب مرحلته معها'); ?></h2>
+          <p class="tq-caption">
+            <?php echo tq_count_units(count($b['books']), 'كتاب', 'كتابان', 'كتابين',
+                                      'كتب', 'كتابا', '', 'nom'); ?>
+            <?php echo t('تفتح باشتراكه — تقرأ في مكتبته صفحة صفحة داخل المنصة، بلا تحميل ولا تطبيق ثان.'); ?>
+          </p>
+
+          <ul class="plan-books">
+            <?php foreach ($b['books'] as $bk):
+              $bk_tone = in_array((string) $bk['tone'],
+                  array('math','arabic','science','islamic','english'), true)
+                  ? (string) $bk['tone'] : 'math';
+              /* TQ-COVER-BLANK — الغلاف الخالي يحمل اسمه: المادة وجها
+                 والصف تحته، كما في مكتبة الطالب حرفا بحرف. */
+              $bk_bits = preg_split('/\s+[—–-]\s+/u', (string) $bk['title'], 2);
+              $bk_face = trim((string) ($bk['subject'] ?: $bk_bits[0]));
+            ?>
+              <li class="plan-books__i">
+                <a class="plan-books__a" href="<?php echo html_escape($bk['href']); ?>">
+                  <span class="bookface bookface--xs" data-tone="<?php echo $bk_tone; ?>">
+                    <?php if (trim((string) $bk['cover']) !== ''): ?>
+                      <img src="<?php echo html_escape(tqs_img($bk['cover'], 'subj-math')); ?>"
+                           alt="" width="60" height="84" loading="lazy" decoding="async">
+                    <?php else: ?>
+                      <span class="book-card__label"><?php echo html_escape($bk_face); ?></span>
+                    <?php endif; ?>
+                  </span>
+                  <span class="plan-books__t">
+                    <b><?php echo html_escape($bk['title']); ?></b>
+                    <?php if ((int) $bk['pages'] > 0): ?>
+                      <small><span class="tq-ltr"><?php echo (int) $bk['pages']; ?></span> <?php echo t('صفحة'); ?></small>
+                    <?php endif; ?>
+                  </span>
+                </a>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+      <?php endif; ?>
+
       <?php /* ── ماذا تشمل: المزايا من `plans.features` ─────────────── */ ?>
       <?php if ($b['features']): ?>
         <div class="icard">

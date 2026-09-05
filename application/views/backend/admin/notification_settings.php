@@ -156,12 +156,12 @@ $tq_smtp = array(
                         <tr>
                             <td data-label="#"><span class="tqa-num"><?php echo $tq_k + 1; ?></span></td>
 
-                            <td data-label="نوع الرسالة">
+                            <td data-label="<?php echo te('نوع الرسالة'); ?>">
                                 <span class="tqa-media__title"><?php echo html_escape($tq_r['setting_title']); ?></span>
                                 <span class="tqa-media__sub"><?php echo html_escape($tq_r['setting_sub_title']); ?></span>
                             </td>
 
-                            <td data-label="العنوان المرسل">
+                            <td data-label="<?php echo te('العنوان المرسل'); ?>">
                                 <?php if ($tq_subjects): ?>
                                     <?php foreach ($tq_subjects as $tq_who => $tq_subj): ?>
                                         <div style="margin-block-end:var(--tq-space-xs)">
@@ -174,7 +174,7 @@ $tq_smtp = array(
                                 <?php endif; ?>
                             </td>
 
-                            <td data-label="إجراءات">
+                            <td data-label="<?php echo te('إجراءات'); ?>">
                                 <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                    href="<?php echo site_url('admin/edit_email_template/' . (int) $tq_r['id']); ?>">
                                     <?php echo tq_icon('edit', 14); ?> <?php echo t('تحرير'); ?>

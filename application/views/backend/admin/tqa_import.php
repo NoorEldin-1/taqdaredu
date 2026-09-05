@@ -59,20 +59,22 @@ if ($preview) {
             <div class="tqa-card">
                 <div class="tqa-card__head"><h2><?php echo t('الأعمدة'); ?></h2></div>
                 <div class="tqa-card__body">
-                    <table class="table table-sm mb-0">
-                        <thead><tr><th><?php echo t('العمود'); ?></th><th><?php echo t('لازم؟'); ?></th></tr></thead>
-                        <tbody>
-                            <tr><td><?php echo t('المادة'); ?></td><td><?php echo t('نعم'); ?></td></tr>
-                            <tr><td><?php echo t('الصف'); ?></td><td><?php echo t('نعم'); ?></td></tr>
-                            <tr><td><?php echo t('المسار'); ?></td><td><?php echo t('نعم'); ?></td></tr>
-                            <tr><td><?php echo t('السعر'); ?></td><td><?php echo t('بالريال'); ?></td></tr>
-                            <tr><td><?php echo t('المعلم'); ?></td><td><?php echo t('بريده'); ?></td></tr>
-                            <tr><td><?php echo t('النسبة'); ?></td><td><span class="tq-ltr" dir="ltr">0–100</span></td></tr>
-                            <tr><td><?php echo t('الاسابيع'); ?></td><td><?php echo t('عدد'); ?></td></tr>
-                            <tr><td><?php echo t('الدورة'); ?></td><td><?php echo t('عنوانها'); ?></td></tr>
-                            <tr><td><?php echo t('الحالة'); ?></td><td><?php echo t('مسودة/منشور'); ?></td></tr>
-                        </tbody>
-                    </table>
+                    <div class="tqa-table__wrap">
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th><?php echo t('العمود'); ?></th><th><?php echo t('لازم؟'); ?></th></tr></thead>
+                            <tbody>
+                                <tr><td><?php echo t('المادة'); ?></td><td><?php echo t('نعم'); ?></td></tr>
+                                <tr><td><?php echo t('الصف'); ?></td><td><?php echo t('نعم'); ?></td></tr>
+                                <tr><td><?php echo t('المسار'); ?></td><td><?php echo t('نعم'); ?></td></tr>
+                                <tr><td><?php echo t('السعر'); ?></td><td><?php echo t('بالريال'); ?></td></tr>
+                                <tr><td><?php echo t('المعلم'); ?></td><td><?php echo t('بريده'); ?></td></tr>
+                                <tr><td><?php echo t('النسبة'); ?></td><td><span class="tq-ltr" dir="ltr">0–100</span></td></tr>
+                                <tr><td><?php echo t('الاسابيع'); ?></td><td><?php echo t('عدد'); ?></td></tr>
+                                <tr><td><?php echo t('الدورة'); ?></td><td><?php echo t('عنوانها'); ?></td></tr>
+                                <tr><td><?php echo t('الحالة'); ?></td><td><?php echo t('مسودة/منشور'); ?></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                     <small class="tqa-hint" style="margin-block-start:var(--tq-space-m)">
                         <?php echo t('الأسماء الإنجليزية مقبولة أيضا ('); ?><span class="tq-ltr" dir="ltr">subject, grade, title…</span>).
                     </small>

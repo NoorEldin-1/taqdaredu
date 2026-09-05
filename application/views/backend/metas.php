@@ -1,5 +1,33 @@
-<meta http-equiv="content-type" content="text/html;charset=UTF-8" />
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<?php
+/**
+ * ترويسات اللوحة الموروثة من Academy.
+ *
+ * TQ-VIEWPORT-DUP — وكان فيها **وسم منفذ ثان**.
+ * `backend/index.php` يعلن منفذه في السطر ٣٢:
+ *
+ *     width=device-width, initial-scale=1, viewport-fit=cover
+ *
+ * ثم يضم هذا الملف بعده بسبعة أسطر، وفيه:
+ *
+ *     width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no
+ *
+ * والمتصفح يأخذ الأخير. فكان في اللوحة كلها:
+ *
+ *   ١ — **لا تكبير بالأصابع.** `user-scalable=no` مع `maximum-scale=1`
+ *       يقفلان التقريب، واللوحة جداول كثيفة بحروف صغيرة: من لا يقرأها
+ *       بعينه المجردة لا يقرأها أصلا، ولا مخرج له. وهو نقض صريح لمعيار
+ *       WCAG 1.4.4، والحال التي كتب هذا الوسم لأجلها — قفزة تقريب iOS
+ *       عند التركيز في حقل — قد عولجت من زمن بحجم حرف ١٦px.
+ *
+ *   ٢ — **وذهبت `viewport-fit=cover` معه**، فلا تحسب `safe-area-inset`
+ *       على شاشة ذات نتوء: يجلس الشريط اللاصق تحت الحافة المدورة.
+ *
+ * فالوسم يحذف من هنا ولا يعدل: الإعلان موضعه واحد، وملفان يعلنان المنفذ
+ * يفترقان عند أول تعديل — ومن يصحح أحدهما لا يرى الآخر يبطله.
+ *
+ * و`charset` كذلك: `index.php` يعلنه في أول سطر من `<head>`، وإعلان ثان
+ * بعد ٢٥٠ بايت من الترميز يهمل.
+ */
+?>
 <meta content="" name="description" />
 <meta content="" name="author" />

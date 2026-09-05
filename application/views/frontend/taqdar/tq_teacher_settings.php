@@ -77,9 +77,9 @@ include 'portal_open.php';
             <p class="tqp-flash tqp-flash--no" role="alert"><?php echo tq_iso(html_escape($tq_err)); ?></p>
         <?php endif; ?>
 
-        <div class="tq-grid" style="grid-template-columns:220px minmax(0,1fr);gap:var(--tq-space-xxl)">
+        <div class="tq-setcols">
 
-            <nav class="tq-card" aria-label="<?php echo te('أقسام الإعدادات'); ?>" style="padding:var(--tq-space-s)">
+            <nav class="tq-card tq-setcols__nav" aria-label="<?php echo te('أقسام الإعدادات'); ?>" style="padding:var(--tq-space-s)">
                 <?php foreach ($sections as [$key, $label, $icon]): ?>
                     <a class="tq-rail__item" href="?s=<?php echo $key; ?>"
                        <?php echo $key === $active ? ' aria-current="page"' : ''; ?>>
@@ -296,17 +296,17 @@ include 'portal_open.php';
                                         <?php foreach ($tq_sessions as $tq_s): ?>
                                             <?php $tq_is_here = ((string) $tq_s['id'] === (string) $tq_here); ?>
                                             <tr>
-                                                <td data-label="الجهاز">
+                                                <td data-label="<?php echo te('الجهاز'); ?>">
                                                     <?php if ($tq_is_here): ?>
                                                         <span class="tq-badge tq-badge--mastered"><?php echo t('هذا الجهاز'); ?></span>
                                                     <?php else: ?>
                                                         <span class="tq-caption"><?php echo t('جهاز آخر'); ?></span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td data-label="عنوان الاتصال">
+                                                <td data-label="<?php echo te('عنوان الاتصال'); ?>">
                                                     <span class="tq-ltr" dir="ltr"><?php echo html_escape((string) $tq_s['ip_address']); ?></span>
                                                 </td>
-                                                <td data-label="آخر نشاط">
+                                                <td data-label="<?php echo te('آخر نشاط'); ?>">
                                                     <?php echo tq_iso(html_escape(date('Y-m-d H:i', (int) $tq_s['timestamp']))); ?>
                                                 </td>
                                             </tr>
@@ -367,43 +367,45 @@ include 'portal_open.php';
                             <input type="hidden" name="action" value="alerts">
                             <input type="hidden" name="s" value="alerts">
 
-                            <table class="tq-table">
-                                <thead>
-                                    <tr>
-                                        <th scope="col"><?php echo t('النوع'); ?></th>
-                                        <?php foreach ($tq_channels as $ck => $clabel): ?>
-                                            <th scope="col"><?php echo html_escape($clabel); ?></th>
-                                        <?php endforeach; ?>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($tq_types as $tkey => [$tlabel, $thint]): ?>
+                            <div class="tq-table-wrap">
+                                <table class="tq-table">
+                                    <thead>
                                         <tr>
-                                            <td data-label="النوع">
-                                                <span class="tq-strong"><?php echo html_escape($tlabel); ?></span>
-                                                <span class="tq-micro tq-muted" style="display:block"><?php echo html_escape($thint); ?></span>
-                                            </td>
+                                            <th scope="col"><?php echo t('النوع'); ?></th>
                                             <?php foreach ($tq_channels as $ck => $clabel): ?>
-                                                <?php $id = 'tq-n-' . $tkey . '-' . $ck; ?>
-                                                <td data-label="<?php echo html_escape($clabel); ?>">
-                                                    <span class="tq-switchcell">
-                                                        <label class="tq-sr" for="<?php echo $id; ?>">
-                                                            <?php echo html_escape($tlabel . ' — ' . $clabel); ?>
-                                                        </label>
-                                                        <span class="tq-switch">
-                                                            <input id="<?php echo $id; ?>" type="checkbox" value="1"
-                                                                   name="notify[<?php echo html_escape($tkey); ?>][<?php echo html_escape($ck); ?>]"
-                                                                   <?php echo !empty($tq_matrix[$tkey][$ck]) ? ' checked' : ''; ?>>
-                                                            <span class="tq-switch__track" aria-hidden="true"></span>
-                                                            <span class="tq-switch__knob" aria-hidden="true"></span>
-                                                        </span>
-                                                    </span>
-                                                </td>
+                                                <th scope="col"><?php echo html_escape($clabel); ?></th>
                                             <?php endforeach; ?>
                                         </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($tq_types as $tkey => [$tlabel, $thint]): ?>
+                                            <tr>
+                                                <td data-label="<?php echo te('النوع'); ?>">
+                                                    <span class="tq-strong"><?php echo html_escape($tlabel); ?></span>
+                                                    <span class="tq-micro tq-muted" style="display:block"><?php echo html_escape($thint); ?></span>
+                                                </td>
+                                                <?php foreach ($tq_channels as $ck => $clabel): ?>
+                                                    <?php $id = 'tq-n-' . $tkey . '-' . $ck; ?>
+                                                    <td data-label="<?php echo html_escape($clabel); ?>">
+                                                        <span class="tq-switchcell">
+                                                            <label class="tq-sr" for="<?php echo $id; ?>">
+                                                                <?php echo html_escape($tlabel . ' — ' . $clabel); ?>
+                                                            </label>
+                                                            <span class="tq-switch">
+                                                                <input id="<?php echo $id; ?>" type="checkbox" value="1"
+                                                                       name="notify[<?php echo html_escape($tkey); ?>][<?php echo html_escape($ck); ?>]"
+                                                                       <?php echo !empty($tq_matrix[$tkey][$ck]) ? ' checked' : ''; ?>>
+                                                                <span class="tq-switch__track" aria-hidden="true"></span>
+                                                                <span class="tq-switch__knob" aria-hidden="true"></span>
+                                                            </span>
+                                                        </span>
+                                                    </td>
+                                                <?php endforeach; ?>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
 
                             <h3 class="tq-card__title" style="font:var(--tq-type-h2);margin-block-start:var(--tq-space-xl)"><?php echo t('ساعات الصمت'); ?></h3>
 

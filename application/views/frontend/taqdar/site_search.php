@@ -7,9 +7,14 @@
  * ما سيراه في الصفحة التي يصل إليها.
  */
 $tq_h1   = 'البحث';
+/* و`$tq_lead` **نص لا وسم**: `site_pagehero.php` يمرره بـ`html_escape()`،
+   فـ`tq_num()` — وهي ترد `<span class="tq-num">` — كانت تطبع وسمها حرفا
+   على الشاشة: «رياضيات» ثم `&lt;span class=&quot;tq-num&quot;&gt;6&lt;/span&gt;`
+   في سطر يقرؤه كل من بحث. و`tq_iso()` تعطي العزل نفسه بمحارف يونيكود
+   بلا وسم، فالرقم لا ينقلب والسطر يبقى نصا. */
 $tq_lead = ($tq_q === '')
     ? 'اكتب ما تبحث عنه: مادة أو مقالا أو كتابا أو معلما.'
-    : 'نتائج البحث عن «' . $tq_q . '» — ' . tq_num($tq_res['total']) . ' نتيجة.';
+    : tq_iso('نتائج البحث عن «' . $tq_q . '» — ' . $tq_res['total'] . ' نتيجة.');
 include __DIR__ . '/site/site_pagehero.php';
 ?>
 <section class="section">

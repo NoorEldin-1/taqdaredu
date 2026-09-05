@@ -99,6 +99,10 @@
 .tq-select,
 .tq-textarea {
   inline-size: 100%;
+  /* TQ-FIELD-SHRINK — كما في اللوحة (`admin.css`): عرض `<select>` الأدنى
+     هو أطول خيار فيه، وهو يمنع البطاقة أو الصف الذي يحمله من أن يضيق.
+     والقص موضعه داخل الحقل لا خارج الصندوق. */
+  min-inline-size: 0;
   min-block-size: var(--tq-touch-min);
   padding: var(--tq-space-m) var(--tq-space-l);
   background: var(--tq-surface);
@@ -181,15 +185,60 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-prefrow__hint { display: block; margin: 0; font: var(--tq-type-micro); color: var(--tq-text2); }
 .tq-prefrow__end { flex: none; display: flex; align-items: center; gap: var(--tq-space-m); }
 .tq-prefrow__end .tq-field { margin-block-end: 0; }
-@media (max-width: 479.98px) { .tq-prefrow { flex-wrap: wrap; } }
+/* صف التفضيل يلتف دون ٦٤٠ لا دون ٤٨٠: توأمه في اللوحة (`.tqa-prefrow`)
+   ينقلب عمودا عند ٦٤٠، وبين الحدين يقف عنوان وشرحه بجوار منتق عرضه
+   الأدنى ثابت — فينضغط الشرح إلى كلمة في السطر أو يقص المنتق. */
+@media (max-width: 639.98px) { .tq-prefrow { flex-wrap: wrap; } }
 
 /* حقلان جنبا إلى جنب حين تتسع الشاشة — الاسم الأول والأخير مثلا. */
 .tq-fieldgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--tq-space-l); }
 @media (max-width: 639.98px) { .tq-fieldgrid { grid-template-columns: minmax(0, 1fr); } }
 
-/* شريط إجراءات النموذج — الحفظ في نهاية النموذج لا يطفو فوقه. */
+/* --------------------------------------------------------------------------
+   TQ-SETCOLS — شاشة الإعدادات: قائمة أقسامها وما تفتحه
+
+   كان التخطيط مكتوبا في سمة `style` في شاشتي الطالب والمعلم:
+
+       <div class="tq-grid" style="grid-template-columns:220px minmax(0,1fr)">
+
+   وسمة `style` **لا تغلبها قاعدة في ورقة** مهما ضاقت الشاشة، فالعمود يبقى
+   ٢٢٠ بكسلا ثابتة على جوال عرضه ٣٦٠: ٢٢٠ + ٣٢ فجوة + ما تبقى للنموذج، أي
+   واحدا وتسعين بكسلا خارج المنفذ (قيست). والنموذج هو ما جاء صاحبه يملؤه.
+
+   والقائمة تصير **شريطا أفقيا يمرر** لا عمودا مطويا: خمسة أقسام في عمود
+   على الجوال تدفع أول حقل تحت الطية، والشريط يبقيها في متناول إبهام.
+   -------------------------------------------------------------------------- */
+.tq-setcols {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--tq-space-xxl);
+  align-items: start;
+}
+@media (max-width: 767.98px) {
+  .tq-setcols { grid-template-columns: minmax(0, 1fr); gap: var(--tq-space-l); }
+  .tq-setcols > .tq-setcols__nav {
+    display: flex;
+    gap: var(--tq-space-xs);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+  .tq-setcols > .tq-setcols__nav::-webkit-scrollbar { display: none; }
+  /* البند في الشريط: لا يضغط ولا يلتف، والاسم يقرأ كاملا أو يمرر إليه. */
+  .tq-setcols > .tq-setcols__nav > .tq-rail__item {
+    flex: none;
+    white-space: nowrap;
+    padding-inline: var(--tq-space-m);
+  }
+}
+
+/* شريط إجراءات النموذج — الحفظ في نهاية النموذج لا يطفو فوقه.
+   و`flex-wrap` كتوأمه `.tqa-formbar` في اللوحة: ثلاثة أزرار بأسماء عربية
+   طويلة («احفظ التعديلات» · «ألغ» · «احذف الحساب») لا تجتمع في سطر واحد
+   دون ٦٤٠، وصف لا يلتف يقص آخرها — وهو زر لا يرى فلا يضغط. */
 .tq-formbar {
   display: flex; align-items: center; justify-content: flex-end; gap: var(--tq-space-m);
+  flex-wrap: wrap;
   margin-block-start: var(--tq-space-xl);
   padding-block-start: var(--tq-space-l);
   border-block-start: 1px solid var(--tq-line);
@@ -260,8 +309,12 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-card--panel  { border-radius: var(--tq-radius-soft); padding: var(--tq-space-xl); }
 .tq-card--flat   { box-shadow: none; border: 1px solid var(--tq-line); }
 
+/* TQ-HEAD-WRAP — الرأس يلتف: عنوان بجواره زر أو شارة لا يجتمعان في سطر
+   واحد على جوال، فيقص أحدهما. وهي قاعدة `.tqa-card__head` في اللوحة
+   نفسها وللسبب نفسه. */
 .tq-card__head {
   display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--tq-space-m);
   margin-block-end: var(--tq-space-l);
 }
@@ -515,14 +568,34 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 
 /* --- جوال: درج كامل الأسماء، وزر إغلاق داخله ---------------------------- */
 @media (max-width: 639.98px) {
+  /* TQ-RAIL-LTR — الاتجاه يقرر **جهة الخروج**، والحال تقرر `transform`.
+
+     وكان القراران يكتبان في الخاصية نفسها، فتنازعا بالوزن:
+
+         html[dir='ltr'] .tq-rail   { transform: translateX(-100%); }   (0,2,1)
+         .tq-rail[data-open='true'] { transform: none; }                (0,2,0)
+
+     ووسم `html` يرجح الأول. فالدرج في الإنجليزية **لا يفتح أبدا**: يبقى
+     مزاحا بعرضه كله خارج الشاشة (قيس `x = -232` على منفذ ٣٩٠)، والطبقة
+     تعتم فوقه، و`body { overflow: hidden }` تقفل التمرير، والتركيز ينتقل
+     إلى قائمة لا ترى — فيقرأ من بدل لغته شاشة معتمة بلا قائمة ولا محتوى
+     يمرر، ولا مخرج إلا نقرة على الطبقة لا يعلنها شيء. ولا سطر خطأ يظهر.
+
+     وفي العربية يعمل، لأن قاعدة الإغلاق هناك `.tq-rail` وحدها (0,1,0)
+     فتخسر كما يجب. والثلاث بواباته: الطالب والمعلم وولي الأمر.
+
+     والعلاج فصل القرارين لا رفع وزن أحدهما: الاتجاه يكتب **الإزاحة**
+     متغيرا، والحال وحدها تكتب `transform`. فلا محدد يزاحم الآخر مهما
+     أضيف فوقه غدا، ولا `!important` يخفي التصادم بدل أن يحله. */
   .tq-rail {
     position: fixed; inset-block: 0; inset-inline-start: 0;
     inline-size: min(var(--tq-rail-open), 84vw); z-index: 60;
-    transform: translateX(100%);
+    --tq-rail-off: 100%;
+    transform: translateX(var(--tq-rail-off));
     transition: transform var(--tq-motion-route) var(--tq-ease-enter);
     box-shadow: var(--tq-shadow-card);
   }
-  html[dir='ltr'] .tq-rail { transform: translateX(-100%); }
+  html[dir='ltr'] .tq-rail { --tq-rail-off: -100%; }
   .tq-rail[data-open='true'] { transform: none; }
 
   /* الدرج مفتوح عن قصد، فيعرض بأسمائه لا بأيقوناته */
@@ -591,9 +664,20 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   .tq-topbar__search .tq-input { padding-inline-end: var(--tq-space-m); }
 }
 
+/* TQ-TOUCH-SQUEEZE — حد اللمس مقاس لا رغبة، فلا ينكمش تحت ضغط الصف.
+
+   `inline-size: 44px` تعلن الحجم، و`flex-shrink` الافتراضية (١) تسحبه:
+   الزر بند في صف مرن، فحين يضيق الصف يتقاسم النقص مع جيرانه. وقيس **زر
+   فتح الدرج** في ترويسة البوابة على جوال ٣٦٠ فخرج **سبعة عشر بكسلا في
+   أربعة وأربعين** — وهو الباب الوحيد إلى القائمة كلها على الجوال: ست
+   عشرة وجهة خلف هدف أضيق من ظفر.
+
+   والذي يجب أن يضيق هو صندوق البحث: نص يقبل أي عرض ويبقى مفهوما
+   (`min-inline-size: 0` عليه أصلا)، والزر لا يقبل. */
 .tq-iconbtn {
   position: relative; display: grid; place-items: center;
   inline-size: var(--tq-touch-min); block-size: var(--tq-touch-min);
+  flex: none;
   border-radius: var(--tq-radius-small); color: var(--tq-text2);
 }
 .tq-iconbtn:hover { background: var(--tq-navyWash); color: var(--tq-navy); }
@@ -769,9 +853,38 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-alert--ok { background: var(--tq-mint-fill);  border-inline-start-color: var(--tq-teal);   color: var(--tq-mint-ink); }
 .tq-alert--no { background: var(--tq-dangerSoft); border-inline-start-color: var(--tq-danger); color: var(--tq-danger); }
 
-/* جدول عريض داخل بطاقة: يمرر في وعائه هو، ولا يمد الصفحة أفقيا */
-.tq-table-wrap { inline-size: 100%; overflow-x: auto; }
-.tq-table-wrap .tq-table { min-inline-size: 480px; }
+/* جدول عريض داخل بطاقة: يمرر في وعائه هو، ولا يمد الصفحة أفقيا.
+
+   TQ-WRAP-FLOOR — والوعاء يضيق هو نفسه، وإلا حمل عرض ما فيه.
+   `inline-size: 100%` تعلن العرض ولا تكفيه: الوعاء بند في صندوق مرن أو
+   شبكي، و`min-width` الافتراضية عليه `auto` — أي «لا تضق دون أضيق ما في
+   محتواك»، ومحتواه جدول أرضيته ٤٨٠. فيخرج **الوعاء نفسه** بعرض ٤٨٠ على
+   شاشة ٣٦٠، ولا يمرر شيئا لأنه لم يضق أصلا. قيست في `/teacher/sessions`.
+
+   TQ-WRAP-CARDS — والأرضية للجدول حين يكون جدولا وحده. دون ٦٤٠ تصير
+   صفوفه بطاقات (`base.css`)، والبطاقة تسيل مع الشاشة — فأرضية ٤٨٠
+   هناك تجعل بطاقات عرضها ٣٢٤ تمرر أفقيا بلا سبب. */
+.tq-table-wrap { inline-size: 100%; min-inline-size: 0; overflow-x: auto; }
+@media (min-width: 640px) {
+  .tq-table-wrap .tq-table { min-inline-size: 480px; }
+}
+
+/* TQ-TABLE-BARE — والجدول يلبس وعاءه في الوسم، ولا يحمله في الورقة.
+
+   `.tq-table-wrap` هو الوعاء المقصود، وله ورقته وشريط تمريره المرسوم
+   (`portal.css §١٤`). وكان **اثنان وعشرون جدولا من ستة وعشرين لا يلبسه**:
+   كشف حساب المعلم، ومبيعاته، والتصحيح بأربعة جداول، وبنك الأسئلة، وطلابه،
+   وحصصه، ومدفوعات الطالب، وتقاريره… وهي تعمل دون ٦٤٠ لأن الجدول يصير
+   بطاقات هناك (`base.css`)، وتنكسر **فوقها**: قيس كشف الحساب على ٦٤٠ فخرج
+   بعرض ٧٠٦، أي ماية وخمسة وسبعين بكسلا خارج المنفذ. فوضع الوعاء في
+   الاثنين والعشرين.
+
+   ولم تكف قاعدة في الورقة مكانه، وقد جربت: `display: block` على `<table>`
+   تجعل الصندوق يمرر فعلا، لكن الجدول بداخله يصير **صندوقا مجهولا
+   شرح-حسب-المحتوى** — و`inline-size: 100%` على `thead`/`tbody` لا يقرأ
+   أصلا (هما `table-header-group` و`table-row-group`، وعرضهما من الجدول
+   المجهول لا منهما). فجدول الفواتير قيس ٤٦٩ بكسلا داخل بطاقة عرضها ٩٦٨:
+   نصف البطاقة فراغ. والقاعدة التي تصلح عطبا وتحدث آخر ليست قاعدة. */
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-SUBSCRIPTION · بطاقة الاشتراك — الحال والحقائق في لمحة
@@ -946,3 +1059,12 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 @media (max-width:640px){
   .tq-langsw__opt{ min-inline-size:30px; padding-inline:6px; }
 }
+/* TQ-LANGSW-TOUCH — وارتفاع الهدف على اللمس لا على الفأرة.
+   الزر `padding-block: 5px` وسطره ١٢px، فمجموعه **اثنان وعشرون بكسلا** —
+   وهو مقبول لمؤشر يصيب بكسلا واحدا، ودون كل حد للمس. والزيادة مقصورة على
+   `pointer: coarse` فلا يتغير في المتصفح شيء: الشريط مزدحم أصلا على
+   المكتب، وتكبير ما لا يخطئه أحد هناك يضيق ما بجواره بلا سبب. */
+@media (pointer: coarse) {
+  .tq-langsw__opt { min-block-size: 32px; padding-block: 8px; }
+}
+

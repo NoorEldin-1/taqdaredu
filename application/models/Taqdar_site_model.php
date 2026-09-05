@@ -218,44 +218,6 @@ class Taqdar_site_model extends CI_Model
                         ->get()->result_array();
     }
 
-    /** مسابقات مفتوحة، الأقرب موعدا أولا. */
-    public function open_competitions($limit = 3)
-    {
-        if (!$this->db->table_exists('competitions')) return array();
-        /* `ends_at >= اليوم`: صفحة المسابقات تفلتر بها، وهذه لم تكن —
-           فمسابقة انقضت تعرض «مفتوحة» هنا و«مغلقة» هناك في اليوم نفسه. */
-        $today = date('Y-m-d');
-        $rows = $this->db->select('c.id, c.title, c.slug, c.tagline, c.prize,
-                                   c.starts_at, c.ends_at, cat.name AS stage', false)
-                         ->from('competitions c')
-                         ->join('category cat', 'cat.id = c.category_id', 'left')
-                         ->where('c.status', 'open')
-                         ->group_start()
-                             ->where('c.ends_at IS NULL', null, false)
-                             ->or_where('c.ends_at >=', $today)
-                         ->group_end()
-                         ->order_by('c.starts_at', 'ASC')->limit((int) $limit)
-                         ->get()->result_array();
-        $out = array();
-        foreach ($rows as $r) {
-            /* الرابط إلى المسابقة نفسها: `slug` كان يجلب ثم يرمى، فكانت
-               كل بطاقة تقود إلى فهرس المسابقات لا إلى تفاصيلها. */
-            $slug = trim((string) $r['slug']);
-            $out[] = array(
-                'title' => (string) $r['title'],
-                'blurb' => (string) $r['tagline'],
-                'stage' => (string) $r['stage'],
-                'prize' => (string) $r['prize'],
-                'when'  => (string) $r['starts_at'],
-                'till'  => (string) $r['ends_at'],
-                'href'  => $slug !== ''
-                         ? base_url('competition/' . rawurlencode($slug))
-                         : base_url('competitions'),
-            );
-        }
-        return $out;
-    }
-
     /** أحدث الدروس المنشورة عبر المسارات — «القادم» يعني الجديد لا المجدول. */
     public function latest_lessons($limit = 4)
     {
@@ -382,7 +344,27 @@ class Taqdar_site_model extends CI_Model
                           ->where('grade_id >', 0)->get()->result_array() as $r) {
             $grades[] = (int) $r['grade_id'];
         }
-        $grades = array_values(array_unique($grades));
+
+        return $this->plans_for_grades($grades);
+    }
+
+    /**
+     * TQ-BOOK — الباقات التي تفتح صفا بعينه.
+     *
+     * وهي جوف `plans_for_course()` بعد أن استخرج منه: صفحة الكتاب تسأل
+     * السؤال نفسه (**«أي باقة تفتح هذا؟»**) وتعرف صفها مباشرة، فلا
+     * تحتاج أن تمر بـ`paths`. واستعلام ثان بالقاعدة نفسها في موضع آخر
+     * يفترق عن هذا عند أول تعديل، فتعد صفحة بباقة تنكرها أختها.
+     *
+     * ونطاق `all` يدخل معها: باقة تفتح الكتالوج كله تفتح هذا الكتاب.
+     * و`trial` لا يدخل: وحدته الدرس المجاني.
+     *
+     * @return array صفوف `plans` (قد تكون فارغة)
+     */
+    public function plans_for_grades($grade_ids)
+    {
+        $grades = array_values(array_unique(array_filter(
+            array_map('intval', (array) $grade_ids))));
 
         $rows = $this->db->from('plans')->where('active', 1)
                          ->where_in('scope', array('grade', 'all'))
@@ -618,8 +600,10 @@ class Taqdar_site_model extends CI_Model
             'grades'   => array(),
             'subjects' => array(),
             'teachers' => array(),
+            'books'    => array(),
             'totals'   => array('grades' => 0, 'subjects' => 0, 'units' => 0, 'lessons' => 0,
-                                'quizzes' => 0, 'free' => 0, 'teachers' => 0, 'weeks' => 0),
+                                'quizzes' => 0, 'free' => 0, 'teachers' => 0, 'weeks' => 0,
+                                'books' => 0),
         );
 
         /* ٢ · الصفوف ------------------------------------------------- *
@@ -631,7 +615,9 @@ class Taqdar_site_model extends CI_Model
             $gids = array_values(array_unique(array_filter(array_map('intval',
                         explode(',', (string) $plan['scope_ids'])))));
             if (!$gids && (int) $plan['scope_id'] > 0) $gids = array((int) $plan['scope_id']);
-            if (!$gids) return $b;   // باقة صفوف بلا صفوف: لا محتوى تصفه
+            /* باقة صفوف بلا صفوف: لا محتوى تصفه — ولا كتب كذلك،
+               فالكتاب يدخل الباقة بصفه (TQ-BOOK-GRADE). */
+            if (!$gids) return $this->bundle_books($b, array());
         }
 
         $grades = array();
@@ -662,7 +648,10 @@ class Taqdar_site_model extends CI_Model
         if ($gids) $this->db->where_in('p.grade_id', $gids);
         $this->db->order_by('p.tq_order', 'ASC')->order_by('p.id', 'ASC');
         $paths = $this->db->get()->result_array();
-        if (!$paths) return $b;
+        /* ولا برنامج منشور في صفوفها — **وقد يكون فيها كتب**: باقة صف
+           كتبه فيه ولا برنامج بعد كانت تعود فارغة، فتبيع محتوى وتصفه
+           عدما. */
+        if (!$paths) return $this->bundle_books($b, $gids);
 
         $cids = array();
         foreach ($paths as $p) if ((int) $p['course_id'] > 0) $cids[] = (int) $p['course_id'];
@@ -842,6 +831,59 @@ class Taqdar_site_model extends CI_Model
         $b['totals']['teachers'] = count($b['teachers']);
         $b['totals']['weeks']    = $weeks;
 
+        return $this->bundle_books($b, $gids);
+    }
+
+    /**
+     * TQ-BOOK — يلحق بالباقة كتب صفوفها.
+     *
+     * وينادى من **مخارج `bundle_by_code()` الثلاثة** لا من آخرها وحده:
+     * الدالة تعود مبكرا حين لا صفوف للباقة وحين لا برنامج منشور فيها،
+     * وباقة صف كتبه فيه ولا برنامج بعد كانت تعود بلا كتاب واحد — تبيع
+     * محتوى وتصفه فارغا.
+     */
+    private function bundle_books($b, $gids)
+    {
+        /* ═══ TQ-BOOK — وكتب صفوف الباقة معها ═══
+
+           الباقة تفتح كتب صفوفها كما تفتح برامجها (TQ-BOOK-GRADE)،
+           وصفحتها كانت تعد بالبرامج وحدها. فمن يشتري باقة صف فيها
+           أربعة كتب لا يعرف بها حتى يفتح مكتبته بعد الدفع — وهي قيمة
+           دفع ثمنها ولم تعرض عليه، وهو عين ما جاءت هذه الصفحة تصلحه
+           في البرامج («ماذا سيدرس ابني؟»).
+
+           **والمنشور بملف وحده يعد**: كتاب بلا PDF يعرض «قريبا» في
+           الكتالوج ولا يفتح لأحد، وعده في «٤ كتب» يعد بما لا يسلم —
+           وهو مبدأ `ready` في البرنامج نفسه. */
+        $b['books'] = array();
+        try {
+            $CI = get_instance();
+            $CI->load->model('taqdar_book_model', 'tq_bk_plan');
+
+            $rows = ($b['scope'] === 'all')
+                  ? $CI->tq_bk_plan->all_published()
+                  : ($gids ? $CI->tq_bk_plan->books_for_grades($gids, true) : array());
+
+            foreach ($rows as $r) {
+                if (trim((string) $r['file']) === '') continue;   // لا يفتح، فلا يعد
+
+                $bslug = ((string) $r['slug'] !== '') ? (string) $r['slug'] : (string) $r['id'];
+                $b['books'][] = array(
+                    'id'      => (int) $r['id'],
+                    'title'   => (string) $r['title'],
+                    'subject' => (string) $r['subject'],
+                    'author'  => (string) $r['author'],
+                    'pages'   => (int) $r['pages'],
+                    'tone'    => (string) $r['tone'],
+                    'cover'   => (string) $r['cover'],
+                    'grade_id' => (int) $r['grade_id'],
+                    'href'    => base_url('book/' . rawurlencode($bslug)),
+                );
+            }
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-BOOK bundle books: ' . $e->getMessage());
+        }
+        $b['totals']['books'] = count($b['books']);
         return $b;
     }
 }

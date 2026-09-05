@@ -2500,14 +2500,80 @@ class Api_v1 extends CI_Controller
         $this->stream_file($path);
     }
 
-    /** يمرر ملفا مع دعم `Range` — ويخرج بعده. نسخة `Taqdar_gate::stream()` نفسها. */
-    private function stream_file($path)
+    /**
+     * GET /api/v1/student/books/{id}/file — ملف الكتاب للتطبيق.
+     *
+     * ═══ TQ-BOOK-GATE بوجهه الثاني ═══
+     *
+     * `book-file/<id>` في الويب يستوثق **بكعكة الجلسة**، والتطبيق بلا
+     * كعكة. فكانت `student/library` تسلمه ذلك الرابط وتعده بأنه يفتح —
+     * ويرد الحارس 403 على **كل كتاب مدفوع**: من اشترى كتابا بمئة وخمسين
+     * يقرؤه في المتصفح ولا يفتحه في التطبيق، ولا رسالة تقول لماذا.
+     *
+     * ولم يظهر في التجربة الأولى لأن **المجاني يمر بلا تسجيل**
+     * (`has_book()` ترده `true` قبل أن تسأل عن المستخدم)، وكل كتب
+     * القاعدة كانت مجانية.
+     *
+     * وهو عين ما عولج في `playback_out()`: الرمز الموقع يحول إلى
+     * `api/v1/student/media/<token>` لأن أصله يستوثق بالكعكة كذلك.
+     *
+     * ═══ والحكم من `has_book()` وحدها ═══
+     *
+     * هي التي يسألها حارس الويب، وهي التي تسأل هنا — فلا يفتح باب ما
+     * يرده الآخر. ونسخة ثانية من قواعدها تفترق عند أول تعديل.
+     */
+    public function student_book_file($book_id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $book_id = (int) $book_id;
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $book = $this->tq_bk->book($book_id);
+
+        if (!$book || (string) $book['status'] !== 'published') {
+            $this->fail('لا كتاب بهذا الرقم.', 'not_found', 404);
+        }
+
+        $this->load->model('taqdar_billing_model', 'tq_bill');
+        if (!$this->tq_bill->has_book((int) $u['id'], $book_id)) {
+            /* و«غير مستحق» لا «غير موجود»: الكتاب معروض في المكتبة
+               بسعره، والكذب عليه بـ404 يجعل التطبيق يخفيه بدل أن يعرض
+               زر شرائه. */
+            $this->fail('هذا الكتاب يفتح بشرائه أو بالاشتراك في باقة صفه.',
+                        'not_entitled', 403);
+        }
+
+        /* الملف داخل `uploads/` وحدها، و`realpath` قبل المقارنة لا
+           بعدها: `../` في العمود يخرج من المجلد بلا هذا الفحص. */
+        $rel  = ltrim(str_replace(chr(92), '/', (string) $book['file']), '/');
+        $base = realpath(FCPATH . 'uploads');
+        $path = $rel !== '' ? realpath(FCPATH . $rel) : false;
+
+        if (!$base || !$path || strpos($path, $base) !== 0 || !is_file($path)) {
+            $this->fail('ملف هذا الكتاب غير موجود.', 'not_found', 404);
+        }
+
+        $this->answered = true;                 // لا يكتب حارس الأخطاء فوق الملف
+        while (ob_get_level() > 0) { @ob_end_clean(); }
+        $this->stream_file($path, 'application/pdf');
+    }
+
+    /**
+     * يمرر ملفا مع دعم `Range` — ويخرج بعده. نسخة `Taqdar_gate::stream()` نفسها.
+     *
+     * و`$mime` يمرر صريحا لما ليس وسائط: الخريطة تحت ترتد إلى `video/mp4`
+     * لكل امتداد لا تعرفه، فملف PDF يخرج معلنا أنه فيديو — و`nosniff`
+     * أدناه يمنع المتصفح من تصحيح ذلك، فلا يفتح القارئ شيئا.
+     */
+    private function stream_file($path, $mime = null)
     {
         $size = filesize($path);
         $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $map  = array('webm' => 'video/webm', 'ogg' => 'video/ogg', 'ogv' => 'video/ogg',
                       'm4v' => 'video/mp4', 'mp3' => 'audio/mpeg', 'm4a' => 'audio/mp4');
-        $mime = isset($map[$ext]) ? $map[$ext] : 'video/mp4';
+        if ($mime === null) $mime = isset($map[$ext]) ? $map[$ext] : 'video/mp4';
 
         $start = 0;
         $end   = $size - 1;
@@ -3643,12 +3709,21 @@ class Api_v1 extends CI_Controller
     /* ---- المكتبة ------------------------------------------------------ */
 
     /**
-     * GET /api/v1/student/library — كتب مرحلة الطالب.
+     * GET /api/v1/student/library — كتب الطالب.
      *
      * **والملف يرد رابطه ولا يخفى**: القارئ داخل الصفحة في الويب
      * (`pdf.js`) يمنع النسخ العرضي، والتطبيق له قارئه هو. وحجب الرابط
      * هنا يعني كتابا لا يفتح في التطبيق أصلا — وهو حجب لا حماية:
      * المحتوى نفسه يصل إلى القارئ في الحالين.
+     *
+     * TQ-BOOK — **والرابط يمر بالحارس** (`book-file/<id>`) لا بـ
+     * `uploads/` عاريا: صار الكتاب يباع، ورابط عار في مجلد الرفع يعني
+     * أن أول مشتر يوزعه على من شاء — والشراء يصير اقتراحا. والحارس يخدم
+     * المجاني بلا تسجيل كما كان، فلا مساران.
+     *
+     * **ومجموعتان لا واحدة**: `books` ما يفتحه الآن، و`locked` كتب
+     * تشترى بسعرها ورابط شرائها. وقائمة واحدة تخلطهما تجعل التطبيق يفتح
+     * قارئه على كتاب لا يملكه فيرد الحارس 403، ولا شيء يقول لماذا.
      */
     public function student_library()
     {
@@ -3666,24 +3741,50 @@ class Api_v1 extends CI_Controller
             return is_file(FCPATH . $path) ? base_url($path) : null;
         };
 
-        $out = array();
-        foreach ($lib['books'] as $b) {
-            $out[] = array(
+        $shape = function ($b, $open) use ($asset) {
+            $slug = trim((string) $b['slug']) !== '' ? (string) $b['slug'] : (string) $b['id'];
+            $row  = array(
                 'id'          => (int) $b['id'],
                 'title'       => (string) $b['title'],
-                'slug'        => (string) $b['slug'],
+                'slug'        => $slug,
                 'subject'     => (string) $b['subject'],
                 'author'      => (string) $b['author'],
                 'pages'       => (int) $b['pages'],
                 'description' => (string) $b['description'],
                 'cover_url'   => $asset($b['cover'], 'uploads/books/'),
-                'file_url'    => $asset($b['file'],  'uploads/books/'),
-                'web_url'     => base_url('book/' . rawurlencode((string) $b['slug'])),
+                'web_url'     => base_url('book/' . rawurlencode($slug)),
             );
-        }
 
-        $this->read($out, '', array(
-            'count'  => count($out),
+            if ($open) {
+                /* الحارس لا `uploads/`: انظر رأس الدالة. وبلا ملف لا
+                   رابط — ورابط يقود إلى 404 أسوأ من غيابه.
+                   **وحارس الواجهة لا حارس الويب**: `book-file/<id>`
+                   يستوثق بكعكة الجلسة والتطبيق بلا كعكة، فكل كتاب مدفوع
+                   كان يرد 403 على التطبيق وحده. وهو `playback_out()`
+                   نفسها. */
+                $row['file_url'] = trim((string) $b['file']) !== ''
+                                 ? base_url('api/v1/student/books/' . (int) $b['id'] . '/file')
+                                 : null;
+                $row['price']    = null;
+            } else {
+                $row['file_url']     = null;
+                $row['price']        = tq_api_money((int) $b['price']);
+                $row['list_price']   = ((int) $b['list_price'] > 0)
+                                     ? tq_api_money((int) $b['list_price']) : null;
+                $row['discount_pct'] = (int) $b['off'];
+                $row['checkout_url'] = base_url('book-checkout/' . (int) $b['id']);
+            }
+            return $row;
+        };
+
+        $out    = array();
+        $locked = array();
+        foreach ($lib['books'] as $b)  $out[]    = $shape($b, true);
+        foreach ($lib['locked'] as $b) $locked[] = $shape($b, false);
+
+        $this->read(array('books' => $out, 'locked' => $locked), '', array(
+            'count'        => count($out),
+            'locked_count' => count($locked),
             /* `scoped` تقول أيهما وقع: كتب مرحلته، أم الكل لأن مرحلته
                بلا كتاب. وشاشة تعد بواحدة وتعرض الأخرى تربك صاحبها. */
             'scoped' => (bool) $lib['scoped'],
@@ -4678,6 +4779,28 @@ class Api_v1 extends CI_Controller
     }
 
     /**
+     * POST /api/v1/student/buy-book — شراء كتاب مفردا (TQ-BOOK).
+     *
+     * وعلى مسار الشراء الواحد نفسه: الفاتورة أولا ثم الدفع، ورمز الرفض
+     * يخرج كما هو (`ALREADY_OWNED` · `NOT_SELLABLE`) فيفرع عليه التطبيق.
+     */
+    public function buy_book()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+        $errors = tq_api_validate($b, array('book_id' => 'required|int'));
+        if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+        $this->buy(function ($uid, $method) use ($b) {
+            $this->load->model('taqdar_billing_model', 'tq_bill');
+            return $this->tq_bill->subscribe_book($uid, (int) $b['book_id'], $method);
+        }, 'api.buy.book', 'صدرت فاتورتك. حول قيمتها ويفتح الكتاب في مكتبتك بعد التحقق من الحوالة.');
+    }
+
+    /**
      * مسار الشراء الواحد للوحدات الثلاث.
      *
      * الفاتورة أولا ثم الدفع — في الباقة والمسار والكورس سواء. وثلاث
@@ -4918,27 +5041,17 @@ class Api_v1 extends CI_Controller
     {
         $this->load->model('taqdar_billing_model', 'tq_bill');
 
-        $kind = 'plan'; $title = ''; $ref = 0; $code = null;
-
-        if ((int) ($s['course_id'] ?? 0) > 0) {
-            $kind  = 'course';
-            $ref   = (int) $s['course_id'];
-            $title = (string) $this->db->select('title')->where('id', $ref)
-                                       ->get('course')->row('title');
-        } elseif ((int) ($s['path_id'] ?? 0) > 0) {
-            $kind  = 'path';
-            $ref   = (int) $s['path_id'];
-            $title = (string) $this->db->select('title')->where('id', $ref)
-                                       ->get('paths')->row('title');
-        } else {
-            $ref  = (int) $s['plan_id'];
-            $plan = $this->tq_bill->plan($ref);
-            /* TQ-PLAN-DELETE — صف باقة حذفت يترك اشتراكا يشير إلى معرف لا
-               يقابله شيء. فيقال «باقة #8» بالرقم لا «شراء»: الرقم يقابل
-               به السجل المالي، والكلمة العامة لا تقابل شيئا. */
-            $title = $plan ? (string) $plan['name_ar'] : (t('باقة') . ' #' . $ref);
-            $code  = $plan ? (string) $plan['code'] : null;
-        }
+        /* TQ-SOLD-NAME — النوع والاسم من `sold()` وحدها.
+           كانت هذه سلسلة `if` رابعة تكتب القاعدة نفسها بيدها، و**بلا فرع
+           للكتاب**: صف شراء كتاب يحمل `plan_id = 0`، فيسقط إلى الفرع
+           الأخير ويخرج إلى التطبيق `kind: 'plan'` باسم «باقة #0».
+           فمن اشترى كتابا يقرأ في «مشترياتي» باقة لا وجود لها.
+           TQ-PLAN-DELETE — وما حذف يقال بالرقم، وهو في `sold()` كذلك. */
+        $sold  = $this->tq_bill->sold($s);
+        $kind  = (string) $sold['kind'];
+        $ref   = (int) $sold['id'];
+        $title = (string) $sold['title'];
+        $code  = $sold['code'];
 
         $days_left = null;
         if (!empty($s['ends_at'])) {

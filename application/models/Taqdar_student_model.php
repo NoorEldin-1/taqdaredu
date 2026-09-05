@@ -719,15 +719,25 @@ class Taqdar_student_model extends CI_Model
        ================================================================ */
 
     /**
-     * كتب مرحلة الطالب.
+     * مكتبة الطالب — ما يقرؤه، وما يستطيع أن يفتحه بشراء.
      *
-     * والترشيح بالمرحلة (`category`) لا بالصف: كتاب صف ثالث في مكتبة
-     * طالب ثانوي ضجيج. **ومن لا كتاب لمرحلته يرى الكل** — الترشيح الذي
-     * يفرغ الشاشة أسوأ من ألا يكون، والحالة الفارغة هنا وجهة ميتة في
-     * قائمة ثابتة.
+     * ═══ TQ-BOOK — وكانت تعرض كل كتب مرحلته على أنها مكتبته ═══
      *
-     * و`scoped` تقول أيهما وقع، فالشاشة تعرف أن تقول «كتب مرحلتك» أو
-     * «كل الكتب المنشورة» بدل أن تعد بواحدة وتعرض الأخرى.
+     * يوم كان الكتاب **مجانيا كله** كان ذلك صحيحا: كل كتاب منشور مفتوح
+     * لكل أحد، فمكتبة الطالب هي كتب مرحلته. وصار الكتاب يباع، فالقائمة
+     * الواحدة تخلط ما دفع ثمنه بما لم يدفعه — ويضغط «افتح الكتاب» على
+     * كتاب لا يملكه فلا يفتح، ولا شيء يقول لماذا.
+     *
+     * فصارت مجموعتين لا واحدة:
+     *   · `books`      — ما يفتحه الآن: مجاني، أو اشتراه، أو في باقته
+     *   · `locked`     — كتب مرحلته التي تحتاج شراء، بسعرها ورابطه
+     *
+     * والترشيح بالمرحلة (`category`) لا بالصف كما كان: كتاب صف ثالث في
+     * مكتبة طالب ثانوي ضجيج. **ومن لا كتاب لمرحلته يرى الكل** — الترشيح
+     * الذي يفرغ الشاشة أسوأ من ألا يكون. و`scoped` تقول أيهما وقع.
+     *
+     * **وما اشتراه يعرض ولو خرج عن مرحلته**: من اشترى كتابا بعينه دفع
+     * ثمنه، وإخفاؤه لأن مرحلته غير مرحلة صاحبه سرقة صامتة.
      */
     public function library($uid, $limit_all = 24)
     {
@@ -746,27 +756,91 @@ class Taqdar_student_model extends CI_Model
             $cat = 0;
         }
 
-        $cols  = 'b.id, b.title, b.slug, b.subject, b.author, b.pages, b.tone, b.cover, b.file, b.description';
-        $books = array();
+        /* المخطط يركب من مسار العرض: الأعمدة تقرأ هنا، وقراءة عمود قبل
+           إنشائه ترد «Unknown column» فتبيض شاشة الطالب. */
+        $CI = get_instance();
+        try {
+            $CI->load->model('taqdar_book_model', 'tq_bk_lib');
+            $CI->tq_bk_lib->install_schema();
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-BOOK library schema: ' . $e->getMessage());
+        }
+
+        $cols  = 'b.*';
+        $rows  = array();
 
         try {
             $this->db->select($cols)->from('books b')->where('b.status', 'published');
             if ($cat > 0) $this->db->where('b.category_id', $cat);
-            $books = $this->db->order_by('b.tq_order', 'ASC')->order_by('b.id', 'DESC')
-                              ->get()->result_array();
+            $rows = $this->db->order_by('b.tq_order', 'ASC')->order_by('b.id', 'DESC')
+                             ->get()->result_array();
 
-            if (!$books && $cat > 0) {
-                $books = $this->db->select($cols)->from('books b')->where('b.status', 'published')
-                                  ->order_by('b.tq_order', 'ASC')->limit((int) $limit_all)
-                                  ->get()->result_array();
+            if (!$rows && $cat > 0) {
+                $rows = $this->db->select($cols)->from('books b')->where('b.status', 'published')
+                                 ->order_by('b.tq_order', 'ASC')->limit((int) $limit_all)
+                                 ->get()->result_array();
                 $cat = 0;
             }
         } catch (Throwable $e) {
             $this->db->reset_query();
-            $books = array();
+            $rows = array();
         }
 
-        return array('books' => $books, 'category_id' => $cat, 'scoped' => $cat > 0);
+        /* ما اشتراه أو فتحته باقته — استعلام واحد لا واحد لكل كتاب.
+           و`granted_book_ids()` هي المصدر الواحد لسؤال «أيفتح؟»، وهي
+           نفسها التي يسألها `has_book()` — فلا تعد الشاشة بما يمنعه
+           الحارس ولا تقفل ما يفتحه. */
+        $granted = array();
+        try {
+            $CI->load->model('taqdar_billing_model', 'tq_bill_lib');
+            $granted = $CI->tq_bill_lib->granted_book_ids($uid);
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-BOOK library grants: ' . $e->getMessage());
+        }
+
+        /* وما اشتراه خارج مرحلته يضم إلى القائمة: دفع ثمنه، وإخفاؤه
+           لأن مرحلته غير مرحلته سرقة صامتة. */
+        $have = array();
+        foreach ($rows as $r) $have[(int) $r['id']] = true;
+        $missing = array_values(array_diff(array_map('intval', $granted), array_keys($have)));
+        if ($missing) {
+            try {
+                foreach ($this->db->select('b.*')->from('books b')
+                                  ->where_in('b.id', $missing)
+                                  ->where('b.status', 'published')
+                                  ->get()->result_array() as $r) {
+                    $rows[] = $r;
+                }
+            } catch (Throwable $e) { $this->db->reset_query(); }
+        }
+
+        $books = array();
+        $locked = array();
+
+        foreach ($rows as $r) {
+            $bid = (int) $r['id'];
+
+            $offer = null;
+            try { $offer = $CI->tq_bk_lib->offer($r); } catch (Throwable $e) { $offer = null; }
+
+            $free = !$offer || !empty($offer['free']);
+            $open = $free || in_array($bid, array_map('intval', $granted), true);
+
+            $r['sellable']   = $offer ? !empty($offer['sellable']) : false;
+            $r['price']      = $offer ? (int) $offer['price'] : 0;
+            $r['list_price'] = $offer ? (int) $offer['list_price'] : 0;
+            $r['off']        = $offer ? (int) $offer['off'] : 0;
+            $r['open']       = $open;
+
+            if ($open) $books[] = $r;
+            elseif ($r['sellable']) $locked[] = $r;
+            /* وما ليس مفتوحا ولا يباع لا يعرض: كتاب معلن للبيع والباب
+               مطفأ يعرض بلا سعر ولا زر — بطاقة لا تفعل شيئا. */
+        }
+
+        return array('books' => $books, 'locked' => $locked,
+                     'category_id' => $cat, 'scoped' => $cat > 0,
+                     'granted' => array_map('intval', $granted));
     }
 
     /* ================================================================

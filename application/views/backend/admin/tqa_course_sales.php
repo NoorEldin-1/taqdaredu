@@ -153,7 +153,7 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
                 $own_pc = ((float) $o['percent'] === (float) $cfg['percent']) ? '' : $o['percent'];
             ?>
                 <tr>
-                    <td data-label="الكورس">
+                    <td data-label="<?php echo te('الكورس'); ?>">
                         <a href="<?php echo site_url('admin/course_form/course_edit/' . (int) $cid . '?tab=pricing'); ?>">
                             <strong><?php echo html_escape($o['title']); ?></strong></a>
                         <?php /* السبب تحت الاسم لا في تلميح: هو ما جاء المسؤول
@@ -165,12 +165,12 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
                         <?php endif; ?>
                     </td>
 
-                    <td data-label="الحال">
+                    <td data-label="<?php echo te('الحال'); ?>">
                         <span class="tqa-badge tqa-badge--<?php echo $st[1]; ?>"><?php
                             echo html_escape($st[0]); ?></span>
                     </td>
 
-                    <td data-label="القسمة">
+                    <td data-label="<?php echo te('القسمة'); ?>">
                         <?php if ((int) $o['price'] > 0): ?>
                             <?php echo t('من '); ?> <?php echo $sar($o['price']); ?>
                             <br><span style="color:var(--tq-text2);font-size:12px">
@@ -183,11 +183,11 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
                         <?php endif; ?>
                     </td>
 
-                    <td data-label="الوصول"><?php echo (int) $o['days'] > 0
+                    <td data-label="<?php echo te('الوصول'); ?>"><?php echo (int) $o['days'] > 0
                         ? '<span class="tqa-num">' . (int) round($o['days'] / 30) . t('</span> شهرا')
                         : t('دائم'); ?></td>
 
-                    <td data-label="بيع">
+                    <td data-label="<?php echo te('بيع'); ?>">
                         <?php if ($n): ?>
                             <span class="tqa-num"><?php echo (int) $n['n']; ?></span>
                             <br><span class="tqa-dim" style="font-size:12px"><span class="tqa-num"><?php
@@ -201,7 +201,7 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
                              الشاشة يعدل أسعارا كثيرة في جلسة واحدة، والانتقال
                              إلى شاشة الكورس لكل رقم يعني عشر صفحات لعشرة
                              أرقام. وهو ما تفعله شاشة «أوقات المعلمين». */ ?>
-                    <td data-label="السعر والنسبة">
+                    <td data-label="<?php echo te('السعر والنسبة'); ?>">
                         <form method="post" action="<?php echo site_url('taqdar_admin/course_sale_save'); ?>"
                               style="margin:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
                             <?php echo tq_csrf(); ?>
@@ -272,14 +272,14 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
         <tbody>
         <?php foreach ($rest as $r): ?>
             <tr>
-                <td data-label="الكورس">
+                <td data-label="<?php echo te('الكورس'); ?>">
                     <a href="<?php echo site_url('admin/course_form/course_edit/'
                             . (int) $r['id'] . '?tab=pricing'); ?>"><?php
                         echo html_escape($r['title']); ?></a></td>
-                <td data-label="السعر"><?php echo ((float) $r['price'] > 0)
+                <td data-label="<?php echo te('السعر'); ?>"><?php echo ((float) $r['price'] > 0)
                     ? '<span class="tqa-num">' . number_format((float) $r['price'], 2) . t('</span> ر.س')
                     : t('<span class="tqa-dim">لا سعر</span>'); ?></td>
-                <td data-label="أعلنه">
+                <td data-label="<?php echo te('أعلنه'); ?>">
                     <form method="post" action="<?php echo site_url('taqdar_admin/course_sale_save'); ?>"
                           style="margin:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
                         <?php echo tq_csrf(); ?>
@@ -325,19 +325,19 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
             ?>
                 <tr>
                     <td data-label="#"><span class="tqa-num"><?php echo (int) $s['id']; ?></span></td>
-                    <td data-label="المشتري"><?php echo html_escape(trim((string) $s['buyer_name']) !== ''
+                    <td data-label="<?php echo te('المشتري'); ?>"><?php echo html_escape(trim((string) $s['buyer_name']) !== ''
                         ? $s['buyer_name'] : ('#' . (int) $s['user_id'])); ?></td>
-                    <td data-label="الكورس">
+                    <td data-label="<?php echo te('الكورس'); ?>">
                         <a href="<?php echo site_url('admin/course_form/course_edit/'
                                 . (int) $s['course_id'] . '?tab=pricing'); ?>"><?php
                             echo html_escape($s['course_title']); ?></a></td>
-                    <td data-label="المعلم"><?php echo html_escape(trim((string) $s['teacher_name']) !== ''
+                    <td data-label="<?php echo te('المعلم'); ?>"><?php echo html_escape(trim((string) $s['teacher_name']) !== ''
                         ? $s['teacher_name'] : '—'); ?></td>
-                    <td data-label="المبلغ"><?php echo $sar($s['price']); ?></td>
-                    <td data-label="الحال"><span class="tqa-badge tqa-badge--<?php echo $tone; ?>"><?php
+                    <td data-label="<?php echo te('المبلغ'); ?>"><?php echo $sar($s['price']); ?></td>
+                    <td data-label="<?php echo te('الحال'); ?>"><span class="tqa-badge tqa-badge--<?php echo $tone; ?>"><?php
                         echo html_escape(isset($sub_labels[$s['status']])
                             ? $sub_labels[$s['status']] : $s['status']); ?></span></td>
-                    <td data-label="الفاتورة">
+                    <td data-label="<?php echo te('الفاتورة'); ?>">
                         <?php if (!empty($s['invoice_no'])): ?>
                             <span class="tqa-num"><?php echo html_escape($s['invoice_no']); ?></span>
                             <br><span class="tqa-dim" style="font-size:12px"><?php
@@ -346,7 +346,7 @@ foreach ($offers as $o) if (!empty($o['sellable'])) $open_n++;
                             <span class="tqa-dim">—</span>
                         <?php endif; ?>
                     </td>
-                    <td data-label="الوصول"><?php echo !empty($s['ends_at'])
+                    <td data-label="<?php echo te('الوصول'); ?>"><?php echo !empty($s['ends_at'])
                         ? '<span class="tqa-num">' . html_escape(substr($s['ends_at'], 0, 10)) . '</span>'
                         : ($s['status'] === 'active' ? t('دائم') : '<span class="tqa-dim">—</span>'); ?></td>
                 </tr>

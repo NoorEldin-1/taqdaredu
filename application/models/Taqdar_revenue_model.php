@@ -305,8 +305,8 @@ class Taqdar_revenue_model extends CI_Model
     {
         $grade_ids = array_values(array_unique(array_map('intval', (array) $grade_ids)));
         $out = array('teachers' => array(), 'weight_total' => 0,
-                     'lessons_total' => 0, 'quizzes_total' => 0,
-                     'orphans' => array('paths' => 0, 'lessons' => 0));
+                     'lessons_total' => 0, 'quizzes_total' => 0, 'books_total' => 0,
+                     'orphans' => array('paths' => 0, 'lessons' => 0, 'books' => 0));
 
         if (!$all_grades && !$grade_ids && !$only) return $out;
 
@@ -332,7 +332,12 @@ class Taqdar_revenue_model extends CI_Model
               WHERE ' . $where . '
               ORDER BY p.`id` ASC'
         )->result_array();
-        if (!$paths) return $out;
+
+        /* TQ-BOOK — ولا يعاد من هنا وإن لم يكن مسار واحد.
+           كان السطر `if (!$paths) return $out;`، وهو صواب ما دام الوزن
+           كله دروسا. والكتاب يزن الآن، فباقة صف كتبه فيه ولا برنامج
+           بعد كانت تقسم على لا أحد: الوعاء كله يعود عمولة للمنصة،
+           وصاحب الكتاب الذي يفتحه المشترك لا يقرأ ريالا ولا سببا. */ 
 
         $cids = array();
         foreach ($paths as $p) if ((int) $p['course_id'] > 0) $cids[] = (int) $p['course_id'];
@@ -392,6 +397,67 @@ class Taqdar_revenue_model extends CI_Model
             $out['lessons_total'] += $n;
             $out['quizzes_total'] += $q;
             $out['weight_total']  += $weight;
+        }
+
+        /* ═══ TQ-BOOK — والكتاب يزن كما يزن الدرس ═══
+           الباقة تفتح كتب صفوفها كما تفتح دروسها، ومن يقرأ كتاب معلم
+           في باقة اشتراها اليوم قرأ محتواه. فوزنه في الوعاء نفسه، لا
+           وعاء ثان ولا نسبة تتكرر — وسبعة معلمين بنسبة ١٥٪ لكل واحد
+           يساوون ١٠٥٪ من السعر، وهي العلة نفسها التي وضع لها الوعاء.
+
+           **وبمعادل الدروس لا بالصفحات**: الوعاء يقسم بوحدة واحدة،
+           وإقحام «صفحة» بجوار «درس» يجعل كتابا من مئتي صفحة يبتلع
+           الوعاء كله. فوزن الكتاب رقم صريح يكتبه المسؤول (`tq_weight`)
+           وإلا `tq_book_weight_lessons` العام.
+
+           **والكتاب بلا معلم لا يزن**: الوزن سبب استحقاق ولا مستحق —
+           ولو وزن لسحب من الوعاء نصيبا لا يقيد في دفتر أحد، فيقل نصيب
+           الحاضرين ولا يظهر أين ذهب الفرق. و`weight_of()` ترد صفرا
+           له، ويعد في `orphans` ليقرأه المسؤول في لوحة الباقة. */
+        $books = array();
+        if ($only) {
+            /* نطاق مسار أو مادة لا يفتح كتبا: الكتاب لا يربط بمسار ولا
+               بمادة، وربطه بأيهما تخمين لا حكم. */
+            $books = array();
+        } elseif ($all_grades) {
+            $books = $this->book_rows(array(), true);
+        } elseif ($grade_ids) {
+            $books = $this->book_rows($grade_ids, false);
+        }
+
+        foreach ($books as $b) {
+            $tid = (int) $b['teacher_id'];
+            $w   = (int) $b['weight'];
+
+            if ($tid <= 0 || $w <= 0) { $out['orphans']['books']++; continue; }
+
+            if (!isset($out['teachers'][$tid])) {
+                $out['teachers'][$tid] = array(
+                    'teacher_id' => $tid, 'lessons' => 0, 'quizzes' => 0,
+                    'books' => 0, 'weight' => 0, 'paths' => array(), 'book_rows' => array(),
+                );
+            }
+            if (!isset($out['teachers'][$tid]['books'])) {
+                $out['teachers'][$tid]['books']     = 0;
+                $out['teachers'][$tid]['book_rows'] = array();
+            }
+            $out['teachers'][$tid]['books']++;
+            $out['teachers'][$tid]['weight'] += $w;
+            $out['teachers'][$tid]['book_rows'][] = array(
+                'id' => (int) $b['id'], 'title' => (string) $b['title'], 'weight' => $w,
+            );
+
+            $out['books_total']++;
+            $out['weight_total'] += $w;
+        }
+
+        /* الحقلان يضمنان لكل معلم ولو لم يؤلف كتابا: شاشة تقرأ
+           `$t['books']` بلا فحص تسقط على معلم دروس محض. */
+        foreach ($out['teachers'] as $tid => $t) {
+            if (!isset($out['teachers'][$tid]['books'])) {
+                $out['teachers'][$tid]['books']     = 0;
+                $out['teachers'][$tid]['book_rows'] = array();
+            }
         }
 
         /* ترتيب ثابت: الأثقل أولا ثم بالمعرف. القسمة بأكبر البواقي تكسر
@@ -458,6 +524,77 @@ class Taqdar_revenue_model extends CI_Model
                 'n' => $n,
                 'f' => $this->path_weight_factor($p),
             );
+        }
+        return $cache = $map;
+    }
+
+
+    /**
+     * TQ-BOOK — كتب النطاق بأوزانها، مشكلة للقسمة.
+     *
+     * والوزن يقرأ من `Taqdar_book_model::weight_of()` لا يحسب هنا:
+     * القاعدة واحدة (`tq_weight` وإلا العام، والكتاب بلا معلم صفر)،
+     * ونسخة ثانية منها هنا تفترق عن أختها عند أول تعديل — فتعرض لوحة
+     * «قسمة الإيراد» نصيبا وتقيد القاعدة غيره.
+     *
+     * وترد **مصفوفة مسطحة** لا مجاميع معلمين: `contributors()` هي التي
+     * تجمع، كما تجمع صفوف المسارات.
+     *
+     * @param array $grade_ids  صفوف النطاق
+     * @param bool  $all_grades كل الصفوف — نطاق `all`
+     */
+    private function book_rows($grade_ids = array(), $all_grades = false)
+    {
+        try {
+            $CI = get_instance();
+            $CI->load->model('taqdar_book_model', 'tq_bk_rev');
+        } catch (Throwable $e) {
+            return array();   // نموذج لم يولد بعد: القسمة تبقى دروسا
+        }
+
+        $rows = $all_grades
+              ? $CI->tq_bk_rev->all_published()
+              : $CI->tq_bk_rev->books_for_grades($grade_ids, true);
+
+        $out = array();
+        foreach ($rows as $b) {
+            /* كتاب بلا ملف لا يفتح لأحد، فلا يزن: وزن محتوى لم يرفع
+               يسحب من الوعاء نصيبا عن صفحة لا تقرأ. وهو شرط
+               `grantable_course_ids()` نفسه — «التجسيد ينشر ولا يسحب». */
+            if (trim((string) (isset($b['file']) ? $b['file'] : '')) === '') continue;
+
+            $out[] = array(
+                'id'         => (int) $b['id'],
+                'title'      => (string) $b['title'],
+                'grade_id'   => (int) (isset($b['grade_id']) ? $b['grade_id'] : 0),
+                'teacher_id' => (int) (isset($b['teacher_id']) ? $b['teacher_id'] : 0),
+                'weight'     => (int) $CI->tq_bk_rev->weight_of($b),
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * خريطة أوزان الكتب لكل صف — نظير `grade_weight_map()` للكتب.
+     *
+     * تنقل كما هي إلى المتصفح فيعيد القسمة وأنت تعلم الصفوف. وبلاها
+     * تعد اللوحة المسؤول بنصيب ثم تقيد غيره — واختلاف هللة يعني أن ما
+     * وعد به غير ما وقع.
+     *
+     * @return array grade_id => [ [b, t, w], ... ]  b=الكتاب · t=المعلم · w=وزنه
+     */
+    public function grade_book_map()
+    {
+        static $cache = null;
+        if ($cache !== null) return $cache;
+
+        $map = array();
+        foreach ($this->book_rows(array(), true) as $b) {
+            $g = (int) $b['grade_id'];
+            if ($g <= 0 || (int) $b['teacher_id'] <= 0 || (int) $b['weight'] <= 0) continue;
+            if (!isset($map[$g])) $map[$g] = array();
+            $map[$g][] = array('b' => (int) $b['id'], 't' => (int) $b['teacher_id'],
+                               'w' => (int) $b['weight']);
         }
         return $cache = $map;
     }
@@ -557,6 +694,9 @@ class Taqdar_revenue_model extends CI_Model
             'platform_percent' => round(100 - $pct, 2),
             'lessons_total'    => $c['lessons_total'],
             'quizzes_total'    => $c['quizzes_total'],
+            /* TQ-BOOK — الكتب تعد في الشاشة كما تعد الدروس: لوحة تعرض
+               «٤٠ درسا» على باقة نصف وزنها كتب تفسر النصيب بنصف سببه. */
+            'books_total'      => isset($c['books_total']) ? $c['books_total'] : 0,
             'weight_total'     => $c['weight_total'],
             'orphans'          => $c['orphans'],
             'teachers'         => count($c['teachers']),
@@ -585,6 +725,8 @@ class Taqdar_revenue_model extends CI_Model
                 'teacher_id' => $tid,
                 'lessons'    => $t['lessons'],
                 'quizzes'    => $t['quizzes'],
+                'books'      => isset($t['books']) ? $t['books'] : 0,
+                'book_rows'  => isset($t['book_rows']) ? $t['book_rows'] : array(),
                 'weight'     => $t['weight'],
                 'paths'      => $t['paths'],
                 'share'      => $share,
@@ -753,6 +895,19 @@ class Taqdar_revenue_model extends CI_Model
 
         $sub = $this->db->where('id', $sid)->get('subscriptions')->row_array();
         if (!$sub) return array('ok' => false, 'errors' => array('الاشتراك غير موجود.'));
+
+        /* **والباقة وحدها.** الشراء المفرد — كورسا أو كتابا أو مسارا —
+           نصيبه نسبة واحدة لصاحب واحد، قيدت بأصل `coursesub:`/`booksub:`/
+           `pathsub:`. وهذه الدالة تعكس أصل `plansub:` وحده ثم تنادي
+           `credit_plan_sale()` وهي تقرأ باقة، و`plan_id = 0` هناك — فتعكس
+           لا شيء، وتفشل القسمة، **ويبقى القيد الأول كما هو** والمسؤول
+           يقرأ رسالة لا تفهم ويظن أنه نقل مالا. والحارس في النموذج لا في
+           الشاشة: الشاشة تخفي الزر، والمسار يبقى مفتوحا لمن يعرفه. */
+        if ((int) $sub['plan_id'] <= 0) {
+            /* والجملة مفتاح واحد لا قطعتين تلصقان: نصف جملة لا يترجم. */
+            return array('ok' => false, 'errors' => array(
+                'إعادة القسمة للباقات وحدها. والشراء المفرد نصيبه نسبة واحدة لصاحب واحد، تعدل من شاشة بيعه ثم يعاد التفعيل.'));
+        }
 
         $before = $this->shares_of($sid);
 

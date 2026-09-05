@@ -141,130 +141,132 @@ include 'portal_open.php';
 
         <?php if ($tq_courses): ?>
             <div class="tq-card">
-                <table class="tq-table">
-                    <caption class="tq-sr"><?php echo t('كورساتك: الحالة وعدد المسجلين ونسبة الإكمال'); ?></caption>
-                    <thead>
-                        <tr>
-                            <th scope="col"><?php echo t('الكورس'); ?></th>
-                            <th scope="col"><?php echo t('الحالة'); ?></th>
-                            <th scope="col"><?php echo t('المسجلون'); ?></th>
-                            <th scope="col"><?php echo t('الدروس'); ?></th>
-                            <th scope="col"><?php echo t('نسبة الإكمال'); ?></th>
-                            <?php if ($tq_show_sale): ?>
-                                <th scope="col"><?php echo t('البيع المفرد'); ?></th>
-                            <?php endif; ?>
-                            <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($tq_courses as $tq_c): ?>
-                            <?php
-                            [$tq_kind, $tq_text] = $tq_status_badge[$tq_c['status']] ?? ['idle', $tq_c['status']];
-                            $tq_completion = (int) round((float) $tq_c['completion']);
-                            ?>
+                <div class="tq-table-wrap">
+                    <table class="tq-table">
+                        <caption class="tq-sr"><?php echo t('كورساتك: الحالة وعدد المسجلين ونسبة الإكمال'); ?></caption>
+                        <thead>
                             <tr>
-                                <td data-label="الكورس">
-                                    <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_c['title']); ?></span>
-                                    <span class="tq-micro" style="display:block"><?php echo t('أضيف'); ?> <?php echo html_escape(tq_since((int) $tq_c['date_added'])); ?></span>
-                                </td>
-                                <td data-label="الحالة"><?php echo tq_badge($tq_kind, $tq_text); ?></td>
-                                <td data-label="المسجلون"><?php echo tq_num($tq_c['students'], 'tq-num--sm'); ?></td>
-                                <?php /* الرقم صار بابا: كان عددا مجملا لا يفتح على شيء،
-                                         فمن أراد أن يعرف **أي** الدروس لم يجد إليها سبيلا. */ ?>
-                                <td data-label="الدروس">
-                                    <a href="<?php echo base_url('teacher/lessons') . '?course=' . (int) $tq_c['id']; ?>"
-                                       title="<?php echo te('دروس ____', array(html_escape($tq_c['title']))); ?>">
-                                        <?php echo tq_num($tq_c['lessons'], 'tq-num--sm'); ?>
-                                        <span class="tq-sr"><?php echo t('درسا — اضغط لعرضها'); ?></span>
-                                    </a>
-                                </td>
-                                <td data-label="نسبة الإكمال" style="min-inline-size:180px">
-                                    <?php echo tq_progress($tq_completion, t('متوسط إكمال ') . $tq_c['title']); ?>
-                                </td>
+                                <th scope="col"><?php echo t('الكورس'); ?></th>
+                                <th scope="col"><?php echo t('الحالة'); ?></th>
+                                <th scope="col"><?php echo t('المسجلون'); ?></th>
+                                <th scope="col"><?php echo t('الدروس'); ?></th>
+                                <th scope="col"><?php echo t('نسبة الإكمال'); ?></th>
                                 <?php if ($tq_show_sale): ?>
-                                    <?php
-                                    /* TQ-COURSE-SALE — الثمن ونصيبه منه، وكم بيع.
-                                       والسعر قرار إدارة ولكن **معلوما لصاحبه**:
-                                       معلم يقرأ قيدا في دفتره ولا يعرف من أين
-                                       جاء يسأل الدعم، أو يظن أن المنصة أخذت
-                                       أكثر مما أخذت. */
-                                    $tq_o  = $tq_offers[(int) $tq_c['id']] ?? null;
-                                    $tq_sn = $tq_sold_map[(int) $tq_c['id']] ?? null;
-                                    ?>
-                                    <td data-label="البيع المفرد">
-                                        <?php if (!$tq_o): ?>
-                                            <span class="tq-micro"><?php echo t('ضمن الباقات وحدها'); ?></span>
-                                        <?php else: ?>
-                                            <span class="tq-strong tq-ltr" dir="ltr"><?php
-                                                echo number_format($tq_o['price'] / 100); ?></span>
-                                            <span class="tq-micro"><?php echo t('ر.س'); ?></span>
-                                            <span class="tq-micro" style="display:block">
-                                                <?php echo t('لك'); ?> <span class="tq-ltr" dir="ltr"><?php
-                                                    echo number_format($tq_o['share'] / 100); ?></span> <?php echo t('ر.س (____٪)', array(html_escape(rtrim(rtrim(
-                                                    number_format((float) $tq_o['percent'], 2, '.', ''), '0'), '.')))); ?>
-                                            </span>
-                                            <?php /* والسبب يقال متى لم يعرض: كورس علم
-                                                     للبيع وهو غير منشور أو بلا سعر يجلس
-                                                     ولا يظهر، ولا شيء في شاشة صاحبه
-                                                     يفسر — فيظن أن أحدا لا يشتري. */ ?>
-                                            <?php if (empty($tq_o['sellable'])): ?>
-                                                <span class="tq-micro" style="display:block;color:var(--tq-text3)">
-                                                    <?php echo t('لا يعرض:'); ?> <?php echo html_escape($tq_o['why']); ?>
-                                                </span>
-                                            <?php elseif ($tq_sn): ?>
-                                                <span class="tq-micro" style="display:block">
-                                                    <?php echo t('بيع'); ?> <span class="tq-ltr" dir="ltr"><?php
-                                                        echo (int) $tq_sn['n']; ?></span> <?php echo t('مرة'); ?>
-                                                </span>
-                                            <?php endif; ?>
-                                        <?php endif; ?>
-                                    </td>
+                                    <th scope="col"><?php echo t('البيع المفرد'); ?></th>
                                 <?php endif; ?>
-                                <?php /* كان الإجراء الوحيد «طلابه»: صف كورس بلا باب إلى محتواه.
-                                         والوجهات الثلاث كلها قائمة تعمل، وكل واحدة تحمل معرف
-                                         الكورس فتفتح مقيدة به لا على كل شيء. */ ?>
-                                <td data-label="إجراءات">
-                                    <span class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:wrap">
-                                        <?php /* «المقرر» أولا وبارزا: هو الباب الذي لم يكن
-                                                 موجودا أصلا — أقسام الكورس ودروسه، إضافة
-                                                 وتعديلا وحذفا وترتيبا. وكان المعلم يملك
-                                                 نموذج رفع درس وحده، بلا قسم يضعه فيه. */ ?>
-                                        <a class="tq-btn tq-btn--secondary tq-btn--sm"
-                                           href="<?php echo base_url('teacher/course/' . (int) $tq_c['id']); ?>">
-                                            <?php echo tq_icon('layers', 14); ?> <?php echo t('المقرر'); ?>
-                                        </a>
-                                        <?php /* «إعداداته» — البيانات نفسها التي تحررها
-                                                 اللوحة. ولم يكن للمعلم إليها باب: كورس
-                                                 أخطأ عنوانه لا يصححه، وبلا صف ومادة لا
-                                                 يصلحه (TQ-COURSE-SPLIT). */ ?>
-                                        <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                                           href="<?php echo base_url('teacher/course/' . (int) $tq_c['id'] . '/settings'); ?>">
-                                            <?php echo tq_icon('pen', 14); ?> <?php echo t('إعداداته'); ?>
-                                        </a>
-                                        <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                                           href="<?php echo base_url('teacher/lessons'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
-                                            <?php echo t('دروسه'); ?>
-                                        </a>
-                                        <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                                           href="<?php echo base_url('teacher/students'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
-                                            <?php echo t('طلابه'); ?>
-                                        </a>
-                                        <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                                           href="<?php echo base_url('teacher/questions'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
-                                            <?php echo t('أسئلته'); ?>
-                                        </a>
-                                        <?php if ($tq_c['status'] === 'active'): ?>
-                                            <a class="tq-btn tq-btn--ghost tq-btn--sm" target="_blank" rel="noopener"
-                                               href="<?php echo site_url('home/course/' . rawurlencode(slugify($tq_c['title'])) . '/' . (int) $tq_c['id']); ?>">
-                                                <?php echo t('صفحته'); ?>
-                                            </a>
-                                        <?php endif; ?>
-                                    </span>
-                                </td>
+                                <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($tq_courses as $tq_c): ?>
+                                <?php
+                                [$tq_kind, $tq_text] = $tq_status_badge[$tq_c['status']] ?? ['idle', $tq_c['status']];
+                                $tq_completion = (int) round((float) $tq_c['completion']);
+                                ?>
+                                <tr>
+                                    <td data-label="<?php echo te('الكورس'); ?>">
+                                        <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_c['title']); ?></span>
+                                        <span class="tq-micro" style="display:block"><?php echo t('أضيف'); ?> <?php echo html_escape(tq_since((int) $tq_c['date_added'])); ?></span>
+                                    </td>
+                                    <td data-label="<?php echo te('الحالة'); ?>"><?php echo tq_badge($tq_kind, $tq_text); ?></td>
+                                    <td data-label="<?php echo te('المسجلون'); ?>"><?php echo tq_num($tq_c['students'], 'tq-num--sm'); ?></td>
+                                    <?php /* الرقم صار بابا: كان عددا مجملا لا يفتح على شيء،
+                                             فمن أراد أن يعرف **أي** الدروس لم يجد إليها سبيلا. */ ?>
+                                    <td data-label="<?php echo te('الدروس'); ?>">
+                                        <a href="<?php echo base_url('teacher/lessons') . '?course=' . (int) $tq_c['id']; ?>"
+                                           title="<?php echo te('دروس ____', array(html_escape($tq_c['title']))); ?>">
+                                            <?php echo tq_num($tq_c['lessons'], 'tq-num--sm'); ?>
+                                            <span class="tq-sr"><?php echo t('درسا — اضغط لعرضها'); ?></span>
+                                        </a>
+                                    </td>
+                                    <td data-label="<?php echo te('نسبة الإكمال'); ?>" style="min-inline-size:180px">
+                                        <?php echo tq_progress($tq_completion, t('متوسط إكمال ') . $tq_c['title']); ?>
+                                    </td>
+                                    <?php if ($tq_show_sale): ?>
+                                        <?php
+                                        /* TQ-COURSE-SALE — الثمن ونصيبه منه، وكم بيع.
+                                           والسعر قرار إدارة ولكن **معلوما لصاحبه**:
+                                           معلم يقرأ قيدا في دفتره ولا يعرف من أين
+                                           جاء يسأل الدعم، أو يظن أن المنصة أخذت
+                                           أكثر مما أخذت. */
+                                        $tq_o  = $tq_offers[(int) $tq_c['id']] ?? null;
+                                        $tq_sn = $tq_sold_map[(int) $tq_c['id']] ?? null;
+                                        ?>
+                                        <td data-label="<?php echo te('البيع المفرد'); ?>">
+                                            <?php if (!$tq_o): ?>
+                                                <span class="tq-micro"><?php echo t('ضمن الباقات وحدها'); ?></span>
+                                            <?php else: ?>
+                                                <span class="tq-strong tq-ltr" dir="ltr"><?php
+                                                    echo number_format($tq_o['price'] / 100); ?></span>
+                                                <span class="tq-micro"><?php echo t('ر.س'); ?></span>
+                                                <span class="tq-micro" style="display:block">
+                                                    <?php echo t('لك'); ?> <span class="tq-ltr" dir="ltr"><?php
+                                                        echo number_format($tq_o['share'] / 100); ?></span> <?php echo t('ر.س (____٪)', array(html_escape(rtrim(rtrim(
+                                                        number_format((float) $tq_o['percent'], 2, '.', ''), '0'), '.')))); ?>
+                                                </span>
+                                                <?php /* والسبب يقال متى لم يعرض: كورس علم
+                                                         للبيع وهو غير منشور أو بلا سعر يجلس
+                                                         ولا يظهر، ولا شيء في شاشة صاحبه
+                                                         يفسر — فيظن أن أحدا لا يشتري. */ ?>
+                                                <?php if (empty($tq_o['sellable'])): ?>
+                                                    <span class="tq-micro" style="display:block;color:var(--tq-text3)">
+                                                        <?php echo t('لا يعرض:'); ?> <?php echo html_escape($tq_o['why']); ?>
+                                                    </span>
+                                                <?php elseif ($tq_sn): ?>
+                                                    <span class="tq-micro" style="display:block">
+                                                        <?php echo t('بيع'); ?> <span class="tq-ltr" dir="ltr"><?php
+                                                            echo (int) $tq_sn['n']; ?></span> <?php echo t('مرة'); ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </td>
+                                    <?php endif; ?>
+                                    <?php /* كان الإجراء الوحيد «طلابه»: صف كورس بلا باب إلى محتواه.
+                                             والوجهات الثلاث كلها قائمة تعمل، وكل واحدة تحمل معرف
+                                             الكورس فتفتح مقيدة به لا على كل شيء. */ ?>
+                                    <td data-label="<?php echo te('إجراءات'); ?>">
+                                        <span class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:wrap">
+                                            <?php /* «المقرر» أولا وبارزا: هو الباب الذي لم يكن
+                                                     موجودا أصلا — أقسام الكورس ودروسه، إضافة
+                                                     وتعديلا وحذفا وترتيبا. وكان المعلم يملك
+                                                     نموذج رفع درس وحده، بلا قسم يضعه فيه. */ ?>
+                                            <a class="tq-btn tq-btn--secondary tq-btn--sm"
+                                               href="<?php echo base_url('teacher/course/' . (int) $tq_c['id']); ?>">
+                                                <?php echo tq_icon('layers', 14); ?> <?php echo t('المقرر'); ?>
+                                            </a>
+                                            <?php /* «إعداداته» — البيانات نفسها التي تحررها
+                                                     اللوحة. ولم يكن للمعلم إليها باب: كورس
+                                                     أخطأ عنوانه لا يصححه، وبلا صف ومادة لا
+                                                     يصلحه (TQ-COURSE-SPLIT). */ ?>
+                                            <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                                               href="<?php echo base_url('teacher/course/' . (int) $tq_c['id'] . '/settings'); ?>">
+                                                <?php echo tq_icon('pen', 14); ?> <?php echo t('إعداداته'); ?>
+                                            </a>
+                                            <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                                               href="<?php echo base_url('teacher/lessons'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
+                                                <?php echo t('دروسه'); ?>
+                                            </a>
+                                            <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                                               href="<?php echo base_url('teacher/students'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
+                                                <?php echo t('طلابه'); ?>
+                                            </a>
+                                            <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                                               href="<?php echo base_url('teacher/questions'); ?>?course=<?php echo (int) $tq_c['id']; ?>">
+                                                <?php echo t('أسئلته'); ?>
+                                            </a>
+                                            <?php if ($tq_c['status'] === 'active'): ?>
+                                                <a class="tq-btn tq-btn--ghost tq-btn--sm" target="_blank" rel="noopener"
+                                                   href="<?php echo site_url('home/course/' . rawurlencode(slugify($tq_c['title'])) . '/' . (int) $tq_c['id']); ?>">
+                                                    <?php echo t('صفحته'); ?>
+                                                </a>
+                                            <?php endif; ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         <?php else: ?>
             <div class="tq-card tq-empty">

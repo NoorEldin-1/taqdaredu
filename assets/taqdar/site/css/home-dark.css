@@ -99,7 +99,7 @@
   background:var(--petrol);color:#fff;
 }
 .p26d__cycle-save{
-  font-size:.78em;font-weight:700;padding:2px 8px;border-radius:999px;
+  font-size:max(11px,.78em);font-weight:700;padding:2px 8px;border-radius:999px;
   background:rgba(255,255,255,.18);color:#F2E4C6;
 }
 .p26d__cycle-in button[aria-pressed="false"] .p26d__cycle-save{
@@ -143,7 +143,7 @@
   block-size:30px;
   background:linear-gradient(180deg,#E7CB90,var(--gold));color:var(--petrol-deep);
   font-family:'Cairo',sans-serif;font-weight:700;
-  font-size:clamp(10.5px,.8vw,12.5px);line-height:1;
+  font-size:clamp(11px,.8vw,12.5px);line-height:1;
 }
 
 /* ── الغلاف: صورة الباقة بعرض البطاقة فوق اسمها ─────────────────
@@ -214,7 +214,7 @@
 }
 .p26d-card__stage{
   display:block;margin-block-start:2px;color:var(--gold-on-dark);font-weight:400;
-  font-size:clamp(10px,.78vw,12px);
+  font-size:clamp(12px,.78vw,12px);
 }
 
 /* ── الجسم ──────────────────────────────────────────────────────── */
@@ -259,19 +259,19 @@
   font-variant-numeric:tabular-nums;
 }
 .p26d-card__price span{
-  color:var(--ink-3);font-size:clamp(10.5px,.82vw,12.5px);line-height:1.5;
+  color:var(--ink-3);font-size:clamp(12px,.82vw,12.5px);line-height:1.5;
 }
 /* الحاشية: أصغر وأخفت — تُقرأ بعد الرقم ووحدته لا معهما */
 .p26d-card__price small{
   display:block;color:var(--ink-3);opacity:.9;
-  font-size:clamp(9.5px,.74vw,11.5px);line-height:1.5;text-align:center;
+  font-size:clamp(11.5px,.74vw,11.5px);line-height:1.5;text-align:center;
 }
 /* TQ-CYCLE-CHARGE — **والمخصوم ليس حاشية.**
    هو المبلغ الذي ستطلبه شاشة التأكيد بعد نقرة، وإخفاته تحت
    رقم ضخم هو ما يجعل الزائر يقرأ 62 ويفاجأ بـ599. */
 .p26d-card__price small.tq-pay{
   margin-block-start:2px;opacity:1;color:var(--ink-2);font-weight:700;
-  font-size:clamp(11px,.86vw,13px);
+  font-size:clamp(12px,.86vw,13px);
 }
 .p26d-card__price[hidden]{display:none}
 
@@ -300,7 +300,7 @@
   display:inline-flex;align-items:center;justify-content:center;
   margin-block-start:9px;min-block-size:30px;text-decoration:none;
   color:var(--ink-3);font-family:'Cairo',sans-serif;font-weight:600;
-  font-size:clamp(10.5px,.82vw,12.5px);
+  font-size:clamp(11.5px,.82vw,12.5px);
 }
 .p26d-card__more:hover{color:var(--petrol);text-decoration:underline;text-underline-offset:4px}
 
@@ -411,11 +411,11 @@
 .whyd__item h3{
   margin:0;color:var(--d-gold-lt);
   font-family:'Cairo',sans-serif;font-weight:700;
-  font-size:clamp(12.5px,1.05vw,16px);line-height:1.45;
+  font-size:clamp(13px,1.05vw,16px);line-height:1.45;
 }
 .whyd__item p{
   margin:6px 0 0;color:var(--d-mute);
-  font-size:clamp(10.5px,.85vw,13px);line-height:1.6;
+  font-size:clamp(12px,.85vw,13px);line-height:1.6;
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -480,3 +480,5 @@
      فلا يكبر شيء لا يحتاج. وهي حيلة القاعدة القائمة في `pages.css`. */
   .p26d small,.p26d span,.p26d a,.p26d li,.p26d b{font-size:max(12px,1em)}
 }
+
+

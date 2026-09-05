@@ -57,11 +57,11 @@ $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newslet
                 <tr>
                     <td data-label="#"><span class="tqa-num"><?php echo $tq_ord; ?></span></td>
 
-                    <td data-label="البريد الإلكتروني">
+                    <td data-label="<?php echo te('البريد الإلكتروني'); ?>">
                         <span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_r['email']); ?></span>
                     </td>
 
-                    <td data-label="الحساب في المنصة">
+                    <td data-label="<?php echo te('الحساب في المنصة'); ?>">
                         <?php if ($tq_user): ?>
                             <span class="tqa-media__title">
                                 <?php echo html_escape(trim($tq_user['first_name'] . ' ' . $tq_user['last_name'])); ?>
@@ -74,7 +74,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--ghost" href="' . site_url('admin/newslet
                         <?php endif; ?>
                     </td>
 
-                    <td data-label="إجراءات">
+                    <td data-label="<?php echo te('إجراءات'); ?>">
                         <form method="post" action="<?php echo site_url('admin/subscribed_user/delete/' . (int) $tq_r['id']); ?>"
                               data-tqa-confirm-title="<?php echo te('إلغاء الاشتراك'); ?>"
                               data-tqa-confirm="<?php echo te('لن تصل النشرة إلى هذا البريد بعدها.'); ?>"

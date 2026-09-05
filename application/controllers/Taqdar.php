@@ -1169,6 +1169,9 @@ class Taqdar extends CI_Controller
                جدول الكورسات، وآخر خمسة في زاوية شاشة الرفع. */
             'lessons'       => ['tq_teacher_lessons',        'دروسي'],
             'upload'        => ['tq_teacher_upload',         'رفع الدروس'],
+            /* TQ-BOOK — والكتاب محتوى معلم كما الدرس: كان يؤلفه ويرسله
+               بالبريد ليضعه المسؤول بيده، أو لا يصل. */
+            'books'         => ['tq_teacher_books',          'كتبي'],
             /* استوديو المحتوى: خطوتان من خمس في «دورة إنتاج المحتوى»
                بالوثيقة كانتا غائبتين — التوليد الآلي، واعتماد المعلم لكل
                مخرج قبل النشر. */
@@ -3228,9 +3231,9 @@ class Taqdar extends CI_Controller
     /**
      * كل ما تقدمه المنصة في صفحة واحدة.
      *
-     * كان لكل نوع بابه: البرامج في `/plans`، والكتب في `/books`،
-     * والمسابقات في `/competitions`. ومن يبحث عن «رياضيات الصف الرابع»
-     * لا يعرف أي باب يفتح — ولا مرشح في باب يشبه مرشح الباب الآخر.
+     * كان لكل نوع بابه: البرامج في `/plans`، والكتب في `/books`. ومن
+     * يبحث عن «رياضيات الصف الرابع» لا يعرف أي باب يفتح — ولا مرشح في
+     * باب يشبه مرشح الباب الآخر.
      *
      * والحال هنا يعيش في **الرابط وحده**: المرشحات والبحث ورقم الصفحة
      * كلها معاملات `GET`، فالنتيجة تشارك برابطها وتحفظ في المفضلة
@@ -3310,35 +3313,45 @@ class Taqdar extends CI_Controller
         $b = $this->tq_cat->book_by_slug($slug);
         if (!$b) show_404();
 
-        $this->show('site_book', $b['title'], array(
-            'tq_book' => $b,
-            'tq_more' => $this->tq_cat->books_like($b, 4),
-        ));
-    }
+        /* TQ-BOOK — والصفحة تجيب سؤالين لا واحدا: **ما هذا الكتاب؟**
+           و**كيف أفتحه؟**. والثاني له ثلاثة جواب متبادلة، والصفحة كانت
+           تعرف واحدا منها (التحميل المجاني):
+             · مفتوح لي  ⇐ اقرأه في مكتبتك
+             · يباع      ⇐ اشتره، وباقة صفه تحته بفارق السعر
+             · مجاني     ⇐ حمله بلا تسجيل، كما كان
+           والجواب يبنى في المتحكم لا في القالب: `offer()` مصدر واحد،
+           ونسخة ثانية من قواعده في قالب تعرض سعرا وتقبض غيره. */
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $offer = $this->tq_bk->offer($b);
 
-    /**
-     * صفحة المسابقة الواحدة.
-     *
-     * والتسجيل يبقى في `competition_join` نفسها: النموذج هنا يرسل إلى
-     * المسار ذاته الذي ترسل إليه صفحة القائمة، فلا مساران يكتبان في
-     * `competition_entries` بشرطين مختلفين.
-     */
-    public function competition_page($slug = '')
-    {
-        $this->load->model('taqdar_catalog_model', 'tq_cat');
-        $c = $this->tq_cat->competition_by_slug($slug);
-        if (!$c) show_404();
-
-        $mine = false;
-        $uid  = (int) $this->session->userdata('user_id');
+        $uid = (int) $this->session->userdata('user_id');
+        $own = false;
+        $pen = null;
         if ($uid > 0) {
-            $mine = $this->db->where('competition_id', (int) $c['id'])->where('user_id', $uid)
-                             ->count_all_results('competition_entries') > 0;
+            $this->load->model('taqdar_billing_model');
+            $own = $this->taqdar_billing_model->has_book($uid, (int) $b['id']);
+            $pen = $this->tq_bk->pending_of($uid, (int) $b['id']);
         }
 
-        $this->show('site_competition', $c['title'], array(
-            'tq_comp' => $c,
-            'tq_mine' => $mine,
+        /* الباقة تحته **بفارق السعر لا بسعرها**: «وبـ٨٠١ ر.س زيادة تفتح
+           المرحلة كلها» يقارن ما يقارن؛ ورقمان متجاوران بلا جسر يجعلان
+           المشتري يوازن بين خيارين ولا يعرف ما يشتريه أحدهما زيادة.
+           وهو حكم صفحة الكورس نفسه (TQ-COURSE-SALE). */
+        $plans = array();
+        if ((int) $b['grade_id'] > 0) {
+            $this->load->model('taqdar_site_model', 'tq_site');
+            if (method_exists($this->tq_site, 'plans_for_grades')) {
+                $plans = $this->tq_site->plans_for_grades(array((int) $b['grade_id']));
+            }
+        }
+
+        $this->show('site_book', $b['title'], array(
+            'tq_book'  => $b,
+            'tq_offer' => $offer,
+            'tq_own'   => $own,
+            'tq_pend'  => $pen,
+            'tq_plans' => $plans,
+            'tq_more'  => $this->tq_cat->books_like($b, 4),
         ));
     }
 
@@ -3360,7 +3373,7 @@ class Taqdar extends CI_Controller
            تريد الرقم نفسه تكتبه من جديد، فيفترق الرقمان. */
         $detail = $this->tq_m->path_detail($path);
 
-        /* ما يجاور هذا البرنامج في قسمه — برامج وكتبا ومسابقات. والمادة
+        /* ما يجاور هذا البرنامج في قسمه — برامج وكتبا. والمادة
            نفسها أولا: من يقرأ «رياضيات السادس» يريد ما يقربه منها لا ما
            يشترك معها في المرحلة وحدها. */
         $this->load->model('taqdar_catalog_model', 'tq_cat');
@@ -3392,53 +3405,6 @@ class Taqdar extends CI_Controller
         if (!$found) show_404();
 
         $this->show('instructor_page', $found['name'], array('tq_teacher' => $found));
-    }
-
-
-    /** صفحة المسابقات. */
-    public function competitions()
-    {
-        $this->show('competitions', 'المسابقات');
-    }
-
-    /**
-     * التسجيل في مسابقة.
-     *
-     * للمسجلين وحدهم: مسابقة يدخلها المجهولون لا تقاس نتائجها ولا
-     * تنسب شهاداتها. والمفتاح الفريد يمنع التسجيل مرتين.
-     */
-    public function competition_join()
-    {
-        if ($this->input->method(true) !== "POST") show_404();
-        $uid = (int) $this->session->userdata('user_id');
-        if ($uid <= 0) { redirect(site_url('login'), 'location', 302); return; }
-
-        $cid = (int) $this->input->post('competition_id');
-        $c = $this->db->where('id', $cid)->where('status', 'open')->get('competitions')->row_array();
-
-        if (!$c) {
-            $this->session->set_flashdata('error_message', 'هذه المسابقة غير متاحة للتسجيل.');
-        } elseif (!empty($c['ends_at']) && $c['ends_at'] < date('Y-m-d')) {
-            $this->session->set_flashdata('error_message', 'انتهى موعد التسجيل في هذه المسابقة.');
-        } else {
-            $n = (int) $this->db->where('competition_id', $cid)->count_all_results('competition_entries');
-            if ((int) $c['seats'] > 0 && $n >= (int) $c['seats']) {
-                $this->session->set_flashdata('error_message', 'اكتمل عدد المشاركين.');
-            } else {
-                $exists = $this->db->where('competition_id', $cid)->where('user_id', $uid)
-                                   ->count_all_results('competition_entries') > 0;
-                if ($exists) {
-                    $this->session->set_flashdata('flash_message', 'أنت مسجل في هذه المسابقة سلفا.');
-                } else {
-                    $this->db->insert('competition_entries', array(
-                        'competition_id' => $cid, 'user_id' => $uid,
-                        'created_at' => date('Y-m-d H:i:s')));
-                    $this->session->set_flashdata('flash_message',
-                        'سجلت في المسابقة. سنذكرك قبل موعدها.');
-                }
-            }
-        }
-        redirect(site_url('competitions'), 'location', 302);
     }
 
     /* ---- الباقة: صفحتها وشراؤها ومحتواها ------------------------- */
@@ -3807,4 +3773,367 @@ class Taqdar extends CI_Controller
         redirect(base_url('student/subscription'), 'location', 302);
     }
 
+
+    /* =====================================================================
+       TQ-BOOK — الكتب: صفحة عامة، وشراء مفرد، وباب المعلم
+       ===================================================================== */
+
+    /**
+     * صفحة الكتب — المحرك نفسه بنوع مثبت.
+     *
+     * والتثبيت هنا لا في القالب: `filters_from()` تقرأ الرابط، و
+     * `search()` ترشح — فلو ثبت النوع في العرض لعادت العدادات والصفحات
+     * محسوبة على الأنواع الأربعة بينما الشبكة تعرض كتبا. وهو الانقسام
+     * نفسه الذي منعه الكتالوج بأن جعل الحال في الرابط وحده.
+     */
+    public function books_page()
+    {
+        $this->load->model('taqdar_catalog_model', 'tq_cat');
+        $f = $this->tq_cat->filters_from($this->input->get());
+
+        /* النوع يفرض ولا يضاف: زائر يكتب `?type=path` في رابط `/books`
+           يقرأ برامج في صفحة عنوانها «الكتب». */
+        $f['type'] = array('book');
+
+        /* ولا حقن مرحلة هنا (`with_scope`): الكتب ثمانية أو عشرة، وحقن
+           مرحلة الطالب في صفحة بهذا الحجم يخفي نصفها بلا أن يطلب أحد —
+           والكتالوج يحقن لأنه يعرض مئات العناصر من أربعة أنواع. */
+        $res = $this->tq_cat->search($f);
+
+        $this->show('site_books', 'الكتب', array(
+            'tq_f'   => $f,
+            'tq_res' => $res,
+        ));
+    }
+
+    /** جزء نتائج الكتب — نظير `catalog_results()` بنوعه المثبت. */
+    public function books_results()
+    {
+        $this->load->model('taqdar_catalog_model', 'tq_cat');
+        $f = $this->tq_cat->filters_from($this->input->get());
+        $f['type'] = array('book');
+        $res = $this->tq_cat->search($f);
+
+        $out = array(
+            'grid'    => $this->load->view('frontend/taqdar/site/site_catalog_grid',
+                                           array('tq_f' => $f, 'tq_res' => $res), true),
+            'filters' => $this->load->view('frontend/taqdar/site/site_catalog_filters',
+                                           array('tq_f' => $f, 'tq_res' => $res), true),
+            'count'   => tqs_cat_count_line($res),
+            'total'   => (int) $res['total'],
+            'page'    => (int) $res['page'],
+            'url'     => tqs_cat_query($f, array('page' => $res['page'])),
+        );
+
+        $this->output->set_content_type('application/json; charset=utf-8')
+                     ->set_output(json_encode($out, JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * شاشة تأكيد شراء كتاب مفرد — TQ-BOOK.
+     *
+     * وهي أخت `course_checkout()` حرفا بحرف، وللسبب نفسه: الشراء واحد
+     * والمشترى مختلف.
+     */
+    public function book_checkout($book_id = 0)
+    {
+        $book_id = (int) $book_id;
+
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $offer = $this->tq_bk->offer($book_id);
+
+        /* غير معروض = غير موجود في هذا الباب. و404 لا صفحة تشرح: عنوان
+           لا يشترى منه شيء ليس شاشة شراء ناقصة. */
+        if (!$offer['sellable']) show_404();
+
+        $uid = (int) $this->session->userdata('user_id');
+        if ($uid <= 0) {
+            $next = 'book-checkout/' . $book_id;
+            $this->session->set_userdata('tq_next', $next);
+            redirect(site_url('login?next=' . rawurlencode($next)), 'location', 302);
+            return;
+        }
+
+        $book = $this->tq_bk->book($book_id);
+        $slug = trim((string) $book['slug']) !== '' ? $book['slug'] : (string) $book_id;
+
+        /* المعلم وولي الأمر لا يشتريان لأنفسهما: الكتاب يفتح في مكتبة
+           الطالب. وولي الأمر يشتري **لابنه** من بوابته. */
+        if (function_exists('tq_role') && tq_role() !== 'student') {
+            $this->session->set_flashdata('error_message',
+                'شراء الكتب لحسابات الطلاب. وولي الأمر يشتري لابنه من «ادفع عن ابنك».');
+            redirect(base_url('book/' . rawurlencode($slug)), 'location', 302);
+            return;
+        }
+
+        $this->load->model('taqdar_billing_model');
+        $this->load->model('taqdar_tap_model');
+
+        /* مفتوح له أصلا: لا تعرض شاشة دفع لمن لا يدفع. */
+        if ($this->taqdar_billing_model->has_book($uid, $book_id)) {
+            $this->session->set_flashdata('flash_message', 'هذا الكتاب مفتوح لك بالفعل.');
+            redirect(base_url('student/library'), 'location', 302);
+            return;
+        }
+
+        $this->show('site_book_checkout', 'تأكيد شراء — ' . $offer['title'], array(
+            'tq_offer'     => $offer,
+            'tq_book'      => $book,
+            'tq_pending'   => $this->tq_bk->pending_of($uid, $book_id),
+            'user_id'      => $uid,
+            'tq_card'      => $this->taqdar_tap_model->ready(),
+            'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
+        ));
+    }
+
+    /**
+     * POST student/buy-book — يصدر الفاتورة ثم يدفعها بالبطاقة أو يترك
+     * تحويلها.
+     *
+     * الترتيب هو ترتيب كل شراء في المنصة: **الفاتورة أولا في الحالين**.
+     * لو أنشئت الدفعة عند تاب قبل أن تكتب الفاتورة، لصار من دفع ثم سقط
+     * اتصاله قد دفع بلا صف عندنا يقابل دفعته.
+     */
+    public function buy_book()
+    {
+        $this->require_role('student');
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $uid     = (int) $this->session->userdata('user_id');
+        $book_id = (int) $this->input->post('book_id');
+
+        $this->load->model('taqdar_tap_model');
+        $by_card = ((string) $this->input->post('pay_method') === 'tap')
+                && $this->taqdar_tap_model->ready();
+
+        $this->load->model('taqdar_billing_model');
+        $r = $this->taqdar_billing_model->subscribe_book(
+            $uid, $book_id, $by_card ? 'tap' : 'manual'
+        );
+
+        if (empty($r['ok'])) {
+            $this->session->set_flashdata('error_message', implode(' ', (array) $r['errors']));
+            redirect(base_url('book-checkout/' . $book_id), 'location', 302);
+            return;
+        }
+
+        $this->trace('student.book.buy', 'book#' . $book_id,
+                     array('subscription_id' => $r['subscription_id'] ?? 0,
+                           'invoice_id'      => $r['invoice_id'] ?? 0));
+
+        if ($by_card) {
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid);
+            if (!empty($pay['ok'])) {
+                redirect($pay['url'], 'location', 302);
+                return;
+            }
+            /* تعذر بدء الدفع: الفاتورة صدرت ولم تضع، فيقال ما وقع ويدل
+               على البديل القائم — لا يعاد الطالب إلى صفحة الكتاب وقد
+               صار له اشتراك معلق يظنه لم يقع. */
+            $this->session->set_flashdata('error_message',
+                implode(' ', $pay['errors'])
+                . ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا أو إعادة المحاولة من هنا.');
+            redirect(base_url('student/subscription'), 'location', 302);
+            return;
+        }
+
+        $this->session->set_flashdata('flash_message',
+            'صدرت فاتورتك. حول قيمتها ويفتح الكتاب في مكتبتك بعد التحقق من الحوالة.');
+        redirect(base_url('student/subscription'), 'location', 302);
+    }
+
+    /**
+     * POST parent/pay/book — ولي الأمر يشتري كتابا لابنه.
+     *
+     * والملكية تفحص (`parent_owns_child`) قبل كل شيء: بلاها يصير شراء
+     * كتاب لطفل غيره مجرد تخمين معرف.
+     */
+    public function parent_pay_book()
+    {
+        $this->write_guard('parent');
+
+        $child   = (int) $this->input->post('child_id');
+        $book_id = (int) $this->input->post('book_id');
+
+        if (!$this->parent_owns_child($child)) {
+            $this->done('parent/pay', false, 'هذا الحساب ليس من أبنائك.');
+            return;
+        }
+
+        $this->load->model('taqdar_tap_model');
+        $by_card = ((string) $this->input->post('pay_method') === 'tap')
+                && $this->taqdar_tap_model->ready();
+
+        $this->load->model('taqdar_billing_model');
+        $r = $this->taqdar_billing_model->subscribe_book(
+            $child, $book_id, $by_card ? 'tap' : 'manual'
+        );
+
+        if (empty($r['ok'])) {
+            $this->done('parent/pay', false, implode(' ', (array) $r['errors']));
+            return;
+        }
+
+        /* الدافع ولي الأمر والمستفيد ابنه: الفاتورة باسم الابن (هي
+           استحقاقه)، والدفعة تبدأ باسم من يدفع — و`start()` تأخذ
+           المستخدم معاملا لذلك. */
+        if ($by_card) {
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'],
+                                                  (int) $this->session->userdata('user_id'));
+            if (!empty($pay['ok'])) { redirect($pay['url'], 'location', 302); return; }
+            $this->done('parent/payments', false, implode(' ', $pay['errors'])
+                . ' وفاتورة ابنك صدرت، فيمكنك تحويل قيمتها بنكيا.');
+            return;
+        }
+
+        $this->done('parent/payments', true,
+            'صدرت الفاتورة. حول قيمتها ويفتح الكتاب في مكتبة ابنك بعد التحقق من الحوالة.');
+    }
+
+
+    /**
+     * TQ-BOOK-GATE — ملف الكتاب يمر بحارس، لا برابط عار في `uploads/`.
+     *
+     * ═══ ولماذا لم يكن يحتاج حارسا ═══
+     *
+     * يوم كان الكتاب **مجانيا كله** كان الرابط المباشر هو الصواب: ملف
+     * ثابت يخدمه الخادم بلا PHP، ويخبئه المتصفح وLiteSpeed. وصار
+     * الكتاب يباع، فرابط عار في `uploads/books/` يعني أن من عرف اسمه
+     * مرة يوزعه على من شاء — **والشراء يصير اقتراحا**.
+     *
+     * والاسم بصمة محتواه (`tq_doc_store`) فهو غير قابل للحزر، وهذا
+     * يقلل الضرر ولا يمنعه: أول مشتر ينسخ الرابط من لوحة الشبكة.
+     *
+     * ═══ والحكم من `has_book()` وحدها ═══
+     *
+     * هي التي تقرأ الثلاثة معا: مجاني، أو اشتراه، أو فتحته باقة صفه.
+     * ونسخة ثانية من قواعدها هنا تفترق عن أختها عند أول تعديل، فيفتح
+     * الحارس ما ترده الشاشة أو العكس.
+     *
+     * **والمجاني يمر كما كان**: لا تسجيل ولا جلسة — `has_book()` ترد
+     * `true` قبل أن تسأل عن المستخدم. فصفحة الكتاب العامة تبقى تحمل
+     * بلا تسجيل حرفا بحرف.
+     *
+     * والبث `readfile` لا `redirect`: التحويل إلى `uploads/` يعطي
+     * الرابط العاري لمن سأل عنه، وهو عين ما جاء الحارس ليمنعه.
+     */
+    public function book_file($book_id = 0)
+    {
+        $book_id = (int) $book_id;
+
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $book = $this->tq_bk->book($book_id);
+        if (!$book || (string) $book['status'] !== 'published') show_404();
+
+        $rel = ltrim(trim((string) $book['file']), '/');
+        if ($rel === '' || strpos($rel, 'uploads/') !== 0 || strpos($rel, '..') !== false) {
+            show_404();
+        }
+
+        $uid = (int) $this->session->userdata('user_id');
+        $this->load->model('taqdar_billing_model');
+        if (!$this->taqdar_billing_model->has_book($uid, $book_id)) {
+            /* 403 لا 404: الكتاب موجود ومعروض في صفحته، والكذب عليه
+               بـ«غير موجود» يجعل من دفع ولم يفعل اشتراكه بعد يظن أن
+               الكتاب حذف. */
+            show_error('هذا الكتاب يفتح بشرائه أو بالاشتراك في باقة صفه.', 403,
+                       'لا وصول إلى هذا الكتاب');
+            return;
+        }
+
+        $abs  = FCPATH . $rel;
+        $real = realpath($abs);
+        $root = realpath(FCPATH . 'uploads');
+        if (!$real || !$root || strpos($real, $root) !== 0 || !is_file($real)) show_404();
+
+        /* `inline` لا `attachment`: القارئ في البوابة يجلبه بـ`fetch`
+           ويرسمه صفحة صفحة، و`attachment` تجعل المتصفح ينزله بدلا من
+           ذلك — فيقع عين ما تعد الشاشة بألا يقع.
+           و`private` في الكاش: وسيط يخبئ ملفا مدفوعا يخدمه لغير مشتريه. */
+        $this->output->set_status_header(200);
+        header('Content-Type: application/pdf');
+        header('Content-Length: ' . filesize($real));
+        header('Content-Disposition: inline; filename="book-' . $book_id . '.pdf"');
+        header('Cache-Control: private, max-age=600');
+        header('X-Content-Type-Options: nosniff');
+
+        /* المخزن يفرغ قبل البث: أي فراغ سبق (سطر بعد `?>` في ملف محمل)
+           يدخل في أول بايت من الملف فيرفضه `pdf.js` بـ«Invalid PDF». */
+        while (ob_get_level() > 0) ob_end_clean();
+        readfile($real);
+        exit;
+    }
+
+    /* ---- كتب المعلم ----------------------------------------------- */
+
+    /**
+     * شاشة كتاب المعلم — إضافة أو تعديل.
+     *
+     * والقالب واحد للحالين (`tq_teacher_book_form`)، والفارق `$row`
+     * وحده: قالبان يفترقان عند أول حقل يضاف، فيظهر في الإضافة ولا يظهر
+     * في التعديل — فيعدل المعلم كتابا فتمحى منه قيمة لم تعرض له أصلا.
+     * وهي قاعدة `tqa_teacher_form` نفسها.
+     */
+    public function teacher_book_form($book_id = 0)
+    {
+        $user = $this->require_role('teacher');
+
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $row = ((int) $book_id > 0) ? $this->tq_bk->book((int) $book_id) : null;
+
+        /* الملكية: المعلم يحرر كتابه هو. و404 لا رسالة — عنوان لا يملكه
+           صاحبه ليس شاشة ناقصة. */
+        if ((int) $book_id > 0 && (!$row || (int) $row['teacher_id'] !== (int) $user['id'])) {
+            show_404();
+        }
+
+        $this->show('tq_teacher_book_form',
+                    $row ? 'تعديل كتاب' : 'كتاب جديد', array(
+            'tq_counts' => $this->counts($user['id'], 'teacher'),
+            'user_id'   => $user['id'],
+            'tq_row'    => $row,
+        ));
+    }
+
+    /** POST teacher/books/save — والقاعدة في الطبقة لا هنا. */
+    public function teacher_book_save()
+    {
+        $user = $this->write_guard('teacher');
+
+        $book_id = (int) $this->input->post('book_id');
+
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $r = $this->tq_bk->save_book(
+            array('id' => (int) $user['id'], 'role' => 'teacher'),
+            $book_id, $this->input->post(), $_FILES
+        );
+
+        if (empty($r['ok'])) {
+            $this->done($book_id > 0 ? 'teacher/books/' . $book_id : 'teacher/books/new',
+                        false, $this->result_message($r, 'تعذر حفظ الكتاب.'));
+            return;
+        }
+
+        $this->done('teacher/books', true, $this->result_message($r, 'حفظ الكتاب.'));
+    }
+
+    /** POST teacher/books/delete — ولا يحذف كتاب بيع (TQ-BOOK-DELETE). */
+    public function teacher_book_delete()
+    {
+        $user = $this->write_guard('teacher');
+
+        $book_id = (int) $this->input->post('book_id');
+
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $row = $this->tq_bk->book($book_id);
+        if (!$row || (int) $row['teacher_id'] !== (int) $user['id']) {
+            $this->done('teacher/books', false, 'هذا الكتاب ليس لك.');
+            return;
+        }
+
+        $r = $this->tq_bk->delete_book(array('id' => (int) $user['id'], 'role' => 'teacher'),
+                                       $book_id);
+        $this->done('teacher/books', !empty($r['ok']),
+                    $this->result_message($r, 'حذف الكتاب.'));
+    }
 }

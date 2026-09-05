@@ -179,6 +179,49 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                         </div>
                     </div>
 
+                <?php elseif ($f['type'] === 'doc'):
+                    /* TQ-BOOK-FILE — مستند لا صورة، فلا معاينة تعرض.
+                       والمحفوظ يقال باسمه وحجمه ورابط يفتحه: اسم بصمة
+                       (`books-14-a3f9c1d2.pdf`) لا يقول أي ملف هو،
+                       والمسؤول يفتح الشاشة ليتأكد أنه رفع الصحيح. */
+                    $cur     = trim((string) $val);
+                    $cur_src = $cur !== '' ? base_url(ltrim($cur, '/')) : '';
+                    $cur_abs = $cur !== '' ? FCPATH . ltrim($cur, '/') : '';
+                    $cur_mb  = ($cur_abs !== '' && is_file($cur_abs))
+                             ? round(filesize($cur_abs) / 1048576, 1) : 0;
+                ?>
+
+                    <div class="tqa-filefield tqa-filefield--doc">
+                        <?php if ($cur_src !== ''): ?>
+                            <p class="tqa-hint" style="margin-block-end:var(--tq-space-s)">
+                                <a href="<?php echo html_escape($cur_src); ?>" target="_blank" rel="noopener">
+                                    <?php echo html_escape(basename($cur)); ?></a>
+                                <?php if ($cur_mb > 0): ?>
+                                    — <span class="tq-ltr"><?php echo $cur_mb; ?></span> <?php echo t('ميغابايت'); ?>
+                                <?php endif; ?>
+                            </p>
+                        <?php else: ?>
+                            <p class="tqa-hint" style="margin-block-end:var(--tq-space-s)">
+                                <?php echo t('لا ملف مرفوع بعد.'); ?>
+                            </p>
+                        <?php endif; ?>
+
+                        <div class="tqa-filefield__ctl">
+                            <input type="file" id="<?php echo $id; ?>"
+                                   name="<?php echo $name; ?>"
+                                   accept="<?php echo html_escape(isset($f['accept']) ? $f['accept'] : '.pdf'); ?>"
+                                   <?php if (!empty($f['max_mb'])): ?>data-tqa-max="<?php echo (float) $f['max_mb']; ?>"<?php endif; ?>>
+
+                            <?php if ($cur !== ''): ?>
+                                <?php /* المحو صريح: حفظ بلا اختيار ملف **لا يمس**
+                                         الملف، فمن أراد إزالته يقولها. */ ?>
+                                <label class="tqa-check">
+                                    <input type="checkbox" name="<?php echo $name; ?>__clear" value="1">
+                                    <span><?php echo t('احذف الملف الحالي'); ?></span>
+                                </label>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 <?php elseif ($f['type'] === 'pick'):
                     $opts = $M->options($f['ref']);
                     $prev = (!empty($f['preview']) && $f['preview'] === 'site_image');
@@ -310,9 +353,15 @@ $tqa_now = function ($field_name) use ($row, $spec) {
 
                 <?php elseif (in_array($f['type'], array('number', 'seconds'), true)): ?>
 
+                    <?php /* TQ-NULLNUM — والحقل `nullable` يعرض فارغا حين
+                             تكون القيمة `NULL`، و`placeholder` يقول ما
+                             يقع حينها. و`(string) null` تساوي `''`
+                             أصلا، لكن الصفر الصريح يجب أن يبقى ظاهرا:
+                             هو قرار كتبه أحدهم، لا فراغا. */ ?>
                     <input class="tqa-input tqa-input--ltr" dir="ltr" type="number" min="0" step="1"
                            id="<?php echo $id; ?>" name="<?php echo $name; ?>"
-                           value="<?php echo html_escape((string) $val); ?>"
+                           value="<?php echo ($val === null) ? '' : html_escape((string) $val); ?>"
+                           <?php if (!empty($f['placeholder'])): ?>placeholder="<?php echo html_escape($f['placeholder']); ?>"<?php endif; ?>
                            <?php echo $req ? 'required' : ''; ?>>
 
                 <?php elseif ($f['type'] === 'percent'): ?>

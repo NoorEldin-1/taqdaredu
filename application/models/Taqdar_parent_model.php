@@ -728,23 +728,31 @@ class Taqdar_parent_model extends CI_Model
         if ($this->db->table_exists('invoices')) {
             /* TQ-I18N — تسميات تعرض ولا تخزن، فتترجم بلغة من يقرؤها. */
             $labels = ['paid' => t('مدفوعة'), 'unpaid' => t('بانتظار التحويل'), 'refunded' => t('مستردة')];
+            /* TQ-SOLD-NAME — الاسم من `sold()` لا من ضم على `plans` وحده.
+               كان كل ما لا باقة له يقرأ «اشتراك»: من دفع عن ابنه ثمن
+               كورس مفرد أو كتاب يقرأ في «المدفوعات» سطرين متطابقين
+               بمبلغين مختلفين، ولا يعرف أيهما أيهما. */
+            $this->load->model('taqdar_billing_model');
             foreach ($this->db->query(
                 "SELECT i.id, i.invoice_no, i.total, i.status, i.method, i.transaction_id,
-                        i.issued_at, i.paid_at, p.name_ar AS plan_name
+                        i.issued_at, i.paid_at, i.subscription_id
                    FROM invoices i
-                   LEFT JOIN subscriptions s ON s.id = i.subscription_id
-                   LEFT JOIN plans p ON p.id = s.plan_id
                   WHERE i.user_id = ?
                   ORDER BY i.id DESC LIMIT ?",
                 [$user_id, (int) $limit]
             )->result_array() as $r) {
                 $when = !empty($r['paid_at']) ? $r['paid_at'] : $r['issued_at'];
+                $sold = (int) $r['subscription_id'] > 0
+                      ? $this->taqdar_billing_model->sold((int) $r['subscription_id'])
+                      : null;
                 $rows[] = [
                     'ts'     => $when ? strtotime($when) : 0,
                     'amount' => ((int) $r['total']) / 100,
                     /* اسم الباقة بيانات صاحبها فلا يترجم؛ والبديل حين لا اسم
-                       نص من الشيفرة فيترجم. */
-                    'title'  => $r['plan_name'] ?: t('اشتراك'),
+                       نص من الشيفرة فيترجم.
+                       والفاتورة اليتيمة (`subscription_id = 0`) فاتورة حصة
+                       — TQ-SESSION-PAY — فلا اسم لها هنا. */
+                    'title'  => $sold ? $sold['title'] : t('اشتراك'),
                     'ref'    => $r['transaction_id'] ?: $r['invoice_no'],
                     'method' => (string) $r['method'],
                     'status' => $r['status'],

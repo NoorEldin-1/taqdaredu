@@ -143,7 +143,7 @@ $tap_ready = !empty($tap_ready);
             $can_mark   = $st === 'awaiting_payment' && (int) ($r['invoice_id'] ?? 0) > 0;
         ?>
             <tr>
-                <td data-label="الموعد">
+                <td data-label="<?php echo te('الموعد'); ?>">
                     <?php if ($when): ?>
                         <span class="tqa-num"><?php echo date('Y-m-d', $when); ?></span><br>
                         <span class="tqa-num" style="color:var(--tq-text2)"><?php echo date('H:i', $when); ?></span>
@@ -155,17 +155,17 @@ $tap_ready = !empty($tap_ready);
                         <span style="color:var(--tq-text3)"><?php echo t('الفسحة حذفت'); ?></span>
                     <?php endif; ?>
                 </td>
-                <td data-label="الطالب">
+                <td data-label="<?php echo te('الطالب'); ?>">
                     <?php echo html_escape($r['student_name'] ?: '—'); ?><br>
                     <span class="tqa-num" style="color:var(--tq-text2);font-size:12px">
                         <?php echo html_escape($r['student_email'] ?: ''); ?></span>
                 </td>
-                <td data-label="المعلم"><?php echo html_escape($r['teacher_name'] ?: '—'); ?></td>
+                <td data-label="<?php echo te('المعلم'); ?>"><?php echo html_escape($r['teacher_name'] ?: '—'); ?></td>
 
                 <?php /* ثلاثة أرقام في خانة: الثمن، ونصيب المعلم منه، ورقم
                          الفاتورة. و«باعوا حصتي ولم يصلني شيء» أول ما يسأل
                          عنه معلم، ولم يكن في اللوحة موضع واحد يجيب. */ ?>
-                <td data-label="المال">
+                <td data-label="<?php echo te('المال'); ?>">
                     <?php if ($price <= 0): ?>
                         <span style="color:var(--tq-text3)"><?php echo t('بلا ثمن'); ?></span>
                     <?php else: ?>
@@ -185,7 +185,7 @@ $tap_ready = !empty($tap_ready);
                     <?php endif; ?>
                 </td>
 
-                <td data-label="الحالة">
+                <td data-label="<?php echo te('الحالة'); ?>">
                     <span class="tqa-badge tqa-badge--<?php echo $tone; ?>">
                         <?php echo html_escape($labels[$st] ?? $st); ?>
                     </span>
@@ -201,7 +201,7 @@ $tap_ready = !empty($tap_ready);
                     <?php endif; ?>
                 </td>
 
-                <td data-label="الرابط">
+                <td data-label="<?php echo te('الرابط'); ?>">
                     <?php $link = trim((string) ($r['meet_url'] ?? '')); ?>
                     <?php if ($link !== ''): ?>
                         <a href="<?php echo html_escape($link); ?>" target="_blank" rel="noopener"><?php echo t('افتح'); ?></a>
@@ -210,7 +210,7 @@ $tap_ready = !empty($tap_ready);
                     <?php endif; ?>
                 </td>
 
-                <td data-label="إجراء">
+                <td data-label="<?php echo te('إجراء'); ?>">
                     <?php if ($can_mark): ?>
                         <?php /* التحويل البنكي: يسجله من رآه في الحساب. وبلا
                                  هذا الزر يبقى التحويل بابا مسدودا في الحصص

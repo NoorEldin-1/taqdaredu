@@ -118,7 +118,7 @@ if ($role !== '') $active['role'] = $filters[$role][0];
                          متجاورين، فالعين تقفز بين خليتين لتجمع هوية شخص
                          واحد — وفي جدول من خمسين صفا هذه قفزة في كل سطر.
                          والوجه هو ما تمسكه العين قبل الحرف. */ ?>
-                <td data-label="الحساب">
+                <td data-label="<?php echo te('الحساب'); ?>">
                     <span class="tqa-media">
                         <?php echo tqa_avatar(isset($u['image']) ? $u['image'] : '', $name ?: $u['email']); ?>
                         <span class="tqa-media__body">
@@ -128,7 +128,7 @@ if ($role !== '') $active['role'] = $filters[$role][0];
                     </span>
                 </td>
 
-                <td data-label="الجوال">
+                <td data-label="<?php echo te('الجوال'); ?>">
                     <?php if (trim((string) $u['phone']) !== ''): ?>
                         <span class="tqa-mono"><?php echo html_escape($u['phone']); ?></span>
                     <?php else: ?>
@@ -136,20 +136,20 @@ if ($role !== '') $active['role'] = $filters[$role][0];
                     <?php endif; ?>
                 </td>
 
-                <td data-label="الدور">
+                <td data-label="<?php echo te('الدور'); ?>">
                     <span class="tqa-badge tqa-badge--<?php echo $role_tone; ?>"><?php echo $role_label; ?></span>
                 </td>
 
                 <?php /* النقطة مع اللون: من لا يفرق الأخضر عن الأحمر — وهو
                          واحد من كل اثني عشر رجلا — كان يقرأ شارتين
                          متطابقتين في عمود يفرق بين حساب يدخل وحساب لا. */ ?>
-                <td data-label="الحالة">
+                <td data-label="<?php echo te('الحالة'); ?>">
                     <span class="tqa-badge tqa-badge--dot tqa-badge--<?php echo $on ? 'ok' : 'danger'; ?>">
                         <?php echo $on ? t('مفتوح') : t('مغلق'); ?>
                     </span>
                 </td>
 
-                <td data-label="التسجيل">
+                <td data-label="<?php echo te('التسجيل'); ?>">
                     <span class="tqa-num"><?php
                         echo !empty($u['date_added']) ? date('Y-m-d', (int) $u['date_added']) : '—';
                     ?></span>

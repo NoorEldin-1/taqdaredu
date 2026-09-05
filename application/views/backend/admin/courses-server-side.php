@@ -254,14 +254,14 @@ if ($selected_price === 'free' || $selected_price === 'paid') {
                 <tr>
                     <td data-label="#"><span class="tqa-num"><?php echo $tq_ord; ?></span></td>
 
-                    <td data-label="الكورس">
+                    <td data-label="<?php echo te('الكورس'); ?>">
                         <a class="tqa-media__title" href="<?php echo site_url('admin/course_form/course_edit/' . $tq_id); ?>">
                             <?php echo html_escape($tq_c['title']); ?>
                         </a>
                         <span class="tqa-media__sub"><?php echo t('المعلم:'); ?> <?php echo html_escape($tq_owner); ?></span>
                     </td>
 
-                    <td data-label="المرحلة والمادة">
+                    <td data-label="<?php echo te('المرحلة والمادة'); ?>">
                         <?php
                         $tq_cn = $tq_catnames[(int) $tq_c['sub_category_id']]
                               ?? ($tq_catnames[(int) $tq_c['category_id']] ?? '');
@@ -282,7 +282,7 @@ if ($selected_price === 'free' || $selected_price === 'paid') {
                         </span>
                     </td>
 
-                    <td data-label="المحتوى">
+                    <td data-label="<?php echo te('المحتوى'); ?>">
                         <?php if ($tq_c['course_type'] === 'general'): ?>
                             <span class="tqa-num"><?php echo (int) ($tq_lessons[$tq_id] ?? 0); ?></span> <?php echo t('درسا'); ?>
                             <span class="tqa-media__sub">
@@ -293,13 +293,13 @@ if ($selected_price === 'free' || $selected_price === 'paid') {
                         <?php endif; ?>
                     </td>
 
-                    <td data-label="المسجلون"><span class="tqa-num"><?php echo (int) ($tq_enrols[$tq_id] ?? 0); ?></span></td>
+                    <td data-label="<?php echo te('المسجلون'); ?>"><span class="tqa-num"><?php echo (int) ($tq_enrols[$tq_id] ?? 0); ?></span></td>
 
-                    <td data-label="الحالة">
+                    <td data-label="<?php echo te('الحالة'); ?>">
                         <span class="tqa-badge tqa-badge--<?php echo $tq_tone; ?>"><?php echo html_escape($tq_slabel); ?></span>
                     </td>
 
-                    <td data-label="السعر">
+                    <td data-label="<?php echo te('السعر'); ?>">
                         <?php if ($tq_free): ?>
                             <span class="tqa-badge tqa-badge--ok"><?php echo t('مجاني'); ?></span>
                         <?php else: ?>

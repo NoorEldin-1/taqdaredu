@@ -178,7 +178,7 @@ class Taqdar_admin_model extends CI_Model
 
             /* النتائج تقرأ ولا تحرر: النتيجة فعل الطالب، وتحريرها من
                اللوحة يجعل الكشف شيئا اخر غير ما جرى — كما في
-               `competition_entries` و`audit_log`. */
+               `audit_log`. */
             'diag_attempts' => array(
                 'table'    => 'tq_diag_attempts',
                 'title'    => 'نتائج الاختبارات التشخيصية',
@@ -200,32 +200,6 @@ class Taqdar_admin_model extends CI_Model
                     'total'        => array('label' => 'من', 'type' => 'number', 'list' => true),
                     'plan_id'      => array('label' => 'الباقة الموصى بها', 'type' => 'ref', 'ref' => 'plans', 'list' => true),
                     'submitted_at' => array('label' => 'تاريخ الاداء', 'type' => 'datetime', 'list' => true),
-                ),
-            ),
-
-            'competitions' => array(
-                'table'    => 'competitions',
-                'title'    => 'المسابقات',
-                'lead'     => 'تحديات دورية على نمط أسئلة نافس. المفتوحة وحدها تظهر للطلاب.',
-                'icon'     => 'target',
-                'order_by' => array('tq_order' => 'ASC', 'id' => 'DESC'),
-                'note'     => 'مسابقات المنصة غير مرتبطة بهيئة تقويم التعليم، والإيضاح مكتوب في الصفحة العامة — فلا تصغ عنوانا يوهم ارتباطا رسميا.',
-                'fields'   => array(
-                    'title'       => array('label' => 'العنوان', 'type' => 'text', 'required' => true, 'list' => true),
-                    'slug'        => array('label' => 'المسمى', 'type' => 'text',
-                                           'hint' => 'بحروف لاتينية — الروابط العربية ترد قبل أن تصل.'),
-                    'tagline'     => array('label' => 'سطر التعريف', 'type' => 'text', 'list' => true),
-                    'description' => array('label' => 'الوصف', 'type' => 'textarea'),
-                    'category_id' => array('label' => 'المرحلة', 'type' => 'ref', 'ref' => 'categories', 'list' => true),
-                    'starts_at'   => array('label' => 'تبدأ', 'type' => 'text', 'hint' => 'YYYY-MM-DD'),
-                    'ends_at'     => array('label' => 'تنتهي', 'type' => 'text', 'hint' => 'YYYY-MM-DD'),
-                    'seats'       => array('label' => 'المقاعد', 'type' => 'number', 'default' => 0,
-                                           'hint' => 'صفر = بلا حد.'),
-                    'prize'       => array('label' => 'الجائزة', 'type' => 'text'),
-                    'status'      => array('label' => 'الحالة', 'type' => 'enum', 'default' => 'draft', 'list' => true,
-                                           'options' => array('draft' => 'مسودة', 'open' => 'مفتوحة',
-                                                              'closed' => 'أغلق التسجيل', 'done' => 'انتهت')),
-                    'tq_order'    => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0),
                 ),
             ),
 
@@ -411,53 +385,91 @@ class Taqdar_admin_model extends CI_Model
             /* الكتب: صفحة `/books` منشورة للعامة وتقرأ من هذا الجدول
                (`Taqdar_site_model::books()`)، ولم تكن له شاشة واحدة في
                اللوحة — فكان كتاب المنهج يضاف بيد في phpMyAdmin، أو لا
-               يضاف. وأي محتوى عام بلا شاشة إدارة يعني نشرا لكل تعديل. */
+               يضاف. وأي محتوى عام بلا شاشة إدارة يعني نشرا لكل تعديل.
+
+               TQ-BOOK — وصار الكتاب سلعة ومحتوى باقة ومحتوى معلم، فوسع
+               الوصف بما يقرر ذلك: الصف الذي يدخله في الباقات، وصاحبه،
+               وسعره، ونصيبه، ووزنه في الوعاء. والقواعد كلها في
+               [Taqdar_book_model](application/models/Taqdar_book_model.php)
+               — وهذه الشاشة تعرضها ولا تحكم. */
             'books' => array(
-                'table'    => 'books',
-                'title'    => 'الكتب',
-                'lead'     => 'كتب المنهج التي تعرض في صفحة الكتب العامة.',
-                'icon'     => 'book',
-                'order_by' => array('tq_order' => 'ASC', 'id' => 'DESC'),
+                'table'        => 'books',
+                'title'        => 'الكتب',
+                'lead'         => 'كتب المنهج وكتب المعلمين — تعرض في «الكتب» و«المواد والبرامج»، وتفتح في مكتبة الطالب.',
+                'icon'         => 'book',
+                'ensure'       => 'taqdar_book_model',
+                'order_by'     => array('tq_order' => 'ASC', 'id' => 'DESC'),
+                'form_extra'   => 'tqa_book_reach',
+                'status_fn'    => 'book_visibility',
+                'status_label' => 'الظهور',
+                'note'         => 'الصف هو ما يدخل الكتاب في الباقات. وبلا صف يبقى الكتاب مجانيا للتحميل أو يباع مفردا، ولا تفتحه باقة.',
                 'fields'   => array(
-                    'title'       => array('label' => 'العنوان', 'type' => 'text', 'required' => true, 'list' => true),
-                    'slug'        => array('label' => 'المسمى في الرابط', 'type' => 'text', 'ltr' => true,
-                                           'hint' => 'حروف لاتينية وشرطات. يترك فارغا ليولد من العنوان.'),
-                    'subject'     => array('label' => 'المادة', 'type' => 'text', 'list' => true),
-                    'category_id' => array('label' => 'المرحلة', 'type' => 'ref', 'ref' => 'categories', 'list' => true),
+                    'title'       => array('label' => 'العنوان', 'type' => 'text', 'required' => true, 'list' => true,
+                                           'section' => 'تعريف الكتاب',
+                                           'hint' => 'ما بعد الشرطة «—» يقرأ صفا في وجه الغلاف، مثل: الرياضيات — الصف الأول الابتدائي.'),
+                    'subject'     => array('label' => 'المادة', 'type' => 'text', 'list' => true,
+                                           'hint' => 'اسم المادة كما تكتب على الغلاف — وهي وجه الغلاف حين لا صورة.'),
                     'author'      => array('label' => 'المؤلف أو الجهة', 'type' => 'text', 'list' => true),
-                    'pages'       => array('label' => 'عدد الصفحات', 'type' => 'number', 'default' => 0),
+                    'description' => array('label' => 'الوصف', 'type' => 'textarea',
+                                           'hint' => 'ما يقرؤه من يفتح صفحة الكتاب قبل أن يقرر.'),
+                    'slug'        => array('label' => 'المسمى في الرابط', 'type' => 'text', 'ltr' => true,
+                                           'unique' => true,
+                                           'hint' => 'حروف لاتينية وشرطات — منه يبنى `‎/book/<المسمى>‎`. يترك فارغا ليولد من العنوان.'),
+
+                    'category_id' => array('label' => 'المرحلة', 'type' => 'ref', 'ref' => 'categories', 'list' => true,
+                                           'section' => 'أين يظهر',
+                                           'hint' => 'بها يرشح الكتاب في «المواد والبرامج التعليمية» وفي صفحة «الكتب».'),
+                    /* TQ-BOOK-GRADE — الصف وحده هو الجسر إلى الباقة. */
+                    'grade_id'    => array('label' => 'الصف', 'type' => 'ref', 'ref' => 'grades', 'list' => true,
+                                           'hint' => 'وبه وحده تفتح الباقة هذا الكتاب لمشتركيها، ويدخل صاحبه في قسمة وعائها. '
+                                                   . 'وبلا صف لا تفتحه باقة أبدا — يبقى مجانيا أو يباع مفردا.'),
+
+                    'cover'       => array('label' => 'صورة الغلاف', 'type' => 'file',
+                                           'section' => 'الملفات',
+                                           'bucket' => 'books', 'img_w' => 600, 'img_h' => 840,
+                                           'img_min_w' => 200, 'img_min_h' => 260,
+                                           'accept' => '.jpg,.jpeg,.png,.webp',
+                                           'hint' => 'ترفع من جهازك وتقص إلى نسبة غلاف الكتاب. وبلا صورة يرسم الغلاف باسم المادة ولونها.'),
+                    'file'        => array('label' => 'ملف الكتاب', 'type' => 'doc',
+                                           'bucket' => 'books', 'max_mb' => 40,
+                                           'accept' => '.pdf',
+                                           'hint' => 'PDF يقرأ في بوابة الطالب صفحة صفحة بلا تحميل. وبلا ملف لا يباع الكتاب ولا يفتح — يعرض «قريبا».'),
+                    'pages'       => array('label' => 'عدد الصفحات', 'type' => 'number', 'default' => 0,
+                                           'hint' => 'يقرأ من الملف تلقائيا حين يترك فارغا.'),
                     'tone'        => array('label' => 'لون الغلاف', 'type' => 'enum', 'default' => 'math',
                                            'options' => array('math' => 'رياضيات', 'arabic' => 'لغة عربية',
                                                               'science' => 'علوم', 'islamic' => 'دراسات إسلامية',
-                                                              'english' => 'لغة إنجليزية')),
-                    'cover'       => array('label' => 'صورة الغلاف', 'type' => 'text', 'ltr' => true,
-                                           'hint' => 'مسار الملف داخل uploads/'),
-                    'file'        => array('label' => 'ملف الكتاب', 'type' => 'text', 'ltr' => true,
-                                           'hint' => 'مسار PDF داخل uploads/. بلا ملف لا يظهر زر التحميل.'),
-                    'description' => array('label' => 'الوصف', 'type' => 'textarea'),
-                    'status'      => array('label' => 'الحالة', 'type' => 'enum', 'default' => 'draft', 'list' => true,
-                                           'options' => array('draft' => 'مسودة', 'published' => 'منشور')),
-                    'tq_order'    => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0),
-                ),
-            ),
+                                                              'english' => 'لغة إنجليزية'),
+                                           'hint' => 'يستعمل حين لا صورة غلاف مرفوعة.'),
 
-            /* المشاركون: كانت المسابقة تنشأ من اللوحة وتفتح للتسجيل
-               (`Taqdar::competition_join`) ولا شاشة تقول من سجل فيها.
-               تقرأ ولا تحرر: الاشتراك فعل صاحبه، وتحريره من اللوحة
-               يجعل كشف المشاركين شيئا آخر غير ما جرى. */
-            'competition_entries' => array(
-                'table'    => 'competition_entries',
-                'title'    => 'المشاركون في المسابقات',
-                'lead'     => 'من سجل في كل مسابقة، ومتى، وبأي نتيجة.',
-                'icon'     => 'trophy',
-                'order_by' => array('id' => 'DESC'),
-                'readonly' => true,
-                'note'     => 'الاشتراك فعل صاحبه فلا يحرر ولا يحذف من هنا — كشف المشاركين يقرأ ما جرى لا ما أريد له أن يجري.',
-                'fields'   => array(
-                    'competition_id' => array('label' => 'المسابقة', 'type' => 'ref', 'ref' => 'competitions', 'list' => true),
-                    'user_id'        => array('label' => 'المشترك', 'type' => 'ref', 'ref' => 'users', 'list' => true),
-                    'score'          => array('label' => 'النتيجة', 'type' => 'number', 'list' => true),
-                    'created_at'     => array('label' => 'تاريخ التسجيل', 'type' => 'datetime', 'list' => true),
+                    'teacher_id'  => array('label' => 'المعلم صاحب الكتاب', 'type' => 'ref', 'ref' => 'teachers', 'list' => true,
+                                           'section' => 'البيع والنصيب',
+                                           'hint' => 'اتركه «بلا تحديد» ليكون كتاب منصة: السعر كله للمنصة، ولا نصيب ولا وزن في وعاء الباقة.'),
+                    'tq_sell'     => array('label' => 'يباع مفردا', 'type' => 'bool', 'default' => 0, 'list' => true,
+                                           'hint' => 'صفة تعلن لا نتيجة سعر. وبلا تعليمها يبقى الكتاب مجانيا للتحميل مهما كتب في السعر.'),
+                    'price'       => array('label' => 'السعر', 'type' => 'money', 'default' => 0, 'list' => true,
+                                           'show_when' => array('tq_sell' => array('1')),
+                                           'hint' => 'يدخل بالريال ويخزن بالهللات.'),
+                    'discount_price' => array('label' => 'السعر بعد الخصم', 'type' => 'money', 'default' => 0,
+                                           'show_when' => array('tq_sell' => array('1')),
+                                           'hint' => 'اتركه صفرا إن لا خصم. وخصم أعلى من السعر أو مساو له يهمل.'),
+                    'tq_teacher_percent' => array('label' => 'نصيب المعلم % (بيع مفرد)', 'type' => 'percent',
+                                           'mirror' => 'عمولة المنصة', 'placeholder' => 'الافتراض العام',
+                                           'show_when' => array('tq_sell' => array('1')),
+                                           'hint' => 'من سعر الشراء المفرد وحده — لا من الباقة. اتركه فارغا ليأخذ النسبة العامة من شاشة «بيع الكتب». والفارغ غير الصفر.'),
+                    'access_days' => array('label' => 'أجل الوصول (أيام)', 'type' => 'number', 'default' => 0,
+                                           'show_when' => array('tq_sell' => array('1')),
+                                           'hint' => 'للشراء المفرد وحده. صفر يعني وصولا دائما.'),
+                    'tq_weight'   => array('label' => 'وزن الكتاب في الباقة', 'type' => 'number',
+                                           'nullable' => true, 'placeholder' => 'الوزن العام',
+                                           'hint' => 'بمعادل الدروس: كتاب وزنه ٣ يحسب في وعاء الباقة كثلاثة دروس لصاحبه. اتركه فارغا ليأخذ الوزن العام.'),
+
+                    'status'      => array('label' => 'الحالة', 'type' => 'enum', 'default' => 'draft', 'list' => true,
+                                           'section' => 'العرض والترتيب',
+                                           'options' => array('draft' => 'مسودة', 'review' => 'بانتظار المراجعة',
+                                                              'published' => 'منشور', 'rejected' => 'مرفوض'),
+                                           'hint' => 'المنشور وحده يظهر للطلاب ويباع. و«بانتظار المراجعة» يقرأ في شاشة «مراجعة المحتوى».'),
+                    'tq_order'    => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0),
                 ),
             ),
 
@@ -641,7 +653,7 @@ class Taqdar_admin_model extends CI_Model
         $out = array('id' => '#');
         foreach ($spec['fields'] as $name => $f) {
             if (empty($f['list'])) continue;
-            if (in_array($f['type'], array('file', 'multiref'), true)) continue;
+            if (in_array($f['type'], array('file', 'doc', 'multiref'), true)) continue;
             $out[$name] = $f['label'];
         }
         return $out;
@@ -721,17 +733,12 @@ class Taqdar_admin_model extends CI_Model
                     $out[$r['id']] = '#' . $r['id'] . ' — ' . $r['type'];
                 break;
 
-            /* `categories` مرجع للمرحلة في الكتب والمسابقات وحدها.
+            /* `categories` مرجع للمرحلة في الكتب وحدها.
                وليست مرجع المنهج — المنهج `subjects` + `grades`، وخلط
                المرجعين هو ما يجعل مادة تظهر تحت مرحلتين مختلفتين. */
             case 'categories':
                 foreach ($this->db->where('parent', 0)->order_by('id', 'ASC')->get('category')->result_array() as $r)
                     $out[$r['id']] = $r['name'];
-                break;
-
-            case 'competitions':
-                foreach ($this->db->order_by('id', 'DESC')->limit(300)->get('competitions')->result_array() as $r)
-                    $out[$r['id']] = $r['title'];
                 break;
 
             /* الباقات — لربط نتيجة الاختبار التشخيصي بما يوجه اليه.
@@ -827,7 +834,19 @@ class Taqdar_admin_model extends CI_Model
 
                 case 'number':
                 case 'seconds':
-                    $data[$name] = (int) $raw;
+                    /* TQ-NULLNUM — **والفارغ غير الصفر حيث يفرق بينهما.**
+                       `(int) ''` تساوي صفرا، فحقل رقمي يترك فارغا يخزن
+                       صفرا صريحا. وهو الصواب لعدد الصفحات ولأيام الأجل:
+                       صفر معنى قائم فيهما. **وهو العطب في وزن الكتاب**
+                       (`books.tq_weight`): الفارغ يعني «خذ الوزن العام»
+                       والصفر يعني «لا وزن له بقرار» — فمسؤول يفتح كتابا
+                       ليصحح حرفا في عنوانه ويحفظ، فيخزن الحقل الفارغ
+                       صفرا، ويسقط الكتاب من قسمة وعاء الباقة، ويحرم
+                       صاحبه نصيبه بلا أن يقصد أحد ذلك ولا أن يراه.
+                       فالوصف يعلن `nullable`، والفارغ يكتب `NULL` —
+                       وهي قاعدة `percent` نفسها في هذا الملف. */
+                    $s = trim((string) $raw);
+                    $data[$name] = (!empty($f['nullable']) && $s === '') ? null : (int) $s;
                     break;
 
                 /* نسبة مئوية. والفارغ يخزن `NULL` لا صفرا: الصفر نسبة
@@ -887,6 +906,11 @@ class Taqdar_admin_model extends CI_Model
                             'bucket' => isset($f['bucket']) ? $f['bucket'] : $key,
                             'w'      => isset($f['img_w']) ? (int) $f['img_w'] : 1200,
                             'h'      => isset($f['img_h']) ? (int) $f['img_h'] : 800,
+                            /* الحد الأدنى يتبع الصندوق لا يثبت: غلاف
+                               الكتاب ٦٠٠×٨٤٠ فحد ٦٠٠×٤٠٠ العام يرد
+                               غلافا صحيحا بارتفاعه. */
+                            'min_w'  => isset($f['img_min_w']) ? (int) $f['img_min_w'] : 600,
+                            'min_h'  => isset($f['img_min_h']) ? (int) $f['img_min_h'] : 400,
                             'prefix' => $key . ($id ? '-' . (int) $id : ''),
                         ));
                         if (!$up['ok']) { $errors[] = $up['error']; break; }
@@ -900,6 +924,42 @@ class Taqdar_admin_model extends CI_Model
                         if ($keep !== '') $drop[] = $keep;
                     }
                     /* وإلا لا يكتب المفتاح أصلا فيبقى العمود كما هو. */
+                    break;
+
+                /* TQ-BOOK-FILE — مستند مرفوع (PDF).
+                   الثلاث حالات نفسها التي تحكم `file`، والفرق أن
+                   المستند يخزن كما جاء ولا يعاد ترميزه — و`tq_doc_store()`
+                   تفحص **محتواه** (`%PDF-`) لا امتداده، فملف اسمه
+                   `book.pdf` وأوله شيفرة يرد قبل أن يكتب. */
+                case 'doc':
+                    $keep = ($row_now !== null && array_key_exists($name, $row_now))
+                          ? (string) $row_now[$name] : '';
+                    $sent = (isset($files[$name]) && is_array($files[$name])
+                             && (int) $files[$name]['error'] !== UPLOAD_ERR_NO_FILE
+                             && (string) $files[$name]['name'] !== '');
+
+                    if ($sent) {
+                        $up = tq_doc_store($files[$name], array(
+                            'bucket' => isset($f['bucket']) ? $f['bucket'] : $key,
+                            'max_mb' => isset($f['max_mb']) ? (float) $f['max_mb'] : 40,
+                            'prefix' => $key . ($id ? '-' . (int) $id : ''),
+                        ));
+                        if (!$up['ok']) { $errors[] = $up['error']; break; }
+                        $data[$name] = $up['path'];
+                        /* حجم الملف يكتب مع مساره حين للجدول عمود له:
+                           الطالب يقرأ «١٢ ميغابايت» قبل أن يفتح على
+                           اتصال ضعيف. */
+                        if ($row_now !== null && array_key_exists('file_size', $row_now)) {
+                            $data['file_size'] = (int) $up['size'];
+                        } elseif ($key === 'books') {
+                            $data['file_size'] = (int) $up['size'];
+                        }
+                        if ($keep !== '' && $keep !== $up['path']) $drop[] = $keep;
+                    } elseif (!empty($post[$name . '__clear'])) {
+                        $data[$name] = '';
+                        if ($key === 'books') $data['file_size'] = 0;
+                        if ($keep !== '') $drop[] = $keep;
+                    }
                     break;
 
                 case 'money':
@@ -955,7 +1015,7 @@ class Taqdar_admin_model extends CI_Model
         /* المسمى في الرابط يولد من العنوان متى ترك فارغا.
            كتاب بلا `slug` لا يفتح في صفحته العامة: الرابط يبنى منه،
            فيصير `/books/` بلا معرف — صفحة تعرض الكتب كلها بدل الكتاب. */
-        if (in_array($key, array('books', 'competitions'), true)
+        if ($key === 'books'
             && array_key_exists('slug', $data) && trim((string) $data['slug']) === ''
             && !empty($data['title'])) {
             $data['slug'] = $this->slugify($data['title'], $spec['table'], (int) $id);
@@ -1010,6 +1070,25 @@ class Taqdar_admin_model extends CI_Model
         } else {
             $this->db->insert($spec['table'], $data);
             $new_id = (int) $this->db->insert_id();
+        }
+
+        /* TQ-BOOK — عدد صفحات الكتاب يقرأ من ملفه حين يترك فارغا.
+           وهو مبدأ TQ-PROBE نفسه: **القراءة اقتراح لا فرض** — تملأ
+           الحقل الفارغ وحده، وما كتب بيد يبقى كما كتب.
+           والصمت هنا يجعل كتابا من أربع وعشرين صفحة يعرض «٠ صفحة» في
+           بطاقته وفي مكتبة الطالب، فيبدو سجلا فارغا. والقاعدة نفسها في
+           `Taqdar_book_model::save_book()` — واللوحتان تكتبان كتابا
+           واحدا، فما يقع في إحداهما يقع في الأخرى. */
+        if ($key === 'books' && $new_id > 0 && function_exists('tq_doc_pages')) {
+            $fresh = $this->row($key, $new_id);
+            if ($fresh && (int) (isset($fresh['pages']) ? $fresh['pages'] : 0) <= 0
+                && trim((string) (isset($fresh['file']) ? $fresh['file'] : '')) !== '') {
+                $n = tq_doc_pages((string) $fresh['file']);
+                if ($n > 0) {
+                    try { $this->db->where('id', $new_id)->update('books', array('pages' => $n)); }
+                    catch (Throwable $e) { $this->db->reset_query(); }
+                }
+            }
         }
 
         /* الإبراز واحد في كل مرحلة. والبطاقة المبرزة هي التي تحمل شارة
@@ -1131,6 +1210,27 @@ class Taqdar_admin_model extends CI_Model
             }
         }
 
+        /* TQ-BOOK-DELETE — **كتاب بيع لا يحذف، يرفع إعلانه.**
+           المبدأ مبدأ TQ-PLAN-DELETE نفسه وأشد لزوما: بند الاستحقاق
+           يشير إلى `books.id`، فحذف الصف **يقطع وصولا اشتري** لا يترك
+           أثرا لا يقرأ وحسب. والقرار في `Taqdar_book_model` لا هنا،
+           والشاشة تسأله ولا تحكم — ونسخة ثانية من قواعده هنا تفترق عن
+           أختها عند أول تعديل. */
+        if ($key === 'books') {
+            try {
+                $this->load->model('taqdar_book_model', 'tq_bk_del');
+                $b = $this->tq_bk_del->delete_blockers((int) $id);
+                if (!empty($b['why'])) {
+                    $this->delete_error = 'لا يحذف هذا الكتاب: ' . implode(' ', $b['why'])
+                        . ' اجعل حالته «مسودة» — فيختفي من كل صفحة عامة ولا يشترى، '
+                        . 'ويبقى لمن اشتراه.';
+                    return false;
+                }
+            } catch (Throwable $e) {
+                log_message('error', 'TQ-BOOK delete guard: ' . $e->getMessage());
+            }
+        }
+
         /* حذف الاختبار التشخيصي يجر اسئلته: سؤال بلا اختباره لا يعرض ولا
            يصحح ولا يحرر — صفوف ميتة تكبر في الجدول ولا يراها احد.
            والمحاولات تبقى: هي سجل ما فعله الطالب، لا جزء من الاختبار.
@@ -1145,7 +1245,9 @@ class Taqdar_admin_model extends CI_Model
            `uploads/` إلى الأبد ولا يعرف أحد لمن كان. والفحص قبله لأن
            صفا آخر قد يشير إلى الملف نفسه. */
         foreach ($spec['fields'] as $fn => $ff) {
-            if ($ff['type'] !== 'file') continue;
+            /* و`doc` مثله: ملف الكتاب عشرات الميغابايتات، وتركه بعد
+               حذف صفه يملأ القرص بما لا يعرف أحد لمن كان. */
+            if (!in_array($ff['type'], array('file', 'doc'), true)) continue;
             $old_file = isset($before[$fn]) ? (string) $before[$fn] : '';
             if ($old_file === '') continue;
             if ((int) $this->db->where($fn, $old_file)->count_all_results($spec['table']) === 0) {
@@ -1372,6 +1474,149 @@ class Taqdar_admin_model extends CI_Model
                      'why'  => 'في صفحة الباقات تحت ' . tqs_stage_label((string) $row['stage']) . '.'));
     }
 
+    /**
+     * TQ-BOOK — ظهور الكتاب: أين يقرأ، وأيباع، ومن يأخذ ثمنه.
+     *
+     * والكتاب أربعة أبواب يسقط عند كل واحد منها شيء، ولا شيء كان يقول
+     * أيها سقط: حالته، وملفه، ومرحلته (بها يرشح في الكتالوج)، وصفه (به
+     * وحده تفتحه الباقة). فمسؤول يرفع كتابا بمرحلة بلا صف يظنه في باقة
+     * المرحلة وهو ليس فيها، ولا سطر يخبره.
+     *
+     * @return array tone: ok|warn|no · label · why
+     */
+    public function book_visibility($row)
+    {
+        $st   = (string) (isset($row['status']) ? $row['status'] : 'draft');
+        $file = trim((string) (isset($row['file']) ? $row['file'] : ''));
+        $gid  = (int) (isset($row['grade_id']) ? $row['grade_id'] : 0);
+        $cid  = (int) (isset($row['category_id']) ? $row['category_id'] : 0);
+        $sell = ((int) (isset($row['tq_sell']) ? $row['tq_sell'] : 0) === 1);
+        $tid  = (int) (isset($row['teacher_id']) ? $row['teacher_id'] : 0);
+
+        if ($st === 'review') {
+            return tq_t_deep(array('tone' => 'warn', 'label' => 'ينتظر المراجعة',
+                'why'  => 'أرسله صاحبه وينتظر قرارك في «مراجعة المحتوى» — ولا يظهر لأحد حتى يعتمد.'));
+        }
+        if ($st === 'rejected') {
+            return tq_t_deep(array('tone' => 'no', 'label' => 'مرفوض',
+                'why'  => 'رد إلى صاحبه بسببه، ولا يظهر لأحد حتى يعدله ويعيد إرساله.'));
+        }
+        if ($st !== 'published') {
+            return tq_t_deep(array('tone' => 'no', 'label' => 'مسودة',
+                'why'  => 'غير منشور — لا يظهر في صفحة ولا يفتح في مكتبة ولا يباع.'));
+        }
+
+        if ($file === '') {
+            return tq_t_deep(array('tone' => 'warn', 'label' => 'يظهر ولا يفتح',
+                'why'  => 'منشور بلا ملف: يعرض في الكتالوج بشارة «قريبا» ولا يقرأ ولا يباع. ارفع ملف PDF.'));
+        }
+
+        /* التسعير قبل النطاق: كتاب أعلن للبيع ولم يسعر يعرض زرا يرد
+           بخطأ، وهو أسوأ من كتاب لا يباع أصلا. */
+        if ($sell) {
+            $price = (int) (isset($row['discount_price']) && (int) $row['discount_price'] > 0
+                            && (int) $row['discount_price'] < (int) $row['price']
+                          ? $row['discount_price'] : (isset($row['price']) ? $row['price'] : 0));
+            if ($price <= 0) {
+                return tq_t_deep(array('tone' => 'warn', 'label' => 'أعلن ولم يسعر',
+                    'why'  => 'علم «يباع مفردا» وسعره صفر — والشراء يرد بخطأ. ضع سعره أو ارفع الإعلان.'));
+            }
+            try {
+                $this->load->model('taqdar_book_model', 'tq_bk_vis');
+                if (!$this->tq_bk_vis->enabled()) {
+                    return tq_t_deep(array('tone' => 'warn', 'label' => 'مسعر ومطفأ',
+                        'why'  => 'بيع الكتب مطفأ في شاشة «بيع الكتب»، فيعرض الكتاب مجانا للتحميل مهما كان سعره.'));
+                }
+            } catch (Throwable $e) { /* النموذج لم يولد بعد */ }
+        }
+
+        $bits = array();
+        $bits[] = $cid > 0 ? 'يظهر في «الكتب» و«المواد والبرامج».'
+                           : 'بلا مرحلة، فلا يظهر تحت مرشح مرحلة في الكتالوج.';
+        $bits[] = $gid > 0 ? 'وتفتحه باقات صفه لمشتركيها.'
+                           : 'وبلا صف لا تفتحه باقة — أسنده إلى صف إن أردت ذلك.';
+        if ($sell) {
+            $bits[] = $tid > 0 ? 'ويباع مفردا، ونصيبه يقيد لصاحبه.'
+                               : 'ويباع مفردا، وثمنه كله للمنصة (بلا معلم).';
+        }
+
+        $tone = ($cid > 0 && ($gid > 0 || $sell)) ? 'ok' : 'warn';
+        return tq_t_deep(array(
+            'tone'  => $tone,
+            'label' => $sell ? 'منشور ويباع' : 'منشور مجانا',
+            'why'   => implode(' ', $bits),
+        ));
+    }
+
+    /**
+     * TQ-BOOK — ما يبلغه هذا الكتاب: الباقات التي تفتحه، ومن يقرؤه.
+     *
+     * تقرؤه لوحة `tqa_book_reach` تحت النموذج، فيرى المسؤول أثر الصف
+     * الذي اختاره **قبل أن يحفظ** — كما تريه `tqa_plan_reach` نطاق
+     * الباقة. والصمت هنا هو ما جعل الصف حقلا يملأ بلا معنى ظاهر.
+     */
+    public function book_reach($row)
+    {
+        $out = array('grade' => '', 'plans' => array(), 'subs' => 0,
+                     'sold' => 0, 'weight' => 0, 'percent' => 0.0, 'share' => 0);
+
+        $gid = (int) (isset($row['grade_id']) ? $row['grade_id'] : 0);
+        $bid = (int) (isset($row['id']) ? $row['id'] : 0);
+
+        try {
+            $this->load->model('taqdar_book_model', 'tq_bk_reach');
+            $offer = $this->tq_bk_reach->offer($row);
+            $out['weight']  = (int) $offer['weight'];
+            $out['percent'] = (float) $offer['percent'];
+            $out['share']   = (int) $offer['share'];
+        } catch (Throwable $e) { /* النموذج لم يولد بعد */ }
+
+        if ($gid > 0) {
+            $g = $this->book_row_q('SELECT `name_ar` FROM `grades` WHERE `id` = ?', array($gid));
+            $out['grade'] = $g ? (string) $g['name_ar'] : ('#' . $gid);
+
+            /* الباقات التي تشمل هذا الصف — والمقارنة على `scope_ids`
+               بفواصله لا على `LIKE` عار: `LIKE "%7%"` يطابق ١٧ و٢٧. */
+            try {
+                $rows = $this->db->select('id, name_ar, code, scope, scope_id, scope_ids, active')
+                                 ->from('plans')->where('scope', 'grade')
+                                 ->get()->result_array();
+                foreach ($rows as $p) {
+                    $ids = array_filter(array_map('intval', explode(',', (string) $p['scope_ids'])));
+                    if (!$ids && (int) $p['scope_id'] > 0) $ids = array((int) $p['scope_id']);
+                    if (in_array($gid, $ids, true)) $out['plans'][] = $p;
+                }
+            } catch (Throwable $e) { $this->db->reset_query(); }
+        }
+
+        if ($bid > 0) {
+            $s = $this->book_row_q(
+                'SELECT COUNT(*) n FROM `subscriptions` WHERE `book_id` = ? AND `status` = "active"',
+                array($bid));
+            $out['sold'] = $s ? (int) $s['n'] : 0;
+        }
+
+        /* كم مشتركا يفتح له هذا الكتاب الآن — لا كم اشترك في باقاته:
+           السؤال «من يقرؤه؟» لا «كم بيعت الباقة؟». */
+        if ($out['plans']) {
+            $pids = array();
+            foreach ($out['plans'] as $p) $pids[] = (int) $p['id'];
+            $s = $this->book_row_q(
+                'SELECT COUNT(*) n FROM `subscriptions`
+                  WHERE `status` = "active" AND `plan_id` IN (' . implode(',', $pids) . ')
+                    AND (`ends_at` IS NULL OR `ends_at` >= NOW())');
+            $out['subs'] = $s ? (int) $s['n'] : 0;
+        }
+
+        return $out;
+    }
+
+    /** صف واحد بلا أن يسقط الشاشة على جدول لم يستعمل بعد. */
+    private function book_row_q($sql, $args = array())
+    {
+        try { return $this->db->query($sql, $args)->row_array(); }
+        catch (Throwable $e) { $this->db->reset_query(); return null; }
+    }
     /**
      * ظهور المسار في الكتالوج — TQ-ORPHAN-PURGE.
      *

@@ -142,9 +142,20 @@ body.tqa .tqa-sr {
   flex-direction: column;
 }
 
+/* TQ-PAGE-PAD — حشو الصفحة رقم واحد يقرؤه من يريد أن ينزف إلى حافتها.
+
+   `.tqa-formbar` ينزف بهامش سالب ليمتد إلى طرفي الصفحة، وكان يكتب
+   `space-xl` بيده — وحشو الصفحة يصير `space-l` دون ٩٩٢ (السطر أدناه في
+   كتلة الجوال). فبين ٦٤٠ و٩٩٢ ينزف الشريط أربعة بكسلات أبعد من الحافة
+   في كل طرف، فيدفع الصفحة خارج المنفذ. قيس على كل شاشة نموذج في اللوحة
+   (`taqdar_admin/form/*`) على ٦٤٠ و٧٦٨.
+
+   والرقمان اللذان يجب أن يتفقا يصيران رقما واحدا: المتغير يعلن هنا مع
+   الحشو، ويقرؤه الشريط. فمن غير الحشو غدا غير النزف معه بلا أن يتذكر. */
 .tqa-page {
+  --tqa-page-pad: var(--tq-space-xl);
   flex: 1;
-  padding: var(--tq-space-xl);
+  padding: var(--tqa-page-pad);
   inline-size: 100%;
   max-inline-size: var(--tq-container-max);
   margin-inline: auto;
@@ -160,7 +171,13 @@ body.tqa .tqa-sr {
   flex-direction: column;
   position: sticky;
   inset-block-start: 0;
+  /* `100vh` على الجوال طول النافذة **وشريط عنوان المتصفح معها**، فآخر ما
+     في الشريط يقع تحت حافة الشاشة ولا يمرر إليه — والذي هناك ذيله: زر
+     «زر الموقع» وبطاقته. و`100dvh` تقيس المرئي الآن. والسطران معا لا
+     أحدهما: متصفح لا يعرف `dvh` يأخذ الأول ويسقط الثاني، وهي القاعدة
+     نفسها في شريط البوابات (`components.css`) حرفا بحرف. */
   block-size: 100vh;
+  block-size: 100dvh;
   z-index: 60;
   transition: inline-size var(--tq-motion-route) var(--tq-ease-enter);
 }
@@ -374,14 +391,57 @@ body.tqa .tqa-sr {
 .tqa-topbar__title strong { display: block; color: var(--tq-navy); font: var(--tq-type-bodyStrong); font-family: var(--tq-font-title); }
 .tqa-topbar__title span { display: block; font: var(--tq-type-micro); color: var(--tq-text2); }
 
-.tqa-topbar__actions { display: flex; align-items: center; gap: var(--tq-space-s); margin-inline-start: auto; }
+/* `flex: none` كتوأمها في البوابات: الأدوات كلها وجهات — مبدل لغة وجرسان
+   وحساب وخروج — والعنوان تحية. فحين يضيق الشريط ينضغط العنوان (وهو
+   `min-inline-size: 0` فيقبل) ولا ينضغط ما ينقر. وبلاها ينضغط الاثنان
+   معا، فيخرج اسم المسؤول بعرض ٥٧ بكسلا **على شاشة ١٢٨٠** — حرفان وثلاث
+   نقاط مكان اسم. قيست. */
+.tqa-topbar__actions { display: flex; align-items: center; gap: var(--tq-space-s); margin-inline-start: auto; flex: none; }
 
+/* TQ-TOPBAR-FIT — الترويسة تنكمش بترتيب معلن، وإلا دفعت الصفحة كلها.
+
+   كانت هذه الكتلة **غائبة كلها**، ونظيرتها في البوابات قائمة
+   (`components.css`: التحية تسقط دون 1280، واسم الحساب دون 900). وترويسة
+   اللوحة أثقل من ترويسة البوابة لا أخف: زر الدرج · التحية واسم الشاشة ·
+   مبدل اللغة بزرين · الرسائل · رسائل التواصل · صورة الحساب واسمه ودوره ·
+   الخروج. مجموعها ٤٠١ بكسل، ولا شيء فيها يضيق ولا يسقط.
+
+   وقيست: **كل شاشة في اللوحة** تعرض على جوال ٣٦٠ بعرض ٤٠١ — واحد وأربعون
+   بكسلا خارج المنفذ. و`body.tqa { overflow-x: hidden }` تبتلع الشريط
+   فلا يظهر تمرير أفقي يقول ما جرى: يبقى **زر الخروج وحده خارج الشاشة**،
+   لا يرى ولا يمرر إليه. أي أن المسؤول لا يستطيع الخروج من لوحته على جواله.
+
+   والترتيب هو ترتيب البوابة نفسه: التحية ترحيب فتسقط أولا، ثم اسم الحساب
+   ودوره — وصورته تبقى فهي الباب إلى حسابه. */
+@media (max-width: 1199.98px) { .tqa-topbar__title { display: none; } }
+@media (max-width: 991.98px) {
+  /* دون هذا الحد يظهر زر الدرج، فيزاحم ما في الطرف المقابل.
+     والوزن `.tqa-topbar__me X` مقصود: `.tqa-topbar__me span { display: block }`
+     معرفة **بعد** هذا الموضع في الورقة وهي أخص (0,1,1) من محدد الصنف
+     وحده (0,1,0) — واسم اللوح `<span>` وابن مباشر لها، فتغلبه. وهو
+     الوزن نفسه المكتوب في `.tq-rail__close` وفي `.tq-rail__foot-mini`
+     وللسبب نفسه. */
+  .tqa-topbar__me .tqa-topbar__me-text { display: none; }
+}
+@media (max-width: 639.98px) {
+  .tqa-topbar { gap: var(--tq-space-xs); padding-inline: var(--tq-space-m); }
+  .tqa-topbar__actions { gap: 0; }
+  /* الأيقونة تضيق ولا تسقط: كل زر هنا وجهة لا زينة، وحد اللمس ٤٤ يبقى
+     بالارتفاع — والعرض ٣٦ يكفي لهدف بعرض إصبع بين جيرانه. */
+  .tqa-topbar__actions .tqa-iconbtn { inline-size: 36px; }
+  .tqa-topbar__me { padding: 0; }
+}
+
+/* TQ-TOUCH-SQUEEZE — كما في البوابات: الحجم يعلن، و`flex-shrink` الافتراضية
+   تسحبه حين يضيق الصف. وزر الدرج هنا هو الباب الوحيد إلى قائمة اللوحة على
+   الجوال، فلا يتقاسم النقص مع أحد. */
 .tqa-iconbtn {
   position: relative;
   display: grid;
   place-items: center;
   inline-size: 40px;
   block-size: 40px;
+  flex: none;
   border: 0;
   border-radius: var(--tqa-radius-sm);
   background: transparent;
@@ -450,15 +510,33 @@ body.tqa .tqa-sr {
 .tqa-rail__close { display: none; }
 
 @media (max-width: 991.98px) {
+  /* TQ-RAIL-SIDE — الدرج يخرج من الجهة التي يسكنها، لا من مقابلها.
+
+     كان يقلب جهته في RTL بيده:
+
+         [dir='rtl'] .tqa-rail { inset-inline-start: auto; inset-inline-end: 0; }
+
+     و`inset-inline-end` في RTL هو **`left`** لا `right` — فالدرج يثبت عند
+     الحافة اليسرى، وزر فتحه في الطرف الأيمن من الترويسة، والشريط نفسه على
+     المكتب يمينا. أي أن القائمة تطير من الجهة المقابلة لموضعها ولمن ضغط.
+     ونظيره في البوابات يفتح يمينا كما يجب، فلوحتان لشيء واحد تفترقان.
+
+     و`inset-inline-start: 0` وحدها تكفي الاتجاهين: هي اليسار في LTR
+     واليمين في RTL — والذي يتغير **جهة الإزاحة** لا موضع التثبيت.
+
+     والإزاحة متغير لا `transform` مباشر: القرار الثاني (مفتوح/مغلق) يكتب
+     `transform`، وكتابة القرارين في خاصية واحدة تجعلهما يتنازعان بالوزن —
+     وهو ما كان يقع في البوابات (TQ-RAIL-LTR في `components.css`). */
   .tqa-rail {
     position: fixed;
     inset-block: 0;
     inset-inline-start: 0;
-    transform: translateX(-102%);
+    --tqa-rail-off: -102%;
+    transform: translateX(var(--tqa-rail-off));
     box-shadow: var(--tq-shadow-card);
     transition: transform var(--tq-motion-route) var(--tq-ease-enter);
   }
-  [dir='rtl'] .tqa-rail { inset-inline-start: auto; inset-inline-end: 0; transform: translateX(102%); }
+  [dir='rtl'] .tqa-rail { --tqa-rail-off: 102%; }
   .tqa-shell[data-open='true'] .tqa-rail { transform: none; }
 
   /* الدرج مفتوح عن قصد فيعرض بأسمائه.
@@ -515,7 +593,7 @@ body.tqa .tqa-sr {
   }
   .tqa-shell[data-open='true'] .tqa-rail-scrim { opacity: 1; pointer-events: auto; }
 
-  .tqa-page { padding: var(--tq-space-l); }
+  .tqa-page { --tqa-page-pad: var(--tq-space-l); }
   .tqa-topbar { padding-inline: var(--tq-space-l); }
 }
 
@@ -536,14 +614,21 @@ body.tqa .tqa-sr {
   box-shadow: var(--tq-shadow-soft);
 }
 .tqa-card--flush { padding: 0; overflow: hidden; }
+/* TQ-HEAD-WRAP — رأس البطاقة يلتف: عنوان وأيقونة وشارة حال لا يجتمعون
+   في سطر واحد على جوال. قيس في «إعدادات الدفع»: أيقونة ٤٤ ثابتة + عنوان
+   البوابة + شارة «وضع اختبار — لا يحصل مالا» (`nowrap`، ١٨٥ بكسلا) =
+   أربعون بكسلا خارج المنفذ، والشارة هي التي تسقط منه. وهي شارة تقول إن
+   البوابة لا تحصل مالا — أولى ما يقرأ في تلك الشاشة.
+   و`.tq-card__head` في البوابات تلتف منذ كتبت؛ هذه توأمها. */
 .tqa-card__head {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--tq-space-m);
   padding: var(--tq-space-l) var(--tq-space-xl);
   border-block-end: 1px solid var(--tq-line);
 }
-.tqa-card__head h2 { margin: 0; font: var(--tq-type-h2); color: var(--tq-navy); }
+.tqa-card__head h2 { margin: 0; font: var(--tq-type-h2); color: var(--tq-navy); min-inline-size: 0; }
 .tqa-card__head > :last-child:not(h2) { margin-inline-start: auto; }
 .tqa-card__body { padding: var(--tq-space-xl); }
 
@@ -777,7 +862,23 @@ a.tqa-stat:hover { border-color: var(--tq-navy); transform: translateY(-2px); te
 .tqa-table tbody tr:last-child td { border-block-end: 0; }
 .tqa-table tbody tr { transition: background-color var(--tq-motion-hover) ease; }
 .tqa-table tbody tr:hover { background: var(--tq-navyWash); }
-.tqa-table__wrap { overflow-x: auto; }
+/* TQ-WRAP-FLOOR — والوعاء يضيق هو نفسه: بند شبكي أو مرن `min-width: auto`
+   يحمل عرض أضيق ما فيه، فيخرج الوعاء بعرض جدوله ولا يمرر شيئا. انظر
+   الشرح في `components.css`. */
+.tqa-table__wrap { overflow-x: auto; min-inline-size: 0; }
+
+/* TQ-TABLE-BARE — والجدول يلبس وعاءه في الوسم، ولا يحمله في الورقة.
+
+   `.tqa-table__wrap` هو الوعاء المقصود، وأكثر جداول اللوحة تلبسه. وعشرة
+   منها لم تلبسه — ومنها **جدولا الموروث** (`table.table`) في
+   `taqdar_admin/lesson_quiz`: خمسة أعمدة ورأسها `white-space: nowrap`،
+   فتخرج الشاشة على جوال ٣٦٠ بعرض ٦١٢ — أي مئتين واثنين وخمسين بكسلا خارج
+   المنفذ. و`body.tqa { overflow-x: hidden }` تبتلعها فلا تمرير يقول ما
+   جرى، ويبقى عمودان لا يريان. فوضع الوعاء في العشرة.
+
+   والقاعدة في الورقة لا تغني عنه — انظر الشرح في `components.css`
+   (`display: block` تمرر الصندوق وتترك الجدول بداخله شرح-حسب-المحتوى،
+   فيقف نصف البطاقة فارغا). */
 
 /* دون 640 يصير الجدول بطاقات — لا تمرير أفقي على جوال */
 @media (max-width: 639.98px) {
@@ -850,6 +951,12 @@ a.tqa-stat:hover { border-color: var(--tq-navy); transform: translateY(-2px); te
 
 .tqa-input, .tqa-select, .tqa-textarea {
   inline-size: 100%;
+  /* TQ-FIELD-SHRINK — الحقل يضيق مع حاويته ولا يفرض عرضه عليها.
+     `min-width` الافتراضية على بند مرن أو شبكي هي `auto` = عرض المحتوى
+     الأدنى، وعرض `<select>` الأدنى هو **أطول خيار فيه**. فمنتق فيه
+     «نص حر — يفحص الرمز والرقم» يمنع بطاقته أن تضيق دون ٤٠٠ بكسل مهما
+     ضاق العمود، ويدفع الصفحة خارج المنفذ. والقص موضعه داخل الحقل. */
+  min-inline-size: 0;
   min-block-size: var(--tqa-field-h);
   padding: var(--tq-space-s) var(--tq-space-m);
   border: 1px solid var(--tq-line);
@@ -1342,7 +1449,18 @@ details.tqa-card[open] > summary::after { transform: rotate(-135deg); }
 
 /* ---- مساعدات تخطيط ---- */
 .tqa-section { margin-block-end: var(--tq-space-l); }
-.tqa-stack { display: grid; gap: var(--tq-space-m); }
+/* TQ-STACK-RIGID — العمود الواحد يقبل أن يضيق.
+
+   شبكة بلا `grid-template-columns` تولد مسارا واحدا، وبنودها تأخذ
+   `min-width: auto` — أي «لا تضق دون أضيق ما في محتواك». وأضيق ما في
+   بطاقة إعدادات هو **أطول خيار في `<select>`**: «نص حر — يفحص الرمز
+   والرقم» يقيس ٤٠٠ بكسل. فبطاقة في عمود جانبي عرضه ٣٢٠ تخرج بعرض ٤٠٠
+   وتتجاوز عمودها — **على كل عرض شاشة، حتى ١٢٨٠**. قيست في
+   `taqdar_admin/whatsapp` و`taqdar_admin/mail`.
+
+   و`minmax(0, 1fr)` تصرح بما كان مفترضا: المسار يملأ الحاوية ويسمح
+   للبند أن ينكمش، والقص يقع داخل الحقل حيث موضعه لا خارج البطاقة. */
+.tqa-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--tq-space-m); }
 .tqa-row { display: flex; align-items: center; gap: var(--tq-space-s); flex-wrap: wrap; }
 .tqa-row--between { justify-content: space-between; }
 .tqa-cols { display: grid; gap: var(--tq-space-l); grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
@@ -2399,7 +2517,7 @@ a.tqa-chip .tqa-num { color: var(--tq-text3, var(--tq-text2)); }
 @media print {
   .tqa-rail, .tqa-topbar, .tqa-pagehead__tools, .tqa-btn, body.tqa .btn { display: none !important; }
   body.tqa { background: #fff; }
-  .tqa-page { padding: 0; }
+  .tqa-page { --tqa-page-pad: 0; }
   .tqa-card, body.tqa .card { box-shadow: none; border-color: #ddd; }
 }
 
@@ -2477,6 +2595,24 @@ body.tqa .tqa-langsw__opt:hover:not(:disabled){ background:var(--tq-navyWash); c
 body.tqa .tqa-langsw__opt:focus-visible{ outline:2px solid var(--tq-navy); outline-offset:1px; }
 body.tqa .tqa-langsw__opt.is-on{ background:var(--tq-navy); color:#fff; cursor:default; opacity:1; }
 
+/* والشاشة الضيقة: النصف الذي لم ينسخ. `.tq-langsw` لها قاعدتها منذ كتبت
+   (`components.css`: `@media (max-width:640px)`), وهذه — وهي توأمها
+   بنص التعليق أعلاه — بلا واحدة. فالزران يبقيان بعرضهما الكامل في
+   ترويسة تدفع الصفحة واحدا وأربعين بكسلا خارج المنفذ (TQ-TOPBAR-FIT). */
+@media (max-width:640px){
+  body.tqa .tqa-langsw{ padding:1px; }
+  body.tqa .tqa-langsw__opt{ min-inline-size:30px; padding-inline:6px; }
+}
+/* TQ-LANGSW-TOUCH — وارتفاع الهدف على اللمس لا على الفأرة.
+   الزر `padding-block: 5px` وسطره ١٢px، فمجموعه **اثنان وعشرون بكسلا** —
+   وهو مقبول لمؤشر يصيب بكسلا واحدا، ودون كل حد للمس. والزيادة مقصورة على
+   `pointer: coarse` فلا يتغير في المتصفح شيء: الشريط مزدحم أصلا على
+   المكتب، وتكبير ما لا يخطئه أحد هناك يضيق ما بجواره بلا سبب. */
+@media (pointer: coarse) {
+  body.tqa .tqa-langsw__opt { min-block-size: 32px; padding-block: 8px; }
+}
+
+
 /* ==========================================================================
    التصفح: رأس يفرز، ورأس يلتصق، وذيل يرقم
    ========================================================================== */
@@ -2516,6 +2652,14 @@ body.tqa .tqa-langsw__opt.is-on{ background:var(--tq-navy); color:#fff; cursor:d
    الأعلى هو ما يجعل القاعدة تعمل، وهو يترك الجدول القصير كما هو لأنه
    لا يبلغه. وذيل الترقيم خارج الحاوية فيبقى ظاهرا مع الرأس. */
 .tqa-table__wrap { max-block-size: calc(100vh - 260px); overflow: auto; }
+.tqa-table__wrap { max-block-size: calc(100dvh - 260px); }
+/* والجوال يطرح غير ما يطرح المكتب: الترويسة اللاصقة وحدها هناك ٥٦، ولا
+   عمود جانبي ولا رأس صفحة بعرضه. و`100vh - 260` على شاشة طولها ٦٤٠ تترك
+   ٣٨٠ بكسلا — نصف الشاشة يذهب إلى فراغ محسوب لمقاس آخر، فيقرأ المسؤول
+   أربعة صفوف في نافذة تتسع لعشرة. */
+@media (max-width: 639.98px) {
+  .tqa-table__wrap { max-block-size: calc(100dvh - 150px); }
+}
 
 /* والخلفية معتمة لا شفافة: تحتها صفوف تمر. */
 .tqa-table thead th {
@@ -2791,8 +2935,8 @@ body.tqa .btn-dark.is-busy::after { color: var(--tq-onAction); }
   margin-block-start: var(--tq-space-l);
   /* يمتد إلى حواف الصفحة ثم يعيد حشوه: شريط بعرض المحتوى وحده يترك
      خطين فارغين على طرفيه فيبدو بطاقة عائمة لا شريطا. */
-  margin-inline: calc(var(--tq-space-xl) * -1);
-  padding: var(--tq-space-m) var(--tq-space-xl);
+  margin-inline: calc(var(--tqa-page-pad, var(--tq-space-xl)) * -1);
+  padding: var(--tq-space-m) var(--tqa-page-pad, var(--tq-space-xl));
   background: rgba(255, 255, 255, .92);
   backdrop-filter: blur(8px);
   border-block-start: 1px solid var(--tq-line);
@@ -2823,7 +2967,7 @@ form.is-dirty .tqa-formbar__dirty { display: inline-flex; }
   border-radius: var(--tqa-radius);
 }
 @media (max-width: 639.98px) {
-  .tqa-formbar { margin-inline: calc(var(--tq-space-l) * -1); padding-inline: var(--tq-space-l); }
+  /* النزف يقرأ `--tqa-page-pad` أعلاه فيتبع الحشو وحده، فلا رقم يكتب هنا. */
   .tqa-formbar__end { inline-size: 100%; }
 }
 

@@ -307,26 +307,28 @@ foreach ((array) $health as $tq_h) {
                     array(t('النشرة البريدية'),         t('لا ترسل إطلاقا'),                            true),
                 );
                 ?>
-                <table class="tqa-table" style="margin-block-end:var(--tq-space-l)">
-                    <tbody>
-                    <?php foreach ($tq_deps as list($tq_what, $tq_else, $tq_hard)): ?>
-                        <tr>
-                            <td style="padding-inline:0">
-                                <strong><?php echo $tq_what; ?></strong><br>
-                                <?php if (!$configured): ?>
-                                    <span class="tqa-hint"><?php echo $tq_else; ?></span>
-                                <?php endif; ?>
-                            </td>
-                            <td style="padding-inline:0;text-align:end">
-                                <span class="tqa-badge tqa-badge--<?php
-                                    echo $configured ? 'ok' : ($tq_hard ? 'danger' : 'warn'); ?>">
-                                    <?php echo $configured ? t('تعمل') : ($tq_hard ? t('متوقفة') : t('داخل المنصة فقط')); ?>
-                                </span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div class="tqa-table__wrap">
+                    <table class="tqa-table" style="margin-block-end:var(--tq-space-l)">
+                        <tbody>
+                        <?php foreach ($tq_deps as list($tq_what, $tq_else, $tq_hard)): ?>
+                            <tr>
+                                <td style="padding-inline:0">
+                                    <strong><?php echo $tq_what; ?></strong><br>
+                                    <?php if (!$configured): ?>
+                                        <span class="tqa-hint"><?php echo $tq_else; ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td style="padding-inline:0;text-align:end">
+                                    <span class="tqa-badge tqa-badge--<?php
+                                        echo $configured ? 'ok' : ($tq_hard ? 'danger' : 'warn'); ?>">
+                                        <?php echo $configured ? t('تعمل') : ($tq_hard ? t('متوقفة') : t('داخل المنصة فقط')); ?>
+                                    </span>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
 
                 <p class="tqa-hint">
                     <?php echo t('التنبيهات البريدية للأحداث (نتيجة امتحان · رسوب في محطة · انقطاع) مفتاح مستقل: تكتب في الجرس دائما، وترسل بريدا إن فعل هذا المفتاح. وخارجه'); ?> <strong><?php echo t('نتيجة تحديد المستوى'); ?></strong><?php echo t(': ترسل ما دام البريد مضبوطا — لأن على هذه النتيجة يقرر ولي الأمر أي باقة يشتري، ورسالة تصله بعد أن يدفع لا تفيده.'); ?>

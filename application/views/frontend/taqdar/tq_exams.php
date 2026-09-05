@@ -373,59 +373,61 @@ include 'portal_open.php';
                             '', '', true
                         ); ?>
                     <?php else: ?>
-                        <table class="tq-table">
-                            <caption class="tq-sr"><?php echo t('نتائج اختباراتك المنتهية'); ?></caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col"><?php echo t('الاختبار'); ?></th>
-                                    <th scope="col"><?php echo t('المادة'); ?></th>
-                                    <th scope="col"><?php echo t('التاريخ'); ?></th>
-                                    <th scope="col"><?php echo t('الدرجة'); ?></th>
-                                    <th scope="col"><?php echo t('الحالة'); ?></th>
-                                    <th scope="col"><?php echo t('الإجراء'); ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($tq_done as $q): ?>
-                                    <?php
-                                    /* درجة لم يعتمدها المعلم بعد ليست درجة ضعيفة.
-                                       وتمرير `null` على أنها `-1` كان يصبغ كل تسليم
-                                       ينتظر التصحيح بالأحمر ويقول لصاحبه «يحتاج
-                                       مراجعة» — حكم على عمل لم يقرأه أحد بعد. */
-                                    if (empty($q['visible'])) {
-                                        $g = (($q['grade_state'] ?? '') === 'pending_approval')
-                                            ? array('due', t('بانتظار التصحيح'))
-                                            : array('idle', t('بلا درجة بعد'));
-                                    } elseif ($q['percent'] === null) {
-                                        $g = array('idle', t('بلا درجة بعد'));
-                                    } else {
-                                        $g = $tq_grade($q['percent']);
-                                    }
-                                    ?>
+                        <div class="tq-table-wrap">
+                            <table class="tq-table">
+                                <caption class="tq-sr"><?php echo t('نتائج اختباراتك المنتهية'); ?></caption>
+                                <thead>
                                     <tr>
-                                        <td data-label="الاختبار">
-                                            <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($q['title']); ?></span>
-                                        </td>
-                                        <td data-label="المادة"><?php echo html_escape($q['subject']); ?></td>
-                                        <td data-label="التاريخ"><?php echo $q['ended_at'] ? tq_s_date($q['ended_at']) : '<span class="tq-muted">—</span>'; ?></td>
-                                        <td data-label="الدرجة">
-                                            <?php if (!empty($q['visible'])): ?>
-                                                <?php echo tq_num(((float) $q['obtained'] == (int) $q['obtained'] ? (int) $q['obtained'] : $q['obtained']) . ' / ' . $q['marks'], 'tq-num--sm'); ?>
-                                            <?php elseif (($q['grade_state'] ?? '') === 'pending_approval'): ?>
-                                                <span class="tq-caption"><?php echo t('بانتظار اعتماد المعلم'); ?></span>
-                                            <?php else: ?>
-                                                <span class="tq-caption">—</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td data-label="الحالة"><?php echo tq_badge($g[0], $g[1]); ?></td>
-                                        <td data-label="الإجراء">
-                                            <a class="tq-btn tq-btn--secondary tq-btn--sm"
-                                               href="<?php echo tq_s_lesson_url($q['course_id'], $q['id']); ?>"><?php echo t('عرض النتيجة'); ?></a>
-                                        </td>
+                                        <th scope="col"><?php echo t('الاختبار'); ?></th>
+                                        <th scope="col"><?php echo t('المادة'); ?></th>
+                                        <th scope="col"><?php echo t('التاريخ'); ?></th>
+                                        <th scope="col"><?php echo t('الدرجة'); ?></th>
+                                        <th scope="col"><?php echo t('الحالة'); ?></th>
+                                        <th scope="col"><?php echo t('الإجراء'); ?></th>
                                     </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($tq_done as $q): ?>
+                                        <?php
+                                        /* درجة لم يعتمدها المعلم بعد ليست درجة ضعيفة.
+                                           وتمرير `null` على أنها `-1` كان يصبغ كل تسليم
+                                           ينتظر التصحيح بالأحمر ويقول لصاحبه «يحتاج
+                                           مراجعة» — حكم على عمل لم يقرأه أحد بعد. */
+                                        if (empty($q['visible'])) {
+                                            $g = (($q['grade_state'] ?? '') === 'pending_approval')
+                                                ? array('due', t('بانتظار التصحيح'))
+                                                : array('idle', t('بلا درجة بعد'));
+                                        } elseif ($q['percent'] === null) {
+                                            $g = array('idle', t('بلا درجة بعد'));
+                                        } else {
+                                            $g = $tq_grade($q['percent']);
+                                        }
+                                        ?>
+                                        <tr>
+                                            <td data-label="<?php echo te('الاختبار'); ?>">
+                                                <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($q['title']); ?></span>
+                                            </td>
+                                            <td data-label="<?php echo te('المادة'); ?>"><?php echo html_escape($q['subject']); ?></td>
+                                            <td data-label="<?php echo te('التاريخ'); ?>"><?php echo $q['ended_at'] ? tq_s_date($q['ended_at']) : '<span class="tq-muted">—</span>'; ?></td>
+                                            <td data-label="<?php echo te('الدرجة'); ?>">
+                                                <?php if (!empty($q['visible'])): ?>
+                                                    <?php echo tq_num(((float) $q['obtained'] == (int) $q['obtained'] ? (int) $q['obtained'] : $q['obtained']) . ' / ' . $q['marks'], 'tq-num--sm'); ?>
+                                                <?php elseif (($q['grade_state'] ?? '') === 'pending_approval'): ?>
+                                                    <span class="tq-caption"><?php echo t('بانتظار اعتماد المعلم'); ?></span>
+                                                <?php else: ?>
+                                                    <span class="tq-caption">—</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td data-label="<?php echo te('الحالة'); ?>"><?php echo tq_badge($g[0], $g[1]); ?></td>
+                                            <td data-label="<?php echo te('الإجراء'); ?>">
+                                                <a class="tq-btn tq-btn--secondary tq-btn--sm"
+                                                   href="<?php echo tq_s_lesson_url($q['course_id'], $q['id']); ?>"><?php echo t('عرض النتيجة'); ?></a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     <?php endif; ?>
                 </div>
             </section>

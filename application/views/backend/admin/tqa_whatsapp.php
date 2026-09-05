@@ -544,30 +544,32 @@ foreach ((array) $health as $tq_h) {
                                    t('يخرج للمعلم ولولي الأمر إن اختاره عند التسجيل.'),
                                    $C['otp_allowed'] && $configured, false);
                 ?>
-                <table class="tqa-table" style="margin-block-end:var(--tq-space-l)">
-                    <tbody>
-                    <?php foreach ($tq_rows as list($tq_what, $tq_hint, $tq_on, $tq_quiet)): ?>
-                        <tr>
-                            <td style="padding-inline:0">
-                                <strong><?php echo html_escape($tq_what); ?></strong><br>
-                                <span class="tqa-hint"><?php echo html_escape($tq_hint); ?></span><br>
-                                <span class="tqa-hint">
-                                    <?php echo $tq_on
-                                        ? ($tq_quiet
-                                            ? t('يخرج بواتساب وبالبريد وفي المنصة — ويؤجل في ساعات الصمت.')
-                                            : t('يخرج بواتساب وبالبريد وفي المنصة.'))
-                                        : t('في المنصة وبالبريد، بلا واتساب.'); ?>
-                                </span>
-                            </td>
-                            <td style="padding-inline:0;text-align:end">
-                                <span class="tqa-badge tqa-badge--<?php echo $tq_on ? 'ok' : 'muted'; ?>">
-                                    <?php echo $tq_on ? t('يخرج') : t('لا يخرج'); ?>
-                                </span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div class="tqa-table__wrap">
+                    <table class="tqa-table" style="margin-block-end:var(--tq-space-l)">
+                        <tbody>
+                        <?php foreach ($tq_rows as list($tq_what, $tq_hint, $tq_on, $tq_quiet)): ?>
+                            <tr>
+                                <td style="padding-inline:0">
+                                    <strong><?php echo html_escape($tq_what); ?></strong><br>
+                                    <span class="tqa-hint"><?php echo html_escape($tq_hint); ?></span><br>
+                                    <span class="tqa-hint">
+                                        <?php echo $tq_on
+                                            ? ($tq_quiet
+                                                ? t('يخرج بواتساب وبالبريد وفي المنصة — ويؤجل في ساعات الصمت.')
+                                                : t('يخرج بواتساب وبالبريد وفي المنصة.'))
+                                            : t('في المنصة وبالبريد، بلا واتساب.'); ?>
+                                    </span>
+                                </td>
+                                <td style="padding-inline:0;text-align:end">
+                                    <span class="tqa-badge tqa-badge--<?php echo $tq_on ? 'ok' : 'muted'; ?>">
+                                        <?php echo $tq_on ? t('يخرج') : t('لا يخرج'); ?>
+                                    </span>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
 
                 <p class="tqa-hint" style="margin-block-end:var(--tq-space-m)">
                     <strong><?php echo t('ولا شيء يتعطل بغيابها.'); ?></strong> <?php echo t('الإشعار داخل المنصة يكتب دائما، والبريد يخرج كما كان، والدفع يفعل الاشتراك سواء وصلت الرسالة أو لم تصل.'); ?>
@@ -618,56 +620,58 @@ foreach ((array) $health as $tq_h) {
                      ميتا سطر طويل، وأربعة أعمدة على شاشة هاتف تخرج عن
                      الحافة فتلتف الصفحة كلها أفقيا. */ ?>
             <div style="overflow-x:auto">
-            <table class="tqa-table">
-                <thead>
-                    <tr><th><?php echo t('إلى'); ?></th><th><?php echo t('الغرض'); ?></th><th><?php echo t('الحال'); ?></th><th><?php echo t('متى'); ?></th></tr>
-                </thead>
-                <tbody>
-                <?php
-                $tq_purposes = array(
-                    'otp'          => t('رمز تحقق'),
-                    'test'         => t('فحص'),
-                    'notice'       => t('إشعار'),
-                    'invoice'      => t('فاتورة'),
-                    'subscription' => t('اشتراك'),
-                    'wallet'       => t('محفظة'),
-                );
-                $tq_states = array(
-                    'sent'    => array('ok',     t('أرسلت')),
-                    'failed'  => array('danger', t('فشلت')),
-                    'skipped' => array('muted',  t('لم تحاول')),
-                );
-                foreach ($log as $tq_r):
-                    $tq_st = isset($tq_states[$tq_r['status']])
-                           ? $tq_states[$tq_r['status']] : array('muted', $tq_r['status']);
-                ?>
-                    <tr>
-                        <td>
-                            <span class="tq-ltr" dir="ltr"><?php
-                                echo html_escape('+' . $tq_r['to_phone']); ?></span>
-                            <?php if (!empty($tq_r['user_name'])): ?>
-                                <br><span class="tqa-hint"><?php echo html_escape($tq_r['user_name']); ?></span>
-                            <?php endif; ?>
-                        </td>
-                        <td><?php
-                            $tq_p = (string) $tq_r['purpose'];
-                            echo html_escape(isset($tq_purposes[$tq_p]) ? $tq_purposes[$tq_p] : $tq_p);
-                        ?></td>
-                        <td>
-                            <span class="tqa-badge tqa-badge--<?php echo $tq_st[0]; ?>"><?php
-                                echo $tq_st[1]; ?></span>
-                            <?php if (!empty($tq_r['error'])): ?>
-                                <?php /* TQ-I18N — سبب مخزن في `tq_wa_log`: يكتب مرة وقت المحاولة
-                                     ويقرأ بعدها بلغة من يفتح الشاشة. */ ?>
-                                <span class="tqa-status__why"><?php echo html_escape(t($tq_r['error'])); ?></span>
-                            <?php endif; ?>
-                        </td>
-                        <td class="tqa-hint tq-ltr" dir="ltr"><?php
-                            echo html_escape((string) $tq_r['at']); ?></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="tqa-table__wrap">
+                <table class="tqa-table">
+                    <thead>
+                        <tr><th><?php echo t('إلى'); ?></th><th><?php echo t('الغرض'); ?></th><th><?php echo t('الحال'); ?></th><th><?php echo t('متى'); ?></th></tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                    $tq_purposes = array(
+                        'otp'          => t('رمز تحقق'),
+                        'test'         => t('فحص'),
+                        'notice'       => t('إشعار'),
+                        'invoice'      => t('فاتورة'),
+                        'subscription' => t('اشتراك'),
+                        'wallet'       => t('محفظة'),
+                    );
+                    $tq_states = array(
+                        'sent'    => array('ok',     t('أرسلت')),
+                        'failed'  => array('danger', t('فشلت')),
+                        'skipped' => array('muted',  t('لم تحاول')),
+                    );
+                    foreach ($log as $tq_r):
+                        $tq_st = isset($tq_states[$tq_r['status']])
+                               ? $tq_states[$tq_r['status']] : array('muted', $tq_r['status']);
+                    ?>
+                        <tr>
+                            <td>
+                                <span class="tq-ltr" dir="ltr"><?php
+                                    echo html_escape('+' . $tq_r['to_phone']); ?></span>
+                                <?php if (!empty($tq_r['user_name'])): ?>
+                                    <br><span class="tqa-hint"><?php echo html_escape($tq_r['user_name']); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php
+                                $tq_p = (string) $tq_r['purpose'];
+                                echo html_escape(isset($tq_purposes[$tq_p]) ? $tq_purposes[$tq_p] : $tq_p);
+                            ?></td>
+                            <td>
+                                <span class="tqa-badge tqa-badge--<?php echo $tq_st[0]; ?>"><?php
+                                    echo $tq_st[1]; ?></span>
+                                <?php if (!empty($tq_r['error'])): ?>
+                                    <?php /* TQ-I18N — سبب مخزن في `tq_wa_log`: يكتب مرة وقت المحاولة
+                                         ويقرأ بعدها بلغة من يفتح الشاشة. */ ?>
+                                    <span class="tqa-status__why"><?php echo html_escape(t($tq_r['error'])); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="tqa-hint tq-ltr" dir="ltr"><?php
+                                echo html_escape((string) $tq_r['at']); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
             </div>
         <?php endif; ?>
     </div>

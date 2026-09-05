@@ -168,32 +168,34 @@ foreach ($tq_stats as $s) $tq_answered += (int) $s['answered'];
         <p class="tqa-dim" style="margin-block-end:var(--tq-space-m)">
             <?php echo t('سؤال يخطئ فيه أكثر الطلاب يقرأ عن الشرح لا عن الطلاب: إما أن صياغته ملتبسة، وإما أن مفهومه لم يشرح في الدرس.'); ?>
         </p>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th><?php echo t('السؤال'); ?></th><th><?php echo t('أجاب'); ?></th><th><?php echo t('أصاب'); ?></th><th><?php echo t('نسبة الإصابة'); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($tq_stats as $s):
-                $n = (int) $s['answered']; $c = (int) $s['correct'];
-                $p = $n > 0 ? (int) round($c * 100 / $n) : 0; ?>
-                <tr>
-                    <td><?php echo html_escape(mb_substr((string) $s['title'], 0, 90)); ?></td>
-                    <td><span class="tqa-num"><?php echo $n; ?></span></td>
-                    <td><span class="tqa-num"><?php echo $c; ?></span></td>
-                    <td>
-                        <span class="<?php echo ($n >= 5 && $p < 40) ? 'tqz-hard' : ''; ?>">
-                            <span class="tqa-num"><?php echo $p; ?></span>%
-                        </span>
-                        <?php if ($n >= 5 && $p < 40): ?>
-                            <span class="tqa-media__sub" style="display:block"><?php echo t('راجع صياغته أو أعد شرح مفهومه'); ?></span>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
+        <div class="tqa-table__wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th><?php echo t('السؤال'); ?></th><th><?php echo t('أجاب'); ?></th><th><?php echo t('أصاب'); ?></th><th><?php echo t('نسبة الإصابة'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($tq_stats as $s):
+                    $n = (int) $s['answered']; $c = (int) $s['correct'];
+                    $p = $n > 0 ? (int) round($c * 100 / $n) : 0; ?>
+                    <tr>
+                        <td><?php echo html_escape(mb_substr((string) $s['title'], 0, 90)); ?></td>
+                        <td><span class="tqa-num"><?php echo $n; ?></span></td>
+                        <td><span class="tqa-num"><?php echo $c; ?></span></td>
+                        <td>
+                            <span class="<?php echo ($n >= 5 && $p < 40) ? 'tqz-hard' : ''; ?>">
+                                <span class="tqa-num"><?php echo $p; ?></span>%
+                            </span>
+                            <?php if ($n >= 5 && $p < 40): ?>
+                                <span class="tqa-media__sub" style="display:block"><?php echo t('راجع صياغته أو أعد شرح مفهومه'); ?></span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 <?php endif; ?>
@@ -206,29 +208,31 @@ foreach ($tq_stats as $s) $tq_answered += (int) $s['answered'];
         <p class="tqa-dim" style="margin-block-end:var(--tq-space-m)">
             <?php echo t('آخر مئة محاولة مسلمة. والنتيجة فعل الطالب فتقرأ ولا تحرر — وتحريرها من اللوحة يجعل الكشف شيئا آخر غير ما جرى.'); ?>
         </p>
-        <table class="table">
-            <thead>
-                <tr><th><?php echo t('الطالب'); ?></th><th><?php echo t('المحاولة'); ?></th><th><?php echo t('الصحيح'); ?></th><th><?php echo t('النتيجة'); ?></th><th><?php echo t('التسليم'); ?></th></tr>
-            </thead>
-            <tbody>
-            <?php foreach ($tq_att as $a): ?>
-                <tr>
-                    <td>
-                        <?php echo html_escape(trim($a['first_name'] . ' ' . $a['last_name'])); ?>
-                        <span class="tqa-media__sub" style="display:block"><?php echo html_escape($a['email']); ?></span>
-                    </td>
-                    <td><span class="tqa-num"><?php echo (int) $a['attempt_no']; ?></span></td>
-                    <td><span class="tqa-num"><?php echo (int) $a['score']; ?></span> <?php echo t('من'); ?> <span class="tqa-num"><?php echo count($tq_rows); ?></span></td>
-                    <td>
-                        <span class="tqa-badge tqa-badge--<?php echo (int) $a['passed'] === 1 ? 'ok' : 'danger'; ?>">
-                            <?php echo (int) $a['passed'] === 1 ? t('اجتاز') : t('لم يجتز'); ?>
-                        </span>
-                    </td>
-                    <td><span class="tq-ltr" dir="ltr"><?php echo html_escape((string) $a['submitted_at']); ?></span></td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
+        <div class="tqa-table__wrap">
+            <table class="table">
+                <thead>
+                    <tr><th><?php echo t('الطالب'); ?></th><th><?php echo t('المحاولة'); ?></th><th><?php echo t('الصحيح'); ?></th><th><?php echo t('النتيجة'); ?></th><th><?php echo t('التسليم'); ?></th></tr>
+                </thead>
+                <tbody>
+                <?php foreach ($tq_att as $a): ?>
+                    <tr>
+                        <td>
+                            <?php echo html_escape(trim($a['first_name'] . ' ' . $a['last_name'])); ?>
+                            <span class="tqa-media__sub" style="display:block"><?php echo html_escape($a['email']); ?></span>
+                        </td>
+                        <td><span class="tqa-num"><?php echo (int) $a['attempt_no']; ?></span></td>
+                        <td><span class="tqa-num"><?php echo (int) $a['score']; ?></span> <?php echo t('من'); ?> <span class="tqa-num"><?php echo count($tq_rows); ?></span></td>
+                        <td>
+                            <span class="tqa-badge tqa-badge--<?php echo (int) $a['passed'] === 1 ? 'ok' : 'danger'; ?>">
+                                <?php echo (int) $a['passed'] === 1 ? t('اجتاز') : t('لم يجتز'); ?>
+                            </span>
+                        </td>
+                        <td><span class="tq-ltr" dir="ltr"><?php echo html_escape((string) $a['submitted_at']); ?></span></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 <?php endif; ?>

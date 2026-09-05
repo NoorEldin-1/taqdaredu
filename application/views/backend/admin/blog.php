@@ -77,7 +77,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
                 <tr>
                     <td data-label="#"><span class="tqa-num"><?php echo $tq_k + 1; ?></span></td>
 
-                    <td data-label="المقال">
+                    <td data-label="<?php echo te('المقال'); ?>">
                         <a class="tqa-media__title" href="<?php echo site_url('admin/edit_blog/' . $tq_id); ?>">
                             <?php echo html_escape($tq_b['title']); ?>
                         </a>
@@ -86,7 +86,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
                         </span>
                     </td>
 
-                    <td data-label="الكاتب">
+                    <td data-label="<?php echo te('الكاتب'); ?>">
                         <?php if ($tq_a): ?>
                             <span class="tqa-media">
                                 <img class="tqa-avatar tqa-avatar--sm" alt="" width="30" height="30" loading="lazy"
@@ -101,7 +101,7 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
                         <?php endif; ?>
                     </td>
 
-                    <td data-label="القسم">
+                    <td data-label="<?php echo te('القسم'); ?>">
                         <?php $tq_cn = $tq_cats[(int) $tq_b['blog_category_id']] ?? ''; ?>
                         <?php if ($tq_cn !== ''): ?>
                             <span class="tqa-badge tqa-badge--muted"><?php echo html_escape($tq_cn); ?></span>
@@ -110,13 +110,13 @@ $tq_tools = '<a class="tqa-btn tqa-btn--primary" href="' . site_url('admin/add_b
                         <?php endif; ?>
                     </td>
 
-                    <td data-label="الحالة">
+                    <td data-label="<?php echo te('الحالة'); ?>">
                         <span class="tqa-badge tqa-badge--<?php echo $tq_on ? 'ok' : 'muted'; ?>">
                             <?php echo $tq_on ? t('منشور') : t('معطل'); ?>
                         </span>
                     </td>
 
-                    <td class="tqa-col--acts" data-label="إجراءات">
+                    <td class="tqa-col--acts" data-label="<?php echo te('إجراءات'); ?>">
                         <?php
                         /* TQ-ROW-CLUTTER — أربعة إجراءات في خلية صارت قائمة. */
                         $tq_acts = array(array(

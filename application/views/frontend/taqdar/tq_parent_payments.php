@@ -162,12 +162,12 @@ include 'portal_open.php';
                                         : ($tq_r['status'] === 'unpaid' ? 'due' : 'idle');
                                     ?>
                                     <tr>
-                                        <td data-label="التاريخ">
+                                        <td data-label="<?php echo te('التاريخ'); ?>">
                                             <?php echo (int) $tq_r['ts'] > 0
                                                 ? tq_num(date('Y-m-d', (int) $tq_r['ts']), 'tq-num--sm')
                                                 : '<span class="tq-caption">—</span>'; ?>
                                         </td>
-                                        <td data-label="ما اشتري">
+                                        <td data-label="<?php echo te('ما اشتري'); ?>">
                                             <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_r['title']); ?></span>
                                             <?php if ($tq_r['method'] !== ''): ?>
                                                 <span class="tq-micro" style="display:block">
@@ -175,9 +175,9 @@ include 'portal_open.php';
                                                 </span>
                                             <?php endif; ?>
                                         </td>
-                                        <td data-label="المبلغ"><?php echo tq_sar($tq_r['amount'], 2); ?></td>
-                                        <td data-label="الحالة"><?php echo tq_badge($tq_kind, $tq_r['label']); ?></td>
-                                        <td data-label="رقم العملية">
+                                        <td data-label="<?php echo te('المبلغ'); ?>"><?php echo tq_sar($tq_r['amount'], 2); ?></td>
+                                        <td data-label="<?php echo te('الحالة'); ?>"><?php echo tq_badge($tq_kind, $tq_r['label']); ?></td>
+                                        <td data-label="<?php echo te('رقم العملية'); ?>">
                                             <span class="tq-num tq-num--sm"><?php echo html_escape($tq_r['ref'] ?: '—'); ?></span>
                                         </td>
                                     </tr>

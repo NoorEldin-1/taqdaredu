@@ -109,7 +109,7 @@ $states = array(
                        title="<?php echo te('افتح ملف الطلب'); ?>">#<?php echo (int) $p['id']; ?></a>
                 </td>
 
-                <td data-label="المعلم">
+                <td data-label="<?php echo te('المعلم'); ?>">
                     <?php echo html_escape($p['teacher_name'] ?: '—'); ?><br>
                     <span class="tqa-num" style="color:var(--tq-text2);font-size:12px">
                         <?php echo html_escape($p['teacher_email'] ?: ''); ?></span>
@@ -127,7 +127,7 @@ $states = array(
                     </span>
                 </td>
 
-                <td data-label="المبلغ">
+                <td data-label="<?php echo te('المبلغ'); ?>">
                     <strong><?php echo tqa_money($amount); ?></strong>
                     <?php /* الدلاء الثلاثة: الإدارة تحتاج أن تعرف أن المعلم
                              لم يطلب أكثر مما يملك — والدفتر يمنع ذلك، لكن
@@ -137,7 +137,7 @@ $states = array(
                     </span>
                 </td>
 
-                <td data-label="الوجهة">
+                <td data-label="<?php echo te('الوجهة'); ?>">
                     <?php echo html_escape($ch_label); ?>
                     <?php if ($country === 'eg'): ?>
                         <span class="tqa-badge tqa-badge--warn" style="font-size:10px"><?php echo t('مصر'); ?></span>
@@ -155,7 +155,7 @@ $states = array(
                     <?php endif; ?>
                 </td>
 
-                <td data-label="التاريخ">
+                <td data-label="<?php echo te('التاريخ'); ?>">
                     <span class="tqa-num"><?php
                         echo !empty($p['date_added']) ? date('Y-m-d', (int) $p['date_added']) : '—';
                     ?></span>
@@ -167,7 +167,7 @@ $states = array(
                     <?php endif; ?>
                 </td>
 
-                <td data-label="الحالة">
+                <td data-label="<?php echo te('الحالة'); ?>">
                     <span class="tqa-badge tqa-badge--<?php echo $tone; ?>"><?php echo html_escape($label); ?></span>
                     <?php /* أثر القرار في مكانه: من قرر ومتى وبأي مرجع — وكان
                              العمود يعرض `payment_type` وحده وهو نص فني

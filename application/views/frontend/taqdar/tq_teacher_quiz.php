@@ -192,36 +192,38 @@ foreach ($tq_stats as $tq_s) $tq_answered += (int) $tq_s['answered'];
     <p class="tq-caption" style="margin-block:var(--tq-space-s) var(--tq-space-m)">
         <?php echo t('سؤال يخطئ فيه أكثر الطلاب يقرأ عن الشرح لا عن الطلاب: إما أن صياغته ملتبسة، وإما أن مفهومه لم يشرح في الدرس.'); ?>
     </p>
-    <table class="tq-table">
-        <thead>
-            <tr>
-                <th scope="col"><?php echo t('السؤال'); ?></th>
-                <th scope="col"><?php echo t('أجاب'); ?></th>
-                <th scope="col"><?php echo t('أصاب'); ?></th>
-                <th scope="col"><?php echo t('نسبة الإصابة'); ?></th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($tq_stats as $tq_s):
-            $tq_n = (int) $tq_s['answered'];
-            $tq_c = (int) $tq_s['correct'];
-            $tq_p = $tq_n > 0 ? (int) round($tq_c * 100 / $tq_n) : 0; ?>
-            <tr>
-                <td data-label="السؤال"><?php echo html_escape(mb_substr((string) $tq_s['title'], 0, 90)); ?></td>
-                <td data-label="أجاب"><?php echo tq_iso($tq_n); ?></td>
-                <td data-label="أصاب"><?php echo tq_iso($tq_c); ?></td>
-                <td data-label="نسبة الإصابة">
-                    <span class="<?php echo ($tq_n >= 5 && $tq_p < 40) ? 'tqz-hard' : ''; ?>">
-                        <?php echo tq_iso($tq_p . '%'); ?>
-                    </span>
-                    <?php if ($tq_n >= 5 && $tq_p < 40): ?>
-                        <span class="tq-caption" style="display:block"><?php echo t('راجع صياغته أو أعد شرح مفهومه'); ?></span>
-                    <?php endif; ?>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
+    <div class="tq-table-wrap">
+        <table class="tq-table">
+            <thead>
+                <tr>
+                    <th scope="col"><?php echo t('السؤال'); ?></th>
+                    <th scope="col"><?php echo t('أجاب'); ?></th>
+                    <th scope="col"><?php echo t('أصاب'); ?></th>
+                    <th scope="col"><?php echo t('نسبة الإصابة'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($tq_stats as $tq_s):
+                $tq_n = (int) $tq_s['answered'];
+                $tq_c = (int) $tq_s['correct'];
+                $tq_p = $tq_n > 0 ? (int) round($tq_c * 100 / $tq_n) : 0; ?>
+                <tr>
+                    <td data-label="<?php echo te('السؤال'); ?>"><?php echo html_escape(mb_substr((string) $tq_s['title'], 0, 90)); ?></td>
+                    <td data-label="<?php echo te('أجاب'); ?>"><?php echo tq_iso($tq_n); ?></td>
+                    <td data-label="<?php echo te('أصاب'); ?>"><?php echo tq_iso($tq_c); ?></td>
+                    <td data-label="<?php echo te('نسبة الإصابة'); ?>">
+                        <span class="<?php echo ($tq_n >= 5 && $tq_p < 40) ? 'tqz-hard' : ''; ?>">
+                            <?php echo tq_iso($tq_p . '%'); ?>
+                        </span>
+                        <?php if ($tq_n >= 5 && $tq_p < 40): ?>
+                            <span class="tq-caption" style="display:block"><?php echo t('راجع صياغته أو أعد شرح مفهومه'); ?></span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
 <?php endif; ?>
 
@@ -236,38 +238,40 @@ foreach ($tq_stats as $tq_s) $tq_answered += (int) $tq_s['answered'];
         <h2 class="tq-card__title"><?php echo t('من أدى هذا الاختبار'); ?></h2>
         <span class="tq-caption"><?php echo tq_iso(count($tq_att)); ?> <?php echo t('محاولة مسلمة'); ?></span>
     </div>
-    <table class="tq-table">
-        <caption class="tq-sr"><?php echo t('محاولات اختبار هذا الدرس: الطالب ورقم المحاولة ونتيجتها'); ?></caption>
-        <thead>
-            <tr>
-                <th scope="col"><?php echo t('الطالب'); ?></th>
-                <th scope="col"><?php echo t('المحاولة'); ?></th>
-                <th scope="col"><?php echo t('الصحيح'); ?></th>
-                <th scope="col"><?php echo t('النتيجة'); ?></th>
-                <th scope="col"><?php echo t('التسليم'); ?></th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($tq_att as $tq_a): ?>
-            <tr>
-                <td data-label="الطالب">
-                    <span class="tq-strong"><?php echo html_escape(trim($tq_a['first_name'] . ' ' . $tq_a['last_name'])); ?></span>
-                </td>
-                <td data-label="المحاولة"><?php echo tq_iso((int) $tq_a['attempt_no']); ?></td>
-                <td data-label="الصحيح">
-                    <?php echo tq_iso((int) $tq_a['score']); ?> <?php echo t('من'); ?> <?php echo tq_iso(count($tq_rows)); ?>
-                </td>
-                <td data-label="النتيجة">
-                    <?php echo tq_badge((int) $tq_a['passed'] === 1 ? 'mastered' : 'late',
-                                        (int) $tq_a['passed'] === 1 ? t('اجتاز') : t('لم يجتز')); ?>
-                </td>
-                <td data-label="التسليم">
-                    <span class="tq-ltr" dir="ltr"><?php echo html_escape(substr((string) $tq_a['submitted_at'], 0, 16)); ?></span>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
+    <div class="tq-table-wrap">
+        <table class="tq-table">
+            <caption class="tq-sr"><?php echo t('محاولات اختبار هذا الدرس: الطالب ورقم المحاولة ونتيجتها'); ?></caption>
+            <thead>
+                <tr>
+                    <th scope="col"><?php echo t('الطالب'); ?></th>
+                    <th scope="col"><?php echo t('المحاولة'); ?></th>
+                    <th scope="col"><?php echo t('الصحيح'); ?></th>
+                    <th scope="col"><?php echo t('النتيجة'); ?></th>
+                    <th scope="col"><?php echo t('التسليم'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($tq_att as $tq_a): ?>
+                <tr>
+                    <td data-label="<?php echo te('الطالب'); ?>">
+                        <span class="tq-strong"><?php echo html_escape(trim($tq_a['first_name'] . ' ' . $tq_a['last_name'])); ?></span>
+                    </td>
+                    <td data-label="<?php echo te('المحاولة'); ?>"><?php echo tq_iso((int) $tq_a['attempt_no']); ?></td>
+                    <td data-label="<?php echo te('الصحيح'); ?>">
+                        <?php echo tq_iso((int) $tq_a['score']); ?> <?php echo t('من'); ?> <?php echo tq_iso(count($tq_rows)); ?>
+                    </td>
+                    <td data-label="<?php echo te('النتيجة'); ?>">
+                        <?php echo tq_badge((int) $tq_a['passed'] === 1 ? 'mastered' : 'late',
+                                            (int) $tq_a['passed'] === 1 ? t('اجتاز') : t('لم يجتز')); ?>
+                    </td>
+                    <td data-label="<?php echo te('التسليم'); ?>">
+                        <span class="tq-ltr" dir="ltr"><?php echo html_escape(substr((string) $tq_a['submitted_at'], 0, 16)); ?></span>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
 <?php endif; ?>
 

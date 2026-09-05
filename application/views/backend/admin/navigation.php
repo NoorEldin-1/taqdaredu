@@ -105,6 +105,10 @@ $tqa_nav = [
            البيع، والثانية تقرأ في سياق الأولى — «وماذا عمن يريد مادة
            واحدة؟». وبند في «المنهج» كان يخفيها عمن يدير المال. */
         ['tqa_course_sales',   t('بيع الكورسات'),         'taqdar_admin/course_sales',          'book',    null],
+        /* TQ-BOOK — و«بيع الكتب» بجوارها: هما وحدتا البيع المفرد،
+           وبند في «المحتوى والموقع» (حيث تحرر الكتب) كان يخفي عن من
+           يدير المال أن للكتاب ثمنا أصلا. */
+        ['tqa_book_sales',     t('بيع الكتب'),            'taqdar_admin/book_sales',            'book',    null],
         ['tqa_subscriptions',  t('الاشتراكات'),           'taqdar_admin/subscriptions',         'refresh', 'subs_pending'],
         ['tqa_invoices',       t('الفواتير'),             'taqdar_admin/module/invoices',       'file-text', null],
         ['tqa_payouts',        t('طلبات السحب'),          'taqdar_admin/payouts',               'send',    'payouts'],
@@ -127,8 +131,6 @@ $tqa_nav = [
         ['tqa_tracking',     t('بكسل ميتا'),         'taqdar_admin/tracking',                    'target', null],
         ['tqa_testimonials', t('آراء أولياء الأمور'), 'taqdar_admin/module/testimonials',  'chat',   null],
         ['tqa_books',        t('الكتب'),            'taqdar_admin/module/books',                'book',   null],
-        ['tqa_competitions', t('المسابقات'),        'taqdar_admin/module/competitions',         'trophy', null],
-        ['tqa_competition_entries', t('المشاركون في المسابقات'), 'taqdar_admin/module/competition_entries', 'users', null],
         [['blog', 'blog_add', 'blog_edit', 'blog_category', 'blog_category_add', 'blog_category_edit',
           'blog_settings', 'instructors_pending_blog'],
                              t('المدونة'),          'admin/blog',                               'file',   'pending_blogs'],

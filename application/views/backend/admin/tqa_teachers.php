@@ -80,7 +80,7 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
             $orphan = ($name === '' && empty($a['email']));
         ?>
             <tr>
-                <td data-label="المعلم">
+                <td data-label="<?php echo te('المعلم'); ?>">
                     <?php if ($orphan): ?>
                         <span class="tqa-dim"><?php echo t('حساب محذوف'); ?></span>
                     <?php else: ?>
@@ -88,7 +88,7 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                     <?php endif; ?>
                 </td>
 
-                <td data-label="البريد">
+                <td data-label="<?php echo te('البريد'); ?>">
                     <?php if (!empty($a['email'])): ?>
                         <a class="tqa-num" style="font-size:13px"
                            href="mailto:<?php echo html_escape($a['email']); ?>"
@@ -96,13 +96,13 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                     <?php else: ?><span class="tqa-dim">—</span><?php endif; ?>
                 </td>
 
-                <td data-label="الجوال">
+                <td data-label="<?php echo te('الجوال'); ?>">
                     <?php if (!empty($a['phone'])): ?>
                         <span class="tqa-num" dir="ltr"><?php echo html_escape($a['phone']); ?></span>
                     <?php else: ?><span class="tqa-dim">—</span><?php endif; ?>
                 </td>
 
-                <td data-label="النبذة">
+                <td data-label="<?php echo te('النبذة'); ?>">
                     <?php
                     $msg = trim((string) $a['message']);
                     if ($msg === '') {
@@ -116,7 +116,7 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                     ?>
                 </td>
 
-                <td data-label="المستند والعينة">
+                <td data-label="<?php echo te('المستند والعينة'); ?>">
                     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
                     <?php if (!empty($a['document'])): ?>
                         <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
@@ -150,7 +150,7 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                     <?php endif; ?>
                 </td>
 
-                <td data-label="الهوية">
+                <td data-label="<?php echo te('الهوية'); ?>">
                     <?php if ($st !== 0 || $orphan): ?>
                         <span class="tqa-dim">—</span>
                     <?php else: ?>
@@ -168,12 +168,12 @@ foreach ($apps as $tq_a) { if ((int) $tq_a['status'] === 0) $tq_pending++; }
                     <?php endif; ?>
                 </td>
 
-                <td data-label="الحالة">
+                <td data-label="<?php echo te('الحالة'); ?>">
                     <span class="tqa-badge tqa-badge<?php echo $tone === '--ok' ? '--ok'
                         : ($tone === '--no' ? '--danger' : '--warn'); ?>"><?php echo $label; ?></span>
                 </td>
 
-                <td data-label="الإجراء">
+                <td data-label="<?php echo te('الإجراء'); ?>">
                     <?php if ($st !== 0 || $orphan): ?>
                         <span class="tqa-dim">—</span>
                     <?php else: ?>

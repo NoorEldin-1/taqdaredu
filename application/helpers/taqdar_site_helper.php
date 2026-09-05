@@ -36,16 +36,22 @@ if (!function_exists('tqs_nav')) {
     {
         /* «المواد والبرامج» قبل «الباقات»: الزائر يتصفح قبل أن يشتري،
            والترتيب في القائمة هو ترتيب الرحلة لا ترتيب الأهمية عندنا.
-           وبند الكتب حذف لا لأن الكتب حذفت بل لأنها صارت نوعا في
-           الكتالوج — وبند يقود إلى مرشح واحد من أربعة يقسم ما جمع. */
+
+           TQ-BOOK — وبند «الكتب» عاد، وليس نقضا لما قبله. حذف يوم كان
+           الكتاب **صفا مجانيا** يحمل ملفه: بند يقود إلى مرشح واحد من
+           أربعة يقسم ما جمع. وصار الكتاب اليوم وحدة بيع لها سعر وصاحب
+           وباقة تفتحها — أي أنه يجيب سؤالا لا يجيبه الكتالوج: «ما كتب
+           المنصة وبكم؟». وهو **المحرك نفسه** (`Taqdar_catalog_model`)
+           بنوع مثبت، لا كتالوج ثان: صفحة تبحث وترشح بقواعدها هي تفترق
+           عن أختها عند أول تعديل. */
         $items = array(
             array('home',     '',          t('الرئيسية')),
             array('catalog',  'catalog',   t('المواد والبرامج التعليمية')),
+            array('books',    'books',     t('الكتب')),
             array('plans',    'plans',     t('الباقات')),
             array('teachers', 'teachers',  t('المعلمون')),
             array('students', 'students',  t('الطلاب')),
             array('parents',  'parents',   t('أولياء الأمور')),
-            array('competitions', 'competitions', t('المسابقات')),
             array('blog',     'blog',      t('المدونة')),
             array('about',    'about',     t('عن المنصة')),
             array('contact',  'contact',   t('تواصل معنا')),
@@ -640,12 +646,17 @@ if (!function_exists('tqs_nav_key')) {
             /* الكتالوج ومفرداته: البرنامج والكتاب صفحتا تفصيل يصلهما
                الزائر من الكتالوج وإليه يعود، فيبقى بنده مضاء وهو فيهما.
                وصفحة الدورة معهما لأنها آخر ما يفتح من البرنامج. */
-            'site_catalog' => 'catalog', 'site_path' => 'catalog', 'site_book' => 'catalog',
+            'site_catalog' => 'catalog', 'site_path' => 'catalog',
             'courses_page' => 'catalog', 'course_page' => 'catalog', 'categories' => 'catalog',
+            /* TQ-BOOK — والكتاب تحت «الكتب» لا تحت الكتالوج: صار له
+               بابه، ومن يفتح كتابا من `/books` يجب أن يرى البند الذي
+               دخل منه مضاء — وإلا ظن أنه خرج من الصفحة التي كان فيها.
+               وصفحة تأكيد شرائه معه، كما `site_checkout` مع الباقات. */
+            'site_books' => 'books', 'site_book' => 'books',
+            'site_book_checkout' => 'books',
             /* الباقة وشاشة تأكيدها تحت «الباقات» — وهو الفرق الذي بني
                عليه فصل الصفحتين: التصفح باب، والشراء باب آخر. */
             'plans' => 'plans', 'site_plan' => 'plans', 'site_checkout' => 'plans',
-            'competitions' => 'competitions', 'site_competition' => 'competitions',
             'instructor_page' => 'teachers', 'site_search' => '',
         );
         $k = (string) $page_name;
@@ -1072,33 +1083,6 @@ if (!function_exists('tqs_subject_grid')) {
     }
 }
 
-if (!function_exists('tqs_comp_state')) {
-    /**
-     * حال المسابقة من تاريخيها — لا من عمود `status` وحده.
-     *
-     * `status='open'` تبقى «مفتوحة» بعد انقضاء الموعد، فكانت البطاقة
-     * تدعو إلى مسابقة انتهت. والتاريخ هو الذي يعرف.
-     *
-     * @return array label · kind (open|soon|over)
-     */
-    function tqs_comp_state($starts, $ends)
-    {
-        $today = date('Y-m-d');
-        $s = substr(trim((string) $starts), 0, 10);
-        $e = substr(trim((string) $ends), 0, 10);
-
-        if ($e !== '' && $e < $today) {
-            return array('label' => t('انتهت'), 'kind' => 'over');
-        }
-        if ($s !== '' && $s > $today) {
-            $days = (int) floor((strtotime($s) - strtotime($today)) / 86400);
-            $lbl  = ($days <= 1) ? t('تبدأ غدا') : t('تبدأ بعد ') . $days . t(' يوما');
-            return array('label' => $lbl, 'kind' => 'soon');
-        }
-        return array('label' => t('مفتوحة الآن'), 'kind' => 'open');
-    }
-}
-
 if (!function_exists('tqs_plans_guide')) {
     /**
      * دليل اختيار الباقة لولي الأمر.
@@ -1321,83 +1305,6 @@ if (!function_exists('tqs_plan_price_cmp')) {
     }
 }
 
-if (!function_exists('tqs_competitions_strip')) {
-    /**
-     * المسابقات المفتوحة — ويخفي القسم كله إن لم تكن هناك واحدة.
-     *
-     * `open_competitions()` ترجع المفتوحة فقط، والمسابقتان الحاليتان
-     * تغلقان في ٣١ أغسطس. فقسم يطبع بلا شرط يصير عنوانا فوق فراغ
-     * في تاريخ معلوم — والإخفاء هنا لا في العرض، كي لا ينسى.
-     */
-    function tqs_competitions_strip($limit = 3)
-    {
-        $CI = &get_instance();
-        $CI->load->model('taqdar_site_model', 'tq_m');
-        $rows = (array) $CI->tq_m->open_competitions($limit);
-        if (empty($rows)) return '';
-
-        $h  = '<section class="section section--tint">' . "\n";
-        $h .= '  <div class="shell">' . "\n";
-        $h .= '    <div class="section-head">' . "\n";
-        $h .= t('      <h2><span>مسابقات مفتوحة الآن</span></h2>') . "\n";
-        $h .= t('      <p>يشترك فيها طلاب الباقات بلا رسوم إضافية — تدريب على المنافسة، وجوائز لأوائل كل مرحلة.</p>') . "\n";
-        $h .= '    </div>' . "\n";
-        /* مسابقة واحدة لا تعرض كبطاقة عرضها ٣٦٠ في شاشة عرضها ألف:
-           الفراغ حولها يقرأ نقصا لا تصميما. فتمد شريطا أفقيا يملأ عرضه،
-           وحين تكون اثنتين فأكثر تعود الشبكة كما هي. */
-        $h .= '    <div class="cmp-grid' . (count($rows) === 1 ? ' cmp-grid--solo' : '') . '">' . "\n";
-        foreach ($rows as $r) {
-            $st = tqs_comp_state($r['when'], isset($r['till']) ? $r['till'] : '');
-            $h .= '      <article class="cmp-card">' . "\n";
-
-            /* رأس ملون بدل صورة لا وجود لها: عمود `cover` فارغ في كل
-               الصفوف، وصورة مخترعة أسوأ من لون يحمل المرحلة والحال. */
-            $h .= '        <div class="cmp-card__head">' . "\n";
-            if ((string) $r['stage'] !== '') {
-                $h .= '          <span class="cmp-card__stage">' . html_escape($r['stage']) . '</span>' . "\n";
-            }
-            $h .= '          <span class="cmp-state cmp-state--' . $st['kind'] . '">'
-                . html_escape($st['label']) . '</span>' . "\n";
-            $h .= '        </div>' . "\n";
-
-            $h .= '        <div class="cmp-card__body">' . "\n";
-            $h .= '          <h3><a href="' . html_escape($r['href']) . '">'
-                . html_escape($r['title']) . '</a></h3>' . "\n";
-            if ((string) $r['blurb'] !== '') {
-                $h .= '          <p>' . html_escape($r['blurb']) . '</p>' . "\n";
-            }
-
-            /* التاريخ بأرقام لاتينية داخل `tq-ltr`: الأرقام العربية
-               الشرقية تنقلب ترتيبا في بعض الخطوط، والتاريخ يقرأ خطأ. */
-            $facts = '';
-            if ((string) $r['when'] !== '') {
-                $facts .= '            <span><svg aria-hidden="true"><use href="#i-calendar"></use></svg>'
-                       . t('تبدأ <b class="tq-ltr">') . html_escape(tqs_date_ar($r['when'])) . '</b></span>' . "\n";
-            }
-            if (!empty($r['till'])) {
-                $facts .= '            <span><svg aria-hidden="true"><use href="#i-clock"></use></svg>'
-                       . t('تنتهي <b class="tq-ltr">') . html_escape(tqs_date_ar($r['till'])) . '</b></span>' . "\n";
-            }
-            if (!empty($r['prize'])) {
-                $facts .= '            <span><svg aria-hidden="true"><use href="#i-badge"></use></svg>'
-                       . html_escape($r['prize']) . '</span>' . "\n";
-            }
-            if ($facts !== '') {
-                $h .= '          <div class="cmp-card__facts">' . "\n" . $facts . '          </div>' . "\n";
-            }
-            $h .= '        </div>' . "\n";
-
-            $h .= '        <a class="btn btn--ghost btn--block cmp-card__cta" href="'
-                . html_escape($r['href']) . t('">تفاصيل المسابقة</a>') . "\n";
-            $h .= '      </article>' . "\n";
-        }
-        $h .= '    </div>' . "\n";
-        $h .= '  </div>' . "\n";
-        $h .= '</section>' . "\n";
-        return $h;
-    }
-}
-
 if (!function_exists('tqs_stage_label')) {
     /**
      * اسم المرحلة من مفتاحها — موضع واحد للأسماء، تقرؤه البطاقة والتبويب.
@@ -1450,25 +1357,6 @@ if (!function_exists('tqs_bundle_tier')) {
         $pos = mb_strpos($n, '—', 0, 'UTF-8');
         if ($pos !== false) $n = mb_substr($n, 0, $pos, 'UTF-8');
         return trim($n);
-    }
-}
-
-if (!function_exists('tqs_date_ar')) {
-    /**
-     * تاريخ يقرأ لا يفك.
-     *
-     * كان `2026-08-10` خاما على صفحة المسابقات: صيغة للآلة لا للقارئ،
-     * وتقرأ في العربية من اليسار على غير عادة العين. والأشهر تكتب هنا
-     * ولا تترك لـ`IntlDateFormatter`: الامتداد غير مضمون على كل خادم،
-     * وغيابه كان سيرجع سلسلة فارغة بلا خطأ ظاهر.
-     */
-    function tqs_date_ar($date)
-    {
-        $ts = is_numeric($date) ? (int) $date : strtotime((string) $date);
-        if (!$ts) return (string) $date;
-        $m = array('', t('يناير'), t('فبراير'), t('مارس'), t('أبريل'), t('مايو'), t('يونيو'),
-                   t('يوليو'), t('أغسطس'), t('سبتمبر'), t('أكتوبر'), t('نوفمبر'), t('ديسمبر'));
-        return (int) date('j', $ts) . ' ' . $m[(int) date('n', $ts)] . ' ' . date('Y', $ts);
     }
 }
 

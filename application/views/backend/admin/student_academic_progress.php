@@ -91,7 +91,7 @@ if ($tq_rows) {
                 $tq_pct  = (int) ($tq_w['course_progress'] ?? 0);
             ?>
                 <tr>
-                    <td data-label="الطالب">
+                    <td data-label="<?php echo te('الطالب'); ?>">
                         <?php if ($tq_u): ?>
                             <span class="tqa-media__title">
                                 <?php echo html_escape(trim($tq_u['first_name'] . ' ' . $tq_u['last_name']) ?: $tq_u['email']); ?>
@@ -102,7 +102,7 @@ if ($tq_rows) {
                         <?php endif; ?>
                     </td>
 
-                    <td data-label="التواريخ">
+                    <td data-label="<?php echo te('التواريخ'); ?>">
                         <span class="tqa-media__sub">
                             <?php echo t('سجل:'); ?> <?php echo tqa_when($tq_e['date_added'], 'Y-m-d'); ?>
                         </span>
@@ -120,7 +120,7 @@ if ($tq_rows) {
                         </span>
                     </td>
 
-                    <td data-label="التقدم">
+                    <td data-label="<?php echo te('التقدم'); ?>">
                         <?php /* `tqa-bar` مكون قائم في [admin.css] — لا أنماط في السطر
                                  بألوان مكتوبة خارج التوكنات. */ ?>
                         <div class="tqa-bar" style="inline-size:160px;max-inline-size:100%">
@@ -137,7 +137,7 @@ if ($tq_rows) {
                         </span>
                     </td>
 
-                    <td data-label="إجراءات">
+                    <td data-label="<?php echo te('إجراءات'); ?>">
                         <div class="tqa-rowacts">
                             <button type="button" class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                     onclick="showLargeModal('<?php echo site_url('admin/student_academic_quiz_result/' . $tq_cid . '/' . $tq_uid); ?>', 'نتائج الاختبارات')">

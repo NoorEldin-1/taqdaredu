@@ -445,22 +445,24 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                     <a class="tq-btn tq-btn--primary" href="<?php echo base_url('plans'); ?>"><?php echo t('تصفح المواد'); ?></a>
                 </div>
             <?php else: ?>
-                <table class="tq-table">
-                    <caption class="tq-sr"><?php echo t('تقدمك في كل كورس مسجل'); ?></caption>
-                    <thead>
-                        <tr><th scope="col"><?php echo t('الكورس'); ?></th><th scope="col"><?php echo t('التقدم'); ?></th><th scope="col"><?php echo t('الحالة'); ?></th></tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($tq_enrolled as $row): ?>
-                            <?php $p = $tq_progress_by_course[(int) $row['id']] ?? 0; ?>
-                            <tr>
-                                <td data-label="الكورس"><?php echo html_escape($row['title']); ?></td>
-                                <td data-label="التقدم"><?php echo tq_progress($p, t('تقدمك في الكورس')); ?></td>
-                                <td data-label="الحالة"><?php echo tq_badge($p >= 100 ? 'mastered' : ($p > 0 ? 'progress' : 'idle'), $p >= 100 ? t('مكتمل') : ($p > 0 ? t('قيد التقدم') : t('لم يبدأ'))); ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div class="tq-table-wrap">
+                    <table class="tq-table">
+                        <caption class="tq-sr"><?php echo t('تقدمك في كل كورس مسجل'); ?></caption>
+                        <thead>
+                            <tr><th scope="col"><?php echo t('الكورس'); ?></th><th scope="col"><?php echo t('التقدم'); ?></th><th scope="col"><?php echo t('الحالة'); ?></th></tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($tq_enrolled as $row): ?>
+                                <?php $p = $tq_progress_by_course[(int) $row['id']] ?? 0; ?>
+                                <tr>
+                                    <td data-label="<?php echo te('الكورس'); ?>"><?php echo html_escape($row['title']); ?></td>
+                                    <td data-label="<?php echo te('التقدم'); ?>"><?php echo tq_progress($p, t('تقدمك في الكورس')); ?></td>
+                                    <td data-label="<?php echo te('الحالة'); ?>"><?php echo tq_badge($p >= 100 ? 'mastered' : ($p > 0 ? 'progress' : 'idle'), $p >= 100 ? t('مكتمل') : ($p > 0 ? t('قيد التقدم') : t('لم يبدأ'))); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             <?php endif; ?>
         </section>
 
@@ -476,21 +478,23 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                     <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/exams'); ?>"><?php echo t('اذهب إلى اختباراتي'); ?></a>
                 </div>
             <?php else: ?>
-                <table class="tq-table">
-                    <caption class="tq-sr"><?php echo t('نتائج الاختبارات المسلمة مرتبة من الأحدث'); ?></caption>
-                    <thead>
-                        <tr><th scope="col"><?php echo t('التاريخ'); ?></th><th scope="col"><?php echo t('النسبة'); ?></th><th scope="col"><?php echo t('الحالة'); ?></th></tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach (array_reverse($tq_quiz_points, true) as $ts => $pct): ?>
-                            <tr>
-                                <td data-label="التاريخ"><?php echo tq_num(date('Y-m-d', $ts), 'tq-num--sm'); ?></td>
-                                <td data-label="النسبة"><?php echo tq_progress($pct, t('نسبة الاختبار')); ?></td>
-                                <td data-label="الحالة"><?php echo tq_badge($pct >= 80 ? 'mastered' : ($pct >= 50 ? 'progress' : 'late'), $pct >= 80 ? t('متقن') : ($pct >= 50 ? t('قيد التقدم') : t('يحتاج مراجعة'))); ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div class="tq-table-wrap">
+                    <table class="tq-table">
+                        <caption class="tq-sr"><?php echo t('نتائج الاختبارات المسلمة مرتبة من الأحدث'); ?></caption>
+                        <thead>
+                            <tr><th scope="col"><?php echo t('التاريخ'); ?></th><th scope="col"><?php echo t('النسبة'); ?></th><th scope="col"><?php echo t('الحالة'); ?></th></tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach (array_reverse($tq_quiz_points, true) as $ts => $pct): ?>
+                                <tr>
+                                    <td data-label="<?php echo te('التاريخ'); ?>"><?php echo tq_num(date('Y-m-d', $ts), 'tq-num--sm'); ?></td>
+                                    <td data-label="<?php echo te('النسبة'); ?>"><?php echo tq_progress($pct, t('نسبة الاختبار')); ?></td>
+                                    <td data-label="<?php echo te('الحالة'); ?>"><?php echo tq_badge($pct >= 80 ? 'mastered' : ($pct >= 50 ? 'progress' : 'late'), $pct >= 80 ? t('متقن') : ($pct >= 50 ? t('قيد التقدم') : t('يحتاج مراجعة'))); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             <?php endif; ?>
         </section>
 

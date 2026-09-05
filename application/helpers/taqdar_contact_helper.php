@@ -21,7 +21,11 @@ if (!function_exists('tq_contact_shield')) {
 
         $stamp = $CI->taqdar_contact_model->stamp();
 
-        echo '<div aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden">'
+        /* والركن بالقص لا بالإزاحة: `left:-9999px` في اتجاه RTL يمتد إلى
+           **يسار** المستند فيوسعه عشرة آلاف بكسل — فتقرأ صفحة «تواصل معنا»
+           على جوال بعرض ٣٤٤ وكأنها بعرض ١٠٣١٠، وينكمش كل ما فيها إلى شريط.
+           وهو `‎.tq-skip-link‎` نفسه في [shell.css](../../assets/taqdar/site/css/shell.css). */
+        echo '<div aria-hidden="true" style="position:absolute;inset-inline-start:0;top:0;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap">'
            . '<label>Website<input type="text" name="website" value="" tabindex="-1" autocomplete="off"></label>'
            . '<label>Company<input type="text" name="company" value="" tabindex="-1" autocomplete="off"></label>'
            . '</div>'

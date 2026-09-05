@@ -386,42 +386,44 @@ include 'portal_open.php';
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
                         <?php echo t('الأقدم أولا: الطالب الذي انتظر أطول يصحح أولا.'); ?>
                     </p>
-                    <table class="tq-table">
-                        <caption class="tq-sr"><?php echo t('المحاولات المسلمة التي تنتظر اعتمادك'); ?></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><?php echo t('الطالب'); ?></th>
-                                <th scope="col"><?php echo t('الاختبار'); ?></th>
-                                <th scope="col"><?php echo t('الاقتراح الآلي'); ?></th>
-                                <th scope="col"><?php echo t('انتظر'); ?></th>
-                                <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tq_queue as $tq_r): ?>
-                                <?php
-                                $tq_name  = trim($tq_r['first_name'] . ' ' . $tq_r['last_name']);
-                                $tq_total = max(1, (int) $tq_r['total_marks']);
-                                $tq_auto  = (int) round((float) $tq_r['total_obtained_marks']);
-                                ?>
+                    <div class="tq-table-wrap">
+                        <table class="tq-table">
+                            <caption class="tq-sr"><?php echo t('المحاولات المسلمة التي تنتظر اعتمادك'); ?></caption>
+                            <thead>
                                 <tr>
-                                    <td data-label="الطالب">
-                                        <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></span>
-                                        <span class="tq-micro" style="display:block"><?php echo html_escape($tq_r['course_title']); ?></span>
-                                    </td>
-                                    <td data-label="الاختبار"><?php echo html_escape($tq_r['quiz_title']); ?></td>
-                                    <td data-label="الاقتراح الآلي"><?php echo tq_num($tq_auto . ' / ' . $tq_total, 'tq-num--sm'); ?></td>
-                                    <td data-label="انتظر"><?php echo html_escape(tq_since((int) $tq_r['date_added'])); ?></td>
-                                    <td data-label="إجراءات">
-                                        <a class="tq-btn tq-btn--primary tq-btn--sm"
-                                           href="<?php echo base_url('teacher/marking'); ?>?result=<?php echo (int) $tq_r['quiz_result_id']; ?>">
-                                            <?php echo t('صحح'); ?>
-                                        </a>
-                                    </td>
+                                    <th scope="col"><?php echo t('الطالب'); ?></th>
+                                    <th scope="col"><?php echo t('الاختبار'); ?></th>
+                                    <th scope="col"><?php echo t('الاقتراح الآلي'); ?></th>
+                                    <th scope="col"><?php echo t('انتظر'); ?></th>
+                                    <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($tq_queue as $tq_r): ?>
+                                    <?php
+                                    $tq_name  = trim($tq_r['first_name'] . ' ' . $tq_r['last_name']);
+                                    $tq_total = max(1, (int) $tq_r['total_marks']);
+                                    $tq_auto  = (int) round((float) $tq_r['total_obtained_marks']);
+                                    ?>
+                                    <tr>
+                                        <td data-label="<?php echo te('الطالب'); ?>">
+                                            <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></span>
+                                            <span class="tq-micro" style="display:block"><?php echo html_escape($tq_r['course_title']); ?></span>
+                                        </td>
+                                        <td data-label="<?php echo te('الاختبار'); ?>"><?php echo html_escape($tq_r['quiz_title']); ?></td>
+                                        <td data-label="<?php echo te('الاقتراح الآلي'); ?>"><?php echo tq_num($tq_auto . ' / ' . $tq_total, 'tq-num--sm'); ?></td>
+                                        <td data-label="<?php echo te('انتظر'); ?>"><?php echo html_escape(tq_since((int) $tq_r['date_added'])); ?></td>
+                                        <td data-label="<?php echo te('إجراءات'); ?>">
+                                            <a class="tq-btn tq-btn--primary tq-btn--sm"
+                                               href="<?php echo base_url('teacher/marking'); ?>?result=<?php echo (int) $tq_r['quiz_result_id']; ?>">
+                                                <?php echo t('صحح'); ?>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             <?php else: ?>
                 <div class="tq-card tq-empty">
@@ -449,47 +451,49 @@ include 'portal_open.php';
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
                         <?php echo t('الواجب عمل يقرؤه معلم لا سكربت — ودرجته لا تظهر لصاحبه قبل اعتمادك. والأقدم تسليما أولا.'); ?>
                     </p>
-                    <table class="tq-table">
-                        <caption class="tq-sr"><?php echo t('الواجبات المسلمة التي تنتظر اعتمادك'); ?></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><?php echo t('الطالب'); ?></th>
-                                <th scope="col"><?php echo t('الواجب'); ?></th>
-                                <th scope="col"><?php echo t('ما سجله النظام'); ?></th>
-                                <th scope="col"><?php echo t('انتظر'); ?></th>
-                                <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tq_hw_queue as $tq_h): ?>
-                                <?php
-                                $tq_hn  = trim($tq_h['first_name'] . ' ' . $tq_h['last_name']);
-                                $tq_ht  = max(1, (int) $tq_h['total_marks']);
-                                $tq_hs  = $tq_h['score'] === null ? null : (float) $tq_h['score'];
-                                $tq_hts = strtotime((string) $tq_h['submitted_at']);
-                                ?>
+                    <div class="tq-table-wrap">
+                        <table class="tq-table">
+                            <caption class="tq-sr"><?php echo t('الواجبات المسلمة التي تنتظر اعتمادك'); ?></caption>
+                            <thead>
                                 <tr>
-                                    <td data-label="الطالب">
-                                        <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_hn); ?></span>
-                                        <span class="tq-micro" style="display:block"><?php echo html_escape($tq_h['course_title']); ?></span>
-                                    </td>
-                                    <td data-label="الواجب"><?php echo html_escape($tq_h['lesson_title']); ?></td>
-                                    <td data-label="ما سجله النظام">
-                                        <?php echo $tq_hs === null
-                                            ? t('<span class="tq-caption">لم يسجل</span>')
-                                            : tq_num(($tq_hs == (int) $tq_hs ? (int) $tq_hs : $tq_hs) . '%', 'tq-num--sm'); ?>
-                                    </td>
-                                    <td data-label="انتظر"><?php echo html_escape(tq_since($tq_hts)); ?></td>
-                                    <td data-label="إجراءات">
-                                        <a class="tq-btn tq-btn--primary tq-btn--sm"
-                                           href="<?php echo base_url('teacher/marking'); ?>?hw=<?php echo (int) $tq_h['id']; ?>">
-                                            <?php echo t('صحح'); ?>
-                                        </a>
-                                    </td>
+                                    <th scope="col"><?php echo t('الطالب'); ?></th>
+                                    <th scope="col"><?php echo t('الواجب'); ?></th>
+                                    <th scope="col"><?php echo t('ما سجله النظام'); ?></th>
+                                    <th scope="col"><?php echo t('انتظر'); ?></th>
+                                    <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($tq_hw_queue as $tq_h): ?>
+                                    <?php
+                                    $tq_hn  = trim($tq_h['first_name'] . ' ' . $tq_h['last_name']);
+                                    $tq_ht  = max(1, (int) $tq_h['total_marks']);
+                                    $tq_hs  = $tq_h['score'] === null ? null : (float) $tq_h['score'];
+                                    $tq_hts = strtotime((string) $tq_h['submitted_at']);
+                                    ?>
+                                    <tr>
+                                        <td data-label="<?php echo te('الطالب'); ?>">
+                                            <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_hn); ?></span>
+                                            <span class="tq-micro" style="display:block"><?php echo html_escape($tq_h['course_title']); ?></span>
+                                        </td>
+                                        <td data-label="<?php echo te('الواجب'); ?>"><?php echo html_escape($tq_h['lesson_title']); ?></td>
+                                        <td data-label="<?php echo te('ما سجله النظام'); ?>">
+                                            <?php echo $tq_hs === null
+                                                ? t('<span class="tq-caption">لم يسجل</span>')
+                                                : tq_num(($tq_hs == (int) $tq_hs ? (int) $tq_hs : $tq_hs) . '%', 'tq-num--sm'); ?>
+                                        </td>
+                                        <td data-label="<?php echo te('انتظر'); ?>"><?php echo html_escape(tq_since($tq_hts)); ?></td>
+                                        <td data-label="<?php echo te('إجراءات'); ?>">
+                                            <a class="tq-btn tq-btn--primary tq-btn--sm"
+                                               href="<?php echo base_url('teacher/marking'); ?>?hw=<?php echo (int) $tq_h['id']; ?>">
+                                                <?php echo t('صحح'); ?>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             <?php else: ?>
                 <div class="tq-card tq-empty">
@@ -509,46 +513,48 @@ include 'portal_open.php';
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_hw_approved) . TQ_PDI; ?></span>
                 </div>
                 <div class="tq-card">
-                    <table class="tq-table">
-                        <caption class="tq-sr"><?php echo t('آخر درجات الواجبات التي اعتمدتها'); ?></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><?php echo t('الطالب'); ?></th>
-                                <th scope="col"><?php echo t('الواجب'); ?></th>
-                                <th scope="col"><?php echo t('الدرجة المعتمدة'); ?></th>
-                                <th scope="col"><?php echo t('منذ'); ?></th>
-                                <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tq_hw_approved as $tq_h): ?>
-                                <?php
-                                $tq_hn = trim($tq_h['first_name'] . ' ' . $tq_h['last_name']);
-                                $tq_ht = max(1, (int) $tq_h['total_marks']);
-                                $tq_hs = (float) $tq_h['teacher_score'];
-                                $tq_hm = $tq_mark->mastery($tq_hs, $tq_ht);
-                                ?>
+                    <div class="tq-table-wrap">
+                        <table class="tq-table">
+                            <caption class="tq-sr"><?php echo t('آخر درجات الواجبات التي اعتمدتها'); ?></caption>
+                            <thead>
                                 <tr>
-                                    <td data-label="الطالب">
-                                        <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_hn); ?></span>
-                                        <span class="tq-micro" style="display:block"><?php echo html_escape($tq_h['course_title']); ?></span>
-                                    </td>
-                                    <td data-label="الواجب"><?php echo html_escape($tq_h['lesson_title']); ?></td>
-                                    <td data-label="الدرجة المعتمدة">
-                                        <?php echo tq_num(($tq_hs == (int) $tq_hs ? (int) $tq_hs : $tq_hs) . '%', 'tq-num--sm'); ?>
-                                        <?php echo tq_badge($tq_hm['key'], $tq_hm['label']); ?>
-                                    </td>
-                                    <td data-label="منذ"><?php echo html_escape(tq_since((int) $tq_h['approved_at'])); ?></td>
-                                    <td data-label="إجراءات">
-                                        <a class="tq-btn tq-btn--secondary tq-btn--sm"
-                                           href="<?php echo base_url('teacher/marking'); ?>?hw=<?php echo (int) $tq_h['id']; ?>">
-                                            <?php echo t('راجع'); ?>
-                                        </a>
-                                    </td>
+                                    <th scope="col"><?php echo t('الطالب'); ?></th>
+                                    <th scope="col"><?php echo t('الواجب'); ?></th>
+                                    <th scope="col"><?php echo t('الدرجة المعتمدة'); ?></th>
+                                    <th scope="col"><?php echo t('منذ'); ?></th>
+                                    <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($tq_hw_approved as $tq_h): ?>
+                                    <?php
+                                    $tq_hn = trim($tq_h['first_name'] . ' ' . $tq_h['last_name']);
+                                    $tq_ht = max(1, (int) $tq_h['total_marks']);
+                                    $tq_hs = (float) $tq_h['teacher_score'];
+                                    $tq_hm = $tq_mark->mastery($tq_hs, $tq_ht);
+                                    ?>
+                                    <tr>
+                                        <td data-label="<?php echo te('الطالب'); ?>">
+                                            <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_hn); ?></span>
+                                            <span class="tq-micro" style="display:block"><?php echo html_escape($tq_h['course_title']); ?></span>
+                                        </td>
+                                        <td data-label="<?php echo te('الواجب'); ?>"><?php echo html_escape($tq_h['lesson_title']); ?></td>
+                                        <td data-label="<?php echo te('الدرجة المعتمدة'); ?>">
+                                            <?php echo tq_num(($tq_hs == (int) $tq_hs ? (int) $tq_hs : $tq_hs) . '%', 'tq-num--sm'); ?>
+                                            <?php echo tq_badge($tq_hm['key'], $tq_hm['label']); ?>
+                                        </td>
+                                        <td data-label="<?php echo te('منذ'); ?>"><?php echo html_escape(tq_since((int) $tq_h['approved_at'])); ?></td>
+                                        <td data-label="<?php echo te('إجراءات'); ?>">
+                                            <a class="tq-btn tq-btn--secondary tq-btn--sm"
+                                               href="<?php echo base_url('teacher/marking'); ?>?hw=<?php echo (int) $tq_h['id']; ?>">
+                                                <?php echo t('راجع'); ?>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
         <?php endif; ?>
@@ -560,46 +566,48 @@ include 'portal_open.php';
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_approved) . TQ_PDI; ?></span>
                 </div>
                 <div class="tq-card">
-                    <table class="tq-table">
-                        <caption class="tq-sr"><?php echo t('آخر الدرجات التي اعتمدتها'); ?></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><?php echo t('الطالب'); ?></th>
-                                <th scope="col"><?php echo t('الاختبار'); ?></th>
-                                <th scope="col"><?php echo t('الدرجة المعتمدة'); ?></th>
-                                <th scope="col"><?php echo t('منذ'); ?></th>
-                                <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tq_approved as $tq_a): ?>
-                                <?php
-                                $tq_name  = trim($tq_a['first_name'] . ' ' . $tq_a['last_name']);
-                                $tq_total = max(1, (int) $tq_a['total_marks']);
-                                $tq_sc    = (float) $tq_a['teacher_score'];
-                                $tq_m     = $tq_mark->mastery($tq_sc, $tq_total);
-                                ?>
+                    <div class="tq-table-wrap">
+                        <table class="tq-table">
+                            <caption class="tq-sr"><?php echo t('آخر الدرجات التي اعتمدتها'); ?></caption>
+                            <thead>
                                 <tr>
-                                    <td data-label="الطالب">
-                                        <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></span>
-                                        <span class="tq-micro" style="display:block"><?php echo html_escape($tq_a['course_title']); ?></span>
-                                    </td>
-                                    <td data-label="الاختبار"><?php echo html_escape($tq_a['quiz_title']); ?></td>
-                                    <td data-label="الدرجة المعتمدة">
-                                        <?php echo tq_num(($tq_sc == (int) $tq_sc ? (int) $tq_sc : $tq_sc) . ' / ' . $tq_total, 'tq-num--sm'); ?>
-                                        <?php echo tq_badge($tq_m['key'], $tq_m['label']); ?>
-                                    </td>
-                                    <td data-label="منذ"><?php echo html_escape(tq_since((int) $tq_a['approved_at'])); ?></td>
-                                    <td data-label="إجراءات">
-                                        <a class="tq-btn tq-btn--secondary tq-btn--sm"
-                                           href="<?php echo base_url('teacher/marking'); ?>?result=<?php echo (int) $tq_a['quiz_result_id']; ?>">
-                                            <?php echo t('راجع'); ?>
-                                        </a>
-                                    </td>
+                                    <th scope="col"><?php echo t('الطالب'); ?></th>
+                                    <th scope="col"><?php echo t('الاختبار'); ?></th>
+                                    <th scope="col"><?php echo t('الدرجة المعتمدة'); ?></th>
+                                    <th scope="col"><?php echo t('منذ'); ?></th>
+                                    <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($tq_approved as $tq_a): ?>
+                                    <?php
+                                    $tq_name  = trim($tq_a['first_name'] . ' ' . $tq_a['last_name']);
+                                    $tq_total = max(1, (int) $tq_a['total_marks']);
+                                    $tq_sc    = (float) $tq_a['teacher_score'];
+                                    $tq_m     = $tq_mark->mastery($tq_sc, $tq_total);
+                                    ?>
+                                    <tr>
+                                        <td data-label="<?php echo te('الطالب'); ?>">
+                                            <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></span>
+                                            <span class="tq-micro" style="display:block"><?php echo html_escape($tq_a['course_title']); ?></span>
+                                        </td>
+                                        <td data-label="<?php echo te('الاختبار'); ?>"><?php echo html_escape($tq_a['quiz_title']); ?></td>
+                                        <td data-label="<?php echo te('الدرجة المعتمدة'); ?>">
+                                            <?php echo tq_num(($tq_sc == (int) $tq_sc ? (int) $tq_sc : $tq_sc) . ' / ' . $tq_total, 'tq-num--sm'); ?>
+                                            <?php echo tq_badge($tq_m['key'], $tq_m['label']); ?>
+                                        </td>
+                                        <td data-label="<?php echo te('منذ'); ?>"><?php echo html_escape(tq_since((int) $tq_a['approved_at'])); ?></td>
+                                        <td data-label="<?php echo te('إجراءات'); ?>">
+                                            <a class="tq-btn tq-btn--secondary tq-btn--sm"
+                                               href="<?php echo base_url('teacher/marking'); ?>?result=<?php echo (int) $tq_a['quiz_result_id']; ?>">
+                                                <?php echo t('راجع'); ?>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
         <?php endif; ?>

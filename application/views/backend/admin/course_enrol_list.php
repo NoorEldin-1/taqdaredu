@@ -68,7 +68,7 @@ if ($tq_rows) {
                 $tq_name = $tq_u ? trim($tq_u['first_name'] . ' ' . $tq_u['last_name']) : '';
             ?>
                 <tr>
-                    <td data-label="الطالب">
+                    <td data-label="<?php echo te('الطالب'); ?>">
                         <?php if ($tq_u): ?>
                             <span class="tqa-media__title"><?php echo html_escape($tq_name ?: $tq_u['email']); ?></span>
                             <span class="tqa-media__sub"><?php echo html_escape($tq_u['email']); ?></span>
@@ -77,11 +77,11 @@ if ($tq_rows) {
                         <?php endif; ?>
                     </td>
 
-                    <td data-label="سجل في">
+                    <td data-label="<?php echo te('سجل في'); ?>">
                         <?php echo tqa_when($tq_e['date_added'], 'Y-m-d'); ?>
                     </td>
 
-                    <td data-label="ينتهي وصوله">
+                    <td data-label="<?php echo te('ينتهي وصوله'); ?>">
                         <?php if (!empty($tq_e['expiry_date'])): ?>
                             <?php echo tqa_when($tq_e['expiry_date'], 'Y-m-d'); ?>
                         <?php else: ?>

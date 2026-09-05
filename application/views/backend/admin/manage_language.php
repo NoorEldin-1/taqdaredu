@@ -61,12 +61,12 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
                 <tbody data-tqa-filter-body>
                 <?php foreach ($tq_phrases as $tq_key => $tq_val): $tq_slug = slugify($tq_key); ?>
                     <tr>
-                        <td data-label="المفتاح">
+                        <td data-label="<?php echo te('المفتاح'); ?>">
                             <span class="tq-ltr" dir="ltr" style="font:var(--tq-type-micro);color:var(--tq-text2)">
                                 <?php echo html_escape($tq_key); ?>
                             </span>
                         </td>
-                        <td data-label="الترجمة">
+                        <td data-label="<?php echo te('الترجمة'); ?>">
                             <div class="tqa-row" style="flex-wrap:nowrap">
                                 <input class="tqa-input" type="text" id="p-<?php echo $tq_slug; ?>"
                                        value="<?php echo html_escape($tq_val); ?>"
@@ -187,14 +187,14 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
                     $tq_is  = $tq_active === $tq_l;
                 ?>
                     <tr>
-                        <td data-label="اللغة">
+                        <td data-label="<?php echo te('اللغة'); ?>">
                             <span class="tqa-media__title"><?php echo html_escape(ucwords($tq_l)); ?></span>
                             <?php if ($tq_is): ?>
                                 <span class="tqa-badge tqa-badge--ok"><?php echo t('لغة النظام'); ?></span>
                             <?php endif; ?>
                         </td>
 
-                        <td data-label="اتجاه الكتابة">
+                        <td data-label="<?php echo te('اتجاه الكتابة'); ?>">
                             <div class="tqa-checkrow">
                                 <?php foreach (array('ltr' => t('من اليسار'), 'rtl' => t('من اليمين')) as $tq_d => $tq_dl): ?>
                                     <label class="tqa-check">
@@ -210,7 +210,7 @@ $tq_editing = isset($edit_profile) ? $edit_profile : '';
                             </div>
                         </td>
 
-                        <td data-label="إجراءات">
+                        <td data-label="<?php echo te('إجراءات'); ?>">
                             <div class="tqa-rowacts">
                                 <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                    href="<?php echo site_url('admin/manage_language/edit_phrase/' . rawurlencode($tq_l)); ?>">

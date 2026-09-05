@@ -1955,11 +1955,27 @@ class Taqdar_curriculum_model extends CI_Model
             log_message('error', 'TQ-CURRIC pending(edit): ' . $e->getMessage());
         }
 
+        /* ٣ — كتب ينتظر نشرها — TQ-BOOK-REVIEW.
+           والطابور واحد لا ثلاثة: المسؤول يفتح شاشة واحدة ويقرأ فيها كل
+           ما ينتظر قراره — درسا واقتراحا وكورسا وكتابا. وطابور رابع في
+           شاشة رابعة يعني كتابا يجلس في `review` إلى الأبد لأن أحدا لم
+           يعرف أن له شاشة.
+           والقرار في `Taqdar_book_model` لا هنا: الكتاب شأنه. */
+        if ($course <= 0) {
+            try {
+                $CI = get_instance();
+                $CI->load->model('taqdar_book_model', 'tq_bk_q');
+                foreach ($CI->tq_bk_q->pending_books() as $r) $out[] = $r;
+            } catch (Throwable $e) {
+                log_message('error', 'TQ-CURRIC pending(book): ' . $e->getMessage());
+            }
+        }
+
         usort($out, function ($a, $b) { return $a['at'] <=> $b['at']; });
         return $out;
     }
 
-    /** كم ينتظر — للشارة في الشريط. استعلامان يجمعان، ويردان صفرا عند العطل. */
+    /** كم ينتظر — للشارة في الشريط. استعلامات تجمع، وترد صفرا عند العطل. */
     public function pending_count()
     {
         $n = 0;
@@ -1978,6 +1994,11 @@ class Taqdar_curriculum_model extends CI_Model
             $n += (int) $this->db->query(
                 'SELECT COUNT(*) n FROM `tq_content_revisions` WHERE `status` = "pending"')->row('n');
         } catch (Throwable $e) { /* الجدول لم ينشأ */ }
+        try {
+            /* والكتاب ينتظر كما ينتظر الكورس — TQ-BOOK-REVIEW. */
+            $n += (int) $this->db->query(
+                'SELECT COUNT(*) n FROM `books` WHERE `status` = "review"')->row('n');
+        } catch (Throwable $e) { /* العمود لم يوسع بعد */ }
         return $n;
     }
 
@@ -1999,6 +2020,15 @@ class Taqdar_curriculum_model extends CI_Model
         $revision_id = (int) $revision_id;
 
         if ((string) $entity === 'course') return $this->approve_course($actor, $entity_id);
+
+        /* TQ-BOOK-REVIEW — والكتاب يفوض إلى نموذجه: القاعدة هناك،
+           والطابور هنا. ونسخة ثانية من قواعد الاعتماد هنا تفترق عن
+           أختها عند أول تعديل. */
+        if ((string) $entity === 'book') {
+            $CI = get_instance();
+            $CI->load->model('taqdar_book_model', 'tq_bk_ap');
+            return $CI->tq_bk_ap->approve_book($actor, $entity_id);
+        }
 
         /* اقتراح على منشور: الحمولة تطبق ثم يقفل الصف. */
         if ($revision_id > 0) {
@@ -2077,6 +2107,12 @@ class Taqdar_curriculum_model extends CI_Model
         $revision_id = (int) $revision_id;
 
         if ((string) $entity === 'course') return $this->reject_course($actor, $entity_id, $reason);
+
+        if ((string) $entity === 'book') {
+            $CI = get_instance();
+            $CI->load->model('taqdar_book_model', 'tq_bk_rj');
+            return $CI->tq_bk_rj->reject_book($actor, $entity_id, $reason);
+        }
 
         if ($revision_id > 0) {
             $rev = $this->db->where('id', $revision_id)->where('status', 'pending')

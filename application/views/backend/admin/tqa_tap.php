@@ -355,27 +355,27 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
             <tr>
                 <td data-label="#"><span class="tqa-num"><?php echo (int) $a['id']; ?></span></td>
 
-                <td data-label="الطالب">
+                <td data-label="<?php echo te('الطالب'); ?>">
                     <?php echo html_escape($a['user_name'] ?: ('#' . (int) $a['user_id'])); ?>
                 </td>
 
-                <td data-label="الفاتورة">
+                <td data-label="<?php echo te('الفاتورة'); ?>">
                     <span class="tqa-num" style="font-size:12px">
                         <?php echo html_escape($a['invoice_no'] ?: ('#' . (int) $a['invoice_id'])); ?>
                     </span>
                 </td>
 
-                <td data-label="المبلغ">
+                <td data-label="<?php echo te('المبلغ'); ?>">
                     <strong><?php echo tqa_money((int) $a['amount']); ?></strong>
                 </td>
 
-                <td data-label="الوضع">
+                <td data-label="<?php echo te('الوضع'); ?>">
                     <span class="tqa-badge tqa-badge--<?php echo $a['mode'] === 'live' ? 'ok' : 'muted'; ?>">
                         <?php echo $a['mode'] === 'live' ? t('إنتاج') : t('اختبار'); ?>
                     </span>
                 </td>
 
-                <td data-label="الحالة">
+                <td data-label="<?php echo te('الحالة'); ?>">
                     <span class="tqa-badge tqa-badge--<?php echo $tq_tone; ?>">
                         <?php echo html_escape($tq_label); ?>
                     </span>
@@ -389,19 +389,19 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
                     <?php endif; ?>
                 </td>
 
-                <td data-label="معرف الدفعة">
+                <td data-label="<?php echo te('معرف الدفعة'); ?>">
                     <span class="tqa-num" style="font-size:11px">
                         <?php echo html_escape($a['charge_id'] ?: '—'); ?>
                     </span>
                 </td>
 
-                <td data-label="التاريخ">
+                <td data-label="<?php echo te('التاريخ'); ?>">
                     <span class="tqa-num" style="font-size:12px">
                         <?php echo html_escape($a['created_at'] ?: '—'); ?>
                     </span>
                 </td>
 
-                <td data-label="مراجعة">
+                <td data-label="<?php echo te('مراجعة'); ?>">
                     <?php if ($a['status'] === 'paid'): ?>
                         <span style="color:var(--tq-text3)"><?php echo t('سويت'); ?></span>
                     <?php elseif (empty($a['charge_id'])): ?>

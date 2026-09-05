@@ -41,7 +41,7 @@ class Taqdar_admin extends CI_Controller
      * TQ-RAIL-NOACTIVE — و`page_name` لا يصلح وحده لتظليل الشريط الجانبي:
      * الوحدات الموصوفة كلها تعرض بقالبين اثنين، `tqa_list` و`tqa_form`،
      * فست عشرة شاشة — المواد والصفوف والمسارات والمحطات والأهداف
-     * والتقييمات والباقات والفواتير والمحافظ والكتب والمسابقات وسجل
+     * والتقييمات والباقات والفواتير والمحافظ والكتب وسجل
      * التدقيق … — كانت ترسل إلى `navigation.php` الاسم نفسه، ولا بند في
      * الشريط اسمه `tqa_list`. أي أن **الشريط لا يظلل شيئا في أي منها**،
      * ولا يجلب المستخدم إلى موضعه في قائمة من ثمانية وثلاثين بندا.
@@ -302,6 +302,154 @@ class Taqdar_admin extends CI_Controller
         }
 
         redirect(site_url('taqdar_admin/course_sales'), 'location', 302);
+    }
+
+
+    /* =====================================================================
+       TQ-BOOK — «بيع الكتب»: الباب والتسعيرة والمبيعات في شاشة واحدة
+       ---------------------------------------------------------------------
+       والشاشة تحت «المالية» بجوار «بيع الكورسات»: هما وحدتا البيع
+       المفرد، والثانية تقرأ في سياق الأولى. وبند في «المحتوى والموقع»
+       (حيث تحرر الكتب) كان يخفيها عمن يدير المال.
+
+       والمفتاح العام في ذيلها لا في «إعدادات المنصة»: هذه هي الشاشة
+       التي يظهر فيها أثره. وهو مبدأ TQ-REVIEW-KNOBS نفسه.
+       ===================================================================== */
+
+    public function book_sales()
+    {
+        $this->load->model('taqdar_book_model', 'tq_bk');
+
+        /* البنية أولا: الأعمدة تنشأ عند أول قراءة، وقراءة قبلها ترد
+           «عمود مجهول» فتخرج الشاشة **فارغة لا معطلة** — يقرأ المسؤول
+           «لا كتب معروضة» على قاعدة فيها عشرة. */
+        $this->tq_bk->install_schema();
+
+        /* **كل ما علم للبيع** لا ما يباع فعلا وحده: الكتاب الذي علم ولم
+           يعرض (لأنه غير منشور أو بلا سعر أو بلا ملف) هو أول ما يحتاج
+           المسؤول أن يراه — وقائمة تسقطه تخفي عنه العطل الذي جاء
+           يصلحه. */
+        $offers = $this->tq_bk->offers(false);
+
+        /* والكتب التي لم تعلن بعد: منها يعلن الجديد، فلا يخرج المسؤول من
+           هذه الشاشة إلى «الكتب» ليبحث عن واحد يعرضه. */
+        $rest = $this->db->select('b.id, b.title, b.status, b.teacher_id, b.grade_id, b.file,
+                                   g.name_ar AS grade_name,
+                                   TRIM(CONCAT(COALESCE(u.first_name,""), " ",
+                                               COALESCE(u.last_name,""))) AS teacher_name', false)
+                         ->from('books b')
+                         ->join('grades g', 'g.id = b.grade_id', 'left')
+                         ->join('users  u', 'u.id = b.teacher_id', 'left')
+                         ->where('b.tq_sell', 0)
+                         ->order_by('b.id', 'DESC')->limit(60)
+                         ->get()->result_array();
+
+        $this->render('tqa_book_sales', 'بيع الكتب', array(
+            'nav_key' => 'tqa_book_sales',
+            'offers'  => $offers,
+            'sales'   => $this->tq_bk->sales(0, 60),
+            'stats'   => $this->tq_bk->sales_stats(),
+            'rest'    => $rest,
+            'cfg'     => $this->tq_bk->config(true),
+        ));
+    }
+
+    /**
+     * حفظ المفاتيح العامة لبيع الكتب.
+     *
+     * والحدود تفرض في `Taqdar_book_model::config()` لا هنا: قيمة قد
+     * تكتب بسكربت أو بيد في القاعدة، وفحص في المتحكم وحده يحرسها من
+     * النموذج ولا يحرسها من القاعدة.
+     */
+    public function book_sales_config()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_book_model', 'tq_bk');
+
+        $vals = array();
+        foreach (array_keys(Taqdar_book_model::$DEFAULTS) as $k) {
+            /* خانة التأشير غير المؤشرة لا ترسل أصلا، فلا يفرق «لم يرسل»
+               عن «أطفئ» — وحقل مرافق يفصل. وبلاه لا يطفأ الباب أبدا. */
+            if ($k === 'tq_book_sales_enabled' || $k === 'tq_book_direct_publish') {
+                $vals[$k] = ((string) $this->input->post($k) === '1') ? '1' : '0';
+                continue;
+            }
+            $vals[$k] = (string) $this->input->post($k);
+        }
+        $cfg = $this->tq_bk->save_config($vals);
+
+        $this->session->set_flashdata('flash_message',
+            $cfg['enabled']
+                ? 'حفظت — باب بيع الكتب مفتوح. نصيب المعلم الافتراضي '
+                  . rtrim(rtrim(number_format($cfg['percent'], 2), '0'), '.')
+                  . '٪، والباقي عمولة المنصة. ولا يعرض كتاب حتى يعلم «يباع مفردا» ويسعر.'
+                : 'حفظت — والباب مغلق، فتعرض الكتب مجانية للتحميل كما كانت ولا يتغير شيء.');
+        redirect(site_url('taqdar_admin/book_sales#tqa-pricing'), 'location', 302);
+    }
+
+    /**
+     * حفظ عرض كتاب واحد من صف في القائمة.
+     *
+     * والكتابة تمر بالجدول مباشرة لا بـ`save_book()`: تلك تحرر الكتاب
+     * كله بحقوله، وهذه تعدل **أربعة أعمدة مالية** من صف في جدول. والسعر
+     * يقرأ بعدها من `offer()` نفسها، فالرسالة تقول ما يراه المشتري.
+     */
+    public function book_sale_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $this->tq_bk->install_schema();
+
+        $bid = (int) $this->input->post('book_id');
+        $row = $this->tq_bk->book($bid);
+        if (!$row) {
+            $this->session->set_flashdata('error_message', 'لا كتاب بهذا المعرف.');
+            redirect(site_url('taqdar_admin/book_sales'), 'location', 302);
+            return;
+        }
+
+        $sar = function ($v) {
+            return max(0, (int) round(((float) str_replace(',', '', (string) $v)) * 100));
+        };
+
+        /* والفارغ غير الصفر في النسبة: فراغ يعني «خذ العام»، وصفر يعني
+           «صفرا بقرار». وحقل واحد لا يفرق بينهما يحرم كل معلم لم يمر
+           عليه المسؤول. */
+        $pct = trim((string) $this->input->post('percent'));
+
+        $data = array(
+            'tq_sell'            => ((string) $this->input->post('tq_sell') === '1') ? 1 : 0,
+            'price'              => $sar($this->input->post('price_sar')),
+            'discount_price'     => $sar($this->input->post('discount_sar')),
+            'tq_teacher_percent' => ($pct === '') ? null : max(0, min(100, (float) $pct)),
+            'last_modified'      => time(),
+        );
+
+        try {
+            $this->db->where('id', $bid)->update('books', $data);
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            $this->session->set_flashdata('error_message', 'تعذر الحفظ.');
+            redirect(site_url('taqdar_admin/book_sales'), 'location', 302);
+            return;
+        }
+
+        $o = $this->tq_bk->offer($bid);
+
+        /* الرسالة تقول **ما يراه المشتري الآن** لا «حفظ»: مسؤول علم
+           كتابا بلا ملف يظن أنه عرضه، ولا شيء يقول له غير ذلك. */
+        $this->session->set_flashdata('flash_message',
+            $o['sellable']
+                ? 'حفظ — يباع الآن بـ' . number_format($o['price'] / 100, 2) . ' ر.س،'
+                  . ((int) $o['teacher_id'] > 0
+                        ? ' للمعلم ' . number_format($o['share'] / 100, 2) . ' ر.س'
+                          . ' وللمنصة ' . number_format($o['platform'] / 100, 2) . ' ر.س.'
+                        : ' وثمنه كله للمنصة (كتاب بلا معلم).')
+                : 'حفظ — ولا يعرض للبيع: ' . $o['why']);
+
+        redirect(site_url('taqdar_admin/book_sales'), 'location', 302);
     }
 
     /** أوقات المعلمين المفتوحة — من فتح وقتا ومن لم يفتح، وبأي تسعيرة. */
@@ -905,6 +1053,10 @@ class Taqdar_admin extends CI_Controller
            قبل إنشائه ترد «عمود مجهول» فتبيض الشاشة. TQ-COURSE-SALE. */
         $this->load->model('taqdar_course_sale_model', 'tq_cs');
         $this->tq_cs->install_schema();
+        /* و`subscriptions.book_id` مثله — TQ-BOOK. وشاشة تقرأ عمودا لم
+           ينشأ بعد تبيض كلها، لا سطرا واحدا. */
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $this->tq_bk->install_schema();
 
         // الاسم يجلب بضمة واحدة لا باستعلام لكل صف
         /* والاسم الثلاثة معا: الباقة والمسار **والكورس المفرد**. وكان
@@ -914,14 +1066,19 @@ class Taqdar_admin extends CI_Controller
            يحتاج أن يتحقق ممن يفعل لها — والاسمان يتشابهان في قائمة من
            ثلاثمئة، والبريد لا يتشابه. والصورة تمسكها العين قبل الحرف،
            و`tqa_avatar()` تقرأ الرمز من الصف بلا استعلام لكل سطر. */
+        /* والكتاب رابعها — TQ-BOOK. وكان الضم ثلاثيا، فيقرأ صف شراء
+           الكتاب «—» في عمود «ما اشترى»: بيعة لها مشتر ومبلغ وفاتورة
+           وقيد في دفتر، ولا أحد في اللوحة يعرف ماذا بيع فيها. */
         $rows = $this->db->select('s.*, p.name_ar AS plan_name,'
                 . ' t.title AS path_name, c.title AS course_name,'
+                . ' b.title AS book_name,'
                 . ' u.email AS user_email, u.image AS user_image,'
                 . ' TRIM(CONCAT(COALESCE(u.first_name, ""), " ", COALESCE(u.last_name, ""))) AS user_name', false)
             ->from('subscriptions s')
             ->join('plans p', 'p.id = s.plan_id', 'left')
             ->join('paths t', 't.id = s.path_id', 'left')
             ->join('course c', 'c.id = s.course_id', 'left')
+            ->join('books b', 'b.id = s.book_id', 'left')
             ->join('users u', 'u.id = s.user_id', 'left')
             ->order_by('s.id', 'DESC')->limit(300)
             ->get()->result_array();
@@ -961,6 +1118,49 @@ class Taqdar_admin extends CI_Controller
     }
 
     /**
+     * TQ-SUB-DETAIL — ملف بيعة واحدة: ماذا جرى فيها، وما الذي يفعل بها.
+     *
+     * ═══ لماذا شاشة لا قائمة تطول ═══
+     *
+     * صف القائمة يجيب سؤال المسح («من اشترك وبكم؟»)، وقائمة إجراءاته
+     * تحمل ما يفعل بالصف. ولا يجيبان سؤال الحادثة — «هذا الصف بعينه،
+     * ماذا جرى فيه؟» — وهو ما يسأل عند كل اتصال: «دفعت ولم يفتح»،
+     * «باعوا صفي ولم يصلني شيء»، «هذه الفاتورة لم تسدد».
+     *
+     * وجوابه كان مبعثرا في خمس شاشات لا يربط بينها رقم: الفاتورة في
+     * «الفواتير»، والمحاولة في «الدفع بالبطاقة»، والقسمة في قائمة الصف،
+     * والقيد في «قيود المحافظ»، والأثر في سجل التدقيق. فيبحث المسؤول
+     * بالاسم في كل واحدة ويجمع الجواب بيده — أو يجيب بالحدس.
+     *
+     * وإقحام ذلك كله في صف الجدول ليس بديلا: عشرة أعمدة صار كل صف فيها
+     * ثلاثين سطرا، والقائمة التي تجيب سؤال المسح لا تمسح.
+     *
+     * والجمع في `Taqdar_billing_model::detail()` لا هنا: هي طبقة المال،
+     * وسؤال «ماذا جرى في هذه البيعة؟» سؤالها.
+     */
+    public function subscription($id = 0)
+    {
+        $id = (int) $id;
+
+        /* البنية أولا كما في القائمة: `course_id` و`book_id` ينشآن وقت
+           التشغيل، وقراءة عمود قبل إنشائه تبيض الشاشة. */
+        $this->load->model('taqdar_course_sale_model', 'tq_cs');
+        $this->tq_cs->install_schema();
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $this->tq_bk->install_schema();
+
+        $d = $this->taqdar_billing_model->detail($id);
+        if (!$d) show_404();
+
+        /* والعنوان مفتاح واحد ببديله: «الاشتراك #» وحدها نصف جملة. */
+        $this->render('tqa_subscription', t('الاشتراك رقم ____', $id), array(
+            'nav_key'        => 'tqa_subscriptions',
+            'd'              => $d,
+            'gateway_active' => $this->gateway_active(),
+        ));
+    }
+
+    /**
      * إعادة قسمة إيراد بيعة على المستحقين **الآن**.
      *
      * القسمة تجمد وقت التفعيل بالقاعدة، وهذا صواب. وهذا الزر للحال
@@ -971,6 +1171,23 @@ class Taqdar_admin extends CI_Controller
      * وهو **قرار إداري صريح** لا مسار تلقائي: نقل مال بعد أن قيد ليس
      * تصحيح رقم، فيضغطه مسؤول ويترك أثره في السجل.
      */
+    /**
+     * إلى أين يعود الرد بعد إجراء على اشتراك.
+     *
+     * الإجراءات الثلاثة تنفذ من موضعين: قائمة الاشتراكات وشاشة البيعة.
+     * ومسار واحد لهما لا مساران — شاشتان تفعلان بمسارين تفترقان عند أول
+     * تعديل. فيرسل الموضع في `back`، ويعود الرد إليه: من فعل حوالة من
+     * شاشة البيعة يقرأ أثرها فيها، لا يقذف إلى أول قائمة من ثلاثمئة صف
+     * يبحث فيها عن صفه.
+     */
+    private function sub_back($id)
+    {
+        $back = (int) $this->input->post('back');
+        return site_url($back > 0
+            ? 'taqdar_admin/subscription/' . $back
+            : 'taqdar_admin/subscriptions');
+    }
+
     public function subscription_resplit($id = 0)
     {
         if ($this->input->method(true) !== "POST") show_404();
@@ -989,7 +1206,7 @@ class Taqdar_admin extends CI_Controller
             $this->session->set_flashdata('flash_message', $msg);
         }
 
-        redirect(site_url('taqdar_admin/subscriptions'), 'location', 302);
+        redirect($this->sub_back($id), 'location', 302);
     }
 
     /**
@@ -1016,7 +1233,7 @@ class Taqdar_admin extends CI_Controller
         $ref = trim((string) $this->input->post('reference'));
         if ($ref === '') {
             $this->session->set_flashdata('error_message', 'اكتب مرجع الحوالة قبل التفعيل — التفعيل بلا مرجع لا يمكن تدقيقه.');
-            redirect(site_url('taqdar_admin/subscriptions'));
+            redirect($this->sub_back($id));
         }
 
         $ok = $this->taqdar_billing_model->activate_manually((int) $id, $ref);
@@ -1025,34 +1242,30 @@ class Taqdar_admin extends CI_Controller
            كان التفعيل يقع في القاعدة بلا خبر: من حول حوالة بنكية ينتظر
            ولا يعرف متى تراجع، فيدخل كل يوم يجرب — أو يتصل بالدعم. */
         if ($ok) {
-            /* TQ-COURSE-SALE — الاسم من الثلاثة: الباقة والمسار والكورس
-               المفرد. وكان الضم على `plans` وحده، فيصل من حول قيمة كورس
-               اشتراه خبر يقول «فعلت باقة الاشتراك». */
-            $sub = $this->db->select('s.user_id, s.ends_at, s.course_id,'
-                            . ' p.name_ar AS plan_name, t.title AS path_name,'
-                            . ' c.title AS course_name', false)
-                            ->from('subscriptions s')
-                            ->join('plans p', 'p.id = s.plan_id', 'left')
-                            ->join('paths t', 't.id = s.path_id', 'left')
-                            ->join('course c', 'c.id = s.course_id', 'left')
-                            ->where('s.id', (int) $id)->get()->row_array();
+            /* TQ-SOLD-NAME — الاسم من `Taqdar_billing_model::sold()` وحدها.
+               كان هنا ضم ثلاثي مكتوب بيده، وهو نسخة سادسة من قاعدة
+               واحدة — فمن حول قيمة **كتاب** يصله «فعلت باقة «الاشتراك»»
+               عن كتاب اشتراه بعينه. */
+            $sub = $this->db->where('id', (int) $id)
+                            ->get('subscriptions')->row_array();
             if ($sub && !empty($sub['user_id'])) {
-                $is_course = (int) ($sub['course_id'] ?? 0) > 0;
-                $what = '';
-                foreach (array('plan_name', 'path_name', 'course_name') as $k) {
-                    if (isset($sub[$k]) && trim((string) $sub[$k]) !== '') {
-                        $what = trim((string) $sub[$k]); break;
-                    }
-                }
+                $sold   = $this->taqdar_billing_model->sold($sub);
+                $what   = (string) $sold['title'];
+                $single = in_array($sold['kind'], array('course', 'book'), true);
+
+                /* والجملة مفتاح واحد ببدائل `____` لا قطع تلصق. */
+                $when = !empty($sub['ends_at'])
+                      ? ' ' . t('حتى ____', date('Y-m-d', strtotime($sub['ends_at'])))
+                      : ($single ? ' ' . t('بوصول دائم') : '');
+
                 $this->taqdar_admin_model->push_notification(
                     (int) $sub['user_id'],
-                    $is_course ? 'فتح الكورس الذي اشتريته' : 'فعل اشتراكك',
-                    ($is_course ? 'وصلت حوالتك وفتح كورس ' : 'فعلت باقة ')
-                    . '«' . ($what !== '' ? $what : 'الاشتراك') . '»'
-                    . (!empty($sub['ends_at'])
-                        ? ' حتى ' . date('Y-m-d', strtotime($sub['ends_at']))
-                        : ($is_course ? ' بوصول دائم' : ''))
-                    . '. صار المحتوى مفتوحا لك الآن.',
+                    $single ? t('فتح ____ الذي اشتريته', $sold['noun_def'])
+                            : t('فعل اشتراكك'),
+                    ($single ? t('وصلت حوالتك وفتح ____ «____»',
+                                 array($sold['noun'], ($what !== '' ? $what : t('الاشتراك'))))
+                             : t('فعلت باقة «____»', ($what !== '' ? $what : t('الاشتراك'))))
+                    . $when . '. ' . t('صار المحتوى مفتوحا لك الآن.'),
                     'subscription'
                 );
             }
@@ -1060,7 +1273,7 @@ class Taqdar_admin extends CI_Controller
 
         $this->session->set_flashdata($ok ? 'flash_message' : 'error_message',
             $ok ? 'فعل الاشتراك وسددت فاتورته، وأخطر صاحبه.' : 'تعذر التفعيل.');
-        redirect(site_url('taqdar_admin/subscriptions'));
+        redirect($this->sub_back($id));
     }
 
     public function subscription_cancel($id = 0)
@@ -1070,7 +1283,7 @@ class Taqdar_admin extends CI_Controller
         $ok = $this->taqdar_billing_model->cancel((int) $id, 'ألغته الإدارة');
         $this->session->set_flashdata($ok ? 'flash_message' : 'error_message',
             $ok ? 'ألغي التجديد — ويبقى الاشتراك صالحا حتى تاريخ انتهائه.' : 'تعذر الإلغاء.');
-        redirect(site_url('taqdar_admin/subscriptions'));
+        redirect($this->sub_back($id));
     }
 
     /* =====================================================================

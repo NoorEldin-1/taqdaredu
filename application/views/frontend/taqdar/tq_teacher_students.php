@@ -211,54 +211,56 @@ include 'portal_open.php';
 
             <?php if ($tq_students): ?>
                 <div class="tq-card">
-                    <table class="tq-table">
-                        <caption class="tq-sr"><?php echo t('طلاب كورساتك: التقدم ومتوسط الاختبارات وآخر نشاط'); ?></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><?php echo t('الطالب'); ?></th>
-                                <th scope="col"><?php echo t('الكورس'); ?></th>
-                                <th scope="col"><?php echo t('التقدم'); ?></th>
-                                <th scope="col"><?php echo t('متوسط الاختبارات'); ?></th>
-                                <th scope="col"><?php echo t('آخر نشاط'); ?></th>
-                                <?php if ($tq_msg_ready): ?>
-                                    <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
-                                <?php endif; ?>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tq_students as $tq_s): ?>
-                                <?php $tq_name = trim($tq_s['first_name'] . ' ' . $tq_s['last_name']); ?>
-                                <tr id="student-<?php echo (int) $tq_s['id']; ?>">
-                                    <td data-label="الطالب">
-                                        <span class="tq-row" style="gap:var(--tq-space-s)">
-                                            <img class="tq-avatar tq-avatar--sm"
-                                                 src="<?php echo tqs_person_img($tq_s['image']); ?>"
-                                                 alt="<?php echo te('صورة ____', array(html_escape($tq_name))); ?>">
-                                            <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></span>
-                                        </span>
-                                    </td>
-                                    <td data-label="الكورس"><?php echo html_escape($tq_s['course_title']); ?></td>
-                                    <td data-label="التقدم" style="min-inline-size:170px">
-                                        <?php echo tq_progress((int) $tq_s['progress'], t('تقدم ') . $tq_name); ?>
-                                    </td>
-                                    <td data-label="متوسط الاختبارات">
-                                        <?php if ($tq_s['attempts'] > 0): ?>
-                                            <?php echo tq_num($tq_s['avg_pct'] . '%', 'tq-num--sm'); ?>
-                                        <?php else: ?>
-                                            <span class="tq-caption"><?php echo t('لم يبدأ اختبارا'); ?></span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td data-label="آخر نشاط"><?php echo html_escape(tq_since((int) $tq_s['last_seen'])); ?></td>
+                    <div class="tq-table-wrap">
+                        <table class="tq-table">
+                            <caption class="tq-sr"><?php echo t('طلاب كورساتك: التقدم ومتوسط الاختبارات وآخر نشاط'); ?></caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col"><?php echo t('الطالب'); ?></th>
+                                    <th scope="col"><?php echo t('الكورس'); ?></th>
+                                    <th scope="col"><?php echo t('التقدم'); ?></th>
+                                    <th scope="col"><?php echo t('متوسط الاختبارات'); ?></th>
+                                    <th scope="col"><?php echo t('آخر نشاط'); ?></th>
                                     <?php if ($tq_msg_ready): ?>
-                                        <td data-label="إجراءات">
-                                            <a class="tq-btn tq-btn--ghost tq-btn--sm"
-                                               href="<?php echo $tq_msg_link((int) $tq_s['id']); ?>"><?php echo t('راسله'); ?></a>
-                                        </td>
+                                        <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                                     <?php endif; ?>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($tq_students as $tq_s): ?>
+                                    <?php $tq_name = trim($tq_s['first_name'] . ' ' . $tq_s['last_name']); ?>
+                                    <tr id="student-<?php echo (int) $tq_s['id']; ?>">
+                                        <td data-label="<?php echo te('الطالب'); ?>">
+                                            <span class="tq-row" style="gap:var(--tq-space-s)">
+                                                <img class="tq-avatar tq-avatar--sm"
+                                                     src="<?php echo tqs_person_img($tq_s['image']); ?>"
+                                                     alt="<?php echo te('صورة ____', array(html_escape($tq_name))); ?>">
+                                                <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_name); ?></span>
+                                            </span>
+                                        </td>
+                                        <td data-label="<?php echo te('الكورس'); ?>"><?php echo html_escape($tq_s['course_title']); ?></td>
+                                        <td data-label="<?php echo te('التقدم'); ?>" style="min-inline-size:170px">
+                                            <?php echo tq_progress((int) $tq_s['progress'], t('تقدم ') . $tq_name); ?>
+                                        </td>
+                                        <td data-label="<?php echo te('متوسط الاختبارات'); ?>">
+                                            <?php if ($tq_s['attempts'] > 0): ?>
+                                                <?php echo tq_num($tq_s['avg_pct'] . '%', 'tq-num--sm'); ?>
+                                            <?php else: ?>
+                                                <span class="tq-caption"><?php echo t('لم يبدأ اختبارا'); ?></span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td data-label="<?php echo te('آخر نشاط'); ?>"><?php echo html_escape(tq_since((int) $tq_s['last_seen'])); ?></td>
+                                        <?php if ($tq_msg_ready): ?>
+                                            <td data-label="<?php echo te('إجراءات'); ?>">
+                                                <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                                                   href="<?php echo $tq_msg_link((int) $tq_s['id']); ?>"><?php echo t('راسله'); ?></a>
+                                            </td>
+                                        <?php endif; ?>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             <?php else: ?>
                 <div class="tq-card tq-empty">

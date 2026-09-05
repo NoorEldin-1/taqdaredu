@@ -112,7 +112,7 @@ css: pages
       </article>
       <article class="icard reveal">
         <span class="ico"><svg aria-hidden="true"><use href="#i-target"></use></svg></span>
-        <h3>أنشطة ومسابقات</h3><p>لتحفيز التعلم وجعله عادة محببة.</p>
+        <h3>أنشطة وتمارين</h3><p>لتحفيز التعلم وجعله عادة محببة.</p>
       </article>
       <article class="icard reveal">
         <span class="ico"><svg aria-hidden="true"><use href="#i-video"></use></svg></span>

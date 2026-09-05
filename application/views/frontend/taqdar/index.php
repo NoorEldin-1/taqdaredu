@@ -60,7 +60,7 @@ $tq_is_portal = isset($page_name)
    ترويسة الثيم القديمة السداسية، ومن الخلفية الكريمية إلى بيضاء. لا شيء
    يقول له إنه غادر الموقع — لأنه لم يغادره. */
 $tq_site_pages = array('home', 'home_elegant', 'courses_page', 'course_page', 'site_teachers', 'site_students', 'site_parents', 'blogs', 'about_us', 'contact_us', 'site_path', 'login', 'sign_up', 'forgot_password',
-    'change_password_from_forgot_password', 'verification_code', 'terms_and_condition', 'privacy_policy', 'refund_policy', 'website_faq', '404', 'plans', 'categories', 'blog_details', 'instructor_page', 'competitions', 'site_search', 'site_plan', 'site_checkout',
+    'change_password_from_forgot_password', 'verification_code', 'terms_and_condition', 'privacy_policy', 'refund_policy', 'website_faq', '404', 'plans', 'categories', 'blog_details', 'instructor_page', 'site_search', 'site_plan', 'site_checkout',
     /* TQ-COURSE-SALE — شاشة تأكيد شراء الكورس المفرد، بجوار أختها.
        وبلا إدراجها هنا تفتح بترويسة الثيم القديمة: ينتقل المشتري من
        صفحة الكورس إلى شاشة دفع تبدو من موقع آخر — وهي آخر شاشة يحسن
@@ -69,7 +69,13 @@ $tq_site_pages = array('home', 'home_elegant', 'courses_page', 'course_page', 's
     /* الكتالوج وصفحتا مفرداته: بلا إدراجها هنا تفتح بترويسة الثيم
        القديمة وخلفية بيضاء — يهبط الزائر من الموقع إلى موقع آخر بلا
        شيء يقول له إنه غادر، لأنه لم يغادره. */
-    'site_catalog', 'site_book', 'site_competition',
+    'site_catalog', 'site_book',
+    /* TQ-BOOK — وصفحة الكتب وشاشة تأكيد شرائها معهما.
+       **وهذه القائمة هي أول ما ينسى عند إضافة صفحة عامة**: الصفحة تعمل
+       ويرد المسار 200 ويطبع القالب محتواه كاملا — فلا شيء يخطئ، وكل
+       ما يقع أنها تفتح بترويسة الثيم الموروث وبلا ورقة `site/*.css`
+       واحدة. أي أن الفحص بـ`curl` يقول «سليمة» والعين تقول غير ذلك. */
+    'site_books', 'site_book_checkout',
     /* معاينة الدرس المجاني: عامة كصفحات الموقع — يفتحها من لا حساب له،
        وهي الوعد المكتوب على شارة «معاينة مجانية». انظر `Preview.php`. */
     'site_preview',
@@ -118,9 +124,24 @@ $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_si
     <script src="<?php echo tq_asset('js/tq-i18n.js'); ?>"></script>
 </head>
 
+<?php /* TQA-CONTROLS · الموقع العام يلبس منتقيه بنفسه.
+   `tqa-select.js` و`tqa-file.js` يمسحان `document` ولا يشترطان سطحا،
+   وورقتهما `css/tqa-controls.css` تحمل في اللوحة والبوابات وحدها —
+   فعلى الموقع العام كان السكربت يبني الوجه والورقة غائبة: المنتق
+   الأصلي يبقى مرسوما بجوار الصندوق الجديد، فتقرأ «اختر الموضوع…»
+   مرتين بسهمين، ويأخذ منتقي الدولة عرض الحقل كله فينكمش صندوق الرقم
+   إلى أربعة بكسلات — قيس على عرض ٣٤٤.
+   وحقن الورقة هنا ليس الجواب: للموقع تصميمه هو لهذا الحقل بعينه
+   (TQ-INPUT-SHRINK و TQ-PHONE-BOX في `pages.css`) — سهم مرسوم و
+   `appearance:none` وألوان خيارات وصف الهاتف كله. فوجهان لحقل واحد
+   يتنازعان، والوجه الذي هنا هو المصمم لهذا السطح.
+   والاستثناء بأداة المكونين نفسيهما لا بشرط يكتب فيهما: `skip()` في
+   كليهما يسأل `closest('[data-tqa-noselect]')`، فالسمة على `<body>`
+   تعمهما بلا سطر جافاسكربت يعدل. */ ?>
 <body class="tq-body<?php echo $tq_is_portal ? ' tq-body--portal' : ''; ?><?php
     /* TQ-P26 · مِشبك قسم الباقات. لا أثر له خارج الرئيسية. */
-    echo (isset($page_name) && in_array($page_name, array('home', 'home_elegant', 'plans'), true)) ? ' tq-p26' : ''; ?>">
+    echo (isset($page_name) && in_array($page_name, array('home', 'home_elegant', 'plans'), true)) ? ' tq-p26' : ''; ?>"<?php
+    echo $tq_is_portal ? '' : ' data-tqa-noselect data-tqa-nodrop'; ?>>
 
     <a class="tq-skip-link" href="#tq-main"><?php echo t('تخط إلى المحتوى'); ?></a>
 

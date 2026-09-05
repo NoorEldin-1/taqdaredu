@@ -200,6 +200,10 @@ class Taqdar_billing_model extends CI_Model
                نشط بالفعل». والاستحقاق لا يمس: `subscription_grants()`
                تقرأ **كل** الصفوف السارية أدناه. */
             if ((int) (isset($row['course_id']) ? $row['course_id'] : 0) > 0) continue;
+            /* TQ-BOOK — وشراء كتاب مفرد مثله وللعلة نفسها: من اشترى
+               كتابا بخمسة وعشرين لا تصير «باقته» كتابا، ولا يرد عليه
+               شراء الباقة بـ«لديك اشتراك نشط بالفعل». */
+            if ((int) (isset($row['book_id']) ? $row['book_id'] : 0) > 0) continue;
             return $row;
         }
         return null;
@@ -249,6 +253,105 @@ class Taqdar_billing_model extends CI_Model
     {
         return $this->db->where('subscription_id', (int) $subscription_id)
                         ->get('subscription_items')->result_array();
+    }
+
+    /* =====================================================================
+       TQ-SOLD-NAME — ما بيع في هذا الصف: نوعه واسمه
+       ===================================================================== */
+
+    /**
+     * اسم ما بيع ونوعه، من الصف نفسه.
+     *
+     * ═══ ولماذا دالة واحدة لا سطر في كل موضع ═══
+     *
+     * سؤال «ماذا اشترى هذا الصف؟» يسأل في **ستة** مواضع لا واحد: قائمة
+     * الاشتراكات في اللوحة، وإشعار إصدار الفاتورة، وإشعار نجاح الدفع،
+     * وإشعار التفعيل اليدوي، ومدفوعات ولي الأمر، ومشتريات التطبيق. وكان
+     * كل واحد منها يكتب جوابه بيده: `if (plan) … elseif (path) … elseif
+     * (course)`.
+     *
+     * وست نسخ من قاعدة واحدة تعني أن **وحدة البيع الرابعة تضاف في بعضها
+     * وتنسى في بقيتها** — وهو ما وقع حرفا: بيع الكتاب كتب كاملا (شراء
+     * وفاتورة وتفعيل واستحقاق وقيد في دفتر معلم)، ولم يبلغ واحدا من
+     * الستة. فمن اشترى كتابا بمئتي ريال يقرأ في اللوحة «—» في عمود «ما
+     * اشترى»، ويصله إشعار يقول «قيمة الاشتراك في الباقة»، ويرى في
+     * التطبيق «باقة #0». والمال صحيح والوصول صحيح، والذي يكذب هو الاسم
+     * وحده — فلا شيء يخطئ، ولا أحد يعرف ما باع.
+     *
+     * فالجواب هنا مرة، ووحدة البيع الخامسة يوما تضاف في هذا `switch`
+     * وحده فتصل الستة معا.
+     *
+     * ═══ والترتيب مقصود ═══
+     *
+     * المفرد قبل الباقة: صف الشراء المفرد يحمل `plan_id = 0`، وقراءة
+     * الباقة أولا ترد «باقة #0» على كل كتاب وكورس بيع.
+     *
+     * ═══ وما حذف يقال بالرقم ═══
+     *
+     * TQ-PLAN-DELETE — صف يشير إلى معرف لا يقابله شيء يقال «باقة #8»
+     * بالرقم لا «شراء»: بالرقم يقابل السجل المالي، والكلمة العامة لا
+     * تقابل شيئا.
+     *
+     * @param  array|int $sub صف `subscriptions` أو معرفه
+     * @return array kind · id · title · code · label (اسم النوع للعرض)
+     *               · noun (نكرة: «قيمة كتاب») · noun_def (معرفة: «فتح الكتاب
+     *                 الذي اشتريته» — والنكرة هناك تقرأ «فتح كتاب الذي»)
+     */
+    public function sold($sub)
+    {
+        if (!is_array($sub)) $sub = $this->subscription((int) $sub);
+
+        $none = array('kind' => 'plan', 'id' => 0, 'title' => t('اشتراك'),
+                      'code' => null,  'label' => t('باقة'), 'noun' => t('باقة'), 'noun_def' => t('الباقة'));
+        if (!$sub) return $none;
+
+        $of = function ($table, $col, $id) {
+            $id = (int) $id;
+            if ($id <= 0) return '';
+            try {
+                $row = $this->db->select($col)->where('id', $id)
+                                ->get($table)->row_array();
+            } catch (Throwable $e) {
+                /* TQ-BUILDER-DIRTY — جدول أو عمود لم ينشأ بعد يترك بناء
+                   الاستعلام موصولا خلفه، فيرث كل استعلام تال ضمومه. */
+                $this->db->reset_query();
+                return '';
+            }
+            return $row ? trim((string) $row[$col]) : '';
+        };
+
+        $book = (int) (isset($sub['book_id'])   ? $sub['book_id']   : 0);
+        $crs  = (int) (isset($sub['course_id']) ? $sub['course_id'] : 0);
+        $path = (int) (isset($sub['path_id'])   ? $sub['path_id']   : 0);
+        $plan = (int) (isset($sub['plan_id'])   ? $sub['plan_id']   : 0);
+
+        if ($book > 0) {
+            $t = $of('books', 'title', $book);
+            return array('kind' => 'book', 'id' => $book, 'code' => null,
+                         'label' => t('كتاب'), 'noun' => t('كتاب'), 'noun_def' => t('الكتاب'),
+                         'title' => $t !== '' ? $t : t('كتاب') . ' #' . $book);
+        }
+        if ($crs > 0) {
+            $t = $of('course', 'title', $crs);
+            return array('kind' => 'course', 'id' => $crs, 'code' => null,
+                         'label' => t('كورس مفرد'), 'noun' => t('كورس'), 'noun_def' => t('الكورس'),
+                         'title' => $t !== '' ? $t : t('كورس') . ' #' . $crs);
+        }
+        if ($path > 0) {
+            $t = $of('paths', 'title', $path);
+            return array('kind' => 'path', 'id' => $path, 'code' => null,
+                         'label' => t('مسار'), 'noun' => t('مسار'), 'noun_def' => t('المسار'),
+                         'title' => $t !== '' ? $t : t('مسار') . ' #' . $path);
+        }
+        if ($plan > 0) {
+            $row = $this->plan($plan);
+            return array('kind' => 'plan', 'id' => $plan,
+                         'code'  => $row ? (string) $row['code'] : null,
+                         'label' => t('باقة'), 'noun' => t('باقة'), 'noun_def' => t('الباقة'),
+                         'title' => $row ? (string) $row['name_ar']
+                                         : t('باقة') . ' #' . $plan);
+        }
+        return $none;
     }
 
     /* =====================================================================
@@ -572,6 +675,270 @@ class Taqdar_billing_model extends CI_Model
         return false;
     }
 
+
+    /* =====================================================================
+       البيع بالكتاب المفرد — TQ-BOOK
+       ===================================================================== */
+
+    /**
+     * يشتري الطالب كتابا بعينه: اشتراك معلق وفاتورته. لا يمنح قبل التفعيل.
+     *
+     * وهي أخت `subscribe_course()` حرفا بحرف في بنيتها، وللسبب نفسه: صف
+     * `subscriptions` ببنده وفاتورته، فتسويه تاب بالفرع نفسه ويفعله
+     * المسؤول بالزر نفسه وينتهي أجله بـ`expire_due()` نفسها.
+     *
+     * وثلاثة فروق عن الباقة، ولكل واحد سببه — وهي فروق الكورس نفسها:
+     *
+     * ١ — **لا يمنع باقة قائمة ولا تمنعه.** من له باقة صفه واشترى كتابا
+     *     إثرائيا فوقها اشترى شيئين لا شيئا مكررا.
+     *
+     * ٢ — **يمنع تكرار نفسه.** والفحص على `has_book()` وهي تسأل ما
+     *     يسأله الحارس نفسه — فلا يباع لمن يملك، ولا تعد الشاشة بما
+     *     يمنعه الحارس.
+     *
+     * ٣ — **لا حارس تشخيصي.** TQ-PLACEMENT يحرس الباقة لأنها تفتح منهج
+     *     مرحلة؛ والكتاب الواحد يختاره صاحبه بعينه.
+     *
+     * @return array ok · subscription_id · invoice_id · errors · code
+     */
+    public function subscribe_book($user_id, $book_id, $method = 'manual')
+    {
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $this->tq_bk->install_schema();
+
+        $user_id = (int) $user_id;
+        $book_id = (int) $book_id;
+
+        if (!$user_id) return array('ok' => false, 'errors' => array(t('لا مستخدم.')));
+        if (!$book_id) return array('ok' => false, 'errors' => array(t('لا كتاب.')));
+
+        /* العرض من مصدره الواحد: السعر والأجل والنسبة كلها من `offer()`،
+           فما تعد به الشاشة هو ما تقيده الفاتورة بالهللة. */
+        $offer = $this->tq_bk->offer($book_id);
+        if (!$offer['sellable']) {
+            return array('ok' => false, 'code' => 'NOT_SELLABLE',
+                         'errors' => array($offer['free']
+                             ? t('هذا الكتاب مجاني — حمله بلا دفع.')
+                             : t('هذا الكتاب لا يباع مفردا الآن.')));
+        }
+
+        if ($this->has_book($user_id, $book_id)) {
+            return array('ok' => false, 'code' => 'ALREADY_OWNED',
+                         'errors' => array(t('هذا الكتاب مفتوح لك بالفعل.')));
+        }
+
+        /* TQ-SUB-REUSE بوجهه الثاني: معلق بفاتورة لم تدفع يعاد استعماله.
+           من أكد ثم تردد ثم أكد مرة أخرى كان يخرج بصفين وفاتورتين،
+           تسدد إحداهما وتبقى الأخرى «غير مدفوعة» في سجل مالي أبدا.
+           والسعر يفحص مع الرقم: من عدل سعر الكتاب بعد إصدارها لا يشترى
+           بسعر أمس. */
+        $pend = $this->db->where('user_id', $user_id)
+                         ->where('book_id', $book_id)
+                         ->where('status', 'pending')
+                         ->where('price', (int) $offer['price'])
+                         ->order_by('id', 'DESC')->limit(1)
+                         ->get('subscriptions')->row_array();
+
+        if ($pend) {
+            $old = $this->invoice_of_subscription((int) $pend['id']);
+            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === (int) $offer['price']) {
+                $this->db->where('id', (int) $pend['id'])
+                         ->update('subscriptions', array('method' => $method));
+                $this->db->where('id', (int) $old['id'])
+                         ->update('invoices', array('method' => $method));
+
+                return array('ok' => true, 'subscription_id' => (int) $pend['id'],
+                             'invoice_id' => (int) $old['id'], 'reused' => true,
+                             'offer' => $offer);
+            }
+        }
+
+        $this->db->insert('subscriptions', array(
+            'user_id'    => $user_id,
+            'plan_id'    => 0,
+            'path_id'    => 0,
+            'course_id'  => 0,
+            'book_id'    => $book_id,
+            'status'     => 'pending',
+            'price'      => (int) $offer['price'],   // السعر وقت الشراء
+            'auto_renew' => 0,
+            'method'     => $method,
+            'created_at' => date('Y-m-d H:i:s'),
+        ));
+        $sid = (int) $this->db->insert_id();
+
+        $inv = $this->issue_invoice($sid, $user_id, (int) $offer['price'], $method);
+        $this->notify_invoice_issued($inv, $method);
+
+        return array('ok' => true, 'subscription_id' => $sid,
+                     'invoice_id' => $inv, 'free' => false, 'offer' => $offer);
+    }
+
+    /**
+     * هل هذا الكتاب مفتوح لهذا الطالب الآن — بأي سبب؟
+     *
+     * وثلاثة أسباب تقرأ معا عمدا:
+     *   · **الكتاب مجاني** — لم يعلن للبيع، فهو مفتوح لكل أحد كما كان
+     *     منذ كتبت المنصة. وبلا هذا الفرع يعرض على الطالب زر شراء لكتاب
+     *     يحمله الزائر بلا تسجيل.
+     *   · **شراء مفرد سار.**
+     *   · **باقة تفتح صفه** (TQ-BOOK-GRADE).
+     *
+     * ولو قرئ الثاني وحده لبيع لمن يملك: يفتح كتابا في باقته فيقرأ
+     * سعرا وزر شراء، ويدفع ثمن ما يقرؤه اليوم.
+     */
+    public function has_book($user_id, $book_id)
+    {
+        $user_id = (int) $user_id;
+        $book_id = (int) $book_id;
+        if ($book_id <= 0) return false;
+
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $offer = $this->tq_bk->offer($book_id);
+
+        /* المجاني مفتوح ولو لم يسجل صاحبه — والسؤال هنا «أيفتح؟» لا
+           «أدفع؟». */
+        if ($offer['free'] && (string) $offer['reason'] !== 'unpublished') return true;
+
+        if ($user_id <= 0) return false;
+
+        try {
+            $rows = $this->db->where('user_id', $user_id)
+                             ->where('book_id', $book_id)
+                             ->where_in('status', array('active', 'cancelled'))
+                             ->get('subscriptions')->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); $rows = array(); }
+
+        foreach ($rows as $r) {
+            if (empty($r['ends_at']) || strtotime($r['ends_at']) >= time()) return true;
+        }
+
+        return in_array($book_id, $this->granted_book_ids($user_id), true);
+    }
+
+    /**
+     * كل كتاب يفتحه اشتراك سار لهذا الطالب — TQ-BOOK-GRADE.
+     *
+     * ═══ ولماذا يستعلم حيا ولا يجسد ═══
+     *
+     * الكورس يجسد في `enrol` لأن جداول موروثة كثيرة تقرؤه (كورساتي ·
+     * طلاب المعلم · التقارير · الشهادات)، والكتاب لا يقرؤه إلا مكتبة
+     * الطالب. فالاستعلام الحي يكفي — **ويغلق TQ-ENROL-STALE من أصله**:
+     * كتاب ينشر اليوم في صف باقة اشتريت في رمضان يفتح لصاحبها في
+     * اللحظة، بلا كرون ولا زر «أعد التجسيد».
+     *
+     * والبنود مصدر الحقيقة كما هي للكورس: `book` بند شراء مفرد،
+     * و`grade` بند باقة صفوف، و`all` نطاق شامل. و`subject`/`path`
+     * لا يمنحان كتبا — الكتاب لا يربط بمادة ولا بمسار، وربطه بهما
+     * تخمين لا حكم.
+     *
+     * @return array معرفات الكتب، بلا تكرار
+     */
+    public function granted_book_ids($user_id)
+    {
+        $user_id = (int) $user_id;
+        if ($user_id <= 0) return array();
+
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $this->tq_bk->install_schema();
+
+        $subs = $this->active_subscriptions($user_id);
+        if (!$subs) return array();
+
+        $direct = array();
+        $grades = array();
+        $all    = false;
+
+        foreach ($subs as $s) {
+            foreach ($this->items_of($s['id']) as $it) {
+                switch ($it['entity_type']) {
+                    case 'book':  $direct[] = (int) $it['entity_id']; break;
+                    case 'grade': $grades[] = (int) $it['entity_id']; break;
+                    case 'all':   $all = true; break;
+                }
+            }
+        }
+
+        $ids = $direct;
+
+        if ($all) {
+            foreach ($this->tq_bk->all_published() as $b) $ids[] = (int) $b['id'];
+        } elseif ($grades) {
+            foreach ($this->tq_bk->books_for_grades($grades) as $b) $ids[] = (int) $b['id'];
+        }
+
+        return array_values(array_unique(array_filter(array_map('intval', $ids))));
+    }
+
+    /**
+     * TQ-BOOK — تفعيل شراء كتاب مفرد.
+     *
+     * ثلاثة أشياء لا أكثر: أجل من `offer()`، وبند `book` واحد، وقيد في
+     * دفتر صاحبه. وكلها بالمبادئ التي تحكم أخويه:
+     *
+     * · **الأجل ينسخ ولا يشتق كل مرة.** صفر يعني وصولا دائما، فـ
+     *   `ends_at` تبقى `NULL` — و`expire_due()` تشترط `IS NOT NULL`
+     *   فلا تلمسه.
+     * · **البند ينظف قبل أن يكتب.** تفعيل ثان لا يضيف بندا فوق بند.
+     * · **وفشل القيد لا يبطل التفعيل.** الطالب دفع واستحق كتابه، ودفتر
+     *   المعلم يصالح لاحقا.
+     * · **ولا تجسيد في `enrol`**: الكتاب ليس كورسا، ولا صف فيه يشير
+     *   إليه. والمكتبة تقرأ حيا.
+     */
+    private function activate_book_subscription($sub, $method = null, $transaction_id = null)
+    {
+        $bid = (int) $sub['book_id'];
+
+        $this->load->model('taqdar_book_model', 'tq_bk');
+        $book = $this->tq_bk->book($bid);
+        if (!$book) return false;
+
+        $offer = $this->tq_bk->offer($book);
+        $days  = (int) $offer['days'];
+        $start = time();
+
+        $data = array(
+            'status'     => 'active',
+            'started_at' => date('Y-m-d H:i:s', $start),
+            /* الوصول الدائم `NULL` لا تاريخ بعيد: تاريخ مخترع ينتهي يوما
+               ويقفل ما بيع على أنه دائم، ولا أحد يذكر لماذا. */
+            'ends_at'    => $days > 0
+                          ? date('Y-m-d H:i:s', strtotime('+' . $days . ' days', $start))
+                          : null,
+        );
+        if ($method)         $data['method']         = $method;
+        if ($transaction_id) $data['transaction_id'] = $transaction_id;
+
+        $this->db->where('id', (int) $sub['id'])->update('subscriptions', $data);
+
+        $this->db->where('subscription_id', (int) $sub['id'])->delete('subscription_items');
+        $this->db->insert('subscription_items', array(
+            'subscription_id' => (int) $sub['id'],
+            'entity_type'     => 'book',
+            'entity_id'       => $bid,
+        ));
+
+        /* نصيب المعلم — نسبة واحدة لا وعاء: الكتاب لصاحب واحد
+           (`books.teacher_id`)، فلا أوزان ولا أكبر بواق. وكتاب المنصة
+           بلا معلم لا يقيد له شيء، والسعر كله للمنصة. */
+        if ((int) $sub['price'] > 0 && (int) $offer['teacher_id'] > 0) {
+            try {
+                $this->load->model('taqdar_wallet_model');
+                $this->taqdar_wallet_model->credit_book_sale(
+                    (int) $offer['teacher_id'], $bid, (int) $sub['id'],
+                    (int) $sub['price'], $offer['percent'], (string) $book['title']
+                );
+            } catch (Exception $e) {
+                log_message('error', 'TQ-BOOK: تعذر قيد بيع كتاب #' . $bid
+                    . ' لاشتراك #' . (int) $sub['id'] . ' — ' . $e->getMessage());
+            }
+        }
+
+        $this->audit('subscription_activate_book', 'subscriptions#' . (int) $sub['id'],
+                     $sub, $this->subscription($sub['id']));
+        return true;
+    }
+
     /* =====================================================================
        الشراء والتفعيل
        ===================================================================== */
@@ -748,40 +1115,27 @@ class Taqdar_billing_model extends CI_Model
         if ((string) $method !== 'manual') return false;
 
         try {
-            /* الباقة والمسار **والكورس المفرد** كلها تصدر فاتورة، وصفها
-               واحد في `subscriptions` يفرق بـ`plan_id`/`path_id`/`course_id`.
-               فتقرأ الأسماء الثلاثة معا ويؤخذ الموجود — وإلا قرأ مشتري
-               المادة الواحدة «قيمة الاشتراك في الباقة». */
-            /* TQ-INVOICE-COL — **العمود يفحص قبل أن يضم.**
-               `subscriptions.course_id` ينشئه `Taqdar_course_sale_model`
-               وقت التشغيل، لا هجرة. فعلى قاعدة لم يمر عليها بيع كورس مفرد
-               بعد — وهي حال هذه القاعدة — يرمي هذا الاستعلام «Unknown
-               column s.course_id»، فيبتلعه `catch` أدناه: **فلا إشعار
-               فاتورة يخرج لأحد قط**، وكل مشتر بالتحويل البنكي يغلق صفحته
-               بلا رقم فاتورة ولا آيبان. ولا سطر خطأ يظهر لأحد.
-               فالضم مشروط، ومن لا عمود عنده يقرأ الاسمين الآخرين كما كان
-               يقرأ قبل أن يوجد بيع الكورس المفرد. */
-            $has_course = (bool) $this->db->field_exists('course_id', 'subscriptions');
+            /* TQ-SOLD-NAME — الاسم من `sold()` وحدها.
+               كان هنا ضم ثلاثي (`plans` · `paths` · `course`) يقرأ ثلاثة
+               أعمدة ويأخذ أولها غير الفارغ — وهو الضم نفسه المكتوب بيده
+               في خمسة مواضع أخرى. فبيع الكتاب وصل الشراء والتفعيل
+               والاستحقاق، ولم يبلغ واحدا منها: يصل مشتري الكتاب إشعار
+               يقول «قيمة الاشتراك في «الباقة»» عن كتاب اشتراه بعينه.
+               والحل موضع واحد يجيب لا ضم رابع يضاف هنا وينسى هناك.
 
-            $sel = 'i.invoice_no, i.total, i.user_id,'
-                 . ' p.name_ar AS plan_name, t.title AS path_name'
-                 . ($has_course ? ', c.title AS course_name' : '');
-
-            $this->db->select($sel, false)
-                     ->from('invoices i')
-                     ->join('subscriptions s', 's.id = i.subscription_id', 'left')
-                     ->join('plans p', 'p.id = s.plan_id', 'left')
-                     ->join('paths t', 't.id = s.path_id', 'left');
-            if ($has_course) $this->db->join('course c', 'c.id = s.course_id', 'left');
-            $inv = $this->db->where('i.id', (int) $invoice_id)->get()->row_array();
+               TQ-INVOICE-COL — **والعمود يفحص قبل أن يقرأ.**
+               `subscriptions.course_id` و`book_id` ينشآن وقت التشغيل لا
+               بهجرة، فقراءتهما على قاعدة لم يمر عليها بيع مفرد ترمي
+               «Unknown column» يبتلعه `catch` أدناه — **فلا إشعار فاتورة
+               يخرج لأحد قط**. و`sold()` تقرأ الصف نفسه (`SELECT *`) فلا
+               تسمي عمودا قد لا يوجد، وتغيب المفاتيح بلا خطأ. */
+            $inv = $this->db->select('i.invoice_no, i.total, i.user_id, i.subscription_id')
+                            ->from('invoices i')
+                            ->where('i.id', (int) $invoice_id)->get()->row_array();
             if (!$inv || empty($inv['user_id'])) return false;
 
-            $what = '';
-            foreach (array('plan_name', 'path_name', 'course_name') as $k) {
-                if (isset($inv[$k]) && trim((string) $inv[$k]) !== '') {
-                    $what = trim((string) $inv[$k]); break;
-                }
-            }
+            $sold = $this->sold((int) $inv['subscription_id']);
+            $what = (string) $sold['title'];
             $iban = trim((string) get_settings('tq_bank_iban'));
 
             /* المبلغ **هللات** في العمود، والرسالة تقول «ر.س».
@@ -795,10 +1149,16 @@ class Taqdar_billing_model extends CI_Model
             return (bool) $this->taqdar_admin_model->push_notification(
                 (int) $inv['user_id'],
                 'صدرت فاتورتك ' . $inv['invoice_no'],
-                'قيمة الاشتراك في «' . ($what !== '' ? $what : 'الباقة') . '» هي '
-                . $sar . ' ر.س. حول المبلغ'
-                . ($iban !== '' ? ' إلى الآيبان ' . $iban : '')
-                . ' واذكر رقم الفاتورة في التحويل، ويفعل اشتراكك بعد التحقق من الحوالة.',
+                /* والنوع يقال مع الاسم: «قيمة الاشتراك في …» على كتاب
+                   اشتراه صاحبه بعينه تجعله يظن أنه اشترك في باقة.
+                   والجملة مفتاح واحد ببدائل `____` لا قطع تلصق: «قيمة»
+                   وحدها لا تترجم — المترجم لا يعرف موقعها من الجملة،
+                   ولغة أخرى قد ترتبها غير هذا الترتيب. */
+                t('قيمة ____ «____» هي ____ ر.س.', array(
+                    $sold['noun'], ($what !== '' ? $what : t('الباقة')), $sar))
+                . ' ' . t('حول المبلغ')
+                . ($iban !== '' ? ' ' . t('إلى الآيبان') . ' ' . $iban : '')
+                . ' ' . t('واذكر رقم الفاتورة في التحويل، ويفعل اشتراكك بعد التحقق من الحوالة.'),
                 'invoice'
             );
         } catch (Throwable $e) {
@@ -843,6 +1203,11 @@ class Taqdar_billing_model extends CI_Model
            ولم يفعل الاشتراك». */
         if ((int) (isset($sub['course_id']) ? $sub['course_id'] : 0) > 0) {
             return $this->activate_course_subscription($sub, $method, $transaction_id);
+        }
+
+        /* TQ-BOOK — واشتراك كتاب مفرد، بالعلة نفسها وفي الموضع نفسه. */
+        if ((int) (isset($sub['book_id']) ? $sub['book_id'] : 0) > 0) {
+            return $this->activate_book_subscription($sub, $method, $transaction_id);
         }
 
         $plan = $this->plan($sub['plan_id']);
@@ -1561,6 +1926,169 @@ class Taqdar_billing_model extends CI_Model
             }
         }
         return $n;
+    }
+
+    /* =====================================================================
+       TQ-SUB-DETAIL — ملف البيعة الواحدة
+       ===================================================================== */
+
+    /**
+     * كل ما يقال عن اشتراك واحد، مجموعا في نداء واحد.
+     *
+     * ═══ لماذا شاشة ثانية للاشتراك ═══
+     *
+     * قائمة `taqdar_admin/subscriptions` تجيب سؤال المسح: «من اشترك،
+     * وبكم، وما حاله؟» — وهي تصلح لذلك. ولا تجيب سؤال **الحادثة**:
+     * «هذا الصف بعينه، ماذا جرى فيه؟» — وهو ما يسأل حين يتصل مشتر يقول
+     * «دفعت ولم يفتح»، أو معلم يقول «باعوا صفي ولم يصلني شيء»، أو
+     * محاسب يقول «هذه الفاتورة لم تسدد».
+     *
+     * وكان جواب الثلاثة **مبعثرا في خمس شاشات** لا يربط بينها شيء:
+     * الفاتورة في «الفواتير»، ومحاولات البطاقة في «الدفع بالبطاقة»،
+     * والقسمة في قائمة الصف، والقيد في «قيود المحافظ»، والأثر في سجل
+     * التدقيق — ولا واحدة منها تعرف رقم الاشتراك. فيبحث المسؤول بالاسم
+     * في كل واحدة ويجمع الجواب بيده، أو لا يجمعه.
+     *
+     * ═══ وما يجمع هنا ═══
+     *
+     * `sold` ما بيع (TQ-SOLD-NAME) · `user` من اشترى · `invoices`
+     * فواتيره · `attempts` محاولات بطاقته · `items` **ما يفتحه فعلا**
+     * (وهو غير ما بيع: النطاق ينسخ بنودا وقت التفعيل) · `shares` قسمة
+     * إيراده · `entries` ما قيد في دفاتر المعلمين · `audit` أثره.
+     *
+     * ═══ وكل استعلام ملفوف ═══
+     *
+     * `revenue_shares` و`payment_attempts` و`wallet_entries` تنشأ وقت
+     * التشغيل، وجدول لم يستعمل بعد يرمي استثناء **يبيض الشاشة كلها** —
+     * فيقرأ المسؤول صفحة فارغة عن بيعة صحيحة. وقسم ناقص أهون، وهي قاعدة
+     * `safe_rows` في اللوحة نفسها.
+     *
+     * @return array|null null إن لا صف بهذا الرقم
+     */
+    public function detail($id)
+    {
+        $id  = (int) $id;
+        $sub = $this->subscription($id);
+        if (!$sub) return null;
+
+        /* كل استعلام ملفوف: `revenue_shares` و`payment_attempts` و
+           `wallet_entries` تنشأ وقت التشغيل، وجدول لم يستعمل بعد يرمي
+           استثناء **يبيض الشاشة كلها** — وقسم ناقص أهون.
+           **والخطأ يسجل ولا يبتلع**: `catch` صامتة تخفي عمودا كتب بخطأ
+           فيقرأ القسم فارغا وهو واثق — «لم يقيد لأحد» عن قيد قائم في
+           الدفتر أسوأ من خطأ يظهر. */
+        $rows = function ($sql, $args = array()) {
+            try { return $this->db->query($sql, $args)->result_array(); }
+            catch (Throwable $e) {
+                $this->db->reset_query();
+                log_message('error', 'TQ-SUB-DETAIL: ' . $e->getMessage());
+                return array();
+            }
+        };
+
+        $out = array('sub' => $sub, 'sold' => $this->sold($sub));
+
+        /* من اشترى — والبريد معه: من يفعل حوالة يتحقق ممن يفعل لها،
+           والأسماء تتشابه في قاعدة من ثلاثمئة والبريد لا يتشابه. */
+        $out['user'] = $this->db->select('id, email, image, tq_gate,'
+                . ' TRIM(CONCAT(COALESCE(first_name,""), " ", COALESCE(last_name,""))) AS name', false)
+            ->where('id', (int) $sub['user_id'])->get('users')->row_array();
+
+        $out['invoices'] = $rows(
+            'SELECT * FROM `invoices` WHERE `subscription_id` = ? ORDER BY `id` DESC',
+            array($id));
+
+        /* محاولات البطاقة — بالاشتراك لا بالفاتورة: `payment_attempts`
+           يحمل العمودين، والفاتورة قد تعاد (TQ-SUB-REUSE) فتبقى محاولات
+           معلقة على رقم فاتورة سابق. */
+        $out['attempts'] = $rows(
+            'SELECT * FROM `payment_attempts` WHERE `subscription_id` = ? ORDER BY `id` DESC',
+            array($id));
+
+        /* ما يفتحه فعلا — وهو **غير ما بيع**: `subscription_items` صورة
+           النطاق وقت التفعيل، فباقة صفين تفتح صفين وإن عدلت بعدها.
+           والصف المعلق بلا بنود: لم يفعل بعد، فلا يفتح شيئا. */
+        $out['items'] = $this->items_of($id);
+        foreach ($out['items'] as $i => $it) {
+            $out['items'][$i]['name'] = $this->entity_name(
+                (string) $it['entity_type'], (int) $it['entity_id']);
+        }
+
+        $out['shares'] = $rows(
+            'SELECT r.*, TRIM(CONCAT(COALESCE(u.`first_name`,""), " ",
+                                     COALESCE(u.`last_name`,""))) AS teacher_name
+               FROM `revenue_shares` r
+          LEFT JOIN `users` u ON u.`id` = r.`teacher_id`
+              WHERE r.`subscription_id` = ?
+           ORDER BY r.`amount_halalas` DESC',
+            array($id));
+
+        /* قيود الدفاتر — الأصل مفتاحه رقم الاشتراك في الأربعة كلها
+           (`plansub:` · `pathsub:` · `coursesub:` · `booksub:`)، فتقرأ
+           بضربة واحدة. وبها يجاب «قسمت ولم يصل» — وهما سؤالان لا واحد:
+           صف قسمة بلا قيد يعني أن القيد فشل، وهو غير ألا تكون قسمت. */
+        /* و`wallets.owner_user_id` لا `user_id`: الاسم يخطئ الظن فيه،
+           وعمود مجهول هنا يبتلعه `catch` أعلاه فيرد القسم فارغا — قسم
+           يقول «لم يقيد لأحد» عن قيد قائم في الدفتر، وهو أسوأ من خطأ
+           يظهر. */
+        $out['entries'] = $rows(
+            'SELECT e.*, w.`owner_user_id` AS teacher_id,
+                    TRIM(CONCAT(COALESCE(u.`first_name`,""), " ",
+                                COALESCE(u.`last_name`,""))) AS teacher_name
+               FROM `wallet_entries` e
+          LEFT JOIN `wallets` w ON w.`id` = e.`wallet_id`
+          LEFT JOIN `users`   u ON u.`id` = w.`owner_user_id`
+              WHERE e.`origin` IN (?, ?, ?, ?)
+           ORDER BY e.`id` DESC',
+            array('plansub:' . $id, 'pathsub:' . $id,
+                  'coursesub:' . $id, 'booksub:' . $id));
+
+        /* الأثر — و`entity` يكتب بصورتين في المستودع: `subscriptions#12`
+           في أكثر المواضع، و`subscriptions:12` في `revenue.resplit`.
+           فيبحث بالاثنتين لا بواحدة — وشاشة تقرأ صورة واحدة تعرض سجلا
+           ناقصا وهي واثقة، وهو أسوأ من ألا تعرضه. */
+        $out['audit'] = $rows(
+            'SELECT a.*, TRIM(CONCAT(COALESCE(u.`first_name`,""), " ",
+                                     COALESCE(u.`last_name`,""))) AS actor_name
+               FROM `audit_log` a
+          LEFT JOIN `users` u ON u.`id` = a.`actor_id`
+              WHERE a.`entity` IN (?, ?)
+           ORDER BY a.`id` DESC LIMIT 40',
+            array('subscriptions#' . $id, 'subscriptions:' . $id));
+
+        return $out;
+    }
+
+    /**
+     * اسم ما يشير إليه بند استحقاق — بنوعه.
+     *
+     * و«صف #7» بالرقم حين لا يقابله شيء: TQ-PLAN-DELETE نفسها — بالرقم
+     * يقابل السجل، والشرطة لا تقابل شيئا.
+     */
+    public function entity_name($type, $entity_id)
+    {
+        $entity_id = (int) $entity_id;
+        if ($type === 'all')   return t('كل المحتوى');
+        if ($type === 'trial') return t('تجربة');
+        if ($entity_id <= 0)   return '—';
+
+        $map = array(
+            'grade'   => array('grades',   'name_ar', t('صف')),
+            'subject' => array('subjects', 'name_ar', t('مادة')),
+            'path'    => array('paths',    'title',   t('مسار')),
+            'course'  => array('course',   'title',   t('كورس')),
+            'book'    => array('books',    'title',   t('كتاب')),
+        );
+        if (!isset($map[$type])) return '#' . $entity_id;
+
+        list($table, $col, $noun) = $map[$type];
+        try {
+            $row = $this->db->select($col)->where('id', $entity_id)
+                            ->get($table)->row_array();
+        } catch (Throwable $e) { $this->db->reset_query(); $row = null; }
+
+        $name = $row ? trim((string) $row[$col]) : '';
+        return $name !== '' ? $name : ($noun . ' #' . $entity_id);
     }
 
 }

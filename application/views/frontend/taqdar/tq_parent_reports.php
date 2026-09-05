@@ -131,54 +131,56 @@ include 'portal_open.php';
 
                     <?php if ($tq_child['subjects']): ?>
                         <div class="tq-card">
-                            <table class="tq-table">
-                                <caption class="tq-sr"><?php echo t('مواد ____: ما أنهاه ونتائجه وآخر نشاط', array(html_escape($tq_name))); ?></caption>
-                                <thead>
-                                    <tr>
-                                        <th scope="col"><?php echo t('المادة'); ?></th>
-                                        <th scope="col"><?php echo t('ما أنهاه'); ?></th>
-                                        <th scope="col"><?php echo t('نتائج الاختبارات'); ?></th>
-                                        <th scope="col"><?php echo t('آخر نشاط'); ?></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($tq_child['subjects'] as $tq_s): ?>
+                            <div class="tq-table-wrap">
+                                <table class="tq-table">
+                                    <caption class="tq-sr"><?php echo t('مواد ____: ما أنهاه ونتائجه وآخر نشاط', array(html_escape($tq_name))); ?></caption>
+                                    <thead>
                                         <tr>
-                                            <td data-label="المادة">
-                                                <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_s['title']); ?></span>
-                                                <span class="tq-micro" style="display:block"><?php echo tq_iso(tq_lessons_word((int) $tq_s['lessons'])); ?></span>
-                                            </td>
-                                            <td data-label="ما أنهاه" style="min-inline-size:180px">
-                                                <?php echo tq_progress((int) $tq_s['progress'], t('ما أنهاه في ') . $tq_s['title']); ?>
-                                            </td>
-                                            <td data-label="نتائج الاختبارات">
-                                                <?php if ($tq_s['attempts'] > 0): ?>
-                                                    <?php echo tq_num($tq_s['avg_pct'] . '%', 'tq-num--sm'); ?>
-                                                    <span class="tq-micro" style="display:block">
-                                                        <?php echo tq_iso(t('من ') . tq_exams_word((int) $tq_s['attempts'])); ?>
-                                                    </span>
-                                                <?php elseif ($tq_s['held'] > 0): ?>
-                                                    <span class="tq-caption"><?php echo t('ينتظر اعتماد معلمه'); ?></span>
-                                                <?php else: ?>
-                                                    <span class="tq-caption"><?php echo t('لم يبدأ اختبارا'); ?></span>
-                                                <?php endif; ?>
-                                                <?php /* المحجوب يعلن لا يبتلع: من سلم اختبارا فيه سؤال
-                                                         مقالي ينتظر تصحيحا، وصمت الشاشة عنه يقرأ إهمالا. */ ?>
-                                                <?php if ($tq_s['attempts'] > 0 && $tq_s['held'] > 0): ?>
-                                                    <span class="tq-micro" style="display:block">
-                                                        <?php echo tq_iso(t('و') . tq_exams_word((int) $tq_s['held'], t('لا اختبارات'), 'nom') . ((int) $tq_s['held'] === 1 ? t(' ينتظر') : t(' تنتظر')) . t(' اعتماد معلمه')); ?>
-                                                    </span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td data-label="آخر نشاط">
-                                                <?php echo (int) $tq_s['last_seen'] > 0
-                                                    ? html_escape(tq_since((int) $tq_s['last_seen']))
-                                                    : t('<span class="tq-caption">لم يبدأ بعد</span>'); ?>
-                                            </td>
+                                            <th scope="col"><?php echo t('المادة'); ?></th>
+                                            <th scope="col"><?php echo t('ما أنهاه'); ?></th>
+                                            <th scope="col"><?php echo t('نتائج الاختبارات'); ?></th>
+                                            <th scope="col"><?php echo t('آخر نشاط'); ?></th>
                                         </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($tq_child['subjects'] as $tq_s): ?>
+                                            <tr>
+                                                <td data-label="<?php echo te('المادة'); ?>">
+                                                    <span class="tq-strong" style="color:var(--tq-navy)"><?php echo html_escape($tq_s['title']); ?></span>
+                                                    <span class="tq-micro" style="display:block"><?php echo tq_iso(tq_lessons_word((int) $tq_s['lessons'])); ?></span>
+                                                </td>
+                                                <td data-label="<?php echo te('ما أنهاه'); ?>" style="min-inline-size:180px">
+                                                    <?php echo tq_progress((int) $tq_s['progress'], t('ما أنهاه في ') . $tq_s['title']); ?>
+                                                </td>
+                                                <td data-label="<?php echo te('نتائج الاختبارات'); ?>">
+                                                    <?php if ($tq_s['attempts'] > 0): ?>
+                                                        <?php echo tq_num($tq_s['avg_pct'] . '%', 'tq-num--sm'); ?>
+                                                        <span class="tq-micro" style="display:block">
+                                                            <?php echo tq_iso(t('من ') . tq_exams_word((int) $tq_s['attempts'])); ?>
+                                                        </span>
+                                                    <?php elseif ($tq_s['held'] > 0): ?>
+                                                        <span class="tq-caption"><?php echo t('ينتظر اعتماد معلمه'); ?></span>
+                                                    <?php else: ?>
+                                                        <span class="tq-caption"><?php echo t('لم يبدأ اختبارا'); ?></span>
+                                                    <?php endif; ?>
+                                                    <?php /* المحجوب يعلن لا يبتلع: من سلم اختبارا فيه سؤال
+                                                             مقالي ينتظر تصحيحا، وصمت الشاشة عنه يقرأ إهمالا. */ ?>
+                                                    <?php if ($tq_s['attempts'] > 0 && $tq_s['held'] > 0): ?>
+                                                        <span class="tq-micro" style="display:block">
+                                                            <?php echo tq_iso(t('و') . tq_exams_word((int) $tq_s['held'], t('لا اختبارات'), 'nom') . ((int) $tq_s['held'] === 1 ? t(' ينتظر') : t(' تنتظر')) . t(' اعتماد معلمه')); ?>
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td data-label="<?php echo te('آخر نشاط'); ?>">
+                                                    <?php echo (int) $tq_s['last_seen'] > 0
+                                                        ? html_escape(tq_since((int) $tq_s['last_seen']))
+                                                        : t('<span class="tq-caption">لم يبدأ بعد</span>'); ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     <?php else: ?>
                         <div class="tq-card tq-empty">

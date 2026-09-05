@@ -53,32 +53,34 @@ include 'portal_open.php';
                     <h2 class="tq-card__title"><?php echo t('سجل العمليات'); ?></h2>
                     <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_orders) . TQ_PDI; ?></span>
                 </div>
-                <table class="tq-table">
-                    <thead>
-                        <tr><th><?php echo t('رقم العملية'); ?></th><th><?php echo t('الوصف'); ?></th><th><?php echo t('التاريخ'); ?></th><th><?php echo t('المبلغ'); ?></th><th><?php echo t('الحالة'); ?></th><th><?php echo t('الفاتورة'); ?></th></tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($tq_orders as $o):
-                            $st = strtolower((string) ($o['payment_status'] ?? $o['status'] ?? ''));
-                            $kind = in_array($st, ['success', 'paid', 'completed', '1'], true) ? 'mastered'
-                                  : (in_array($st, ['refunded', 'failed', 'cancelled'], true) ? 'late' : 'progress');
-                            $word = ['mastered' => t('مدفوعة'), 'late' => t('مستردة أو متعثرة'), 'progress' => t('قيد المعالجة')][$kind];
-                        ?>
-                            <tr>
-                                <td data-label="رقم العملية"><?php echo tq_num('#' . (int) $o['id'], 'tq-num--sm'); ?></td>
-                                <td data-label="الوصف"><?php echo html_escape((string) ($o['course_title'] ?? $o['tags'] ?? t('اشتراك'))); ?></td>
-                                <td data-label="التاريخ"><?php echo tq_iso(html_escape((string) ($o['date_added'] ?? ''))); ?></td>
-                                <td data-label="المبلغ"><?php echo tq_sar($o['amount'] ?? 0, 2); ?></td>
-                                <td data-label="الحالة"><?php echo tq_badge($kind, $word); ?></td>
-                                <td data-label="الفاتورة">
-                                    <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('home/invoice/' . (int) $o['id']); ?>">
-                                        <?php echo tq_icon('download'); ?> <?php echo t('تحميل'); ?>
-                                    </a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div class="tq-table-wrap">
+                    <table class="tq-table">
+                        <thead>
+                            <tr><th><?php echo t('رقم العملية'); ?></th><th><?php echo t('الوصف'); ?></th><th><?php echo t('التاريخ'); ?></th><th><?php echo t('المبلغ'); ?></th><th><?php echo t('الحالة'); ?></th><th><?php echo t('الفاتورة'); ?></th></tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($tq_orders as $o):
+                                $st = strtolower((string) ($o['payment_status'] ?? $o['status'] ?? ''));
+                                $kind = in_array($st, ['success', 'paid', 'completed', '1'], true) ? 'mastered'
+                                      : (in_array($st, ['refunded', 'failed', 'cancelled'], true) ? 'late' : 'progress');
+                                $word = ['mastered' => t('مدفوعة'), 'late' => t('مستردة أو متعثرة'), 'progress' => t('قيد المعالجة')][$kind];
+                            ?>
+                                <tr>
+                                    <td data-label="<?php echo te('رقم العملية'); ?>"><?php echo tq_num('#' . (int) $o['id'], 'tq-num--sm'); ?></td>
+                                    <td data-label="<?php echo te('الوصف'); ?>"><?php echo html_escape((string) ($o['course_title'] ?? $o['tags'] ?? t('اشتراك'))); ?></td>
+                                    <td data-label="<?php echo te('التاريخ'); ?>"><?php echo tq_iso(html_escape((string) ($o['date_added'] ?? ''))); ?></td>
+                                    <td data-label="<?php echo te('المبلغ'); ?>"><?php echo tq_sar($o['amount'] ?? 0, 2); ?></td>
+                                    <td data-label="<?php echo te('الحالة'); ?>"><?php echo tq_badge($kind, $word); ?></td>
+                                    <td data-label="<?php echo te('الفاتورة'); ?>">
+                                        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('home/invoice/' . (int) $o['id']); ?>">
+                                            <?php echo tq_icon('download'); ?> <?php echo t('تحميل'); ?>
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         <?php endif; ?>
 

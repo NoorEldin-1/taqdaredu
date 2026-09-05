@@ -412,8 +412,13 @@ p{margin:0}
   border-radius:50%;object-fit:cover;border:1.5px solid var(--gold-line)}
 .quote-card__head b{display:block;font-family:'Cairo',sans-serif;font-size:clamp(12.5px,1vw,15px);
   color:var(--ink);font-weight:700;line-height:1.6}
-.quote-card__head span{font-size:clamp(10.5px,.82vw,12.5px);color:var(--ink-3)}
-.quote-card p{font-size:clamp(11.5px,.92vw,14px);line-height:1.95;color:var(--ink-2);text-align:start}
+/* والمحدد `span` لا `*`: كان يبلع الحرف الأول في الدائرة كذلك —
+   `.quote-card__head span` وزنها (٠٬١٬١) تغلب `.quote-card__ini`
+   (٠٬١٬٠) في `pages.css` مهما تأخرت، فالحرف الذي صمم عند ١٦px يرسم
+   عند ١٠٫٥ في دائرة قطرها ٣٨. والاستثناء يكتب هنا لأن العلة هنا. */
+.quote-card__head span{font-size:clamp(11.5px,.82vw,12.5px);color:var(--ink-3)}
+.quote-card__head span.quote-card__ini{font-size:clamp(16px,1.4vw,20px);color:var(--gold-warm)}
+.quote-card p{font-size:clamp(12px,.92vw,14px);line-height:1.95;color:var(--ink-2);text-align:start}
 .stars{display:flex;justify-content:center;gap:5px;margin-block-start:14px;color:var(--gold)}
 .stars svg{width:clamp(12px,1vw,15px);height:clamp(12px,1vw,15px)}
 .stars .off{color:rgba(201,165,95,.3)}
@@ -512,7 +517,7 @@ p{margin:0}
 .cta__actions .btn{font-size:clamp(13px,1.02vw,15px);padding-block:13px}
 .cta__actions .btn--ghost{padding-block:12px}   /* +1px حد ⇒ نفس الارتفاع */
 .cta__login{display:block;margin-block-start:14px;color:var(--gold-warm);
-  font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(11.5px,.92vw,14px)}
+  font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(12.5px,.92vw,14px)}
 .cta__login:hover{text-decoration:underline;text-underline-offset:4px}
 .cta__art{position:relative;align-self:end;height:100%;display:flex;align-items:flex-end;
   justify-content:center}
@@ -555,7 +560,7 @@ p{margin:0}
 .footer-grid>*+*{padding-inline-start:clamp(14px,2vw,34px);
   border-inline-start:1px solid rgba(212,180,118,.24)}
 .footer-brand img{width:clamp(104px,9vw,140px);height:auto}
-.footer-brand p{margin-block-start:10px;font-size:clamp(11.5px,.88vw,13.5px);
+.footer-brand p{margin-block-start:10px;font-size:clamp(12.5px,.88vw,13.5px);
   color:rgba(220,231,227,.72)}
 .stores{display:flex;gap:10px;margin-block-start:16px;flex-wrap:wrap}
 .stores a{display:block;transition:transform var(--t-route) var(--ease)}
@@ -563,7 +568,7 @@ p{margin:0}
 .stores svg{width:clamp(100px,8.6vw,124px);height:auto;display:block;
   direction:ltr;border-radius:7px;overflow:hidden}
 .footer-col{display:flex;flex-direction:column;gap:9px;
-  font-size:clamp(11.5px,.88vw,13.5px)}
+  font-size:clamp(12.5px,.88vw,13.5px)}
 .footer-col h3{color:var(--gold-warm);font-size:clamp(13px,1vw,15.5px);
   margin-block-end:6px}
 .footer-col a{color:rgba(220,231,227,.82);transition:color var(--t-route) var(--ease)}
@@ -590,7 +595,7 @@ p{margin:0}
 }
 .paybar__t{
   font-family:'Cairo',sans-serif;font-weight:600;
-  font-size:clamp(11.5px,.9vw,13.5px);color:var(--gold-on-dark);
+  font-size:clamp(12px,.9vw,13.5px);color:var(--gold-on-dark);
   letter-spacing:.2px;margin:0
 }
 .paybar__list{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
@@ -609,7 +614,7 @@ p{margin:0}
 
 .footer-bottom{margin-block-start:clamp(22px,2.6vw,38px);padding-block-start:16px;
   border-block-start:1px solid rgba(212,180,118,.22);text-align:center;
-  font-size:clamp(11px,.84vw,13px);color:rgba(220,231,227,.62)}
+  font-size:clamp(12px,.84vw,13px);color:rgba(220,231,227,.62)}
 
 /* ==========================================================================
    حركة الدخول
@@ -739,8 +744,7 @@ html.js .reveal.is-in{opacity:1;transform:none}
 
 @media (max-width:480px){
   :root{--gutter:14px;--r-panel:20px;--r-card:16px;--script-tile:clamp(260px,72vw,360px)}
-  .cards-3,.cards-4,.footer-grid,.why__grid,.features__bar{grid-template-columns:1fr}
-  .footer-grid{gap:26px;text-align:start}
+  .cards-3,.cards-4,.why__grid,.features__bar{grid-template-columns:1fr}
   .hero__cta{flex-direction:column;align-items:stretch}
   .hero__cta .btn{width:100%;justify-content:center}
   /* كان `height:34px` مع `width:clamp(92px…)` من القاعدة الأم — أي
@@ -748,6 +752,42 @@ html.js .reveal.is-in{opacity:1;transform:none}
      ٢٫٧٠٦ وطبيعتها ١٫٧٨٣). والعرض وحده يقود، والارتفاع يتبع. */
   .brand img{height:auto}
   .stores{justify-content:flex-start;flex-wrap:wrap;gap:10px}
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-FOOTER-TALL · التذييل عمودان لا عمود على الشاشة الضيقة
+
+   كان استعلام ٤٨٠ يضم `.footer-grid` إلى `grid-template-columns:1fr`،
+   فتصير الكتل الخمس — العلامة وثلاث قوائم وبطاقة التواصل — عمودا
+   واحدا طوله ١١٩٣px. وصفحة قصيرة (`/categories` · `/login`) طولها
+   ٢٢٠٠: **أكثر من نصف ما يمرره الزائر تذييل**، يمر عليه في كل صفحة.
+
+   والقوائم ثلاث وأطول بنودها «المواد والبرامج التعليمية» — يقرأ في
+   عمود ١٤٩px في سطرين، ولا يقص. فعمودان يقصان الطول إلى النصف بلا
+   أن يخسر البند حرفا. وبطاقة التواصل وحدها تمتد على العرض: فيها
+   البريد كاملا وأزرار التواصل، وهي أعرض من نصف الشاشة.
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width:480px){
+  .footer-grid{grid-template-columns:1fr 1fr;gap:22px 18px;text-align:start}
+  /* والعلامة وحدها تمتد. وبطاقة التواصل نصف عمود كأخواتها: ثلاث
+     قوائم في عمودين تترك الصف الثاني نصفه فارغا، فتقرأ فجوة في
+     تذييل لا فراغ فيه. والبريد `info@taqdaredu.com` مئة وثلاثون
+     بكسلا وأزرار التواصل مئة وأربعون — كلاهما دون ١٥١. */
+  .footer-brand{grid-column:1/-1}
+  /* الأرضية نفسها رفعت في `.footer-col` (انظر TQ-TOUCH-344 في
+     `pages.css`)، وما هنا تضييق التباعد وحده: الوعاء نصف عرضه. */
+  .footer-col{gap:2px}
+  .footer-col h3{font-size:13.5px;margin-block-end:4px}
+  .footer-contact a{padding-block:7px}
+  .socials{gap:10px;margin-block-start:10px}
+  .socials a{width:40px;height:40px}
+  .socials svg{width:17px;height:17px}
+  .footer-bottom{font-size:12px}
+  .paybar__t{font-size:12.5px}
+  /* وشعارات الدفع ستة: بارتفاع ٢٤px تشغل ٣٤١ فينزل السادس وحده سطرا
+     يقرأ سهوا. وبـ٢٢px تسع الصف الواحد ٣٢٠ — صف واحد يقرأ قائمة. */
+  .paybar__list{gap:6px}
+  .paybar__list img{block-size:22px;padding:3px 5px}
 }
 
 @media (max-width:360px){

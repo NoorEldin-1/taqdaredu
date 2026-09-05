@@ -346,42 +346,44 @@ include 'portal_open.php';
                 </p>
 
                 <div style="overflow-x:auto">
-                    <table class="tq-table">
-                        <caption class="tq-sr"><?php echo t('أوقاتك المتاحة في أيام الأسبوع'); ?></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><?php echo t('اليوم'); ?></th>
-                                <?php foreach ($tq_periods as $tq_pk => $tq_p): ?>
-                                    <th scope="col">
-                                        <?php echo html_escape($tq_p['label']); ?>
-                                        <span class="tq-micro" style="display:block"><?php echo tq_iso($tq_p['range']); ?></span>
-                                    </th>
-                                <?php endforeach; ?>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tq_days as $tq_di => $tq_day): ?>
+                    <div class="tq-table-wrap">
+                        <table class="tq-table">
+                            <caption class="tq-sr"><?php echo t('أوقاتك المتاحة في أيام الأسبوع'); ?></caption>
+                            <thead>
                                 <tr>
-                                    <th scope="row" style="text-align:start;padding:var(--tq-space-m) var(--tq-space-l)">
-                                        <?php echo html_escape($tq_day); ?>
-                                    </th>
+                                    <th scope="col"><?php echo t('اليوم'); ?></th>
                                     <?php foreach ($tq_periods as $tq_pk => $tq_p): ?>
-                                        <?php $tq_id = 'slot-' . $tq_di . '-' . $tq_pk; ?>
-                                        <td data-label="<?php echo html_escape($tq_day . ' ' . $tq_p['label']); ?>">
-                                            <span class="tq-row" style="gap:var(--tq-space-s)">
-                                                <input type="checkbox" id="<?php echo $tq_id; ?>"
-                                                       name="slots[]" value="<?php echo $tq_di . ':' . $tq_pk; ?>"
-                                                       <?php echo in_array($tq_di . ':' . $tq_pk, $tq_saved_slots, true) ? 'checked' : ''; ?>>
-                                                <label class="tq-micro" for="<?php echo $tq_id; ?>">
-                                                    <?php echo html_escape($tq_day . ' ' . $tq_p['label']); ?>
-                                                </label>
-                                            </span>
-                                        </td>
+                                        <th scope="col">
+                                            <?php echo html_escape($tq_p['label']); ?>
+                                            <span class="tq-micro" style="display:block"><?php echo tq_iso($tq_p['range']); ?></span>
+                                        </th>
                                     <?php endforeach; ?>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($tq_days as $tq_di => $tq_day): ?>
+                                    <tr>
+                                        <th scope="row" style="text-align:start;padding:var(--tq-space-m) var(--tq-space-l)">
+                                            <?php echo html_escape($tq_day); ?>
+                                        </th>
+                                        <?php foreach ($tq_periods as $tq_pk => $tq_p): ?>
+                                            <?php $tq_id = 'slot-' . $tq_di . '-' . $tq_pk; ?>
+                                            <td data-label="<?php echo html_escape($tq_day . ' ' . $tq_p['label']); ?>">
+                                                <span class="tq-row" style="gap:var(--tq-space-s)">
+                                                    <input type="checkbox" id="<?php echo $tq_id; ?>"
+                                                           name="slots[]" value="<?php echo $tq_di . ':' . $tq_pk; ?>"
+                                                           <?php echo in_array($tq_di . ':' . $tq_pk, $tq_saved_slots, true) ? 'checked' : ''; ?>>
+                                                    <label class="tq-micro" for="<?php echo $tq_id; ?>">
+                                                        <?php echo html_escape($tq_day . ' ' . $tq_p['label']); ?>
+                                                    </label>
+                                                </span>
+                                            </td>
+                                        <?php endforeach; ?>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <button class="tq-btn tq-btn--primary" type="submit" style="margin-block-start:var(--tq-space-xl)"

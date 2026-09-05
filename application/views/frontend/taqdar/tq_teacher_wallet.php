@@ -137,71 +137,73 @@ include 'portal_open.php';
                     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
                         <?php echo t('كل سطر عملية بيع واحدة كما قيدت في دفترك: مبلغها، وعمولة المنصة عليها، وحصتك منها، ومتى تتحرر. والأرصدة أعلاه حاصل جمع هذه القيود لا حسابا مستقلا عنها. وسطر الباقة يحمل تحته سبب رقمه: سعرها، ووعاء معلميها، وكم درسا لك فيها.'); ?>
                     </p>
-                    <table class="tq-table">
-                        <caption class="tq-sr"><?php echo t('مبيعاتك: المبلغ وعمولة المنصة وحصتك وحالة كل عملية'); ?></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><?php echo t('التاريخ'); ?></th>
-                                <th scope="col"><?php echo t('ما بيع'); ?></th>
-                                <th scope="col"><?php echo t('مبلغ البيع'); ?></th>
-                                <th scope="col"><?php echo t('عمولة المنصة'); ?></th>
-                                <?php if ($tq_has_retained): ?>
-                                    <th scope="col"><?php echo t('ضريبة ومحتجز'); ?></th>
-                                <?php endif; ?>
-                                <th scope="col"><?php echo t('حصتك'); ?></th>
-                                <th scope="col"><?php echo t('الحالة'); ?></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tq_w['statement'] as $tq_s): ?>
-                                <?php
-                                $tq_kind  = isset($tq_states[$tq_s['state']]) ? $tq_states[$tq_s['state']] : $tq_states['pending'];
-                                $tq_label = $tq_kind[1];
-                                if ($tq_s['state'] === 'pending') {
-                                    /* «يتحرر بعد 4 يوما» خطأ في تمييز العدد، و«بعد 0 يوما»
-                                       أسوأ منه: بيع بلغ موعد تحرره يقال عنه إنه ينتظر صفرا. */
-                                    $tq_label .= (int) $tq_s['days_left'] > 0
-                                        ? t(' · يتحرر بعد ') . tq_days((int) $tq_s['days_left'])
-                                        : t(' · يتحرر مع أول تحديث');
-                                }
-                                ?>
-                                <?php
-                                /* بيع باقة: المبلغ لم يدفع فيك وحدك، فيقال بأي
-                                   نسبة صار نصيبك ما صار. والسطر تحت الاسم لا
-                                   عمود ثامن — الجدول بسبعة أعمدة أصلا، وثامن
-                                   يجعله يمرر أفقيا على الجوال. */
-                                $tq_sh = isset($tq_shares[$tq_s['origin']]) ? $tq_shares[$tq_s['origin']] : null;
-                                ?>
+                    <div class="tq-table-wrap">
+                        <table class="tq-table">
+                            <caption class="tq-sr"><?php echo t('مبيعاتك: المبلغ وعمولة المنصة وحصتك وحالة كل عملية'); ?></caption>
+                            <thead>
                                 <tr>
-                                    <td data-label="التاريخ"><?php echo tq_num($tq_s['date'], 'tq-num--sm'); ?></td>
-                                    <td data-label="الكورس">
-                                        <?php echo html_escape($tq_s['subject']); ?>
-                                        <?php if ($tq_sh):
-                                            $tq_wt = (int) $tq_sh['weight_total'] > 0
-                                                   ? round((int) $tq_sh['weight'] * 100 / (int) $tq_sh['weight_total'], 1) : 0;
-                                        ?>
-                                            <span class="tq-micro tq-stmt__why">
-                                                <?php echo tq_iso(
-                                                    t('باقة بـ') . number_format(((int) $tq_sh['gross_halalas']) / 100, 2) . t(' ر.س · ')
-                                                    . t('وعاء المعلمين ') . rtrim(rtrim(number_format((float) $tq_sh['pool_percent'], 2), '0'), '.')
-                                                    . '% = ' . number_format(((int) $tq_sh['pool_halalas']) / 100, 2) . t(' ر.س · ')
-                                                    . t('دروسك ') . (int) $tq_sh['lessons'] . t(' من ') . (int) $tq_sh['lessons_total']
-                                                    . ' (' . $tq_wt . t('% من الوعاء)')
-                                                ); ?>
-                                            </span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td data-label="مبلغ البيع"><?php echo $tq_money($tq_s['gross']); ?></td>
-                                    <td data-label="عمولة المنصة"><?php echo $tq_money($tq_s['commission']); ?></td>
+                                    <th scope="col"><?php echo t('التاريخ'); ?></th>
+                                    <th scope="col"><?php echo t('ما بيع'); ?></th>
+                                    <th scope="col"><?php echo t('مبلغ البيع'); ?></th>
+                                    <th scope="col"><?php echo t('عمولة المنصة'); ?></th>
                                     <?php if ($tq_has_retained): ?>
-                                        <td data-label="ضريبة ومحتجز"><?php echo $tq_money($tq_s['retained']); ?></td>
+                                        <th scope="col"><?php echo t('ضريبة ومحتجز'); ?></th>
                                     <?php endif; ?>
-                                    <td data-label="حصتك"><span class="tq-strong"><?php echo $tq_money($tq_s['share']); ?></span></td>
-                                    <td data-label="الحالة"><?php echo tq_badge($tq_kind[0], $tq_label); ?></td>
+                                    <th scope="col"><?php echo t('حصتك'); ?></th>
+                                    <th scope="col"><?php echo t('الحالة'); ?></th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($tq_w['statement'] as $tq_s): ?>
+                                    <?php
+                                    $tq_kind  = isset($tq_states[$tq_s['state']]) ? $tq_states[$tq_s['state']] : $tq_states['pending'];
+                                    $tq_label = $tq_kind[1];
+                                    if ($tq_s['state'] === 'pending') {
+                                        /* «يتحرر بعد 4 يوما» خطأ في تمييز العدد، و«بعد 0 يوما»
+                                           أسوأ منه: بيع بلغ موعد تحرره يقال عنه إنه ينتظر صفرا. */
+                                        $tq_label .= (int) $tq_s['days_left'] > 0
+                                            ? t(' · يتحرر بعد ') . tq_days((int) $tq_s['days_left'])
+                                            : t(' · يتحرر مع أول تحديث');
+                                    }
+                                    ?>
+                                    <?php
+                                    /* بيع باقة: المبلغ لم يدفع فيك وحدك، فيقال بأي
+                                       نسبة صار نصيبك ما صار. والسطر تحت الاسم لا
+                                       عمود ثامن — الجدول بسبعة أعمدة أصلا، وثامن
+                                       يجعله يمرر أفقيا على الجوال. */
+                                    $tq_sh = isset($tq_shares[$tq_s['origin']]) ? $tq_shares[$tq_s['origin']] : null;
+                                    ?>
+                                    <tr>
+                                        <td data-label="<?php echo te('التاريخ'); ?>"><?php echo tq_num($tq_s['date'], 'tq-num--sm'); ?></td>
+                                        <td data-label="<?php echo te('الكورس'); ?>">
+                                            <?php echo html_escape($tq_s['subject']); ?>
+                                            <?php if ($tq_sh):
+                                                $tq_wt = (int) $tq_sh['weight_total'] > 0
+                                                       ? round((int) $tq_sh['weight'] * 100 / (int) $tq_sh['weight_total'], 1) : 0;
+                                            ?>
+                                                <span class="tq-micro tq-stmt__why">
+                                                    <?php echo tq_iso(
+                                                        t('باقة بـ') . number_format(((int) $tq_sh['gross_halalas']) / 100, 2) . t(' ر.س · ')
+                                                        . t('وعاء المعلمين ') . rtrim(rtrim(number_format((float) $tq_sh['pool_percent'], 2), '0'), '.')
+                                                        . '% = ' . number_format(((int) $tq_sh['pool_halalas']) / 100, 2) . t(' ر.س · ')
+                                                        . t('دروسك ') . (int) $tq_sh['lessons'] . t(' من ') . (int) $tq_sh['lessons_total']
+                                                        . ' (' . $tq_wt . t('% من الوعاء)')
+                                                    ); ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td data-label="<?php echo te('مبلغ البيع'); ?>"><?php echo $tq_money($tq_s['gross']); ?></td>
+                                        <td data-label="<?php echo te('عمولة المنصة'); ?>"><?php echo $tq_money($tq_s['commission']); ?></td>
+                                        <?php if ($tq_has_retained): ?>
+                                            <td data-label="<?php echo te('ضريبة ومحتجز'); ?>"><?php echo $tq_money($tq_s['retained']); ?></td>
+                                        <?php endif; ?>
+                                        <td data-label="<?php echo te('حصتك'); ?>"><span class="tq-strong"><?php echo $tq_money($tq_s['share']); ?></span></td>
+                                        <td data-label="<?php echo te('الحالة'); ?>"><?php echo tq_badge($tq_kind[0], $tq_label); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                     <p class="tq-caption" style="margin-block-start:var(--tq-space-l)">
                         <?php echo t('مجموع عمولة المنصة في هذا الكشف: ____ — وهو حاصل جمع العمولات أعلاه لا رقم مستقل عنها.', array($tq_money($tq_commission_total))); ?>
                     </p>
@@ -224,62 +226,64 @@ include 'portal_open.php';
 
             <?php if ($tq_w['payouts']): ?>
                 <div class="tq-card">
-                    <table class="tq-table">
-                        <caption class="tq-sr"><?php echo t('طلبات السحب التي قدمتها وقنواتها وحالتها'); ?></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><?php echo t('التاريخ'); ?></th>
-                                <th scope="col"><?php echo t('المبلغ'); ?></th>
-                                <th scope="col"><?php echo t('القناة'); ?></th>
-                                <th scope="col"><?php echo t('الوجهة'); ?></th>
-                                <th scope="col"><?php echo t('الحالة'); ?></th>
-                                <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tq_w['payouts'] as $tq_p): ?>
-                                <?php
-                                $tq_ch = isset($tq_w['channels'][$tq_p['channel']])
-                                       ? $tq_w['channels'][$tq_p['channel']]['label']
-                                       : t('تحدد مع الإدارة');
-                                if ((int) $tq_p['status'] === 1) {
-                                    $tq_pstate = tq_badge('mastered', t('حول'));
-                                } elseif ((int) $tq_p['status'] === 2) {
-                                    $tq_pstate = tq_badge('idle', t('ألغي — عاد إلى رصيدك'));
-                                } else {
-                                    $tq_pstate = tq_badge('due', t('قيد المعالجة · محجوز من رصيدك'));
-                                }
-                                ?>
+                    <div class="tq-table-wrap">
+                        <table class="tq-table">
+                            <caption class="tq-sr"><?php echo t('طلبات السحب التي قدمتها وقنواتها وحالتها'); ?></caption>
+                            <thead>
                                 <tr>
-                                    <td data-label="التاريخ"><?php echo tq_num($tq_p['date'], 'tq-num--sm'); ?></td>
-                                    <td data-label="المبلغ"><?php echo $tq_money($tq_p['amount_halalas']); ?></td>
-                                    <td data-label="القناة"><?php echo html_escape($tq_ch); ?></td>
-                                    <td data-label="الوجهة"><?php echo tq_num($tq_p['destination_masked'], 'tq-num--sm'); ?></td>
-                                    <td data-label="الحالة"><?php echo $tq_pstate; ?></td>
-                                    <?php /* الإلغاء — كان النص أعلاه يعد بأن «إلغاء الطلب يعيده
-                                             إلى المتاح» ولا زر في الشاشة يفعله، و`cancel_payout()`
-                                             في النموذج مكتوبة تنتظر بابا. ويعرض للمعلق وحده:
-                                             المحول لا يلغى، والملغى لا يلغى مرتين. */ ?>
-                                    <td data-label="إجراءات">
-                                        <?php if ((int) $tq_p['status'] === 0): ?>
-                                            <form method="post" action="<?php echo base_url('teacher/wallet/cancel'); ?>"
-                                                  data-tq-confirm-title="<?php echo te('إلغاء طلب سحب ____؟', array(html_escape(trim(strip_tags($tq_money($tq_p['amount_halalas'])))))); ?>"
-                                                  data-tq-confirm="<?php echo te('يعود المبلغ إلى رصيدك المتاح فورا، ويقيد ذلك في دفترك.'); ?>"
-                                                  data-tq-confirm-note="<?php echo te('يبقى الطلب في السجل بحالة «ألغي» — الدفتر لا يمحو سطرا.'); ?>"
-                                                  data-tq-confirm-ok="<?php echo te('ألغي الطلب'); ?>"
-                                                  data-tq-confirm-tone="danger">
-                                                <?php echo tq_csrf(); ?>
-                                                <input type="hidden" name="payout_id" value="<?php echo (int) $tq_p['id']; ?>">
-                                                <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit"><?php echo t('إلغاء'); ?></button>
-                                            </form>
-                                        <?php else: ?>
-                                            <span class="tq-micro">—</span>
-                                        <?php endif; ?>
-                                    </td>
+                                    <th scope="col"><?php echo t('التاريخ'); ?></th>
+                                    <th scope="col"><?php echo t('المبلغ'); ?></th>
+                                    <th scope="col"><?php echo t('القناة'); ?></th>
+                                    <th scope="col"><?php echo t('الوجهة'); ?></th>
+                                    <th scope="col"><?php echo t('الحالة'); ?></th>
+                                    <th scope="col"><span class="tq-sr"><?php echo t('إجراءات'); ?></span></th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($tq_w['payouts'] as $tq_p): ?>
+                                    <?php
+                                    $tq_ch = isset($tq_w['channels'][$tq_p['channel']])
+                                           ? $tq_w['channels'][$tq_p['channel']]['label']
+                                           : t('تحدد مع الإدارة');
+                                    if ((int) $tq_p['status'] === 1) {
+                                        $tq_pstate = tq_badge('mastered', t('حول'));
+                                    } elseif ((int) $tq_p['status'] === 2) {
+                                        $tq_pstate = tq_badge('idle', t('ألغي — عاد إلى رصيدك'));
+                                    } else {
+                                        $tq_pstate = tq_badge('due', t('قيد المعالجة · محجوز من رصيدك'));
+                                    }
+                                    ?>
+                                    <tr>
+                                        <td data-label="<?php echo te('التاريخ'); ?>"><?php echo tq_num($tq_p['date'], 'tq-num--sm'); ?></td>
+                                        <td data-label="<?php echo te('المبلغ'); ?>"><?php echo $tq_money($tq_p['amount_halalas']); ?></td>
+                                        <td data-label="<?php echo te('القناة'); ?>"><?php echo html_escape($tq_ch); ?></td>
+                                        <td data-label="<?php echo te('الوجهة'); ?>"><?php echo tq_num($tq_p['destination_masked'], 'tq-num--sm'); ?></td>
+                                        <td data-label="<?php echo te('الحالة'); ?>"><?php echo $tq_pstate; ?></td>
+                                        <?php /* الإلغاء — كان النص أعلاه يعد بأن «إلغاء الطلب يعيده
+                                                 إلى المتاح» ولا زر في الشاشة يفعله، و`cancel_payout()`
+                                                 في النموذج مكتوبة تنتظر بابا. ويعرض للمعلق وحده:
+                                                 المحول لا يلغى، والملغى لا يلغى مرتين. */ ?>
+                                        <td data-label="<?php echo te('إجراءات'); ?>">
+                                            <?php if ((int) $tq_p['status'] === 0): ?>
+                                                <form method="post" action="<?php echo base_url('teacher/wallet/cancel'); ?>"
+                                                      data-tq-confirm-title="<?php echo te('إلغاء طلب سحب ____؟', array(html_escape(trim(strip_tags($tq_money($tq_p['amount_halalas'])))))); ?>"
+                                                      data-tq-confirm="<?php echo te('يعود المبلغ إلى رصيدك المتاح فورا، ويقيد ذلك في دفترك.'); ?>"
+                                                      data-tq-confirm-note="<?php echo te('يبقى الطلب في السجل بحالة «ألغي» — الدفتر لا يمحو سطرا.'); ?>"
+                                                      data-tq-confirm-ok="<?php echo te('ألغي الطلب'); ?>"
+                                                      data-tq-confirm-tone="danger">
+                                                    <?php echo tq_csrf(); ?>
+                                                    <input type="hidden" name="payout_id" value="<?php echo (int) $tq_p['id']; ?>">
+                                                    <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit"><?php echo t('إلغاء'); ?></button>
+                                                </form>
+                                            <?php else: ?>
+                                                <span class="tq-micro">—</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             <?php else: ?>
                 <div class="tq-card tq-empty">

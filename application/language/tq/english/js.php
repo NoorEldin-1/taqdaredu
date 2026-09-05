@@ -28,7 +28,6 @@ return array(
     '____ بايت' => '____ bytes',
     '____ ك.ب' => '____ KB',
     '____ م.ب' => '____ MB',
-    '____ من ____' => '____ of ____',
     '____ — حتى ____ ميغابايت' => '____ — up to ____ MB',
     'vimeo: لا معرف في الرابط' => 'vimeo: no video id in the link',
     'youtube: تعذر تشغيل الفيديو' => 'youtube: the video could not play',

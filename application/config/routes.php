@@ -205,6 +205,12 @@ $route['api/v1/student/messages']            = 'api_v1/student_messages';
 $route['api/v1/student/certificates'] = 'api_v1/student_certificates';
 $route['api/v1/student/tasks']        = 'api_v1/student_tasks';
 $route['api/v1/student/calendar']     = 'api_v1/student_calendar';
+/* TQ-BOOK-GATE — وملف الكتاب له نقطته هنا كما للوسائط الموقعة.
+   `book-file/<id>` في الويب يستوثق بكعكة الجلسة، والتطبيق بلا كعكة —
+   فكل كتاب مدفوع كان يرد 403 عليه وحده. والقاعدة **قبل** قاعدة المكتبة
+   لأن `(:num)/file` أطول من مقطع واحد ولا يبتلعها شيء، والترتيب هنا
+   للقراءة لا للأولوية. */
+$route['api/v1/student/books/(:num)/file'] = 'api_v1/student_book_file/$1';
 $route['api/v1/student/library']      = 'api_v1/student_library';
 $route['api/v1/student/reports']      = 'api_v1/student_reports';
 $route['api/v1/student/materials']    = 'api_v1/student_materials';
@@ -233,6 +239,8 @@ $route['api/v1/student/sessions']               = 'api_v1/student_sessions';
 $route['api/v1/student/store/courses/(:num)'] = 'api_v1/store_course/$1';
 $route['api/v1/student/store/courses']        = 'api_v1/store_courses';
 $route['api/v1/student/buy-course']           = 'api_v1/buy_course';
+/* TQ-BOOK — والكتاب المفرد مثله، وعلى مسار الشراء الواحد نفسه. */
+$route['api/v1/student/buy-book']             = 'api_v1/buy_book';
 $route['api/v1/student/subscribe-path']       = 'api_v1/subscribe_path';
 $route['api/v1/student/subscribe']            = 'api_v1/student_subscribe';
 $route['api/v1/student/purchases']            = 'api_v1/student_purchases';
@@ -278,6 +286,15 @@ $route['teacher/wallet/withdraw']   = 'taqdar/wallet_withdraw';
 $route['teacher/wallet/cancel']     = 'taqdar/wallet_cancel';
 $route['teacher/questions/import']  = 'taqdar/questions_import';
 $route['teacher/settings/save']     = 'taqdar/teacher_settings_save';
+/* TQ-BOOK — كتب المعلم: الحفظ والحذف قبل قواعد العرض، فـ`(:any)`
+   مقطع واحد ولولا هذه القواعد لسقط `teacher/books/save` إلى
+   `Taqdar::teacher('books','save')` — تعرض الشاشة ردا على طلب حفظ،
+   بلا حفظ ولا خطأ. */
+$route['teacher/books/save']        = 'taqdar/teacher_book_save';
+$route['teacher/books/delete']      = 'taqdar/teacher_book_delete';
+$route['teacher/books/new']         = 'taqdar/teacher_book_form';
+$route['teacher/books/(:num)']      = 'taqdar/teacher_book_form/$1';
+$route['teacher/books']             = 'taqdar/teacher/books';
 $route['parent/messages/compose']   = 'taqdar/parent_message_send';
 $route['parent/children/link']      = 'taqdar/parent_child_link';
 $route['parent/settings/save']      = 'taqdar/parent_settings_save';
@@ -288,6 +305,9 @@ $route['parent/pay/start']          = 'taqdar/parent_pay_start';
    `Taqdar::parent_portal('pay')`: تعرض الشاشة ردا على طلب شراء، بلا
    شراء ولا خطأ. */
 $route['parent/pay/course']         = 'taqdar/parent_pay_course';
+/* TQ-BOOK — وكتابا مفردا كذلك. وباب بلا كتب يعني أن ولي الأمر لا
+   يشتري كتابا لابنه أبدا مهما عرضته عليه صفحة الكتاب. */
+$route['parent/pay/book']           = 'taqdar/parent_pay_book';
 
 // حقا تصدير البيانات وحذف الحساب لا يخصان الطالب وحده — الدالتان
 // `Taqdar::export_data()` و`delete_account()` تشترطان تسجيل الدخول لا دورا
@@ -358,6 +378,8 @@ $route['student/subscribe-path']       = 'taqdar/subscribe_path';
    وقبل `student/(:any)` — وهي تطابق مقطعا واحدا، فبلا هذه القاعدة يسقط
    الطلب إلى `Taqdar::buy('course')` ولا دالة بهذا الاسم. */
 $route['student/buy-course']           = 'taqdar/buy_course';
+/* TQ-BOOK — شراء كتاب مفرد، بالعلة نفسها وفي الموضع نفسه. */
+$route['student/buy-book']             = 'taqdar/buy_book';
 // ---- التهيئة ووضع الامتحان والتلعيب ----
 // الكتابة قبل العرض كما في كل هذا الملف: `student/(:any)` تطابق مقطعا
 // واحدا، فبلا `student/setup/save` صريحة يسقط الطلب إلى
@@ -446,12 +468,19 @@ $route['course/(:any)']          = 'home/course/$1';
 // يكتبه الزائر في صندوق البحث.
 $route['catalog/results']      = 'taqdar/catalog_results';
 $route['catalog']              = 'taqdar/catalog';
+// ---- الكتب — TQ-BOOK ----
+// `books/results` قبل `books` كما `catalog/results` قبل `catalog`،
+// وللسبب نفسه: `(:any)` مقطع واحد، وبلا قاعدة صريحة يسقط جزء النتائج
+// على الصفحة الكاملة فيرد ترويسة وتذييلا وأصولا على طلب يريد شبكة.
+$route['books/results']        = 'taqdar/books_results';
+/* TQ-BOOK-GATE — ملف الكتاب يمر بحارس لا برابط عار في `uploads/`.
+   والحارس يخدم المجاني بلا تسجيل كما كان، فلا صفحة تتغير. */
+$route['book-file/(:num)']     = 'taqdar/book_file/$1';
+// `books` كانت صفحة الكتب وحدها، ثم صارت الكتب نوعا في الكتالوج، ثم
+// عادت صفحة يوم صار الكتاب وحدة بيع لها سعر وصاحب. وهي **المحرك نفسه**
+// بنوع مثبت لا كتالوج ثان — انظر رأس `site_books.php`.
+$route['books']                = 'taqdar/books_page';
 $route['book/(:any)']          = 'taqdar/book_page/$1';
-$route['competition/(:any)']   = 'taqdar/competition_page/$1';
-// `books` كانت صفحة الكتب وحدها، وصارت الكتب نوعا في الكتالوج.
-// و`.htaccess` يحولها بـ301؛ وهذه القاعدة احتياط لو عطل التحويل —
-// فيصل الزائر إلى الكتب مرشحة بدل 404.
-$route['books']                = 'taqdar/catalog';
 $route['instructor/(:num)']    = 'taqdar/instructor_page/$1';
 $route['teachers']                = 'taqdar/site_page/site_teachers';
 $route['students']                = 'taqdar/site_page/site_students';
@@ -466,6 +495,8 @@ $route['checkout/(:any)']      = 'taqdar/checkout/$1';
    نظير له في `course` — و`slugify(title)` يتكرر بين كورسين بالاسم نفسه
    فيفتح الرابط ما لم يقصد. */
 $route['course-checkout/(:num)'] = 'taqdar/course_checkout/$1';
+/* TQ-BOOK — وشاشة تأكيد شراء كتاب مفرد، برقمه للعلة نفسها. */
+$route['book-checkout/(:num)']   = 'taqdar/book_checkout/$1';
 
 // ---- بوابة تاب ----
 // البادئة `payment/` مقصودة لا مصادفة: `csrf_exclude_uris` في
@@ -478,8 +509,6 @@ $route['payment/tap/return']   = 'taqdar_pay/back';
 $route['payment/tap/webhook']  = 'taqdar_pay/webhook';
 
 $route['pay/(:any)']           = 'taqdar/gateway_callback/$1';
-$route['competitions']        = 'taqdar/competitions';
-$route['competitions/join']   = 'taqdar/competition_join';
 $route['about']                  = 'home/about_us';
 $route['contact']                = 'home/contact_us';
 $route['faq']                    = 'home/faq';

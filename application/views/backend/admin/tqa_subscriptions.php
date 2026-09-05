@@ -139,7 +139,7 @@ $tq_stale = (int) get_instance()->db->query(
         <div style="min-inline-size:0">
             <h2><?php echo t('سجل الاشتراكات'); ?></h2>
             <span class="tqa-media__sub">
-                <?php echo t('باقة أو مسارا أو كورسا مفردا — أحدثها أولا.'); ?>
+                <?php echo t('باقة أو مسارا أو كورسا مفردا أو كتابا — أحدثها أولا.'); ?>
             </span>
         </div>
         <span class="tqa-badge tqa-badge--muted">
@@ -216,21 +216,41 @@ $tq_stale = (int) get_instance()->db->query(
                             </td>
 
                             <?php
-                            /* TQ-COURSE-SALE — **ثلاث وحدات بيع في جدول واحد.**
+                            /* TQ-COURSE-SALE و TQ-BOOK — **أربع وحدات بيع في
+                               جدول واحد.**
                                وكان العمود يقرأ `plan_name` وحده، فيطبع «—»
                                على كل شراء مسار أو كورس مفرد: يقرأ المسؤول
                                صفا بمبلغ ومشتر وحالة ولا يعرف ما بيع فيه،
                                فيفعل حوالة على العمياء. والنوع يقال مع
-                               الاسم — «كورس مفرد» غير «باقة». */
+                               الاسم — «كورس مفرد» غير «باقة».
+
+                               ثم أضيف بيع الكتاب فعاد العطل نفسه من بابه
+                               الرابع: صف بمئتي ريال في عمود «ما اشترى»
+                               فارغ. والترتيب هنا ترتيب `sold()` نفسه —
+                               **المفرد قبل الباقة**، لأن صف الشراء المفرد
+                               يحمل `plan_id = 0` فيضم على باقة لا وجود
+                               لها ويقرأ فارغا. */
                             $tq_what = ''; $tq_kind = t('باقة'); $tq_kt = 'info';
-                            if (trim((string) ($r['plan_name'] ?? '')) !== '') {
-                                $tq_what = (string) $r['plan_name'];
+                            if (trim((string) ($r['book_name'] ?? '')) !== '') {
+                                $tq_what = (string) $r['book_name']; $tq_kind = t('كتاب'); $tq_kt = 'warn';
                             } elseif (trim((string) ($r['course_name'] ?? '')) !== '') {
                                 $tq_what = (string) $r['course_name']; $tq_kind = t('كورس مفرد'); $tq_kt = 'warn';
                             } elseif (trim((string) ($r['path_name'] ?? '')) !== '') {
                                 $tq_what = (string) $r['path_name']; $tq_kind = t('مسار'); $tq_kt = 'muted';
+                            } elseif (trim((string) ($r['plan_name'] ?? '')) !== '') {
+                                $tq_what = (string) $r['plan_name'];
                             } else {
-                                $tq_kind = '';
+                                /* TQ-PLAN-DELETE — ما حذف يقال بالرقم لا
+                                   بشرطة: بالرقم يقابل السجل المالي. */
+                                foreach (array('book_id' => t('كتاب'), 'course_id' => t('كورس'),
+                                               'path_id' => t('مسار'), 'plan_id' => t('باقة')) as $tq_c => $tq_n) {
+                                    if ((int) ($r[$tq_c] ?? 0) > 0) {
+                                        $tq_what = $tq_n . ' #' . (int) $r[$tq_c];
+                                        $tq_kind = t('محذوف'); $tq_kt = 'danger';
+                                        break;
+                                    }
+                                }
+                                if ($tq_what === '') $tq_kind = '';
                             }
                             ?>
                             <td data-label="<?php echo te('ما اشترى'); ?>">
@@ -311,12 +331,33 @@ $tq_stale = (int) get_instance()->db->query(
                             $tq_acts = array();
                             $tq_sh   = isset($shares[(int) $r['id']]) ? $shares[(int) $r['id']] : array();
 
+                            /* TQ-SUB-DETAIL — «التفاصيل» أول البنود.
+
+                               الصف يجيب سؤال المسح، والقائمة تحمل ما يفعل
+                               به. ولا يجيبان سؤال الحادثة: «دفعت ولم يفتح»
+                               و«باعوا صفي ولم يصلني شيء» و«هذه الفاتورة لم
+                               تسدد» — ثلاثة كان جوابها مبعثرا في خمس شاشات
+                               لا يربط بينها رقم الاشتراك، فيجمعه المسؤول
+                               بالاسم واليد أو يجيب بالحدس.
+
+                               وهو أول البند لا آخره: من فتح القائمة وهو لا
+                               يعرف ما في الصف يقرأ قبل أن يفعل. */
+                            $tq_acts[] = array(
+                                'label' => t('التفاصيل'),
+                                'sub'   => t('الفاتورة والنطاق والقسمة والأثر'),
+                                'icon'  => 'search',
+                                'href'  => site_url('taqdar_admin/subscription/' . (int) $r['id']),
+                            );
+                            $tq_acts[] = array('sep' => true);
+
                             if ($r['status'] === 'pending'):
                                 $tq_acts[] = array(
                                     'panel'   => t('تفعيل بتحويل بنكي'),
                                     'icon'    => 'bank',
                                     'action'  => 'taqdar_admin/subscription_activate/' . (int) $r['id'],
                                     'submit'  => t('فعل الاشتراك'),
+                                    /* بلا `back` — الرد يعود إلى هذه القائمة،
+                                       وهو موضع الضغط. وشاشة البيعة ترسله. */
                                     'sub'     => t('يسدد الاشتراك ويفتح محتواه فورا.'),
                                     'fields'  => array(array(
                                         'name'        => 'reference',
@@ -356,7 +397,15 @@ $tq_stale = (int) get_instance()->db->query(
                                المقسوم عليه ثم ينشر غيره في الصف نفسه يبقى
                                القيد لمن لا محتوى له. وهذا اللوح هو المخرج،
                                بقرار مسؤول لا تلقائيا. */
-                            if ($tq_sh || ((int) $r['price'] > 0 && in_array($r['status'], array('active', 'cancelled'), true))):
+                            /* والباقة وحدها تقسم وعاء: `resplit_plan_sale()`
+                               تنادي `credit_plan_sale()` وهي تقرأ باقة،
+                               وصف الكورس أو الكتاب المفرد `plan_id = 0`.
+                               فالزر عليه يفشل برسالة لا تفهم — ونصيب
+                               صاحبه نسبة واحدة قيدت، لا وعاء يعاد قسمه. */
+                            $tq_isplan = (int) ($r['book_id'] ?? 0) === 0
+                                      && (int) ($r['course_id'] ?? 0) === 0
+                                      && (int) ($r['plan_id'] ?? 0) > 0;
+                            if ($tq_isplan && ($tq_sh || ((int) $r['price'] > 0 && in_array($r['status'], array('active', 'cancelled'), true)))):
                                 if ($tq_acts) $tq_acts[] = array('sep' => true);
 
                                 if ($tq_sh):

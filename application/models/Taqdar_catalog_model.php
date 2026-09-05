@@ -5,12 +5,11 @@
  *
  * ═══ لماذا وجد ═══
  *
- * كان لكل نوع صفحته: البرامج في `/plans`، والكتب في `/books`، والمسابقات
- * في `/competitions`. ومن لا يعرف اسم النوع لا يعرف أي صفحة يفتح — يبحث
- * عن «رياضيات الصف الرابع» فيجد ثلاثة أبواب، وفي كل باب مرشح لا يشبه
- * المرشح الذي في الباب الآخر.
+ * كان لكل نوع صفحته: البرامج في `/plans`، والكتب في `/books`. ومن لا
+ * يعرف اسم النوع لا يعرف أي صفحة يفتح — يبحث عن «رياضيات الصف الرابع»
+ * فيجد بابين، وفي كل باب مرشح لا يشبه المرشح الذي في الباب الآخر.
  *
- * وهنا مصدر واحد يقرأ الأنواع الأربعة (باقة · برنامج · كتاب · مسابقة)
+ * وهنا مصدر واحد يقرأ الأنواع الأربعة (باقة · برنامج · كورس · كتاب)
  * ويعيدها **بشكل واحد**، فالترشيح والبحث والصفحات تكتب مرة لا أربعا.
  *
  * ═══ لماذا يرشح في PHP لا في SQL ═══
@@ -22,15 +21,14 @@
  * وهو استعلام مستقل لكل خيار لو كتب في SQL.
  *
  * والحد الأعلى معروف ومحدود: `paths` خمسة عشر، و`books` ثمانية،
- * و`plans` ستة، و`competitions` اثنتان. ولو صارت ألوفا فالموضع الذي
- * يتغير موضع واحد.
+ * و`plans` ستة. ولو صارت ألوفا فالموضع الذي يتغير موضع واحد.
  *
  * ═══ التصنيف مشتق لا مخزن ═══
  *
  * `category` تحمل المراحل الثلاث ومسارين آخرين (القدرات · المهارات
  * الرقمية)، وهي المفردة الوحيدة المشتركة بين الأنواع الأربعة: البرنامج
- * والكتاب والمسابقة تحمل `category_id`، والباقة تحمل `stage` وهو مسمى
- * الفئة نفسه. فالقسم واحد في المرشح لا اثنان.
+ * والكتاب يحملان `category_id`، والباقة تحمل `stage` وهو مسمى الفئة
+ * نفسه. فالقسم واحد في المرشح لا اثنان.
  */
 class Taqdar_catalog_model extends CI_Model
 {
@@ -52,7 +50,6 @@ class Taqdar_catalog_model extends CI_Model
                الانواع، لا قائمة ثانية بلا مرشحات. */
             'course'      => array('label' => 'الكورسات',  'one' => 'كورس',   'icon' => 'i-curriculum'),
             'book'        => array('label' => 'الكتب',     'one' => 'كتاب',   'icon' => 'i-book'),
-            'competition' => array('label' => 'المسابقات', 'one' => 'مسابقة', 'icon' => 'i-badge'),
         );
     }
 
@@ -111,7 +108,6 @@ class Taqdar_catalog_model extends CI_Model
         foreach ($this->paths()        as $r) $out[] = $r;
         foreach ($this->courses()      as $r) $out[] = $r;
         foreach ($this->books()        as $r) $out[] = $r;
-        foreach ($this->competitions() as $r) $out[] = $r;
 
         return $this->items = $out;
     }
@@ -442,25 +438,71 @@ class Taqdar_catalog_model extends CI_Model
     /* ---- الكتب --------------------------------------------------- */
     private function books()
     {
-        $rows = $this->db->select('id, title, slug, subject, author, pages, tone, cover, file,
-                                   description, category_id, tq_order, date_added', false)
-                         ->from('books')->where('status', 'published')
-                         ->order_by('tq_order', 'ASC')->order_by('id', 'ASC')
-                         ->get()->result_array();
+        /* TQ-BOOK — المخطط يركب من **مسار العرض** لا من مسار الكتابة
+           وحده: الأعمدة تقرأ في هذه الصفحة العامة، وقراءة عمود قبل
+           إنشائه ترد «Unknown column» فتبيض الصفحة لكل زائر. وهي قاعدة
+           `Taqdar_course_sale_model::install_schema()` نفسها. */
+        try {
+            $CI = get_instance();
+            $CI->load->model('taqdar_book_model', 'tq_bk_cat');
+            $CI->tq_bk_cat->install_schema();
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-BOOK catalog schema: ' . $e->getMessage());
+        }
 
-        $cats = $this->categories();
-        $out  = array();
+        try {
+            $rows = $this->db->select('*', false)
+                             ->from('books')->where('status', 'published')
+                             ->order_by('tq_order', 'ASC')->order_by('id', 'ASC')
+                             ->get()->result_array();
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            return array();
+        }
+
+        $cats   = $this->categories();
+        $grades = $this->grades();
+        $out    = array();
+
         foreach ($rows as $r) {
             $cat  = isset($cats[(int) $r['category_id']]) ? $cats[(int) $r['category_id']] : null;
             $slug = ((string) $r['slug'] !== '') ? (string) $r['slug'] : (string) $r['id'];
+            $gid  = (int) (isset($r['grade_id']) ? $r['grade_id'] : 0);
+
+            /* العرض من مصدره الواحد (`offer()`): السعر والخصم و«أيباع»
+               كلها منه، فما تكتبه البطاقة هو ما تقيده الفاتورة. ونسخة
+               ثانية من قواعد السعر هنا تعرض رقما وتقبض غيره. */
+            $offer = null;
+            try {
+                $offer = $CI->tq_bk_cat->offer($r);
+            } catch (Throwable $e) { $offer = null; }
 
             $stats = array();
             if ((int) $r['pages'] > 0) {
                 $stats[] = array('i-file', tq_count_units((int) $r['pages'], 'صفحة', 'صفحتان',
                                  'صفحتين', 'صفحات', 'صفحة', null, 'obl', true));
             }
-            $stats[] = array((string) $r['file'] !== '' ? 'i-download' : 'i-clock',
-                             (string) $r['file'] !== '' ? 'تحميل مجاني' : 'قريبا');
+
+            $has_file = ((string) $r['file'] !== '');
+            $sellable = ($offer && !empty($offer['sellable']));
+
+            /* السطر الثاني يقول ما يفعله الزائر بهذا الكتاب:
+                 · لا ملف     ⇐ «قريبا» — ولا يوعد بتحميل لا يقع
+                 · يباع       ⇐ «كتاب مدفوع» والسعر تحته في البطاقة
+                 · وإلا       ⇐ «تحميل مجاني» كما كان منذ كتبت الصفحة */
+            if (!$has_file) {
+                $stats[] = array('i-clock', 'قريبا');
+            } elseif ($sellable) {
+                $stats[] = array('i-book', 'يقرأ في مكتبتك');
+            } else {
+                $stats[] = array('i-download', 'تحميل مجاني');
+            }
+
+            /* والباقة تقال حيث تفتح: كتاب بصف تفتحه باقة صفه، وهو
+               ثالث ما يشتريه الزائر — ويغيب عنه أن اشتراكه يشمله. */
+            if ($gid > 0 && isset($grades[$gid])) {
+                $stats[] = array('i-package', 'ضمن باقة ' . $grades[$gid]);
+            }
 
             $out[] = $this->shape(array(
                 'kind'     => 'book',
@@ -472,83 +514,26 @@ class Taqdar_catalog_model extends CI_Model
                 'href'     => base_url('book/' . $slug),
                 'cat'      => $cat ? $cat['slug'] : '',
                 'cat_name' => $cat ? $cat['name'] : '',
+                'grades'   => $gid > 0 ? array($gid) : array(),
+                'grade_name' => ($gid > 0 && isset($grades[$gid])) ? $grades[$gid] : '',
                 'subject'  => (string) $r['subject'],
-                /* الكتاب مجاني دائما: الصفحة تعد بالتحميل بلا تسجيل */
-                'price'    => 0,
+                /* السعر بالهللات كما في الباقة والكورس، وصفر يعني
+                   مجانا — والبطاقة تكتب «مجاني» عندها. */
+                'price'    => $sellable ? (int) $offer['price'] : 0,
                 'order'    => (int) $r['tq_order'],
                 'date'     => (int) $r['date_added'],
                 'tone'     => (string) $r['tone'],
                 'tag'      => (string) $r['subject'],
+                'ready'    => $has_file,
                 'stats'    => $stats,
                 'extra'    => array('file' => (string) $r['file'], 'author' => (string) $r['author'],
-                                    'pages' => (int) $r['pages']),
+                                    'pages' => (int) $r['pages'],
+                                    'sellable' => $sellable,
+                                    'list_price' => $offer ? (int) $offer['list_price'] : 0,
+                                    'off' => $offer ? (int) $offer['off'] : 0,
+                                    'in_plans' => ($gid > 0)),
                 'text'     => implode(' ', array((string) $r['title'], (string) $r['subject'],
                                                  (string) $r['author'], (string) $r['description'])),
-            ));
-        }
-        return $out;
-    }
-
-    /* ---- المسابقات ----------------------------------------------- */
-    private function competitions()
-    {
-        if (!$this->db->table_exists('competitions')) return array();
-
-        $rows = $this->db->select('c.id, c.title, c.slug, c.tagline, c.description, c.category_id,
-                                   c.subject_id, c.cover, c.starts_at, c.ends_at, c.seats, c.prize,
-                                   c.status, c.tq_order, s.name_ar AS subject_ar,
-                                   (SELECT COUNT(*) FROM competition_entries e
-                                     WHERE e.competition_id = c.id) AS entries', false)
-                         ->from('competitions c')
-                         ->join('subjects s', 's.id = c.subject_id', 'left')
-                         ->where_in('c.status', array('open', 'closed', 'done'))
-                         ->order_by('c.tq_order', 'ASC')->order_by('c.id', 'DESC')
-                         ->get()->result_array();
-
-        $cats = $this->categories();
-        $now  = date('Y-m-d');
-        $out  = array();
-        foreach ($rows as $r) {
-            $cat  = isset($cats[(int) $r['category_id']]) ? $cats[(int) $r['category_id']] : null;
-            $slug = ((string) $r['slug'] !== '') ? (string) $r['slug'] : (string) $r['id'];
-            $open = ((string) $r['status'] === 'open')
-                 && (empty($r['ends_at']) || $r['ends_at'] >= $now);
-
-            $stats = array();
-            if ((string) $r['starts_at'] !== '') {
-                $stats[] = array('i-calendar', 'تبدأ ' . tqs_date_ar($r['starts_at']));
-            }
-            if ((int) $r['entries'] > 0) {
-                $stats[] = array('i-users', tq_count_units((int) $r['entries'], 'مشارك', 'مشاركان',
-                                 'مشاركين', 'مشاركين', 'مشاركا'));
-            }
-            if ((string) $r['prize'] !== '') $stats[] = array('i-badge', (string) $r['prize']);
-
-            $out[] = $this->shape(array(
-                'kind'     => 'competition',
-                'id'       => (int) $r['id'],
-                'title'    => (string) $r['title'],
-                'blurb'    => (string) $r['tagline'],
-                'image'    => (string) $r['cover'],
-                'fallback' => '',
-                'href'     => base_url('competition/' . $slug),
-                'cat'      => $cat ? $cat['slug'] : '',
-                'cat_name' => $cat ? $cat['name'] : '',
-                'subject'  => (string) $r['subject_ar'],
-                /* المسابقة داخلة في الباقة: لا رسم لها ولا سعر يعرض */
-                'price'    => 0,
-                'order'    => (int) $r['tq_order'],
-                'tag'      => $open ? 'التسجيل مفتوح' : (((string) $r['status'] === 'done') ? 'انتهت' : 'التسجيل مغلق'),
-                'state'    => $open ? 'open' : (string) $r['status'],
-                'stats'    => $stats,
-                'extra'    => array('starts_at' => (string) $r['starts_at'],
-                                    'ends_at'   => (string) $r['ends_at'],
-                                    'entries'   => (int) $r['entries'],
-                                    'seats'     => (int) $r['seats'],
-                                    'prize'     => (string) $r['prize'],
-                                    'open'      => $open),
-                'text'     => implode(' ', array((string) $r['title'], (string) $r['tagline'],
-                                                 (string) $r['description'], (string) $r['prize'])),
             ));
         }
         return $out;
@@ -729,11 +714,11 @@ class Taqdar_catalog_model extends CI_Model
      *
      * ═══ لماذا المرحلة لا الصف ═══
      *
-     * الصف أدق، لكنه ليس في الأنواع الأربعة: الكتاب والمسابقة لا
-     * `grade_id` لهما أصلا. فترشيح بالصف يمسح الكتب الثمانية والمسابقتين
-     * من الشاشة — أي يخفي عن الطالب المحتوى المجاني كله باسم تقريبه
-     * منه. والقسم هو المفردة الوحيدة المشتركة بين الأنواع (انظر رأس
-     * الملف)، وهو «المرحلة» نفسها التي يسأل عنها. والصف يبقى مرشحا
+     * الصف أدق، لكنه ليس في الأنواع الأربعة: الكتاب لا `grade_id` له
+     * أصلا. فترشيح بالصف يمسح الكتب الثمانية من الشاشة — أي يخفي عن
+     * الطالب المحتوى المجاني كله باسم تقريبه منه. والقسم هو المفردة
+     * الوحيدة المشتركة بين الأنواع (انظر رأس الملف)، وهو «المرحلة»
+     * نفسها التي يسأل عنها. والصف يبقى مرشحا
      * ظاهرا في اللوحة لمن أراد أن يضيق أكثر.
      *
      * ═══ ثلاثة شروط قبل الحقن ═══
@@ -1060,7 +1045,7 @@ class Taqdar_catalog_model extends CI_Model
     }
 
     /**
-     * ما يجاور برنامجا في الكتالوج — برامج وكتبا ومسابقات.
+     * ما يجاور برنامجا في الكتالوج — برامج وكورسات وكتبا.
      *
      * الترتيب بالقرب لا بالنوع: المادة نفسها اولا، ثم القسم نفسه، ثم
      * البقية. فمن يقرأ «رياضيات السادس» يجد تحتها ما يقربه منها لا ما
@@ -1098,25 +1083,6 @@ class Taqdar_catalog_model extends CI_Model
         }
 
         return array_slice(array_merge($same_subject, $same_cat, $rest), 0, (int) $limit);
-    }
-
-    /** مسابقة واحدة بمسماها، ومعها عدد المسجلين. */
-    public function competition_by_slug($slug)
-    {
-        if (!$this->db->table_exists('competitions')) return null;
-
-        $this->db->select('c.*, cat.name AS cat_name, cat.slug AS cat_slug, s.name_ar AS subject_ar,
-                           (SELECT COUNT(*) FROM competition_entries e
-                             WHERE e.competition_id = c.id) AS entries', false)
-                 ->from('competitions c')
-                 ->join('category cat', 'cat.id = c.category_id', 'left')
-                 ->join('subjects s', 's.id = c.subject_id', 'left')
-                 ->where_in('c.status', array('open', 'closed', 'done'));
-
-        if (ctype_digit((string) $slug)) $this->db->where('c.id', (int) $slug);
-        else                             $this->db->where('c.slug', (string) $slug);
-
-        return $this->db->get()->row_array();
     }
 
     /** برامج الكتالوج التي تشبه عنصرا — لذيل الصفحات المفردة. */

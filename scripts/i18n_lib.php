@@ -414,8 +414,18 @@ function tq_segment_view($src)
  *
  * و`data-tq-confirm` منها: هي نص نافذة «هل أنت متأكد؟» يقرؤه السكربت —
  * وتركها يترك أخطر جملة في الشاشة عربية وحدها، وهي التي تسبق حذفا لا يرجع.
+ *
+ * TQ-LABEL-I18N — و`data-label` منها كذلك، وهي التي كانت تسقط.
+ * دون ٦٤٠ بكسلا يصير كل جدول بطاقات، والخلية تطبع تسميتها من هذه السمة
+ * (`td::before { content: attr(data-label) }` في `base.css` و`admin.css`).
+ * فهي **نص يقرأ على الشاشة** لا وسم داخلي، وإن لم تظهر على المكتب قط —
+ * ولذلك مرت: من يفحص لوحة إنجليزية يفحصها على حاسوبه.
+ * فكانت ماية وستة عشرة ومئة سمة في خمسة وثلاثين قالبا تطبع عربيتها فوق
+ * قيمها في كل بطاقة جوال إنجليزية: «التاريخ» فوق تاريخ، و«حصتك» فوق
+ * رقم، ورأس الجدول فوقها مترجم — فيقرأ المعلم كشف حسابه بلغتين في شاشة
+ * واحدة. والفاحص لا يراها لأنها لا ترسم إلا دون ٦٤٠.
  */
-const TQ_ATTR_RE = '/\b(title|placeholder|alt|aria-label|aria-description|aria-placeholder|aria-roledescription|data-tq-confirm|data-tq-confirm-note|data-tq-confirm-ok|data-tq-confirm-title|data-tqa-confirm|data-tqa-confirm-note|data-tqa-confirm-ok|data-tqa-confirm-title|data-tq-label|data-tq-empty|data-confirm)\s*=\s*"([^"]*)"/u';
+const TQ_ATTR_RE = '/\b(title|placeholder|alt|aria-label|aria-description|aria-placeholder|aria-roledescription|data-tq-confirm|data-tq-confirm-note|data-tq-confirm-ok|data-tq-confirm-title|data-tqa-confirm|data-tqa-confirm-note|data-tqa-confirm-ok|data-tqa-confirm-title|data-tq-label|data-tq-empty|data-label|data-confirm)\s*=\s*"([^"]*)"/u';
 
 /* ======================================================================
    ٣ — مجموعات الملفات

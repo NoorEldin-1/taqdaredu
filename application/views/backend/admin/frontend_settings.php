@@ -485,7 +485,7 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
                         <tr>
                             <td data-label="#"><span class="tqa-num"><?php echo $tq_i + 1; ?></span></td>
 
-                            <td data-label="صاحب الرأي">
+                            <td data-label="<?php echo te('صاحب الرأي'); ?>">
                                 <?php if ($tq_u): ?>
                                     <span class="tqa-media__title"><?php echo html_escape($tq_n !== '' ? $tq_n : $tq_u['email']); ?></span>
                                     <span class="tqa-media__sub tq-ltr" dir="ltr"><?php echo html_escape($tq_u['email']); ?></span>
@@ -494,16 +494,16 @@ $tq_url = function ($t) { return site_url('admin/frontend_settings') . '?tab=' .
                                 <?php endif; ?>
                             </td>
 
-                            <td data-label="التقييم">
+                            <td data-label="<?php echo te('التقييم'); ?>">
                                 <span class="tqa-badge tqa-badge--warn">
                                     <?php echo tq_icon('star', 12); ?>
                                     <span class="tqa-num"><?php echo html_escape($tq_r['rating']); ?></span>
                                 </span>
                             </td>
 
-                            <td data-label="النص"><?php echo html_escape($tq_r['review']); ?></td>
+                            <td data-label="<?php echo te('النص'); ?>"><?php echo html_escape($tq_r['review']); ?></td>
 
-                            <td data-label="إجراءات">
+                            <td data-label="<?php echo te('إجراءات'); ?>">
                                 <div class="tqa-rowacts">
                                     <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
                                        href="<?php echo site_url('admin/review_edit/' . (int) $tq_r['id']); ?>">

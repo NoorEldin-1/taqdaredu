@@ -61,7 +61,7 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
                 <tr>
                     <td class="tqa-col--tight" data-label="#"><span class="tqa-num"><?php echo $tq_ord; ?></span></td>
 
-                    <td data-label="الحساب">
+                    <td data-label="<?php echo te('الحساب'); ?>">
                         <span class="tqa-media">
                             <img class="tqa-avatar" alt="" width="38" height="38" loading="lazy"
                                  src="<?php echo html_escape($this->user_model->get_user_image_url($tq_id)); ?>">
@@ -72,7 +72,7 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
                         </span>
                     </td>
 
-                    <td data-label="الهاتف">
+                    <td data-label="<?php echo te('الهاتف'); ?>">
                         <?php if (trim((string) $tq_u['phone']) !== ''): ?>
                             <span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_u['phone']); ?></span>
                         <?php else: ?>
@@ -80,17 +80,17 @@ $tq_url = function ($p = 1) use ($tq_base, $search) {
                         <?php endif; ?>
                     </td>
 
-                    <td data-label="الكورسات">
+                    <td data-label="<?php echo te('الكورسات'); ?>">
                         <span class="tqa-num"><?php echo (int) ($enrols[$tq_id] ?? 0); ?></span>
                     </td>
 
-                    <td data-label="الحالة">
+                    <td data-label="<?php echo te('الحالة'); ?>">
                         <span class="tqa-badge tqa-badge--<?php echo $tq_on ? 'ok' : 'muted'; ?>">
                             <?php echo $tq_on ? t('نشط') : t('موقوف'); ?>
                         </span>
                     </td>
 
-                    <td class="tqa-col--acts" data-label="إجراءات">
+                    <td class="tqa-col--acts" data-label="<?php echo te('إجراءات'); ?>">
                         <?php
                         /* TQ-ROW-CLUTTER — ثلاثة عناصر في خلية صارت قائمة.
                            وجدول الحسابات يبلغ أربعمئة صف، فالفرق ألف ومئتا

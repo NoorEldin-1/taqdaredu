@@ -201,59 +201,61 @@ include 'portal_open.php';
                         true
                     ); ?>
                 <?php else: ?>
-                    <table class="tq-table">
-                        <caption class="tq-sr"><?php echo t('مواد دروسك التعليمية'); ?></caption>
-                        <thead>
-                            <tr>
-                                <th scope="col"><?php echo t('الاسم'); ?></th>
-                                <th scope="col"><?php echo t('المادة'); ?></th>
-                                <th scope="col"><?php echo t('النوع'); ?></th>
-                                <th scope="col"><?php echo t('الحجم'); ?></th>
-                                <th scope="col"><?php echo t('التاريخ'); ?></th>
-                                <th scope="col"><?php echo t('الإجراء'); ?></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($tq_page_items as $m): $k = $m['kind']; ?>
+                    <div class="tq-table-wrap">
+                        <table class="tq-table">
+                            <caption class="tq-sr"><?php echo t('مواد دروسك التعليمية'); ?></caption>
+                            <thead>
                                 <tr>
-                                    <td data-label="الاسم">
-                                        <span class="tq-s-file">
-                                            <span class="tq-s-file__box tq-pastel tq-pastel--<?php echo $k['pastel']; ?>" aria-hidden="true">
-                                                <span class="tq-pastel__icon"><?php echo tq_icon($k['icon'], 18); ?></span>
-                                            </span>
-                                            <span>
-                                                <span class="tq-s-item__t"><?php echo html_escape($m['title']); ?></span>
-                                                <span class="tq-s-item__s"><?php echo html_escape($m['lesson']); ?></span>
-                                            </span>
-                                        </span>
-                                    </td>
-                                    <td data-label="المادة">
-                                        <span class="tq-badge tq-badge--progress"><?php echo html_escape($m['subject'] !== '' ? $m['subject'] : $m['course']); ?></span>
-                                    </td>
-                                    <td data-label="النوع"><?php echo html_escape($k['label']); ?></td>
-                                    <td data-label="الحجم">
-                                        <?php echo $m['bytes'] > 0 ? tq_num(tq_s_size($m['bytes']), 'tq-num--sm') : '<span class="tq-muted">—</span>'; ?>
-                                    </td>
-                                    <td data-label="التاريخ">
-                                        <?php echo $m['at'] > 0 ? tq_s_date($m['at']) : '<span class="tq-muted">—</span>'; ?>
-                                    </td>
-                                    <td data-label="الإجراء">
-                                        <span class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:nowrap">
-                                            <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($m['url']); ?>"
-                                               <?php echo $k['key'] === 'link' ? 'rel="noopener"' : 'download'; ?>>
-                                                <?php echo tq_icon($k['key'] === 'link' ? 'play' : 'download', 16); ?>
-                                                <?php echo $k['key'] === 'link' ? t('فتح') : t('تحميل'); ?>
-                                                <span class="tq-sr"><?php echo html_escape($m['title']); ?></span>
-                                            </a>
-                                            <?php /* القلب على ملفات `resource_files` وحدها — مرفق الدرس
-                                                     بلا معرف ثابت يفضل به، انظر `fav_id` في tq_s_materials. */ ?>
-                                            <?php if (!empty($m['fav_id'])) echo $tq_fav_btn((int) $m['fav_id'], isset($tq_fav_on[(int) $m['fav_id']]), $m['title']); ?>
-                                        </span>
-                                    </td>
+                                    <th scope="col"><?php echo t('الاسم'); ?></th>
+                                    <th scope="col"><?php echo t('المادة'); ?></th>
+                                    <th scope="col"><?php echo t('النوع'); ?></th>
+                                    <th scope="col"><?php echo t('الحجم'); ?></th>
+                                    <th scope="col"><?php echo t('التاريخ'); ?></th>
+                                    <th scope="col"><?php echo t('الإجراء'); ?></th>
                                 </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($tq_page_items as $m): $k = $m['kind']; ?>
+                                    <tr>
+                                        <td data-label="<?php echo te('الاسم'); ?>">
+                                            <span class="tq-s-file">
+                                                <span class="tq-s-file__box tq-pastel tq-pastel--<?php echo $k['pastel']; ?>" aria-hidden="true">
+                                                    <span class="tq-pastel__icon"><?php echo tq_icon($k['icon'], 18); ?></span>
+                                                </span>
+                                                <span>
+                                                    <span class="tq-s-item__t"><?php echo html_escape($m['title']); ?></span>
+                                                    <span class="tq-s-item__s"><?php echo html_escape($m['lesson']); ?></span>
+                                                </span>
+                                            </span>
+                                        </td>
+                                        <td data-label="<?php echo te('المادة'); ?>">
+                                            <span class="tq-badge tq-badge--progress"><?php echo html_escape($m['subject'] !== '' ? $m['subject'] : $m['course']); ?></span>
+                                        </td>
+                                        <td data-label="<?php echo te('النوع'); ?>"><?php echo html_escape($k['label']); ?></td>
+                                        <td data-label="<?php echo te('الحجم'); ?>">
+                                            <?php echo $m['bytes'] > 0 ? tq_num(tq_s_size($m['bytes']), 'tq-num--sm') : '<span class="tq-muted">—</span>'; ?>
+                                        </td>
+                                        <td data-label="<?php echo te('التاريخ'); ?>">
+                                            <?php echo $m['at'] > 0 ? tq_s_date($m['at']) : '<span class="tq-muted">—</span>'; ?>
+                                        </td>
+                                        <td data-label="<?php echo te('الإجراء'); ?>">
+                                            <span class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:nowrap">
+                                                <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($m['url']); ?>"
+                                                   <?php echo $k['key'] === 'link' ? 'rel="noopener"' : 'download'; ?>>
+                                                    <?php echo tq_icon($k['key'] === 'link' ? 'play' : 'download', 16); ?>
+                                                    <?php echo $k['key'] === 'link' ? t('فتح') : t('تحميل'); ?>
+                                                    <span class="tq-sr"><?php echo html_escape($m['title']); ?></span>
+                                                </a>
+                                                <?php /* القلب على ملفات `resource_files` وحدها — مرفق الدرس
+                                                         بلا معرف ثابت يفضل به، انظر `fav_id` في tq_s_materials. */ ?>
+                                                <?php if (!empty($m['fav_id'])) echo $tq_fav_btn((int) $m['fav_id'], isset($tq_fav_on[(int) $m['fav_id']]), $m['title']); ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
 
                     <?php if ($tq_pages > 1): ?>
                         <nav class="tq-s-pager" aria-label="<?php echo te('صفحات المواد'); ?>">

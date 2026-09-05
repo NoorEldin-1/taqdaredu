@@ -231,9 +231,8 @@ if (!function_exists('tqs_cat_media')) {
     /**
      * وجه البطاقة — ويختلف بالنوع.
      *
-     * الكتاب غلاف رأسي ملون بمادته، والباقة والبرنامج صورة عريضة،
-     * والمسابقة لوح مذهب برمزها: لا صورة لواحدة منها في القاعدة، وصورة
-     * بديلة واحدة تعطى لكل المسابقات تكذب أكثر مما تزين.
+     * الكتاب غلاف رأسي ملون بمادته، والباقة والبرنامج والكورس صورة
+     * عريضة.
      */
     function tqs_cat_media($it)
     {
@@ -254,15 +253,6 @@ if (!function_exists('tqs_cat_media')) {
                     . '</span>';
             }
             return $h . '</div>';
-        }
-
-        if ($it['kind'] === 'competition') {
-            if ((string) $it['image'] !== '') {
-                return '<div class="ccard__media"><img src="' . html_escape(tqs_img($it['image'], 'blog-1'))
-                     . '" width="620" height="380" loading="lazy" decoding="async" alt=""></div>';
-            }
-            return '<div class="ccard__media ccard__media--comp" aria-hidden="true">'
-                 . '<svg><use href="#i-badge"></use></svg></div>';
         }
 
         $fallback = ($it['fallback'] !== '') ? $it['fallback'] : 'subj-math';
@@ -289,7 +279,7 @@ if (!function_exists('tqs_rich_text')) {
     /**
      * نص وصف من القاعدة، فقرات — لا وسوما ولا سطرا واحدا.
      *
-     * الحقول الوصفية (`competitions.description` · `books.description`)
+     * الحقول الوصفية (`books.description` · `paths.description`)
      * تحرر بعضها بمحرر غني فتخزن `<p>…</p>`، وبعضها نص خام بأسطر. فطباعتها
      * بـ`html_escape` تعرض `<p>` حرفا في الصفحة — وقد عرضت. وطباعتها
      * خاما تفتح كل صفحة عامة لحقن سكربت من شاشة تحرير.
@@ -431,14 +421,28 @@ if (!function_exists('tqs_cat_card')) {
             /* «اقرا وحمل» فوق كتاب لم يرفع ملفه وعد مكسور: الزائر يضغط
                فيجد زرا معطلا. والدعوة تقول ما يجده فعلا. */
             $has = (isset($it['extra']['file']) && (string) $it['extra']['file'] !== '');
-            $h .= t('      <p class="ccard__price ccard__price--free">مجاني</p>') . "\n";
-            $h .= '      <span class="ccard__cta">' . ($has ? t('اقرا وحمل') : t('تفاصيل الكتاب'))
+
+            /* TQ-BOOK — **والسعر يقال متى كان الكتاب يباع.**
+               كانت البطاقة تكتب «مجاني» على كل كتاب مهما كان — وهو صواب
+               يوم كانت الكتب مجانية كلها. ومع البيع المفرد صارت تعد
+               بالمجان ثم تفتح على زر «اشتر الكتاب بـ٤٥ ر.س»: وعد ينقضه
+               ما بعده بنقرة، والزائر يشك في أيهما الصحيح.
+               والسعر من `$it['price']` الذي كتبه
+               `Taqdar_catalog_model::books()` من `offer()` نفسها. */
+            $sellable = !empty($it['extra']['sellable']);
+            if ($sellable && (int) $it['price'] > 0) {
+                $h .= '      <p class="ccard__price"><b class="tq-ltr">'
+                    . number_format(((int) $it['price']) / 100) . t('</b><span>ر.س</span></p>') . "\n";
+            } else {
+                $h .= t('      <p class="ccard__price ccard__price--free">مجاني</p>') . "\n";
+            }
+
+            /* والدعوة تتبع السعر: «اقرا وحمل» على كتاب مدفوع تعد بتحميل
+               لا يقع — القارئ يعرض صفحة صفحة ولا ينزل ملفا. */
+            $h .= '      <span class="ccard__cta">'
+                . ($sellable ? t('تفاصيل الكتاب') : ($has ? t('اقرا وحمل') : t('تفاصيل الكتاب')))
                 . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";
-        } elseif ($it['kind'] === 'competition') {
-            $h .= '      <p class="ccard__price ccard__price--free">'
-                . (((string) $it['state'] === 'open') ? t('التسجيل مفتوح') : t('التسجيل مغلق')) . '</p>' . "\n";
-            $h .= t('      <span class="ccard__cta">تفاصيل المسابقة')
-                . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></span>' . "\n";
+
         } elseif ($it['kind'] === 'course') {
             /* الكورس محتوى الباقة لا سلعة بجوارها: «ضمن الباقات» كما يقرأ
                البرنامج، إلا ما وسم مجانيا فيقرأ مجانا. وبطاقة تقول سعرا

@@ -79,17 +79,17 @@ $tq_url = function ($t, $p = 1) use ($search) {
                 <tr>
                     <td data-label="#"><span class="tqa-num"><?php echo $tq_ord; ?></span></td>
 
-                    <td data-label="العنوان"><?php echo html_escape($tq_r['subject']); ?></td>
+                    <td data-label="<?php echo te('العنوان'); ?>"><?php echo html_escape($tq_r['subject']); ?></td>
 
-                    <td data-label="المستقبل">
+                    <td data-label="<?php echo te('المستقبل'); ?>">
                         <span class="tq-ltr" dir="ltr"><?php echo html_escape($tq_r['email']); ?></span>
                     </td>
 
-                    <td data-label="الحالة">
+                    <td data-label="<?php echo te('الحالة'); ?>">
                         <span class="tqa-badge tqa-badge--<?php echo $tq_tone; ?>"><?php echo html_escape($tq_lbl); ?></span>
                     </td>
 
-                    <td data-label="إجراءات">
+                    <td data-label="<?php echo te('إجراءات'); ?>">
                         <?php /* الإرسال نموذج POST بتوكن — كان رابطا ينفذ
                                  بجلبه، ويرسل بريدا فعليا بمجرد الجلب. */ ?>
                         <form method="post"
