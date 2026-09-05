@@ -247,7 +247,7 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
           <?php
           $facts = array();
           if ($t['grades']   > 0) $facts[] = $t['grades'] . ' صفوف دراسية';
-          if ($t['subjects'] > 0) $facts[] = $t['subjects'] . ' مادة';
+          if ($t['subjects'] > 0) $facts[] = $t['subjects'] . ' مادة جاهزة';
           if ($t['units']    > 0) $facts[] = $t['units'] . ' وحدة';
           if ($t['lessons']  > 0) $facts[] = $t['lessons'] . ' درسا';
           if ($t['quizzes']  > 0) $facts[] = $t['quizzes'] . ' اختبارا';

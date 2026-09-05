@@ -83,6 +83,9 @@ class Taqdar_diag_model extends CI_Model
     /** يفحص مرة واحدة لكل طلب — لا في كل قراءة. */
     private $schema_checked = false;
 
+    /** حصة كل اختبار — تقرأ مرة لكل طلب لا مع كل سؤال. */
+    private $quota_cache = array();
+
     /* =====================================================================
        المستويات
        ===================================================================== */
@@ -344,6 +347,151 @@ class Taqdar_diag_model extends CI_Model
         return $out;
     }
 
+    /* =====================================================================
+       TQ-DIAG-FORM — العينة المعروضة
+       ===================================================================== */
+
+    /**
+     * حجم ما يعرض على الطالب — لا حجم ما في البنك.
+     *
+     * ═══ لماذا سحب لا حذف ═══
+     *
+     * المطلوب خمسة اسئلة للابتدائي وعشرة للمتوسط بدل خمسة وعشرين وخمسة
+     * وثلاثين. والحذف يعطي العدد نفسه ويفقد ما دون العدد: بنك اكبر مما
+     * يعرض يجعل عينة كل طالب غير عينة جاره، فلا تنتقل الاجابات بالحفظ
+     * ولا يقيس الاختبار ذاكرة من سبقه. فيبقى البنك كما كتب، ويقتطع منه.
+     *
+     * ═══ ولماذا المبتدئ اقل الثلاثة ═══
+     *
+     * `grade_attempt()` ترتد الى `beginner` لمن لم يبلغ عتبة اي مستوى —
+     * **فاسئلة المبتدئ لا تغير النتيجة اصلا**، وانما تفتح الاختبار بما
+     * يبنى عليه لا بما يصد. فالوزن يذهب حيث يقاس فعلا: المتوسط والمتقدم،
+     * وهما وحدهما ما ينقل الطالب عن مرتده.
+     *
+     * والمفتاح `grades.order` لا معرف صف مكتوب: صف يضاف يوما ياخذ حجمه
+     * من موضعه في السلم بلا سطر يعدل هنا. وما خرج عن السلم — او صف بلا
+     * ترتيب — يعرض بنكه كاملا، وهو ما كان يقع قبل هذه الدالة حرفا بحرف.
+     */
+    private static function form_quota($grade_order)
+    {
+        $o = (int) $grade_order;
+        if ($o >= 1 && $o <= 6) {                        // الابتدائي — خمسة
+            return array('beginner' => 1, 'intermediate' => 2, 'advanced' => 2);
+        }
+        if ($o >= 7 && $o <= 9) {                        // المتوسط — عشرة
+            return array('beginner' => 2, 'intermediate' => 4, 'advanced' => 4);
+        }
+        return null;                                     // بلا حصة ⇒ البنك كاملا
+    }
+
+    /** حصة اختبار بعينه، من ترتيب صفه. */
+    private function exam_quota($exam_id)
+    {
+        $exam_id = (int) $exam_id;
+        if ($exam_id <= 0) return null;
+        if (array_key_exists($exam_id, $this->quota_cache)) return $this->quota_cache[$exam_id];
+
+        $order = null;
+        try {
+            $row = $this->db->select('g.`order` AS o', false)
+                            ->from('tq_diag_exams e')
+                            ->join('grades g', 'g.id = e.grade_id', 'left')
+                            ->where('e.id', $exam_id)->limit(1)->get()->row_array();
+            if ($row && $row['o'] !== null) $order = (int) $row['o'];
+        } catch (Throwable $e) {}
+
+        $this->quota_cache[$exam_id] = ($order === null) ? null : self::form_quota($order);
+        return $this->quota_cache[$exam_id];
+    }
+
+    /**
+     * نموذج هذا الطالب — العينة التي يراها والتي يصحح عليها.
+     *
+     * ═══ ولماذا السحب مبذور، وهو شرط صحة لا زينة ═══
+     *
+     * `submit()` **يعيد نداء هذه الدالة ليصحح**. فلو اختلفت العينة بين
+     * العرض والتسليم لصححت اجابات الطالب على اسئلة لم يرها قط، ولخرجت
+     * نتيجة لا تعود الى شيء. فالبذرة `(طالب · اختبار · مستوى)` تعطي
+     * المجموعة نفسها في كل نداء مهما تباعدت الطلبات — والطالب يحدث الصفحة
+     * فيرى ما راه، وجاره يرى غيره.
+     *
+     * ولا `shuffle()` ولا `srand()`: الاولى غير مبذورة، والثانية تعبث
+     * بحالة العشوائية العامة في الطلب كله فتغير بعدها كل `rand()` في
+     * الشيفرة — ومنها ما يولد رموز تحقق. (والخوارزمية هنا نظيرة ما في
+     * `Taqdar_examgen_model::seeded_shuffle()`، وللسبب نفسه.)
+     *
+     * والترتيب يبقى صاعدا كما هو اليوم: مبتدئا فمتوسطا فمتقدما، وداخل
+     * المستوى بترتيب كتابته — فالسحب يختار ولا يبعثر العرض.
+     *
+     * و`$student_id = 0` يرد البنك كاملا: معاينة المسؤول تعرض ما كتب لا
+     * ما يسحب لطالب لا وجود له.
+     */
+    public function exam_form($exam_id, $student_id, $with_answers = false)
+    {
+        $exam_id    = (int) $exam_id;
+        $student_id = (int) $student_id;
+        $quota      = $this->exam_quota($exam_id);
+
+        if (!$quota || $student_id <= 0) return $this->ordered_questions($exam_id, $with_answers);
+
+        $out = array();
+        foreach ($this->questions_by_level($exam_id, $with_answers) as $lv => $rows) {
+            $take = isset($quota[$lv]) ? (int) $quota[$lv] : 0;
+            if ($take < 1 || !$rows) continue;
+
+            if (count($rows) > $take) {
+                /* تخلط المفاتيح لا الصفوف: مصفوفة اعداد اخف في الازاحة من
+                   مصفوفة صفوف كل صف فيها ست خانات. */
+                $idx = array_keys($rows);
+                $this->seeded_shuffle($idx, 'tq-diag:' . $student_id . ':' . $exam_id . ':' . $lv);
+                $idx = array_slice($idx, 0, $take);
+                sort($idx);                       // العرض بترتيب الكتابة لا بترتيب السحب
+
+                $picked = array();
+                foreach ($idx as $k) $picked[] = $rows[$k];
+                $rows = $picked;
+            }
+            foreach ($rows as $q) $out[] = $q;
+        }
+        return $out;
+    }
+
+    /**
+     * عدد ما يعرض على هذا الطالب — للتمهيد.
+     *
+     * ولا يحسب بجمع الحصة مباشرة: مستوى فيه سؤالان وحصته اربعة يعطي
+     * سؤالين لا اربعة، فالقراءة من `min()` هي ما يطابق ما يخرج فعلا من
+     * `exam_form()`. والتمهيد الذي يعد عددا ثم يعرض غيره يكسر ثقة الطالب
+     * في الشاشة من سطرها الاول.
+     */
+    public function form_size($exam_id, $student_id)
+    {
+        $quota = $this->exam_quota((int) $exam_id);
+        $tally = $this->level_tally((int) $exam_id);
+
+        if (!$quota || (int) $student_id <= 0) return (int) array_sum($tally);
+
+        $n = 0;
+        foreach ($quota as $lv => $take) {
+            $n += min((int) $take, isset($tally[$lv]) ? (int) $tally[$lv] : 0);
+        }
+        return $n;
+    }
+
+    /** خلط مبذور — `Fisher-Yates` بمولد خطي من البذرة. */
+    private function seeded_shuffle(&$arr, $seed)
+    {
+        $n = count($arr);
+        if ($n < 2) return;
+
+        $s = crc32($seed);
+        for ($i = $n - 1; $i > 0; $i--) {
+            $s = ($s * 1103515245 + 12345) & 0x7FFFFFFF;
+            $j = $s % ($i + 1);
+            $t = $arr[$i]; $arr[$i] = $arr[$j]; $arr[$j] = $t;
+        }
+    }
+
     /** عدد الاسئلة في كل مستوى — لشاشة اللوحة ولفحص الجهوزية. */
     public function level_tally($exam_id)
     {
@@ -561,7 +709,9 @@ class Taqdar_diag_model extends CI_Model
                          'attempt_id' => (int) $prev['id']);
         }
 
-        $questions = $this->ordered_questions((int) $exam['id'], true);
+        /* TQ-DIAG-FORM — **النموذج نفسه لا البنك**: التصحيح على ما عرض،
+           والبذرة في `exam_form()` هي ما يضمن ان ما يقرأ هنا هو ما راه. */
+        $questions = $this->exam_form((int) $exam['id'], $student_id, true);
         if (!$questions) {
             return array('ok' => false, 'errors' => array('لا اسئلة في هذا الاختبار.'));
         }

@@ -63,87 +63,99 @@ foreach ($argv as $a) if (strpos($a, '--photos=') === 0) $photos = substr($a, 9)
    وطاقم بمرحلة واحدة يجعل خيارين من ثلاثة يردان «لا نتائج». */
 $roster = [
     ['photo' => 'محمد ابو النيل.png', 'first' => 'محمد إبراهيم', 'last' => 'محمد ابوالنيل',
-     'email' => 'mohamed.abouelnil@taqdaredu.com', 'subject' => 'علوم',
+     'email' => 'mohamed.abouelnil@taqdaredu.com', 'phone' => '+201274662148', 'subject' => 'علوم',
      'title' => 'معلم العلوم', 'stage' => 'middle', 'bio' => 'أول متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'أحمد', 'last' => 'محمود محمد',
-     'email' => 'ahmed.mahmoud@taqdaredu.com', 'subject' => 'علوم',
+    ['photo' => 'أحمد محمود.png', 'first' => 'أحمد', 'last' => 'محمود محمد',
+     'email' => 'ahmed.mahmoud@taqdaredu.com', 'phone' => '+201278286747', 'subject' => 'علوم',
      'title' => 'معلم العلوم', 'stage' => 'primary', 'bio' => 'الرابع والخامس والسادس الابتدائي',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'avatar' => 'avatar-f', 'first' => 'أميرة', 'last' => 'محمد السيد الطويل',
-     'email' => 'amira.eltawil@taqdaredu.com', 'subject' => 'علوم',
+    ['photo' => 'أميرة الطويل.png', 'first' => 'أميرة', 'last' => 'محمد السيد الطويل',
+     'email' => 'amira.eltawil@taqdaredu.com', 'phone' => '+201152020370', 'subject' => 'علوم',
      'title' => 'معلمة العلوم', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => 'عبد الرحمن خالد.png', 'first' => 'عبدالرحمن خالد', 'last' => 'احمد أبوزيد',
-     'email' => 'abdelrahman.khaled@taqdaredu.com', 'subject' => 'علوم',
+     'email' => 'abdelrahman.khaled@taqdaredu.com', 'phone' => '+201015438776', 'subject' => 'علوم',
      'title' => 'معلم العلوم', 'stage' => 'middle', 'bio' => 'ثاني متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
 
     ['photo' => 'عبد الله الباز.png', 'first' => 'عبد الله', 'last' => 'الباز',
-     'email' => 'abdullah.elbaz@taqdaredu.com', 'subject' => 'رياضيات',
+     'email' => 'abdullah.elbaz@taqdaredu.com', 'phone' => '+201286865292', 'subject' => 'رياضيات',
      'title' => 'معلم الرياضيات', 'stage' => 'middle', 'bio' => 'أول متوسط والسادس الابتدائي',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'محمد صبري', 'last' => 'سعد محمد',
-     'email' => 'mohamed.sabry@taqdaredu.com', 'subject' => 'رياضيات',
+    ['photo' => 'محمد صبري.png', 'first' => 'محمد صبري', 'last' => 'سعد محمد',
+     'email' => 'mohamed.sabry@taqdaredu.com', 'phone' => '+201145970691', 'subject' => 'رياضيات',
      'title' => 'معلم الرياضيات', 'stage' => 'middle', 'bio' => 'ثاني متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => 'عماء الكومي.png', 'first' => 'عماد أحمد', 'last' => 'السيد حامد',
-     'email' => 'emad.elkomy@taqdaredu.com', 'subject' => 'رياضيات',
+     'email' => 'emad.elkomy@taqdaredu.com', 'phone' => '+201212402589', 'subject' => 'رياضيات',
      'title' => 'معلم الرياضيات', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => 'حازم إسلام.png', 'first' => 'حازم إسلام', 'last' => 'عبد الرحيم علي',
-     'email' => 'hazem.eslam@taqdaredu.com', 'subject' => 'رياضيات',
+     'email' => 'hazem.eslam@taqdaredu.com', 'phone' => '+201278155485', 'subject' => 'رياضيات',
      'title' => 'معلم الرياضيات', 'stage' => 'primary', 'bio' => 'الرابع والخامس الابتدائي',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
 
     ['photo' => 'احمد الدسوقي.png', 'first' => 'أحمد', 'last' => 'الدسوقي',
-     'email' => 'ahmed.aldesouky@taqdaredu.com', 'subject' => 'دراسات اجتماعية',
+     'email' => 'ahmed.aldesouky@taqdaredu.com', 'phone' => '+201226747658', 'subject' => 'دراسات اجتماعية',
      'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'middle', 'bio' => 'أول متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'عبد الرحمن', 'last' => 'زاهر',
-     'email' => 'abdelrahman.zaher@taqdaredu.com', 'subject' => 'دراسات اجتماعية',
+    ['photo' => 'عبدالرحمن زاهر.png', 'first' => 'عبد الرحمن', 'last' => 'زاهر',
+     'email' => 'abdelrahman.zaher@taqdaredu.com', 'phone' => '+201200374300', 'subject' => 'دراسات اجتماعية',
      'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'middle', 'bio' => 'ثاني متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => 'محمد العجمي.png', 'first' => 'محمد', 'last' => 'العجمي',
-     'email' => 'mohamed.elagamy@taqdaredu.com', 'subject' => 'دراسات اجتماعية',
+     'email' => 'mohamed.elagamy@taqdaredu.com', 'phone' => '+201221114272', 'subject' => 'دراسات اجتماعية',
      'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => 'أحمد حسين قدح.png', 'first' => 'أحمد حسين', 'last' => 'قدح',
      'email' => 'ahmed.qadah@taqdaredu.com', 'subject' => 'دراسات اجتماعية',
      'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'primary', 'bio' => 'الرابع والخامس والسادس الابتدائي',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    ['photo' => 'أحمد الصافي.png', 'first' => 'أحمد خالد', 'last' => 'الصافي كامل',
+     'email' => 'ahmed.elsafy@taqdaredu.com', 'phone' => '+201281128127', 'subject' => 'دراسات اجتماعية',
+     'title' => 'معلم الدراسات الاجتماعية', 'stage' => 'primary', 'bio' => 'الرابع والخامس والسادس الابتدائي',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
 
+    ['photo' => 'محمد حسن.png', 'first' => 'محمد حسن', 'last' => 'علي محمد أحمد',
+     'email' => 'mohamed.hassan@taqdaredu.com', 'phone' => '+201281767659', 'subject' => 'اللغة العربية',
+     'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'أول متوسط',
+     'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'أحمد', 'last' => 'البلتاجي',
      'email' => 'ahmed.elbeltagy@taqdaredu.com', 'subject' => 'اللغة العربية',
      'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'أول متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'عبدالله صلاح', 'last' => 'البرلسي',
-     'email' => 'abdullah.elborolosy@taqdaredu.com', 'subject' => 'اللغة العربية',
+    ['photo' => 'عبداللة صلاح.png', 'first' => 'عبدالله صلاح', 'last' => 'البرلسي',
+     'email' => 'abdullah.elborolosy@taqdaredu.com', 'phone' => '+201206031878', 'subject' => 'اللغة العربية',
      'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'ثاني متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => 'محمد حجازي.png', 'first' => 'محمد', 'last' => 'حجازي',
-     'email' => 'mohamed.hegazy@taqdaredu.com', 'subject' => 'اللغة العربية',
+     'email' => 'mohamed.hegazy@taqdaredu.com', 'phone' => '+201012157278', 'subject' => 'اللغة العربية',
      'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'أحمد محمد', 'last' => 'رجب القفاص',
-     'email' => 'ahmed.elkaffas@taqdaredu.com', 'subject' => 'اللغة العربية',
+    /* TQ-ROSTER-DEL — أحمد محمد رجب القفّاص أُزيل بقرار المالك
+       (٢٠٢٦-٠٩-٠٤). حسابه في القاعدة يبقى بـ`is_public=0`، ومدخله يحذف
+       من هنا لأن هذا السكربت **يطابق بالبريد وينشئ ما لا يجده** — فتركه
+       يعيده أول تشغيل، وهو أثر لا يظهر إلا بعد أن يظهر. */
+    ['photo' => 'نصر نصار.png', 'first' => 'نصر حسن', 'last' => 'علي نصار',
+     'email' => 'nasr.nassar@taqdaredu.com', 'phone' => '+201099566089', 'subject' => 'اللغة العربية',
      'title' => 'معلم اللغة العربية', 'stage' => 'primary', 'bio' => 'الرابع والخامس والسادس الابتدائي',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
 
     ['photo' => 'محمد البوهي.png', 'first' => 'محمد رضا', 'last' => 'صبحي البوهي',
-     'email' => 'mohamed.elbouhy@taqdaredu.com', 'subject' => 'لغة إنجليزية',
+     'email' => 'mohamed.elbouhy@taqdaredu.com', 'phone' => '+201280717847', 'subject' => 'لغة إنجليزية',
      'title' => 'معلم اللغة الإنجليزية', 'stage' => 'middle', 'bio' => 'أول متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => 'ياسين طارق.png', 'first' => 'ياسين طارق', 'last' => 'حسنين أحمد',
-     'email' => 'yassin.tarek@taqdaredu.com', 'subject' => 'لغة إنجليزية',
+     'email' => 'yassin.tarek@taqdaredu.com', 'phone' => '+201005314892', 'subject' => 'لغة إنجليزية',
      'title' => 'معلم اللغة الإنجليزية', 'stage' => 'middle', 'bio' => 'ثاني متوسط والسادس الابتدائي',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => 'محمد نصر.png', 'first' => 'محمد نصر', 'last' => 'معوض خلف الله',
-     'email' => 'mohamed.nasr@taqdaredu.com', 'subject' => 'لغة إنجليزية',
+     'email' => 'mohamed.nasr@taqdaredu.com', 'phone' => '+201223990728', 'subject' => 'لغة إنجليزية',
      'title' => 'معلم اللغة الإنجليزية', 'stage' => 'middle', 'bio' => 'ثالث متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
     ['photo' => 'شيماء عادل.png', 'first' => 'شيماء', 'last' => 'عادل محمد',
-     'email' => 'shaimaa.adel@taqdaredu.com', 'subject' => 'لغة إنجليزية',
+     'email' => 'shaimaa.adel@taqdaredu.com', 'phone' => '+201222353860', 'subject' => 'لغة إنجليزية',
      'title' => 'معلمة اللغة الإنجليزية', 'stage' => 'primary', 'bio' => 'الرابع والخامس الابتدائي',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
 ];
@@ -233,6 +245,31 @@ foreach ((array) glob(rtrim($photos, '/') . '/*.png') as $f) {
 
 $plan    = [];
 $missing = [];
+/* TQ-ONLY — معالجة من يُسمّى وحده.
+
+   السكربت يتوقف ان غاب ملف صورة مذكورة في الطاقم — وهو الصواب حين يبذر
+   الطاقم كله من مجلد كامل. لكن اضافة صورة الى خمسة قائمين لا تستدعي
+   اعادة كتابة صور الخمسة عشر الاخرين، ولا امتلاك ملفاتهم الاصلية.
+
+   فالمرشح يقصر الطاقم على البريد المذكور، ومن لم يُذكر لا يُقرأ له ملف
+   ولا يُمس صفه. والمقارنة بالبريد لانه مفتاح الهوية في هذا السكربت كله. */
+$only = [];
+foreach ($argv as $a) {
+    if (strpos($a, '--only=') === 0) {
+        foreach (explode(',', substr($a, 7)) as $e) {
+            $e = trim($e);
+            if ($e !== '') $only[strtolower($e)] = true;
+        }
+    }
+}
+if ($only) {
+    $roster = array_values(array_filter($roster, function ($t) use ($only) {
+        return isset($only[strtolower($t['email'])]);
+    }));
+    echo "\n[--only] الطاقم مقصور على " . count($roster) . " معلما.\n";
+    if (!$roster) exit("لا مدخل يطابق البريد المذكور.\n");
+}
+
 foreach ($roster as $t) {
     /* `photo => null` معلّم بلا صورة: يمرّ بلا مصدر، و`avatar` تحمل اسم
        ظلّه الرمادي في أصول السمة — `tqs_person_img()` تحل الاسم المجرد
@@ -304,6 +341,19 @@ try {
             'image'           => $t['hash'],
             'last_modified'   => $now,
         ];
+
+        /* TQ-PHONE — الهاتف يملأ الفارغ ولا يكتب فوق مكتوب.
+           الطاقم لم يكن يحمل هاتفا، وملفات العرض كلها `phone = NULL`.
+           والكتابة فوق رقم قائم تمحو ما ادخله صاحبه او الادارة. */
+        if (!empty($t['phone'])) {
+            $keep = false;
+            if ($t['existing']) {
+                $st = $pdo->prepare("SELECT phone FROM users WHERE id = ?");
+                $st->execute([(int) $t['existing']['id']]);
+                $keep = trim((string) $st->fetchColumn()) !== '';
+            }
+            if (!$keep) $data['phone'] = $t['phone'];
+        }
 
         if ($t['existing']) {
             $id = (int) $t['existing']['id'];

@@ -132,8 +132,10 @@ include 'portal_open.php';
             <p class="tq-caption">
                 <?php echo t('يفتح الدرس التالي بعد إتقان الذي قبله — فلا يبنى على أساس لم يتقن.'); ?>
             </p>
-            <?php echo tqs_curriculum($b, array(
-                'mode' => 'student', 'open' => 1, 'progress' => $prog,
+            <?php /* TQ-CURRIC-TREE — نفس شجرة صفحة البيع: من دفع يرى
+                     الترتيب الذي اشترى على أساسه، لا ترتيبا آخر. */ ?>
+            <?php echo tqs_curriculum_tree($b, array(
+                'mode' => 'student', 'progress' => $prog,
             )); ?>
         </div>
 

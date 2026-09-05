@@ -8,12 +8,26 @@
    ========================================================================== */
 
 /* ---------- الخطوط (محلية، بلا شبكة) ---------- */
-@font-face{font-family:'Cairo';src:url('../fonts/Cairo-400-arabic.woff2') format('woff2');font-weight:400;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
+/* TQ-PERF-FONT — الاعلانات الستة تشير الى ملفين، لا الى ستة.
+
+   `Cairo-400-arabic` و`600` و`700` **ملف واحد** بصمته واحدة
+   (md5 8189ab…)، وهو خط متغير محوره `wght 200→1000`. وكذلك اللاتينية
+   الثلاثة (cec735…). فكان المتصفح ينزل الملف نفسه ثلاث مرات لانه ثلاثة
+   عناوين — ٩٢ ك.ب عربية و١٠١ ك.ب لاتينية بلا مقابل، في المسار الحرج.
+
+   والاوزان تبقى كما هي **عمدا** لا كسلا: الاوراق تستعمل
+   `font-weight:800` في ٣٢ موضعا واثقل وجه معلن ٧٠٠، فالمتصفح يرسمها
+   اليوم بـ٧٠٠. ولو اعلن المدى `200 1000` لصارت ثمانمئة حقيقية — اثقل
+   على الشاشة. فالمكسب يؤخذ من توحيد العنوان وحده، والرسم لا يمس.
+
+   ولا تحذف الملفات المكررة: `Cairo-600-*` وغيرها لم تعد مطلوبة من هنا
+   لكن قد يشير اليها قالب آخر. */
+@font-face{font-family:'Cairo';src:url('../fonts/Cairo-700-arabic.woff2') format('woff2');font-weight:400;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
 @font-face{font-family:'Cairo';src:url('../fonts/Cairo-400-latin.woff2') format('woff2');font-weight:400;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F,U+2190-21FF}
-@font-face{font-family:'Cairo';src:url('../fonts/Cairo-600-arabic.woff2') format('woff2');font-weight:600;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
-@font-face{font-family:'Cairo';src:url('../fonts/Cairo-600-latin.woff2') format('woff2');font-weight:600;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F,U+2190-21FF}
+@font-face{font-family:'Cairo';src:url('../fonts/Cairo-700-arabic.woff2') format('woff2');font-weight:600;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
+@font-face{font-family:'Cairo';src:url('../fonts/Cairo-400-latin.woff2') format('woff2');font-weight:600;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F,U+2190-21FF}
 @font-face{font-family:'Cairo';src:url('../fonts/Cairo-700-arabic.woff2') format('woff2');font-weight:700;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
-@font-face{font-family:'Cairo';src:url('../fonts/Cairo-700-latin.woff2') format('woff2');font-weight:700;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F,U+2190-21FF}
+@font-face{font-family:'Cairo';src:url('../fonts/Cairo-400-latin.woff2') format('woff2');font-weight:700;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F,U+2190-21FF}
 
 @font-face{font-family:'Plex Arabic';src:url('../fonts/Plex-400-arabic.woff2') format('woff2');font-weight:400;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}
 @font-face{font-family:'Plex Arabic';src:url('../fonts/Plex-400-latin.woff2') format('woff2');font-weight:400;font-display:swap;unicode-range:U+0000-00FF,U+2000-206F,U+2190-21FF}

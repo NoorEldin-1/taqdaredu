@@ -4152,7 +4152,8 @@ class Api_v1 extends CI_Controller
 
         $questions = array();
         if ($state === 'exam') {
-            foreach ($this->tq_diag->ordered_questions((int) $exam['id']) as $q) {
+            /* TQ-DIAG-FORM — عينة هذا الطالب لا البنك كله. */
+            foreach ($this->tq_diag->exam_form((int) $exam['id'], $uid) as $q) {
                 /* بلا `with_answers`: قائمة خيارات ومعها الصواب في الحمولة
                    تجعل الاختبار عرضا لا قياسا. و`options` تصل **مصفوفة
                    مفكوكة** من النموذج لا نص JSON، ففكها هنا من جديد يرد
@@ -4183,7 +4184,8 @@ class Api_v1 extends CI_Controller
             'exam'  => array(
                 'id'    => (int) $exam['id'],
                 'title' => (string) ($exam['title'] ?? ''),
-                'count' => count($questions) ?: (int) array_sum($this->tq_diag->level_tally((int) $exam['id'])),
+                /* وقبل البدء يعلن حجم العينة لا حجم البنك. */
+                'count' => count($questions) ?: $this->tq_diag->form_size((int) $exam['id'], $uid),
             ),
             'questions' => $questions,
             'result'    => $done ? array(

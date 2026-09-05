@@ -88,7 +88,21 @@ $tier  = tqs_bundle_tier($b['name']);
                      href="<?php echo base_url('plan/' . $s['code']); ?>"
                      <?php echo $s['current'] ? 'aria-current="page"' : ''; ?>>
                     <span class="plan-switch__tier"><?php echo html_escape($s['tier']); ?></span>
-                    <span class="plan-switch__price"><?php echo tqs_money($s['price']); ?></span>
+                    <span class="plan-switch__price"><?php
+                      /* TQ-CYCLE-BUY — من الدالة الواحدة، لا حسابا هنا:
+                         `$s['price']` سنوي خام، وطبعه بجوار بطاقة تقول
+                         «٣٩٩ / شهريا» يعطي رقمين لباقة واحدة في شاشة واحدة.
+                         والشرط ليس تزيدا: الشهري للسنوية وحدها — وباقة
+                         ربع سنوية تضاف غدا كانت ستعرض شهريا لا يشترى. */
+                      $s_p = tqs_plan_price($s);
+                      if (!empty($s_p['has_alt'])) {
+                          echo '<b class="tq-ltr">' . number_format($s_p['month'])
+                             . '</b> <span>' . t('ر.س / شهريا') . '</span>';
+                      } else {
+                          echo '<b class="tq-ltr">' . number_format($s_p['total'])
+                             . '</b> <span>' . t('ر.س / ') . html_escape($s_p['unit']) . '</span>';
+                      }
+                    ?></span>
                     <?php if ($s['current']): ?>
                       <svg class="plan-switch__tick" aria-hidden="true"><use href="#i-check"></use></svg>
                     <?php endif; ?>
@@ -116,7 +130,7 @@ $tier  = tqs_bundle_tier($b['name']);
     /* أربعة أرقام تصف الحجم — وما كان صفرا لا يظهر بندا فارغا.
        والباقة قيد الإعداد تعرض شريطا خاليا بدل أن تعد كذبا. */
     echo tqs_stat_strip(array(
-        array($t['subjects'], 'مادة',    'i-book'),
+        array($t['subjects'], 'مادة جاهزة', 'i-book'),
         array($t['units'],    'وحدة',     'i-grid'),
         array($t['lessons'],  'درسا',    'i-play'),
         array($t['quizzes'],  'اختبارا', 'i-clipboard'),
@@ -133,19 +147,13 @@ $tier  = tqs_bundle_tier($b['name']);
       <?php /* ── المنهج: أول ما يرى، لأنه أول ما يسأل عنه ────────── */ ?>
       <div class="icard">
         <h2 id="curriculum">ماذا سيدرس ابنك؟</h2>
-        <?php if ($t['lessons'] > 0): ?>
-          <p class="tq-caption">
-            <?php echo (int) $t['subjects']; ?> مادة
-            <?php if ($t['units'] > 0): ?>· <?php echo (int) $t['units']; ?> وحدة<?php endif; ?>
-            <?php if ($t['free'] > 0): ?>
-              — ومنها <b><?php echo (int) $t['free']; ?></b> درسا مجانيا تعاينه قبل الاشتراك
-            <?php endif; ?>
-          </p>
-        <?php else: ?>
-          <p class="tq-caption">دروس هذه الباقة قيد التجهيز، وتفتح لمشتركيها فور نشرها.</p>
-        <?php endif; ?>
+        <?php /* TQ-CURRIC-TREE — الشجرة تغني عن سطر يلخصها: «٣ مادة · ٣٠
+                 وحدة — ومنها ٣ درسا مجانيا» رقم يقرأ قبل ما يصفه، والقارئ
+                 يعده بعينه في الشجرة تحته فيجد الفرق. والشجرة نفسها هي
+                 الجواب: صف يفتح على مواده، ومادة تفتح على دروسها. */ ?>
+        <p class="tq-caption">اشتراك واحد يفتح المرحلة كاملة — افتح الصف لترى مواده، والمادة لترى دروسها.</p>
 
-        <?php echo tqs_curriculum($b, array('mode' => 'public', 'open' => 1)); ?>
+        <?php echo tqs_curriculum_tree($b, array('mode' => 'public')); ?>
       </div>
 
       <?php /* ── ماذا تشمل: المزايا من `plans.features` ─────────────── */ ?>
@@ -176,9 +184,22 @@ $tier  = tqs_bundle_tier($b['name']);
           <p class="tq-caption">اشتراك واحد يفتح المرحلة كاملة — فلا تشترى سنة بعد سنة.</p>
           <ul class="gradelist">
             <?php foreach ($b['grades'] as $g): ?>
-              <li class="gradelist__i">
+              <?php $g_soon = !empty($g['soon']); ?>
+              <?php /* TQ-HIDE-SOON — الصف يبقى مسرودا دائما (الباقة تفتحه
+                       فعلا، وحذفه ينكر على المشتري حقا اشتراه)، ويسقط عنه
+                       الوسم والحد المتقطع ما دام المفتاح مرفوعا. واعادته
+                       الى `false` تعيد الوسم كما كان حرفا. */ ?>
+              <?php $g_prep = ($g_soon && !TQ_HIDE_SOON); ?>
+              <li class="gradelist__i<?php echo $g_prep ? ' is-soon' : ''; ?>">
                 <b><?php echo html_escape($g['name']); ?></b>
-                <span><?php echo count($g['subjects']); ?> مادة</span>
+                <?php if (!$g_soon): ?>
+                  <?php /* الجاهز لا المبذور: بعد بذر «قيد الإعداد» صار لكل
+                           صف خمس مواد، فصف فيه مادة واحدة بها درس كان يقرأ
+                           «٥ مادة». الرقم يعد ما يفتح اليوم. */ ?>
+                  <span><?php echo (int) $g['ready_n']; ?> مادة جاهزة</span>
+                <?php elseif (!TQ_HIDE_SOON): ?>
+                  <span class="gradelist__prep">قيد الإعداد</span>
+                <?php endif; ?>
               </li>
             <?php endforeach; ?>
           </ul>
@@ -399,7 +420,7 @@ $tier  = tqs_bundle_tier($b['name']);
            هنا، فلا يطلب من العين أن تصعد لتقرأ ثم تنزل لتضغط. */
         $facts = array();
         if ($t['grades']   > 0) $facts[] = array('i-cap',       $t['grades'] . ' صفوف دراسية');
-        if ($t['subjects'] > 0) $facts[] = array('i-book',      $t['subjects'] . ' مادة');
+        if ($t['subjects'] > 0) $facts[] = array('i-book',      $t['subjects'] . ' مادة جاهزة');
         if ($t['lessons']  > 0) $facts[] = array('i-play',      $t['lessons'] . ' درسا مصورا');
         if ($t['quizzes']  > 0) $facts[] = array('i-clipboard', $t['quizzes'] . ' اختبارا');
         if ($t['teachers'] > 0) $facts[] = array('i-teacher',   $t['teachers'] . ' معلما');

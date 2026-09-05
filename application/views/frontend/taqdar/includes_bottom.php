@@ -10,12 +10,31 @@
 <script src="<?php echo tq_asset('js/tq-phone.js'); ?>" defer></script>
 <script src="<?php echo tq_asset('js/taqdar.js'); ?>" defer></script>
 
-<?php /* TQA-SELECT · TQA-FILE — المكونان اللذان بنيا للوحة، بلا نسخة
-         ثانية: كلاهما يمسح `document` ولا يشترط `body.tqa`، فالسطحان
-         سواء عندهما. وورقتهما `css/tqa-controls.css` في الرأس.
+<?php /* TQA-SELECT · TQA-FILE — المكونان اللذان بنيا للوحة.
+
+         TQ-UI-SELECT — ولا يحملان على الموقع العام بعد اليوم.
+
+         التعليق السابق هنا يقول «وورقتهما `css/tqa-controls.css` في
+         الرأس» — وهذا صحيح في فرع البوابة وحده: `includes_top.php`
+         يحملها داخل `else` وبشرط `$tq_is_portal`. أما صفحات الموقع
+         (`$tq_is_site`) فلا ورقة لها.
+
+         والسكربت يمسح `document` بلا شرط، فكان يبني فوق كل `<select>`
+         واجهة مخصصة — والورقة التي **تخفي المنتق الأصلي** غائبة. فيرسم
+         الاثنان معا: نص الزر المبني ونص المنتق الاصلي جنبا الى جنب،
+         «ترتيب: الأعلى تقييما ⌄ ترتيب: الأعلى تقييما». وهو ما يظهر في
+         شريط مرشحات `/teachers`.
+
+         والعلاج ان يتبع السكربت ورقته حرفا: شرطه هو شرطها
+         (`$tq_is_portal`)، فلا يفترقان بتعديل لاحق على احدهما. وصفحات الموقع لها
+         تنسيقها الخاص لـ`.field--select` في `pages.css`، فالمنتق الاصلي
+         عندها منسق اصلا ولا يحتاج بديلا.
+
          و`defer` بعد `taqdar.js`: ذاك يبني درج القائمة وقد يحقن حقولا. */ ?>
+<?php if (!empty($tq_is_portal)): ?>
 <script src="<?php echo tq_asset('js/tqa-select.js'); ?>" defer></script>
 <script src="<?php echo tq_asset('js/tqa-file.js'); ?>" defer></script>
+<?php endif; ?>
 
 <?php /* سكربت المشغل يحمل على صفحته وحدها — لا يثقل بقية الشاشات.
          و`tq-player.js` **قبله**: `taqdar-lesson.js` ينادي `TQPlayer`

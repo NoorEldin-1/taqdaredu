@@ -670,20 +670,46 @@ if (!function_exists('tq_meta_pixel')) {
         ob_start(); ?>
 <!-- Meta Pixel Code -->
 <script>
+/* TQ-PERF-PIXEL — البكسل ينتظر اكتمال الرسم، ولا يزاحمه.
+
+   كان ينفذ وقت التحليل في الراس: ١٩١ ك.ب من نطاق خارجي و٣٣٥ جزءا من
+   الالف على الخيط الرئيسي — اكبر سبب منفرد لتاخر الاستجابة، قبل ان
+   يرى الزائر حرفا. وهو قياس تسويقي لا يرسم شيئا، فلا وجه لسبقه المحتوى.
+
+   والتاجيل الى `load` لا يفقد شيئا عمليا: `PageView` يسجل بعد اكتمال
+   الصفحة باجزاء من الثانية، ولا يضيع الا زائر يغادر قبل ان تكتمل — وهو
+   زائر لم ير الصفحة اصلا. ولم يؤجل الى اول تفاعل عمدا: ذلك يسقط كل من
+   يفتح ويقرا ويغادر، وهم شريحة معتبرة في قياس الاعلانات.
+
+   و`requestIdleCallback` بمهلة، و`setTimeout` بديلا لسفاري. والحارس
+   `tq-cookie === 'denied'` كما هو، ويقرا مبكرا كي لا يجدول شيئا اصلا. */
 (function () {
     try { if (localStorage.getItem('tq-cookie') === 'denied') return; } catch (e) {}
 
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
+    function start() {
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
 
-    fbq('init', '<?php echo $id; ?>');
-    fbq('track', 'PageView');
+        fbq('init', '<?php echo $id; ?>');
+        fbq('track', 'PageView');
+    }
+
+    function later() {
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(start, { timeout: 2500 });
+        } else {
+            setTimeout(start, 900);
+        }
+    }
+
+    if (document.readyState === 'complete') later();
+    else window.addEventListener('load', later, { once: true });
 })();
 </script>
 <noscript><img height="1" width="1" style="display:none" alt=""
