@@ -34,6 +34,102 @@
    ══════════════════════════════════════════════════════════════════ */
 if (!defined('TQ_HIDE_SOON')) define('TQ_HIDE_SOON', true);
 
+/* =====================================================================
+   TQ-BOOK-DRIVE — الكتاب المحفوظ على Drive
+   ===================================================================== */
+
+if (!function_exists('tqs_grade_slug')) {
+    /**
+     * سبيكة صفحة كتب الصف — بذيل المعرف كنسق `paths`.
+     *
+     * والمعرف هو ما يقرأ، والاسم زينة للرابط: مسؤول يصحح «الاول» الى
+     * «الأول» في اللوحة لا يكسر رابطا نشر ولا فهرسة تمت.
+     */
+    function tqs_grade_slug($grade)
+    {
+        /* TQ-GRADE-SLUG — سبيكة لاتينية مشتقة من المرحلة والترتيب.
+
+           ثلاثة طرق جربت وردت:
+           · `slugify()` في `common_helper` تبقي `\pL` فتمر العربية كما
+             هي، فيكتب الشريط `%d8%a7%d9%84...` — رابط لا ينسخ ولا يقرأ
+             في رسالة، وبين سبائك الموقع كلها لاتينية.
+           · `convert_accented_characters()` خريطتها لاتينية موسعة لا
+             عربية، فلا تعرب حرفا واحدا.
+           · وخريطة تعريب تكتب هنا خريطة ثانية في المشروع تفترق عن اولى.
+
+           والاسم الانجليزي في القاعدة اصلا («Grade 6»)، لكنه لا يقول
+           المرحلة: «Grade 7» هو الاول المتوسط. فالمرحلة تشتق من
+           `grades`.`order` — وهو المفتاح نفسه الذي تشتق به
+           `Taqdar_diag_model::form_quota()` حجم اختبارها، فلا قاعدة
+           ثانية تخالفها.
+
+           والمعرف يبقى ذيلا: هو ما يقرأ، والاسم زينة — فتصحيح اسم في
+           اللوحة لا يكسر رابطا نشر. */
+        $id  = (int) (is_array($grade) ? $grade['id'] : $grade);
+        $ord = (int) (is_array($grade) && isset($grade['order']) ? $grade['order'] : 0);
+
+        if     ($ord >= 1  && $ord <= 6)  $s = 'primary-' . $ord;
+        elseif ($ord >= 7  && $ord <= 9)  $s = 'middle-'  . ($ord - 6);
+        elseif ($ord >= 10 && $ord <= 12) $s = 'secondary-' . ($ord - 9);
+        else                              $s = 'grade';
+
+        return $s . '-' . $id;
+    }
+}
+
+if (!function_exists('tqs_grade_books_url')) {
+    /** رابط صفحة كتب الصف. */
+    function tqs_grade_books_url($grade)
+    {
+        return base_url('books/' . tqs_grade_slug($grade));
+    }
+}
+
+if (!function_exists('tqs_drive_embed')) {
+    /**
+     * رابط القارئ المضمن لملف على Drive.
+     *
+     * ولا يبنى في القالب: ثلاثة مواضع تعرض الكتاب (صفحته · المكتبة ·
+     * ما قد يضاف)، وثلاث نسخ من صيغة رابط تفترق عند اول تغيير من جوجل.
+     * والصيغة نفسها التي عليها `tqs_video_embed()` مع فيميو: الرابط
+     * يشتق وقت العرض من معرف مخزون، ولا يخزن HTML.
+     */
+    function tqs_drive_embed($id)
+    {
+        $id = trim((string) $id);
+        if ($id === '' || !preg_match('~^[A-Za-z0-9_-]{10,}$~', $id)) return '';
+        return 'https://drive.google.com/file/d/' . $id . '/preview';
+    }
+}
+
+if (!function_exists('tqs_drive_dl')) {
+    /** رابط التحميل المباشر — وما تجاوز ١٠٠ ميغا يمر بشاشة فحص جوجل. */
+    function tqs_drive_dl($id)
+    {
+        $id = trim((string) $id);
+        if ($id === '' || !preg_match('~^[A-Za-z0-9_-]{10,}$~', $id)) return '';
+        return 'https://drive.google.com/uc?export=download&id=' . $id;
+    }
+}
+
+if (!function_exists('tqs_filesize')) {
+    /**
+     * الحجم مقروءا — وهو ما يعرض بدل عدد الصفحات.
+     *
+     * عدد الصفحات يشتق من الملف نفسه (`tq_doc_pages`)، وملف على Drive
+     * لا يقرأ هنا. والحجم معلوم يقينا، وهو ما يعني القارئ فعلا قبل ان
+     * يضغط: ثلاثمئة ميغا على شبكة جوال ليست كخمسة.
+     */
+    function tqs_filesize($bytes)
+    {
+        $b = (float) $bytes;
+        if ($b <= 0) return '';
+        if ($b < 1048576)  return tq_num((int) ceil($b / 1024)) . ' ' . t('ك.ب');
+        if ($b < 1073741824) return tq_num((int) round($b / 1048576)) . ' ' . t('ميغابايت');
+        return tq_num(round($b / 1073741824, 1)) . ' ' . t('غيغابايت');
+    }
+}
+
 if (!function_exists('tq_site_asset')) {
     /**
      * رابط أصل من أصول التصميم، مبصوما بزمن تعديله.
@@ -675,6 +771,7 @@ if (!function_exists('tqs_nav_key')) {
                دخل منه مضاء — وإلا ظن أنه خرج من الصفحة التي كان فيها.
                وصفحة تأكيد شرائه معه، كما `site_checkout` مع الباقات. */
             'site_books' => 'books', 'site_book' => 'books',
+            'site_books_grade' => 'books',
             'site_book_checkout' => 'books',
             /* الباقة وشاشة تأكيدها تحت «الباقات» — وهو الفرق الذي بني
                عليه فصل الصفحتين: التصفح باب، والشراء باب آخر. */

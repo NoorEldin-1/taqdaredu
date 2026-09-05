@@ -208,6 +208,37 @@
             }
         }
 
+        /* ── كتب الصف: العنوان يحمل صفه، والوصف يعد ما فيه ──
+ 
+           وهي الصفحات التي تجاب بها عبارة البحث الحقيقية: «كتاب العلوم
+           رابع ابتدائي». فوصف واحد لتسع صفحات يجعلها تتنافس على عبارة
+           واحدة بدل ان تجيب كل واحدة عبارتها. */
+        if ($u_page === 'site_books_grade' && !empty($tq_grade) && is_array($tq_grade)) {
+            $u_gn = trim((string) $tq_grade['name_ar']);
+            $u_bs = isset($tq_books) && is_array($tq_books) ? $tq_books : array();
+
+            $meta_title = t('كتب ') . $u_gn;
+            $og_title   = $meta_title;
+
+            /* المواد تعد من الكتب نفسها لا من جدول المواد: الوصف يعد ما
+               في الصفحة، ورقم يزيد على ما يرى نقض لا اغراء. */
+            $u_subj = array();
+            foreach ($u_bs as $u_b) {
+                $u_s = trim((string) $u_b['subject']);
+                if ($u_s !== '' && !in_array($u_s, $u_subj, true)) $u_subj[] = $u_s;
+            }
+
+            /* «لـ» + «الصف» تعطي «لـالصف»: اللام تدغم في «ال» فتكتب
+               «للصف»، لكن اسماء الصفوف لا تتفق («الاول المتوسط»). فشرطة
+               فاصلة تصح مع الاثنين ولا تكسر لغة. */
+            $meta_description = t('كتب المنهج السعودي — ') . $u_gn
+                . ($u_bs ? ' — ' . t('____ كتابا', array(count($u_bs))) : '')
+                . ($u_subj ? ' ' . t('في') . ' ' . implode(t(' و'), array_slice($u_subj, 0, 5))
+                           . (count($u_subj) > 5 ? t(' وغيرها') : '') : '')
+                . t('. تصفح مجانا بلا تسجيل.');
+            $og_description = $meta_description;
+        }
+
         /* ── الكتالوج: صفحة الترقيم الثانية ليست الاولى ── */
         if ($u_page === 'site_catalog') {
             $CI_p = &get_instance();

@@ -35,6 +35,14 @@ class Taqdar_catalog_model extends CI_Model
     /** ما يعرض في الصفحة الواحدة. */
     const PER_PAGE = 12;
 
+    /** TQ-BOOK-KIND — انواع الكتب بتسمياتها. */
+    public static $KINDS = array(
+        'student'  => 'كتاب الطالب',
+        'activity' => 'كراسة النشاط',
+        'exercise' => 'كتاب التمارين',
+        'guide'    => 'دليل المعلم',
+    );
+
     /** الأنواع بترتيب ظهورها الافتراضي ومسمياتها. */
     public static function kinds()
     {
@@ -489,7 +497,11 @@ class Taqdar_catalog_model extends CI_Model
                                  'صفحتين', 'صفحات', 'صفحة', null, 'obl', true));
             }
 
-            $has_file = ((string) $r['file'] !== '');
+            /* TQ-BOOK-DRIVE — «له ملف» صارت تعني موضعين لا واحدا:
+               مرفوعا تحت `uploads/`، او محفوظا على Drive. وقراءة `file`
+               وحدها كانت تسم كل كتب المنهج بـ«قريبا» وهي تفتح وتقرأ. */
+            $has_file = ((string) $r['file'] !== ''
+                         || (string) (isset($r['tq_drive_id']) ? $r['tq_drive_id'] : '') !== '');
             $sellable = ($offer && !empty($offer['sellable']));
 
             /* السطر الثاني يقول ما يفعله الزائر بهذا الكتاب:
@@ -502,6 +514,14 @@ class Taqdar_catalog_model extends CI_Model
                 $stats[] = array('i-book', 'يقرأ في مكتبتك');
             } else {
                 $stats[] = array('i-download', 'تحميل مجاني');
+            }
+
+            /* TQ-BOOK-KIND — والنوع يقال حيث يقرأ: «دليل المعلم» على
+               بطاقة يظنها الطالب كتابه هو اسوأ من الا يقال. وكتاب
+               الطالب لا يوسم — فهو الاصل، ووسم الاصل ضجيج. */
+            $kind = (string) (isset($r['tq_book_kind']) ? $r['tq_book_kind'] : 'student');
+            if (isset(self::$KINDS[$kind]) && $kind !== 'student') {
+                $stats[] = array('i-file', self::$KINDS[$kind]);
             }
 
             /* والباقة تقال حيث تفتح: كتاب بصف تفتحه باقة صفه، وهو
@@ -537,7 +557,8 @@ class Taqdar_catalog_model extends CI_Model
                                     'sellable' => $sellable,
                                     'list_price' => $offer ? (int) $offer['list_price'] : 0,
                                     'off' => $offer ? (int) $offer['off'] : 0,
-                                    'in_plans' => ($gid > 0)),
+                                    'in_plans' => ($gid > 0),
+                                    'book_kind' => $kind),
                 'text'     => implode(' ', array((string) $r['title'], (string) $r['subject'],
                                                  (string) $r['author'], (string) $r['description'])),
             ));
@@ -995,6 +1016,29 @@ class Taqdar_catalog_model extends CI_Model
         else                             $this->db->where('b.slug', (string) $slug);
 
         return $this->db->get()->row_array();
+    }
+
+    /**
+     * كل كتب صف بعينه — **بلا ترقيم**.
+     *
+     * `search()` تقطع اثني عشر، وصف المنهج ثلاثة عشر كتابا او اربعة
+     * عشر — فصفحة الصف كانت تعرض المنهج ناقصا كتابا وتحيل بقيته الى
+     * صفحة ثانية. والصف وحدة تقرأ كاملة، وترقيمه يقسم ما لا يقسم.
+     */
+    public function books_of_grade($grade_id, $kind = '')
+    {
+        $gid  = (int) $grade_id;
+        $kind = trim((string) $kind);
+        $out  = array();
+        if ($gid <= 0) return $out;
+
+        foreach ($this->all() as $it) {
+            if ($it['kind'] !== 'book') continue;
+            if (!in_array($gid, $it['grades'], true)) continue;
+            if ($kind !== '' && (string) $it['extra']['book_kind'] !== $kind) continue;
+            $out[] = $it;
+        }
+        return $out;
     }
 
     /** كتب أخرى في الفئة نفسها — وما نقص يكمل من خارجها. */

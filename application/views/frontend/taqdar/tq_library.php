@@ -93,7 +93,9 @@ include 'portal_open.php';
 
   <div class="tq-lib-grid">
     <?php foreach ($tq_books as $i => $b):
-      $has_file = trim((string) $b['file']) !== '';
+      /* TQ-BOOK-DRIVE — كتاب على Drive له ملف وان خلا `file`. */
+      $tq_dv    = tqs_drive_embed(isset($b['tq_drive_id']) ? $b['tq_drive_id'] : '');
+      $has_file = trim((string) $b['file']) !== '' || $tq_dv !== '';
       $tone     = html_escape($b['tone'] ?: 'math');
       /* المادة صارت وجه الغلاف (TQ-COVER-BLANK)، فسطر «الرياضيات» تحت
          عنوان «الرياضيات — الصف الأول» يكرر ما قرئ مرتين قبله. ويبقى
@@ -144,8 +146,13 @@ include 'portal_open.php';
                        `uploads/` مباشرة: رابط عار لكتاب مدفوع يوزع،
                        والشراء يصير اقتراحا. والمجاني يمر بالحارس
                        نفسه بلا تسجيل، فلا مساران. */ ?>
+              <?php /* وكتاب Drive يفتح في الاطار نفسه لا بـpdf.js: القارئ
+                       واحد في العين، ومساران في الشيفرة لا في الشاشة. */ ?>
               <button class="tq-btn tq-btn--primary tq-btn--sm" type="button"
-                      data-tq-read="<?php echo base_url('book-file/' . (int) $b['id']); ?>"
+                      data-tq-read="<?php echo $tq_dv !== ''
+                          ? html_escape($tq_dv)
+                          : base_url('book-file/' . (int) $b['id']); ?>"
+                      <?php echo $tq_dv !== '' ? 'data-tq-embed="1"' : ''; ?>
                       data-tq-title="<?php echo html_escape($b['title']); ?>"><?php echo t('افتح الكتاب'); ?></button>
             <?php else: ?>
               <?php /* لا ملف: يقال ذلك صراحة. زر يفتح لا شيء أسوأ من غيابه.
@@ -247,7 +254,7 @@ include 'portal_open.php';
         <?php echo tq_icon('close', 16); ?> <?php echo t('إغلاق'); ?>
       </button>
       <strong class="tq-reader__t" data-tq-rd-title></strong>
-      <div class="tq-reader__nav">
+      <div class="tq-reader__nav" data-tq-rd-nav>
         <button class="tq-btn tq-btn--secondary tq-btn--sm" type="button" data-tq-rd-prev><?php echo t('السابقة'); ?></button>
         <span class="tq-reader__pos" data-tq-rd-pos></span>
         <button class="tq-btn tq-btn--secondary tq-btn--sm" type="button" data-tq-rd-next><?php echo t('التالية'); ?></button>
@@ -257,6 +264,11 @@ include 'portal_open.php';
     <div class="tq-reader__stage">
       <p class="tq-reader__msg" data-tq-rd-msg><?php echo t('يفتح الكتاب…'); ?></p>
       <canvas data-tq-rd-canvas></canvas>
+      <?php /* TQ-BOOK-DRIVE — مسرح واحد وسطحان: لوح pdf.js للملف
+               المحلي، واطار Drive للمحفوظ خارجا. */ ?>
+      <iframe class="tq-reader__frame" data-tq-rd-frame hidden
+              title="<?php echo te('قارئ الكتب'); ?>"
+              referrerpolicy="no-referrer" allow="autoplay"></iframe>
     </div>
   </div>
 </div>
@@ -351,6 +363,16 @@ include 'portal_open.php';
   direction: ltr;
 }
 .tq-reader__msg { color: var(--tq-text2); }
+
+/* TQ-BOOK-DRIVE — اطار Drive يملأ المسرح كما يملؤه اللوح.
+   `border:0` صريحة: المتصفحات ترسم اطارا افتراضيا حول `iframe`
+   فيظهر خط رمادي داخل قارئ ملء الشاشة. */
+.tq-reader__frame {
+  inline-size: 100%;
+  block-size: 100%;
+  border: 0;
+  background: var(--tq-surface, #fff);
+}
 </style>
 
 <script>
@@ -372,6 +394,8 @@ include 'portal_open.php';
   var msg    = root.querySelector('[data-tq-rd-msg]');
   var title  = root.querySelector('[data-tq-rd-title]');
   var pos    = root.querySelector('[data-tq-rd-pos]');
+  var frame  = root.querySelector('[data-tq-rd-frame]');
+  var nav    = root.querySelector('[data-tq-rd-nav]');
 
   var doc = null, page = 1, total = 0, busy = false, libLoaded = false;
 
@@ -390,13 +414,27 @@ include 'portal_open.php';
     });
   }
 
-  function open(url, name) {
+  function open(url, name, embed) {
     rd.hidden = false;
     document.body.style.overflow = 'hidden';
     title.textContent = name || '';
     msg.hidden = false;
     msg.textContent = 'يفتح الكتاب…';
     canvas.style.display = 'none';
+
+    /* TQ-BOOK-DRIVE — الاطار يقلب الصفحات بنفسه، فترقيمنا يخفى:
+       شريط يقول «١ من ٠» فوق قارئ يعرض صفحته لا يقول شيئا صحيحا.
+       و`pdf.js` لا يحمل اصلا في هذا المسار. */
+    if (embed) {
+      if (nav) nav.hidden = true;
+      frame.hidden = false;
+      frame.src = url;
+      msg.hidden = true;
+      return;
+    }
+    if (nav) nav.hidden = false;
+    frame.hidden = true;
+    frame.removeAttribute('src');
 
     loadLib()
       .then(function () { return window.pdfjsLib.getDocument(url).promise; })
@@ -541,12 +579,18 @@ include 'portal_open.php';
     document.body.style.overflow = '';
     if (doc) { try { doc.destroy(); } catch (e) {} }
     doc = null;
+    /* والاطار يفرغ لا يخفى وحده: `src` باقية تبقى الصفحة محملة خلف
+       الستار، وصوتها ان كان يعمل. */
+    frame.hidden = true;
+    frame.removeAttribute('src');
   }
 
   root.addEventListener('click', function (e) {
     var openBtn = e.target.closest('[data-tq-read]');
     if (openBtn) {
-      open(openBtn.getAttribute('data-tq-read'), openBtn.getAttribute('data-tq-title'));
+      open(openBtn.getAttribute('data-tq-read'),
+           openBtn.getAttribute('data-tq-title'),
+           openBtn.hasAttribute('data-tq-embed'));
       return;
     }
     if (e.target.closest('[data-tq-rd-close]')) { close(); return; }

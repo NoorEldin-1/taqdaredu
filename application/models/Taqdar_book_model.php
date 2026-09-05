@@ -82,7 +82,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Taqdar_book_model extends CI_Model
 {
     /** إصدار المخطط — يرفع متى أضيف عمود، فيركب عند أول قراءة بعده. */
-    const SCHEMA_V = '1';
+    const SCHEMA_V = '3';   /* ٣ — TQ-BOOK-DRIVE و TQ-BOOK-KIND */
 
     /** حد النسبة العامة حين لا يكتب المسؤول شيئا. */
     const DEFAULT_PERCENT = 60;
@@ -204,6 +204,38 @@ class Taqdar_book_model extends CI_Model
         }
         if (!$this->field('last_modified', 'books')) {
             $add[] = "ADD COLUMN `last_modified` int(11) NOT NULL DEFAULT 0";
+        }
+
+        /* TQ-BOOK-DRIVE — وضع تخزين ثان، لا بديل عن الاول.
+ 
+           كتب المنهج ١١٣ ملفا وخمسة غيغا وثلث، و٤٥ منها فوق سقف الرفع
+           (٤٠ ميغا) — فالرفع المحلي ليس اختيارا مرفوضا بل بابا مغلقا.
+ 
+           و`book_file()` يرفض ما ليس تحت `uploads/` عمدا، لان الرابط
+           العاري يوزع الكتاب المدفوع «فيصير الشراء اقتراحا». وذلك السبب
+           لا يقوم هنا: هذه كتب وزارة مكتوب على غلافها «يوزع مجانا ولا
+           يباع»، و`has_book()` يفتح المجاني للزائر بلا تسجيل اصلا —
+           فلا حماية يلتف عليها احد.
+ 
+           **والقاعدة تبقى**: ما يباع يرفع محليا ويمر بالحارس. وهذا
+           العمود للمجاني وحده، والعمودان يتعايشان في صف واحد. */
+        /* TQ-BOOK-KIND — المجلد فيه ثلاثة انواع لا نوعا واحدا: كتاب
+           الطالب، وكراسة النشاط، ودليل المعلم. وهي لا تعرض سواء: من
+           يبحث عن كتابه لا يريد دليل معلمه في اول النتائج.
+
+           ولا يشتق من العنوان: الاشتقاق يقرأ نصا كتبه انسان فيخطئ عند
+           اول عنوان لا يحمل الكلمة — والوسم يقال مرة عند الادخال.
+
+           والاسم `tq_book_kind` لا `tq_kind`: الثاني مفتاح قائم في
+           حمولة طابور المراجعة (`:1445`) معناه «نوع الكيان = كتاب»،
+           وعمود يحمل اسمه يقرؤه من يقرأ ذاك فيظنهما واحدا. */
+        if (!$this->field('tq_book_kind', 'books')) {
+            $add[] = "ADD COLUMN `tq_book_kind` varchar(24) NOT NULL DEFAULT 'student'"
+                   . " COMMENT 'student|activity|exercise|guide — TQ-BOOK-KIND'";
+        }
+        if (!$this->field('tq_drive_id', 'books')) {
+            $add[] = "ADD COLUMN `tq_drive_id` varchar(64) DEFAULT NULL"
+                   . " COMMENT 'Google Drive file id — free books hosted off-server; TQ-BOOK-DRIVE'";
         }
         if ($add) $this->try_sql('ALTER TABLE `books` ' . implode(', ', $add));
 

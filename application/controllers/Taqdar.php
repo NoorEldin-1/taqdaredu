@@ -3807,9 +3807,75 @@ class Taqdar extends CI_Controller
            والكتالوج يحقن لأنه يعرض مئات العناصر من أربعة أنواع. */
         $res = $this->tq_cat->search($f);
 
+        /* TQ-BOOK-GRADES — الصفوف بعدد كتب كل واحد.
+           والعد من القاعدة لا من `$res`: الاخيرة مرقمة (اثنا عشر في
+           الصفحة)، فالعد منها يقول «الرابع الابتدائي ٣» وفيه خمسة عشر. */
+        $tq_grades = $this->db->select('g.id, g.name_ar, g.`order`,
+                                        COUNT(b.id) AS n', false)
+            ->from('grades g')
+            ->join('books b', "b.grade_id = g.id AND b.status = 'published'", 'left')
+            ->where('g.active', 1)
+            ->group_by('g.id')->order_by('g.`order`', 'ASC', false)
+            ->get()->result_array();
+
         $this->show('site_books', 'الكتب', array(
-            'tq_f'   => $f,
-            'tq_res' => $res,
+            'tq_f'      => $f,
+            'tq_res'    => $res,
+            'tq_grades' => $tq_grades,
+        ));
+    }
+
+    /**
+     * كتب صف بعينه — TQ-BOOK-DRIVE.
+     *
+     * ولماذا صفحة ثابتة والمرشح يفعل ما تفعله؟ لان `‎/books?grade=16‎`
+     * لا يفهرس ولا يشارك: الرابط لا يقرأ، والعنوان واحد لكل صف، والوصف
+     * واحد. ومن يبحث يكتب «كتاب العلوم رابع ابتدائي» — فصفحة تحمل هذا
+     * الاسم هي ما يجاب به، لا شبكة مرشحة برابط استعلام.
+     *
+     * والمعرف من ذيل السبيكة لا من اسمها: `alsf-alrabaa-alabtdayy-10`
+     * يقرأ منه `10`، فتصحيح الاسم في اللوحة لا يكسر رابطا منشورا.
+     */
+    public function books_grade($slug = '')
+    {
+        $slug = (string) $slug;
+        $gid  = 0;
+        if (preg_match('~(\d+)$~', $slug, $m))      $gid = (int) $m[1];
+        elseif (ctype_digit($slug))                 $gid = (int) $slug;
+
+        $grade = $gid > 0
+            ? $this->db->where('id', $gid)->where('active', 1)->get('grades')->row_array()
+            : null;
+
+        /* صف لا وجود له ليس صفحة فارغة بل عنوان خاطئ. */
+        if (!$grade) { show_404(); return; }
+
+        /* والسبيكة الصحيحة واحدة: رابطان لصفحة واحدة يقسمان فهرستها. */
+        $canon = tqs_grade_slug($grade);
+        if ($slug !== $canon) {
+            redirect(base_url('books/' . $canon), 'location', 301);
+            return;
+        }
+
+        $this->load->model('taqdar_catalog_model', 'tq_cat');
+        $kind  = (string) $this->input->get('kind', true);
+        if (!isset(Taqdar_catalog_model::$KINDS[$kind])) $kind = '';
+
+        $books = $this->tq_cat->books_of_grade($gid, $kind);
+
+        /* والعد لكل نوع يقرأ من الصف كله لا من المرشح: مرشح يقول «دليل
+           المعلم (٠)» بعد ان يضغط عليه احد لا يخبر بشيء. */
+        $counts = array();
+        foreach ($this->tq_cat->books_of_grade($gid) as $b) {
+            $k = (string) $b['extra']['book_kind'];
+            $counts[$k] = (isset($counts[$k]) ? $counts[$k] : 0) + 1;
+        }
+
+        $this->show('site_books_grade', 'كتب ' . $grade['name_ar'], array(
+            'tq_grade'  => $grade,
+            'tq_books'  => $books,
+            'tq_kind'   => $kind,
+            'tq_counts' => $counts,
         ));
     }
 

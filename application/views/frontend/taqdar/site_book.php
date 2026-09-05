@@ -18,6 +18,14 @@ $tq_b     = $tq_book;
 $tq_tones = array('math', 'arabic', 'science', 'islamic', 'english');
 $tq_tone  = in_array((string) $tq_b['tone'], $tq_tones, true) ? (string) $tq_b['tone'] : 'math';
 $tq_file  = tqs_book_file($tq_b['file']);
+
+/* TQ-BOOK-DRIVE — كتب المنهج محفوظة على Drive لا تحت `uploads/`:
+   خمسة غيغا وثلث لا يسعها الخادم، و٤٥ من ١١٣ فوق سقف الرفع. فالقارئ
+   يضمن من هناك، والتحميل يفتح Drive في تبويب ثان — و`download` تسقط
+   عبر النطاقات فلا تكتب حيث لا تعمل. */
+$tq_drive = trim((string) (isset($tq_b['tq_drive_id']) ? $tq_b['tq_drive_id'] : ''));
+$tq_embed = tqs_drive_embed($tq_drive);
+if ($tq_embed !== '' && $tq_file === '') $tq_file = tqs_drive_dl($tq_drive);
 $tq_slug  = trim((string) $tq_b['slug']) !== '' ? (string) $tq_b['slug'] : (string) $tq_b['id'];
 
 /* العرض من مصدره الواحد، ومحايده حين لا يمرر: القالب يستدعى من
@@ -83,6 +91,15 @@ $tq_gap = ($tq_plan && $tq_sell) ? max(0, (int) $tq_plan['price'] - $tq_price) :
           <span><svg aria-hidden="true"><use href="#i-file"></use></svg><span class="tq-ltr"><?php
               echo (int) $tq_b['pages']; ?></span> صفحة</span>
 <?php endif; ?>
+<?php /* والحجم بدل الصفحات لما لا يقرأ عددها: `tq_doc_pages` تشتق
+         العدد من ملف محلي، وكتاب Drive لا ملف له هنا. والخانة تبقى
+         مفيدة: ثلاثمئة ميغا على شبكة جوال ليست كخمسة. */ ?>
+<?php if ((int) $tq_b['pages'] < 1 && (int) $tq_b['file_size'] > 0): ?>
+          <?php /* بلا `html_escape`: `tqs_filesize()` ترد وسما (`tq_num()`
+                   تلف الرقم في عازل اتجاه)، والتهريب يطبع الوسم حرفا. */ ?>
+          <span><svg aria-hidden="true"><use href="#i-file"></use></svg><?php
+              echo tqs_filesize((int) $tq_b['file_size']); ?></span>
+<?php endif; ?>
 <?php if ((string) $tq_b['author'] !== ''): ?>
           <span><svg aria-hidden="true"><use href="#i-users"></use></svg><?php echo html_escape($tq_b['author']); ?></span>
 <?php endif; ?>
@@ -91,6 +108,24 @@ $tq_gap = ($tq_plan && $tq_sell) ? max(0, (int) $tq_plan['price'] - $tq_price) :
 <?php endif; ?>
         </div>
       </div>
+
+<?php /* ── القارئ ─────────────────────────────────────────────────
+         يوضع فوق «وماذا بعد الكتاب؟» لا تحته: من فتح صفحة كتاب جاء
+         يقرأه، والدعوة إلى البرنامج تأتي بعد ان يجد ما جاء له. */ ?>
+<?php if ($tq_embed !== ''): ?>
+      <div class="icard tq-bookread">
+        <h2><?php echo t('اقرأ الكتاب'); ?></h2>
+        <div class="tq-bookread__frame">
+          <iframe src="<?php echo html_escape($tq_embed); ?>"
+                  title="<?php echo html_escape($tq_b['title']); ?>"
+                  loading="lazy" referrerpolicy="no-referrer"
+                  allow="autoplay"></iframe>
+        </div>
+        <p class="tq-caption">
+          <?php echo t('تصفح الكتاب هنا، أو حمله من الزر جانبا.'); ?>
+        </p>
+      </div>
+<?php endif; ?>
 
       <?php /* الكتاب وحده لا يعلم: يقرأ ثم يقف الطالب عند أول سؤال لا
                يجد من يجيبه. والوصلة إلى البرنامج المرافق هي ما يجعل
@@ -180,12 +215,16 @@ $tq_gap = ($tq_plan && $tq_sell) ? max(0, (int) $tq_plan['price'] - $tq_price) :
           <svg aria-hidden="true"><use href="#i-check"></use></svg>
           <?php echo t('تحميل مجاني بلا تسجيل'); ?>
         </p>
-        <a class="btn btn--primary btn--block" href="<?php echo html_escape($tq_file); ?>" download>
+        <?php /* `download` تتجاهل عبر النطاقات، فتكتب حيث تعمل وحدها. */ ?>
+        <a class="btn btn--primary btn--block" href="<?php echo html_escape($tq_file); ?>"
+           <?php echo $tq_embed !== '' ? 'target="_blank" rel="noopener"' : 'download'; ?>>
           <svg aria-hidden="true"><use href="#i-download"></use></svg><?php echo t('حمل الكتاب'); ?>
         </a>
+<?php   if ($tq_embed === ''): ?>
         <a class="path-back" href="<?php echo html_escape($tq_file); ?>" target="_blank" rel="noopener">
           <?php echo t('افتحه في المتصفح'); ?>
         </a>
+<?php   endif; ?>
 <?php   else: ?>
         <?php /* زر معطل أصدق من رابط يقود إلى لا شيء */ ?>
         <button class="btn btn--primary btn--block" type="button" disabled>

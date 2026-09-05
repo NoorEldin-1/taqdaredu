@@ -1,0 +1,25 @@
+# robots.txt — منصة تقدر التعليمية
+# https://taqdaredu.com
+
+User-agent: *
+Allow: /
+
+# مسارات خلف تسجيل الدخول: لا يصلها زاحف أصلا، فمنعها يوفر ميزانية زحف
+#
+# ولا يمنع هنا /login و /sign_up و /checkout — وهي موصولة من ترويسة كل
+# صفحة فستزحف حتما. ومنع الزحف عنها يبطل وسم `noindex` الذي عليها: ما لا
+# يزحف لا تقرأ فيه الوسوم، فيفهرس بعنوانه وحده متى وصلته روابط. فالوسم
+# وحده هو ما يخرجها من الفهرس، والمنع كان سيحميها من الخروج لا من الدخول.
+Disallow: /student/
+Disallow: /teacher/
+Disallow: /parent/
+Disallow: /admin/
+Disallow: /taqdar_admin/
+Disallow: /payment/
+Disallow: /cart
+
+# ملفات داخلية
+Disallow: /docs/
+Disallow: /uploads/temp/
+
+Sitemap: https://taqdaredu.com/sitemap.xml

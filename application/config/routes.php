@@ -481,6 +481,11 @@ $route['book-file/(:num)']     = 'taqdar/book_file/$1';
 // بنوع مثبت لا كتالوج ثان — انظر رأس `site_books.php`.
 $route['books']                = 'taqdar/books_page';
 $route['book/(:any)']          = 'taqdar/book_page/$1';
+
+// TQ-BOOK-DRIVE — صفحة كتب الصف. **بعد** `books/results` لا قبلها:
+// `(:any)` يبتلع مقطعا واحدا، وقاعدة النتائج لو جاءت بعدها لعادت
+// الاستجابة صفحة HTML كاملة الى نداء ينتظر JSON.
+$route['books/(:any)']         = 'taqdar/books_grade/$1';
 $route['instructor/(:num)']    = 'taqdar/instructor_page/$1';
 $route['teachers']                = 'taqdar/site_page/site_teachers';
 $route['students']                = 'taqdar/site_page/site_students';

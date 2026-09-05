@@ -4457,3 +4457,48 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
   .tprof__pgrade{margin-inline-start:0}
   .tprof__progs a{flex-wrap:wrap;gap:8px}
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   TQ-BOOK-DRIVE — القارئ المضمن في صفحة الكتاب
+   ═══════════════════════════════════════════════════════════════
+   النسبة ٣:٤ لا ارتفاع ثابت: الصفحة تحجز مكانها قبل ان يحمل الاطار،
+   فلا يقفز ما تحتها حين يصل (وهو ما يقيسه CLS). و٣:٤ نسبة الورقة
+   نفسها، فلا شريطان رماديان حول كتاب عمودي. */
+.tq-bookread__frame {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  inline-size: 100%;
+  margin-block-start: var(--space-3, 12px);
+  border: 1px solid var(--line, #e5e0d8);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-2, #f7f4ef);
+}
+.tq-bookread__frame iframe {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  border: 0;
+}
+/* وعلى الجوال الشاشة اضيق من الورقة، فالنسبة تطول حتى تقرأ الحروف. */
+@media (max-width: 640px) {
+  .tq-bookread__frame { aspect-ratio: 2 / 3; }
+}
+
+/* TQ-BOOK-GRADES — شريط الصفوف فوق شبكة الكتب. */
+.bgrades {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 6px 8px; margin-block-end: 18px;
+}
+.bgrades__t { font-weight: 700; color: var(--ink-2, #3e5259); margin-inline-end: 4px; }
+.bgrades__i {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border: 1px solid var(--line, #e5e0d8);
+  border-radius: 999px; font-size: .92em; text-decoration: none;
+  color: inherit; background: var(--surface, #fff);
+}
+.bgrades__i:hover { border-color: var(--gold, #c9a55f); }
+.bgrades__i span { font-variant-numeric: tabular-nums; opacity: .65; }
+/* الصف بلا كتب: يقرأ ولا يضغط — والمؤشر يقول ذلك قبل النقر. */
+.bgrades__i.is-off { opacity: .45; cursor: default; }

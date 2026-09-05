@@ -744,13 +744,28 @@ class Taqdar_student_model extends CI_Model
         $uid = (int) $uid;
         $cat = 0;
 
+        /* TQ-LIB-STAGE — المرحلة من `grades`.`order` لا من عمود لا وجود له.
+ 
+           كان الاستعلام يصل `grades` بـ`category` على `g`.`category_id`،
+           و`grades` أربعة أعمدة ليس فيها هذا: الاسم عربيا وإنجليزيا
+           والترتيب والتفعيل. فالاستعلام يرمي «Unknown column» في كل
+           نداء، ويلتقطه `catch` فيرد صفرا — أي ان **المرشح لم يعمل يوما
+           واحدا**. ولم يظهر لأن الجدول كان بلا كتاب: صفر كتاب مرشح
+           وصفر كتاب غير مرشح واحد.
+ 
+           والقاعدة هي نفسها في كل موضع يشتق مرحلة من صف
+           (`tqs_grade_slug()` · `Taqdar_diag_model::form_quota()`):
+           ستة الابتدائي، فثلاثة المتوسط، فثلاثة الثانوي. ومعرفات
+           `category` ثابتة في القاعدة: ٣ و٤ و٥. */
         try {
             $row = $this->db->query(
-                'SELECT c.`id` FROM `users` u
+                'SELECT g.`order` AS o FROM `users` u
                    JOIN `grades` g ON g.`id` = u.`grade_id`
-              LEFT JOIN `category` c ON c.`id` = g.`category_id`
                   WHERE u.`id` = ? LIMIT 1', array($uid))->row_array();
-            $cat = $row ? (int) $row['id'] : 0;
+            $o = $row ? (int) $row['o'] : 0;
+            if     ($o >= 1  && $o <= 6)  $cat = 3;
+            elseif ($o >= 7  && $o <= 9)  $cat = 4;
+            elseif ($o >= 10 && $o <= 12) $cat = 5;
         } catch (Throwable $e) {
             $this->db->reset_query();
             $cat = 0;

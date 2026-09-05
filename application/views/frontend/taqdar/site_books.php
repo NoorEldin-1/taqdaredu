@@ -36,6 +36,30 @@ $tq_sorts = array(
 <section class="section" id="catalog">
   <div class="shell">
 
+<?php /* ── تصفح بالصف ────────────────────────────────────────────
+         TQ-BOOK-GRADES — ومن دون هذا الشريط تصير صفحات الصفوف يتيمة:
+         تعمل بروابطها ولا يصلها زائر ولا زاحف، و«صفحة لكل صف» تصير
+         عنوانا لا بابا.
+
+         والصفوف كلها تعرض لا التي فيها كتب وحدها — كما في شجرة المنهج:
+         الطالب يقرأ سلم صفه كاملا فيعرف اين هو منه، والصف بلا كتب يقال
+         بلا عدد ولا يفتح، فلا وعد يخلف. */ ?>
+<?php if (!empty($tq_grades)): ?>
+    <nav class="bgrades" aria-label="<?php echo te('تصفح الكتب بالصف'); ?>">
+      <span class="bgrades__t"><?php echo t('تصفح بالصف'); ?></span>
+<?php   foreach ($tq_grades as $tq_g): ?>
+<?php     if ((int) $tq_g['n'] > 0): ?>
+      <a class="bgrades__i" href="<?php echo html_escape(tqs_grade_books_url($tq_g)); ?>">
+        <?php echo html_escape($tq_g['name_ar']); ?>
+        <span class="tq-ltr"><?php echo tq_num((int) $tq_g['n']); ?></span>
+      </a>
+<?php     else: ?>
+      <span class="bgrades__i is-off"><?php echo html_escape($tq_g['name_ar']); ?></span>
+<?php     endif; ?>
+<?php   endforeach; ?>
+    </nav>
+<?php endif; ?>
+
     <?php /* شريط الأدوات: البحث والفرز والعد. **خارج** الجزء المستبدل
              لأن استبدال حقل البحث مع كل حرف يفقد المؤشر موضعه.
              و`action` إلى `/books` لا `/catalog`: النموذج بلا جافاسكربت
