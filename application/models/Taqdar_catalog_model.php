@@ -187,6 +187,12 @@ class Taqdar_catalog_model extends CI_Model
                          ->join('grades   g', 'g.id = p.grade_id',   'left')
                          ->join('users    u', 'u.id = p.teacher_id', 'left')
                          ->where('p.status', 'published')
+                         /* TQ-CATALOG-CONTENT — ومسار بلا وعاء محتوى لا
+                            يسرد هنا. مسارات «قيد الإعداد» المبذورة لكل
+                            (صف × مادة) وعد يقال في شجرة صفحة الباقة، أما
+                            الكتالوج فيتصفح بحثا عما يشاهد — وبطاقة تفتح
+                            على صفحة خالية تقرأ عطبا لا وعدا. */
+                         ->where('COALESCE(p.course_id, 0) >', 0)
                          ->order_by('p.tq_order', 'ASC')->order_by('p.id', 'ASC')
                          ->get()->result_array();
         if (!$rows) return array();

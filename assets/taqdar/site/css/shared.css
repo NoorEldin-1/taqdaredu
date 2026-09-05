@@ -173,6 +173,43 @@ a.curric__t:hover{color:var(--gold-text);text-decoration:underline}
   .curric__soonlock .curric__lock{inline-size:14px;block-size:14px}
 }
 
+/* ── TQ-CURRIC-TREE — طبقة الصف فوق المادة ─────────────────────
+   أول `<details>` متداخل في الموقع، فكل ما يخصه يكتب هنا: العلامة
+   الافتراضية تعطل في الطبقتين، والحشو لا يتوارث فيزحف كل مستوى.
+   وصنف الصف جديد (`curric__grade`) لا `curric__subj` — لأن
+   `site.js` يسمي المادة في نافذة المعاينة بـ`closest('.curric__subj')`،
+   فلو تشاركا الصنف نسبت المعاينة إلى الصف. */
+.curric--tree{gap:12px}
+.curric__grade{background:var(--paper);border:1px solid var(--gold-line);
+  border-radius:16px;overflow:hidden}
+.curric__grade[open]{border-color:var(--gold-line-strong,var(--gold-line))}
+.curric__grade.is-soon{background:transparent;border-style:dashed}
+
+.curric__gsum{display:flex;align-items:center;gap:10px;cursor:pointer;
+  padding:14px 18px;list-style:none;font-weight:700}
+.curric__gsum::-webkit-details-marker{display:none}
+.curric__gsum:hover{background:var(--cream)}
+.curric__gname{color:var(--ink);font-size:1.02rem;min-width:0;overflow-wrap:anywhere}
+.curric__gmeta{color:var(--ink-3);font-size:.85rem;font-weight:600;
+  margin-inline-start:auto;flex:none;white-space:nowrap}
+.curric__gmeta--soon{color:var(--gold-text)}
+.curric__grade > .curric__gsum > .curric__chev{flex:none;inline-size:16px;block-size:16px;
+  transition:transform var(--t-route,.2s) var(--ease,ease)}
+.curric__grade[open] > .curric__gsum > .curric__chev{transform:rotate(90deg)}
+
+.curric__gbody{padding:0 12px 12px;display:grid;gap:8px}
+/* المادة داخل الصف: أهدأ من الصف درجة، فالعين تقرأ العمق بلا خطوط */
+.curric__gbody .curric__subj{background:var(--cream);border-radius:12px}
+.curric__gbody .curric__sum{padding-block:11px}
+.curric__gbody .curric__name{font-size:.94rem}
+
+@media (max-width:520px){
+  .curric__gsum{padding:12px 13px;gap:8px}
+  .curric__gname{font-size:.95rem}
+  .curric__gmeta{font-size:.78rem}
+  .curric__gbody{padding:0 8px 8px}
+}
+
 /* TQ-SOON-LESSON — موضع محجوز لدرس لم يرفع مقطعه بعد. باهت كي يقرأ
    «ليس بعد» لا «مقفول»، وشارته بلون التمهيد نفسه المستعمل في
    `.tqb-subj__i.is-soon` فلا تتعلم العين لغتين لمعنى واحد. */

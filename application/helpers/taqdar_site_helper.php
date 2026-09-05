@@ -12,6 +12,28 @@
  * يمررها بـ`html.escape`.
  */
 
+/* ══════════════════════════════════════════════════════════════════
+   TQ-HIDE-SOON — إخفاء **وسم** «قيد الإعداد» عن الزائر، لا بنيته.
+
+   TQ-SHOW-ALL (٢٠٢٦-٠٩-٠٤) — البنية كاملة تعرض: كل صف في نطاق الباقة،
+   وتحته كل مواده، ولو لم ينزل فيها فيديو بعد. فالشجرة خريطة ما يفتحه
+   الاشتراك، والدروس تضاف داخل موادها متى جهزت. والذي يخفى هو الوسم
+   والعداد وحدهما — «قيد الإعداد» و«N مادة جاهزة من M» — لأنهما يقيسان
+   النقص ويعلنانه، والخريطة لا تقيس.
+
+   الوسم نفسه طلبه المالك في ٢٠٢٦-٠٩-٠٢ («الوعد يعلن لا يطوى»)، ثم
+   طلب اخفاءه في ٢٠٢٦-٠٩-٠٤ حتى ينزل المحتوى. وهو عكس قرار لا اصلاح
+   عطب، فيبنى **مفتاحا يعكس** لا شيفرة تحذف: `false` يعيد الوسم كما كان
+   حرفا، بلا استرجاع من نسخة.
+
+   ومداه الزائر وحده: `$soon` معرفة اصلا بـ`$mode !== 'student'`، فمن
+   دفع يرى ما اشتراه كاملا بوسمه — والاخفاء دعاية لا حجب.
+
+   وما لا يمسه: صفحة البرنامج (`site_path.php`) وبوابة المشترك
+   (`tq_bundle` · `tq_subscription`) والدروس النائبة داخل مادة جاهزة.
+   ══════════════════════════════════════════════════════════════════ */
+if (!defined('TQ_HIDE_SOON')) define('TQ_HIDE_SOON', true);
+
 if (!function_exists('tq_site_asset')) {
     /**
      * رابط أصل من أصول التصميم، مبصوما بزمن تعديله.
@@ -1523,6 +1545,87 @@ if (!function_exists('tqs_dur')) {
     }
 }
 
+if (!function_exists('tqs_curriculum_units')) {
+    /**
+     * الطبقة الأخيرة من المنهج: وحدات مادة واحدة ودروسها.
+     *
+     * استخرجت من `tqs_curriculum()` كي تشاركها `tqs_curriculum_tree()`،
+     * فوسم الدرس وشاراته (معاينة · قفل · قيد الإعداد) مكتوب مرة واحدة.
+     * فرعان لوسم واحد يفترقان بأول تعديل يصيب أحدهما.
+     *
+     * @param array  $units      وحدات المادة، وقد تمرر فارغة عمدا
+     * @param string $mode       public | student
+     * @param int    $course_id  لبناء روابط الدرس والمعاينة
+     */
+    function tqs_curriculum_units($units, $mode, $course_id)
+    {
+        $h = '';
+        foreach ($units as $u) {
+            $h .= '      <section class="curric__unit">' . "\n";
+            /* العدّاد يعد ما يفتح، لا ما في المصفوفة: النائب معروض
+               في القائمة ومستثنى من الرقم فوقها، وإلا قالت الوحدة
+               «٤ دروس» وقالت الترويسة ٣ — والقارئ يعد بعينه. */
+            $u_n = 0;
+            foreach ($u['lessons'] as $ul) if (empty($ul['is_soon'])) $u_n++;
+            $h .= '        <h4 class="curric__unit-h">' . html_escape($u['title'])
+                . ' <small>' . $u_n . t(' درسا</small></h4>') . "\n";
+            $h .= '        <ol class="curric__lessons">' . "\n";
+            foreach ($u['lessons'] as $l) {
+                $l_soon = !empty($l['is_soon']);
+                $icon = $l_soon ? 'i-clock' : ($l['is_quiz'] ? 'i-clipboard' : 'i-play');
+                $cls  = 'curric__lesson' . ($l['is_free'] ? ' is-free' : '')
+                      . ($l_soon ? ' is-soon' : '');
+                $h .= '          <li class="' . $cls . '">' . "\n";
+                $h .= '            <svg class="curric__ico" aria-hidden="true"><use href="#' . $icon . '"></use></svg>' . "\n";
+
+                /* TQ-SOON-LESSON — موضع محجوز: اسم بلا رابط وبلا مدة،
+                   وشارة تقول متى. ولا يستثنى المشترك من هذا: الرابط
+                   يفتح صفحة تقول «لا يوجد مقطع»، والشارة تقول الصدق
+                   قبل النقرة. */
+                if ($l_soon) {
+                    $h .= '            <span class="curric__t">' . html_escape($l['title']) . '</span>' . "\n";
+                    $h .= t('            <span class="curric__prep">قيد الإعداد</span>') . "\n";
+                    $h .= '          </li>' . "\n";
+                    continue;
+                }
+
+                $title = html_escape($l['title']);
+                if ($mode === 'student') {
+                    $h .= '            <a class="curric__t" href="'
+                        . base_url('student/lesson/' . $course_id . '/' . (int) $l['id'])
+                        . '">' . $title . '</a>' . "\n";
+                } else {
+                    $h .= '            <span class="curric__t">' . $title . '</span>' . "\n";
+                }
+
+                $dur = tqs_dur($l['duration']);
+                if ($dur !== '') {
+                    $h .= '            <span class="curric__dur">' . html_escape($dur) . '</span>' . "\n";
+                }
+
+                if ($mode === 'public') {
+                    if ($l['is_free']) {
+                        $h .= '            <a class="curric__free" href="'
+                            . tqs_preview_url($course_id, $l['id'])
+                            . t('"><svg aria-hidden="true"><use href="#i-unlock"></use></svg> معاينة مجانية</a>') . "\n";
+                    } else {
+                        /* الشارة مرئية عمدا: المشتري يمسح المنهج
+                           بعينه ليعرف كم فيه مما يدفع مقابله. وقفل
+                           صامت يقرأ عطبا لا سياسة. */
+                        $h .= '            <span class="curric__soonlock">'
+                            . '<svg class="curric__lock" aria-hidden="true"><use href="#i-lock"></use></svg>'
+                            . t('يفتح بالاشتراك</span>') . "\n";
+                    }
+                }
+                $h .= '          </li>' . "\n";
+            }
+            $h .= '        </ol>' . "\n";
+            $h .= '      </section>' . "\n";
+        }
+        return $h;
+    }
+}
+
 if (!function_exists('tqs_curriculum')) {
     /**
      * منهج الباقة — مادة تطوى على وحداتها، والوحدة على دروسها.
@@ -1549,12 +1652,6 @@ if (!function_exists('tqs_curriculum')) {
         $i = 0;
 
         foreach ($bundle['subjects'] as $s) {
-            $i++;
-            $meta = array();
-            if (count($s['units']) > 0) $meta[] = count($s['units']) . t(' وحدة');
-            if ($s['lessons'] > 0)      $meta[] = $s['lessons'] . t(' درسا');
-            if ($s['quizzes'] > 0)      $meta[] = $s['quizzes'] . t(' اختبارا');
-
             /* برنامج بلا محتوى لا يخفى: الباقة تشمله والمشتري يجب أن
                يعرف أنه قيد الإعداد — إخفاؤه وعد ضمني بأنه جاهز. */
             $ready = !empty($s['ready']);
@@ -1562,7 +1659,13 @@ if (!function_exists('tqs_curriculum')) {
                في الصفحة العامة، أما من دفع فلا يحجب عنه اختبار موجود. */
             $soon  = (!$ready && $mode !== 'student');
 
-            $h .= '  <details class="curric__subj' . ($ready ? '' : ' is-soon') . '"'
+            $i++;
+            $meta = array();
+            if (count($s['units']) > 0) $meta[] = count($s['units']) . t(' وحدة');
+            if ($s['lessons'] > 0)      $meta[] = $s['lessons'] . t(' درسا');
+            if ($s['quizzes'] > 0)      $meta[] = $s['quizzes'] . t(' اختبارا');
+
+            $h .= '  <details class="curric__subj' . ((!$ready && !TQ_HIDE_SOON) ? ' is-soon' : '') . '"'
                 . ($i <= $open && $ready ? ' open' : '') . '>' . "\n";
             $h .= '    <summary class="curric__sum">' . "\n";
             /* TQ-SUBJ-GRADE — الاسم يحمل صفه. الباقة تفتح ست صفوف، فمادة
@@ -1580,7 +1683,7 @@ if (!function_exists('tqs_curriculum')) {
             $h .= '      <span class="curric__name">' . html_escape($nm) . '</span>' . "\n";
             if ($meta && !$soon) {
                 $h .= '      <span class="curric__meta">' . html_escape(implode(' · ', $meta)) . '</span>' . "\n";
-            } else {
+            } elseif (!TQ_HIDE_SOON) {
                 $h .= t('      <span class="curric__meta curric__meta--soon">قيد الإعداد</span>') . "\n";
             }
             if ($mode === 'student' && isset($prog[$s['course_id']])) {
@@ -1597,72 +1700,147 @@ if (!function_exists('tqs_curriculum')) {
                 $h .= t('      <p class="curric__soon">دروس هذه المادة قيد التجهيز، ')
                     . t('وتفتح لك تلقائيا بمجرد نشرها.</p>') . "\n";
             }
-            foreach (($soon ? array() : $s['units']) as $u) {
-                $h .= '      <section class="curric__unit">' . "\n";
-                /* العدّاد يعد ما يفتح، لا ما في المصفوفة: النائب معروض
-                   في القائمة ومستثنى من الرقم فوقها، وإلا قالت الوحدة
-                   «٤ دروس» وقالت الترويسة ٣ — والقارئ يعد بعينه. */
-                $u_n = 0;
-                foreach ($u['lessons'] as $ul) if (empty($ul['is_soon'])) $u_n++;
-                $h .= '        <h4 class="curric__unit-h">' . html_escape($u['title'])
-                    . ' <small>' . $u_n . t(' درسا</small></h4>') . "\n";
-                $h .= '        <ol class="curric__lessons">' . "\n";
-                foreach ($u['lessons'] as $l) {
-                    $l_soon = !empty($l['is_soon']);
-                    $icon = $l_soon ? 'i-clock' : ($l['is_quiz'] ? 'i-clipboard' : 'i-play');
-                    $cls  = 'curric__lesson' . ($l['is_free'] ? ' is-free' : '')
-                          . ($l_soon ? ' is-soon' : '');
-                    $h .= '          <li class="' . $cls . '">' . "\n";
-                    $h .= '            <svg class="curric__ico" aria-hidden="true"><use href="#' . $icon . '"></use></svg>' . "\n";
-
-                    /* TQ-SOON-LESSON — موضع محجوز: اسم بلا رابط وبلا مدة،
-                       وشارة تقول متى. ولا يستثنى المشترك من هذا: الرابط
-                       يفتح صفحة تقول «لا يوجد مقطع»، والشارة تقول الصدق
-                       قبل النقرة. */
-                    if ($l_soon) {
-                        $h .= '            <span class="curric__t">' . html_escape($l['title']) . '</span>' . "\n";
-                        $h .= t('            <span class="curric__prep">قيد الإعداد</span>') . "\n";
-                        $h .= '          </li>' . "\n";
-                        continue;
-                    }
-
-                    $title = html_escape($l['title']);
-                    if ($mode === 'student') {
-                        $h .= '            <a class="curric__t" href="'
-                            . base_url('student/lesson/' . (int) $s['course_id'] . '/' . (int) $l['id'])
-                            . '">' . $title . '</a>' . "\n";
-                    } else {
-                        $h .= '            <span class="curric__t">' . $title . '</span>' . "\n";
-                    }
-
-                    $dur = tqs_dur($l['duration']);
-                    if ($dur !== '') {
-                        $h .= '            <span class="curric__dur">' . html_escape($dur) . '</span>' . "\n";
-                    }
-
-                    if ($mode === 'public') {
-                        if ($l['is_free']) {
-                            $h .= '            <a class="curric__free" href="'
-                                . tqs_preview_url($s['course_id'], $l['id'])
-                                . t('"><svg aria-hidden="true"><use href="#i-unlock"></use></svg> معاينة مجانية</a>') . "\n";
-                        } else {
-                            /* الشارة مرئية عمدا: المشتري يمسح المنهج
-                               بعينه ليعرف كم فيه مما يدفع مقابله. وقفل
-                               صامت يقرأ عطبا لا سياسة. */
-                            $h .= '            <span class="curric__soonlock">'
-                                . '<svg class="curric__lock" aria-hidden="true"><use href="#i-lock"></use></svg>'
-                                . t('يفتح بالاشتراك</span>') . "\n";
-                        }
-                    }
-                    $h .= '          </li>' . "\n";
-                }
-                $h .= '        </ol>' . "\n";
-                $h .= '      </section>' . "\n";
-            }
+            $h .= tqs_curriculum_units(($soon ? array() : $s['units']), $mode, (int) $s['course_id']);
             $h .= '    </div>' . "\n";
             $h .= '  </details>' . "\n";
         }
         return $h . '</div>' . "\n";
+    }
+}
+
+if (!function_exists('tqs_curriculum_tree')) {
+    /**
+     * منهج الباقة شجرة: الصف يطوى على مواده، والمادة على دروسها.
+     *
+     * القائمة المسطحة كانت تضع «الرياضيات — الصف الرابع» و«الرياضيات —
+     * الصف الخامس» متجاورتين بلا ما يجمعهما، فلا يقرأ المشتري أن الاشتراك
+     * يفتح المرحلة كاملة. والصف هنا أب، فاسم المادة تحته بلا صفه.
+     *
+     * ترتد إلى `tqs_curriculum()` متى كان `grades` فارغا — وهو حال الباقة
+     * التجريبية (`scope = trial`) وحال صفحة الدورة المفردة.
+     *
+     * @param array $bundle  ناتج `bundle_by_code()`
+     * @param array $o       mode · progress
+     */
+    function tqs_curriculum_tree($bundle, $o = array())
+    {
+        if (empty($bundle['grades'])) return tqs_curriculum($bundle, $o);
+
+        $mode = isset($o['mode']) ? $o['mode'] : 'public';
+        $prog = isset($o['progress']) && is_array($o['progress']) ? $o['progress'] : array();
+
+        $h = '<div class="curric curric--tree">' . "\n";
+        $g_opened = false;
+
+        foreach ($bundle['grades'] as $g) {
+            $subs = isset($g['subjects']) && is_array($g['subjects']) ? $g['subjects'] : array();
+
+            /* ترتيب المواد بترتيب جدول المواد لا بتسلسل إنشاء المسار:
+               الصف الذي بذر دفعة واحدة والصف الذي نما مسارا مسارا يجب أن
+               يقرآ بالترتيب نفسه، وإلا بدت القائمة عشوائية. */
+            usort($subs, 'tqs_subject_cmp');
+
+            /* الصف جاهز بمادة جاهزة فيه، لا بوجود عقدة مادة: بعد بذر
+               «قيد الإعداد» صار لكل صف مواد، فلو قيس بالعدد لقرأ صف بلا
+               درس واحد «خمس مواد». */
+            $ready_n = 0;
+            foreach ($subs as $sx) if (!empty($sx['ready'])) $ready_n++;
+            $g_soon = ($ready_n < 1);
+
+            /* أول صف فيه محتوى يفتح، وما عداه مطوي — الشجرة تمسح بالعين
+               لا تقرأ بالتمرير. */
+            $open = (!$g_soon && !$g_opened);
+            if ($open) $g_opened = true;
+
+            $h .= '  <details class="curric__grade' . (($g_soon && !TQ_HIDE_SOON) ? ' is-soon' : '') . '"'
+                . ($open ? ' open' : '') . '>' . "\n";
+            $h .= '    <summary class="curric__gsum">' . "\n";
+            $h .= '      <span class="curric__gname">' . html_escape((string) $g['name']) . '</span>' . "\n";
+            /* TQ-SHOW-ALL — لا عداد ولا وسم على الصف: «٢ مادة جاهزة من ٥»
+               تعلن النقص في كل سطر، والصف الذي لم ينزل فيه شيء يقرأ صفرا.
+               والاسم وحده يكفي — من فتحه رأى مواده. */
+            if (!TQ_HIDE_SOON) {
+                if ($g_soon) {
+                    $h .= t('      <span class="curric__gmeta curric__gmeta--soon">قيد الإعداد</span>') . "\n";
+                } else {
+                    $h .= '      <span class="curric__gmeta">' . $ready_n
+                        . t(' مادة جاهزة من ') . count($subs) . '</span>' . "\n";
+                }
+            }
+            $h .= '      <svg class="curric__chev" aria-hidden="true"><use href="#i-chevron"></use></svg>' . "\n";
+            $h .= '    </summary>' . "\n";
+            $h .= '    <div class="curric__gbody">' . "\n";
+
+            if (!$subs) {
+                $h .= t('      <p class="curric__soon">مواد هذا الصف قيد التجهيز، ')
+                    . t('وتفتح لك تلقائيا بمجرد نشرها.</p>') . "\n";
+            }
+
+            $s_opened = false;
+            foreach ($subs as $s) {
+                $ready = !empty($s['ready']);
+                /* والمشترك يرى ما عنده كاملا: «قيد الإعداد» وعد يقال
+                   للمشتري في الصفحة العامة، ولا يحجب عمن دفع اختبارا موجودا. */
+                $soon  = (!$ready && $mode !== 'student');
+
+                $meta = array();
+                if (count($s['units']) > 0) $meta[] = count($s['units']) . t(' وحدة');
+                if ($s['lessons'] > 0)      $meta[] = $s['lessons'] . t(' درسا');
+                if ($s['quizzes'] > 0)      $meta[] = $s['quizzes'] . t(' اختبارا');
+
+                $s_open = ($ready && !$s_opened && $open);
+                if ($s_open) $s_opened = true;
+
+                $h .= '      <details class="curric__subj' . ((!$ready && !TQ_HIDE_SOON) ? ' is-soon' : '') . '"'
+                    . ($s_open ? ' open' : '') . '>' . "\n";
+                $h .= '        <summary class="curric__sum">' . "\n";
+                /* الاسم بلا صفه: الصف صار أبا، فتكرار «— الصف الرابع
+                   الابتدائي» في كل سطر تحته حشو يزاحم اسم المادة.
+                   ومن جدول المواد لا من `paths.title` الحر: هذا نص يكتبه
+                   المحرر وفيه «برنامج الرياضيات — السادس» بجوار «الرياضيات»
+                   و«العلوم»، فيقرأ شاذا بين إخوته تحت أب واحد. */
+                $s_nm = trim((string) (isset($s['subject']) ? $s['subject'] : ''));
+                if ($s_nm === '') $s_nm = (string) $s['title'];
+                $h .= '          <span class="curric__name">' . html_escape($s_nm) . '</span>' . "\n";
+                if ($meta && !$soon) {
+                    $h .= '          <span class="curric__meta">' . html_escape(implode(' · ', $meta)) . '</span>' . "\n";
+                } elseif (!TQ_HIDE_SOON) {
+                    $h .= t('          <span class="curric__meta curric__meta--soon">قيد الإعداد</span>') . "\n";
+                }
+                if ($mode === 'student' && isset($prog[$s['course_id']])) {
+                    $p = (int) $prog[$s['course_id']];
+                    $h .= '          <span class="curric__prog">'
+                        . '<span class="curric__track"><i style="inline-size:' . $p . '%"></i></span>'
+                        . '<b class="tq-ltr">' . $p . '%</b></span>' . "\n";
+                }
+                $h .= '          <svg class="curric__chev" aria-hidden="true"><use href="#i-chevron"></use></svg>' . "\n";
+                $h .= '        </summary>' . "\n";
+                $h .= '        <div class="curric__body">' . "\n";
+                if ($soon || !$s['units']) {
+                    $h .= t('          <p class="curric__soon">دروس هذه المادة قيد التجهيز، ')
+                        . t('وتفتح لك تلقائيا بمجرد نشرها.</p>') . "\n";
+                }
+                $h .= tqs_curriculum_units(($soon ? array() : $s['units']), $mode, (int) $s['course_id']);
+                $h .= '        </div>' . "\n";
+                $h .= '      </details>' . "\n";
+            }
+
+            $h .= '    </div>' . "\n";
+            $h .= '  </details>' . "\n";
+        }
+
+        return $h . '</div>' . "\n";
+    }
+}
+
+if (!function_exists('tqs_subject_cmp')) {
+    /** ترتيب المواد داخل الصف: بمعرف المادة، فهو يتبع ترتيب جدول المواد. */
+    function tqs_subject_cmp($a, $b)
+    {
+        $x = isset($a['subject_id']) ? (int) $a['subject_id'] : 0;
+        $y = isset($b['subject_id']) ? (int) $b['subject_id'] : 0;
+        if ($x === $y) return 0;
+        return ($x < $y) ? -1 : 1;
     }
 }
 

@@ -497,41 +497,92 @@ document.documentElement.classList.add('js');
   if (navigator.connection && navigator.connection.saveData) return;
 
   var small = window.matchMedia('(max-width: 980px)').matches;
-  var base = v.getAttribute('poster');
+
+  /* TQ-PERF-VSRC — المسارات تقرأ من سمة صريحة، لا تشتق من الملصق.
+     كان الاشتقاق نصيا من `poster`، فحذف الملصق (وهو لا يرى) كان
+     يكسره. والاحتياطي يبقي القوالب التي لم تحدث عاملة. */
+  var srcs = null;
+  try { srcs = JSON.parse(v.getAttribute('data-tq-hero-src') || 'null'); } catch (e) {}
+
+  /* `|| ''` لا زخرفة: لا `poster` على الوسم بعد `TQ-PERF-VSRC`، فلولاها
+     لرمى `null.replace` وتوقف بقية الملف — والملف فيه الكاروسلات
+     والتحميل الكسول. */
+  var base = v.getAttribute('poster') || '';
   /* WebM أولا وMP4 بديلا: سفاري القديم وبعض أجهزة iOS لا تفك WebM،
      فكانت الخلفية تبقى صورة ساكنة بلا سبب ظاهر. و`canPlayType` تسأل
      المتصفح بدل أن نخمن عنه. */
-  var webm = base.replace('hero-poster.webp', small ? 'hero-sm.webm' : 'hero.webm');
-  var mp4  = base.replace('hero-poster.webp', small ? 'hero-sm.mp4' : 'hero.mp4');
-  v.src = v.canPlayType('video/webm') ? webm : mp4;
-  v.addEventListener('error', function () {
-    if (v.src.indexOf('.webm') !== -1) { v.src = mp4; v.play().catch(function () {}); }
-  });
-  v.addEventListener('playing', function () {
-    v.classList.add('is-on');
-    var t = document.querySelector('[data-tq-hero-toggle]');
-    if (t) {
-      t.hidden = false;
-      t.addEventListener('click', function () {
-        var off = !v.paused;
-        if (off) v.pause(); else v.play().catch(function () {});
-        t.setAttribute('aria-label', off ? 'تشغيل الخلفية المتحركة' : 'إيقاف الخلفية المتحركة');
-        var u = t.querySelector('use');
-        if (u) u.setAttribute('href', off ? '#i-play' : '#i-close');
-      });
+  var tier = srcs ? (small ? srcs.sm : srcs.lg) : null;
+  var webm = tier ? tier.webm : base.replace('hero-poster.webp', small ? 'hero-sm.webm' : 'hero.webm');
+  var mp4  = tier ? tier.mp4  : base.replace('hero-poster.webp', small ? 'hero-sm.mp4'  : 'hero.mp4');
+  if (!webm || !mp4) return;
+
+  /* TQ-PERF-VLOAD — لا ينزل بايت واحد قبل أن تكتمل الصفحة.
+
+     كان `v.src` يسند وقت تنفيذ السكربت، فينزل نصف ميغابايت (وعلى
+     الحاسوب مليون وثلث) **داخل نافذة تحميل الصفحة** — يزاحم الخط
+     والصورة والملصق الذي هو عنصر LCP نفسه. وقد ظهر أثره في
+     PageSpeed خطأ `NO_LCP`: ما من مرشح مستقر ينتهي إليه التتبع.
+
+     وسجل الخادم قال ما لم يقله أي قياس محلي: جوجل نزل
+     `hero-sm.webm` (482 ك.ب) **و**`hero-sm.mp4` (756 ك.ب) في ثانيتين
+     متتاليتين — الترميزين معا. راجع معالج الخطأ أدناه.
+
+     والخلفية زخرف: الملصق يغطي مكانها من أول رسم، فلا يرى الزائر
+     فرقا سوى أن التلاشي يبدأ بعد جزء من الثانية. */
+  function begin() {
+    v.src = v.canPlayType('video/webm') ? webm : mp4;
+
+    /* الاحتياطي لا يعمل إلا على خطأ ترميز حقيقي، ومرة واحدة.
+
+       كان يعمل على **أي** خطأ: فإذا أجهض المتصفح الطلب — وهو ما يفعله
+       Lighthouse في نهاية كل تتبع — فسر ذلك عجزا عن فك WebM فأسند
+       `mp4` فبدأ تنزيلا ثانيا. فينتهي القياس وقد نزل الملفان.
+       و`MEDIA_ERR_ABORTED` و`MEDIA_ERR_NETWORK` ليسا قولا في الترميز. */
+    var fellBack = false;
+    v.addEventListener('error', function () {
+      if (fellBack || !v.error) return;
+      if (v.error.code !== 3 && v.error.code !== 4) return;
+      if (v.src.indexOf('.webm') === -1) return;
+      fellBack = true;
+      v.src = mp4;
+      play();
+    });
+
+    v.addEventListener('playing', function () {
+      v.classList.add('is-on');
+      var t = document.querySelector('[data-tq-hero-toggle]');
+      if (t) {
+        t.hidden = false;
+        t.addEventListener('click', function () {
+          var off = !v.paused;
+          if (off) v.pause(); else v.play().catch(function () {});
+          t.setAttribute('aria-label', off ? 'تشغيل الخلفية المتحركة' : 'إيقاف الخلفية المتحركة');
+          var u = t.querySelector('use');
+          if (u) u.setAttribute('href', off ? '#i-play' : '#i-close');
+        });
+      }
+    }, { once: true });
+
+    play();
+
+    /* خارج الشاشة لا يشغل: إطارات لا ترى تستهلك بطارية بلا مقابل،
+       وهو على الجوال أهم منه على الحاسوب. */
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) { e.isIntersecting ? play() : v.pause(); });
+      }, { threshold: 0.05 }).observe(v);
     }
-  }, { once: true });
+  }
 
   function play() { var g = v.play(); if (g && g.catch) g.catch(function () {}); }
-  play();
 
-  /* خارج الشاشة لا يشغل: إطارات لا ترى تستهلك بطارية بلا مقابل،
-     وهو على الجوال أهم منه على الحاسوب. */
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(function (es) {
-      es.forEach(function (e) { e.isIntersecting ? play() : v.pause(); });
-    }, { threshold: 0.05 }).observe(v);
+  function idle(fn) {
+    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(fn, { timeout: 2500 });
+    else setTimeout(fn, 900);
   }
+
+  if (document.readyState === 'complete') idle(begin);
+  else window.addEventListener('load', function () { idle(begin); }, { once: true });
 })();
 
 /* ---- الكاروسل ------------------------------------------------------

@@ -50,6 +50,20 @@ class Sitemap extends CI_Controller {
             }
         }
 
+        /* TQ-SITEMAP-PLANS — الباقات. كانت الخريطة تعلن ٩٥ رابطا فيها
+           ٤٦ مسارا وصفر باقة — اي ان الصفحات التي **تبيع** غير معلنة.
+           وهي موصولة داخليا (كل باقة من ثلاث صفحات) فلم تكن يتيمة، لكن
+           الاعلان يعطي الزاحف اولوية وتاريخا لا يعطيهما الزحف وحده. */
+        $tq_plans = array();
+        if ($this->db->table_exists('plans')) {
+            $tq_plans[] = base_url('plans');
+            $tq_prows = $this->db->select('code')->from('plans')
+                                 ->where('active', 1)->get()->result_array();
+            foreach ($tq_prows as $tq_p) {
+                if ((string) $tq_p['code'] !== '') $tq_plans[] = base_url('plan/' . $tq_p['code']);
+            }
+        }
+
         $categories = $this->crud_model->get_categories()->result_array();
 
         // Construct URLs for each blog
@@ -143,7 +157,8 @@ class Sitemap extends CI_Controller {
             $ebook_url_array,
             $course_bundle_url_array,
             $bootcamp_url_array,
-            $tq_paths
+            $tq_paths,
+            $tq_plans
         );
 
         // Generate the sitemap XML content

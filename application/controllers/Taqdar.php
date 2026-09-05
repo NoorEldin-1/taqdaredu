@@ -467,7 +467,8 @@ class Taqdar extends CI_Controller
             'user_id'      => $uid,
             'tq_state'     => $state,
             'tq_exam'      => $exam,
-            'tq_questions' => ($state === 'exam') ? $this->taqdar_diag_model->ordered_questions((int) $exam['id']) : array(),
+            /* TQ-DIAG-FORM — عينة هذا الطالب لا البنك كله. */
+            'tq_questions' => ($state === 'exam') ? $this->taqdar_diag_model->exam_form((int) $exam['id'], $uid) : array(),
             'tq_attempt'   => $done,
             'tq_plan'      => $plan,
             'tq_plan_url'  => $plan_url,
@@ -3446,6 +3447,12 @@ class Taqdar extends CI_Controller
                 'tier'    => tqs_bundle_tier($p['name_ar']),
                 'stage'   => (string) $p['stage'],
                 'price'   => (int) $p['price'],
+                /* `period` و`days` تمريرا لا حسابا: `tqs_plan_price()` تلزمهما
+                   لتشتق الدورة الشهرية، والمبدل ينادي **الدالة نفسها** التي
+                   تناديها بطاقة الشراء. وبدونهما كان يطبع `price` خاما — وهو
+                   السنوي — فيقرأ الزائر رقمين لباقة واحدة في شاشة واحدة. */
+                'period'  => (string) $p['period'],
+                'days'    => (int) $p['duration_days'],
                 'current' => ((string) $p['code'] === $b['code']),
             );
         }

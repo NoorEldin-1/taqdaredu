@@ -645,7 +645,15 @@ class Taqdar_site_model extends CI_Model
                  ->join('grades   g', 'g.id = p.grade_id',   'left')
                  ->join('users    u', 'u.id = p.teacher_id', 'left')
                  ->where('p.status', 'published');
-        if ($gids) $this->db->where_in('p.grade_id', $gids);
+        if ($gids) {
+            $this->db->where_in('p.grade_id', $gids);
+        } else {
+            /* نطاق بلا صفوف (الباقة التجريبية `trial`) يسرد كل منشور —
+               وبعد بذر مسارات «قيد الإعداد» صار ذلك ستا وأربعين مادة،
+               تسع وعشرون منها فارغة. الوعد موضعه شجرة باقة المرحلة،
+               والتجريبية تعرض ما يجرب. */
+            $this->db->where('COALESCE(p.course_id, 0) >', 0);
+        }
         $this->db->order_by('p.tq_order', 'ASC')->order_by('p.id', 'ASC');
         $paths = $this->db->get()->result_array();
         /* ولا برنامج منشور في صفوفها — **وقد يكون فيها كتب**: باقة صف
@@ -821,10 +829,30 @@ class Taqdar_site_model extends CI_Model
             }
         }
 
-        /* صف بلا برنامج منشور لا يعرض: الباقة تعد بما تفتحه فعلا */
-        foreach ($grades as $g) if ($g['subjects']) $b['grades'][] = $g;
+        /* TQ-SCOPE-GRADES — كل صف في نطاق الباقة يعرض، والفارغ موسوم
+           «قيد الإعداد». كان الفارغ يسقط صامتا، فتقرأ الباقة الابتدائية
+           ثلاثة صفوف وهي تفتح ستة — والاشتراك يفتح المرحلة كاملة، فحذف
+           صف لم يكتمل بعد يخفي نصف ما دفع المشتري مقابله. ومصدر القائمة
+           `plans.scope_ids` من اللوحة، لا رقم في الشيفرة. */
+        $g_ready = 0;
+        foreach ($grades as $g) {
+            /* الجاهزية بمادة جاهزة فيه لا بعدد عقده: بعد بذر «قيد الإعداد»
+               صار لكل صف مواد، فقياسها بالعدد يجعل صفا بلا درس واحد يقرأ
+               «خمس مواد» — وهو نقض القاعدة التي وضعت لأجلها. */
+            $n_ready = 0;
+            foreach ($g['subjects'] as $gsx) if (!empty($gsx['ready'])) $n_ready++;
+            $g['ready_n'] = $n_ready;
+            $g['soon']    = ($n_ready < 1);
+            if (!$g['soon']) $g_ready++;
+            $b['grades'][] = $g;
+        }
 
         $b['teachers'] = array_values($teachers);
+        /* والمجموع يعد الجاهز وحده: «ن صفوف دراسية» في شريط الحقائق رقم
+           يقابل محتوى موجودا، لا وعدا. */
+        /* «ن صفوف دراسية» يصف ما يفتحه الاشتراك لا ما اكتمل منه: البطاقة
+           والشجرة تعرضان الستة، فرقم يقول «٣» فوقهما ينقض ما تحته.
+           والجاهز يقرأ في الشجرة صفا صفا. */
         $b['totals']['grades']   = count($b['grades']);
         $b['totals']['subjects'] = 0;
         foreach ($b['subjects'] as $sx) if (!empty($sx['ready'])) $b['totals']['subjects']++;

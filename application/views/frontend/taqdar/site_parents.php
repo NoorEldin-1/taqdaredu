@@ -231,7 +231,8 @@ foreach ($tq_quotes as $q) {
                 . '</div></div>' . "\n";
     $stars = (int) $q['rating'];
     if ($stars > 0) {
-        $tq_slides .= '  <div class="stars" aria-label="' . $stars . ' من 5">' . "\n";
+        /* TQ-A11Y-ROLE — كما في `home.php`: الدور قبل السمة. */
+        $tq_slides .= '  <div class="stars" role="img" aria-label="التقييم ' . $stars . ' من 5">' . "\n";
         $tq_slides .= str_repeat('    <svg aria-hidden="true"><use href="#i-star"></use></svg>' . "\n", $stars);
         $tq_slides .= '  </div>' . "\n";
     }

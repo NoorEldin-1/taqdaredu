@@ -20,6 +20,25 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
         كل خط ينزل مرتين. فيكتب المسار خاما هنا. */ ?>
     <link rel="preload" href="<?php echo base_url('assets/taqdar/site/fonts/Cairo-700-arabic.woff2'); ?>" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="<?php echo base_url('assets/taqdar/site/fonts/Plex-400-arabic.woff2'); ?>" as="font" type="font/woff2" crossorigin>
+<?php /* TQ-PERF-CSS — جربت تاجيل ثلاث اوراق هنا، فرفضها القياس.
+
+        الفكرة كانت سليمة على الورق: `shared.css` و`shell.css` و
+        `home-dark.css` لا محدد جذري فيها للترويسة ولا للهيرو (صفر مقابل
+        ٣٩ في `taqdar.css` و٥١ في `pages.css`). لكن «لا محدد فوق الطي»
+        ليست «لا يرسم فوق الطي»:
+
+        · `home-dark.css` — على جوال بارتفاع ٨٢٣ بكسل يظهر اعلى `.whyd`
+          تحت الهيرو، فوصولها متاخرة ينميها ٢٥ بكسلا ويدفع ما تحتها.
+          ازاحة مقيسة 0.0186 بدل صفر.
+
+        · `shell.css` — فيها `.tq-cookie{position:fixed}`، والشريط مطبوع
+          في كل صفحة. فقبل وصولها يرسم في التدفق ويدفع `<main>` مئة
+          وخمسة بكسلات، ثم يقفز راجعا. ازاحة 0.2839 — ووميض فاضح.
+
+        فالمكسب الحقيقي في هذه الدفعة من `TQ-PERF-FONT` (اربعة طلبات خطوط
+        تسقط من السلسلة الحرجة) لا من هنا. ومن اراد اعادة المحاولة فليضع
+        قواعد `.tq-cookie` الموضعية و`.whyd` الهندسية سطرية في الراس اولا،
+        ثم يؤجل — والقياس هو الحكم لا الترتيب في الملف. */ ?>
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/taqdar.css'); ?>">
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/pages.css'); ?>">
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/shared.css'); ?>">
@@ -31,6 +50,18 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
         في ورقة أخرى. وحذف هذا السطر وحده يعيد القسمين إلى شكلهما. */ ?>
 <?php /* TQ-HOME-DARK · لوح «لماذا تختار» الداكن — الرئيسية وحدها. */ ?>
 <?php if (isset($page_name) && in_array($page_name, array('home', 'home_elegant', 'plans'), true)): ?>
+<?php /* TQ-PERF-CSS-DARK — هذه وحدها تبقى حاجبة، والاختان لا.
+
+        اجلتها مع اختيها فقاست الازاحة 0.0186 بدل صفر: على شاشة جوال
+        بارتفاع ٨٢٣ بكسل يظهر اعلى `.whyd` تحت الهيرو مباشرة، فلما وصلت
+        الورقة متاخرة نمت الكتلة ٢٥ بكسلا ودفعت ما تحتها. وهو وميض يراه
+        الزائر لا رقم في تقرير.
+
+        و`shared.css` و`shell.css` ليستا كذلك: محتواهما — `.curric`
+        وشريط الكوكيز واللافتات والترقيم — لا يرسم في الشاشة الاولى.
+
+        وثمنها زهيد اصلا: ٦٫٥ ك.ب مضغوطة، وهي محملة على ثلاث صفحات فقط
+        (`home` و`home_elegant` و`plans`) لا على كل صفحة. */ ?>
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/home-dark.css'); ?>">
 <?php endif; ?>
 <?php else: ?>

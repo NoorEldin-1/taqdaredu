@@ -25,11 +25,50 @@ css: pages
              التفاوض على التنزيل قبل أن يعرف عرض الشاشة، فينزل
              الملف الكبير على جوال يكفيه الصغير. */ ?>
     <div class="hero__frame">
-      <div class="hero__bg" aria-hidden="true">
+      <?php /* TQ-A11Y-HERO — الاخفاء ينزل درجة، فالزر ليس زخرفا.
+
+               كان `aria-hidden="true"` على الغلاف كله وفيه
+               `button.hero__vtoggle` — زر حقيقي يوقف الحركة. فمن يتنقل
+               بالمفاتيح يصل اليه (الاخفاء لا يمنع التبويب) وقارئ شاشته
+               لا يعلنه: يقف على شيء لا يعرف ما هو.
+
+               فالاخفاء ينتقل الى ما هو زخرف فعلا — الفيديو والطبقة
+               الداكنة. والملصق يكفيه `alt=""` وهو عليه. */ ?>
+      <div class="hero__bg">
+        <?php /* TQ-PERF-POSTER — جرب `srcset` هنا فابهت الهيرو، والسبب مفيد:
+
+               `sizes` تصف **عرض الرسم** لا عرض الحاوية. والاطار هنا طولي
+               (382×558 على الجوال) والصورة ١٦:٩، و`object-fit:cover`
+               يكبرها حتى تغطي الارتفاع — فترسم بعرض ٩٩٦ بكسلا منطقيا لا
+               ٣٨٢. فكتابة `calc(100vw - 30px)` طلبت ثلث اللازم، فاختار
+               المتصفح نسخة ٧٢٠ لحاجة تبلغ ١٧٤٣ بكسل جهاز: نصف وضوح
+               الاصل (٠٫٤١ مقابل ٠٫٧٣).
+
+               فمن اراد المحاولة ثانية فليحسب `sizes` من العرض المرسوم بعد
+               `cover`، او فليقص نسخة **طولية** للجوال (وذلك تغيير في
+               الكادر، لا في الحجم وحده). */ ?>
         <img class="hero__poster" src="<?php echo tq_site_asset('video/hero-poster.webp'); ?>"
              alt="" width="1280" height="720" fetchpriority="high">
-        <video class="hero__video" data-tq-hero-video preload="none" muted playsinline loop
-               poster="<?php echo tq_site_asset('video/hero-poster.webp'); ?>"></video>
+        <?php /* TQ-PERF-VSRC — لا `poster` على الفيديو، ومسارته تمرر صراحة.
+
+               الملصق هنا **لا يرى ابدا**: الورقة تعطي `.hero__video`
+               شفافية صفر حتى يضاف `is-on`، وهو لا يضاف الا عند `playing`
+               — وعندها تعرض الاطارات لا الملصق. ومع ذلك كان المتصفح
+               ينزله، فلما صارت الصورة `srcset` نزل الجوال نسختين:
+               ٧٢٠ للصورة و١٢٨٠ لملصق لا يظهر. ٩٤ ك.ب بدل ٣٣.
+
+               وكان `site.js` يشتق مسارات الفيديو من سمة `poster` نصيا
+               (`base.replace('hero-poster.webp', …)`) — اشتقاق هش ينكسر
+               باي تغيير في الاسم. فالمسارات تمرر الان صريحة، وكل واحد
+               بـ`?v=` الخاص به من `tq_site_asset()` (وهو لازم: الكاش
+               صار سنة `immutable`). */ ?>
+        <video class="hero__video" aria-hidden="true" data-tq-hero-video preload="none" muted playsinline loop
+               data-tq-hero-src='<?php echo htmlspecialchars(json_encode(array(
+                   "sm" => array("webm" => tq_site_asset("video/hero-sm.webm"),
+                                 "mp4"  => tq_site_asset("video/hero-sm.mp4")),
+                   "lg" => array("webm" => tq_site_asset("video/hero.webm"),
+                                 "mp4"  => tq_site_asset("video/hero.mp4")),
+               )), ENT_QUOTES, "UTF-8"); ?>'></video>
         <?php /* زر الإيقاف: الحركة الدائمة خلف نص تتعب القراءة، ومن
                 يريد إيقافها لم يكن له سبيل. ويظهره السكربت متى بدأ
                 التشغيل فعلا — زر يوقف ما لا يتحرك تشويش. */ ?>
@@ -37,7 +76,7 @@ css: pages
                 aria-label="إيقاف الخلفية المتحركة">
           <svg aria-hidden="true"><use href="#i-close"></use></svg>
         </button>
-        <span class="hero__scrim"></span>
+        <span class="hero__scrim" aria-hidden="true"></span>
       </div>
 
       <?php /* النصوص تحرر من «المحتوى والموقع › نصوص الصفحات» في اللوحة.
@@ -247,7 +286,15 @@ if (!$tq_quotes) {
           </div>
           <p><?php echo html_escape($q['body']); ?></p>
           <?php $stars = (int) $q['rating']; if ($stars > 0): ?>
-          <div class="stars" aria-label="<?php echo $stars; ?> من 5">
+          <?php /* TQ-A11Y-ROLE — `aria-label` ممنوعة على `<div>` عار.
+
+                 القاعدة ليست شكلية: الوسم بلا دور لا يعلن شيئا، فالسمة
+                 تسقط صامتة وقارئ الشاشة يقرأ خمس ايقونات مخفية اي لا
+                 شيء. و`role="img"` تجعله عنصرا واحدا يعلن نصه.
+
+                 وهي كذلك سبب سقوط «التصفح الوكيل» الى ١ من ٢ — والوكيل
+                 يقرأ شجرة الوصولية لا البكسل. */ ?>
+          <div class="stars" role="img" aria-label="التقييم <?php echo $stars; ?> من 5">
             <?php for ($i = 0; $i < $stars; $i++): ?>
             <svg aria-hidden="true"><use href="#i-star"></use></svg>
             <?php endfor; ?>

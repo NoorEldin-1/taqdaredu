@@ -85,10 +85,12 @@ include 'portal_open.php';
         )); ?></p>
 
         <?php
-        $tq_n = 0;
+        /* TQ-DIAG-FORM — العدد المعلن هو ما سيعرض على **هذا** الطالب،
+           لا مجموع البنك. وكان يجمع `level_tally()` فيقول «خمسة وثلاثون
+           سؤالا» ثم يعطي عشرة — ووعد يخلف في السطر الاول لا يصلحه ما بعده. */
         $CI_p = &get_instance();
         $CI_p->load->model('taqdar_diag_model');
-        foreach ($CI_p->taqdar_diag_model->level_tally((int) $exam['id']) as $tq_c) $tq_n += $tq_c;
+        $tq_n = (int) $CI_p->taqdar_diag_model->form_size((int) $exam['id'], (int) $user_id);
         ?>
         <ol class="tqp-steps">
             <li><b>1</b><span>
