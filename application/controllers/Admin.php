@@ -1407,6 +1407,10 @@ class Admin extends CI_Controller
 
         if ($param1 == "add") {
             $course_id = $this->crud_model->add_course();
+            /* الملكية قبل الربط: `sync()` تملأ `paths.teacher_id` من
+               `course.creator`، فبرنامج ينشأ قبل النقل يولد باسم من لم
+               يعد يملكه — TQ-COURSE-OWNER. */
+            $this->tq_sync_course_owner($course_id);
             $this->tq_sync_course_link($course_id);
             redirect(site_url('admin/course_form/course_edit/' . $course_id), 'refresh');
         } elseif ($param1 == 'add_shortcut') {
@@ -1414,6 +1418,7 @@ class Admin extends CI_Controller
         } elseif ($param1 == "edit") {
 
             $this->crud_model->update_course($param2);
+            $this->tq_sync_course_owner($param2);
             $this->tq_sync_course_link($param2);
             $this->tq_sync_course_sale($param2);
 
@@ -1509,6 +1514,43 @@ class Admin extends CI_Controller
         }
     }
 
+
+    /**
+     * TQ-COURSE-OWNER — ينقل الكورس إلى معلم، فيصير كأنه من كتبه.
+     *
+     * ولا ينادى إلا حين يرسل النموذج علامته (`tq_owner_sent`): تبويبات
+     * التحرير ترسل حقولها وحدها، فحفظ «التسعير» لا يحمل منتقي المعلم —
+     * ولو قرئ غيابه صفرا لسحب كل كورس من صاحبه عند أول تصحيح في سعره.
+     * وهي علة TQ-TAB-WIPE نفسها.
+     *
+     * والقاعدة في `Taqdar_curriculum_model::set_course_owner()` وحدها:
+     * العمودان (`creator` و`user_id`) وبرنامج الكورس (`paths.teacher_id`)
+     * ينتقلون معا، وما قيد من مال لا يمس. وهذا المتحكم يمرر ويعرض.
+     */
+    private function tq_sync_course_owner($course_id)
+    {
+        $course_id = (int) $course_id;
+        if ($course_id <= 0) return;
+        if ($this->input->post('tq_owner_sent') === null) return;
+
+        $this->load->model('taqdar_curriculum_model', 'tq_curric');
+        $actor = $this->tq_curric->actor_as('admin', (int) $this->session->userdata('user_id'));
+
+        $r = $this->tq_curric->set_course_owner($actor, $course_id,
+                (int) $this->input->post('tq_course_owner'));
+
+        if (empty($r['ok'])) {
+            $this->session->set_flashdata('error_message', (string) $r['message']);
+            return;
+        }
+        if (empty($r['changed'])) return;
+
+        /* الخبر يلحق بالرسالة القائمة ولا يستبدلها: «حفظ الكورس» صحيح
+           وقع، ونقل ملكيته خبر ثان يقال معه — كما في `tq_sync_course_sale`. */
+        $old = (string) $this->session->flashdata('flash_message');
+        $this->session->set_flashdata('flash_message',
+            ($old !== '' ? $old : 'حفظ الكورس.') . (string) $r['message']);
+    }
     private function tq_sync_course_link($course_id)
     {
         $course_id = (int) $course_id;

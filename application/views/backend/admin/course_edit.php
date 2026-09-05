@@ -388,6 +388,9 @@ if ($tq_gaps): ?>
             </div>
         </div>
 
+
+        <?php /* صاحب الكورس: يرسل من هذا التبويب وحده (`tq_owner_sent`). */ ?>
+        <?php include 'tqa_course_owner_field.php'; ?>
         <?php /* الربط: يرسل من هذا التبويب وحده، ولذلك `tq_link_sent`. */ ?>
         <input type="hidden" name="tq_link_sent" value="1">
         <?php include 'tqa_course_link_fields.php'; ?>

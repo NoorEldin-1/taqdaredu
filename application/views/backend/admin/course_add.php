@@ -86,6 +86,9 @@ defined('BASEPATH') or exit('No direct script access allowed');
         </div>
     </div>
 
+
+    <?php /* ---------- صاحب الكورس ---------- */ ?>
+    <?php include 'tqa_course_owner_field.php'; ?>
     <?php /* ---------- الصف والمادة ---------- */ ?>
     <?php include 'tqa_course_link_fields.php'; ?>
 

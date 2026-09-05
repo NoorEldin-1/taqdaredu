@@ -827,6 +827,282 @@ class Taqdar_curriculum_model extends CI_Model
         return preg_match('~^(https?://|/)~i', $u) ? $u : '';
     }
 
+
+    /* =====================================================================
+       صاحب الكورس — TQ-COURSE-OWNER
+       =====================================================================
+
+       الكورس الذي ينشأ من اللوحة يولد ملكا للمسؤول: `Crud_model::add_course()`
+       تكتب `creator` و`user_id` من جلسة من ضغط «حفظ». والمنصة تدخل محتواها
+       بيدها — تستورد منهجا، وترفع دروس معلم تعاقدت معه ولم يفتح لوحته بعد،
+       وتصحح كورسا أنشئ في المكان الخطأ — فينتهي المحتوى كله إلى حساب واحد،
+       ولا باب في الشاشة يرده إلى صاحبه.
+
+       و«من كتب الكورس» في هذا التركيب ليس بيانا يعرض، بل **مفتاح صلاحية
+       ومال معا**. خمسة يقرؤونه ولا يعرف أحدهم الآخر:
+
+         ١ — `Taqdar_teacher_model::owns_course()` — بها يرى المعلم كورسه في
+             `/teacher/courses` ويحرر منهجه. وهي تسأل `creator` **أو**
+             `FIND_IN_SET(user_id)`، فالعمودان معا لا أحدهما.
+         ٢ — `Taqdar_marking_model` — نطاق التصحيح يشتق منهما، فمن لا يملك
+             الكورس لا يصحح لطلابه.
+         ٣ — `Taqdar_course_sale_model::offer()` — تقرأ `course.creator`، وهو
+             من يقيد له البيع المفرد في دفتره.
+         ٤ — `Taqdar_revenue_model` — لا يقرأ `course` أصلا بل
+             **`paths.teacher_id`**، وهو يملأ من `creator` عند أول ربط ثم لا
+             يمس (TQ-LINK-STOMP). فنقل الكورس بلا نقل برنامجه يترك وزن
+             دروسه في وعاء الباقة باسم من لم يعد يملكها.
+         ٥ — `Taqdar_catalog_model` — اسم المعلم على بطاقة الكورس.
+
+       فالنقل عمل واحد في موضع واحد، لا كتابة عمود:
+
+       · **العمودان معا.** كتابة `creator` وحدها تترك المالك القديم في
+         `user_id`، و`FIND_IN_SET` تمر له — فيبقى يحرر كورسا لم يعد له،
+         ولا شيء يظهر ذلك. فالقديم يخرج والجديد يتصدر، ومن كان معلما
+         مشاركا يبقى كما هو.
+       · **والبرنامج يتبع** (`paths.teacher_id`) — وهو الموضع الوحيد الذي
+         يقرر من يقتسم وعاء الباقة.
+       · **وما قيد لا يمس.** `revenue_shares` و`wallet_entries` صفوف مال
+         جمدت وقت البيع، وإعادة كتابتها تنقل مالا قبض. فمن باع أمس يبقى
+         له ما بيع، ومن يملك اليوم تقيد له مبيعات اليوم. وهو مبدأ
+         TQ-REVENUE-RESPLIT نفسه: نقل مال بعد أن قيد ليس تصحيح رقم.
+       · **ولا يمس وصول طالب.** `enrol` و`subscription_items` لا علاقة
+         لهما بصاحب الكورس، فمن دفع يبقى داخلا.
+       · **ويقال للطرفين.** حساب يكسب كورسا أو يفقده لا يعرف ذلك من شاشة
+         لا يفتحها، والإشعار نوعه `content` لا `payment` فلا يخرج بواتساب.
+
+       والباب الموروث `admin/change_course_author` يكتب `creator` وحده،
+       ولا رابط إليه من شاشة فبقي معلقا. وهذا هو الباب.
+    */
+
+    /** المعلمون الذين يصلح أن يسند إليهم كورس — مصدر واحد للشاشتين. */
+    public function teacher_choices()
+    {
+        $rows = $this->db->select('id, first_name, last_name, email, status')
+                         ->where('is_instructor', 1)
+                         ->order_by('first_name', 'ASC')->order_by('id', 'ASC')
+                         ->get('users')->result_array();
+
+        $out = array();
+        foreach ($rows as $r) {
+            $name = trim($r['first_name'] . ' ' . $r['last_name']);
+            $out[] = array(
+                'id'    => (int) $r['id'],
+                'name'  => $name !== '' ? $name : (string) $r['email'],
+                'email' => (string) $r['email'],
+                'open'  => ((int) $r['status'] === 1),
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * صاحب الكورس كما يقرأه النظام.
+     *
+     * و`teacher` ليست زينة: الشاشة تفرق بين كورس باسم معلم وكورس باسم
+     * مسؤول — والثاني هو الحال الافتراضية لكل ما أنشئ من اللوحة، وترك
+     * المنتقي على حاله فيه يعني «لا تغير شيئا» لا «انقله إلي».
+     */
+    public function course_owner($course_id)
+    {
+        $course_id = (int) $course_id;
+        if ($course_id <= 0) return null;
+
+        $c = $this->db->select('id, creator, user_id')->where('id', $course_id)
+                      ->get('course')->row_array();
+        if (!$c) return null;
+
+        $uid = (int) $c['creator'];
+        $u   = null;
+        if ($uid > 0) {
+            $u = $this->db->select('id, first_name, last_name, email, is_instructor, status')
+                          ->where('id', $uid)->get('users')->row_array();
+        }
+
+        $name = $u ? trim($u['first_name'] . ' ' . $u['last_name']) : '';
+        $ids  = self::owner_ids($c['user_id']);
+
+        return array(
+            'id'      => $uid,
+            'name'    => $name !== '' ? $name : ($u ? (string) $u['email'] : ''),
+            'email'   => $u ? (string) $u['email'] : '',
+            'exists'  => (bool) $u,
+            'teacher' => (bool) ($u && (int) $u['is_instructor'] === 1),
+            'open'    => (bool) ($u && (int) $u['status'] === 1),
+            /* المعلمون المشاركون — من بقي في `user_id` بعد المالك. */
+            'co'      => array_values(array_diff($ids, array($uid))),
+        );
+    }
+
+    /** معرفات `course.user_id` — عمود نصي بفواصل، وقد يحمل فراغا أو صفرا. */
+    private static function owner_ids($csv)
+    {
+        $out = array();
+        foreach (explode(',', (string) $csv) as $p) {
+            $n = (int) trim($p);
+            if ($n > 0 && !in_array($n, $out, true)) $out[] = $n;
+        }
+        return $out;
+    }
+
+    /**
+     * ينقل الكورس إلى معلم، فيصير كأنه من كتبه.
+     *
+     * @param array $actor      من `actor_as()` — والقرار للإدارة وحدها.
+     * @param int   $teacher_id صفر يعني «الإدارة» — انظر أدناه.
+     * @return array ok · changed · message
+     */
+    public function set_course_owner($actor, $course_id, $teacher_id)
+    {
+        $course_id  = (int) $course_id;
+        $teacher_id = (int) $teacher_id;
+        $none       = array('ok' => true, 'changed' => false, 'id' => $course_id, 'message' => '');
+
+        /* القرار للإدارة: معلم ينقل كورسه إلى غيره يخرج نفسه من محتواه
+           ومن مبيعاته القادمة بضغطة، ولا باب يرجعه. */
+        if ((isset($actor['role']) ? $actor['role'] : '') !== 'admin') {
+            return $this->fail('نقل ملكية الكورس قرار إدارة.');
+        }
+
+        $course = $this->db->select('id, title, creator, user_id')
+                           ->where('id', $course_id)->get('course')->row_array();
+        if (!$course) return $this->fail('لا كورس بهذا المعرف.');
+
+        $old = (int) $course['creator'];
+
+        /**
+         * «الإدارة» تعني شيئين بحسب من يملكه الآن، ولا يجوز أن تعني
+         * الثالث: كل كورس أنشئ من اللوحة صاحبه مسؤول ليس في قائمة
+         * المعلمين، فالمنتقي يفتح عليها عنده. ولو قرئ ذلك «انقله إلى
+         * من يحفظ الآن» لصار **كل حفظ لتبويب الأساسيات ينقل الكورس من
+         * مسؤول إلى مسؤول** — صامتا، وبلا أن يلمس أحد المنتقي.
+         *
+         * فهي «لا تغير شيئا» متى كان المالك ليس معلما، و«اسحبه من
+         * معلمه» متى كان معلما — وهو ما يقصده من بدلها بيده.
+         */
+        if ($teacher_id <= 0) {
+            $is_teacher = (int) $this->db->select('is_instructor')->where('id', $old)
+                                         ->get('users')->row('is_instructor');
+            if ($is_teacher !== 1) return $none;
+            $teacher_id = (int) $actor['id'];
+        }
+
+        if ($teacher_id === $old) return $none;
+
+        $u = $this->db->select('id, first_name, last_name, email, is_instructor, role_id, status')
+                      ->where('id', $teacher_id)->get('users')->row_array();
+        if (!$u) return $this->fail('لا حساب بهذا المعرف، فلم ينقل الكورس.');
+        if ((int) $u['is_instructor'] !== 1 && (int) $u['role_id'] !== 1) {
+            return $this->fail('الحساب المختار ليس معلما، والكورس لا يسند إلا إلى معلم.');
+        }
+
+        $new_name = trim($u['first_name'] . ' ' . $u['last_name']);
+        if ($new_name === '') $new_name = (string) $u['email'];
+
+        /* العمودان معا: القديم يخرج، والجديد يتصدر، ومن كان مشاركا يبقى. */
+        $ids = self::owner_ids($course['user_id']);
+        $ids = array_values(array_diff($ids, array($old, $teacher_id)));
+        array_unshift($ids, $teacher_id);
+
+        $this->db->where('id', $course_id)->update('course', array(
+            'creator'          => $teacher_id,
+            'user_id'          => implode(',', $ids),
+            'multi_instructor' => count($ids) > 1 ? 1 : 0,
+            /* `is_admin` عمود لا يقرؤه شيء في هذا التركيب، ويكتب مع
+               ذلك: عمود يوصف حقيقة ويخالفها يكذب على من يقرؤه غدا.
+               والحكم بالدور لا بصفة التدريس، كما تكتبه
+               `Crud_model::add_course()`: كورس صاحبه مسؤول كورس إدارة
+               وإن حمل حسابه صفة معلم كذلك. */
+            'is_admin'         => ((int) $u['role_id'] === 1) ? 1 : 0,
+            'last_modified'    => time(),
+        ));
+
+        /* والبرنامج يتبع — وهو وحده ما يقرؤه `Taqdar_revenue_model`. */
+        $moved = 0;
+        $paths = $this->db->select('id, teacher_id')->where('course_id', $course_id)
+                          ->get('paths')->result_array();
+        foreach ($paths as $p) {
+            if ((int) $p['teacher_id'] === $teacher_id) continue;
+            $this->db->where('id', (int) $p['id'])
+                     ->update('paths', array('teacher_id' => $teacher_id));
+            $moved++;
+        }
+
+        /* شراء لم يفعل بعد: `activate_course_subscription()` تقرأ
+           `offer()` **حية**، فتقيده لمن يملك وقت التفعيل لا وقت الطلب.
+           وهو خبر يقال لا عطل يخفى — والتحويل البنكي يفعل بعد أيام. */
+        $pending = 0;
+        try {
+            if ($this->db->field_exists('course_id', 'subscriptions')) {
+                $pending = (int) $this->db->where('course_id', $course_id)
+                                          ->where('status', 'pending')
+                                          ->count_all_results('subscriptions');
+            }
+        } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء وسط السلسلة يترك ضمومها. */
+            $this->db->reset_query();
+            $pending = 0;
+        }
+
+        $this->log($actor, 'course.owner', 'course:' . $course_id,
+                   array('creator' => $teacher_id, 'user_id' => implode(',', $ids),
+                         'paths' => $moved),
+                   array('creator' => $old, 'user_id' => (string) $course['user_id']));
+
+        $this->notify_owner_change($teacher_id, $old, $course_id, (string) $course['title']);
+
+        $msg = ' وصار الكورس باسم «' . $new_name . '»: يظهر في بوابته، ويصحح لطلابه،'
+             . ' وتقيد له مبيعاته القادمة.';
+        if ($moved > 0) {
+            $msg .= ' ونقل معه برنامجه في «المواد والبرامج»، فوزن دروسه في وعاء'
+                  . ' الباقة صار له.';
+        }
+        $msg .= ' وما قيد قبل اليوم يبقى لصاحبه — الأنصبة وقيود المحافظ لا تعدل'
+              . ' بأثر رجعي، ووصول من دفع لا يمس.';
+        if ($pending > 0) {
+            $msg .= ' وانتبه: لهذا الكورس ' . $pending . ' شراء لم يفعل بعد،'
+                  . ' وتفعيله يقيد للمالك الجديد.';
+        }
+        if ((int) $u['status'] !== 1) {
+            $msg .= ' وحساب المعلم مغلق، فلن يفتح بوابته حتى يفتح.';
+        }
+
+        return array('ok' => true, 'changed' => true, 'id' => $course_id,
+                     'teacher_id' => $teacher_id, 'paths' => $moved,
+                     'pending' => $pending, 'message' => $msg);
+    }
+
+    /**
+     * يخبر الطرفين — الباب الواحد `push_notification()`.
+     *
+     * والنوع `content` لا `payment`: `Taqdar_wa_model::$PAY_TYPES` تسمي
+     * أنواع المال وحدها، ونقل ملكية محتوى ليس مالا يقبض.
+     */
+    private function notify_owner_change($new_id, $old_id, $course_id, $title)
+    {
+        try {
+            $CI = get_instance();
+            $CI->load->model('taqdar_admin_model', 'tq_admin_m');
+            if (!method_exists($CI->tq_admin_m, 'push_notification')) return;
+
+            if ((int) $new_id > 0) {
+                $CI->tq_admin_m->push_notification((int) $new_id,
+                    'أسند إليك كورس',
+                    'صار كورس «' . $title . '» ضمن كورساتك: تحرر منهجه من بوابتك،'
+                  . ' وتصحح لطلابه، وتقيد لك مبيعاته القادمة.',
+                    'content');
+            }
+            if ((int) $old_id > 0 && (int) $old_id !== (int) $new_id) {
+                $CI->tq_admin_m->push_notification((int) $old_id,
+                    'نقل كورس من كورساتك',
+                    'لم يعد كورس «' . $title . '» ضمن كورساتك. وما قيد لك من'
+                  . ' مبيعاته قبل اليوم يبقى في دفترك كما هو.',
+                    'content');
+            }
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-COURSE-OWNER notify: ' . $e->getMessage());
+        }
+    }
     /** أقسام كورس مرتبة، ومع كل قسم عدد دروسه. */
     public function sections_of($course_id)
     {
