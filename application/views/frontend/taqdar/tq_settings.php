@@ -266,6 +266,24 @@ include 'portal_open.php';
                                 )); ?>
                             </div>
 
+                            <?php /* TQ-LRS-NID — رقم الهوية: **اختياري**، وهو ما تعرف
+                                     به وزارة التعليم صاحب الشهادة في سجلها الوطني.
+                                     ومن لم يكتبه لا يمنع من شيء في المنصة — يعرف
+                                     ببريده وحده هناك. */ ?>
+                            <div class="tq-field">
+                                <label class="tq-field__label" for="tq-nid">
+                                    <?php echo t('رقم الهوية أو الإقامة'); ?>
+                                    <span class="tq-muted"><?php echo t('(اختياري)'); ?></span>
+                                </label>
+                                <input class="tq-input" id="tq-nid" name="national_id" type="text"
+                                       dir="ltr" inputmode="numeric" maxlength="10" pattern="[12][0-9]{9}"
+                                       aria-describedby="tq-nid-hint"
+                                       value="<?php echo html_escape($u['national_id'] ?? ''); ?>">
+                                <span class="tq-field__msg tq-field__hint" id="tq-nid-hint">
+                                    <?php echo t('عشرة أرقام تبدأ بـ ١ للسعودي أو ٢ للمقيم. يرسل مع سجل تعلمك إلى المركز الوطني للتعلم الإلكتروني، ولا يظهر لأحد في المنصة.'); ?>
+                                </span>
+                            </div>
+
                             <div class="tq-formbar">
                                 <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('حفظ بيانات الملف'); ?></button>
                             </div>

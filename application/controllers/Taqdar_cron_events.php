@@ -93,6 +93,132 @@ class Taqdar_cron_events extends CI_Controller
     }
 
     /* =====================================================================
+       TQ-LRS — مستودع سجلات التعلم الوطني
+       ===================================================================== */
+
+    /**
+     * يصرف طابور xAPI.
+     *
+     * فعل مستقل لا جزء من `run()`: الاخير يعمل مرة في اليوم، ورحلة
+     * المتعلم تقاس عند الجهة بقربها من وقتها. فهذا يوضع في الكرون كل خمس دقائق.
+     */
+    public function lrs($limit = 60)
+    {
+        $this->lrs_sweep();
+        $this->load->model('taqdar_lrs_model', 'lrs');
+        $r = $this->lrs->drain((int) $limit);
+        $total = $r['sent'] + $r['failed'] + $r['dead'] + $r['skipped'] + $r['held'];
+        $this->line('lrs', $total, $r['sent']);
+        if ($r['failed'] || $r['dead'] || $r['skipped'] || $r['held']) {
+            echo '    retry=' . $r['failed'] . ' dead=' . $r['dead']
+               . ' skipped=' . $r['skipped'] . ' held=' . $r['held'] . "\n";
+        }
+    }
+
+    /**
+     * يشتق الأحداث من الجداول ويودعها الطابور.
+     *
+     * قبل `lrs()` في الترتيب: ما اشتق في هذه الجولة يخرج فيها لا في التي
+     * تليها — وهو حكم `deliver()` نفسه.
+     */
+    public function lrs_sweep($limit = 200)
+    {
+        $this->load->model('taqdar_lrs_model', 'lrs');
+        $r = $this->lrs->sweep((int) $limit);
+        $n = array_sum($r);
+        $this->line('lrs_sweep', $n, $n);
+        if ($n) {
+            $bits = array();
+            foreach ($r as $k => $v) if ($v) $bits[] = $k . '=' . $v;
+            echo '    ' . implode(' ', $bits) . "\n";
+        }
+    }
+
+    /** يسأل المستودع عن نفسه — قراءة لا كتابة، فلا تترك اثرا عندهم. */
+    public function lrs_diagnose()
+    {
+        $this->load->model('taqdar_lrs_model', 'lrs');
+        $d = $this->lrs->diagnose();
+        echo ($d['ok'] ? '✓' : '✗') . ' ' . $d['endpoint'] . "\n";
+        echo '  code=' . $d['code'] . ' — ' . $d['note'] . "\n";
+
+        $q = $this->lrs->queue_stats();
+        echo '  الطابور: ';
+        foreach ($q as $k => $n) if ($k !== 'total') echo $k . '=' . $n . ' ';
+        echo '· المجموع=' . $q['total'] . "\n";
+    }
+
+    /**
+     * يطبع الرسائل الثماني بقيم نموذجية — لمقارنتها بالعقد حرفا.
+     *
+     * ولا يكتب في الطابور ولا يرسل: الفحص هنا على **شكل** الرسالة، وهو
+     * الشيء الوحيد الذي يمكن فحصه ما دام المستودع محجوبا.
+     */
+    public function lrs_dump($uid = 0)
+    {
+        $this->load->model('taqdar_lrs_model', 'lrs');
+
+        /* بمعرّف مستخدم: يقرأ المتعلم من القاعدة فيظهر الفاعل كما يخرج
+           فعلا — وهو ما يفحص به وجود رقم الهوية من عدمه. وبلا معرّف:
+           قيم نموذجية لفحص الشكل وحده. */
+        $u = $this->lrs->learner((int) $uid);
+        if (!$u) {
+            $u = array('id' => 0, 'email' => 'student@example.com',
+                       'national_id' => '1012345678', 'phone' => '', 'full_name' => 'طالب');
+        }
+        $crs = array('url' => 'path/alryadyat-21', 'title' => 'برنامج الرياضيات',
+                     'desc' => 'الأعداد النسبية وعملياتها');
+        $ins = array('name' => 'أحمد عبدالله', 'email' => 'teacher@taqdaredu.com');
+
+        $cases = array(
+            'registered' => array('course' => $crs, 'instructor' => $ins,
+                'duration' => 'PT10H', 'mobile' => '966555123456',
+                'full_name' => 'طالب تجريبي الثاني', 'nationality' => 'SA', 'dob' => '2012-06-15'),
+            'initialized' => array('course' => $crs, 'instructor' => $ins),
+            'watched' => array('course' => $crs, 'instructor' => $ins,
+                'lesson' => array('url' => 'student/lesson/21/119', 'title' => 'الدرس الأول',
+                                  'desc' => 'مقدمة'),
+                'completed' => true, 'duration' => 'PT12M30S',
+                'browser' => array('os' => 'Windows', 'name' => 'Google Chrome', 'version' => '140.0')),
+            'attempted' => array('course' => $crs, 'instructor' => $ins,
+                'quiz' => array('url' => 'student/quiz/41', 'title' => 'اختبار الوحدة الأولى',
+                                'desc' => 'عشرة أسئلة'),
+                'attempt_no' => 1, 'raw' => 80, 'min' => 0, 'max' => 100, 'passed' => true,
+                'browser' => array('os' => 'Windows', 'name' => 'Google Chrome', 'version' => '140.0')),
+            'completed_lesson' => array('course' => $crs, 'instructor' => $ins,
+                'lesson' => array('url' => 'student/lesson/21/119', 'title' => 'الدرس الأول',
+                                  'desc' => 'مقدمة'),
+                'duration' => 'PT14M0S',
+                'browser' => array('os' => 'Windows', 'name' => 'Google Chrome', 'version' => '140.0')),
+            'completed_unit' => array('course' => $crs, 'instructor' => $ins,
+                'unit' => array('url' => 'path/alryadyat-21#unit-3', 'title' => 'الوحدة الثالثة',
+                                'desc' => '')),
+            'completed_course' => array('course' => $crs, 'instructor' => $ins),
+            'progressed' => array('course' => $crs, 'instructor' => $ins, 'percent' => 40),
+            'rated' => array('course' => $crs, 'instructor' => $ins, 'stars' => 4,
+                             'comment' => 'شرح واضح'),
+            'earned' => array('course' => $crs,
+                'certificate' => array('url' => 'certificate/57',
+                                       'title' => 'شهادة إتمام برنامج الرياضيات',
+                                       'file_url' => 'certificate/57')),
+        );
+
+        foreach ($cases as $ev => $args) {
+            $args['user'] = $u;
+            $st = $this->lrs->build($ev, $args);
+            echo "\n══════ " . $ev . " ══════\n";
+            echo json_encode($st, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), "\n";
+        }
+    }
+
+    /** يعيد الميت والمتروك الى الطابور — بعد فتح الحجب مثلا. */
+    public function lrs_revive()
+    {
+        $this->load->model('taqdar_lrs_model', 'lrs');
+        echo 'أعيد ' . $this->lrs->revive() . ' صفا إلى الطابور.' . "\n";
+    }
+
+    /* =====================================================================
        الخمول — الحدث الدوري الأصيل
        ===================================================================== */
 

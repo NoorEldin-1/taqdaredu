@@ -1715,6 +1715,131 @@ class Taqdar_admin extends CI_Controller
     }
 
     /** كتابة مفاتيح في `settings` — upsert، كما في `bank_save` و`tap_save`. */
+    /* =====================================================================
+       TQ-LRS — مستودع سجلات التعلم الوطني (NELC)
+       ===================================================================== */
+
+    /**
+     * شاشة الربط.
+     *
+     * وتعرض ثلاثة لا واحدا: الإعدادات، وحال الاتصال، وحال الطابور. لأن
+     * «محفوظ» لا يعني «يصل»، و«يصل» لا يعني «لا متراكم».
+     */
+    public function lrs()
+    {
+        $this->load->model('taqdar_lrs_model');
+
+        $cfg = $this->taqdar_lrs_model->config();
+        unset($cfg['pass']);   /* السر لا يخرج إلى الشاشة أبدا */
+
+        $this->render('tqa_lrs', 'مستودع سجلات التعلم', array(
+            'cfg'        => $cfg,
+            'has_pass'   => (string) get_settings('tq_lrs_pass') !== '',
+            'configured' => $this->taqdar_lrs_model->configured(),
+            'missing'    => $this->taqdar_lrs_model->missing(),
+            'health'     => $this->session->flashdata('lrs_health'),
+            'stats'      => $this->taqdar_lrs_model->queue_stats(),
+            'recent'     => $this->taqdar_lrs_model->recent(20),
+        ));
+    }
+
+    /**
+     * حفظ الإعدادات.
+     *
+     * وكلمة المرور **لا تعاد إلى الصفحة ولا يمحوها إرسال فارغ**: الحقل
+     * يترك خاليا للإبقاء على المحفوظ، والمسح صريح بمربع. وهو حكم
+     * `whatsapp_save()` و`tap_save()` نفسه.
+     */
+    public function lrs_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_lrs_model');
+        $before = $this->taqdar_lrs_model->config();
+
+        $errors   = array();
+        $enabled  = (string) $this->input->post('tq_lrs_enabled') === '1';
+        $endpoint = trim((string) $this->input->post('tq_lrs_endpoint'));
+        $user     = trim((string) $this->input->post('tq_lrs_user'));
+        $platform = trim((string) $this->input->post('tq_lrs_platform'));
+        $name_ar  = trim((string) $this->input->post('tq_lrs_name_ar'));
+        $name_en  = trim((string) $this->input->post('tq_lrs_name_en'));
+        $lms_url  = trim((string) $this->input->post('tq_lrs_lms_url'));
+        $lang     = trim((string) $this->input->post('tq_lrs_lang'));
+
+        $pass_in  = (string) $this->input->post('tq_lrs_pass');
+        $pass_old = (string) get_settings('tq_lrs_pass');
+        $pass     = ((string) $this->input->post('tq_lrs_pass_clear') === '1')
+                  ? '' : (trim($pass_in) !== '' ? $pass_in : $pass_old);
+
+        if ($endpoint !== '' && !preg_match('~^https://~i', $endpoint)) {
+            $errors[] = 'عنوان المستودع يبدأ بـ https — والاعتماد يمر عليه.';
+        }
+        if ($endpoint !== '' && strpos($endpoint, '/statements') === false) {
+            $errors[] = 'العنوان ينتهي بـ /xapi/statements — وهو مدخل الرسائل في المعيار.';
+        }
+        if ($lms_url !== '' && !preg_match('~^https?://~i', $lms_url)) {
+            $errors[] = 'عنوان المنصة يكتب كاملا: https://taqdaredu.com/';
+        }
+        if ($lang !== 'ar-SA' && $lang !== 'en-US') $lang = 'ar-SA';
+
+        if ($enabled && $endpoint === '') $errors[] = 'التفعيل بلا عنوان مستودع لا يرسل شيئا.';
+        if ($enabled && $user === '')     $errors[] = 'التفعيل بلا اسم مستخدم لا يرسل شيئا.';
+        if ($enabled && $pass === '')     $errors[] = 'التفعيل بلا كلمة مرور لا يرسل شيئا.';
+        if ($enabled && $platform === '') $errors[] = 'معرف المنصة يذهب في كل رسالة — ورسالة بلا معرف ترد.';
+
+        if ($errors) {
+            $this->session->set_flashdata('error_message', implode(' ', $errors));
+            redirect(site_url('taqdar_admin/lrs'), 'location', 302);
+            return;
+        }
+
+        $this->settings_put(array(
+            'tq_lrs_enabled'  => $enabled ? '1' : '0',
+            'tq_lrs_endpoint' => $endpoint,
+            'tq_lrs_user'     => $user,
+            'tq_lrs_pass'     => $pass,
+            'tq_lrs_platform' => $platform,
+            'tq_lrs_name_ar'  => $name_ar ?: 'منصة تقدر',
+            'tq_lrs_name_en'  => $name_en ?: 'Taqdar',
+            'tq_lrs_lms_url'  => rtrim($lms_url ?: 'https://taqdaredu.com', '/') . '/',
+            'tq_lrs_lang'     => $lang,
+        ));
+
+        /* السجل يحفظ الحدث لا السر. */
+        $this->taqdar_admin_model->audit('lrs_settings_save', 'settings#lrs',
+            array('enabled' => $before['enabled'], 'endpoint' => $before['endpoint']),
+            array('enabled' => $enabled, 'endpoint' => $endpoint,
+                  'platform' => $platform, 'pass_changed' => (trim($pass_in) !== '')));
+
+        $this->taqdar_lrs_model->forget();
+
+        $this->session->set_flashdata('flash_message',
+            $enabled ? 'حفظت. اضغط «افحص الاتصال» لتعرف أيصل أم لا.'
+                     : 'حفظت — والربط معطل. الأحداث تبقى في جداولها بلا اشتقاق، وما في الطابور يوسم متروكا حتى تعيده بزر «أعد كل ما توقف».');
+        redirect(site_url('taqdar_admin/lrs'), 'location', 302);
+    }
+
+    /** يسأل المستودع عن نفسه — قراءة لا كتابة، فلا يترك أثرا في سجل الجهة. */
+    public function lrs_test()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_lrs_model');
+        $this->session->set_flashdata('lrs_health', $this->taqdar_lrs_model->diagnose());
+        redirect(site_url('taqdar_admin/lrs'), 'location', 302);
+    }
+
+    /** يعيد المعلق والميت والمتروك إلى الطابور — بعد فتح الحجب مثلا. */
+    public function lrs_retry()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_lrs_model');
+        $n = $this->taqdar_lrs_model->revive();
+        $this->session->set_flashdata('flash_message',
+            'أعيد ' . $n . ' رسالة إلى الطابور — تخرج في جولة الكرون التالية.');
+        redirect(site_url('taqdar_admin/lrs'), 'location', 302);
+    }
+
     private function settings_put($vals)
     {
         foreach ((array) $vals as $k => $v) {

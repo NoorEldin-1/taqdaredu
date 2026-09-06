@@ -344,6 +344,18 @@ class Taqdar_settings_model extends CI_Model
         $email = trim((string) $in->post('email', true));
         $phone = trim((string) $in->post('phone', true));
 
+        /* TQ-LRS-NID — رقم الهوية الوطنية / الإقامة.
+
+           **اختياري**: هو ما تعرف به الجهة المتعلم في رسائل xAPI، ومن
+           لم يكتبه يعرف ببريده. وجعله إلزاميا هنا يعني ان كل من سجل
+           قبل اليوم لا يستطيع حفظ ملفه حتى يكتبه — وهو ثمن لا يدفعه
+           حقل اختياري.
+
+           والفحص يقبل الفراغ ويرفض الخطأ: عشرة أرقام تبدأ بواحد
+           (سعودي) أو اثنين (مقيم). ورقم ناقص يمر صامتا يصل الجهة
+           فيرفض هناك بعد شهر ولا يعرف صاحبه. */
+        $nid = preg_replace('/\D/', '', (string) $in->post('national_id', true));
+
         $errors = array();
         if ($first === '')                          $errors[] = 'اكتب اسمك الأول.';
         if (mb_strlen($first) > 120)                $errors[] = 'الاسم الأول أطول من المسموح.';
@@ -374,6 +386,10 @@ class Taqdar_settings_model extends CI_Model
             else             $image_code = $img['code'];
         }
 
+        if ($nid !== '' && !preg_match('/^[12][0-9]{9}$/', $nid)) {
+            $errors[] = 'رقم الهوية عشرة أرقام يبدأ بـ ١ للسعودي أو ٢ للمقيم.';
+        }
+
         if ($errors) return $this->fail($errors, 'profile');
 
         $data = array(
@@ -384,6 +400,12 @@ class Taqdar_settings_model extends CI_Model
             'last_modified' => time(),
         );
         if ($image_code !== null) $data['image'] = $image_code;
+
+        /* والعمود يفحص قبل الكتابة: نسخة لم يمر عليها `ensure_columns()`
+           بعد ترمي «Unknown column» على من يحفظ ملفه. */
+        try {
+            if ($this->db->field_exists('national_id', 'users')) $data['national_id'] = $nid;
+        } catch (Throwable $e) { $this->db->reset_query(); }
 
         $this->db->where('id', $user_id)->update('users', $data);
 

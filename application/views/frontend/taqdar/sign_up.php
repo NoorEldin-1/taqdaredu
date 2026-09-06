@@ -198,6 +198,24 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
             </div>
           </div>
 
+          <?php /* TQ-LRS-NID — رقم الهوية: **اختياري**، ولا يخفى ولا يشترط.
+                   تطلبه وزارة التعليم لتعرف صاحب السجل في مستودعها،
+                   ومن تركه يسجل ويتعلم كما كان. */ ?>
+          <div class="form-cell">
+            <label class="form-field">
+              <svg aria-hidden="true"><use href="#i-user"></use></svg>
+              <span class="sr-only">رقم الهوية أو الإقامة</span>
+              <input type="text" name="national_id" placeholder="رقم الهوية أو الإقامة (اختياري)"
+                     dir="ltr" inputmode="numeric" maxlength="10" pattern="[12][0-9]{9}"
+                     autocomplete="off" spellcheck="false"
+                     value="<?php echo $tq_v('national_id'); ?>">
+            </label>
+            <p class="form-hint">
+              عشرة أرقام تبدأ بـ ١ للسعودي أو ٢ للمقيم — يرسل مع سجل تعلمك
+              إلى المركز الوطني للتعلم الإلكتروني، ولا يظهر لأحد في المنصة.
+            </p>
+          </div>
+
           <div class="form-cell" id="tqGuardian" hidden>
             <label class="form-field">
               <svg aria-hidden="true"><use href="#i-mail"></use></svg>

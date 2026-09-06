@@ -372,6 +372,13 @@ class Login extends CI_Controller
         if (!in_array($tq_gate, array('teacher', 'parent'), TRUE)) { $tq_gate = 'student'; }
         $tq_age   = (int) $this->input->post('age');
         $tq_guard = trim((string) $this->input->post('guardian_email'));
+
+        /* TQ-LRS-NID — رقم الهوية الوطنية / الإقامة.
+
+           **اختياري**، وهو ما تعرف به وزارة التعليم صاحب السجل في
+           مستودعها الوطني. وإلزامه هنا يضيف حقلا إلى نموذج التسجيل —
+           وكل حقل يضاف يفقد نسبة ممن بدأه؛ ومن لم يكتبه يعرف ببريده. */
+        $tq_nid = preg_replace('/\D/', '', (string) $this->input->post('national_id'));
         $tq_grade = (int) $this->input->post('grade_id');
         $tq_phone = '';
 
@@ -384,6 +391,9 @@ class Login extends CI_Controller
             'age'            => ($tq_age > 0 ? $tq_age : ''),
             'grade_id'       => ($tq_grade > 0 ? $tq_grade : ''),
             'guardian_email' => $tq_guard,
+            /* ويعود بعد الرفض كغيره: من رد طلبه لخطأ في حقل آخر لا
+               يعيد كتابة عشرة أرقام. */
+            'national_id'    => $tq_nid,
             /* ما كتب لا ما طبع: الرقم يعود إلى الحقل كما كتبه صاحبه،
                ودولته تعود إلى المنتقي — فرفض بسبب حقل آخر لا يمسح
                اختيار البلد فيعيد الرقم يقرأ سعوديا. */
@@ -492,6 +502,13 @@ class Login extends CI_Controller
             $tq_guard = '';
         }
 
+        /* رقم ناقص يمر صامتا يصل الجهة فيرفض هناك بعد شهر ولا يعرف
+           صاحبه. فالفحص هنا، وصيغته صيغة الهوية السعودية: عشرة أرقام
+           تبدأ بواحد للسعودي أو اثنين للمقيم. */
+        if ($tq_nid !== '' && !preg_match('/^[12][0-9]{9}$/', $tq_nid)) {
+            $tq_nid = '';
+        }
+
         $data['first_name'] = html_escape($tq_first);
         $data['last_name']  = html_escape($tq_last);
         $data['email']  = html_escape($tq_email);
@@ -595,6 +612,15 @@ class Login extends CI_Controller
                 $data['age'] = $tq_age;
                 if ($tq_guard !== '') { $data['guardian_email'] = $tq_guard; }
                 if ($tq_grade > 0)    { $data['grade_id'] = $tq_grade; }
+                /* والعمود يفحص: نسخة لم يمر عليها `ensure_columns()` بعد
+                   ترمي «Unknown column» على من يسجل — أي على أول زائر. */
+                if ($tq_nid !== '') {
+                    try {
+                        if ($this->db->field_exists('national_id', 'users')) {
+                            $data['national_id'] = $tq_nid;
+                        }
+                    } catch (Throwable $e) { $this->db->reset_query(); }
+                }
             }
             /* الفحص كله جرى أعلاه قبل بناء الصف — فلم يبق هنا إلا القرار.
                و`instructor_application()` تبحث عن المستخدم بـ`$_POST['email']`
