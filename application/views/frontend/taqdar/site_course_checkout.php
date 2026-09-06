@@ -325,3 +325,8 @@ $access = ((int) $o['days'] > 0)
 })();
 </script>
 <?php endif; ?>
+
+<?php /* TQ-META-CAPI — «بلغ شاشة التاكيد»، ورمزه يطابق ما يرسله الخادم
+         في `Purchase` (`sold()`): رمزان لسلعة واحدة يجعلان ميتا تعدها
+         سلعتين فلا يقابل الشراء بدايته. */ ?>
+<?php echo tq_meta_checkout('course-' . (int) $cid, $o['title'], (int) $o['price']); ?>

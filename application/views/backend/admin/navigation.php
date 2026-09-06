@@ -159,6 +159,10 @@ $tqa_nav = [
         [['sitemap_settings'],  t('خريطة الموقع'),         'admin/sitemap_settings',      'layers', null],
         [['manage_language'],   t('اللغات والترجمة'),      'admin/manage_language',       'file',   null],
         [['notification_settings'], t('قوالب الإشعارات'),  'admin/notification_settings', 'bell',   null],
+        /* TQ-NELC — تحت «النظام» لا «المالية»: من يفتحها هو من يدير
+           امتثال المنصة لترخيصها، لا من يدير مالها. وفوق سجل التدقيق
+           لأنها شاشة تضبط، وذاك سجل يقرأ. */
+        ['tqa_nelc',            t('ربط المركز الوطني'),    'taqdar_admin/nelc',           'shield', null],
         ['tqa_audit_log',       t('سجل التدقيق'),          'taqdar_admin/module/audit_log', 'shield', null],
         [['manage_profile'],    t('حسابي'),                'admin/manage_profile',        'cog',    null],
     ]],

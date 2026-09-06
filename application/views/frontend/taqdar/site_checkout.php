@@ -525,3 +525,8 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
 </script>
 <?php endif; ?>
 <?php endif; ?>
+
+<?php /* TQ-META-CAPI — «بلغ شاشة التاكيد».
+         الدفع نفسه يقع عند تاب لا هنا، فهذه اخر لحظة يقاس فيها المشتري
+         في متصفحنا قبل ان يغادر. و`Purchase` ياتي بعده من الخادم. */ ?>
+<?php echo tq_meta_checkout('plan-' . (int) $b['plan_id'], $b['name'], $tq_amt); ?>

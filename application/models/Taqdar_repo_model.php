@@ -917,6 +917,27 @@ class Taqdar_repo_model extends CI_Model
            الحضور لا عن بلوغ عتبة. */
         $this->touch_day($student_id, 'seconds', $watched_delta);
 
+        /* TQ-NELC — إبلاغ المركز الوطني.
+
+           «بدء الكورس» يخرج مع كل نبضة و`event_key` يبقيه واحدا: أول
+           نبضة هي نبضة الوصول (TQ-BLIND) فتقع عند فتح الدرس لا بعده.
+
+           وحزمة الإتمام تخرج عند **الانتقال** وحده — `$row` هنا صورة ما
+           قبل الكتابة، فمن فتح درسا أتمه أمس لا يعد إتماما جديدا اليوم.
+           وبلا هذا الشرط تخرج جملة إتمام مع كل نبضة على درس مكتمل. */
+        try {
+            $this->load->model('taqdar_nelc_model', 'tq_nelc');
+            if ($this->tq_nelc->ready()) {
+                $this->tq_nelc->initialized($student_id, (int) $lesson['course_id']);
+                if ($completed_at && (!$row || empty($row['completed_at']))) {
+                    $this->tq_nelc->lesson_done($student_id, $lesson_id, $watch);
+                }
+            }
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-NELC save_progress: ' . $e->getMessage());
+        }
+
         /* النسبة من التغطية لا من العداد: هي ما يقرؤه الطالب، ويجب أن
            تكون هي نفسها ما يفتح به الدرس التالي — رقمان يفترقان يجعلان
            «٪١٠٠» تقف أمام درس مقفل. */
@@ -1018,6 +1039,17 @@ class Taqdar_repo_model extends CI_Model
                               عجز عنه؟ الثاني عطل يصلح، والأول تصميم. */
                            'reason'   => $this->trackable($lesson) ? 'no_signal' : 'unmeasurable',
                            'blind_at' => $row && !empty($row['blind_at']) ? $row['blind_at'] : null));
+
+        /* TQ-NELC — الإتمام المقر يبلغ كما يبلغ المقاس: المركز يسأل
+           «أأتم؟» لا «أقيس أم أقر؟»، والفرق بينهما محفوظ في `audit_log`
+           لمن يسأله. ولا `watched` هنا — لا زمن مقاس يصدق عليه. */
+        try {
+            $this->load->model('taqdar_nelc_model', 'tq_nelc');
+            if ($this->tq_nelc->ready()) $this->tq_nelc->lesson_done($student_id, $lesson_id, 0);
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-NELC confirm_complete: ' . $e->getMessage());
+        }
 
         return array('lesson_id' => $lesson_id, 'completed_at' => $now, 'declared' => true);
     }
@@ -1576,6 +1608,31 @@ class Taqdar_repo_model extends CI_Model
             }
         } catch (Throwable $e) {
             log_message('error', 'submit_attempt notify: ' . $e->getMessage());
+        }
+
+        /* TQ-NELC — المحاولة، والشهادة إن كانت امتحانا اجتيز.
+
+           و«الشهادة» هنا اجتياز امتحان محطة، كما تقرؤها
+           `Taqdar_student_model::certificates()` — ومصدران للشهادة
+           يجعلان المركز يعد شهادات لا يعدها صاحبها في شاشته.
+
+           و`$lesson_id` قد يكون صفرا: امتحان المحطة يعلق بمحطة لا بدرس.
+           فتسقط `attempted` (لا نشاط تعلق به) وتبقى `earned` — وهي
+           المهمة في الامتحان. */
+        try {
+            $this->load->model('taqdar_nelc_model', 'tq_nelc');
+            if ($this->tq_nelc->ready()) {
+                $this->tq_nelc->attempted($student_id, $lesson_id, $attempt_id,
+                    (int) $attempt['attempt_no'], $score, max(1, count($pool)), (bool) $passed);
+
+                if (isset($assessment['type']) && $assessment['type'] === 'exam' && $passed) {
+                    $this->tq_nelc->earned($student_id, $attempt_id, 'شهادة إتقان',
+                        $this->tq_nelc->course_of_lesson($lesson_id));
+                }
+            }
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-NELC submit_attempt: ' . $e->getMessage());
         }
 
         $result = array(

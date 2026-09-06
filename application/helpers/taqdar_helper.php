@@ -684,7 +684,35 @@ if (!function_exists('tq_meta_pixel')) {
    و`requestIdleCallback` بمهلة، و`setTimeout` بديلا لسفاري. والحارس
    `tq-cookie === 'denied'` كما هو، ويقرا مبكرا كي لا يجدول شيئا اصلا. */
 (function () {
-    try { if (localStorage.getItem('tq-cookie') === 'denied') return; } catch (e) {}
+    /* TQ-META-QUEUE — الطابور يعرف قبل الحارس لا بعده.
+
+       البكسل مؤجل الى `load` ثم الى وقت خمول، واحداث التحويل تطبع في
+       متن الصفحة فتنفذ **وقت التحليل** — قبله بثوان. فكان
+       `tq_meta_track()` يكتب `window.fbq && fbq(...)` فيقرا الشرط
+       كاذبا كل مرة ويبتلع الحدث بلا خطا في الكونسول: اي حدث تحويل
+       يضاف اليوم يسقط مئة بالمئة، والشاشة تقول انه «جاهز».
+
+       فالطابور يعرف اولا وفي كل حال — تعريف مصفوفة ليس تتبعا — ثم
+       يفرغه `start()` بعد `init` بترتيبه. ومن رفض الارتباط يبقى طابوره
+       ممتلئا الى ان تغلق صفحته، وهو الصواب: الرفض يمنع الارسال لا
+       تسجيل النية. */
+    var M = window.tqMeta = window.tqMeta || { q: [], ready: false };
+    M.track = M.track || function () { M.q.push([].slice.call(arguments)); };
+
+    var choice = null;
+    try { choice = localStorage.getItem('tq-cookie'); } catch (e) {}
+
+    /* والقرار يمرآ في كعكة لان الخادم يحتاجه: `Taqdar_meta_model` يرسل
+       الشراء بعد ان يغلق المشتري متصفحه، فلا `localStorage` عنده حينها.
+       وبلا هذه المرآة يرسل الخادم شراء زائر رفض — فيصير زر «رفض غير
+       الضروري» تمثيلا، وهو ما لا يقبل. */
+    if (choice) {
+        try {
+            document.cookie = 'tq_consent=' + choice + ';path=/;max-age=31536000;samesite=Lax'
+                + (location.protocol === 'https:' ? ';secure' : '');
+        } catch (e) {}
+    }
+    if (choice === 'denied') return;
 
     function start() {
         !function(f,b,e,v,n,t,s)
@@ -698,6 +726,16 @@ if (!function_exists('tq_meta_pixel')) {
 
         fbq('init', '<?php echo $id; ?>');
         fbq('track', 'PageView');
+
+        /* ومن الان يمضي الحدث مباشرة، ويمر معه `eventID` — وهو ما تطرح
+           به ميتا المكرر بين ما يرسله المتصفح وما يرسله الخادم
+           (TQ-META-CAPI). وبلاه يعد الشراء الواحد مرتين. */
+        M.ready = true;
+        M.track = function (name, params, id) {
+            fbq('track', name, params || {}, id ? { eventID: id } : undefined);
+        };
+        for (var i = 0; i < M.q.length; i++) M.track.apply(null, M.q[i]);
+        M.q = [];
     }
 
     function later() {
@@ -725,14 +763,22 @@ if (!function_exists('tq_meta_track')) {
     /**
      * حدث تحويل — يطبع في الصفحة التي وقع فيها الحدث لا في كل صفحة.
      *
-     *   echo tq_meta_track('Purchase', array('value' => 299, 'currency' => 'SAR'));
+     *   echo tq_meta_track('Purchase', array('value' => 299, 'currency' => 'SAR'), 'tq-inv-91');
      *
-     * ولا يطبع شيئا إن كان البكسل مطفأ، ولا يبني `fbq` بنفسه: هو يفترض
-     * أن `tq_meta_pixel()` سبقه في الوسم — وهي في الرأس، فأي موضع في
-     * المتن بعدها. والحارس `window.fbq` يبقى: من رفض الارتباط لا تعرف
-     * صفحته `fbq` أصلا، ونداء دالة غير موجودة يوقف بقية سكربت الصفحة.
+     * ولا يطبع شيئا إن كان البكسل مطفأ، ولا يبني `fbq` بنفسه.
+     *
+     * TQ-META-QUEUE — **والنداء على `tqMeta` لا على `fbq`.** كان يكتب
+     * `window.fbq && fbq(...)`، والبكسل مؤجل إلى `load` ثم إلى وقت خمول
+     * (TQ-PERF-PIXEL) — وهذا السطر ينفذ وقت التحليل، قبله بثوان. فالشرط
+     * كاذب دائما، والحدث يبتلع بلا خطأ في الكونسول: **ما كان حدث تحويل
+     * واحد ليصل ميتا لو استعملت هذه الدالة كما هي**. و`tqMeta` يعرف في
+     * أول سطر من وسم البكسل ويطبق طابوره بعد `init`.
+     *
+     * والمعامل الثالث `event_id`: به تطرح ميتا المكرر بين حدث المتصفح
+     * وحدث الخادم (TQ-META-CAPI) فيعد الشراء الواحد مرة. وبلاه يعد
+     * مرتين — والرقم يبدو معقولا فلا يشك فيه أحد.
      */
-    function tq_meta_track($event, $params = array())
+    function tq_meta_track($event, $params = array(), $event_id = '')
     {
         if (tq_meta_pixel_id() === '') return '';
 
@@ -742,7 +788,80 @@ if (!function_exists('tq_meta_track')) {
         $json = json_encode($params ? $params : new stdClass(),
             JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
 
-        return "<script>window.fbq && fbq('track', '" . $event . "', " . $json . ");</script>\n";
+        $eid = preg_replace('/[^A-Za-z0-9_.:-]/', '', (string) $event_id);
+        $arg = $eid !== '' ? ", '" . $eid . "'" : '';
+
+        return "<script>window.tqMeta && window.tqMeta.track('" . $event . "', "
+             . $json . $arg . ");</script>\n";
+    }
+}
+
+if (!function_exists('tq_meta_flush')) {
+    /**
+     * يطبع أحداث التحويل التي أودعها مسار كتابة قبل تحويلته.
+     *
+     * ولماذا وديعة لا نداء في القالب: الشراء يتم في **مسار كتابة** ينتهي
+     * بـ`redirect()` — عودة تاب، والتفعيل، وتسوية الحصة. فلا قالب لتلك
+     * اللحظة أصلا، والصفحة التي تعرض بعدها (`student/bundle`) تعرض في
+     * كل زيارة أخرى كذلك: نداء ثابت فيها يسجل شراء لكل من يفتح شاشته.
+     *
+     * و`flashdata` تقرأ مرة واحدة بحكمها، فالحدث يطلق في الصفحة التالية
+     * للدفع وحدها ثم يذهب. وموضع النداء غلاف الثيم بعد وسم البكسل
+     * مباشرة — فلا شاشة تنسى سطرها، وهو مبدأ `<meta name="tq-csrf">`
+     * في `portal_open.php` نفسه.
+     */
+    function tq_meta_flush()
+    {
+        if (tq_meta_pixel_id() === '') return '';
+
+        $CI = function_exists('get_instance') ? get_instance() : null;
+        if (!$CI || !isset($CI->session)) return '';
+
+        $events = $CI->session->flashdata('tq_meta_events');
+        if (!is_array($events) || !$events) return '';
+
+        $out = '';
+        foreach ($events as $e) {
+            if (empty($e['name'])) continue;
+            $out .= tq_meta_track($e['name'],
+                isset($e['params']) ? $e['params'] : array(),
+                isset($e['id']) ? $e['id'] : '');
+        }
+        return $out;
+    }
+}
+
+if (!function_exists('tq_meta_checkout')) {
+    /**
+     * `InitiateCheckout` — «بلغ شاشة التأكيد». يطبع فيها وحدها.
+     *
+     * وهو الحدث الذي تقاس به الخطوة قبل الأخيرة: من رأى السعر وقرر، ولم
+     * يتم بعد. وبه وبـ`Purchase` معا تعرف ميتا **أين يسقط** المشترون —
+     * فمن يبلغ التأكيد ولا يشتري شيء آخر تماما عمن يقرأ صفحة الباقات
+     * ويمضي، والحملة تعامل الاثنين بالسواء إن لم يفرق بينهما حدث.
+     *
+     * ولا `event_id` له: هو حدث متصفح وحده بلا توأم من الخادم — والدفع
+     * قد لا يقع أصلا. والمعرف إنما يطرح المكرر بين مرسلين.
+     *
+     * والعملة من `system_currency` هنا مرة واحدة: ثلاث شاشات تأكيد
+     * تكتب «SAR» بيدها تعني ثلاث نسخ تفترق يوم تباع الباقة بغيرها.
+     */
+    function tq_meta_checkout($sku, $title, $halalas)
+    {
+        $halalas = (int) $halalas;
+        if ($halalas <= 0) return '';
+
+        $cur = strtoupper(trim((string) get_settings('system_currency')));
+        if ($cur === '') $cur = 'SAR';
+
+        return tq_meta_track('InitiateCheckout', array(
+            'currency'     => $cur,
+            'value'        => round($halalas / 100, 2),
+            'content_type' => 'product',
+            'content_ids'  => array((string) $sku),
+            'content_name' => (string) $title,
+            'num_items'    => 1,
+        ));
     }
 }
 

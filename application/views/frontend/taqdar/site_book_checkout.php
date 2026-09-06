@@ -325,3 +325,6 @@ $access = ((int) $o['days'] > 0)
 })();
 </script>
 <?php endif; ?>
+
+<?php /* TQ-META-CAPI — «بلغ شاشة التاكيد»، بالرمز الذي يرسله الخادم. */ ?>
+<?php echo tq_meta_checkout('book-' . (int) $bid, $o['title'], (int) $o['price']); ?>

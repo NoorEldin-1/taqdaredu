@@ -118,6 +118,7 @@ class Taqdar_pay extends CI_Controller
 
         if (!empty($r['ok'])) {
             $this->notify_paid($r);
+            $this->meta_purchase_flash((int) ($r['invoice_id'] ?? 0));
             if ($session) {
                 $this->flash(true, !empty($r['already'])
                     ? 'دفعتك مسجلة وحصتك مثبتة.'
@@ -286,6 +287,34 @@ class Taqdar_pay extends CI_Controller
             . ' ريال يقيد في محفظتك حين تعلن انتهاءها.',
             'session'
         );
+    }
+
+    /**
+     * TQ-META-CAPI — يودع حدث الشراء ليطلق في متصفح من عاد.
+     *
+     * وهو **نصف القياس لا كله**: الخادم أرسل حدثه من
+     * `mark_invoice_paid()` قبل أن تصل هذه السطور، وبمعرف الحدث نفسه
+     * (`tq-inv-<الفاتورة>`) — فتطرح ميتا المكرر وتعد شراء واحدا. والاثنان
+     * معا أدق من أحدهما: للخادم يقين الدفع، وللمتصفح كعكة الطرف الأول
+     * التي تربط الشراء بجلسة التصفح كلها.
+     *
+     * والوديعة `flashdata` لا نداء في قالب: هذه الدالة تنتهي بـ`redirect()`
+     * فلا قالب لها، والصفحة التي تليها تفتح في كل زيارة أخرى كذلك —
+     * فنداء ثابت فيها يسجل شراء لكل من يفتح شاشته. و`tq_meta_flush()`
+     * في غلاف الثيم تقرؤها مرة ثم تذهب.
+     */
+    private function meta_purchase_flash($invoice_id)
+    {
+        if ((int) $invoice_id <= 0) return;
+        try {
+            $this->load->model('taqdar_meta_model');
+            $ev = $this->taqdar_meta_model->browser_purchase((int) $invoice_id);
+            if ($ev) $this->session->set_flashdata('tq_meta_events', array($ev));
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-META: تعذر تجهيز حدث المتصفح للفاتورة #'
+                . (int) $invoice_id . ' — ' . $e->getMessage());
+        }
     }
 
     /** الرسالة تكتب بمفتاحي المنصة ومفتاحي شاشات تقدر معا. */

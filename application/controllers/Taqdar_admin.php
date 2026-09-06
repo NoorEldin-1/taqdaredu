@@ -2196,10 +2196,40 @@ class Taqdar_admin extends CI_Controller
        التتبع الإعلاني
        ===================================================================== */
 
-    /** بكسل ميتا — معرف واحد وشاشة تقول أين يعمل وكيف يتحقق منه. */
+    /**
+     * بكسل ميتا — شاشة تقول أين يعمل وكيف يتحقق منه.
+     *
+     * وصارت تجيب سؤالين لا واحدا: البكسل يقيس ما يقع في المتصفح،
+     * و«الربط البرمجي» (CAPI) يقيس ما يقع في الخادم — وهو وحده الذي
+     * يمسك الشراء، لأن صفحة الدفع عند تاب لا عندنا (TQ-META-CAPI).
+     */
     public function tracking()
     {
-        $this->render('tqa_tracking', 'بكسل ميتا');
+        $this->load->model('taqdar_meta_model');
+        $this->render('tqa_tracking', 'بكسل ميتا', array(
+            'tq_capi_ready' => $this->taqdar_meta_model->capi_ready(),
+            'tq_test_code'  => (string) $this->taqdar_meta_model->config()['test'],
+            'tq_totals'     => $this->taqdar_meta_model->totals(),
+            'tq_events'     => $this->taqdar_meta_model->recent(25),
+        ));
+    }
+
+    /**
+     * «اسأل ميتا» — يثبت أن الرمز صحيح وأنه يملك هذا البكسل بعينه.
+     *
+     * وهو الخطأ الأكثر وقوعا: رمز صحيح تماما لحساب إعلاني آخر، فتقبله
+     * ميتا ولا يظهر حدث واحد في مدير الأحداث — ولا رسالة خطأ في أي موضع.
+     * ولا يرسل حدثا تجريبيا: شراء لم يقع يلوث الحساب الذي يقاس به.
+     */
+    public function tracking_probe()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_meta_model');
+        $r = $this->taqdar_meta_model->probe();
+
+        $this->session->set_flashdata($r['ok'] ? 'flash_message' : 'error_message', $r['msg']);
+        redirect(site_url('taqdar_admin/tracking'), 'location', 302);
     }
 
     /**
@@ -2217,18 +2247,54 @@ class Taqdar_admin extends CI_Controller
 
         $was = $this->db->where('key', 'tq_meta_pixel_id')->get('settings')->row('value');
 
-        if ($was !== null) $this->db->where('key', 'tq_meta_pixel_id')->update('settings', array('value' => $val));
-        else               $this->db->insert('settings', array('key' => 'tq_meta_pixel_id', 'value' => $val));
+        $this->tracking_put('tq_meta_pixel_id', $val);
+
+        /* رمز الوصول (CAPI) — سر، فثلاثة فروق بينه وبين المعرف:
+
+           ١ — **الفارغ لا يمسه.** حقل يفرض كتابته في كل حفظ يجعل تصحيح
+               رقم في المعرف يمحو الربط البرمجي كله، فيتوقف قياس الشراء
+               ولا يقول أحد لماذا. وهو مبدأ كلمة المرور في `teacher_edit`.
+           ٢ — **ومسحه يطلب صراحة** بمربع، لا بترك الحقل خاليا.
+           ٣ — **ولا يكتب في `audit_log`.** السجل يقرؤه كل مسؤول، وسر
+               يكتب فيه يصير معروفا لمن لا يحتاجه. فيسجل «وضع» أو «مسح». */
+        $token = trim((string) $this->input->post('tq_meta_capi_token'));
+        $clear = (string) $this->input->post('tq_meta_capi_clear') === '1';
+        $had   = trim((string) get_settings('tq_meta_capi_token')) !== '';
+
+        if ($clear)                $this->tracking_put('tq_meta_capi_token', '');
+        elseif ($token !== '')     $this->tracking_put('tq_meta_capi_token', $token);
+
+        /* ورمز الاختبار: يوجه الحدث إلى تبويب «اختبار الأحداث» فيقرأ حيا
+           بلا انتظار دقائق. **ويترك فارغا في الإنتاج** — وإلا مضت مبيعات
+           حقيقية إلى الاختبار ولم تحسب في الحملة. */
+        $this->tracking_put('tq_meta_test_code',
+            preg_replace('/[^A-Za-z0-9]/', '', (string) $this->input->post('tq_meta_test_code')));
 
         /* أثر مقصود: من يجد الإعلانات توقفت عن القياس غدا يحتاج أن يعرف
            من غير المعرف ومتى — والقيمة قبل التغيير هي نصف الجواب. */
         $this->taqdar_admin_model->audit('tracking.meta_pixel', 'settings',
-            array('tq_meta_pixel_id' => $was), array('tq_meta_pixel_id' => $val));
+            array('tq_meta_pixel_id' => $was, 'capi_token' => $had ? 'set' : ''),
+            array('tq_meta_pixel_id' => $val,
+                  'capi_token' => $clear ? '' : (($token !== '' || $had) ? 'set' : '')));
 
         $this->session->set_flashdata('flash_message', $val !== ''
             ? 'حفظ المعرف، والبكسل يعمل الآن على كل صفحات الموقع والبوابات.'
             : 'أطفئ البكسل. لا يحمل سكربت ميتا في أي صفحة حتى يكتب معرف من جديد.');
         redirect(site_url('taqdar_admin/tracking'), 'location', 302);
+    }
+
+    /**
+     * كتابة مفتاح في `settings` — والصف يكتب ولو كانت القيمة فارغة.
+     *
+     * وجود الصف هو ما يميز «أطفأه مسؤول» عن «لم يضبط أحد شيئا»، والثاني
+     * وحده يرجع إلى الافتراضي في الشيفرة. فلولا كتابة الصف الفارغ لتعذر
+     * الإطفاء — كل مسح يعيده.
+     */
+    private function tracking_put($key, $val)
+    {
+        $exists = $this->db->where('key', $key)->count_all_results('settings') > 0;
+        if ($exists) $this->db->where('key', $key)->update('settings', array('value' => (string) $val));
+        else         $this->db->insert('settings', array('key' => $key, 'value' => (string) $val));
     }
 
 
@@ -2395,6 +2461,151 @@ class Taqdar_admin extends CI_Controller
         $this->taqdar_mail_model->send_lines($email, $title, $lines, $approved
             ? array('label' => 'ادخل إلى لوحتك', 'href' => site_url('teacher'))
             : array('label' => 'تواصل معنا',     'href' => site_url('contact')));
+    }
+
+    /* =====================================================================
+       TQ-NELC — التكامل مع المركز الوطني للتعليم الإلكتروني
+       ===================================================================== */
+
+    /**
+     * شاشة الربط: المفاتيح، والأحداث، والطابور، وتغطية الهوية.
+     *
+     * وموضعها «النظام» لا «المالية»: من يفتحها هو من يدير امتثال المنصة
+     * لا من يدير مالها. وهي أخت شاشة تاب في بنائها — مفاتيح تحرر، وزر
+     * فحص يقول أيصل أم لا، وسجل يقول ماذا خرج ولماذا رد.
+     */
+    public function nelc()
+    {
+        $this->load->model('taqdar_nelc_model');
+        $this->taqdar_nelc_model->install_schema();
+
+        $state = (string) $this->input->get('state');
+        if (!in_array($state, array('queued', 'sent', 'failed'), true)) $state = '';
+
+        $this->render('tqa_nelc', 'المركز الوطني للتعليم الإلكتروني', array(
+            'cfg'      => $this->taqdar_nelc_model->config(true),
+            'ready'    => $this->taqdar_nelc_model->ready(),
+            'stats'    => $this->taqdar_nelc_model->stats(),
+            'coverage' => $this->taqdar_nelc_model->coverage(),
+            'rows'     => $this->taqdar_nelc_model->recent(60, $state),
+            'state'    => $state,
+        ));
+    }
+
+    /**
+     * حفظ الضبط.
+     *
+     * وكلمة السر **لا تمس حين يترك حقلها فارغا**: حقل يفرض كتابتها في كل
+     * حفظ يجعل تصحيح حرف في اسم المنصة يمحو بيانات الاعتماد، فيتوقف
+     * الإبلاغ ولا شيء في الشاشة يقول لماذا. وهي قاعدة تعديل المعلم نفسها.
+     *
+     * ومفاتيح الأحداث تكتب **كلها** في كل حفظ ولو كانت مطفأة: مربع لا
+     * يعلم لا يصل في `$_POST` أصلا، فمن اكتفى بكتابة ما وصل لا يطفئ حدثا
+     * أبدا. وهي قاعدة عائلات واتساب نفسها.
+     */
+    public function nelc_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_nelc_model');
+        $before = $this->taqdar_nelc_model->config(true);
+
+        $endpoint = trim((string) $this->input->post('tq_nelc_endpoint'));
+        $user     = trim((string) $this->input->post('tq_nelc_username'));
+        $pass     = (string) $this->input->post('tq_nelc_password');
+        $enabled  = (string) $this->input->post('tq_nelc_enabled') === '1';
+
+        $errors = array();
+        if ($endpoint !== '' && !filter_var($endpoint, FILTER_VALIDATE_URL)) {
+            $errors[] = 'رابط النقطة غير صالح.';
+        }
+        /* المفتاح يشعل ولا بيانات اعتماد: كل جملة تخرج لترد 401 فيمتلئ
+           الطابور بفشل ليس فيه خبر — وأصله أن أحدا لم يكمل الشاشة. */
+        if ($enabled && $user === '' && $pass === '' && $before['password'] === '') {
+            $errors[] = 'لا يفعل الربط بلا اسم مستخدم وكلمة سر من المركز.';
+        }
+
+        if ($errors) {
+            $this->session->set_flashdata('error_message', implode(' ', $errors));
+            redirect(site_url('taqdar_admin/nelc'), 'location', 302);
+            return;
+        }
+
+        $vals = array(
+            'tq_nelc_enabled'        => $enabled ? '1' : '0',
+            'tq_nelc_endpoint'       => $endpoint,
+            'tq_nelc_username'       => $user,
+            'tq_nelc_platform_id'    => trim((string) $this->input->post('tq_nelc_platform_id')),
+            'tq_nelc_platform_ar'    => trim((string) $this->input->post('tq_nelc_platform_ar')),
+            'tq_nelc_platform_en'    => trim((string) $this->input->post('tq_nelc_platform_en')),
+            'tq_nelc_lms_url'        => trim((string) $this->input->post('tq_nelc_lms_url')),
+            'tq_nelc_fallback_email' => trim((string) $this->input->post('tq_nelc_fallback_email')),
+        );
+        if ($pass !== '') $vals['tq_nelc_password'] = $pass;
+
+        foreach (array_keys(Taqdar_nelc_model::$EVENTS) as $k) {
+            $vals['tq_nelc_ev_' . $k] =
+                ((string) $this->input->post('tq_nelc_ev_' . $k) === '1') ? '1' : '0';
+        }
+
+        $this->taqdar_nelc_model->save_config($vals);
+
+        /* السجل يحفظ الحدث لا السر. */
+        $this->taqdar_admin_model->audit('nelc_settings_save', 'settings#nelc',
+            array('enabled' => $before['enabled'], 'endpoint' => $before['endpoint']),
+            array('enabled' => $enabled, 'endpoint' => $endpoint,
+                  'password_changed' => ($pass !== '')));
+
+        $this->session->set_flashdata('flash_message',
+            $enabled ? 'حفظ الضبط، والإبلاغ يعمل. اضغط «افحص الاتصال» للتأكد.'
+                     : 'حفظ الضبط، والإبلاغ متوقف — لا جملة تخرج ولا صف يكتب.');
+        redirect(site_url('taqdar_admin/nelc'), 'location', 302);
+    }
+
+    /** يرسل جملة فحص الآن — لا تدخل الطابور، فسؤالها «أيصل؟» لا «أيكتب؟». */
+    public function nelc_test()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_nelc_model');
+        $r = $this->taqdar_nelc_model->test();
+
+        if (!empty($r['ok'])) {
+            $this->session->set_flashdata('flash_message',
+                'وصلت جملة الفحص إلى المركز (رمز ' . (int) $r['code'] . '). الربط يعمل.');
+        } else {
+            $this->session->set_flashdata('error_message',
+                'لم تصل جملة الفحص: ' . (string) $r['error']);
+        }
+        redirect(site_url('taqdar_admin/nelc'), 'location', 302);
+    }
+
+    /** يعيد ما فشل إلى الطابور — بيد المسؤول بعد أن يصحح ما أفشله. */
+    public function nelc_requeue()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_nelc_model');
+        $n = $this->taqdar_nelc_model->requeue((int) $this->input->post('id'));
+
+        $this->session->set_flashdata('flash_message', $n > 0
+            ? 'أعيد ' . $n . ' صفا إلى الطابور، وتخرج في أول دورة كرون.'
+            : 'لا صف فاشل يعاد.');
+        redirect(site_url('taqdar_admin/nelc'), 'location', 302);
+    }
+
+    /** يفرغ الطابور الآن بيد المسؤول — لمن لا ينتظر دورة الكرون. */
+    public function nelc_drain()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_nelc_model');
+        $r = $this->taqdar_nelc_model->drain(50);
+
+        $this->session->set_flashdata('flash_message',
+            'أرسل ' . (int) $r['sent'] . '، وينتظر إعادة ' . (int) $r['retry']
+          . '، وفشل نهائيا ' . (int) $r['failed'] . '.');
+        redirect(site_url('taqdar_admin/nelc'), 'location', 302);
     }
 
     /** بيانات التحويل البنكي — وجهة المال. */

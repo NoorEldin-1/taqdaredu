@@ -367,6 +367,30 @@ class Taqdar_settings_model extends CI_Model
             if ($taken > 0) $errors[] = 'هذا البريد مسجل لحساب آخر — اختر بريدا غيره.';
         }
 
+        /* TQ-NELC — رقم الهوية الوطنية.
+
+           **اختياري**، والمنصة تعمل بلاه كما كانت حرفا بحرف: لا شاشة
+           تتوقف عليه ولا حساب يقفل. وأثره واحد — المركز الوطني للتعليم
+           الإلكتروني يعرف المتعلم به لا ببريده، فمن لم يكتبه لا يبلغ
+           عنه شيء. وإجباره في التسجيل احتكاك يسقط حسابات لأجل شرط
+           ترخيص لا يعني الطالب.
+
+           والفحص من `Taqdar_nelc_model` لا هنا: شرطان مختلفان لحقل
+           واحد يجعلان اللوحة تقبل ما ترده هذه الشاشة. والفارغ يمحو
+           — من كتبه بالخطأ يستطيع أن يزيله.
+
+           ولا يمس إن لم يرسل حقله أصلا: نموذج قديم مخبأ في متصفح لا
+           يمحو رقما كتبه صاحبه. */
+        $nid  = null;
+        $nraw = $in->post('tq_national_id', true);
+        if ($nraw !== null) {
+            $this->load->model('taqdar_nelc_model');
+            $nid = Taqdar_nelc_model::clean_national_id($nraw);
+            if ($nid !== '' && !Taqdar_nelc_model::valid_national_id($nid)) {
+                $errors[] = 'رقم الهوية عشر خانات يبدأ بـ1 للمواطن أو 2 للمقيم.';
+            }
+        }
+
         $image_code = null;
         if (!$errors && !empty($_FILES['user_image']['name'])) {
             $img = $this->store_image($user_id);
@@ -384,6 +408,15 @@ class Taqdar_settings_model extends CI_Model
             'last_modified' => time(),
         );
         if ($image_code !== null) $data['image'] = $image_code;
+
+        /* والعمود ينشأ وقت التشغيل، فيضمن قبل الكتابة: قاعدة لم يفتح
+           عليها التكامل بعد لا تحمله، وكتابته فيها ترد الحفظ كله
+           بـ«Unknown column» — فيفقد الطالب تعديل اسمه لأجل حقل
+           اختياري. */
+        if ($nid !== null) {
+            $this->taqdar_nelc_model->install_schema();
+            $data['tq_national_id'] = ($nid !== '') ? $nid : null;
+        }
 
         $this->db->where('id', $user_id)->update('users', $data);
 

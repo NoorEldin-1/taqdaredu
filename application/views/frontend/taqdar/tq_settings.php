@@ -266,6 +266,23 @@ include 'portal_open.php';
                                 )); ?>
                             </div>
 
+                            <?php /* TQ-NELC — رقم الهوية الوطنية.
+
+                                     اختياري، ويقال للطالب لماذا يطلب: حقل هوية
+                                     يظهر في شاشة إعدادات بلا سبب يقرأ تطفلا،
+                                     فلا يكتبه أحد. وسببه واحد وصريح — به تسجل
+                                     دراسته لدى المركز الوطني. */ ?>
+                            <div class="tq-field">
+                                <label class="tq-field__label" for="tq-nid"><?php echo t('رقم الهوية الوطنية'); ?></label>
+                                <input class="tq-input" id="tq-nid" name="tq_national_id" type="text"
+                                       dir="ltr" inputmode="numeric" maxlength="10" autocomplete="off"
+                                       placeholder="1XXXXXXXXX"
+                                       value="<?php echo html_escape((string) ($u['tq_national_id'] ?? '')); ?>">
+                                <span class="tq-field__msg tq-field__hint">
+                                    <?php echo t('اختياري — عشر خانات تبدأ بـ1 للمواطن أو 2 للمقيم. به تسجل دراستك لدى المركز الوطني للتعليم الإلكتروني، ولا يظهر لأحد غيرك.'); ?>
+                                </span>
+                            </div>
+
                             <div class="tq-formbar">
                                 <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('حفظ بيانات الملف'); ?></button>
                             </div>
