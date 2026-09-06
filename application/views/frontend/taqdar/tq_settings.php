@@ -276,11 +276,11 @@ include 'portal_open.php';
                                     <span class="tq-muted"><?php echo t('(اختياري)'); ?></span>
                                 </label>
                                 <input class="tq-input" id="tq-nid" name="national_id" type="text"
-                                       dir="ltr" inputmode="numeric" maxlength="10" pattern="[12][0-9]{9}"
+                                       dir="ltr" inputmode="numeric" maxlength="10" pattern="[0-9]{10}"
                                        aria-describedby="tq-nid-hint"
                                        value="<?php echo html_escape($u['national_id'] ?? ''); ?>">
                                 <span class="tq-field__msg tq-field__hint" id="tq-nid-hint">
-                                    <?php echo t('عشرة أرقام تبدأ بـ ١ للسعودي أو ٢ للمقيم. يرسل مع سجل تعلمك إلى المركز الوطني للتعلم الإلكتروني، ولا يظهر لأحد في المنصة.'); ?>
+                                    <?php echo t('عشرة أرقام. يرسل مع سجل تعلمك إلى المركز الوطني للتعلم الإلكتروني، ولا يظهر لأحد في المنصة.'); ?>
                                 </span>
                             </div>
 

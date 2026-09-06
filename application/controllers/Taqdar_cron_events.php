@@ -211,6 +211,33 @@ class Taqdar_cron_events extends CI_Controller
         }
     }
 
+    /**
+     * يولّد رحلة التحقّق العشر لمتعلّم ومقرّر.
+     *
+     *   … taqdar_cron_events lrs_journey <معرّف المتعلّم> <معرّف المقرّر> [force]
+     *
+     * ويطبع القيمتين اللتين تكتبان في نموذج «تشغيل اختبار التحقق» عند
+     * الجهة — فلا يقرأ أحد الطابور ليعرف ماذا يلصق.
+     */
+    public function lrs_journey($uid = 0, $cid = 0, $force = '')
+    {
+        $this->load->model('taqdar_lrs_model', 'lrs');
+        $r = $this->lrs->journey((int) $uid, (int) $cid, ($force === 'force'));
+
+        if (empty($r['ok'])) { echo '✗ ' . $r['error'] . "\n"; return; }
+
+        echo "✓ رحلة التحقّق\n";
+        echo '  رقم الهوية   : ' . ($r['actor'] !== '' ? $r['actor'] : '(لا هوية لهذا المتعلّم)') . "\n";
+        echo '  معرّف الدورة : ' . $r['object'] . "\n";
+        echo '  كتبت        : ' . $r['written'] . " رسالة جديدة\n";
+
+        $rows = $this->lrs->journey_state((int) $uid, (int) $cid);
+        echo '  الخطوات (' . count($rows) . "):\n";
+        foreach ($rows as $i => $q) {
+            printf("    %2d. %-18s %s\n", $i + 1, $q['verb'], $q['state']);
+        }
+    }
+
     /** يعيد الميت والمتروك الى الطابور — بعد فتح الحجب مثلا. */
     public function lrs_revive()
     {

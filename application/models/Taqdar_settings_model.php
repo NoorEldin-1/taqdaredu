@@ -386,8 +386,8 @@ class Taqdar_settings_model extends CI_Model
             else             $image_code = $img['code'];
         }
 
-        if ($nid !== '' && !preg_match('/^[12][0-9]{9}$/', $nid)) {
-            $errors[] = 'رقم الهوية عشرة أرقام يبدأ بـ ١ للسعودي أو ٢ للمقيم.';
+        if ($nid !== '' && !preg_match('/^[0-9]{10}$/', $nid)) {
+            $errors[] = 'رقم الهوية عشرة أرقام.';
         }
 
         if ($errors) return $this->fail($errors, 'profile');

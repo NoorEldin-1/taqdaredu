@@ -1829,6 +1829,83 @@ class Taqdar_admin extends CI_Controller
         redirect(site_url('taqdar_admin/lrs'), 'location', 302);
     }
 
+    /* =====================================================================
+       TQ-LRS-VERIFY — «تشغيل اختبار التحقق»
+       =====================================================================
+
+       بوابة الجهة (`services.futurex.sa`) تقفل بيانات **الإنتاج** خلف
+       اختبار تحقق في بيئة الاختبار: تكتب فيه رقم هوية متعلم ومعرف دورة،
+       فيبحث في مستودعهم عن رحلة ذلك المتعلم في تلك الدورة.
+
+       وهذه الشاشة تجهز الطرف الذي عندنا: تولد الرحلة العشر، ثم **تطبع
+       القيمتين اللتين تلصقان في نموذجهم حرفا**. فلا يقرأ أحد جدول
+       الطابور ليعرف ماذا يكتب. */
+
+    public function lrs_verify()
+    {
+        $this->load->model('taqdar_lrs_model');
+
+        $nid = trim((string) $this->input->get('nid', true));
+        $cid = (int) $this->input->get('c');
+
+        $user = null;
+        if ($nid !== '') {
+            $user = $this->db->select('id, email, first_name, last_name, national_id')
+                             ->where('national_id', preg_replace('/\D/', '', $nid))
+                             ->limit(1)->get('users')->row_array();
+        }
+
+        $uid = $user ? (int) $user['id'] : 0;
+
+        $this->render('tqa_lrs_verify', 'اختبار التحقق', array(
+            'nav_key'    => 'tqa_lrs',
+            /* التهيئة كلّها لا تمرّ: الشاشة تقرأ `enabled` وحدها، وتمرير
+               المصفوفة كاملة يضع كلمة المرور في نطاق عرض بلا حاجة —
+               وهو ما تتجنّبه `lrs()` بـ`unset` صريح. */
+            'cfg'        => array('enabled' => $this->taqdar_lrs_model->config()['enabled']),
+            'courses'    => $this->taqdar_lrs_model->course_choices(),
+            'nid'        => $nid,
+            'user'       => $user,
+            'course_id'  => $cid,
+            'result'     => $this->session->flashdata('lrs_journey'),
+            'steps'      => ($uid > 0 && $cid > 0)
+                          ? $this->taqdar_lrs_model->journey_state($uid, $cid) : array(),
+        ));
+    }
+
+    /** يولّد الرحلة — POST وحده، فنداء متكرر من رابط لا يعيدها. */
+    public function lrs_verify_run()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_lrs_model');
+
+        $nid = preg_replace('/\D/', '', (string) $this->input->post('nid'));
+        $cid = (int) $this->input->post('course_id');
+        $force = ((string) $this->input->post('force') === '1');
+
+        $back = site_url('taqdar_admin/lrs_verify') . '?nid=' . rawurlencode($nid) . '&c=' . $cid;
+
+        $user = $nid === '' ? null
+              : $this->db->select('id')->where('national_id', $nid)->limit(1)
+                         ->get('users')->row_array();
+
+        if (!$user) {
+            $this->session->set_flashdata('error_message',
+                'لا حساب برقم الهوية هذا. اكتبه في ملف الطالب أولا (إعداداتي ← بيانات الملف).');
+            redirect($back, 'location', 302);
+            return;
+        }
+
+        $r = $this->taqdar_lrs_model->journey((int) $user['id'], $cid, $force);
+        $this->session->set_flashdata('lrs_journey', $r);
+        $this->session->set_flashdata(empty($r['ok']) ? 'error_message' : 'flash_message',
+            empty($r['ok']) ? $r['error']
+                : 'ولدت الرحلة. الصقْ القيمتين أدناه في نموذج الجهة ثم اضغط «بدء الاختبار» عندهم.');
+
+        redirect($back, 'location', 302);
+    }
+
     /** يعيد المعلق والميت والمتروك إلى الطابور — بعد فتح الحجب مثلا. */
     public function lrs_retry()
     {

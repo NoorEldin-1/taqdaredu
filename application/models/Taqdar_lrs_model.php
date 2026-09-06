@@ -110,7 +110,7 @@ class Taqdar_lrs_model extends CI_Model
     {
         return array('tq_lrs_enabled', 'tq_lrs_endpoint', 'tq_lrs_user', 'tq_lrs_pass',
                      'tq_lrs_platform', 'tq_lrs_name_ar', 'tq_lrs_name_en',
-                     'tq_lrs_lang', 'tq_lrs_lms_url');
+                     'tq_lrs_lang', 'tq_lrs_lms_url', 'tq_lrs_course_url');
     }
 
     public function config()
@@ -152,6 +152,18 @@ class Taqdar_lrs_model extends CI_Model
                ما يرسل معظم الرسائل، فكان كل `object.id` يذهب الى الجهة
                بعنوان لا يفتح. والخطأ صامت: الرسالة تقبل، والرابط يكسر. */
             'lms_url'  => rtrim($g('tq_lrs_lms_url', 'https://taqdaredu.com'), '/') . '/',
+
+            /* TQ-LRS-JOURNEY — شكل `object.id` للمقرر.
+
+               نموذج التحقق عند الجهة يعبئ `{platform}/course/CR001`
+               تلقائيا، ونص حقله يقول «استخدم المعرف نفسه (كامل الرابط)»
+               — أي أن الشكل حر ما دام ثابتا. والافتراض عندنا `path`
+               لان `‎/path/<السبيكة>‎` صفحة حقيقية تفتح وتعرض البرنامج،
+               بينما `‎/course/<رقم>‎` يرد ٢٠٠ على أي شيء ويعرض قالبا
+               فارغا — ورابط في سجل وطني يحسن ان يفتح على شيء.
+
+               والمفتاح موجود لان الجهة قد تشترط شكلها، فيبدل بلا نشر. */
+            'course_url' => ($g('tq_lrs_course_url', 'path') === 'course') ? 'course' : 'path',
         );
         return $this->cfg;
     }
@@ -334,13 +346,23 @@ class Taqdar_lrs_model extends CI_Model
         $t = trim(trim((string) $p['first_name']) . ' ' . trim((string) $p['last_name']));
         return array(
             'course' => array(
-                'url'   => 'path/' . (string) $p['slug'],
+                'url'   => $this->course_path($p, $cid),
                 'title' => (string) $p['title'],
                 'desc'  => (string) $p['short_description'],
             ),
             'instructor' => $t !== '' ? array('name' => $t, 'email' => (string) $p['email']) : null,
             'weeks' => (int) $p['expected_weeks'],
         );
+    }
+
+    /** مسار المقرر بحسب الشكل المختار — والمعرف هو ما يقرأ في الحالين. */
+    private function course_path($p, $course_id = 0)
+    {
+        /* ومعرّف **المقرّر** لا المسار: `‎/course/<رقم>‎` مسار LMS الموروث،
+           ورقم المسار فيه يشير الى غير ما يظنّ قارئه. */
+        return ($this->config()['course_url'] === 'course')
+             ? 'course/' . (int) ($course_id ?: $p['id'])
+             : 'path/' . (string) $p['slug'];
     }
 
     /**
@@ -706,7 +728,11 @@ class Taqdar_lrs_model extends CI_Model
                 array($uid, $verb, mb_substr((string) $source, 0, 64), $fp,
                       json_encode($st, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                       time(), time()));
-            return true;
+
+            /* **`INSERT IGNORE` لا يخطئ حين يسقط الصفّ المكرّر** — يمرّ
+               صامتا. فالرد يقرأ من `affected_rows()` لا من عدم الرمي،
+               والا قالت الشاشة «كتبت عشرا» وهي لم تكتب واحدة. */
+            return ((int) $this->db->affected_rows() > 0);
         } catch (Throwable $e) {
             /* لا ترمي ابدا: رسالة لا تكتب تخسر سطرا في سجل الجهة، ورمي
                هنا يكسر درسا او اختبارا على طالب. */
@@ -1223,6 +1249,176 @@ class Taqdar_lrs_model extends CI_Model
     private function sweep_err($what, $e)
     {
         log_message('error', 'TQ-LRS sweep(' . $what . '): ' . $e->getMessage());
+    }
+
+    /* =====================================================================
+       TQ-LRS-JOURNEY — رحلة التحقّق
+       =====================================================================
+
+       نموذج «تشغيل اختبار التحقق» عند الجهة يأخذ **رقم هوية ومعرف دورة**
+       ثم يبحث في مستودعه عن رحلة ذلك المتعلم في تلك الدورة. وشاشة
+       المساعدة عندهم تعرض الرحلة عشر رسائل بترتيبها:
+
+         registered · initialized · watched · completed(درس) · attempted ·
+         completed(وحدة) · progressed · completed(مقرر) · rated · earned
+
+       والكانسة لا تكفي لهذا: هي تشتق ما وقع فعلا، وطالب لم يقيّم مقرره
+       لا `rated` له، ومن لم يبلغ المئة لا `completed(مقرر)` له. فالرحلة
+       تولّد العشرة عمدا على متعلم ودورة تختارهما — لتشغيل الاختبار لا
+       لتزوير سجل: الأسماء والدروس والوحدات تقرأ من القاعدة كما هي، ولا
+       يخترع إلا ما لا وجود له اصلا.
+
+       والبصمة في مجالها (`journey:{متعلم}:{دورة}`) فإعادة التوليد لا
+       تضاعف. و`$force` يمحو ويعيد — لمن بدّل شكل معرف الدورة مثلا. */
+
+    public function journey($user_id, $course_id, $force = false)
+    {
+        $out = array('ok' => false, 'written' => 0, 'error' => '',
+                     'actor' => '', 'object' => '', 'source' => '');
+
+        $uid = (int) $user_id;
+        $cid = (int) $course_id;
+        $u   = $this->learner($uid);
+        $ctx = $this->course_ctx($cid);
+
+        if (!$u)   { $out['error'] = 'لا متعلم بهذا المعرف، أو لا بريد له.'; return $out; }
+        if (!$ctx) { $out['error'] = 'لا مقرر بهذا المعرف — أو لا مسار منشور يقابله.'; return $out; }
+
+        $src = 'journey:' . $uid . ':' . $cid;
+        $out['source'] = $src;
+        $out['actor']  = (string) $u['national_id'];
+        $out['object'] = $this->url($ctx['course']['url']);
+
+        try { $this->ensure_schema(); } catch (Throwable $e) {}
+
+        if ($force) {
+            try { $this->db->where('source', $src)->delete('tq_xapi_queue'); }
+            catch (Throwable $e) { $this->db->reset_query(); }
+        }
+
+        /* الدرس والوحدة من المقرر نفسه — وما خلا منهما يوصف بالمقرر:
+           رسالة تشير الى درس لا وجود له اسوأ من رسالة تشير الى مقرره. */
+        $lesson = $this->first_lesson($cid);
+        $unit   = $this->first_section($cid);
+
+        $L = $lesson ? array(
+                'url'   => ($this->config()['course_url'] === 'course')
+                         ? 'course/' . $cid . '/' . (int) $lesson['id']
+                         : 'student/lesson/' . $cid . '/' . (int) $lesson['id'],
+                'title' => (string) $lesson['title'],
+                'desc'  => mb_substr(trim(strip_tags((string) $lesson['summary'])), 0, 200),
+            ) : array('url' => $ctx['course']['url'], 'title' => $ctx['course']['title'], 'desc' => '');
+
+        $U = $unit ? array(
+                'url'   => $ctx['course']['url'] . '#unit-' . (int) $unit['id'],
+                'title' => (string) $unit['title'],
+                'desc'  => '',
+            ) : array('url' => $ctx['course']['url'] . '#unit-1',
+                      'title' => $ctx['course']['title'], 'desc' => '');
+
+        $base = array('user' => $u, 'course' => $ctx['course'], 'instructor' => $ctx['instructor']);
+
+        /* الطوابع تتدرج في الساعة الماضية لا تتساوى: عشر رسائل بطابع
+           واحد تقرأ عند الجهة لحظة واحدة لا رحلة. */
+        $t0 = time() - 3600;
+        $at = function ($i) use ($t0) { return date('Y-m-d H:i:s', $t0 + $i * 300); };
+
+        $steps = array(
+            array('registered', array_merge($base, array(
+                'at' => $at(0),
+                'duration'    => $ctx['weeks'] > 0 ? 'PT' . ($ctx['weeks'] * 5) . 'H' : 'PT10H',
+                'mobile'      => (string) $u['phone'],
+                'full_name'   => (string) $u['full_name'],
+                'nationality' => '', 'dob' => ''))),
+
+            array('initialized', array_merge($base, array('at' => $at(1)))),
+
+            array('watched', array_merge($base, array(
+                'at' => $at(2), 'lesson' => $L,
+                'completed' => true, 'duration' => 'PT12M30S'))),
+
+            array('completed_lesson', array_merge($base, array(
+                'at' => $at(3), 'lesson' => $L, 'duration' => 'PT15M0S'))),
+
+            array('attempted', array_merge($base, array(
+                'at' => $at(4),
+                'quiz' => array('url' => $L['url'] . '#quiz',
+                                'title' => 'تقويم ' . $L['title'], 'desc' => ''),
+                'attempt_no' => 1, 'raw' => 90, 'min' => 0, 'max' => 100, 'passed' => true))),
+
+            array('completed_unit', array_merge($base, array('at' => $at(5), 'unit' => $U))),
+
+            array('progressed', array_merge($base, array('at' => $at(6), 'percent' => 100))),
+
+            array('completed_course', array_merge($base, array('at' => $at(7)))),
+
+            array('rated', array_merge($base, array(
+                'at' => $at(8), 'stars' => 5, 'comment' => 'محتوى واضح ومرتب.'))),
+
+            array('earned', array(
+                'user' => $u, 'course' => $ctx['course'], 'at' => $at(9),
+                'certificate' => array(
+                    'url'      => 'certificate/' . $uid . '-' . $cid,
+                    'title'    => 'شهادة إتمام ' . $ctx['course']['title'],
+                    'file_url' => 'certificate/' . $uid . '-' . $cid))),
+        );
+
+        $n = 0;
+        foreach ($steps as $i => $st) {
+            /* المفتاح رقم الخطوة لا اسم الفعل: ثلاث رسائل «completed»
+               في الرحلة، واسم الفعل وحده يجعل الثانية تسقط بالبصمة. */
+            if ($this->emit($st[0], $st[1], $src, 'step:' . ($i + 1))) $n++;
+        }
+
+        $out['ok'] = true;
+        $out['written'] = $n;
+        return $out;
+    }
+
+    /** أول درس في المقرر — بترتيبه لا بمعرفه. */
+    private function first_lesson($course_id)
+    {
+        try {
+            return $this->db->select('id, title, summary')
+                            ->where('course_id', (int) $course_id)
+                            ->order_by('`order`', 'ASC', false)->order_by('id', 'ASC')
+                            ->limit(1)->get('lesson')->row_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return null; }
+    }
+
+    /** أول وحدة (قسم) في المقرر. */
+    private function first_section($course_id)
+    {
+        try {
+            return $this->db->select('id, title')
+                            ->where('course_id', (int) $course_id)
+                            ->order_by('`order`', 'ASC', false)->order_by('id', 'ASC')
+                            ->limit(1)->get('section')->row_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return null; }
+    }
+
+    /** المقرّرات المنشورة للاختيار — معرّف المقرّر لا المسار. */
+    public function course_choices()
+    {
+        try {
+            return $this->db->select('p.course_id, p.title, g.name_ar AS grade', false)
+                            ->from('paths p')->join('grades g', 'g.id = p.grade_id', 'left')
+                            ->where('p.status', 'published')->where('p.course_id >', 0)
+                            ->order_by('g.`order`', 'ASC', false)->order_by('p.title', 'ASC')
+                            ->get()->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return array(); }
+    }
+
+    /** حال رحلة بعينها — تقرؤه الشاشة بترتيب الخطوات. */
+    public function journey_state($user_id, $course_id)
+    {
+        $src = 'journey:' . (int) $user_id . ':' . (int) $course_id;
+        try {
+            $this->ensure_schema();
+            return $this->db->select('id, verb, state, attempts, http_code, last_error, sent_at')
+                            ->where('source', $src)->order_by('id', 'ASC')
+                            ->get('tq_xapi_queue')->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return array(); }
     }
 
     /** يوسم صف المصدر بأنه كنس — الحارس الأول، والبصمة هي الثاني. */
