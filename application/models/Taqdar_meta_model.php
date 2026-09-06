@@ -676,11 +676,22 @@ class Taqdar_meta_model extends CI_Model
     }
 
     /**
-     * يسأل ميتا عن البكسل نفسه — تحقق بلا حدث مخترع.
+     * «اسأل ميتا» — يسأل عن الرمز نفسه لا عن البكسل.
      *
-     * وهذا هو الفحص الصحيح: إرسال حدث تجريبي يلوث الحساب بشراء لم يقع،
-     * وقراءة اسم البكسل بالرمز تثبت الاثنين معا — أن الرمز صحيح، وأنه
-     * يملك هذا البكسل بعينه. وهو الخطأ الأكثر وقوعا: رمز صحيح لحساب آخر.
+     * ولا يرسل حدثا تجريبيا: شراء لم يقع يلوث الحساب الذي يقاس به.
+     *
+     * TQ-META-PROBE — وكان يقرأ `GET /<البكسل>?fields=name` بالرمز، وهي
+     * قراءة **لا يملكها رمز الربط البرمجي أصلا**: ما يولده مدير الأحداث
+     * اليوم رمز مستخدم نظام صلاحيته `read_ads_dataset_quality` على مجموعة
+     * البيانات وحدها — يرسل الأحداث ولا يقرأ اسم البكسل. فترد ميتا
+     * «(#100) Missing Permission» على إعداد **صحيح تماما**، فيظن المسؤول
+     * أن رمزه خطأ فيعيد إنشاءه مرة بعد مرة ويقرأ الرد نفسه، والربط يعمل.
+     *
+     * و`debug_token` تجيب السؤالين اللذين من أجلهما كتب الفحص: أصالح
+     * الرمز؟ وأهو رمز **هذا** البكسل بعينه؟ — والثاني في `granular_scopes`
+     * حرفا، فيمسك الخطأ الأكثر وقوعا: رمز صحيح لمجموعة بيانات أخرى.
+     * وقراءة اسم البكسل تبقى للرمز الواسع الذي لا هدف مسمى له، فلا يفقد
+     * من يستعمله شيئا.
      */
     public function probe()
     {
@@ -688,8 +699,58 @@ class Taqdar_meta_model extends CI_Model
         if ($c['pixel'] === '') return array('ok' => false, 'msg' => 'لا معرف بكسل محفوظ.');
         if ($c['token'] === '') return array('ok' => false, 'msg' => 'لا رمز وصول محفوظ، فلا يرسل الخادم شيئا.');
 
-        $url = self::API . rawurlencode($c['pixel']) . '?fields=name,id&access_token=' . rawurlencode($c['token']);
-        $ch  = curl_init($url);
+        $tok = rawurlencode($c['token']);
+        $r   = $this->graph_get('debug_token?input_token=' . $tok . '&access_token=' . $tok);
+        if ($r['msg'] !== '') return array('ok' => false, 'msg' => $r['msg']);
+
+        $d = isset($r['data']['data']) && is_array($r['data']['data']) ? $r['data']['data'] : array();
+        if (empty($d)) {
+            return array('ok' => false, 'msg' => 'رد ميتا برمز ' . $r['code'] . ' بلا بيانات عن الرمز.');
+        }
+        if (empty($d['is_valid'])) {
+            return array('ok' => false, 'msg' => 'الرمز غير صالح أو انتهت صلاحيته — أنشئ رمزا جديدا من مدير الأحداث.');
+        }
+
+        $exp  = (int) (isset($d['expires_at']) ? $d['expires_at'] : 0);
+        $note = $exp > 0 ? ' وينتهي في ' . date('Y-m-d', $exp) . '.' : ' وهو دائم لا ينتهي.';
+
+        /* الأهداف المسماة — «رمز هذا البكسل بعينه» تقال هنا حرفا. */
+        $targets = array();
+        if (!empty($d['granular_scopes']) && is_array($d['granular_scopes'])) {
+            foreach ($d['granular_scopes'] as $g) {
+                if (empty($g['target_ids']) || !is_array($g['target_ids'])) continue;
+                foreach ($g['target_ids'] as $t) $targets[(string) $t] = true;
+            }
+        }
+        if (!empty($targets)) {
+            if (isset($targets[$c['pixel']])) {
+                return array('ok' => true, 'msg' => 'الرمز صحيح وصلاحيته على مجموعة البيانات '
+                    . $c['pixel'] . ' نفسها،' . $note);
+            }
+            return array('ok' => false, 'msg' => 'الرمز صحيح ولكنه لمجموعة بيانات أخرى ('
+                . implode('، ', array_keys($targets)) . ') لا للمعرف ' . $c['pixel']
+                . ' — فلن يظهر منه حدث واحد في مدير الأحداث.');
+        }
+
+        /* رمز واسع بلا هدف مسمى: يسأل عن البكسل نفسه كما كان يسأل. */
+        $p = $this->graph_get(rawurlencode($c['pixel']) . '?fields=name,id&access_token=' . $tok);
+        if (!empty($p['data']['id'])) {
+            $nm = (string) (!empty($p['data']['name']) ? $p['data']['name'] : $p['data']['id']);
+            return array('ok' => true, 'msg' => 'الرمز صحيح ويملك البكسل «' . $nm . '»،' . $note);
+        }
+        return array('ok' => false, 'msg' => 'الرمز صالح، ولكن ميتا لم تؤكد ملكيته للبكسل '
+            . $c['pixel'] . ' — ' . ($p['msg'] !== '' ? $p['msg'] : ('ردت برمز ' . $p['code'])) . '.');
+    }
+
+    /**
+     * قراءة من ميتا — منفذ واحد كأخيه في الإرسال.
+     *
+     * ويرد ثلاثة: الحمولة مفككة، ورمز الرد، ورسالة الخطأ إن كانت — فمن
+     * ينادي يفرق بين «لم يصل» و«وصل ورد بخطأ» بلا أن يكرر curl.
+     */
+    private function graph_get($path)
+    {
+        $ch = curl_init(self::API . $path);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
@@ -700,16 +761,13 @@ class Taqdar_meta_model extends CI_Model
         $cerr = curl_error($ch);
         curl_close($ch);
 
-        if ($raw === false) return array('ok' => false, 'msg' => ($cerr ? $cerr : 'تعذر الاتصال بميتا.'));
-
+        if ($raw === false) {
+            return array('data' => array(), 'code' => 0,
+                         'msg'  => ($cerr ? $cerr : 'تعذر الاتصال بميتا.'));
+        }
         $d = json_decode((string) $raw, true);
         if (!is_array($d)) $d = array();
-
-        if ($code >= 200 && $code < 300 && !empty($d['id'])) {
-            $nm = (string) (!empty($d['name']) ? $d['name'] : $d['id']);
-            return array('ok' => true, 'msg' => 'الرمز صحيح ويملك البكسل «' . $nm . '».');
-        }
-        $err = (string) (isset($d['error']['message']) ? $d['error']['message'] : '');
-        return array('ok' => false, 'msg' => ($err !== '' ? $err : ('رد ميتا برمز ' . $code)));
+        return array('data' => $d, 'code' => $code,
+                     'msg'  => (string) (isset($d['error']['message']) ? $d['error']['message'] : ''));
     }
 }
