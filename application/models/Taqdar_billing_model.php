@@ -1373,7 +1373,24 @@ class Taqdar_billing_model extends CI_Model
             'method'          => $method,
             'issued_at'       => date('Y-m-d H:i:s'),
         ));
-        return (int) $this->db->insert_id();
+        $id = (int) $this->db->insert_id();
+
+        /* TQ-META-CAPI — هوية متصفح المشتري تلتقط **هنا** لا وقت الدفع.
+
+           كعكتا ميتا (`_fbp` و`_fbc`) هما ما ينسب الشراء إلى الإعلان الذي
+           دفع فيه المال، ولا تقرآن إلا من متصفح صاحبهما. وساعة السداد قد
+           لا يكون ثمة متصفح أصلا: الحوالة يفعلها مسؤول بعد أيام، والويبهوك
+           يأتي من خادم تاب، والكرون بلا طلب. واللحظة الوحيدة التي نملك فيها
+           متصفح المشتري بيقين هي هذه — ضغطته على «اشترك». */
+        try {
+            $this->load->model('taqdar_meta_model');
+            $this->taqdar_meta_model->remember($id);
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-META: تعذر حفظ هوية الفاتورة #' . $id . ' — ' . $e->getMessage());
+        }
+
+        return $id;
     }
 
     /**
@@ -1394,6 +1411,13 @@ class Taqdar_billing_model extends CI_Model
         return $prefix . str_pad($seq, 5, '0', STR_PAD_LEFT);
     }
 
+    /**
+     * الفاتورة تصير مدفوعة — وهي **اللحظة الوحيدة** في المنصة كلها.
+     *
+     * أربعة أبواب تنتهي إليها: البطاقة (`activate_from_gateway`) والحوالة
+     * (`activate_manually`) والحصة (`Taqdar_sessions_model`) والباقة
+     * المجانية. فمن أراد أن يعرف «متى دخل مال؟» يسأل هنا.
+     */
     public function mark_invoice_paid($invoice_id, $transaction_id = null)
     {
         $this->db->where('id', (int) $invoice_id)->update('invoices', array(
@@ -1401,7 +1425,40 @@ class Taqdar_billing_model extends CI_Model
             'paid_at'        => date('Y-m-d H:i:s'),
             'transaction_id' => $transaction_id,
         ));
+
+        /* TQ-META-CAPI — ومن هنا يطلق حدث الشراء إلى ميتا، من هذا الموضع
+           وحده. وهو مبدأ `sold()` نفسه: قاعدة واحدة في مكان واحد تعني أن
+           وحدة البيع الخامسة تقاس يوم تكتب بلا سطر يضاف. وست نسخ من
+           السؤال نفسه تعني أن الكتاب يباع ولا يبلغ واحدة منها — وقد وقع. */
+        $this->meta_purchase((int) $invoice_id);
+
         return true;
+    }
+
+    /**
+     * يبلغ ميتا بالشراء — ولا يبطل شيئا إن تعثر.
+     *
+     * الطالب دفع واستحق وصوله، ومنعه لأن قياسا إعلانيا لم يخرج يعاقب من
+     * لا ذنب له — وهي قاعدة قسمة الإيراد نفسها. و`Taqdar_meta_model` صامت
+     * تماما ما لم يحفظ رمز CAPI في اللوحة.
+     */
+    private function meta_purchase($invoice_id)
+    {
+        try {
+            /* المصدر من `invoices.method` لا معاملا يمرر: أربعة مستدعين
+               يعرف كل منهم طريقه، وتمريره في أربعتهم يعني رابعا ينسى. */
+            $row = $this->db->select('method')->where('id', (int) $invoice_id)
+                            ->get('invoices')->row_array();
+            $src = trim((string) ($row ? $row['method'] : ''));
+
+            $this->load->model('taqdar_meta_model');
+            $this->taqdar_meta_model->purchase((int) $invoice_id, $src !== '' ? $src : 'system');
+        } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء وسط سلسلة يترك ضمومها خلفه. */
+            $this->db->reset_query();
+            log_message('error', 'TQ-META: تعذر إبلاغ ميتا بشراء الفاتورة #'
+                . (int) $invoice_id . ' — ' . $e->getMessage());
+        }
     }
 
     public function invoices_of($user_id)

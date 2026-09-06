@@ -2321,10 +2321,40 @@ class Taqdar_admin extends CI_Controller
        التتبع الإعلاني
        ===================================================================== */
 
-    /** بكسل ميتا — معرف واحد وشاشة تقول أين يعمل وكيف يتحقق منه. */
+    /**
+     * بكسل ميتا — شاشة تقول أين يعمل وكيف يتحقق منه.
+     *
+     * وصارت تجيب سؤالين لا واحدا: البكسل يقيس ما يقع في المتصفح،
+     * و«الربط البرمجي» (CAPI) يقيس ما يقع في الخادم — وهو وحده الذي
+     * يمسك الشراء، لأن صفحة الدفع عند تاب لا عندنا (TQ-META-CAPI).
+     */
     public function tracking()
     {
-        $this->render('tqa_tracking', 'بكسل ميتا');
+        $this->load->model('taqdar_meta_model');
+        $this->render('tqa_tracking', 'بكسل ميتا', array(
+            'tq_capi_ready' => $this->taqdar_meta_model->capi_ready(),
+            'tq_test_code'  => (string) $this->taqdar_meta_model->config()['test'],
+            'tq_totals'     => $this->taqdar_meta_model->totals(),
+            'tq_events'     => $this->taqdar_meta_model->recent(25),
+        ));
+    }
+
+    /**
+     * «اسأل ميتا» — يثبت أن الرمز صحيح وأنه يملك هذا البكسل بعينه.
+     *
+     * وهو الخطأ الأكثر وقوعا: رمز صحيح تماما لحساب إعلاني آخر، فتقبله
+     * ميتا ولا يظهر حدث واحد في مدير الأحداث — ولا رسالة خطأ في أي موضع.
+     * ولا يرسل حدثا تجريبيا: شراء لم يقع يلوث الحساب الذي يقاس به.
+     */
+    public function tracking_probe()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_meta_model');
+        $r = $this->taqdar_meta_model->probe();
+
+        $this->session->set_flashdata($r['ok'] ? 'flash_message' : 'error_message', $r['msg']);
+        redirect(site_url('taqdar_admin/tracking'), 'location', 302);
     }
 
     /**
@@ -2342,13 +2372,35 @@ class Taqdar_admin extends CI_Controller
 
         $was = $this->db->where('key', 'tq_meta_pixel_id')->get('settings')->row('value');
 
-        if ($was !== null) $this->db->where('key', 'tq_meta_pixel_id')->update('settings', array('value' => $val));
-        else               $this->db->insert('settings', array('key' => 'tq_meta_pixel_id', 'value' => $val));
+        $this->tracking_put('tq_meta_pixel_id', $val);
+
+        /* رمز الوصول (CAPI) — سر، فثلاثة فروق بينه وبين المعرف:
+
+           ١ — **الفارغ لا يمسه.** حقل يفرض كتابته في كل حفظ يجعل تصحيح
+               رقم في المعرف يمحو الربط البرمجي كله، فيتوقف قياس الشراء
+               ولا يقول أحد لماذا. وهو مبدأ كلمة المرور في `teacher_edit`.
+           ٢ — **ومسحه يطلب صراحة** بمربع، لا بترك الحقل خاليا.
+           ٣ — **ولا يكتب في `audit_log`.** السجل يقرؤه كل مسؤول، وسر
+               يكتب فيه يصير معروفا لمن لا يحتاجه. فيسجل «وضع» أو «مسح». */
+        $token = trim((string) $this->input->post('tq_meta_capi_token'));
+        $clear = (string) $this->input->post('tq_meta_capi_clear') === '1';
+        $had   = trim((string) get_settings('tq_meta_capi_token')) !== '';
+
+        if ($clear)                $this->tracking_put('tq_meta_capi_token', '');
+        elseif ($token !== '')     $this->tracking_put('tq_meta_capi_token', $token);
+
+        /* ورمز الاختبار: يوجه الحدث إلى تبويب «اختبار الأحداث» فيقرأ حيا
+           بلا انتظار دقائق. **ويترك فارغا في الإنتاج** — وإلا مضت مبيعات
+           حقيقية إلى الاختبار ولم تحسب في الحملة. */
+        $this->tracking_put('tq_meta_test_code',
+            preg_replace('/[^A-Za-z0-9]/', '', (string) $this->input->post('tq_meta_test_code')));
 
         /* أثر مقصود: من يجد الإعلانات توقفت عن القياس غدا يحتاج أن يعرف
            من غير المعرف ومتى — والقيمة قبل التغيير هي نصف الجواب. */
         $this->taqdar_admin_model->audit('tracking.meta_pixel', 'settings',
-            array('tq_meta_pixel_id' => $was), array('tq_meta_pixel_id' => $val));
+            array('tq_meta_pixel_id' => $was, 'capi_token' => $had ? 'set' : ''),
+            array('tq_meta_pixel_id' => $val,
+                  'capi_token' => $clear ? '' : (($token !== '' || $had) ? 'set' : '')));
 
         $this->session->set_flashdata('flash_message', $val !== ''
             ? 'حفظ المعرف، والبكسل يعمل الآن على كل صفحات الموقع والبوابات.'
@@ -2356,6 +2408,19 @@ class Taqdar_admin extends CI_Controller
         redirect(site_url('taqdar_admin/tracking'), 'location', 302);
     }
 
+    /**
+     * كتابة مفتاح في `settings` — والصف يكتب ولو كانت القيمة فارغة.
+     *
+     * وجود الصف هو ما يميز «أطفأه مسؤول» عن «لم يضبط أحد شيئا»، والثاني
+     * وحده يرجع إلى الافتراضي في الشيفرة. فلولا كتابة الصف الفارغ لتعذر
+     * الإطفاء — كل مسح يعيده.
+     */
+    private function tracking_put($key, $val)
+    {
+        $exists = $this->db->where('key', $key)->count_all_results('settings') > 0;
+        if ($exists) $this->db->where('key', $key)->update('settings', array('value' => (string) $val));
+        else         $this->db->insert('settings', array('key' => $key, 'value' => (string) $val));
+    }
 
     /** طلبات المعلمين — العرض والقرار في شاشة واحدة. */
     public function teachers()

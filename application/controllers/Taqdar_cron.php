@@ -122,7 +122,16 @@ class Taqdar_cron extends CI_Controller
     {
         $this->load->model('taqdar_tap_model');
         $r = $this->taqdar_tap_model->reconcile(15, 60);
-        echo date('Y-m-d H:i:s') . " tap_checked={$r['checked']} tap_settled={$r['settled']}\n";
+
+        /* TQ-META-CAPI — وما رفضته ميتا أو لم يبلغها لانقطاع لحظة.
+           موضعه هنا لأن سؤاله سؤال هذه المهمة نفسه: «ماذا لم يكتمل؟».
+           وبلا إعادة يضيع شراء من القياس لأن الشبكة تعثرت ثانية — وهو
+           أثقل من ألا يرسل، لأنه يقع في المبيعات لا في السكون. */
+        $this->load->model('taqdar_meta_model');
+        $m = $this->taqdar_meta_model->retry_failed(25);
+
+        echo date('Y-m-d H:i:s') . " tap_checked={$r['checked']} tap_settled={$r['settled']}"
+           . " meta_tried={$m['tried']} meta_sent={$m['sent']}\n";
     }
 
     /**

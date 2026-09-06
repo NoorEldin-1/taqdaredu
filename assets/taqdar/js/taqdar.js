@@ -128,6 +128,13 @@
       try {
         localStorage.setItem('tq-cookie', v);
       } catch (e) {}
+      /* والقرار يمرآ في كعكة كذلك: الخادم يرسل حدث الشراء بعد ان يغلق
+         المشتري متصفحه (TQ-META-CAPI)، ولا `localStorage` عنده حينها.
+         فبلا هذه المرآة يرسل شراء زائر رفض — ويصير الزر تمثيلا. */
+      try {
+        document.cookie = 'tq_consent=' + v + ';path=/;max-age=31536000;samesite=Lax'
+          + (location.protocol === 'https:' ? ';secure' : '');
+      } catch (e) {}
     }
     var ok = $('[data-tq-cookie-accept]', cookie);
     if (ok) ok.addEventListener('click', function () { decide('accepted'); });
