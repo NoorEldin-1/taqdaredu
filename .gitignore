@@ -5,6 +5,7 @@
 /application/config/database.php
 /application/config/database.php.orig
 /application/config/taqdar_secret.php
+/application/config/taqdar_vimeo.php
 
 # ============================================================
 #  محتوى المستخدمين — يُنسَخ من الخادم لا من المستودع.
@@ -46,3 +47,7 @@ Thumbs.db
 
 # أداة تسجيل دخول محلية للفحص — تحمل بيانات حساب اختبار
 /.tq-relogin.sh
+
+# سجلات تشغيل مزامن فيميو — أثرٌ محلي لا يُرفع.
+/scripts/vimeo/runs/*
+!/scripts/vimeo/runs/.gitkeep

@@ -569,10 +569,24 @@ $play = function ($lesson_id = 0) use ($cid) {
             <svg aria-hidden="true"><use href="#i-check"></use></svg>
             هذه الدورة ضمن <?php echo html_escape(tqs_bundle_tier($pick['name_ar'])); ?>
           </p>
-          <p class="plan-card__price">
-            <?php echo tqs_money((int) $pick['price']); ?>
-            <small><?php echo html_escape(tqs_period_label((int) $pick['duration_days'])); ?></small>
-          </p>
+          <?php /* TQ-CYCLE-COURSE — سعرٌ وحيد على الشاشة، فيُعرض كما
+                   يُعرض في `/plans`: شهريًّا والإجماليُّ تحته. */
+          $tq_cp = tqs_plan_price(array(
+              'price'  => (int) $pick['price'],
+              'period' => (string) $pick['period'],
+              'days'   => (int) $pick['duration_days'],
+          )); ?>
+          <?php if ($tq_cp['has_alt']): ?>
+            <p class="plan-card__price">
+              <b class="tq-ltr"><?php echo number_format($tq_cp['month']); ?></b> <span>ر.س / شهريا</span>
+              <small>الإجمالي <span class="tq-ltr"><?php echo number_format($tq_cp['total']); ?></span> ر.س <?php echo html_escape($tq_cp['unit']); ?></small>
+            </p>
+          <?php else: ?>
+            <p class="plan-card__price">
+              <?php echo tqs_money((int) $pick['price']); ?>
+              <small><?php echo html_escape(tqs_period_label((int) $pick['duration_days'])); ?></small>
+            </p>
+          <?php endif; ?>
           <p class="tq-caption">
             الباقة تفتح منهج المرحلة كاملا — مواد الصف وبرامجها ودروسها واختباراتها،
             لا هذه الدورة وحدها.

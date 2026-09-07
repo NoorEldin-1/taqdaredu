@@ -224,8 +224,21 @@ include 'portal_open.php';
                 <p><?php echo html_escape($tq_plan['note']); ?></p>
             <?php endif; ?>
 
-            <p class="tq-num tq-num--xl"><?php echo tqs_money((int) $tq_plan['price']); ?></p>
-            <p class="tq-caption"><?php echo html_escape(tqs_period_label((int) $tq_plan['duration_days'])); ?></p>
+            <?php /* TQ-CYCLE-PLACEMENT — شهريّ كبقيّة الموقع: هذه أوّل
+                     شاشة يرى فيها وليّ الأمر سعرًا بعد التشخيص، ورقمٌ
+                     سنويّ هنا وشهريّ في `/plans` يقرأ تناقضًا. */
+            $tq_cp = tqs_plan_price(array(
+                'price'  => (int) $tq_plan['price'],
+                'period' => (string) $tq_plan['period'],
+                'days'   => (int) $tq_plan['duration_days'],
+            )); ?>
+            <?php if ($tq_cp['has_alt']): ?>
+                <p class="tq-num tq-num--xl"><b class="tq-ltr"><?php echo number_format($tq_cp['month']); ?></b> <span>ر.س / شهريا</span></p>
+                <p class="tq-caption">الإجمالي <span class="tq-ltr"><?php echo number_format($tq_cp['total']); ?></span> ر.س <?php echo html_escape($tq_cp['unit']); ?></p>
+            <?php else: ?>
+                <p class="tq-num tq-num--xl"><?php echo tqs_money((int) $tq_plan['price']); ?></p>
+                <p class="tq-caption"><?php echo html_escape(tqs_period_label((int) $tq_plan['duration_days'])); ?></p>
+            <?php endif; ?>
 
             <?php if ($tq_feats): ?>
                 <ul class="tqp-steps" style="margin-block-start:var(--tq-space-l)">

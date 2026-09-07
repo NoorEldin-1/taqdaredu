@@ -237,12 +237,36 @@ $tq_dur = function ($m) {
            و`plans_for_course()` ترد مرتبة بالسعر صاعدا، فأولها أرخصها —
            وهو أقل ما يلزم لفتح هذا البرنامج، وهو ما يسأل عنه الزائر. */
         $tq_cheap = $tq_plans ? $tq_plans[0] : null;
+
+        /* TQ-CYCLE-PATH — الرقم شهريّ كبقيّة الموقع.
+
+           `/plans` والرئيسة وبطاقات الكتالوج وصفحة الباقة كلّها تمرّ على
+           `tqs_plan_price()` فتعرض ٣٩٩، وهذه الصفحة وحدها كانت تنادي
+           `tqs_money($plan['price'])` فتعرض ٣٬٨٣٠ — للباقة نفسها.
+
+           و`plans_for_grades()` ترد صفوف الجدول خامًا، فالعمود اسمه
+           `duration_days` لا `days` كما تتوقّعه `tqs_plan_price()`.
+           وتمريره بلا تحويل يجعل مدّة الدورة صفرًا. */
+        $tq_cp = $tq_cheap ? tqs_plan_price(array(
+            'price'  => (int) $tq_cheap['price'],
+            'period' => (string) $tq_cheap['period'],
+            'days'   => (int) $tq_cheap['duration_days'],
+        )) : null;
         ?>
         <?php if ($tq_cheap): ?>
           <p class="path-from">
             <span>يفتح ابتداء من</span>
-            <b><?php echo tqs_money((int) $tq_cheap['price']); ?></b>
+            <?php if ($tq_cp && $tq_cp['has_alt']): ?>
+              <b><b class="tq-ltr"><?php echo number_format($tq_cp['month']); ?></b> <span>ر.س / شهريا</span></b>
+            <?php else: ?>
+              <b><?php echo tqs_money((int) $tq_cheap['price']); ?></b>
+            <?php endif; ?>
           </p>
+          <?php if ($tq_cp && $tq_cp['has_alt']): ?>
+            <?php /* الإجمالي تحت الرقم لا مخفيًّا: هو ما تطلبه شاشة
+                     التأكيد، وإخفاؤه يجعل الشهريّ يبدو وعدًا. */ ?>
+            <p class="tq-caption">الإجمالي <span class="tq-ltr"><?php echo number_format($tq_cp['total']); ?></span> ر.س <?php echo html_escape($tq_cp['unit']); ?></p>
+          <?php endif; ?>
           <a class="btn btn--primary btn--block" href="<?php echo base_url('plan/' . html_escape($tq_cheap['code'])); ?>">
             <?php echo html_escape($tq_cheap['name_ar']); ?>
           </a>
