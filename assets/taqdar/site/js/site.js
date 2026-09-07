@@ -311,6 +311,8 @@ document.documentElement.classList.add('js');
     var headerSearch = $('#headerTeacherSearch');
     var stageSel = $('#teacherStage');
     var sortSel = $('#teacherSort');
+    /* TQ-TEACHER-SUBJECT — المادّة مرشِّح ثالث بجوار البحث والمرحلة. */
+    var subjectSel = $('#teacherSubject');
     var moreBtn = $('#teacherMore');
     var moreLbl = moreBtn && moreBtn.querySelector('[data-tq-morelbl]');
     var expanded = false;
@@ -320,6 +322,7 @@ document.documentElement.classList.add('js');
     var apply = function () {
       var q = tqNorm((search && search.value) || '');
       var stage = (stageSel && stageSel.value) || '';
+      var subject = (subjectSel && subjectSel.value) || '';
       var matched = 0, hiddenByFold = 0;
 
       /* الفرز أولا ثم الطي: كان الفرز يقع بعد قرار الإخفاء، فتكشف
@@ -336,11 +339,12 @@ document.documentElement.classList.add('js');
 
       /* البحث أو الترشيح يلغي الطية: من بحث يريد كل ما طابق، لا عشرة
          منه وزرا يطلب البقية. */
-      var filtering = (q !== '' || stage !== '');
+      var filtering = (q !== '' || stage !== '' || subject !== '');
 
       cards.forEach(function (c) {
         var ok = (!q || (c.dataset.norm || '').indexOf(q) !== -1) &&
-                 (!stage || c.dataset.stage === stage);
+                 (!stage || c.dataset.stage === stage) &&
+                 (!subject || c.dataset.subject === subject);
         if (ok) matched++;
 
         var folded = c.dataset.fold === '1' && !expanded && !filtering;
@@ -363,7 +367,7 @@ document.documentElement.classList.add('js');
       }
     };
 
-    [search, stageSel, sortSel].forEach(function (el) {
+    [search, stageSel, sortSel, subjectSel].forEach(function (el) {
       if (!el) return;
       el.addEventListener('input', apply);
       /* `change` إلى جانب `input`: قوائم `select` في بعض المتصفحات لا

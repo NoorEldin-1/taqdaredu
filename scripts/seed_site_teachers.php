@@ -121,10 +121,10 @@ $roster = [
      'email' => 'mohamed.hassan@taqdaredu.com', 'phone' => '+201281767659', 'subject' => 'اللغة العربية',
      'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'أول متوسط',
      'rating' => 0, 'reviews' => 0, 'courses' => 0],
-    ['photo' => null, 'avatar' => 'avatar-m', 'first' => 'أحمد', 'last' => 'البلتاجي',
-     'email' => 'ahmed.elbeltagy@taqdaredu.com', 'subject' => 'اللغة العربية',
-     'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'أول متوسط',
-     'rating' => 0, 'reviews' => 0, 'courses' => 0],
+    /* TQ-ROSTER-DEL — أحمد البلتاجي أُزيل بقرار المالك (٢٠٢٦-٠٩-٠٧).
+       حسابه في القاعدة يبقى بـ`is_public=0` ولا يُحذف صفّ، ومدخله يُحذف
+       من هنا لأنّ هذا السكربت **يطابق بالبريد وينشئ ما لا يجده** — فتركه
+       يعيده أوّل تشغيل. وهو الحكم نفسه الذي طُبّق على القفّاص أعلاه. */
     ['photo' => 'عبداللة صلاح.png', 'first' => 'عبدالله صلاح', 'last' => 'البرلسي',
      'email' => 'abdullah.elborolosy@taqdaredu.com', 'phone' => '+201206031878', 'subject' => 'اللغة العربية',
      'title' => 'معلم اللغة العربية', 'stage' => 'middle', 'bio' => 'ثاني متوسط',

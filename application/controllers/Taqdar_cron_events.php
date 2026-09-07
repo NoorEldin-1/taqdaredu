@@ -584,61 +584,42 @@ class Taqdar_cron_events extends CI_Controller
     }
 
     /**
-     * أيام درس فيها الطالب داخل مدة — بمصادر شاشة التقرير الأسبوعي نفسها.
+     * TQ-QUIZ-WEEKLY — عدد الاختبارات في المدّة.
      *
-     * و`lesson_progress` أولها: فيه صف **لكل درس** بتاريخ إنهائه، بينما
-     * `watch_histories` صف واحد لكل مادة بآخر تحديث لها وحده — فمن واظب
-     * خمسة أيام على مادة واحدة كان يحسب له يوم نشاط، ومن لمس خمس مواد
-     * في جلسة واحدة تحسب له خمسة. والشاشة والبريد يقرآن الرقم نفسه،
-     * فاختلاف المصدرين بينهما يجعل ولي الأمر يرى رقمين لأسبوع واحد.
+     * كانت تعدّ من `quiz_results` — جدول النظام الموروث. ونتائج اختبار
+     * الدرس تُكتب في `attempts`، فكان التقرير الأسبوعيّ يقول لوليّ الأمر
+     * «**ولم يؤدِّ أيّ اختبار**» وابنه أدّى خمسة في الأسبوع نفسه. والعلّة
+     * نفسها كانت في `tq_s_quizzes()` وأُصلحت هناك، ونُسيت هنا.
+     *
+     * والعدّ من الاثنين: المسلَّمة في `attempts` (بوّابة الإتقان)، وما بقي
+     * في `quiz_results` للموروث — فلا يسقط تاريخٌ قديم.
      */
-    private function active_days($student_id, $from, $to)
+    private function quizzes_between($student_id, $from_ts, $to_ts)
     {
-        $stamps = array();
-
-        foreach ($this->db->query(
-            'SELECT UNIX_TIMESTAMP(`completed_at`) AS ts FROM `lesson_progress`
-              WHERE `student_id` = ? AND `completed_at` IS NOT NULL',
-            array((int) $student_id)
-        )->result_array() as $r) {
-            $stamps[] = (int) $r['ts'];
+        $n = 0;
+        try {
+            $r = $this->db->query(
+                'SELECT COUNT(*) AS n FROM `attempts`
+                  WHERE `student_id` = ? AND `submitted_at` IS NOT NULL
+                    AND `submitted_at` >= ? AND `submitted_at` < ?',
+                array((int) $student_id, date('Y-m-d H:i:s', (int) $from_ts),
+                      date('Y-m-d H:i:s', (int) $to_ts)))->row_array();
+            $n += (int) $r['n'];
+        } catch (Throwable $e) {
+            log_message('error', 'quizzes_between attempts: ' . $e->getMessage());
         }
-
-        foreach ($this->db->query(
-            'SELECT `date_updated` AS ts FROM `watch_histories` WHERE `student_id` = ?',
-            array((int) $student_id)
-        )->result_array() as $r) {
-            $stamps[] = (int) $r['ts'];
+        try {
+            $r = $this->db->query(
+                'SELECT COUNT(*) AS n FROM `quiz_results`
+                  WHERE `user_id` = ? AND `is_submitted` = 1
+                    AND CAST(`date_added` AS UNSIGNED) >= ?
+                    AND CAST(`date_added` AS UNSIGNED) < ?',
+                array((int) $student_id, (int) $from_ts, (int) $to_ts))->row_array();
+            $n += (int) $r['n'];
+        } catch (Throwable $e) {
+            log_message('error', 'quizzes_between legacy: ' . $e->getMessage());
         }
-
-        foreach ($this->db->query(
-            'SELECT `date_added` AS ts FROM `quiz_results` WHERE `user_id` = ? AND `is_submitted` = 1',
-            array((int) $student_id)
-        )->result_array() as $r) {
-            $stamps[] = (int) $r['ts'];
-        }
-
-        $days = array();
-        foreach ($stamps as $ts) {
-            if ($ts <= 0 || $ts < $from || $ts >= $to) {
-                continue;
-            }
-            $days[strtotime('today', $ts)] = true;
-        }
-        return count($days);
-    }
-
-    private function quizzes_between($student_id, $from, $to)
-    {
-        $row = $this->db->query(
-            'SELECT COUNT(*) AS n FROM `quiz_results`
-              WHERE `user_id` = ? AND `is_submitted` = 1
-                AND CAST(`date_added` AS UNSIGNED) >= ?
-                AND CAST(`date_added` AS UNSIGNED) < ?',
-            array((int) $student_id, (int) $from, ($to === PHP_INT_MAX ? time() + 86400 : (int) $to))
-        )->row_array();
-
-        return (int) $row['n'];
+        return $n;
     }
 
     /**

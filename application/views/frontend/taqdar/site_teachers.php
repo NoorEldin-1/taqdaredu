@@ -59,19 +59,12 @@ css: pages
   </div>
 </section>
 
-<!-- ══════════ شريط الأرقام ══════════ -->
-<section class="section">
-  <div class="shell">
-    <div class="stat-strip reveal">
-        <?php /* انظر TQ-STAT-ORPHAN في `about_us.php`. */ ?>
-        <?php echo tqs_stat('teachers','i-teacher','معلم ومعلمة','stat-strip__item'); ?>
-        <?php echo tqs_stat('students','i-users','طالبا وطالبة','stat-strip__item'); ?>
-        <?php echo tqs_stat('subjects','i-book','مادة تعليمية','stat-strip__item'); ?>
-        <?php echo tqs_stat('paths','i-target','برنامج تعليمي','stat-strip__item'); ?>
-        <?php echo tqs_stat('rating','i-star','مستوى الرضا','stat-strip__item'); ?>
-    </div>
-  </div>
-</section>
+<?php /* TQ-TEACHER-GRID — شريط الأرقام أُزيل من هذه الصفحة بقرار المالك.
+
+         وأُزيل ولم يفرَّغ: `tqs_stat()` تسقط البند الفارغ وحده، فتفريغ
+         المفاتيح كان يخفيه هنا **ويخفيه في «عن المنصة» و«الطلاب» معًا**
+         — والمطلوب هذه الصفحة وحدها. فالإزالة في العرض، والأرقام تبقى
+         حيث تُقرأ. */ ?>
 
 <!-- ══════════ دليل المعلمين ══════════ -->
 <section class="section" id="directory">
@@ -101,16 +94,39 @@ css: pages
           </select>
           <svg aria-hidden="true"><use href="#i-chevron"></use></svg>
         </label>
+        <?php /* TQ-TEACHER-SUBJECT — مرشِّح مادّة مكان ترتيبٍ لا يرتّب.
+
+                 «الأعلى تقييمًا» و«الأكثر مراجعات» و«الأكثر دورات» تقرأ
+                 ثلاثة أعمدة **قيمتها صفر عند المعلّمين الواحد والعشرين**،
+                 فكان المنتقي يُضغط ولا يتحرّك تحته شيء — وهو أسوأ من
+                 غيابه. والمادّة موجودة في `skills` وتُقرأ في البحث منذ
+                 كُتب، ولا مُنتقي لها. فحلّت محلّه.
+
+                 والقائمة تُبنى من المعروض لا من جدول المواد: مادّة بلا
+                 معلّم تعطي خيارًا يفرغ الشبكة. */
+              $tq_subj = array();
+              foreach ($tq_teachers as $tq_t) {
+                  foreach ((array) $tq_t['chips'] as $tq_c) {
+                      $tq_c = trim((string) $tq_c);
+                      if ($tq_c !== '' && !in_array($tq_c, $tq_subj, true)) $tq_subj[] = $tq_c;
+                      break;
+                  }
+              }
+              sort($tq_subj);
+        ?>
+        <?php if (count($tq_subj) > 1): ?>
         <label class="field field--select">
-          <svg aria-hidden="true"><use href="#i-star"></use></svg>
-          <span class="sr-only">الترتيب</span>
-          <select id="teacherSort">
-            <option value="rating">ترتيب: الأعلى تقييما</option>
-            <option value="reviews">ترتيب: الأكثر مراجعات</option>
-            <option value="courses">ترتيب: الأكثر دورات</option>
+          <svg aria-hidden="true"><use href="#i-book"></use></svg>
+          <span class="sr-only">المادة</span>
+          <select id="teacherSubject">
+            <option value="">جميع المواد</option>
+            <?php foreach ($tq_subj as $tq_s): ?>
+              <option value="<?php echo html_escape($tq_s); ?>"><?php echo html_escape($tq_s); ?></option>
+            <?php endforeach; ?>
           </select>
           <svg aria-hidden="true"><use href="#i-chevron"></use></svg>
         </label>
+        <?php endif; ?>
       </div>
 
       <?php
@@ -125,8 +141,24 @@ css: pages
       $tq_fold = 0;
       $tq_more = 0;
       ?>
-<?php echo tqs_carousel(tqs_teachers($tq_teachers, $tq_fold),
-                        'المعلمون', 'carousel2--teachers', 'teacherGrid'); ?>
+<?php /* TQ-TEACHER-GRID — شبكة لا شريطًا.
+
+         الاستعلام بلا حدّ و`fold=0`، فالبطاقات الاثنتان والعشرون كلّها
+         في الصفحة منذ كُتبت. لكنّ `.carousel2__track` مضمار أفقيّ
+         (`overflow-x:auto`) عرض بطاقته `clamp(200px,19vw,248px)` — فيُرى
+         أربع أو خمس، ويُقصّ ما عندهما. وأسهمه تختفي تحت ٩٨٠px
+         (`pages.css:1659`) فلا يبقى للجوّال إلّا السحب.
+
+         والقسم **دليل** فيه بحث ومرشِّح مرحلة وثلاثة تراتيب — والدليل
+         يُمسح بالعين لا يُدفع بسهم. فالشبكة تعرض الجميع دفعةً، وتلتفّ
+         على كلّ عرض، ولا تحتاج جافاسكربت.
+
+         و`id="teacherGrid"` يبقى حرفًا: البحث والمرشِّح والترتيب في
+         `site.js:306` يشتغل على أبنائه مباشرةً. ويسقط `data-tq-carousel`
+         فلا يتعلّق به سلوك المضمار. */ ?>
+      <div class="tgrid" id="teacherGrid" role="region" aria-label="المعلمون">
+        <?php echo tqs_teachers($tq_teachers, $tq_fold); ?>
+      </div>
 
       <p class="dir-empty" id="teacherEmpty" hidden>لا توجد نتائج مطابقة — جرب كلمة أخرى.</p>
 

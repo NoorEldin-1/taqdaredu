@@ -521,64 +521,91 @@ if (!function_exists('tqs_teachers')) {
      */
     function tqs_teachers($items, $fold = 0)
     {
+        /* ══════════════════════════════════════════════════════════════
+           TQ-TEACHER-CARD26 — البطاقة تُبنى من ثلاثة حقول لا أكثر
+
+           التقييم والمراجعات وعدد الدورات **صفر عند المعلّمين كلّهم**
+           (٢١ من ٢١)، فصفّ `__meta` كان يُطبع فارغًا في كلّ بطاقة —
+           وسمٌ لا يرسم شيئًا. فحُذف، والغنى جاء من المعالجة لا من بيانات
+           لا وجود لها:
+
+             · الوجه في **قوس المحراب** — `clip-path:url(#tqArch)`، وهو
+               قصّ معرّف في لوح الأيقونات ويُستعمل في أهيرة الصفحات. فلا
+               أصل جديد ولا ملفّ.
+             · **قناة لون للمرحلة** على نمط `.ccard`: `data-stage` يقود
+               `--stage`، فيصبغ شريط الرأس والشارة وأيقونة الصفوف.
+             · **شارة المادّة** — كانت في `skills` تُقرأ في البحث ولا
+               تُعرض، وورقتها (`__chip`) مكتوبة في `pages.css` بلا باعث.
+
+           والرابط **طبقة واحدة** (`__hit`) لا رابطين: كان الاسم رابطًا
+           والصورة رابطًا إلى الوجهة نفسها، فيقرأ التنقّل بالمفتاح وجهتين
+           لشيء واحد. وهو حكم `.ccard` نفسه.
+
+           **وما لا يُمَسّ**: الصنف `teacher-card` والـ`data-*` الستّ
+           و`hidden` — سكربت المرشِّح يقرؤها حرفًا (`site.js:306`).
+           ══════════════════════════════════════════════════════════════ */
         $h = '';
         $i = 0;
+
+        /* أيقونة لكلّ مادّة — وما لا يُعرف يأخذ الكتاب. */
+        $icons = array(
+            'رياضيات'  => 'i-target',  'عربية'   => 'i-abc',
+            'علوم'     => 'i-lab',     'إنجليزية' => 'i-globe',
+            'اجتماعية' => 'i-map',     'إسلامية' => 'i-mosque',
+            'قرآن'     => 'i-mosque',  'رقمية'   => 'i-monitor',
+        );
+
         foreach ($items as $t) {
-            /* ما بعد الطية يطبع مخفيا لا محذوفا: الزر يكشفه بلا طلب ثان،
-               والبحث يفتشه كما يفتش غيره — فبطاقة وراء الطية تجدها كلمة
-               البحث ولو لم تكشف بعد. */
-            $folded = ($fold > 0 && $i++ >= $fold);
+            $folded  = ($fold > 0 && $i++ >= $fold);
+            $subject = '';
+            foreach ((array) $t['chips'] as $c) {
+                $c = trim((string) $c);
+                if ($c !== '') { $subject = $c; break; }
+            }
+
+            $icon = 'i-book';
+            foreach ($icons as $needle => $ico) {
+                if ($subject !== '' && mb_strpos($subject, $needle) !== false) { $icon = $ico; break; }
+            }
+
             $h .= '        <article class="teacher-card reveal'
                 . ($folded ? ' is-folded" data-fold="1" hidden' : '"')
                 . ' data-name="' . html_escape($t['name']) . '"'
-                /* المواد والنبذة في سمة البحث: النص الإرشادي يعد بالبحث
-                   بالمادة، وكانت السمة تحمل الاسم وحده — فوعد لا ينفذ. */
                 . ' data-search="' . html_escape(trim($t['name'] . ' '
                     . implode(' ', (array) $t['chips']) . ' ' . $t['bio'])) . '"'
                 . ' data-stage="' . html_escape($t['stage']) . '"'
+                . ' data-subject="' . html_escape($subject) . '"'
                 . ' data-rating="' . html_escape($t['rating']) . '"'
                 . ' data-reviews="' . html_escape($t['reviews']) . '"'
                 . ' data-courses="' . html_escape($t['courses']) . '">' . "\n";
-            /* الصورة رابط كالاسم: البطاقة كلها تبدو قابلة للنقر، وكان
-               الاسم وحده ينقر — فمن ضغط الصورة ظنها معطلة. و`tabindex=-1`
-               كي لا يمر الوصول بالمفتاح على رابطين إلى وجهة واحدة. */
-            $h .= '          <a class="teacher-card__media" href="' . html_escape($t['url']) . '"'
-                . ' tabindex="-1" aria-hidden="true">'
-                . tqs_person_avatar($t['img'], $t['name'])
-                . '</a>' . "\n";
-            $h .= '          <div class="teacher-card__body">' . "\n";
-            /* الاسم رابط: النموذج يبني `url` ولم يستعمله أحد،
-               فبطاقات المعلمين تبدو قابلة للنقر ولا تنقر. */
-            $h .= '            <h3><a href="' . html_escape($t['url']) . '">'
-                . html_escape($t['name']) . '</a></h3>' . "\n";
 
-            /* العنوان («معلم العلوم») تحت الاسم: النموذج يختاره من
-               القاعدة ولم يستعمله أحد، وهو أدق من الشريحة وحدها. */
+            /* طبقة الرابط: تغطّي البطاقة، واسمها وحده يُقرأ. */
+            $h .= '          <a class="teacher-card__hit" href="' . html_escape($t['url']) . '">'
+                . '<span class="sr-only">' . html_escape($t['name']) . '</span></a>' . "\n";
+
+            $h .= '          <div class="teacher-card__media">'
+                . tqs_person_avatar($t['img'], $t['name'])
+                . '<svg class="frame" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
+                . '<path d="M6,100 C2,100 0,98 0,94 L0,46 C0,26 16,9 50,0 C84,9 100,26 100,46'
+                . ' L100,94 C100,98 98,100 94,100 Z"/></svg>'
+                . '</div>' . "\n";
+
+            if ($subject !== '') {
+                $h .= '          <span class="teacher-card__badge" aria-hidden="true">'
+                    . '<svg><use href="#' . $icon . '"></use></svg></span>' . "\n";
+            }
+
+            $h .= '          <div class="teacher-card__body">' . "\n";
+            $h .= '            <h3>' . html_escape($t['name']) . '</h3>' . "\n";
             if (!empty($t['title'])) {
                 $h .= '            <p class="teacher-card__title">' . html_escape($t['title']) . '</p>' . "\n";
             }
-            /* الشريحة حُذفت: كانت تقول «اللغة العربية» والعنوان فوقها
-               يقول «معلم اللغة العربية» — الشيء نفسه مرّتين، والعنوان
-               أدقّ لأنه يميّز المعلّمة من المعلّم. والمادة تبقى في
-               `data-search` فالبحث بها يعمل كما كان. */
-            /* `bio` تحمل الصفوف التي يدرسها — لا نبذة. */
+            /* `bio` تحمل الصفوف التي يدرّسها — لا نبذة. */
             if ($t['bio'] !== '') {
                 $h .= '            <p class="teacher-card__grades">'
                     . '<svg aria-hidden="true"><use href="#i-cap"></use></svg>'
                     . html_escape($t['bio']) . '</p>' . "\n";
             }
-
-            $h .= '            <div class="teacher-card__meta">';
-            if ($t['rating'] > 0) {
-                $h .= '<span class="teacher-card__rate"><svg aria-hidden="true"><use href="#i-star"></use></svg>'
-                    . '<span class="tq-ltr">' . html_escape(number_format($t['rating'], 1)) . '</span>'
-                    . ' (<span class="tq-ltr">' . html_escape(number_format($t['reviews'])) . '</span>)</span>';
-            }
-            if ($t['courses'] > 0) {
-                $h .= '<span class="teacher-card__courses"><svg aria-hidden="true"><use href="#i-play"></use></svg>'
-                    . html_escape($t['courses']) . t(' دورة</span>');
-            }
-            $h .= '</div>' . "\n";
             $h .= '          </div>' . "\n";
             $h .= '        </article>' . "\n";
         }

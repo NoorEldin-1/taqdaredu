@@ -1011,7 +1011,7 @@ a.contact-card:hover .contact-card__go svg{transform:translateX(-3px)}
    فقوس أدرج في غير موضعه يبتلع الصفحة كاملة. الحارس يجعل الخطأ
    غير مرئي بدل أن يكون كارثيا. */
 svg.frame path{fill:none}
-:not(.page-hero__arch):not(.p26d-card__arch)>svg.frame{display:none}
+:not(.page-hero__arch):not(.p26d-card__arch):not(.teacher-card__media)>svg.frame{display:none}
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-FORMS · أصناف صفحات الدخول والتسجيل
@@ -4502,3 +4502,166 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 .bgrades__i span { font-variant-numeric: tabular-nums; opacity: .65; }
 /* الصف بلا كتب: يقرأ ولا يضغط — والمؤشر يقول ذلك قبل النقر. */
 .bgrades__i.is-off { opacity: .45; cursor: default; }
+
+/* ═══════════════════════════════════════════════════════════════
+   TQ-TEACHER-GRID — شبكة دليل المعلّمين
+   ═══════════════════════════════════════════════════════════════
+   `auto-fill` لا `auto-fit`: الثاني يمدّ العمود الأخير على الفراغ حين
+   يبقى معلّم وحده في صفّه، فتخرج بطاقة بعرض ألف بكسل بين أخواتها.
+   والمقاس الأدنى ١٩٠px هو مقاس البطاقة في المضمار نفسه، فلا يتغيّر
+   شكلها — يتغيّر ترتيبها. */
+.tgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: clamp(14px, 1.6vw, 22px);
+  margin-block-start: clamp(18px, 2.2vw, 28px);
+}
+/* والبطاقة تفقد `flex-basis` المضمار: في الشبكة الخليّة هي التي تقيس. */
+.tgrid > .teacher-card { flex: initial; inline-size: auto; }
+
+/* عمودان على الجوّال — وواحد على الأضيق حيث يصير العمودان أضيق من الوجه. */
+@media (max-width: 560px) {
+  .tgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+}
+@media (max-width: 360px) {
+  .tgrid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TQ-TEACHER-CARD26 — بطاقة المعلّم
+
+   ثلاثة حقول وحدها لها بيانات (الاسم · العنوان · الصفوف)، والتقييم
+   والدورات صفرٌ عند الجميع. فالبطاقة تُبنى على المعالجة لا على العدادات:
+
+     ١ — الوجه في **قوس المحراب** بـ`clip-path:url(#tqArch)` — القصّ
+         نفسه الذي تُقصّ به صور الأهيرة، معرَّف في لوح الأيقونات
+         بوحدات `objectBoundingBox` فيقيس نفسه على أيّ مربّع. ولا أصل
+         جديد يُضاف: أقوى ما في هوية الموقع كان يُستعمل مرّة في الصفحة.
+     ٢ — **قناة `--stage`** على نمط `.ccard[data-kind]`: سمة موجودة
+         سلفًا في الوسم تقود لونًا واحدًا يصبغ الشارة وأيقونة الصفوف
+         وهالة الحوم. فمرحلتان تُقرآن من بعيد بلا نصّ يُضاف.
+     ٣ — **شارة المادّة** مربّعة الزوايا (`border-radius:32%`) بتدرّج
+         بترول وحدّ ذهبيّ، **في التدفّق بهامش سالب** لا بالتثبيت — فلا
+         سياق تموضع يتغيّر ولا نسبة تُحسب من ارتفاع خاطئ. وهو حكم
+         `.subject-card__badge` نفسه.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ⚠️ حارس لا زينة: سكربت المرشِّح يضبط `hidden`، و`display` على البطاقة
+   يُبطله فيبحث الزائر ولا يختفي شيء — بلا خطأ يظهر. */
+.teacher-card[hidden]{display:none!important}
+
+/* والقواعد القديمة بمعرّف (`#teacherGrid>…`) من عهد المضمار تغلب أيّ
+   صنف مهما تأخّر، فتُبطَل صراحةً هنا لا بالأمل. */
+.tgrid>.teacher-card{flex:initial;inline-size:auto;max-inline-size:none}
+
+.teacher-card{
+  --stage:var(--gold);
+  position:relative;display:flex;flex-direction:column;
+  background:var(--paper);border:1px solid var(--gold-line-soft);
+  border-radius:var(--r-card);box-shadow:var(--sh-soft);text-align:center;
+  overflow:visible;                 /* الشارة تعبر الحافّة */
+  padding-block-start:3px;          /* موضع شريط المرحلة */
+  transition:transform var(--t-entry) var(--ease),
+             box-shadow var(--t-entry) var(--ease),
+             border-color var(--t-entry) var(--ease)
+}
+.teacher-card[data-stage='primary']  {--stage:var(--gold)}
+.teacher-card[data-stage='middle']   {--stage:var(--emerald)}
+.teacher-card[data-stage='secondary']{--stage:var(--petrol-lift)}
+
+/* شريط المرحلة: ثلاثة بكسلات تقول ما يقوله سطرُ نصّ، بلا سطر. */
+.teacher-card::before{
+  content:'';position:absolute;inset-block-start:0;inset-inline:14%;
+  block-size:3px;border-radius:0 0 3px 3px;background:var(--stage);
+  opacity:.9;transition:inset-inline var(--t-entry) var(--ease)
+}
+.teacher-card:hover{transform:translateY(-7px);box-shadow:var(--sh-raise);
+  border-color:var(--gold-line)}
+.teacher-card:hover::before{inset-inline:6%}
+
+/* طبقة الرابط: تغطّي البطاقة، وتركيزها مرسوم لا افتراضيّ. */
+.teacher-card__hit{position:absolute;inset:0;z-index:4;border-radius:var(--r-card)}
+.teacher-card__hit:focus-visible{outline:2px solid var(--stage);outline-offset:-4px}
+
+/* الوجه — والقصّ على الغلاف لا على الصورة، فالإطار الذهبيّ يبقى فوقه. */
+.teacher-card__media{
+  position:relative;display:block;aspect-ratio:.86;overflow:visible;
+  margin:clamp(10px,1.1vw,16px) clamp(10px,1.1vw,16px) 0;
+  background:none
+}
+.teacher-card__media img,
+.teacher-card__media .tq-ini{
+  inline-size:100%;block-size:100%;object-fit:cover;object-position:50% 12%;
+  display:block;background:#fff;
+  clip-path:url(#tqArch);
+  transition:transform 600ms var(--ease)
+}
+.teacher-card:hover .teacher-card__media img{transform:scale(1.04)}
+/* والخطّ الذهبيّ يرسم القوس نفسه فوق الصورة — سُمكه ثابت مهما تمدّد. */
+.teacher-card__media>svg.frame{
+  position:absolute;inset:0;inline-size:100%;block-size:100%;pointer-events:none;z-index:2
+}
+.teacher-card__media>svg.frame path{
+  fill:none;stroke:var(--gold);stroke-width:1.1;vector-effect:non-scaling-stroke;opacity:.75
+}
+
+/* شارة المادّة: في التدفّق بهامش سالب تعبر ذيل القوس. */
+.teacher-card__badge{
+  position:relative;z-index:3;flex:0 0 auto;align-self:center;
+  margin:calc(-1 * clamp(16px,1.35vw,21px)) auto 0;
+  /* الطول يُكتب ولا يُشتقّ: `aspect-ratio` على عنصر في فلكس عموديّ لا
+     يحسم مقاسه الرئيس، فخرجت الشارة بيضاويّة بطول ١٥٢px من ٤٤. */
+  inline-size:clamp(34px,2.8vw,44px);block-size:clamp(34px,2.8vw,44px);
+  aspect-ratio:1;border-radius:32%;
+  display:grid;place-items:center;
+  background:linear-gradient(155deg,var(--petrol-lift),var(--petrol-deep));
+  border:1px solid rgba(212,180,118,.5);color:var(--gold-warm);
+  box-shadow:0 10px 20px -12px rgba(2,51,49,.85)
+}
+.teacher-card__badge svg{inline-size:52%;block-size:52%;display:block}
+
+.teacher-card__body{
+  display:flex;flex-direction:column;gap:4px;flex:1;
+  padding:clamp(9px,1vw,13px) clamp(12px,1.3vw,18px) clamp(14px,1.5vw,20px)
+}
+.teacher-card h3{
+  font-family:'Cairo',sans-serif;font-weight:700;color:var(--ink);
+  font-size:clamp(12.5px,1vw,15.5px);line-height:1.45;margin:0;
+  text-wrap:balance
+}
+/* `--gold-text` لا `--gold-deep`: الثاني ٤٫١٢:١ على هذا السطح فيرسب. */
+.teacher-card__title{
+  margin:0;color:var(--gold-text);
+  font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(11px,.86vw,13px)
+}
+/* الصفوف آخر ما في البطاقة، ويُدفع إلى قدمها فتستوي الأقدام مهما طال اسم. */
+.teacher-card__grades{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  margin:auto 0 0;padding-block-start:9px;
+  border-block-start:1px solid var(--gold-line-soft);
+  color:var(--ink-3);font-size:clamp(10px,.78vw,12px);line-height:1.6
+}
+.teacher-card__grades svg{
+  inline-size:1em;block-size:1em;aspect-ratio:1;flex:none;color:var(--stage)
+}
+
+/* الشبكة: أثر سائل كشبكة الكتالوج، لا مقاس ثابت. */
+.tgrid{grid-template-columns:repeat(auto-fill,minmax(clamp(178px,14.5vw,215px),1fr))}
+
+@media (max-width:560px){
+  .tgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .teacher-card__media{margin-inline:8px}
+}
+@media (max-width:360px){.tgrid{grid-template-columns:minmax(0,1fr)}}
+
+/* الحوم لا يقع على اللمس: الجهاز بلا مؤشّر يبقيها مرفوعة بعد الضغط. */
+@media (hover:none){
+  .teacher-card:hover{transform:none;box-shadow:var(--sh-soft)}
+  .teacher-card:hover .teacher-card__media img{transform:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .teacher-card,.teacher-card::before,.teacher-card__media img{transition-duration:120ms}
+  .teacher-card:hover{transform:none}
+  .teacher-card:hover .teacher-card__media img{transform:none}
+}

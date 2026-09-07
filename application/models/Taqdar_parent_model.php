@@ -39,6 +39,7 @@ class Taqdar_parent_model extends CI_Model
     public function notify_keys()
     {
         return [
+            'quiz_result'      => 'نتيجة اختبار درس',
             'exam_result'      => 'نتيجة امتحان',
             'placement_result' => 'نتيجة تحديد المستوى',
             'station_failed'   => 'رسوب في اختبار محطة',

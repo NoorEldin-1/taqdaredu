@@ -1567,6 +1567,43 @@ class Taqdar_repo_model extends CI_Model
                                    . ' لم تبلغ حد النجاح. والإعادة متاحة بلا حد.',
                 ));
             }
+            /* TQ-QUIZ-PARENT — اختبار الدرس يصل وليَّ الأمر كذلك.
+
+               كانت الفروع ثلاثة: `exam` و`station` و`certificate`. واختبار
+               الدرس نوعه `review` فلا يقع عليه واحد منها — فيؤدّي الطالب
+               اختبارًا بعد كلّ درس ولا يعلم أحدٌ خارج الشاشة. والمالك جعل
+               وصولها إلى وليّ الأمر شرطًا لا ميزة.
+
+               والمقام **عدد الأسئلة** لا علامة النجاح: «٤ من ٧» في رسالة
+               اختبارٍ من ستّة تُقرأ نتيجةً لا تعني شيئًا. (وهي العلّة نفسها
+               في نصّ `exam_result` أعلاه — تُترك كما هي كي لا يتغيّر نصّ
+               إشعارٍ قائم في هذه الدفعة.)
+
+               ووليّ الأمر يُطفئها متى شاء: المفتاح مسجَّل في
+               `Taqdar_parent_model::notify_keys()`. */
+            if (!$is_exam && !$is_station
+                && isset($assessment['type']) && $assessment['type'] === 'review') {
+
+                $total = (int) $this->db->where('assessment_id', (int) $assessment['id'])
+                                        ->count_all_results('question');
+                $ttl   = trim((string) $this->db->select('title')
+                                ->where('id', (int) $assessment['lesson_id'])
+                                ->get('lesson')->row('title'));
+
+                $this->tq_events->notify_student_and_parents($student_id, 'quiz_result', array(
+                    'key'         => 'attempt:' . $attempt_id,
+                    'window_days' => 14,
+                    /* الدرس الختامي عنوانه «اختبار الوحدة …» اصلا، فبادئة
+                       «اختبار درس» تنتج «اختبار درس (اختبار الوحدة الاولى)».
+                       ووليّ الامر هو القارئ، فالنص يخصّ الحالتين. */
+                    'text'        => (mb_strpos($ttl, 'اختبار الوحدة') === 0
+                                        ? $ttl . ': '
+                                        : 'اختبار درس «' . $ttl . '»: ')
+                                   . $score . ' من ' . ($total > 0 ? $total : $score)
+                                   . ($passed ? ' — اجتياز، والدرس التالي مفتوح.'
+                                              : ' — دون حد النجاح، والإعادة متاحة بلا حد.'),
+                ));
+            }
             if ($is_exam && $passed) {
                 $this->tq_events->notify_student_and_parents($student_id, 'certificate', array(
                     'key'         => 'attempt:' . $attempt_id,
