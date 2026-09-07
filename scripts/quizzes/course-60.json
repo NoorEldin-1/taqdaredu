@@ -1,0 +1,345 @@
+{
+ "course_id": 60,
+ "lessons": [
+  {
+   "lesson_id": 231,
+   "title": "زمن المضارع البسيط",
+   "objective": "أن يستعمل الطالب زمن المضارع البسيط للتعبير عن العادات والحقائق مع تصريف الفعل تصريفًا صحيحًا حسب الفاعل.",
+   "pass_mark": 4,
+   "questions": [
+    {
+     "title": "Complete: The sun ___ in the east.",
+     "options": [
+      "rises",
+      "rise",
+      "is rising",
+      "rose"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: My sister ___ study on Fridays.",
+     "options": [
+      "don't",
+      "doesn't",
+      "isn't",
+      "not"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: How often ___ he go to the library?",
+     "options": [
+      "is",
+      "do",
+      "does",
+      "did"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: Water ___ at 100 °C.",
+     "options": [
+      "boiling",
+      "is boil",
+      "boil",
+      "boils"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Choose the correct sentence.",
+     "options": [
+      "My mother cook dinner every evening.",
+      "My mother cooks dinner every evening.",
+      "My mother is cook dinner every evening.",
+      "My mother cooking dinner every evening."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: They usually ___ television after school.",
+     "options": [
+      "watches",
+      "is watching",
+      "watch",
+      "watched"
+     ],
+     "correct": 2
+    }
+   ]
+  },
+  {
+   "lesson_id": 232,
+   "title": "زمن المضارع المستمر",
+   "objective": "أن يعبّر الطالب عن حدث يجري الآن مستعملًا المضارع المستمر بصيغة الفعل be مع ing.",
+   "pass_mark": 4,
+   "questions": [
+    {
+     "title": "Complete: Look! The baby ___ .",
+     "options": [
+      "cry",
+      "cries",
+      "is cry",
+      "is crying"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: They ___ in the garden right now.",
+     "options": [
+      "are playing",
+      "play",
+      "is playing",
+      "plays"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: I ___ an interesting book at the moment.",
+     "options": [
+      "read",
+      "am reading",
+      "reading",
+      "reads"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: Sara ___ to music now.",
+     "options": [
+      "listen",
+      "listens",
+      "is listening",
+      "are listening"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Which sentence is correct?",
+     "options": [
+      "We are having lunch now.",
+      "We are have lunch now.",
+      "We having lunch now.",
+      "We is having lunch now."
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: What ___ you doing in the kitchen?",
+     "options": [
+      "do",
+      "is",
+      "does",
+      "are"
+     ],
+     "correct": 3
+    }
+   ]
+  },
+  {
+   "lesson_id": 233,
+   "title": "زمن الماضي البسيط",
+   "objective": "أن يعبّر الطالب عن أحداث ماضية منتهية مستعملًا الماضي البسيط في الإثبات والنفي والسؤال.",
+   "pass_mark": 4,
+   "questions": [
+    {
+     "title": "Complete: We ___ to the museum last Friday.",
+     "options": [
+      "go",
+      "goes",
+      "went",
+      "have gone"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: She ___ her homework yesterday evening.",
+     "options": [
+      "finish",
+      "finishs",
+      "finishing",
+      "finished"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: I ___ see my cousin last week.",
+     "options": [
+      "didn't",
+      "don't",
+      "wasn't",
+      "doesn't"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: ___ you visit Makkah last year?",
+     "options": [
+      "Do",
+      "Did",
+      "Was",
+      "Are"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Choose the sentence that is written correctly.",
+     "options": [
+      "He buyed a new bike last month.",
+      "He did bought a new bike last month.",
+      "He buy a new bike last month.",
+      "He bought a new bike last month."
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: Did Khalid ___ the match on TV?",
+     "options": [
+      "watch",
+      "watched",
+      "watches",
+      "watching"
+     ],
+     "correct": 0
+    }
+   ]
+  },
+  {
+   "lesson_id": 234,
+   "title": "الزمن الرابع: الماضي المستمر",
+   "objective": "أن يستعمل الطالب الماضي المستمر للتعبير عن حدث كان مستمرًّا في الماضي وربطه بحدث آخر قاطعه.",
+   "pass_mark": 4,
+   "questions": [
+    {
+     "title": "Complete: At 8 o'clock last night, I ___ dinner with my family.",
+     "options": [
+      "was have",
+      "was having",
+      "were having",
+      "am having"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: They ___ football when it started to rain.",
+     "options": [
+      "was playing",
+      "play",
+      "were playing",
+      "are playing"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: While Sara ___ , the phone rang.",
+     "options": [
+      "studies",
+      "study",
+      "was studied",
+      "was studying"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: What ___ you doing when I called you?",
+     "options": [
+      "were",
+      "did",
+      "are",
+      "was"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Which sentence is the correct one?",
+     "options": [
+      "The children were sleep when we arrived.",
+      "The children was sleeping when we arrived.",
+      "The children were sleeping when we arrived.",
+      "The children are sleeping when we arrived."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: I was reading a book while my sister ___ the piano.",
+     "options": [
+      "plays",
+      "was playing",
+      "play",
+      "is playing"
+     ],
+     "correct": 1
+    }
+   ]
+  },
+  {
+   "lesson_id": 296,
+   "title": "اختبار الوحدة الأولى",
+   "objective": "أن يبرهن الطالب إتقانه لأزمنة الوحدة بالتمييز بين المضارع البسيط والمضارع المستمر والماضي البسيط والماضي المستمر واستعمال كلٍّ منها في جمل جديدة.",
+   "pass_mark": 4,
+   "questions": [
+    {
+     "title": "Complete: \"Every day I ____ to school, but today I ____ the bus.\"",
+     "options": [
+      "walk — am taking",
+      "am walking — take",
+      "walk — take",
+      "am walking — am taking"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: \"My cousin ____ her book when the lights ____ off.\"",
+     "options": [
+      "read — went",
+      "was reading — was going",
+      "was reading — went",
+      "reads — goes"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "You want to ask your friend about last weekend. Which question is correct?",
+     "options": [
+      "Did you visited your grandmother?",
+      "Did you visit your grandmother?",
+      "Do you visited your grandmother?",
+      "Did you visiting your grandmother?"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: \"My father ____ the newspaper every morning.\"",
+     "options": [
+      "read",
+      "is reading",
+      "reading",
+      "reads"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Which sentence talks about something happening now?",
+     "options": [
+      "Sara plays tennis on Fridays.",
+      "Sara is playing tennis now.",
+      "Sara played tennis yesterday.",
+      "Sara was playing tennis at five."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Which word is wrong in this sentence: \"She were watching TV when I arrived.\"?",
+     "options": [
+      "were",
+      "watching",
+      "when",
+      "arrived"
+     ],
+     "correct": 0
+    }
+   ]
+  }
+ ]
+}
