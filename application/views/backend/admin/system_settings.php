@@ -133,6 +133,19 @@ $tq_yes = function ($key, $on = 'enable') { return get_settings($key) === $on; }
                        value="<?php echo html_escape(get_settings('phone')); ?>">
             </div>
 
+            <?php /* رقم واتساب — بطاقة «تواصل عبر واتساب» في صفحة
+                     «تواصل معنا» تقرأه: الفارغ يعرضها بحالة «قريبا» بلا
+                     رابط، والرقم يجعلها تفتح wa.me. ويخزن بصيغة دولية
+                     (`+<رمز الدولة><الرقم>`) لأن wa.me لا يقبل غيرها —
+                     `0560901853` يفتح محادثة مع رقم لا وجود له. */ ?>
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="social_whatsapp"><?php echo t('واتساب'); ?></label>
+                <input class="tqa-input tqa-input--ltr" type="tel" id="social_whatsapp" name="social_whatsapp"
+                       dir="ltr" placeholder="+966560901853"
+                       value="<?php echo html_escape(get_settings('social_whatsapp')); ?>">
+                <span class="tqa-field__hint"><?php echo t('مع رمز الدولة، والسعودي يقبل بصورته المحلية. اتركه فارغا لتظهر البطاقة بحالة «قريبا».'); ?></span>
+            </div>
+
             <div class="tqa-field tqa-field--full">
                 <label class="tqa-field__label" for="address"><?php echo t('العنوان'); ?></label>
                 <textarea class="tqa-textarea" id="address" name="address" rows="2"><?php

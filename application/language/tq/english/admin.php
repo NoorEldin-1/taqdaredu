@@ -292,6 +292,7 @@ return array(
     'اتركه فارغا لإبقاء الصورة الحالية' => 'Leave it empty to keep the current image',
     'اتركه فارغا لإبقاء الملف الحالي' => 'Leave it empty to keep the current file',
     'اتركه فارغا لتظهر الشارة بحالة «قريبا».' => 'Leave it empty for the badge to read "Soon".',
+    'مع رمز الدولة، والسعودي يقبل بصورته المحلية. اتركه فارغا لتظهر البطاقة بحالة «قريبا».' => 'With the country code; a Saudi number is accepted in its local form. Leave it empty for the card to read "Soon".',
     'اتركه فارغا ليأخذ الافتراض العام (' => 'Leave it empty to take the general default (',
     'اتركه فارغا ليبقى المحفوظ كما هو.' => 'Leave it empty to keep what is stored as it is.',
     'اتركه فارغا ليعرض اسم الملف المرفوع.' => 'Leave it empty to show the uploaded file\'s name.',
@@ -2111,4 +2112,5 @@ return array(
     'اتركه على «الإدارة» فيكون الكورس للمنصة، أو اختر معلما فيولد باسمه.' => 'Leave it on "the administration" and the course belongs to the platform, or pick a teacher and it is born under their name.',
     'من تختاره هنا يصير صاحب الكورس وصاحب برنامجه في «المواد والبرامج» معا — وبالثاني يقتسم وعاء الباقة، وبالأول تقيد له مبيعاته المفردة.' => 'Whoever you pick here becomes both the owner of the course and the owner of its programme under "Subjects and programmes" — the latter shares the plan pool, the former is credited with its single sales.',
     'افتح الملف في Drive للتأكد' => 'Open the file in Drive to check',
+    'واتساب' => 'WhatsApp',
 );

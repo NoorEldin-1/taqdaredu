@@ -426,6 +426,27 @@ class Crud_model extends CI_Model
             $this->db->update('settings', array('value' => $store_url));
         }
 
+        // رقم واتساب. تقرأه بطاقة «تواصل عبر واتساب» في صفحة التواصل عبر
+        // `tqs_whatsapp_href()`، وهي تبني `wa.me/<الأرقام>` — ورقم لا رمز
+        // دولة له يفتح محادثة مع رقم لا وجود له، بلا خطأ يظهر.
+        //
+        // والتسوية من `Taqdar_wa_model::to_e164()` وحدها: هي التي تسوي كل
+        // رقم يخرج منه واتساب في المنصة، وقاعدة ثانية هنا تفترق عنها عند
+        // أول تعديل فتقبل الشاشة ما ترده القناة. وما لا يكون رقما صالحا
+        // يفرغ، والتفريغ يعيد البطاقة إلى حالة «قريبا» — وهو مبدأ رابطي
+        // المتجرين فوق نفسه.
+        //
+        // ويكتب الصف إن لم يكن — `update` على مفتاح لا صف له لا يخطئ ولا
+        // يحفظ، فيحفظ المسؤول رقمه ويعود فيجد الحقل فارغا بلا سبب.
+        $this->load->model('taqdar_wa_model');
+        $wa = $this->taqdar_wa_model->to_e164($this->input->post('social_whatsapp'));
+        $wa = ($wa === '') ? '' : '+' . $wa;
+        $this->db->where('key', 'social_whatsapp');
+        $this->db->update('settings', array('value' => $wa));
+        if ($this->db->where('key', 'social_whatsapp')->count_all_results('settings') < 1) {
+            $this->db->insert('settings', array('key' => 'social_whatsapp', 'value' => $wa));
+        }
+
         $data['value'] = html_escape($this->input->post('youtube_api_key'));
         $this->db->where('key', 'youtube_api_key');
         $this->db->update('settings', $data);
