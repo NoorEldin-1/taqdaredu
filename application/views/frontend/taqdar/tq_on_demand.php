@@ -23,6 +23,19 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  *
  * ولا تقييمات ولا سنوات خبرة: لا عمود لها في taqd_lms، فلا تعرض أرقام
  * مخترعة بجوار اسم معلم حقيقي.
+ *
+ * ── TQ-SESSION-GRID — والمعروض مواعيد **صفه** ───────────────────────
+ *
+ * المعلم يدرس أكثر من صف، وصار يفتح لكل صف وقته. فلو عرضت المواعيد كلها
+ * لرأى طالب الثالث الابتدائي موعدا فتح لطلاب الرابع، فطلبه، فاعتذر عنه
+ * معلمه — وهو لم يخطئ ولا يعرف لماذا رد.
+ *
+ * والترشيح في `available_teachers()` أي في الاستعلام، لا هنا: نسختان من
+ * قاعدة واحدة تفترقان عند أول تعديل. وموعد بلا صف («كل الصفوف») يبقى
+ * معروضا للجميع كما كان — وهو صف كل ما فتح قبل اليوم.
+ *
+ * **والطالب بلا صف يرى الكل**: باب يرد من لا نعرف صفه ليس حراسة، وهو لم
+ * يخطئ — فيدعى إلى تحديد صفه بدل أن تفرغ الشاشة أمامه.
  */
 
 $tq_uid = (int) $this->session->userdata('user_id');
@@ -61,7 +74,10 @@ $f_subject = (string) $this->input->get('subject', true);
  * المعلمون المتاحون — من `availability_slots`: معلم له موعد مفتوح لم يمض،
  * ومعه مواعيده نفسها ليطلب أحدها مباشرة. من لا موعد له لا يظهر.
  */
-$tq_tutors = $tq_m->available_teachers(12, 6, (int) $f_subject);
+$tq_grade      = $tq_m->student_grade($tq_uid);
+$tq_grade_name = $tq_grade > 0 ? $tq_m->grade_name($tq_grade) : '';
+
+$tq_tutors = $tq_m->available_teachers(12, 6, (int) $f_subject, $tq_grade);
 
 /** حجوزات الطالب — من `tutoring_sessions` بحالاتها كما في القاعدة. */
 $tq_bookings = $tq_m->bookings_for_student($tq_uid);
@@ -178,6 +194,22 @@ include 'portal_open.php';
                 <?php endif; ?>
             </div>
 
+            <?php /* الترشيح يقال ولا يقع صامتا: شاشة تعرض ثلاثة مواعيد من
+                     عشرين بلا سطر يفسر ذلك تقرأ نقصا لا ترشيحا، ومن يسمع
+                     من زميله في صف آخر عن موعد لا يجده يظن الشاشة معطلة. */ ?>
+            <?php if ($tq_grade > 0): ?>
+                <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
+                    <?php echo t('هذه مواعيد ____ — صفك.', array('<strong>' . html_escape($tq_grade_name) . '</strong>')); ?>
+                    <?php echo t('والمعلم يفتح لكل صف وقته، فما تراه هنا وقت يقبلك فيه فعلا.'); ?>
+                </p>
+            <?php else: ?>
+                <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
+                    <?php echo t('لم يحدد صفك بعد، فتعرض لك مواعيد المعلمين كلها.'); ?>
+                    <a href="<?php echo base_url('student/settings'); ?>"><?php echo t('حدد صفك'); ?></a>
+                    <?php echo t('لترى مواعيد صفك وحدها.'); ?>
+                </p>
+            <?php endif; ?>
+
             <?php if (empty($tq_tutors)): ?>
                 <div class="tq-card">
                     <?php /* كان الزر «نبهني عند توفر معلم» يقود إلى الإعدادات، وليس في
@@ -195,6 +227,18 @@ include 'portal_open.php';
                             t('اختيارك وصل، ولا معلم فتح وقتا في هذه المادة بعد. اعرض كل المواد لترى من فتح وقته الآن، أو راسل معلم مادتك مباشرة.'),
                             t('اعرض كل المواد'),
                             base_url('student/on-demand') . '#tq-tutors'
+                        ); ?>
+                    <?php elseif ($tq_grade > 0): ?>
+                        <?php /* «لا معلم» و«لا معلم لصفك» جوابان مختلفان
+                                 لسؤالين مختلفين، والأول يقرأ عطلا لمن يعرف
+                                 أن في المنصة معلمين يفتحون أوقاتهم. */ ?>
+                        <?php echo tq_s_empty(
+                            'users', 'mint',
+                            t('لا معلم فتح وقتا لصفك بعد'),
+                            t('المعلم يفتح لكل صف وقته، ولم يفتح أحد وقتا لطلاب ') . $tq_grade_name
+                                . t(' في الأيام القادمة. راسل معلم مادتك مباشرة، أو عد بعد قليل.'),
+                            t('راسل معلمك'),
+                            base_url('student/messages')
                         ); ?>
                     <?php else: ?>
                         <?php echo tq_s_empty(
@@ -252,7 +296,25 @@ include 'portal_open.php';
                             <select class="tq-select" name="slot_id" id="tq-slot-<?php echo (int) $t['id']; ?>"
                                     style="flex:1;min-inline-size:16rem" required>
                                 <?php foreach ($t['slots'] as $sl): ?>
-                                    <option value="<?php echo (int) $sl['id']; ?>"><?php echo html_escape($sl['when_text']); ?></option>
+                                    <?php /* الصف يكتب في الخيار حين لا يكون
+                                             «كل الصفوف»: الطالب بلا صف محدد
+                                             يرى مواعيد صفوف شتى، وقائمة بلا
+                                             تمييز تجعله يطلب موعدا ليس له. */ ?>
+                                    <?php
+                                    /* المادة تكتب دائما: المعلم يفتح لأكثر من
+                                       مادة، وقائمة مواعيد بلا مادة تجعل الطالب
+                                       يحجز ليسأل في الرياضيات موعدا فتح للغة
+                                       العربية. والصف لا يكتب لمن يرى صفه وحده
+                                       — تكراره في كل سطر ضجيج لا خبر. */
+                                    $tq_tag = array();
+                                    if ((string) $sl['subject_name'] !== '') $tq_tag[] = $sl['subject_name'];
+                                    if ((int) $sl['grade_id'] > 0 && $tq_grade <= 0) $tq_tag[] = $sl['grade_name'];
+                                    ?>
+                                    <option value="<?php echo (int) $sl['id']; ?>">
+                                        <?php echo html_escape($sl['when_text']); ?><?php
+                                            if ($tq_tag) echo ' — ' . html_escape(implode(' · ', $tq_tag));
+                                        ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
 
@@ -343,6 +405,9 @@ include 'portal_open.php';
                                     <span class="tq-s-item__t tq-s-trunc"><?php echo html_escape($b['subject']); ?></span>
                                     <span class="tq-s-item__s tq-s-trunc"><?php echo html_escape($b['tutor']); ?></span>
                                     <span class="tq-s-item__s"><?php echo tq_iso($b['when_text']); ?></span>
+                                    <?php if ((int) $b['grade_id'] > 0): ?>
+                                        <span class="tq-s-item__s"><?php echo html_escape($b['grade_name']); ?></span>
+                                    <?php endif; ?>
                                 </span>
                                 <?php echo tq_badge($badge[0], $badge[1]); ?>
                             </div>

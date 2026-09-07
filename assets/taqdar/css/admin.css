@@ -3960,3 +3960,18 @@ body.tqa .input-group > .tqa-sel > .tqa-sel__btn { border-radius: var(--tqa-radi
 /* الصندوق داخل النافذة الموروثة: لوحه فوقها (١٤٠٠ مقابل ١٠٥٠)، وبلا
    ذلك يفتح تحتها فلا يرى منه شيء. وهو مكتوب في الورقة أصلا، وهذا
    توثيقه لا تكراره. */
+
+/* TQ-SESSION-GRID — قواعد المعلم الأسبوعية داخل خلية «فسحاته».
+   قائمة لا جدول ثان: السطر ثلاث قطع قصيرة (يوم · ساعتان · صف) وجدول لها
+   يضيف ثلاثة أعمدة إلى شاشة تمرر أفقيا أصلا. والسطر لا يلتف: «١٠:٠٠ –
+   ١٤:٠٠» مقطوعة على سطرين تقرأ رقمين لا مدى. */
+.tqa-winlist {
+  list-style: none; margin: var(--tq-space-s) 0 0; padding: 0;
+  display: grid; gap: 4px;
+}
+.tqa-winlist li {
+  display: flex; align-items: center; gap: var(--tq-space-s);
+  flex-wrap: wrap; font: var(--tq-type-caption);
+}
+.tqa-winlist .tqa-cell__main { font-weight: 700; }
+.tqa-winlist .tqa-mono { white-space: nowrap; }

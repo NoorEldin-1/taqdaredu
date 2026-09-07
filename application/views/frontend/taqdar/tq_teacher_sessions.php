@@ -15,8 +15,37 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  * `session_requests` — فبقيت الشاشة فارغة والجدولان أمامها. التسمية الآن
  * تتبع القاعدة، والشبكة تحفظ فعلا.
  *
- * والشبكة أسبوعية بينما العمود موعد بعينه: مفتاح «اليوم:الفترة» يترجم في
- * النموذج إلى أقرب وقوع قادم، فلا يحفظ للمعلم موعد في الماضي.
+ * ── TQ-SESSION-GRID — الوقت ساعة يكتبها، والصف جزء منه ──────────────
+ *
+ * كانت الشاشة شبكة خانات: ثلاث فترات ثابتة في سبعة أيام، يعلم المعلم ما
+ * يقبله. وهي تخطئ في اثنتين:
+ *
+ *   ١ — **الفترة ليست وقته.** «مساء» خمس ساعات من الرابعة إلى التاسعة،
+ *       ومن يعمل من العاشرة صباحا إلى الثانية ظهرا لا يجد خانة تقول ذلك:
+ *       يعلم «صباحا» و«ظهرا» فيفتح من الثامنة إلى الرابعة — ست ساعات لم
+ *       يردها، ويصله طلب في وقت لا يعمل فيه.
+ *   ٢ — **المعلم يدرس أكثر من صف.** ومن يعطي الثالث الابتدائي صباحا
+ *       والرابع عصرا لا يستطيع أن يقول ذلك أصلا، فيصل الطلبان مختلطين
+ *       ولا يعرف الطالب أي موعد له.
+ *
+ * فصارت الأوقات **سطورا**: يوم، ومن، وإلى، وصف. وكل سطر قاعدة أسبوعية
+ * دائمة في `tq_teacher_windows`، تفرش مواعيد بطول الحصة في الأيام القادمة
+ * ويتجدد فرشها كل ساعة — فلا تنفد الشبكة بعد أسبوع من آخر حفظ.
+ *
+ * والصف هو ما يجعل الطالب يرى **مواعيد صفه وحدها**.
+ *
+ * **وصفوف المعلم ومواده صفوف كورساته ومواده وحدها** — لا كل ما في
+ * المنصة: الحصة شرح لمنهج صف بعينه في مادة بعينها، ومن يفتح وقتا لما لا
+ * يدرسه يجلس ساعة مع طالب لا يفيده فيها وقد قبض ثمنها. فالمنتقيان لا
+ * يعرضان إلا ما له فيه كورس، ومن لا كورس له لا يفتح وقتا أصلا ويقال له
+ * لماذا وما الطريق.
+ *
+ * **والمادة تتبع الصف**: معلم له رياضيات الثالث ولغة عربية الرابع لا
+ * تعرض له «رياضيات» حين يختار الرابع — والحكم في `teacher_scope()`
+ * (أزواج صف/مادة)، والسكربت يضيق القائمة من الوصف نفسه الذي يفحص به
+ * الخادم. فلا قاعدتان تفترقان.
+ * (والمواعيد التي فتحت قبل هذا التغيير تحمل صفر — «كل الصفوف» — فتبقى
+ * معروضة للجميع كما كانت، ولا يكتب صفر جديد.)
  *
  * الأسبوع يبدأ الأحد — السوق سعودي.
  */
@@ -49,9 +78,11 @@ $tq_unpaid    = $tq_m->requests_for_teacher($tq_uid, ['awaiting_payment']);
 $tq_confirmed = $tq_m->requests_for_teacher($tq_uid, ['confirmed', 'live']);
 $tq_done      = $tq_m->requests_for_teacher($tq_uid, ['completed'], 10);
 
-$tq_saved_slots = $tq_m->week_keys($tq_uid);
-$tq_days        = $tq_m->days();
-$tq_periods     = $tq_m->periods();
+$tq_windows = $tq_m->windows_for($tq_uid);
+$tq_days    = $tq_m->days();
+$tq_scope   = $tq_m->teacher_scope($tq_uid);
+$tq_grades  = $tq_scope['grades'];
+$tq_subs    = $tq_scope['subjects'];
 
 $tq_cfg     = $tq_m->config();
 $tq_pricing = $tq_m->pricing_for($tq_uid);
@@ -104,6 +135,13 @@ include 'portal_open.php';
                                     <div style="flex:1;min-inline-size:0">
                                         <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_r['student_name']); ?></p>
                                         <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_r['when_text']); ?></p>
+                                        <?php /* المادة مع الصف: المعلم يفتح لأكثر من مادة، وسطر بلا
+                                                 مادة يترك من يقرأ طلبه لا يعرف في أي مادة يحضر. */ ?>
+                                        <?php $tq_tag = array_filter(array((string) ($tq_r['subject_name'] ?? ''),
+                                            (int) $tq_r['grade_id'] > 0 ? $tq_r['grade_name'] : '')); ?>
+                                        <?php if ($tq_tag): ?>
+                                            <p class="tq-micro" style="margin:0"><?php echo html_escape(implode(' · ', $tq_tag)); ?></p>
+                                        <?php endif; ?>
                                         <?php if ($tq_r['price'] > 0): ?>
                                             <?php /* ثمن هذا الطلب بعينه لا ثمن اليوم: السعر يجمد على
                                                      الحصة وقت طلبها، فتعديل الإدارة للتسعيرة بعده لا
@@ -200,6 +238,13 @@ include 'portal_open.php';
                                 <div style="flex:1;min-inline-size:0">
                                     <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_c['student_name']); ?></p>
                                     <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_c['when_text']); ?></p>
+                                    <?php /* المادة مع الصف: المعلم يفتح لأكثر من مادة، وسطر بلا
+                                             مادة يترك من يقرأ طلبه لا يعرف في أي مادة يحضر. */ ?>
+                                    <?php $tq_tag = array_filter(array((string) ($tq_c['subject_name'] ?? ''),
+                                        (int) $tq_c['grade_id'] > 0 ? $tq_c['grade_name'] : '')); ?>
+                                    <?php if ($tq_tag): ?>
+                                        <p class="tq-micro" style="margin:0"><?php echo html_escape(implode(' · ', $tq_tag)); ?></p>
+                                    <?php endif; ?>
                                     <?php if ($tq_c['pay_deadline']): ?>
                                         <p class="tq-micro" style="margin:0">
                                             <?php echo t('مهلة الدفع حتى'); ?>
@@ -239,6 +284,13 @@ include 'portal_open.php';
                                     <div style="flex:1;min-inline-size:0">
                                         <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_c['student_name']); ?></p>
                                         <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_c['when_text']); ?></p>
+                                        <?php /* المادة مع الصف: المعلم يفتح لأكثر من مادة، وسطر بلا
+                                                 مادة يترك من يقرأ طلبه لا يعرف في أي مادة يحضر. */ ?>
+                                        <?php $tq_tag = array_filter(array((string) ($tq_c['subject_name'] ?? ''),
+                                            (int) $tq_c['grade_id'] > 0 ? $tq_c['grade_name'] : '')); ?>
+                                        <?php if ($tq_tag): ?>
+                                            <p class="tq-micro" style="margin:0"><?php echo html_escape(implode(' · ', $tq_tag)); ?></p>
+                                        <?php endif; ?>
                                         <?php if ($tq_c['meet_url'] !== ''): ?>
                                             <p class="tq-micro tq-s-trunc" style="margin:0" dir="ltr">
                                                 <?php echo html_escape($tq_c['meet_url']); ?>
@@ -314,6 +366,13 @@ include 'portal_open.php';
                                 <div style="flex:1;min-inline-size:0">
                                     <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_c['student_name']); ?></p>
                                     <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_c['when_text']); ?></p>
+                                    <?php /* المادة مع الصف: المعلم يفتح لأكثر من مادة، وسطر بلا
+                                             مادة يترك من يقرأ طلبه لا يعرف في أي مادة يحضر. */ ?>
+                                    <?php $tq_tag = array_filter(array((string) ($tq_c['subject_name'] ?? ''),
+                                        (int) $tq_c['grade_id'] > 0 ? $tq_c['grade_name'] : '')); ?>
+                                    <?php if ($tq_tag): ?>
+                                        <p class="tq-micro" style="margin:0"><?php echo html_escape(implode(' · ', $tq_tag)); ?></p>
+                                    <?php endif; ?>
                                 </div>
                                 <?php if ($tq_c['price'] > 0): ?>
                                     <span class="tq-micro" style="text-align:center">
@@ -329,61 +388,166 @@ include 'portal_open.php';
         <?php endif; ?>
 
         <!-- الأوقات المتاحة: الأسبوع يبدأ الأحد -->
+        <?php
+        /* صف الجدول — يطبع مرة للمحفوظ ومرة للقالب الفارغ الذي يستنسخه
+           الزر. ودالة واحدة لأن نسختين تفترقان عند أول حقل يضاف: يظهر في
+           السطر المحفوظ ولا يظهر في المضاف، فيحفظ المعلم سطرا ناقصا. */
+        $tq_win_row = function ($w = null) use ($tq_days, $tq_grades, $tq_subs, $tq_scope, $tq_m, $tq_cfg) {
+            $dow = $w ? (int) $w['dow'] : '';
+            ob_start(); ?>
+            <tr class="tq-winrow">
+                <td data-label="<?php echo te('يوم الأسبوع'); ?>">
+                    <label class="tq-sr"><?php echo t('يوم الأسبوع'); ?></label>
+                    <select class="tq-select" name="win_dow[]" data-tq-row-req>
+                        <option value=""><?php echo t('— اختر يوما'); ?></option>
+                        <?php foreach ($tq_days as $tq_di => $tq_dn): ?>
+                            <option value="<?php echo (int) $tq_di; ?>"
+                                <?php echo ($dow !== '' && (int) $dow === (int) $tq_di) ? 'selected' : ''; ?>>
+                                <?php echo html_escape($tq_dn); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+                <td data-label="<?php echo te('من الساعة'); ?>">
+                    <label class="tq-sr"><?php echo t('من الساعة'); ?></label>
+                    <input class="tq-input" type="time" dir="ltr" name="win_from[]" data-tq-row-req
+                           value="<?php echo $w ? html_escape($w['from_text']) : ''; ?>">
+                </td>
+                <td data-label="<?php echo te('إلى الساعة'); ?>">
+                    <label class="tq-sr"><?php echo t('إلى الساعة'); ?></label>
+                    <input class="tq-input" type="time" dir="ltr" name="win_to[]" data-tq-row-req
+                           value="<?php echo $w ? html_escape($w['to_text']) : ''; ?>">
+                </td>
+                <td data-label="<?php echo te('الصف'); ?>">
+                    <label class="tq-sr"><?php echo t('الصف'); ?></label>
+                    <?php /* بلا «كل الصفوف»: خيار يفتح الوقت لكل من في
+                             المنصة يجعل معلم الرابع الابتدائي يستقبل طالبا
+                             في الثالث المتوسط. والوقت القديم بصفر يعرض
+                             «— اختر صفا» فيقرأ صاحبه أن عليه أن يختار. */ ?>
+                    <select class="tq-select" name="win_grade[]" data-tq-row-req data-tq-row-grade>
+                        <option value="0"><?php echo t('— اختر صفا'); ?></option>
+                        <?php foreach ($tq_grades as $tq_gid => $tq_gname): ?>
+                            <option value="<?php echo (int) $tq_gid; ?>"
+                                <?php echo ($w && (int) $w['grade_id'] === (int) $tq_gid) ? 'selected' : ''; ?>>
+                                <?php echo html_escape($tq_gname); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+                <?php /* المادة بجوار الصف: المعلم يدرس أكثر من مادة، ومن
+                         يفتح «الأحد ١٠–٢ للثالث» بلا مادة يستقبل طالبا جاء
+                         يسأل في غير مادته. والقائمة تضيق بالصف المختار
+                         (`data-tq-grade`) بالوصف نفسه الذي يفحص به الخادم. */ ?>
+                <td data-label="<?php echo te('المادة'); ?>">
+                    <label class="tq-sr"><?php echo t('المادة'); ?></label>
+                    <select class="tq-select" name="win_subject[]" data-tq-row-req data-tq-row-subject>
+                        <option value="0"><?php echo t('— اختر مادة'); ?></option>
+                        <?php foreach ($tq_subs as $tq_sid => $tq_sname): ?>
+                            <?php /* الصفوف التي تدرس فيها هذه المادة تكتب على
+                                     الخيار، فيخفيها السكربت متى اختير غيرها.
+                                     وبلا سكربت تبقى معروضة ويرد الخادم بخطأ
+                                     يسمي الصف والمادة — لا رفض صامت. */ ?>
+                            <?php
+                            $tq_for = array();
+                            foreach ($tq_scope['pairs'] as $tq_pg => $tq_ps) {
+                                if (isset($tq_ps[$tq_sid])) $tq_for[] = (int) $tq_pg;
+                            }
+                            ?>
+                            <option value="<?php echo (int) $tq_sid; ?>"
+                                    data-tq-grades="<?php echo html_escape(implode(',', $tq_for)); ?>"
+                                <?php echo ($w && (int) $w['subject_id'] === (int) $tq_sid) ? 'selected' : ''; ?>>
+                                <?php echo html_escape($tq_sname); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+                <?php /* عدد المواعيد يقرأ قبل الحفظ: «من ١٠ إلى ٢» أربع
+                         ساعات تعني أربعة طلاب لا طالبا واحدا، ومن لا يقرأ
+                         الرقم يظن أنه فتح موعدا فيرد ثلاثة. */ ?>
+                <td class="tq-winrow__n" data-label="<?php echo te('مواعيد'); ?>">
+                    <span class="tq-micro" data-tq-row-count>
+                        <?php echo $w ? tq_iso((string) (int) $w['slots']) : '—'; ?>
+                    </span>
+                </td>
+                <td class="tq-winrow__x">
+                    <button type="button" class="tq-btn tq-btn--ghost tq-btn--sm" data-tq-row-del
+                            aria-label="<?php echo te('احذف هذا الوقت'); ?>">
+                        <?php echo tq_icon('close', 14); ?>
+                    </button>
+                </td>
+            </tr>
+            <?php return ob_get_clean();
+        };
+        ?>
         <form class="tq-card tq-card--panel" method="post"
               action="<?php echo base_url('teacher/sessions/save'); ?>">
             <?php echo tq_csrf(); ?>
             <fieldset style="border:0;padding:0;margin:0">
                 <legend class="tq-h2" style="padding:0"><?php echo t('أوقاتي المتاحة'); ?></legend>
                 <p class="tq-caption">
-                    <?php echo t('اختر الفترات التي تقبل فيها حصصا خاصة. الطالب لا يرى غيرها، فلا يصلك طلب في وقت لا تعمل فيه. والاختيار يسري على الأيام السبعة القادمة، وما حجز منه لا يلغى برفع العلامة — بل بالاعتذار عن طلبه.'); ?>
+                    <?php echo t('اكتب ساعات عملك يوما بيوم — من الساعة كذا إلى الساعة كذا. الطالب لا يرى غيرها، فلا يصلك طلب في وقت لا تعمل فيه. والأوقات أسبوعية دائمة: تكتب مرة وتتكرر كل أسبوع حتى تغيرها.'); ?>
                 </p>
-                <?php /* الفترة إتاحة لا حصة: «مساء» خمس ساعات، وكان اختيارها
-                         يولد موعدا واحدا يحجزه طالب فيقفلها كلها — فيرد أربعة
-                         طلاب على وقت هو فارغ. وصارت تفرش إلى مواعيد بطول الحصة. */ ?>
+                <?php /* الوقت إتاحة لا حصة: يفرش إلى مواعيد بطول الحصة
+                         يحجزها طلاب مختلفون، لا موعدا واحدا يشغله كلها. */ ?>
                 <p class="tq-caption">
-                    <strong><?php echo t('كل فترة تفرش إلى مواعيد بطول'); ?>
-                    <?php echo tq_iso($tq_cfg['minutes'] . t(' دقيقة')); ?></strong> <?php echo t('— فترة «مساء» مثلا تعطي ____ يحجزها طلاب مختلفون، لا موعدا واحدا يشغلها كلها. ومدة الحصة تحددها الإدارة.', array(tq_iso((string) max(1, intdiv(300, $tq_cfg['minutes'])) . t(' مواعيد')))); ?>
+                    <strong><?php echo t('كل وقت يفرش إلى مواعيد بطول'); ?>
+                    <?php echo tq_iso($tq_cfg['minutes'] . t(' دقيقة')); ?></strong>
+                    <?php echo t('— فمن العاشرة إلى الثانية يعطي ____ يحجزها طلاب مختلفون. ومدة الحصة تحددها الإدارة.', array(tq_iso((string) max(1, intdiv(240, max(1, $tq_cfg['minutes']))) . t(' مواعيد')))); ?>
+                </p>
+                <?php /* الصف هو نصف التغيير: من يدرس صفين في يوم واحد
+                         يفتح لكل صف وقته، فيرى طالب الثالث مواعيد الثالث
+                         وحدها ولا يطلب موعدا سيعتذر عنه معلمه. */ ?>
+                <p class="tq-caption">
+                    <strong><?php echo t('ولكل وقت صفه'); ?></strong>
+                    <?php echo t('— الطالب لا يرى إلا مواعيد صفه هو.'); ?>
+                    <?php /* الصفوف المعروضة ليست صفوف المنصة: هي صفوف كورساته.
+                             وقولها هنا يمنع سؤال «أين بقية الصفوف؟». */ ?>
+                    <?php echo t('والصفوف والمواد المعروضة هي صفوف كورساتك وموادها وحدها — الحصة شرح لمنهج صف بعينه في مادة بعينها. والمادة تتبع الصف الذي تختاره.'); ?>
                 </p>
 
-                <div style="overflow-x:auto">
-                    <div class="tq-table-wrap">
-                        <table class="tq-table">
-                            <caption class="tq-sr"><?php echo t('أوقاتك المتاحة في أيام الأسبوع'); ?></caption>
-                            <thead>
-                                <tr>
-                                    <th scope="col"><?php echo t('اليوم'); ?></th>
-                                    <?php foreach ($tq_periods as $tq_pk => $tq_p): ?>
-                                        <th scope="col">
-                                            <?php echo html_escape($tq_p['label']); ?>
-                                            <span class="tq-micro" style="display:block"><?php echo tq_iso($tq_p['range']); ?></span>
-                                        </th>
-                                    <?php endforeach; ?>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($tq_days as $tq_di => $tq_day): ?>
-                                    <tr>
-                                        <th scope="row" style="text-align:start;padding:var(--tq-space-m) var(--tq-space-l)">
-                                            <?php echo html_escape($tq_day); ?>
-                                        </th>
-                                        <?php foreach ($tq_periods as $tq_pk => $tq_p): ?>
-                                            <?php $tq_id = 'slot-' . $tq_di . '-' . $tq_pk; ?>
-                                            <td data-label="<?php echo html_escape($tq_day . ' ' . $tq_p['label']); ?>">
-                                                <span class="tq-row" style="gap:var(--tq-space-s)">
-                                                    <input type="checkbox" id="<?php echo $tq_id; ?>"
-                                                           name="slots[]" value="<?php echo $tq_di . ':' . $tq_pk; ?>"
-                                                           <?php echo in_array($tq_di . ':' . $tq_pk, $tq_saved_slots, true) ? 'checked' : ''; ?>>
-                                                    <label class="tq-micro" for="<?php echo $tq_id; ?>">
-                                                        <?php echo html_escape($tq_day . ' ' . $tq_p['label']); ?>
-                                                    </label>
-                                                </span>
-                                            </td>
-                                        <?php endforeach; ?>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                <?php /* معلم بلا صف: الشاشة تقول السبب والطريق ولا تعرض
+                         جدولا يحفظ فيه ما يرده الخادم. وجدول يقبل الكتابة
+                         ثم يرد كل حفظ يقرأ عطلا. */ ?>
+                <?php if (!$tq_grades || !$tq_subs): ?>
+                    <div class="tq-pastel tq-pastel--peach">
+                        <span class="tq-pastel__label tq-micro"><?php echo t('لا نطاق لك بعد'); ?></span>
+                        <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
+                            <?php echo t('أوقات الحصص تفتح لصف بعينه في مادة بعينها، وصفوفك وموادك تشتق من كورساتك — ولا كورس لك بعد. افتح كورسا في صفك ومادتك، أو راجع الإدارة لتسند إليك نطاقك، ثم عد إلى هذه الشاشة.'); ?>
+                        </p>
+                        <a class="tq-btn tq-btn--secondary tq-btn--sm" style="margin-block-start:var(--tq-space-m)"
+                           href="<?php echo base_url('teacher/courses'); ?>"><?php echo t('كورساتي'); ?></a>
                     </div>
+                <?php else: ?>
+
+                <div class="tq-table-wrap" data-tq-rows data-tq-row-min="<?php echo (int) $tq_cfg['minutes']; ?>">
+                    <table class="tq-table tq-table--rows">
+                        <caption class="tq-sr"><?php echo t('أوقاتك المتاحة في أيام الأسبوع'); ?></caption>
+                        <thead>
+                            <tr>
+                                <th scope="col"><?php echo t('يوم الأسبوع'); ?></th>
+                                <th scope="col"><?php echo t('من الساعة'); ?></th>
+                                <th scope="col"><?php echo t('إلى الساعة'); ?></th>
+                                <th scope="col"><?php echo t('الصف'); ?></th>
+                                <th scope="col"><?php echo t('المادة'); ?></th>
+                                <th scope="col" class="tq-winrow__n"><?php echo t('مواعيد'); ?></th>
+                                <th scope="col"><span class="tq-sr"><?php echo t('حذف'); ?></span></th>
+                            </tr>
+                        </thead>
+                        <tbody data-tq-rows-body>
+                            <?php foreach ($tq_windows as $tq_w) echo $tq_win_row($tq_w); ?>
+                            <?php /* سطر فارغ دائما في الذيل: بلا جافاسكربت
+                                     يبقى للشاشة باب واحد يضاف منه وقت. */ ?>
+                            <?php echo $tq_win_row(null); ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <template data-tq-row-tpl><?php echo $tq_win_row(null); ?></template>
+
+                <div class="tq-row" style="gap:var(--tq-space-m);flex-wrap:wrap;margin-block-start:var(--tq-space-l)">
+                    <button class="tq-btn tq-btn--secondary tq-btn--sm" type="button" data-tq-row-add>
+                        <?php echo tq_icon('plus', 16); ?> <?php echo t('أضف وقتا'); ?>
+                    </button>
                 </div>
 
                 <button class="tq-btn tq-btn--primary" type="submit" style="margin-block-start:var(--tq-space-xl)"
@@ -391,8 +555,11 @@ include 'portal_open.php';
                     <?php echo t('حفظ أوقاتي'); ?>
                 </button>
                 <p class="tq-field__msg tq-field__hint" id="tq-slots-note" style="margin-block-start:var(--tq-space-m)">
-                    <?php echo t('الحفظ فوري: كل فترة تختارها تصير موعدا يراه الطالب في «حصص بالطلب».'); ?>
+                    <?php /* الحفظ استبدال لا إضافة، وقولها هنا يمنع أن يفرغ
+                             المعلم السطور ظانا أنه «لم يغير شيئا». */ ?>
+                    <?php echo t('الحفظ يستبدل قائمتك كلها: ما يبقى في الجدول هو أوقاتك، وما حذفت منه يغلق. وما حجزه طالب فعلا لا يغلق برفعه من هنا — بل بالاعتذار عن طلبه.'); ?>
                 </p>
+                <?php endif; /* $tq_grades && $tq_subs — بلا نطاق لا جدول ولا زر حفظ */ ?>
             </fieldset>
         </form>
     </div>
@@ -456,6 +623,10 @@ include 'portal_open.php';
                 <li class="tq-row tq-row--between">
                     <span class="tq-caption"><?php echo t('حصص انتهت'); ?></span>
                     <?php echo tq_num($tq_sum['done']); ?>
+                </li>
+                <li class="tq-row tq-row--between">
+                    <span class="tq-caption"><?php echo t('أوقات أسبوعية'); ?></span>
+                    <?php echo tq_num($tq_sum['windows']); ?>
                 </li>
                 <li class="tq-row tq-row--between">
                     <span class="tq-caption"><?php echo t('مواعيد مفتوحة'); ?></span>

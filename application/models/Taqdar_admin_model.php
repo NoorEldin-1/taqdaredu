@@ -2117,7 +2117,8 @@ class Taqdar_admin_model extends CI_Model
            أخذ ماذا» أول ما يسأل عنه من يفتح هذه الشاشة، واستعلام ثان لكل
            صف يجعل ثلاثمئة صف ثلاثمئة استعلام. */
         return $this->safe_rows(
-            'SELECT s.*, sl.`starts_at`, sl.`duration_min`,
+            'SELECT s.*, sl.`starts_at`, sl.`duration_min`, sl.`grade_id`, sl.`subject_id`,
+                    g.`name_ar` grade_name, sj.`name_ar` subject_name,
                     TRIM(CONCAT(COALESCE(st.`first_name`,""), " ", COALESCE(st.`last_name`,""))) student_name,
                     st.`email` student_email,
                     TRIM(CONCAT(COALESCE(te.`first_name`,""), " ", COALESCE(te.`last_name`,""))) teacher_name,
@@ -2125,6 +2126,8 @@ class Taqdar_admin_model extends CI_Model
                     i.`invoice_no`, i.`status` invoice_status, i.`total` invoice_total
                FROM `tutoring_sessions` s
                LEFT JOIN `availability_slots` sl ON sl.`id` = s.`slot_id`
+               LEFT JOIN `grades` g ON g.`id` = sl.`grade_id`
+               LEFT JOIN `subjects` sj ON sj.`id` = sl.`subject_id`
                LEFT JOIN `users` st ON st.`id` = s.`student_id`
                LEFT JOIN `users` te ON te.`id` = s.`teacher_id`
                LEFT JOIN `objectives` o ON o.`id` = s.`context_objective_id`
@@ -2243,13 +2246,44 @@ class Taqdar_admin_model extends CI_Model
 
     public function slots()
     {
+        /* TQ-SESSION-GRID — والصف يقرأ مع الفسحة: «لماذا لا يرى طالبي هذا
+           الموعد؟» جوابه الصف في أكثر الحالات، وشاشة لا تقوله تترك المسؤول
+           يقلب في القاعدة. و`LEFT JOIN` لا `INNER`: فسحة بصفر لا صف لها
+           («كل الصفوف») وضم داخلي يمحوها من الشاشة كلها. */
         return $this->safe_rows(
-            'SELECT sl.*, TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) teacher_name
+            'SELECT sl.*, g.`name_ar` grade_name, sj.`name_ar` subject_name,
+                    TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) teacher_name
                FROM `availability_slots` sl
                LEFT JOIN `users` u ON u.`id` = sl.`teacher_id`
+               LEFT JOIN `grades` g ON g.`id` = sl.`grade_id`
+               LEFT JOIN `subjects` sj ON sj.`id` = sl.`subject_id`
               WHERE sl.`starts_at` >= DATE_SUB(NOW(), INTERVAL 7 DAY)
               ORDER BY sl.`starts_at` ASC LIMIT 300'
         );
+    }
+
+    /**
+     * قواعد الأسبوع لكل معلم — «ما الذي كتبه بيده؟».
+     *
+     * والفسحات حاصل يتجدد كل ساعة، فعدها لا يقول ما فتحه المعلم: «٣٦ فسحة»
+     * رقم يتحرك وحده، و«الأحد ١٠:٠٠ إلى ١٤:٠٠ للثالث الابتدائي» هو ما
+     * كتب. ومن يريد أن يفهم لماذا لا تظهر مواعيد لصف بعينه يقرأ هذا لا ذاك.
+     */
+    public function teacher_windows()
+    {
+        $rows = $this->safe_rows(
+            'SELECT w.*, g.`name_ar` grade_name, sj.`name_ar` subject_name,
+                    TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) teacher_name
+               FROM `tq_teacher_windows` w
+               LEFT JOIN `users` u ON u.`id` = w.`teacher_id`
+               LEFT JOIN `grades` g ON g.`id` = w.`grade_id`
+               LEFT JOIN `subjects` sj ON sj.`id` = w.`subject_id`
+              ORDER BY teacher_name ASC, w.`dow` ASC, w.`start_min` ASC LIMIT 500'
+        );
+
+        $out = array();
+        foreach ($rows as $r) $out[(int) $r['teacher_id']][] = $r;
+        return $out;
     }
 
     /**
@@ -2265,7 +2299,8 @@ class Taqdar_admin_model extends CI_Model
             'SELECT u.`id`, TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) name,
                     u.`email`, u.`tq_session_price`, u.`tq_session_percent`,
                     COALESCE(SUM(CASE WHEN sl.`status` = "open"   AND sl.`starts_at` >= NOW() THEN 1 ELSE 0 END), 0) open_slots,
-                    COALESCE(SUM(CASE WHEN sl.`status` = "booked" AND sl.`starts_at` >= NOW() THEN 1 ELSE 0 END), 0) booked_slots
+                    COALESCE(SUM(CASE WHEN sl.`status` = "booked" AND sl.`starts_at` >= NOW() THEN 1 ELSE 0 END), 0) booked_slots,
+                    (SELECT COUNT(*) FROM `tq_teacher_windows` w WHERE w.`teacher_id` = u.`id`) windows
                FROM `users` u
                LEFT JOIN `availability_slots` sl ON sl.`teacher_id` = u.`id`
               WHERE u.`is_instructor` = 1

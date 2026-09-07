@@ -394,4 +394,102 @@
     if (box.scrollHeight <= box.clientHeight) return;   /* لا تمرير أصلا */
     box.scrollTop = box.scrollHeight;
   });
+
+  /* ---- TQ-SESSION-GRID — جدول سطور تضاف وتحذف ------------------------
+     أوقات المعلم سطور لا خانات، وعددها لا يعرف مقدما. والقالب في
+     `<template>` يطبعه الخادم من الدالة نفسها التي تطبع السطر المحفوظ —
+     فنسخة ثانية من الوسم في هذا الملف تفترق عن أختها عند أول حقل يضاف.
+
+     **والصفحة تعمل بلا هذا الملف**: الخادم يطبع سطرا فارغا في الذيل
+     دائما، فمن تعثر عنده السكربت يضيف وقتا واحدا في كل حفظ ولا يقف. */
+  $$('[data-tq-rows]').forEach(function (box) {
+    var body = $('[data-tq-rows-body]', box);
+    var tpl  = box.parentNode ? $('[data-tq-row-tpl]', box.parentNode) : null;
+    if (!body) return;
+
+    var len = parseInt(box.getAttribute('data-tq-row-min'), 10) || 0;
+
+    /* عدد المواعيد يحسب في المتصفح بالقاعدة نفسها التي يحسب بها الخادم
+       (`layout()`): طرح، ثم قسمة صحيحة على مدة الحصة. ورقم يحسب هنا مرة
+       وهناك مرة يجعل الشاشة تعد بأربعة والقاعدة تفرش ثلاثة. */
+    function toMin(v) {
+      var m = /^([0-9]{1,2}):([0-9]{2})/.exec(v || '');
+      return m ? (parseInt(m[1], 10) * 60 + parseInt(m[2], 10)) : null;
+    }
+
+    function count(row) {
+      var cell = $('[data-tq-row-count]', row);
+      if (!cell) return;
+      var a = toMin((row.querySelector('[name="win_from[]"]') || {}).value);
+      var b = toMin((row.querySelector('[name="win_to[]"]') || {}).value);
+      if (a === null || b === null || b <= a || !len) { cell.textContent = '—'; return; }
+      cell.textContent = String(Math.floor((b - a) / len));
+    }
+
+    /* المادة تتبع الصف: خيار المادة يحمل صفوفه في `data-tq-grades`، فما
+       لا يدرس لهذا الصف يخفى ويفرغ اختياره إن كان مختارا. والوصف يطبعه
+       الخادم من `teacher_scope()` نفسها التي يفحص بها الحفظ — فلا قاعدة
+       ثانية هنا تفترق عنها عند أول تعديل.
+       وبلا هذا الملف تبقى القائمة كاملة ويرد الخادم بخطأ يسمي الصف
+       والمادة: أضيق مما ينبغي أفضل من رفض صامت، وكلاهما مقول. */
+    function narrow(row) {
+      var g = row.querySelector('[data-tq-row-grade]');
+      var sub = row.querySelector('[data-tq-row-subject]');
+      if (!g || !sub) return;
+      var gid = String(g.value || '0');
+      var keep = false;
+      Array.prototype.forEach.call(sub.options, function (o) {
+        if (!o.value || o.value === '0') return;
+        var list = (o.getAttribute('data-tq-grades') || '').split(',');
+        var ok = gid === '0' || list.indexOf(gid) !== -1;
+        o.hidden = !ok;
+        o.disabled = !ok;
+        if (ok && o.selected) keep = true;
+      });
+      if (!keep) sub.value = '0';
+    }
+
+    function wire(row) { count(row); narrow(row); }
+
+    $$('tr', body).forEach(wire);
+
+    box.addEventListener('input', function (e) {
+      var row = e.target.closest ? e.target.closest('tr') : null;
+      if (!row) return;
+      count(row);
+      if (e.target.hasAttribute && e.target.hasAttribute('data-tq-row-grade')) narrow(row);
+    });
+    /* `change` لا `input` وحده: بعض المتصفحات لا ترفع `input` من `<select>`. */
+    box.addEventListener('change', function (e) {
+      var row = e.target.closest ? e.target.closest('tr') : null;
+      if (row && e.target.hasAttribute && e.target.hasAttribute('data-tq-row-grade')) narrow(row);
+    });
+
+    box.addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('[data-tq-row-del]') : null;
+      if (!btn) return;
+      var row = btn.closest('tr');
+      if (!row) return;
+      /* آخر سطر يفرغ ولا يحذف: جدول بلا سطر واحد لا باب فيه لإضافة وقت
+         لمن لا يجد الزر، ويقرأ شاشة معطلة. */
+      if ($$('tr', body).length <= 1) {
+        $$('select, input', row).forEach(function (f) { f.value = f.tagName === 'SELECT' ? f.options[0].value : ''; });
+        count(row);
+        return;
+      }
+      row.parentNode.removeChild(row);
+    });
+
+    $$('[data-tq-row-add]').forEach(function (btn) {
+      if (!btn.closest || btn.closest('form') !== (box.closest ? box.closest('form') : null)) return;
+      btn.addEventListener('click', function () {
+        if (!tpl || !tpl.content) return;
+        var row = tpl.content.firstElementChild.cloneNode(true);
+        body.appendChild(row);
+        wire(row);
+        var first = $('select, input', row);
+        if (first && first.focus) first.focus();
+      });
+    });
+  });
 })();

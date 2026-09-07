@@ -458,10 +458,16 @@ class Taqdar_admin extends CI_Controller
         $this->load->model('taqdar_sessions_model');
         $this->taqdar_sessions_model->install_schema();
 
+        /* TQ-SESSION-GRID — الفسحات حاصل، والقواعد هي ما كتبه المعلم.
+           والشاشة تقرأ الاثنين: «كم فسحة عنده» يجيب سؤال اليوم، و«الأحد
+           ١٠:٠٠ إلى ١٤:٠٠ للثالث» يجيب سؤال «لماذا لا يرى طالب صف كذا
+           موعدا واحدا؟» — وهو السؤال الذي تفتح له هذه الشاشة. */
         $this->render('tqa_slots', 'أوقات المعلمين', array(
             'rows'     => $this->taqdar_admin_model->slots(),
             'teachers' => $this->taqdar_admin_model->teacher_slot_summary(),
+            'windows'  => $this->taqdar_admin_model->teacher_windows(),
             'cfg'      => $this->taqdar_sessions_model->config(),
+            'ses'      => $this->taqdar_sessions_model,
         ));
     }
 

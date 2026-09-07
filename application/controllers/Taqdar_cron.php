@@ -48,12 +48,16 @@ class Taqdar_cron extends CI_Controller
         $this->load->model('taqdar_sessions_model');
         $r = $this->taqdar_sessions_model->lifecycle_tick();
 
+        /* `teachers_laid_out` أول ما يقرأ حين يشكو معلم أن مواعيده اختفت:
+           قواعده أسبوعية دائمة والمواعيد تفرش منها في كل دورة، فصفر هنا
+           يعني أن الدورة لم تمر لا أن أحدا أغلق وقته. */
         echo date('Y-m-d H:i:s')
            . " sessions_expired={$r['expired_requests']}"
            . " unpaid_expired={$r['expired_unpaid']}"
            . " went_live={$r['went_live']}"
            . " completed={$r['completed']}"
-           . " credited_halalas={$r['credited']}\n";
+           . " credited_halalas={$r['credited']}"
+           . " teachers_laid_out={$r['laid_out']}\n";
     }
 
     /** المرادف الذي يقرأ اسمه ما يفعله — للتشغيل اليدوي. */

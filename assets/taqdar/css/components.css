@@ -729,6 +729,20 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-table td { padding: var(--tq-space-l); border-block-end: 1px solid var(--tq-line); }
 .tq-table tbody tr:hover { background: var(--tq-navyWash); }
 
+/* TQ-SESSION-GRID — جدول يحرر فيه لا يقرأ منه.
+   حشوة الجدول العادية (`--tq-space-l`) مبنية على نص يقرأ؛ ومع حقل في كل
+   خلية يصير الصف ضعف ارتفاعه بلا أن يزيد ما فيه. والحقول تأخذ عرض خليتها
+   كاملا: حقل ساعة بعرض طبيعي يترك الجدول متفاوت الأعمدة صفا بصف. */
+.tq-table--rows td { padding: var(--tq-space-s) var(--tq-space-m); vertical-align: middle; }
+.tq-table--rows th { padding: var(--tq-space-s) var(--tq-space-m); }
+.tq-table--rows td > .tq-input,
+.tq-table--rows td > .tq-select { inline-size: 100%; min-inline-size: 7rem; }
+.tq-winrow__n { text-align: center; inline-size: 1%; white-space: nowrap; }
+.tq-winrow__x { inline-size: 1%; }
+/* الساعة تقرأ من اليسار في صفحة من اليمين: `type="time"` يرسم عقاربه
+   بترتيب اللغة، و«١٠:٠٠» معكوسة تقرأ «٠٠:١٠». */
+.tq-table--rows input[type='time'] { direction: ltr; text-align: center; }
+
 /* سبب الرقم تحت اسمه في كشف الحساب — الصف يقول «حصتك ١٠.٥٩»، وهذا يقول
    لماذا: سعر الباقة، ووعاء معلميها، وكم درسا لصاحب الكشف فيها. وسطر تحت
    الاسم لا عمود ثامن: الجدول بسبعة أعمدة أصلا، وثامن يجعله يمرر أفقيا

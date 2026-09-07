@@ -4424,9 +4424,21 @@ class Api_v1 extends CI_Controller
 
         $this->load->model('taqdar_tap_model', 'tq_tap');
 
+        /* TQ-SESSION-GRID — والترشيح بالصف يقع في الطبقة نفسها التي يقع
+           فيها في الويب: المعلم يفتح لكل صف وقته، وتطبيق يعرض المواعيد
+           كلها يجعل الطالب يطلب موعدا ليس لصفه فيرده الخادم — وهو رفض
+           صحيح يقرأ عطلا في التطبيق. */
+        $grade = $m->student_grade((int) $u['id']);
+
         $this->read(array(
             'bookings' => $bookings,
-            'teachers' => $this->tutors_out($m->available_teachers(12, 6, $subject)),
+            'teachers' => $this->tutors_out($m->available_teachers(12, 6, $subject, $grade)),
+            /* والصف يرد صريحا: التطبيق يقول «مواعيد صفك» أو يدعو إلى
+               تحديد الصف، ولا يخمن سبب قصر القائمة. */
+            'grade'    => array(
+                'id'   => (int) $grade,
+                'name' => $grade > 0 ? (string) $m->grade_name($grade) : null,
+            ),
             'pricing'  => array(
                 /* صفر يعني **مجانية بقرار** لا «لم تسعر»: حينها يؤكد
                    المعلم فتصير الحصة `confirmed` في الحال بلا فاتورة
@@ -4468,6 +4480,10 @@ class Api_v1 extends CI_Controller
                 'avatar_url' => tq_api_avatar($b['image']),
             ),
             'subject'    => (string) $b['subject'],
+            'grade'      => ((int) ($b['grade_id'] ?? 0) > 0) ? array(
+                'id'   => (int) $b['grade_id'],
+                'name' => (string) $b['grade_name'],
+            ) : null,
             'starts_at'  => tq_api_date($b['starts_at']),
             'when_text'  => (string) $b['when_text'],
             'minutes'    => (int) $b['minutes'],
@@ -4500,6 +4516,19 @@ class Api_v1 extends CI_Controller
                     'starts_at' => tq_api_date($s['starts_at']),
                     'when_text' => (string) $s['when_text'],
                     'minutes'   => (int) $s['minutes'],
+                    /* صفر يعني «كل الصفوف» لا «مجهول»، فيرد `null` لا صفرا:
+                       عميل يطبع الرقم يكتب «صف #0» بجوار موعد صحيح. */
+                    'grade'     => ((int) ($s['grade_id'] ?? 0) > 0) ? array(
+                        'id'   => (int) $s['grade_id'],
+                        'name' => (string) $s['grade_name'],
+                    ) : null,
+                    /* والمادة مع الصف: المعلم يفتح لأكثر من مادة، وشاشة
+                       تعرض مواعيده بلا مادة تجعل الطالب يحجز ليسأل في غير
+                       ما فتح له. وصفر يعني «فتح قبل TQ-SESSION-GRID». */
+                    'subject'   => ((int) ($s['subject_id'] ?? 0) > 0) ? array(
+                        'id'   => (int) $s['subject_id'],
+                        'name' => (string) $s['subject_name'],
+                    ) : null,
                 );
             }
             /* **والتسعيرة تسعيرة هذا المعلم** لا العامة: العمود الفارغ

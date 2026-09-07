@@ -195,9 +195,12 @@ if ($tq_child) {
     if ($this->db->table_exists('tutoring_sessions')) {
         $tq_sessions = $this->db->query(
             "SELECT ts.id, ts.status, ts.meet_url, s.starts_at, s.duration_min,
+                    s.grade_id, g.name_ar AS grade_name, sj.name_ar AS subject_name,
                     TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS teacher
                FROM tutoring_sessions ts
                LEFT JOIN availability_slots s ON s.id = ts.slot_id
+               LEFT JOIN grades g ON g.id = s.grade_id
+               LEFT JOIN subjects sj ON sj.id = s.subject_id
                LEFT JOIN users u ON u.id = ts.teacher_id
               WHERE ts.student_id = ?
                 AND ts.status IN ('requested','confirmed','live')
@@ -487,6 +490,18 @@ include 'portal_open.php';
                                             . ' · ' . (int) $tq_ss['duration_min'] . t(' دقيقة')))
                                         : t('الموعد لم يثبت بعد'); ?>
                                 </span>
+                                <?php /* TQ-SESSION-GRID — والصف يقال: المعلم
+                                         يفتح لكل صف وقته، وولي الأمر الذي
+                                         يقرأ موعدا بلا صف لا يعرف أهي حصة
+                                         ابنه أم أخته. و«كل الصفوف» لا تكتب. */ ?>
+                                <?php $tq_stag = array_filter(array(
+                                    (string) ($tq_ss['subject_name'] ?? ''),
+                                    (int) ($tq_ss['grade_id'] ?? 0) > 0 ? (string) $tq_ss['grade_name'] : '')); ?>
+                                <?php if ($tq_stag): ?>
+                                    <span class="tq-micro" style="display:block">
+                                        <?php echo html_escape(implode(' · ', $tq_stag)); ?>
+                                    </span>
+                                <?php endif; ?>
                                 <span style="display:inline-block;margin-block-start:var(--tq-space-xs)">
                                     <?php echo tq_badge($tq_skind, $tq_slab); ?>
                                 </span>

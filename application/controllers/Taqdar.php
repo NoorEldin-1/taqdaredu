@@ -2027,42 +2027,53 @@ class Taqdar extends CI_Controller
         $user = $this->write_guard('teacher');
         $tid  = (int) $user['id'];
 
-        // قيمة الخانة «فهرس اليوم:مفتاح الفترة» — وما خالف الشكل لا يمرر
-        $slots = array();
-        foreach ($this->post_list('slots') as $s) {
-            if (preg_match('/^[0-6]:[A-Za-z0-9_-]{1,24}$/', $s)) $slots[] = $s;
+        /* TQ-SESSION-GRID — الأوقات صارت ساعات يكتبها المعلم لا فترات
+           ثابتة يعلمها، وكل سطر منها لصف. والحقول أربعة متوازية يجمعها
+           الفهرس، فالقراءة **بالفهرس لا بترشيح الفارغ**: `post_list()`
+           تسقط الفارغ فيزحف الترتيب، فيصير وقت يوم لصف يوم آخر. */
+        $dows   = (array) $this->input->post('win_dow');
+        $froms  = (array) $this->input->post('win_from');
+        $tos    = (array) $this->input->post('win_to');
+        $grades = (array) $this->input->post('win_grade');
+        $subs   = (array) $this->input->post('win_subject');
+
+        $rows = array();
+        foreach ($dows as $i => $d) {
+            $rows[] = array(
+                'dow'        => is_scalar($d) ? trim((string) $d) : '',
+                'from'       => isset($froms[$i])  && is_scalar($froms[$i])  ? trim((string) $froms[$i])  : '',
+                'to'         => isset($tos[$i])    && is_scalar($tos[$i])    ? trim((string) $tos[$i])    : '',
+                'grade_id'   => isset($grades[$i]) && is_scalar($grades[$i]) ? (int) $grades[$i]          : 0,
+                'subject_id' => isset($subs[$i])   && is_scalar($subs[$i])   ? (int) $subs[$i]            : 0,
+            );
         }
 
-        // إن أرسلت معرفات فترات قائمة فلا بد أن تكون فترات هذا المعلم
-        $slot_ids = array();
-        foreach ($this->post_list('slot_id') as $sid) {
-            $sid = (int) $sid;
-            if ($sid < 1) continue;
-            $row = $this->db->select('id, teacher_id')->where('id', $sid)
-                            ->get('availability_slots')->row_array();
-            if (!$row || (int) $row['teacher_id'] !== $tid) {
-                $this->done('teacher/sessions', false, 'إحدى الفترات المرسلة ليست من فتراتك.');
-            }
-            $slot_ids[] = $sid;
-        }
-
-        $r = $this->delegate(array(
-            array('taqdar_sessions_model', 'save_week', array($tid, $slots), 'numeric_ok'),
-            array('taqdar_teacher_model',  'save_sessions'),
-            array('taqdar_teacher_model',  'sessions_save'),
-            array('taqdar_repo_model',     'teacher_save_sessions'),
-        ), array($tid, array('slots' => $slots, 'slot_ids' => $slot_ids)));
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->save_windows($tid, $rows);
 
         $this->trace('teacher.sessions.save', 'users:' . $tid,
-            array('slots' => count($slots), 'ok' => !empty($r['ok'])));
+            array('windows' => count($rows), 'ok' => !empty($r['ok']),
+                  'slots' => (int) ($r['slots'] ?? 0)));
 
-        $done = isset($r['count'])
-            ? 'حفظت أوقاتك المتاحة — '
-              . tq_count_units((int) $r['count'], 'فترة', 'فترتان', 'فترتين', 'فترات', 'فترة', 'لا فترة', 'obl', true)
-              . ' مفتوحة هذا الأسبوع.'
-            : 'حفظت أوقاتك المتاحة.';
+        /* الرسالة تقول **ما يراه الطالب الآن** لا «حفظ»: معلم كتب وقتا
+           أقصر من مدة الحصة يحفظ صفا ولا يفرش موعدا واحدا، فيقرأ «حفظت»
+           ويبقى غائبا عن شاشة الطالب ولا شيء يقول لماذا. */
+        $slots = (int) ($r['slots'] ?? 0);
+        $done  = 'حفظت أوقاتك — '
+               . tq_count_units((int) ($r['count'] ?? 0), 'وقت أسبوعي', 'وقتان أسبوعيان',
+                                'وقتين أسبوعيين', 'أوقات أسبوعية', 'وقتا أسبوعيا', 'لا وقت', 'nom', false)
+               . ($slots > 0
+                    ? '. ويرى طلابك منها '
+                      . tq_count_units($slots, 'موعد', 'موعدان', 'موعدين', 'مواعيد', 'موعدا', '', 'nom', false)
+                      . ' في الأيام القادمة.'
+                    : '. ولا يفرش منها موعد واحد في الأيام القادمة، فراجع ساعاتها.');
 
-        $this->done('teacher/sessions', !empty($r['ok']), $this->result_message($r, $done));
+        /* والفشل يقول سببه: `save_windows()` ترد `msg` بيوم الخطأ وساعته،
+           و`result_message()` تقرأ `message` — فتسقط الرسالة كلها إلى
+           «تعذر تنفيذ الطلب» ويعيد المعلم المحاولة بلا ما يصحح. */
+        $this->done('teacher/sessions', !empty($r['ok']),
+            !empty($r['ok']) ? $done
+                             : (string) (($r['msg'] ?? '') !== '' ? $r['msg'] : 'تعذر حفظ أوقاتك.'));
     }
 
     /**

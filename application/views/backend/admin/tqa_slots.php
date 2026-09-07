@@ -28,8 +28,19 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * غير متساويين (`.tqa-slots` في `admin.css`)، وعمودا «مفتوحة»
  * و«محجوزة» صارا عمودا واحدا بشارتين — سؤالهما واحد: كم وقتا عنده؟ —
  * وللحقلين عنوانان يقرآن، وسطر الحساب ثلاث شارات لا جملة متصلة.
+ * ── TQ-SESSION-GRID — والصف عمود ثالث في السؤال ────────────────────
+ *
+ * صار المعلم يفتح ساعاته بنفسه ولكل ساعة صفها، فسؤال الشاشة صار سؤالين:
+ * «من فتح وقتا؟» و**«لأي صف؟»**. والثاني هو الذي يفسر أكثر ما يشكى منه
+ * بعد اليوم: طالب في صف لم يفتح له أحد وقتا يقرأ «لا معلم متاح» وفي
+ * المنصة أحد عشر معلما فتحوا أوقاتهم كلهم — لصفوف أخرى.
+ *
+ * فصف المعلم في الجدول الأول يقول قواعده الأسبوعية كما كتبها، وعمود
+ * «الصف» في «الفسحات القادمة» يقول لمن فتحت كل فسحة.
  */
 $tq_cfg = isset($cfg) ? $cfg : array('price' => 0, 'percent' => 0);
+$tq_wins = isset($windows) ? $windows : array();
+$tq_ses  = isset($ses) ? $ses : null;
 
 $no_slots = array_values(array_filter($teachers, function ($t) {
     return (int) $t['open_slots'] === 0 && (int) $t['booked_slots'] === 0;
@@ -68,6 +79,9 @@ foreach ($teachers as $t) {
         <span>
             <strong><span class="tqa-num"><?php echo count($no_slots); ?></span> <?php echo t('معلما لم يفتح وقتا واحدا.'); ?></strong>
             <?php echo t('وما دام كذلك فبطاقة «حصص بالطلب» في بوابة الطالب تقول «لا معلم متاح الآن» — وهي رسالة صحيحة تقرأ كعطل. الأوقات تفتح من شاشة «الحصص» في بوابة المعلم.'); ?>
+            <?php /* والصف نصف الجواب: معلم فتح وقته لصف واحد غائب عن كل
+                     طالب في الصفوف الأخرى، ولا يعده هذا العداد. */ ?>
+            <?php echo t('ولكل وقت صف يفتح له، فالطالب لا يرى إلا مواعيد صفه — راجع أوقات كل معلم أدناه.'); ?>
         </span>
     </div>
 <?php endif; ?>
@@ -165,6 +179,36 @@ foreach ($teachers as $t) {
                                     </span>
                                 <?php endif; ?>
                             </span>
+
+                            <?php /* قواعده الأسبوعية كما كتبها — لا عدد فسحات
+                                     يتجدد وحده كل ساعة: «الأحد ١٠:٠٠–١٤:٠٠
+                                     للثالث الابتدائي» هو ما يفسر من يرى ماذا،
+                                     و«٣٦ فسحة» رقم لا يفسر شيئا. */ ?>
+                            <?php $tq_my = isset($tq_wins[$tq_tid]) ? $tq_wins[$tq_tid] : array(); ?>
+                            <?php if ($tq_my): ?>
+                                <ul class="tqa-winlist">
+                                    <?php foreach ($tq_my as $tq_w):
+                                        $tq_dn = $tq_ses ? ($tq_ses->days()[(int) $tq_w['dow']] ?? '') : '';
+                                        $tq_sp = $tq_ses ? $tq_ses->span_text($tq_w['start_min'], $tq_w['end_min'])
+                                                         : ((int) $tq_w['start_min'] . '–' . (int) $tq_w['end_min']);
+                                    ?>
+                                        <li>
+                                            <span class="tqa-cell__main"><?php echo html_escape($tq_dn); ?></span>
+                                            <span class="tqa-num tqa-mono tqa-mono--dim"><?php echo html_escape($tq_sp); ?></span>
+                                            <span class="tqa-badge tqa-badge--muted">
+                                                <?php echo html_escape($tq_w['grade_name'] ?: t('كل الصفوف')); ?>
+                                            </span>
+                                            <?php if (!empty($tq_w['subject_name'])): ?>
+                                                <span class="tqa-badge tqa-badge--info">
+                                                    <?php echo html_escape($tq_w['subject_name']); ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php else: ?>
+                                <span class="tqa-cell__sub"><?php echo t('لم يكتب أي وقت أسبوعي.'); ?></span>
+                            <?php endif; ?>
                         </td>
 
                         <td data-label="<?php echo te('التسعيرة ونصيبه'); ?>">
@@ -245,6 +289,7 @@ foreach ($teachers as $t) {
                     <tr>
                         <th><?php echo t('الموعد'); ?></th>
                         <th><?php echo t('المعلم'); ?></th>
+                        <th><?php echo t('الصف والمادة'); ?></th>
                         <th class="tqa-col--tight"><?php echo t('الحالة'); ?></th>
                     </tr>
                 </thead>
@@ -270,6 +315,20 @@ foreach ($teachers as $t) {
                             </div>
                         </td>
                         <td data-label="<?php echo te('المعلم'); ?>"><?php echo html_escape($s['teacher_name'] ?: '—'); ?></td>
+                        <?php /* «كل الصفوف» ليس فراغا: هي فسحة يقبل فيها
+                                 معلمها أي طالب، وشرطة مكانها تقرأ «لم يحدد». */ ?>
+                        <td data-label="<?php echo te('الصف والمادة'); ?>">
+                            <?php if ((int) ($s['grade_id'] ?? 0) > 0): ?>
+                                <span class="tqa-badge tqa-badge--muted"><?php echo html_escape($s['grade_name'] ?: t('صف') . ' #' . (int) $s['grade_id']); ?></span>
+                            <?php else: ?>
+                                <span class="tqa-cell__sub"><?php echo t('كل الصفوف'); ?></span>
+                            <?php endif; ?>
+                            <?php /* المادة تحت الصف: هما جواب سؤال واحد —
+                                     «لمن فتحت هذه الفسحة، وفي أي مادة؟» */ ?>
+                            <?php if (!empty($s['subject_name'])): ?>
+                                <span class="tqa-badge tqa-badge--info"><?php echo html_escape($s['subject_name']); ?></span>
+                            <?php endif; ?>
+                        </td>
                         <td class="tqa-col--tight" data-label="<?php echo te('الحالة'); ?>">
                             <span class="tqa-badge tqa-badge--dot tqa-badge--<?php echo $tone; ?>"><?php echo html_escape($label); ?></span>
                         </td>

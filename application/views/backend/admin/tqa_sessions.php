@@ -154,6 +154,18 @@ $tap_ready = !empty($tap_ready);
                     <?php else: ?>
                         <span style="color:var(--tq-text3)"><?php echo t('الفسحة حذفت'); ?></span>
                     <?php endif; ?>
+                    <?php /* TQ-SESSION-GRID — والصف تحت الموعد لا عمود سابع:
+                             سؤاله «لمن فتحت هذه الفسحة؟» وهو حاشية على
+                             الموعد لا سؤال يمسح به الجدول. و«كل الصفوف»
+                             لا تكتب — هي حال أكثر ما في القاعدة، وكتابتها
+                             في كل صف ضجيج لا خبر. */ ?>
+                    <?php if ((int) ($r['grade_id'] ?? 0) > 0): ?>
+                        <br><span class="tqa-badge tqa-badge--muted"><?php
+                            echo html_escape($r['grade_name'] ?: t('صف') . ' #' . (int) $r['grade_id']); ?></span>
+                    <?php endif; ?>
+                    <?php if (!empty($r['subject_name'])): ?>
+                        <span class="tqa-badge tqa-badge--info"><?php echo html_escape($r['subject_name']); ?></span>
+                    <?php endif; ?>
                 </td>
                 <td data-label="<?php echo te('الطالب'); ?>">
                     <?php echo html_escape($r['student_name'] ?: '—'); ?><br>

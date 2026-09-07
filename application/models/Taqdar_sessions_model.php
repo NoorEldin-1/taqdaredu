@@ -62,11 +62,22 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 class Taqdar_sessions_model extends CI_Model
 {
-    /** طول النافذة التي تدار فيها الشبكة: أسبوع + يوم احتياط لحدود التوقيت. */
-    const WINDOW_DAYS = 8;
+    /**
+     * طول النافذة التي تفرش فيها الشبكة مواعيد.
+     *
+     * وكانت ثمانية أياما تفرش **عند الحفظ وحده**، فما فرش ينفد بعد أسبوع
+     * ولا شيء يجدده: معلم حفظ أوقاته مرة يظهر أسبوعا ثم يختفي من شاشة
+     * الطالب بلا أن يغلق وقته أحد. والقاعدة الآن دائمة (`tq_teacher_windows`)
+     * والفرش يتجدد كل ساعة من `lifecycle_tick()`، فأربعة عشر يوما تعني
+     * أن الطالب يحجز أسبوعين قدما لا أن الشبكة تنفد.
+     */
+    const WINDOW_DAYS = 14;
 
     /** إصدار بنية الحصص — يمنع إعادة فحص الأعمدة في كل طلب. */
-    const SCHEMA_V = '3';
+    const SCHEMA_V = '5';
+
+    /** أقصر نافذة إتاحة تقبل، بالدقائق — أقل منها لا تسع حصة. */
+    const MIN_WINDOW_MIN = 15;
 
     /**
      * مضيفو اللقاء المقبولون.
@@ -162,7 +173,114 @@ class Taqdar_sessions_model extends CI_Model
               WHERE t.`created_at` IS NULL'
         );
 
+        /* ---- TQ-SESSION-GRID — القاعدة الدائمة، والصف على الموعد -------
+           `availability_slots` صف لموعد بعينه في يوم بعينه، وهو **حاصل**
+           لا قاعدة: ينفد بمضي الأيام. والقاعدة التي يكتبها المعلم أسبوعية
+           دائمة — «الأحد ١٠:٠٠ إلى ١٤:٠٠ للصف الثالث» — فلها جدولها،
+           ومنها يفرش الموعد في كل دورة كرون.
+
+           و`grade_id` على **الموعد** لا على النافذة وحدها: الموعد يحجز
+           ويجمد، فتعديل النافذة غدا لا يغير صف حصة طلبت اليوم. وهو مبدأ
+           تجميد السعر نفسه. */
+        $this->try_sql(
+            'CREATE TABLE IF NOT EXISTS `tq_teacher_windows` (
+               `id`         INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+               `teacher_id` INT(10) UNSIGNED NOT NULL,
+               `dow`        TINYINT(1) NOT NULL,
+               `start_min`  SMALLINT(4) NOT NULL,
+               `end_min`    SMALLINT(4) NOT NULL,
+               `grade_id`   INT(10) UNSIGNED NOT NULL DEFAULT 0,
+               `created_at` DATETIME NULL DEFAULT NULL,
+               PRIMARY KEY (`id`),
+               UNIQUE KEY `uq_win` (`teacher_id`,`dow`,`start_min`),
+               KEY `idx_win_teacher` (`teacher_id`),
+               KEY `idx_win_grade` (`grade_id`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+        );
+
+        $this->try_sql('ALTER TABLE `availability_slots` ADD COLUMN IF NOT EXISTS `grade_id` INT(10) UNSIGNED NOT NULL DEFAULT 0');
+        $this->try_sql('ALTER TABLE `availability_slots` ADD COLUMN IF NOT EXISTS `window_id` INT(10) UNSIGNED NOT NULL DEFAULT 0');
+        $this->try_sql('ALTER TABLE `availability_slots` ADD INDEX `idx_slot_grade` (`grade_id`,`status`,`starts_at`)');
+
+        /* والمادة مع الصف لا بعده: المعلم يدرس أكثر من مادة، ومن يفتح
+           «الأحد ١٠–٢ للثالث» بلا مادة يستقبل طالبا جاء يسأل في الرياضيات
+           وهو معلم لغة عربية. والعمودان يضافان على الجدولين معا — على
+           النافذة لأنها القاعدة، وعلى الموعد لأنه يحجز ويجمد. */
+        $this->try_sql('ALTER TABLE `tq_teacher_windows` ADD COLUMN IF NOT EXISTS `subject_id` INT(10) UNSIGNED NOT NULL DEFAULT 0');
+        $this->try_sql('ALTER TABLE `availability_slots` ADD COLUMN IF NOT EXISTS `subject_id` INT(10) UNSIGNED NOT NULL DEFAULT 0');
+        $this->try_sql('ALTER TABLE `availability_slots` ADD INDEX `idx_slot_subject` (`subject_id`,`status`,`starts_at`)');
+
+        /* ما فتحه المعلمون قبل اليوم يصير قواعد تقرأ في شاشتهم — وبلا هذا
+           يفتحون الشاشة فيجدونها فارغة وقد حفظوا، ثم تمحو أول دورة فرش
+           مواعيدهم لأن لا قاعدة تسندها. والصف يبقى صفرا («كل الصفوف»)
+           فلا يضيق على أحد ما كان مفتوحا. */
+        $this->backfill_windows();
+
         $this->put_setting('tq_session_schema_v', self::SCHEMA_V);
+    }
+
+    /**
+     * يشتق قواعد الأسبوع من المواعيد المفتوحة القائمة — مرة واحدة.
+     *
+     * والمواعيد المتلاصقة تجمع في نافذة واحدة: معلم فتح «مساء» كان له
+     * خمسة مواعيد متتابعة، وكتابتها خمس قواعد يجعل شاشته تقرأ خمسة أسطر
+     * لشيء واحد.
+     */
+    private function backfill_windows()
+    {
+        try {
+            $has = $this->db->query('SELECT 1 FROM `tq_teacher_windows` LIMIT 1')->num_rows();
+            if ($has > 0) return;
+
+            $rows = $this->db->query(
+                'SELECT `teacher_id`, `starts_at`, `duration_min`
+                   FROM `availability_slots`
+                  WHERE `starts_at` >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+                  ORDER BY `teacher_id` ASC, `starts_at` ASC'
+            )->result_array();
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            return;
+        }
+
+        /* (معلم، يوم) ← مدى الدقائق، يمدد ما دام التالي يلاصق السابق. */
+        $runs = array();
+        foreach ($rows as $r) {
+            $ts  = strtotime((string) $r['starts_at']);
+            if (!$ts) continue;
+            $tid = (int) $r['teacher_id'];
+            $dow = (int) date('w', $ts);
+            $b   = (int) date('G', $ts) * 60 + (int) date('i', $ts);
+            $e   = $b + max(1, (int) $r['duration_min']);
+            $k   = $tid . ':' . $dow;
+
+            $n = count($runs[$k] ?? array());
+            if ($n > 0 && $runs[$k][$n - 1][1] >= $b && $runs[$k][$n - 1][1] <= $e) {
+                $runs[$k][$n - 1][1] = max($runs[$k][$n - 1][1], $e);
+            } elseif ($n === 0 || $runs[$k][$n - 1][1] < $b) {
+                $runs[$k][] = array($b, $e);
+            }
+        }
+
+        $now = date('Y-m-d H:i:s');
+        foreach ($runs as $k => $spans) {
+            list($tid, $dow) = array_map('intval', explode(':', $k));
+            foreach ($spans as $sp) {
+                $this->try_sql_args(
+                    'INSERT IGNORE INTO `tq_teacher_windows`
+                       (`teacher_id`,`dow`,`start_min`,`end_min`,`grade_id`,`created_at`)
+                     VALUES (?, ?, ?, ?, 0, ?)',
+                    array($tid, $dow, $sp[0], min(1440, $sp[1]), $now)
+                );
+            }
+        }
+    }
+
+    /** كـ`try_sql` ولكن بمعاملات مربوطة. */
+    private function try_sql_args($sql, $args)
+    {
+        try { $this->db->query($sql, $args); }
+        catch (Throwable $e) { $this->db->reset_query(); }
     }
 
     /** ينفذ تعديل بنية ولا يسقط الطلب إن كان منفذا من قبل. */
@@ -343,18 +461,8 @@ class Taqdar_sessions_model extends CI_Model
     }
 
     /* =====================================================================
-       الفترات والأيام — مصدر واحد للشبكة وللترجمة
+       الأيام — مصدر واحد للشبكة وللترجمة
        ===================================================================== */
-
-    /** الفترات الثلاث: ساعة البدء ومدتها بالدقائق ونصها كما يعرض. */
-    public function periods()
-    {
-        return tq_t_deep([
-            'morning' => ['label' => 'صباحا', 'range' => '8:00 – 12:00',  'hour' => 8,  'duration' => 240],
-            'noon'    => ['label' => 'ظهرا',  'range' => '12:00 – 16:00', 'hour' => 12, 'duration' => 240],
-            'evening' => ['label' => 'مساء',  'range' => '16:00 – 21:00', 'hour' => 16, 'duration' => 300],
-        ]);
-    }
 
     /** أيام الأسبوع بترتيب `date('w')` نفسه: الأحد أولا. */
     public function days()
@@ -373,77 +481,6 @@ class Taqdar_sessions_model extends CI_Model
         $i = ((int) $m) - 1;
         /* TQ-I18N — الترجمة عند الخروج: `static` لا يقبل نداء في تهيئته. */
         return isset($names[$i]) ? t($names[$i]) : '';
-    }
-
-    /** عدد المواعيد التي تفرش إليها فترة، ومدة كل موعد. */
-    public function slots_in_period($period_key)
-    {
-        $p = $this->periods();
-        if (!isset($p[$period_key])) return array(0, 0);
-        $len = $this->config()['minutes'];
-        return array(max(1, intdiv((int) $p[$period_key]['duration'], $len)), $len);
-    }
-
-    /* =====================================================================
-       ترجمة الشبكة ↔ المواعيد
-       ===================================================================== */
-
-    /**
-     * «٣:evening» ← ['2026-08-06 16:00:00' => 60, '2026-08-06 17:00:00' => 60, …].
-     *
-     * أقرب وقوع قادم لهذا اليوم في هذه الفترة، مفروشا إلى مواعيد بطول
-     * الحصة؛ فما مضى من الأسبوع يدفع أسبوعا كاملا إلى الأمام. وبهذا لا
-     * يحفظ للمعلم موعد في الماضي يستحيل حجزه.
-     */
-    public function key_to_datetimes($key, $now = null)
-    {
-        $parts = explode(':', (string) $key);
-        if (count($parts) !== 2) return array();
-
-        $dow = (int) $parts[0];
-        $pk  = $parts[1];
-        $periods = $this->periods();
-        if ($dow < 0 || $dow > 6 || !isset($periods[$pk])) return array();
-
-        $now   = $now ? (int) $now : time();
-        $delta = ($dow - (int) date('w', $now) + 7) % 7;
-        $day   = date('Y-m-d', strtotime('+' . $delta . ' day', $now));
-        $base  = strtotime($day . ' ' . sprintf('%02d:00:00', $periods[$pk]['hour']));
-
-        /* الفترة كلها تدفع أسبوعا لا مواعيدها فرادى: نصف فترة اليوم ونصفها
-           الأسبوع القادم شبكة لا يقرؤها أحد، ومفتاح واحد يصير موعدين
-           متباعدين بستة أيام. */
-        if ($base <= $now) $base = strtotime('+7 day', $base);
-
-        list($count, $len) = $this->slots_in_period($pk);
-
-        $out = array();
-        for ($i = 0; $i < $count; $i++) {
-            $out[date('Y-m-d H:i:s', $base + $i * $len * 60)] = $len;
-        }
-        return $out;
-    }
-
-    /**
-     * موعد ← مفتاح الفترة التي يقع **داخلها**، وإلا null.
-     *
-     * وكانت المطابقة على ساعة البدء وحدها، فموعد الساعة الخامسة مساء لا
-     * ينتمي إلى «مساء» ولا إلى غيرها — أي أن كل موعد مفروش عدا أول كل
-     * فترة يسقط من شبكة المعلم فتعرض له فارغة وهو قد حفظها.
-     */
-    public function datetime_to_key($starts_at)
-    {
-        $ts = strtotime((string) $starts_at);
-        if (!$ts) return null;
-
-        $mins = (int) date('G', $ts) * 60 + (int) date('i', $ts);
-        foreach ($this->periods() as $pk => $p) {
-            $from = (int) $p['hour'] * 60;
-            if ($mins >= $from && $mins < $from + (int) $p['duration']) {
-                return date('w', $ts) . ':' . $pk;
-            }
-        }
-        return null;
     }
 
     /** «الأحد 3 أغسطس · 17:00 – 18:00» — نص واحد يعرض كما هو. */
@@ -470,55 +507,450 @@ class Taqdar_sessions_model extends CI_Model
     }
 
     /* =====================================================================
-       إتاحة المعلم
+       الصفوف — الحصة تعطى لصف بعينه لا لكل من طرق الباب
        ===================================================================== */
 
     /**
-     * مفاتيح الشبكة المحفوظة للمعلم — ما يعاد وضع علامته عند إعادة التحميل.
-     * تشمل المحجوز والمعلق: الفترة التي عليها حصة مؤكدة ما زالت فترة عمله.
+     * الصفوف الفعالة كما في `grades` — مرجع واحد تقرأ منه الشاشات الأربع.
+     *
+     * والاسم يقرأ كما كتب: هو بيان يحرر من اللوحة لا سلسلة تترجم، فلا
+     * يمر بـ`t()` كما لا يمر اسم كورس.
      */
-    public function week_keys($teacher_id)
+    public function grades()
     {
-        $teacher_id = (int) $teacher_id;
-        if ($teacher_id <= 0) return [];
+        static $cache = null;
+        if ($cache !== null) return $cache;
 
-        list($from, $to) = $this->window();
-        $rows = $this->db->select('starts_at')
-            ->where('teacher_id', $teacher_id)
-            ->where('starts_at >', $from)
-            ->where('starts_at <=', $to)
-            ->get('availability_slots')->result_array();
-
-        $out = [];
-        foreach ($rows as $r) {
-            $k = $this->datetime_to_key($r['starts_at']);
-            if ($k !== null) $out[$k] = true;
+        $out = array();
+        try {
+            $rows = $this->db->select('id, name_ar')->where('active', 1)
+                             ->order_by('`order`', 'ASC', false)
+                             ->get('grades')->result_array();
+            foreach ($rows as $r) $out[(int) $r['id']] = (string) $r['name_ar'];
+        } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء يترك بناء الاستعلام كما هو،
+               فيرث كل استعلام تال في الطلب نفسه ضموم هذا. */
+            $this->db->reset_query();
+            $out = array();
         }
-        return array_keys($out);
+        return $cache = $out;
+    }
+
+    /** المواد الفعالة كما في `subjects` — كأختها في `grades`. */
+    public function subjects()
+    {
+        static $cache = null;
+        if ($cache !== null) return $cache;
+
+        $out = array();
+        try {
+            $rows = $this->db->select('id, name_ar')->where('active', 1)
+                             ->order_by('`order`', 'ASC', false)
+                             ->get('subjects')->result_array();
+            foreach ($rows as $r) $out[(int) $r['id']] = (string) $r['name_ar'];
+        } catch (Throwable $e) { $this->db->reset_query(); $out = array(); }
+        return $cache = $out;
+    }
+
+    /** اسم المادة كما تعرض. والصفر «بلا مادة» — حال ما فتح قبل اليوم. */
+    public function subject_name($subject_id)
+    {
+        $id = (int) $subject_id;
+        if ($id <= 0) return '';
+        $s = $this->subjects();
+        return isset($s[$id]) ? $s[$id] : t('مادة') . ' #' . $id;
+    }
+
+    /** اسم الصف كما يعرض. والصفر ليس صفا مجهولا: هو «كل الصفوف» بقرار. */
+    public function grade_name($grade_id)
+    {
+        $id = (int) $grade_id;
+        if ($id <= 0) return t('كل الصفوف');
+        $g = $this->grades();
+        return isset($g[$id]) ? $g[$id] : t('صف') . ' #' . $id;
     }
 
     /**
-     * يحفظ الشبكة: ما اختير يفرش مواعيد، وما رفع اختياره يحذف.
+     * نطاق المعلم: **ما يدرسه فعلا**، صفا ومادة معا.
      *
-     * ولا يحذف موعد عليه طلب حي — ولو رفع المعلم علامته: الطالب طلبه فعلا،
-     * وحذفه يترك طلبا معلقا بلا موعد. من أراد إلغاءه فليعتذر عنه أولا.
-     * أما ما اعتذر عنه أو انتهى فطلب مغلق، ولا يقيد جدول المعلم إلى الأبد.
+     * والزوج (صف، مادة) لا قائمتان مستقلتان: معلم له كورس رياضيات في
+     * الثالث وكورس لغة عربية في الرابع، وقائمتان تسمحان له بفتح «رياضيات
+     * للرابع» — وهو ما لا يدرسه. والزوج يأتي من صف واحد في `paths` أو في
+     * `teacher_assignments`، فالمصدر هو الذي يعطيه لا استنتاج فوقه.
      *
-     * @return int عدد الفترات المتاحة بعد الحفظ
+     * @return array ['grades'=>[id=>اسم], 'subjects'=>[id=>اسم],
+     *                'pairs'=>[صف => [مادة => اسم]]]
      */
-    public function save_week($teacher_id, $keys)
+    public function teacher_scope($teacher_id)
+    {
+        static $cache = array();
+        $teacher_id = (int) $teacher_id;
+        if (isset($cache[$teacher_id])) return $cache[$teacher_id];
+
+        $empty = array('grades' => array(), 'subjects' => array(), 'pairs' => array());
+        if ($teacher_id <= 0) return $empty;
+
+        $rows = array();
+
+        /* ١ — إسناد الإدارة الصريح، وهو أقوى المصادر. */
+        try {
+            $rows = array_merge($rows, $this->db->select('grade_id, subject_id')
+                ->where('teacher_id', $teacher_id)
+                ->get('teacher_assignments')->result_array());
+        } catch (Throwable $e) { $this->db->reset_query(); }
+
+        /* ٢ و٣ — المسار المسند إليه، والمسار الذي يقود إلى كورس يملكه.
+           و`course.user_id` قائمة معرفات بفواصل في Academy، فالمعلم الثاني
+           في كورس مشترك يعد من أصحابه. */
+        try {
+            $rows = array_merge($rows, $this->db->select('p.grade_id, p.subject_id')
+                ->from('paths p')
+                ->join('course c', 'c.id = p.course_id', 'left')
+                ->group_start()
+                    ->where('p.teacher_id', $teacher_id)
+                    ->or_where('c.creator', $teacher_id)
+                    ->or_where('FIND_IN_SET(' . $teacher_id . ', c.user_id) > 0', null, false)
+                ->group_end()
+                ->get()->result_array());
+        } catch (Throwable $e) { $this->db->reset_query(); }
+
+        $all_g = $this->grades();
+        $all_s = $this->subjects();
+
+        $out = $empty;
+        foreach ($rows as $r) {
+            $g = (int) ($r['grade_id']   ?? 0);
+            $j = (int) ($r['subject_id'] ?? 0);
+            if ($g <= 0 || !isset($all_g[$g])) continue;
+
+            $out['grades'][$g] = $all_g[$g];
+            if ($j > 0 && isset($all_s[$j])) {
+                $out['subjects'][$j]  = $all_s[$j];
+                $out['pairs'][$g][$j] = $all_s[$j];
+            }
+        }
+
+        /* صف بلا مادة في مصدره (وهو أكثر ما في `paths` اليوم) لا يترك
+           منتقي المادة فارغا فيقفل الشاشة: يأخذ مواد المعلم كلها. وحكم
+           الحفظ يتبع هذا حرفا، فلا شاشة تعرض ما يرده الخادم. */
+        foreach ($out['grades'] as $g => $_) {
+            if (empty($out['pairs'][$g])) $out['pairs'][$g] = $out['subjects'];
+        }
+
+        return $cache[$teacher_id] = $out;
+    }
+
+    /**
+     * الصفوف التي يجوز لهذا المعلم أن يفتح لها وقتا — **صفوف محتواه وحدها**.
+     *
+     * ولا ترتد إلى «كل الصفوف» متى خلت. وكان الارتداد أرفق ظاهرا وهو خطأ:
+     * الحصة الخاصة شرح لمنهج صف بعينه، ومعلم الرابع الابتدائي الذي يفتح
+     * وقتا لطالب في الثالث المتوسط يجلس معه ساعة لا يفيده فيها — والثمن
+     * قبض، والشكوى تصل الإدارة بعد أن تنعقد الحصة لا قبلها. فالباب الذي
+     * لا ينبغي أن يفتح يغلق في الشاشة وفي الحفظ معا.
+     *
+     * **والمصادر ثلاثة تجمع** لا واحد يغني عن الباقي:
+     *
+     *   ١ — `teacher_assignments` — إسناد الإدارة الصريح، وهو أقواها.
+     *   ٢ — `paths.teacher_id` — البرنامج المسند إليه، وهو أكثر ما في
+     *       القاعدة (تسعة من ثمانية عشر مسارا، ولا `course_id` لأكثرها).
+     *   ٣ — `course.creator` و`course.user_id` — كورس يملكه، ومساره يقول
+     *       صفه. و`user_id` قائمة معرفات بفواصل في Academy، فالمعلم
+     *       الثاني في كورس مشترك يعد من أصحابه.
+     *
+     * وواحد منها وحده يترك معلما لا صف له وهو يدرس: الإسناد فارغ في أكثر
+     * التركيبات، وأكثر المسارات بلا كورس. فالثلاثة تجمع.
+     *
+     * @return array صف ← اسمه. وفارغة تعني «لا يفتح وقتا حتى يسند إليه صف».
+     */
+    public function teacher_grades($teacher_id)
+    {
+        $sc = $this->teacher_scope($teacher_id);
+        return $sc['grades'];
+    }
+
+    /** مواد هذا المعلم وحدها — انظر `teacher_scope()`. */
+    public function teacher_subject_options($teacher_id)
+    {
+        $sc = $this->teacher_scope($teacher_id);
+        return $sc['subjects'];
+    }
+
+    /** صف الطالب من `users.grade_id` — وصفر يعني «لم يحدد بعد». */
+    public function student_grade($student_id)
+    {
+        $student_id = (int) $student_id;
+        if ($student_id <= 0) return 0;
+        try {
+            $r = $this->db->select('grade_id')->where('id', $student_id)
+                          ->get('users')->row_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return 0; }
+        return (int) ($r['grade_id'] ?? 0);
+    }
+
+    /* =====================================================================
+       نوافذ الإتاحة — القاعدة الأسبوعية الدائمة
+       ===================================================================== */
+
+    /** «٦٣٠» ← «10:30». دقائق من منتصف الليل إلى ساعة تقرأ. */
+    public function min_to_hhmm($m)
+    {
+        $m = max(0, min(1440, (int) $m));
+        return sprintf('%02d:%02d', intdiv($m, 60), $m % 60);
+    }
+
+    /** «10:30» ← ٦٣٠، و`null` لما لا يقرأ ساعة. */
+    public function hhmm_to_min($txt)
+    {
+        $txt = trim((string) $txt);
+        /* `<input type="time">` يرسل «HH:MM»، وبعض المتصفحات ترسل الثواني
+           معها حين يضبط `step` — والثواني لا تعني شيئا هنا فتهمل. */
+        if (!preg_match('/^([0-9]{1,2}):([0-9]{2})(?::[0-9]{2})?$/', $txt, $mm)) return null;
+        $h = (int) $mm[1]; $i = (int) $mm[2];
+        if ($h > 24 || $i > 59 || ($h === 24 && $i > 0)) return null;
+        return $h * 60 + $i;
+    }
+
+    /** «10:00 – 14:00» — مدى واحد يعرض كما هو. */
+    public function span_text($start_min, $end_min)
+    {
+        return $this->min_to_hhmm($start_min) . ' – ' . $this->min_to_hhmm($end_min);
+    }
+
+    /**
+     * قواعد الأسبوع لهذا المعلم، مرتبة يوما بيوم ومعها ما يعرض.
+     *
+     * `slots` عدد المواعيد التي تفرش إليها النافذة — والمعلم يقرأه قبل أن
+     * يحفظ: «من ١٠ إلى ٢» أربع ساعات تعني أربعة طلاب لا طالبا واحدا،
+     * ونافذة أقصر من مدة الحصة لا تعطي موعدا واحدا وهو ما لا يخطر لأحد.
+     */
+    public function windows_for($teacher_id)
+    {
+        $this->install_schema();
+
+        $teacher_id = (int) $teacher_id;
+        if ($teacher_id <= 0) return array();
+
+        try {
+            $rows = $this->db->where('teacher_id', $teacher_id)
+                             ->order_by('dow', 'ASC')->order_by('start_min', 'ASC')
+                             ->get('tq_teacher_windows')->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return array(); }
+
+        $days = $this->days();
+        $len  = max(1, (int) $this->config()['minutes']);
+
+        $out = array();
+        foreach ($rows as $r) {
+            $b = (int) $r['start_min'];
+            $e = (int) $r['end_min'];
+            $out[] = array(
+                'id'         => (int) $r['id'],
+                'dow'        => (int) $r['dow'],
+                'day_name'   => $days[(int) $r['dow']] ?? '',
+                'start_min'  => $b,
+                'end_min'    => $e,
+                'from_text'  => $this->min_to_hhmm($b),
+                'to_text'    => $this->min_to_hhmm($e),
+                'span_text'  => $this->span_text($b, $e),
+                'grade_id'     => (int) $r['grade_id'],
+                'grade_name'   => $this->grade_name((int) $r['grade_id']),
+                'subject_id'   => (int) ($r['subject_id'] ?? 0),
+                'subject_name' => $this->subject_name((int) ($r['subject_id'] ?? 0)),
+                'slots'        => intdiv(max(0, $e - $b), $len),
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * يحفظ قواعد الأسبوع كلها، ثم يفرشها مواعيد.
+     *
+     * والحفظ **استبدال كامل** لا إضافة: الشاشة تعرض ما هو محفوظ وتعيد
+     * إرساله كله، فحذف سطر منها يعني حذفه من القاعدة. وإضافة صف بصف تجعل
+     * الحذف يحتاج مسار كتابة ثانيا ومعرفا يرسل من متصفح.
+     *
+     * **ولا نافذتان تتقاطعان في يوم واحد** ولو اختلف صفهما: المعلم واحد لا
+     * يجلس في حصتين معا، وقبولهما يفرش موعدا واحدا لصف واحد منهما بصمت —
+     * فيقرأ المعلم أنه فتح للصفين وأحدهما لا يرى شيئا. والتقاطع يرد باليوم
+     * والساعة لا بـ«خطأ في المدخلات».
+     *
+     * @param array $rows صفوف [dow, from, to, grade_id]
+     * @return array ['ok'=>bool,'msg'=>string,'count'=>int,'slots'=>int]
+     */
+    public function save_windows($teacher_id, $rows)
+    {
+        $this->install_schema();
+
+        $teacher_id = (int) $teacher_id;
+        if ($teacher_id <= 0) return array('ok' => false, 'msg' => 'طلب غير مكتمل.', 'count' => 0, 'slots' => 0);
+
+        $days   = $this->days();
+        $len    = max(1, (int) $this->config()['minutes']);
+        $scope  = $this->teacher_scope($teacher_id);
+        $mine   = $scope['grades'];
+        $clean  = array();
+        $by_day = array();
+
+        $bad = function ($msg) {
+            return array('ok' => false, 'msg' => $msg, 'count' => 0, 'slots' => 0);
+        };
+
+        /* معلم بلا صف واحد لا يفتح وقتا — ولا يقال له «حفظ» ثم لا يظهر
+           لأحد. والرسالة تقول الطريق: الصفوف تشتق من كورساته، فمن لا كورس
+           له يفتح كورسا أو يراجع الإدارة. */
+        if (!$mine) {
+            return $bad('لا صف لك بعد، فلا تفتح وقتا لأحد. الصفوف تشتق من كورساتك — '
+                      . 'افتح كورسا في صفك أو راجع الإدارة لتسند إليك صفا.');
+        }
+        if (!$scope['subjects']) {
+            return $bad('لا مادة لك بعد، فلا تفتح وقتا لأحد. المواد تشتق من كورساتك — '
+                      . 'افتح كورسا أو راجع الإدارة لتسند إليك مادة.');
+        }
+
+        foreach ((array) $rows as $r) {
+            $dow = isset($r['dow']) && $r['dow'] !== '' ? (int) $r['dow'] : -1;
+            $b   = $this->hhmm_to_min(isset($r['from']) ? $r['from'] : '');
+            $e   = $this->hhmm_to_min(isset($r['to'])   ? $r['to']   : '');
+            $g   = isset($r['grade_id'])   ? (int) $r['grade_id']   : 0;
+            $j   = isset($r['subject_id']) ? (int) $r['subject_id'] : 0;
+
+            /* السطر الفارغ يتخطى ولا يرد: الشاشة تبقي سطرا فارغا في ذيلها
+               ليكتب فيه التالي، ورده بخطأ يمنع الحفظ على من لم يخطئ. */
+            if ($dow < 0 && $b === null && $e === null) continue;
+
+            if ($dow < 0 || $dow > 6) return $bad('اختر يوما لكل موعد.');
+            $day = isset($days[$dow]) ? $days[$dow] : '';
+
+            if ($b === null || $e === null) {
+                return $bad('اكتب وقت البداية والنهاية ليوم ' . $day . ' بصيغة الساعة (مثال 10:00).');
+            }
+            if ($e <= $b) {
+                return $bad('وقت النهاية في ' . $day . ' يجب أن يكون بعد وقت البداية.');
+            }
+            if ($e - $b < self::MIN_WINDOW_MIN) {
+                return $bad('مدة ' . $day . ' قصيرة جدا — أقلها ' . self::MIN_WINDOW_MIN . ' دقيقة.');
+            }
+            /* أقصر من مدة الحصة يحفظ ولا يفرش موعدا واحدا: صف في القاعدة
+               وشاشة طالب فارغة، ولا شيء يقول لماذا. */
+            if ($e - $b < $len) {
+                return $bad('مدة الحصة ' . $len . ' دقيقة، فلا يفرش موعد واحد من ' . $day . ' '
+                    . $this->span_text($b, $e) . '. وسع الوقت أو راجع الإدارة في مدة الحصة.');
+            }
+            /* **والصف مطلوب لا اختياري**: «كل الصفوف» تعني وقتا يقبل فيه
+               صاحبه طالبا لا يدرس له، فيجلس معه ساعة لا تفيده — وقد دفع
+               ثمنها. والصفر يبقى مقروءا في القاعدة لما فتح قبل اليوم، ولا
+               يكتب صف جديد به. */
+            if ($g <= 0) {
+                return $bad('اختر صف يوم ' . $day . '. والصفوف المعروضة هي صفوف كورساتك '
+                          . 'وحدها — الحصة شرح لمنهج صف بعينه.');
+            }
+            if (!isset($mine[$g])) {
+                return $bad('صف لا كورس لك فيه، في يوم ' . $day . '. افتح كورسا في ذلك الصف '
+                          . 'أو راجع الإدارة لتسنده إليك.');
+            }
+
+            /* **والمادة تفحص مع صفها لا وحدها**: معلم له رياضيات الثالث
+               ولغة عربية الرابع، وفحصان مستقلان يمرران «رياضيات للرابع»
+               وهو ما لا يدرسه. والزوج يأتي من صف واحد في المصدر. */
+            if ($j <= 0) {
+                return $bad('اختر مادة يوم ' . $day . '. والمواد المعروضة هي مواد كورساتك '
+                          . 'وحدها — الطالب يحجز ليسأل في مادة بعينها.');
+            }
+            $pairs = isset($scope['pairs'][$g]) ? $scope['pairs'][$g] : array();
+            if (!isset($pairs[$j])) {
+                return $bad('لا كورس لك في هذه المادة لهذا الصف، في يوم ' . $day . ' ('
+                          . $mine[$g] . ' · ' . $this->subject_name($j) . '). '
+                          . 'اختر مادة تدرسها لهذا الصف، أو راجع الإدارة.');
+            }
+
+            foreach (isset($by_day[$dow]) ? $by_day[$dow] : array() as $prev) {
+                if ($b < $prev[1] && $prev[0] < $e) {
+                    return $bad('موعدان متداخلان في ' . $day . ': '
+                        . $this->span_text($prev[0], $prev[1]) . ' و' . $this->span_text($b, $e)
+                        . '. ولا تعطى حصتان في وقت واحد.');
+                }
+            }
+
+            $by_day[$dow][] = array($b, $e);
+            $clean[] = array('dow' => $dow, 'start_min' => $b, 'end_min' => $e,
+                             'grade_id' => $g, 'subject_id' => $j);
+        }
+
+        $now = date('Y-m-d H:i:s');
+        try {
+            $this->db->where('teacher_id', $teacher_id)->delete('tq_teacher_windows');
+            foreach ($clean as $c) {
+                $this->db->query(
+                    'INSERT IGNORE INTO `tq_teacher_windows`
+                       (`teacher_id`,`dow`,`start_min`,`end_min`,`grade_id`,`subject_id`,`created_at`)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    array($teacher_id, $c['dow'], $c['start_min'], $c['end_min'],
+                          $c['grade_id'], $c['subject_id'], $now)
+                );
+            }
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            return $bad('تعذر حفظ أوقاتك. حاول مرة أخرى.');
+        }
+
+        return array('ok' => true, 'count' => count($clean),
+                     'slots' => $this->layout($teacher_id), 'msg' => '');
+    }
+
+    /* =====================================================================
+       الفرش — من القاعدة إلى المواعيد
+       ===================================================================== */
+
+    /**
+     * يفرش قواعد معلم إلى مواعيد في النافذة القادمة.
+     *
+     * ولا يحذف موعدا عليه طلب حي — ولو رفع المعلم قاعدته: الطالب طلبه
+     * فعلا، وحذفه يترك طلبا معلقا بلا موعد. من أراد إلغاءه فليعتذر عنه.
+     *
+     * **والموعد المحجوز يبقى بصفه الذي حجز به**: تعديل صف النافذة اليوم
+     * لا يغير صف حصة طلبت أمس — والتحديث مقصور على `open`.
+     *
+     * @return int عدد المواعيد المفتوحة القادمة بعد الفرش
+     */
+    public function layout($teacher_id, $now = null)
     {
         $this->install_schema();
 
         $teacher_id = (int) $teacher_id;
         if ($teacher_id <= 0) return 0;
 
-        $now = time();
+        $now = $now ? (int) $now : time();
         list($from, $to) = $this->window($now);
+        $to_ts = strtotime($to);
+        $len   = max(1, (int) $this->config()['minutes']);
 
+        try {
+            $wins = $this->db->where('teacher_id', $teacher_id)
+                             ->get('tq_teacher_windows')->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return 0; }
+
+        /* موعد ← [مدته، صفه، نافذته]. والمفتاح هو الموعد نفسه، فنافذتان
+           تلتقيان على ساعة (وهو ما يرده الحفظ، وقد يبقى من قاعدة قديمة)
+           تعطيان موعدا واحدا لا موعدين على الساعة نفسها — والمفتاح الفريد
+           في القاعدة يرد الثاني على كل حال. */
         $want = array();
-        foreach ((array) $keys as $k) {
-            foreach ($this->key_to_datetimes($k, $now) as $dt => $len) $want[$dt] = $len;
+        for ($d = 0; $d <= self::WINDOW_DAYS; $d++) {
+            $midnite = strtotime(date('Y-m-d', strtotime('+' . $d . ' day', $now)) . ' 00:00:00');
+            $dow     = (int) date('w', $midnite);
+
+            foreach ($wins as $w) {
+                if ((int) $w['dow'] !== $dow) continue;
+                $end = (int) $w['end_min'];
+                for ($m = (int) $w['start_min']; $m + $len <= $end; $m += $len) {
+                    $ts = $midnite + $m * 60;
+                    if ($ts <= $now || $ts > $to_ts) continue;
+                    $k = date('Y-m-d H:i:s', $ts);
+                    if (isset($want[$k])) continue;
+                    $want[$k] = array($len, (int) $w['grade_id'], (int) $w['id'],
+                                      (int) ($w['subject_id'] ?? 0));
+                }
+            }
         }
 
         $states = "'" . implode("','", self::$LIVE_STATES) . "'";
@@ -531,27 +963,50 @@ class Taqdar_sessions_model extends CI_Model
         if ($want) $this->db->where_not_in('starts_at', array_keys($want));
         $this->db->delete('availability_slots');
 
-        // المفتاح الفريد (معلم، موعد) يمنع التكرار، فإعادة الحفظ لا تضاعف شيئا
-        // ولا ترجع محجوزا إلى open.
-        foreach ($want as $dt => $dur) {
+        // المفتاح الفريد (معلم، موعد) يمنع التكرار، فإعادة الفرش لا تضاعف
+        // شيئا ولا ترجع محجوزا إلى `open`.
+        foreach ($want as $dt => $meta) {
             $this->db->query(
-                'INSERT IGNORE INTO availability_slots (teacher_id, starts_at, duration_min, status) VALUES (?, ?, ?, ?)',
-                [$teacher_id, $dt, $dur, 'open']
+                'INSERT IGNORE INTO availability_slots
+                   (teacher_id, starts_at, duration_min, status, grade_id, window_id, subject_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)',
+                array($teacher_id, $dt, $meta[0], 'open', $meta[1], $meta[2], $meta[3])
             );
+            /* والمفتوح يتبع قاعدته: من غير صف نافذته، أو تغيرت مدة الحصة
+               تحته، يصحح صفه المفتوح — والمحجوز لا يمس. */
+            $this->db->where('teacher_id', $teacher_id)->where('starts_at', $dt)
+                     ->where('status', 'open')
+                     ->update('availability_slots', array(
+                         'duration_min' => $meta[0],
+                         'grade_id'     => $meta[1],
+                         'window_id'    => $meta[2],
+                         'subject_id'   => $meta[3],
+                     ));
         }
 
-        /* المواعيد القديمة كانت تحمل مدة الفترة كلها (٢٤٠ أو ٣٠٠ دقيقة):
-           صف مفتوح بقي منها يبيع خمس ساعات بثمن ساعة. والتصحيح على المفتوح
-           وحده — موعد حجز بمدته فتلك مدته التي اتفق عليها، وتقصيره بعد أن
-           وافق طالب عليه تغيير للاتفاق من طرف واحد. */
-        if ($want) {
-            $this->db->where('teacher_id', $teacher_id)->where('status', 'open')
-                     ->where('starts_at >', $from)->where('starts_at <=', $to)
-                     ->where_in('starts_at', array_keys($want))
-                     ->update('availability_slots', array('duration_min' => $this->config()['minutes']));
-        }
+        return (int) $this->db->where('teacher_id', $teacher_id)->where('status', 'open')
+                              ->where('starts_at >', date('Y-m-d H:i:s', $now))
+                              ->count_all_results('availability_slots');
+    }
 
-        return count($this->week_keys($teacher_id));
+    /**
+     * يفرش لكل من له قاعدة — تنادى من دورة الكرون.
+     *
+     * وبلا هذا المرور تنفد الشبكة بعد أسبوعين من آخر حفظ، فيختفي المعلم
+     * من شاشة الطالب بلا أن يغلق وقته أحد، ولا شيء في أي شاشة يقول لماذا.
+     */
+    public function layout_all($now = null)
+    {
+        $this->install_schema();
+
+        try {
+            $rows = $this->db->distinct()->select('teacher_id')
+                             ->get('tq_teacher_windows')->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return 0; }
+
+        $n = 0;
+        foreach ($rows as $r) { $this->layout((int) $r['teacher_id'], $now); $n++; }
+        return $n;
     }
 
     /* =====================================================================
@@ -575,21 +1030,31 @@ class Taqdar_sessions_model extends CI_Model
      * والسعر يعرض هنا لا في الشاشة: هو أول ما يسأل عنه الطالب، وشاشة
      * تعرض معلمين بلا أثمان تجعل الاختيار يقع ثم ينكشف الثمن بعده.
      *
+     * **والصف يرشح في الاستعلام لا في الشاشة** (TQ-SESSION-GRID): المعلم
+     * يفتح وقته لصف بعينه، فطالب الثالث الابتدائي لا يرى موعدا فتح لطلاب
+     * الرابع فيطلبه ثم يعتذر عنه معلمه. والموعد بصفر يعني «كل الصفوف»
+     * فيبقى معروضا للجميع كما كان — وهو صف كل ما فتح قبل اليوم.
+     *
+     * **والطالب بلا صف يرى الكل**: باب يرد من لا نعرف صفه ليس حراسة، وهو
+     * لم يخطئ — والشاشة تدعوه إلى تحديد صفه بدل أن تفرغ أمامه.
+     *
      * @param int $limit_teachers أقصى عدد معلمين
      * @param int $limit_slots    أقصى عدد مواعيد لكل معلم
      * @param int $subject_id     تصفية بمادة من `subjects` (٠ = الكل)
+     * @param int $grade_id       صف الطالب (٠ = بلا ترشيح)
      */
-    public function available_teachers($limit_teachers = 12, $limit_slots = 6, $subject_id = 0)
+    public function available_teachers($limit_teachers = 12, $limit_slots = 6, $subject_id = 0, $grade_id = 0)
     {
         $this->install_schema();
         $now = date('Y-m-d H:i:s');
 
-        $this->db->select('s.id AS slot_id, s.starts_at, s.duration_min,
+        $this->db->select('s.id AS slot_id, s.starts_at, s.duration_min, s.grade_id, s.subject_id,
                            u.id AS teacher_id, u.first_name, u.last_name, u.image, u.title')
                  ->from('availability_slots s')
                  ->join('users u', 'u.id = s.teacher_id', 'inner')
                  ->where('s.status', 'open')
                  ->where('s.starts_at >', $now);
+        if ((int) $grade_id > 0) $this->db->where_in('s.grade_id', array(0, (int) $grade_id));
         $this->teacher_filter('u');
         $rows = $this->db->order_by('s.starts_at', 'ASC')->limit(600)->get()->result_array();
 
@@ -599,9 +1064,18 @@ class Taqdar_sessions_model extends CI_Model
         foreach ($rows as $r) {
             $tid = (int) $r['teacher_id'];
 
+            /* المادة تقرأ من **الموعد** متى أعلنها: هو أدق من مادة المعلم،
+               ومعلم مادتين كان يظهر كله في ترشيح إحداهما بمواعيد الأخرى.
+               والموعد بلا مادة (ما فتح قبل TQ-SESSION-GRID) يرتد إلى مواد
+               معلمه كما كان، فلا يسقط من الشاشة. */
+            $slot_subject = (int) ($r['subject_id'] ?? 0);
             if ($subject_id > 0) {
-                $mine = $subjects['cats'][$tid] ?? [];
-                if (!in_array((int) $subject_id, $mine, true)) continue;
+                if ($slot_subject > 0) {
+                    if ($slot_subject !== (int) $subject_id) continue;
+                } else {
+                    $mine = $subjects['cats'][$tid] ?? [];
+                    if (!in_array((int) $subject_id, $mine, true)) continue;
+                }
             }
 
             if (!isset($out[$tid])) {
@@ -620,11 +1094,27 @@ class Taqdar_sessions_model extends CI_Model
             if (count($out[$tid]['slots']) >= (int) $limit_slots) continue;
 
             $out[$tid]['slots'][] = [
-                'id'        => (int) $r['slot_id'],
-                'starts_at' => $r['starts_at'],
-                'when_text' => $this->when_text($r['starts_at'], (int) $r['duration_min']),
-                'minutes'   => (int) $r['duration_min'],
+                'id'           => (int) $r['slot_id'],
+                'starts_at'    => $r['starts_at'],
+                'when_text'    => $this->when_text($r['starts_at'], (int) $r['duration_min']),
+                'minutes'      => (int) $r['duration_min'],
+                'grade_id'     => (int) ($r['grade_id'] ?? 0),
+                'grade_name'   => $this->grade_name((int) ($r['grade_id'] ?? 0)),
+                'subject_id'   => $slot_subject,
+                'subject_name' => $this->subject_name($slot_subject),
             ];
+        }
+
+        /* ومادة البطاقة تشتق من **المعروض** لا من أول مادة للمعلم: من يدرس
+           مادتين كان يقرأ اسمه تحته «اللغة العربية» وكل مواعيده المعروضة
+           رياضيات — والقائمة تحته تكذب رأسها. ومن لا مادة على مواعيده
+           (ما فتح قبل TQ-SESSION-GRID) يبقى على ما كان يعرض حرفا بحرف. */
+        foreach ($out as $tid => $t) {
+            $names = array();
+            foreach ($t['slots'] as $sl) {
+                if ((string) $sl['subject_name'] !== '') $names[$sl['subject_name']] = true;
+            }
+            if ($names) $out[$tid]['subject'] = implode(' · ', array_keys($names));
         }
 
         return array_values($out);
@@ -720,6 +1210,19 @@ class Taqdar_sessions_model extends CI_Model
             return ['ok' => false, 'msg' => 'لا تحجز حصة مع نفسك.', 'id' => 0];
         }
 
+        /* TQ-SESSION-GRID — الصف يفحص في الخادم كما يرشح في الاستعلام:
+           الشاشة تخفي ما ليس لصفه، ومعرف الموعد يرسل من متصفح فيكتبه من
+           يشاء. والطالب بلا صف يمر — لا يفحص ما لا يعرف. */
+        $slot_grade = (int) ($slot['grade_id'] ?? 0);
+        if ($slot_grade > 0) {
+            $mine = $this->student_grade($student_id);
+            if ($mine > 0 && $mine !== $slot_grade) {
+                return ['ok' => false, 'id' => 0,
+                        'msg' => 'هذا الموعد مفتوح لطلاب ' . $this->grade_name($slot_grade)
+                                 . '. اختر موعدا من مواعيد صفك.'];
+            }
+        }
+
         $p   = $this->pricing_for((int) $slot['teacher_id']);
         $now = date('Y-m-d H:i:s');
 
@@ -761,7 +1264,7 @@ class Taqdar_sessions_model extends CI_Model
         $teacher_id = (int) $teacher_id;
         if ($teacher_id <= 0) return [];
 
-        $this->db->select('t.*, a.starts_at, a.duration_min,
+        $this->db->select('t.*, a.starts_at, a.duration_min, a.grade_id, a.subject_id,
                            u.first_name, u.last_name, u.image')
                  ->from('tutoring_sessions t')
                  ->join('availability_slots a', 'a.id = t.slot_id', 'left')
@@ -785,6 +1288,10 @@ class Taqdar_sessions_model extends CI_Model
                 'starts_at'    => $r['starts_at'],
                 'when_text'    => $r['starts_at'] ? $this->when_text($r['starts_at'], (int) $r['duration_min']) : 'بلا موعد',
                 'minutes'      => (int) $r['duration_min'],
+                'grade_id'     => (int) ($r['grade_id'] ?? 0),
+                'grade_name'   => $this->grade_name((int) ($r['grade_id'] ?? 0)),
+                'subject_id'   => (int) ($r['subject_id'] ?? 0),
+                'subject_name' => $this->subject_name((int) ($r['subject_id'] ?? 0)),
                 'meet_url'     => (string) ($r['meet_url'] ?? ''),
                 'price'        => (int) $r['price_halalas'],
                 'percent'      => (float) $r['teacher_percent'],
@@ -1366,7 +1873,13 @@ class Taqdar_sessions_model extends CI_Model
         $c   = $this->config();
         $now = time();
         $out = array('expired_requests' => 0, 'expired_unpaid' => 0, 'went_live' => 0,
-                     'completed' => 0, 'credited' => 0);
+                     'completed' => 0, 'credited' => 0, 'laid_out' => 0);
+
+        /* ٠ — فرش الشبكة. القاعدة أسبوعية دائمة والموعد صف في يوم بعينه،
+           فبلا مرور يجدده ينفد ما فرش في آخر حفظ: يظهر المعلم أسبوعين ثم
+           يختفي من شاشة الطالب بلا أن يغلق وقته أحد، ولا شيء يقول لماذا.
+           والفرش مأمون التكرار — يدرج ما ينقص ولا يمس محجوزا. */
+        $out['laid_out'] = $this->layout_all($now);
 
         /* ١ — طلب بلا رد. */
         $cut  = date('Y-m-d H:i:s', $now - $c['pay_hours'] * 3600);
@@ -1490,7 +2003,7 @@ class Taqdar_sessions_model extends CI_Model
         $student_id = (int) $student_id;
         if ($student_id <= 0) return [];
 
-        $rows = $this->db->select('t.*, a.starts_at, a.duration_min,
+        $rows = $this->db->select('t.*, a.starts_at, a.duration_min, a.grade_id, a.subject_id,
                                    u.id AS tutor_id, u.first_name, u.last_name, u.image,
                                    i.invoice_no, i.total AS invoice_total, i.status AS invoice_status')
             ->from('tutoring_sessions t')
@@ -1514,9 +2027,16 @@ class Taqdar_sessions_model extends CI_Model
                 'tutor'         => $name !== '' ? $name : 'معلم',
                 'tutor_id'      => (int) $r['tutor_id'],
                 'image'         => (string) $r['image'],
-                'subject'       => $subjects['name'][(int) $r['tutor_id']] ?? 'حصة خاصة',
+                /* مادة **الموعد** أولا: هي التي فتح لها معلمه وقته، ومادة
+                   المعلم الأولى تكذب على من يدرس مادتين. */
+                'subject'       => $this->subject_name((int) ($r['subject_id'] ?? 0)) !== ''
+                                     ? $this->subject_name((int) ($r['subject_id'] ?? 0))
+                                     : ($subjects['name'][(int) $r['tutor_id']] ?? 'حصة خاصة'),
+                'subject_id'    => (int) ($r['subject_id'] ?? 0),
                 'starts_at'     => $r['starts_at'],
                 'when_text'     => $r['starts_at'] ? $this->when_text($r['starts_at'], (int) $r['duration_min']) : 'بلا موعد',
+                'grade_id'      => (int) ($r['grade_id'] ?? 0),
+                'grade_name'    => $this->grade_name((int) ($r['grade_id'] ?? 0)),
                 'minutes'       => (int) ($r['duration_min'] ?: $this->config()['minutes']),
                 'meet_url'      => (string) ($r['meet_url'] ?? ''),
                 'price'         => (int) $r['price_halalas'],
@@ -1563,7 +2083,17 @@ class Taqdar_sessions_model extends CI_Model
                                ->where('starts_at >', date('Y-m-d H:i:s'))
                                ->count_all_results('availability_slots');
 
+        /* عدد القواعد لا عدد المواعيد: «مواعيد مفتوحة» رقم يتحرك وحده كل
+           يوم، و«أوقات أسبوعية» هو ما كتبه المعلم بيده — ورقم لا يطابق ما
+           كتب يقرأ عطلا. */
+        $wins = 0;
+        try {
+            $wins = (int) $this->db->where('teacher_id', $teacher_id)
+                                   ->count_all_results('tq_teacher_windows');
+        } catch (Throwable $e) { $this->db->reset_query(); }
+
         return array(
+            'windows'  => $wins,
             'pending'  => (int) ($r['pending'] ?? 0),
             'unpaid'   => (int) ($r['unpaid'] ?? 0),
             'booked'   => (int) ($r['booked'] ?? 0),
