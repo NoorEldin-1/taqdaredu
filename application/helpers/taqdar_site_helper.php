@@ -85,6 +85,42 @@ if (!function_exists('tqs_grade_books_url')) {
     }
 }
 
+if (!function_exists('tqs_drive_id')) {
+    /**
+     * TQ-BOOK-DRIVE — معرف الملف من الرابط الذي ينسخه المسؤول.
+     *
+     * ولا يطلب منه المعرف عاريا: زر «مشاركة» في Drive يخرج رابطا كاملا
+     * (`‎/file/d/<المعرف>/view?usp=sharing`)، ومن يلصقه — وهو ما يقع —
+     * يكتب في عمود طوله ٦٤ حرفا نصا أطول منه، فيقص صامتا. ثم يقرأ
+     * `tqs_drive_embed()` ما ليس معرفا فيرد فراغا: صفحة كتاب بلا قارئ
+     * بلا سطر خطأ، والمسؤول يرى الرابط محفوظا في الحقل.
+     *
+     * والقاعدة هي قاعدة `vimeoRef()` نفسها وللعلة نفسها: ما ينسخه
+     * صاحبه لا ما يستخرجه بيده.
+     *
+     * وأربع صور لا صورة: `‎/file/d/<id>/…` و`‎?id=<id>` و
+     * `‎/document/d/<id>/…` والمعرف عاريا.
+     *
+     * @return string المعرف، أو '' إن لم يقرأ منه معرف
+     */
+    function tqs_drive_id($raw)
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') return '';
+
+        /* المعرف عاريا: ما ليس فيه محرف رابط واحد. والفحص قبل التحليل
+           لأن المعرف نفسه يطابق `[A-Za-z0-9_-]` ولا يحتاج استخراجا. */
+        if (preg_match('~^[A-Za-z0-9_-]{10,}$~', $raw)) return $raw;
+
+        /* `‎/d/<id>/‎` — وهي صورة `file` و`document` و`spreadsheets` معا. */
+        if (preg_match('~/d/([A-Za-z0-9_-]{10,})~', $raw, $m)) return $m[1];
+
+        /* `‎?id=<id>‎` — صورة `open` وصورة `uc?export=download`. */
+        if (preg_match('~[?&]id=([A-Za-z0-9_-]{10,})~', $raw, $m)) return $m[1];
+
+        return '';
+    }
+}
 if (!function_exists('tqs_drive_embed')) {
     /**
      * رابط القارئ المضمن لملف على Drive.
@@ -96,8 +132,8 @@ if (!function_exists('tqs_drive_embed')) {
      */
     function tqs_drive_embed($id)
     {
-        $id = trim((string) $id);
-        if ($id === '' || !preg_match('~^[A-Za-z0-9_-]{10,}$~', $id)) return '';
+        $id = tqs_drive_id($id);
+        if ($id === '') return '';
         return 'https://drive.google.com/file/d/' . $id . '/preview';
     }
 }
@@ -106,8 +142,8 @@ if (!function_exists('tqs_drive_dl')) {
     /** رابط التحميل المباشر — وما تجاوز ١٠٠ ميغا يمر بشاشة فحص جوجل. */
     function tqs_drive_dl($id)
     {
-        $id = trim((string) $id);
-        if ($id === '' || !preg_match('~^[A-Za-z0-9_-]{10,}$~', $id)) return '';
+        $id = tqs_drive_id($id);
+        if ($id === '') return '';
         return 'https://drive.google.com/uc?export=download&id=' . $id;
     }
 }

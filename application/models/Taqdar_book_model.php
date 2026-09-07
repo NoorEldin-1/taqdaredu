@@ -1052,6 +1052,17 @@ class Taqdar_book_model extends CI_Model
                 'label' => 'ملف الكتاب (PDF)', 'bucket' => 'books', 'max_mb' => 40,
                 'hint' => 'يقرأ في بوابة الطالب صفحة صفحة بلا تحميل. وبلا ملف لا يباع الكتاب ولا يفتح — يعرض «قريبا».'),
 
+            /* TQ-BOOK-DRIVE — الموضع الثاني للملف، وهو `any` لا `admin`:
+               سقف الرفع أربعون ميغا، وكتاب مصور من مئتي صفحة يتجاوزه —
+               فمعلم ألف كتابا ثقيلا لا يجد ما يرفعه فيه، وباب التأليف
+               الذي فتح له يقفل عند أول ملف كبير. وهو حر أن يكتب رابطه
+               كما هو حر أن يرفع، والقاعدة واحدة على الاثنين: ملف واحد،
+               والمرفوع وحده يباع (TQ-BOOK-ONEFILE). */
+            'tq_drive_id' => array('col' => 'tq_drive_id', 'kind' => 'drive', 'owner' => 'any',
+                'label' => 'أو رابط الملف على Drive', 'ltr' => true,
+                'hint' => 'الصق رابط المشاركة كما ينسخه Drive. وهو بديل الرفع لا زيادة عليه — '
+                        . 'والكتاب الذي يباع يرفع أعلاه ليمر بحارس التحميل.'),
+
             'pages' => array('col' => 'pages', 'kind' => 'number', 'owner' => 'any',
                 'label' => 'عدد الصفحات', 'default' => 0,
                 'hint' => 'يقرأ من الملف تلقائيا حين ترفعه ويترك فارغا.'),
@@ -1219,6 +1230,21 @@ class Taqdar_book_model extends CI_Model
                     }
                     break;
 
+                /* TQ-BOOK-DRIVE — يقبل الرابط ويخزن المعرف، وما لا
+                   يقرأ منه معرف يرد ولا يكتب: عمود طوله ٦٤ حرفا يقص
+                   الرابط صامتا، ثم يقرأ العرض ما ليس معرفا فيرد فراغا. */
+                case 'drive':
+                    if (!$sent) break;
+                    $dv = trim((string) $raw);
+                    if ($dv === '') { $data[$col] = null; break; }
+                    $did = function_exists('tqs_drive_id') ? tqs_drive_id($dv) : '';
+                    if ($did === '') {
+                        $errors[] = t('لم يقرأ من هذا معرف ملف على Drive. الصق رابط المشاركة كما ينسخه Drive.');
+                        break;
+                    }
+                    $data[$col] = $did;
+                    break;
+
                 case 'money':
                     if (!$sent) break;
                     // يدخل بالريال ويخزن بالهللات — التقريب مرة واحدة هنا
@@ -1292,6 +1318,21 @@ class Taqdar_book_model extends CI_Model
                : ($row ? (string) $row['title'] : '');
         if ($this->len($title) < 3) {
             return $this->fail(t('اكتب عنوان الكتاب — ثلاثة أحرف على الأقل.'));
+        }
+
+        /* TQ-BOOK-ONEFILE — الكتاب ملف واحد: مرفوعا أو على Drive، لا هما.
+
+           والحارس في البابين لا في باب: اللوحة تكتب رابط Drive، والمعلم
+           يرفع من بوابته — فكتاب أسند إليه رابط ثم رفع صاحبه ملفا يحمل
+           الاثنين، و`site_book.php` تقرأ المرفوع أولا و`tq_library.php`
+           تقرأ Drive أولا: ملفان يعرضان على أنهما «الكتاب».
+           وحارس في شاشة واحدة يعني قاعدة تنقضها الشاشة الأخرى. */
+        $bk_file  = array_key_exists('file', $data) ? (string) $data['file']
+                  : ($row ? (string) $this->col($row, 'file', '') : '');
+        $bk_drive = array_key_exists('tq_drive_id', $data) ? (string) $data['tq_drive_id']
+                  : ($row ? (string) $this->col($row, 'tq_drive_id', '') : '');
+        if (trim($bk_file) !== '' && trim($bk_drive) !== '') {
+            return $this->fail(t('الكتاب ملف واحد: إما ملف PDF مرفوع وإما رابط على Drive — لا الاثنان معا.'));
         }
 
         /* المعلم صاحب كتابه بحكم إنشائه، ولا يسأل عنه: الحقل `admin`،
@@ -1425,6 +1466,7 @@ class Taqdar_book_model extends CI_Model
         try {
             $rows = $this->db->query(
                 'SELECT b.`id`, b.`title`, b.`subject`, b.`pages`, b.`file`, b.`cover`,
+                        b.`tq_drive_id`,
                         b.`date_added`, b.`last_modified`, b.`teacher_id`,
                         b.`grade_id`, b.`category_id`, b.`price`, b.`tq_sell`,
                         g.`name_ar` AS grade_name, c.`name` AS cat_name,
@@ -1460,7 +1502,11 @@ class Taqdar_book_model extends CI_Model
                 'objectives'  => 0,
                 'duration'    => '',
                 'pages'       => (int) $r['pages'],
-                'has_file'    => (trim((string) $r['file']) !== ''),
+                /* TQ-BOOK-DRIVE — «له ملف» موضعان: مرفوعا أو على Drive.
+                   وقراءة `file` وحدها تعرض «بلا ملف» في طابور المراجعة
+                   على كتاب يفتح ويقرأ، فيرده المسؤول بسبب لا وجود له. */
+                'has_file'    => (trim((string) $r['file']) !== ''
+                                  || trim((string) (isset($r['tq_drive_id']) ? $r['tq_drive_id'] : '')) !== ''),
                 'grade'       => (string) $r['grade_name'],
                 'subject'     => (string) $r['subject'],
                 'price'       => (int) $r['price'],

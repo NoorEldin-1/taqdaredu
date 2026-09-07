@@ -179,6 +179,20 @@ include 'portal_open.php';
                                     </label>
                                 <?php endif; ?>
 
+                            <?php elseif ($tq_f['kind'] === 'drive'): ?>
+                                <?php /* TQ-BOOK-DRIVE — المخزون معرف عار لا يفتح
+                                         بالنقر، فمن يفتح الشاشة لا يتحقق مما حفظ
+                                         إلا أن يركب الرابط بيده — وهو لا يفعل. */ ?>
+                                <?php $tq_dv = function_exists('tqs_drive_id') ? tqs_drive_id((string) $tq_v) : ''; ?>
+                                <input class="tq-input" type="text" dir="ltr" id="<?php echo $tq_id; ?>"
+                                       name="<?php echo $tq_k; ?>" value="<?php echo html_escape((string) $tq_v); ?>"
+                                       placeholder="https://drive.google.com/file/d/.../view">
+                                <?php if ($tq_dv !== ''): ?>
+                                    <p class="tq-caption">
+                                        <a href="<?php echo html_escape(tqs_drive_embed($tq_dv)); ?>"
+                                           target="_blank" rel="noopener"><?php echo t('افتح الملف في Drive للتأكد'); ?></a>
+                                    </p>
+                                <?php endif; ?>
                             <?php elseif ($tq_f['kind'] === 'number'): ?>
                                 <input class="tq-input" type="number" min="0" id="<?php echo $tq_id; ?>"
                                        name="<?php echo $tq_k; ?>" value="<?php echo html_escape((string) $tq_v); ?>">

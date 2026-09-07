@@ -1905,4 +1905,5 @@ return array(
     '— ومن لم يجتز يعاد إلى دقيقة المفهوم الذي أخطأ فيه، ثم يعرض له شرح بديل، ثم يحال إلى معلمه في المحاولة الثالثة. ولا حد لعدد المحاولات: العقاب بقاء القفل لا منع الإعادة.' => '— whoever does not pass is sent back to the minute of the concept they missed, then shown an alternative explanation, then referred to their teacher on the third attempt. There is no cap on attempts: the penalty is the lock staying shut, not being barred from retrying.',
     '— ويقيد نصيبك' => '— and your share is credited',
     '— يفتح في نافذة جديدة' => '— opens in a new window',
+    'على Drive' => 'On Drive',
 );

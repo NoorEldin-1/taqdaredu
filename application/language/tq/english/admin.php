@@ -2110,4 +2110,5 @@ return array(
     'أنصبة المبيعات السابقة وقيود المحافظ تبقى لصاحبها، ووصول من دفع لا يتغير.' => 'Earlier sale shares and wallet entries stay with their owner, and the access of those who paid does not change.',
     'اتركه على «الإدارة» فيكون الكورس للمنصة، أو اختر معلما فيولد باسمه.' => 'Leave it on "the administration" and the course belongs to the platform, or pick a teacher and it is born under their name.',
     'من تختاره هنا يصير صاحب الكورس وصاحب برنامجه في «المواد والبرامج» معا — وبالثاني يقتسم وعاء الباقة، وبالأول تقيد له مبيعاته المفردة.' => 'Whoever you pick here becomes both the owner of the course and the owner of its programme under "Subjects and programmes" — the latter shares the plan pool, the former is credited with its single sales.',
+    'افتح الملف في Drive للتأكد' => 'Open the file in Drive to check',
 );

@@ -399,6 +399,27 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                     </div>
                     <span class="tqa-field__hint"><?php echo t('يدخل بالريال ويخزن بالهللات — بلا فقد كسور عند الجمع.'); ?></span>
 
+                <?php elseif ($f['type'] === 'drive'): ?>
+
+                    <?php /* TQ-BOOK-DRIVE — الحقل يقبل الرابط ويخزن المعرف.
+                             والمخزون معرف عار لا يفتح بالنقر، فلا يستطيع من
+                             يفتح الشاشة أن يتحقق مما حفظ إلا أن يركب الرابط
+                             بيده — وهو لا يفعل. فيطبع بجواره رابطه كما يفتحه
+                             الطالب: تحقق بنقرة في موضع الشك. */ ?>
+                    <?php $tq_dv_now = function_exists('tqs_drive_id') ? tqs_drive_id((string) $val) : ''; ?>
+                    <input class="tqa-input tqa-input--ltr" dir="ltr" type="text"
+                           id="<?php echo $id; ?>" name="<?php echo $name; ?>"
+                           value="<?php echo html_escape((string) $val); ?>"
+                           placeholder="<?php echo html_escape(!empty($f['placeholder'])
+                               ? (string) $f['placeholder']
+                               : 'https://drive.google.com/file/d/.../view'); ?>"
+                           <?php echo $req ? 'required' : ''; ?>>
+                    <?php if ($tq_dv_now !== ''): ?>
+                        <span class="tqa-field__hint">
+                            <a href="<?php echo html_escape(tqs_drive_embed($tq_dv_now)); ?>"
+                               target="_blank" rel="noopener"><?php echo t('افتح الملف في Drive للتأكد'); ?></a>
+                        </span>
+                    <?php endif; ?>
                 <?php else: ?>
 
                     <input class="tqa-input<?php echo !empty($f['ltr']) ? ' tqa-input--ltr' : ''; ?>"

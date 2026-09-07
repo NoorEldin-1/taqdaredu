@@ -402,7 +402,8 @@ class Taqdar_admin_model extends CI_Model
                 'form_extra'   => 'tqa_book_reach',
                 'status_fn'    => 'book_visibility',
                 'status_label' => 'الظهور',
-                'note'         => 'الصف هو ما يدخل الكتاب في الباقات. وبلا صف يبقى الكتاب مجانيا للتحميل أو يباع مفردا، ولا تفتحه باقة.',
+                'note'         => 'الصف هو ما يدخل الكتاب في الباقات. وبلا صف يبقى الكتاب مجانيا للتحميل أو يباع مفردا، ولا تفتحه باقة. '
+                                . 'وملف الكتاب واحد: إما PDF مرفوع وإما رابط على Drive — والمرفوع وحده يباع.',
                 'fields'   => array(
                     'title'       => array('label' => 'العنوان', 'type' => 'text', 'required' => true, 'list' => true,
                                            'section' => 'تعريف الكتاب',
@@ -433,10 +434,30 @@ class Taqdar_admin_model extends CI_Model
                     'file'        => array('label' => 'ملف الكتاب', 'type' => 'doc',
                                            'bucket' => 'books', 'max_mb' => 40,
                                            'accept' => '.pdf',
-                                           'hint' => 'PDF يقرأ في بوابة الطالب صفحة صفحة بلا تحميل. وبلا ملف لا يباع الكتاب ولا يفتح — يعرض «قريبا».'),
+                                           'hint' => 'PDF يقرأ في بوابة الطالب صفحة صفحة بلا تحميل. وبلا ملف لا يباع الكتاب ولا يفتح — يعرض «قريبا». '
+                                                   . 'وهذا أو رابط Drive تحته — لا الاثنان معا.'),
                     'pages'       => array('label' => 'عدد الصفحات', 'type' => 'number', 'default' => 0,
                                            'hint' => 'يقرأ من الملف تلقائيا حين يترك فارغا.'),
-                    'tone'        => array('label' => 'لون الغلاف', 'type' => 'enum', 'default' => 'math',
+                    /* TQ-BOOK-DRIVE — الموضع الثاني للملف، وليس بديلا عن الأول.
+                       كتب المنهج ١١٣ ملفا وخمسة غيغا وثلث، و٤٥ منها فوق سقف
+                       الرفع — فالرفع المحلي بابا مغلق لا خيارا مرفوضا. والعمود
+                       قائم منذ كتب `Taqdar_book_model`، **وليس له حقل يكتبه**:
+                       فكل كتاب على Drive أدخل من خارج اللوحة، ومن يفتح شاشته
+                       يقرأ «ارفع ملف PDF» عن كتاب يفتح ويقرأ. */
+                    'tq_drive_id' => array('label' => 'رابط الملف على Drive', 'type' => 'drive',
+                                           'placeholder' => 'https://drive.google.com/file/d/.../view',
+                                           'hint' => 'الصق رابط المشاركة كما ينسخه Drive — يقرأ منه المعرف ويخزن وحده. '
+                                                   . 'وهو للكتاب المجاني: ما يباع يرفع أعلاه ويمر بحارس التحميل.'),
+                    /* TQ-BOOK-KIND — والمجلد ثلاثة أنواع لا نوع: كتاب الطالب،
+                       وكراسة النشاط، ودليل المعلم. والوسم يقال مرة عند الإدخال
+                       ولا يشتق من العنوان — الاشتقاق يقرأ نصا كتبه إنسان فيخطئ
+                       عند أول عنوان لا يحمل الكلمة. والمسميات من
+                       `Taqdar_catalog_model::$KINDS` وحدها: هي التي تطبع على
+                       البطاقة، وقائمتان تفترقان عند أول نوع يضاف. */
+                    'tq_book_kind' => array('label' => 'نوع الكتاب', 'type' => 'enum', 'default' => 'student',
+                                           'list' => true,
+                                           'options' => $this->book_kinds(),
+                                           'hint' => 'يوسم على البطاقة — وكتاب الطالب هو الأصل فلا يوسم.'),                    'tone'        => array('label' => 'لون الغلاف', 'type' => 'enum', 'default' => 'math',
                                            'options' => array('math' => 'رياضيات', 'arabic' => 'لغة عربية',
                                                               'science' => 'علوم', 'islamic' => 'دراسات إسلامية',
                                                               'english' => 'لغة إنجليزية'),
@@ -962,6 +983,32 @@ class Taqdar_admin_model extends CI_Model
                     }
                     break;
 
+                /* TQ-BOOK-DRIVE — رابط ملف على Drive، يخزن معرفا.
+ 
+                   والحقل يقبل ما ينسخه المسؤول من Drive لا ما يستخرجه
+                   بيده: `tqs_drive_id()` تقرأ المعرف من صور الرابط
+                   الأربع ومن المعرف عاريا. وبلا ذلك يلصق الرابط كاملا
+                   في عمود طوله ٦٤ حرفا فيقص، ثم يقرأ العرض ما ليس
+                   معرفا فيرد فراغا — كتاب بلا قارئ ولا سطر خطأ.
+ 
+                   **وما لا يقرأ يرد ولا يكتب**: تخزين ما لا يفتح هو
+                   العطل نفسه بوجه ثان، وكتابة '' تمحو معرفا صحيحا كان
+                   في الصف. */
+                case 'drive':
+                    $sent_raw = trim((string) $raw);
+                    if ($sent_raw === '') {
+                        $data[$name] = null;
+                        break;
+                    }
+                    $did = function_exists('tqs_drive_id') ? tqs_drive_id($sent_raw) : '';
+                    if ($did === '') {
+                        $errors[] = 'الحقل «' . $f['label'] . '»: لم يقرأ من هذا معرف ملف على Drive. '
+                                  . 'الصق رابط المشاركة كما ينسخه Drive، مثل: '
+                                  . 'https://drive.google.com/file/d/<المعرف>/view';
+                        break;
+                    }
+                    $data[$name] = $did;
+                    break;
                 case 'money':
                     // يدخل بالريال ويخزن بالهللات — التقريب مرة واحدة هنا
                     $data[$name] = (int) round(((float) str_replace(',', '', (string) $raw)) * 100);
@@ -1021,6 +1068,31 @@ class Taqdar_admin_model extends CI_Model
             $data['slug'] = $this->slugify($data['title'], $spec['table'], (int) $id);
         }
 
+        /* TQ-BOOK-ONEFILE — الكتاب ملف واحد: مرفوعا أو على Drive، لا هما.
+ 
+           والعمودان يتعايشان في المخطط عمدا (TQ-BOOK-DRIVE)، وهذا لا
+           يعني أن يحملهما صف واحد: `site_book.php` تقرأ المرفوع أولا
+           و`tq_library.php` تقرأ Drive أولا — فصف بالاثنين يعرض ملفا
+           في صفحة الكتاب وملفا آخر في المكتبة، وكلاهما «الكتاب».
+           و`book_file()` يحرس المرفوع ولا يحرس رابط Drive، فيصير
+           الحارس بابا يلتف عليه من يقرأ الصفحة الأخرى.
+ 
+           ولا يحل بأولوية تكتب هنا: أولوية تختار أحدهما تترك الآخر
+           مخزونا يظنه صاحبه معروضا. فالرفض عند الحفظ، والرسالة تقول
+           أيهما يحذف. */
+        if ($key === 'books') {
+            $bk_file  = array_key_exists('file', $data)
+                      ? (string) $data['file']
+                      : (string) (($row_now && isset($row_now['file'])) ? $row_now['file'] : '');
+            $bk_drive = array_key_exists('tq_drive_id', $data)
+                      ? (string) $data['tq_drive_id']
+                      : (string) (($row_now && isset($row_now['tq_drive_id'])) ? $row_now['tq_drive_id'] : '');
+
+            if (trim($bk_file) !== '' && trim($bk_drive) !== '') {
+                $errors[] = 'الكتاب ملف واحد: إما ملف PDF مرفوع وإما رابط على Drive — لا الاثنان معا. '
+                          . 'احذف ملف الكتاب المرفوع، أو امسح حقل رابط Drive.';
+            }
+        }
         /* النجوم خمس لا أكثر. الرقم يطبع نجمة نجمة في القالب، فسبع
            تكسر سطر البطاقة وسالب يطبع صفرا بلا أن يقول أحد لماذا. */
         if ($key === 'testimonials' && isset($data['rating'])) {
@@ -1475,6 +1547,28 @@ class Taqdar_admin_model extends CI_Model
     }
 
     /**
+     * TQ-BOOK-KIND — مسميات أنواع الكتب، من مصدرها الواحد.
+     *
+     * `Taqdar_catalog_model::$KINDS` هي التي تطبع على بطاقة الكتالوج،
+     * وقائمة ثانية هنا تفترق عنها عند أول نوع يضاف: فيختار المسؤول نوعا
+     * لا تعرفه البطاقة، فلا يوسم ولا يقال لماذا.
+     *
+     * والصنف يحمل قبل أن يقرأ: صنف نموذج في CI لا يوجد حتى يحمله
+     * `load->model()`، ونداء ساكن على غير محمل خطأ قاتل يبيض الشاشة.
+     */
+    public function book_kinds()
+    {
+        try {
+            $this->load->model('taqdar_catalog_model');
+            if (class_exists('Taqdar_catalog_model')
+                && property_exists('Taqdar_catalog_model', 'KINDS')) {
+                return Taqdar_catalog_model::$KINDS;
+            }
+        } catch (Throwable $e) { /* النموذج لم يولد بعد */ }
+
+        return array('student' => 'كتاب الطالب');
+    }
+    /**
      * TQ-BOOK — ظهور الكتاب: أين يقرأ، وأيباع، ومن يأخذ ثمنه.
      *
      * والكتاب أربعة أبواب يسقط عند كل واحد منها شيء، ولا شيء كان يقول
@@ -1487,7 +1581,12 @@ class Taqdar_admin_model extends CI_Model
     public function book_visibility($row)
     {
         $st   = (string) (isset($row['status']) ? $row['status'] : 'draft');
-        $file = trim((string) (isset($row['file']) ? $row['file'] : ''));
+        /* TQ-BOOK-DRIVE — «له ملف» تعني موضعين: مرفوعا تحت `uploads/`
+           أو محفوظا على Drive. وقراءة `file` وحدها كانت تسم كل كتب
+           المنهج «يظهر ولا يفتح — ارفع ملف PDF» وهي تفتح وتقرأ، فيقرأ
+           المسؤول عطلا لا وجود له في مئة وعشرة صفوف. */
+        $file  = trim((string) (isset($row['file']) ? $row['file'] : ''));
+        $drive = trim((string) (isset($row['tq_drive_id']) ? $row['tq_drive_id'] : ''));
         $gid  = (int) (isset($row['grade_id']) ? $row['grade_id'] : 0);
         $cid  = (int) (isset($row['category_id']) ? $row['category_id'] : 0);
         $sell = ((int) (isset($row['tq_sell']) ? $row['tq_sell'] : 0) === 1);
@@ -1506,14 +1605,25 @@ class Taqdar_admin_model extends CI_Model
                 'why'  => 'غير منشور — لا يظهر في صفحة ولا يفتح في مكتبة ولا يباع.'));
         }
 
-        if ($file === '') {
+        if ($file === '' && $drive === '') {
             return tq_t_deep(array('tone' => 'warn', 'label' => 'يظهر ولا يفتح',
-                'why'  => 'منشور بلا ملف: يعرض في الكتالوج بشارة «قريبا» ولا يقرأ ولا يباع. ارفع ملف PDF.'));
+                'why'  => 'منشور بلا ملف: يعرض في الكتالوج بشارة «قريبا» ولا يقرأ ولا يباع. '
+                        . 'ارفع ملف PDF، أو الصق رابطه على Drive.'));
         }
 
         /* التسعير قبل النطاق: كتاب أعلن للبيع ولم يسعر يعرض زرا يرد
            بخطأ، وهو أسوأ من كتاب لا يباع أصلا. */
         if ($sell) {
+            /* TQ-BOOK-DRIVE — وما يباع يرفع محليا ويمر بالحارس.
+               رابط Drive عار: أول مشتر يوزعه على من شاء، فيصير الشراء
+               اقتراحا — و`offer()` ترد `no_file` عليه فلا يباع أصلا.
+               والصمت هنا يترك مسؤولا يسعر كتابا ويعلنه ولا يبيع منه
+               واحدا، ولا شيء يقول لماذا. */
+            if ($file === '' && $drive !== '') {
+                return tq_t_deep(array('tone' => 'warn', 'label' => 'على Drive ولا يباع',
+                    'why'  => 'الملف على Drive برابط عار، وما يباع يرفع هنا ليمر بحارس التحميل. '
+                            . 'يقرأ ويحمل مجانا كما هو، وللبيع ارفع ملف PDF بدل الرابط.'));
+            }
             $price = (int) (isset($row['discount_price']) && (int) $row['discount_price'] > 0
                             && (int) $row['discount_price'] < (int) $row['price']
                           ? $row['discount_price'] : (isset($row['price']) ? $row['price'] : 0));

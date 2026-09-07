@@ -134,10 +134,17 @@ include 'portal_open.php';
                                     </td>
 
                                     <td data-label="<?php echo te('الصفحات'); ?>">
-                                        <?php if (trim((string) $tq_b['file']) === ''): ?>
+                                        <?php /* TQ-BOOK-DRIVE — «له ملف» موضعان لا واحد،
+                                                 و«لا ملف» على كتاب يفتح ويقرأ تقرأ عطلا
+                                                 لا وجود له. وعدد الصفحات لا يقرأ من ملف
+                                                 على Drive، فيقال موضعه بدل صفر لا يفسر. */ ?>
+                                        <?php $tq_bdv = trim((string) (isset($tq_b['tq_drive_id']) ? $tq_b['tq_drive_id'] : '')); ?>
+                                        <?php if (trim((string) $tq_b['file']) === '' && $tq_bdv === ''): ?>
                                             <span class="tq-micro"><?php echo t('لا ملف'); ?></span>
-                                        <?php else: ?>
+                                        <?php elseif ((int) $tq_b['pages'] > 0): ?>
                                             <?php echo tq_num((int) $tq_b['pages'], 'tq-num--sm'); ?>
+                                        <?php else: ?>
+                                            <span class="tq-micro"><?php echo t('على Drive'); ?></span>
                                         <?php endif; ?>
                                     </td>
 
