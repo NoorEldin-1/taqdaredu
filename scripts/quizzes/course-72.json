@@ -1,0 +1,221 @@
+{
+ "course_id": 72,
+ "lessons": [
+  {
+   "lesson_id": 286,
+   "title": "الدرس الأول",
+   "objective": "أن يقدّم الطالب نفسه ويسأل عن المعلومات الشخصية مستعملًا الفعل be وضمائر الفاعل استعمالًا صحيحًا.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Complete: Hello! My name ___ Faisal.",
+     "options": [
+      "is",
+      "are",
+      "am",
+      "be"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: — How old ___ you? — I'm thirteen.",
+     "options": [
+      "is",
+      "are",
+      "am",
+      "do"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: This is my friend Sara. ___ is from Jeddah.",
+     "options": [
+      "He",
+      "It",
+      "She",
+      "They"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete the dialogue: — Where are you from? — ___",
+     "options": [
+      "I'm fine, thank you.",
+      "I'm thirteen years old.",
+      "My name is Omar.",
+      "I'm from Saudi Arabia."
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: Ali and I ___ in the same class.",
+     "options": [
+      "are",
+      "is",
+      "am",
+      "be"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete the dialogue: — Nice to meet you. — ___",
+     "options": [
+      "You're welcome.",
+      "Nice to meet you, too.",
+      "Yes, please.",
+      "See you tomorrow."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: My brother is a student. ___ school is near our house.",
+     "options": [
+      "He",
+      "Him",
+      "His",
+      "He's"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: I have ___ English lesson every day.",
+     "options": [
+      "a",
+      "the",
+      "some",
+      "an"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Which sentence is correct?",
+     "options": [
+      "I am not a teacher, I am student.",
+      "I not am a teacher.",
+      "I am not a teacher.",
+      "I am no a teacher."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: — ___ is your teacher? — Mr. Salem.",
+     "options": [
+      "What",
+      "Where",
+      "How",
+      "Who"
+     ],
+     "correct": 3
+    }
+   ]
+  },
+  {
+   "lesson_id": 308,
+   "title": "اختبار الوحدة الأولى",
+   "objective": "أن يبرهن الطالب إتقانه لمحتوى الوحدة باستعمال فعل be إثباتًا ونفيًا وسؤالًا، وضمائر الفاعل والملكية، وعبارات التعريف بالنفس في مواقف جديدة.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Complete: \"Sara and Huda ____ from Riyadh. They are from Abha.\"",
+     "options": [
+      "isn't",
+      "am not",
+      "aren't",
+      "don't"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "\"Are you a new student here?\" Choose the correct short answer.",
+     "options": [
+      "Yes, I am.",
+      "Yes, I do.",
+      "Yes, he is.",
+      "Yes, you are."
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Choose the correct pronoun: \"Khalid and Omar are my friends.\" → \"____ are my friends.\"",
+     "options": [
+      "We",
+      "He",
+      "You",
+      "They"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: \"Noura has a new bag. ____ bag is red.\"",
+     "options": [
+      "She",
+      "Her",
+      "He",
+      "His"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: \"My father is ____ engineer, and my mother is ____ teacher.\"",
+     "options": [
+      "an — a",
+      "a — an",
+      "a — a",
+      "an — an"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "The answer is \"I am twelve years old.\" Which question fits this answer?",
+     "options": [
+      "How are you?",
+      "Who are you?",
+      "How old are you?",
+      "Where are you?"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Which word is wrong in this sentence: \"My sister and me are in the same school.\"?",
+     "options": [
+      "and",
+      "me",
+      "are",
+      "same"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete the dialogue: \"____ your parents at work now?\" \"No, they ____ at home.\"",
+     "options": [
+      "Is — is",
+      "Are — is",
+      "Do — are",
+      "Are — are"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "You meet your new teacher for the first time. What do you say?",
+     "options": [
+      "See you later.",
+      "You're welcome.",
+      "Nice to meet you.",
+      "How old are you?"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "You want to know your classmate's family name. What do you ask?",
+     "options": [
+      "How is your family name?",
+      "What's your family name?",
+      "Who is your family name?",
+      "Where is your family name?"
+     ],
+     "correct": 1
+    }
+   ]
+  }
+ ]
+}

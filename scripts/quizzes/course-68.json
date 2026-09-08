@@ -1,0 +1,437 @@
+{
+ "course_id": 68,
+ "lessons": [
+  {
+   "lesson_id": 272,
+   "title": "الدرس الأول: Life Styles",
+   "objective": "أن يستعمل الطالب مفردات وحدة أنماط الحياة في وصف عاداته اليومية وأسلوب حياته.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Complete: A person who eats vegetables and exercises daily has a ___ lifestyle.",
+     "options": [
+      "healthy",
+      "lazy",
+      "busy",
+      "noisy"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: My uncle works from morning until night. He has a very ___ life.",
+     "options": [
+      "quiet",
+      "busy",
+      "empty",
+      "slow"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: I go to the gym twice a week to keep ___ .",
+     "options": [
+      "fat",
+      "tired",
+      "fit",
+      "asleep"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: She follows the same ___ routine: she wakes up, prays and studies at the same time.",
+     "options": [
+      "strange",
+      "broken",
+      "sudden",
+      "daily"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: Eating fast food every day is a bad ___ .",
+     "options": [
+      "habit",
+      "hobby",
+      "holiday",
+      "hospital"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: On weekends, I ___ my free time with my family.",
+     "options": [
+      "pass",
+      "spend",
+      "make",
+      "do"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: He is very ___ ; he sleeps late and never helps at home.",
+     "options": [
+      "active",
+      "polite",
+      "lazy",
+      "careful"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: My grandfather lives a ___ life in a small village far from the city.",
+     "options": [
+      "modern",
+      "crowded",
+      "noisy",
+      "simple"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: Doctors say we should ___ at least eight hours every night.",
+     "options": [
+      "sleep",
+      "sleeping",
+      "slept",
+      "asleep"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: I usually ___ breakfast before I go to school.",
+     "options": [
+      "make",
+      "have",
+      "take",
+      "get"
+     ],
+     "correct": 1
+    }
+   ]
+  },
+  {
+   "lesson_id": 273,
+   "title": "الدرس الثاني: Grammar — Life Styles",
+   "objective": "أن يستعمل الطالب المضارع البسيط وظروف التكرار للتعبير عن العادات، وأن يسأل عن تكرار الحدث بـ how often.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Complete: ___ do you visit your grandparents? — Twice a month.",
+     "options": [
+      "How long",
+      "How many",
+      "How often",
+      "How much"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: Nasser ___ breakfast at seven o'clock.",
+     "options": [
+      "have usually",
+      "usually have",
+      "is usually having",
+      "usually has"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Choose the correct sentence.",
+     "options": [
+      "I am never late for school.",
+      "I never am late for school.",
+      "I am late never for school.",
+      "Never I am late for school."
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: My father ___ to the office by car every day.",
+     "options": [
+      "drive",
+      "drives",
+      "is driving",
+      "driving"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: We ___ go to the beach in winter.",
+     "options": [
+      "hardly never",
+      "not hardly",
+      "hardly ever",
+      "ever hardly"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: How often does Sara play tennis? — She plays ___ .",
+     "options": [
+      "since two years",
+      "from Monday",
+      "for every week",
+      "three times a week"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: ___ your brother work at the weekend?",
+     "options": [
+      "Does",
+      "Do",
+      "Is",
+      "Are"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: They ___ eat meat because they are vegetarians.",
+     "options": [
+      "doesn't",
+      "don't",
+      "aren't",
+      "not"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: Where ___ your cousin live?",
+     "options": [
+      "do",
+      "is",
+      "does",
+      "are"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: My mother ___ tea in the evening; she prefers coffee.",
+     "options": [
+      "drinks never",
+      "never drink",
+      "is never drinking",
+      "never drinks"
+     ],
+     "correct": 3
+    }
+   ]
+  },
+  {
+   "lesson_id": 274,
+   "title": "الدرس الثالث: تمارين — Exercise",
+   "objective": "أن يوظّف الطالب مفردات وحدة أنماط الحياة وقواعدها في حلّ تمارين متنوّعة على الجملة الصحيحة.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Complete: My sister ___ television every evening after dinner.",
+     "options": [
+      "watches",
+      "watch",
+      "watching",
+      "is watch"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Which question matches this answer: She goes swimming twice a week.",
+     "options": [
+      "Where does she go swimming?",
+      "How often does she go swimming?",
+      "When did she go swimming?",
+      "Who goes swimming with her?"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: Healthy people usually ___ a lot of water.",
+     "options": [
+      "drinking",
+      "drank",
+      "drink",
+      "drinks"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Which sentence is correct?",
+     "options": [
+      "He doesn't likes junk food.",
+      "He don't like junk food.",
+      "He not like junk food.",
+      "He doesn't like junk food."
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: ___ your friends play football on Fridays?",
+     "options": [
+      "Does",
+      "Do",
+      "Is",
+      "Are"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete the dialogue: A: How often do you exercise? B: ___ .",
+     "options": [
+      "Every morning",
+      "Last Monday",
+      "Two hours ago",
+      "Next week"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: My brother is ___ tired because he works two jobs.",
+     "options": [
+      "never",
+      "hardly",
+      "rarely",
+      "always"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: We don't ___ much time watching TV.",
+     "options": [
+      "make",
+      "take",
+      "spend",
+      "give"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: Look at Huda! She ___ her new bike in the park.",
+     "options": [
+      "is riding",
+      "rides",
+      "ride",
+      "rode"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: I ___ up early, but today I woke up late.",
+     "options": [
+      "am always getting",
+      "usually get",
+      "get never",
+      "was getting"
+     ],
+     "correct": 1
+    }
+   ]
+  },
+  {
+   "lesson_id": 304,
+   "title": "اختبار الوحدة الأولى",
+   "objective": "أن يبرهن الطالب إتقانه لمحتوى الوحدة باستعمال مفردات أنماط الحياة والمضارع البسيط وظروف التكرار والسؤال بـ how often في مواقف جديدة.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Complete: \"My cousin never exercises and eats fast food every day. He has a very ____ lifestyle.\"",
+     "options": [
+      "healthy",
+      "unhealthy",
+      "peaceful",
+      "quiet"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Your friend goes to the gym on Sunday, Tuesday and Thursday. How do you describe this?",
+     "options": [
+      "He goes once a month.",
+      "He goes three times a week.",
+      "He is going now.",
+      "He never goes to the gym."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Which word is wrong in this sentence: \"My father don't drink coffee in the evening.\"?",
+     "options": [
+      "don't",
+      "drink",
+      "coffee",
+      "evening"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Which sentence puts the adverb \"usually\" in the correct place?",
+     "options": [
+      "Sara wakes usually up at six.",
+      "Usually Sara wake up at six.",
+      "Sara usually wakes up at six.",
+      "Sara wakes up usually at six."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: \"Ali does the same things at the same times every day. This is his daily ____.\"",
+     "options": [
+      "weekend",
+      "hobby",
+      "routine",
+      "holiday"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "The answer is \"He works in a hospital.\" Which question is correct?",
+     "options": [
+      "Where do he works?",
+      "Where he works?",
+      "Where does he works?",
+      "Where does he work?"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: \"Nasser ____ his homework after school, and then he ____ football with his friends.\"",
+     "options": [
+      "do — play",
+      "does — plays",
+      "does — play",
+      "do — plays"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Put these words in order, from the most often to the least often: sometimes — always — never.",
+     "options": [
+      "never — sometimes — always",
+      "sometimes — always — never",
+      "always — never — sometimes",
+      "always — sometimes — never"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: \"I usually ____ to school by bus, but today I ____ with my father.\"",
+     "options": [
+      "go — am going",
+      "am going — go",
+      "go — go",
+      "am going — am going"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "You want to know the number of times your friend plays tennis in a week. What do you ask?",
+     "options": [
+      "How long do you play tennis?",
+      "How much do you play tennis?",
+      "Where do you play tennis?",
+      "How often do you play tennis?"
+     ],
+     "correct": 3
+    }
+   ]
+  }
+ ]
+}

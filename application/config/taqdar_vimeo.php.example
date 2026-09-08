@@ -1,0 +1,24 @@
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/**
+ * رمز فيميو — انسخ هذا الملفّ إلى `taqdar_vimeo.php` واملأه.
+ *
+ * والنسخة المملوءة **مستبعَدة من git**: المستودع عامّ، ورمزٌ بصلاحيّة
+ * `private` يسرد كلّ فيديو في الحساب ويُنزّله.
+ *
+ * كيف يُولَّد:
+ *   ١ — developer.vimeo.com/apps ← اختر تطبيقك
+ *   ٢ — تبويب Authentication ← Personal Access Tokens
+ *   ٣ — Generate an Access Token
+ *   ٤ — أشِّر: public · private · video_files
+ *       (ولا تؤشّر upload ولا edit ولا delete — الأداة تقرأ ولا تكتب)
+ *   ٥ — انسخه فورًا: يُعرَض مرّةً واحدة
+ *
+ * ولا تكفي بيانات التطبيق (Client ID/Secret) وحدها: منحة
+ * `client_credentials` تعطي صلاحيّة `public` فقط، فلا ترى المجلّدات ولا
+ * المقاطع غير المدرجة — وتنجح النداءات وتعود فارغة، وهو أسوأ من خطأ.
+ */
+return array(
+    'token' => '',
+);

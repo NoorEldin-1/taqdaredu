@@ -1,0 +1,345 @@
+{
+ "course_id": 67,
+ "lessons": [
+  {
+   "lesson_id": 268,
+   "title": "الدرس الأول: الصفة",
+   "objective": "أن يستعمل الطالب الصفة في موضعها الصحيح قبل الاسم ليصف الأشخاص والأشياء.",
+   "pass_mark": 4,
+   "questions": [
+    {
+     "title": "Complete: The elephant is very ___ .",
+     "options": [
+      "big",
+      "run",
+      "table",
+      "slowly"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Which sentence puts the adjective in the right place?",
+     "options": [
+      "I have a car red.",
+      "I have a red car.",
+      "I have red a car.",
+      "I have car a red."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: My bag is heavy, but Sara's bag is ___ .",
+     "options": [
+      "long",
+      "old",
+      "light",
+      "new"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: Sara is a ___ girl. She helps her friends every day.",
+     "options": [
+      "kindly",
+      "kindness",
+      "kinds",
+      "kind"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: This box is too ___ . I can't carry it.",
+     "options": [
+      "fast",
+      "heavy",
+      "hungry",
+      "late"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: My grandfather is very ___ . He is eighty years old.",
+     "options": [
+      "young",
+      "new",
+      "old",
+      "tall"
+     ],
+     "correct": 2
+    }
+   ]
+  },
+  {
+   "lesson_id": 269,
+   "title": "الدرس الثاني: زمن المضارع البسيط",
+   "objective": "أن يكوّن الطالب جملًا مثبتة في المضارع البسيط ويضيف حرف s إلى الفعل مع he و she و it.",
+   "pass_mark": 4,
+   "questions": [
+    {
+     "title": "Complete: Ali ___ football every Friday.",
+     "options": [
+      "play",
+      "playing",
+      "are play",
+      "plays"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: My friends ___ to school by bus.",
+     "options": [
+      "go",
+      "goes",
+      "going",
+      "gos"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: She ___ her homework after lunch.",
+     "options": [
+      "do",
+      "does",
+      "doing",
+      "dos"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Choose the correct sentence.",
+     "options": [
+      "My father work in a hospital.",
+      "My father working in a hospital.",
+      "My father works in a hospital.",
+      "My father is work in a hospital."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: The cat ___ milk every morning.",
+     "options": [
+      "drinks",
+      "drink",
+      "are drink",
+      "drinking"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: We ___ in Riyadh.",
+     "options": [
+      "lives",
+      "is live",
+      "living",
+      "live"
+     ],
+     "correct": 3
+    }
+   ]
+  },
+  {
+   "lesson_id": 270,
+   "title": "تابع الدرس الثاني: زمن المضارع البسيط",
+   "objective": "أن ينفي الطالب جمل المضارع البسيط ويسأل بها مستعملًا do و does استعمالًا صحيحًا.",
+   "pass_mark": 4,
+   "questions": [
+    {
+     "title": "Complete: Sami ___ like fish.",
+     "options": [
+      "don't",
+      "not",
+      "doesn't",
+      "isn't"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: ___ you have a new pen?",
+     "options": [
+      "Does",
+      "Is",
+      "Are",
+      "Do"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: ___ your sister walk to school?",
+     "options": [
+      "Does",
+      "Do",
+      "Is",
+      "Are"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Which sentence is correct?",
+     "options": [
+      "I doesn't watch TV at night.",
+      "I don't watch TV at night.",
+      "I not watch TV at night.",
+      "I am not watch TV at night."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: My brothers ___ eat breakfast at school.",
+     "options": [
+      "doesn't",
+      "isn't",
+      "aren't",
+      "don't"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: Does Nora ___ English at home?",
+     "options": [
+      "speak",
+      "speaks",
+      "speaking",
+      "spoke"
+     ],
+     "correct": 0
+    }
+   ]
+  },
+  {
+   "lesson_id": 271,
+   "title": "الدرس الثالث: الكلمات الدالة على المضارع البسيط",
+   "objective": "أن يميّز الطالب الكلمات الدالة على المضارع البسيط ويضعها في مكانها المناسب من الجملة.",
+   "pass_mark": 4,
+   "questions": [
+    {
+     "title": "Complete: I brush my teeth ___ .",
+     "options": [
+      "yesterday",
+      "every day",
+      "last night",
+      "now"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: Ahmed ___ visits his grandmother on Fridays.",
+     "options": [
+      "yesterday",
+      "tomorrow",
+      "always",
+      "last week"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: We have an English lesson ___ Sunday.",
+     "options": [
+      "in",
+      "at",
+      "to",
+      "on"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: Huda ___ drinks coffee. She does not like it.",
+     "options": [
+      "never",
+      "always",
+      "usually",
+      "often"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Choose the sentence that is written correctly.",
+     "options": [
+      "He goes always to the club.",
+      "He always is going to the club.",
+      "He always goes to the club.",
+      "Always he go to the club."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: My father reads the news ___ morning.",
+     "options": [
+      "last",
+      "every",
+      "now",
+      "next"
+     ],
+     "correct": 1
+    }
+   ]
+  },
+  {
+   "lesson_id": 303,
+   "title": "اختبار الوحدة الأولى",
+   "objective": "أن يبرهن الطالب إتقانه لمحتوى الوحدة باستعمال الصفة في موضعها والمضارع البسيط إثباتًا ونفيًا وسؤالًا مع الكلمات الدالّة عليه في جمل جديدة.",
+   "pass_mark": 4,
+   "questions": [
+    {
+     "title": "My sister has a cat. It is small. Which sentence is correct?",
+     "options": [
+      "My sister has a cat small.",
+      "My sister have a small cat.",
+      "My sister has a small cat.",
+      "My sister have a cat small."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "The answer is \"Yes, he does.\" Which question fits this answer?",
+     "options": [
+      "Do your brother play football?",
+      "Does your brother play football?",
+      "Is your brother play football?",
+      "Does your brother plays football?"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Huda takes the bus to school every day. Which sentence says this with \"always\"?",
+     "options": [
+      "Huda goes always to school by bus.",
+      "Always Huda goes to school by bus.",
+      "Huda goes to school always by bus.",
+      "Huda always goes to school by bus."
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Sami never eats fish. Which sentence says this?",
+     "options": [
+      "Sami doesn't eat fish.",
+      "Sami don't eat fish.",
+      "Sami not eat fish.",
+      "Sami doesn't eats fish."
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: \"I have ____ for school.\"",
+     "options": [
+      "a bag new blue",
+      "new a blue bag",
+      "a new blue bag",
+      "blue a new bag"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: \"My mother ____ to the market ____ Thursday morning.\"",
+     "options": [
+      "go — on",
+      "goes — on",
+      "goes — in",
+      "go — in"
+     ],
+     "correct": 1
+    }
+   ]
+  }
+ ]
+}

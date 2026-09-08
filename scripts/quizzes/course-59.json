@@ -1,0 +1,1085 @@
+{
+ "course_id": 59,
+ "lessons": [
+  {
+   "lesson_id": 228,
+   "title": "الدرس الأول",
+   "objective": "أن يستخدم الطالب فعل be في المضارع البسيط وعبارات التحية والتعريف بالنفس في مواقف بسيطة.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Choose the correct sentence.",
+     "options": [
+      "I am here on vacation.",
+      "I is here on vacation.",
+      "I are here on vacation.",
+      "I be here on vacation."
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete the question: \"____ Ahmed happy in his new job?\"",
+     "options": [
+      "Are",
+      "Is",
+      "Am",
+      "Do"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "\"Are they from Egypt?\" Choose the correct short answer.",
+     "options": [
+      "Yes, they do.",
+      "Yes, they be.",
+      "Yes, they are.",
+      "Yes, they is."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "A guest says, \"Thank you so much.\" What is the best reply?",
+     "options": [
+      "Nice to meet you.",
+      "How are you doing?",
+      "I'm so sorry.",
+      "You're welcome."
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: \"My friend and I ____ students at the same school.\"",
+     "options": [
+      "are",
+      "am",
+      "is",
+      "be"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Which sentence is NOT correct?",
+     "options": [
+      "She isn't from Riyadh.",
+      "They aren't at the hotel.",
+      "He amn't a teacher.",
+      "I'm not on vacation."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "You meet a new classmate for the first time. What do you say?",
+     "options": [
+      "See you later.",
+      "Nice to meet you.",
+      "I'm so sorry.",
+      "Have a nice stay."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: \"Are you here on vacation?\" \"No, ____ here for the writers festival.\"",
+     "options": [
+      "I be",
+      "I is",
+      "me",
+      "I'm"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Choose the correct negative form of \"The museum is open on Fridays.\"",
+     "options": [
+      "The museum not is open on Fridays.",
+      "The museum isn't open on Fridays.",
+      "The museum doesn't open on Fridays is.",
+      "The museum aren't open on Fridays."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Your friend says, \"I'm so sorry.\" Which reply fits best?",
+     "options": [
+      "Fine, thanks.",
+      "You're welcome.",
+      "Nice to meet you.",
+      "That's all right."
+     ],
+     "correct": 3
+    }
+   ]
+  },
+  {
+   "lesson_id": 229,
+   "title": "الدرس الثاني",
+   "objective": "أن يكوّن الطالب أسئلة الاستفهام بأدواتها ويطلب المعلومات الشخصية بأسلوب مهذّب.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Complete: \"____ are you from?\" \"I'm from Jeddah.\"",
+     "options": [
+      "Where",
+      "When",
+      "Who",
+      "Why"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: \"____ is the festival?\" \"It's in February.\"",
+     "options": [
+      "Where",
+      "When",
+      "What",
+      "How"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "\"Who's that tall man?\" Choose the correct answer.",
+     "options": [
+      "It's in February.",
+      "Because we have a test.",
+      "That's my uncle.",
+      "Fine, thanks."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Which question asks about a reason?",
+     "options": [
+      "What is your name?",
+      "When are you leaving?",
+      "Where is the hotel?",
+      "Why are you studying?"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Choose the more polite sentence.",
+     "options": [
+      "I want to make a reservation.",
+      "I would like to make a reservation.",
+      "Give me a room reservation now.",
+      "Tell me your reservation prices."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "A hotel clerk needs your passport. Which request is polite?",
+     "options": [
+      "Give me your passport right now.",
+      "Show me your passport quickly.",
+      "May I see your passport, please?",
+      "Put your passport on the desk."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: \"____ do you spell your last name?\"",
+     "options": [
+      "How",
+      "What",
+      "Who",
+      "When"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Which question asks for the length of your stay?",
+     "options": [
+      "What is the purpose of your trip?",
+      "How long are you staying?",
+      "Where is your address here?",
+      "How are you paying for the room?"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: \"____ are your names?\" \"My name is Saud, and his name is Ali.\"",
+     "options": [
+      "Who",
+      "Where",
+      "When",
+      "What"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "\"How are you doing?\" Choose the best answer.",
+     "options": [
+      "Nice to meet you.",
+      "You're welcome.",
+      "Fine, thanks.",
+      "That's all right."
+     ],
+     "correct": 2
+    }
+   ]
+  },
+  {
+   "lesson_id": 230,
+   "title": "الدرس الثالث",
+   "objective": "أن يصف الطالب مواقع الأماكن مستخدمًا حروف الجر المكانية، وأن يسأل عن الاتجاهات ويعطيها.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "The bank is ____ the post office and the restaurant.",
+     "options": [
+      "between",
+      "across from",
+      "near",
+      "under"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "The park is ____ the school. It is on the other side of the street.",
+     "options": [
+      "next to",
+      "across from",
+      "between",
+      "far from"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "The pharmacy is ____ the bookstore. They are side by side.",
+     "options": [
+      "far from",
+      "between",
+      "next to",
+      "across from"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "The airport is ____ town. It takes an hour to get there.",
+     "options": [
+      "near",
+      "next to",
+      "on the corner of",
+      "far from"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Choose the correct way to ask for directions.",
+     "options": [
+      "Where I can find the bank?",
+      "Can you tell me where the bank is?",
+      "Where the bank is, please?",
+      "You know the bank where?"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "\"How can I get to the post office?\" Choose the best answer.",
+     "options": [
+      "The post office opens at eight.",
+      "Yes, I can help you with that.",
+      "Go straight ahead for two blocks.",
+      "I don't like the post office."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "The bus stop is ____ the corner.",
+     "options": [
+      "on",
+      "under",
+      "between",
+      "across"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Which sentence tells you to change direction?",
+     "options": [
+      "Go straight ahead for one block.",
+      "The museum is near the hotel.",
+      "It is across from the bank.",
+      "Turn left at the next corner."
+     ],
+     "correct": 3
+    },
+    {
+     "title": "The museum is ____ the hotel. You can walk there in two minutes.",
+     "options": [
+      "far from",
+      "near",
+      "between",
+      "behind"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: \"Excuse me. ____ the Art Museum?\"",
+     "options": [
+      "Where is",
+      "Where are",
+      "Where it is",
+      "Where the"
+     ],
+     "correct": 0
+    }
+   ]
+  },
+  {
+   "lesson_id": 263,
+   "title": "الدرس الأول: بداية الوحدة الثانية — قاعدة الجرامر",
+   "objective": "أن يكوّن الطالب زمن المضارع المستمر بصورته الصحيحة مستخدمًا فعل be مع الفعل المنتهي بـ ing.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "The present progressive is formed with",
+     "options": [
+      "do + verb + ing",
+      "be + verb + ing",
+      "have + verb + ing",
+      "will + verb + ing"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "What is the -ing form of the verb \"write\"?",
+     "options": [
+      "writeing",
+      "writting",
+      "writing",
+      "writes"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "What is the -ing form of the verb \"run\"?",
+     "options": [
+      "runing",
+      "runeing",
+      "running",
+      "runs"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Choose the correct present progressive sentence.",
+     "options": [
+      "He is feeding the fish.",
+      "He are feeding the fish.",
+      "He feeding the fish now.",
+      "He is feed the fish now."
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: \"They ____ filming the studio scenes.\"",
+     "options": [
+      "is",
+      "am",
+      "be",
+      "are"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete: \"I ____ writing a new script.\"",
+     "options": [
+      "am",
+      "is",
+      "are",
+      "be"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Which is the correct negative sentence?",
+     "options": [
+      "She not is working.",
+      "She isn't working.",
+      "She doesn't working.",
+      "She don't working."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Which is the correct question form?",
+     "options": [
+      "You are reading?",
+      "Are reading you?",
+      "Do you reading?",
+      "Are you reading?"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "What is the -ing form of the verb \"make\"?",
+     "options": [
+      "makeing",
+      "making",
+      "makking",
+      "makes"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "We use the present progressive to talk about actions that",
+     "options": [
+      "happened last year",
+      "happen every single day",
+      "are happening now",
+      "will happen next year"
+     ],
+     "correct": 2
+    }
+   ]
+  },
+  {
+   "lesson_id": 264,
+   "title": "الدرس الثاني: حل أسئلة الوحدة الثانية",
+   "objective": "أن يوظّف الطالب مفردات الوحدة الثانية وعبارات الاستحسان والاستنكار، وأن يجيب عن أسئلة الفهم القرائي.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Which expression shows approval?",
+     "options": [
+      "That's wrong.",
+      "That's great.",
+      "It tastes terrible.",
+      "This isn't going well."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Which expression shows disapproval?",
+     "options": [
+      "You're doing fine.",
+      "I love pizza.",
+      "No, that's wrong.",
+      "It's excellent."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: \"The soup smells good, but it ____ terrible.\"",
+     "options": [
+      "tastes",
+      "looks",
+      "sounds",
+      "feels"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "In the TV studio story, the man near the pond is",
+     "options": [
+      "talking to the actors",
+      "running away",
+      "breaking a ladder",
+      "feeding the fish"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "The person who tells the actors what to do in a film is the",
+     "options": [
+      "cameraman",
+      "stuntman",
+      "waiter",
+      "director"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "A person who does the dangerous scenes instead of the actor is a",
+     "options": [
+      "stuntman",
+      "reporter",
+      "script writer",
+      "desk clerk"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "In the reading \"E-Learning Is Easy!\", the Khan Academy lessons are",
+     "options": [
+      "very expensive",
+      "only for teachers",
+      "completely free",
+      "only about sports"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "According to the reading, webcams make it possible for other people to",
+     "options": [
+      "print your photos on paper",
+      "see you while you talk online",
+      "repair a broken computer",
+      "record television films"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Jet Chang says that karate today is about",
+     "options": [
+      "fighting in films",
+      "winning money",
+      "selling equipment",
+      "strength and balance"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "A documentary is a film that",
+     "options": [
+      "tells a funny story",
+      "gives real information",
+      "has no pictures at all",
+      "is only for children"
+     ],
+     "correct": 1
+    }
+   ]
+  },
+  {
+   "lesson_id": 265,
+   "title": "الدرس الثالث: تابع الوحدة الثانية",
+   "objective": "أن يستخدم الطالب صيغة الأمر وحروف الجر المكانية لإعطاء التعليمات ووصف المواقع.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Choose the correct imperative for giving a command.",
+     "options": [
+      "You sit down.",
+      "Sit down, please.",
+      "To sit down.",
+      "Sitting down."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "What is the negative imperative of \"Look around.\"?",
+     "options": [
+      "Not look around.",
+      "Don't looking around.",
+      "Don't look around.",
+      "No look around."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "The mouse is ____ the box, and the cat is outside it.",
+     "options": [
+      "over",
+      "inside",
+      "behind",
+      "away"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "The cat is ____ the mouse, so the mouse cannot see it.",
+     "options": [
+      "in front of",
+      "under",
+      "behind",
+      "inside"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "The cameraman is filming the scene. He is standing ____ the camera.",
+     "options": [
+      "under",
+      "over",
+      "away from",
+      "behind"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "In this scene, the stuntman is jumping ____ a wall.",
+     "options": [
+      "over",
+      "under",
+      "inside",
+      "behind"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "The mouse is ____ the cat, so the cat is over the mouse.",
+     "options": [
+      "outside",
+      "in front of",
+      "behind",
+      "under"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Which sentence gives advice with a negative imperative?",
+     "options": [
+      "Don't have the soup; it's bad.",
+      "You must not to drink the soup.",
+      "The soup don't drink it please.",
+      "Not drink the soup, it is bad."
+     ],
+     "correct": 0
+    },
+    {
+     "title": "The thieves are getting ____ in a fast car.",
+     "options": [
+      "over",
+      "away",
+      "under",
+      "inside"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Choose the correct imperative to give instructions to an actor.",
+     "options": [
+      "Get over the wall.",
+      "You getting over the wall.",
+      "To get over the wall.",
+      "Gets over the wall."
+     ],
+     "correct": 0
+    }
+   ]
+  },
+  {
+   "lesson_id": 266,
+   "title": "الدرس الرابع: حل أسئلة المضارع المستمر — الجزء الأول",
+   "objective": "أن يجيب الطالب عن أسئلة المضارع المستمر بصيغتي الإثبات والنفي وأسئلة نعم/لا وإجاباتها القصيرة.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "\"Is Lee feeding the fish?\" Choose the correct short answer.",
+     "options": [
+      "Yes, he is.",
+      "Yes, he does.",
+      "Yes, he feeds.",
+      "Yes, he do."
+     ],
+     "correct": 0
+    },
+    {
+     "title": "\"Are they filming in Hong Kong?\" Choose the correct negative short answer.",
+     "options": [
+      "No, they don't.",
+      "No, they not.",
+      "No, they aren't.",
+      "No, they isn't."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Find the mistake in this sentence: \"The children is playing in the street.\"",
+     "options": [
+      "children",
+      "is",
+      "playing",
+      "in"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: \"The director ____ to the cameraman right now.\"",
+     "options": [
+      "talk",
+      "talking",
+      "talks",
+      "is talking"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Make this sentence negative: \"The actors are working today.\"",
+     "options": [
+      "The actors don't working today.",
+      "The actors not are working today.",
+      "The actors isn't working today.",
+      "The actors aren't working today."
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Complete the question: \"____ you doing your homework now?\"",
+     "options": [
+      "Are",
+      "Do",
+      "Is",
+      "Have"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Find the mistake in this question: \"Am I do this right?\"",
+     "options": [
+      "Am",
+      "I",
+      "do",
+      "right"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: \"My brother and I ____ a short film this week.\"",
+     "options": [
+      "makes",
+      "is making",
+      "make",
+      "are making"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "\"Are you using a stuntman?\" Jet does the stunts himself, so he answers",
+     "options": [
+      "Yes, I am.",
+      "No, I'm not.",
+      "Yes, I do.",
+      "No, I don't."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: \"The waiter ____ coffee to the customer.\"",
+     "options": [
+      "is bringing",
+      "are bringing",
+      "bring",
+      "be bringing"
+     ],
+     "correct": 0
+    }
+   ]
+  },
+  {
+   "lesson_id": 267,
+   "title": "الدرس الخامس: حل أسئلة المضارع المستمر — الجزء الثاني",
+   "objective": "أن يكوّن الطالب أسئلة الاستفهام في المضارع المستمر وأن يميّز الحدث الجاري الآن من الحقيقة العامة.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Complete: \"____ are they filming?\" \"In Hong Kong.\"",
+     "options": [
+      "What",
+      "Where",
+      "Who",
+      "When"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "\"What is the cook doing?\" Choose the correct answer.",
+     "options": [
+      "He makes soup every day.",
+      "He is a very good cook.",
+      "He's making soup.",
+      "Yes, he is."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Which question fits the answer \"He's talking to the cameraman.\"?",
+     "options": [
+      "Who is the director talking to?",
+      "What is the director?",
+      "Where is the cameraman?",
+      "Is the director talking?"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: \"____ are the men carrying?\" \"A heavy ladder.\"",
+     "options": [
+      "Who",
+      "Where",
+      "When",
+      "What"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Choose the correct word order.",
+     "options": [
+      "What the crew is painting?",
+      "What is painting the crew?",
+      "The crew what is painting?",
+      "What is the crew painting?"
+     ],
+     "correct": 3
+    },
+    {
+     "title": "Which sentence describes an action happening now?",
+     "options": [
+      "The soup tastes terrible.",
+      "I love pizza very much.",
+      "The director is shouting.",
+      "Karate is a good sport."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Which sentence describes something that is always true?",
+     "options": [
+      "Water boils at 100 degrees.",
+      "The men are painting a wall.",
+      "She is writing a new script.",
+      "They are running away now."
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete: \"____ is the director talking to?\"",
+     "options": [
+      "Who",
+      "What",
+      "Where",
+      "Why"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "The question \"Why are you running away?\" asks about",
+     "options": [
+      "a place",
+      "a reason",
+      "a person",
+      "a time"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: \"The children are playing outside now, but they usually ____ inside.\"",
+     "options": [
+      "are playing",
+      "playing",
+      "play",
+      "plays"
+     ],
+     "correct": 2
+    }
+   ]
+  },
+  {
+   "lesson_id": 294,
+   "title": "اختبار الوحدة الأولى",
+   "objective": "أن يبرهن الطالب إتقانه لمهارات الوحدة باستعمال فعل be وأدوات الاستفهام وحروف الجرّ المكانية في حوارات ومواقف جديدة.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Complete the conversation: \"____ your parents at home?\" \"No, they ____ at the market.\"",
+     "options": [
+      "Are — are",
+      "Is — is",
+      "Are — is",
+      "Do — are"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Read: \"The library is across from the school, and it is next to the cafe.\" Which sentence is TRUE?",
+     "options": [
+      "The library is inside the school.",
+      "The cafe is across from the library.",
+      "The library and the cafe are side by side.",
+      "The school and the cafe are next to each other."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Which word is wrong in this sentence: \"Ali and his cousins is from Jeddah.\"?",
+     "options": [
+      "cousins",
+      "is",
+      "from",
+      "and"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "You did not hear the room number. Which request to the hotel clerk is the most polite?",
+     "options": [
+      "Repeat the room number again.",
+      "I want the room number now.",
+      "Could you repeat the room number?",
+      "You must tell me the room number."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "A tourist will stay in Riyadh for two weeks. Which question does the hotel clerk ask him?",
+     "options": [
+      "How far are you staying?",
+      "How long are you staying?",
+      "How often are you staying?",
+      "How much are you staying?"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete the dialogue: \"Is your uncle a doctor?\" \"No, ____ He is an engineer.\"",
+     "options": [
+      "he doesn't.",
+      "it isn't.",
+      "they aren't.",
+      "he isn't."
+     ],
+     "correct": 3
+    },
+    {
+     "title": "You hear: \"Go straight, and turn left at the second corner.\" What do you do at the second corner?",
+     "options": [
+      "Turn left.",
+      "Turn right.",
+      "Go straight ahead.",
+      "Stop and go back."
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Complete the dialogue: \"Hello, I'm Faisal. Nice to meet you.\" \"____\"",
+     "options": [
+      "You're welcome.",
+      "Nice to meet you, too.",
+      "No, thank you.",
+      "I'm fine, thanks."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Your friend arrived late and you want to know the reason. What do you ask?",
+     "options": [
+      "When are you late?",
+      "Where are you late?",
+      "Why are you late?",
+      "How are you late?"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Read: \"The restaurant is on King Fahd Street, between the pharmacy and the bookstore.\" Which question does this sentence answer?",
+     "options": [
+      "Who is in the restaurant?",
+      "When does the restaurant open?",
+      "How much is the food?",
+      "Where is the restaurant?"
+     ],
+     "correct": 3
+    }
+   ]
+  },
+  {
+   "lesson_id": 295,
+   "title": "اختبار الوحدة الثانية",
+   "objective": "أن يبرهن الطالب إتقانه لمهارات الوحدة باستعمال المضارع المستمر إثباتًا ونفيًا وسؤالًا، وصيغة الأمر، وحروف الجرّ المكانية، ومفردات الوحدة في سياقات جديدة.",
+   "pass_mark": 7,
+   "questions": [
+    {
+     "title": "Complete: \"Look! The stuntman ____ across the roof.\"",
+     "options": [
+      "is runing",
+      "is running",
+      "are running",
+      "is run"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: \"My father usually ____ at six o'clock, but today he ____ later.\"",
+     "options": [
+      "wakes up — is waking up",
+      "is waking up — wakes up",
+      "wakes up — wakes up",
+      "is waking up — is waking up"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "The director wants the actors to stop standing near the camera. What does he say?",
+     "options": [
+      "Not stand near the camera.",
+      "Don't standing near the camera.",
+      "Don't stand near the camera.",
+      "You not stand near the camera."
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: \"The director is standing ____ the two cameras.\"",
+     "options": [
+      "between",
+      "under",
+      "behind",
+      "over"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "You want to learn true facts about ocean animals. Which kind of film do you watch?",
+     "options": [
+      "a cartoon",
+      "a comedy",
+      "a documentary",
+      "an action film"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Your friend says, \"I think this film is boring.\" You liked it. Which reply shows that you disagree?",
+     "options": [
+      "That's right.",
+      "I don't think so.",
+      "Me too.",
+      "Exactly."
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Which word is wrong in this question: \"Are the cameraman filming the scene now?\"",
+     "options": [
+      "Are",
+      "cameraman",
+      "filming",
+      "now"
+     ],
+     "correct": 0
+    },
+    {
+     "title": "Put the words in the correct order to make a question: (doing / the actors / what / are)",
+     "options": [
+      "What the actors are doing?",
+      "What are the actors doing?",
+      "What do the actors doing?",
+      "What are doing the actors?"
+     ],
+     "correct": 1
+    },
+    {
+     "title": "Complete: \"The stuntman ____ over the wall while the cameraman ____ him.\"",
+     "options": [
+      "jumps — is filming",
+      "is jumping — film",
+      "is jumping — is filming",
+      "are jumping — are filming"
+     ],
+     "correct": 2
+    },
+    {
+     "title": "Complete: \"In this photo the actor is standing ____ the wall, so we can see the wall behind him.\"",
+     "options": [
+      "behind",
+      "under",
+      "between",
+      "in front of"
+     ],
+     "correct": 3
+    }
+   ]
+  }
+ ]
+}
