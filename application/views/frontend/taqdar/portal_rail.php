@@ -45,7 +45,7 @@ $tq_rail_map = [
             ['bundle',     t('محتوى باقتي'),      'student/bundle',     'grid'],
             /* الكتب كانت في الكتالوج العام وفي اللوحة، وبلا قارئ في بوابة
                الطالب: يشتري باقة فيها كتب ولا موضع يفتحها منه. */
-            ['library',    t('مكتبتي'),           'student/library',    'book'],
+            ['library',    t('كتبي وملخصاتي'),    'student/library',    'book'],
             ['materials',  t('المواد التعليمية'), 'student/materials',  'folder'],
             ['favourites', t('المفضلة'),          'student/favourites', 'heart'],
         ]],

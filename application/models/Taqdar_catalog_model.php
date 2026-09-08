@@ -650,6 +650,10 @@ class Taqdar_catalog_model extends CI_Model
         return array(
             'q'       => mb_substr($str(isset($get['q']) ? $get['q'] : ''), 0, 120, 'UTF-8'),
             'type'    => $csv(isset($get['type'])    ? $get['type']    : ''),
+            /* TQ-SUM-KIND — نوع الكتاب مرشّح أوّليّ لا لاحق: صفحة
+               الملخّصات ترشّح **قبل** الترقيم، فترشيح النتيجة بعدها
+               يعطي صفحةً فيها ثلاثة وأخرى فيها عشرون. */
+            'book_kind' => $csv(isset($get['kind']) ? $get['kind'] : ''),
             'cat'     => $csv(isset($get['cat'])     ? $get['cat']     : ''),
             'grade'   => array_map('intval', $csv(isset($get['grade']) ? $get['grade'] : '')),
             'subject' => $csv(isset($get['subject']) ? $get['subject'] : ''),
@@ -802,6 +806,12 @@ class Taqdar_catalog_model extends CI_Model
     private function passes($it, $f, $skip = '')
     {
         if ($skip !== 'type' && $f['type'] && !in_array($it['kind'], $f['type'], true)) return false;
+        /* ولا يُسأل عنه إلّا الكتاب: باقة لا نوع كتاب لها، وإسقاطها
+           لغياب مفتاح لا يخصّها يفرّغ الصفحة على من رشّح النوع. */
+        if ($skip !== 'book_kind' && !empty($f['book_kind']) && $it['kind'] === 'book') {
+            $bk = isset($it['extra']['book_kind']) ? (string) $it['extra']['book_kind'] : 'student';
+            if (!in_array($bk, $f['book_kind'], true)) return false;
+        }
         if ($skip !== 'cat'  && $f['cat']  && !in_array($it['cat'],  $f['cat'],  true)) return false;
 
         if ($skip !== 'grade' && $f['grade']) {

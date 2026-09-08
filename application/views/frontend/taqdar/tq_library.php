@@ -2,7 +2,7 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * مكتبتي — الكتب والقارئ.
+ * كتبي وملخّصاتي — الكتب والملخّصات والقارئ.
  *
  * «الكتب والقارئ» في قائمة شاشات الطالب بوثيقة المنتج، وكانت الكتب في
  * الكتالوج العام وفي لوحة الإدارة وحدهما: يشتري الطالب باقة فيها كتب،
@@ -38,8 +38,8 @@ include 'tq_student_styles.php';
 
 $tq_nav   = 'library';
 $tq_role  = 'student';
-$tq_title = t('مكتبتي');
-$tq_sub   = t('كتب مرحلتك — تقرأ هنا صفحة صفحة، بلا تحميل ولا تطبيق ثان.');
+$tq_title = t('كتبي وملخصاتي');
+$tq_sub   = t('كتب مرحلتك وملخصاتها — تقرأ هنا صفحة صفحة، بلا تحميل ولا تطبيق ثان.');
 $tq_icon  = 'book';
 
 $CI  = &get_instance();
@@ -58,6 +58,20 @@ $tq_books  = $tq_lib['books'];
 $tq_locked = isset($tq_lib['locked']) ? $tq_lib['locked'] : array();
 $tq_cat_id = (int) $tq_lib['category_id'];
 
+/* TQ-LIB-SPLIT — الكتاب والملخّص لا يخلطان في شبكة واحدة.
+   دخل قسمُ الملخّصات (٢٠٢٦-٠٩-٠٨) فصار طالب الابتدائيّ يرى ٢٤٤ بطاقة
+   منها ١٦٢ ملخّصًا: كتاب مادّته يغرق بين مراجعاتها، ومن جاء يفتح كتابه
+   يمرّ على عشرين ملخّصًا قبله. فقسمان بعنوانين وعددين — وهو نمط
+   «كتب تفتح بشراء» نفسه أدناه، لا اختراع ثالث.
+   والكتاب أوّلًا: هو المقرَّر، والملخّص يشرحه. */
+$TQ_SUM_KINDS = array('summary', 'slides');
+$tq_kutub = $tq_mulakh = array();
+foreach ($tq_books as $b) {
+    $k = (string) (isset($b['tq_book_kind']) ? $b['tq_book_kind'] : 'student');
+    if (in_array($k, $TQ_SUM_KINDS, true)) $tq_mulakh[] = $b;
+    else                                   $tq_kutub[]  = $b;
+}
+
 include 'portal_open.php';
 ?>
 
@@ -68,8 +82,8 @@ include 'portal_open.php';
 <?php if (!$tq_books && !$tq_locked): ?>
 
   <section class="tq-card">
-    <?php echo tq_s_empty('book', 'sand', t('لا كتب في مكتبتك بعد'),
-          t('كتب مرحلتك تظهر هنا حالما تنشر. وحتى ذلك، تصفح البرامج والدروس.'),
+    <?php echo tq_s_empty('book', 'sand', t('لا كتب ولا ملخّصات بعد'),
+          t('كتب مرحلتك وملخّصاتها تظهر هنا حالما تنشر. وحتى ذلك، تصفح البرامج والدروس.'),
           t('تصفح الكتب'), base_url('books'), false, 'primary'); ?>
   </section>
 
@@ -79,7 +93,7 @@ include 'portal_open.php';
            بدل «لا كتب بعد» — وهي كاذبة، والكتب تحتها. */ ?>
   <section class="tq-card">
     <?php echo tq_s_empty('book', 'sand', t('لم تفتح كتابا بعد'),
-          t('كتب مرحلتك أدناه — تشترى وحدها، أو تفتح كلها باشتراكك في باقة صفك.'),
+          t('كتب مرحلتك وملخّصاتها أدناه — تشترى وحدها، أو تفتح كلها باشتراكك في باقة صفك.'),
           t('تصفح الباقات'), base_url('plans'), false, 'primary'); ?>
   </section>
 
@@ -87,12 +101,29 @@ include 'portal_open.php';
 
   <?php if ($tq_cat_id === 0): ?>
     <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-      <?php echo t('لا كتب مخصصة لمرحلتك بعد، فهذه كتب المنصة كلها.'); ?>
+      <?php echo t('لا كتب مخصصة لمرحلتك بعد، فهذه كتب المنصة وملخّصاتها كلها.'); ?>
     </p>
   <?php endif; ?>
 
+  <?php
+  /* القسمان يتشاركان وسم البطاقة نفسه: نسخة ثانية منه تفترق عن أختها
+     عند أوّل تعديل. فالحلقة على القسمين، والبطاقة مكتوبة مرّة. */
+  $tq_sections = array();
+  if ($tq_kutub)  $tq_sections[] = array('t' => t('كتب المنهج'),        'rows' => $tq_kutub,  'first' => true);
+  if ($tq_mulakh) $tq_sections[] = array('t' => t('ملخّصات ومراجعات'), 'rows' => $tq_mulakh, 'first' => false);
+  foreach ($tq_sections as $tq_sec):
+    /* عنوان القسم يظهر حين يكون ثَمّ قسمان: عنوان فوق كلّ ما في
+       الشاشة يسمّي ما لا يحتاج تسمية. */
+    if (count($tq_sections) > 1): ?>
+      <div class="tq-lib-head"<?php echo $tq_sec['first'] ? '' : ' style="margin-block-start:var(--tq-space-xl)"'; ?>>
+        <h2 class="tq-lib-head__t"><?php echo html_escape($tq_sec['t']); ?>
+          <span class="tq-caption">(<?php echo tq_num(count($tq_sec['rows'])); ?>)</span>
+        </h2>
+      </div>
+    <?php endif; ?>
+
   <div class="tq-lib-grid">
-    <?php foreach ($tq_books as $i => $b):
+    <?php foreach ($tq_sec['rows'] as $i => $b):
       /* TQ-BOOK-DRIVE — كتاب على Drive له ملف وان خلا `file`. */
       $tq_dv    = tqs_drive_embed(isset($b['tq_drive_id']) ? $b['tq_drive_id'] : '');
       $has_file = trim((string) $b['file']) !== '' || $tq_dv !== '';
@@ -169,6 +200,7 @@ include 'portal_open.php';
       </article>
     <?php endforeach; ?>
   </div>
+  <?php endforeach; /* الأقسام */ ?>
 
 <?php endif; ?>
 

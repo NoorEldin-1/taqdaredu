@@ -3842,6 +3842,30 @@ class Taqdar extends CI_Controller
      * محسوبة على الأنواع الأربعة بينما الشبكة تعرض كتبا. وهو الانقسام
      * نفسه الذي منعه الكتالوج بأن جعل الحال في الرابط وحده.
      */
+    /**
+     * عدّادا القسمين للمبدّل — TQ-SUM-DRIVE.
+     *
+     * من القاعدة لا من النتيجة المرقّمة: `$res` اثنا عشر في الصفحة،
+     * فالعدّ منها يكتب «الملخّصات ١٢» وتحتها ثلاثمئة.
+     */
+    private function tq_books_switch($active)
+    {
+        $q = $this->db->select("CASE WHEN tq_book_kind IN ('summary','slides')
+                                     THEN 'sum' ELSE 'book' END AS k,
+                                COUNT(*) AS n", false)
+                      ->from('books')->where('status', 'published')
+                      ->group_by('k', false)->get()->result_array();
+        $n = array('book' => 0, 'sum' => 0);
+        foreach ($q as $r) $n[$r['k']] = (int) $r['n'];
+
+        return array(
+            array('label' => 'كتب المنهج',        'n' => $n['book'],
+                  'href'  => base_url('books'),     'on' => ($active === 'books')),
+            array('label' => 'ملخّصات ومراجعات', 'n' => $n['sum'],
+                  'href'  => base_url('summaries'), 'on' => ($active === 'summaries')),
+        );
+    }
+
     public function books_page()
     {
         $this->load->model('taqdar_catalog_model', 'tq_cat');
@@ -3850,6 +3874,12 @@ class Taqdar extends CI_Controller
         /* النوع يفرض ولا يضاف: زائر يكتب `?type=path` في رابط `/books`
            يقرأ برامج في صفحة عنوانها «الكتب». */
         $f['type'] = array('book');
+
+        /* TQ-SUM-DRIVE — والملخّصات خرجت إلى قسمها (`/summaries`): بندان
+           في القائمة يَعِدان بشيئين، فصفحة «كتبي» تعرض ثلاثمئة ملخّص
+           تُخلف وعد بندها وتُغرق مئةً وعشرة كتبٍ هي المقرَّر.
+           والمقرَّر هنا، والشرح هناك. */
+        $f['book_kind'] = array('student', 'activity', 'exercise', 'guide');
 
         /* ولا حقن مرحلة هنا (`with_scope`): الكتب ثمانية أو عشرة، وحقن
            مرحلة الطالب في صفحة بهذا الحجم يخفي نصفها بلا أن يطلب أحد —
@@ -3862,15 +3892,93 @@ class Taqdar extends CI_Controller
         $tq_grades = $this->db->select('g.id, g.name_ar, g.`order`,
                                         COUNT(b.id) AS n', false)
             ->from('grades g')
-            ->join('books b', "b.grade_id = g.id AND b.status = 'published'", 'left')
+            ->join('books b', "b.grade_id = g.id AND b.status = 'published'
+                               AND b.tq_book_kind NOT IN ('summary','slides')", 'left')
             ->where('g.active', 1)
             ->group_by('g.id')->order_by('g.`order`', 'ASC', false)
             ->get()->result_array();
 
+
+        /* TQ-SUM-SWITCH — مرشّح «النوع» يُخفى في هاتين الصفحتين وحدهما.
+           ثلاثة أسباب: يعرض «الباقات» و«البرامج» و«الكورسات» في صفحة
+           عنوانها الكتب، **وروابطه ميتة** (المتحكّم يفرض النوع بعد قراءة
+           الرابط فالنقر يعيد الصفحة نفسها)، ويكتب «الكتب ٣٠٦» في صفحة
+           الملخّصات لأنّ التسمية ثابتة في `kinds()` ولا تقرأ المرشّحات.
+           والنوع محسوم بالمبدّل الأخضر فوق الشبكة أصلًا.
+
+           وتُنقّى `active` معه: رقاقة «الكتب ×» دائمة لا تُزال — تَعِد
+           بإزالة ما لا يُزال. والمحرّك لا يُمسّ: `facets()` يستثني
+           `type` من الإخفاء التلقائيّ عمدًا، فالاستثناء هنا وحده
+           و`/catalog` يبقى كما هو. */
+        unset($res['facets']['type']);
+        if (!empty($res['active'])) {
+            $res['active'] = array_values(array_filter($res['active'],
+                function ($c) { return (string) $c['key'] !== 'type'; }));
+        }
         $this->show('site_books', 'الكتب', array(
             'tq_f'      => $f,
             'tq_res'    => $res,
             'tq_grades' => $tq_grades,
+            'tq_switch' => $this->tq_books_switch('books'),
+        ));
+    }
+
+    /**
+     * الملخّصات والمراجعات — TQ-SUM-DRIVE.
+     *
+     * قسم قائم بذاته لا رابط استعلام على `/books`، وللسبب الذي جعل
+     * `books_grade()` صفحةً ثابتة: `/books?kind=summary` لا يُفهرس ولا
+     * يُشارَك، ومن يبحث يكتب «ملخصات المنهج السعودي» — فصفحة تحمل هذا
+     * الاسم هي ما يُجاب به.
+     *
+     * وهو **المحرك نفسه** بنوع مثبت، لا كتالوج ثالث: صفحة تبحث وترشّح
+     * بقواعدها هي تفترق عن أختها عند أوّل تعديل.
+     */
+    public function summaries_page()
+    {
+        $this->load->model('taqdar_catalog_model', 'tq_cat');
+        $f = $this->tq_cat->filters_from($this->input->get());
+
+        /* يُفرضان ولا يُضافان: زائر يكتب `?type=path` أو `?kind=student`
+           في رابط عنوانه «الملخّصات» يقرأ ما ليس ملخّصًا. */
+        $f['type']      = array('book');
+        $f['book_kind'] = array('summary', 'slides');
+
+        $res = $this->tq_cat->search($f);
+
+        /* الصفوف بعدد ملخّصات كلٍّ — والعدّ من القاعدة لا من `$res`
+           المرقَّمة، كما في `books_page()` حرفًا بحرف. */
+        $tq_grades = $this->db->select('g.id, g.name_ar, g.`order`,
+                                        COUNT(b.id) AS n', false)
+            ->from('grades g')
+            ->join('books b', "b.grade_id = g.id AND b.status = 'published'
+                               AND b.tq_book_kind IN ('summary','slides')", 'left')
+            ->where('g.active', 1)
+            ->group_by('g.id')->order_by('g.`order`', 'ASC', false)
+            ->get()->result_array();
+
+
+        /* TQ-SUM-SWITCH — مرشّح «النوع» يُخفى في هاتين الصفحتين وحدهما.
+           ثلاثة أسباب: يعرض «الباقات» و«البرامج» و«الكورسات» في صفحة
+           عنوانها الكتب، **وروابطه ميتة** (المتحكّم يفرض النوع بعد قراءة
+           الرابط فالنقر يعيد الصفحة نفسها)، ويكتب «الكتب ٣٠٦» في صفحة
+           الملخّصات لأنّ التسمية ثابتة في `kinds()` ولا تقرأ المرشّحات.
+           والنوع محسوم بالمبدّل الأخضر فوق الشبكة أصلًا.
+
+           وتُنقّى `active` معه: رقاقة «الكتب ×» دائمة لا تُزال — تَعِد
+           بإزالة ما لا يُزال. والمحرّك لا يُمسّ: `facets()` يستثني
+           `type` من الإخفاء التلقائيّ عمدًا، فالاستثناء هنا وحده
+           و`/catalog` يبقى كما هو. */
+        unset($res['facets']['type']);
+        if (!empty($res['active'])) {
+            $res['active'] = array_values(array_filter($res['active'],
+                function ($c) { return (string) $c['key'] !== 'type'; }));
+        }
+        $this->show('site_summaries', 'الملخّصات والمراجعات', array(
+            'tq_f'      => $f,
+            'tq_res'    => $res,
+            'tq_grades' => $tq_grades,
+            'tq_switch' => $this->tq_books_switch('summaries'),
         ));
     }
 
@@ -3929,11 +4037,35 @@ class Taqdar extends CI_Controller
     }
 
     /** جزء نتائج الكتب — نظير `catalog_results()` بنوعه المثبت. */
+    /** جزء نتائج الملخّصات — نظيره بنوعه المثبّت. نقطة خاصّة لا
+     *  `books/results?kind=` : الواجهة تبني رابط الطلب من المرشّحات،
+     *  ومفتاح يسقط منها يعيد الكتب كلّها في صفحة الملخّصات. */
+    public function summaries_results()
+    {
+        $this->load->model('taqdar_catalog_model', 'tq_cat');
+        $f = $this->tq_cat->filters_from($this->input->get());
+        $f['type']      = array('book');
+        $f['book_kind'] = array('summary', 'slides');
+        $res = $this->tq_cat->search($f);
+        $this->output->set_content_type('application/json', 'utf-8')->set_output(json_encode(array(
+            'grid'    => $this->load->view('frontend/taqdar/site/site_catalog_grid',
+                                           array('tq_f' => $f, 'tq_res' => $res), true),
+            'filters' => $this->load->view('frontend/taqdar/site/site_catalog_filters',
+                                           array('tq_f' => $f, 'tq_res' => $res), true),
+            'count'   => tqs_cat_count_line($res),
+            'total'   => (int) $res['total'],
+            'page'    => (int) $res['page'],
+            'url'     => tqs_cat_query($f, array('page' => $res['page'])),
+        ), JSON_UNESCAPED_UNICODE));
+    }
+
     public function books_results()
     {
         $this->load->model('taqdar_catalog_model', 'tq_cat');
         $f = $this->tq_cat->filters_from($this->input->get());
         $f['type'] = array('book');
+        /* يطابق `books_page()` — وإلّا أعاد الترقيم ما لا تعرضه الصفحة. */
+        $f['book_kind'] = array('student', 'activity', 'exercise', 'guide');
         $res = $this->tq_cat->search($f);
 
         $out = array(

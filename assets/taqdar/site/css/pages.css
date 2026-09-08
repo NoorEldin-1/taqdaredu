@@ -4766,3 +4766,86 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 
 /* وعناوين الأقسام تهدأ معها: تصير تسمية صغيرة لا سطرا مؤطرا */
 .form-card .form-sect__t{font-size:max(12.5px,.85rem);color:var(--ink-2)}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TQ-SUM-SWITCH (2026-09-08) — مبدّل «كتب المنهج / ملخّصات ومراجعات».
+
+   كان الزرّان يرسمان **متطابقين**: القالب يكتب `is-on` على المختار،
+   و`.cactive__i.is-on` غير معرَّف في أيّ ورقة — حالةٌ معلنة بلا لون.
+
+   ومقصور على `--switch` عمدًا: `.cactive` المجرَّد تستعمله رقائق
+   «إزالة المرشّح ×» في هذه الصفحة نفسها وفي `/catalog`، فتلوينها
+   أخضر يجعل زرّ الحذف يقرأ زرّ اختيار.
+
+   والأخضر من النظام لا مخترَع: `--emerald` وله سابقة في
+   `.co-cyc__opt.is-on`. والشكل شكل `.stage-tabs` — توسيط والتفاف
+   وكبسولة، لا نمط ثالث.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.cactive--switch{
+  justify-content:center;
+  gap:10px;
+  margin-block:clamp(4px,1vw,10px) clamp(18px,2.2vw,28px);
+}
+
+.cactive--switch .cactive__i{
+  font-family:'Cairo',sans-serif;
+  font-weight:700;
+  font-size:clamp(12.5px,1vw,15px);
+  padding:11px 22px;
+  background:var(--paper);
+  border:1.5px solid rgba(12,120,108,.28);
+  color:var(--emerald);
+  transition:background .18s ease,color .18s ease,
+             border-color .18s ease,box-shadow .18s ease;
+}
+
+.cactive--switch .cactive__i:hover{
+  background:rgba(12,120,108,.06);
+  border-color:var(--emerald);
+  color:var(--emerald);
+}
+
+/* القاعدة الغائبة — وهي كلّ الفرق بين مبدّل يُقرأ وزرّين متشابهين. */
+.cactive--switch .cactive__i.is-on{
+  background:var(--emerald);
+  border-color:var(--emerald);
+  color:#fff;
+  box-shadow:0 8px 20px -12px rgba(12,120,108,.7);
+}
+.cactive--switch .cactive__i.is-on:hover{
+  background:var(--emerald);
+  color:#fff;
+}
+
+.cactive--switch .cactive__i:focus-visible{
+  outline:2px solid var(--emerald);
+  outline-offset:3px;
+}
+
+/* العدد رقاقة داخل الزرّ (نمط `.cchip b`)، وأرقامه ثابتة العرض فلا
+   يهتزّ الزرّ حين يتغيّر الرقم. */
+.cactive--switch .tq-ltr{
+  font-variant-numeric:tabular-nums;
+  font-size:.85em;
+  font-weight:700;
+  background:rgba(12,120,108,.1);
+  color:var(--emerald);
+  border-radius:999px;
+  padding:1px 8px;
+}
+.cactive--switch .cactive__i.is-on .tq-ltr{
+  background:rgba(255,255,255,.2);
+  color:#fff;
+}
+
+/* الشاشة الضيّقة: يقتسمان السطر بالتساوي بدل أن ينزل أحدهما وحيدًا
+   فيقرأ تابعًا لا نظيرًا. */
+@media (max-width:480px){
+  .cactive--switch{gap:8px}
+  .cactive--switch .cactive__i{
+    flex:1 1 0;
+    justify-content:center;
+    padding:11px 10px;
+  }
+}

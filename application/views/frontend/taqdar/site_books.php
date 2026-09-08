@@ -20,9 +20,19 @@
  *
  * `$tq_f` المرشحات · `$tq_res` النتيجة — بالعقد نفسه حرفا بحرف.
  */
-$tq_h1   = tq_text_raw('site_books', 'hero_title', 'كتب المنصة');
-$tq_lead = tq_text_raw('site_books', 'hero_lede',
-    'كتب المنهج وكتب معلمي تقدر — تقرأ في مكتبتك صفحة صفحة. منها ما يحمل مجانا، ومنها ما يشترى وحده أو يفتح ضمن باقتك.');
+/* TQ-SUM-DRIVE — القالب يخدم قسمين: الكتب والملخّصات. الوسم واحد
+   والمحرّك واحد، ويختلفان في ثلاثة: عنوان، ومقدّمة، ومسار النموذج
+   ونقطة نتائجه. ونسخة ثانية منه تفترق عن أختها عند أوّل تعديل. */
+$tq_base = isset($tq_base) && $tq_base !== '' ? $tq_base : 'books';
+/* رابط الصفّ يهبط على تبويب القسم الذي جاء منه: من ضغط «الأول
+   المتوسط» في صفحة الملخّصات يريد ملخّصاته لا كتبه. وصفحة الصفّ
+   تملك مرشّح النوع أصلًا (`?kind=`) فلا شيء يُبنى. */
+$tq_grade_q = isset($tq_grade_q) ? (string) $tq_grade_q : '';
+if (!isset($tq_h1)) {
+    $tq_h1   = tq_text_raw('site_books', 'hero_title', 'كتب المنصة');
+    $tq_lead = tq_text_raw('site_books', 'hero_lede',
+        'كتب المنهج وكتب معلمي تقدر — تقرأ في مكتبتك صفحة صفحة. منها ما يحمل مجانا، ومنها ما يشترى وحده أو يفتح ضمن باقتك.');
+}
 include __DIR__ . '/site/site_pagehero.php';
 
 $tq_sorts = array(
@@ -35,6 +45,27 @@ $tq_sorts = array(
 ?>
 <section class="section" id="catalog">
   <div class="shell">
+
+<?php /* ── مبدّل القسمين — TQ-SUM-DRIVE ───────────────────────────
+         بند واحد في الترويسة («كتبي وملخصاتي») ومبدّل هنا: الفصل يبقى
+         حيث يُقرأ لا في قائمة تطول. والعددان من القاعدة لا من النتيجة
+         المرقّمة — رقاقة تقول «٢٤» وتحتها ثلاثمئة تكذب.
+         وهو `cactive` نفسه الذي تستعمله صفحة الصفّ، لا نمط ثالث. */ ?>
+<?php if (!empty($tq_switch)): ?>
+    <?php /* مُعدِّل خاصّ: `.cactive` المجرَّد تستعمله أيضًا رقائق «إزالة
+             المرشّح ×» أسفل هذه الصفحة نفسها وفي `/catalog` — فتلوينه
+             يلوّنها معه. والأنماط كلّها مقصورة على `--switch`. */ ?>
+    <div class="cactive cactive--switch" aria-label="<?php echo te('نوع المحتوى'); ?>">
+<?php   foreach ($tq_switch as $tq_sw): ?>
+      <a class="cactive__i<?php echo !empty($tq_sw['on']) ? ' is-on' : ''; ?>"
+         href="<?php echo html_escape($tq_sw['href']); ?>"
+         <?php echo !empty($tq_sw['on']) ? 'aria-current="page"' : ''; ?>>
+        <?php echo html_escape($tq_sw['label']); ?>
+        <span class="tq-ltr"><?php echo tq_num((int) $tq_sw['n']); ?></span>
+      </a>
+<?php   endforeach; ?>
+    </div>
+<?php endif; ?>
 
 <?php /* ── تصفح بالصف ────────────────────────────────────────────
          TQ-BOOK-GRADES — ومن دون هذا الشريط تصير صفحات الصفوف يتيمة:
@@ -49,7 +80,7 @@ $tq_sorts = array(
       <span class="bgrades__t"><?php echo t('تصفح بالصف'); ?></span>
 <?php   foreach ($tq_grades as $tq_g): ?>
 <?php     if ((int) $tq_g['n'] > 0): ?>
-      <a class="bgrades__i" href="<?php echo html_escape(tqs_grade_books_url($tq_g)); ?>">
+      <a class="bgrades__i" href="<?php echo html_escape(tqs_grade_books_url($tq_g) . $tq_grade_q); ?>">
         <?php echo html_escape($tq_g['name_ar']); ?>
         <span class="tq-ltr"><?php echo tq_num((int) $tq_g['n']); ?></span>
       </a>
@@ -65,7 +96,7 @@ $tq_sorts = array(
              و`action` إلى `/books` لا `/catalog`: النموذج بلا جافاسكربت
              يرسل إلى ما في `action`، فبحث من هذه الصفحة كان يهبط في
              الكتالوج العام ويوسع النتيجة إلى الأنواع الأربعة. */ ?>
-    <form class="cbar" role="search" method="get" action="<?php echo base_url('books'); ?>"
+    <form class="cbar" role="search" method="get" action="<?php echo base_url($tq_base); ?>"
           data-tq-cat-form>
       <div class="cbar__search">
         <svg aria-hidden="true"><use href="#i-search"></use></svg>
@@ -132,7 +163,7 @@ $tq_sorts = array(
         <?php /* جزء النتائج يجلب من `books/results` لا من `catalog/results`:
                  المصدر واحد والنوع مثبت فيه، فبحث حي من هذه الصفحة لا
                  يعود بنتيجة فيها برامج. */ ?>
-        <div id="catGrid" data-tq-cat-grid="<?php echo html_escape(base_url('books/results')); ?>">
+        <div id="catGrid" data-tq-cat-grid="<?php echo html_escape(base_url($tq_base . '/results')); ?>">
 <?php echo $this->load->view('frontend/taqdar/site/site_catalog_grid',
         array('tq_f' => $tq_f, 'tq_res' => $tq_res), true); ?>
         </div>

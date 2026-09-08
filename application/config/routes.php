@@ -480,6 +480,11 @@ $route['book-file/(:num)']     = 'taqdar/book_file/$1';
 // عادت صفحة يوم صار الكتاب وحدة بيع لها سعر وصاحب. وهي **المحرك نفسه**
 // بنوع مثبت لا كتالوج ثان — انظر رأس `site_books.php`.
 $route['books']                = 'taqdar/books_page';
+/* TQ-SUM-DRIVE — قسم الملخّصات: صفحة ثابتة تُفهرس وتُشارَك، لا
+   `/books?kind=` الذي لا يقرؤه محرّك بحث ولا يكتبه أحد بيده.
+   وتسبق `books/(:any)` في الترتيب لأنّ الترتيب حامل. */
+$route['summaries']            = 'taqdar/summaries_page';
+$route['summaries/results']    = 'taqdar/summaries_results';
 $route['book/(:any)']          = 'taqdar/book_page/$1';
 
 // TQ-BOOK-DRIVE — صفحة كتب الصف. **بعد** `books/results` لا قبلها:
