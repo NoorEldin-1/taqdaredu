@@ -195,6 +195,15 @@ $tq_is_site = !$tq_is_portal && isset($page_name) && in_array($page_name, $tq_si
 
     if (!$tq_is_portal) {
         include (!empty($tq_is_site) ? 'site/site_footer.php' : 'footer.php');
+
+        /* TQ-WA-FAB — زر واتساب العائم.
+
+           موضعه هنا لا في أحد التذييلين: الموقع على ثيمين — الصفحة
+           المنقولة تذيلها `site/site_footer.php` وما سواها `footer.php`،
+           وكتابته في واحد تترك نصف الموقع بلا زر ولا شيء يقول لماذا.
+           والشرط الواحد هو شرط الترويسة والتذييل نفسه: شاشة بوابة تضاف
+           غدا ترث الاستثناء بلا سطر يضاف هنا. */
+        include 'site/site_whatsapp.php';
     }
 
     include 'includes_bottom.php';

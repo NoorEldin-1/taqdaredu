@@ -439,3 +439,135 @@ details.tq-spam--compact{padding:0}
 @media (prefers-reduced-motion:reduce){
   .tq-spam *{transition:none !important}
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-WA-FAB · زر واتساب العائم — الموقع العام والثيم الموروث معا
+
+   موضعه هنا لا في `shell.css` لأن الزر يطبع من `index.php` لكل صفحة
+   غير بوابة، وتلك الصفحات على ثيمين: المنقولة تحمل `shell.css`،
+   والموروثة لا تحملها — فورقة هناك تترك الزر بلا شكل في نصف الموقع.
+   و`shared.css` هي الوحيدة التي تحمل في الجهتين.
+
+   وألوانه مكتوبة لا من التوكنات: أخضر واتساب علامة تجارية يعرفها
+   الزائر قبل أن يقرأ، والثيم الموروث لا يعرف `--cream` ولا `--ink`
+   أصلا — فقيمة من توكن هناك تسقط إلى `initial` بلا أن يظهر ذلك.
+
+   والجهة `inset-inline-start`: في العربية هي اليمين، وتنقلب وحدها إلى
+   اليسار متى فتحت الصفحة إنجليزية — فلا قاعدة ثانية تكتب للاتجاه.
+   ══════════════════════════════════════════════════════════════════ */
+.tq-wa{
+  position:fixed;z-index:880;
+  /* الموضع الافتراضي، و`--tq-wa-bottom` يعلوه متى قاس `taqdar.js`
+     تقاطعا مع شريط الارتباط — انظر الكتلة في آخر هذا القسم. */
+  inset-block-end:var(--tq-wa-bottom, calc(1.15rem + env(safe-area-inset-bottom, 0px)));
+  inset-inline-start:1.15rem;
+  display:inline-flex;align-items:center;
+  min-block-size:56px;padding:0 15px;
+  border-radius:999px;
+  background:linear-gradient(145deg,#3ddc75 0%,#25d366 45%,#128c7e 100%);
+  color:#fff;text-decoration:none;
+  font:700 .92rem/1 'Cairo',system-ui,-apple-system,sans-serif;
+  box-shadow:0 10px 26px -8px rgba(18,140,126,.55),0 2px 8px rgba(5,44,43,.18);
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .28s cubic-bezier(.22,1,.36,1),
+             box-shadow .28s cubic-bezier(.22,1,.36,1),
+             background-color .28s ease;
+  /* دخول متأخر قليلا: الزر ليس أول ما يقرأ في الصفحة، وظهوره مع
+     الرسم الأول يسحب العين عن الهيرو. */
+  animation:tq-wa-in .55s cubic-bezier(.22,1.2,.36,1) .9s both;
+}
+
+/* الهالة النابضة — خلف الزر لا فوقه، ولا تلتقط النقر
+   (`pointer-events:none`): دائرة تكبر فوق الزر تبتلع نقرة الزائر
+   في نصف نبضتها ولا يظهر ذلك إلا في الاستعمال. */
+.tq-wa::before{
+  content:'';position:absolute;inset:0;
+  border-radius:inherit;pointer-events:none;
+  /* حلقة تتسع وتخفت، وهي **ظل** لا مساحة ملونة: عنصر مصمت خلف الزر
+     لا يقع خلف خلفيته — الزر ينشئ سياق طبقات بـ`z-index` الخاص به،
+     فيرسم ابنه السالب فوق التدرج ويطمسه بأخضر مسطح في كل نبضة.
+     والظل الخارجي يقص عند حدود الصندوق أصلا، فلا يعلو وجه الزر. */
+  animation:tq-wa-pulse 2.6s cubic-bezier(.4,0,.2,1) 1.8s infinite;
+}
+
+.tq-wa__ico{display:flex;flex:none;align-items:center;justify-content:center;
+  inline-size:26px;block-size:26px;
+  transition:transform .35s cubic-bezier(.22,1.4,.36,1)}
+.tq-wa__ico svg{display:block;inline-size:100%;block-size:100%}
+
+/* الوصف ينفتح من الزر نفسه لا في لوح فوقه: المقاس `max-inline-size`
+   فينتقل بسلاسة، والحرف مقصوص حتى ينتهي الانتقال (`overflow:hidden`)
+   فلا يقفز النص خارج الحافة المستديرة. */
+.tq-wa__label{
+  max-inline-size:0;opacity:0;overflow:hidden;white-space:nowrap;
+  transition:max-inline-size .38s cubic-bezier(.22,1,.36,1),
+             opacity .22s ease,margin .38s cubic-bezier(.22,1,.36,1);
+}
+
+@media (hover:hover) and (min-width:681px){
+  .tq-wa:hover,.tq-wa:focus-visible{
+    transform:translateY(-3px);
+    box-shadow:0 18px 38px -10px rgba(18,140,126,.62),0 3px 10px rgba(5,44,43,.2);
+  }
+  .tq-wa:hover .tq-wa__ico,.tq-wa:focus-visible .tq-wa__ico{transform:rotate(-8deg) scale(1.08)}
+  .tq-wa:hover .tq-wa__label,.tq-wa:focus-visible .tq-wa__label{
+    max-inline-size:16rem;opacity:1;margin-inline-start:10px;
+  }
+  /* النبض يسكت عند التصويب: الزر وجد صاحبه فلا حاجة إلى نداء. */
+  .tq-wa:hover::before,.tq-wa:focus-visible::before{animation:none;box-shadow:none}
+}
+
+.tq-wa:active{transform:translateY(-1px) scale(.97)}
+.tq-wa:focus-visible{outline:3px solid rgba(255,255,255,.9);outline-offset:3px}
+
+@keyframes tq-wa-in{
+  from{opacity:0;transform:translateY(14px) scale(.72)}
+  to{opacity:1;transform:none}
+}
+@keyframes tq-wa-pulse{
+  0%{box-shadow:0 0 0 0 rgba(37,211,102,.5)}
+  70%{box-shadow:0 0 0 17px rgba(37,211,102,0)}
+  100%{box-shadow:0 0 0 0 rgba(37,211,102,0)}
+}
+
+/* ── الجوال: أيقونة وحدها، ولا وصف ينفتح ─────────────────────────── */
+@media (max-width:680px){
+  .tq-wa{
+    min-block-size:52px;padding:0 13px;
+    inset-inline-start:.85rem;
+    inset-block-end:var(--tq-wa-bottom, calc(.85rem + env(safe-area-inset-bottom, 0px)));
+  }
+  .tq-wa__ico{inline-size:24px;block-size:24px}
+  /* والوصف لا يعرض أصلا: لا تصويب على شاشة تلمس، ولوح ينفتح بالنقر
+     يؤخر ما جاء الزائر ليفتحه. */
+  .tq-wa__label{display:none}
+
+}
+
+/* الشريط السفلي إن أعيد (`site_tabbar.php`) — الزر فوقه لا تحته. */
+@media (max-width:680px){
+  body:has(.tq-tabbar) .tq-wa{
+    inset-block-end:var(--tq-wa-bottom, calc(.85rem + var(--tabbar-h, 0px)));
+  }
+}
+
+/* ── شريط الارتباط تحته ───────────────────────────────────────────
+   الشريط يفترش عرض الشاشة على الضيق، ويقف الزر عند حافتها — فيقع
+   **خلفه** (طبقته ٩٠٠ وهذه ٨٨٠) فلا يرى أصلا حتى يقرر الزائر.
+
+   والموضع يقاس في `taqdar.js` ولا يخمن هنا برقم، لسببين وقع كلاهما:
+   نص الشريط يحرر من اللوحة فسطر يضاف فيه يطيله ويعيد العطل بعد أن
+   يحسب من كتب الرقم أنه أصلح، وموضعه هو نفسه يرتفع بشريط التنقل
+   السفلي (`shell.css`) — فارتفاع الشريط وحده لا يقول أين حافته.
+   ولا مدى شاشة يقدر كذلك: التقاطع يقاس أفقيا فيصدق على كل عرض.
+
+   والقياس هناك مأمون: الشريط لا يظهر إلا من ذلك السكربت (يطبع بسمة
+   `hidden` ويرفعها هو)، فتعثره يعني ألا شريط ولا تقاطع. */
+
+/* ── من طلب سكونا ─────────────────────────────────────────────────
+   الحركة هنا زينة لا معنى، فتسقط كلها: الزر يظهر في موضعه بلا
+   دخول ولا نبض، ويبقى الانتقال عند التصويب صفرا. */
+@media (prefers-reduced-motion:reduce){
+  .tq-wa,.tq-wa__ico,.tq-wa__label{animation:none !important;transition:none !important}
+  .tq-wa::before{animation:none !important;box-shadow:none}
+}

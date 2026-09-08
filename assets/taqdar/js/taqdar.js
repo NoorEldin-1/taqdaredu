@@ -121,10 +121,42 @@
   if (cookie) {
     var seen;
     try { seen = localStorage.getItem('tq-cookie'); } catch (e) {}
-    if (!seen) cookie.hidden = false;
+    if (!seen) { cookie.hidden = false; measure(); }
+
+    /* TQ-WA-FAB — موضع زر واتساب العائم يقاس ولا يخمن.
+
+       الزر يقف عند حافة الشاشة، والشريط يفترش عرضها على الجوال ويعلوه
+       بطبقته — فيختفي خلفه حتى يقرر الزائر. وثلاثة أشياء تمنع أن يكتب
+       الجواب رقما في الورقة: نص الشريط يحرر من اللوحة فيطول بسطر يضاف
+       فيه، وموضعه هو نفسه يرتفع بشريط التنقل السفلي، والتقاطع يقع على
+       عروض لا مدى واحدا لها — الشريط موسط بعرض ٤٤rem فتبلغ حافته موضع
+       الزر حتى على شاشة تقارب الألف.
+
+       فالمقيس **حافته العليا** لا ارتفاعه، والتقاطع يفحص أفقيا: بلا
+       تقاطع لا رفع، فيبقى الزر في موضعه على الشاشة الواسعة.
+
+       ولا حارس يحتاج: الشريط لا يظهر إلا من هنا (يطبع بسمة `hidden`
+       ويرفعها هذا السكربت)، فتعثره يعني ألا شريط ولا تقاطع. */
+    function measure() {
+      var wa = $('.tq-wa'), lift = 0;
+      if (wa && !cookie.hidden) {
+        var c = cookie.getBoundingClientRect(), w = wa.getBoundingClientRect();
+        if (c.left < w.right + 12 && c.right > w.left - 12) {
+          lift = Math.max(0, (window.innerHeight - c.top) + 12);
+        }
+      }
+      /* والفراغ يمحو الخاصية فترجع الورقة إلى موضعها الافتراضي — وكتابة
+         `0px` تغلب قاعدة شريط التنقل السفلي وتنزل الزر تحته. */
+      document.documentElement.style.setProperty('--tq-wa-bottom', lift ? lift + 'px' : '');
+    }
+    window.addEventListener('resize', measure);
+    /* وبعد اكتمال التحميل مرة: الخط يصل بعد أول رسم فيطول نص الشريط
+       سطرا، فيقاس ما قبله ويبقى الزر عليه. */
+    window.addEventListener('load', measure);
 
     function decide(v) {
       cookie.hidden = true;
+      measure();
       try {
         localStorage.setItem('tq-cookie', v);
       } catch (e) {}
