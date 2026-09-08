@@ -1359,7 +1359,17 @@ class Taqdar_curriculum_model extends CI_Model
             return $this->fail('هذا القسم ليس لك.');
         }
 
-        $lessons = $this->db->select('id')->where('section_id', $id)->get('lesson')->result_array();
+        /* **والكورس شرط ثان مع القسم، لا القسم وحده.** `lesson.section_id`
+           رقم بلا مفتاح أجنبي، وفي القاعدة سبعة وعشرون درسا يشير كل
+           منها إلى قسم في **كورس آخر** (بقايا استيراد قديم أعيد فيه ترقيم
+           `section` ولم يعد ترقيم `lesson`). فحذف قسم من كورسي كان يمر
+           على تلك الدروس ويحذفها بمحتواها كله — أهدافها وأسئلتها
+           ومحاولات طلابها وتقدمهم — من كورس معلم آخر، **بلا سطر يقول
+           ماذا ذهب**. والملكية تفحص على القسم فتمر، والحذف يقع صامتا.
+           فالشرطان معا: قسم هذا الكورس، ودرس هذا الكورس. */
+        $lessons = $this->db->select('id')->where('section_id', $id)
+                            ->where('course_id', (int) $sec['course_id'])
+                            ->get('lesson')->result_array();
         foreach ($lessons as $l) {
             $this->delete_lesson($actor, (int) $l['id'], true);
         }
@@ -1638,11 +1648,19 @@ class Taqdar_curriculum_model extends CI_Model
             return $this->fail('هذا القسم ليس لك.');
         }
 
+        /* والكورس شرط ثالث للعلة نفسها التي في `delete_section()`:
+           `lesson.section_id` رقم بلا مفتاح أجنبي، وفي القاعدة دروس
+           تشير إلى قسم في كورس آخر — فترتيب قسمي كان يحرك ترتيب دروس
+           لا أملكها. */
+        $sec_course = (int) $this->db->select('course_id')->where('id', $section_id)
+                                     ->get('section')->row('course_id');
+
         $n = 0;
         foreach ((array) $ids as $i => $lid) {
             $lid = (int) $lid;
             if ($lid <= 0) continue;
             $this->db->where('id', $lid)->where('section_id', $section_id)
+                     ->where('course_id', $sec_course)
                      ->update('lesson', array('order' => $i + 1));
             $n += $this->db->affected_rows();
         }
@@ -2055,6 +2073,10 @@ class Taqdar_curriculum_model extends CI_Model
                 $rev = (int) $this->db->insert_id();
             }
         } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء وسط سلسلة البناء يترك
+               ضمومها في `CI_DB_query_builder`، فيرثها كل استعلام
+               تال في الطلب نفسه ويسقط في موضع لا علاقة له بهذا. */
+            $this->db->reset_query();
             log_message('error', 'TQ-CURRIC stage: ' . $e->getMessage());
             return $this->fail('تعذر إيداع التعديل للمراجعة. حاول ثانية.');
         }
@@ -2568,6 +2590,10 @@ class Taqdar_curriculum_model extends CI_Model
             $r['payload'] = json_decode((string) $r['payload'], true) ?: array();
             return $r;
         } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء وسط سلسلة البناء يترك
+               ضمومها في `CI_DB_query_builder`، فيرثها كل استعلام
+               تال في الطلب نفسه ويسقط في موضع لا علاقة له بهذا. */
+            $this->db->reset_query();
             return null;
         }
     }
@@ -2589,6 +2615,10 @@ class Taqdar_curriculum_model extends CI_Model
             return $r ? array('reason' => (string) $r['decided_note'],
                               'at'     => (string) $r['decided_at']) : null;
         } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء وسط سلسلة البناء يترك
+               ضمومها في `CI_DB_query_builder`، فيرثها كل استعلام
+               تال في الطلب نفسه ويسقط في موضع لا علاقة له بهذا. */
+            $this->db->reset_query();
             return null;
         }
     }
@@ -2630,6 +2660,10 @@ class Taqdar_curriculum_model extends CI_Model
                 $user_id, $subject, $body, 'content'
             );
         } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء وسط سلسلة البناء يترك
+               ضمومها في `CI_DB_query_builder`، فيرثها كل استعلام
+               تال في الطلب نفسه ويسقط في موضع لا علاقة له بهذا. */
+            $this->db->reset_query();
             log_message('error', 'TQ-CURRIC notify_author: ' . $e->getMessage());
         }
     }
@@ -2690,7 +2724,12 @@ class Taqdar_curriculum_model extends CI_Model
             if ($this->db->table_exists($table)) {
                 $this->db->where($col, $val)->delete($table);
             }
-        } catch (Throwable $e) { /* الجدول لم ينشأ بعد */ }
+        } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء وسط سلسلة البناء يترك
+               ضمومها في `CI_DB_query_builder`، فيرثها كل استعلام
+               تال في الطلب نفسه ويسقط في موضع لا علاقة له بهذا. */
+            $this->db->reset_query();
+        }
     }
 
     /** ينزع درسا محذوفا من سجلات المشاهدة — لكل الطلاب لا للفاعل وحده. */
@@ -2714,6 +2753,10 @@ class Taqdar_curriculum_model extends CI_Model
                          ->update('watch_histories', array('completed_lesson' => json_encode($next)));
             }
         } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء وسط سلسلة البناء يترك
+               ضمومها في `CI_DB_query_builder`، فيرثها كل استعلام
+               تال في الطلب نفسه ويسقط في موضع لا علاقة له بهذا. */
+            $this->db->reset_query();
             log_message('error', 'TQ-CURRIC watch: ' . $e->getMessage());
         }
     }
@@ -2769,6 +2812,10 @@ class Taqdar_curriculum_model extends CI_Model
             $this->db->where('id', (int) $course_id)
                      ->update('course', array('section' => json_encode($ids)));
         } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — الاستثناء وسط سلسلة البناء يترك
+               ضمومها في `CI_DB_query_builder`، فيرثها كل استعلام
+               تال في الطلب نفسه ويسقط في موضع لا علاقة له بهذا. */
+            $this->db->reset_query();
             log_message('error', 'TQ-CURRIC: تعذر تحديث course.section — ' . $e->getMessage());
         }
     }

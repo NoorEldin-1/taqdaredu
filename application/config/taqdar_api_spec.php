@@ -111,6 +111,9 @@ $r_422 = $err_ref('Validation failed. `errors` names the offending fields.',
         'errors'  => array('email' => array('صيغة البريد غير صحيحة — مثال: name@example.com')),
     ));
 
+$r_409 = $err_ref('The model refused. `message` is its own Arabic sentence, ready to show as-is; branch on `code`.',
+    array('message' => 'تعذر حفظ الدرس.', 'code' => 'save_failed'));
+
 $r_429 = $err_ref('Rate limit exhausted. Honour `Retry-After` (seconds); do not retry in a tight loop.',
     array('message' => 'تجاوزت عدد الطلبات المسموح به. أعد المحاولة بعد 42 ثانية.', 'code' => 'rate_limited'));
 
@@ -130,7 +133,7 @@ $page_params = array(
    المواصفة
    ===================================================================== */
 
-return array(
+$spec = array(
 
 'openapi' => '3.1.0',
 
@@ -139,10 +142,20 @@ return array(
     'version' => '1.0.0',
     'summary' => 'Token-authenticated JSON API for the Taqdar Flutter client.',
     'description' => implode("\n", array(
-        'Version 1 of the Taqdar mobile API. It covers **authentication**, the **account** half of the',
-        'student dashboard (profile, settings, subscription), and the **learning loop**: the home',
-        'screen, courses and curriculum, the lesson player, the lesson quiz, and spaced review.',
-        'Nothing else is exposed yet — an endpoint that is not listed here does not exist.',
+        'Version 1 of the Taqdar mobile API. It covers **authentication** and all three portals:',
+        '',
+        '* **Student** — the account half of the dashboard (profile, settings, subscription) and the',
+        '  full learning loop, plus the inbox, progress, library, onboarding, sessions and store.',
+        '* **Teacher** — what needs attention today, **authoring** (the course, its sections and lessons, the lesson quiz, books, weekly hours, the studio), students,',
+        '  drop-off analytics, the marking queue, the wallet, private sessions, and books.',
+        '* **Parent** — children behind consent, the three simplified measures, the weekly report,',
+        '  subject reports, payments, and paying on a child\'s behalf.',
+        '',
+        'Notifications, conversations and settings are **one set of endpoints under all three prefixes**',
+        '(see *Portal inbox*); only who may be messaged differs by role. The admin panel is not',
+        'reachable from the app at all — `/auth/login` refuses an administrator.',
+        '',
+        'An endpoint that is not listed here does not exist.',
         '',
         'The five learning groups are ordered by dependency, and reading them in order is the shortest',
         'path to a working client: **Home** decides what the student does next · **Learning** lists the',
@@ -224,6 +237,12 @@ return array(
     array('name' => 'Onboarding',   'description' => 'The study plan, exam mode, gamification, and the placement test.'),
     array('name' => 'Sessions',     'description' => 'Private sessions: request, pay after the teacher confirms, join, cancel.'),
     array('name' => 'Store',        'description' => 'The three units of sale on one anchor — plan, path, single course — and everything currently in force.'),
+    /* والبوابتان بعد رحلة الطالب لا بينها: من يبني عميل الطالب يقرأ ما
+       فوق ولا يمر بهما، ومن يبني بوابة المعلم يقفز إليهما مباشرة. */
+    array('name' => 'Teacher',      'description' => 'The teacher portal: what needs attention today, courses and lessons, students, drop-off analytics, the marking queue, the wallet, private sessions and books.'),
+    array('name' => 'Teacher authoring', 'description' => 'What the teacher portal *writes*: the course, its sections and lessons, the lesson quiz, books, weekly hours, the content studio. Every rule lives in the same models the web screens call.'),
+    array('name' => 'Parent',       'description' => 'The guardian portal: linked children behind consent, the three simplified measures, the weekly report, subject reports, payments, and paying on a child\'s behalf.'),
+    array('name' => 'Portal inbox', 'description' => 'Notifications, conversations and settings — one set of endpoints serving all three gates. Only *who may be messaged* differs by role.'),
     array('name' => 'Meta',           'description' => 'Service metadata.'),
 ),
 
@@ -3236,5 +3255,1809 @@ return array(
     ),
 )),
 
+
+/* =====================================================================
+   بوابة المعلم
+   ---------------------------------------------------------------------
+   وكل نقطة هنا ترد `wrong_role` على من ليس معلما — لا شاشة فارغة
+   يظنها التطبيق عطبا.
+   ===================================================================== */
+
+'/api/v1/teacher/home' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Teacher dashboard',
+    'description' => implode("\n", array(
+        'One call for the whole landing screen. The order is the order of the question a teacher',
+        'actually opens the app with: **what needs me today**, before any other number.',
+        '',
+        '`attention` is at most six students, one row per student — not one per (student × course).',
+        'A student enrolled in three of your courses used to fill half the list on their own.',
+        '`attention_total` is the true count behind that cap.',
+        '',
+        'Each row carries `reason` (a stable key: `failing` · `at_risk` · `stalled`) **and**',
+        '`reason_label` (Arabic, ready to show). Branch on the first, render the second — one field',
+        'for both leaves the app able to display the problem but not to act on it.',
+        '',
+        '`month_earnings` comes from the wallet ledger, not `payment.instructor_revenue`. The ledger',
+        'is the only source that sees refunds and settlements, so this is the same number the wallet',
+        'screen shows for the same month.',
+    )),
+    'security' => $auth,
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(
+                'stats' => array(
+                    'students' => 8, 'courses' => 2,
+                    'pending_marking' => 3, 'pending_quizzes' => 2, 'pending_homework' => 1,
+                    'month_earnings' => array('amount' => 19231, 'decimal' => '192.31',
+                                              'currency' => 'SAR', 'formatted' => '192.31 ر.س'),
+                ),
+                'attention' => array(array(
+                    'student_id' => 290, 'name' => 'طالب الاختبار',
+                    'avatar_url' => $TQ_API_BASE . '/assets/taqdar/brand/avatar.svg',
+                    'course_id' => 106, 'course_title' => 'الرياضيات — الصف الرابع',
+                    'progress' => 50, 'days_away' => 12, 'failed_quizzes' => 0,
+                    'reason' => 'at_risk', 'reason_label' => 'يوشك على الانقطاع — غاب 12 يوما',
+                )),
+                'attention_total' => 2,
+                'hard_lessons' => array(array(
+                    'lesson_id' => 403, 'title' => 'الكسور العشرية',
+                    'course_title' => 'الرياضيات — الصف الرابع',
+                    'started' => 9, 'finished' => 2, 'finish_rate' => 22,
+                )),
+                'sessions' => array('pending' => 1, 'unpaid' => 0, 'booked' => 1,
+                    'upcoming' => array('amount' => 9750, 'decimal' => '97.50',
+                                        'currency' => 'SAR', 'formatted' => '97.50 ر.س')),
+                'inbox' => array('messages' => 2, 'notifications' => 5),
+            ),
+            'message' => '', 'meta' => array('pass_percent' => 60),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/courses' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'My courses',
+    'description' => implode("\n", array(
+        'Ownership is **two shapes, not one**: `course.creator`, and the teacher id appearing in the',
+        'comma list `course.user_id` (how an admin adds a co-teacher). Reading only the first hides',
+        'from a co-teacher everything they were added to.',
+        '',
+        'Section, lesson and student counts come from one grouped query each, not three per row —',
+        'a twenty-course list would otherwise open sixty queries.',
+    )),
+    'security' => $auth,
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(array(
+                'id' => 109, 'title' => 'الرياضيات — الصف الرابع', 'status' => 'active',
+                'thumbnail_url' => $TQ_API_BASE . '/uploads/thumbnails/course_thumbnails/1af.jpg',
+                'sections' => 4, 'lessons' => 27, 'students' => 8,
+                'created_at' => '2026-08-05T08:28:21+03:00',
+            )),
+            'message' => '', 'meta' => array('total' => 2),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/courses/{id}' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Course curriculum',
+    'description' => implode("\n", array(
+        'Sections with their lessons, in teaching order.',
+        '',
+        'Ownership is checked by `Taqdar_curriculum_model::may_edit_course()` — the same single',
+        'judgement the web screen uses, so no door opens here that the other one refuses. A course',
+        'outside your scope returns **404, not 403**: telling a guessed id apart from a forbidden one',
+        'tells the guesser the course exists.',
+        '',
+        '`duration_conflicts` is TQ-DURATION surfacing in the app: a written duration is a claim, and',
+        'when two independent student measurements disagree with it by more than 10% the row is',
+        'listed with both numbers. A lesson whose written duration is four times its real one locks',
+        'the next lesson for every student who paid.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                               'schema' => array('type' => 'integer'), 'example' => 109)),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(
+                'id' => 109, 'title' => 'الرياضيات — الصف الرابع', 'status' => 'active',
+                'thumbnail_url' => $TQ_API_BASE . '/uploads/thumbnails/course_thumbnails/1af.jpg',
+                'sections' => array(array(
+                    'id' => 100, 'title' => 'الوحدة الأولى', 'order' => 1,
+                    'lessons' => array(array(
+                        'id' => 406, 'title' => 'الكسور العشرية', 'kind' => 'video_youtube',
+                        'duration' => '00:12:40', 'is_free' => false,
+                        'status' => 'published', 'order' => 1,
+                    )),
+                )),
+                'duration_conflicts' => array(),
+            ),
+            'message' => '', 'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403,
+        '404' => $err_ref('No such course in your scope.',
+                          array('message' => 'لا كورس بهذا الرقم في نطاقك.', 'code' => 'not_found')),
+        '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/lessons' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'My lessons',
+    'description' => implode("\n", array(
+        'Every lesson across your courses, flat and filterable — the teacher\'s daily unit of work.',
+        '',
+        'Filtering happens **on the server**. A second copy of the rules in Dart drifts on the first',
+        'change, and then the app lists a lesson the website hides.',
+        '',
+        '`quiz_questions` counts authored questions through `question.assessment_id` — the source the',
+        'lesson quiz actually uses today. The legacy `question.quiz_id` counter reported 0 for a',
+        'teacher who had written two quizzes (TQ-EXAM-SOURCE).',
+    )),
+    'security' => $auth,
+    'parameters' => array(
+        array('name' => 'course', 'in' => 'query', 'schema' => array('type' => 'integer')),
+        array('name' => 'status', 'in' => 'query', 'schema' => array('type' => 'string',
+              'enum' => array('published', 'review', 'draft'))),
+        array('name' => 'type',   'in' => 'query', 'schema' => array('type' => 'string',
+              'enum' => array('lesson', 'quiz'))),
+        array('name' => 'q',      'in' => 'query', 'schema' => array('type' => 'string')),
+        array('name' => 'page',   'in' => 'query', 'schema' => array('type' => 'integer')),
+        array('name' => 'per_page','in' => 'query', 'schema' => array('type' => 'integer')),
+    ),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(array(
+                'id' => 406, 'title' => 'الكسور العشرية',
+                'course_id' => 109, 'course_title' => 'الرياضيات — الصف الرابع',
+                'section_id' => 100, 'section_title' => 'الوحدة الأولى',
+                'lesson_type' => 'video', 'duration' => '00:12:40', 'is_free' => false,
+                'status' => 'published', 'quiz_questions' => 5,
+                'created_at' => '2026-08-11T09:02:00+03:00',
+            )),
+            'message' => '',
+            'meta' => array('pagination' => array('page' => 1, 'per_page' => 20, 'total' => 27,
+                                                  'total_pages' => 2, 'has_more' => true),
+                            'filters' => array('course' => 0, 'status' => '', 'type' => '', 'q' => '')),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/students' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'My students',
+    'description' => implode("\n", array(
+        'Built from `enrol` bounded by your courses — **not** from `users`. A teacher does not see',
+        'the student register, they see their own students, and the scope is enforced in the query',
+        'layer. Hiding a button is not a permission.',
+        '',
+        '`avg_percent` is the score **the student themselves sees**: every attempt passes through',
+        '`Taqdar_marking_model::student_view()`, so anything awaiting your approval is excluded from',
+        'the average and counted in `held` instead. Two different numbers for one quiz is the fastest',
+        'route to an argument about a grade.',
+        '',
+        '`at_risk` = last activity 5+ days ago with progress strictly between 1 and 99 — started and',
+        'not finished. `meta.at_risk` repeats those rows unpaginated, because that is the list a',
+        'teacher acts on.',
+    )),
+    'security' => $auth,
+    'parameters' => array(
+        array('name' => 'course', 'in' => 'query', 'schema' => array('type' => 'integer')),
+        array('name' => 'page',   'in' => 'query', 'schema' => array('type' => 'integer')),
+        array('name' => 'per_page','in' => 'query', 'schema' => array('type' => 'integer')),
+    ),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(array(
+                'student_id' => 290, 'name' => 'طالب الاختبار',
+                'avatar_url' => $TQ_API_BASE . '/assets/taqdar/brand/avatar.svg',
+                'course_id' => 109, 'course_title' => 'الرياضيات — الصف الرابع',
+                'progress' => 50, 'days_away' => 12,
+                'last_seen' => '2026-08-27T18:04:00+03:00',
+                'enrolled_at' => '2026-08-05T08:28:21+03:00',
+                'attempts' => 4, 'held' => 1, 'avg_percent' => 72, 'at_risk' => true,
+            )),
+            'message' => '',
+            'meta' => array('pagination' => array('page' => 1, 'per_page' => 20, 'total' => 8,
+                                                  'total_pages' => 1, 'has_more' => false),
+                            'at_risk' => array(), 'courses' => array(),
+                            'filters' => array('course' => 0)),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/analytics' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Heatmap and drop-off',
+    'description' => implode("\n", array(
+        'Where students walk away, and which concept does not stick.',
+        '',
+        'The acceptance criterion is not a drawing: **every drop-off pattern carries an action**. So',
+        'each row ships `severity` (`high` · `mid` · `ok` · `none`) as a key the app branches on —',
+        'not a colour it re-derives with a second rule that drifts from ours.',
+        '',
+        'Rows are already **sorted worst-first**, not in teaching order. Whoever opens this screen has',
+        'time for two lessons, not twenty, so the first two must be the worst two.',
+        '',
+        'There is no comparison against other teachers. Ranking teachers turns a work tool into a',
+        'performance review, and then it stops being opened.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'course', 'in' => 'query',
+                               'schema' => array('type' => 'integer'))),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(
+                'summary' => array('lessons' => 7, 'needs_action' => 2, 'urgent' => 1,
+                                   'healthy' => 3, 'thin' => 2, 'starters' => 8, 'avg_finish' => 40),
+                'heatmap' => array(array('lesson_id' => 403, 'title' => 'الكسور العشرية',
+                                         'course_title' => 'الرياضيات', 'starters' => 9,
+                                         'finish_rate' => 22, 'severity' => 'high')),
+                'weak_objectives' => array(), 'hard_questions' => array(),
+            ),
+            'message' => '',
+            'meta' => array('courses' => array(), 'filters' => array('course' => 0)),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/marking' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Marking queue',
+    'description' => implode("\n", array(
+        'Two queues, not one: quizzes (`quiz_results`) and homework (`attempts`). `kind` chooses which',
+        'list `data.queue` holds, but **`meta.counts` always carries both** — a badge that counts one',
+        'and hides the other sends a teacher to a screen shorter than it promised.',
+        '',
+        'The counts are full counts, not `count(queue)`: the queue is capped at 50 and a cap hides the',
+        'overflow.',
+        '',
+        '`data.approved` is what you last approved — so the screen shows the effect of your work, not',
+        'a list that just empties without a word.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'kind', 'in' => 'query',
+        'schema' => array('type' => 'string', 'enum' => array('quiz', 'homework'), 'default' => 'quiz'))),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(
+                'queue' => array(array(
+                    'id' => 4471, 'student_id' => 290, 'student_name' => 'طالب الاختبار',
+                    'avatar_url' => $TQ_API_BASE . '/assets/taqdar/brand/avatar.svg',
+                    'lesson_id' => 406, 'lesson_title' => 'الكسور العشرية',
+                    'course_title' => 'الرياضيات — الصف الرابع',
+                    'score' => 6, 'total' => 8, 'percent' => 75,
+                    'submitted_at' => '2026-09-06T11:20:00+03:00',
+                    'approved_at' => null, 'teacher_note' => '',
+                )),
+                'approved' => array(),
+            ),
+            'message' => '',
+            'meta' => array('counts' => array('quizzes' => 2, 'homework' => 1),
+                            'pass_percent' => 60, 'filters' => array('kind' => 'quiz')),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/marking/{kind}/{id}' => array(
+    'get' => array(
+        'tags' => array('Teacher'),
+        'summary' => 'One attempt',
+        'description' => implode("\n", array(
+            'The attempt with its answers. Ownership lives in the model: an attempt outside your',
+            'courses returns 404, with no distinction between "does not exist" and "not yours".',
+            '',
+            'Homework attempts return an empty `answers` array — homework is graded as a whole, not',
+            'question by question.',
+        )),
+        'security' => $auth,
+        'parameters' => array(
+            array('name' => 'kind', 'in' => 'path', 'required' => true,
+                  'schema' => array('type' => 'string', 'enum' => array('quiz', 'homework'))),
+            array('name' => 'id', 'in' => 'path', 'required' => true,
+                  'schema' => array('type' => 'integer'), 'example' => 4471),
+        ),
+        'responses' => array(
+            '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+                'data' => array('id' => 4471, 'kind' => 'quiz', 'student_name' => 'طالب الاختبار',
+                                'score' => 6, 'total' => 8, 'percent' => 75, 'answers' => array()),
+                'message' => '', 'meta' => array(),
+            )))),
+            '401' => $r_401, '403' => $r_403,
+            '404' => $err_ref('Not in your scope.',
+                              array('message' => 'لا محاولة بهذا الرقم في نطاقك.', 'code' => 'not_found')),
+            '429' => $r_429,
+        ),
+    ),
+    'post' => array(
+        'tags' => array('Teacher'),
+        'summary' => 'Approve a grade',
+        'description' => implode("\n", array(
+            'Approving publishes the grade to the student and to their guardian. Until then neither',
+            'sees it — a provisional number that later changes is worse than none.',
+            '',
+            'The range check, the audit trail and the notification are all the model\'s job',
+            '(`Taqdar_marking_model`), the same one the web screen calls. A second copy of those rules',
+            'here would accept a score the website refuses.',
+        )),
+        'security' => $auth,
+        'parameters' => array(
+            array('name' => 'kind', 'in' => 'path', 'required' => true,
+                  'schema' => array('type' => 'string', 'enum' => array('quiz', 'homework'))),
+            array('name' => 'id', 'in' => 'path', 'required' => true,
+                  'schema' => array('type' => 'integer')),
+        ),
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'schema' => array('type' => 'object', 'required' => array('score'), 'properties' => array(
+                'score' => array('type' => 'integer', 'example' => 7),
+                'note'  => array('type' => 'string', 'example' => 'انتبه لخطوة الاستلاف في السؤال الخامس.'),
+            )),
+        ))),
+        'responses' => array(
+            '200' => array('description' => 'Approved', 'content' => array('application/json' => array('example' => array(
+                'data' => array('id' => 4471, 'kind' => 'quiz'),
+                'message' => 'اعتمدت الدرجة، وأبلغ صاحبها.', 'meta' => array(),
+            )))),
+            '401' => $r_401, '403' => $r_403, '404' => $r_404, '422' => $r_422,
+            '409' => $err_ref('The model refused the grade.',
+                              array('message' => 'الدرجة تتجاوز عدد الأسئلة.', 'code' => 'approve_failed')),
+            '429' => $r_429,
+        ),
+    ),
+),
+
+'/api/v1/teacher/wallet' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Wallet and earnings',
+    'description' => implode("\n", array(
+        'The statement is **grouped by document, not one row per ledger entry**. A single sale writes',
+        'three entries (`sale`, `commission`, `retained`); listing them separately makes a teacher',
+        'count one sale three times. `share` is their sum, which is the teacher\'s cut by construction.',
+        '',
+        '"When does my balance mature?" and "what is the minimum I can withdraw?" are the two questions',
+        'asked before every withdrawal, so `hold_days` and `min_payout` ship with the balances rather',
+        'than living in a document.',
+        '',
+        'Payout destinations are **masked** here, exactly as they are on the teacher\'s own web screen —',
+        'four digits are enough to recognise an account, and a full number in every response puts',
+        'people\'s bank details into every log that captures API traffic.',
+    )),
+    'security' => $auth,
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(
+                'balances' => array(
+                    'available'   => array('amount' => 31800, 'decimal' => '318.00', 'currency' => 'SAR', 'formatted' => '318.00 ر.س'),
+                    'pending'     => array('amount' => 9750,  'decimal' => '97.50',  'currency' => 'SAR', 'formatted' => '97.50 ر.س'),
+                    'locked'      => array('amount' => 0,     'decimal' => '0.00',   'currency' => 'SAR', 'formatted' => '0.00 ر.س'),
+                    'transferred' => array('amount' => 50000, 'decimal' => '500.00', 'currency' => 'SAR', 'formatted' => '500.00 ر.س'),
+                ),
+                'hold_days' => 14,
+                'min_payout' => array('amount' => 10000, 'decimal' => '100.00', 'currency' => 'SAR', 'formatted' => '100.00 ر.س'),
+                'channels' => array(),
+                'statement' => array(array(
+                    'origin' => 'coursesub:918', 'subject' => 'الرياضيات — الصف الرابع',
+                    'gross'  => array('amount' => 19900, 'decimal' => '199.00', 'currency' => 'SAR', 'formatted' => '199.00 ر.س'),
+                    'commission' => array('amount' => -7960, 'decimal' => '-79.60', 'currency' => 'SAR', 'formatted' => '-79.60 ر.س'),
+                    'retained'   => array('amount' => 0, 'decimal' => '0.00', 'currency' => 'SAR', 'formatted' => '0.00 ر.س'),
+                    'share'      => array('amount' => 11940, 'decimal' => '119.40', 'currency' => 'SAR', 'formatted' => '119.40 ر.س'),
+                    'state' => 'available', 'days_left' => 0,
+                    'occurred_at' => '2026-08-12T10:00:00+03:00',
+                    'released_at' => '2026-08-26T10:00:00+03:00',
+                )),
+                'payouts' => array(array(
+                    'id' => 44, 'amount' => array('amount' => 50000, 'decimal' => '500.00', 'currency' => 'SAR', 'formatted' => '500.00 ر.س'),
+                    'status' => 'paid', 'channel' => 'bank', 'destination' => '••••1234',
+                    'requested_at' => '2026-08-01T09:00:00+03:00',
+                    'decided_at' => '2026-08-03T12:00:00+03:00', 'reference' => 'TRF-9912',
+                )),
+            ),
+            'message' => '', 'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/wallet/withdraw' => array('post' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Request a payout',
+    'description' => implode("\n", array(
+        'Six channels: `bank` · `mada` · `stcpay` · `urpay` (Saudi) and `vodafone` · `instapay`',
+        '(Egyptian). Each has its own destination pattern, checked against the same table',
+        '(`Taqdar_wallet_model::$CHANNELS`) the website checks — a channel added there alone becomes',
+        'valid on both surfaces at once.',
+        '',
+        '`amount` is in **riyals** here, matching the field the teacher types on the web form; the',
+        'model converts. Everything the API *returns* stays in halalas.',
+    )),
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object',
+            'required' => array('amount', 'channel', 'destination'),
+            'properties' => array(
+                'amount'      => array('type' => 'number', 'example' => 300),
+                'channel'     => array('type' => 'string',
+                                       'enum' => array('bank','mada','stcpay','urpay','vodafone','instapay')),
+                'destination' => array('type' => 'string', 'example' => 'SA4420000001234567891234'),
+            )),
+    ))),
+    'responses' => array(
+        '201' => array('description' => 'Requested', 'content' => array('application/json' => array('example' => array(
+            'data' => array('payout_id' => 45),
+            'message' => 'سجل طلب السحب، وتراجعه الإدارة.', 'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403, '422' => $r_422,
+        '409' => $err_ref('Refused: below the minimum, above the available balance, or a malformed destination.',
+                          array('message' => 'الآيبان السعودي يبدأ بـ SA ويتكون من 24 خانة.',
+                                'code' => 'withdraw_failed')),
+        '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/sessions' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Private sessions',
+    'description' => implode("\n", array(
+        'The eight states of `tutoring_sessions`. `status` is the key to branch on, `status_label` the',
+        'Arabic to render.',
+        '',
+        '**`awaiting_payment` is not decoration.** The student pays *after* you confirm, not before —',
+        'declining is common, and paying first means a card refund on every decline. So a confirmed',
+        'session is not necessarily a paid one, and `confirmed` alone must never be read as "booked',
+        'and paid".',
+        '',
+        '`meet_url` is returned **only while the link is actually open**. A link handed over two days',
+        'early has the student sitting in an empty room assuming the teacher no-showed.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'status', 'in' => 'query',
+        'schema' => array('type' => 'string',
+            'enum' => array('requested','awaiting_payment','confirmed','live','completed')))),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(array(
+                'id' => 241, 'status' => 'confirmed', 'status_label' => 'مؤكدة ومدفوعة',
+                'status_tone' => 'mastered', 'student_id' => 396, 'student_name' => 'فيصل الاختبار',
+                'avatar_url' => $TQ_API_BASE . '/assets/taqdar/brand/avatar.svg',
+                'starts_at' => '2026-09-10T17:00:00+03:00',
+                'when_text' => 'الخميس ٥:٠٠ م — ٦:٠٠ م', 'minutes' => 60,
+                'grade' => 'الصف الرابع', 'subject' => 'الرياضيات',
+                'price' => array('amount' => 15000, 'decimal' => '150.00', 'currency' => 'SAR', 'formatted' => '150.00 ر.س'),
+                'my_share' => array('amount' => 9750, 'decimal' => '97.50', 'currency' => 'SAR', 'formatted' => '97.50 ر.س'),
+                'meet_url' => null, 'can_join' => false, 'can_complete' => false,
+                'note' => 'يفتح الرابط قبل الموعد بنصف ساعة.',
+                'paid_at' => '2026-09-08T10:00:00+03:00', 'pay_deadline' => null,
+            )),
+            'message' => '',
+            'meta' => array('summary' => array('windows' => 3, 'pending' => 1, 'unpaid' => 0,
+                                               'booked' => 1, 'done' => 4, 'earned' => 39000,
+                                               'upcoming' => 9750, 'open' => 12),
+                            'filters' => array('status' => '')),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/sessions/{id}/decide' => array('post' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Confirm or decline a request',
+    'description' => implode("\n", array(
+        '`decision` is `confirm` or `decline` — **not** `accept`.',
+        '',
+        'On `confirm`, `meet_url` is **required** and validated against the allowed meeting hosts.',
+        '"Confirmed" without a link tells the student the session is on but not where, and they stand',
+        'at the appointed hour in front of a screen with no door.',
+        '',
+        'If the session is priced, confirming moves it to `awaiting_payment` and issues the invoice —',
+        'it does **not** go straight to `confirmed`. With no price set',
+        '(`tq_session_price_sar = 0`) it confirms immediately, exactly as before pricing existed.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                               'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('decision'), 'properties' => array(
+            'decision' => array('type' => 'string', 'enum' => array('confirm', 'decline')),
+            'meet_url' => array('type' => 'string', 'example' => 'https://meet.google.com/abc-defg-hij',
+                                'description' => 'Required when decision is `confirm`.'),
+            'reason'   => array('type' => 'string', 'description' => 'Shown to the student on decline.'),
+        )),
+    ))),
+    'responses' => array(
+        '200' => array('description' => 'Recorded', 'content' => array('application/json' => array('example' => array(
+            'data' => array('id' => 241, 'status' => 'awaiting_payment'),
+            'message' => 'أكدت الحصة، وأرسلت فاتورتها إلى الطالب.', 'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403, '422' => $r_422,
+        '409' => $err_ref('Not yours, already decided, or confirmed without a meeting link.',
+                          array('message' => 'هذا الطلب حسم من قبل.', 'code' => 'decision_failed')),
+        '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/sessions/{id}/complete' => array('post' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Mark a session finished',
+    'description' => implode("\n", array(
+        '**This is where the teacher\'s cut is credited** — not at payment. A plan sale credits on',
+        'payment because what was sold is existing content that delivers itself; a session is *time',
+        'that has not passed yet*. Crediting at payment would leave a teacher who missed their session',
+        'holding its money.',
+        '',
+        '`credited` says whether the ledger entry was actually written. "I ended it" and "the money',
+        'arrived" are two pieces of news, and the second is the one the teacher is asking about.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                               'schema' => array('type' => 'integer'))),
+    'responses' => array(
+        '200' => array('description' => 'Completed', 'content' => array('application/json' => array('example' => array(
+            'data' => array('id' => 241, 'status' => 'completed', 'credited' => true),
+            'message' => 'أنهيت الحصة، وقيد نصيبك.', 'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403,
+        '409' => $err_ref('Not yours, not confirmed, or its time has not come.',
+                          array('message' => 'لم يحن موعد هذه الحصة بعد.', 'code' => 'complete_failed')),
+        '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/books' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'My books',
+    'description' => implode("\n", array(
+        'TQ-BOOK — a book is the fourth unit of sale, and also plan content, and also teacher content.',
+        '',
+        'Every field here comes from `Taqdar_book_model::offer()`, the single source the public page,',
+        'the catalogue, the checkout screen and the purchase engine itself all read. So what a teacher',
+        'is promised here is what the invoice charges to the halala.',
+        '',
+        '`reason` is the key and `why` the Arabic sentence — a teacher whose book is not selling needs',
+        'the second to know what to fix.',
+        '',
+        'With `tq_book_sales_enabled` off (the default), every book reports `sellable: false` and the',
+        'library keeps offering free downloads exactly as before.',
+    )),
+    'security' => $auth,
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(array(
+                'id' => 2, 'title' => 'لغتي الجميلة — الصف الأول الابتدائي', 'slug' => 'lughati-1',
+                'status' => 'published', 'grade_id' => 20, 'pages' => 148,
+                'sellable' => true, 'reason' => 'ok', 'why' => 'معروض للبيع.',
+                'price' => array('amount' => 20000, 'decimal' => '200.00', 'currency' => 'SAR', 'formatted' => '200.00 ر.س'),
+                'my_share' => array('amount' => 12000, 'decimal' => '120.00', 'currency' => 'SAR', 'formatted' => '120.00 ر.س'),
+            )),
+            'message' => '', 'meta' => array('total' => 1, 'sales_enabled' => true),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+/* =====================================================================
+   بوابة ولي الأمر
+   ===================================================================== */
+
+'/api/v1/parent/children' => array('get' => array(
+    'tags' => array('Parent'),
+    'summary' => 'My children',
+    'description' => implode("\n", array(
+        '**All links, not only the active ones.** A `pending` request waiting on a child\'s approval is',
+        'news the parent needs; a list showing only active links makes them think the request vanished',
+        'and send it again.',
+        '',
+        'Only an `active` link opens any of the child\'s data. Consent is the child\'s to give, recorded',
+        'with its timestamp, and withdrawable by either side.',
+    )),
+    'security' => $auth,
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(array(
+                'link_id' => 186, 'student_id' => 403, 'name' => 'سلمان الاختبار',
+                'email' => 'salman@example.com',
+                'avatar_url' => $TQ_API_BASE . '/assets/taqdar/brand/avatar.svg',
+                'status' => 'active', 'consent_at' => '2026-08-18T00:18:00+03:00', 'plan_days' => 5,
+            )),
+            'message' => '', 'meta' => array('total' => 3),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/parent/children/{id}' => array('get' => array(
+    'tags' => array('Parent'),
+    'summary' => 'One child',
+    'description' => implode("\n", array(
+        'The three simplified measures: **commitment · understanding · trend**. The trend compares the',
+        'child against their own previous week — never against a sibling or another student.',
+        '',
+        '**The visibility barrier is enforced in the query layer, not by hiding a field here.** There',
+        'is not one query behind this endpoint touching AI-assistant conversations, community posts,',
+        'or individual wrong answers. "Total surveillance produces a child who hides, not a child who',
+        'learns."',
+        '',
+        '`teacher_notes` returns **approved notes only**, from both sources (quiz and homework). A',
+        'grade the child cannot see yet must not reach their parent first — that is the worst thing',
+        'that can happen between a teenager and their family.',
+        '',
+        '`commitment.is_default: true` means the family never set a weekly plan, so the percentage is',
+        'computed against the fallback. Say so — do not present an assumption as their plan.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                               'schema' => array('type' => 'integer'), 'example' => 403)),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(
+                'student_id' => 403, 'name' => 'سلمان الاختبار',
+                'avatar_url' => $TQ_API_BASE . '/assets/taqdar/brand/avatar.svg',
+                'commitment' => array('percent' => 60, 'days' => 3, 'plan_days' => 5,
+                                      'is_default' => true,
+                                      'week_flags' => array(true,false,true,true,false,false,false)),
+                'understanding' => array('open' => 24, 'mastered' => 11, 'percent' => 46),
+                'trend' => array('days_this' => 3, 'days_prev' => 2, 'direction' => 'up'),
+                'lessons_completed' => 12,
+                'subjects' => array(array('course_id' => 109, 'title' => 'الرياضيات',
+                                          'progress' => 44, 'done' => 4, 'lessons' => 20,
+                                          'last_seen' => '2026-09-06T18:00:00+03:00')),
+                'sessions' => array(), 'teacher_notes' => array(), 'payments' => array(),
+            ),
+            'message' => '', 'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403,
+        '404' => $err_ref('Not linked to your account by an active link.',
+                          array('message' => 'لا يفتح حساب ابن قبل ربطه بحسابك برابط نشط.',
+                                'code' => 'not_found')),
+        '429' => $r_429,
+    ),
+)),
+
+'/api/v1/parent/weekly' => array('get' => array(
+    'tags' => array('Parent'),
+    'summary' => 'Weekly report',
+    'description' => implode("\n", array(
+        'Four numbers per child, readable in ten seconds. The week starts **Sunday** (Saudi market).',
+        '',
+        'The comparison covers **one span**: the elapsed part of this week against *the same days* of',
+        'last week. Comparing against a full previous week meant that on Sunday morning — the very',
+        'hour the report is sent — every parent read that their child had declined, because a week',
+        'that has not started was measured against a week that finished. A weekly message telling',
+        'every father their child regressed does not get read twice.',
+        '',
+        '`lessons_done` is **this week** (from `lesson_progress.completed_at`); `lessons_total` is the',
+        'lifetime figure alongside it, never instead of it. Summing the lifetime count and labelling',
+        'it "this week" told a parent whose child had not opened the platform in a month that they',
+        '"finished 35 lessons this week" — the most dangerous thing a report can do.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'child', 'in' => 'query',
+                               'schema' => array('type' => 'integer'),
+                               'description' => 'Limit to one child.')),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(array(
+                'student_id' => 403, 'name' => 'سلمان الاختبار',
+                'avatar_url' => $TQ_API_BASE . '/assets/taqdar/brand/avatar.svg',
+                'lessons_done' => 3, 'lessons_total' => 41, 'quizzes' => 1,
+                'days_this' => 3, 'days_prev' => 2, 'trend' => 'up',
+                'plan_days' => 5, 'plan_is_default' => true, 'days_needed' => 2,
+                'stalled' => array('title' => 'العلوم', 'last_seen' => 1756000000, 'days' => 11),
+            )),
+            'message' => '',
+            'meta' => array('week' => array('start' => '2026-09-06T00:00:00+03:00',
+                                            'elapsed' => 3, 'days_left' => 4)),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/parent/reports' => array('get' => array(
+    'tags' => array('Parent'),
+    'summary' => 'Subject report',
+    'description' => implode("\n", array(
+        'One line per subject, per child — human headings, no "GPA" and no "performance index".',
+        '',
+        '**The score shown is the score the child themselves sees.**',
+        '`Taqdar_marking_model::student_view()` is the single judgement: an approved attempt shows the',
+        'teacher\'s grade if they adjusted it, and anything containing an essay question still awaiting',
+        'approval is shown to nobody. Those are counted in `held` instead. The fastest route to an',
+        'argument between a parent and their child is the platform handing them two different numbers.',
+        '',
+        '`avg_percent` is `null`, not `0`, when nothing has been graded yet — zero is a score, absence',
+        'is not.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'child', 'in' => 'query',
+                               'schema' => array('type' => 'integer'))),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(array(
+                'student_id' => 403, 'name' => 'سلمان الاختبار',
+                'avatar_url' => $TQ_API_BASE . '/assets/taqdar/brand/avatar.svg',
+                'subjects' => array(array(
+                    'course_id' => 109, 'title' => 'الرياضيات', 'progress' => 44, 'lessons' => 20,
+                    'attempts' => 4, 'held' => 1, 'avg_percent' => 72,
+                    'last_seen' => '2026-09-06T18:00:00+03:00',
+                )),
+            )),
+            'message' => '', 'meta' => array('total' => 1),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/parent/payments' => array('get' => array(
+    'tags' => array('Parent'),
+    'summary' => 'Payments',
+    'description' => implode("\n", array(
+        'What was bought for each child, merged from **both** money sources (Taqdar invoices and the',
+        'legacy Academy payments) through one ledger in the model — not two queries whose shapes',
+        'diverge.',
+        '',
+        '`meta.bank` carries the transfer instructions, so an unpaid invoice can be settled without a',
+        'second call.',
+    )),
+    'security' => $auth,
+    'parameters' => array(
+        array('name' => 'child', 'in' => 'query', 'schema' => array('type' => 'integer')),
+        array('name' => 'page',  'in' => 'query', 'schema' => array('type' => 'integer')),
+        array('name' => 'per_page','in' => 'query', 'schema' => array('type' => 'integer')),
+    ),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(array(
+                'source' => 'invoice', 'title' => 'لغتي الجميلة — الصف الأول الابتدائي',
+                'reference' => 'INV-2026-0912',
+                'amount' => array('amount' => 20000, 'decimal' => '200.00',
+                                  'currency' => 'SAR', 'formatted' => '200.00 ر.س'),
+                'status' => 'paid', 'status_label' => 'مدفوعة', 'method' => 'tap',
+                'student_id' => 403, 'student_name' => 'سلمان الاختبار',
+                'at' => '2026-09-01T12:00:00+03:00',
+            )),
+            'message' => '',
+            'meta' => array('pagination' => array('page' => 1, 'per_page' => 20, 'total' => 4,
+                                                  'total_pages' => 1, 'has_more' => false),
+                            'totals' => array(), 'bank' => array(),
+                            'filters' => array('child' => 0)),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/parent/link' => array('post' => array(
+    'tags' => array('Parent'),
+    'summary' => 'Request a link to a child',
+    'description' => implode("\n", array(
+        '`identifier` is the child\'s **email on Taqdar, or their account id** — never a name or a',
+        'phone. One near-match on a name would open a child\'s data to somebody else\'s family.',
+        '',
+        'This writes a `pending` row and sends the child a consent request. It does not open anything:',
+        'the link becomes active only when the child approves it.',
+    )),
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('identifier'), 'properties' => array(
+            'identifier' => array('type' => 'string', 'example' => 'salman@example.com'),
+        )),
+    ))),
+    'responses' => array(
+        '201' => array('description' => 'Requested', 'content' => array('application/json' => array('example' => array(
+            'data' => array('link_id' => 187, 'status' => 'pending'),
+            'message' => 'أرسل الطلب، وينتظر موافقة ابنك.', 'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403, '422' => $r_422,
+        '409' => $err_ref('No such account, already linked, or a request is still pending.',
+                          array('message' => 'طلبك السابق ما زال بانتظار موافقة سلمان.',
+                                'code' => 'link_failed')),
+        '429' => $r_429,
+    ),
+)),
+
+'/api/v1/parent/link/{student_id}' => array('delete' => array(
+    'tags' => array('Parent'),
+    'summary' => 'Revoke a link',
+    'description' => implode("\n", array(
+        'Closes the child\'s data **immediately**. The consent date and the revocation date both stay',
+        'in the record — what happened is not erased.',
+        '',
+        'Once revoked, the parent is out of that child\'s portal until one of them approves a fresh',
+        'request.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'student_id', 'in' => 'path', 'required' => true,
+                               'schema' => array('type' => 'integer'))),
+    'responses' => array(
+        '200' => array('description' => 'Revoked', 'content' => array('application/json' => array('example' => array(
+            'data' => null, 'message' => 'ألغي ربط سلمان، ولم تعد ترى شيئا من بياناته.',
+            'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403,
+        '409' => $err_ref('No active link with that child.',
+                          array('message' => 'لا رابط نشط بهذا الابن في حسابك.', 'code' => 'unlink_failed')),
+        '429' => $r_429,
+    ),
+)),
+
+'/api/v1/parent/pay' => array('post' => array(
+    'tags' => array('Parent'),
+    'summary' => 'Pay for a child',
+    'description' => implode("\n", array(
+        '**The subscription and the invoice are written in the child\'s name, not the parent\'s.** The',
+        'child owns the content, progress is measured against them, and `sync_enrolments()` materialises',
+        '`enrol` rows for them. The parent pays; they do not own.',
+        '',
+        'One engine for all three kinds (`plan` · `course` · `book`) — three doors onto the same',
+        'invoice anchor, so everything downstream follows without a branch.',
+        '',
+        'TQ-CYCLE-BUY: pass `cycle` for a plan. A door without it means a parent can never buy the',
+        'monthly option no matter what the plans page offered them.',
+        '',
+        'The response mirrors the student purchase endpoints: a `payment_url` when a card session',
+        'started, otherwise **`payment_url: null` with bank instructions and still a 201** — the invoice',
+        'genuinely was issued, and a bare error makes the parent buy again and end up with two pending',
+        'subscriptions for their child.',
+    )),
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('child_id', 'kind'), 'properties' => array(
+            'child_id'   => array('type' => 'integer', 'example' => 403),
+            'kind'       => array('type' => 'string', 'enum' => array('plan', 'course', 'book')),
+            'plan_id'    => array('type' => 'integer', 'description' => 'When kind = plan.'),
+            'cycle'      => array('type' => 'string',
+                                  'enum' => array('free','monthly','quarterly','annual'),
+                                  'description' => 'When kind = plan. Falls back to the plan\'s own cycle.'),
+            'course_id'  => array('type' => 'integer', 'description' => 'When kind = course.'),
+            'book_id'    => array('type' => 'integer', 'description' => 'When kind = book.'),
+            'pay_method' => array('type' => 'string', 'enum' => array('manual', 'tap'),
+                                  'default' => 'manual'),
+        )),
+    ))),
+    'responses' => array(
+        '201' => array('description' => 'Invoice issued', 'content' => array('application/json' => array('example' => array(
+            'data' => array('subscription_id' => 931, 'free' => false,
+                            'invoice' => null, 'payment_url' => null, 'bank' => array()),
+            'message' => 'صدرت الفاتورة باسم ابنك. حول قيمتها ثم ترسل الإدارة التفعيل.',
+            'meta' => array(),
+        )))),
+        '401' => $r_401,
+        '403' => $err_ref('That student is not linked to your account.',
+                          array('message' => 'هذا الطالب غير مرتبط بحسابك برابط نشط.',
+                                'code' => 'not_your_child')),
+        '422' => $r_422,
+        '409' => $err_ref('The purchase engine refused. `code` carries the model key.',
+                          array('message' => 'لديه اشتراك نشط بالفعل.', 'code' => 'already_owned')),
+        '429' => $r_429,
+    ),
+)),
+
+/* =====================================================================
+   الصندوق الوارد والحساب — النقاط نفسها للأدوار الثلاثة
+   ---------------------------------------------------------------------
+   `notifications` و`message` موصولان بالمستخدم لا بدوره.
+   ===================================================================== */
+
+'/api/v1/teacher/notifications' => array('get' => array(
+    'tags' => array('Portal inbox'),
+    'summary' => 'Notifications (teacher)',
+    'description' => implode("\n", array(
+        'Identical in shape and behaviour to `GET /api/v1/student/notifications` — same handler, same',
+        'filters (`state`), same paging, same `meta.counts`. `notifications` is keyed to the user, not',
+        'to their role, and a second copy per role would be three copies drifting apart on the first',
+        'change.',
+        '',
+        '`POST /api/v1/teacher/notifications/read` and the `/parent/...` equivalents behave the same way.',
+    )),
+    'security' => $auth,
+    'responses' => array('200' => array('description' => 'See the student endpoint.'),
+                         '401' => $r_401, '403' => $r_403, '429' => $r_429),
+)),
+
+'/api/v1/teacher/messages' => array('get' => array(
+    'tags' => array('Portal inbox'),
+    'summary' => 'Conversations (teacher / parent)',
+    'description' => implode("\n", array(
+        'Same handler as the student endpoint, and the same shapes for the thread list,',
+        '`/messages/{code}` (read · reply · delete) and `/messages/recipients`.',
+        '',
+        '**The one thing that differs by role is who may be messaged**, and it is one function:',
+        '',
+        '| Role | May message |',
+        '|---|---|',
+        '| Student | the teachers of their subjects, and support |',
+        '| Teacher | the students enrolled in their courses, and platform administration |',
+        '| Parent  | the teachers of their children\'s subjects, and platform administration |',
+        '',
+        'The picker and the send check read that same list, so no name is ever offered that the guard',
+        'then refuses. Sending outside it returns `recipient_not_allowed` (403) with the scope sentence',
+        'for that role.',
+    )),
+    'security' => $auth,
+    'responses' => array('200' => array('description' => 'See the student endpoint.'),
+                         '401' => $r_401, '403' => $r_403, '429' => $r_429),
+)),
+
+'/api/v1/teacher/settings' => array(
+    'get' => array(
+        'tags' => array('Portal inbox'),
+        'summary' => 'Settings (teacher / parent)',
+        'description' => implode("\n", array(
+            'Account, notification matrix, and preferences. `/api/v1/parent/settings` is the same',
+            'endpoint; `meta.role` says which gate is answering.',
+        )),
+        'security' => $auth,
+        'responses' => array('200' => array('description' => 'OK'),
+                             '401' => $r_401, '403' => $r_403, '429' => $r_429),
+    ),
+    'patch' => array(
+        'tags' => array('Portal inbox'),
+        'summary' => 'Save a settings section',
+        'description' => implode("\n", array(
+            '`section` picks which block is being written: `profile` · `password` · `notifications` ·',
+            '`preferences`. Anything else is a 422 that names the four.',
+            '',
+            'Every one of them goes through `Taqdar_settings_model` — **the same model the web screens',
+            'use**. A second copy of the validation here would diverge on the first tightening, and',
+            'then the app accepts what the website refuses.',
+            '',
+            'Sections are independent: saving one does not touch the fields of another.',
+        )),
+        'security' => $auth,
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'schema' => array('type' => 'object', 'required' => array('section'), 'properties' => array(
+                'section' => array('type' => 'string',
+                    'enum' => array('profile', 'password', 'notifications', 'preferences')),
+            )),
+            'example' => array('section' => 'preferences', 'theme' => 'light', 'language' => 'arabic'),
+        ))),
+        'responses' => array(
+            '200' => array('description' => 'Saved'),
+            '401' => $r_401, '403' => $r_403, '422' => $r_422, '429' => $r_429,
+        ),
+    ),
+),
+
+
 ),  // paths
 );
+
+/* =====================================================================
+   نقاط تضاف، وطرق تكتسبها نقاط قائمة
+   ---------------------------------------------------------------------
+   والمفتاح هنا `<المسار>#<الطريقة>` حين تكون النقطة موجودة أعلاه:
+   `/teacher/courses` تقرأ بـGET وتنشئ بـPOST على المسار نفسه، وقاعدة
+   ثانية في `routes.php` لمسار «كورس جديد» تعني قاعدتين تفترقان عند أول
+   تعديل. والدمج تحت لا في القوس أعلاه ليبقى ترتيب الطرق ترتيب القراءة
+   ثم الكتابة — ومن يقرأ الوثيقة يقرأ «كورساتي» قبل «أنشئ كورسا».
+   ===================================================================== */
+
+$extra_ops = array(
+
+/* =====================================================================
+   بوابة المعلم — التأليف
+   ---------------------------------------------------------------------
+   ما فوق يقرأ، وهذا يكتب. وبوابة المعلم على الويب **تؤلف**: كورسا
+   وأقساما ودروسا واختبارا وكتابا وأوقات حصص — وواجهة تقرأ ولا تكتب
+   تجعل التطبيق شاشة عرض لا بوابة عمل.
+   ===================================================================== */
+
+'/api/v1/teacher/lesson-types' => array('get' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Lesson type descriptor',
+    'description' => implode("\n", array(
+        'The ten lesson types, each with its fields, which of them are required, and which reads its',
+        'own duration from the source (`probe`). Build the lesson form from this — a second copy of',
+        'the list in Dart means a type added here never shows up there, and a teacher can upload from',
+        'the website a lesson the app cannot even open.',
+        '',
+        'This is `Taqdar_curriculum_model::lesson_types()` verbatim, the same descriptor the admin',
+        'panel and the teacher portal both print their fields from.',
+    )),
+    'security' => $auth,
+    'responses' => array(
+        '200' => array('description' => 'OK'),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/course-form' => array('get' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Course field descriptor (+ current values)',
+    'description' => implode("\n", array(
+        'TQ-COURSE-SPLIT — the fields a teacher owns, and the values of an existing course when `id`',
+        'is given. Admin-only fields (price, featured, SEO, publish date) are **absent from the',
+        'response**, not merely hidden: what the teacher does not own never reaches them.',
+        '',
+        '`tq_grade_id` and `tq_subject_id` are in this list and they matter more than they look:',
+        'a course saved without them is **born invisible** — it never appears in the catalogue, no',
+        'plan opens it, no student reaches it, and nothing on its screen says why.',
+        '',
+        '`may_publish` is told before the save, not after: a teacher who knows their publish goes',
+        'through review is not surprised by the reply.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'query', 'required' => false,
+        'schema' => array('type' => 'integer'),
+        'description' => 'Existing course to load values for. Omit for a blank form.')),
+    'responses' => array(
+        '200' => array('description' => 'OK'),
+        '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/courses#post' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Create a course',
+    'description' => implode("\n", array(
+        '`POST` on the same path that lists courses — one path, one route, no second rule to drift.',
+        '',
+        'Field names come from `/teacher/course-form`. **Send the grade and the subject**: without',
+        'them the course is born invisible (see that endpoint).',
+        '',
+        'The status a teacher declares goes through `may_publish()`: `active` is stored as `pending`',
+        'and the reply says so. That is not an error — the teacher did nothing wrong, the decision is',
+        'simply not theirs. A reply that only said "saved" would let them believe they had published.',
+    )),
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('title'), 'properties' => array(
+            'title'             => array('type' => 'string', 'maxLength' => 190),
+            'tq_grade_id'       => array('type' => 'integer'),
+            'tq_subject_id'     => array('type' => 'integer'),
+            'level'             => array('type' => 'string', 'enum' => array('beginner', 'intermediate', 'advanced')),
+            'short_description' => array('type' => 'string', 'maxLength' => 255),
+            'description'       => array('type' => 'string'),
+            'status'            => array('type' => 'string', 'enum' => array('draft', 'pending', 'active', 'private', 'upcoming')),
+        )),
+        'example' => array('title' => 'الرياضيات — الصف الرابع', 'tq_grade_id' => 20,
+                           'tq_subject_id' => 4, 'level' => 'beginner', 'status' => 'active'),
+    ))),
+    'responses' => array(
+        '201' => array('description' => 'Created', 'content' => array('application/json' => array('example' => array(
+            'data' => array('id' => 118, 'status' => 'pending'),
+            'message' => 'أنشئ الكورس، وهو بانتظار مراجعة الإدارة قبل النشر.', 'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403, '409' => $r_409, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/courses/{id}#patch' => array('patch' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Edit a course',
+    'description' => implode("\n", array(
+        '**Writes only what was sent.** `Crud_model::update_course()` writes every column on every',
+        'save, so saving one tab wipes the rest (TQ-TAB-WIPE) — which is why the admin screen carries',
+        'hidden fields holding old values. This path touches no column whose field did not arrive, so',
+        'a client may send one field and nothing else moves.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'example' => array('short_description' => 'منهج الفصل الأول كاملا'),
+    ))),
+    'responses' => array(
+        '200' => array('description' => 'Saved'),
+        '401' => $r_401, '403' => $r_403, '404' => $r_404, '409' => $r_409, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/sections' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Create a section',
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('course_id', 'title'), 'properties' => array(
+            'course_id' => array('type' => 'integer'),
+            'title'     => array('type' => 'string', 'maxLength' => 190),
+        )),
+        'example' => array('course_id' => 12, 'title' => 'الوحدة الأولى: الجمع والطرح'),
+    ))),
+    'responses' => array(
+        '201' => array('description' => 'Created'),
+        '401' => $r_401, '403' => $r_403, '409' => $r_409, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/sections/{id}' => array(
+    'patch' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Rename a section',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+            'schema' => array('type' => 'integer'))),
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'example' => array('title' => 'الوحدة الأولى: الأنماط'),
+        ))),
+        'responses' => array('200' => array('description' => 'Saved'),
+                             '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429),
+    ),
+    'delete' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Delete a section and its lessons',
+        'description' => implode("\n", array(
+            'The cascade is scoped to **the section AND its course**. `lesson.section_id` carries no',
+            'foreign key, and rows survive in the database pointing at a section id that was later',
+            'reissued to a different course. Cascading on the section alone therefore deleted another',
+            'teacher\'s lessons — with their objectives, questions, attempts and student progress —',
+            'silently, because the ownership check passes on the section that *is* yours.',
+            '',
+            'The reply counts what actually went with it.',
+        )),
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+            'schema' => array('type' => 'integer'))),
+        'responses' => array(
+            '200' => array('description' => 'Deleted', 'content' => array('application/json' => array('example' => array(
+                'data' => array('id' => 31, 'course_id' => 12),
+                'message' => 'حذف القسم و3 من دروسه.', 'meta' => array(),
+            )))),
+            '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429,
+        ),
+    ),
+),
+
+'/api/v1/teacher/sections/sort' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Reorder a course\'s sections',
+    'description' => 'Send the **whole** list: order is read from each id\'s position, so sending only'
+                   . ' the moved one leaves the rest on their old numbers.',
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('course_id', 'ids'), 'properties' => array(
+            'course_id' => array('type' => 'integer'),
+            'ids'       => array('type' => 'array', 'items' => array('type' => 'integer')),
+        )),
+        'example' => array('course_id' => 12, 'ids' => array(33, 31, 32)),
+    ))),
+    'responses' => array('200' => array('description' => 'Sorted'),
+                         '401' => $r_401, '403' => $r_403, '409' => $r_409, '429' => $r_429),
+)),
+
+'/api/v1/teacher/lessons#post' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Create a lesson',
+    'description' => implode("\n", array(
+        'Fields depend on the type — read `/teacher/lesson-types` first. `kind` is accepted as an',
+        'alias of `tq_kind`, because the read side returns `kind`: two names for one thing between',
+        'read and write meant a client that read then wrote fell back to the `youtube` default and',
+        'got "video url required" on a text lesson, with nothing saying the *name* was the mistake.',
+        '',
+        'Send `course_id` without `section_id` and the lesson lands in the course\'s first section —',
+        'the same convenience the "upload lessons" screen offers (TQ-UPLOAD-FOLD). It is a screen',
+        'convenience, not a rule: the rule stays in `Taqdar_curriculum_model`.',
+        '',
+        'Files (video file, attachment) go up as `multipart/form-data`; everything else is JSON.',
+    )),
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('course_id', 'title'), 'properties' => array(
+            'course_id'  => array('type' => 'integer'),
+            'section_id' => array('type' => 'integer', 'description' => 'Omit for the course\'s first section.'),
+            'kind'       => array('type' => 'string', 'description' => 'A key from `/teacher/lesson-types`. Alias of `tq_kind`.'),
+            'title'      => array('type' => 'string'),
+            'video_url'  => array('type' => 'string'),
+            'duration'   => array('type' => 'string', 'example' => '00:12:40'),
+            'is_free'    => array('type' => 'boolean'),
+        )),
+        'example' => array('course_id' => 12, 'section_id' => 31, 'kind' => 'youtube',
+                           'title' => 'الطرح مع الاستلاف',
+                           'video_url' => 'https://www.youtube.com/watch?v=abc123',
+                           'duration' => '00:12:40'),
+    ))),
+    'responses' => array(
+        '201' => array('description' => 'Created', 'content' => array('application/json' => array('example' => array(
+            'data' => array('id' => 412, 'course_id' => 12, 'staged' => false, 'status' => 'review'),
+            'message' => 'حفظ الدرس، وهو بانتظار المراجعة.', 'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403, '409' => $r_409, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/lessons/{id}' => array(
+    'get' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'One lesson, for editing',
+        'description' => implode("\n", array(
+            'The row as stored, **plus its type inferred**: three columns (`lesson_type`,',
+            '`attachment_type`, `video_type`) tell the types apart and the row carries no type key,',
+            'so `kind_of()` derives it — in the model, not in the app.',
+            '',
+            '`type_spec` is that type\'s field descriptor, so the edit form builds from the response',
+            'itself. `quiz` is the readiness panel, and `pending_revision` says whether an edit of',
+            'yours is already waiting: editing a published lesson does not take it down — the live',
+            'row is untouched and the proposal waits in `tq_content_revisions`, so nobody who paid',
+            'loses a lesson because their teacher fixed a typo.',
+        )),
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+            'schema' => array('type' => 'integer'))),
+        'responses' => array('200' => array('description' => 'OK'),
+                             '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429),
+    ),
+    'patch' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Edit a lesson',
+        'description' => 'A published lesson edited by someone who may not publish is staged, not'
+                       . ' written: `staged: true` in the reply means the live row is unchanged and'
+                       . ' the proposal is queued for review.',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+            'schema' => array('type' => 'integer'))),
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'example' => array('title' => 'الطرح مع الاستلاف المتكرر'),
+        ))),
+        'responses' => array('200' => array('description' => 'Saved'),
+                             '401' => $r_401, '403' => $r_403, '404' => $r_404, '409' => $r_409, '429' => $r_429),
+    ),
+    'delete' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Delete a lesson',
+        'description' => 'Takes its objectives, questions, assessments, attempts, answers, progress'
+                       . ' and notes with it — nothing is left pointing at a row that is gone.',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+            'schema' => array('type' => 'integer'))),
+        'responses' => array('200' => array('description' => 'Deleted'),
+                             '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429),
+    ),
+),
+
+'/api/v1/teacher/lessons/sort' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Reorder a section\'s lessons',
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('section_id', 'ids'), 'properties' => array(
+            'section_id' => array('type' => 'integer'),
+            'ids'        => array('type' => 'array', 'items' => array('type' => 'integer')),
+        )),
+        'example' => array('section_id' => 31, 'ids' => array(89, 87, 88)),
+    ))),
+    'responses' => array('200' => array('description' => 'Sorted'),
+                         '401' => $r_401, '403' => $r_403, '409' => $r_409, '429' => $r_429),
+)),
+
+'/api/v1/teacher/lessons/{id}/move' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Move a lesson to another section',
+    'description' => 'The destination must be **in the same course** — the model enforces it. Moving'
+                   . ' a lesson across courses would strand the first course\'s students on progress'
+                   . ' they no longer have a lesson for, and bill the revenue split to a path the'
+                   . ' lesson has left.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('section_id'),
+            'properties' => array('section_id' => array('type' => 'integer'))),
+        'example' => array('section_id' => 32),
+    ))),
+    'responses' => array('200' => array('description' => 'Moved'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404, '409' => $r_409, '429' => $r_429),
+)),
+
+'/api/v1/teacher/lessons/{id}/quiz' => array(
+    'get' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'The lesson quiz, for authoring',
+        'description' => implode("\n", array(
+            'This is **the mastery gate itself, not a fourth quiz system**: the questions belong to',
+            'the `type=\'review\'` assessment that decides whether the next lesson unlocks. So the lock,',
+            'the three attempts and their escalation, the mistake book and the mastery map all work',
+            'for what is authored here without a line added.',
+            '',
+            'Answers **are** included — this is the author\'s screen. They are never sent to a student:',
+            'answer keys in the page source are cheating by one tap.',
+            '',
+            '`readiness` carries the news no table row shows: a pass mark above the question count',
+            '(nobody ever passes, and the next lesson stays locked for everyone), and how many',
+            'questions carry no objective (TQ-QOBJ: those grade correctly and teach nothing after —',
+            'no mastery map, no mistake book, no spaced review).',
+        )),
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+            'schema' => array('type' => 'integer'), 'description' => 'Lesson id.')),
+        'responses' => array('200' => array('description' => 'OK'),
+                             '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429),
+    ),
+    'patch' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Quiz settings',
+        'description' => 'A pass mark above the question count is refused here, not in the screen:'
+                       . ' a rule written into one template is forgotten in the second.',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+            'schema' => array('type' => 'integer'))),
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'schema' => array('type' => 'object', 'properties' => array(
+                'pass_mark'        => array('type' => 'integer', 'minimum' => 1),
+                'time_limit_sec'   => array('type' => 'integer', 'description' => '0 = untimed.'),
+                'attempts_allowed' => array('type' => 'integer', 'description' => '0 = unlimited.'),
+            )),
+            'example' => array('pass_mark' => 3, 'time_limit_sec' => 0, 'attempts_allowed' => 3),
+        ))),
+        'responses' => array(
+            '200' => array('description' => 'Saved'),
+            '401' => $r_401, '403' => $r_403, '404' => $r_404,
+            '409' => $err_ref('The model refused, with its own sentence — most often the pass mark.',
+                array('message' => 'حد النجاح 5 وأسئلة الاختبار 3 — فلا يجتازه أحد، ويبقى الدرس التالي مقفلا على كل طالب.',
+                      'code' => 'save_failed')),
+            '429' => $r_429,
+        ),
+    ),
+),
+
+'/api/v1/teacher/lessons/{id}/quiz/questions' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Add a question',
+    'description' => implode("\n", array(
+        '`correct` is **the index of the right option**, not its text and not a free number: the model',
+        'translates it to the text after cleaning, so it stays right even when an empty option drops',
+        'out of the middle.',
+        '',
+        'Two options at least, six at most, no duplicates — one rule, in the model, shared with the',
+        'diagnostic editor and the admin panel.',
+        '',
+        '`objective_id` is optional but **should be sent** (TQ-QOBJ): a question with no objective',
+        'grades and writes not one `skill_state` row.',
+        '',
+        'An image goes up as `multipart/form-data` in the `image` field.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'), 'description' => 'Lesson id.')),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('title', 'options', 'correct'),
+            'properties' => array(
+                'title'        => array('type' => 'string'),
+                'options'      => array('type' => 'array', 'items' => array('type' => 'string'),
+                                        'minItems' => 2, 'maxItems' => 6),
+                'correct'      => array('type' => 'integer', 'description' => 'Zero-based index into `options`.'),
+                'objective_id' => array('type' => 'integer', 'description' => 'Must belong to this lesson.'),
+            )),
+        'example' => array('title' => 'كم ناتج ٤٢ − ١٧؟', 'options' => array('25', '35', '29'),
+                           'correct' => 0, 'objective_id' => 412),
+    ))),
+    'responses' => array('201' => array('description' => 'Created'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404,
+                         '409' => $r_409, '422' => $r_422, '429' => $r_429),
+)),
+
+'/api/v1/teacher/lessons/{id}/quiz/questions/{question_id}' => array(
+    'patch' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Edit a question',
+        'security' => $auth,
+        'parameters' => array(
+            array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer')),
+            array('name' => 'question_id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer')),
+        ),
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'example' => array('title' => 'كم ناتج ٤٢ − ١٧؟', 'options' => array('25', '35'), 'correct' => 0),
+        ))),
+        'responses' => array('200' => array('description' => 'Saved'),
+                             '401' => $r_401, '403' => $r_403, '404' => $r_404, '409' => $r_409, '429' => $r_429),
+    ),
+    'delete' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Delete a question',
+        'security' => $auth,
+        'parameters' => array(
+            array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer')),
+            array('name' => 'question_id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer')),
+        ),
+        'responses' => array('200' => array('description' => 'Deleted'),
+                             '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429),
+    ),
+),
+
+'/api/v1/teacher/lessons/{id}/quiz/questions/sort' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Reorder questions',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('ids'),
+            'properties' => array('ids' => array('type' => 'array', 'items' => array('type' => 'integer')))),
+        'example' => array('ids' => array(7783, 7781, 7782)),
+    ))),
+    'responses' => array('200' => array('description' => 'Sorted'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429),
+)),
+
+'/api/v1/teacher/lessons/{id}/quiz/attempts' => array('get' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Who sat this quiz',
+    'description' => '**The latest attempt per student**, not all of them: the question is "where are'
+                   . ' they now?" — a list showing every attempt puts a student who failed then'
+                   . ' passed in the table as a failure.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429),
+)),
+
+'/api/v1/teacher/books/form' => array('get' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Book field descriptor (+ current values)',
+    'description' => implode("\n", array(
+        'TQ-BOOK-GRADE — `grade_id` is an admin field and is **absent** from a teacher\'s descriptor:',
+        'the grade alone is what puts a book inside every plan that covers it, and what earns its',
+        'author a share of that plan\'s pool. That is a business decision, not a content one.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'query', 'required' => false,
+        'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429),
+)),
+
+'/api/v1/teacher/books#post' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Create a book',
+    'description' => 'TQ-BOOK-REVIEW — **one review queue, not a fourth.** What a teacher declares'
+                   . ' `published` is stored as `review` by `may_publish()` and read in'
+                   . ' `taqdar_admin/review` alongside lessons, proposals and courses.'
+                   . ' Cover and PDF go up as `multipart/form-data`.',
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('title'), 'properties' => array(
+            'title'       => array('type' => 'string', 'maxLength' => 190),
+            'subject'     => array('type' => 'string', 'maxLength' => 160),
+            'author'      => array('type' => 'string', 'maxLength' => 160),
+            'description' => array('type' => 'string'),
+            'category_id' => array('type' => 'integer'),
+            'status'      => array('type' => 'string', 'enum' => array('draft', 'review', 'published')),
+        )),
+        'example' => array('title' => 'مهارات الكتابة — الصف الرابع', 'subject' => 'لغة عربية',
+                           'status' => 'published'),
+    ))),
+    'responses' => array('201' => array('description' => 'Created'),
+                         '401' => $r_401, '403' => $r_403, '409' => $r_409, '429' => $r_429),
+)),
+
+'/api/v1/teacher/books/{id}' => array(
+    'get' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'One book',
+        'description' => '`delete_blockers` is said **before** the delete button is pressed, not after:'
+                       . ' a button that refuses every time reads as a fault.',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+            'schema' => array('type' => 'integer'))),
+        'responses' => array('200' => array('description' => 'OK'),
+                             '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429),
+    ),
+    'patch' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Edit a book',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+            'schema' => array('type' => 'integer'))),
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'example' => array('description' => 'ثلاثون تمرينا مع حلولها.'),
+        ))),
+        'responses' => array('200' => array('description' => 'Saved'),
+                             '401' => $r_401, '403' => $r_403, '404' => $r_404, '409' => $r_409, '429' => $r_429),
+    ),
+    'delete' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Delete a book',
+        'description' => 'TQ-BOOK-DELETE — **a book that has sold is not deleted.** An entitlement item'
+                       . ' points at `books.id`, so deleting the row cuts off access somebody bought.'
+                       . ' The refusal answers with the number, not with "not allowed": a person who'
+                       . ' reads "cannot delete" with no reason thinks the screen is broken; one who'
+                       . ' reads "twelve buyers" knows what to do.',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+            'schema' => array('type' => 'integer'))),
+        'responses' => array('200' => array('description' => 'Deleted'),
+                             '401' => $r_401, '403' => $r_403, '404' => $r_404, '409' => $r_409, '429' => $r_429),
+    ),
+),
+
+'/api/v1/teacher/availability' => array(
+    'get' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'My weekly hours',
+        'description' => implode("\n", array(
+            'TQ-SESSION-GRID — hours are **rows**, not fixed periods: a day, a from, a to, a grade and',
+            'a subject. This is the standing weekly rule; `availability_slots` is its output, laid out',
+            'fourteen days ahead and refreshed hourly, so the grid does not run out after the last save.',
+            '',
+            '`scope` is the teacher\'s own grades and subjects — **it never falls back to "all grades"**.',
+            'Opening an hour for something you do not teach means sitting a paid hour with a student',
+            'you cannot help, and the complaint arrives after the session, not before. A teacher with',
+            'an empty scope is told so rather than shown a grid that refuses every save.',
+            '',
+            '`pricing` is here because "how much is my hour worth?" is asked before an hour is written.',
+        )),
+        'security' => $auth,
+        'responses' => array('200' => array('description' => 'OK'),
+                             '401' => $r_401, '403' => $r_403, '429' => $r_429),
+    ),
+    'put' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Replace my weekly hours',
+        'description' => implode("\n", array(
+            '**A full replacement, not an append**: what you send is what remains, so dropping a row',
+            'from the list deletes it. Row-by-row would need a second write path and an id sent from',
+            'a client.',
+            '',
+            '**No two windows may overlap on one day**, even for different grades — one teacher cannot',
+            'sit two sessions at once. A refusal names the day, the hour and the grade; "request failed"',
+            'leaves a teacher retrying with nothing to correct.',
+            '',
+            'The reply says **what the student can now see**, not "saved": a teacher who writes a',
+            'window shorter than the session length saves a row and lays out no slot at all, then',
+            'reads "saved" and stays invisible with nothing explaining why.',
+        )),
+        'security' => $auth,
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'schema' => array('type' => 'object', 'required' => array('windows'), 'properties' => array(
+                'windows' => array('type' => 'array', 'items' => array('type' => 'object',
+                    'required' => array('dow', 'from', 'to'),
+                    'properties' => array(
+                        'dow'        => array('type' => 'integer', 'minimum' => 0, 'maximum' => 6,
+                                              'description' => '0 = Sunday.'),
+                        'from'       => array('type' => 'string', 'example' => '16:00'),
+                        'to'         => array('type' => 'string', 'example' => '19:00'),
+                        'grade_id'   => array('type' => 'integer', 'description' => '0 = every grade you teach.'),
+                        'subject_id' => array('type' => 'integer', 'description' => '0 = every subject you teach.'),
+                    ))),
+            )),
+            'example' => array('windows' => array(
+                array('dow' => 0, 'from' => '16:00', 'to' => '19:00', 'grade_id' => 20, 'subject_id' => 4),
+                array('dow' => 2, 'from' => '10:00', 'to' => '12:00', 'grade_id' => 21, 'subject_id' => 4),
+            )),
+        ))),
+        'responses' => array(
+            '200' => array('description' => 'Saved', 'content' => array('application/json' => array('example' => array(
+                'data' => array('windows' => 2, 'slots' => 10),
+                'message' => 'حفظت أوقاتك — وقتان أسبوعيان. ويرى طلابك منها 10 مواعيد في الأيام القادمة.',
+                'meta' => array(),
+            )))),
+            '401' => $r_401, '403' => $r_403,
+            '409' => $err_ref('Refused, naming the day and the hour.',
+                array('message' => 'الأحد: وقتان متقاطعان — 16:00 و18:00.', 'code' => 'save_failed')),
+            '429' => $r_429,
+        ),
+    ),
+),
+
+'/api/v1/teacher/wallet/payouts/{id}/cancel' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Cancel a payout request',
+    'description' => 'Three refusals, not one — not yours, already transferred, already cancelled —'
+                   . ' because each is handled differently by whoever reads it. On success the amount'
+                   . ' returns to the available balance.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'))),
+    'responses' => array(
+        '200' => array('description' => 'Cancelled'),
+        '401' => $r_401, '403' => $r_403, '404' => $r_404,
+        '409' => $err_ref('Already transferred, or already cancelled.',
+            array('message' => 'هذا الطلب حول بالفعل، فلا يلغى.', 'code' => 'already_paid')),
+        '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/questions/import' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Import questions from CSV',
+    'description' => 'The file goes up as `multipart/form-data` in the `csv` field, 2 MB at most,'
+                   . ' `.csv` or `.txt`. Ownership of the lesson and the course is checked first.'
+                   . ' Rate limited as a heavy endpoint.',
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('multipart/form-data' => array(
+        'schema' => array('type' => 'object', 'required' => array('csv'), 'properties' => array(
+            'csv'       => array('type' => 'string', 'format' => 'binary'),
+            'lesson_id' => array('type' => 'integer'),
+            'course_id' => array('type' => 'integer'),
+        )),
+    ))),
+    'responses' => array('200' => array('description' => 'Imported'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404,
+                         '409' => $r_409, '422' => $r_422, '429' => $r_429),
+)),
+
+'/api/v1/teacher/lessons/{id}/studio' => array('get' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Content studio: outputs and asset state',
+    'description' => 'Two steps of the production cycle live here: automatic generation, and **the'
+                   . ' teacher\'s explicit approval of every output before it is published**. "No'
+                   . ' automatic publishing" is not caution: an output that reaches a student without'
+                   . ' a human having read it teaches something nobody intended.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429),
+)),
+
+'/api/v1/teacher/lessons/{id}/studio/generate' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Generate drafts',
+    'description' => '**Publishes nothing.** It writes drafts; approval is a separate path below.'
+                   . ' Rate limited as a heavy endpoint.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => false, 'content' => array('application/json' => array(
+        'example' => array('only' => array('summary', 'questions')),
+    ))),
+    'responses' => array('200' => array('description' => 'Generated'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404, '409' => $r_409, '429' => $r_429),
+)),
+
+'/api/v1/teacher/lessons/{id}/studio/output' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Save an edited output',
+    'description' => '**Returns it to draft if it was approved**: text edited after approval was never'
+                   . ' read in its new form, so yesterday\'s approval does not carry over.'
+                   . ' `data` may be an object or a JSON string.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('kind', 'data'), 'properties' => array(
+            'kind' => array('type' => 'string'),
+            'data' => array('type' => 'object'),
+        )),
+        'example' => array('kind' => 'summary', 'data' => array('text' => 'ملخص الدرس بعد التحرير.')),
+    ))),
+    'responses' => array('200' => array('description' => 'Saved'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404,
+                         '409' => $r_409, '422' => $r_422, '429' => $r_429),
+)),
+
+'/api/v1/teacher/lessons/{id}/studio/approve' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Approve or reject an output',
+    'description' => 'The only door an output passes through to reach a student. **Rejection returns'
+                   . ' it to draft and does not delete it**: a teacher\'s work is not erased by a tap.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('kind'), 'properties' => array(
+            'kind'   => array('type' => 'string'),
+            'act'    => array('type' => 'string', 'enum' => array('approve', 'reject'), 'default' => 'approve'),
+            'reason' => array('type' => 'string'),
+        )),
+        'example' => array('kind' => 'summary', 'act' => 'approve'),
+    ))),
+    'responses' => array('200' => array('description' => 'Decided'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404, '409' => $r_409, '429' => $r_429),
+)),
+
+'/api/v1/teacher/lessons/{id}/studio/transcript' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Save the lesson transcript',
+    'description' => 'The transcript is what search and in-player jumping read, and what generation'
+                   . ' works from.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('transcript'),
+            'properties' => array('transcript' => array('type' => 'string'))),
+        'example' => array('transcript' => "00:00 مرحبا بكم\n00:12 نبدأ بالطرح مع الاستلاف"),
+    ))),
+    'responses' => array('200' => array('description' => 'Saved'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404, '429' => $r_429),
+)),
+
+'/api/v1/teacher/lessons/{id}/studio/state' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Move the asset state',
+    'description' => 'A teacher moves to `processed` and `in_review` only. Publishing and rejection'
+                   . ' belong to the administration after review — a teacher who publishes to'
+                   . ' themselves cancels the review entirely.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+        'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('to'),
+            'properties' => array('to' => array('type' => 'string',
+                'enum' => array('processed', 'in_review')))),
+        'example' => array('to' => 'in_review'),
+    ))),
+    'responses' => array('200' => array('description' => 'Moved'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404,
+                         '409' => $r_409, '422' => $r_422, '429' => $r_429),
+)),
+
+'/api/v1/parent/pay#get' => array('get' => array(
+    'tags' => array('Parent'),
+    'summary' => 'What can be bought, for whom, and at what price',
+    'description' => implode("\n", array(
+        'A screen **separate from "payments"**: that one is a record to read, this one is an act.',
+        '',
+        'The write door (`POST /parent/pay`) existed with nothing to read it: the app knew how to pay',
+        'and not **what is on offer** — no plan, no price, no cycle. A purchase door that does not say',
+        'what is sold is not a door.',
+        '',
+        'Plans are shaped by `plan_out()`, exactly as `/student/plans` shapes them — TQ-CYCLE-BUY with',
+        'its cycles, the cover and the features. A second shape for one thing is what made the old',
+        '`/plans` print a card with no name and no features and raise no error.',
+        '',
+        '**Only `scope = \'grade\'` plans**, the same filter `/plans` and `tqs_bundles()` use. A plan of',
+        'any other scope is granted from the admin panel and never appears on a purchase screen.',
+        '',
+        '`due_invoices` comes **before** what is for sale: a parent returning to this screen after',
+        'creating a purchase wants to finish paying, not start a second one — and a screen that hides',
+        'it leaves their child with two pending subscriptions.',
+    )),
+    'security' => $auth,
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(
+                'children' => array(array('student_id' => 287, 'name' => 'طالب الاختبار',
+                                          'avatar_url' => 'https://taqdaredu.com/assets/taqdar/brand/avatar.svg')),
+                'due_invoices' => array(array(
+                    'invoice_id' => 91, 'invoice_no' => 'TQ-2026-000091', 'student_id' => 287,
+                    'student_name' => 'طالب الاختبار',
+                    'amount' => array('amount' => 39900, 'decimal' => '399.00', 'currency' => 'SAR', 'formatted' => '399.00 ر.س'),
+                    'status' => 'unpaid', 'issued_at' => '2026-08-06T13:39:52+03:00',
+                )),
+                'card_ready'  => true,
+                'pay_methods' => array('tap', 'manual'),
+            ),
+            'message' => '',
+            'meta' => array('note' => 'الاشتراك يفتح في حساب ابنك هو، والفاتورة تصدر باسمه.'),
+        )))),
+        '401' => $r_401, '403' => $r_403, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/settings/export' => array('get' => array(
+    'tags' => array('Portal inbox'),
+    'summary' => 'Export my data (any gate)',
+    'description' => 'A right exercised, not a policy written. `/api/v1/parent/settings/export` and'
+                   . ' `/api/v1/student/settings/export` are the same endpoint. Five per hour: the'
+                   . ' reply joins six whole tables, and an unlimited endpoint is a way to exhaust the'
+                   . ' server from one account.',
+    'security' => $auth,
+    'responses' => array('200' => array('description' => 'OK'),
+                         '401' => $r_401, '403' => $r_403, '429' => $r_429),
+)),
+
+'/api/v1/teacher/account' => array('delete' => array(
+    'tags' => array('Portal inbox'),
+    'summary' => 'Delete my account (any gate)',
+    'description' => '**Anonymised, not erased.** Identity fields are replaced and the financial'
+                   . ' entries stay under an anonymous id, because tax obligation requires invoices to'
+                   . ' be kept. `/api/v1/parent/account` and `/api/v1/student/account` are the same'
+                   . ' endpoint. Confirmation is explicit in the body: `{"confirm": "DELETE"}`.',
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('confirm'),
+            'properties' => array('confirm' => array('type' => 'string', 'enum' => array('DELETE')))),
+        'example' => array('confirm' => 'DELETE'),
+    ))),
+    'responses' => array('200' => array('description' => 'Anonymised'),
+                         '401' => $r_401, '403' => $r_403, '422' => $r_422, '429' => $r_429),
+)),
+
+);
+
+foreach ($extra_ops as $key => $ops) {
+    $path = explode('#', $key)[0];
+    $spec['paths'][$path] = isset($spec['paths'][$path])
+        ? array_merge($spec['paths'][$path], $ops)
+        : $ops;
+}
+
+return $spec;

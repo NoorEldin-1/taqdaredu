@@ -247,6 +247,94 @@ $route['api/v1/student/purchases']            = 'api_v1/student_purchases';
 $route['api/v1/student/plans/(:any)']         = 'api_v1/student_plan/$1';
 $route['api/v1/student/plans']                = 'api_v1/student_plans';
 
+// ---- بوابة المعلم ----
+// والترتيب هو ترتيب هذا الملف كله: **الأخص قبل الأعم**. و`courses/(:num)`
+// قبل `courses` وإلا التقطت الثانية الأولى ولم يفتح كورس بعينه أبدا.
+$route['api/v1/teacher/home']                          = 'api_v1/teacher_home';
+$route['api/v1/teacher/courses/(:num)']                = 'api_v1/teacher_course/$1';
+$route['api/v1/teacher/courses']                       = 'api_v1/teacher_courses';
+$route['api/v1/teacher/lessons']                       = 'api_v1/teacher_lessons';
+$route['api/v1/teacher/students']                      = 'api_v1/teacher_students';
+$route['api/v1/teacher/analytics']                     = 'api_v1/teacher_analytics';
+$route['api/v1/teacher/marking/(quiz|homework)/(:num)'] = 'api_v1/teacher_marking_item/$1/$2';
+$route['api/v1/teacher/marking']                       = 'api_v1/teacher_marking';
+$route['api/v1/teacher/wallet/withdraw']               = 'api_v1/teacher_wallet_withdraw';
+$route['api/v1/teacher/wallet']                        = 'api_v1/teacher_wallet';
+$route['api/v1/teacher/sessions/(:num)/decide']        = 'api_v1/teacher_session_decide/$1';
+$route['api/v1/teacher/sessions/(:num)/complete']      = 'api_v1/teacher_session_complete/$1';
+$route['api/v1/teacher/sessions']                      = 'api_v1/teacher_sessions';
+$route['api/v1/teacher/books']                         = 'api_v1/teacher_books';
+
+// ---- بوابة المعلم: التأليف ----
+// والكتابة قبل العرض هنا كما في كل هذا الملف. و`(:num)` لا تلتقط
+// `sort` و`form`، ولكن ترتيب الأخص قبل الأعم يبقى مقصودا: قاعدة تضاف
+// غدا بمقطع نصي تسقط إلى قاعدة الرقم إن جاءت بعدها.
+$route['api/v1/teacher/lesson-types']                          = 'api_v1/teacher_lesson_types';
+$route['api/v1/teacher/course-form']                           = 'api_v1/teacher_course_form';
+
+$route['api/v1/teacher/sections/sort']                         = 'api_v1/teacher_sections_sort';
+$route['api/v1/teacher/sections/(:num)']                       = 'api_v1/teacher_section/$1';
+$route['api/v1/teacher/sections']                              = 'api_v1/teacher_sections';
+
+$route['api/v1/teacher/lessons/sort']                          = 'api_v1/teacher_lessons_sort';
+$route['api/v1/teacher/lessons/(:num)/move']                   = 'api_v1/teacher_lesson_move/$1';
+$route['api/v1/teacher/lessons/(:num)/quiz/questions/sort']    = 'api_v1/teacher_quiz_questions_sort/$1';
+$route['api/v1/teacher/lessons/(:num)/quiz/questions/(:num)']  = 'api_v1/teacher_quiz_question/$1/$2';
+$route['api/v1/teacher/lessons/(:num)/quiz/questions']         = 'api_v1/teacher_quiz_questions/$1';
+$route['api/v1/teacher/lessons/(:num)/quiz/attempts']          = 'api_v1/teacher_quiz_attempts/$1';
+$route['api/v1/teacher/lessons/(:num)/quiz']                   = 'api_v1/teacher_lesson_quiz/$1';
+$route['api/v1/teacher/lessons/(:num)/studio/generate']        = 'api_v1/teacher_studio_generate/$1';
+$route['api/v1/teacher/lessons/(:num)/studio/output']          = 'api_v1/teacher_studio_output/$1';
+$route['api/v1/teacher/lessons/(:num)/studio/approve']         = 'api_v1/teacher_studio_approve/$1';
+$route['api/v1/teacher/lessons/(:num)/studio/transcript']      = 'api_v1/teacher_studio_transcript/$1';
+$route['api/v1/teacher/lessons/(:num)/studio/state']           = 'api_v1/teacher_studio_state/$1';
+$route['api/v1/teacher/lessons/(:num)/studio']                 = 'api_v1/teacher_studio/$1';
+$route['api/v1/teacher/lessons/(:num)']                        = 'api_v1/teacher_lesson/$1';
+
+$route['api/v1/teacher/questions/import']                      = 'api_v1/teacher_questions_import';
+
+$route['api/v1/teacher/books/form']                            = 'api_v1/teacher_book_form';
+$route['api/v1/teacher/books/(:num)']                          = 'api_v1/teacher_book/$1';
+
+// TQ-SESSION-GRID — أوقات المعلم قاعدة أسبوعية دائمة، و`availability_slots`
+// حاصلها. وبلا هذه النقطة لا يفتح معلم ساعة واحدة من تطبيقه.
+$route['api/v1/teacher/availability']                          = 'api_v1/teacher_availability';
+
+$route['api/v1/teacher/wallet/payouts/(:num)/cancel']          = 'api_v1/teacher_payout_cancel/$1';
+
+// التصدير وحذف الحساب — حق لكل صاحب حساب لا للطالب وحده، والويب يوجه
+// `teacher/export-data` و`parent/export-data` إلى الدالة نفسها.
+$route['api/v1/teacher/settings/export'] = 'api_v1/settings_export';
+$route['api/v1/teacher/account']         = 'api_v1/account_delete';
+$route['api/v1/parent/settings/export']  = 'api_v1/settings_export';
+$route['api/v1/parent/account']          = 'api_v1/account_delete';
+// الصندوق الوارد والحساب — النقاط نفسها التي تخدم الطالب.
+// `notifications` و`message` موصولان بالمستخدم لا بدوره، ونسخة ثانية
+// منهما لكل دور تعني ثلاث نسخ تفترق عند أول تعديل.
+$route['api/v1/teacher/notifications/read']  = 'api_v1/notifications_read';
+$route['api/v1/teacher/notifications']       = 'api_v1/student_notifications';
+$route['api/v1/teacher/messages/recipients'] = 'api_v1/message_recipients';
+$route['api/v1/teacher/messages/(:any)']     = 'api_v1/message_thread/$1';
+$route['api/v1/teacher/messages']            = 'api_v1/student_messages';
+$route['api/v1/teacher/settings']            = 'api_v1/portal_settings';
+
+// ---- بوابة ولي الأمر ----
+$route['api/v1/parent/children/(:num)']     = 'api_v1/parent_child/$1';
+$route['api/v1/parent/children']            = 'api_v1/parent_children';
+$route['api/v1/parent/link/(:num)']         = 'api_v1/parent_child_unlink/$1';
+$route['api/v1/parent/link']                = 'api_v1/parent_child_link';
+$route['api/v1/parent/weekly']              = 'api_v1/parent_weekly';
+$route['api/v1/parent/reports']             = 'api_v1/parent_reports';
+$route['api/v1/parent/payments']            = 'api_v1/parent_payments';
+$route['api/v1/parent/pay']                 = 'api_v1/parent_pay';
+
+$route['api/v1/parent/notifications/read']  = 'api_v1/notifications_read';
+$route['api/v1/parent/notifications']       = 'api_v1/student_notifications';
+$route['api/v1/parent/messages/recipients'] = 'api_v1/message_recipients';
+$route['api/v1/parent/messages/(:any)']     = 'api_v1/message_thread/$1';
+$route['api/v1/parent/messages']            = 'api_v1/student_messages';
+$route['api/v1/parent/settings']            = 'api_v1/portal_settings';
+
 // ---- الفهرس وما لا قاعدة له ----
 $route['api/v1']         = 'api_v1/index';
 $route['api/v1/(:any)']  = 'api_v1/not_found';

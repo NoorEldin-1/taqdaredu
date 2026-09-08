@@ -1291,4 +1291,441 @@ class Taqdar_parent_model extends CI_Model
         $this->db->where('message_thread_code', $code)
                  ->update('message_thread', ['last_message_timestamp' => $now]);
     }
+
+    /* =====================================================================
+       بوابة ولي الأمر — طبقة القراءة
+       ---------------------------------------------------------------------
+       ثلاث شاشات كانت تكتب استعلاماتها **داخل ملف العرض**:
+       `tq_parent_child.php` و`tq_parent_weekly.php` و`tq_parent_reports.php`.
+       فلما جاءت واجهة التطبيق تسأل الأسئلة نفسها لم تجد ما تناديه إلا
+       قالبا يطبع HTML. والقواعد هنا، والقالب والواجهة يعرضان.
+
+       **وحاجز الرؤية مطبق في طبقة الاستعلام لا في إخفاء عنصر**: لا استعلام
+       واحد هنا على محادثات المساعد الذكي، ولا على المنشورات، ولا على
+       `quiz_results.user_answers` — «الرقابة الكاملة تنتج طالبا يخفي، لا
+       طالبا يتعلم». وما ينقل من القالب ينقل بحاجزه.
+       ===================================================================== */
+
+    /**
+     * الأسبوع يبدأ الأحد (السوق سعودي)، والمقارنة على **مدى واحد**:
+     * ما مضى من هذا الأسبوع مقابل الأيام نفسها من الأسبوع الماضي.
+     *
+     * وكانت المقارنة بالأسبوع الماضي كاملا: فصباح الأحد — وهو موعد إرسال
+     * التقرير نفسه — يقرأ كل ولي أمر أن نشاط ابنه «نزل»، لأن أسبوعا لم
+     * يبدأ بعد يقارن بأسبوع تم. رسالة تصل أسبوعيا وتقول لكل أب إن ابنه
+     * تراجع لا تقرأ مرتين.
+     *
+     * @return array{start:int, prev_start:int, elapsed:int, days_left:int}
+     */
+    public function week_window($now = null)
+    {
+        $now = $now ? (int) $now : time();
+        $dow = (int) date('w', $now);
+
+        return array(
+            'start'      => strtotime('today', $now) - $dow * 86400,
+            'prev_start' => strtotime('today', $now) - ($dow + 7) * 86400,
+            'elapsed'    => $dow + 1,   // ما مضى بما فيه اليوم
+            'days_left'  => 6 - $dow,
+        );
+    }
+
+    /**
+     * أيام نشاط الابن — من ثلاثة مصادر، و`lesson_progress` أصدقها.
+     *
+     * فيه صف **لكل درس** بتاريخ إنهائه؛ أما `watch_histories` فصف واحد لكل
+     * مادة بآخر تحديث لها وحده — فمن واظب خمسة أيام على مادة واحدة كان
+     * يحسب له يوم، ومن سجل في خمس مواد ولمسها مرة تحسب له خمسة. المقياس
+     * كان يكافئ تعدد المواد لا المواظبة.
+     *
+     * @return array مفاتيحها طوابع بداية اليوم
+     */
+    private function activity_days($student_id)
+    {
+        $student_id = (int) $student_id;
+        $stamps = array();
+
+        foreach ($this->db->query(
+            'SELECT UNIX_TIMESTAMP(`completed_at`) ts FROM `lesson_progress`
+              WHERE `student_id` = ? AND `completed_at` IS NOT NULL', array($student_id)
+        )->result_array() as $r) $stamps[] = (int) $r['ts'];
+
+        foreach ($this->db->query(
+            'SELECT `date_updated` ts FROM `watch_histories` WHERE `student_id` = ?',
+            array($student_id)
+        )->result_array() as $r) $stamps[] = (int) $r['ts'];
+
+        foreach ($this->db->query(
+            'SELECT `date_added` ts FROM `quiz_results`
+              WHERE `user_id` = ? AND `is_submitted` = 1', array($student_id)
+        )->result_array() as $r) $stamps[] = (int) $r['ts'];
+
+        $days = array();
+        foreach ($stamps as $ts) {
+            if ($ts > 0) $days[strtotime('today', $ts)] = true;
+        }
+        return $days;
+    }
+
+    /**
+     * تفاصيل الابن — المقياس الثلاثي المبسط: الالتزام · الفهم · الاتجاه.
+     *
+     * والملكية تفحص أولا عبر `child()`، مصدر الحقيقة الواحد — ومن طلب ابنا
+     * ليس ابنه يرد `null` ولا فرق عنده بين «غير موجود» و«ليس لك».
+     */
+    public function child_detail($parent_id, $student_id)
+    {
+        $parent_id  = (int) $parent_id;
+        $student_id = (int) $student_id;
+
+        $child = $this->child($parent_id, $student_id);
+        if (!$child) return null;
+
+        $w    = $this->week_window();
+        $plan = $this->plan_days($parent_id, $student_id);
+
+        $days_this = 0; $days_prev = 0;
+        $flags     = array_fill(0, 7, false);
+
+        foreach (array_keys($this->activity_days($student_id)) as $day) {
+            if ($day >= $w['start']) {
+                $days_this++;
+                $i = (int) floor(($day - $w['start']) / 86400);
+                if ($i >= 0 && $i < 7) $flags[$i] = true;
+            } elseif ($day >= $w['prev_start']
+                   && $day < $w['prev_start'] + $w['elapsed'] * 86400) {
+                $days_prev++;
+            }
+        }
+
+        /* المواد: النسبة وحدها لا تقول أيهما — «٤٤٪» في مادة من عشرين درسا
+           غير «٤٤٪» في مادة من ثلاثة. فيقرأ عدد دروس كل مادة معها.
+           (والاختبارات مستثناة من العد كما تستثنى في بوابة الطالب، فلا
+           يختلف رقم بين شاشتين.) */
+        $subjects  = $this->db->query(
+            "SELECT c.`id`, c.`title`,
+                    COALESCE(w.`course_progress`, 0) progress,
+                    w.`completed_lesson`,
+                    COALESCE(w.`date_updated`, 0)    last_seen,
+                    (SELECT COUNT(*) FROM `lesson` l
+                      WHERE l.`course_id` = c.`id` AND l.`lesson_type` <> 'quiz') lessons_n
+               FROM `enrol` e
+               JOIN `course` c ON c.`id` = e.`course_id`
+          LEFT JOIN `watch_histories` w
+                 ON w.`student_id` = e.`user_id` AND w.`course_id` = e.`course_id`
+              WHERE e.`user_id` = ?
+              ORDER BY c.`title` ASC",
+            array($student_id)
+        )->result_array();
+
+        $completed = 0;
+        foreach ($subjects as $i => $s) {
+            $list  = json_decode((string) $s['completed_lesson'], true);
+            $done  = is_array($list) ? count(array_unique($list)) : 0;
+            /* والمكتمل لا يتجاوز الموجود: قائمة قديمة قد تحمل معرف درس حذف. */
+            $total = (int) $s['lessons_n'];
+            if ($total > 0 && $done > $total) $done = $total;
+
+            $subjects[$i]['done_n'] = $done;
+            $completed += $done;
+            unset($subjects[$i]['completed_lesson']);
+        }
+
+        /* الفهم: هدف متقن من هدف فتح له. والمقياس مئوي لا كسري —
+           `touch_skill_state()` يكتب `($ok/$total)*100` ويقص على [0,100]،
+           فعتبة `0.80` هنا تعد كل شيء متقنا وعتبة `80` على كسور تعد كل
+           شيء غير متقن. */
+        $sk = $this->db->query(
+            "SELECT COUNT(*) open_n,
+                    SUM(CASE WHEN ss.`level` >= 80 THEN 1 ELSE 0 END) mastered_n
+               FROM `objectives` o
+               JOIN `lesson` l ON l.`id` = o.`lesson_id`
+               JOIN `enrol`  e ON e.`course_id` = l.`course_id` AND e.`user_id` = ?
+          LEFT JOIN `skill_state` ss ON ss.`objective_id` = o.`id` AND ss.`student_id` = ?
+              WHERE EXISTS (SELECT 1 FROM `lesson_progress` lp
+                             WHERE lp.`student_id` = ? AND lp.`lesson_id` = l.`id`)",
+            array($student_id, $student_id, $student_id)
+        )->row_array();
+
+        $open     = (int) ($sk['open_n'] ?? 0);
+        $mastered = (int) ($sk['mastered_n'] ?? 0);
+
+        /* الحصص القادمة — المطلوبة والمؤكدة وحدهما: المعتذر عنها والمنتهية
+           ليست «قادمة»، وعرضها يجعل ولي الأمر يترقب موعدا لن يقع. */
+        $sessions = array();
+        if ($this->db->table_exists('tutoring_sessions')) {
+            $sessions = $this->db->query(
+                "SELECT ts.`id`, ts.`status`, ts.`meet_url`, s.`starts_at`, s.`duration_min`,
+                        g.`name_ar` grade_name, sj.`name_ar` subject_name,
+                        TRIM(CONCAT(COALESCE(u.`first_name`,''), ' ',
+                                    COALESCE(u.`last_name`,''))) teacher
+                   FROM `tutoring_sessions` ts
+              LEFT JOIN `availability_slots` s ON s.`id` = ts.`slot_id`
+              LEFT JOIN `grades`   g  ON g.`id`  = s.`grade_id`
+              LEFT JOIN `subjects` sj ON sj.`id` = s.`subject_id`
+              LEFT JOIN `users`    u  ON u.`id`  = ts.`teacher_id`
+                  WHERE ts.`student_id` = ?
+                    AND ts.`status` IN ('requested','confirmed','live')
+                    AND (s.`starts_at` IS NULL OR s.`starts_at` >= NOW() - INTERVAL 2 HOUR)
+                  ORDER BY s.`starts_at` ASC
+                  LIMIT 5",
+                array($student_id)
+            )->result_array();
+        }
+
+        return array(
+            'child'      => $child,
+            'week'       => $w,
+            'plan_days'  => (int) $plan['days'],
+            'plan_is_default' => !empty($plan['is_default']),
+            'days_this'  => $days_this,
+            'days_prev'  => $days_prev,
+            'day_flags'  => $flags,
+            'commitment' => (int) round(100 * min($days_this, (int) $plan['days'])
+                                        / max(1, (int) $plan['days'])),
+            'subjects'   => $subjects,
+            'completed'  => $completed,
+            'skill'      => array(
+                'open'     => $open,
+                'mastered' => $mastered,
+                'percent'  => $open > 0 ? (int) round(100 * $mastered / $open) : 0,
+            ),
+            'sessions'   => $sessions,
+            'notes'      => $this->teacher_notes($student_id, 5),
+            'payments'   => array_slice($this->payments_of($student_id, 10), 0, 10),
+        );
+    }
+
+    /**
+     * ملاحظات المعلمين — **المعتمدة وحدها**، ومن مصدرين لا واحد.
+     *
+     * الدرجة قبل اعتمادها لا يراها الطالب، ورؤية وليه لها تسبقه بخبر عن
+     * نفسه — وهو أسوأ ما يقع بين مراهق وأهله. وملاحظة الاختبار في
+     * `quiz_results` وملاحظة الواجب في `attempts`: كانت الأولى وحدها تقرأ
+     * لأن الواجبات لم تكن تصل معلما أصلا.
+     */
+    public function teacher_notes($student_id, $limit = 5)
+    {
+        $student_id = (int) $student_id;
+        $limit      = max(1, (int) $limit);
+
+        $notes = $this->db->query(
+            "SELECT r.`quiz_result_id` id, r.`teacher_note`, r.`approved_at`,
+                    l.`title` lesson_title, c.`title` course_title, 'quiz' kind,
+                    TRIM(CONCAT(COALESCE(u.`first_name`,''), ' ',
+                                COALESCE(u.`last_name`,''))) teacher
+               FROM `quiz_results` r
+               JOIN `lesson` l ON l.`id` = r.`quiz_id`
+          LEFT JOIN `course` c ON c.`id` = l.`course_id`
+          LEFT JOIN `users`  u ON u.`id` = r.`approved_by`
+              WHERE r.`user_id` = ? AND r.`approved_at` IS NOT NULL
+                AND r.`teacher_note` IS NOT NULL AND TRIM(r.`teacher_note`) <> ''
+              ORDER BY r.`approved_at` DESC
+              LIMIT $limit",
+            array($student_id)
+        )->result_array();
+
+        /* أعمدة اعتماد الواجب تنشأ وقت التشغيل، فقد لا تكون على هذه
+           البيئة بعد — و`ensure_schema()` قبل القراءة لا بعد الخطأ. */
+        $CI = get_instance();
+        $CI->load->model('taqdar_marking_model');
+        $CI->taqdar_marking_model->ensure_schema();
+
+        foreach ($this->db->query(
+            "SELECT t.`id`, t.`teacher_note`, t.`approved_at`,
+                    l.`title` lesson_title, c.`title` course_title, 'homework' kind,
+                    TRIM(CONCAT(COALESCE(u.`first_name`,''), ' ',
+                                COALESCE(u.`last_name`,''))) teacher
+               FROM `attempts` t
+               JOIN `assessments` a ON a.`id` = t.`assessment_id`
+               JOIN `lesson` l ON l.`id` = a.`lesson_id`
+          LEFT JOIN `course` c ON c.`id` = l.`course_id`
+          LEFT JOIN `users`  u ON u.`id` = t.`approved_by`
+              WHERE t.`student_id` = ? AND t.`approved_at` IS NOT NULL
+                AND t.`teacher_note` IS NOT NULL AND TRIM(t.`teacher_note`) <> ''
+              ORDER BY t.`approved_at` DESC
+              LIMIT $limit",
+            array($student_id)
+        )->result_array() as $hn) {
+            $notes[] = $hn;
+        }
+
+        usort($notes, function ($a, $b) {
+            return (int) $b['approved_at'] <=> (int) $a['approved_at'];
+        });
+
+        return array_slice($notes, 0, $limit);
+    }
+
+    /**
+     * التقرير الأسبوعي — أربعة أرقام لكل ابن تقرأ في عشر ثوان.
+     *
+     * ودروس **هذا الأسبوع** من `lesson_progress.completed_at` لا من مجموع
+     * `watch_histories.completed_lesson`: كان الأخير يجمع العمر كله ثم
+     * يكتب في السطر «هذا الأسبوع»، فيقرأ ولي أمر ابنه لم يفتح المنصة منذ
+     * شهر «أكمل ٣٥ درسا هذا الأسبوع» فيطمئن — وهو أخطر ما يفعله تقرير.
+     * والحصيلة الكلية تعرض إلى جانبه لا بدلا منه.
+     */
+    public function weekly($parent_id, $student_id = 0)
+    {
+        $parent_id = (int) $parent_id;
+        $w         = $this->week_window();
+
+        $kids = array();
+        foreach ($this->children($parent_id) as $c) {
+            $cid = (int) $c['student_id'];
+            if ($student_id && $cid !== (int) $student_id) continue;
+
+            $plan = $this->plan_days($parent_id, $cid);
+
+            $days_this = 0; $days_prev = 0;
+            foreach (array_keys($this->activity_days($cid)) as $day) {
+                if ($day >= $w['start']) $days_this++;
+                elseif ($day >= $w['prev_start']
+                     && $day < $w['prev_start'] + $w['elapsed'] * 86400) $days_prev++;
+            }
+
+            $done = (int) $this->db->query(
+                'SELECT COUNT(*) n FROM `lesson_progress`
+                  WHERE `student_id` = ? AND `completed_at` IS NOT NULL
+                    AND `completed_at` >= FROM_UNIXTIME(?)',
+                array($cid, $w['start'])
+            )->row('n');
+
+            $done_all = (int) $this->db->query(
+                'SELECT COUNT(*) n FROM `lesson_progress`
+                  WHERE `student_id` = ? AND `completed_at` IS NOT NULL',
+                array($cid)
+            )->row('n');
+
+            $quizzes = (int) $this->db->query(
+                'SELECT COUNT(*) n FROM `quiz_results`
+                  WHERE `user_id` = ? AND `is_submitted` = 1 AND `date_added` >= ?',
+                array($cid, $w['start'])
+            )->row('n');
+
+            /* المادة المتوقفة: أطول غياب بين مواده. ومادة لم تبدأ
+               (`last_seen = 0`) تسبق كل متوقفة في الترتيب فتحجبها دائما —
+               والانقطاع عن مادة بدأها خبر، وعدم البدء حال معلومة. */
+            $stalled = $this->db->query(
+                "SELECT c.`title`, COALESCE(w.`date_updated`, 0) last_seen
+                   FROM `enrol` e
+                   JOIN `course` c ON c.`id` = e.`course_id`
+              LEFT JOIN `watch_histories` w
+                     ON w.`student_id` = e.`user_id` AND w.`course_id` = e.`course_id`
+                  WHERE e.`user_id` = ?
+                  ORDER BY (COALESCE(w.`date_updated`, 0) = 0) ASC, last_seen ASC
+                  LIMIT 1",
+                array($cid)
+            )->row_array();
+
+            $kids[] = array(
+                'student_id'      => $cid,
+                'name'            => trim($c['first_name'] . ' ' . $c['last_name']),
+                'image'           => (string) $c['image'],
+                'plan_days'       => (int) $plan['days'],
+                'plan_is_default' => !empty($plan['is_default']),
+                'days_this'       => $days_this,
+                'days_prev'       => $days_prev,
+                'lessons_done'    => $done,
+                'lessons_total'   => $done_all,
+                'quizzes'         => $quizzes,
+                'needed'          => max(0, (int) $plan['days'] - $days_this),
+                'trend'           => $days_this > $days_prev ? 'up'
+                                   : ($days_this < $days_prev ? 'down' : 'flat'),
+                'stalled'         => $stalled ? array(
+                    'title'     => (string) $stalled['title'],
+                    'last_seen' => (int) $stalled['last_seen'],
+                    'days'      => (int) $stalled['last_seen'] > 0
+                                 ? (int) floor((time() - (int) $stalled['last_seen']) / 86400)
+                                 : null,
+                ) : null,
+            );
+        }
+
+        return array('week' => $w, 'children' => $kids);
+    }
+
+    /**
+     * التقارير — كل مادة في سطر واحد، لكل ابن.
+     *
+     * **والدرجة المعروضة هي التي يراها ابنك نفسه** لا الدرجة الخام:
+     * `Taqdar_marking_model::student_view()` هي الحكم الواحد. وكان الحساب
+     * يجمع `total_obtained_marks` الخام، فيرى ولي الأمر رقما ولا يراه ابنه
+     * — وأسرع طريق إلى شجار بينهما أن تعطيهما المنصة رقمين.
+     */
+    public function reports($parent_id, $student_id = 0)
+    {
+        $parent_id = (int) $parent_id;
+        $CI = get_instance();
+        $CI->load->model('taqdar_marking_model');
+        $mk = $CI->taqdar_marking_model;
+
+        $out = array();
+        foreach ($this->children($parent_id) as $c) {
+            $cid = (int) $c['student_id'];
+            if ($student_id && $cid !== (int) $student_id) continue;
+
+            $subjects = $this->db->query(
+                "SELECT c.`id`, c.`title`,
+                        COALESCE(w.`course_progress`, 0) progress,
+                        COALESCE(w.`date_updated`, 0)    last_seen,
+                        (SELECT COUNT(*) FROM `lesson` l
+                          WHERE l.`course_id` = c.`id` AND l.`lesson_type` <> 'quiz') lessons
+                   FROM `enrol` e
+                   JOIN `course` c ON c.`id` = e.`course_id`
+              LEFT JOIN `watch_histories` w
+                     ON w.`student_id` = e.`user_id` AND w.`course_id` = e.`course_id`
+                  WHERE e.`user_id` = ?
+                  ORDER BY c.`title` ASC",
+                array($cid)
+            )->result_array();
+
+            /* صفا صفا لا بمتوسط في SQL: الحكم على كل محاولة يمر بدالة
+               واحدة فلا تكتب قاعدة الحجب مرتين وتتباعد. */
+            $scores = array();
+            foreach ($this->db->query(
+                "SELECT r.`quiz_result_id`, r.`quiz_id`, r.`total_obtained_marks`,
+                        r.`is_submitted`, r.`teacher_score`, r.`teacher_note`,
+                        r.`approved_at`, l.`course_id`,
+                        (SELECT COUNT(*) FROM `question` q WHERE q.`quiz_id` = r.`quiz_id`) q_count
+                   FROM `quiz_results` r
+                   JOIN `lesson` l ON l.`id` = r.`quiz_id`
+                  WHERE r.`user_id` = ? AND r.`is_submitted` = 1",
+                array($cid)
+            )->result_array() as $r) {
+                $k = (int) $r['course_id'];
+                if (!isset($scores[$k])) $scores[$k] = array('sum' => 0.0, 'n' => 0, 'held' => 0);
+
+                $view = $mk->student_view($r);
+                if (empty($view['visible'])) { $scores[$k]['held']++; continue; }
+
+                $qn = (int) $r['q_count'];
+                if ($qn < 1) continue;   // اختبار بلا أسئلة لا نسبة له
+
+                $scores[$k]['sum'] += 100 * (float) $view['score'] / $qn;
+                $scores[$k]['n']++;
+            }
+
+            foreach ($subjects as $i => $s) {
+                $a = isset($scores[(int) $s['id']])
+                   ? $scores[(int) $s['id']]
+                   : array('sum' => 0.0, 'n' => 0, 'held' => 0);
+
+                $subjects[$i]['attempts']    = (int) $a['n'];
+                $subjects[$i]['held']        = (int) $a['held'];
+                $subjects[$i]['avg_percent'] = $a['n'] > 0
+                    ? (int) round(min(100, $a['sum'] / $a['n'])) : null;
+            }
+
+            $out[] = array(
+                'student_id' => $cid,
+                'name'       => trim($c['first_name'] . ' ' . $c['last_name']),
+                'image'      => (string) $c['image'],
+                'subjects'   => $subjects,
+            );
+        }
+
+        return $out;
+    }
 }

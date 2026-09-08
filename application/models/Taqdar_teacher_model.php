@@ -1235,4 +1235,346 @@ class Taqdar_teacher_model extends CI_Model
         return '';
     }
 
+
+    /* =====================================================================
+       بوابة المعلم — طبقة القراءة
+       ---------------------------------------------------------------------
+       ثلاث شاشات كانت تكتب استعلاماتها **داخل ملف العرض**:
+       `tq_teacher_dashboard.php` و`tq_teacher_students.php`
+       و`tq_teacher_messages.php`. وذلك يعمل ما دام القارئ متصفحا؛ فلما
+       جاءت واجهة التطبيق تسأل الأسئلة نفسها لم تجد ما تناديه إلا قالبا
+       يطبع HTML.
+
+       ونسختان من القاعدة تفترقان عند أول تعديل: تضاف حال «متعثر» في
+       القالب ولا تضاف في الواجهة، فيقرأ المعلم في التطبيق قائمة غير
+       التي يقرؤها في الموقع عن اللحظة نفسها. فالقواعد هنا، والقالب
+       والواجهة يعرضان.
+       ===================================================================== */
+
+    /**
+     * كورسات هذا المعلم — نطاقه كله يبدأ من هنا.
+     *
+     * والملكية صورتان لا واحدة: `course.creator` و`course.user_id` (قائمة
+     * بفواصل يكتبها المسؤول حين يشرك معلمين في كورس). وقراءة الأولى وحدها
+     * تخفي عن المعلم المشارك كل ما شارك فيه.
+     */
+    public function scope_courses($teacher_id)
+    {
+        $teacher_id = (int) $teacher_id;
+        if ($teacher_id <= 0) return array();
+
+        return $this->db->query(
+            'SELECT `id`, `title`, `status`, `date_added`, `thumbnail`
+               FROM `course`
+              WHERE `creator` = ? OR FIND_IN_SET(?, `user_id`) > 0
+              ORDER BY `date_added` DESC, `id` DESC',
+            array($teacher_id, $teacher_id)
+        )->result_array();
+    }
+
+    /** معرفات النطاق وحدها — يقرؤها كل استعلام بعدها. */
+    public function scope_ids($teacher_id)
+    {
+        return array_map('intval', array_column($this->scope_courses($teacher_id), 'id'));
+    }
+
+    /**
+     * لوحة المعلم — الأرقام الأربعة و«يحتاج انتباهك».
+     *
+     * ولا يحسب رقم منها هنا وله مصدر قائم: صف التصحيح من
+     * `Taqdar_marking_model` (بشرط `approved_at IS NULL` نفسه الذي يعرض
+     * به)، وأرباح الشهر من دفتر المحفظة لا من `payment.instructor_revenue`
+     * — وهي الطريقة التي هجرتها شاشة المحفظة لأنها لا ترى استردادا، فيقرأ
+     * المعلم رقمين مختلفين عن الشهر نفسه في شاشتين.
+     */
+    public function dashboard($teacher_id)
+    {
+        $teacher_id = (int) $teacher_id;
+        $CI = get_instance();
+        $CI->load->model('taqdar_marking_model');
+        $CI->load->model('taqdar_wallet_model');
+
+        $courses    = $this->scope_courses($teacher_id);
+        $course_ids = array_map('intval', array_column($courses, 'id'));
+
+        $pass_pct   = (int) $CI->taqdar_marking_model->pass_percent();
+        $pass_ratio = $pass_pct / 100;
+
+        $out = array(
+            'pass_percent'     => $pass_pct,
+            'courses'          => $courses,
+            'students'         => 0,
+            'pending_quizzes'  => 0,
+            'pending_homework' => 0,
+            'pending_marking'  => 0,
+            'month_earnings'   => 0,
+            'attention'        => array(),
+            'attention_total'  => 0,
+            'hard_lessons'     => array(),
+        );
+
+        if (!$course_ids) return $out;
+
+        $in = implode(',', $course_ids);
+
+        $out['students'] = (int) $this->db->query(
+            "SELECT COUNT(DISTINCT `user_id`) n FROM `enrol` WHERE `course_id` IN ($in)"
+        )->row('n');
+
+        $out['pending_quizzes']  = (int) $CI->taqdar_marking_model->queue_count($teacher_id);
+        $out['pending_homework'] = (int) $CI->taqdar_marking_model->homework_queue_count($teacher_id);
+        $out['pending_marking']  = $out['pending_quizzes'] + $out['pending_homework'];
+
+        /* بالهللات هنا — والقسمة على مئة حد عرض أخير لا حساب. */
+        $out['month_earnings'] = (int) $CI->taqdar_wallet_model->month_earnings($teacher_id);
+
+        /* ---- «يحتاج انتباهك»: صف لكل (طالب × كورس) ثم أعلاه لكل طالب.
+           الطالب المسجل في ثلاثة من كورساتي كان يظهر ثلاث مرات، فتمتلئ
+           قائمة الستة بطالبين. */
+        $rows = $this->db->query(
+            "SELECT u.`id`, u.`first_name`, u.`last_name`, u.`image`,
+                    c.`id` course_id, c.`title` course_title,
+                    COALESCE(w.`course_progress`, 0) progress,
+                    COALESCE(w.`date_updated`, e.`date_added`) last_seen
+               FROM `enrol` e
+               JOIN `users`  u ON u.`id` = e.`user_id`
+               JOIN `course` c ON c.`id` = e.`course_id`
+          LEFT JOIN `watch_histories` w
+                 ON w.`student_id` = e.`user_id` AND w.`course_id` = e.`course_id`
+              WHERE e.`course_id` IN ($in)"
+        )->result_array();
+
+        /* الرسوب بعتبة النجاح من عدد أسئلة الاختبار، مجمعا بـ(طالب × كورس)
+           لا بالطالب وحده: كان مجموع رسوبه في كورساتي كلها يعلق على صف كل
+           كورس منها، فيقرأ المعلم «رسب في ٧» في مادة اختباراتها ثلاثة. */
+        $fail = array();
+        foreach ($this->db->query(
+            "SELECT r.`user_id`, l.`course_id`, COUNT(*) attempts,
+                    SUM(CASE WHEN r.`total_obtained_marks` <
+                         (SELECT COUNT(*) FROM `question` q WHERE q.`quiz_id` = r.`quiz_id`) * ?
+                        THEN 1 ELSE 0 END) fails
+               FROM `quiz_results` r
+               JOIN `lesson` l ON l.`id` = r.`quiz_id`
+              WHERE r.`is_submitted` = 1 AND l.`course_id` IN ($in)
+              GROUP BY r.`user_id`, l.`course_id`",
+            array($pass_ratio)
+        )->result_array() as $f) {
+            $fail[(int) $f['user_id'] . ':' . (int) $f['course_id']] = $f;
+        }
+
+        $now  = time();
+        $best = array();
+        foreach ($rows as $r) {
+            $sid   = (int) $r['id'];
+            $key   = $sid . ':' . (int) $r['course_id'];
+            $days  = (int) floor(($now - (int) $r['last_seen']) / 86400);
+            $prog  = (int) $r['progress'];
+            $fails = isset($fail[$key]) ? (int) $fail[$key]['fails'] : 0;
+
+            $reason = '';
+            $weight = 0;
+            if ($fails >= 2) {
+                $reason = 'failing';  $weight = 300 + $fails * 10;
+            } elseif ($days >= 5 && $prog > 0 && $prog < 100) {
+                $reason = 'at_risk';  $weight = 200 + $days;
+            } elseif ($prog > 0 && $prog < 100 && $days >= 3) {
+                $reason = 'stalled';  $weight = 100 + $days;
+            }
+            if ($reason === '') continue;
+
+            if (!isset($best[$sid]) || $weight > $best[$sid]['weight']) {
+                $best[$sid] = array(
+                    'student_id'     => $sid,
+                    'name'           => trim($r['first_name'] . ' ' . $r['last_name']),
+                    'image'          => (string) $r['image'],
+                    'course_id'      => (int) $r['course_id'],
+                    'course_title'   => (string) $r['course_title'],
+                    'progress'       => $prog,
+                    'days_away'      => max(0, $days),
+                    'failed_quizzes' => $fails,
+                    'reason'         => $reason,
+                    'weight'         => $weight,
+                );
+            }
+        }
+
+        $best = array_values($best);
+        usort($best, function ($a, $b) { return $b['weight'] - $a['weight']; });
+        $out['attention_total'] = count($best);
+        $out['attention']       = array_slice($best, 0, 6);
+
+        /* الدروس التي ينصرف عندها الطلاب — أقلها إتماما بين من بدأها. */
+        $out['hard_lessons'] = $this->db->query(
+            "SELECT l.`id`, l.`title`, c.`title` course_title,
+                    COUNT(*) started,
+                    SUM(CASE WHEN lp.`completed_at` IS NOT NULL THEN 1 ELSE 0 END) finished
+               FROM `lesson_progress` lp
+               JOIN `lesson` l ON l.`id` = lp.`lesson_id`
+               JOIN `course` c ON c.`id` = l.`course_id`
+              WHERE l.`course_id` IN ($in)
+              GROUP BY l.`id`, l.`title`, c.`title`
+             HAVING started >= 3 AND finished < started
+              -- والتعبير يكرر في `ORDER BY` ولا يشار إليه باسمه المستعار:
+              -- MariaDB ترفض «reference to group function» متى دخل اسم
+              -- مستعار لدالة تجميع في **تعبير** — وهو رفض في وقت التشغيل
+              -- لا خطأ نحو، فلا يظهر إلا على معلم له درس بدأه ثلاثة.
+              ORDER BY (SUM(CASE WHEN lp.`completed_at` IS NOT NULL THEN 1 ELSE 0 END)
+                        / COUNT(*)) ASC
+              LIMIT 5"
+        )->result_array();
+
+        return $out;
+    }
+
+    /**
+     * طلابي — من `enrol` مقيدا بكورساتي لا من `users`.
+     *
+     * المعلم لا يرى سجل الطلاب، يرى طلابه هو — والنطاق يفرض في طبقة
+     * الاستعلام لا في إخفاء زر.
+     *
+     * و«يوشك على الانقطاع» = آخر نشاط خمسة أيام فأكثر وتقدم بين ١ و٩٩ —
+     * أي بدأ فعلا ولم ينه. وتستبدل بقاعدة أدق فور وجود جدول أيام النشاط.
+     */
+    public function students($teacher_id, $course_id = 0)
+    {
+        $teacher_id = (int) $teacher_id;
+        $CI = get_instance();
+        $CI->load->model('taqdar_marking_model');
+
+        $courses    = $this->scope_courses($teacher_id);
+        $course_ids = array_map('intval', array_column($courses, 'id'));
+
+        $course_id = (int) $course_id;
+        if ($course_id && !in_array($course_id, $course_ids, true)) $course_id = 0;
+
+        $out = array(
+            'courses'  => $courses,
+            'course'   => $course_id,
+            'students' => array(),
+            'at_risk'  => array(),
+        );
+        if (!$course_ids) return $out;
+
+        $in = $course_id ? (string) $course_id : implode(',', $course_ids);
+
+        $rows = $this->db->query(
+            "SELECT u.`id`, u.`first_name`, u.`last_name`, u.`image`, u.`email`,
+                    c.`id` course_id, c.`title` course_title,
+                    COALESCE(w.`course_progress`, 0)           progress,
+                    COALESCE(w.`date_updated`, e.`date_added`) last_seen,
+                    e.`date_added` enrolled_at
+               FROM `enrol` e
+               JOIN `users`  u ON u.`id` = e.`user_id`
+               JOIN `course` c ON c.`id` = e.`course_id`
+          LEFT JOIN `watch_histories` w
+                 ON w.`student_id` = e.`user_id` AND w.`course_id` = e.`course_id`
+              WHERE e.`course_id` IN ($in)
+              ORDER BY last_seen DESC"
+        )->result_array();
+
+        /* متوسط النتيجة — بالدرجة **التي يراها الطالب نفسه**
+           (`student_view()`): ما لم يعتمد بعد لا يحسب، فلا يقرأ المعلم
+           رقما لا يقابله شيء عند صاحبه. */
+        $agg = array();
+        foreach ($this->db->query(
+            "SELECT r.`user_id`, r.`quiz_id`, r.`total_obtained_marks`, r.`is_submitted`,
+                    r.`teacher_score`, r.`teacher_note`, r.`approved_at`, l.`course_id`,
+                    (SELECT COUNT(*) FROM `question` q WHERE q.`quiz_id` = r.`quiz_id`) q_count
+               FROM `quiz_results` r
+               JOIN `lesson` l ON l.`id` = r.`quiz_id`
+              WHERE r.`is_submitted` = 1 AND l.`course_id` IN ($in)"
+        )->result_array() as $r) {
+            $k  = (int) $r['user_id'];
+            $qn = (int) $r['q_count'];
+            if ($qn < 1) continue;
+            if (!isset($agg[$k])) $agg[$k] = array('sum' => 0.0, 'n' => 0, 'held' => 0);
+
+            $view = $CI->taqdar_marking_model->student_view($r);
+            if (empty($view['visible'])) { $agg[$k]['held']++; continue; }
+
+            $agg[$k]['sum'] += 100 * (float) $view['score'] / $qn;
+            $agg[$k]['n']++;
+        }
+
+        $now = time();
+        foreach ($rows as $r) {
+            $sid  = (int) $r['id'];
+            $days = (int) floor(($now - (int) $r['last_seen']) / 86400);
+            $prog = (int) $r['progress'];
+            $a    = isset($agg[$sid]) ? $agg[$sid] : array('sum' => 0.0, 'n' => 0, 'held' => 0);
+
+            $row = array(
+                'student_id'   => $sid,
+                'name'         => trim($r['first_name'] . ' ' . $r['last_name']),
+                'image'        => (string) $r['image'],
+                'email'        => (string) $r['email'],
+                'course_id'    => (int) $r['course_id'],
+                'course_title' => (string) $r['course_title'],
+                'progress'     => $prog,
+                'days_away'    => max(0, $days),
+                'last_seen'    => (int) $r['last_seen'],
+                'enrolled_at'  => (int) $r['enrolled_at'],
+                'attempts'     => (int) $a['n'],
+                'held'         => (int) $a['held'],
+                'avg_percent'  => $a['n'] > 0 ? (int) round(min(100, $a['sum'] / $a['n'])) : null,
+            );
+            $row['at_risk'] = ($days >= 5 && $prog > 0 && $prog < 100);
+
+            $out['students'][] = $row;
+            if ($row['at_risk']) $out['at_risk'][] = $row;
+        }
+
+        usort($out['at_risk'], function ($a, $b) { return $b['days_away'] - $a['days_away']; });
+
+        return $out;
+    }
+
+    /**
+     * من يجوز للمعلم مراسلته: طلاب كورساته، والإدارة.
+     *
+     * والقائمة نفسها التي يفحص بها الإرسال — منتق يعرض حسابا يرده الحارس
+     * يجعل المعلم يقرأ رفضا عن اسم عرضناه نحن.
+     */
+    public function messageable($teacher_id)
+    {
+        $teacher_id = (int) $teacher_id;
+        $out = array();
+
+        foreach ($this->db->query(
+            'SELECT DISTINCT u.`id`, u.`first_name`, u.`last_name`, u.`image`, u.`role_id`,
+                    u.`is_instructor`
+               FROM `enrol` e
+               JOIN `course` c ON c.`id` = e.`course_id`
+               JOIN `users`  u ON u.`id` = e.`user_id`
+              WHERE c.`creator` = ? OR FIND_IN_SET(?, c.`user_id`) > 0
+              ORDER BY u.`first_name` ASC',
+            array($teacher_id, $teacher_id)
+        )->result_array() as $r) {
+            $r['kind'] = 'student';
+            $out[] = $r;
+        }
+
+        $admin = $this->db->select('id, first_name, last_name, image, role_id, is_instructor')
+                          ->where('role_id', 1)->order_by('id', 'ASC')->limit(1)
+                          ->get('users')->row_array();
+        if ($admin) {
+            $admin['kind'] = 'admin';
+            $out[] = $admin;
+        }
+
+        return $out;
+    }
+
+    /** هل يجوز لهذا المعلم أن يراسل هذا الحساب؟ */
+    public function may_message($teacher_id, $to)
+    {
+        $to = (int) $to;
+        if ($to <= 0 || $to === (int) $teacher_id) return false;
+
+        foreach ($this->messageable($teacher_id) as $p) {
+            if ((int) $p['id'] === $to) return true;
+        }
+        return false;
+    }
+
 }
