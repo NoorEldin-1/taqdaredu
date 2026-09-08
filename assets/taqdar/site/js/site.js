@@ -1646,7 +1646,12 @@ var TQPhoneRules = (function () {
    الدخول بـ`?next=`، وهي الوجهة نفسها.
    ══════════════════════════════════════════════════════════════════ */
 (function () {
-  var SEL = 'a[href*="/checkout/"], a[href*="/course-checkout/"]';
+  /* TQ-PAY-NOW — روابط باقات `/checkout/` خرجت من النافذة: صفحة الدفع
+     نفسها صارت تسجل الزائر وتدفع بضغطة واحدة، فالنافذة حاجز قبل صفحة
+     أزيل حاجزها. وتبقى لشراء الدرس والكتاب حيث لا نموذج ضيف بعد.
+     (تنبيه: `href*="/checkout/"` كانت تمسك `/course-checkout/` أيضا
+     لأنها احتواء نص لا مسار.) */
+  var SEL = 'a[href*="/course-checkout/"], a[href*="/book-checkout/"]';
 
   var dlg = document.querySelector('dialog[data-tq-auth]');
   if (!dlg || !dlg.showModal) return;              /* متصفّح بلا `<dialog>` */
@@ -1703,6 +1708,14 @@ var TQPhoneRules = (function () {
     Array.prototype.forEach.call(dlg.querySelectorAll('[data-tq-auth-next]'), function (i) {
       i.value = next;
     });
+    /* رابط «أنشئ حسابا»: الوجهة تركب `?next=` فيقرؤها نموذج التسجيل
+       ويعيد صاحبها بعد الدخول الفوري إلى ما كان يشتريه. */
+    var sup = dlg.querySelector('[data-tq-auth-signup]');
+    if (sup) {
+      var base = sup.getAttribute('data-tq-href') || sup.href.split('?')[0];
+      sup.setAttribute('data-tq-href', base);
+      sup.href = base + (next ? '?next=' + encodeURIComponent(next) : '');
+    }
 
     panes('new');
     dlg.showModal();
@@ -1761,31 +1774,18 @@ var TQPhoneRules = (function () {
       b.addEventListener('click', function () { show(b.getAttribute('data-tq-acct-tab')); });
     });
 
-    /* بريد ولي الأمر يظهر حين يلزم: الخادم يشترطه دون الخامسة عشرة،
-       وحقل يطلب بلا سبب ظاهر يقرأ فضولا. */
-    var age = acct.querySelector('[data-tq-age]');
-    var gw  = acct.querySelector('[data-tq-guardian]');
-    if (age && gw) {
-      var sync = function () {
-        var v = parseInt(age.value, 10);
-        var need = (v > 0 && v < 15);
-        gw.hidden = !need;
-        var f = gw.querySelector('input');
-        if (f) { if (need) { f.setAttribute('required', 'required'); } else { f.removeAttribute('required'); } }
-      };
-      age.addEventListener('input', sync);
-      age.addEventListener('change', sync);
-      sync();
-    }
+    /* (بريد ولي الأمر خرج من النموذج كله — TQ-INSTANT.) */
 
-    /* النية تحفظ قبل المغادرة، فيستأنف الشراء عند العودة. ورقم الباقة
-       معها: من بدل رأيه واشترى غيرها لا يشتري القديمة بلا أن يطلبها. */
+    /* النية تحفظ قبل المغادرة لمسار **الدخول** وحده: التسجيل صار يحمل
+       نيته في الخادم (TQ-AUTOPAY) فلا حاجة لذاكرة متصفح تكررها. */
     var plan = root.getAttribute('data-tq-plan') || '';
-    Array.prototype.forEach.call(acct.querySelectorAll('[data-tq-intent]'), function (f) {
-      f.addEventListener('submit', function () {
-        try { sessionStorage.setItem(KEY, plan); } catch (e) {}
+    Array.prototype.forEach.call(
+      acct.querySelectorAll('[data-tq-acct-pane="have"][data-tq-intent]'),
+      function (f) {
+        f.addEventListener('submit', function () {
+          try { sessionStorage.setItem(KEY, plan); } catch (e) {}
+        });
       });
-    });
     return;                                  /* الزائر لا يشتري بعد */
   }
 

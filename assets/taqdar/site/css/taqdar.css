@@ -626,6 +626,40 @@ p{margin:0}
   .paybar__list img{block-size:24px}
 }
 
+/* شارة الاعتماد — تحت متجرَي التطبيق في عمود الهويّة.
+
+   والنصّ إلى جانب الشعار على سطر واحد. وعمود الهويّة `1.5fr` أوسع
+   أعمدة التذييل، فيسعه — ولو ضاق صغّرت الـ`clamp` الخطّ بدل أن تكسر
+   السطر. و`min-inline-size:0` غير لازم هنا لأنّ النصّ `nowrap` أصلا،
+   لكنّ الرقعة `flex:0 0 auto` كي لا تنضغط تحت النصّ. */
+.foot-accred{
+  margin-block-start:clamp(14px,1.6vw,20px);
+  display:flex;align-items:center;gap:9px;
+}
+.foot-accred__mark{
+  flex:0 0 auto;
+  display:inline-flex;background:#fff;border-radius:9px;padding:5px 9px;
+  box-shadow:0 2px 8px rgba(0,0,0,.22)
+}
+.foot-accred__mark img{block-size:clamp(24px,2vw,30px);inline-size:auto;display:block}
+.foot-accred__t{
+  white-space:nowrap;
+  font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(9.5px,.72vw,11.5px);line-height:1.5;
+  color:var(--gold-on-dark)
+}
+
+/* التذييل عمودان تحت 680 وعمود الهويّة يمتلئ عرضا، فالشارة تتمركز معه. */
+@media (max-width:680px){
+  .foot-accred{justify-content:flex-start}
+  .foot-accred__t{font-size:clamp(9.5px,2.5vw,11px)}
+}
+@media (max-width:360px){
+  .foot-accred{gap:7px}
+  .foot-accred__mark{padding:4px 7px}
+  .foot-accred__mark img{block-size:22px}
+}
+
 .footer-bottom{margin-block-start:clamp(22px,2.6vw,38px);padding-block-start:16px;
   border-block-start:1px solid rgba(212,180,118,.22);text-align:center;
   font-size:clamp(12px,.84vw,13px);color:rgba(220,231,227,.62)}

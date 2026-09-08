@@ -31,7 +31,9 @@ class Sign_up extends CI_Controller
         if ($this->session->userdata('admin_login')) {
             redirect(site_url('admin'), 'refresh');
         } elseif ($this->session->userdata('user_login')) {
-            redirect(site_url('user'), 'refresh');
+            /* إلى لوحته لا إلى `/user`: تلك صفحة Academy ميتة ترد 404،
+               و`Login::sign_up` يحول صوابا منذ زمن — فيوحد المساران. */
+            redirect(tq_home_for(tq_role((int) $this->session->userdata('user_id'))), 'refresh');
         }
         $page_data['page_name'] = 'sign_up';
         $page_data['page_title'] = site_phrase('sign_up');

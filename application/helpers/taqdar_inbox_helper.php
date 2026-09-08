@@ -191,6 +191,11 @@ if (!function_exists('tq_spam_notice')) {
      */
     function tq_spam_notice($o = array())
     {
+        /* TQ-NO-SPAM-NOTICE (2026-09-08) — التنبيه أطفئ بطلب صاحب المنصة:
+           «مش عايز التعليمات دي». يرد فراغا من هنا فيختفي من مواضعه
+           الخمسة عشر كلها بلا لمسها — ولو أريد رجوعه يحذف هذا السطر. */
+        return '';
+
         static $js_done = false;
 
         $compact = !empty($o['compact']);

@@ -22,7 +22,7 @@ css: pages
               'نوفر لكم كل ما تحتاجونه لمتابعة تقدم أبنائكم التعليمي، لدعمهم وتحفيزهم نحو مستقبل مشرق.'); ?>
         </p>
         <div class="page-hero__cta">
-          <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>"><?php
+          <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>?as=parent"><?php
             echo tq_text('site_parents', 'hero_cta_1', 'ابدأ الآن'); ?></a>
           <a class="btn btn--ghost" href="#features"><?php
             echo tq_text('site_parents', 'hero_cta_2', 'استكشف المنصة'); ?></a>
@@ -141,7 +141,7 @@ css: pages
           <li><svg aria-hidden="true"><use href="#i-check"></use></svg>متابعة الأنشطة والواجبات</li>
           <li><svg aria-hidden="true"><use href="#i-check"></use></svg>التواصل مع المدرسة والمعلمين</li>
         </ul>
-        <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>">عرض نموذج اللوحة</a>
+        <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>?as=parent">عرض نموذج اللوحة</a>
       </div>
 
       <!-- اللوحة مبنية بالـCSS لا كصورة: تبقى حادة وتتبع التوكنات -->
@@ -256,7 +256,7 @@ foreach ($tq_quotes as $q) {
         <h2>معا نصنع مستقبلا أفضل</h2>
         <p>انضم إلى آلاف أولياء الأمور الذين يثقون بمنصة تقدر التعليمية</p>
         <div class="cta__actions">
-          <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>">إنشاء حساب مجاني</a>
+          <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>?as=parent">إنشاء حساب مجاني</a>
           <a class="btn btn--ghost" href="<?php echo base_url('login'); ?>">تسجيل الدخول</a>
         </div>
       </div>

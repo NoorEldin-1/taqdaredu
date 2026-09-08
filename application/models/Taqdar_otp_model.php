@@ -170,9 +170,9 @@ class Taqdar_otp_model extends CI_Model
         }
 
         /* ── واتساب ─────────────────────────────────────────────────
-           للطالب لا يعرض بحال: نموذج التسجيل لا يطلب جواله، ولو أخذناه
-           من مكان آخر لأرسلنا رمز حساب قاصر إلى رقم لم يقره وليه. */
-        if ($gate !== 'student' && $this->taqdar_wa_model->otp_on()) {
+           لكل بوابة كتبت جوالا — والطالب صار يكتب جواله في النموذج
+           المبسط، فالرمز يذهب إلى الرقم الذي كتبه بيده للتو. */
+        if ($this->taqdar_wa_model->otp_on()) {
             $e164 = $this->taqdar_wa_model->to_e164($phone);
             if ($e164 !== '') {
                 $out['channels']['whatsapp'] = array(
@@ -184,8 +184,14 @@ class Taqdar_otp_model extends CI_Model
             }
         }
 
-        if (isset($out['channels']['email']))         $out['default'] = 'email';
-        elseif (isset($out['channels']['whatsapp']))  $out['default'] = 'whatsapp';
+        /* الطالب أولى بواتساب (أسرع وصولا)، وسواه بالبريد كما كان. */
+        if ($gate === 'student' && isset($out['channels']['whatsapp'])) {
+            $out['default'] = 'whatsapp';
+        } elseif (isset($out['channels']['email'])) {
+            $out['default'] = 'email';
+        } elseif (isset($out['channels']['whatsapp'])) {
+            $out['default'] = 'whatsapp';
+        }
 
         return $out;
     }

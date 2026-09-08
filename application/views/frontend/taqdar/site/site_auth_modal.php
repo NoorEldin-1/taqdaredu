@@ -21,10 +21,7 @@
  * `set_login_userdata()` عبر `url_history` — فالعودة قرار خادم، لا
  * `sessionStorage` يقرأ في صفحة لا تحمل `site.js` اصلا (لوحة الطالب).
  */
-$tq_grades = array();
-$tq_gq = $this->db->select('id, name_ar', false)->from('grades')
-                  ->where('active', 1)->order_by('id', 'ASC')->get();
-if ($tq_gq) $tq_grades = $tq_gq->result_array();
+/* (استعلام الصفوف أزيل مع لوحة التسجيل — لا حقول هنا بعد اليوم.) */
 ?>
 <dialog class="tq-auth" data-tq-auth
         data-tq-base="<?php echo base_url(); ?>" aria-label="الدخول أو إنشاء حساب">
@@ -41,47 +38,18 @@ if ($tq_gq) $tq_grades = $tq_gq->result_array();
     <button type="button" data-tq-auth-tab="have" aria-pressed="false">لدي حساب</button>
   </div>
 
-  <form class="tq-auth__form" data-tq-auth-pane="new"
-        action="<?php echo site_url('login/register'); ?>" method="post">
-    <input type="hidden" name="tq_gate" value="student">
-    <input type="hidden" name="tq_next" value="" data-tq-auth-next>
-    <div class="tq-auth__row">
-      <label><span>الاسم الأول</span>
-        <input type="text" name="first_name" required minlength="2" maxlength="40" autocomplete="given-name"></label>
-      <label><span>اسم العائلة</span>
-        <input type="text" name="last_name" required minlength="2" maxlength="40" autocomplete="family-name"></label>
-    </div>
-    <label><span>البريد الإلكتروني</span>
-      <input type="email" name="email" required maxlength="50" autocomplete="email"></label>
-    <div class="tq-auth__row">
-      <label><span>كلمة المرور</span>
-        <input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
-      <label><span>تأكيد كلمة المرور</span>
-        <input type="password" name="password_confirm" required minlength="8" autocomplete="new-password"></label>
-    </div>
-    <div class="tq-auth__row">
-      <label><span>عمر الطالب</span>
-        <input type="number" name="age" required min="5" max="99" inputmode="numeric"></label>
-      <label><span>الصف</span>
-        <select name="grade_id" required>
-          <option value="">اختر الصف</option>
-<?php foreach ($tq_grades as $tq_g): ?>
-          <option value="<?php echo (int) $tq_g['id']; ?>"><?php echo html_escape($tq_g['name_ar']); ?></option>
-<?php endforeach; ?>
-        </select></label>
-    </div>
-    <label><span>بريد ولي الأمر <i>— يلزم إن كان عمر الطالب أقل من ١٥</i></span>
-      <input type="email" name="guardian_email" maxlength="190" autocomplete="email"></label>
-    <label class="tq-auth__terms">
-      <input type="checkbox" name="accept_terms" value="1" required>
-      <span>أوافق على <a href="<?php echo base_url('terms'); ?>" target="_blank" rel="noopener">الشروط والأحكام</a>
-        و<a href="<?php echo base_url('privacy'); ?>" target="_blank" rel="noopener">سياسة الخصوصية</a></span>
-    </label>
-    <button class="btn btn--primary btn--block" type="submit">أنشئ الحساب وتابع</button>
-    <p class="tq-caption tq-auth__note">
-      سيصلك رمز تأكيد على بريدك. وبعد تأكيده تعود إلى هذه الباقة لإتمام الدفع.
+  <?php /* TQ-INSTANT — لوحة «حساب جديد» صارت رابطا إلى نموذج التسجيل
+           المبسط الواحد: نسخة ثالثة من حقول التسجيل هنا كانت تفترق عن
+           أختيها عند أول حقل يعدل (وقد افترقت فعلا: بقيت فيها تأكيد
+           المرور وبريد ولي الأمر بعد حذفهما). والوجهة تركب الرابط
+           (`?next=`) فيعود بعد التسجيل إلى ما كان يشتريه. */ ?>
+  <div class="tq-auth__form" data-tq-auth-pane="new">
+    <p class="tq-caption">
+      حساب تقدر مجاني ويفتح في أقل من دقيقة، ثم تعود إلى هنا لإتمام الدفع.
     </p>
-  </form>
+    <a class="btn btn--primary btn--block" data-tq-auth-signup
+       href="<?php echo base_url('sign_up'); ?>">أنشئ حسابا وتابع</a>
+  </div>
 
   <form class="tq-auth__form" data-tq-auth-pane="have" hidden
         action="<?php echo site_url('login/validate_login'); ?>" method="post">

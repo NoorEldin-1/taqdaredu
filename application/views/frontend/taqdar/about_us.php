@@ -104,6 +104,7 @@ css: pages
         <?php echo tqs_stat('paths','i-target','برنامج تعليمي','stats-band__item'); ?>
         <?php echo tqs_stat('subjects','i-book','مادة تعليمية','stats-band__item'); ?>
         <?php echo tqs_stat('lessons','i-play','درسا','stats-band__item'); ?>
+        <?php echo tqs_stat('questions','i-badge','سؤال تقييم','stats-band__item'); ?>
         <?php echo tqs_stat('books','i-curriculum','كتاب منهجي','stats-band__item'); ?>
       </div>
     </div>

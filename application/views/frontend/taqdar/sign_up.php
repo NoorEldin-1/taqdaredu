@@ -41,9 +41,9 @@ $tq_gate = isset($tq_old['tq_gate']) ? (string) $tq_old['tq_gate'] : (string) $t
 $tq_gate = in_array($tq_gate, array('teacher', 'parent'), true) ? $tq_gate : 'student';
 
 /* TQ-OTP — أين يصل رمز تأكيد الحساب؟
-   السؤال يعرض للمعلم ولولي الأمر وحدهما، لأنهما وحدهما من يكتب بريدا
-   وجوالا معا. والطالب لا يسأل عن جواله أصلا فقناته البريد — وإن كان
-   دون الخامسة عشرة فالوجهة بريد ولي أمره، وذلك مكتوب تحت حقله.
+   السؤال يعرض للمعلم ولولي الأمر وحدهما. والطالب لا يسأل: جواله صار
+   حقلا مطلوبا وقناته واتساب افتراضا (والبريد احتياط الخادم)، والرمز
+   عنده لا يحجب شيئا — يدخل فورا ويؤكد من لافتة لوحته (TQ-INSTANT).
    والقرار كله في `Taqdar_otp_model::signup_route()`؛ وهذا عرضه.
    وإن لم يكن واتساب مضبوطا لا يظهر السؤال أصلا: خيار لا يعمل أسوأ من
    خيار لا يعرض. */
@@ -68,11 +68,19 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
       <?php endif; ?>
 
       <div class="gate-picker" id="signupGate" role="radiogroup" aria-label="نوع الحساب">
-        <?php foreach (array(
-          'student' => array('طالب',    'i-cap',     'أتعلم على المنصة'),
-          'teacher' => array('معلم',   'i-teacher', 'أدرس على المنصة'),
-          'parent'  => array('ولي أمر', 'i-users',   'أتابع أبنائي'),
-        ) as $tq_k => $tq_g): ?>
+        <?php
+        /* TQ-NO-TEACHER-CARD — بوابة المعلم لا تعرض للعملاء: العميل طالب
+           أو ولي أمر، والمعلمون ينضمون بدعوة أو برابط `?as=teacher` غير
+           معلن — فبطاقته تظهر فقط لمن وصل من ذلك الرابط، ليبقى لوحه
+           مضاء وسكربت البوابات سليما، ولوحه وفرعه في الخادم دون مساس. */
+        $tq_cards = array(
+          'student' => array('طالب',    'i-cap',   'أتعلم على المنصة'),
+          'parent'  => array('ولي أمر', 'i-users', 'أتابع أبنائي'),
+        );
+        if ($tq_gate === 'teacher') {
+            $tq_cards['teacher'] = array('معلم', 'i-teacher', 'أدرس على المنصة');
+        }
+        foreach ($tq_cards as $tq_k => $tq_g): ?>
           <button class="gate-card<?php echo $tq_gate === $tq_k ? ' is-on' : ''; ?>" type="button"
                   role="radio" aria-checked="<?php echo $tq_gate === $tq_k ? 'true' : 'false'; ?>"
                   data-gate="<?php echo $tq_k; ?>">
@@ -85,6 +93,13 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
       <form action="<?php echo site_url('login/register'); ?>" method="post"
             enctype="multipart/form-data" id="signup-form" data-tq-auth novalidate>
         <input type="hidden" name="tq_gate" id="tqGate" value="<?php echo html_escape($tq_gate); ?>">
+<?php /* TQ-AUTH-NEXT — الوجهة تعبر التسجيل كما تعبر الدخول: من جاء من
+         نافذة شراء بـ`?next=` يعود بعد الدخول الفوري إلى ما كان يشتريه.
+         والتصفية في `tqs_safe_next()` وحدها هنا وفي المتحكم. */
+      $tq_next_su = tqs_safe_next($this->input->get('next'));
+      if ($tq_next_su !== ''): ?>
+        <input type="hidden" name="tq_next" value="<?php echo html_escape($tq_next_su); ?>">
+<?php endif; ?>
 
         <?php /* ── اسمك ──────────────────────────────────────────────── */ ?>
         <div class="form-sect">
@@ -127,39 +142,23 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
             </label>
           </div>
 
-          <div class="form-grid">
-            <div class="form-cell">
-              <label class="form-field">
-                <svg aria-hidden="true"><use href="#i-lock"></use></svg>
-                <span class="sr-only">كلمة المرور</span>
-                <input type="password" name="password" id="signPw" placeholder="كلمة المرور" required
-                       minlength="8" autocomplete="new-password" aria-describedby="pwHint"
-                       data-msg="كلمة المرور ثمانية محارف على الأقل.">
-                <button class="pw-eye" type="button" data-tq-pw="signPw"
-                        aria-label="إظهار كلمة المرور" aria-pressed="false">
-                  <svg aria-hidden="true"><use href="#i-eye"></use></svg>
-                </button>
-              </label>
-              <?php /* التلميح تحت الحقل الذي يصفه لا تحت تأكيده: من يقرؤه
-                      بعد كتابة الكلمتين يقرؤه بعد فوات الأوان.
-                      وكان عنصرا مباشرا في `.form-grid` — أي خلية ثانية في
-                      شبكة عمودين، فيقف بجانب كلمة المرور ويدفع التأكيد إلى
-                      سطر وحده. وهو الآن داخل حقله فلا يزاحم أحدا. */ ?>
-              <p class="form-hint" id="pwHint">ثمانية محارف على الأقل.</p>
-            </div>
-            <div class="form-cell">
-              <label class="form-field">
-                <svg aria-hidden="true"><use href="#i-lock"></use></svg>
-                <span class="sr-only">تأكيد كلمة المرور</span>
-                <input type="password" name="password_confirm" id="signPw2" required
-                       placeholder="تأكيد كلمة المرور" minlength="8" autocomplete="new-password"
-                       data-match="signPw" data-msg="كلمتا المرور غير متطابقتين.">
-                <button class="pw-eye" type="button" data-tq-pw="signPw2"
-                        aria-label="إظهار كلمة المرور" aria-pressed="false">
-                  <svg aria-hidden="true"><use href="#i-eye"></use></svg>
-                </button>
-              </label>
-            </div>
+          <?php /* TQ-ONE-PASS — حقل واحد بعين إظهار، بلا حقل تأكيد:
+                  العين تغني عن الكتابة مرتين، وحقلان يفقدان مسجلين
+                  أكثر مما يمنعان أخطاء. والخطأ النادر بابه «نسيت
+                  كلمة المرور». */ ?>
+          <div class="form-cell">
+            <label class="form-field">
+              <svg aria-hidden="true"><use href="#i-lock"></use></svg>
+              <span class="sr-only">كلمة المرور</span>
+              <input type="password" name="password" id="signPw" placeholder="كلمة المرور" required
+                     minlength="8" autocomplete="new-password" aria-describedby="pwHint"
+                     data-msg="كلمة المرور ثمانية محارف على الأقل.">
+              <button class="pw-eye" type="button" data-tq-pw="signPw"
+                      aria-label="إظهار كلمة المرور" aria-pressed="false">
+                <svg aria-hidden="true"><use href="#i-eye"></use></svg>
+              </button>
+            </label>
+            <p class="form-hint" id="pwHint">ثمانية محارف على الأقل.</p>
           </div>
         </div>
 
@@ -198,35 +197,18 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
             </div>
           </div>
 
-          <?php /* TQ-LRS-NID — رقم الهوية: **اختياري**، ولا يخفى ولا يشترط.
-                   تطلبه وزارة التعليم لتعرف صاحب السجل في مستودعها،
-                   ومن تركه يسجل ويتعلم كما كان. */ ?>
+          <?php /* TQ-INSTANT — جوال الطالب صار حقله الثالث والأخير:
+                  عليه يصل رمز تأكيد الحساب عبر واتساب بعد الدخول، ولا
+                  يحجب الرمز شيئا. وحقلا الهوية وبريد ولي الأمر خرجا من
+                  النموذج كله — قرار تبسيط معلن (2026-09-08). */ ?>
           <div class="form-cell">
-            <label class="form-field">
-              <svg aria-hidden="true"><use href="#i-user"></use></svg>
-              <span class="sr-only">رقم الهوية أو الإقامة</span>
-              <input type="text" name="national_id" placeholder="رقم الهوية أو الإقامة (اختياري)"
-                     dir="ltr" inputmode="numeric" maxlength="10" pattern="[0-9]{10}"
-                     autocomplete="off" spellcheck="false"
-                     value="<?php echo $tq_v('national_id'); ?>">
-            </label>
-            <p class="form-hint">
-              عشرة أرقام — يرسل مع سجل تعلمك
-              إلى المركز الوطني للتعلم الإلكتروني، ولا يظهر لأحد في المنصة.
-            </p>
-          </div>
-
-          <div class="form-cell" id="tqGuardian" hidden>
-            <label class="form-field">
-              <svg aria-hidden="true"><use href="#i-mail"></use></svg>
-              <span class="sr-only">بريد ولي الأمر</span>
-              <input type="email" name="guardian_email" placeholder="بريد ولي الأمر"
-                     autocomplete="email" maxlength="190" autocapitalize="off" spellcheck="false"
-                     value="<?php echo $tq_v('guardian_email'); ?>">
-            </label>
-            <p class="form-hint">
-              دون الخامسة عشرة نطلب بريد ولي أمرك، ونرسل إليه طلب موافقة قبل تفعيل الحساب.
-            </p>
+            <?php echo tq_phone_field('student_phone', array(
+                'required' => true,
+                'value'    => $tq_v_raw('phone'),
+                'iso'      => $tq_v_raw('student_phone_cc'),
+                'id'       => 'tqPhoneStudent',
+                'hint'     => 'يصلك عليه رمز تأكيد الحساب عبر واتساب.',
+            )); ?>
           </div>
         </div>
 
@@ -395,30 +377,8 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
 (function () {
   var gate = document.getElementById('tqGate');
   var picker = document.getElementById('signupGate');
-  var age = document.getElementById('tqAge');
-  var guard = document.getElementById('tqGuardian');
   var loginLink = document.getElementById('signupLoginLink');
   if (!gate || !picker) return;
-
-  function guardianCheck() {
-    if (!guard) return;
-    var n = age ? parseInt(String(age.value).replace(/[^0-9]/g, ''), 10) : NaN;
-    var minor = gate.value === 'student' && !isNaN(n) && n > 0 && n < 15;
-    guard.hidden = !minor;
-    var g = guard.querySelector('input');
-    if (!g) return;
-    if (minor) {
-      g.setAttribute('required', '');
-    } else {
-      g.removeAttribute('required');
-      /* القيمة تمسح مع الحقل: بريد ولي أمر كتب ثم رفع العمر إلى ٢٠
-         كان يبقى في الطلب ويحفظ في الحساب — بيانات شخص ثالث بلا سبب. */
-      g.value = '';
-      g.removeAttribute('aria-invalid');
-      var box = g.closest('.form-field');
-      if (box) box.classList.remove('form-field--invalid');
-    }
-  }
 
   function apply(v) {
     gate.value = v;
@@ -447,7 +407,6 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
         m.classList.remove('form-field--invalid');
       });
     });
-    guardianCheck();
     if (loginLink) loginLink.href = loginLink.href.replace(/\?as=.*$/, '') + '?as=' + v;
   }
 
@@ -455,8 +414,6 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
     var b = e.target.closest('.gate-card');
     if (b) apply(b.dataset.gate);
   });
-
-  if (age) age.addEventListener('input', guardianCheck);
 
   /* حقل الملف: زر عربي واسم الملف المختار بدل «Choose File» */
   var doc = document.getElementById('tqDoc'), btn = document.getElementById('tqDocBtn'),

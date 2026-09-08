@@ -111,3 +111,18 @@ else                   $tq_greet = t('مساء الخير');
         </a>
     </div>
 </header>
+<?php
+/* TQ-INSTANT — لافتة تأكيد غير معطلة: الحساب فتح ودخل صاحبه فورا،
+   وبقي توثيق وسيلة التواصل ليصله كل شيء (رمز واتساب/بريد). لا تحجب
+   شيئا ولا تغلق بكوكي — تختفي بالتوثيق نفسه، و`otp_start` يبني جلسة
+   الرمز من صف الحساب ويحيل إلى شاشة التأكيد القائمة. */
+if ($tq_user
+    && in_array($tq_role, array('student', 'parent'), true)
+    && (int) $tq_user['status'] === 1
+    && array_key_exists('tq_verified_at', $tq_user)
+    && empty($tq_user['tq_verified_at'])): ?>
+<div class="tq-verify-note" role="status">
+    <span><?php echo t('حسابك يعمل — بقي تأكيد وسيلة التواصل ليصلك كل شيء.'); ?></span>
+    <a class="tq-btn tq-btn--ghost" href="<?php echo site_url('login/otp_start'); ?>"><?php echo t('أكد الآن'); ?></a>
+</div>
+<?php endif; ?>

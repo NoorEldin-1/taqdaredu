@@ -145,6 +145,39 @@ class Login extends CI_Controller
                 $this->session->set_flashdata('error_message',
                     'بريدك لم يؤكد بعد. اكتب الرمز المرسل إليك ليفتح حسابك.');
                 redirect(site_url('sign_up/verification_code'), 'refresh');
+            } elseif (empty($row->tq_verified_at)) {
+                /* TQ-RESCUE — بقية المسار القديم: سجل يوم كان الرمز شرط
+                   الفتح، وهجر صفحته، فحسابه `status=0` بلا تأكيد. كان
+                   يقرأ «موقوف» ولا يستطيع التسجيل ثانية (بريده محجوز) —
+                   بابان مغلقان. من أثبت كلمة مروره يفتح له باب التأكيد.
+                   ومن أكد يوما ثم أوقف (`tq_verified_at` مختوم) فإيقافه
+                   إداري حقيقي ويبقى. */
+                $this->load->model('taqdar_otp_model');
+                $tq_g = (string) $row->tq_gate !== '' ? (string) $row->tq_gate : 'student';
+                $tq_route = $this->taqdar_otp_model->signup_route(
+                    $tq_g, $row->email,
+                    (string) ($row->guardian_email ?? ''), (string) $row->phone);
+                if ($tq_route['default'] !== '') {
+                    $this->session->set_userdata('tq_otp', array(
+                        'identity' => $row->email,
+                        'user_id'  => (int) $row->id,
+                        'gate'     => $tq_g,
+                        'name'     => $row->first_name,
+                        'channels' => $tq_route['channels'],
+                        'why'      => $tq_route['why'],
+                    ));
+                    $this->session->set_userdata('register_email', $row->email);
+                    $this->taqdar_otp_model->send('signup', $row->email,
+                        $tq_route['default'],
+                        $tq_route['channels'][$tq_route['default']]['to'],
+                        (int) $row->id, $row->first_name);
+                    $this->session->set_flashdata('info_message',
+                        'حسابك لم يؤكد بعد. أرسلنا رمزا — اكتبه ليفتح وتدخل.');
+                    redirect(site_url('sign_up/verification_code'), 'refresh');
+                } else {
+                    $this->session->set_flashdata('error_message',
+                        'هذا الحساب موقوف. تواصل مع الإدارة.');
+                }
             } else {
                 $this->session->set_flashdata('error_message',
                     'هذا الحساب موقوف. تواصل مع الإدارة.');
@@ -353,7 +386,14 @@ class Login extends CI_Controller
 
         if ($this->crud_model->check_recaptcha() == false && (get_frontend_settings('recaptcha_status') == true || get_frontend_settings('recaptcha_status_v3') == true)) {
             $this->session->set_flashdata('error_message', 'تعذر التحقق من أنك لست آليا. أعد المحاولة.');
-            redirect(site_url('login'), 'refresh');
+            /* الرد إلى حيث كتب: صفحة الدفع لمن سجل منها، والتسجيل لسواه —
+               لا إلى `/login` حيث لا نموذج تسجيل أصلا. */
+            $tq_bcode = (string) $this->input->post('buy_code');
+            if (preg_match('/^[A-Za-z0-9\-_]+$/', $tq_bcode)) {
+                redirect(site_url('checkout/' . $tq_bcode), 'refresh');
+            } else {
+                redirect(site_url('sign_up'), 'refresh');
+            }
         }
 
         /* TQ-REGISTER-GUARD — التحقق في الخادم لا في المتصفح.
@@ -364,7 +404,9 @@ class Login extends CI_Controller
         $tq_last  = trim((string) $this->input->post('last_name'));
         $tq_email = trim((string) $this->input->post('email'));
         $tq_pass  = (string) $this->input->post('password');
-        $tq_conf  = (string) $this->input->post('password_confirm');
+        /* TQ-ONE-PASS — لا حقل تأكيد بعد اليوم: حقل واحد بعين إظهار،
+           والخطأ النادر تداويه «نسيت كلمة المرور». حقلان يفقدان مسجلين
+           أكثر مما يمنعان أخطاء. */
         /* البوابة قيمة مغلقة لا نص حر: تقبل من قائمة، وما سواها طالب.
            وكانت تمرر كما جاءت فتدخل عمود `tq_gate` وتقرر شروط التحقق.
            و«إدارة» ليست منها: لا تسجل من هذه الصفحة بحال. */
@@ -400,6 +442,7 @@ class Login extends CI_Controller
             'phone'          => $this->tq_gate_phone_raw($tq_gate),
             'teacher_phone_cc' => $this->tq_gate_iso('teacher'),
             'parent_phone_cc'  => $this->tq_gate_iso('parent'),
+            'student_phone_cc' => $this->tq_gate_iso('student'),
             'message'        => trim((string) $this->input->post('message')),
             /* قناة الرمز تعود كما اختيرت: من رفض طلبه لخطأ في حقل آخر
                لا يعيد اختيارها. */
@@ -422,20 +465,18 @@ class Login extends CI_Controller
             /* bcrypt يقص عند اثنتين وسبعين بايت بلا إشعار: كلمة أطول
                تحفظ مقصوصة، فيدخل صاحبها بأولها ويظن الباقي محسوبا. */
             $tq_err = 'كلمة المرور أطول من اللازم. اجعلها دون اثنتين وسبعين خانة.';
-        } elseif ($tq_pass !== $tq_conf) {
-            $tq_err = 'كلمتا المرور غير متطابقتين.';
         } elseif ((string) $this->input->post('accept_terms') !== '1') {
             $tq_err = 'لا بد من الموافقة على الشروط وسياسة الخصوصية.';
         } elseif ($tq_gate === 'student') {
-            /* TQ-AGE-REQUIRED — العمر محور التصنيف، وهو الذي يقرر هل
-               يطلب بريد ولي الأمر أصلا. وكان يفحص بـ`$tq_age > 0` فقط:
-               حقل فارغ يعطي صفرا فيمر الشرط كله، ويسجل قاصر بلا موافقة
-               ولي أمر لأنه ترك خانة العمر خالية. */
+            /* TQ-AGE-REQUIRED — العمر يفحص بمدى صريح: حقل فارغ يعطي
+               صفرا فلا يمر. والجوال صار شرط الطالب — عليه يصله رمز
+               التأكيد عبر واتساب (TQ-INSTANT أدناه). */
+            $tq_ph    = $this->tq_gate_phone_check('student');
+            $tq_phone = $tq_ph['ok'] ? $tq_ph['e164'] : '';
             if ($tq_age < 5 || $tq_age > 99) {
                 $tq_err = 'اكتب عمرا صحيحا بين 5 و99.';
-            } elseif ($tq_age < 15 && !filter_var($tq_guard, FILTER_VALIDATE_EMAIL)) {
-                /* دون الخامسة عشرة: بريد ولي الأمر شرط لا حقل اختياري. */
-                $tq_err = 'دون الخامسة عشرة نحتاج بريد ولي أمرك.';
+            } elseif (!$tq_ph['ok']) {
+                $tq_err = $tq_ph['error'];
             } elseif ($tq_grade > 0
                       && $this->db->where(array('id' => $tq_grade, 'active' => 1))
                                   ->count_all_results('grades') === 0) {
@@ -490,17 +531,25 @@ class Login extends CI_Controller
         if ($tq_err !== '') {
             $this->session->set_flashdata('error_message', $tq_err);
             $this->session->set_flashdata('tq_old', $tq_old);
-            redirect(site_url('sign_up') . ($tq_gate !== 'student' ? '?as=' . $tq_gate : ''),
-                     'location', 302);
+            /* TQ-BUY-BOUNCE — من سجل من صفحة الدفع يرد إليها لا إلى
+               `/sign_up`: خطؤه يقرأ حيث كتبه، وباقته ودورته معه. */
+            $tq_bcode = (string) $this->input->post('buy_code');
+            $tq_bcyc  = (string) $this->input->post('buy_cycle');
+            if ($tq_gate === 'student' && preg_match('/^[A-Za-z0-9\-_]+$/', $tq_bcode)) {
+                redirect(site_url('checkout/' . $tq_bcode)
+                    . ($tq_bcyc !== '' ? '?cycle=' . rawurlencode($tq_bcyc) : ''),
+                    'location', 302);
+            } else {
+                redirect(site_url('sign_up') . ($tq_gate !== 'student' ? '?as=' . $tq_gate : ''),
+                         'location', 302);
+            }
             return;
         }
 
-        /* الخامسة عشرة فما فوق: بريد ولي الأمر يطرح ولا يحفظ. الحقل
-           يخفى في الواجهة ولا يمسح، فقيمة كتبت ثم رفع العمر كانت تصل
-           وتخزن — بيانات شخص ثالث بلا سبب ولا موافقة. */
-        if ($tq_gate !== 'student' || $tq_age >= 15) {
-            $tq_guard = '';
-        }
+        /* بريد ولي الأمر خرج من نموذج التسجيل كله (TQ-INSTANT): لا يجمع
+           ولا يحفظ ولا يرسل إليه — قرار تبسيط معلن. وقيمة تصل من نموذج
+           قديم أو تطبيق تطرح هنا فلا تخزن بيانات شخص ثالث. */
+        $tq_guard = '';
 
         /* رقم ناقص يمر صامتا يصل الجهة فيرفض هناك بعد شهر ولا يعرف
            صاحبه. فالفحص هنا، وصيغته صيغة الهوية السعودية: عشرة أرقام
@@ -559,8 +608,12 @@ class Login extends CI_Controller
 
         $tq_otp_on = $this->taqdar_otp_model->signup_required() && $tq_chan !== '';
 
+        /* TQ-INSTANT — الطالب وولي الأمر يفتح حسابهما لحظة الإنشاء
+           ويدخلان فورا؛ والرمز يرسل ويلحق **ولا يحجب** (يوثق الرقم من
+           لافتة اللوحة متى شاء). المعلم وحده يبقى موقوفا: تأكيده بوابة
+           اعتماد لا بوابة دخول. */
         if ($tq_otp_on) {
-            $data['status'] = 0;
+            $data['status'] = ($tq_gate === 'teacher') ? 0 : 1;
         } else {
             $data['status'] = 1;
             if ($this->taqdar_otp_model->signup_required()) {
@@ -647,16 +700,16 @@ class Login extends CI_Controller
                وإخطار ولي أمره لا يتوقف عليه. */
             $this->tq_tell_guardian($tq_guard, $tq_first . ' ' . $tq_last, $tq_email, $tq_age);
 
-            if ($tq_otp_on) {
-                /* المعرف بعد الإنشاء لا قبله، ومن الفرعين معا: مسار
-                   «حساب غير مؤكد قائم» لا يرد معرفا، فبلا هذا السطر يصدر
-                   الرمز بمعرف صفر ولا يعرف من يفتح عند التأكيد. */
-                if (empty($user_id)) {
-                    $tq_u = $this->db->select('id')->where('email', $data['email'])
-                                     ->get('users')->row_array();
-                    $user_id = $tq_u ? (int) $tq_u['id'] : 0;
-                }
+            /* المعرف بعد الإنشاء لا قبله، ومن الفرعين معا: مسار
+               «حساب غير مؤكد قائم» لا يرد معرفا، فبلا هذا يصدر الرمز
+               بمعرف صفر ولا يعرف من يفتح — والدخول الفوري يحتاجه أيضا. */
+            if (empty($user_id)) {
+                $tq_u = $this->db->select('id')->where('email', $data['email'])
+                                 ->get('users')->row_array();
+                $user_id = $tq_u ? (int) $tq_u['id'] : 0;
+            }
 
+            if ($tq_otp_on) {
                 $tq_sent = $this->taqdar_otp_model->send(
                     'signup', $tq_email, $tq_chan,
                     $tq_route['channels'][$tq_chan]['to'],
@@ -676,42 +729,113 @@ class Login extends CI_Controller
                 ));
                 /* المفتاح الموروث يبقى: شاشات Academy تقرؤه. */
                 $this->session->set_userdata('register_email', $tq_email);
-
-                if (empty($tq_sent['ok'])) {
-                    /* الحساب يبقى موقوفا ولا يفتح: الفشل هنا عابر غالبا
-                       (قناة مضبوطة ردت خطأ)، وشاشة التأكيد فيها «أعد
-                       الإرسال» و«بدل القناة». وفتح الحساب على فشل عابر
-                       يبطل التأكيد كله. */
-                    $this->session->set_flashdata('error_message', $tq_sent['error']);
-                } elseif ($validity === 'unverified_user') {
-                    $this->session->set_flashdata('info_message',
-                        'لهذا البريد حساب لم يؤكد بعد. أرسلنا رمزا جديدا — اكتبه ليفتح.');
-                } else {
-                    $this->session->set_flashdata('flash_message',
-                        'أنشئ حسابك. اكتب الرمز الذي وصلك ليفتح.');
-                }
-
-                redirect(site_url('sign_up/verification_code'), 'location', 302);
-            } else {
-                if(isset($user_id)){
-                    $this->email_model->signup_mail($user_id);
-                }
-                /* TQ-GATE-MSG — المعلم يخرج من هنا بحساب `status=0`، وشاشة
-                   الدخول ترد كل موقوف بـ«بيانات دخول غير صحيحة». فمن سجل
-                   معلما ثم حاول الدخول يقرأ أن كلمة مروره خاطئة، ويعيد
-                   التسجيل. الرسالة تقول له الحقيقة قبل أن يحاول. */
-                if ($tq_gate === 'teacher') {
-                    $tq_done = 'استلمنا طلبك للانضمام معلما. تراجعه الإدارة ونتواصل معك، ولن يفتح الدخول قبل الاعتماد.';
-                } elseif ($tq_gate === 'parent') {
-                    $tq_done = 'أنشئ حسابك. سجل الدخول ثم اربط أبناءك من لوحتك.';
-                } else {
-                    $tq_done = 'أنشئ حسابك بنجاح. سجل الدخول للمتابعة.';
-                }
-                $this->session->set_flashdata('flash_message', $tq_done);
-                redirect(site_url('login'), 'refresh');
             }
+
+            if ($tq_gate === 'teacher') {
+                /* المعلم على مساره القديم حرفا بحرف: الرمز بوابة طلبه،
+                   وحسابه لا يفتح قبل الاعتماد بحال. */
+                if ($tq_otp_on) {
+                    if (empty($tq_sent['ok'])) {
+                        $this->session->set_flashdata('error_message', $tq_sent['error']);
+                    } elseif ($validity === 'unverified_user') {
+                        $this->session->set_flashdata('info_message',
+                            'لهذا البريد حساب لم يؤكد بعد. أرسلنا رمزا جديدا — اكتبه ليفتح.');
+                    } else {
+                        $this->session->set_flashdata('flash_message',
+                            'أنشئ حسابك. اكتب الرمز الذي وصلك ليفتح.');
+                    }
+                    redirect(site_url('sign_up/verification_code'), 'location', 302);
+                } else {
+                    if ($user_id > 0) { $this->email_model->signup_mail($user_id); }
+                    $this->session->set_flashdata('flash_message',
+                        'استلمنا طلبك للانضمام معلما. تراجعه الإدارة ونتواصل معك، ولن يفتح الدخول قبل الاعتماد.');
+                    redirect(site_url('login'), 'refresh');
+                }
+                return;
+            }
+
+            /* ── TQ-INSTANT: طالب / ولي أمر — الحساب فتح (`status=1`)
+               ويدخل صاحبه الآن. الرمز أرسل أعلاه ولا يحجب شيئا: فشله
+               يسجل ولا يوقف، ولافتة اللوحة وشاشة التأكيد فيهما «أعد
+               الإرسال» و«بدل القناة». ── */
+            if ($tq_otp_on && empty($tq_sent['ok'])) {
+                log_message('info', 'TQ-OTP: تعذر إرسال رمز التسجيل ('
+                    . $tq_gate . ') — ' . (string) $tq_sent['error']);
+            }
+            if ($user_id > 0) { $this->email_model->signup_mail($user_id); }
+
+            /* الدخول الفوري — مرآة كتلة `otp_verify()` أدناه: المفاتيح
+               نفسها بالترتيب نفسه، و`true` = جهاز موثوق فلا تحويل إلى
+               تأكيد جهاز في منتصف التسجيل. */
+            $this->user_model->new_device_login_tracker((int) $user_id, true);
+            $this->session->set_userdata('custom_session_limit', (time() + 864000));
+            $this->session->set_userdata('user_id', (int) $user_id);
+            $this->session->set_userdata('role_id', 2);
+            $this->session->set_userdata('role', get_user_role('user_role', $user_id));
+            $this->session->set_userdata('name', $tq_first . ' ' . $tq_last);
+            $this->session->set_userdata('is_instructor', 0);
+            $this->session->set_userdata('user_login', '1');
+
+            /* TQ-AUTOPAY — سجل من صفحة الدفع نفسها وضغط «ادفع الآن»:
+               النية تودع في الجلسة (لا في الرابط) ويستهلكها
+               `Taqdar::checkout()` مرة واحدة فيمضي إلى الفاتورة والدفع
+               بلا نقرة ثانية. */
+            $tq_buy   = (int) $this->input->post('buy_plan_id');
+            $tq_bcode = (string) $this->input->post('buy_code');
+            $tq_bcyc  = (string) $this->input->post('buy_cycle');
+            if ($tq_gate === 'student' && $tq_buy > 0
+                && preg_match('/^[A-Za-z0-9\-_]+$/', $tq_bcode)) {
+                $this->session->set_userdata('tq_autopay', array(
+                    'plan_id' => $tq_buy,
+                    'cycle'   => $tq_bcyc,
+                    'method'  => ((string) $this->input->post('pay_method') === 'bank')
+                               ? 'bank' : 'tap',
+                    'ts'      => time(),
+                ));
+                $this->session->set_flashdata('flash_message',
+                    'أنشئ حسابك ودخلت — نكمل الدفع الآن.');
+                redirect(site_url('checkout/' . $tq_bcode)
+                    . ($tq_bcyc !== '' ? '?cycle=' . rawurlencode($tq_bcyc) : ''),
+                    'location', 302);
+                return;
+            }
+
+            /* الوجهة: ما جاء من أجله (`tq_next` ثم `url_history`)، وإلا
+               فالباقات للطالب — أول قرار بعد التسجيل هو اختيار باقته —
+               ولوحة ولي الأمر لولي الأمر. */
+            $tq_go = tqs_safe_next((string) $this->session->userdata('tq_next'));
+            $this->session->unset_userdata('tq_next');
+            if ($tq_go !== '') {
+                $tq_go = base_url($tq_go);
+            } elseif ($this->session->userdata('url_history')) {
+                $tq_go = $this->session->userdata('url_history');
+                $this->session->unset_userdata('url_history');
+            } else {
+                $tq_go = ($tq_gate === 'parent') ? site_url('parent') : site_url('plans');
+            }
+            $this->session->set_flashdata('flash_message', $tq_gate === 'parent'
+                ? 'أنشئ حسابك ودخلت. اربط أبناءك من لوحتك.'
+                : 'أنشئ حسابك ودخلت.');
+            redirect($tq_go, 'location', 302);
         } else {
-            $this->session->set_flashdata('error_message', 'لهذا البريد حساب بالفعل. سجل الدخول، أو استعد كلمة المرور إن نسيتها.');
+            /* TQ-DUP-DOOR — البريد له حساب: الباب الصحيح يفتح لا رسالة
+               طريق مسدود. البريد يعبأ في شاشة الدخول (`tq_old_email`)،
+               ونية الشراء تودع فيكملها الدخول من حيث توقفت. */
+            $this->session->set_flashdata('tq_old_email', $tq_email);
+            $this->session->set_flashdata('error_message',
+                'هذا البريد مسجل بالفعل — أدخل كلمة المرور لتدخل، أو استعدها إن نسيتها.');
+            $tq_buy   = (int) $this->input->post('buy_plan_id');
+            $tq_bcode = (string) $this->input->post('buy_code');
+            if ($tq_gate === 'student' && $tq_buy > 0
+                && preg_match('/^[A-Za-z0-9\-_]+$/', $tq_bcode)) {
+                $this->session->set_userdata('tq_autopay', array(
+                    'plan_id' => $tq_buy,
+                    'cycle'   => (string) $this->input->post('buy_cycle'),
+                    'method'  => ((string) $this->input->post('pay_method') === 'bank')
+                               ? 'bank' : 'tap',
+                    'ts'      => time(),
+                ));
+            }
             redirect(site_url('login'), 'refresh');
         }
     }
@@ -874,6 +998,50 @@ class Login extends CI_Controller
             return;
         }
         $this->tq_otp_dispatch((string) $this->input->post('channel'));
+    }
+
+    /**
+     * GET login/otp_start — بوابة لافتة «أكد الآن» في اللوحة.
+     *
+     * التسجيل صار يدخل صاحبه فورا والرمز يلحق (TQ-INSTANT)، فمن أجل
+     * التأكيد المتأخر تبنى جلسة `tq_otp` من صف المستخدم نفسه — لا من
+     * الطلب — ويرسل رمز ويحال إلى شاشة التأكيد القائمة. لا تسرب فيها:
+     * صاحب الجلسة وحده يصل، وصف حسابه هو مصدر كل وجهة، وخانق
+     * `Taqdar_otp_model` (فجوة الستين ثانية وسقف الساعة) يصد تكرار
+     * الضغط على اللافتة.
+     */
+    public function otp_start()
+    {
+        $uid = (int) $this->session->userdata('user_id');
+        if ($uid <= 0 || (string) $this->session->userdata('user_login') !== '1') {
+            redirect(site_url('login'));
+            return;
+        }
+        $u = $this->db->get_where('users', array('id' => $uid))->row_array();
+        if (!$u || !empty($u['tq_verified_at'])) {
+            redirect(tq_home_for(tq_role($uid)));
+            return;
+        }
+        $this->load->model('taqdar_otp_model');
+        $tq_g = (string) $u['tq_gate'] !== '' ? (string) $u['tq_gate'] : 'student';
+        $route = $this->taqdar_otp_model->signup_route($tq_g, $u['email'],
+            (string) ($u['guardian_email'] ?? ''), (string) $u['phone']);
+        if ($route['default'] === '') {
+            redirect(tq_home_for(tq_role($uid)));
+            return;
+        }
+        $this->session->set_userdata('tq_otp', array(
+            'identity' => $u['email'],
+            'user_id'  => $uid,
+            'gate'     => $tq_g,
+            'name'     => $u['first_name'],
+            'channels' => $route['channels'],
+            'why'      => $route['why'],
+        ));
+        $this->session->set_userdata('register_email', $u['email']);
+        $this->taqdar_otp_model->send('signup', $u['email'], $route['default'],
+            $route['channels'][$route['default']]['to'], $uid, $u['first_name']);
+        redirect(site_url('sign_up/verification_code'));
     }
 
     /**

@@ -809,10 +809,27 @@ class Taqdar extends CI_Controller
         $this->require_role('student');
         if ($this->input->method(true) !== 'POST') show_404();
 
-        $uid = (int) $this->session->userdata('user_id');
+        $this->tq_subscribe_go(
+            (int) $this->session->userdata('user_id'),
+            (int) $this->input->post('plan_id'),
+            (string) $this->input->post('pay_method'),
+            (string) $this->input->post('cycle')
+        );
+    }
 
+    /**
+     * جوهر الاشتراك — يخدم بابين: زر التأكيد للداخل (`subscribe()` أعلاه)
+     * ونية الشراء المودعة في الجلسة لمن سجل من صفحة الدفع نفسها
+     * (`tq_autopay` — تكتبها `Login::register()` وتستهلكها `checkout()`).
+     *
+     * @param string $fail_to أين يقع عند رفض المحرك — الافتراضي صفحة
+     *                        الباقات، ومن جاء من صفحة الدفع يعود إليها
+     *                        فيقرأ الرسالة حيث كان لا في صفحة أخرى.
+     */
+    private function tq_subscribe_go($uid, $plan_id, $pay_method, $cycle, $fail_to = '')
+    {
         $this->load->model('taqdar_tap_model');
-        $by_card = ((string) $this->input->post('pay_method') === 'tap')
+        $by_card = ((string) $pay_method === 'tap')
                 && $this->taqdar_tap_model->ready();
 
         /* TQ-CYCLE-BUY — الدورة تمرر ولا تفسر هنا: `cycle_of()` تحرسها،
@@ -821,14 +838,14 @@ class Taqdar extends CI_Controller
         $this->load->model('taqdar_billing_model');
         $r = $this->taqdar_billing_model->subscribe(
             $uid,
-            (int) $this->input->post('plan_id'),
+            (int) $plan_id,
             $by_card ? 'tap' : 'manual',
-            (string) $this->input->post('cycle')
+            (string) $cycle
         );
 
         if (!$r['ok']) {
             $this->session->set_flashdata('error_message', implode(' ', $r['errors']));
-            redirect(base_url('plans'));
+            redirect($fail_to !== '' ? $fail_to : base_url('plans'));
             return;
         }
 
@@ -3564,6 +3581,27 @@ class Taqdar extends CI_Controller
                 'قبل الاشتراك: اختبار قصير يحدد موضعك فنرشح لك الباقة المناسبة. لا رسوب فيه.');
             redirect(base_url('student/placement'), 'location', 302);
             return;
+        }
+
+        /* TQ-AUTOPAY — نية شراء أودعتها `Login::register()` لضيف سجل من
+           هذه الصفحة نفسها وضغط «ادفع الآن». تستهلك مرة واحدة قبل أي
+           عرض (فلا حلقة لو رفض المحرك)، وبعد حارسي الدور والاختبار
+           التشخيصي عمدا: الحارس أولى من النية. ربع ساعة عمر النية —
+           من طال غيابه يقرأ الشاشة ويضغط الزر بنفسه. */
+        $tq_auto = $this->session->userdata('tq_autopay');
+        if (is_array($tq_auto)) {
+            $this->session->unset_userdata('tq_autopay');
+            if ((int) ($tq_auto['plan_id'] ?? 0) === (int) $b['plan_id']
+                && time() - (int) ($tq_auto['ts'] ?? 0) < 900) {
+                $this->tq_subscribe_go(
+                    $uid,
+                    (int) $tq_auto['plan_id'],
+                    (string) ($tq_auto['method'] ?? ''),
+                    (string) ($tq_auto['cycle'] ?? ''),
+                    site_url('checkout/' . $b['code'])
+                );
+                return;
+            }
         }
 
         $this->load->model('taqdar_billing_model');

@@ -2252,6 +2252,10 @@ a.gate-card:hover{ text-decoration:none }
 }
 .hero__vtoggle svg{inline-size:17px;block-size:17px}
 .hero__vtoggle:hover{background:rgba(1,33,31,.78)}
+/* يختفي على الجوّال: دائرة تطفو فوق أول سطر يقرؤه الزائر في شاشة
+   ضيّقة. ولا يترك ذلك من يكره الحركة بلا مخرج — `site.js` يوقف
+   الفيديو أصلا تحت `prefers-reduced-motion` (سطر 12) قبل أن يبدأ. */
+@media (max-width:720px){ .hero__vtoggle{display:none} }
 
 /* بطاقات الرأي: القاع يحاذى — كانت النجوم تقع عند ٧٣٣ و٧٣٦ و٧٦١ */
 .quote-card{display:flex;flex-direction:column}
@@ -2938,52 +2942,54 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
   align-items:stretch;
 }
 
-/* ── اللوحة الجانبية: نافذة صورة فوق لوح نص ──────────────────────
-   الصورة لا تحمل الطول كله. كانت تملأ اللوحة وتقص بـ`cover`، فطول
-   النموذج هو الذي يقرر نسبتها: ألف بكسل في التسجيل معلما تعني شريطا
-   ١:٢. وهنا يأخذ **اللوح** الفائض والصورة تبقى نافذة معقولة. */
+/* ── اللوحة الجانبية: صورة تملأها والنص فوقها ─────────────────────
+   الصورة تمتد إلى القاع. وكانت نافذة بنسبة ثابتة (46fr/54fr) فوق لوح
+   نص، وذلك يترك في التسجيل — نموذجه ألف ومئة وتسعة وستون بكسلا —
+   ستمئة وواحدا وثلاثين بكسلا لوحا أخضر فارغا تحت ثلاثة أسطر.
+
+   وسبب النسخة السابقة أن `cover` كان يقص الصورة شريطا حين يطول
+   النموذج. والعلاج هنا ليس تقييد الصورة بل **تثبيت موضعها**:
+   `object-position` أعلى الإطار، فالمشهد (المصباح والمشربية) يبقى
+   في الكادر مهما طالت اللوحة، والقص يقع في الفراغ أسفله.
+
+   والنص يقرأ فوقها بحجاب متدرج لا بلوح صلب — `::before` على الجسم. */
 .auth-aside{
   position:relative;
-  display:grid;
-  /* نسبة ثابتة بين النافذة واللوح لا «ما تبقى»: بترك الفائض للصورة
-     تتبع نسبتها طول النموذج فتتأرجح بين شريط عرضي (٣.٢ في الاستعادة)
-     وشريحة طولية (٠.٤٩ في تسجيل المعلم). وبالكسور تبقى النسبة في
-     حدود معقولة مهما طال النموذج أو قصر.
-     و`minmax(170px, …)` قاع للصورة، و`54fr` بحدها الأدنى التلقائي
-     يمنع النص أن يفيض حين تضيق اللوحة. */
-  grid-template-rows:minmax(170px,46fr) 54fr;
+  display:flex;flex-direction:column;justify-content:flex-end;
   inline-size:100%;
-  /* وقاع للوحة كلها: صفحة الاستعادة نموذجها ‎449px‎، فبلا حد أدنى يصير
-     نصيب اللوح أكبر من نصيب الصورة وتنقلب اللوحة نصا على شريط.
-     والبطاقة تمتد معها لأنهما في صف واحد — ومحتواها يتوسط. */
   min-block-size:clamp(500px,42vw,640px);
   border-radius:var(--r-card);
   overflow:hidden;
   background:var(--petrol-deep);
   box-shadow:var(--sh-card);
 }
-.auth-aside__photo{ position:relative;overflow:hidden;min-block-size:150px }
+
+/* الصورة طبقة خلفية تملأ اللوحة كلها. */
+.auth-aside__photo{position:absolute;inset:0;z-index:0;overflow:hidden}
 .auth-aside__photo img{
   position:absolute;inset:0;inline-size:100%;block-size:100%;
-  object-fit:cover;object-position:50% 34%;
-  opacity:1                                /* كانت ‎.5‎ فوق البترولي — طين لا صورة */
+  object-fit:cover;object-position:50% 22%;
+  opacity:1
 }
-/* الصورة تذوب في اللوح فلا يقطعهما خط: حد صريح بين نصفين يجعلهما
-   لوحتين ملصقتين لا لوحة واحدة. */
+/* حجاب من القاع: يضمن قراءة النص مهما كان ما تحته في الصورة.
+   ويبدأ شفافا من الأعلى فلا يقطع المشهد خط. */
 .auth-aside__photo::after{
-  content:'';position:absolute;inset-inline:0;inset-block-end:-1px;
-  block-size:42%;pointer-events:none;
-  background:linear-gradient(180deg,rgba(1,33,31,0),rgba(1,33,31,.55) 52%,var(--petrol-deep));
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,
+    rgba(1,33,31,.10) 0%,
+    rgba(1,33,31,.42) 38%,
+    rgba(1,33,31,.86) 68%,
+    rgba(1,33,31,.96) 100%);
 }
+
 .auth-aside__body{
   position:relative;z-index:1;
-  display:flex;flex-direction:column;justify-content:center;
+  display:flex;flex-direction:column;
   gap:clamp(12px,1.4vw,18px);
   padding:clamp(20px,2.4vw,32px);
-  background:var(--petrol-deep);
+  background:transparent;
 }
-/* الحروفيات تملأ اللوح الطويل: نموذج المعلم يطول فيبقى تحت النقاط
-   فراغ أخضر. والقناع يلون من التوكن — الصورة سوداء لا تلون. */
+/* الحروفيات على النص وحده لا على الصورة: فوقها تتحول إلى ضوضاء. */
 .auth-aside__body::before{
   content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
   background-color:var(--gold-warm);
@@ -2992,7 +2998,7 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
   -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
   -webkit-mask-size:auto 118%;mask-size:auto 118%;
   -webkit-mask-position:center;mask-position:center;
-  opacity:.09;
+  opacity:.06;
 }
 /* خيط ذهبي داخلي: يربط اللوحة بلغة البطاقات في بقية الموقع */
 .auth-aside::after{
@@ -3002,6 +3008,7 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 }
 .auth-aside h2{
   color:#fff;font-size:clamp(18px,1.5vw,23px);line-height:1.5;margin:0;
+  text-shadow:0 2px 14px rgba(1,33,31,.6);
 }
 .auth-points{display:grid;gap:clamp(11px,1.2vw,15px)}
 .auth-points li{align-items:flex-start;font-size:max(13px,.9rem);line-height:1.7}
@@ -4665,3 +4672,97 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
   .teacher-card:hover{transform:none}
   .teacher-card:hover .teacher-card__media img{transform:none}
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-NELC — شارة الاعتماد على بنر الهيرو
+
+   صفّ فوق «منصة تعليمية سعودية»: رقعة بيضاء فيها الشعار، ونصّ ذهبيّ
+   إلى جانبها.
+
+   والرقعة ضرورة لا زينة: ملفّ الشعار بخلفية بيضاء صلبة، فعلى المشهد
+   الداكن يظهر مستطيلا أبيض بلا سبب. والرقعة تجعله حدّا مقصودا.
+
+   ولا `background` على النصّ: الهيرو بطاقته الداكنة تفصله عن الفيديو
+   سلفا (`.hero__copy`)، فطبقة ثانية تثقل.
+   ══════════════════════════════════════════════════════════════════ */
+
+.hero__accred{
+  display:flex;align-items:center;gap:10px;
+  margin:0 0 clamp(12px,1.4vw,18px);
+  flex-wrap:wrap;
+}
+
+/* `place-items:center` مع `place-self:stretch` على الصورة — المزلق
+   المقيس في `unislide`: صورة في خلية `center` لا تمتدّ، فارتفاعها
+   النسبيّ يعود إلى `auto` فتفيض رقعتها. */
+.hero__accred-mark{
+  flex:0 0 auto;display:grid;place-items:center;
+  inline-size:clamp(104px,9vw,132px);
+  block-size:clamp(38px,3.3vw,48px);
+  padding:5px 9px;
+  background:#fff;border-radius:10px;
+  box-shadow:0 4px 14px -6px rgba(1,33,31,.55);
+}
+.hero__accred-mark img{
+  place-self:stretch;
+  inline-size:auto;block-size:auto;
+  max-inline-size:100%;max-block-size:100%;
+  min-inline-size:0;min-block-size:0;
+  object-fit:contain;
+}
+
+/* `--gold-on-dark` (5.11:1 على الداكن) لا `--gold` — والأخير يسقط. */
+.hero__accred-txt{
+  color:var(--gold-on-dark);
+  font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(11.5px,.95vw,13.5px);line-height:1.5;
+  letter-spacing:.2px;
+}
+
+@media (max-width:520px){
+  /* السطر الطويل يلتفّ تحت الرقعة فيكسر الصفّ — فيقصر بدل أن يلتفّ. */
+  .hero__accred{gap:8px}
+  .hero__accred-txt{font-size:11.5px}
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TQ-FUNNEL (2026-09-08) — ملحق مسار «ادفع الآن» بضغطة واحدة.
+   إلحاق في آخر الملف عمدا: يكسب تعادل الأسبقية ولا يمس قاعدة قائمة.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* رسائل صفحة الدفع: الرفض يرتد إليها فيقرأ سببه حيث وقف (TQ-CO-FLASH). */
+.co-flash{margin-block:14px 0}
+.co-flash .tq-flash{margin-block:0 10px}
+
+/* البطاقة اللاصقة تكبر (فاتورة + طرق دفع + زر): تسقف بالمنفذ وتلف
+   داخلها، وإلا اختفى زر «ادفع الآن» تحت حافة الشاشات القصيرة. */
+.co-side .icard--sticky{max-block-size:calc(100dvh - 24px);overflow:auto;
+  overscroll-behavior:contain}
+
+/* سطر الباقة في الفاتورة الجانبية. */
+.co-side__plan{margin:0 0 6px;font-weight:800;color:var(--ink-1)}
+
+/* حقل الجوال داخل بطاقة الحساب: وسمه من `tq_phone_field()` بعرف
+   `.form-field`، وحقول `.co-acct` بعرف label/span — فيصالح هنا. */
+.co-acct__phone{display:block;margin-block-end:12px}
+.co-acct__phone .co-acct__lbl{display:block;margin-block-end:6px;
+  font-size:.92em;color:var(--ink-2)}
+.co-acct__phone .co-acct__lbl i{font-style:normal;opacity:.75}
+.co-acct .form-phone{margin:0}
+.co-acct .form-phone .form-phone__num{min-inline-size:0}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TQ-CLEAN-AUTH (2026-09-08) — شاشتا التسجيل والدخول بلا خطوط زخرفية:
+   النموذج قصر (ستة حقول) فصارت الفواصل الذهبية أكثر من محتواها.
+   إلحاق يكسب تعادل الأسبقية — لا مساس بأي قاعدة قائمة ولا بالخادم.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* الخط الممتد بعد عنوان القسم («اسمك — بيانات الدخول — بيانات الطالب») */
+.form-card .form-sect__t::after{display:none}
+
+/* الخط الفاصل بين الأقسام — تبقى المسافة ويذهب الخط */
+.form-card .form-sect + .form-sect{border-block-start:0;
+  padding-block-start:0;margin-block-start:clamp(14px,1.6vw,20px)}
+
+/* وعناوين الأقسام تهدأ معها: تصير تسمية صغيرة لا سطرا مؤطرا */
+.form-card .form-sect__t{font-size:max(12.5px,.85rem);color:var(--ink-2)}

@@ -28,6 +28,15 @@ class Taqdar_cron_course extends CI_Controller
     {
         return array(
             array(
+                'title'      => 'الرياضيات — الثالث المتوسط',
+                'subject_id' => 9,   'subject' => 'الرياضيات',
+                'grade_id'   => 19,  'grade'   => 'الثالث المتوسط',
+                'category'   => self::CAT_MIDDLE,
+                'teacher_id' => 328, 'teacher' => 'عماد الكومي',
+                'section'    => 'الوحدة الأولى',
+                'short'      => 'منهج الرياضيات للصف الثالث المتوسط مشروحًا درسًا درسًا.',
+            ),
+            array(
                 'title'      => 'الرياضيات — الأول المتوسط',
                 'subject_id' => 9,   'subject' => 'الرياضيات',
                 'grade_id'   => 17,  'grade'   => 'الأول المتوسط',

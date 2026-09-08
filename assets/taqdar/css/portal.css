@@ -773,3 +773,12 @@ body.tq-body--portal .tq-tab[aria-current='page'] .tq-tab__n {
   background: var(--tq-tealSoft);
   color: var(--tq-navy);
 }
+
+/* TQ-INSTANT (2026-09-08) — لافتة توثيق غير معطلة تحت ترويسة البوابة:
+   الحساب يعمل، وبقي تأكيد وسيلة التواصل. تختفي بالتوثيق لا بكوكي. */
+.tq-verify-note{display:flex;align-items:center;justify-content:center;
+  gap:12px;flex-wrap:wrap;padding:10px 16px;margin:0;
+  background:var(--tq-goldWash,#fdf6e3);
+  border-block-end:1px solid var(--tq-line,#e5e0d5);
+  color:var(--tq-navy,#123f67);font-size:.95em}
+.tq-verify-note .tq-btn{white-space:nowrap}
