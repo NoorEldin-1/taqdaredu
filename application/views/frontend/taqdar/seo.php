@@ -148,6 +148,9 @@
            معه. فلا نموذج ينادى ولا متحكم يمس. */
         $u_page = isset($page_name) ? (string) $page_name : '';
 
+        $CI_ix_r0 =& get_instance();
+        $CI_ix_r  = (string) $CI_ix_r0->uri->segment(1);
+
         /* ── المسار: العنوان يحمل صفه، والوصف وصف المادة ── */
         if ($u_page === 'site_path' && !empty($tq_path) && is_array($tq_path)) {
 
@@ -237,6 +240,46 @@
                            . (count($u_subj) > 5 ? t(' وغيرها') : '') : '')
                 . t('. تصفح مجانا بلا تسجيل.');
             $og_description = $meta_description;
+        }
+
+        /* ── فهارس الأقسام: الوصف يعدّ ما فيها ──
+
+           `/books` و`/summaries` و`/teachers` و`/catalog` كانت تحمل جملة
+           المنصّة نفسها — أربع صفحات هي أعلى ما في الموقع قيمةً بعد
+           الرئيسية، ونتيجة البحث لا تقول عن أيٍّ منها ماذا فيها.
+
+           والأعداد تُقرأ لا تُكتب: `COUNT` واحد على عمود مفهرس، وعلى
+           هذه المسارات وحدها. فرقمٌ في الوصف يكذب بعد شهرٍ أسوأ من
+           رقمٍ لا يُذكر. */
+        $ix_route = trim((string) $CI_ix_r, '/');
+        if (in_array($ix_route, array('books', 'summaries', 'teachers'), true)
+            || $u_page === 'site_catalog') {
+            $CI_ix =& get_instance();
+            $ix_d  = '';
+            if ($ix_route === 'books') {
+                $n = (int) $CI_ix->db->where('status', 'published')
+                          ->where("(slug NOT LIKE 'sum-%')", null, false)
+                          ->count_all_results('books');
+                $ix_d = t('____ كتابا من المنهج السعودي المعتمد للمرحلتين الابتدائية والمتوسطة', array($n))
+                      . t('، مرتبة بالصف والمادة — كتاب الطالب والنشاط والتمارين، تتصفح وتحمل مجانا بلا تسجيل.');
+            } elseif ($ix_route === 'summaries') {
+                $n = (int) $CI_ix->db->where('status', 'published')
+                          ->where("(slug LIKE 'sum-%')", null, false)
+                          ->count_all_results('books');
+                $ix_d = t('____ ملخصا ومراجعة وخريطة ذهنية وورقة عمل للمنهج السعودي', array($n))
+                      . t('، مرتبة بالصف والمادة — مراجعة سريعة قبل الاختبار، مجانا بلا تسجيل.');
+            } elseif ($ix_route === 'teachers') {
+                $n = (int) $CI_ix->db->where('is_public', 1)->where('is_instructor', 1)
+                          ->count_all_results('users');
+                $ix_d = t('____ معلما ومعلمة في منصة تقدر', array($n))
+                      . t('، لكل واحد صفحته وبرامجه ودروسه المصورة في مادته وصفه — اختر معلم ابنك قبل أن تشترك.');
+            } else {
+                $n = (int) $CI_ix->db->where('status', 'published')->where('course_id >', 0)
+                          ->count_all_results('paths');
+                $ix_d = t('____ برنامجا من المنهج السعودي للمرحلتين الابتدائية والمتوسطة', array($n))
+                      . t(': دروس مصورة واختبار بعد كل درس، مرتبة بالمرحلة والصف والمادة.');
+            }
+            if ($ix_d !== '') { $meta_description = $ix_d; $og_description = $ix_d; }
         }
 
         /* ── الكتالوج: صفحة الترقيم الثانية ليست الاولى ── */
