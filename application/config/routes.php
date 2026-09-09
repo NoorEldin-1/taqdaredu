@@ -75,6 +75,10 @@ $route['blogs/(:any)'] = "blog/blogs/$1";
 //End blog
 
 $route['sitemap.xml'] = 'sitemap';
+/* أقسام الخريطة — `/sitemap-books.xml` ونظائرها. الفهرس في `sitemap.xml`
+   يشير إليها، وSearch Console يعرض حالة كلّ قسم على حدة فيقول أيّ نوع
+   استُبعد بدل رقم واحد لا يُفكَّك. */
+$route['sitemap-([a-z]+)\.xml'] = 'sitemap/part/$1';
 
 $route['translate_uri_dashes'] = false;
 
