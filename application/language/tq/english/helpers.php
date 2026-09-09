@@ -224,6 +224,7 @@ return array(
     'قد يضع مزود بريدك رسائل تقدر — رمز التأكيد، ورابط استعادة كلمة المرور، وإشعارات الفواتير والاشتراكات — في مجلد' => 'Your mail provider may put Taqdar\'s messages — the verification code, the password reset link, and invoice and subscription alerts — in the',
     'قطر' => 'Qatar',
     'ك.ب' => 'KB',
+    'كتبي وملخصاتي' => '',
     'كل النتائج: <b class="tq-ltr">' => 'All results: <b class="tq-ltr">',
     'كل ما في' => 'Everything in',
     'كل ما في التي قبلها، ومعه متابعة فردية وخطة لكل طالب، ومهارات' => 'Everything in the plan before it, plus one-to-one follow-up, a plan for each student, and skills',

@@ -738,7 +738,131 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-table--rows td > .tq-input,
 .tq-table--rows td > .tq-select { inline-size: 100%; min-inline-size: 7rem; }
 .tq-winrow__n { text-align: center; inline-size: 1%; white-space: nowrap; }
-.tq-winrow__x { inline-size: 1%; }
+
+/* TQ-WINROW-FIT — والجدول يمرر في وعائه، لا يخرج من البطاقة.
+
+   `.tq-table-wrap` يمرر أفقيا (`overflow-x: auto`) وعرضه `100%` — وهو
+   يقرأ صحيحا في كل وعاء إلا واحدا: `<fieldset>`. للحقل الجامع عرض أدنى
+   افتراضي `min-content` **لا يقبل التصفير من `width` ولا يرثه من أبيه**،
+   فيتسع الحقل الجامع نفسه إلى عرض الجدول كله؛ فتقرأ `100%` عرضا موسعا،
+   ولا يضيق الوعاء فلا يمرر شيئا. والأثر أن تسعة أعمدة تخرج من البطاقة
+   وتنزلق تحت لوح جانبي: يقرأ المعلم «الصف الساد…» مقصوصا، **وعمود الحذف
+   خارج الشاشة أصلا** — ولا شريط تمرير واحد يقول إن هناك ما لم يعرض.
+   قيست في `/teacher/sessions` على عرض ١١١٠.
+
+   والقاعدة على الحقل الجامع في هذه الورقة لا سطرا في القالب: الشاشة
+   الثانية التي تلف جدولا في `fieldset` غدا تعيد العطل نفسه. */
+.tq-card fieldset { min-inline-size: 0; }
+
+/* TQ-WINROW-CARD — وسطر الوقت بطاقة حقول تلتف، لا صف جدول بتسعة أعمدة.
+
+   تسعة أعمدة في عمود لوحة عرضه ألف بكسل تعني مئة بكسل للخلية الواحدة،
+   والمنتقي فيها يقص: يقرأ المعلم «ا…» مكان «الصف السادس الابتدائي»،
+   و«ت…» مكان «تأسيس — بلا صف»، وحقل الساعة يقص عقربه فلا يعرف صاحبه
+   أصباحا كتب أم مساء. والتخطيط الثابت (`table-layout: fixed`) كان يمنع
+   الجدول من الخروج من بطاقته ولا يعطي الخلية ما يكفيها — والعلة ليست
+   في التمرير بل في أن الأعمدة أكثر من أن تقرأ جنبا إلى جنب.
+
+   فالسطر يفرش حقوله وتلتف: لكل حقل عرض أدنى يقرأ به، واسمه فوقه من
+   `data-label`. والترويسة ترفع لأن الاسم صار مع حقله — وعنوان أعلى
+   الجدول ينقطع عن قيمته أول ما يلتف السطر، فيقرأ المعلم مادة تحت
+   «مواعيد».
+
+   **والوسم يبقى جدولا كما هو**: السكربت يمسك `tr` ويستنسخ `<template>`
+   الذي يطبعه الخادم من دالة السطر نفسها — وقالب ثان في الجافاسكربت
+   يفترق عن أخيه عند أول حقل يضاف. فالتغيير كله ورقة. */
+.tq-winrows,
+.tq-winrows tbody,
+.tq-winrows tr,
+.tq-winrows td { display: block; }
+.tq-winrows { inline-size: 100%; border-collapse: separate; }
+.tq-table-wrap .tq-table.tq-winrows { min-inline-size: 0; }   /* لا تمرير أفقي: لا أعمدة تمرر */
+.tq-winrows thead { display: none; }
+
+.tq-winrows tbody {
+  display: flex; flex-direction: column; gap: var(--tq-space-m);
+}
+
+.tq-winrows .tq-winrow {
+  display: flex; flex-wrap: wrap; align-items: flex-end;
+  gap: var(--tq-space-m) var(--tq-space-l);
+  padding: var(--tq-space-l);
+  border: 1px solid var(--tq-line); border-radius: var(--tq-radius-small);
+  background: var(--tq-surface);
+}
+/* والتمييز حد البطاقة كلها لا شريط على طرف خليتها الأولى: تلك خلية حقل
+   هنا لا عمود، والشريط يرسم فوق اسمه. ولا أرضية تتبدل: أرضية تحت ستة
+   حقول تقرأ ضجيجا. */
+.tq-winrows tbody tr:hover { background: var(--tq-surface); border-color: var(--tq-text3); }
+.tq-winrows .tq-winrow:focus-within {
+  background: var(--tq-surface);
+  border-color: var(--tq-teal); box-shadow: 0 0 0 1px var(--tq-teal);
+}
+
+.tq-winrows .tq-winrow > td {
+  padding: 0; border: 0; min-inline-size: 0;
+  flex: 1 1 11rem;
+}
+/* واسم الحقل فوقه لا في ترويسة بعيدة عنه. و`.tq-sr` يبقى للقارئ الآلي:
+   هذا نص مزخرف (`::before`) لا يقرأ. */
+.tq-winrows .tq-winrow > td[data-label]::before {
+  content: attr(data-label);
+  display: block; margin-block-end: var(--tq-space-xs);
+  font: var(--tq-type-micro); color: var(--tq-text2);
+}
+.tq-winrows td > .tq-input,
+.tq-winrows td > .tq-select,
+.tq-winrows td > .tqa-sel { inline-size: 100%; min-inline-size: 0; max-inline-size: 100%; }
+
+/* والحقول ليست سواء في حاجتها: الساعة أربعة أرقام وعقرب، والصف جملة.
+   ولكل حقل سقف يقف عنده: بلا سقف يبتلع آخر حقل في السطر فراغ السطر كله،
+   فيقرأ منتقي المادة بعرض ثلاثة حقول ولا يحمل إلا كلمتين — والسطر الذي
+   تحته يفترق عنه فلا تقرأ الحقول عمودا واحدا. */
+.tq-winrows .tq-winrow > td.tq-winrow__kind { flex: 1 1 13rem; max-inline-size: 16rem; }
+.tq-winrows .tq-winrow > td.tq-winrow__cur,
+.tq-winrows .tq-winrow > td.tq-winrow__fnd { flex: 1 1 13rem; max-inline-size: 16rem; }
+.tq-winrows .tq-winrow > td.tq-winrow__d { flex: 1 1 11rem; max-inline-size: 14rem; }
+.tq-winrows .tq-winrow > td.tq-winrow__t { flex: 1 1 8.5rem; max-inline-size: 11rem; }
+
+/* عدد المواعيد رقم يقرأ ولا يكتب، فلا يأخذ من عرض ما يكتب. */
+.tq-winrows .tq-winrow > td.tq-winrow__n {
+  flex: 0 0 auto; min-inline-size: 4rem;
+  text-align: center; white-space: nowrap;
+}
+.tq-winrows .tq-winrow__n [data-tq-row-count] {
+  display: block; font: var(--tq-type-caption); font-weight: 700; color: var(--tq-text);
+  padding-block: var(--tq-space-s);
+}
+
+/* وزر الحذف في طرف السطر: هو آخر ما يفعل بالسطر، ومكانه بين حقوله يجعله
+   يضغط بالخطأ. ويقاس بأيقونته — حشوة الزر مبنية على نص. */
+/* ولا هامش تلقائي يدفعه إلى طرف السطر: الهامش التلقائي يبتلع الفراغ كله
+   فلا يبقى للزر موضع، فينزل وحده سطرا ثالثا في وسط البطاقة. فيتبع الزر
+   عدد المواعيد كما يتبعه في الوسم. */
+.tq-winrows .tq-winrow > td.tq-winrow__x { flex: 0 0 auto; text-align: center; }
+.tq-winrows .tq-winrow__x .tq-btn {
+  padding-inline: var(--tq-space-s); min-inline-size: 40px; min-block-size: 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* TQ-FOUNDATION — عمودان يظهران بحسب نوع السطر.
+   وفي صف جدول كانت الخلية تبقى ويخفى ما فيها: خلية تحذف من صف واحد تزيح
+   أعمدة ذلك الصف عن ترويسته. ولا ترويسة هنا ولا أعمدة، فالخلية كلها ترفع
+   ويرفع معها اسمها — و«الصف: —» في بطاقة حقول سطر يشغل موضعا ولا يقول
+   شيئا.
+   **ولا تعطل حقولها**: المعطل لا يرسل، ومصفوفات `win_grade[]` و
+   `win_subject[]` و`win_track[]` متوازية — يسقط عنصر من إحداها فيأخذ صف
+   الثلاثاء مسار الأربعاء بلا خطأ يظهر. والمخفي بـ`display:none` يرسل
+   كما هو، والخادم يهمل ما لا يعني النوع الذي اختير. */
+.tq-winrow__na { display: none; }
+
+/* معلم بباب واحد: العمود الذي لا يخصه يرفع كله. */
+.tq-winrows:not(.tq-winrows--fnd) .tq-winrow__fnd,
+.tq-winrows:not(.tq-winrows--cur) .tq-winrow__cur { display: none; }
+
+/* وبالبابين: السطر يعرض ما يعنيه نوعه وحده. */
+.tq-winrows--cur.tq-winrows--fnd tr[data-tq-kind='foundation'] .tq-winrow__cur,
+.tq-winrows--cur.tq-winrows--fnd tr[data-tq-kind='curriculum'] .tq-winrow__fnd { display: none; }
 /* الساعة تقرأ من اليسار في صفحة من اليمين: `type="time"` يرسم عقاربه
    بترتيب اللغة، و«١٠:٠٠» معكوسة تقرأ «٠٠:١٠». */
 .tq-table--rows input[type='time'] { direction: ltr; text-align: center; }

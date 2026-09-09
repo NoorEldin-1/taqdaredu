@@ -481,7 +481,26 @@
       if (!keep) sub.value = '0';
     }
 
-    function wire(row) { count(row); narrow(row); }
+    /* TQ-FOUNDATION — نوع السطر يكتب على الصف نفسه، والورقة تفرع عليه.
+       والحقول **لا تعطل**: المعطل لا يرسل، والمصفوفات الأربع متوازية —
+       يسقط عنصر من إحداها فيأخذ صف الثلاثاء مسار الأربعاء. فالإخفاء
+       عرض محض، والخادم يهمل ما لا يعني النوع المختار.
+
+       ولا يوضع `required` على شيء منها: السطر الأخير يبقى فارغا عمدا
+       ليكتب فيه التالي، والخادم يتخطاه — وحقل مطلوب فيه يمنع كل حفظ
+       على من لم يخطئ، ويعتذر المتصفح عن عنصر قد يكون مخفيا فلا يرى
+       صاحبه ما يصحح. والرفض يقوله الخادم بيومه وساعته. */
+    function kindOf(row) {
+      var k = row.querySelector('[data-tq-row-kind]')
+           || row.querySelector('[name="win_kind[]"]');
+      return (k && k.value) ? k.value : 'curriculum';
+    }
+
+    function applyKind(row) {
+      row.setAttribute('data-tq-kind', kindOf(row));
+    }
+
+    function wire(row) { applyKind(row); count(row); narrow(row); }
 
     $$('tr', body).forEach(wire);
 
@@ -494,7 +513,9 @@
     /* `change` لا `input` وحده: بعض المتصفحات لا ترفع `input` من `<select>`. */
     box.addEventListener('change', function (e) {
       var row = e.target.closest ? e.target.closest('tr') : null;
-      if (row && e.target.hasAttribute && e.target.hasAttribute('data-tq-row-grade')) narrow(row);
+      if (!row) return;
+      if (e.target.hasAttribute && e.target.hasAttribute('data-tq-row-grade')) narrow(row);
+      if (e.target.hasAttribute && e.target.hasAttribute('data-tq-row-kind')) applyKind(row);
     });
 
     box.addEventListener('click', function (e) {

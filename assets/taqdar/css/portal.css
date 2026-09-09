@@ -338,10 +338,14 @@ body.tq-body--portal .tq-table thead th:last-child {
 /* الصف تحت المؤشر يعلن نفسه بشريط على طرفه لا بلون وحده: اللون وحده
    يضيع على من لا يفرقه، والشريط يقرأ بالشكل. */
 body.tq-body--portal .tq-table tbody tr { position: relative; }
-body.tq-body--portal .tq-table tbody tr:hover td:first-child {
+/* واستثناء واحد: `.tq-winrows` سطورها بطاقات حقول لا صفوف أعمدة
+   (TQ-WINROW-CARD)، وخليتها الأولى حقل لا عمود — فالشريط يرسم **داخله**
+   فوق اسم الحقل: يقرأ المعلم «وع الوقت» كلما مر مؤشره. وبطاقة تعلن نفسها
+   بحدها كله، وهو أظهر من شريط على طرف خلية. */
+body.tq-body--portal .tq-table:not(.tq-winrows) tbody tr:hover td:first-child {
   box-shadow: inset 3px 0 0 0 var(--tq-teal);
 }
-[dir='rtl'] body.tq-body--portal .tq-table tbody tr:hover td:first-child {
+[dir='rtl'] body.tq-body--portal .tq-table:not(.tq-winrows) tbody tr:hover td:first-child {
   box-shadow: inset -3px 0 0 0 var(--tq-teal);
 }
 /* آخر صف بلا حد: الحد الأخير يرسم خطا معلقا تحت الجدول. */

@@ -69,6 +69,12 @@ $tq_rail_map = [
         ]],
         [t('الدعم والتواصل'), [
             ['on_demand',     t('حصص بالطلب'), 'student/on-demand',     'video'],
+            /* TQ-FOUNDATION — بند ثان بجوار «حصص بالطلب»، ويخفى إن لم
+               يكن في المنصة مسار تأسيس منشور: بند يفتح على شاشة فارغة
+               يقرأ عطلا، و«بلا مسار لا شيء يتغير» قاعدة القسم كله.
+               وموضعه هنا لا في «التعلم»: التأسيس وقت معلم يحجز، لا
+               محتوى مسجل — وهو جار «حصص بالطلب» لا جار «كورساتي». */
+            ['foundation',    t('التأسيس'),    'student/foundation',    'graduation'],
             ['messages',      t('رسائلي'),     'student/messages',      'chat'],
             ['notifications', t('الإشعارات'),  'student/notifications', 'bell'],
         ]],
@@ -170,6 +176,35 @@ if ($tq_role === 'student' && !isset($tq_counts['reviews'])) {
         }
     } catch (Throwable $tq_rv_e) {
         $tq_counts['reviews'] = 0;
+    }
+}
+
+/* TQ-FOUNDATION — بند «التأسيس» يرفع من القائمة إن لم يكن للقسم مسار
+   منشور: بند يفتح على شاشة فارغة يقرأ عطلا، والقاعدة الحاكمة للقسم
+   كله «بلا مسار لا شيء يتغير» — فلا يظهر في قائمة من لم تفتح له
+   الإدارة مسارا واحدا.
+
+   والقراءة ملفوفة كأختها أعلاه: هذه القائمة تعرض في كل صفحة بوابة،
+   وجدول لم ينشأ بعد يبتر الشاشات كلها. */
+if ($tq_role === 'student') {
+    $tq_has_fnd = false;
+    try {
+        $tq_fn_ci = &get_instance();
+        $tq_fn_ci->load->model('taqdar_foundation_model', 'tq_rail_fnd');
+        $tq_has_fnd = $tq_fn_ci->tq_rail_fnd->enabled();
+    } catch (Throwable $tq_fn_e) {
+        $tq_has_fnd = false;
+    }
+    if (!$tq_has_fnd) {
+        /* والتصفية على `$tq_rail_groups` لا على الخريطة: النسخ يقع أعلاه
+           (السطر ١٥٠)، فتعديل الأصل بعده لا يبلغ ما يطبع — وهو خطأ لا
+           يظهر إلا في الحال التي يفترض أن يمنعها: بند يبقى معروضا لمن
+           لا قسم له. */
+        foreach ($tq_rail_groups as $tq_gi => $tq_grp) {
+            foreach ($tq_grp[1] as $tq_ii => $tq_item) {
+                if ($tq_item[0] === 'foundation') unset($tq_rail_groups[$tq_gi][1][$tq_ii]);
+            }
+        }
     }
 }
 

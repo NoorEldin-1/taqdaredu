@@ -391,9 +391,14 @@ $tqa_now = function ($field_name) use ($row, $spec) {
                 <?php elseif ($f['type'] === 'money'): ?>
 
                     <div class="tqa-field__row">
+                        <?php /* الحقل الفارغ في نوع `nullable` معنى لا نقص —
+                                 «خذ التسعيرة العامة». والنائب يقوله، وبلاه
+                                 يقرأ الفراغ نسيانا فيكتب المسؤول رقما لم
+                                 يرد أن يكتبه. */ ?>
                         <input class="tqa-input tqa-input--ltr" dir="ltr" type="number" min="0" step="0.01"
                                id="<?php echo $id; ?>" name="<?php echo $name; ?>"
                                value="<?php echo html_escape((string) $val); ?>"
+                               <?php if (!empty($f['placeholder'])): ?>placeholder="<?php echo html_escape($f['placeholder']); ?>"<?php endif; ?>
                                <?php echo $req ? 'required' : ''; ?>>
                         <span class="tqa-field__unit"><?php echo t('ر.س'); ?></span>
                     </div>

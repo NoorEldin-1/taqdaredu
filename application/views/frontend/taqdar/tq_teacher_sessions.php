@@ -84,6 +84,15 @@ $tq_scope   = $tq_m->teacher_scope($tq_uid);
 $tq_grades  = $tq_scope['grades'];
 $tq_subs    = $tq_scope['subjects'];
 
+/* TQ-FOUNDATION — ومسارات التأسيس نطاق ثان بجوار الصف والمادة.
+   والمعلم قد يملك أحدهما دون الآخر: معلم تأسيس بلا كورس واحد يفتح وقت
+   تأسيس ولا يفتح وقت منهج، ومعلم منهج بلا إسناد تأسيس عكسه. فالجدول
+   يعرض ما يملكه صاحبه، والخادم يفحص الاثنين. */
+$tq_CI->load->model('taqdar_foundation_model');
+$tq_tracks  = $tq_CI->taqdar_foundation_model->teacher_tracks($tq_uid);
+$tq_has_cur = ($tq_grades && $tq_subs);
+$tq_has_fnd = (bool) $tq_tracks;
+
 $tq_cfg     = $tq_m->config();
 $tq_pricing = $tq_m->pricing_for($tq_uid);
 $tq_sum     = $tq_m->teacher_summary($tq_uid);
@@ -392,11 +401,40 @@ include 'portal_open.php';
         /* صف الجدول — يطبع مرة للمحفوظ ومرة للقالب الفارغ الذي يستنسخه
            الزر. ودالة واحدة لأن نسختين تفترقان عند أول حقل يضاف: يظهر في
            السطر المحفوظ ولا يظهر في المضاف، فيحفظ المعلم سطرا ناقصا. */
-        $tq_win_row = function ($w = null) use ($tq_days, $tq_grades, $tq_subs, $tq_scope, $tq_m, $tq_cfg) {
-            $dow = $w ? (int) $w['dow'] : '';
+        $tq_win_row = function ($w = null) use ($tq_days, $tq_grades, $tq_subs, $tq_scope, $tq_m, $tq_cfg,
+                                                $tq_tracks, $tq_has_cur, $tq_has_fnd) {
+            $dow  = $w ? (int) $w['dow'] : '';
+            /* TQ-FOUNDATION — النوع الافتراضي هو **ما يملكه صاحبه**: معلم
+               تأسيس بلا كورس واحد يفتح الشاشة فيجد السطر على «منهج»
+               فيختار صفا لا يجده، ثم يرد عليه الخادم. والسطر يفتح على
+               النوع الذي يستطيعه. */
+            $kind = $w ? (string) $w['kind'] : (($tq_has_cur || !$tq_has_fnd) ? 'curriculum' : 'foundation');
             ob_start(); ?>
-            <tr class="tq-winrow">
-                <td data-label="<?php echo te('يوم الأسبوع'); ?>">
+            <tr class="tq-winrow" data-tq-kind="<?php echo html_escape($kind); ?>">
+                <?php /* عمود النوع أول الأعمدة لا آخرها: هو الذي يقرر ما
+                         يقرأ بعده — صفا ومادة أم مسار تأسيس. وعمود يغير
+                         معنى ما قبله يقرأ بأثر رجعي. */ ?>
+                <?php if ($tq_has_cur && $tq_has_fnd): ?>
+                    <td class="tq-winrow__kind" data-label="<?php echo te('نوع الوقت'); ?>">
+                        <label class="tq-sr"><?php echo t('نوع الوقت'); ?></label>
+                        <select class="tq-select" name="win_kind[]" data-tq-row-kind>
+                            <option value="curriculum" <?php echo $kind === 'curriculum' ? 'selected' : ''; ?>>
+                                <?php echo t('منهج — صف ومادة'); ?>
+                            </option>
+                            <option value="foundation" <?php echo $kind === 'foundation' ? 'selected' : ''; ?>>
+                                <?php echo t('تأسيس — بلا صف'); ?>
+                            </option>
+                        </select>
+                    </td>
+                <?php endif; ?>
+                <td class="tq-winrow__d" data-label="<?php echo te('يوم الأسبوع'); ?>">
+                    <?php if (!($tq_has_cur && $tq_has_fnd)): ?>
+                        <?php /* من يملك بابا واحدا لا يعرض له منتق بخيار
+                                 واحد: حقل لا يبدل شيئا ضجيج، والقيمة ترسل
+                                 مخفية — والمصفوفات الأربع تبقى متوازية. */ ?>
+                        <input type="hidden" name="win_kind[]"
+                               value="<?php echo $tq_has_cur ? 'curriculum' : 'foundation'; ?>">
+                    <?php endif; ?>
                     <label class="tq-sr"><?php echo t('يوم الأسبوع'); ?></label>
                     <select class="tq-select" name="win_dow[]" data-tq-row-req>
                         <option value=""><?php echo t('— اختر يوما'); ?></option>
@@ -408,17 +446,40 @@ include 'portal_open.php';
                         <?php endforeach; ?>
                     </select>
                 </td>
-                <td data-label="<?php echo te('من الساعة'); ?>">
+                <td class="tq-winrow__t" data-label="<?php echo te('من الساعة'); ?>">
                     <label class="tq-sr"><?php echo t('من الساعة'); ?></label>
                     <input class="tq-input" type="time" dir="ltr" name="win_from[]" data-tq-row-req
                            value="<?php echo $w ? html_escape($w['from_text']) : ''; ?>">
                 </td>
-                <td data-label="<?php echo te('إلى الساعة'); ?>">
+                <td class="tq-winrow__t" data-label="<?php echo te('إلى الساعة'); ?>">
                     <label class="tq-sr"><?php echo t('إلى الساعة'); ?></label>
                     <input class="tq-input" type="time" dir="ltr" name="win_to[]" data-tq-row-req
                            value="<?php echo $w ? html_escape($w['to_text']) : ''; ?>">
                 </td>
-                <td data-label="<?php echo te('الصف'); ?>">
+                <?php /* TQ-FOUNDATION — خلية المسار وخليتا الصف والمادة
+                         **تعرضان ولا تعطلان**: الحقل المعطل لا يرسل، وثلاث
+                         مصفوفات متوازية يسقط من إحداها عنصر تعني أن صف
+                         الثلاثاء يأخذ مادة الأربعاء. فالإخفاء بصنف على
+                         الصف، والقيم كلها تصل، والخادم يهمل ما لا يعني
+                         النوع الذي اختير. */ ?>
+                <td data-label="<?php echo te('مسار التأسيس'); ?>" class="tq-winrow__fnd">
+                    <label class="tq-sr"><?php echo t('مسار التأسيس'); ?></label>
+                    <?php if ($tq_tracks): ?>
+                        <select class="tq-select" name="win_track[]" data-tq-row-track>
+                            <option value="0"><?php echo t('— اختر مسارا'); ?></option>
+                            <?php foreach ($tq_tracks as $tq_tid => $tq_t): ?>
+                                <option value="<?php echo (int) $tq_tid; ?>"
+                                    <?php echo ($w && (int) $w['track_id'] === (int) $tq_tid) ? 'selected' : ''; ?>>
+                                    <?php echo html_escape($tq_t['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php else: ?>
+                        <input type="hidden" name="win_track[]" value="0">
+                    <?php endif; ?>
+                    <span class="tq-winrow__na" aria-hidden="true">—</span>
+                </td>
+                <td data-label="<?php echo te('الصف'); ?>" class="tq-winrow__cur">
                     <label class="tq-sr"><?php echo t('الصف'); ?></label>
                     <?php /* بلا «كل الصفوف»: خيار يفتح الوقت لكل من في
                              المنصة يجعل معلم الرابع الابتدائي يستقبل طالبا
@@ -433,12 +494,13 @@ include 'portal_open.php';
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <span class="tq-winrow__na" aria-hidden="true">—</span>
                 </td>
                 <?php /* المادة بجوار الصف: المعلم يدرس أكثر من مادة، ومن
                          يفتح «الأحد ١٠–٢ للثالث» بلا مادة يستقبل طالبا جاء
                          يسأل في غير مادته. والقائمة تضيق بالصف المختار
                          (`data-tq-grade`) بالوصف نفسه الذي يفحص به الخادم. */ ?>
-                <td data-label="<?php echo te('المادة'); ?>">
+                <td data-label="<?php echo te('المادة'); ?>" class="tq-winrow__cur">
                     <label class="tq-sr"><?php echo t('المادة'); ?></label>
                     <select class="tq-select" name="win_subject[]" data-tq-row-req data-tq-row-subject>
                         <option value="0"><?php echo t('— اختر مادة'); ?></option>
@@ -460,6 +522,7 @@ include 'portal_open.php';
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <span class="tq-winrow__na" aria-hidden="true">—</span>
                 </td>
                 <?php /* عدد المواعيد يقرأ قبل الحفظ: «من ١٠ إلى ٢» أربع
                          ساعات تعني أربعة طلاب لا طالبا واحدا، ومن لا يقرأ
@@ -497,6 +560,7 @@ include 'portal_open.php';
                 <?php /* الصف هو نصف التغيير: من يدرس صفين في يوم واحد
                          يفتح لكل صف وقته، فيرى طالب الثالث مواعيد الثالث
                          وحدها ولا يطلب موعدا سيعتذر عنه معلمه. */ ?>
+                <?php if ($tq_has_cur): ?>
                 <p class="tq-caption">
                     <strong><?php echo t('ولكل وقت صفه'); ?></strong>
                     <?php echo t('— الطالب لا يرى إلا مواعيد صفه هو.'); ?>
@@ -504,15 +568,36 @@ include 'portal_open.php';
                              وقولها هنا يمنع سؤال «أين بقية الصفوف؟». */ ?>
                     <?php echo t('والصفوف والمواد المعروضة هي صفوف كورساتك وموادها وحدها — الحصة شرح لمنهج صف بعينه في مادة بعينها. والمادة تتبع الصف الذي تختاره.'); ?>
                 </p>
+                <?php endif; ?>
 
-                <?php /* معلم بلا صف: الشاشة تقول السبب والطريق ولا تعرض
+                <?php /* TQ-FOUNDATION — وقت التأسيس بلا صف ولا مادة، وقولها
+                         هنا يمنع سؤال «أين الصف؟» عند من فتح سطرا فاختفى
+                         عموده. والفرق ليس شكليا: التأسيس مستوى لا مقرر،
+                         فطالب في أي صف يحجزه. */ ?>
+                <?php if ($tq_has_fnd): ?>
+                <p class="tq-caption">
+                    <strong><?php echo t('ووقت التأسيس بلا صف ولا مادة'); ?></strong>
+                    <?php echo t('— يكفيه مسار من مساراتك، ويحجزه الطالب أيا كان صفه. والتأسيس مستوى لا منهج صف.'); ?>
+                    <?php echo t('ومساراتك هي ما أسندته إليك الإدارة:'); ?>
+                    <strong><?php
+                        $tq_tn = array();
+                        foreach ($tq_tracks as $tq_t) $tq_tn[] = $tq_t['name'];
+                        echo html_escape(implode(' · ', $tq_tn));
+                    ?></strong>
+                </p>
+                <?php endif; ?>
+
+                <?php /* معلم بلا نطاق: الشاشة تقول السبب والطريق ولا تعرض
                          جدولا يحفظ فيه ما يرده الخادم. وجدول يقبل الكتابة
-                         ثم يرد كل حفظ يقرأ عطلا. */ ?>
-                <?php if (!$tq_grades || !$tq_subs): ?>
+                         ثم يرد كل حفظ يقرأ عطلا.
+                         والبابان يذكران معا: من رد لأنه لا كورس له قد يكون
+                         معلم تأسيس لا كورس له أصلا ولا ينبغي أن يفتح كورسا
+                         ليدرس الحروف. */ ?>
+                <?php if (!$tq_has_cur && !$tq_has_fnd): ?>
                     <div class="tq-pastel tq-pastel--peach">
                         <span class="tq-pastel__label tq-micro"><?php echo t('لا نطاق لك بعد'); ?></span>
                         <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                            <?php echo t('أوقات الحصص تفتح لصف بعينه في مادة بعينها، وصفوفك وموادك تشتق من كورساتك — ولا كورس لك بعد. افتح كورسا في صفك ومادتك، أو راجع الإدارة لتسند إليك نطاقك، ثم عد إلى هذه الشاشة.'); ?>
+                            <?php echo t('وللأوقات بابان: حصص المنهج تفتح لصف بعينه في مادة بعينها — وصفوفك وموادك تشتق من كورساتك ولا كورس لك بعد. وحصص التأسيس لا تحتاج كورسا ولا صفا، وإنما مسار تأسيس تسنده إليك الإدارة. افتح كورسا في صفك، أو راجع الإدارة لتسند إليك مسار تأسيس.'); ?>
                         </p>
                         <a class="tq-btn tq-btn--secondary tq-btn--sm" style="margin-block-start:var(--tq-space-m)"
                            href="<?php echo base_url('teacher/courses'); ?>"><?php echo t('كورساتي'); ?></a>
@@ -520,15 +605,21 @@ include 'portal_open.php';
                 <?php else: ?>
 
                 <div class="tq-table-wrap" data-tq-rows data-tq-row-min="<?php echo (int) $tq_cfg['minutes']; ?>">
-                    <table class="tq-table tq-table--rows">
+                    <table class="tq-table tq-table--rows tq-winrows<?php
+                        echo $tq_has_cur ? ' tq-winrows--cur' : '';
+                        echo $tq_has_fnd ? ' tq-winrows--fnd' : ''; ?>">
                         <caption class="tq-sr"><?php echo t('أوقاتك المتاحة في أيام الأسبوع'); ?></caption>
                         <thead>
                             <tr>
+                                <?php if ($tq_has_cur && $tq_has_fnd): ?>
+                                    <th scope="col"><?php echo t('نوع الوقت'); ?></th>
+                                <?php endif; ?>
                                 <th scope="col"><?php echo t('يوم الأسبوع'); ?></th>
                                 <th scope="col"><?php echo t('من الساعة'); ?></th>
                                 <th scope="col"><?php echo t('إلى الساعة'); ?></th>
-                                <th scope="col"><?php echo t('الصف'); ?></th>
-                                <th scope="col"><?php echo t('المادة'); ?></th>
+                                <th scope="col" class="tq-winrow__fnd"><?php echo t('مسار التأسيس'); ?></th>
+                                <th scope="col" class="tq-winrow__cur"><?php echo t('الصف'); ?></th>
+                                <th scope="col" class="tq-winrow__cur"><?php echo t('المادة'); ?></th>
                                 <th scope="col" class="tq-winrow__n"><?php echo t('مواعيد'); ?></th>
                                 <th scope="col"><span class="tq-sr"><?php echo t('حذف'); ?></span></th>
                             </tr>

@@ -77,10 +77,25 @@ $f_subject = (string) $this->input->get('subject', true);
 $tq_grade      = $tq_m->student_grade($tq_uid);
 $tq_grade_name = $tq_grade > 0 ? $tq_m->grade_name($tq_grade) : '';
 
-$tq_tutors = $tq_m->available_teachers(12, 6, (int) $f_subject, $tq_grade);
+/* TQ-FOUNDATION — والمعروض هنا حصص **المنهج** وحدها. مواعيد التأسيس
+   بلا صف ولا مادة، فترشيح الصف يمرها كلها (`IN (0, صفه)`) ومرشح المادة
+   يسقطها — أي أنها كانت تظهر لمن لا يرشح وتختفي لمن يرشح، وهو أسوأ من
+   الحالين. والنوع يرشح في الاستعلام الآن، وللتأسيس شاشته. */
+$tq_tutors = $tq_m->available_teachers(12, 6, (int) $f_subject, $tq_grade, 'curriculum');
+
+/* وهل في المنصة قسم تأسيس أصلا؟ — به يعرف هذا الملف ما يفعل بحجوزات
+   التأسيس: يتركها لشاشتها، أو يعرضها هنا إن لم تكن لها شاشة (مسار حذف
+   وبقيت حصته) — فلا يفقد الطالب حجزا من كل شاشة في المنصة. */
+$tq_CI->load->model('taqdar_foundation_model');
+$tq_has_fnd = $tq_CI->taqdar_foundation_model->enabled();
 
 /** حجوزات الطالب — من `tutoring_sessions` بحالاتها كما في القاعدة. */
 $tq_bookings = $tq_m->bookings_for_student($tq_uid);
+if ($tq_has_fnd) {
+    $tq_bookings = array_values(array_filter($tq_bookings, function ($b) {
+        return ($b['kind'] ?? '') !== 'foundation';
+    }));
+}
 
 $tq_cfg  = $tq_m->config();
 $tq_paid = $tq_cfg['price'] > 0;               // هل للحصص ثمن أصلا؟
@@ -510,6 +525,22 @@ include 'portal_open.php';
                 </ul>
             <?php endif; ?>
         </section>
+
+        <?php /* TQ-FOUNDATION — والباب الآخر يذكر. من فتح «حصص بالطلب»
+                 يريد أن يؤسس من الصفر يقرأ مواعيد مرشحة بصفه في مواد
+                 منهجه، فلا يجد ما يريد ولا شيء يقول له أين يجده — فينصرف
+                 وفي المنصة قسم مبني لسؤاله بعينه. */ ?>
+        <?php if ($tq_has_fnd): ?>
+        <section class="tq-card tq-card--panel">
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('تريد أن تبدأ من الصفر؟'); ?></h2></div>
+            <p class="tq-body">
+                <?php echo t('حصص بالطلب شرح لدرس في منهج صفك. وإن كنت تريد تأسيسا في القراءة والكتابة — عربي أو إنجليزي — فموضعه قسم التأسيس: حصص فردية تبدأ من حيث أنت، بلا صف ولا منهج.'); ?>
+            </p>
+            <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('student/foundation'); ?>">
+                <?php echo t('قسم التأسيس'); ?>
+            </a>
+        </section>
+        <?php endif; ?>
 
         <!-- عرض خاص: عرض حقيقي أو لا شيء — ولا خصم مخترع لملء فراغ. -->
         <section class="tq-card tq-card--panel tq-pastel tq-pastel--lilac">

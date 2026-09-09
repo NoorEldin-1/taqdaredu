@@ -195,13 +195,25 @@ foreach ($teachers as $t) {
                                         <li>
                                             <span class="tqa-cell__main"><?php echo html_escape($tq_dn); ?></span>
                                             <span class="tqa-num tqa-mono tqa-mono--dim"><?php echo html_escape($tq_sp); ?></span>
-                                            <span class="tqa-badge tqa-badge--muted">
-                                                <?php echo html_escape($tq_w['grade_name'] ?: t('كل الصفوف')); ?>
-                                            </span>
-                                            <?php if (!empty($tq_w['subject_name'])): ?>
+                                            <?php /* TQ-FOUNDATION — ووقت التأسيس بمساره:
+                                                     «كل الصفوف» على وقت تأسيس تقرأ
+                                                     خطأ في الإسناد، وهي حاله الصحيح. */ ?>
+                                            <?php if ((string) ($tq_w['kind'] ?? '') === 'foundation'): ?>
+                                                <span class="tqa-badge tqa-badge--ok"><?php echo t('تأسيس'); ?></span>
                                                 <span class="tqa-badge tqa-badge--info">
-                                                    <?php echo html_escape($tq_w['subject_name']); ?>
+                                                    <?php echo html_escape($tq_w['track_name'] !== null && $tq_w['track_name'] !== ''
+                                                        ? $tq_w['track_name']
+                                                        : t('مسار محذوف') . ' #' . (int) ($tq_w['track_id'] ?? 0)); ?>
                                                 </span>
+                                            <?php else: ?>
+                                                <span class="tqa-badge tqa-badge--muted">
+                                                    <?php echo html_escape($tq_w['grade_name'] ?: t('كل الصفوف')); ?>
+                                                </span>
+                                                <?php if (!empty($tq_w['subject_name'])): ?>
+                                                    <span class="tqa-badge tqa-badge--info">
+                                                        <?php echo html_escape($tq_w['subject_name']); ?>
+                                                    </span>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </li>
                                     <?php endforeach; ?>
@@ -318,15 +330,28 @@ foreach ($teachers as $t) {
                         <?php /* «كل الصفوف» ليس فراغا: هي فسحة يقبل فيها
                                  معلمها أي طالب، وشرطة مكانها تقرأ «لم يحدد». */ ?>
                         <td data-label="<?php echo te('الصف والمادة'); ?>">
-                            <?php if ((int) ($s['grade_id'] ?? 0) > 0): ?>
-                                <span class="tqa-badge tqa-badge--muted"><?php echo html_escape($s['grade_name'] ?: t('صف') . ' #' . (int) $s['grade_id']); ?></span>
+                            <?php /* TQ-FOUNDATION — وفسحة التأسيس تقول مسارها.
+                                     وهي بصفر صف وصفر مادة بحكم الحفظ، فقراءتها
+                                     بقاعدة المنهج تطبع «كل الصفوف» — وهي تقرأ
+                                     «فسحة يقبل فيها معلمها أي طالب في أي مادة»
+                                     وليست كذلك: هي وقت مسار بعينه. */ ?>
+                            <?php if ((string) ($s['kind'] ?? '') === 'foundation'): ?>
+                                <span class="tqa-badge tqa-badge--ok"><?php echo t('تأسيس'); ?></span>
+                                <span class="tqa-badge tqa-badge--info"><?php
+                                    echo html_escape($s['track_name'] !== null && $s['track_name'] !== ''
+                                        ? $s['track_name']
+                                        : t('مسار محذوف') . ' #' . (int) ($s['track_id'] ?? 0)); ?></span>
                             <?php else: ?>
-                                <span class="tqa-cell__sub"><?php echo t('كل الصفوف'); ?></span>
-                            <?php endif; ?>
-                            <?php /* المادة تحت الصف: هما جواب سؤال واحد —
-                                     «لمن فتحت هذه الفسحة، وفي أي مادة؟» */ ?>
-                            <?php if (!empty($s['subject_name'])): ?>
-                                <span class="tqa-badge tqa-badge--info"><?php echo html_escape($s['subject_name']); ?></span>
+                                <?php if ((int) ($s['grade_id'] ?? 0) > 0): ?>
+                                    <span class="tqa-badge tqa-badge--muted"><?php echo html_escape($s['grade_name'] ?: t('صف') . ' #' . (int) $s['grade_id']); ?></span>
+                                <?php else: ?>
+                                    <span class="tqa-cell__sub"><?php echo t('كل الصفوف'); ?></span>
+                                <?php endif; ?>
+                                <?php /* المادة تحت الصف: هما جواب سؤال واحد —
+                                         «لمن فتحت هذه الفسحة، وفي أي مادة؟» */ ?>
+                                <?php if (!empty($s['subject_name'])): ?>
+                                    <span class="tqa-badge tqa-badge--info"><?php echo html_escape($s['subject_name']); ?></span>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </td>
                         <td class="tqa-col--tight" data-label="<?php echo te('الحالة'); ?>">

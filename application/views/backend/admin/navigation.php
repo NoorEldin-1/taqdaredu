@@ -97,6 +97,12 @@ $tqa_nav = [
     [t('التعليم المباشر'), 'video', [
         ['tqa_sessions',    t('الحصص'),          'taqdar_admin/sessions', 'video', 'sessions'],
         ['tqa_slots',       t('أوقات المعلمين'), 'taqdar_admin/slots',    'clock', null],
+        /* TQ-FOUNDATION — والتأسيس بندان لا بند: «قسم التأسيس» يجيب
+           «أيعمل القسم؟»، و«مسارات التأسيس» تحرر المنتج نفسه. وبند واحد
+           يخلط السؤالين: من فتحه ليعرف لماذا لا يظهر مسار يقرأ نموذج
+           تحرير، ومن جاء يعدل سعرا يقرأ جدول تشخيص. */
+        [['tqa_foundation'], t('قسم التأسيس'),   'taqdar_admin/foundation', 'graduation', null],
+        ['tqa_foundation_tracks', t('مسارات التأسيس'), 'taqdar_admin/module/foundation_tracks', 'route', null],
     ]],
 
     [t('المالية'), 'wallet', [

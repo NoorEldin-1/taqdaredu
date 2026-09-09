@@ -74,7 +74,21 @@ class Taqdar_sessions_model extends CI_Model
     const WINDOW_DAYS = 14;
 
     /** إصدار بنية الحصص — يمنع إعادة فحص الأعمدة في كل طلب. */
-    const SCHEMA_V = '5';
+    const SCHEMA_V = '6';
+
+    /**
+     * TQ-FOUNDATION — نوعا الوقت، وهما بعد واحد لا محركان.
+     *
+     * `curriculum` حصة منهج: نطاقها (صف، مادة) من كورسات المعلم.
+     * `foundation` حصة تأسيس: نطاقها مسار يسنده المسؤول، ولا صف ولا مادة.
+     *
+     * والقديم كله `curriculum` بحكم الافتراض في القاعدة، فما كان يعمل
+     * يبقى يعمل حرفا بحرف. وانظر `Taqdar_foundation_model`.
+     */
+    const KIND_CURRICULUM = 'curriculum';
+    const KIND_FOUNDATION = 'foundation';
+
+    public static $KINDS = array('curriculum', 'foundation');
 
     /** أقصر نافذة إتاحة تقبل، بالدقائق — أقل منها لا تسع حصة. */
     const MIN_WINDOW_MIN = 15;
@@ -209,6 +223,24 @@ class Taqdar_sessions_model extends CI_Model
         $this->try_sql('ALTER TABLE `tq_teacher_windows` ADD COLUMN IF NOT EXISTS `subject_id` INT(10) UNSIGNED NOT NULL DEFAULT 0');
         $this->try_sql('ALTER TABLE `availability_slots` ADD COLUMN IF NOT EXISTS `subject_id` INT(10) UNSIGNED NOT NULL DEFAULT 0');
         $this->try_sql('ALTER TABLE `availability_slots` ADD INDEX `idx_slot_subject` (`subject_id`,`status`,`starts_at`)');
+
+        /* ---- TQ-FOUNDATION — نوع الوقت ومساره ---------------------------
+           عمودان لا جدول ثالث: القسم كله يعمل على هذه الجداول الثلاثة
+           نفسها، والذي يتغير مصدر النطاق وحده. و`VARCHAR` لا `ENUM` —
+           نوع ثالث يضاف يوما لا ينبغي أن يحتاج تعديل بنية على ثلاثة
+           جداول. والافتراض `curriculum` فكل صف قائم يبقى كما هو.
+
+           و**النوع يجمد على الحصة** كما يجمد سعرها: الموعد قد يحذف بعد
+           انتهائها (`layout()` تنظف ما لا قاعدة له)، وشاشة تقرأ النوع
+           من الموعد وحده تقول «حصة منهج» عن حصة تأسيس انتهت. */
+        foreach (array('tq_teacher_windows', 'availability_slots', 'tutoring_sessions') as $tbl) {
+            $this->try_sql('ALTER TABLE `' . $tbl . '` ADD COLUMN IF NOT EXISTS '
+                . '`kind` VARCHAR(16) NOT NULL DEFAULT "' . self::KIND_CURRICULUM . '"');
+            $this->try_sql('ALTER TABLE `' . $tbl . '` ADD COLUMN IF NOT EXISTS '
+                . '`track_id` INT(10) UNSIGNED NOT NULL DEFAULT 0');
+        }
+        $this->try_sql('ALTER TABLE `availability_slots` ADD INDEX `idx_slot_kind` (`kind`,`track_id`,`status`,`starts_at`)');
+        $this->try_sql('ALTER TABLE `tutoring_sessions` ADD INDEX `idx_se_kind` (`kind`,`track_id`)');
 
         /* ما فتحه المعلمون قبل اليوم يصير قواعد تقرأ في شاشتهم — وبلا هذا
            يفتحون الشاشة فيجدونها فارغة وقد حفظوا، ثم تمحو أول دورة فرش
@@ -387,6 +419,23 @@ class Taqdar_sessions_model extends CI_Model
         }
 
         return $this->split($price, $percent) + array('from_teacher' => $own);
+    }
+
+    /**
+     * TQ-FOUNDATION — ثمن موعد بعينه: بنوعه ومساره ومعلمه.
+     *
+     * **وهي الحاسبة الواحدة**: تناديها بطاقة المعلم في شاشة الطالب،
+     * ويناديها `request_session()` حين يجمد السعر على الصف. ورقم يحسب
+     * هنا مرة وهناك مرة يجعل الشاشة تعد بـ٨٠ والفاتورة تطلب ١٢٠ — وهو
+     * عطل TQ-CYCLE-BUY نفسه بوجه آخر.
+     */
+    public function pricing_of_slot($kind, $track_id, $teacher_id)
+    {
+        if ($this->clean_kind($kind) === self::KIND_FOUNDATION) {
+            $this->load->model('taqdar_foundation_model');
+            return $this->taqdar_foundation_model->pricing_for((int) $track_id, (int) $teacher_id);
+        }
+        return $this->pricing_for((int) $teacher_id);
     }
 
     /**
@@ -570,6 +619,75 @@ class Taqdar_sessions_model extends CI_Model
         return isset($g[$id]) ? $g[$id] : t('صف') . ' #' . $id;
     }
 
+    /* =====================================================================
+       TQ-FOUNDATION — «ما هذه الحصة؟» يسأل في ثمانية مواضع
+       ===================================================================== */
+
+    /**
+     * TQ-SESSION-LABEL — وصف الحصة أو الموعد في سطر، من مصدر واحد.
+     *
+     * سؤال «هذه الحصة، في ماذا؟» يسأل في ثمانية مواضع: قائمة طلبات
+     * المعلم، ومؤكداته، ومنتهياته، وحجوزات الطالب، وقائمة اللوحة، وشاشة
+     * الأوقات، وإشعار التأكيد، وبطاقة الحجز. وكان كل واحد منها يكتب
+     * جوابه بيده (`grade_name · subject_name`) — وثمان نسخ من قاعدة
+     * واحدة تعني أن **النوع الثاني يضاف في بعضها وينسى في بقيتها**، فيقرأ
+     * من حجز حصة تأسيس «الصف الثالث · —» أو فراغا لا يفسره شيء. وهي علة
+     * TQ-SOLD-NAME نفسها في طبقة أخرى.
+     *
+     * فالجواب هنا مرة، ويقرأ الصف كما جاء من أي من الجداول الثلاثة.
+     *
+     * @param array $row صف فيه `kind` و`track_id`، وربما `grade_id`/`subject_id`
+     * @return array kind · is_foundation · track_id · track_name · label
+     */
+    public function scope_of($row)
+    {
+        $kind  = (string) ($row['kind'] ?? self::KIND_CURRICULUM);
+        $track = (int) ($row['track_id'] ?? 0);
+
+        if ($kind === self::KIND_FOUNDATION) {
+            $this->load->model('taqdar_foundation_model');
+            $name = $this->taqdar_foundation_model->name_of($track);
+            return array(
+                'kind'          => self::KIND_FOUNDATION,
+                'is_foundation' => true,
+                'track_id'      => $track,
+                'track_name'    => $name,
+                'grade_name'    => '',
+                'subject_name'  => '',
+                'label'         => $name,
+            );
+        }
+
+        $g = (int) ($row['grade_id'] ?? 0);
+        $s = (int) ($row['subject_id'] ?? 0);
+        $bits = array();
+        if ($s > 0) $bits[] = $this->subject_name($s);
+        if ($g > 0) $bits[] = $this->grade_name($g);
+
+        return array(
+            'kind'          => self::KIND_CURRICULUM,
+            'is_foundation' => false,
+            'track_id'      => 0,
+            'track_name'    => '',
+            'grade_name'    => $g > 0 ? $this->grade_name($g) : '',
+            'subject_name'  => $s > 0 ? $this->subject_name($s) : '',
+            'label'         => $bits ? implode(' · ', $bits) : t('حصة خاصة'),
+        );
+    }
+
+    /** اسم النوع كما يعرض — شارة في قائمة تخلط النوعين. */
+    public function kind_label($kind)
+    {
+        return ((string) $kind === self::KIND_FOUNDATION) ? t('تأسيس') : t('منهج');
+    }
+
+    /** يسوي ما وصل من متصفح إلى أحد النوعين — وما سواهما منهج. */
+    public function clean_kind($kind)
+    {
+        $kind = trim((string) $kind);
+        return in_array($kind, self::$KINDS, true) ? $kind : self::KIND_CURRICULUM;
+    }
+
     /**
      * نطاق المعلم: **ما يدرسه فعلا**، صفا ومادة معا.
      *
@@ -742,8 +860,9 @@ class Taqdar_sessions_model extends CI_Model
 
         $out = array();
         foreach ($rows as $r) {
-            $b = (int) $r['start_min'];
-            $e = (int) $r['end_min'];
+            $b  = (int) $r['start_min'];
+            $e  = (int) $r['end_min'];
+            $sc = $this->scope_of($r);
             $out[] = array(
                 'id'         => (int) $r['id'],
                 'dow'        => (int) $r['dow'],
@@ -757,6 +876,10 @@ class Taqdar_sessions_model extends CI_Model
                 'grade_name'   => $this->grade_name((int) $r['grade_id']),
                 'subject_id'   => (int) ($r['subject_id'] ?? 0),
                 'subject_name' => $this->subject_name((int) ($r['subject_id'] ?? 0)),
+                'kind'         => $sc['kind'],
+                'track_id'     => $sc['track_id'],
+                'track_name'   => $sc['track_name'],
+                'scope_text'   => $sc['label'],
                 'slots'        => intdiv(max(0, $e - $b), $len),
             );
         }
@@ -796,24 +919,31 @@ class Taqdar_sessions_model extends CI_Model
             return array('ok' => false, 'msg' => $msg, 'count' => 0, 'slots' => 0);
         };
 
-        /* معلم بلا صف واحد لا يفتح وقتا — ولا يقال له «حفظ» ثم لا يظهر
-           لأحد. والرسالة تقول الطريق: الصفوف تشتق من كورساته، فمن لا كورس
-           له يفتح كورسا أو يراجع الإدارة. */
-        if (!$mine) {
-            return $bad('لا صف لك بعد، فلا تفتح وقتا لأحد. الصفوف تشتق من كورساتك — '
-                      . 'افتح كورسا في صفك أو راجع الإدارة لتسند إليك صفا.');
+        /* TQ-FOUNDATION — والنطاق بابان لا باب.
+           معلم التأسيس قد لا يملك كورسا واحدا، والشرط القديم يرده كله:
+           «لا صف لك بعد» على من أسند إليه المسؤول مسار تأسيس بالأمس.
+           فالمنع إنما يقع على من لا هذا ولا ذاك. */
+        $this->load->model('taqdar_foundation_model');
+        $tracks = $this->taqdar_foundation_model->teacher_tracks($teacher_id);
+
+        if (!$mine && !$tracks) {
+            return $bad('لا نطاق لك بعد، فلا تفتح وقتا لأحد. حصص المنهج تحتاج صفا ومادة '
+                      . 'يشتقان من كورساتك، وحصص التأسيس تحتاج مسارا تسنده إليك الإدارة. '
+                      . 'افتح كورسا في صفك، أو راجع الإدارة لتسند إليك مسار تأسيس.');
         }
-        if (!$scope['subjects']) {
+        if ($mine && !$scope['subjects']) {
             return $bad('لا مادة لك بعد، فلا تفتح وقتا لأحد. المواد تشتق من كورساتك — '
                       . 'افتح كورسا أو راجع الإدارة لتسند إليك مادة.');
         }
 
         foreach ((array) $rows as $r) {
-            $dow = isset($r['dow']) && $r['dow'] !== '' ? (int) $r['dow'] : -1;
-            $b   = $this->hhmm_to_min(isset($r['from']) ? $r['from'] : '');
-            $e   = $this->hhmm_to_min(isset($r['to'])   ? $r['to']   : '');
-            $g   = isset($r['grade_id'])   ? (int) $r['grade_id']   : 0;
-            $j   = isset($r['subject_id']) ? (int) $r['subject_id'] : 0;
+            $dow  = isset($r['dow']) && $r['dow'] !== '' ? (int) $r['dow'] : -1;
+            $b    = $this->hhmm_to_min(isset($r['from']) ? $r['from'] : '');
+            $e    = $this->hhmm_to_min(isset($r['to'])   ? $r['to']   : '');
+            $g    = isset($r['grade_id'])   ? (int) $r['grade_id']   : 0;
+            $j    = isset($r['subject_id']) ? (int) $r['subject_id'] : 0;
+            $kind = $this->clean_kind(isset($r['kind']) ? $r['kind'] : self::KIND_CURRICULUM);
+            $trk  = isset($r['track_id']) ? (int) $r['track_id'] : 0;
 
             /* السطر الفارغ يتخطى ولا يرد: الشاشة تبقي سطرا فارغا في ذيلها
                ليكتب فيه التالي، ورده بخطأ يمنع الحفظ على من لم يخطئ. */
@@ -837,6 +967,40 @@ class Taqdar_sessions_model extends CI_Model
                 return $bad('مدة الحصة ' . $len . ' دقيقة، فلا يفرش موعد واحد من ' . $day . ' '
                     . $this->span_text($b, $e) . '. وسع الوقت أو راجع الإدارة في مدة الحصة.');
             }
+            /* TQ-FOUNDATION — وقت التأسيس يفحص بمساره لا بصفه.
+               والصف والمادة يكتبان صفرا: حقنهما هنا يجعل ترشيح الطالب
+               بصفه يمحو من شاشته معلما يصلح له تماما — التأسيس مستوى
+               لا مقرر صف. */
+            if ($kind === self::KIND_FOUNDATION) {
+                if ($trk <= 0) {
+                    return $bad('اختر مسار التأسيس ليوم ' . $day . '. والمسارات المعروضة هي '
+                              . 'ما أسندته إليك الإدارة.');
+                }
+                if (!isset($tracks[$trk])) {
+                    return $bad('مسار تأسيس غير مسند إليك، في يوم ' . $day . '. '
+                              . 'راجع الإدارة لتسنده إليك، أو اختر مسارا من مساراتك.');
+                }
+
+                foreach (isset($by_day[$dow]) ? $by_day[$dow] : array() as $prev) {
+                    if ($b < $prev[1] && $prev[0] < $e) {
+                        return $bad('موعدان متداخلان في ' . $day . ': '
+                            . $this->span_text($prev[0], $prev[1]) . ' و' . $this->span_text($b, $e)
+                            . '. ولا تعطى حصتان في وقت واحد.');
+                    }
+                }
+
+                $by_day[$dow][] = array($b, $e);
+                $clean[] = array('dow' => $dow, 'start_min' => $b, 'end_min' => $e,
+                                 'grade_id' => 0, 'subject_id' => 0,
+                                 'kind' => self::KIND_FOUNDATION, 'track_id' => $trk);
+                continue;
+            }
+
+            if (!$mine) {
+                return $bad('لا صف لك بعد فلا تفتح وقت منهج في يوم ' . $day . '. '
+                          . 'الصفوف تشتق من كورساتك — أو اجعل هذا الوقت وقت تأسيس.');
+            }
+
             /* **والصف مطلوب لا اختياري**: «كل الصفوف» تعني وقتا يقبل فيه
                صاحبه طالبا لا يدرس له، فيجلس معه ساعة لا تفيده — وقد دفع
                ثمنها. والصفر يبقى مقروءا في القاعدة لما فتح قبل اليوم، ولا
@@ -874,7 +1038,8 @@ class Taqdar_sessions_model extends CI_Model
 
             $by_day[$dow][] = array($b, $e);
             $clean[] = array('dow' => $dow, 'start_min' => $b, 'end_min' => $e,
-                             'grade_id' => $g, 'subject_id' => $j);
+                             'grade_id' => $g, 'subject_id' => $j,
+                             'kind' => self::KIND_CURRICULUM, 'track_id' => 0);
         }
 
         $now = date('Y-m-d H:i:s');
@@ -883,10 +1048,11 @@ class Taqdar_sessions_model extends CI_Model
             foreach ($clean as $c) {
                 $this->db->query(
                     'INSERT IGNORE INTO `tq_teacher_windows`
-                       (`teacher_id`,`dow`,`start_min`,`end_min`,`grade_id`,`subject_id`,`created_at`)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)',
+                       (`teacher_id`,`dow`,`start_min`,`end_min`,`grade_id`,`subject_id`,
+                        `kind`,`track_id`,`created_at`)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     array($teacher_id, $c['dow'], $c['start_min'], $c['end_min'],
-                          $c['grade_id'], $c['subject_id'], $now)
+                          $c['grade_id'], $c['subject_id'], $c['kind'], $c['track_id'], $now)
                 );
             }
         } catch (Throwable $e) {
@@ -948,7 +1114,9 @@ class Taqdar_sessions_model extends CI_Model
                     $k = date('Y-m-d H:i:s', $ts);
                     if (isset($want[$k])) continue;
                     $want[$k] = array($len, (int) $w['grade_id'], (int) $w['id'],
-                                      (int) ($w['subject_id'] ?? 0));
+                                      (int) ($w['subject_id'] ?? 0),
+                                      $this->clean_kind($w['kind'] ?? self::KIND_CURRICULUM),
+                                      (int) ($w['track_id'] ?? 0));
                 }
             }
         }
@@ -968,12 +1136,15 @@ class Taqdar_sessions_model extends CI_Model
         foreach ($want as $dt => $meta) {
             $this->db->query(
                 'INSERT IGNORE INTO availability_slots
-                   (teacher_id, starts_at, duration_min, status, grade_id, window_id, subject_id)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)',
-                array($teacher_id, $dt, $meta[0], 'open', $meta[1], $meta[2], $meta[3])
+                   (teacher_id, starts_at, duration_min, status, grade_id, window_id,
+                    subject_id, kind, track_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                array($teacher_id, $dt, $meta[0], 'open', $meta[1], $meta[2], $meta[3],
+                      $meta[4], $meta[5])
             );
-            /* والمفتوح يتبع قاعدته: من غير صف نافذته، أو تغيرت مدة الحصة
-               تحته، يصحح صفه المفتوح — والمحجوز لا يمس. */
+            /* والمفتوح يتبع قاعدته: من غير صف نافذته، أو حولها من منهج
+               إلى تأسيس، أو تغيرت مدة الحصة تحته، يصحح المفتوح — والمحجوز
+               لا يمس، فحصة طلبت أمس تبقى بنوعها ومسارها كما طلبت. */
             $this->db->where('teacher_id', $teacher_id)->where('starts_at', $dt)
                      ->where('status', 'open')
                      ->update('availability_slots', array(
@@ -981,6 +1152,8 @@ class Taqdar_sessions_model extends CI_Model
                          'grade_id'     => $meta[1],
                          'window_id'    => $meta[2],
                          'subject_id'   => $meta[3],
+                         'kind'         => $meta[4],
+                         'track_id'     => $meta[5],
                      ));
         }
 
@@ -1040,21 +1213,42 @@ class Taqdar_sessions_model extends CI_Model
      *
      * @param int $limit_teachers أقصى عدد معلمين
      * @param int $limit_slots    أقصى عدد مواعيد لكل معلم
-     * @param int $subject_id     تصفية بمادة من `subjects` (٠ = الكل)
-     * @param int $grade_id       صف الطالب (٠ = بلا ترشيح)
+     * **وTQ-FOUNDATION — والنوع يرشح قبل الصف.** البابان لا يخلطان:
+     * شاشة «حصص بالطلب» تعرض حصص المنهج، وشاشة «التأسيس» تعرض التأسيس
+     * وحده. وخلطهما يجعل طالبا فتح قسم التأسيس يرى مواعيد منهج صف لا
+     * يريده، ومعلما فتح وقت تأسيس يصله طلب شرح لدرس في كتاب.
+     *
+     * **والصف لا يرشح في التأسيس أصلا**: مواعيده بصفر صف بحكم الحفظ،
+     * والترشيح بصف الطالب كان يمرها (`IN (0, صفه)`) — والشرط يحذف هنا
+     * صراحة لا يعتمد على الصفر: صفر بمعنى «كل الصفوف» في المنهج شيء،
+     * و«لا صف لهذا القسم أصلا» شيء آخر، واتكاء أحدهما على الآخر يجعل
+     * تشديد الترشيح غدا يفرغ قسم التأسيس بلا أن يقصد أحد.
+     *
+     * @param int    $subject_id تصفية بمادة من `subjects` (٠ = الكل)
+     * @param int    $grade_id   صف الطالب (٠ = بلا ترشيح)
+     * @param string $kind       نوع الوقت — منهج أو تأسيس
+     * @param int    $track_id   مسار التأسيس (٠ = كل المسارات)
      */
-    public function available_teachers($limit_teachers = 12, $limit_slots = 6, $subject_id = 0, $grade_id = 0)
+    public function available_teachers($limit_teachers = 12, $limit_slots = 6, $subject_id = 0,
+                                       $grade_id = 0, $kind = self::KIND_CURRICULUM, $track_id = 0)
     {
         $this->install_schema();
-        $now = date('Y-m-d H:i:s');
+        $now  = date('Y-m-d H:i:s');
+        $kind = $this->clean_kind($kind);
 
         $this->db->select('s.id AS slot_id, s.starts_at, s.duration_min, s.grade_id, s.subject_id,
+                           s.kind, s.track_id,
                            u.id AS teacher_id, u.first_name, u.last_name, u.image, u.title')
                  ->from('availability_slots s')
                  ->join('users u', 'u.id = s.teacher_id', 'inner')
                  ->where('s.status', 'open')
+                 ->where('s.kind', $kind)
                  ->where('s.starts_at >', $now);
-        if ((int) $grade_id > 0) $this->db->where_in('s.grade_id', array(0, (int) $grade_id));
+        if ($kind === self::KIND_FOUNDATION) {
+            if ((int) $track_id > 0) $this->db->where('s.track_id', (int) $track_id);
+        } elseif ((int) $grade_id > 0) {
+            $this->db->where_in('s.grade_id', array(0, (int) $grade_id));
+        }
         $this->teacher_filter('u');
         $rows = $this->db->order_by('s.starts_at', 'ASC')->limit(600)->get()->result_array();
 
@@ -1069,7 +1263,7 @@ class Taqdar_sessions_model extends CI_Model
                والموعد بلا مادة (ما فتح قبل TQ-SESSION-GRID) يرتد إلى مواد
                معلمه كما كان، فلا يسقط من الشاشة. */
             $slot_subject = (int) ($r['subject_id'] ?? 0);
-            if ($subject_id > 0) {
+            if ($subject_id > 0 && $kind === self::KIND_CURRICULUM) {
                 if ($slot_subject > 0) {
                     if ($slot_subject !== (int) $subject_id) continue;
                 } else {
@@ -1086,13 +1280,19 @@ class Taqdar_sessions_model extends CI_Model
                     'name'    => $name !== '' ? $name : 'معلم',
                     'image'   => (string) $r['image'],
                     'title'   => trim((string) $r['title']),
-                    'subject' => $subjects['name'][$tid] ?? '',
-                    'pricing' => $this->pricing_for($tid),
+                    'subject' => $kind === self::KIND_FOUNDATION ? '' : ($subjects['name'][$tid] ?? ''),
+                    'kind'    => $kind,
+                    /* TQ-FOUNDATION — وثمن التأسيس ثمن مساره أولا: بطاقة
+                       تعرض التسعيرة العامة ثم تصدر فاتورة بسعر المسار
+                       تعد بسعر وتقبض غيره. والحاسبة واحدة للشاشة
+                       وللفاتورة (`request_session()` تناديها بعينها). */
+                    'pricing' => $this->pricing_of_slot($kind, (int) ($r['track_id'] ?? 0), $tid),
                     'slots'   => [],
                 ];
             }
             if (count($out[$tid]['slots']) >= (int) $limit_slots) continue;
 
+            $sc = $this->scope_of($r);
             $out[$tid]['slots'][] = [
                 'id'           => (int) $r['slot_id'],
                 'starts_at'    => $r['starts_at'],
@@ -1102,7 +1302,25 @@ class Taqdar_sessions_model extends CI_Model
                 'grade_name'   => $this->grade_name((int) ($r['grade_id'] ?? 0)),
                 'subject_id'   => $slot_subject,
                 'subject_name' => $this->subject_name($slot_subject),
+                'kind'         => $sc['kind'],
+                'track_id'     => $sc['track_id'],
+                'track_name'   => $sc['track_name'],
+                'scope_text'   => $sc['label'],
             ];
+        }
+
+        /* وسطر البطاقة في التأسيس مساراته المعروضة لا مادته: معلم يدرس
+           التأسيس ويملك كورس رياضيات كان يقرأ تحت اسمه «الرياضيات» وكل
+           مواعيده المعروضة تأسيس لغة. */
+        if ($kind === self::KIND_FOUNDATION) {
+            foreach ($out as $tid => $t) {
+                $names = array();
+                foreach ($t['slots'] as $sl) {
+                    if ((string) $sl['track_name'] !== '') $names[$sl['track_name']] = true;
+                }
+                $out[$tid]['subject'] = implode(' · ', array_keys($names));
+            }
+            return array_values($out);
         }
 
         /* ومادة البطاقة تشتق من **المعروض** لا من أول مادة للمعلم: من يدرس
@@ -1223,14 +1441,21 @@ class Taqdar_sessions_model extends CI_Model
             }
         }
 
-        $p   = $this->pricing_for((int) $slot['teacher_id']);
-        $now = date('Y-m-d H:i:s');
+        /* TQ-FOUNDATION — النوع والمسار يجمدان على الصف كما يجمد السعر.
+           والموعد قد يحذف بعد انتهاء الحصة، وسعر المسار قد يعدل غدا —
+           وما قرأه الطالب وضغط عليه هو ما يقيد عليه. */
+        $kind  = $this->clean_kind($slot['kind'] ?? self::KIND_CURRICULUM);
+        $track = (int) ($slot['track_id'] ?? 0);
+        $p     = $this->pricing_of_slot($kind, $track, (int) $slot['teacher_id']);
+        $now   = date('Y-m-d H:i:s');
 
         $this->db->insert('tutoring_sessions', [
             'slot_id'               => $slot_id,
             'student_id'            => $student_id,
             'teacher_id'            => (int) $slot['teacher_id'],
             'status'                => 'requested',
+            'kind'                  => $kind,
+            'track_id'              => $track,
             'price_halalas'         => $p['price'],
             'teacher_percent'       => $p['percent'],
             'teacher_share_halalas' => $p['share'],
@@ -1279,9 +1504,14 @@ class Taqdar_sessions_model extends CI_Model
         foreach ($rows as $r) {
             $name = trim((string) $r['first_name'] . ' ' . (string) $r['last_name']);
             $j    = $this->join_state($r);
+            $sc   = $this->scope_of($r);
             $out[] = [
                 'id'           => (int) $r['id'],
                 'status'       => $r['status'],
+                'kind'         => $sc['kind'],
+                'track_id'     => $sc['track_id'],
+                'track_name'   => $sc['track_name'],
+                'scope_text'   => $sc['label'],
                 'student_id'   => (int) $r['student_id'],
                 'student_name' => $name !== '' ? $name : 'طالب',
                 'image'        => (string) $r['image'],
@@ -1689,9 +1919,18 @@ class Taqdar_sessions_model extends CI_Model
             $name = $this->student_name((int) $row['student_id']);
             $when = !empty($row['starts_at']) ? date('Y-m-d', strtotime($row['starts_at'])) : date('Y-m-d');
 
+            /* TQ-SESSION-LABEL — وسطر الدفتر يقول **ماذا درس**.
+               كان «حصة خاصة» على كل حصة، وهو محتمل يوم كانت الحصص نوعا
+               واحدا؛ وصار كاذبا يوم صار للتأسيس مساره: معلم يدرس المنهج
+               والتأسيس معا يقرأ كشف حسابه فلا يعرف أي سطر من أيهما.
+               والاسم من `scope_of()` وحدها — و`$row` يحمل `kind` من
+               `t.*` فالفرع يقرؤه بلا استعلام ثان. */
+            $sc   = $this->scope_of($row);
+            $what = $sc['is_foundation'] ? $sc['track_name'] : t('حصة خاصة');
+
             $r = $this->taqdar_wallet_model->credit_session(
                 (int) $row['teacher_id'], (int) $row['id'], $price, $share,
-                'حصة خاصة — ' . $name . ' — ' . $when
+                $what . ' — ' . $name . ' — ' . $when
             );
             if (!empty($r['ok'])) {
                 $this->db->where('id', (int) $row['id'])
@@ -1883,7 +2122,11 @@ class Taqdar_sessions_model extends CI_Model
 
         /* ١ — طلب بلا رد. */
         $cut  = date('Y-m-d H:i:s', $now - $c['pay_hours'] * 3600);
-        $rows = $this->db->select('t.id, t.slot_id, t.teacher_id, t.student_id, t.invoice_id, a.starts_at')
+        /* TQ-FOUNDATION — والنوع يقرأ مع الصف: الرسالة تدل على الشاشة
+           التي فيها زر الحجز الجديد، وشاشة لا يجد فيها صاحبها ما يبحث
+           عنه تقرأ عطلا. */
+        $rows = $this->db->select('t.id, t.slot_id, t.teacher_id, t.student_id, t.invoice_id,
+                                   t.kind, t.track_id, a.starts_at')
                          ->from('tutoring_sessions t')
                          ->join('availability_slots a', 'a.id = t.slot_id', 'left')
                          ->where('t.status', 'requested')
@@ -1900,9 +2143,11 @@ class Taqdar_sessions_model extends CI_Model
             if ($this->db->affected_rows() < 1) continue;
             $out['expired_requests']++;
             $this->release_slot($r);
+            $sc = $this->scope_of($r);
             $this->tell((int) $r['student_id'], 'ألغي طلب حصتك',
                 'مضت مهلة رد المعلم على طلبك، فألغي تلقائيا وعاد الموعد متاحا. '
-                . 'لم يخصم منك شيء — اختر موعدا آخر من «حصص بالطلب».');
+                . 'لم يخصم منك شيء — اختر موعدا آخر من شاشة '
+                . ($sc['is_foundation'] ? '«التأسيس»' : '«حصص بالطلب»') . '.');
             $this->tell((int) $r['teacher_id'], 'ألغي طلب حصة لم ترد عليه',
                 'مضت مهلة الرد على طلب حصة، فألغي وعاد الموعد متاحا في جدولك.');
         }
@@ -2020,18 +2265,26 @@ class Taqdar_sessions_model extends CI_Model
         foreach ($rows as $r) {
             $name = trim((string) $r['first_name'] . ' ' . (string) $r['last_name']);
             $j    = $this->join_state($r);
+            $sc   = $this->scope_of($r);
 
             $out[] = [
                 'id'            => (int) $r['id'],
                 'status'        => $r['status'],
+                'kind'          => $sc['kind'],
+                'track_id'      => $sc['track_id'],
+                'track_name'    => $sc['track_name'],
+                'scope_text'    => $sc['label'],
                 'tutor'         => $name !== '' ? $name : 'معلم',
                 'tutor_id'      => (int) $r['tutor_id'],
                 'image'         => (string) $r['image'],
                 /* مادة **الموعد** أولا: هي التي فتح لها معلمه وقته، ومادة
-                   المعلم الأولى تكذب على من يدرس مادتين. */
-                'subject'       => $this->subject_name((int) ($r['subject_id'] ?? 0)) !== ''
-                                     ? $this->subject_name((int) ($r['subject_id'] ?? 0))
-                                     : ($subjects['name'][(int) $r['tutor_id']] ?? 'حصة خاصة'),
+                   المعلم الأولى تكذب على من يدرس مادتين. وحصة التأسيس
+                   اسم مسارها — لا مادة لها أصلا. */
+                'subject'       => $sc['is_foundation']
+                                     ? $sc['track_name']
+                                     : ($this->subject_name((int) ($r['subject_id'] ?? 0)) !== ''
+                                        ? $this->subject_name((int) ($r['subject_id'] ?? 0))
+                                        : ($subjects['name'][(int) $r['tutor_id']] ?? 'حصة خاصة')),
                 'subject_id'    => (int) ($r['subject_id'] ?? 0),
                 'starts_at'     => $r['starts_at'],
                 'when_text'     => $r['starts_at'] ? $this->when_text($r['starts_at'], (int) $r['duration_min']) : 'بلا موعد',

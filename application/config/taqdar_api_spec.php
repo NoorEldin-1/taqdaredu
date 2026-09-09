@@ -2927,6 +2927,38 @@ $spec = array(
     ),
 ),
 
+/* ---- Foundation (TQ-FOUNDATION) ------------------------------------ */
+
+'/api/v1/student/foundation' => array('get' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Foundation section — tracks, teachers and bookings',
+    'description' => implode("\n", array(
+        'The foundation section is a **separate product** from plans and paths: one-to-one live',
+        'sessions that start where the student is, not where their grade is. Arabic and English',
+        'literacy today; the tracks are admin-managed rows, so the list grows without a release.',
+        '',
+        'It runs on the **same engine** as `/student/sessions` — same slots, same lifecycle, same',
+        'invoice, same teacher wallet credit. Request, pay and cancel therefore go to the',
+        '`student/sessions` endpoints; a second request endpoint would mean a second guard that',
+        'drifts from the first.',
+        '',
+        '**No grade filter here, deliberately.** Foundation slots carry no grade and no subject:',
+        'foundation is a level, not a syllabus. Filtering by the student grade would erase teachers',
+        'who suit them exactly. Use `?track=` to narrow instead.',
+        '',
+        '`enabled` is false when no track is published — then the section has no entry point at all,',
+        'and the client should hide it rather than show an empty screen.',
+        '',
+        'Prices come from `pricing_for()`: the track price when set, else the teacher exception, else',
+        'the platform rate — the same resolver that freezes the price onto the row at request time.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'track', 'in' => 'query', 'required' => false,
+                                'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'),
+                         '401' => $r_401, '403' => $r_403, '429' => $r_429),
+)),
+
 '/api/v1/student/sessions/{id}/pay' => array('post' => array(
     'tags' => array('Sessions'),
     'summary' => 'Pay for a confirmed session',

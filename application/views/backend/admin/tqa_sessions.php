@@ -85,13 +85,38 @@ $tap_ready = !empty($tap_ready);
     </div>
 <?php endif; ?>
 
+<?php
+/* TQ-FOUNDATION — والنوع مرشح ثان: الشاشة صارت شاشة بابين، ومن يتابع
+   التأسيس لا يريد أن يقلب في حصص المنهج ليجد ثلاثا.
+   والمرشحان **يجتمعان في الرابط**: من رشح بالنوع ثم ضغط حالة يفقد نوعه
+   لو بني الرابط من الحالة وحدها، فيقرأ قائمة أوسع مما طلب ويظنها نتيجته. */
+$tq_kind = isset($kind) ? (string) $kind : '';
+$tq_url  = function ($over = array()) use ($status, $tq_kind) {
+    $q = array_filter(array('status' => $status, 'kind' => $tq_kind) + array(), 'strlen');
+    foreach ($over as $k => $v) {
+        if ((string) $v === '') unset($q[$k]); else $q[$k] = $v;
+    }
+    return site_url('taqdar_admin/sessions' . ($q ? '?' . http_build_query($q) : ''));
+};
+?>
+<div class="tqa-tabs" style="margin-block-end:var(--tq-space-m)">
+    <a href="<?php echo $tq_url(array('kind' => '')); ?>"
+       <?php echo $tq_kind === '' ? 'aria-current="page"' : ''; ?>><?php echo t('كل الأنواع'); ?></a>
+    <a href="<?php echo $tq_url(array('kind' => 'curriculum')); ?>"
+       <?php echo $tq_kind === 'curriculum' ? 'aria-current="page"' : ''; ?>><?php echo t('حصص المنهج'); ?></a>
+    <a href="<?php echo $tq_url(array('kind' => 'foundation')); ?>"
+       <?php echo $tq_kind === 'foundation' ? 'aria-current="page"' : ''; ?>><?php echo t('التأسيس'); ?></a>
+</div>
+
 <?php /* المرشحات: العدد جزء من التسمية — «بانتظار رد» بلا رقم لا تخبر
-         إن كان الانتظار واحدا أو أربعين. */ ?>
+         إن كان الانتظار واحدا أو أربعين.
+         والعدد يعد **كل** الحصص لا المرشحة بالنوع: `session_tally()`
+         تجيب «كم في المنصة»، ورقم يتحرك مع مرشح آخر يقرأ عطلا. */ ?>
 <div class="tqa-tabs">
-    <a href="<?php echo site_url('taqdar_admin/sessions'); ?>"
+    <a href="<?php echo $tq_url(array('status' => '')); ?>"
        <?php echo $status === '' ? 'aria-current="page"' : ''; ?>><?php echo t('الكل'); ?></a>
     <?php foreach ($labels as $k => $label): ?>
-        <a href="<?php echo site_url('taqdar_admin/sessions?status=' . $k); ?>"
+        <a href="<?php echo $tq_url(array('status' => $k)); ?>"
            <?php echo $status === $k ? 'aria-current="page"' : ''; ?>>
             <?php echo html_escape($label); ?>
             <?php if (!empty($tally[$k])): ?>
@@ -159,12 +184,24 @@ $tap_ready = !empty($tap_ready);
                              الموعد لا سؤال يمسح به الجدول. و«كل الصفوف»
                              لا تكتب — هي حال أكثر ما في القاعدة، وكتابتها
                              في كل صف ضجيج لا خبر. */ ?>
-                    <?php if ((int) ($r['grade_id'] ?? 0) > 0): ?>
-                        <br><span class="tqa-badge tqa-badge--muted"><?php
-                            echo html_escape($r['grade_name'] ?: t('صف') . ' #' . (int) $r['grade_id']); ?></span>
-                    <?php endif; ?>
-                    <?php if (!empty($r['subject_name'])): ?>
-                        <span class="tqa-badge tqa-badge--info"><?php echo html_escape($r['subject_name']); ?></span>
+                    <?php /* TQ-FOUNDATION — وحصة التأسيس تقول مسارها مكان
+                             صفها ومادتها: لا صف لها ولا مادة، وصف يقرأ
+                             فارغا في العمودين يخفي عن المسؤول **ماذا بيع**
+                             — وهو أول ما يسأل عنه من يفتح هذه الشاشة. */ ?>
+                    <?php if ((string) ($r['kind'] ?? '') === 'foundation'): ?>
+                        <br><span class="tqa-badge tqa-badge--ok"><?php echo t('تأسيس'); ?></span>
+                        <span class="tqa-badge tqa-badge--info"><?php
+                            echo html_escape($r['track_name'] !== null && $r['track_name'] !== ''
+                                ? $r['track_name']
+                                : t('مسار محذوف') . ' #' . (int) ($r['track_id'] ?? 0)); ?></span>
+                    <?php else: ?>
+                        <?php if ((int) ($r['grade_id'] ?? 0) > 0): ?>
+                            <br><span class="tqa-badge tqa-badge--muted"><?php
+                                echo html_escape($r['grade_name'] ?: t('صف') . ' #' . (int) $r['grade_id']); ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($r['subject_name'])): ?>
+                            <span class="tqa-badge tqa-badge--info"><?php echo html_escape($r['subject_name']); ?></span>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </td>
                 <td data-label="<?php echo te('الطالب'); ?>">

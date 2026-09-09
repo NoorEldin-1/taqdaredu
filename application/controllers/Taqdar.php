@@ -240,6 +240,19 @@ class Taqdar extends CI_Controller
     public function on_demand()      { $this->student('tq_on_demand', 'حصص بالطلب'); }
 
     /**
+     * TQ-FOUNDATION — قسم التأسيس في بوابة الطالب.
+     *
+     * وباب ثان بجوار «حصص بالطلب» لا بديل عنه: ذاك يشرح درسا من منهج
+     * صفه، وهذا يبدأ من الصفر بلا صف ولا مادة. وشاشة واحدة تخلطهما ترشح
+     * بالصف فتمحو التأسيس من شاشة كل طالب — مواعيده بلا صف بحكم الحفظ.
+     *
+     * **وبلا مسار منشور لا باب**: البند يخفى من القائمة، ومن بلغ الرابط
+     * يقرأ الشاشة بحالها الفارغة — لا 404: القسم قائم، وإنما لا مسار
+     * فيه بعد، والفرق بين «لا يوجد» و«لم يفتح بعد» يقود إلى فعلين.
+     */
+    public function foundation()     { $this->student('tq_foundation', 'التأسيس'); }
+
+    /**
      * الشاشات التي تبقى مفتوحة قبل أداء الاختبار التشخيصي.
      *
      * قائمة سماح لا قائمة منع: شاشة تضاف إلى البوابة غدا تدخل تحت الحارس
@@ -2053,6 +2066,12 @@ class Taqdar extends CI_Controller
         $tos    = (array) $this->input->post('win_to');
         $grades = (array) $this->input->post('win_grade');
         $subs   = (array) $this->input->post('win_subject');
+        /* TQ-FOUNDATION — وسادسة وسابعة بالفهرس نفسه: نوع الوقت ومساره.
+           والقراءة بالفهرس هنا أشد لزوما مما كانت: سطر تأسيس يزحف على
+           سطر منهج لا يعطي وقتا خاطئا وحده — يعطي **نوعا** خاطئا، فيفتح
+           وقت مسار للغة الإنجليزية على أنه شرح رياضيات للصف الثالث. */
+        $kinds  = (array) $this->input->post('win_kind');
+        $tracks = (array) $this->input->post('win_track');
 
         $rows = array();
         foreach ($dows as $i => $d) {
@@ -2062,6 +2081,8 @@ class Taqdar extends CI_Controller
                 'to'         => isset($tos[$i])    && is_scalar($tos[$i])    ? trim((string) $tos[$i])    : '',
                 'grade_id'   => isset($grades[$i]) && is_scalar($grades[$i]) ? (int) $grades[$i]          : 0,
                 'subject_id' => isset($subs[$i])   && is_scalar($subs[$i])   ? (int) $subs[$i]            : 0,
+                'kind'       => isset($kinds[$i])  && is_scalar($kinds[$i])  ? trim((string) $kinds[$i])  : '',
+                'track_id'   => isset($tracks[$i]) && is_scalar($tracks[$i]) ? (int) $tracks[$i]          : 0,
             );
         }
 
@@ -2212,9 +2233,31 @@ class Taqdar extends CI_Controller
 
         if (!empty($r['ok'])) $this->notify_session_requested($r, $uid);
 
-        $back = trim((string) $this->input->post('subject', true));
-        $this->done('student/on-demand' . ($back !== '' ? '?subject=' . rawurlencode($back) : ''),
-            !empty($r['ok']), isset($r['msg']) ? $r['msg'] : 'أرسل طلبك.');
+        $this->done($this->session_back(), !empty($r['ok']),
+            isset($r['msg']) ? $r['msg'] : 'أرسل طلبك.');
+    }
+
+    /**
+     * TQ-FOUNDATION — إلى أي شاشة يعود من كتب؟
+     *
+     * صار للحصص بابان: «حصص بالطلب» للمنهج و«التأسيس» لمسارات التأسيس،
+     * وثلاثة مسارات كتابة تخدمهما معا (طلب · دفع · إلغاء). ومسار كتابة
+     * يعود دائما إلى الأول يخرج من طلب حصة تأسيس إلى شاشة لا يجد فيها
+     * حجزه ولا معلمه — فيظن أن طلبه لم يصل ويعيده.
+     *
+     * والوجهة **تشتق من قائمة مغلقة** لا تؤخذ من الطلب كما جاء: `back`
+     * حقل يكتبه من يشاء، وتحويل إلى ما يرسله يجعل النموذج بابا إلى أي
+     * موقع (فتح تحويل). فالمرسل يقول «تأسيس» أو لا يقول، والوجهة تكتب هنا.
+     */
+    private function session_back()
+    {
+        if ((string) $this->input->post('back') === 'foundation') {
+            $track = (int) $this->input->post('track_id');
+            return 'student/foundation' . ($track > 0 ? '?track=' . $track : '');
+        }
+
+        $subject = trim((string) $this->input->post('subject', true));
+        return 'student/on-demand' . ($subject !== '' ? '?subject=' . rawurlencode($subject) : '');
     }
 
     /** يخبر المعلم أن طلبا ينتظر رده — وإلا لم يعرف إلا إن فتح شاشته. */
@@ -2255,7 +2298,7 @@ class Taqdar extends CI_Controller
                         ->get('tutoring_sessions')->row_array();
 
         if (!$row || $row['status'] !== 'awaiting_payment' || (int) $row['invoice_id'] <= 0) {
-            $this->done('student/on-demand', false,
+            $this->done($this->session_back(), false,
                 'هذه الحصة ليست في انتظار الدفع. حدث الصفحة واقرأ حالها.');
         }
 
@@ -2263,14 +2306,14 @@ class Taqdar extends CI_Controller
         if (!$this->taqdar_tap_model->ready()) {
             /* بلا مفاتيح بوابة لا يعرض للطالب زر دفع أصلا، وهذا الباب
                يبلغه لو وصل بطريق آخر: يقال له كيف يدفع لا «تعذر». */
-            $this->done('student/on-demand', false,
+            $this->done($this->session_back(), false,
                 'الدفع بالبطاقة غير مفعل حاليا. ادفع بالتحويل البنكي وأبلغ الإدارة برقم الفاتورة '
                 . ((string) $this->invoice_no_of((int) $row['invoice_id'])) . '.');
         }
 
         $r = $this->taqdar_tap_model->start((int) $row['invoice_id'], $uid);
         if (empty($r['ok'])) {
-            $this->done('student/on-demand', false, implode(' ', (array) $r['errors']));
+            $this->done($this->session_back(), false, implode(' ', (array) $r['errors']));
         }
 
         // تحويل إلى خارج الموقع بلا صفحة وسيطة — كل شاشة بين الضغط والدفع تسقط مشترين
@@ -2313,7 +2356,7 @@ class Taqdar extends CI_Controller
             } catch (Throwable $e) { /* الإلغاء وقع فعلا */ }
         }
 
-        $this->done('student/on-demand', !empty($r['ok']),
+        $this->done($this->session_back(), !empty($r['ok']),
             isset($r['msg']) ? $r['msg'] : 'حفظ.');
     }
 
@@ -2322,7 +2365,7 @@ class Taqdar extends CI_Controller
     {
         try {
             $row = $this->db->query(
-                'SELECT s.student_id, s.status, a.starts_at, a.duration_min
+                'SELECT s.student_id, s.status, s.kind, s.track_id, a.starts_at, a.duration_min
                    FROM `tutoring_sessions` s
               LEFT JOIN `availability_slots` a ON a.id = s.slot_id
                   WHERE s.id = ? AND s.teacher_id = ? LIMIT 1',
@@ -2334,6 +2377,15 @@ class Taqdar extends CI_Controller
             $when = !empty($row['starts_at'])
                 ? $this->taqdar_sessions_model->when_text($row['starts_at'], (int) $row['duration_min']) : '';
 
+            /* TQ-FOUNDATION — والرسالة تدل على **الشاشة التي فيها الزر**.
+               زر الدفع في شاشة القسم الذي حجز منه: حصة تأسيس لا تظهر في
+               «حصص بالطلب» أصلا (الشاشتان تفرزان بالنوع). ورسالة تقول
+               «ادفع من حصص بالطلب» ترسل صاحبها إلى شاشة لا يجد فيها
+               حجزه، فيظن الحجز ضاع ومهلته تجري. */
+            $sc     = $this->taqdar_sessions_model->scope_of($row);
+            $screen = $sc['is_foundation'] ? '«التأسيس»' : '«حصص بالطلب»';
+            $what   = $sc['is_foundation'] ? $sc['track_name'] : '';
+
             /* والتأكيد صار جوابين لا جوابا: حصة بلا ثمن تفتح رابطها في
                الحال، وحصة بثمن تنتظر الدفع. ورسالة واحدة تقول «رابط
                الدخول في صفحة حصصك» ترسل طالبا لم يدفع بعد يبحث عن رابط
@@ -2341,17 +2393,22 @@ class Taqdar extends CI_Controller
             $priced = $decision === 'confirm'
                    && (string) ($row['status'] ?? '') === 'awaiting_payment';
 
+            /* واسم ما حجز يدخل في الرسالة: من يحجز حصة تأسيس وحصة منهج
+               في أسبوع واحد يقرأ إشعارين لا يفرق بينهما. */
+            $of = $what !== '' ? ' (' . $what . ')' : '';
+
             if ($decision !== 'confirm') {
                 $title = 'اعتذر المعلم عن حصتك';
-                $text  = 'اعتذر معلمك عن الموعد' . ($when !== '' ? ' — ' . $when : '')
-                       . '، واختر موعدا آخر من حصص بالطلب. ولم يخصم منك شيء.';
+                $text  = 'اعتذر معلمك عن الموعد' . $of . ($when !== '' ? ' — ' . $when : '')
+                       . '، واختر موعدا آخر من شاشة ' . $screen . '. ولم يخصم منك شيء.';
             } elseif ($priced) {
                 $title = 'أكد المعلم حصتك — ادفع لتثبيتها';
-                $text  = 'أكد معلمك الحصة' . ($when !== '' ? ' — ' . $when : '')
-                       . '. ادفع ثمنها من شاشة «حصص بالطلب» قبل انتهاء المهلة، وإلا عاد الموعد لغيرك.';
+                $text  = 'أكد معلمك الحصة' . $of . ($when !== '' ? ' — ' . $when : '')
+                       . '. ادفع ثمنها من شاشة ' . $screen . ' قبل انتهاء المهلة، وإلا عاد الموعد لغيرك.';
             } else {
                 $title = 'أكدت حصتك الخاصة';
-                $text  = 'أكد معلمك الحصة' . ($when !== '' ? ' — ' . $when : '') . '. رابط الدخول في صفحة حصصك.';
+                $text  = 'أكد معلمك الحصة' . $of . ($when !== '' ? ' — ' . $when : '')
+                       . '. رابط الدخول في شاشة ' . $screen . '.';
             }
 
             $this->load->model('taqdar_events_model');
@@ -3224,6 +3281,48 @@ class Taqdar extends CI_Controller
      * قائمة بيضاء لا وسيط حر: `$page_name` يدرج ملفا في الغلاف، فتمرير
      * ما يأتي من الرابط إليه بلا فحص يفتح الباب لقراءة ملفات لم تقصد.
      */
+    /* ---- TQ-FOUNDATION — الصفحة العامة -----------------------------
+       باب ثالث بجوار `/catalog` و`/plans`. وهما يجيبان «ماذا تقدم
+       المنصة؟» و«بكم الاشتراك؟»، وهذا يجيب ما لا يجيبه أيهما: **«وماذا
+       عمن لا يريد منهج صف أصلا؟»**. وإخفاؤه خلف تسجيل الدخول يعني أن من
+       يبحث عن «تأسيس انجليزي» لا يجد المنصة أصلا. */
+
+    public function foundation_page()
+    {
+        $this->load->model('taqdar_foundation_model', 'tq_fnd');
+        $this->load->model('taqdar_sessions_model');
+
+        $tracks = $this->tq_fnd->published();
+        /* لا 404 على قسم بلا مسار: القسم قائم والصفحة تقول ذلك — و404
+           تقول «لا وجود له» فيصرف من جاءه من إعلان. */
+        $this->show('site_foundation', 'التأسيس', array(
+            'tracks' => $tracks,
+            'fnd'    => $this->tq_fnd,
+            'ses'    => $this->taqdar_sessions_model,
+        ));
+    }
+
+    public function foundation_track_page($slug = '')
+    {
+        $this->load->model('taqdar_foundation_model', 'tq_fnd');
+        $this->load->model('taqdar_sessions_model');
+
+        $track = $this->tq_fnd->by_slug($slug);
+        /* والمعطل يرد 404 كما يرد الكتاب غير المنشور: صفحة تعرض منتجا
+           رفعته الإدارة تقبل حجزا لا يقبله الخادم. */
+        if (!$track || !$track['active']) show_404();
+
+        $this->show('site_foundation_track', $track['name'], array(
+            'track'    => $track,
+            'teachers' => $this->tq_fnd->track_teachers((int) $track['id']),
+            'tutors'   => $this->taqdar_sessions_model->available_teachers(
+                              12, 4, 0, 0, 'foundation', (int) $track['id']),
+            'pricing'  => $this->tq_fnd->pricing_for((int) $track['id'], 0),
+            'fnd'      => $this->tq_fnd,
+            'ses'      => $this->taqdar_sessions_model,
+        ));
+    }
+
     public function site_page($name = '')
     {
         $allowed = array(

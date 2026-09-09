@@ -218,6 +218,64 @@ class Taqdar_admin_model extends CI_Model
                 ),
             ),
 
+            /* TQ-FOUNDATION — مسار التأسيس: منتج يباع بالساعة لا بالباقة.
+               وهو وحدة موصوفة لأن كل ما فيه بيان: اسم ووصف وسعر ومن
+               يدرسه. وشاشة تكتب بيد لهذا كانت تعني شاشة ثانية تفترق عن
+               `tqa_form` عند أول نوع حقل يضاف.
+
+               و`teacher_ids` هو **الاسناد**: معلم التأسيس قد لا يملك
+               كورسا واحدا، فلا يشتق نطاقه من المحتوى كما يشتق نطاق معلم
+               المنهج (`teacher_scope()`) — والاشتقاق هو بعينه الباب الذي
+               كان مغلقا في وجهه. وبلا معلم مسند لا يفتح في المسار وقت،
+               فلا يعرض على الطلاب مسار لا أحد يدرسه. */
+            'foundation_tracks' => array(
+                'table'    => 'tq_foundation_tracks',
+                'title'    => 'مسارات التأسيس',
+                'lead'     => 'التأسيس قسم مستقل عن الباقات والمسارات: حصص مباشرة فردية بلا صف ولا منهج.',
+                'icon'     => 'graduation',
+                'ensure'   => 'taqdar_foundation_model',
+                'order_by' => array('order' => 'ASC'),
+                'note'     => 'المسار يظهر للطلاب حين يجتمع له شرطان: أن يكون متاحا، وأن يكون له معلم '
+                            . 'واحد على الأقل فتح وقتا فيه من شاشة «الحصص» في بوابته. وشاشة '
+                            . '«قسم التأسيس» تقول لك أيهما ناقص مسارا بمسار.',
+                'fields'   => array(
+                    'name_ar'         => array('label' => 'اسم المسار', 'type' => 'text', 'required' => true, 'list' => true,
+                                               'hint' => 'كما يقرؤه الطالب — «تأسيس اللغة الإنجليزية». والمستوى جزء من الاسم إن أردت مستويات: «تأسيس اللغة الإنجليزية — مبتدئ».'),
+                    'slug'            => array('label' => 'الاسم في الرابط', 'type' => 'text', 'required' => true,
+                                               'list' => true, 'ltr' => true, 'unique' => true,
+                                               'hint' => 'حروف لاتينية وشرطات — يصير رابط الصفحة العامة /foundation/&lt;الاسم&gt;. ولا يغير بعد النشر: رابط تغير يرد 404 على من حفظه.'),
+                    'tagline'         => array('label' => 'السطر التعريفي', 'type' => 'text', 'list' => true,
+                                               'hint' => 'سطر واحد تحت الاسم في البطاقة.'),
+                    'description'     => array('label' => 'الوصف', 'type' => 'textarea',
+                                               'hint' => 'فقرة تقرأ في صفحة المسار — ماذا يتعلم، وكيف تجري الحصة.'),
+                    'outcomes'        => array('label' => 'ماذا يتقن بعده', 'type' => 'lines',
+                                               'hint' => 'مخرج في كل سطر. وهي وعد يقرؤه المشتري، فلا تكتب ما لا تعطيه الحصة.'),
+                    'image'           => array('label' => 'صورة البطاقة', 'type' => 'file',
+                                               'bucket' => 'foundation', 'img_w' => 1200, 'img_h' => 800,
+                                               'accept' => '.jpg,.jpeg,.png,.webp',
+                                               'hint' => 'ترفع من جهازك وتقص تلقائيا إلى 1200×800 — نسبة البطاقة نفسها. وبلا صورة تعرض البطاقة رمزها.'),
+
+                    'teacher_ids'     => array('label' => 'معلمو المسار', 'type' => 'multiref', 'ref' => 'teachers',
+                                               'list' => true, 'section' => 'من يدرسه وبكم',
+                                               'hint' => 'من تسنده هنا وحده يستطيع أن يفتح وقتا في هذا المسار من بوابته. '
+                                                       . 'ولا يشترط أن يكون له كورس في المنصة — التأسيس لا منهج له.'),
+                    'price_halalas'   => array('label' => 'سعر الحصة', 'type' => 'money', 'list' => true,
+                                               'nullable' => true, 'placeholder' => 'التسعيرة العامة',
+                                               'hint' => 'ثمن الحصة الواحدة في هذا المسار. واتركه فارغا ليأخذ تسعيرة الحصص العامة '
+                                                       . '(أو استثناء المعلم إن كتب له). و«صفر» غير الفارغ: صفر يعني مجانا بقرار.'),
+                    'teacher_percent' => array('label' => 'نصيب المعلم %', 'type' => 'percent', 'list' => true,
+                                               'mirror' => 'عمولة المنصة', 'placeholder' => 'الافتراض العام',
+                                               'hint' => 'ما يقيد في محفظة المعلم من سعر الحصة بعد انتهائها. اتركه فارغا ليأخذ النسبة العامة.'),
+
+                    'featured'        => array('label' => 'مسار مميز', 'type' => 'bool', 'default' => 0,
+                                               'section' => 'العرض والترتيب',
+                                               'hint' => 'يبرز في صفحة التأسيس العامة.'),
+                    'active'          => array('label' => 'متاح', 'type' => 'bool', 'default' => 1, 'list' => true,
+                                               'hint' => 'المعطل لا يظهر لطالب ولا زائر، ولا يفتح فيه معلم وقتا جديدا — وما حجز فيه من حصص يبقى قائما حتى ينعقد.'),
+                    'order'           => array('label' => 'الترتيب', 'type' => 'number', 'default' => 0, 'list' => true),
+                ),
+            ),
+
             'parent_links' => array(
                 'table'    => 'parent_links',
                 'title'    => 'روابط أولياء الأمور',
@@ -1010,8 +1068,14 @@ class Taqdar_admin_model extends CI_Model
                     $data[$name] = $did;
                     break;
                 case 'money':
-                    // يدخل بالريال ويخزن بالهللات — التقريب مرة واحدة هنا
-                    $data[$name] = (int) round(((float) str_replace(',', '', (string) $raw)) * 100);
+                    /* يدخل بالريال ويخزن بالهللات — التقريب مرة واحدة هنا.
+                       و**الفارغ غير الصفر حيث يفرق بينهما** (TQ-NULLNUM):
+                       سعر مسار التأسيس الفارغ يعني «خذ التسعيرة العامة»
+                       والصفر يعني «مجانا بقرار» — وعمود لا يفرق بينهما
+                       يجعل مسؤولا يصحح حرفا في اسم المسار فيصير مجانيا. */
+                    $s = trim(str_replace(',', '', (string) $raw));
+                    $data[$name] = (!empty($f['nullable']) && $s === '')
+                                 ? null : (int) round(((float) $s) * 100);
                     break;
 
                 case 'enum':
@@ -2104,21 +2168,28 @@ class Taqdar_admin_model extends CI_Model
     public static $SESSION_STATES = array('requested', 'awaiting_payment', 'confirmed',
                                           'declined', 'expired', 'live', 'completed', 'refunded');
 
-    public function sessions($status = '')
+    public function sessions($status = '', $kind = '')
     {
-        $where = '';
-        $args  = array();
+        $bits = array();
+        $args = array();
         if ($status !== '' && in_array($status, self::$SESSION_STATES, true)) {
-            $where = ' WHERE s.`status` = ?';
+            $bits[] = 's.`status` = ?';
             $args[] = $status;
         }
+        /* TQ-FOUNDATION — والنوع مرشح كالحالة: «الحصص» صارت شاشة بابين،
+           ومن يفتحها ليتابع التأسيس لا يريد أن يقلب في حصص المنهج. */
+        if ($kind !== '' && in_array($kind, array('curriculum', 'foundation'), true)) {
+            $bits[] = 's.`kind` = ?';
+            $args[] = $kind;
+        }
+        $where = $bits ? (' WHERE ' . implode(' AND ', $bits)) : '';
 
         /* السعر والنصيب والفاتورة تقرأ مع الصف: «كم دفع في هذه الحصة ومن
            أخذ ماذا» أول ما يسأل عنه من يفتح هذه الشاشة، واستعلام ثان لكل
            صف يجعل ثلاثمئة صف ثلاثمئة استعلام. */
         return $this->safe_rows(
             'SELECT s.*, sl.`starts_at`, sl.`duration_min`, sl.`grade_id`, sl.`subject_id`,
-                    g.`name_ar` grade_name, sj.`name_ar` subject_name,
+                    g.`name_ar` grade_name, sj.`name_ar` subject_name, ft.`name_ar` track_name,
                     TRIM(CONCAT(COALESCE(st.`first_name`,""), " ", COALESCE(st.`last_name`,""))) student_name,
                     st.`email` student_email,
                     TRIM(CONCAT(COALESCE(te.`first_name`,""), " ", COALESCE(te.`last_name`,""))) teacher_name,
@@ -2128,6 +2199,7 @@ class Taqdar_admin_model extends CI_Model
                LEFT JOIN `availability_slots` sl ON sl.`id` = s.`slot_id`
                LEFT JOIN `grades` g ON g.`id` = sl.`grade_id`
                LEFT JOIN `subjects` sj ON sj.`id` = sl.`subject_id`
+               LEFT JOIN `tq_foundation_tracks` ft ON ft.`id` = s.`track_id`
                LEFT JOIN `users` st ON st.`id` = s.`student_id`
                LEFT JOIN `users` te ON te.`id` = s.`teacher_id`
                LEFT JOIN `objectives` o ON o.`id` = s.`context_objective_id`
@@ -2251,12 +2323,13 @@ class Taqdar_admin_model extends CI_Model
            يقلب في القاعدة. و`LEFT JOIN` لا `INNER`: فسحة بصفر لا صف لها
            («كل الصفوف») وضم داخلي يمحوها من الشاشة كلها. */
         return $this->safe_rows(
-            'SELECT sl.*, g.`name_ar` grade_name, sj.`name_ar` subject_name,
+            'SELECT sl.*, g.`name_ar` grade_name, sj.`name_ar` subject_name, ft.`name_ar` track_name,
                     TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) teacher_name
                FROM `availability_slots` sl
                LEFT JOIN `users` u ON u.`id` = sl.`teacher_id`
                LEFT JOIN `grades` g ON g.`id` = sl.`grade_id`
                LEFT JOIN `subjects` sj ON sj.`id` = sl.`subject_id`
+               LEFT JOIN `tq_foundation_tracks` ft ON ft.`id` = sl.`track_id`
               WHERE sl.`starts_at` >= DATE_SUB(NOW(), INTERVAL 7 DAY)
               ORDER BY sl.`starts_at` ASC LIMIT 300'
         );
@@ -2272,17 +2345,46 @@ class Taqdar_admin_model extends CI_Model
     public function teacher_windows()
     {
         $rows = $this->safe_rows(
-            'SELECT w.*, g.`name_ar` grade_name, sj.`name_ar` subject_name,
+            'SELECT w.*, g.`name_ar` grade_name, sj.`name_ar` subject_name, ft.`name_ar` track_name,
                     TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) teacher_name
                FROM `tq_teacher_windows` w
                LEFT JOIN `users` u ON u.`id` = w.`teacher_id`
                LEFT JOIN `grades` g ON g.`id` = w.`grade_id`
                LEFT JOIN `subjects` sj ON sj.`id` = w.`subject_id`
+               LEFT JOIN `tq_foundation_tracks` ft ON ft.`id` = w.`track_id`
               ORDER BY teacher_name ASC, w.`dow` ASC, w.`start_min` ASC LIMIT 500'
         );
 
         $out = array();
         foreach ($rows as $r) $out[(int) $r['teacher_id']][] = $r;
+        return $out;
+    }
+
+    /**
+     * TQ-FOUNDATION — أوقات التأسيس مجموعة بمسارها.
+     *
+     * وهي نصف جواب «لماذا لا يرى الطالب معلما في هذا المسار؟»: النصف
+     * الأول أن أحدا لم يسند إليه، والثاني أن من أسند إليه لم يفتح وقتا.
+     * والشاشة تفرق بينهما لأن الفعل يختلف — الأول إسناد والثاني تذكير.
+     */
+    public function foundation_windows()
+    {
+        $rows = $this->safe_rows(
+            'SELECT w.*, ft.`name_ar` track_name,
+                    TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) teacher_name,
+                    (SELECT COUNT(*) FROM `availability_slots` sl
+                      WHERE sl.`window_id` = w.`id` AND sl.`status` = "open"
+                        AND sl.`starts_at` >= NOW()) open_slots
+               FROM `tq_teacher_windows` w
+               LEFT JOIN `users` u ON u.`id` = w.`teacher_id`
+               LEFT JOIN `tq_foundation_tracks` ft ON ft.`id` = w.`track_id`
+              WHERE w.`kind` = "foundation"
+              ORDER BY w.`track_id` ASC, teacher_name ASC, w.`dow` ASC, w.`start_min` ASC
+              LIMIT 500'
+        );
+
+        $out = array();
+        foreach ($rows as $r) $out[(int) $r['track_id']][] = $r;
         return $out;
     }
 

@@ -101,9 +101,15 @@ class Taqdar_admin extends CI_Controller
            فتخرج الشاشة **فارغة** لا معطلة — وهو أسوأ: يقرأ المسؤول
            «لا حصص بعد» على قاعدة فيها أربعون. */
         $this->taqdar_sessions_model->install_schema();
+        /* TQ-FOUNDATION — وجدول المسارات كذلك: استعلام الحصص يضم إليه
+           ليقرأ اسم المسار، وجدول لم ينشأ بعد يرمي استثناء تبتلعه
+           `safe_rows` فتخرج الشاشة فارغة على قاعدة فيها أربعون حصة. */
+        $this->load->model('taqdar_foundation_model');
+        $this->taqdar_foundation_model->ensure_schema();
 
         $this->render('tqa_sessions', 'الحصص', array(
-            'rows'   => $this->taqdar_admin_model->sessions($status),
+            'kind'   => (string) $this->input->get('kind'),
+            'rows'   => $this->taqdar_admin_model->sessions($status, (string) $this->input->get('kind')),
             'tally'  => $this->taqdar_admin_model->session_tally(),
             'money'  => $this->taqdar_admin_model->session_money(),
             'status' => $status,
@@ -456,7 +462,9 @@ class Taqdar_admin extends CI_Controller
     public function slots()
     {
         $this->load->model('taqdar_sessions_model');
+        $this->load->model('taqdar_foundation_model');
         $this->taqdar_sessions_model->install_schema();
+        $this->taqdar_foundation_model->ensure_schema();
 
         /* TQ-SESSION-GRID — الفسحات حاصل، والقواعد هي ما كتبه المعلم.
            والشاشة تقرأ الاثنين: «كم فسحة عنده» يجيب سؤال اليوم، و«الأحد
@@ -468,6 +476,33 @@ class Taqdar_admin extends CI_Controller
             'windows'  => $this->taqdar_admin_model->teacher_windows(),
             'cfg'      => $this->taqdar_sessions_model->config(),
             'ses'      => $this->taqdar_sessions_model,
+        ));
+    }
+
+    /* =====================================================================
+       TQ-FOUNDATION — قسم التأسيس
+
+       المسارات تحرر في وحدة موصوفة (`taqdar_admin/module/foundation_tracks`)،
+       وهذه الشاشة تجيب سؤالا لا تجيبه قائمة صفوف: **أيعمل القسم فعلا؟**
+
+       ومسار لا يظهر لطالب واحد لا يظهر لثلاثة أسباب مختلفة تقود إلى ثلاثة
+       أفعال مختلفة: معطل، أو لا معلم أسند إليه، أو أسند ولم يفتح وقتا.
+       وشاشة تقول «صفر مواعيد» بلا تفريق تترك المسؤول يقلب في القاعدة —
+       وهو بعينه ما وقع في «أوقات المعلمين» قبل أن يكتب لها عمود «الصف».
+       ===================================================================== */
+
+    public function foundation()
+    {
+        $this->load->model('taqdar_sessions_model');
+        $this->load->model('taqdar_foundation_model');
+        $this->taqdar_foundation_model->ensure_schema();
+
+        $this->render('tqa_foundation', 'قسم التأسيس', array(
+            'tracks'   => $this->taqdar_foundation_model->track_stats(),
+            'fnd'      => $this->taqdar_foundation_model,
+            'ses'      => $this->taqdar_sessions_model,
+            'cfg'      => $this->taqdar_sessions_model->config(),
+            'windows'  => $this->taqdar_admin_model->foundation_windows(),
         ));
     }
 

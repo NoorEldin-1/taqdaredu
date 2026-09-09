@@ -232,6 +232,10 @@ $route['api/v1/student/placement']        = 'api_v1/student_placement';
 $route['api/v1/student/sessions/(:num)/pay']    = 'api_v1/session_pay/$1';
 $route['api/v1/student/sessions/(:num)/cancel'] = 'api_v1/session_cancel/$1';
 $route['api/v1/student/sessions']               = 'api_v1/student_sessions';
+/* TQ-FOUNDATION — قسم التأسيس. قراءة وحدها: الطلب والدفع والإلغاء على
+   نقاط `student/sessions` نفسها — المحرك واحد، ونقطة طلب ثانية تعني
+   حارسا ثانيا يفترق عن أخيه عند أول تعديل. */
+$route['api/v1/student/foundation']             = 'api_v1/student_foundation';
 
 // ---- الطالب · المتجر (TQ-COURSE-SALE · TQ-CYCLE-BUY) ----
 // `store/courses/(:num)` قبل `store/courses`، وكلاهما قبل `plans/(:any)`
@@ -449,6 +453,9 @@ $route['taqdar/parent/(:any)']  = 'taqdar/parent_portal/$1';
 // بوابات بأسماء أدوارها بدل بادئة taqdar/ — مطابقة لمسارات تطبيق Flutter.
 $route['student']                = 'taqdar/home';
 $route['student/on-demand']      = 'taqdar/on_demand';
+/* TQ-FOUNDATION — قسم التأسيس في بوابة الطالب. باب ثان بجوار «حصص
+   بالطلب» لا بديل عنه: ذاك يشرح منهج صفه، وهذا يبدأ من الصفر بلا صف. */
+$route['student/foundation']     = 'taqdar/foundation';
 $route['student/lesson/(:num)']            = 'taqdar/lesson/$1';
 $route['student/lesson/(:num)/(:num)']     = 'taqdar/lesson/$1/$2';
 $route['student/settings/save']        = 'taqdar/settings_save';
@@ -579,6 +586,14 @@ $route['book/(:any)']          = 'taqdar/book_page/$1';
 // `(:any)` يبتلع مقطعا واحدا، وقاعدة النتائج لو جاءت بعدها لعادت
 // الاستجابة صفحة HTML كاملة الى نداء ينتظر JSON.
 $route['books/(:any)']         = 'taqdar/books_grade/$1';
+/* TQ-FOUNDATION — الصفحة العامة للتأسيس ومسارها المفرد.
+   وباب ثالث بجوار `/catalog` و`/plans`: هما يجيبان «ماذا تقدم المنصة؟»
+   و«بكم الاشتراك؟»، وهذا يجيب سؤالا لا يجيبه أيهما — «وماذا عمن لا يريد
+   منهج صف أصلا؟». والزائر بلا حساب يقرؤه ويعرف ثمنه قبل أن يسجل.
+   والمفرد **بعد** الجامع كما في الكتب: `(:any)` مقطع واحد يبتلع
+   `foundation` نفسها لو سبقها. */
+$route['foundation']           = 'taqdar/foundation_page';
+$route['foundation/(:any)']    = 'taqdar/foundation_track_page/$1';
 $route['instructor/(:num)']    = 'taqdar/instructor_page/$1';
 $route['teachers']                = 'taqdar/site_page/site_teachers';
 $route['students']                = 'taqdar/site_page/site_students';

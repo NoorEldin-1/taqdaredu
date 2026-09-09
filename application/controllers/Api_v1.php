@@ -4479,6 +4479,16 @@ class Api_v1 extends CI_Controller
                 'avatar_url' => tq_api_avatar($b['image']),
             ),
             'subject'    => (string) $b['subject'],
+            /* TQ-FOUNDATION — والنوع يخرج مع كل حجز: التطبيق يبوب حصص
+               التأسيس عن حصص المنهج كما تبوبها البوابة، وشاشة تخلطهما
+               تجعل الطالب يبحث عن حصته في قائمتين. و`scope_text` هو
+               السطر الذي يطبع — من `scope_of()` وحدها (TQ-SESSION-LABEL). */
+            'kind'       => (string) ($b['kind'] ?? 'curriculum'),
+            'track'      => ((int) ($b['track_id'] ?? 0) > 0) ? array(
+                'id'   => (int) $b['track_id'],
+                'name' => (string) $b['track_name'],
+            ) : null,
+            'scope_text' => (string) ($b['scope_text'] ?? ''),
             'grade'      => ((int) ($b['grade_id'] ?? 0) > 0) ? array(
                 'id'   => (int) $b['grade_id'],
                 'name' => (string) $b['grade_name'],
@@ -4528,6 +4538,15 @@ class Api_v1 extends CI_Controller
                         'id'   => (int) $s['subject_id'],
                         'name' => (string) $s['subject_name'],
                     ) : null,
+                    /* TQ-FOUNDATION — ومسار التأسيس مكانهما في مواعيده:
+                       لا صف له ولا مادة، فبلا هذا يقرأ التطبيق موعدا
+                       بلا وصف أصلا ويعرضه عاريا. */
+                    'kind'      => (string) ($s['kind'] ?? 'curriculum'),
+                    'track'     => ((int) ($s['track_id'] ?? 0) > 0) ? array(
+                        'id'   => (int) $s['track_id'],
+                        'name' => (string) $s['track_name'],
+                    ) : null,
+                    'scope_text' => (string) ($s['scope_text'] ?? ''),
                 );
             }
             /* **والتسعيرة تسعيرة هذا المعلم** لا العامة: العمود الفارغ
@@ -4543,6 +4562,105 @@ class Api_v1 extends CI_Controller
                 'price'      => tq_api_money($t['pricing']['price']),
                 'free'       => ((int) $t['pricing']['price'] <= 0),
                 'slots'      => $slots,
+            );
+        }
+        return $out;
+    }
+
+    /* =====================================================================
+       TQ-FOUNDATION — قسم التأسيس في الواجهة
+       ===================================================================== */
+
+    /**
+     * GET /api/v1/student/foundation — مسارات التأسيس ومعلموها ومواعيدهم.
+     *
+     * وهي نظير `student/sessions` لا بديل عنها: تلك ترشح بصف الطالب
+     * وتعرض حصص المنهج، وهذه لا ترشح بصف أصلا — التأسيس مستوى لا مقرر.
+     * ونقطة واحدة تخدم البابين تعني معاملا يبدل معنى الرد كله، فيقرأ
+     * عميل نسي كتابته مواعيد لا تعنيه.
+     *
+     * **ولا قاعدة عمل هنا**: `Taqdar_foundation_model` و
+     * `Taqdar_sessions_model` هما اللذان تناديهما شاشات الويب — فما
+     * يرفضه الموقع يرفضه التطبيق بالحرف، والسعر الذي تعرضه هذه النقطة
+     * هو الذي تجمده `request_session()` بالهللة.
+     *
+     * والطلب والدفع والإلغاء على نقاط `student/sessions` نفسها: المحرك
+     * واحد، ونقطة طلب ثانية تعني حارسا ثانيا يفترق عن أخيه.
+     */
+    public function student_foundation()
+    {
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $m   = $this->sess();
+        $fnd = $this->fnd();
+        $cfg = $m->config();
+
+        $track = (int) $this->input->get('track');
+        if ($track > 0 && !$fnd->track($track)) $track = 0;
+
+        $tracks = array();
+        foreach ($fnd->published() as $id => $t) {
+            $p = $fnd->pricing_for((int) $id, 0);
+            $tracks[] = array(
+                'id'          => (int) $id,
+                'name'        => (string) $t['name'],
+                'slug'        => (string) $t['slug'],
+                'tagline'     => (string) $t['tagline'],
+                'description' => (string) $t['description'],
+                'outcomes'    => array_values($t['outcomes']),
+                'image_url'   => $t['image'] !== '' ? base_url($t['image']) : null,
+                'featured'    => (bool) $t['featured'],
+                'price'       => tq_api_money((int) $p['price']),
+                'free'        => ((int) $p['price'] <= 0),
+            );
+        }
+
+        /* حجوزات هذا القسم وحدها — والتبويب في الخادم لا في العميل:
+           نسختان من قاعدة الفرز تفترقان عند أول تعديل. */
+        $bookings = array();
+        foreach ((array) $m->bookings_for_student((int) $u['id'], 30) as $b) {
+            if (($b['kind'] ?? '') !== Taqdar_sessions_model::KIND_FOUNDATION) continue;
+            $bookings[] = $this->booking_out($b);
+        }
+
+        $this->load->model('taqdar_tap_model', 'tq_tap');
+
+        $this->read(array(
+            'enabled'  => (bool) $fnd->enabled(),
+            'tracks'   => $tracks,
+            'bookings' => $bookings,
+            'teachers' => $this->tutors_out($m->available_teachers(
+                              12, 6, 0, 0, Taqdar_sessions_model::KIND_FOUNDATION, $track)),
+            'pricing'  => array(
+                'minutes'       => (int) $cfg['minutes'],
+                'pay_hours'     => (int) $cfg['pay_hours'],
+                'join_lead_min' => (int) $cfg['lead_min'],
+                'grace_hours'   => (int) $cfg['grace_hours'],
+            ),
+            'card_enabled' => (bool) $this->tq_tap->ready(),
+        ), '', array('filters' => array('track' => $track)), $h);
+    }
+
+    /** نموذج التأسيس — يحمل مرة لكل طلب كما يحمل نموذج الحصص. */
+    private function fnd()
+    {
+        $this->load->model('taqdar_foundation_model', 'tq_fnd');
+        return $this->tq_fnd;
+    }
+
+    /** مسارات معلم بعينه — لنموذج أوقاته في التطبيق. */
+    private function foundation_tracks_out($teacher_id)
+    {
+        $out = array();
+        foreach ($this->fnd()->teacher_tracks((int) $teacher_id) as $id => $t) {
+            $p = $this->fnd()->pricing_for((int) $id, (int) $teacher_id);
+            $out[] = array(
+                'id'      => (int) $id,
+                'name'    => (string) $t['name'],
+                'price'   => tq_api_money((int) $p['price']),
+                'share'   => tq_api_money((int) $p['share']),
+                'percent' => (float) $p['percent'],
             );
         }
         return $out;
@@ -7268,6 +7386,15 @@ class Api_v1 extends CI_Controller
                     'to'         => isset($w['to'])   ? trim((string) $w['to'])   : '',
                     'grade_id'   => (int) (isset($w['grade_id'])   ? $w['grade_id']   : 0),
                     'subject_id' => (int) (isset($w['subject_id']) ? $w['subject_id'] : 0),
+                    /* TQ-FOUNDATION — والنوع ومساره يمران كذلك.
+                       **والحفظ استبدال كامل**: عميل لا يرسل `kind` يرسل
+                       أوقاته كلها على أنها منهج، فيتحول وقت التأسيس إلى
+                       وقت منهج بلا صف — فيرده الخادم كله، أو (وهو أسوأ)
+                       يمر فيسقط الوقت من قسم التأسيس بلا أن يقصد أحد.
+                       والقراءة ترد `kind` و`track_id` على كل نافذة، فمن
+                       قرأ ثم كتب يعيدهما كما جاءا. */
+                    'kind'       => isset($w['kind']) ? trim((string) $w['kind']) : '',
+                    'track_id'   => (int) (isset($w['track_id']) ? $w['track_id'] : 0),
                 );
             }
 
@@ -7303,6 +7430,11 @@ class Api_v1 extends CI_Controller
             'scope'   => array(
                 'grades'   => $sess->teacher_grades($uid),
                 'subjects' => $sess->teacher_subject_options($uid),
+                /* TQ-FOUNDATION — ونطاق ثان: مسارات التأسيس المسندة
+                   إليه. والنموذج يبنى منها لا من قائمة في Dart — ومسار
+                   يسند اليوم ولا يظهر في التطبيق يجعل المعلم يفتح وقته
+                   من الموقع ولا يجده في جواله. */
+                'tracks'   => $this->foundation_tracks_out($uid),
             ),
             /* وثمن حصته ونصيبه منها يخرجان هنا كذلك: من يفتح وقتا يسأل
                «بكم تباع ساعتي؟» قبل أن يكتب ساعة. */

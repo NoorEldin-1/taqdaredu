@@ -46,6 +46,47 @@ try {
 $tq_card_ready = false;
 try { $tq_card_ready = (bool) $CI->tq_tap->ready(); } catch (Throwable $e) {}
 
+/* TQ-FOUNDATION — حصص أبنائه التي تنتظر الدفع.
+ *
+ * وهي الفجوة التي يفتحها القسم في هذه الشاشة: حصة التأسيس يطلبها الابن
+ * ويؤكدها معلمه فتصدر لها فاتورة **مهلتها ساعات**، وولي الأمر هو من يدفع
+ * في اكثر الاسر. وشاشة الدفع لا تعرض إلا الباقات — فلا يجد ما يدفعه،
+ * ولا يعرف أن ثمة مهلة تجري، وتمضي فيسقط الحجز ويعود الموعد لغيره.
+ * والابن لا يستطيع أن يدفع بنفسه (لا بطاقة له)، فالباب مغلق على الطرفين.
+ *
+ * **والفاتورة هي المرساة**: الدفع يمر بـ`student/pay-invoice` نفسه الذي
+ * يدفع به الطالب، و`Taqdar_tap_model::start()` تقبل ولي الأمر المرتبط
+ * برابط نشط — فلا مسار دفع ثان يكتب لولي الأمر. والملكية تفحص هناك
+ * وهنا: الاستعلام يضم `parent_links` النشط، فلا يقرأ حصة ابن غيره.
+ */
+$tq_due_sessions = array();
+try {
+    $tq_due_sessions = $CI->db->query(
+        'SELECT s.`id`, s.`kind`, s.`track_id`, s.`price_halalas`, s.`pay_deadline`,
+                a.`starts_at`, a.`duration_min`, a.`grade_id`, a.`subject_id`,
+                i.`id` invoice_id, i.`invoice_no`, i.`total`, i.`status` invoice_status,
+                TRIM(CONCAT(COALESCE(k.`first_name`,""), " ", COALESCE(k.`last_name`,""))) kid,
+                TRIM(CONCAT(COALESCE(te.`first_name`,""), " ", COALESCE(te.`last_name`,""))) teacher
+           FROM `tutoring_sessions` s
+           JOIN `parent_links` pl ON pl.`student_id` = s.`student_id`
+                                 AND pl.`parent_user_id` = ? AND pl.`status` = "active"
+           LEFT JOIN `availability_slots` a ON a.`id` = s.`slot_id`
+           LEFT JOIN `invoices` i ON i.`id` = s.`invoice_id`
+           LEFT JOIN `users` k  ON k.`id`  = s.`student_id`
+           LEFT JOIN `users` te ON te.`id` = s.`teacher_id`
+          WHERE s.`status` = "awaiting_payment" AND s.`invoice_id` > 0
+          ORDER BY s.`pay_deadline` ASC LIMIT 20', array($pid))->result_array();
+} catch (Throwable $e) {
+    /* جدول لم تنشأ أعمدته بعد لا يبيض شاشة الدفع كلها. */
+    $CI->db->reset_query();
+    $tq_due_sessions = array();
+}
+
+/* واسم ما يدفع من `scope_of()` وحدها — TQ-SESSION-LABEL: «تأسيس اللغة
+   الإنجليزية» أو «رياضيات · الصف الثالث»، ونسخة ثانية من هذا الفرع في
+   قالب تقرأ «حصة خاصة» على كل حصة تأسيس بيعت. */
+$CI->load->model('taqdar_sessions_model', 'tq_ses');
+
 /* فاتورة تنتظر الدفع بالبطاقة — تعود إليها الشاشة بعد الإنشاء. */
 $tq_inv = (int) $CI->input->get('invoice');
 $tq_inv_row = null;
@@ -74,6 +115,71 @@ include 'portal_open.php';
   </section>
 
 <?php else: ?>
+
+  <?php /* ── حصص تنتظر الدفع ─────────────────────────────────────────
+          **قبل كل شيء في الشاشة**: مهلتها ساعات لا أيام، وبعدها يعود
+          الموعد لغيره ويسقط الحجز — بينما شراء الباقة لا يفوت. ومن
+          يفتح شاشة الدفع وفيها ما تجري مهلته يريد أن يدفعه أولا. */ ?>
+  <?php if ($tq_due_sessions): ?>
+    <?php foreach ($tq_due_sessions as $tq_ds): ?>
+      <?php
+      $tq_sc   = $CI->tq_ses->scope_of($tq_ds);
+      $tq_when = $tq_ds['starts_at']
+               ? $CI->tq_ses->when_text($tq_ds['starts_at'], (int) $tq_ds['duration_min'])
+               : t('بلا موعد');
+      $tq_secs = strtotime((string) $tq_ds['pay_deadline']) - time();
+      ?>
+      <section class="tq-card tq-pp-due" style="margin-block-end:var(--tq-space-l)">
+        <div class="tq-card__head">
+          <h2 class="tq-card__title">
+            <?php echo $tq_sc['is_foundation'] ? t('حصة تأسيس تنتظر الدفع') : t('حصة تنتظر الدفع'); ?>
+          </h2>
+          <span class="tq-badge tq-badge--due"><?php echo t('غير مدفوعة'); ?></span>
+        </div>
+
+        <p class="tq-body" style="margin-block-end:var(--tq-space-s)">
+          <strong><?php echo html_escape($tq_sc['label']); ?></strong>
+          <?php echo t('لـ'); ?> <strong><?php echo html_escape($tq_ds['kid'] ?: t('ابنك')); ?></strong>
+          <?php echo t('مع'); ?> <?php echo html_escape($tq_ds['teacher'] ?: t('معلمه')); ?>
+          — <?php echo tq_iso($tq_when); ?>.
+        </p>
+
+        <p class="tq-body" style="margin-block-end:var(--tq-space-s)">
+          <?php echo t('أكد المعلم الموعد. القيمة'); ?>
+          <strong><?php echo tq_num(number_format(((int) ($tq_ds['total'] ?: $tq_ds['price_halalas'])) / 100, 2)); ?></strong>
+          <?php echo t('ريال، وفاتورتها'); ?>
+          <span class="tq-ltr"><?php echo html_escape((string) $tq_ds['invoice_no']); ?></span>.
+          <?php /* المهلة تقال بما بقي منها لا بطابع زمني، ويقال ما يقع
+                   إن مضت — من لم يقل له ذلك يظن الحجز محفوظا. */ ?>
+          <?php if ($tq_secs > 0): ?>
+            <strong><?php echo t('يتبقى'); ?>
+              <?php echo tq_num($tq_secs < 3600
+                    ? max(1, (int) round($tq_secs / 60)) . t(' دقيقة')
+                    : (int) floor($tq_secs / 3600) . t(' ساعة')); ?></strong>
+            <?php echo t('لتثبيت الموعد، وبعدها يعود متاحا لغيره.'); ?>
+          <?php else: ?>
+            <strong><?php echo t('انتهت مهلة الدفع'); ?></strong> —
+            <?php echo t('قد يكون الموعد عاد متاحا لغيره.'); ?>
+          <?php endif; ?>
+        </p>
+
+        <?php if ($tq_card_ready): ?>
+          <?php /* المسار مسار الطالب نفسه: `Taqdar_tap_model::start()`
+                   تقبل ولي الأمر المرتبط برابط نشط، فلا باب دفع ثان. */ ?>
+          <form method="post" action="<?php echo base_url('student/pay-invoice'); ?>">
+            <?php echo tq_csrf(); ?>
+            <input type="hidden" name="invoice_id" value="<?php echo (int) $tq_ds['invoice_id']; ?>">
+            <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('ادفع الآن بالبطاقة'); ?></button>
+          </form>
+        <?php else: ?>
+          <p class="tq-caption">
+            <?php echo t('الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة بنكيا — تعليمات التحويل في'); ?>
+            <a href="<?php echo base_url('parent/payments'); ?>"><?php echo t('المدفوعات'); ?></a>.
+          </p>
+        <?php endif; ?>
+      </section>
+    <?php endforeach; ?>
+  <?php endif; ?>
 
   <?php /* ── فاتورة تنتظر ────────────────────────────────────────────
           تعرض قبل النموذج: من عاد إلى هذه الشاشة بعد الإنشاء يريد أن
