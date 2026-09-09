@@ -620,7 +620,7 @@ class Taqdar_learn_model extends CI_Model
                JOIN `lesson` l ON l.`id` = lp.`lesson_id`
               WHERE lp.`student_id` = ? AND lp.`position_sec` > 15
                 AND lp.`completed_at` IS NULL
-              ORDER BY lp.`id` DESC LIMIT 1', array($student_id));
+              ORDER BY lp.`last_ping_at` DESC, lp.`id` DESC LIMIT 1', array($student_id));
 
         return $rows ? $rows[0] : null;
     }
