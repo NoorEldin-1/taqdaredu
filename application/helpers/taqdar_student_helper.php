@@ -116,12 +116,83 @@ if (!function_exists('tq_s_counts')) {
     }
 }
 
+if (!function_exists('tq_s_progress')) {
+    /**
+     * تقدّم الطالب بالثواني — استعلام واحد لكلّ الطالب، مكاش ثابت.
+     *
+     * ═══ لماذا مصدر ثانٍ ═══
+     *
+     * `watch_histories` مرآة موروثة **بلا ثانية واحدة**: نسبة مئوية
+     * وقائمة معرّفات ومعرّف آخر درس لُمس. فبطاقة تقرأ منه وحده تكتب
+     * «لم يبدأ» لطالبٍ شاهد خمس دقائق — وهو ما يقع اليوم في أربعة
+     * تسجيلات. و`lesson_progress.position_sec` يعرف **أين** توقّف
+     * بالضبط، وعليه يُرسم خطّ الزمن.
+     *
+     * ═══ ولماذا لا يُطرح القديم ═══
+     *
+     * ثلاثة طلاب يحملون إتمامات في المرآة بلا صفٍّ في `lesson_progress`.
+     * فالإتمام **اتّحاد المصدرين** لا استبدال أحدهما — وإسقاط الموروث
+     * يمحو تقدّمًا حقيقيًّا من شاشة صاحبه.
+     *
+     * @return array by_lesson[معرّف الدرس] · by_course[معرّف الكورس][]
+     */
+    function tq_s_progress($uid)
+    {
+        static $cache = [];
+        $uid = (int) $uid;
+        if (isset($cache[$uid])) return $cache[$uid];
+        if ($uid <= 0) return $cache[$uid] = ['by_lesson' => [], 'by_course' => []];
+
+        $CI = get_instance();
+        /* `e.user_id` يُدرج مصبوبًا `int`: باني الاستعلام في CI3 لا يربط
+           داخل شرط `ON`، فالصبّ هو الحارس. */
+        $rows = $CI->db
+            ->select('lp.lesson_id, lp.position_sec, lp.watch_seconds, lp.completed_at,'
+                   . ' lp.mastered_at, lp.last_ping_at,'
+                   . ' l.course_id, l.duration_sec, l.duration, l.title')
+            ->from('lesson_progress lp')
+            ->join('lesson l', 'l.id = lp.lesson_id', 'inner')
+            ->join('enrol e', 'e.course_id = l.course_id AND e.user_id = ' . $uid, 'inner')
+            ->where('lp.student_id', $uid)
+            ->where('l.lesson_type !=', 'quiz')
+            ->get()->result_array();
+
+        $by_lesson = [];
+        $by_course = [];
+        foreach ($rows as $r) {
+            $lid = (int) $r['lesson_id'];
+            $cid = (int) $r['course_id'];
+            /* مرآة `lesson_duration()`: العمود الصحيح أوّلًا، والنصّ
+               احتياطًا — ولا تُقاس المدّة بما أعلنه مشغّل الطالب
+               (`media_sec`)، فصفٌّ واحد يقول ١١٩ ومدّته ٦٣٥. */
+            $dur = (int) $r['duration_sec'] > 0
+                 ? (int) $r['duration_sec']
+                 : tq_s_secs($r['duration']);
+            $p = [
+                'lesson_id' => $lid,
+                'course_id' => $cid,
+                'pos'       => (int) $r['position_sec'],
+                'watched'   => (int) $r['watch_seconds'],
+                'complete'  => $r['completed_at'] !== null,
+                'ping'      => $r['last_ping_at'],
+                'duration'  => $dur,
+                'title'     => (string) $r['title'],
+            ];
+            $by_lesson[$lid] = $p;
+            $by_course[$cid][] = $p;
+        }
+        return $cache[$uid] = ['by_lesson' => $by_lesson, 'by_course' => $by_course];
+    }
+}
+
 if (!function_exists('tq_s_enrolled')) {
     /**
      * الكورسات المسجلة مع تقدمها الحقيقي.
-     * التقدم من watch_histories، وعدد الدروس ومددها من lesson،
-     * وموضع التوقف من watching_lesson_id — وهو ما يعيد زر «استكمل التعلم»
-     * الطالب إليه بالضبط لا إلى أول الكورس.
+     *
+     * التقدم يقرأ من **مصدرين موحّدين** لا من المرآة وحدها
+     * (`tq_s_progress()` — وهناك شرحه)، وعدد الدروس ومددها من `lesson`،
+     * وموضع التوقف بالثواني لا بمعرّف درس وحده — وهو ما يعيد زر
+     * «استكمل التعلم» الطالب إليه بالضبط لا إلى أول الكورس.
      */
     function tq_s_enrolled($uid)
     {
@@ -164,22 +235,94 @@ if (!function_exists('tq_s_enrolled')) {
         $hist = [];
         foreach ($watch as $w) $hist[(int) $w['course_id']] = $w;
 
+        $prog = tq_s_progress($uid);
+
         $out = [];
         foreach ($courses as $i => $c) {
             $cid   = (int) $c['id'];
             $total = $count[$cid] ?? 0;
             $h     = $hist[$cid] ?? null;
+            $rows  = $prog['by_course'][$cid] ?? [];
 
-            $done = 0;
+            /* ── الإتمام: اتّحاد المصدرين ──────────────────────────────
+               الموروث بمعرّفاته، و`lesson_progress` بختم `completed_at`.
+               وطرح أحدهما يمحو تقدّم من لا صفّ له في الآخر. */
+            $done_ids = [];
             if ($h && !empty($h['completed_lesson'])) {
                 $list = json_decode($h['completed_lesson'], true);
-                $done = is_array($list) ? count(array_unique($list)) : 0;
+                if (is_array($list)) foreach ($list as $lid) $done_ids[(int) $lid] = true;
             }
+            foreach ($rows as $p) if ($p['complete']) $done_ids[$p['lesson_id']] = true;
+
+            $done = count($done_ids);
             if ($total > 0 && $done > $total) $done = $total;
 
-            $pct = $h !== null ? (int) $h['course_progress'] : 0;
-            if ($pct === 0 && $total > 0 && $done > 0) $pct = (int) round($done * 100 / $total);
+            /* ── أين وقف: أحدث صفّ غير مكتمل تجاوز عتبة الخمس عشرة ────
+               والعتبة هي عتبة `Taqdar_learn_model::resume_lesson()` نفسها،
+               فلا تقول البطاقة درسًا ويقول زرّ «استكمل التعلّم» سواه.
+               ودرسٌ **مكتمل** وله موضع لا يصير الحاليّ: المنتهي لا موضع له. */
+            $cur_id = 0; $cur_title = ''; $cur_pos = 0; $cur_dur = 0;
+            $best = null;
+            foreach ($rows as $p) {
+                if ($p['complete'] || $p['pos'] <= 15) continue;
+                if ($best === null
+                    || strcmp((string) $p['ping'], (string) $best['ping']) > 0
+                    || ((string) $p['ping'] === (string) $best['ping'] && $p['lesson_id'] > $best['lesson_id'])) {
+                    $best = $p;
+                }
+            }
+            if ($best !== null) {
+                $cur_id = $best['lesson_id']; $cur_title = $best['title'];
+                $cur_pos = $best['pos'];      $cur_dur = $best['duration'];
+            }
+
+            $pos_seen = 0; $watched = 0;
+            foreach ($rows as $p) { $pos_seen = max($pos_seen, $p['pos']); $watched += $p['watched']; }
+
+            /* ── النسبة من الدروس المكتملة فعلًا ──────────────────────
+               `watch_histories.course_progress` رقم **مخزَّن** انحرف عن
+               عدّ الدروس: طالب أنهى عشرين من خمسة وعشرين يقرأ ١٠٠٪.
+               فتُحسب هنا، ولا تُقرأ المرآة إلّا حين لا درس يُعدّ. */
+            $pct = $total > 0
+                 ? (int) round($done * 100 / $total)
+                 : ($h !== null ? (int) $h['course_progress'] : 0);
             $pct = max(0, min(100, $pct));
+
+            /* ── الحالة دالّة في الأرقام التي يرسمها الشريط ───────────
+               فيستحيل بنيويًّا أن تعلو «لم يبدأ» فوق شريط غير صفريّ —
+               وهو ما كان يقع لأربعة تسجيلات تقرأ من المرآة وحدها. */
+            $status = 'idle';
+            if ($done > 0 || $pos_seen > 15 || $watched > 15) $status = 'progress';
+            if ($total > 0 && $done >= $total) $status = 'done';
+
+            /* ── قطع الشريط: قطعة لكلّ درس ────────────────────────────
+               من `tq_s_lessons()` المكاشة — بصفر استعلام إضافيّ. */
+            $segments = [];
+            foreach (tq_s_lessons($uid) as $l) {
+                if ((int) $l['course_id'] !== $cid) continue;
+                $lid = (int) $l['id'];
+                if (isset($done_ids[$lid])) {
+                    $segments[] = ['id' => $lid, 'title' => $l['title'], 'state' => 'done', 'fill' => 100];
+                } elseif ($lid === $cur_id) {
+                    $f = $cur_dur > 0 ? (int) round($cur_pos * 100 / $cur_dur) : 0;
+                    /* سقف وأرضية: واحد بالمئة لا يُرى، وتسعة وتسعون على
+                       درس لم يُكمَل يُقرأ «انتهى». */
+                    $f = max(2, min(98, $f));
+                    $segments[] = ['id' => $lid, 'title' => $l['title'], 'state' => 'current', 'fill' => $f];
+                } else {
+                    $segments[] = ['id' => $lid, 'title' => $l['title'], 'state' => 'todo', 'fill' => 0];
+                }
+            }
+
+            /* الوجهة: ما وقف عنده، وإلّا أوّل ما لم يتمّ، وإلّا المرآة. */
+            $resume = $cur_id;
+            if ($resume === 0) {
+                foreach ($segments as $sg) {
+                    if ($sg['state'] !== 'done') { $resume = $sg['id']; break; }
+                }
+            }
+            if ($resume === 0 && $h) $resume = (int) $h['watching_lesson_id'];
+            if ($resume === 0 && $segments) $resume = $segments[0]['id'];
 
             $out[] = [
                 'id'         => $cid,
@@ -192,9 +335,16 @@ if (!function_exists('tq_s_enrolled')) {
                 'done'       => $done,
                 'seconds'    => $secs[$cid] ?? 0,
                 'progress'   => $pct,
-                'resume_id'  => $h ? (int) $h['watching_lesson_id'] : 0,
+                'resume_id'  => $resume,
                 'touched_at' => $h ? tq_s_ts($h['date_updated']) : tq_s_ts($c['enrolled_at']),
-                'status'     => $pct >= 100 ? 'done' : ($pct > 0 ? 'progress' : 'idle'),
+                'status'     => $status,
+
+                /* الغلاف التفاعليّ */
+                'segments'      => $segments,
+                'current_id'    => $cur_id,
+                'current_title' => $cur_title,
+                'position_sec'  => $cur_pos,
+                'watched_sec'   => $watched,
             ];
         }
 
@@ -231,7 +381,7 @@ if (!function_exists('tq_s_lessons')) {
         $CI = get_instance();
 
         $rows = $CI->db
-            ->select('l.id, l.title, l.duration, l.lesson_type, l.is_free, l.section_id,'
+            ->select('l.id, l.title, l.duration, l.duration_sec, l.lesson_type, l.is_free, l.section_id,'
                    . ' l.order AS lesson_order, l.date_added,'
                    . ' c.id AS course_id, c.title AS course_title, c.level, c.category_id,'
                    . ' c.thumbnail')
@@ -277,14 +427,38 @@ if (!function_exists('tq_s_lessons')) {
             }
         }
 
+        /* ── ويوحَّد المصدران هنا كما في `tq_s_enrolled()` ────────────
+           لو رُقّيت إحداهما وحدها لقال الشريط أربعين بالمئة وقالت
+           النقاط صفرًا من خمسة: التناقض نفسه، طبقةً أدنى. */
+        $prog = tq_s_progress($uid);
+        foreach ($prog['by_lesson'] as $lid => $p) {
+            if ($p['complete']) $done_ids[$lid] = true;
+        }
+        /* والحاليّ: أحدث غير مكتمل تجاوز العتبة، لكلّ كورس على حدة. */
+        $cur_of = [];
+        foreach ($prog['by_course'] as $cid_k => $ps) {
+            $best = null;
+            foreach ($ps as $p) {
+                if ($p['complete'] || $p['pos'] <= 15) continue;
+                if ($best === null
+                    || strcmp((string) $p['ping'], (string) $best['ping']) > 0
+                    || ((string) $p['ping'] === (string) $best['ping'] && $p['lesson_id'] > $best['lesson_id'])) {
+                    $best = $p;
+                }
+            }
+            if ($best !== null) $cur_of[(int) $cid_k] = $best['lesson_id'];
+        }
+
         $out = [];
         foreach ($rows as $i => $r) {
             $lid = (int) $r['id'];
             $cid = (int) $r['course_id'];
 
             $state = 'todo';
-            if (isset($done_ids[$lid]))                  $state = 'done';
-            elseif (($watching[$cid] ?? 0) === $lid)     $state = 'current';
+            if (isset($done_ids[$lid]))                       $state = 'done';
+            elseif (($cur_of[$cid] ?? 0) === $lid)            $state = 'current';
+            elseif (!isset($cur_of[$cid])
+                    && ($watching[$cid] ?? 0) === $lid)       $state = 'current';
 
             $out[] = [
                 'id'       => $lid,
@@ -296,6 +470,7 @@ if (!function_exists('tq_s_lessons')) {
                 'level'    => (string) $r['level'],
                 'thumbnail' => (string) $r['thumbnail'],
                 'type'     => (string) $r['lesson_type'],
+                'duration_sec' => (int) $r['duration_sec'],
                 'free'     => (int) $r['is_free'] === 1,
                 'seconds'  => tq_s_secs($r['duration']),
                 'state'    => $state,

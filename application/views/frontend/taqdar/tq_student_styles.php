@@ -151,24 +151,136 @@ if (!function_exists('tq_s_cover')) {
     }
 }
 
+if (!function_exists('tq_s_cover_for')) {
+    /**
+     * غلاف الكورس بثلاث طبقات — ولا مربع ملون في آخرها.
+     *
+     *   ١ الصورة المخزنة إن وجدت على القرص (مصغرة فيميو أو رفع المعلم)
+     *   ٢ غلاف المادة من `tqs_cat_cover()` — **المصدر نفسه** الذي يقرأه
+     *     الكتالوج العام، فلا خريطة مواد ثانية تفترق عن أختها
+     *   ٣ غلاف المنصة المخبوز، وهو ما يستعمله `Api_v1::thumb_url()` أصلا
+     *
+     * والطبقة الثانية **لا تكتب في القاعدة**: كتابتها تجعل مهمة الأغلفة
+     * تقرأ العمود مملوءا فتتخطى الكورس أبدا يوم يصير له درس فيميو،
+     * وتكسر الكتالوج العام (يبحث عن `cov-math` تحت مجلد الرفع فلا يجده).
+     */
+    function tq_s_cover_for($c)
+    {
+        $src = tq_s_cover(isset($c['thumbnail']) ? $c['thumbnail'] : '');
+        if ($src !== '') return $src;
+
+        if (function_exists('tqs_cat_cover') && function_exists('tqs_img')) {
+            $subject = '';
+            if (function_exists('tq_s_subject')) {
+                $subject = (string) tq_s_subject(
+                    (int) (isset($c['category_id']) ? $c['category_id'] : 0),
+                    '', (int) (isset($c['id']) ? $c['id'] : 0));
+            }
+            $slug = tqs_cat_cover(array(
+                'kind'    => 'course',
+                'image'   => '',
+                'cat'     => '',
+                'title'   => (string) (isset($c['title']) ? $c['title'] : ''),
+                'subject' => $subject,
+            ));
+            if ($slug !== '') {
+                $img = tqs_img($slug, '');
+                if ($img !== '') return $img;
+            }
+        }
+
+        return base_url('assets/taqdar/brand/course-placeholder.png');
+    }
+}
+
 if (!function_exists('tq_s_thumb')) {
     /**
-     * غلاف البطاقة: الصورة إن وجدت، وإلا تدرج CSS بحرف المادة —
-     * ولا صورة من الإنترنت ولا حزمة أيقونات خارجية.
+     * غلاف البطاقة — صورة أبدا، ولا تدرج ملون بحرف.
+     *
+     * كان يرسم مستطيلا أخضر فيه أول حرف من العنوان متى خلا العمود، وقد
+     * خلا في **الكورسات كلها**: فما رآه الطالب ليس بديلا نادرا بل هو
+     * الحال الوحيدة. وست «نغمات» تخلط توكنات خضراء متقاربة فتقرأ لونا
+     * واحدا مسطحا. فصار الغلاف من `tq_s_cover_for()` بثلاث طبقات لا
+     * تنتهي إلى فراغ.
+     *
+     * @param array|null $o طبقة التقدم — انظر «الغلاف التفاعلي» أدناه.
+     *                      و`null` يعيد السلوك القديم حرفا بحرف، فمناداة
+     *                      لم تحدث تتدهور ولا تنهار.
      */
-    function tq_s_thumb($title, $thumbnail = '', $index = 0, $badge = '', $tag = '')
+    function tq_s_thumb($title, $thumbnail = '', $index = 0, $badge = '', $tag = '', $o = null)
     {
-        $src  = tq_s_cover($thumbnail);
-        $fam  = tq_pastel($index);
-        $html = '<div class="tq-s-thumb tq-s-thumb--' . $fam . '">';
-        if ($src !== '') {
-            $html .= '<img src="' . html_escape($src) . '" alt="' . html_escape(t('غلاف ') . $title) . '" loading="lazy">';
-        } else {
-            $html .= '<span class="tq-s-thumb__glyph" aria-hidden="true">'
-                  . html_escape(mb_substr(trim((string) $title), 0, 1, 'UTF-8')) . '</span>';
-        }
+        $cid = is_array($o) && isset($o['course']) ? (int) $o['course'] : 0;
+        $src = tq_s_cover_for(array(
+            'thumbnail'   => $thumbnail,
+            'title'       => $title,
+            'id'          => $cid,
+            'category_id' => 0,
+        ));
+
+        $html = '<div class="tq-s-thumb">'
+              . '<img src="' . html_escape($src) . '" alt="'
+              . html_escape(t('غلاف كورس ') . $title) . '"'
+              . ' width="1280" height="720" loading="lazy" decoding="async">';
+
         if ($badge !== '') $html .= '<span class="tq-s-thumb__badge">' . $badge . '</span>';
         if ($tag !== '')   $html .= '<span class="tq-s-thumb__tag">' . $tag . '</span>';
+
+        /* ── الطبقة التفاعلية ─────────────────────────────────────────
+           بلا `$o` يعود الوسم كما كان حرفا بحرف: مناداة لم تحدّث
+           تتدهور ولا تنهار. */
+        if (is_array($o)) {
+            $pct  = max(0, min(100, (int) (isset($o['pct']) ? $o['pct'] : 0)));
+            $segs = isset($o['segments']) && is_array($o['segments']) ? $o['segments'] : array();
+            $cur  = trim((string) (isset($o['current']) ? $o['current'] : ''));
+            $st   = (string) (isset($o['status']) ? $o['status'] : 'idle');
+
+            /* الحجاب: زر تشغيل ونص يقول ما يفتحه النقر. و`span` لا
+               `button`: البطاقة كلها داخل `<a>` سلفا، وعنصر تفاعلي
+               داخل رابط وسم فاسد يكسر ترتيب لوحة المفاتيح. */
+            $cue = $st === 'done' ? t('راجع الدروس')
+                 : ($st === 'progress' ? t('أكمل من هنا') : t('ابدأ الكورس'));
+            $html .= '<span class="tq-s-thumb__veil" aria-hidden="true">'
+                   . '<span class="tq-s-thumb__play">' . tq_icon('play', 26) . '</span>'
+                   . '<span class="tq-s-thumb__cue">' . html_escape($cue) . '</span>'
+                   . '</span>';
+
+            /* القدم: لا يطبع لكورس لم يمسّ — خمس وعشرون نقطة فارغة
+               فوق غلاف ضجيج لا معلومة. */
+            if ($st !== 'idle' && $segs) {
+                $done_n = 0;
+                foreach ($segs as $sg) if ($sg['state'] === 'done') $done_n++;
+
+                $html .= '<span class="tq-s-thumb__foot">';
+                if ($cur !== '') {
+                    $html .= '<span class="tq-s-thumb__now">'
+                           . '<span class="tq-s-thumb__now-k">' . t('الدرس الحالي') . '</span>'
+                           . '<span class="tq-s-thumb__now-v">' . html_escape($cur) . '</span>'
+                           . '</span>';
+                }
+                $html .= '<span class="tq-s-thumb__bar" role="progressbar"'
+                       . ' aria-valuenow="' . $pct . '" aria-valuemin="0" aria-valuemax="100"'
+                       . ' aria-label="' . html_escape(
+                            t('تقدمك في ') . $title . ' — ' . $pct . t(' بالمئة، ')
+                            . tq_s_lessons_word($done_n, count($segs))) . '">';
+
+                /* أكثر من ثلاثين درسا: القطعة تصير أرق من فاصلها،
+                   فيقرأ الشريط تشويشا. يطوى إلى شريط واحد. */
+                if (count($segs) > 30) {
+                    $html .= '<span class="tq-s-thumb__seg" data-state="current">'
+                           . '<i style="inline-size:' . $pct . '%"></i></span>';
+                } else {
+                    foreach ($segs as $sg) {
+                        $f = max(0, min(100, (int) $sg['fill']));
+                        $html .= '<span class="tq-s-thumb__seg" data-state="'
+                               . html_escape($sg['state']) . '">'
+                               . ($f > 0 ? '<i style="inline-size:' . $f . '%"></i>' : '<i></i>')
+                               . '</span>';
+                    }
+                }
+                $html .= '</span></span>';
+            }
+        }
+
         return $html . '</div>';
     }
 }
@@ -298,19 +410,83 @@ if (!function_exists('tq_s_stat')) {
   overflow: hidden;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--tq-actionPrimary), var(--tq-actionMastery));
+  /* لون انتظار ريثما تحمل الصورة، لا بديل دائم: الغلاف صورة أبدا
+     (‏tq_s_cover_for‎ لا تعيد فراغا). والمربع الأخضر بحرف المادة
+     حذف معه ست «نغمات» كانت تخلط توكنات متقاربة فتقرأ لونا واحدا. */
+  background: var(--tq-ground);
+  isolation: isolate;
 }
-.tq-s-thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; }
-.tq-s-thumb__glyph { font: var(--tq-type-hero); color: var(--tq-navInkOn); opacity: .5; }
-.tq-s-thumb--mint  { background: linear-gradient(135deg, var(--tq-actionMastery), var(--tq-actionPrimary)); }
-.tq-s-thumb--sky   { background: linear-gradient(135deg, var(--tq-navySoft), var(--tq-navyDeep)); }
-.tq-s-thumb--peach { background: linear-gradient(160deg, var(--tq-actionPrimary), var(--tq-actionMastery)); }
-.tq-s-thumb--lilac { background: linear-gradient(135deg, var(--tq-navyDeep), var(--tq-navySoft)); }
-.tq-s-thumb--rose  { background: linear-gradient(135deg, var(--tq-navySoft), var(--tq-teal)); }
-.tq-s-thumb--sand  { background: linear-gradient(135deg, var(--tq-navyDeep), var(--tq-actionPrimary)); }
-.tq-s-thumb__badge { position: absolute; inset-block-start: var(--tq-space-s); inset-inline-start: var(--tq-space-s); }
+.tq-s-thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
+.tq-s-thumb__badge { position: absolute; z-index: 4; inset-block-start: var(--tq-space-s); inset-inline-start: var(--tq-space-s); }
+
+/* ── الغلاف التفاعلي — TQ-COVER-LIVE ─────────────────────────────────
+   ما يكشفه المرور: زر تشغيل ونص. وما لا يخفى أبدا: اسم الدرس الحالي
+   وشريط مقطع قطعة لكل درس. والتقدم ليس سرا يكشفه المرور. */
+.tq-s-thumb__veil {
+  position: absolute; inset: 0; z-index: 2;
+  display: grid; place-items: center; align-content: center; gap: var(--tq-space-xs);
+  background: color-mix(in srgb, var(--tq-navyDeep) 62%, transparent);
+  opacity: 0; transition: opacity .18s ease;
+}
+.tq-s-thumb__play {
+  inline-size: 52px; block-size: 52px; border-radius: var(--tq-radius-pill);
+  display: grid; place-items: center;
+  background: var(--tq-navInkOn); color: var(--tq-navyDeep);
+  box-shadow: var(--tq-shadow-soft);
+  transform: scale(.88); transition: transform .18s ease;
+}
+.tq-s-thumb__cue { font: var(--tq-type-bodyStrong); color: var(--tq-navInkOn); }
+/* التركيز شرط لا زينة: من يتنقل بلوحة المفاتيح يرى ما يراه من يمرر. */
+a:hover .tq-s-thumb__veil, a:focus-visible .tq-s-thumb__veil { opacity: 1; }
+a:hover .tq-s-thumb__play, a:focus-visible .tq-s-thumb__play { transform: scale(1); }
+
+.tq-s-thumb__foot {
+  position: absolute; inset-inline: 0; inset-block-end: 0; z-index: 3;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: var(--tq-space-s);
+  background: linear-gradient(to top,
+    color-mix(in srgb, var(--tq-navyDeep) 88%, transparent) 0%,
+    color-mix(in srgb, var(--tq-navyDeep) 62%, transparent) 55%,
+    transparent 100%);
+}
+.tq-s-thumb__now { display: flex; gap: 6px; align-items: baseline; min-inline-size: 0; }
+.tq-s-thumb__now-k { font: var(--tq-type-micro); color: var(--tq-navInkOn); opacity: .68; flex: none; }
+.tq-s-thumb__now-v {
+  font: var(--tq-type-micro); color: var(--tq-navInkOn);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-inline-size: 0;
+}
+/* الشريط بخصائص منطقية: في RTL يبدا الدرس الاول يمينا ويتقدم يسارا
+   كما يقرا صاحبه — بلا قاعدة مرآة. */
+.tq-s-thumb__bar { display: flex; gap: 3px; inline-size: 100%; block-size: 5px; }
+.tq-s-thumb__seg {
+  flex: 1 1 0; min-inline-size: 3px; block-size: 100%;
+  border-radius: var(--tq-radius-pill); overflow: hidden;
+  background: color-mix(in srgb, var(--tq-navInkOn) 26%, transparent);
+}
+.tq-s-thumb__seg > i {
+  display: block; block-size: 100%; inline-size: 0;
+  border-radius: var(--tq-radius-pill);
+  background: var(--tq-actionMastery);
+  transition: inline-size .3s ease;
+}
+.tq-s-thumb__seg[data-state="current"] > i { background: var(--tq-actionPrimary); }
+
+/* اللمس لا مرور فيه: ما يكشفه المرور يبقى ظاهرا على الهاتف. */
+@media (hover: none) {
+  .tq-s-thumb__veil {
+    opacity: 1;
+    background: linear-gradient(to top,
+      transparent 45%, color-mix(in srgb, var(--tq-navyDeep) 30%, transparent) 100%);
+    align-content: start; padding-block-start: var(--tq-space-m);
+  }
+  .tq-s-thumb__cue { display: none; }
+  .tq-s-thumb__play { inline-size: 40px; block-size: 40px; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tq-s-thumb__veil, .tq-s-thumb__play, .tq-s-thumb__seg > i { transition: none; }
+}
 .tq-s-thumb__tag {
-  position: absolute; inset-block-end: var(--tq-space-s); inset-inline-end: var(--tq-space-s);
+  position: absolute; z-index: 4; inset-block-end: var(--tq-space-s); inset-inline-end: var(--tq-space-s);
   padding: 2px var(--tq-space-s);
   border-radius: var(--tq-radius-pill);
   background: var(--tq-navyDeep); color: var(--tq-navInkOn);

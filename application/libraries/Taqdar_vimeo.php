@@ -75,16 +75,22 @@ class Taqdar_vimeo
         $rows = $this->page('/me/projects/' . (int) $project_id . '/items', array(
             /* `player_embed_url` ليس ترفًا: هو الحقل الوحيد الذي يحمل
                البصمة لفيديو خصوصيته `disable` — و`link` عنده مجرّد منها. */
+            /* و`pictures` لمصغّرة الغلاف: حقول تُضاف لا تُبدَّل، فالقارئون
+               الأربعة (scan · plan · import · verify) يقرؤون بالمفتاح
+               ويتجاهلون ما لا يعرفون. وكلفتها صفر: الحقل يُطلب في
+               الطلب نفسه لا في طلب ثانٍ لكلّ فيديو. */
             'fields' => 'type,folder.uri,folder.name,'
                       . 'video.uri,video.link,video.player_embed_url,video.name,'
                       . 'video.duration,video.privacy.view,video.created_time,'
-                      . 'video.modified_time'));
+                      . 'video.modified_time,'
+                      . 'video.pictures.type,video.pictures.sizes.link,video.pictures.sizes.width'));
         if ($rows !== null) return $rows;
 
         $nested = false;
         $vids = $this->page('/me/projects/' . (int) $project_id . '/videos', array(
             'fields' => 'uri,link,player_embed_url,name,duration,privacy.view,'
-                      . 'created_time,modified_time'));
+                      . 'created_time,modified_time,'
+                      . 'pictures.type,pictures.sizes.link,pictures.sizes.width'));
         if ($vids === null) return null;
 
         $out = array();
@@ -97,7 +103,8 @@ class Taqdar_vimeo
     {
         return $this->page('/me/videos', array(
             'fields' => 'uri,link,player_embed_url,name,duration,privacy.view,'
-                      . 'created_time,modified_time'));
+                      . 'created_time,modified_time,'
+                      . 'pictures.type,pictures.sizes.link,pictures.sizes.width'));
     }
 
     /* =====================================================================
@@ -122,7 +129,12 @@ class Taqdar_vimeo
         return $out;
     }
 
-    private function get($path, $query = array())
+    /**
+     * @param bool $retried حارس عمق: إعادة **واحدة** لا حلقة. و429 بلا
+     *                      انتظار يعيد الخطأ نفسه فورًا ثلاث مرّات ثمّ
+     *                      يستسلم — والانتظار هو كلّ ما يطلبه فيميو.
+     */
+    private function get($path, $query = array(), $retried = false)
     {
         if ($this->token === '') { $this->err = 'لا رمز.'; return null; }
 
@@ -140,6 +152,17 @@ class Taqdar_vimeo
                 'Accept: ' . self::ACCEPT,
             ),
         ));
+        /* `Retry-After` من الترويسة: فيميو يقول كم ننتظر، وتخمينه
+           إمّا بطء بلا سبب أو ارتطام ثانٍ. */
+        $wait = 0;
+        curl_setopt($ch, CURLOPT_HEADERFUNCTION,
+            function ($c, $h) use (&$wait) {
+                if (stripos($h, 'retry-after:') === 0) {
+                    $wait = (int) trim(substr($h, 12));
+                }
+                return strlen($h);
+            });
+
         $body = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $cerr = curl_error($ch);
@@ -149,7 +172,14 @@ class Taqdar_vimeo
 
         if ($code === 401) { $this->err = 'الرمز مرفوض (401) — منتهٍ أو خاطئ.'; return null; }
         if ($code === 403) { $this->err = 'ممنوع (403) — الرمز بلا الصلاحية اللازمة.'; return null; }
-        if ($code === 429) { $this->err = 'تجاوزنا حدّ الطلبات (429) — أعد بعد قليل.'; return null; }
+        if ($code === 429) {
+            if (!$retried) {
+                sleep(max(1, min($wait > 0 ? $wait : 5, 60)));   /* سقف دقيقة */
+                return $this->get($path, $query, true);
+            }
+            $this->err = 'تجاوزنا حدّ الطلبات (429) بعد إعادة واحدة — أعد بعد قليل.';
+            return null;
+        }
         if ($code < 200 || $code >= 300) { $this->err = 'ردّ فيميو ' . $code . '.'; return null; }
 
         $j = json_decode((string) $body, true);

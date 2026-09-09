@@ -167,8 +167,13 @@ include 'portal_open.php';
                                 <?php echo tq_s_thumb(
                                     $c['title'], $c['thumbnail'], $c['index'],
                                     tq_badge('progress', t('قيد التقدم')),
-                                    $c['seconds'] ? tq_s_clock($c['seconds']) : ''
-                                ); ?>
+                                    $c['seconds'] ? tq_s_clock($c['seconds']) : '', array(
+                                        'course'   => $c['id'],
+                                        'pct'      => $c['progress'],
+                                        'segments' => $c['segments'],
+                                        'current'  => $c['current_title'],
+                                        'status'   => $c['status'],
+                                    )); ?>
                             </a>
                             <h3 class="tq-s-course__title">
                                 <a href="<?php echo tq_s_lesson_url($c['id'], $c['resume_id']); ?>"
@@ -217,7 +222,13 @@ include 'portal_open.php';
                         <article class="tq-card tq-s-course">
                             <a href="<?php echo tq_s_lesson_url($c['id'], $c['resume_id']); ?>">
                                 <?php echo tq_s_thumb($c['title'], $c['thumbnail'], $c['index'], $badge,
-                                    $c['seconds'] ? tq_s_clock($c['seconds']) : ''); ?>
+                                    $c['seconds'] ? tq_s_clock($c['seconds']) : '', array(
+                                        'course'   => $c['id'],
+                                        'pct'      => $c['progress'],
+                                        'segments' => $c['segments'],
+                                        'current'  => $c['current_title'],
+                                        'status'   => $c['status'],
+                                    )); ?>
                             </a>
                             <h3 class="tq-s-course__title">
                                 <a href="<?php echo tq_s_lesson_url($c['id'], $c['resume_id']); ?>"

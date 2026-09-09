@@ -439,15 +439,17 @@ include 'portal_open.php';
                         <?php
                         $cid   = (int) $c['id'];
                         $pct   = $tq_course_progress[$cid] ?? 0;
-                        $thumb = !empty($c['thumbnail']) ? base_url($c['thumbnail']) : '';
+                        /* TQ-COVER — من `tq_s_cover_for()` لا من `base_url()` عاريا:
+                           العمود يخزن **اسم ملف** لا مسارا (عرف لوحة التحكم)،
+                           فبناء الرابط من الاسم وحده يعطي
+                           `taqdaredu.com/tqv-66-abc.webp` — ٤٠٤ في كل بطاقة
+                           لحظة امتلاء العمود. والطبقات الثلاث تعني ألا فرع
+                           فارغ بعدها. */
+                        $thumb = tq_s_cover_for($c);
                         ?>
                         <article class="tq-course-row">
                             <div class="tq-course-row__art">
-                                <?php if ($thumb !== ''): ?>
-                                    <img src="<?php echo html_escape($thumb); ?>" alt="<?php echo te('غلاف كورس ____', array(html_escape($c['title']))); ?>">
-                                <?php else: ?>
-                                    <span aria-hidden="true"><?php echo tq_icon('book', 28); ?></span>
-                                <?php endif; ?>
+                                <img src="<?php echo html_escape($thumb); ?>" alt="<?php echo te('غلاف كورس ____', array(html_escape($c['title']))); ?>" loading="lazy" decoding="async">
                             </div>
                             <div>
                                 <div class="tq-row tq-row--between">
