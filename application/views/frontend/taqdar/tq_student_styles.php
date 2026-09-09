@@ -151,24 +151,80 @@ if (!function_exists('tq_s_cover')) {
     }
 }
 
+if (!function_exists('tq_s_cover_for')) {
+    /**
+     * غلاف الكورس بثلاث طبقات — ولا مربع ملون في آخرها.
+     *
+     *   ١ الصورة المخزنة إن وجدت على القرص (مصغرة فيميو أو رفع المعلم)
+     *   ٢ غلاف المادة من `tqs_cat_cover()` — **المصدر نفسه** الذي يقرأه
+     *     الكتالوج العام، فلا خريطة مواد ثانية تفترق عن أختها
+     *   ٣ غلاف المنصة المخبوز، وهو ما يستعمله `Api_v1::thumb_url()` أصلا
+     *
+     * والطبقة الثانية **لا تكتب في القاعدة**: كتابتها تجعل مهمة الأغلفة
+     * تقرأ العمود مملوءا فتتخطى الكورس أبدا يوم يصير له درس فيميو،
+     * وتكسر الكتالوج العام (يبحث عن `cov-math` تحت مجلد الرفع فلا يجده).
+     */
+    function tq_s_cover_for($c)
+    {
+        $src = tq_s_cover(isset($c['thumbnail']) ? $c['thumbnail'] : '');
+        if ($src !== '') return $src;
+
+        if (function_exists('tqs_cat_cover') && function_exists('tqs_img')) {
+            $subject = '';
+            if (function_exists('tq_s_subject')) {
+                $subject = (string) tq_s_subject(
+                    (int) (isset($c['category_id']) ? $c['category_id'] : 0),
+                    '', (int) (isset($c['id']) ? $c['id'] : 0));
+            }
+            $slug = tqs_cat_cover(array(
+                'kind'    => 'course',
+                'image'   => '',
+                'cat'     => '',
+                'title'   => (string) (isset($c['title']) ? $c['title'] : ''),
+                'subject' => $subject,
+            ));
+            if ($slug !== '') {
+                $img = tqs_img($slug, '');
+                if ($img !== '') return $img;
+            }
+        }
+
+        return base_url('assets/taqdar/brand/course-placeholder.png');
+    }
+}
+
 if (!function_exists('tq_s_thumb')) {
     /**
-     * غلاف البطاقة: الصورة إن وجدت، وإلا تدرج CSS بحرف المادة —
-     * ولا صورة من الإنترنت ولا حزمة أيقونات خارجية.
+     * غلاف البطاقة — صورة أبدا، ولا تدرج ملون بحرف.
+     *
+     * كان يرسم مستطيلا أخضر فيه أول حرف من العنوان متى خلا العمود، وقد
+     * خلا في **الكورسات كلها**: فما رآه الطالب ليس بديلا نادرا بل هو
+     * الحال الوحيدة. وست «نغمات» تخلط توكنات خضراء متقاربة فتقرأ لونا
+     * واحدا مسطحا. فصار الغلاف من `tq_s_cover_for()` بثلاث طبقات لا
+     * تنتهي إلى فراغ.
+     *
+     * @param array|null $o طبقة التقدم — انظر «الغلاف التفاعلي» أدناه.
+     *                      و`null` يعيد السلوك القديم حرفا بحرف، فمناداة
+     *                      لم تحدث تتدهور ولا تنهار.
      */
-    function tq_s_thumb($title, $thumbnail = '', $index = 0, $badge = '', $tag = '')
+    function tq_s_thumb($title, $thumbnail = '', $index = 0, $badge = '', $tag = '', $o = null)
     {
-        $src  = tq_s_cover($thumbnail);
-        $fam  = tq_pastel($index);
-        $html = '<div class="tq-s-thumb tq-s-thumb--' . $fam . '">';
-        if ($src !== '') {
-            $html .= '<img src="' . html_escape($src) . '" alt="' . html_escape(t('غلاف ') . $title) . '" loading="lazy">';
-        } else {
-            $html .= '<span class="tq-s-thumb__glyph" aria-hidden="true">'
-                  . html_escape(mb_substr(trim((string) $title), 0, 1, 'UTF-8')) . '</span>';
-        }
+        $cid = is_array($o) && isset($o['course']) ? (int) $o['course'] : 0;
+        $src = tq_s_cover_for(array(
+            'thumbnail'   => $thumbnail,
+            'title'       => $title,
+            'id'          => $cid,
+            'category_id' => 0,
+        ));
+
+        $html = '<div class="tq-s-thumb">'
+              . '<img src="' . html_escape($src) . '" alt="'
+              . html_escape(t('غلاف كورس ') . $title) . '"'
+              . ' width="1280" height="720" loading="lazy" decoding="async">';
+
         if ($badge !== '') $html .= '<span class="tq-s-thumb__badge">' . $badge . '</span>';
         if ($tag !== '')   $html .= '<span class="tq-s-thumb__tag">' . $tag . '</span>';
+
         return $html . '</div>';
     }
 }
@@ -298,16 +354,13 @@ if (!function_exists('tq_s_stat')) {
   overflow: hidden;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--tq-actionPrimary), var(--tq-actionMastery));
+  /* لون انتظار ريثما تحمل الصورة، لا بديل دائم: الغلاف صورة أبدا
+     (‏tq_s_cover_for‎ لا تعيد فراغا). والمربع الأخضر بحرف المادة
+     حذف معه ست «نغمات» كانت تخلط توكنات متقاربة فتقرأ لونا واحدا. */
+  background: var(--tq-ground);
+  isolation: isolate;
 }
-.tq-s-thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; }
-.tq-s-thumb__glyph { font: var(--tq-type-hero); color: var(--tq-navInkOn); opacity: .5; }
-.tq-s-thumb--mint  { background: linear-gradient(135deg, var(--tq-actionMastery), var(--tq-actionPrimary)); }
-.tq-s-thumb--sky   { background: linear-gradient(135deg, var(--tq-navySoft), var(--tq-navyDeep)); }
-.tq-s-thumb--peach { background: linear-gradient(160deg, var(--tq-actionPrimary), var(--tq-actionMastery)); }
-.tq-s-thumb--lilac { background: linear-gradient(135deg, var(--tq-navyDeep), var(--tq-navySoft)); }
-.tq-s-thumb--rose  { background: linear-gradient(135deg, var(--tq-navySoft), var(--tq-teal)); }
-.tq-s-thumb--sand  { background: linear-gradient(135deg, var(--tq-navyDeep), var(--tq-actionPrimary)); }
+.tq-s-thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
 .tq-s-thumb__badge { position: absolute; inset-block-start: var(--tq-space-s); inset-inline-start: var(--tq-space-s); }
 .tq-s-thumb__tag {
   position: absolute; inset-block-end: var(--tq-space-s); inset-inline-end: var(--tq-space-s);
