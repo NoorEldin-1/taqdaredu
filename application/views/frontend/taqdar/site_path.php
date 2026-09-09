@@ -389,7 +389,11 @@ if (!empty($tq_p['cat_name'])) $tq_ld['educationalLevel'] = (string) $tq_p['cat_
 if ((int) $tq_t['lessons'] > 0) {
     $tq_inst = array(
         '@type'      => 'CourseInstance',
-        'courseMode' => 'online',
+        /* بحرفٍ كبير: أمثلة «Course info» في وثائق جوجل تكتب
+           `Online` و`Subscription`، وقائمة الفئات عندها محصورة
+           (‏Free · Partially Free · Subscription · Paid). وschema.org
+           يقبل النصّ الحرّ، لكنّ المستهلِك هنا جوجل. */
+        'courseMode' => 'Online',
         'inLanguage' => 'ar',
     );
     $tq_min = (int) $tq_t['minutes'];
@@ -418,7 +422,7 @@ if ((int) $tq_t['lessons'] > 0) {
             $tq_offers[] = array(
                 '@type'         => 'Offer',
                 'name'          => trim($tq_pn . ' — ' . (string) $tq_c['label']),
-                'category'      => 'subscription',
+                'category'      => 'Subscription',
                 'price'         => number_format($tq_c['price'] / 100, 2, '.', ''),
                 'priceCurrency' => 'SAR',
                 'availability'  => 'https://schema.org/InStock',
