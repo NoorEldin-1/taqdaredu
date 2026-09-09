@@ -359,6 +359,28 @@
             }
         }
 
+        /* TQ-SEO-BOOKDESC — وصف الكتاب من الكتاب لا من المنصّة.
+
+           ٤١٦ صفحة كتاب وملخّص كانت تخرج بوصفٍ واحد: «{العنوان} — منصة
+           تقدر التعليمية — دورات ومحتوى تعليمي عربي…». والعنوان وحده
+           يفرّق بينها، والباقي جملةٌ مكرَّرة ٤١٦ مرّة تُقرأ في نتيجة
+           البحث فلا تقول عن الكتاب شيئًا.
+
+           والوصف مكتوبٌ في الصفّ نفسه (‏٧٤–١٠١ كلمة)، فيؤخذ منه أوّلُ
+           ١٥٥ حرفًا عند حدّ كلمة — وهو ما يعرضه جوجل. */
+        if (!empty($tq_book) && is_array($tq_book)) {
+            $bk_d = trim(strip_tags((string) (isset($tq_book['description']) ? $tq_book['description'] : '')));
+            if ($bk_d !== '') {
+                if (mb_strlen($bk_d) > 158) {
+                    $bk_cut = mb_substr($bk_d, 0, 158);
+                    $bk_sp  = mb_strrpos($bk_cut, ' ');
+                    $bk_d   = ($bk_sp !== false ? mb_substr($bk_cut, 0, $bk_sp) : $bk_cut) . '…';
+                }
+                $meta_description = $bk_d;
+                $og_description   = $bk_d;
+            }
+        }
+
         /* TQ-SEO-LEGACY — صفحة المقرر القديمة نسخة ثانية من البرنامج.
 
            `‎/home/course/{عنوان}/{معرف}` ترد **٢٠٠** لا ٣٠١، وتحمل

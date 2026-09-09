@@ -27,12 +27,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * الفهرس المقسَّم أيَّ نوعٍ استُبعد — كتبٌ أم برامج أم معلّمون — بدل
  * رقمٍ واحد لا يُفكَّك.
  *
- * ═══ الملخّصات ليست هنا عمدًا ═══
+ * ═══ الملخّصات دخلت بعد أن استوفت الحدّ ═══
  *
- * ٣٠٦ صفحة ملخّص حيّة وخارج الخريطة **بقرار**: كلّ واحدة اليوم إطارُ
- * درايف وسطرُ وصف مولَّد. وإعلان ٣٠٦ صفحة نحيفة دفعةً واحدة نمطٌ
- * يجرّ تقييم النطاق كلّه لا الصفحات وحدها. تدخل الخريطة حين يبلغ
- * نصّها الحدّ الأدنى (وصف فريد + وحداتها + ماذا بداخلها).
+ * كانت خارج الخريطة عمدًا يوم كانت كلّ صفحة إطارَ درايف وسطرَ وصف
+ * مولَّد — وإعلان ٣٠٦ صفحات نحيفة دفعةً واحدة يجرّ تقييم النطاق كلّه.
+ * ثمّ أُثري نصّها (‏٧٤–١٠١ كلمة فريدة لكلّ صفحة، من بيانات صفّها
+ * نفسه) وأُضيف لها وسمُ `Book`+`LearningResource` وروابطُ داخلية،
+ * فدخلت. **والبوّابة تبقى**: صفحة بلا وصف لا تُعلَن.
  */
 class Sitemap extends CI_Controller {
 
@@ -70,7 +71,7 @@ class Sitemap extends CI_Controller {
     public function index()
     {
         $parts = array();
-        foreach (array('static', 'paths', 'books', 'teachers', 'blog', 'plans') as $p) {
+        foreach (array('static', 'paths', 'books', 'summaries', 'teachers', 'blog', 'plans') as $p) {
             $rows = $this->rows($p);
             if (!$rows) continue;
             $last = 0;
@@ -116,6 +117,7 @@ class Sitemap extends CI_Controller {
             case 'static':   return $this->rows_static();
             case 'paths':    return $this->rows_paths();
             case 'books':    return $this->rows_books();
+            case 'summaries':return $this->rows_summaries();
             case 'teachers': return $this->rows_teachers();
             case 'blog':     return $this->rows_blog();
             case 'plans':    return $this->rows_plans();
@@ -133,7 +135,7 @@ class Sitemap extends CI_Controller {
         if (!is_array($routes)) $routes = array();
         /* ما لقسمه ملفٌّ خاصّ لا يُعلَن هنا ثانيةً. */
         $seen = array('' => true, 'blog' => true, 'books' => true,
-                      'teachers' => true, 'plans' => true);
+                      'teachers' => true, 'plans' => true, 'summaries' => true);
         foreach ($routes as $r) {
             $r = trim((string) $r, '/ ');
             if (isset($this->clean[$r])) $r = $this->clean[$r];
@@ -146,7 +148,7 @@ class Sitemap extends CI_Controller {
         /* الأقسام التي بُنيت بعد آخر تحرير للإعداد فغابت عنه.
            ⚠ بلا `books` و`teachers` و`plans`: لكلٍّ قسمُه الخاصّ يعلن
            صفحته الأولى، وتكرار الرابط في ملفَّين إرباكٌ لا فائدة فيه. */
-        foreach (array('catalog', 'summaries',
+        foreach (array('catalog',
                        'about', 'contact', 'faq', 'privacy', 'terms', 'refund') as $r) {
             if (isset($seen[$r])) continue;
             $seen[$r] = true;
@@ -240,6 +242,32 @@ class Sitemap extends CI_Controller {
             foreach ($gr as $g) {
                 $out[] = array('loc' => tqs_grade_books_url($g), 'pri' => '0.7');
             }
+        }
+        return $out;
+    }
+
+    /**
+     * الملخّصات — ما استوفى منها حدّ المحتوى.
+     *
+     * البوّابة صريحة في الاستعلام لا في التعليق: صفحةٌ وصفُها فارغ أو
+     * أقصر من مئة حرف ليست صفحةً في نظر الفهرس، فلا تُعلَن حتى تُثرى.
+     */
+    private function rows_summaries()
+    {
+        if (!$this->db->table_exists('books')) return array();
+        $rows = $this->db->select('slug, last_modified, date_added')
+                         ->from('books')
+                         ->where('status', 'published')
+                         ->where("(slug LIKE 'sum-%')", null, false)
+                         ->where('CHAR_LENGTH(description) >= 100', null, false)
+                         ->get()->result_array();
+        $out = array(array('loc' => base_url('summaries'), 'pri' => '0.8'));
+        foreach ($rows as $r) {
+            $out[] = array(
+                'loc'     => base_url('book/' . $r['slug']),
+                'lastmod' => (int) ($r['last_modified'] ?: $r['date_added']),
+                'pri'     => '0.6',
+            );
         }
         return $out;
     }

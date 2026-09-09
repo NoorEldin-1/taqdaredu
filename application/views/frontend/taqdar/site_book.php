@@ -270,6 +270,71 @@ $tq_gap = ($tq_plan && $tq_sell) ? max(0, (int) $tq_plan['price'] - $tq_price) :
   </div>
 </section>
 
+<?php
+/* TQ-SEO-BOOKLINKS — الصفحة كانت طريقًا مسدودًا.
+
+   صفحة الكتاب تعرض ملفًّا وزرَّ تحميل ثمّ «كتب أخرى قد تفيدك» — ولا
+   رابط منها إلى البرنامج الذي يشرح المادّة نفسها، ولا إلى بقيّة كتب
+   الصفّ. فالزائر القادم من بحثٍ عن كتاب يحمّله وينصرف، والزاحف يقرأ
+   صفحةً معلَّقة لا ابنةَ بنيةٍ.
+
+   وكلّ رابط هنا **يُبنى من صفٍّ موجود** — إن لم يوجد لم يُعرض: لا
+   رابط يقود إلى ٤٠٤ ولا إلى صفحة «قيد الإعداد». */
+$tq_lnk = array();
+$tq_ci  =& get_instance();
+
+/* البرنامج الذي يشرح هذه المادّة لهذا الصفّ — إن كان له درس. */
+if (trim((string) $tq_b['subject']) !== '' && (int) $tq_b['grade_id'] > 0) {
+    $tq_sub = $tq_ci->db->select('id')->where('name_ar', trim((string) $tq_b['subject']))
+                        ->limit(1)->get('subjects')->row_array();
+    if ($tq_sub) {
+        $tq_pth = $tq_ci->db->select('p.slug, p.title')
+                    ->from('paths p')->join('course c', 'c.id = p.course_id', 'inner')
+                    ->where('p.subject_id', (int) $tq_sub['id'])
+                    ->where('p.grade_id', (int) $tq_b['grade_id'])
+                    ->where('p.status', 'published')
+                    ->where('(SELECT COUNT(*) FROM lesson l WHERE l.course_id = c.id) > 0', null, false)
+                    ->limit(1)->get()->row_array();
+        if ($tq_pth) {
+            $tq_lnk[] = array(base_url('path/' . $tq_pth['slug']),
+                              t('برنامج ') . $tq_b['subject'] . ' — ' . t('شرح مصوّر درسًا درسًا'));
+        }
+    }
+}
+
+/* بقيّة كتب الصفّ نفسه. */
+if ((int) $tq_b['grade_id'] > 0 && function_exists('tqs_grade_books_url')) {
+    $tq_gr = $tq_ci->db->select('id, name_ar, `order`', false)->where('id', (int) $tq_b['grade_id'])
+                       ->limit(1)->get('grades')->row_array();
+    if ($tq_gr) {
+        /* اسم الصفّ لا اسم المرحلة: «كتب المرحلة الابتدائية» على رابطٍ
+           يفتح كتب الأوّل الابتدائي وعدٌ يخالف ما يفتح. */
+        $tq_lnk[] = array(tqs_grade_books_url($tq_gr),
+                          t('كتب ') . (string) $tq_gr['name_ar'] . ' — ' . t('كلّ كتب هذا الصفّ'));
+    }
+}
+
+/* الوجه الآخر: من فتح كتابًا يريد ملخّصه، ومن فتح ملخّصًا يريد كتابه. */
+$tq_is_sum = (strpos((string) $tq_slug, 'sum-') === 0);
+$tq_lnk[] = $tq_is_sum
+    ? array(base_url('books'), t('كتب المنهج — الكتاب الكامل لكلّ مادّة'))
+    : array(base_url('summaries'), t('الملخّصات والمراجعات — مراجعة سريعة قبل الاختبار'));
+?>
+<?php if ($tq_lnk): ?>
+<section class="section">
+  <div class="shell">
+    <div class="icard">
+      <h2><?php echo t('روابط تكمل هذا الملفّ'); ?></h2>
+      <ul class="tq-links">
+<?php foreach ($tq_lnk as $tq_l): ?>
+        <li><a href="<?php echo html_escape($tq_l[0]); ?>"><?php echo html_escape($tq_l[1]); ?></a></li>
+<?php endforeach; ?>
+      </ul>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
 <?php if (!empty($tq_more)): ?>
 <section class="section section--tint">
   <div class="shell">
