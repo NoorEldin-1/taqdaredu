@@ -278,7 +278,11 @@
             /* معامل يبقى ان كان يغير المحتوى فعلا: صفحة الترقيم الثانية
                ليست الاولى، وتصنيف الكتالوج ليس كله. وما عداها — التتبع
                وكسر الكاش — لا يصنع صفحة، فاسقاطه هو الغرض من الكنونيكال. */
-            $c_keep = array('page', 'category', 'type', 'sort', 'grade', 'stage');
+            /* ⚠ `category` كان في القائمة وهو **معامِل ميّت**: الكتالوج
+               يرشّح بـ`cat` و`grade`، و`/catalog?category=x` يعرض
+               الكتالوج كاملًا — فإبقاؤه كان يصنع من كلّ رابط تتبّع
+               بمعامِل `category` صفحةً مستقلّة تنافس أصلها. */
+            $c_keep = array('page', 'cat', 'type', 'sort', 'grade', 'stage');
             $c_qs   = array();
             foreach ($c_keep as $c_k) {
                 $c_v = $CI_c->input->get($c_k, true);
@@ -398,6 +402,13 @@
                     $canonical_url = base_url('blog/' . $b_row['slug'] . '/' . $b_id);
                 }
             }
+        }
+
+        /* TQ-SEO-BLOGS — `/blogs` و`/blog` صفحتان بالمقالات نفسها،
+           كلٌّ بكنونيكال يشير إلى نفسه. والقالب الذي يربطه الموقع
+           ويحمل تصميم تقدّر هو `/blog`. فالوارثة تشير إليه. */
+        if ($l_seg[0] === 'blogs' && (string) $CI_l->uri->segment(2) === '') {
+            $canonical_url = base_url('blog');
         }
 
         /* TQ-SEO-CRUMB — فتات الخبز، وكانت غائبة عن الموقع كله.

@@ -149,12 +149,18 @@ class Sitemap extends CI_Controller {
             $out[] = array('loc' => base_url($r), 'pri' => '0.8');
         }
 
-        /* تصنيفات الكتالوج على رابطها النظيف لا `home/courses?category=`. */
+        /* تصنيفات الكتالوج — بالمعامِل الذي **يرشّح فعلًا**.
+
+           ⚠ الوارث كان يعلن `?category=`، وقياسه اليوم: `/catalog`
+           و`/catalog?category=primary` يعرضان الشيء نفسه حرفًا بحرف —
+           المعامِل ميّت. والكتالوج يرشّح بـ`?cat=` و`?grade=` (‏٩ عناصر
+           مقابل ٦ لغير المرشَّح). **فمعامِل لا يرشّح ليس صفحةً، وإعلانه
+           إعلانُ نسخة.** */
         if ($this->db->table_exists('category')) {
             $cats = $this->db->select('slug')->where('parent', 0)->get('category')->result_array();
             foreach ($cats as $c) {
                 if ((string) $c['slug'] === '') continue;
-                $out[] = array('loc' => base_url('catalog?category=' . rawurlencode($c['slug'])), 'pri' => '0.6');
+                $out[] = array('loc' => base_url('catalog?cat=' . rawurlencode($c['slug'])), 'pri' => '0.6');
             }
         }
         return $out;
@@ -268,10 +274,9 @@ class Sitemap extends CI_Controller {
                 'pri'     => '0.6',
             );
         }
-        foreach ($this->crud_model->get_blog_categories()->result_array() as $c) {
-            if ((string) $c['slug'] === '') continue;
-            $out[] = array('loc' => base_url('blogs?category=' . rawurlencode($c['slug'])), 'pri' => '0.5');
-        }
+        /* ⚠ `/blogs?category=` **لا يرشّح**: أربع تصنيفات وأربع صفحات
+           تعرض المقالات الثمانية نفسها. فهي أربع نسخ من `/blogs`، ولا
+           تُعلَن. وتعود يوم يعمل الترشيح. */
         return $out;
     }
 
