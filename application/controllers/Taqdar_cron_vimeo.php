@@ -315,6 +315,223 @@ class Taqdar_cron_vimeo extends CI_Controller
        الفحص البعديّ
        ===================================================================== */
 
+    /**
+     * أغلفة الكورسات من مصغّرات فيميو — TQ-VIMEO-THUMB.
+     *
+     * ═══ لماذا ═══
+     *
+     * `course.thumbnail` كان خاليًا في الكورسات الـ٣١ كلّها، فبطاقة كلّ
+     * كورس ترسم مستطيلًا ملوّنًا فيه أوّل حرف من عنوانه. والمصغّرة موجودة
+     * عند فيميو لكلّ درس، وطلبها **لا يكلّف نداءً**: حقل `pictures` يركب
+     * الطلب نفسه الذي يجلب العناوين والمدد.
+     *
+     * ═══ لماذا تُنزَّل ولا تُربَط ═══
+     *
+     * روابط `i.vimeocdn.com` ليست موقَّعة ولا تنتهي — لكنّ مسارها يحمل
+     * بصمة الملصق، فإعادة توليده عند فيميو تغيّرها و**تصير كلّ بطاقة
+     * ٤٠٤ صامتة**. ولمصافحة TLS لطرف ثالث في كلّ بطاقة كلفة على شبكة
+     * الطالب. والملفّ المحلّيّ يبقى بعد سحب الرمز.
+     *
+     * ═══ الملكيّة: بادئة `tqv-` ═══
+     *
+     * كلّ ما تكتبه هذه المهمّة يبدأ بها. فما لا يبدأ بها **رفع بشريّ من
+     * اللوحة ولا يُدهَس أبدًا** — ويُعلَن تخطّيه ولا يصمت. والتجزئة في
+     * الاسم هي كاسر الكاش: ملصق تغيّر يعطي اسمًا جديدًا، فلا يخدم
+     * المتصفّح ولا LiteSpeed صورةً بائتة.
+     *
+     * ═══ `UPDATE` خامّ في ملفّ يمنعه ═══
+     *
+     * عمود وسائط لا يمرّ بـ`save_course()`: تلك تجرّ فحوص ملكيّة ومنطق
+     * نشر لا شأن لمهمّة سطر أوامر بها. والتغيير آليّ ويُتراجَع عنه بجملة
+     * واحدة على البادئة، فلا سطر تدقيق يضيع معنًى.
+     *
+     * الاستعمال: `thumbs` معاينة · `thumbs apply` تنفيذ.
+     */
+    public function thumbs($apply = '')
+    {
+        $write = ($apply === 'apply');
+
+        $api = $this->api();
+        $me  = $api->probe();
+        if (!$me) { echo 'تعذّر: ' . $api->error() . "\n"; return; }
+        if (empty($me['private'])) {
+            echo "الرمز بلا صلاحية `private` — لا يرى الفيديوهات غير المدرجة.\n";
+            return;
+        }
+
+        /* نداء واحد (صفحتان) يغطّي الحساب كلّه. */
+        $vids = $api->all_videos();
+        if ($vids === null) { echo 'تعذّر جلب الفيديوهات: ' . $api->error() . "\n"; return; }
+
+        $pics = array(); $defaults = 0;
+        foreach ($vids as $v) {
+            $r = $this->vref_api($v);
+            if (!$r) continue;
+            $type = isset($v['pictures']['type']) ? (string) $v['pictures']['type'] : '';
+            if ($type !== 'custom') { $defaults++; continue; }   /* ملصق لم يُولَّد بعد */
+            $best = ''; $bw = 0;
+            if (isset($v['pictures']['sizes']) && is_array($v['pictures']['sizes'])) {
+                foreach ($v['pictures']['sizes'] as $sz) {
+                    $w = isset($sz['width']) ? (int) $sz['width'] : 0;
+                    if ($w > $bw && $w <= 1280 && !empty($sz['link'])) {
+                        $bw = $w; $best = (string) $sz['link'];
+                    }
+                }
+            }
+            if ($best !== '') $pics[$r['id']] = $best;
+        }
+
+        /* ترتيب المنهج نفسه الذي يراه الطالب في شريطه الجانبيّ — فالغلاف
+           هو إطار أوّل ما ينقر. و`video_type` **لا يُرشَّح به**: مقسوم
+           حالةً في القاعدة (`Vimeo` و`vimeo`)، والرابط هو الحقيقة. */
+        $rows = $this->db->query(
+            "SELECT l.id, l.course_id, l.section_id, l.`order`, l.video_url,
+                    c.thumbnail, c.title
+               FROM `lesson` l
+               JOIN `course` c ON c.id = l.course_id
+              WHERE l.video_url LIKE '%vimeo.com%'
+                AND l.lesson_type <> 'quiz'
+              ORDER BY l.course_id ASC, l.section_id ASC, l.`order` ASC, l.id ASC")
+            ->result_array();
+
+        $pick = array(); $linked = 0; $unmatched = 0;
+        foreach ($rows as $r) {
+            $v = $this->vref($r['video_url']);
+            if (!$v) continue;
+            $linked++;
+            if (!isset($pics[$v['id']])) { $unmatched++; continue; }
+            $cid = (int) $r['course_id'];
+            if (!isset($pick[$cid])) {
+                $pick[$cid] = array('lesson' => (int) $r['id'], 'link' => $pics[$v['id']],
+                                    'thumb' => (string) $r['thumbnail'], 'title' => (string) $r['title']);
+            }
+        }
+
+        echo ($write ? "أغلفة فيميو — تنفيذ.\n" : "أغلفة فيميو — معاينة (بلا كتابة). أضف apply للتنفيذ.\n");
+        echo str_repeat('─', 58) . "\n";
+        printf("  فيديوهات الحساب  %5d   (بمصغّرة %d · بلا ملصق %d)\n",
+               count($vids), count($pics), $defaults);
+        printf("  دروس فيميو       %5d   (بلا مطابقة %d)\n", $linked, $unmatched);
+        printf("  كورسات مرشَّحة    %5d\n\n", count($pick));
+
+        $dir = FCPATH . 'uploads/thumbnails/course_thumbnails/';
+        $new = 0; $same = 0; $skip = 0; $fail = 0;
+
+        foreach ($pick as $cid => $p) {
+            $cur = trim($p['thumb']);
+            if ($cur !== '' && strpos($cur, 'tqv-') !== 0) {
+                printf("  #%-4d %-34s تخطٍّ: صورة مرفوعة يدويًّا\n", $cid, $this->pad($p['title'], 34));
+                $skip++; continue;
+            }
+
+            $bytes = $this->grab($p['link']);
+            if ($bytes === '') {
+                printf("  #%-4d %-34s فشل: تعذّر التنزيل\n", $cid, $this->pad($p['title'], 34));
+                $fail++; continue;
+            }
+            $webp = $this->to_webp($bytes);
+            if ($webp === '') {
+                printf("  #%-4d %-34s فشل: تعذّر الترميز\n", $cid, $this->pad($p['title'], 34));
+                $fail++; continue;
+            }
+
+            $name = 'tqv-' . $cid . '-' . substr(sha1($webp), 0, 12) . '.webp';
+            if ($cur === $name && is_file($dir . $name)) {
+                printf("  #%-4d %-34s كما هو\n", $cid, $this->pad($p['title'], 34));
+                $same++; continue;
+            }
+
+            printf("  #%-4d %-34s جديد   %s  (درس %d)\n",
+                   $cid, $this->pad($p['title'], 34), $this->kb(strlen($webp)), $p['lesson']);
+            $new++;
+            if (!$write) continue;
+
+            if (!is_dir($dir)) @mkdir($dir, 0755, true);
+            if (@file_put_contents($dir . $name, $webp) === false) {
+                echo "        تعذّرت الكتابة على القرص.\n"; $fail++; $new--; continue;
+            }
+            @chmod($dir . $name, 0644);
+            $this->db->where('id', $cid)->update('course', array('thumbnail' => $name));
+
+            /* القديم يُحذف بعد نجاح الجديد لا قبله: ملفّ ذهب وصفّ لم
+               يُحدَّث يعني بطاقة بلا غلاف. */
+            if ($cur !== '' && $cur !== $name && strpos($cur, 'tqv-') === 0 && is_file($dir . $cur)) {
+                @unlink($dir . $cur);
+            }
+        }
+
+        printf("\n  الخلاصة: جديد %d · كما هو %d · تخطٍّ %d · فشل %d\n", $new, $same, $skip, $fail);
+
+        $none = $this->db->query(
+            "SELECT c.id FROM `course` c
+              WHERE NOT EXISTS (SELECT 1 FROM `lesson` l
+                                 WHERE l.course_id = c.id AND l.video_url LIKE '%vimeo.com%')
+              ORDER BY c.id")->result_array();
+        if ($none) {
+            $ids = array();
+            foreach ($none as $n) $ids[] = $n['id'];
+            echo '  كورسات بلا فيميو (تعرض غلاف مادّتها): ' . implode(' · ', $ids) . "\n";
+        }
+        if (!$write) echo "\n  معاينة فقط — أضف apply للتنفيذ.\n";
+    }
+
+    /** تنزيل بايتات الصورة — بمهلة وإعادة واحدة، ولا يطبع رابطًا في سجلّ. */
+    private function grab($url)
+    {
+        for ($i = 0; $i < 2; $i++) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, array(
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS      => 3,
+                CURLOPT_TIMEOUT        => 20,
+                CURLOPT_CONNECTTIMEOUT => 8,
+            ));
+            $b = curl_exec($ch);
+            $c = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            usleep(250000);                       /* ٢٢ ملفًّا ≈ ٥ ثوانٍ */
+            if ($b !== false && $c === 200 && strlen($b) > 0) return $b;
+        }
+        return '';
+    }
+
+    /**
+     * بايتات إلى webp — والتحقّق **قبل** فكّ الترميز لا بعده.
+     *
+     * `imagecreatefromstring()` على بايتات من الشبكة بلا فحص هو ما يفتح
+     * الباب؛ فالسقف ثمّ نوع الصورة ثمّ الفكّ، بهذا الترتيب.
+     */
+    private function to_webp($bytes)
+    {
+        if (strlen($bytes) > 2 * 1024 * 1024) return '';
+        $info = @getimagesizefromstring($bytes);
+        if (!$info || !in_array($info['mime'], array('image/jpeg', 'image/png', 'image/webp'), true)) {
+            return '';
+        }
+        $im = @imagecreatefromstring($bytes);
+        if (!$im) return '';
+
+        /* قاعدة القصّ في موضع واحد (`tq_img_cover`) — فلا يختلف إطار
+           غلاف الكورس عن غلاف الكتاب. */
+        $out = function_exists('tq_img_cover')
+             ? tq_img_cover($im, (int) $info[0], (int) $info[1], 1280, 720)
+             : $im;
+
+        ob_start();
+        $ok = @imagewebp($out, null, 82);
+        $webp = (string) ob_get_clean();
+
+        if ($out !== $im) @imagedestroy($out);
+        @imagedestroy($im);
+        return $ok ? $webp : '';
+    }
+
+    private function kb($n)
+    {
+        return $n >= 1024 ? round($n / 1024, 1) . ' ك.ب' : $n . ' بايت';
+    }
+
     public function verify()
     {
         echo "فحص بعد الاستيراد\n" . str_repeat('─', 58) . "\n";
