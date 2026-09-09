@@ -131,7 +131,9 @@ class Sitemap extends CI_Controller {
            لكن بعد تنقيته: المُستبعَد يُسقَط، والقديم يُترجَم إلى نظيفه. */
         $routes = json_decode((string) get_settings('sitemap_xml'), true);
         if (!is_array($routes)) $routes = array();
-        $seen = array('' => true);
+        /* ما لقسمه ملفٌّ خاصّ لا يُعلَن هنا ثانيةً. */
+        $seen = array('' => true, 'blog' => true, 'books' => true,
+                      'teachers' => true, 'plans' => true);
         foreach ($routes as $r) {
             $r = trim((string) $r, '/ ');
             if (isset($this->clean[$r])) $r = $this->clean[$r];
@@ -141,8 +143,10 @@ class Sitemap extends CI_Controller {
             $out[] = array('loc' => base_url($r), 'pri' => '0.7');
         }
 
-        /* الأقسام التي بُنيت بعد آخر تحرير للإعداد فغابت عنه. */
-        foreach (array('catalog', 'plans', 'books', 'summaries', 'teachers',
+        /* الأقسام التي بُنيت بعد آخر تحرير للإعداد فغابت عنه.
+           ⚠ بلا `books` و`teachers` و`plans`: لكلٍّ قسمُه الخاصّ يعلن
+           صفحته الأولى، وتكرار الرابط في ملفَّين إرباكٌ لا فائدة فيه. */
+        foreach (array('catalog', 'summaries',
                        'about', 'contact', 'faq', 'privacy', 'terms', 'refund') as $r) {
             if (isset($seen[$r])) continue;
             $seen[$r] = true;

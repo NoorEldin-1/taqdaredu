@@ -282,3 +282,51 @@ $tq_gap = ($tq_plan && $tq_sell) ? max(0, (int) $tq_plan['price'] - $tq_price) :
   </div>
 </section>
 <?php endif; ?>
+
+<?php
+/* TQ-SEO-BOOK — وسمُ الكتاب، وكان لا وسم للصفحة أصلًا.
+
+   ١٠٩ صفحات كتاب و٣٠٦ ملخّص تخرج بلا بيانات مهيكلة إطلاقًا، فمحرّك
+   البحث يقرأ صفحةً نصّية لا مورِدًا تعليميًّا له صفٌّ ومادّة ومؤلّف.
+
+   والنوع `Book` لا `Product`: هذه صفحة كتابٍ من المنهج، وبيعُه — حين
+   يُباع — عرضٌ عليه لا هويّته. و`LearningResource` نوعٌ ثانٍ معه لأنّ
+   جوجل يقرأ منه `educationalLevel` و`learningResourceType`.
+
+   والسعر يُعلَن **إن كان الكتاب يُباع فعلًا**، وبالقيمة التي تعرضها
+   الصفحة نفسها (‏`$tq_price` بالهللات)؛ والمجّانيّ يُعلَن مجّانيًّا. */
+$tq_bld = array(
+    '@context'         => 'https://schema.org',
+    '@type'            => array('Book', 'LearningResource'),
+    'name'             => (string) $tq_b['title'],
+    'url'              => base_url('book/' . $tq_slug),
+    'inLanguage'       => 'ar',
+    'bookFormat'       => 'https://schema.org/EBook',
+    'isAccessibleForFree' => !$tq_sell,
+    'publisher'        => array('@type' => 'EducationalOrganization',
+                                'name'  => 'منصة تقدر التعليمية',
+                                'url'   => base_url()),
+);
+if (trim((string) $tq_b['description']) !== '') $tq_bld['description'] = (string) $tq_b['description'];
+if (trim((string) $tq_b['author'])      !== '') $tq_bld['author'] = array('@type' => 'Organization', 'name' => (string) $tq_b['author']);
+if ((int) $tq_b['pages'] > 0)                   $tq_bld['numberOfPages'] = (int) $tq_b['pages'];
+if (trim((string) $tq_b['subject'])     !== '') $tq_bld['about'] = (string) $tq_b['subject'];
+if (!empty($tq_b['cat_name']))                  $tq_bld['educationalLevel'] = (string) $tq_b['cat_name'];
+if ((string) $tq_b['cover'] !== '' && function_exists('tqs_img')) {
+    $tq_bcov = tqs_img($tq_b['cover'], '');
+    if ($tq_bcov !== '') $tq_bld['image'] = $tq_bcov;
+}
+$tq_bld['learningResourceType'] = (strpos((string) $tq_slug, 'sum-') === 0) ? 'ملخّص' : 'كتاب دراسيّ';
+if ($tq_sell && $tq_price > 0) {
+    $tq_bld['offers'] = array(
+        '@type'         => 'Offer',
+        'price'         => number_format($tq_price / 100, 2, '.', ''),
+        'priceCurrency' => 'SAR',
+        'availability'  => 'https://schema.org/InStock',
+        'url'           => base_url('book/' . $tq_slug),
+    );
+}
+?>
+<script type="application/ld+json"><?php
+echo json_encode($tq_bld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+?></script>
