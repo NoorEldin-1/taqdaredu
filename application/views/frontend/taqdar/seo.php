@@ -355,6 +355,69 @@
             }
         }
 
+        /* TQ-SEO-LEGACY — صفحة المقرر القديمة نسخة ثانية من البرنامج.
+
+           `‎/home/course/{عنوان}/{معرف}` ترد **٢٠٠** لا ٣٠١، وتحمل
+           كنونيكال يشير الى نفسها بعنوان عربي مرمز (`%d8%a7...`)، بينما
+           `‎/path/{slug}` تعرض المحتوى نفسه من الجدول نفسه. فصفحتان
+           تتنافسان على مقرر واحد، وجوجل يختار — وقد يختار الاقبح رابطا.
+
+           والاصلاح كنونيكال لا حذف: الروابط القديمة موزعة خارج الموقع،
+           وحذفها يفقدها، وتوجيهها ٣٠١ يكسر لوحة الاكاديمي القديمة التي
+           تستعملها. فتبقى تعمل، وتقول للفهرس: الاصل هناك. */
+        $CI_l  =& get_instance();
+        $l_seg = array($CI_l->uri->segment(1), $CI_l->uri->segment(2));
+        if ($l_seg[0] === 'home' && $l_seg[1] === 'course') {
+            $l_cid = 0;
+            for ($l_i = 5; $l_i >= 3; $l_i--) {
+                $l_v = (string) $CI_l->uri->segment($l_i);
+                if ($l_v !== '' && ctype_digit($l_v)) { $l_cid = (int) $l_v; break; }
+            }
+            if ($l_cid > 0) {
+                $l_row = $CI_l->db->select('slug')->where('course_id', $l_cid)
+                                  ->order_by('id', 'ASC')->limit(1)
+                                  ->get('paths')->row_array();
+                if (!empty($l_row['slug'])) {
+                    $canonical_url = base_url('path/' . $l_row['slug']);
+                }
+            }
+        }
+
+        /* TQ-SEO-CRUMB — فتات الخبز، وكانت غائبة عن الموقع كله.
+
+           تفيد مرتين: تعطي نتيجة البحث سطر المسار بدل الرابط الخام،
+           وتقول للفهرس ان الصفحة العميقة ابنة قسم لا صفحة يتيمة. والاسم
+           الورقي يؤخذ من `$meta_title` — وهو محسوب اعلاه لكل نوع صفحة،
+           فلا استعلام ولا خريطة عناوين ثانية. */
+        $tq_crumb = array();
+        $c_leaf   = trim((string) $meta_title);
+        $c_s1     = (string) $CI_l->uri->segment(1);
+        $c_s2     = (string) $CI_l->uri->segment(2);
+        $c_parent = null;
+        if ($c_s1 === 'path' && $c_s2 !== '')        $c_parent = array(t('البرامج'),   'catalog');
+        elseif ($c_s1 === 'book' && $c_s2 !== '')    $c_parent = (strpos($c_s2, 'sum-') === 0)
+                                                        ? array(t('الملخّصات'), 'summaries')
+                                                        : array(t('الكتب'),     'books');
+        elseif ($c_s1 === 'instructor' && $c_s2 !== '') $c_parent = array(t('المعلّمون'), 'teachers');
+        elseif ($c_s1 === 'plan' && $c_s2 !== '')    $c_parent = array(t('الباقات'),   'plans');
+        elseif ($c_s1 === 'blog' && $c_s2 !== '')    $c_parent = array(t('المدوّنة'),   'blog');
+
+        if ($c_parent !== null && $c_leaf !== '') {
+            $tq_crumb = array(
+                '@context'        => 'https://schema.org',
+                '@type'           => 'BreadcrumbList',
+                'itemListElement' => array(
+                    array('@type' => 'ListItem', 'position' => 1,
+                          'name'  => t('الرئيسية'), 'item' => base_url()),
+                    array('@type' => 'ListItem', 'position' => 2,
+                          'name'  => $c_parent[0], 'item' => base_url($c_parent[1])),
+                    array('@type' => 'ListItem', 'position' => 3,
+                          'name'  => $c_leaf,
+                          'item'  => ($canonical_url !== '' ? $canonical_url : current_url())),
+                ),
+            );
+        }
+
         /* TQ-SEO-NOINDEX — لا يدعى الى فهرسة ما لا يفهرس. كان
            `index, follow` على ٣٨ صفحة من ٣٨ — ومنها الدخول والتسجيل
            وصفحة الدفع **وصفحة ٤٠٤ نفسها**، فنتيجة بحث تقود الى خطأ.
@@ -383,7 +446,7 @@
     <meta property="og:title" content="<?php echo htmlspecialchars($og_title, ENT_QUOTES, 'UTF-8'); ?>">
     <meta property="og:description" content="<?php echo htmlspecialchars($og_description, ENT_QUOTES, 'UTF-8'); ?>">
     <meta property="og:image" content="<?php echo htmlspecialchars($og_image, ENT_QUOTES, 'UTF-8'); ?>">
-    <meta property="og:url" content="<?php echo current_url(); ?>">
+    <meta property="og:url" content="<?php echo htmlspecialchars(($canonical_url !== '' ? $canonical_url : current_url()), ENT_QUOTES, 'UTF-8'); ?>">
 <?php /* الوسوم التي كانت غائبة: بلا `og:type` تصنف الصفحة افتراضا،
         وبلا `twitter:card` تظهر المشاركة سطرا بلا صورة، وبلا `og:locale`
         لا يعرف أن المحتوى عربي. و`hreflang` يقول للفهرس إن هذه هي
@@ -395,10 +458,26 @@
     <meta name="twitter:title" content="<?php echo htmlspecialchars($og_title, ENT_QUOTES, 'UTF-8'); ?>">
     <meta name="twitter:description" content="<?php echo htmlspecialchars($og_description, ENT_QUOTES, 'UTF-8'); ?>">
     <meta name="twitter:image" content="<?php echo htmlspecialchars($og_image, ENT_QUOTES, 'UTF-8'); ?>">
-    <link rel="alternate" hreflang="ar" href="<?php echo current_url(); ?>">
-    <link rel="alternate" hreflang="x-default" href="<?php echo current_url(); ?>">
+<?php /* TQ-SEO-ALT — الوسمان كانا يطبعان `current_url()` فيحتفظان
+        بالمعاملات التي يجردها الكنونيكال — فـ`/catalog?utm_source=x` تقول
+        «اصلي /catalog» وتقول في السطر التالي «نسختي العربية هي انا بمعاملي».
+        اشارتان متضاربتان لمحرك واحد. فصارتا تتبعان الكنونيكال نفسه. */
+      $tq_alt = ($canonical_url !== '' ? $canonical_url : current_url()); ?>
+    <link rel="alternate" hreflang="ar" href="<?php echo htmlspecialchars($tq_alt, ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="alternate" hreflang="x-default" href="<?php echo htmlspecialchars($tq_alt, ENT_QUOTES, 'UTF-8'); ?>">
 
     <!-- JSON-LD (Schema Markup) -->
+<?php /* TQ-SEO-LDEMPTY — كان الوسم يطبع `{}` على كل صفحة لا صف لها في
+        جدول `seo`: كائن فارغ لا يقول شيئا، ويظهر في كل فاحص بيانات
+        مهيكلة سطرا بلا نوع. فالفراغ لا يطبع. */
+      $tq_ld_out = trim((string) $json_ld);
+      if ($tq_ld_out !== '' && $tq_ld_out !== '{}' && $tq_ld_out !== '[]'): ?>
     <script type="application/ld+json">
         <?php echo $json_ld; ?>
     </script>
+<?php endif; ?>
+<?php if (!empty($tq_crumb)): ?>
+    <script type="application/ld+json"><?php
+        echo json_encode($tq_crumb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    ?></script>
+<?php endif; ?>
