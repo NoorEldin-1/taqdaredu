@@ -357,7 +357,13 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                     <article class="tq-card tq-s-course">
                         <a href="<?php echo $href; ?>">
                             <?php echo tq_s_thumb($c['title'], $c['thumbnail'], $c['index'], $badge,
-                                $c['seconds'] ? tq_s_clock($c['seconds']) : ''); ?>
+                                $c['seconds'] ? tq_s_clock($c['seconds']) : '', array(
+                                    'course'   => $c['id'],
+                                    'pct'      => $c['progress'],
+                                    'segments' => $c['segments'],
+                                    'current'  => $c['current_title'],
+                                    'status'   => $c['status'],
+                                )); ?>
                         </a>
                         <div class="tq-row tq-row--between" style="gap:var(--tq-space-s);align-items:flex-start">
                             <h3 class="tq-s-course__title" style="flex:1;min-inline-size:0">
