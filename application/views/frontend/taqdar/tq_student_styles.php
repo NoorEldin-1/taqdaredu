@@ -736,6 +736,12 @@ a:hover .tq-s-thumb__play, a:focus-visible .tq-s-thumb__play { transform: scale(
 .tq-s-item__t { display: block; font: var(--tq-type-caption); font-weight: 700; color: var(--tq-navy); }
 .tq-s-item__s { display: block; font: var(--tq-type-micro); color: var(--tq-text2); }
 .tq-s-trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* TQ-OC-WRAP — «كورسات اشتريتها مفردة»: البند من `shared.css` العام يجعل
+   `<b>` ينكمش (`min-width:0; overflow-wrap:anywhere`) والشارة لا تنكمش،
+   فحين تجاور الشارة رقم فاتورة يبقى للعنوان 16px ويقرأ حرفا في كل سطر.
+   هنا (البوابة وحدها) يلتف البند ويحتفظ العنوان بعرض يقرأ. */
+.tqs-oc .tqb-subj__i { flex-wrap: wrap; }
+.tqs-oc .tqb-subj__i b { flex: 1 1 12ch; }
 
 /* --- شريط زمني للاختبار الجاري --- */
 .tq-s-timebar { block-size: var(--tq-progress-h); border-radius: var(--tq-radius-pill); background: var(--tq-line); overflow: hidden; }
