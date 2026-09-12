@@ -207,7 +207,13 @@ include 'portal_open.php';
                             </span>
                             <?php foreach ($evs as $e): ?>
                                 <?php $c = $tq_cats[$e['cat']] ?? $tq_cats['lessons']; ?>
-                                <a class="tq-ev" data-tq-evcat="<?php echo html_escape($e['cat']); ?>" href="<?php echo html_escape($e['href']); ?>">
+                                <?php /* TQ-EV-FULLTEXT — خانة اليوم في شبكة سبعة أعمدة تترك
+                                         للعنوان ٧٠px على 1366 و٢٣ على 375 و**١٥ على 320**،
+                                         و`.tq-ev__t` يقتطع بنقاط: فثلاثة أحداث مختلفة تقرأ
+                                         واحدا. والنص كامل في DOM (يقرؤه القارئ الشاشي) ولم
+                                         يكن للمؤشر سبيل إليه — فـ`title` يكشفه بلا مكون
+                                         جديد ولا تغيير في الشبكة. */ ?>
+                                <a class="tq-ev" data-tq-evcat="<?php echo html_escape($e['cat']); ?>" title="<?php echo html_escape($e['title']); ?>" href="<?php echo html_escape($e['href']); ?>">
                                     <span class="tq-ev__dot" style="background:<?php echo $c[1]; ?>" aria-hidden="true"></span>
                                     <span class="tq-ev__t"><?php echo html_escape($e['title']); ?></span>
                                 </a>
@@ -232,7 +238,7 @@ include 'portal_open.php';
                             <?php else: ?>
                                 <?php foreach ($evs as $e): ?>
                                     <?php $c = $tq_cats[$e['cat']] ?? $tq_cats['lessons']; ?>
-                                    <a class="tq-ev" data-tq-evcat="<?php echo html_escape($e['cat']); ?>" href="<?php echo html_escape($e['href']); ?>">
+                                    <a class="tq-ev" data-tq-evcat="<?php echo html_escape($e['cat']); ?>" title="<?php echo html_escape($e['title']); ?>" href="<?php echo html_escape($e['href']); ?>">
                                         <span class="tq-ev__dot" style="background:<?php echo $c[1]; ?>" aria-hidden="true"></span>
                                         <span class="tq-ev__t"><?php echo html_escape($e['title']); ?></span>
                                     </a>
@@ -261,7 +267,7 @@ include 'portal_open.php';
                         <div>
                             <?php foreach ($slot as $e): ?>
                                 <?php $c = $tq_cats[$e['cat']] ?? $tq_cats['lessons']; ?>
-                                <a class="tq-ev" data-tq-evcat="<?php echo html_escape($e['cat']); ?>" href="<?php echo html_escape($e['href']); ?>">
+                                <a class="tq-ev" data-tq-evcat="<?php echo html_escape($e['cat']); ?>" title="<?php echo html_escape($e['title']); ?>" href="<?php echo html_escape($e['href']); ?>">
                                     <span class="tq-ev__dot" style="background:<?php echo $c[1]; ?>" aria-hidden="true"></span>
                                     <span class="tq-ev__t"><?php echo html_escape($e['title']); ?></span>
                                 </a>
