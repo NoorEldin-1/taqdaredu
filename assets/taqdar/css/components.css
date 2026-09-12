@@ -669,6 +669,19 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   .tq-topbar { padding: var(--tq-space-s) var(--tq-space-l); gap: var(--tq-space-s); }
   .tq-topbar__kbd { display: none; }
   .tq-topbar__search .tq-input { padding-inline-end: var(--tq-space-m); }
+  /* TQ-SEARCH-ROOM — البحث كان يتقاسم الصف مع زر الدرج (44px) وأزرار
+     الحساب (220px)، فلا يبقى له على 320px إلا **ثلاثون بكسلا** (و48 على
+     360، و63 على 375، و78 على 390): حقل لا يرى صاحبه ما كتب فيه. والسطر
+     المشترك هو القيد، لا أهداف اللمس — فالبحث ينزل سطرا خاصا به ويأخذ
+     العرض كله، وتبقى الأزرار 44px كما هي ولا يخفى تحكم واحد.
+     وفوق 640px لا شيء يتغير: الصف واسع والبحث فيه 396–560px. */
+  .tq-topbar { flex-wrap: wrap; }
+  .tq-topbar__search {
+    order: 3;
+    flex: 1 0 100%;
+    max-inline-size: none;
+    margin-inline: 0;
+  }
 }
 
 /* TQ-TOUCH-SQUEEZE — حد اللمس مقاس لا رغبة، فلا ينكمش تحت ضغط الصف.
@@ -1176,9 +1189,14 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   border-radius:var(--tq-radius-m, 10px);
   background:var(--tq-surface2, #fff);
 }
+/* TQ-LANGSW-AA — ‎12px‎ سطرا و‎5px‎ حشوا فوق وتحت = **اثنان وعشرون** — ودون
+   ‎24×24‎ التي يطلبها WCAG 2.5.8 AA على المؤشر الدقيق، ولا ينجيها استثناء
+   التباعد: الخياران متجاوران بفجوة ‎2px‎ فدائرة ‎24px‎ حول أحدهما تمس الآخر.
+   وبكسل واحد فوق وتحت يبلغ الحد تماما بلا أثر بصري يذكر. واللمس مضبوط
+   سلفا في `pointer: coarse` أدناه (مقيس: ‎32px‎). */
 .tq-langsw__opt{
   min-inline-size:34px;
-  padding-block:5px;
+  padding-block:6px;
   padding-inline:8px;
   border:0;
   border-radius:calc(var(--tq-radius-m, 10px) - 3px);
