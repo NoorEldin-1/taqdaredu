@@ -215,15 +215,21 @@ if (!function_exists('tq_s_enrolled')) {
 
         $ids = array_map('intval', array_column($courses, 'id'));
 
-        // مدة الدرس نص «hh:mm:ss» فلا تجمع في SQL — تجمع بعد التحويل.
+        /* مدة الدرس نص «hh:mm:ss» فلا تجمع في SQL — تجمع بعد التحويل.
+           TQ-PUBLISHED-COUNT — والمسند القانوني للنشر هنا كما هو في
+           `Taqdar.php:216` و`Taqdar_catalog_model:228`: المسودة لا تفتح
+           (يرد المتحكم 404) فلا تعد ولا تدخل مقام النسبة. */
         $lessons = $CI->db->select('id, course_id, duration, lesson_type')
-            ->from('lesson')->where_in('course_id', $ids)->get()->result_array();
+            ->from('lesson')->where_in('course_id', $ids)
+            ->where('COALESCE(`tq_status`, "published") =', 'published')->get()->result_array();
 
         $count = [];
         $secs  = [];
+        $counted_ids = [];   // ما عُدّ في المقام، ليقاس عليه البسط
         foreach ($lessons as $l) {
             $cid = (int) $l['course_id'];
             if (($l['lesson_type'] ?? '') === 'quiz') continue;
+            $counted_ids[$cid][(int) $l['id']] = true;
             $count[$cid] = ($count[$cid] ?? 0) + 1;
             $secs[$cid]  = ($secs[$cid] ?? 0) + tq_s_secs($l['duration']);
         }
@@ -253,6 +259,13 @@ if (!function_exists('tq_s_enrolled')) {
                 if (is_array($list)) foreach ($list as $lid) $done_ids[(int) $lid] = true;
             }
             foreach ($rows as $p) if ($p['complete']) $done_ids[$p['lesson_id']] = true;
+
+            /* TQ-PUBLISHED-COUNT — البسط من المقام نفسه: درس أكمل ثم سحب من
+               النشر كان يبقى في العدد ويقصّه سقف `$done > $total` قصّا صامتا،
+               فيقرأ الطالب نسبة لا يقابلها درس. والقصّ يبقى حارسا أخيرا. */
+            if (isset($counted_ids[$cid])) {
+                $done_ids = array_intersect_key($done_ids, $counted_ids[$cid]);
+            }
 
             $done = count($done_ids);
             if ($total > 0 && $done > $total) $done = $total;
@@ -395,6 +408,7 @@ if (!function_exists('tq_s_lessons')) {
             ->join('course c', 'c.id = l.course_id', 'inner')
             ->where('e.user_id', $uid)
             ->where('l.lesson_type !=', 'quiz')
+            ->where('COALESCE(l.`tq_status`, "published") =', 'published')
             ->order_by('l.course_id', 'ASC')
             ->order_by('l.section_id', 'ASC')
             ->order_by('l.order', 'ASC')

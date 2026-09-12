@@ -2294,7 +2294,9 @@ class Api_v1 extends CI_Controller
                  ->join('course c', 'c.id = l.course_id', 'inner')
                  ->join('section sec', 'sec.id = l.section_id', 'left')
                  ->join('lesson_progress lp', 'lp.lesson_id = l.id AND lp.student_id = ' . $uid, 'left')
-                 ->where('l.lesson_type !=', 'quiz');
+                 ->where('l.lesson_type !=', 'quiz')
+                 /* TQ-PUBLISHED-COUNT — المسودة لا تفتح على الويب فلا تدرج هنا. */
+                 ->where('COALESCE(l.`tq_status`, "published") =', 'published');
 
         if ($course > 0) $this->db->where('l.course_id', $course);
         if ($q !== '')   $this->db->group_start()

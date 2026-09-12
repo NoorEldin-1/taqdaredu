@@ -903,6 +903,8 @@ class Taqdar_student_model extends CI_Model
         if ($cids) {
             foreach ($this->db->select('course_id, COUNT(*) AS n')->from('lesson')
                               ->where_in('course_id', $cids)->where('lesson_type !=', 'quiz')
+                              /* TQ-PUBLISHED-COUNT — المسودة لا تفتح فلا تعد. */
+                              ->where('COALESCE(`tq_status`, "published") =', 'published')
                               ->group_by('course_id')->get()->result_array() as $r) {
                 $lessons_by_course[(int) $r['course_id']] = (int) $r['n'];
                 $total_lessons += (int) $r['n'];
