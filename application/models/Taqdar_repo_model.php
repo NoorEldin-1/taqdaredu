@@ -1847,8 +1847,16 @@ class Taqdar_repo_model extends CI_Model
     /** عدد المستحق اليوم (للشارات في القائمة). */
     public function count_due_reviews($student_id)
     {
+        /* TQ-BADGE-REACHABLE — الوصلة نفسها التي في `get_due_reviews()` وهي ما
+           تخدم الشاشة: صفّ طابور يشير إلى سؤال محذوف كان يعدّ في الشارة ولا
+           يصل إليه التنقل أبدا — فيقرأ الطالب «٢ مستحقة» ويفتح شاشة فارغة.
+           مقيس على الإنتاج: ٣٣٧ و٣٤٠ و٣٤٢ شارتهم ٢ وأسئلتها محذوفة.
+           (وكنس `review_queue` عند حذف `question` رقعة مستقلة تسجل ولا تدمج:
+            `idx_rq_question` مفتاح عادي بلا قيد أجنبي.) */
         $r = $this->db->query(
-            'SELECT COUNT(*) AS c FROM `review_queue` WHERE `student_id` = ? AND `due_at` <= ?',
+            'SELECT COUNT(*) AS c FROM `review_queue` rq
+               JOIN `question` q ON q.`id` = rq.`question_id`
+              WHERE rq.`student_id` = ? AND rq.`due_at` <= ?',
             array((int) $student_id, $this->now()))->row_array();
         return (int) $r['c'];
     }
