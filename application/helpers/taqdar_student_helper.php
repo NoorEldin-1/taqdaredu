@@ -629,6 +629,10 @@ if (!function_exists('tq_s_quizzes')) {
         foreach ($rows as $i => $r) {
             $qid   = (int) $r['id'];
             $marks = $counts[$qid] ?? 0;
+            /* TQ-EMPTY-QUIZ — القاعدة نفسها التي يطبقها فرع التقييمات (`HAVING marks > 0`):
+               اختبار بلا سؤال واحد صف أنشئ ولم يؤلف، وعرضه «متاح الآن — ٠ سؤال» يعد
+               الطالب باختبار لا يجده. */
+            if ($marks < 1) continue;
             $res   = $results[$qid] ?? null;
 
             $state = 'upcoming';
