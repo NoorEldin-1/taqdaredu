@@ -337,6 +337,11 @@ if (!function_exists('tq_s_enrolled')) {
                 'progress'   => $pct,
                 'resume_id'  => $resume,
                 'touched_at' => $h ? tq_s_ts($h['date_updated']) : tq_s_ts($c['enrolled_at']),
+                /* TQ-RESUME-TRUTH — `touched_at` يرتد إلى تاريخ التسجيل حين لا سجل
+                   مشاهدة، وهو ارتداد صالح للترتيب وكاذب للاستئناف: مقرر سجل أمس
+                   ولم يفتح يفوز بسطر «واصل … حيث توقفت». فيميز الحالان هنا، وتقرأ
+                   `tq_s_resume` التمييز بدل أن تخمنه من الوقت. */
+                'has_history' => ($h !== null),
                 'status'     => $status,
 
                 /* الغلاف التفاعليّ */
@@ -975,9 +980,17 @@ if (!function_exists('tq_s_activity')) {
             );
         }
 
-        // السلسلة تحتاج سجل نشاط يومي، ولا جدول له في القاعدة بعد.
-        $out['streak'] = 0;
-        $out['has_streak_source'] = false;
+        /* TQ-STREAK-SOURCE — «ولا جدول له في القاعدة بعد» انتفت حجتها:
+           `tq_activity_day` قائم ومعمور، ينشئه `Taqdar_learn_model::ensure_schema()`
+           وتقرأه `streak()` وترد `has_source => true`. واللافتة أعلى الشاشة نفسها
+           تقرأ منه («١ يوما متتاليا») بينما البطاقة الجانبية تحته تقول «—» وتعد
+           بأن الرقم «يظهر عند تسجيل نشاطك اليومي» — وهو مسجل منذ أسابيع.
+           فالعلاج إزالة نفي لمصدر قائم، لا اختراع رقم: الكيان واحد والمصدر واحد. */
+        $CI = get_instance();
+        $CI->load->model('taqdar_learn_model', 'tq_learn');
+        $tq_st = $CI->tq_learn->streak($uid);
+        $out['streak'] = (int) $tq_st['days'];
+        $out['has_streak_source'] = !empty($tq_st['has_source']);
 
         return $out;
     }
@@ -991,6 +1004,11 @@ if (!function_exists('tq_s_resume')) {
         $best = null;
         foreach ($courses as $c) {
             if ($c['progress'] >= 100) continue;
+            /* TQ-RESUME-TRUTH — «حيث توقفت» تقال عمن توقف: مقرر بلا سجل مشاهدة
+               ولا موضع محفوظ لم يفتح قط، فلا يرشح لسطر الاستئناف. ولا يخفى
+               المقرر: بطاقته باقية في «كورساتي»، وزر «الخطوة التالية» يبقى. */
+            if (empty($c['has_history']) && (int) ($c['position_sec'] ?? 0) <= 0
+                && (int) ($c['watched_sec'] ?? 0) <= 0) continue;
             if ($best === null || $c['touched_at'] > $best['touched_at']) $best = $c;
         }
         return $best;
