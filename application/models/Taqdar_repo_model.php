@@ -294,6 +294,9 @@ class Taqdar_repo_model extends CI_Model
             $state['reason']   = $state['unlocked'] ? 'previous_completed' : 'previous_not_completed';
         }
         $state['blocking_lesson_id'] = $state['unlocked'] ? null : $prev_id;
+        /* TQ-LOCK-NAME — القفل يسمي حاجزه: «أكمل الدرس السابق» بلا اسم يترك
+           الطالب يبحث أيه، والحقيقة هنا في الترتيب نفسه لا في العميل. */
+        $state['blocking_lesson_title'] = $state['unlocked'] ? null : (string) $ordered[$pos - 1]['title'];
 
         return $state;
     }
@@ -694,17 +697,21 @@ class Taqdar_repo_model extends CI_Model
         $free = ((int) $lesson['is_free'] === 1);
         if (!$free && !$this->is_entitled($student_id, $lesson['course_id'])) {
             return $this->error('NOT_ENTITLED', array(
-                'lesson_id' => $id,
-                'course_id' => (int) $lesson['course_id'],
+                'lesson_id'    => $id,
+                'lesson_title' => (string) $lesson['title'],
+                'course_id'    => (int) $lesson['course_id'],
             ));
         }
 
         if (empty($state['unlocked'])) {
             // لا رابط تشغيل، ولا حتى ملخص الدرس — القفل قفل.
             return $this->error('MASTERY_LOCKED', array(
-                'lesson_id'          => $id,
-                'blocking_lesson_id' => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
-                'reason'             => $state['reason'],
+                'lesson_id'             => $id,
+                'lesson_title'          => (string) $lesson['title'],
+                'course_id'             => (int) $lesson['course_id'],
+                'blocking_lesson_id'    => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+                'blocking_lesson_title' => isset($state['blocking_lesson_title']) ? $state['blocking_lesson_title'] : null,
+                'reason'                => $state['reason'],
             ));
         }
 
@@ -805,8 +812,12 @@ class Taqdar_repo_model extends CI_Model
         }
         if (empty($state['unlocked'])) {
             return $this->error('MASTERY_LOCKED', array(
-                'lesson_id'          => $lesson_id,
-                'blocking_lesson_id' => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+                'lesson_id'             => $lesson_id,
+                'lesson_title'          => (string) $lesson['title'],
+                'course_id'             => (int) $lesson['course_id'],
+                'blocking_lesson_id'    => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+                'blocking_lesson_title' => isset($state['blocking_lesson_title']) ? $state['blocking_lesson_title'] : null,
+                'reason'                => isset($state['reason']) ? $state['reason'] : '',
             ));
         }
 
@@ -1396,8 +1407,12 @@ class Taqdar_repo_model extends CI_Model
         }
         if (empty($state['unlocked'])) {
             return $this->error('MASTERY_LOCKED', array(
-                'lesson_id'          => $lesson_id,
-                'blocking_lesson_id' => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+                'lesson_id'             => $lesson_id,
+                'lesson_title'          => (string) $lesson['title'],
+                'course_id'             => (int) $lesson['course_id'],
+                'blocking_lesson_id'    => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+                'blocking_lesson_title' => isset($state['blocking_lesson_title']) ? $state['blocking_lesson_title'] : null,
+                'reason'                => isset($state['reason']) ? $state['reason'] : '',
             ));
         }
 

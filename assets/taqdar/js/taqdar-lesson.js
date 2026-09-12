@@ -85,11 +85,32 @@
     call('lesson/' + LESSON).then(render).catch(function (e) {
       show('[data-tq-lesson-skeleton]', false);
       if (e.code === 'MASTERY_LOCKED' || e.code === 'NOT_ENTITLED') {
+        /* TQ-LOCK-NAME — الشاشة تسمي الدرس وتسمي حاجزه، لا «مقفل» صماء:
+           العنوان من الحمولة لأن جسم الدرس لا يحمل حين يكون مقفلا، والرابط
+           إلى الحاجز يحمل مقرره الحقيقي — كان يكتب `lesson/0/…` فيتكاثر
+           رابط بلا مقرر في السجل والمشاركات. */
+        var d = e.details || {};
         show('[data-tq-lesson-locked]', true);
-        text('[data-tq-locked-msg]', e.message);
-        var b = e.details && e.details.blocking_lesson_id;
+        if (d.lesson_title) {
+          document.title = TQ.t('____ | تقدر', d.lesson_title);
+          text('[data-tq-locked-title]', TQ.t('«____» مقفل', d.lesson_title));
+        }
+        var msg = e.message;
+        if (e.code === 'MASTERY_LOCKED' && d.blocking_lesson_title) {
+          msg = d.reason === 'previous_not_mastered'
+            ? TQ.t('يفتح بعد اجتياز مراجعة «____».', d.blocking_lesson_title)
+            : TQ.t('يفتح بعد إكمال مشاهدة «____».', d.blocking_lesson_title);
+        }
+        text('[data-tq-locked-msg]', msg);
+        var b = d.blocking_lesson_id;
         var back = $('[data-tq-locked-back]');
-        if (b && back) { back.href = back.href.replace(/\/lessons.*$/, '/lesson/0/' + b); back.textContent = TQ.t('اذهب إلى الدرس المطلوب'); }
+        if (b && back) {
+          var cid = parseInt(d.course_id || (root && root.getAttribute('data-tq-course')), 10) || 0;
+          back.href = back.href.replace(/\/lessons.*$/, '/lesson/' + cid + '/' + b);
+          back.textContent = d.blocking_lesson_title
+            ? TQ.t('اذهب إلى «____»', d.blocking_lesson_title)
+            : TQ.t('اذهب إلى الدرس المطلوب');
+        }
         return;
       }
       show('[data-tq-lesson-error]', true);
