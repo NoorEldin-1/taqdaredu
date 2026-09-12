@@ -496,6 +496,21 @@ a:hover .tq-s-thumb__play, a:focus-visible .tq-s-thumb__play { transform: scale(
   font: var(--tq-type-numeralSm);
   unicode-bidi: isolate; direction: ltr;
 }
+/* TQ-TAG-CLEAR — شارة المدة كانت `inset-block-end` بـ`z-index:4` فوق القدم
+   (`z-index:3`) الذي يحمل «الدرس الحالي» واسمه وشريط التقدم: فتقف على طرف
+   السطر وعلى الشريط تحته — قيس التداخل على 1366 و375 و320 جميعا. وحيث لا
+   قدم (كورس لم يمس) لا تصادم فتبقى أسفل كما كانت؛ وحيث القدم موجود ترتفع
+   إلى أعلى الغلاف، وركنه خال: `__badge` في الطرف المقابل (`inset-inline-start`). */
+.tq-s-thumb:has(.tq-s-thumb__foot) .tq-s-thumb__tag {
+  inset-block-end: auto;
+  inset-block-start: var(--tq-space-s);
+  /* والركن المقابل لا نفس الركن: `__badge` يرث اتجاه الصفحة فـ`inline-start`
+     عنده يمين، والشارة عليها `direction: ltr` فـ`inline-end` عندها يمين
+     كذلك — فيلتقيان أعلى اليمين. والخاصية المنطقية تقاس باتجاه العنصر
+     نفسه لا باتجاه الصفحة، وهذا ما قاسته الأداة لا ما خمنته. */
+  inset-inline-end: auto;
+  inset-inline-start: var(--tq-space-s);
+}
 
 /* --- بطاقة كورس --- */
 .tq-s-course { display: flex; flex-direction: column; gap: var(--tq-space-m); }
