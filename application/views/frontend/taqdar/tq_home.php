@@ -235,7 +235,9 @@ include 'portal_open.php';
                                    style="color:var(--tq-navy)"><?php echo html_escape($c['title']); ?></a>
                             </h3>
                             <div class="tq-s-meta">
-                                <span><?php echo tq_icon('book', 16); ?><?php echo tq_iso($c['lessons'] . t(' درسا')); ?></span>
+                                <?php /* TQ-PLURAL-ONE — «٣ دروس» لا «٣ درسا»، و«درسان» لا «٢ درسا».
+                                         والدالة قائمة في المنصة ويستعملها نصف البوابة. */ ?>
+                                <span><?php echo tq_icon('book', 16); ?><?php echo tq_iso(tq_lessons_word((int) $c['lessons'], t('لا دروس'), 'nom')); ?></span>
                                 <?php if ($c['seconds']): ?>
                                     <span><?php echo tq_icon('clock', 16); ?><?php echo tq_iso(tq_s_hours($c['seconds'])); ?></span>
                                 <?php endif; ?>

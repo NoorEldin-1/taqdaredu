@@ -82,14 +82,17 @@ if (!function_exists('tq_s_hours_rich')) {
 }
 
 if (!function_exists('tq_s_minutes')) {
-    /** «60 دقيقة» بصيغة عربية سليمة. */
+    /**
+     * «٦٠ دقيقة» بصيغة عربية سليمة.
+     *
+     * TQ-PLURAL-ONE — كانت نسخة ثانية من `tq_minutes_word()` تفترق عنها في
+     * طرفيها: `1` ترد « دقيقة» — **بلا رقم وبمسافة بادئة** — و`0` ترد
+     * «٠ دقائق». وصيغة واحدة لمعنى واحد أصدق من نسختين تتقاربان ثم تفترقان
+     * عند الحد. و`nom` مقصود: «مدتها دقيقتان» لا «دقيقتين».
+     */
     function tq_s_minutes($minutes)
     {
-        $n = (int) $minutes;
-        if ($n === 1) return t(' دقيقة');
-        if ($n === 2) return t('دقيقتان');
-        if ($n <= 10) return tq_iso($n . t(' دقائق'));
-        return tq_iso($n . t(' دقيقة'));
+        return tq_iso(tq_minutes_word((int) $minutes, t('لا دقائق'), 'nom'));
     }
 }
 

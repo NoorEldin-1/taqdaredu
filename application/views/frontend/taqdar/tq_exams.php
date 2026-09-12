@@ -248,8 +248,10 @@ include 'portal_open.php';
 
                                 <div class="tq-s-meta" style="margin-block-end:var(--tq-space-m)">
                                     <?php /* «٥ درجة» و«٥ سؤالا» رقم واحد بتسميتين — الدرجة في هذا
-                                             النموذج هي عدد الأسئلة نفسه. فيقال مرة واحدة. */ ?>
-                                    <span><?php echo tq_icon('help', 16); ?><?php echo tq_iso($q['marks'] . t(' سؤالا، والدرجة من ') . $q['marks']); ?></span>
+                                             النموذج هي عدد الأسئلة نفسه. فيقال مرة واحدة.
+                                             TQ-PLURAL-ONE — وبصيغة الجمع التي تعرفها المنصة:
+                                             «٥ أسئلة» لا «٥ سؤالا»، و«سؤالان» لا «٢ سؤالا». */ ?>
+                                    <span><?php echo tq_icon('help', 16); ?><?php echo tq_iso(t('____، والدرجة من ____', array(tq_questions_word((int) $q['marks'], t('لا أسئلة'), 'nom'), (int) $q['marks']))); ?></span>
                                     <?php if (!empty($tq_limits[$q['id']])): ?>
                                         <span><?php echo tq_icon('clock', 16); ?><?php echo tq_s_minutes((int) round($tq_limits[$q['id']] / 60)); ?></span>
                                     <?php endif; ?>

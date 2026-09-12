@@ -196,8 +196,18 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                             <span class="tq-kpi__label"><?php echo t('وقت الدراسة داخل المحتوى'); ?></span>
                         </div>
                         <p class="tq-kpi__value">
-                            <?php echo tq_num($tq_hours, 'tq-num--xl'); ?><span class="tq-kpi__unit"><?php echo t('ساعة'); ?></span>
-                            <?php echo tq_num($tq_minutes); ?><span class="tq-kpi__unit"><?php echo t('دقيقة'); ?></span>
+                            <?php /* TQ-ZERO-HOUR — ثماني دقائق تقرأ «٠ ساعة ٨ دقيقة»، والصفر
+                                     بالخط الأكبر هو أول ما تقع عليه العين: فيقرأ الطالب أنه
+                                     لم يدرس شيئا وقد درس. فما دون الساعة يعرض بالدقائق وحدها
+                                     في موضع القيمة الكبرى؛ ولا يحذف شيء ولا يقرب. */ ?>
+                            <?php if ((int) $tq_hours > 0): ?>
+                                <?php echo tq_num($tq_hours, 'tq-num--xl'); ?><span class="tq-kpi__unit"><?php echo t('ساعة'); ?></span>
+                                <?php if ((int) $tq_minutes > 0): ?>
+                                    <?php echo tq_num($tq_minutes); ?><span class="tq-kpi__unit"><?php echo t('دقيقة'); ?></span>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <?php echo tq_num($tq_minutes, 'tq-num--xl'); ?><span class="tq-kpi__unit"><?php echo t('دقيقة'); ?></span>
+                            <?php endif; ?>
                         </p>
                         <span class="tq-kpi__delta tq-kpi__delta--flat">
                             <?php echo t('زمن تشغيل فعلي مسجل، لا زمن فتح الصفحة'); ?>
@@ -414,7 +424,9 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                             <span class="tq-micro">
                                 <?php echo tq_iso($s['courses'] . t(' كورس مسجل')); ?>
                                 <?php if ($s['lessons'] > 0): ?>
-                                    · <?php echo tq_iso($s['lessons'] . ($s['lessons'] > 10 ? t(' درسا') : t(' دروس'))); ?>
+                                    <?php /* TQ-PLURAL-ONE — الشرط `> 10` كان يصيب ٣..١٠ و١١+ ويخطئ
+                                             الواحد والاثنين: «١ دروس» و«٢ دروس». */ ?>
+                                    · <?php echo tq_iso(tq_lessons_word((int) $s['lessons'], t('لا دروس'), 'nom')); ?>
                                 <?php endif; ?>
                             </span>
                             <?php /* بطاقة **مادة** تحمل عدد كورساتها، فوجهتها «كورساتي»

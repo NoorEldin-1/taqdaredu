@@ -310,7 +310,9 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                             <span class="tq-map__label"><?php echo html_escape($label); ?></span>
                             <span class="tq-map__hint"><?php echo html_escape($hint); ?></span>
                             <span class="tq-sr">
-                                <?php echo tq_iso((int) $n . t(' كورسا')); ?><?php echo $is ? t(' — المحطة المعروضة الآن') : ''; ?>
+                                <?php /* TQ-PLURAL-ONE — نص قارئ الشاشة وحده، فأولى أن يقرأ عربية
+                                         سليمة: «لا كورسات» و«كورس واحد» لا «٠ كورسا» و«١ كورسا». */ ?>
+                                <?php echo tq_iso(tq_courses_word((int) $n, t('لا كورسات'), 'nom')); ?><?php echo $is ? t(' — المحطة المعروضة الآن') : ''; ?>
                             </span>
                         </a>
                     <?php endforeach; ?>
