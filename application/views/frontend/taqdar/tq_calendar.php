@@ -93,6 +93,9 @@ include 'portal_open.php';
   flex-wrap: wrap; margin-block-end: var(--tq-space-l); }
 .tq-calnav { display: flex; align-items: center; gap: var(--tq-space-s); }
 .tq-calnav__label { font: var(--tq-type-h2); color: var(--tq-navy); min-inline-size: 140px; text-align: center; }
+/* TQ-CALNAV-NARROW — على 320px: زر اليوم + سهمان + 140px للتسمية + الفجوات = 306 في
+   عمود 288، فيتجاوز الصف. تحت 360 تأخذ التسمية ما يبقى بدل حد أدنى ثابت. */
+@media (max-width: 359.98px) { .tq-calnav__label { min-inline-size: 0; flex: 1 1 auto; } }
 .tq-views { display: flex; gap: var(--tq-space-xs); }
 .tq-views .tq-pill[aria-current='page'] { background: var(--tq-actionPrimary); border-color: var(--tq-actionPrimary); color: var(--tq-onAction); }
 .tq-views .tq-pill:hover { text-decoration: none; }

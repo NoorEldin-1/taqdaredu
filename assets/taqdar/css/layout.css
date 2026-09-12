@@ -38,7 +38,10 @@
 .tq-cols--wide  { grid-template-columns: minmax(0, 1fr) 300px; }
 .tq-cols--only  { grid-template-columns: minmax(0, 1fr); }
 
-.tq-aside { display: grid; gap: var(--tq-space-xxl); position: sticky; inset-block-start: var(--tq-space-xl); }
+/* TQ-ASIDE-TRACK — المسار الضمني للشبكة يقاس بأدنى محتوى أبنائه، فبطاقة
+   فيها سطر لا ينكسر كانت توسعه إلى 332px داخل عمود 288 على 320px
+   فتتجاوز الصفحة أفقيا. المسار الصريح يقيده بعرض العمود (كـ`.tq-cols--only`). */
+.tq-aside { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--tq-space-xxl); position: sticky; inset-block-start: var(--tq-space-xl); }
 
 /* العمود الجانبي يختفي دون 1024 ومحتواه ينتقل أسفل الصفحة */
 @media (max-width: 1023.98px) {

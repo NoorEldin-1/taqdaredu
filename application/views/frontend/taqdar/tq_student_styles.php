@@ -725,7 +725,9 @@ a:hover .tq-s-thumb__play, a:focus-visible .tq-s-thumb__play { transform: scale(
 @media (max-width: 639.98px)  { .tq-s-grid3, .tq-s-grid4, .tq-s-grid5 { grid-template-columns: minmax(0, 1fr); } }
 
 /* --- قائمة العمود الجانبي --- */
-.tq-s-list { display: grid; gap: var(--tq-space-m); }
+/* TQ-LIST-TRACK — كـ`.tq-aside`: المسار الضمني يقاس بأدنى محتوى البنود فيتجاوز
+   البطاقة على 320px؛ المسار الصريح يقيده بعرضها ويترك `.tq-s-trunc` يقتطع. */
+.tq-s-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--tq-space-m); }
 .tq-s-item { display: flex; align-items: center; gap: var(--tq-space-m); }
 /* عنصر بصف علوي وفعل تحته — الحجز الذي له باب حصة يفتح. `--stack` يقلب
    الاتجاه فقط، وبقية أصناف `tq-s-item__*` تعمل كما هي داخل الصف العلوي. */
