@@ -1918,8 +1918,14 @@ class Api_v1 extends CI_Controller
     private function deadlines_of($uid, $limit = 5)
     {
         try {
+            /* TQ-NO-DUEAT — `assessments` لا عمود `due_at` فيه (مقيس على الإنتاج
+               والنسخة معا: ERROR 1054)، و`db_debug` مطفأ في الإنتاج فترد
+               `query()` قيمة كاذبة ويبتلع `catch` الخطأ: القائمة لم تعمل يوما.
+               فيرفع العمود من الاختيار والترتيب، ويبقى مفتاح `due_at` في المخرج
+               بقيمة null فلا ينكسر تفكيك JSON عند نسخة تطبيق قديمة. ولا يختلق
+               موعد ولا يضاف عمود: لا موعد استحقاق في المنتج أصلا. */
             $rows = $this->db->query(
-                'SELECT a.`id`, a.`type`, a.`due_at`,
+                'SELECT a.`id`, a.`type`,
                         l.`id` AS lesson_id, l.`title` AS lesson_title,
                         c.`id` AS course_id, c.`title` AS course_title
                    FROM `assessments` a
@@ -1930,7 +1936,7 @@ class Api_v1 extends CI_Controller
                     AND NOT EXISTS (SELECT 1 FROM `attempts` t
                                      WHERE t.`assessment_id` = a.`id` AND t.`student_id` = ?
                                        AND t.`submitted_at` IS NOT NULL)
-                  ORDER BY (a.`due_at` IS NULL) ASC, a.`due_at` ASC, a.`id` ASC
+                  ORDER BY a.`id` ASC
                   LIMIT ' . (int) $limit,
                 array((int) $uid, (int) $uid))->result_array();
         } catch (Throwable $e) {
@@ -1945,7 +1951,7 @@ class Api_v1 extends CI_Controller
                 'title'         => (string) $r['lesson_title'],
                 'lesson_id'     => (int) $r['lesson_id'],
                 'course'        => array('id' => (int) $r['course_id'], 'title' => $r['course_title']),
-                'due_at'        => tq_api_date($r['due_at'] ?? null),
+                'due_at'        => tq_api_date(null),   // لا موعد في المنتج — والمفتاح يبقى للتوافق
             );
         }
         return $out;
@@ -1966,7 +1972,7 @@ class Api_v1 extends CI_Controller
                                        AND t.`submitted_at` IS NOT NULL)',
                 array((int) $uid, (int) $uid))->row('n');
         } catch (Throwable $e) {
-            return 0;
+            return null;   // المجهول ليس صفرا: الجلب الفاشل لا يصير عددا
         }
     }
 
