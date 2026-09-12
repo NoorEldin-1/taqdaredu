@@ -305,6 +305,29 @@ include 'portal_open.php';
 <div class="tq-cols">
     <div>
 
+        <?php
+        /* TQ-ONE-EMPTY — ثلاثة أقسام لكل منها لوحة «لا شيء هنا»: من لم يضف
+           شيئا بعد يقرأ الخبر ثلاث مرات في شاشة واحدة (دروس · ملفات · كورسات).
+           فحين تخلو الثلاثة تقال مرة واحدة وتسمى الأنواع الثلاثة فيها. وحين
+           يمتلئ واحد منها تعود الأقسام كما هي: لوحة قسم فارغ بجوار قسم عامر
+           تعلّم ما يمكن حفظه، ولا تكرر خبرا. */
+        $tq_fav_none = !$tq_fav_lessons && !$tq_fav_materials && !$tq_fav_courses;
+        ?>
+        <?php if ($tq_fav_none): ?>
+            <div class="tq-card tq-card--panel">
+                <div class="tq-empty">
+                    <div class="tq-empty__art tq-pastel tq-pastel--lilac" style="display:grid;place-items:center;border-radius:var(--tq-radius-pill)">
+                        <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('heart', 44); ?></span>
+                    </div>
+                    <h3 class="tq-empty__title"><?php echo t('مفضلتك فارغة بعد'); ?></h3>
+                    <p class="tq-empty__text">
+                        <?php echo t('اضغط القلب على أي درس أو ملف أو كورس ليظهر هنا — فتعود إليه في ثانية بدل البحث عنه.'); ?>
+                    </p>
+                    <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/lessons'); ?>"><?php echo t('تصفح دروسي'); ?></a>
+                </div>
+            </div>
+        <?php else: ?>
+
         <!-- الدروس -->
         <?php if ($tq_show('lessons')): ?>
         <section class="tq-section" aria-labelledby="tq-fs-lessons">
@@ -471,6 +494,8 @@ include 'portal_open.php';
             <?php endif; ?>
         </section>
         <?php endif; ?>
+
+        <?php endif; /* tq_fav_none */ ?>
 
         <p class="tq-hintbar">
             <span aria-hidden="true"><?php echo tq_icon('heart', 16); ?></span>
