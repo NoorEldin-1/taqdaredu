@@ -133,7 +133,11 @@ include 'portal_open.php';
                                              شاشة أخرى ليعرف ما كان سطرا هنا. */ ?>
                                     <?php if (trim((string) $tq_n['description']) !== ''): ?>
                                         <p class="tq-caption" style="margin:var(--tq-space-xs) 0 0">
-                                            <?php echo tq_iso(html_escape($tq_n['description'])); ?>
+                                            <?php /* TQ-FP-STRIP — `description` حمولة موسومة لا نص عار: `Taqdar_events_model::body()`
+         تلحق ببصمة المنع `<!--tq:HASH-->`، وقالب البريد الموروث يترك `<div>`. وشاشتا
+         الطالب والمعلم تقصان الوسم قبل الطباعة وهذه تهربه — فتظهر البصمة نصا مرئيا.
+         والمنع لا يتأثر: `already_sent()` يقرؤها من القاعدة لا من العرض. */ ?>
+<?php echo tq_iso(html_escape(trim(preg_replace('/\s+/u', ' ', strip_tags((string) $tq_n['description']))))); ?>
                                         </p>
                                     <?php endif; ?>
                                     <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0"><?php echo html_escape($tq_label); ?></p>

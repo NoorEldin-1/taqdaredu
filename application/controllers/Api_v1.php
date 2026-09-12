@@ -3315,7 +3315,10 @@ class Api_v1 extends CI_Controller
             'icon'       => $icon,
             'tone'       => $tone,
             'title'      => (string) ($n['title'] ?? ''),
-            'body'       => (string) ($n['description'] ?? ''),
+            /* TQ-FP-STRIP — كما في `tq_notifications.php`: الحقل موسوم ببصمة المنع
+               وبغلاف قالب البريد، وعميل JSON يرسم ما يسلم — بخلاف المتصفح الذي يبتلع
+               الوسم. ومواصفة الواجهة نفسها تعد بنص عار. */
+            'body'       => trim(preg_replace('/\s+/u', ' ', strip_tags((string) ($n['description'] ?? '')))),
             'is_read'    => ((int) $n['status'] === 1),
             'created_at' => tq_api_date($n['created_at'] ?? null),
         );
