@@ -257,12 +257,25 @@ include 'portal_open.php';
 
                                 <?php
                                 /* لا موعد بدء في القاعدة، فلا يعرض «بعد يومين» مخترعا.
-                                   الاختبار متاح متى شاء الطالب حتى يضاف جدول مواعيد. */
-                                echo tq_badge('progress', t('متاح الآن'));
+                                   الاختبار متاح متى شاء الطالب حتى يضاف جدول مواعيد.
+                                   TQ-EXAM-LOCK — إلا أن يكون درسه مقفلا: فالبطاقة تقول ذلك
+                                   وتسمي الدرس المطلوب، لا «ابدأ» ثم 403 بعد النقرة. */
+                                $tq_qlocked = isset($q['available']) && !$q['available'];
+                                if ($tq_qlocked) {
+                                    echo tq_badge('idle', $q['lock_title'] !== ''
+                                        ? t('يفتح بعد «____»', $q['lock_title']) : t('مقفل'));
+                                } else {
+                                    echo tq_badge('progress', t('متاح الآن'));
+                                }
                                 ?>
 
+                                <?php if ($tq_qlocked): ?>
+                                <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-m)"
+                                   href="<?php echo tq_s_lesson_url($q['course_id'], $q['lock_lesson_id'] ?: $q['id']); ?>"><?php echo t('افتح الدرس المطلوب'); ?></a>
+                                <?php else: ?>
                                 <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-m)"
                                    href="<?php echo tq_s_lesson_url($q['course_id'], $q['id']); ?>"><?php echo t('ابدأ الاختبار'); ?></a>
+                                <?php endif; ?>
                             </article>
                         <?php endforeach; ?>
                     </div>
@@ -502,7 +515,7 @@ include 'portal_open.php';
                                 <span class="tq-s-item__s tq-s-trunc"><?php echo html_escape($q['subject']); ?></span>
                                 <span class="tq-s-item__t tq-s-trunc"><?php echo html_escape($q['title']); ?></span>
                             </span>
-                            <?php echo tq_badge('progress', t('متاح')); ?>
+                            <?php echo (isset($q['available']) && !$q['available']) ? tq_badge('idle', t('مقفل')) : tq_badge('progress', t('متاح')); ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>

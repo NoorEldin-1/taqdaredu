@@ -606,7 +606,7 @@ if (!function_exists('tq_s_quizzes')) {
         if (empty($rows)) {
             $out = tq_s_assessment_quizzes($uid);
             usort($out, function ($a, $b) { return $b['ended_at'] <=> $a['ended_at']; });
-            return $cache[$uid] = $out;
+            return $cache[$uid] = tq_s_exam_lock($uid, $out);
         }
 
         $qids = array_map('intval', array_column($rows, 'id'));
@@ -677,7 +677,45 @@ if (!function_exists('tq_s_quizzes')) {
         foreach (tq_s_assessment_quizzes($uid) as $q) $out[] = $q;
 
         usort($out, function ($a, $b) { return $b['ended_at'] <=> $a['ended_at']; });
-        return $cache[$uid] = $out;
+        return $cache[$uid] = tq_s_exam_lock($uid, $out);
+    }
+}
+
+if (!function_exists('tq_s_exam_lock')) {
+    /**
+     * TQ-EXAM-LOCK — بطاقة الاختبار تقرأ القرار الذي يقرؤه زر البدء.
+     *
+     * كانت كل بطاقة «قادمة» تقول «متاح الآن — ابدأ الاختبار» وإن كان درسها
+     * مقفلا، فيصل الطالب إلى MASTERY_LOCKED بعد النقرة لا قبلها. القرار
+     * نفسه الذي تفحصه `start_attempt()` — الاستحقاق ثم `lesson_lock_state()`
+     * — يقرأ هنا مرة واحدة لكل اختبار قادم، ويبقى المصدر واحدا.
+     */
+    function tq_s_exam_lock($uid, array $items)
+    {
+        $CI = get_instance();
+        $CI->load->model('taqdar_repo_model');
+        foreach ($items as &$q) {
+            if (($q['state'] ?? '') !== 'upcoming') continue;
+            $q['available']      = true;
+            $q['lock_lesson_id'] = 0;
+            $q['lock_title']     = '';
+            try {
+                if (!$CI->taqdar_repo_model->is_entitled($uid, (int) $q['course_id'])) {
+                    $q['available'] = false;
+                    continue;
+                }
+                $st = $CI->taqdar_repo_model->lesson_lock_state($uid, (int) $q['id']);
+                if (!empty($st['found']) && empty($st['unlocked'])) {
+                    $q['available']      = false;
+                    $q['lock_lesson_id'] = (int) ($st['blocking_lesson_id'] ?? 0);
+                    $q['lock_title']     = (string) ($st['blocking_lesson_title'] ?? '');
+                }
+            } catch (Throwable $e) {
+                log_message('error', 'TQ-EXAM-LOCK: ' . $e->getMessage());
+            }
+        }
+        unset($q);
+        return $items;
     }
 }
 
