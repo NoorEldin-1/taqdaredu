@@ -155,12 +155,19 @@
    -------------------------------------------------------------------------- */
 .tq-switch { position: relative; inline-size: 44px; block-size: 26px; flex: none; }
 .tq-switch input { position: absolute; inset: 0; opacity: 0; inline-size: 100%; block-size: 100%; margin: 0; cursor: pointer; }
+/* TQ-SWITCH-OFF — المسار الموقف كان `--tq-line` على بطاقة بيضاء: ‏1.25:1‏،
+   ومقبضه أبيض عليه بالنسبة نفسها. فالمفتاح المطفأ لا حد له يرى، ويقرأ
+   معطلا لا مطفأ (WCAG 1.4.11 يطلب 3:1 لحدود عنصر التحكم وحالته). وحلقة
+   داخلية بـ`--tq-text3` — ‏5.05:1‏ على الأبيض و‏4.17:1‏ على المسار، وأخف
+   توكن في اللوحة يفي — تحد المفتاح بلا تغيير توكن ولا مقاس ولا تخطيط.
+   والحالة المشتعلة لا تحتاجها: خضرتها ‏5.31:1‏ على البطاقة أصلا. */
 .tq-switch__track { display: block; inline-size: 100%; block-size: 100%; border-radius: var(--tq-radius-pill);
-  background: var(--tq-line); transition: background-color var(--tq-motion-hover) ease; }
+  background: var(--tq-line); box-shadow: inset 0 0 0 1px var(--tq-text3);
+  transition: background-color var(--tq-motion-hover) ease; }
 .tq-switch__knob { position: absolute; inset-block-start: 3px; inset-inline-start: 3px; inline-size: 20px; block-size: 20px;
   border-radius: var(--tq-radius-pill); background: var(--tq-surface); box-shadow: var(--tq-shadow-raised);
   transition: transform var(--tq-motion-hover) ease; }
-.tq-switch input:checked ~ .tq-switch__track { background: var(--tq-teal); }
+.tq-switch input:checked ~ .tq-switch__track { background: var(--tq-teal); box-shadow: none; }
 .tq-switch input:checked ~ .tq-switch__knob { transform: translateX(-18px); }
 html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: translateX(18px); }
 .tq-switch input:focus-visible ~ .tq-switch__track { outline: var(--tq-focus-ring-w) solid var(--tq-focusRing); outline-offset: 2px; }
