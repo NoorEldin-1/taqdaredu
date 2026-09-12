@@ -957,9 +957,13 @@ if (!function_exists('tq_s_activity')) {
     function tq_s_activity($uid)
     {
         $CI  = get_instance();
+        /* TQ-UNKNOWN-NOT-ZERO — «٠٪» عن غياب قياس تقرأ أداء ضعيفا لا غياب
+           محاولة. و`has_score_source` يميز الحالين كما يميزهما `has_streak_source`
+           المجاور — والقاعدة واحدة: الجلب الفاشل أو المصدر الفارغ لا يصير صفرا. */
         $out = [
             'seconds' => 0, 'lessons' => 0, 'score' => 0, 'streak' => 0,
             'score_delta' => null, 'has_streak_source' => false,
+            'has_score_source' => false,
         ];
         if ($uid <= 0) return $out;
 
@@ -987,7 +991,10 @@ if (!function_exists('tq_s_activity')) {
             if ($q['ended_at'] > 0 && $age <= $wk)                    $this_week[] = $q['percent'];
             elseif ($q['ended_at'] > 0 && $age > $wk && $age <= 2 * $wk) $last_week[] = $q['percent'];
         }
-        if ($all) $out['score'] = (int) round(array_sum($all) / count($all));
+        if ($all) {
+            $out['score'] = (int) round(array_sum($all) / count($all));
+            $out['has_score_source'] = true;
+        }
         if ($this_week && $last_week) {
             $out['score_delta'] = (int) round(
                 array_sum($this_week) / count($this_week) - array_sum($last_week) / count($last_week)

@@ -4030,7 +4030,9 @@ class Api_v1 extends CI_Controller
                 'study_hours'   => (int) $r['hours'],
                 'study_minutes' => (int) $r['minutes'],
                 'completion'    => (int) $r['completion'],
-                'average_score' => (int) $r['average'],
+                /* يبقى التمييز عبر الواجهة: الصب إلى int يحول null صفرا فيقرا
+                   التطبيق «٠٪» عن طالب لم يصحح له شيء. */
+                'average_score' => $r['average'] === null ? null : (int) $r['average'],
                 'lessons_done'  => (int) $r['done_lessons'],
                 'lessons_total' => (int) $r['total_lessons'],
                 'courses'       => count($r['enrolled']),

@@ -925,7 +925,10 @@ class Taqdar_student_model extends CI_Model
             $points[(int) $q['date_added']] =
                 max(0, min(100, (int) round(((float) $q['total_obtained_marks'] / $n) * 100)));
         }
-        $average = $points ? (int) round(array_sum($points) / count($points)) : 0;
+        /* TQ-UNKNOWN-NOT-ZERO — لا درجة مصححة = لا متوسط، و«٠٪» تقرا أداء
+           صفريا لا غياب محاولة. والقيمة `null` تميز الحالين، ويعرضها القارئ
+           شرطة. (مقيس: 189 و411 صفر محاولة، فالصفر كان مخترعا.) */
+        $average = $points ? (int) round(array_sum($points) / count($points)) : null;
 
         /* الأسابيع الثمانية الأخيرة — والأسبوع يبدأ الأحد. */
         $today  = strtotime('today');

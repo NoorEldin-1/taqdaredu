@@ -353,9 +353,11 @@ include 'portal_open.php';
                         ? t('من اختباراتك المصححة')
                         : tq_iso(($tq_act['score_delta'] >= 0 ? '+' : '') . $tq_act['score_delta'] . t(' نقطة عن الأسبوع الماضي'));
                     echo tq_s_stat(
-                        tq_num($tq_act['score'] . '%'),
+                        empty($tq_act['has_score_source']) ? '—' : tq_num($tq_act['score'] . '%'),
                         t('متوسط الدرجات'), 'award', 'lilac',
-                        $score_note
+                        empty($tq_act['has_score_source'])
+                            ? t('تظهر بعد أول اختبار مصحح')
+                            : $score_note
                     );
 
                     /* السلسلة تحتاج سجل نشاط يومي ولا جدول له بعد — والشرطة أصدق من رقم مخترع.

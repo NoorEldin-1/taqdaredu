@@ -257,8 +257,13 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
                             </span>
                             <span class="tq-kpi__label"><?php echo t('المتوسط العام'); ?></span>
                         </div>
-                        <p class="tq-kpi__value"><?php echo tq_num($tq_average . '%', 'tq-num--xl'); ?></p>
-                        <?php if ($tq_grade_delta === null): ?>
+                        <?php /* TQ-UNKNOWN-NOT-ZERO — شرطة لا «٠٪» حين لا درجة مصححة. */ ?>
+                        <p class="tq-kpi__value"><?php echo $tq_average === null
+                            ? '<span class="tq-num tq-num--xl">—</span>'
+                            : tq_num($tq_average . '%', 'tq-num--xl'); ?></p>
+                        <?php if ($tq_average === null): ?>
+                            <span class="tq-kpi__delta tq-kpi__delta--flat"><?php echo t('يظهر بعد أول اختبار مصحح'); ?></span>
+                        <?php elseif ($tq_grade_delta === null): ?>
                             <span class="tq-kpi__delta tq-kpi__delta--flat"><?php echo t('تقارن بنفسك بعد أول أسبوع كامل'); ?></span>
                         <?php else: ?>
                             <span class="tq-kpi__delta tq-kpi__delta--<?php echo $tq_grade_delta > 0 ? 'up' : ($tq_grade_delta < 0 ? 'down' : 'flat'); ?>">
@@ -561,7 +566,9 @@ html[dir='rtl'] .tq-chart__svg { transform: scaleX(-1); }
             <div class="tq-stack" style="margin-block-start:var(--tq-space-xl)">
                 <div>
                     <span class="tq-caption"><?php echo t('متوسط الدرجات'); ?></span>
-                    <?php echo tq_progress($tq_average, t('متوسط الدرجات')); ?>
+                    <?php echo $tq_average === null
+                        ? '<span class="tq-caption tq-muted">' . t('لا اختبارات مصححة بعد') . '</span>'
+                        : tq_progress($tq_average, t('متوسط الدرجات')); ?>
                 </div>
                 <div>
                     <span class="tq-caption"><?php echo t('الدروس المكتملة'); ?></span>
