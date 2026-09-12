@@ -117,7 +117,13 @@ class Taqdar_pay extends CI_Controller
         if ($session) $home = 'student/on-demand';
 
         if (!empty($r['ok'])) {
-            $this->notify_paid($r);
+            /* TQ-PAY-ONCE — الحارس نفسه الذي في مسار الويبهوك (`empty($r['already'])`):
+               الويبهوك يسوّي الدفعة أولا ثم يعود المشتري بمتصفحه فتسوّى ثانية بـ
+               `already = true` — فيصله الإشعار والبريد والواتساب **مرتين** عن دفعة
+               واحدة. والسطر الذي يليه يقرأ `already` أصلا ليقول «دفعتك مسجلة»، فالحال
+               معروفة للشاشة وغير معروفة للمرسل. ولا إشعار يضيع: من لم يصله ويبهوك
+               تجري تسويته هنا فتكون `already` فارغة ويطلق مرة. */
+            if (empty($r['already'])) $this->notify_paid($r);
             $this->meta_purchase_flash((int) ($r['invoice_id'] ?? 0));
             if ($session) {
                 $this->flash(true, !empty($r['already'])
