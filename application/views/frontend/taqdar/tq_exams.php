@@ -210,6 +210,13 @@ include 'portal_open.php';
                     <?php if ($tq_upcoming): ?>
                         <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_upcoming) . TQ_PDI; ?></span>
                     <?php endif; ?>
+                    <?php /* TQ-UPCOMING-ALL — العداد يقول ١٠١ والشبكة تعرض ثلاثا بلا طريق
+                             إلى الباقي. فاللوحة تبقى موجزة (ثلاث بطاقات) ومعها الرابط
+                             نفسه الذي تستعمله القائمة الجانبية، والحالة المصفاة
+                             `?state=upcoming` تعرض الكل — فيتساوى العدد بما يصل إليه الطالب. */ ?>
+                    <?php if (count($tq_upcoming) > 3 && $f_state !== 'upcoming'): ?>
+                        <a class="tq-caption" href="<?php echo base_url('student/exams?state=upcoming'); ?>"><?php echo t('عرض الكل'); ?></a>
+                    <?php endif; ?>
                 </div>
 
                 <?php if (empty($tq_upcoming)): ?>
@@ -223,7 +230,7 @@ include 'portal_open.php';
                     </div>
                 <?php else: ?>
                     <div class="tq-s-grid3 tq-stagger">
-                        <?php foreach (array_slice($tq_upcoming, 0, 3) as $q): ?>
+                        <?php foreach (($f_state === 'upcoming' ? $tq_upcoming : array_slice($tq_upcoming, 0, 3)) as $q): ?>
                             <article class="tq-card">
                                 <div class="tq-row tq-row--between" style="align-items:flex-start">
                                     <span class="tq-icon-box tq-pastel tq-pastel--<?php echo tq_pastel($q['index']); ?>" aria-hidden="true">
