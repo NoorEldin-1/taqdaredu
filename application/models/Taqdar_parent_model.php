@@ -318,7 +318,10 @@ class Taqdar_parent_model extends CI_Model
         $this->announce_to_parent(
             (int) $row['parent_user_id'], (int) $row['student_id'], 'parent_link_granted',
             'وافق ' . $this->name_of($row['student_id']) . ' على الربط',
-            $this->name_of($row['student_id']) . ' وافق على ربط حسابه بحسابك بتاريخ ' . $now
+            /* TQ-TZ-DISPLAY — `$now` ساعة القاعدة (UTC) تلصق في نص يقرؤه ولي الأمر
+               ويخرج بالبريد والواتساب معه. والتاريخ المعروض يبنى من ساعة التطبيق
+               بصيغة المنصة المطلقة. ولا يمس ما يخزن. */
+            $this->name_of($row['student_id']) . ' وافق على ربط حسابه بحسابك بتاريخ ' . date('Y/m/d — H:i')
             . '. تجد متابعته الآن في «أبنائي».'
         );
 

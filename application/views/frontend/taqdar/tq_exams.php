@@ -210,6 +210,13 @@ include 'portal_open.php';
                     <?php if ($tq_upcoming): ?>
                         <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_upcoming) . TQ_PDI; ?></span>
                     <?php endif; ?>
+                    <?php /* TQ-UPCOMING-ALL — العداد يقول ١٠١ والشبكة تعرض ثلاثا بلا طريق
+                             إلى الباقي. فاللوحة تبقى موجزة (ثلاث بطاقات) ومعها الرابط
+                             نفسه الذي تستعمله القائمة الجانبية، والحالة المصفاة
+                             `?state=upcoming` تعرض الكل — فيتساوى العدد بما يصل إليه الطالب. */ ?>
+                    <?php if (count($tq_upcoming) > 3 && $f_state !== 'upcoming'): ?>
+                        <a class="tq-caption" href="<?php echo base_url('student/exams?state=upcoming'); ?>"><?php echo t('عرض الكل'); ?></a>
+                    <?php endif; ?>
                 </div>
 
                 <?php if (empty($tq_upcoming)): ?>
@@ -223,7 +230,7 @@ include 'portal_open.php';
                     </div>
                 <?php else: ?>
                     <div class="tq-s-grid3 tq-stagger">
-                        <?php foreach (array_slice($tq_upcoming, 0, 3) as $q): ?>
+                        <?php foreach (($f_state === 'upcoming' ? $tq_upcoming : array_slice($tq_upcoming, 0, 3)) as $q): ?>
                             <article class="tq-card">
                                 <div class="tq-row tq-row--between" style="align-items:flex-start">
                                     <span class="tq-icon-box tq-pastel tq-pastel--<?php echo tq_pastel($q['index']); ?>" aria-hidden="true">
@@ -241,8 +248,10 @@ include 'portal_open.php';
 
                                 <div class="tq-s-meta" style="margin-block-end:var(--tq-space-m)">
                                     <?php /* «٥ درجة» و«٥ سؤالا» رقم واحد بتسميتين — الدرجة في هذا
-                                             النموذج هي عدد الأسئلة نفسه. فيقال مرة واحدة. */ ?>
-                                    <span><?php echo tq_icon('help', 16); ?><?php echo tq_iso($q['marks'] . t(' سؤالا، والدرجة من ') . $q['marks']); ?></span>
+                                             النموذج هي عدد الأسئلة نفسه. فيقال مرة واحدة.
+                                             TQ-PLURAL-ONE — وبصيغة الجمع التي تعرفها المنصة:
+                                             «٥ أسئلة» لا «٥ سؤالا»، و«سؤالان» لا «٢ سؤالا». */ ?>
+                                    <span><?php echo tq_icon('help', 16); ?><?php echo tq_iso(t('____، والدرجة من ____', array(tq_questions_word((int) $q['marks'], t('لا أسئلة'), 'nom'), (int) $q['marks']))); ?></span>
                                     <?php if (!empty($tq_limits[$q['id']])): ?>
                                         <span><?php echo tq_icon('clock', 16); ?><?php echo tq_s_minutes((int) round($tq_limits[$q['id']] / 60)); ?></span>
                                     <?php endif; ?>
@@ -250,12 +259,25 @@ include 'portal_open.php';
 
                                 <?php
                                 /* لا موعد بدء في القاعدة، فلا يعرض «بعد يومين» مخترعا.
-                                   الاختبار متاح متى شاء الطالب حتى يضاف جدول مواعيد. */
-                                echo tq_badge('progress', t('متاح الآن'));
+                                   الاختبار متاح متى شاء الطالب حتى يضاف جدول مواعيد.
+                                   TQ-EXAM-LOCK — إلا أن يكون درسه مقفلا: فالبطاقة تقول ذلك
+                                   وتسمي الدرس المطلوب، لا «ابدأ» ثم 403 بعد النقرة. */
+                                $tq_qlocked = isset($q['available']) && !$q['available'];
+                                if ($tq_qlocked) {
+                                    echo tq_badge('idle', $q['lock_title'] !== ''
+                                        ? t('يفتح بعد «____»', $q['lock_title']) : t('مقفل'));
+                                } else {
+                                    echo tq_badge('progress', t('متاح الآن'));
+                                }
                                 ?>
 
+                                <?php if ($tq_qlocked): ?>
+                                <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-m)"
+                                   href="<?php echo tq_s_lesson_url($q['course_id'], $q['lock_lesson_id'] ?: $q['id']); ?>"><?php echo t('افتح الدرس المطلوب'); ?></a>
+                                <?php else: ?>
                                 <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-m)"
                                    href="<?php echo tq_s_lesson_url($q['course_id'], $q['id']); ?>"><?php echo t('ابدأ الاختبار'); ?></a>
+                                <?php endif; ?>
                             </article>
                         <?php endforeach; ?>
                     </div>
@@ -495,7 +517,7 @@ include 'portal_open.php';
                                 <span class="tq-s-item__s tq-s-trunc"><?php echo html_escape($q['subject']); ?></span>
                                 <span class="tq-s-item__t tq-s-trunc"><?php echo html_escape($q['title']); ?></span>
                             </span>
-                            <?php echo tq_badge('progress', t('متاح')); ?>
+                            <?php echo (isset($q['available']) && !$q['available']) ? tq_badge('idle', t('مقفل')) : tq_badge('progress', t('متاح')); ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>

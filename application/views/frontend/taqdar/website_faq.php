@@ -47,3 +47,32 @@ if (!is_array($tq_faqs)) $tq_faqs = array();
     <?php endif; ?>
   </div>
 </section>
+
+<?php
+/* TQ-SEO-FAQ — وسم الأسئلة الشائعة.
+
+   الصفحة تحمل أسئلةً وأجوبةً حقيقية من `frontend_settings.website_faqs`،
+   ولم يكن لها وسمٌ إطلاقًا. و`FAQPage` من الأنواع القليلة التي يعرضها
+   جوجل تحت النتيجة نفسها — والشرط أن يكون السؤال والجواب **ظاهرَين
+   للزائر**، وهما كذلك هنا (الطيّ يخفي الجواب بصريًّا لا من الصفحة). */
+$tq_fld = array();
+foreach ($tq_faqs as $tq_f) {
+    $q = is_array($tq_f) ? trim(strip_tags((string) ($tq_f['question'] ?? $tq_f['title'] ?? ''))) : '';
+    $a = is_array($tq_f) ? trim(strip_tags((string) ($tq_f['answer'] ?? $tq_f['description'] ?? ''))) : '';
+    if ($q === '' || $a === '') continue;
+    $tq_fld[] = array(
+        '@type' => 'Question',
+        'name'  => $q,
+        'acceptedAnswer' => array('@type' => 'Answer', 'text' => $a),
+    );
+}
+if ($tq_fld): ?>
+<script type="application/ld+json"><?php
+echo json_encode(array(
+    '@context'   => 'https://schema.org',
+    '@type'      => 'FAQPage',
+    'inLanguage' => 'ar',
+    'mainEntity' => $tq_fld,
+), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+?></script>
+<?php endif; ?>

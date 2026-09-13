@@ -220,6 +220,24 @@ class Taqdar extends CI_Controller
             }
         }
 
+        /* TQ-LESSON-CANON — الدرس يعرف مقرره، لا الرابط. رابط بمقرر 0 أو
+           بمقرر لا يطابق درسه كان يعرض الشاشة بـ`data-tq-course="0"`، ويتكاثر
+           في المشاركات والسجل بصيغة `student/lesson/0/…`. فالموضع يحول إلى
+           مقرره الحقيقي؛ ودرس لا وجود له، أو مقرره محذوف، يقرأ 404 لا شاشة
+           «الدرس» فارغة تنتظر بوابة لن ترد. */
+        if ($lesson_id > 0) {
+            $tq_real = $this->db->select('course_id')->where('id', $lesson_id)
+                                ->get('lesson')->row_array();
+            if (!$tq_real) show_404();
+            $tq_real_cid = (int) $tq_real['course_id'];
+            if ($tq_real_cid < 1
+                OR (int) $this->db->where('id', $tq_real_cid)->count_all_results('course') < 1) {
+                show_404();
+            }
+            if ($tq_real_cid !== $course_id) {
+                redirect(base_url('student/lesson/' . $tq_real_cid . '/' . $lesson_id), 'location', 302);
+            }
+        }
         /* TQ-SOON-LESSON — ورابط مكتوب يدويا إلى نائب لا يفتح: الموضع
            محجوز لا مخفي، والشاشة تقول «قيد الإعداد» قبل النقرة لا بعدها. */
         if ($lesson_id > 0) {

@@ -260,6 +260,20 @@ if (!function_exists('tq_minutes_word')) {
     }
 }
 
+if (!function_exists('tq_courses_word')) {
+    /** «٥ كورسات» · «كورسين»/«كورسان» · «كورس واحد» · «١٢ كورسا». */
+    function tq_courses_word($n, $zero = 'لا كورسات', $case = 'obl')
+    {
+        return tq_count_units($n, t('كورس'), t('كورسان'), t('كورسين'), t('كورسات'), t('كورسا'), $zero, $case);
+    }
+}
+if (!function_exists('tq_questions_word')) {
+    /** «٥ أسئلة» · «سؤالين»/«سؤالان» · «سؤال واحد» · «١٢ سؤالا». */
+    function tq_questions_word($n, $zero = 'لا أسئلة', $case = 'obl')
+    {
+        return tq_count_units($n, t('سؤال'), t('سؤالان'), t('سؤالين'), t('أسئلة'), t('سؤالا'), $zero, $case);
+    }
+}
 if (!function_exists('tq_students_word')) {
     /** «٤ طلاب» · «طالبين»/«طالبان» · «طالب واحد» · «١٢ طالبا». */
     function tq_students_word($n, $zero = 'لا طلاب', $case = 'obl')

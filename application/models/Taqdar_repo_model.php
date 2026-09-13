@@ -300,6 +300,9 @@ class Taqdar_repo_model extends CI_Model
             $state['reason']   = $state['unlocked'] ? 'previous_completed' : 'previous_not_completed';
         }
         $state['blocking_lesson_id'] = $state['unlocked'] ? null : $prev_id;
+        /* TQ-LOCK-NAME — القفل يسمي حاجزه: «أكمل الدرس السابق» بلا اسم يترك
+           الطالب يبحث أيه، والحقيقة هنا في الترتيب نفسه لا في العميل. */
+        $state['blocking_lesson_title'] = $state['unlocked'] ? null : (string) $ordered[$pos - 1]['title'];
 
         return $state;
     }
@@ -700,17 +703,21 @@ class Taqdar_repo_model extends CI_Model
         $free = ((int) $lesson['is_free'] === 1);
         if (!$free && !$this->is_entitled($student_id, $lesson['course_id'])) {
             return $this->error('NOT_ENTITLED', array(
-                'lesson_id' => $id,
-                'course_id' => (int) $lesson['course_id'],
+                'lesson_id'    => $id,
+                'lesson_title' => (string) $lesson['title'],
+                'course_id'    => (int) $lesson['course_id'],
             ));
         }
 
         if (empty($state['unlocked'])) {
             // لا رابط تشغيل، ولا حتى ملخص الدرس — القفل قفل.
             return $this->error('MASTERY_LOCKED', array(
-                'lesson_id'          => $id,
-                'blocking_lesson_id' => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
-                'reason'             => $state['reason'],
+                'lesson_id'             => $id,
+                'lesson_title'          => (string) $lesson['title'],
+                'course_id'             => (int) $lesson['course_id'],
+                'blocking_lesson_id'    => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+                'blocking_lesson_title' => isset($state['blocking_lesson_title']) ? $state['blocking_lesson_title'] : null,
+                'reason'                => $state['reason'],
             ));
         }
 
@@ -811,8 +818,12 @@ class Taqdar_repo_model extends CI_Model
         }
         if (empty($state['unlocked'])) {
             return $this->error('MASTERY_LOCKED', array(
-                'lesson_id'          => $lesson_id,
-                'blocking_lesson_id' => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+                'lesson_id'             => $lesson_id,
+                'lesson_title'          => (string) $lesson['title'],
+                'course_id'             => (int) $lesson['course_id'],
+                'blocking_lesson_id'    => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+                'blocking_lesson_title' => isset($state['blocking_lesson_title']) ? $state['blocking_lesson_title'] : null,
+                'reason'                => isset($state['reason']) ? $state['reason'] : '',
             ));
         }
 
@@ -1614,8 +1625,12 @@ class Taqdar_repo_model extends CI_Model
         }
         if (empty($state['unlocked'])) {
             return $this->error('MASTERY_LOCKED', array(
-                'lesson_id'          => $lesson_id,
-                'blocking_lesson_id' => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+                'lesson_id'             => $lesson_id,
+                'lesson_title'          => (string) $lesson['title'],
+                'course_id'             => (int) $lesson['course_id'],
+                'blocking_lesson_id'    => isset($state['blocking_lesson_id']) ? $state['blocking_lesson_id'] : null,
+                'blocking_lesson_title' => isset($state['blocking_lesson_title']) ? $state['blocking_lesson_title'] : null,
+                'reason'                => isset($state['reason']) ? $state['reason'] : '',
             ));
         }
 
@@ -2033,8 +2048,16 @@ class Taqdar_repo_model extends CI_Model
     /** عدد المستحق اليوم (للشارات في القائمة). */
     public function count_due_reviews($student_id)
     {
+        /* TQ-BADGE-REACHABLE — الوصلة نفسها التي في `get_due_reviews()` وهي ما
+           تخدم الشاشة: صفّ طابور يشير إلى سؤال محذوف كان يعدّ في الشارة ولا
+           يصل إليه التنقل أبدا — فيقرأ الطالب «٢ مستحقة» ويفتح شاشة فارغة.
+           مقيس على الإنتاج: ٣٣٧ و٣٤٠ و٣٤٢ شارتهم ٢ وأسئلتها محذوفة.
+           (وكنس `review_queue` عند حذف `question` رقعة مستقلة تسجل ولا تدمج:
+            `idx_rq_question` مفتاح عادي بلا قيد أجنبي.) */
         $r = $this->db->query(
-            'SELECT COUNT(*) AS c FROM `review_queue` WHERE `student_id` = ? AND `due_at` <= ?',
+            'SELECT COUNT(*) AS c FROM `review_queue` rq
+               JOIN `question` q ON q.`id` = rq.`question_id`
+              WHERE rq.`student_id` = ? AND rq.`due_at` <= ?',
             array((int) $student_id, $this->now()))->row_array();
         return (int) $r['c'];
     }

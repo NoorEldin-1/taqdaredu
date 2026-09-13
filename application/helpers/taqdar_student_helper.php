@@ -215,15 +215,21 @@ if (!function_exists('tq_s_enrolled')) {
 
         $ids = array_map('intval', array_column($courses, 'id'));
 
-        // مدة الدرس نص «hh:mm:ss» فلا تجمع في SQL — تجمع بعد التحويل.
+        /* مدة الدرس نص «hh:mm:ss» فلا تجمع في SQL — تجمع بعد التحويل.
+           TQ-PUBLISHED-COUNT — والمسند القانوني للنشر هنا كما هو في
+           `Taqdar.php:216` و`Taqdar_catalog_model:228`: المسودة لا تفتح
+           (يرد المتحكم 404) فلا تعد ولا تدخل مقام النسبة. */
         $lessons = $CI->db->select('id, course_id, duration, lesson_type')
-            ->from('lesson')->where_in('course_id', $ids)->get()->result_array();
+            ->from('lesson')->where_in('course_id', $ids)
+            ->where('COALESCE(`tq_status`, "published") =', 'published')->get()->result_array();
 
         $count = [];
         $secs  = [];
+        $counted_ids = [];   // ما عُدّ في المقام، ليقاس عليه البسط
         foreach ($lessons as $l) {
             $cid = (int) $l['course_id'];
             if (($l['lesson_type'] ?? '') === 'quiz') continue;
+            $counted_ids[$cid][(int) $l['id']] = true;
             $count[$cid] = ($count[$cid] ?? 0) + 1;
             $secs[$cid]  = ($secs[$cid] ?? 0) + tq_s_secs($l['duration']);
         }
@@ -253,6 +259,13 @@ if (!function_exists('tq_s_enrolled')) {
                 if (is_array($list)) foreach ($list as $lid) $done_ids[(int) $lid] = true;
             }
             foreach ($rows as $p) if ($p['complete']) $done_ids[$p['lesson_id']] = true;
+
+            /* TQ-PUBLISHED-COUNT — البسط من المقام نفسه: درس أكمل ثم سحب من
+               النشر كان يبقى في العدد ويقصّه سقف `$done > $total` قصّا صامتا،
+               فيقرأ الطالب نسبة لا يقابلها درس. والقصّ يبقى حارسا أخيرا. */
+            if (isset($counted_ids[$cid])) {
+                $done_ids = array_intersect_key($done_ids, $counted_ids[$cid]);
+            }
 
             $done = count($done_ids);
             if ($total > 0 && $done > $total) $done = $total;
@@ -337,6 +350,11 @@ if (!function_exists('tq_s_enrolled')) {
                 'progress'   => $pct,
                 'resume_id'  => $resume,
                 'touched_at' => $h ? tq_s_ts($h['date_updated']) : tq_s_ts($c['enrolled_at']),
+                /* TQ-RESUME-TRUTH — `touched_at` يرتد إلى تاريخ التسجيل حين لا سجل
+                   مشاهدة، وهو ارتداد صالح للترتيب وكاذب للاستئناف: مقرر سجل أمس
+                   ولم يفتح يفوز بسطر «واصل … حيث توقفت». فيميز الحالان هنا، وتقرأ
+                   `tq_s_resume` التمييز بدل أن تخمنه من الوقت. */
+                'has_history' => ($h !== null),
                 'status'     => $status,
 
                 /* الغلاف التفاعليّ */
@@ -390,6 +408,7 @@ if (!function_exists('tq_s_lessons')) {
             ->join('course c', 'c.id = l.course_id', 'inner')
             ->where('e.user_id', $uid)
             ->where('l.lesson_type !=', 'quiz')
+            ->where('COALESCE(l.`tq_status`, "published") =', 'published')
             ->order_by('l.course_id', 'ASC')
             ->order_by('l.section_id', 'ASC')
             ->order_by('l.order', 'ASC')
@@ -606,7 +625,7 @@ if (!function_exists('tq_s_quizzes')) {
         if (empty($rows)) {
             $out = tq_s_assessment_quizzes($uid);
             usort($out, function ($a, $b) { return $b['ended_at'] <=> $a['ended_at']; });
-            return $cache[$uid] = $out;
+            return $cache[$uid] = tq_s_exam_lock($uid, $out);
         }
 
         $qids = array_map('intval', array_column($rows, 'id'));
@@ -629,6 +648,10 @@ if (!function_exists('tq_s_quizzes')) {
         foreach ($rows as $i => $r) {
             $qid   = (int) $r['id'];
             $marks = $counts[$qid] ?? 0;
+            /* TQ-EMPTY-QUIZ — القاعدة نفسها التي يطبقها فرع التقييمات (`HAVING marks > 0`):
+               اختبار بلا سؤال واحد صف أنشئ ولم يؤلف، وعرضه «متاح الآن — ٠ سؤال» يعد
+               الطالب باختبار لا يجده. */
+            if ($marks < 1) continue;
             $res   = $results[$qid] ?? null;
 
             $state = 'upcoming';
@@ -677,7 +700,45 @@ if (!function_exists('tq_s_quizzes')) {
         foreach (tq_s_assessment_quizzes($uid) as $q) $out[] = $q;
 
         usort($out, function ($a, $b) { return $b['ended_at'] <=> $a['ended_at']; });
-        return $cache[$uid] = $out;
+        return $cache[$uid] = tq_s_exam_lock($uid, $out);
+    }
+}
+
+if (!function_exists('tq_s_exam_lock')) {
+    /**
+     * TQ-EXAM-LOCK — بطاقة الاختبار تقرأ القرار الذي يقرؤه زر البدء.
+     *
+     * كانت كل بطاقة «قادمة» تقول «متاح الآن — ابدأ الاختبار» وإن كان درسها
+     * مقفلا، فيصل الطالب إلى MASTERY_LOCKED بعد النقرة لا قبلها. القرار
+     * نفسه الذي تفحصه `start_attempt()` — الاستحقاق ثم `lesson_lock_state()`
+     * — يقرأ هنا مرة واحدة لكل اختبار قادم، ويبقى المصدر واحدا.
+     */
+    function tq_s_exam_lock($uid, array $items)
+    {
+        $CI = get_instance();
+        $CI->load->model('taqdar_repo_model');
+        foreach ($items as &$q) {
+            if (($q['state'] ?? '') !== 'upcoming') continue;
+            $q['available']      = true;
+            $q['lock_lesson_id'] = 0;
+            $q['lock_title']     = '';
+            try {
+                if (!$CI->taqdar_repo_model->is_entitled($uid, (int) $q['course_id'])) {
+                    $q['available'] = false;
+                    continue;
+                }
+                $st = $CI->taqdar_repo_model->lesson_lock_state($uid, (int) $q['id']);
+                if (!empty($st['found']) && empty($st['unlocked'])) {
+                    $q['available']      = false;
+                    $q['lock_lesson_id'] = (int) ($st['blocking_lesson_id'] ?? 0);
+                    $q['lock_title']     = (string) ($st['blocking_lesson_title'] ?? '');
+                }
+            } catch (Throwable $e) {
+                log_message('error', 'TQ-EXAM-LOCK: ' . $e->getMessage());
+            }
+        }
+        unset($q);
+        return $items;
     }
 }
 
@@ -896,9 +957,13 @@ if (!function_exists('tq_s_activity')) {
     function tq_s_activity($uid)
     {
         $CI  = get_instance();
+        /* TQ-UNKNOWN-NOT-ZERO — «٠٪» عن غياب قياس تقرأ أداء ضعيفا لا غياب
+           محاولة. و`has_score_source` يميز الحالين كما يميزهما `has_streak_source`
+           المجاور — والقاعدة واحدة: الجلب الفاشل أو المصدر الفارغ لا يصير صفرا. */
         $out = [
             'seconds' => 0, 'lessons' => 0, 'score' => 0, 'streak' => 0,
             'score_delta' => null, 'has_streak_source' => false,
+            'has_score_source' => false,
         ];
         if ($uid <= 0) return $out;
 
@@ -926,16 +991,27 @@ if (!function_exists('tq_s_activity')) {
             if ($q['ended_at'] > 0 && $age <= $wk)                    $this_week[] = $q['percent'];
             elseif ($q['ended_at'] > 0 && $age > $wk && $age <= 2 * $wk) $last_week[] = $q['percent'];
         }
-        if ($all) $out['score'] = (int) round(array_sum($all) / count($all));
+        if ($all) {
+            $out['score'] = (int) round(array_sum($all) / count($all));
+            $out['has_score_source'] = true;
+        }
         if ($this_week && $last_week) {
             $out['score_delta'] = (int) round(
                 array_sum($this_week) / count($this_week) - array_sum($last_week) / count($last_week)
             );
         }
 
-        // السلسلة تحتاج سجل نشاط يومي، ولا جدول له في القاعدة بعد.
-        $out['streak'] = 0;
-        $out['has_streak_source'] = false;
+        /* TQ-STREAK-SOURCE — «ولا جدول له في القاعدة بعد» انتفت حجتها:
+           `tq_activity_day` قائم ومعمور، ينشئه `Taqdar_learn_model::ensure_schema()`
+           وتقرأه `streak()` وترد `has_source => true`. واللافتة أعلى الشاشة نفسها
+           تقرأ منه («١ يوما متتاليا») بينما البطاقة الجانبية تحته تقول «—» وتعد
+           بأن الرقم «يظهر عند تسجيل نشاطك اليومي» — وهو مسجل منذ أسابيع.
+           فالعلاج إزالة نفي لمصدر قائم، لا اختراع رقم: الكيان واحد والمصدر واحد. */
+        $CI = get_instance();
+        $CI->load->model('taqdar_learn_model', 'tq_learn');
+        $tq_st = $CI->tq_learn->streak($uid);
+        $out['streak'] = (int) $tq_st['days'];
+        $out['has_streak_source'] = !empty($tq_st['has_source']);
 
         return $out;
     }
@@ -949,6 +1025,11 @@ if (!function_exists('tq_s_resume')) {
         $best = null;
         foreach ($courses as $c) {
             if ($c['progress'] >= 100) continue;
+            /* TQ-RESUME-TRUTH — «حيث توقفت» تقال عمن توقف: مقرر بلا سجل مشاهدة
+               ولا موضع محفوظ لم يفتح قط، فلا يرشح لسطر الاستئناف. ولا يخفى
+               المقرر: بطاقته باقية في «كورساتي»، وزر «الخطوة التالية» يبقى. */
+            if (empty($c['has_history']) && (int) ($c['position_sec'] ?? 0) <= 0
+                && (int) ($c['watched_sec'] ?? 0) <= 0) continue;
             if ($best === null || $c['touched_at'] > $best['touched_at']) $best = $c;
         }
         return $best;

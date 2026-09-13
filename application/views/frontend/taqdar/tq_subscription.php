@@ -36,9 +36,15 @@ $tq_bundle = $tq_plan ? $CI->tq_site_m->bundle_by_code($tq_plan['code']) : null;
    بلا اسم يطابق فيفتح الاشتراك بالتخمين أو لا يفتح.
    و`unpaid` بالحرف لا «ليست مدفوعة»: الفاتورة المستردة ليست مدفوعة أيضا،
    ولا يطلب من صاحبها أن يحول قيمتها من جديد. */
+/* TQ-DUE-SCOPE — والفاتورة المستحقة فاتورة **هذا** الاشتراك لا أي فاتورة:
+   `invoices_of()` ترد كل فواتير الطالب بالأحدث أولا، فمن له باقة معلقة
+   وكورس مفرد اشتراه بعدها كان يقرأ على بطاقة الباقة مرجع فاتورة الكورس
+   ومبلغه، ويحول 99 ليفتح 399. والفاتورة الأخرى لا تخفى: تبقى في جدول
+   الفواتير وفي بطاقة كورسها كما هي. */
 $tq_due = null;
 foreach ((array) $invoices as $tq_i) {
-    if ($tq_i['status'] === 'unpaid') { $tq_due = $tq_i; break; }
+    if ($tq_i['status'] === 'unpaid' && $current
+        && (int) $tq_i['subscription_id'] === (int) $current['id']) { $tq_due = $tq_i; break; }
 }
 
 /* زر الدفع بالبطاقة يعرض إن كانت البوابة مضبوطة وحدها — والقرار من
@@ -175,16 +181,23 @@ include 'portal_open.php';
                         <?php echo t('وللانتقال إلى باقة مدفوعة أوقف التجربة أولا ثم اختر باقتك.'); ?>
                     <?php endif; ?>
                 </p>
-                <?php /* الإلغاء فعل لا يسترد، فيكون POST — ورابط GET ينفذ بمجرد جلبه. */ ?>
+                <?php /* الإلغاء فعل لا يسترد، فيكون POST — ورابط GET ينفذ بمجرد جلبه.
+                         TQ-RENEW-BTN — والزر يعرض حين يكون له معنى: التجربة توقف
+                         للانتقال إلى مدفوعة، والتجديد التلقائي يوقف إن كان مفعلا.
+                         أما باقة لا تجدد أصلا (`auto_renew = 0` — وهي كلها اليوم)
+                         فكان الزر تحت سطر «لا يجدد تلقائيا» يلغي ما لا يوجد ويحول
+                         الاشتراك إلى «موقوف التجديد» بلا أثر إلا الالتباس. */ ?>
                 <div class="tqs-acts">
                     <a class="tq-btn tq-btn--primary tq-btn--sm" href="<?php echo base_url('student/bundle'); ?>">
                         <?php echo t('افتح محتوى الباقة'); ?>
                     </a>
+                    <?php if ($tq_trial || (int) ($current['auto_renew'] ?? 0) === 1): ?>
                     <form method="post" action="<?php echo base_url('student/subscription_cancel'); ?>">
                         <button type="submit" class="tq-btn tq-btn--secondary tq-btn--sm">
                             <?php echo $tq_trial ? t('إيقاف التجربة') : t('إيقاف التجديد'); ?>
                         </button>
                     </form>
+                    <?php endif; ?>
                 </div>
             <?php elseif ($eff === 'cancelled'): ?>
                 <p class="tq-caption">
@@ -310,7 +323,7 @@ include 'portal_open.php';
                 <?php echo t('هذه مشتراة بذاتها، فلا يقفلها انتهاء اشتراكك في باقة ولا إيقاف تجديده.'); ?>
             </p>
 
-            <ul class="tqb-subj">
+            <ul class="tqb-subj tqs-oc">
                 <?php foreach ($tq_oc as $tq_c):
                     $tq_cs_st = (string) $tq_c['status'];
                     /* منته فعليا وإن لم يمر الكرون بعد — كما في بطاقة الباقة. */
@@ -381,7 +394,7 @@ include 'portal_open.php';
                             <th><?php echo t('رقم الفاتورة'); ?></th>
                             <th><?php echo t('الإجمالي'); ?></th>
                             <th><?php echo t('الحالة'); ?></th>
-                            <th><?php echo t('التاريخ'); ?></th>
+                            <th><?php echo t('تاريخ الإصدار'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -396,6 +409,10 @@ include 'portal_open.php';
                                                                         : array(t('غير مدفوعة'), 'due'));
                                 ?>
                                 <span class="tq-badge tq-badge--<?php echo $tq_ist[1]; ?>"><?php echo $tq_ist[0]; ?></span>
+                                <?php /* TQ-PAID-AT — تاريخ الإصدار وتاريخ السداد حقيقتان لا واحدة (§8.2). */ ?>
+                                <?php if ($inv['status'] === 'paid' && !empty($inv['paid_at'])): ?>
+                                    <span class="tq-micro"><?php echo t('سددت في'); ?> <span class="tq-ltr" dir="ltr"><?php echo date('Y-m-d', strtotime($inv['paid_at'])); ?></span></span>
+                                <?php endif; ?>
                             </td>
                             <td><span class="tq-ltr" dir="ltr"><?php echo date('Y-m-d', strtotime($inv['issued_at'])); ?></span></td>
                         </tr>

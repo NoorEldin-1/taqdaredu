@@ -903,6 +903,8 @@ class Taqdar_student_model extends CI_Model
         if ($cids) {
             foreach ($this->db->select('course_id, COUNT(*) AS n')->from('lesson')
                               ->where_in('course_id', $cids)->where('lesson_type !=', 'quiz')
+                              /* TQ-PUBLISHED-COUNT — المسودة لا تفتح فلا تعد. */
+                              ->where('COALESCE(`tq_status`, "published") =', 'published')
                               ->group_by('course_id')->get()->result_array() as $r) {
                 $lessons_by_course[(int) $r['course_id']] = (int) $r['n'];
                 $total_lessons += (int) $r['n'];
@@ -923,7 +925,10 @@ class Taqdar_student_model extends CI_Model
             $points[(int) $q['date_added']] =
                 max(0, min(100, (int) round(((float) $q['total_obtained_marks'] / $n) * 100)));
         }
-        $average = $points ? (int) round(array_sum($points) / count($points)) : 0;
+        /* TQ-UNKNOWN-NOT-ZERO — لا درجة مصححة = لا متوسط، و«٠٪» تقرا أداء
+           صفريا لا غياب محاولة. والقيمة `null` تميز الحالين، ويعرضها القارئ
+           شرطة. (مقيس: 189 و411 صفر محاولة، فالصفر كان مخترعا.) */
+        $average = $points ? (int) round(array_sum($points) / count($points)) : null;
 
         /* الأسابيع الثمانية الأخيرة — والأسبوع يبدأ الأحد. */
         $today  = strtotime('today');

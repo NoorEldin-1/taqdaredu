@@ -149,6 +149,7 @@ return array(
     'ألغي — عاد إلى رصيدك' => 'Cancelled — returned to your balance',
     'ألغيت الربط بتاريخ' => 'You removed the link on',
     'أمس' => 'Yesterday',
+    'أقدم' => 'Older',
     'أن يحلل الطالب المقدار الثلاثي إلى عاملين' => 'The student factorises a quadratic into two factors',
     'أنت' => 'You',
     'أنجزت ____ من ____ ____ اليوم' => 'You finished ____ of ____ ____ today',

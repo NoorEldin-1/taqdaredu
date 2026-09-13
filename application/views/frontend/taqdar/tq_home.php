@@ -235,7 +235,9 @@ include 'portal_open.php';
                                    style="color:var(--tq-navy)"><?php echo html_escape($c['title']); ?></a>
                             </h3>
                             <div class="tq-s-meta">
-                                <span><?php echo tq_icon('book', 16); ?><?php echo tq_iso($c['lessons'] . t(' درسا')); ?></span>
+                                <?php /* TQ-PLURAL-ONE — «٣ دروس» لا «٣ درسا»، و«درسان» لا «٢ درسا».
+                                         والدالة قائمة في المنصة ويستعملها نصف البوابة. */ ?>
+                                <span><?php echo tq_icon('book', 16); ?><?php echo tq_iso(tq_lessons_word((int) $c['lessons'], t('لا دروس'), 'nom')); ?></span>
                                 <?php if ($c['seconds']): ?>
                                     <span><?php echo tq_icon('clock', 16); ?><?php echo tq_iso(tq_s_hours($c['seconds'])); ?></span>
                                 <?php endif; ?>
@@ -307,8 +309,13 @@ include 'portal_open.php';
                                 <span class="tq-pastel__icon"><?php echo tq_icon('clipboard'); ?></span>
                             </span>
                             <span class="tq-s-item__body">
-                                <span class="tq-s-item__t tq-s-trunc"><?php echo html_escape($d['title']); ?></span>
-                                <span class="tq-s-item__s tq-s-trunc"><?php echo html_escape($d['subject']); ?></span>
+                                <?php /* TQ-TRUNC-TITLE — `.tq-s-trunc` يقتطع بنقاط، وعلى 320px قيس
+                                         ثلاثة من ستّة مقتطعة في هذه القائمة وحدها (بقيّة الشاشات
+                                         نظيفة على 320 و375 و1366). والنصّ كامل في DOM يقرؤه
+                                         القارئ الشاشيّ ولا سبيل للمؤشّر إليه — فـ`title` يكشفه،
+                                         كما في أحداث التقويم. */ ?>
+                                <span class="tq-s-item__t tq-s-trunc" title="<?php echo html_escape($d['title']); ?>"><?php echo html_escape($d['title']); ?></span>
+                                <span class="tq-s-item__s tq-s-trunc" title="<?php echo html_escape($d['subject']); ?>"><?php echo html_escape($d['subject']); ?></span>
                             </span>
                             <?php echo tq_badge($w['kind'], $w['text']); ?>
                         </li>
@@ -335,10 +342,17 @@ include 'portal_open.php';
             <?php else: ?>
                 <div class="tq-s-2x2">
                     <?php
+                    /* TQ-TIME-SCOPE — تسميتان لمفهوم واحد: هنا «ساعات الدراسة»
+                       وفي التقارير «وقت الدراسة داخل المحتوى» — والمصدر واحد
+                       (`watched_duration`). فيوحد المصطلح.
+                       والنطاق يسمى بما يقاس: المجموع **كل ما سجل للطالب** بلا حد
+                       زمني، فقول «منذ بدء اشتراكك» يعد بنافذة لا يطبقها الاستعلام
+                       (مقيس على 189: 522 ثانية جملة، منها 382 قبل بدء اشتراكه).
+                       وتصحيح **العبارة** أصغر من تضييق الاستعلام، وأصدق من إبقائها. */
                     echo tq_s_stat(
                         tq_s_hours_rich($tq_act['seconds']),
-                        t('ساعات الدراسة'), 'clock', 'sky',
-                        t('منذ بدء اشتراكك')
+                        t('وقت الدراسة'), 'clock', 'sky',
+                        t('إجمالي وقتك داخل المحتوى')
                     );
 
                     echo tq_s_stat(
@@ -351,9 +365,11 @@ include 'portal_open.php';
                         ? t('من اختباراتك المصححة')
                         : tq_iso(($tq_act['score_delta'] >= 0 ? '+' : '') . $tq_act['score_delta'] . t(' نقطة عن الأسبوع الماضي'));
                     echo tq_s_stat(
-                        tq_num($tq_act['score'] . '%'),
+                        empty($tq_act['has_score_source']) ? '—' : tq_num($tq_act['score'] . '%'),
                         t('متوسط الدرجات'), 'award', 'lilac',
-                        $score_note
+                        empty($tq_act['has_score_source'])
+                            ? t('تظهر بعد أول اختبار مصحح')
+                            : $score_note
                     );
 
                     /* السلسلة تحتاج سجل نشاط يومي ولا جدول له بعد — والشرطة أصدق من رقم مخترع.

@@ -342,15 +342,98 @@ $tq_dur = function ($m) {
 <?php
 /* وسم الدورة للمحركات — من القاعدة نفسها، وبلا سعر: البرنامج لا يباع
    مفردا، و`Offer` بسعر لا يقابله زر شراء بيان كاذب يرفضه الفاحص. */
+/* الاسم المعلَن هو الاسم المرئيّ: عنوان المسار وحده «الرياضيات»، وثلاثة
+   برامج رياضيات ابتدائية تحمله جميعًا. والصفّ يفرّق — وهو القاعدة نفسها
+   التي يبني بها `seo.php` عنوان الصفحة (‏TQ-SUBJ-GRADE)، فلا يخالف
+   الوسمُ الترويسةَ. وقراءة صفّ واحد مفهرس، ومشروطة بوجود المعرّف. */
+$tq_ld_name = trim((string) $tq_p['title']);
+$tq_ld_gid  = (int) (isset($tq_p['grade_id']) ? $tq_p['grade_id'] : 0);
+if ($tq_ld_gid > 0) {
+    $tq_ld_ci  =& get_instance();
+    $tq_ld_row = $tq_ld_ci->db->select('name_ar')->from('grades')
+                              ->where('id', $tq_ld_gid)->limit(1)->get()->row_array();
+    $tq_ld_gr  = $tq_ld_row ? trim((string) $tq_ld_row['name_ar']) : '';
+    if ($tq_ld_gr !== '' && mb_strpos($tq_ld_name, '—') === false
+        && mb_strpos($tq_ld_name, $tq_ld_gr) === false) {
+        $tq_ld_name .= ' — ' . $tq_ld_gr;
+    }
+}
+
 $tq_ld = array(
     '@context'    => 'https://schema.org',
     '@type'       => 'Course',
-    'name'        => (string) $tq_p['title'],
+    'name'        => $tq_ld_name,
     'description' => (string) ($tq_p['short_description'] ?: $tq_p['title']),
-    'provider'    => array('@type' => 'Organization', 'name' => 'تقدر', 'url' => base_url()),
+    'url'         => base_url('path/' . (string) (!empty($tq_p['slug']) ? $tq_p['slug'] : $tq_p['id'])),
+    'inLanguage'  => 'ar',
+    'provider'    => array('@type' => 'EducationalOrganization', 'name' => 'تقدر', 'url' => base_url()),
 );
 if (!empty($tq_p['teacher_name'])) {
     $tq_ld['instructor'] = array('@type' => 'Person', 'name' => (string) $tq_p['teacher_name']);
+}
+if (!empty($tq_p['cat_name'])) $tq_ld['educationalLevel'] = (string) $tq_p['cat_name'];
+
+/* TQ-SEO-COURSE — شرطا جوجل للنتيجة الغنيّة.
+
+   كان الوسم يخرج بثلاثة حقول فقط، ونتيجة الدورة الغنيّة تطلب
+   **`hasCourseInstance`** و**`offers`** معًا؛ فبدونهما الوسم صحيح
+   بنيويًّا ولا يظهر في نتيجةٍ أبدًا.
+
+   والامتناع السابق عن `offers` كان لسببٍ وجيه: البرنامج لا يُباع
+   مفردًا، و`Offer` بسعر لا يقابله زرّ شراء بيانٌ كاذب. والمخرج ليس
+   اختراع سعر، بل **قول الحقيقة**: هذا البرنامج تفتحه هذه الباقات
+   بأسعارها المعلَنة على صفحاتها. و`$tq_plans` هي عينها التي يعرضها
+   القسم أسفل الصفحة، فلا مصدر ثانٍ يفترق عنها.
+
+   و`courseWorkload` من دقائق الدروس المحسوبة أصلًا في `totals`. */
+if ((int) $tq_t['lessons'] > 0) {
+    $tq_inst = array(
+        '@type'      => 'CourseInstance',
+        /* بحرفٍ كبير: أمثلة «Course info» في وثائق جوجل تكتب
+           `Online` و`Subscription`، وقائمة الفئات عندها محصورة
+           (‏Free · Partially Free · Subscription · Paid). وschema.org
+           يقبل النصّ الحرّ، لكنّ المستهلِك هنا جوجل. */
+        'courseMode' => 'Online',
+        'inLanguage' => 'ar',
+    );
+    $tq_min = (int) $tq_t['minutes'];
+    if ($tq_min > 0) {
+        $tq_inst['courseWorkload'] = 'PT' . intdiv($tq_min, 60) . 'H' . ($tq_min % 60) . 'M';
+    }
+    if (!empty($tq_p['teacher_name'])) {
+        $tq_inst['instructor'] = array('@type' => 'Person', 'name' => (string) $tq_p['teacher_name']);
+    }
+    $tq_ld['hasCourseInstance'] = $tq_inst;
+
+    /* ⚠ والسعر المعلَن هو المرئيّ: بطاقات الباقات أسفل هذه الصفحة تكتب
+       **٣٩٩ ر.س / شهريًّا**، فإعلان السنويّ وحده (٣٨٣٠) مخالفةٌ يقيسها
+       جوجل بين الوسم والصفحة. فكلّ دورة تُشترى عرضٌ باسمها — من
+       `tqs_plan_price()` نفسها التي تطبع منها البطاقة رقمها. */
+    $tq_offers = array();
+    foreach ($tq_plans as $tq_pl) {
+        if (!function_exists('tqs_plan_price')) break;
+        $tq_pp = tqs_plan_price($tq_pl);
+        if (!empty($tq_pp['free'])) continue;
+        $tq_pn = (string) (isset($tq_pl['name_ar']) ? $tq_pl['name_ar']
+                          : (isset($tq_pl['name']) ? $tq_pl['name'] : ''));
+        $tq_cy = (isset($tq_pp['cycles']) && is_array($tq_pp['cycles'])) ? $tq_pp['cycles'] : array();
+        foreach ($tq_cy as $tq_c) {
+            if ((string) $tq_c['key'] === 'free' || (int) $tq_c['price'] <= 0) continue;
+            $tq_offers[] = array(
+                '@type'         => 'Offer',
+                'name'          => trim($tq_pn . ' — ' . (string) $tq_c['label']),
+                'category'      => 'Subscription',
+                'price'         => number_format($tq_c['price'] / 100, 2, '.', ''),
+                'priceCurrency' => 'SAR',
+                'availability'  => 'https://schema.org/InStock',
+                'url'           => base_url('plan/' . (string) $tq_pl['code']),
+            );
+        }
+    }
+    if ($tq_offers) {
+        $tq_ld['offers'] = $tq_offers;
+        $tq_ld['isAccessibleForFree'] = false;
+    }
 }
 ?>
 <script type="application/ld+json"><?php

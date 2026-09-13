@@ -48,7 +48,7 @@ include 'portal_open.php';
             <span class="tq-icon-box tq-pastel--peach" style="inline-size:72px;block-size:72px" aria-hidden="true">
                 <?php echo tq_icon('lock', 34); ?>
             </span>
-            <p class="tq-empty__title"><?php echo t('هذا الدرس مقفل'); ?></p>
+            <p class="tq-empty__title" data-tq-locked-title><?php echo t('هذا الدرس مقفل'); ?></p>
             <p class="tq-empty__text" data-tq-locked-msg><?php echo t('أكمل مراجعة الدرس السابق أولا.'); ?></p>
             <a class="tq-btn tq-btn--primary" data-tq-locked-back href="<?php echo base_url('student/lessons'); ?>">
                 <?php echo t('عد إلى دروسك'); ?>

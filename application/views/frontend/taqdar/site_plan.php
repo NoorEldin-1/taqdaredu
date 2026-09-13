@@ -592,14 +592,40 @@ $ld = array(
     'name'        => $b['name'],
     'description' => ($b['note'] !== '' ? $b['note'] : $b['name']),
     'brand'       => array('@type' => 'Brand', 'name' => 'تقدر'),
-    'offers'      => array(
+);
+
+/* TQ-SEO-PRICE — السعر المعلَن يجب أن يطابق السعر المرئيّ.
+
+   كان الوسم يعلن `price` واحدًا هو **السنويّ** (٣٨٣٠٫٤٠) بينما الصفحة
+   تعرض أوّلَ ما تعرض **الشهريّ** (٣٩٩) — وجوجل يطلب التطابق، والمخالفة
+   تفقد النتيجة الغنيّة وقد تجلب إجراءً يدويًّا.
+
+   والصفحة لا تعرض سعرًا واحدًا أصلًا: فيها مبدّل دورات. فالصواب عرضٌ
+   لكلّ دورة تُشترى فعلًا — من `tqs_plan_price()` نفسها التي يطبع منها
+   المبدّل أرقامه، فلا مصدر ثانٍ يفترق عنه. */
+$ld['offers'] = array();
+$p_cycles = (isset($tq_p['cycles']) && is_array($tq_p['cycles'])) ? $tq_p['cycles'] : array();
+foreach ($p_cycles as $p_c) {
+    if ((string) $p_c['key'] === 'free' || (int) $p_c['price'] <= 0) continue;
+    $ld['offers'][] = array(
         '@type'         => 'Offer',
-        'price'         => number_format($b['price'] / 100, 2, '.', ''),
+        'name'          => (string) $p_c['label'],
+        'price'         => number_format($p_c['price'] / 100, 2, '.', ''),
         'priceCurrency' => 'SAR',
         'availability'  => 'https://schema.org/InStock',
         'url'           => base_url('plan/' . $b['code']),
-    ),
-);
+    );
+}
+if (!$ld['offers']) {
+    /* الباقة المجّانية: `Offer` بصفر تصريحٌ صحيح لا حيلة. */
+    $ld['offers'] = array(array(
+        '@type'         => 'Offer',
+        'price'         => '0.00',
+        'priceCurrency' => 'SAR',
+        'availability'  => 'https://schema.org/InStock',
+        'url'           => base_url('plan/' . $b['code']),
+    ));
+}
 /* بيانات الوسم المهيكل تقرأ الغلاف من مصدره الواحد كما تقرؤه
    البطاقة: صورة في جوجل تخالف صورة الصفحة تربك من يقارنهما. */
 $ld['image'] = tqs_plan_cover($b);

@@ -148,6 +148,9 @@
            معه. فلا نموذج ينادى ولا متحكم يمس. */
         $u_page = isset($page_name) ? (string) $page_name : '';
 
+        $CI_ix_r0 =& get_instance();
+        $CI_ix_r  = (string) $CI_ix_r0->uri->segment(1);
+
         /* ── المسار: العنوان يحمل صفه، والوصف وصف المادة ── */
         if ($u_page === 'site_path' && !empty($tq_path) && is_array($tq_path)) {
 
@@ -239,6 +242,46 @@
             $og_description = $meta_description;
         }
 
+        /* ── فهارس الأقسام: الوصف يعدّ ما فيها ──
+
+           `/books` و`/summaries` و`/teachers` و`/catalog` كانت تحمل جملة
+           المنصّة نفسها — أربع صفحات هي أعلى ما في الموقع قيمةً بعد
+           الرئيسية، ونتيجة البحث لا تقول عن أيٍّ منها ماذا فيها.
+
+           والأعداد تُقرأ لا تُكتب: `COUNT` واحد على عمود مفهرس، وعلى
+           هذه المسارات وحدها. فرقمٌ في الوصف يكذب بعد شهرٍ أسوأ من
+           رقمٍ لا يُذكر. */
+        $ix_route = trim((string) $CI_ix_r, '/');
+        if (in_array($ix_route, array('books', 'summaries', 'teachers'), true)
+            || $u_page === 'site_catalog') {
+            $CI_ix =& get_instance();
+            $ix_d  = '';
+            if ($ix_route === 'books') {
+                $n = (int) $CI_ix->db->where('status', 'published')
+                          ->where("(slug NOT LIKE 'sum-%')", null, false)
+                          ->count_all_results('books');
+                $ix_d = t('____ كتابا من المنهج السعودي المعتمد للمرحلتين الابتدائية والمتوسطة', array($n))
+                      . t('، مرتبة بالصف والمادة — كتاب الطالب والنشاط والتمارين، تتصفح وتحمل مجانا بلا تسجيل.');
+            } elseif ($ix_route === 'summaries') {
+                $n = (int) $CI_ix->db->where('status', 'published')
+                          ->where("(slug LIKE 'sum-%')", null, false)
+                          ->count_all_results('books');
+                $ix_d = t('____ ملخصا ومراجعة وخريطة ذهنية وورقة عمل للمنهج السعودي', array($n))
+                      . t('، مرتبة بالصف والمادة — مراجعة سريعة قبل الاختبار، مجانا بلا تسجيل.');
+            } elseif ($ix_route === 'teachers') {
+                $n = (int) $CI_ix->db->where('is_public', 1)->where('is_instructor', 1)
+                          ->count_all_results('users');
+                $ix_d = t('____ معلما ومعلمة في منصة تقدر', array($n))
+                      . t('، لكل واحد صفحته وبرامجه ودروسه المصورة في مادته وصفه — اختر معلم ابنك قبل أن تشترك.');
+            } else {
+                $n = (int) $CI_ix->db->where('status', 'published')->where('course_id >', 0)
+                          ->count_all_results('paths');
+                $ix_d = t('____ برنامجا من المنهج السعودي للمرحلتين الابتدائية والمتوسطة', array($n))
+                      . t(': دروس مصورة واختبار بعد كل درس، مرتبة بالمرحلة والصف والمادة.');
+            }
+            if ($ix_d !== '') { $meta_description = $ix_d; $og_description = $ix_d; }
+        }
+
         /* ── الكتالوج: صفحة الترقيم الثانية ليست الاولى ── */
         if ($u_page === 'site_catalog') {
             $CI_p = &get_instance();
@@ -278,7 +321,11 @@
             /* معامل يبقى ان كان يغير المحتوى فعلا: صفحة الترقيم الثانية
                ليست الاولى، وتصنيف الكتالوج ليس كله. وما عداها — التتبع
                وكسر الكاش — لا يصنع صفحة، فاسقاطه هو الغرض من الكنونيكال. */
-            $c_keep = array('page', 'category', 'type', 'sort', 'grade', 'stage');
+            /* ⚠ `category` كان في القائمة وهو **معامِل ميّت**: الكتالوج
+               يرشّح بـ`cat` و`grade`، و`/catalog?category=x` يعرض
+               الكتالوج كاملًا — فإبقاؤه كان يصنع من كلّ رابط تتبّع
+               بمعامِل `category` صفحةً مستقلّة تنافس أصلها. */
+            $c_keep = array('page', 'cat', 'type', 'sort', 'grade', 'stage');
             $c_qs   = array();
             foreach ($c_keep as $c_k) {
                 $c_v = $CI_c->input->get($c_k, true);
@@ -355,6 +402,115 @@
             }
         }
 
+        /* TQ-SEO-BOOKDESC — وصف الكتاب من الكتاب لا من المنصّة.
+
+           ٤١٦ صفحة كتاب وملخّص كانت تخرج بوصفٍ واحد: «{العنوان} — منصة
+           تقدر التعليمية — دورات ومحتوى تعليمي عربي…». والعنوان وحده
+           يفرّق بينها، والباقي جملةٌ مكرَّرة ٤١٦ مرّة تُقرأ في نتيجة
+           البحث فلا تقول عن الكتاب شيئًا.
+
+           والوصف مكتوبٌ في الصفّ نفسه (‏٧٤–١٠١ كلمة)، فيؤخذ منه أوّلُ
+           ١٥٥ حرفًا عند حدّ كلمة — وهو ما يعرضه جوجل. */
+        if (!empty($tq_book) && is_array($tq_book)) {
+            $bk_d = trim(strip_tags((string) (isset($tq_book['description']) ? $tq_book['description'] : '')));
+            if ($bk_d !== '') {
+                if (mb_strlen($bk_d) > 158) {
+                    $bk_cut = mb_substr($bk_d, 0, 158);
+                    $bk_sp  = mb_strrpos($bk_cut, ' ');
+                    $bk_d   = ($bk_sp !== false ? mb_substr($bk_cut, 0, $bk_sp) : $bk_cut) . '…';
+                }
+                $meta_description = $bk_d;
+                $og_description   = $bk_d;
+            }
+        }
+
+        /* TQ-SEO-LEGACY — صفحة المقرر القديمة نسخة ثانية من البرنامج.
+
+           `‎/home/course/{عنوان}/{معرف}` ترد **٢٠٠** لا ٣٠١، وتحمل
+           كنونيكال يشير الى نفسها بعنوان عربي مرمز (`%d8%a7...`)، بينما
+           `‎/path/{slug}` تعرض المحتوى نفسه من الجدول نفسه. فصفحتان
+           تتنافسان على مقرر واحد، وجوجل يختار — وقد يختار الاقبح رابطا.
+
+           والاصلاح كنونيكال لا حذف: الروابط القديمة موزعة خارج الموقع،
+           وحذفها يفقدها، وتوجيهها ٣٠١ يكسر لوحة الاكاديمي القديمة التي
+           تستعملها. فتبقى تعمل، وتقول للفهرس: الاصل هناك. */
+        $CI_l  =& get_instance();
+        $l_seg = array($CI_l->uri->segment(1), $CI_l->uri->segment(2));
+        if ($l_seg[0] === 'home' && $l_seg[1] === 'course') {
+            $l_cid = 0;
+            for ($l_i = 5; $l_i >= 3; $l_i--) {
+                $l_v = (string) $CI_l->uri->segment($l_i);
+                if ($l_v !== '' && ctype_digit($l_v)) { $l_cid = (int) $l_v; break; }
+            }
+            if ($l_cid > 0) {
+                $l_row = $CI_l->db->select('slug')->where('course_id', $l_cid)
+                                  ->order_by('id', 'ASC')->limit(1)
+                                  ->get('paths')->row_array();
+                if (!empty($l_row['slug'])) {
+                    $canonical_url = base_url('path/' . $l_row['slug']);
+                }
+            }
+        }
+
+        /* TQ-SEO-BLOGDUP — للمقال وجهان، والمعلَن يجب أن يكون واحدًا.
+
+           `‎/blog/details/{عنوان عربيّ}/{معرف}` و`‎/blog/{slug}/{معرف}`
+           كلاهما يردّ ٢٠٠ ويحمل المقال نفسه. وصفحة المدوّنة تربط الثاني
+           (‏`blogs`.`slug` لاتينيّ مخزَّن)، بينما الأوّل يخرج كنونيكاله
+           سطرًا من `%d8%aa%d9%86...`. فالعربيّ يشير إلى اللاتينيّ. */
+        if ($l_seg[0] === 'blog' && $l_seg[1] === 'details') {
+            $b_id = (int) $CI_l->uri->segment(4);
+            if ($b_id > 0) {
+                $b_row = $CI_l->db->select('slug')->where('blog_id', $b_id)
+                                  ->get('blogs')->row_array();
+                if (!empty($b_row['slug'])) {
+                    $canonical_url = base_url('blog/' . $b_row['slug'] . '/' . $b_id);
+                }
+            }
+        }
+
+        /* TQ-SEO-BLOGS — `/blogs` و`/blog` صفحتان بالمقالات نفسها،
+           كلٌّ بكنونيكال يشير إلى نفسه. والقالب الذي يربطه الموقع
+           ويحمل تصميم تقدّر هو `/blog`. فالوارثة تشير إليه. */
+        if ($l_seg[0] === 'blogs' && (string) $CI_l->uri->segment(2) === '') {
+            $canonical_url = base_url('blog');
+        }
+
+        /* TQ-SEO-CRUMB — فتات الخبز، وكانت غائبة عن الموقع كله.
+
+           تفيد مرتين: تعطي نتيجة البحث سطر المسار بدل الرابط الخام،
+           وتقول للفهرس ان الصفحة العميقة ابنة قسم لا صفحة يتيمة. والاسم
+           الورقي يؤخذ من `$meta_title` — وهو محسوب اعلاه لكل نوع صفحة،
+           فلا استعلام ولا خريطة عناوين ثانية. */
+        $tq_crumb = array();
+        $c_leaf   = trim((string) $meta_title);
+        $c_s1     = (string) $CI_l->uri->segment(1);
+        $c_s2     = (string) $CI_l->uri->segment(2);
+        $c_parent = null;
+        if ($c_s1 === 'path' && $c_s2 !== '')        $c_parent = array(t('البرامج'),   'catalog');
+        elseif ($c_s1 === 'book' && $c_s2 !== '')    $c_parent = (strpos($c_s2, 'sum-') === 0)
+                                                        ? array(t('الملخّصات'), 'summaries')
+                                                        : array(t('الكتب'),     'books');
+        elseif ($c_s1 === 'instructor' && $c_s2 !== '') $c_parent = array(t('المعلّمون'), 'teachers');
+        elseif ($c_s1 === 'plan' && $c_s2 !== '')    $c_parent = array(t('الباقات'),   'plans');
+        elseif ($c_s1 === 'blog' && $c_s2 !== '')    $c_parent = array(t('المدوّنة'),   'blog');
+
+        if ($c_parent !== null && $c_leaf !== '') {
+            $tq_crumb = array(
+                '@context'        => 'https://schema.org',
+                '@type'           => 'BreadcrumbList',
+                'itemListElement' => array(
+                    array('@type' => 'ListItem', 'position' => 1,
+                          'name'  => t('الرئيسية'), 'item' => base_url()),
+                    array('@type' => 'ListItem', 'position' => 2,
+                          'name'  => $c_parent[0], 'item' => base_url($c_parent[1])),
+                    array('@type' => 'ListItem', 'position' => 3,
+                          'name'  => $c_leaf,
+                          'item'  => ($canonical_url !== '' ? $canonical_url : current_url())),
+                ),
+            );
+        }
+
         /* TQ-SEO-NOINDEX — لا يدعى الى فهرسة ما لا يفهرس. كان
            `index, follow` على ٣٨ صفحة من ٣٨ — ومنها الدخول والتسجيل
            وصفحة الدفع **وصفحة ٤٠٤ نفسها**، فنتيجة بحث تقود الى خطأ.
@@ -383,7 +539,7 @@
     <meta property="og:title" content="<?php echo htmlspecialchars($og_title, ENT_QUOTES, 'UTF-8'); ?>">
     <meta property="og:description" content="<?php echo htmlspecialchars($og_description, ENT_QUOTES, 'UTF-8'); ?>">
     <meta property="og:image" content="<?php echo htmlspecialchars($og_image, ENT_QUOTES, 'UTF-8'); ?>">
-    <meta property="og:url" content="<?php echo current_url(); ?>">
+    <meta property="og:url" content="<?php echo htmlspecialchars(($canonical_url !== '' ? $canonical_url : current_url()), ENT_QUOTES, 'UTF-8'); ?>">
 <?php /* الوسوم التي كانت غائبة: بلا `og:type` تصنف الصفحة افتراضا،
         وبلا `twitter:card` تظهر المشاركة سطرا بلا صورة، وبلا `og:locale`
         لا يعرف أن المحتوى عربي. و`hreflang` يقول للفهرس إن هذه هي
@@ -395,10 +551,26 @@
     <meta name="twitter:title" content="<?php echo htmlspecialchars($og_title, ENT_QUOTES, 'UTF-8'); ?>">
     <meta name="twitter:description" content="<?php echo htmlspecialchars($og_description, ENT_QUOTES, 'UTF-8'); ?>">
     <meta name="twitter:image" content="<?php echo htmlspecialchars($og_image, ENT_QUOTES, 'UTF-8'); ?>">
-    <link rel="alternate" hreflang="ar" href="<?php echo current_url(); ?>">
-    <link rel="alternate" hreflang="x-default" href="<?php echo current_url(); ?>">
+<?php /* TQ-SEO-ALT — الوسمان كانا يطبعان `current_url()` فيحتفظان
+        بالمعاملات التي يجردها الكنونيكال — فـ`/catalog?utm_source=x` تقول
+        «اصلي /catalog» وتقول في السطر التالي «نسختي العربية هي انا بمعاملي».
+        اشارتان متضاربتان لمحرك واحد. فصارتا تتبعان الكنونيكال نفسه. */
+      $tq_alt = ($canonical_url !== '' ? $canonical_url : current_url()); ?>
+    <link rel="alternate" hreflang="ar" href="<?php echo htmlspecialchars($tq_alt, ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="alternate" hreflang="x-default" href="<?php echo htmlspecialchars($tq_alt, ENT_QUOTES, 'UTF-8'); ?>">
 
     <!-- JSON-LD (Schema Markup) -->
+<?php /* TQ-SEO-LDEMPTY — كان الوسم يطبع `{}` على كل صفحة لا صف لها في
+        جدول `seo`: كائن فارغ لا يقول شيئا، ويظهر في كل فاحص بيانات
+        مهيكلة سطرا بلا نوع. فالفراغ لا يطبع. */
+      $tq_ld_out = trim((string) $json_ld);
+      if ($tq_ld_out !== '' && $tq_ld_out !== '{}' && $tq_ld_out !== '[]'): ?>
     <script type="application/ld+json">
         <?php echo $json_ld; ?>
     </script>
+<?php endif; ?>
+<?php if (!empty($tq_crumb)): ?>
+    <script type="application/ld+json"><?php
+        echo json_encode($tq_crumb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    ?></script>
+<?php endif; ?>

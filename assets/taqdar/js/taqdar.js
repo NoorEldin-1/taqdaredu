@@ -38,6 +38,7 @@
     document.body.style.overflow = 'hidden';
     var first = rail.querySelector('.tq-rail__close, .tq-rail__item');
     if (first && first.focus) first.focus();
+    revealActiveRailItem();   // الدرج يفتح على scrollTop صفر كذلك
   }
 
   $$('[data-tq-rail-toggle]').forEach(function (b) {
@@ -545,4 +546,26 @@
       });
     });
   });
+
+  /* ---- إظهار البند النشط داخل الشريط ---------------------------------
+     القائمة ثلاثة وعشرون بندا وارتفاعها 1212px، ونافذتها 529px على
+     1366x768 و361px على 1024x600 — فهي تمرر (`overflow-y:auto`) والبنود
+     كلها تدرك. لكن `scrollTop` يبدأ صفرا في كل تحميل، فمن فتح «الإعدادات»
+     رأى شريطا لا علامة فيه على موضعه: البند النشط عند 1232px خارج النافذة.
+     فيمرر **الشريط وحده** ليظهر موضعه، لا الصفحة — و`scrollIntoView` كان
+     يحرك الصفحة معه. ومرة واحدة عند التحميل: لا مستمع تمرير يرد المستخدم
+     إلى موضع اختاره الشريط كلما مرر بيده. */
+  function revealActiveRailItem() {
+    if (!rail) return;
+    var nav = rail.querySelector('.tq-rail__nav');
+    if (!nav || nav.clientHeight < 1) return;
+    if (nav.scrollHeight <= nav.clientHeight + 1) return;   // لا تمرير، فلا شيء يخفى
+    var marker = nav.querySelector('[aria-current]');
+    if (!marker) return;
+    var active = marker.closest ? (marker.closest('.tq-rail__item') || marker) : marker;
+    var nr = nav.getBoundingClientRect(), ar = active.getBoundingClientRect();
+    if (ar.top >= nr.top - 1 && ar.bottom <= nr.bottom + 1) return;   // ظاهر أصلا
+    nav.scrollTop += (ar.top - nr.top) - Math.max(0, (nr.height - ar.height) / 2);
+  }
+  revealActiveRailItem();
 })();

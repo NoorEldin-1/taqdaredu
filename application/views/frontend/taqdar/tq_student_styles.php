@@ -82,14 +82,17 @@ if (!function_exists('tq_s_hours_rich')) {
 }
 
 if (!function_exists('tq_s_minutes')) {
-    /** «60 دقيقة» بصيغة عربية سليمة. */
+    /**
+     * «٦٠ دقيقة» بصيغة عربية سليمة.
+     *
+     * TQ-PLURAL-ONE — كانت نسخة ثانية من `tq_minutes_word()` تفترق عنها في
+     * طرفيها: `1` ترد « دقيقة» — **بلا رقم وبمسافة بادئة** — و`0` ترد
+     * «٠ دقائق». وصيغة واحدة لمعنى واحد أصدق من نسختين تتقاربان ثم تفترقان
+     * عند الحد. و`nom` مقصود: «مدتها دقيقتان» لا «دقيقتين».
+     */
     function tq_s_minutes($minutes)
     {
-        $n = (int) $minutes;
-        if ($n === 1) return t(' دقيقة');
-        if ($n === 2) return t('دقيقتان');
-        if ($n <= 10) return tq_iso($n . t(' دقائق'));
-        return tq_iso($n . t(' دقيقة'));
+        return tq_iso(tq_minutes_word((int) $minutes, t('لا دقائق'), 'nom'));
     }
 }
 
@@ -117,12 +120,20 @@ if (!function_exists('tq_s_level')) {
 }
 
 if (!function_exists('tq_s_lessons_word')) {
-    /** «12 من 20 درسا» — التمييز مفرد منصوب بعد الأحد عشر فما فوق. */
+    /**
+     * «١٢ من ٢٠ درسا» — التمييز مفرد منصوب بعد الأحد عشر فما فوق.
+     *
+     * TQ-PLURAL-ONE — وكانت تطبع العدد ثم الكلمة دائما، فيقرأ الاثنان
+     * «٠ من ٢ درسان»: العدد مرتين، مرة رقما ومرة في صيغة المثنى. وهو
+     * بعينه ما تمنعه قاعدة الجمع. و`tq_lessons_word()` تحمل الصيغ الخمس
+     * صحيحة (٠ · واحد · مثنى · ٣–١٠ · ١١+) وتستعملها المنصة في عشرة
+     * مواضع — فالصواب أن تقرأ منها لا أن تعيد نصفها.
+     */
     function tq_s_lessons_word($done, $total)
     {
         $total = (int) $total;
-        $word = $total === 1 ? t('درس') : ($total === 2 ? t('درسان') : ($total <= 10 ? t('دروس') : t('درسا')));
-        return tq_iso((int) $done . t(' من ') . $total . ' ' . $word);
+        if ($total <= 0) return tq_iso(t('لا دروس بعد'));
+        return tq_iso((int) $done . t(' من ') . tq_lessons_word($total, t('لا دروس'), 'obl'));
     }
 }
 
@@ -493,6 +504,21 @@ a:hover .tq-s-thumb__play, a:focus-visible .tq-s-thumb__play { transform: scale(
   font: var(--tq-type-numeralSm);
   unicode-bidi: isolate; direction: ltr;
 }
+/* TQ-TAG-CLEAR — شارة المدة كانت `inset-block-end` بـ`z-index:4` فوق القدم
+   (`z-index:3`) الذي يحمل «الدرس الحالي» واسمه وشريط التقدم: فتقف على طرف
+   السطر وعلى الشريط تحته — قيس التداخل على 1366 و375 و320 جميعا. وحيث لا
+   قدم (كورس لم يمس) لا تصادم فتبقى أسفل كما كانت؛ وحيث القدم موجود ترتفع
+   إلى أعلى الغلاف، وركنه خال: `__badge` في الطرف المقابل (`inset-inline-start`). */
+.tq-s-thumb:has(.tq-s-thumb__foot) .tq-s-thumb__tag {
+  inset-block-end: auto;
+  inset-block-start: var(--tq-space-s);
+  /* والركن المقابل لا نفس الركن: `__badge` يرث اتجاه الصفحة فـ`inline-start`
+     عنده يمين، والشارة عليها `direction: ltr` فـ`inline-end` عندها يمين
+     كذلك — فيلتقيان أعلى اليمين. والخاصية المنطقية تقاس باتجاه العنصر
+     نفسه لا باتجاه الصفحة، وهذا ما قاسته الأداة لا ما خمنته. */
+  inset-inline-end: auto;
+  inset-inline-start: var(--tq-space-s);
+}
 
 /* --- بطاقة كورس --- */
 .tq-s-course { display: flex; flex-direction: column; gap: var(--tq-space-m); }
@@ -725,7 +751,9 @@ a:hover .tq-s-thumb__play, a:focus-visible .tq-s-thumb__play { transform: scale(
 @media (max-width: 639.98px)  { .tq-s-grid3, .tq-s-grid4, .tq-s-grid5 { grid-template-columns: minmax(0, 1fr); } }
 
 /* --- قائمة العمود الجانبي --- */
-.tq-s-list { display: grid; gap: var(--tq-space-m); }
+/* TQ-LIST-TRACK — كـ`.tq-aside`: المسار الضمني يقاس بأدنى محتوى البنود فيتجاوز
+   البطاقة على 320px؛ المسار الصريح يقيده بعرضها ويترك `.tq-s-trunc` يقتطع. */
+.tq-s-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--tq-space-m); }
 .tq-s-item { display: flex; align-items: center; gap: var(--tq-space-m); }
 /* عنصر بصف علوي وفعل تحته — الحجز الذي له باب حصة يفتح. `--stack` يقلب
    الاتجاه فقط، وبقية أصناف `tq-s-item__*` تعمل كما هي داخل الصف العلوي. */
@@ -734,6 +762,12 @@ a:hover .tq-s-thumb__play, a:focus-visible .tq-s-thumb__play { transform: scale(
 .tq-s-item__t { display: block; font: var(--tq-type-caption); font-weight: 700; color: var(--tq-navy); }
 .tq-s-item__s { display: block; font: var(--tq-type-micro); color: var(--tq-text2); }
 .tq-s-trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* TQ-OC-WRAP — «كورسات اشتريتها مفردة»: البند من `shared.css` العام يجعل
+   `<b>` ينكمش (`min-width:0; overflow-wrap:anywhere`) والشارة لا تنكمش،
+   فحين تجاور الشارة رقم فاتورة يبقى للعنوان 16px ويقرأ حرفا في كل سطر.
+   هنا (البوابة وحدها) يلتف البند ويحتفظ العنوان بعرض يقرأ. */
+.tqs-oc .tqb-subj__i { flex-wrap: wrap; }
+.tqs-oc .tqb-subj__i b { flex: 1 1 12ch; }
 
 /* --- شريط زمني للاختبار الجاري --- */
 .tq-s-timebar { block-size: var(--tq-progress-h); border-radius: var(--tq-radius-pill); background: var(--tq-line); overflow: hidden; }

@@ -270,6 +270,71 @@ $tq_gap = ($tq_plan && $tq_sell) ? max(0, (int) $tq_plan['price'] - $tq_price) :
   </div>
 </section>
 
+<?php
+/* TQ-SEO-BOOKLINKS — الصفحة كانت طريقًا مسدودًا.
+
+   صفحة الكتاب تعرض ملفًّا وزرَّ تحميل ثمّ «كتب أخرى قد تفيدك» — ولا
+   رابط منها إلى البرنامج الذي يشرح المادّة نفسها، ولا إلى بقيّة كتب
+   الصفّ. فالزائر القادم من بحثٍ عن كتاب يحمّله وينصرف، والزاحف يقرأ
+   صفحةً معلَّقة لا ابنةَ بنيةٍ.
+
+   وكلّ رابط هنا **يُبنى من صفٍّ موجود** — إن لم يوجد لم يُعرض: لا
+   رابط يقود إلى ٤٠٤ ولا إلى صفحة «قيد الإعداد». */
+$tq_lnk = array();
+$tq_ci  =& get_instance();
+
+/* البرنامج الذي يشرح هذه المادّة لهذا الصفّ — إن كان له درس. */
+if (trim((string) $tq_b['subject']) !== '' && (int) $tq_b['grade_id'] > 0) {
+    $tq_sub = $tq_ci->db->select('id')->where('name_ar', trim((string) $tq_b['subject']))
+                        ->limit(1)->get('subjects')->row_array();
+    if ($tq_sub) {
+        $tq_pth = $tq_ci->db->select('p.slug, p.title')
+                    ->from('paths p')->join('course c', 'c.id = p.course_id', 'inner')
+                    ->where('p.subject_id', (int) $tq_sub['id'])
+                    ->where('p.grade_id', (int) $tq_b['grade_id'])
+                    ->where('p.status', 'published')
+                    ->where('(SELECT COUNT(*) FROM lesson l WHERE l.course_id = c.id) > 0', null, false)
+                    ->limit(1)->get()->row_array();
+        if ($tq_pth) {
+            $tq_lnk[] = array(base_url('path/' . $tq_pth['slug']),
+                              t('برنامج ') . $tq_b['subject'] . ' — ' . t('شرح مصوّر درسًا درسًا'));
+        }
+    }
+}
+
+/* بقيّة كتب الصفّ نفسه. */
+if ((int) $tq_b['grade_id'] > 0 && function_exists('tqs_grade_books_url')) {
+    $tq_gr = $tq_ci->db->select('id, name_ar, `order`', false)->where('id', (int) $tq_b['grade_id'])
+                       ->limit(1)->get('grades')->row_array();
+    if ($tq_gr) {
+        /* اسم الصفّ لا اسم المرحلة: «كتب المرحلة الابتدائية» على رابطٍ
+           يفتح كتب الأوّل الابتدائي وعدٌ يخالف ما يفتح. */
+        $tq_lnk[] = array(tqs_grade_books_url($tq_gr),
+                          t('كتب ') . (string) $tq_gr['name_ar'] . ' — ' . t('كلّ كتب هذا الصفّ'));
+    }
+}
+
+/* الوجه الآخر: من فتح كتابًا يريد ملخّصه، ومن فتح ملخّصًا يريد كتابه. */
+$tq_is_sum = (strpos((string) $tq_slug, 'sum-') === 0);
+$tq_lnk[] = $tq_is_sum
+    ? array(base_url('books'), t('كتب المنهج — الكتاب الكامل لكلّ مادّة'))
+    : array(base_url('summaries'), t('الملخّصات والمراجعات — مراجعة سريعة قبل الاختبار'));
+?>
+<?php if ($tq_lnk): ?>
+<section class="section">
+  <div class="shell">
+    <div class="icard">
+      <h2><?php echo t('روابط تكمل هذا الملفّ'); ?></h2>
+      <ul class="tq-links">
+<?php foreach ($tq_lnk as $tq_l): ?>
+        <li><a href="<?php echo html_escape($tq_l[0]); ?>"><?php echo html_escape($tq_l[1]); ?></a></li>
+<?php endforeach; ?>
+      </ul>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
 <?php if (!empty($tq_more)): ?>
 <section class="section section--tint">
   <div class="shell">
@@ -282,3 +347,51 @@ $tq_gap = ($tq_plan && $tq_sell) ? max(0, (int) $tq_plan['price'] - $tq_price) :
   </div>
 </section>
 <?php endif; ?>
+
+<?php
+/* TQ-SEO-BOOK — وسمُ الكتاب، وكان لا وسم للصفحة أصلًا.
+
+   ١٠٩ صفحات كتاب و٣٠٦ ملخّص تخرج بلا بيانات مهيكلة إطلاقًا، فمحرّك
+   البحث يقرأ صفحةً نصّية لا مورِدًا تعليميًّا له صفٌّ ومادّة ومؤلّف.
+
+   والنوع `Book` لا `Product`: هذه صفحة كتابٍ من المنهج، وبيعُه — حين
+   يُباع — عرضٌ عليه لا هويّته. و`LearningResource` نوعٌ ثانٍ معه لأنّ
+   جوجل يقرأ منه `educationalLevel` و`learningResourceType`.
+
+   والسعر يُعلَن **إن كان الكتاب يُباع فعلًا**، وبالقيمة التي تعرضها
+   الصفحة نفسها (‏`$tq_price` بالهللات)؛ والمجّانيّ يُعلَن مجّانيًّا. */
+$tq_bld = array(
+    '@context'         => 'https://schema.org',
+    '@type'            => array('Book', 'LearningResource'),
+    'name'             => (string) $tq_b['title'],
+    'url'              => base_url('book/' . $tq_slug),
+    'inLanguage'       => 'ar',
+    'bookFormat'       => 'https://schema.org/EBook',
+    'isAccessibleForFree' => !$tq_sell,
+    'publisher'        => array('@type' => 'EducationalOrganization',
+                                'name'  => 'منصة تقدر التعليمية',
+                                'url'   => base_url()),
+);
+if (trim((string) $tq_b['description']) !== '') $tq_bld['description'] = (string) $tq_b['description'];
+if (trim((string) $tq_b['author'])      !== '') $tq_bld['author'] = array('@type' => 'Organization', 'name' => (string) $tq_b['author']);
+if ((int) $tq_b['pages'] > 0)                   $tq_bld['numberOfPages'] = (int) $tq_b['pages'];
+if (trim((string) $tq_b['subject'])     !== '') $tq_bld['about'] = (string) $tq_b['subject'];
+if (!empty($tq_b['cat_name']))                  $tq_bld['educationalLevel'] = (string) $tq_b['cat_name'];
+if ((string) $tq_b['cover'] !== '' && function_exists('tqs_img')) {
+    $tq_bcov = tqs_img($tq_b['cover'], '');
+    if ($tq_bcov !== '') $tq_bld['image'] = $tq_bcov;
+}
+$tq_bld['learningResourceType'] = (strpos((string) $tq_slug, 'sum-') === 0) ? 'ملخّص' : 'كتاب دراسيّ';
+if ($tq_sell && $tq_price > 0) {
+    $tq_bld['offers'] = array(
+        '@type'         => 'Offer',
+        'price'         => number_format($tq_price / 100, 2, '.', ''),
+        'priceCurrency' => 'SAR',
+        'availability'  => 'https://schema.org/InStock',
+        'url'           => base_url('book/' . $tq_slug),
+    );
+}
+?>
+<script type="application/ld+json"><?php
+echo json_encode($tq_bld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+?></script>
