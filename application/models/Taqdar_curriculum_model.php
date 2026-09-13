@@ -1625,8 +1625,8 @@ class Taqdar_curriculum_model extends CI_Model
         }
 
         $this->db->where('lesson_id', $id)->delete('lesson_progress');
-        $this->safe_delete('tq_lesson_notes', 'lesson_id', $id);
-        $this->safe_delete('tq_transcripts', 'lesson_id', $id);
+        $this->safe_delete('tq_lesson_note', 'lesson_id', $id);
+        $this->safe_delete('tq_transcript', 'lesson_id', $id);
 
         $this->db->where('entity', 'lesson')->where('entity_id', $id)
                  ->delete('tq_content_revisions');
