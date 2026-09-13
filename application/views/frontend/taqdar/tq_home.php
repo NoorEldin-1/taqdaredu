@@ -309,8 +309,13 @@ include 'portal_open.php';
                                 <span class="tq-pastel__icon"><?php echo tq_icon('clipboard'); ?></span>
                             </span>
                             <span class="tq-s-item__body">
-                                <span class="tq-s-item__t tq-s-trunc"><?php echo html_escape($d['title']); ?></span>
-                                <span class="tq-s-item__s tq-s-trunc"><?php echo html_escape($d['subject']); ?></span>
+                                <?php /* TQ-TRUNC-TITLE — `.tq-s-trunc` يقتطع بنقاط، وعلى 320px قيس
+                                         ثلاثة من ستّة مقتطعة في هذه القائمة وحدها (بقيّة الشاشات
+                                         نظيفة على 320 و375 و1366). والنصّ كامل في DOM يقرؤه
+                                         القارئ الشاشيّ ولا سبيل للمؤشّر إليه — فـ`title` يكشفه،
+                                         كما في أحداث التقويم. */ ?>
+                                <span class="tq-s-item__t tq-s-trunc" title="<?php echo html_escape($d['title']); ?>"><?php echo html_escape($d['title']); ?></span>
+                                <span class="tq-s-item__s tq-s-trunc" title="<?php echo html_escape($d['subject']); ?>"><?php echo html_escape($d['subject']); ?></span>
                             </span>
                             <?php echo tq_badge($w['kind'], $w['text']); ?>
                         </li>
