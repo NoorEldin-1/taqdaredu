@@ -298,7 +298,7 @@ class Taqdar_cron_transcripts extends CI_Controller
         $les   = $this->lessons();
         if (!$les) { echo "لا دروس بروابط فيميو.\n"; return; }
 
-        $done = $skipped = $missing = $denied = $empty = 0;
+        $done = $skipped = $missing = $denied = $empty = $over = 0;
         $segs = 0;
 
         foreach ($les as $L) {
@@ -316,6 +316,17 @@ class Taqdar_cron_transcripts extends CI_Controller
 
             $cues = $this->merge($this->cues(file_get_contents($file)));
             if (!$cues) { echo '  ✗ ' . $lid . " — الملفّ بلا مقاطع صالحة\n"; $empty++; continue; }
+
+            /* ترجمة الأصل كاملًا مع مقطع مقصوص منه — لا تُكتب آليًّا أبدًا.
+               فلو كان المقطع رأس التسجيل لزم القصّ، ولو كان جزءًا تاليًا فكلّ
+               ختم فيه مزاح بمقدار مجهول. القرار بشريّ، ومكانه `mend`. */
+            $last = 0;
+            foreach ($cues as $c) $last = max($last, (int) $c[0]);
+            if ((int) $L['duration_sec'] > 0 && $last > (int) $L['duration_sec'] + 60) {
+                echo '  ✗ ' . $lid . ' — الترجمة تبلغ ' . $last . 'ث والفيديو '
+                   . (int) $L['duration_sec'] . "ث: ترجمة الأصل لا المقطع — تُعالَج بـmend\n";
+                $over++; continue;
+            }
 
             if (!$this->curr->may_edit_lesson($actor, $lid)) {
                 echo '  ✗ ' . $lid . " — الصلاحيّة مرفوضة\n"; $denied++; continue;
@@ -338,7 +349,7 @@ class Taqdar_cron_transcripts extends CI_Controller
         }
 
         echo "\n" . ($write ? 'كُتب' : 'سيُكتب') . ": $done درسًا · $segs مقطعًا\n";
-        echo "متخطّى (له تفريغ): $skipped · بلا ملفّ: $missing · بلا مقاطع: $empty · مرفوض: $denied\n";
+        echo "متخطّى (له تفريغ): $skipped · بلا ملفّ: $missing · بلا مقاطع: $empty · مرفوض: $denied · ترجمة الأصل: $over\n";
     }
 
     public function verify()
