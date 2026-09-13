@@ -345,6 +345,17 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
         <button class="btn btn--primary btn--block" type="submit">إنشاء الحساب</button>
       </form>
 
+      <?php /* TQ-SOCIAL — والمعلم لا يعرض له الزران: طلبه ثلاث محطات
+               (جوال ومستند وعينة شرح) ثم اعتماد لجنة، ونقرة واحدة لا
+               تنتج شيئا من ذلك. فزر يعد بحساب معلم في ثانية يعد بما لا
+               يقع، ومن ضغطه يجد نفسه طالبا ولا يعرف لماذا. */ ?>
+      <?php if ($tq_gate !== 'teacher'):
+        $tq_soc_gate = $tq_gate;
+        $tq_soc_next = $tq_next_su;
+        $tq_soc_lead = 'أو أنشئ حسابك بـ';
+        include __DIR__ . '/site/site_social_buttons.php';
+      endif; ?>
+
       <?php /* TQ-SPAM — يقرأ قبل أن يغادر إلى صندوقه لا بعد أن ييأس فيه.
                وشاشة التأكيد تحمل التنبيه كاملا مفتوحا، وهذا هنا مطوي:
                نموذج من أحد عشر حقلا لا يحتمل لوحة رابعة فوق زر الإرسال. */ ?>

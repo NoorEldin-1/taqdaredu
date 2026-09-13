@@ -786,3 +786,30 @@ body.tq-body--portal .tq-tab[aria-current='page'] .tq-tab__n {
   border-block-end:1px solid var(--tq-line,#e5e0d5);
   color:var(--tq-navy,#123f67);font-size:.95em}
 .tq-verify-note .tq-btn{white-space:nowrap}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   TQ-SOCIAL — لوح «الحسابات المرتبطة» في شاشات الإعدادات الثلاث
+   ══════════════════════════════════════════════════════════════════════
+
+   صف لكل مزود: اسمه وبريده على اليمين، وزره على اليسار. و`.tq-row`
+   وحدها لا تكفي — أبناؤها لا ينمو منهم شيء، فيلتصق الزر بالاسم ويبقى
+   نصف العرض فارغا. */
+body.tq-body--portal .tq-sociallink {
+  padding-block: var(--tq-space-m);
+  border-block-start: 1px solid var(--tq-line, rgba(0,0,0,.08));
+}
+body.tq-body--portal .tq-sociallink:first-of-type { border-block-start: 0; }
+
+/* النص ينمو ويضيق، والبريد الطويل يقص ولا يدفع الزر خارج البطاقة. */
+body.tq-body--portal .tq-sociallink__main {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+body.tq-body--portal .tq-sociallink__main .tq-caption {
+  overflow-wrap: anywhere;
+}
+
+/* والزر لا ينكمش: زر بعرض ثلاثين بكسلا يقص كلمته فيقرأ «افـ». */
+body.tq-body--portal .tq-sociallink__side { flex: 0 0 auto; }
+body.tq-body--portal .tq-sociallink__side form { margin: 0; }

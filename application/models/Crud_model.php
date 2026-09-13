@@ -4627,6 +4627,14 @@ class Crud_model extends CI_Model
 
         $this->db->where('id', $reset_request['user_id']);
         $this->db->update('users', array('password' => tq_password_hash($new_password)));
+
+        /* TQ-SOCIAL-LASTDOOR -- من وضع كلمة مرور بيده صار له باب ثان،
+           فيجوز له أن يفصل ربط جوجل أو أبل بعدها. والعلامة تكتب هنا لا
+           في المتحكم: الرمز يحرق أعلاه (`tq_auth_consume_reset_token`)
+           فلا يبقى بعد هذه الدالة ما يعرف به صاحب الكلمة الجديدة. */
+        $this->load->model('taqdar_social_model');
+        $this->taqdar_social_model->mark_own_password((int) $reset_request['user_id']);
+
         return true;
     }
 

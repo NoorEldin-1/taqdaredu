@@ -135,6 +135,16 @@ if (!$tq_chosen) { $tq_as = 'student'; }
         <button class="btn btn--primary btn--block" type="submit">دخول</button>
       </form>
 
+      <?php /* TQ-SOCIAL — بابان بجوار النموذج لا بديلا عنه. والشريك
+               واحد للشاشات الثلاث (الدخول · التسجيل · نافذة الشراء)،
+               وبلا مفاتيح مضبوطة لا يطبع سطرا. */ ?>
+      <?php
+      $tq_soc_gate = $tq_chosen ? $tq_as : 'student';
+      $tq_soc_next = $tq_next;
+      $tq_soc_lead = 'أو ادخل بحسابك في';
+      include __DIR__ . '/site/site_social_buttons.php';
+      ?>
+
       <p class="form-alt">
         <a href="<?php echo site_url('login/forgot_password_request'); ?>">نسيت كلمة المرور؟</a>
       </p>

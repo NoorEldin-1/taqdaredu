@@ -1279,6 +1279,76 @@ class Taqdar_teacher_model extends CI_Model
     }
 
     /**
+     * هوية المعلم المختصرة — نطاق تدريسه وعدد كورساته وطلابه.
+     *
+     * وهي ما يحتاجه رأس الشاشة و`/auth/me`: سطر «نطاق التدريس» كان
+     * **خاليا على كل حساب حي** لأن الرد لم يحمل صفا ولا مادة أصلا، ولا
+     * شيء في الشاشة يقول لماذا.
+     *
+     * ولا تحسب شيئا من جديد: النطاق من `teacher_scope()` (وهو المصدر
+     * الذي تفحص به شاشة الأوقات، فلا يعرض هنا صف يرفضه هناك)، والعدد
+     * من `scope_ids()` — وليست `dashboard()` لأن تلك تفتح سبعة استعلامات
+     * ثقيلة لأجل رقمين، و`/auth/me` تنادى عند كل فتح للتطبيق.
+     */
+    public function identity($teacher_id)
+    {
+        $teacher_id = (int) $teacher_id;
+
+        $out = array(
+            'subject'    => null,
+            'subjects'   => array(),
+            'grade_id'   => null,
+            'grade_name' => null,
+            'grades'     => array(),
+            'courses'    => 0,
+            'students'   => 0,
+        );
+        if ($teacher_id <= 0) return $out;
+
+        $scope = array('grades' => array(), 'subjects' => array());
+        try {
+            $CI = get_instance();
+            $CI->load->model('taqdar_sessions_model');
+            $s = $CI->taqdar_sessions_model->teacher_scope($teacher_id);
+            if (is_array($s)) $scope = $s;
+        } catch (Throwable $e) {
+            /* جدول لم يركب بعد يرمي، ونطاق ناقص أهون من شاشة لا تفتح. */
+            $this->db->reset_query();
+        }
+
+        foreach ((array) $scope['grades'] as $id => $name) {
+            $out['grades'][] = array('id' => (int) $id, 'name' => (string) $name);
+        }
+        foreach ((array) $scope['subjects'] as $id => $name) {
+            $out['subjects'][] = array('id' => (int) $id, 'name' => (string) $name);
+        }
+
+        /* والواحد الأول يخرج مفردا كذلك: أكثر المعلمين بصف ومادة، وشاشة
+           تعرض قائمة من عنصر واحد تكتب سطرا لا يقرأ. ومن له أكثر يقرأ
+           القائمتين. */
+        if ($out['grades']) {
+            $out['grade_id']   = $out['grades'][0]['id'];
+            $out['grade_name'] = $out['grades'][0]['name'];
+        }
+        if ($out['subjects']) $out['subject'] = $out['subjects'][0];
+
+        $ids = $this->scope_ids($teacher_id);
+        $out['courses'] = count($ids);
+
+        if ($ids) {
+            try {
+                $out['students'] = (int) $this->db->query(
+                    'SELECT COUNT(DISTINCT `user_id`) n FROM `enrol` WHERE `course_id` IN ('
+                    . implode(',', array_map('intval', $ids)) . ')')->row('n');
+            } catch (Throwable $e) {
+                $this->db->reset_query();
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * لوحة المعلم — الأرقام الأربعة و«يحتاج انتباهك».
      *
      * ولا يحسب رقم منها هنا وله مصدر قائم: صف التصحيح من

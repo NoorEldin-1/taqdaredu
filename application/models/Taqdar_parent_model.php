@@ -1373,13 +1373,19 @@ class Taqdar_parent_model extends CI_Model
      * والملكية تفحص أولا عبر `child()`، مصدر الحقيقة الواحد — ومن طلب ابنا
      * ليس ابنه يرد `null` ولا فرق عنده بين «غير موجود» و«ليس لك».
      */
-    public function child_detail($parent_id, $student_id)
+    /**
+     * المقاييس الثلاثة لابن واحد: الالتزام والفهم والاتجاه.
+     *
+     * خرجت من `child_detail()` لأن **شاشتين تسألانها**: تفاصيل الابن،
+     * ولوحة ولي الأمر. ومعادلة الالتزام مكتوبة مرتين تعني رقمين عن الابن
+     * الواحد في شاشتين متجاورتين، وهي علة TQ-SOLD-NAME نفسها.
+     *
+     * ولا تفحص الملكية: من ناداها فحصها قبلها (`child()` أو `links()`).
+     */
+    public function measures($parent_id, $student_id)
     {
         $parent_id  = (int) $parent_id;
         $student_id = (int) $student_id;
-
-        $child = $this->child($parent_id, $student_id);
-        if (!$child) return null;
 
         $w    = $this->week_window();
         $plan = $this->plan_days($parent_id, $student_id);
@@ -1397,6 +1403,145 @@ class Taqdar_parent_model extends CI_Model
                 $days_prev++;
             }
         }
+
+        /* الفهم: هدف متقن من هدف فتح له. والمقياس مئوي لا كسري —
+           `touch_skill_state()` يكتب `($ok/$total)*100` ويقص على [0,100]،
+           فعتبة `0.80` هنا تعد كل شيء متقنا وعتبة `80` على كسور تعد كل
+           شيء غير متقن. */
+        $sk = $this->db->query(
+            "SELECT COUNT(*) open_n,
+                    SUM(CASE WHEN ss.`level` >= 80 THEN 1 ELSE 0 END) mastered_n
+               FROM `objectives` o
+               JOIN `lesson` l ON l.`id` = o.`lesson_id`
+               JOIN `enrol`  e ON e.`course_id` = l.`course_id` AND e.`user_id` = ?
+          LEFT JOIN `skill_state` ss ON ss.`objective_id` = o.`id` AND ss.`student_id` = ?
+              WHERE EXISTS (SELECT 1 FROM `lesson_progress` lp
+                             WHERE lp.`student_id` = ? AND lp.`lesson_id` = l.`id`)",
+            array($student_id, $student_id, $student_id)
+        )->row_array();
+
+        $open     = (int) ($sk['open_n'] ?? 0);
+        $mastered = (int) ($sk['mastered_n'] ?? 0);
+
+        return [
+            'week'            => $w,
+            'plan_days'       => (int) $plan['days'],
+            'plan_is_default' => !empty($plan['is_default']),
+            'days_this'       => $days_this,
+            'days_prev'       => $days_prev,
+            'day_flags'       => $flags,
+            'commitment'      => (int) round(100 * min($days_this, (int) $plan['days'])
+                                             / max(1, (int) $plan['days'])),
+            'skill'           => [
+                'open'     => $open,
+                'mastered' => $mastered,
+                'percent'  => $open > 0 ? (int) round(100 * $mastered / $open) : 0,
+            ],
+            'trend'           => $days_this > $days_prev ? 'up'
+                               : ($days_this < $days_prev ? 'down' : 'flat'),
+        ];
+    }
+
+    /**
+     * فواتير أبنائه التي تنتظر السداد.
+     *
+     * وهي سؤال ولي الأمر لا سؤال الطالب: الفاتورة تصدر **باسم الابن**
+     * دائما (هو صاحب الاشتراك)، فقائمة تقرأ `invoices.user_id = الأب`
+     * ترد فارغة أبدا. والضم على `parent_links` برابط نشط هو الحارس نفسه
+     * الذي تقرأ به بقية بوابة ولي الأمر.
+     *
+     * وموضعها هنا لا في المتحكم: تقرؤها لوحة ولي الأمر وشاشة الشراء معا.
+     *
+     * **والمستحقة `unpaid` وحدها لا «كل ما ليس مدفوعا»**: المستردة ليست
+     * مستحقة — يردها `pay_invoice_now()` بـ`invoice_not_payable`، فعرضها
+     * تحت «فواتير تنتظر السداد» يضع زرا يعد بباب ثم يرد عليه. وموضعها
+     * سجل المدفوعات لا شاشة الشراء.
+     */
+    public function due_invoices($parent_id, $limit = 20)
+    {
+        $parent_id = (int) $parent_id;
+        if ($parent_id <= 0) return [];
+
+        try {
+            return $this->db->query(
+                'SELECT i.`id`, i.`invoice_no`, i.`total`, i.`status`, i.`user_id`, i.`issued_at`,
+                        TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) AS holder
+                   FROM `invoices` i
+                   JOIN `parent_links` pl ON pl.`student_id` = i.`user_id`
+                                         AND pl.`parent_user_id` = ? AND pl.`status` = "active"
+              LEFT JOIN `users` u ON u.`id` = i.`user_id`
+                  WHERE i.`status` = "unpaid"
+               ORDER BY i.`id` DESC LIMIT ' . max(1, (int) $limit), [$parent_id])->result_array();
+        } catch (Throwable $e) {
+            /* TQ-BUILDER-DIRTY — واستثناء وسط سلسلة يترك حالتها خلفه. */
+            $this->db->reset_query();
+            return [];
+        }
+    }
+
+    /**
+     * لوحة ولي الأمر — «ما حال أبنائي اليوم؟» في نداء واحد.
+     *
+     * وكان الجواب ثلاثة نداءات لا واحدا: `children` ثم `children/{id}`
+     * لكل ابن ثم `pay` للفواتير. والأثقل منه أن **شارات القائمة** كانت
+     * تقرأ من نداءين (`messages` و`notifications`) عند كل فتح، بينما
+     * يكفي الآخرين نداء واحد: `/student/home` و`/teacher/home` تحملانها.
+     */
+    public function home($parent_id)
+    {
+        $parent_id = (int) $parent_id;
+
+        $kids = [];
+        foreach ($this->links($parent_id) as $l) {
+            $sid = (int) $l['student_id'];
+
+            $row = [
+                'student_id'    => $sid,
+                'name'          => (string) $l['name'],
+                'image'         => (string) $l['image'],
+                'link_status'   => (string) $l['status'],
+                'commitment'    => null,
+                'understanding' => null,
+                'trend'         => null,
+            ];
+
+            /* والمعلق لا يقاس: رابط لم يوافق عليه ابنه لا يفتح بياناته،
+               وصفر في خانة الالتزام يقرأ «ابنك لا يذاكر» عن ابن لم يربط
+               بعد. فتبقى `null` ويقرأ التطبيق حالة الرابط. */
+            if ((string) $l['status'] === 'active') {
+                $m = $this->measures($parent_id, $sid);
+                $row['commitment']    = (int) $m['commitment'];
+                $row['understanding'] = (int) $m['skill']['percent'];
+                $row['trend']         = (string) $m['trend'];
+            }
+
+            $kids[] = $row;
+        }
+
+        return [
+            'children'     => $kids,
+            'due_invoices' => $this->due_invoices($parent_id, 20),
+        ];
+    }
+
+    public function child_detail($parent_id, $student_id)
+    {
+        $parent_id  = (int) $parent_id;
+        $student_id = (int) $student_id;
+
+        $child = $this->child($parent_id, $student_id);
+        if (!$child) return null;
+
+        /* المقاييس الثلاثة من `measures()` وحدها — تقرؤها هذه الشاشة
+           وتقرؤها لوحة ولي الأمر (`home()`). ونسختان من معادلة الالتزام
+           تجعلان الشاشتين تقولان رقمين عن الابن الواحد. */
+        $m = $this->measures($parent_id, $student_id);
+
+        $w         = $m['week'];
+        $plan      = ['days' => $m['plan_days'], 'is_default' => $m['plan_is_default']];
+        $days_this = $m['days_this'];
+        $days_prev = $m['days_prev'];
+        $flags     = $m['day_flags'];
 
         /* المواد: النسبة وحدها لا تقول أيهما — «٤٤٪» في مادة من عشرين درسا
            غير «٤٤٪» في مادة من ثلاثة. فيقرأ عدد دروس كل مادة معها.
@@ -1431,25 +1576,6 @@ class Taqdar_parent_model extends CI_Model
             unset($subjects[$i]['completed_lesson']);
         }
 
-        /* الفهم: هدف متقن من هدف فتح له. والمقياس مئوي لا كسري —
-           `touch_skill_state()` يكتب `($ok/$total)*100` ويقص على [0,100]،
-           فعتبة `0.80` هنا تعد كل شيء متقنا وعتبة `80` على كسور تعد كل
-           شيء غير متقن. */
-        $sk = $this->db->query(
-            "SELECT COUNT(*) open_n,
-                    SUM(CASE WHEN ss.`level` >= 80 THEN 1 ELSE 0 END) mastered_n
-               FROM `objectives` o
-               JOIN `lesson` l ON l.`id` = o.`lesson_id`
-               JOIN `enrol`  e ON e.`course_id` = l.`course_id` AND e.`user_id` = ?
-          LEFT JOIN `skill_state` ss ON ss.`objective_id` = o.`id` AND ss.`student_id` = ?
-              WHERE EXISTS (SELECT 1 FROM `lesson_progress` lp
-                             WHERE lp.`student_id` = ? AND lp.`lesson_id` = l.`id`)",
-            array($student_id, $student_id, $student_id)
-        )->row_array();
-
-        $open     = (int) ($sk['open_n'] ?? 0);
-        $mastered = (int) ($sk['mastered_n'] ?? 0);
-
         /* الحصص القادمة — المطلوبة والمؤكدة وحدهما: المعتذر عنها والمنتهية
            ليست «قادمة»، وعرضها يجعل ولي الأمر يترقب موعدا لن يقع. */
         $sessions = array();
@@ -1481,15 +1607,10 @@ class Taqdar_parent_model extends CI_Model
             'days_this'  => $days_this,
             'days_prev'  => $days_prev,
             'day_flags'  => $flags,
-            'commitment' => (int) round(100 * min($days_this, (int) $plan['days'])
-                                        / max(1, (int) $plan['days'])),
+            'commitment' => (int) $m['commitment'],
             'subjects'   => $subjects,
             'completed'  => $completed,
-            'skill'      => array(
-                'open'     => $open,
-                'mastered' => $mastered,
-                'percent'  => $open > 0 ? (int) round(100 * $mastered / $open) : 0,
-            ),
+            'skill'      => $m['skill'],
             'sessions'   => $sessions,
             'notes'      => $this->teacher_notes($student_id, 5),
             'payments'   => array_slice($this->payments_of($student_id, 10), 0, 10),

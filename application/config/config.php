@@ -527,6 +527,53 @@ $config['csrf_exclude_uris'] = array(
 	 * cookie, but it cannot read the token to put in the header.
 	 */
 	'taqdar_gate/.*',
+
+	/* TQ-META-LEADS -- why 'webhook/.*' is excluded, and why it is its own
+	 * prefix rather than living under 'payment/.*'.
+	 *
+	 * Meta calls webhook/meta/leads from its own servers when a Lead Ads
+	 * form is submitted: no cookie, no session, no CSRF token -- nothing it
+	 * could possibly carry. With CSRF on and no exclusion, every single
+	 * delivery answers 403 before Taqdar_hook is reached, a campaign that
+	 * collected a hundred leads lands none of them, and the only trace is
+	 * "Recent Error Responses" in a screen nobody opens.
+	 *
+	 * Dropping the protection is not what happens here. The door
+	 * authenticates the caller itself, and more strictly than CSRF could:
+	 * Taqdar_lead_model::signature_state() verifies Meta's
+	 * X-Hub-Signature-256 (HMAC-SHA256 of the raw body with the app secret)
+	 * and the door answers 403 on a mismatch. The lead id in the body is
+	 * only a fetch key -- the data itself is read back from the Graph API
+	 * with the page token, so a forged body buys nothing.
+	 *
+	 * A separate prefix, not 'payment/', because these two are different
+	 * doors with different verification rules, and one prefix for both
+	 * means the next reader assumes the payment rules apply here.
+	 */
+	'webhook/.*',
+
+	/* TQ-APPLE-POST -- why Apple's callback is excluded, and why Google's is
+	 * not.
+	 *
+	 * Sign in with Apple returns the user with response_mode=form_post: a
+	 * cross-site POST issued by appleid.apple.com to our domain. It carries
+	 * no CI CSRF token -- Apple has no way to know one -- and, worse, the
+	 * session cookie is SameSite=Lax so it is not sent with that POST
+	 * either. With CSRF on and no exclusion, every single Apple sign-in
+	 * answers 403 before Taqdar_social is reached, and the user sees the
+	 * raw English "The action you have requested is not allowed" page.
+	 *
+	 * Dropping the protection is not what happens here. The door
+	 * authenticates the request itself and does not depend on a cookie at
+	 * all: the `state` value returned in the body is looked up in
+	 * tq_social_states, consumed once, and tied to the nonce that must
+	 * appear inside the provider-signed id_token. A forged POST buys
+	 * nothing -- it has no valid state row, and it cannot mint a token
+	 * signed by Apple.
+	 *
+	 * Google returns with GET (no CSRF check applies), so it stays covered.
+	 */
+	'auth/apple/callback',
 );
 
 /*

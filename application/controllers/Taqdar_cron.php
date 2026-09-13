@@ -134,8 +134,18 @@ class Taqdar_cron extends CI_Controller
         $this->load->model('taqdar_meta_model');
         $m = $this->taqdar_meta_model->retry_failed(25);
 
+        /* TQ-META-LEADS — والعميل المحتمل الذي وصل نداؤه ولم يكتمل جلبه.
+           موضعه هنا لأن سؤاله سؤال هذه المهمة نفسه: «ماذا لم يكتمل؟».
+           ولا يترك لإعادة ميتا: إعادتها عشوائية التوقيت وتكف بعد
+           محاولات، وهذه منتظمة ومعها سبب كل تعثر في `tq_lead_hooks`.
+           وأهم من ذلك: العميل الذي وصل **قبل أن يحفظ رمز الصفحة** يجلب
+           في أول دورة بعد حفظه — فلا يفقد من طرق الباب قبل أن يفتح. */
+        $this->load->model('taqdar_lead_model');
+        $l = $this->taqdar_lead_model->retry_failed(25);
+
         echo date('Y-m-d H:i:s') . " tap_checked={$r['checked']} tap_settled={$r['settled']}"
-           . " meta_tried={$m['tried']} meta_sent={$m['sent']}\n";
+           . " meta_tried={$m['tried']} meta_sent={$m['sent']}"
+           . " leads_tried={$l['tried']} leads_stored={$l['stored']}\n";
     }
 
     /**

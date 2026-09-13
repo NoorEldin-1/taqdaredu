@@ -90,6 +90,28 @@ $route['translate_uri_dashes'] = false;
 // ولكن `(:any)` في قاعدة عرض تضاف غدا تبتلعه فيرد المبدل صفحة بلا تبديل.
 $route['language/set'] = 'taqdar_lang/set';
 
+// ---- TQ-SOCIAL — الدخول بجوجل وأبل ----
+// **مسارات الكتابة قبل مسارات العرض** كما يقول رأس هذا الملف:
+// `auth/google/callback` مقطعان، و`account/complete/save` ثلاثة — فبلا
+// قاعدة صريحة تسقط العودة من المزود إلى `Taqdar_social::start('google')`
+// فتبدأ رحلة ثانية مكان أن تكملها الأولى، بلا خطأ يظهر.
+//
+// TQ-APPLE-POST — والعودة من أبل **POST** لا GET، وهي مستثناة من CSRF
+// في [config.php](config.php): نموذج يرسل من نطاق أبل بلا كعكة ولا رمز.
+$route['auth/google/callback'] = 'taqdar_social/callback/google';
+$route['auth/apple/callback']  = 'taqdar_social/callback/apple';
+$route['auth/google']          = 'taqdar_social/start/google';
+$route['auth/apple']           = 'taqdar_social/start/apple';
+
+// الربط والفصل من شاشة الإعدادات — ولصاحب جلسة وحده.
+$route['account/social/unlink']      = 'taqdar_social/unlink';
+$route['account/social/link/google'] = 'taqdar_social/link/google';
+$route['account/social/link/apple']  = 'taqdar_social/link/apple';
+
+// TQ-SOCIAL-COMPLETE — ما لا يعطيه مزود: الجوال والعمر والصف.
+$route['account/complete/save'] = 'taqdar_social/complete_save';
+$route['account/complete']      = 'taqdar_social/complete';
+
 $route['login/otp/verify']  = 'login/otp_verify';
 $route['login/otp/resend']  = 'login/otp_resend';
 $route['login/otp/channel'] = 'login/otp_channel';
@@ -120,9 +142,15 @@ $route['api/docs']                = 'api_docs/index';
 
 // ---- الدخول ----
 $route['api/v1/auth/login']       = 'api_v1/auth_login';
+// TQ-SOCIAL-API — دخول التطبيق بجوجل وأبل: `id_token` تولده مكتبة
+// المزود على الجهاز، والقرار هنا على توقيعه وجمهوره لا على دعواه.
+$route['api/v1/auth/social']      = 'api_v1/auth_social';
 $route['api/v1/auth/refresh']     = 'api_v1/auth_refresh';
 $route['api/v1/auth/logout-all']  = 'api_v1/auth_logout_all';
 $route['api/v1/auth/logout']      = 'api_v1/auth_logout';
+// وقاعدة الجهاز الواحد قبل قاعدة القائمة: `sessions/(:any)` مقطعان،
+// و`sessions` مقطع — والترتيب هو ترتيب هذا الملف كله، الأخص قبل الأعم.
+$route['api/v1/auth/sessions/(:any)'] = 'api_v1/auth_session_revoke/$1';
 $route['api/v1/auth/sessions']    = 'api_v1/auth_sessions';
 $route['api/v1/auth/me']          = 'api_v1/auth_me';
 
@@ -153,6 +181,12 @@ $route['api/v1/student/invoices/(:num)/pay'] = 'api_v1/invoice_pay/$1';
 $route['api/v1/student/invoices/(:num)']     = 'api_v1/student_invoice/$1';
 $route['api/v1/student/invoices']            = 'api_v1/student_invoices';
 
+// ---- الطالب · محتوى باقتي وخطة اليوم ----
+// `bundle` يجيب «ماذا فتحت باقتي؟» — وهو سؤال غير سؤال `subscription`
+// («إلى متى؟»). و`plan?date=` خطة يوم بعينه، ويوم خال يرد قائمة فارغة.
+$route['api/v1/student/bundle'] = 'api_v1/student_bundle';
+$route['api/v1/student/plan']   = 'api_v1/student_day_plan';
+
 // ---- الطالب · الرئيسية ----
 // شاشة الفتح — نداء واحد يجمع الخطوة والسلسلة والهدف والكورسات
 // والمواعيد والشارات.
@@ -160,6 +194,10 @@ $route['api/v1/student/home'] = 'api_v1/student_home';
 
 // ---- الطالب · التعلم ----
 // `courses/(:num)` قبل `courses`: الأخص أولا كما في هذا الملف كله.
+// TQ-EXAM-ANCHOR — اختبار المقرر أو المحطة، وتسليمه على نقطة التسليم
+// نفسها (`quiz/attempts/{id}/submit`). والقاعدة قبل قاعدة الكورس لأن
+// `(:num)` وحدها تبتلع ما بعدها في CI3.
+$route['api/v1/student/courses/(:num)/quiz/start'] = 'api_v1/course_quiz_start/$1';
 $route['api/v1/student/courses/(:num)'] = 'api_v1/student_course/$1';
 $route['api/v1/student/courses']        = 'api_v1/student_courses';
 
@@ -323,6 +361,10 @@ $route['api/v1/teacher/messages']            = 'api_v1/student_messages';
 $route['api/v1/teacher/settings']            = 'api_v1/portal_settings';
 
 // ---- بوابة ولي الأمر ----
+$route['api/v1/parent/home']                = 'api_v1/parent_home';
+// وسداد فاتورة الابن بالبطاقة: الفاتورة باسمه دائما، ونقطة الطالب
+// تردها على أبيه — فكان الباب مغلقا على الطرفين.
+$route['api/v1/parent/invoices/(:num)/pay'] = 'api_v1/parent_invoice_pay/$1';
 $route['api/v1/parent/children/(:num)']     = 'api_v1/parent_child/$1';
 $route['api/v1/parent/children']            = 'api_v1/parent_children';
 $route['api/v1/parent/link/(:num)']         = 'api_v1/parent_child_unlink/$1';
@@ -620,6 +662,18 @@ $route['book-checkout/(:num)']   = 'taqdar/book_checkout/$1';
 // `Payment::tap('return')` وليست في متحكم Academy دالة بهذا الاسم.
 $route['payment/tap/return']   = 'taqdar_pay/back';
 $route['payment/tap/webhook']  = 'taqdar_pay/webhook';
+
+// ---- عملاء ميتا المحتملون (TQ-META-LEADS) ----
+// المسار الواحد يخدم الطريقتين: `GET` توثق ميتا من الباب مرة عند تسجيله،
+// و`POST` تحمل العميل الجديد. وقاعدة واحدة لا قاعدتان لأن **المسار يربط لا
+// الطريقة**: نقطتان بدالتين على المسار نفسه تعنيان أن الثانية لا تنادى أبدا،
+// وشاشة الويبهوك عند ميتا لا تقبل عنوانين أصلا — تسأل عن واحد وتوثق منه
+// وترسل إليه. والفرز على الطريقة داخل `Taqdar_hook::meta_leads()`.
+//
+// والبادئة `webhook/` مستثناة في [config.php](config.php) من فحص CSRF: نداء
+// ميتا بلا كعكة ولا رمز، فبلا الاستثناء يرد 403 على كل عميل. وحراسته توقيع
+// `X-Hub-Signature-256` — انظر الشرح هناك.
+$route['webhook/meta/leads']   = 'taqdar_hook/meta_leads';
 
 $route['pay/(:any)']           = 'taqdar/gateway_callback/$1';
 $route['about']                  = 'home/about_us';

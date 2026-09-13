@@ -42,7 +42,7 @@ $u = $CI->db->where('id', $tq_uid)->get('users')->row_array() ?: [];
 
 $tq_prefs    = $tq_set->prefs($tq_uid);
 $tq_matrix   = $tq_set->notify_matrix($tq_uid);
-$tq_types    = $tq_set->notify_types();
+$tq_types    = $tq_set->notify_types('student');
 $tq_channels = $tq_set->notify_channels();
 /* لا `themes()` هنا: الوضع الداكن أزيل والوجه واحد فاتح
    (انظر `Taqdar_settings_model::save_prefs` — يثبت `auto` ولا يقرأ المدخل).
@@ -330,6 +330,12 @@ include 'portal_open.php';
                             </div>
                         </form>
                     </section>
+
+                    <?php /* TQ-SOCIAL — «بم أدخل؟» سؤال هذا القسم كما هو
+                             «بم أغير كلمتي؟». ومن أنشئ حسابه بجوجل لا
+                             يملك كلمة مرور حالية أصلا، فبلا هذا اللوح
+                             يقرأ نموذجا يطلب منه ما لا يملك. */ ?>
+                    <?php include APPPATH . 'views/components/tq_social_links.php'; ?>
 
                     <?php
                     /* الجلسات المفتوحة.

@@ -1717,6 +1717,16 @@ var TQPhoneRules = (function () {
       sup.href = base + (next ? '?next=' + encodeURIComponent(next) : '');
     }
 
+    /* TQ-SOCIAL — وأزرار جوجل وأبل تحمل الوجهة كما يحملها رابط
+       التسجيل: بلا ذلك يهبط من ضغط «المتابعة بحساب جوجل» في لوحته وقد
+       ترك الباقة التي فتح النافذة من أجلها — وهو العطل الذي عولج في
+       الرابط بجواره وحده (TQ-AUTH-NEXT). */
+    Array.prototype.forEach.call(dlg.querySelectorAll('.soc-btn'), function (a) {
+      var b0 = a.getAttribute('data-tq-href') || a.href.split('?')[0];
+      a.setAttribute('data-tq-href', b0);
+      a.href = b0 + (next ? '?next=' + encodeURIComponent(next) : '');
+    });
+
     panes('new');
     dlg.showModal();
     var first = dlg.querySelector('[data-tq-auth-pane="new"] input');

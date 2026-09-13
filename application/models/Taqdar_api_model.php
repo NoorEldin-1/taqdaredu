@@ -283,6 +283,31 @@ class Taqdar_api_model extends CI_Model
     }
 
     /**
+     * خروج من **جهاز بعينه** — والعائلة هي الجهاز (`sessions_of()` تجمع بها).
+     *
+     * والمالك شرط في الاستعلام لا فحص قبله: `family` نص يرسله العميل،
+     * ومن خمنه أخرج غيره من جهازه. و`AND user_id = ?` تجعل ذلك مستحيلا
+     * بلا استعلام ثان يقرأ ثم يقرر — وبينهما نافذة.
+     *
+     * ويرد **هل أبطل شيء**: نداء على عائلة لا وجود لها يرد `false`،
+     * فيقول المتحكم «لا جهاز بهذا المعرف» بدل أن يؤكد إخراجا لم يقع.
+     */
+    public function revoke_family_of($user_id, $family)
+    {
+        $this->ensure_schema();
+
+        $family = trim((string) $family);
+        if ($family === '') return false;
+
+        $this->db->where('user_id', (int) $user_id)
+                 ->where('family', $family)
+                 ->where('revoked_at', 0)
+                 ->update('tq_api_tokens', array('revoked_at' => time()));
+
+        return $this->db->affected_rows() > 0;
+    }
+
+    /**
      * خروج من كل الأجهزة. تنادى عند تغيير كلمة المرور وعند حذف الحساب.
      * و`$except_family` يبقي الجهاز الحالي داخلا حين يكون هو من طلب.
      */

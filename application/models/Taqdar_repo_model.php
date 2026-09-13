@@ -28,6 +28,12 @@ class Taqdar_repo_model extends CI_Model
         'UNAUTHENTICATED'   => array(401, 'Sign in required.',                           'يلزم تسجيل الدخول'),
         'NOT_FOUND'         => array(404, 'Resource not found.',                         'العنصر المطلوب غير موجود'),
         'NO_REVIEW'         => array(404, 'No review is attached to this lesson.',        'لا توجد مراجعة مرتبطة بهذا الدرس'),
+        /* TQ-EXAM-ANCHOR — ورمزان لتقييم لا درس له:
+           الأول حين لا سؤال فيه أصلا (والرسالة لا تقول «درسا» لأن مرساته
+           قد تكون مقررا أو محطة)، والثاني حين تعددت اختباراته فالاختيار
+           ليس لنا — وفتح أولها بالحزر يبدأ محاولة تعد على صاحبها. */
+        'NO_QUESTIONS'      => array(404, 'This assessment has no questions yet.',        'هذا الاختبار لا أسئلة فيه بعد'),
+        'AMBIGUOUS_ASSESSMENT' => array(409, 'More than one assessment; name one.',       'لهذا المقرر أكثر من اختبار — حدد أيها تريد'),
         'VALIDATION'        => array(422, 'Invalid input.',                              'بيانات غير صالحة'),
         /* TQ-GATE-CSRF · رمز مضاد للتزوير غائب أو بائت. والرسالة تقول
            «حدث الصفحة» لا «ممنوع»: هذا ما يقع فعلا حين تترك الصفحة
@@ -1379,6 +1385,218 @@ class Taqdar_repo_model extends CI_Model
      *  بوابة الإتقان
      * ================================================================ */
 
+    /**
+     * أسئلة تقييم — أيا كانت مرساته.
+     *
+     * TQ-EXAM-ANCHOR — **المرساة ثلاث لا واحدة**: درس (`lesson_id`)،
+     * ومحطة (`milestone_id`)، وكورس (`path_id`). وكان كل ما في البوابة
+     * يفترض الأولى: `review_questions($lesson_id)` هي المصدر الوحيد،
+     * فتقييم بلا درس لا أسئلة له — ولا نقطة تبدؤه أصلا، فظل التطبيق
+     * يعرض «اختبار المحطة» من ملفات عنده ويصححه بمفتاح اخترعه.
+     *
+     * ولا نظام اختبارات رابع هنا كذلك: الصف `assessments` نفسه،
+     * والمحاولة في `attempts`، والتصحيح في `submit_attempt()` — والذي
+     * يتغير **مصدر الأسئلة وحده**، كما تغير في `Taqdar_quiz_model`.
+     *
+     * والترتيب مقصود:
+     *   درس            ⇐ `review_questions()` كما كانت حرفا بحرف
+     *   نسخة مولدة     ⇐ نسخة هذا الطالب من `Taqdar_examgen_model`
+     *   أسئلة مؤلفة    ⇐ `question.assessment_id`
+     *
+     * والنسخة تسبق المؤلفة لأنها **مشتقة منها**: امتحان له نسخ يعني أن
+     * لكل طالب ترتيبه، وقراءة الأصل تعطي الجميع ترتيبا واحدا فيسقط كل
+     * ما بنته `Taqdar_examgen_model`.
+     */
+    public function assessment_questions($assessment, $student_id = 0)
+    {
+        if (!is_array($assessment)) return array();
+
+        $lesson_id = (int) (isset($assessment['lesson_id']) ? $assessment['lesson_id'] : 0);
+        if ($lesson_id > 0) return $this->review_questions($lesson_id);
+
+        $aid = (int) $assessment['id'];
+
+        if ((int) $student_id > 0) {
+            try {
+                $CI = get_instance();
+                $CI->load->model('taqdar_examgen_model');
+                $form = $CI->taqdar_examgen_model->questions_for($aid, (int) $student_id);
+                if (!empty($form['questions'])) return $form['questions'];
+            } catch (Throwable $e) {
+                $this->db->reset_query();   // TQ-BUILDER-DIRTY
+            }
+        }
+
+        tq_qimage_ensure('question');
+
+        $rows = $this->db->query(
+            'SELECT q.`id`, q.`title`, q.`type`, q.`number_of_options`, q.`options`,
+                    q.`image`, q.`objective_id`, o.`text` AS objective_text, o.`at_second`
+               FROM `question` q
+          LEFT JOIN `objectives` o ON o.`id` = q.`objective_id`
+              WHERE q.`assessment_id` = ?
+              ORDER BY q.`order` ASC, q.`id` ASC', array($aid))->result_array();
+
+        foreach ($rows as &$r) {
+            $r['options'] = $r['options'] ? json_decode($r['options'], true) : array();
+            if (!is_array($r['options'])) $r['options'] = array();
+            $r['image'] = tq_qimage_url($r['image']);
+            $this->cast_ints($r, array('id', 'number_of_options', 'objective_id', 'at_second'));
+        }
+        unset($r);
+
+        return $rows;
+    }
+
+    /** مجموعة التصحيح — وهي مجموعة العرض نفسها، فلا يصحح ما لم يعرض. */
+    private function attempt_pool($assessment, $student_id = 0)
+    {
+        return $this->assessment_questions($assessment, $student_id);
+    }
+
+    /**
+     * تقييمات الكورس — امتحانه وامتحانات محطاته.
+     *
+     * والقراءة من `paths` لا من `course` مباشرة: التقييم يشير إلى المسار
+     * (`path_id`) أو إلى محطة فيه، و`paths` هي التي تربط المسار بكورسه.
+     */
+    public function course_assessments($course_id)
+    {
+        $course_id = (int) $course_id;
+        if ($course_id <= 0) return array();
+
+        try {
+            return $this->db->query(
+                'SELECT a.`id`, a.`type`, a.`lesson_id`, a.`milestone_id`, a.`path_id`,
+                        a.`pass_mark`, a.`time_limit_sec`, m.`title` AS milestone_title,
+                        (SELECT COUNT(*) FROM `question` q WHERE q.`assessment_id` = a.`id`) AS questions
+                   FROM `assessments` a
+              LEFT JOIN `milestones` m ON m.`id` = a.`milestone_id`
+              LEFT JOIN `paths` p ON p.`id` = COALESCE(a.`path_id`, m.`path_id`)
+                  WHERE a.`lesson_id` IS NULL
+                    AND a.`type` IN ("exam","quiz")
+                    AND p.`course_id` = ?
+               ORDER BY (a.`milestone_id` IS NOT NULL) ASC, a.`id` ASC',
+                array($course_id))->result_array();
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            return array();
+        }
+    }
+
+    /**
+     * يبدأ محاولة على تقييم **الكورس أو محطته** — أو يستأنف المفتوحة.
+     *
+     * والحراسة حراسة الدرس نفسها في جوهرها: الاستحقاق يفحص على الكورس
+     * (`is_entitled()`)، فلا يفتح امتحان مادة لمن لا يملكها. ولا قفل
+     * إتقان هنا: القفل قاعدة **ترتيب الدروس** داخل المقرر، وامتحان
+     * المقرر ليس درسا في ترتيب.
+     *
+     * @param int $assessment_id اختيار صريح — وإلا امتحان الكورس، وإلا
+     *                           الواحد إن كان واحدا.
+     */
+    public function start_course_attempt($student_id, $course_id, $assessment_id = 0)
+    {
+        $student_id    = (int) $student_id;
+        $course_id     = (int) $course_id;
+        $assessment_id = (int) $assessment_id;
+
+        $course = $this->db->select('id, title')->where('id', $course_id)
+                           ->get('course')->row_array();
+        if (!$course) return $this->error('NOT_FOUND', array('entity' => 'course:' . $course_id));
+
+        if (!$this->is_entitled($student_id, $course_id)) {
+            return $this->error('NOT_ENTITLED', array('course_id' => $course_id));
+        }
+
+        $list = $this->course_assessments($course_id);
+        if (!$list) return $this->error('NO_QUESTIONS', array('course_id' => $course_id));
+
+        $pick = null;
+        if ($assessment_id > 0) {
+            /* والاختيار يفحص **في القائمة** لا في الجدول: رقم تقييم من
+               كورس آخر لا يفتح لأن صاحبه يملك هذا الكورس. */
+            foreach ($list as $a) if ((int) $a['id'] === $assessment_id) $pick = $a;
+            if (!$pick) return $this->error('NOT_FOUND', array('entity' => 'assessments:' . $assessment_id));
+        } else {
+            foreach ($list as $a) if (empty($a['milestone_id'])) { $pick = $a; break; }
+            if (!$pick && count($list) === 1) $pick = $list[0];
+            if (!$pick) {
+                /* أكثر من امتحان محطة ولا امتحان للمقرر: الاختيار ليس
+                   لنا — وفتح أولها بالحزر يبدأ محاولة على امتحان لم
+                   يطلبه أحد، وهي تعد عليه. */
+                return $this->error('AMBIGUOUS_ASSESSMENT', array(
+                    'course_id'   => $course_id,
+                    'assessments' => $list,
+                ));
+            }
+        }
+
+        $assessment = $this->db->where('id', (int) $pick['id'])->get('assessments')->row_array();
+        if (!$assessment) return $this->error('NOT_FOUND', array('entity' => 'assessments'));
+
+        $questions = $this->assessment_questions($assessment, $student_id);
+        if (!$questions) {
+            /* تقييم بلا سؤال واحد صف أنشئ ولم يؤلف — وشاشة تفتح عليه
+               تعد الطالب باختبار ثم تعرض صفحة فارغة. */
+            return $this->error('NO_QUESTIONS', array('assessment_id' => (int) $assessment['id']));
+        }
+
+        $attempt = $this->open_attempt($student_id, $assessment);
+
+        return array(
+            'attempt_id'     => (int) $attempt['id'],
+            'attempt_no'     => (int) $attempt['attempt_no'],
+            'assessment_id'  => (int) $assessment['id'],
+            'assessment_type'=> (string) $assessment['type'],
+            'course_id'      => $course_id,
+            'course_title'   => (string) $course['title'],
+            'milestone_id'   => $assessment['milestone_id'] ? (int) $assessment['milestone_id'] : null,
+            'milestone_title'=> isset($pick['milestone_title']) ? $pick['milestone_title'] : null,
+            'lesson_id'      => null,
+            'pass_mark'      => $this->pass_mark($assessment),
+            'time_limit_sec' => $assessment['time_limit_sec'] !== null ? (int) $assessment['time_limit_sec'] : null,
+            'questions'      => $questions,
+        );
+    }
+
+    /**
+     * المحاولة المفتوحة إن وجدت، وإلا واحدة جديدة.
+     *
+     * خرجت من `start_attempt()` لأن مدخلين يفتحان محاولة الآن (الدرس
+     * والكورس)، ونسختان من «استأنف أو افتح» تفترقان: من أغلق تطبيقه في
+     * منتصف امتحانه يعود إلى محاولة ثانية تعد عليه.
+     */
+    private function open_attempt($student_id, $assessment)
+    {
+        $aid = (int) $assessment['id'];
+
+        $open = $this->db->where('assessment_id', $aid)
+                         ->where('student_id', (int) $student_id)
+                         ->where('submitted_at', null)
+                         ->order_by('attempt_no', 'DESC')
+                         ->get('attempts')->row_array();
+        if ($open) return $open;
+
+        $last = $this->db->select_max('attempt_no', 'n')
+                         ->where('assessment_id', $aid)
+                         ->where('student_id', (int) $student_id)
+                         ->get('attempts')->row_array();
+        $no = ((int) $last['n']) + 1;
+
+        $this->db->insert('attempts', array(
+            'assessment_id' => $aid,
+            'student_id'    => (int) $student_id,
+            'attempt_no'    => $no,
+            'started_at'    => $this->now(),
+        ));
+        $attempt = $this->db->where('id', $this->db->insert_id())->get('attempts')->row_array();
+        $this->audit($student_id, 'attempt.start', 'attempts:' . $attempt['id'], null,
+                     array('assessment_id' => $aid, 'attempt_no' => $no));
+
+        return $attempt;
+    }
+
     /** يبدأ محاولة مراجعة ويعيد أسئلتها بلا مفاتيح حل. */
     public function start_attempt($student_id, $lesson_id)
     {
@@ -1406,31 +1624,9 @@ class Taqdar_repo_model extends CI_Model
             return $this->error('NO_REVIEW', array('lesson_id' => $lesson_id));
         }
 
-        // محاولة مفتوحة غير مسلمة؟ تستأنف بدل فتح واحدة جديدة.
-        $open = $this->db->where('assessment_id', (int) $assessment['id'])
-                         ->where('student_id', $student_id)
-                         ->where('submitted_at', null)
-                         ->order_by('attempt_no', 'DESC')
-                         ->get('attempts')->row_array();
-
-        if ($open) {
-            $attempt = $open;
-        } else {
-            $last = $this->db->select_max('attempt_no', 'n')
-                             ->where('assessment_id', (int) $assessment['id'])
-                             ->where('student_id', $student_id)
-                             ->get('attempts')->row_array();
-            $no = ((int) $last['n']) + 1; // لا حد أقصى للمحاولات — العقاب بقاء القفل
-            $this->db->insert('attempts', array(
-                'assessment_id' => (int) $assessment['id'],
-                'student_id'    => $student_id,
-                'attempt_no'    => $no,
-                'started_at'    => $this->now(),
-            ));
-            $attempt = $this->db->where('id', $this->db->insert_id())->get('attempts')->row_array();
-            $this->audit($student_id, 'attempt.start', 'attempts:' . $attempt['id'], null,
-                         array('assessment_id' => (int) $assessment['id'], 'attempt_no' => $no));
-        }
+        /* محاولة مفتوحة غير مسلمة تستأنف بدل فتح واحدة جديدة — ولا حد
+           أقصى للمحاولات، فالعقاب بقاء القفل. */
+        $attempt = $this->open_attempt($student_id, $assessment);
 
         return array(
             'attempt_id'     => (int) $attempt['id'],
@@ -1473,7 +1669,12 @@ class Taqdar_repo_model extends CI_Model
         if (!$assessment) return $this->error('NOT_FOUND', array('entity' => 'assessments'));
 
         $lesson_id = (int) $assessment['lesson_id'];
-        $pool      = $this->review_questions($lesson_id);
+        /* **والمجموعة تتبع مرساة التقييم لا الدرس وحده.** تقييم على مستوى
+           الكورس أو المحطة `lesson_id` فيه فارغ، و`review_questions(0)`
+           ترد لا شيء — فتهمل كل إجابة وتسلم المحاولة **صفرا من صفر**
+           بلا خطأ في أي موضع: الطالب أجاب كلها صحيحة ويقرأ أنه رسب. وهو
+           الصمت نفسه الذي تحذر منه CLAUDE.md. */
+        $pool      = $this->attempt_pool($assessment, $student_id);
         $allowed   = array();
         foreach ($pool as $q) $allowed[(int) $q['id']] = true;
 

@@ -24,6 +24,12 @@ class Taqdar_settings_model extends CI_Model
     /** الحد الأقصى لصورة الحساب — نفس ما تعلنه الصفحة للمستخدم. */
     const IMAGE_MAX_BYTES = 2097152; // 2 ميجابايت
 
+    /** حد تنبيه ولي الأمر حين لا يضبطه — وهو الرقم الذي كان ثابتا في الشاشة. */
+    const ALERT_THRESHOLD_DEFAULT = 60;
+
+    /** ساعة تذكير المذاكرة حين لا تضبط — الرابعة عصرا. */
+    const STUDY_HOUR_DEFAULT = 16;
+
     /* ================================================================
        المخطط
        ================================================================ */
@@ -53,6 +59,30 @@ class Taqdar_settings_model extends CI_Model
             );
         }
 
+        /* والأعمدة الأربعة تضاف على الجدول القائم كذلك — من نصب المنصة
+           قبل هذا العمل يبقى جدوله بلا `alert_threshold` ولا حقول
+           التذكير، وأول قراءة عليها ترمي «Unknown column» فتبيض شاشة
+           الإعدادات كلها. وهي قاعدة `ensure_progress_schema()` نفسها. */
+        $add = array(
+            /* TQ-NULLNUM — والفارغ غير الصفر هنا كذلك: `NULL` تعني «لم
+               يختر أحد شيئا فخذ العام»، والصفر يعني «نبهني على كل شيء».
+               وعمود لا يفرق بينهما يجعل كل ولي أمر لم يمر على الشاشة
+               يقرأ حدا لم يضبطه. */
+            'alert_threshold' => 'TINYINT(3) UNSIGNED DEFAULT NULL COMMENT "حد تنبيه ولي الأمر — 0..100، فارغ ⇒ العام"',
+            'study_on'        => 'TINYINT(1) NOT NULL DEFAULT 0',
+            'study_hour'      => 'TINYINT(2) NOT NULL DEFAULT 16',
+            'study_days'      => 'VARCHAR(20) NOT NULL DEFAULT "" COMMENT "أيام الأسبوع بفواصل — 0 الأحد"',
+        );
+        foreach ($add as $col => $ddl) {
+            try {
+                if (!$this->db->field_exists($col, 'tq_prefs_user')) {
+                    $this->db->query('ALTER TABLE `tq_prefs_user` ADD COLUMN `' . $col . '` ' . $ddl);
+                }
+            } catch (Throwable $e) {
+                log_message('error', 'TQ-PREFS: تعذر تركيب العمود ' . $col . ' — ' . $e->getMessage());
+            }
+        }
+
         if (!$this->db->table_exists('tq_prefs_notify')) {
             $this->db->query(
                 "CREATE TABLE IF NOT EXISTS `tq_prefs_notify` (
@@ -74,16 +104,66 @@ class Taqdar_settings_model extends CI_Model
        القوائم المرجعية
        ================================================================ */
 
-    /** أنواع التنبيه المعروضة — رمزها هو ما يمرره المرسل إلى allows(). */
-    public function notify_types()
+    /**
+     * أنواع التنبيه المعروضة — رمزها هو ما يمرره المرسل إلى allows().
+     *
+     * **والنوع قد يخص بوابة بعينها.** «التقرير الأسبوعي» خبر عن ابن فلا
+     * معنى له عند طالب، و«تذكير التصحيح» عن طابور معلم فلا معنى له عند
+     * ولي أمر. وعرض ما لا يخص القارئ يجعله يطفئ مفتاحا لا يصله شيء منه
+     * أصلا ثم يشك في الشاشة كلها.
+     *
+     * والفرز بعنصر ثالث في الصف (`audience`) لا بقائمة ثانية: قائمتان
+     * لشيء واحد تفترقان عند أول نوع يضاف — وهي علة TQ-SOLD-NAME نفسها.
+     * و`null` يرد الكل كما كانت ترد قبل اليوم حرفا بحرف.
+     *
+     * @param string|null $role بوابة القارئ: student · teacher · parent
+     */
+    public function notify_types($role = null)
     {
-        return tq_t_deep(array(
+        $all = array(
             'review_due'        => array('تذكير المراجعة',   'حين يحين موعد مراجعة درس سبق'),
             'station_unlocked'  => array('فتح محطة جديدة',   'حين تفتح محطة تالية في مسارك'),
             'quiz_result'       => array('نتيجة اختبار',     'حين ترصد نتيجة اختبار أديته'),
             'purchase_confirmed'=> array('تأكيد الشراء',     'حين يسجل اشتراك أو دفعة على حسابك'),
             'session_confirmed' => array('تأكيد حصة',        'حين تثبت حصة بالطلب أو يتغير موعدها'),
-        ));
+            /* والاثنان التاليان كانا مفتاحين في شاشتين يحركان ولا يكتب
+               بهما شيء: لا صف في `tq_prefs_notify` ولا فرع في `allows()`.
+               فصارا نوعين كسائر الأنواع — يقرآن ويكتبان ويحكمان. */
+            'weekly_digest'     => array('التقرير الأسبوعي', 'ملخص أسبوعي عن تقدم ابنك',       'parent'),
+            'marking_due'       => array('تذكير التصحيح',    'حين ينتظر في طابور تصحيحك عمل طالب', 'teacher'),
+        );
+
+        /* **والفرز قبل الترجمة لا بعدها**: `tq_t_deep()` تترجم كل نص في
+           الشجرة، فلو مر عليها الجمهور أولا لكفى مفتاح قاموس اسمه
+           `parent` ليصير `'parent' !== $role` صادقا أبدا — فيختفي صف
+           «التقرير الأسبوعي» من شاشة كل ولي أمر بلا خطأ في أي موضع. */
+        if ($role !== null) {
+            foreach ($all as $key => $t) {
+                /* والنوع بلا جمهور معلن يخص الجميع — فالأنواع الخمسة
+                   القديمة تبقى معروضة لكل بوابة كما كانت. */
+                if (isset($t[2]) && $t[2] !== $role) unset($all[$key]);
+            }
+        }
+
+        return tq_t_deep($all);
+    }
+
+    /**
+     * بوابة صاحب الحساب — يفرز بها `notify_matrix()` و`save_alerts()` بلا
+     * أن يمرر كل مستدع دوره.
+     *
+     * و`tq_role()` مساعد محمل تلقائيا؛ وغيابه لا يكسر شيئا: الرد `null`
+     * يعني «اعرض الكل» وهو ما كان يقع قبل هذا العمل.
+     */
+    private function role_of($user_id)
+    {
+        if (!function_exists('tq_role')) return null;
+        try {
+            $r = tq_role((int) $user_id);
+            return in_array($r, array('student', 'teacher', 'parent'), true) ? $r : null;
+        } catch (Throwable $e) {
+            return null;
+        }
     }
 
     /**
@@ -130,6 +210,11 @@ class Taqdar_settings_model extends CI_Model
             'quiz_result'        => array('inapp' => 1, 'email' => 1, 'whatsapp' => 1),
             'purchase_confirmed' => array('inapp' => 1, 'email' => 1, 'whatsapp' => 1),
             'session_confirmed'  => array('inapp' => 1, 'email' => 1, 'whatsapp' => 1),
+            /* التقرير الأسبوعي بريد قبل كل شيء — هو رسالة صباح الأحد لا
+               شارة في التطبيق. وتذكير التصحيح داخل المنصة وبريدا، ولا
+               واتساب: ليس من أنواع المال ولا رموز التحقق. */
+            'weekly_digest'      => array('inapp' => 1, 'email' => 1, 'whatsapp' => 0),
+            'marking_due'        => array('inapp' => 1, 'email' => 1, 'whatsapp' => 0),
         );
     }
 
@@ -183,6 +268,18 @@ class Taqdar_settings_model extends CI_Model
             'quiet_on'   => 0,
             'quiet_from' => 22,
             'quiet_to'   => 7,
+            /* حد التنبيه: دونه يقرأ ولي الأمر أن ابنه يحتاج التفاتة.
+               والافتراض ستون لأنه هو الرقم الذي كان مكتوبا في التطبيق
+               ثابتا («إتقان أقل من ٦٠٪») — فمن لم يضبط شيئا يقرأ ما كان
+               يقرؤه حرفا بحرف. */
+            'alert_threshold' => self::ALERT_THRESHOLD_DEFAULT,
+            'study_reminder'  => array(
+                'enabled'  => false,
+                'hour'     => self::STUDY_HOUR_DEFAULT,
+                /* الأحد = 0، فالأسبوع السعودي يبدأ به. والافتراض خمسة
+                   أيام دراسة لا سبعة. */
+                'weekdays' => array(0, 1, 2, 3, 4),
+            ),
             'saved'      => false,
         );
 
@@ -193,7 +290,55 @@ class Taqdar_settings_model extends CI_Model
             $out['quiet_from'] = (int) $row['quiet_from'];
             $out['quiet_to']   = (int) $row['quiet_to'];
             $out['saved']      = true;
+
+            /* والصف قد يسبق الأعمدة: `ensure_schema()` تضيفها الآن، لكن
+               صفا قرئ من قاعدة لم تمر عليها بعد لا يحملها. */
+            if (array_key_exists('alert_threshold', $row) && $row['alert_threshold'] !== null) {
+                $out['alert_threshold'] = $this->clamp_pct($row['alert_threshold']);
+            }
+            if (array_key_exists('study_on', $row)) {
+                $out['study_reminder'] = array(
+                    'enabled'  => (bool) (int) $row['study_on'],
+                    'hour'     => $this->clamp_hour($row['study_hour'], self::STUDY_HOUR_DEFAULT),
+                    'weekdays' => $this->weekdays_in($row['study_days'], array(0, 1, 2, 3, 4)),
+                );
+            }
         }
+        return $out;
+    }
+
+    /** حد التنبيه عدد صحيح في [0,100] — وما خرج عنه يقص لا يرفض. */
+    private function clamp_pct($v)
+    {
+        return max(0, min(100, (int) $v));
+    }
+
+    private function clamp_hour($v, $fallback)
+    {
+        $h = (int) $v;
+        return ($h >= 0 && $h <= 23) ? $h : (int) $fallback;
+    }
+
+    /**
+     * أيام الأسبوع من نص بفواصل إلى قائمة أعداد مرتبة بلا تكرار.
+     *
+     * والنص الفارغ يرد `$fallback` لا مصفوفة فارغة: «لا يوم» تعني تذكيرا
+     * لا يقع أبدا، ومن شغل المفتاح ولم يختر يوما يريد أيامه المعتادة.
+     * ومن أراد إيقافه أطفأ `enabled` — وهو الحقل الذي يقول ذلك.
+     */
+    private function weekdays_in($raw, $fallback = array())
+    {
+        $out = array();
+        foreach (explode(',', (string) $raw) as $d) {
+            $d = trim($d);
+            if ($d === '' || !ctype_digit($d)) continue;
+            $d = (int) $d;
+            if ($d >= 0 && $d <= 6) $out[$d] = $d;
+        }
+        if (!$out) return array_values($fallback);
+
+        $out = array_values($out);
+        sort($out);
         return $out;
     }
 
@@ -204,8 +349,15 @@ class Taqdar_settings_model extends CI_Model
 
         $matrix   = $this->notify_defaults();
         $channels = array_keys($this->notify_channels());
+        $types    = $this->notify_types($this->role_of($user_id));
 
-        foreach (array_keys($this->notify_types()) as $type) {
+        /* والمصفوفة تقتصر على أنواع بوابته: مفتاح «تذكير التصحيح» في
+           شاشة ولي أمر يطفأ ولا يمنع شيئا. */
+        foreach (array_keys($matrix) as $type) {
+            if (!isset($types[$type])) unset($matrix[$type]);
+        }
+
+        foreach (array_keys($types) as $type) {
             if (!isset($matrix[$type])) $matrix[$type] = array();
             foreach ($channels as $ch) {
                 if (!isset($matrix[$type][$ch])) $matrix[$type][$ch] = 0;
@@ -547,6 +699,13 @@ class Taqdar_settings_model extends CI_Model
             'last_modified' => time(),
         ));
 
+        /* TQ-SOCIAL-LASTDOOR — ومن وضع كلمة بيده صار له باب ثان.
+           الحساب المنشأ بجوجل أو أبل كلمته عشوائية لا يعرفها أحد، ولا
+           يميزها هاشها عن هاش حقيقي. فالعلامة أثر لا عمود، وتكتب هنا
+           وفي «نسيت كلمة المرور» — وبها وحدها يسمح بفصل آخر ربط. */
+        $this->load->model('taqdar_social_model');
+        $this->taqdar_social_model->mark_own_password($user_id);
+
         return $this->ok('غيرت كلمة مرورك.', 'security');
     }
 
@@ -562,7 +721,7 @@ class Taqdar_settings_model extends CI_Model
         $now      = time();
         $channels = array_keys($this->notify_channels());
 
-        foreach (array_keys($this->notify_types()) as $type) {
+        foreach (array_keys($this->notify_types($this->role_of($user_id))) as $type) {
             foreach ($channels as $ch) {
                 $on = !empty($posted[$type][$ch]) ? 1 : 0;
                 $this->db->replace('tq_prefs_notify', array(
@@ -605,7 +764,54 @@ class Taqdar_settings_model extends CI_Model
         if (!isset($this->themes()[$theme])) $theme = 'auto';
         if (!isset($langs[$lang]))           return $this->fail('لغة غير متاحة.', 'prefs');
 
-        $this->upsert_prefs($user_id, array('theme' => $theme, 'language' => $lang));
+        $data = array('theme' => $theme, 'language' => $lang);
+
+        /* **وما لم يرسل لا يمس** (TQ-TAB-WIPE): شاشة اللغة ترسل `language`
+           وحدها، وكتابة الحقول كلها في كل حفظ تمحو حد التنبيه وتذكير
+           المذاكرة على أول تبديل للغة — ولا شيء يقول إنهما ذهبا. */
+        $th = $this->input->post('alert_threshold');
+        if ($th !== null && $th !== '') {
+            if (!is_numeric($th) || (int) $th < 0 || (int) $th > 100) {
+                return $this->fail('حد التنبيه رقم بين صفر ومئة.', 'prefs');
+            }
+            $data['alert_threshold'] = (int) $th;
+        }
+
+        /* التذكير يصل بثلاثة حقول أو بلا واحد، ومفتاحه هو الذي يقرر:
+           `study_reminder_on` يرسل دائما حين ترسل الشاشة قسمها — وبلا ذلك
+           لا يستطيع أحد أن يطفئه أبدا (خانة غير معلمة لا ترسل). */
+        $on = $this->input->post('study_reminder_on');
+        if ($on !== null) {
+            $data['study_on'] = (int) ((string) $on !== '0' && $on !== false && $on !== '');
+
+            $hour = $this->input->post('study_reminder_hour');
+            if ($hour !== null && $hour !== '') {
+                if (!is_numeric($hour) || (int) $hour < 0 || (int) $hour > 23) {
+                    return $this->fail('ساعة التذكير رقم بين صفر وثلاثة وعشرين.', 'prefs');
+                }
+                $data['study_hour'] = (int) $hour;
+            }
+
+            $days = $this->input->post('study_reminder_weekdays');
+            if ($days !== null) {
+                if (is_string($days)) $days = explode(',', $days);
+                $clean = array();
+                foreach ((array) $days as $d) {
+                    if (!is_numeric($d)) continue;
+                    $d = (int) $d;
+                    if ($d >= 0 && $d <= 6) $clean[$d] = $d;
+                }
+                if (!$clean && (array) $days) {
+                    return $this->fail('أيام التذكير أرقام من صفر (الأحد) إلى ستة.', 'prefs');
+                }
+                if ($clean) {
+                    sort($clean);
+                    $data['study_days'] = implode(',', $clean);
+                }
+            }
+        }
+
+        $this->upsert_prefs($user_id, $data);
 
         /* اللغة إعداد يسري فورا: الجلسة هي ما يقرؤه get_phrase واشتقاق dir.
            والكتابة مشروطة بوجود الجلسة أصلا — فواجهة البرمجة تنادي هذه

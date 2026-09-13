@@ -125,6 +125,11 @@ include 'portal_open.php';
             </form>
         </section>
 
+        <?php /* TQ-SOCIAL — «بم أدخل؟» سؤال هذا القسم كما هو «بم أغير
+                 كلمتي؟». ومن أنشئ حسابه بجوجل لا يملك كلمة مرور حالية
+                 أصلا، فبلا هذا اللوح يقرأ نموذجا يطلب منه ما لا يملك. */ ?>
+        <?php include APPPATH . 'views/components/tq_social_links.php'; ?>
+
         <!-- روابط الأبناء -->
         <section class="tq-card">
             <h2 class="tq-card__title"><?php echo t('روابط الأبناء'); ?></h2>

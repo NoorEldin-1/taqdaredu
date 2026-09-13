@@ -33,6 +33,18 @@
     خطوة واحدة قبل الدفع<span data-tq-auth-name hidden>: <b></b></span>
   </p>
 
+  <?php /* TQ-SOCIAL — وأسرع باب يعرض أولا. من فتح هذه النافذة وهو
+           يريد أن يدفع الآن لا يريد أن يملأ نموذجا، والزران يفتحان له
+           حسابا ويعودان به إلى الباقة نفسها بدورتها (`?next=`).
+           والشريك هو شريك `/login` و`/sign_up` نفسه — ونسخة ثالثة منه
+           هنا تفترق عن أختيها عند أول مزود يضاف. */ ?>
+  <?php
+  $tq_soc_gate = 'student';
+  $tq_soc_next = '';
+  $tq_soc_lead = 'الأسرع';
+  include __DIR__ . '/site_social_buttons.php';
+  ?>
+
   <div class="tq-auth__tabs" role="group" aria-label="اختر طريقة المتابعة">
     <button type="button" data-tq-auth-tab="new"  aria-pressed="true">حساب جديد</button>
     <button type="button" data-tq-auth-tab="have" aria-pressed="false">لدي حساب</button>

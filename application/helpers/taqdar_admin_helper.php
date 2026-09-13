@@ -250,6 +250,12 @@ if (!function_exists('tqa_nav_counts')) {
                واحد يجيبه. */
             'content_review' => $count('SELECT COUNT(*) n FROM `lesson` WHERE `tq_status` = "review"')
                               + $count('SELECT COUNT(*) n FROM `tq_content_revisions` WHERE `status` = "pending"'),
+            /* TQ-META-LEADS — «جديد» لا «كل العملاء»: الشارة بند عمل،
+               والرقم الذي لا ينزل بالعمل يعلم القارئ أن يتجاوزه. وجدول
+               `tq_leads` ينشأ وقت التشغيل فقد لا يكون موجودا بعد —
+               و`$count` ترد صفرا على الجدول الغائب، فلا يسقط الشريط
+               الذي يعرض في كل شاشة. */
+            'leads_new'      => $count('SELECT COUNT(*) n FROM `tq_leads` WHERE `status` = "new"'),
         );
 
         return $cache;

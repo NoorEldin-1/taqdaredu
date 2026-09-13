@@ -49,6 +49,11 @@ $waiting = array(
           'href' => 'admin/contact?state=open',       'icon' => 'mail',  'tone' => 'sand'),
     array('n' => (int) ($queue['pending_courses'] ?? 0), 'label' => t('كورس بانتظار المراجعة'),
           'href' => 'admin/courses',                  'icon' => 'book',  'tone' => 'mint'),
+    /* TQ-META-LEADS — والعميل المحتمل أعجل ما في الصف: من ملأ نموذجا في
+       إعلان يملأ نموذج غيرنا بعده بدقائق، ومن يتصل أولا يبيع. فبند
+       ينتظر ساعة يكلف بيعة دفعت الحملة ثمن وصولها. */
+    array('n' => (int) ($queue['leads_new'] ?? 0), 'label' => t('عميل محتمل بلا متابعة'),
+          'href' => 'taqdar_admin/leads?status=new',  'icon' => 'user-check', 'tone' => 'sky'),
 );
 $waiting = array_values(array_filter($waiting, function ($w) { return $w['n'] > 0; }));
 

@@ -4849,3 +4849,71 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
     padding:11px 10px;
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   TQ-SOCIAL — أزرار الدخول بجوجل وأبل
+   ═══════════════════════════════════════════════════════════════════
+
+   وموضعها آخر الورقة عمدا (TQ-PHONE-BOX): كتل `.form-field` وأبناؤها
+   تعاد فيها مرات بمحددات أخص، ومن كتب قاعدة حقل في رأس هذه الورقة
+   وجدها مغلوبة بعد ألف سطر بلا أن يخطئ شيء.
+
+   والوسم مشترك بين ثلاث شاشات: `/login` و`/sign_up` ونافذة الشراء —
+   فالقواعد لا تعلق بصنف صفحة، وإلا خرج الزر في النافذة بلا شكل. */
+
+.soc-auth{margin-block-start:clamp(14px,1.8vw,20px)}
+
+/* الفاصل: سطر نصه في وسطه، وخطان يمتدان إلى الطرفين. ولا يفترض اتجاه
+   — `flex` يقلب مع الصفحة، وعرض مطلق لكل خط يترك الفاصل في غير وسطه
+   على العربية. */
+.soc-auth__or{
+  display:flex;align-items:center;gap:12px;
+  margin:0 0 clamp(10px,1.4vw,14px);
+  color:var(--ink-3);font-size:max(12.5px,.85rem)
+}
+.soc-auth__or::before,.soc-auth__or::after{
+  content:"";flex:1 1 0;block-size:1px;background:var(--line)
+}
+
+/* زران جنبا إلى جنب ما اتسع السطر، ويسقطان عمودا حين يضيق — بلا استعلام
+   وسائط: `min-inline-size` على العنصر المرن يقرر متى ينزل. */
+.soc-auth__row{display:flex;flex-wrap:wrap;gap:10px}
+
+.soc-btn{
+  flex:1 1 190px;min-inline-size:0;
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  padding:12px 14px;border-radius:var(--r-btn,12px);
+  border:1px solid var(--line);background:#fff;color:var(--ink);
+  font:inherit;font-weight:700;font-size:max(13.5px,.92rem);
+  text-decoration:none;line-height:1.2;
+  transition:border-color .18s var(--ease,ease),box-shadow .18s var(--ease,ease),
+             transform .18s var(--ease,ease)
+}
+.soc-btn:hover{border-color:var(--gold-line,#d9cdb4);box-shadow:var(--sh-soft,0 2px 10px rgba(0,0,0,.06))}
+.soc-btn:active{transform:translateY(1px)}
+.soc-btn:focus-visible{outline:2px solid var(--petrol);outline-offset:2px}
+
+/* الأيقونة لا تنكمش مع النص: `flex` يضغط كل ابن ما لم يمنع، وشعار
+   جوجل مضغوطا يقرأ بقعة ألوان. */
+.soc-btn__i{inline-size:18px;block-size:18px;flex:0 0 auto}
+
+/* النص يقص ولا يلتف: سطران في زر يجعلان الزرين بارتفاعين مختلفين. */
+.soc-btn>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* أبل تشترط لزرها أبيض على أسود أو العكس، بشعارها بلا تلوين —
+   و`currentColor` في المسار يجعله يتبع لون الزر بلا قاعدة ثانية. */
+.soc-btn--apple{background:#000;border-color:#000;color:#fff}
+.soc-btn--apple:hover{background:#141414;border-color:#141414}
+
+.soc-auth__terms{
+  margin-block:10px 0;text-align:center;
+  color:var(--ink-3);font-size:max(11.5px,.78rem);line-height:1.7
+}
+.soc-auth__terms a{color:var(--ink-2);text-decoration:underline}
+.soc-auth__terms a:hover{color:var(--gold-text)}
+
+/* داخل نافذة الشراء: النافذة أضيق من بطاقة النموذج، فالزران عمودان
+   دائما — زر بعرض ٩٠ بكسل يقص نصه فيقرأ «المتابعة بحساب…». */
+.tq-auth .soc-auth{margin-block:0 clamp(12px,1.6vw,16px)}
+.tq-auth .soc-btn{flex:1 1 100%}

@@ -747,8 +747,13 @@ class Taqdar_meta_model extends CI_Model
      *
      * ويرد ثلاثة: الحمولة مفككة، ورمز الرد، ورسالة الخطأ إن كانت — فمن
      * ينادي يفرق بين «لم يصل» و«وصل ورد بخطأ» بلا أن يكرر curl.
+     *
+     * TQ-META-LEADS — وصار عاما لأن `Taqdar_lead_model` يقرأ من ميتا
+     * كذلك: العميل المحتمل، واسم نموذجه، وحال اشتراك الصفحة. ونسخة
+     * ثانية من هذا المنفذ تعني إصدار واجهة ثانيا ومهلة ثانية وتفكيك
+     * خطأ ثانيا — ثلاثة تفترق عن هذه عند أول تعديل.
      */
-    private function graph_get($path)
+    public function graph_get($path)
     {
         $ch = curl_init(self::API . $path);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -756,6 +761,40 @@ class Taqdar_meta_model extends CI_Model
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+        $raw  = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $cerr = curl_error($ch);
+        curl_close($ch);
+
+        if ($raw === false) {
+            return array('data' => array(), 'code' => 0,
+                         'msg'  => ($cerr ? $cerr : 'تعذر الاتصال بميتا.'));
+        }
+        $d = json_decode((string) $raw, true);
+        if (!is_array($d)) $d = array();
+        return array('data' => $d, 'code' => $code,
+                     'msg'  => (string) (isset($d['error']['message']) ? $d['error']['message'] : ''));
+    }
+
+    /**
+     * كتابة في ميتا — أخو `graph_get()` وبرده نفسه.
+     *
+     * وله مستدعي واحد اليوم: اشتراك الصفحة في حدث `leadgen`
+     * (TQ-META-LEADS). وهو النداء الذي بلا نجاحه **لا يصل ويبهوك
+     * واحد أبدا** — والتطبيق يبدو مضبوطا تماما، والرمز صحيحا،
+     * والسجل فارغا بلا سطر يقول لماذا.
+     */
+    public function graph_post($path, array $body)
+    {
+        $ch = curl_init(self::API . $path);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($body));
+
         $raw  = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $cerr = curl_error($ch);

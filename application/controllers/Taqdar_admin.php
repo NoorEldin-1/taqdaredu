@@ -2541,6 +2541,367 @@ class Taqdar_admin extends CI_Controller
         else         $this->db->insert('settings', array('key' => $key, 'value' => (string) $val));
     }
 
+    /* =====================================================================
+       TQ-SOCIAL — الدخول بجوجل وأبل
+       ===================================================================== */
+
+    /**
+     * شاشة تجيب «أيعمل الباب؟» قبل «ما المفاتيح؟».
+     *
+     * ومن يفتحها يريد ثلاثة: هل يرى الزائر الزرين الآن؟ وما وجهة العودة
+     * التي يكتبها عند جوجل وأبل حرفا بحرف؟ وكم حسابا دخل منهما فعلا —
+     * فإعداد يبدو صحيحا ولا يدخل منه أحد إعداد معطل.
+     */
+    public function social()
+    {
+        $this->load->model('taqdar_social_model');
+        $this->taqdar_social_model->install_schema();
+
+        $this->render('tqa_social', 'الدخول بجوجل وأبل', array(
+            'tq_providers' => $this->taqdar_social_model->providers(),
+            'tq_cfg'       => $this->taqdar_social_model->config(),
+            'tq_redirect'  => array(
+                'google' => $this->taqdar_social_model->redirect_uri('google'),
+                'apple'  => $this->taqdar_social_model->redirect_uri('apple'),
+            ),
+            'tq_stats'     => $this->social_stats(),
+        ));
+    }
+
+    /**
+     * كم حسابا ربط بكل مزود، وكم منها أنشئ به.
+     *
+     * وكل استعلام ملفوف: جدول لم يستعمل بعد يرمي استثناء يبيض الشاشة،
+     * ورقم ناقص أهون — وهي قاعدة `teacher_stats()` نفسها.
+     */
+    private function social_stats()
+    {
+        $out = array('google' => 0, 'apple' => 0, 'last' => null);
+        try {
+            foreach ($this->db->select('provider, COUNT(*) AS n', false)
+                              ->group_by('provider')
+                              ->get('tq_social_accounts')->result_array() as $r) {
+                $out[(string) $r['provider']] = (int) $r['n'];
+            }
+            $last = $this->db->select('last_login_at')->order_by('last_login_at', 'DESC')
+                             ->limit(1)->get('tq_social_accounts')->row_array();
+            $out['last'] = $last ? (string) $last['last_login_at'] : null;
+        } catch (Throwable $e) { $this->db->reset_query(); }
+        return $out;
+    }
+
+    /**
+     * الحفظ — والأسرار لا تمس حين تترك فارغة.
+     *
+     * وهو مبدأ رمز CAPI نفسه (`tracking_save()`) ومبدأ كلمة المرور في
+     * `teacher_edit`: حقل يفرض كتابته في كل حفظ يجعل تصحيح حرف في معرف
+     * العميل يمحو سر أبل كله — فيتوقف الدخول به ولا يقول أحد لماذا.
+     * و**المسح يطلب صراحة** بمربع لا بترك الحقل خاليا.
+     */
+    public function social_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_social_model');
+
+        /* المعلن: يكتب كما جاء ولو فارغا — وجود الصف هو ما يميز «أطفأه
+           مسؤول» عن «لم يضبط أحد شيئا». */
+        $open = array(
+            'tq_google_client_id', 'tq_google_ios_client_id', 'tq_google_android_client_id',
+            'tq_apple_client_id',  'tq_apple_bundle_id', 'tq_apple_team_id', 'tq_apple_key_id',
+        );
+        $was = array();
+        foreach ($open as $k) {
+            $was[$k] = (string) get_settings($k);
+            $this->taqdar_social_model->put_setting($k, trim((string) $this->input->post($k)));
+        }
+
+        /* السران: جوجل نص، وأبل مفتاح `.p8` متعدد الأسطر. */
+        foreach (array('tq_google_client_secret', 'tq_apple_private_key') as $k) {
+            $v     = trim((string) $this->input->post($k));
+            $clear = (string) $this->input->post($k . '_clear') === '1';
+            if ($clear)          $this->taqdar_social_model->put_setting($k, '');
+            elseif ($v !== '')   $this->taqdar_social_model->put_setting($k, $v);
+        }
+
+        /* وسر أبل المولد يبطل مع كل حفظ: هو مشتق من الفريق والمفتاح
+           ومعرف الخدمة، وكاش يبقى بعد تعديل واحد منها يرسل سرا لا
+           يطابق الإعداد الجديد — وترد أبل `invalid_client` على إعداد
+           صحيح تماما. والبصمة تمسك ذلك كذلك، وهذا حزام ثان. */
+        $this->taqdar_social_model->put_setting('tq_apple_secret_cache', '');
+
+        $now = array();
+        foreach ($open as $k) $now[$k] = (string) get_settings($k);
+        $this->taqdar_admin_model->audit('social.keys', 'settings', $was, $now);
+
+        $live = $this->taqdar_social_model->live();
+        $this->session->set_flashdata('flash_message', $live
+            ? ('حفظ الإعداد. يعرض الآن للزائر: ' . implode(' · ', array_column($live, 'label')) . '.')
+            : 'حفظ الإعداد. لا يعرض زر لأي مزود حتى تكتمل مفاتيحه.');
+
+        redirect(site_url('taqdar_admin/social'), 'location', 302);
+    }
+
+    /* =====================================================================
+       عملاء الإعلانات — TQ-META-LEADS
+
+       من ملأ نموذجا في إعلان فيسبوك أو إنستغرام يصل هنا في ثانيته، ولا
+       ينسخه أحد من مركز الأعمال عند ميتا. وشاشتان لا واحدة: القائمة
+       تجيب سؤال المسح («من وصل؟ وما حاله؟ ومن أي حملة؟»)، وصفحة العميل
+       تجيب سؤال الحادثة («هذا بعينه — ماذا كتب؟ وبم أجاب؟ وماذا فعلنا
+       معه؟») — وهو مبدأ TQ-SUB-DETAIL نفسه.
+       ===================================================================== */
+
+    /**
+     * القائمة، ومعها إعداد الربط وسجل النداءات الواردة.
+     *
+     * وثلاثتها في شاشة واحدة لأنها سؤال واحد على من يفتحها: «أيعمل
+     * الربط؟ وماذا جاء منه؟ ولماذا لم يجئ؟». وإعداد في شاشة أخرى يجعل
+     * من يقرأ «لا عملاء» لا يعرف أين يذهب.
+     */
+    public function leads()
+    {
+        $this->load->model('taqdar_lead_model', 'tq_leads');
+
+        /* البنية أولا: الجدولان ينشآن وقت التشغيل، و`safe_rows` تبتلع
+           خطأ الجدول الغائب فتخرج الشاشة **فارغة** لا معطلة — فيقرأ
+           المسؤول «لا عملاء بعد» ولا يعرف أن الجدول لم ينشأ أصلا. */
+        $this->tq_leads->install_schema();
+
+        $f = array(
+            'status'   => (string) $this->input->get('status'),
+            'campaign' => (string) $this->input->get('campaign'),
+            'platform' => (string) $this->input->get('platform'),
+            'q'        => (string) $this->input->get('q'),
+        );
+
+        $this->render('tqa_leads', 'عملاء الإعلانات', array(
+            'filters'   => $f,
+            'rows'      => $this->tq_leads->leads($f, 200),
+            'totals'    => $this->tq_leads->totals(),
+            'campaigns' => $this->tq_leads->campaigns(),
+            'statuses'  => $this->tq_leads->statuses(),
+            'hooks'     => $this->tq_leads->hooks(25),
+            'hook_tot'  => $this->tq_leads->hook_totals(),
+            'cfg'       => $this->tq_leads->config(),
+            'ready'     => $this->tq_leads->ready(),
+            'hook_url'  => $this->tq_leads->callback_url(),
+            'suggest'   => $this->tq_leads->suggest_verify_token(),
+        ));
+    }
+
+    /** صفحة العميل الواحد — وكل ما جاء معه من ميتا. */
+    public function lead($id = 0)
+    {
+        $this->load->model('taqdar_lead_model', 'tq_leads');
+        $this->tq_leads->install_schema();
+
+        $row = $this->tq_leads->lead((int) $id);
+        if (!$row) show_404();
+
+        $this->render('tqa_lead', 'العميل المحتمل', array(
+            'row'      => $row,
+            'answers'  => $this->tq_leads->answers_of($row),
+            'statuses' => $this->tq_leads->statuses(),
+            'nav_key'  => 'tqa_leads',
+        ));
+    }
+
+    /**
+     * حفظ حال المتابعة وملاحظتها.
+     *
+     * والقرار في `Taqdar_lead_model::set_status()` لا هنا: حال مخترعة
+     * تصل من `$_POST` كما يصل غيرها، وصف يحمل حالا لا يعرفها وصف
+     * الحالات يسقط من كل مرشح ومن كل عداد — فيغيب العميل عن القائمة
+     * كلها ولا شيء يقول إنه هناك.
+     */
+    public function lead_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_lead_model', 'tq_leads');
+
+        $id = (int) $this->input->post('id');
+        $r  = $this->tq_leads->set_status(
+            $id,
+            (string) $this->input->post('status'),
+            (string) $this->input->post('note'),
+            (int) $this->session->userdata('user_id')
+        );
+
+        if (empty($r['ok'])) {
+            $this->session->set_flashdata('error_message', (string) $r['msg']);
+        } else {
+            $this->session->set_flashdata('flash_message', 'حفظت متابعة هذا العميل.');
+            /* أثر مقصود: قرار «غير مؤهل» على عميل دفعت الحملة ثمن وصوله
+               يسأل عنه غدا — ومن اتخذه ومتى نصف الجواب. */
+            $this->taqdar_admin_model->audit('lead.status', 'tq_leads#' . $id,
+                array('status' => (string) $r['was']), array('status' => (string) $r['now']));
+        }
+
+        redirect(site_url('taqdar_admin/lead/' . $id), 'location', 302);
+    }
+
+    /**
+     * إعداد الربط — أربعة مفاتيح، وثلاثة منها أسرار.
+     *
+     * وقاعدة السر واحدة في الثلاثة كما في رمز تاب ورمز البكسل:
+     * **الفارغ لا يمسه** — حقل يفرض كتابته في كل حفظ يجعل تصحيح معرف
+     * الصفحة يمحو رمزها فيسكت الربط كله ولا يقول أحد لماذا. والمسح يطلب
+     * صراحة بمربع.
+     */
+    public function leads_config()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_lead_model', 'tq_leads');
+        $was = $this->tq_leads->config();
+
+        $this->tracking_put('tq_meta_page_id',
+            preg_replace('/\D+/', '', (string) $this->input->post('tq_meta_page_id')));
+
+        /* والأسرار الثلاثة بالقاعدة نفسها. */
+        foreach (array('tq_meta_page_token', 'tq_meta_app_secret', 'tq_meta_verify_token') as $k) {
+            $val   = trim((string) $this->input->post($k));
+            $clear = (string) $this->input->post($k . '_clear') === '1';
+            if ($clear)            $this->tracking_put($k, '');
+            elseif ($val !== '')   $this->tracking_put($k, $val);
+        }
+
+        /* والصف يكتب ولو كانت القيمة فارغة: وجود الصف هو ما يميز
+           «أطفأه مسؤول» عن «لم يضبط أحد شيئا»، والثاني وحده يرجع إلى
+           الافتراضي — فلولا كتابته لتعذر إطفاء الإشعار أصلا. */
+        $this->tracking_put('tq_meta_lead_notify',
+            (string) $this->input->post('tq_meta_lead_notify') === '1' ? '1' : '0');
+
+        /* ولا يكتب سر في `audit_log`: السجل يقرؤه كل مسؤول، وسر يكتب
+           فيه يصير معروفا لمن لا يحتاجه. فيسجل «وضع» أو «مسح». */
+        $now = $this->tq_leads->config();
+        $mask = function ($c) {
+            return array(
+                'page_id' => $c['page_id'],
+                'token'   => $c['token']  !== '' ? 'set' : '',
+                'secret'  => $c['secret'] !== '' ? 'set' : '',
+                'verify'  => $c['verify'] !== '' ? 'set' : '',
+                'notify'  => $c['notify'] ? 1 : 0,
+            );
+        };
+        $this->taqdar_admin_model->audit('tracking.meta_leads', 'settings', $mask($was), $mask($now));
+
+        $this->session->set_flashdata('flash_message', $now['token'] !== ''
+            ? 'حفظ الإعداد. ويصل العميل الجديد في ثانيته متى اشتركت الصفحة في حدث العملاء.'
+            : 'حفظ الإعداد. ولا يجلب الخادم عميلا حتى يحفظ رمز الصفحة.');
+        redirect(site_url('taqdar_admin/leads'), 'location', 302);
+    }
+
+    /**
+     * «اسأل ميتا» — الرمز والصلاحية والاشتراك في نداء ونصف.
+     *
+     * وهو الفحص الذي بلاه يشخص الربط بالحدس: ثلاثة أعطال تعطي المشهد
+     * نفسه حرفا (سجل فارغ ولا خطأ في أي موضع) — رمز مؤقت انتهى، ورمز
+     * بلا `leads_retrieval`، وصفحة لم تشترك في الحدث أصلا. وكل واحد
+     * منها يعالج بغير ما يعالج به الآخر.
+     */
+    public function leads_probe()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_lead_model', 'tq_leads');
+        $r = $this->tq_leads->probe();
+
+        $this->session->set_flashdata($r['ok'] ? 'flash_message' : 'error_message', $r['msg']);
+        redirect(site_url('taqdar_admin/leads'), 'location', 302);
+    }
+
+    /** يشترك الصفحة في حدث `leadgen` — الخطوة التي لا يقول أحد إنها نقصت. */
+    public function leads_subscribe()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_lead_model', 'tq_leads');
+        $r = $this->tq_leads->subscribe_page();
+
+        if (!empty($r['ok'])) {
+            $this->taqdar_admin_model->audit('tracking.meta_leads_subscribe', 'settings',
+                null, array('page_id' => $this->tq_leads->config()['page_id'], 'field' => 'leadgen'));
+        }
+
+        $this->session->set_flashdata($r['ok'] ? 'flash_message' : 'error_message', $r['msg']);
+        redirect(site_url('taqdar_admin/leads'), 'location', 302);
+    }
+
+    /**
+     * إعادة جلب ما تعثر — الزر نفسه الذي يضغطه الكرون كل ربع ساعة.
+     *
+     * وموضعه هنا لمن يقول «الحملة جلبت عشرين ولا أرى إلا خمسة عشر»:
+     * ينتظر دورة الكرون أو يضغط فيعرف الجواب الآن — وهو زر «اسأل تاب»
+     * نفسه وللعلة نفسها.
+     */
+    public function leads_retry()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_lead_model', 'tq_leads');
+        $r = $this->tq_leads->retry_failed(50);
+
+        $this->session->set_flashdata('flash_message',
+            'أعيدت ' . (int) $r['tried'] . ' محاولة، ووصل منها ' . (int) $r['stored'] . ' عميلا. '
+            . 'وما بقي سببه في سجل النداءات أدناه.');
+        redirect(site_url('taqdar_admin/leads'), 'location', 302);
+    }
+
+    /**
+     * تصدير المعروض ملفا — الباب الواحد إلى أي نظام خارج.
+     *
+     * **وبمرشحات الشاشة نفسها**: من رشح «مؤهل من حملة سبتمبر» ثم صدر
+     * يتوقع ما رأى، وملف يخرج الجدول كله يجعله يرشحه بيده مرة ثانية.
+     * ومعه بصمة الترميز (BOM) لأن إكسل بلاها يقرأ العربية طلاسم — وهو
+     * أول ما يفتح به الملف.
+     */
+    public function leads_export()
+    {
+        $this->load->model('taqdar_lead_model', 'tq_leads');
+        $this->tq_leads->install_schema();
+
+        $f = array(
+            'status'   => (string) $this->input->get('status'),
+            'campaign' => (string) $this->input->get('campaign'),
+            'platform' => (string) $this->input->get('platform'),
+            'q'        => (string) $this->input->get('q'),
+        );
+
+        $cols     = $this->tq_leads->export_columns();
+        $statuses = $this->tq_leads->statuses();
+        $rows     = $this->tq_leads->export_rows($f);
+
+        $out = fopen('php://temp', 'w+');
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, array_map('strval', array_values($cols)));
+
+        foreach ($rows as $r) {
+            $line = array();
+            foreach (array_keys($cols) as $k) {
+                $v = (string) (isset($r[$k]) ? $r[$k] : '');
+                if ($k === 'status')   $v = (string) (isset($statuses[$v]['label']) ? $statuses[$v]['label'] : $v);
+                if ($k === 'platform') $v = $this->tq_leads->platform_word($v);
+                $line[] = $v;
+            }
+            fputcsv($out, $line);
+        }
+
+        rewind($out);
+        $csv = stream_get_contents($out);
+        fclose($out);
+
+        $this->output
+             ->set_content_type('text/csv', 'utf-8')
+             ->set_header('Content-Disposition: attachment; filename="taqdar-leads-' . date('Y-m-d') . '.csv"')
+             ->set_output($csv);
+
+        $this->taqdar_admin_model->audit('lead.export', 'tq_leads',
+            null, array('rows' => count($rows), 'filters' => array_filter($f)));
+    }
+
     /** طلبات المعلمين — العرض والقرار في شاشة واحدة. */
     public function teachers()
     {

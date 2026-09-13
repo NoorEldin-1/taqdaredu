@@ -148,6 +148,11 @@ $tqa_nav = [
         ['tqa_notify',       t('إرسال إشعار'),        'taqdar_admin/notify',      'bell',  null],
         [['contact', 'contact_reply_form'],
                              t('رسائل التواصل'),      'admin/contact',            'mail',  'contact'],
+        /* TQ-META-LEADS — وعملاء الإعلانات بجوار رسائل التواصل لا تحت
+           «بكسل ميتا»: هذان بابان يطرقهما من هو خارج المنصة وينتظر ردا،
+           والبكسل قياس لا يرد عليه أحد. ومن يفتح هذه الشاشة كل صباح هو
+           من يفتح تلك — لا من يضبط الحملات. */
+        ['tqa_leads',        t('عملاء الإعلانات'),    'taqdar_admin/leads',       'user-check', 'leads_new'],
         [['subscribed_user', 'newsletters', 'newsletter_history',
           'add_newsletter', 'edit_newsletter', 'send_newsletter'],
                              t('النشرة البريدية'),    'admin/subscribed_user',    'send',  null],
@@ -170,6 +175,10 @@ $tqa_nav = [
         [['sitemap_settings'],  t('خريطة الموقع'),         'admin/sitemap_settings',      'layers', null],
         [['manage_language'],   t('اللغات والترجمة'),      'admin/manage_language',       'file',   null],
         [['notification_settings'], t('قوالب الإشعارات'),  'admin/notification_settings', 'bell',   null],
+        /* TQ-SOCIAL — الدخول بجوجل وأبل. وموضعه «النظام» لا «الأشخاص»:
+           من يفتحه هو من يضبط المنصة بمفاتيح مزودين، لا من يدير
+           حسابات الناس. وهو جار «إعدادات المنصة» لذلك. */
+        ['tqa_social',          t('الدخول بجوجل وأبل'),    'taqdar_admin/social',         'users',  null],
         ['tqa_audit_log',       t('سجل التدقيق'),          'taqdar_admin/module/audit_log', 'shield', null],
         [['manage_profile'],    t('حسابي'),                'admin/manage_profile',        'cog',    null],
     ]],
