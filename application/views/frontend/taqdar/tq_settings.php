@@ -587,7 +587,8 @@ include 'portal_open.php';
                                 <span class="tq-prefrow__end">
                                     <button class="tq-btn <?php echo $tq_gam ? 'tq-btn--secondary' : 'tq-btn--primary'; ?>"
                                             type="submit"><?php
-                                        echo $tq_gam ? t('أوقف التلعيب') : t('أعد التلعيب'); ?></button>
+                                        /* الزر يسمي ما يوقفه: «التلعيب» مصطلح لا يعرفه الطالب. */
+                                        echo $tq_gam ? t('إيقاف السلسلة وهدف اليوم') : t('تشغيل السلسلة وهدف اليوم'); ?></button>
                                 </span>
                             </div>
                         </form>

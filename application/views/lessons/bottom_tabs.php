@@ -70,7 +70,7 @@
 					<?php foreach ($resource_files as $resource_file) : ?>
 						<?php if ($resource_file['file_name']) : ?>
 							<div class="col-auto">
-								<a class="btn p-1" href="<?php echo base_url('uploads/resource_files/' . $resource_file['file_name']); ?>" download>
+								<a class="btn p-1" href="<?php echo base_url('student/material/file/' . (int) $resource_file['id']); ?>" download>
 									<span class="mr-auto"><?php echo $resource_file['title']; ?></span>
 									<i class="fas fa-download"></i>
 								</a>

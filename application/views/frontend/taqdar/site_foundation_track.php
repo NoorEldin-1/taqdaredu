@@ -9,6 +9,11 @@ defined('BASEPATH') or exit('No direct script access allowed');
  *   ما هذا المسار؟   وصفه ومخرجاته ومن يدرسه
  *   وكيف أحجز؟       الثمن، والمواعيد المتاحة فعلا، وباب الحجز
  *
+ * فالصفحة عمودان: المحتوى في الاول، و**بطاقة الحجز لاصقة** في الثاني —
+ * من قرأ المخرجات ثم المواعيد يجد الثمن والزر بجواره اينما وقف. وكانت
+ * الصفحة تستعير `co-cols` من شاشة الدفع، وتلك الورقة لا تحمل هنا، فخرجت
+ * الاعمدة مبعثرة والمخرجات نصا عاريا.
+ *
  * **والمواعيد المعروضة هي المفتوحة فعلا** لا جدول عام: قسم يعد الزائر
  * بمواعيد ثم يجدها كلها محجوزة اسوأ من قسم يقول «لا موعد الان». وهي من
  * `available_teachers()` — الاستعلام نفسه الذي تقرأ منه شاشة الطالب،
@@ -33,137 +38,189 @@ $tq_h1   = $tq_t['name'];
 $tq_lead = $tq_t['tagline'] !== '' ? $tq_t['tagline'] : $tq_t['description'];
 include __DIR__ . '/site/site_pagehero.php';
 
-$tq_sar = function ($h) {
-    return '<b class="tq-ltr">' . number_format(((int) $h) / 100, 2) . '</b> ' . t('ر.س');
-};
+$tq_book = base_url('student/foundation?track=' . (int) $tq_t['id']);
 
-/* عدد المواعيد المفتوحة في هذا المسار — رقم يقال لا يقدر. */
+/* عدد المواعيد المعروضة — رقم يقال لا يقدر، وهو ما في الصفحة نفسها. */
 $tq_slots = 0;
 foreach ($tq_tut as $tq_one) $tq_slots += count($tq_one['slots']);
+
+/* معلمو المسار الذين لا مواعيد لهم الآن — من له مواعيد ظاهر فوق باسمه،
+   وتكراره في قسم ثان يطيل الصفحة بلا خبر. */
+$tq_idle = array_diff_key($tq_teach, $tq_tut);
+
+$tq_price_html = function ($price) {
+    return (int) $price > 0 ? tqs_money($price) : '<b>' . t('مجانية') . '</b>';
+};
 ?>
 
-<section class="section" id="track">
+<section class="section fndp-track" id="track">
   <div class="shell">
+    <div class="fndp-cols">
 
-    <div class="co-cols">
-      <div class="co-main">
+      <div class="fndp-main">
 
-        <?php if ($tq_t['description'] !== ''): ?>
-          <div class="section-head">
-            <h2><span><?php echo t('عن المسار'); ?></span></h2>
-          </div>
-          <p class="tq-body"><?php echo html_escape($tq_t['description']); ?></p>
-        <?php endif; ?>
+        <?php if ($tq_t['description'] !== '' || $tq_t['outcomes']): ?>
+        <article class="fndp-panel reveal" aria-labelledby="fndp-about">
+          <header class="fndp-panel__head">
+            <span class="fndp-panel__ico" aria-hidden="true"><svg><use href="#i-book"></use></svg></span>
+            <h2 id="fndp-about"><?php echo t('عن المسار'); ?></h2>
+          </header>
+          <?php if ($tq_t['description'] !== ''): ?>
+            <p class="fndp-lede"><?php echo html_escape($tq_t['description']); ?></p>
+          <?php endif; ?>
 
-        <?php if ($tq_t['outcomes']): ?>
-          <div class="section-head" style="margin-block-start:2rem">
-            <h2><span><?php echo t('ماذا يتقن بعده'); ?></span></h2>
-          </div>
-          <ul class="bundle__list">
-            <?php foreach ($tq_t['outcomes'] as $tq_o): ?>
-              <li><?php echo html_escape($tq_o); ?></li>
-            <?php endforeach; ?>
-          </ul>
+          <?php if ($tq_t['outcomes']): ?>
+            <h3 class="fndp-sub"><?php echo t('ماذا يتقن بعده'); ?></h3>
+            <ul class="fndp-checks">
+              <?php foreach ($tq_t['outcomes'] as $tq_i => $tq_o): ?>
+                <li>
+                  <span class="fndp-checks__n" aria-hidden="true"><?php echo (int) ($tq_i + 1); ?></span>
+                  <span><?php echo html_escape($tq_o); ?></span>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+        </article>
         <?php endif; ?>
 
         <?php /* المواعيد المفتوحة فعلا: «متاح» كلمة تقال بمواعيد لا
                  بوعد. ومن لم يجد موعدا يقال له متى تفتح لا يترك يخمن. */ ?>
-        <div class="section-head" style="margin-block-start:2rem">
-          <h2><span><?php echo t('مواعيد متاحة الآن'); ?></span></h2>
-          <p><?php echo t('يفتح المعلمون ساعاتهم أسبوعيا، وهذه المتاحة في الأيام القادمة.'); ?></p>
-        </div>
+        <section class="fndp-panel reveal" aria-labelledby="fndp-slots">
+          <header class="fndp-panel__head">
+            <span class="fndp-panel__ico" aria-hidden="true"><svg><use href="#i-calendar"></use></svg></span>
+            <div>
+              <h2 id="fndp-slots"><?php echo t('مواعيد متاحة الآن'); ?></h2>
+              <p><?php echo t('يفتح المعلمون ساعاتهم أسبوعيا، وهذه المتاحة في الأيام القادمة.'); ?></p>
+            </div>
+          </header>
 
-        <?php if (!$tq_tut): ?>
-          <p class="dir-empty">
-            <?php echo t('لا مواعيد مفتوحة في هذا المسار الآن. المعلمون يفتحون ساعاتهم أسبوعيا، فعد بعد قليل.'); ?>
-          </p>
-        <?php else: ?>
-          <div class="cgrid">
-            <?php foreach ($tq_tut as $tq_one): ?>
-              <article class="ccard">
-                <div class="ccard__body">
-                  <h3 class="ccard__title"><?php echo html_escape($tq_one['name']); ?></h3>
-                  <?php if ((string) $tq_one['title'] !== ''): ?>
-                    <p class="ccard__blurb"><?php echo html_escape($tq_one['title']); ?></p>
-                  <?php endif; ?>
-                  <ul class="bundle__list">
-                    <?php foreach ($tq_one['slots'] as $tq_sl): ?>
-                      <li><?php echo html_escape($tq_sl['when_text']); ?></li>
-                    <?php endforeach; ?>
-                  </ul>
-                  <div class="ccard__foot">
-                    <?php if ((int) $tq_one['pricing']['price'] > 0): ?>
-                      <p class="ccard__price"><?php echo $tq_sar($tq_one['pricing']['price']); ?>
-                         <span><?php echo t('للحصة'); ?></span></p>
-                    <?php else: ?>
-                      <p class="ccard__price ccard__price--free"><?php echo t('مجانية'); ?></p>
+          <?php if (!$tq_tut): ?>
+            <div class="fndp-empty fndp-empty--inline">
+              <span class="fndp-empty__ico" aria-hidden="true"><svg><use href="#i-clock"></use></svg></span>
+              <p><?php echo t('لا مواعيد مفتوحة في هذا المسار الآن. المعلمون يفتحون ساعاتهم أسبوعيا، فعد بعد قليل.'); ?></p>
+            </div>
+          <?php else: ?>
+            <div class="fndp-tutors">
+              <?php foreach ($tq_tut as $tq_one): ?>
+                <div class="fndp-tutor">
+                  <div class="fndp-tutor__who">
+                    <?php echo tqs_person_avatar($tq_one['image'], $tq_one['name'], 'fndp-tutor__img', 96); ?>
+                    <div>
+                      <h3><?php echo html_escape($tq_one['name']); ?></h3>
+                      <?php if ((string) $tq_one['title'] !== ''): ?>
+                        <p><?php echo html_escape($tq_one['title']); ?></p>
+                      <?php endif; ?>
+                    </div>
+                    <?php /* الثمن يقال هنا حين يخالف ثمن المسار وحده: بطاقة
+                             الحجز تقوله مرة، وتكراره عند كل معلم ضجيج. */ ?>
+                    <?php if ((int) $tq_one['pricing']['price'] !== (int) $tq_p['price']): ?>
+                      <p class="fndp-tutor__price"><?php echo $tq_price_html($tq_one['pricing']['price']); ?>
+                        <small><?php echo t('للحصة'); ?></small></p>
                     <?php endif; ?>
                   </div>
+                  <ul class="fndp-slots">
+                    <?php foreach ($tq_one['slots'] as $tq_sl):
+                        $tq_parts = explode(' · ', (string) $tq_sl['when_text'], 2); ?>
+                      <li class="fndp-slot">
+                        <span class="fndp-slot__day"><?php echo html_escape($tq_parts[0]); ?></span>
+                        <?php if (isset($tq_parts[1])): ?>
+                          <b class="fndp-slot__time tq-ltr"><?php echo html_escape($tq_parts[1]); ?></b>
+                        <?php endif; ?>
+                      </li>
+                    <?php endforeach; ?>
+                  </ul>
                 </div>
-              </article>
+              <?php endforeach; ?>
+            </div>
+            <a class="fndp-panel__link" href="<?php echo $tq_book; ?>">
+              <?php echo t('احجز أحد هذه المواعيد'); ?>
+              <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg>
+            </a>
+          <?php endif; ?>
+        </section>
+
+        <?php if ($tq_idle): ?>
+        <section class="fndp-panel reveal" aria-labelledby="fndp-team">
+          <header class="fndp-panel__head">
+            <span class="fndp-panel__ico" aria-hidden="true"><svg><use href="#i-users"></use></svg></span>
+            <h2 id="fndp-team"><?php echo $tq_tut ? t('معلمون آخرون في المسار') : t('معلمو المسار'); ?></h2>
+          </header>
+          <ul class="fndp-team">
+            <?php foreach ($tq_idle as $tq_one): ?>
+              <li>
+                <?php echo tqs_person_avatar($tq_one['image'], $tq_one['name'], 'fndp-tutor__img', 96); ?>
+                <div>
+                  <b><?php echo html_escape($tq_one['name']); ?></b>
+                  <span><?php echo $tq_one['title'] !== '' ? html_escape($tq_one['title']) : t('لا مواعيد مفتوحة الآن'); ?></span>
+                </div>
+              </li>
             <?php endforeach; ?>
-          </div>
+          </ul>
+        </section>
         <?php endif; ?>
 
-        <?php if ($tq_teach): ?>
-          <div class="section-head" style="margin-block-start:2rem">
-            <h2><span><?php echo t('معلمو المسار'); ?></span></h2>
-          </div>
-          <div class="cgrid">
-            <?php foreach ($tq_teach as $tq_one): ?>
-              <article class="ccard">
-                <div class="ccard__body">
-                  <h3 class="ccard__title"><?php echo html_escape($tq_one['name']); ?></h3>
-                  <?php if ($tq_one['title'] !== ''): ?>
-                    <p class="ccard__blurb"><?php echo html_escape($tq_one['title']); ?></p>
-                  <?php endif; ?>
-                </div>
-              </article>
-            <?php endforeach; ?>
-          </div>
-        <?php endif; ?>
+        <section class="fndp-panel fndp-panel--flat reveal" aria-labelledby="fndp-how">
+          <header class="fndp-panel__head">
+            <span class="fndp-panel__ico" aria-hidden="true"><svg><use href="#i-clipboard"></use></svg></span>
+            <h2 id="fndp-how"><?php echo t('كيف تحجز؟'); ?></h2>
+          </header>
+          <ol class="fndp-mini">
+            <li><b><?php echo t('اختر موعدا'); ?></b><span><?php echo t('من المواعيد المفتوحة أعلاه.'); ?></span></li>
+            <li><b><?php echo t('يؤكد المعلم'); ?></b><span><?php echo t('ولا يخصم منك شيء قبل التأكيد.'); ?></span></li>
+            <li><b><?php echo t('تدفع'); ?></b><span><?php echo t('خلال ') . (int) $tq_cfg['pay_hours'] . t(' ساعة من التأكيد.'); ?></span></li>
+            <li><b><?php echo t('تدخل الحصة'); ?></b><span><?php echo t('الرابط يفتح في بوابتك قبل الموعد.'); ?></span></li>
+          </ol>
+        </section>
 
       </div>
 
-      <aside class="co-side">
-        <div class="co-side__plan">
-          <h2 class="co-side__h"><?php echo html_escape($tq_t['name']); ?></h2>
+      <aside class="fndp-side">
+        <div class="fndp-book">
+          <?php echo tqs_foundation_media($tq_t, 'fnd26-card__media fndp-book__media'); ?>
+          <h2 class="fndp-book__name"><?php echo html_escape($tq_t['name']); ?></h2>
 
-          <p class="co-side__total">
-            <?php if ((int) $tq_p['price'] > 0): ?>
-              <?php echo $tq_sar($tq_p['price']); ?>
-              <span><?php echo t('للحصة الواحدة'); ?></span>
+          <p class="fndp-book__price">
+            <?php echo $tq_price_html($tq_p['price']); ?>
+            <?php if ((int) $tq_p['price'] > 0): ?><small><?php echo t('للحصة الواحدة'); ?></small><?php endif; ?>
+          </p>
+
+          <?php echo tqs_foundation_facts($tq_cfg, 'fndp-book__facts'); ?>
+
+          <p class="fndp-book__status<?php echo $tq_slots > 0 ? ' is-open' : ''; ?>">
+            <i aria-hidden="true"></i>
+            <?php if ($tq_slots > 0): ?>
+              <span><?php echo tqs_ar_count($tq_slots, array(
+                  t('موعد متاح في الأيام القادمة'), t('موعدان متاحان في الأيام القادمة'),
+                  t('مواعيد متاحة في الأيام القادمة'), t('موعدا متاحا في الأيام القادمة'))); ?></span>
             <?php else: ?>
-              <?php echo t('مجانية'); ?>
+              <span><?php echo t('لا مواعيد مفتوحة الآن'); ?></span>
             <?php endif; ?>
           </p>
 
-          <p class="co-side__note">
-            <?php echo t('مدة الحصة'); ?> <b class="tq-ltr"><?php echo (int) $tq_cfg['minutes']; ?></b>
-            <?php echo t('دقيقة، فردية ومباشرة مع معلمك.'); ?>
-            <?php echo t('ولا يخصم شيء إلا بعد أن يؤكد المعلم موعدك.'); ?>
-          </p>
-
-          <?php if ($tq_slots > 0): ?>
-            <p class="co-side__note">
-              <b class="tq-ltr"><?php echo (int) $tq_slots; ?></b>
-              <?php echo t('موعدا متاحا في الأيام القادمة.'); ?>
-            </p>
-          <?php endif; ?>
-
           <?php /* الحجز في البوابة: الطلب يكتب صفا باسم صاحبه، وزائر بلا
                    حساب لا صف له. وشاشة الدخول تعيده إلى هنا. */ ?>
-          <a class="btn btn--gold" href="<?php echo base_url('student/foundation?track=' . (int) $tq_t['id']); ?>">
+          <a class="fndp-book__cta" href="<?php echo $tq_book; ?>">
             <?php echo t('احجز موعدك'); ?>
+            <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg>
           </a>
 
-          <p class="co-side__note">
+          <p class="fndp-book__note">
             <?php echo t('التأسيس مستقل عن الباقات: لا يشترط اشتراكا، ولا تفتحه باقة.'); ?>
             <a href="<?php echo base_url('foundation'); ?>"><?php echo t('كل المسارات'); ?></a>
           </p>
         </div>
       </aside>
-    </div>
 
+    </div>
   </div>
 </section>
+
+<?php echo tqs_foundation_band(array(
+    'id'      => 'more-tracks',
+    'exclude' => (int) $tq_t['id'],
+    'eyebrow' => t('قسم التأسيس'),
+    'title'   => t('مسارات تأسيس أخرى'),
+    'lede'    => '',
+    'facts'   => false,
+    'foot'    => false,
+)); ?>

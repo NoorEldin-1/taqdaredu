@@ -65,6 +65,16 @@ foreach ($tq_events as $e) {
 
 $tq_today_events = $tq_by_day[date('Y-m-d', $tq_today)] ?? [];
 
+/* TQ-CAL-ALLDAY — ما له ساعة وما هو يوم كامل. تاريخ الوحدة يوم بلا ساعة،
+   فلا يوضع على خط الساعات ولا يعد فيما «مضى». */
+$tq_today_allday = array_values(array_filter($tq_today_events, static function ($e) { return !empty($e['all_day']); }));
+$tq_today_timed  = array_values(array_filter($tq_today_events, static function ($e) { return empty($e['all_day']); }));
+
+/* عدد أحداث كل فئة: فئة بلا حدث واحد تقال «لا مواعيد» بجوار مربعها،
+   لا تبدو معطلة حين يعلمها الطالب فلا يتغير شيء. */
+$tq_cat_n = [];
+foreach ($tq_events as $e) $tq_cat_n[$e['cat']] = ($tq_cat_n[$e['cat']] ?? 0) + 1;
+
 /* «الثلاثون يوما القادمة» نافذة حقيقية لا عنوانا فوق قائمة بلا حد */
 $tq_horizon  = $tq_today + 30 * 86400;
 $tq_upcoming = array_values(array_filter($tq_events, static function ($e) use ($tq_today, $tq_horizon) {
@@ -121,13 +131,20 @@ include 'portal_open.php';
 .tq-legend__key { display: inline-flex; align-items: center; gap: var(--tq-space-xs); font: var(--tq-type-caption); color: var(--tq-text2); }
 .tq-legend__dot { inline-size: 10px; block-size: 10px; border-radius: var(--tq-radius-pill); flex: none; }
 
-/* الخط الزمني الرأسي لجدول اليوم */
-.tq-timeline { position: relative; padding-inline-start: var(--tq-space-h1); }
-.tq-timeline::before { content: ''; position: absolute; inset-block: 0; inset-inline-start: 78px; inline-size: 2px; background: var(--tq-line); }
-.tq-tl { display: grid; grid-template-columns: 70px 20px auto minmax(0, 1fr) auto; gap: var(--tq-space-m);
+/* الخط الزمني الرأسي لجدول اليوم.
+   TQ-TL-LINE — كان الخط على `78px` ثابتة من حافة الحاوية، والحاوية تبدأ
+   بحشوة `h1` ثم عمود الوقت — فيقع الخط **داخل عمود الوقت** ويشق «12:00 ص»
+   نصفين. فالموضع يحسب من الأعمدة نفسها: الحشوة + عمود الوقت + الفجوة +
+   نصف عمود النقطة — والنقطة في وسط عمودها، فيمر الخط بمركزها أيا كان
+   مقاس الحشوة. والوقت لا يكسر: «12:00» في سطر و«ص» في آخر يقرأ ساعتين. */
+.tq-timeline { --tq-tl-time: 76px; position: relative; padding-inline-start: var(--tq-space-h1); }
+.tq-timeline::before { content: ''; position: absolute; inset-block: 0; inline-size: 2px; background: var(--tq-line);
+  inset-inline-start: calc(var(--tq-space-h1) + var(--tq-tl-time) + var(--tq-space-m) + 9px); }
+.tq-tl { display: grid; grid-template-columns: var(--tq-tl-time) 20px auto minmax(0, 1fr) auto; gap: var(--tq-space-m);
   align-items: center; padding-block: var(--tq-space-m); }
-.tq-tl__time { font: var(--tq-type-numeralSm); color: var(--tq-text2); unicode-bidi: isolate; direction: ltr; text-align: end; }
-.tq-tl__dot { inline-size: 11px; block-size: 11px; border-radius: var(--tq-radius-pill); }
+.tq-tl__time { font: var(--tq-type-numeralSm); color: var(--tq-text2); white-space: nowrap; text-align: end; }
+.tq-tl__dot { inline-size: 11px; block-size: 11px; border-radius: var(--tq-radius-pill); justify-self: center;
+  position: relative; z-index: 1; box-shadow: 0 0 0 3px var(--tq-panel, var(--tq-surface)); }
 
 .tq-weekgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--tq-space-s); }
 .tq-weekcol { background: var(--tq-surface); border: 1px solid var(--tq-line); border-radius: var(--tq-radius-medium);
@@ -142,6 +159,10 @@ include 'portal_open.php';
   font: var(--tq-type-numeralSm); color: var(--tq-text2); unicode-bidi: isolate; direction: ltr; }
 .tq-mini__c--out { color: var(--tq-text3); }
 .tq-mini__c--today { background: var(--tq-actionPrimary); color: var(--tq-onAction); }
+/* يوم فيه موعد: علامة تحته، والخانة رابط إلى يومها. */
+a.tq-mini__c { text-decoration: none; }
+a.tq-mini__c:hover { background: var(--tq-navyWash); }
+.tq-mini__c--has { font-weight: 700; color: var(--tq-navy); box-shadow: inset 0 -3px 0 var(--tq-teal); }
 .tq-mini__dow { text-align: center; font: var(--tq-type-micro); color: var(--tq-text2); }
 
 .tq-calrow { display: flex; align-items: center; gap: var(--tq-space-m); padding-block: var(--tq-space-s); }
@@ -253,11 +274,26 @@ include 'portal_open.php';
                     <?php echo html_escape($tq_day_names[(int) date('w', $tq_ref)]); ?>
                     <?php echo tq_num(date('Y-m-d', $tq_ref), 'tq-num--sm'); ?>
                 </h2>
+                <?php $tq_day_all = array_filter($tq_by_day[date('Y-m-d', $tq_ref)] ?? [], static function ($e) { return !empty($e['all_day']); }); ?>
+                <?php if ($tq_day_all): ?>
+                    <div class="tq-hourrow">
+                        <span class="tq-tl__time"><?php echo t('طوال اليوم'); ?></span>
+                        <div>
+                            <?php foreach ($tq_day_all as $e): ?>
+                                <?php $c = $tq_cats[$e['cat']] ?? $tq_cats['lessons']; ?>
+                                <a class="tq-ev" data-tq-evcat="<?php echo html_escape($e['cat']); ?>" title="<?php echo html_escape($e['title']); ?>" href="<?php echo html_escape($e['href']); ?>">
+                                    <span class="tq-ev__dot" style="background:<?php echo $c[1]; ?>" aria-hidden="true"></span>
+                                    <span class="tq-ev__t"><?php echo html_escape($e['title']); ?></span>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
                 <?php for ($h = 7; $h <= 22; $h++): ?>
                     <?php
                     $slot = [];
                     foreach (($tq_by_day[date('Y-m-d', $tq_ref)] ?? []) as $e) {
-                        if ((int) date('G', (int) $e['ts']) === $h) { $slot[] = $e; }
+                        if (empty($e['all_day']) && (int) date('G', (int) $e['ts']) === $h) { $slot[] = $e; }
                     }
                     ?>
                     <div class="tq-hourrow">
@@ -293,7 +329,8 @@ include 'portal_open.php';
                     <ul class="tq-stack">
                         <?php foreach ($tq_upcoming as $e): ?>
                             <?php $c = $tq_cats[$e['cat']] ?? $tq_cats['lessons']; ?>
-                            <li class="tq-row tq-row--between">
+                            <?php /* الوسم هنا كما في الشبكات: بدونه كان إخفاء فئة لا يمس عرض «الجدول». */ ?>
+                            <li class="tq-row tq-row--between" data-tq-evcat="<?php echo html_escape($e['cat']); ?>">
                                 <a class="tq-row" href="<?php echo html_escape($e['href']); ?>">
                                     <span class="tq-ev__dot" style="background:<?php echo $c[1]; ?>" aria-hidden="true"></span>
                                     <span>
@@ -349,7 +386,11 @@ include 'portal_open.php';
                                  الطالب أنه أخفى «الاختبارات» وهي أمامه، فيحسب المربع معطلا. */ ?>
                         <div class="tq-tl" data-tq-evcat="<?php echo html_escape($e['cat']); ?>">
                             <span class="tq-tl__time">
-                                <?php echo tq_num(date('g:i', $ts), 'tq-num--sm'); ?> <?php echo (int) date('G', $ts) < 12 ? t('ص') : t('م'); ?>
+                                <?php if (!empty($e['all_day'])): ?>
+                                    <?php echo t('طوال اليوم'); ?>
+                                <?php else: ?>
+                                    <?php echo tq_num(date('g:i', $ts), 'tq-num--sm'); ?> <?php echo (int) date('G', $ts) < 12 ? t('ص') : t('م'); ?>
+                                <?php endif; ?>
                             </span>
                             <span class="tq-tl__dot" style="background:<?php echo $c[1]; ?>" aria-hidden="true"></span>
                             <span class="tq-icon-box tq-pastel--sky" aria-hidden="true"><?php echo tq_icon($c[2]); ?></span>
@@ -383,6 +424,9 @@ include 'portal_open.php';
                            style="accent-color:<?php echo $c[1]; ?>">
                     <label for="tq-cal-<?php echo html_escape($key); ?>" class="tq-caption" style="color:var(--tq-navy)">
                         <?php echo html_escape($c[0]); ?>
+                        <?php if (empty($tq_cat_n[$key])): ?>
+                            <span class="tq-micro tq-muted">· <?php echo t('لا مواعيد'); ?></span>
+                        <?php endif; ?>
                     </label>
                     <span class="tq-legend__dot" style="background:<?php echo $c[1]; ?>;margin-inline-start:auto" aria-hidden="true"></span>
                 </div>
@@ -430,17 +474,21 @@ include 'portal_open.php';
                 </p>
             <?php else: ?>
                 <?php
-                /* الشريط يقيس ما مضى وقته من مواعيد اليوم — قياس من الساعة
-                   والطوابع الزمنية، لا نسبة إنجاز لا مصدر لها. */
+                /* الشريط يقيس ما مضى وقته من مواعيد اليوم **ذات الساعة** وحدها:
+                   اليوم الكامل (تاريخ وحدة) لا يمضي عند منتصف الليل. */
                 $tq_passed = 0;
-                foreach ($tq_today_events as $e) {
+                foreach ($tq_today_timed as $e) {
                     if ((int) $e['ts'] <= time()) $tq_passed++;
                 }
                 ?>
                 <p class="tq-caption">
                     <?php echo tq_iso(t('لديك ') . count($tq_today_events) . t(' موعدا اليوم')); ?>
                 </p>
-                <?php echo tq_progress((int) round($tq_passed * 100 / count($tq_today_events)), t('ما مضى من مواعيد اليوم')); ?>
+                <?php if ($tq_today_timed): ?>
+                    <?php echo tq_progress((int) round($tq_passed * 100 / count($tq_today_timed)), t('ما مضى من مواعيد اليوم')); ?>
+                <?php else: ?>
+                    <p class="tq-micro" style="margin:0"><?php echo t('كلها ليوم كامل بلا ساعة محددة.'); ?></p>
+                <?php endif; ?>
                 <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo $tq_link('day', $tq_today); ?>" style="margin-block-start:var(--tq-space-m)">
                     <?php echo t('عرض التفاصيل'); ?>
                 </a>
@@ -455,9 +503,12 @@ include 'portal_open.php';
                     <?php echo tq_num(date('Y', $tq_next_month), 'tq-num--sm'); ?>
                 </h2>
             </div>
-            <div class="tq-mini" aria-hidden="true">
+            <?php /* TQ-CAL-MINI — كان التقويم الصغير أرقام أيام بلا علامة ولا نقرة: لا يقول
+                     أي أيام الشهر القادم فيها مواعيد، وخاناته لا تفتح شيئا. فاليوم الذي
+                     فيه موعد معلم، وكل خانة من الشهر رابط إلى عرض يومها. */ ?>
+            <div class="tq-mini">
                 <?php foreach ($tq_day_short as $dn): ?>
-                    <span class="tq-mini__dow"><?php echo html_escape(mb_substr($dn, 0, 3)); ?></span>
+                    <span class="tq-mini__dow" aria-hidden="true"><?php echo html_escape(mb_substr($dn, 0, 3)); ?></span>
                 <?php endforeach; ?>
                 <?php
                 $nlead  = (int) date('w', $tq_next_month);
@@ -466,10 +517,18 @@ include 'portal_open.php';
                 for ($i = 0; $i < $ncells; $i++):
                     $st  = $tq_next_month + ($i - $nlead) * 86400;
                     $out = ((int) date('n', $st) !== (int) date('n', $tq_next_month));
+                    $nev = count($tq_by_day[date('Y-m-d', $st)] ?? []);
+                    $cls = 'tq-mini__c' . ($out ? ' tq-mini__c--out' : '') . ($st === $tq_today ? ' tq-mini__c--today' : '')
+                         . (!$out && $nev > 0 ? ' tq-mini__c--has' : '');
                 ?>
-                    <span class="tq-mini__c<?php echo $out ? ' tq-mini__c--out' : ''; ?><?php echo $st === $tq_today ? ' tq-mini__c--today' : ''; ?>">
-                        <?php echo TQ_LRI . date('j', $st) . TQ_PDI; ?>
-                    </span>
+                    <?php if ($out): ?>
+                        <span class="<?php echo $cls; ?>" aria-hidden="true"><?php echo TQ_LRI . date('j', $st) . TQ_PDI; ?></span>
+                    <?php else: ?>
+                        <a class="<?php echo $cls; ?>" href="<?php echo $tq_link('day', $st); ?>"
+                           aria-label="<?php echo html_escape(date('Y-m-d', $st) . ($nev > 0 ? ' — ' . t('فيه ____ موعد', array($nev)) : '')); ?>">
+                            <?php echo TQ_LRI . date('j', $st) . TQ_PDI; ?>
+                        </a>
+                    <?php endif; ?>
                 <?php endfor; ?>
             </div>
             <a class="tq-btn tq-btn--ghost tq-btn--sm tq-btn--block" href="<?php echo $tq_link('month', $tq_next_month); ?>" style="margin-block-start:var(--tq-space-m)">

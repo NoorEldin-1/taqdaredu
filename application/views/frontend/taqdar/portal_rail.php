@@ -237,7 +237,9 @@ $tq_count_sr = [
         <button class="tq-iconbtn tq-rail__collapse" type="button"
                 data-tq-rail-collapse aria-expanded="true"
                 aria-label="<?php echo te('طي القائمة الجانبية'); ?>" title="<?php echo te('طي القائمة الجانبية'); ?>">
-            <?php echo tq_icon('chev-next', 18); ?>
+            <?php /* السهم يشير إلى حافة الشريط وهو مفتوح (اطوه نحوها) وإلى المحتوى
+                     وهو مطوي (افتحه نحوه). `chev-next` كان يشير عكس ذلك في الحالين. */ ?>
+            <?php echo tq_icon('chev-prev', 18); ?>
         </button>
 
         <?php /* على الجوال يغلق الدرج من داخله: زر الفتح في الترويسة يختفي

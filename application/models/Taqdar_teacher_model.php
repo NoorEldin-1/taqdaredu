@@ -1050,9 +1050,45 @@ class Taqdar_teacher_model extends CI_Model
         if ($raw === false || trim($raw) === '') {
             return array('ok' => false, 'errors' => array('الملف فارغ أو تعذرت قراءته.'));
         }
+        /* TQ-IMPORT-FORMATS — الحكم على **المحتوى** لا على الامتداد (مبدأ
+           TQ-BOOK-FILE): ملف `.csv` قد يكون Excel أعيدت تسميته، و`.xlsx` قد
+           يكون أي شيء. فالتوقيع يقرر:
+             PK\x03\x04  ⇐ حاوية ZIP أي xlsx — تحول إلى CSV ثم يمضي المحلل كما هو
+             \xD0\xCF…   ⇐ Excel/Word القديم (OLE)، لا يقرأ بلا مكتبة
+             %PDF-       ⇐ نص للقراءة لا جدول */
+        $forced_delim = null;
+        if (strncmp($raw, "PK\x03\x04", 4) === 0) {
+            $raw = $this->xlsx_to_csv($f['tmp_name']);
+            if ($raw === null || trim($raw) === '') {
+                return array('ok' => false, 'errors' => array('تعذرت قراءة ملف Excel. تأكد أن الأسئلة في الورقة الأولى، أو احفظه بصيغة CSV ثم أعد رفعه.'));
+            }
+            $forced_delim = ',';
+        } elseif (strncmp($raw, "\xD0\xCF\x11\xE0", 4) === 0) {
+            return array('ok' => false, 'errors' => array('هذا ملف Excel أو Word بالصيغة القديمة. احفظه بصيغة xlsx أو CSV ثم أعد رفعه.'));
+        } elseif (strncmp($raw, '%PDF-', 5) === 0) {
+            return array('ok' => false, 'errors' => array('ملف PDF لا تستورد منه الأسئلة: انسخها إلى جدول Excel بالأعمدة المطلوبة واحفظه بصيغة xlsx أو CSV.'));
+        }
+
         $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw);
 
-        $delim = (substr_count($raw, ';') > substr_count($raw, ',')) ? ';' : ',';
+        /* CSV من Excel على ويندوز عربي يحفظ بـWindows-1256 لا UTF-8، فتصل
+           العربية رموزا مكسورة ويرد كل صف «بلا هدف» والمعلم كتب هدفه. فما لم
+           يكن UTF-8 سليما يحول منها — ولا يمس ما هو سليم. */
+        if (!mb_check_encoding($raw, 'UTF-8') && function_exists('iconv')) {
+            $conv = @iconv('CP1256', 'UTF-8//IGNORE', $raw);
+            if ($conv !== false && $conv !== '') $raw = $conv;
+        }
+
+        if ($forced_delim !== null) {
+            $delim = $forced_delim;
+        } else {
+            /* الفاصلة أصلا، والفاصلة المنقوطة لمن يحفظ Excel بإعداد أوروبي،
+               والجدولة لمن ينسخ من جدول ويلصق في ملف نصي. */
+            $first  = strtok($raw, "\r\n");
+            $counts = array(',' => substr_count($first, ','), ';' => substr_count($first, ';'), "\t" => substr_count($first, "\t"));
+            arsort($counts);
+            $delim = reset($counts) > 0 ? key($counts) : ',';
+        }
         $lines = preg_split('/\r\n|\r|\n/', $raw);
 
         $head = null; $added = 0; $skipped = 0; $notes = array();
@@ -1223,6 +1259,98 @@ class Taqdar_teacher_model extends CI_Model
         $id = (int) $CI->db->insert_id();
 
         return $id > 0 ? $id : null;
+    }
+
+    /**
+     * TQ-IMPORT-FORMATS — الورقة الأولى من ملف xlsx نصا بصيغة CSV.
+     *
+     * بلا مكتبة: xlsx حاوية ZIP فيها XML، و`libraries/` طرف ثالث لا يضاف
+     * إليه، والمطلوب قراءة جدول نصي لا صيغ ولا تنسيق. فالورقة الأولى **بترتيب
+     * المصنف** (`workbook.xml` ← علاقاتها) لا `sheet1.xml` بالاسم: من أعاد
+     * ترتيب الأوراق يكون اسم ملف أولاها غير ذلك.
+     *
+     * والخلية التي فيها سطر جديد يطوى سطرها مسافة: المحلل بعدها يقسم النص
+     * بالأسطر قبل أن يقسم بالأعمدة، فسطر داخل خلية يشطر السؤال صفين.
+     *
+     * @return string|null نص CSV، أو null إن لم يكن الملف xlsx مقروءا
+     */
+    private function xlsx_to_csv($path)
+    {
+        if (!class_exists('ZipArchive')) return null;
+        $zip = new ZipArchive();
+        if ($zip->open($path) !== true) return null;
+
+        $sheet = 'xl/worksheets/sheet1.xml';
+        $wb    = $zip->getFromName('xl/workbook.xml');
+        $rels  = $zip->getFromName('xl/_rels/workbook.xml.rels');
+        if ($wb !== false && $rels !== false) {
+            $wbx = @simplexml_load_string($wb);
+            $rx  = @simplexml_load_string($rels);
+            if ($wbx && $rx && isset($wbx->sheets->sheet[0])) {
+                $rid = (string) $wbx->sheets->sheet[0]->attributes('r', true)->id;
+                foreach ($rx->Relationship as $r) {
+                    if ((string) $r['Id'] !== $rid) continue;
+                    $t = ltrim((string) $r['Target'], '/');
+                    $sheet = strpos($t, 'xl/') === 0 ? $t : 'xl/' . $t;
+                    break;
+                }
+            }
+        }
+
+        $shared = array();
+        $ss = $zip->getFromName('xl/sharedStrings.xml');
+        if ($ss !== false && ($ssx = @simplexml_load_string($ss))) {
+            foreach ($ssx->si as $si) $shared[] = $this->xlsx_text($si);
+        }
+
+        $xml = $zip->getFromName($sheet);
+        $zip->close();
+        if ($xml === false) return null;
+        $sx = @simplexml_load_string($xml);
+        if (!$sx || !isset($sx->sheetData)) return null;
+
+        $out = fopen('php://temp', 'r+');
+        foreach ($sx->sheetData->row as $row) {
+            $cells = array();
+            foreach ($row->c as $c) {
+                $col  = $this->xlsx_col((string) $c['r'], count($cells));
+                $type = (string) $c['t'];
+                if ($type === 's') {
+                    $v = isset($shared[(int) $c->v]) ? $shared[(int) $c->v] : '';
+                } elseif ($type === 'inlineStr') {
+                    $v = $this->xlsx_text($c->is);
+                } else {
+                    $v = (string) $c->v;
+                }
+                while (count($cells) < $col) $cells[] = '';
+                $cells[$col] = trim(preg_replace('/\s*[\r\n]+\s*/u', ' ', $v));
+            }
+            if (trim(implode('', $cells)) === '') continue;
+            fputcsv($out, $cells, ',', '"', '');
+        }
+        rewind($out);
+        $csv = stream_get_contents($out);
+        fclose($out);
+
+        return $csv;
+    }
+
+    /** نص خلية xlsx: نص عار (`<t>`) أو مقاطع منسقة (`<r><t>`) مجموعة. */
+    private function xlsx_text($node)
+    {
+        if (!$node) return '';
+        $s = isset($node->t) ? (string) $node->t : '';
+        foreach ($node->r as $r) $s .= (string) $r->t;
+        return $s;
+    }
+
+    /** رقم العمود من مرجع الخلية (`C7` ⇐ 2). والخلية الفارغة لا تكتب في الملف أصلا، فالمرجع هو ما يحفظ الموضع. */
+    private function xlsx_col($ref, $fallback)
+    {
+        if (!preg_match('/^([A-Z]+)/', $ref, $m)) return (int) $fallback;
+        $n = 0;
+        foreach (str_split($m[1]) as $ch) $n = $n * 26 + (ord($ch) - 64);
+        return $n - 1;
     }
 
     /** أول قيمة غير فارغة بين أسماء أعمدة مترادفة. */

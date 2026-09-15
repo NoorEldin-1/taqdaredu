@@ -2674,13 +2674,19 @@ class Taqdar_admin_model extends CI_Model
     {
         try {
             $now = time();
+            /* TQ-PREF-CHANNELS — عمودا «داخل المنصة» و«بريد إلكتروني» في شاشة
+               التنبيهات كانا يحفظان ولا يقرؤهما مرسل: `allows()` كانت تنادى
+               لواتساب وحده، فيطفئ صاحب الحساب البريد وتظل الرسائل تصله.
+               والصف في `notifications` يكتب دائما — هو السجل — ومن أطفأ «داخل
+               المنصة» يكتب له مقروءا فلا يطرق جرسه. */
+            $inapp = $this->tq_pref_on((int) $to_user, (string) $type, 'inapp');
             $this->db->insert('notifications', array(
                 'from_user'   => $this->tq_actor_id(),
                 'to_user'     => (int) $to_user,
                 'type'        => $type,
                 'title'       => $title,
                 'description' => $description,
-                'status'      => 0,
+                'status'      => $inapp ? 0 : 1,
                 'created_at'  => (string) $now,
                 'updated_at'  => (string) $now,
             ));
@@ -2694,7 +2700,7 @@ class Taqdar_admin_model extends CI_Model
            (اعتماد سحب · رفضه · تفعيل اشتراك)، وصاحبها ينتظرها ولا يفتح
            المنصة كل يوم ليجدها. و`Taqdar_mail_model` يرد `false` بهدوء
            حين لا يكون البريد مضبوطا — فلا يسقط القرار لأن الرسالة لم تصل. */
-        if ($mail) {
+        if ($mail && $this->tq_pref_on((int) $to_user, (string) $type, 'email')) {
             $this->mail_user((int) $to_user, $title, $description);
         }
 
@@ -2708,6 +2714,21 @@ class Taqdar_admin_model extends CI_Model
         }
 
         return true;
+    }
+
+    /**
+     * أيسمح صاحب الحساب بهذا النوع على هذه القناة؟ — `allows()` نفسها.
+     * وتعذر القراءة يسمح: تفضيل لا يقرأ لا يصادر قرارا على مال أو حساب.
+     */
+    private function tq_pref_on($user_id, $type, $channel)
+    {
+        try {
+            $this->load->model('taqdar_settings_model');
+            return (bool) $this->taqdar_settings_model->allows((int) $user_id, (string) $type, (string) $channel);
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            return true;
+        }
     }
 
     /**

@@ -14,11 +14,18 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  *                تكرارا. ومنه رابط إلى ثانية الشرح في الدرس نفسه.
  *   **التدريب المركز** — يسأل الأخطاء سؤالا سؤالا، والصواب فيه يحرك
  *                حالة المهارة ويباعد الموعد إن كان السؤال مجدولا.
- *                فالتدريب يحسب كما تحسب المراجعة ولا يكون عملا بلا أثر.
  *
  * ولا استعلام هنا ولا تصحيح: كل شيء من `taqdar_gate`. الصفحة لا تعرف
  * الإجابة الصحيحة أبدا — تعرضها بعد أن يقولها الخادم. ولو حسبت هنا
  * لأمكن «إتقان» الدفتر بتعديل جافاسكربت.
+ *
+ * TQ-MISTAKE-CLEAR — ما أصلح:
+ *   • **الدفتر يفرغ.** صواب في التدريب (أو في اختبار لاحق) بعد آخر خطأ يخرج
+ *     السؤال منه، وخطأ جديد يعيده — والحكم في `get_mistakes()` لا هنا.
+ *   • **كل ما في الشاشة يتبع المرشح**: البطاقات الأربع، والقائمة، والتدريب —
+ *     والتدريب يرشح في الخادم قبل القص، ويقول إنه عشرة من كم.
+ *   • **الكورس بمعرفه لا باسمه**: كورسان باسم واحد كانا يجمعان تحت خيار واحد.
+ *   • **النصوص تمر بـ`TQ.t()`**.
  */
 include 'tq_student_styles.php';
 
@@ -30,6 +37,13 @@ $tq_icon  = 'help';
 
 include 'portal_open.php';
 ?>
+
+<noscript>
+  <style>[data-tq-mk-skeleton]{display:none}</style>
+  <div class="tq-card">
+    <p class="tq-body" style="margin:0"><?php echo t('يبنى دفتر أخطائك وتدريبه في متصفحك، ويحتاج ذلك تشغيل جافاسكربت. فعله من إعدادات المتصفح ثم حدث الصفحة.'); ?></p>
+  </div>
+</noscript>
 
 <div class="tq-mistakes" data-tq-mistakes
      data-tq-gate="<?php echo base_url('taqdar_gate'); ?>"
@@ -64,7 +78,7 @@ include 'portal_open.php';
 
     <div data-tq-mk-has hidden>
 
-      <!-- الشريط: كم خطأ، وفي كم مفهوم، وكم منها مجدول -->
+      <!-- الشريط: كم خطأ، وفي كم مفهوم، وكم منها مجدول — للمعروض بالمرشح -->
       <section class="tq-s-grid4" data-tq-mk-stats
                style="margin-block-end:var(--tq-space-xl)"></section>
 
@@ -73,9 +87,9 @@ include 'portal_open.php';
         <div class="tq-card__head">
           <h2 class="tq-card__title"><?php echo t('أخطاؤك'); ?></h2>
           <div class="tq-row" style="gap:var(--tq-space-s)">
-            <label class="sr-only" for="tqMkFilter"><?php echo t('رشح بالمادة'); ?></label>
+            <label class="sr-only" for="tqMkFilter"><?php echo t('رشح بالكورس'); ?></label>
             <select class="tq-select" id="tqMkFilter" data-tq-mk-filter>
-              <option value=""><?php echo t('كل المواد'); ?></option>
+              <option value=""><?php echo t('كل الكورسات'); ?></option>
             </select>
             <button class="tq-btn tq-btn--primary tq-btn--sm" type="button" data-tq-mk-start>
               <?php echo t('ابدأ تدريبا مركزا'); ?>
@@ -87,7 +101,7 @@ include 'portal_open.php';
 
         <p class="tq-caption" data-tq-mk-filtered-empty hidden
            style="text-align:center;padding-block:var(--tq-space-xl)">
-          <?php echo t('لا أخطاء في هذه المادة. اختر مادة أخرى أو اعرض الكل.'); ?>
+          <?php echo t('لا أخطاء في هذا الكورس. اختر كورسا آخر أو اعرض الكل.'); ?>
         </p>
       </section>
     </div>
@@ -98,6 +112,8 @@ include 'portal_open.php';
         <h2 class="tq-card__title"><?php echo t('تدريب مركز'); ?></h2>
         <span class="tq-caption" data-tq-mk-counter></span>
       </div>
+
+      <p class="tq-caption" data-tq-mk-scope hidden style="margin-block:0 var(--tq-space-m)"></p>
 
       <div data-tq-mk-progress style="margin-block-end:var(--tq-space-l)"></div>
 
@@ -229,6 +245,7 @@ include 'portal_open.php';
     fEmpty:   $('[data-tq-mk-filtered-empty]'),
     drill:    $('[data-tq-mk-drill]'),
     counter:  $('[data-tq-mk-counter]'),
+    scope:    $('[data-tq-mk-scope]'),
     progress: $('[data-tq-mk-progress]'),
     source:   $('[data-tq-mk-source]'),
     form:     $('[data-tq-mk-form]'),
@@ -244,7 +261,8 @@ include 'portal_open.php';
     doneText: $('[data-tq-mk-done-text]')
   };
 
-  var state = { all: [], queue: [], idx: 0, right: 0, wrong: 0 };
+  var state = { all: [], queue: [], idx: 0, right: 0, wrong: 0, cleared: 0, total: 0 };
+  var courseLabel = {}, courseOrder = [];
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -260,15 +278,10 @@ include 'portal_open.php';
 
   function api(path, opts) {
     opts = opts || {};
-    /* TQ-GATE-CSRF — الرمز في الترويسة: `$_POST` فارغ مع جسم JSON،
-       فكان كل نداء كتابة يرد 403 قبل أن يبلغ المتحكم. */
+    /* TQ-GATE-CSRF — الرمز في الترويسة: `$_POST` فارغ مع جسم JSON. */
     var h = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
     if (opts.method && opts.method !== 'GET') h['X-CSRF-Token'] = tqCsrf();
-    /* TQ-RAW-ERROR — الغلاف الواحد في `tq-i18n.js`: هو الذي يفرق بين
-       شبكة مقطوعة وجلسة منتهية وخادم متعثر، ويخرج عربية جاهزة للعرض.
-       وكانت هذه الكتلة تعالج خطأ الخادم وحده — وهو الطريق الوحيد الذي
-       يرد نصا عربيا أصلا — فيبقى «Failed to fetch» يكتب حرفا في لوح
-       الخطأ أمام طالب لا يقرأ الإنجليزية ولا يعرف أن يفحص اتصاله. */
+    /* TQ-RAW-ERROR — الغلاف الواحد في `tq-i18n.js`. */
     return TQ.gateFetch(GATE + '/' + path, {
       method: opts.method || 'GET',
       credentials: 'same-origin',
@@ -276,6 +289,9 @@ include 'portal_open.php';
       body: opts.body ? JSON.stringify(opts.body) : undefined
     });
   }
+
+  /* الكورس بمعرفه لا باسمه: كورسان باسم واحد كانا خيارا واحدا. */
+  function courseKey(m) { return String(m.course_id || 0); }
 
   /* ---- الدفتر ---------------------------------------------------- */
 
@@ -301,39 +317,59 @@ include 'portal_open.php';
   }
 
   function buildFilter() {
-    var seen = {}, opts = '';
+    if (!el.filter) return;
+    var keep = el.filter.value;
+    courseLabel = {}; courseOrder = [];
+    var byTitle = {};
     state.all.forEach(function (m) {
-      if (m.course_title && !seen[m.course_title]) {
-        seen[m.course_title] = 1;
-        opts += '<option value="' + esc(m.course_title) + '">' + esc(m.course_title) + '</option>';
-      }
+      var k = courseKey(m);
+      if (courseLabel[k] !== undefined) return;
+      var title = m.course_title || TQ.t('بلا كورس');
+      courseLabel[k] = title; courseOrder.push(k);
+      (byTitle[title] = byTitle[title] || []).push(k);
     });
-    if (el.filter) el.filter.insertAdjacentHTML('beforeend', opts);
+    Object.keys(byTitle).forEach(function (title) {
+      if (byTitle[title].length < 2) return;
+      byTitle[title].forEach(function (k) { courseLabel[k] = TQ.t('____ — كورس رقم ____', title, k); });
+    });
+
+    /* يعاد بناؤه بعد كل تدريب: كورس خرجت كل أخطائه لا يبقى خيارا فارغا. */
+    el.filter.innerHTML = '<option value="">' + esc(TQ.t('كل الكورسات')) + '</option>' +
+      courseOrder.map(function (k) {
+        return '<option value="' + esc(k) + '">' + esc(courseLabel[k]) + '</option>';
+      }).join('');
+    if (keep && courseLabel[keep] !== undefined) el.filter.value = keep;
   }
 
   function visible() {
     var f = el.filter ? el.filter.value : '';
-    return f ? state.all.filter(function (m) { return m.course_title === f; }) : state.all;
+    return f ? state.all.filter(function (m) { return courseKey(m) === f; }) : state.all;
   }
 
   function renderStats() {
     if (!el.stats) return;
-    var rows = state.all;
+    var rows = visible();
     var total = rows.reduce(function (s, m) { return s + (m.wrong_count || 0); }, 0);
     var concepts = {}; rows.forEach(function (m) { if (m.objective_id) concepts[m.objective_id] = 1; });
     var scheduled = rows.filter(function (m) { return m.due_at; }).length;
 
     el.stats.innerHTML =
-      stat(rows.length, 'سؤالا في دفترك', 'help', 'peach') +
-      stat(total, 'مرة أخطأت فيها', 'refresh', 'rose') +
-      stat(Object.keys(concepts).length, 'مفهوما يحتاج تثبيتا', 'target', 'sky') +
-      stat(scheduled, 'منها مجدول للمراجعة', 'calendar', 'mint');
+      stat(rows.length, TQ.t('سؤالا في دفترك'), 'peach') +
+      stat(total, TQ.t('مرة أخطأت فيها'), 'rose') +
+      stat(Object.keys(concepts).length, TQ.t('مفهوما يحتاج تثبيتا'), 'sky') +
+      stat(scheduled, TQ.t('منها مجدول للمراجعة'), 'mint');
   }
 
-  function stat(v, label, icon, pastel) {
+  function stat(v, label, pastel) {
     return '<div class="tq-s-stat tq-pastel tq-pastel--' + pastel + '">' +
            '<span class="tq-s-stat__value tq-pastel__title">' + v + '</span>' +
            '<span class="tq-s-stat__label tq-pastel__body">' + esc(label) + '</span></div>';
+  }
+
+  function explainLink(m) {
+    /* الرابط إلى ثانية الشرح لا إلى أول الدرس: الخطأ في مفهوم، وللمفهوم
+       موضع في الفيديو. */
+    return LESSON + '/' + m.course_id + '/' + m.lesson_id + (m.at_second ? '?t=' + m.at_second : '');
   }
 
   function renderList() {
@@ -346,17 +382,14 @@ include 'portal_open.php';
 
       var hot = (m.wrong_count || 0) >= 3 ? ' tq-mk-count--hot' : '';
       var side = '<span class="tq-mk-count' + hot + '">' +
-                 (m.wrong_count || 1) + ' مرات</span>';
+                 esc(TQ.t('____ مرات', m.wrong_count || 1)) + '</span>';
 
       if (m.due_at) {
-        side += '<span class="tq-mk-due">مجدول للمراجعة</span>';
+        side += '<span class="tq-mk-due">' + esc(TQ.t('مجدول للمراجعة')) + '</span>';
       }
-      /* الرابط إلى ثانية الشرح لا إلى أول الدرس: الخطأ في مفهوم، وللمفهوم
-         موضع في الفيديو — وإرساله إلى الدقيقة صفر يجعله يبحث عما أخطأ فيه. */
       if (m.lesson_id && m.course_id) {
-        side += '<a class="tq-btn tq-btn--ghost tq-btn--sm" href="' +
-                LESSON + '/' + m.course_id + '/' + m.lesson_id +
-                (m.at_second ? '?t=' + m.at_second : '') + '">راجع الشرح</a>';
+        side += '<a class="tq-btn tq-btn--ghost tq-btn--sm" href="' + explainLink(m) + '">' +
+                esc(TQ.t('راجع الشرح')) + '</a>';
       }
 
       return '<div class="tq-mk-row">' +
@@ -377,20 +410,27 @@ include 'portal_open.php';
     var f = el.filter ? el.filter.value : '';
     show(el.listCard, false);
     show(el.stats, false);
-    show(el.drill, true);
-    el.drill.innerHTML = el.drill.innerHTML; // لا شيء — يبقى المحتوى كما هو
+    show(el.fEmpty, false);
 
-    api('practice_questions?limit=10').then(function (d) {
+    /* الترشيح في الخادم قبل القص — لا في المتصفح بعده. */
+    api('practice_questions?limit=10' + (f ? '&course_id=' + encodeURIComponent(f) : '')).then(function (d) {
       var qs = (d && d.questions) || [];
-      if (f) qs = qs.filter(function (q) { return q.course_title === f; });
 
       if (!qs.length) {
         show(el.drill, false);
         show(el.listCard, true);
         show(el.stats, true);
+        show(el.fEmpty, true);
         return;
       }
-      state.queue = qs; state.idx = 0; state.right = 0; state.wrong = 0;
+      state.queue = qs; state.idx = 0; state.right = 0; state.wrong = 0; state.cleared = 0;
+      state.total = parseInt(d.total, 10) || qs.length;
+
+      /* الجلسة عشرة من كم — كانت تقص صامتة فيظن الطالب أن هذا دفتره كله. */
+      if (el.scope) {
+        el.scope.hidden = !(state.total > qs.length);
+        el.scope.textContent = TQ.t('تدريب على ____ من ____ سؤالا في دفترك — الأكثر تكرارا أولا. أنهها وابدأ جلسة أخرى لتصل إلى الباقي.', qs.length, state.total);
+      }
       renderQuestion();
     }).catch(function (e) {
       show(el.drill, false);
@@ -406,7 +446,7 @@ include 'portal_open.php';
     show(el.drill, true); show(el.verdict, false); show(el.done, false);
     show(el.hint, false);
 
-    el.counter.textContent = 'سؤال ' + (state.idx + 1) + ' من ' + state.queue.length;
+    el.counter.textContent = TQ.t('سؤال ____ من ____', state.idx + 1, state.queue.length);
     el.source.textContent = [q.course_title, q.lesson_title].filter(Boolean).join(' · ');
     el.q.textContent = q.title;
 
@@ -418,14 +458,14 @@ include 'portal_open.php';
       '<span class="tq-progress__value">' + pct + '%</span></div>';
 
     var opts = Array.isArray(q.options) ? q.options : [];
-    el.options.innerHTML = opts.map(function (o, i) {
+    el.options.innerHTML = opts.map(function (o) {
       var v = (o && typeof o === 'object') ? (o.text || o.title || '') : o;
       return '<label class="tq-mk-opt"><input type="radio" name="mkopt" value="' + esc(v) + '">' +
              '<span>' + esc(v) + '</span></label>';
     }).join('');
   }
 
-  el.options.addEventListener('change', function (e) {
+  el.options.addEventListener('change', function () {
     var boxes = el.options.querySelectorAll('.tq-mk-opt');
     for (var i = 0; i < boxes.length; i++) {
       boxes[i].classList.toggle('is-on', boxes[i].querySelector('input').checked);
@@ -446,6 +486,7 @@ include 'portal_open.php';
       .then(function (r) {
         btn.disabled = false;
         if (r.correct) state.right++; else state.wrong++;
+        if (r.cleared) state.cleared++;
         verdict(r, q);
       })
       .catch(function (err) {
@@ -461,24 +502,24 @@ include 'portal_open.php';
 
     var ok = !!r.correct;
     el.vIcon.className = 'tq-icon-box ' + (ok ? 'tq-pastel--mint' : 'tq-pastel--peach');
-    el.vTitle.textContent = ok ? 'صحيحة' : 'ما زالت تحتاج تثبيتا';
+    el.vTitle.textContent = ok ? TQ.t('صحيحة') : TQ.t('ما زالت تحتاج تثبيتا');
 
-    /* ولا يعطى الحل: الاستدعاء هو التمرين، وإعطاء الجواب هنا يحول
-       التدريب إلى قراءة. ويقال له أين يراجع بدلا من ذلك. */
+    /* ولا يعطى الحل: الاستدعاء هو التمرين. ويقال له أين يراجع بدلا من ذلك. */
     var txt;
-    if (ok) {
+    if (ok && r.cleared) {
+      txt = TQ.t('أحسنت — خرج هذا السؤال من دفترك.');
+    } else if (ok) {
       txt = r.interval_days
-        ? 'أحسنت. باعدنا موعد هذا السؤال إلى ' + r.interval_days + ' يوما.'
-        : 'أحسنت. سجل هذا في مستوى مهارتك.';
+        ? TQ.t('أحسنت. باعدنا موعد هذا السؤال إلى ____ يوما.', r.interval_days)
+        : TQ.t('أحسنت. سجل هذا في مستوى مهارتك.');
     } else {
-      txt = 'لا بأس — هذا موضع التدريب. راجع شرح المفهوم ثم عد إليه.';
+      txt = TQ.t('لا بأس — هذا موضع التدريب. راجع شرح المفهوم ثم عد إليه.');
     }
     el.vText.textContent = txt;
 
-    var acts = '<button class="tq-btn tq-btn--primary" type="button" data-tq-mk-next>السؤال التالي</button>';
+    var acts = '<button class="tq-btn tq-btn--primary" type="button" data-tq-mk-next>' + esc(TQ.t('السؤال التالي')) + '</button>';
     if (!ok && q.lesson_id && q.course_id) {
-      acts += '<a class="tq-btn tq-btn--secondary" href="' + LESSON + '/' + q.course_id + '/' + q.lesson_id +
-              (q.at_second ? '?t=' + q.at_second : '') + '">راجع الشرح</a>';
+      acts += '<a class="tq-btn tq-btn--secondary" href="' + explainLink(q) + '">' + esc(TQ.t('راجع الشرح')) + '</a>';
     }
     el.vActions.innerHTML = acts;
   }
@@ -493,8 +534,8 @@ include 'portal_open.php';
 
   function finish() {
     show(el.drill, false); show(el.verdict, false); show(el.done, true);
-    el.doneText.textContent = 'أجبت ' + state.right + ' صحيحة و' + state.wrong +
-      ' تحتاج تثبيتا. وما أخطأته يبقى في دفترك حتى تتقنه.';
+    el.doneText.textContent = TQ.t('أجبت ____ صحيحة و____ تحتاج تثبيتا، وخرج من دفترك ____. وما بقي فيه يبقى حتى تتقنه.',
+      state.right, state.wrong, state.cleared);
   }
 
   function backToBook() {

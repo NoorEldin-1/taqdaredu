@@ -300,7 +300,13 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 .tq-ring__track { stroke: var(--tq-line); fill: none; }
 .tq-ring__fill  { stroke: var(--tq-teal); fill: none; stroke-linecap: round;
                   transition: stroke-dashoffset var(--tq-motion-ringFill) var(--tq-ease-enter); }
-.tq-ring__label { position: absolute; text-align: center; }
+/* TQ-RING-STACK — الرقم في المركز وتسميته تحته، لا بجواره. `tq_ring()`
+   تطبع `.tq-num` (عنصر سطري) ثم `.tq-caption` (سطري كذلك)، فيجتمعان في
+   سطر واحد: «25%نسبة الإنجاز» ملتصقين، والكتلة كلها منزاحة عن المركز
+   بعرض التسمية. فالتسمية سطر ثان، والكتلة تملأ الحلقة وتتوسطها. */
+.tq-ring__label { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center;
+                  gap: 2px; text-align: center; padding-inline: 14%; }
+.tq-ring__label .tq-caption { display: block; line-height: 1.3; color: var(--tq-text2); }
 
 /* --------------------------------------------------------------------------
    البطاقات
@@ -914,6 +920,29 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
 @keyframes tq-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 
 /* --------------------------------------------------------------------------
+   TQ-KV — قائمة «تسمية ← قيمة» في لوح جانبي («ملخص» · «حالة الصف»).
+   كانت كل شاشة تكتبها بـ`.tq-row` وتختار وسم القيمة بيدها: الرقم
+   `tq_num()` بخط الأرقام الكبير، والنص («منذ شهر» · «13 س 51 د»)
+   `tq-caption` بخط التسمية — فيقرأ اللوح الواحد قائمتين بخطين. فالقيمة
+   وسم واحد مهما كان نوعها، والرقم داخله يأخذ خطها.
+   -------------------------------------------------------------------------- */
+.tq-kv { list-style: none; margin: 0; padding: 0; }
+.tq-kv__row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--tq-space-m);
+  padding-block: var(--tq-space-s);
+  border-block-end: 1px solid var(--tq-line);
+}
+.tq-kv__row:first-child { padding-block-start: 0; }
+.tq-kv__row:last-child  { border-block-end: 0; padding-block-end: 0; }
+.tq-kv__k { font: var(--tq-type-caption); color: var(--tq-text2); min-inline-size: 0; }
+.tq-kv__v {
+  font: var(--tq-type-numeralMd); color: var(--tq-navy);
+  white-space: nowrap; font-variant-numeric: tabular-nums; text-align: end;
+}
+.tq-kv .tq-kv__v .tq-num { font: inherit; }
+
+/* --------------------------------------------------------------------------
    الحالات الفارغة — ست، وأكثر ما يراه المستخدم الجديد
    -------------------------------------------------------------------------- */
 .tq-empty {
@@ -1008,6 +1037,17 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   background: var(--tq-ground); color: var(--tq-text);
   font: var(--tq-type-bodyStrong);
 }
+/* TQ-ALERT-STACK — تنبيه فيه عنوان وقائمة وفقرة: الصندوق مرن أفقي، فكل
+   ابن عمود بجوار أخيه («هذا الاختبار لا يعمل بعد:» ثم «لا أسئلة بعد.» ثم
+   الفقرة في ثلاثة أعمدة). فالمحتوى يلف في `__body` ابنا واحدا يرص تحته،
+   والأيقونة في رأسه لا في وسطه، ووزن المتن للتفاصيل لا للعنوان وحده. */
+.tq-alert:has(> .tq-alert__body) { align-items: flex-start; }
+.tq-alert__icon { flex: none; line-height: 0; margin-block-start: 3px; }
+.tq-alert__body { flex: 1 1 auto; min-inline-size: 0; }
+.tq-alert__body > strong { display: block; }
+.tq-alert__body ul,
+.tq-alert__body p { font: var(--tq-type-body); margin: var(--tq-space-xs) 0 0; }
+.tq-alert__actions { display: flex; flex-wrap: wrap; gap: var(--tq-space-s); margin-block-start: var(--tq-space-m); }
 .tq-alert--ok { background: var(--tq-mint-fill);  border-inline-start-color: var(--tq-teal);   color: var(--tq-mint-ink); }
 .tq-alert--no { background: var(--tq-dangerSoft); border-inline-start-color: var(--tq-danger); color: var(--tq-danger); }
 

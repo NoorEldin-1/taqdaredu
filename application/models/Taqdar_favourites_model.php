@@ -96,6 +96,8 @@ class Taqdar_favourites_model extends CI_Model
             ->join('course c', 'c.id = l.course_id', 'inner')
             ->join('enrol e', 'e.course_id = c.id AND e.user_id = ' . (int) $user_id, 'inner')
             ->where_in('l.id', $ids)
+            /* درس نزل إلى مسودة لا تعرض بطاقته: المشغل يرده بـ404. */
+            ->where("COALESCE(l.tq_status, 'published') = 'published'", null, false)
             ->get()->result_array();
 
         return $this->rank($rows, $ids);
@@ -111,13 +113,15 @@ class Taqdar_favourites_model extends CI_Model
         if (!$ids) return array();
 
         $rows = $this->db
-            ->select('rf.id, rf.title, rf.file_name, l.title AS lesson_title,'
+            ->select('rf.id, rf.title, rf.file_name, rf.lesson_id, l.title AS lesson_title,'
                    . ' c.title AS course_title, c.category_id, c.id AS course_id')
             ->from('resource_files rf')
             ->join('lesson l', 'l.id = rf.lesson_id', 'inner')
             ->join('course c', 'c.id = l.course_id', 'inner')
             ->join('enrol e', 'e.course_id = c.id AND e.user_id = ' . (int) $user_id, 'inner')
             ->where_in('rf.id', $ids)
+            /* ملف درس نزل إلى مسودة لا يعرض في المفضلة كما لا يعرض في المواد. */
+            ->where("COALESCE(l.tq_status, 'published') = 'published'", null, false)
             ->get()->result_array();
 
         return $this->rank($rows, $ids);
@@ -208,6 +212,23 @@ class Taqdar_favourites_model extends CI_Model
         if (!is_array($list)) return array();
 
         return array_values(array_unique(array_filter(array_map('intval', $list))));
+    }
+
+    /**
+     * يسقط من القائمة معرفات كورسات **حذفت** من المنصة.
+     *
+     * الحذف كان يترك المعرف في `users.wishlist` إلى الأبد: لا يعرض (الاستعلام
+     * لا يجده) ولا يزول — بيانات ميتة تكبر، ورقم يعاد يوما لكورس جديد يظهر
+     * في مفضلة من لم يحفظه. ويسقط المحذوف وحده: كورس نزل إلى مسودة قد يعود.
+     */
+    public function forget_courses($user_id, array $course_ids)
+    {
+        $drop = array_flip(array_map('intval', $course_ids));
+        if (!$drop) return;
+        $list = $this->course_ids($user_id);
+        $keep = array_values(array_filter($list, static function ($id) use ($drop) { return !isset($drop[$id]); }));
+        if (count($keep) === count($list)) return;
+        $this->db->where('id', (int) $user_id)->update('users', array('wishlist' => json_encode($keep)));
     }
 
     /**

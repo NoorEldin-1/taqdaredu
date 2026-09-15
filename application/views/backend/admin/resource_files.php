@@ -99,7 +99,9 @@ $tq_files = $this->db->where('lesson_id', (int) $tq_l['id'])
 
         <span class="tqa-rowacts">
             <?php if ($tq_here): ?>
-                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo base_url($tq_rel); ?>"
+                <?php /* TQ-MATERIAL-GATE — المجلد مغلق على الويب، والمسؤول يفتح
+                         الملف من الحارس نفسه (يعرفه ولا يقفل عليه). */ ?>
+                <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo site_url('student/material/file/' . (int) $tq_f['id']); ?>"
                    target="_blank" rel="noopener">
                     <?php echo tq_icon('download', 14); ?> <?php echo t('افتح'); ?>
                 </a>

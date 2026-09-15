@@ -75,7 +75,7 @@ class Taqdar_foundation_model extends CI_Model
     const KIND = 'foundation';
 
     /** اصدار بنية التأسيس — يمنع اعادة فحص الجدول في كل طلب. */
-    const SCHEMA_V = '1';
+    const SCHEMA_V = '2';
 
     /** جدول المسارات. */
     const TABLE = 'tq_foundation_tracks';
@@ -135,7 +135,63 @@ class Taqdar_foundation_model extends CI_Model
         $this->taqdar_sessions_model->install_schema();
 
         $this->seed();
+        $this->seed_math();
         $this->put_setting('tq_foundation_schema_v', self::SCHEMA_V);
+    }
+
+    /**
+     * TQ-FOUNDATION-MATH — مسار ثالث: تأسيس الرياضيات، يزرع **مرة واحدة في
+     * عمر القاعدة**.
+     *
+     * طلب بالاسم مع العربي والانجليزي حين اضيف قسم التأسيس الى الرئيسية
+     * وصفحة الباقات. ولا يزرعه `seed()`: ذاك مشروط بالجدول الفارغ، وكل
+     * قاعدة قائمة فيها المساران من قبل.
+     *
+     * **والحارس علم خاص به لا رقم الاصدار.** `SCHEMA_V` يرفع غدا لسبب لا
+     * علاقة له بالرياضيات (عمود يضاف مثلا)، فزرع معلق على الاصدار يجري
+     * عندها ثانية — ومسؤول حذف المسار لانه لا يقدمه يجده عائدا بعد نشر لم
+     * يمسه. فالعلم `tq_foundation_seed_math` يكتب بعد اول مرور ولا يمحى:
+     *
+     *   · النشر (`git reset --hard`) لا يلمس `settings`، فلا يعيد شيئا.
+     *   · من حذف المسار بعد الزرع لا يعود اليه ابدا.
+     *   · من كتب مسارا بالاسم نفسه بيده لا يجد نسخة ثانية (الفحص بالاسم).
+     *   · طلبان متزامنان في اول ثانية: المفتاح الفريد `uq_ft_slug` يرد
+     *     الثاني، فلا صفان.
+     *
+     * والعلم لا يكتب إن فشل الادراج نفسه: قاعدة تعثرت لحظتها تحاول في
+     * المرة التالية التي يجري فيها التجهيز، ولا تحرم المسار بخطأ عابر.
+     */
+    private function seed_math()
+    {
+        try {
+            $done = $this->db->where('key', 'tq_foundation_seed_math')->count_all_results('settings') > 0;
+        } catch (Throwable $e) { $this->db->reset_query(); return; }
+        if ($done) return;
+
+        try {
+            if ($this->db->where('slug', 'math')->count_all_results(self::TABLE) > 0) {
+                $this->put_setting('tq_foundation_seed_math', date('Y-m-d H:i:s'));
+                return;
+            }
+            $order = (int) $this->db->select_max('`order`', 'm', false)->get(self::TABLE)->row('m');
+        } catch (Throwable $e) { $this->db->reset_query(); return; }
+
+        try {
+            $this->db->insert(self::TABLE, array(
+                'name_ar' => 'تأسيس الرياضيات', 'slug' => 'math', 'order' => $order + 1,
+                'tagline' => 'من العد الى العمليات — فهم الارقام من الاساس',
+                'description' => 'حصص مباشرة فردية مع معلم متخصص في تأسيس الرياضيات: '
+                               . 'العد والارقام وقيمها، ثم الجمع والطرح، ثم الضرب والقسمة. '
+                               . 'ولا يشترط صف ولا منهج — يبدأ الطالب من حيث هو.',
+                'outcomes' => json_encode(array(
+                    'يقرأ الارقام ويفهم قيمة المنزلة',
+                    'يجمع ويطرح بثقة ذهنيا وكتابيا',
+                    'يفهم الضرب والقسمة ويحفظ جداولهما',
+                ), JSON_UNESCAPED_UNICODE),
+                'created_at' => date('Y-m-d H:i:s'),
+            ));
+            $this->put_setting('tq_foundation_seed_math', date('Y-m-d H:i:s'));
+        } catch (Throwable $e) { $this->db->reset_query(); }
     }
 
     /** يزرع المسارين المعلنين — بشرط الجدول الفارغ. */

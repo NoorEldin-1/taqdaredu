@@ -135,6 +135,21 @@ $tq_states = [
     'read'   => [t('المقروءة'), $tq_read_count],
 ];
 
+/* TQ-LINK-INBOX — طلب ربط ولي الأمر يرد عليه من الإشعار نفسه.
+   كان الإشعار يقول «يطلب ربط حسابك» ولا زر فيه، والموافقة في شاشة الإعدادات
+   لا يعرف الطالب طريقها. والطلب المعلق يعرف بمرسله (`from_user` هو ولي
+   الأمر)، والقرار يمر بمسار الإعدادات نفسه (`student/parent-link`). */
+$tq_plinks = array();
+try {
+    $CI->load->model('taqdar_parent_model');
+    foreach ($CI->taqdar_parent_model->links_of_student($uid, 'pending') as $tq_pl) {
+        $tq_plinks[(int) $tq_pl['parent_user_id']] = (int) $tq_pl['id'];
+    }
+} catch (Throwable $e) {
+    $CI->db->reset_query();
+}
+$tq_plink_forms = array();
+
 include 'portal_open.php';
 include 'tq_notif_styles.php';
 ?>
@@ -235,11 +250,32 @@ include 'tq_notif_styles.php';
                                     <?php echo tq_icon($kind_icon); ?>
                                 </span>
                             </<?php echo $tag; ?>>
+                            <?php if ((string) $n['type'] === 'parent_link_request'
+                                      && isset($tq_plinks[(int) $n['from_user']])):
+                                $tq_lid = $tq_plinks[(int) $n['from_user']];
+                                $tq_plink_forms[$tq_lid] = true; ?>
+                                <?php /* الزران خارج زر الصف (زر داخل زر لا يصح)، ونموذجاهما
+                                         بعد نموذج القائمة بسمة `form` — فلا نموذج داخل نموذج. */ ?>
+                                <div class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap;padding:0 var(--tq-space-m) var(--tq-space-m)">
+                                    <button class="tq-btn tq-btn--primary tq-btn--sm" type="submit"
+                                            form="tq-plink-<?php echo $tq_lid; ?>" name="act" value="approve"><?php echo t('أوافق على الربط'); ?></button>
+                                    <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit"
+                                            form="tq-plink-<?php echo $tq_lid; ?>" name="act" value="reject"><?php echo t('أرفض الطلب'); ?></button>
+                                </div>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </div>
                 </section>
             <?php endforeach; ?>
             </form>
+            <?php foreach (array_keys($tq_plink_forms) as $tq_lid): ?>
+                <form id="tq-plink-<?php echo (int) $tq_lid; ?>" method="post"
+                      action="<?php echo base_url('student/parent-link'); ?>" hidden>
+                    <?php echo tq_csrf(); ?>
+                    <input type="hidden" name="link_id" value="<?php echo (int) $tq_lid; ?>">
+                    <input type="hidden" name="back" value="notifications">
+                </form>
+            <?php endforeach; ?>
         <?php endif; ?>
 
     </div>

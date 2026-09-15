@@ -45,6 +45,36 @@ $tq_streak = $CI->tq_learn->streak($tq_uid);
 $tq_goal   = $CI->tq_learn->goal_today($tq_uid);
 $tq_exam   = $CI->tq_learn->exam_mode($tq_uid);
 
+$tq_grade = (int) $CI->db->select('grade_id')->where('id', $tq_uid)->get('users')->row('grade_id');
+
+/* «حصص بالطلب» — كان القسم حالة فارغة ثابتة «لا معلم متاح الآن» مهما فتح
+   المعلمون أوقاتهم، وصفحة «حصص بالطلب» تعرضهم في اللحظة نفسها. والنداء
+   نداؤها بعينه (`available_teachers()` مرشحة بصف الطالب)، ثلاثة معلمين. */
+$tq_tutors = [];
+try {
+    $CI->load->model('taqdar_sessions_model', 'tq_sess');
+    $tq_tutors = $CI->tq_sess->available_teachers(3, 1, 0, $tq_grade);
+} catch (Throwable $e) {
+    log_message('error', 'TQ-HOME-TUTORS: ' . $e->getMessage());
+}
+
+/* «المقترح لك» — كان حالة فارغة دائمة بزر يقود إلى الإعدادات. والمصدر
+   موجود: برامج صف الطالب المنشورة التي لم يسجل فيها. ومن لم يحدد صفه بعد
+   يدعى إلى شاشة التهيئة (`student/setup`) — هي التي تحدد البرنامج، لا الإعدادات. */
+$tq_suggest = [];
+if ($tq_grade > 0) {
+    $tq_have = array_map(static function ($c) { return (int) $c['id']; }, $tq_courses);
+    $CI->db->select('p.title, p.slug, p.short_description, s.name_ar AS subject')
+           ->from('paths p')
+           ->join('course c', 'c.id = p.course_id', 'inner')
+           ->join('subjects s', 's.id = p.subject_id', 'left')
+           ->where('p.status', 'published')->where('c.status', 'active')
+           ->where('p.grade_id', $tq_grade);
+    if ($tq_have) $CI->db->where_not_in('p.course_id', $tq_have);
+    $tq_suggest = $CI->db->order_by('p.tq_order', 'ASC')->order_by('p.id', 'ASC')
+                         ->limit(3)->get()->result_array();
+}
+
 include 'portal_open.php';
 ?>
 
@@ -249,21 +279,43 @@ include 'portal_open.php';
             <?php endif; ?>
         </section>
 
-        <!-- المقترح لك — يبنى على برنامج الطالب وهدفه لا على الأكثر مبيعا.
-             ولا يوجد في القاعدة اليوم جدول برامج ولا أهداف، فلا نعرض «الأكثر
-             مبيعا» متنكرا في هيئة اقتراح شخصي. -->
+        <!-- المقترح لك — برامج صف الطالب التي لم يسجل فيها، لا «الأكثر مبيعا». -->
+        <?php if ($tq_grade <= 0): ?>
         <section class="tq-section">
             <div class="tq-sectionhead"><h2><?php echo t('المقترح لك'); ?></h2></div>
             <div class="tq-card">
                 <?php echo tq_s_empty(
                     'target', 'lilac',
                     t('اقتراحاتك تبنى على برنامجك'),
-                    t('حدد صفك وهدفك الدراسي، فنقترح عليك الدروس التي تكمل برنامجك — لا الأكثر مبيعا.'),
+                    t('حدد صفك وهدفك الدراسي، فنقترح عليك البرامج التي تكمل منهج صفك — لا الأكثر مبيعا.'),
                     t('حدد برنامجك'),
-                    base_url('student/settings')
+                    base_url('student/setup')
                 ); ?>
             </div>
         </section>
+        <?php elseif ($tq_suggest): ?>
+        <section class="tq-section">
+            <div class="tq-sectionhead">
+                <h2><?php echo t('المقترح لك'); ?></h2>
+                <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('catalog'); ?>" style="margin-inline-start:auto"><?php echo t('كل البرامج'); ?></a>
+            </div>
+            <div class="tq-s-grid3 tq-stagger">
+                <?php foreach ($tq_suggest as $sg): ?>
+                    <article class="tq-card">
+                        <p class="tq-micro" style="margin:0"><?php echo html_escape((string) $sg['subject']); ?></p>
+                        <h3 class="tq-s-course__title" style="margin:var(--tq-space-xs) 0">
+                            <a href="<?php echo base_url('path/' . rawurlencode((string) $sg['slug'])); ?>" style="color:var(--tq-navy)"><?php echo html_escape($sg['title']); ?></a>
+                        </h3>
+                        <?php if (trim((string) $sg['short_description']) !== ''): ?>
+                            <p class="tq-caption tq-s-trunc" style="margin:0"><?php echo html_escape($sg['short_description']); ?></p>
+                        <?php endif; ?>
+                        <a class="tq-btn tq-btn--secondary tq-btn--sm tq-btn--block" style="margin-block-start:var(--tq-space-m)"
+                           href="<?php echo base_url('path/' . rawurlencode((string) $sg['slug'])); ?>"><?php echo t('اعرف البرنامج'); ?></a>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <?php endif; ?>
 
     </div>
 
@@ -275,14 +327,34 @@ include 'portal_open.php';
                 <h2 class="tq-card__title"><?php echo t('حصص بالطلب'); ?></h2>
                 <a class="tq-caption" href="<?php echo base_url('student/on-demand'); ?>"><?php echo t('عرض الكل'); ?></a>
             </div>
-            <?php echo tq_s_empty(
-                'video', 'sky',
-                t('لا معلم متاح الآن'),
-                t('حين يفتح المعلمون أوقاتهم يظهر هنا ثلاثة منهم بسعر الساعة وزر حجز مباشر.'),
-                t('تصفح حصص بالطلب'),
-                base_url('student/on-demand'),
-                true
-            ); ?>
+            <?php if (!$tq_tutors): ?>
+                <?php echo tq_s_empty(
+                    'video', 'sky',
+                    t('لا معلم متاح الآن'),
+                    t('حين يفتح المعلمون أوقاتهم يظهر هنا ثلاثة منهم بأقرب موعد وزر حجز مباشر.'),
+                    t('تصفح حصص بالطلب'),
+                    base_url('student/on-demand'),
+                    true
+                ); ?>
+            <?php else: ?>
+                <ul class="tq-s-list">
+                    <?php foreach ($tq_tutors as $tt): $tq_slot = $tt['slots'][0] ?? null; ?>
+                        <li class="tq-s-item">
+                            <span class="tq-icon-box tq-pastel tq-pastel--sky" aria-hidden="true">
+                                <span class="tq-pastel__icon"><?php echo tq_icon('video'); ?></span>
+                            </span>
+                            <span class="tq-s-item__body">
+                                <span class="tq-s-item__t tq-s-trunc"><?php echo html_escape($tt['name']); ?></span>
+                                <span class="tq-s-item__s tq-s-trunc">
+                                    <?php echo html_escape(trim($tt['subject'] . ($tq_slot ? ' · ' . $tq_slot['when_text'] : ''), ' ·')); ?>
+                                </span>
+                            </span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <a class="tq-btn tq-btn--secondary tq-btn--block" style="margin-block-start:var(--tq-space-m)"
+                   href="<?php echo base_url('student/on-demand'); ?>"><?php echo t('احجز حصة'); ?></a>
+            <?php endif; ?>
         </section>
 
         <!-- المواعيد القادمة: الأحمر لما اقترب، والنص يقول القرب فلا يحمله اللون وحده. -->

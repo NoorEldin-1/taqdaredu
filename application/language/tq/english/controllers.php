@@ -829,4 +829,13 @@ return array(
     '✗ لا موضع له في' => '',
     '✗ مرفوض:' => '',
     '✗ ملفّ تالف أو فارغ.' => '',
+    'ملفات PDF وWord وHTML لا تستورد منها الأسئلة: هي نص للقراءة لا جدول يعرف منه السؤال والخيارات والإجابة الصحيحة. انسخ أسئلتك إلى جدول Excel بالأعمدة المطلوبة (أو استعمل القالب الجاهز) واحفظه بصيغة xlsx أو CSV.' => 'Questions cannot be imported from PDF, Word or HTML files: they are text for reading, not a table that tells the question, options and correct answer apart. Copy your questions into an Excel sheet with the required columns (or use the ready template) and save it as xlsx or CSV.',
+    'هذا ملف Excel بالصيغة القديمة (xls). افتحه واحفظه بصيغة xlsx أو CSV ثم أعد رفعه.' => 'This is an old-format Excel file (xls). Open it, save it as xlsx or CSV, then upload it again.',
+    'صيغة الملف غير مدعومة. المقبول: Excel ‏(xlsx) أو CSV أو TXT.' => 'Unsupported file format. Accepted: Excel (xlsx), CSV or TXT.',
+    'اكتب البريد الإلكتروني الذي يدخل به ابنك إلى تقدر.' => 'Enter the email your child uses to sign in to Taqdar.',
+    'لا وصول إلى هذا الملف' => 'No access to this file',
+    'إن كان هذا البريد لحساب طالب مفعل فقد وصله طلب الربط، ويظهر ابنك هنا بعد موافقته.' => 'If this email belongs to an active student account, the link request has reached it, and your child appears here after approving.',
+    'هذه الباقة لصفوف غير صف ابنك، فلا تفتح له دروسه. اختر باقة صفه.' => 'This bundle is for other grades than your child, so it will not open their lessons. Choose the bundle for their grade.',
+    'هذه الفاتورة ليست لأحد أبنائك المرتبطين.' => 'This invoice does not belong to any of your linked children.',
+    'ألغيت الفاتورة.' => 'The invoice was cancelled.',
 );

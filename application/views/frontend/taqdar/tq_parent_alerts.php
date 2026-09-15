@@ -56,7 +56,13 @@ $tq_prefs = $tq_ci->taqdar_parent_model->prefs($tq_uid);
    والمفاتيح هي مفاتيح `Taqdar_parent_model::notify_keys()` نفسها — فما
    يعرض هنا هو ما يملك ولي الأمر إيقافه من شاشة إعداداته، لا قائمة ثانية
    تفترق عنها. */
+/* TQ-ALERT-KIND — «نتيجة اختبار درس» مفتاح في `notify_keys()` يوقف من
+   الإعدادات، وكان غائبا عن هذه القائمة: فيقرأ ولي الأمر في إعداداته أنه
+   تنبيه يقاطعه، ويجده هنا تحت «ينتظر التقرير الأسبوعي»، ولا يراه في «ما
+   الذي يقاطعك». والتسمية من `notify_keys()` نفسها، فلا يفترق الاسمان. */
+$tq_keys = $tq_ci->taqdar_parent_model->notify_keys();
 $tq_urgent_types = [
+    'quiz_result'      => [t($tq_keys['quiz_result']),  'check-badge', 'sky'],
     'exam_result'      => [t('نتيجة امتحان'),          'check-badge', 'mint'],
     'placement_result' => [t('نتيجة تحديد المستوى'),   'crosshair',   'sand'],
     'station_failed'   => [t('رسوب في اختبار محطة'),   'target',      'rose'],
@@ -65,20 +71,29 @@ $tq_urgent_types = [
     'certificate'      => [t('شهادة جديدة'),           'award',       'sky'],
 ];
 
+/* TQ-ALERT-MORE — كانت آخر ستين وحدها بلا طريق إلى ما قبلها، وعداد «غير
+   المقروء» يعد من الستين وحدها: فمن تراكمت عليه مئة إشعار يقرأ رقما أصغر من
+   الحقيقة، ولا يصل إلى الأقدم أبدا. فالصفحات ستين ستين بزر «عرض المزيد»،
+   والعداد من القاعدة كلها. */
+$tq_page_n = 60;
+$tq_shown  = $tq_page_n * max(1, min(50, (int) $this->input->get('more')));
 $tq_all = $this->db->query(
     "SELECT id, type, title, description, status, created_at
        FROM notifications
       WHERE to_user = ?
       ORDER BY created_at DESC
-      LIMIT 60",
+      LIMIT " . ($tq_shown + 1),
     [$tq_uid]
 )->result_array();
+$tq_has_more = count($tq_all) > $tq_shown;
+if ($tq_has_more) $tq_all = array_slice($tq_all, 0, $tq_shown);
+
+$tq_unread = (int) $this->db->where('to_user', $tq_uid)->where('status', 0)
+                            ->count_all_results('notifications');
 
 $tq_urgent = [];
 $tq_later  = [];
-$tq_unread = 0;
 foreach ($tq_all as $tq_n) {
-    if ((int) $tq_n['status'] === 0) $tq_unread++;
     if (isset($tq_urgent_types[$tq_n['type']])) {
         $tq_urgent[] = $tq_n;
     } else {
@@ -202,6 +217,15 @@ include 'portal_open.php';
                 </div>
             <?php endif; ?>
         </section>
+
+        <?php if ($tq_has_more): ?>
+            <p style="text-align:center;margin-block-start:var(--tq-space-xl)">
+                <a class="tq-btn tq-btn--secondary"
+                   href="<?php echo base_url('parent/alerts') . '?more=' . (int) (($tq_shown / $tq_page_n) + 1); ?>">
+                    <?php echo t('عرض المزيد من الإشعارات الأقدم'); ?>
+                </a>
+            </p>
+        <?php endif; ?>
     </div>
 
     <aside class="tq-aside">

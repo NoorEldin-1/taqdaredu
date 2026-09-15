@@ -20,6 +20,8 @@ defined('BASEPATH') or exit('No direct script access allowed');
 $b    = isset($tq_bundle) ? $tq_bundle : null;
 $sub  = isset($tq_subscription) ? $tq_subscription : null;
 $prog = isset($tq_progress) ? $tq_progress : array();
+/* TQ-BUNDLE-SINGLE — مشتريات مفردة سارية لمن لا باقة له (كورس · كتاب · مسار). */
+$singles = isset($tq_singles) && is_array($tq_singles) ? $tq_singles : array();
 
 /* الحال الفعلية لا المخزنة — كما في صفحة الاشتراك تماما. */
 $eff = $sub ? $sub['status'] : null;
@@ -40,7 +42,29 @@ include 'portal_open.php';
 
 <div class="tq-stack">
 
-    <?php if (!$sub): ?>
+    <?php if (!$sub && $singles): ?>
+
+        <div class="tq-card tq-card--panel">
+            <h2 class="tq-card__title"><?php echo t('ليست لك باقة — ولك مشتريات مفردة'); ?></h2>
+            <p class="tq-caption">
+                <?php echo t('هذه الصفحة تعرض محتوى الباقة. وما اشتريته مفردا مفتوح لك في مكانه:'); ?>
+            </p>
+            <ul class="tq-stack" style="margin-block:var(--tq-space-m)">
+                <?php foreach ($singles as $tq_si): ?>
+                    <li>
+                        <span class="tq-badge"><?php echo html_escape($tq_si['label']); ?></span>
+                        <strong><?php echo html_escape($tq_si['title']); ?></strong>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            <div class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap">
+                <a class="tq-btn tq-btn--primary" href="<?php echo base_url('student/courses'); ?>"><?php echo t('كورساتي'); ?></a>
+                <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('student/library'); ?>"><?php echo t('كتبي وملخصاتي'); ?></a>
+                <a class="tq-btn tq-btn--ghost" href="<?php echo base_url('plans'); ?>"><?php echo t('اطلع على الباقات'); ?></a>
+            </div>
+        </div>
+
+    <?php elseif (!$sub): ?>
 
         <div class="tq-card tq-card--panel">
             <h2 class="tq-card__title"><?php echo t('لا اشتراك بعد'); ?></h2>
@@ -95,9 +119,18 @@ include 'portal_open.php';
         </div>
 
         <?php
+        /* TQ-BUNDLE-COUNT — عدد المواد هو عدد ما تعرضه الشجرة تحته: كان الملخص
+           يعد المادة الواحدة مرة (١١) والشجرة تعرضها في كل صف (١٥)، فيعد الطالب
+           ما تحت ولا يتفق الرقمان. */
+        $tq_rows = 0;
+        foreach ((isset($b['grades']) && is_array($b['grades'])) ? $b['grades'] : array() as $tq_g) {
+            $tq_rows += isset($tq_g['subjects']) && is_array($tq_g['subjects']) ? count($tq_g['subjects']) : 0;
+        }
+        if ($tq_rows < 1) $tq_rows = (int) $t['subjects'];
+
         /* الإجماليات — وما كان صفرا لا يعرض بندا فارغا. */
         echo tqs_stat_strip(array(
-            array($t['subjects'], t('مادة'),    'i-book'),
+            array($tq_rows,       t('مادة'),    'i-book'),
             array($t['units'],    t('وحدة'),     'i-grid'),
             array($t['lessons'],  t('درسا'),    'i-play'),
             array($t['quizzes'],  t('اختبارا'), 'i-clipboard'),

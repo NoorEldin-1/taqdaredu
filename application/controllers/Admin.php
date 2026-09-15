@@ -1056,8 +1056,17 @@ class Admin extends CI_Controller
                          ->or_where('category_id', $cat)
                          ->group_end();
             }
+            /* TQ-COURSE-OWNER-FILTER — المعلم صورتان لا واحدة، كما في
+               `Taqdar_teacher_model::scope_courses()`. كورس ينشئه المسؤول ثم
+               يسنده إلى معلم يبقى `creator` فيه معرف المسؤول، والمعلم في
+               `user_id` (قائمة بفواصل). والترشيح بـ`creator` وحده يرد «لا
+               كورسات بعد» لمعلم له خمسة كورسات يراها في بوابته. */
             if ($page_data['selected_instructor_id'] !== 'all') {
-                $this->db->where('creator', (int) $page_data['selected_instructor_id']);
+                $ins = (int) $page_data['selected_instructor_id'];
+                $this->db->group_start()
+                         ->where('creator', $ins)
+                         ->or_where('FIND_IN_SET(' . $ins . ', `user_id`) > 0', null, false)
+                         ->group_end();
             }
             if ($page_data['selected_status'] !== 'all') {
                 $this->db->where('status', $page_data['selected_status']);

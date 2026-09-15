@@ -365,7 +365,7 @@ $tq_when = function ($raw) {
             <label class="tqa-field__label" for="f_page"><?php echo t('معرف الصفحة (Page ID)'); ?></label>
             <input class="tqa-input tqa-input--ltr" type="text" id="f_page" dir="ltr"
                    name="tq_meta_page_id" inputmode="numeric" maxlength="32"
-                   autocomplete="off" spellcheck="false" placeholder="102938475601234"
+                   autocomplete="off" data-lpignore="true" spellcheck="false" placeholder="102938475601234"
                    value="<?php echo html_escape((string) ($tq_cfg['page_id'] ?? '')); ?>">
             <span class="tqa-field__hint">
                 <?php echo t('رقم وحده — من إعدادات الصفحة عند ميتا. وبه يشترك الخادم في حدث العملاء ويتأكد أن الرمز رمز هذه الصفحة بعينها.'); ?>
@@ -396,7 +396,7 @@ $tq_when = function ($raw) {
             <div class="tqa-field">
                 <label class="tqa-field__label" for="f_<?php echo $key; ?>"><?php echo html_escape($label); ?></label>
                 <input class="tqa-input tqa-input--ltr" type="password" id="f_<?php echo $key; ?>"
-                       name="<?php echo $key; ?>" dir="ltr" autocomplete="off" spellcheck="false"
+                       name="<?php echo $key; ?>" dir="ltr" autocomplete="new-password" spellcheck="false"
                        placeholder="<?php echo $has ? te('محفوظ — اتركه فارغا فلا يمس') : html_escape($ph); ?>">
                 <span class="tqa-field__hint"><?php echo html_escape($hint); ?></span>
                 <?php if ($has): ?>

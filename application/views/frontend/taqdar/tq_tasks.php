@@ -161,7 +161,14 @@ include 'portal_open.php';
                                         <span><?php echo tq_icon('award', 16); ?><?php echo tq_iso($t['points'] . t(' بندا')); ?></span>
                                     <?php endif; ?>
                                     <?php if (!empty($t['pass'])): ?>
-                                        <span><?php echo tq_icon('target', 16); ?><?php echo t('درجة النجاح'); ?> <?php echo tq_num($t['pass'] . '%', 'tq-num--sm'); ?></span>
+                                        <?php /* TQ-TASK-PASS — `pass_mark` عدد أسئلة في تقييم ونسبة في آخر،
+                                                 والعمود لا يقول أيهما. فالرقم لا يزيد على عدد البنود عدد،
+                                                 وما زاد نسبة — و«٥٪» على واجب من سبعة بنود كذب ظاهر. */ ?>
+                                        <?php if (!empty($t['points']) && (int) $t['pass'] <= (int) $t['points']): ?>
+                                            <span><?php echo tq_icon('target', 16); ?><?php echo t('للنجاح ____ من ____', array(tq_num((int) $t['pass'], 'tq-num--sm'), tq_num((int) $t['points'], 'tq-num--sm'))); ?></span>
+                                        <?php else: ?>
+                                            <span><?php echo tq_icon('target', 16); ?><?php echo t('درجة النجاح'); ?> <?php echo tq_num($t['pass'] . '%', 'tq-num--sm'); ?></span>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                     <?php if ($key === 'done' && !empty($t['graded']) && $t['score'] !== null): ?>
                                         <span><?php echo tq_icon('check', 16); ?><?php echo t('الدرجة'); ?> <?php echo tq_num(((float) $t['score'] == (int) $t['score'] ? (int) $t['score'] : $t['score']) . '%', 'tq-num--sm'); ?></span>
@@ -186,10 +193,14 @@ include 'portal_open.php';
                                     <?php echo tq_badge($t['pass_ok'] ? 'mastered' : 'late', $t['pass_ok'] ? t('ناجح') : t('يحتاج إعادة')); ?>
                                 <?php elseif ($key === 'done'): ?>
                                     <?php echo tq_badge('due', t('ينتظر التصحيح')); ?>
+                                <?php elseif (!empty($t['locked'])): ?>
+                                    <?php echo tq_badge('idle', $t['lock_hint'] !== '' ? t('يفتح بعد «____»', $t['lock_hint']) : t('مقفل')); ?>
                                 <?php else: ?>
                                     <?php echo tq_badge($g['badge'], $g['label']); ?>
                                 <?php endif; ?>
-                                <?php if ($key === 'done'): ?>
+                                <?php if ($key !== 'done' && !empty($t['locked'])): ?>
+                                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('student/lessons?course=' . (int) $t['course_id']); ?>"><?php echo t('افتح الدرس المطلوب'); ?></a>
+                                <?php elseif ($key === 'done'): ?>
                                     <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($t['href'] ?? '#'); ?>"><?php echo t('عرض التقييم'); ?></a>
                                 <?php elseif ($key === 'progress'): ?>
                                     <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($t['href'] ?? '#'); ?>"><?php echo t('متابعة'); ?></a>

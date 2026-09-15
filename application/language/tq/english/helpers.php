@@ -299,4 +299,6 @@ return array(
     '— توفر' => '— save',
     '— جوالها يبدأ بـ' => '— its mobile numbers start with',
     '— واختيار ملف جديد يستبدله.</p>' => '— and choosing a new file replaces it.</p>',
+    'كتبي وملخصاتي' => 'My books and summaries',
+    'امتحان محطة' => 'Station exam',
 );

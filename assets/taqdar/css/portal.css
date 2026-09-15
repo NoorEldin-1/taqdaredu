@@ -242,11 +242,19 @@ body.tq-body--portal .tq-stat__value .tq-muted {
    انتباه، و`rose` خطر. والقاعدة على **بطاقة الرقم وحدها**: أغلفة
    الكتب والدروس تستعمل الباستيل نفسه للتمييز بين عنصر وعنصر، وهو
    استعمال مقصود لا ضوضاء.
+
+   TQ-STAT-GROUND — والمحايد سطح بطاقة لا سطح أرضية. كان يعود إلى
+   `--tq-ground` — **وهو لون الصفحة نفسه** — فبطاقة «0 من 3» و«متوسط
+   الإكمال» تذوب في الخلفية بجوار أختيها الملونتين: ثلاثة أرقام يقرأ
+   منها اثنان، والثالث نص طائر بلا حد. فالمحايد أبيض بحد رفيع: يبقى
+   بلا لون حالة، ويبقى بطاقة. والحد لا الظل — لأن البطاقة قد تسكن لوحا
+   فاتحا (`tq-card--panel`) فيضعف فرق السطحين، والحد يبقى.
    ══════════════════════════════════════════════════════════════════════ */
 body.tq-body--portal .tq-s-stat.tq-pastel--sky,
 body.tq-body--portal .tq-s-stat.tq-pastel--lilac,
 body.tq-body--portal .tq-s-stat.tq-pastel--sand {
-  background: var(--tq-ground);
+  background: var(--tq-surface);
+  box-shadow: inset 0 0 0 1px var(--tq-line);
   color: var(--tq-text);
 }
 body.tq-body--portal .tq-s-stat.tq-pastel--sky .tq-pastel__title,
@@ -286,13 +294,18 @@ body.tq-body--portal .tq-aside .tq-empty__title {
 }
 body.tq-body--portal .tq-aside .tq-empty__text { font: var(--tq-type-caption); }
 
-/* واللوح الجانبي الذي كل محتواه فراغ يخف حده كذلك: بطاقة بيضاء بحد
-   كامل تعد بمحتوى، ثم لا تعطيه. */
+/* واللوح الجانبي الذي كل محتواه فراغ يخف حده — ولا يخلع سطحه.
+   TQ-EMPTY-GROUND — كان يصير `transparent` بحد متقطع، والشفاف يأخذ لون
+   الصفحة نفسه: فـ«أهداف هذا الشهر» و«ملاحظات المعلم» و«حجوزاتك في
+   التأسيس» تخرج كتلا بلا سطح، عنوانها طائر فوق الأرضية ولا يقرأ قسما
+   مستقلا بجوار «ملخص الأداء» الذي فوقها بسطحه. فالهمس في **المحتوى**
+   (أيقونة أصغر وأخف وعنوان بوزن المتن — أعلاه)، واللوح يبقى لوحا بسطح
+   أخيه وحد رفيع متصل. */
 body.tq-body--portal .tq-aside .tq-card--panel:has(> .tq-empty:only-child),
 body.tq-body--portal .tq-aside .tq-card--panel:has(> .tq-card__head + .tq-empty:last-child) {
-  background: transparent;
+  background: var(--tq-panel);
   box-shadow: none;
-  border: 1px dashed var(--tq-line);
+  border: 1px solid var(--tq-line);
 }
 
 

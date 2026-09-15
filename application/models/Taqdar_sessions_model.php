@@ -1446,8 +1446,33 @@ class Taqdar_sessions_model extends CI_Model
            وما قرأه الطالب وضغط عليه هو ما يقيد عليه. */
         $kind  = $this->clean_kind($slot['kind'] ?? self::KIND_CURRICULUM);
         $track = (int) ($slot['track_id'] ?? 0);
+
+        /* TQ-FOUNDATION-GUARD — مسار موقوف لا يحجز فيه. كان المسؤول يعطل
+           المسار فتقول اللوحة «معطل»، وتبقى مواعيده المفتوحة قبل التعطيل
+           تحجز وتدفع — والطالب يحجز مسارا رفعته الإدارة. والحكم `may_teach()`
+           نفسها التي تحرس فتح الوقت: المسار فعال، والمعلم ما زال مسندا إليه. */
+        if ($kind === self::KIND_FOUNDATION) {
+            $this->load->model('taqdar_foundation_model');
+            if (!$this->taqdar_foundation_model->may_teach((int) $slot['teacher_id'], $track)) {
+                return ['ok' => false, 'id' => 0,
+                        'msg' => 'هذا المسار موقوف الآن أو لم يعد هذا المعلم يدرسه، فلا يحجز فيه. اختر مسارا آخر.'];
+            }
+        }
+
         $p     = $this->pricing_of_slot($kind, $track, (int) $slot['teacher_id']);
         $now   = date('Y-m-d H:i:s');
+
+        /* TQ-SESSION-RACE — الموعد يحجز **قبل** أن يكتب الطلب لا بعده.
+           كان الطلب يدرج ثم يعلق الموعد بشرط `status = open`: طالبان يضغطان
+           في اللحظة نفسها يقرآن «مفتوح» معا، فيكتب كل منهما طلبه، ويعلق
+           الموعد مرة — ويقرأ كلاهما «بانتظار رد المعلم» على موعد واحد، ويرى
+           المعلم طلبين لساعة واحدة. والتحديث المشروط ذري: من أصاب صفا حجز،
+           ومن لم يصب سبقه غيره — قبل أن يكتب شيء. */
+        $this->db->where('id', $slot_id)->where('status', 'open')
+                 ->update('availability_slots', ['status' => 'held']);
+        if ($this->db->affected_rows() < 1) {
+            return ['ok' => false, 'msg' => 'سبقك غيرك إلى هذا الموعد. اختر موعدا آخر.', 'id' => 0];
+        }
 
         $this->db->insert('tutoring_sessions', [
             'slot_id'               => $slot_id,
@@ -1464,12 +1489,11 @@ class Taqdar_sessions_model extends CI_Model
         ]);
         $id = (int) $this->db->insert_id();
         if ($id <= 0) {
+            /* تعذر الإدراج: يعاد الموعد مفتوحا، فلا يبقى معلقا بلا طلب. */
+            $this->db->where('id', $slot_id)->where('status', 'held')
+                     ->update('availability_slots', ['status' => 'open']);
             return ['ok' => false, 'msg' => 'تعذر حفظ الطلب. حاول مرة أخرى.', 'id' => 0];
         }
-
-        // شرط `status = open` في التحديث نفسه: طلبان متزامنان لا يعلقان موعدا واحدا مرتين.
-        $this->db->where('id', $slot_id)->where('status', 'open')
-                 ->update('availability_slots', ['status' => 'held']);
 
         return ['ok' => true, 'id' => $id, 'teacher_id' => (int) $slot['teacher_id'],
                 'msg' => $p['price'] > 0
@@ -1583,6 +1607,20 @@ class Taqdar_sessions_model extends CI_Model
         }
         if ($row['status'] !== 'requested') {
             return ['ok' => false, 'msg' => 'هذا الطلب حسم من قبل.'];
+        }
+
+        /* TQ-SESSION-RACE — والموعد الواحد لا يؤكد لطالبين. طلبان على موعد
+           واحد (ما سبق هذا الإصلاح، أو ما أعيد فتحه بعد إلغاء) كان المعلم
+           يؤكدهما معا فيصل الطالبان إلى غرفة واحدة في ساعة واحدة. */
+        if ($decision === 'confirm' && !empty($row['slot_id'])) {
+            $taken = (int) $this->db->where('slot_id', (int) $row['slot_id'])
+                                    ->where('id !=', $session_id)
+                                    ->where_in('status', array('awaiting_payment', 'confirmed', 'live'))
+                                    ->count_all_results('tutoring_sessions');
+            if ($taken > 0) {
+                return ['ok' => false,
+                        'msg' => 'أكدت هذا الموعد لطالب آخر من قبل، فلا يؤكد مرتين. اعتذر عن هذا الطلب ليختار صاحبه موعدا غيره.'];
+            }
         }
 
         $now   = date('Y-m-d H:i:s');
@@ -2240,23 +2278,72 @@ class Taqdar_sessions_model extends CI_Model
        حجوزات الطالب
        ===================================================================== */
 
-    /** حجوزات الطالب بمواعيدها ومعلميها وحالتها وثمنها. */
-    public function bookings_for_student($student_id, $limit = 20)
+    /**
+     * طلبات مادة لكل مادة: كم معلما **فتح وقتا** فيها — لا كم معلما يدرسها.
+     *
+     * TQ-SUBJECT-COUNT — بطاقة «العلوم — ٥ معلم» كانت تعد من الكورسات
+     * والمسارات، والقائمة تحتها تعرض من فتح موعدا وحده: فيضغطها الطالب فلا
+     * يجد معلما واحدا. والعد هنا بقاعدة المرشح نفسها في `available_teachers()`
+     * — مادة الموعد، وإلا مواد معلمه — فالرقم عدد ما سيراه بعد النقرة.
+     */
+    public function open_subject_counts($grade_id = 0, $limit = 5)
+    {
+        $this->install_schema();
+        $teachers = $this->available_teachers(500, 500, 0, (int) $grade_id, self::KIND_CURRICULUM);
+        $cats     = $this->teacher_subjects();
+
+        $n = array();
+        foreach ($teachers as $t) {
+            $mine = array();
+            foreach ($t['slots'] as $s) {
+                if ((int) $s['subject_id'] > 0) {
+                    $mine[(int) $s['subject_id']] = true;
+                } else {
+                    foreach (($cats['cats'][(int) $t['id']] ?? array()) as $sid) $mine[(int) $sid] = true;
+                }
+            }
+            foreach (array_keys($mine) as $sid) $n[$sid] = ($n[$sid] ?? 0) + 1;
+        }
+        arsort($n);
+
+        $out = array();
+        foreach ($n as $sid => $count) {
+            $name = $this->subject_name((int) $sid);
+            if ($name === '') continue;
+            $out[] = array('id' => (int) $sid, 'name' => $name, 'tutors' => (int) $count);
+            if (count($out) >= (int) $limit) break;
+        }
+        return $out;
+    }
+
+    /**
+     * حجوزات الطالب بمواعيدها ومعلميها وحالتها وثمنها.
+     *
+     * TQ-BOOKINGS-KIND — `$kind` يرشح **في الاستعلام**. كانت شاشة التأسيس
+     * تجلب أحدث ثلاثين حجزا من كل الأنواع ثم ترشح التأسيس منها: فطالب له
+     * عشرون حصة منهج لا يرى إلا بعض حجوزات تأسيسه، أو لا يرى منها شيئا.
+     * والترتيب **القادم أولا بأقربه، ثم الماضي بأحدثه**: كان تصاعديا مطلقا
+     * فتتصدر القائمة حصص انتهت منذ أشهر ويغيب تحتها الموعد القريب.
+     */
+    public function bookings_for_student($student_id, $limit = 20, $kind = null)
     {
         $this->install_schema();
 
         $student_id = (int) $student_id;
         if ($student_id <= 0) return [];
 
-        $rows = $this->db->select('t.*, a.starts_at, a.duration_min, a.grade_id, a.subject_id,
+        $this->db->select('t.*, a.starts_at, a.duration_min, a.grade_id, a.subject_id,
                                    u.id AS tutor_id, u.first_name, u.last_name, u.image,
                                    i.invoice_no, i.total AS invoice_total, i.status AS invoice_status')
             ->from('tutoring_sessions t')
             ->join('availability_slots a', 'a.id = t.slot_id', 'left')
             ->join('users u', 'u.id = t.teacher_id', 'left')
             ->join('invoices i', 'i.id = t.invoice_id', 'left')
-            ->where('t.student_id', $student_id)
-            ->order_by('a.starts_at', 'ASC')->order_by('t.id', 'DESC')
+            ->where('t.student_id', $student_id);
+        if ($kind !== null) $this->db->where('t.kind', $this->clean_kind($kind));
+        $rows = $this->db
+            ->order_by('CASE WHEN a.starts_at >= NOW() THEN 0 ELSE 1 END', '', false)
+            ->order_by('CASE WHEN a.starts_at >= NOW() THEN a.starts_at END ASC, a.starts_at DESC, t.id DESC', '', false)
             ->limit((int) $limit)->get()->result_array();
 
         $subjects = $this->teacher_subjects();

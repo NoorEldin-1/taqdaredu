@@ -22,7 +22,10 @@
     queue: [], index: 0,
     answered: 0, correct: 0,
     total_due: 0, batch: 0, remaining: 0,
-    busy: false
+    busy: false,
+    /* ما تخطاه الطالب في هذه الجلسة. «تابع الدفعة التالية» كانت تعيد
+       الأسئلة المتخطاة نفسها أول الدفعة، فلا يصل إلى ما بعدها أبدا. */
+    skipped: []
   };
 
   /* ---- نداء الخادم: مغلف موحد، والرسالة العربية تأتي منه لا نخترعها ---- */
@@ -70,6 +73,13 @@
     return TQ.t('بعد ____ يوما', iso(n));
   }
 
+  function whenAgo(n) {
+    n = int(n);
+    if (n === 2) return TQ.t('يومين');
+    if (n <= 10) return TQ.t('____ أيام', iso(n));
+    return TQ.t('____ يوما', iso(n));
+  }
+
   function questions(n) {
     n = int(n);
     if (n === 1) return TQ.t('سؤال واحد');
@@ -96,7 +106,13 @@
     show('[data-tq-rv-body]', false);
     show('[data-tq-rv-error]', false);
 
-    call('reviews').then(function (d) {
+    var path = 'reviews' + (state.skipped.length ? '?exclude=' + state.skipped.join(',') : '');
+    call(path).then(function (d) {
+      /* لم يبق مستحق إلا ما تخطاه: يعاد إليه بدل شاشة «لا مستحق» كاذبة. */
+      if (!(d.due || []).length && state.skipped.length && int(d.total_due) > 0) {
+        state.skipped = [];
+        return load();
+      }
       show('[data-tq-rv-skeleton]', false);
       show('[data-tq-rv-body]', true);
 
@@ -120,6 +136,13 @@
       show('[data-tq-rv-done]', false);
 
       if (!state.queue.length) {
+        /* TQ-REVIEW-EMPTY — «أسئلتك السابقة ما زالت في موعدها البعيد» كانت
+           تقال لطالب لم يجدول له سؤال واحد. فالنص من حال طابوره. */
+        text('[data-tq-rv-empty-text]', int(d.scheduled_total) === 0
+          ? TQ.t('لم يجدول لك سؤال للمراجعة بعد. تجدول أسئلة كل درس بعد أن تتقنه، فتعود إليك هنا في موعدها.')
+          : (d.next_due_at
+              ? TQ.t('لا مستحق اليوم. أقرب سؤال يعود إليك ____.', whenBack(d.next_due_days))
+              : TQ.t('أنهيت كل ما استحق اليوم. عد غدا لما يحل موعده.')));
         show('[data-tq-rv-question]', false);
         show('[data-tq-rv-empty]', true);
         return;
@@ -159,6 +182,8 @@
     if (q.course_title) src.push(q.course_title);
     if (q.lesson_title) src.push(q.lesson_title);
     if (q.objective_text) src.push(q.objective_text);
+    /* كم تأخر: سؤال مستحق منذ خمسة أسابيع كان يعرض كأنه مستحق اليوم. */
+    if (int(q.overdue_days) >= 2) src.push(TQ.t('متأخر منذ ____', whenAgo(q.overdue_days)));
     text('[data-tq-rv-source]', src.join(' · '));
 
     text('[data-tq-rv-title]', q.title || '');
@@ -341,7 +366,10 @@
       return;
     }
     if (ev.target.closest('[data-tq-rv-skip]')) {
-      // التخطي محلي بحت: لا يرسل شيء، فالسؤال يبقى مستحقا كما هو.
+      // التخطي محلي بحت: لا يرسل شيء، فالسؤال يبقى مستحقا كما هو —
+      // ويحفظ هنا فلا يعود أول الدفعة التالية.
+      var sq = state.queue[state.index];
+      if (sq && state.skipped.indexOf(int(sq.question_id)) === -1) state.skipped.push(int(sq.question_id));
       state.index++;
       if (state.index >= state.queue.length) finish();
       else renderQuestion();

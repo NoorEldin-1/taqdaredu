@@ -1,0 +1,535 @@
+@charset "utf-8";
+/* ══════════════════════════════════════════════════════════════════
+   ٤) مسارات التأسيس — TQ-FOUNDATION-BAND
+   ----------------------------------------------------------------------
+   لوح داكن بعد الباقات في الرئيسية وصفحة الباقات. **داكن عمدا**:
+   التأسيس مستقل عن الباقات، وبطاقة بيضاء تحت بطاقاتها البيضاء تقرأ
+   باقة رابعة. والطابع طابع الموقع — بلاطة الخط العربي من `.whyd`،
+   والقوس من `#tqArch` نفسه الذي تقص به أهيرة الصفحات — فلا شكل ثان
+   يرسم ليشبهه.
+   الحصر: كل قاعدة تبدأ بـ`.fnd26`.
+   ══════════════════════════════════════════════════════════════════ */
+.fnd26{
+  --f-line:rgba(201,165,95,.26);
+  --f-line-hot:rgba(212,180,118,.62);
+  --f-gold:#D4B476;
+  --f-gold-lt:#E9DCC0;              /* 10.9:1 على أرضية اللوح */
+  --f-mute:rgba(233,236,234,.80);   /* 9.1:1 على أرضية اللوح */
+  position:relative;isolation:isolate;overflow:hidden;
+  border-radius:26px;
+  background:
+    radial-gradient(90% 60% at 50% 0%,rgba(20,86,78,.55),transparent 70%),
+    linear-gradient(160deg,#0B302D,#082523 60%,#061D1C);
+  border:1px solid var(--f-line);
+  padding:clamp(30px,3.6vw,60px) clamp(16px,2.6vw,44px);
+  box-shadow:0 26px 60px -40px rgba(0,0,0,.95);
+}
+.fnd26::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-color:var(--f-gold);
+  -webkit-mask-image:url('../img/script-tile.webp');
+  mask-image:url('../img/script-tile.webp');
+  -webkit-mask-size:var(--script-tile) auto;mask-size:var(--script-tile) auto;
+  opacity:.05;
+}
+.fnd26>*{position:relative;z-index:1}
+
+/* ── الترويسة ───────────────────────────────────────────────────── */
+.fnd26__head{text-align:center;max-inline-size:62ch;margin-inline:auto}
+.fnd26__eyebrow{
+  display:inline-flex;align-items:center;gap:8px;margin:0 0 14px;
+  padding:6px 14px;border-radius:999px;
+  border:1px solid var(--f-line-hot);background:rgba(212,180,118,.08);
+  color:var(--gold-on-dark);font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(12px,.9vw,13.5px);line-height:1.4;
+}
+.fnd26__eyebrow svg{inline-size:1.1em;block-size:1.1em;flex:none}
+.fnd26__head h2{
+  margin:0;color:#fff;font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(23px,2.5vw,38px);line-height:1.3;
+}
+.fnd26__lede{
+  margin:12px auto 0;max-inline-size:56ch;color:var(--f-mute);
+  font-size:clamp(13px,1.02vw,16px);line-height:1.8;
+}
+.fnd26__rule{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  margin-block-start:clamp(14px,1.4vw,20px);
+}
+.fnd26__rule::before,.fnd26__rule::after{
+  content:'';inline-size:clamp(46px,7vw,104px);block-size:1px;
+  background:linear-gradient(90deg,transparent,var(--f-line-hot));
+}
+.fnd26__rule::after{transform:scaleX(-1)}
+.fnd26__rule i{
+  inline-size:9px;block-size:9px;background:var(--f-gold);
+  transform:rotate(45deg);border-radius:2px;flex:0 0 auto;
+}
+
+/* ── الحقائق الأربع ─────────────────────────────────────────────── */
+.fnd26__facts{
+  list-style:none;margin:clamp(18px,2vw,28px) auto 0;padding:0;
+  display:flex;flex-wrap:wrap;justify-content:center;gap:10px;
+  max-inline-size:900px;
+}
+.fnd26__facts li{
+  display:inline-flex;align-items:center;gap:8px;
+  min-block-size:40px;padding:0 16px;border-radius:999px;
+  background:rgba(255,255,255,.04);border:1px solid var(--f-line);
+  color:var(--f-gold-lt);font-family:'Cairo',sans-serif;font-weight:600;
+  font-size:clamp(12px,.92vw,14px);
+}
+.fnd26__facts svg{inline-size:18px;block-size:18px;flex:none;color:var(--f-gold)}
+.fnd26__facts b{color:#fff}
+
+/* ── الشبكة ─────────────────────────────────────────────────────────
+   أعمدة بعدد المسارات (`--fnd-cols` من المولد) وعرض محدود لكل عمود:
+   مساران في شبكة ثلاثية يتركان فراغا يقرأ مسارا ناقصا. */
+.fnd26__grid{
+  --fnd-cols:3;
+  display:grid;grid-template-columns:repeat(var(--fnd-cols),minmax(0,340px));
+  justify-content:center;align-items:stretch;
+  gap:clamp(16px,1.8vw,26px);
+  margin-block-start:clamp(26px,3vw,44px);
+}
+
+/* ── البطاقة ────────────────────────────────────────────────────── */
+.fnd26-card{
+  position:relative;display:flex;flex-direction:column;
+  background:var(--paper);border:1px solid rgba(201,165,95,.38);
+  border-radius:22px;padding:clamp(12px,1.1vw,16px);
+  box-shadow:0 24px 46px -28px rgba(0,0,0,.75);
+  transition:transform .24s var(--ease),box-shadow .24s ease,border-color .24s ease;
+}
+.fnd26-card:hover{
+  transform:translateY(-6px);border-color:var(--gold);
+  box-shadow:0 34px 60px -30px rgba(0,0,0,.85);
+}
+.fnd26-card:focus-within{outline:2px solid var(--f-gold);outline-offset:4px}
+.fnd26-card--hot{
+  border:1.5px solid var(--gold);
+  box-shadow:0 0 0 4px rgba(201,165,95,.16),0 24px 46px -28px rgba(0,0,0,.75);
+}
+.fnd26-card__flag{
+  position:absolute;z-index:3;inset-block-start:clamp(20px,1.7vw,26px);inset-inline-start:clamp(20px,1.7vw,26px);
+  display:inline-flex;align-items:center;min-block-size:26px;padding:0 12px;border-radius:999px;
+  background:linear-gradient(180deg,#E7CB90,var(--gold));color:var(--petrol-deep);
+  font-family:'Cairo',sans-serif;font-weight:700;font-size:12px;line-height:1;
+  box-shadow:0 8px 18px -10px rgba(0,0,0,.6);
+}
+
+/* الصورة في القوس العربي بإطار ذهبي: القوس الخارجي ذهبي والداخلي صورة،
+   فالحد يتبع الانحناء — و`border` لا يتبع `clip-path`. */
+.fnd26-card__media{position:relative;margin-block-end:34px}
+.fnd26-card__arch{
+  display:block;aspect-ratio:5/4;padding:3px;
+  clip-path:url(#tqArch);
+  background:linear-gradient(180deg,#E7CB90,var(--gold-deep));
+}
+.fnd26-card__pic{
+  display:block;inline-size:100%;block-size:100%;overflow:hidden;
+  clip-path:url(#tqArch);
+  background:linear-gradient(160deg,var(--petrol-lift),var(--petrol-deep));
+}
+.fnd26-card__pic img{
+  inline-size:100%;block-size:100%;display:block;
+  object-fit:cover;object-position:50% 24%;
+  transition:transform .6s var(--ease);
+}
+.fnd26-card:hover .fnd26-card__pic img{transform:scale(1.05)}
+
+/* الوسام: حرف المسار على قاعدة القوس. والتوسيط فيزيائي (`left`) لا
+   منطقي: `translateX(-50%)` لا ينقلب مع الاتجاه. */
+.fnd26-card__glyph{
+  position:absolute;left:50%;inset-block-end:-26px;transform:translateX(-50%);
+  display:grid;place-items:center;
+  inline-size:58px;block-size:58px;border-radius:50%;
+  background:linear-gradient(150deg,var(--petrol),var(--petrol-deep));
+  border:2px solid var(--gold);color:var(--f-gold-lt,#E9DCC0);
+  font-family:'Cairo',sans-serif;font-weight:700;font-size:17px;line-height:1;
+  white-space:nowrap;letter-spacing:.5px;
+  box-shadow:0 0 0 5px var(--paper),0 12px 22px -12px rgba(0,0,0,.6);
+}
+.fnd26-card__glyph svg{inline-size:26px;block-size:26px}
+
+.fnd26-card__body{
+  display:flex;flex-direction:column;flex:1 1 auto;text-align:center;
+  padding-inline:clamp(4px,.6vw,8px);
+}
+.fnd26-card__title{
+  margin:0;color:var(--ink);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(17px,1.35vw,20px);line-height:1.4;
+}
+.fnd26-card__title a{color:inherit;text-decoration:none}
+.fnd26-card__title a::after{content:'';position:absolute;inset:0;z-index:2;border-radius:inherit}
+.fnd26-card__title a:focus-visible{outline:none}
+.fnd26-card__tag{
+  margin:6px 0 0;color:var(--ink-3);
+  font-size:clamp(12.5px,.95vw,14px);line-height:1.7;
+}
+
+.fnd26-card__list{
+  list-style:none;margin:14px 0 0;padding:14px 0 0;
+  border-block-start:1px dashed var(--gold-line);
+  display:flex;flex-direction:column;gap:9px;text-align:start;
+}
+.fnd26-card__list li{
+  display:flex;align-items:flex-start;gap:10px;
+  color:var(--ink-2);font-size:clamp(12.5px,.92vw,13.5px);line-height:1.6;
+}
+.fnd26-card__tick{
+  flex:none;display:grid;place-items:center;margin-block-start:1px;
+  inline-size:20px;block-size:20px;border-radius:50%;
+  background:var(--beige);color:var(--gold-deep);
+}
+.fnd26-card__tick svg{inline-size:12px;block-size:12px}
+
+/* القاع ثابت: السعر والنداء يتحاذيان مهما اختلف طول المخرجات */
+.fnd26-card__foot{margin-block-start:auto;padding-block-start:16px}
+.fnd26-card__row{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 10px;
+  padding-block-start:14px;border-block-start:1px solid var(--gold-line-soft);
+}
+.fnd26-card__price{display:flex;align-items:baseline;gap:5px;margin:0}
+.fnd26-card__price b{
+  color:var(--petrol);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(24px,2vw,30px);line-height:1;font-variant-numeric:tabular-nums;
+}
+.fnd26-card__price span{color:var(--ink-2);font-weight:600;font-size:13px}
+.fnd26-card__price small{color:var(--ink-3);font-size:12.5px}
+.fnd26-card__price small::before{content:'/ '}
+
+/* «مواعيد متاحة» — نبضة خضراء: حال حية تقاس لا وعد يكتب */
+.fnd26-card__open{
+  display:inline-flex;align-items:center;gap:7px;margin:0;
+  padding:4px 10px;border-radius:999px;background:rgba(12,120,108,.09);
+  color:var(--emerald);font-family:'Cairo',sans-serif;font-weight:700;font-size:12px;
+}
+.fnd26-card__open i{
+  position:relative;inline-size:8px;block-size:8px;border-radius:50%;background:var(--emerald);
+}
+.fnd26-card__open i::after{
+  content:'';position:absolute;inset:0;border-radius:50%;background:var(--emerald);
+  animation:fnd26-pulse 1.8s ease-out infinite;
+}
+@keyframes fnd26-pulse{from{transform:scale(1);opacity:.55}to{transform:scale(2.8);opacity:0}}
+
+.fnd26-card__cta{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-block-start:14px;min-block-size:46px;border-radius:var(--r-btn);
+  font-family:'Cairo',sans-serif;font-weight:700;font-size:clamp(13px,.98vw,14.5px);
+  color:#fff;background:var(--petrol);
+  transition:background .18s ease,filter .18s ease;
+}
+.fnd26-card__cta svg{inline-size:1em;block-size:1em;transition:transform .18s ease}
+.fnd26-card:hover .fnd26-card__cta{background:var(--petrol-lift)}
+.fnd26-card:hover .fnd26-card__cta svg{transform:translateX(-3px)}
+[dir='ltr'] .fnd26-card:hover .fnd26-card__cta svg{transform:translateX(3px)}
+.fnd26-card--hot .fnd26-card__cta{
+  color:var(--petrol-deep);background:linear-gradient(180deg,#E7CB90,var(--gold));
+  box-shadow:0 10px 22px -14px rgba(160,108,32,.8);
+}
+.fnd26-card--hot:hover .fnd26-card__cta{background:linear-gradient(180deg,#EED5A0,#CFAA68)}
+
+/* ── الذيل ──────────────────────────────────────────────────────── */
+.fnd26__foot{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 16px;
+  margin-block-start:clamp(24px,2.6vw,38px);text-align:center;
+}
+.fnd26__foot p{margin:0;color:var(--f-mute);font-size:clamp(12.5px,.95vw,14px)}
+.fnd26__more{
+  display:inline-flex;align-items:center;gap:8px;min-block-size:44px;padding:0 20px;
+  border-radius:999px;border:1px solid var(--f-line-hot);text-decoration:none;
+  color:var(--gold-on-dark);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(12.5px,.95vw,14px);
+  transition:background .18s ease,color .18s ease;
+}
+.fnd26__more:hover{background:rgba(212,180,118,.14);color:#fff}
+.fnd26__more svg{inline-size:1em;block-size:1em}
+
+/* ── الاستجابة ──────────────────────────────────────────────────── */
+@media (max-width:980px){
+  .fnd26__grid{grid-template-columns:repeat(min(var(--fnd-cols),2),minmax(0,340px))}
+  .fnd26-card--hot{order:-1}
+}
+@media (max-width:640px){
+  .fnd26{border-radius:20px}
+  .fnd26__grid{grid-template-columns:minmax(0,400px)}
+  .fnd26__facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .fnd26__facts li{justify-content:center;padding:6px 10px;border-radius:14px;text-align:center}
+  .fnd26-card__arch{aspect-ratio:16/11}
+}
+@media (max-width:380px){
+  .fnd26__facts{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  .fnd26-card,.fnd26-card__pic img,.fnd26-card__cta svg{transition:none}
+  .fnd26-card:hover,.fnd26-card:hover .fnd26-card__pic img,
+  .fnd26-card:hover .fnd26-card__cta svg{transform:none}
+  .fnd26-card__open i::after{animation:none}
+}
+
+
+
+/* ══════════════════════════════════════════════════════════════════
+   ٥) صفحتا `/foundation` و`/foundation/<slug>` — TQ-FOUNDATION-PAGES
+   ----------------------------------------------------------------------
+   كانت صفحة المسار تستعير `co-cols` و`co-side` من شاشة الدفع، وتلك
+   الورقة لا تحمل هنا: فخرج العمودان مبعثرين، والمخرجات نصا عاريا بلا
+   علامة، والثمن ممطوطا على عرض الصف. فالصفحتان الآن على مفرداتهما،
+   وبطاقتهما بطاقة الرئيسية نفسها (`.fnd26-card`).
+   الحصر: كل قاعدة تبدأ بـ`.fndp`.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── الفراغ ─────────────────────────────────────────────────────── */
+.fndp-empty{
+  display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;
+  max-inline-size:560px;margin-inline:auto;padding:clamp(28px,3vw,44px) 20px;
+  background:var(--paper);border:1px dashed var(--gold-line);border-radius:22px;
+}
+.fndp-empty p{margin:0;color:var(--ink-2);line-height:1.8}
+.fndp-empty__ico{
+  display:grid;place-items:center;inline-size:54px;block-size:54px;border-radius:50%;
+  background:var(--beige);color:var(--gold-deep);
+}
+.fndp-empty__ico svg{inline-size:26px;block-size:26px}
+.fndp-empty--inline{max-inline-size:none;flex-direction:row;text-align:start;padding:18px 20px}
+.fndp-empty--inline .fndp-empty__ico{flex:none;inline-size:44px;block-size:44px}
+
+/* ── خط «كيف يعمل» ─────────────────────────────────────────────────
+   خمس محطات على خط ذهبي واحد، والرابعة (الدفع) معلمة: هي ما جاء
+   الزائر يسأل عنه، وموضعها بعد التأكيد هو الخبر. */
+.fndp-flow{
+  list-style:none;margin:0;padding:0;position:relative;
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(10px,1.4vw,22px);
+}
+.fndp-flow::before{
+  content:'';position:absolute;inset-inline:10%;inset-block-start:31px;block-size:2px;
+  background:repeating-linear-gradient(90deg,var(--gold-line) 0 8px,transparent 8px 14px);
+}
+.fndp-flow__step{position:relative;text-align:center;padding:0 clamp(4px,.6vw,10px)}
+.fndp-flow__n{
+  position:relative;display:grid;place-items:center;margin-inline:auto;
+  inline-size:64px;block-size:64px;border-radius:50%;
+  background:linear-gradient(155deg,var(--petrol-lift),var(--petrol-deep));
+  color:var(--gold-warm);box-shadow:0 0 0 6px var(--beige),0 14px 26px -14px rgba(2,51,49,.8);
+}
+.fndp-flow__n svg{inline-size:26px;block-size:26px}
+.fndp-flow__n i{
+  position:absolute;inset-block-start:-4px;inset-inline-end:-4px;
+  display:grid;place-items:center;inline-size:24px;block-size:24px;border-radius:50%;
+  background:var(--paper);color:var(--petrol);border:1.5px solid var(--gold);
+  font:700 12px/1 'Cairo',sans-serif;font-style:normal;
+}
+.fndp-flow__step.is-key .fndp-flow__n{
+  background:linear-gradient(180deg,#E7CB90,var(--gold));color:var(--petrol-deep);
+}
+.fndp-flow__step h3{
+  margin:16px 0 0;color:var(--ink);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(14px,1.1vw,16.5px);
+}
+.fndp-flow__step p{
+  margin:6px 0 0;color:var(--ink-3);font-size:clamp(12.5px,.9vw,13.5px);line-height:1.75;
+}
+
+/* ── «التأسيس أم الباقة؟» ────────────────────────────────────────── */
+.fndp-note{
+  display:flex;align-items:center;gap:clamp(14px,1.8vw,24px);
+  margin-block-start:clamp(30px,3.4vw,50px);
+  padding:clamp(18px,2vw,28px) clamp(18px,2.4vw,34px);
+  background:var(--paper);border:1px solid var(--gold-line);border-radius:22px;
+  box-shadow:var(--sh-soft);
+}
+.fndp-note__ico{
+  flex:none;display:grid;place-items:center;inline-size:56px;block-size:56px;border-radius:16px;
+  background:var(--beige);color:var(--gold-deep);
+}
+.fndp-note__ico svg{inline-size:28px;block-size:28px}
+.fndp-note__txt{flex:1 1 auto;min-inline-size:0}
+.fndp-note__txt h3{margin:0;color:var(--ink);font-family:'Cairo',sans-serif;font-weight:700;font-size:clamp(15px,1.2vw,18px)}
+.fndp-note__txt p{margin:6px 0 0;color:var(--ink-2);font-size:clamp(13px,.95vw,14.5px);line-height:1.8}
+.fndp-note__btn{
+  flex:none;display:inline-flex;align-items:center;gap:8px;min-block-size:46px;padding:0 22px;
+  border-radius:var(--r-btn);background:var(--petrol);color:#fff;text-decoration:none;
+  font-family:'Cairo',sans-serif;font-weight:700;font-size:14px;transition:background .18s ease;
+}
+.fndp-note__btn:hover{background:var(--petrol-lift);color:#fff}
+.fndp-note__btn svg{inline-size:1em;block-size:1em}
+
+/* ── صفحة المسار: عمودان ──────────────────────────────────────────── */
+.fndp-cols{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,370px);
+  gap:clamp(18px,2.4vw,36px);align-items:start;
+}
+.fndp-main{display:flex;flex-direction:column;gap:clamp(16px,1.8vw,24px);min-inline-size:0}
+
+.fndp-panel{
+  background:var(--paper);border:1px solid var(--gold-line-soft);border-radius:22px;
+  padding:clamp(18px,2vw,30px);box-shadow:var(--sh-soft);
+}
+.fndp-panel--flat{background:transparent;box-shadow:none;border-style:dashed;border-color:var(--gold-line)}
+.fndp-panel__head{display:flex;align-items:center;gap:14px;margin-block-end:clamp(14px,1.4vw,20px)}
+.fndp-panel__head h2{
+  margin:0;color:var(--ink);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(18px,1.6vw,24px);line-height:1.35;
+}
+.fndp-panel__head p{margin:3px 0 0;color:var(--ink-3);font-size:clamp(12.5px,.9vw,14px);line-height:1.6}
+.fndp-panel__ico{
+  flex:none;display:grid;place-items:center;inline-size:46px;block-size:46px;border-radius:14px;
+  background:linear-gradient(155deg,var(--petrol-lift),var(--petrol-deep));color:var(--gold-warm);
+}
+.fndp-panel__ico svg{inline-size:22px;block-size:22px}
+
+.fndp-lede{margin:0;color:var(--ink-2);font-size:clamp(14px,1.05vw,16px);line-height:1.95}
+.fndp-sub{
+  margin:clamp(18px,1.8vw,26px) 0 12px;color:var(--ink);font-family:'Cairo',sans-serif;
+  font-weight:700;font-size:clamp(14.5px,1.1vw,16.5px);
+}
+.fndp-checks{
+  list-style:none;margin:0;padding:0;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px;
+}
+.fndp-checks li{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;
+  background:var(--beige);color:var(--ink-2);font-size:clamp(13px,.95vw,14.5px);line-height:1.6;
+}
+.fndp-checks__n{
+  flex:none;display:grid;place-items:center;inline-size:30px;block-size:30px;border-radius:50%;
+  background:var(--petrol);color:var(--gold-warm);font:700 13px/1 'Cairo',sans-serif;
+}
+
+/* المعلمون ومواعيدهم */
+.fndp-tutors{display:flex;flex-direction:column;gap:12px}
+.fndp-tutor{border:1px solid var(--gold-line-soft);border-radius:18px;padding:clamp(12px,1.2vw,18px);background:#fff}
+.fndp-tutor__who{display:flex;align-items:center;gap:12px}
+.fndp-tutor__who>div{flex:1 1 auto;min-inline-size:0}
+.fndp-tutor__who h3{margin:0;color:var(--ink);font-family:'Cairo',sans-serif;font-weight:700;font-size:15.5px}
+.fndp-tutor__who p{margin:2px 0 0;color:var(--ink-3);font-size:13px}
+.fndp-tutor__img{
+  flex:none;inline-size:48px;block-size:48px;border-radius:50%;object-fit:cover;
+  border:2px solid var(--gold-line);
+}
+span.fndp-tutor__img{display:grid;place-items:center;font-size:19px}
+.fndp-tutor__price{margin:0;display:flex;align-items:baseline;gap:4px;color:var(--ink-3);font-size:12.5px}
+.fndp-tutor__price b{color:var(--petrol);font-size:18px}
+.fndp-slots{
+  list-style:none;margin:14px 0 0;padding:0;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:8px;
+}
+.fndp-slot{
+  display:flex;flex-direction:column;gap:2px;padding:9px 12px;border-radius:12px;
+  background:var(--beige);text-align:center;
+}
+.fndp-slot__day{color:var(--ink-3);font-size:12.5px}
+.fndp-slot__time{color:var(--petrol);font-family:'Cairo',sans-serif;font-weight:700;font-size:14.5px;font-variant-numeric:tabular-nums}
+.fndp-panel__link{
+  display:inline-flex;align-items:center;gap:8px;margin-block-start:14px;min-block-size:44px;
+  color:var(--petrol);font-family:'Cairo',sans-serif;font-weight:700;font-size:14px;text-decoration:none;
+}
+.fndp-panel__link:hover{text-decoration:underline;text-underline-offset:4px}
+.fndp-panel__link svg{inline-size:1em;block-size:1em}
+
+.fndp-team{
+  list-style:none;margin:0;padding:0;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:10px;
+}
+.fndp-team li{
+  display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;
+  background:#fff;border:1px solid var(--gold-line-soft);
+}
+.fndp-team b{display:block;color:var(--ink);font-size:14.5px}
+.fndp-team span{display:block;color:var(--ink-3);font-size:12.5px}
+
+.fndp-mini{
+  list-style:none;margin:0;padding:0;counter-reset:fndp;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;
+}
+.fndp-mini li{counter-increment:fndp;position:relative;padding-block-start:40px}
+.fndp-mini li::before{
+  content:counter(fndp);position:absolute;inset-block-start:0;inset-inline-start:0;
+  display:grid;place-items:center;inline-size:30px;block-size:30px;border-radius:50%;
+  background:var(--petrol);color:var(--gold-warm);font:700 13px/1 'Cairo',sans-serif;
+}
+.fndp-mini b{display:block;color:var(--ink);font-family:'Cairo',sans-serif;font-size:14.5px}
+.fndp-mini span{display:block;margin-block-start:3px;color:var(--ink-3);font-size:12.5px;line-height:1.7}
+
+/* ── بطاقة الحجز — لاصقة، بلوح الرئيسية الداكن ────────────────────── */
+.fndp-side{position:sticky;inset-block-start:118px}
+.fndp-book{
+  position:relative;isolation:isolate;overflow:hidden;
+  padding:clamp(16px,1.6vw,22px);border-radius:24px;text-align:center;
+  background:
+    radial-gradient(100% 60% at 50% 0%,rgba(20,86,78,.6),transparent 70%),
+    linear-gradient(160deg,#0B302D,#082523 60%,#061D1C);
+  border:1px solid rgba(201,165,95,.3);
+  box-shadow:0 30px 60px -34px rgba(0,0,0,.8);
+}
+.fndp-book::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:-1;
+  background-color:#D4B476;
+  -webkit-mask-image:url('../img/script-tile.webp');mask-image:url('../img/script-tile.webp');
+  -webkit-mask-size:var(--script-tile) auto;mask-size:var(--script-tile) auto;opacity:.05;
+}
+.fndp-book__media{margin-block-end:36px}
+.fndp-book__media .fnd26-card__arch{aspect-ratio:4/3}
+.fndp-book__media .fnd26-card__glyph{box-shadow:0 0 0 5px #0A2B28,0 12px 22px -12px rgba(0,0,0,.6)}
+.fndp-book__name{margin:0;color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:clamp(19px,1.5vw,23px)}
+.fndp-book__price{
+  display:flex;align-items:baseline;justify-content:center;gap:6px;margin:10px 0 0;
+  color:rgba(233,236,234,.8);
+}
+.fndp-book__price b{color:#E9DCC0;font-family:'Cairo',sans-serif;font-weight:700;font-size:clamp(34px,2.8vw,42px);line-height:1}
+.fndp-book__price span{color:#E9DCC0;font-weight:600;font-size:15px}
+.fndp-book__price small{font-size:13px}
+.fndp-book__facts{
+  list-style:none;margin:16px 0 0;padding:14px 0 0;border-block-start:1px solid rgba(201,165,95,.22);
+  display:flex;flex-direction:column;gap:9px;text-align:start;
+}
+.fndp-book__facts li{display:flex;align-items:center;gap:10px;color:rgba(233,236,234,.9);font-size:13.5px}
+.fndp-book__facts svg{flex:none;inline-size:18px;block-size:18px;color:#D4B476}
+.fndp-book__facts b{color:#fff}
+.fndp-book__status{
+  display:flex;align-items:center;justify-content:center;gap:8px;margin:16px 0 0;
+  padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.05);
+  color:rgba(233,236,234,.75);font-size:13px;
+}
+.fndp-book__status i{flex:none;inline-size:8px;block-size:8px;border-radius:50%;background:rgba(233,236,234,.45)}
+.fndp-book__status.is-open{background:rgba(22,160,133,.14);color:#BFEBDD}
+.fndp-book__status.is-open i{background:#3FD0A6;box-shadow:0 0 0 4px rgba(63,208,166,.2)}
+.fndp-book__status b{color:#fff}
+.fndp-book__cta{
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-block-start:14px;
+  min-block-size:50px;border-radius:var(--r-btn);text-decoration:none;
+  background:linear-gradient(180deg,#E7CB90,var(--gold));color:var(--petrol-deep);
+  font-family:'Cairo',sans-serif;font-weight:700;font-size:15.5px;
+  box-shadow:0 12px 24px -14px rgba(160,108,32,.9);transition:filter .18s ease,transform .18s ease;
+}
+.fndp-book__cta:hover{filter:brightness(1.06);transform:translateY(-2px);color:var(--petrol-deep)}
+.fndp-book__cta svg{inline-size:1em;block-size:1em}
+.fndp-book__note{margin:14px 0 0;color:rgba(233,236,234,.7);font-size:12.5px;line-height:1.8}
+.fndp-book__note a{color:#E3CFA3;font-weight:700}
+
+/* ── الاستجابة ──────────────────────────────────────────────────── */
+@media (max-width:980px){
+  .fndp-cols{grid-template-columns:minmax(0,1fr)}
+  /* الحجز اولا على الشاشة الضيقة: الثمن والزر قبل ثلاثة الواح نزول */
+  .fndp-side{position:static;order:-1;max-inline-size:520px;inline-size:100%;margin-inline:auto}
+  .fndp-book__media .fnd26-card__arch{aspect-ratio:16/10}
+  .fndp-flow{grid-template-columns:minmax(0,1fr);gap:0;max-inline-size:560px;margin-inline:auto}
+  .fndp-flow::before{inset-inline:auto;inset-inline-start:31px;inset-block:32px;block-size:auto;inline-size:2px;
+    background:repeating-linear-gradient(180deg,var(--gold-line) 0 8px,transparent 8px 14px)}
+  .fndp-flow__step{display:grid;grid-template-columns:64px minmax(0,1fr);column-gap:16px;text-align:start;padding:0 0 22px}
+  .fndp-flow__n{grid-row:span 2;margin:0}
+  .fndp-flow__step h3{margin:10px 0 0}
+  .fndp-mini{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:18px}
+}
+@media (max-width:640px){
+  .fndp-note{flex-direction:column;text-align:center}
+  .fndp-note__btn{inline-size:100%;justify-content:center}
+  .fndp-empty--inline{flex-direction:column;text-align:center}
+  .fndp-slots{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){
+  .fndp-book__cta{transition:none}
+  .fndp-book__cta:hover{transform:none}
+}

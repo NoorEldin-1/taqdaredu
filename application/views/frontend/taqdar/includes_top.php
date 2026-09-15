@@ -64,6 +64,12 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
         (`home` و`home_elegant` و`plans`) لا على كل صفحة. */ ?>
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/home-dark.css'); ?>">
 <?php endif; ?>
+<?php /* TQ-FOUNDATION-BAND — ورقة التأسيس: قسم «مسارات التأسيس» في الرئيسية
+        وصفحة الباقات، وصفحتا `/foundation` و`/foundation/<slug>`. أربع
+        صفحات تقرأ بطاقة واحدة، فالورقة واحدة لا نسخة في كل منها. */ ?>
+<?php if (isset($page_name) && in_array($page_name, array('home', 'home_elegant', 'plans', 'site_foundation', 'site_foundation_track'), true)): ?>
+    <link rel="stylesheet" href="<?php echo tq_site_asset('css/foundation.css'); ?>">
+<?php endif; ?>
 <?php else: ?>
 <?php /* TQ-FONTS-MOVED — خطوط البوابة تسبق للبوابة وحدها.
    كانت خارج الشرط، فتجلب بأولوية عالية على كل صفحة تصميم — وهي

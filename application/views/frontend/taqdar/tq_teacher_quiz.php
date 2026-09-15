@@ -107,23 +107,33 @@ include 'portal_open.php';
     </div>
 
     <?php if (!$tq_ready['ok'] || $tq_ready['why']): ?>
+        <?php /* TQ-ALERT-STACK — العنوان والقائمة والفقرة في `__body` واحد: كانت
+                 أبناء صندوق مرن أفقي فتخرج ثلاثة أعمدة متجاورة. والاختبار الذي بلا
+                 سؤال واحد يقال له ما يفعله — زر إلى المحرر تحت هذا اللوح — لا
+                 وصف الحال وحده. */ ?>
         <div class="tq-alert <?php echo $tq_ready['ok'] ? 'tq-alert--ok' : 'tq-alert--no'; ?>"
              role="<?php echo $tq_ready['ok'] ? 'status' : 'alert'; ?>">
-            <strong>
-                <?php echo $tq_ready['ok']
-                    ? t('الاختبار يعمل، وهذا ما يمكن تحسينه:')
-                    : t('هذا الاختبار لا يعمل بعد:'); ?>
-            </strong>
-            <ul style="margin:var(--tq-space-s) 0 0;padding-inline-start:var(--tq-space-l)">
-                <?php foreach ($tq_ready['why'] as $tq_w): ?>
-                    <li><?php echo html_escape($tq_w); ?></li>
-                <?php endforeach; ?>
-            </ul>
-            <?php if ($tq_ready['questions'] === 0): ?>
-                <p style="margin-block-start:var(--tq-space-s)">
-                    <?php echo t('وما دام بلا أسئلة فالبوابة تعمل بالطريقة القديمة: أسئلة مربوطة بأهداف هذا الدرس إن وجدت، وإلا فتح الدرس التالي بإتمام المشاهدة وحدها.'); ?>
-                </p>
-            <?php endif; ?>
+            <span class="tq-alert__icon" aria-hidden="true"><?php echo tq_icon($tq_ready['ok'] ? 'help' : 'alert', 20); ?></span>
+            <div class="tq-alert__body">
+                <strong>
+                    <?php echo $tq_ready['ok']
+                        ? t('الاختبار يعمل، وهذا ما يمكن تحسينه:')
+                        : t('هذا الاختبار لا يعمل بعد:'); ?>
+                </strong>
+                <ul style="padding-inline-start:var(--tq-space-l);list-style:disc">
+                    <?php foreach ($tq_ready['why'] as $tq_w): ?>
+                        <li><?php echo html_escape($tq_w); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+                <?php if ((int) $tq_ready['questions'] === 0): ?>
+                    <p>
+                        <?php echo t('وما دام بلا أسئلة فالبوابة تعمل بالطريقة القديمة: أسئلة مربوطة بأهداف هذا الدرس إن وجدت، وإلا فتح الدرس التالي بإتمام المشاهدة وحدها.'); ?>
+                    </p>
+                    <div class="tq-alert__actions">
+                        <a class="tq-btn tq-btn--primary tq-btn--sm" href="#tq-quiz-editor"><?php echo t('أضف أول سؤال'); ?></a>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
     <?php endif; ?>
 </div>
@@ -161,7 +171,7 @@ include 'portal_open.php';
 </details>
 
 <?php /* ── المحرر: القالب نفسه الذي تستعمله شاشة التشخيصي ──────── */ ?>
-<div class="tq-card">
+<div class="tq-card" id="tq-quiz-editor" style="scroll-margin-block-start:var(--tq-space-h1)">
     <?php
     $q_skin       = 'tq';
     $q_action     = base_url('teacher/quiz/question');

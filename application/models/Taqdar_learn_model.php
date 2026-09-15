@@ -550,13 +550,12 @@ class Taqdar_learn_model extends CI_Model
                 array('days_left' => $exam['days_left']));
         }
 
-        $task = $this->pending_task($student_id);
-        if ($task) {
-            return $this->step('task', 'سلم واجب ' . $task['lesson_title'],
-                'واجب مسند إليك في ' . $task['course_title'] . ' لم يسلم بعد.',
-                'student/tasks', 'افتح الواجب', 'clipboard',
-                array('lesson_id' => (int) $task['lesson_id']));
-        }
+        /* TQ-TASK-NOSUBMIT — لا خطوة «سلم واجب».
+           كان الواجب أعلى أولوية بعد المراجعة، والشريط أول ما يقرأ في البوابة:
+           «سلم واجب القراءة الجهرية — [افتح الواجب]». ولا باب في المنصة كلها
+           يسلم منه الطالب واجبا — لا رفع ولا نموذج ولا نقطة تستقبل تسليما —
+           فيقف أمام زر لا يوصل إلى شيء كل يوم، ويحجب الشريط عنه درسه التالي.
+           و`pending_task()` تبقى لمن يبني مسار التسليم: يعاد هذا الفرع معه. */
 
         $resume = $this->resume_lesson($student_id);
         if ($resume) {

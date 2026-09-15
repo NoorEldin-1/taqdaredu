@@ -255,6 +255,8 @@ $route['api/v1/student/calendar']     = 'api_v1/student_calendar';
 $route['api/v1/student/books/(:num)/file'] = 'api_v1/student_book_file/$1';
 $route['api/v1/student/library']      = 'api_v1/student_library';
 $route['api/v1/student/reports']      = 'api_v1/student_reports';
+/* TQ-MATERIAL-GATE — والملف له نقطته هنا كما لملف الكتاب: التطبيق بلا كعكة. */
+$route['api/v1/student/materials/(file|lesson)/(:num)/file'] = 'api_v1/student_material_file/$1/$2';
 $route['api/v1/student/materials']    = 'api_v1/student_materials';
 $route['api/v1/student/favourites/toggle'] = 'api_v1/favourite_toggle';
 $route['api/v1/student/favourites']       = 'api_v1/student_favourites';
@@ -446,6 +448,8 @@ $route['parent/pay/course']         = 'taqdar/parent_pay_course';
 /* TQ-BOOK — وكتابا مفردا كذلك. وباب بلا كتب يعني أن ولي الأمر لا
    يشتري كتابا لابنه أبدا مهما عرضته عليه صفحة الكتاب. */
 $route['parent/pay/book']           = 'taqdar/parent_pay_book';
+/* TQ-INVOICE-CANCEL — إلغاء فاتورة لم تدفع. كتابة، فقبل `parent/(:any)`. */
+$route['parent/pay/cancel']         = 'taqdar/parent_pay_cancel';
 
 // حقا تصدير البيانات وحذف الحساب لا يخصان الطالب وحده — الدالتان
 // `Taqdar::export_data()` و`delete_account()` تشترطان تسجيل الدخول لا دورا
@@ -549,6 +553,9 @@ $route['student/parent-link']            = 'taqdar/parent_link_respond';
 // قلب التفضيل. قاعدة صريحة قبل `student/(:any)`: بدونها يصل الاسم كما هو
 // إلى `Taqdar::favourite()` وهي غير موجودة، فيرد 404 على كل ضغطة قلب.
 $route['student/favourite']            = 'taqdar/favourite_toggle';
+/* TQ-MATERIAL-GATE — ملف الدرس من خلف حارس. مقطعان بعد `student/`، فلا
+   تلتقطه `student/(:any)`: بلا هذه القاعدة يرد 404 على كل زر تحميل. */
+$route['student/material/(file|lesson)/(:num)'] = 'taqdar/material_file/$1/$2';
 
 // ---- البحث داخل البوابة ----
 // صندوق البحث في ترويسة البوابة يصدر إلى `<الدور>/search`. و`student/search`

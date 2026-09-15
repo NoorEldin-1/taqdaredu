@@ -80,7 +80,9 @@ include __DIR__ . '/site/site_pagehero.php';
       <?php if ($tq_shown !== ''): ?>
         <p class="form-hint form-hint--box" id="tqDest">
           <svg aria-hidden="true"><use href="#<?php echo $tq_is_wa ? 'i-whatsapp' : 'i-mail'; ?>"></use></svg>
-          <span>الرمز أرسل إلى <b class="tq-ltr" dir="ltr"><?php echo html_escape($tq_shown); ?></b>
+          <?php /* القناة تقال مع الرقم: «أرسل إلى +966…» وحدها يقرؤها صاحبها
+                   رسالة جوال فيفتح رسائله النصية ولا يجد شيئا. */ ?>
+          <span><?php echo $tq_is_wa ? 'الرمز أرسل على واتساب إلى' : 'الرمز أرسل إلى'; ?> <b class="tq-ltr" dir="ltr"><?php echo html_escape($tq_shown); ?></b>
             <?php if (!$tq_is_wa): ?><span class="tq-dest-what"> — <?php echo html_escape($tq_where); ?></span><?php endif; ?>
           </span>
         </p>

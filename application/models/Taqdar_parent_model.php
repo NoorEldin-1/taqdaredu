@@ -67,11 +67,17 @@ class Taqdar_parent_model extends CI_Model
         $parent_id = (int) $parent_id;
         if ($parent_id <= 0 || !$this->db->table_exists('parent_links')) return [];
 
+        /* TQ-DELETED-CHILD — الحساب المحذوف لا يعرض. حذف الحساب يجهله
+           (`Taqdar::delete_account()` يكتب «حساب محذوف» ويغلقه) ولا يمس
+           `parent_links`، فكان يبقى عند وليه ابنا «مفعلا» باسم «حساب محذوف»:
+           في التقرير الأسبوعي، وفي الإعدادات بزر إلغاء ربط، وفي منتقي من يدفع
+           عنه. والشرط هنا في مصدر الروابط الواحد، فتسقط من كل الشاشات معا. */
         $sql = "SELECT pl.id, pl.student_id, pl.status, pl.consent_at, pl.scope,
                        u.first_name, u.last_name, u.email, u.image
                   FROM parent_links pl
                   JOIN users u ON u.id = pl.student_id
-                 WHERE pl.parent_user_id = ?";
+                 WHERE pl.parent_user_id = ?
+                   AND u.email NOT LIKE '%@deleted.invalid'";
         $bind = [$parent_id];
 
         if ($status !== null) { $sql .= " AND pl.status = ?"; $bind[] = $status; }
@@ -98,10 +104,12 @@ class Taqdar_parent_model extends CI_Model
         $student_id = (int) $student_id;
         if ($parent_id <= 0 || $student_id <= 0 || !$this->db->table_exists('parent_links')) return false;
 
-        return (int) $this->db->where('parent_user_id', $parent_id)
-                              ->where('student_id', $student_id)
-                              ->where('status', 'active')
-                              ->count_all_results('parent_links') > 0;
+        /* والمحذوف لا يملكه أحد (TQ-DELETED-CHILD). */
+        return (int) $this->db->query(
+            "SELECT COUNT(*) n FROM parent_links pl JOIN users u ON u.id = pl.student_id
+              WHERE pl.parent_user_id = ? AND pl.student_id = ? AND pl.status = 'active'
+                AND u.email NOT LIKE '%@deleted.invalid'",
+            [$parent_id, $student_id])->row('n') > 0;
     }
 
     /** صف الابن إن كان مربوطا — وإلا `null`، فلا تفتح بيانات غير ابنه. */
@@ -200,28 +208,51 @@ class Taqdar_parent_model extends CI_Model
     public function request_link($parent_id, $identifier)
     {
         $parent_id  = (int) $parent_id;
-        $identifier = trim((string) $identifier);
+        $identifier = strtolower(trim((string) $identifier));
 
-        if ($parent_id <= 0)      return $this->fail('لا جلسة مفتوحة.');
-        if ($identifier === '')   return $this->fail('اكتب بريد حساب ابنك في المنصة أو رقم حسابه.');
+        if ($parent_id <= 0) return $this->fail('لا جلسة مفتوحة.');
+
+        /* ═══ TQ-LINK-ENUM — النموذج كان كشافا لحسابات المنصة ═══
+           كان يقبل **رقم الحساب**، والأرقام متسلسلة (١ ثم ٢ ثم ٣…)، ولكل رقم
+           رد يختلف: «لا حساب بهذا الرقم» · «حساب ابنك غير مفعل» · «هذا حساب
+           إدارة» · «هذا حساب معلم» · «أرسل طلب الربط إلى [الاسم الكامل]». فأي
+           زائر يفتح حساب ولي أمر من صفحة التسجيل يعد الأرقام فيعرف حسابات
+           الإدارة والمعلمين والاسم الكامل لكل طالب — وأكثرهم قاصرون — ويرسل
+           إلى مئات منهم طلب ربط من «ولي أمر» لا يعرفونه. ولا حد لعدد المحاولات.
+           فالعلاج ثلاثة معا:
+             · **البريد وحده**: لا يخمن كما يخمن رقم متسلسل.
+             · **رد واحد** مهما كان الحساب: موجودا أو لا، طالبا أو لا، مفعلا أو
+               لا — ولا اسم فيه. والاسم يعرفه ولي الأمر حين يوافق ابنه.
+             · **حد للمحاولات** بآلة الخنق نفسها التي تحرس الدخول. */
+        if ($identifier === '' || !filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            return $this->fail('اكتب البريد الإلكتروني الذي يدخل به ابنك إلى تقدر.');
+        }
         if (!$this->db->table_exists('parent_links')) return $this->fail('جدول الروابط غير موجود.');
 
-        $student = ctype_digit($identifier)
-            ? $this->db->where('id', (int) $identifier)->get('users')->row_array()
-            : $this->db->where('email', $identifier)->get('users')->row_array();
+        $tq_key = 'parent:' . $parent_id;
+        if (function_exists('tq_auth_is_throttled') && tq_auth_is_throttled($tq_key, 'parent_link')) {
+            return $this->fail(function_exists('tq_auth_throttle_message')
+                ? tq_auth_throttle_message() : 'أرسلت طلبات كثيرة في وقت قصير. أعد المحاولة لاحقا.');
+        }
+        if (function_exists('tq_auth_record_failure')) tq_auth_record_failure($tq_key, 'parent_link');
 
-        if (!$student) {
-            return $this->fail('لا حساب بهذا البريد أو الرقم. الربط يكون بحساب ابنك في المنصة نفسها — '
-                             . 'ولا نبحث بتشابه اسم، فخطأ واحد هنا يفتح بيانات طفل لغير أهله.');
+        $neutral = [
+            'ok'      => true,
+            'link_id' => 0,
+            'message' => 'إن كان هذا البريد لحساب طالب مفعل في تقدر فقد وصله طلب الربط بنص الموافقة، '
+                       . 'ويظهر ابنك في حسابك بعد أن يوافق من حسابه. ولا يفتح شيء من بياناته قبل ذلك.',
+        ];
+
+        $student = $this->db->where('email', $identifier)->get('users')->row_array();
+
+        if (!$student || (int) $student['status'] !== 1
+            || substr((string) $student['email'], -16) === '@deleted.invalid') {
+            return $neutral;
         }
         if ((int) $student['id'] === $parent_id) return $this->fail('لا يكون المستخدم ولي أمر نفسه.');
-        if ((int) $student['status'] !== 1)      return $this->fail('حساب ابنك غير مفعل بعد.');
 
-        $name = trim($student['first_name'] . ' ' . $student['last_name']);
         $role = tq_role((int) $student['id']);
-        if ($role === 'admin' || $role === 'teacher') {
-            return $this->fail('هذا الحساب حساب ' . ($role === 'admin' ? 'إدارة' : 'معلم') . '، لا حساب طالب.');
-        }
+        if ($role !== 'student') return $neutral;
 
         $existing = $this->db->where('parent_user_id', $parent_id)
                              ->where('student_id', (int) $student['id'])
@@ -238,8 +269,10 @@ class Taqdar_parent_model extends CI_Model
         // ونسخها هنا يصنع مصدر حقيقة ثانيا يتباعد عن الأول عند أول حفظ.
 
         if ($existing) {
-            if ($existing['status'] === 'active')  return $this->fail('حساب ' . $name . ' مرتبط بحسابك.');
-            if ($existing['status'] === 'pending') return $this->fail('طلبك السابق ما زال بانتظار موافقة ' . $name . '.');
+            /* المرتبط فعلا ابنه ويعرفه، فيقال له؛ والمعلق يرد بالرد الواحد —
+               «طلبك ما زال بانتظار فلان» اسم لم يوافق صاحبه على كشفه. */
+            if ($existing['status'] === 'active')  return $this->fail('هذا الحساب مرتبط بحسابك بالفعل.');
+            if ($existing['status'] === 'pending') return $neutral;
 
             // رابط مسحوب: يعاد الطلب من الصفر — والموافقة القديمة لا تورث.
             $old = $this->scope_of($existing);
@@ -266,12 +299,8 @@ class Taqdar_parent_model extends CI_Model
 
         $this->announce_request($parent_id, $student, $link_id);
 
-        return [
-            'ok'      => true,
-            'link_id' => $link_id,
-            'message' => 'أرسل طلب الربط إلى ' . $name . '، ووصلته رسالة بنص الموافقة. '
-                       . 'ولا يفتح شيء من بياناته قبل أن يوافق من حسابه.',
-        ];
+        $neutral['link_id'] = $link_id;
+        return $neutral;
     }
 
     /**
@@ -513,7 +542,8 @@ class Taqdar_parent_model extends CI_Model
         if ($parent_id <= 0 || !$this->db->table_exists('parent_links')) return [];
 
         $rows = $this->db->query(
-            "SELECT c.id AS course_id, c.title AS course_title, c.user_id AS instructors,
+            "SELECT c.id AS course_id, c.title AS course_title,
+                    CONCAT_WS(',', c.user_id, c.creator) AS instructors,
                     u.first_name AS child_first, u.last_name AS child_last
                FROM parent_links pl
                JOIN users u  ON u.id = pl.student_id
@@ -679,6 +709,14 @@ class Taqdar_parent_model extends CI_Model
         if (!$thread) return $this->fail('لا محادثة بهذا الرمز في حسابك.');
 
         $other = ((int) $thread['sender'] === $parent_id) ? (int) $thread['receiver'] : (int) $thread['sender'];
+
+        /* TQ-MSG-UNLINKED — الرد يمر بالقائمة البيضاء نفسها التي يمر بها البدء.
+           كان يفحص أن ولي الأمر طرف في الخيط وحده: فمن فك ربط ابنه يبقى يراسل
+           معلمه من المحادثة القديمة — وقد انتهى السبب الذي أجاز المراسلة.
+           وخيطه مع ابنه المرتبط (طلب الربط) يبقى مفتوحا. */
+        if (!$this->may_message($parent_id, $other) && !$this->owns($parent_id, $other)) {
+            return $this->fail('لم يعد هذا الحساب معلما لأحد أبنائك المرتبطين، فلا يرد عليه من هنا. وإن احتجت فراسل إدارة المنصة.');
+        }
         $now   = time();
 
         $this->db->insert('message', [
@@ -730,8 +768,7 @@ class Taqdar_parent_model extends CI_Model
         /* فواتير تقدر — المبلغ بالهللات، والحالة تعرض كما هي:
            «مدفوعة» و«بانتظار التحويل» و«مستردة» ثلاث حقائق لا واحدة. */
         if ($this->db->table_exists('invoices')) {
-            /* TQ-I18N — تسميات تعرض ولا تخزن، فتترجم بلغة من يقرؤها. */
-            $labels = ['paid' => t('مدفوعة'), 'unpaid' => t('بانتظار التحويل'), 'refunded' => t('مستردة')];
+            $this->load->model('taqdar_sessions_model');
             /* TQ-SOLD-NAME — الاسم من `sold()` لا من ضم على `plans` وحده.
                كان كل ما لا باقة له يقرأ «اشتراك»: من دفع عن ابنه ثمن
                كورس مفرد أو كتاب يقرأ في «المدفوعات» سطرين متطابقين
@@ -746,22 +783,48 @@ class Taqdar_parent_model extends CI_Model
                 [$user_id, (int) $limit]
             )->result_array() as $r) {
                 $when = !empty($r['paid_at']) ? $r['paid_at'] : $r['issued_at'];
-                $sold = (int) $r['subscription_id'] > 0
+                $is_session = (int) $r['subscription_id'] <= 0;
+                $sold = !$is_session
                       ? $this->taqdar_billing_model->sold((int) $r['subscription_id'])
                       : null;
+
+                /* TQ-PAY-LABEL — الاسم والحال كما وقعا.
+                   · **الفاتورة اليتيمة فاتورة حصة** (TQ-SESSION-PAY): كانت تقرأ
+                     «اشتراك»، فيبحث ولي الأمر عن اشتراك لم يشتره.
+                   · **«غير مدفوعة» ثلاث حالات لا واحدة**: كل ما لم يدفع كان يقرأ
+                     «بانتظار التحويل» ولو اختير الدفع بالبطاقة ولم يكتمل.
+                   · **«مستردة» لما دفع ثم رد**: فاتورة شطبت قبل أن تدفع — حصة
+                     ألغيت، أو شراء بدل — ليست مالا رجع، فهي «ملغاة». */
+                if ($is_session) {
+                    $srow  = $this->taqdar_sessions_model->by_invoice((int) $r['id']);
+                    $title = $srow ? t('حصة خاصة') . ' — ' . $this->taqdar_sessions_model->scope_of($srow)['label']
+                                   : t('حصة خاصة');
+                } else {
+                    $title = $sold ? $sold['title'] : t('اشتراك');
+                }
+                if ($r['status'] === 'paid') {
+                    $label = t('مدفوعة');
+                } elseif ($r['status'] === 'unpaid') {
+                    $label = (string) $r['method'] === 'tap' ? t('لم يكتمل الدفع بالبطاقة')
+                           : (in_array((string) $r['method'], array('manual', 'bank', 'bank_transfer'), true)
+                               ? t('بانتظار التحويل') : t('غير مدفوعة'));
+                } else {
+                    $label = empty($r['paid_at']) ? t('ملغاة') : t('مستردة');
+                }
+
                 $rows[] = [
-                    'ts'     => $when ? strtotime($when) : 0,
-                    'amount' => ((int) $r['total']) / 100,
-                    /* اسم الباقة بيانات صاحبها فلا يترجم؛ والبديل حين لا اسم
-                       نص من الشيفرة فيترجم.
-                       والفاتورة اليتيمة (`subscription_id = 0`) فاتورة حصة
-                       — TQ-SESSION-PAY — فلا اسم لها هنا. */
-                    'title'  => $sold ? $sold['title'] : t('اشتراك'),
-                    'ref'    => $r['transaction_id'] ?: $r['invoice_no'],
-                    'method' => (string) $r['method'],
-                    'status' => $r['status'],
-                    'label'  => $labels[$r['status']] ?? $r['status'],
-                    'source' => 'invoice',
+                    'ts'          => $when ? strtotime($when) : 0,
+                    'amount'      => ((int) $r['total']) / 100,
+                    'title'       => $title,
+                    'ref'         => $r['transaction_id'] ?: $r['invoice_no'],
+                    'method'      => (string) $r['method'],
+                    'status'      => $r['status'] === 'refunded' && empty($r['paid_at']) ? 'cancelled' : $r['status'],
+                    'label'       => $label,
+                    'source'      => 'invoice',
+                    'invoice_id'  => (int) $r['id'],
+                    'payable'     => $r['status'] === 'unpaid',
+                    /* فاتورة الحصة تلغى بإلغاء حجزها لا من هنا. */
+                    'cancellable' => $r['status'] === 'unpaid' && !$is_session,
                 ];
             }
         }
@@ -800,6 +863,36 @@ class Taqdar_parent_model extends CI_Model
      * فاتورة معلقة ليست مالا خرج من الجيب، وعدها في «مجموع ما دفعته»
      * يعطي ولي الأمر رقما أكبر مما دفع فعلا. وتعرض معلقة على حدة.
      */
+    /**
+     * TQ-PAY-TOTALS — المجاميع من القاعدة كلها لا من الصفوف المعروضة.
+     * «الإجمالي منذ أول اشتراك» كان يجمع آخر خمسين عملية وحدها، فيقل عند
+     * من تجاوزها عما دفعه فعلا.
+     */
+    public function payment_totals_all($user_id, $month_start = null)
+    {
+        $user_id = (int) $user_id;
+        $ms = $month_start === null ? strtotime(date('Y-m-01 00:00:00')) : (int) $month_start;
+        $out = ['month' => 0.0, 'all' => 0.0, 'pending' => 0.0, 'pending_count' => 0];
+        if ($user_id <= 0) return $out;
+
+        $r = $this->db->query(
+            "SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN total END), 0) paid_all,
+                    COALESCE(SUM(CASE WHEN status = 'paid' AND COALESCE(paid_at, issued_at) >= FROM_UNIXTIME(?) THEN total END), 0) paid_month,
+                    COALESCE(SUM(CASE WHEN status = 'unpaid' THEN total END), 0) pend,
+                    SUM(CASE WHEN status = 'unpaid' THEN 1 ELSE 0 END) pend_n
+               FROM invoices WHERE user_id = ?", [$ms, $user_id])->row_array();
+        $a = $this->db->query(
+            "SELECT COALESCE(SUM(amount), 0) s_all,
+                    COALESCE(SUM(CASE WHEN date_added >= ? THEN amount END), 0) s_month
+               FROM payment WHERE user_id = ?", [$ms, $user_id])->row_array();
+
+        $out['all']           = ((int) $r['paid_all']) / 100 + (float) $a['s_all'];
+        $out['month']         = ((int) $r['paid_month']) / 100 + (float) $a['s_month'];
+        $out['pending']       = ((int) $r['pend']) / 100;
+        $out['pending_count'] = (int) $r['pend_n'];
+        return $out;
+    }
+
     public function payment_totals($rows, $month_start = null)
     {
         $month_start = $month_start === null ? strtotime(date('Y-m-01 00:00:00')) : (int) $month_start;
@@ -850,6 +943,31 @@ class Taqdar_parent_model extends CI_Model
                                 ->count_all_results('users');
         if ($taken > 0) return $this->fail('هذا البريد مستعمل في حساب آخر.');
 
+        /* ═══ TQ-EMAIL-CHANGE — البريد اسم الدخول، فتغييره لا يمر بحفظ عادي ═══
+           كان يتغير بلا كلمة مرور ولا تأكيد: حرف واحد خطأ يغلق على صاحبه
+           الدخول واستعادة كلمة المرور معا (الرابط يذهب إلى بريد لا يملكه)،
+           ومن وجد الجهاز مفتوحا يكتب بريده هو فيملك الحساب في دقيقة. فثلاثة
+           شروط حين يتغير البريد وحده: كلمة المرور الحالية، والبريد الجديد
+           مكتوبا مرتين، ورسالة إلى **البريد القديم** بأنه تغير. */
+        $row = $this->db->select('email, password')->where('id', $parent_id)->get('users')->row_array();
+        $old = $row ? strtolower(trim((string) $row['email'])) : '';
+        if ($row && strtolower($email) !== $old) {
+            $confirm = strtolower(trim((string) ($data['email_confirm'] ?? '')));
+            if ($confirm !== strtolower($email)) {
+                return $this->fail('اكتب البريد الجديد مرتين متطابقتين — هو ما ستدخل به، وخطأ حرف فيه يغلق عليك حسابك.');
+            }
+            $cur = (string) ($data['current_password'] ?? '');
+            $ok  = $cur !== '' && (function_exists('tq_password_matches')
+                ? tq_password_matches($cur, (string) $row['password'])
+                : hash_equals((string) $row['password'], sha1($cur)));
+            if (!$ok) {
+                return $this->fail('لتغيير البريد اكتب كلمة مرورك الحالية — البريد اسم دخولك، فلا يتغير بلا إثبات أنك صاحب الحساب.');
+            }
+            $this->announce_by_mail($parent_id, 'تغير بريد حسابك في تقدر',
+                'غير بريد الدخول إلى حسابك في تقدر إلى ' . $email . '. '
+              . 'إن لم تكن أنت من غيره فتواصل مع الدعم فورا.');
+        }
+
         /* TQ-PHONE-INTL — يخزن `+<رمز><وطني>` كما يخزنه التسجيل.
            وعلى هذا الرقم تصل تنبيهات الأبناء بواتساب، فرقم يحفظ عاريا
            من رمز دولته يذهب إلى بلد آخر أو لا يذهب. */
@@ -886,7 +1004,10 @@ class Taqdar_parent_model extends CI_Model
 
         if ($current === '' || $new === '' || $confirm === '') return $this->fail('املأ الحقول الثلاثة.');
         if ($new !== $confirm) return $this->fail('كلمة المرور الجديدة وتأكيدها غير متطابقين.');
-        if (mb_strlen($new) < 6) return $this->fail('اجعل كلمة المرور ستة أحرف فأكثر.');
+        /* ثمانية لا ستة — وهو حد التسجيل وإعدادات الطالب والمعلم. وكلمة
+           تقبل هنا بستة وترد هناك بستة تجعل الحساب الواحد بقاعدتين. */
+        if (mb_strlen($new) < 8) return $this->fail('اجعل كلمة المرور ثمانية أحرف فأكثر.');
+        if ($new === $current) return $this->fail('اختر كلمة مرور جديدة غير الحالية.');
 
         $row = $this->db->select('password')->where('id', $parent_id)->get('users')->row_array();
         if (!$row) return $this->fail('الحساب غير موجود.');
@@ -1033,11 +1154,14 @@ class Taqdar_parent_model extends CI_Model
 
             case 'profile_save':
                 $res = $this->save_profile($parent_id, [
-                    'first_name' => $this->input->post('first_name'),
-                    'last_name'  => $this->input->post('last_name'),
-                    'email'      => $this->input->post('email'),
-                    'phone'      => $this->input->post('phone'),
-                    'address'    => $this->input->post('address'),
+                    'first_name'       => $this->input->post('first_name'),
+                    'last_name'        => $this->input->post('last_name'),
+                    'email'            => $this->input->post('email'),
+                    'email_confirm'    => $this->input->post('email_confirm'),
+                    'current_password' => (string) $this->input->post('current_password'),
+                    'phone'            => $this->input->post('phone'),
+                    'phone_cc'         => $this->input->post('phone_cc'),
+                    'address'          => $this->input->post('address'),
                 ]);
                 break;
 
@@ -1074,10 +1198,17 @@ class Taqdar_parent_model extends CI_Model
     /** شريط الرسالة بعد النشر — تطبع في أعلى الشاشات الثلاث التي تكتب. */
     public function flash_html()
     {
-        /* مفتاحان: مفاتيح شاشات تقدر ومفاتيح المنصة. الحارس `tq_guard`
-           ومسارات أكاديمي تكتب بالثانية، ورسالة لا تقرأ كأنها لم تكتب. */
-        $ok  = $this->session->flashdata('tq_ok')    ?: $this->session->flashdata('flash_message');
-        $err = $this->session->flashdata('tq_error') ?: $this->session->flashdata('error_message');
+        /* TQ-FLASH-TWICE — مفاتيح هذا النموذج وحدها (`tq_ok`/`tq_error`).
+           كانت تقرأ `flash_message`/`error_message` كذلك، و`portal_open.php`
+           يطبعهما لكل شاشات البوابة — ومسارات المتحكم تكتب بهما. فكل حفظ
+           من الإعدادات يظهر رسالته مرتين في صندوقين، ويظن ولي الأمر أنه
+           حفظ مرتين أو أن أحد الحفظين فشل. */
+        /* ومسارات المتحكم (`done()`) تكتب المفتاحين معا — فحين يحمل
+           `flash_message`/`error_message` الرسالة نفسها يطبعها الغلاف مرة،
+           ولا يعاد طبعها هنا. */
+        if ($this->session->flashdata('flash_message') || $this->session->flashdata('error_message')) return '';
+        $ok  = $this->session->flashdata('tq_ok');
+        $err = $this->session->flashdata('tq_error');
         if (!$ok && !$err) return '';
 
         $text = html_escape((string) ($err ?: $ok));
@@ -1345,29 +1476,157 @@ class Taqdar_parent_model extends CI_Model
      */
     private function activity_days($student_id)
     {
-        $student_id = (int) $student_id;
-        $stamps = array();
-
-        foreach ($this->db->query(
-            'SELECT UNIX_TIMESTAMP(`completed_at`) ts FROM `lesson_progress`
-              WHERE `student_id` = ? AND `completed_at` IS NOT NULL', array($student_id)
-        )->result_array() as $r) $stamps[] = (int) $r['ts'];
-
-        foreach ($this->db->query(
-            'SELECT `date_updated` ts FROM `watch_histories` WHERE `student_id` = ?',
-            array($student_id)
-        )->result_array() as $r) $stamps[] = (int) $r['ts'];
-
-        foreach ($this->db->query(
-            'SELECT `date_added` ts FROM `quiz_results`
-              WHERE `user_id` = ? AND `is_submitted` = 1', array($student_id)
-        )->result_array() as $r) $stamps[] = (int) $r['ts'];
-
         $days = array();
-        foreach ($stamps as $ts) {
+        foreach ($this->activity_stamps($student_id) as $ts) {
             if ($ts > 0) $days[strtotime('today', $ts)] = true;
         }
         return $days;
+    }
+
+    /**
+     * TQ-ACTIVITY-ALL — كل ما يعد نشاطا دراسيا، لا مشاهدة الفيديو وحدها.
+     *
+     * كانت أيام النشاط و«آخر نشاط» و«غاب كذا يوما» تعد إتمام درس وتحديث
+     * `watch_histories` واختبارا موروثا — فابن يفتح المنصة كل يوم ليراجع
+     * ويحل اختباراته بلا أن يشغل فيديو جديدا يقرأ عنه أهله «غاب ٣٠ يوما»،
+     * وطالب شاهد نصف درس أمس لم يحسب له يوم. والمنصة تسجل ذلك كله:
+     *   · `tq_activity_day` — يوم لكل ما يعمله (مراجعات · دروس · وقت)
+     *   · `lesson_progress.last_ping_at` — آخر نبضة مشاهدة ولو لم يكمل
+     *   · `attempts.submitted_at` — كل اختبار سلمه في النظام الحي
+     * والمصادر الثلاثة القديمة باقية، فلا يسقط تاريخ سجل قبلها.
+     *
+     * @return int[] طوابع يونكس
+     */
+    private function activity_stamps($student_id)
+    {
+        $student_id = (int) $student_id;
+        $stamps = array();
+        $read = function ($sql) use ($student_id, &$stamps) {
+            try {
+                foreach ($this->db->query($sql, array($student_id))->result_array() as $r) {
+                    $stamps[] = (int) $r['ts'];
+                }
+            } catch (Throwable $e) {
+                $this->db->reset_query();   // TQ-BUILDER-DIRTY
+            }
+        };
+
+        $read('SELECT UNIX_TIMESTAMP(`completed_at`) ts FROM `lesson_progress`
+                WHERE `student_id` = ? AND `completed_at` IS NOT NULL');
+        $read('SELECT UNIX_TIMESTAMP(`last_ping_at`) ts FROM `lesson_progress`
+                WHERE `student_id` = ? AND `last_ping_at` IS NOT NULL');
+        $read('SELECT `date_updated` ts FROM `watch_histories` WHERE `student_id` = ?');
+        $read('SELECT `date_added` ts FROM `quiz_results` WHERE `user_id` = ? AND `is_submitted` = 1');
+        $read('SELECT UNIX_TIMESTAMP(`submitted_at`) ts FROM `attempts`
+                WHERE `student_id` = ? AND `submitted_at` IS NOT NULL');
+        if ($this->db->table_exists('tq_activity_day')) {
+            $read('SELECT UNIX_TIMESTAMP(COALESCE(`last_at`, `day`)) ts FROM `tq_activity_day` WHERE `student_id` = ?');
+        }
+        return $stamps;
+    }
+
+    /** آخر نشاط دراسي — من المصادر نفسها. صفر = لم يبدأ. */
+    public function last_active_at($student_id)
+    {
+        $s = $this->activity_stamps($student_id);
+        return $s ? max(0, max($s)) : 0;
+    }
+
+    /**
+     * TQ-PROGRESS-ONE — مواد الابن صفا صفا: ما أنهاه، ومتى لمسها، وإتقانها.
+     *
+     * كانت ثلاث شاشات لولي الأمر تقرأ `watch_histories.course_progress` —
+     * رقما مخزنا انحرف عن الدروس: «الرياضيات ١٠٠٪» وابنه أنهى ٢٠ من ٢١،
+     * و«٧٢٪» في مادة لم يكمل فيها درسا. والنسبة هنا `course_state()` نفسها
+     * التي يراها ابنه في «كورساتي» ويفتح بها القفل درسه التالي. و«آخر لمس»
+     * من نبضات المشاهدة لا من صف واحد يحدث مرة لكل مادة.
+     */
+    public function course_rows($student_id)
+    {
+        $sid = (int) $student_id;
+        if ($sid <= 0) return array();
+
+        $courses = $this->db->query(
+            "SELECT c.`id`, c.`title`, COALESCE(w.`date_updated`, 0) wh_seen
+               FROM `enrol` e
+               JOIN `course` c ON c.`id` = e.`course_id`
+          LEFT JOIN `watch_histories` w ON w.`student_id` = e.`user_id` AND w.`course_id` = e.`course_id`
+              WHERE e.`user_id` = ?
+              ORDER BY c.`title` ASC", array($sid))->result_array();
+        if (!$courses) return array();
+
+        $seen = array();
+        try {
+            foreach ($this->db->query(
+                'SELECT l.`course_id`,
+                        MAX(UNIX_TIMESTAMP(GREATEST(COALESCE(lp.`last_ping_at`, "1970-01-02"),
+                                                     COALESCE(lp.`completed_at`, "1970-01-02")))) t
+                   FROM `lesson_progress` lp JOIN `lesson` l ON l.`id` = lp.`lesson_id`
+                  WHERE lp.`student_id` = ? GROUP BY l.`course_id`', array($sid))->result_array() as $r) {
+                $seen[(int) $r['course_id']] = (int) $r['t'];
+            }
+        } catch (Throwable $e) { $this->db->reset_query(); }
+
+        $mastery = array();
+        try {
+            foreach ($this->db->query(
+                "SELECT l.`course_id`, COUNT(*) open_n,
+                        SUM(CASE WHEN ss.`level` >= 80 THEN 1 ELSE 0 END) mastered_n
+                   FROM `objectives` o
+                   JOIN `lesson` l ON l.`id` = o.`lesson_id`
+              LEFT JOIN `skill_state` ss ON ss.`objective_id` = o.`id` AND ss.`student_id` = ?
+                  WHERE EXISTS (SELECT 1 FROM `lesson_progress` lp WHERE lp.`student_id` = ? AND lp.`lesson_id` = l.`id`)
+                  GROUP BY l.`course_id`", array($sid, $sid))->result_array() as $r) {
+                $mastery[(int) $r['course_id']] = $r;
+            }
+        } catch (Throwable $e) { $this->db->reset_query(); }
+
+        $this->load->model('taqdar_repo_model');
+        $out = array();
+        foreach ($courses as $c) {
+            $cid = (int) $c['id'];
+            $st  = $this->taqdar_repo_model->course_state($sid, $cid);
+            $mo  = (int) ($mastery[$cid]['open_n'] ?? 0);
+            $mm  = (int) ($mastery[$cid]['mastered_n'] ?? 0);
+            $out[] = array(
+                'id'        => $cid,
+                'title'     => (string) $c['title'],
+                'progress'  => (int) $st['percent'],
+                'done_n'    => (int) $st['done'],
+                'lessons_n' => (int) $st['total'],
+                'lessons'   => (int) $st['total'],
+                'last_seen' => max((int) ($seen[$cid] ?? 0), (int) $c['wh_seen']),
+                'mastery'   => array('open' => $mo, 'mastered' => $mm,
+                                     'percent' => $mo > 0 ? (int) round(100 * $mm / $mo) : null),
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * بطاقات «أبنائي» — كانت تحسب في القالب باستعلام على `watch_histories`
+     * (TQ-PROGRESS-ONE، TQ-ACTIVITY-ALL): التطبيق يسأل النموذج فيجد رقما،
+     * والصفحة تحسب رقما آخر.
+     */
+    public function child_cards($parent_id)
+    {
+        $out = array();
+        foreach ($this->children($parent_id) as $c) {
+            $sid  = (int) $c['student_id'];
+            $rows = $this->course_rows($sid);
+            $done = 0; $total = 0;
+            foreach ($rows as $r) { $done += $r['done_n']; $total += $r['lessons_n']; }
+            $last = $this->last_active_at($sid);
+
+            $c['courses']   = count($rows);
+            $c['progress']  = $total > 0 ? (int) round($done * 100 / $total) : 0;
+            $c['done']      = $done;
+            $c['lessons']   = $total;
+            $c['last_seen'] = $last;
+            $c['days']      = $last > 0 ? max(0, (int) floor((time() - $last) / 86400)) : null;
+            $out[] = $c;
+        }
+        return $out;
     }
 
     /**
@@ -1468,6 +1727,7 @@ class Taqdar_parent_model extends CI_Model
         try {
             return $this->db->query(
                 'SELECT i.`id`, i.`invoice_no`, i.`total`, i.`status`, i.`user_id`, i.`issued_at`,
+                        i.`subscription_id`, i.`method`,
                         TRIM(CONCAT(COALESCE(u.`first_name`,""), " ", COALESCE(u.`last_name`,""))) AS holder
                    FROM `invoices` i
                    JOIN `parent_links` pl ON pl.`student_id` = i.`user_id`
@@ -1550,34 +1810,10 @@ class Taqdar_parent_model extends CI_Model
            غير «٤٤٪» في مادة من ثلاثة. فيقرأ عدد دروس كل مادة معها.
            (والاختبارات مستثناة من العد كما تستثنى في بوابة الطالب، فلا
            يختلف رقم بين شاشتين.) */
-        $subjects  = $this->db->query(
-            "SELECT c.`id`, c.`title`,
-                    COALESCE(w.`course_progress`, 0) progress,
-                    w.`completed_lesson`,
-                    COALESCE(w.`date_updated`, 0)    last_seen,
-                    (SELECT COUNT(*) FROM `lesson` l
-                      WHERE l.`course_id` = c.`id` AND l.`lesson_type` <> 'quiz') lessons_n
-               FROM `enrol` e
-               JOIN `course` c ON c.`id` = e.`course_id`
-          LEFT JOIN `watch_histories` w
-                 ON w.`student_id` = e.`user_id` AND w.`course_id` = e.`course_id`
-              WHERE e.`user_id` = ?
-              ORDER BY c.`title` ASC",
-            array($student_id)
-        )->result_array();
-
+        /* TQ-PROGRESS-ONE — من `course_rows()` لا من `watch_histories`. */
+        $subjects  = $this->course_rows($student_id);
         $completed = 0;
-        foreach ($subjects as $i => $s) {
-            $list  = json_decode((string) $s['completed_lesson'], true);
-            $done  = is_array($list) ? count(array_unique($list)) : 0;
-            /* والمكتمل لا يتجاوز الموجود: قائمة قديمة قد تحمل معرف درس حذف. */
-            $total = (int) $s['lessons_n'];
-            if ($total > 0 && $done > $total) $done = $total;
-
-            $subjects[$i]['done_n'] = $done;
-            $completed += $done;
-            unset($subjects[$i]['completed_lesson']);
-        }
+        foreach ($subjects as $s) $completed += (int) $s['done_n'];
 
         /* الحصص القادمة — المطلوبة والمؤكدة وحدهما: المعتذر عنها والمنتهية
            ليست «قادمة»، وعرضها يجعل ولي الأمر يترقب موعدا لن يقع. */
@@ -1585,7 +1821,7 @@ class Taqdar_parent_model extends CI_Model
         if ($this->db->table_exists('tutoring_sessions')) {
             $sessions = $this->db->query(
                 "SELECT ts.`id`, ts.`status`, ts.`meet_url`, s.`starts_at`, s.`duration_min`,
-                        g.`name_ar` grade_name, sj.`name_ar` subject_name,
+                        s.`grade_id`, g.`name_ar` grade_name, sj.`name_ar` subject_name,
                         TRIM(CONCAT(COALESCE(u.`first_name`,''), ' ',
                                     COALESCE(u.`last_name`,''))) teacher
                    FROM `tutoring_sessions` ts
@@ -1594,7 +1830,7 @@ class Taqdar_parent_model extends CI_Model
               LEFT JOIN `subjects` sj ON sj.`id` = s.`subject_id`
               LEFT JOIN `users`    u  ON u.`id`  = ts.`teacher_id`
                   WHERE ts.`student_id` = ?
-                    AND ts.`status` IN ('requested','confirmed','live')
+                    AND ts.`status` IN ('requested','awaiting_payment','confirmed','live')
                     AND (s.`starts_at` IS NULL OR s.`starts_at` >= NOW() - INTERVAL 2 HOUR)
                   ORDER BY s.`starts_at` ASC
                   LIMIT 5",
@@ -1722,26 +1958,30 @@ class Taqdar_parent_model extends CI_Model
                 array($cid)
             )->row('n');
 
+            /* TQ-QUIZ-WEEKLY — الاختبارات من النظامين: كانت الصفحة تعد
+               `quiz_results` الموروث وحده والبريد يعد الاثنين، فيقرأ ولي
+               الأمر «لم يسلم اختبارا» في الصفحة و«أنهى خمسة» في البريد. */
             $quizzes = (int) $this->db->query(
                 'SELECT COUNT(*) n FROM `quiz_results`
-                  WHERE `user_id` = ? AND `is_submitted` = 1 AND `date_added` >= ?',
+                  WHERE `user_id` = ? AND `is_submitted` = 1 AND CAST(`date_added` AS UNSIGNED) >= ?',
+                array($cid, $w['start'])
+            )->row('n');
+            $quizzes += (int) $this->db->query(
+                'SELECT COUNT(*) n FROM `attempts`
+                  WHERE `student_id` = ? AND `submitted_at` IS NOT NULL AND `submitted_at` >= FROM_UNIXTIME(?)',
                 array($cid, $w['start'])
             )->row('n');
 
-            /* المادة المتوقفة: أطول غياب بين مواده. ومادة لم تبدأ
-               (`last_seen = 0`) تسبق كل متوقفة في الترتيب فتحجبها دائما —
-               والانقطاع عن مادة بدأها خبر، وعدم البدء حال معلومة. */
-            $stalled = $this->db->query(
-                "SELECT c.`title`, COALESCE(w.`date_updated`, 0) last_seen
-                   FROM `enrol` e
-                   JOIN `course` c ON c.`id` = e.`course_id`
-              LEFT JOIN `watch_histories` w
-                     ON w.`student_id` = e.`user_id` AND w.`course_id` = e.`course_id`
-                  WHERE e.`user_id` = ?
-                  ORDER BY (COALESCE(w.`date_updated`, 0) = 0) ASC, last_seen ASC
-                  LIMIT 1",
-                array($cid)
-            )->row_array();
+            /* المادة المتوقفة: أطول غياب بين مواده **التي بدأها** — من آخر
+               لمس لها بأي نشاط (TQ-ACTIVITY-ALL)، لا من صف مشاهدة واحد.
+               وغير المبدوءة تذكر حين لا متوقف. */
+            $stalled = null;
+            foreach ($this->course_rows($cid) as $r) {
+                $row = array('title' => $r['title'], 'last_seen' => (int) $r['last_seen']);
+                if ($stalled === null) { $stalled = $row; continue; }
+                $a = (int) $stalled['last_seen']; $b = (int) $row['last_seen'];
+                if (($a === 0 && $b > 0) || ($a > 0 && $b > 0 && $b < $a)) $stalled = $row;
+            }
 
             $kids[] = array(
                 'student_id'      => $cid,
@@ -1790,20 +2030,8 @@ class Taqdar_parent_model extends CI_Model
             $cid = (int) $c['student_id'];
             if ($student_id && $cid !== (int) $student_id) continue;
 
-            $subjects = $this->db->query(
-                "SELECT c.`id`, c.`title`,
-                        COALESCE(w.`course_progress`, 0) progress,
-                        COALESCE(w.`date_updated`, 0)    last_seen,
-                        (SELECT COUNT(*) FROM `lesson` l
-                          WHERE l.`course_id` = c.`id` AND l.`lesson_type` <> 'quiz') lessons
-                   FROM `enrol` e
-                   JOIN `course` c ON c.`id` = e.`course_id`
-              LEFT JOIN `watch_histories` w
-                     ON w.`student_id` = e.`user_id` AND w.`course_id` = e.`course_id`
-                  WHERE e.`user_id` = ?
-                  ORDER BY c.`title` ASC",
-                array($cid)
-            )->result_array();
+            /* TQ-PROGRESS-ONE — «ما أنهاه» و«آخر نشاط» والإتقان من `course_rows()`. */
+            $subjects = $this->course_rows($cid);
 
             /* صفا صفا لا بمتوسط في SQL: الحكم على كل محاولة يمر بدالة
                واحدة فلا تكتب قاعدة الحجب مرتين وتتباعد. */
@@ -1828,6 +2056,50 @@ class Taqdar_parent_model extends CI_Model
                 if ($qn < 1) continue;   // اختبار بلا أسئلة لا نسبة له
 
                 $scores[$k]['sum'] += 100 * (float) $view['score'] / $qn;
+                $scores[$k]['n']++;
+            }
+
+            /* ═══ TQ-REPORT-RESULTS — والنظام الحي، وامتحانات المحطات، والواجبات ═══
+               كان العمود يقرأ `quiz_results` وحده، وكل اختبار يؤلف اليوم يكتب في
+               `attempts`: فابن حل ثمانية اختبارات دروس وأربعة امتحانات محطات
+               يقرأ عنه أهله «لم يبدأ اختبارا» في كل مادة. والآن آخر محاولة مسلمة
+               لكل تقييم — اختبار درس (`review`/`quiz`)، وامتحان محطة (`exam`)،
+               وواجب **معتمد** (`homework`) بحكم `homework_student_view()` نفسه. */
+            $last = array();
+            try {
+                foreach ($this->db->query(
+                    "SELECT t.`id`, t.`assessment_id`, t.`score`, t.`teacher_score`, t.`teacher_note`,
+                            t.`approved_at`, t.`submitted_at`, a.`type`,
+                            COALESCE(l.`course_id`, p.`course_id`, 0) course_id,
+                            (SELECT COUNT(*) FROM `answers` an WHERE an.`attempt_id` = t.`id`) out_of
+                       FROM `attempts` t
+                       JOIN `assessments` a ON a.`id` = t.`assessment_id`
+                                           AND a.`type` IN ('review','quiz','exam','homework')
+                  LEFT JOIN `lesson` l ON l.`id` = a.`lesson_id`
+                  LEFT JOIN `milestones` m ON m.`id` = a.`milestone_id`
+                  LEFT JOIN `paths` p ON p.`id` = COALESCE(a.`path_id`, m.`path_id`)
+                      WHERE t.`student_id` = ? AND t.`submitted_at` IS NOT NULL
+                      ORDER BY t.`id` ASC", array($cid))->result_array() as $r) {
+                    $last[(int) $r['assessment_id']] = $r;   // الأحدث يغلب
+                }
+            } catch (Throwable $e) {
+                $this->db->reset_query();
+                log_message('error', 'TQ-REPORT-RESULTS: ' . $e->getMessage());
+            }
+            foreach ($last as $r) {
+                $k = (int) $r['course_id'];
+                if (!isset($scores[$k])) $scores[$k] = array('sum' => 0.0, 'n' => 0, 'held' => 0);
+
+                if ((string) $r['type'] === 'homework') {
+                    $view = $mk->homework_student_view($r);
+                    if (empty($view['visible']) || $view['score'] === null) { $scores[$k]['held']++; continue; }
+                    $scores[$k]['sum'] += min(100, (float) $view['score']);   // الواجب نسبة مئوية
+                    $scores[$k]['n']++;
+                    continue;
+                }
+                $out_of = (int) $r['out_of'];
+                if ($out_of < 1) continue;
+                $scores[$k]['sum'] += 100 * (float) $r['score'] / $out_of;
                 $scores[$k]['n']++;
             }
 

@@ -18,10 +18,9 @@
  * فيرى ولي الأمر رقما ولا يراه ابنه، أو يريان رقمين مختلفين للاختبار
  * الواحد — وأسرع طريق إلى شجار بينهما أن تعطيهما المنصة رقمين.
  *
- * ما ينتظر جدولا:
- *   `objectives`   — «الإتقان» الحقيقي: هدف متقن من هدف مفتوح.
- *                    والمعروض اليوم بديله المتاح: ما أنهاه من دروس المادة.
- *                    (وهو معروض كاملا في شاشة تفاصيل الابن.)
+ * و«الإتقان» عمود قائم لا منتظر: هدف متقن من هدف فتح له في كل مادة، من
+ * `objectives` و`skill_state` — وكان التعليق هنا يقول إنه «ينتظر جدولا»
+ * والجدولان ممتلئان.
  */
 
 $tq_nav   = 'reports';
@@ -37,81 +36,27 @@ $tq_ci->load->model('taqdar_parent_model');
 $tq_ci->load->model('taqdar_marking_model');
 $tq_mk = $tq_ci->taqdar_marking_model;
 
-/* الأبناء من مصدر الملكية الواحد لا من استعلام منسوخ في كل شاشة. */
+/* TQ-REPORTS-ONE — التقرير من `Taqdar_parent_model::reports()` لا من
+   استعلامات في القالب. كانت الصفحة نسخة ثانية منه تقرأ «ما أنهاه» من رقم
+   مخزن منحرف، و«نتائج الاختبارات» من النظام الموروث وحده، و«آخر نشاط» من
+   المشاهدة وحدها — والتطبيق يقرأ النموذج فيرى أرقاما أخرى. والنموذج الآن
+   يقرأ: التقدم بقاعدة القفل، والنتائج من النظامين مع امتحانات المحطات
+   والواجبات المعتمدة، والإتقان لكل مادة. */
 $tq_children = [];
-foreach ($tq_ci->taqdar_parent_model->children($tq_uid) as $tq_c) {
+foreach ($tq_ci->taqdar_parent_model->reports($tq_uid) as $tq_c) {
+    $tq_subs = [];
+    foreach ($tq_c['subjects'] as $tq_s) {
+        $tq_s['avg_pct'] = $tq_s['avg_percent'] === null ? 0 : (int) $tq_s['avg_percent'];
+        $tq_subs[] = $tq_s;
+    }
     $tq_children[] = [
         'id'         => (int) $tq_c['student_id'],
-        'first_name' => $tq_c['first_name'],
-        'last_name'  => $tq_c['last_name'],
+        'first_name' => (string) $tq_c['name'],
+        'last_name'  => '',
         'image'      => $tq_c['image'],
+        'subjects'   => $tq_subs,
     ];
 }
-
-/* لكل ابن: صف لكل مادة، من `enrol` و`watch_histories` و`quiz_results`. */
-foreach ($tq_children as &$tq_child) {
-    $tq_child['subjects'] = $this->db->query(
-        "SELECT c.id, c.title,
-                COALESCE(w.course_progress, 0) AS progress,
-                COALESCE(w.date_updated, 0)    AS last_seen,
-                (SELECT COUNT(*) FROM lesson l
-                  WHERE l.course_id = c.id AND l.lesson_type <> 'quiz') AS lessons
-           FROM enrol e
-           JOIN course c ON c.id = e.course_id
-           LEFT JOIN watch_histories w
-                  ON w.student_id = e.user_id AND w.course_id = e.course_id
-          WHERE e.user_id = ?
-          ORDER BY c.title ASC",
-        [(int) $tq_child['id']]
-    )->result_array();
-
-    /* النتائج صفا صفا لا بمتوسط في SQL: الحكم على كل محاولة يمر بدالة
-       واحدة (`student_view`) فلا تكتب قاعدة الحجب مرتين وتتباعد. */
-    $tq_scores = [];
-    foreach ($this->db->query(
-        "SELECT r.quiz_result_id, r.quiz_id, r.total_obtained_marks, r.is_submitted,
-                r.teacher_score, r.teacher_note, r.approved_at,
-                l.course_id,
-                (SELECT COUNT(*) FROM question q WHERE q.quiz_id = r.quiz_id) AS q_count
-           FROM quiz_results r
-           JOIN lesson l ON l.id = r.quiz_id
-          WHERE r.user_id = ? AND r.is_submitted = 1",
-        [(int) $tq_child['id']]
-    )->result_array() as $tq_r) {
-
-        $tq_cidk = (int) $tq_r['course_id'];
-        if (!isset($tq_scores[$tq_cidk])) {
-            $tq_scores[$tq_cidk] = ['sum' => 0.0, 'n' => 0, 'held' => 0];
-        }
-
-        $tq_view = $tq_mk->student_view($tq_r);
-
-        if (!$tq_view['visible']) {
-            // ينتظر اعتماد معلمه — يعد ولا يحسب، فالانتظار خبر لا فراغ
-            $tq_scores[$tq_cidk]['held']++;
-            continue;
-        }
-
-        $tq_qn = (int) $tq_r['q_count'];
-        if ($tq_qn < 1) continue;   // اختبار بلا أسئلة لا نسبة له
-
-        $tq_scores[$tq_cidk]['sum'] += 100 * (float) $tq_view['score'] / $tq_qn;
-        $tq_scores[$tq_cidk]['n']++;
-    }
-
-    foreach ($tq_child['subjects'] as &$tq_sub_row) {
-        $tq_key = (int) $tq_sub_row['id'];
-        $tq_agg = $tq_scores[$tq_key] ?? ['sum' => 0.0, 'n' => 0, 'held' => 0];
-
-        $tq_sub_row['attempts'] = (int) $tq_agg['n'];
-        $tq_sub_row['held']     = (int) $tq_agg['held'];
-        $tq_sub_row['avg_pct']  = $tq_agg['n'] > 0
-            ? (int) round(min(100, $tq_agg['sum'] / $tq_agg['n']))
-            : 0;
-    }
-    unset($tq_sub_row);
-}
-unset($tq_child);
 
 include 'portal_open.php';
 ?>
@@ -139,6 +84,7 @@ include 'portal_open.php';
                                             <th scope="col"><?php echo t('المادة'); ?></th>
                                             <th scope="col"><?php echo t('ما أنهاه'); ?></th>
                                             <th scope="col"><?php echo t('نتائج الاختبارات'); ?></th>
+                                            <th scope="col"><?php echo t('الإتقان'); ?></th>
                                             <th scope="col"><?php echo t('آخر نشاط'); ?></th>
                                         </tr>
                                     </thead>
@@ -169,6 +115,16 @@ include 'portal_open.php';
                                                         <span class="tq-micro" style="display:block">
                                                             <?php echo tq_iso(t('و') . tq_exams_word((int) $tq_s['held'], t('لا اختبارات'), 'nom') . ((int) $tq_s['held'] === 1 ? t(' ينتظر') : t(' تنتظر')) . t(' اعتماد معلمه')); ?>
                                                         </span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td data-label="<?php echo te('الإتقان'); ?>">
+                                                    <?php if (!empty($tq_s['mastery']['open'])): ?>
+                                                        <?php echo tq_num((int) $tq_s['mastery']['percent'] . '%', 'tq-num--sm'); ?>
+                                                        <span class="tq-micro" style="display:block">
+                                                            <?php echo tq_iso(t('أتقن ') . (int) $tq_s['mastery']['mastered'] . t(' هدفا من ') . (int) $tq_s['mastery']['open']); ?>
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <span class="tq-caption"><?php echo t('لم يفتح هدفا مقاسا بعد'); ?></span>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td data-label="<?php echo te('آخر نشاط'); ?>">

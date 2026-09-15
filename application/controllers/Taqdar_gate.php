@@ -465,14 +465,16 @@ class Taqdar_gate extends CI_Controller
         if (!$uid) return;
 
         $limit = (int) $this->body('limit', 0);
-        $rows  = $this->repo->get_due_reviews($uid, $limit);
+        /* ما تخطاه الطالب في جلسته لا يعود أول الدفعة التالية. */
+        $skip  = array_filter(array_map('intval', explode(',', (string) $this->body('exclude', ''))));
+        $rows  = $this->repo->get_due_reviews($uid, $limit, $skip);
 
-        return $this->ok(array(
+        return $this->ok(array_merge(array(
             'due'         => $rows,
             'count'       => count($rows),
             'total_due'   => $this->repo->count_due_reviews($uid),
             'daily_batch' => (int) $this->repo->setting('review_daily_batch', 10),
-        ));
+        ), $this->repo->review_outlook($uid)));
     }
 
     /**
@@ -892,6 +894,10 @@ class Taqdar_gate extends CI_Controller
 
         $correct = $this->repo->is_answer_correct($q, $given);
 
+        /* TQ-MISTAKE-CLEAR — الإجابة تسجل، فيقرؤها الدفتر: صواب بعد آخر خطأ
+           يخرج السؤال منه، وخطأ جديد يعيده. */
+        $this->repo->log_practice($uid, $question_id, $correct);
+
         /* السؤال المجدول يمر بمحرك المراجعة كاملا (فاصل وسهولة وتعثر)،
            وغير المجدول يحرك حالة المهارة وحدها — فلا يخترع لنفسه جدولا
            لم تفتحه بوابة الإتقان. */
@@ -919,6 +925,11 @@ class Taqdar_gate extends CI_Controller
                JOIN `attempts` t ON t.`id` = a.`attempt_id`
               WHERE t.`student_id` = ? AND a.`question_id` = ? AND a.`is_correct` = 0',
             array($uid, $question_id))->row('n');
+        /* أخرج من الدفتر؟ — من `get_mistakes()` نفسها لا من حساب ثان. */
+        $result['cleared'] = true;
+        foreach ($this->repo->get_mistakes($uid) as $m) {
+            if ((int) $m['question_id'] === $question_id) { $result['cleared'] = false; break; }
+        }
 
         $this->repo->audit($uid, 'mistake.practice', 'question:' . $question_id, null,
                            array('correct' => (bool) $correct, 'scheduled' => (bool) $scheduled));
@@ -935,44 +946,54 @@ class Taqdar_gate extends CI_Controller
         $uid = $this->guard('read');
         if (!$uid) return;
 
-        $limit = max(1, min(50, (int) $this->body('limit', 10)));
-        $subject = (int) $this->body('subject_id', 0);
+        $limit  = max(1, min(50, (int) $this->body('limit', 10)));
+        $course = (int) $this->body('course_id', 0);
 
-        $sql = 'SELECT DISTINCT q.`id`, q.`title`, q.`type`, q.`number_of_options`, q.`options`,
-                       q.`objective_id`, o.`text` AS objective_text, o.`at_second`, o.`lesson_id`,
-                       l.`title` AS lesson_title, l.`course_id`, c.`title` AS course_title,
-                       COUNT(*) AS wrong_count
-                  FROM `answers` a
-                  JOIN `attempts` t   ON t.`id` = a.`attempt_id`
-                  JOIN `question` q   ON q.`id` = a.`question_id`
-             LEFT JOIN `objectives` o ON o.`id` = q.`objective_id`
-             LEFT JOIN `lesson` l     ON l.`id` = o.`lesson_id`
-             LEFT JOIN `course` c     ON c.`id` = l.`course_id`
-                 WHERE t.`student_id` = ? AND a.`is_correct` = 0';
-        $bind = array($uid);
-
-        if ($subject > 0) {
-            $sql .= ' AND c.`id` IN (SELECT `course_id` FROM `paths` WHERE `subject_id` = ?)';
-            $bind[] = $subject;
+        /* TQ-MISTAKE-CLEAR — أسئلة التدريب هي الدفتر نفسه (`get_mistakes()`)،
+           لا استعلام ثان يفترق عنه: ما خرج من الدفتر لا يعود في التدريب.
+           والترشيح بالكورس **في الخادم** قبل القص: كان يجلب أكثر عشرة تكرارا
+           من كل المواد ثم يرشح المتصفح، فمن لم تقع أسئلة مادته في العشرة يضغط
+           «ابدأ» فلا يقع شيء. و`total` يقول كم في الدفتر، فتقول الشاشة إن
+           الجلسة عشرة من كم. */
+        $book = $this->repo->get_mistakes($uid);
+        if ($course > 0) {
+            $book = array_values(array_filter($book, static function ($m) use ($course) {
+                return (int) $m['course_id'] === $course;
+            }));
         }
+        $total = count($book);
+        $slice = array_slice($book, 0, $limit);
 
-        $sql .= ' GROUP BY q.`id`, q.`title`, q.`type`, q.`number_of_options`, q.`options`,
-                           q.`objective_id`, o.`text`, o.`at_second`, o.`lesson_id`,
-                           l.`title`, l.`course_id`, c.`title`
-                  ORDER BY wrong_count DESC, q.`id` ASC
-                  LIMIT ' . $limit;
-
-        $rows = $this->db->query($sql, $bind)->result_array();
-
-        foreach ($rows as &$r) {
-            $r['options'] = $r['options'] ? json_decode($r['options'], true) : array();
-            foreach (array('id','number_of_options','objective_id','at_second',
-                           'lesson_id','course_id','wrong_count') as $k) {
-                if (isset($r[$k])) $r[$k] = (int) $r[$k];
+        $opts = array();
+        if ($slice) {
+            $ids = array_map(static function ($m) { return (int) $m['question_id']; }, $slice);
+            foreach ($this->db->select('id, number_of_options, options')->where_in('id', $ids)
+                              ->get('question')->result_array() as $q) {
+                $opts[(int) $q['id']] = $q;
             }
         }
-        unset($r);
 
-        return $this->ok(array('questions' => $rows, 'count' => count($rows)));
+        $rows = array();
+        foreach ($slice as $m) {
+            $qid = (int) $m['question_id'];
+            $q   = isset($opts[$qid]) ? $opts[$qid] : array('number_of_options' => 0, 'options' => '');
+            $rows[] = array(
+                'id'                => $qid,
+                'title'             => $m['title'],
+                'type'              => $m['type'],
+                'number_of_options' => (int) $q['number_of_options'],
+                'options'           => $q['options'] ? json_decode($q['options'], true) : array(),
+                'objective_id'      => (int) $m['objective_id'],
+                'objective_text'    => $m['objective_text'],
+                'at_second'         => (int) $m['at_second'],
+                'lesson_id'         => (int) $m['lesson_id'],
+                'lesson_title'      => $m['lesson_title'],
+                'course_id'         => (int) $m['course_id'],
+                'course_title'      => $m['course_title'],
+                'wrong_count'       => (int) $m['wrong_count'],
+            );
+        }
+
+        return $this->ok(array('questions' => $rows, 'count' => count($rows), 'total' => $total));
     }
 }

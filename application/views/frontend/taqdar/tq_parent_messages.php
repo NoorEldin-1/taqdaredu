@@ -67,30 +67,41 @@ if ($tq_open_code !== '') {
         $tq_ci->load->model('crud_model');
         $tq_ci->crud_model->mark_thread_messages_read($tq_open_code);
 
-        $tq_messages = $this->db->query(
+        /* TQ-MSG-LATEST — آخر مئة لا أولها. كان الترتيب تصاعديا بحد مئة:
+           فمحادثة تجاوزتها تعرض أقدم مئة رسالة وتخفي الجديدة — وهي ما فتح
+           ولي الأمر المحادثة ليقرأه. والأقدم بزر «عرض رسائل أقدم». */
+        $tq_older_n = max(1, min(50, (int) $this->input->get('older')));
+        $tq_msg_lim = 100 * $tq_older_n;
+        $tq_messages = array_reverse($this->db->query(
             "SELECT m.message_id, m.message, m.sender, m.timestamp,
                     u.first_name, u.last_name
                FROM message m
                LEFT JOIN users u ON u.id = m.sender
               WHERE m.message_thread_code = ?
-              ORDER BY m.message_id ASC
-              LIMIT 100",
+              ORDER BY m.message_id DESC
+              LIMIT " . ($tq_msg_lim + 1),
             [$tq_open_code]
-        )->result_array();
+        )->result_array());
+        $tq_msg_more = count($tq_messages) > $tq_msg_lim;
+        if ($tq_msg_more) array_shift($tq_messages);
     } else {
         /* رمز خيط ليس طرفا فيه — يقال ولا يبتلع، وإلا ظن أن الرابط عطب. */
         $tq_thread_denied = true;
     }
 }
 
+/* TQ-MSG-LATEST — وآخر ثلاثين محادثة كانت كل ما يصل إليه، بلا باب لما قبلها. */
+$tq_tpage   = max(1, min(50, (int) $this->input->get('threads')));
 $tq_threads = $this->db->query(
     "SELECT message_thread_code, sender, receiver, last_message_timestamp
        FROM message_thread
       WHERE sender = ? OR receiver = ?
       ORDER BY last_message_timestamp DESC
-      LIMIT 30",
+      LIMIT " . (30 * $tq_tpage + 1),
     [$tq_uid, $tq_uid]
 )->result_array();
+$tq_threads_more = count($tq_threads) > 30 * $tq_tpage;
+if ($tq_threads_more) array_pop($tq_threads);
 
 foreach ($tq_threads as &$tq_t) {
     $tq_other = (int) $tq_t['sender'] === $tq_uid ? (int) $tq_t['receiver'] : (int) $tq_t['sender'];
@@ -137,6 +148,14 @@ include 'portal_open.php';
                     <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('parent/messages'); ?>"><?php echo t('كل المحادثات'); ?></a>
                 </div>
 
+                <?php if (!empty($tq_msg_more)): ?>
+                    <p style="text-align:center;margin-block-end:var(--tq-space-m)">
+                        <a class="tq-btn tq-btn--ghost tq-btn--sm"
+                           href="<?php echo base_url('parent/messages') . '?thread=' . rawurlencode($tq_open['message_thread_code']) . '&older=' . ((int) $tq_older_n + 1); ?>">
+                            <?php echo t('عرض رسائل أقدم'); ?>
+                        </a>
+                    </p>
+                <?php endif; ?>
                 <?php if ($tq_messages): ?>
                     <ul class="tq-stack">
                         <?php foreach ($tq_messages as $tq_m): ?>
@@ -265,6 +284,12 @@ include 'portal_open.php';
                             </li>
                         <?php endforeach; ?>
                     </ul>
+                    <?php if ($tq_threads_more): ?>
+                        <p style="text-align:center;margin-block-start:var(--tq-space-l)">
+                            <a class="tq-btn tq-btn--secondary tq-btn--sm"
+                               href="<?php echo base_url('parent/messages') . '?threads=' . ($tq_tpage + 1); ?>"><?php echo t('عرض المزيد من المحادثات'); ?></a>
+                        </p>
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <div class="tq-card tq-empty">

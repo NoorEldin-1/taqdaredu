@@ -105,7 +105,8 @@ if ($tq_current === null) {
     $tq_resume_course = tq_s_resume($tq_uid);
     if ($tq_resume_course) {
         foreach ($tq_all as $l) {
-            if ((int) $l['course_id'] === (int) $tq_resume_course['id'] && $l['state'] !== 'done') {
+            /* ودرس مقفل لا يكون «درسك التالي»: الزر تحته يرده الخادم. */
+            if ((int) $l['course_id'] === (int) $tq_resume_course['id'] && $l['state'] !== 'done' && empty($l['locked'])) {
                 $tq_current = $l;
                 break;
             }
@@ -394,18 +395,34 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
                         <?php endif; ?>
 
                         <?php foreach ($unit_lessons as $l): ?>
-                            <?php [$ic, $fam, $state_word] = $tq_state_face[$l['state']]; ?>
-                            <div class="tq-lrow">
+                            <?php [$ic, $fam, $state_word] = $tq_state_face[$l['state']];
+                            $tq_locked = !empty($l['locked']);
+                            if ($tq_locked) { $ic = 'lock'; $fam = 'sand'; } ?>
+                            <div class="tq-lrow"<?php echo $tq_locked ? ' style="opacity:.8"' : ''; ?>>
                                 <span class="tq-lrow__mark tq-pastel tq-pastel--<?php echo $fam; ?>" aria-hidden="true">
                                     <?php echo tq_icon($ic, 20); ?>
                                 </span>
 
                                 <div class="tq-lrow__main">
                                     <p class="tq-lrow__title">
-                                        <a href="<?php echo html_escape($l['url']); ?>"><?php echo html_escape($l['title']); ?></a>
+                                        <?php if ($tq_locked): ?>
+                                            <?php echo html_escape($l['title']); ?>
+                                        <?php else: ?>
+                                            <a href="<?php echo html_escape($l['url']); ?>"><?php echo html_escape($l['title']); ?></a>
+                                        <?php endif; ?>
                                     </p>
                                     <p class="tq-lrow__meta">
-                                        <span><?php echo html_escape($state_word); ?></span>
+                                        <?php if ($tq_locked): ?>
+                                            <?php /* TQ-PROGRESS-ONE — القفل يقال في الصف لا بعد النقرة:
+                                                     كان ٤٥ درسا من ٥٩ مقفلا بلا إشارة، يضغطها الطالب فترفض. */ ?>
+                                            <span><?php echo $l['lock_hint'] !== ''
+                                                ? te('مقفل — يفتح بعد إكمال «____»', array(html_escape($l['lock_hint'])))
+                                                : t('مقفل'); ?></span>
+                                        <?php elseif (!empty($l['needs_quiz'])): ?>
+                                            <span><?php echo t('شاهدته — بقي اجتياز اختباره ليفتح ما بعده'); ?></span>
+                                        <?php else: ?>
+                                            <span><?php echo html_escape($state_word); ?></span>
+                                        <?php endif; ?>
                                         <?php if ($l['free']): ?>
                                             <?php echo tq_badge('progress', t('درس تجريبي')); ?>
                                         <?php endif; ?>
@@ -421,10 +438,17 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
 
                                 <span class="tq-lrow__acts">
                                     <?php echo $tq_heart($l['id'], isset($tq_fav_ids[(int) $l['id']])); ?>
+                                    <?php if ($tq_locked): ?>
+                                        <span class="tq-btn tq-btn--ghost tq-btn--sm" aria-disabled="true" style="cursor:not-allowed">
+                                            <?php echo tq_icon('lock', 14); ?> <?php echo t('مقفل'); ?>
+                                            <span class="tq-sr">— <?php echo html_escape($l['title']); ?></span>
+                                        </span>
+                                    <?php else: ?>
                                     <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo html_escape($l['url']); ?>">
                                         <?php echo $l['state'] === 'done' ? t('راجعه') : ($l['state'] === 'current' ? t('أكمله') : t('شاهده')); ?>
                                         <span class="tq-sr">— <?php echo html_escape($l['title']); ?></span>
                                     </a>
+                                    <?php endif; ?>
                                 </span>
                             </div>
                         <?php endforeach; ?>

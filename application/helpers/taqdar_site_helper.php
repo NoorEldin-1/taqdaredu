@@ -1181,9 +1181,7 @@ if (!function_exists('tqs_excerpt')) {
         $cut = mb_substr($t, 0, $len, 'UTF-8');
         $sp  = mb_strrpos($cut, ' ', 0, 'UTF-8');
         if ($sp !== false && $sp > $len * 0.6) $cut = mb_substr($cut, 0, $sp, 'UTF-8');
-        return rtrim($cut, t(' 	
-
- ،.:;-')) . '…';
+        return rtrim($cut, " \t\n\r\0\x0B،.:;-") . '…';
     }
 }
 
@@ -2832,6 +2830,247 @@ if (!function_exists('tqs_p26_cards')) {
             $h .= '  </article>' . "\n";
         }
         return $h . '</div>' . "\n";
+    }
+}
+
+if (!function_exists('tqs_foundation_art')) {
+    /**
+     * صورة مسار التأسيس ووسامه — موضع واحد للبطاقة وصفحة المسار.
+     *
+     * الصورة: ما رفعه المسؤول اولا، ثم صورة مادة من السمة باسمه في الرابط،
+     * ثم لا صورة. والوسام يحمل حرف المسار — يميز البطاقات بلمحة قبل ان
+     * تقرأ، ويبقى وحده حين لا صورة.
+     */
+    function tqs_foundation_art($t)
+    {
+        $map = array(
+            'arabic'  => array('img/subj-arabic.webp',  'أ ب', 'rtl'),
+            'english' => array('img/subj-english.webp', 'A b', 'ltr'),
+            'math'    => array('img/subj-math.webp',    '+ ×', 'ltr'),
+        );
+        $slug = (string) $t['slug'];
+        $img  = '';
+        if ((string) $t['image'] !== '') $img = base_url($t['image']);
+        elseif (isset($map[$slug]))      $img = tq_site_asset($map[$slug][0]);
+
+        return array(
+            'img'   => $img,
+            'glyph' => isset($map[$slug]) ? $map[$slug][1] : '',
+            'dir'   => isset($map[$slug]) ? $map[$slug][2] : 'rtl',
+        );
+    }
+}
+
+if (!function_exists('tqs_foundation_media')) {
+    /** القوس الذهبي بصورة المسار ووسامه تحته — زينة لا خبر، فهو `aria-hidden`. */
+    function tqs_foundation_media($t, $class = 'fnd26-card__media')
+    {
+        $a = tqs_foundation_art($t);
+        return '<div class="' . html_escape($class) . '" aria-hidden="true">'
+             . '<span class="fnd26-card__arch' . ($a['img'] === '' ? ' fnd26-card__arch--bare' : '') . '">'
+             . '<span class="fnd26-card__pic">'
+             . ($a['img'] !== '' ? '<img src="' . html_escape($a['img']) . '" alt="" width="620" height="620"'
+                                 . ' loading="lazy" decoding="async">' : '')
+             . '</span></span>'
+             . '<span class="fnd26-card__glyph"'
+             . ($a['glyph'] !== '' ? ' dir="' . $a['dir'] . '">' . $a['glyph']
+                                   : '><svg><use href="#i-cap"></use></svg>')
+             . '</span></div>';
+    }
+}
+
+if (!function_exists('tqs_ar_count')) {
+    /**
+     * العدد مع معدوده بقاعدة العربية: «موعد متاح» · «موعدان متاحان» ·
+     * «٥ مواعيد متاحة» · «١٢ موعدا متاحا».
+     *
+     * وكانت صفحة المسار تكتب «5 موعدا متاحا» — تمييز المئة على عدد من
+     * ثلاثة الى عشرة، فيقرأ ولي الامر خطأ لغويا في صفحة منصة تعليمية.
+     *
+     * @param array $forms مفرد · مثنى · جمع (٣–١٠) · تمييز (١١ فما فوق)، مترجمة
+     */
+    function tqs_ar_count($n, $forms)
+    {
+        $n = (int) $n;
+        if ($n === 1) return $forms[0];
+        if ($n === 2) return $forms[1];
+        $num = '<b class="tq-ltr">' . $n . '</b> ';
+        return $num . (($n >= 3 && $n <= 10) ? $forms[2] : $forms[3]);
+    }
+}
+
+if (!function_exists('tqs_foundation_band')) {
+    /**
+     * TQ-FOUNDATION-BAND — لوح «مسارات التأسيس»: الرئيسية وصفحة الباقات
+     * وصفحة التأسيس، و«مسارات أخرى» تحت صفحة المسار.
+     *
+     * الباقة تجيب «منهج صفي كاملا، بكم؟». ومن لا يريد منهج صف اصلا — يريد
+     * ان يقرأ العربية او الانجليزية من اولها، او يسد فجوة في الحساب — كان
+     * يقرأ الصفحتين ولا يجد نفسه، ولا رابط واحد فيهما يدله على `/foundation`.
+     * فالقسم يقال **بعد** الباقات لا قبلها: من جاء لباقة يحسم امره اولا، ومن
+     * لم تناسبه يجد الباب الثاني قبل ان ينصرف.
+     *
+     * **والكساء داكن عمدا لا زينة**: التأسيس مستقل عن الباقات، وبطاقة بيضاء
+     * تحت بطاقات الباقات البيضاء تقرأ باقة رابعة — فيظن الزائر انه محتوى
+     * يفتح في باقته. واللوح لوح «لماذا تختار» (`.whyd`) بتوكناته.
+     *
+     * والمصادر مصادر `/foundation` حرفا بحرف: `published()` للمسارات، و
+     * `pricing_for()` للثمن، و`available_teachers()` لشارة «مواعيد متاحة» —
+     * الاستعلام الذي تعرضه صفحة المسار نفسها، فلا تعد الرئيسية بموعد تقول
+     * صفحة المسار انه غير موجود. **ولا رقم في الشارة**: صفحة المسار تعرض
+     * اربعة مواعيد لكل معلم، ورقم هنا غير رقمها هناك تناقض يقرأ.
+     *
+     * **وبلا مسار يعرض لا شيء يطبع** — شرط `enabled()` نفسه: قسم فارغ اسوأ
+     * من غيابه.
+     *
+     * @param array $opts id · exclude (معرف مسار يسقط) · eyebrow · title ·
+     *                    lede (نص خام، `null` = نص «نصوص الصفحات»، '' = لا
+     *                    يطبع) · facts · foot
+     */
+    function tqs_foundation_band($opts = array())
+    {
+        $o = $opts + array(
+            'id' => 'foundation', 'exclude' => 0,
+            'eyebrow' => null, 'title' => null, 'lede' => null,
+            'facts' => true, 'foot' => true,
+        );
+
+        try {
+            $CI = &get_instance();
+            $CI->load->model('taqdar_foundation_model', 'tq_fnd');
+            $CI->load->model('taqdar_sessions_model');
+            $fnd    = $CI->tq_fnd;
+            $ses    = $CI->taqdar_sessions_model;
+            $tracks = $fnd->published();
+            $cfg    = $ses->config();
+        } catch (Throwable $e) {
+            return '';
+        }
+        if ((int) $o['exclude'] > 0) unset($tracks[(int) $o['exclude']]);
+        if (empty($tracks)) return '';
+
+        $txt = function ($val, $key, $default) {
+            return $val === null ? tq_text('foundation', $key, $default) : html_escape($val);
+        };
+        $eyebrow = $txt($o['eyebrow'], 'band_eyebrow', 'قسم مستقل عن الباقات');
+        $title   = $txt($o['title'],   'band_title',   'مسارات التأسيس');
+        $lede    = $txt($o['lede'],    'band_lede',
+                       'حصص فردية مباشرة مع معلم متخصص، تبدأ من مستوى الطالب لا من صفه — '
+                     . 'بلا اشتراك: تحجز الحصة وتدفع ثمنها وحدها.');
+        $hid = 'fnd26-title-' . preg_replace('/[^a-z0-9_-]/i', '', (string) $o['id']);
+
+        $h  = '<section class="section" id="' . html_escape($o['id']) . '" aria-labelledby="' . $hid . '">' . "\n";
+        $h .= '  <div class="shell">' . "\n";
+        $h .= '    <div class="fnd26 reveal">' . "\n";
+
+        $h .= '      <div class="fnd26__head">' . "\n";
+        if ($eyebrow !== '') {
+            $h .= '        <p class="fnd26__eyebrow"><svg aria-hidden="true"><use href="#i-spark"></use></svg>'
+                . $eyebrow . '</p>' . "\n";
+        }
+        $h .= '        <h2 id="' . $hid . '">' . $title . '</h2>' . "\n";
+        if ($lede !== '') {
+            $h .= '        <p class="fnd26__lede">' . $lede . '</p>' . "\n";
+        }
+        $h .= '        <div class="fnd26__rule" aria-hidden="true"><i></i></div>' . "\n";
+        $h .= '      </div>' . "\n";
+
+        /* اربع حقائق تفرق التأسيس عن الباقة — وكلها من القواعد لا من الوصف:
+           الطول من `tq_session_minutes`، و«لا دفع قبل التأكيد» دورة حياة
+           الحصة (TQ-SESSION-PAY). */
+        if ($o['facts']) {
+            $h .= tqs_foundation_facts($cfg, 'fnd26__facts');
+        }
+
+        /* عدد الاعمدة بعدد المسارات: مساران في شبكة ثلاثية يتركان عمودا
+           فارغا يقرأ مسارا ناقصا، وشبكة مرنة تمطهما عريضين. */
+        $h .= '      <div class="fnd26__grid" style="--fnd-cols:' . min(3, count($tracks)) . '">' . "\n";
+        foreach ($tracks as $id => $t) {
+            $id  = (int) $id;
+            $url = base_url('foundation/' . rawurlencode((string) $t['slug']));
+            $hot = !empty($t['featured']);
+            $p   = $fnd->pricing_for($id, 0);
+
+            try {
+                $open = (bool) $ses->available_teachers(1, 1, 0, 0, 'foundation', $id);
+            } catch (Throwable $e) {
+                $CI->db->reset_query();
+                $open = false;
+            }
+
+            $h .= '        <article class="fnd26-card' . ($hot ? ' fnd26-card--hot' : '') . '">' . "\n";
+            if ($hot) {
+                $h .= '          <span class="fnd26-card__flag">' . t('الأكثر طلبا') . '</span>' . "\n";
+            }
+            $h .= '          ' . tqs_foundation_media($t) . "\n";
+
+            $h .= '          <div class="fnd26-card__body">' . "\n";
+            /* الرابط على العنوان ويمتد على البطاقة كلها: رابط واحد يقرؤه
+               قارئ الشاشة باسم المسار، لا ثلاثة روابط للوجهة نفسها. */
+            $h .= '            <h3 class="fnd26-card__title"><a href="' . $url . '">'
+                . html_escape($t['name']) . '</a></h3>' . "\n";
+            if ($t['tagline'] !== '') {
+                $h .= '            <p class="fnd26-card__tag">' . html_escape($t['tagline']) . '</p>' . "\n";
+            }
+            if (!empty($t['outcomes'])) {
+                $h .= '            <ul class="fnd26-card__list">' . "\n";
+                foreach (array_slice($t['outcomes'], 0, 3) as $oc) {
+                    $h .= '              <li><span class="fnd26-card__tick" aria-hidden="true">'
+                        . '<svg><use href="#i-check"></use></svg></span><span>' . html_escape($oc) . '</span></li>' . "\n";
+                }
+                $h .= '            </ul>' . "\n";
+            }
+
+            $h .= '            <div class="fnd26-card__foot">' . "\n";
+            $h .= '              <div class="fnd26-card__row">' . "\n";
+            $h .= '                <p class="fnd26-card__price">'
+                . ((int) $p['price'] > 0
+                    ? tqs_money($p['price']) . '<small>' . t('للحصة') . '</small>'
+                    : '<b>' . t('مجانية') . '</b>')
+                . '</p>' . "\n";
+            if ($open) {
+                $h .= '                <p class="fnd26-card__open"><i aria-hidden="true"></i>'
+                    . t('مواعيد متاحة') . '</p>' . "\n";
+            }
+            $h .= '              </div>' . "\n";
+            $h .= '              <span class="fnd26-card__cta" aria-hidden="true">' . t('تفاصيل المسار والمواعيد')
+                . '<svg class="dir-icon"><use href="#i-arrow"></use></svg></span>' . "\n";
+            $h .= '            </div>' . "\n";
+            $h .= '          </div>' . "\n";
+            $h .= '        </article>' . "\n";
+        }
+        $h .= '      </div>' . "\n";
+
+        if ($o['foot']) {
+            $h .= '      <div class="fnd26__foot">' . "\n";
+            $h .= '        <p>' . t('كيف يحجز الطالب حصته؟ خمس خطوات من اختيار المسار إلى دخول الحصة.') . '</p>' . "\n";
+            $h .= '        <a class="fnd26__more" href="' . base_url('foundation') . '#how">' . t('كيف يعمل التأسيس')
+                . '<svg aria-hidden="true"><use href="#i-arrow-back"></use></svg></a>' . "\n";
+            $h .= '      </div>' . "\n";
+        }
+
+        $h .= '    </div>' . "\n";
+        $h .= '  </div>' . "\n";
+        return $h . '</section>' . "\n";
+    }
+}
+
+if (!function_exists('tqs_foundation_facts')) {
+    /** الحقائق الاربع — لوح الرئيسية وبطاقة الحجز في صفحة المسار. */
+    function tqs_foundation_facts($cfg, $class)
+    {
+        $facts = array(
+            array('i-video',  t('حصة فردية مباشرة')),
+            array('i-clock',  '<b class="tq-ltr">' . (int) $cfg['minutes'] . '</b> ' . t('دقيقة للحصة')),
+            array('i-shield', t('لا دفع قبل تأكيد المعلم')),
+            array('i-unlock', t('بلا اشتراك ولا باقة')),
+        );
+        $h = '      <ul class="' . html_escape($class) . '">' . "\n";
+        foreach ($facts as $f) {
+            $h .= '        <li><svg aria-hidden="true"><use href="#' . $f[0] . '"></use></svg><span>'
+                . $f[1] . '</span></li>' . "\n";
+        }
+        return $h . '      </ul>' . "\n";
     }
 }
 

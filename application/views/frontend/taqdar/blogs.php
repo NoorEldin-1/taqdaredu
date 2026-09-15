@@ -130,7 +130,13 @@ css: pages
         <div class="newsletter reveal">
           <h3>اشترك في نشرتنا البريدية</h3>
           <p>احصل على أحدث المقالات والنصائح مباشرة إلى بريدك الإلكتروني.</p>
-          <form data-validate novalidate>
+          <?php /* TQ-NEWSLETTER — النموذج كان بلا وجهة: يتحقق ثم يمسح الحقل ويقول
+                   «تم تسجيل بريدك» ولا يكتب شيئا في أي جدول. صار يرسل إلى
+                   `subscribe_to_our_newsletter` القائمة، والنتيجة تعود معلما في
+                   الرابط فتقال كما وقعت. */ ?>
+          <?php $tq_nl = (string) $this->input->get('newsletter'); ?>
+          <form method="post" action="<?php echo base_url('home/subscribe_to_our_newsletter'); ?>" data-validate novalidate>
+            <?php echo tq_csrf(); ?>
             <label class="sr-only" for="nlEmail">البريد الإلكتروني</label>
             <input id="nlEmail" type="email" name="email" required
                    placeholder="أدخل بريدك الإلكتروني">
@@ -138,7 +144,10 @@ css: pages
               <svg aria-hidden="true"><use href="#i-send"></use></svg>
             </button>
           </form>
-          <p class="form-ok" data-ok>تم تسجيل بريدك — شكرا لاشتراكك.</p>
+          <p class="form-ok<?php echo $tq_nl === 'ok' ? ' is-on' : ''; ?>" data-ok role="status">تم تسجيل بريدك — شكرا لاشتراكك.</p>
+          <?php if ($tq_nl === 'bad'): ?>
+            <p class="tq-flash tq-flash--err" role="alert">البريد الإلكتروني غير صحيح. اكتبه هكذا: name@example.com</p>
+          <?php endif; ?>
         </div>
       </aside>
 

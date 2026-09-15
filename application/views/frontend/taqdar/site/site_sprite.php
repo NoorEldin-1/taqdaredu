@@ -56,6 +56,10 @@
   <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="8.4"/><path d="M10.2 8.6 15.8 12l-5.6 3.4Z"/>
   </symbol>
+  <?php /* زر إيقاف فيديو الهيرو: كان يرسم «×» فيقرأ «أغلق» لا «أوقف». */ ?>
+  <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="8.4"/><path d="M10 8.8v6.4M14 8.8v6.4"/>
+  </symbol>
   <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
     <path d="M4 20V4M4 20h16"/><path d="M8.4 16.6v-4.2M12 16.6V8.6M15.6 16.6v-6.2"/>
   </symbol>

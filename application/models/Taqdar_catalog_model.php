@@ -155,6 +155,16 @@ class Taqdar_catalog_model extends CI_Model
                 'cat_name' => $cat ? $cat['name'] : tqs_stage_label((string) $r['stage']),
                 'grades'   => $gids,
                 'price'    => (int) $r['price'],
+                /* TQ-SORT-MONTH — الفرز بما تطبعه البطاقة: الشهري حيث يعرض
+                   الشهري. والفرز بالإجمالي يضع باقة سنوية شهرها ٤٢ بعد شهرية
+                   بتسعمئة، فيقرأ «الأقل سعرا» مقلوبا. */
+                'sort_price' => (function () use ($r) {
+                    $c = tqs_plan_price(array('price' => (int) $r['price'],
+                        'period' => (string) $r['period'], 'days' => (int) $r['duration_days']));
+                    if ($c['free']) return 0;
+                    $m = $c['has_alt'] ? (int) $c['month'] : (int) round($c['total'] / max(1, (int) $c['months']));
+                    return $m * 100;
+                })(),
                 'featured' => ((int) $r['featured'] === 1),
                 'order'    => (int) $r['order'],
                 /* درجة الباقة تسمية تميزها عن أختيها في الشبكة نفسها */
@@ -884,14 +894,25 @@ class Taqdar_catalog_model extends CI_Model
                 if ($a['date'] !== $b['date']) return ($b['date'] < $a['date']) ? -1 : 1;
                 return ($b['id'] < $a['id']) ? -1 : (($b['id'] > $a['id']) ? 1 : 0);
             },
-            'price_asc' => function ($a, $b) {
-                $x = ($a['price'] < 0) ? PHP_INT_MAX : $a['price'];
-                $y = ($b['price'] < 0) ? PHP_INT_MAX : $b['price'];
-                return ($x === $y) ? 0 : (($x < $y) ? -1 : 1);
-            },
         );
-        if ($sort === 'price_desc') {
-            usort($rows, function ($a, $b) use ($cmp) { return -$cmp['price_asc']($a, $b); });
+
+        /* TQ-SORT-PRICE — ما لا سعر له («ضمن الباقات») آخر القائمة في الاتجاهين.
+           كان «الأعلى سعرا» يعكس مقارنة «الأقل» كلها، فيقفز كل برنامج بلا سعر
+           إلى رأس القائمة قبل أغلى باقة. */
+        $key = function ($r) {
+            if ((int) $r['price'] < 0) return null;
+            return isset($r['sort_price']) ? (int) $r['sort_price'] : (int) $r['price'];
+        };
+        if ($sort === 'price_asc' || $sort === 'price_desc') {
+            $dir = ($sort === 'price_desc') ? -1 : 1;
+            usort($rows, function ($a, $b) use ($key, $dir) {
+                $x = $key($a); $y = $key($b);
+                if ($x === null || $y === null) {
+                    return ($x === $y) ? 0 : (($x === null) ? 1 : -1);
+                }
+                if ($x === $y) return ($a['id'] < $b['id']) ? -1 : (($a['id'] > $b['id']) ? 1 : 0);
+                return (($x < $y) ? -1 : 1) * $dir;
+            });
             return $rows;
         }
         if (isset($cmp[$sort])) { usort($rows, $cmp[$sort]); return $rows; }

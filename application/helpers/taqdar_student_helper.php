@@ -203,7 +203,7 @@ if (!function_exists('tq_s_enrolled')) {
         if ($uid <= 0) return $cache[$uid] = [];
 
         $courses = $CI->db
-            ->select('c.id, c.title, c.thumbnail, c.level, c.category_id, c.sub_category_id,'
+            ->select('c.id, c.title, c.thumbnail, c.level, c.category_id, c.sub_category_id, c.status AS course_status,'
                    . ' c.user_id AS instructor_id, e.date_added AS enrolled_at')
             ->from('enrol e')
             ->join('course c', 'c.id = e.course_id', 'inner')
@@ -242,103 +242,63 @@ if (!function_exists('tq_s_enrolled')) {
         foreach ($watch as $w) $hist[(int) $w['course_id']] = $w;
 
         $prog = tq_s_progress($uid);
+        $CI->load->model('taqdar_repo_model');
 
         $out = [];
         foreach ($courses as $i => $c) {
             $cid   = (int) $c['id'];
-            $total = $count[$cid] ?? 0;
             $h     = $hist[$cid] ?? null;
             $rows  = $prog['by_course'][$cid] ?? [];
 
-            /* ── الإتمام: اتّحاد المصدرين ──────────────────────────────
-               الموروث بمعرّفاته، و`lesson_progress` بختم `completed_at`.
-               وطرح أحدهما يمحو تقدّم من لا صفّ له في الآخر. */
-            $done_ids = [];
-            if ($h && !empty($h['completed_lesson'])) {
-                $list = json_decode($h['completed_lesson'], true);
-                if (is_array($list)) foreach ($list as $lid) $done_ids[(int) $lid] = true;
-            }
-            foreach ($rows as $p) if ($p['complete']) $done_ids[$p['lesson_id']] = true;
+            /* ── TQ-PROGRESS-ONE — المنجز والنسبة والوجهة من `course_state()` ──
+               كان «المكتمل» اتحاد `watch_histories.completed_lesson` و
+               `completed_at`، والقفل يسأل «أتقن السابق إن كان له اختبار». فتقول
+               البطاقة ١٢ درسا مكتملا ويرد الخادم فتح عشرة منها، ويأخذ زر
+               «تابع» الطالب إلى درس مقفل. والآن رقم واحد بقاعدة القفل نفسها. */
+            $st    = $CI->taqdar_repo_model->course_state($uid, $cid);
+            $total = (int) $st['total'];
+            $done  = (int) $st['done'];
+            $pct   = max(0, min(100, (int) $st['percent']));
 
-            /* TQ-PUBLISHED-COUNT — البسط من المقام نفسه: درس أكمل ثم سحب من
-               النشر كان يبقى في العدد ويقصّه سقف `$done > $total` قصّا صامتا،
-               فيقرأ الطالب نسبة لا يقابلها درس. والقصّ يبقى حارسا أخيرا. */
-            if (isset($counted_ids[$cid])) {
-                $done_ids = array_intersect_key($done_ids, $counted_ids[$cid]);
-            }
-
-            $done = count($done_ids);
-            if ($total > 0 && $done > $total) $done = $total;
-
-            /* ── أين وقف: أحدث صفّ غير مكتمل تجاوز عتبة الخمس عشرة ────
-               والعتبة هي عتبة `Taqdar_learn_model::resume_lesson()` نفسها،
-               فلا تقول البطاقة درسًا ويقول زرّ «استكمل التعلّم» سواه.
-               ودرسٌ **مكتمل** وله موضع لا يصير الحاليّ: المنتهي لا موضع له. */
             $cur_id = 0; $cur_title = ''; $cur_pos = 0; $cur_dur = 0;
-            $best = null;
-            foreach ($rows as $p) {
-                if ($p['complete'] || $p['pos'] <= 15) continue;
-                if ($best === null
-                    || strcmp((string) $p['ping'], (string) $best['ping']) > 0
-                    || ((string) $p['ping'] === (string) $best['ping'] && $p['lesson_id'] > $best['lesson_id'])) {
-                    $best = $p;
-                }
-            }
-            if ($best !== null) {
-                $cur_id = $best['lesson_id']; $cur_title = $best['title'];
-                $cur_pos = $best['pos'];      $cur_dur = $best['duration'];
+            if ((int) $st['resume_pos'] > 0) {
+                $cur_id    = (int) $st['resume_lesson_id'];
+                $cur_title = (string) $st['lessons'][$cur_id]['title'];
+                $cur_pos   = (int) $st['resume_pos'];
+                foreach ($rows as $p) if ($p['lesson_id'] === $cur_id) $cur_dur = $p['duration'];
             }
 
             $pos_seen = 0; $watched = 0;
             foreach ($rows as $p) { $pos_seen = max($pos_seen, $p['pos']); $watched += $p['watched']; }
 
-            /* ── النسبة من الدروس المكتملة فعلًا ──────────────────────
-               `watch_histories.course_progress` رقم **مخزَّن** انحرف عن
-               عدّ الدروس: طالب أنهى عشرين من خمسة وعشرين يقرأ ١٠٠٪.
-               فتُحسب هنا، ولا تُقرأ المرآة إلّا حين لا درس يُعدّ. */
-            $pct = $total > 0
-                 ? (int) round($done * 100 / $total)
-                 : ($h !== null ? (int) $h['course_progress'] : 0);
-            $pct = max(0, min(100, $pct));
-
-            /* ── الحالة دالّة في الأرقام التي يرسمها الشريط ───────────
-               فيستحيل بنيويًّا أن تعلو «لم يبدأ» فوق شريط غير صفريّ —
-               وهو ما كان يقع لأربعة تسجيلات تقرأ من المرآة وحدها. */
+            /* ── الحالة دالة في الأرقام التي يرسمها الشريط ─────────── */
             $status = 'idle';
             if ($done > 0 || $pos_seen > 15 || $watched > 15) $status = 'progress';
             if ($total > 0 && $done >= $total) $status = 'done';
 
-            /* ── قطع الشريط: قطعة لكلّ درس ────────────────────────────
-               من `tq_s_lessons()` المكاشة — بصفر استعلام إضافيّ. */
+            /* ── قطع الشريط: قطعة لكل درس بترتيب القفل نفسه ─────────── */
             $segments = [];
-            foreach (tq_s_lessons($uid) as $l) {
-                if ((int) $l['course_id'] !== $cid) continue;
-                $lid = (int) $l['id'];
-                if (isset($done_ids[$lid])) {
-                    $segments[] = ['id' => $lid, 'title' => $l['title'], 'state' => 'done', 'fill' => 100];
+            foreach ($st['lessons'] as $lid => $ls) {
+                if ($ls['is_quiz']) continue;
+                if ($ls['done']) {
+                    $segments[] = ['id' => $lid, 'title' => $ls['title'], 'state' => 'done', 'fill' => 100, 'locked' => false];
                 } elseif ($lid === $cur_id) {
                     $f = $cur_dur > 0 ? (int) round($cur_pos * 100 / $cur_dur) : 0;
-                    /* سقف وأرضية: واحد بالمئة لا يُرى، وتسعة وتسعون على
-                       درس لم يُكمَل يُقرأ «انتهى». */
                     $f = max(2, min(98, $f));
-                    $segments[] = ['id' => $lid, 'title' => $l['title'], 'state' => 'current', 'fill' => $f];
+                    $segments[] = ['id' => $lid, 'title' => $ls['title'], 'state' => 'current', 'fill' => $f, 'locked' => false];
                 } else {
-                    $segments[] = ['id' => $lid, 'title' => $l['title'], 'state' => 'todo', 'fill' => 0];
+                    $segments[] = ['id' => $lid, 'title' => $ls['title'], 'state' => 'todo', 'fill' => 0, 'locked' => $ls['locked']];
                 }
             }
 
-            /* الوجهة: ما وقف عنده، وإلّا أوّل ما لم يتمّ، وإلّا المرآة. */
-            $resume = $cur_id;
-            if ($resume === 0) {
-                foreach ($segments as $sg) {
-                    if ($sg['state'] !== 'done') { $resume = $sg['id']; break; }
-                }
-            }
-            if ($resume === 0 && $h) $resume = (int) $h['watching_lesson_id'];
-            if ($resume === 0 && $segments) $resume = $segments[0]['id'];
+            /* الوجهة درس **يفتح**: ما وقف فيه، وإلا أول مفتوح لم ينجز. */
+            $resume = (int) $st['resume_lesson_id'];
 
             $out[] = [
                 'id'         => $cid,
+                /* حال الكورس في المنصة لا حال الطالب فيه: كورس مسودة أو قيد
+                   المراجعة يبقى عند من سجل فيه، ويقال ذلك على بطاقته. */
+                'course_status' => (string) ($c['course_status'] ?? ''),
                 'title'      => $c['title'],
                 'thumbnail'  => $c['thumbnail'],
                 'level'      => $c['level'],
@@ -429,57 +389,34 @@ if (!function_exists('tq_s_lessons')) {
             }
         }
 
-        /* حالة المشاهدة لكل كورس مسجل. */
-        $course_ids = array_values(array_unique(array_map('intval', array_column($rows, 'course_id'))));
-        $done_ids   = [];
-        $watching   = [];
-        $touched    = [];
-        foreach ($CI->db->select('course_id, completed_lesson, watching_lesson_id, date_updated')
-                    ->from('watch_histories')->where('student_id', $uid)
-                    ->where_in('course_id', $course_ids)->get()->result_array() as $w) {
-            $cid = (int) $w['course_id'];
-            $watching[$cid] = (int) $w['watching_lesson_id'];
-            $touched[$cid]  = tq_s_ts($w['date_updated']);
-            $list = json_decode((string) $w['completed_lesson'], true);
-            if (is_array($list)) {
-                foreach ($list as $lid) $done_ids[(int) $lid] = true;
-            }
-        }
-
-        /* ── ويوحَّد المصدران هنا كما في `tq_s_enrolled()` ────────────
-           لو رُقّيت إحداهما وحدها لقال الشريط أربعين بالمئة وقالت
-           النقاط صفرًا من خمسة: التناقض نفسه، طبقةً أدنى. */
-        $prog = tq_s_progress($uid);
-        foreach ($prog['by_lesson'] as $lid => $p) {
-            if ($p['complete']) $done_ids[$lid] = true;
-        }
-        /* والحاليّ: أحدث غير مكتمل تجاوز العتبة، لكلّ كورس على حدة. */
-        $cur_of = [];
-        foreach ($prog['by_course'] as $cid_k => $ps) {
-            $best = null;
-            foreach ($ps as $p) {
-                if ($p['complete'] || $p['pos'] <= 15) continue;
-                if ($best === null
-                    || strcmp((string) $p['ping'], (string) $best['ping']) > 0
-                    || ((string) $p['ping'] === (string) $best['ping'] && $p['lesson_id'] > $best['lesson_id'])) {
-                    $best = $p;
-                }
-            }
-            if ($best !== null) $cur_of[(int) $cid_k] = $best['lesson_id'];
+        /* ── TQ-PROGRESS-ONE — الحالة والقفل من `course_state()` ───────
+           كانت الحالة من `watch_histories` مع `completed_at`، والقفل من قاعدة
+           أخرى: فيقرأ الطالب «أتممته» على درس يرده الخادم، و٤٥ درسا مقفلا
+           من ٥٩ بلا إشارة واحدة. والترتيب ترتيب القفل (الوحدة ثم الدرس). */
+        $CI->load->model('taqdar_repo_model');
+        $states = [];
+        foreach (array_values(array_unique(array_map('intval', array_column($rows, 'course_id')))) as $cid) {
+            $states[$cid] = $CI->taqdar_repo_model->course_state($uid, $cid);
         }
 
         $out = [];
-        foreach ($rows as $i => $r) {
+        foreach ($rows as $r) {
             $lid = (int) $r['id'];
             $cid = (int) $r['course_id'];
+            $st  = $states[$cid];
+            $ls  = $st['lessons'][$lid] ?? null;
+            if ($ls === null) continue;   // خارج ترتيب القفل = غير منشور
 
             $state = 'todo';
-            if (isset($done_ids[$lid]))                       $state = 'done';
-            elseif (($cur_of[$cid] ?? 0) === $lid)            $state = 'current';
-            elseif (!isset($cur_of[$cid])
-                    && ($watching[$cid] ?? 0) === $lid)       $state = 'current';
+            if ($ls['done'])                                                     $state = 'done';
+            elseif ((int) $st['resume_pos'] > 0 && (int) $st['resume_lesson_id'] === $lid) $state = 'current';
 
             $out[] = [
+                'locked'     => $ls['locked'],
+                'lock_hint'  => (string) $ls['blocking_title'],
+                /* أكمل الفيديو ولم يجتز اختباره: «أتممته» كذب، و«لم يبدأ» كذب. */
+                'needs_quiz' => ($ls['completed'] && !$ls['done']),
+                'order'      => (int) $ls['order'],
                 'id'       => $lid,
                 'title'    => (string) $r['title'],
                 'unit'     => $units[(int) $r['section_id']] ?? '',
@@ -493,11 +430,16 @@ if (!function_exists('tq_s_lessons')) {
                 'free'     => (int) $r['is_free'] === 1,
                 'seconds'  => tq_s_secs($r['duration']),
                 'state'    => $state,
-                'index'    => $i,
-                'at'       => $touched[$cid] ?? tq_s_ts($r['date_added']),
+                'at'       => $ls['ping'] !== '' ? tq_s_ts($ls['ping']) : tq_s_ts($r['date_added']),
                 'url'      => tq_s_lesson_url($cid, $lid),
             ];
         }
+
+        usort($out, static function ($a, $b) {
+            return [$a['course_id'], $a['order']] <=> [$b['course_id'], $b['order']];
+        });
+        foreach ($out as $i => &$o) $o['index'] = $i;
+        unset($o);
 
         return $cache[$uid] = $out;
     }
@@ -618,14 +560,14 @@ if (!function_exists('tq_s_quizzes')) {
             ->join('course c', 'c.id = l.course_id', 'inner')
             ->where('e.user_id', $uid)
             ->where('l.lesson_type', 'quiz')
+            /* اختبار درس مسودة لم يعتمد لا يعرض: المشغل يرده 404. */
+            ->where("COALESCE(l.tq_status, 'published') = 'published'", null, false)
             ->get()->result_array();
 
         /* لا خروج مبكر هنا: طبقة الإتقان تضاف في آخر الدالة، وقد يكون
            الموروث فارغا وهي عامرة — وهو الحال الغالب اليوم. */
         if (empty($rows)) {
-            $out = tq_s_assessment_quizzes($uid);
-            usort($out, function ($a, $b) { return $b['ended_at'] <=> $a['ended_at']; });
-            return $cache[$uid] = tq_s_exam_lock($uid, $out);
+            return $cache[$uid] = tq_s_exam_finalize($uid, tq_s_assessment_quizzes($uid));
         }
 
         $qids = array_map('intval', array_column($rows, 'id'));
@@ -699,8 +641,103 @@ if (!function_exists('tq_s_quizzes')) {
            اليوم. */
         foreach (tq_s_assessment_quizzes($uid) as $q) $out[] = $q;
 
+        return $cache[$uid] = tq_s_exam_finalize($uid, $out);
+    }
+}
+
+if (!function_exists('tq_s_exam_finalize')) {
+    /**
+     * آخر ما يمر به كل مصدر للاختبارات: دمج المكرر، وامتحانات المحطات، والقفل.
+     *
+     * TQ-EXAM-DEDUPE — **الاختبار الواحد مرة واحدة.** دمج النظامين (الموروث
+     * و`assessments`) كان يضيف الثاني إلى الأول بلا فحص: درس اختبار له صف في
+     * الاثنين يعرض مرتين — «اختبار الوحدة الأولى ٨٠٪» في سطرين، ومرة قادما
+     * ومرة منتهيا. والمفتاح معرف الدرس، ويبقى الأوفر حالا (منته ثم جار ثم
+     * قادم)، ثم ما جاء من الطبقة الحية.
+     *
+     * TQ-EXAM-STATION — **وامتحانات المحطات تعرض.** هي التي تصدر بها الشهادات
+     * (`assessments.type = 'exam'` على محطة مسار)، ولم تكن هذه الشاشة تسأل عنها
+     * أصلا: من اجتاز امتحان محطته لا يجد له أثرا في «اختباراتي». وتعرض ما أداه
+     * منها وحده — ولا بطاقة «ابدأ» لما لم يؤده، فبدؤه من محطته لا من هنا.
+     */
+    function tq_s_exam_finalize($uid, array $out)
+    {
+        $rank = ['done' => 3, 'live' => 2, 'upcoming' => 1];
+        $by = [];
+        foreach ($out as $q) {
+            $k = (int) $q['id'];
+            if (!isset($by[$k])) { $by[$k] = $q; continue; }
+            $a = $rank[$by[$k]['state']] ?? 0;
+            $b = $rank[$q['state']] ?? 0;
+            if ($b > $a || ($b === $a && ($q['grade_state'] ?? '') === 'auto')) $by[$k] = $q;
+        }
+        $out = array_values($by);
+
+        foreach (tq_s_station_exams($uid) as $q) $out[] = $q;
+
         usort($out, function ($a, $b) { return $b['ended_at'] <=> $a['ended_at']; });
-        return $cache[$uid] = tq_s_exam_lock($uid, $out);
+        foreach ($out as $i => &$q) $q['index'] = $i;
+        unset($q);
+        return tq_s_exam_lock($uid, $out);
+    }
+}
+
+if (!function_exists('tq_s_station_exams')) {
+    /** امتحانات المحطات التي أداها الطالب — آخر محاولة لكل امتحان. */
+    function tq_s_station_exams($uid)
+    {
+        $CI  = get_instance();
+        $uid = (int) $uid;
+        if ($uid <= 0) return [];
+
+        try {
+            $rows = $CI->db->query(
+                'SELECT t.`assessment_id`, t.`score`, t.`started_at`, t.`submitted_at`,
+                        COALESCE(m.`title`, p.`title`) AS title, p.`course_id`,
+                        c.`title` AS course_title, c.`level`, c.`category_id`,
+                        (SELECT COUNT(*) FROM `question` q WHERE q.`assessment_id` = a.`id`) AS marks
+                   FROM `attempts` t
+                   JOIN `assessments` a ON a.`id` = t.`assessment_id` AND a.`type` = "exam"
+                   LEFT JOIN `milestones` m ON m.`id` = a.`milestone_id`
+                   LEFT JOIN `paths` p ON p.`id` = COALESCE(a.`path_id`, m.`path_id`)
+                   LEFT JOIN `course` c ON c.`id` = p.`course_id`
+                  WHERE t.`student_id` = ?
+                  ORDER BY t.`id` ASC', array($uid))->result_array();
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-EXAM-STATION: ' . $e->getMessage());
+            return [];
+        }
+
+        $last = [];
+        foreach ($rows as $r) $last[(int) $r['assessment_id']] = $r;   // الأحدث يغلب
+
+        $out = [];
+        foreach ($last as $aid => $r) {
+            $marks = (int) $r['marks'];
+            $done  = !empty($r['submitted_at']);
+            $got   = $done ? (float) $r['score'] : null;
+            $out[] = [
+                /* معرف سالب: لا درس لامتحان المحطة، ومعرف موجب يصطدم بدرس
+                   حقيقي في دمج المكرر وفي عداد المدة. */
+                'id'           => -$aid,
+                'title'        => (string) ($r['title'] ?: t('امتحان محطة')),
+                'course_id'    => (int) $r['course_id'],
+                'course'       => (string) $r['course_title'],
+                'subject'      => tq_s_subject($r['category_id'], (string) $r['course_title'], (int) $r['course_id']),
+                'level'        => (string) $r['level'],
+                'marks'        => $marks,
+                'obtained'     => $got,
+                'percent'      => ($done && $marks > 0) ? (int) round($got * 100 / $marks) : null,
+                'visible'      => $done,
+                'grade_state'  => $done ? 'auto' : 'unsubmitted',
+                'teacher_note' => '',
+                'state'        => $done ? 'done' : 'live',
+                'station'      => true,
+                'started_at'   => tq_s_ts($r['started_at']),
+                'ended_at'     => tq_s_ts($r['submitted_at']),
+            ];
+        }
+        return $out;
     }
 }
 
@@ -775,6 +812,7 @@ if (!function_exists('tq_s_assessment_quizzes')) {
                    JOIN `course` c ON c.`id` = l.`course_id`
                    JOIN `enrol`  e ON e.`course_id` = l.`course_id` AND e.`user_id` = ?
                   WHERE a.`type` = "review" AND a.`lesson_id` > 0
+                    AND COALESCE(l.`tq_status`, "published") = "published"
                  HAVING marks > 0', array($uid))->result_array();
         } catch (Throwable $e) {
             log_message('error', 'TQ-EXAM-SOURCE: ' . $e->getMessage());
@@ -851,6 +889,29 @@ if (!function_exists('tq_s_materials')) {
 
         $out = [];
 
+        $CI->load->model('taqdar_student_model', 'tq_stu');
+        $CI->load->model('taqdar_repo_model');
+
+        /* TQ-MATERIAL-GATE — ثلاثة شروط كانت غائبة:
+             • **درس منشور وحده**: ملف درس مسودة كان يعرض ويحمل قبل أن يعتمد.
+             • **الرابط رابط الحارس** (`material_url()`) لا مسار `uploads/`.
+             • **القفل يقال في الصف**: ملف درس لم يصل إليه الطالب يعرض مقفلا
+               باسم الدرس الذي يفتحه — والحارس يرده إن طلب على أي حال. */
+        $published = "COALESCE(l.tq_status, 'published') = 'published'";
+
+        $locks   = [];
+        $lock_of = static function ($lesson_id) use ($CI, $uid, &$locks) {
+            $lesson_id = (int) $lesson_id;
+            if (!isset($locks[$lesson_id])) {
+                $s = $CI->taqdar_repo_model->lesson_lock_state($uid, $lesson_id);
+                $locks[$lesson_id] = [
+                    'locked' => empty($s['found']) || empty($s['unlocked']),
+                    'hint'   => trim((string) ($s['blocking_lesson_title'] ?? '')),
+                ];
+            }
+            return $locks[$lesson_id];
+        };
+
         $files = $CI->db
             ->select('rf.id, rf.title, rf.file_name, rf.created_at, l.id AS lesson_id, l.title AS lesson_title,'
                    . ' c.id AS course_id, c.title AS course_title, c.category_id')
@@ -859,50 +920,72 @@ if (!function_exists('tq_s_materials')) {
             ->join('course c', 'c.id = l.course_id', 'inner')
             ->join('enrol e', 'e.course_id = c.id', 'inner')
             ->where('e.user_id', $uid)
+            ->where($published, null, false)
             ->get()->result_array();
 
         foreach ($files as $f) {
             $rel  = 'uploads/resource_files/' . $f['file_name'];
+            $lock = $lock_of($f['lesson_id']);
             $out[] = [
                 /* `fav_id` معرف الملف في `resource_files`، وهو ما يفضل.
                    ومرفق الدرس أدناه يتركه صفرا: لا صف له في جدول، فلا معرف
                    ثابت يفضل به — وقلب لا يعرف ما يحفظ لا يعرض. */
-                'fav_id'  => (int) $f['id'],
-                'title'   => $f['title'] !== '' ? $f['title'] : $f['file_name'],
-                'file'    => $f['file_name'],
-                'lesson'  => $f['lesson_title'],
-                'course'  => $f['course_title'],
-                'subject' => tq_s_subject($f['category_id'], $f['course_title'], $f['course_id']),
-                'url'     => base_url($rel),
-                'bytes'   => is_file(FCPATH . $rel) ? (int) filesize(FCPATH . $rel) : 0,
-                'at'      => tq_s_ts($f['created_at']),
-                'kind'    => tq_file_kind($f['file_name']),
+                'fav_id'    => (int) $f['id'],
+                'src'       => 'file',
+                'id'        => (int) $f['id'],
+                'lesson_id' => (int) $f['lesson_id'],
+                'course_id' => (int) $f['course_id'],
+                'title'     => $f['title'] !== '' ? $f['title'] : $f['file_name'],
+                'file'      => $f['file_name'],
+                'lesson'    => $f['lesson_title'],
+                'course'    => $f['course_title'],
+                'subject'   => tq_s_subject($f['category_id'], $f['course_title'], $f['course_id']),
+                'url'       => $CI->tq_stu->material_url('file', (int) $f['id']),
+                'bytes'     => is_file(FCPATH . $rel) ? (int) filesize(FCPATH . $rel) : 0,
+                'at'        => tq_s_ts($f['created_at']),
+                'kind'      => tq_file_kind($f['file_name']),
+                'locked'    => $lock['locked'],
+                'lock_hint' => $lock['hint'],
             ];
         }
 
         $attached = $CI->db
-            ->select('l.id, l.title, l.attachment, l.attachment_type, l.date_added,'
+            ->select('l.id, l.title, l.lesson_type, l.attachment, l.attachment_type, l.date_added,'
                    . ' c.id AS course_id, c.title AS course_title, c.category_id')
             ->from('lesson l')
             ->join('course c', 'c.id = l.course_id', 'inner')
             ->join('enrol e', 'e.course_id = c.id', 'inner')
             ->where('e.user_id', $uid)
             ->where('l.attachment !=', '')
+            ->where($published, null, false)
             ->get()->result_array();
 
         foreach ($attached as $a) {
+            /* إعدادات الاختبار ووسم الإطار ونص الدرس تسكن العمود نفسه —
+               وليست ملفات. انظر `lesson_attachment_is_file()`. */
+            if (!$CI->tq_stu->lesson_attachment_is_file($a)) continue;
+
             $is_link = (bool) preg_match('~^https?://~i', trim((string) $a['attachment']));
             $rel     = 'uploads/lesson_files/' . $a['attachment'];
-            $out[]   = [
-                'title'   => $a['title'],
-                'file'    => $a['attachment'],
-                'lesson'  => $a['title'],
-                'course'  => $a['course_title'],
-                'subject' => tq_s_subject($a['category_id'], $a['course_title'], $a['course_id']),
-                'url'     => $is_link ? $a['attachment'] : base_url($rel),
-                'bytes'   => (!$is_link && is_file(FCPATH . $rel)) ? (int) filesize(FCPATH . $rel) : 0,
-                'at'      => tq_s_ts($a['date_added']),
-                'kind'    => tq_file_kind($a['attachment'], $a['attachment_type']),
+            if (!$is_link && !is_file(FCPATH . $rel)) continue;   // اسم بلا ملف لا يعرض زر تحميل يرد 404
+
+            $lock  = $lock_of($a['id']);
+            $out[] = [
+                'src'       => $is_link ? 'link' : 'lesson',
+                'id'        => (int) $a['id'],
+                'lesson_id' => (int) $a['id'],
+                'course_id' => (int) $a['course_id'],
+                'title'     => $a['title'],
+                'file'      => $a['attachment'],
+                'lesson'    => $a['title'],
+                'course'    => $a['course_title'],
+                'subject'   => tq_s_subject($a['category_id'], $a['course_title'], $a['course_id']),
+                'url'       => $is_link ? $a['attachment'] : $CI->tq_stu->material_url('lesson', (int) $a['id']),
+                'bytes'     => $is_link ? 0 : (int) filesize(FCPATH . $rel),
+                'at'        => tq_s_ts($a['date_added']),
+                'kind'      => tq_file_kind($a['attachment'], $a['attachment_type']),
+                'locked'    => $lock['locked'],
+                'lock_hint' => $lock['hint'],
             ];
         }
 
@@ -971,12 +1054,9 @@ if (!function_exists('tq_s_activity')) {
             ->from('watched_duration')->where('watched_student_id', $uid)->get()->row_array();
         $out['seconds'] = (int) ($row['s'] ?? 0);
 
-        $wh = $CI->db->select('completed_lesson')->from('watch_histories')
-            ->where('student_id', $uid)->get()->result_array();
-        foreach ($wh as $w) {
-            $list = json_decode((string) $w['completed_lesson'], true);
-            if (is_array($list)) $out['lessons'] += count(array_unique($list));
-        }
+        /* TQ-PROGRESS-ONE — «الدروس المكتملة» عدد ما يفتح الدرس التالي، من
+           `course_state()` كبطاقات الكورسات لا من `watch_histories` الموروث. */
+        foreach (tq_s_enrolled($uid) as $c) $out['lessons'] += (int) $c['done'];
 
         $quizzes = tq_s_quizzes($uid);
         $now  = time();
@@ -1028,8 +1108,11 @@ if (!function_exists('tq_s_resume')) {
             /* TQ-RESUME-TRUTH — «حيث توقفت» تقال عمن توقف: مقرر بلا سجل مشاهدة
                ولا موضع محفوظ لم يفتح قط، فلا يرشح لسطر الاستئناف. ولا يخفى
                المقرر: بطاقته باقية في «كورساتي»، وزر «الخطوة التالية» يبقى. */
-            if (empty($c['has_history']) && (int) ($c['position_sec'] ?? 0) <= 0
-                && (int) ($c['watched_sec'] ?? 0) <= 0) continue;
+            /* وصف `watch_histories` قد يوجد بلا تقدم: يكتب عند فتح الكورس مرة،
+               فيفوز بسطر «واصل حيث توقفت» كورس صفر دروسه وصفر موضعه. فالشرط
+               تقدم مقيس لا وجود صف. */
+            if ((int) $c['done'] <= 0 && (int) ($c['position_sec'] ?? 0) <= 15
+                && (int) ($c['watched_sec'] ?? 0) <= 15) continue;
             if ($best === null || $c['touched_at'] > $best['touched_at']) $best = $c;
         }
         return $best;

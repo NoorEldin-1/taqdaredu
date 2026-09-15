@@ -562,7 +562,7 @@ document.documentElement.classList.add('js');
           if (off) v.pause(); else v.play().catch(function () {});
           t.setAttribute('aria-label', off ? 'تشغيل الخلفية المتحركة' : 'إيقاف الخلفية المتحركة');
           var u = t.querySelector('use');
-          if (u) u.setAttribute('href', off ? '#i-play' : '#i-close');
+          if (u) u.setAttribute('href', off ? '#i-play' : '#i-pause');
         });
       }
     }, { once: true });

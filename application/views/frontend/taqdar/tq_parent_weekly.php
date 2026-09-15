@@ -53,115 +53,28 @@ $tq_sub = $tq_elapsed === 1
     ? t('من صباح الأحد إلى الآن — مقارنا بأحد الأسبوع الماضي')
     : t('من الأحد إلى ') . $tq_day_ar[(int) date('w')] . t(' — مقارنا بالأيام نفسها من الأسبوع الماضي');
 
-$tq_children = $tq_pm->children($tq_uid);
-
-foreach ($tq_children as &$tq_child) {
-    $tq_cid = (int) $tq_child['student_id'];
-    $tq_child['id'] = $tq_cid;
-
-    /* خطة أسبوعه: ما حدده ولي الأمر لهذا الابن، وإلا الافتراضي مع إعلانه. */
-    $tq_plan = $tq_pm->plan_days($tq_uid, $tq_cid);
-    $tq_child['plan_days']  = (int) $tq_plan['days'];
-    $tq_child['plan_is_default'] = !empty($tq_plan['is_default']);
-
-    /* أيام النشاط هذا الأسبوع وأسبوعه الماضي.
-       ثلاثة مصادر لا اثنان، و`lesson_progress` أولها وأصدقها: فيه صف
-       **لكل درس** بتاريخ إنهائه. أما `watch_histories` فصف واحد لكل مادة
-       يحمل آخر تحديث لها وحده — فمن درس خمسة أيام متتابعة في مادة واحدة
-       كان يحسب له يوم نشاط واحد، ومن سجل في خمس مواد ولمسها مرة واحدة
-       تحسب له خمسة. المقياس كان يكافئ تعدد المواد لا المواظبة. */
-    $tq_stamps = [];
-    foreach ($this->db->query(
-        "SELECT UNIX_TIMESTAMP(completed_at) AS ts FROM lesson_progress
-          WHERE student_id = ? AND completed_at IS NOT NULL", [$tq_cid]
-    )->result_array() as $tq_r) {
-        $tq_stamps[] = (int) $tq_r['ts'];
-    }
-    foreach ($this->db->query(
-        "SELECT date_updated AS ts FROM watch_histories WHERE student_id = ?", [$tq_cid]
-    )->result_array() as $tq_r) {
-        $tq_stamps[] = (int) $tq_r['ts'];
-    }
-    foreach ($this->db->query(
-        "SELECT date_added AS ts FROM quiz_results WHERE user_id = ? AND is_submitted = 1", [$tq_cid]
-    )->result_array() as $tq_r) {
-        $tq_stamps[] = (int) $tq_r['ts'];
-    }
-
-    $tq_days_this = 0;
-    $tq_days_prev = 0;
-    $tq_day_set   = [];
-    foreach ($tq_stamps as $tq_ts) {
-        if ($tq_ts > 0) {
-            $tq_day_set[strtotime('today', $tq_ts)] = true;
-        }
-    }
-    /* المقارنة على مدى واحد: أيام هذا الأسبوع حتى اليوم مقابل **الأيام
-       نفسها** من الأسبوع الماضي.
-
-       كانت تقارن ما مضى من هذا الأسبوع بالأسبوع الماضي كاملا: فصباح
-       الأحد — وهو موعد إرسال التقرير نفسه — يقرأ كل ولي أمر أن نشاط
-       ابنه «نزل»، لأن أسبوعا لم يبدأ بعد يقارن بأسبوع تم. رسالة تصل
-       أسبوعيا وتقول لكل أب إن ابنه تراجع لا تقرأ مرتين. */
-    foreach (array_keys($tq_day_set) as $tq_day) {
-        if ($tq_day >= $tq_week_start) {
-            $tq_days_this++;
-        } elseif ($tq_day >= $tq_prev_start && $tq_day < $tq_prev_start + ($tq_elapsed * 86400)) {
-            $tq_days_prev++;
-        }
-    }
-
-    /* دروس **هذا الأسبوع** واختباراته.
-       كان العدد يجمع `watch_histories.completed_lesson` كله ثم يكتب في
-       السطر «هذا الأسبوع»: يقرأ ولي أمر ابنه لم يفتح المنصة منذ شهر
-       «أكمل 35 دروس هذا الأسبوع» فيطمئن — وهو أخطر ما يفعله تقرير.
-       و`lesson_progress.completed_at` تاريخ صريح لكل درس، فالسؤال يجاب
-       من عموده لا يقدر من مجموع بلا تاريخ. */
-    $tq_done = (int) $this->db->query(
-        "SELECT COUNT(*) AS n FROM lesson_progress
-          WHERE student_id = ? AND completed_at IS NOT NULL
-            AND completed_at >= FROM_UNIXTIME(?)",
-        [$tq_cid, $tq_week_start]
-    )->row('n');
-
-    /* والحصيلة الكلية تعرض إلى جانبه لا بدلا منه: الأسبوع يقاس، والعمر
-       يذكر — والخلط بينهما هو العطل نفسه. */
-    $tq_done_all = (int) $this->db->query(
-        "SELECT COUNT(*) AS n FROM lesson_progress
-          WHERE student_id = ? AND completed_at IS NOT NULL",
-        [$tq_cid]
-    )->row('n');
-
-    $tq_quizzes = (int) $this->db->query(
-        "SELECT COUNT(*) AS n FROM quiz_results
-          WHERE user_id = ? AND is_submitted = 1 AND date_added >= ?",
-        [$tq_cid, $tq_week_start]
-    )->row('n');
-
-    /* المادة المتوقفة: أطول غياب بين مواده.
-       ومادة لم تبدأ (`last_seen = 0`) تسبق كل متوقفة في الترتيب فتحجبها
-       دائما — والانقطاع عن مادة بدأها خبر، وعدم البدء حال معلومة. فتقدم
-       المتوقفة، وتذكر غير المبدوءة حين لا متوقف. */
-    $tq_stalled = $this->db->query(
-        "SELECT c.title, COALESCE(w.date_updated, 0) AS last_seen
-           FROM enrol e
-           JOIN course c ON c.id = e.course_id
-           LEFT JOIN watch_histories w
-                  ON w.student_id = e.user_id AND w.course_id = e.course_id
-          WHERE e.user_id = ?
-          ORDER BY (COALESCE(w.date_updated, 0) = 0) ASC, last_seen ASC
-          LIMIT 1",
-        [$tq_cid]
-    )->row_array();
-
-    $tq_child['days_this'] = $tq_days_this;
-    $tq_child['days_prev'] = $tq_days_prev;
-    $tq_child['done']      = $tq_done;
-    $tq_child['done_all']  = $tq_done_all;
-    $tq_child['quizzes']   = $tq_quizzes;
-    $tq_child['stalled']   = $tq_stalled;
+/* TQ-WEEKLY-ONE — الأرقام من `Taqdar_parent_model::weekly()` لا من
+   استعلامات في القالب. كانت الصفحة تحسب بنفسها والتطبيق يسأل النموذج
+   والبريد يحسب نسخة ثالثة: «سلم اختبارا» تعد الموروث في الصفحة والنظامين
+   في البريد، و«أيام النشاط» تعد المشاهدة ولا تعد المراجعة — فيقرأ ولي
+   الأمر ثلاثة أرقام لأسبوع واحد. والنموذج الآن يعد النشاط كله
+   (TQ-ACTIVITY-ALL) والاختبارات من النظامين. */
+$tq_children = [];
+foreach ($tq_pm->weekly($tq_uid)['children'] as $tq_k) {
+    $tq_children[] = [
+        'id'              => (int) $tq_k['student_id'],
+        'first_name'      => (string) $tq_k['name'],
+        'last_name'       => '',
+        'plan_days'       => (int) $tq_k['plan_days'],
+        'plan_is_default' => !empty($tq_k['plan_is_default']),
+        'days_this'       => (int) $tq_k['days_this'],
+        'days_prev'       => (int) $tq_k['days_prev'],
+        'done'            => (int) $tq_k['lessons_done'],
+        'done_all'        => (int) $tq_k['lessons_total'],
+        'quizzes'         => (int) $tq_k['quizzes'],
+        'stalled'         => $tq_k['stalled'],
+    ];
 }
-unset($tq_child);
 
 include 'portal_open.php';
 ?>

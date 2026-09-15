@@ -246,8 +246,17 @@ if ($selected_price === 'free' || $selected_price === 'paid') {
                 $tq_free = (int) $tq_c['is_free_course'] === 1;
                 $tq_amt  = (int) $tq_c['discount_flag'] === 1 ? $tq_c['discounted_price'] : $tq_c['price'];
 
+                /* المنشئ أولا، ثم أول معلم مسند في `user_id` — كورس أنشأه
+                   المسؤول لا يكتب «—» في عمود المعلم وله معلم. وهو قاعدة
+                   مرشح المعلم نفسها، فالصف المعروض تحت اسم هو ما يرشحه. */
                 $tq_creator = (int) $tq_c['creator'];
-                $tq_owner   = $tq_insnames[$tq_creator] ?? '—';
+                $tq_owner   = $tq_insnames[$tq_creator] ?? null;
+                if ($tq_owner === null) {
+                    foreach (explode(',', (string) $tq_c['user_id']) as $tq_uid_s) {
+                        if (isset($tq_insnames[(int) $tq_uid_s])) { $tq_owner = $tq_insnames[(int) $tq_uid_s]; break; }
+                    }
+                }
+                $tq_owner = $tq_owner ?? '—';
 
                 $tq_slug = site_url('home/course/' . rawurlencode(slugify($tq_c['title'])) . '/' . $tq_id);
             ?>

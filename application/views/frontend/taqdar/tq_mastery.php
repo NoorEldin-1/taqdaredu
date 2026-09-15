@@ -16,6 +16,14 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  * **ولا مقارنة بأحد.** لا ترتيب، ولا متوسط الطلاب، ولا «أنت أفضل من ٪٦٠».
  * وهذه قاعدة الحماية في وثيقة المنتج، وهي في بوابة الطالب كما هي في
  * بوابة وليه.
+ *
+ * TQ-MASTERY-COURSE — ثلاثة أعطال أصلحت:
+ *   • **الكورس بمعرفه لا باسمه.** كان الترشيح والتجميع بعنوان الكورس، وفي
+ *     القاعدة كورسان يحملان الاسم نفسه — فتختلط أهدافهما تحت عنوان واحد ولا
+ *     سبيل إلى التفريق. والكورسان المتشابهان يسميان برقميهما.
+ *   • **«ابدأ من هنا» يتبع المرشح**: كان يعرض أضعف خمسة من كل الكورسات
+ *     مهما اختار الطالب، فيقرأ في كورس الرياضيات أهدافا من العربية.
+ *   • **النصوص تمر بـ`TQ.t()`** فتترجم مع بقية اللوحة.
  */
 include 'tq_student_styles.php';
 
@@ -27,6 +35,13 @@ $tq_icon  = 'target';
 
 include 'portal_open.php';
 ?>
+
+<noscript>
+  <style>[data-tq-ms-skeleton]{display:none}</style>
+  <div class="tq-card">
+    <p class="tq-body" style="margin:0"><?php echo t('تبنى خريطة إتقانك في متصفحك، ويحتاج ذلك تشغيل جافاسكربت. فعله من إعدادات المتصفح ثم حدث الصفحة.'); ?></p>
+  </div>
+</noscript>
 
 <div class="tq-mastery" data-tq-mastery
      data-tq-gate="<?php echo base_url('taqdar_gate'); ?>"
@@ -59,7 +74,7 @@ include 'portal_open.php';
 
       <section class="tq-s-grid3" style="margin-block-end:var(--tq-space-xl)" data-tq-ms-stats></section>
 
-      <!-- أضعف خمسة: هذا هو الجواب العملي، فيسبق الخريطة كلها -->
+      <!-- أضعف خمسة في المعروض: هذا هو الجواب العملي، فيسبق الخريطة كلها -->
       <section class="tq-card" data-tq-ms-weak-card hidden style="margin-block-end:var(--tq-space-l)">
         <div class="tq-card__head">
           <h2 class="tq-card__title"><?php echo t('ابدأ من هنا'); ?></h2>
@@ -148,6 +163,7 @@ include 'portal_open.php';
   };
 
   var rows = [];
+  var courseLabel = {}, courseOrder = [];
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -158,9 +174,9 @@ include 'portal_open.php';
   /* العتبات مكتوبة مرة واحدة: الشريط والرقم والتسمية تقرأ منها كلها،
      فلا يقول أحدها «يحتاج عملا» والآخر يلونه أخضر. */
   function band(level) {
-    if (level >= 80) return { k: 'high', label: 'أتقنته' };
-    if (level >= 50) return { k: 'mid',  label: 'يحتاج تثبيتا' };
-    return { k: 'low', label: 'يحتاج عملا' };
+    if (level >= 80) return { k: 'high', label: TQ.t('أتقنته') };
+    if (level >= 50) return { k: 'mid',  label: TQ.t('يحتاج تثبيتا') };
+    return { k: 'low', label: TQ.t('يحتاج عملا') };
   }
 
   function api(p) {
@@ -170,20 +186,42 @@ include 'portal_open.php';
     });
   }
 
+  /* الكورس بمعرفه: اسمان متطابقان لكورسين كانا يجمعان تحت عنوان واحد. */
+  function courseKey(o) { return String(o.course_id || 0); }
+
+  function buildCourses() {
+    courseLabel = {}; courseOrder = [];
+    var byTitle = {};
+    rows.forEach(function (o) {
+      var k = courseKey(o);
+      if (courseLabel[k] !== undefined) return;
+      var title = o.course_title || TQ.t('أهداف أخرى');
+      courseLabel[k] = title;
+      courseOrder.push(k);
+      (byTitle[title] = byTitle[title] || []).push(k);
+    });
+    Object.keys(byTitle).forEach(function (title) {
+      if (byTitle[title].length < 2) return;
+      byTitle[title].forEach(function (k) {
+        courseLabel[k] = TQ.t('____ — كورس رقم ____', title, k);
+      });
+    });
+  }
+
   function rowHtml(o) {
     var lvl = Math.round(o.level || 0);
     var b = band(lvl);
     var where = [o.course_title, o.lesson_title].filter(Boolean).map(esc).join(' · ');
     var link = (o.lesson_id && o.course_id)
       ? '<a class="tq-btn tq-btn--ghost tq-btn--sm" href="' + LESSON + '/' + o.course_id + '/' + o.lesson_id +
-        (o.at_second ? '?t=' + o.at_second : '') + '">راجع</a>'
+        (o.at_second ? '?t=' + o.at_second : '') + '">' + esc(TQ.t('راجع')) + '</a>'
       : '';
 
     return '<div class="tq-ms-row">' +
              '<div class="tq-ms-row__main">' +
-               '<span class="tq-ms-row__t">' + esc(o.objective_text || 'هدف') + '</span>' +
-               (where ? '<span class="tq-ms-row__w">' + where + ' · ' + b.label + '</span>'
-                      : '<span class="tq-ms-row__w">' + b.label + '</span>') +
+               '<span class="tq-ms-row__t">' + esc(o.objective_text || TQ.t('هدف')) + '</span>' +
+               (where ? '<span class="tq-ms-row__w">' + where + ' · ' + esc(b.label) + '</span>'
+                      : '<span class="tq-ms-row__w">' + esc(b.label) + '</span>') +
              '</div>' +
              '<div class="tq-ms-bar tq-ms-bar--' + b.k + '" role="progressbar" aria-valuenow="' + lvl +
                '" aria-valuemin="0" aria-valuemax="100"><span style="inline-size:' + lvl + '%"></span></div>' +
@@ -198,51 +236,50 @@ include 'portal_open.php';
     if (!rows.length) { show(el.empty, true); show(el.has, false); return; }
     show(el.empty, false); show(el.has, true);
 
-    var avg = Math.round(d.average_level || 0);
-    var mastered = rows.filter(function (o) { return (o.level || 0) >= 80; }).length;
-    var needs = rows.filter(function (o) { return (o.level || 0) < 50; }).length;
-
-    el.stats.innerHTML =
-      st(avg + '%', 'متوسط إتقانك', 'mint') +
-      st(mastered + ' من ' + rows.length, 'هدفا أتقنته', 'sky') +
-      st(needs, 'هدفا يحتاج عملا', needs ? 'peach' : 'mint');
-
-    var weak = (d.weakest || []).filter(function (o) { return (o.level || 0) < 80; });
-    show(el.weakCard, weak.length > 0);
-    if (weak.length) el.weak.innerHTML = weak.map(rowHtml).join('');
-
-    var seen = {}, opts = '';
-    rows.forEach(function (o) {
-      if (o.course_title && !seen[o.course_title]) {
-        seen[o.course_title] = 1;
-        opts += '<option value="' + esc(o.course_title) + '">' + esc(o.course_title) + '</option>';
-      }
-    });
+    buildCourses();
     if (el.filter && !el.filter.dataset.built) {
-      el.filter.insertAdjacentHTML('beforeend', opts);
+      el.filter.insertAdjacentHTML('beforeend', courseOrder.map(function (k) {
+        return '<option value="' + esc(k) + '">' + esc(courseLabel[k]) + '</option>';
+      }).join(''));
       el.filter.dataset.built = '1';
     }
 
-    renderList();
+    renderView();
   }
 
-  function renderList() {
+  /* كل ما في الشاشة يتبع المرشح: الأرقام، و«ابدأ من هنا»، والخريطة. */
+  function renderView() {
     var f = el.filter ? el.filter.value : '';
-    var view = f ? rows.filter(function (o) { return o.course_title === f; }) : rows;
+    var view = f ? rows.filter(function (o) { return courseKey(o) === f; }) : rows;
 
-    /* التجميع بالكورس: قائمة من ثمانين هدفا بلا عناوين تقرأ سطرا سطرا
-       ولا تفهم. والعنوان يعطي القارئ موضعه. */
+    var sum = 0;
+    view.forEach(function (o) { sum += (o.level || 0); });
+    var avg = view.length ? Math.round(sum / view.length) : 0;
+    var mastered = view.filter(function (o) { return (o.level || 0) >= 80; }).length;
+    var needs = view.filter(function (o) { return (o.level || 0) < 50; }).length;
+
+    el.stats.innerHTML =
+      st(avg + '%', TQ.t('متوسط إتقانك'), 'mint') +
+      st(TQ.t('____ من ____', mastered, view.length), TQ.t('هدفا أتقنته'), 'sky') +
+      st(needs, TQ.t('هدفا يحتاج عملا'), needs ? 'peach' : 'mint');
+
+    /* الصفوف مرتبة من الخادم بالأضعف أولا، فأول خمسة دون الثمانين هي الجواب. */
+    var weak = view.filter(function (o) { return (o.level || 0) < 80; }).slice(0, 5);
+    show(el.weakCard, weak.length > 0);
+    el.weak.innerHTML = weak.map(rowHtml).join('');
+
     var groups = {}, order = [];
     view.forEach(function (o) {
-      var k = o.course_title || 'أهداف أخرى';
+      var k = courseKey(o);
       if (!groups[k]) { groups[k] = []; order.push(k); }
       groups[k].push(o);
     });
 
     el.list.innerHTML = order.map(function (k) {
-      return '<div class="tq-ms-group"><div class="tq-ms-group__h">' + esc(k) + '</div>' +
+      return '<div class="tq-ms-group"><div class="tq-ms-group__h">' + esc(courseLabel[k]) + '</div>' +
              groups[k].map(rowHtml).join('') + '</div>';
-    }).join('') || '<p class="tq-caption" style="text-align:center;padding-block:var(--tq-space-xl)">لا أهداف في هذا الكورس بعد.</p>';
+    }).join('') || '<p class="tq-caption" style="text-align:center;padding-block:var(--tq-space-xl)">' +
+                   esc(TQ.t('لا أهداف في هذا الكورس بعد.')) + '</p>';
   }
 
   function st(v, label, pastel) {
@@ -261,7 +298,7 @@ include 'portal_open.php';
     });
   }
 
-  if (el.filter) el.filter.addEventListener('change', renderList);
+  if (el.filter) el.filter.addEventListener('change', renderView);
   root.addEventListener('click', function (e) {
     if (e.target.closest('[data-tq-ms-retry]')) load();
   });

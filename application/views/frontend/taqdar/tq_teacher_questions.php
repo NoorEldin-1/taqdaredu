@@ -219,7 +219,25 @@ include 'portal_open.php';
         <?php if ($tq_import_ready && $tq_quizzes): ?>
         <form class="tq-card" method="post" enctype="multipart/form-data"
               action="<?php echo base_url('teacher/questions/import'); ?>">
-            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('استيراد CSV'); ?></h2></div>
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('استيراد الأسئلة من ملف'); ?></h2></div>
+
+            <?php /* TQ-IMPORT-FORMATS — الصيغ تقال **قبل** اختيار الملف لا في رسالة
+                     رفض بعده، ومعها ما لا يقبل ولماذا: من يحمل أسئلته في PDF أو Word
+                     يعرف من هنا أن الطريق جدول لا أن يرفع ثم يقرأ «غير مدعوم». */ ?>
+            <?php echo tq_csrf(); ?>
+            <div class="tq-pastel tq-pastel--sky" style="padding:var(--tq-space-m);margin-block-end:var(--tq-space-l)">
+                <p class="tq-pastel__body tq-caption" style="margin:0 0 var(--tq-space-xs)">
+                    <b><?php echo t('الصيغ المقبولة:'); ?></b>
+                    <span dir="ltr">Excel (.xlsx) · CSV (.csv) · TXT (.txt)</span>
+                </p>
+                <p class="tq-pastel__body tq-micro" style="margin:0 0 var(--tq-space-s)">
+                    <?php echo t('ولا تقبل ملفات PDF أو Word أو HTML: هي نص للقراءة لا جدول يعرف منه السؤال وخياراته وإجابته الصحيحة. انسخ أسئلتك إلى Excel على الأعمدة أدناه.'); ?>
+                </p>
+                <a class="tq-btn tq-btn--secondary tq-btn--sm" download
+                   href="<?php echo base_url('assets/taqdar/templates/questions-import-template.csv'); ?>">
+                    <?php echo tq_icon('download', 14); ?> <?php echo t('نزل قالبا جاهزا'); ?>
+                </a>
+            </div>
 
             <input type="hidden" name="course_id" value="<?php echo (int) $tq_course; ?>">
 
@@ -244,9 +262,9 @@ include 'portal_open.php';
                                  `post_max_size` يرده الخادم بـ413 خاما **قبل أن يعمل
                                  PHP**، فلا تنفذ فحوص `questions_import()` مهما أحكمت. */ ?>
                 <input class="tq-input" id="tq-csv" type="file" name="csv"
-                       accept=".csv,.txt" data-tq-maxmb="2" required>
+                       accept=".xlsx,.csv,.txt" data-tq-maxmb="2" required>
                 <span class="tq-field__msg tq-field__hint">
-                    <?php echo t('ترميز UTF-8، وأول سطر أسماء الأعمدة، والحد الأقصى ____ ميغابايت.', array(TQ_LRI . '2' . TQ_PDI)); ?>
+                    <?php echo t('أول سطر أسماء الأعمدة، والأسئلة في الورقة الأولى من ملف Excel، والحد الأقصى ____ ميغابايت.', array(TQ_LRI . '2' . TQ_PDI)); ?>
                 </span>
             </div>
 
@@ -273,7 +291,7 @@ include 'portal_open.php';
                 <?php echo $tq_quizzes
                     ? t('برنامج الاستيراد غير مفعل على الخادم بعد، ولن يعرض زر رفع قبل معالجه.')
                     : t('لا اختبار في كورساتك بعد، فلا وجهة للاستيراد.'); ?>
-                <?php echo t('جهز ملفك على هذه الأعمدة الآن ليستورد كما هو حين يفتح. الترميز UTF-8، وأول سطر أسماء الأعمدة:'); ?>
+                <?php echo t('جهز ملفك على هذه الأعمدة الآن ليستورد كما هو حين يفتح. الصيغ المقبولة Excel ‏(xlsx) أو CSV أو TXT — لا PDF ولا Word — وأول سطر أسماء الأعمدة:'); ?>
             </p>
             <ul class="tq-micro" style="margin:0 0 var(--tq-space-l);padding-inline-start:var(--tq-space-l);list-style:disc">
                 <li><?php echo t('objective — نص الهدف أو رقمه (إلزامي)'); ?></li>

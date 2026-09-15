@@ -37,7 +37,7 @@ $tq_pm = $tq_ci->taqdar_parent_model;
 $tq_uid = (int) $this->session->userdata('user_id');
 
 $tq_people = [
-    ['id' => $tq_uid, 'name' => t('مدفوعاتي'), 'self' => true],
+    ['id' => $tq_uid, 'name' => t('مدفوعاتي'), 'self' => true, 'until' => 0],
 ];
 
 foreach ($tq_pm->children($tq_uid) as $tq_c) {
@@ -45,6 +45,22 @@ foreach ($tq_pm->children($tq_uid) as $tq_c) {
         'id'   => (int) $tq_c['student_id'],
         'name' => t('مدفوعات ') . $tq_c['name'],
         'self' => false,
+        'until' => 0,
+    ];
+}
+
+/* TQ-PAY-UNLINKED — ما دفعه ولي الأمر لا يختفي بفك الربط. كان سجل مدفوعاته
+   يقرأ الأبناء المرتبطين الآن وحدهم: فمن فك ربط ابنه يفقد من سجله كل ما دفعه
+   عنه. فالرابط الملغى بعد موافقة يبقى — بما صدر قبل تاريخ إلغائه وحده، لا بما
+   يصدر للابن بعد أن صار خارج حسابه. */
+foreach ($tq_pm->links($tq_uid, 'revoked') as $tq_l) {
+    if (empty($tq_l['consent_at']) && empty($tq_l['prefs']['consent'])) continue;
+    $tq_until = strtotime((string) ($tq_l['prefs']['revoked']['at'] ?? '')) ?: 0;
+    $tq_people[] = [
+        'id'    => (int) $tq_l['student_id'],
+        'name'  => t('مدفوعات ') . $tq_l['name'] . t(' (رابط ملغى)'),
+        'self'  => false,
+        'until' => $tq_until,
     ];
 }
 
@@ -54,22 +70,49 @@ $tq_all_total   = 0;
 $tq_due_total   = 0;
 $tq_due_count   = 0;
 
+/* TQ-PAY-TOTALS — آخر خمسين عملية تعرض، و«عرض كل العمليات» يفتح الباقي؛
+   والمجاميع من القاعدة كلها لا من المعروض. */
+$tq_show_all = (string) $this->input->get('all') === '1';
+$tq_limit    = $tq_show_all ? 2000 : 50;
+$tq_trimmed  = false;
+
 foreach ($tq_people as &$tq_p) {
-    $tq_p['rows'] = $tq_pm->payments_of($tq_p['id']);
-    $tq_t         = $tq_pm->payment_totals($tq_p['rows'], $tq_month_start);
+    $tq_p['rows'] = $tq_pm->payments_of($tq_p['id'], $tq_limit);
+    if (count($tq_p['rows']) >= $tq_limit) $tq_trimmed = true;
+
+    if ($tq_p['until'] > 0) {
+        $tq_until = $tq_p['until'];
+        $tq_p['rows'] = array_values(array_filter($tq_p['rows'], function ($r) use ($tq_until) {
+            return (int) $r['ts'] <= $tq_until;
+        }));
+        $tq_t = $tq_pm->payment_totals($tq_p['rows'], $tq_month_start);
+    } else {
+        $tq_t = $tq_pm->payment_totals_all($tq_p['id'], $tq_month_start);
+    }
 
     $tq_month_total += $tq_t['month'];
     $tq_all_total   += $tq_t['all'];
-    $tq_due_total   += $tq_t['pending'];
-    $tq_due_count   += $tq_t['pending_count'];
+    /* المعلق لابن فك ربطه ليس على ولي الأمر: لا يدفعه ولا يراه. */
+    if ($tq_p['until'] === 0) {
+        $tq_due_total += $tq_t['pending'];
+        $tq_due_count += $tq_t['pending_count'];
+    }
 }
 unset($tq_p);
+
+$tq_CIp = &get_instance();
+$tq_CIp->load->model('taqdar_tap_model');
+$tq_card_ready = false;
+try { $tq_card_ready = (bool) $tq_CIp->taqdar_tap_model->ready(); } catch (Throwable $e) {}
 
 /* أسماء قنوات الدفع بالعربية.
    الشاشة كانت تطبع مفتاح القناة كما هو (`bank_transfer`, `stripe`)، وهي
    بوابة عربية بالكامل — وسطر إنجليزي واحد وسط جدول عربي يقرأ خطأ لا
    بيانات. وما لا اسم له يعرض كما هو بدل أن يخفى: قناة مجهولة خبر. */
 $tq_methods = [
+    /* «tap» اسم بوابة الدفع لا اسم طريقة يعرفها ولي الأمر. */
+    'tap'           => t('بطاقة'),
+    'card'          => t('بطاقة'),
     'manual'        => t('تحويل بنكي'),
     'bank_transfer' => t('تحويل بنكي'),
     'bank'          => t('تحويل بنكي'),
@@ -120,13 +163,13 @@ include 'portal_open.php';
                          أهم ما في الصفحة لأن عليه يتوقف اشتراك الابن. */ ?>
                 <div class="tq-pastel tq-pastel--peach">
                     <div class="tq-row tq-row--between">
-                        <span class="tq-pastel__label tq-micro"><?php echo t('بانتظار التحويل'); ?></span>
+                        <span class="tq-pastel__label tq-micro"><?php echo t('لم تدفع بعد'); ?></span>
                         <span class="tq-pastel__icon" style="color:var(--tq-peach-ink)" aria-hidden="true"><?php echo tq_icon('clock'); ?></span>
                     </div>
                     <p class="tq-pastel__title" style="margin:var(--tq-space-s) 0 0;font:var(--tq-type-numeralXl)"><?php echo tq_sar($tq_due_total); ?></p>
                     <p class="tq-pastel__body tq-caption" style="margin:0">
                         <?php echo tq_count_units($tq_due_count, t('فاتورة'), t('فاتورتان'), t('فاتورتين'), t('فواتير'), t('فاتورة'), null, 'nom'); ?>
-                        <?php echo t('لم يفعل اشتراكها بعد'); ?>
+                        <?php echo t('تنتظر الدفع — ادفعها أو ألغها من السجل تحت'); ?>
                     </p>
                 </div>
             <?php endif; ?>
@@ -153,6 +196,7 @@ include 'portal_open.php';
                                     <th scope="col"><?php echo t('المبلغ'); ?></th>
                                     <th scope="col"><?php echo t('الحالة'); ?></th>
                                     <th scope="col"><?php echo t('رقم العملية'); ?></th>
+                                    <th scope="col"><?php echo t('الإجراء'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -180,6 +224,33 @@ include 'portal_open.php';
                                         <td data-label="<?php echo te('رقم العملية'); ?>">
                                             <span class="tq-num tq-num--sm"><?php echo html_escape($tq_r['ref'] ?: '—'); ?></span>
                                         </td>
+                                        <td data-label="<?php echo te('الإجراء'); ?>">
+                                            <?php /* TQ-INVOICE-CANCEL — الفاتورة غير المدفوعة كانت بلا باب:
+                                                     لا دفع ولا إلغاء، فتبقى معلقة إلى الأبد. */ ?>
+                                            <?php if (!empty($tq_r['payable']) && !$tq_p['self'] && $tq_p['until'] === 0): ?>
+                                                <span class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:wrap">
+                                                    <?php if ($tq_card_ready): ?>
+                                                        <form method="post" action="<?php echo base_url('student/pay-invoice'); ?>" class="tq-form-inline">
+                                                            <?php echo tq_csrf(); ?>
+                                                            <input type="hidden" name="invoice_id" value="<?php echo (int) $tq_r['invoice_id']; ?>">
+                                                            <button class="tq-btn tq-btn--primary tq-btn--sm" type="submit"><?php echo t('ادفع الآن'); ?></button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($tq_r['cancellable'])): ?>
+                                                        <form method="post" action="<?php echo base_url('parent/pay/cancel'); ?>" class="tq-form-inline"
+                                                              data-tq-confirm-title="<?php echo te('إلغاء هذه الفاتورة؟'); ?>"
+                                                              data-tq-confirm="<?php echo te('تشطب الفاتورة ولا يفتح ما اشتري بها.'); ?>"
+                                                              data-tq-confirm-ok="<?php echo te('ألغ الفاتورة'); ?>" data-tq-confirm-tone="danger">
+                                                            <?php echo tq_csrf(); ?>
+                                                            <input type="hidden" name="invoice_id" value="<?php echo (int) $tq_r['invoice_id']; ?>">
+                                                            <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit"><?php echo t('إلغاء'); ?></button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="tq-caption">—</span>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -188,6 +259,12 @@ include 'portal_open.php';
                     </div>
                 </section>
             <?php endforeach; ?>
+
+            <?php if ($tq_trimmed && !$tq_show_all): ?>
+                <p style="text-align:center">
+                    <a class="tq-btn tq-btn--secondary" href="<?php echo base_url('parent/payments?all=1'); ?>"><?php echo t('عرض كل العمليات'); ?></a>
+                </p>
+            <?php endif; ?>
 
         <?php else: ?>
 
@@ -210,31 +287,32 @@ include 'portal_open.php';
     <aside class="tq-aside">
         <div class="tq-card">
             <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('طرق الدفع'); ?></h2></div>
+            <?php /* TQ-PAY-METHODS — ما يقبله الدفع فعلا، كما في شاشة الدفع. كانت
+                     القائمة تعد بـSTC Pay وurpay وهما غير متاحين عند الدفع، وتسكت عن
+                     فيزا وماستركارد وApple Pay وهي المتاحة. */ ?>
             <ul class="tq-stack tq-caption">
-                <li class="tq-row" style="gap:var(--tq-space-s)">
-                    <span aria-hidden="true" style="color:var(--tq-teal)"><?php echo tq_icon('check', 16); ?></span>
-                    <?php echo t('بطاقة مدى'); ?>
-                </li>
-                <li class="tq-row" style="gap:var(--tq-space-s)">
-                    <span aria-hidden="true" style="color:var(--tq-teal)"><?php echo tq_icon('check', 16); ?></span>
-                    <?php echo t('محفظة STC Pay'); ?>
-                </li>
-                <li class="tq-row" style="gap:var(--tq-space-s)">
-                    <span aria-hidden="true" style="color:var(--tq-teal)"><?php echo tq_icon('check', 16); ?></span>
-                    <?php echo t('محفظة urpay'); ?>
-                </li>
-                <li class="tq-row" style="gap:var(--tq-space-s)">
-                    <span aria-hidden="true" style="color:var(--tq-teal)"><?php echo tq_icon('check', 16); ?></span>
-                    <?php echo t('تحويل بنكي'); ?>
-                </li>
+                <?php $tq_ways = $tq_card_ready
+                    ? array(t('بطاقات مدى وفيزا وماستركارد'), t('Apple Pay'), t('تحويل بنكي'))
+                    : array(t('تحويل بنكي')); ?>
+                <?php foreach ($tq_ways as $tq_w): ?>
+                    <li class="tq-row" style="gap:var(--tq-space-s)">
+                        <span aria-hidden="true" style="color:var(--tq-teal)"><?php echo tq_icon('check', 16); ?></span>
+                        <?php echo html_escape($tq_w); ?>
+                    </li>
+                <?php endforeach; ?>
             </ul>
         </div>
 
         <div class="tq-pastel tq-pastel--peach">
             <span class="tq-pastel__label tq-micro"><?php echo t('استرداد'); ?></span>
+            <?php /* TQ-REFUND-ONE — مصدر واحد للشروط: صفحة سياسة الاسترجاع التي
+                     تحررها الإدارة. كان المربع يقول «١٤ يوما» والصفحة «٧ أيام بشرط
+                     ألا يتجاوز ما شوهد ٢٠٪» — وعدان مختلفان بمال واحد. */ ?>
             <p class="tq-pastel__body" style="margin:var(--tq-space-s) 0 0">
-                <?php echo tq_iso(t('لك 14 يوما من تاريخ الشراء لطلب الاسترداد. راسلنا من صفحة الرسائل ونعالج طلبك.')); ?>
+                <?php echo t('مدة الاسترجاع وشروطه مكتوبة في سياسة الاسترجاع المعلنة، وهي التي تطبق على كل ما تدفعه. ولطلبه راسل إدارة المنصة من صفحة الرسائل.'); ?>
             </p>
+            <a class="tq-btn tq-btn--secondary tq-btn--sm" style="margin-block-start:var(--tq-space-s)"
+               href="<?php echo base_url('refund'); ?>"><?php echo t('اقرأ سياسة الاسترجاع'); ?></a>
         </div>
     </aside>
 </div>

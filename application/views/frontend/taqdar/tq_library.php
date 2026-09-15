@@ -179,12 +179,16 @@ include 'portal_open.php';
                        نفسه بلا تسجيل، فلا مساران. */ ?>
               <?php /* وكتاب Drive يفتح في الاطار نفسه لا بـpdf.js: القارئ
                        واحد في العين، ومساران في الشيفرة لا في الشاشة. */ ?>
-              <button class="tq-btn tq-btn--primary tq-btn--sm" type="button"
-                      data-tq-read="<?php echo $tq_dv !== ''
-                          ? html_escape($tq_dv)
-                          : base_url('book-file/' . (int) $b['id']); ?>"
-                      <?php echo $tq_dv !== '' ? 'data-tq-embed="1"' : ''; ?>
-                      data-tq-title="<?php echo html_escape($b['title']); ?>"><?php echo t('افتح الكتاب'); ?></button>
+              <?php /* TQ-READ-LINK — رابط لا زر: الزر لا يفعل شيئا بلا جافاسكربت
+                       (متصفح قديم أو سكربت محجوب)، فيضغطه الطالب ولا يحدث شيء ولا
+                       يقال لماذا. والرابط يفتح الملف نفسه من الحارس في تبويب؛
+                       والسكربت إن عمل يمنع الانتقال ويفتح القارئ فوق الصفحة. */ ?>
+              <?php $tq_read_url = $tq_dv !== '' ? $tq_dv : base_url('book-file/' . (int) $b['id']); ?>
+              <a class="tq-btn tq-btn--primary tq-btn--sm" href="<?php echo html_escape($tq_read_url); ?>"
+                 target="_blank" rel="noopener"
+                 data-tq-read="<?php echo html_escape($tq_read_url); ?>"
+                 <?php echo $tq_dv !== '' ? 'data-tq-embed="1"' : ''; ?>
+                 data-tq-title="<?php echo html_escape($b['title']); ?>"><?php echo t('افتح الكتاب'); ?></a>
             <?php else: ?>
               <?php /* لا ملف: يقال ذلك صراحة. زر يفتح لا شيء أسوأ من غيابه.
                        وهي ملاحظة لا إجراء، فتأخذ سطرها كاملا ولا تصطف مع
@@ -441,7 +445,7 @@ include 'portal_open.php';
         libLoaded = true;
         resolve();
       };
-      s.onerror = function () { reject(new Error('تعذر تحميل القارئ.')); };
+      s.onerror = function () { reject(new Error(READER_ERR.libfail)); };
       document.head.appendChild(s);
     });
   }
@@ -451,7 +455,7 @@ include 'portal_open.php';
     document.body.style.overflow = 'hidden';
     title.textContent = name || '';
     msg.hidden = false;
-    msg.textContent = 'يفتح الكتاب…';
+    msg.textContent = READER_ERR.loading;
     canvas.style.display = 'none';
 
     /* TQ-BOOK-DRIVE — الاطار يقلب الصفحات بنفسه، فترقيمنا يخفى:
@@ -496,7 +500,11 @@ include 'portal_open.php';
     missing:  <?php echo json_encode(t('لم يعد ملف هذا الكتاب موجودا. أبلغ معلمك.'), JSON_UNESCAPED_UNICODE); ?>,
     invalid:  <?php echo json_encode(t('ملف هذا الكتاب تالف ولا يفتح. أبلغ معلمك.'), JSON_UNESCAPED_UNICODE); ?>,
     locked:   <?php echo json_encode(t('هذا الكتاب محمي بكلمة مرور ولا يفتح هنا.'), JSON_UNESCAPED_UNICODE); ?>,
-    fallback: <?php echo json_encode(t('تعذر فتح هذا الكتاب. أعد المحاولة، وإن تكرر فأبلغ الدعم.'), JSON_UNESCAPED_UNICODE); ?>
+    fallback: <?php echo json_encode(t('تعذر فتح هذا الكتاب. أعد المحاولة، وإن تكرر فأبلغ الدعم.'), JSON_UNESCAPED_UNICODE); ?>,
+    /* TQ-READER-I18N — ونصا الانتظار وتعثر المكتبة كانا عربيين مكتوبين في
+       السكربت، فيقرؤهما من بدل لوحته إلى الإنجليزية عربيين. */
+    loading:  <?php echo json_encode(t('يفتح الكتاب…'), JSON_UNESCAPED_UNICODE); ?>,
+    libfail:  <?php echo json_encode(t('تعذر تحميل القارئ.'), JSON_UNESCAPED_UNICODE); ?>
   };
 
   function readerError(e) {
@@ -620,6 +628,7 @@ include 'portal_open.php';
   root.addEventListener('click', function (e) {
     var openBtn = e.target.closest('[data-tq-read]');
     if (openBtn) {
+      e.preventDefault();   // الرابط احتياط من لا سكربت عنده؛ هنا يفتح القارئ
       open(openBtn.getAttribute('data-tq-read'),
            openBtn.getAttribute('data-tq-title'),
            openBtn.hasAttribute('data-tq-embed'));

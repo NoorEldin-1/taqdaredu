@@ -58,12 +58,10 @@ if ($f_track > 0 && !isset($tq_tracks[$f_track])) $f_track = 0;
    ومن يرشح بالصف يمحو من الشاشة معلما يصلح لصاحبها تماما. */
 $tq_tutors = $tq_m->available_teachers(12, 6, 0, 0, 'foundation', $f_track);
 
-/* حجوزات هذا القسم وحدها: شاشة تخلط حجوزات التأسيس بحجوزات المنهج تجعل
-   الطالب يبحث عن حصته في قائمتين. */
-$tq_bookings = array();
-foreach ($tq_m->bookings_for_student($tq_uid, 30) as $tq_b) {
-    if (($tq_b['kind'] ?? '') === 'foundation') $tq_bookings[] = $tq_b;
-}
+/* حجوزات هذا القسم وحدها — والترشيح في الاستعلام (TQ-BOOKINGS-KIND): كان
+   يجلب أحدث ثلاثين من كل الأنواع ثم يرشح هنا، فتسقط حجوزات التأسيس خلف
+   حصص المنهج. والقادم أولا بأقربه. */
+$tq_bookings = $tq_m->bookings_for_student($tq_uid, 30, 'foundation');
 
 $tq_cfg  = $tq_m->config();
 $tq_card = $tq_CI->taqdar_tap_model->ready();
@@ -138,6 +136,10 @@ include 'portal_open.php';
                         <?php
                         $tq_active = ($f_track === (int) $tq_tid);
                         $tq_p      = $tq_price_of((int) $tq_tid);
+                        /* TQ-FOUNDATION-EMPTY — مسار بلا معلم مسند لا يعرض بسعر
+                           كأنه يحجز: كان يقرأ «مجانية» وزر اختيار، ثم «لا معلم
+                           متاح الآن» في كل زيارة. فيقال على بطاقته قبل النقرة. */
+                        $tq_staffed = !empty($tq_t['teacher_ids']);
                         ?>
                         <a class="tq-card tq-s-course" style="text-align:center;align-items:center<?php echo $tq_active ? ';border:var(--tq-field-border) solid var(--tq-navy)' : ''; ?>"
                            href="<?php echo base_url('student/foundation?track=' . (int) $tq_tid); ?>#tq-tutors"
@@ -150,9 +152,13 @@ include 'portal_open.php';
                                      أول ما يقارن به، وإخفاؤه يجعل الاختيار
                                      يقع ثم ينكشف ثمنه. */ ?>
                             <span class="tq-micro">
-                                <?php echo (int) $tq_p['price'] > 0
-                                    ? $tq_sar($tq_p['price']) . t(' للحصة')
-                                    : t('مجانية'); ?>
+                                <?php if (!$tq_staffed): ?>
+                                    <?php echo t('لم يسند إليه معلم بعد'); ?>
+                                <?php else: ?>
+                                    <?php echo (int) $tq_p['price'] > 0
+                                        ? $tq_sar($tq_p['price']) . t(' للحصة')
+                                        : t('مجانية'); ?>
+                                <?php endif; ?>
                             </span>
                         </a>
                     <?php endforeach; ?>
@@ -202,7 +208,17 @@ include 'portal_open.php';
 
             <?php if (empty($tq_tutors)): ?>
                 <div class="tq-card">
-                    <?php if ($f_track > 0): ?>
+                    <?php if ($f_track > 0 && empty($tq_tracks[$f_track]['teacher_ids'])): ?>
+                        <?php /* «لا معلم فتح وقتا» غير «لا معلم أسند إليه أصلا»: الأول ينتظر
+                                 أياما، والثاني لا يتغير حتى تسند الإدارة معلما. */ ?>
+                        <?php echo tq_s_empty(
+                            'users', 'mint',
+                            t('لم يسند معلم إلى هذا المسار بعد'),
+                            t('المسار معلن ولم تسند إليه الإدارة معلما حتى الآن، فلا مواعيد فيه. اعرض المسارات الأخرى، أو راسل الدعم ليبلغوك حين يفتح.'),
+                            t('اعرض كل المسارات'),
+                            base_url('student/foundation') . '#tq-tutors'
+                        ); ?>
+                    <?php elseif ($f_track > 0): ?>
                         <?php echo tq_s_empty(
                             'users', 'mint',
                             t('لا معلم فتح وقتا في هذا المسار بعد'),
@@ -272,13 +288,21 @@ include 'portal_open.php';
                                              المسارات كلها: معلم يدرس مسارين
                                              وقائمة بلا تمييز تجعل الطالب
                                              يحجز ساعة عربية ليؤسس بالإنجليزية. */ ?>
-                                    <option value="<?php echo (int) $sl['id']; ?>">
-                                        <?php echo html_escape($sl['when_text']); ?><?php
-                                            if ($f_track <= 0 && (string) $sl['track_name'] !== '') {
-                                                echo ' — ' . html_escape($sl['track_name']);
-                                            }
-                                        ?>
-                                    </option>
+                                    <?php
+                                    /* TQ-FOUNDATION-PRICE — وسعر كل موعد سعر مساره: معلم يدرس
+                                       مسارين بسعرين كانت بطاقته تعرض سعر أولهما، فيحجز الطالب
+                                       الثاني على رقم غير رقمه. فحين تعرض المسارات كلها يكتب
+                                       السعر مع المسار في الخيار نفسه. */
+                                    $tq_opt = $sl['when_text'];
+                                    if ($f_track <= 0 && (string) $sl['track_name'] !== '') {
+                                        $tq_sp = $tq_fnd->pricing_for((int) $sl['track_id'], (int) $t['id']);
+                                        $tq_opt .= ' — ' . $sl['track_name'] . ' · '
+                                                 . ((int) $tq_sp['price'] > 0
+                                                     ? number_format(((int) $tq_sp['price']) / 100, 2) . t(' ر.س')
+                                                     : t('مجانية'));
+                                    }
+                                    ?>
+                                    <option value="<?php echo (int) $sl['id']; ?>"><?php echo html_escape($tq_opt); ?></option>
                                 <?php endforeach; ?>
                             </select>
 

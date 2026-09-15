@@ -141,7 +141,9 @@ css: pages
           <li><svg aria-hidden="true"><use href="#i-check"></use></svg>متابعة الأنشطة والواجبات</li>
           <li><svg aria-hidden="true"><use href="#i-check"></use></svg>التواصل مع المدرسة والمعلمين</li>
         </ul>
-        <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>?as=parent">عرض نموذج اللوحة</a>
+        <?php /* الزر كان يقول «عرض نموذج اللوحة» ويقود إلى التسجيل: وعد بشيء
+                 وفعل غيره. والنموذج معروض بجواره، فالزر يقول ما يفعله. */ ?>
+        <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>?as=parent">أنشئ حساب ولي الأمر مجانا</a>
       </div>
 
       <!-- اللوحة مبنية بالـCSS لا كصورة: تبقى حادة وتتبع التوكنات -->

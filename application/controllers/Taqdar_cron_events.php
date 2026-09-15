@@ -263,8 +263,15 @@ class Taqdar_cron_events extends CI_Controller
         $written = 0;
         $matched = 0;
 
+        /* TQ-ACTIVITY-ALL — آخر نشاط من `Taqdar_parent_model::last_active_at()`
+           نفسها التي تقرأ بها شاشات ولي الأمر «غاب كذا يوما». كان التنبيه يعد
+           المشاهدة والاختبارات ولا يعد المراجعة ولا المشاهدة الجزئية: فابن
+           يراجع كل يوم يصل عنه أهله «انقطع ثلاثة أيام»، والشاشة تقول «نشط». */
+        $this->load->model('taqdar_parent_model');
+
         foreach ($this->events->watched_students() as $student_id) {
-            $last = $this->events->last_activity_at($student_id);
+            $last = max((int) $this->events->last_activity_at($student_id),
+                        (int) $this->taqdar_parent_model->last_active_at($student_id));
             if ($last <= 0) {
                 $last = $this->events->registered_at($student_id);
             }
@@ -471,17 +478,23 @@ class Taqdar_cron_events extends CI_Controller
      * تقرير الأحد.
      *
      * الشاشة `tq_parent_weekly.php` تعرض التقرير ولا شيء كان يرسله. وهذا
-     * ما يرسله — داخل المنصة أولا، والبريد خلف مفتاحه المطفأ.
+     * ما يرسله — داخل المنصة أولا، والبريد خلف مفتاحه.
      *
-     * ومصادر الأرقام هي مصادر الشاشة نفسها (`watch_histories`,
-     * `quiz_results`)، فلا يقول الإشعار رقما تكذبه الصفحة التي يفتحها.
-     * وإشعار واحد لولي الأمر يجمع أبناءه لا إشعار لكل ابن: التقرير
-     * الأسبوعي ملخص، ولو تعدد لصار قائمة.
+     * ═══ TQ-WEEKLY-DEAD — التقرير لم يخرج منذ السابع من سبتمبر ═══
+     * كانت الدالة تنادي `$this->active_days()` ودالة بهذا الاسم لم تعد في
+     * هذا الصنف — فكل أحد يسقط الكرون عند أول ولي أمر بـ«Call to undefined
+     * method» ولا يكتب إشعارا لأحد، والسجل وحده يعرف. والأرقام كانت نسخة
+     * ثالثة لا تطابق الصفحة ولا التطبيق.
+     * فالتقرير الآن `Taqdar_parent_model::weekly()` نفسها التي تعرضها الصفحة
+     * ويقرؤها التطبيق: لا دالة محلية تحذف فتسقط المهمة، ولا رقم في البريد
+     * تكذبه الصفحة التي يفتحها ولي الأمر.
+     * وإشعار واحد لولي الأمر يجمع أبناءه لا إشعار لكل ابن.
      */
     public function weekly()
     {
-        $week_start = strtotime('today') - ((int) date('w')) * 86400; // الأسبوع يبدأ الأحد
-        $prev_start = $week_start - 7 * 86400;
+        $this->load->model('taqdar_parent_model');
+        $pm = $this->taqdar_parent_model;
+        $week_start = (int) $pm->week_window()['start'];   // الأسبوع يبدأ الأحد
 
         $parents = $this->db->query(
             'SELECT DISTINCT pl.`parent_user_id` AS id
@@ -501,32 +514,21 @@ class Taqdar_cron_events extends CI_Controller
                 continue;
             }
 
-            $children = $this->db->query(
-                'SELECT u.`id`, u.`first_name`, u.`last_name`
-                   FROM `parent_links` pl
-                   JOIN `users` u ON u.`id` = pl.`student_id`
-                  WHERE pl.`parent_user_id` = ? AND pl.`status` = "active"
-                  ORDER BY u.`first_name` ASC',
-                array($parent_id)
-            )->result_array();
-
-            if (!$children) {
+            /* الأبناء وأرقامهم من النموذج — والمحذوف حسابه يسقط هناك
+               (TQ-DELETED-CHILD)، فلا يصل عنه سطر «حساب محذوف: لم يدرس». */
+            $report = $pm->weekly($parent_id);
+            if (empty($report['children'])) {
                 continue;
             }
 
             $lines = array();
-            foreach ($children as $c) {
-                $sid  = (int) $c['id'];
-                $name = trim($c['first_name'] . ' ' . $c['last_name']);
+            foreach ($report['children'] as $c) {
+                $name = trim((string) $c['name']);
                 /* المقارنة على مدى واحد: ما مضى من هذا الأسبوع مقابل
-                   **الأيام نفسها** من الأسبوع الماضي. وكانت تقارنه
-                   بالأسبوع الماضي كاملا — والتقرير يرسل صباح الأحد،
-                   فيقرأ كل ولي أمر أن نشاط ابنه «أقل من الأسبوع الماضي»
-                   لأن أسبوعا لم يبدأ يقارن بأسبوع تم. */
-                $elapsed = ((int) date('w') + 1) * 86400;
-                $now  = $this->active_days($sid, $week_start, PHP_INT_MAX);
-                $was  = $this->active_days($sid, $prev_start, $prev_start + $elapsed);
-                $qz   = $this->quizzes_between($sid, $week_start, PHP_INT_MAX);
+                   **الأيام نفسها** من الأسبوع الماضي — وهي في النموذج. */
+                $now = (int) $c['days_this'];
+                $was = (int) $c['days_prev'];
+                $qz  = (int) $c['quizzes'];
 
                 $trend = ($now > $was) ? 'أفضل من الأسبوع الماضي'
                        : (($now < $was) ? 'أقل من الأسبوع الماضي' : 'كأسبوعه الماضي');
@@ -581,45 +583,6 @@ class Taqdar_cron_events extends CI_Controller
                 AND a.`submitted_at` >= ?" . $filter,
             $params
         )->result_array();
-    }
-
-    /**
-     * TQ-QUIZ-WEEKLY — عدد الاختبارات في المدّة.
-     *
-     * كانت تعدّ من `quiz_results` — جدول النظام الموروث. ونتائج اختبار
-     * الدرس تُكتب في `attempts`، فكان التقرير الأسبوعيّ يقول لوليّ الأمر
-     * «**ولم يؤدِّ أيّ اختبار**» وابنه أدّى خمسة في الأسبوع نفسه. والعلّة
-     * نفسها كانت في `tq_s_quizzes()` وأُصلحت هناك، ونُسيت هنا.
-     *
-     * والعدّ من الاثنين: المسلَّمة في `attempts` (بوّابة الإتقان)، وما بقي
-     * في `quiz_results` للموروث — فلا يسقط تاريخٌ قديم.
-     */
-    private function quizzes_between($student_id, $from_ts, $to_ts)
-    {
-        $n = 0;
-        try {
-            $r = $this->db->query(
-                'SELECT COUNT(*) AS n FROM `attempts`
-                  WHERE `student_id` = ? AND `submitted_at` IS NOT NULL
-                    AND `submitted_at` >= ? AND `submitted_at` < ?',
-                array((int) $student_id, date('Y-m-d H:i:s', (int) $from_ts),
-                      date('Y-m-d H:i:s', (int) $to_ts)))->row_array();
-            $n += (int) $r['n'];
-        } catch (Throwable $e) {
-            log_message('error', 'quizzes_between attempts: ' . $e->getMessage());
-        }
-        try {
-            $r = $this->db->query(
-                'SELECT COUNT(*) AS n FROM `quiz_results`
-                  WHERE `user_id` = ? AND `is_submitted` = 1
-                    AND CAST(`date_added` AS UNSIGNED) >= ?
-                    AND CAST(`date_added` AS UNSIGNED) < ?',
-                array((int) $student_id, (int) $from_ts, (int) $to_ts))->row_array();
-            $n += (int) $r['n'];
-        } catch (Throwable $e) {
-            log_message('error', 'quizzes_between legacy: ' . $e->getMessage());
-        }
-        return $n;
     }
 
     /**

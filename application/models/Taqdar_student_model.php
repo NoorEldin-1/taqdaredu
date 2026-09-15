@@ -32,6 +32,142 @@ class Taqdar_student_model extends CI_Model
     }
 
     /* ================================================================
+       المواد التعليمية — الملف يمر بحارس لا برابط عار
+       ================================================================ */
+
+    /**
+     * TQ-MATERIAL-GATE — رابط الملف كان مفتاحه.
+     *
+     * كانت «المواد التعليمية» والمفضلة والتطبيق ولوحة الإدارة تسلم رابطا
+     * مباشرا إلى `uploads/resource_files/<الملف>`، والمجلد يخدم ما فيه لكل
+     * طالب رابط: من نسخه مرة وأرسله في مجموعة واتساب فتحه كل من فيها بلا
+     * حساب ولا اشتراك. وهي مسألة الكتب نفسها (TQ-BOOK-GATE)، وحلها حلها.
+     *
+     * والحارس يسأل ثلاثة أسئلة لا واحدا: الدرس منشور؟ صاحب الطلب مستحق
+     * للكورس (`is_entitled()` نفسها التي تحرس المشغل)؟ والدرس مفتوح له
+     * (`lesson_lock_state()` نفسها التي تقفل الدرس)؟ — ملخص درس لم يصل إليه
+     * الطالب بعد لا يفتح قبل درسه، وإلا صار القفل على الفيديو وحده.
+     *
+     * والمسؤول ومالك الكورس لا يقفل عليهما: هما من يرفع الملف ويراجعه.
+     */
+    public function material_url($kind, $id)
+    {
+        return base_url('student/material/' . ($kind === 'lesson' ? 'lesson' : 'file') . '/' . (int) $id);
+    }
+
+    /**
+     * أمرفق الدرس ملف فعلا؟
+     *
+     * العمود `lesson.attachment` يحمل أربعة أشياء لا واحدا: اسم ملف، وإعدادات
+     * اختبار (JSON في درس `quiz`)، ووسم إطار (`iframe`)، ونص درس (`description`).
+     * وقراءة الأربعة ملفا تعرض في «المواد» بطاقة تحميل لإعدادات اختبار.
+     */
+    public function lesson_attachment_is_file(array $l)
+    {
+        if ((string) ($l['lesson_type'] ?? '') === 'quiz') return false;
+        $type = strtolower(trim((string) ($l['attachment_type'] ?? '')));
+        if (in_array($type, array('json', 'iframe', 'description', 'html'), true)) return false;
+        $a = trim((string) ($l['attachment'] ?? ''));
+        if ($a === '' || $a[0] === '<' || $a[0] === '{' || $a[0] === '[') return false;
+        return true;
+    }
+
+    /** المسؤول أو من يملك الكورس — لا قفل عليهما. */
+    private function is_course_staff($uid, $course_id)
+    {
+        $role = (int) $this->db->select('role_id')->where('id', (int) $uid)->get('users')->row('role_id');
+        if ($role === 1) return true;
+        $c = $this->db->select('user_id, creator')->where('id', (int) $course_id)->get('course')->row_array();
+        if (!$c) return false;
+        if ((int) $c['creator'] === (int) $uid) return true;
+        return in_array((string) (int) $uid, array_map('trim', explode(',', (string) $c['user_id'])), true);
+    }
+
+    /**
+     * يحكم على طلب ملف ويرد مساره إن جاز.
+     *
+     * @param string $kind `file` صف في `resource_files`، و`lesson` مرفق الدرس نفسه.
+     * @return array ok · status · code · message — وعند النجاح path · name · mime · size
+     */
+    public function material_file($uid, $kind, $id)
+    {
+        $uid = (int) $uid;
+        $id  = (int) $id;
+        $no  = static function ($status, $code, $message) {
+            return array('ok' => false, 'status' => $status, 'code' => $code, 'message' => $message);
+        };
+
+        if ($uid <= 0) return $no(401, 'unauthenticated', 'سجل دخولك لتحميل ملفات الدروس.');
+        if ($id <= 0 || !in_array($kind, array('file', 'lesson'), true)) {
+            return $no(404, 'not_found', 'لا ملف بهذا الرقم.');
+        }
+
+        $lesson_id = $id;
+        $file      = '';
+        $name      = '';
+        if ($kind === 'file') {
+            $row = $this->db->select('file_name, title, lesson_id')->where('id', $id)
+                            ->get('resource_files')->row_array();
+            if (!$row || trim((string) $row['file_name']) === '') return $no(404, 'not_found', 'لا ملف بهذا الرقم.');
+            $lesson_id = (int) $row['lesson_id'];
+            $file      = (string) $row['file_name'];
+            $name      = trim((string) $row['title']);
+        }
+
+        $lesson = $this->db->select('id, course_id, title, lesson_type, attachment, attachment_type, tq_status')
+                           ->where('id', $lesson_id)->get('lesson')->row_array();
+        if (!$lesson) return $no(404, 'not_found', 'لا ملف بهذا الرقم.');
+
+        if ($kind === 'lesson') {
+            if (!$this->lesson_attachment_is_file($lesson)
+                || preg_match('~^https?://~i', trim((string) $lesson['attachment']))) {
+                return $no(404, 'not_found', 'لا ملف مرفق بهذا الدرس.');
+            }
+            $file = (string) $lesson['attachment'];
+            $name = trim((string) $lesson['title']);
+        }
+
+        $st = (string) $lesson['tq_status'];
+        if ($st !== '' && $st !== 'published') return $no(404, 'not_found', 'هذا الدرس غير منشور.');
+
+        $course_id = (int) $lesson['course_id'];
+        $this->load->model('taqdar_repo_model');
+        if (!$this->taqdar_repo_model->is_entitled($uid, $course_id)) {
+            return $no(403, 'not_entitled', 'هذا الملف لطلاب هذا الكورس المشتركين فيه.');
+        }
+
+        if (!$this->is_course_staff($uid, $course_id)) {
+            $lock = $this->taqdar_repo_model->lesson_lock_state($uid, (int) $lesson['id']);
+            if (empty($lock['found']) || empty($lock['unlocked'])) {
+                $prev = trim((string) ($lock['blocking_lesson_title'] ?? ''));
+                return $no(403, 'locked', $prev !== ''
+                    ? 'هذا الملف يفتح مع درسه. أكمل درس «' . $prev . '» أولا.'
+                    : 'هذا الملف يفتح مع درسه، ودرسه ما زال مقفلا.');
+            }
+        }
+
+        $dir  = $kind === 'file' ? 'uploads/resource_files/' : 'uploads/lesson_files/';
+        $base = realpath(FCPATH . rtrim($dir, '/'));
+        $path = realpath(FCPATH . $dir . ltrim(str_replace(chr(92), '/', $file), '/'));
+        if (!$base || !$path || strpos($path, $base) !== 0 || !is_file($path)) {
+            return $no(404, 'not_found', 'الملف غير موجود على الخادم.');
+        }
+
+        $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $mime = function_exists('mime_content_type') ? (string) @mime_content_type($path) : '';
+        if ($mime === '') $mime = 'application/octet-stream';
+
+        /* اسم التنزيل من عنوان الملف لا من اسمه على القرص: `tqseedx_38_67.pdf`
+           لا يقول للطالب ما في الملف حين يجده في مجلد تنزيلاته غدا. */
+        $label = preg_replace('~[\\\\/:*?"<>|\r\n]+~u', ' ', $name !== '' ? $name : basename($path));
+        $label = trim(mb_substr($label, 0, 120));
+        if ($ext !== '' && strtolower(pathinfo($label, PATHINFO_EXTENSION)) !== $ext) $label .= '.' . $ext;
+
+        return array('ok' => true, 'status' => 200, 'path' => $path, 'name' => $label,
+                     'mime' => $mime, 'size' => (int) filesize($path));
+    }
+
+    /* ================================================================
        الإشعارات
        ================================================================ */
 
@@ -476,10 +612,26 @@ class Taqdar_student_model extends CI_Model
             ->join('enrol e', 'e.course_id = c.id', 'inner')
             ->where('e.user_id', $uid)
             ->where('a.type', 'homework')
+            /* TQ-TASK-PUBLISHED — واجب درس مسودة أو قيد المراجعة ليس مهمة بعد:
+               كان يظهر بزر «ابدأ الآن» يهبط بصاحبه على درس لا يفتح له. */
+            ->where("COALESCE(l.tq_status, 'published') = 'published'", null, false)
             ->order_by('c.id', 'ASC')->order_by('l.order', 'ASC')
             ->get()->result_array();
 
         if (!$hw) return $groups;
+
+        /* TQ-TASK-LOCK — حال القفل من `course_state()` نفسها التي تحرس المشغل:
+           كان «ابدأ الآن» يعرض على واجب درسه مقفل، فيضغطه الطالب فيرده الحارس. */
+        $this->load->model('taqdar_repo_model');
+        $lock = array();
+        foreach (array_unique(array_map(function ($r) { return (int) $r['course_id']; }, $hw)) as $cid) {
+            try {
+                $st = $this->taqdar_repo_model->course_state($uid, $cid);
+                foreach ($st['lessons'] as $lid => $ls) $lock[(int) $lid] = $ls;
+            } catch (Throwable $e) {
+                $this->db->reset_query();
+            }
+        }
 
         $a_ids = array_map(function ($r) { return (int) $r['assessment_id']; }, $hw);
         $l_ids = array_map(function ($r) { return (int) $r['lesson_id']; }, $hw);
@@ -497,12 +649,29 @@ class Taqdar_student_model extends CI_Model
             $att[(int) $r['assessment_id']] = $r;
         }
 
-        /* عدد بنود الواجب — الأسئلة معلقة بمعرف الدرس في `question.quiz_id`. */
+        /* عدد بنود الواجب — TQ-TASK-ITEMS: من `question.assessment_id` أولا،
+           وهو ما يؤلف به اليوم، ثم `quiz_id` الموروث لما بقي منه. كان يعد من
+           الموروث وحده فيقرأ كل واجب مؤلف «٠ بند». */
         $items_n = array();
+        try {
+            $by_a = array();
+            foreach ($this->db->select('assessment_id, COUNT(*) AS n')->from('question')
+                              ->where_in('assessment_id', $a_ids)->group_by('assessment_id')
+                              ->get()->result_array() as $r) {
+                $by_a[(int) $r['assessment_id']] = (int) $r['n'];
+            }
+            foreach ($hw as $r) {
+                if (!empty($by_a[(int) $r['assessment_id']])) {
+                    $items_n[(int) $r['lesson_id']] = $by_a[(int) $r['assessment_id']];
+                }
+            }
+        } catch (Throwable $e) {
+            $this->db->reset_query();   // عمود لم ينشأ بعد — الموروث وحده
+        }
         foreach ($this->db->select('quiz_id, COUNT(*) AS n')->from('question')
                           ->where_in('quiz_id', $l_ids)->group_by('quiz_id')
                           ->get()->result_array() as $r) {
-            $items_n[(int) $r['quiz_id']] = (int) $r['n'];
+            if (empty($items_n[(int) $r['quiz_id']])) $items_n[(int) $r['quiz_id']] = (int) $r['n'];
         }
 
         $cat_names = array();
@@ -538,6 +707,8 @@ class Taqdar_student_model extends CI_Model
                 'pass'      => (int) $r['pass_mark'],
                 'type'      => 'homework',
                 'href'      => base_url('student/lesson/' . (int) $r['course_id'] . '/' . $lid),
+                'locked'    => !empty($lock[$lid]['locked']),
+                'lock_hint' => !empty($lock[$lid]['locked']) ? (string) $lock[$lid]['blocking_title'] : '',
             );
 
             if ($key === 'done') {
@@ -567,7 +738,8 @@ class Taqdar_student_model extends CI_Model
             'exams'     => array(t('الاختبارات'), 'var(--tq-sky-ink)',   'check-badge', t('ابدأ الاختبار'),  'student/exams'),
             'tasks'     => array(t('المهام'),     'var(--tq-amber)',     'clipboard',   t('رفع الواجب'),     'student/tasks'),
             'on_demand' => array(t('حصص بالطلب'), 'var(--tq-navy)',      'video',       t('دخول الحصة'),     'student/on-demand'),
-            'revisions' => array(t('المراجعات'),  'var(--tq-lilac-ink)', 'book',        t('بدء المراجعة'),   'student/materials'),
+            /* «بدء المراجعة» تبدأ في شاشة المراجعة — كانت تقود إلى المواد. */
+            'revisions' => array(t('المراجعات'),  'var(--tq-lilac-ink)', 'book',        t('بدء المراجعة'),   'student/reviews'),
         );
     }
 
@@ -617,6 +789,10 @@ class Taqdar_student_model extends CI_Model
                         'title' => $pair[1] . ': ' . $s['title'],
                         'sub'   => isset($mine[$cid]) ? $mine[$cid] : '',
                         'href'  => base_url('student/lessons'),
+                        /* TQ-CAL-ALLDAY — تاريخ الوحدة يوم بلا ساعة. كان يقرأ
+                           منتصف الليل: «12:00 ص» على خط اليوم، ويعد في «ما مضى
+                           من مواعيد اليوم» منذ أول دقيقة. */
+                        'all_day' => true,
                     );
                 }
             }
@@ -643,6 +819,36 @@ class Taqdar_student_model extends CI_Model
                     'href'  => base_url('student/lesson/' . $cid . '/' . (int) $r['quiz_id']),
                 );
             }
+        }
+
+        /* 2ب) TQ-CAL-EXAMS — اختبارات الدروس وامتحانات المحطات من `attempts`.
+              كان التقويم يسأل `quiz_results` الموروث وحده، وكل اختبار يؤلف
+              اليوم يكتب في `attempts`: فطالب سلم عشر محاولات هذا الأسبوع لا
+              يرى في تقويم اختباراته حدثا واحدا. */
+        foreach ($this->db->query(
+            'SELECT ap.`started_at`, ap.`submitted_at`, a.`type`,
+                    COALESCE(l.`id`, 0) AS lesson_id,
+                    COALESCE(l.`title`, m.`title`, p.`title`) AS title,
+                    COALESCE(l.`course_id`, p.`course_id`, 0) AS course_id
+               FROM `attempts` ap
+               JOIN `assessments` a ON a.`id` = ap.`assessment_id` AND a.`type` IN ("review", "quiz", "exam")
+               LEFT JOIN `lesson` l ON l.`id` = a.`lesson_id`
+               LEFT JOIN `milestones` m ON m.`id` = a.`milestone_id`
+               LEFT JOIN `paths` p ON p.`id` = COALESCE(a.`path_id`, m.`path_id`)
+              WHERE ap.`student_id` = ?', array($uid))->result_array() as $r) {
+            $done = !empty($r['submitted_at']);
+            $at   = $ts($done ? $r['submitted_at'] : $r['started_at']);
+            if ($at <= 0) continue;
+            $cid = (int) $r['course_id'];
+            $lid = (int) $r['lesson_id'];
+            $events[] = array(
+                'ts'    => $at,
+                'cat'   => 'exams',
+                'title' => ($done ? t('سلمت: ') : t('بدأت: ')) . (string) $r['title'],
+                'sub'   => isset($mine[$cid]) ? $mine[$cid] : '',
+                'href'  => ($cid > 0 && $lid > 0) ? base_url('student/lesson/' . $cid . '/' . $lid)
+                                                  : base_url('student/exams'),
+            );
         }
 
         /* 3) المهام — محاولات الطالب على تقييمات نوعها homework. */
@@ -672,7 +878,7 @@ class Taqdar_student_model extends CI_Model
                           ->join('availability_slots sl', 'sl.id = ts.slot_id', 'inner')
                           ->join('users u', 'u.id = ts.teacher_id', 'left')
                           ->where('ts.student_id', $uid)
-                          ->where_in('ts.status', array('requested', 'confirmed', 'live', 'completed'))
+                          ->where_in('ts.status', array('requested', 'awaiting_payment', 'confirmed', 'live', 'completed'))
                           ->get()->result_array() as $r) {
             $at = $ts($r['starts_at']);
             if ($at <= 0) continue;
@@ -688,14 +894,20 @@ class Taqdar_student_model extends CI_Model
             );
         }
 
-        /* 5) المراجعات — استحقاقات طابور التكرار المتباعد. */
-        foreach ($this->db->select('rq.due_at, l.id AS lesson_id, l.title AS lesson_title, l.course_id')
-                          ->from('review_queue rq')
-                          ->join('question q', 'q.id = rq.question_id', 'inner')
-                          ->join('lesson l', 'l.id = q.quiz_id', 'left')
-                          ->where('rq.student_id', $uid)
-                          ->order_by('rq.due_at', 'ASC')->limit(200)
-                          ->get()->result_array() as $r) {
+        /* 5) المراجعات — استحقاقات طابور التكرار المتباعد.
+              TQ-CAL-REVIEWS — الدرس من هدف السؤال، وإلا من اختبار درسه. كان
+              الربط بـ`question.quiz_id` وهو عمود النظام الموروث الذي لا يكتبه
+              سؤال يؤلف اليوم: فكل مراجعة تظهر «مراجعة» بلا درس ولا مادة، ورابطها
+              إلى المواد. والمراجعة تبدأ في شاشة المراجعة. */
+        foreach ($this->db->query(
+            'SELECT rq.`due_at`, l.`title` AS lesson_title, l.`course_id`
+               FROM `review_queue` rq
+               JOIN `question` q ON q.`id` = rq.`question_id`
+               LEFT JOIN `objectives` o ON o.`id` = q.`objective_id`
+               LEFT JOIN `assessments` qa ON qa.`id` = q.`assessment_id`
+               LEFT JOIN `lesson` l ON l.`id` = COALESCE(o.`lesson_id`, qa.`lesson_id`)
+              WHERE rq.`student_id` = ?
+              ORDER BY rq.`due_at` ASC LIMIT 200', array($uid))->result_array() as $r) {
             $at = $ts($r['due_at']);
             if ($at <= 0) continue;
             $cid   = (int) $r['course_id'];
@@ -705,10 +917,14 @@ class Taqdar_student_model extends CI_Model
                 'cat'   => 'revisions',
                 'title' => t('مراجعة') . ($title !== '' ? ': ' . $title : ''),
                 'sub'   => isset($mine[$cid]) ? $mine[$cid] : '',
-                'href'  => $cid > 0 ? base_url('student/lesson/' . $cid . '/' . (int) $r['lesson_id'])
-                                    : base_url('student/materials'),
+                'href'  => base_url('student/reviews'),
             );
         }
+
+        foreach ($events as &$e) {
+            if (!isset($e['all_day'])) $e['all_day'] = false;
+        }
+        unset($e);
 
         usort($events, function ($a, $b) { return $a['ts'] <=> $b['ts']; });
         return $events;

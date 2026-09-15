@@ -66,8 +66,6 @@ $tq_title = t('حصص بالطلب');
 $tq_sub   = t('احجز حصة مباشرة مع معلم متخصص في المادة التي تحتاجها');
 $tq_icon  = 'video';
 
-$tq_subjects = tq_s_subject_tutors(5);
-
 $f_subject = (string) $this->input->get('subject', true);
 
 /**
@@ -76,6 +74,11 @@ $f_subject = (string) $this->input->get('subject', true);
  */
 $tq_grade      = $tq_m->student_grade($tq_uid);
 $tq_grade_name = $tq_grade > 0 ? $tq_m->grade_name($tq_grade) : '';
+
+/* TQ-SUBJECT-COUNT — عدد كل مادة عدد من **فتح وقتا** فيها لصفه، بقاعدة
+   المرشح نفسها — لا عدد معلمي كورساتها (`tq_s_subject_tutors()`)، الذي كان
+   يقول «٥ معلم» فوق قائمة فارغة. */
+$tq_subjects = $tq_m->open_subject_counts($tq_grade, 5);
 
 /* TQ-FOUNDATION — والمعروض هنا حصص **المنهج** وحدها. مواعيد التأسيس
    بلا صف ولا مادة، فترشيح الصف يمرها كلها (`IN (0, صفه)`) ومرشح المادة
@@ -90,12 +93,8 @@ $tq_CI->load->model('taqdar_foundation_model');
 $tq_has_fnd = $tq_CI->taqdar_foundation_model->enabled();
 
 /** حجوزات الطالب — من `tutoring_sessions` بحالاتها كما في القاعدة. */
-$tq_bookings = $tq_m->bookings_for_student($tq_uid);
-if ($tq_has_fnd) {
-    $tq_bookings = array_values(array_filter($tq_bookings, function ($b) {
-        return ($b['kind'] ?? '') !== 'foundation';
-    }));
-}
+/* والترشيح في الاستعلام (TQ-BOOKINGS-KIND) لا بعد القص. */
+$tq_bookings = $tq_m->bookings_for_student($tq_uid, 20, $tq_has_fnd ? 'curriculum' : null);
 
 $tq_cfg  = $tq_m->config();
 $tq_paid = $tq_cfg['price'] > 0;               // هل للحصص ثمن أصلا؟
@@ -542,19 +541,9 @@ include 'portal_open.php';
         </section>
         <?php endif; ?>
 
-        <!-- عرض خاص: عرض حقيقي أو لا شيء — ولا خصم مخترع لملء فراغ. -->
-        <section class="tq-card tq-card--panel tq-pastel tq-pastel--lilac">
-            <div class="tq-card__head">
-                <h2 class="tq-card__title tq-pastel__title"><?php echo t('عرض خاص'); ?></h2>
-                <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('star', 24); ?></span>
-            </div>
-            <p class="tq-pastel__body">
-                <?php echo t('لا يوجد عرض سار الآن. العروض على باقات الحصص تظهر هنا فور إطلاقها.'); ?>
-            </p>
-            <a class="tq-btn tq-btn--secondary tq-btn--block" href="<?php echo base_url('plans'); ?>">
-                <?php echo t('عرض الباقات'); ?>
-            </a>
-        </section>
+        <?php /* لا بطاقة «عرض خاص». كانت نصا ثابتا في القالب «لا يوجد عرض سار
+                 الآن» لا يقرأ من مصدر، ولا تملك الإدارة موضعا تنشئ منه عرضا —
+                 فبطاقة لا تتغير أبدا تشغل مكانا وتعد بما لا يأتي. */ ?>
 
     </aside>
 </div>

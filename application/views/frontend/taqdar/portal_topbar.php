@@ -109,6 +109,13 @@ else                   $tq_greet = t('مساء الخير');
                 <span class="tq-micro"><?php echo html_escape($tq_role_label); ?></span>
             </span>
         </a>
+
+        <?php /* TQ-LOGOUT — الخروج في الترويسة لا في الإعدادات وحدها: من يريد
+                 أن يخرج من جهاز مشترك لا يبحث عنه في شاشة تفضيلات. */ ?>
+        <a class="tq-iconbtn" href="<?php echo site_url('login/logout'); ?>"
+           aria-label="<?php echo te('تسجيل الخروج'); ?>" title="<?php echo te('تسجيل الخروج'); ?>">
+            <?php echo tq_icon('logout'); ?>
+        </a>
     </div>
 </header>
 <?php

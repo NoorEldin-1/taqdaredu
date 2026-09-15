@@ -1072,6 +1072,26 @@ class Taqdar_billing_model extends CI_Model
             }
         }
 
+        /* TQ-PENDING-ONE — شراء جديد للباقة نفسها يسقط المعلق القديم.
+           من ترك الشهري معلقا ثم عاد فاختار السنوي كان يخرج بفاتورتين غير
+           مدفوعتين لباقة واحدة، تبقى القديمة «بانتظار التحويل» إلى الأبد في
+           سجل ولي الأمر ويظن أن عليه مبلغين. والقديمة تشطب ولا تحذف: رقمها في
+           تسلسل يقرؤه محاسب — كما تشطب فاتورة حصة لم تدفع. */
+        if (!$free) {
+            foreach ($this->db->where('user_id', $user_id)->where('plan_id', (int) $plan['id'])
+                              ->where('path_id', 0)->where('status', 'pending')
+                              ->get('subscriptions')->result_array() as $old_sub) {
+                $old_inv = $this->invoice_of_subscription((int) $old_sub['id']);
+                if ($old_inv && $old_inv['status'] !== 'unpaid') continue;
+                if ($old_inv) {
+                    $this->db->where('id', (int) $old_inv['id'])->where('status', 'unpaid')
+                             ->update('invoices', array('status' => 'refunded'));
+                }
+                $this->db->where('id', (int) $old_sub['id'])->where('status', 'pending')
+                         ->update('subscriptions', array('status' => 'cancelled'));
+            }
+        }
+
         $this->db->insert('subscriptions', array(
             'user_id'    => $user_id,
             'plan_id'    => (int) $plan['id'],
@@ -1357,6 +1377,39 @@ class Taqdar_billing_model extends CI_Model
        الفواتير
        ===================================================================== */
 
+    /**
+     * TQ-INVOICE-CANCEL — يلغي فاتورة شراء لم تدفع واشتراكها المعلق.
+     *
+     * كانت الفاتورة غير المدفوعة في سجل ولي الأمر بلا زر دفع ولا إلغاء، فتبقى
+     * «بانتظار التحويل» إلى الأبد. والإلغاء يشطبها ولا يحذفها (تسلسل الأرقام)،
+     * ويلغي الاشتراك المعلق معها. وفاتورة الحصة لا تلغى من هنا: تلغى بإلغاء
+     * الحجز نفسه، وإلا بقي الموعد محجوزا لفاتورة لا وجود لها.
+     */
+    public function cancel_pending_invoice($invoice_id)
+    {
+        $inv = $this->db->where('id', (int) $invoice_id)->get('invoices')->row_array();
+        if (!$inv) return array('ok' => false, 'errors' => array('لا فاتورة بهذا الرقم.'));
+        if ($inv['status'] !== 'unpaid') {
+            return array('ok' => false, 'errors' => array('هذه الفاتورة ليست معلقة، فلا تلغى.'));
+        }
+        $sid = (int) $inv['subscription_id'];
+        if ($sid <= 0) {
+            return array('ok' => false, 'errors' => array('فاتورة الحصة تلغى بإلغاء الحجز نفسه من شاشة الحصص.'));
+        }
+        $sub = $this->db->where('id', $sid)->get('subscriptions')->row_array();
+        if ($sub && $sub['status'] !== 'pending') {
+            return array('ok' => false, 'errors' => array('اشتراك هذه الفاتورة لم يعد معلقا، فلا تلغى.'));
+        }
+
+        $this->db->where('id', (int) $inv['id'])->where('status', 'unpaid')
+                 ->update('invoices', array('status' => 'refunded'));
+        if ($sub) {
+            $this->db->where('id', $sid)->where('status', 'pending')
+                     ->update('subscriptions', array('status' => 'cancelled'));
+        }
+        return array('ok' => true, 'message' => 'ألغيت الفاتورة ' . $inv['invoice_no'] . ' ولم يعد عليك مبلغها.');
+    }
+
     public function issue_invoice($subscription_id, $user_id, $amount, $method = null)
     {
         $amount = (int) $amount;
@@ -1488,6 +1541,10 @@ class Taqdar_billing_model extends CI_Model
             $inv = $this->invoice_of_subscription($subscription_id);
             if ($inv && $inv['status'] !== 'paid') {
                 $this->mark_invoice_paid($inv['id'], $reference);
+                /* TQ-METHOD-TRUTH — التفعيل اليدوي تحويل بنكي. فاتورة بدأت بمحاولة
+                   بطاقة فشلت ثم اعتمدت الإدارة حوالتها كانت تبقى «بطاقة» في سجل من
+                   دفع: الطريقة المكتوبة غير الطريقة التي دفع بها فعلا. */
+                $this->db->where('id', (int) $inv['id'])->update('invoices', array('method' => 'manual'));
             }
         }
         return $ok;

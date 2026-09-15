@@ -27,6 +27,14 @@ $tq_icon  = 'flame';
 include 'portal_open.php';
 ?>
 
+<?php /* بلا جافاسكربت كان الهيكل يبقى ظاهرا إلى الأبد بلا رسالة. */ ?>
+<noscript>
+    <style>[data-tq-rv-skeleton]{display:none}</style>
+    <div class="tq-card">
+        <p class="tq-body" style="margin:0"><?php echo t('تعمل المراجعة في متصفحك، ويحتاج ذلك تشغيل جافاسكربت. فعله من إعدادات المتصفح ثم حدث الصفحة.'); ?></p>
+    </div>
+</noscript>
+
 <div class="tq-reviews" data-tq-reviews
      data-tq-gate="<?php echo base_url('taqdar_gate'); ?>"
      data-tq-lessons="<?php echo base_url('student/lessons'); ?>">

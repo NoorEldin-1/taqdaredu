@@ -88,8 +88,14 @@ $tq_query = function ($over = []) use ($f_state, $f_subject, $f_stage) {
     return base_url('student/courses') . ($p ? '?' . http_build_query($p) : '');
 };
 
+/* صفحات لا «اعرض الكل» بلا سقف: الزر كان يطبع كل كورسات الطالب دفعة واحدة —
+   مقبول عند أحد عشر كورسا، وثقيل على طالب باقة شاملة له عشرات. والصفحة في
+   الرابط كبقية الفلاتر، و`all=1` القديم يقرأ صفحة أولى لا يكسر رابطا محفوظا. */
 $tq_limit   = 9;
-$tq_visible = ($f_all === '1') ? $tq_list : array_slice($tq_list, 0, $tq_limit);
+$f_page     = max(1, (int) $this->input->get('page'));
+$tq_pages   = max(1, (int) ceil(count($tq_list) / $tq_limit));
+if ($f_page > $tq_pages) $f_page = $tq_pages;
+$tq_visible = array_slice($tq_list, ($f_page - 1) * $tq_limit, $tq_limit);
 
 /**
  * محطات الرحلة — بديل شريط التبويبات.
@@ -386,6 +392,16 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                                 · <span style="color:var(--tq-teal);font-weight:700"><?php echo t('مشتراة مفردة'); ?></span>
                             <?php endif; ?>
                         </p>
+                        <?php /* كورس لم يعتمد بعد — مسودة أو قيد المراجعة — كان يظهر لمن
+                                 سجل فيه ببطاقة كاملة كأي كورس منشور، فيبني الطالب على
+                                 محتوى قد يتغير أو يرفض. فيقال ذلك على البطاقة. */ ?>
+                        <?php if ($c['course_status'] !== '' && $c['course_status'] !== 'active'): ?>
+                            <p style="margin:0">
+                                <?php echo $c['course_status'] === 'pending'
+                                    ? tq_badge('due', t('قيد المراجعة — لم ينشر بعد'))
+                                    : tq_badge('late', t('غير منشور')); ?>
+                            </p>
+                        <?php endif; ?>
                         <?php echo tq_progress($c['progress'], t('تقدمك في ') . $c['title']); ?>
                         <p class="tq-caption" style="margin:0"><?php echo tq_s_lessons_word($c['done'], $c['lessons']); ?></p>
 
@@ -408,13 +424,22 @@ html[dir='rtl'] .tq-map__svg { transform: scaleX(-1); }
                 <?php endforeach; ?>
             </div>
 
-            <?php if ($f_all !== '1' && count($tq_list) > $tq_limit): ?>
-                <p style="text-align:center;margin-block-start:var(--tq-space-xl)">
-                    <a class="tq-btn tq-btn--secondary" href="<?php echo $tq_query(['all' => '1']); ?>">
-                        <?php echo t('عرض المزيد'); ?>
-                        <span class="tq-sr"><?php echo t('من الكورسات'); ?></span>
-                    </a>
-                </p>
+            <?php if ($tq_pages > 1): ?>
+                <nav class="tq-s-pager" aria-label="<?php echo te('صفحات الكورسات'); ?>" style="margin-block-start:var(--tq-space-xl)">
+                    <?php if ($f_page > 1): ?>
+                        <a href="<?php echo $tq_query(['page' => $f_page - 1]); ?>" rel="prev"><?php echo t('السابق'); ?></a>
+                    <?php endif; ?>
+                    <?php for ($p = 1; $p <= $tq_pages; $p++): ?>
+                        <?php if ($p === $f_page): ?>
+                            <span aria-current="page"><?php echo TQ_LRI . $p . TQ_PDI; ?><span class="tq-sr"><?php echo t('الصفحة الحالية'); ?></span></span>
+                        <?php else: ?>
+                            <a href="<?php echo $tq_query(['page' => $p]); ?>"><?php echo TQ_LRI . $p . TQ_PDI; ?></a>
+                        <?php endif; ?>
+                    <?php endfor; ?>
+                    <?php if ($f_page < $tq_pages): ?>
+                        <a href="<?php echo $tq_query(['page' => $f_page + 1]); ?>" rel="next"><?php echo t('التالي'); ?></a>
+                    <?php endif; ?>
+                </nav>
             <?php endif; ?>
         <?php endif; ?>
 

@@ -60,215 +60,34 @@ $tq_name  = $tq_child ? trim($tq_child['first_name'] . ' ' . $tq_child['last_nam
 $tq_title = $tq_child ? $tq_name : t('تفاصيل الابن');
 $tq_sub   = $tq_child ? t('صورة أسبوعه في ثلاثة أرقام') : t('يفتح بعد ربط حساب ابنك');
 
-/* --- الأسبوع يبدأ الأحد (السوق سعودي) --- */
-$tq_week_start = strtotime('today') - ((int) date('w')) * 86400;
-$tq_prev_start = $tq_week_start - 7 * 86400;
-/* ما مضى من الأسبوع بما فيه اليوم — وعليه تقاس المقارنة، فلا يقارن
-   أسبوع لم يتم بأسبوع تم. */
-$tq_elapsed    = (int) date('w') + 1;
-
-/* خطة الأسبوع: أيام يحددها ولي الأمر لكل ابن في الإعدادات وتحفظ في
-   `parent_links.scope`. وما لم يحددها، تحسب على الافتراضي ويقال ذلك
-   صراحة تحت الرقم — لا يعرض افتراض كأنه خطة الأسرة. */
-$tq_plan       = $tq_pm->plan_days($tq_uid, $tq_cid);
-$tq_plan_days  = (int) $tq_plan['days'];
-$tq_plan_is_default = !empty($tq_plan['is_default']);
-
-$tq_days_this = 0;
-$tq_days_prev = 0;
-$tq_subjects  = [];
-$tq_completed = 0;
-$tq_payments  = [];
+/* TQ-CHILD-ONE — كل رقم في هذه الشاشة من `Taqdar_parent_model::child_detail()`.
+   كان القالب نسخة ثانية منه باستعلاماته: «ما أنهاه» من `watch_histories`
+   المنحرف (TQ-PROGRESS-ONE)، وأيام النشاط من المشاهدة وحدها (TQ-ACTIVITY-ALL)
+   — والتطبيق يسأل النموذج فيرى غيرها. والنموذج هو الحكم، والقالب يعرض. */
+$tq_plan_days = 5; $tq_plan_is_default = true;
+$tq_days_this = 0; $tq_days_prev = 0;
+$tq_subjects  = []; $tq_completed = 0; $tq_payments = [];
 $tq_day_flags = array_fill(0, 7, false);
-$tq_sessions  = [];
-$tq_notes     = [];
+$tq_sessions  = []; $tq_notes = [];
 $tq_skill     = ['open' => 0, 'mastered' => 0, 'percent' => 0];
+$tq_commitment = 0;
 
-if ($tq_child) {
-
-    /* أيام النشاط: تجمع من الطوابع الزمنية المتاحة فعلا.
-       و`lesson_progress` أصدقها لأن فيه صفا **لكل درس** بتاريخ إنهائه —
-       بينما `watch_histories` صف واحد لكل مادة بآخر تحديث لها وحده، فمن
-       واظب خمسة أيام على مادة واحدة كان يحسب له يوم. والمصدر نفسه في
-       التقرير الأسبوعي، فلا يفترق عدد هنا عن عدد هناك. */
-    $tq_stamps = [];
-    foreach ($this->db->query(
-        "SELECT UNIX_TIMESTAMP(completed_at) AS ts FROM lesson_progress
-          WHERE student_id = ? AND completed_at IS NOT NULL", [$tq_cid]
-    )->result_array() as $tq_r) {
-        $tq_stamps[] = (int) $tq_r['ts'];
-    }
-    foreach ($this->db->query(
-        "SELECT date_updated AS ts FROM watch_histories WHERE student_id = ?", [$tq_cid]
-    )->result_array() as $tq_r) {
-        $tq_stamps[] = (int) $tq_r['ts'];
-    }
-    foreach ($this->db->query(
-        "SELECT date_added AS ts FROM quiz_results WHERE user_id = ? AND is_submitted = 1", [$tq_cid]
-    )->result_array() as $tq_r) {
-        $tq_stamps[] = (int) $tq_r['ts'];
-    }
-
-    $tq_day_set = [];
-    foreach ($tq_stamps as $tq_ts) {
-        if ($tq_ts <= 0) {
-            continue;
-        }
-        $tq_day_set[strtotime('today', $tq_ts)] = true;
-    }
-
-    foreach (array_keys($tq_day_set) as $tq_day) {
-        if ($tq_day >= $tq_week_start) {
-            $tq_days_this++;
-            $tq_idx = (int) floor(($tq_day - $tq_week_start) / 86400);
-            if ($tq_idx >= 0 && $tq_idx < 7) {
-                $tq_day_flags[$tq_idx] = true;
-            }
-        } elseif ($tq_day >= $tq_prev_start && $tq_day < $tq_prev_start + $tq_elapsed * 86400) {
-            $tq_days_prev++;
-        }
-    }
-
-    /* الإتقان لكل مادة + الدروس المكتملة.
-
-       والمادة هنا **كورس**، ودروسه رتبة تحتها — والنسبة وحدها لا تقول أيهما:
-       «٤٤٪» في مادة من عشرين درسا غير «٤٤٪» في مادة من ثلاثة. فيقرأ عدد
-       دروس كل مادة معها، ويعرض تحت الشريط «أنهى ٤ من ٢٠ درسا». (الاختبارات
-       مستثناة من العد كما تستثنى في بوابة الطالب، فلا يختلف رقم بين شاشتين.) */
-    $tq_subjects = $this->db->query(
-        "SELECT c.id, c.title,
-                COALESCE(w.course_progress, 0) AS progress,
-                w.completed_lesson,
-                COALESCE(w.date_updated, 0)    AS last_seen,
-                (SELECT COUNT(*) FROM lesson l
-                  WHERE l.course_id = c.id AND l.lesson_type <> 'quiz') AS lessons_n
-           FROM enrol e
-           JOIN course c ON c.id = e.course_id
-           LEFT JOIN watch_histories w
-                  ON w.student_id = e.user_id AND w.course_id = e.course_id
-          WHERE e.user_id = ?
-          ORDER BY c.title ASC",
-        [$tq_cid]
-    )->result_array();
-
-    foreach ($tq_subjects as $tq_i2 => $tq_s) {
-        $tq_list = json_decode((string) $tq_s['completed_lesson'], true);
-        $tq_done_n = is_array($tq_list) ? count(array_unique($tq_list)) : 0;
-        /* والمكتمل لا يتجاوز الموجود: قائمة قديمة قد تحمل معرف درس حذف. */
-        $tq_total_n = (int) $tq_s['lessons_n'];
-        if ($tq_total_n > 0 && $tq_done_n > $tq_total_n) $tq_done_n = $tq_total_n;
-        $tq_subjects[$tq_i2]['done_n'] = $tq_done_n;
-        $tq_completed += $tq_done_n;
-    }
-    unset($tq_s);
-
-    /* المدفوعات والفواتير — ما اشتري لهذا الابن، من مصدري المال معا
-       (فواتير تقدر ومدفوعات Academy) عبر الدفتر الموحد في النموذج. */
-    $tq_payments = array_slice($tq_pm->payments_of($tq_cid, 10), 0, 10);
-
-    /* الفهم: هدف متقن من هدف فتح له.
-       الهدف يفتح بفتح درسه، ويتقن حين يبلغ مستواه في `skill_state` ثمانين.
-       والمقياس مئوي لا كسري: `Taqdar_repo_model::touch_skill_state()` يكتب
-       `($ok/$total)*100` ويقص على [0,100] — فعتبة `0.80` هنا كانت ستعد كل
-       شيء متقنا وعتبة `80` على صفوف كسرية تعد كل شيء غير متقن. */
-    $tq_sk = $this->db->query(
-        "SELECT COUNT(*) AS open_n,
-                SUM(CASE WHEN ss.level >= 80 THEN 1 ELSE 0 END) AS mastered_n
-           FROM objectives o
-           JOIN lesson l ON l.id = o.lesson_id
-           JOIN enrol e  ON e.course_id = l.course_id AND e.user_id = ?
-           LEFT JOIN skill_state ss ON ss.objective_id = o.id AND ss.student_id = ?
-          WHERE EXISTS (SELECT 1 FROM lesson_progress lp
-                         WHERE lp.student_id = ? AND lp.lesson_id = l.id)",
-        [$tq_cid, $tq_cid, $tq_cid]
-    )->row_array();
-
-    $tq_skill['open']     = (int) ($tq_sk['open_n'] ?? 0);
-    $tq_skill['mastered'] = (int) ($tq_sk['mastered_n'] ?? 0);
-    $tq_skill['percent']  = $tq_skill['open'] > 0
-        ? (int) round(100 * $tq_skill['mastered'] / $tq_skill['open'])
-        : 0;
-
-    /* الحصص القادمة — موعدها في `availability_slots.starts_at`.
-       المطلوبة والمؤكدة وحدهما تعرضان: المعتذر عنها والمنتهية ليست
-       «قادمة»، وعرضها يجعل ولي الأمر يترقب موعدا لن يقع. */
-    if ($this->db->table_exists('tutoring_sessions')) {
-        $tq_sessions = $this->db->query(
-            "SELECT ts.id, ts.status, ts.meet_url, s.starts_at, s.duration_min,
-                    s.grade_id, g.name_ar AS grade_name, sj.name_ar AS subject_name,
-                    TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS teacher
-               FROM tutoring_sessions ts
-               LEFT JOIN availability_slots s ON s.id = ts.slot_id
-               LEFT JOIN grades g ON g.id = s.grade_id
-               LEFT JOIN subjects sj ON sj.id = s.subject_id
-               LEFT JOIN users u ON u.id = ts.teacher_id
-              WHERE ts.student_id = ?
-                AND ts.status IN ('requested','confirmed','live')
-                AND (s.starts_at IS NULL OR s.starts_at >= NOW() - INTERVAL 2 HOUR)
-              ORDER BY s.starts_at ASC
-              LIMIT 5",
-            [$tq_cid]
-        )->result_array();
-    }
-
-    /* ملاحظات المعلمين — المعتمدة وحدها.
-       الدرجة قبل اعتمادها لا يراها الطالب، ورؤية وليه لها تسبقه بخبر
-       عن نفسه — وهو أسوأ ما يقع بين مراهق وأهله.
-
-       ومن مصدرين لا واحد: ملاحظة الاختبار في `quiz_results`، وملاحظة
-       الواجب في `attempts`. كانت الأولى وحدها تقرأ لأن الواجبات لم تكن
-       تصل معلما أصلا — فلما صار للمعلم أن يصححها صار لملاحظته عليها
-       أن تصل ولي الأمر كما تصل ملاحظة الاختبار. */
-    $tq_notes = $this->db->query(
-        "SELECT r.quiz_result_id, r.teacher_note, r.approved_at,
-                l.title AS lesson_title, c.title AS course_title,
-                TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS teacher
-           FROM quiz_results r
-           JOIN lesson l ON l.id = r.quiz_id
-           LEFT JOIN course c ON c.id = l.course_id
-           LEFT JOIN users u ON u.id = r.approved_by
-          WHERE r.user_id = ?
-            AND r.approved_at IS NOT NULL
-            AND r.teacher_note IS NOT NULL AND TRIM(r.teacher_note) <> ''
-          ORDER BY r.approved_at DESC
-          LIMIT 5",
-        [$tq_cid]
-    )->result_array();
-
-    /* أعمدة اعتماد الواجب تضاف عند الحاجة، فقد لا تكون على هذه البيئة بعد.
-       و`$this` هنا المحمل لا المتحكم: النموذج يسند إلى المتحكم فلا يظهر
-       على `$this` أبدا — ولذلك `get_instance()` صراحة كما في بقية الشاشات. */
-    $tq_ci_mk = &get_instance();
-    $tq_ci_mk->load->model('taqdar_marking_model');
-    $tq_ci_mk->taqdar_marking_model->ensure_schema();
-
-    foreach ($this->db->query(
-        "SELECT t.id AS quiz_result_id, t.teacher_note, t.approved_at,
-                CONCAT('واجب: ', l.title) AS lesson_title, c.title AS course_title,
-                TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS teacher
-           FROM attempts t
-           JOIN assessments a ON a.id = t.assessment_id
-           JOIN lesson l ON l.id = a.lesson_id
-           LEFT JOIN course c ON c.id = l.course_id
-           LEFT JOIN users u ON u.id = t.approved_by
-          WHERE t.student_id = ?
-            AND t.approved_at IS NOT NULL
-            AND t.teacher_note IS NOT NULL AND TRIM(t.teacher_note) <> ''
-          ORDER BY t.approved_at DESC
-          LIMIT 5",
-        [$tq_cid]
-    )->result_array() as $tq_hn) {
-        $tq_notes[] = $tq_hn;
-    }
-
-    /* الأحدث أولا بين المصدرين، ثم خمس ملاحظات لا أكثر. */
-    usort($tq_notes, static function ($a, $b) {
-        return (int) $b['approved_at'] <=> (int) $a['approved_at'];
-    });
-    $tq_notes = array_slice($tq_notes, 0, 5);
+$tq_detail = $tq_child ? $tq_pm->child_detail($tq_uid, $tq_cid) : null;
+if ($tq_detail) {
+    $tq_plan_days       = (int) $tq_detail['plan_days'];
+    $tq_plan_is_default = !empty($tq_detail['plan_is_default']);
+    $tq_days_this       = (int) $tq_detail['days_this'];
+    $tq_days_prev       = (int) $tq_detail['days_prev'];
+    $tq_day_flags       = $tq_detail['day_flags'];
+    $tq_commitment      = (int) $tq_detail['commitment'];
+    $tq_subjects        = $tq_detail['subjects'];
+    $tq_completed       = (int) $tq_detail['completed'];
+    $tq_skill           = $tq_detail['skill'];
+    $tq_sessions        = $tq_detail['sessions'];
+    $tq_notes           = $tq_detail['notes'];
+    $tq_payments        = $tq_detail['payments'];
 }
 
-$tq_commitment = (int) round(100 * min($tq_days_this, $tq_plan_days) / max(1, $tq_plan_days));
 $tq_day_names  = [t('الأحد'), t('الاثنين'), t('الثلاثاء'), t('الأربعاء'), t('الخميس'), t('الجمعة'), t('السبت')];
 
 include 'portal_open.php';

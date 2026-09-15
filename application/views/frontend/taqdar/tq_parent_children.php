@@ -32,37 +32,13 @@ $tq_icon  = 'users';
 
 $tq_uid = (int) $this->session->userdata('user_id');
 
-$tq_children = $tq_pm->children($tq_uid);
+/* لكل ابن: كورساته وما أنهاه وآخر نشاط — من `child_cards()` في النموذج.
+   كان القالب يحسبها بنفسه من `watch_histories`: «ما أنهاه» رقم مخزن انحرف
+   عن الدروس (TQ-PROGRESS-ONE)، و«نشط/غاب» مشاهدة الفيديو وحدها — فمن راجع
+   وحل اختباراته أسبوعا بلا فيديو جديد قرأ عنه أهله «غاب ٣٤ يوما»
+   (TQ-ACTIVITY-ALL). والتطبيق يسأل النموذج نفسه، فلا يفترق رقمان. */
+$tq_children = $tq_pm->child_cards($tq_uid);
 $tq_pending  = $tq_pm->links($tq_uid, 'pending');
-
-/* لكل ابن: كورساته ومتوسط تقدمه وآخر نشاط — من الجداول الحقيقية. */
-foreach ($tq_children as &$tq_child) {
-    /* المتوسط على **كل** مواده لا على ما بدأه منها.
-       `AVG()` تتخطى القيم الفارغة، و`LEFT JOIN` يعطي NULL لمادة بلا صف
-       مشاهدة — أي لمادة لم يفتحها بعد. فمن سجل في مادتين وأنجز في واحدة
-       ١٢٪ ولم يلمس الأخرى كان يقرأ وليه «١٢٪» بدل «٦٪»: المادة المهملة
-       تختفي من الحساب بدل أن تخفضه، والرقم يتحسن كلما أهمل أكثر.
-       والقسمة الصريحة على عدد المواد تعد غير المبدوءة صفرا كما هي. */
-    $tq_row = $this->db->query(
-        "SELECT COUNT(DISTINCT e.course_id) AS courses,
-                COALESCE(SUM(COALESCE(w.course_progress, 0))
-                         / NULLIF(COUNT(DISTINCT e.course_id), 0), 0) AS progress,
-                COALESCE(MAX(w.date_updated), 0) AS last_seen
-           FROM enrol e
-           LEFT JOIN watch_histories w
-                  ON w.student_id = e.user_id AND w.course_id = e.course_id
-          WHERE e.user_id = ?",
-        [(int) $tq_child['student_id']]
-    )->row_array();
-
-    $tq_child['courses']  = (int) ($tq_row['courses'] ?? 0);
-    $tq_child['progress'] = (int) round((float) ($tq_row['progress'] ?? 0));
-    $tq_child['last_seen'] = (int) ($tq_row['last_seen'] ?? 0);
-    $tq_child['days'] = $tq_child['last_seen'] > 0
-        ? max(0, (int) floor((time() - $tq_child['last_seen']) / 86400))
-        : null;
-}
-unset($tq_child);
 
 include 'portal_open.php';
 ?>
@@ -104,6 +80,11 @@ include 'portal_open.php';
                         <div style="margin-block:var(--tq-space-xl)">
                             <p class="tq-caption" style="margin-block-end:var(--tq-space-s)"><?php echo t('أنهى من دروسه'); ?></p>
                             <?php echo tq_progress($tq_c['progress'], t('ما أنهاه ') . $tq_name . t(' من دروسه')); ?>
+                            <?php if ((int) $tq_c['lessons'] > 0): ?>
+                                <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
+                                    <?php echo tq_iso(t('أنهى ') . (int) $tq_c['done'] . t(' من ') . tq_lessons_word((int) $tq_c['lessons'])); ?>
+                                </p>
+                            <?php endif; ?>
                         </div>
 
                         <?php /* TQ-CTA-CROWD — ثانوي لا ممتلئ.
@@ -165,15 +146,16 @@ include 'portal_open.php';
                              `tq_student_styles.php` وحده — وهذه الشاشة لا
                              تضمنه، فتعرض الصفوف بلا نمط بتة. */ ?>
                     <?php foreach ($tq_pending as $tq_p): ?>
+                        <?php /* TQ-LINK-ENUM — الطلب المعلق يعرض بالبريد الذي كتبه ولي الأمر
+                                 لا باسم صاحبه: الاسم لا يكشف قبل أن يوافق هو. */ ?>
                         <div class="tq-prefrow">
                             <span class="tq-prefrow__main">
-                                <span class="tq-prefrow__title"><?php echo html_escape($tq_p['name']); ?></span>
-                                <span class="tq-prefrow__hint" style="direction:ltr;text-align:start"><?php echo html_escape((string) $tq_p['email']); ?></span>
+                                <span class="tq-prefrow__title" style="direction:ltr;text-align:start"><?php echo html_escape((string) $tq_p['email']); ?></span>
                             </span>
                             <span class="tq-prefrow__end">
                                 <?php echo tq_badge('due', t('بانتظار موافقته')); ?>
                                 <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
-                                      data-tq-confirm-title="<?php echo te('سحب طلب ربط ____؟', array(html_escape($tq_p['name']))); ?>"
+                                      data-tq-confirm-title="<?php echo te('سحب طلب الربط المرسل إلى ____؟', array(html_escape((string) $tq_p['email']))); ?>"
                                       data-tq-confirm="<?php echo te('لن يصله الطلب بعد الآن، ولا يفتح شيء من بياناته — ولم يكن مفتوحا أصلا.'); ?>"
                                       data-tq-confirm-note="<?php echo te('تستطيع إرسال طلب جديد إليه متى شئت.'); ?>"
                                       data-tq-confirm-ok="<?php echo te('سحب الطلب'); ?>">
@@ -200,11 +182,11 @@ include 'portal_open.php';
                     <?php echo tq_csrf(); ?>
                     <input type="hidden" name="tq_action" value="link_request">
                     <div class="tq-field">
-                        <label class="tq-field__label" for="tq-identifier"><?php echo t('بريد حساب ابنك في تقدر (أو رقم حسابه)'); ?></label>
-                        <input class="tq-input tq-ltr" id="tq-identifier" name="identifier" type="text"
-                               inputmode="email" required placeholder="name@example.com">
+                        <label class="tq-field__label" for="tq-identifier"><?php echo t('بريد حساب ابنك في تقدر'); ?></label>
+                        <input class="tq-input tq-ltr" id="tq-identifier" name="identifier" type="email"
+                               inputmode="email" autocomplete="off" required placeholder="name@example.com">
                         <p class="tq-field__hint">
-                            <?php echo t('الربط يكون بحساب ابنك في المنصة نفسها. ولا نبحث بتشابه اسم أو جوال: خطأ واحد هنا يفتح بيانات طفل لغير أهله.'); ?>
+                            <?php echo t('البريد الذي يدخل به ابنك إلى المنصة. ولا نبحث بتشابه اسم أو جوال أو رقم: خطأ واحد هنا يفتح بيانات طفل لغير أهله. ولا نقول إن كان للبريد حساب أم لا — يظهر ابنك هنا حين يوافق.'); ?>
                         </p>
                     </div>
 

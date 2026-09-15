@@ -626,18 +626,20 @@ include 'portal_open.php';
 
         <div class="tq-card">
             <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('حالة الصف'); ?></h2></div>
-            <ul class="tq-stack">
-                <li class="tq-row tq-row--between">
-                    <span class="tq-caption"><?php echo t('اختبارات تنتظر'); ?></span>
-                    <?php echo tq_num(count($tq_queue)); ?>
+            <?php /* TQ-KV — القيم الأربع بوسم واحد: كان الرقمان بخط الأرقام
+                     الكبير والنصان بخط التسمية الصغير، فيقرأ اللوح قائمتين. */ ?>
+            <ul class="tq-kv">
+                <li class="tq-kv__row">
+                    <span class="tq-kv__k"><?php echo t('اختبارات تنتظر'); ?></span>
+                    <span class="tq-kv__v"><?php echo tq_num(count($tq_queue)); ?></span>
                 </li>
-                <li class="tq-row tq-row--between">
-                    <span class="tq-caption"><?php echo t('واجبات تنتظر'); ?></span>
-                    <?php echo tq_num(count($tq_hw_queue)); ?>
+                <li class="tq-kv__row">
+                    <span class="tq-kv__k"><?php echo t('واجبات تنتظر'); ?></span>
+                    <span class="tq-kv__v"><?php echo tq_num(count($tq_hw_queue)); ?></span>
                 </li>
-                <li class="tq-row tq-row--between">
-                    <span class="tq-caption"><?php echo t('أقدم انتظار'); ?></span>
-                    <span class="tq-caption" style="color:var(--tq-navy)">
+                <li class="tq-kv__row">
+                    <span class="tq-kv__k"><?php echo t('أقدم انتظار'); ?></span>
+                    <span class="tq-kv__v">
                         <?php
                         /* الأقدم بين الصفين لا في أحدهما: المعلم يريد أن يعرف
                            أطول من انتظره، لا أطول من انتظره في جدول بعينه. */
@@ -651,9 +653,9 @@ include 'portal_open.php';
                         ?>
                     </span>
                 </li>
-                <li class="tq-row tq-row--between">
-                    <span class="tq-caption"><?php echo t('عتبة النجاح'); ?></span>
-                    <span class="tq-caption" style="color:var(--tq-navy)"><?php echo tq_iso($tq_pass . '%'); ?></span>
+                <li class="tq-kv__row">
+                    <span class="tq-kv__k"><?php echo t('عتبة النجاح'); ?></span>
+                    <span class="tq-kv__v"><?php echo tq_num($tq_pass . '%'); ?></span>
                 </li>
             </ul>
         </div>

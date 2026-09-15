@@ -238,6 +238,26 @@ $tq_dur = function ($m) {
            وهو أقل ما يلزم لفتح هذا البرنامج، وهو ما يسأل عنه الزائر. */
         $tq_cheap = $tq_plans ? $tq_plans[0] : null;
 
+        /* TQ-PATH-FROM — «يفتح ابتداء من» أقل ما يدفع **في الشهر**، لا أقل
+           إجمالي: الترتيب بالإجمالي يقدم باقة شهرية بتسعمئة وتسعة وتسعين على
+           سنوية شهرها اثنان وأربعون، والسطر يقول «ابتداء من» فيعد بالأعلى.
+           والباقة بلا دورة شهرية تشترى (ربع سنوية) تقسم على شهورها. */
+        $tq_cheap_m = null;
+        $tq_cp      = null;
+        foreach ((array) $tq_plans as $tq_pl) {
+            $tq_pc = tqs_plan_price(array(
+                'price'  => (int) $tq_pl['price'],
+                'period' => (string) $tq_pl['period'],
+                'days'   => (int) $tq_pl['duration_days'],
+            ));
+            $tq_m = $tq_pc['free'] ? 0
+                  : ($tq_pc['has_alt'] ? (int) $tq_pc['month']
+                                       : (int) round($tq_pc['total'] / max(1, (int) $tq_pc['months'])));
+            if ($tq_cheap_m === null || $tq_m < $tq_cheap_m) {
+                $tq_cheap_m = $tq_m; $tq_cheap = $tq_pl; $tq_cp = $tq_pc;
+            }
+        }
+
         /* TQ-CYCLE-PATH — الرقم شهريّ كبقيّة الموقع.
 
            `/plans` والرئيسة وبطاقات الكتالوج وصفحة الباقة كلّها تمرّ على
@@ -247,22 +267,17 @@ $tq_dur = function ($m) {
            و`plans_for_grades()` ترد صفوف الجدول خامًا، فالعمود اسمه
            `duration_days` لا `days` كما تتوقّعه `tqs_plan_price()`.
            وتمريره بلا تحويل يجعل مدّة الدورة صفرًا. */
-        $tq_cp = $tq_cheap ? tqs_plan_price(array(
-            'price'  => (int) $tq_cheap['price'],
-            'period' => (string) $tq_cheap['period'],
-            'days'   => (int) $tq_cheap['duration_days'],
-        )) : null;
         ?>
         <?php if ($tq_cheap): ?>
           <p class="path-from">
             <span>يفتح ابتداء من</span>
-            <?php if ($tq_cp && $tq_cp['has_alt']): ?>
-              <b><b class="tq-ltr"><?php echo number_format($tq_cp['month']); ?></b> <span>ر.س / شهريا</span></b>
+            <?php if ($tq_cp['free']): ?>
+              <b>مجانا</b>
             <?php else: ?>
-              <b><?php echo tqs_money((int) $tq_cheap['price']); ?></b>
+              <b><b class="tq-ltr"><?php echo number_format($tq_cheap_m); ?></b> <span>ر.س / شهريا</span></b>
             <?php endif; ?>
           </p>
-          <?php if ($tq_cp && $tq_cp['has_alt']): ?>
+          <?php if (!$tq_cp['free'] && ($tq_cp['has_alt'] || (int) $tq_cp['months'] > 1)): ?>
             <?php /* الإجمالي تحت الرقم لا مخفيًّا: هو ما تطلبه شاشة
                      التأكيد، وإخفاؤه يجعل الشهريّ يبدو وعدًا. */ ?>
             <p class="tq-caption">الإجمالي <span class="tq-ltr"><?php echo number_format($tq_cp['total']); ?></span> ر.س <?php echo html_escape($tq_cp['unit']); ?></p>

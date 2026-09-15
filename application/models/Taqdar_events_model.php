@@ -276,13 +276,23 @@ class Taqdar_events_model extends CI_Model
         $from = (isset($payload['from_user']) && (int) $payload['from_user'] > 0)
             ? (int) $payload['from_user'] : null;
 
+        /* TQ-PREF-CHANNELS — «داخل المنصة» مطفأ: الصف يكتب (هو السجل) مقروءا
+           فلا يطرق الجرس. وكان العمود يحفظ ولا يقرؤه أحد. */
+        $inapp = true;
+        try {
+            $this->load->model('taqdar_settings_model');
+            $inapp = (bool) $this->taqdar_settings_model->allows($user_id, (string) $type, 'inapp');
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+        }
+
         $this->db->insert('notifications', array(
             'from_user'   => $from,
             'to_user'     => $user_id,
             'type'        => $type,
             'title'       => mb_substr($title, 0, 250),
             'description' => $this->body($text, $fingerprint),
-            'status'      => 0,                 // 0 = غير مقروء، وهي قراءة الشاشتين
+            'status'      => $inapp ? 0 : 1,    // 0 = غير مقروء، وهي قراءة الشاشتين
             'created_at'  => (string) time(),   // طابع يونكس نصا كما يكتب السكربت
             'updated_at'  => null,
         ));
@@ -521,7 +531,7 @@ class Taqdar_events_model extends CI_Model
             try {
                 $ok = ((string) $r['channel'] === 'whatsapp')
                     ? (bool) $this->maybe_whatsapp($uid, $r['title'], (string) $r['body'], (string) $r['type'])
-                    : (bool) $this->maybe_email($uid, $r['title'], (string) $r['body']);
+                    : (bool) $this->maybe_email($uid, $r['title'], (string) $r['body'], (string) $r['type']);
             } catch (Throwable $e) {
                 $ok  = false;
                 $err = $e->getMessage();
@@ -845,8 +855,21 @@ class Taqdar_events_model extends CI_Model
      * غير الفارغ يعبر عن القدرة. وبلا الثاني يعلق الإرسال المهمة الدورية
      * عند مهلة اتصال SMTP، فتموت المهمة قبل أن تكمل أحداثها.
      */
-    private function maybe_email($user_id, $title, $text)
+    private function maybe_email($user_id, $title, $text, $type = '')
     {
+        /* TQ-PREF-CHANNELS — عمود «بريد إلكتروني» في شاشة التنبيهات يحكم هنا
+           كما يحكم عمود واتساب في `maybe_whatsapp()`. */
+        if ($type !== '') {
+            try {
+                $this->load->model('taqdar_settings_model');
+                if (!$this->taqdar_settings_model->allows((int) $user_id, (string) $type, 'email')) {
+                    return false;
+                }
+            } catch (Throwable $e) {
+                $this->db->reset_query();
+            }
+        }
+
         /* المفتاح يعبر عن النية، و`Taqdar_mail_model::configured()` عن
            القدرة. وكان الفحص هنا `smtp_user` وحده — وهي لا تكفي: خادم
            بلا كلمة مرور يعلق الاتصال إلى المهلة ثم يفشل، وذلك في مسار

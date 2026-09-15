@@ -2859,6 +2859,38 @@ class Api_v1 extends CI_Controller
     }
 
     /**
+     * GET /api/v1/student/materials/{file|lesson}/{id}/file — ملف درس.
+     *
+     * TQ-MATERIAL-GATE: كانت `student/materials` ترد رابطا عاريا إلى
+     * `uploads/` يفتحه كل من وصله. والحكم هنا `material_file()` نفسها التي
+     * تحرس رابط الويب — الاستحقاق وقفل الدرس معا — فلا يفتح التطبيق ملفا
+     * يرده الموقع.
+     */
+    public function student_material_file($kind = '', $id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $this->load->model('taqdar_student_model', 'tq_stu');
+        $r = $this->tq_stu->material_file((int) $u['id'], (string) $kind, (int) $id);
+        if (empty($r['ok'])) {
+            $this->fail($r['message'], $r['code'], (int) $r['status']);
+        }
+
+        $this->answered = true;
+        while (ob_get_level() > 0) { @ob_end_clean(); }
+        $this->stream_file($r['path'], $r['mime']);
+    }
+
+    /** رابط ملف المادة في التطبيق — والرابط الخارجي يخرج كما هو. */
+    private function material_api_url($src, $id, $url)
+    {
+        if ($src !== 'file' && $src !== 'lesson') return (string) $url;
+        return base_url('api/v1/student/materials/' . $src . '/' . (int) $id . '/file');
+    }
+
+    /**
      * يمرر ملفا مع دعم `Range` — ويخرج بعده. نسخة `Taqdar_gate::stream()` نفسها.
      *
      * و`$mime` يمرر صريحا لما ليس وسائط: الخريطة تحت ترتد إلى `video/mp4`
@@ -4415,8 +4447,11 @@ class Api_v1 extends CI_Controller
                 'subject'    => (string) $m['subject'],
                 'kind'       => $k,
                 'kind_label' => $m['kind']['label'],
-                'url'        => (string) $m['url'],
+                'url'        => $this->material_api_url((string) ($m['src'] ?? ''), (int) ($m['id'] ?? 0), $m['url']),
                 'bytes'      => (int) $m['bytes'],
+                /* القفل يقال ولا يسكت عنه: زر تحميل على ملف درس مقفل يرد 403. */
+                'locked'     => !empty($m['locked']),
+                'lock_hint'  => (string) ($m['lock_hint'] ?? ''),
                 'added_at'   => tq_api_date($m['at'] ?: null),
                 /* `fav_id` صفر يعني مرفق درس: لا صف له في جدول فلا معرف
                    ثابت يفضل به — وقلب لا يعرف ما يحفظ لا يعرض. */
@@ -4503,7 +4538,7 @@ class Api_v1 extends CI_Controller
                 'subject'    => tq_s_subject($m['category_id'], (string) $m['course_title'], (int) $m['course_id']),
                 'kind'       => $kind['key'],
                 'kind_label' => $kind['label'],
-                'url'        => base_url($rel),
+                'url'        => $this->material_api_url('file', (int) $m['id'], ''),
                 'bytes'      => is_file(FCPATH . $rel) ? (int) filesize(FCPATH . $rel) : 0,
             );
         }

@@ -781,7 +781,11 @@ class Taqdar extends CI_Controller
         $ok = !empty($r['ok']);
         $this->session->set_flashdata($ok ? 'flash_message' : 'error_message',
             $ok ? $msg_ok : (isset($r['errors']) ? implode(' ', $r['errors']) : 'تعذر تنفيذ الطلب.'));
-        redirect(base_url('student/settings?s=profile'));
+        /* TQ-LINK-INBOX — من رد من الإشعار يعود إلى إشعاراته، لا إلى شاشة لم
+           يفتحها. والوجهة من قائمة مغلقة لا رابط حر. */
+        $back = (string) $this->input->post('back') === 'notifications'
+              ? 'student/notifications' : 'student/settings?s=profile';
+        redirect(base_url($back));
     }
 
     public function subscribe_path()
@@ -1108,7 +1112,7 @@ class Taqdar extends CI_Controller
         $sort = (string) $this->input->post('back_sort', true);
         $qsrc = (string) $this->input->post('back_q', true);
         if ($from === 'favourites' && in_array($type, array('lessons', 'materials', 'courses'), true)) $qs['type'] = $type;
-        if ($from === 'materials'  && in_array($type, array('pdf','video','slide','audio','image','link'), true)) $qs['type'] = $type;
+        if ($from === 'materials'  && in_array($type, array('pdf','video','slide','audio','image','link','doc'), true)) $qs['type'] = $type;
         if ($from === 'favourites' && in_array($sort, array('recent', 'title', 'progress'), true)) $qs['sort'] = $sort;
         if ($qsrc !== '') $qs['q'] = mb_substr($qsrc, 0, 120);
 
@@ -1124,6 +1128,49 @@ class Taqdar extends CI_Controller
         if ($qs) $back .= '?' . http_build_query($qs);
 
         $this->done($back, !empty($r['ok']), $r['msg']);
+    }
+
+    /**
+     * GET student/material/<file|lesson>/<id> — ملف درس من خلف حارس.
+     *
+     * TQ-MATERIAL-GATE: الحكم كله في `Taqdar_student_model::material_file()`،
+     * وهي نفسها التي تناديها نقطة التطبيق — فلا يفتح باب ما يرده الآخر.
+     * و`require_login()` لا `require_role('student')`: المسؤول ومالك الكورس
+     * يفتحان الملف من لوحتيهما بالرابط نفسه، والنموذج يعرفهما.
+     *
+     * والبث `readfile` لا `redirect`: التحويل إلى `uploads/` يعطي الرابط
+     * العاري لمن سأل، وهو عين ما جاء الحارس ليمنعه — والمجلد صار مغلقا أصلا.
+     */
+    public function material_file($kind = '', $id = 0)
+    {
+        $this->require_login();
+        $uid = (int) $this->session->userdata('user_id');
+
+        $this->load->model('taqdar_student_model', 'tq_stu');
+        $r = $this->tq_stu->material_file($uid, (string) $kind, (int) $id);
+
+        if (empty($r['ok'])) {
+            if ((int) $r['status'] === 404) show_404();
+            show_error(t($r['message']), (int) $r['status'], t('لا وصول إلى هذا الملف'));
+            return;
+        }
+
+        $ext   = strtolower(pathinfo($r['path'], PATHINFO_EXTENSION));
+        $ascii = 'material-' . (int) $id . ($ext !== '' ? '.' . $ext : '');
+
+        /* `attachment` دائما: ملف يرفعه معلم قد يكون SVG أو HTML، وفتحه
+           `inline` على نطاق المنصة ينفذ ما فيه بجلسة الطالب.
+           و`private`: وسيط يخبئ ملفا مدفوعا يخدمه لغير صاحبه. */
+        $this->output->set_status_header(200);
+        header('Content-Type: ' . $r['mime']);
+        header('Content-Length: ' . $r['size']);
+        header('Content-Disposition: attachment; filename="' . $ascii . '"; filename*=UTF-8\'\'' . rawurlencode($r['name']));
+        header('Cache-Control: private, no-store, max-age=0');
+        header('X-Content-Type-Options: nosniff');
+
+        while (ob_get_level() > 0) ob_end_clean();
+        readfile($r['path']);
+        exit;
     }
 
     public function export_data()
@@ -2758,9 +2805,23 @@ class Taqdar extends CI_Controller
         if ((int) $_FILES['csv']['size'] > 2 * 1024 * 1024) {
             $this->done('teacher/questions', false, 'حجم الملف يتجاوز ٢ ميغابايت.');
         }
+        /* TQ-IMPORT-FORMATS — الصيغ المقبولة ما كان **جدولا**: CSV وTXT
+           وExcel ‏(.xlsx). وExcel أكثر ما يكتب فيه المعلم أسئلته، فرده إلى
+           «احفظه CSV» خطوة يتعثر فيها أكثرهم (وبترميز يفسد العربية).
+           أما PDF وWord وHTML فنص مصمم للقراءة لا أعمدة: لا يعرف منه أين
+           السؤال وأين الخيار وأيها الصحيح — فاستيراده تخمين يدخل أسئلة
+           خاطئة في بنك يصحح به الطلاب. فالرفض يقول ذلك ويقول ما العمل،
+           لا «الصيغة غير مدعومة» وحدها. والحكم الأخير على المحتوى في
+           `import_questions()`، والامتداد هنا فرز أول. */
         $ext = strtolower((string) pathinfo($_FILES['csv']['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, array('csv', 'txt'), true)) {
-            $this->done('teacher/questions', false, 'الملف لا بد أن يكون بصيغة CSV.');
+        if (in_array($ext, array('pdf', 'doc', 'docx', 'html', 'htm', 'rtf', 'odt'), true)) {
+            $this->done('teacher/questions', false, 'ملفات PDF وWord وHTML لا تستورد منها الأسئلة: هي نص للقراءة لا جدول يعرف منه السؤال والخيارات والإجابة الصحيحة. انسخ أسئلتك إلى جدول Excel بالأعمدة المطلوبة (أو استعمل القالب الجاهز) واحفظه بصيغة xlsx أو CSV.');
+        }
+        if ($ext === 'xls') {
+            $this->done('teacher/questions', false, 'هذا ملف Excel بالصيغة القديمة (xls). افتحه واحفظه بصيغة xlsx أو CSV ثم أعد رفعه.');
+        }
+        if (!in_array($ext, array('csv', 'txt', 'xlsx'), true)) {
+            $this->done('teacher/questions', false, 'صيغة الملف غير مدعومة. المقبول: Excel ‏(xlsx) أو CSV أو TXT.');
         }
 
         $r = $this->delegate(array(
@@ -2831,8 +2892,12 @@ class Taqdar extends CI_Controller
         $this->trace('parent.messages.compose', 'users:' . $to,
             array('child_id' => $child_id, 'ok' => !empty($r['ok'])));
 
-        $this->done('parent/messages', !empty($r['ok']),
-            $this->result_message($r, 'أرسلت رسالتك.'));
+        /* بعد الإرسال تفتح المحادثة نفسها لا القائمة: كان ولي الأمر يعود إلى
+           القائمة فلا يرى رسالته، ويعيد فتح المحادثة ليتأكد أنها وصلت. */
+        $this->done(!empty($r['ok']) && !empty($r['thread'])
+                ? 'parent/messages?thread=' . rawurlencode((string) $r['thread'])
+                : 'parent/messages',
+            !empty($r['ok']), $this->result_message($r, 'أرسلت رسالتك.'));
     }
 
     /**
@@ -2882,19 +2947,19 @@ class Taqdar extends CI_Controller
         }
 
         // الرابط ينشأ باسم صاحب الجلسة دائما — أي parent_user_id مرسل يهمل
+        /* TQ-LINK-ENUM — **البريد وحده**. رقم الحساب متسلسل يعد عدا، وكان كل
+           رقم يرد بما يكشف صاحبه. والرد الواحد والحد في `request_link()`. */
         $identifier = '';
-        foreach (array('identifier', 'student_email', 'student_code', 'student_id') as $f) {
-            $v = trim((string) $this->input->post($f));
-            if ($v !== '' && $v !== '0') { $identifier = $v; break; }
+        foreach (array('identifier', 'student_email') as $f) {
+            $v = strtolower(trim((string) $this->input->post($f)));
+            if ($v !== '') { $identifier = $v; break; }
         }
-        if ($identifier === '') {
-            $this->done('parent/settings', false, 'اكتب بريد حساب ابنك في المنصة أو رقم حسابه.');
+        if ($identifier === '' || !filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            $this->done('parent/children', false, 'اكتب البريد الإلكتروني الذي يدخل به ابنك إلى تقدر.');
         }
 
-        $sid = ctype_digit($identifier)
-            ? (int) $identifier
-            : (int) $this->db->select('id')->where('email', $identifier)
-                             ->get('users')->row('id');
+        $sid = (int) $this->db->select('id')->where('email', $identifier)
+                              ->get('users')->row('id');
 
         if ($sid > 0 && $sid === $pid) {
             $this->done('parent/settings', false, 'لا يكون المستخدم ولي أمر نفسه.');
@@ -2915,8 +2980,8 @@ class Taqdar extends CI_Controller
         $this->trace('parent.children.link', 'users:' . $sid,
             array('identifier' => $identifier, 'ok' => !empty($r['ok'])));
 
-        $this->done(!empty($r['ok']) ? 'parent/children' : 'parent/settings', !empty($r['ok']),
-            $this->result_message($r, 'أرسل طلب الربط — ويفعل بعد موافقة ابنك.'));
+        $this->done('parent/children', !empty($r['ok']),
+            $this->result_message($r, 'إن كان هذا البريد لحساب طالب مفعل فقد وصله طلب الربط، ويظهر ابنك هنا بعد موافقته.'));
     }
 
     /**
@@ -2956,9 +3021,23 @@ class Taqdar extends CI_Controller
             $this->done('parent/pay', false, 'اختر باقة أولا.');
         }
 
+        /* TQ-PARENT-STAGE — الباقة لصف الابن. كانت الشاشة تعرض كل الباقات
+           ويمر الشراء بأيها: فيشتري ولي الأمر باقة المتوسط لابنه في الرابع
+           الابتدائي، ولا تفتح له درسا واحدا من صفه. والحارس هنا لا في الشاشة
+           وحدها. والابن بلا صف مسجل لا يمنع — لا يفحص ما لا يعرف. */
+        $this->load->model('taqdar_billing_model');
+        $tq_plan  = $this->taqdar_billing_model->plan($plan_id);
+        $tq_grade = (int) $this->db->select('grade_id')->where('id', $child_id)->get('users')->row('grade_id');
+        if ($tq_plan && (string) $tq_plan['scope'] === 'grade' && $tq_grade > 0) {
+            $tq_gids = array_values(array_filter(array_map('intval', explode(',', (string) $tq_plan['scope_ids']))));
+            if (!$tq_gids && (int) $tq_plan['scope_id'] > 0) $tq_gids = array((int) $tq_plan['scope_id']);
+            if ($tq_gids && !in_array($tq_grade, $tq_gids, true)) {
+                $this->done('parent/pay', false, 'هذه الباقة لصفوف غير صف ابنك، فلا تفتح له دروسه. اختر باقة صفه.');
+            }
+        }
+
         /* TQ-CYCLE-BUY — وولي الأمر يشتري بالدورة التي اختارها كذلك:
            باب ثان بلا دورة يعني أن ابنه يدفع السنوي مهما اختار. */
-        $this->load->model('taqdar_billing_model');
         $r = $this->taqdar_billing_model->subscribe(
             $child_id, $plan_id, $method, (string) $this->input->post('cycle'));
 
@@ -2997,6 +3076,27 @@ class Taqdar extends CI_Controller
      * ولا حارس تشخيصي هنا كما لا حارس في `subscribe_course()`: الاختبار
      * يقول أي **مرحلة** تناسب، والمادة الواحدة يختارها صاحبها بعينها.
      */
+    /**
+     * POST parent/pay/cancel — TQ-INVOICE-CANCEL.
+     * يلغي ولي الأمر فاتورة شراء لم تدفع لابنه. والملكية على صاحب الفاتورة.
+     */
+    public function parent_pay_cancel()
+    {
+        $this->write_guard('parent');
+        $pid = (int) $this->session->userdata('user_id');
+        $inv_id = (int) $this->input->post('invoice_id');
+
+        $owner = (int) $this->db->select('user_id')->where('id', $inv_id)->get('invoices')->row('user_id');
+        if ($inv_id <= 0 || $owner <= 0 || !$this->parent_owns_child($pid, $owner)) {
+            $this->done('parent/payments', false, 'هذه الفاتورة ليست لأحد أبنائك المرتبطين.');
+        }
+
+        $this->load->model('taqdar_billing_model');
+        $r = $this->taqdar_billing_model->cancel_pending_invoice($inv_id);
+        $this->trace('parent.pay.cancel', 'invoices:' . $inv_id, array('ok' => !empty($r['ok'])));
+        $this->done('parent/payments', !empty($r['ok']), $this->result_message($r, 'ألغيت الفاتورة.'));
+    }
+
     public function parent_pay_course()
     {
         $this->write_guard('parent');
@@ -3074,6 +3174,10 @@ class Taqdar extends CI_Controller
                 'first_name' => $this->input->post('first_name'),
                 'last_name'  => $this->input->post('last_name'),
                 'email'      => $this->input->post('email'),
+                /* TQ-EMAIL-CHANGE — البريد اسم الدخول: تغييره يطلب كلمة المرور
+                   الحالية والبريد مرتين، والنموذج هو الحكم. */
+                'email_confirm'    => $this->input->post('email_confirm'),
+                'current_password' => (string) $this->input->post('current_password'),
                 'phone'      => $this->input->post('phone'),
                 /* دولة الرقم تسافر معه — TQ-PHONE-INTL. وبلاها يقرأ
                    النموذج رقما مصريا سعوديا فيرفضه أو يخزنه خطأ. */
@@ -3778,9 +3882,24 @@ class Taqdar extends CI_Controller
                على الباقات تدعوه إلى الشراء مرتين. فيقرأ آخر اشتراك
                مهما كانت حاله، ويقال له أين هو منه — كما تفعل
                `subscription()` بالارتداد نفسه. */
-            $sub = $this->db->where('user_id', (int) $uid)
+            /* TQ-BUNDLE-SINGLE — آخر اشتراك **باقة** لا آخر شراء: كان الارتداد
+               يقرأ شراء كورس أو كتاب مفرد (`plan_id = 0`) فلا يجد له باقة، فتقول
+               الصفحة «باقتك نشطة — برامجها قيد التجهيز» لمن لم يشتر باقة قط. */
+            $sub = $this->db->where('user_id', (int) $uid)->where('plan_id >', 0)
                             ->order_by('id', 'DESC')->limit(1)
                             ->get('subscriptions')->row_array();
+        }
+
+        /* ومن لا باقة له ويملك مشتريات مفردة يقال له ما يملك وأين يجده. */
+        $singles = array();
+        if (!$sub) {
+            foreach ($this->taqdar_billing_model->active_subscriptions($uid) as $tq_s) {
+                if ((int) $tq_s['plan_id'] > 0) continue;
+                $tq_sold   = $this->taqdar_billing_model->sold($tq_s);
+                $singles[] = array('title' => (string) $tq_sold['title'],
+                                   'label' => (string) $tq_sold['label'],
+                                   'kind'  => (string) $tq_sold['kind']);
+            }
         }
         $b   = null;
         $prog = array();
@@ -3796,8 +3915,10 @@ class Taqdar extends CI_Controller
             foreach ($b['subjects'] as $s) {
                 $cid = (int) $s['course_id'];
                 if ($cid <= 0 || isset($prog[$cid])) continue;
-                $p = $this->taqdar_repo_model->path_progress($uid, $cid);
-                $prog[$cid] = (int) $p['percent'];
+                /* TQ-PROGRESS-ONE — `course_state()` لا `path_progress()`: الثانية
+                   تعد المتقن وحده، فيقرأ الطالب ٠٪ هنا و٦٤٪ في «المتابعة» للمادة
+                   نفسها. والأولى بقاعدة القفل التي تقرؤها «كورساتي» و«دروسي». */
+                $prog[$cid] = (int) $this->taqdar_repo_model->course_state($uid, $cid)['percent'];
             }
         }
 
@@ -3809,6 +3930,7 @@ class Taqdar extends CI_Controller
             'tq_subscription'  => $sub,
             'tq_bundle'        => $b,
             'tq_progress'      => $prog,
+            'tq_singles'       => $singles,
         ));
     }
 
@@ -4326,7 +4448,9 @@ class Taqdar extends CI_Controller
         $child   = (int) $this->input->post('child_id');
         $book_id = (int) $this->input->post('book_id');
 
-        if (!$this->parent_owns_child($child)) {
+        /* الحارس يأخذ الولي والابن معا: كان ينادى بالابن وحده فيقرأ معرفه ولي
+           أمر ولا ابن له — فيرد كل شراء كتاب «ليس من أبنائك». */
+        if (!$this->parent_owns_child((int) $this->session->userdata('user_id'), $child)) {
             $this->done('parent/pay', false, 'هذا الحساب ليس من أبنائك.');
             return;
         }

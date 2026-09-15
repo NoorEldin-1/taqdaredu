@@ -71,6 +71,20 @@ include 'portal_open.php';
                     <p class="tq-field__hint"><?php echo t('هو نفسه اسم دخولك — وتغييره يغير ما تدخل به.'); ?></p>
                 </div>
 
+                <?php /* TQ-EMAIL-CHANGE — حقلان لا يطلبان إلا حين يتغير البريد: البريد مرة
+                         ثانية (خطأ حرف يغلق الحساب)، وكلمة المرور الحالية (من وجد الجهاز
+                         مفتوحا لا يملك الحساب بكتابة بريده). ويصل بريدك القديم خبر التغيير. */ ?>
+                <div class="tq-grid tq-grid--2">
+                    <div class="tq-field">
+                        <label class="tq-field__label" for="tq-email2"><?php echo t('أعد كتابة البريد — عند تغييره فقط'); ?></label>
+                        <input class="tq-input tq-ltr" id="tq-email2" name="email_confirm" type="email" autocomplete="off">
+                    </div>
+                    <div class="tq-field">
+                        <label class="tq-field__label" for="tq-email-pass"><?php echo t('كلمة مرورك الحالية — عند تغيير البريد فقط'); ?></label>
+                        <input class="tq-input tq-ltr" id="tq-email-pass" name="current_password" type="password" autocomplete="current-password">
+                    </div>
+                </div>
+
                 <div class="tq-grid tq-grid--2">
                     <?php /* TQ-PHONE-INTL — انظر التعليق في `tq_settings.php`. */ ?>
                     <div class="tq-field">
@@ -108,12 +122,13 @@ include 'portal_open.php';
                     <div class="tq-field">
                         <label class="tq-field__label" for="tq-new-pass"><?php echo t('كلمة المرور الجديدة'); ?></label>
                         <input class="tq-input tq-ltr" id="tq-new-pass" name="new_password" type="password"
-                               autocomplete="new-password" minlength="6" required>
+                               autocomplete="new-password" minlength="8" required>
+                        <p class="tq-field__hint"><?php echo t('ثمانية أحرف فأكثر، وغير كلمتك الحالية.'); ?></p>
                     </div>
                     <div class="tq-field">
                         <label class="tq-field__label" for="tq-new-pass2"><?php echo t('تأكيد الجديدة'); ?></label>
                         <input class="tq-input tq-ltr" id="tq-new-pass2" name="confirm_password" type="password"
-                               autocomplete="new-password" minlength="6" required>
+                               autocomplete="new-password" minlength="8" required>
                     </div>
                 </div>
 
@@ -138,24 +153,35 @@ include 'portal_open.php';
                 <p class="tq-caption"><?php echo t('لا رابط في حسابك بعد. أرسل طلبك من النموذج تحت.'); ?></p>
             <?php else: ?>
                 <?php foreach ($tq_links as $l):
+                    /* «رفض الطلب» غير «مسحوب»: الأول قرار ابنه قبل أن يوافق،
+                       والثاني فك رابط كان قائما — والكلمة الواحدة لهما كانت
+                       تقول لولي أمر رفض ابنه طلبه إنه هو من سحبه. */
+                    $tq_rejected = $l['status'] === 'revoked' && !empty($l['prefs']['rejected']['at']);
                     $k = $l['status'] === 'active' ? 'mastered' : ($l['status'] === 'pending' ? 'due' : 'late');
-                    $w = ['active' => t('مفعل'), 'pending' => t('بانتظار موافقته'), 'revoked' => t('مسحوب')][$l['status']] ?? $l['status'];
+                    $w = $tq_rejected ? t('رفض الطلب')
+                       : (['active' => t('مفعل'), 'pending' => t('بانتظار موافقته'), 'revoked' => t('مسحوب')][$l['status']] ?? $l['status']);
+                    /* TQ-LINK-ENUM — من لم يوافق قط لا يكشف اسمه: يعرض بالبريد الذي
+                       كتبه ولي الأمر. والاسم لمن وافق يوما. */
+                    $tq_named = $l['status'] === 'active' || !empty($l['prefs']['consent']) || !empty($l['prefs']['previous_consent']);
                 ?>
                     <div class="tq-prefrow">
                         <span class="tq-prefrow__main">
-                            <span class="tq-prefrow__title"><?php echo html_escape($l['name']); ?></span>
-                            <span class="tq-prefrow__hint tq-ltr" style="direction:ltr;text-align:start"><?php echo html_escape((string) $l['email']); ?></span>
+                            <?php if ($tq_named): ?>
+                                <span class="tq-prefrow__title"><?php echo html_escape($l['name']); ?></span>
+                            <?php endif; ?>
+                            <span class="<?php echo $tq_named ? 'tq-prefrow__hint' : 'tq-prefrow__title'; ?> tq-ltr" style="direction:ltr;text-align:start"><?php echo html_escape((string) $l['email']); ?></span>
                             <span class="tq-prefrow__hint">
                                 <?php if (!empty($l['consent_at']) && $l['status'] === 'active'): ?>
                                     <?php echo t('وافق بتاريخ ____', tq_stamp($l['consent_at'])); ?>
                                 <?php elseif ($l['status'] === 'pending'): ?>
                                     <?php echo t('لا تاريخ موافقة بعد — لا يفتح شيء من بياناته'); ?>
-                                <?php elseif (!empty($l['prefs']['rejected']['at'])): ?>
-                                    <?php echo t('رفض الطلب بتاريخ ____', TQ_LRI . html_escape((string) $l['prefs']['rejected']['at']) . TQ_PDI); ?>
+                                <?php elseif ($tq_rejected): ?>
+                                    <?php /* التاريخ بصيغة المنصة لا خاما «2026-07-28 21:32:18». */ ?>
+                                    <?php echo t('رفض الطلب بتاريخ ____', tq_stamp((string) $l['prefs']['rejected']['at'])); ?>
                                 <?php elseif (!empty($l['prefs']['revoked']['at'])): ?>
                                     <?php $tq_by_student = ($l['prefs']['revoked']['by_role'] ?? '') === 'student'; ?>
                                     <?php echo $tq_by_student ? t('سحب موافقته بتاريخ ') : t('ألغيت الربط بتاريخ '); ?>
-                                    <?php echo TQ_LRI . html_escape((string) $l['prefs']['revoked']['at']) . TQ_PDI; ?>
+                                    <?php echo tq_stamp((string) $l['prefs']['revoked']['at']); ?>
                                 <?php endif; ?>
                             </span>
                         </span>
@@ -164,7 +190,7 @@ include 'portal_open.php';
 
                             <?php if ($l['status'] === 'pending'): ?>
                                 <form method="post" action="<?php echo base_url('parent/children/link'); ?>"
-                                      data-tq-confirm-title="<?php echo te('سحب طلب ربط ____؟', array(html_escape($l['name']))); ?>"
+                                      data-tq-confirm-title="<?php echo te('سحب طلب الربط المرسل إلى ____؟', array(html_escape((string) $l['email']))); ?>"
                                       data-tq-confirm="<?php echo te('لن يصله الطلب بعد الآن، ولا يفتح شيء من بياناته — ولم يكن مفتوحا أصلا.'); ?>"
                                       data-tq-confirm-note="<?php echo te('تستطيع إرسال طلب جديد إليه متى شئت.'); ?>"
                                       data-tq-confirm-ok="<?php echo te('سحب الطلب'); ?>">
@@ -195,9 +221,9 @@ include 'portal_open.php';
                 <?php echo tq_csrf(); ?>
                 <input type="hidden" name="tq_action" value="link_request">
                 <div class="tq-field">
-                    <label class="tq-field__label" for="tq-identifier-s"><?php echo t('إضافة ابن — بريد حسابه في تقدر (أو رقم حسابه)'); ?></label>
-                    <input class="tq-input tq-ltr" id="tq-identifier-s" name="identifier" type="text"
-                           inputmode="email" required placeholder="name@example.com">
+                    <label class="tq-field__label" for="tq-identifier-s"><?php echo t('إضافة ابن — بريد حسابه في تقدر'); ?></label>
+                    <input class="tq-input tq-ltr" id="tq-identifier-s" name="identifier" type="email"
+                           inputmode="email" autocomplete="off" required placeholder="name@example.com">
                     <p class="tq-field__hint">
                         <?php echo t('ينشأ الطلب معلقا بلا تاريخ موافقة ولا يفتح شيئا. وتصل ابنك رسالة بنص الموافقة، فإن وافق من حسابه سجل تاريخها ونسخة نصها ومن أعطاها.'); ?>
                     </p>
@@ -238,6 +264,8 @@ include 'portal_open.php';
                    والوصف تحت كل تسمية ليس زينة: «رسوب في اختبار محطة» لا يفهمه
                    من لا يعرف ما المحطة، وهو مصطلح المنصة لا مصطلح الناس. */
                 $tq_hints = [
+                    /* كانت «نتيجة اختبار درس» وحدها بلا سطر شرح تحتها. */
+                    'quiz_result'      => t('حين يسلم اختبار درس — وهو ما يفتح له الدرس التالي أو يوقفه عنده.'),
                     'exam_result'      => t('حين تعتمد درجة اختبار لابنك.'),
                     'placement_result' => t('حين يؤدي اختبار تحديد المستوى — يقول لك أين موضعه ')
                                         . t('وأي باقة تناسبه، ويصلك بالبريد كذلك.'),
@@ -351,6 +379,31 @@ include 'portal_open.php';
                         <li><?php echo t('كل إجابة خاطئة على حدة'); ?></li>
                     </ul>
                 </div>
+            </div>
+        </section>
+
+        <?php /* TQ-PARENT-DATA — تنزيل البيانات وحذف الحساب حق لكل صاحب حساب،
+                 والمساران قائمان لولي الأمر (`parent/export-data` و`parent/delete-account`)
+                 ولا زر إليهما في شاشته — ولشاشة المعلم زراهما. */ ?>
+        <section class="tq-card">
+            <h2 class="tq-card__title"><?php echo t('بياناتك وحسابك'); ?></h2>
+            <div class="tq-prefrow">
+                <span class="tq-prefrow__main">
+                    <span class="tq-prefrow__title"><?php echo t('تنزيل بياناتي'); ?></span>
+                    <span class="tq-prefrow__hint"><?php echo t('نسخة من بيانات حسابك ومدفوعاتك في ملف واحد.'); ?></span>
+                </span>
+                <span class="tq-prefrow__end">
+                    <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo base_url('parent/export-data'); ?>"><?php echo t('تنزيل بياناتي'); ?></a>
+                </span>
+            </div>
+            <div class="tq-prefrow">
+                <span class="tq-prefrow__main">
+                    <span class="tq-prefrow__title"><?php echo t('حذف حسابي'); ?></span>
+                    <span class="tq-prefrow__hint"><?php echo t('يمحو بياناتك الشخصية ويغلق حسابك، ولا رجعة فيه. ولا يمس حسابات أبنائك.'); ?></span>
+                </span>
+                <span class="tq-prefrow__end">
+                    <a class="tq-btn tq-btn--danger tq-btn--sm" href="<?php echo base_url('parent/delete-account'); ?>"><?php echo t('حذف حسابي'); ?></a>
+                </span>
             </div>
         </section>
 

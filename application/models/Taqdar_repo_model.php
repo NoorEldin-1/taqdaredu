@@ -307,6 +307,101 @@ class Taqdar_repo_model extends CI_Model
         return $state;
     }
 
+    /**
+     * TQ-PROGRESS-ONE — حال كل دروس المقرر للطالب **بقاعدة القفل نفسها**، دفعة واحدة.
+     *
+     * كانت ثلاث شاشات تقرأ ثلاثة أرقام لحقيقة واحدة: «كورساتي» و«دروسي» تعدان
+     * «مكتملا» من اتحاد `watch_histories.completed_lesson` و`completed_at`،
+     * و«محتوى باقتي» من `mastered_at` وحده، والقفل يسأل «أتقن السابق إن كان له
+     * اختبار، وإلا أكمله». فيقرأ الطالب اثني عشر درسا «مكتملا» ويرده الخادم
+     * عن عشرة منها، و٦٤٪ في شاشة و٠٪ في أختها.
+     *
+     * فالتعريف هنا مرة: **الدرس منجز = ما يفتح الدرس التالي**. وعليه تقوم
+     * النسبة، والقفل، والدرس التالي، وموضع الاستئناف — ولا تقرؤه شاشة من سواه.
+     * وهو مرآة `lesson_lock_state()` حرفا بحرف، مجموعة في استعلامين لا في نداء
+     * لكل درس.
+     *
+     * @return array total · done · percent · next_lesson_id · resume_lesson_id ·
+     *               resume_pos · lessons[id => done · locked · blocking_title ·
+     *               completed · position · ping · title · is_quiz · order]
+     */
+    public function course_state($student_id, $course_id)
+    {
+        $student_id = (int) $student_id;
+        $course_id  = (int) $course_id;
+        $key = $student_id . ':' . $course_id;
+        if (isset($this->_course_state_cache[$key])) return $this->_course_state_cache[$key];
+
+        $out = array('total' => 0, 'done' => 0, 'percent' => 0, 'next_lesson_id' => null,
+                     'resume_lesson_id' => null, 'resume_pos' => 0, 'lessons' => array());
+
+        $lessons = $this->ordered_lessons($course_id);
+        if (!$lessons) return $this->_course_state_cache[$key] = $out;
+
+        $ids = array();
+        foreach ($lessons as $l) $ids[] = (int) $l['id'];
+
+        $map = array();
+        if ($student_id > 0) {
+            foreach ($this->db->select('lesson_id, completed_at, mastered_at, position_sec, last_ping_at')
+                              ->where('student_id', $student_id)->where_in('lesson_id', $ids)
+                              ->get('lesson_progress')->result_array() as $p) {
+                $map[(int) $p['lesson_id']] = $p;
+            }
+        }
+        $reviews = array();
+        foreach ($this->db->select('lesson_id')->where('type', 'review')->where_in('lesson_id', $ids)
+                          ->get('assessments')->result_array() as $r) {
+            $reviews[(int) $r['lesson_id']] = true;
+        }
+
+        $prev_done = true; $prev_title = null; $best = null;
+        foreach ($lessons as $pos => $l) {
+            $id   = (int) $l['id'];
+            $p    = isset($map[$id]) ? $map[$id] : null;
+            $done = $p && (isset($reviews[$id]) ? !empty($p['mastered_at']) : !empty($p['completed_at']));
+            $open = ($pos === 0) || ((int) $l['is_free'] === 1) || $prev_done;
+            $quiz = ((string) $l['lesson_type'] === 'quiz');
+
+            $row = array(
+                'done'           => $done,
+                'locked'         => !$open,
+                'blocking_title' => $open ? null : (string) $prev_title,
+                'completed'      => $p && !empty($p['completed_at']),
+                'position'       => $p ? (int) $p['position_sec'] : 0,
+                'ping'           => $p ? (string) $p['last_ping_at'] : '',
+                'title'          => (string) $l['title'],
+                'is_quiz'        => $quiz,
+                'order'          => $pos,
+            );
+            $out['lessons'][$id] = $row;
+
+            if (!$quiz) {
+                $out['total']++;
+                if ($done) $out['done']++;
+                if ($open && !$done && $out['next_lesson_id'] === null) $out['next_lesson_id'] = $id;
+                /* الاستئناف: أحدث درس **مفتوح** بدأه ولم يكمله — والعتبة
+                   خمس عشرة ثانية كما في `Taqdar_learn_model::resume_lesson()`. */
+                if ($open && !$row['completed'] && $row['position'] > 15
+                    && ($best === null || strcmp($row['ping'], $out['lessons'][$best]['ping']) > 0)) {
+                    $best = $id;
+                }
+            }
+
+            $prev_done  = $done;
+            $prev_title = $l['title'];
+        }
+
+        $out['percent'] = $out['total'] > 0 ? (int) round($out['done'] * 100 / $out['total']) : 0;
+        /* والوجهة درس يفتح دائما: ما وقف فيه، وإلا أول مفتوح لم ينجز، وإلا الأول. */
+        $out['resume_lesson_id'] = $best !== null ? $best
+            : ($out['next_lesson_id'] !== null ? $out['next_lesson_id'] : $ids[0]);
+        $out['resume_pos'] = $best !== null ? $out['lessons'][$best]['position'] : 0;
+
+        return $this->_course_state_cache[$key] = $out;
+    }
+    private $_course_state_cache = array();
+
     public function is_lesson_unlocked($student_id, $lesson_id)
     {
         $s = $this->lesson_lock_state($student_id, $lesson_id);
@@ -2011,38 +2106,111 @@ class Taqdar_repo_model extends CI_Model
      *  المراجعة المتباعدة ودفتر الأخطاء
      * ================================================================ */
 
-    /** دفعة اليوم: ١٠ أسئلة مستحقة، بالأسبق موعدا ثم بالأصعب. */
-    public function get_due_reviews($student_id, $limit = 10)
+    /**
+     * دفعة اليوم: ١٠ أسئلة مستحقة، بالأسبق موعدا ثم بالأصعب.
+     *
+     * TQ-REVIEW-SOURCE — **الدرس من الهدف، وإلا من اختبار السؤال.** كان الدرس
+     * يشتق من `objectives` وحده، والسؤال المؤلف في اختبار الدرس بلا هدف
+     * (`question.assessment_id`) يخرج بلا درس ولا كورس: بطاقة بلا مصدر، ولا
+     * «راجع الدرس» بعد الخطأ. والدرس معروف من التقييم نفسه.
+     *
+     * و`$exclude` ما تخطاه الطالب في الجلسة: «تابع الدفعة التالية» كانت تعيد
+     * الأسئلة المتخطاة نفسها أول الدفعة، فلا يصل إلى ما بعدها أبدا.
+     */
+    public function get_due_reviews($student_id, $limit = 10, $exclude = array())
     {
         $student_id = (int) $student_id;
         $limit      = (int) $limit;
         if ($limit <= 0) $limit = (int) $this->setting('review_daily_batch', 10);
         $limit = min(50, $limit);
 
+        $skip = array_values(array_filter(array_map('intval', (array) $exclude)));
+
         $sql = 'SELECT rq.`id` AS queue_id, rq.`question_id`, rq.`due_at`, rq.`interval_days`,
                        rq.`ease`, rq.`lapses`,
                        q.`title`, q.`type`, q.`number_of_options`, q.`options`, q.`objective_id`,
-                       o.`text` AS objective_text, o.`at_second`, o.`lesson_id`,
+                       o.`text` AS objective_text, o.`at_second`,
+                       COALESCE(o.`lesson_id`, qa.`lesson_id`) AS lesson_id,
                        l.`title` AS lesson_title, l.`course_id`, c.`title` AS course_title
                 FROM `review_queue` rq
                 JOIN `question` q ON q.`id` = rq.`question_id`
                 LEFT JOIN `objectives` o ON o.`id` = q.`objective_id`
-                LEFT JOIN `lesson` l ON l.`id` = o.`lesson_id`
+                LEFT JOIN `assessments` qa ON qa.`id` = q.`assessment_id`
+                LEFT JOIN `lesson` l ON l.`id` = COALESCE(o.`lesson_id`, qa.`lesson_id`)
                 LEFT JOIN `course` c ON c.`id` = l.`course_id`
-                WHERE rq.`student_id` = ? AND rq.`due_at` <= ?
+                WHERE rq.`student_id` = ? AND rq.`due_at` <= ?'
+             . ($skip ? ' AND rq.`question_id` NOT IN (' . implode(',', $skip) . ')' : '') . '
                 ORDER BY rq.`due_at` ASC, rq.`lapses` DESC, rq.`ease` ASC, rq.`id` ASC
                 LIMIT ' . $limit;
 
-        $rows = $this->db->query($sql, array($student_id, $this->now()))->result_array();
+        $now  = $this->now();
+        $rows = $this->db->query($sql, array($student_id, $now))->result_array();
         foreach ($rows as &$r) {
             $r['options'] = $r['options'] ? json_decode($r['options'], true) : array();
             $r['ease']    = (float) $r['ease'];
             $this->cast_ints($r, array('queue_id', 'question_id', 'interval_days', 'lapses',
                                        'number_of_options', 'objective_id', 'at_second',
                                        'lesson_id', 'course_id'));
+            /* كم تأخر: طابور متأخر أسابيع كان يعرض كأنه مستحق اليوم. */
+            $r['overdue_days'] = max(0, (int) floor((strtotime($now) - strtotime($r['due_at'])) / 86400));
         }
         unset($r);
         return $rows; // بلا correct_answers — التصحيح في الخادم
+    }
+
+    /**
+     * ما في الطابور كله وأقرب موعد قادم — لنص الحالة الفارغة.
+     * «أسئلتك في موعدها البعيد» كانت تقال لمن لا سؤال له مجدولا أصلا.
+     */
+    public function review_outlook($student_id)
+    {
+        $r = $this->db->query(
+            'SELECT COUNT(*) AS total, MIN(CASE WHEN rq.`due_at` > ? THEN rq.`due_at` END) AS next_due
+               FROM `review_queue` rq JOIN `question` q ON q.`id` = rq.`question_id`
+              WHERE rq.`student_id` = ?',
+            array($this->now(), (int) $student_id))->row_array();
+        $next = (string) ($r['next_due'] ?? '');
+        return array(
+            'scheduled_total' => (int) ($r['total'] ?? 0),
+            'next_due_at'     => $next !== '' ? $next : null,
+            'next_due_days'   => $next !== '' ? max(0, (int) ceil((strtotime($next) - time()) / 86400)) : null,
+        );
+    }
+
+    /**
+     * TQ-MISTAKE-CLEAR — سجل إجابات التدريب.
+     *
+     * كان التدريب لا يكتب شيئا يقرؤه الدفتر: الدفتر يشتق من `answers` حيث
+     * `is_correct = 0`، والتدريب لا يكتب في `answers`. فالسؤال الذي أتقنه
+     * الطالب يبقى في دفتره إلى الأبد بعدد أخطائه القديم، وبطاقة «ما زال
+     * خاطئا» ثابتة مهما أجاب. والجدول سجل لا حكم: الحكم في `get_mistakes()`.
+     */
+    public function ensure_practice_schema()
+    {
+        static $done = false;
+        if ($done) return;
+        $done = true;
+        $this->db->query(
+            'CREATE TABLE IF NOT EXISTS `tq_practice_log` (
+                `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `student_id`  INT UNSIGNED NOT NULL,
+                `question_id` INT UNSIGNED NOT NULL,
+                `correct`     TINYINT(1)   NOT NULL DEFAULT 0,
+                `answered_at` DATETIME     NOT NULL,
+                PRIMARY KEY (`id`),
+                KEY `ix_student_question` (`student_id`, `question_id`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+    }
+
+    public function log_practice($student_id, $question_id, $correct)
+    {
+        $this->ensure_practice_schema();
+        $this->db->insert('tq_practice_log', array(
+            'student_id'  => (int) $student_id,
+            'question_id' => (int) $question_id,
+            'correct'     => $correct ? 1 : 0,
+            'answered_at' => $this->now(),
+        ));
     }
 
     /** عدد المستحق اليوم (للشارات في القائمة). */
@@ -2132,8 +2300,11 @@ class Taqdar_repo_model extends CI_Model
      */
     public function get_mistakes($student_id)
     {
+        $student_id = (int) $student_id;
+        /* TQ-REVIEW-SOURCE — الدرس من الهدف، وإلا من اختبار السؤال. */
         $sql = 'SELECT a.`question_id`, q.`title`, q.`type`, q.`objective_id`,
-                       o.`text` AS objective_text, o.`at_second`, o.`lesson_id`,
+                       o.`text` AS objective_text, o.`at_second`,
+                       COALESCE(o.`lesson_id`, qa.`lesson_id`) AS lesson_id,
                        l.`title` AS lesson_title, l.`course_id`, c.`title` AS course_title,
                        COUNT(*) AS wrong_count,
                        MAX(at.`submitted_at`) AS last_wrong_at,
@@ -2142,22 +2313,61 @@ class Taqdar_repo_model extends CI_Model
                 JOIN `attempts` at ON at.`id` = a.`attempt_id`
                 JOIN `question` q ON q.`id` = a.`question_id`
                 LEFT JOIN `objectives` o ON o.`id` = q.`objective_id`
-                LEFT JOIN `lesson` l ON l.`id` = o.`lesson_id`
+                LEFT JOIN `assessments` qa ON qa.`id` = q.`assessment_id`
+                LEFT JOIN `lesson` l ON l.`id` = COALESCE(o.`lesson_id`, qa.`lesson_id`)
                 LEFT JOIN `course` c ON c.`id` = l.`course_id`
                 LEFT JOIN `review_queue` rq ON rq.`question_id` = a.`question_id`
                                            AND rq.`student_id` = at.`student_id`
                 WHERE at.`student_id` = ? AND a.`is_correct` = 0
                 GROUP BY a.`question_id`, q.`title`, q.`type`, q.`objective_id`,
-                         o.`text`, o.`at_second`, o.`lesson_id`, l.`title`, l.`course_id`,
+                         o.`text`, o.`at_second`, COALESCE(o.`lesson_id`, qa.`lesson_id`),
+                         l.`title`, l.`course_id`,
                          c.`title`, rq.`due_at`, rq.`lapses`, rq.`interval_days`
                 ORDER BY wrong_count DESC, last_wrong_at DESC';
-        $rows = $this->db->query($sql, array((int) $student_id))->result_array();
-        foreach ($rows as &$r) {
+        $rows = $this->db->query($sql, array($student_id))->result_array();
+        if (!$rows) return array();
+
+        /* ── TQ-MISTAKE-CLEAR — الدفتر يفرغ ─────────────────────────────
+           السؤال يخرج من الدفتر متى أجابه الطالب صوابا **بعد** آخر خطأ فيه —
+           في اختبار لاحق أو في التدريب. وخطأ جديد في التدريب يعيده. فبطاقة
+           «سؤالا في دفترك» تنقص بما أتقن، لا تبقى على أخطاء الشهر الماضي. */
+        $ids = array_map(static function ($r) { return (int) $r['question_id']; }, $rows);
+        $in  = implode(',', $ids);
+
+        $right = array();
+        foreach ($this->db->query(
+            'SELECT a.`question_id`, MAX(at.`submitted_at`) AS t
+               FROM `answers` a JOIN `attempts` at ON at.`id` = a.`attempt_id`
+              WHERE at.`student_id` = ? AND a.`is_correct` = 1 AND a.`question_id` IN (' . $in . ')
+              GROUP BY a.`question_id`', array($student_id))->result_array() as $x) {
+            $right[(int) $x['question_id']] = (string) $x['t'];
+        }
+
+        $this->ensure_practice_schema();
+        $prac = array();
+        foreach ($this->db->query(
+            'SELECT `question_id`,
+                    MAX(CASE WHEN `correct` = 1 THEN `answered_at` END) AS ok_at,
+                    MAX(CASE WHEN `correct` = 0 THEN `answered_at` END) AS bad_at
+               FROM `tq_practice_log`
+              WHERE `student_id` = ? AND `question_id` IN (' . $in . ')
+              GROUP BY `question_id`', array($student_id))->result_array() as $x) {
+            $prac[(int) $x['question_id']] = $x;
+        }
+
+        $out = array();
+        foreach ($rows as $r) {
+            $qid  = (int) $r['question_id'];
+            $bad  = max((string) $r['last_wrong_at'], (string) ($prac[$qid]['bad_at'] ?? ''));
+            $good = max((string) ($right[$qid] ?? ''), (string) ($prac[$qid]['ok_at'] ?? ''));
+            if ($good !== '' && strcmp($good, $bad) > 0) continue;   // أتقنه بعد آخر خطأ
+
+            $r['last_wrong_at'] = $bad !== '' ? $bad : null;
             $this->cast_ints($r, array('question_id', 'objective_id', 'at_second', 'lesson_id',
                                        'course_id', 'wrong_count', 'lapses', 'interval_days'));
+            $out[] = $r;
         }
-        unset($r);
-        return $rows;
+        return $out;
     }
 
     /* ================================================================

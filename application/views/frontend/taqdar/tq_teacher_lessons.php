@@ -58,11 +58,19 @@ $tq_secs_of = static function ($hms) {
     if ($n === 2) return $p[0] * 60 + $p[1];
     return $n === 1 ? $p[0] : 0;
 };
+/* TQ-DUR-RICH — المدة بصيغة بطاقات الطالب نفسها (`tq_s_hours_rich()`): الرقم
+   بحجم القيمة والوحدة أصغر بجواره (`.tq-unit`)، وكل رقم معزول وحده فلا
+   يقلب الاتجاه ترتيب «س» و«د». وكانت هنا نصا واحدا «13 س 51 د» بخط التسمية،
+   فتقرأ المدة بصيغة في هذه الشاشة وبأخرى في غيرها. والدالة لا تستورد من
+   `tq_student_styles.php` لأن ضمه يطبع ورقة الطالب كلها (انظر أعلاه). */
 $tq_hours_of = static function ($seconds) {
     $s = max(0, (int) $seconds);
     $h = intdiv($s, 3600);
     $m = intdiv($s % 3600, 60);
-    return $h > 0 ? $h . t(' س ') . $m . t(' د') : $m . t(' د');
+    $u = static function ($w) { return '<span class="tq-unit">' . html_escape($w) . '</span>'; };
+    return $h > 0
+        ? tq_iso((string) $h) . $u(t('س')) . tq_iso((string) $m) . $u(t('د'))
+        : tq_iso((string) $m) . $u(t('د'));
 };
 
 /* الكل مرة (للأعداد التي لا تتبدل بالتصفية) والمصفى مرة. */
@@ -463,24 +471,24 @@ html[dir='rtl'] .tq-lgroup[open] .tq-lgroup__mark { transform: rotate(-90deg); }
     <aside class="tq-aside">
         <div class="tq-card">
             <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('ملخص'); ?></h2></div>
-            <ul class="tq-stack">
-                <li class="tq-row tq-row--between">
-                    <span class="tq-caption"><?php echo t('دروسك'); ?></span>
-                    <?php echo tq_num($tq_n['lesson']); ?>
+            <?php /* TQ-KV — القيم الأربع بوسم واحد: كانت المدة وحدها بخط التسمية
+                     الصغير بين ثلاثة أرقام كبيرة، فتقرأ حاشية لا قيمة. */ ?>
+            <ul class="tq-kv">
+                <li class="tq-kv__row">
+                    <span class="tq-kv__k"><?php echo t('دروسك'); ?></span>
+                    <span class="tq-kv__v"><?php echo tq_num($tq_n['lesson']); ?></span>
                 </li>
-                <li class="tq-row tq-row--between">
-                    <span class="tq-caption"><?php echo t('اختباراتك'); ?></span>
-                    <?php echo tq_num($tq_n['quiz']); ?>
+                <li class="tq-kv__row">
+                    <span class="tq-kv__k"><?php echo t('اختباراتك'); ?></span>
+                    <span class="tq-kv__v"><?php echo tq_num($tq_n['quiz']); ?></span>
                 </li>
-                <li class="tq-row tq-row--between">
-                    <span class="tq-caption"><?php echo t('مدة دروسك'); ?></span>
-                    <?php /* `tq_iso` لا `tq_num`: «١٢ س ٤٥ د» نص عربي فيه أرقام،
-                             وعزله كوحدة يسارية يقلب ترتيبه. */ ?>
-                    <span class="tq-caption"><?php echo $tq_seconds > 0 ? tq_iso($tq_hours_of($tq_seconds)) : '—'; ?></span>
+                <li class="tq-kv__row">
+                    <span class="tq-kv__k"><?php echo t('مدة دروسك'); ?></span>
+                    <span class="tq-kv__v"><?php echo $tq_seconds > 0 ? $tq_hours_of($tq_seconds) : '—'; ?></span>
                 </li>
-                <li class="tq-row tq-row--between">
-                    <span class="tq-caption"><?php echo t('كورساتك'); ?></span>
-                    <?php echo tq_num(count($tq_my_courses)); ?>
+                <li class="tq-kv__row">
+                    <span class="tq-kv__k"><?php echo t('كورساتك'); ?></span>
+                    <span class="tq-kv__v"><?php echo tq_num(count($tq_my_courses)); ?></span>
                 </li>
             </ul>
             <a class="tq-btn tq-btn--primary tq-btn--block" style="margin-block-start:var(--tq-space-l)"

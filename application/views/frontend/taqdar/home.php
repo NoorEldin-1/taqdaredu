@@ -74,7 +74,7 @@ css: pages
                 التشغيل فعلا — زر يوقف ما لا يتحرك تشويش. */ ?>
         <button class="hero__vtoggle" type="button" data-tq-hero-toggle hidden
                 aria-label="إيقاف الخلفية المتحركة">
-          <svg aria-hidden="true"><use href="#i-close"></use></svg>
+          <svg aria-hidden="true"><use href="#i-pause"></use></svg>
         </button>
         <span class="hero__scrim" aria-hidden="true"></span>
       </div>
@@ -204,6 +204,14 @@ foreach ($tq_why as $w):
   </div>
 </section>
 
+
+<?php /* ══════════════════════════════════════════════════════════════
+        مسارات التأسيس — بعد الباقات لا قبلها: من جاء لباقة يحسم أمره
+        أولا، ومن لم يرد منهج صف يجد الباب الثاني قبل أن ينصرف.
+        والمولد واحد مع صفحة الباقات (`tqs_foundation_band()`)، ولا
+        يطبع شيئا بلا مسار منشور.
+        ══════════════════════════════════════════════════════════════ */ ?>
+<?php echo tqs_foundation_band(); ?>
 
 <!-- ══════════ الجامعات ══════════ -->
 <?php $tq_unis = tqs_universities(); ?>

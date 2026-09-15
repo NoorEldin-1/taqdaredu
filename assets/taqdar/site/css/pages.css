@@ -648,6 +648,14 @@
 .side-read span:not(.tq-ltr){display:block;margin-block-start:3px;
   font-size:clamp(9.5px,.72vw,11.5px);color:var(--ink-3)}
 .side-read a:hover b{color:var(--gold-text)}
+/* TQ-SIDE-LINK — `tqs_side_reads()` تطبع الرابط نفسه بصنف `side-read`، والقواعد
+   أعلاه تصف أبناء حاوية لا وجود لها: فكانت «مقالات ذات صلة» نصا بلا أثر رابط
+   ولا تحويم، ولا يعرف قارئها أنها تنقر. */
+a.side-read{display:block;padding:10px 0;border-block-end:1px solid rgba(5,44,43,.08);
+  font-family:'Cairo',sans-serif;font-weight:600;font-size:clamp(12px,.9vw,14px);line-height:1.6;
+  color:var(--ink);text-decoration:none;transition:color .15s ease}
+a.side-read:last-of-type{border-block-end:0}
+a.side-read:hover,a.side-read:focus-visible{color:var(--gold-text);text-decoration:underline;text-underline-offset:4px}
 
 .newsletter{position:relative;overflow:hidden;border-radius:var(--r-card);color:#fff;
   background:linear-gradient(150deg,var(--petrol-deep),var(--petrol) 60%,#064B44);

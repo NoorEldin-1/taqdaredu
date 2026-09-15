@@ -619,7 +619,11 @@ class Taqdar_diag_model extends CI_Model
 
         /* الدور يشتق من الحارس الموحد لا بفحص `is_instructor` هنا: نسخة
            ثانية من الاشتقاق تفترق عن الاولى عند اول تعديل. */
-        if (function_exists('tq_role') && tq_role() !== 'student') return null;
+        /* TQ-PARENT-PLACEMENT — دور **صاحب الحساب المشترى له** لا دور الجلسة.
+           كان `tq_role()` بلا معامل يقرأ دور من سجل الدخول: فحين يشتري ولي
+           الأمر لابنه يقرأ «ولي أمر» فيرد «لا مانع» — ويشتري باقة لابن لم يؤد
+           اختبار صفه، والابن نفسه ممنوع من شرائها. والحارس واحد للبابين. */
+        if (function_exists('tq_role') && tq_role($user_id) !== 'student') return null;
 
         try {
             $grade_id = (int) $this->db->select('grade_id')->where('id', $user_id)

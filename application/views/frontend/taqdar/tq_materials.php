@@ -5,18 +5,18 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  * المواد التعليمية — ملفات دروس الطالب في مكان واحد.
  *
  * موصول بالقاعدة: resource_files (ملفات الدرس) ومرفقات lesson، في الكورسات
- * المسجلة وحدها (enrol)، وحجم كل ملف من القرص لا من عمود مخزن.
+ * المسجلة وحدها (enrol) ودروسها المنشورة وحدها، وحجم كل ملف من القرص.
  *
- * لكل نوع أيقونة ولون ثابتان في كل شاشة من المنصة — مصدرهما tq_file_kind()
- * في tq_student_styles.php. تغييرهما في شاشة واحدة يجعل الطالب يعيد التعرف
- * على النوع في كل صفحة.
+ * لكل نوع أيقونة ولون ثابتان في كل شاشة من المنصة — مصدرهما tq_file_kind().
+ * تغييرهما في شاشة واحدة يجعل الطالب يعيد التعرف على النوع في كل صفحة.
  *
- * بلا مصدر بعد — وقد فتشت القاعدة كلها قبل أن يقال ذلك:
- *   حصة التخزين: لا عمود في plans ولا في subscriptions ولا مفتاح في settings
- *   يحمل سعة مسموحة (plans.features نص تسويقي لا رقم). فلا نسبة ولا شريط،
- *   ويعرض الحجم الحقيقي المستهلك وحده.
- *   تفضيل المواد: users.wishlist معرفات كورسات لا ملفات، ولا جدول تفضيل
- *   للملفات. فحالة فارغة صادقة لا بطاقات وهمية.
+ * TQ-MATERIAL-GATE — **كل رابط تحميل رابط حارس** (`student/material/…`) لا
+ * مسار في `uploads/`: المجلد مغلق على الويب، والحارس يفحص الاستحقاق وقفل
+ * الدرس. وملف درس مقفل يعرض مقفلا باسم الدرس الذي يفتحه.
+ *
+ * والمفضلة من `tq_favourites` (نوع `material`) — القلب في كل صف يكتب فيها،
+ * واللوح الجانبي يقرأ منها. وحصة التخزين وحدها بلا مصدر: لا عمود سعة في
+ * plans ولا في subscriptions، فيعرض الحجم الحقيقي المستهلك وحده.
  */
 include 'tq_student_styles.php';
 include 'tq_student_data.php';
@@ -40,8 +40,21 @@ $tq_types = [
     'slide' => t('عروض تقديمية'),
     'audio' => t('ملفات صوتية'),
     'image' => t('صور'),
+    /* المستند (Word · Excel · نص · مضغوط) نوع سابع يعرفه `tq_file_kind()`
+       ولم يكن له زر: ملف Word يظهر تحت «الكل» وحده ولا تصفية تصل إليه. */
+    'doc'   => t('مستندات'),
     'link'  => t('روابط خارجية'),
 ];
+
+/* المادة لا الكورس. `tq_s_subject()` ترد عنوان الكورس حين لا مادة مسجلة له،
+   فيقرأ التصنيف «الرياضيات — الصف الرابع» و«الرياضيات — الصف الخامس» مادتين.
+   وعناوين الكورسات تكتب «<المادة> — <الصف>»، فالمقطع الأول هو المادة. */
+$tq_subject_of = static function ($m) {
+    $s = trim((string) $m['subject']);
+    if ($s !== '' && $s !== trim((string) $m['course'])) return $s;
+    $parts = preg_split('/\s+[—–-]\s+/u', trim((string) $m['course']), 2);
+    return trim((string) ($parts[0] ?? $m['course']));
+};
 
 $f_type = (string) $this->input->get('type', true);
 if (!isset($tq_types[$f_type])) $f_type = '';
@@ -54,7 +67,7 @@ $tq_bytes = 0;
 foreach ($tq_all as $m) {
     $k = $m['kind']['key'];
     $tq_by_type[$k] = ($tq_by_type[$k] ?? 0) + 1;
-    $s = $m['subject'] !== '' ? $m['subject'] : $m['course'];
+    $s = $tq_subject_of($m);
     $tq_by_subject[$s] = ($tq_by_subject[$s] ?? 0) + 1;
     $tq_bytes += $m['bytes'];
 }
@@ -91,6 +104,9 @@ $tq_quota = 0;
 $tq_CI_fav  = get_instance();
 $tq_CI_fav->load->model('taqdar_favourites_model');
 $tq_fav_on  = array_flip($tq_CI_fav->taqdar_favourites_model->ids($tq_uid, 'material'));
+/* اللوح الجانبي «المواد المفضلة» كان حالة فارغة ثابتة مهما حفظ الطالب. */
+$tq_fav_rows = $tq_CI_fav->taqdar_favourites_model->materials($tq_uid);
+$tq_CI_fav->load->model('taqdar_student_model', 'tq_stu');
 
 $tq_fav_btn = static function ($id, $on, $title) use ($f_type, $f_q) {
     ob_start(); ?>
@@ -225,11 +241,18 @@ include 'portal_open.php';
                                                 <span>
                                                     <span class="tq-s-item__t"><?php echo html_escape($m['title']); ?></span>
                                                     <span class="tq-s-item__s"><?php echo html_escape($m['lesson']); ?></span>
+                                                    <?php if (!empty($m['locked'])): ?>
+                                                        <span class="tq-s-item__s">
+                                                            <?php echo $m['lock_hint'] !== ''
+                                                                ? te('يفتح بعد إكمال درس «____»', array(html_escape($m['lock_hint'])))
+                                                                : t('يفتح مع درسه'); ?>
+                                                        </span>
+                                                    <?php endif; ?>
                                                 </span>
                                             </span>
                                         </td>
                                         <td data-label="<?php echo te('المادة'); ?>">
-                                            <span class="tq-badge tq-badge--progress"><?php echo html_escape($m['subject'] !== '' ? $m['subject'] : $m['course']); ?></span>
+                                            <span class="tq-badge tq-badge--progress"><?php echo html_escape($tq_subject_of($m)); ?></span>
                                         </td>
                                         <td data-label="<?php echo te('النوع'); ?>"><?php echo html_escape($k['label']); ?></td>
                                         <td data-label="<?php echo te('الحجم'); ?>">
@@ -240,12 +263,20 @@ include 'portal_open.php';
                                         </td>
                                         <td data-label="<?php echo te('الإجراء'); ?>">
                                             <span class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:nowrap">
+                                                <?php if (!empty($m['locked'])): ?>
+                                                    <?php /* الملف يفتح مع درسه: زر تحميل هنا يرده الحارس بـ403. */ ?>
+                                                    <span class="tq-btn tq-btn--secondary tq-btn--sm" aria-disabled="true" style="opacity:.6;cursor:not-allowed">
+                                                        <?php echo tq_icon('lock', 16); ?> <?php echo t('مقفل'); ?>
+                                                        <span class="tq-sr"><?php echo html_escape($m['title']); ?></span>
+                                                    </span>
+                                                <?php else: ?>
                                                 <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($m['url']); ?>"
-                                                   <?php echo $k['key'] === 'link' ? 'rel="noopener"' : 'download'; ?>>
+                                                   <?php echo $k['key'] === 'link' ? 'rel="noopener" target="_blank"' : 'download'; ?>>
                                                     <?php echo tq_icon($k['key'] === 'link' ? 'play' : 'download', 16); ?>
                                                     <?php echo $k['key'] === 'link' ? t('فتح') : t('تحميل'); ?>
                                                     <span class="tq-sr"><?php echo html_escape($m['title']); ?></span>
                                                 </a>
+                                                <?php endif; ?>
                                                 <?php /* القلب على ملفات `resource_files` وحدها — مرفق الدرس
                                                          بلا معرف ثابت يفضل به، انظر `fav_id` في tq_s_materials. */ ?>
                                                 <?php if (!empty($m['fav_id'])) echo $tq_fav_btn((int) $m['fav_id'], isset($tq_fav_on[(int) $m['fav_id']]), $m['title']); ?>
@@ -336,18 +367,37 @@ include 'portal_open.php';
                href="<?php echo base_url('plans'); ?>"><?php echo t('إدارة الباقة'); ?></a>
         </section>
 
-        <!-- المواد المفضلة: تفضيل الملفات لا مصدر له بعد (wishlist للكورسات). -->
+        <!-- المواد المفضلة: من tq_favourites، والقلب في كل صف يكتب فيها. -->
         <section class="tq-card tq-card--panel">
             <div class="tq-card__head">
                 <h2 class="tq-card__title"><?php echo t('المواد المفضلة'); ?></h2>
                 <span class="tq-pastel__icon" aria-hidden="true"><?php echo tq_icon('heart'); ?></span>
             </div>
-            <?php echo tq_s_empty(
-                'heart', 'rose',
-                t('لا مواد مفضلة'),
-                t('أضف أي ملف إلى مفضلتك ليظهر هنا وتصل إليه دون بحث.'),
-                '', '', true
-            ); ?>
+            <?php if (!$tq_fav_rows): ?>
+                <?php echo tq_s_empty(
+                    'heart', 'rose',
+                    t('لا مواد مفضلة'),
+                    t('اضغط القلب بجوار أي ملف ليظهر هنا وتصل إليه دون بحث.'),
+                    '', '', true
+                ); ?>
+            <?php else: ?>
+                <ul class="tq-s-list">
+                    <?php foreach (array_slice($tq_fav_rows, 0, 5) as $i => $fr): ?>
+                        <li class="tq-row tq-row--between">
+                            <a class="tq-caption tq-s-trunc" style="color:var(--tq-navy)" download
+                               href="<?php echo html_escape($tq_CI_fav->tq_stu->material_url('file', (int) $fr['id'])); ?>">
+                                <?php echo html_escape($fr['title'] !== '' ? $fr['title'] : $fr['file_name']); ?>
+                            </a>
+                            <span class="tq-micro"><?php echo html_escape(tq_file_kind($fr['file_name'])['label']); ?></span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <?php if (count($tq_fav_rows) > 5): ?>
+                    <a class="tq-btn tq-btn--ghost tq-btn--sm tq-btn--block" href="<?php echo base_url('student/favourites?type=materials'); ?>">
+                        <?php echo te('كل المواد المفضلة (____)', array((int) count($tq_fav_rows))); ?>
+                    </a>
+                <?php endif; ?>
+            <?php endif; ?>
         </section>
 
     </aside>

@@ -5,13 +5,14 @@
  * المفضلة مجمعة بالنوع لا مخلوطة في شبكة واحدة: الدرس والمادة والكورس
  * ثلاثة أشياء يفعل بها الطالب ثلاثة أفعال مختلفة، فخلطها يجعل الشاشة كومة.
  *
- * مصدر التفضيل الوحيد في قاعدة taqd_lms هو users.wishlist (معرفات كورسات)،
- * فقسم الكورسات موصول ببيانات حقيقية، وتقدمه من watch_histories، و«الأكثر
- * استخداما» من watched_duration — وقت مشاهدة مسجل لا عداد مخترع.
+ * الكورسات من users.wishlist، والدروس والملفات من tq_favourites، و«الأكثر
+ * مشاهدة» من watched_duration — وقت مشاهدة مسجل لا عداد مخترع.
  *
- * أما تفضيل درس بعينه أو ملف تعليمي بعينه أو قائمة باسم الطالب فلا جدول
- * لأي منها بعد — ولذلك يعرض في قسمه حالة فارغة صحيحة تشرح ما سيظهر
- * وتضع الزر الذي يبدأ الفعل، لا بطاقات وهمية.
+ * وثلاثة أمور تقال لا يسكت عنها: **الدرس المقفل يعرض مقفلا** باسم ما يفتحه
+ * (بطاقة بزر تشغيل على درس يرده القفل تعطل عند أول ضغطة)، و**الملف يحمل من
+ * الحارس** (TQ-MATERIAL-GATE) لا من رابط عار، و**الكورس الذي نزل إلى مسودة لا
+ * يعرض** إلا لمن هو مسجل فيه. ولا قسم «قوائم مخصصة»: لا ميزة قوائم في المنصة،
+ * ولوح يشرح ميزة لا توجد وعد لا يفي به شيء.
  */
 
 /* هذان الملفان يحملان `tq_s_*` و`tq_file_kind` — وهي دوال عرض تعيش في
@@ -61,9 +62,17 @@ $tq_wishlist     = is_array($tq_wishlist) ? array_values(array_filter(array_map(
 
 $tq_fav_courses = [];
 if ($tq_wishlist) {
-    $tq_fav_courses = $this->db->select('id, title, thumbnail, user_id, price, discounted_price, discount_flag')
+    $tq_fav_courses = $this->db->select('id, title, thumbnail, user_id, price, discounted_price, discount_flag, status')
         ->where_in('id', $tq_wishlist)
         ->get('course')->result_array();
+
+    /* المحذوف يسقط من القائمة المخزنة نفسها لا من العرض وحده. */
+    $tq_found = array_map(static function ($c) { return (int) $c['id']; }, $tq_fav_courses);
+    $tq_gone  = array_values(array_diff($tq_wishlist, $tq_found));
+    if ($tq_gone) {
+        get_instance()->load->model('taqdar_favourites_model');
+        get_instance()->taqdar_favourites_model->forget_courses($uid, $tq_gone);
+    }
 }
 
 /* المسجل فيه من المفضلة — يحدد وجهة البطاقة: مشغل البوابة أم الصفحة العامة. */
@@ -74,6 +83,12 @@ if ($tq_fav_courses) {
                       ->get('enrol')->result_array() as $e) {
         $tq_fav_enrolled[(int) $e['course_id']] = true;
     }
+
+    /* كورس أنزلته الإدارة إلى مسودة أو مراجعة لا يعرض في مفضلة من لم يسجل
+       فيه: صفحته العامة لا تفتح له، والبطاقة تقوده إلى باب مغلق. */
+    $tq_fav_courses = array_values(array_filter($tq_fav_courses, static function ($c) use ($tq_fav_enrolled) {
+        return (string) $c['status'] === 'active' || isset($tq_fav_enrolled[(int) $c['id']]);
+    }));
 }
 
 /* تقدم الطالب في كل كورس مفضل — من watch_histories */
@@ -134,31 +149,50 @@ if ($tq_fav_courses) {
 $tq_CI_fav = get_instance();
 $tq_CI_fav->load->model('taqdar_favourites_model');
 $tq_fav_m = $tq_CI_fav->taqdar_favourites_model;
+$tq_CI_fav->load->model('taqdar_repo_model');
+$tq_CI_fav->load->model('taqdar_student_model', 'tq_stu');
+
+/* القفل من `lesson_lock_state()` نفسها التي تحرس المشغل — والملف يفتح مع درسه. */
+$tq_lock_cache = [];
+$tq_lock_of = static function ($lesson_id) use ($tq_CI_fav, $uid, &$tq_lock_cache) {
+    $lesson_id = (int) $lesson_id;
+    if (!isset($tq_lock_cache[$lesson_id])) {
+        $s = $tq_CI_fav->taqdar_repo_model->lesson_lock_state($uid, $lesson_id);
+        $tq_lock_cache[$lesson_id] = [
+            'locked' => empty($s['found']) || empty($s['unlocked']),
+            'hint'   => trim((string) ($s['blocking_lesson_title'] ?? '')),
+        ];
+    }
+    return $tq_lock_cache[$lesson_id];
+};
 
 $tq_fav_lessons = [];
 foreach ($tq_fav_m->lessons($uid) as $l) {
+    $lk = $tq_lock_of($l['id']);
     $tq_fav_lessons[] = [
-        'id'       => (int) $l['id'],
-        'title'    => (string) $l['title'],
-        'duration' => tq_s_clock(tq_s_secs($l['duration'])),
-        'subject'  => tq_s_subject($l['category_id'], $l['course_title'], (int) $l['course_id']),
-        'href'     => tq_s_lesson_url((int) $l['course_id'], (int) $l['id']),
+        'id'        => (int) $l['id'],
+        'title'     => (string) $l['title'],
+        'duration'  => tq_s_clock(tq_s_secs($l['duration'])),
+        'subject'   => tq_s_subject($l['category_id'], $l['course_title'], (int) $l['course_id']),
+        'href'      => tq_s_lesson_url((int) $l['course_id'], (int) $l['id']),
+        'locked'    => $lk['locked'],
+        'lock_hint' => $lk['hint'],
     ];
 }
 
 $tq_fav_materials = [];
 foreach ($tq_fav_m->materials($uid) as $f) {
-    $rel = 'uploads/resource_files/' . $f['file_name'];
+    $lk = $tq_lock_of($f['lesson_id']);
     $tq_fav_materials[] = [
-        'id'     => (int) $f['id'],
-        'title'  => $f['title'] !== '' ? (string) $f['title'] : (string) $f['file_name'],
-        'ext'    => tq_file_kind($f['file_name'])['key'],
-        'lesson' => (string) $f['lesson_title'],
-        'url'    => base_url($rel),
+        'id'        => (int) $f['id'],
+        'title'     => $f['title'] !== '' ? (string) $f['title'] : (string) $f['file_name'],
+        'ext'       => tq_file_kind($f['file_name'])['key'],
+        'lesson'    => (string) $f['lesson_title'],
+        'url'       => $tq_CI_fav->tq_stu->material_url('file', (int) $f['id']),
+        'locked'    => $lk['locked'],
+        'lock_hint' => $lk['hint'],
     ];
 }
-
-$tq_lists = [];   // لا جدول قوائم مخصصة في القاعدة بعد
 
 $tq_total_fav = count($tq_fav_courses) + count($tq_fav_lessons) + count($tq_fav_materials);
 
@@ -356,17 +390,37 @@ include 'portal_open.php';
                 <div class="tq-cardgrid tq-stagger">
                     <?php foreach ($tq_fav_lessons as $i => $ls): ?>
                         <article class="tq-lesson-card">
+                            <?php if ($ls['locked']): ?>
+                                <?php /* مقفل يقال على البطاقة: «يفتح بعد …» لا زر تشغيل يرده القفل. */ ?>
+                                <div class="tq-lesson-card__cover" style="opacity:.75">
+                                    <span class="tq-lesson-card__play" aria-hidden="true"><?php echo tq_icon('lock'); ?></span>
+                                    <span class="tq-lesson-card__time"><?php echo TQ_LRI . html_escape($ls['duration']) . TQ_PDI; ?></span>
+                                </div>
+                            <?php else: ?>
                             <a class="tq-lesson-card__cover" href="<?php echo html_escape($ls['href']); ?>"
                                aria-label="<?php echo html_escape(t('افتح درس ') . $ls['title']); ?>">
                                 <span class="tq-lesson-card__play" aria-hidden="true"><?php echo tq_icon('play'); ?></span>
                                 <span class="tq-lesson-card__time"><?php echo TQ_LRI . html_escape($ls['duration']) . TQ_PDI; ?></span>
                             </a>
+                            <?php endif; ?>
                             <div class="tq-lesson-card__body">
                                 <h3 class="tq-h2" style="font:var(--tq-type-bodyStrong);margin:0">
+                                    <?php if ($ls['locked']): ?>
+                                        <span style="color:var(--tq-navy)"><?php echo html_escape($ls['title']); ?></span>
+                                    <?php else: ?>
                                     <a href="<?php echo html_escape($ls['href']); ?>" style="color:var(--tq-navy)">
                                         <?php echo html_escape($ls['title']); ?>
                                     </a>
+                                    <?php endif; ?>
                                 </h3>
+                                <?php if ($ls['locked']): ?>
+                                    <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
+                                        <?php echo tq_icon('lock', 12); ?>
+                                        <?php echo $ls['lock_hint'] !== ''
+                                            ? te('مقفل — يفتح بعد إكمال درس «____»', array(html_escape($ls['lock_hint'])))
+                                            : t('مقفل حتى تصل إليه في ترتيب الكورس'); ?>
+                                    </p>
+                                <?php endif; ?>
                                 <div class="tq-lesson-card__foot">
                                     <span class="tq-micro"><?php echo html_escape($ls['subject']); ?></span>
                                     <?php echo $tq_heart('lesson', $ls['id'], t('الدرس')); ?>
@@ -414,12 +468,22 @@ include 'portal_open.php';
                                 <span style="flex:1;min-inline-size:0">
                                     <span class="tq-strong tq-s-trunc" style="display:block;color:var(--tq-navy)"><?php echo html_escape($f['title']); ?></span>
                                     <span class="tq-micro tq-s-trunc" style="display:block"><?php echo html_escape($f['lesson']); ?></span>
+                                    <?php if ($f['locked']): ?>
+                                        <span class="tq-micro tq-s-trunc" style="display:block">
+                                            <?php echo $f['lock_hint'] !== ''
+                                                ? te('يفتح بعد إكمال درس «____»', array(html_escape($f['lock_hint'])))
+                                                : t('يفتح مع درسه'); ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </span>
-                                <?php /* الملف يفتح فعلا، والقلب يزيله فعلا — لا بطاقة تعرض
-                                         اسما وحده ولا فعل تحتها. */ ?>
+                                <?php /* الملف يفتح فعلا من الحارس، والقلب يزيله فعلا. */ ?>
+                                <?php if ($f['locked']): ?>
+                                    <span class="tq-fav-heart" aria-label="<?php echo te('مقفل'); ?>" title="<?php echo te('مقفل'); ?>"><?php echo tq_icon('lock'); ?></span>
+                                <?php else: ?>
                                 <a class="tq-fav-heart" href="<?php echo html_escape($f['url']); ?>" download
                                    aria-label="<?php echo html_escape(t('تنزيل ') . $f['title']); ?>"
                                    title="<?php echo te('تنزيل '); ?>"><?php echo tq_icon('download'); ?></a>
+                                <?php endif; ?>
                                 <?php echo $tq_heart('material', $f['id'], t('الملف')); ?>
                             </div>
                         </article>
@@ -535,32 +599,6 @@ include 'portal_open.php';
                      `show_404()` بعد أن يكون قد طبع ترويسة الصفحة، فيرى الطالب نصف
                      صفحة ثم «404 Page Not Found». وهذه الشاشة **هي** إدارة المفضلة:
                      القلب في كل بطاقة يزيل، فلا وجهة ثانية تدير ما تديره هذه. */ ?>
-        </section>
-
-        <!-- القوائم المخصصة: لا جدول قوائم في القاعدة بعد -->
-        <section class="tq-card tq-card--panel" aria-labelledby="tq-lists-h">
-            <div class="tq-card__head"><h2 class="tq-card__title" id="tq-lists-h"><?php echo t('القوائم المخصصة'); ?></h2></div>
-            <?php if (!$tq_lists): ?>
-                <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
-                    <?php echo t('اجمع مفضلتك في قوائم باسمك: «مراجعة الاختبار النهائي» أو «دروس مهمة»، وسيظهر لكل قائمة عدد عناصرها هنا.'); ?>
-                </p>
-            <?php else: ?>
-                <ul class="tq-stack" style="margin-block-end:var(--tq-space-l)">
-                    <?php foreach ($tq_lists as $i => $l): ?>
-                        <li class="tq-row tq-row--between">
-                            <span class="tq-row">
-                                <span class="tq-icon-box tq-pastel--<?php echo tq_pastel($i); ?>" aria-hidden="true"><?php echo tq_icon('folder', 18); ?></span>
-                                <span>
-                                    <span class="tq-caption" style="display:block;color:var(--tq-navy)"><?php echo html_escape($l['name']); ?></span>
-                                    <span class="tq-micro"><?php echo tq_iso($l['count'] . t(' عناصر')); ?></span>
-                                </span>
-                            </span>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            <?php endif; ?>
-            <?php /* لا زر «إنشاء قائمة»: لا جدول قوائم في القاعدة، وزر لا
-                     يفعل شيئا يعد بما لا يقع — والوعد الكاذب أسوأ من غيابه. */ ?>
         </section>
 
         <!-- الأكثر مشاهدة: وقت مسجل من watched_duration، لا عداد فتح مخترع -->

@@ -1751,7 +1751,7 @@ class Home extends CI_Controller
                 }
             } else {
                 $this->session->set_userdata('gift_to_user_id', null);
-                $this->session->set_flashdata('error_message', site_phrase('Invalid email address'));
+                $this->session->set_flashdata('error_message', t('البريد الإلكتروني غير صحيح. اكتبه هكذا: name@example.com'));
                 redirect(site_url('home/shopping_cart'), 'refresh');
             }
         } else {
@@ -1796,10 +1796,17 @@ class Home extends CI_Controller
                     $data['created_at'] = time();
                     $this->db->insert('newsletter_subscriber', $data);
                 }
-                $response['success'] = get_phrase('Thanks for subscribing to our newsletter');
+                $response['success'] = t('اشتركت في نشرتنا البريدية، وتصلك المقالات الجديدة على بريدك.');
             } else {
-                $response['error'] = get_phrase('Invalid email address');
+                $response['error'] = t('البريد الإلكتروني غير صحيح. اكتبه هكذا: name@example.com');
             }
+        }
+
+        /* TQ-NEWSLETTER — نموذج المدونة يرسل إرسالا عاديا لا طلب AJAX، ورد JSON
+           عليه يطبع نصا خاما مكان الصفحة. فيعود إلى المدونة ومعه النتيجة. */
+        if (!$this->input->is_ajax_request() && get_frontend_settings('recaptcha_status_v3') != true) {
+            redirect(site_url('blog') . '?newsletter=' . (isset($response['success']) ? 'ok' : 'bad') . '#nlEmail', 'location', 303);
+            return;
         }
 
         if (get_frontend_settings('recaptcha_status_v3') == true) {
@@ -1866,23 +1873,23 @@ class Home extends CI_Controller
             }
 
             if (!filter_var($this->input->post('email'), FILTER_VALIDATE_EMAIL)) {
-                $this->session->set_flashdata('error_message', site_phrase('Invalid email address'));
+                $this->session->set_flashdata('error_message', t('البريد الإلكتروني غير صحيح. اكتبه هكذا: name@example.com'));
                 redirect('contact', 'refresh');
             }
 
 
             if (empty($this->input->post('i_agree')) || $this->input->post('i_agree') != '1') {
-                $this->session->set_flashdata('error_message', site_phrase('You should agree with our terms'));
+                $this->session->set_flashdata('error_message', t('وافق على الشروط وسياسة الخصوصية لإرسال رسالتك.'));
                 redirect('contact', 'refresh');
             }
 
             if ($this->input->post('first_name') == '') {
-                $this->session->set_flashdata('error_message', site_phrase('First name can not be empty'));
+                $this->session->set_flashdata('error_message', t('اكتب اسمك.'));
                 redirect('contact', 'refresh');
             }
 
             if ($this->input->post('message') == '') {
-                $this->session->set_flashdata('error_message', site_phrase('Message can not be empty'));
+                $this->session->set_flashdata('error_message', t('اكتب نص رسالتك.'));
                 redirect('contact', 'refresh');
             }
 
@@ -1935,7 +1942,7 @@ class Home extends CI_Controller
 
             if (!$verdict['ok']) {
                 if ($verdict['silent']) {
-                    $this->session->set_flashdata('flash_message', site_phrase('Your contact request has been sent successfully'));
+                    $this->session->set_flashdata('flash_message', t('وصلتنا رسالتك، وسيرد عليك فريق الدعم على بريدك في أقرب وقت.'));
                 } else {
                     $this->session->set_flashdata('error_message', $verdict['msg']);
                 }
@@ -1955,7 +1962,7 @@ class Home extends CI_Controller
                الجدول لأن بريدا لم يخرج. */
             $this->notify_contact($contact_id, $data);
 
-            $this->session->set_flashdata('flash_message', site_phrase('Your contact request has been sent successfully'));
+            $this->session->set_flashdata('flash_message', t('وصلتنا رسالتك، وسيرد عليك فريق الدعم على بريدك في أقرب وقت.'));
             redirect('contact', 'refresh');
         }
 
