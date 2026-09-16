@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 /**
- * بكسل ميتا — مفتاح واحد، وشاشة تجيب ثلاثة أسئلة يسألها من يفتحها:
+ * التتبع والقياس — أدوات تجيب ثلاثة أسئلة يسألها من يفتح الشاشة:
  * هل يعمل الآن؟ وأين يعمل؟ وكيف أتحقق بنفسي بدل أن أصدق رسالة الحفظ؟
  *
  * ولماذا شاشة لا حقل في «إعدادات الموقع» الموروثة: هناك حقل
@@ -26,9 +26,14 @@ $tq_capi    = !empty($tq_capi_ready);
 $tq_test    = (string) ($tq_test_code ?? '');
 $tq_tot     = is_array($tq_totals ?? null) ? $tq_totals : array();
 $tq_evs     = is_array($tq_events ?? null) ? $tq_events : array();
+
+$tq_cl_saved = get_settings('tq_clarity_id');      // NULL = لم يضبط قط
+$tq_cl_live  = tq_clarity_id();                    // المعرف الفعال بعد الافتراضي
+$tq_cl_on    = $tq_cl_live !== '';
+$tq_cl_def   = ($tq_cl_saved === null);
 ?>
 
-<?php tqa_head(t('بكسل ميتا'), t('قياس زيارات الموقع ومبيعاته لحملات فيسبوك وإنستغرام.'), 'chart'); ?>
+<?php tqa_head(t('التتبع والقياس'), t('قياس زيارات الموقع ومبيعاته وسلوك زائريه.'), 'chart'); ?>
 
 <?php /* الحال قبل الحقل: من يفتح الشاشة يريد أن يعرف أولا هل يقاس شيء الآن.
          وسطران لا سطر: الزيارة والشراء يقاسان بطريقتين، وقد تعمل واحدة
@@ -60,6 +65,26 @@ $tq_evs     = is_array($tq_events ?? null) ? $tq_events : array();
         <?php else: ?>
             <strong><?php echo t('والشراء لا يقاس.'); ?></strong>
             <?php echo t('صفحة الدفع عند تاب لا عندنا، فحدث الشراء لا يقع في متصفحنا: من أغلق متصفحه بعد الدفع لا يعد، ومن معه مانع إعلانات لا يعد، والحوالة البنكية تفعل بعد أيام بلا متصفح. اكتب رمز الوصول أدناه ليرسل الخادم الشراء بنفسه.'); ?>
+        <?php endif; ?>
+    </span>
+</div>
+
+
+<?php /* والسؤال الثالث: نعرف كم جاء (البكسل) وكم اشترى (الربط البرمجي)،
+         ولا نعرف **ماذا فعل من لم يشتر** — وهو ما تجيب عنه خريطة الحرارة
+         وتسجيل الجلسة. وسطر ثالث لأن الثلاثة تعمل وتسكت مستقلة. */ ?>
+<div class="tqa-note <?php echo $tq_cl_on ? '' : 'tqa-note--warn'; ?> tqa-section">
+    <span aria-hidden="true"><?php echo tq_icon($tq_cl_on ? 'check-badge' : 'alert', 18); ?></span>
+    <span>
+        <?php if ($tq_cl_on): ?>
+            <strong><?php echo t('وسلوك الزائر يسجل'); ?></strong>
+            <?php echo t('— خرائط حرارة وتسجيل جلسات بمعرف Clarity ____، على صفحات الموقع والبوابات جميعا، ولا يحمل في لوحة الإدارة.', '<span dir="ltr">' . html_escape($tq_cl_live) . '</span>'); ?>
+            <?php if ($tq_cl_def): ?>
+                <?php echo t('وهو المعرف الافتراضي المكتوب في الشيفرة؛ الحفظ من هنا يعلو عليه.'); ?>
+            <?php endif; ?>
+        <?php else: ?>
+            <strong><?php echo t('وسلوك الزائر لا يسجل.'); ?></strong>
+            <?php echo t('تعرف كم زائرا جاء ولا تعرف أين نقر ولا إلى أين نزل ولا عند أي شاشة أغلق — وهي الشاشة التي يسقط عندها المشترون.'); ?>
         <?php endif; ?>
     </span>
 </div>
@@ -119,6 +144,24 @@ $tq_evs     = is_array($tq_events ?? null) ? $tq_events : array();
             </span>
         </div>
 
+        <?php /* وفي النموذج نفسه لا نموذج ثان: حفظان لشيء واحد يجعلان
+                 من ضبط أحدهما يظن أنه ضبط الاثنين. */ ?>
+        <h3 class="tqa-formsec" style="margin-block:var(--tq-space-xl) var(--tq-space-m)">
+            <?php echo t('سلوك الزائر (Microsoft Clarity)'); ?>
+        </h3>
+
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="f_clarity"><?php echo t('معرف المشروع (Project ID)'); ?></label>
+            <input class="tqa-input tqa-input--ltr" type="text" id="f_clarity"
+                   name="tq_clarity_id" dir="ltr"
+                   maxlength="120" autocomplete="off" spellcheck="false"
+                   placeholder="yj5s2a1lpr"
+                   value="<?php echo html_escape($tq_cl_saved === null ? $tq_cl_live : $tq_cl_saved); ?>">
+            <span class="tqa-field__hint">
+                <?php echo t('حروف وأرقام — من Clarity ← Settings ← Setup ← Install manually. والصق القصاصة كاملة يعمل: يستخرج المعرف منها ولا يحفظها كما هي. واتركه فارغا لإطفاء التسجيل كله.'); ?>
+            </span>
+        </div>
+
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
                 <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ'); ?>
@@ -140,6 +183,7 @@ $tq_evs     = is_array($tq_events ?? null) ? $tq_events : array();
             <?php echo t('في نافذة خفية، وانقر أيقونة الإضافة: يجب أن تظهر'); ?>
             <strong>PageView</strong> <?php echo t('بالمعرف نفسه أعلاه.'); ?></li>
         <li><?php echo t('وفي «مدير الأحداث» عند ميتا يظهر النشاط خلال دقائق — لا فورا، فلا يستعجل الحكم بالفشل.'); ?></li>
+        <li><?php echo t('ولـ Clarity: افتح لوحته ثم Recordings — تظهر أول جلسة خلال ساعتين من أول زيارة، لا في الحال. وخرائط الحرارة تحتاج زيارات تتجمع قبل أن تقرأ.'); ?></li>
         <li><?php echo t('وللربط البرمجي: اضغط «اسأل ميتا» أدناه. يسأل ميتا عن الرمز المحفوظ نفسه، فيثبت أنه صالح وأن صلاحيته على هذا البكسل بعينه — وهو الخطأ الأكثر وقوعا: رمز سليم لحساب آخر، تقبله ميتا ولا يظهر منه حدث.'); ?></li>
     </ol>
 

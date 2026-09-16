@@ -2449,7 +2449,7 @@ class Taqdar_admin extends CI_Controller
     public function tracking()
     {
         $this->load->model('taqdar_meta_model');
-        $this->render('tqa_tracking', 'بكسل ميتا', array(
+        $this->render('tqa_tracking', 'التتبع والقياس', array(
             'tq_capi_ready' => $this->taqdar_meta_model->capi_ready(),
             'tq_test_code'  => (string) $this->taqdar_meta_model->config()['test'],
             'tq_totals'     => $this->taqdar_meta_model->totals(),
@@ -2521,9 +2521,33 @@ class Taqdar_admin extends CI_Controller
             array('tq_meta_pixel_id' => $val,
                   'capi_token' => $clear ? '' : (($token !== '' || $had) ? 'set' : '')));
 
-        $this->session->set_flashdata('flash_message', $val !== ''
-            ? 'حفظ المعرف، والبكسل يعمل الآن على كل صفحات الموقع والبوابات.'
-            : 'أطفئ البكسل. لا يحمل سكربت ميتا في أي صفحة حتى يكتب معرف من جديد.');
+        /* Clarity — مفتاح ثان في الشاشة نفسها لا شاشة ثانية: من يفتح
+           «التتبع والقياس» يفتحها ليقيس، والقياس أداتان تجيبان سؤالين
+           («كم جاء؟» و«ماذا فعل؟») لا أداة. والقاعدة قاعدة المعرف نفسها:
+           الصف يكتب ولو كان فارغا، فالفارغ إطفاء لا رجوع إلى الافتراضي.
+
+           والقيمة تمر بـ`tq_clarity_id_input()` لا بمصفاة هنا: القصاصة
+           كاملة هي ما يلصق عادة — وهي ما يسلمه Clarity وما يصل في
+           واتساب — ونسخة ثانية من قاعدة الاستخراج تفترق عن أختها عند
+           أول تعديل. */
+        $cl_was = $this->db->where('key', 'tq_clarity_id')->get('settings')->row('value');
+        $cl_val = tq_clarity_id_input($this->input->post('tq_clarity_id'));
+        $this->tracking_put('tq_clarity_id', $cl_val);
+
+        if ((string) $cl_was !== (string) $cl_val) {
+            $this->taqdar_admin_model->audit('tracking.clarity', 'settings',
+                array('tq_clarity_id' => $cl_was),
+                array('tq_clarity_id' => $cl_val));
+        }
+
+
+        $msg = $val !== ''
+            ? 'حفظ معرف البكسل، وهو يعمل الآن على كل صفحات الموقع والبوابات.'
+            : 'أطفئ البكسل. لا يحمل سكربت ميتا في أي صفحة حتى يكتب معرف من جديد.';
+        $msg .= $cl_val !== ''
+            ? ' وسلوك الزائر يسجل بـ Clarity على الصفحات نفسها.'
+            : ' ولا يسجل سلوك الزائر: معرف Clarity فارغ.';
+        $this->session->set_flashdata('flash_message', $msg);
         redirect(site_url('taqdar_admin/tracking'), 'location', 302);
     }
 

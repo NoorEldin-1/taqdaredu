@@ -38,6 +38,10 @@
         <?php /* وأحداث التحويل المودعة — في الثيمين معا للعلة نفسها. */ ?>
         <?php echo tq_meta_flush(); ?>
 
+        <?php /* وClarity في الثيمين معا للعلة نفسها: مفتاح الثيم يقلب
+                 من اللوحة، وقياس يسقط عند قلبه لا يلاحظه أحد. */ ?>
+        <?php echo tq_clarity(); ?>
+
     </head>
 
     <body class="<?php echo $this->session->userdata('theme_mode'); ?>">

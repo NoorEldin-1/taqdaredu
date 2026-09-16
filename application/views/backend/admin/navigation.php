@@ -134,7 +134,7 @@ $tqa_nav = [
         ['tqa_stats',        t('أرقام الموقع'),      'taqdar_admin/stats',                       'chart',  null],
         /* التتبع تحت «المحتوى والموقع» لا تحت «النظام»: من يفتحه هو من
            يدير الحملات والصفحات، لا من يضبط المنصة. */
-        ['tqa_tracking',     t('بكسل ميتا'),         'taqdar_admin/tracking',                    'target', null],
+        ['tqa_tracking',     t('التتبع والقياس'),    'taqdar_admin/tracking',                    'target', null],
         ['tqa_testimonials', t('آراء أولياء الأمور'), 'taqdar_admin/module/testimonials',  'chat',   null],
         ['tqa_books',        t('الكتب'),            'taqdar_admin/module/books',                'book',   null],
         [['blog', 'blog_add', 'blog_edit', 'blog_category', 'blog_category_add', 'blog_category_edit',

@@ -880,6 +880,129 @@ if (!function_exists('tq_meta_checkout')) {
 }
 
 
+/* =====================================================================
+   Microsoft Clarity — خرائط الحرارة وتسجيل الجلسات
+   ===================================================================== */
+
+if (!defined('TQ_CLARITY_DEFAULT')) {
+    /**
+     * معرف مشروع Clarity الذي سلمه فريق التسويق. وهو **ليس سرا** كمعرف
+     * البكسل: يطبع في وسم كل صفحة يقرؤها كل زائر، ويقرأ من أدوات
+     * المتصفح في ثانية. فمكانه الشيفرة لا `taqdar_secret.php`.
+     */
+    define('TQ_CLARITY_DEFAULT', 'yj5s2a1lpr');
+}
+
+if (!function_exists('tq_clarity_id')) {
+    /**
+     * المعرف الفعال، بقاعدة `tq_meta_pixel_id()` نفسها — والتفريق الذي
+     * تخلطه `empty()` هو ما يجعل الإطفاء من اللوحة ممكنا أصلا:
+     *
+     *   لا صف أصلا (NULL)   ⇐ لم يضبط أحد شيئا  ⇐ الافتراضي
+     *   صف بقيمة فارغة ('') ⇐ مسؤول مسحه عمدا   ⇐ لا تسجيل
+     *
+     * ومعرف Clarity **حروف وأرقام** لا أرقام وحدها (`yj5s2a1lpr`) —
+     * فمصفاة البكسل الرقمية تمحوه كله وتطفئه بلا أن يظهر سبب. وهو يدخل
+     * حرفيا في سلسلة جافاسكربت، فما ليس حرفا ولا رقما لا يكتب.
+     */
+    function tq_clarity_id()
+    {
+        $v = get_settings('tq_clarity_id');
+        if ($v === null) $v = TQ_CLARITY_DEFAULT;
+
+        $v = strtolower(preg_replace('/[^A-Za-z0-9]/', '', (string) $v));
+        return $v !== '' ? $v : '';
+    }
+}
+
+if (!function_exists('tq_clarity_id_input')) {
+    /**
+     * ما يكتبه المسؤول ⇐ معرف. **ويقبل القصاصة كاملة** لا الرقم وحده.
+     *
+     * ولماذا: القصاصة هي ما يسلمه Clarity («Copy to clipboard») وهي ما
+     * يصل فريق التسويق في واتساب، ولصقها هو الفعل الطبيعي لمن يفتح
+     * الشاشة. ومصفاة عمياء تحذف ما ليس حرفا ولا رقما تحول القصاصة إلى
+     * سلسلة من مئتي حرف تحفظ **وتبدو معرفا** — فلا تسجل جلسة واحدة ولا
+     * شيء في الشاشة يقول لماذا. فالاستخراج قبل التصفية.
+     *
+     * والصورتان اللتان يخرج بهما المعرف في القصاصة: رابط الوسم
+     * (`clarity.ms/tag/<id>`) والمعامل الأخير في النداء.
+     */
+    function tq_clarity_id_input($raw)
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') return '';
+
+        if (preg_match('~clarity\.ms/tag/([A-Za-z0-9]+)~i', $raw, $m)) {
+            $raw = $m[1];
+        } elseif (preg_match('~["\']clarity["\']\s*,\s*["\']script["\']\s*,\s*["\']([A-Za-z0-9]+)["\']~i', $raw, $m)) {
+            $raw = $m[1];
+        }
+
+        /* وطول معقول: معرف Clarity عشرة أحرف، وما تجاوز الثلاثين ليس
+           معرفا بل بقية قصاصة لم تفهم — وحفظه يطفئ القياس صامتا. */
+        $raw = strtolower(preg_replace('/[^A-Za-z0-9]/', '', $raw));
+        return strlen($raw) > 32 ? '' : $raw;
+    }
+}
+
+if (!function_exists('tq_clarity')) {
+    /**
+     * وسم Clarity — يطبع **مرة واحدة لكل صفحة** بحارس `static`.
+     *
+     * وهو يقيس ما لا يقيسه بكسل ميتا: ذاك يقول **كم** زائرا جاء ومن أي
+     * حملة، وهذا يقول **ماذا فعل** — أين نقر، وإلى أين نزل، وأين وقف ثم
+     * أغلق. فالشاشة التي يسقط عندها المشترون تعرف بالثاني لا بالأول.
+     *
+     * **ولا يحمل لمن رفض.** `tq-cookie === 'denied'` كما في البكسل،
+     * والشرط `denied` لا `!== 'accepted'`: شريط الارتباط قد يكون مطفأ
+     * من اللوحة فلا يكتب قرار أبدا، فينتظر السكربت موافقة لا تجيء.
+     * وهذا أوجب هنا منه في البكسل: Clarity **يسجل الجلسة** لا يعد
+     * زيارة، فزر «رفض غير الضروري» الذي لا أثر له تمثيل لا يقبل.
+     *
+     * **ويبدأ عند `load` لا عند وقت خمول** — وهو الفرق عن TQ-PERF-PIXEL
+     * عمدا: البكسل يسجل `PageView` فتأخيره ثانيتين لا يفقد شيئا، وهذا
+     * **مسجل** — كل ثانية يؤجل فيها ثانية لا ترى من جلسة الزائر، وأول
+     * ثوان الصفحة هي التي يقع فيها الارتباك الذي نبحث عنه. فالتأجيل إلى
+     * ما بعد اكتمال الرسم يكفي: السكربت `async` أصلا، والذي كان يزاحم
+     * الخيط الرئيسي هو التنفيذ وقت التحليل لا الجلب.
+     */
+    function tq_clarity()
+    {
+        static $printed = false;
+        if ($printed) return '';
+
+        $id = tq_clarity_id();
+        if ($id === '') return '';
+        $printed = true;
+
+        ob_start(); ?>
+<!-- Microsoft Clarity -->
+<script>
+(function () {
+    var choice = null;
+    try { choice = localStorage.getItem('tq-cookie'); } catch (e) {}
+    if (choice === 'denied') return;
+
+    function start() {
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "<?php echo $id; ?>");
+    }
+
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
+})();
+</script>
+<!-- End Microsoft Clarity -->
+<?php
+        return ob_get_clean();
+    }
+}
+
+
 if (!function_exists('tq_filterbar')) {
     /**
      * TQ-FILTERBAR — شريط الترشيح: مكون واحد للوحات الثلاث.
