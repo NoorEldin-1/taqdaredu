@@ -497,6 +497,10 @@ $route['student/certificate/(:num)'] = 'taqdar/certificate/$1';
 $route['student/verify/(:any)']      = 'taqdar/verify/$1';
 $route['verify/(:any)']              = 'taqdar/verify/$1';
 $route['verify']                     = 'taqdar/verify';
+// TQ-LRS-CERT — معرف الشهادة في رسالة `earned` إلى NELC (`object.id`)،
+// ورابط التحقق `verify/…` قيمة ثانية بجانبه. والمعرف رابط، فيفتح الصفحة
+// العامة نفسها لا 404 — وهو غير `certificate/(:any)` المحذوف أعلاه.
+$route['certificate/(:any)']         = 'taqdar/verify/$1';
 
 // ---- taqdar portal routes ----
 $route['taqdar/on-demand']      = 'taqdar/on_demand';

@@ -198,9 +198,9 @@ class Taqdar_cron_events extends CI_Controller
             'rated' => array('course' => $crs, 'instructor' => $ins, 'stars' => 4,
                              'comment' => 'شرح واضح'),
             'earned' => array('course' => $crs,
-                'certificate' => array('url' => 'certificate/57',
-                                       'title' => 'شهادة إتمام برنامج الرياضيات',
-                                       'file_url' => 'certificate/57')),
+                'certificate' => array_merge(
+                    $this->lrs->cert_refs(Taqdar_lrs_model::cert_code(57)),
+                    array('title' => 'شهادة إتمام برنامج الرياضيات'))),
         );
 
         foreach ($cases as $ev => $args) {

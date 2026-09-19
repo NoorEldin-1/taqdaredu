@@ -102,6 +102,9 @@ class Taqdar_lrs_model extends CI_Model
     const X_ATTEMPT_ID  = 'http://id.tincanapi.com/extension/attempt-id';
     const X_CERT_URL    = 'http://id.tincanapi.com/extension/jws-certificate-location';
 
+    /** درجة امتحان رحلة التحقق — تقرؤها رسالة `attempted` وصفحة شهادتها معا. */
+    const JOURNEY_SCORE = 90;
+
     /* =====================================================================
        الاعدادات
        ===================================================================== */
@@ -180,6 +183,74 @@ class Taqdar_lrs_model extends CI_Model
         if ($p === '') return '';
         if (preg_match('~^https?://~i', $p)) return $p;
         return $this->config()['lms_url'] . ltrim($p, '/');
+    }
+
+    /* TQ-LRS-CERT — معرف الشهادة غير رابط التحقق منها.
+
+       كانت `earned` ترسل `certificate/<رقم>` في الخانتين: `object.id`
+       وامتداد `jws-certificate-location`. والجهة ترد الرحلة على ذلك
+       مرتين: القيمتان يجب أن تفترقا، والرابط يجب أن يفتح لمن لا حساب له.
+       و`/certificate/*` لا قاعدة له منذ حذفت قواعد الإضافات، فكان 404.
+
+       فالمعرف `certificate/<الرمز>` والرابط `verify/<الرمز>` — صفحة التحقق
+       العامة نفسها التي يرمزها QR الشهادة. وكلاهما يفتح الصفحة نفسها
+       (`routes.php`)، فلا يقرأ أحدهما رابطا مكسورا في سجل وطني. */
+    public function cert_refs($code)
+    {
+        return array('url' => 'certificate/' . $code, 'file_url' => 'verify/' . $code);
+    }
+
+    /** رمز شهادة الامتحان — `TQ-000057`، بصورة `Taqdar::cert_code()` حرفا. */
+    public static function cert_code($attempt_id)
+    {
+        return 'TQ-' . str_pad((string) (int) $attempt_id, 6, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * رمز شهادة رحلة التحقق — `TQJ-391-59`.
+     *
+     * بادئة لا رقم عار: صفحة التحقق تقرأ الأرقام وحدها من رمز الامتحان،
+     * فرمز `391-59` يقرأ `39159` ويفتح محاولة غريبة إن وجدت.
+     */
+    public static function journey_cert_code($user_id, $course_id)
+    {
+        return 'TQJ-' . (int) $user_id . '-' . (int) $course_id;
+    }
+
+    /**
+     * شهادة رحلة التحقق من رمزها — لصفحة التحقق العامة.
+     *
+     * تصدق **إن أرسلت الرحلة شهادتها فعلا** (صف `earned` في الطابور بمصدر
+     * تلك الرحلة)، لا لكل رمز بالصورة الصحيحة: وإلا صار أي رقمين يكتبهما
+     * زائر «شهادة صحيحة». وتقول الصفحة إنها شهادة رحلة اختبار لا إتقان.
+     */
+    public function journey_certificate($code)
+    {
+        if (!preg_match('/^TQJ-(\d+)-(\d+)$/i', trim((string) $code), $m)) return null;
+        $uid = (int) $m[1];
+        $cid = (int) $m[2];
+
+        try {
+            $this->ensure_schema();
+            $row = $this->db->select('created_at')
+                            ->where('source', 'journey:' . $uid . ':' . $cid)
+                            ->where('verb', 'earned')->limit(1)
+                            ->get('tq_xapi_queue')->row_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return null; }
+        if (!$row) return null;
+
+        $u   = $this->learner($uid);
+        $ctx = $this->course_ctx($cid);
+        if (!$u || !$ctx) return null;
+
+        return array(
+            'kind'   => 'journey',
+            'code'   => self::journey_cert_code($uid, $cid),
+            'holder' => $u['full_name'],
+            'course' => $ctx['course']['title'],
+            'score'  => self::JOURNEY_SCORE,
+            'issued' => date('Y-m-d', (int) $row['created_at']),
+        );
     }
 
     /** ينسى المحفوظ — تنادى بعد الحفظ في شاشة الإعدادات. */
@@ -1085,11 +1156,9 @@ class Taqdar_lrs_model extends CI_Model
             if ($this->emit('attempted', $args, 'attempts:' . $aid, '')) $out['attempted']++;
 
             if ($is_exam && (int) $r['passed'] === 1) {
-                $cert = array(
-                    'url'      => 'certificate/' . $aid,
-                    'title'    => 'شهادة إتمام ' . $ctx['course']['title'],
-                    'file_url' => 'certificate/' . $aid,
-                );
+                $cert = array_merge($this->cert_refs(self::cert_code($aid)), array(
+                    'title' => 'شهادة إتمام ' . $ctx['course']['title'],
+                ));
                 $e2 = array('user' => $u, 'course' => $ctx['course'], 'certificate' => $cert,
                             'at' => (string) $r['submitted_at']);
                 if ($this->emit('earned', $e2, 'attempts:' . $aid, 'cert')) $out['earned']++;
@@ -1289,6 +1358,10 @@ class Taqdar_lrs_model extends CI_Model
         $out['actor']  = (string) $u['national_id'];
         $out['object'] = $this->url($ctx['course']['url']);
 
+        $cert = $this->cert_refs(self::journey_cert_code($uid, $cid));
+        $out['cert_id']  = $this->url($cert['url']);
+        $out['cert_url'] = $this->url($cert['file_url']);
+
         try { $this->ensure_schema(); } catch (Throwable $e) {}
 
         if ($force) {
@@ -1344,7 +1417,7 @@ class Taqdar_lrs_model extends CI_Model
                 'at' => $at(4),
                 'quiz' => array('url' => $L['url'] . '#quiz',
                                 'title' => 'تقويم ' . $L['title'], 'desc' => ''),
-                'attempt_no' => 1, 'raw' => 90, 'min' => 0, 'max' => 100, 'passed' => true))),
+                'attempt_no' => 1, 'raw' => self::JOURNEY_SCORE, 'min' => 0, 'max' => 100, 'passed' => true))),
 
             array('completed_unit', array_merge($base, array('at' => $at(5), 'unit' => $U))),
 
@@ -1357,10 +1430,8 @@ class Taqdar_lrs_model extends CI_Model
 
             array('earned', array(
                 'user' => $u, 'course' => $ctx['course'], 'at' => $at(9),
-                'certificate' => array(
-                    'url'      => 'certificate/' . $uid . '-' . $cid,
-                    'title'    => 'شهادة إتمام ' . $ctx['course']['title'],
-                    'file_url' => 'certificate/' . $uid . '-' . $cid))),
+                'certificate' => array_merge($cert, array(
+                    'title' => 'شهادة إتمام ' . $ctx['course']['title'])))),
         );
 
         $n = 0;

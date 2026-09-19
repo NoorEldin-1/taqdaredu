@@ -16,11 +16,16 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  * جانبيا، وهذه لزائر.
  */
 $c = isset($certificate) ? $certificate : null;
+/* TQ-LRS-CERT — شهادة رحلة التحقق مع NELC: صادرة فعلا في رسالة `earned`،
+   وتقول الصفحة ما هي بلا زيادة — رحلة اختبار ربط، لا إتقان مقاس. */
+$j = isset($journey) && is_array($journey) ? $journey : null;
 $code = isset($cert_code) ? (string) $cert_code : '';
-$ok = (bool) $c;
+$ok = (bool) $c || (bool) $j;
 
-if ($ok) {
+if ($c) {
     $code = 'TQ-' . str_pad((string) (int) $c['id'], 6, '0', STR_PAD_LEFT);
+} elseif ($j) {
+    $code = (string) $j['code'];
 }
 ?>
 
@@ -40,7 +45,36 @@ if ($ok) {
         <h1 class="tq-vf__verdict"><?php
           echo $ok ? t('شهادة صحيحة صادرة من منصة تقدر') : t('لا شهادة بهذا الرمز'); ?></h1>
 
-        <?php if ($ok): ?>
+        <?php if ($j): ?>
+
+          <dl class="tq-vf__meta">
+            <div>
+              <dt><?php echo t('حاملها'); ?></dt>
+              <dd><?php echo html_escape($j['holder'] ?: t('غير مذكور')); ?></dd>
+            </div>
+            <div>
+              <dt><?php echo t('المقرر'); ?></dt>
+              <dd><?php echo html_escape($j['course']); ?></dd>
+            </div>
+            <div>
+              <dt><?php echo t('الدرجة'); ?></dt>
+              <dd><?php echo tq_num((int) $j['score'] . '%'); ?></dd>
+            </div>
+            <div>
+              <dt><?php echo t('تاريخ الإصدار'); ?></dt>
+              <dd><?php echo tq_num($j['issued']); ?></dd>
+            </div>
+            <div>
+              <dt><?php echo t('رمز التحقق'); ?></dt>
+              <dd dir="ltr" style="unicode-bidi:isolate"><?php echo html_escape($code); ?></dd>
+            </div>
+          </dl>
+
+          <p class="tq-vf__how">
+            <?php echo t('هذه الشهادة صدرت ضمن رحلة التحقق من الربط مع المركز الوطني للتعليم الإلكتروني، وهي رحلة اختبار لا شهادة إتقان.'); ?>
+          </p>
+
+        <?php elseif ($ok): ?>
 
           <dl class="tq-vf__meta">
             <div>

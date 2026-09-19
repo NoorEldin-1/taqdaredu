@@ -104,6 +104,27 @@ $tq_ok = $tq_r && !empty($tq_r['ok']);
             <a href="<?php echo html_escape($tq_r['object']); ?>" target="_blank" rel="noopener"><?php echo t('افتحه'); ?></a>
         </p>
     </div>
+
+    <?php /* TQ-LRS-CERT — قيمتان في رسالة الشهادة لا قيمة واحدة، وكلتاهما تفتح بلا دخول. */ ?>
+    <?php if (!empty($tq_r['cert_url'])): ?>
+    <div class="tqa-field">
+        <label class="tqa-field__label"><?php echo t('معرّف الشهادة المرسل'); ?></label>
+        <input class="tqa-input tqa-input--ltr" type="text" dir="ltr" readonly
+               onclick="this.select()"
+               value="<?php echo html_escape($tq_r['cert_id']); ?>">
+    </div>
+
+    <div class="tqa-field">
+        <label class="tqa-field__label"><?php echo t('رابط التحقق من الشهادة'); ?></label>
+        <input class="tqa-input tqa-input--ltr" type="text" dir="ltr" readonly
+               onclick="this.select()"
+               value="<?php echo html_escape($tq_r['cert_url']); ?>">
+        <p class="tqa-field__hint">
+            <?php echo t('صفحة عامة تفتح بلا تسجيل دخول — افتحها من نافذة خاصة لتتأكّد.'); ?>
+            <a href="<?php echo html_escape($tq_r['cert_url']); ?>" target="_blank" rel="noopener"><?php echo t('افتحه'); ?></a>
+        </p>
+    </div>
+    <?php endif; ?>
 </div>
 <?php endif; ?>
 

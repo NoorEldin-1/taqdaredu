@@ -431,7 +431,7 @@ return array(
     'افتح شاشة الربط' => 'Open the mapping screen',
     'افتح ملف AuthKey_XXXXXX.p8 بمحرر نصوص والصق محتواه كاملا بسطوره. وأبل تعطيه مرة واحدة لا تتكرر، فاحفظ نسخة منه في مكان آمن.' => 'Open AuthKey_XXXXXX.p8 in a text editor and paste the whole thing, line breaks and all. Apple gives it once and never again, so keep a copy somewhere safe.',
     'افتح ملف الطلب' => 'Open the application file',
-    'افتحه' => '',
+    'افتحه' => 'Open it',
     'افحص الاتصال' => '',
     'افحص المفاتيح' => 'Check the keys',
     'افحص مفتاح الإنتاج' => 'Check the live key',
@@ -2340,4 +2340,7 @@ return array(
     '← اختر تطبيقك ← ومدة' => '← choose your app ← and a lifetime of',
     '← حساب واتساب الخاص بك ← امنحه صلاحية كاملة (' => '← your own WhatsApp account ← grant it full control (',
     '← وفعل الصلاحيتين:' => '← and enable both permissions:',
+    'معرّف الشهادة المرسل' => 'Certificate ID sent',
+    'رابط التحقق من الشهادة' => 'Certificate verification link',
+    'صفحة عامة تفتح بلا تسجيل دخول — افتحها من نافذة خاصة لتتأكّد.' => 'A public page that opens without signing in — open it in a private window to check.',
 );

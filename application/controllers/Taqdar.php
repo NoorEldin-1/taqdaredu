@@ -3302,6 +3302,18 @@ class Taqdar extends CI_Controller
     /** صفحة التحقق العامة — بلا تسجيل دخول، وبلا بيانات تعريف زائدة. */
     public function verify($code = '')
     {
+        /* TQ-LRS-CERT — شهادة رحلة التحقق مع NELC رمزها `TQJ-…`، وتفحص
+           قبل رمز الامتحان: ذاك يقرأ الأرقام وحدها فيخلطها بمحاولة. */
+        $this->load->model('taqdar_lrs_model');
+        $journey = $this->taqdar_lrs_model->journey_certificate($code);
+        if ($journey) {
+            $this->show('tq_verify', 'التحقق من شهادة', array(
+                'journey'   => $journey,
+                'cert_code' => (string) $code,
+            ));
+            return;
+        }
+
         $cert = $this->certificate_row($code);
 
         if (is_file(APPPATH . 'views/frontend/' . $this->theme() . '/tq_verify.php')) {
