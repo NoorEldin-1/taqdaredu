@@ -56,8 +56,13 @@ $tq_slots = 0;
 foreach ($tq_tut as $tq_one) $tq_slots += count($tq_one['slots']);
 
 /* معلمو المسار الذين لا مواعيد لهم الآن — من له مواعيد ظاهر فوق باسمه،
-   وتكراره في قسم ثان يطيل الصفحة بلا خبر. */
-$tq_idle = array_diff_key($tq_teach, $tq_tut);
+   وتكراره في قسم ثان يطيل الصفحة بلا خبر.
+   و`available_teachers()` ترد قائمة مرقمة من صفر لا مفتاحها المعلم،
+   فالمقارنة بالمعرف لا بالمفتاح — وبلاها يظهر من له مواعيد مرة ثانية
+   تحت «معلمون آخرون» ومعه «لا مواعيد مفتوحة الآن». */
+$tq_busy = array();
+foreach ($tq_tut as $tq_one) $tq_busy[(int) $tq_one['id']] = true;
+$tq_idle = array_diff_key($tq_teach, $tq_busy);
 
 $tq_price_html = function ($price) {
     return (int) $price > 0 ? tqs_money($price) : '<b>' . t('مجانية') . '</b>';
