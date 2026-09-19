@@ -533,3 +533,132 @@ span.fndp-tutor__img{display:grid;place-items:center;font-size:19px}
   .fndp-book__cta{transition:none}
   .fndp-book__cta:hover{transform:none}
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-FND-PACK — باقات حصص التأسيس
+   ----------------------------------------------------------------------
+   بطاقات داخل لوح `.fndp-panel` الفاتح في صفحة المسار، **لا لوح داكن
+   ثالث**: الداكن في هذه الصفحة هو بطاقة الحجز وحدها (ولوح `.fnd26` في
+   الرئيسية)، وثالث يجعل الصفحة شريطين داكنين بينهما ورق.
+
+   والبطاقة تقول ثلاثة أرقام مرتبة بأهميتها للمشتري:
+     · العدد      شارة كبيرة في الأعلى — هو ما يميز باقة عن باقة
+     · الثمن      بخط الأرقام الكبير، ومعه المشطوب ونسبة التوفير
+     · ثمن الحصة  في القائمة — وهو ما يقارن به سعر الحصة المفردة
+
+   الحصر: كل قاعدة تبدأ بـ`.fndpk` أو `.fndp-` أو `.fndco-`.
+   ══════════════════════════════════════════════════════════════════ */
+.fndpk{
+  display:grid;gap:clamp(12px,1.4vw,18px);
+  grid-template-columns:repeat(var(--fndpk-cols,3),minmax(0,1fr));
+}
+.fndpk-card{
+  position:relative;display:flex;flex-direction:column;
+  padding:clamp(16px,1.6vw,22px);border-radius:20px;
+  background:#fff;border:1px solid var(--gold-line-soft);box-shadow:var(--sh-soft);
+  transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease;
+}
+.fndpk-card:hover{border-color:var(--gold-line);transform:translateY(-2px);box-shadow:var(--sh-lift,var(--sh-soft))}
+/* المميزة بحد ذهبي لا بلون أرضية: أرضية ثانية تجعل البطاقتين منتجين
+   مختلفين، وهما باقتان من شيء واحد. */
+.fndpk-card--hot{border-color:var(--gold);box-shadow:0 18px 40px -26px rgba(160,108,32,.55)}
+.fndpk-card__flag{
+  position:absolute;inset-block-start:-11px;inset-inline-end:16px;
+  padding:4px 12px;border-radius:999px;
+  background:linear-gradient(180deg,#E7CB90,var(--gold));color:var(--petrol-deep);
+  font:700 11.5px/1.7 'Cairo',sans-serif;white-space:nowrap;
+}
+.fndpk-card__n{
+  display:inline-flex;align-items:baseline;gap:5px;align-self:flex-start;
+  padding:7px 14px;border-radius:14px;background:var(--beige);color:var(--petrol-deep);
+}
+.fndpk-card__n b{font:700 26px/1 'Cairo',sans-serif}
+.fndpk-card__n small{font-size:12.5px;font-weight:600}
+.fndpk-card__title{
+  margin:12px 0 0;color:var(--ink);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(15px,1.15vw,17.5px);line-height:1.5;
+}
+.fndpk-card__tag{margin:4px 0 0;color:var(--ink-3);font-size:12.5px;line-height:1.7}
+.fndpk-card__price{
+  display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;
+  margin:14px 0 0;padding-block-end:14px;border-block-end:1px solid var(--gold-line-soft);
+  color:var(--ink);
+}
+.fndpk-card__price b{font-family:'Cairo',sans-serif;font-weight:700;font-size:clamp(26px,2.2vw,32px);line-height:1}
+.fndpk-card__price del{color:var(--ink-3);font-size:13.5px;text-decoration-thickness:1.5px}
+.fndpk-card__save{
+  padding:3px 9px;border-radius:999px;background:rgba(22,160,133,.12);color:#0E7A64;
+  font:700 12px/1.6 'Cairo',sans-serif;
+}
+.fndpk-card__list{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:9px;flex:1 1 auto}
+.fndpk-card__list li{display:flex;align-items:flex-start;gap:9px;color:var(--ink-2);font-size:13px;line-height:1.7}
+.fndpk-card__list svg{flex:none;inline-size:17px;block-size:17px;margin-block-start:2px;color:var(--gold-deep)}
+.fndpk-card__list b{color:var(--ink);font-weight:700}
+.fndpk-card__cta{
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-block-start:16px;
+  min-block-size:46px;border-radius:var(--r-btn);text-decoration:none;
+  background:var(--petrol);color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:14.5px;
+  transition:background .18s ease;
+}
+.fndpk-card--hot .fndpk-card__cta{background:linear-gradient(180deg,#E7CB90,var(--gold));color:var(--petrol-deep)}
+.fndpk-card__cta:hover{background:var(--petrol-lift);color:#fff}
+.fndpk-card--hot .fndpk-card__cta:hover{filter:brightness(1.06);background:linear-gradient(180deg,#E7CB90,var(--gold));color:var(--petrol-deep)}
+.fndpk-card__cta svg{inline-size:1em;block-size:1em}
+
+.fndpk-note{
+  display:flex;align-items:flex-start;gap:11px;margin:clamp(14px,1.4vw,20px) 0 0;
+  padding:13px 15px;border-radius:14px;background:var(--beige);
+  color:var(--ink-2);font-size:12.5px;line-height:1.85;
+}
+.fndpk-note svg{flex:none;inline-size:19px;block-size:19px;margin-block-start:2px;color:var(--gold-deep)}
+
+/* ── سطر «أو كذا للحصة في باقة» تحت سعر المفردة في بطاقة الحجز ───────
+   وهو داخل اللوح الداكن، فألوانه ألوانه لا ألوان الورق. */
+.fndp-book__pack{
+  display:flex;flex-direction:column;gap:2px;margin:12px 0 0;padding:10px 12px;
+  border-radius:14px;text-decoration:none;
+  background:rgba(212,180,118,.12);border:1px solid rgba(212,180,118,.34);
+  transition:background .18s ease;
+}
+.fndp-book__pack:hover{background:rgba(212,180,118,.2)}
+.fndp-book__pack b{color:#E9DCC0;font-family:'Cairo',sans-serif;font-weight:700;font-size:15px}
+.fndp-book__pack span{color:rgba(233,236,234,.8);font-size:12.5px}
+
+/* ── طريقا الحجز جنبا إلى جنب: بباقة، وبحصة مفردة ─────────────────── */
+.fndp-ways{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(12px,1.4vw,18px)}
+.fndp-way{padding:clamp(14px,1.4vw,18px);border-radius:18px;background:#fff;border:1px solid var(--gold-line-soft)}
+.fndp-way--key{border-color:var(--gold-line);background:var(--beige)}
+.fndp-way h3{
+  margin:0 0 12px;color:var(--ink);font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:14.5px;
+}
+.fndp-way .fndp-mini{grid-template-columns:minmax(0,1fr);row-gap:12px}
+
+/* ── شارة العدد في شاشة تأكيد الشراء ──────────────────────────────── */
+.fndco-badge{
+  display:grid;place-content:center;gap:2px;text-align:center;
+  inline-size:74px;block-size:98px;border-radius:16px;
+  background:linear-gradient(160deg,var(--petrol-lift),var(--petrol-deep));color:var(--gold-warm);
+}
+.fndco-badge b{font:700 30px/1 'Cairo',sans-serif;color:#fff}
+.fndco-badge small{font-size:12px;font-weight:600}
+
+@media (max-width:980px){
+  .fndpk{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+}
+@media (max-width:640px){
+  .fndpk{grid-template-columns:minmax(0,1fr)}
+  .fndp-ways{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  .fndpk-card,.fndpk-card__cta,.fndp-book__pack{transition:none}
+  .fndpk-card:hover{transform:none}
+}
+
+/* سطر الباقة في بطاقة اللوح الداكن — ألوانه ألوان اللوح لا ألوان الورق. */
+.fnd26-card__pack{
+  margin:10px 0 0;padding:8px 11px;border-radius:12px;
+  background:rgba(212,180,118,.12);border:1px solid rgba(212,180,118,.3);
+  color:var(--f-mute);font-size:12.5px;line-height:1.75;
+}
+.fnd26-card__pack b{color:var(--f-gold-lt);font-family:'Cairo',sans-serif;font-weight:700}

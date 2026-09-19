@@ -89,6 +89,31 @@ $tq_price_of = function ($track_id) use ($tq_fnd) {
     return $tq_fnd->pricing_for($track_id, 0);
 };
 
+/* ---- TQ-FND-PACK — الرصيد والباقات --------------------------------
+   الرصيد يقرأ **مرة واحدة** لكل الشاشة: البطاقة تسأل عنه، والنموذج
+   يسأل عنه، ولوح الشريط يسأل عنه — واستعلام لكل سؤال يجعل شاشة فيها
+   ثلاثة مسارات وستة معلمين تسأل عشر مرات عن شيء واحد. */
+$tq_credits = $tq_fnd->credits($tq_uid);
+$tq_packs   = $tq_fnd->packs();
+
+/** ما بقي لهذا الطالب في مسار بعينه — من الرصيد المقروء لا من استعلام. */
+$tq_left_in = function ($track_id) use ($tq_credits) {
+    $n = 0;
+    foreach ($tq_credits as $c) if ((int) $c['track_id'] === (int) $track_id) $n += (int) $c['left'];
+    return $n;
+};
+
+/** باقات مسار بعينه، المعروضة وحدها. */
+$tq_packs_of = function ($track_id) use ($tq_fnd) {
+    return $tq_fnd->packs_of_track((int) $track_id);
+};
+
+/* مجموع ما بقي في كل المسارات — وهو ما يقرر شكل اللوح: من له رصيد يقرأ
+   «رصيدك»، ومن لا رصيد له يقرأ عرضا. ولوحان يعرضان معا يجعلان من اشترى
+   للتو يقرأ اعلانا يدعوه الى الشراء. */
+$tq_have = 0;
+foreach ($tq_credits as $c) $tq_have += (int) $c['left'];
+
 include 'portal_open.php';
 ?>
 
@@ -114,6 +139,77 @@ include 'portal_open.php';
             </div>
             <span class="tq-s-banner__art" aria-hidden="true"><?php echo tq_icon('graduation', 56); ?></span>
         </section>
+
+        <?php /* ---- TQ-FND-PACK — رصيدك أو عرض الباقات ------------------
+                 لوح واحد لا لوحان: من له رصيد يقرأ «رصيدك»، ومن لا رصيد
+                 له يقرأ العرض. ولوحان يعرضان معا يجعلان من اشترى قبل
+                 دقيقة يقرأ إعلانا يدعوه إلى الشراء، ومن نفد رصيده يقرأ
+                 «رصيدك: صفر» بلا باب يشتري منه.
+
+                 وموضعه فوق المسارات: الرصيد يغير **معنى كل زر تحته** —
+                 «اطلب هذا الموعد» بلا رصيد تعني فاتورة ومهلة، وبرصيد
+                 تعني حجزا يثبت. ومن قرأ الأزرار قبل أن يعرف رصيده يقرأها
+                 على غير معناها. */ ?>
+        <?php if ($tq_credits): ?>
+        <section class="tq-section">
+            <div class="tq-sectionhead">
+                <h2><?php echo t('رصيدك من الحصص'); ?></h2>
+                <span class="tq-sectionhead__count"><?php echo TQ_LRI . (int) $tq_have . TQ_PDI; ?></span>
+            </div>
+
+            <div class="tq-s-grid5">
+                <?php foreach ($tq_credits as $tq_c): ?>
+                    <?php
+                    $tq_done = (int) $tq_c['total'] > 0
+                             ? (int) round((int) $tq_c['used'] * 100 / (int) $tq_c['total']) : 0;
+                    ?>
+                    <article class="tq-card tq-fndc<?php echo (int) $tq_c['left'] <= 0 ? ' is-empty' : ''; ?>">
+                        <p class="tq-micro" style="margin:0"><?php echo html_escape($tq_c['track_name']); ?></p>
+                        <?php /* الرقم الكبير هو الباقي، والسطر تحته يقول من كم.
+                                 وصيغة العدد في العربية تتبع الرقم، فـ«٦ حصة» و«حصتين»
+                                 لا تكتبان بقالب واحد — و`tqs_ar_count()` هي القاعدة
+                                 الواحدة لذلك في هذه الشجرة. */ ?>
+                        <p class="tq-fndc__n">
+                            <b><?php echo (int) $tq_c['left']; ?></b>
+                            <span><?php echo t('متبقية من'); ?>
+                                <?php echo tqs_ar_count((int) $tq_c['total'], array(t('حصة'), t('حصتين'), t('حصص'), t('حصة'))); ?></span>
+                        </p>
+
+                        <?php /* شريط يقرأ ما تقوله الأرقام: من يقرأ «٢ من ٦»
+                                 يحسب، ومن يرى الشريط يعرف في لمحة. */ ?>
+                        <span class="tq-fndc__bar" aria-hidden="true">
+                            <i style="inline-size:<?php echo (int) $tq_done; ?>%"></i>
+                        </span>
+
+                        <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
+                            <?php echo html_escape($tq_c['name']); ?>
+                            <?php if ($tq_c['days_left'] !== null): ?>
+                                <?php /* المدة تقال بالأيام الباقية لا بالتاريخ:
+                                         «يتبقى ٩ أيام» تحرك، و«ينتهي ٢٠٢٦-٠١-٠٣»
+                                         تقرأ ولا تقرر. */ ?>
+                                · <?php echo (int) $tq_c['days_left'] > 0
+                                    ? t('يتبقى ') . (int) $tq_c['days_left'] . t(' يوما')
+                                    : t('ينتهي اليوم'); ?>
+                            <?php else: ?>
+                                · <?php echo t('لا تنتهي'); ?>
+                            <?php endif; ?>
+                        </p>
+
+                        <?php if ((int) $tq_c['left'] > 0): ?>
+                            <a class="tq-btn tq-btn--ghost tq-btn--sm" style="margin-block-start:var(--tq-space-s)"
+                               href="<?php echo base_url('student/foundation?track=' . (int) $tq_c['track_id']); ?>#tq-tutors">
+                                <?php echo t('احجز حصة من رصيدك'); ?>
+                            </a>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+
+            <p class="tq-caption" style="margin-block-start:var(--tq-space-m)">
+                <?php echo t('الرصيد يخصم عند طلب الموعد، ويعود إليك كاملا إن اعتذر المعلم أو ألغيت قبل أن يفتح رابط الحصة. ولا تدفع شيئا عند الحجز — باقتك مدفوعة.'); ?>
+            </p>
+        </section>
+        <?php endif; ?>
 
         <!-- اختر المسار -->
         <section class="tq-section">
@@ -190,6 +286,73 @@ include 'portal_open.php';
                 <?php endif; ?>
             <?php endif; ?>
         </section>
+
+        <?php
+        /* ---- TQ-FND-PACK — الباقات المعروضة على الطالب ----------------
+           باقات المسار المختار وحده متى اختار، وكلها متى لم يختر — وهو
+           ترشيح الشاشة نفسه الذي يرشح المعلمين والمواعيد. وباقة مسار لا
+           يتصفحه الطالب تقرأ ضجيجا، وإخفاء الكل حين لا يختار يجعل من
+           فتح الشاشة عاريا لا يعرف أن للمنصة باقات أصلا. */
+        $tq_show_packs = array();
+        if ($f_track > 0) {
+            $tq_show_packs = $tq_packs_of($f_track);
+        } else {
+            foreach ($tq_tracks as $tq_tid2 => $tq_t2) {
+                foreach ($tq_packs_of((int) $tq_tid2) as $tq_pid2 => $tq_po2) {
+                    $tq_show_packs[$tq_pid2] = $tq_po2;
+                }
+            }
+        }
+        ?>
+        <?php if ($tq_show_packs): ?>
+        <section class="tq-section" id="tq-packs">
+            <div class="tq-sectionhead">
+                <h2><?php echo $tq_have > 0 ? t('زد رصيدك بباقة') : t('باقات الحصص'); ?></h2>
+            </div>
+
+            <p class="tq-caption" style="margin-block-end:var(--tq-space-l)">
+                <?php echo t('تدفع مرة واحدة، فيصير لك رصيد حصص تحجزها متى شئت مع أي معلم في المسار — بلا فاتورة لكل حصة ولا مهلة دفع.'); ?>
+            </p>
+
+            <div class="tq-s-grid5">
+                <?php foreach ($tq_show_packs as $tq_pid => $tq_pk): ?>
+                    <article class="tq-card tq-fndp<?php echo !empty($tq_pk['featured']) ? ' is-hot' : ''; ?>">
+                        <?php if (!empty($tq_pk['featured'])): ?>
+                            <span class="tq-fndp__flag"><?php echo t('الأكثر طلبا'); ?></span>
+                        <?php endif; ?>
+
+                        <p class="tq-micro" style="margin:0">
+                            <?php echo html_escape($tq_pk['track'] ? $tq_pk['track']['name'] : t('التأسيس')); ?>
+                        </p>
+                        <p class="tq-fndp__n">
+                            <b><?php echo (int) $tq_pk['sessions']; ?></b>
+                            <span><?php echo t('حصة'); ?></span>
+                        </p>
+                        <p class="tq-fndp__price">
+                            <b><?php echo $tq_sar((int) $tq_pk['price']); ?></b>
+                            <?php if ((int) $tq_pk['save'] > 0): ?>
+                                <?php /* المشطوب **مشتق** من سعر الحصة المفردة في
+                                         المسار، فلا رقمان لحقيقة واحدة يفترقان. */ ?>
+                                <del><?php echo $tq_sar((int) $tq_pk['list']); ?></del>
+                                <span class="tq-fndp__save"><?php echo t('وفر ____٪', array(tq_iso((string) (int) $tq_pk['save_pct']))); ?></span>
+                            <?php endif; ?>
+                        </p>
+                        <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
+                            <?php echo t('الحصة فيها'); ?> <?php echo $tq_sar((int) $tq_pk['unit']); ?>
+                            <?php if ((int) $tq_pk['days'] > 0): ?>
+                                · <?php echo t('صالحة'); ?> <?php echo (int) $tq_pk['days']; ?> <?php echo t('يوما'); ?>
+                            <?php endif; ?>
+                        </p>
+
+                        <a class="tq-btn tq-btn--mastery tq-btn--sm" style="margin-block-start:var(--tq-space-s)"
+                           href="<?php echo base_url('foundation-checkout/' . (int) $tq_pid); ?>">
+                            <?php echo t('اشترِ الباقة'); ?>
+                        </a>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <?php endif; ?>
 
         <!-- معلمون متاحون: من فتح وقت تأسيس فعلا، بمواعيده هو -->
         <section class="tq-section" id="tq-tutors">
@@ -306,9 +469,31 @@ include 'portal_open.php';
                                 <?php endforeach; ?>
                             </select>
 
-                            <button class="tq-btn tq-btn--mastery tq-btn--sm" type="submit"><?php echo t('اطلب هذا الموعد'); ?></button>
+                            <?php
+                            /* TQ-FND-PACK — والزر يقول ماذا يقع حين يضغط.
+                               الحجز من الرصيد لا فاتورة له ولا مهلة: يؤكد
+                               المعلم فتثبت الحصة في الحال. وزر واحد يقول
+                               «ثم تدفع ١٢٠ خلال ١٢ ساعة» لمن دفع بالفعل
+                               يجعله يظن أن عليه دفعا ثانيا، فيتردد أو
+                               يراسل الدعم.
 
-                            <?php if ((int) $t['pricing']['price'] > 0): ?>
+                               والرصيد يقرأ لمسار **الموعد** لا للمختار:
+                               الشاشة العارية تعرض معلما يدرس مسارين،
+                               ورصيد أحدهما لا يحجز في الآخر. فحين لا يختار
+                               الطالب مسارا لا يعد الزر بشيء — الخادم يقرر،
+                               والرسالة بعد الحجز تقول ما وقع. */
+                            $tq_my = $f_track > 0 ? $tq_left_in($f_track) : 0;
+                            ?>
+                            <button class="tq-btn tq-btn--mastery tq-btn--sm" type="submit">
+                                <?php echo $tq_my > 0 ? t('احجز من رصيدك') : t('اطلب هذا الموعد'); ?>
+                            </button>
+
+                            <?php if ($tq_my > 0): ?>
+                                <span class="tq-micro" style="flex-basis:100%">
+                                    <?php echo t('تخصم حصة من رصيدك (يتبقى ____ بعدها)، ولا تدفع شيئا. يؤكد المعلم فتثبت الحصة في الحال، وإن اعتذر عادت الحصة إلى رصيدك.',
+                                        array(tq_iso((string) max(0, $tq_my - 1)))); ?>
+                                </span>
+                            <?php elseif ((int) $t['pricing']['price'] > 0): ?>
                                 <span class="tq-micro" style="flex-basis:100%">
                                     <?php echo t('الطلب مجاني ولا يخصم منك شيء. يؤكد المعلم أولا، ثم تدفع ____ خلال ____ لتثبيت الموعد.', array($tq_sar($t['pricing']['price']), tq_iso($tq_cfg['pay_hours'] . t(' ساعة')))); ?>
                                 </span>
@@ -333,9 +518,15 @@ include 'portal_open.php';
                     array(t('احجز الساعة التي تناسبك'), t('مواعيد المعلمين معروضة كما فتحوها، وتحجز واحدا منها.')),
                     array(t('يرد معلمك'), t('يؤكد الموعد أو يعتذر عنه. ولا يخصم منك شيء في هذه الخطوة.')),
                 );
-                $steps[] = array(t('ادفع لتثبيت الموعد'),
-                    t('بعد التأكيد تصلك فاتورة الحصة. تدفعها خلال ')
-                    . $tq_cfg['pay_hours'] . t(' ساعة فيثبت الموعد لك وحدك.'));
+                /* TQ-FND-PACK — والخطوة الرابعة تختلف بالرصيد: من دفع
+                   باقته لا يدفع مرة ثانية، وخطوة تقول له «ادفع خلال ١٢
+                   ساعة» تجعله ينتظر فاتورة لا تصدر ثم يظن حجزه ضاع. */
+                $steps[] = $tq_have > 0
+                    ? array(t('لا دفع — رصيدك يغطيها'),
+                            t('باقتك مدفوعة، فتثبت الحصة فور تأكيد المعلم. وإن اعتذر عادت الحصة إلى رصيدك.'))
+                    : array(t('ادفع لتثبيت الموعد'),
+                            t('بعد التأكيد تصلك فاتورة الحصة. تدفعها خلال ')
+                            . $tq_cfg['pay_hours'] . t(' ساعة فيثبت الموعد لك وحدك.'));
                 $steps[] = array(t('ادخل الحصة'),
                     t('يفتح الرابط هنا قبل الموعد بـ') . $tq_cfg['lead_min']
                     . t(' دقيقة، ويغلق حين يعلن معلمك انتهاءها.'));
@@ -384,7 +575,17 @@ include 'portal_open.php';
                                 <?php echo tq_badge($badge[0], $badge[1]); ?>
                             </div>
 
-                            <?php if ((int) $b['price'] > 0): ?>
+                            <?php /* TQ-FND-PACK — حصة الباقة **لا ثمن مستحق لها**:
+                                     رقم بجوارها يقرأ مطالبة، ومن قرأه بحث عن زر
+                                     دفع لا وجود له. فتقول «مدفوعة ضمن باقتك»
+                                     وحدها — والمبلغ سجل في فاتورة الباقة لا
+                                     في هذا السطر. */ ?>
+                            <?php if (!empty($b['is_pack'])): ?>
+                                <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
+                                    <?php echo tq_icon('check', 14); ?>
+                                    <?php echo t('مدفوعة ضمن باقتك — لا فاتورة لهذه الحصة.'); ?>
+                                </p>
+                            <?php elseif ((int) $b['price'] > 0): ?>
                                 <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
                                     <?php echo $tq_sar($b['price']); ?>
                                     <?php if ($b['invoice_no'] !== ''): ?>
@@ -449,7 +650,13 @@ include 'portal_open.php';
                                       class="tq-form-inline" style="margin-block-start:var(--tq-space-xs)"
                                       data-tq-confirm-title="<?php echo te('إلغاء هذا الحجز؟'); ?>"
                                       data-tq-confirm="<?php echo te('يعود الموعد متاحا لغيرك، ويصل معلمك أنك ألغيت.'); ?>"
-                                      data-tq-confirm-note="<?php echo te('لم يخصم منك شيء بعد، فالإلغاء الآن بلا تكلفة.'); ?>"
+                                      <?php /* TQ-FND-PACK — والملاحظة تقول ما يعود:
+                                               «لم يخصم منك شيء» كاذبة على حصة باقة
+                                               (خصمت حصة من رصيده)، والصواب أن تعود
+                                               إليه — وهو ما يطمئنه قبل أن يضغط. */ ?>
+                                      data-tq-confirm-note="<?php echo !empty($b['is_pack'])
+                                          ? te('تعود الحصة إلى رصيد باقتك كاملة، فتحجز بها موعدا آخر.')
+                                          : te('لم يخصم منك شيء بعد، فالإلغاء الآن بلا تكلفة.'); ?>"
                                       data-tq-confirm-ok="<?php echo te('ألغ الحجز'); ?>"
                                       data-tq-confirm-tone="danger">
                                     <?php echo tq_csrf(); ?>

@@ -3021,6 +3021,17 @@ if (!function_exists('tqs_foundation_band')) {
                 $h .= '            </ul>' . "\n";
             }
 
+            /* TQ-FND-PACK — وأرخص حصة في باقات المسار تحت سعر المفردة.
+               من يقرأ «١٢٠ للحصة» وحدها يضرب في ست وينصرف، ولا شيء في
+               البطاقة يقول إن للست ثمنا آخر. والرقم من `pack_offer()`
+               نفسها التي تبيع، فلا وعد في بطاقة يخالف ما تطلبه الفاتورة. */
+            $best = null;
+            try {
+                foreach ($fnd->packs_of_track($id) as $po) {
+                    if ($best === null || (int) $po['unit'] < (int) $best['unit']) $best = $po;
+                }
+            } catch (Throwable $e) { $CI->db->reset_query(); $best = null; }
+
             $h .= '            <div class="fnd26-card__foot">' . "\n";
             $h .= '              <div class="fnd26-card__row">' . "\n";
             $h .= '                <p class="fnd26-card__price">'
@@ -3033,6 +3044,14 @@ if (!function_exists('tqs_foundation_band')) {
                     . t('مواعيد متاحة') . '</p>' . "\n";
             }
             $h .= '              </div>' . "\n";
+            if ($best !== null && (int) $best['unit'] < (int) $p['price']) {
+                $h .= '              <p class="fnd26-card__pack"><b>' . t('أو') . ' '
+                    . tqs_money((int) $best['unit']) . ' ' . t('للحصة') . '</b> '
+                    . t('في باقة فيها') . ' ' . (int) $best['sessions'] . ' ' . t('حصة')
+                    . ((int) $best['save_pct'] > 0
+                        ? ' — ' . t('وفر ____٪', array((string) (int) $best['save_pct'])) : '')
+                    . '</p>' . "\n";
+            }
             $h .= '              <span class="fnd26-card__cta" aria-hidden="true">' . t('تفاصيل المسار والمواعيد')
                 . '<svg class="dir-icon"><use href="#i-arrow"></use></svg></span>' . "\n";
             $h .= '            </div>' . "\n";

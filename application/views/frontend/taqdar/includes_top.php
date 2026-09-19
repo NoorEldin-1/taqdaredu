@@ -67,7 +67,11 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
 <?php /* TQ-FOUNDATION-BAND — ورقة التأسيس: قسم «مسارات التأسيس» في الرئيسية
         وصفحة الباقات، وصفحتا `/foundation` و`/foundation/<slug>`. أربع
         صفحات تقرأ بطاقة واحدة، فالورقة واحدة لا نسخة في كل منها. */ ?>
-<?php if (isset($page_name) && in_array($page_name, array('home', 'home_elegant', 'plans', 'site_foundation', 'site_foundation_track'), true)): ?>
+<?php if (isset($page_name) && in_array($page_name, array('home', 'home_elegant', 'plans', 'site_foundation', 'site_foundation_track',
+                                              'site_foundation_pack_checkout'), true)): ?>
+    <?php /* TQ-FND-PACK — وشاشة تأكيد شراء الباقة منها: شارة عدد الحصص
+             (`.fndco-badge`) مكتوبة في هذه الورقة، وبلا تحميلها تخرج
+             مربعا بلا لون في أول ما يقرأه المشتري. */ ?>
     <link rel="stylesheet" href="<?php echo tq_site_asset('css/foundation.css'); ?>">
 <?php endif; ?>
 <?php else: ?>

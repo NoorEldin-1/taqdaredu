@@ -1271,3 +1271,56 @@ html[dir='ltr'] .tq-switch input:checked ~ .tq-switch__knob { transform: transla
   .tq-langsw__opt { min-block-size: 32px; padding-block: 8px; }
 }
 
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-FND-PACK — رصيد التأسيس وباقاته في بوابة الطالب
+   ----------------------------------------------------------------------
+   بطاقتان تركبان على `.tq-card` القائمة ولا تستبدلانها: الحشوة والحد
+   والظل منها، وما هنا هو الأرقام وحدها — عدد الحصص، والشريط، والثمن.
+   وبطاقة مستقلة بحدودها كانت تخرج بمظهر غير مظهر بقية الشاشة.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── بطاقة الرصيد ────────────────────────────────────────────────── */
+.tq-fndc__n{
+  display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+  margin:var(--tq-space-xs) 0 var(--tq-space-s);
+}
+.tq-fndc__n b{
+  font-family:'Cairo',sans-serif;font-weight:700;line-height:1;
+  font-size:2.2rem;color:var(--tq-navy);
+}
+.tq-fndc__n span{font-size:.82rem;color:var(--tq-text2)}
+/* الرصيد الفارغ يبهت ولا يختفي: بطاقة تمحى تجعل من نفد رصيده يظن أنه
+   لم يشتر شيئا، ويبقى أثر باقته في سجله بلا ما يقابله في شاشته. */
+.tq-fndc.is-empty{opacity:.66}
+.tq-fndc.is-empty .tq-fndc__n b{color:var(--tq-text3)}
+.tq-fndc__bar{
+  display:block;block-size:6px;border-radius:999px;overflow:hidden;
+  background:var(--tq-line);
+}
+.tq-fndc__bar i{display:block;block-size:100%;border-radius:999px;background:var(--tq-navy)}
+
+/* ── بطاقة عرض باقة ──────────────────────────────────────────────── */
+.tq-fndp{position:relative}
+.tq-fndp.is-hot{border-color:var(--tq-gold,#C9A55F)}
+.tq-fndp__flag{
+  position:absolute;inset-block-start:-10px;inset-inline-end:14px;
+  padding:3px 11px;border-radius:999px;
+  background:var(--tq-navy);color:#fff;
+  font-family:'Cairo',sans-serif;font-weight:700;font-size:.68rem;line-height:1.7;
+  white-space:nowrap;
+}
+.tq-fndp__n{display:flex;align-items:baseline;gap:6px;margin:var(--tq-space-xs) 0 0}
+.tq-fndp__n b{font-family:'Cairo',sans-serif;font-weight:700;font-size:1.9rem;line-height:1;color:var(--tq-navy)}
+.tq-fndp__n span{font-size:.8rem;color:var(--tq-text2)}
+.tq-fndp__price{
+  display:flex;align-items:baseline;flex-wrap:wrap;gap:7px;
+  margin:var(--tq-space-s) 0 0;
+}
+.tq-fndp__price b{font-family:'Cairo',sans-serif;font-weight:700;font-size:1.15rem;color:var(--tq-ink,var(--tq-navy))}
+.tq-fndp__price del{font-size:.78rem;color:var(--tq-text3)}
+.tq-fndp__save{
+  padding:2px 8px;border-radius:999px;
+  background:rgba(22,160,133,.12);color:#0E7A64;
+  font-family:'Cairo',sans-serif;font-weight:700;font-size:.72rem;line-height:1.7;
+}

@@ -5244,9 +5244,52 @@ class Api_v1 extends CI_Controller
 
         $this->load->model('taqdar_tap_model', 'tq_tap');
 
+        /* TQ-FND-PACK — الباقات والرصيد يخرجان مع المسارات لا في نقطة
+           ثانية: شاشة التطبيق تسأل السؤالين معا («ماذا أحجز؟ وبكم؟»)،
+           ونداءان لشاشة واحدة يجعلان أحدهما يتأخر فتقرأ البطاقة «ادفع»
+           على حصة يغطيها رصيد صاحبها. */
+        $packs = array();
+        foreach ($fnd->published() as $tid => $t) {
+            foreach ($fnd->packs_of_track((int) $tid) as $pid => $po) {
+                $packs[] = array(
+                    'id'         => (int) $pid,
+                    'name'       => (string) $po['name'],
+                    'tagline'    => (string) $po['tagline'],
+                    'track_id'   => (int) $po['track_id'],
+                    'track_name' => (string) ($po['track'] ? $po['track']['name'] : ''),
+                    'sessions'   => (int) $po['sessions'],
+                    'price'      => tq_api_money((int) $po['price']),
+                    'unit_price' => tq_api_money((int) $po['unit']),
+                    'list_price' => tq_api_money((int) $po['list']),
+                    'save'       => tq_api_money((int) $po['save']),
+                    'save_pct'   => (int) $po['save_pct'],
+                    'valid_days' => (int) $po['days'],
+                    'featured'   => (bool) $po['featured'],
+                );
+            }
+        }
+
+        $credits = array();
+        foreach ($fnd->credits((int) $u['id']) as $c) {
+            $credits[] = array(
+                'subscription_id' => (int) $c['sub_id'],
+                'pack_id'         => (int) $c['pack_id'],
+                'name'            => (string) $c['name'],
+                'track_id'        => (int) $c['track_id'],
+                'track_name'      => (string) $c['track_name'],
+                'total'           => (int) $c['total'],
+                'used'            => (int) $c['used'],
+                'left'            => (int) $c['left'],
+                'ends_at'         => $c['ends_at'] ? tq_api_date($c['ends_at']) : null,
+                'days_left'       => $c['days_left'] === null ? null : (int) $c['days_left'],
+            );
+        }
+
         $this->read(array(
             'enabled'  => (bool) $fnd->enabled(),
             'tracks'   => $tracks,
+            'packs'    => $packs,
+            'credits'  => $credits,
             'bookings' => $bookings,
             'teachers' => $this->tutors_out($m->available_teachers(
                               12, 6, 0, 0, Taqdar_sessions_model::KIND_FOUNDATION, $track)),
@@ -5564,6 +5607,31 @@ class Api_v1 extends CI_Controller
             $this->load->model('taqdar_billing_model', 'tq_bill');
             return $this->tq_bill->subscribe_book($uid, (int) $b['book_id'], $method);
         }, 'api.buy.book', 'صدرت فاتورتك. حول قيمتها ويفتح الكتاب في مكتبتك بعد التحقق من الحوالة.');
+    }
+
+    /**
+     * POST /api/v1/student/buy-foundation — شراء باقة حصص تأسيس.
+     *
+     * TQ-FND-PACK، وعلى مسار الشراء الواحد نفسه: الفاتورة أولا ثم الدفع.
+     * والرد لا يفتح شيئا — يفتح **رصيدا** يحجز به صاحبه بعد ذلك من
+     * `student/foundation`، ورسالة تقول «يفتح فورا» تجعله ينتظر جدولا
+     * لا يجيء.
+     */
+    public function buy_foundation()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+        $errors = tq_api_validate($b, array('pack_id' => 'required|int'));
+        if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+        $this->buy(function ($uid, $method) use ($b) {
+            $this->load->model('taqdar_billing_model', 'tq_bill');
+            return $this->tq_bill->subscribe_foundation_pack($uid, (int) $b['pack_id'], $method);
+        }, 'api.buy.foundation',
+           'صدرت فاتورتك. حول قيمتها ويفتح رصيد باقتك بعد التحقق من الحوالة، ثم تحجز به حصصك.');
     }
 
     /**
@@ -7216,9 +7284,9 @@ class Api_v1 extends CI_Controller
         }
 
         $kind = (string) ($b['kind'] ?? 'plan');
-        if (!in_array($kind, array('plan', 'course', 'book'), true)) {
+        if (!in_array($kind, array('plan', 'course', 'book', 'foundation'), true)) {
             $this->fail('نوع الشراء غير معروف.', 'validation_failed', 422,
-                        array('kind' => array(t('القيم المقبولة: plan · course · book'))));
+                        array('kind' => array(t('القيم المقبولة: plan · course · book · foundation'))));
         }
 
         $this->load->model('taqdar_billing_model', 'tq_bill');
@@ -7231,6 +7299,11 @@ class Api_v1 extends CI_Controller
             $r = $this->tq_bill->subscribe_course($child, (int) ($b['course_id'] ?? 0), $method);
         } elseif ($kind === 'book') {
             $r = $this->tq_bill->subscribe_book($child, (int) ($b['book_id'] ?? 0), $method);
+        } elseif ($kind === 'foundation') {
+            /* TQ-FND-PACK — ومهلة الحصة المفردة ساعات لا أيام، وولي الأمر
+               هو من يدفع في أكثر الأسر: باب بلا باقات يعني أنه يشتري
+               لابنه حصة حصة بمهلة تسقط قبل أن يفتح شاشته. */
+            $r = $this->tq_bill->subscribe_foundation_pack($child, (int) ($b['pack_id'] ?? 0), $method);
         } else {
             /* TQ-CYCLE-BUY — والدورة معامل: باب بلا دورة يعني أن ولي
                الأمر لا يشتري الشهري أبدا مهما عرضته عليه صفحة الباقات. */
@@ -8512,9 +8585,33 @@ class Api_v1 extends CI_Controller
             );
         }
 
+        /* TQ-FND-PACK — وباقات التأسيس مع الباقات: شاشة الشراء عند ولي
+           الأمر تجيب «ماذا أشتري لابني؟»، وباقة حصص لا تظهر فيها لا
+           يشتريها أحد مهما عرضتها الصفحة العامة. */
+        $packs = array();
+        try {
+            $this->load->model('taqdar_foundation_model', 'tq_fnd');
+            foreach ($this->tq_fnd->published() as $tid => $t) {
+                foreach ($this->tq_fnd->packs_of_track((int) $tid) as $pkid => $po) {
+                    $packs[] = array(
+                        'id'         => (int) $pkid,
+                        'name'       => (string) $po['name'],
+                        'track_id'   => (int) $po['track_id'],
+                        'track_name' => (string) ($po['track'] ? $po['track']['name'] : ''),
+                        'sessions'   => (int) $po['sessions'],
+                        'price'      => tq_api_money((int) $po['price']),
+                        'unit_price' => tq_api_money((int) $po['unit']),
+                        'save_pct'   => (int) $po['save_pct'],
+                        'valid_days' => (int) $po['days'],
+                    );
+                }
+            }
+        } catch (Throwable $e) { $this->db->reset_query(); $packs = array(); }
+
         $this->read(array(
             'children'      => $kids,
             'plans'         => $plans,
+            'foundation_packs' => $packs,
             'due_invoices'  => $due,
             'card_ready'    => $card,
             'pay_methods'   => $card ? array('tap', 'manual') : array('manual'),

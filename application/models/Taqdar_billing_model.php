@@ -204,6 +204,12 @@ class Taqdar_billing_model extends CI_Model
                كتابا بخمسة وعشرين لا تصير «باقته» كتابا، ولا يرد عليه
                شراء الباقة بـ«لديك اشتراك نشط بالفعل». */
             if ((int) (isset($row['book_id']) ? $row['book_id'] : 0) > 0) continue;
+            /* TQ-FND-PACK — وباقة حصص التأسيس مثلهما: هي رصيد ساعات لا
+               «اشتراك»، ولا تفتح درسا واحدا. ولو قرئت هنا لقرأ من اشترى
+               ست حصص «باقتك: باقة التأسيس» ولرد عليه شراء باقة صفه
+               بـ«لديك اشتراك نشط بالفعل» — فيقفل شراء ست حصص باب المنهج
+               كله. والرصيد يقرأ من `Taqdar_foundation_model::credits()`. */
+            if ((int) (isset($row['pack_id']) ? $row['pack_id'] : 0) > 0) continue;
             return $row;
         }
         return null;
@@ -324,6 +330,22 @@ class Taqdar_billing_model extends CI_Model
         $crs  = (int) (isset($sub['course_id']) ? $sub['course_id'] : 0);
         $path = (int) (isset($sub['path_id'])   ? $sub['path_id']   : 0);
         $plan = (int) (isset($sub['plan_id'])   ? $sub['plan_id']   : 0);
+        $pack = (int) (isset($sub['pack_id'])   ? $sub['pack_id']   : 0);
+
+        /* TQ-FND-PACK — وحدة البيع الخامسة، وموضعها هنا قبل الباقة كما
+           هي اخواتها: صفها يحمل `plan_id = 0`، فقراءة الباقة اولا ترد
+           «باقة #0» على كل باقة حصص بيعت. والوعد الذي كتب يوم كتبت
+           `sold()` — «وحدة البيع الخامسة يوما تضاف في هذا switch وحده
+           فتصل الستة معا» — هذا هو يومه. */
+        if ($pack > 0) {
+            $t = $of('tq_foundation_packs', 'name_ar', $pack);
+            $n = (int) (isset($sub['pack_sessions']) ? $sub['pack_sessions'] : 0);
+            return array('kind' => 'pack', 'id' => $pack, 'code' => null,
+                         'label' => t('باقة حصص'), 'noun' => t('باقة حصص'), 'noun_def' => t('باقة الحصص'),
+                         'title' => $t !== '' ? $t
+                                    : ($n > 0 ? t('باقة') . ' ' . $n . ' ' . t('حصص تأسيس')
+                                              : t('باقة حصص') . ' #' . $pack));
+        }
 
         if ($book > 0) {
             $t = $of('books', 'title', $book);
@@ -940,6 +962,156 @@ class Taqdar_billing_model extends CI_Model
     }
 
     /* =====================================================================
+       TQ-FND-PACK — باقة حصص التأسيس: وحدة البيع الخامسة
+       ===================================================================== */
+
+    /**
+     * يشتري الطالب باقة حصص تأسيس — رصيدا يحجز به، لا محتوى يفتح.
+     *
+     * **ولا محرك ثان**: صف في `subscriptions` بفاتورته، تسويه تاب بالفرع
+     * نفسه (`activate_from_gateway()`)، ويفعله المسؤول بالزر نفسه في
+     * «الاشتراكات»، وينتهي اجله بـ`expire_due()` نفسها. ونظام «محفظة
+     * حصص» مستقل كان يحتاج نسخة ثانية من كل واحد من هذه الاربعة.
+     *
+     * **والفرق عن الاربع قبلها**: هذه لا تفتح درسا ولا كتابا ولا مقررا —
+     * بندها `foundation` على **مسار**، ومعناه «يحجز بها في هذا المسار».
+     * ولذلك لا `sync_enrolments()` ولا صف في `enrol`: لا كورس هنا اصلا.
+     *
+     * **ولا يمنع الباقة ولا تمنعه**، وهو مبدأ TQ-COURSE-SALE نفسه: من له
+     * باقة صفه واشترى ست حصص تأسيس اشترى شيئين لا شيئا مكررا. **ويجوز
+     * فوق نفسه**: من نفد رصيده يشتري باقة ثانية في اليوم نفسه، ورصيداه
+     * يقرآن معا (`credits()`) ويخصم من اقربهما اجلا. ومنع الثاني يجعل من
+     * انهى حصصه ينتظر انتهاء اجل صف فارغ.
+     *
+     * @return array ok · subscription_id · invoice_id · errors · offer
+     */
+    public function subscribe_foundation_pack($user_id, $pack_id, $method = 'manual')
+    {
+        $this->load->model('taqdar_foundation_model', 'tq_fnd');
+        $this->tq_fnd->ensure_schema();
+
+        $user_id = (int) $user_id;
+        $pack_id = (int) $pack_id;
+
+        if (!$user_id) return array('ok' => false, 'errors' => array(t('لا مستخدم.')));
+        if (!$pack_id) return array('ok' => false, 'errors' => array(t('لا باقة.')));
+
+        /* العرض من مصدره الواحد: الثمن والعدد والاجل والنسبة كلها من
+           `pack_offer()`، فما تعد به الشاشة هو ما تقيده الفاتورة. */
+        $offer = $this->tq_fnd->pack_offer($pack_id);
+        if (empty($offer['sellable'])) {
+            return array('ok' => false, 'code' => 'NOT_SELLABLE',
+                         'errors' => array($offer['why']));
+        }
+
+        /* TQ-SUB-REUSE — معلق بفاتورة لم تدفع يعاد استعماله: من أكد ثم
+           تردد ثم أكد مرة اخرى كان يخرج بصفين وفاتورتين، تسدد احداهما
+           وتبقى الاخرى «غير مدفوعة» في سجل مالي ابدا. */
+        $pend = $this->db->where('user_id', $user_id)
+                         ->where('pack_id', $pack_id)
+                         ->where('status', 'pending')
+                         ->where('price', (int) $offer['price'])
+                         ->order_by('id', 'DESC')->limit(1)
+                         ->get('subscriptions')->row_array();
+
+        if ($pend) {
+            $old = $this->invoice_of_subscription((int) $pend['id']);
+            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === (int) $offer['price']) {
+                $this->db->where('id', (int) $pend['id'])
+                         ->update('subscriptions', array('method' => $method));
+                $this->db->where('id', (int) $old['id'])
+                         ->update('invoices', array('method' => $method));
+                return array('ok' => true, 'subscription_id' => (int) $pend['id'],
+                             'invoice_id' => (int) $old['id'], 'reused' => true,
+                             'offer' => $offer);
+            }
+        }
+
+        $this->db->insert('subscriptions', array(
+            'user_id'       => $user_id,
+            'plan_id'       => 0,
+            'path_id'       => 0,
+            'course_id'     => 0,
+            'book_id'       => 0,
+            'pack_id'       => $pack_id,
+            /* **والعدد يجمد وقت الشراء** كما يجمد السعر: رفع الباقة من
+               ست الى ثمان غدا لا يزيد رصيد من اشترى امس، وخفضها لا
+               ينقصه. وهو مبدأ `subscription_items` نفسه. */
+            'pack_sessions' => (int) $offer['sessions'],
+            'status'        => 'pending',
+            'price'         => (int) $offer['price'],
+            'auto_renew'    => 0,
+            'method'        => $method,
+            'created_at'    => date('Y-m-d H:i:s'),
+        ));
+        $sid = (int) $this->db->insert_id();
+
+        $inv = $this->issue_invoice($sid, $user_id, (int) $offer['price'], $method);
+        $this->notify_invoice_issued($inv, $method);
+
+        return array('ok' => true, 'subscription_id' => $sid,
+                     'invoice_id' => $inv, 'offer' => $offer);
+    }
+
+    /**
+     * TQ-FND-PACK — تفعيل باقة حصص: اجل، وبند مسار، ولا قيد لاحد.
+     *
+     * **ولا نصيب للمعلم هنا، وهو جوهر الفرق.** بيع الكتاب والكورس يقيد
+     * لصاحبه وقت الدفع لان ما بيع محتوى قائم يسلم نفسه؛ والباقة **وقت
+     * لم يعش بعد**، وقد لا يعرف اي معلم يعطيه اصلا — فالمسار له معلمون
+     * والطالب يختار بينهم حصة حصة. فكل حصة تقيد لمن اعطاها حين يعلن
+     * انتهاءها (`Taqdar_sessions_model::credit()`)، بنصيبها من المدفوع.
+     * وهو مبدأ TQ-SESSION-PAY نفسه («يقيد عند الانتهاء لا عند الدفع»)،
+     * وبلاه كان معلم لم يدرس شيئا يملك مال ست حصص.
+     *
+     * **والاجل من الباقة** (`validity_days`): صفر يعني رصيدا لا ينتهي،
+     * فـ`ends_at` تبقى `NULL` و`expire_due()` تشترط `IS NOT NULL` فلا
+     * تلمسه. وتاريخ بعيد مخترع ينتهي يوما ويحرق رصيدا بيع على انه دائم.
+     */
+    private function activate_foundation_subscription($sub, $method = null, $transaction_id = null)
+    {
+        $pid = (int) $sub['pack_id'];
+
+        $this->load->model('taqdar_foundation_model', 'tq_fnd');
+        $offer = $this->tq_fnd->pack_offer($pid);
+        if (empty($offer['id'])) return false;
+
+        $days  = (int) $offer['days'];
+        $start = time();
+
+        $data = array(
+            'status'     => 'active',
+            'started_at' => date('Y-m-d H:i:s', $start),
+            'ends_at'    => $days > 0
+                          ? date('Y-m-d H:i:s', strtotime('+' . $days . ' days', $start))
+                          : null,
+        );
+        if ($method)         $data['method']         = $method;
+        if ($transaction_id) $data['transaction_id'] = $transaction_id;
+
+        /* عدد الحصص قد يكون صفرا في صف كتب قبل العمود، فيؤخذ من الباقة.
+           ورصيد صفر يعني باقة دفع ثمنها ولا يحجز بها شيء. */
+        if ((int) (isset($sub['pack_sessions']) ? $sub['pack_sessions'] : 0) <= 0) {
+            $data['pack_sessions'] = (int) $offer['sessions'];
+        }
+
+        $this->db->where('id', (int) $sub['id'])->update('subscriptions', $data);
+
+        /* البند يقول **اين يحجز**: مسار التأسيس. والتنظيف قبل الكتابة،
+           فتفعيل ثان لا يكتب بندا فوق بند. */
+        $this->db->where('subscription_id', (int) $sub['id'])->delete('subscription_items');
+        $this->db->insert('subscription_items', array(
+            'subscription_id' => (int) $sub['id'],
+            'entity_type'     => 'foundation',
+            'entity_id'       => (int) $offer['track_id'],
+        ));
+
+        $this->audit('subscription_activate_pack', 'subscriptions#' . (int) $sub['id'],
+                     $sub, $this->subscription($sub['id']));
+        return true;
+    }
+
+    /* =====================================================================
        الشراء والتفعيل
        ===================================================================== */
 
@@ -1228,6 +1400,14 @@ class Taqdar_billing_model extends CI_Model
         /* TQ-BOOK — واشتراك كتاب مفرد، بالعلة نفسها وفي الموضع نفسه. */
         if ((int) (isset($sub['book_id']) ? $sub['book_id'] : 0) > 0) {
             return $this->activate_book_subscription($sub, $method, $transaction_id);
+        }
+
+        /* TQ-FND-PACK — وباقة حصص التأسيس، وفي الموضع نفسه وللعلة نفسها:
+           `plan_id = 0` فترد `plan()` فارغا وترد `activate()` كاذبة —
+           اي ان الطالب يدفع، وتحصل تاب المال، ولا يفتح رصيد، ويقرأ
+           «حصل المال ولم يفعل الاشتراك». */
+        if ((int) (isset($sub['pack_id']) ? $sub['pack_id'] : 0) > 0) {
+            return $this->activate_foundation_subscription($sub, $method, $transaction_id);
         }
 
         $plan = $this->plan($sub['plan_id']);
@@ -1767,7 +1947,7 @@ class Taqdar_billing_model extends CI_Model
      */
     public function repair_items()
     {
-        $subs = $this->db->select('id, plan_id, path_id, status')
+        $subs = $this->db->select('id, plan_id, path_id, pack_id, status')
                          ->from('subscriptions')
                          ->where_in('status', array('active', 'cancelled'))
                          ->get()->result_array();
@@ -1780,6 +1960,12 @@ class Taqdar_billing_model extends CI_Model
             $n = (int) $this->db->where('subscription_id', $sid)
                                 ->count_all_results('subscription_items');
             if ($n > 0) { $skipped++; continue; }
+
+            /* TQ-FND-PACK — وباقة الحصص بندها مسار تأسيس، وتكتبه
+               `activate_foundation_subscription()` وحدها. وبلا هذا
+               التخطي تقرأ الاصلاح باقتها `plan_id = 0` فيرد «باقته غير
+               موجودة» على صف صحيح تماما. */
+            if ((int) (isset($sub['pack_id']) ? $sub['pack_id'] : 0) > 0) { $skipped++; continue; }
 
             /* اشتراك مسار: بنده المسار نفسه لا نطاق باقة. */
             if ((int) $sub['path_id'] > 0) {
@@ -2192,6 +2378,10 @@ class Taqdar_billing_model extends CI_Model
             'path'    => array('paths',    'title',   t('مسار')),
             'course'  => array('course',   'title',   t('كورس')),
             'book'    => array('books',    'title',   t('كتاب')),
+            /* TQ-FND-PACK — بند باقة الحصص **مسار** لا باقة: هو يقول
+               «اين يحجز هذا الرصيد»، وشاشة تقرأ «#3» بلا اسم تترك
+               المسؤول يخمن اي مسار فتحته البيعة. */
+            'foundation' => array('tq_foundation_tracks', 'name_ar', t('مسار تأسيس')),
         );
         if (!isset($map[$type])) return '#' . $entity_id;
 

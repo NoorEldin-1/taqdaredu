@@ -499,6 +499,10 @@ class Taqdar_admin extends CI_Controller
 
         $this->render('tqa_foundation', 'قسم التأسيس', array(
             'tracks'   => $this->taqdar_foundation_model->track_stats(),
+            /* TQ-FND-PACK — والباقات هنا لا في شاشة مستقلة: سؤالها سؤال
+               هذه الشاشة نفسه («أيعمل القسم؟»)، وهي تسعير لمسار قائم
+               فلا تقرأ الا في سياقه. وتحريرها في الوحدة الموصوفة. */
+            'packs'    => $this->taqdar_foundation_model->pack_stats(),
             'fnd'      => $this->taqdar_foundation_model,
             'ses'      => $this->taqdar_sessions_model,
             'cfg'      => $this->taqdar_sessions_model->config(),

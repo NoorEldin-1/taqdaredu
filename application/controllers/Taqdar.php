@@ -3419,6 +3419,10 @@ class Taqdar extends CI_Controller
            تقول «لا وجود له» فيصرف من جاءه من إعلان. */
         $this->show('site_foundation', 'التأسيس', array(
             'tracks' => $tracks,
+            /* TQ-FND-PACK — والباقات تعرض هنا كما تعرض في صفحة المسار:
+               من يقرأ «١٢٠ للحصة» وحدها يحسب ست حصص بسبعمئة وعشرين
+               وينصرف، ولا شيء في الصفحة يقول إن للست ثمنا آخر. */
+            'packs'  => $this->tq_fnd->packs(),
             'fnd'    => $this->tq_fnd,
             'ses'    => $this->taqdar_sessions_model,
         ));
@@ -3436,6 +3440,9 @@ class Taqdar extends CI_Controller
 
         $this->show('site_foundation_track', $track['name'], array(
             'track'    => $track,
+            /* TQ-FND-PACK — باقات هذا المسار، المعروضة وحدها ومرتبة
+               بعدد حصصها. وشاشة تعرض المعطلة تبيع ما يرده الخادم. */
+            'packs'    => $this->tq_fnd->packs_of_track((int) $track['id']),
             'teachers' => $this->tq_fnd->track_teachers((int) $track['id']),
             'tutors'   => $this->taqdar_sessions_model->available_teachers(
                               12, 4, 0, 0, 'foundation', (int) $track['id']),
@@ -4485,6 +4492,162 @@ class Taqdar extends CI_Controller
             'صدرت الفاتورة. حول قيمتها ويفتح الكتاب في مكتبة ابنك بعد التحقق من الحوالة.');
     }
 
+
+    /* =====================================================================
+       TQ-FND-PACK — شراء باقة حصص التأسيس
+       ===================================================================== */
+
+    /**
+     * شاشة تأكيد شراء باقة حصص — وهي أخت `book_checkout()` حرفا بحرف.
+     *
+     * والشراء واحد والمشترى مختلف: هنا **رصيد ساعات** لا ملف ولا مقرر،
+     * فالشاشة تقول ذلك صراحة — كم حصة، وفي أي مسار، وكم يوما تبقى صالحة،
+     * وأن الحجز يقع بعد الشراء لا معه. ومن ظن أنه يشتري مواعيد محجوزة
+     * ينتظر جدولا لا يجيء.
+     */
+    public function foundation_checkout($pack_id = 0)
+    {
+        $pack_id = (int) $pack_id;
+
+        $this->load->model('taqdar_foundation_model', 'tq_fnd');
+        $offer = $this->tq_fnd->pack_offer($pack_id);
+
+        /* غير معروضة = غير موجودة في هذا الباب. و404 لا صفحة تشرح. */
+        if (empty($offer['sellable'])) show_404();
+
+        $uid = (int) $this->session->userdata('user_id');
+        if ($uid <= 0) {
+            $next = 'foundation-checkout/' . $pack_id;
+            $this->session->set_userdata('tq_next', $next);
+            redirect(site_url('login?next=' . rawurlencode($next)), 'location', 302);
+            return;
+        }
+
+        $track = $offer['track'];
+        $back  = 'foundation/' . rawurlencode((string) $track['slug']);
+
+        /* الرصيد يحجز به الطالب، فالباقة تشترى لحساب طالب. وولي الأمر
+           يشتري **لابنه** من بوابته كما يشتري الكتاب والكورس. */
+        if (function_exists('tq_role') && tq_role() !== 'student') {
+            $this->session->set_flashdata('error_message',
+                'باقات الحصص تشترى لحسابات الطلاب. وولي الأمر يشتري لابنه من «ادفع عن ابنك».');
+            redirect(base_url($back), 'location', 302);
+            return;
+        }
+
+        $this->load->model('taqdar_tap_model');
+
+        $this->show('site_foundation_pack_checkout', 'تأكيد شراء — ' . $offer['name'], array(
+            'tq_offer'     => $offer,
+            'tq_track'     => $track,
+            /* ورصيده القائم يعرض قبل أن يشتري: من له ثلاث حصص لم يحجزها
+               قد لا يحتاج باقة ثانية اليوم، وشاشة تخفي ذلك تبيع له ما لا
+               يستعمله ثم يطالب برده. */
+            'tq_credits'   => $this->tq_fnd->credits($uid, (int) $track['id']),
+            'user_id'      => $uid,
+            'tq_card'      => $this->taqdar_tap_model->ready(),
+            'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
+        ));
+    }
+
+    /**
+     * POST student/buy-foundation — الفاتورة أولا ثم الدفع.
+     *
+     * الترتيب هو ترتيب كل شراء في المنصة: لو أنشئت الدفعة عند تاب قبل أن
+     * تكتب الفاتورة لصار من دفع ثم سقط اتصاله قد دفع بلا صف يقابله.
+     */
+    public function buy_foundation()
+    {
+        $this->require_role('student');
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $uid     = (int) $this->session->userdata('user_id');
+        $pack_id = (int) $this->input->post('pack_id');
+
+        $this->load->model('taqdar_tap_model');
+        $by_card = ((string) $this->input->post('pay_method') === 'tap')
+                && $this->taqdar_tap_model->ready();
+
+        $this->load->model('taqdar_billing_model');
+        $r = $this->taqdar_billing_model->subscribe_foundation_pack(
+            $uid, $pack_id, $by_card ? 'tap' : 'manual');
+
+        if (empty($r['ok'])) {
+            $this->session->set_flashdata('error_message', implode(' ', (array) $r['errors']));
+            redirect(base_url('foundation-checkout/' . $pack_id), 'location', 302);
+            return;
+        }
+
+        $this->trace('student.foundation.buy', 'foundation_pack#' . $pack_id,
+                     array('subscription_id' => $r['subscription_id'] ?? 0,
+                           'invoice_id'      => $r['invoice_id'] ?? 0));
+
+        if ($by_card) {
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid);
+            if (!empty($pay['ok'])) { redirect($pay['url'], 'location', 302); return; }
+
+            /* تعذر بدء الدفع: الفاتورة صدرت ولم تضع، فيقال ما وقع ويدل
+               على البديل — لا يعاد إلى صفحة المسار وقد صار له اشتراك
+               معلق يظنه لم يقع. */
+            $this->session->set_flashdata('error_message',
+                implode(' ', $pay['errors'])
+                . ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا أو إعادة المحاولة من هنا.');
+            redirect(base_url('student/foundation'), 'location', 302);
+            return;
+        }
+
+        $this->session->set_flashdata('flash_message',
+            'صدرت فاتورتك. حول قيمتها ويفتح رصيد باقتك بعد التحقق من الحوالة، '
+            . 'ثم تحجز به حصصك من شاشة التأسيس.');
+        redirect(base_url('student/foundation'), 'location', 302);
+    }
+
+    /**
+     * POST parent/pay/foundation — ولي الأمر يشتري باقة حصص لابنه.
+     *
+     * والرصيد يكتب **باسم الابن** لا باسمه: هو من يحجز به، وعليه تقيد
+     * حصصه. وهو مبدأ شراء ولي الأمر كله في هذه المنصة.
+     */
+    public function parent_pay_foundation()
+    {
+        $this->write_guard('parent');
+
+        $child   = (int) $this->input->post('child_id');
+        $pack_id = (int) $this->input->post('pack_id');
+
+        if (!$this->parent_owns_child((int) $this->session->userdata('user_id'), $child)) {
+            $this->done('parent/pay', false, 'هذا الحساب ليس من أبنائك.');
+            return;
+        }
+
+        $this->load->model('taqdar_tap_model');
+        $by_card = ((string) $this->input->post('pay_method') === 'tap')
+                && $this->taqdar_tap_model->ready();
+
+        $this->load->model('taqdar_billing_model');
+        $r = $this->taqdar_billing_model->subscribe_foundation_pack(
+            $child, $pack_id, $by_card ? 'tap' : 'manual');
+
+        if (empty($r['ok'])) {
+            $this->done('parent/pay', false, implode(' ', (array) $r['errors']));
+            return;
+        }
+
+        $this->trace('parent.foundation.buy', 'foundation_pack#' . $pack_id,
+                     array('child' => $child, 'invoice_id' => $r['invoice_id'] ?? 0));
+
+        if ($by_card) {
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'],
+                                                  (int) $this->session->userdata('user_id'));
+            if (!empty($pay['ok'])) { redirect($pay['url'], 'location', 302); return; }
+            $this->done('parent/payments', false, implode(' ', $pay['errors'])
+                . ' وفاتورة ابنك صدرت، فيمكنك تحويل قيمتها بنكيا.');
+            return;
+        }
+
+        $this->done('parent/payments', true,
+            'صدرت الفاتورة. حول قيمتها ويفتح رصيد باقة ابنك بعد التحقق من الحوالة.');
+    }
 
     /**
      * TQ-BOOK-GATE — ملف الكتاب يمر بحارس، لا برابط عار في `uploads/`.

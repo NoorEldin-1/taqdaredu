@@ -289,6 +289,8 @@ $route['api/v1/student/store/courses']        = 'api_v1/store_courses';
 $route['api/v1/student/buy-course']           = 'api_v1/buy_course';
 /* TQ-BOOK — والكتاب المفرد مثله، وعلى مسار الشراء الواحد نفسه. */
 $route['api/v1/student/buy-book']             = 'api_v1/buy_book';
+/* TQ-FND-PACK — وباقة حصص التأسيس، على مسار الشراء الواحد نفسه. */
+$route['api/v1/student/buy-foundation']      = 'api_v1/buy_foundation';
 $route['api/v1/student/subscribe-path']       = 'api_v1/subscribe_path';
 $route['api/v1/student/subscribe']            = 'api_v1/student_subscribe';
 $route['api/v1/student/purchases']            = 'api_v1/student_purchases';
@@ -448,6 +450,10 @@ $route['parent/pay/course']         = 'taqdar/parent_pay_course';
 /* TQ-BOOK — وكتابا مفردا كذلك. وباب بلا كتب يعني أن ولي الأمر لا
    يشتري كتابا لابنه أبدا مهما عرضته عليه صفحة الكتاب. */
 $route['parent/pay/book']           = 'taqdar/parent_pay_book';
+/* TQ-FND-PACK — وباقة حصص تأسيس كذلك. ومهلة الحصة ساعات لا أيام، وولي
+   الأمر هو من يدفع في أكثر الأسر — وباب بلا باقات يعني أنه يشتري لابنه
+   حصة حصة بفاتورة لكل واحدة، وهو ما جاءت الباقة لتغنيه عنه. */
+$route['parent/pay/foundation']     = 'taqdar/parent_pay_foundation';
 /* TQ-INVOICE-CANCEL — إلغاء فاتورة لم تدفع. كتابة، فقبل `parent/(:any)`. */
 $route['parent/pay/cancel']         = 'taqdar/parent_pay_cancel';
 
@@ -525,6 +531,8 @@ $route['student/subscribe-path']       = 'taqdar/subscribe_path';
 $route['student/buy-course']           = 'taqdar/buy_course';
 /* TQ-BOOK — شراء كتاب مفرد، بالعلة نفسها وفي الموضع نفسه. */
 $route['student/buy-book']             = 'taqdar/buy_book';
+/* TQ-FND-PACK — وشراء باقة حصص تأسيس، وفي الموضع نفسه وللعلة نفسها. */
+$route['student/buy-foundation']       = 'taqdar/buy_foundation';
 // ---- التهيئة ووضع الامتحان والتلعيب ----
 // الكتابة قبل العرض كما في كل هذا الملف: `student/(:any)` تطابق مقطعا
 // واحدا، فبلا `student/setup/save` صريحة يسقط الطلب إلى
@@ -663,6 +671,8 @@ $route['checkout/(:any)']      = 'taqdar/checkout/$1';
 $route['course-checkout/(:num)'] = 'taqdar/course_checkout/$1';
 /* TQ-BOOK — وشاشة تأكيد شراء كتاب مفرد، برقمه للعلة نفسها. */
 $route['book-checkout/(:num)']   = 'taqdar/book_checkout/$1';
+/* TQ-FND-PACK — وشاشة تأكيد شراء باقة حصص تأسيس. */
+$route['foundation-checkout/(:num)'] = 'taqdar/foundation_checkout/$1';
 
 // ---- بوابة تاب ----
 // البادئة `payment/` مقصودة لا مصادفة: `csrf_exclude_uris` في

@@ -158,6 +158,14 @@ include 'portal_open.php';
                                             <p class="tq-micro" style="margin:0">
                                                 <?php echo $tq_sar($tq_r['price']); ?> <?php echo t('· نصيبك'); ?>
                                                 <strong><?php echo $tq_sar($tq_r['share']); ?></strong>
+                                                <?php /* TQ-FND-PACK — وشارة «مدفوعة سلفا» تغير معنى
+                                                         الرقمين: هذه لا تنتظر دفعا بعد تأكيدك، فتثبت
+                                                         في الحال ولا تسقط بمهلة. والنصيب نصيبها من ثمن
+                                                         **الباقة** لا من سعر الحصة المفردة — والباقة
+                                                         مخفضة، فالرقم أقل عمدا لا خطأ. */ ?>
+                                                <?php if (!empty($tq_r['is_pack'])): ?>
+                                                    <?php echo tq_badge('mastered', t('مدفوعة ضمن باقة')); ?>
+                                                <?php endif; ?>
                                             </p>
                                         <?php endif; ?>
                                     </div>
@@ -195,7 +203,13 @@ include 'portal_open.php';
                                     <button class="tq-btn tq-btn--mastery tq-btn--sm" type="submit"><?php echo t('تأكيد وإرسال الرابط'); ?></button>
                                     <span class="tq-micro" id="tq-meet-h-<?php echo (int) $tq_r['id']; ?>" style="flex-basis:100%">
                                         <?php echo html_escape(t('رابط ') . $tq_m->meet_hosts_text() . ' — '); ?>
-                                        <?php if ($tq_r['price'] > 0): ?>
+                                        <?php if (!empty($tq_r['is_pack'])): ?>
+                                            <?php /* TQ-FND-PACK — والمدفوعة سلفا تثبت بتأكيدك وحده:
+                                                     لا فاتورة تصدر ولا مهلة تجري. وسطر يقول «ينتظر
+                                                     الدفع» على حصة دفعت من قبل يجعل المعلم يؤجل
+                                                     التزامه بموعد ثابت. */ ?>
+                                            <?php echo t('هذه الحصة مدفوعة ضمن باقة الطالب، فتثبت بتأكيدك في الحال ويظهر له الرابط فورا. ويقيد نصيبك منها حين تعلن انتهاءها.'); ?>
+                                        <?php elseif ($tq_r['price'] > 0): ?>
                                             <?php /* التأكيد لا يثبت الموعد إن كان بثمن. وقولها هنا
                                                      يمنع أن يعتمد المعلم على وقت لم يشتر بعد. */ ?>
                                             <?php echo t('يصل الطالب فاتورة الحصة، ويظهر له الرابط بعد أن يدفع. والموعد لا يثبت لك حتى ذلك الحين.'); ?>

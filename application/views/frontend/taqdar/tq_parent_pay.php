@@ -644,6 +644,91 @@ include 'portal_open.php';
   </form>
   <?php endif; ?>
 
+  <?php
+  /* ══ TQ-FND-PACK — باقة حصص تأسيس لابنك ═════════════════════════════
+     ومهلة الحصة المفردة ساعات لا أيام، وولي الأمر هو من يدفع في أكثر
+     الأسر — فكان الابن يحجز، ويؤكد المعلم، وتمضي المهلة قبل أن يفتح
+     أبوه شاشته، فيسقط الحجز. والباقة تقطع ذلك من أصله: يدفع ولي الأمر
+     مرة، ثم يحجز ابنه ست مرات بلا فاتورة ولا مهلة.
+
+     ولا يعرض إلا ما هو معروض فعلا — `packs_of_track()` ترشح، فلا يظهر
+     لولي الأمر ما يرده الخادم. */
+  $tq_pc_ci->load->model('taqdar_foundation_model', 'tq_fnd_pp');
+  $tq_fp_offers = array();
+  foreach ($tq_pc_ci->tq_fnd_pp->published() as $tq_fp_tid => $tq_fp_t) {
+      foreach ($tq_pc_ci->tq_fnd_pp->packs_of_track((int) $tq_fp_tid) as $tq_fp_id => $tq_fp_o) {
+          $tq_fp_offers[$tq_fp_id] = $tq_fp_o;
+      }
+  }
+  if ($tq_fp_offers):
+  ?>
+  <form method="post" action="<?php echo base_url('parent/pay/foundation'); ?>" class="tq-pp"
+        style="margin-block-start:var(--tq-space-xl)">
+    <?php echo tq_csrf(); ?>
+    <section class="tq-card">
+      <div class="tq-card__head">
+        <h2 class="tq-card__title"><?php echo t('أو اشتر باقة حصص تأسيس'); ?></h2>
+        <a class="tq-btn tq-btn--ghost tq-btn--sm" href="<?php echo base_url('foundation'); ?>"
+           target="_blank" rel="noopener"><?php echo t('تصفح مسارات التأسيس'); ?></a>
+      </div>
+      <p class="tq-caption">
+        <?php echo t('تدفع مرة واحدة، فيصير لابنك رصيد حصص يحجزها بنفسه متى شاء — بلا فاتورة لكل حصة ولا مهلة دفع تسقط حجزه.'); ?>
+      </p>
+
+      <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('اختر الابن'); ?>">
+        <?php foreach ($tq_kids as $i => $k):
+          $kid = (int) ($k['student_id'] ?? 0);
+          if ($kid < 1) continue;
+          $name = trim(($k['first_name'] ?? '') . ' ' . ($k['last_name'] ?? '')) ?: t('ابنك');
+        ?>
+          <label class="tq-pick<?php echo $i === 0 ? ' is-on' : ''; ?>">
+            <input type="radio" name="child_id" value="<?php echo $kid; ?>" <?php echo $i === 0 ? ' checked' : ''; ?> required>
+            <span class="tq-pick__label"><?php echo html_escape($name); ?></span>
+          </label>
+        <?php endforeach; ?>
+      </div>
+
+      <div class="tq-pp-plans" role="radiogroup" aria-label="<?php echo te('اختر الباقة'); ?>"
+           style="margin-block-start:var(--tq-space-l)">
+        <?php $tq_fp_first = true; foreach ($tq_fp_offers as $tq_fp_id => $tq_fp_o): ?>
+          <label class="tq-pp-plan<?php echo $tq_fp_first ? ' is-on' : ''; ?>">
+            <input type="radio" name="pack_id" value="<?php echo (int) $tq_fp_id; ?>" <?php echo $tq_fp_first ? ' checked' : ''; ?> required>
+            <span class="tq-pp-plan__t">
+              <?php echo tqs_ar_count((int) $tq_fp_o['sessions'], array(t('حصة'), t('حصتين'), t('حصص'), t('حصة'))); ?>
+              — <?php echo html_escape($tq_fp_o['track'] ? $tq_fp_o['track']['name'] : t('التأسيس')); ?>
+            </span>
+            <span class="tq-pp-plan__s">
+              <?php echo t('الحصة فيها'); ?> <?php echo tq_num(number_format($tq_fp_o['unit'] / 100, 0)); ?> <?php echo t(' ريال'); ?>
+              <?php if ((int) $tq_fp_o['save'] > 0): ?>
+                · <?php echo t('وفر ____٪', array(tq_iso((string) (int) $tq_fp_o['save_pct']))); ?>
+              <?php endif; ?>
+            </span>
+            <span class="tq-pp-plan__p"><?php echo tq_num(number_format($tq_fp_o['price'] / 100, 0)); ?> <?php echo t(' ريال'); ?></span>
+          </label>
+        <?php $tq_fp_first = false; endforeach; ?>
+      </div>
+
+      <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('طريقة الدفع'); ?>"
+           style="margin-block-start:var(--tq-space-l)">
+        <?php if ($tq_card_ready): ?>
+          <label class="tq-pick is-on">
+            <input type="radio" name="pay_method" value="tap" checked>
+            <span class="tq-pick__label"><?php echo t('بطاقة'); ?></span>
+          </label>
+        <?php endif; ?>
+        <label class="tq-pick<?php echo $tq_card_ready ? '' : ' is-on'; ?>">
+          <input type="radio" name="pay_method" value="manual" <?php echo $tq_card_ready ? '' : ' checked'; ?>>
+          <span class="tq-pick__label"><?php echo t('تحويل بنكي'); ?></span>
+        </label>
+      </div>
+
+      <div class="tq-formbar">
+        <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('أصدر فاتورة الباقة'); ?></button>
+      </div>
+    </section>
+  </form>
+  <?php endif; ?>
+
 <?php endif; ?>
 
 <style>

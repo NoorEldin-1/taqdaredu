@@ -2929,6 +2929,44 @@ $spec = array(
     ),
 )),
 
+/* TQ-FND-PACK — باقة حصص التأسيس، على مسار الشراء الواحد نفسه. */
+'/api/v1/student/buy-foundation' => array('post' => array(
+    'tags' => array('Store'),
+    'summary' => 'Buy a foundation session pack',
+    'description' => implode("
+", array(
+        'Buys **credit**, not content: N sessions on one foundation track, paid once. Nothing opens',
+        'and nothing is booked — the student then books slot by slot from `GET /student/foundation`,',
+        'and each booking spends one credit.',
+        '',
+        'Invoice first, then the card payment — the same order as every other purchase here.',
+        'Returns `payment_url` for the card flow, or `null` with bank-transfer instructions.',
+        '',
+        'Credit is derived from the sessions that point at the subscription, so a teacher declining',
+        'or the student cancelling before the join link opens returns it with no extra call.',
+        '',
+        'Refusals carry `not_sellable` — the pack is off, unpriced, its track is off, or the track',
+        'has no assigned teacher, so the credit could never be spent.',
+    )),
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'example' => array('pack_id' => 3, 'pay_method' => 'tap'),
+    ))),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(
+                'subscription_id' => 604, 'invoice_id' => 571, 'invoice_no' => 'TQ-2026-0571',
+                'payment_url' => 'https://checkout.tap.company/...',
+            ),
+            'message' => '', 'meta' => new stdClass(),
+        )))),
+        '401' => $r_401, '403' => $r_403,
+        '409' => $err_ref('`not_sellable` — see `why` on the offer.',
+                          array('message' => 'الباقة موقوفة، فلا تعرض ولا تشترى.', 'code' => 'not_sellable')),
+        '422' => $r_422, '429' => $r_429,
+    ),
+)),
+
 '/api/v1/student/materials' => array('get' => array(
     'tags' => array('Library'),
     'summary' => 'Course materials',

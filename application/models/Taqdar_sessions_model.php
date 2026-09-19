@@ -74,7 +74,7 @@ class Taqdar_sessions_model extends CI_Model
     const WINDOW_DAYS = 14;
 
     /** إصدار بنية الحصص — يمنع إعادة فحص الأعمدة في كل طلب. */
-    const SCHEMA_V = '6';
+    const SCHEMA_V = '7';
 
     /**
      * TQ-FOUNDATION — نوعا الوقت، وهما بعد واحد لا محركان.
@@ -241,6 +241,19 @@ class Taqdar_sessions_model extends CI_Model
         }
         $this->try_sql('ALTER TABLE `availability_slots` ADD INDEX `idx_slot_kind` (`kind`,`track_id`,`status`,`starts_at`)');
         $this->try_sql('ALTER TABLE `tutoring_sessions` ADD INDEX `idx_se_kind` (`kind`,`track_id`)');
+
+        /* ---- TQ-FND-PACK — الحصة المدفوعة سلفا ضمن باقة ----------------
+           عمود واحد: معرف صف `subscriptions` الذي دفع ثمن هذه الحصة.
+           وصفر يعني «حصة مفردة» — فكل صف قائم يبقى كما هو حرفا بحرف.
+
+           و**هو مصدر الرصيد**: المستهلك من الباقة عدد الحصص التي تشير
+           اليها وحالها حي او منته (`Taqdar_foundation_model::$SPENT`).
+           فلا عداد يزاد وينقص، ولا انحراف بين ما يقرؤه الطالب وما يحرسه
+           الخادم — وهو مبدأ `granted_book_ids()` نفسه: الاستحقاق يستعلم
+           حيا ولا يجسد. */
+        $this->try_sql('ALTER TABLE `tutoring_sessions` ADD COLUMN IF NOT EXISTS '
+            . '`pack_sub_id` INT(10) UNSIGNED NOT NULL DEFAULT 0');
+        $this->try_sql('ALTER TABLE `tutoring_sessions` ADD INDEX `idx_se_pack` (`pack_sub_id`,`status`)');
 
         /* ما فتحه المعلمون قبل اليوم يصير قواعد تقرأ في شاشتهم — وبلا هذا
            يفتحون الشاشة فيجدونها فارغة وقد حفظوا، ثم تمحو أول دورة فرش
@@ -1462,6 +1475,31 @@ class Taqdar_sessions_model extends CI_Model
         $p     = $this->pricing_of_slot($kind, $track, (int) $slot['teacher_id']);
         $now   = date('Y-m-d H:i:s');
 
+        /* ---- TQ-FND-PACK — ارصيد الطالب يدفع عن هذه الحصة؟ ------------
+           الباقة تشترى مرة ويحجز بها الطالب متى شاء، فالحجز هنا **لا
+           يصدر فاتورة ولا ينتظر دفعا**: يؤكد المعلم فتثبت الحصة في
+           الحال. والثمن يجمد على الصف كما يجمد في الحصة المفردة — وهو
+           **حصة هذه الحصة من المدفوع** لا سعر المسار: من دفع ٢٠٠ عن ست
+           حصص لا يقيد لمعلمه نصيب ٦ × ١٢٠، والا بيعت الباقة بخصم ودفع
+           المعلمون ثمنه من غير علمهم.
+
+           والاختيار **اقرب الارصدة اجلا** (`credit_to_spend()`)، فلا
+           تنتهي باقة بحصص لم تستعمل بينما يخصم من باقة تمتد شهرين. */
+        $pack = null;
+        if ($kind === self::KIND_FOUNDATION) {
+            $this->load->model('taqdar_foundation_model');
+            $pack = $this->taqdar_foundation_model->credit_to_spend($student_id, $track);
+        }
+        if ($pack) {
+            $unit  = (int) $pack['unit_next'];
+            $pct   = (float) $p['percent'];
+            /* نصيب المعلم نسبة **الباقة** حين تكتب لها نسبة: الباقة منتج
+               مسعر بخصم، وقد يتفق على نصيب غير نصيب الحصة المفردة فيه. */
+            $po    = $this->taqdar_foundation_model->pack_offer((int) $pack['pack_id']);
+            if (!empty($po['id'])) $pct = (float) $po['percent'];
+            $p     = $this->split($unit, $pct);
+        }
+
         /* TQ-SESSION-RACE — الموعد يحجز **قبل** أن يكتب الطلب لا بعده.
            كان الطلب يدرج ثم يعلق الموعد بشرط `status = open`: طالبان يضغطان
            في اللحظة نفسها يقرآن «مفتوح» معا، فيكتب كل منهما طلبه، ويعلق
@@ -1481,9 +1519,15 @@ class Taqdar_sessions_model extends CI_Model
             'status'                => 'requested',
             'kind'                  => $kind,
             'track_id'              => $track,
+            'pack_sub_id'           => $pack ? (int) $pack['sub_id'] : 0,
             'price_halalas'         => $p['price'],
             'teacher_percent'       => $p['percent'],
             'teacher_share_halalas' => $p['share'],
+            /* TQ-FND-PACK — والمدفوع سلفا **مدفوع**: `paid_at` يختم هنا
+               لان المال وصل يوم اشتريت الباقة لا يوم حجزت الحصة. وبلاه
+               ترد `credit()` صفرا فلا يقيد لمعلمها شيء وقد درسها،
+               ويقرأ `admin_cancel()` «حصة بلا ثمن» فلا يعكس شيئا. */
+            'paid_at'               => $pack ? $now : null,
             'created_at'            => $now,
             'updated_at'            => $now,
         ]);
@@ -1493,6 +1537,36 @@ class Taqdar_sessions_model extends CI_Model
             $this->db->where('id', $slot_id)->where('status', 'held')
                      ->update('availability_slots', ['status' => 'open']);
             return ['ok' => false, 'msg' => 'تعذر حفظ الطلب. حاول مرة أخرى.', 'id' => 0];
+        }
+
+        /* TQ-FND-PACK-RACE — والرصيد يفحص **بعد** الادراج كما يفحص قبله.
+           الرصيد مستنتج بعد (`COUNT`)، ونقرتان متزامنتان على موعدين
+           مختلفين تقرآن «بقيت واحدة» معا فتحجزان اثنتين على واحدة.
+           والموعد يحرسه تحديثه المشروط، والرصيد لا يحرسه شيء — فيعاد
+           العد بعد الكتابة، وما تجاوز يرد عن نفسه في اللحظة. وذلك اهون
+           من قفل على جدول يقرأ في كل شاشة. */
+        if ($pack) {
+            $spent = (int) $this->db->where('pack_sub_id', (int) $pack['sub_id'])
+                                    ->where_in('status', Taqdar_foundation_model::$SPENT)
+                                    ->count_all_results('tutoring_sessions');
+            if ($spent > (int) $pack['total']) {
+                $this->db->where('id', $id)->delete('tutoring_sessions');
+                $this->db->where('id', $slot_id)->where('status', 'held')
+                         ->update('availability_slots', ['status' => 'open']);
+                return ['ok' => false, 'id' => 0,
+                        'msg' => 'نفد رصيد باقتك. اشتر باقة جديدة أو احجز حصة مفردة.'];
+            }
+        }
+
+        if ($pack) {
+            $left = max(0, (int) $pack['left'] - 1);
+            return ['ok' => true, 'id' => $id, 'teacher_id' => (int) $slot['teacher_id'],
+                    'pack' => true, 'left' => $left,
+                    'msg' => 'أرسل طلبك إلى المعلم، وخصمت حصة من باقتك — '
+                           . ($left > 0
+                               ? 'يتبقى لك ' . $left . ' حصة.'
+                               : 'وهي آخر حصة في الباقة.')
+                           . ' ولا دفع: باقتك مدفوعة، وإن اعتذر المعلم عادت الحصة إلى رصيدك.'];
         }
 
         return ['ok' => true, 'id' => $id, 'teacher_id' => (int) $slot['teacher_id'],
@@ -1551,6 +1625,9 @@ class Taqdar_sessions_model extends CI_Model
                 'percent'      => (float) $r['teacher_percent'],
                 'share'        => (int) $r['teacher_share_halalas'],
                 'paid_at'      => $r['paid_at'],
+                /* TQ-FND-PACK — والمعلم يحتاج ان يعرفها: هذه لا تنتظر
+                   دفعا بعد تأكيده، فتثبت في الحال ولا تسقط بمهلة. */
+                'is_pack'      => (int) ($r['pack_sub_id'] ?? 0) > 0,
                 'pay_deadline' => $r['pay_deadline'],
                 'credited_at'  => $r['credited_at'],
                 'can_join'     => $j['can_join'],
@@ -1647,7 +1724,13 @@ class Taqdar_sessions_model extends CI_Model
            فاتورة ولا مهلة ولا شاشة دفع. فمنصة لم تضبط تسعيرتها بعد تعمل
            اليوم كما عملت أمس، وهي القاعدة نفسها في بوابة تاب («بلا مفاتيح
            لا شيء يتغير»). */
-        if ($price <= 0) {
+        /* TQ-FND-PACK — والمدفوع سلفا يثبت هنا كذلك، وللعلة نفسها: لا
+           فاتورة تصدر لمن دفع، ولا مهلة تجري على مال وصل قبل شهر.
+           وحصة باقة تقف في `awaiting_payment` تعني طالبا يطالب بثمن
+           دفعه، ومهلة تنقضي فيسقط حجزه **ولا يعود رصيده** لانه استهلك.
+           فالفرعان واحد: ما لا يدفع الان يؤكد الان. */
+        $prepaid = (int) ($row['pack_sub_id'] ?? 0) > 0;
+        if ($price <= 0 || $prepaid) {
             $this->db->where('id', $session_id)->where('teacher_id', $teacher_id)
                      ->where('status', 'requested')
                      ->update('tutoring_sessions', array(
@@ -1660,8 +1743,10 @@ class Taqdar_sessions_model extends CI_Model
                 return ['ok' => false, 'msg' => 'تعذر تحديث الطلب. حاول مرة أخرى.'];
             }
             $this->book_slot($row);
-            return ['ok' => true, 'state' => 'confirmed',
-                    'msg' => 'أكد الطلب، وصار الموعد محجوزا.'];
+            return ['ok' => true, 'state' => 'confirmed', 'prepaid' => $prepaid,
+                    'msg' => $prepaid
+                        ? 'أكدت الحصة وثبت موعدها — هي مدفوعة ضمن باقة الطالب، ويقيد نصيبك منها حين تعلن انتهاءها.'
+                        : 'أكد الطلب، وصار الموعد محجوزا.'];
         }
 
         /* المهلة أقصر الأجلين: مهلة الدفع، وبداية الحصة نفسها. مهلة تمتد
@@ -2005,20 +2090,45 @@ class Taqdar_sessions_model extends CI_Model
     {
         $this->install_schema();
 
-        $row = $this->db->where('id', (int) $session_id)
-                        ->where('student_id', (int) $student_id)
-                        ->get('tutoring_sessions')->row_array();
+        $row = $this->db->select('t.*, a.starts_at')
+                        ->from('tutoring_sessions t')
+                        ->join('availability_slots a', 'a.id = t.slot_id', 'left')
+                        ->where('t.id', (int) $session_id)
+                        ->where('t.student_id', (int) $student_id)
+                        ->get()->row_array();
         if (!$row) return array('ok' => false, 'msg' => 'هذا الحجز ليس لك أو لم يعد موجودا.');
 
-        if (!in_array($row['status'], array('requested', 'awaiting_payment'), true)) {
+        /* TQ-FND-PACK — وحصة الباقة تلغى بعد تثبيتها كذلك، **ما لم يفتح
+           رابطها بعد**.
+
+           والفرق عن الحصة المفردة ليس تساهلا: تلك دفعت بالبطاقة فالغاؤها
+           يحتاج ردا يقع خارج المنصة (ولذلك ترد الى الادارة)، وهذه ثمنها
+           في رصيد **عند المنصة** — فالغاؤها لا ينقل مالا، وانما يعيد
+           الحصة الى رصيد صاحبها وموعدها الى معلمه. ومنعها يترك طالبا
+           يعرف انه لن يحضر فيحرق حصة من ست ويشغل ساعة معلمه.
+
+           والحد رابط اللقاء لا الموعد: من الغى بعد ان فتح الباب ودخل
+           معلمه الغرفة اخذ وقته فعلا. و`join_lead_min` هو الحد القائم
+           لذلك، فلا مفتاح جديد يخترع لسؤال له مفتاحه. */
+        $prepaid = (int) ($row['pack_sub_id'] ?? 0) > 0;
+        $opens   = !empty($row['starts_at'])
+                   ? strtotime($row['starts_at']) - $this->config()['lead_min'] * 60 : 0;
+        $may_pack = $prepaid && $row['status'] === 'confirmed' && $opens > time();
+
+        if (!$may_pack && !in_array($row['status'], array('requested', 'awaiting_payment'), true)) {
+            if ($prepaid && in_array($row['status'], array('confirmed', 'live'), true)) {
+                return array('ok' => false,
+                    'msg' => 'قرب موعد هذه الحصة ففتح رابطها، فلا تلغى الآن. راسل الإدارة إن تعذر حضورك.');
+            }
             return array('ok' => false, 'msg' => in_array($row['status'], array('confirmed', 'live'), true)
                 ? 'هذه الحصة مدفوعة ومثبتة. راسل الإدارة لإلغائها واسترداد مبلغها.'
                 : 'هذا الحجز مغلق أصلا.');
         }
 
-        $now = date('Y-m-d H:i:s');
+        $now   = date('Y-m-d H:i:s');
+        $from  = $may_pack ? array('confirmed') : array('requested', 'awaiting_payment');
         $this->db->where('id', (int) $row['id'])->where('student_id', (int) $student_id)
-                 ->where_in('status', array('requested', 'awaiting_payment'))
+                 ->where_in('status', $from)
                  ->update('tutoring_sessions', array(
                      'status'        => 'declined',
                      'meet_url'      => null,
@@ -2032,6 +2142,16 @@ class Taqdar_sessions_model extends CI_Model
 
         $this->void_invoice($row);
         $this->release_slot($row);
+
+        if ($prepaid) {
+            /* والرصيد يعود بلا سطر يكتب: `declined` ليست من `$SPENT`.
+               وذلك هو ثمن ان يستنتج الرصيد لا يعد — عداد هنا كان ينسى
+               الزيادة في احد المسارات الاربعة التي تغلق حصة. */
+            $this->audit('session.pack_return', (int) $row['id'],
+                array('pack_sub_id' => (int) $row['pack_sub_id']));
+            return array('ok' => true, 'teacher_id' => (int) $row['teacher_id'], 'pack' => true,
+                         'msg' => 'ألغي حجزك، وعادت الحصة إلى رصيد باقتك، وعاد الموعد متاحا لغيرك.');
+        }
 
         return array('ok' => true, 'teacher_id' => (int) $row['teacher_id'],
                      'msg' => 'ألغي حجزك، وعاد الموعد متاحا لغيرك.');
@@ -2086,7 +2206,14 @@ class Taqdar_sessions_model extends CI_Model
         }
 
         $paid = !empty($row['paid_at']);
-        $new  = $paid ? 'refunded' : 'declined';
+        /* TQ-FND-PACK — وحصة الباقة **تعاد الى الرصيد لا تسترد مالا**.
+           المال دخل يوم اشتريت الباقة، ولم يخرج عنها فاتورة تشطب ولا
+           دفعة ترد. فحالها `declined` — وهي ليست من `$SPENT`، فتعود
+           الحصة الى رصيد صاحبها في اللحظة. ولو وسمت `refunded` لقرأ
+           المسؤول «استردت» ولا مال استرد، ولانتظر الطالب تحويلا لا
+           يجيء وهو يملك حصته في رصيده. وقيد المعلم يعكس ان كان قيد. */
+        $pack = (int) ($row['pack_sub_id'] ?? 0) > 0;
+        $new  = ($paid && !$pack) ? 'refunded' : 'declined';
         $now  = date('Y-m-d H:i:s');
 
         $this->db->where('id', (int) $row['id'])
@@ -2099,12 +2226,15 @@ class Taqdar_sessions_model extends CI_Model
                  ));
 
         if ($paid) {
-            $this->db->where('id', (int) $row['invoice_id'])
-                     ->update('invoices', array('status' => 'refunded'));
+            if (!$pack) {
+                $this->db->where('id', (int) $row['invoice_id'])
+                         ->update('invoices', array('status' => 'refunded'));
+            }
             try {
                 $this->load->model('taqdar_wallet_model');
                 $this->taqdar_wallet_model->reverse_session(
-                    (int) $row['teacher_id'], (int) $row['id'], 'استردت الحصة');
+                    (int) $row['teacher_id'], (int) $row['id'],
+                    $pack ? 'ألغيت حصة باقة' : 'استردت الحصة');
             } catch (Throwable $e) {
                 log_message('error', 'TQ-SESSION-REVERSE: تعذر عكس حصة #' . (int) $row['id']);
             }
@@ -2115,6 +2245,15 @@ class Taqdar_sessions_model extends CI_Model
         $this->release_slot($row);
         $this->audit('session.' . ($paid ? 'refund' : 'cancel'), (int) $row['id'],
             array('reason' => $reason, 'actor' => (int) $actor_id, 'amount' => (int) $row['price_halalas']));
+
+        if ($pack) {
+            return array('ok' => true, 'refunded' => false, 'pack' => true,
+                         'student_id' => (int) $row['student_id'],
+                         'teacher_id' => (int) $row['teacher_id'],
+                         'amount'     => (int) $row['price_halalas'],
+                         'msg' => 'ألغيت الحصة، وعادت إلى رصيد باقة الطالب، وعكس قيد معلمها إن كان قيد.'
+                                . ' ولا مال يرد: ثمنها في رصيده يحجز به من جديد.');
+        }
 
         return array('ok' => true, 'refunded' => $paid,
                      'student_id' => (int) $row['student_id'],
@@ -2386,7 +2525,14 @@ class Taqdar_sessions_model extends CI_Model
                 'pay_deadline'  => $r['pay_deadline'],
                 'cancel_reason' => (string) ($r['cancel_reason'] ?? ''),
                 'needs_pay'     => $r['status'] === 'awaiting_payment',
-                'can_cancel'    => in_array($r['status'], array('requested', 'awaiting_payment'), true),
+                /* TQ-FND-PACK — ومدفوعة سلفا: لا فاتورة لها ولا زر دفع،
+                   وشارتها تقول ذلك للطالب. */
+                'pack_sub_id'   => (int) ($r['pack_sub_id'] ?? 0),
+                'is_pack'       => (int) ($r['pack_sub_id'] ?? 0) > 0,
+                'can_cancel'    => in_array($r['status'], array('requested', 'awaiting_payment'), true)
+                                   || ((int) ($r['pack_sub_id'] ?? 0) > 0 && $r['status'] === 'confirmed'
+                                       && !empty($r['starts_at'])
+                                       && strtotime($r['starts_at']) - $this->config()['lead_min'] * 60 > time()),
                 'can_join'      => $j['can_join'],
                 'is_over'       => $j['is_over'],
                 'note'          => $j['note'],

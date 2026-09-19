@@ -24,6 +24,19 @@ $tq_fnd     = isset($fnd) ? $fnd : null;
 $tq_cfg     = isset($cfg) ? $cfg : array('price' => 0, 'minutes' => 60);
 $tq_wins    = isset($windows) ? $windows : array();
 $tq_ses     = isset($ses) ? $ses : null;
+$tq_packs   = isset($packs) ? $packs : array();
+
+/* TQ-FND-PACK — ثلاثة ارقام تقرأ معا لا رقم: ما بيع، وما استهلك منه،
+   **وما بقي معلقا**. والثالث التزام على المنصة لا ايرادا صافيا — من
+   يقرأ «حصلنا كذا» وحده يظن المال ربحا وقد بقي عليه ان يعطي مقابله
+   حصصا لم تعط بعد. */
+$tq_pk_live = 0; $tq_pk_gross = 0; $tq_pk_open = 0; $tq_pk_subs = 0;
+foreach ($tq_packs as $pk) {
+    if (!empty($pk['sellable'])) $tq_pk_live++;
+    $tq_pk_gross += (int) $pk['gross'];
+    $tq_pk_open  += (int) $pk['open'];
+    $tq_pk_subs  += (int) $pk['subs'];
+}
 
 $tq_live    = 0;   // مسارات يراها الطالب فعلا
 $tq_noteach = 0;   // منشورة بلا معلم مسند
@@ -186,6 +199,151 @@ $tq_sar = function ($h) {
             <?php endforeach; ?>
             </tbody>
         </table>
+    </div>
+</section>
+
+<?php /* ---- TQ-FND-PACK — الباقات -----------------------------------
+     وموضعها بعد المسارات مباشرة: الباقة تسعير لمسار قائم، ومن يقرأها
+     قبل ان يعرف حال مساره يقرأ رقما بلا سياق. ------------------------ */ ?>
+<section class="tqa-card tqa-card--flush" style="margin-block-end:var(--tq-space-xl)">
+    <div class="tqa-card__head">
+        <span class="tqa-iconbox tqa-sand" aria-hidden="true"><?php echo tq_icon('package', 20); ?></span>
+        <div style="min-inline-size:0">
+            <h2><?php echo t('باقات الحصص'); ?></h2>
+            <span class="tqa-media__sub"><?php echo t('عدد حصص بثمن واحد يدفع مرة — ويحجز به الطالب متى شاء.'); ?></span>
+        </div>
+        <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+           href="<?php echo site_url('taqdar_admin/module/foundation_packs'); ?>">
+            <?php echo tq_icon('plus', 15); ?> <?php echo te('حرر الباقات'); ?>
+        </a>
+    </div>
+
+    <?php if (!$tq_packs): ?>
+        <div class="tqa-empty">
+            <p><?php echo t('لا باقة حصص بعد — والحصص تباع مفردة كما كانت.'); ?></p>
+            <p class="tqa-cell__sub">
+                <?php echo t('والباقة تغني الطالب عن أن يدفع عن كل حصة وحدها: يدفع مرة، ويحجز بها متى شاء خلال مدتها. وبلا باقة واحدة لا يتغير شيء في أي شاشة.'); ?>
+            </p>
+        </div>
+    <?php else: ?>
+        <div class="tqa-grid tqa-grid--3" style="padding:var(--tq-space-lg);padding-block-end:0">
+            <?php echo tqa_stat(t('باقات معروضة'), $tq_pk_live, array(
+                'icon' => $tq_pk_live > 0 ? 'check' : 'alert',
+                'tone' => $tq_pk_live > 0 ? 'ok' : 'warn',
+                'hint' => t('من') . ' ' . count($tq_packs) . ' ' . t('باقة مكتوبة'),
+            )); ?>
+            <?php echo tqa_stat(t('محصل من الباقات'), tqs_money($tq_pk_gross), array(
+                'icon' => 'wallet', 'tone' => 'info',
+                'hint' => $tq_pk_subs . ' ' . t('باقة بيعت'),
+            )); ?>
+            <?php /* الرقم الذي لا يقرأ في اي شاشة اخرى في المنصة. */ ?>
+            <?php echo tqa_stat(t('حصص بيعت ولم تعط'), $tq_pk_open, array(
+                'icon' => 'clock', 'tone' => $tq_pk_open > 0 ? 'warn' : 'ok',
+                'hint' => t('التزام على المنصة، لا ربحا'),
+            )); ?>
+        </div>
+
+        <div class="tqa-table__wrap">
+            <table class="tqa-table tqa-table--zebra">
+                <thead>
+                    <tr>
+                        <th><?php echo t('الباقة'); ?></th>
+                        <th><?php echo t('المسار'); ?></th>
+                        <th><?php echo t('الحصص'); ?></th>
+                        <th><?php echo t('الثمن'); ?></th>
+                        <th><?php echo t('التوفير'); ?></th>
+                        <th><?php echo t('الصلاحية'); ?></th>
+                        <th><?php echo t('بيعت'); ?></th>
+                        <th><?php echo t('استهلك'); ?></th>
+                        <th><?php echo t('الحال'); ?></th>
+                        <th><span class="tqa-sr"><?php echo t('تحرير'); ?></span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($tq_packs as $tq_pid => $tq_pk): ?>
+                    <tr>
+                        <td>
+                            <strong><?php echo html_escape($tq_pk['name']); ?></strong>
+                            <?php if ($tq_pk['tagline'] !== ''): ?>
+                                <div class="tqa-cell__sub"><?php echo html_escape($tq_pk['tagline']); ?></div>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo html_escape($tq_pk['track'] ? $tq_pk['track']['name'] : t('بلا مسار')); ?></td>
+                        <td><span class="tqa-num"><?php echo (int) $tq_pk['sessions']; ?></span></td>
+                        <td>
+                            <?php echo $tq_sar($tq_pk['price']); ?>
+                            <div class="tqa-cell__sub">
+                                <?php echo t('الحصة فيها'); ?> <?php echo $tq_sar($tq_pk['unit']); ?>
+                            </div>
+                        </td>
+                        <td>
+                            <?php if ((int) $tq_pk['save'] > 0): ?>
+                                <span class="tqa-badge tqa-badge--ok">
+                                    <?php echo t('وفر'); ?> <span class="tqa-num"><?php echo (int) $tq_pk['save_pct']; ?></span>%
+                                </span>
+                                <div class="tqa-cell__sub">
+                                    <?php echo t('بدل'); ?> <?php echo $tq_sar($tq_pk['list']); ?>
+                                </div>
+                            <?php else: ?>
+                                <?php /* باقة بلا توفير خطأ تسعير لا عرض: من يقارن يجد
+                                         ثمنها ثمن الافراد فلا يشتريها، ولا شيء في اي
+                                         شاشة يقول لمن كتبها ان ثمنها فوق مجموعها. */ ?>
+                                <span class="tqa-badge tqa-badge--warn"><?php echo t('لا توفير'); ?></span>
+                                <div class="tqa-cell__sub">
+                                    <?php echo t('مجموع الأفراد'); ?> <?php echo $tq_sar($tq_pk['list']); ?>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ((int) $tq_pk['days'] > 0): ?>
+                                <span class="tqa-num"><?php echo (int) $tq_pk['days']; ?></span> <?php echo t('يوما'); ?>
+                            <?php else: ?>
+                                <?php echo t('لا تنتهي'); ?>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <span class="tqa-num"><?php echo (int) $tq_pk['subs']; ?></span>
+                            <?php if ((int) $tq_pk['pending'] > 0): ?>
+                                <div class="tqa-cell__sub">
+                                    <?php echo t('تنتظر الدفع'); ?> <span class="tqa-num"><?php echo (int) $tq_pk['pending']; ?></span>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <span class="tqa-num"><?php echo (int) $tq_pk['spent']; ?></span>
+                            <?php echo t('من'); ?> <span class="tqa-num"><?php echo (int) $tq_pk['credits']; ?></span>
+                            <?php if ((int) $tq_pk['open'] > 0): ?>
+                                <div class="tqa-cell__sub">
+                                    <?php echo t('بقي'); ?> <span class="tqa-num"><?php echo (int) $tq_pk['open']; ?></span>
+                                    <?php echo t('حصة لم تحجز'); ?>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <span class="tqa-badge tqa-badge--<?php echo !empty($tq_pk['sellable']) ? 'ok' : 'warn'; ?>">
+                                <?php echo html_escape(!empty($tq_pk['sellable']) ? t('معروضة') : t('لا تعرض')); ?>
+                            </span>
+                            <?php if (empty($tq_pk['sellable'])): ?>
+                                <div class="tqa-cell__sub"><?php echo html_escape($tq_pk['why']); ?></div>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <a class="tqa-btn tqa-btn--ghost tqa-btn--sm"
+                               href="<?php echo site_url('taqdar_admin/form/foundation_packs/' . (int) $tq_pid); ?>">
+                                <?php echo t('تحرير'); ?>
+                            </a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+
+    <div class="tqa-card__foot">
+        <p class="tqa-cell__sub" style="margin:0">
+            <?php echo t('الباقة رصيد لا مواعيد: يشتريها الطالب فيصير له عدد حصص يحجز بها متى فتح معلمو المسار أوقاتا — ولا تحجز له شيئا سلفا. ونصيب المعلم يقيد عن كل حصة حين يعلن انتهاءها، من نصيبها من ثمن الباقة لا من سعر الحصة المفردة.'); ?>
+        </p>
     </div>
 </section>
 

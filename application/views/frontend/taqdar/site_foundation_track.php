@@ -31,7 +31,18 @@ if (!$tq_t) return;
 $tq_teach = isset($teachers) ? $teachers : array();
 $tq_tut   = isset($tutors) ? $tutors : array();
 $tq_p     = isset($pricing) ? $pricing : array('price' => 0);
+$tq_packs = isset($packs) ? $packs : array();
 $tq_ses   = isset($ses) ? $ses : null;
+
+/* TQ-FND-PACK — أرخص حصة في باقات هذا المسار: هي الرقم الذي يقارن به
+   من يقرأ «١٢٠ للحصة» في بطاقة الحجز. ورقم يحسب في القالب مرة وفي
+   البطاقة مرة يفترقان، فيحسب هنا مرة ويقرأ في الموضعين. */
+$tq_best = null;
+foreach ($tq_packs as $tq_bid => $tq_bp) {
+    if ($tq_best === null || (int) $tq_bp['unit'] < (int) $tq_best['unit']) {
+        $tq_best = $tq_bp + array('_id' => $tq_bid);
+    }
+}
 $tq_cfg   = $tq_ses ? $tq_ses->config() : array('minutes' => 60, 'pay_hours' => 12);
 
 $tq_h1   = $tq_t['name'];
@@ -81,6 +92,85 @@ $tq_price_html = function ($price) {
             </ul>
           <?php endif; ?>
         </article>
+        <?php endif; ?>
+
+        <?php /* ---- TQ-FND-PACK — الباقات -------------------------------
+                 وموضعها **قبل المواعيد**: من قرأ وصف المسار يسأل «بكم؟»
+                 قبل «متى؟»، ومن رأى ثمن الحصة المفردة وحده يضرب في ست
+                 وينصرف. والبطاقة تقول الثلاثة معا — العدد والثمن وثمن
+                 الحصة داخلها — لأن الرقم الأخير هو ما يقارن به. */ ?>
+        <?php if ($tq_packs): ?>
+        <section class="fndp-panel reveal" aria-labelledby="fndp-packs" id="packs">
+          <header class="fndp-panel__head">
+            <span class="fndp-panel__ico" aria-hidden="true"><svg><use href="#i-price"></use></svg></span>
+            <div>
+              <h2 id="fndp-packs"><?php echo t('باقات الحصص'); ?></h2>
+              <p><?php echo t('تدفع مرة واحدة، وتحجز حصصك متى شئت — مع أي معلم في هذا المسار.'); ?></p>
+            </div>
+          </header>
+
+          <div class="fndpk" style="--fndpk-cols:<?php echo min(3, count($tq_packs)); ?>">
+            <?php foreach ($tq_packs as $tq_pid => $tq_pk): ?>
+              <article class="fndpk-card<?php echo !empty($tq_pk['featured']) ? ' fndpk-card--hot' : ''; ?>">
+                <?php if (!empty($tq_pk['featured'])): ?>
+                  <span class="fndpk-card__flag"><?php echo t('الأكثر طلبا'); ?></span>
+                <?php endif; ?>
+
+                <span class="fndpk-card__n" aria-hidden="true">
+                  <b><?php echo (int) $tq_pk['sessions']; ?></b>
+                  <small><?php echo t('حصة'); ?></small>
+                </span>
+
+                <h3 class="fndpk-card__title"><?php echo html_escape($tq_pk['name']); ?></h3>
+                <?php if ($tq_pk['tagline'] !== ''): ?>
+                  <p class="fndpk-card__tag"><?php echo html_escape($tq_pk['tagline']); ?></p>
+                <?php endif; ?>
+
+                <p class="fndpk-card__price">
+                  <?php echo tqs_money((int) $tq_pk['price']); ?>
+                  <?php if ((int) $tq_pk['save'] > 0): ?>
+                    <?php /* السعر المشطوب **مشتق** من سعر الحصة المفردة في
+                             المسار، فلا رقمان لحقيقة واحدة يفترقان. */ ?>
+                    <del><?php echo number_format((int) $tq_pk['list'] / 100); ?> <?php echo t('ر.س'); ?></del>
+                    <span class="fndpk-card__save"><?php echo t('وفر ____٪', array((string) (int) $tq_pk['save_pct'])); ?></span>
+                  <?php endif; ?>
+                </p>
+
+                <ul class="fndpk-card__list">
+                  <li>
+                    <svg aria-hidden="true"><use href="#i-check"></use></svg>
+                    <span><?php echo t('الحصة فيها'); ?> <b><?php echo tqs_money((int) $tq_pk['unit']); ?></b>
+                      <?php if ((int) $tq_pk['single'] > (int) $tq_pk['unit']): ?>
+                        <?php echo t('بدل'); ?> <?php echo tqs_money((int) $tq_pk['single']); ?> <?php echo t('مفردة'); ?>
+                      <?php endif; ?></span>
+                  </li>
+                  <li>
+                    <svg aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    <span><?php echo t('تحجزها متى شئت، مع أي معلم في المسار'); ?></span>
+                  </li>
+                  <li>
+                    <svg aria-hidden="true"><use href="#i-clock"></use></svg>
+                    <span><?php echo (int) $tq_pk['days'] > 0
+                        ? t('صالحة ') . (int) $tq_pk['days'] . t(' يوما من الدفع')
+                        : t('لا تنتهي صلاحيتها'); ?></span>
+                  </li>
+                </ul>
+
+                <a class="fndpk-card__cta" href="<?php echo base_url('foundation-checkout/' . (int) $tq_pid); ?>">
+                  <?php echo t('اشترِ الباقة'); ?>
+                  <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg>
+                </a>
+              </article>
+            <?php endforeach; ?>
+          </div>
+
+          <?php /* والحد يقال تحت البطاقات: الباقة رصيد لا جدول محجوز. من
+                   ظن أنه اشترى مواعيد ينتظر رسالة لا تجيء. */ ?>
+          <p class="fndpk-note">
+            <svg aria-hidden="true"><use href="#i-bulb"></use></svg>
+            <span><?php echo t('الباقة رصيد حصص لا مواعيد محجوزة: تدفع مرة، ثم تحجز بنفسك من بوابتك موعدا بعد موعد. وإن اعتذر المعلم عن موعد عادت الحصة إلى رصيدك.'); ?></span>
+          </p>
+        </section>
         <?php endif; ?>
 
         <?php /* المواعيد المفتوحة فعلا: «متاح» كلمة تقال بمواعيد لا
@@ -164,12 +254,39 @@ $tq_price_html = function ($price) {
             <span class="fndp-panel__ico" aria-hidden="true"><svg><use href="#i-clipboard"></use></svg></span>
             <h2 id="fndp-how"><?php echo t('كيف تحجز؟'); ?></h2>
           </header>
-          <ol class="fndp-mini">
-            <li><b><?php echo t('اختر موعدا'); ?></b><span><?php echo t('من المواعيد المفتوحة أعلاه.'); ?></span></li>
-            <li><b><?php echo t('يؤكد المعلم'); ?></b><span><?php echo t('ولا يخصم منك شيء قبل التأكيد.'); ?></span></li>
-            <li><b><?php echo t('تدفع'); ?></b><span><?php echo t('خلال ') . (int) $tq_cfg['pay_hours'] . t(' ساعة من التأكيد.'); ?></span></li>
-            <li><b><?php echo t('تدخل الحصة'); ?></b><span><?php echo t('الرابط يفتح في بوابتك قبل الموعد.'); ?></span></li>
-          </ol>
+          <?php /* TQ-FND-PACK — وطريقان لا طريق، فالخطوات تختلف بينهما في
+                   موضع الدفع وحده: بالباقة يقع قبل الحجز، وبالحصة المفردة
+                   بعد تأكيد المعلم. وخطوات واحدة تقول «تدفع خلال ١٢ ساعة»
+                   لمن دفع بالفعل تجعله يظن أن عليه دفعا ثانيا. */ ?>
+          <?php if ($tq_packs): ?>
+            <div class="fndp-ways">
+              <div class="fndp-way fndp-way--key">
+                <h3><?php echo t('بباقة حصص'); ?></h3>
+                <ol class="fndp-mini">
+                  <li><b><?php echo t('تشتري الباقة'); ?></b><span><?php echo t('دفعة واحدة، ويفتح رصيدك.'); ?></span></li>
+                  <li><b><?php echo t('تحجز موعدا'); ?></b><span><?php echo t('من رصيدك، بلا دفع ولا فاتورة.'); ?></span></li>
+                  <li><b><?php echo t('يؤكد المعلم'); ?></b><span><?php echo t('فتثبت الحصة في الحال — وإن اعتذر عادت الحصة إلى رصيدك.'); ?></span></li>
+                  <li><b><?php echo t('تدخل الحصة'); ?></b><span><?php echo t('الرابط يفتح في بوابتك قبل الموعد.'); ?></span></li>
+                </ol>
+              </div>
+              <div class="fndp-way">
+                <h3><?php echo t('بحصة مفردة'); ?></h3>
+                <ol class="fndp-mini">
+                  <li><b><?php echo t('تختار موعدا'); ?></b><span><?php echo t('من المواعيد المفتوحة أعلاه.'); ?></span></li>
+                  <li><b><?php echo t('يؤكد المعلم'); ?></b><span><?php echo t('ولا يخصم منك شيء قبل التأكيد.'); ?></span></li>
+                  <li><b><?php echo t('تدفع'); ?></b><span><?php echo t('خلال ') . (int) $tq_cfg['pay_hours'] . t(' ساعة من التأكيد.'); ?></span></li>
+                  <li><b><?php echo t('تدخل الحصة'); ?></b><span><?php echo t('الرابط يفتح في بوابتك قبل الموعد.'); ?></span></li>
+                </ol>
+              </div>
+            </div>
+          <?php else: ?>
+            <ol class="fndp-mini">
+              <li><b><?php echo t('اختر موعدا'); ?></b><span><?php echo t('من المواعيد المفتوحة أعلاه.'); ?></span></li>
+              <li><b><?php echo t('يؤكد المعلم'); ?></b><span><?php echo t('ولا يخصم منك شيء قبل التأكيد.'); ?></span></li>
+              <li><b><?php echo t('تدفع'); ?></b><span><?php echo t('خلال ') . (int) $tq_cfg['pay_hours'] . t(' ساعة من التأكيد.'); ?></span></li>
+              <li><b><?php echo t('تدخل الحصة'); ?></b><span><?php echo t('الرابط يفتح في بوابتك قبل الموعد.'); ?></span></li>
+            </ol>
+          <?php endif; ?>
         </section>
 
       </div>
@@ -183,6 +300,19 @@ $tq_price_html = function ($price) {
             <?php echo $tq_price_html($tq_p['price']); ?>
             <?php if ((int) $tq_p['price'] > 0): ?><small><?php echo t('للحصة الواحدة'); ?></small><?php endif; ?>
           </p>
+
+          <?php /* TQ-FND-PACK — وأرخص حصة في الباقات تحت سعر المفردة
+                   مباشرة: **بفارق الثمن لا بثمنها** — «أو ٣٣ ر.س للحصة
+                   في باقة ٦» يقارن ما يقارن، ورقمان متجاوران بلا جسر
+                   يجعلان المشتري يوازن ولا يعرف بكم. وهو مبدأ سطر
+                   «وبكذا زيادة تفتح المرحلة كلها» في صفحة الكورس. */ ?>
+          <?php if ($tq_best && (int) $tq_best['unit'] < (int) $tq_p['price']): ?>
+            <a class="fndp-book__pack" href="#packs">
+              <b><?php echo t('أو'); ?> <?php echo tqs_money((int) $tq_best['unit']); ?> <?php echo t('للحصة'); ?></b>
+              <span><?php echo t('في باقة فيها'); ?> <?php echo (int) $tq_best['sessions']; ?> <?php echo t('حصة'); ?>
+                — <?php echo t('وفر ____٪', array((string) (int) $tq_best['save_pct'])); ?></span>
+            </a>
+          <?php endif; ?>
 
           <?php echo tqs_foundation_facts($tq_cfg, 'fndp-book__facts'); ?>
 

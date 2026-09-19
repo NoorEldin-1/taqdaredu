@@ -103,6 +103,11 @@ $tqa_nav = [
            تحرير، ومن جاء يعدل سعرا يقرأ جدول تشخيص. */
         [['tqa_foundation'], t('قسم التأسيس'),   'taqdar_admin/foundation', 'graduation', null],
         ['tqa_foundation_tracks', t('مسارات التأسيس'), 'taqdar_admin/module/foundation_tracks', 'route', null],
+        /* TQ-FND-PACK — والباقات بند ثالث تحت مسارها مباشرة: الباقة
+           تسعير لمسار قائم، ومن يفتحها قبل ان يكون له مسار يقرأ منتقيا
+           فارغا. والموضع هنا لا في «المالية» لان الباقة تباع **وقتا**
+           لا محتوى، ومن يدير التأسيس هو من يقرر كم حصة بكم. */
+        ['tqa_foundation_packs', t('باقات حصص التأسيس'), 'taqdar_admin/module/foundation_packs', 'package', null],
     ]],
 
     [t('المالية'), 'wallet', [
