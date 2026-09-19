@@ -162,7 +162,7 @@ $tq_price_html = function ($price) {
                 </ul>
 
                 <a class="fndpk-card__cta" href="<?php echo base_url('foundation-checkout/' . (int) $tq_pid); ?>">
-                  <?php echo t('اشترِ الباقة'); ?>
+                  <?php echo t('اشتر الباقة'); ?>
                   <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg>
                 </a>
               </article>

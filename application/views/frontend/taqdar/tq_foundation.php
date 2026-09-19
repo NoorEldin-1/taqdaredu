@@ -346,7 +346,7 @@ include 'portal_open.php';
 
                         <a class="tq-btn tq-btn--mastery tq-btn--sm" style="margin-block-start:var(--tq-space-s)"
                            href="<?php echo base_url('foundation-checkout/' . (int) $tq_pid); ?>">
-                            <?php echo t('اشترِ الباقة'); ?>
+                            <?php echo t('اشتر الباقة'); ?>
                         </a>
                     </article>
                 <?php endforeach; ?>
