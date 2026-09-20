@@ -3347,7 +3347,15 @@ class Taqdar extends CI_Controller
               WHERE a.id = ? AND a.passed = 1
               LIMIT 1", array($id))->result_array();
 
-        return $rows ? $rows[0] : null;
+        if (!$rows) return null;
+
+        /* TQ-CERT-PCT — والنسبة من `Taqdar_student_model` وحده: الدرجة
+           المخزنة عدد إجابات صحيحة لا نسبة، وثلاث شاشات تطبعها «٪». */
+        $this->load->model('taqdar_student_model');
+        $rows[0]['percent'] = $this->taqdar_student_model
+                                   ->cert_percent((int) $rows[0]['id'], $rows[0]['score']);
+
+        return $rows[0];
     }
 
     /**

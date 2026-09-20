@@ -61,7 +61,7 @@ include 'portal_open.php';
         <dl class="tq-cert__meta">
           <div>
             <dt><?php echo t('نسبة الإتقان'); ?></dt>
-            <dd><?php echo tq_num((int) $c['score'] . '%'); ?></dd>
+            <dd><?php echo tq_num((int) (isset($c['percent']) ? $c['percent'] : $c['score']) . '%'); ?></dd>
           </div>
           <div>
             <dt><?php echo t('تاريخ الإصدار'); ?></dt>

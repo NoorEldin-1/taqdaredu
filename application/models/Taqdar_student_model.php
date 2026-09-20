@@ -553,7 +553,7 @@ class Taqdar_student_model extends CI_Model
         if ($uid <= 0 || !$this->db->table_exists('attempts')) return array();
 
         try {
-            return $this->db->query(
+            $rows = $this->db->query(
                 "SELECT a.id, a.score, a.submitted_at, p.title AS path_title, m.title AS milestone_title
                    FROM attempts a
                    JOIN assessments s ON s.id = a.assessment_id AND s.type = 'exam'
@@ -562,6 +562,15 @@ class Taqdar_student_model extends CI_Model
                   WHERE a.student_id = ? AND a.passed = 1
                ORDER BY a.submitted_at DESC", array($uid)
             )->result_array();
+
+            /* TQ-CERT-PCT — والنسبة تحسب هنا لا في القالب: ثلاث شاشات
+               تطبعها، وحساب في كل واحدة يفترق عند أول تعديل. */
+            foreach ($rows as &$row) {
+                $row['percent'] = $this->cert_percent((int) $row['id'], $row['score']);
+            }
+            unset($row);
+
+            return $rows;
         } catch (Throwable $e) {
             /* TQ-BUILDER-DIRTY — استثناء وسط سلسلة يترك حالة البناء كما
                هي، فيرث كل استعلام تال في الطلب نفسه ضمومها. */
@@ -574,6 +583,35 @@ class Taqdar_student_model extends CI_Model
     public function certificate_code($id)
     {
         return 'TQ-' . str_pad((string) (int) $id, 6, '0', STR_PAD_LEFT);
+    }
+
+    /* TQ-CERT-PCT — والدرجة المخزنة عدد لا نسبة، والشاشات تطبعها «٪».
+
+       `attempts.score` يكتبه `submit_attempt()` **عدد الإجابات الصحيحة**
+       (`if ($ok) $score++`)، وثلاث شاشات تطبعه `score . '%'`: الشهادة،
+       وقائمة الشهادات، وصفحة التحقق العامة. فمن أجاب عشرة من عشرة يقرأ
+       على وثيقته «نسبة الإتقان ١٠٪» — رقم يقرأ رسوبا، وهو أول ما يراه
+       من يتحقق من الشهادة.
+
+       والنسبة تحسب من `answers`: المصحح كتب صفا لكل سؤال عرض، فالمقام
+       عدد ما أجيب لا عدد ما في بنك الأسئلة. ومحاولة **بلا صف إجابة**
+       (الصفوف المزروعة قبل أن يعمل المحرك) تبقى على رقمها كما هو: هو
+       نسبة أصلا، وقسمته على صفر يمحو شهادات قائمة. */
+    public function cert_percent($attempt_id, $score)
+    {
+        try {
+            $r = $this->db->select('COUNT(*) AS n, SUM(is_correct) AS ok', false)
+                          ->where('attempt_id', (int) $attempt_id)
+                          ->get('answers')->row_array();
+        } catch (Throwable $e) {
+            $this->db->reset_query();   // TQ-BUILDER-DIRTY
+            return (int) $score;
+        }
+
+        $n = $r ? (int) $r['n'] : 0;
+        if ($n < 1) return (int) $score;
+
+        return (int) round(((int) $r['ok']) * 100 / $n);
     }
 
     /* ================================================================

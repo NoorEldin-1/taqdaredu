@@ -217,6 +217,62 @@ class Taqdar_lrs_model extends CI_Model
         return 'TQJ-' . (int) $user_id . '-' . (int) $course_id;
     }
 
+    /* TQ-LRS-REALCERT — والرحلة تبلغ عن شهادة صادرة، ولا تخترع رمزا.
+
+       رد الجهة على الرحلة الأولى: «يجب أن يحمل معرف الشهادة ورابط التحقق
+       رمز شهادة صادرة فعليا تعرض بياناتها عند فتح الرابط، لا رمزا
+       تجريبيا». والرمز المولد (`TQJ-<متعلم>-<مقرر>`) يفتح صفحة تقول عن
+       نفسها إنها «رحلة اختبار لا شهادة إتقان» — وهو صدق يقرؤه المراجع
+       «لا شهادة بهذا الرمز».
+
+       وشهادة المنصة واحدة لا اثنتان: **محاولة امتحان مجتازة** (`attempts`
+       بتقييم `type='exam'` و`passed=1`)، ورمزها `TQ-000086` — هو الذي
+       يطبع على الوثيقة، ويرمزه QR، وتقرؤه `/verify/<رمز>`. فهذه هي التي
+       ترسل، ومن لا شهادة له في هذا المقرر لا رحلة له: رسالة `earned`
+       بلا شهادة خلفها بلاغ كاذب إلى سجل وطني. */
+    public function real_cert($user_id, $course_id)
+    {
+        $uid = (int) $user_id;
+        $cid = (int) $course_id;
+        if ($uid < 1 || $cid < 1) return null;
+
+        try {
+            /* والضم على `paths` لأن التقييم يشير إلى المسار أو إلى محطة
+               فيه، و`paths` وحدها تربط المسار بكورسه — وهي قاعدة
+               `course_assessments()` نفسها. */
+            $row = $this->db->query(
+                "SELECT a.id, a.score, a.submitted_at
+                   FROM attempts a
+                   JOIN assessments s ON s.id = a.assessment_id AND s.type = 'exam'
+              LEFT JOIN milestones m ON m.id = s.milestone_id
+              LEFT JOIN paths p ON p.id = COALESCE(s.path_id, m.path_id)
+                  WHERE a.student_id = ? AND a.passed = 1 AND p.course_id = ?
+               ORDER BY a.submitted_at DESC, a.id DESC
+                  LIMIT 1", array($uid, $cid))->row_array();
+        } catch (Throwable $e) {
+            $this->db->reset_query();   // TQ-BUILDER-DIRTY
+            return null;
+        }
+        if (!$row) return null;
+
+        $code = self::cert_code((int) $row['id']);
+
+        /* TQ-CERT-PCT — والدرجة المرسلة نسبة لا عدد إجابات: الرسالة تعلن
+           `min 0` و`max 100`، ورقم «١٠» فيها يقرأ رسوبا عند الجهة وقد
+           أجاب صاحبه عشرة من عشرة. والحساب من موضعه الواحد — وهو الذي
+           تطبعه صفحة التحقق نفسها، فلا يفترق ما يرسل عما يقرأ. */
+        $CI = get_instance();
+        $CI->load->model('taqdar_student_model');
+        $pct = $CI->taqdar_student_model->cert_percent((int) $row['id'], $row['score']);
+
+        return array_merge($this->cert_refs($code), array(
+            'code'       => $code,
+            'attempt_id' => (int) $row['id'],
+            'score'      => (float) $pct,
+            'issued'     => date('Y-m-d', strtotime((string) $row['submitted_at'])),
+        ));
+    }
+
     /**
      * شهادة رحلة التحقق من رمزها — لصفحة التحقق العامة.
      *
@@ -1358,9 +1414,19 @@ class Taqdar_lrs_model extends CI_Model
         $out['actor']  = (string) $u['national_id'];
         $out['object'] = $this->url($ctx['course']['url']);
 
-        $cert = $this->cert_refs(self::journey_cert_code($uid, $cid));
-        $out['cert_id']  = $this->url($cert['url']);
-        $out['cert_url'] = $this->url($cert['file_url']);
+        /* TQ-LRS-REALCERT — الشهادة تقرأ ولا تولد، ومن لا شهادة له لا
+           رحلة له: الرسالة العاشرة `earned`، وبلا شهادة خلفها تبلغ سجلا
+           وطنيا بما لم يصدر. والرسالة تسمي الطريق لا تقول «تعذر». */
+        $cert = $this->real_cert($uid, $cid);
+        if (!$cert) {
+            $out['error'] = 'لا شهادة صادرة لهذا المتعلم في هذا المقرر. '
+                          . 'الشهادة تصدر باجتياز امتحان المقرر أو امتحان محطة فيه — '
+                          . 'فليؤدها المتعلم أولا، أو اختر مقررا له فيه شهادة.';
+            return $out;
+        }
+        $out['cert_id']   = $this->url($cert['url']);
+        $out['cert_url']  = $this->url($cert['file_url']);
+        $out['cert_code'] = $cert['code'];
 
         try { $this->ensure_schema(); } catch (Throwable $e) {}
 
@@ -1417,7 +1483,9 @@ class Taqdar_lrs_model extends CI_Model
                 'at' => $at(4),
                 'quiz' => array('url' => $L['url'] . '#quiz',
                                 'title' => 'تقويم ' . $L['title'], 'desc' => ''),
-                'attempt_no' => 1, 'raw' => self::JOURNEY_SCORE, 'min' => 0, 'max' => 100, 'passed' => true))),
+                /* والدرجة درجة الشهادة نفسها: رحلة تقول «٩٠» وشهادتها
+                   تقول «٩٢» رقمان لحقيقة واحدة، وهو أول ما يقارن. */
+                'attempt_no' => 1, 'raw' => $cert['score'], 'min' => 0, 'max' => 100, 'passed' => true))),
 
             array('completed_unit', array_merge($base, array('at' => $at(5), 'unit' => $U))),
 

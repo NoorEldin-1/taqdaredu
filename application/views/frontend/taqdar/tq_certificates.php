@@ -62,7 +62,7 @@ include 'portal_open.php';
                         <dl class="tq-s-list">
                             <div class="tq-s-row">
                                 <dt class="tq-caption"><?php echo t('نسبة الإتقان'); ?></dt>
-                                <dd style="margin:0"><?php echo tq_num(((int) $c['score']) . '%'); ?></dd>
+                                <dd style="margin:0"><?php echo tq_num(((int) (isset($c['percent']) ? $c['percent'] : $c['score'])) . '%'); ?></dd>
                             </div>
                             <div class="tq-s-row">
                                 <dt class="tq-caption"><?php echo t('تاريخ الإصدار'); ?></dt>
