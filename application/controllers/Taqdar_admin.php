@@ -1907,7 +1907,13 @@ class Taqdar_admin extends CI_Controller
             /* التهيئة كلّها لا تمرّ: الشاشة تقرأ `enabled` وحدها، وتمرير
                المصفوفة كاملة يضع كلمة المرور في نطاق عرض بلا حاجة —
                وهو ما تتجنّبه `lrs()` بـ`unset` صريح. */
-            'cfg'        => array('enabled' => $this->taqdar_lrs_model->config()['enabled']),
+            'cfg'        => array(
+                'enabled'  => $this->taqdar_lrs_model->config()['enabled'],
+                /* TQ-LRS-RECEIPT — و`platform` يعرض لأنه أول ما يسأل عنه حين
+                   يقول اختبارهم «لا بيانات»: هو المعرّف الذي يميّز منصّتنا في
+                   مستودعهم، وقيمة لا تطابق ما سجّلوه ترد كل بحث فارغا. */
+                'platform' => $this->taqdar_lrs_model->config()['platform'],
+            ),
             'courses'    => $this->taqdar_lrs_model->course_choices(),
             'nid'        => $nid,
             'user'       => $user,

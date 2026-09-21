@@ -125,6 +125,50 @@ $tq_ok = $tq_r && !empty($tq_r['ok']);
         </p>
     </div>
     <?php endif; ?>
+
+    <?php /* TQ-LRS-RECEIPT — والمعرّف الذي يميّز منصّتنا عندهم يعرض كذلك:
+             هو أول ما يسأل عنه حين يرد اختبارهم «لا بيانات»، وقيمة لا
+             تطابق ما سجّلوه في حسابنا ترد كل بحث فارغا بلا خطأ. */ ?>
+    <div class="tqa-field">
+        <label class="tqa-field__label"><?php echo t('معرّف المنصة المرسل (context.platform)'); ?></label>
+        <input class="tqa-input tqa-input--ltr" type="text" dir="ltr" readonly
+               onclick="this.select()"
+               value="<?php echo html_escape(isset($cfg['platform']) ? $cfg['platform'] : ''); ?>">
+        <p class="tqa-field__hint">
+            <?php echo t('يذهب في خانة platform من كل رسالة. إن كان اختبار الجهة يرشّح به، فهذه القيمة يجب أن تطابق المعرّف الذي سجّلوه لنا حرفًا — راجعها معهم.'); ?>
+        </p>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php
+/* ── TQ-LRS-RECEIPT — إيصالات المستودع ───────────────────────────
+   المستودع يرد على كل رسالة بمعرّفها **كما خزّنها هو**. وهذه هي
+   القيمة الوحيدة التي تقطع الجدال حين يقول اختبارهم «لا بيانات»
+   ونرى نحن عشر رسائل ناجحة: نسلّمهم رقما من مستودعهم فيبحثون به.
+   وحسابنا حساب كتابة فقط (القراءة ترد ٤٠١) فلا نسأل عنه بأنفسنا. */
+$tq_ids = array();
+foreach ((array) $steps as $tq_s) {
+    if (!empty($tq_s['remote_id'])) $tq_ids[] = (string) $tq_s['remote_id'];
+}
+?>
+<?php if ($tq_ids): ?>
+<div class="tqa-card tqa-section" style="max-inline-size:760px">
+    <div class="tqa-card__head" style="padding:0 0 var(--tq-space-m);margin-block-end:var(--tq-space-m)">
+        <span class="tqa-iconbox tqa-mint" aria-hidden="true"><?php echo tq_icon('check-badge', 20); ?></span>
+        <h2><?php echo t('إيصالات المستودع'); ?></h2>
+    </div>
+
+    <p class="tqa-hint">
+        <?php echo t('هذه معرّفات الرسائل كما ردّها مستودع الجهة نفسه عند الاستلام — أي أنها مخزّنة عندهم بهذه الأرقام. وإن قال اختبارهم «لا بيانات» فأرسلها إليهم: يفتحونها بـ'); ?>
+        <span class="tq-ltr" dir="ltr">GET /xapi/statements?statementId=&lt;id&gt;</span>.
+    </p>
+
+    <div class="tqa-field">
+        <label class="tqa-field__label"><?php echo t('معرّفات الرسائل العشر'); ?></label>
+        <textarea class="tqa-input tqa-input--ltr" dir="ltr" rows="<?php echo count($tq_ids); ?>"
+                  readonly onclick="this.select()"><?php echo html_escape(implode("\n", $tq_ids)); ?></textarea>
+    </div>
 </div>
 <?php endif; ?>
 
@@ -147,6 +191,7 @@ $tq_ok = $tq_r && !empty($tq_r['ok']);
                 <th><?php echo t('الفعل'); ?></th>
                 <th><?php echo t('الحال'); ?></th>
                 <th><?php echo t('محاولات'); ?></th>
+                <th><?php echo t('معرّفها عند الجهة'); ?></th>
                 <th><?php echo t('العلة'); ?></th>
             </tr></thead>
             <tbody>
@@ -156,6 +201,7 @@ $tq_ok = $tq_r && !empty($tq_r['ok']);
                     <td class="tq-ltr"><?php echo html_escape($tq_s['verb']); ?></td>
                     <td><?php echo html_escape($tq_s['state']); ?></td>
                     <td class="tq-ltr"><?php echo (int) $tq_s['attempts']; ?></td>
+                    <td class="tq-ltr"><small><?php echo html_escape((string) $tq_s['remote_id']); ?></small></td>
                     <td><?php echo html_escape(mb_substr((string) $tq_s['last_error'], 0, 80)); ?></td>
                 </tr>
             <?php endforeach; ?>

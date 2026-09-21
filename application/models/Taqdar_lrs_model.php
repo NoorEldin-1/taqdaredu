@@ -372,6 +372,7 @@ class Taqdar_lrs_model extends CI_Model
                     `next_try_at` int(11)      NOT NULL DEFAULT 0,
                     `created_at`  int(11)      NOT NULL DEFAULT 0,
                     `sent_at`     int(11)      DEFAULT NULL,
+                    `remote_id`   varchar(64)  DEFAULT NULL,
                     PRIMARY KEY (`id`),
                     UNIQUE KEY `uq_fingerprint` (`fingerprint`),
                     KEY `ix_due` (`state`,`next_try_at`),
@@ -380,6 +381,19 @@ class Taqdar_lrs_model extends CI_Model
             );
         } catch (Throwable $e) {
             log_message('error', 'TQ-LRS: تعذر إنشاء tq_xapi_queue — ' . $e->getMessage());
+        }
+
+        /* TQ-LRS-RECEIPT — و`CREATE TABLE IF NOT EXISTS` لا يضيف عمودا الى
+           جدول قائم: الطابور موجود منذ الاصدار الاول، فالعمود يضاف صراحة. */
+        try {
+            if (!$this->db->field_exists('remote_id', 'tq_xapi_queue')) {
+                $this->db->query('ALTER TABLE `tq_xapi_queue`
+                                  ADD COLUMN `remote_id` varchar(64) DEFAULT NULL
+                                  COMMENT "statement id as returned by the LRS — TQ-LRS-RECEIPT"');
+            }
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-LRS: تعذر إضافة remote_id — ' . $e->getMessage());
         }
     }
 
@@ -674,7 +688,8 @@ class Taqdar_lrs_model extends CI_Model
                 return $this->base('registered', $u,
                     $this->activity($this->url($crs['url']), $crs['title'], isset($crs['desc']) ? $crs['desc'] : '',
                                     self::T_COURSE, $lang),
-                    array('__lang' => $lang, '__ts' => $this->ts($a), 'instructor' => $ins, 'extensions' => array(
+                    array('__lang' => $lang, '__ts' => $this->ts($a), 'instructor' => $ins,
+                          'extensions' => self::drop_empty(array(
                         self::X_DURATION    => (string) (isset($a['duration']) ? $a['duration'] : ''),
                         self::X_LMS_URL     => $c['lms_url'],
                         self::X_PROGRAM_URL => $this->url($crs['url']),
@@ -682,7 +697,7 @@ class Taqdar_lrs_model extends CI_Model
                         self::X_FULL_NAME   => (string) (isset($a['full_name']) ? $a['full_name'] : ''),
                         self::X_NATIONALITY => (string) (isset($a['nationality']) ? $a['nationality'] : ''),
                         self::X_DOB         => (string) (isset($a['dob']) ? $a['dob'] : ''),
-                    )));
+                    ))));
 
             /* بدء المقرر. */
             case 'initialized':
@@ -810,6 +825,26 @@ class Taqdar_lrs_model extends CI_Model
      * ويقرأ من الطلب ان كان في طلب، ويسكت في الكرون: خانات فارغة اصدق
      * من نسبة زيارة الى متصفح لا وجود له.
      */
+    /**
+     * TQ-LRS-EMPTYEXT — يحذف الامتداد الفارغ ولا يرسله `""`.
+     *
+     * كانت رسالة `registered` تكتب `learner_mobile_no: ""` و
+     * `learner_nationality: ""` و`date_of_birth: ""` لمن لا جوال له ولا
+     * جنسية مسجلة — وأكثر حسابات المنصة كذلك.
+     *
+     * والفراغ **قيمة حاضرة** لا غياب: كل قاعدة تفحص شكل جوال أو شكل
+     * تاريخ تقع عليه فترده، فتسقط رسالة صحيحة في تدقيق الجهة بسبب حقل
+     * **اختياري** لم يكن لنا أن نرسله أصلا. والحذف هو المعنى المقصود
+     * حرفا — «لا نعرف» — وهو صحيح في المعيار.
+     */
+    private static function drop_empty($ext)
+    {
+        foreach ($ext as $k => $v) {
+            if (is_string($v) && trim($v) === '') unset($ext[$k]);
+        }
+        return $ext;
+    }
+
     private function browser_ext($a)
     {
         if (isset($a['browser']) && is_array($a['browser'])) {
@@ -920,7 +955,31 @@ class Taqdar_lrs_model extends CI_Model
                          'body' => (string) $raw);
         }
         return array('ok' => true, 'code' => $code, 'systemic' => false,
-                     'error' => '', 'body' => (string) $raw);
+                     'error' => '', 'body' => (string) $raw,
+                     'remote_id' => self::statement_id($raw));
+    }
+
+    /* =====================================================================
+       TQ-LRS-RECEIPT — معرّف الرسالة عند الجهة، وهو الإيصال
+       =====================================================================
+
+       المستودع المطابق للمعيار يرد على `POST /statements` مصفوفة فيها
+       **معرّف الرسالة كما خزّنها** (`["ce2b1276-…"]`). وكنا نرمي الجسم:
+       نكتب «أرسلت» ونمضي.
+
+       وثمن ذلك ظهر يوم قالت الجهة «لا بيانات» ونحن نرى ٣١٣ رسالة ناجحة:
+       لا شيء عندنا يثبت أن الرسالة خزّنت عندهم لا أنها وصلت وحسب،
+       وحسابنا حساب **كتابة فقط** (القراءة ترد ٤٠١) فلا نستطيع أن نسألهم
+       عنها. فصار الجدال بلا حكم: نقول أرسلنا ويقولون لم نجد، ولا سبيل.
+
+       والمعرّف يقطعه: نسلّمهم رقما من مستودعهم هم، فإن وجدوه فالخلل في
+       بحثهم وحده، وإن لم يجدوه فالمخزن الذي نكتب فيه غير الذي يقرؤون —
+       وكلا الجوابين يغلق السؤال في استعلام واحد. */
+    private static function statement_id($raw)
+    {
+        $j = json_decode((string) $raw, true);
+        if (is_array($j) && isset($j[0]) && is_string($j[0])) return mb_substr($j[0], 0, 64);
+        return null;
     }
 
     /**
@@ -1010,7 +1069,9 @@ class Taqdar_lrs_model extends CI_Model
             if (!empty($res['ok'])) {
                 $this->db->where('id', $id)->update('tq_xapi_queue', array(
                     'state' => 'sent', 'attempts' => $n, 'http_code' => (int) $res['code'],
-                    'sent_at' => time(), 'last_error' => null));
+                    'sent_at' => time(), 'last_error' => null,
+                    /* TQ-LRS-RECEIPT — إيصال الجهة يحفظ مع الصف. */
+                    'remote_id' => isset($res['remote_id']) ? $res['remote_id'] : null));
                 $out['sent']++;
                 continue;
             }
@@ -1554,7 +1615,7 @@ class Taqdar_lrs_model extends CI_Model
         $src = 'journey:' . (int) $user_id . ':' . (int) $course_id;
         try {
             $this->ensure_schema();
-            return $this->db->select('id, verb, state, attempts, http_code, last_error, sent_at')
+            return $this->db->select('id, verb, state, attempts, http_code, last_error, sent_at, remote_id')
                             ->where('source', $src)->order_by('id', 'ASC')
                             ->get('tq_xapi_queue')->result_array();
         } catch (Throwable $e) { $this->db->reset_query(); return array(); }
@@ -1583,7 +1644,7 @@ class Taqdar_lrs_model extends CI_Model
         try {
             $this->ensure_schema();
             return $this->db->select('id, user_id, verb, source, state, attempts,
-                                      http_code, last_error, created_at, sent_at')
+                                      http_code, last_error, created_at, sent_at, remote_id')
                             ->order_by('id', 'DESC')->limit(max(1, min(100, (int) $limit)))
                             ->get('tq_xapi_queue')->result_array();
         } catch (Throwable $e) {
@@ -1642,8 +1703,43 @@ class Taqdar_lrs_model extends CI_Model
 
         $out['code'] = $code;
         if ($raw === false) { $out['note'] = $cerr ?: 'تعذر الاتصال.'; return $out; }
-        if ($code === 200)  { $out['ok'] = true; $out['note'] = 'المستودع يرد.'; return $out; }
+        if ($code === 200)  {
+            $out['ok'] = true;
+            $out['note'] = 'المستودع يرد.' . $this->read_note();
+            return $out;
+        }
         $out['note'] = $this->post_error($code, (string) $raw);
         return $out;
+    }
+
+    /**
+     * TQ-LRS-READONLY — أنستطيع أن نقرأ ما كتبنا؟
+     *
+     * حساب الترخيص عندهم **كتابة فقط**: `GET /statements` يرد ٤٠١ «لا
+     * يملك صلاحية قراءة». وهذه ليست علة تصلح عندنا، لكن السكوت عنها
+     * كلّف يوما كاملا: قالت الجهة «لا بيانات» وقلنا «أرسلنا ٣١٣»، ولا
+     * أحد يستطيع أن يفتح المستودع ويحكم. فتقال في الشاشة صراحة ليعرف
+     * من يفتحها **لماذا** لا نجيب بأنفسنا، وأن الحكم بمعرّفات الرسائل.
+     */
+    private function read_note()
+    {
+        $c = $this->config();
+        $ch = curl_init($c['endpoint'] . '?limit=1');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Basic ' . base64_encode($c['user'] . ':' . $c['pass']),
+            'X-Experience-API-Version: ' . self::XAPI_VERSION,
+            'Accept: application/json',
+        ));
+        $raw  = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($raw === false) return '';
+        if ($code === 200)  return ' والقراءة متاحة كذلك.';
+        return ' والقراءة غير متاحة لحسابنا (' . $code . ') — فلا نستطيع أن نسأل'
+             . ' المستودع عما أرسلنا؛ والحكم بمعرّفات الرسائل في «اختبار التحقق».';
     }
 }

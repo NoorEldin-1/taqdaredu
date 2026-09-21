@@ -184,6 +184,9 @@ $tq_cnt = (int) $tq_st['total'];
                 <th><?php echo t('المصدر'); ?></th>
                 <th><?php echo t('الحال'); ?></th>
                 <th><?php echo t('محاولات'); ?></th>
+                <?php /* TQ-LRS-RECEIPT — معرّفها كما خزّنها المستودع: به وحده
+                         يثبت أن الرسالة عندهم، لا أنها خرجت من عندنا. */ ?>
+                <th><?php echo t('معرّفها عند الجهة'); ?></th>
                 <th><?php echo t('العلة'); ?></th>
             </tr></thead>
             <tbody>
@@ -193,6 +196,7 @@ $tq_cnt = (int) $tq_st['total'];
                     <td class="tq-ltr"><?php echo html_escape($tq_r['source']); ?></td>
                     <td><?php echo html_escape($tq_r['state']); ?></td>
                     <td class="tq-ltr"><?php echo (int) $tq_r['attempts']; ?></td>
+                    <td class="tq-ltr"><small><?php echo html_escape((string) $tq_r['remote_id']); ?></small></td>
                     <td><?php echo html_escape(mb_substr((string) $tq_r['last_error'], 0, 90)); ?></td>
                 </tr>
             <?php endforeach; ?>
