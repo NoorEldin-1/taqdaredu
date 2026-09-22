@@ -12,7 +12,9 @@
     # Google Pay يمر بها في كروم، وApple Pay على الويب يحكمه الإذن نفسه.
     # فالزر يرسم ثم لا يفعل شيئا عند الضغط، بلا خطأ يقرؤه أحد. والإذن
     # لصفحاتنا ولإطار جوجل وحدهما؛ والكاميرا والصوت والموقع محجوبة كما كانت.
-    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(self \"https://pay.google.com\")"
+    # والقيمة بين علامتين مفردتين: LiteSpeed يرسل `\"` حرفيا فتخرج الترويسة
+    # فاسدة، والمتصفح يسقط الترويسة الفاسدة كلها — بحجبها للكاميرا والموقع.
+    Header always set Permissions-Policy 'geolocation=(), microphone=(), camera=(), payment=(self "https://pay.google.com")'
 </IfModule>
 
 # ---------------------------------------------------------------------
