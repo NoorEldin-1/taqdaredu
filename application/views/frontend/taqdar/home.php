@@ -353,3 +353,9 @@ $tq_quotes = tq_testimonials();
   </div>
 </section>
 
+<!-- ══════════ مجموعة دعم العملاء عبر واتساب ══════════ -->
+<?php /* بعد نداء الختام، آخر الصفحة قبل التذييل — بقرار المالك.
+        والرابط والنص في `site/site_wa_group.php` وحده. */ ?>
+<?php $tq_wa_section = true; $tq_wa_h = 'h2';
+      include __DIR__ . '/site/site_wa_group.php'; ?>
+

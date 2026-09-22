@@ -4961,3 +4961,61 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
    دائما — زر بعرض ٩٠ بكسل يقص نصه فيقرأ «المتابعة بحساب…». */
 .tq-auth .soc-auth{margin-block:0 clamp(12px,1.6vw,16px)}
 .tq-auth .soc-btn{flex:1 1 100%}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-WA-GROUP · مجموعة دعم العملاء عبر واتساب
+   ══════════════════════════════════════════════════════════════════
+   بطاقة `site/site_wa_group.php` في الرئيسية و«تواصل معنا». لغتها لغة
+   `.contact-card`: ورق وحد ذهبي خافت وحواف البطاقة وظلها. والأخضر في
+   القرص وحده — لون زر واتساب العائم `.tq-wa` نفسه — والزر ذهبي كزر
+   «إنشاء حساب مجاني»، فلا لون جديد في الصفحة. الحصر: `.tqwa` اسم لا
+   وجود له في غير هذه البطاقة. */
+.tqwa{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;
+  gap:clamp(14px,2vw,28px);
+  padding:clamp(18px,2.2vw,30px) clamp(18px,2.6vw,36px);
+  background:var(--paper);
+  border:1px solid var(--gold-line-soft);border-radius:var(--r-card);
+  box-shadow:var(--sh-soft);
+}
+.tqwa__ico{
+  display:grid;place-items:center;flex:none;
+  inline-size:clamp(56px,5vw,72px);block-size:clamp(56px,5vw,72px);
+  border-radius:50%;color:#fff;
+  background:linear-gradient(145deg,#2FD570,#1DA851);
+  box-shadow:0 12px 24px -14px rgba(18,140,70,.75);
+}
+.tqwa__ico svg{inline-size:52%;block-size:52%}
+.tqwa__title{
+  margin:0 0 6px;font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(18px,1.6vw,24px);line-height:1.5;color:var(--ink);
+}
+.tqwa__lede{margin:0;font-size:clamp(13.5px,1.05vw,16px);line-height:1.8;color:var(--ink-2)}
+.tqwa__cta{white-space:nowrap}
+.tqwa__cta svg{inline-size:20px;block-size:20px;flex:none}
+/* داخل لوح «تواصل معنا» تحت شبكة الطرق */
+.panel .tqwa{margin-block-start:clamp(18px,2.2vw,28px)}
+
+@media (max-width:719px){
+  .tqwa{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center}
+  .tqwa__cta{inline-size:100%;min-block-size:48px;white-space:normal}
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-STAGE-SOON · تبويب «المرحلة الثانوية — قريبا» المعطل
+   ══════════════════════════════════════════════════════════════════
+   من `tqs_stage_tabs()`. والمحدد بـ`.stage-tabs` قبله عمدا: قاعدة
+   `.p26d__tabs .stage-tab:hover` في `home-dark.css` تحمل بعد هذا الملف
+   وتساويه وزنا، فتغلب — وتبويب معطل يتلون تحت المؤشر يبدو قابلا للنقر.
+   والشارة لغة `.contact-card__soon` نفسها: كبسولة بحد متقطع. */
+.stage-tabs .stage-tab.stage-tab--soon,
+.stage-tabs .stage-tab.stage-tab--soon:hover{
+  display:inline-flex;align-items:center;gap:8px;cursor:default;
+  color:var(--ink-3);border:1px dashed var(--gold-line);
+  background:color-mix(in oklab,var(--paper) 82%,var(--cream));
+}
+.stage-tab__soon{
+  display:inline-block;padding:1px 9px;border-radius:999px;
+  background:var(--cream);border:1px dashed var(--gold-line-soft);
+  font-size:.82em;font-weight:600;line-height:1.7;color:var(--gold-text);
+}

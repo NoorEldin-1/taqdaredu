@@ -1142,6 +1142,18 @@ if (!function_exists('tqs_stage_tabs')) {
                 . ' aria-selected="' . ($on ? 'true' : 'false') . '"'
                 . ' data-tq-stage="' . html_escape($k) . '">' . html_escape($label) . '</button>' . "\n";
         }
+        /* TQ-STAGE-SOON · «المرحلة الثانوية — قريبا» بقرار المالك.
+           عنصر معطل **بلا `data-tq-stage`**: `site.js` يجمع التبويبات بهذه
+           السمة وحدها، فهو خارج النقر والتنقل بالأسهم ولا يطالب ببطاقات.
+           ولو حملها لأخفى النقر عليه كل الباقات، إذ لا باقة ثانوية.
+           ويختفي وحده يوم تنشر أول باقة ثانوية، فيأخذ مكانه تبويبها
+           الحقيقي — `secondary` هو اسم التصنيف 5 في القاعدة. */
+        if (!isset($stages['secondary'])) {
+            $h .= '  <button class="stage-tab stage-tab--soon" type="button" role="tab"'
+                . ' aria-selected="false" aria-disabled="true" disabled>'
+                . html_escape(tqs_stage_label('secondary'))
+                . ' <span class="stage-tab__soon">' . t('قريبا') . '</span></button>' . "\n";
+        }
         return $h . '</div>' . "\n";
     }
 }

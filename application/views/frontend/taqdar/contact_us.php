@@ -225,6 +225,11 @@ $tq_phone_iso = isset($tq_old_c['phone_cc']) ? (string) $tq_old_c['phone_cc'] : 
           
         </div>
       </div>
+
+      <?php /* مجموعة الدعم على واتساب — جوار طرق التواصل وفي لوحها،
+               وعنوانها `h3` كبطاقات اللوح تحت عنوانه. */ ?>
+      <?php $tq_wa_section = false; $tq_wa_h = 'h3';
+            include __DIR__ . '/site/site_wa_group.php'; ?>
     </div>
   </div>
 </section>
