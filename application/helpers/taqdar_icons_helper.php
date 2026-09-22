@@ -89,6 +89,8 @@ if (!function_exists('tq_icon')) {
             'translate'   => '<path d="M3.5 6h9"/><path d="M8 4v2c0 4-1.8 7.2-4.5 9"/><path d="M6 11.5c1.4 2.6 3.4 4.4 6 5.5"/><path d="m13 21 4-10 4 10"/><path d="M14.4 18h5.2"/>',
             'copy'        => '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h4"/>',
             'money'       => '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.8"/><path d="M6 10v4M18 10v4"/>',
+            /* TQ-COUPON — بطاقة سعر لكود الخصم. */
+            'tag'         => '<path d="M3 12V4.5A1.5 1.5 0 0 1 4.5 3H12l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
 
             /* --- أسماء كانت تنادى ولا وجود لها ---
                `tq_icon()` ترجع نصا فارغا للمجهول، فكانت الشاشة تخرج دائرة

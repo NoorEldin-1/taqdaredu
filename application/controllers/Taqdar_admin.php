@@ -3157,6 +3157,9 @@ class Taqdar_admin extends CI_Controller
         $this->render('tqa_tap', 'بوابة الدفع — تاب', array(
             'cfg'      => $this->taqdar_tap_model->config(),
             'ready'    => $this->taqdar_tap_model->ready(),
+            'express'  => $this->taqdar_tap_model->express_status(),
+            'assoc'    => $this->taqdar_tap_model->apple_assoc(),
+            'gpay_cur' => $this->taqdar_tap_model->gpay_currency_ok(),
             'attempts' => $this->taqdar_tap_model->attempts(30),
             'totals'   => $this->taqdar_tap_model->attempt_totals(),
         ));
@@ -3182,6 +3185,20 @@ class Taqdar_admin extends CI_Controller
             'tq_tap_mode'     => $mode,
             'tq_tap_merchant' => preg_replace('/\s+/', '', (string) $this->input->post('tq_tap_merchant')),
         );
+
+        /* TQ-EXPRESS-PAY — الطرق المباشرة: ثلاثة مفاتيح وبيانات جوجل وملف
+           ربط النطاق لأبل. والنموذج يرسلها كلها دائما (مخفي `0` قبل كل
+           مربع)، فحفظ الوضع وحده لا يطفئ Apple Pay بلا قصد. */
+        if ($this->input->post('tq_express_form') === '1') {
+            foreach (array('tq_tap_applepay', 'tq_tap_googlepay', 'tq_tap_cardform') as $k) {
+                $vals[$k] = (string) $this->input->post($k) === '1' ? '1' : '0';
+            }
+            $vals['tq_gpay_merchant_id']   = preg_replace('/[^A-Za-z0-9]/', '', (string) $this->input->post('tq_gpay_merchant_id'));
+            $vals['tq_gpay_merchant_name'] = mb_substr(trim(strip_tags((string) $this->input->post('tq_gpay_merchant_name'))), 0, 60);
+            /* الملف نص ست عشري طويل بلا فراغ؛ ما سواه يقص. وما يلصق خطأ
+               (قصاصة بريد فيها كلام) يرده أبل بفحص النطاق، لا شيء يكسر هنا. */
+            $vals['tq_tap_apple_assoc'] = trim(preg_replace('/[^\x21-\x7E\r\n]/', '', (string) $this->input->post('tq_tap_apple_assoc')));
+        }
 
         $clear = (array) $this->input->post('clear');
         foreach (array('test_secret', 'test_public', 'live_secret', 'live_public') as $k) {
@@ -3283,6 +3300,201 @@ class Taqdar_admin extends CI_Controller
 
         $this->session->set_flashdata('flash_message', $msg);
         redirect(site_url('taqdar_admin/subscriptions'), 'location', 302);
+    }
+
+    /* =====================================================================
+       TQ-COUPON — أكواد الخصم
+       ---------------------------------------------------------------------
+       شاشة تجيب ما لا تجيبه القائمة العامة (`module/coupons`): **أيعمل هذا
+       الكود الآن؟ وكم استعمل؟ وكم وفر المشترون وكم جلب من بيع؟** — ومنها
+       تولد الدفعات. وتحت «المالية» بجوار الباقات وبيع الكورسات: الكود يغير
+       ما يقبض، ومن يدير المال هو من يقرر كم يخصم.
+       ===================================================================== */
+
+    public function coupons()
+    {
+        $this->load->model('taqdar_coupon_model', 'tq_cp');
+        $this->tq_cp->ensure_schema();
+
+        $f = array(
+            'q'     => trim((string) $this->input->get('q')),
+            'batch' => trim((string) $this->input->get('batch')),
+            'state' => trim((string) $this->input->get('state')),
+        );
+        $list = $this->tq_cp->listing($f);
+
+        /* الدفعة المولدة للتو تعرض أكوادها مرة واحدة للنسخ — ثم تقرأ من
+           القائمة بمرشح دفعتها. */
+        $fresh = $this->session->flashdata('tq_coupon_fresh');
+
+        $this->render('tqa_coupons', t('أكواد الخصم'), array(
+            'nav_key' => 'tqa_coupons',
+            'f'       => $f,
+            'rows'    => $list['rows'],
+            'batches' => $list['batches'],
+            'totals'  => $this->tq_cp->totals(),
+            'kinds'   => $this->tq_cp->kinds(),
+            'fresh'   => is_array($fresh) ? $fresh : null,
+            'plans'   => $this->taqdar_admin_model->options('plans'),
+        ));
+    }
+
+    /** كود واحد: حاله ومن استعمله، وفي أي شراء، وبكم. */
+    public function coupon($id = 0)
+    {
+        $this->load->model('taqdar_coupon_model', 'tq_cp');
+        $row = $this->tq_cp->get((int) $id);
+        if (!$row) show_404();
+
+        $use = $this->tq_cp->usage_map(array((int) $id));
+        $u   = isset($use[(int) $id]) ? $use[(int) $id]
+             : array('paid' => 0, 'held' => 0, 'discount' => 0, 'revenue' => 0);
+
+        $this->render('tqa_coupon', t('كود الخصم') . ' ' . $row['code'], array(
+            'nav_key' => 'tqa_coupons',
+            'row'     => $row,
+            'use'     => $u,
+            'state'   => $this->tq_cp->status_of($row, $u),
+            'kinds'   => $this->tq_cp->kinds(),
+            'reds'    => $this->tq_cp->redemptions((int) $id),
+            'blocked' => $this->tq_cp->delete_blockers((int) $id),
+        ));
+    }
+
+    /**
+     * POST — يولد دفعة أكواد.
+     *
+     * المبالغ تكتب بالريال في الشاشة وتخزن بالهللات — التحويل هنا مرة، كما
+     * يحول نوع `money` في الوحدات الموصوفة.
+     */
+    public function coupon_generate()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_coupon_model', 'tq_cp');
+
+        $p   = $this->input->post();
+        $sar = function ($k) use ($p) {
+            $v = trim(str_replace(',', '', (string) (isset($p[$k]) ? $p[$k] : '')));
+            return $v === '' ? null : (int) round(((float) $v) * 100);
+        };
+        $base = array(
+            'label'          => (string) ($p['label'] ?? ''),
+            'batch'          => (string) ($p['batch'] ?? ''),
+            'percent'        => (int) ($p['percent'] ?? 0),
+            'max_discount'   => $sar('max_discount'),
+            'min_amount'     => $sar('min_amount'),
+            'max_uses'       => (string) ($p['max_uses'] ?? ''),
+            'per_user'       => (string) ($p['per_user'] ?? '1'),
+            'first_purchase' => !empty($p['first_purchase']),
+            'starts_at'      => (string) ($p['starts_at'] ?? ''),
+            'ends_at'        => (string) ($p['ends_at'] ?? ''),
+            'plan_ids'       => isset($p['plan_ids']) ? (array) $p['plan_ids'] : array(),
+            'active'         => 1,
+        );
+        foreach ($this->tq_cp->kinds() as $k => $d) $base[$d['col']] = !empty($p[$d['col']]);
+
+        /* كود واحد باسم يختاره المسؤول («RAMADAN25») أو دفعة عشوائية:
+           الأول للإعلان العام، والثانية لمن يوزع كودا لكل شخص. */
+        $custom = trim((string) ($p['custom_code'] ?? ''));
+        if ($custom !== '') {
+            $cl = $this->tq_cp->clean(array_merge($base, array('code' => $custom)));
+            if ($cl['errors']) {
+                $this->session->set_flashdata('error_message', implode(' ', $cl['errors']));
+                redirect(site_url('taqdar_admin/coupons#tqa-gen'), 'location', 302);
+                return;
+            }
+            $row = $cl['data'];
+            $row['batch']      = mb_substr(trim($base['batch']), 0, 60);
+            $row['created_at'] = date('Y-m-d H:i:s');
+            $row['created_by'] = (int) $this->session->userdata('user_id');
+            $this->db->insert('tq_coupons', $row);
+            $this->session->set_flashdata('flash_message',
+                t('أنشئ الكود ____ بخصم ____٪.', array($row['code'], (int) $row['percent'])));
+            $this->session->set_flashdata('tq_coupon_fresh', array('batch' => $row['batch'], 'codes' => array($row['code'])));
+            redirect(site_url('taqdar_admin/coupons'), 'location', 302);
+            return;
+        }
+
+        $r = $this->tq_cp->generate($base, (int) ($p['count'] ?? 0), (string) ($p['prefix'] ?? ''),
+                                    (int) ($p['length'] ?? 6));
+        if (!$r['ok']) {
+            $this->session->set_flashdata('error_message', implode(' ', $r['errors']));
+            redirect(site_url('taqdar_admin/coupons#tqa-gen'), 'location', 302);
+            return;
+        }
+        $this->session->set_flashdata('flash_message',
+            t('ولدت ____ كودا في الدفعة ____.', array(count($r['codes']), $r['batch'])));
+        $this->session->set_flashdata('tq_coupon_fresh', array('batch' => $r['batch'], 'codes' => $r['codes']));
+        redirect(site_url('taqdar_admin/coupons?batch=' . rawurlencode($r['batch'])), 'location', 302);
+    }
+
+    /** POST — يوقف كودا أو يفعله. */
+    public function coupon_toggle()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_coupon_model', 'tq_cp');
+
+        $id = (int) $this->input->post('id');
+        $on = (string) $this->input->post('on') === '1';
+        $ok = $this->tq_cp->toggle($id, $on);
+        $this->session->set_flashdata($ok ? 'flash_message' : 'error_message',
+            $ok ? ($on ? t('فعل الكود.') : t('أوقف الكود — لا يقبل في شراء جديد.')) : t('الكود غير موجود.'));
+
+        $back = (string) $this->input->post('back');
+        redirect(site_url($back === 'one' ? 'taqdar_admin/coupon/' . $id : 'taqdar_admin/coupons'), 'location', 302);
+    }
+
+    /** POST — يوقف دفعة كاملة أو يفعلها: لما تسرب منها إلى من لم يقصد. */
+    public function coupon_batch()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_coupon_model', 'tq_cp');
+
+        $batch = (string) $this->input->post('batch');
+        $on    = (string) $this->input->post('on') === '1';
+        $n     = $this->tq_cp->toggle_batch($batch, $on);
+        $this->session->set_flashdata('flash_message', $on
+            ? t('فعلت ____ من أكواد الدفعة.', array($n))
+            : t('أوقفت ____ من أكواد الدفعة.', array($n)));
+        redirect(site_url('taqdar_admin/coupons?batch=' . rawurlencode($batch)), 'location', 302);
+    }
+
+    /**
+     * تصدير المعروض CSV — للتوزيع على المدارس أو المؤثرين.
+     *
+     * والمرشح نفسه الذي في الشاشة: من صدر دفعة يريد أكوادها لا كل الأكواد.
+     * وBOM في أوله: Excel يفتح ملف UTF-8 بلا BOM حروفا مكسورة.
+     */
+    public function coupons_export()
+    {
+        $this->load->model('taqdar_coupon_model', 'tq_cp');
+        $list = $this->tq_cp->listing(array(
+            'q'     => trim((string) $this->input->get('q')),
+            'batch' => trim((string) $this->input->get('batch')),
+            'state' => trim((string) $this->input->get('state')),
+        ));
+
+        $fh = fopen('php://temp', 'w+');
+        fwrite($fh, "\xEF\xBB\xBF");
+        fputcsv($fh, array('code', 'label', 'batch', 'percent', 'max_uses', 'per_user',
+                           'ends_at', 'state', 'used', 'held', 'discount_sar', 'revenue_sar'));
+        foreach ($list['rows'] as $r) {
+            fputcsv($fh, array($r['code'], $r['label'], $r['batch'], (int) $r['percent'],
+                               $r['max_uses'] === null ? '' : (int) $r['max_uses'], (int) $r['per_user'],
+                               (string) $r['ends_at'], $r['state']['label'],
+                               (int) $r['use']['paid'], (int) $r['use']['held'],
+                               number_format($r['use']['discount'] / 100, 2, '.', ''),
+                               number_format($r['use']['revenue'] / 100, 2, '.', '')));
+        }
+        rewind($fh);
+        $csv = stream_get_contents($fh);
+        fclose($fh);
+
+        $name = 'coupons-' . ($this->input->get('batch') ? preg_replace('/[^A-Za-z0-9\-]/', '', (string) $this->input->get('batch')) . '-' : '')
+              . date('Ymd-His') . '.csv';
+        $this->output->set_content_type('text/csv', 'utf-8')
+                     ->set_header('Content-Disposition: attachment; filename="' . $name . '"')
+                     ->set_output($csv);
     }
 
 }

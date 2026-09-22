@@ -173,6 +173,116 @@ class Taqdar_billing_model extends CI_Model
     }
 
     /* =====================================================================
+       TQ-COUPON — كود الخصم معامل في الشراء لا مسار ثان
+       ===================================================================== */
+
+    /**
+     * يحكم على الكود الوارد لشراء بعينه.
+     *
+     * **والكود الخاطئ يرد الشراء ولا يمر بالسعر الكامل صامتا.** من كتب
+     * كودا وضغط «ادفع» ينتظر خصمه؛ وفاتورة تصدر بالسعر كله لأن الكود
+     * انتهى أمس تجعله يدفع ما لم يوافق عليه، ثم يطلب استردادا. فيرد
+     * بالسبب، ويختار هو: كودا آخر أو الشراء بلا كود.
+     *
+     * @return array ok · q (حكم `quote()` أو null بلا كود) · errors · code
+     */
+    private function coupon_quote($code, $user_id, $kind, $item_id, $gross)
+    {
+        $code = trim((string) $code);
+        if ($code === '') return array('ok' => true, 'q' => null);
+
+        $this->load->model('taqdar_coupon_model', 'tq_cp');
+        $q = $this->tq_cp->quote($code, (int) $user_id, $kind, (int) $item_id, (int) $gross);
+        if (empty($q['ok'])) {
+            return array('ok' => false, 'code' => 'COUPON_INVALID', 'coupon_reason' => $q['reason'],
+                         'errors' => array($q['message']));
+        }
+        return array('ok' => true, 'q' => $q);
+    }
+
+    /** أعمدة الكود على صف الشراء — لا شيء بلا كود، فالصف القديم كما كان. */
+    private function coupon_cols($cq)
+    {
+        if (empty($cq['q'])) return array();
+        return array('coupon_id'  => (int) $cq['q']['coupon']['id'],
+                     'list_price' => (int) $cq['q']['gross'],
+                     'discount'   => (int) $cq['q']['discount']);
+    }
+
+    /** يحجز الاستعمال قبل أن يكتب الصف — انظر `Taqdar_coupon_model::hold()`. */
+    private function coupon_hold($cq, $user_id, $kind, $item_id)
+    {
+        if (empty($cq['q'])) return array('ok' => true, 'id' => 0);
+        return $this->tq_cp->hold($cq['q'], (int) $user_id, $kind, (int) $item_id);
+    }
+
+    /**
+     * بعد أن يكتب الصف والفاتورة: يربط الحجز، ويسقط ما سبقه للعنصر نفسه،
+     * ويفعل في الحال ما صار صافيه صفرا.
+     *
+     * **والصافي صفر يفعل ولا ينتظر.** خصم مئة بالمئة (هدية أو منحة) يصدر
+     * فاتورة بلا مبلغ، وتاب ترد «قيمة الفاتورة صفر»، والتحويل البنكي لا
+     * يحول صفرا — فيبقى صاحبه معلقا أمام باب لا يفتح. فيفعل كما تفعل
+     * الباقة المجانية، والفاتورة تسدد باسم الكود.
+     *
+     * @return bool هل فعل الآن
+     */
+    private function coupon_after($cq, $hold, $user_id, $kind, $item_id, $sid, $inv)
+    {
+        /* TQ-PENDING-ONE للمفرد كذلك — والكود هو ما يجعله شائعا: من أصدر
+           فاتورة كتاب بمئتين ثم عاد بكود فاشتراه بمئة كان يخرج بفاتورتين
+           غير مدفوعتين لشيء واحد، يحول الأولى خطأ أو تبقى «بانتظار
+           التحويل» أبدا. والباقة تفعل هذا منذ كتبت؛ فالأحدث يحل محل ما
+           قبله للعنصر نفسه، والقديمة تشطب ولا تحذف (رقمها في التسلسل). */
+        $col = array('path' => 'path_id', 'course' => 'course_id', 'book' => 'book_id', 'pack' => 'pack_id');
+        if (isset($col[$kind])) {
+            foreach ($this->db->where('user_id', (int) $user_id)->where($col[$kind], (int) $item_id)
+                              ->where('status', 'pending')->where('id !=', (int) $sid)
+                              ->get('subscriptions')->result_array() as $old_sub) {
+                $old_inv = $this->invoice_of_subscription((int) $old_sub['id']);
+                if ($old_inv && $old_inv['status'] !== 'unpaid') continue;
+                if ($old_inv) {
+                    $this->db->where('id', (int) $old_inv['id'])->where('status', 'unpaid')
+                             ->update('invoices', array('status' => 'refunded'));
+                }
+                $this->db->where('id', (int) $old_sub['id'])->where('status', 'pending')
+                         ->update('subscriptions', array('status' => 'cancelled'));
+            }
+        }
+
+        /* بلا كود كذلك: شراء جديد للعنصر نفسه يسقط حجزا قديما له. */
+        if (!empty($cq['q']) || $this->coupon_table_ready()) {
+            $this->load->model('taqdar_coupon_model', 'tq_cp');
+            $this->tq_cp->attach((int) $hold['id'], (int) $user_id, $kind, (int) $item_id, $sid, $inv);
+        }
+        if (empty($cq['q']) || (int) $cq['q']['net'] > 0) return false;
+
+        $ref = 'coupon:' . $cq['q']['code'];
+        $ok  = $this->activate($sid, 'coupon', $ref);
+        if ($ok) $this->mark_invoice_paid($inv, $ref);
+        return $ok;
+    }
+
+    /** الجدول قائم؟ — شراء بلا كود على قاعدة لم تنشأ فيها الأكواد لا يمسها. */
+    private function coupon_table_ready()
+    {
+        static $ready = null;
+        if ($ready === null) {
+            try { $ready = $this->db->table_exists('tq_coupon_redemptions'); }
+            catch (Throwable $e) { $ready = false; }
+        }
+        return $ready;
+    }
+
+    /** يرد استعمال فاتورة ألغيت — لا يصير الكود مستعملا بشراء لم يقع. */
+    private function coupon_release($subscription_id)
+    {
+        if (!$this->coupon_table_ready()) return;
+        $this->load->model('taqdar_coupon_model', 'tq_cp');
+        $this->tq_cp->release((int) $subscription_id);
+    }
+
+    /* =====================================================================
        الاشتراك النشط
        ===================================================================== */
 
@@ -504,7 +614,7 @@ class Taqdar_billing_model extends CI_Model
      * المسار غير المسعر يرفض كما ترفض الباقة غير المسعرة — فمنصة لم
      * تضبط أسعارها لا يجوز أن تفتح محتواها بضغطة.
      */
-    public function subscribe_path($user_id, $path_id, $method = "manual")
+    public function subscribe_path($user_id, $path_id, $method = "manual", $coupon = '')
     {
         $user_id = (int) $user_id;
         $path    = $this->path($path_id);
@@ -537,21 +647,32 @@ class Taqdar_billing_model extends CI_Model
             ));
         }
 
-        $this->db->insert("subscriptions", array(
+        /* TQ-COUPON — الكود يحكم عليه بعد كل حارس للعنصر لا قبله: من لا
+           يشتري هذا المسار أصلا لا يقرأ «الكود لا ينطبق». */
+        $cq = $this->coupon_quote($coupon, $user_id, 'path', (int) $path['id'], (int) $path['price']);
+        if (!$cq['ok']) return $cq;
+        $net  = $cq['q'] ? (int) $cq['q']['net'] : (int) $path['price'];
+        $hold = $this->coupon_hold($cq, $user_id, 'path', (int) $path['id']);
+        if (!$hold['ok']) return array('ok' => false, 'code' => 'COUPON_INVALID', 'errors' => array($hold['message']));
+
+        $this->db->insert("subscriptions", array_merge(array(
             "user_id"    => $user_id,
             "plan_id"    => 0,
             "path_id"    => (int) $path["id"],
             "status"     => "pending",
-            "price"      => (int) $path["price"],
+            "price"      => $net,
             "auto_renew" => 0,
             "method"     => $method,
             "created_at" => date("Y-m-d H:i:s"),
-        ));
+        ), $this->coupon_cols($cq)));
         $sid = (int) $this->db->insert_id();
-        $inv = $this->issue_invoice($sid, $user_id, (int) $path["price"], $method);
-        $this->notify_invoice_issued($inv, $method);
+        $inv = $this->issue_invoice($sid, $user_id, $net, $method);
 
-        return array("ok" => true, "subscription_id" => $sid, "invoice_id" => $inv, "free" => false);
+        $free = $this->coupon_after($cq, $hold, $user_id, 'path', (int) $path['id'], $sid, $inv);
+        if (!$free) $this->notify_invoice_issued($inv, $method);
+
+        return array("ok" => true, "subscription_id" => $sid, "invoice_id" => $inv, "free" => $free,
+                     "coupon" => $cq['q']);
     }
 
     /** هل للمستخدم اشتراك نشط في هذا المسار بعينه؟ */
@@ -597,7 +718,7 @@ class Taqdar_billing_model extends CI_Model
      *
      * @return array ok · subscription_id · invoice_id · errors · code
      */
-    public function subscribe_course($user_id, $course_id, $method = 'manual')
+    public function subscribe_course($user_id, $course_id, $method = 'manual', $coupon = '')
     {
         $this->load->model('taqdar_course_sale_model', 'tq_cs');
         $this->tq_cs->install_schema();
@@ -628,16 +749,24 @@ class Taqdar_billing_model extends CI_Model
            تسدد إحداهما وتبقى الأخرى «غير مدفوعة» في سجل مالي أبدا.
            والسعر يفحص مع الرقم: من عدل سعر الكورس بعد إصدارها لا يشترى
            بسعر أمس. */
-        $pend = $this->db->where('user_id', $user_id)
-                         ->where('course_id', $course_id)
-                         ->where('status', 'pending')
-                         ->where('price', (int) $offer['price'])
-                         ->order_by('id', 'DESC')->limit(1)
+        /* TQ-COUPON — والكود يحكم عليه قبل إعادة الاستعمال: المعلق يعاد
+           إن كان بالصافي نفسه **وبالكود نفسه**. معلق بلا كود لا يعاد لمن
+           جاء بكود — ولو أعيد لدفع السعر كاملا وهو يظن أنه خصم. */
+        $cq = $this->coupon_quote($coupon, $user_id, 'course', $course_id, (int) $offer['price']);
+        if (!$cq['ok']) return $cq;
+        $net = $cq['q'] ? (int) $cq['q']['net'] : (int) $offer['price'];
+
+        $this->db->where('user_id', $user_id)
+                 ->where('course_id', $course_id)
+                 ->where('status', 'pending')
+                 ->where('price', $net);
+        if ($cq['q']) $this->db->where('coupon_id', (int) $cq['q']['coupon']['id']);
+        $pend = $this->db->order_by('id', 'DESC')->limit(1)
                          ->get('subscriptions')->row_array();
 
         if ($pend) {
             $old = $this->invoice_of_subscription((int) $pend['id']);
-            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === (int) $offer['price']) {
+            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === $net) {
                 $this->db->where('id', (int) $pend['id'])
                          ->update('subscriptions', array('method' => $method));
                 $this->db->where('id', (int) $old['id'])
@@ -645,28 +774,32 @@ class Taqdar_billing_model extends CI_Model
 
                 return array('ok' => true, 'subscription_id' => (int) $pend['id'],
                              'invoice_id' => (int) $old['id'], 'reused' => true,
-                             'offer' => $offer);
+                             'offer' => $offer, 'coupon' => $cq['q']);
             }
         }
 
-        $this->db->insert('subscriptions', array(
+        $hold = $this->coupon_hold($cq, $user_id, 'course', $course_id);
+        if (!$hold['ok']) return array('ok' => false, 'code' => 'COUPON_INVALID', 'errors' => array($hold['message']));
+
+        $this->db->insert('subscriptions', array_merge(array(
             'user_id'    => $user_id,
             'plan_id'    => 0,
             'path_id'    => 0,
             'course_id'  => $course_id,
             'status'     => 'pending',
-            'price'      => (int) $offer['price'],   // السعر وقت الشراء
+            'price'      => $net,   // المحصل وقت الشراء — بعد الكود إن كان
             'auto_renew' => 0,
             'method'     => $method,
             'created_at' => date('Y-m-d H:i:s'),
-        ));
+        ), $this->coupon_cols($cq)));
         $sid = (int) $this->db->insert_id();
 
-        $inv = $this->issue_invoice($sid, $user_id, (int) $offer['price'], $method);
-        $this->notify_invoice_issued($inv, $method);
+        $inv  = $this->issue_invoice($sid, $user_id, $net, $method);
+        $free = $this->coupon_after($cq, $hold, $user_id, 'course', $course_id, $sid, $inv);
+        if (!$free) $this->notify_invoice_issued($inv, $method);
 
         return array('ok' => true, 'subscription_id' => $sid,
-                     'invoice_id' => $inv, 'free' => false, 'offer' => $offer);
+                     'invoice_id' => $inv, 'free' => $free, 'offer' => $offer, 'coupon' => $cq['q']);
     }
 
     /**
@@ -723,7 +856,7 @@ class Taqdar_billing_model extends CI_Model
      *
      * @return array ok · subscription_id · invoice_id · errors · code
      */
-    public function subscribe_book($user_id, $book_id, $method = 'manual')
+    public function subscribe_book($user_id, $book_id, $method = 'manual', $coupon = '')
     {
         $this->load->model('taqdar_book_model', 'tq_bk');
         $this->tq_bk->install_schema();
@@ -754,16 +887,23 @@ class Taqdar_billing_model extends CI_Model
            تسدد إحداهما وتبقى الأخرى «غير مدفوعة» في سجل مالي أبدا.
            والسعر يفحص مع الرقم: من عدل سعر الكتاب بعد إصدارها لا يشترى
            بسعر أمس. */
-        $pend = $this->db->where('user_id', $user_id)
-                         ->where('book_id', $book_id)
-                         ->where('status', 'pending')
-                         ->where('price', (int) $offer['price'])
-                         ->order_by('id', 'DESC')->limit(1)
+        /* TQ-COUPON — المعلق يعاد بالصافي نفسه وبالكود نفسه، كأخيه في
+           الكورس وللعلة نفسها. */
+        $cq = $this->coupon_quote($coupon, $user_id, 'book', $book_id, (int) $offer['price']);
+        if (!$cq['ok']) return $cq;
+        $net = $cq['q'] ? (int) $cq['q']['net'] : (int) $offer['price'];
+
+        $this->db->where('user_id', $user_id)
+                 ->where('book_id', $book_id)
+                 ->where('status', 'pending')
+                 ->where('price', $net);
+        if ($cq['q']) $this->db->where('coupon_id', (int) $cq['q']['coupon']['id']);
+        $pend = $this->db->order_by('id', 'DESC')->limit(1)
                          ->get('subscriptions')->row_array();
 
         if ($pend) {
             $old = $this->invoice_of_subscription((int) $pend['id']);
-            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === (int) $offer['price']) {
+            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === $net) {
                 $this->db->where('id', (int) $pend['id'])
                          ->update('subscriptions', array('method' => $method));
                 $this->db->where('id', (int) $old['id'])
@@ -771,29 +911,33 @@ class Taqdar_billing_model extends CI_Model
 
                 return array('ok' => true, 'subscription_id' => (int) $pend['id'],
                              'invoice_id' => (int) $old['id'], 'reused' => true,
-                             'offer' => $offer);
+                             'offer' => $offer, 'coupon' => $cq['q']);
             }
         }
 
-        $this->db->insert('subscriptions', array(
+        $hold = $this->coupon_hold($cq, $user_id, 'book', $book_id);
+        if (!$hold['ok']) return array('ok' => false, 'code' => 'COUPON_INVALID', 'errors' => array($hold['message']));
+
+        $this->db->insert('subscriptions', array_merge(array(
             'user_id'    => $user_id,
             'plan_id'    => 0,
             'path_id'    => 0,
             'course_id'  => 0,
             'book_id'    => $book_id,
             'status'     => 'pending',
-            'price'      => (int) $offer['price'],   // السعر وقت الشراء
+            'price'      => $net,   // المحصل وقت الشراء — بعد الكود إن كان
             'auto_renew' => 0,
             'method'     => $method,
             'created_at' => date('Y-m-d H:i:s'),
-        ));
+        ), $this->coupon_cols($cq)));
         $sid = (int) $this->db->insert_id();
 
-        $inv = $this->issue_invoice($sid, $user_id, (int) $offer['price'], $method);
-        $this->notify_invoice_issued($inv, $method);
+        $inv  = $this->issue_invoice($sid, $user_id, $net, $method);
+        $free = $this->coupon_after($cq, $hold, $user_id, 'book', $book_id, $sid, $inv);
+        if (!$free) $this->notify_invoice_issued($inv, $method);
 
         return array('ok' => true, 'subscription_id' => $sid,
-                     'invoice_id' => $inv, 'free' => false, 'offer' => $offer);
+                     'invoice_id' => $inv, 'free' => $free, 'offer' => $offer, 'coupon' => $cq['q']);
     }
 
     /**
@@ -985,7 +1129,7 @@ class Taqdar_billing_model extends CI_Model
      *
      * @return array ok · subscription_id · invoice_id · errors · offer
      */
-    public function subscribe_foundation_pack($user_id, $pack_id, $method = 'manual')
+    public function subscribe_foundation_pack($user_id, $pack_id, $method = 'manual', $coupon = '')
     {
         $this->load->model('taqdar_foundation_model', 'tq_fnd');
         $this->tq_fnd->ensure_schema();
@@ -1007,27 +1151,38 @@ class Taqdar_billing_model extends CI_Model
         /* TQ-SUB-REUSE — معلق بفاتورة لم تدفع يعاد استعماله: من أكد ثم
            تردد ثم أكد مرة اخرى كان يخرج بصفين وفاتورتين، تسدد احداهما
            وتبقى الاخرى «غير مدفوعة» في سجل مالي ابدا. */
-        $pend = $this->db->where('user_id', $user_id)
-                         ->where('pack_id', $pack_id)
-                         ->where('status', 'pending')
-                         ->where('price', (int) $offer['price'])
-                         ->order_by('id', 'DESC')->limit(1)
+        /* TQ-COUPON — المعلق يعاد بالصافي نفسه وبالكود نفسه. ونصيب معلم
+           كل حصة يقسم من المدفوع (`unit_of()` تقرأ `subscriptions.price`)،
+           فالخصم يتوزع على الحصص كما يتوزع خصم الباقة نفسها. */
+        $cq = $this->coupon_quote($coupon, $user_id, 'pack', $pack_id, (int) $offer['price']);
+        if (!$cq['ok']) return $cq;
+        $net = $cq['q'] ? (int) $cq['q']['net'] : (int) $offer['price'];
+
+        $this->db->where('user_id', $user_id)
+                 ->where('pack_id', $pack_id)
+                 ->where('status', 'pending')
+                 ->where('price', $net);
+        if ($cq['q']) $this->db->where('coupon_id', (int) $cq['q']['coupon']['id']);
+        $pend = $this->db->order_by('id', 'DESC')->limit(1)
                          ->get('subscriptions')->row_array();
 
         if ($pend) {
             $old = $this->invoice_of_subscription((int) $pend['id']);
-            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === (int) $offer['price']) {
+            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === $net) {
                 $this->db->where('id', (int) $pend['id'])
                          ->update('subscriptions', array('method' => $method));
                 $this->db->where('id', (int) $old['id'])
                          ->update('invoices', array('method' => $method));
                 return array('ok' => true, 'subscription_id' => (int) $pend['id'],
                              'invoice_id' => (int) $old['id'], 'reused' => true,
-                             'offer' => $offer);
+                             'offer' => $offer, 'coupon' => $cq['q']);
             }
         }
 
-        $this->db->insert('subscriptions', array(
+        $hold = $this->coupon_hold($cq, $user_id, 'pack', $pack_id);
+        if (!$hold['ok']) return array('ok' => false, 'code' => 'COUPON_INVALID', 'errors' => array($hold['message']));
+
+        $this->db->insert('subscriptions', array_merge(array(
             'user_id'       => $user_id,
             'plan_id'       => 0,
             'path_id'       => 0,
@@ -1039,18 +1194,19 @@ class Taqdar_billing_model extends CI_Model
                ينقصه. وهو مبدأ `subscription_items` نفسه. */
             'pack_sessions' => (int) $offer['sessions'],
             'status'        => 'pending',
-            'price'         => (int) $offer['price'],
+            'price'         => $net,
             'auto_renew'    => 0,
             'method'        => $method,
             'created_at'    => date('Y-m-d H:i:s'),
-        ));
+        ), $this->coupon_cols($cq)));
         $sid = (int) $this->db->insert_id();
 
-        $inv = $this->issue_invoice($sid, $user_id, (int) $offer['price'], $method);
-        $this->notify_invoice_issued($inv, $method);
+        $inv  = $this->issue_invoice($sid, $user_id, $net, $method);
+        $free = $this->coupon_after($cq, $hold, $user_id, 'pack', $pack_id, $sid, $inv);
+        if (!$free) $this->notify_invoice_issued($inv, $method);
 
-        return array('ok' => true, 'subscription_id' => $sid,
-                     'invoice_id' => $inv, 'offer' => $offer);
+        return array('ok' => true, 'subscription_id' => $sid, 'free' => $free,
+                     'invoice_id' => $inv, 'offer' => $offer, 'coupon' => $cq['q']);
     }
 
     /**
@@ -1135,7 +1291,7 @@ class Taqdar_billing_model extends CI_Model
      *                           الى دورتها هي، لا الى الارخص.
      * @return array ok · subscription_id · invoice_id · errors · cycle
      */
-    public function subscribe($user_id, $plan_id, $method = 'manual', $cycle = null)
+    public function subscribe($user_id, $plan_id, $method = 'manual', $cycle = null, $coupon = '')
     {
         $this->install_cycle_schema();
         $user_id = (int) $user_id;
@@ -1206,6 +1362,15 @@ class Taqdar_billing_model extends CI_Model
 
         $now = date('Y-m-d H:i:s');
 
+        /* TQ-COUPON — الكود على **مبلغ الدورة المختارة** لا على سعر الباقة:
+           من اختار الشهري بـ٤٢ يخصم من ٤٢، لا من ٣٩٩ ثم يدفع ٤٢. والحكم
+           بعد حارسي التشخيص والتجديد: من لا يشتري أصلا لا يقرأ «الكود لا
+           ينطبق». والمجانية لا كود عليها — لا ثمن يخصم منه. */
+        $cq = $free ? array('ok' => true, 'q' => null)
+                    : $this->coupon_quote($coupon, $user_id, 'plan', (int) $plan['id'], $gross);
+        if (!$cq['ok']) return $cq;
+        $net = $cq['q'] ? (int) $cq['q']['net'] : $gross;
+
         /* TQ-SUB-REUSE — اشتراك معلق لنفس الباقة وفاتورته لم تدفع: يعاد
            استعماله لا يصدر ثان.
            والموضع الذي يظهر فيه هذا: الطالب يؤكد، فتفتح صفحة البوابة،
@@ -1221,18 +1386,24 @@ class Taqdar_billing_model extends CI_Model
            ضعف شهريها بالحرف)، فيشترط الاسم معه صراحة. */
         /* والمجانية مستثناة: لا فاتورة تدفع فيها، وإعادة استعمال صفها
            تعود بلا تفعيل — والتفعيل هو كل ما تفعله الباقة المجانية. */
-        $pend = $free ? null : $this->db->where('user_id', $user_id)
-                         ->where('plan_id', (int) $plan['id'])
-                         ->where('path_id', 0)
-                         ->where('status', 'pending')
-                         ->where('price', $gross)
-                         ->where('cycle', (string) $cy['key'])
-                         ->order_by('id', 'DESC')->limit(1)
-                         ->get('subscriptions')->row_array();
+        /* TQ-COUPON — والكود يفحص مع السعر والدورة: معلق بلا كود لا يعاد
+           لمن جاء بكود، ولو أعيد لدفع السعر كاملا وهو يظن أنه خصم. */
+        $pend = null;
+        if (!$free) {
+            $this->db->where('user_id', $user_id)
+                     ->where('plan_id', (int) $plan['id'])
+                     ->where('path_id', 0)
+                     ->where('status', 'pending')
+                     ->where('price', $net)
+                     ->where('cycle', (string) $cy['key']);
+            if ($cq['q']) $this->db->where('coupon_id', (int) $cq['q']['coupon']['id']);
+            $pend = $this->db->order_by('id', 'DESC')->limit(1)
+                             ->get('subscriptions')->row_array();
+        }
 
         if ($pend) {
             $old = $this->invoice_of_subscription((int) $pend['id']);
-            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === $gross) {
+            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === $net) {
                 $this->db->where('id', (int) $pend['id'])
                          ->update('subscriptions', array('method' => $method));
                 $this->db->where('id', (int) $old['id'])
@@ -1240,9 +1411,12 @@ class Taqdar_billing_model extends CI_Model
 
                 return array('ok' => true, 'subscription_id' => (int) $pend['id'],
                              'invoice_id' => (int) $old['id'], 'free' => false,
-                             'reused' => true, 'cycle' => $cy);
+                             'reused' => true, 'cycle' => $cy, 'coupon' => $cq['q']);
             }
         }
+
+        $hold = $this->coupon_hold($cq, $user_id, 'plan', (int) $plan['id']);
+        if (!$hold['ok']) return array('ok' => false, 'code' => 'COUPON_INVALID', 'errors' => array($hold['message']));
 
         /* TQ-PENDING-ONE — شراء جديد للباقة نفسها يسقط المعلق القديم.
            من ترك الشهري معلقا ثم عاد فاختار السنوي كان يخرج بفاتورتين غير
@@ -1261,33 +1435,37 @@ class Taqdar_billing_model extends CI_Model
                 }
                 $this->db->where('id', (int) $old_sub['id'])->where('status', 'pending')
                          ->update('subscriptions', array('status' => 'cancelled'));
+                /* TQ-COUPON — والكود الذي حجزته الفاتورة المشطوبة يعود. */
+                $this->coupon_release((int) $old_sub['id']);
             }
         }
 
-        $this->db->insert('subscriptions', array(
+        $this->db->insert('subscriptions', array_merge(array(
             'user_id'    => $user_id,
             'plan_id'    => (int) $plan['id'],
             'status'     => 'pending',
-            'price'      => $gross,                 // مبلغ هذه الدورة وقت الشراء
+            'price'      => $net,                   // المحصل لهذه الدورة — بعد الكود إن كان
             'cycle'      => (string) $cy['key'],    // واسمها — بها يقرأ السجل
             'days'       => (int) $cy['days'],      // ومدتها، تجمد ولا تشتق بعد
             'auto_renew' => 0,
             'method'     => $method,
             'created_at' => $now,
-        ));
+        ), $this->coupon_cols($cq)));
         $sid = (int) $this->db->insert_id();
 
-        $inv = $this->issue_invoice($sid, $user_id, $gross, $method);
+        $inv = $this->issue_invoice($sid, $user_id, $net, $method);
 
         if ($free) {
             $this->activate($sid, $method, 'free');
             $this->mark_invoice_paid($inv, 'free');
         } else {
-            $this->notify_invoice_issued($inv, $method);
+            /* كود بخصم كامل يفعل في الحال كالمجانية — انظر `coupon_after()`. */
+            $free = $this->coupon_after($cq, $hold, $user_id, 'plan', (int) $plan['id'], $sid, $inv);
+            if (!$free) $this->notify_invoice_issued($inv, $method);
         }
 
         return array('ok' => true, 'subscription_id' => $sid, 'invoice_id' => $inv,
-                     'free' => $free, 'cycle' => $cy);
+                     'free' => $free, 'cycle' => $cy, 'coupon' => $cq['q']);
     }
 
     /**
@@ -1378,6 +1556,21 @@ class Taqdar_billing_model extends CI_Model
      * الباقة عند كل فحص لتغير ما يملكه الطالب كلما حررت الباقة.
      */
     public function activate($subscription_id, $method = null, $transaction_id = null)
+    {
+        $ok = $this->activate_row($subscription_id, $method, $transaction_id);
+
+        /* TQ-COUPON — الاستعمال يسوى هنا لا في أبواب الدفع الأربعة: البطاقة
+           والحوالة والمجاني والخصم الكامل كلها تمر بهذه الدالة. وتسوية في
+           كل باب تعني بابا خامسا يفعل ولا يعد الكود عليه. */
+        if ($ok && $this->coupon_table_ready()) {
+            $this->load->model('taqdar_coupon_model', 'tq_cp');
+            $this->tq_cp->settle((int) $subscription_id);
+        }
+        return $ok;
+    }
+
+    /** التفعيل نفسه بفروعه الخمسة — وغلافه `activate()` أعلاه. */
+    private function activate_row($subscription_id, $method = null, $transaction_id = null)
     {
         $sub = $this->subscription($subscription_id);
         if (!$sub) return false;
@@ -1526,6 +1719,9 @@ class Taqdar_billing_model extends CI_Model
             'cancelled_at'  => date('Y-m-d H:i:s'),
             'cancel_reason' => mb_substr((string) $reason, 0, 255),
         ));
+        /* TQ-COUPON — معلق ألغي قبل أن يدفع لا يستهلك كوده. والمفعل لا
+           يمسه: الكود استعمل فعلا والمال دخل به. */
+        if ($sub['status'] === 'pending') $this->coupon_release((int) $subscription_id);
 
         $this->audit('subscription_cancel', 'subscriptions#' . (int) $subscription_id,
                      $sub, $this->subscription($subscription_id));
@@ -1586,6 +1782,7 @@ class Taqdar_billing_model extends CI_Model
         if ($sub) {
             $this->db->where('id', $sid)->where('status', 'pending')
                      ->update('subscriptions', array('status' => 'cancelled'));
+            $this->coupon_release($sid);   // TQ-COUPON — الكود يعود لصاحبه
         }
         return array('ok' => true, 'message' => 'ألغيت الفاتورة ' . $inv['invoice_no'] . ' ولم يعد عليك مبلغها.');
     }

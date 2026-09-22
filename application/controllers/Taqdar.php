@@ -30,6 +30,10 @@ class Taqdar extends CI_Controller
             $tz = 'Asia/Riyadh';
         }
         date_default_timezone_set($tz);
+
+        /* TQ-COUPON — رابط حملة فيه `?coupon=` يحفظ كوده في الجلسة، فيجده
+           الزائر في شاشة الدفع بعد أن يتصفح ويختار ويسجل. */
+        if (isset($_GET['coupon'])) tq_coupon_capture();
     }
 
     /* ---------------------------------------------------------------- */
@@ -803,7 +807,8 @@ class Taqdar extends CI_Controller
         $r = $this->taqdar_billing_model->subscribe_path(
             $uid,
             (int) $this->input->post('path_id'),
-            $by_card ? 'tap' : 'manual'
+            $by_card ? 'tap' : 'manual',
+            $this->tq_coupon_for_buy()
         );
 
         if (!$r['ok']) {
@@ -812,10 +817,16 @@ class Taqdar extends CI_Controller
             return;
         }
 
+        if (!empty($r['free'])) {   // TQ-COUPON — خصم كامل فتح المسار في الحال
+            $this->session->set_flashdata('flash_message', 'فتح المسار — كود الخصم غطى ثمنه كاملا.');
+            redirect(base_url('student/subscription'));
+            return;
+        }
+
         /* المسار يدفع بالبطاقة بالمسار نفسه الذي تدفع به الباقة: الفاتورة
            هي المرساة في الحالين، فلا فرع ثان في `Taqdar_tap_model`. */
         if ($by_card) {
-            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid);
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid, tq_tap_pay_input());
             if (!empty($pay['ok'])) {
                 redirect($pay['url'], 'location', 302);
                 return;
@@ -848,8 +859,22 @@ class Taqdar extends CI_Controller
             (int) $this->session->userdata('user_id'),
             (int) $this->input->post('plan_id'),
             (string) $this->input->post('pay_method'),
-            (string) $this->input->post('cycle')
+            (string) $this->input->post('cycle'),
+            '',
+            $this->tq_coupon_for_buy()
         );
+    }
+
+    /**
+     * TQ-COUPON — الكود المرسل مع نموذج الشراء، وحده.
+     *
+     * **لا يقرأ من الجلسة هنا**: نموذج بلا حقل كود (لا كود فعال في المنصة
+     * فلم يطبع الحقل) يعني شراء بلا كود. ولو قرئ كود الجلسة لرد شراء صحيح
+     * بـ«انتهت صلاحية هذا الكود» عن كود لم يره صاحبه في الشاشة.
+     */
+    private function tq_coupon_for_buy()
+    {
+        return array_key_exists('coupon', $_POST) ? tq_coupon_posted() : '';
     }
 
     /**
@@ -861,7 +886,7 @@ class Taqdar extends CI_Controller
      *                        الباقات، ومن جاء من صفحة الدفع يعود إليها
      *                        فيقرأ الرسالة حيث كان لا في صفحة أخرى.
      */
-    private function tq_subscribe_go($uid, $plan_id, $pay_method, $cycle, $fail_to = '')
+    private function tq_subscribe_go($uid, $plan_id, $pay_method, $cycle, $fail_to = '', $coupon = '')
     {
         $this->load->model('taqdar_tap_model');
         $by_card = ((string) $pay_method === 'tap')
@@ -875,23 +900,35 @@ class Taqdar extends CI_Controller
             $uid,
             (int) $plan_id,
             $by_card ? 'tap' : 'manual',
-            (string) $cycle
+            (string) $cycle,
+            (string) $coupon
         );
 
         if (!$r['ok']) {
             $this->session->set_flashdata('error_message', implode(' ', $r['errors']));
+            /* TQ-COUPON — كود رد يعود بصاحبه إلى شاشة الدفع حيث الحقل، لا
+               إلى صفحة الباقات يبحث فيها عن باقته من جديد. */
+            if ($fail_to === '' && (isset($r['code']) ? $r['code'] : '') === 'COUPON_INVALID') {
+                $tq_pl = $this->taqdar_billing_model->plan((int) $plan_id);
+                if ($tq_pl) {
+                    $fail_to = site_url('checkout/' . $tq_pl['code'])
+                             . ((string) $cycle !== '' ? '?cycle=' . rawurlencode((string) $cycle) : '');
+                }
+            }
             redirect($fail_to !== '' ? $fail_to : base_url('plans'));
             return;
         }
 
         if (!empty($r['free'])) {
-            $this->session->set_flashdata('flash_message', 'فعلت باقتك المجانية.');
+            $this->session->set_flashdata('flash_message', !empty($r['coupon'])
+                ? 'فعلت باقتك — كود الخصم غطى ثمنها كاملا.'
+                : 'فعلت باقتك المجانية.');
             redirect(base_url('student/subscription'));
             return;
         }
 
         if ($by_card) {
-            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid);
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid, tq_tap_pay_input());
             if (!empty($pay['ok'])) {
                 redirect($pay['url'], 'location', 302);
                 return;
@@ -2376,13 +2413,84 @@ class Taqdar extends CI_Controller
                 . ((string) $this->invoice_no_of((int) $row['invoice_id'])) . '.');
         }
 
-        $r = $this->taqdar_tap_model->start((int) $row['invoice_id'], $uid);
+        $r = $this->taqdar_tap_model->start((int) $row['invoice_id'], $uid, tq_tap_pay_input());
         if (empty($r['ok'])) {
             $this->done($this->session_back(), false, implode(' ', (array) $r['errors']));
         }
 
         // تحويل إلى خارج الموقع بلا صفحة وسيطة — كل شاشة بين الضغط والدفع تسقط مشترين
         redirect($r['url'], 'location', 302);
+    }
+
+    /**
+     * GET pay/<رقم> — TQ-EXPRESS-PAY: شاشة دفع فاتورة قائمة بكل الطرق.
+     *
+     * القوائم (اشتراكي · حصص بالطلب · التأسيس · مدفوعات ولي الأمر) تحمل
+     * لكل فاتورة زرا واحدا، ولا تتسع نافذة Apple Pay وخانات بطاقة في كل
+     * صف. فالزر يقود إلى هنا متى فعلت طريقة مباشرة (`tq_pay_invoice_button()`)،
+     * وهنا الطرق كلها: Apple Pay وGoogle Pay والبطاقة وصفحة تاب والتحويل.
+     *
+     * والنموذج إلى `student/pay-invoice` نفسه — المتحكم الذي يدفع كل فاتورة
+     * — فالملكية تفحص هناك كما تفحص هنا، ولا باب دفع ثالث.
+     */
+    public function invoice_pay($invoice_id = 0)
+    {
+        $this->require_login();
+        $uid = (int) $this->session->userdata('user_id');
+
+        $inv = $this->db->where('id', (int) $invoice_id)->get('invoices')->row_array();
+        $mine = $inv && ((int) $inv['user_id'] === $uid || $this->parent_owns_child($uid, (int) $inv['user_id']));
+        /* 404 لا «ليست لك»: رقم مخمن لا يعرف منه أن الفاتورة موجودة. */
+        if (!$mine) show_404();
+
+        $is_parent = (int) $inv['user_id'] !== $uid;
+
+        $this->load->model('taqdar_tap_model');
+        $this->load->model('taqdar_billing_model');
+        $this->load->model('taqdar_sessions_model');
+
+        /* ما الذي يدفع ثمنه؟ اشتراك ⇐ `sold()`؛ وفاتورة بلا اشتراك حصة ⇐
+           `scope_of()`. واسمان من مصدريهما لا نسخة ثالثة. */
+        $what = t('فاتورة');
+        $sess = null;
+        if ((int) $inv['subscription_id'] > 0) {
+            $s = $this->taqdar_billing_model->sold((int) $inv['subscription_id']);
+            $what = trim((string) $s['title']) !== '' ? $s['title'] : $s['label'];
+        } else {
+            $sess = $this->taqdar_sessions_model->by_invoice((int) $inv['id']);
+            if ($sess) {
+                $slot = $this->db->select('grade_id, subject_id, starts_at, duration_min')
+                                 ->where('id', (int) $sess['slot_id'])->get('availability_slots')->row_array();
+                $sc   = $this->taqdar_sessions_model->scope_of(array_merge((array) $slot, $sess));
+                $what = t('حصة خاصة — ____', array($sc['label']));
+                if (!empty($slot['starts_at'])) {
+                    $what .= ' · ' . $this->taqdar_sessions_model->when_text($slot['starts_at'], (int) $slot['duration_min']);
+                }
+            }
+        }
+
+        /* أين يعود؟ الشاشة التي جاء منها بحسب ما يدفع ومن يدفع. */
+        if ($is_parent)       $back = 'parent/pay';
+        elseif ($sess)        $back = ((string) ($sess['kind'] ?? '') === 'foundation') ? 'student/foundation' : 'student/on-demand';
+        else                  $back = 'student/subscription';
+
+        /* ما لا يدفع لا تعرض له أزرار دفع: مدفوعة، أو مستردة، أو حصة فاتت
+           مهلتها — زر يرد بعد بصمة Apple Pay أسوأ من سطر يقول الحال. */
+        $closed = '';
+        if ($inv['status'] === 'paid')          $closed = t('هذه الفاتورة مدفوعة بالفعل.');
+        elseif ($inv['status'] === 'refunded')  $closed = t('هذه الفاتورة ألغيت، فلا تدفع.');
+        elseif ($sess && $sess['status'] !== 'awaiting_payment') {
+            $closed = t('هذه الحصة لم تعد في انتظار الدفع. ارجع إلى حصصك واقرأ حالها.');
+        }
+
+        $this->show('site_invoice_pay', t('دفع الفاتورة ____', array($inv['invoice_no'])), array(
+            'tq_inv'       => $inv,
+            'tq_what'      => $what,
+            'tq_back'      => $back,
+            'tq_closed'    => $closed,
+            'tq_card'      => $this->taqdar_tap_model->ready(),
+            'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
+        ));
     }
 
     private function invoice_no_of($invoice_id)
@@ -3039,11 +3147,14 @@ class Taqdar extends CI_Controller
         /* TQ-CYCLE-BUY — وولي الأمر يشتري بالدورة التي اختارها كذلك:
            باب ثان بلا دورة يعني أن ابنه يدفع السنوي مهما اختار. */
         $r = $this->taqdar_billing_model->subscribe(
-            $child_id, $plan_id, $method, (string) $this->input->post('cycle'));
+            $child_id, $plan_id, $method, (string) $this->input->post('cycle'), $this->tq_coupon_for_buy());
 
         if (empty($r['ok'])) {
             $msg = !empty($r['errors']) ? implode(' ', $r['errors']) : 'تعذر إنشاء الاشتراك.';
             $this->done('parent/pay', false, $msg);
+        }
+        if (!empty($r['free']) && !empty($r['coupon'])) {   // TQ-COUPON — خصم كامل
+            $this->done('parent/payments', true, 'فعلت باقة ابنك — كود الخصم غطى ثمنها كاملا.');
         }
 
         $this->trace('parent.pay.start', 'user#' . $child_id,
@@ -3121,11 +3232,14 @@ class Taqdar extends CI_Controller
 
         $this->load->model('taqdar_billing_model');
         $r = $this->taqdar_billing_model->subscribe_course(
-            $child_id, $course_id, $by_card ? 'tap' : 'manual');
+            $child_id, $course_id, $by_card ? 'tap' : 'manual', $this->tq_coupon_for_buy());
 
         if (empty($r['ok'])) {
             $msg = !empty($r['errors']) ? implode(' ', $r['errors']) : 'تعذر إنشاء الشراء.';
             $this->done('parent/pay', false, $msg);
+        }
+        if (!empty($r['free'])) {   // TQ-COUPON — خصم كامل
+            $this->done('parent/payments', true, 'فتح الكورس لابنك — كود الخصم غطى ثمنه كاملا.');
         }
 
         $this->trace('parent.pay.course', 'user#' . $child_id,
@@ -3791,7 +3905,12 @@ class Taqdar extends CI_Controller
             );
             $this->load->model('taqdar_billing_model');
             $this->load->model('taqdar_tap_model');
+            $tq_gpick = $this->taqdar_billing_model->cycle_of($tq_plan_row, $tq_cycle_q);
             $this->show('site_checkout', 'اشترك في ' . $b['name'], array(
+                /* TQ-COUPON — الزائر يطبق الكود قبل أن يسجل؛ حدود صاحب
+                   الحساب تفحص عند الشراء نفسه، والكود يمضي معه في الجلسة. */
+                'tq_cpn'       => tq_coupon_state('plan', (int) $b['plan_id'], (int) $tq_gpick['price'],
+                                                  0, (string) $tq_gpick['key']),
                 'tq_bundle'    => $b,
                 'tq_current'   => null,
                 'user_id'      => 0,
@@ -3839,14 +3958,33 @@ class Taqdar extends CI_Controller
         $tq_auto = $this->session->userdata('tq_autopay');
         if (is_array($tq_auto)) {
             $this->session->unset_userdata('tq_autopay');
+            /* TQ-EXPRESS-PAY — من اختار البطاقة وفي الصفحة أزرار مباشرة لا
+               يحول إلى صفحة تاب تلقائيا: يعود إلى هذه الشاشة وقد دخل، فيجد
+               Apple Pay وGoogle Pay والبطاقة وصفحة تاب معا — وهو ما قيل له
+               تحت «طريقة الدفع» قبل أن يسجل. والتحويل البنكي يمضي كما كان:
+               لا زر يضغطه بعد التسجيل، ففاتورته تصدر في الحال. */
+            $tq_x = tq_express();
+            if ((string) ($tq_auto['method'] ?? '') !== 'bank' && !empty($tq_x['any'])) {
+                $this->session->set_flashdata('flash_message',
+                    t('دخلت إلى حسابك. اختر طريقة الدفع أدناه: Apple Pay أو Google Pay أو البطاقة أو صفحة تاب.'));
+                redirect(site_url('checkout/' . $b['code'])
+                    . '?cycle=' . rawurlencode((string) ($tq_auto['cycle'] ?? '')), 'location', 302);
+                return;
+            }
             if ((int) ($tq_auto['plan_id'] ?? 0) === (int) $b['plan_id']
                 && time() - (int) ($tq_auto['ts'] ?? 0) < 900) {
+                /* TQ-COUPON — الزائر طبق الكود قبل أن يسجل، والكود في
+                   الجلسة (`tq_coupon_state()` حفظته). والنية تمضي به —
+                   وإلا دفع السعر كاملا بعد أن رأى الخصم مطبقا. */
+                $tq_sc = $this->session->userdata('tq_coupon');
                 $this->tq_subscribe_go(
                     $uid,
                     (int) $tq_auto['plan_id'],
                     (string) ($tq_auto['method'] ?? ''),
                     (string) ($tq_auto['cycle'] ?? ''),
-                    site_url('checkout/' . $b['code'])
+                    site_url('checkout/' . $b['code']),
+                    (is_array($tq_sc) && ($tq_sc['for'] ?? '') === 'plan:' . (int) $b['plan_id'])
+                        ? (string) ($tq_sc['code'] ?? '') : ''
                 );
                 return;
             }
@@ -3877,6 +4015,8 @@ class Taqdar extends CI_Controller
         ), (string) $this->input->get('cycle'));
 
         $this->show('site_checkout', 'تأكيد الاشتراك — ' . $b['name'], array(
+            'tq_cpn'     => tq_coupon_state('plan', (int) $b['plan_id'], (int) $tq_pick['price'],
+                                            $uid, (string) $tq_pick['key']),
             'tq_bundle'  => $b,
             'tq_current' => $cur,
             'user_id'    => $uid,
@@ -4030,6 +4170,7 @@ class Taqdar extends CI_Controller
         }
 
         $this->show('site_course_checkout', 'تأكيد شراء — ' . $offer['title'], array(
+            'tq_cpn'       => tq_coupon_state('course', $course_id, (int) $offer['price'], $uid),
             'tq_offer'     => $offer,
             'tq_course'    => $this->tq_cs->course($course_id),
             'tq_pending'   => $this->tq_cs->pending_of($uid, $course_id),
@@ -4061,7 +4202,7 @@ class Taqdar extends CI_Controller
 
         $this->load->model('taqdar_billing_model');
         $r = $this->taqdar_billing_model->subscribe_course(
-            $uid, $course_id, $by_card ? 'tap' : 'manual'
+            $uid, $course_id, $by_card ? 'tap' : 'manual', $this->tq_coupon_for_buy()
         );
 
         if (empty($r['ok'])) {
@@ -4070,12 +4211,18 @@ class Taqdar extends CI_Controller
             return;
         }
 
+        if (!empty($r['free'])) {   // TQ-COUPON — خصم كامل فتح الكورس في الحال
+            $this->session->set_flashdata('flash_message', 'فتح الكورس — كود الخصم غطى ثمنه كاملا.');
+            redirect(base_url('student/lesson/' . $course_id), 'location', 302);
+            return;
+        }
+
         $this->trace('student.course.buy', 'course#' . $course_id,
                      array('subscription_id' => $r['subscription_id'] ?? 0,
                            'invoice_id'      => $r['invoice_id'] ?? 0));
 
         if ($by_card) {
-            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid);
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid, tq_tap_pay_input());
             if (!empty($pay['ok'])) {
                 redirect($pay['url'], 'location', 302);
                 return;
@@ -4397,6 +4544,7 @@ class Taqdar extends CI_Controller
         }
 
         $this->show('site_book_checkout', 'تأكيد شراء — ' . $offer['title'], array(
+            'tq_cpn'       => tq_coupon_state('book', $book_id, (int) $offer['price'], $uid),
             'tq_offer'     => $offer,
             'tq_book'      => $book,
             'tq_pending'   => $this->tq_bk->pending_of($uid, $book_id),
@@ -4428,7 +4576,7 @@ class Taqdar extends CI_Controller
 
         $this->load->model('taqdar_billing_model');
         $r = $this->taqdar_billing_model->subscribe_book(
-            $uid, $book_id, $by_card ? 'tap' : 'manual'
+            $uid, $book_id, $by_card ? 'tap' : 'manual', $this->tq_coupon_for_buy()
         );
 
         if (empty($r['ok'])) {
@@ -4437,12 +4585,18 @@ class Taqdar extends CI_Controller
             return;
         }
 
+        if (!empty($r['free'])) {   // TQ-COUPON — خصم كامل فتح الكتاب في الحال
+            $this->session->set_flashdata('flash_message', 'فتح الكتاب في مكتبتك — كود الخصم غطى ثمنه كاملا.');
+            redirect(base_url('student/library'), 'location', 302);
+            return;
+        }
+
         $this->trace('student.book.buy', 'book#' . $book_id,
                      array('subscription_id' => $r['subscription_id'] ?? 0,
                            'invoice_id'      => $r['invoice_id'] ?? 0));
 
         if ($by_card) {
-            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid);
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid, tq_tap_pay_input());
             if (!empty($pay['ok'])) {
                 redirect($pay['url'], 'location', 302);
                 return;
@@ -4488,11 +4642,15 @@ class Taqdar extends CI_Controller
 
         $this->load->model('taqdar_billing_model');
         $r = $this->taqdar_billing_model->subscribe_book(
-            $child, $book_id, $by_card ? 'tap' : 'manual'
+            $child, $book_id, $by_card ? 'tap' : 'manual', $this->tq_coupon_for_buy()
         );
 
         if (empty($r['ok'])) {
             $this->done('parent/pay', false, implode(' ', (array) $r['errors']));
+            return;
+        }
+        if (!empty($r['free'])) {   // TQ-COUPON — خصم كامل
+            $this->done('parent/payments', true, 'فتح الكتاب في مكتبة ابنك — كود الخصم غطى ثمنه كاملا.');
             return;
         }
 
@@ -4501,7 +4659,8 @@ class Taqdar extends CI_Controller
            المستخدم معاملا لذلك. */
         if ($by_card) {
             $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'],
-                                                  (int) $this->session->userdata('user_id'));
+                                                  (int) $this->session->userdata('user_id'),
+                                                  tq_tap_pay_input());
             if (!empty($pay['ok'])) { redirect($pay['url'], 'location', 302); return; }
             $this->done('parent/payments', false, implode(' ', $pay['errors'])
                 . ' وفاتورة ابنك صدرت، فيمكنك تحويل قيمتها بنكيا.');
@@ -4558,6 +4717,7 @@ class Taqdar extends CI_Controller
         $this->load->model('taqdar_tap_model');
 
         $this->show('site_foundation_pack_checkout', 'تأكيد شراء — ' . $offer['name'], array(
+            'tq_cpn'       => tq_coupon_state('pack', $pack_id, (int) $offer['price'], $uid),
             'tq_offer'     => $offer,
             'tq_track'     => $track,
             /* ورصيده القائم يعرض قبل أن يشتري: من له ثلاث حصص لم يحجزها
@@ -4590,11 +4750,17 @@ class Taqdar extends CI_Controller
 
         $this->load->model('taqdar_billing_model');
         $r = $this->taqdar_billing_model->subscribe_foundation_pack(
-            $uid, $pack_id, $by_card ? 'tap' : 'manual');
+            $uid, $pack_id, $by_card ? 'tap' : 'manual', $this->tq_coupon_for_buy());
 
         if (empty($r['ok'])) {
             $this->session->set_flashdata('error_message', implode(' ', (array) $r['errors']));
             redirect(base_url('foundation-checkout/' . $pack_id), 'location', 302);
+            return;
+        }
+
+        if (!empty($r['free'])) {   // TQ-COUPON — خصم كامل فتح الرصيد في الحال
+            $this->session->set_flashdata('flash_message', 'فتح رصيد باقتك — كود الخصم غطى ثمنها كاملا. احجز حصصك الآن.');
+            redirect(base_url('student/foundation'), 'location', 302);
             return;
         }
 
@@ -4603,7 +4769,7 @@ class Taqdar extends CI_Controller
                            'invoice_id'      => $r['invoice_id'] ?? 0));
 
         if ($by_card) {
-            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid);
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid, tq_tap_pay_input());
             if (!empty($pay['ok'])) { redirect($pay['url'], 'location', 302); return; }
 
             /* تعذر بدء الدفع: الفاتورة صدرت ولم تضع، فيقال ما وقع ويدل
@@ -4646,10 +4812,14 @@ class Taqdar extends CI_Controller
 
         $this->load->model('taqdar_billing_model');
         $r = $this->taqdar_billing_model->subscribe_foundation_pack(
-            $child, $pack_id, $by_card ? 'tap' : 'manual');
+            $child, $pack_id, $by_card ? 'tap' : 'manual', $this->tq_coupon_for_buy());
 
         if (empty($r['ok'])) {
             $this->done('parent/pay', false, implode(' ', (array) $r['errors']));
+            return;
+        }
+        if (!empty($r['free'])) {   // TQ-COUPON — خصم كامل
+            $this->done('parent/payments', true, 'فتح رصيد باقة ابنك — كود الخصم غطى ثمنها كاملا.');
             return;
         }
 
@@ -4658,7 +4828,8 @@ class Taqdar extends CI_Controller
 
         if ($by_card) {
             $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'],
-                                                  (int) $this->session->userdata('user_id'));
+                                                  (int) $this->session->userdata('user_id'),
+                                                  tq_tap_pay_input());
             if (!empty($pay['ok'])) { redirect($pay['url'], 'location', 302); return; }
             $this->done('parent/payments', false, implode(' ', $pay['errors'])
                 . ' وفاتورة ابنك صدرت، فيمكنك تحويل قيمتها بنكيا.');
@@ -4813,5 +4984,63 @@ class Taqdar extends CI_Controller
                                        $book_id);
         $this->done('teacher/books', !empty($r['ok']),
                     $this->result_message($r, 'حذف الكتاب.'));
+    }
+
+    /* =====================================================================
+       TQ-COUPON — «طبق» في شاشات الدفع
+       ===================================================================== */
+
+    /**
+     * POST coupon/check — معاينة الكود على شراء بعينه، JSON.
+     *
+     * **معاينة لا حكم**: لا حجز ولا صف ولا فاتورة. الحكم يعاد كاملا عند
+     * التأكيد، والسعر يقرأ من مصدره (`gross_of()`) لا من المتصفح — فمن
+     * أرسل `gross=1` لم يفعل شيئا لأنه لا يرسل أصلا.
+     *
+     * والزائر يعاين (حدوده تفحص عند الشراء)، وولي الأمر يعاين **لابنه**:
+     * حد «مرة لكل حساب» على من يكتب الشراء باسمه، وهو الابن لا الأب.
+     */
+    public function coupon_check()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_coupon_model', 'tq_cp');
+
+        $uid   = (int) $this->session->userdata('user_id');
+        $kind  = (string) $this->input->post('kind');
+        $item  = (int) $this->input->post('item_id');
+        $cycle = (string) $this->input->post('cycle');
+        $child = (int) $this->input->post('child_id');
+        if ($child > 0 && $uid > 0 && $this->parent_owns_child($uid, $child)) $uid = $child;
+
+        $g   = $this->tq_cp->gross_of($kind, $item, $cycle);
+        $out = array('applied' => false, 'code' => '', 'message' => '', 'gross' => (int) $g['gross'],
+                     'net' => (int) $g['gross'], 'discount' => 0, 'percent' => 0);
+
+        if ((string) $this->input->post('clear') === '1') {
+            tq_coupon_remember('');
+        } elseif (!$g['ok']) {
+            $out['message'] = $g['why'];
+        } else {
+            $q = $this->tq_cp->quote((string) $this->input->post('coupon'), $uid, $kind, $item, (int) $g['gross']);
+            $out['message'] = $q['message'];
+            if (!empty($q['ok'])) {
+                tq_coupon_remember($q['code'], $kind . ':' . $item);
+                $out = array_merge($out, array('applied' => true, 'code' => $q['code'],
+                    'net' => (int) $q['net'], 'discount' => (int) $q['discount'],
+                    'percent' => (int) $q['percent']));
+            }
+        }
+
+        $out['net_html']  = tq_coupon_money($out['net']);
+        $out['disc_html'] = tq_coupon_money($out['discount']);
+        $out['net_sar']   = number_format($out['net'] / 100, 0, '.', ',');
+        $out['gross_sar'] = number_format($out['gross'] / 100, 0, '.', ',');
+        /* سطر البوابة — من الخادم لا من السكربت: لوحة ولي الأمر بلغتين. */
+        $out['pay_line']  = $out['applied'] ? t('تدفع ____ ر.س بدل ____ ر.س.', array($out['net_sar'], $out['gross_sar'])) : '';
+
+        $this->output->set_content_type('application/json', 'utf-8')
+                     ->set_header('Cache-Control: no-store')
+                     ->set_output(json_encode($out, JSON_UNESCAPED_UNICODE));
     }
 }

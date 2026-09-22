@@ -189,11 +189,9 @@ include 'portal_open.php';
         <?php if ($tq_card_ready): ?>
           <?php /* المسار مسار الطالب نفسه: `Taqdar_tap_model::start()`
                    تقبل ولي الأمر المرتبط برابط نشط، فلا باب دفع ثان. */ ?>
-          <form method="post" action="<?php echo base_url('student/pay-invoice'); ?>">
-            <?php echo tq_csrf(); ?>
-            <input type="hidden" name="invoice_id" value="<?php echo (int) $tq_ds['invoice_id']; ?>">
-            <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('ادفع الآن بالبطاقة'); ?></button>
-          </form>
+          <?php /* TQ-EXPRESS-PAY — مع الطرق المباشرة: شاشة دفع الفاتورة. */ ?>
+          <?php echo tq_pay_invoice_button((int) $tq_ds['invoice_id'],
+              !empty(tq_express()['any']) ? t('ادفع الآن') : t('ادفع الآن بالبطاقة'), 'tq-btn tq-btn--primary'); ?>
         <?php else: ?>
           <p class="tq-caption">
             <?php echo t('الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة بنكيا — تعليمات التحويل في'); ?>
@@ -219,11 +217,8 @@ include 'portal_open.php';
       </p>
 
       <?php if ($tq_card_ready): ?>
-        <form method="post" action="<?php echo base_url('student/pay-invoice'); ?>">
-          <?php echo tq_csrf(); ?>
-          <input type="hidden" name="invoice_id" value="<?php echo (int) $tq_inv_row['id']; ?>">
-          <button class="tq-btn tq-btn--primary" type="submit"><?php echo t('ادفع الآن بالبطاقة'); ?></button>
-        </form>
+        <?php echo tq_pay_invoice_button((int) $tq_inv_row['id'],
+            !empty(tq_express()['any']) ? t('ادفع الآن') : t('ادفع الآن بالبطاقة'), 'tq-btn tq-btn--primary'); ?>
       <?php else: ?>
         <p class="tq-caption">
           <?php echo t('الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة بنكيا — تعليمات التحويل في'); ?> <a href="<?php echo base_url('parent/payments'); ?>"><?php echo t('المدفوعات'); ?></a>.
@@ -249,11 +244,8 @@ include 'portal_open.php';
       <p class="tq-caption"><?php echo t('أكمل دفعها بدل شراء جديد، أو ألغها إن غيرت رأيك — ولا تبقى عليك فاتورتان.'); ?></p>
       <div class="tq-row" style="gap:var(--tq-space-s);flex-wrap:wrap">
         <?php if ($tq_card_ready): ?>
-          <form method="post" action="<?php echo base_url('student/pay-invoice'); ?>">
-            <?php echo tq_csrf(); ?>
-            <input type="hidden" name="invoice_id" value="<?php echo (int) $tq_di['id']; ?>">
-            <button class="tq-btn tq-btn--primary tq-btn--sm" type="submit"><?php echo t('أكمل الدفع بالبطاقة'); ?></button>
-          </form>
+          <?php echo tq_pay_invoice_button((int) $tq_di['id'],
+              !empty(tq_express()['any']) ? t('أكمل الدفع') : t('أكمل الدفع بالبطاقة'), 'tq-btn tq-btn--primary tq-btn--sm'); ?>
         <?php endif; ?>
         <form method="post" action="<?php echo base_url('parent/pay/cancel'); ?>"
               data-tq-confirm-title="<?php echo te('إلغاء هذه الفاتورة؟'); ?>"
@@ -460,6 +452,9 @@ include 'portal_open.php';
         <h2 class="tq-card__title"><?php echo t('كيف تدفع؟'); ?></h2>
       </div>
 
+      <?php /* TQ-COUPON — الكود على الباقة والدورة المختارتين الآن. */ ?>
+      <?php echo tq_coupon_field('plan', 'plan_id', array('cycle_from' => 'cycle')); ?>
+
       <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('طريقة الدفع'); ?>">
         <?php if ($tq_card_ready): ?>
           <label class="tq-pick is-on">
@@ -551,6 +546,10 @@ include 'portal_open.php';
         <?php $tq_pc_first = false; endforeach; ?>
       </div>
 
+      <div style="margin-block-start:var(--tq-space-l)">
+        <?php echo tq_coupon_field('course', 'course_id'); ?>
+      </div>
+
       <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('طريقة الدفع'); ?>"
            style="margin-block-start:var(--tq-space-l)">
         <?php if ($tq_card_ready): ?>
@@ -621,6 +620,10 @@ include 'portal_open.php';
             <span class="tq-pp-plan__p"><?php echo tq_num(number_format($tq_bk_o['price'] / 100, 0)); ?> <?php echo t(' ريال'); ?></span>
           </label>
         <?php $tq_bk_first = false; endforeach; ?>
+      </div>
+
+      <div style="margin-block-start:var(--tq-space-l)">
+        <?php echo tq_coupon_field('book', 'book_id'); ?>
       </div>
 
       <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('طريقة الدفع'); ?>"
@@ -706,6 +709,10 @@ include 'portal_open.php';
             <span class="tq-pp-plan__p"><?php echo tq_num(number_format($tq_fp_o['price'] / 100, 0)); ?> <?php echo t(' ريال'); ?></span>
           </label>
         <?php $tq_fp_first = false; endforeach; ?>
+      </div>
+
+      <div style="margin-block-start:var(--tq-space-l)">
+        <?php echo tq_coupon_field('pack', 'pack_id'); ?>
       </div>
 
       <div class="tq-pp-kids" role="radiogroup" aria-label="<?php echo te('طريقة الدفع'); ?>"

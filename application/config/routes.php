@@ -287,6 +287,9 @@ $route['api/v1/student/foundation']             = 'api_v1/student_foundation';
 $route['api/v1/student/store/courses/(:num)'] = 'api_v1/store_course/$1';
 $route['api/v1/student/store/courses']        = 'api_v1/store_courses';
 $route['api/v1/student/buy-course']           = 'api_v1/buy_course';
+/* TQ-COUPON — معاينة كود الخصم قبل الشراء، للطالب ولولي الأمر (لابنه). */
+$route['api/v1/student/coupons/check']      = 'api_v1/coupon_check';
+$route['api/v1/parent/coupons/check']       = 'api_v1/coupon_check';
 /* TQ-BOOK — والكتاب المفرد مثله، وعلى مسار الشراء الواحد نفسه. */
 $route['api/v1/student/buy-book']             = 'api_v1/buy_book';
 /* TQ-FND-PACK — وباقة حصص التأسيس، على مسار الشراء الواحد نفسه. */
@@ -294,6 +297,8 @@ $route['api/v1/student/buy-foundation']      = 'api_v1/buy_foundation';
 $route['api/v1/student/subscribe-path']       = 'api_v1/subscribe_path';
 $route['api/v1/student/subscribe']            = 'api_v1/student_subscribe';
 $route['api/v1/student/purchases']            = 'api_v1/student_purchases';
+// TQ-EXPRESS-PAY — ما يلزم مكتبات الدفع على الجهاز (Apple Pay · Google Pay · البطاقة).
+$route['api/v1/pay/methods']                   = 'api_v1/pay_methods';
 $route['api/v1/student/plans/(:any)']         = 'api_v1/student_plan/$1';
 $route['api/v1/student/plans']                = 'api_v1/student_plans';
 
@@ -677,6 +682,9 @@ $route['course-checkout/(:num)'] = 'taqdar/course_checkout/$1';
 $route['book-checkout/(:num)']   = 'taqdar/book_checkout/$1';
 /* TQ-FND-PACK — وشاشة تأكيد شراء باقة حصص تأسيس. */
 $route['foundation-checkout/(:num)'] = 'taqdar/foundation_checkout/$1';
+/* TQ-COUPON — معاينة كود الخصم من شاشات الدفع (POST، JSON). وبلا هذه
+   القاعدة يصل `coupon/check` إلى متحكم لا وجود له فيرد 404 على كل «طبق». */
+$route['coupon/check']         = 'taqdar/coupon_check';
 
 // ---- بوابة تاب ----
 // البادئة `payment/` مقصودة لا مصادفة: `csrf_exclude_uris` في
@@ -687,6 +695,11 @@ $route['foundation-checkout/(:num)'] = 'taqdar/foundation_checkout/$1';
 // `Payment::tap('return')` وليست في متحكم Academy دالة بهذا الاسم.
 $route['payment/tap/return']   = 'taqdar_pay/back';
 $route['payment/tap/webhook']  = 'taqdar_pay/webhook';
+// TQ-EXPRESS-PAY — شاشة دفع فاتورة قائمة بكل الطرق (Apple Pay · Google Pay ·
+// البطاقة · صفحة تاب)، وملف ربط النطاق الذي يشترطه Apple Pay. والملف يخدم
+// من اللوحة لا من مجلد: `.well-known/` يبدأ بنقطة، والنشر `reset --hard`.
+$route['pay/(:num)'] = 'taqdar/invoice_pay/$1';
+$route['.well-known/apple-developer-merchantid-domain-association'] = 'taqdar_pay/apple_assoc';
 
 // ---- عملاء ميتا المحتملون (TQ-META-LEADS) ----
 // المسار الواحد يخدم الطريقتين: `GET` توثق ميتا من الباب مرة عند تسجيله،

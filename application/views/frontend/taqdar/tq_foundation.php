@@ -606,14 +606,13 @@ include 'portal_open.php';
                                     </p>
 
                                     <?php if ($tq_card): ?>
-                                        <form method="post" action="<?php echo base_url('student/sessions/pay'); ?>" style="margin:0">
-                                            <?php echo tq_csrf(); ?>
-                                            <input type="hidden" name="back" value="foundation">
-                                            <input type="hidden" name="session_id" value="<?php echo (int) $b['id']; ?>">
-                                            <button class="tq-btn tq-btn--primary tq-btn--sm tq-btn--block" type="submit">
-                                                <?php echo tq_icon('card', 16); ?> <?php echo t('ادفع الآن بالبطاقة'); ?>
-                                            </button>
-                                        </form>
+                                        <?php /* TQ-EXPRESS-PAY — مع الطرق المباشرة: شاشة دفع
+                                                 فاتورة الحصة؛ وبلاها النموذج القديم بحرفه. */ ?>
+                                        <?php echo tq_pay_invoice_button((int) ($b['invoice_id'] ?? 0),
+                                            tq_icon('card', 16) . ' ' . (!empty(tq_express()['any']) ? t('ادفع الآن') : t('ادفع الآن بالبطاقة')),
+                                            'tq-btn tq-btn--primary tq-btn--sm tq-btn--block',
+                                            'student/sessions/pay', array('back' => 'foundation', 'session_id' => (int) $b['id']),
+                                            ' style="margin:0"'); ?>
                                     <?php else: ?>
                                         <p class="tq-micro" style="margin:0">
                                             <?php echo t('الدفع بالبطاقة غير متاح الآن. حول المبلغ بنكيا بمرجع رقم الفاتورة،'); ?>

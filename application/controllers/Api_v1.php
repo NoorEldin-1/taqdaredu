@@ -277,6 +277,23 @@ class Api_v1 extends CI_Controller
         return array_key_exists($key, $b) ? $b[$key] : $default;
     }
 
+    /**
+     * TQ-EXPRESS-PAY — رمز الدفع المباشر من التطبيق: `tap_via` مع
+     * `tap_token` (رمز `tok_…` من مكتبة تاب على الجهاز: Apple Pay أو
+     * البطاقة) أو `tap_gpay` (رسالة Google Pay المشفرة كما هي). وبلاها
+     * صفحة تاب كما كانت. والفحص كله في `Taqdar_tap_model::resolve_source()`
+     * — الطبقة نفسها التي يمر بها الموقع.
+     */
+    private function tap_pay_in()
+    {
+        $g = $this->in('tap_gpay', '');
+        return array(
+            'via'   => (string) $this->in('tap_via', ''),
+            'token' => (string) $this->in('tap_token', ''),
+            'gpay'  => is_array($g) ? json_encode($g) : (string) $g,
+        );
+    }
+
     /** يشترط طريقة بعينها — الطريقة الخاطئة 405 لا 404. */
     private function method($allowed)
     {
@@ -1698,25 +1715,28 @@ class Api_v1 extends CI_Controller
                 : null;
         }
 
-        $s = $this->db->select('plan_id, path_id, course_id')->where('id', $sid)
-                      ->get('subscriptions')->row_array();
+        /* TQ-SOLD-NAME — الاسم من `sold()` وحدها. كان هنا فرع للكورس وفرع
+           للمسار ثم «باقة» لكل ما سواهما، فيقرأ من اشترى كتابا أو باقة حصص
+           في التطبيق «باقة» بلا اسم — وهي العلة التي كتبت `sold()` لأجلها. */
+        $s = $this->db->where('id', $sid)->get('subscriptions')->row_array();
         if (!$s) return null;
 
-        if ((int) ($s['course_id'] ?? 0) > 0) {
-            return array('kind' => 'course', 'ref_id' => (int) $s['course_id'],
-                'title' => (string) $this->db->select('title')->where('id', (int) $s['course_id'])
-                                             ->get('course')->row('title'));
-        }
-        if ((int) ($s['path_id'] ?? 0) > 0) {
-            return array('kind' => 'path', 'ref_id' => (int) $s['path_id'],
-                'title' => (string) $this->db->select('title')->where('id', (int) $s['path_id'])
-                                             ->get('paths')->row('title'));
-        }
-
         $this->load->model('taqdar_billing_model', 'tq_bill');
-        $plan = $this->tq_bill->plan((int) $s['plan_id']);
-        return array('kind' => 'plan', 'ref_id' => (int) $s['plan_id'],
-                     'title' => $plan ? (string) $plan['name_ar'] : '');
+        $sold = $this->tq_bill->sold($s);
+        $out  = array('kind' => (string) $sold['kind'], 'ref_id' => (int) $sold['id'],
+                      'title' => (string) $sold['title']);
+
+        /* TQ-COUPON — الفاتورة بالصافي، ومن يقرؤها يرى من أين جاء الرقم:
+           «٣٠٠» بلا سبب على باقة سعرها ٣٩٩ تقرأ خطأ في الفوترة. */
+        if ((int) ($s['coupon_id'] ?? 0) > 0 && (int) ($s['discount'] ?? 0) > 0) {
+            $out['coupon'] = array(
+                'code'       => (string) $this->db->select('code')->where('id', (int) $s['coupon_id'])
+                                                  ->get('tq_coupons')->row('code'),
+                'list_price' => tq_api_money((int) $s['list_price']),
+                'discount'   => tq_api_money((int) $s['discount']),
+            );
+        }
+        return $out;
     }
 
     /**
@@ -1936,7 +1956,7 @@ class Api_v1 extends CI_Controller
                         'card_payment_disabled', 503);
         }
 
-        $pay = $this->tq_tap->start((int) $inv['id'], $payer);
+        $pay = $this->tq_tap->start((int) $inv['id'], $payer, $this->tap_pay_in());
 
         if (empty($pay['ok'])) {
             $this->fail(implode(' ', (array) $pay['errors'])
@@ -5393,7 +5413,7 @@ class Api_v1 extends CI_Controller
                         . ' بنكيا وأبلغ الإدارة.', 'card_payment_disabled', 503);
         }
 
-        $r = $this->tq_tap->start((int) $row['invoice_id'], $uid);
+        $r = $this->tq_tap->start((int) $row['invoice_id'], $uid, $this->tap_pay_in());
         if (empty($r['ok'])) {
             $this->fail(implode(' ', (array) $r['errors']), 'payment_start_failed', 502);
         }
@@ -5541,7 +5561,7 @@ class Api_v1 extends CI_Controller
         $this->buy(function ($uid, $method) use ($b) {
             $this->load->model('taqdar_billing_model', 'tq_bill');
             return $this->tq_bill->subscribe($uid, (int) $b['plan_id'], $method,
-                                             (string) ($b['cycle'] ?? ''));
+                                             (string) ($b['cycle'] ?? ''), (string) ($b['coupon'] ?? ''));
         }, 'api.subscribe.plan', 'صدرت فاتورتك. حول قيمتها ويفعل اشتراكك بعد التحقق من الحوالة.');
     }
 
@@ -5558,7 +5578,7 @@ class Api_v1 extends CI_Controller
 
         $this->buy(function ($uid, $method) use ($b) {
             $this->load->model('taqdar_billing_model', 'tq_bill');
-            return $this->tq_bill->subscribe_path($uid, (int) $b['path_id'], $method);
+            return $this->tq_bill->subscribe_path($uid, (int) $b['path_id'], $method, (string) ($b['coupon'] ?? ''));
         }, 'api.subscribe.path', 'صدرت فاتورتك. حول قيمتها ويفتح المسار بعد التحقق من الحوالة.');
     }
 
@@ -5583,7 +5603,7 @@ class Api_v1 extends CI_Controller
 
         $this->buy(function ($uid, $method) use ($b) {
             $this->load->model('taqdar_billing_model', 'tq_bill');
-            return $this->tq_bill->subscribe_course($uid, (int) $b['course_id'], $method);
+            return $this->tq_bill->subscribe_course($uid, (int) $b['course_id'], $method, (string) ($b['coupon'] ?? ''));
         }, 'api.buy.course', 'صدرت فاتورتك. حول قيمتها ويفتح الكورس بعد التحقق من الحوالة.');
     }
 
@@ -5605,7 +5625,7 @@ class Api_v1 extends CI_Controller
 
         $this->buy(function ($uid, $method) use ($b) {
             $this->load->model('taqdar_billing_model', 'tq_bill');
-            return $this->tq_bill->subscribe_book($uid, (int) $b['book_id'], $method);
+            return $this->tq_bill->subscribe_book($uid, (int) $b['book_id'], $method, (string) ($b['coupon'] ?? ''));
         }, 'api.buy.book', 'صدرت فاتورتك. حول قيمتها ويفتح الكتاب في مكتبتك بعد التحقق من الحوالة.');
     }
 
@@ -5629,7 +5649,7 @@ class Api_v1 extends CI_Controller
 
         $this->buy(function ($uid, $method) use ($b) {
             $this->load->model('taqdar_billing_model', 'tq_bill');
-            return $this->tq_bill->subscribe_foundation_pack($uid, (int) $b['pack_id'], $method);
+            return $this->tq_bill->subscribe_foundation_pack($uid, (int) $b['pack_id'], $method, (string) ($b['coupon'] ?? ''));
         }, 'api.buy.foundation',
            'صدرت فاتورتك. حول قيمتها ويفتح رصيد باقتك بعد التحقق من الحوالة، ثم تحجز به حصصك.');
     }
@@ -5661,34 +5681,42 @@ class Api_v1 extends CI_Controller
                شاشة التشخيص أو يقول «تملكه بالفعل» — ورمز واحد لكل رفض
                يجعله يعرض الرسالة ولا يعرف ماذا يفعل بعدها. */
             $code = isset($r['code']) ? strtolower((string) $r['code']) : 'purchase_failed';
-            $this->fail(implode(' ', (array) $r['errors']), $code, 409);
+            /* TQ-COUPON — الكود المرفوض يرد بسببه مفتاحا (`expired` ·
+               `per_user` · `kind` …) لا بنص وحده: عليه يفرع التطبيق فيمسح
+               الحقل أو يعرض «جرب كودا آخر». */
+            $this->fail(implode(' ', (array) $r['errors']), $code, 409,
+                        isset($r['coupon_reason']) ? array('coupon' => array((string) $r['coupon_reason'])) : array());
         }
 
         $this->api->audit($audit, $uid, array(
             'subscription_id' => (int) ($r['subscription_id'] ?? 0),
             'invoice_id'      => (int) ($r['invoice_id'] ?? 0),
+            'coupon'          => !empty($r['coupon']['code']) ? $r['coupon']['code'] : null,
         ));
 
-        /* الباقة المجانية تفعل في الحال: لا فاتورة تدفع ولا رابط يفتح. */
+        /* الباقة المجانية تفعل في الحال: لا فاتورة تدفع ولا رابط يفتح.
+           وكذلك ما غطى الكود ثمنه كاملا (TQ-COUPON). */
         if (!empty($r['free'])) {
             $this->respond(tq_api_ok(array(
                 'subscription_id' => (int) $r['subscription_id'],
                 'free'            => true,
                 'invoice'         => null,
                 'payment_url'     => null,
-            ), 'فعلت باقتك المجانية.'), 201);
+                'coupon'          => $this->coupon_out($r),
+            ), !empty($r['coupon']) ? 'فتح ما اشتريته — كود الخصم غطى ثمنه كاملا.' : 'فعلت باقتك المجانية.'), 201);
         }
 
         $inv = $this->db->where('id', (int) $r['invoice_id'])->get('invoices')->row_array();
 
         if ($by_card) {
-            $pay = $this->tq_tap->start((int) $r['invoice_id'], $uid);
+            $pay = $this->tq_tap->start((int) $r['invoice_id'], $uid, $this->tap_pay_in());
             if (!empty($pay['ok'])) {
                 $this->respond(tq_api_ok(array(
                     'subscription_id' => (int) $r['subscription_id'],
                     'free'            => false,
                     'invoice'         => $inv ? $this->invoice_out($inv) : null,
                     'payment_url'     => $pay['url'],
+                'coupon'          => $this->coupon_out($r),
                 ), 'جهزت صفحة الدفع.'), 201);
             }
 
@@ -5701,6 +5729,7 @@ class Api_v1 extends CI_Controller
                 'invoice'         => $inv ? $this->invoice_out($inv) : null,
                 'payment_url'     => null,
                 'bank'            => $this->bank_out($inv ? (string) $inv['invoice_no'] : null),
+                'coupon'          => $this->coupon_out($r),
             ), implode(' ', (array) $pay['errors'])
                . ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا أو إعادة المحاولة.'), 201);
         }
@@ -5711,7 +5740,85 @@ class Api_v1 extends CI_Controller
             'invoice'         => $inv ? $this->invoice_out($inv) : null,
             'payment_url'     => null,
             'bank'            => $this->bank_out($inv ? (string) $inv['invoice_no'] : null),
+            'coupon'          => $this->coupon_out($r),
         ), $bank_message), 201);
+    }
+
+    /**
+     * TQ-COUPON — ما فعله الكود بهذا الشراء، أو `null` بلا كود.
+     *
+     * والمبالغ بصيغة `tq_api_money()` كسائر المال في الواجهة: هللات هي
+     * المرجع، والكسر والنص للعرض. ورقم يحسبه التطبيق بنفسه يفترق عن
+     * الفاتورة عند أول تقريب.
+     */
+    private function coupon_out($r)
+    {
+        $q = isset($r['coupon']) ? $r['coupon'] : null;
+        if (!$q || empty($q['code'])) return null;
+        return array(
+            'code'     => (string) $q['code'],
+            'percent'  => (int) $q['percent'],
+            'gross'    => tq_api_money((int) $q['gross']),
+            'discount' => tq_api_money((int) $q['discount']),
+            'net'      => tq_api_money((int) $q['net']),
+            'capped'   => !empty($q['capped']),
+        );
+    }
+
+    /**
+     * POST /api/v1/student/coupons/check · /api/v1/parent/coupons/check
+     *
+     * معاينة كود على شراء بعينه **قبل** الشراء — ليعرض التطبيق الصافي
+     * تحت زر الدفع. معاينة لا حكم: لا حجز ولا فاتورة، والحكم يعاد كاملا
+     * في `subscribe*()` حين يرسل `coupon` مع الشراء.
+     *
+     * والرد **200 في الحالين** و`valid` تفرق: السؤال «أيعمل؟» جوابه «لا»
+     * لا خطأ. و`reason` مفتاح ثابت يفرع عليه، و`message` عربية تعرض.
+     * وولي الأمر يعاين **لابنه** (`child_id`): حد «مرة لكل حساب» على من
+     * يكتب الشراء باسمه.
+     */
+    public function coupon_check()
+    {
+        $this->method('POST');
+        $u = $this->require_portal(array('student', 'parent'));
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+        $errors = tq_api_validate($b, array('coupon' => 'required', 'kind' => 'required', 'item_id' => 'required|int'));
+        if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+
+        /* `foundation` مرادف `pack`: هو اسم النوع في `parent/pay`. */
+        $kind = (string) $b['kind'] === 'foundation' ? 'pack' : (string) $b['kind'];
+        if (!in_array($kind, array('plan', 'path', 'course', 'book', 'pack'), true)) {
+            $this->fail('نوع الشراء غير معروف.', 'validation_failed', 422,
+                        array('kind' => array('plan · path · course · book · pack')));
+        }
+
+        $uid = (int) $u['id'];
+        if ($this->role === 'parent') {
+            $child = (int) ($b['child_id'] ?? 0);
+            if (!$this->pm()->owns($uid, $child)) {
+                $this->fail('هذا الطالب غير مرتبط بحسابك برابط نشط.', 'not_your_child', 403);
+            }
+            $uid = $child;
+        }
+
+        $this->load->model('taqdar_coupon_model', 'tq_cp');
+        $g = $this->tq_cp->gross_of($kind, (int) $b['item_id'], (string) ($b['cycle'] ?? ''));
+        if (!$g['ok']) $this->fail($g['why'], 'not_sellable', 404);
+
+        $q = $this->tq_cp->quote((string) $b['coupon'], $uid, $kind, (int) $b['item_id'], (int) $g['gross']);
+
+        $this->respond(tq_api_ok(array(
+            'valid'    => !empty($q['ok']),
+            'reason'   => (string) $q['reason'],
+            'code'     => (string) $q['code'],
+            'percent'  => (int) $q['percent'],
+            'gross'    => tq_api_money((int) $q['gross']),
+            'discount' => tq_api_money((int) $q['discount']),
+            'net'      => tq_api_money((int) $q['net']),
+            'capped'   => !empty($q['capped']),
+        ), (string) $q['message']), 200);
     }
 
     /**
@@ -5847,6 +5954,36 @@ class Api_v1 extends CI_Controller
      * يملك؟» — ومن له باقة صف واشترى فوقها مادة يملك صفين، وصف واحد
      * يقرأ يعني أن أحد الشراءين لا يظهر لصاحبه في شاشة واحدة.
      */
+    /**
+     * GET /api/v1/pay/methods — TQ-EXPRESS-PAY.
+     *
+     * ما يعرض في شاشة الشراء من الطرق المباشرة، وما تحتاجه مكتبات تاب
+     * وجوجل على الجهاز. والمصدر `Taqdar_tap_model::express()` نفسه الذي
+     * ترسم منه صفحات الموقع أزرارها — فلا يعرض التطبيق طريقة يطفئها الموقع.
+     */
+    public function pay_methods()
+    {
+        $this->method('GET');
+        $this->require_portal();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $this->load->model('taqdar_tap_model', 'tq_tap');
+        $x = $this->tq_tap->express();
+
+        $this->read(array(
+            'card_ready'         => $this->tq_tap->ready(),
+            'mode'               => (string) ($x['mode'] ?? 'test'),
+            'methods'            => array_values((array) $x['methods']),
+            'public_key'         => (string) ($x['public'] ?? ''),
+            'merchant_id'        => (string) ($x['merchant'] ?? ''),
+            'currency'           => (string) ($x['currency'] ?? 'SAR'),
+            'country'            => (string) ($x['country'] ?? 'SA'),
+            'gpay_merchant_id'   => (string) ($x['gpay_merchant'] ?? ''),
+            'gpay_merchant_name' => (string) ($x['gpay_name'] ?? ''),
+            'apple_domain'       => (string) ($x['domain'] ?? ''),
+        ), '', array(), $h);
+    }
+
     public function student_purchases()
     {
         $this->method('GET');
@@ -7296,24 +7433,25 @@ class Api_v1 extends CI_Controller
         $method  = $by_card ? 'tap' : 'manual';
 
         if ($kind === 'course') {
-            $r = $this->tq_bill->subscribe_course($child, (int) ($b['course_id'] ?? 0), $method);
+            $r = $this->tq_bill->subscribe_course($child, (int) ($b['course_id'] ?? 0), $method, (string) ($b['coupon'] ?? ''));
         } elseif ($kind === 'book') {
-            $r = $this->tq_bill->subscribe_book($child, (int) ($b['book_id'] ?? 0), $method);
+            $r = $this->tq_bill->subscribe_book($child, (int) ($b['book_id'] ?? 0), $method, (string) ($b['coupon'] ?? ''));
         } elseif ($kind === 'foundation') {
             /* TQ-FND-PACK — ومهلة الحصة المفردة ساعات لا أيام، وولي الأمر
                هو من يدفع في أكثر الأسر: باب بلا باقات يعني أنه يشتري
                لابنه حصة حصة بمهلة تسقط قبل أن يفتح شاشته. */
-            $r = $this->tq_bill->subscribe_foundation_pack($child, (int) ($b['pack_id'] ?? 0), $method);
+            $r = $this->tq_bill->subscribe_foundation_pack($child, (int) ($b['pack_id'] ?? 0), $method, (string) ($b['coupon'] ?? ''));
         } else {
             /* TQ-CYCLE-BUY — والدورة معامل: باب بلا دورة يعني أن ولي
                الأمر لا يشتري الشهري أبدا مهما عرضته عليه صفحة الباقات. */
             $r = $this->tq_bill->subscribe($child, (int) ($b['plan_id'] ?? 0), $method,
-                                           (string) ($b['cycle'] ?? ''));
+                                           (string) ($b['cycle'] ?? ''), (string) ($b['coupon'] ?? ''));
         }
 
         if (empty($r['ok'])) {
             $code = isset($r['code']) ? strtolower((string) $r['code']) : 'purchase_failed';
-            $this->fail($this->model_msg($r, t('تعذر إنشاء الشراء.')), $code, 409);
+            $this->fail($this->model_msg($r, t('تعذر إنشاء الشراء.')), $code, 409,
+                        isset($r['coupon_reason']) ? array('coupon' => array((string) $r['coupon_reason'])) : array());
         }
 
         $this->api->audit('api.parent.pay', $pid, array(
@@ -7321,19 +7459,22 @@ class Api_v1 extends CI_Controller
             'kind'            => $kind,
             'subscription_id' => (int) ($r['subscription_id'] ?? 0),
             'invoice_id'      => (int) ($r['invoice_id'] ?? 0),
+            'coupon'          => !empty($r['coupon']['code']) ? $r['coupon']['code'] : null,
         ));
 
         if (!empty($r['free'])) {
             $this->respond(tq_api_ok(array(
                 'subscription_id' => (int) $r['subscription_id'],
                 'free'            => true, 'invoice' => null, 'payment_url' => null,
-            ), t('فعلت الباقة المجانية باسم ابنك.')), 201);
+                'coupon'          => $this->coupon_out($r),
+            ), !empty($r['coupon']) ? t('فتح ما اشتريته لابنك — كود الخصم غطى ثمنه كاملا.')
+                                    : t('فعلت الباقة المجانية باسم ابنك.')), 201);
         }
 
         $inv = $this->db->where('id', (int) $r['invoice_id'])->get('invoices')->row_array();
 
         if ($by_card) {
-            $pay = $this->tq_tap->start((int) $r['invoice_id'], $child);
+            $pay = $this->tq_tap->start((int) $r['invoice_id'], $child, $this->tap_pay_in());
             if (!empty($pay['ok'])) {
                 $this->respond(tq_api_ok(array(
                     'subscription_id' => (int) $r['subscription_id'],

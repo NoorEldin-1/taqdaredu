@@ -195,7 +195,7 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
                            value="<?php echo html_escape($cfg['merchant']); ?>"
                            placeholder="68070328">
                     <span class="tqa-field__hint">
-                        <?php echo t('اختياري — من لوحة تاب (Merchant ID). يرسل مع كل دفعة إن ملئ.'); ?>
+                        <?php echo t('من لوحة تاب (Merchant ID). يرسل مع كل دفعة إن ملئ، وهو شرط لـApple Pay وGoogle Pay.'); ?>
                     </span>
                 </div>
 
@@ -248,6 +248,102 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
                     <?php endforeach; ?>
                 </div>
             <?php endforeach; ?>
+
+            <?php /* TQ-EXPRESS-PAY — الدفع المباشر في صفحاتنا. كل طريقة بمفتاحها
+                     وحالها وما ينقصها **بالاسم**: مفتاح «مفعل» على طريقة ناقصة
+                     يخفيها عن المشتري، ومن لا يقال له لماذا يظنها معطلة. */ ?>
+            <input type="hidden" name="tq_express_form" value="1">
+            <h3 class="tqa-field__label" style="margin-block:var(--tq-space-xl) var(--tq-space-xs)">
+                <?php echo t('الدفع المباشر — Apple Pay · Google Pay · البطاقة'); ?>
+            </h3>
+            <p class="tqa-field__hint" style="margin-block-end:var(--tq-space-m)">
+                <?php echo t('أزرار تعرض في شاشة الشراء نفسها: يدفع المشتري ببصمته أو يكتب بطاقته دون أن ينتقل إلى صفحة تاب. والدفعة تمر بتاب بمفاتيحك أعلاه، وتسوى وتفعل كما تسوى كل دفعة. وصفحة تاب تبقى خيارا بجوارها.'); ?>
+            </p>
+
+            <?php
+            $tq_x_rows = array(
+                'applepay'  => array('tq_tap_applepay',  'Apple Pay',
+                    t('يظهر في سفاري على آيفون وماك لمن في محفظته بطاقة. يحتاج المفتاح العام ومعرف التاجر وتسجيل النطاق عند تاب (الملف أدناه).')),
+                'googlepay' => array('tq_tap_googlepay', 'Google Pay',
+                    t('يظهر في كروم وأندرويد لمن في حسابه بطاقة. يحتاج معرف التاجر، وفي الإنتاج معرف تاجر جوجل. ويجب أن تفعله تاب لحسابك.')),
+                'card'      => array('tq_tap_cardform',  t('البطاقة المباشرة'),
+                    t('خانات البطاقة داخل صفحتنا (مدى · فيزا · ماستركارد)، يرسمها سكربت تاب فلا يمر رقم البطاقة بخادمنا. يحتاج المفتاح العام، ورمز البنك (3D Secure) يطلب بعد الضغط.')),
+            );
+            foreach ($tq_x_rows as $tq_xk => $tq_xr):
+                $tq_xs = $express[$tq_xk];
+            ?>
+                <div class="tqa-prefrow">
+                    <div class="tqa-prefrow__main">
+                        <label class="tqa-prefrow__title" for="x_<?php echo $tq_xk; ?>">
+                            <?php echo html_escape($tq_xr[1]); ?>
+                            <?php if ($tq_xs['live']): ?>
+                                <span class="tqa-badge tqa-badge--ok"><?php echo t('يعرض للمشتري'); ?></span>
+                            <?php elseif ($tq_xs['on']): ?>
+                                <span class="tqa-badge tqa-badge--danger"><?php echo t('مفعل ولا يعرض'); ?></span>
+                            <?php else: ?>
+                                <span class="tqa-badge tqa-badge--muted"><?php echo t('معطل'); ?></span>
+                            <?php endif; ?>
+                        </label>
+                        <span class="tqa-prefrow__hint">
+                            <?php echo html_escape($tq_xr[2]); ?>
+                            <?php if ($tq_xs['on'] && !$tq_xs['live']): ?>
+                                <br><strong><?php echo t('ينقصه:'); ?></strong> <?php echo html_escape(implode(' · ', $tq_xs['why'])); ?>
+                            <?php endif; ?>
+                            <?php if ($tq_xk === 'googlepay' && !$gpay_cur): ?>
+                                <br><strong><?php echo t('للتأكد:'); ?></strong>
+                                <?php echo t('وثائق تاب العامة لا تذكر «____» بين عملات Google Pay، وإن كانت صفحة تاب لحسابك تعرضه. جرب دفعة اختبار واحدة بعد التفعيل؛ ولو ردت فاطلب من تاب تفعيله لحسابك بهذه العملة.', array(html_escape($cfg['currency']))); ?>
+                            <?php endif; ?>
+                        </span>
+                    </div>
+                    <div class="tqa-prefrow__end">
+                        <input type="hidden" name="<?php echo $tq_xr[0]; ?>" value="0">
+                        <span class="tqa-switch">
+                            <input type="checkbox" id="x_<?php echo $tq_xk; ?>" name="<?php echo $tq_xr[0]; ?>" value="1"
+                                   <?php echo $tq_xs['on'] ? 'checked' : ''; ?>>
+                            <span class="tqa-switch__track" aria-hidden="true"></span>
+                        </span>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+
+            <div class="tqa-fieldgrid" style="margin-block-start:var(--tq-space-l)">
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="gpay_mid"><?php echo t('معرف تاجر جوجل (Google Merchant ID)'); ?></label>
+                    <input class="tqa-input tqa-input--ltr" type="text" id="gpay_mid" name="tq_gpay_merchant_id"
+                           dir="ltr" autocomplete="off" spellcheck="false"
+                           value="<?php echo html_escape($cfg['gpay_merchant']); ?>" placeholder="BCR2DN4T…">
+                    <span class="tqa-field__hint">
+                        <?php echo t('من Google Pay & Wallet Console بعد اعتماد النطاق. لا يلزم في وضع الاختبار، ويلزم في الإنتاج — وهو غير معرف تاجر تاب.'); ?>
+                    </span>
+                </div>
+                <div class="tqa-field">
+                    <label class="tqa-field__label" for="gpay_name"><?php echo t('الاسم في نافذة Google Pay'); ?></label>
+                    <input class="tqa-input" type="text" id="gpay_name" name="tq_gpay_merchant_name" maxlength="60"
+                           value="<?php echo html_escape($cfg['gpay_name']); ?>" placeholder="Taqdar">
+                    <span class="tqa-field__hint"><?php echo t('ما يقرؤه المشتري فوق المبلغ. فارغ ⇐ Taqdar.'); ?></span>
+                </div>
+            </div>
+
+            <?php $tq_assoc_url = base_url('.well-known/apple-developer-merchantid-domain-association'); ?>
+            <div class="tqa-field" style="margin-block-start:var(--tq-space-l)">
+                <label class="tqa-field__label" for="apple_assoc">
+                    <?php echo t('ملف ربط النطاق لـApple Pay'); ?>
+                    <?php if ($assoc !== ''): ?>
+                        <span class="tqa-badge tqa-badge--ok"><?php echo t('محفوظ ويخدم'); ?></span>
+                    <?php else: ?>
+                        <span class="tqa-badge tqa-badge--muted"><?php echo t('لم يلصق بعد'); ?></span>
+                    <?php endif; ?>
+                </label>
+                <textarea class="tqa-input tqa-input--ltr" id="apple_assoc" name="tq_tap_apple_assoc" dir="ltr"
+                          rows="4" spellcheck="false" style="font-family:monospace;font-size:11px"
+                          placeholder="7B2270737…"><?php echo html_escape($assoc); ?></textarea>
+                <span class="tqa-field__hint">
+                    <?php echo t('تسلمه تاب حين تطلب تفعيل Apple Pay لنطاقك. الصق نصه كاملا هنا، ويخدم تلقائيا على:'); ?>
+                    <br><a href="<?php echo html_escape($tq_assoc_url); ?>" target="_blank" rel="noopener"
+                           class="tq-ltr" dir="ltr" style="font-size:12px"><?php echo html_escape($tq_assoc_url); ?></a>
+                    <br><?php echo t('ثم أرسل إلى دعم تاب اسم النطاق ليسجلوه. وبلا هذه الخطوة لا يظهر زر Apple Pay ولو فعل.'); ?>
+                </span>
+            </div>
 
             <div class="tqa-actions">
                 <button type="submit" class="tqa-btn tqa-btn--primary"
@@ -341,6 +437,7 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
                 <th><?php echo t('الطالب'); ?></th>
                 <th><?php echo t('الفاتورة'); ?></th>
                 <th><?php echo t('المبلغ'); ?></th>
+                <th><?php echo t('الطريقة'); ?></th>
                 <th><?php echo t('الوضع'); ?></th>
                 <th><?php echo t('الحالة'); ?></th>
                 <th><?php echo t('معرف الدفعة'); ?></th>
@@ -367,6 +464,20 @@ $tq_public = (strpos($tq_hook, 'https://') === 0)
 
                 <td data-label="<?php echo te('المبلغ'); ?>">
                     <strong><?php echo tqa_money((int) $a['amount']); ?></strong>
+                </td>
+
+                <?php /* TQ-EXPRESS-PAY — كيف دفع: صفحة تاب أم زر مباشر. وهو
+                         أول ما يسأل عند شكوى «ضغطت Apple Pay ولم يحدث شيء». */
+                $tq_via = (string) ($a['method'] ?? 'tap'); ?>
+                <td data-label="<?php echo te('الطريقة'); ?>">
+                    <span class="tqa-badge tqa-badge--muted">
+                        <?php
+                        $tq_via_names = array('applepay' => 'Apple Pay', 'googlepay' => 'Google Pay',
+                                              'card' => t('البطاقة المباشرة'));
+                        echo html_escape($tq_via === 'tap' || $tq_via === ''
+                            ? t('صفحة تاب')
+                            : ($tq_via_names[$tq_via] ?? $tq_via)); ?>
+                    </span>
                 </td>
 
                 <td data-label="<?php echo te('الوضع'); ?>">

@@ -24,6 +24,11 @@ $course  = isset($tq_course) ? $tq_course : array();
 $cid     = (int) $o['course_id'];
 $pending = isset($tq_pending) ? $tq_pending : null;
 
+/* TQ-COUPON — حال الكود حكم عليها الخادم في المتحكم، والإجمالي في كل
+   موضع يطبع منها: الملخص والبطاقة اللاصقة وقياس ميتا. */
+$tq_cpn = isset($tq_cpn) ? $tq_cpn : array('show' => false, 'applied' => false);
+$tq_net = tq_coupon_net($tq_cpn, (int) $o['price']);
+
 /* البطاقة تعرض إن كانت مضبوطة وحدها — والقرار جاء من المتحكم
    (`Taqdar_tap_model::ready()`) لا من القالب. وحين لا تكون مضبوطة تعرض
    هذه الشاشة التحويل البنكي وحده، بلا منتقي يفضي إلى خطأ. */
@@ -147,7 +152,8 @@ $access = ((int) $o['days'] > 0)
           <?php /* لا ضريبة تضاف هنا: `issue_invoice()` تكتب `tax = 0` ما
                    لم تضبط، ورقم في العرض لا يقابله صف في الفاتورة يوقع
                    في نزاع. */ ?>
-          <div class="co-total__f"><dt>الإجمالي</dt><dd><?php echo tqs_money((int) $o['price']); ?></dd></div>
+          <?php echo tq_coupon_row($tq_cpn); ?>
+          <div class="co-total__f"><dt>الإجمالي</dt><dd><?php echo tq_coupon_total($tq_cpn, (int) $o['price']); ?></dd></div>
         </dl>
 
         <?php /* **الحد الذي يقال قبل الدفع لا بعده.** من يشتري مادة
@@ -163,8 +169,20 @@ $access = ((int) $o['days'] > 0)
         </p>
       </div>
 
+      <?php /* TQ-COUPON — بين الملخص وطريقة الدفع: يقرأ بعد السعر وقبل أن
+               يختار كيف يدفع، وهو موضع السؤال «أيقل هذا الرقم؟». */ ?>
+      <?php echo tq_coupon_box($tq_cpn, array('here' => site_url('course-checkout/' . $cid))); ?>
+
       <div class="icard">
         <h2>طريقة الدفع</h2>
+
+        <?php /* TQ-EXPRESS-PAY — Apple Pay · Google Pay · البطاقة هنا. */ ?>
+        <?php echo tq_express_pay(array(
+            'amount' => (int) $o['price'],
+            'coupon' => $tq_cpn,
+            'form'   => 'tqCheckout',
+            'label'  => $o['title'],
+        )); ?>
 
         <?php if ($tq_both): ?>
           <div class="co-pick">
@@ -262,7 +280,7 @@ $access = ((int) $o['days'] > 0)
 
         <p class="co-side__total">
           <span>الإجمالي</span>
-          <b><?php echo tqs_money((int) $o['price']); ?></b>
+          <b><?php echo tq_coupon_total($tq_cpn, (int) $o['price']); ?></b>
         </p>
         <?php /* البطاقة اللاصقة آخر ما تقرأه العين قبل الزر، ومن نزل
                  إليها مباشرة لا يمر على الملخص — فحد ما اشتراه يقال
@@ -329,4 +347,4 @@ $access = ((int) $o['days'] > 0)
 <?php /* TQ-META-CAPI — «بلغ شاشة التاكيد»، ورمزه يطابق ما يرسله الخادم
          في `Purchase` (`sold()`): رمزان لسلعة واحدة يجعلان ميتا تعدها
          سلعتين فلا يقابل الشراء بدايته. */ ?>
-<?php echo tq_meta_checkout('course-' . (int) $cid, $o['title'], (int) $o['price']); ?>
+<?php echo tq_meta_checkout('course-' . (int) $cid, $o['title'], $tq_net); ?>

@@ -83,17 +83,34 @@ tqa_head(
 ?>
 
 <div class="tqa-stack tqa-stack--stats">
+    <?php
+    /* TQ-COUPON — «المتفق عليه» صافي بعد الكود، فيقال من أين جاء: سطر
+       يقول ١٥٠ بلا سبب على باقة سعرها ٣٠٠ يقرأ خطأ في التسعير. والكود
+       رابط إلى شاشته — من استعمله غيره وكم جلب. */
+    $tq_cp_hint = t('سعر جمد وقت الشراء');
+    $tq_cp_id   = (int) (isset($sub['coupon_id']) ? $sub['coupon_id'] : 0);
+    if ($tq_cp_id > 0 && (int) ($sub['discount'] ?? 0) > 0) {
+        $tq_cp_code = (string) $this->db->select('code')->where('id', $tq_cp_id)->get('tq_coupons')->row('code');
+        $tq_cp_hint = t('بعد خصم ____ بكود ____ من ____', array(
+            strip_tags(tqa_money($sub['discount'])),
+            $tq_cp_code !== '' ? $tq_cp_code : '#' . $tq_cp_id,
+            strip_tags(tqa_money($sub['list_price']))));
+    }
+    ?>
     <?php echo tqa_stat(t('المتفق عليه'), tqa_money($sub['price']),
-        array('icon' => 'receipt', 'tone' => 'info',
-              'hint' => t('سعر جمد وقت الشراء'))); ?>
+        array('icon' => $tq_cp_id > 0 ? 'tag' : 'receipt', 'tone' => 'info',
+              'hint' => $tq_cp_hint,
+              'href' => $tq_cp_id > 0 ? site_url('taqdar_admin/coupon/' . $tq_cp_id) : null)); ?>
 
     <?php /* المسدد بجوار المتفق: الفرق بينهما هو سؤال «هل دفع؟» كله. */ ?>
     <?php echo tqa_stat(t('المسدد فعلا'), tqa_money($tq_paid),
         array('icon' => 'wallet',
               'tone' => $tq_paid >= (int) $sub['price'] ? 'ok' : ($tq_paid > 0 ? 'warn' : 'danger'),
-              'hint' => $tq_paid >= (int) $sub['price'] && (int) $sub['price'] > 0
+              'hint' => ((int) $sub['price'] === 0 && $tq_cp_id > 0)
+                    ? t('لا شيء يدفع — غطاه الكود كاملا')
+                    : ($tq_paid >= (int) $sub['price'] && (int) $sub['price'] > 0
                     ? t('وصل كاملا')
-                    : ($tq_paid > 0 ? t('وصل بعضه') : t('لم يصل شيء')))); ?>
+                    : ($tq_paid > 0 ? t('وصل بعضه') : t('لم يصل شيء'))))); ?>
 
     <?php
     /* والسطر يقرأ من القيود لا من القسمة: الباقة تقسم فتكتب صفوف

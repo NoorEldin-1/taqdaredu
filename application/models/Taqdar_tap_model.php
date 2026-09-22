@@ -41,7 +41,40 @@ class Taqdar_tap_model extends CI_Model
         'tq_tap_live_secret',
         'tq_tap_live_public',
         'tq_tap_merchant',
+        /* TQ-EXPRESS-PAY — الدفع المباشر في صفحتنا لا في صفحة تاب. */
+        'tq_tap_applepay',
+        'tq_tap_googlepay',
+        'tq_tap_cardform',
+        'tq_gpay_merchant_id',
+        'tq_gpay_merchant_name',
     );
+
+    /**
+     * الطرق المباشرة الثلاث — مفتاحها في النموذج (`tap_via`) واسمها للعرض.
+     *
+     * و«المباشر» هنا يعني أن المشتري لا يغادر صفحتنا ليختار: زر Apple Pay
+     * أو Google Pay أو خانات البطاقة تعرض في شاشة التأكيد نفسها، وما يخرج
+     * منها **رمز لمرة واحدة** (`tok_…`) لا بطاقة. والرمز يدفع بـ`start()`
+     * نفسها التي تدفع صفحة تاب — فالفاتورة والتسوية والتفعيل واحدة.
+     */
+    public static $VIAS = array(
+        'applepay'  => 'Apple Pay',
+        'googlepay' => 'Google Pay',
+        'card'      => 'بطاقة مباشرة',
+    );
+
+    /** عملات تاب وبلدانها — Google Pay يشترط بلد التاجر مع العملة. */
+    private static $COUNTRY = array(
+        'SAR' => 'SA', 'AED' => 'AE', 'KWD' => 'KW', 'BHD' => 'BH',
+        'QAR' => 'QA', 'OMR' => 'OM', 'EGP' => 'EG', 'JOD' => 'JO', 'USD' => 'SA',
+    );
+
+    /**
+     * عملات تعلنها وثائق تاب العامة لـGoogle Pay — والريال ليس منها، وإن
+     * كانت صفحة تاب المستضافة لحسابنا تعرض Google Pay بالريال (رئي في
+     * وضع الاختبار). فلا تمنع بها الطريقة، وإنما تقال للمسؤول ليجرب دفعة.
+     */
+    private static $GPAY_CURRENCIES = array('AED', 'KWD', 'OMR', 'QAR', 'BHD', 'USD');
 
     /** حالات تاب التي تعني «حصل المال». وما عداها لا يفعل اشتراكا. */
     private static $PAID = array('CAPTURED');
@@ -90,6 +123,11 @@ class Taqdar_tap_model extends CI_Model
             'public'   => trim((string) ($vals['tq_tap_' . $mode . '_public'] ?? '')),
             'merchant' => trim((string) ($vals['tq_tap_merchant'] ?? '')),
             'currency' => $currency,
+            'applepay'      => ($vals['tq_tap_applepay'] ?? '') === '1',
+            'googlepay'     => ($vals['tq_tap_googlepay'] ?? '') === '1',
+            'cardform'      => ($vals['tq_tap_cardform'] ?? '') === '1',
+            'gpay_merchant' => trim((string) ($vals['tq_gpay_merchant_id'] ?? '')),
+            'gpay_name'     => trim((string) ($vals['tq_gpay_merchant_name'] ?? '')),
             'keys'     => array(
                 'test_secret' => trim((string) ($vals['tq_tap_test_secret'] ?? '')),
                 'test_public' => trim((string) ($vals['tq_tap_test_public'] ?? '')),
@@ -121,6 +159,172 @@ class Taqdar_tap_model extends CI_Model
     {
         $c = $this->config();
         return $c['enabled'] && $c['secret'] !== '' && $c['mode'] === 'test';
+    }
+
+    /* =====================================================================
+       TQ-EXPRESS-PAY — الدفع المباشر (Apple Pay · Google Pay · البطاقة)
+       ===================================================================== */
+
+    /**
+     * حال كل طريقة مباشرة وسبب غيابها — للوحة وللصفحات معا.
+     *
+     * الطريقة تعرض بشرطين لا واحد: أن يفعلها المسؤول، وأن يكتمل ما تحتاجه.
+     * ومفتاح «مفعل» على طريقة ناقصة يعرض للمشتري زرا يرد كل ضغطة — فيقال
+     * للمسؤول **ما ينقص بالاسم** بدل أن يختفي الزر صامتا فيظنه عطلا.
+     *
+     * @return array applepay|googlepay|card => [on, live, why]
+     */
+    public function express_status()
+    {
+        $c = $this->config();
+        $base = array();
+        if (!$c['enabled'])                       $base[] = t('البوابة معطلة');
+        elseif ($c['secret'] === '')              $base[] = t('لا مفتاح سري للوضع الجاري');
+
+        $out = array();
+
+        /* Apple Pay: زر تاب يرمز البطاقة في المتصفح بالمفتاح العام، ويشترط
+           معرف التاجر والنطاق المسجل عند تاب. */
+        $why = $base;
+        if ($c['public'] === '')   $why[] = t('لا مفتاح عام للوضع الجاري');
+        if ($c['merchant'] === '') $why[] = t('لا معرف تاجر');
+        $out['applepay'] = array('on' => $c['applepay'], 'live' => $c['applepay'] && !$why, 'why' => $why);
+
+        /* Google Pay: زر جوجل نفسه، وتاب هي «البوابة» التي يشفر لها. ولا
+           يحتاج المفتاح العام — الرمز يصرف في الخادم بالسري. وفي الإنتاج
+           يشترط جوجل معرف تاجره هو (Google Merchant ID) لا معرف تاب. */
+        $why = $base;
+        if ($c['merchant'] === '') $why[] = t('لا معرف تاجر');
+        if ($c['mode'] === 'live' && $c['gpay_merchant'] === '') $why[] = t('لا معرف تاجر جوجل (مطلوب في الإنتاج)');
+        $out['googlepay'] = array('on' => $c['googlepay'], 'live' => $c['googlepay'] && !$why, 'why' => $why);
+
+        /* البطاقة المباشرة: خانات تاب داخل صفحتنا، بالمفتاح العام. */
+        $why = $base;
+        if ($c['public'] === '') $why[] = t('لا مفتاح عام للوضع الجاري');
+        $out['card'] = array('on' => $c['cardform'], 'live' => $c['cardform'] && !$why, 'why' => $why);
+
+        return $out;
+    }
+
+    /**
+     * ما تحتاجه الصفحة لترسم الأزرار — أو `any = false` فلا يرسم شيء.
+     *
+     * لا سر فيه: المفتاح العام ومعرف التاجر يعرضان للمتصفح بطبعهما.
+     * وحين لا تعمل طريقة مباشرة واحدة ترد `any = false` فتعرض الصفحات ما
+     * كانت تعرضه قبل هذه الطبقة حرفا بحرف.
+     */
+    public function express()
+    {
+        $c  = $this->config();
+        $st = $this->express_status();
+        $on = array();
+        foreach ($st as $k => $s) if ($s['live']) $on[] = $k;
+
+        $host = strtolower((string) parse_url(base_url(), PHP_URL_HOST));
+
+        return array(
+            'any'           => (bool) $on,
+            'methods'       => $on,
+            'mode'          => $c['mode'],
+            'public'        => $c['public'],
+            'merchant'      => $c['merchant'],
+            'currency'      => $c['currency'],
+            'country'       => self::$COUNTRY[$c['currency']] ?? 'SA',
+            'domain'        => $host,
+            'gpay_merchant' => $c['gpay_merchant'],
+            'gpay_name'     => $c['gpay_name'] !== '' ? $c['gpay_name'] : 'Taqdar',
+        );
+    }
+
+    /** هل يعلن تاب Google Pay لعملة النظام؟ — تنبيه في اللوحة لا منع. */
+    public function gpay_currency_ok()
+    {
+        return in_array($this->config()['currency'], self::$GPAY_CURRENCIES, true);
+    }
+
+    /**
+     * ملف ربط النطاق بـApple Pay — نصه كما سلمته تاب، أو فارغ.
+     *
+     * يقرأ وحده لا مع `config()`: هو بضعة آلاف محرف لا يحتاجها إلا طلب
+     * واحد (`/.well-known/…`)، وقراءته مع كل صفحة دفع حمل بلا قارئ.
+     */
+    public function apple_assoc()
+    {
+        try {
+            $row = $this->db->select('value')->where('key', 'tq_tap_apple_assoc')
+                            ->get('settings')->row_array();
+            return $row ? trim((string) $row['value']) : '';
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            return '';
+        }
+    }
+
+    /**
+     * يحول ما أرسله النموذج إلى `source.id` تفهمه تاب.
+     *
+     * ثلاثة مصادر لا غير: فارغ ⇐ صفحة تاب بكل طرقها كما كانت (`src_all`)؛
+     * و`applepay`/`card` ⇐ رمز `tok_…` صنعه سكربت تاب في المتصفح؛
+     * و`googlepay` ⇐ رمز جوجل المشفر يصرف عند تاب رمزا (`POST /tokens`).
+     *
+     * **والطريقة تفحص أنها مفعلة الآن** لا أنها كانت معروضة: الحقل يصل من
+     * متصفح، ومن أرسل `tap_via=googlepay` وهي معطلة يرد لا يمر.
+     *
+     * @param array $in via · token · gpay
+     * @return array ok · source · via · errors
+     */
+    public function resolve_source($in)
+    {
+        $in  = is_array($in) ? $in : array();
+        $via = (string) ($in['via'] ?? '');
+        if ($via === '' || !isset(self::$VIAS[$via])) {
+            return array('ok' => true, 'source' => 'src_all', 'via' => 'tap', 'errors' => array());
+        }
+
+        $st = $this->express_status();
+        if (empty($st[$via]['live'])) {
+            return $this->fail(t('هذه الطريقة غير مفعلة الآن. اختر طريقة أخرى.'));
+        }
+
+        if ($via === 'googlepay') {
+            $tok = $this->googlepay_token((string) ($in['gpay'] ?? ''));
+            if (!$tok['ok']) return $tok;
+            return array('ok' => true, 'source' => $tok['token'], 'via' => $via, 'errors' => array());
+        }
+
+        /* الرمز من تاب شكله معروف، وما سواه لا يرسل إليها: حقل حر يصل من
+           متصفح لا يلصق في جسم طلب يوقع بمفتاحنا السري. */
+        $token = trim((string) ($in['token'] ?? ''));
+        if (!preg_match('/^tok_[A-Za-z0-9]{8,64}$/', $token)) {
+            return $this->fail(t('لم يصل رمز الدفع من المتصفح. أعد المحاولة.'));
+        }
+        return array('ok' => true, 'source' => $token, 'via' => $via, 'errors' => array());
+    }
+
+    /**
+     * يصرف رمز Google Pay المشفر رمزا عند تاب (`tok_…`).
+     *
+     * جوجل تسلم المتصفح رسالة مشفرة لتاب (`gateway: tappayments`)، وهي لا
+     * تحمل بطاقة قابلة للقراءة عندنا ولا تحتاج أن تحمل. فتمرر كما هي.
+     */
+    private function googlepay_token($raw)
+    {
+        $data = json_decode((string) $raw, true);
+        if (!is_array($data)) return $this->fail(t('لم يصل رمز Google Pay. أعد المحاولة.'));
+
+        $td = array();
+        foreach (array('signature', 'intermediateSigningKey', 'protocolVersion', 'signedMessage') as $k) {
+            if (!isset($data[$k])) return $this->fail(t('رمز Google Pay ناقص. أعد المحاولة.'));
+            $td[$k] = $data[$k];
+        }
+
+        $r = $this->api('POST', 'tokens', array('type' => 'googlepay', 'token_data' => $td));
+        $id = trim((string) ($r['data']['id'] ?? ''));
+        if (!$r['ok'] || strpos($id, 'tok_') !== 0) {
+            log_message('error', 'TQ-TAP-GPAY: تعذر صرف رمز جوجل — ' . ($r['error'] ?: 'بلا معرف'));
+            return $this->fail(t('تعذر إتمام Google Pay: ____', array($r['error'] ?: t('رد البوابة بلا رمز.'))));
+        }
+        return array('ok' => true, 'token' => $id, 'errors' => array());
     }
 
     /* =====================================================================
@@ -165,6 +369,18 @@ class Taqdar_tap_model extends CI_Model
             );
         } catch (Throwable $e) {
             log_message('error', 'TQ-TAP: تعذر إنشاء payment_attempts — ' . $e->getMessage());
+        }
+
+        /* TQ-EXPRESS-PAY — كيف دفع؟ صفحة تاب أم Apple Pay أم Google Pay أم
+           البطاقة المباشرة. والعمود يضاف لا يعاد إنشاء الجدول: فيه سجل مال. */
+        try {
+            if (!$this->db->field_exists('method', 'payment_attempts')) {
+                $this->db->query('ALTER TABLE `payment_attempts`
+                    ADD COLUMN `method` varchar(16) NOT NULL DEFAULT "tap" AFTER `gateway`');
+            }
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-TAP: تعذر إضافة payment_attempts.method — ' . $e->getMessage());
         }
     }
 
@@ -224,11 +440,17 @@ class Taqdar_tap_model extends CI_Model
      * المسار نفسه لباقة ولمسار ولفاتورة قديمة يعود صاحبها ليدفعها
      * بالبطاقة بعد أن اختار التحويل — بلا فرع ثان.
      *
-     * @param int $invoice_id
-     * @param int $user_id لو أرسل: تفحص الملكية. صفر للنداء الإداري.
+     * TQ-EXPRESS-PAY — و`$pay` يقول **كيف** تدفع: فارغ ⇐ صفحة تاب بكل طرقها
+     * كما كانت؛ و`via` مع رمز ⇐ الرمز الذي صنعه زر Apple Pay أو Google Pay
+     * أو خانات البطاقة في صفحتنا. والدفعة واحدة في الحالين: صف محاولة،
+     * ثم `POST /charges`، ثم التسوية من رد تاب. والفرق الوحيد `source.id`.
+     *
+     * @param int   $invoice_id
+     * @param int   $user_id لو أرسل: تفحص الملكية. صفر للنداء الإداري.
+     * @param array $pay     via · token · gpay — من `tq_tap_pay_input()`
      * @return array ok · url · errors · attempt_id
      */
-    public function start($invoice_id, $user_id = 0)
+    public function start($invoice_id, $user_id = 0, $pay = array())
     {
         $this->ensure_schema();
 
@@ -278,11 +500,17 @@ class Taqdar_tap_model extends CI_Model
         $first = trim((string) ($user['first_name'] ?? '')) ?: 'طالب';
         $last  = trim((string) ($user['last_name'] ?? ''));
 
+        /* المصدر يحل **قبل** صف المحاولة: رمز مرفوض أو طريقة معطلة لا
+           تترك صفا «لم تكتمل» يسأل عنه الكرون كل ربع ساعة بلا معرف دفعة. */
+        $src = $this->resolve_source($pay);
+        if (empty($src['ok'])) return $src;
+
         /* صف المحاولة **قبل** النداء: لو نجح النداء وسقط الاتصال قبل أن
            نكتب، عاد الطالب بـ`tap_id` لا يقابل شيئا عندنا. فيكتب أولا
            ويحدث بمعرف الدفعة بعد. */
         $this->db->insert('payment_attempts', array(
             'gateway'         => 'tap',
+            'method'          => $src['via'],
             'mode'            => $c['mode'],
             'invoice_id'      => (int) $inv['id'],
             'subscription_id' => (int) $inv['subscription_id'],
@@ -310,7 +538,7 @@ class Taqdar_tap_model extends CI_Model
                 'last_name'  => $last,
                 'email'      => $email,
             ),
-            'source'       => array('id' => 'src_all'),
+            'source'       => array('id' => $src['source']),
             'redirect'     => array('url' => site_url('payment/tap/return')),
             'metadata'     => array(
                 'attempt_id'      => (string) $aid,
@@ -343,6 +571,15 @@ class Taqdar_tap_model extends CI_Model
         $data = $r['data'];
         $cid  = trim((string) ($data['id'] ?? ''));
         $url  = trim((string) ($data['transaction']['url'] ?? ''));
+
+        /* الدفع برمز قد ينتهي في الرد نفسه: Apple Pay وGoogle Pay يوثقان
+           المشتري على جهازه، فترد تاب الدفعة `CAPTURED` بلا صفحة تحقق
+           ثلاثي. وحينها لا رابط يحول إليه — فالوجهة باب العودة نفسه بمعرف
+           الدفعة، وهو يسوي من رد تاب ويخطر ويوجه كما يفعل لكل دفعة.
+           ولا يسوى هنا مباشرة: نسخة ثانية من الإخطار والتوجيه تفترق. */
+        if ($cid !== '' && $url === '' && $src['via'] !== 'tap') {
+            $url = site_url('payment/tap/return') . '?tap_id=' . rawurlencode($cid);
+        }
 
         if ($cid === '' || $url === '') {
             $this->touch($aid, array('status' => 'failed',

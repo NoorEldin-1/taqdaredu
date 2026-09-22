@@ -323,6 +323,69 @@ class Taqdar_admin_model extends CI_Model
                 ),
             ),
 
+            /* TQ-COUPON — أكواد الخصم. الوحدة الموصوفة تحرر الكود الواحد،
+               وشاشة «أكواد الخصم» (`taqdar_admin/coupons`) تجيب ما لا تجيبه
+               القائمة العامة: كم استعمل كل كود وبكم وفر، ومن استعمله،
+               وتولد الدفعات. والقواعد في `Taqdar_coupon_model::clean()`
+               وحدها — `save()` تسلمها الحقول، فلا تقبل هذه الشاشة ما
+               يرده التوليد. */
+            'coupons' => array(
+                'table'        => 'tq_coupons',
+                'title'        => 'أكواد الخصم',
+                'lead'         => 'كود بنسبة خصم يكتبه المشتري في شاشة الدفع — على الباقات والكورسات والكتب وباقات الحصص.',
+                'icon'         => 'tag',
+                'ensure'       => 'taqdar_coupon_model',
+                'order_by'     => array('id' => 'DESC'),
+                'status_fn'    => 'coupon_status',
+                'status_label' => 'الحال',
+                'note'         => 'الخصم يحسب على ما يدفع فعلا ويكتب في الفاتورة بالصافي، ونصيب المعلم يقسم مما دفع. '
+                                . 'والكود الذي استعمل مرة لا يحذف — يوقف، فتبقى كل بيعة تقول بأي كود خصمت.',
+                'fields'       => array(
+                    'code'           => array('label' => 'الكود', 'type' => 'text', 'required' => true, 'list' => true,
+                                              'ltr' => true, 'section' => 'الكود والخصم',
+                                              'hint' => 'حروف لاتينية وأرقام وشرطة — يحفظ بحروف كبيرة، والمشتري يكتبه كما يشاء. مثل: RAMADAN25'),
+                    'label'          => array('label' => 'الاسم الداخلي', 'type' => 'text', 'list' => true,
+                                              'hint' => 'لمن الكود أو لأي حملة — «حملة المدارس» أو «مؤثر فلان». لا يراه المشتري.'),
+                    'percent'        => array('label' => 'نسبة الخصم %', 'type' => 'number', 'required' => true,
+                                              'default' => 10, 'list' => true,
+                                              'hint' => 'من ١ إلى ١٠٠. والخصم يحسب على المبلغ الذي سيدفع (بعد اختيار المدة)، ويقرب إلى ريال كامل.'),
+                    'max_discount'   => array('label' => 'حد أقصى للخصم', 'type' => 'money', 'nullable' => true,
+                                              'placeholder' => 'بلا حد',
+                                              'hint' => 'بالريال. خصم ٥٠٪ بحد ١٠٠ ريال لا يخصم أكثر من ١٠٠ مهما غلا الشراء. فارغ = بلا حد.'),
+                    'min_amount'     => array('label' => 'أقل مبلغ للشراء', 'type' => 'money', 'nullable' => true,
+                                              'placeholder' => 'بلا حد',
+                                              'hint' => 'بالريال. لا يعمل الكود على شراء أقل من هذا المبلغ. فارغ = على أي مبلغ.'),
+
+                    'on_plans'       => array('label' => 'الباقات', 'type' => 'bool', 'default' => 1,
+                                              'section' => 'على ماذا يعمل'),
+                    'on_courses'     => array('label' => 'الكورسات المفردة', 'type' => 'bool', 'default' => 1),
+                    'on_books'       => array('label' => 'الكتب', 'type' => 'bool', 'default' => 1),
+                    'on_packs'       => array('label' => 'باقات حصص التأسيس', 'type' => 'bool', 'default' => 1),
+                    'on_paths'       => array('label' => 'المسارات', 'type' => 'bool', 'default' => 1),
+                    'plan_ids'       => array('label' => 'باقات بعينها فقط', 'type' => 'multiref', 'ref' => 'plans',
+                                              'hint' => 'اتركها بلا تحديد ليعمل على كل الباقات. وإن حددت، لا يعمل إلا على ما حددت.'),
+                    'course_ids'     => array('label' => 'كورسات بعينها فقط', 'type' => 'multiref', 'ref' => 'sale_courses',
+                                              'hint' => 'الكورسات المعلنة للبيع المفرد. بلا تحديد = كلها.'),
+                    'book_ids'       => array('label' => 'كتب بعينها فقط', 'type' => 'multiref', 'ref' => 'sale_books',
+                                              'hint' => 'الكتب المعلنة للبيع. بلا تحديد = كلها.'),
+
+                    'max_uses'       => array('label' => 'عدد مرات الاستعمال', 'type' => 'number', 'nullable' => true,
+                                              'list' => true, 'section' => 'الحدود والمدة', 'placeholder' => 'بلا حد',
+                                              'hint' => 'كم مرة يستعمل الكود على المنصة كلها. «لأول ٥٠ مشتر» = ٥٠. فارغ = بلا حد.'),
+                    'per_user'       => array('label' => 'لكل حساب', 'type' => 'number', 'default' => 1,
+                                              'hint' => 'كم مرة يستعمله الحساب الواحد. ١ هو المعتاد، و٠ = بلا حد (للتجديد الشهري مثلا).'),
+                    'first_purchase' => array('label' => 'لأول شراء فقط', 'type' => 'bool', 'default' => 0,
+                                              'hint' => 'لا يعمل لمن دفع على المنصة من قبل — لجذب مشترين جدد.'),
+                    'starts_at'      => array('label' => 'يبدأ في', 'type' => 'datetime',
+                                              'hint' => 'فارغ = يعمل من الآن.'),
+                    'ends_at'        => array('label' => 'ينتهي في', 'type' => 'datetime', 'list' => true,
+                                              'hint' => 'فارغ = لا ينتهي حتى توقفه.'),
+                    'active'         => array('label' => 'مفعل', 'type' => 'bool', 'default' => 1,
+                                              'hint' => 'الموقوف لا يقبل في أي شراء. وما صدرت فاتورته قبل الإيقاف يسوى بخصمه.'),
+                    'note'           => array('label' => 'ملاحظة داخلية', 'type' => 'textarea'),
+                ),
+            ),
+
             'parent_links' => array(
                 'table'    => 'parent_links',
                 'title'    => 'روابط أولياء الأمور',
@@ -893,6 +956,23 @@ class Taqdar_admin_model extends CI_Model
                 } catch (Throwable $e) { $this->db->reset_query(); }
                 break;
 
+            /* TQ-COUPON — ما يباع مفردا فعلا، لحصر كود في عناصر بعينها.
+               والمعلن وحده: كورس لا يباع لا معنى لكود عليه، وقائمة بخمسمئة
+               كورس تدفن العشرة التي تباع. */
+            case 'sale_courses':
+                try {
+                    foreach ($this->db->select('id, title')->where('tq_sell', 1)->order_by('id', 'DESC')
+                                      ->get('course')->result_array() as $r) $out[$r['id']] = $r['title'];
+                } catch (Throwable $e) { $this->db->reset_query(); }
+                break;
+
+            case 'sale_books':
+                try {
+                    foreach ($this->db->select('id, title')->where('tq_sell', 1)->order_by('id', 'DESC')
+                                      ->get('books')->result_array() as $r) $out[$r['id']] = $r['title'];
+                } catch (Throwable $e) { $this->db->reset_query(); }
+                break;
+
             /* مفاتيح لا أرقام — لنوع `pick`.
                ================================================== */
 
@@ -1257,6 +1337,20 @@ class Taqdar_admin_model extends CI_Model
             }
         }
 
+        /* TQ-COUPON — قواعد الكود في نموذجه وحده: النسبة من ١ إلى ١٠٠،
+           ونوع واحد على الأقل، والكود فريد بعد التسوية (`ramadan` و
+           `RAMADAN` كود واحد)، والمئة بالمئة بلا حد لا تمر بالسكوت. */
+        if ($key === 'coupons') {
+            $this->load->model('taqdar_coupon_model', 'tq_cp_save');
+            $cl = $this->tq_cp_save->clean($data, (int) $id);
+            $errors = array_merge($errors, $cl['errors']);
+            $data   = array_merge($data, $cl['data']);
+            if (!(int) $id) {
+                $data['created_at'] = date('Y-m-d H:i:s');
+                $data['created_by'] = (int) $this->session->userdata('user_id');
+            }
+        }
+
         if ($errors) return array('ok' => false, 'errors' => $errors);
 
         $before = $id ? $this->row($key, $id) : null;
@@ -1425,6 +1519,18 @@ class Taqdar_admin_model extends CI_Model
                 }
             } catch (Throwable $e) {
                 log_message('error', 'TQ-BOOK delete guard: ' . $e->getMessage());
+            }
+        }
+
+        /* TQ-COUPON — كود استعمل لا يحذف، يوقف: سجل كل بيعة خصمت به يشير
+           إليه. والسبب بالرقم من النموذج لا بـ«غير مسموح». */
+        if ($key === 'coupons') {
+            $this->load->model('taqdar_coupon_model', 'tq_cp_del');
+            $why = $this->tq_cp_del->delete_blockers((int) $id);
+            if ($why) {
+                $this->delete_error = t('لا يحذف هذا الكود: ') . implode(' ', $why)
+                                    . ' ' . t('اجعل «مفعل» = لا — فلا يقبل في شراء جديد، ويبقى أثره في المبيعات.');
+                return false;
             }
         }
 
@@ -1613,6 +1719,16 @@ class Taqdar_admin_model extends CI_Model
      *
      * @return array tone: ok|warn|no · label · why
      */
+    /** TQ-COUPON — عمود «الحال» في قائمة الأكواد، من النموذج الذي يحكم. */
+    public function coupon_status($row)
+    {
+        static $use = null;
+        $this->load->model('taqdar_coupon_model', 'tq_cp_st');
+        if ($use === null) $use = $this->tq_cp_st->usage_map();
+        $u = isset($use[(int) $row['id']]) ? $use[(int) $row['id']] : null;
+        return $this->tq_cp_st->status_of($row, $u);
+    }
+
     public function plan_visibility($row)
     {
         if (empty($row['active'])) {

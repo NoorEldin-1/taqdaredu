@@ -8,7 +8,11 @@
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
-    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+    # TQ-EXPRESS-PAY — `payment=()` كانت تحجب واجهة الدفع في المتصفح كله:
+    # Google Pay يمر بها في كروم، وApple Pay على الويب يحكمه الإذن نفسه.
+    # فالزر يرسم ثم لا يفعل شيئا عند الضغط، بلا خطأ يقرؤه أحد. والإذن
+    # لصفحاتنا ولإطار جوجل وحدهما؛ والكاميرا والصوت والموقع محجوبة كما كانت.
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(self \"https://pay.google.com\")"
 </IfModule>
 
 # ---------------------------------------------------------------------

@@ -77,6 +77,9 @@
     <rect x="9" y="9" width="11" height="11" rx="2"/>
     <path d="M15 6.5A2.5 2.5 0 0 0 12.5 4h-6A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 6.5 15"/>
   </symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 12V4.5A1.5 1.5 0 0 1 4.5 3H12l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>
+  </symbol>
   <symbol id="i-bank" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
     <path d="M3.5 9.5 12 4.5l8.5 5"/><path d="M5 9.5v9M9.7 9.5v9M14.3 9.5v9M19 9.5v9"/>
     <path d="M3 19.5h18"/>

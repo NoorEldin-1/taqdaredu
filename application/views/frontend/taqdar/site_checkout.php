@@ -40,6 +40,12 @@ if ($tq_cyc === null) {
 }
 $tq_amt  = (int) $tq_cyc['price'];
 $tq_days = (int) $tq_cyc['days'];
+
+/* TQ-COUPON — الكود على **مبلغ الدورة المختارة**، حكم عليه المتحكم. و
+   `$tq_amt` يبقى سعر الدورة قبل الخصم (سطر «سعر الباقة» ومنتقي المدة)،
+   و`$tq_net` هو ما سيخصم فعلا — وبه يطبع كل «الإجمالي». */
+$tq_cpn = isset($tq_cpn) ? $tq_cpn : array('show' => false, 'applied' => false);
+$tq_net = tq_coupon_net($tq_cpn, $tq_amt);
 $tq_mon  = ((string) $tq_cyc['key'] === 'monthly' && !empty($tq_p['has_alt']));
 
 /* البطاقة تعرض إن كانت مضبوطة وحدها — والقرار جاء من المتحكم
@@ -320,14 +326,15 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
                  <dd><?php echo tqs_money($tq_amt); ?></dd></div>
             <?php /* لا ضريبة تضاف هنا: `issue_invoice()` تكتب `tax = 0`،
                      ورقم في العرض لا يقابله صف في الفاتورة يوقع في نزاع. */ ?>
-            <div class="co-total__f"><dt>الإجمالي</dt><dd><?php echo tqs_money($tq_amt); ?></dd></div>
+            <?php echo tq_coupon_row($tq_cpn); ?>
+            <div class="co-total__f"><dt>الإجمالي</dt><dd><?php echo tq_coupon_total($tq_cpn, $tq_amt); ?></dd></div>
           </dl>
 
           <?php /* ما يشتريه هذا المبلغ بالضبط: كم يوما، وماذا بعدها.
                    ولا تجديد تلقائي في هذا المحرك، فمن لا يجدد ينقطع
                    وصوله — وقوله قبل الدفع خير من اكتشافه بعد شهر. */ ?>
           <p class="co-cycle">
-            يخصم <b class="tq-ltr"><?php echo number_format($tq_amt / 100); ?></b> ر.س
+            يخصم <b class="tq-ltr" data-tq-coupon-sar><?php echo number_format($tq_net / 100); ?></b> ر.س
             <b>مرة واحدة</b>، ويفتح المحتوى
             <b class="tq-ltr"><?php echo $tq_days; ?></b> يوما
             (<?php echo html_escape(tqs_period_label($tq_days)); ?>).
@@ -379,6 +386,14 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
         </div>
         <?php endif; ?>
 
+        <?php /* TQ-COUPON — بعد المدة لا قبلها: الكود يخصم من الدورة المختارة،
+                 فمن طبقه ثم بدل المدة يرى الخصم على المبلغ الجديد. والزائر
+                 لا نموذج شراء يغلفه، فللحقل نموذجه الصغير (`standalone`). */ ?>
+        <?php echo tq_coupon_box($tq_cpn, array(
+            'here'       => site_url('checkout/' . $b['code']) . '?cycle=' . rawurlencode((string) $tq_cyc['key']),
+            'standalone' => $tq_guest,
+        )); ?>
+
         <div class="icard">
           <h2>طريقة الدفع</h2>
           <?php /* TQ-PAY-FORM — في وضع الزائر لا نموذج يغلف الصفحة،
@@ -386,6 +401,25 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
                    يرسل معه بلا JS، وزر «ادفع الآن» الجانبي يرسله كله.
                    وللداخل السمة فارغة: منتقيه داخل نموذج الشراء الغالف. */
           $tq_fa = $tq_guest ? ' form="tqAcctNew"' : ''; ?>
+
+          <?php /* TQ-EXPRESS-PAY — Apple Pay وGoogle Pay والبطاقة في الصفحة
+                   نفسها، للداخل وحده: الزائر نموذجه نموذج تسجيل لا شراء،
+                   ورمز Apple Pay يعيش دقائق لا يصلح أن يمر برحلة إنشاء حساب.
+                   فيقال له أين يجدها، ويعود إلى هنا بعد التسجيل. */ ?>
+          <?php if ($tq_guest): ?>
+            <?php if (!empty(tq_express()['any'])): ?>
+              <p class="tq-caption co-pay__x">
+                <?php echo t('بعد إنشاء حسابك تعود إلى هذه الصفحة وتدفع مباشرة من هنا: Apple Pay أو Google Pay أو بطاقتك.'); ?>
+              </p>
+            <?php endif; ?>
+          <?php else: ?>
+            <?php echo tq_express_pay(array(
+                'amount' => $tq_amt,
+                'coupon' => $tq_cpn,
+                'form'   => 'tqCheckout',
+                'label'  => $b['name'],
+            )); ?>
+          <?php endif; ?>
 
           <?php if ($tq_both): ?>
             <?php /* منتقيان حقيقيان لا زران يحدثان حقلا مخفيا: `radio`
@@ -512,7 +546,7 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
         <p class="co-side__plan"><?php echo html_escape($b['name']); ?></p>
         <p class="co-side__total">
           <span>الإجمالي</span>
-          <b><?php echo tqs_money($tq_amt); ?></b>
+          <b><?php echo tq_coupon_total($tq_cpn, $tq_amt); ?></b>
         </p>
         <p class="co-side__cycle">
           <?php echo html_escape(tqs_period_label($tq_days)); ?> —
@@ -525,11 +559,15 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
                  (TQ-AUTOPAY) ينشئ الحساب ويدخل ويمضي إلى الدفع بضغطة
                  واحدة. وحين يفتح تبويب «لدي حساب» يخفيه السكربت ويظهر
                  التلميح — فزر ذلك اللوح داخله. */ ?>
+        <?php /* TQ-EXPRESS-PAY — مع الطرق المباشرة لا يمضي الزر إلى صفحة
+                 تاب: ينشئ الحساب ويعيد إلى هنا حيث الأزرار (`checkout()`)،
+                 فنصه يقول ما يقع لا «ادفع الآن — بالبطاقة». */
+        $tq_gl_tap = !empty(tq_express()['any']) ? t('أنشئ حسابي وتابع إلى الدفع') : 'ادفع الآن — بالبطاقة'; ?>
         <button type="submit" form="tqAcctNew" class="btn btn--primary btn--block"
                 id="tqPayNow" data-tq-submit
-                data-tq-label-tap="ادفع الآن — بالبطاقة"
+                data-tq-label-tap="<?php echo html_escape($tq_gl_tap); ?>"
                 data-tq-label-bank="ادفع الآن — أصدر فاتورة التحويل">
-          <?php echo $tq_card ? 'ادفع الآن — بالبطاقة' : 'ادفع الآن — أصدر فاتورة التحويل'; ?>
+          <?php echo $tq_card ? html_escape($tq_gl_tap) : 'ادفع الآن — أصدر فاتورة التحويل'; ?>
         </button>
         <p class="co-side__guest" id="tqPayHint" hidden>
           <svg aria-hidden="true"><use href="#i-lock"></use></svg>
@@ -626,4 +664,4 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
 <?php /* TQ-META-CAPI — «بلغ شاشة التاكيد».
          الدفع نفسه يقع عند تاب لا هنا، فهذه اخر لحظة يقاس فيها المشتري
          في متصفحنا قبل ان يغادر. و`Purchase` ياتي بعده من الخادم. */ ?>
-<?php echo tq_meta_checkout('plan-' . (int) $b['plan_id'], $b['name'], $tq_amt); ?>
+<?php echo tq_meta_checkout('plan-' . (int) $b['plan_id'], $b['name'], $tq_net); ?>

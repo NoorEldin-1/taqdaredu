@@ -235,14 +235,12 @@ include 'portal_open.php';
                     <?php echo t('ادفع فاتورتك بالبطاقة فيفعل اشتراكك في لحظته، أو حول قيمتها إلى الحساب أدناه ويفعل بعد التحقق من الحوالة.'); ?>
                 </p>
                 <div class="tqs-acts">
-                    <form method="post" action="<?php echo base_url('student/pay-invoice'); ?>">
-                        <?php echo tq_csrf(); ?>
-                        <input type="hidden" name="invoice_id" value="<?php echo (int) $tq_due['id']; ?>">
-                        <button type="submit" class="tq-btn tq-btn--primary tq-btn--sm">
-                            <?php echo tq_icon('card', 16); ?>
-                            <?php echo t('ادفع الآن بالبطاقة'); ?>
-                        </button>
-                    </form>
+                    <?php /* TQ-EXPRESS-PAY — مع الطرق المباشرة يقود الزر إلى
+                             شاشة دفع الفاتورة (Apple Pay · Google Pay · البطاقة
+                             · صفحة تاب)، وبلاها النموذج القديم بحرفه. */ ?>
+                    <?php echo tq_pay_invoice_button((int) $tq_due['id'],
+                        tq_icon('card', 16) . ' ' . (!empty(tq_express()['any']) ? t('ادفع الآن') : t('ادفع الآن بالبطاقة')),
+                        'tq-btn tq-btn--primary tq-btn--sm'); ?>
                 </div>
             <?php else: ?>
                 <p class="tq-caption">

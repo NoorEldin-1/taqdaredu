@@ -120,6 +120,9 @@ $tqa_nav = [
            وبند في «المحتوى والموقع» (حيث تحرر الكتب) كان يخفي عن من
            يدير المال أن للكتاب ثمنا أصلا. */
         ['tqa_book_sales',     t('بيع الكتب'),            'taqdar_admin/book_sales',            'book',    null],
+        /* TQ-COUPON — «أكواد الخصم» بعد وحدات البيع: الكود يغير ما يقبض
+           من الأربع كلها، ومن يدير المال هو من يقرر كم يخصم. */
+        ['tqa_coupons',        t('أكواد الخصم'),          'taqdar_admin/coupons',               'tag',     null],
         ['tqa_subscriptions',  t('الاشتراكات'),           'taqdar_admin/subscriptions',         'refresh', 'subs_pending'],
         ['tqa_invoices',       t('الفواتير'),             'taqdar_admin/module/invoices',       'file-text', null],
         ['tqa_payouts',        t('طلبات السحب'),          'taqdar_admin/payouts',               'send',    'payouts'],

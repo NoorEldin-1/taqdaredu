@@ -2912,7 +2912,7 @@ $spec = array(
     )),
     'security' => $auth,
     'requestBody' => array('required' => true, 'content' => array('application/json' => array(
-        'example' => array('book_id' => 21, 'pay_method' => 'tap'),
+        'example' => array('book_id' => 21, 'pay_method' => 'tap', 'coupon' => 'RAMADAN25'),
     ))),
     'responses' => array(
         '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
@@ -2950,7 +2950,7 @@ $spec = array(
     )),
     'security' => $auth,
     'requestBody' => array('required' => true, 'content' => array('application/json' => array(
-        'example' => array('pack_id' => 3, 'pay_method' => 'tap'),
+        'example' => array('pack_id' => 3, 'pay_method' => 'tap', 'coupon' => 'RAMADAN25'),
     ))),
     'responses' => array(
         '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
@@ -3441,6 +3441,8 @@ $spec = array(
                 'cycle'      => array('type' => 'string', 'example' => 'monthly',
                                       'description' => 'A key from the plan\'s `cycles`. Omit for the plan\'s own cycle.'),
                 'pay_method' => array('type' => 'string', 'enum' => array('tap', 'manual'), 'default' => 'manual'),
+                'coupon'     => array('type' => 'string', 'example' => 'RAMADAN25',
+                    'description' => 'Optional discount code (TQ-COUPON). Checked again at purchase; an invalid one is refused with 409 and `errors.coupon: [reason]` — never silently charged in full.'),
             )),
     ))),
     'responses' => array(
@@ -3473,6 +3475,8 @@ $spec = array(
             'properties' => array(
                 'path_id'    => array('type' => 'integer', 'example' => 204),
                 'pay_method' => array('type' => 'string', 'enum' => array('tap', 'manual')),
+                'coupon'     => array('type' => 'string', 'example' => 'RAMADAN25',
+                    'description' => 'Optional discount code (TQ-COUPON). Checked again at purchase; an invalid one is refused with 409 and `errors.coupon: [reason]` — never silently charged in full.'),
             )),
     ))),
     'responses' => array('201' => array('description' => 'Created'),
@@ -3545,6 +3549,51 @@ $spec = array(
     ),
 )),
 
+'/api/v1/student/coupons/check' => array('post' => array(
+    'tags' => array('Store'),
+    'summary' => 'Preview a discount code on a purchase',
+    'description' => implode("\n", array(
+        'TQ-COUPON — what a code would take off **this** purchase, before buying. A preview, not a',
+        'decision: nothing is held, no invoice is issued. The decision is made again in full when',
+        '`coupon` is sent with the purchase itself.',
+        '',
+        'Always **200**: "does it work?" answered "no" is not an error. Branch on `valid` and',
+        '`reason` (`not_found` · `inactive` · `not_started` · `expired` · `kind` · `item` · `min` ·',
+        '`exhausted` · `per_user` · `first` · `tiny` · `throttled`); show `message` as is.',
+        '',
+        'The price is read server-side from the same source the purchase reads (plan cycle, course',
+        'or book offer, pack offer) — the app never sends an amount. Discounts on whole-riyal prices',
+        'round down to a whole riyal, so the net here is exactly the invoice total.',
+        '',
+        'Parents call `POST /parent/coupons/check` with `child_id`: per-account limits apply to the',
+        'child, who owns the purchase.',
+    )),
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'required' => array('coupon', 'kind', 'item_id'),
+            'properties' => array(
+                'coupon'   => array('type' => 'string', 'example' => 'RAMADAN25'),
+                'kind'     => array('type' => 'string', 'enum' => array('plan', 'path', 'course', 'book', 'pack')),
+                'item_id'  => array('type' => 'integer', 'example' => 31),
+                'cycle'    => array('type' => 'string', 'description' => 'For plans: the cycle being bought.'),
+                'child_id' => array('type' => 'integer', 'description' => 'Parents only.'),
+            )),
+    ))),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(
+                'valid' => true, 'reason' => 'ok', 'code' => 'RAMADAN25', 'percent' => 25,
+                'gross'    => array('amount' => 39900, 'decimal' => '399.00', 'currency' => 'SAR', 'formatted' => '399.00 ر.س'),
+                'discount' => array('amount' => 9900, 'decimal' => '99.00', 'currency' => 'SAR', 'formatted' => '99.00 ر.س'),
+                'net'      => array('amount' => 30000, 'decimal' => '300.00', 'currency' => 'SAR', 'formatted' => '300.00 ر.س'),
+                'capped' => false,
+            ),
+            'message' => 'طبق الكود — خصم 25٪.', 'meta' => new stdClass(),
+        )))),
+        '401' => $r_401, '403' => $r_403, '404' => $r_404, '422' => $r_422, '429' => $r_429,
+    ),
+)),
+
 '/api/v1/student/buy-course' => array('post' => array(
     'tags' => array('Store'),
     'summary' => 'Buy a single course',
@@ -3572,6 +3621,8 @@ $spec = array(
             'properties' => array(
                 'course_id'  => array('type' => 'integer', 'example' => 12),
                 'pay_method' => array('type' => 'string', 'enum' => array('tap', 'manual')),
+                'coupon'     => array('type' => 'string', 'example' => 'RAMADAN25',
+                    'description' => 'Optional discount code (TQ-COUPON). Checked again at purchase; an invalid one is refused with 409 and `errors.coupon: [reason]` — never silently charged in full.'),
             )),
     ))),
     'responses' => array(
@@ -3580,6 +3631,42 @@ $spec = array(
         '409' => $err_ref('`not_sellable` (see `reason` on the offer) or `already_owned`.',
                           array('message' => 'هذا الكورس مفتوح لك بالفعل.', 'code' => 'already_owned')),
         '422' => $r_422, '429' => $r_429,
+    ),
+)),
+
+'/api/v1/pay/methods' => array('get' => array(
+    'tags' => array('Store'),
+    'summary' => 'Which payment methods are live, and what the native SDKs need',
+    'description' => implode("\n", array(
+        'TQ-EXPRESS-PAY. The card gateway (Tap) can be paid three ways besides its hosted page:',
+        'Apple Pay, Google Pay and a direct card form. Each yields a one-time token on the device.',
+        '',
+        'Send that token with any purchase or invoice-pay call (`student/subscribe`, `subscribe-path`,',
+        '`buy-course`, `buy-book`, `buy-foundation`, `student/sessions/{id}/pay`, `parent/pay`) as',
+        '`pay_method: "tap"` plus `tap_via` (`applepay` · `googlepay` · `card`) and either',
+        '`tap_token` (a `tok_…` id from the Tap SDK) or `tap_gpay` (Google Pay\'s `tokenizationData.token`',
+        'as is). Without them the reply carries the hosted page as before.',
+        '',
+        'The reply\'s `payment_url` is then either a bank 3-D Secure page (cards) or our own return URL',
+        'when the charge settled on the spot (wallets). Open it the same way in both cases.',
+        '',
+        '`public_key` and `merchant_id` are not secrets — they are printed on every checkout page.',
+        '`methods` is empty when nothing is enabled; the app then shows the hosted page only.',
+    )),
+    'security' => $auth,
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(
+                'card_ready' => true, 'mode' => 'live',
+                'methods' => array('applepay', 'card'),
+                'public_key' => 'pk_live_…', 'merchant_id' => '68070328',
+                'currency' => 'SAR', 'country' => 'SA',
+                'gpay_merchant_id' => '', 'gpay_merchant_name' => 'Taqdar',
+                'apple_domain' => 'taqdaredu.com',
+            ),
+            'message' => '', 'meta' => array(),
+        )))),
+        '401' => $r_401, '429' => $r_429,
     ),
 )),
 
@@ -4576,8 +4663,11 @@ $spec = array(
                                   'description' => 'When kind = plan. Falls back to the plan\'s own cycle.'),
             'course_id'  => array('type' => 'integer', 'description' => 'When kind = course.'),
             'book_id'    => array('type' => 'integer', 'description' => 'When kind = book.'),
+            'pack_id'    => array('type' => 'integer', 'description' => 'When kind = foundation.'),
             'pay_method' => array('type' => 'string', 'enum' => array('manual', 'tap'),
                                   'default' => 'manual'),
+            'coupon'     => array('type' => 'string', 'example' => 'RAMADAN25',
+                                  'description' => 'Optional discount code (TQ-COUPON). Per-account limits apply to the child, who owns the purchase.'),
         )),
     ))),
     'responses' => array(

@@ -25,6 +25,10 @@ $book    = isset($tq_book) ? $tq_book : array();
 $bid     = (int) $o['book_id'];
 $pending = isset($tq_pending) ? $tq_pending : null;
 
+/* TQ-COUPON — حال الكود من المتحكم، والإجمالي في كل موضع يطبع منها. */
+$tq_cpn = isset($tq_cpn) ? $tq_cpn : array('show' => false, 'applied' => false);
+$tq_net = tq_coupon_net($tq_cpn, (int) $o['price']);
+
 /* البطاقة تعرض إن كانت مضبوطة وحدها — والقرار جاء من المتحكم
    (`Taqdar_tap_model::ready()`) لا من القالب. */
 $tq_card = !empty($tq_card);
@@ -145,7 +149,8 @@ $access = ((int) $o['days'] > 0)
           <?php /* لا ضريبة تضاف هنا: `issue_invoice()` تكتب `tax = 0` ما
                    لم تضبط، ورقم في العرض لا يقابله صف في الفاتورة يوقع
                    في نزاع. */ ?>
-          <div class="co-total__f"><dt><?php echo t('الإجمالي'); ?></dt><dd><?php echo tqs_money((int) $o['price']); ?></dd></div>
+          <?php echo tq_coupon_row($tq_cpn); ?>
+          <div class="co-total__f"><dt><?php echo t('الإجمالي'); ?></dt><dd><?php echo tq_coupon_total($tq_cpn, (int) $o['price']); ?></dd></div>
         </dl>
 
         <?php /* **الحدان يقالان قبل الدفع لا بعده.** الأول: كتاب واحد
@@ -161,8 +166,18 @@ $access = ((int) $o['days'] > 0)
         </p>
       </div>
 
+      <?php echo tq_coupon_box($tq_cpn, array('here' => site_url('book-checkout/' . $bid))); ?>
+
       <div class="icard">
         <h2><?php echo t('طريقة الدفع'); ?></h2>
+
+        <?php /* TQ-EXPRESS-PAY — Apple Pay · Google Pay · البطاقة هنا. */ ?>
+        <?php echo tq_express_pay(array(
+            'amount' => (int) $o['price'],
+            'coupon' => $tq_cpn,
+            'form'   => 'tqCheckout',
+            'label'  => $o['title'],
+        )); ?>
 
         <?php if ($tq_both): ?>
           <div class="co-pick">
@@ -262,7 +277,7 @@ $access = ((int) $o['days'] > 0)
 
         <p class="co-side__total">
           <span><?php echo t('الإجمالي'); ?></span>
-          <b><?php echo tqs_money((int) $o['price']); ?></b>
+          <b><?php echo tq_coupon_total($tq_cpn, (int) $o['price']); ?></b>
         </p>
         <?php /* البطاقة اللاصقة آخر ما تقرأه العين قبل الزر، ومن نزل
                  إليها مباشرة لا يمر على الملخص — فحد ما اشتراه يقال
@@ -327,4 +342,4 @@ $access = ((int) $o['days'] > 0)
 <?php endif; ?>
 
 <?php /* TQ-META-CAPI — «بلغ شاشة التاكيد»، بالرمز الذي يرسله الخادم. */ ?>
-<?php echo tq_meta_checkout('book-' . (int) $bid, $o['title'], (int) $o['price']); ?>
+<?php echo tq_meta_checkout('book-' . (int) $bid, $o['title'], $tq_net); ?>

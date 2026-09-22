@@ -571,3 +571,41 @@ details.tq-spam--compact{padding:0}
   .tq-wa,.tq-wa__ico,.tq-wa__label{animation:none !important;transition:none !important}
   .tq-wa::before{animation:none !important;box-shadow:none}
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-EXPRESS-PAY · ادفع مباشرة — Apple Pay · Google Pay · البطاقة
+   الوسم من `tq_express_pay()` في الجهتين (شاشات الشراء وشاشة دفع
+   الفاتورة)، فورقته هنا لا في `pages.css`. والأزرار يرسمها أصحابها
+   (أبل وجوجل وتاب)، وما يكتب هنا صندوقها ومسافاتها وحالها لا لونها.
+   ══════════════════════════════════════════════════════════════════ */
+.tqx{margin-block:4px 18px;padding:clamp(14px,1.8vw,20px);display:grid;gap:12px;
+  background:var(--beige);border:1px solid var(--gold-line);border-radius:16px}
+.tqx[hidden]{display:none}
+.tqx__h{margin:0;font-weight:700;font-size:.98rem;color:var(--ink)}
+.tqx__wallets{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.tqx__wallets:not(:has(.tqx__wallet:not([hidden]))){display:none}
+/* زر جوجل يملأ حاويته (`buttonSizeMode: fill`)، فالحاوية هي التي تقرر
+   ارتفاعه — ٤٨ بكسلا كزر الشراء بجواره، ولا يصغر عن هدف لمس. */
+.tqx__wallet{min-block-size:48px;border-radius:12px;overflow:hidden}
+.tqx__wallet[hidden]{display:none}
+.tqx__wallet--gpay>div,.tqx__wallet--gpay button{inline-size:100%;block-size:48px}
+.tqx__card{display:grid;gap:10px;padding-block-start:12px;border-block-start:1px dashed var(--gold-line)}
+.tqx__wallets:not(:has(.tqx__wallet:not([hidden])))+.tqx__card{padding-block-start:0;border:0}
+.tqx__card[hidden]{display:none}
+.tqx__sub{margin:0;display:flex;align-items:center;gap:8px;font-size:.9rem;font-weight:700;color:var(--ink-2)}
+.tqx__sub svg{inline-size:18px;block-size:18px;flex:none;color:var(--gold-deep)}
+/* خانات تاب في إطار منها: حاوية بيضاء ثابتة الحد الأدنى، فلا تقفز الصفحة
+   حين يصل الإطار بعد ثانية. */
+.tqx__cardform{min-block-size:150px;background:var(--paper);border:1px solid var(--gold-line-soft);
+  border-radius:12px;padding:6px}
+.tqx__cardpay[disabled]{opacity:.55;cursor:not-allowed}
+.tqx__status{margin:0;padding:10px 12px;border-radius:10px;font-size:.9rem;font-weight:700;
+  background:var(--paper);color:var(--ink)}
+.tqx__status.is-bad{color:var(--tq-danger,#7A1F1F);background:var(--tq-dangerSoft,#FDECEC)}
+.tqx__status[hidden]{display:none}
+.tqx__safe,.tqx__note{margin:0;display:flex;align-items:flex-start;gap:7px;font-size:.84rem;
+  color:var(--ink-3);line-height:1.7}
+.tqx__safe svg{inline-size:15px;block-size:15px;flex:none;margin-block-start:3px;color:var(--gold-deep)}
+.tqx__safe b{color:var(--gold-text)}
+/* أثناء الإرسال: لا ضغطة ثانية تنشئ دفعة ثانية، والحال تقرأ لا تخمن. */
+.tqx.is-busy .tqx__wallets,.tqx.is-busy .tqx__card{pointer-events:none;opacity:.5}

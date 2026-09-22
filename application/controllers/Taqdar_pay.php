@@ -60,7 +60,12 @@ class Taqdar_pay extends CI_Controller
            ما دفع من أجله ولا زر يعيد المحاولة. */
         $home = $this->invoice_home($invoice_id);
 
-        $r = $this->taqdar_tap_model->start($invoice_id, $uid);
+        /* TQ-EXPRESS-PAY — من ضغط في شاشة دفع الفاتورة (`pay/<رقم>`) يعود
+           إليها إن تعثر، لا إلى قائمة لا يجد فيها أزرارها. والقيمة مغلقة
+           لا رابط حر. */
+        if ((string) $this->input->post('back') === 'invoice') $home = 'pay/' . $invoice_id;
+
+        $r = $this->taqdar_tap_model->start($invoice_id, $uid, tq_tap_pay_input());
 
         if (empty($r['ok'])) {
             $this->flash(false, implode(' ', $r['errors']));
@@ -116,6 +121,22 @@ class Taqdar_pay extends CI_Controller
         }
         if ($session) $home = 'student/on-demand';
 
+        /* ولي الأمر يدفع عن ابنه (TQ-PARENT-PAYS)، وشاشات الطالب ترده بـ
+           «هذه الصفحة تخص بوابة الطالب» — فيقرأ ذلك مكان «نجح الدفع» وقد
+           دفع فعلا. فوجهته مدفوعاته، حيث يرى الفاتورة مسددة. */
+        $parent = $uid > 0 && function_exists('tq_role') && tq_role($uid) === 'parent';
+        if ($parent) $home = 'parent/payments';
+
+        if (!empty($r['ok']) && $parent) {
+            if (empty($r['already'])) $this->notify_paid($r);
+            $this->meta_purchase_flash((int) ($r['invoice_id'] ?? 0));
+            $this->flash(true, $session
+                ? 'نجح الدفع وثبتت حصة ابنك. رابط الدخول في شاشته.'
+                : 'نجح الدفع وفتح ما اشتريته لابنك.');
+            redirect(site_url($home), 'location', 302);
+            return;
+        }
+
         if (!empty($r['ok'])) {
             /* TQ-PAY-ONCE — الحارس نفسه الذي في مسار الويبهوك (`empty($r['already'])`):
                الويبهوك يسوّي الدفعة أولا ثم يعود المشتري بمتصفحه فتسوّى ثانية بـ
@@ -139,6 +160,15 @@ class Taqdar_pay extends CI_Controller
             return;
         }
 
+        /* TQ-EXPRESS-PAY — دفعة لم تنجح والفاتورة قائمة: يعود صاحبها إلى
+           شاشة دفعها، ففيها الطرق كلها يعيد بأي منها. والشاشة القديمة لا
+           تحمل إلا زر صفحة تاب. ودفعة عالقة (`stuck`: حصل المال ولم يفتح)
+           لا تعاد إلى زر دفع — تلك يقال لها «لا تعد الدفع». */
+        if ($uid > 0 && !empty($r['invoice_id']) && (string) ($r['state'] ?? '') !== 'stuck') {
+            $x = tq_express();
+            if (!empty($x['any'])) $home = 'pay/' . (int) $r['invoice_id'];
+        }
+
         $this->flash(false, isset($r['errors']) ? implode(' ', $r['errors']) : 'تعذر التحقق من الدفعة.');
         redirect(site_url($home), 'location', 302);
     }
@@ -155,6 +185,25 @@ class Taqdar_pay extends CI_Controller
         $this->load->model('taqdar_sessions_model');
         $s = $this->taqdar_sessions_model->by_invoice((int) $invoice_id);
         return $s ? 'student/on-demand' : 'student/subscription';
+    }
+
+    /**
+     * GET /.well-known/apple-developer-merchantid-domain-association
+     *
+     * TQ-EXPRESS-PAY — ملف يثبت لأبل أن هذا النطاق لنا، وبدونه لا يظهر زر
+     * Apple Pay على الموقع أصلا. تسلمه تاب لمن يطلب تفعيل Apple Pay، وكان
+     * موضعه ملفا يرفع بـFTP إلى جذر الخادم — والنشر `git reset --hard`
+     * والمجلد يبدأ بنقطة، فأول من ينظف يمحوه ولا يعرف أحد لماذا اختفى الزر.
+     * فيلصق نصه في شاشة تاب باللوحة ويخدم من هنا. وبلا نص: 404 صريحة.
+     */
+    public function apple_assoc()
+    {
+        $txt = $this->taqdar_tap_model->apple_assoc();
+        if ($txt === '') {
+            $this->plain(404, 'not configured');
+            return;
+        }
+        $this->plain(200, $txt);
     }
 
     /* =====================================================================

@@ -230,11 +230,10 @@ include 'portal_open.php';
                                             <?php if (!empty($tq_r['payable']) && !$tq_p['self'] && $tq_p['until'] === 0): ?>
                                                 <span class="tq-row" style="gap:var(--tq-space-xs);flex-wrap:wrap">
                                                     <?php if ($tq_card_ready): ?>
-                                                        <form method="post" action="<?php echo base_url('student/pay-invoice'); ?>" class="tq-form-inline">
-                                                            <?php echo tq_csrf(); ?>
-                                                            <input type="hidden" name="invoice_id" value="<?php echo (int) $tq_r['invoice_id']; ?>">
-                                                            <button class="tq-btn tq-btn--primary tq-btn--sm" type="submit"><?php echo t('ادفع الآن'); ?></button>
-                                                        </form>
+                                                        <?php /* TQ-EXPRESS-PAY — مع الطرق المباشرة: شاشة دفع الفاتورة. */ ?>
+                                                        <?php echo tq_pay_invoice_button((int) $tq_r['invoice_id'], t('ادفع الآن'),
+                                                            'tq-btn tq-btn--primary tq-btn--sm', 'student/pay-invoice', null,
+                                                            ' class="tq-form-inline"'); ?>
                                                     <?php endif; ?>
                                                     <?php if (!empty($tq_r['cancellable'])): ?>
                                                         <form method="post" action="<?php echo base_url('parent/pay/cancel'); ?>" class="tq-form-inline"

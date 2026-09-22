@@ -31,6 +31,10 @@ $track    = isset($tq_track) ? $tq_track : (isset($o['track']) ? $o['track'] : a
 $pid      = (int) $o['id'];
 $credits  = isset($tq_credits) ? $tq_credits : array();
 
+/* TQ-COUPON — حال الكود من المتحكم، والإجمالي في كل موضع يطبع منها. */
+$tq_cpn = isset($tq_cpn) ? $tq_cpn : array('show' => false, 'applied' => false);
+$tq_net = tq_coupon_net($tq_cpn, (int) $o['price']);
+
 $tq_card = !empty($tq_card);
 $tq_test = !empty($tq_card_test);
 $tq_bank = (tqs_bank() !== null) || !$tq_card;
@@ -141,8 +145,9 @@ foreach ($credits as $c) $have += (int) $c['left'];
           <?php /* لا ضريبة تضاف هنا: `issue_invoice()` تكتب `tax = 0` ما
                    لم تضبط، ورقم في العرض لا يقابله صف في الفاتورة يوقع
                    في نزاع. */ ?>
+          <?php echo tq_coupon_row($tq_cpn); ?>
           <div class="co-total__f"><dt><?php echo t('الإجمالي'); ?></dt>
-               <dd><?php echo tqs_money((int) $o['price']); ?></dd></div>
+               <dd><?php echo tq_coupon_total($tq_cpn, (int) $o['price']); ?></dd></div>
         </dl>
 
         <?php /* **الحد يقال قبل الدفع لا بعده**: هذه ساعات تحجزها بنفسك،
@@ -157,8 +162,18 @@ foreach ($credits as $c) $have += (int) $c['left'];
         </p>
       </div>
 
+      <?php echo tq_coupon_box($tq_cpn, array('here' => site_url('foundation-checkout/' . $pid))); ?>
+
       <div class="icard">
         <h2><?php echo t('طريقة الدفع'); ?></h2>
+
+        <?php /* TQ-EXPRESS-PAY — Apple Pay · Google Pay · البطاقة هنا. */ ?>
+        <?php echo tq_express_pay(array(
+            'amount' => (int) $o['price'],
+            'coupon' => $tq_cpn,
+            'form'   => 'tqCheckout',
+            'label'  => $o['name'],
+        )); ?>
 
         <?php if ($tq_both): ?>
           <div class="co-pick">
@@ -260,7 +275,7 @@ foreach ($credits as $c) $have += (int) $c['left'];
 
         <p class="co-side__total">
           <span><?php echo t('الإجمالي'); ?></span>
-          <b><?php echo tqs_money((int) $o['price']); ?></b>
+          <b><?php echo tq_coupon_total($tq_cpn, (int) $o['price']); ?></b>
         </p>
         <?php /* البطاقة اللاصقة آخر ما تقرأه العين قبل الزر، ومن نزل
                  إليها مباشرة لا يمر على الملخص — فحد ما اشتراه يقال هنا
@@ -327,4 +342,4 @@ foreach ($credits as $c) $have += (int) $c['left'];
 <?php endif; ?>
 
 <?php /* TQ-META-CAPI — «بلغ شاشة التاكيد»، بالرمز الذي يرسله الخادم. */ ?>
-<?php echo tq_meta_checkout('fndpack-' . $pid, $o['name'], (int) $o['price']); ?>
+<?php echo tq_meta_checkout('fndpack-' . $pid, $o['name'], $tq_net); ?>

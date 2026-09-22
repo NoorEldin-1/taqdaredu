@@ -2910,6 +2910,42 @@ a.tlist__l:hover .tlist__b b{color:var(--gold-text)}
 .co-side__back svg{inline-size:15px;block-size:15px;flex:none}
 .co-side__back:hover{text-decoration:underline}
 
+/* TQ-COUPON — «لديك كود خصم؟»: مطوي حتى يطلب، ومفتوح متى حمل كودا.
+   مطوي لأن من لا كود معه لا يجب أن يقرأ أن غيره يدفع أقل منه. */
+.co-coupon{padding-block:14px}
+.co-coupon details>summary{display:flex;align-items:center;gap:9px;cursor:pointer;
+  list-style:none;font-weight:700;color:var(--ink);font-size:.97rem}
+.co-coupon details>summary::-webkit-details-marker{display:none}
+.co-coupon summary svg{inline-size:18px;block-size:18px;flex:none;color:var(--emerald)}
+.co-coupon summary b{font-weight:800;color:var(--emerald)}
+.co-coupon__solo{margin:0}
+.co-coupon__row{display:flex;gap:8px;margin-block-start:12px}
+/* `flex-basis:0` و`inline-size:0` لا زينة: عرض الحقل الذاتي (نحو عشرين
+   حرفا) يدخل في أدنى عرض عمود الشبكة، فيمد الصفحة على الجوال خارج
+   الشاشة ويزيح بطاقة الملخص فوقه. */
+.co-coupon{min-inline-size:0}
+.co-coupon__row input{flex:1 1 0;inline-size:0;min-inline-size:0;padding:11px 14px;border-radius:12px;
+  border:1.5px solid var(--gold-line-soft);background:var(--paper);color:var(--ink);
+  font:inherit;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-align:left}
+.co-coupon__row input:focus{outline:2px solid var(--emerald);outline-offset:1px;border-color:var(--emerald)}
+.co-coupon__row .btn{flex:none;padding-inline:20px}
+.co-coupon__msg{margin:8px 0 0;font-size:.88rem;font-weight:600;line-height:1.7;color:var(--ink-2)}
+.co-coupon__msg:empty{display:none}
+.co-coupon__msg.is-ok{color:var(--emerald)}
+.co-coupon__msg.is-err{color:#A1341F}
+.co-coupon__clear{display:inline-block;margin-block-start:6px;padding:0;border:0;background:none;
+  font:inherit;font-size:.84rem;font-weight:700;color:var(--gold-text);text-decoration:underline;cursor:pointer}
+.co-coupon__note{margin:8px 0 0}
+.co-coupon [hidden]{display:none}
+.co-total__disc{color:var(--emerald)!important;font-weight:700}
+.co-total__disc b{font-weight:800}
+.co-cols [data-tq-coupon-row][hidden],.co-cols [data-tq-coupon-was][hidden]{display:none}
+/* غلاف الإجمالي `span`، و`.co-total__f dd span` تصغر كل `span` فيه إلى
+   ‎.62em‎ — فيخرج رقم الإجمالي أصغر من سطر السعر فوقه. */
+.co-total__f dd [data-tq-coupon-net]{font-size:1em;color:inherit}
+.co-was{color:var(--ink-3);font-weight:600;font-size:.72em;margin-inline-end:4px}
+.co-was b{font-weight:600}
+
 @media (max-width:980px){
   .co-cols{grid-template-columns:1fr}
   .co-side .icard--sticky{position:static}
