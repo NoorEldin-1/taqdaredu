@@ -343,6 +343,16 @@
             $meta_robot = 'noindex, follow';
         }
 
+        /* نتائج البحث الداخلي ورسائل النشرة صفحات حالة وليست وجهات بحث.
+           canonical وحده لا يمنع Google من إنفاق الزحف عليها، لذلك تبقى
+           قابلة لتتبّع الروابط لكن لا تدخل الفهرس. */
+        $tq_query_path = trim((string) $CI_cf->uri->uri_string(), '/');
+        if ($tq_query_path === 'search'
+            || ($tq_query_path === 'blog' && !empty($_GET))) {
+            $canonical_url = base_url($tq_query_path);
+            $meta_robot = 'noindex, follow';
+        }
+
         /* TQ-SEO-TEACHER — صفحة المعلم تعرّف بصاحبها، لا بالمنصة.
 
            كانت تخرج بثلاثة نواقص، وكلها تظهر خارج الموقع لا داخله:

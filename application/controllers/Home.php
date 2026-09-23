@@ -258,7 +258,22 @@ class Home extends CI_Controller
 
 
 
-        //course_addon end 
+        //course_addon end
+
+        /* TQ-SEO-LEGACY-COURSE — صفحة المقرر القديمة لها بديل عام حديث
+           في `/path/<slug>` عند وجود Path منشور. التحويل يحافظ على
+           الروابط القديمة لكنه يمنع عرض نسختين من المحتوى نفسه. نستثني
+           رابط الإحالة لأن الإضافة تحتاجه لتسجيل الإحالة قبل أي انتقال. */
+        if ($this->input->method(true) === 'GET' && !isset($_GET['ref']) && (int) $course_id > 0) {
+            $path = $this->db->select('slug')->from('paths')
+                             ->where('course_id', (int) $course_id)
+                             ->where('status', 'published')
+                             ->order_by('id', 'ASC')->limit(1)->get()->row_array();
+            if (!empty($path['slug'])) {
+                redirect(base_url('path/' . rawurlencode($path['slug'])), 'location', 301);
+                return;
+            }
+        }
 
 
         $this->access_denied_courses($course_id);

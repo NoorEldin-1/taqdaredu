@@ -105,7 +105,11 @@ RewriteRule ^(.*)$ https://taqdaredu.com/$1 [R=301,L]
 
 # تحويل الروابط القديمة إلى النظيفة — 301 حتى لا تضيع أرشفة ولا رابط محفوظ
 RewriteRule ^home/?$ / [R=301,L]
-RewriteRule ^home/courses/?$ /courses [R=301,L]
+# الكتالوج القديم كان يولّد مجموعات كبيرة من روابط query ولا يقدّم قيمة
+# مستقلة عن الكتالوج الحديث. نحذف المعاملات هنا كي لا تنتقل تركيبات البحث
+# القديمة إلى الوجهة الجديدة كنسخ بديلة.
+RewriteRule ^home/courses/?$ /catalog [R=301,L,QSD]
+RewriteRule ^courses/?$ /catalog [R=301,L,QSD]
 RewriteRule ^home/about_us/?$ /about [R=301,L]
 RewriteRule ^home/contact_us/?$ /contact [R=301,L]
 RewriteRule ^home/faq/?$ /faq [R=301,L]
@@ -113,6 +117,9 @@ RewriteRule ^home/terms_and_condition/?$ /terms [R=301,L]
 RewriteRule ^home/privacy_policy/?$ /privacy [R=301,L]
 RewriteRule ^home/refund_policy/?$ /refund [R=301,L]
 RewriteRule ^home/my_courses/?$ /my-courses [R=301,L]
+# `/blogs` واجهة قديمة للمدونة نفسها. التحويل أقوى من canonical وحده ويحفظ
+# الإشارات على عنوان المدونة المعتمد.
+RewriteRule ^blogs/?$ /blog [R=301,L,QSD]
 # الأخصّ قبل الأعمّ: القاعدة العامّة كانت تبتلع مسارَي المعلّم
 # ووليّ الأمر فتحوّلهما إلى /student/... وهو عنوان غير موجود.
 RewriteRule ^taqdar/teacher/?$ /teacher [R=301,L]
