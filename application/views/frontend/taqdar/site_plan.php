@@ -25,6 +25,9 @@ $owns  = !empty($tq_owns);
 $uid   = (int) $this->session->userdata('user_id');
 $stage = tqs_stage_label($b['stage']);
 $tier  = tqs_bundle_tier($b['name']);
+$tq_plan_pricing = tqs_plan_price($b);
+$this->load->model('taqdar_tap_model');
+$tq_plan_card = $this->taqdar_tap_model->ready();
 ?>
 
 <section class="page-hero page-hero--plan">
@@ -151,7 +154,7 @@ $tier  = tqs_bundle_tier($b['name']);
                  وحدة — ومنها ٣ درسا مجانيا» رقم يقرأ قبل ما يصفه، والقارئ
                  يعده بعينه في الشجرة تحته فيجد الفرق. والشجرة نفسها هي
                  الجواب: صف يفتح على مواده، ومادة تفتح على دروسها. */ ?>
-        <p class="tq-caption">اشتراك واحد يفتح المرحلة كاملة — افتح الصف لترى مواده، والمادة لترى دروسها.</p>
+        <p class="tq-caption">الاشتراك يتيح المحتوى المنشور ضمن الباقة. افتح صف ابنك وتحقق من المواد والدروس الجاهزة قبل الدفع؛ المحتوى قيد التجهيز موضح في القائمة.</p>
 
         <?php echo tqs_curriculum_tree($b, array('mode' => 'public')); ?>
       </div>
@@ -231,7 +234,7 @@ $tier  = tqs_bundle_tier($b['name']);
       <?php if (count($b['grades']) > 1): ?>
         <div class="icard">
           <h2>الصفوف التي تفتحها</h2>
-          <p class="tq-caption">اشتراك واحد يفتح المرحلة كاملة — فلا تشترى سنة بعد سنة.</p>
+          <p class="tq-caption">الصفوف المشمولة بالباقة؛ تحقق من المحتوى الجاهز لكل صف في المنهج أعلاه.</p>
           <ul class="gradelist">
             <?php foreach ($b['grades'] as $g): ?>
               <?php $g_soon = !empty($g['soon']); ?>
@@ -296,17 +299,20 @@ $tier  = tqs_bundle_tier($b['name']);
           <?php
           $faq = array(
             array('كم يدوم الاشتراك؟',
-                  'الاشتراك ' . mb_strtolower(tqs_period_label($b['days']), 'UTF-8')
-                  . ' من يوم تفعيله، ولا يجدد تلقائيا — فلا يخصم منك شيء دون علمك.'),
+                  ($tq_plan_pricing['has_alt']
+                    ? 'تختار شهريا أو سنويا قبل الدفع. المدة والمبلغ يظهران في ملخص الطلب.'
+                    : 'مدة الاشتراك: ' . tqs_period_label($b['days']) . '.')
+                  . ' يبدأ من يوم التفعيل، ولا يتجدد تلقائيا.'),
             array('كيف أدفع؟',
-                  'بتحويل بنكي إلى حساب المنصة. تصدر لك فاتورة برقم مرجعي، '
-                  . 'وتفعل باقتك بعد التحقق من الحوالة.'),
+                  ($tq_plan_card
+                    ? 'يمكنك الدفع بالبطاقة عبر صفحة تاب الآمنة. تظهر طرق الدفع المتاحة في صفحة تأكيد الاشتراك.'
+                    : 'تظهر بيانات التحويل البنكي في صفحة تأكيد الاشتراك، وتفعل الباقة بعد التحقق من الحوالة.')),
             array('هل يمكن أن أعاين قبل أن أدفع؟',
                   $t['free'] > 0
                     ? 'نعم — ' . (int) $t['free'] . ' درسا في هذه الباقة مفتوحة للمعاينة، تجدها بعلامة «معاينة مجانية» في المنهج أعلاه.'
                     : 'دروس المعاينة قيد التجهيز. وتجد في الباقة المجانية دروسا تجريبية تتصفحها بلا دفع.'),
             array('ماذا لو اشتركت ثم غيرت رأيي؟',
-                  'يمكنك إيقاف التجديد متى شئت من صفحة اشتراكك، ويبقى ما دفعت صالحا حتى نهاية مدته.'),
+                  'لا يوجد تجديد تلقائي. يستمر الوصول حتى نهاية المدة المدفوعة، وتخضع طلبات الاسترداد لسياسة الاسترداد المنشورة.'),
             array('هل يفتح المحتوى كله دفعة واحدة؟',
                   'المنهج مرتب بالتسلسل: يفتح الدرس التالي بعد إتقان الذي قبله. '
                   . 'وهذا يمنع القفز فوق أساس لم يتقن.'),
@@ -427,7 +433,7 @@ $tier  = tqs_bundle_tier($b['name']);
           </p>
           <p class="plan-card__price" data-cycle="year" hidden>
             <b class="tq-ltr"><?php echo number_format($tq_p['total']); ?></b> <span>ر.س / <?php echo html_escape($tq_p['unit']); ?></span>
-            <small class="tq-pay"><?php echo html_escape($tq_p['pay_note']); ?></small>
+            <small class="tq-pay"><?php echo html_escape($tq_p['own_note']); ?></small>
           </p>
         <?php else: ?>
           <p class="plan-card__price">
@@ -512,7 +518,7 @@ $tier  = tqs_bundle_tier($b['name']);
   <div class="shell">
     <div class="section-head">
       <h2><span>باقات أخرى</span></h2>
-      <p>قارن قبل أن تقرر — الاشتراك واحد في السنة.</p>
+      <p>قارن المحتوى والسعر، ثم اختر مدة الاشتراك المناسبة قبل الدفع.</p>
     </div>
     <div class="cgrid">
 <?php foreach ($rel as $tq_rp) echo tqs_cat_card($tq_rp); ?>
@@ -559,7 +565,7 @@ $tier  = tqs_bundle_tier($b['name']);
       </p>
       <p class="plan-cta__price" data-cycle="year" hidden>
         <b class="tq-ltr"><?php echo number_format($tq_p['total']); ?></b> <span>ر.س / <?php echo html_escape($tq_p['unit']); ?></span>
-        <small class="tq-pay"><?php echo html_escape($tq_p['pay_note']); ?></small>
+        <small class="tq-pay"><?php echo html_escape($tq_p['own_note']); ?></small>
       </p>
     <?php else: ?>
       <p class="plan-cta__price">
@@ -633,3 +639,11 @@ $ld['image'] = tqs_plan_cover($b);
 <script type="application/ld+json"><?php
 echo json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ?></script>
+
+<?php echo tq_meta_track('ViewContent', array(
+    'currency' => 'SAR',
+    'value' => $tq_plan_pricing['has_alt'] ? $tq_plan_pricing['month'] : $tq_plan_pricing['total'],
+    'content_type' => 'product',
+    'content_ids' => array('plan-' . (int) $b['plan_id']),
+    'content_name' => $b['name'],
+)); ?>

@@ -527,7 +527,7 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
         <?php if ($tq_card): ?>
           <ol class="co-steps" data-tq-for="tap">
             <li><b>١</b> تنتقل إلى صفحة تاب الآمنة</li>
-            <li><b>٢</b> تدفع ببطاقتك</li>
+            <li><b>٢</b> تدخل بيانات البطاقة وتكمل تأكيد البنك إن طلب منك</li>
             <li><b>٣</b> يفعل اشتراكك ويفتح المحتوى فورا</li>
           </ol>
         <?php endif; ?>

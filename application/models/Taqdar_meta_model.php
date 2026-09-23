@@ -584,7 +584,7 @@ class Taqdar_meta_model extends CI_Model
             $this->db->reset_query();
             return null;
         }
-        if (!$inv || (int) $inv['total'] <= 0) return null;
+        if (!$inv || (string) $inv['status'] !== 'paid' || (int) $inv['total'] <= 0) return null;
 
         $what = $this->sold_of($inv);
 

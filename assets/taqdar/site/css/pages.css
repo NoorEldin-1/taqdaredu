@@ -5019,3 +5019,8 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
   background:var(--cream);border:1px dashed var(--gold-line-soft);
   font-size:.82em;font-weight:600;line-height:1.7;color:var(--gold-text);
 }
+
+/* Keep checkout grids within narrow mobile viewports without clipping fields. */
+.co-main,.co-acct__form{grid-template-columns:minmax(0,1fr)}
+.co-main>.icard,.co-acct__form>*{min-inline-size:0}
+.co-acct__form input,.co-acct__form select{min-inline-size:0}
