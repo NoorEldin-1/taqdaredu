@@ -569,6 +569,13 @@
             $tq_blog_title = trim((string) ($blog_details['title'] ?? ''));
             $tq_blog_desc = trim(strip_tags((string) ($blog_details['description'] ?? '')));
             if ($tq_blog_desc === '') $tq_blog_desc = $meta_description;
+            if (mb_strlen($tq_blog_desc) > 158) {
+                $tq_blog_cut = mb_substr($tq_blog_desc, 0, 158);
+                $tq_blog_sp  = mb_strrpos($tq_blog_cut, ' ');
+                $tq_blog_desc = ($tq_blog_sp !== false ? mb_substr($tq_blog_cut, 0, $tq_blog_sp) : $tq_blog_cut) . '…';
+            }
+            $meta_description = $tq_blog_desc;
+            $og_description   = $tq_blog_desc;
             $tq_article_ld = array(
                 '@context' => 'https://schema.org',
                 '@type' => 'BlogPosting',
