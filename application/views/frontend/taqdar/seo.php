@@ -32,7 +32,7 @@
 
             // Handle OG Image
             $og_image_path = 'uploads/seo-og-images/' . $seo['og_image'];
-            if (!empty($seo['og_image']) && file_exists($og_image_path) && is_file($og_image_path)) {
+            if (!empty($seo['og_image']) && is_file(FCPATH . $og_image_path)) {
                 $og_image = base_url($og_image_path);
             }
         } else {
@@ -334,6 +334,15 @@
             $canonical_url = base_url($c_path) . ($c_qs ? '?' . http_build_query($c_qs) : '');
         }
 
+        /* الفلاتر والبحث والترقيم خدمات داخل الكتالوج، لا صفحات بحث
+           مستقلة. إبقاؤها indexable ولّد مئات روابط parameters بلا نقرات
+           وسمح لـGoogle باختيار canonical مختلف عن المعلن. */
+        $CI_cf =& get_instance();
+        if (trim((string) $CI_cf->uri->uri_string(), '/') === 'catalog' && !empty($_GET)) {
+            $canonical_url = base_url('catalog');
+            $meta_robot = 'noindex, follow';
+        }
+
         /* TQ-SEO-TEACHER — صفحة المعلم تعرّف بصاحبها، لا بالمنصة.
 
            كانت تخرج بثلاثة نواقص، وكلها تظهر خارج الموقع لا داخله:
@@ -523,6 +532,48 @@
         if (in_array($r_first, $r_priv, true) || $r_code >= 400) {
             $meta_robot = 'noindex, follow';
         }
+        if (isset($page_name) && $page_name === 'site_path'
+            && isset($tq_detail['totals']['lessons'])
+            && (int) $tq_detail['totals']['lessons'] < 1) {
+            $meta_robot = 'noindex, follow';
+        }
+
+        /* فشل الغلاف لا يجب أن يخرج URL لمجلد أو صفحة 403. لا نتحقق من
+           مصادر خارجية هنا؛ أما ملفات نطاقنا فيجب أن تكون ملفات صور فعلية. */
+        if (!empty($tq_book) && is_array($tq_book)
+            && !empty($tq_book['cover']) && function_exists('tqs_img')) {
+            $og_image = tqs_img($tq_book['cover'], 'subj-math');
+        }
+        $tq_og_host = (string) parse_url($og_image, PHP_URL_HOST);
+        $tq_site_host = (string) parse_url(base_url(), PHP_URL_HOST);
+        $tq_og_path = (string) parse_url($og_image, PHP_URL_PATH);
+        if (($tq_og_host === '' || $tq_og_host === $tq_site_host)
+            && ($tq_og_path === '' || !is_file(FCPATH . ltrim($tq_og_path, '/')))) {
+            $og_image = base_url($tq_og);
+        }
+
+        $tq_og_type = 'website';
+        $tq_article_ld = null;
+        if ($r_first === 'blog' && !empty($blog_details) && is_array($blog_details)) {
+            $tq_og_type = 'article';
+            $tq_blog_title = trim((string) ($blog_details['title'] ?? ''));
+            $tq_blog_desc = trim(strip_tags((string) ($blog_details['description'] ?? '')));
+            if ($tq_blog_desc === '') $tq_blog_desc = $meta_description;
+            $tq_article_ld = array(
+                '@context' => 'https://schema.org',
+                '@type' => 'BlogPosting',
+                'headline' => $tq_blog_title !== '' ? $tq_blog_title : $meta_title,
+                'description' => $tq_blog_desc,
+                'image' => $og_image,
+                'mainEntityOfPage' => array('@type' => 'WebPage', '@id' => $canonical_url),
+                'author' => array('@type' => 'Organization', 'name' => 'منصة تقدر'),
+                'publisher' => array('@type' => 'EducationalOrganization', 'name' => 'منصة تقدر', 'url' => base_url()),
+            );
+            foreach (array('added_date' => 'datePublished', 'updated_date' => 'dateModified') as $tq_col => $tq_key) {
+                $tq_stamp = isset($blog_details[$tq_col]) ? (int) $blog_details[$tq_col] : 0;
+                if ($tq_stamp > 0) $tq_article_ld[$tq_key] = date('c', $tq_stamp);
+            }
+        }
     ?>
 
     <!-- Meta Tags -->
@@ -544,7 +595,7 @@
         وبلا `twitter:card` تظهر المشاركة سطرا بلا صورة، وبلا `og:locale`
         لا يعرف أن المحتوى عربي. و`hreflang` يقول للفهرس إن هذه هي
         النسخة العربية الوحيدة — الموقع أحادي اللغة. */ ?>
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="<?php echo $tq_og_type; ?>">
     <meta property="og:locale" content="ar_SA">
     <meta property="og:site_name" content="منصة تقدر">
     <meta name="twitter:card" content="summary_large_image">
@@ -572,5 +623,10 @@
 <?php if (!empty($tq_crumb)): ?>
     <script type="application/ld+json"><?php
         echo json_encode($tq_crumb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    ?></script>
+<?php endif; ?>
+<?php if ($tq_article_ld !== null): ?>
+    <script type="application/ld+json"><?php
+        echo json_encode($tq_article_ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     ?></script>
 <?php endif; ?>

@@ -354,8 +354,9 @@ if (!function_exists('tqs_books')) {
             $h .= '          <div class="book-card__cover" data-tone="' . $tone . '">';
 
             if (!empty($b['cover'])) {
+                $alt = t('غلاف كتاب ') . $b['title'];
                 $h .= '<img src="' . tqs_asset_img($b['cover'], 'subj-math')
-                    . '" width="420" height="560" loading="lazy" decoding="async" alt="">';
+                    . '" width="420" height="560" loading="lazy" decoding="async" alt="' . html_escape($alt) . '">';
             } else {
                 $h .= '<span class="book-card__spine" aria-hidden="true"></span>'
                     . '<span class="book-card__label">' . html_escape($b['subject']) . '</span>';

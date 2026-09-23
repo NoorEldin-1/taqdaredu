@@ -155,20 +155,9 @@ class Sitemap extends CI_Controller {
             $out[] = array('loc' => base_url($r), 'pri' => '0.8');
         }
 
-        /* تصنيفات الكتالوج — بالمعامِل الذي **يرشّح فعلًا**.
-
-           ⚠ الوارث كان يعلن `?category=`، وقياسه اليوم: `/catalog`
-           و`/catalog?category=primary` يعرضان الشيء نفسه حرفًا بحرف —
-           المعامِل ميّت. والكتالوج يرشّح بـ`?cat=` و`?grade=` (‏٩ عناصر
-           مقابل ٦ لغير المرشَّح). **فمعامِل لا يرشّح ليس صفحةً، وإعلانه
-           إعلانُ نسخة.** */
-        if ($this->db->table_exists('category')) {
-            $cats = $this->db->select('slug')->where('parent', 0)->get('category')->result_array();
-            foreach ($cats as $c) {
-                if ((string) $c['slug'] === '') continue;
-                $out[] = array('loc' => base_url('catalog?cat=' . rawurlencode($c['slug'])), 'pri' => '0.6');
-            }
-        }
+        /* فلاتر الكتالوج أدوات استكشاف للزائر لا صفحات هبوط مستقلة. فكل
+           permutation يحمل noindex وcanonical إلى /catalog، ولا يعلن في
+           الخريطة حتى لا يطلب من Google فهرسة نسخ متقاربة بلا نية مستقلة. */
         return $out;
     }
 
@@ -188,7 +177,10 @@ class Sitemap extends CI_Controller {
                          ->from('paths p')
                          ->join('course c', 'c.id = p.course_id', 'inner')
                          ->where('p.status', 'published')
-                         ->where('(SELECT COUNT(*) FROM lesson l WHERE l.course_id = c.id) > 0', null, false)
+                         ->where('(SELECT COUNT(*) FROM lesson l WHERE l.course_id = c.id'
+                               . ' AND COALESCE(l.tq_status, "published") = "published"'
+                               . ' AND (l.lesson_type = "quiz" OR TRIM(COALESCE(l.video_url, "")) <> "")) > 0',
+                                 null, false)
                          ->get()->result_array();
         $out = array();
         foreach ($rows as $r) {

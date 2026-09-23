@@ -146,7 +146,8 @@ $tq_gap = ($tq_plan && $tq_sell) ? max(0, (int) $tq_plan['price'] - $tq_price) :
         <div class="bookface book-card__cover" data-tone="<?php echo $tq_tone; ?>">
 <?php if ((string) $tq_b['cover'] !== ''): ?>
           <img src="<?php echo html_escape(tqs_img($tq_b['cover'], 'subj-math')); ?>"
-               width="420" height="560" loading="lazy" decoding="async" alt="">
+               width="420" height="560" loading="lazy" decoding="async"
+               alt="<?php echo html_escape(t('غلاف كتاب ') . $tq_b['title']); ?>">
 <?php else: ?>
           <span class="book-card__spine" aria-hidden="true"></span>
           <span class="book-card__label"><?php echo html_escape((string) $tq_b['subject'] !== ''

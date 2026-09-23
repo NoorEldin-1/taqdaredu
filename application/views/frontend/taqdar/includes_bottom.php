@@ -7,7 +7,11 @@
          لـ`TQ.gateFetch` منه رمى `TypeError` صامتا وبقيت الشاشة على
          هيكلها العظمي إلى الأبد — بلا خطأ يعرض ولا زر يعاد به.
          والملف يعد في رأسه أنه «يحمل قبل كل سكربت آخر»، وهذا يفي بوعده. */ ?>
+<?php /* الموقع العام يحمّل tq-phone.js من site_footer؛ البوابات لا تطبع
+         ذلك التذييل، فتبقيه هنا لها وحدها من دون تكرار في الصفحة العامة. */ ?>
+<?php if (!empty($tq_is_portal)): ?>
 <script src="<?php echo tq_asset('js/tq-phone.js'); ?>" defer></script>
+<?php endif; ?>
 <script src="<?php echo tq_asset('js/taqdar.js'); ?>" defer></script>
 
 <?php /* TQA-SELECT · TQA-FILE — المكونان اللذان بنيا للوحة.

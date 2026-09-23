@@ -242,8 +242,9 @@ if (!function_exists('tqs_cat_media')) {
             $tone = in_array($it['tone'], $tones, true) ? $it['tone'] : 'math';
             $h = '<div class="ccard__media ccard__media--book book-card__cover" data-tone="' . $tone . '">';
             if ((string) $it['image'] !== '') {
+                $alt = t('غلاف كتاب ') . $it['title'];
                 $h .= '<img src="' . html_escape(tqs_img($it['image'], 'subj-math'))
-                    . '" width="420" height="560" loading="lazy" decoding="async" alt="">';
+                    . '" width="420" height="560" loading="lazy" decoding="async" alt="' . html_escape($alt) . '">';
             } else {
                 /* بلا غلاف: اسم المادة على لوح ملون بلونها — أصدق من
                    غلاف كتاب آخر يوضع بديلا فيظن الزائر أنه هو. */
