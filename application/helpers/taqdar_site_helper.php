@@ -790,6 +790,25 @@ if (!function_exists('tqs_whatsapp_href')) {
     }
 }
 
+if (!function_exists('tqs_wa_group_href')) {
+    /**
+     * رابط دعوة مجموعة دعم العملاء — أو `''` حين لا مجموعة.
+     *
+     * TQ-WA-GROUP · القيمة من الثابت `TQ_WA_SUPPORT_GROUP` في
+     * `config/constants.php`، وهو موضعها الوحيد. ويقرؤها الزر العائم
+     * وبطاقة «مجموعة الدعم» معا من هنا لا من الثابت مباشرة: الفحص
+     * مكتوب مرة، فلا يفترق موضع عن موضع متى شدد أو خفف.
+     *
+     * والفحص يشترط رابط دعوة مجموعة لا غير: قيمة كتبت خطأ في ملف
+     * إعداد لا تتحول إلى رابط خارجي يفتح من كل صفحة عامة.
+     */
+    function tqs_wa_group_href()
+    {
+        $u = defined('TQ_WA_SUPPORT_GROUP') ? trim((string) TQ_WA_SUPPORT_GROUP) : '';
+        return preg_match('~^https://chat\.whatsapp\.com/[A-Za-z0-9]+$~', $u) ? $u : '';
+    }
+}
+
 if (!function_exists('tqs_whatsapp_text')) {
     function tqs_whatsapp_text()
     {
