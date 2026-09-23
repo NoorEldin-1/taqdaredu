@@ -80,7 +80,7 @@
                 $og_description = $meta_description;
 
                 $blog_banner = 'uploads/blog/banner/' . $data['banner'];
-                $og_image = (!empty($data['banner']) && file_exists($blog_banner)) 
+                $og_image = (!empty($data['banner']) && is_file(FCPATH . $blog_banner))
                             ? base_url($blog_banner) 
                             : base_url('uploads/blog/banner/placeholder.png');
 
