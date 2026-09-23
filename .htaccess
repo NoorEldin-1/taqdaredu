@@ -72,8 +72,8 @@ RewriteRule (^|/)\.claude(/|$)     - [F,L]
 # التعليمية بأنواعها الأربعة. فالمواد وجهتها الكتالوج لا الباقات،
 # والكتب صارت نوعا فيه فتصل مرشحة عليه.
 # دائم لا مؤقت: الصفحات لن تعود، والمؤقت يبقي القديم في الفهارس.
-RewriteRule ^courses/?$ /catalog [R=301,L]
-RewriteRule ^courses/(.*)$ /catalog [R=301,L]
+RewriteRule ^courses/?$ /catalog [R=301,L,QSD]
+RewriteRule ^courses/(.*)$ /catalog [R=301,L,QSD]
 
 # TQ-BOOK — و`/books` عادت صفحة، فرفع تحويلها.
 # حذف يوم كان الكتاب صفا مجانيا يحمل ملفه: بند يقود الى مرشح واحد من
@@ -109,7 +109,6 @@ RewriteRule ^home/?$ / [R=301,L]
 # مستقلة عن الكتالوج الحديث. نحذف المعاملات هنا كي لا تنتقل تركيبات البحث
 # القديمة إلى الوجهة الجديدة كنسخ بديلة.
 RewriteRule ^home/courses/?$ /catalog [R=301,L,QSD]
-RewriteRule ^courses/?$ /catalog [R=301,L,QSD]
 RewriteRule ^home/about_us/?$ /about [R=301,L]
 RewriteRule ^home/contact_us/?$ /contact [R=301,L]
 RewriteRule ^home/faq/?$ /faq [R=301,L]
