@@ -567,6 +567,10 @@
         if ($r_first === 'blog' && !empty($blog_details) && is_array($blog_details)) {
             $tq_og_type = 'article';
             $tq_blog_title = trim((string) ($blog_details['title'] ?? ''));
+            $tq_blog_banner = 'uploads/blog/banner/' . trim((string) ($blog_details['banner'] ?? ''));
+            if (is_file(FCPATH . $tq_blog_banner)) {
+                $og_image = base_url($tq_blog_banner);
+            }
             $tq_blog_desc = trim(strip_tags((string) ($blog_details['description'] ?? '')));
             if ($tq_blog_desc === '') $tq_blog_desc = $meta_description;
             if (mb_strlen($tq_blog_desc) > 158) {
