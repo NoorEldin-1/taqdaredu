@@ -552,6 +552,13 @@ class Login extends CI_Controller
             $this->session->set_userdata('is_instructor', 0);
             $this->session->set_userdata('user_login', '1');
 
+            if (empty($tq_made['resumed'])) {
+                $this->session->set_userdata('tq_registration_event', array(
+                    'name' => 'CompleteRegistration', 'id' => 'tq-register-' . (int) $user_id,
+                    'params' => array('content_name' => $tq_next_in === 'student/placement' ? 'free_assessment_account' : 'website_account', 'status' => true),
+                ));
+            }
+
             /* TQ-AUTOPAY — سجل من صفحة الدفع نفسها وضغط «ادفع الآن»:
                النية تودع في الجلسة (لا في الرابط) ويستهلكها
                `Taqdar::checkout()` مرة واحدة فيمضي إلى الفاتورة والدفع

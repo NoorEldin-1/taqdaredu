@@ -561,6 +561,11 @@ class Taqdar extends CI_Controller
         } else {
             $this->trace('placement_submit', 'tq_diag_attempts#' . (int) $r['attempt_id'],
                          array('level' => $r['level'], 'score' => $r['score'], 'total' => $r['total']));
+            // A completed free assessment is a lead, not a sale. No scores or identity sent.
+            $this->session->set_flashdata('tq_meta_events', array(array(
+                'name' => 'Lead', 'id' => 'tq-assessment-' . (int) $r['attempt_id'],
+                'params' => array('content_name' => 'free_assessment_completed', 'content_category' => 'free_assessment'),
+            )));
 
             /* الإبلاغ **بعد** حفظ النتيجة لا قبله: من يقرر أمر الباقة هو
                من يدفع، وهو في الغالب ليس صاحب هذه الشاشة. فتخرج النتيجة
@@ -4123,6 +4128,10 @@ class Taqdar extends CI_Controller
         tq_auth_record_failure($chk['clean']['email'], 'quick_buy');   // عداد الإنشاء لا فشل
         $this->tq_quick_enter($uid, $chk['clean']['first_name'] . ' ' . $chk['clean']['last_name']);
         $this->trace('student.quick_account', 'users:' . $uid, array('buy' => $kind));
+        $this->session->set_userdata('tq_registration_event', array(
+            'name' => 'CompleteRegistration', 'id' => 'tq-register-' . $uid,
+            'params' => array('content_name' => 'checkout_account', 'status' => true),
+        ));
 
         /* TQ-EXPRESS-PAY — أزرار الدفع المباشر لا تظهر إلا لصاحب جلسة، فمن
            لم يختر التحويل يعود إلى الشاشة وقد دخل فيجدها. */

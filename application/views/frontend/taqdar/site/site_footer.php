@@ -73,8 +73,7 @@ $tq_pays = array(
     'pay-mada'       => array('مدى',          151, 90),
     'pay-visa'       => array('فيزا',          151, 90),
     'pay-mastercard' => array('ماستركارد',    150, 90),
-    'pay-applepay'   => array('Apple Pay',    252, 91),
-    'pay-tamara'     => array('تمارا',         280, 91),
+    // Wallet/installment logos require verified merchant availability before advertising them.
     'pay-bank'       => array('تحويل بنكي',   153, 92),
 );
 foreach ($tq_pays as $tq_f => $tq_p):

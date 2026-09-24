@@ -97,6 +97,7 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
          نافذة شراء بـ`?next=` يعود بعد الدخول الفوري إلى ما كان يشتريه.
          والتصفية في `tqs_safe_next()` وحدها هنا وفي المتحكم. */
       $tq_next_su = tqs_safe_next($this->input->get('next'));
+      if ($tq_next_su === '' && $this->session->userdata('tq_next') === 'student/placement') $tq_next_su = 'student/placement';
       if ($tq_next_su !== ''): ?>
         <input type="hidden" name="tq_next" value="<?php echo html_escape($tq_next_su); ?>">
 <?php endif; ?>
@@ -181,11 +182,11 @@ $tq_chan_v = isset($tq_old['otp_channel']) ? (string) $tq_old['otp_channel'] : '
               <label class="form-field">
                 <svg aria-hidden="true"><use href="#i-cap"></use></svg>
                 <span class="sr-only">الصف الدراسي</span>
-                <select name="grade_id">
-                  <option value="">الصف الدراسي (اختياري)</option>
+                <select name="grade_id" <?php echo $tq_next_su === 'student/placement' ? 'required' : ''; ?>>
+                  <option value=""><?php echo $tq_next_su === 'student/placement' ? 'اختر الصف الدراسي للاختبار' : 'الصف الدراسي (اختياري)'; ?></option>
                   <?php
                   $tq_ci_g = &get_instance();
-                  $tq_gr_old = (string) (isset($tq_old['grade_id']) ? $tq_old['grade_id'] : '');
+                  $tq_gr_old = (string) (isset($tq_old['grade_id']) ? $tq_old['grade_id'] : ($tq_next_su === 'student/placement' ? (int) $this->input->get('grade_id') : ''));
                   foreach ($tq_ci_g->db->select('id, name_ar')->from('grades')->where('active', 1)
                                        ->order_by('`order`', 'ASC')->get()->result_array() as $tq_gr): ?>
                     <option value="<?php echo (int) $tq_gr['id']; ?>"

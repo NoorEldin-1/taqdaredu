@@ -683,6 +683,7 @@ if (!function_exists('tq_meta_pixel')) {
 
         ob_start(); ?>
 <!-- Meta Pixel Code -->
+<script src="<?php echo base_url('assets/taqdar/js/tq-attribution.js?v=20260924'); ?>" defer></script>
 <script>
 /* TQ-PERF-PIXEL — البكسل ينتظر اكتمال الرسم، ولا يزاحمه.
 
@@ -752,6 +753,7 @@ if (!function_exists('tq_meta_pixel')) {
            (TQ-META-CAPI). وبلاه يعد الشراء الواحد مرتين. */
         M.ready = true;
         M.track = function (name, params, id) {
+            if (choice !== 'accepted') return;
             fbq('track', name, params || {}, id ? { eventID: id } : undefined);
         };
         for (var i = 0; i < M.q.length; i++) M.track.apply(null, M.q[i]);
@@ -838,6 +840,13 @@ if (!function_exists('tq_meta_flush')) {
         if (!$CI || !isset($CI->session)) return '';
 
         $events = $CI->session->flashdata('tq_meta_events');
+        if (!is_array($events)) $events = array();
+        // Quick checkout can cross several redirects, including the gateway, before rendering.
+        $registration = $CI->session->userdata('tq_registration_event');
+        if (is_array($registration) && !empty($registration['name'])) {
+            $events[] = $registration;
+            $CI->session->unset_userdata('tq_registration_event');
+        }
         if (!is_array($events) || !$events) return '';
 
         $out = '';

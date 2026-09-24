@@ -93,6 +93,7 @@ css: pages
             . 'وتقييم يقيس الإتقان لا الحضور، وتقارير يراها ولي الأمر أولا بأول.'); ?>
         </p>
         <div class="hero__cta">
+          <a class="btn btn--ghost-light" href="<?php echo base_url('assessment'); ?>">اختبار تحديد المستوى المجاني</a>
           <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>">
             <?php echo tq_text('home', 'hero_cta_1', 'ابدأ رحلة التعلم'); ?></a>
           <a class="btn btn--ghost-light" href="<?php echo base_url('catalog'); ?>">

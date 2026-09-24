@@ -59,7 +59,7 @@ $tq_is_portal = isset($page_name)
    ومن صفحة المعلم ومن نتائج البحث: فيهبط من ترويسة الموقع العشرية إلى
    ترويسة الثيم القديمة السداسية، ومن الخلفية الكريمية إلى بيضاء. لا شيء
    يقول له إنه غادر الموقع — لأنه لم يغادره. */
-$tq_site_pages = array('home', 'home_elegant', 'courses_page', 'course_page', 'site_teachers', 'site_students', 'site_parents', 'blogs', 'about_us', 'contact_us', 'site_path', 'login', 'sign_up', 'forgot_password',
+$tq_site_pages = array('site_assessment', 'home', 'home_elegant', 'courses_page', 'course_page', 'site_teachers', 'site_students', 'site_parents', 'blogs', 'about_us', 'contact_us', 'site_path', 'login', 'sign_up', 'forgot_password',
     'change_password_from_forgot_password', 'verification_code', 'terms_and_condition', 'privacy_policy', 'refund_policy', 'website_faq', '404', 'plans', 'categories', 'blog_details', 'instructor_page', 'site_search', 'site_plan', 'site_checkout',
     /* TQ-COURSE-SALE — شاشة تأكيد شراء الكورس المفرد، بجوار أختها.
        وبلا إدراجها هنا تفتح بترويسة الثيم القديمة: ينتقل المشتري من

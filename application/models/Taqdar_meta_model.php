@@ -190,18 +190,80 @@ class Taqdar_meta_model extends CI_Model
      * التي جاء منها (`fbclid`) — وبها وحدها ينسب الشراء إلى الحملة التي
      * دفع فيها المال. وبلاهما يصل الحدث ويعد ولا ينسب إلى إعلان.
      */
+    /** Analytics-only exclusion; never changes invoices, entitlements or payment status. */
+    public function is_test_invoice($inv)
+    {
+        $this->config->load('taqdar_analytics', false, true);
+        $invoice_ids = (array) $this->config->item('tq_analytics_test_invoices');
+        $user_ids = (array) $this->config->item('tq_analytics_test_users');
+        if (in_array((int) $inv['id'], array_map('intval', $invoice_ids), true)
+            || in_array((int) $inv['user_id'], array_map('intval', $user_ids), true)) return true;
+        $email_hashes = (array) $this->config->item('tq_analytics_test_email_hashes');
+        if ($email_hashes) {
+            $account = $this->db->select('email')->where('id', (int) $inv['user_id'])->limit(1)->get('users')->row_array();
+            $email = strtolower(trim((string) ($account['email'] ?? '')));
+            if ($email !== '' && in_array(hash('sha256', $email), $email_hashes, true)) return true;
+        }
+        // A failed sandbox attempt must not suppress a later genuine live payment.
+        $attempt = $this->db->where('invoice_id', (int) $inv['id'])->where('status', 'paid')
+            ->order_by('id', 'DESC')->limit(1)->get('payment_attempts')->row_array();
+        return $attempt && (string) $attempt['mode'] === 'test';
+    }
+
+    private function remember_attribution($invoice_id)
+    {
+        if (($_COOKIE['tq_consent'] ?? '') !== 'accepted') return;
+        $raw = (string) ($_COOKIE['tq_attr_v1'] ?? '');
+        if (strlen($raw) > 4096) return;
+        $data = json_decode($raw, true);
+        if (!is_array($data)) return;
+        $clean = array();
+        foreach (array('first', 'last') as $kind) {
+            if (empty($data[$kind]) || !is_array($data[$kind])) continue;
+            $touch = $data[$kind];
+            $at = isset($touch['at']) && is_numeric($touch['at']) ? (float) $touch['at'] : 0;
+            if ($at < (time() - 30 * 86400) * 1000 || $at > (time() + 300) * 1000) continue;
+            foreach (array('utm_source','utm_medium','utm_campaign','utm_term','utm_content') as $key) {
+                if (isset($touch[$key]) && is_string($touch[$key])
+                    && preg_match('~^[\p{L}\p{N} _.,:+/\-]{1,100}$~u', $touch[$key])) {
+                    $clean[$kind][$key] = $touch[$key];
+                }
+            }
+            if (isset($clean[$kind])) $clean[$kind]['at'] = $at;
+        }
+        if (!$clean) return;
+        // Separate table: campaign metadata must never alter the accounting record.
+        $this->db->query('CREATE TABLE IF NOT EXISTS tq_invoice_attribution (
+            invoice_id INT UNSIGNED NOT NULL PRIMARY KEY,
+            attribution_json TEXT NOT NULL,
+            created_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+        $this->db->query('INSERT IGNORE INTO tq_invoice_attribution (invoice_id, attribution_json, created_at) VALUES (?, ?, ?)',
+            array((int) $invoice_id, json_encode($clean, JSON_UNESCAPED_UNICODE), date('Y-m-d H:i:s')));
+    }
+
     public function browser_ids()
     {
         if (!isset($_SERVER['REQUEST_METHOD'])) return array();   // كرون: لا طلب ولا كعكة
+        if (($_COOKIE['tq_consent'] ?? '') !== 'accepted') {
+            return array('fbp'=>'', 'fbc'=>'', 'client_ip'=>'', 'user_agent'=>'',
+                'consent'=>($_COOKIE['tq_consent'] ?? '') === 'denied' ? 'denied' : '', 'source_url'=>'');
+        }
 
         $fbp = isset($_COOKIE['_fbp']) ? mb_substr((string) $_COOKIE['_fbp'], 0, 128) : '';
         $fbc = isset($_COOKIE['_fbc']) ? mb_substr((string) $_COOKIE['_fbc'], 0, 255) : '';
 
         /* البكسل مؤجل إلى `load` (TQ-PERF-PIXEL)، فقد يصل الطلب قبل أن
            يكتب `_fbc`. و`fbclid` في الرابط يبنيه بالصيغة نفسها. */
+        if ($fbc === '' && ($_COOKIE['tq_consent'] ?? '') === 'accepted') {
+            $saved = (string) ($_COOKIE['tq_fbc_v1'] ?? '');
+            if (preg_match('/^fb\.1\.(\d{13})\.[A-Za-z0-9_-]{1,200}$/', $saved, $matches)
+                && (float) $matches[1] >= (time() - 30 * 86400) * 1000
+                && (float) $matches[1] <= (time() + 300) * 1000) $fbc = $saved;
+        }
         if ($fbc === '') {
             $clid = trim((string) $this->input->get('fbclid'));
-            if ($clid !== '') $fbc = 'fb.1.' . (time() * 1000) . '.' . $clid;
+            if (preg_match('/^[A-Za-z0-9_-]{1,200}$/', $clid)) $fbc = 'fb.1.' . (time() * 1000) . '.' . $clid;
         }
 
         return array(
@@ -237,6 +299,7 @@ class Taqdar_meta_model extends CI_Model
                 $ids,
                 array('created_at' => date('Y-m-d H:i:s'))
             ));
+            $this->remember_attribution($invoice_id);
             return true;
         } catch (Throwable $e) {
             $this->db->reset_query();
@@ -292,6 +355,7 @@ class Taqdar_meta_model extends CI_Model
 
         $inv = $this->db->where('id', $invoice_id)->get('invoices')->row_array();
         if (!$inv) return false;
+        if ($this->is_test_invoice($inv)) return false;
 
         /* الباقة المجانية تصدر فاتورة بصفر وتسدد بـ`free`. وشراء بقيمة
            صفر ليس شراء: يلوث تعلم ميتا بمشترين لم يدفعوا شيئا، ويخفض
@@ -585,6 +649,7 @@ class Taqdar_meta_model extends CI_Model
             return null;
         }
         if (!$inv || (string) $inv['status'] !== 'paid' || (int) $inv['total'] <= 0) return null;
+        if ($this->is_test_invoice($inv)) return null;
 
         $what = $this->sold_of($inv);
 
