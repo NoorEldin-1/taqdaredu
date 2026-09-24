@@ -1048,7 +1048,7 @@ if (!function_exists('tqs_bundle_cards')) {
             if ($b['note'] !== '') {
                 $h .= '    <p class="bundle__note">' . html_escape($b['note']) . '</p>' . "\n";
             }
-            $h .= '    <p class="bundle__price"><b class="tq-ltr">' . number_format($b['price'] / 100)
+            $h .= '    <p class="bundle__price"><b class="tq-ltr">' . number_format($b['price'] / 100, $b['price'] % 100 ? 2 : 0)
                 . t('</b> <span>ر.س</span>')
                 . '<small>' . ($b['days'] >= 360 ? t('للعام الدراسي كاملا') : t('لكل ') . (int) $b['days'] . t(' يوما')) . '</small></p>' . "\n";
             if ($b['features']) {
@@ -1768,7 +1768,7 @@ if (!function_exists('tqs_curriculum_units')) {
             $u_n = 0;
             foreach ($u['lessons'] as $ul) if (empty($ul['is_soon'])) $u_n++;
             $h .= '        <h4 class="curric__unit-h">' . html_escape($u['title'])
-                . ' <small>' . $u_n . t(' درسا</small></h4>') . "\n";
+                . ' <small>' . tqs_ar_count($u_n, array('درس واحد', 'درسان', 'دروس', 'درسا')) . '</small></h4>' . "\n";
             $h .= '        <ol class="curric__lessons">' . "\n";
             foreach ($u['lessons'] as $l) {
                 $l_soon = !empty($l['is_soon']);
@@ -1861,9 +1861,9 @@ if (!function_exists('tqs_curriculum')) {
 
             $i++;
             $meta = array();
-            if (count($s['units']) > 0) $meta[] = count($s['units']) . t(' وحدة');
-            if ($s['lessons'] > 0)      $meta[] = $s['lessons'] . t(' درسا');
-            if ($s['quizzes'] > 0)      $meta[] = $s['quizzes'] . t(' اختبارا');
+            if (count($s['units']) > 0) $meta[] = strip_tags(tqs_ar_count(count($s['units']), array('وحدة واحدة', 'وحدتان', 'وحدات', 'وحدة')));
+            if ($s['lessons'] > 0)      $meta[] = strip_tags(tqs_ar_count($s['lessons'], array('درس واحد', 'درسان', 'دروس', 'درسا')));
+            if ($s['quizzes'] > 0)      $meta[] = strip_tags(tqs_ar_count($s['quizzes'], array('اختبار واحد', 'اختباران', 'اختبارات', 'اختبارا')));
 
             $h .= '  <details class="curric__subj' . ((!$ready && !TQ_HIDE_SOON) ? ' is-soon' : '') . '"'
                 . ($i <= $open && $ready ? ' open' : '') . '>' . "\n";
@@ -1984,9 +1984,9 @@ if (!function_exists('tqs_curriculum_tree')) {
                 $soon  = (!$ready && $mode !== 'student');
 
                 $meta = array();
-                if (count($s['units']) > 0) $meta[] = count($s['units']) . t(' وحدة');
-                if ($s['lessons'] > 0)      $meta[] = $s['lessons'] . t(' درسا');
-                if ($s['quizzes'] > 0)      $meta[] = $s['quizzes'] . t(' اختبارا');
+                if (count($s['units']) > 0) $meta[] = strip_tags(tqs_ar_count(count($s['units']), array('وحدة واحدة', 'وحدتان', 'وحدات', 'وحدة')));
+                if ($s['lessons'] > 0)      $meta[] = strip_tags(tqs_ar_count($s['lessons'], array('درس واحد', 'درسان', 'دروس', 'درسا')));
+                if ($s['quizzes'] > 0)      $meta[] = strip_tags(tqs_ar_count($s['quizzes'], array('اختبار واحد', 'اختباران', 'اختبارات', 'اختبارا')));
 
                 $s_open = ($ready && !$s_opened && $open);
                 if ($s_open) $s_opened = true;

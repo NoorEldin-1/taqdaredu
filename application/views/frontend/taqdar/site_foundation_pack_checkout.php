@@ -129,7 +129,7 @@ foreach ($credits as $c) $have += (int) $c['left'];
           <?php echo tqs_ar_count((int) $o['sessions'], array(t('حصة'), t('حصتين'), t('حصص'), t('حصة'))); ?>
           <?php echo t('فردية مباشرة في'); ?>
           <?php echo html_escape($track['name'] ?? t('التأسيس')); ?>
-          — <?php echo t('الحصة فيها'); ?> <?php echo tqs_money((int) $o['unit']); ?>
+          — <?php echo t('متوسط الحصة فيها حوالي'); ?> <?php echo tqs_money((int) $o['unit']); ?>
           <?php if ((int) $o['single'] > 0): ?>
             <?php echo t('بدل'); ?> <?php echo tqs_money((int) $o['single']); ?> <?php echo t('مفردة'); ?>
           <?php endif; ?>

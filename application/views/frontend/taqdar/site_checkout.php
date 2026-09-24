@@ -374,7 +374,7 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
                 <span class="co-cyc__price"><b class="tq-ltr"><?php echo number_format($tq_sar, fmod((float) $tq_sar, 1.0) != 0.0 ? 2 : 0); ?></b> ر.س</span>
                 <span class="co-cyc__note">
                   يفتح <?php echo (int) $tq_c['days']; ?> يوما<?php
-                    echo $tq_sv > 0 ? ' — توفر ' . number_format($tq_sv) . ' ر.س' : ''; ?>
+                    echo $tq_sv > 0 ? ' — توفر ' . number_format($tq_sv, fmod((float) $tq_sv, 1.0) != 0.0 ? 2 : 0) . ' ر.س' : ''; ?>
                 </span>
               </a>
             <?php endforeach; ?>
