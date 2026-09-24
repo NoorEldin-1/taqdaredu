@@ -332,6 +332,14 @@ class Taqdar_events_model extends CI_Model
             $this->enqueue($user_id, $type, $title, $text, $category, $delay_to, 'whatsapp');
         }
 
+        /* TQ-PUSH — وإشعار التطبيق صفا ثالثا، فيرث ساعات الصمت والإعادة
+           بلا سطر: طرقة جوال في منتصف الليل مقاطعة كالبريد وأشد. وهو مرآة
+           «داخل المنصة» فيتبع مربعه، ولا يودع لمن لا جهاز له — صف بلا
+           مستقبل يعاد خمس مرات ثم يموت بسبب كاذب. */
+        if ($inapp && $this->push_ready() && $this->push_has_devices($user_id)) {
+            $this->enqueue($user_id, $type, $title, $text, $category, $delay_to, 'push');
+        }
+
         return $id;
     }
 
@@ -390,7 +398,7 @@ class Taqdar_events_model extends CI_Model
                             $delay_to = null, $channel = 'email')
     {
         try {
-            $channel = in_array((string) $channel, array('email', 'whatsapp'), true)
+            $channel = in_array((string) $channel, array('email', 'whatsapp', 'push'), true)
                      ? (string) $channel : 'email';
             $this->ensure_queue();
             $this->db->insert('tq_notify_queue', array(
@@ -460,6 +468,45 @@ class Taqdar_events_model extends CI_Model
         }
     }
 
+    /** ونظيره لإشعار التطبيق (TQ-PUSH) — مفتاح Firebase محفوظ صالح. */
+    public function push_ready()
+    {
+        try {
+            $this->load->model('taqdar_push_model');
+            return (bool) $this->taqdar_push_model->ready();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    private function push_has_devices($user_id)
+    {
+        try {
+            $this->load->model('taqdar_push_model');
+            return (bool) $this->taqdar_push_model->has_devices((int) $user_id);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * يرسل صف طابور إلى جوال صاحبه.
+     *
+     * وجهاز حذف بين الإيداع والصرف (خرج صاحبه) ليس فشلا يعاد: لا مستقبل
+     * له، فيحسب مرسلا ولا يموت بعد خمس محاولات بسبب «تعذر الإرسال».
+     */
+    private function maybe_push($user_id, $title, $body, $type)
+    {
+        $this->load->model('taqdar_push_model');
+        if (!$this->taqdar_push_model->has_devices((int) $user_id)) return true;
+        $n = $this->taqdar_push_model->send_user((int) $user_id, $title, $body,
+            array('type' => (string) $type), (string) $type);
+        if ($n <= 0) {
+            throw new RuntimeException($this->taqdar_push_model->last_error ?: 'لم يقبل FCM أي جهاز');
+        }
+        return true;
+    }
+
     public function drain($limit = 50)
     {
         $out = array('sent' => 0, 'failed' => 0, 'dead' => 0, 'held' => 0, 'skipped' => 0);
@@ -486,6 +533,7 @@ class Taqdar_events_model extends CI_Model
             $ready = array(
                 'email'    => $this->outbound_ready(),
                 'whatsapp' => $this->wa_ready(),
+                'push'     => $this->push_ready(),
             );
             $dead_ch = array();
             foreach ($rows as $r) {
@@ -495,7 +543,7 @@ class Taqdar_events_model extends CI_Model
             foreach ($dead_ch as $ch => $ids) {
                 $this->db->where_in('id', $ids)->update('tq_notify_queue', array(
                     'state'      => 'skipped',
-                    'last_error' => ($ch === 'whatsapp' ? 'واتساب' : 'البريد')
+                    'last_error' => ($ch === 'whatsapp' ? 'واتساب' : ($ch === 'push' ? 'إشعار التطبيق' : 'البريد'))
                                   . ' غير مفعل على هذه المنصة — الإشعار داخل المنصة كتب.',
                 ));
                 $out['skipped'] += count($ids);
@@ -529,9 +577,14 @@ class Taqdar_events_model extends CI_Model
             $err = '';
 
             try {
-                $ok = ((string) $r['channel'] === 'whatsapp')
-                    ? (bool) $this->maybe_whatsapp($uid, $r['title'], (string) $r['body'], (string) $r['type'])
-                    : (bool) $this->maybe_email($uid, $r['title'], (string) $r['body'], (string) $r['type']);
+                $ch = (string) $r['channel'];
+                if ($ch === 'whatsapp') {
+                    $ok = (bool) $this->maybe_whatsapp($uid, $r['title'], (string) $r['body'], (string) $r['type']);
+                } elseif ($ch === 'push') {
+                    $ok = (bool) $this->maybe_push($uid, $r['title'], (string) $r['body'], (string) $r['type']);
+                } else {
+                    $ok = (bool) $this->maybe_email($uid, $r['title'], (string) $r['body'], (string) $r['type']);
+                }
             } catch (Throwable $e) {
                 $ok  = false;
                 $err = $e->getMessage();

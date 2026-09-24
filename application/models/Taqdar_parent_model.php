@@ -1362,8 +1362,26 @@ class Taqdar_parent_model extends CI_Model
             'updated_at'  => null,
         ]);
 
+        $nid = (int) $this->db->insert_id();
+
         $this->announce_by_mail($to_user, $title, $body);
         $this->announce_by_wa($to_user, $title, $body, $type);
+        $this->announce_by_push($to_user, $title, $body, $type, $nid);
+    }
+
+    /**
+     * TQ-PUSH — وإشعار التطبيق مع الصف، كأخويه البريد وواتساب. والباب
+     * `push_user()` نفسه الذي يمر به `push_notification()`، لا نسخة ثانية.
+     */
+    private function announce_by_push($to_user, $title, $body, $type, $nid = 0)
+    {
+        try {
+            $this->load->model('taqdar_admin_model');
+            $this->taqdar_admin_model->push_user(
+                (int) $to_user, (string) $title, strip_tags((string) $body), (string) $type, (int) $nid);
+        } catch (Throwable $e) {
+            log_message('error', 'parent_links push: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -1451,6 +1469,9 @@ class Taqdar_parent_model extends CI_Model
                 'created_at'  => $now,
                 'updated_at'  => $now,
             ]);
+            $this->announce_by_push($sid, 'طلب ربط ولي أمر',
+                $parent . ' يطلب ربط حسابك بحسابه. لا يفتح شيء من بياناتك قبل موافقتك.',
+                'parent_link_request', (int) $this->db->insert_id());
         }
 
         /* والبريد كذلك — انظر TQ-LINK-MAIL: الطالب قد لا يفتح جرسه أياما،

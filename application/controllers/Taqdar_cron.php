@@ -185,6 +185,14 @@ class Taqdar_cron extends CI_Controller
             log_message('error', 'TQ-CRON purge contact: ' . $e->getMessage());
         }
 
+        /* سجل إشعارات التطبيق (TQ-PUSH) — شهر يكفي لسؤال «أوصل؟». */
+        try {
+            $this->load->model('taqdar_push_model');
+            $this->taqdar_push_model->purge_log(30);
+        } catch (Throwable $e) {
+            log_message('error', 'TQ-CRON purge push: ' . $e->getMessage());
+        }
+
         echo date('Y-m-d H:i:s') . " otp_purged={$n} wa_log_purged={$w} contact_log_purged={$c}\n";
     }
 }

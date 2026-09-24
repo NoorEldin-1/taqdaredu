@@ -161,6 +161,8 @@ $route['api/v1/auth/social']      = 'api_v1/auth_social';
 $route['api/v1/auth/refresh']     = 'api_v1/auth_refresh';
 $route['api/v1/auth/logout-all']  = 'api_v1/auth_logout_all';
 $route['api/v1/auth/logout']      = 'api_v1/auth_logout';
+// TQ-PUSH — رمز Firebase للجهاز: POST يسجله و DELETE يلغيه، على مسار واحد.
+$route['api/v1/devices']          = 'api_v1/devices';
 // وقاعدة الجهاز الواحد قبل قاعدة القائمة: `sessions/(:any)` مقطعان،
 // و`sessions` مقطع — والترتيب هو ترتيب هذا الملف كله، الأخص قبل الأعم.
 $route['api/v1/auth/sessions/(:any)'] = 'api_v1/auth_session_revoke/$1';

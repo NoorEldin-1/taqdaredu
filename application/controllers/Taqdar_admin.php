@@ -2603,6 +2603,131 @@ class Taqdar_admin extends CI_Controller
         ));
     }
 
+    /* =====================================================================
+       إشعارات التطبيق — TQ-PUSH
+
+       شاشة واحدة تجيب ثلاثة أسئلة بترتيبها: أيعمل الاتصال بـFirebase؟
+       وكم جهازا يستقبل؟ وهل وصل آخر ما أرسل؟ — ومعها المفتاح وزر فحص.
+       ===================================================================== */
+
+    public function push()
+    {
+        $this->load->model('taqdar_push_model');
+        $this->taqdar_push_model->install_schema();
+
+        $this->render('tqa_push', 'إشعارات التطبيق', array(
+            'tq_fp'      => $this->taqdar_push_model->fingerprint(),
+            'tq_stats'   => $this->taqdar_push_model->stats(),
+            'tq_devices' => $this->taqdar_push_model->recent_devices(30),
+            'tq_log'     => $this->taqdar_push_model->recent_log(25),
+            'tq_probe'   => $this->session->flashdata('push_probe'),
+        ));
+    }
+
+    /**
+     * حفظ المفتاح — ولا يمس حين يترك فارغا، والمسح بمربع صريح.
+     * والملف يفحص **قبل** الحفظ (`parse_service_account()`): ملف التطبيق
+     * `google-services.json` يلصق هنا خطأ، وحفظه يجعل كل إرسال يفشل بلا
+     * سبب يفهمه أحد. وبعد الحفظ يفحص الاتصال فورا فيقرأ المسؤول النتيجة.
+     */
+    public function push_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_push_model');
+
+        $was = $this->taqdar_push_model->fingerprint();
+
+        if ((string) $this->input->post('sa_clear') === '1') {
+            $this->taqdar_push_model->put_setting('tq_fcm_service_account', '');
+            $this->taqdar_push_model->put_setting('tq_fcm_access_cache', '');
+            $this->taqdar_admin_model->audit('push.key', 'settings', $was, null);
+            $this->session->set_flashdata('flash_message', 'مسح المفتاح. لا يخرج إشعار تطبيق حتى يحفظ غيره.');
+            redirect(site_url('taqdar_admin/push'), 'location', 302);
+            return;
+        }
+
+        $json = (string) $this->input->post('sa_json', false);
+        if (trim($json) === '') {
+            $this->session->set_flashdata('error_message', 'لم يلصق شيء — المفتاح المحفوظ لم يمس.');
+            redirect(site_url('taqdar_admin/push'), 'location', 302);
+            return;
+        }
+
+        $r = $this->taqdar_push_model->parse_service_account($json);
+        if (!$r['ok']) {
+            $this->session->set_flashdata('error_message', $r['error']);
+            redirect(site_url('taqdar_admin/push'), 'location', 302);
+            return;
+        }
+
+        $this->taqdar_push_model->put_setting('tq_fcm_service_account',
+            json_encode($r['sa'], JSON_UNESCAPED_SLASHES));
+        $this->taqdar_push_model->put_setting('tq_fcm_access_cache', '');
+        $this->taqdar_admin_model->audit('push.key', 'settings', $was, array(
+            'project_id' => $r['sa']['project_id'], 'client_email' => $r['sa']['client_email']));
+
+        redirect(site_url('taqdar_admin/push_probe'), 'location', 302);
+    }
+
+    /** فحص الاتصال: أتقبل جوجل المفتاح؟ وأيقبل FCM المشروع؟ — ولا يصل شيء لأحد. */
+    public function push_probe()
+    {
+        $this->load->model('taqdar_push_model');
+        $p = $this->taqdar_push_model->probe();
+        $p['at'] = date('Y-m-d H:i:s');
+        $this->session->set_flashdata('push_probe', $p);
+        $this->session->set_flashdata($p['ok'] ? 'flash_message' : 'error_message', $p['ok']
+            ? 'الاتصال بـFirebase يعمل: جوجل قبلت المفتاح وFCM قبل المشروع.'
+            : 'الاتصال بـFirebase لا يعمل — السبب في لوح الفحص.');
+        redirect(site_url('taqdar_admin/push'), 'location', 302);
+    }
+
+    /**
+     * إشعار فحص حقيقي إلى جهاز مسجل — أو إلى كل أجهزة حساب ببريده.
+     * وهو الإثبات الوحيد الذي لا يكذب: وصوله إلى الجوال.
+     */
+    public function push_test()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_push_model');
+
+        $title = trim((string) $this->input->post('title')) ?: 'إشعار فحص من تقدر';
+        $body  = trim((string) $this->input->post('body'))
+              ?: ('وصوله يعني أن إشعارات التطبيق تعمل. أرسل في ' . date('Y-m-d H:i') . '.');
+
+        $devices = array();
+        $did   = (int) $this->input->post('device_id');
+        $email = trim((string) $this->input->post('email'));
+        if ($did > 0) {
+            $d = $this->taqdar_push_model->device($did);
+            if ($d) $devices[] = $d;
+        } elseif ($email !== '') {
+            $u = $this->db->select('id')->where('email', $email)->get('users')->row_array();
+            if ($u) $devices = $this->taqdar_push_model->devices_of((int) $u['id']);
+        }
+
+        if (!$devices) {
+            $this->session->set_flashdata('error_message',
+                'لا جهاز مسجل لهذا الاختيار. سجل الدخول من التطبيق أولا حتى يرسل رمز جهازه، ثم عد.');
+            redirect(site_url('taqdar_admin/push'), 'location', 302);
+            return;
+        }
+
+        $ok = 0;
+        foreach ($devices as $d) {
+            if ($this->taqdar_push_model->send_device($d, $title, $body, array('type' => 'test'), 'test')) $ok++;
+        }
+
+        if ($ok > 0) {
+            $this->session->set_flashdata('flash_message',
+                'قبل Firebase الإرسال إلى ' . $ok . ' من ' . count($devices) . ' جهاز — راجع الجوال. ورقم الرسالة في السجل أسفل الشاشة.');
+        } else {
+            $this->session->set_flashdata('error_message',
+                'لم يقبل Firebase الإرسال: ' . $this->taqdar_push_model->last_error);
+        }
+        redirect(site_url('taqdar_admin/push'), 'location', 302);
+    }
+
     /**
      * كم حسابا ربط بكل مزود، وكم منها أنشئ به.
      *
