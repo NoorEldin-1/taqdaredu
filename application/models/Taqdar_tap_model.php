@@ -654,6 +654,10 @@ class Taqdar_tap_model extends CI_Model
 
         if (!in_array($gstatus, self::$PAID, true)) {
             $open = in_array($gstatus, self::$OPEN, true);
+            $failure_message = 'لم تؤكد البوابة نجاح الدفع. يمكنك إعادة المحاولة أو اختيار التحويل البنكي. إذا ظهر خصم في حسابك، تواصل مع الدعم قبل تكرار الدفع.';
+            if ($gstatus === 'DECLINED' && (string) ($c['response']['code'] ?? '') === '516') {
+                $failure_message = 'لم يكتمل توثيق البطاقة لدى البنك. أكمل رمز التأكيد أو الموافقة في تطبيق البنك عند إعادة المحاولة، أو استخدم بطاقة أخرى أو التحويل البنكي. إذا ظهر خصم، تواصل مع الدعم قبل التكرار.';
+            }
             $this->touch($att['id'], array(
                 'status'         => $open ? 'initiated' : 'failed',
                 'gateway_status' => $gstatus,
@@ -664,7 +668,7 @@ class Taqdar_tap_model extends CI_Model
                 'gateway_status' => $gstatus,
                 'errors' => array($open
                     ? 'لم تكتمل الدفعة بعد. أكمل الدفع أو أعد المحاولة.'
-                    : 'لم تنجح الدفعة. لم يخصم منك شيء، ويمكنك المحاولة مرة أخرى أو التحويل البنكي.'),
+                    : $failure_message),
                 'subscription_id' => (int) $att['subscription_id'],
                 'invoice_id' => (int) $att['invoice_id']);
         }

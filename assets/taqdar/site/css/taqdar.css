@@ -793,6 +793,11 @@ html.js .reveal.is-in{opacity:1;transform:none}
 @media (max-width:480px){
   :root{--gutter:14px;--r-panel:20px;--r-card:16px;--script-tile:clamp(260px,72vw,360px)}
   .cards-3,.cards-4,.why__grid,.features__bar{grid-template-columns:1fr}
+  /* النص الذي يحرره المسؤول قد يطول عن الافتراض التصميمي؛ لا يقصه
+     الإطار ولا يخرج الزران عن عرض الهاتف. */
+  .hero__frame,.hero__copy{min-inline-size:0}
+  .hero__copy{padding-inline:clamp(16px,5vw,22px)}
+  .hero h1,.hero__lede{overflow-wrap:anywhere}
   .hero__cta{flex-direction:column;align-items:stretch}
   .hero__cta .btn{width:100%;justify-content:center}
   /* كان `height:34px` مع `width:clamp(92px…)` من القاعدة الأم — أي

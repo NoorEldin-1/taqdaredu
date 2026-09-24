@@ -17,12 +17,8 @@
                      عنوانه (تواصل معنا) — فلا يقفز مخطط العناوين.
    ══════════════════════════════════════════════════════════════════ */
 
-$tq_wa_url = defined('TQ_WA_SUPPORT_GROUP') ? trim((string) TQ_WA_SUPPORT_GROUP) : '';
-/* رابط دعوة مجموعة لا غير: قيمة مكتوبة خطأ في الثابت لا تتحول إلى
-   رابط خارجي على صفحة عامة. */
-if ($tq_wa_url === '' || !preg_match('~^https://chat\.whatsapp\.com/[A-Za-z0-9]+$~', $tq_wa_url)) {
-    return;
-}
+$tq_wa_url = tqs_wa_group_href();   /* الفحص في الدالّة — موضع واحد */
+if ($tq_wa_url === '') return;
 $tq_wa_h = (isset($tq_wa_h) && in_array($tq_wa_h, array('h2', 'h3'), true)) ? $tq_wa_h : 'h2';
 $tq_wa_section = !empty($tq_wa_section);
 ?>

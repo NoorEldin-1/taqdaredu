@@ -144,7 +144,7 @@ $tq_price_html = function ($price) {
                 <ul class="fndpk-card__list">
                   <li>
                     <svg aria-hidden="true"><use href="#i-check"></use></svg>
-                    <span><?php echo t('الحصة فيها'); ?> <b><?php echo tqs_money((int) $tq_pk['unit']); ?></b>
+                    <span><?php echo t('متوسط الحصة فيها حوالي'); ?> <b><?php echo tqs_money((int) $tq_pk['unit']); ?></b>
                       <?php if ((int) $tq_pk['single'] > (int) $tq_pk['unit']): ?>
                         <?php echo t('بدل'); ?> <?php echo tqs_money((int) $tq_pk['single']); ?> <?php echo t('مفردة'); ?>
                       <?php endif; ?></span>

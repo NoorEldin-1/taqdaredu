@@ -72,8 +72,8 @@ RewriteRule (^|/)\.claude(/|$)     - [F,L]
 # التعليمية بأنواعها الأربعة. فالمواد وجهتها الكتالوج لا الباقات،
 # والكتب صارت نوعا فيه فتصل مرشحة عليه.
 # دائم لا مؤقت: الصفحات لن تعود، والمؤقت يبقي القديم في الفهارس.
-RewriteRule ^courses/?$ /catalog [R=301,L]
-RewriteRule ^courses/(.*)$ /catalog [R=301,L]
+RewriteRule ^courses/?$ /catalog [R=301,L,QSD]
+RewriteRule ^courses/(.*)$ /catalog [R=301,L,QSD]
 
 # TQ-BOOK — و`/books` عادت صفحة، فرفع تحويلها.
 # حذف يوم كان الكتاب صفا مجانيا يحمل ملفه: بند يقود الى مرشح واحد من
@@ -93,19 +93,22 @@ RewriteRule ^competition/(.*)$ /catalog [R=301,L]
 
 # التطوير المحلّي مستثنى: لا شهادة على localhost، والإجبار يقطع الخادم المحلّي.
 # الشرط لا يُفعَّل في الإنتاج لأنّ المضيف هناك ليس localhost أبدًا.
-RewriteCond %{HTTP_HOST} !^localhost [NC]
-RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
-RewriteCond %{HTTPS} !=on
-RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
-RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
-RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
+# www عبر HTTP كان يمر بقفزتين. الشرطان يجمعان http وwww في تحويل واحد
+# إلى الأصل HTTPS non-www، مع إبقاء localhost خارج هذه السياسة.
+RewriteCond %{HTTP_HOST} ^(?:www\.)?taqdaredu\.com$ [NC]
+RewriteCond %{HTTPS} !=on [OR]
+RewriteCond %{HTTP_HOST} ^www\.taqdaredu\.com$ [NC]
+RewriteRule ^(.*)$ https://taqdaredu.com/$1 [R=301,L]
 </IfModule>
 
 <IfModule mod_rewrite.c>
 
 # تحويل الروابط القديمة إلى النظيفة — 301 حتى لا تضيع أرشفة ولا رابط محفوظ
 RewriteRule ^home/?$ / [R=301,L]
-RewriteRule ^home/courses/?$ /courses [R=301,L]
+# الكتالوج القديم كان يولّد مجموعات كبيرة من روابط query ولا يقدّم قيمة
+# مستقلة عن الكتالوج الحديث. نحذف المعاملات هنا كي لا تنتقل تركيبات البحث
+# القديمة إلى الوجهة الجديدة كنسخ بديلة.
+RewriteRule ^home/courses/?$ /catalog [R=301,L,QSD]
 RewriteRule ^home/about_us/?$ /about [R=301,L]
 RewriteRule ^home/contact_us/?$ /contact [R=301,L]
 RewriteRule ^home/faq/?$ /faq [R=301,L]
@@ -113,6 +116,9 @@ RewriteRule ^home/terms_and_condition/?$ /terms [R=301,L]
 RewriteRule ^home/privacy_policy/?$ /privacy [R=301,L]
 RewriteRule ^home/refund_policy/?$ /refund [R=301,L]
 RewriteRule ^home/my_courses/?$ /my-courses [R=301,L]
+# `/blogs` واجهة قديمة للمدونة نفسها. التحويل أقوى من canonical وحده ويحفظ
+# الإشارات على عنوان المدونة المعتمد.
+RewriteRule ^blogs/?$ /blog [R=301,L,QSD]
 # الأخصّ قبل الأعمّ: القاعدة العامّة كانت تبتلع مسارَي المعلّم
 # ووليّ الأمر فتحوّلهما إلى /student/... وهو عنوان غير موجود.
 RewriteRule ^taqdar/teacher/?$ /teacher [R=301,L]

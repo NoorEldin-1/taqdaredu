@@ -63,6 +63,7 @@ $tq_hdr_class = in_array($tq_page, array('home', 'home_elegant'), true) ? 'plain
 </div>
 
 <header class="site-header site-header--<?php echo $tq_hdr_class; ?>" id="header">
+  <?php include __DIR__ . '/site_identity_notice.php'; ?>
   <div class="header-main">
     <div class="shell">
       <a class="brand" href="<?php echo base_url(); ?>" aria-label="منصة تقدر — الصفحة الرئيسية">

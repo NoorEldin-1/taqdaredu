@@ -381,7 +381,7 @@ class Taqdar_diag_model extends CI_Model
         if ($o >= 7 && $o <= 9) {                        // المتوسط — عشرة
             return array('beginner' => 2, 'intermediate' => 4, 'advanced' => 4);
         }
-        return null;                                     // بلا حصة ⇒ البنك كاملا
+        return array('beginner' => 2, 'intermediate' => 4, 'advanced' => 4); // عشرة كحد أقصى
     }
 
     /** حصة اختبار بعينه، من ترتيب صفه. */
@@ -400,7 +400,7 @@ class Taqdar_diag_model extends CI_Model
             if ($row && $row['o'] !== null) $order = (int) $row['o'];
         } catch (Throwable $e) {}
 
-        $this->quota_cache[$exam_id] = ($order === null) ? null : self::form_quota($order);
+        $this->quota_cache[$exam_id] = self::form_quota($order);
         return $this->quota_cache[$exam_id];
     }
 

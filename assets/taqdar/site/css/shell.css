@@ -27,7 +27,7 @@
 /* ── شريط الارتباط ──────────────────────────────────────────────── */
 .tq-cookie {
   position: fixed; inset-inline: 1rem; bottom: 1rem; z-index: 900;
-  max-inline-size: 44rem; margin-inline: auto;
+  inline-size: calc(100% - 2rem); max-inline-size: 44rem; box-sizing: border-box; margin-inline: auto;
   display: flex; flex-wrap: wrap; gap: .9rem; align-items: center;
   padding: 1rem 1.25rem; background: var(--paper, #fff);
   border: 1px solid var(--gold-line); border-radius: 18px;
@@ -97,6 +97,9 @@
     inset-inline:.6rem;bottom:.6rem;padding:.85rem 1rem;
     font-size:.86rem;border-radius:14px;gap:.6rem
   }
+  .tq-cookie .tq-row{min-inline-size:0}
+  .tq-cookie .tq-btn{max-inline-size:100%;white-space:normal}
+  .tq-cookie .tq-caption{overflow-wrap:anywhere}
   .tq-cookie p,.tq-cookie div{flex:1 1 100%}
   /* الشريط مثبت أسفل الشاشة، فبلا تعويض يغطي آخر سطر في الصفحة */
   body:has(.tq-cookie) main{padding-block-end:6.5rem}

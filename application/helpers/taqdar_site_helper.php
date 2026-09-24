@@ -354,8 +354,9 @@ if (!function_exists('tqs_books')) {
             $h .= '          <div class="book-card__cover" data-tone="' . $tone . '">';
 
             if (!empty($b['cover'])) {
+                $alt = t('غلاف كتاب ') . $b['title'];
                 $h .= '<img src="' . tqs_asset_img($b['cover'], 'subj-math')
-                    . '" width="420" height="560" loading="lazy" decoding="async" alt="">';
+                    . '" width="420" height="560" loading="lazy" decoding="async" alt="' . html_escape($alt) . '">';
             } else {
                 $h .= '<span class="book-card__spine" aria-hidden="true"></span>'
                     . '<span class="book-card__label">' . html_escape($b['subject']) . '</span>';
@@ -790,6 +791,25 @@ if (!function_exists('tqs_whatsapp_href')) {
     }
 }
 
+if (!function_exists('tqs_wa_group_href')) {
+    /**
+     * رابط دعوة مجموعة دعم العملاء — أو `''` حين لا مجموعة.
+     *
+     * TQ-WA-GROUP · القيمة من الثابت `TQ_WA_SUPPORT_GROUP` في
+     * `config/constants.php`، وهو موضعها الوحيد. ويقرؤها الزر العائم
+     * وبطاقة «مجموعة الدعم» معا من هنا لا من الثابت مباشرة: الفحص
+     * مكتوب مرة، فلا يفترق موضع عن موضع متى شدد أو خفف.
+     *
+     * والفحص يشترط رابط دعوة مجموعة لا غير: قيمة كتبت خطأ في ملف
+     * إعداد لا تتحول إلى رابط خارجي يفتح من كل صفحة عامة.
+     */
+    function tqs_wa_group_href()
+    {
+        $u = defined('TQ_WA_SUPPORT_GROUP') ? trim((string) TQ_WA_SUPPORT_GROUP) : '';
+        return preg_match('~^https://chat\.whatsapp\.com/[A-Za-z0-9]+$~', $u) ? $u : '';
+    }
+}
+
 if (!function_exists('tqs_whatsapp_text')) {
     function tqs_whatsapp_text()
     {
@@ -1028,7 +1048,7 @@ if (!function_exists('tqs_bundle_cards')) {
             if ($b['note'] !== '') {
                 $h .= '    <p class="bundle__note">' . html_escape($b['note']) . '</p>' . "\n";
             }
-            $h .= '    <p class="bundle__price"><b class="tq-ltr">' . number_format($b['price'] / 100)
+            $h .= '    <p class="bundle__price"><b class="tq-ltr">' . number_format($b['price'] / 100, $b['price'] % 100 ? 2 : 0)
                 . t('</b> <span>ر.س</span>')
                 . '<small>' . ($b['days'] >= 360 ? t('للعام الدراسي كاملا') : t('لكل ') . (int) $b['days'] . t(' يوما')) . '</small></p>' . "\n";
             if ($b['features']) {
@@ -1316,15 +1336,15 @@ if (!function_exists('tqs_plans_guide')) {
         $copy = array(
             'first' => array(
                 'when' => t('إن كان الأساس يكفيك'),
-                'why'  => t('مواد الصف الأساسية مشروحة، واختبار وواجب بعد كل درس، وتقرير ')
+                'why'  => t('مواد الصف الأساسية المنشورة، مع الاختبارات والواجبات المتاحة، وتقرير ')
                         . t('يصلك أولا بأول. تكفي إن كان ابنك يتابع في مدرسته ويحتاج من ')
                         . t('يثبت الأساس ويريك أين يقف.'),
                 'icon' => 'i-book',
             ),
             'mid' => array(
-                'when' => t('إن أردت المنهج كاملا'),
-                'why'  => t('كل مواد الصف لا الأساسية وحدها، ومعها المهارات الرقمية وتمارين ')
-                        . t('ومراجعات دورية. تناسب من لا يريد أن يبقى في منهج ابنه ما لم يشرح.'),
+                'when' => t('إن أردت مواد أكثر'),
+                'why'  => t('مواد أكثر بحسب القائمة المنشورة، ومعها المهارات الرقمية وتمارين ')
+                        . t('ومراجعات دورية. راجع قائمة المواد والدروس الجاهزة لتتأكد أنها تناسب احتياج ابنك.'),
                 'icon' => 'i-target',
             ),
             'last' => array(
@@ -1604,7 +1624,7 @@ if (!function_exists('tqs_money')) {
      */
     function tqs_money($halalas, $unit = true)
     {
-        $v = number_format(((int) $halalas) / 100, 0, '.', ',');
+        $v = number_format(((int) $halalas) / 100, ((int) $halalas % 100) ? 2 : 0, '.', ',');
         return '<b class="tq-ltr">' . $v . '</b>' . ($unit ? t(' <span>ر.س</span>') : '');
     }
 }
@@ -1748,7 +1768,7 @@ if (!function_exists('tqs_curriculum_units')) {
             $u_n = 0;
             foreach ($u['lessons'] as $ul) if (empty($ul['is_soon'])) $u_n++;
             $h .= '        <h4 class="curric__unit-h">' . html_escape($u['title'])
-                . ' <small>' . $u_n . t(' درسا</small></h4>') . "\n";
+                . ' <small>' . tqs_ar_count($u_n, array('درس واحد', 'درسان', 'دروس', 'درسا')) . '</small></h4>' . "\n";
             $h .= '        <ol class="curric__lessons">' . "\n";
             foreach ($u['lessons'] as $l) {
                 $l_soon = !empty($l['is_soon']);
@@ -1841,9 +1861,9 @@ if (!function_exists('tqs_curriculum')) {
 
             $i++;
             $meta = array();
-            if (count($s['units']) > 0) $meta[] = count($s['units']) . t(' وحدة');
-            if ($s['lessons'] > 0)      $meta[] = $s['lessons'] . t(' درسا');
-            if ($s['quizzes'] > 0)      $meta[] = $s['quizzes'] . t(' اختبارا');
+            if (count($s['units']) > 0) $meta[] = strip_tags(tqs_ar_count(count($s['units']), array('وحدة واحدة', 'وحدتان', 'وحدات', 'وحدة')));
+            if ($s['lessons'] > 0)      $meta[] = strip_tags(tqs_ar_count($s['lessons'], array('درس واحد', 'درسان', 'دروس', 'درسا')));
+            if ($s['quizzes'] > 0)      $meta[] = strip_tags(tqs_ar_count($s['quizzes'], array('اختبار واحد', 'اختباران', 'اختبارات', 'اختبارا')));
 
             $h .= '  <details class="curric__subj' . ((!$ready && !TQ_HIDE_SOON) ? ' is-soon' : '') . '"'
                 . ($i <= $open && $ready ? ' open' : '') . '>' . "\n";
@@ -1964,9 +1984,9 @@ if (!function_exists('tqs_curriculum_tree')) {
                 $soon  = (!$ready && $mode !== 'student');
 
                 $meta = array();
-                if (count($s['units']) > 0) $meta[] = count($s['units']) . t(' وحدة');
-                if ($s['lessons'] > 0)      $meta[] = $s['lessons'] . t(' درسا');
-                if ($s['quizzes'] > 0)      $meta[] = $s['quizzes'] . t(' اختبارا');
+                if (count($s['units']) > 0) $meta[] = strip_tags(tqs_ar_count(count($s['units']), array('وحدة واحدة', 'وحدتان', 'وحدات', 'وحدة')));
+                if ($s['lessons'] > 0)      $meta[] = strip_tags(tqs_ar_count($s['lessons'], array('درس واحد', 'درسان', 'دروس', 'درسا')));
+                if ($s['quizzes'] > 0)      $meta[] = strip_tags(tqs_ar_count($s['quizzes'], array('اختبار واحد', 'اختباران', 'اختبارات', 'اختبارا')));
 
                 $s_open = ($ready && !$s_opened && $open);
                 if ($s_open) $s_opened = true;
@@ -2463,8 +2483,8 @@ if (!function_exists('tqs_plan_price')) {
         $mon     = isset($cycles['monthly']) ? $cycles['monthly'] : null;
         $has_alt = ($mon !== null && $own['key'] !== 'monthly');
 
-        $own_sar = (int) round($own['price'] / 100);
-        $mon_sar = $has_alt ? (int) round($mon['price'] / 100) : $own_sar;
+        $own_sar = $own['price'] / 100;
+        $mon_sar = $has_alt ? $mon['price'] / 100 : $own_sar;
 
         $months = array('annual' => 12, 'quarterly' => 3, 'monthly' => 1, 'free' => 0);
         $m      = isset($months[$own['key']]) ? $months[$own['key']] : 12;
@@ -2512,7 +2532,7 @@ if (!function_exists('tqs_plan_price')) {
             /* والتوفير مقارنة حقيقية الان: 42 × 12 هو ما يدفعه فعلا من
                اشترى شهرا شهرا. وكان يقارن بسعر مرجعي لا يباع. */
             $out['save'] = max(0, $mon_sar * $m - $own_sar);
-            $out['note'] = t('تدفع سنويا ') . number_format($own_sar) . t(' ر.س');
+            $out['note'] = t('تدفع سنويا ') . number_format($own_sar, fmod((float) $own_sar, 1.0) != 0.0 ? 2 : 0) . t(' ر.س');
         } else {
             $out['pay_note'] = $out['own_note'];
             $out['note']     = ($own['key'] === 'monthly'
@@ -2566,11 +2586,11 @@ if (!function_exists('tqs_plan_price_html')) {
 
         /* الدورية: سعر الباقة بدورته. */
         $h .= '      <p class="' . $cls . '" data-cycle="year" hidden>'
-            . '<b class="tq-ltr">' . number_format($p['total']) . '</b>'
+            . '<b class="tq-ltr">' . number_format($p['total'], fmod((float) $p['total'], 1.0) != 0.0 ? 2 : 0) . '</b>'
             . t('<span>ر.س / ') . html_escape($p['unit']) . '</span>'
             . '<small class="tq-pay">' . html_escape($p['own_note']);
         if ($p['has_alt'] && $p['save'] > 0) {
-            $h .= t(' — توفر ') . number_format($p['save']) . t(' ر.س عن الشهري');
+            $h .= t(' — توفر ') . number_format($p['save'], fmod((float) $p['save'], 1.0) != 0.0 ? 2 : 0) . t(' ر.س عن الشهري');
         }
         $h .= '</small></p>' . "\n";
 
@@ -2968,7 +2988,7 @@ if (!function_exists('tqs_foundation_band')) {
         $title   = $txt($o['title'],   'band_title',   'مسارات التأسيس');
         $lede    = $txt($o['lede'],    'band_lede',
                        'حصص فردية مباشرة مع معلم متخصص، تبدأ من مستوى الطالب لا من صفه — '
-                     . 'بلا اشتراك: تحجز الحصة وتدفع ثمنها وحدها.');
+                     . 'اختر حصة مفردة تدفع بعد تأكيدها، أو باقة حصص تدفع مقدمًا وتستخدم رصيدها خلال مدة الصلاحية.');
         $hid = 'fnd26-title-' . preg_replace('/[^a-z0-9_-]/i', '', (string) $o['id']);
 
         $h  = '<section class="section" id="' . html_escape($o['id']) . '" aria-labelledby="' . $hid . '">' . "\n";
@@ -3093,8 +3113,8 @@ if (!function_exists('tqs_foundation_facts')) {
         $facts = array(
             array('i-video',  t('حصة فردية مباشرة')),
             array('i-clock',  '<b class="tq-ltr">' . (int) $cfg['minutes'] . '</b> ' . t('دقيقة للحصة')),
-            array('i-shield', t('لا دفع قبل تأكيد المعلم')),
-            array('i-unlock', t('بلا اشتراك ولا باقة')),
+            array('i-shield', t('الحصة المفردة: الدفع بعد التأكيد')),
+            array('i-unlock', t('حصة مفردة أو باقة حصص')),
         );
         $h = '      <ul class="' . html_escape($class) . '">' . "\n";
         foreach ($facts as $f) {

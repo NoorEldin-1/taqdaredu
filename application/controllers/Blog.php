@@ -106,18 +106,30 @@ class Blog extends CI_Controller
            المعلق برابط مباشر تفرغ الموافقة التحريرية من معناها، فيفحص
            النشر هنا: النموذج نفسه تحتاجه شاشات الإدارة بلا فلتر. */
         $tq_row = ($blog_row->num_rows() > 0) ? $blog_row->row_array() : null;
+        if (!$tq_row) {
+            show_404();
+            return;
+        }
         $tq_published = $tq_row && isset($tq_row['status'])
                         && in_array((string) $tq_row['status'], array('1', 'active', 'published'), true);
         if ($tq_row && !$tq_published && (int) $this->session->userdata('user_id') !== (int) $tq_row['user_id']) {
             show_404();
+            return;
         }
 
-        if($blog_row->num_rows() == 0){
-            $this->session->set_flashdata('error_message', site_phrase('This blog is not available'));
-            redirect($_SERVER['HTTP_REFERER'], 'refresh');
+        /* الرابط القانوني يأتي من السبيكة المخزنة، لا من نص الطلب. وإلا
+           صار كل slug عشوائي نسخة 200 قابلة للفهرسة من المقال نفسه. */
+        $tq_slug = trim((string) (isset($tq_row['slug']) ? $tq_row['slug'] : ''));
+        if ($tq_slug === '') {
+            show_404();
+            return;
+        }
+        if (rawurldecode((string) $blog_slug) !== $tq_slug) {
+            redirect(base_url('blog/' . rawurlencode($tq_slug) . '/' . (int) $blog_id), 'location', 301);
+            return;
         }
         
-        $page_data['blog_details'] = $blog_row->row_array();
+        $page_data['blog_details'] = $tq_row;
         $page_data['blog_id'] = $blog_id;
         $page_data['page_name'] = 'blog_details';
         /* عنوان المقال لا «تفاصيل المدونة»: العنوان الثابت يجعل كل رابط

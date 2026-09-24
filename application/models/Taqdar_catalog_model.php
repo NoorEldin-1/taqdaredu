@@ -173,7 +173,7 @@ class Taqdar_catalog_model extends CI_Model
                     array('i-check', tq_count_units(count($feat), 'ميزة', 'ميزتان', 'ميزتين',
                                                     'مزايا', 'ميزة', null, 'obl', true)),
                     array('i-calendar', ((int) $r['duration_days'] >= 360)
-                        ? 'العام الدراسي كاملا' : tq_days((int) $r['duration_days'])),
+                        ? 'شهري أو سنوي حسب اختيارك' : tq_days((int) $r['duration_days'])),
                 ),
                 /* الدورة والمرحلة والرمز يسافرون مع العنصر: بطاقة الكتالوج
                    كانت تستخرج الرمز من `href` بـ`basename()` وتخمن الدورة

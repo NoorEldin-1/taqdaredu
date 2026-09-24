@@ -5211,3 +5211,11 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 .cc-pick__name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cc-pick__code{color:var(--ink-3);font-size:13px;font-variant-numeric:tabular-nums}
 .cc-pick__empty{margin:6px 4px 4px;color:var(--ink-3);font-size:13px;text-align:center}
+
+/* Keep checkout grids within narrow mobile viewports without clipping fields. */
+.co-main,.co-acct__form{grid-template-columns:minmax(0,1fr)}
+.co-main>.icard,.co-acct__form>*{min-inline-size:0}
+.co-acct__form input,.co-acct__form select{min-inline-size:0}
+
+/* Keep decorative motion inside the viewport without clipping controls. */
+html { overflow-x: clip; }

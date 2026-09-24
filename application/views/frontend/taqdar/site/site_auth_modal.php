@@ -30,7 +30,7 @@
   </button>
 
   <p class="tq-auth__lede">
-    خطوة واحدة قبل الدفع<span data-tq-auth-name hidden>: <b></b></span>
+    حسابك ثم تأكيد الاشتراك<span data-tq-auth-name hidden>: <b></b></span>
   </p>
 
   <?php /* TQ-SOCIAL — وأسرع باب يعرض أولا. من فتح هذه النافذة وهو
@@ -57,7 +57,7 @@
            (`?next=`) فيعود بعد التسجيل إلى ما كان يشتريه. */ ?>
   <div class="tq-auth__form" data-tq-auth-pane="new">
     <p class="tq-caption">
-      حساب تقدر مجاني ويفتح في أقل من دقيقة، ثم تعود إلى هنا لإتمام الدفع.
+      حساب تقدر مجاني. قد يطلب تحديد مستوى من 5 إلى 10 أسئلة قبل الدفع، ثم تستكمل الباقة المختارة.
     </p>
     <a class="btn btn--primary btn--block" data-tq-auth-signup
        href="<?php echo base_url('sign_up'); ?>">أنشئ حسابا وتابع</a>
