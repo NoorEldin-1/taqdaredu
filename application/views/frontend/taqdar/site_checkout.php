@@ -72,7 +72,8 @@ $tq_both = $tq_card && $tq_bank;
 $tq_guest = !empty($tq_guest);
 ?>
 
-<section class="page-hero page-hero--checkout">
+<?php include __DIR__ . '/site/site_checkout_layout.php'; ?>
+<section class="page-hero page-hero--checkout co-compact-hero">
   <?php include __DIR__ . '/site/site_arch.php'; ?>
   <div class="shell">
     <nav class="crumbs" aria-label="مسار التصفح">
@@ -80,8 +81,8 @@ $tq_guest = !empty($tq_guest);
       <a href="<?php echo base_url('plan/' . $b['code']); ?>"><?php echo html_escape(tqs_bundle_tier($b['name'])); ?></a> ›
       <span aria-current="page">تأكيد الاشتراك</span>
     </nav>
-    <h1>تأكيد الاشتراك</h1>
-    <p class="page-hero__lead">راجع ما ستشترك فيه، ثم أكد — ولن يخصم شيء تلقائيا.</p>
+    <h1>أكمل طلبك</h1>
+    <p class="page-hero__lead">راجع باقتك، اختر طريقة الدفع، وأكمل بياناتك.</p>
   </div>
 </section>
 
@@ -138,7 +139,7 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
            إلى `student/subscribe`، والزائر إلى `checkout-quick` الذي ينشئ
            حسابه من ثلاثة حقول ثم يسلم الطلب نفسه إلى `subscribe()`. فما
            يرسله الزائر هو ما يرسله الداخل حرفا — والحقول الثلاثة فوقه. */ ?>
-  <form class="shell co-cols" method="post" id="tqCheckout"
+  <form class="shell co-cols co-checkout-layout" method="post" id="tqCheckout"
         action="<?php echo base_url($tq_guest ? 'checkout-quick' : 'student/subscribe'); ?>"
         data-tq-item="plan:<?php echo (int) $b['plan_id']; ?>">
     <?php echo tq_csrf(); ?>
@@ -158,7 +159,8 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
           'total' => tq_coupon_total($tq_cpn, $tq_amt),
       )); ?>
 <?php endif; ?>
-
+    </div>
+    <div class="co-review" aria-label="تفاصيل الطلب وطريقة الدفع">
         <div class="icard co-summary">
           <h2>ملخص الطلب</h2>
 
@@ -273,11 +275,12 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
                  فمن طبقه ثم بدل المدة يرى الخصم على المبلغ الجديد. ونموذج
                  الشراء يغلفه للزائر كذلك الآن (TQ-QUICK-BUY)، فيرسل الكود
                  معه — و«طبق» بلا سكربت `formnovalidate` لا يطلب البيانات. */ ?>
-        <?php echo tq_coupon_box($tq_cpn, array(
+        <?php /* Open presentation only: coupon validation and form fields stay unchanged. */
+        echo preg_replace('/<details(?: open)?>/', '<details open>', tq_coupon_box($tq_cpn, array(
             'here' => site_url('checkout/' . $b['code']) . '?cycle=' . rawurlencode((string) $tq_cyc['key']),
-        )); ?>
+        )), 1); ?>
 
-        <div class="icard">
+        <div class="icard co-payment-panel">
           <h2>طريقة الدفع</h2>
           <?php $tq_fa = ''; ?>
 
@@ -316,7 +319,7 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
                   </span>
                   <span class="co-opt__t">
                     <b>بطاقة — مدى أو فيزا أو ماستركارد</b>
-                    <span class="tq-caption">دفع فوري في صفحة تاب الآمنة، ويفتح المحتوى في لحظته.</span>
+                    <span class="tq-caption">تدخل بيانات بطاقتك في بوابة تاب، ويُفعّل الاشتراك بعد تأكيد نجاح الدفع.</span>
                   </span>
                 </span>
               </label>
@@ -325,7 +328,7 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
                 <input type="radio" name="pay_method" value="bank" data-tq-pay="bank"<?php echo $tq_fa; ?>>
                 <span class="co-opt__box">
                   <span class="co-opt__ico" aria-hidden="true">
-                    <svg><use href="#i-bank"></use></svg>
+                    <img src="<?php echo base_url('assets/taqdar/site/img/checkout-bank-transfer-20260924.webp'); ?>" width="48" height="48" alt="" decoding="async">
                   </span>
                   <span class="co-opt__t">
                     <b>تحويل بنكي</b>
@@ -362,7 +365,7 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
                 <b>بطاقة — مدى أو فيزا أو ماستركارد</b>
               </span>
               <span class="tq-caption">
-                دفع فوري في صفحة تاب الآمنة، ويفتح المحتوى في لحظته.
+                تدخل بيانات بطاقتك في بوابة تاب، ويُفعّل الاشتراك بعد تأكيد نجاح الدفع.
               </span>
             </p>
             <?php /* والحقل المخفي يقوم مقام المنتقي: بلا `pay_method` يقرأ
@@ -401,7 +404,7 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
 
     <aside class="co-side">
       <div class="icard icard--sticky">
-        <h3 class="co-side__h">الخطوة الأخيرة</h3>
+        <h3 class="co-side__h">تأكيد الطلب</h3>
 
         <?php if ($tq_card): ?>
           <ol class="co-steps" data-tq-for="tap">
