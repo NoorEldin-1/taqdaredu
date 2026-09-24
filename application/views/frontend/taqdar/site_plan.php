@@ -433,7 +433,7 @@ $tq_plan_card = $tq_ci->taqdar_tap_model->ready();
             <small class="tq-pay"><?php echo html_escape($tq_p['pay_note']); ?></small>
           </p>
           <p class="plan-card__price" data-cycle="year" hidden>
-            <b class="tq-ltr"><?php echo number_format($tq_p['total']); ?></b> <span>ر.س / <?php echo html_escape($tq_p['unit']); ?></span>
+            <b class="tq-ltr"><?php echo number_format($tq_p['total'], fmod((float) $tq_p['total'], 1.0) != 0.0 ? 2 : 0); ?></b> <span>ر.س / <?php echo html_escape($tq_p['unit']); ?></span>
             <small class="tq-pay"><?php echo html_escape($tq_p['own_note']); ?></small>
           </p>
         <?php else: ?>
@@ -467,7 +467,7 @@ $tq_plan_card = $tq_ci->taqdar_tap_model->ready();
           </a>
           <?php if ($uid <= 0): ?>
             <p class="tq-caption plan-card__hint">
-              خطوة واحدة قبل الدفع: تدخل بحسابك أو تنشئه هنا، ثم تكمل الدفع.
+              حسابك ثم تأكيد الاشتراك: تدخل بحسابك أو تنشئه هنا، ثم تكمل الدفع.
             </p>
           <?php endif; ?>
         <?php endif; ?>
@@ -565,7 +565,7 @@ $tq_plan_card = $tq_ci->taqdar_tap_model->ready();
         <small class="tq-pay"><?php echo html_escape($tq_p['pay_note']); ?></small>
       </p>
       <p class="plan-cta__price" data-cycle="year" hidden>
-        <b class="tq-ltr"><?php echo number_format($tq_p['total']); ?></b> <span>ر.س / <?php echo html_escape($tq_p['unit']); ?></span>
+        <b class="tq-ltr"><?php echo number_format($tq_p['total'], fmod((float) $tq_p['total'], 1.0) != 0.0 ? 2 : 0); ?></b> <span>ر.س / <?php echo html_escape($tq_p['unit']); ?></span>
         <small class="tq-pay"><?php echo html_escape($tq_p['own_note']); ?></small>
       </p>
     <?php else: ?>

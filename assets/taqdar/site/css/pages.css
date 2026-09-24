@@ -5024,3 +5024,6 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 .co-main,.co-acct__form{grid-template-columns:minmax(0,1fr)}
 .co-main>.icard,.co-acct__form>*{min-inline-size:0}
 .co-acct__form input,.co-acct__form select{min-inline-size:0}
+
+/* Keep decorative motion inside the viewport without clipping controls. */
+html { overflow-x: clip; }

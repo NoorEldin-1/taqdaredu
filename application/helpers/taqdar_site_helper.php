@@ -1342,9 +1342,9 @@ if (!function_exists('tqs_plans_guide')) {
                 'icon' => 'i-book',
             ),
             'mid' => array(
-                'when' => t('إن أردت المنهج كاملا'),
+                'when' => t('إن أردت مواد أكثر'),
                 'why'  => t('كل مواد الصف لا الأساسية وحدها، ومعها المهارات الرقمية وتمارين ')
-                        . t('ومراجعات دورية. تناسب من لا يريد أن يبقى في منهج ابنه ما لم يشرح.'),
+                        . t('ومراجعات دورية. راجع قائمة المواد والدروس الجاهزة لتتأكد أنها تناسب احتياج ابنك.'),
                 'icon' => 'i-target',
             ),
             'last' => array(
@@ -1624,7 +1624,7 @@ if (!function_exists('tqs_money')) {
      */
     function tqs_money($halalas, $unit = true)
     {
-        $v = number_format(((int) $halalas) / 100, 0, '.', ',');
+        $v = number_format(((int) $halalas) / 100, ((int) $halalas % 100) ? 2 : 0, '.', ',');
         return '<b class="tq-ltr">' . $v . '</b>' . ($unit ? t(' <span>ر.س</span>') : '');
     }
 }
@@ -2483,8 +2483,8 @@ if (!function_exists('tqs_plan_price')) {
         $mon     = isset($cycles['monthly']) ? $cycles['monthly'] : null;
         $has_alt = ($mon !== null && $own['key'] !== 'monthly');
 
-        $own_sar = (int) round($own['price'] / 100);
-        $mon_sar = $has_alt ? (int) round($mon['price'] / 100) : $own_sar;
+        $own_sar = $own['price'] / 100;
+        $mon_sar = $has_alt ? $mon['price'] / 100 : $own_sar;
 
         $months = array('annual' => 12, 'quarterly' => 3, 'monthly' => 1, 'free' => 0);
         $m      = isset($months[$own['key']]) ? $months[$own['key']] : 12;
@@ -2532,7 +2532,7 @@ if (!function_exists('tqs_plan_price')) {
             /* والتوفير مقارنة حقيقية الان: 42 × 12 هو ما يدفعه فعلا من
                اشترى شهرا شهرا. وكان يقارن بسعر مرجعي لا يباع. */
             $out['save'] = max(0, $mon_sar * $m - $own_sar);
-            $out['note'] = t('تدفع سنويا ') . number_format($own_sar) . t(' ر.س');
+            $out['note'] = t('تدفع سنويا ') . number_format($own_sar, fmod((float) $own_sar, 1.0) != 0.0 ? 2 : 0) . t(' ر.س');
         } else {
             $out['pay_note'] = $out['own_note'];
             $out['note']     = ($own['key'] === 'monthly'
@@ -2586,11 +2586,11 @@ if (!function_exists('tqs_plan_price_html')) {
 
         /* الدورية: سعر الباقة بدورته. */
         $h .= '      <p class="' . $cls . '" data-cycle="year" hidden>'
-            . '<b class="tq-ltr">' . number_format($p['total']) . '</b>'
+            . '<b class="tq-ltr">' . number_format($p['total'], fmod((float) $p['total'], 1.0) != 0.0 ? 2 : 0) . '</b>'
             . t('<span>ر.س / ') . html_escape($p['unit']) . '</span>'
             . '<small class="tq-pay">' . html_escape($p['own_note']);
         if ($p['has_alt'] && $p['save'] > 0) {
-            $h .= t(' — توفر ') . number_format($p['save']) . t(' ر.س عن الشهري');
+            $h .= t(' — توفر ') . number_format($p['save'], fmod((float) $p['save'], 1.0) != 0.0 ? 2 : 0) . t(' ر.س عن الشهري');
         }
         $h .= '</small></p>' . "\n";
 
@@ -2988,7 +2988,7 @@ if (!function_exists('tqs_foundation_band')) {
         $title   = $txt($o['title'],   'band_title',   'مسارات التأسيس');
         $lede    = $txt($o['lede'],    'band_lede',
                        'حصص فردية مباشرة مع معلم متخصص، تبدأ من مستوى الطالب لا من صفه — '
-                     . 'بلا اشتراك: تحجز الحصة وتدفع ثمنها وحدها.');
+                     . 'اختر حصة مفردة تدفع بعد تأكيدها، أو باقة حصص تدفع مقدمًا وتستخدم رصيدها خلال مدة الصلاحية.');
         $hid = 'fnd26-title-' . preg_replace('/[^a-z0-9_-]/i', '', (string) $o['id']);
 
         $h  = '<section class="section" id="' . html_escape($o['id']) . '" aria-labelledby="' . $hid . '">' . "\n";
@@ -3113,8 +3113,8 @@ if (!function_exists('tqs_foundation_facts')) {
         $facts = array(
             array('i-video',  t('حصة فردية مباشرة')),
             array('i-clock',  '<b class="tq-ltr">' . (int) $cfg['minutes'] . '</b> ' . t('دقيقة للحصة')),
-            array('i-shield', t('لا دفع قبل تأكيد المعلم')),
-            array('i-unlock', t('بلا اشتراك ولا باقة')),
+            array('i-shield', t('الحصة المفردة: الدفع بعد التأكيد')),
+            array('i-unlock', t('حصة مفردة أو باقة حصص')),
         );
         $h = '      <ul class="' . html_escape($class) . '">' . "\n";
         foreach ($facts as $f) {

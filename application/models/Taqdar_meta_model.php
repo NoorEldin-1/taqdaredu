@@ -318,8 +318,8 @@ class Taqdar_meta_model extends CI_Model
 
         /* الرفض أولا: صف `skipped` يقال ولا يسكت عنه — من يفتح السجل غدا
            ويجد شراء بلا حدث يحتاج أن يعرف أنه رفض لا عطل. */
-        if ((string) (isset($ids['consent']) ? $ids['consent'] : '') === 'denied') {
-            $this->mark($name, $eid, $base, 'skipped', 0, 'رفض الزائر ملفات الارتباط.');
+        if ((string) (isset($ids['consent']) ? $ids['consent'] : '') !== 'accepted') {
+            $this->mark($name, $eid, $base, 'skipped', 0, 'لا توجد موافقة على التتبع غير الضروري.');
             return false;
         }
 

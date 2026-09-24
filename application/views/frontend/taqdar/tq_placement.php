@@ -173,6 +173,11 @@ include 'portal_open.php';
 <?php else: ?>
 
     <?php
+    $resume_ci = &get_instance();
+    $resume_path = (string) $resume_ci->session->userdata('tq_checkout_resume');
+    if (preg_match('~^checkout/[A-Za-z0-9_-]+\?cycle=(?:monthly|annual|quarterly)?$~', $resume_path)) {
+        echo '<div class="tq-card"><a class="tq-btn tq-btn--primary" href="' . html_escape(base_url($resume_path)) . '">استكمل الباقة والمدة اللتين اخترتهما</a></div>';
+    }
     /* ── النتيجة ─────────────────────────────────────────────────── */
     $lv    = (string) $tq_attempt['result_level'];
     $meta  = isset($LV[$lv]) ? $LV[$lv] : array('label' => $lv, 'lead' => '');

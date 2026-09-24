@@ -35,7 +35,7 @@ if (!is_array($tq_faqs)) $tq_faqs = array();
                      يفيض النص من صف مقاسه صفر فيظهر كل جواب مفتوحا أبدا،
                      ولا تطوي الضغطة شيئا. انظر `contact_us.php`. */ ?>
             <div class="faq-a" id="faq-a-<?php echo (int) $tq_i; ?>" role="region"
-                 aria-labelledby="faq-q-<?php echo (int) $tq_i; ?>"><div><p><?php echo html_escape($tq_aa); ?></p></div></div>
+                 aria-labelledby="faq-q-<?php echo (int) $tq_i; ?>"><div><p><?php echo html_escape(strip_tags($tq_aa)); ?></p></div></div>
           </div>
         <?php endforeach; ?>
       </div>

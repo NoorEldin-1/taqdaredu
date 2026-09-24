@@ -24,7 +24,6 @@
       <span class="tq-identity__copy">الموقع الرسمي الوحيد لمنصة تقدر التعليمية في المملكة العربية السعودية: <b dir="ltr">taqdaredu.com</b> · ليس لنا مواقع أخرى، وتشابه الأسماء لا يعني الارتباط بنا · تحقّق من الرابط قبل التسجيل أو الدفع، وتجنّب المواقع غير الموثوقة.</span>
     </div>
   </div>
-  <button type="button" class="tq-identity__pause" aria-label="إيقاف حركة التنبيه" aria-pressed="false">Ⅱ</button>
   <button type="button" class="tq-identity__close" aria-label="إغلاق تنبيه الموقع الرسمي">×</button>
 </aside>
 <script>
@@ -38,11 +37,6 @@
   bar.querySelector('.tq-identity__close').addEventListener('click',function(){
     bar.hidden=true;size();try{sessionStorage.setItem(key,'1');}catch(e){}
     var logo=document.querySelector('#header .brand');if(logo){logo.focus();}
-  });
-  bar.querySelector('.tq-identity__pause').addEventListener('click',function(){
-    var paused=bar.getAttribute('data-paused')!=='true';
-    bar.setAttribute('data-paused',String(paused));this.setAttribute('aria-pressed',String(paused));
-    this.setAttribute('aria-label',paused?'تشغيل حركة التنبيه':'إيقاف حركة التنبيه');this.textContent=paused?'▶':'Ⅱ';
   });
 })();
 </script>

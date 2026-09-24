@@ -334,7 +334,7 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
                    ولا تجديد تلقائي في هذا المحرك، فمن لا يجدد ينقطع
                    وصوله — وقوله قبل الدفع خير من اكتشافه بعد شهر. */ ?>
           <p class="co-cycle">
-            يخصم <b class="tq-ltr" data-tq-coupon-sar><?php echo number_format($tq_net / 100); ?></b> ر.س
+            يخصم <b class="tq-ltr" data-tq-coupon-sar><?php echo number_format($tq_net / 100, $tq_net % 100 ? 2 : 0); ?></b> ر.س
             <b>مرة واحدة</b>، ويفتح المحتوى
             <b class="tq-ltr"><?php echo $tq_days; ?></b> يوما
             (<?php echo html_escape(tqs_period_label($tq_days)); ?>).
@@ -359,7 +359,7 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
           <div class="co-cyc" role="group" aria-label="مدة الاشتراك">
             <?php foreach ($tq_cycs as $tq_k => $tq_c):
               $tq_on  = ((string) $tq_k === (string) $tq_cyc['key']);
-              $tq_sar = (int) round($tq_c['price'] / 100);
+              $tq_sar = $tq_c['price'] / 100;
               /* التوفير يقارن بالشهري مضروبا في عدد أشهر الدورة — وهي
                  مقارنة حقيقية الآن لأن الشهر يباع فعلا. */
               $tq_sv = 0;
@@ -371,7 +371,7 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
                  href="<?php echo base_url('checkout/' . $b['code']) . '?cycle=' . rawurlencode((string) $tq_k); ?>"
                  <?php echo $tq_on ? 'aria-current="true"' : ''; ?>>
                 <span class="co-cyc__name"><?php echo html_escape((string) $tq_c['label']); ?></span>
-                <span class="co-cyc__price"><b class="tq-ltr"><?php echo number_format($tq_sar); ?></b> ر.س</span>
+                <span class="co-cyc__price"><b class="tq-ltr"><?php echo number_format($tq_sar, fmod((float) $tq_sar, 1.0) != 0.0 ? 2 : 0); ?></b> ر.س</span>
                 <span class="co-cyc__note">
                   يفتح <?php echo (int) $tq_c['days']; ?> يوما<?php
                     echo $tq_sv > 0 ? ' — توفر ' . number_format($tq_sv) . ' ر.س' : ''; ?>

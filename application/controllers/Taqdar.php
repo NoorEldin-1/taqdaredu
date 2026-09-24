@@ -3931,6 +3931,15 @@ class Taqdar extends CI_Controller
 
         /* المعلم ولي الأمر لا يشتريان باقة طالب: الشراء يفتح محتوى
            يقاس تقدمه لصاحب الحساب، ولا معنى له لغير الطالب. */
+        if (function_exists('tq_role') && tq_role() === 'parent') {
+            $this->session->set_userdata('tq_parent_purchase', array(
+                'plan_id' => (int) $b['plan_id'],
+                'cycle' => (string) $this->input->get('cycle', true),
+            ));
+            redirect(site_url('parent/pay'), 'location', 302);
+            return;
+        }
+
         if (function_exists('tq_role') && tq_role() !== 'student') {
             $this->session->set_flashdata('error_message',
                 'الاشتراك في الباقات لحسابات الطلاب. سجل الدخول بحساب طالب.');
@@ -3944,6 +3953,7 @@ class Taqdar extends CI_Controller
            هنا لئلا يقرأ شاشة تأكيد كاملة ثم يرد عند الزر. */
         $this->load->model('taqdar_diag_model');
         if ($this->taqdar_diag_model->gate($uid)) {
+            $this->session->set_userdata('tq_checkout_resume', 'checkout/' . $b['code'] . '?cycle=' . rawurlencode((string) $this->input->get('cycle', true)));
             $this->session->set_flashdata('error_message',
                 'قبل الاشتراك: اختبار قصير يحدد موضعك فنرشح لك الباقة المناسبة. لا رسوب فيه.');
             redirect(base_url('student/placement'), 'location', 302);
@@ -5034,8 +5044,8 @@ class Taqdar extends CI_Controller
 
         $out['net_html']  = tq_coupon_money($out['net']);
         $out['disc_html'] = tq_coupon_money($out['discount']);
-        $out['net_sar']   = number_format($out['net'] / 100, 0, '.', ',');
-        $out['gross_sar'] = number_format($out['gross'] / 100, 0, '.', ',');
+        $out['net_sar']   = number_format($out['net'] / 100, $out['net'] % 100 ? 2 : 0, '.', ',');
+        $out['gross_sar'] = number_format($out['gross'] / 100, $out['gross'] % 100 ? 2 : 0, '.', ',');
         /* سطر البوابة — من الخادم لا من السكربت: لوحة ولي الأمر بلغتين. */
         $out['pay_line']  = $out['applied'] ? t('تدفع ____ ر.س بدل ____ ر.س.', array($out['net_sar'], $out['gross_sar'])) : '';
 

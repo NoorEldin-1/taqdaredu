@@ -168,7 +168,15 @@
         document.cookie = 'tq_consent=' + v + ';path=/;max-age=31536000;samesite=Lax'
           + (location.protocol === 'https:' ? ';secure' : '');
       } catch (e) {}
+      if (v === 'denied') {
+        if (window.fbq) window.fbq('consent', 'revoke');
+        if (window.clarity) window.clarity('consent', false);
+      } else if (window.fbq) window.fbq('consent', 'grant');
+      window.dispatchEvent(new CustomEvent('tq-consent-change', {detail: v}));
     }
+    document.querySelectorAll('[data-tq-cookie-settings]').forEach(function (button) {
+      button.addEventListener('click', function () { cookie.hidden = false; measure(); });
+    });
     var ok = $('[data-tq-cookie-accept]', cookie);
     if (ok) ok.addEventListener('click', function () { decide('accepted'); });
     var no = $('[data-tq-cookie-deny]', cookie);

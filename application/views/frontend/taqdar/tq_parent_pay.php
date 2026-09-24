@@ -43,6 +43,15 @@ try {
     }));
 } catch (Throwable $e) { $tq_plans = array(); }
 
+// Keep the purchase selection while the parent links or selects a child.
+$tq_intent = (array) $CI->session->userdata('tq_parent_purchase');
+$tq_selected_plan = (int) ($tq_intent['plan_id'] ?? 0);
+$tq_selected_cycle = (string) ($tq_intent['cycle'] ?? '');
+if ($tq_selected_plan) {
+    usort($tq_plans, function ($a, $b) use ($tq_selected_plan) {
+        return ((int) $b['id'] === $tq_selected_plan) <=> ((int) $a['id'] === $tq_selected_plan);
+    });
+}
 $tq_card_ready = false;
 try { $tq_card_ready = (bool) $CI->tq_tap->ready(); } catch (Throwable $e) {}
 
@@ -398,7 +407,7 @@ include 'portal_open.php';
             <label class="tq-pick<?php echo $tq_first ? ' is-on' : ''; ?>"
                    data-tq-for-plan="<?php echo (int) $tq_pid; ?>">
               <input type="radio" name="cycle" value="<?php echo html_escape((string) $tq_k); ?>"
-                     <?php echo $tq_first ? ' checked' : ''; ?>>
+                     >
               <span class="tq-pick__label"><?php echo html_escape((string) $tq_c['label']); ?></span>
               <span class="tq-pick__note">
                 <?php echo t('____ ريال — يفتح ____ يوما، بلا تجديد تلقائي', array(tq_num(number_format($tq_c['price'] / 100, 0)), (int) $tq_c['days'])); ?>
@@ -430,7 +439,13 @@ include 'portal_open.php';
           if (!first) first = r;
           if (r.checked) hasChecked = true;
         });
-        if (first && !hasChecked) first.checked = true;
+        if (first && !hasChecked) {
+          var wanted = <?php echo json_encode($tq_selected_cycle, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+          var chosen = Array.prototype.find.call(opts, function (o) {
+            return !o.hidden && o.querySelector('input').value === wanted;
+          });
+          (chosen ? chosen.querySelector('input') : first).checked = true;
+        }
         Array.prototype.forEach.call(opts, function (o) {
           o.classList.toggle('is-on', o.querySelector('input').checked);
         });

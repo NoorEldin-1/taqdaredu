@@ -108,7 +108,7 @@ include __DIR__ . '/site/site_pagehero.php';
   <div class="shell">
     <div class="section-head">
       <h2><?php echo t('وماذا بعد الكتاب؟'); ?></h2>
-      <p><?php echo t('الكتاب يعرض المادة، والبرنامج يشرحها ويقيسها: دروس مصورة، واختبار بعد كل درس، وتقرير يقول أين تقف.'); ?></p>
+      <p><?php echo t('الكتاب يعرض المادة، والبرنامج يشرحها ويقيسها: دروس مصورة واختبارات حسب المنهج المنشور، وتقرير يقول أين تقف.'); ?></p>
     </div>
     <p>
       <a class="btn btn--primary" href="<?php echo base_url('catalog'); ?>?type=path&amp;grade=<?php

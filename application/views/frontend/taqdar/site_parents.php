@@ -189,7 +189,7 @@ css: pages
 
       <div class="appcard reveal" id="app">
         <h3>تطبيق تقدر بين يديك</h3>
-        <p>تابع أبناءك من أي مكان وفي أي وقت من خلال تطبيقنا المخصص لأولياء الأمور.</p>
+        <p>تابع أبناءك الآن من الموقع عبر هاتفك أو الكمبيوتر. التطبيق قيد التجهيز وسنعلن عن توفره.</p>
         <div class="phone" aria-hidden="true">
           <img src="<?php echo tq_site_asset('img/logo-light.webp'); ?>" alt="" width="280" height="163">
         </div>
@@ -256,7 +256,7 @@ foreach ($tq_quotes as $q) {
       <span class="lantern lantern--r" aria-hidden="true"><?php include __DIR__ . '/site/site_lantern.php'; ?></span>
       <div class="cta__copy">
         <h2>معا نصنع مستقبلا أفضل</h2>
-        <p>انضم إلى آلاف أولياء الأمور الذين يثقون بمنصة تقدر التعليمية</p>
+        <p>ابدأ متابعة تعلم أبنائك مع منصة تقدر التعليمية</p>
         <div class="cta__actions">
           <a class="btn btn--gold" href="<?php echo base_url('sign_up'); ?>?as=parent">إنشاء حساب مجاني</a>
           <a class="btn btn--ghost" href="<?php echo base_url('login'); ?>">تسجيل الدخول</a>
