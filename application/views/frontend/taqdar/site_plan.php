@@ -26,8 +26,9 @@ $uid   = (int) $this->session->userdata('user_id');
 $stage = tqs_stage_label($b['stage']);
 $tier  = tqs_bundle_tier($b['name']);
 $tq_plan_pricing = tqs_plan_price($b);
-$this->load->model('taqdar_tap_model');
-$tq_plan_card = $this->taqdar_tap_model->ready();
+$tq_ci = get_instance();
+$tq_ci->load->model('taqdar_tap_model');
+$tq_plan_card = $tq_ci->taqdar_tap_model->ready();
 ?>
 
 <section class="page-hero page-hero--plan">
