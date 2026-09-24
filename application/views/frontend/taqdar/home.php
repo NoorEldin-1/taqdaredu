@@ -17,6 +17,7 @@ header: plain
 css: pages
 -->
 
+<link rel="stylesheet" href="<?php echo base_url('assets/taqdar/site/css/home-level-check.css?v=20260924v4'); ?>">
 <!-- ══════════ الهيرو ══════════ -->
 <section class="hero hero--video">
   <div class="shell">
@@ -92,8 +93,7 @@ css: pages
               'منصة تعليمية سعودية على المنهج الرسمي: برامج يبنيها معلمون، '
             . 'وتقييم يقيس الإتقان لا الحضور، وتقارير يراها ولي الأمر أولا بأول.'); ?>
         </p>
-        <div class="hero__cta">
-          <a class="btn btn--ghost-light" href="<?php echo base_url('assessment'); ?>">اختبار تحديد المستوى المجاني</a>
+        <div class="hero__cta tq-home-cta">
           <a class="btn btn--primary" href="<?php echo base_url('sign_up'); ?>">
             <?php echo tq_text('home', 'hero_cta_1', 'ابدأ رحلة التعلم'); ?></a>
           <a class="btn btn--ghost-light" href="<?php echo base_url('catalog'); ?>">
@@ -230,6 +230,8 @@ foreach ($tq_why as $w):
         والمولد واحد مع صفحة الباقات (`tqs_foundation_band()`)، ولا
         يطبع شيئا بلا مسار منشور.
         ══════════════════════════════════════════════════════════════ */ ?>
+<?php include __DIR__ . '/_home_level_check.php'; ?>
+
 <?php echo tqs_foundation_band(); ?>
 
 <!-- ══════════ الجامعات ══════════ -->
