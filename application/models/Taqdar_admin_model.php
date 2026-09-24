@@ -2867,9 +2867,17 @@ class Taqdar_admin_model extends CI_Model
                 'created_at'  => (string) $now,
                 'updated_at'  => (string) $now,
             ));
+            $nid = (int) $this->db->insert_id();
         } catch (Throwable $e) {
             log_message('error', 'push_notification: ' . $e->getMessage());
             return false;
+        }
+
+        /* TQ-PUSH — والتطبيق أولا: هو مرآة الصف الذي كتب للتو، فيتبع مربع
+           «داخل المنصة» لا مربعا خامسا. ومن أطفأه كتب له الصف مقروءا فلا
+           يطرق جرسه، ولا يطرق جواله كذلك. */
+        if ($inapp) {
+            $this->push_user((int) $to_user, $title, $description, (string) $type, $nid);
         }
 
         /* والبريد بعده — تابعا لا شرطا.
@@ -2926,6 +2934,29 @@ class Taqdar_admin_model extends CI_Model
     public function notify_wa($user_id, $title, $body, $type = 'system')
     {
         return $this->wa_user((int) $user_id, $title, $body, (string) $type, false);
+    }
+
+    /**
+     * TQ-PUSH — إشعار التطبيق لصف كتب في `notifications`.
+     *
+     * عام لأن من يكتب صفه بيده (روابط ولي الأمر) يحتاج القناة بلا الصف،
+     * كـ`notify_wa()`. ولا يرمي شيئا: `Taqdar_push_model` يرد صفرا بهدوء
+     * حين لا مفتاح أو لا جهاز، فلا يسقط قرار لأن جوالا لم يطرق.
+     */
+    public function push_user($user_id, $title, $body, $type = 'system', $notification_id = 0)
+    {
+        try {
+            $this->load->model('taqdar_push_model');
+            if (!$this->taqdar_push_model->ready()) return 0;
+            return $this->taqdar_push_model->send_user((int) $user_id, $title, $body, array(
+                'type'            => (string) $type,
+                'notification_id' => (int) $notification_id ?: '',
+            ), (string) $type);
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-PUSH push_user: ' . $e->getMessage());
+            return 0;
+        }
     }
 
     private function wa_user($user_id, $title, $body, $type = 'system', $force = false)

@@ -243,6 +243,7 @@ $spec = array(
     array('name' => 'Teacher authoring', 'description' => 'What the teacher portal *writes*: the course, its sections and lessons, the lesson quiz, books, weekly hours, the content studio. Every rule lives in the same models the web screens call.'),
     array('name' => 'Parent',       'description' => 'The guardian portal: linked children behind consent, the three simplified measures, the weekly report, subject reports, payments, and paying on a child\'s behalf.'),
     array('name' => 'Portal inbox', 'description' => 'Notifications, conversations and settings — one set of endpoints serving all three gates. Only *who may be messaged* differs by role.'),
+    array('name' => 'Push',         'description' => 'Firebase Cloud Messaging: register this device\'s FCM token so every in-app notification also reaches the phone while the app is closed.'),
     array('name' => 'Meta',           'description' => 'Service metadata.'),
 ),
 
@@ -840,8 +841,18 @@ $spec = array(
 '/api/v1/auth/logout' => array('post' => array(
     'tags' => array('Authentication'),
     'summary' => 'Log out this device',
-    'description' => 'Revokes the current pair only. Other devices stay signed in. Idempotent enough to call on a best-effort basis while clearing local storage.',
+    'description' => implode("\n", array(
+        'Revokes the current pair only. Other devices stay signed in. Idempotent enough to call on a best-effort basis while clearing local storage.',
+        '',
+        'Send `{"device_token": "<FCM token>"}` in the body and that token is unregistered in the same call,',
+        'so a phone whose owner signed out stops receiving their notifications. (Same effect as `DELETE /api/v1/devices`.)',
+    )),
     'security' => $auth,
+    'requestBody' => array('required' => false, 'content' => array('application/json' => array(
+        'schema' => array('type' => 'object', 'properties' => array(
+            'device_token' => array('type' => 'string', 'description' => 'Optional FCM token of this device.'),
+        )),
+    ))),
     'responses' => array(
         '200' => array('description' => 'Signed out.', 'content' => array('application/json' => array('example' => array(
             'data' => null, 'message' => 'سجل خروجك من هذا الجهاز.', 'meta' => new stdClass(),
@@ -853,7 +864,7 @@ $spec = array(
 '/api/v1/auth/logout-all' => array('post' => array(
     'tags' => array('Authentication'),
     'summary' => 'Log out every device',
-    'description' => 'Revokes every live token for this account, including the one making the call. Offer this on a "lost my phone" action.',
+    'description' => 'Revokes every live token for this account, including the one making the call, and unregisters every FCM device of the account. Offer this on a "lost my phone" action.',
     'security' => $auth,
     'responses' => array(
         '200' => array('description' => 'All sessions revoked.', 'content' => array('application/json' => array('example' => array(
@@ -862,6 +873,78 @@ $spec = array(
         '401' => $r_401,
     ),
 )),
+
+'/api/v1/devices' => array(
+    'post' => array(
+        'tags' => array('Push'),
+        'summary' => 'Register this device for push notifications',
+        'description' => implode("\n", array(
+            'Registers the FCM registration token of this device to the signed-in account (student, teacher or parent).',
+            '',
+            '**Call it on every app start and on every `FirebaseMessaging.instance.onTokenRefresh`.** The token rotates',
+            'without warning; registering once leaves the phone silent after the first rotation. The call is idempotent:',
+            'the same token re-registered only refreshes `last_seen`. A token already bound to another account on the',
+            'same phone is moved to this one, so a sibling never receives someone else\'s grades.',
+            '',
+            '`push_enabled: false` means the platform has not configured Firebase yet. The token is still saved and',
+            'pushes start as soon as it is; do not retry.',
+            '',
+            '### What the phone receives',
+            '',
+            'Every row written to the in-app notification inbox is mirrored as a push, gated by the same',
+            '"in-app" preference in notification settings. Each message carries `notification` (title/body — shown',
+            'by the OS while the app is in background or terminated) and `data`:',
+            '',
+            '| key | meaning |',
+            '|---|---|',
+            '| `type` | notification type, e.g. `subscription`, `session`, `quiz_result`, `parent_link_request`, `test` |',
+            '| `notification_id` | id in `/…/notifications` (absent for queued digest events) — mark it read on tap |',
+            '| `click_action` | always `FLUTTER_NOTIFICATION_CLICK` |',
+            '',
+            'Android: `priority: HIGH`, `channel_id: taqdar_default` — create that channel in the app (importance high);',
+            'if absent, Android falls back to the default channel. iOS: `sound: default` and `badge` = unread count.',
+        )),
+        'security' => $auth,
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'schema' => array('type' => 'object', 'required' => array('token'), 'properties' => array(
+                'token'       => array('type' => 'string', 'description' => 'FirebaseMessaging.instance.getToken()'),
+                'platform'    => array('type' => 'string', 'enum' => array('android', 'ios', 'web'), 'default' => 'android'),
+                'app_version' => array('type' => 'string', 'example' => '1.4.0'),
+            )),
+            'example' => array('token' => 'eXaMpLe:APA91bH...', 'platform' => 'android', 'app_version' => '1.4.0'),
+        ))),
+        'responses' => array(
+            '200' => array('description' => 'Registered.', 'content' => array('application/json' => array('example' => array(
+                'data' => array(
+                    'device' => array('id' => 12, 'platform' => 'android', 'registered_at' => '2026-09-24T14:10:00+03:00'),
+                    'push_enabled' => true,
+                ),
+                'message' => 'سجل الجهاز لإشعارات التطبيق.', 'meta' => new stdClass(),
+            )))),
+            '401' => $r_401, '403' => $r_403, '422' => $r_422, '429' => $r_429,
+        ),
+    ),
+    'delete' => array(
+        'tags' => array('Push'),
+        'summary' => 'Unregister this device',
+        'description' => implode("\n", array(
+            'Body `{"token": "<FCM token>"}`. Removes the token only if it belongs to the caller — a guessed token',
+            'cannot silence someone else\'s phone. Call it before logging out, or pass `device_token` to `/auth/logout`.',
+        )),
+        'security' => $auth,
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'schema' => array('type' => 'object', 'required' => array('token'), 'properties' => array(
+                'token' => array('type' => 'string'),
+            )),
+        ))),
+        'responses' => array(
+            '200' => array('description' => 'Removed (or was not registered).', 'content' => array('application/json' => array('example' => array(
+                'data' => array('removed' => true), 'message' => 'ألغي تسجيل الجهاز.', 'meta' => new stdClass(),
+            )))),
+            '401' => $r_401, '403' => $r_403, '422' => $r_422, '429' => $r_429,
+        ),
+    ),
+),
 
 '/api/v1/auth/me' => array('get' => array(
     'tags' => array('Authentication'),

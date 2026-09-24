@@ -1091,7 +1091,66 @@ class Api_v1 extends CI_Controller
         $this->api->revoke_token($this->token);
         $this->api->audit('api.logout', (int) $this->me['id']);
 
+        /* TQ-PUSH — ورمز Firebase يلغى مع الجلسة إن أرسل: جوال خرج صاحبه
+           لا يجوز أن تظل تطرقه إشعاراته، فيقرأ درجاته من يمسك الجوال بعده. */
+        $dt = (string) $this->in('device_token', '');
+        if ($dt !== '') {
+            $this->load->model('taqdar_push_model');
+            $this->taqdar_push_model->unregister($dt, (int) $this->me['id']);
+        }
+
         $this->respond(tq_api_ok(null, 'سجل خروجك من هذا الجهاز.'), 200);
+    }
+
+    /**
+     * POST · DELETE /api/v1/devices — رمز Firebase لهذا الجهاز (TQ-PUSH).
+     *
+     * POST يسجله لصاحب الرمز، ويعيد ربطه إن كان لحساب آخر على الجوال نفسه.
+     * DELETE يلغيه — ولصاحبه وحده، فرمز مخمن لا يطفئ جوال غيره. والتطبيق
+     * يسجل عند كل إقلاع وعند كل `onTokenRefresh`: الرمز يتبدل بلا إنذار،
+     * وتسجيل مرة واحدة يترك الجهاز صامتا بعد أول تبدل.
+     */
+    public function devices()
+    {
+        $m = $this->method(array('POST', 'DELETE'));
+        $u = $this->require_portal();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $this->load->model('taqdar_push_model');
+        $token = trim((string) $this->in('token', ''));
+
+        if (!$this->taqdar_push_model->token_ok($token)) {
+            $this->fail('رمز الجهاز غير صالح.', 'validation_failed', 422,
+                        array('token' => array(t('أرسل رمز FCM كما ترده FirebaseMessaging.getToken().'))));
+        }
+
+        if ($m === 'DELETE') {
+            $n = $this->taqdar_push_model->unregister($token, (int) $u['id']);
+            $this->respond(tq_api_ok(array('removed' => $n > 0), 'ألغي تسجيل الجهاز.'), 200);
+        }
+
+        $platform = strtolower((string) $this->in('platform', 'android'));
+        if (!in_array($platform, array('android', 'ios', 'web'), true)) {
+            $this->fail('المنصة غير معروفة.', 'validation_failed', 422,
+                        array('platform' => array('android · ios · web')));
+        }
+
+        $row = $this->taqdar_push_model->register((int) $u['id'], $token, $platform,
+                                                  (string) $this->in('app_version', ''));
+        if (!$row) {
+            $this->fail('تعذر تسجيل الجهاز. حاول مرة أخرى.', 'server_error', 500);
+        }
+
+        $this->respond(tq_api_ok(array(
+            'device' => array(
+                'id'            => (int) $row['id'],
+                'platform'      => (string) $row['platform'],
+                'registered_at' => tq_api_date((int) $row['created_at']),
+            ),
+            /* `false` يعني أن المنصة لم تضبط Firebase بعد: التسجيل حفظ،
+               والإشعارات تبدأ متى ضبط — فلا يعيد التطبيق المحاولة. */
+            'push_enabled' => $this->taqdar_push_model->ready(),
+        ), 'سجل الجهاز لإشعارات التطبيق.'), 200);
     }
 
     /** POST /api/v1/auth/logout-all — خروج من كل الأجهزة. */
@@ -1102,6 +1161,10 @@ class Api_v1 extends CI_Controller
 
         $this->api->revoke_all((int) $this->me['id']);
         $this->api->audit('api.logout_all', (int) $this->me['id']);
+
+        /* «فقدت جوالي» — والجوال المفقود يسقط من الإشعارات كذلك. */
+        $this->load->model('taqdar_push_model');
+        $this->taqdar_push_model->unregister_all((int) $this->me['id']);
 
         $this->respond(tq_api_ok(null, 'سجل خروجك من كل الأجهزة.'), 200);
     }
