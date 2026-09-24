@@ -314,8 +314,8 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
                 <input type="radio" name="pay_method" value="tap" checked
                        data-tq-pay="tap"<?php echo $tq_fa; ?>>
                 <span class="co-opt__box">
-                  <span class="co-opt__ico" aria-hidden="true">
-                    <svg><use href="#i-card"></use></svg>
+                  <span class="co-opt__ico co-card-icon" aria-hidden="true">
+                    <?php include __DIR__ . '/site/site_checkout_card_icon.php'; ?>
                   </span>
                   <span class="co-opt__t">
                     <b>بطاقة — مدى أو فيزا أو ماستركارد</b>
@@ -362,7 +362,7 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
                      ولا يعرض منتقي: خيار واحد لا ينتقى. */ ?>
             <p class="co-pay">
               <span class="co-pay__pick">
-                <svg aria-hidden="true"><use href="#i-card"></use></svg>
+                <?php include __DIR__ . '/site/site_checkout_card_icon.php'; ?>
                 <b>بطاقة — مدى أو فيزا أو ماستركارد</b>
               </span>
               <?php include __DIR__ . '/site/site_checkout_card_brands.php'; ?>
