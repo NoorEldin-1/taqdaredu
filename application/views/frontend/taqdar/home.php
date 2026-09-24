@@ -17,7 +17,7 @@ header: plain
 css: pages
 -->
 
-<link rel="stylesheet" href="<?php echo base_url('assets/taqdar/site/css/home-level-check.css?v=20260924v5'); ?>">
+<link rel="stylesheet" href="<?php echo base_url('assets/taqdar/site/css/home-level-check.css?v=20260924v6'); ?>">
 <!-- ══════════ الهيرو ══════════ -->
 <section class="hero hero--video">
   <div class="shell">
