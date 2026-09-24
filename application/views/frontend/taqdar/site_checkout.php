@@ -63,14 +63,12 @@ $tq_test = !empty($tq_card_test);
 $tq_bank = (tqs_bank() !== null) || !$tq_card;
 $tq_both = $tq_card && $tq_bank;
 
-/* TQ-GUEST-CHECKOUT — الزائر يرى الشاشة نفسها ومعها بطاقة الحساب: يقرأ
-   ما يشتريه وهو يكتب بياناته، فلا يطرد إلى شاشة دخول ثم لا يعود.
-   ولا حساب ينشأ في هذا الملف: نموذج «حساب جديد» يمضي إلى `login/register`
-   بحقول `sign_up.php` المبسطة نفسها + نية الشراء (TQ-AUTOPAY:
-   `buy_plan_id/buy_code/buy_cycle/pay_method`)، فينشئ الخادم الحساب
-   ويدخل صاحبه ويستهلك `Taqdar::checkout()` النية فيمضي إلى الدفع —
-   «ادفع الآن» بضغطة واحدة. و«لدي حساب» إلى `login/validate_login`
-   ويعود بـ`url_history`. */
+/* TQ-GUEST-CHECKOUT + TQ-QUICK-BUY — الزائر يرى الشاشة نفسها ومعها بطاقة
+   «بياناتك» (`tq_quick_card()`): اسم الطالب والجوال والبريد، لا أكثر.
+   ونموذج الشراء نفسه يغلفها ووجهته `checkout-quick`، فينشئ الخادم الحساب
+   ويدخل صاحبه ويسلم الطلب إلى `subscribe()` — «تابع إلى الدفع» بضغطة
+   واحدة. وكلمة المرور والعمر والصف بعد الدفع في `/account/complete`.
+   و«لدي حساب» نموذج مستقل (`#tqLogin`) خارج هذا، إلى `login/validate_login`. */
 $tq_guest = !empty($tq_guest);
 ?>
 
@@ -136,144 +134,29 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
      يرسل بحقل مخفي يحدثه JS فيسقط الاختيار كله متى تعثر ملف.
      و`<form>` حاوية شبكة صحيحة: الأصناف كما كانت على الحاوية نفسها. */
   ?>
-<?php if ($tq_guest): ?>
-  <?php /* حاوية لا نموذج: `<form>` داخل `<form>` غير صالح، ونموذجا
-           الحساب أدناه مستقلان. */ ?>
-  <div class="shell co-cols" id="tqCheckout" data-tq-guest
-       data-tq-plan="<?php echo (int) $b['plan_id']; ?>">
-<?php else: ?>
-  <form class="shell co-cols" method="post" action="<?php echo base_url('student/subscribe'); ?>"
-        id="tqCheckout">
+  <?php /* TQ-QUICK-BUY — نموذج واحد للزائر والداخل، والفرق وجهته: الداخل
+           إلى `student/subscribe`، والزائر إلى `checkout-quick` الذي ينشئ
+           حسابه من ثلاثة حقول ثم يسلم الطلب نفسه إلى `subscribe()`. فما
+           يرسله الزائر هو ما يرسله الداخل حرفا — والحقول الثلاثة فوقه. */ ?>
+  <form class="shell co-cols" method="post" id="tqCheckout"
+        action="<?php echo base_url($tq_guest ? 'checkout-quick' : 'student/subscribe'); ?>"
+        data-tq-item="plan:<?php echo (int) $b['plan_id']; ?>">
     <?php echo tq_csrf(); ?>
     <?php /* `plan_id` والدورة يرسلان، والسعر يقرأ في المحرك منهما —
              لا من حقل مخفي بمبلغ. أرسل المتصفح ما أرسل، `cycle_of()`
              تحرس المفتاح و`plan_cycles()` تحدد ثمنه. */ ?>
     <input type="hidden" name="plan_id" value="<?php echo (int) $b['plan_id']; ?>">
     <input type="hidden" name="cycle" value="<?php echo html_escape((string) $tq_cyc['key']); ?>">
-<?php endif; ?>
 
     <div class="co-main">
+<?php echo tq_quick_welcome(); ?>
 <?php if ($tq_guest): ?>
-<?php
-/* الصفوف تقرأ هنا كما تقرأ في `sign_up.php` بالضبط — نفس الاستعلام
-   ونفس الترتيب، فلا تختلف قائمتان لشيء واحد. */
-$tq_ci_g = &get_instance();
-$tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active', 1)
-                         ->order_by('`order`', 'ASC')->get()->result_array();
-?>
-      <div class="icard co-acct" data-tq-acct>
-        <h2>بياناتك</h2>
-        <p class="tq-caption co-acct__lede">
-          خطوة واحدة: أنشئ حسابك أو ادخل إليه، ثم تكمل الدفع مباشرة — وتعود
-          إلى هذه الصفحة نفسها.
-        </p>
-
-        <div class="co-acct__tabs" role="group" aria-label="اختر طريقة المتابعة">
-          <button type="button" data-tq-acct-tab="new"  aria-pressed="true">حساب جديد</button>
-          <button type="button" data-tq-acct-tab="have" aria-pressed="false">لدي حساب</button>
-        </div>
-
-        <?php /* حقول `sign_up.php` **المبسط** بعينها (TQ-INSTANT: لا تأكيد
-                 مرور ولا بريد ولي أمر ولا هوية — والجوال مطلوب)، وإلى
-                 مساره نفسه: أي حقل يزاد أو ينقص هنا أو هناك يعدل في
-                 الموضعين معا وإلا رد الخادم النموذج كله.
-                 والرفض يرتد إلى هذه الصفحة (TQ-BUY-BOUNCE) والقيم تعود
-                 من `tq_old` كما تعود هناك. */ ?>
-<?php
-        $tq_old = $this->session->flashdata('tq_old');
-        if (!is_array($tq_old)) { $tq_old = array(); }
-        $tq_v = function ($k) use ($tq_old) {
-            return isset($tq_old[$k]) ? html_escape((string) $tq_old[$k]) : '';
-        };
-        $tq_v_raw = function ($k) use ($tq_old) {
-            return isset($tq_old[$k]) ? (string) $tq_old[$k] : '';
-        };
-?>
-        <form class="co-acct__form" data-tq-acct-pane="new" data-tq-intent
-              id="tqAcctNew"
-              action="<?php echo site_url('login/register'); ?>" method="post">
-          <?php echo tq_csrf(); ?>
-          <input type="hidden" name="tq_gate" value="student">
-          <?php /* TQ-AUTOPAY — النية تركب النموذج: بعد إنشاء الحساب
-                   والدخول الفوري يمضي `register()` بها إلى الدفع مباشرة،
-                   فزر «ادفع الآن» في البطاقة اللاصقة يصدق وعده بضغطة
-                   واحدة. والسعر لا يرسل — الكود والدورة فقط، والمحرك
-                   يقرأ الثمن من عنده. */ ?>
-          <input type="hidden" name="buy_plan_id" value="<?php echo (int) $b['plan_id']; ?>">
-          <input type="hidden" name="buy_code" value="<?php echo html_escape($b['code']); ?>">
-          <input type="hidden" name="buy_cycle" value="<?php echo html_escape((string) $tq_cyc['key']); ?>">
-          <div class="co-acct__row">
-            <label><span>الاسم الأول</span>
-              <input type="text" name="first_name" required minlength="2" maxlength="40"
-                     autocomplete="given-name" value="<?php echo $tq_v('first_name'); ?>"></label>
-            <label><span>اسم العائلة</span>
-              <input type="text" name="last_name" required minlength="2" maxlength="40"
-                     autocomplete="family-name" value="<?php echo $tq_v('last_name'); ?>"></label>
-          </div>
-          <label><span>البريد الإلكتروني</span>
-            <input type="email" name="email" required maxlength="50" autocomplete="email"
-                   autocapitalize="off" spellcheck="false"
-                   value="<?php echo $tq_v('email'); ?>"></label>
-          <label><span>كلمة المرور <i>— ثمانية محارف على الأقل</i></span>
-            <input type="password" name="password" id="coPw" required minlength="8"
-                   autocomplete="new-password"></label>
-          <div class="co-acct__row">
-            <label><span>عمر الطالب</span>
-              <input type="number" name="age" required min="5" max="99" inputmode="numeric"
-                     value="<?php echo $tq_v('age'); ?>"></label>
-            <label><span>الصف الدراسي <i>— اختياري</i></span>
-              <select name="grade_id">
-                <option value="">اختر الصف</option>
-<?php $tq_gr_old = (string) (isset($tq_old['grade_id']) ? $tq_old['grade_id'] : '');
-      foreach ($tq_grades as $tq_gr): ?>
-                <option value="<?php echo (int) $tq_gr['id']; ?>"<?php
-                  echo $tq_gr_old === (string) $tq_gr['id'] ? ' selected' : ''; ?>><?php
-                  echo html_escape($tq_gr['name_ar']); ?></option>
-<?php endforeach; ?>
-              </select></label>
-          </div>
-          <?php /* لا `<label>` غالفة: `tq_phone_field()` تحمل وسمها
-                   وعنوانها داخلها، وlabel داخل label وسم فاسد. */ ?>
-          <div class="co-acct__phone">
-            <span class="co-acct__lbl">رقم الجوال <i>— يصلك عليه رمز التأكيد عبر واتساب</i></span>
-            <?php echo tq_phone_field('student_phone', array(
-                'required' => true,
-                'value'    => $tq_v_raw('phone'),
-                'iso'      => $tq_v_raw('student_phone_cc'),
-                'id'       => 'coPhone',
-            )); ?>
-          </div>
-          <label class="co-acct__terms">
-            <input type="checkbox" name="accept_terms" value="1" required>
-            <span>أوافق على <a href="<?php echo base_url('terms'); ?>" target="_blank" rel="noopener">الشروط</a>
-              و<a href="<?php echo base_url('privacy'); ?>" target="_blank" rel="noopener">سياسة الخصوصية</a></span>
-          </label>
-          <p class="tq-caption co-acct__note">
-            زر <b>«ادفع الآن»</b> في بطاقة الفاتورة جانبا: بضغطة واحدة ينشأ
-            حسابك وتدخل وتمضي إلى الدفع مباشرة.
-          </p>
-        </form>
-
-        <form class="co-acct__form" data-tq-acct-pane="have" data-tq-intent hidden
-              action="<?php echo site_url('login/validate_login'); ?>" method="post">
-          <?php echo tq_csrf(); ?>
-          <input type="hidden" name="tq_gate" value="student">
-          <?php /* حزام مع `url_history` الذي كتبه المتحكم: الوجهة تعود
-                   إلى هذه الصفحة بدورتها ولو تبدلت الجلسة. */ ?>
-          <input type="hidden" name="tq_next"
-                 value="<?php echo html_escape('checkout/' . $b['code']
-                       . ('?cycle=' . (string) $tq_cyc['key'])); ?>">
-          <label><span>البريد الإلكتروني</span>
-            <input type="email" name="email" required autocomplete="email"
-                   autocapitalize="off" spellcheck="false"></label>
-          <label><span>كلمة المرور</span>
-            <input type="password" name="password" required autocomplete="current-password"></label>
-          <button class="btn btn--primary btn--block" type="submit">ادخل وتابع الدفع</button>
-          <p class="tq-caption co-acct__note">
-            <a href="<?php echo base_url('forgot_password'); ?>">نسيت كلمة المرور؟</a>
-          </p>
-        </form>
-      </div>
+      <?php echo tq_quick_card(array(
+          'kind'  => 'plan',
+          'back'  => 'checkout/' . $b['code'] . '?cycle=' . rawurlencode((string) $tq_cyc['key']),
+          'title' => $b['name'],
+          'total' => tq_coupon_total($tq_cpn, $tq_amt),
+      )); ?>
 <?php endif; ?>
 
         <div class="icard co-summary">
@@ -387,20 +270,16 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
         <?php endif; ?>
 
         <?php /* TQ-COUPON — بعد المدة لا قبلها: الكود يخصم من الدورة المختارة،
-                 فمن طبقه ثم بدل المدة يرى الخصم على المبلغ الجديد. والزائر
-                 لا نموذج شراء يغلفه، فللحقل نموذجه الصغير (`standalone`). */ ?>
+                 فمن طبقه ثم بدل المدة يرى الخصم على المبلغ الجديد. ونموذج
+                 الشراء يغلفه للزائر كذلك الآن (TQ-QUICK-BUY)، فيرسل الكود
+                 معه — و«طبق» بلا سكربت `formnovalidate` لا يطلب البيانات. */ ?>
         <?php echo tq_coupon_box($tq_cpn, array(
-            'here'       => site_url('checkout/' . $b['code']) . '?cycle=' . rawurlencode((string) $tq_cyc['key']),
-            'standalone' => $tq_guest,
+            'here' => site_url('checkout/' . $b['code']) . '?cycle=' . rawurlencode((string) $tq_cyc['key']),
         )); ?>
 
         <div class="icard">
           <h2>طريقة الدفع</h2>
-          <?php /* TQ-PAY-FORM — في وضع الزائر لا نموذج يغلف الصفحة،
-                   فالمنتقي ينتسب إلى نموذج التسجيل بسمة `form=` القياسية:
-                   يرسل معه بلا JS، وزر «ادفع الآن» الجانبي يرسله كله.
-                   وللداخل السمة فارغة: منتقيه داخل نموذج الشراء الغالف. */
-          $tq_fa = $tq_guest ? ' form="tqAcctNew"' : ''; ?>
+          <?php $tq_fa = ''; ?>
 
           <?php /* TQ-EXPRESS-PAY — Apple Pay وGoogle Pay والبطاقة في الصفحة
                    نفسها، للداخل وحده: الزائر نموذجه نموذج تسجيل لا شراء،
@@ -554,24 +433,19 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
         </p>
 
 <?php if ($tq_guest): ?>
-        <?php /* TQ-PAY-NOW — زر شراء حقيقي للزائر: `form=` القياسية تجعله
-                 زر إرسال لنموذج التسجيل البعيد فيعمل بلا JS، والخادم
-                 (TQ-AUTOPAY) ينشئ الحساب ويدخل ويمضي إلى الدفع بضغطة
-                 واحدة. وحين يفتح تبويب «لدي حساب» يخفيه السكربت ويظهر
-                 التلميح — فزر ذلك اللوح داخله. */ ?>
-        <?php /* TQ-EXPRESS-PAY — مع الطرق المباشرة لا يمضي الزر إلى صفحة
-                 تاب: ينشئ الحساب ويعيد إلى هنا حيث الأزرار (`checkout()`)،
-                 فنصه يقول ما يقع لا «ادفع الآن — بالبطاقة». */
-        $tq_gl_tap = !empty(tq_express()['any']) ? t('أنشئ حسابي وتابع إلى الدفع') : 'ادفع الآن — بالبطاقة'; ?>
-        <button type="submit" form="tqAcctNew" class="btn btn--primary btn--block"
-                id="tqPayNow" data-tq-submit
+        <?php /* TQ-QUICK-BUY — زر شراء حقيقي للزائر: ينشئ حسابه من الحقول
+                 الثلاثة ويمضي إلى الدفع بضغطة. ومع الطرق المباشرة يعود
+                 إلى هنا حيث أزرارها، فنصه يقول ما يقع (TQ-EXPRESS-PAY).
+                 وحين يفتح لوح «لدي حساب» يخفى، فزر ذلك اللوح داخله. */
+        $tq_gl_tap = !empty(tq_express()['any']) ? t('أنشئ حسابي وتابع إلى الدفع') : 'تابع إلى الدفع الآمن'; ?>
+        <button type="submit" class="btn btn--primary btn--block" data-tq-submit data-qa-new-only
                 data-tq-label-tap="<?php echo html_escape($tq_gl_tap); ?>"
-                data-tq-label-bank="ادفع الآن — أصدر فاتورة التحويل">
-          <?php echo $tq_card ? html_escape($tq_gl_tap) : 'ادفع الآن — أصدر فاتورة التحويل'; ?>
+                data-tq-label-bank="أصدر فاتورة التحويل">
+          <?php echo $tq_card ? html_escape($tq_gl_tap) : 'أصدر فاتورة التحويل'; ?>
         </button>
-        <p class="co-side__guest" id="tqPayHint" hidden>
+        <p class="co-side__guest" data-qa-have-only hidden>
           <svg aria-hidden="true"><use href="#i-lock"></use></svg>
-          ادخل من بطاقة «لدي حساب» أعلاه، وتكمل الدفع مباشرة.
+          ادخل من بطاقة «ادخل إلى حسابك» أعلاه، وتكمل الدفع مباشرة.
         </p>
 <?php else: ?>
         <?php /* نص الزر يوافق الطريقة المختارة: «إصدار الفاتورة» على زر
@@ -595,11 +469,8 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
       </div>
     </aside>
 
-<?php if ($tq_guest): ?>
-  </div>
-<?php else: ?>
   </form>
-<?php endif; ?>
+<?php if ($tq_guest) echo tq_quick_login_form('checkout/' . $b['code'] . '?cycle=' . rawurlencode((string) $tq_cyc['key'])); ?>
 </section>
 
 <?php if ($tq_both): ?>
@@ -637,29 +508,7 @@ $tq_grades = $tq_ci_g->db->select('id, name_ar')->from('grades')->where('active'
 <?php endif; ?>
 <?php endif; ?>
 
-<?php if ($tq_guest && !$blocked): ?>
-<script>
-/* وضع الزائر: (١) جوال الطالب يحمل `data-req` لا `required` (عرف حقل
-   الهاتف مع سكربت بوابات التسجيل)، وهنا لا بوابات فتثبت `required`
-   مباشرة. (٢) زر «ادفع الآن» الجانبي يخص نموذج «حساب جديد» وحده —
-   تبويب «لدي حساب» له زره الداخلي، فيتبادلان الظهور مع التبويب. */
-(function () {
-  var reg = document.getElementById('tqAcctNew');
-  if (reg) reg.querySelectorAll('[data-req]').forEach(function (el) {
-    el.setAttribute('required', '');
-  });
-  var pay = document.getElementById('tqPayNow');
-  var hint = document.getElementById('tqPayHint');
-  document.querySelectorAll('[data-tq-acct-tab]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var isNew = b.getAttribute('data-tq-acct-tab') === 'new';
-      if (pay)  pay.hidden  = !isNew;
-      if (hint) hint.hidden = isNew;
-    });
-  });
-})();
-</script>
-<?php endif; ?>
+<?php if ($tq_guest && !$blocked) echo tq_quick_script(); ?>
 
 <?php /* TQ-META-CAPI — «بلغ شاشة التاكيد».
          الدفع نفسه يقع عند تاب لا هنا، فهذه اخر لحظة يقاس فيها المشتري

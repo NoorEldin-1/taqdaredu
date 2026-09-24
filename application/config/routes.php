@@ -144,6 +144,15 @@ $route['api/docs/openapi.json']   = 'api_docs/openapi';
 $route['api/docs/collection.json']= 'api_docs/collection';
 $route['api/docs']                = 'api_docs/index';
 
+// ---- التسجيل والتأكيد (TQ-SIGNUP) ----
+// القواعد في `Taqdar_signup_model` نفسها التي يناديها `login/register`.
+// و`register/options` قبل `register`، و`verify/resend` قبل `verify`:
+// الأخص قبل الأعم.
+$route['api/v1/auth/register/options'] = 'api_v1/auth_register_options';
+$route['api/v1/auth/register']    = 'api_v1/auth_register';
+$route['api/v1/auth/verify/resend'] = 'api_v1/auth_verify_resend';
+$route['api/v1/auth/verify']      = 'api_v1/auth_verify';
+
 // ---- الدخول ----
 $route['api/v1/auth/login']       = 'api_v1/auth_login';
 // TQ-SOCIAL-API — دخول التطبيق بجوجل وأبل: `id_token` تولده مكتبة
@@ -213,6 +222,7 @@ $route['api/v1/student/courses']        = 'api_v1/student_courses';
 $route['api/v1/student/lessons/(:num)/progress'] = 'api_v1/lesson_progress/$1';
 $route['api/v1/student/lessons/(:num)/complete'] = 'api_v1/lesson_complete/$1';
 $route['api/v1/student/lessons/(:num)/notes']    = 'api_v1/lesson_notes/$1';
+$route['api/v1/student/lessons/(:num)/transcript'] = 'api_v1/lesson_transcript/$1';
 // اختبار الدرس ثلاثة مقاطع، فقاعدته قبل `lessons/(:num)` كذلك.
 $route['api/v1/student/lessons/(:num)/quiz/start'] = 'api_v1/quiz_start/$1';
 $route['api/v1/student/lessons/(:num)']            = 'api_v1/student_lesson/$1';
@@ -231,6 +241,9 @@ $route['api/v1/student/exams']                       = 'api_v1/student_exams';
 // `reviews/answer` قبل `reviews`: كتابة قبل عرض.
 $route['api/v1/student/reviews/answer'] = 'api_v1/review_answer';
 $route['api/v1/student/reviews']        = 'api_v1/student_reviews';
+// تدريب الدفتر قبل الدفتر: الأخص قبل الأعم (TQ-MISTAKE-DRILL).
+$route['api/v1/student/mistakes/drill/answer'] = 'api_v1/mistakes_drill_answer';
+$route['api/v1/student/mistakes/drill']        = 'api_v1/mistakes_drill';
 $route['api/v1/student/mistakes']       = 'api_v1/student_mistakes';
 
 // ---- الطالب · الإشعارات والرسائل ----
@@ -672,6 +685,10 @@ $route['forgot_password']         = 'home/forgot_password';
 $route['course/(:any)/(:num)'] = 'home/course/$1/$2';
 $route['path/(:any)']          = 'taqdar/path_page/$1';
 $route['plan/(:any)']          = 'taqdar/plan_page/$1';
+/* TQ-QUICK-BUY — حساب خفيف ثم الشراء بضغطة، من شاشات الدفع الأربع. كتابة،
+   فقبل قواعد العرض؛ وشرطة لا شرطة مائلة: `checkout/quick` كانت تقع على
+   `checkout/(:any)` فتقرأ `quick` رمز باقة. */
+$route['checkout-quick']       = 'taqdar/quick_buy';
 $route['checkout/(:any)']      = 'taqdar/checkout/$1';
 /* TQ-COURSE-SALE — شاشة تأكيد شراء كورس مفرد.
    ورقم لا مسمى: الرمز في `/checkout/<code>` عمود فريد في `plans`، ولا

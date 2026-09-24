@@ -292,6 +292,22 @@ class Taqdar_social extends CI_Controller
 
         $data = array();
 
+        /* TQ-QUICK-BUY — كلمة المرور لحساب أنشئ من شاشة الدفع. وشرطها شرط
+           التسجيل نفسه (ثمانية فأكثر، ودون اثنتين وسبعين بايت: bcrypt يقص
+           بعدها بلا إشعار). والفارغ لا يمس الكلمة — «لاحقا» حق هنا أيضا. */
+        $this->load->model('taqdar_signup_model');
+        $quick = $this->taqdar_signup_model->is_quick($uid);
+        $pw    = (string) $this->input->post('password');
+        if ($quick && $pw !== '') {
+            if (mb_strlen($pw) < 8 || strlen($pw) > 72) {
+                $this->session->set_flashdata('error_message',
+                    'كلمة المرور ثمانية محارف على الأقل، ودون اثنتين وسبعين خانة.');
+                redirect($back, 'location', 302);
+                return;
+            }
+            $data['password'] = tq_password_hash($pw);
+        }
+
         /* الجوال بقاعدة TQ-PHONE-INTL نفسها: دولة منتقاة ورقم وطني،
            ويخزن `+<رمز><وطني>`. وفحص ثان مكتوب هنا بيده يقبل ما يرفضه
            التسجيل أو يرفض ما يقبله. */
@@ -335,6 +351,11 @@ class Taqdar_social extends CI_Controller
         if ($data) {
             $this->db->where('id', $uid)->update('users', $data);
         }
+        if (isset($data['password'])) {
+            /* صار يعرف كلمته: لا لافتة تطلبها بعد (`mark_own_password()`
+               تطفئها)، وفصل ربط جوجل يوما لا يقفل حسابه (TQ-SOCIAL-LASTDOOR). */
+            $this->social->mark_own_password($uid);
+        }
 
         $this->session->set_flashdata('flash_message', 'حفظت بياناتك.');
         redirect($next !== '' ? base_url($next) : $this->after_complete(), 'location', 302);
@@ -370,7 +391,10 @@ class Taqdar_social extends CI_Controller
 
         /* الوجهة تمر عبر `url_history` لأن `set_login_userdata()` هي من
            يقرؤها — ومسار عودة ثان يعني وجهتين تفترقان. */
-        if ($this->social->needs_profile($uid)) {
+        /* TQ-QUICK-BUY — من ضغط جوجل في شاشة دفع جاء ليدفع: يعود إليها في
+           الحال، وما ينقص حسابه تطلبه لافتة اللوحة بعد الدفع. */
+        $to_pay = (bool) preg_match('#^(checkout|course-checkout|book-checkout|foundation-checkout)/#', $next);
+        if (!$to_pay && $this->social->needs_profile($uid)) {
             $dest = site_url('account/complete')
                   . ($next !== '' ? '?next=' . rawurlencode($next) : '');
             $this->session->set_userdata('url_history', $dest);

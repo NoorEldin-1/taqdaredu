@@ -354,7 +354,10 @@ if (!function_exists('tq_phone_field')) {
             return $h;
         }
 
-        $h  = '<div class="form-field form-phone" data-tq-phone>';
+        /* `picker` — TQ-CC-PICK: قائمة دول مرسومة فوق المنتقي (`tq-cc-picker.js`)،
+           والمنتقي الأصلي يبقى ما يرسل. وبلا السكربت يبقى كما كان. */
+        $h  = '<div class="form-field form-phone" data-tq-phone'
+            . (!empty($o['picker']) ? ' data-tq-cc-pick' : '') . '>';
         $h .= '<svg aria-hidden="true"><use href="#i-phone"></use></svg>';
         $h .= '<label class="sr-only" for="' . html_escape($id) . '">' . html_escape($lbl) . '</label>';
         $h .= '<select class="form-phone__cc" name="' . html_escape($name) . '_cc"'

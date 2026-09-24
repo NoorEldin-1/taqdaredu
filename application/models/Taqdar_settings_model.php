@@ -121,8 +121,11 @@ class Taqdar_settings_model extends CI_Model
     public function notify_types($role = null)
     {
         $all = array(
-            'review_due'        => array('تذكير المراجعة',   'حين يحين موعد مراجعة درس سبق'),
-            'station_unlocked'  => array('فتح محطة جديدة',   'حين تفتح محطة تالية في مسارك'),
+            /* المراجعة والمحطة حدثان في يوم الطالب وحده: لا يكتب لولي
+               الأمر منهما إشعار (`notify_keys()` لا تعرفهما)، فمفتاحهما في
+               شاشته مفتاح لا يحكم شيئا. */
+            'review_due'        => array('تذكير المراجعة',   'حين يحين موعد مراجعة درس سبق',   'student'),
+            'station_unlocked'  => array('فتح محطة جديدة',   'حين تفتح محطة تالية في مسارك',   'student'),
             'quiz_result'       => array('نتيجة اختبار',     'حين ترصد نتيجة اختبار أديته'),
             'purchase_confirmed'=> array('تأكيد الشراء',     'حين يسجل اشتراك أو دفعة على حسابك'),
             'session_confirmed' => array('تأكيد حصة',        'حين تثبت حصة بالطلب أو يتغير موعدها'),
@@ -429,6 +432,10 @@ class Taqdar_settings_model extends CI_Model
             // المراجعة والمحطات
             'review_due'       => 'review_due',
             'station_unlocked' => 'station_unlocked',
+
+            /* التقرير الأسبوعي: يكتب بنوع `weekly_report` ومفتاحه في الشاشة
+               `weekly_digest` — وبلا الجسر كان إطفاؤه لا يوقف شيئا. */
+            'weekly_report'    => 'weekly_digest',
         );
 
         $t = (string) $type;
@@ -675,8 +682,14 @@ class Taqdar_settings_model extends CI_Model
         $new     = (string) $this->input->post('new_password');
         $again   = (string) $this->input->post('confirm_password');
 
+        /* TQ-QUICK-BUY — حساب أنشئ من شاشة الدفع كلمته عشوائية لا يعرفها
+           صاحبه، فطلب «الحالية» منه باب مغلق. ولا يضعف ذلك شيئا: شاشة
+           الإكمال (`/account/complete`) تضعها له بجلسته نفسها. */
+        $this->load->model('taqdar_signup_model');
+        $quick = $this->taqdar_signup_model->is_quick($user_id);
+
         $errors = array();
-        if ($cur === '')                 $errors[] = 'اكتب كلمة المرور الحالية.';
+        if ($cur === '' && !$quick)      $errors[] = 'اكتب كلمة المرور الحالية.';
         if (mb_strlen($new) < 8)         $errors[] = 'اجعل كلمة المرور الجديدة ثمانية محارف فأكثر.';
         if ($new !== $again)             $errors[] = 'الحقلان لا يتطابقان — أعد كتابة التأكيد.';
         if ($new !== '' && $new === $cur) $errors[] = 'الجديدة مطابقة للحالية — اختر غيرها.';
@@ -685,7 +698,7 @@ class Taqdar_settings_model extends CI_Model
            كل تلبيدة قديمة إلى password_hash عند أول نجاح، فمقارنة sha1
            الصريحة تفشل لكل من سجل دخوله مرة — ويقال له إن كلمته خطأ وهي
            صحيحة. والكتابة بالتلبيدة الحديثة نفسها لا بالقديمة. */
-        if (!$errors) {
+        if (!$errors && !$quick) {
             $row = $this->db->select('password')->where('id', $user_id)->get('users')->row_array();
             $good = $row && (function_exists('tq_password_matches')
                 ? tq_password_matches($cur, $row['password'])

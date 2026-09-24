@@ -1124,6 +1124,10 @@ class Taqdar_social_model extends CI_Model
     public function mark_own_password($user_id)
     {
         $this->put_setting('tq_social_pw_' . (int) $user_id, (string) time());
+        /* TQ-QUICK-BUY — والأبواب الثلاثة التي تنادي هنا (الإعدادات ونسيت
+           كلمة المرور وشاشة الإكمال) تطفئ معها لافتة «ضع كلمة مرورك». */
+        $this->load->model('taqdar_signup_model');
+        $this->taqdar_signup_model->clear_quick($user_id);
     }
 
     /* =====================================================================
@@ -1147,6 +1151,10 @@ class Taqdar_social_model extends CI_Model
         if (!$u) return array();
 
         $need = array();
+        /* TQ-QUICK-BUY — حساب أنشئ من شاشة الدفع بثلاثة حقول: كلمته عشوائية
+           لا يعرفها صاحبه، فأول ما ينقصه بابه إلى حسابه من جهاز آخر. */
+        $this->load->model('taqdar_signup_model');
+        if ($this->taqdar_signup_model->is_quick($user_id)) $need[] = 'password';
         if (trim((string) $u['phone']) === '') $need[] = 'phone';
         if ((string) $u['tq_gate'] !== 'parent' && (int) $u['age'] <= 0) $need[] = 'age';
 

@@ -872,69 +872,16 @@ class Taqdar_gate extends CI_Controller
         $question_id = (int) $this->body('question_id', 0);
         if (!$question_id) return $this->fail('VALIDATION', array('field' => 'question_id'));
 
-        $owns = (int) $this->db->query(
-            'SELECT COUNT(*) n FROM `answers` a
-               JOIN `attempts` t ON t.`id` = a.`attempt_id`
-              WHERE t.`student_id` = ? AND a.`question_id` = ? AND a.`is_correct` = 0',
-            array($uid, $question_id))->row('n');
-
-        if (!$owns) {
-            return $this->fail('NOT_ENTITLED', array('reason' => 'question_not_in_your_mistakes'));
+        /* TQ-MISTAKE-DRILL — القاعدة في `Taqdar_repo_model::answer_practice()`،
+           وهي نفسها التي يناديها `api/v1/student/mistakes/drill/answer`. */
+        $r = $this->repo->answer_practice($uid, $question_id, $this->body('given', array()));
+        if (empty($r['ok'])) {
+            return ($r['code'] === 'not_found')
+                ? $this->fail('NOT_FOUND', array('entity' => 'question:' . $question_id))
+                : $this->fail('NOT_ENTITLED', array('reason' => 'question_not_in_your_mistakes'));
         }
 
-        $q = $this->db->where('id', $question_id)->get('question')->row_array();
-        if (!$q) return $this->fail('NOT_FOUND', array('entity' => 'question:' . $question_id));
-
-        $given = $this->body('given', array());
-        if (is_string($given)) {
-            $decoded = json_decode($given, true);
-            $given   = is_array($decoded) ? $decoded : array($given);
-        }
-        if (!is_array($given)) $given = ($given === null) ? array() : array($given);
-
-        $correct = $this->repo->is_answer_correct($q, $given);
-
-        /* TQ-MISTAKE-CLEAR — الإجابة تسجل، فيقرؤها الدفتر: صواب بعد آخر خطأ
-           يخرج السؤال منه، وخطأ جديد يعيده. */
-        $this->repo->log_practice($uid, $question_id, $correct);
-
-        /* السؤال المجدول يمر بمحرك المراجعة كاملا (فاصل وسهولة وتعثر)،
-           وغير المجدول يحرك حالة المهارة وحدها — فلا يخترع لنفسه جدولا
-           لم تفتحه بوابة الإتقان. */
-        $scheduled = (int) $this->db->where('student_id', $uid)
-                                    ->where('question_id', $question_id)
-                                    ->count_all_results('review_queue');
-
-        if ($scheduled) {
-            $result = $this->repo->answer_review($uid, $question_id, $correct);
-        } else {
-            if (!empty($q['objective_id'])) {
-                $this->repo->touch_skill_state($uid, (int) $q['objective_id'], $correct ? 1 : 0, 1, null);
-            }
-            $result = array(
-                'question_id'  => $question_id,
-                'correct'      => (bool) $correct,
-                'scheduled'    => false,
-                'remaining_due'=> $this->repo->count_due_reviews($uid),
-            );
-        }
-
-        $result['practice'] = true;
-        $result['still_wrong_count'] = (int) $this->db->query(
-            'SELECT COUNT(*) n FROM `answers` a
-               JOIN `attempts` t ON t.`id` = a.`attempt_id`
-              WHERE t.`student_id` = ? AND a.`question_id` = ? AND a.`is_correct` = 0',
-            array($uid, $question_id))->row('n');
-        /* أخرج من الدفتر؟ — من `get_mistakes()` نفسها لا من حساب ثان. */
-        $result['cleared'] = true;
-        foreach ($this->repo->get_mistakes($uid) as $m) {
-            if ((int) $m['question_id'] === $question_id) { $result['cleared'] = false; break; }
-        }
-
-        $this->repo->audit($uid, 'mistake.practice', 'question:' . $question_id, null,
-                           array('correct' => (bool) $correct, 'scheduled' => (bool) $scheduled));
-
-        return $this->ok($result);
+        return $this->ok($r['result']);
     }
 
     /**
@@ -946,43 +893,19 @@ class Taqdar_gate extends CI_Controller
         $uid = $this->guard('read');
         if (!$uid) return;
 
-        $limit  = max(1, min(50, (int) $this->body('limit', 10)));
-        $course = (int) $this->body('course_id', 0);
-
-        /* TQ-MISTAKE-CLEAR — أسئلة التدريب هي الدفتر نفسه (`get_mistakes()`)،
-           لا استعلام ثان يفترق عنه: ما خرج من الدفتر لا يعود في التدريب.
-           والترشيح بالكورس **في الخادم** قبل القص: كان يجلب أكثر عشرة تكرارا
-           من كل المواد ثم يرشح المتصفح، فمن لم تقع أسئلة مادته في العشرة يضغط
-           «ابدأ» فلا يقع شيء. و`total` يقول كم في الدفتر، فتقول الشاشة إن
-           الجلسة عشرة من كم. */
-        $book = $this->repo->get_mistakes($uid);
-        if ($course > 0) {
-            $book = array_values(array_filter($book, static function ($m) use ($course) {
-                return (int) $m['course_id'] === $course;
-            }));
-        }
-        $total = count($book);
-        $slice = array_slice($book, 0, $limit);
-
-        $opts = array();
-        if ($slice) {
-            $ids = array_map(static function ($m) { return (int) $m['question_id']; }, $slice);
-            foreach ($this->db->select('id, number_of_options, options')->where_in('id', $ids)
-                              ->get('question')->result_array() as $q) {
-                $opts[(int) $q['id']] = $q;
-            }
-        }
-
+        /* TQ-MISTAKE-DRILL — الدفتر المرشح من `practice_questions()` نفسها التي
+           يناديها التطبيق. `total` كم في الدفتر، فتقول الشاشة إن الجلسة عشرة
+           من كم. */
+        $book = $this->repo->practice_questions($uid, (int) $this->body('limit', 10),
+                                                (int) $this->body('course_id', 0));
         $rows = array();
-        foreach ($slice as $m) {
-            $qid = (int) $m['question_id'];
-            $q   = isset($opts[$qid]) ? $opts[$qid] : array('number_of_options' => 0, 'options' => '');
+        foreach ($book['rows'] as $m) {
             $rows[] = array(
-                'id'                => $qid,
+                'id'                => (int) $m['question_id'],
                 'title'             => $m['title'],
                 'type'              => $m['type'],
-                'number_of_options' => (int) $q['number_of_options'],
-                'options'           => $q['options'] ? json_decode($q['options'], true) : array(),
+                'number_of_options' => (int) $m['number_of_options'],
+                'options'           => $m['options'],
                 'objective_id'      => (int) $m['objective_id'],
                 'objective_text'    => $m['objective_text'],
                 'at_second'         => (int) $m['at_second'],
@@ -994,6 +917,6 @@ class Taqdar_gate extends CI_Controller
             );
         }
 
-        return $this->ok(array('questions' => $rows, 'count' => count($rows), 'total' => $total));
+        return $this->ok(array('questions' => $rows, 'count' => count($rows), 'total' => (int) $book['total']));
     }
 }

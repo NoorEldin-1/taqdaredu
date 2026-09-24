@@ -52,6 +52,8 @@ class Api_v1 extends CI_Controller
     const RL_ANON_WINDOW    = 60;
     const RL_HEAVY_MAX      = 5;       // تصدير البيانات وما يشبهه
     const RL_HEAVY_WINDOW   = 3600;
+    const RL_REGISTER_MAX   = 10;      // إنشاء حساب
+    const RL_REGISTER_WINDOW = 3600;   // في الساعة، لكل عنوان
 
     /** المستخدم الحالي وصف رمزه — يملآن مرة في `authenticate()`. */
     private $me    = null;
@@ -170,7 +172,7 @@ class Api_v1 extends CI_Controller
         $this->output
              ->set_header('Access-Control-Allow-Origin: *')
              ->set_header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS')
-             ->set_header('Access-Control-Allow-Headers: Authorization, Content-Type, Accept, Accept-Language, X-Requested-With, If-None-Match')
+             ->set_header('Access-Control-Allow-Headers: Authorization, Content-Type, Accept, Accept-Language, X-Requested-With, If-None-Match, X-Verification-Ticket')
              ->set_header('Access-Control-Expose-Headers: ETag, X-Request-Id, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After')
              ->set_header('Access-Control-Max-Age: 86400')
              ->set_header('Vary: Origin, Accept-Language, Authorization');
@@ -500,12 +502,25 @@ class Api_v1 extends CI_Controller
            و«بريدك غير مؤكد» و«طلبك قيد المراجعة» حالان مختلفان تماما،
            ورد واحد لهما يترك المعلم ينتظر رمزا لا يأتي. */
         if ((int) $row['status'] !== 1) {
+            /* TQ-SIGNUP — من لم يؤكد قط يؤكد من التطبيق نفسه: تذكرة تأكيد
+               تخرج مع الرفض، فيطلب بها رمزا ويكتبه (`/auth/verify`). ومن أكد
+               يوما ثم أوقف (`tq_verified_at` مختوم) فإيقافه إداري ويبقى —
+               قاعدة TQ-RESCUE في الويب نفسها. وتصدر بعد كلمة مرور صحيحة
+               وحدها، فلا تكشف شيئا لمن لا يملكها. */
+            $details = array();
+            if (empty($row['tq_verified_at'])) {
+                $details = array('details' => array(
+                    'verification_ticket' => $this->api->issue_verify_ticket((int) $row['id']),
+                ));
+            }
             if (!empty($row['is_instructor']) || (string) $row['tq_gate'] === 'teacher') {
                 $this->fail('طلب انضمامك معلما ما زال قيد المراجعة. نتواصل معك عند الاعتماد.',
-                            'teacher_pending_approval', 403);
+                            'teacher_pending_approval', 403, $details);
             }
-            $this->fail('بريدك لم يؤكد بعد. أكمل التحقق من الموقع ثم عد إلى التطبيق.',
-                        'email_not_verified', 403);
+            $this->fail($details
+                            ? 'بريدك لم يؤكد بعد. اطلب رمز التأكيد واكتبه ليفتح حسابك.'
+                            : 'هذا الحساب موقوف. تواصل مع الإدارة.',
+                        $details ? 'email_not_verified' : 'account_disabled', 403, $details);
         }
 
         $pair = $this->api->issue_pair((int) $row['id'], array(
@@ -643,6 +658,381 @@ class Api_v1 extends CI_Controller
         ), !empty($r['created'])
             ? 'أنشئ حسابك. أهلا بك.'
             : ('أهلا بك، ' . trim($row['first_name'] . ' ' . $row['last_name']) . '.')), 200);
+    }
+
+    /* ================================================================
+       التسجيل والتأكيد — TQ-SIGNUP
+       ================================================================ */
+
+    /**
+     * GET /api/v1/auth/register/options — ما يبنى منه نموذج التسجيل.
+     *
+     * الصفوف والدول وحدود كلمة المرور والعمر والمستند تأتي من هنا لا من
+     * نسخة في Dart: صف يعطل في اللوحة غدا لا يبقى في قائمة التطبيق فيرده
+     * الخادم بـ«غير متاح»، ودولة تضاف إلى `tq_dial_codes()` تظهر في
+     * المنتقي بلا إصدار تطبيق.
+     */
+    public function auth_register_options()
+    {
+        $this->method('GET');
+        $h = $this->limit('anon', self::RL_ANON_MAX, self::RL_ANON_WINDOW);
+
+        $grades = array();
+        try {
+            foreach ($this->db->select('id, name_ar, name_en')->from('grades')->where('active', 1)
+                              ->order_by('`order`', 'ASC')->get()->result_array() as $g) {
+                $grades[] = array('id' => (int) $g['id'], 'name' => (string) $g['name_ar'],
+                                  'name_en' => (string) ($g['name_en'] ?? ''));
+            }
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'API[' . $this->request_id . '] register options grades: ' . $e->getMessage());
+        }
+
+        $countries = array();
+        foreach (tq_dial_codes() as $iso => $c) {
+            $countries[] = array(
+                'iso' => $iso, 'dial_code' => '+' . $c['dial'], 'name' => $c['name'], 'flag' => $c['flag'],
+                'min_length' => (int) $c['len'][0], 'max_length' => (int) $c['len'][1],
+                'starts_with' => array_values($c['starts']), 'example' => $c['ex'],
+            );
+        }
+
+        $this->load->model('taqdar_otp_model');
+        $this->load->model('taqdar_mail_model');
+        $this->load->model('taqdar_wa_model');
+        $this->load->model('taqdar_signup_model');
+        $teacher_on = (bool) get_settings('allow_instructor');
+
+        $this->read(array(
+            'gates' => array(
+                array('key' => 'student', 'label' => t('طالب'), 'available' => true,
+                      'fields' => array('first_name', 'last_name', 'email', 'password', 'phone', 'phone_country', 'age', 'grade_id', 'national_id', 'accept_terms')),
+                array('key' => 'parent', 'label' => t('ولي أمر'), 'available' => true,
+                      'fields' => array('first_name', 'last_name', 'email', 'password', 'phone', 'phone_country', 'accept_terms')),
+                array('key' => 'teacher', 'label' => t('معلم'), 'available' => $teacher_on,
+                      'fields' => array('first_name', 'last_name', 'email', 'password', 'phone', 'phone_country', 'document', 'message', 'sample_url', 'sample_note', 'subject_hint', 'accept_terms')),
+            ),
+            'grades'          => $grades,
+            'countries'       => $countries,
+            'default_country' => tq_phone_default_iso(),
+            'limits' => array(
+                'name'     => array('min' => 2, 'max' => 40),
+                'email'    => array('max' => 50),
+                'password' => array('min' => 8, 'max_bytes' => 72),
+                'age'      => array('min' => 5, 'max' => 99),
+                'document' => array('types' => Taqdar_signup_model::DOC_EXT, 'max_bytes' => Taqdar_signup_model::DOC_MAX),
+            ),
+            'verification' => array(
+                'required' => $this->taqdar_otp_model->signup_required(),
+                'channels' => array_values(array_filter(array(
+                    $this->taqdar_mail_model->configured() ? 'email' : null,
+                    $this->taqdar_wa_model->otp_on() ? 'whatsapp' : null,
+                ))),
+            ),
+            'terms_url'   => site_url('terms'),
+            'privacy_url' => site_url('privacy'),
+        ), '', array(), $h);
+    }
+
+    /**
+     * POST /api/v1/auth/register — إنشاء حساب.
+     *
+     * **ولا قاعدة عمل هنا**: `Taqdar_signup_model` يفحص وينشئ ويرسل الرمز
+     * — الطبقة نفسها التي يناديها `Login::register()`. فما يرفضه الموقع
+     * يرفضه التطبيق بالحرف.
+     *
+     * والرد يتبع البوابة كما يتبعها الويب (TQ-INSTANT):
+     *   · طالب وولي أمر: الحساب يفتح الآن، فيرد زوج الرموز ويدخل صاحبه.
+     *     والرمز يرسل ويلحق ولا يحجب — `verification` تقول أين ذهب.
+     *   · معلم: الحساب موقوف حتى الاعتماد، فلا رموز. ويرد
+     *     `verification.ticket` ليكتب رمزه من التطبيق (`/auth/verify`).
+     */
+    public function auth_register()
+    {
+        $this->method('POST');
+        $this->limit('register', self::RL_REGISTER_MAX, self::RL_REGISTER_WINDOW);
+
+        $b = $this->body();
+        $this->load->model('taqdar_signup_model', 'signup');
+
+        $chk = $this->signup->validate(array(
+            'gate'         => $b['gate'] ?? 'student',
+            'first_name'   => $b['first_name'] ?? '',
+            'last_name'    => $b['last_name'] ?? '',
+            'email'        => $b['email'] ?? '',
+            'password'     => $b['password'] ?? '',
+            'accept_terms' => $b['accept_terms'] ?? null,
+            'age'          => $b['age'] ?? '',
+            'grade_id'     => $b['grade_id'] ?? '',
+            'national_id'  => $b['national_id'] ?? '',
+            'phone'        => $b['phone'] ?? '',
+            /* `phone_country` هو الاسم في المواصفة، و`phone_cc` اسم حقل الويب. */
+            'phone_cc'     => $b['phone_country'] ?? ($b['phone_cc'] ?? ''),
+            'otp_channel'  => $b['otp_channel'] ?? '',
+            'message'      => $b['message'] ?? '',
+            'sample_url'   => $b['sample_url'] ?? '',
+            'sample_note'  => $b['sample_note'] ?? '',
+            'subject_hint' => $b['subject_hint'] ?? '',
+            'document'     => isset($_FILES['document']) ? $_FILES['document'] : null,
+        ));
+        if (empty($chk['ok'])) {
+            /* البوابة المغلقة حال لا خطأ إدخال: التطبيق يخفي الخيار. */
+            if (isset($chk['errors']['gate'])) {
+                $this->fail($chk['errors']['gate'][0], 'gate_closed', 403);
+            }
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $chk['errors']);
+        }
+
+        $made = $this->signup->create($chk['clean']);
+        if (empty($made['ok'])) {
+            if ($made['code'] === 'email_taken') {
+                $this->fail($made['error'], 'email_taken', 409,
+                            array('email' => array('هذا البريد مسجل بالفعل.')));
+            }
+            $this->fail($made['error'], 'create_failed', 500);
+        }
+
+        $uid  = (int) $made['user_id'];
+        $gate = $chk['clean']['gate'];
+        $row  = $this->db->get_where('users', array('id' => $uid))->row_array();
+
+        $this->api->audit('api.register', $uid, array('gate' => $gate, 'resumed' => $made['resumed'],
+                          'platform' => $b['platform'] ?? null));
+
+        $ver = $this->verification_out($made['otp']['route'], $made['otp']['sent'],
+                                       $made['otp']['on'] && empty($row['tq_verified_at']));
+
+        $token = null;
+        if ((int) $row['status'] === 1) {
+            $pair = $this->api->issue_pair($uid, $this->device_in($b));
+            unset($pair['family']);
+            $token = $pair;
+            /* `true` = جهاز موثوق: من أنشأ حسابه للتو لا يحال إلى تأكيد
+               جهاز في أول دخول — مرآة الويب. */
+            $this->user_model->new_device_login_tracker($uid, true);
+        } elseif ($ver['required']) {
+            $ver['ticket'] = $this->api->issue_verify_ticket($uid);
+        }
+
+        $msg = ($gate === 'teacher')
+            ? ($ver['required'] ? 'أنشئ طلبك. اكتب الرمز الذي وصلك، ثم تراجع الإدارة طلبك.'
+                                : 'استلمنا طلبك للانضمام معلما. تراجعه الإدارة ونتواصل معك.')
+            : ($gate === 'parent' ? 'أنشئ حسابك ودخلت. اربط أبناءك من لوحتك.' : 'أنشئ حسابك ودخلت.');
+
+        $this->respond(tq_api_ok(array(
+            'user'         => tq_api_user($row, array('email_verified_at' => tq_api_date($row['tq_verified_at'] ?? null))),
+            'token'        => $token,
+            'gate'         => $gate,
+            'resumed'      => (bool) $made['resumed'],
+            'application'  => ($gate === 'teacher') ? array('status' => 'pending') : null,
+            'verification' => $ver,
+        ), $msg), 201);
+    }
+
+    /**
+     * GET  /api/v1/auth/verify — أين التأكيد الآن؟ (القنوات وآخر إرسال)
+     * POST /api/v1/auth/verify — `{code}` يفتح الحساب.
+     *
+     * الهوية من **رمز الوصول** (طالب وولي أمر فتح حسابهما) أو من **تذكرة
+     * التأكيد** (`X-Verification-Ticket` أو `verification_ticket` في
+     * الجسم) لمن لا رمز له. **ولا بريد في الجسم أبدا** — انظر
+     * `Taqdar_api_model::issue_verify_ticket()`.
+     */
+    public function auth_verify()
+    {
+        $m = $this->method(array('GET', 'POST'));
+        list($u, $via_ticket) = $this->verify_subject();
+        $uid  = (int) $u['id'];
+        $gate = (string) ($u['tq_gate'] ?? '') !== '' ? (string) $u['tq_gate'] : 'student';
+
+        $this->load->model('taqdar_signup_model', 'signup');
+        $this->load->model('taqdar_otp_model');
+
+        if ($m === 'GET') {
+            $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+            $route = $this->signup->route_of($u);
+            $st    = $this->taqdar_otp_model->state('signup', $u['email']);
+            $this->read(array(
+                'verified'          => !empty($u['tq_verified_at']),
+                'email_verified_at' => tq_api_date($u['tq_verified_at'] ?? null),
+                'channels'          => $this->channels_out($route),
+                'default_channel'   => $route['default'] !== '' ? $route['default'] : null,
+                'why'               => $route['why'] !== '' ? $route['why'] : null,
+                /* آخر رمز صدر — من `state()` نفسها التي تقرؤها شاشة الويب. */
+                'last_sent'         => $st ? array(
+                    'channel'     => $st['channel'],
+                    'sent_to'     => $st['shown'],
+                    'delivered'   => (bool) $st['sent_ok'],
+                    'expires_in'  => (int) $st['expires_in'],
+                    'resend_in'   => (int) $st['resend_in'],
+                    'tries_left'  => (int) $st['tries_left'],
+                    'used'        => (bool) $st['consumed'],
+                ) : null,
+            ), '', array(), $h);
+        }
+
+        $this->limit('verify', 10, 900);
+
+        if (!empty($u['tq_verified_at'])) {
+            $this->fail('حسابك مؤكد بالفعل.', 'already_verified', 409);
+        }
+
+        $code = trim((string) $this->in('code', ''));
+        if ($code === '') {
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422,
+                        array('code' => array('هذا الحقل مطلوب.')));
+        }
+
+        $r = $this->taqdar_otp_model->verify('signup', $u['email'], $code);
+        if (empty($r['ok'])) {
+            $map = array('format' => array('validation_failed', 422), 'none' => array('code_not_requested', 409),
+                         'consumed' => array('code_used', 410), 'expired' => array('code_expired', 410),
+                         'locked' => array('too_many_attempts', 429), 'wrong' => array('invalid_code', 422));
+            $k = $map[$r['reason'] ?? 'wrong'] ?? $map['wrong'];
+            $errs = ($k[0] === 'validation_failed' || $k[0] === 'invalid_code')
+                  ? array('code' => array($r['error'])) : array();
+            $this->fail($r['error'], $k[0], $k[1], $errs);
+        }
+
+        $this->signup->mark_verified($uid, $gate);
+        $this->api->revoke_verify_tickets($uid);
+        $this->api->audit('api.verify', $uid, array('gate' => $gate));
+
+        $row = $this->db->get_where('users', array('id' => $uid))->row_array();
+
+        /* من جاء بتذكرة وصار حسابه مفتوحا (طالب أو ولي أمر عالق من تسجيل
+           قديم) يدخل الآن — كما يدخل الويب بعد الرمز. والمعلم يبقى موقوفا. */
+        $token = null;
+        if ($via_ticket && (int) $row['status'] === 1) {
+            $pair = $this->api->issue_pair($uid, $this->device_in($this->body()));
+            unset($pair['family']);
+            $token = $pair;
+        }
+
+        $this->respond(tq_api_ok(array(
+            'verified'    => true,
+            'user'        => tq_api_user($row, array('email_verified_at' => tq_api_date($row['tq_verified_at'] ?? null))),
+            'token'       => $token,
+            'application' => ($gate === 'teacher') ? array('status' => 'pending') : null,
+        ), $gate === 'teacher'
+            ? 'أكدنا بياناتك. طلب الانضمام معلما عند الإدارة الآن، ولن يفتح الدخول قبل الاعتماد.'
+            : 'أكدنا حسابك.'), 200);
+    }
+
+    /**
+     * POST /api/v1/auth/verify/resend — `{channel?}` رمز جديد.
+     *
+     * والقنوات ووجهاتها من صف الحساب لا من الطلب: قناة تأتي بوجهتها تجعل
+     * النقطة بابا يرسل إلى أي رقم. والخنق خنق `Taqdar_otp_model` نفسه:
+     * ستون ثانية بين إرسالين وخمسة في الساعة.
+     */
+    public function auth_verify_resend()
+    {
+        $this->method('POST');
+        list($u) = $this->verify_subject();
+        $this->limit('verify_send', 10, 3600);
+
+        if (!empty($u['tq_verified_at'])) {
+            $this->fail('حسابك مؤكد بالفعل.', 'already_verified', 409);
+        }
+
+        $this->load->model('taqdar_signup_model', 'signup');
+        $this->load->model('taqdar_otp_model');
+        $route = $this->signup->route_of($u);
+        if ($route['default'] === '') {
+            $this->fail('لا قناة متاحة لإرسال الرمز الآن.', 'no_channel', 503);
+        }
+
+        $want = trim((string) $this->in('channel', ''));
+        if ($want !== '' && !isset($route['channels'][$want])) {
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422,
+                        array('channel' => array('القناة غير متاحة. المتاح: ' . implode(' · ', array_keys($route['channels'])))));
+        }
+        if ($want === '') {
+            $st   = $this->taqdar_otp_model->state('signup', $u['email']);
+            $want = ($st && isset($route['channels'][$st['channel']])) ? $st['channel'] : $route['default'];
+        }
+
+        $r = $this->taqdar_otp_model->send('signup', $u['email'], $want,
+                 $route['channels'][$want]['to'], (int) $u['id'], (string) $u['first_name']);
+
+        if (empty($r['ok'])) {
+            if ((int) $r['retry_after'] > 0) {
+                $this->fail($r['error'], 'resend_too_soon', 429,
+                            array(), array('Retry-After: ' . (int) $r['retry_after']));
+            }
+            $this->fail($r['error'], 'send_failed', 502);
+        }
+
+        $this->respond(tq_api_ok(array(
+            'channel'     => $r['channel'],
+            'sent_to'     => $r['shown'],
+            'retry_after' => (int) $r['retry_after'],
+            'expires_in'  => Taqdar_otp_model::TTL,
+        ), 'أرسلنا رمزا جديدا.'), 200);
+    }
+
+    /**
+     * صاحب التأكيد: رمز وصول أولا، وإلا تذكرة. ويرد `[user, via_ticket]`.
+     */
+    private function verify_subject()
+    {
+        $header = (string) $this->input->get_request_header('Authorization', true);
+        if ($header !== '' && stripos($header, 'Bearer ') === 0) {
+            return array($this->authenticate(), false);
+        }
+
+        $ticket = trim((string) $this->input->get_request_header('X-Verification-Ticket', true));
+        if ($ticket === '') $ticket = trim((string) $this->in('verification_ticket', ''));
+        if ($ticket === '') {
+            $this->fail('هذا الطلب يحتاج رمز دخول أو تذكرة تأكيد.', 'unauthenticated', 401,
+                        array(), array('WWW-Authenticate: Bearer'));
+        }
+
+        $u = $this->api->verify_ticket_user($ticket);
+        if (!$u) {
+            $this->fail('تذكرة التأكيد غير صالحة أو انتهت. سجل دخولك لتصدر غيرها.', 'ticket_invalid', 401);
+        }
+        return array($u, true);
+    }
+
+    /** بيانات الجهاز من الجسم — مشتركة بين كل ما يصدر زوج رموز. */
+    private function device_in($b)
+    {
+        return array(
+            'device_name' => $b['device_name'] ?? null,
+            'device_id'   => $b['device_id']   ?? null,
+            'platform'    => $b['platform']    ?? null,
+            'app_version' => $b['app_version'] ?? null,
+        );
+    }
+
+    /** القنوات بلا وجهاتها الخام: المقنعة وحدها تخرج. */
+    private function channels_out($route)
+    {
+        $out = array();
+        foreach ($route['channels'] as $k => $c) {
+            $out[] = array('key' => $k, 'label' => $c['label'], 'sent_to' => $c['shown'],
+                           'guardian' => !empty($c['guardian']));
+        }
+        return $out;
+    }
+
+    /** كتلة `verification` في رد التسجيل. */
+    private function verification_out($route, $sent, $required)
+    {
+        return array(
+            'required'    => (bool) $required,
+            'sent'        => is_array($sent) && !empty($sent['ok']),
+            'channel'     => is_array($sent) ? (string) $sent['channel'] : null,
+            'sent_to'     => is_array($sent) && $sent['shown'] !== '' ? $sent['shown'] : null,
+            'retry_after' => is_array($sent) ? (int) $sent['retry_after'] : 0,
+            'error'       => is_array($sent) && empty($sent['ok']) ? (string) $sent['error'] : null,
+            'channels'    => $this->channels_out($route),
+            'why'         => $route['why'] !== '' ? $route['why'] : null,
+            'ticket'      => null,
+        );
     }
 
     /**
@@ -2204,7 +2594,24 @@ class Api_v1 extends CI_Controller
                 'notifications' => (int) $this->db->where('to_user', $uid)
                                         ->where('status', 0)->count_all_results('notifications'),
             ),
+            /* ما يظهر في قائمة البوابة وما يختفي — بالقاعدة نفسها التي يخفي
+               بها `portal_rail.php` بند «التأسيس»: بلا مسار منشور لا قسم. */
+            'features'   => array(
+                'foundation' => $this->foundation_enabled(),
+            ),
         ), '', array('courses_total' => count($courses)), $h);
+    }
+
+    /** `Taqdar_foundation_model::enabled()` — وجدول لم ينشأ لا يبتر الرئيسية. */
+    private function foundation_enabled()
+    {
+        try {
+            $this->load->model('taqdar_foundation_model', 'tq_fnd_flag');
+            return (bool) $this->tq_fnd_flag->enabled();
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            return false;
+        }
     }
 
     /**
@@ -3625,6 +4032,132 @@ class Api_v1 extends CI_Controller
         $this->read($out, '', tq_api_meta_page($page, $per, count($rows)), $h);
     }
 
+    /**
+     * GET /api/v1/student/mistakes/drill?limit=10&course_id=
+     *
+     * أسئلة التدريب من دفتر الأخطاء — توأم `Taqdar_gate::practice_questions()`،
+     * وكلاهما ينادي `Taqdar_repo_model::practice_questions()` فلا يعود في
+     * التطبيق سؤال خرج من الدفتر في الموقع. والصف صف `/student/reviews`
+     * نفسه ومعه `wrong_count` — **ولا `correct_answers`**.
+     */
+    public function mistakes_drill()
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $limit = (int) $this->input->get('limit');
+        $book  = $this->repo()->practice_questions((int) $u['id'], $limit > 0 ? $limit : 10,
+                                                   (int) $this->input->get('course_id'));
+        $out = array();
+        foreach ($book['rows'] as $r) {
+            $out[] = array(
+                'question_id'   => (int) $r['question_id'],
+                'title'         => (string) $r['title'],
+                'type'          => (string) $r['type'],
+                'options'       => array_values($r['options']),
+                'objective'     => array(
+                    'id'        => $r['objective_id'] ? (int) $r['objective_id'] : null,
+                    'text'      => $r['objective_text'] ?: null,
+                    'at_second' => (int) $r['at_second'],
+                ),
+                'lesson'        => array(
+                    'id'    => $r['lesson_id'] ? (int) $r['lesson_id'] : null,
+                    'title' => $r['lesson_title'] ?: null,
+                ),
+                'course'        => array(
+                    'id'    => $r['course_id'] ? (int) $r['course_id'] : null,
+                    'title' => $r['course_title'] ?: null,
+                ),
+                'due_at'        => tq_api_date($r['due_at'] ?? null),
+                'interval_days' => (int) $r['interval_days'],
+                'lapses'        => (int) $r['lapses'],
+                'wrong_count'   => (int) $r['wrong_count'],
+            );
+        }
+
+        $this->read($out, '', array('count' => count($out), 'total' => (int) $book['total']), $h);
+    }
+
+    /**
+     * POST /api/v1/student/mistakes/drill/answer  `{question_id, given}`
+     *
+     * توأم `Taqdar_gate::practice_answer()` على `answer_practice()` نفسها.
+     * والصواب يقرره الخادم كما في `/reviews/answer`: `correct` لا يقبل من
+     * الجسم. والشرط أن يكون الطالب **أخطأ السؤال من قبل** لا أن يكون في
+     * طابور المراجعة.
+     */
+    public function mistakes_drill_answer()
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $qid = (int) $this->in('question_id', 0);
+        if (!$qid) {
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422,
+                        array('question_id' => array('هذا الحقل مطلوب.')));
+        }
+
+        $r = $this->repo()->answer_practice((int) $u['id'], $qid, $this->in('given', array()));
+        if (empty($r['ok'])) {
+            if ($r['code'] === 'not_found') $this->fail('لا سؤال بهذا الرقم.', 'not_found', 404);
+            $this->fail('هذا السؤال ليس في دفتر أخطائك.', 'not_entitled', 403);
+        }
+
+        $x = $r['result'];
+        $this->respond(tq_api_ok(array(
+            'question_id'       => (int) $x['question_id'],
+            'correct'           => (bool) $x['correct'],
+            'scheduled'         => (bool) $x['scheduled'],
+            'cleared'           => (bool) $x['cleared'],
+            'still_wrong_count' => (int) $x['still_wrong_count'],
+            'remaining_due'     => (int) $x['remaining_due'],
+            /* للمجدول وحده: موعده الجديد بعد هذه الإجابة. */
+            'interval_days'     => isset($x['interval_days']) ? (int) $x['interval_days'] : null,
+            'due_at'            => isset($x['due_at']) ? tq_api_date($x['due_at']) : null,
+        ), $x['correct']
+            ? ($x['cleared'] ? 'أحسنت — خرج هذا السؤال من دفترك.' : 'أحسنت.')
+            : 'ليست الإجابة الصحيحة. سيعود هذا السؤال في تدريب قادم.'), 200);
+    }
+
+    /**
+     * GET /api/v1/student/lessons/{id}/transcript
+     *
+     * توأم `Taqdar_gate::transcript()` بفحص القفل نفسه
+     * (`is_lesson_unlocked()`) — النص محتوى الدرس لا فهرسه. ويزيد عليه فحص
+     * الاستحقاق كما يفحصه `/student/media`: درس أول غير مجاني مفتوح القفل
+     * لكل أحد، والنص يروي الدرس كله. ودرس بلا نص يرد `cues: []` لا 404.
+     */
+    public function lesson_transcript($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+
+        $uid = (int) $u['id'];
+        $lid = (int) $id;
+
+        $lesson = $this->db->select('id, course_id, is_free')->where('id', $lid)->get('lesson')->row_array();
+        if (!$lesson) $this->fail('لا درس بهذا الرقم.', 'not_found', 404);
+
+        $repo = $this->repo();
+        if ((int) $lesson['is_free'] !== 1 && !$repo->is_entitled($uid, (int) $lesson['course_id'])) {
+            $this->fail('هذا المحتوى غير متاح ضمن اشتراكك.', 'not_entitled', 403);
+        }
+        if (!$repo->is_lesson_unlocked($uid, $lid)) {
+            $this->fail('أكمل مراجعة الدرس السابق أولا.', 'mastery_locked', 403);
+        }
+
+        $cues = array();
+        foreach ($this->learn()->transcript($lid) as $c) {
+            $cues[] = array('at_second' => (int) $c['at_second'], 'at_label' => (string) $c['at_label'],
+                            'text' => (string) $c['text']);
+        }
+
+        $this->read(array('lesson_id' => $lid, 'cues' => $cues), '', array('count' => count($cues)), $h);
+    }
+
     /* ================================================================
        ٦ · بقية بوابة الطالب — الشاشات التي كانت في الويب وحدها
        ================================================================
@@ -3713,6 +4246,10 @@ class Api_v1 extends CI_Controller
             'body'       => trim(preg_replace('/\s+/u', ' ', strip_tags((string) ($n['description'] ?? '')))),
             'is_read'    => ((int) $n['status'] === 1),
             'created_at' => tq_api_date($n['created_at'] ?? null),
+            /* الأحداث التي يختار ولي الأمر أن تقاطع يومه (`notify_keys()`):
+               يعلمها التطبيق بلون ويرفعها — وسواها يقرأ حين يفتح. */
+            'urgent'     => ($this->role === 'parent'
+                             && array_key_exists((string) $n['type'], $this->pm()->notify_keys())),
         );
     }
 
@@ -3977,6 +4514,9 @@ class Api_v1 extends CI_Controller
                 'code'        => $stu->certificate_code($c['id']),
                 'title'       => (string) ($c['milestone_title'] ?: $c['path_title'] ?: t('محطة')),
                 'score'       => (int) $c['score'],
+                /* TQ-CERT-PCT — `score` عدد الإجابات الصحيحة لا نسبة، وما
+                   تطبعه الشهادة «٪» هو هذا. ومن `certificates()` نفسها. */
+                'percent'     => (int) ($c['percent'] ?? $c['score']),
                 'issued_at'   => tq_api_date($c['submitted_at']),
                 /* الشهادة صفحة تطبع وتوقع، فلا نموذج JSON لها: التطبيق
                    يفتح رابطها في متصفح داخلي كما يفتح صفحة الدفع. */
@@ -6750,12 +7290,17 @@ class Api_v1 extends CI_Controller
             );
         }
 
+        /* الحال مفتاح كما تعد المواصفة (`paid`) ويرد به الإلغاء
+           (`cancelled`) — لا رقم العمود الخام الذي لا يعرفه إلا من قرأ
+           جدول `payout`. */
+        $payout_states = array(0 => 'pending', 1 => 'paid', 2 => 'cancelled');
         $payouts = array();
         foreach ((array) $w['payouts'] as $p) {
+            $ps = (int) ($p['status'] ?? 0);
             $payouts[] = array(
                 'id'          => (int) ($p['id'] ?? 0),
                 'amount'      => tq_api_money((int) ($p['amount_halalas'] ?? 0)),
-                'status'      => (string) ($p['status'] ?? ''),
+                'status'      => $payout_states[$ps] ?? 'pending',
                 'channel'     => (string) ($p['channel'] ?? ''),
                 /* الوجهة **مقنعة** هنا كما تقنع في شاشة المعلم: أربع خانات
                    تكفيه ليعرف أي حساب قصد، وسجل يحمل الرقم كاملا في كل
@@ -6803,9 +7348,17 @@ class Api_v1 extends CI_Controller
             'destination' => 'required',
         ));
         if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+        if (!is_numeric($b['amount']) || (float) $b['amount'] <= 0) {
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422,
+                        array('amount' => array(t('اكتب مبلغا موجبا بالريال.'))));
+        }
 
+        /* TQ-API-WITHDRAW — المبلغ بالريال تحت `amount_sar`، وهو المفتاح
+           الذي يقرؤه `request_withdrawal()`. وكان يمرر تحت `amount` فيقرأ
+           صفرا، فيرد كل سحب من التطبيق «أدخل مبلغا أكبر من صفر» أيا كان
+           المبلغ ورصيده. */
         $r = $this->wal()->request_withdrawal((int) $u['id'], array(
-            'amount'      => $b['amount'],
+            'amount_sar'  => (float) $b['amount'],
             'channel'     => (string) $b['channel'],
             'destination' => (string) $b['destination'],
         ));
@@ -7028,10 +7581,13 @@ class Api_v1 extends CI_Controller
 
         $kids = array();
         foreach ($d['children'] as $c) {
+            /* TQ-LINK-ENUM — اسم من لم يوافق قط وصورته لا يخرجان
+               (`named` من `links()`)، ويعرف بالبريد الذي كتبه أبوه. */
             $kids[] = array(
                 'student_id'    => (int) $c['student_id'],
-                'name'          => (string) $c['name'],
-                'avatar_url'    => tq_api_avatar($c['image']),
+                'name'          => $c['named'] ? (string) $c['name'] : null,
+                'avatar_url'    => $c['named'] ? tq_api_avatar($c['image']) : null,
+                'email'         => (string) $c['email'],
                 'link_status'   => (string) $c['link_status'],
                 'commitment'    => $c['commitment']    === null ? null : (int) $c['commitment'],
                 'understanding' => $c['understanding'] === null ? null : (int) $c['understanding'],
@@ -7087,16 +7643,27 @@ class Api_v1 extends CI_Controller
 
         $out = array();
         foreach ($this->pm()->links((int) $u['id']) as $l) {
+            $plan = $this->pm()->plan_days((int) $u['id'], (int) $l['student_id']);
             $out[] = array(
                 'link_id'    => (int) $l['id'],
                 'student_id' => (int) $l['student_id'],
-                'name'       => (string) $l['name'],
+                /* TQ-LINK-ENUM — الاسم والصورة لمن وافق يوما وحده (`named`
+                   من `links()`، قاعدة `$tq_named` في شاشة الإعدادات نفسها).
+                   وكان الرد يكشفهما عن كل طلب معلق: من كتب بريدا عرف اسم
+                   صاحبه وصورته قبل أن يوافق — والموقع لا يكشف ذلك. */
+                'name'       => $l['named'] ? (string) $l['name'] : null,
                 'email'      => (string) $l['email'],
-                'avatar_url' => tq_api_avatar($l['image']),
+                'avatar_url' => $l['named'] ? tq_api_avatar($l['image']) : null,
                 'status'     => (string) $l['status'],
                 'consent_at' => tq_api_date($l['consent_at']),
-                'plan_days'  => (int) $this->pm()->plan_days((int) $u['id'],
-                                        (int) $l['student_id'])['days'],
+                /* خطة الأيام تعني الرابط النشط وحده، وافتراضيتها تقال. */
+                'plan_days'       => (int) $plan['days'],
+                'plan_is_default' => (bool) $plan['is_default'],
+                'closed'     => $l['closed'] ? array(
+                    'reason' => (string) $l['closed']['reason'],
+                    'by'     => $l['closed']['by'],
+                    'at'     => tq_api_date($l['closed']['at']),
+                ) : null,
             );
         }
 
@@ -7113,7 +7680,9 @@ class Api_v1 extends CI_Controller
      */
     public function parent_child($id = 0)
     {
-        $this->method('GET');
+        /* القراءة والكتابة على المسار الواحد — والمسار يربط لا الطريقة. */
+        if ($this->method(array('GET', 'PATCH')) === 'PATCH') $this->parent_child_plan((int) $id);
+
         $u = $this->require_parent();
         $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
 
@@ -7131,6 +7700,7 @@ class Api_v1 extends CI_Controller
                 'done'       => (int) $s['done_n'],
                 'lessons'    => (int) $s['lessons_n'],
                 'last_seen'  => tq_api_date($s['last_seen']),
+                'mastery'    => $this->mastery_out($s),
             );
         }
 
@@ -7189,7 +7759,75 @@ class Api_v1 extends CI_Controller
             'sessions'          => $sessions,
             'teacher_notes'     => $notes,
             'payments'          => array_map(array($this, 'parent_payment_out'), $d['payments']),
+            'quiz_results'      => $this->child_quiz_results((int) $d['child']['id']),
         ), '', array(), $h);
+    }
+
+    /**
+     * PATCH /api/v1/parent/children/{id}  `{"plan_days": 4}` — أو `null` = غير محددة.
+     *
+     * لا تمر عبر `save_prefs()`: تلك تكتب مفاتيح التنبيه من الجسم نفسه
+     * فتطفئ كل ما لم يرسل. و`set_plan_days()` تمس خطة هذا الابن وحدها.
+     */
+    private function parent_child_plan($student_id)
+    {
+        $u = $this->require_parent();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+        if (!array_key_exists('plan_days', $b)) {
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422,
+                        array('plan_days' => array('هذا الحقل مطلوب — رقم من ١ إلى ٧ أو null.')));
+        }
+        $v = $b['plan_days'];
+        if ($v !== null && $v !== '' && (!is_numeric($v) || (int) $v != $v || (int) $v < 1 || (int) $v > 7)) {
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422,
+                        array('plan_days' => array('خطة الأسبوع من يوم إلى سبعة أيام، أو null لغير المحددة.')));
+        }
+
+        $r = $this->pm()->set_plan_days((int) $u['id'], $student_id,
+                                        ($v === null || $v === '') ? null : (int) $v);
+        if (empty($r['ok'])) {
+            $this->fail($this->model_msg($r, 'لا رابط نشط بهذا الابن.'), 'not_found', 404);
+        }
+
+        $this->api->audit('api.parent.plan_days', (int) $u['id'],
+                          array('student_id' => $student_id, 'plan_days' => $r['is_default'] ? null : $r['days']));
+
+        $this->respond(tq_api_ok(array(
+            'student_id'      => $student_id,
+            'plan_days'       => (int) $r['days'],
+            'plan_is_default' => (bool) $r['is_default'],
+        ), $this->model_msg($r, 'حفظت خطة الأسبوع.')), 200);
+    }
+
+    /**
+     * نتائج اختبارات دروس الابن — الصفوف التي يعرضها لوح صفحة الابن على
+     * الموقع (`tq_quiz_results.php`) من `Taqdar_quiz_model::student_results()`
+     * نفسها: **آخر محاولة لكل اختبار**، فالسؤال «أين هو الآن؟». والمقام
+     * عدد أسئلة الاختبار، وإلا حد النجاح — كما يطبعه الموقع. ولا إجابة
+     * مفردة تخرج: حاجز الرؤية.
+     */
+    private function child_quiz_results($child_id)
+    {
+        $out = array();
+        try {
+            $this->load->model('taqdar_quiz_model', 'tq_qz_res');
+            foreach ($this->tq_qz_res->student_results((int) $child_id) as $r) {
+                $out[] = array(
+                    'lesson'       => array('id' => (int) $r['lesson_id'], 'title' => (string) $r['lesson_title']),
+                    'course'       => array('id' => (int) $r['course_id'], 'title' => (string) ($r['course_title'] ?? '')),
+                    'score'        => (int) $r['score'],
+                    'total'        => (int) $r['total'] ?: (int) $r['pass_mark'],
+                    'passed'       => ((int) $r['passed'] === 1),
+                    'tries'        => (int) $r['tries'],
+                    'submitted_at' => tq_api_date($r['submitted_at']),
+                );
+            }
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+        }
+        return $out;
     }
 
     /**
@@ -7261,6 +7899,7 @@ class Api_v1 extends CI_Controller
                     'held'        => (int) $s['held'],
                     'avg_percent' => $s['avg_percent'] === null ? null : (int) $s['avg_percent'],
                     'last_seen'   => tq_api_date($s['last_seen']),
+                    'mastery'     => $this->mastery_out($s),
                 );
             }
             $out[] = array(
@@ -7318,6 +7957,22 @@ class Api_v1 extends CI_Controller
                     ), $h);
     }
 
+    /**
+     * إتقان المادة من صف `course_rows()` — الرقم نفسه الذي يطبعه الموقع.
+     * و`percent` `null` حين لا هدف مفتوحا: صفر يقرأ «لم يتقن شيئا» عن مادة
+     * لم تفتح أهدافها بعد.
+     */
+    private function mastery_out($s)
+    {
+        $m = isset($s['mastery']) && is_array($s['mastery']) ? $s['mastery'] : array();
+        $open = (int) ($m['open'] ?? 0);
+        return array(
+            'open'     => $open,
+            'mastered' => (int) ($m['mastered'] ?? 0),
+            'percent'  => ($open > 0 && isset($m['percent'])) ? (int) $m['percent'] : null,
+        );
+    }
+
     /** شكل الدفعة — والمبلغ بالهللات كما يخزن، فلا يحسب العميل بعائم. */
     private function parent_payment_out($p)
     {
@@ -7364,7 +8019,11 @@ class Api_v1 extends CI_Controller
         $this->api->audit('api.parent.link_request', (int) $u['id'],
                           array('link_id' => (int) ($r['link_id'] ?? 0)));
 
-        $this->respond(tq_api_ok(array('link_id' => (int) ($r['link_id'] ?? 0), 'status' => 'pending'),
+        /* TQ-LINK-ENUM — رد واحد في كل حال: موجود أو لا، طالب أو لا. وكان
+           `link_id` يخرج صفرا لبريد مجهول ورقما لبريد طالب حقيقي — فالرد
+           نفسه يقول من له حساب. والطلب يظهر في `GET /parent/children`
+           بالبريد لا بالاسم. */
+        $this->respond(tq_api_ok(array('status' => 'pending'),
                                  $this->model_msg($r, t('أرسل الطلب، وينتظر موافقة ابنك.'))), 201);
     }
 
@@ -7521,6 +8180,8 @@ class Api_v1 extends CI_Controller
 
             $section = (string) $this->in('section', 'profile');
             $allowed = array('profile', 'password', 'notifications', 'preferences');
+            /* TQ-PARENT-INTERRUPTS — قائمة التنبيه الواحدة لولي الأمر. */
+            if ($this->role === 'parent') $allowed[] = 'interrupts';
             if (!in_array($section, $allowed, true)) {
                 $this->fail('قسم غير معروف.', 'validation_failed', 422,
                             array('section' => array(implode(' · ', $allowed))));
@@ -7534,6 +8195,8 @@ class Api_v1 extends CI_Controller
                كائنا متداخلا والنموذج ينتظر ثلاثة حقول مسطحة — ومن قرأ ثم
                كتب يرسل ما قرأ. وهي مرادفة `kind`/`tq_kind` نفسها. */
             if ($section === 'preferences') $body = $this->prefs_post($body);
+
+            if ($section === 'interrupts') $this->parent_interrupts_save($uid, $body);
 
             $this->as_post($body);
 
@@ -7576,9 +8239,67 @@ class Api_v1 extends CI_Controller
            الرقم نفسه، فمن لم يضبط شيئا يقرأ ما كان يقرؤه حرفا بحرف. */
         if ($this->role === 'parent') {
             $out['alert_threshold'] = (int) $prefs['alert_threshold'];
+            $out['interrupts']      = $this->parent_interrupts_out($uid);
         }
 
         $this->read($out, '', array('role' => $this->role), $h);
+    }
+
+    /**
+     * TQ-PARENT-INTERRUPTS — «أي الأحداث تقطع يومي؟» في قائمة واحدة.
+     *
+     * كان لولي الأمر مخزنان: الموقع يكتب `Taqdar_parent_model::save_prefs()`
+     * (القناة `portal`) وهو ما يحكم به `parent_wants()` حين يقرر أيكتب
+     * الإشعار أصلا؛ والتطبيق يكتب مصفوفة `Taqdar_settings_model` (نوع ×
+     * قناة). فمن أطفأ «التقرير الأسبوعي» في التطبيق ظل يصله، و«انقطاع
+     * ثلاثة أيام» و«شهادة جديدة» لا مفتاح لهما فيه أصلا. والقائمة هنا من
+     * `notify_keys()` + `weekly` — المصدر الذي يحكم.
+     */
+    private function parent_interrupts_out($uid)
+    {
+        $prefs = $this->pm()->prefs((int) $uid);
+        $keys  = array('weekly' => t('التقرير الأسبوعي')) + $this->pm()->notify_keys();
+
+        $out = array();
+        foreach ($keys as $k => $label) {
+            $out[] = array('key' => $k, 'label' => t($label), 'enabled' => !isset($prefs[$k]) || !empty($prefs[$k]));
+        }
+        return $out;
+    }
+
+    /**
+     * PATCH `{"section":"interrupts","interrupts":{"weekly":true,"quiz_result":false}}`
+     *
+     * **تحديث جزئي**: ما لم يرسل يبقى على حاله. و`save_prefs()` تكتب كل
+     * مفتاح لم يأت صفرا (نموذج الويب يرسلها كلها)، فيدمج المرسل فوق
+     * المحفوظ قبل النداء — وإلا أطفأ تبديل مفتاح واحد السبعة الباقية.
+     * و`plan_days` لا تمر من هنا: `[]` تتركها كما هي.
+     */
+    private function parent_interrupts_save($uid, $body)
+    {
+        $in = isset($body['interrupts']) && is_array($body['interrupts']) ? $body['interrupts'] : null;
+        if ($in === null) {
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422,
+                        array('interrupts' => array('أرسل خريطة مفتاح ← صحيح أو خطأ.')));
+        }
+
+        $prefs = $this->pm()->prefs((int) $uid);
+        $bad   = array();
+        foreach ($in as $k => $v) {
+            if (!array_key_exists($k, $prefs)) { $bad[] = (string) $k; continue; }
+            $prefs[$k] = tq_api_bool($v) ? 1 : 0;
+        }
+        if ($bad) {
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422,
+                        array('interrupts' => array('مفتاح غير معروف: ' . implode(' · ', $bad))));
+        }
+
+        $r = $this->pm()->save_prefs((int) $uid, $prefs, array());
+        if (empty($r['ok'])) $this->fail($this->model_msg($r, 'تعذر الحفظ.'), 'save_failed', 409);
+
+        $this->api->audit('api.parent.interrupts', (int) $uid, $prefs);
+        $this->respond(tq_api_ok(array('interrupts' => $this->parent_interrupts_out($uid)),
+                                 $this->model_msg($r, 'حفظت تفضيلاتك.')), 200);
     }
 
     /* =====================================================================
@@ -8749,10 +9470,36 @@ class Api_v1 extends CI_Controller
             }
         } catch (Throwable $e) { $this->db->reset_query(); $packs = array(); }
 
+        /* الكورس والكتاب: `POST /parent/pay` يقبلهما (`kind: course|book`)
+           ولم تكن القراءة تعرضهما — باب يشتري ما لا يرى. والعرض من
+           `offers(true)` نفسها التي يشتري بها المحرك، فما يعد به السطر هو
+           ما تقيده الفاتورة بالهللة. وصفر أيام = وصول دائم. */
+        $offer_row = function ($id, $o) {
+            return array(
+                'id'          => (int) $id,
+                'title'       => (string) $o['title'],
+                'price'       => tq_api_money((int) $o['price']),
+                'list_price'  => ((int) $o['list_price'] > 0) ? tq_api_money((int) $o['list_price']) : null,
+                'access_days' => max(0, (int) $o['days']),
+            );
+        };
+        $course_offers = array();
+        try {
+            $this->load->model('taqdar_course_sale_model', 'tq_cs');
+            foreach ((array) $this->tq_cs->offers(true) as $id => $o) $course_offers[] = $offer_row($id, $o);
+        } catch (Throwable $e) { $this->db->reset_query(); $course_offers = array(); }
+        $book_offers = array();
+        try {
+            $this->load->model('taqdar_book_model', 'tq_book');
+            foreach ((array) $this->tq_book->offers(true) as $id => $o) $book_offers[] = $offer_row($id, $o);
+        } catch (Throwable $e) { $this->db->reset_query(); $book_offers = array(); }
+
         $this->read(array(
             'children'      => $kids,
             'plans'         => $plans,
             'foundation_packs' => $packs,
+            'course_offers' => $course_offers,
+            'book_offers'   => $book_offers,
             'due_invoices'  => $due,
             'card_ready'    => $card,
             'pay_methods'   => $card ? array('tap', 'manual') : array('manual'),

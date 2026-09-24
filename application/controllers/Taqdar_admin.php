@@ -615,7 +615,8 @@ class Taqdar_admin extends CI_Controller
                     array('reference' => $ref, 'note' => $note));
                 $this->taqdar_admin_model->notify_payout($id, true, $ref);
             }
-            $msg = $ok ? 'اعتمد التحويل، وخصم المبلغ من المحجوز، وأخطر المعلم.' : 'تعذر الاعتماد.';
+            $msg = $ok ? 'اعتمد التحويل، وخصم المبلغ من المحجوز، وأخطر المعلم.'
+                       : 'تعذر الاعتماد: الطلب لم يعد قائما — رفض أو حول من قبل. حدث الصفحة لترى حاله.';
 
         } else {
             $ok = $this->taqdar_wallet_model->cancel_payout($id, $ref, $actor);

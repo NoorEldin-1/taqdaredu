@@ -161,8 +161,9 @@ include 'portal_open.php';
                     $w = $tq_rejected ? t('رفض الطلب')
                        : (['active' => t('مفعل'), 'pending' => t('بانتظار موافقته'), 'revoked' => t('مسحوب')][$l['status']] ?? $l['status']);
                     /* TQ-LINK-ENUM — من لم يوافق قط لا يكشف اسمه: يعرض بالبريد الذي
-                       كتبه ولي الأمر. والاسم لمن وافق يوما. */
-                    $tq_named = $l['status'] === 'active' || !empty($l['prefs']['consent']) || !empty($l['prefs']['previous_consent']);
+                       كتبه ولي الأمر. والاسم لمن وافق يوما — والقاعدة في
+                       `Taqdar_parent_model::links()` يقرؤها التطبيق كذلك. */
+                    $tq_named = !empty($l['named']);
                 ?>
                     <div class="tq-prefrow">
                         <span class="tq-prefrow__main">

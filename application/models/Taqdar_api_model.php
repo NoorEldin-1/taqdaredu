@@ -34,6 +34,10 @@ class Taqdar_api_model extends CI_Model
     const ACCESS_PREFIX  = 'tqa_';
     const REFRESH_PREFIX = 'tqr_';
 
+    /** تذكرة التأكيد بعد التسجيل — انظر `issue_verify_ticket()`. */
+    const VERIFY_PREFIX  = 'tqv_';
+    const VERIFY_TTL     = 86400;        // يوم
+
     /* ================================================================
        المخطط — ينشأ وقت التشغيل كسائر جداول تقدر
        ================================================================ */
@@ -269,6 +273,83 @@ class Taqdar_api_model extends CI_Model
        ================================================================ */
 
     /** يبطل الزوج الذي ينتمي إليه هذا الرمز — خروج من هذا الجهاز وحده. */
+    /* ================================================================
+       تذكرة التأكيد — TQ-SIGNUP
+       ================================================================ */
+
+    /**
+     * رمز لمرة واحدة يثبت «أنا من أنشأ هذا الحساب قبل قليل».
+     *
+     * المعلم يسجل وحسابه موقوف (`status = 0`) حتى الاعتماد، فلا زوج رموز
+     * له — و`authenticate()` ترد الموقوف أصلا. ويحتاج مع ذلك أن يكتب رمز
+     * التأكيد. والويب يعرفه بجلسته؛ والتطبيق بلا جلسة. **والبريد في الجسم
+     * لا يصلح هوية**: من يعرف بريد غيره يستهلك رموزه ويقفل تأكيده بخمس
+     * محاولات. فالتذكرة تصدر مع رد التسجيل وحده، وتخزن تلبيدتها كسائر
+     * الرموز، وتموت بعد يوم أو عند أول تأكيد ناجح.
+     *
+     * وتسكن `tq_api_tokens` بنوع ثالث لا جدولا رابعا: الإبطال والانتهاء
+     * والكنس تعمل لها بلا سطر. و`authenticate()` و`rotate()` تشترطان نوعهما
+     * فلا تفتح التذكرة شيئا غير التأكيد.
+     */
+    public function issue_verify_ticket($user_id)
+    {
+        $this->ensure_verify_kind();
+        $raw = $this->mint(self::VERIFY_PREFIX);
+        $now = time();
+        $this->db->insert('tq_api_tokens', array(
+            'user_id'      => (int) $user_id,
+            'kind'         => 'verify',
+            'token_hash'   => $this->fingerprint($raw),
+            'family'       => '',
+            'ip'           => substr((string) $this->input->ip_address(), 0, 45),
+            'user_agent'   => substr((string) $this->input->user_agent(), 0, 255),
+            'created_at'   => $now,
+            'last_used_at' => $now,
+            'expires_at'   => $now + self::VERIFY_TTL,
+            'revoked_at'   => 0,
+        ));
+        return $raw;
+    }
+
+    /** صف المستخدم صاحب التذكرة، أو `null`. والحساب الموقوف مقبول هنا عمدا. */
+    public function verify_ticket_user($raw)
+    {
+        $raw = (string) $raw;
+        if ($raw === '' || strpos($raw, self::VERIFY_PREFIX) !== 0) return null;
+        $this->ensure_verify_kind();
+        $row = $this->db->where('token_hash', $this->fingerprint($raw))
+                        ->where('kind', 'verify')->where('revoked_at', 0)
+                        ->where('expires_at >', time())
+                        ->get('tq_api_tokens')->row_array();
+        if (!$row) return null;
+        return $this->db->where('id', (int) $row['user_id'])->get('users')->row_array() ?: null;
+    }
+
+    /** بعد التأكيد لا يبقى للتذاكر عمل. */
+    public function revoke_verify_tickets($user_id)
+    {
+        $this->ensure_verify_kind();
+        $this->db->where('user_id', (int) $user_id)->where('kind', 'verify')->where('revoked_at', 0)
+                 ->update('tq_api_tokens', array('revoked_at' => time()));
+    }
+
+    /**
+     * يوسع `kind` بقيمته الثالثة مرة واحدة. و`ENUM` سرد مغلق: قيمة خارجه
+     * يكتبها MySQL نصا فارغا بلا خطأ، فتصدر تذكرة لا تقرأ أبدا.
+     */
+    private function ensure_verify_kind()
+    {
+        static $done = false;
+        if ($done) return;
+        $this->ensure_schema();
+        $col = $this->db->query("SHOW COLUMNS FROM `tq_api_tokens` LIKE 'kind'")->row_array();
+        if ($col && strpos((string) $col['Type'], "'verify'") === false) {
+            $this->db->query("ALTER TABLE `tq_api_tokens`
+                MODIFY `kind` ENUM('access','refresh','verify') NOT NULL DEFAULT 'access'");
+        }
+        $done = true;
+    }
+
     public function revoke_token($token_row)
     {
         if (empty($token_row['family'])) return;
@@ -329,6 +410,7 @@ class Taqdar_api_model extends CI_Model
                     MIN(`created_at`) AS created_at, MAX(`last_used_at`) AS last_used_at
                FROM `tq_api_tokens`
               WHERE `user_id` = ? AND `revoked_at` = 0 AND `expires_at` > ?
+                AND `kind` <> 'verify'
               GROUP BY `family` ORDER BY last_used_at DESC LIMIT 20",
             array((int) $user_id, time())
         )->result_array();

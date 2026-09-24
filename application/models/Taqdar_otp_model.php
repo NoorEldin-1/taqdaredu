@@ -345,26 +345,26 @@ class Taqdar_otp_model extends CI_Model
         $code     = preg_replace('/\D/', '', (string) $code);
 
         if ($code === '' || strlen($code) !== 6) {
-            return array('ok' => false, 'error' => 'الرمز ست خانات رقمية.', 'user_id' => 0);
+            return array('ok' => false, 'error' => 'الرمز ست خانات رقمية.', 'user_id' => 0, 'reason' => 'format');
         }
 
         $row = $this->last_row($purpose, $identity);
         if (!$row) {
             return array('ok' => false, 'error' => 'لا رمز مطلوب لهذا الحساب. اطلب رمزا جديدا.',
-                         'user_id' => 0);
+                         'user_id' => 0, 'reason' => 'none');
         }
         if (!empty($row['consumed_at'])) {
             return array('ok' => false, 'error' => 'استعمل هذا الرمز من قبل. اطلب رمزا جديدا.',
-                         'user_id' => 0);
+                         'user_id' => 0, 'reason' => 'consumed');
         }
         if (strtotime($row['expires_at']) < time()) {
             return array('ok' => false, 'error' => 'انتهت صلاحية الرمز. اطلب رمزا جديدا.',
-                         'user_id' => 0);
+                         'user_id' => 0, 'reason' => 'expired');
         }
         if ((int) $row['tries'] >= self::MAX_TRIES) {
             return array('ok' => false,
                          'error' => 'تجاوزت عدد المحاولات على هذا الرمز. اطلب رمزا جديدا.',
-                         'user_id' => 0);
+                         'user_id' => 0, 'reason' => 'locked');
         }
 
         if (!password_verify($code, (string) $row['code_hash'])) {
@@ -377,7 +377,7 @@ class Taqdar_otp_model extends CI_Model
                 // العداد يفشل ولا يقبل الرمز الخاطئ
             }
             $left = max(0, self::MAX_TRIES - ((int) $row['tries'] + 1));
-            return array('ok' => false, 'user_id' => 0,
+            return array('ok' => false, 'user_id' => 0, 'reason' => 'wrong',
                          'error' => 'الرمز غير صحيح.'
                                   . ($left > 0 ? ' بقيت لك ' . $left . ' محاولة.' : ''));
         }

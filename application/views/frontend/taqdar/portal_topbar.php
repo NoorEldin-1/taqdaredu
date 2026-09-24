@@ -123,7 +123,23 @@ else                   $tq_greet = t('مساء الخير');
    وبقي توثيق وسيلة التواصل ليصله كل شيء (رمز واتساب/بريد). لا تحجب
    شيئا ولا تغلق بكوكي — تختفي بالتوثيق نفسه، و`otp_start` يبني جلسة
    الرمز من صف الحساب ويحيل إلى شاشة التأكيد القائمة. */
-if ($tq_user
+/* TQ-QUICK-BUY — حساب أنشئ من شاشة الدفع بثلاثة حقول: كلمته عشوائية لا
+   يعرفها صاحبه، فأول جلسة تنتهي تقفله إلا من «نسيت كلمة المرور». فاللافتة
+   تسبق لافتة التأكيد — لافتة واحدة في كل مرة، والأهم أولا. */
+$tq_quick = false;
+if ($tq_user && $tq_role === 'student') {
+    /* `$this` في القالب هو المحمل لا المتحكم: النموذج يحمل على المتحكم
+       ويقرأ منه — وقراءته من `$this` ترد «Undefined property» في كل صفحة. */
+    $tq_ci_q = &get_instance();
+    $tq_ci_q->load->model('taqdar_signup_model');
+    $tq_quick = $tq_ci_q->taqdar_signup_model->is_quick((int) $tq_user['id']);
+}
+if ($tq_quick): ?>
+<div class="tq-verify-note" role="status">
+    <span><?php echo t('حسابك يعمل. ضع كلمة مرور لتدخل إليه من أي جهاز، وأكمل بياناتك في دقيقة.'); ?></span>
+    <a class="tq-btn tq-btn--primary" href="<?php echo site_url('account/complete'); ?>"><?php echo t('ضع كلمة المرور'); ?></a>
+</div>
+<?php elseif ($tq_user
     && in_array($tq_role, array('student', 'parent'), true)
     && (int) $tq_user['status'] === 1
     && array_key_exists('tq_verified_at', $tq_user)

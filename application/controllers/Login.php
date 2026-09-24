@@ -328,8 +328,13 @@ class Login extends CI_Controller
     }
 
     /**
-     * الرقم كما كتب، بلا فحص ولا تطبيع — لإعادته إلى النموذج بعد الرفض.
-     * من أخطأ في حقل آخر لا يجد جواله ممسوحا.
+     * الرقم كما كتب، بلا فحص ولا تطبيع — يعاد إلى النموذج بعد الرفض، ويفحصه
+     * `Taqdar_signup_model::validate()`.
+     *
+     * TQ-PHONE-DUP — ومن حقل البوابة المختارة: لوحا المعلم وولي الأمر كانا
+     * يحملان `name="phone"` معا، وPHP يبقي الأخير — حقل ولي الأمر الفارغ —
+     * فكان كل تسجيل معلم يرد «رقم الجوال غير صحيح». و`phone` تقرأ احتياطا
+     * لنموذج مخبأ في متصفح.
      */
     private function tq_gate_phone_raw($gate)
     {
@@ -338,40 +343,6 @@ class Login extends CI_Controller
             if ($raw !== '') return $raw;
         }
         return '';
-    }
-
-    /**
-     * TQ-PHONE-DUP — رقم الجوال من الحقل الذي يخص البوابة المختارة.
-     *
-     * كان لوحا المعلم وولي الأمر في `sign_up.php` يحملان كلاهما
-     * `name="phone"`. وكلاهما في الصفحة دائما — `hidden` يخفي عن العين
-     * ولا يمنع الإرسال — فالطلب يحمل الاسم مرتين، وPHP يبقي الأخير:
-     * حقل ولي الأمر الفارغ. أي أن **كل تسجيل معلم** كان يرد
-     * «رقم الجوال غير صحيح» مهما كتب في الحقل.
-     *
-     * فصار لكل بوابة اسمها (`teacher_phone` · `parent_phone`)، و`phone`
-     * تقرأ احتياطا: نموذج مخبأ في متصفح، أو تطبيق يرسل الاسم القديم،
-     * لا ينبغي أن يكسر بترحيل في الواجهة.
-     */
-    private function tq_gate_phone($gate)
-    {
-        $raw = $this->tq_gate_phone_raw($gate);
-        if ($raw === '') return '';
-        $r = tq_phone_check($raw, $this->tq_gate_iso($gate));
-        return $r['ok'] ? $r['e164'] : '';
-    }
-
-    /**
-     * الفحص كاملا برسالته — لا `true`/`false`.
-     *
-     * TQ-PHONE-INTL: «رقم الجوال غير صحيح. اكتبه هكذا: 0501234567» كانت
-     * الرسالة الوحيدة، وهي تكذب على من انتقى مصر: رقمه صحيح في بلده،
-     * والشكل المقترح ليس شكل بلده. فالرسالة تخرج من `tq_phone_check()`
-     * بمثال الدولة المنتقاة نفسها.
-     */
-    private function tq_gate_phone_check($gate)
-    {
-        return tq_phone_check($this->tq_gate_phone_raw($gate), $this->tq_gate_iso($gate));
     }
 
     public function register()
@@ -422,7 +393,6 @@ class Login extends CI_Controller
            وكل حقل يضاف يفقد نسبة ممن بدأه؛ ومن لم يكتبه يعرف ببريده. */
         $tq_nid = preg_replace('/\D/', '', (string) $this->input->post('national_id'));
         $tq_grade = (int) $this->input->post('grade_id');
-        $tq_phone = '';
 
         /* ما كتب يعود بعد الرفض — عدا كلمتي المرور. */
         $tq_old = array(
@@ -450,84 +420,36 @@ class Login extends CI_Controller
                               ? 'whatsapp' : 'email',
         );
 
-        $tq_err = '';
-        if (mb_strlen($tq_first) < 2 || mb_strlen($tq_first) > 40) {
-            $tq_err = 'اكتب اسمك الأول (حرفان على الأقل).';
-        } elseif (mb_strlen($tq_last) < 2 || mb_strlen($tq_last) > 40) {
-            $tq_err = 'اكتب اسم عائلتك (حرفان على الأقل).';
-        } elseif (!filter_var($tq_email, FILTER_VALIDATE_EMAIL) || mb_strlen($tq_email) > 50) {
-            /* خمسون: طول `users.email`. وما زاد كان يقص عند الحفظ
-               فينشأ حساب ببريد لا يصل إليه شيء — ولا استعادة له. */
-            $tq_err = 'البريد الإلكتروني غير صحيح، أو أطول من خمسين محرفا.';
-        } elseif (mb_strlen($tq_pass) < 8) {
-            $tq_err = 'كلمة المرور ثمانية محارف على الأقل.';
-        } elseif (strlen($tq_pass) > 72) {
-            /* bcrypt يقص عند اثنتين وسبعين بايت بلا إشعار: كلمة أطول
-               تحفظ مقصوصة، فيدخل صاحبها بأولها ويظن الباقي محسوبا. */
-            $tq_err = 'كلمة المرور أطول من اللازم. اجعلها دون اثنتين وسبعين خانة.';
-        } elseif ((string) $this->input->post('accept_terms') !== '1') {
-            $tq_err = 'لا بد من الموافقة على الشروط وسياسة الخصوصية.';
-        } elseif ($tq_gate === 'student') {
-            /* TQ-AGE-REQUIRED — العمر يفحص بمدى صريح: حقل فارغ يعطي
-               صفرا فلا يمر. والجوال صار شرط الطالب — عليه يصله رمز
-               التأكيد عبر واتساب (TQ-INSTANT أدناه). */
-            $tq_ph    = $this->tq_gate_phone_check('student');
-            $tq_phone = $tq_ph['ok'] ? $tq_ph['e164'] : '';
-            if ($tq_age < 5 || $tq_age > 99) {
-                $tq_err = 'اكتب عمرا صحيحا بين 5 و99.';
-            } elseif (!$tq_ph['ok']) {
-                $tq_err = $tq_ph['error'];
-            } elseif ($tq_grade > 0
-                      && $this->db->where(array('id' => $tq_grade, 'active' => 1))
-                                  ->count_all_results('grades') === 0) {
-                /* الصف يأتي من قائمة، والقائمة تحرر في الطلب: معرف لا
-                   يقابل صفا فعالا كان يحفظ كما هو فيصير الحساب في صف
-                   لا وجود له. */
-                $tq_err = 'الصف الدراسي المختار غير متاح. اختر من القائمة.';
-            }
-        } elseif ($tq_gate === 'teacher') {
-            /* TQ-TEACHER-GATE — التسجيل معلما يفحص كاملا **قبل** إنشاء
-               الحساب. وكان فحص الوثيقة يأتي بعد بناء الصف وقبل حفظه،
-               داخل `if(get_settings('allow_instructor'))` — فلو أغلق
-               الإعداد مر الطلب بلا وثيقة ولا صف طلب: حساب معلم موقوف
-               (`status=0`) لا يوجد في قائمة الطلبات ليعتمده أحد. */
-            if (!get_settings('allow_instructor')) {
-                $tq_err = 'التسجيل معلما متوقف حاليا. تواصل معنا للانضمام.';
-            } else {
-                $tq_ph    = $this->tq_gate_phone_check('teacher');
-                $tq_phone = $tq_ph['ok'] ? $tq_ph['e164'] : '';
-
-                $tq_doc = isset($_FILES['document']) ? $_FILES['document'] : NULL;
-                $tq_doc_ext = ($tq_doc && !empty($tq_doc['name']))
-                            ? strtolower((string) pathinfo($tq_doc['name'], PATHINFO_EXTENSION)) : '';
-
-                if (!$tq_ph['ok']) {
-                    $tq_err = $tq_ph['error'];
-                } elseif ($tq_doc === NULL || empty($tq_doc['name'])) {
-                    $tq_err = 'مستند التعريف مطلوب لطلب الانضمام معلما.';
-                } elseif ((int) $tq_doc['error'] !== UPLOAD_ERR_OK) {
-                    /* رفع فشل يصل بـ`name` مملوءا و`tmp_name` فارغا؛
-                       فبلا هذا الفحص ينشأ الحساب وتسجل الوثيقة باسم
-                       ملف لم ينسخ — طلب اعتماد بمرفق غير موجود. */
-                    $tq_err = ((int) $tq_doc['error'] === UPLOAD_ERR_INI_SIZE
-                            || (int) $tq_doc['error'] === UPLOAD_ERR_FORM_SIZE)
-                            ? 'حجم المستند أكبر مما يقبله الخادم. اختر ملفا أصغر.'
-                            : 'تعذر رفع المستند. حاول مرة أخرى.';
-                } elseif (!in_array($tq_doc_ext, array('pdf', 'jpg', 'jpeg', 'png'), TRUE)) {
-                    $tq_err = 'صيغة المستند غير مقبولة. المقبول: PDF · JPG · PNG.';
-                } elseif ((int) $tq_doc['size'] > 5 * 1024 * 1024) {
-                    $tq_err = 'حجم المستند أكبر من خمسة ميغابايت.';
-                }
-            }
-        } elseif ($tq_gate === 'parent') {
-            /* ولي الأمر: حسابه يفتح فورا ولا ينتظر اعتمادا — صفته وحدها
-               لا تكشف بيانات أحد، والتقارير لا تفتح إلا برابط يوافق عليه
-               الطالب نفسه (`parent_links` ولها مشغلا موافقة في القاعدة).
-               والجوال مطلوب: عليه تصل تنبيهات الأبناء. */
-            $tq_ph    = $this->tq_gate_phone_check('parent');
-            $tq_phone = $tq_ph['ok'] ? $tq_ph['e164'] : '';
-            if (!$tq_ph['ok']) { $tq_err = $tq_ph['error']; }
+        /* TQ-SIGNUP — القواعد في `Taqdar_signup_model` لا هنا: التطبيق يسجل
+           من `api/v1/auth/register` بالقواعد نفسها، ونسختان تفترقان عند
+           أول تعديل. وهذا الباب يترجم أسماء حقول نموذجه إليها وحسب. */
+        $tq_chan_in = '';
+        foreach (array($tq_gate . '_otp_channel', 'otp_channel') as $tq_f) {
+            $tq_chan_in = (string) $this->input->post($tq_f);
+            if ($tq_chan_in !== '') break;
         }
+        $this->load->model('taqdar_signup_model');
+        $tq_chk = $this->taqdar_signup_model->validate(array(
+            'gate'         => $tq_gate,
+            'first_name'   => $tq_first,
+            'last_name'    => $tq_last,
+            'email'        => $tq_email,
+            'password'     => $tq_pass,
+            'accept_terms' => ((string) $this->input->post('accept_terms') === '1'),
+            'age'          => $tq_age,
+            'grade_id'     => $tq_grade,
+            'national_id'  => $tq_nid,
+            /* الجوال ودولته من حقلي البوابة المختارة (TQ-PHONE-DUP). */
+            'phone'        => $this->tq_gate_phone_raw($tq_gate),
+            'phone_cc'     => $this->tq_gate_iso($tq_gate),
+            'otp_channel'  => $tq_chan_in,
+            'message'      => (string) $this->input->post('message'),
+            'sample_url'   => (string) $this->input->post('sample_url'),
+            'sample_note'  => (string) $this->input->post('sample_note'),
+            'subject_hint' => (string) $this->input->post('subject_hint'),
+            'document'     => isset($_FILES['document']) ? $_FILES['document'] : null,
+        ));
+        $tq_err = (string) $tq_chk['error'];
         if ($tq_err !== '') {
             $this->session->set_flashdata('error_message', $tq_err);
             $this->session->set_flashdata('tq_old', $tq_old);
@@ -551,171 +473,29 @@ class Login extends CI_Controller
            قديم أو تطبيق تطرح هنا فلا تخزن بيانات شخص ثالث. */
         $tq_guard = '';
 
-        /* رقم ناقص يمر صامتا يصل الجهة فيرفض هناك بعد شهر ولا يعرف
-           صاحبه. فالفحص هنا، وصيغته صيغة الهوية السعودية: عشرة أرقام
-           تبدأ بواحد للسعودي أو اثنين للمقيم. */
-        if ($tq_nid !== '' && !preg_match('/^[0-9]{10}$/', $tq_nid)) {
-            $tq_nid = '';
+        /* الصف والطلب والرمز ورسالة الترحيب في النموذج؛ والجلسة والتحويل
+           هنا. */
+        $tq_made = $this->taqdar_signup_model->create($tq_chk['clean']);
+        if (empty($tq_made['ok']) && $tq_made['code'] !== 'email_taken') {
+            $this->session->set_flashdata('error_message', $tq_made['error']);
+            $this->session->set_flashdata('tq_old', $tq_old);
+            redirect(site_url('sign_up'), 'location', 302);
+            return;
         }
 
-        $data['first_name'] = html_escape($tq_first);
-        $data['last_name']  = html_escape($tq_last);
-        $data['email']  = html_escape($tq_email);
-        $data['password']  = tq_password_hash($tq_pass);
-
-        $verification_code =  rand(100000, 200000);
-        $data['verification_code'] = $verification_code;
-
-        /* ═══════════════════════════════════════════════════════════════
-           TQ-OTP — تأكيد الحساب برمز، وأين يذهب الرمز
-           ═══════════════════════════════════════════════════════════════
-
-           `Taqdar_otp_model::signup_route()` وحدها تقرر القنوات المتاحة
-           ووجهة كل منها؛ والقاعدة كلها مشروحة هناك في موضع واحد. وما
-           يعني هذا الموضع منها ثلاثة:
-
-           ١ — **القناة اختيار لمن يملك اثنتين.** المعلم وولي الأمر يكتبان
-               بريدا وجوالا، فيصلهما الرمز حيث اختارا. والطالب لا يسأل عن
-               جواله أصلا، فقناته البريد وحده.
-
-           ٢ — **بريد الطالب القاصر ليس بريده.** من هو دون الخامسة عشرة
-               كتب بريد ولي أمره وهو شرط تسجيله، فالرمز إلى ولي الأمر وبه
-               يفتح الحساب. وصفحة التسجيل تقول له ذلك صراحة، فحساب يفتحه
-               القاصر وحده يجعل تلك العبارة كذبا.
-
-           ٣ — **ما لا يستطاع لا يشترط.** بريد غير مضبوط وواتساب غير مضبوط
-               يعني رمزا لا يخرج — ولو أوقفنا الحساب على رمز لا يخرج لصار
-               التسجيل معطلا على منصة يظن صاحبها أنه أضاف طبقة أمان. فحين
-               لا قناة يفتح الحساب كما كان يفتح، ويكتب سطر في السجل.
-           ═══════════════════════════════════════════════════════════════ */
-        $this->load->model('taqdar_otp_model');
-        $tq_route = $this->taqdar_otp_model->signup_route($tq_gate, $tq_email, $tq_guard, $tq_phone);
-
-        /* القناة تقرأ من حقل البوابة المختارة — كما يقرأ جوالها
-           (TQ-PHONE-DUP أعلاه): أزرار `radio` باسم واحد تكون مجموعة
-           واحدة عند المتصفح ولو تفرقت في لوحين، فيسقط تعليم أحدهما.
-           والاسم العام يقرأ احتياطا لنموذج مخبأ أو تطبيق يرسل القديم. */
-        $tq_chan = '';
-        foreach (array($tq_gate . '_otp_channel', 'otp_channel') as $tq_f) {
-            $tq_chan = (string) $this->input->post($tq_f);
-            if ($tq_chan !== '') break;
-        }
-        /* والقبول من القائمة لا كما جاءت: قيمة مخترعة في الطلب كانت
-           تصير وجهة إرسال. */
-        if (!isset($tq_route['channels'][$tq_chan])) {
-            $tq_chan = $tq_route['default'];
-        }
-
-        $tq_otp_on = $this->taqdar_otp_model->signup_required() && $tq_chan !== '';
-
-        /* TQ-INSTANT — الطالب وولي الأمر يفتح حسابهما لحظة الإنشاء
-           ويدخلان فورا؛ والرمز يرسل ويلحق **ولا يحجب** (يوثق الرقم من
-           لافتة اللوحة متى شاء). المعلم وحده يبقى موقوفا: تأكيده بوابة
-           اعتماد لا بوابة دخول. */
-        if ($tq_otp_on) {
-            $data['status'] = ($tq_gate === 'teacher') ? 0 : 1;
-        } else {
-            $data['status'] = 1;
-            if ($this->taqdar_otp_model->signup_required()) {
-                log_message('info', 'TQ-OTP: لا قناة ترسل رمزا (' . $tq_gate . ') — '
-                    . 'فتح الحساب بلا تأكيد. اضبط البريد أو واتساب.');
-            }
-        }
-
-        $data['wishlist'] = json_encode(array());
-        $data['date_added'] = strtotime(date("Y-m-d H:i:s"));
-        $social_links = array(
-            'facebook' => "",
-            'twitter'  => "",
-            'linkedin' => ""
-        );
-        $data['social_links'] = json_encode($social_links);
-        $data['role_id']  = 2;
-
-        $data['payment_keys'] = json_encode(array());
-
-        $validity = $this->user_model->check_duplication('on_create', $data['email']);
-
-        if ($validity === 'unverified_user' || $validity == true) {
-
-
-            //Check instructor application document
-            /* TQ-TEACHER-PENDING — الحساب يبقى مغلقا حتى تراجع أوراقه.
-               Academy يفتحه فورا، فمن سجل معلما يرى لوحته قبل أن يراه
-               أحد — ومعلمو هذه المنصة يتعاملون مع قاصرين. */
-            /* TQ-GATE-BRIDGE — Academy ينشئ صف الطلب بشرط `instructor=yes`،
-                       والبوابة الجديدة ترسل `tq_gate=teacher`. فيجسر الاسمان
-                       هنا بدل تكرار منطق إنشاء الطلب. */
-                    if ($tq_gate === 'teacher') {
-                        $data['status'] = 0;
-                        /* TQ-INSTRUCTOR-FLAG — `register()` يبني `$data` بيده
-                           ولا يضبط هذا العمود أبدا (تضبطه `add_user()` وحدها
-                           حين تنادى من الإدارة). فبدونه يبقى المعلم — حتى
-                           بعد اعتماده — طالبا في اشتقاق الدور. */
-                        $data['is_instructor'] = 1;
-                        $_POST['instructor'] = 'yes';
-                    }
-            if ($tq_phone !== '') {
-                $_POST['phone'] = $tq_phone;
-                $data['phone']  = $tq_phone;   /* الرقم يحفظ على الحساب كما يحفظ على الطلب */
-            }
-            $data['tq_gate'] = $tq_gate;
-            $data['terms_accepted_at'] = date('Y-m-d H:i:s');
-            if ($tq_gate === 'student') {
-                $data['age'] = $tq_age;
-                if ($tq_guard !== '') { $data['guardian_email'] = $tq_guard; }
-                if ($tq_grade > 0)    { $data['grade_id'] = $tq_grade; }
-                /* والعمود يفحص: نسخة لم يمر عليها `ensure_columns()` بعد
-                   ترمي «Unknown column» على من يسجل — أي على أول زائر. */
-                if ($tq_nid !== '') {
-                    try {
-                        if ($this->db->field_exists('national_id', 'users')) {
-                            $data['national_id'] = $tq_nid;
-                        }
-                    } catch (Throwable $e) { $this->db->reset_query(); }
-                }
-            }
-            /* الفحص كله جرى أعلاه قبل بناء الصف — فلم يبق هنا إلا القرار.
-               و`instructor_application()` تبحث عن المستخدم بـ`$_POST['email']`
-               بينما يحفظ الصف `html_escape($email)`؛ فبريد فيه فاصلة عليا
-               (وهي حرف مقبول) يكتب `&#39;` في العمود ولا يطابق ما تبحث به،
-               فلا ينشأ صف الطلب ولا يظهر خطأ. فيوحد الاسمان هنا. */
-            $instructor_apply = ($tq_gate === 'teacher');
-            $_POST['email'] = $data['email'];
-            //End Check  instructor application document
-
-            if ($validity === true) {
-                $user_id = $this->user_model->register_user($data);
-            } else {
-                $this->user_model->register_user_update_code($data, $data['status']);
-            }
-
-            //instructor application
-            if(isset($instructor_apply) && $instructor_apply == true):
-                $this->user_model->instructor_application();
-            endif;
-            //End instructor application
+        if (!empty($tq_made['ok'])) {
+            $user_id   = (int) $tq_made['user_id'];
+            $validity  = $tq_made['resumed'] ? 'unverified_user' : true;
+            $tq_otp_on = (bool) $tq_made['otp']['on'];
+            $tq_route  = $tq_made['otp']['route'];
+            $tq_sent   = is_array($tq_made['otp']['sent']) ? $tq_made['otp']['sent']
+                       : array('ok' => false, 'error' => '');
 
             /* ولي الأمر يخبر في المسارين: تأكيد البريد شأن الطالب،
                وإخطار ولي أمره لا يتوقف عليه. */
             $this->tq_tell_guardian($tq_guard, $tq_first . ' ' . $tq_last, $tq_email, $tq_age);
 
-            /* المعرف بعد الإنشاء لا قبله، ومن الفرعين معا: مسار
-               «حساب غير مؤكد قائم» لا يرد معرفا، فبلا هذا يصدر الرمز
-               بمعرف صفر ولا يعرف من يفتح — والدخول الفوري يحتاجه أيضا. */
-            if (empty($user_id)) {
-                $tq_u = $this->db->select('id')->where('email', $data['email'])
-                                 ->get('users')->row_array();
-                $user_id = $tq_u ? (int) $tq_u['id'] : 0;
-            }
-
             if ($tq_otp_on) {
-                $tq_sent = $this->taqdar_otp_model->send(
-                    'signup', $tq_email, $tq_chan,
-                    $tq_route['channels'][$tq_chan]['to'],
-                    (int) $user_id, $tq_first
-                );
-
                 /* ما تحتاجه شاشة التأكيد كله في الجلسة: البريد هو الهوية
                    التي يحكم بها الرمز، والقنوات ليعرض التبديل بلا أن يعاد
                    اشتقاقها من نموذج انتهى. */
@@ -746,7 +526,7 @@ class Login extends CI_Controller
                     }
                     redirect(site_url('sign_up/verification_code'), 'location', 302);
                 } else {
-                    if ($user_id > 0) { $this->email_model->signup_mail($user_id); }
+                    /* رسالة الترحيب أرسلها `create()`. */
                     $this->session->set_flashdata('flash_message',
                         'استلمنا طلبك للانضمام معلما. تراجعه الإدارة ونتواصل معك، ولن يفتح الدخول قبل الاعتماد.');
                     redirect(site_url('login'), 'refresh');
@@ -757,12 +537,8 @@ class Login extends CI_Controller
             /* ── TQ-INSTANT: طالب / ولي أمر — الحساب فتح (`status=1`)
                ويدخل صاحبه الآن. الرمز أرسل أعلاه ولا يحجب شيئا: فشله
                يسجل ولا يوقف، ولافتة اللوحة وشاشة التأكيد فيهما «أعد
-               الإرسال» و«بدل القناة». ── */
-            if ($tq_otp_on && empty($tq_sent['ok'])) {
-                log_message('info', 'TQ-OTP: تعذر إرسال رمز التسجيل ('
-                    . $tq_gate . ') — ' . (string) $tq_sent['error']);
-            }
-            if ($user_id > 0) { $this->email_model->signup_mail($user_id); }
+               الإرسال» و«بدل القناة». وفشل الرمز ورسالة الترحيب شأن
+               `create()`: يسجل هناك ويرسل هناك. ── */
 
             /* الدخول الفوري — مرآة كتلة `otp_verify()` أدناه: المفاتيح
                نفسها بالترتيب نفسه، و`true` = جهاز موثوق فلا تحويل إلى
@@ -913,19 +689,10 @@ class Login extends CI_Controller
         $uid  = (int) ($r['user_id'] ?: ($s['user_id'] ?? 0));
         $gate = (string) ($s['gate'] ?? 'student');
 
-        try {
-            $upd = array('tq_verified_at' => date('Y-m-d H:i:s'));
-            if ($gate !== 'teacher') $upd['status'] = 1;
-            if ($uid > 0) $this->db->where('id', $uid)->update('users', $upd);
-        } catch (Throwable $e) {
-            log_message('error', 'TQ-OTP: تعذر فتح الحساب بعد التأكيد — ' . $e->getMessage());
-        }
-
-        if ($uid > 0 && $gate !== 'teacher') {
-            /* رسالة الترحيب بعد التأكيد لا قبله: من لم يؤكد قد لا يكون
-               صاحب البريد أصلا. */
-            $this->email_model->signup_mail($uid);
-        }
+        /* الفتح ورسالة الترحيب في `Taqdar_signup_model::mark_verified()` —
+           وهي نفسها التي يناديها `api/v1/auth/verify`. */
+        $this->load->model('taqdar_signup_model');
+        $this->taqdar_signup_model->mark_verified($uid, $gate);
 
         $this->session->unset_userdata('tq_otp');
         $this->session->unset_userdata('register_email');

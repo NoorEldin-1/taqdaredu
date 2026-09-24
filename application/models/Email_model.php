@@ -871,7 +871,10 @@ class Email_model extends CI_Model
 
 	//System notification
 	function notify($type = "", $user_id = "", $subject = "", $description = "", $from_user = ""){
-        if($from_user == "" && $this->session->userdata('user_id') > 0){
+        /* TQ-SIGNUP — الجلسة قد لا تكون محملة: `api/v1` بلا جلسة، فكان
+           هذا السطر يرمي «userdata() on null» على كل تسجيل من التطبيق. */
+        $ci = get_instance();
+        if($from_user == "" && isset($ci->session) && $ci->session->userdata('user_id') > 0){
             $from_user = $this->session->userdata('user_id');
         }else{
         	$from_user = $this->db->get_where('users', ['role_id' => 1])->row('id');

@@ -5019,3 +5019,195 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
   background:var(--cream);border:1px dashed var(--gold-line-soft);
   font-size:.82em;font-weight:600;line-height:1.7;color:var(--gold-text);
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-QUICK-BUY · بطاقة «بياناتك» في شاشات الدفع الأربع
+   أول ما يراه الزائر قبل أن يدفع، فهي أثقل ما في الشاشة وزنا: شريط بترولي
+   يقول أين هو من الشراء وبكم، ثم ثلاثة حقول بيضاء على ورق — والباقي هادئ.
+   وفي آخر الملف عمدا: حقول `.form-field` و`.form-phone` موصوفة أعلاه
+   بمحددات تغلب ما يسبقها (TQ-PHONE-BOX)، فما يعدلها هنا يأتي بعدها.
+   ══════════════════════════════════════════════════════════════════ */
+.qa{
+  padding:0;overflow:hidden;border-color:var(--gold-line);
+  box-shadow:0 22px 44px -28px rgba(2,51,49,.42),var(--sh-soft)
+}
+
+/* ── الشريط: الخطوات والمبلغ ─────────────────────────────────────── */
+.qa__band{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:12px 22px;padding:16px clamp(18px,2.2vw,30px);
+  background:var(--petrol);color:#fff;
+  border-block-end:2px solid var(--gold-on-dark)
+}
+.qa__steps{display:flex;align-items:center;margin:0;padding:0;list-style:none}
+.qa__steps li{
+  display:flex;align-items:center;gap:8px;white-space:nowrap;
+  color:rgba(255,255,255,.62);font-size:clamp(12.5px,.9vw,13.5px);font-weight:600
+}
+.qa__steps li+li::before{
+  content:'';inline-size:clamp(14px,2vw,30px);block-size:1px;margin-inline:10px;
+  background:rgba(227,207,163,.45)
+}
+.qa__steps b{
+  display:grid;place-items:center;inline-size:26px;block-size:26px;border-radius:50%;
+  border:1px solid rgba(227,207,163,.5);color:var(--gold-on-dark);
+  font-size:12.5px;font-weight:700;line-height:1
+}
+.qa__steps li.is-on{color:#fff}
+.qa__steps li.is-on b{
+  background:var(--gold-on-dark);border-color:var(--gold-on-dark);color:var(--petrol);
+  box-shadow:0 0 0 4px rgba(227,207,163,.18)
+}
+.qa__what{
+  display:flex;align-items:baseline;gap:10px;margin:0;min-inline-size:0;
+  color:var(--gold-on-dark);font-size:13px
+}
+.qa__what span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-inline-size:28ch}
+.qa__what b{color:#fff;font-size:clamp(17px,1.45vw,21px);font-weight:800;white-space:nowrap}
+.qa__what .co-was{color:rgba(255,255,255,.55)}
+
+/* ── اللوحان ────────────────────────────────────────────────────── */
+.qa__pane{padding:clamp(20px,2.4vw,32px) clamp(18px,2.4vw,32px) clamp(20px,2.2vw,28px)}
+.qa__pane[hidden]{display:none}
+.qa__h{margin:0 0 6px;color:var(--petrol);font-size:clamp(19px,1.6vw,24px);line-height:1.5}
+.qa__lede{margin:0 0 clamp(18px,2vw,24px);color:var(--ink-2);font-size:clamp(13px,.95vw,14.5px);line-height:1.8}
+
+.qa__fields{display:grid;gap:16px}
+.qa__cell{min-inline-size:0}
+.qa__lbl{display:block;margin:0 2px 7px;color:var(--ink);font-size:13.5px;font-weight:700}
+
+/* الحقل أبيض على ورق البطاقة: الفارق هو ما يقول «اكتب هنا». */
+.qa .form-field{
+  background:#fff;border-color:var(--gold-line);min-block-size:54px;
+  box-shadow:0 1px 2px rgba(2,51,49,.04)
+}
+.qa .form-field:focus-within{border-color:var(--petrol);box-shadow:0 0 0 3px rgba(2,51,49,.12)}
+.qa .form-field--invalid,.qa .form-field--invalid:focus-within{
+  border-color:#C2556A;box-shadow:0 0 0 3px rgba(194,85,106,.16)
+}
+.qa .form-field>svg{color:var(--petrol);opacity:.7}
+.qa .form-field:focus-within>svg{opacity:1}
+.qa input[type="email"]{text-align:start}
+.qa input[type="email"]:placeholder-shown{text-align:right}
+.qa__hint{margin:7px 2px 0;color:var(--ink-3);font-size:12.5px;line-height:1.7}
+
+.qa__assure{
+  display:flex;align-items:flex-start;gap:10px;margin:20px 0 0;padding:12px 14px;
+  border-radius:12px;background:var(--beige);border:1px dashed var(--gold-line);
+  color:var(--ink-2);font-size:13px;line-height:1.75
+}
+.qa__assure svg{inline-size:18px;block-size:18px;flex:none;margin-block-start:3px;color:var(--gold-deep)}
+
+/* زر آخر الحقول: الفعل يمينا والمبلغ يسارا، فيقرأ «ماذا يقع» ثم «بكم». */
+.qa__go{display:flex;inline-size:100%;align-items:center;justify-content:space-between;gap:12px;
+  margin-block-start:18px;min-block-size:56px;padding-inline:22px;font-size:clamp(15px,1.1vw,16.5px)}
+.qa__go-sum{padding:4px 12px;border-radius:999px;background:rgba(227,207,163,.18);
+  color:var(--gold-on-dark);font-weight:800;white-space:nowrap}
+.qa__go .co-was{color:rgba(255,255,255,.55)}
+.qa__go[aria-busy="true"]{justify-content:center;opacity:.85;cursor:progress}
+
+.qa .soc-auth{margin-block-start:22px}
+.qa__switch{margin:18px 0 0;text-align:center;color:var(--ink-2);font-size:14px}
+.qa__switch a{color:var(--petrol);font-weight:700;text-decoration:underline;text-underline-offset:4px}
+.qa__switch a:hover{color:var(--gold-text)}
+.qa__switch span{margin-inline:8px;color:var(--ink-3)}
+.qa__pane>.btn{margin-block-start:18px}
+
+.qa__note{
+  display:flex;align-items:flex-start;gap:9px;margin:0 0 16px;padding:11px 14px;border-radius:12px;
+  background:#F0F7F3;border:1px solid #CFE6D8;color:#14512F;font-size:13px;line-height:1.75
+}
+.qa__note svg{inline-size:17px;block-size:17px;flex:none;margin-block-start:3px}
+
+/* تبديل اللوحين جواب لضغطة، فيظهر ما تغير — ولمن لا يريد الحركة لا حركة. */
+@media (prefers-reduced-motion:no-preference){
+  .qa__pane{animation:qa-in .26s var(--ease,ease-out)}
+  @keyframes qa-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+}
+
+@media (max-width:560px){
+  .qa__band{padding:14px 16px}
+  .qa__steps li{font-size:12px;gap:6px}
+  .qa__steps li+li::before{inline-size:12px;margin-inline:6px}
+  .qa__steps b{inline-size:23px;block-size:23px;font-size:11.5px}
+  .qa__what{inline-size:100%;justify-content:space-between}
+  .qa__what span{max-inline-size:60vw}
+  .qa__pane{padding:18px 16px 20px}
+}
+
+/* البطاقة لا تقص ما يخرج منها: قائمة الدول تنسدل تحت حقلها، و`overflow`
+   كان يقطعها عند حد البطاقة. فالشريط يأخذ الانحناء بنفسه. */
+.qa{overflow:visible}
+.qa__band{border-radius:calc(var(--r-card) - 1px) calc(var(--r-card) - 1px) 0 0}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-CC-PICK · منتقي دولة الجوال — `tq-cc-picker.js`
+   زر في موضع المنتقي (علم ورمز وسهم)، وقائمة بيضاء تنسدل بعرض الحقل
+   فيها بحث. والمنتقي الأصلي باق في الوسم يرسل القيمة ولا يرى.
+   ══════════════════════════════════════════════════════════════════ */
+.form-field.form-phone.cc-pick{position:relative}
+.form-field.form-phone>.form-phone__cc.cc-pick__native{
+  position:absolute;inline-size:1px;block-size:1px;padding:0;margin:0;
+  opacity:0;pointer-events:none;overflow:hidden
+}
+.form-field.form-phone>.cc-pick__btn{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;
+  margin-block:-6px;margin-inline-end:12px;padding:6px 10px 6px 12px;
+  border:0;border-inline-end:1px solid var(--gold-line-soft);border-radius:10px 0 0 10px;
+  background:transparent;color:var(--ink);font:inherit;cursor:pointer;
+  transition:background var(--t-hover,.15s) var(--ease,ease)
+}
+[dir="rtl"] .form-field.form-phone>.cc-pick__btn{border-radius:0 10px 10px 0}
+.form-field.form-phone>.cc-pick__btn:hover{background:var(--beige)}
+.form-field.form-phone>.cc-pick__btn:focus-visible{outline:2px solid var(--petrol);outline-offset:2px}
+.cc-pick__dial{font-weight:700;font-size:14.5px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.cc-pick__caret{
+  inline-size:7px;block-size:7px;margin-inline-start:2px;
+  border:solid var(--gold-deep);border-width:0 0 1.6px 1.6px;
+  transform:translateY(-2px) rotate(-45deg);transition:transform var(--t-hover,.15s) var(--ease,ease)
+}
+.cc-pick.is-open .cc-pick__caret{transform:translateY(2px) rotate(135deg)}
+
+/* العلم: إيموجي حيث يرسمه الجهاز، ورمز الدولة في شارة حيث لا يرسمه
+   (ويندوز) — حرفان بلا شكل كانا يقرآن عطلا. */
+.cc-pick__flag{font-size:20px;line-height:1;flex:none}
+.cc-pick__flag.is-code{
+  display:inline-grid;place-items:center;inline-size:30px;block-size:21px;border-radius:5px;
+  background:var(--petrol);color:var(--gold-on-dark);
+  font-size:10.5px;font-weight:800;letter-spacing:.06em;font-family:inherit
+}
+
+.cc-pick__pop{
+  position:absolute;inset-inline:-1px;inset-block-start:calc(100% + 8px);z-index:40;
+  padding:8px;border-radius:16px;background:#fff;border:1px solid var(--gold-line);
+  box-shadow:0 24px 48px -18px rgba(2,51,49,.35),0 2px 6px rgba(2,51,49,.06)
+}
+.cc-pick__pop[hidden]{display:none}
+@media (prefers-reduced-motion:no-preference){
+  .cc-pick__pop{animation:cc-pop .16s var(--ease,ease-out)}
+  @keyframes cc-pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+}
+.form-field .cc-pick__search{
+  display:block;inline-size:100%;margin:0 0 6px;padding:10px 14px;
+  border-radius:10px;border:1px solid var(--gold-line-soft);background:var(--paper);
+  font:inherit;font-size:14px;color:var(--ink);outline:none
+}
+.form-field .cc-pick__search:focus{border-color:var(--petrol);box-shadow:0 0 0 3px rgba(2,51,49,.1)}
+.cc-pick__list{
+  list-style:none;margin:0;padding:0;max-block-size:min(292px,46vh);overflow-y:auto;
+  overscroll-behavior:contain;scrollbar-width:thin
+}
+.cc-pick__opt{
+  display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:10px;cursor:pointer;color:var(--ink);font-size:14px
+}
+.cc-pick__opt[hidden]{display:none}
+.cc-pick__opt.is-active{background:var(--beige)}
+.cc-pick__opt[aria-selected="true"]{color:var(--petrol);font-weight:700}
+.cc-pick__opt[aria-selected="true"] .cc-pick__code::after{
+  content:'';display:inline-block;inline-size:9px;block-size:5px;margin-inline-start:8px;
+  border:solid var(--petrol);border-width:0 0 2px 2px;transform:translateY(-3px) rotate(-45deg)
+}
+.cc-pick__name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-pick__code{color:var(--ink-3);font-size:13px;font-variant-numeric:tabular-nums}
+.cc-pick__empty{margin:6px 4px 4px;color:var(--ink-3);font-size:13px;text-align:center}

@@ -80,6 +80,9 @@ class Taqdar_cron_purge extends CI_Controller
         $this->row('مقررات «ai animation»', $t['courses']);
         $this->row('مساراتها', $t['paths']);
         $this->row('مدفوعات معلم الاختبار (payout)', $t['payout']);
+        $this->row('قيود محفظة معلم الاختبار', $this->col(
+            'SELECT e.id FROM `wallet_entries` e JOIN `wallets` w ON w.id = e.wallet_id
+              WHERE w.owner_user_id = ' . self::TEST_TEACHER));
         $this->row('طلبات انضمام عابثة', $t['applications']);
         $this->row('إشعارات سبام نموذج التواصل', $t['contact_notif']);
 
@@ -128,7 +131,16 @@ class Taqdar_cron_purge extends CI_Controller
         $n['apps']        = $this->kill('applications',       'id', $t['applications']);
         $n['contact']     = $this->kill('notifications',      'id', $t['contact_notif']);
 
-        /* محفظة معلم الاختبار وحدها تُصفَّر — لا محفظة معلم حقيقي. */
+        /* محفظة معلم الاختبار وحدها تُصفَّر — لا محفظة معلم حقيقي.
+
+           TQ-PURGE-LEDGER — والتصفير بمحو **قيودها** لا بتصفير أعمدتها.
+           أعمدة `wallets` مرآة يعيد `recompute()` كتابتها من `wallet_entries`
+           عند أول فتح لشاشة المحفظة؛ فتصفيرها وحدها لا يمحو شيئا. وكان
+           ذلك ما وقع: بقيت القيود، فقرأ `reconcile_refunds()` كل بيع محذوف
+           من `payment` استردادا يخصم من المتاح، وبقيت طلبات السحب المحولة
+           مالا خرج — فصار المتاح −٣٦٧ ريالا وقفل نموذج السحب على الحساب. */
+        $wid = (int) $this->one('SELECT id FROM `wallets` WHERE owner_user_id = ' . self::TEST_TEACHER);
+        $n['entries'] = $wid ? $this->kill('wallet_entries', 'wallet_id', array($wid)) : 0;
         $this->db->where('owner_user_id', self::TEST_TEACHER)
                  ->update('wallets', array('balance_available' => 0,
                                            'balance_pending'   => 0,

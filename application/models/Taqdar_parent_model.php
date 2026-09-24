@@ -72,7 +72,7 @@ class Taqdar_parent_model extends CI_Model
            `parent_links`، فكان يبقى عند وليه ابنا «مفعلا» باسم «حساب محذوف»:
            في التقرير الأسبوعي، وفي الإعدادات بزر إلغاء ربط، وفي منتقي من يدفع
            عنه. والشرط هنا في مصدر الروابط الواحد، فتسقط من كل الشاشات معا. */
-        $sql = "SELECT pl.id, pl.student_id, pl.status, pl.consent_at, pl.scope,
+        $sql = "SELECT pl.id, pl.parent_user_id, pl.student_id, pl.status, pl.consent_at, pl.scope,
                        u.first_name, u.last_name, u.email, u.image
                   FROM parent_links pl
                   JOIN users u ON u.id = pl.student_id
@@ -85,10 +85,43 @@ class Taqdar_parent_model extends CI_Model
 
         $rows = $this->db->query($sql, $bind)->result_array();
         foreach ($rows as &$r) {
-            $r['name']  = trim($r['first_name'] . ' ' . $r['last_name']);
-            $r['prefs'] = $this->scope_of($r);
+            $r['name']   = trim($r['first_name'] . ' ' . $r['last_name']);
+            $r['prefs']  = $this->scope_of($r);
+            /* TQ-LINK-ENUM — من لم يوافق قط لا يكشف اسمه ولا صورته: يعرف
+               بالبريد الذي كتبه ولي الأمر. والاسم لمن وافق يوما (نشط، أو
+               موافقة في النطاق، أو موافقة سابقة ورثها طلب معاد). والقاعدة
+               هنا مرة: شاشة الإعدادات والتطبيق يقرآنها ولا يعيدان حسابها. */
+            $r['named']  = $r['status'] === 'active'
+                        || !empty($r['prefs']['consent']) || !empty($r['prefs']['previous_consent']);
+            $r['closed'] = $this->closed_of($r);
         }
         return $rows;
+    }
+
+    /**
+     * لماذا أغلق الرابط، ومن أغلقه، ومتى — `null` لما ليس `revoked`.
+     *
+     * «رفض» غير «سحب»: الأول قرار الابن قبل أن يوافق (`scope.rejected`)،
+     * والثاني فك رابط كان قائما (`scope.revoked`). و`by` من صاحب المعرف
+     * المختوم: الابن أو ولي الأمر، وما سواهما إدارة.
+     */
+    public function closed_of($link)
+    {
+        if (($link['status'] ?? '') !== 'revoked') return null;
+        $p = isset($link['prefs']) ? $link['prefs'] : $this->scope_of($link);
+
+        $rej = (isset($p['rejected']) && is_array($p['rejected'])) ? $p['rejected'] : null;
+        $rev = (isset($p['revoked'])  && is_array($p['revoked']))  ? $p['revoked']  : null;
+        $ev  = $rej ?: $rev;
+        if (!$ev) return array('reason' => 'revoked', 'by' => null, 'at' => null);
+
+        $by_id = (int) ($ev['by'] ?? 0);
+        if ($by_id > 0 && $by_id === (int) $link['student_id'])          $by = 'student';
+        elseif ($by_id > 0 && $by_id === (int) $link['parent_user_id'])  $by = 'parent';
+        elseif ($by_id > 0)                                              $by = 'admin';
+        else                                                             $by = null;
+
+        return array('reason' => $rej ? 'rejected' : 'revoked', 'by' => $by, 'at' => $ev['at'] ?? null);
     }
 
     /** الأبناء المربوطون فعلا (رابط نشط بموافقة موثقة). */
@@ -145,6 +178,41 @@ class Taqdar_parent_model extends CI_Model
         return $days > 0
             ? ['days' => min(7, $days), 'is_default' => false]
             : ['days' => self::PLAN_DAYS_DEFAULT, 'is_default' => true];
+    }
+
+    /**
+     * يكتب خطة أيام ابن واحد — ولا يمس غيرها.
+     *
+     * `save_prefs()` تكتب مفاتيح التنبيه من الجسم نفسه، فنداؤها لأجل خطة
+     * ابن يطفئ كل تنبيه لم يرسل معها. وهذه تمس `scope.plan_days` وحدها.
+     * و`null` = «غير محددة» فتحذف ولا يكتب رقم لم يختره أحد.
+     *
+     * @return array {ok, days, is_default} أو {ok:false, message}
+     */
+    public function set_plan_days($parent_id, $student_id, $days)
+    {
+        $row = $this->db->query(
+            "SELECT id, scope FROM parent_links
+              WHERE parent_user_id = ? AND student_id = ? AND status = 'active' LIMIT 1",
+            [(int) $parent_id, (int) $student_id]
+        )->row_array();
+        if (!$row || !$this->owns($parent_id, $student_id)) {
+            return $this->fail('لا رابط نشط بهذا الابن في حسابك.');
+        }
+
+        $scope = $this->scope_of($row);
+        if ($days === null) {
+            unset($scope['plan_days']);
+        } else {
+            $d = (int) $days;
+            if ($d < 1 || $d > 7) return $this->fail('خطة الأسبوع من يوم إلى سبعة أيام.');
+            $scope['plan_days'] = $d;
+        }
+        $this->db->where('id', (int) $row['id'])->update('parent_links', ['scope' => $this->json($scope)]);
+
+        $p = $this->plan_days($parent_id, $student_id);
+        return ['ok' => true, 'days' => $p['days'], 'is_default' => $p['is_default'],
+                'message' => 'حفظت خطة الأسبوع.'];
     }
 
     /** قناة تفضيلات ولي الأمر في `tq_prefs_notify` — البوابة نفسها لا البريد. */
@@ -1762,6 +1830,10 @@ class Taqdar_parent_model extends CI_Model
                 'student_id'    => $sid,
                 'name'          => (string) $l['name'],
                 'image'         => (string) $l['image'],
+                /* البريد كتبه ولي الأمر بيده فلا يكشف شيئا، وبه يعرف من لم
+                   يوافق بعد (`named` كاذبة). */
+                'email'         => (string) $l['email'],
+                'named'         => (bool) $l['named'],
                 'link_status'   => (string) $l['status'],
                 'commitment'    => null,
                 'understanding' => null,

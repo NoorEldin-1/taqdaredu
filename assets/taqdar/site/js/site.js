@@ -1033,7 +1033,9 @@ var TQPhoneRules = (function () {
 
     if (el.type === 'number') {
       if (!/^[0-9٠-٩]+$/.test(v)) return mark(el, 'اكتب رقما.');
-      var n = Number(v.replace(/[٠-٩]/g, toLatin));
+      /* `toLatin` تعيش في إغلاق `TQPhoneRules` لا هنا — فكان كل حقل رقمي
+         (العمر) يرمي «toLatin is not defined» ويسقط فحصه. */
+      var n = Number(v.replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }));
       var lo = parseFloat(el.getAttribute('min')), hi = parseFloat(el.getAttribute('max'));
       if ((!isNaN(lo) && n < lo) || (!isNaN(hi) && n > hi)) {
         return mark(el, custom || ('اكتب رقما بين ' + lo + ' و' + hi + '.'));
@@ -1651,7 +1653,10 @@ var TQPhoneRules = (function () {
      أزيل حاجزها. وتبقى لشراء الدرس والكتاب حيث لا نموذج ضيف بعد.
      (تنبيه: `href*="/checkout/"` كانت تمسك `/course-checkout/` أيضا
      لأنها احتواء نص لا مسار.) */
-  var SEL = 'a[href*="/course-checkout/"], a[href*="/book-checkout/"]';
+  /* TQ-QUICK-BUY — ولا الدرس والكتاب بعد اليوم: شاشات الدفع الأربع صارت
+     تسجل الزائر من ثلاثة حقول وتدفع بضغطة، فالنافذة حاجز قبل صفحة أزيل
+     حاجزها. ويبقى المستمع لرابط يعلن `data-tq-auth-link` صراحة. */
+  var SEL = 'a[data-tq-auth-link]';
 
   var dlg = document.querySelector('dialog[data-tq-auth]');
   if (!dlg || !dlg.showModal) return;              /* متصفّح بلا `<dialog>` */
@@ -1755,71 +1760,11 @@ var TQPhoneRules = (function () {
   if (location.href.indexOf(to) !== 0) location.replace(to);
 })();
 
-/* ══════════════════════════════════════════════════════════════════
-   TQ-GUEST-CHECKOUT · الشراء بلا حساب سابق
-   ثلاثة أشياء لا أكثر: تبديل التبويبين، وإظهار بريد ولي الأمر لمن هو
-   دون الخامسة عشرة، وحفظ نية الشراء لتستأنف بعد أن تصير للزائر جلسة.
-   ولا شيء هنا يشتري: الشراء `POST` إلى `student/subscribe` كما كان.
-   ══════════════════════════════════════════════════════════════════ */
-(function () {
-  var KEY  = 'tq-buy';
-  var root = document.getElementById('tqCheckout');
-  if (!root) return;
-
-  /* ── الزائر: تبويبان ونية تحفظ ─────────────────────────────────── */
-  var acct = root.querySelector('[data-tq-acct]');
-  if (acct) {
-    var tabs  = acct.querySelectorAll('[data-tq-acct-tab]');
-    var panes = acct.querySelectorAll('[data-tq-acct-pane]');
-
-    function show(which) {
-      Array.prototype.forEach.call(tabs, function (b) {
-        b.setAttribute('aria-pressed', String(b.getAttribute('data-tq-acct-tab') === which));
-      });
-      Array.prototype.forEach.call(panes, function (f) {
-        f.hidden = (f.getAttribute('data-tq-acct-pane') !== which);
-      });
-    }
-    Array.prototype.forEach.call(tabs, function (b) {
-      b.addEventListener('click', function () { show(b.getAttribute('data-tq-acct-tab')); });
-    });
-
-    /* (بريد ولي الأمر خرج من النموذج كله — TQ-INSTANT.) */
-
-    /* النية تحفظ قبل المغادرة لمسار **الدخول** وحده: التسجيل صار يحمل
-       نيته في الخادم (TQ-AUTOPAY) فلا حاجة لذاكرة متصفح تكررها. */
-    var plan = root.getAttribute('data-tq-plan') || '';
-    Array.prototype.forEach.call(
-      acct.querySelectorAll('[data-tq-acct-pane="have"][data-tq-intent]'),
-      function (f) {
-        f.addEventListener('submit', function () {
-          try { sessionStorage.setItem(KEY, plan); } catch (e) {}
-        });
-      });
-    return;                                  /* الزائر لا يشتري بعد */
-  }
-
-  /* ── العائد بجلسة: النية تستأنف مرة واحدة ──────────────────────── */
-  if (root.tagName !== 'FORM') return;
-  var want = null;
-  try { want = sessionStorage.getItem(KEY); } catch (e) { return; }
-  if (!want) return;
-  try { sessionStorage.removeItem(KEY); } catch (e) {}   /* مرة واحدة لا حلقة */
-
-  var field = root.querySelector('input[name="plan_id"]');
-  if (!field || String(field.value) !== String(want)) return;
-
-  var note = document.createElement('p');
-  note.className = 'co-resume';
-  note.textContent = 'فتح حسابك ودخلت — ننقلك إلى الدفع الآن…';
-  root.insertBefore(note, root.firstChild);
-
-  /* مهلة قصيرة ليقرأ السطر قبل أن تغادر الصفحة. */
-  setTimeout(function () {
-    if (typeof root.requestSubmit === 'function') root.requestSubmit();
-    else root.submit();
-  }, 900);
-})();
+/* TQ-GUEST-CHECKOUT · كان هنا تبديل تبويبي «حساب جديد / لدي حساب» في شاشة
+   الباقة، واستئناف يرسل الشراء تلقائيا بعد الدخول. وصارت البطاقة لوحين
+   يبدلهما `tq_quick_script()` في شاشات الدفع الأربع (TQ-QUICK-BUY)، والعائد
+   بعد الدخول يقرأ سطرا يقول ما بقي ويضغط زره بنفسه: الإرسال التلقائي كان
+   يتجاوز طريقة الدفع التي اختارها قبل أن يدخل. */
 
 /* ══════════════════════════════════════════════════════════════════
    TQ-PCMP-FOLD · جدول المقارنة يطوى على الشاشة الضيقة

@@ -36,6 +36,9 @@ $tq_test = !empty($tq_card_test);
 $tq_bank = (tqs_bank() !== null) || !$tq_card;
 $tq_both = $tq_card && $tq_bank;
 
+/* TQ-QUICK-BUY — الزائر يرى الشاشة كاملة ومعها بطاقة «بياناتك». */
+$tq_guest = !empty($tq_guest);
+
 $CI = get_instance();
 
 $slug     = trim((string) $book['slug']) !== '' ? (string) $book['slug'] : (string) $bid;
@@ -73,8 +76,10 @@ $access = ((int) $o['days'] > 0)
      بطاقة الملخص والزر في البطاقة اللاصقة، ولو بقي النموذج في إحداهما
      لصار المنتقي خارجه — أي أن الاختيار لا يرسل. */
   ?>
-  <form class="shell co-cols" method="post" action="<?php echo base_url('student/buy-book'); ?>"
-        id="tqCheckout">
+  <?php /* TQ-QUICK-BUY — الزائر يشتري من النموذج نفسه ووجهته `checkout-quick`. */ ?>
+  <form class="shell co-cols" method="post" id="tqCheckout"
+        action="<?php echo base_url($tq_guest ? 'checkout-quick' : 'student/buy-book'); ?>"
+        data-tq-item="book:<?php echo $bid; ?>">
     <?php echo tq_csrf(); ?>
     <?php /* `book_id` وحده يرسل، والسعر يقرأ في المحرك من `offer()`. */ ?>
     <input type="hidden" name="book_id" value="<?php echo $bid; ?>">
@@ -83,6 +88,19 @@ $access = ((int) $o['days'] > 0)
 
       <?php if ($m = $CI->session->flashdata('error_message')): ?>
         <p class="tq-flash tq-flash--err" role="alert"><?php echo html_escape($m); ?></p>
+      <?php endif; ?>
+      <?php if ($m = $CI->session->flashdata('flash_message')): ?>
+        <p class="tq-flash tq-flash--ok" role="status"><?php echo html_escape($m); ?></p>
+      <?php endif; ?>
+      <?php echo tq_quick_welcome(); ?>
+
+      <?php if ($tq_guest): ?>
+        <?php echo tq_quick_card(array(
+            'kind'  => 'book',
+            'back'  => 'book-checkout/' . $bid,
+            'title' => $o['title'],
+            'total' => tq_coupon_total($tq_cpn, (int) $o['price']),
+        )); ?>
       <?php endif; ?>
 
       <?php if ($pending): ?>
@@ -171,13 +189,17 @@ $access = ((int) $o['days'] > 0)
       <div class="icard">
         <h2><?php echo t('طريقة الدفع'); ?></h2>
 
-        <?php /* TQ-EXPRESS-PAY — Apple Pay · Google Pay · البطاقة هنا. */ ?>
-        <?php echo tq_express_pay(array(
-            'amount' => (int) $o['price'],
-            'coupon' => $tq_cpn,
-            'form'   => 'tqCheckout',
-            'label'  => $o['title'],
-        )); ?>
+        <?php /* TQ-EXPRESS-PAY — Apple Pay · Google Pay · البطاقة هنا، للداخل وحده. */ ?>
+        <?php if ($tq_guest): ?>
+          <?php echo tq_quick_express_note(); ?>
+        <?php else: ?>
+          <?php echo tq_express_pay(array(
+              'amount' => (int) $o['price'],
+              'coupon' => $tq_cpn,
+              'form'   => 'tqCheckout',
+              'label'  => $o['title'],
+          )); ?>
+        <?php endif; ?>
 
         <?php if ($tq_both): ?>
           <div class="co-pick">
@@ -286,11 +308,7 @@ $access = ((int) $o['days'] > 0)
           <?php echo t('هذا الكتاب وحده — يقرأ في مكتبتك.'); ?> <?php echo html_escape($access); ?>.
         </p>
 
-        <button type="submit" class="btn btn--primary btn--block" data-tq-submit
-                data-tq-label-tap="<?php echo t('تابع إلى الدفع الآمن'); ?>"
-                data-tq-label-bank="<?php echo t('تأكيد الشراء وإصدار الفاتورة'); ?>">
-          <?php echo $tq_card ? t('تابع إلى الدفع الآمن') : t('تأكيد الشراء وإصدار الفاتورة'); ?>
-        </button>
+        <?php echo tq_quick_side_button($tq_guest, $tq_card, t('تأكيد الشراء وإصدار الفاتورة')); ?>
 
         <p class="tq-caption co-side__note">
           <?php echo t('لا تجديد تلقائي ولا خصم متكرر. وبتأكيدك توافق على'); ?>
@@ -306,7 +324,9 @@ $access = ((int) $o['days'] > 0)
     </aside>
 
   </form>
+  <?php if ($tq_guest) echo tq_quick_login_form('book-checkout/' . $bid); ?>
 </section>
+<?php if ($tq_guest) echo tq_quick_script(); ?>
 
 <?php if ($tq_both): ?>
 <?php /* تحسين تدريجي بحتا — النسخة نفسها في `site_course_checkout.php`:

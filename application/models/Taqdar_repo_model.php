@@ -2371,6 +2371,136 @@ class Taqdar_repo_model extends CI_Model
     }
 
     /* ================================================================
+     *  تدريب دفتر الأخطاء — TQ-MISTAKE-DRILL
+     * ================================================================
+     *
+     * كان المنطق كله في `Taqdar_gate::practice_questions()` و
+     * `practice_answer()`، فلما طلب التطبيق التدريب نفسه لم يجد ما يناديه
+     * إلا متحكما يرد غلاف البوابة. ونسخة ثانية في `Api_v1` تفترق عند أول
+     * تعديل: يخرج السؤال من الدفتر في الموقع ويبقى في التطبيق. فالقاعدة
+     * هنا، والبابان يشكلان الرد وحسب.
+     */
+
+    /**
+     * أسئلة الدفتر بخياراتها للتدريب — **بلا `correct_answers` أبدا**.
+     *
+     * الأسئلة هي الدفتر نفسه (`get_mistakes()`) لا استعلام ثان، والترشيح
+     * بالكورس قبل القص: كان يجلب أكثر عشرة تكرارا من كل المواد ثم يرشح
+     * المتصفح، فمن لم تقع أسئلة مادته في العشرة يضغط «ابدأ» فلا يقع شيء.
+     *
+     * @return array {rows, total} — `total` عدد الدفتر المرشح كله.
+     */
+    public function practice_questions($student_id, $limit = 10, $course_id = 0)
+    {
+        $student_id = (int) $student_id;
+        $limit      = max(1, min(50, (int) $limit));
+        $course_id  = (int) $course_id;
+
+        $book = $this->get_mistakes($student_id);
+        if ($course_id > 0) {
+            $book = array_values(array_filter($book, static function ($m) use ($course_id) {
+                return (int) $m['course_id'] === $course_id;
+            }));
+        }
+        $total = count($book);
+        $slice = array_slice($book, 0, $limit);
+
+        $opts = array();
+        if ($slice) {
+            $ids = array_map(static function ($m) { return (int) $m['question_id']; }, $slice);
+            foreach ($this->db->select('id, number_of_options, options')->where_in('id', $ids)
+                              ->get('question')->result_array() as $q) {
+                $opts[(int) $q['id']] = $q;
+            }
+        }
+
+        $rows = array();
+        foreach ($slice as $m) {
+            $q = $opts[(int) $m['question_id']] ?? array('number_of_options' => 0, 'options' => '');
+            $decoded = $q['options'] ? json_decode($q['options'], true) : array();
+            $m['number_of_options'] = (int) $q['number_of_options'];
+            $m['options'] = is_array($decoded) ? $decoded : array();
+            $rows[] = $m;
+        }
+
+        return array('rows' => $rows, 'total' => $total);
+    }
+
+    /**
+     * إجابة سؤال من الدفتر.
+     *
+     * شرط الملكية غير شرط المراجعة: تلك تشترط أن يكون السؤال في الطابور،
+     * وهذه أن يكون الطالب **أخطأه من قبل** — كل خطأ ليس في الطابور
+     * بالضرورة. والصواب يحرك حالة المهارة، ويباعد الموعد إن كان مجدولا،
+     * فالتدريب يحسب كما تحسب المراجعة.
+     *
+     * @return array {ok:true, result} أو {ok:false, code:'not_entitled'|'not_found'}
+     */
+    public function answer_practice($student_id, $question_id, $given)
+    {
+        $student_id  = (int) $student_id;
+        $question_id = (int) $question_id;
+
+        $wrong_count = function () use ($student_id, $question_id) {
+            return (int) $this->db->query(
+                'SELECT COUNT(*) n FROM `answers` a
+                   JOIN `attempts` t ON t.`id` = a.`attempt_id`
+                  WHERE t.`student_id` = ? AND a.`question_id` = ? AND a.`is_correct` = 0',
+                array($student_id, $question_id))->row('n');
+        };
+
+        if (!$wrong_count()) return array('ok' => false, 'code' => 'not_entitled');
+
+        $q = $this->db->where('id', $question_id)->get('question')->row_array();
+        if (!$q) return array('ok' => false, 'code' => 'not_found');
+
+        if (is_string($given)) {
+            $decoded = json_decode($given, true);
+            $given   = is_array($decoded) ? $decoded : array($given);
+        }
+        if (!is_array($given)) $given = ($given === null) ? array() : array($given);
+
+        $correct = $this->is_answer_correct($q, $given);
+
+        /* TQ-MISTAKE-CLEAR — الإجابة تسجل، فيقرؤها الدفتر: صواب بعد آخر خطأ
+           يخرج السؤال منه، وخطأ جديد يعيده. */
+        $this->log_practice($student_id, $question_id, $correct);
+
+        /* المجدول يمر بمحرك المراجعة كاملا، وغير المجدول يحرك حالة المهارة
+           وحدها — فلا يخترع لنفسه جدولا لم تفتحه بوابة الإتقان. */
+        $scheduled = (int) $this->db->where('student_id', $student_id)
+                                    ->where('question_id', $question_id)
+                                    ->count_all_results('review_queue');
+        if ($scheduled) {
+            $result = $this->answer_review($student_id, $question_id, $correct);
+        } else {
+            if (!empty($q['objective_id'])) {
+                $this->touch_skill_state($student_id, (int) $q['objective_id'], $correct ? 1 : 0, 1, null);
+            }
+            $result = array(
+                'question_id'   => $question_id,
+                'correct'       => (bool) $correct,
+                'scheduled'     => false,
+                'remaining_due' => $this->count_due_reviews($student_id),
+            );
+        }
+
+        $result['practice']          = true;
+        $result['scheduled']         = (bool) $scheduled;
+        $result['still_wrong_count'] = $wrong_count();
+        /* أخرج من الدفتر؟ — من `get_mistakes()` نفسها لا من حساب ثان. */
+        $result['cleared'] = true;
+        foreach ($this->get_mistakes($student_id) as $m) {
+            if ((int) $m['question_id'] === $question_id) { $result['cleared'] = false; break; }
+        }
+
+        $this->audit($student_id, 'mistake.practice', 'question:' . $question_id, null,
+                     array('correct' => (bool) $correct, 'scheduled' => (bool) $scheduled));
+
+        return array('ok' => true, 'result' => $result);
+    }
+
+    /* ================================================================
      *  التوأم الرقمي
      * ================================================================ */
 

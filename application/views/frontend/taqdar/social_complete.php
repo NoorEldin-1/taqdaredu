@@ -25,7 +25,9 @@ $tq_nx   = isset($tq_next) ? (string) $tq_next : '';
 $tq_name = trim((string) (isset($tq_u['first_name']) ? $tq_u['first_name'] : ''));
 
 $tq_h1   = $tq_name !== '' ? ('أهلا بك يا ' . $tq_name . '.') : 'أهلا بك في تقدر.';
-$tq_lead = 'بقي سطر أو سطران ليعمل حسابك على وجهه.';
+$tq_lead = in_array('password', $tq_need, true)
+         ? 'حسابك يعمل. بقيت كلمة مرور تدخل بها من أي جهاز، وسطران عنك.'
+         : 'بقي سطر أو سطران ليعمل حسابك على وجهه.';
 include __DIR__ . '/site/site_pagehero.php';
 ?>
 <section class="section">
@@ -48,6 +50,29 @@ include __DIR__ . '/site/site_pagehero.php';
           <?php echo tq_csrf(); ?>
           <?php if ($tq_nx !== ''): ?>
             <input type="hidden" name="tq_next" value="<?php echo html_escape($tq_nx); ?>">
+          <?php endif; ?>
+
+          <?php if (in_array('password', $tq_need, true)): ?>
+            <?php /* TQ-QUICK-BUY — حساب أنشئ من شاشة الدفع بلا كلمة مرور:
+                     هذا الحقل هو بابه إلى حسابه من أي جهاز آخر. */ ?>
+            <div class="form-cell">
+              <label class="form-field">
+                <svg aria-hidden="true"><use href="#i-lock"></use></svg>
+                <span class="sr-only">كلمة المرور</span>
+                <input type="password" name="password" id="tqPwComplete" placeholder="اختر كلمة مرور"
+                       minlength="8" autocomplete="new-password" aria-describedby="tqPwCompleteHint"
+                       data-msg="كلمة المرور ثمانية محارف على الأقل.">
+                <button class="pw-eye" type="button" data-tq-pw="tqPwComplete"
+                        aria-label="إظهار كلمة المرور" aria-pressed="false">
+                  <svg aria-hidden="true"><use href="#i-eye"></use></svg>
+                </button>
+              </label>
+              <p class="form-hint" id="tqPwCompleteHint">
+                ثمانية محارف على الأقل. بها وببريدك
+                <b class="tq-ltr"><?php echo html_escape((string) ($tq_u['email'] ?? '')); ?></b>
+                تدخل إلى حسابك من أي جهاز.
+              </p>
+            </div>
           <?php endif; ?>
 
           <?php if (in_array('phone', $tq_need, true)): ?>

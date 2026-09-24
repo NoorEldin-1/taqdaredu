@@ -300,6 +300,10 @@ class Taqdar extends CI_Controller
     private static $setup_open = array(
         'tq_setup', 'tq_settings', 'tq_messages', 'tq_notifications', 'tq_delete_account',
         'tq_placement',
+        /* TQ-QUICK-BUY — التأسيس بلا صف أصلا (TQ-FOUNDATION)، والتهيئة تسأل عن
+           الصف. ومن اشترى باقة حصص من شاشة الدفع يهبط هنا ليقرأ فاتورته
+           ويحجز — واعتراضه بسؤال «ما صفك؟» يخفي عنه ما دفع من أجله. */
+        'tq_foundation',
     );
 
     private function student($page, $title)
@@ -4028,6 +4032,157 @@ class Taqdar extends CI_Controller
     }
 
     /**
+     * POST checkout-quick — TQ-QUICK-BUY: حساب خفيف ثم الشراء، بضغطة واحدة.
+     *
+     * الزائر كتب ثلاثة حقول (اسم الطالب والجوال والبريد) في نموذج الشراء
+     * نفسه. فينشأ حسابه هنا ويدخل، ثم **يسلم الطلب كما هو** إلى دالة
+     * الشراء القائمة (`subscribe()` · `buy_course()` · `buy_book()` ·
+     * `buy_foundation()`) — فالفاتورة والكود والدورة وتاب والتحويل البنكي
+     * كلها تجري بالقواعد التي تجري بها للداخل حرفا. ولا محرك ثان.
+     *
+     * وثلاثة لا تقع هنا عمدا:
+     *   · **لا يسلم حساب قائم**: بريد له حساب يرد إلى لوح «لدي حساب» ببريده،
+     *     ولو فتح هنا لصار كل حساب مفتوحا لمن يعرف بريد صاحبه.
+     *   · **لا رمز تأكيد في طريق الدفع**: من يدفع الآن لا ينتظر رسالة. ولافتة
+     *     اللوحة تطلب كلمة المرور والتأكيد بعد الدفع.
+     *   · **لا صفحة بين الضغطة وتاب**، إلا حيث في الشاشة أزرار دفع مباشر
+     *     (Apple Pay وغيرها): تلك تحتاج جلسة قبل أن تظهر، فيعود إليها.
+     */
+    public function quick_buy()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $kind = (string) $this->input->post('buy_kind');
+        $back = $this->tq_quick_back($kind);
+        if ($back === '') show_404();
+
+        /* دخل من تبويب آخر وهذه الشاشة قديمة: لا حساب ينشأ — يشتري بحسابه. */
+        if ((int) $this->session->userdata('user_id') > 0) {
+            $this->tq_quick_dispatch($kind);
+            return;
+        }
+
+        $to_back = base_url($back) . '#tqAcct';
+        if (!tq_auth_verify_origin()) {
+            $this->session->set_flashdata('error_message', 'تعذر إتمام الطلب. أعد المحاولة من الصفحة نفسها.');
+            redirect($to_back, 'location', 302);
+            return;
+        }
+
+        $old = array(
+            'full_name' => trim((string) $this->input->post('qa_full_name')),
+            'phone'     => trim((string) $this->input->post('qa_phone')),
+            'phone_cc'  => tq_phone_iso_ok((string) $this->input->post('qa_phone_cc')),
+            'email'     => trim((string) $this->input->post('qa_email')),
+        );
+
+        /* حد العنوان العام (`TQ_AUTH_MAX_PER_IP` — خمسة وعشرون في ربع ساعة)
+           لا حد الحساب الواحد: شبكات الجوال عندنا تجمع آلاف المشترين خلف
+           عنوان واحد (CGNAT)، وحد خمسة يرد مشتريا حقيقيا وقت حملة إعلانية.
+           والمعرف البريد نفسه، فلا يبلغ حد البريد الواحد أحد. */
+        if (tq_auth_is_throttled(strtolower($old['email']), 'quick_buy')) {
+            $this->session->set_flashdata('error_message', tq_auth_throttle_message());
+            $this->session->set_flashdata('tq_qa_old', $old);
+            redirect($to_back, 'location', 302);
+            return;
+        }
+
+        $this->load->model('taqdar_signup_model');
+        $chk = $this->taqdar_signup_model->validate_quick($old);
+        if (empty($chk['ok'])) {
+            $this->session->set_flashdata('error_message', $chk['error']);
+            $this->session->set_flashdata('tq_qa_old', $old);
+            $this->session->set_flashdata('tq_qa_errs', $chk['errors']);
+            redirect($to_back, 'location', 302);
+            return;
+        }
+
+        $made = $this->taqdar_signup_model->create_quick($chk['clean']);
+        if (empty($made['ok'])) {
+            $this->session->set_flashdata('tq_qa_old', $old);
+            if ($made['code'] === 'email_taken') {
+                $this->session->set_flashdata('tq_qa_have', $chk['clean']['email']);
+            } else {
+                $this->session->set_flashdata('error_message', $made['error']);
+            }
+            redirect($to_back, 'location', 302);
+            return;
+        }
+
+        $uid = (int) $made['user_id'];
+        tq_auth_record_failure($chk['clean']['email'], 'quick_buy');   // عداد الإنشاء لا فشل
+        $this->tq_quick_enter($uid, $chk['clean']['first_name'] . ' ' . $chk['clean']['last_name']);
+        $this->trace('student.quick_account', 'users:' . $uid, array('buy' => $kind));
+
+        /* TQ-EXPRESS-PAY — أزرار الدفع المباشر لا تظهر إلا لصاحب جلسة، فمن
+           لم يختر التحويل يعود إلى الشاشة وقد دخل فيجدها. */
+        $tq_x = tq_express();
+        if ((string) $this->input->post('pay_method') !== 'bank' && !empty($tq_x['any'])) {
+            $this->session->set_flashdata('flash_message',
+                'أنشئ حسابك. اختر طريقة الدفع أدناه: Apple Pay أو Google Pay أو البطاقة.');
+            redirect(base_url($back), 'location', 302);
+            return;
+        }
+
+        $this->tq_quick_dispatch($kind);
+    }
+
+    /** مسار شاشة الدفع لما يشترى — وفراغ لنوع لا يعرف أو عنصر لا يوجد. */
+    private function tq_quick_back($kind)
+    {
+        switch ($kind) {
+            case 'plan':
+                $this->load->model('taqdar_billing_model');
+                $p = $this->taqdar_billing_model->plan((int) $this->input->post('plan_id'));
+                if (!$p) return '';
+                $cyc = (string) $this->input->post('cycle');
+                return 'checkout/' . $p['code']
+                     . (preg_match('/^[a-z]+$/', $cyc) ? '?cycle=' . $cyc : '');
+            case 'course':
+                $id = (int) $this->input->post('course_id');
+                return $id > 0 ? 'course-checkout/' . $id : '';
+            case 'book':
+                $id = (int) $this->input->post('book_id');
+                return $id > 0 ? 'book-checkout/' . $id : '';
+            case 'pack':
+                $id = (int) $this->input->post('pack_id');
+                return $id > 0 ? 'foundation-checkout/' . $id : '';
+        }
+        return '';
+    }
+
+    /** الطلب نفسه إلى دالة الشراء نفسها — بحقوله كما أرسلت. */
+    private function tq_quick_dispatch($kind)
+    {
+        switch ($kind) {
+            case 'plan':   $this->subscribe();      return;
+            case 'course': $this->buy_course();     return;
+            case 'book':   $this->buy_book();       return;
+            case 'pack':   $this->buy_foundation(); return;
+        }
+        show_404();
+    }
+
+    /**
+     * الدخول — مرآة كتلة `Login::register()` بمفاتيحها وترتيبها، و`true`
+     * جهاز موثوق: تأكيد «جهاز جديد» في منتصف شراء يرسل رمزا إلى بريد لم
+     * يفتحه صاحبه قط، فيقف بين الزائر والدفع.
+     */
+    private function tq_quick_enter($uid, $name)
+    {
+        $this->user_model->new_device_login_tracker((int) $uid, true);
+        /* الجلسة تجدد معرفها مع الدخول: معرف كتب قبل الحساب لا يبقى مفتاحا له. */
+        if (method_exists($this->session, 'sess_regenerate')) $this->session->sess_regenerate(false);
+        $this->session->set_userdata('custom_session_limit', (time() + 864000));
+        $this->session->set_userdata('user_id', (int) $uid);
+        $this->session->set_userdata('role_id', 2);
+        $this->session->set_userdata('role', get_user_role('user_role', $uid));
+        $this->session->set_userdata('name', trim($name));
+        $this->session->set_userdata('is_instructor', 0);
+        $this->session->set_userdata('user_login', '1');
+    }
+
+    /**
      * محتوى الباقة للمشترك — ما دفع ثمنه، مرتبا كما يدرس.
      *
      * صفحة الاشتراك تقول «نشط حتى كذا» ولا تقول ماذا فتح. وهذه تقوله:
@@ -4142,9 +4297,19 @@ class Taqdar extends CI_Controller
 
         $uid = (int) $this->session->userdata('user_id');
         if ($uid <= 0) {
-            $next = 'course-checkout/' . $course_id;
-            $this->session->set_userdata('tq_next', $next);
-            redirect(site_url('login?next=' . rawurlencode($next)), 'location', 302);
+            /* TQ-QUICK-BUY — الزائر يرى الشاشة كاملة بسعرها لا صفحة دخول:
+               الطرد كان يخفي ما يشتريه وبكم قبل أن يطلب منه أي شيء. */
+            $this->load->model('taqdar_tap_model');
+            $this->show('site_course_checkout', 'تأكيد شراء — ' . $offer['title'], array(
+                'tq_cpn'       => tq_coupon_state('course', $course_id, (int) $offer['price'], 0),
+                'tq_offer'     => $offer,
+                'tq_course'    => $this->tq_cs->course($course_id),
+                'tq_pending'   => null,
+                'user_id'      => 0,
+                'tq_guest'     => true,
+                'tq_card'      => $this->taqdar_tap_model->ready(),
+                'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
+            ));
             return;
         }
 
@@ -4515,9 +4680,18 @@ class Taqdar extends CI_Controller
 
         $uid = (int) $this->session->userdata('user_id');
         if ($uid <= 0) {
-            $next = 'book-checkout/' . $book_id;
-            $this->session->set_userdata('tq_next', $next);
-            redirect(site_url('login?next=' . rawurlencode($next)), 'location', 302);
+            /* TQ-QUICK-BUY — الشاشة نفسها للزائر ببطاقة «بياناتك». */
+            $this->load->model('taqdar_tap_model');
+            $this->show('site_book_checkout', 'تأكيد شراء — ' . $offer['title'], array(
+                'tq_cpn'       => tq_coupon_state('book', $book_id, (int) $offer['price'], 0),
+                'tq_offer'     => $offer,
+                'tq_book'      => $this->tq_bk->book($book_id),
+                'tq_pending'   => null,
+                'user_id'      => 0,
+                'tq_guest'     => true,
+                'tq_card'      => $this->taqdar_tap_model->ready(),
+                'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
+            ));
             return;
         }
 
@@ -4696,9 +4870,19 @@ class Taqdar extends CI_Controller
 
         $uid = (int) $this->session->userdata('user_id');
         if ($uid <= 0) {
-            $next = 'foundation-checkout/' . $pack_id;
-            $this->session->set_userdata('tq_next', $next);
-            redirect(site_url('login?next=' . rawurlencode($next)), 'location', 302);
+            /* TQ-QUICK-BUY — الشاشة نفسها للزائر ببطاقة «بياناتك»، ولا رصيد
+               قائم يعرض لمن لا حساب له. */
+            $this->load->model('taqdar_tap_model');
+            $this->show('site_foundation_pack_checkout', 'تأكيد شراء — ' . $offer['name'], array(
+                'tq_cpn'       => tq_coupon_state('pack', $pack_id, (int) $offer['price'], 0),
+                'tq_offer'     => $offer,
+                'tq_track'     => $offer['track'],
+                'tq_credits'   => null,
+                'user_id'      => 0,
+                'tq_guest'     => true,
+                'tq_card'      => $this->taqdar_tap_model->ready(),
+                'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
+            ));
             return;
         }
 

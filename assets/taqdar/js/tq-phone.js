@@ -32,18 +32,21 @@
       if (has) cc.value = saved;
     }
 
-    function sync() {
+    function sync(clear) {
       var o = cc.options[cc.selectedIndex];
       if (o) num.setAttribute('placeholder', o.getAttribute('data-ex') || '');
+      /* المسح عند التبديل وحده: عند التحميل تكون الرسالة رد الخادم على
+         هذا الرقم نفسه، ومسحها يترك الحقل مرفوضا بلا سبب يقرأ. */
+      if (!clear) return;
       var slot = box.parentNode && box.parentNode.querySelector('.field-err');
       if (slot) { slot.textContent = ''; slot.hidden = true; }
       box.classList.remove('form-field--invalid');
       num.removeAttribute('aria-invalid');
     }
-    sync();
+    sync(false);
 
     cc.addEventListener('change', function () {
-      sync();
+      sync(true);
       try { localStorage.setItem(KEY, cc.value); } catch (e) {}
       num.focus();
     });

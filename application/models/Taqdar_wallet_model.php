@@ -927,7 +927,12 @@ class Taqdar_wallet_model extends CI_Model
     {
         $this->install_schema();
         $p = $this->db->where('id', (int) $payout_id)->get('payout')->row_array();
-        if (!$p) return false;
+        /* TQ-PAYOUT-STALE — القائم وحده يعتمد، كما أن `cancel_payout()`
+           ترد المحول. طلب رفض عاد مبلغه إلى المتاح، واعتماده بعدها من
+           تبويب قديم أو نقرة مكررة يقيد خروجه من حجز لم يعد فيه شيء: يصير
+           المحجوز سالبا ويحسب المال للمعلم مرتين — في متاحه وفي «حول إليك».
+           والمحول لا يعتمد ثانية فلا يخطر صاحبه مرتين. */
+        if (!$p || (int) $p['status'] !== 0) return false;
 
         $updater = array('status' => 1, 'last_modified' => time());
         if ($payment_type !== null) $updater['payment_type'] = $payment_type;
@@ -1152,7 +1157,7 @@ class Taqdar_wallet_model extends CI_Model
     {
         $rows = $this->db->query(
             'SELECT `id`,`amount`,`amount_halalas`,`payment_type`,`requested_channel`,
-                    `destination`,`date_added`,`status`
+                    `destination`,`date_added`,`status`,`decided_at`,`reference`
                FROM `payout` WHERE `user_id` = ?
               ORDER BY `date_added` DESC, `id` DESC LIMIT ' . (int) $limit,
             array((int) $user_id)
