@@ -29,6 +29,8 @@
 .co-checkout-layout .co-opt__ico{width:44px;height:44px;flex:0 0 44px;overflow:hidden}
 .co-checkout-layout .co-opt__ico img{width:44px;height:44px;object-fit:cover;border-radius:10px}
 .co-checkout-layout .co-opt__t b{font-size:14px}
+.co-checkout-layout .co-card-brands{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-block:8px;max-width:100%}
+.co-checkout-layout .co-card-brands img{display:block;flex:none;width:54px;height:33px;object-fit:contain;background:#fff;border:1px solid var(--gold-line-soft);border-radius:6px;padding:2px;box-sizing:border-box}
 .co-checkout-layout .co-opt__t .tq-caption{font-size:12px;line-height:1.7}
 .co-checkout-layout .qa{padding:0;overflow:hidden}
 .co-checkout-layout .qa__pane{padding:20px}

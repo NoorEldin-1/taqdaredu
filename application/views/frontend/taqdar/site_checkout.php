@@ -319,6 +319,7 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
                   </span>
                   <span class="co-opt__t">
                     <b>بطاقة — مدى أو فيزا أو ماستركارد</b>
+                    <?php include __DIR__ . '/site/site_checkout_card_brands.php'; ?>
                     <span class="tq-caption">تدخل بيانات بطاقتك في بوابة تاب، ويُفعّل الاشتراك بعد تأكيد نجاح الدفع.</span>
                   </span>
                 </span>
@@ -364,6 +365,7 @@ if ($tq_co_err || $tq_co_ok || $tq_co_info): ?>
                 <svg aria-hidden="true"><use href="#i-card"></use></svg>
                 <b>بطاقة — مدى أو فيزا أو ماستركارد</b>
               </span>
+              <?php include __DIR__ . '/site/site_checkout_card_brands.php'; ?>
               <span class="tq-caption">
                 تدخل بيانات بطاقتك في بوابة تاب، ويُفعّل الاشتراك بعد تأكيد نجاح الدفع.
               </span>
