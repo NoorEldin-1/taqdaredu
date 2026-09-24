@@ -170,8 +170,11 @@
       } catch (e) {}
       if (v === 'denied') {
         if (window.fbq) window.fbq('consent', 'revoke');
-        if (window.clarity) window.clarity('consent', false);
-      } else if (window.fbq) window.fbq('consent', 'grant');
+        if (window.clarity) window.clarity('consentv2', {ad_Storage: 'denied', analytics_Storage: 'denied'});
+      } else {
+        if (window.fbq) window.fbq('consent', 'grant');
+        if (window.clarity) window.clarity('consentv2', {ad_Storage: 'granted', analytics_Storage: 'granted'});
+      }
       window.dispatchEvent(new CustomEvent('tq-consent-change', {detail: v}));
     }
     document.querySelectorAll('[data-tq-cookie-settings]').forEach(function (button) {
