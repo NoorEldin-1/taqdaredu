@@ -800,7 +800,12 @@ if (!function_exists('tq_meta_track')) {
      */
     function tq_meta_track($event, $params = array(), $event_id = '')
     {
-        if (tq_meta_pixel_id() === '') return '';
+        /* TQ-TIKTOK — والحدث يبلغ بكسل تيك توك كذلك بالاسم نفسه، وهو
+           يترجمه (`tq_tiktok_pixel()`). فيطبع متى عمل أحدهما: ميتا مطفأ
+           لا يعني أن تيك توك لا يريد الشراء. وكل منهما يحرس نفسه بـ`&&`. */
+        $meta = tq_meta_pixel_id() !== '';
+        $tik  = function_exists('tq_tiktok_pixel_id') && tq_tiktok_pixel_id() !== '';
+        if (!$meta && !$tik) return '';
 
         $event = preg_replace('/[^A-Za-z0-9_]/', '', (string) $event);
         if ($event === '') return '';
@@ -811,8 +816,11 @@ if (!function_exists('tq_meta_track')) {
         $eid = preg_replace('/[^A-Za-z0-9_.:-]/', '', (string) $event_id);
         $arg = $eid !== '' ? ", '" . $eid . "'" : '';
 
-        return "<script>window.tqMeta && window.tqMeta.track('" . $event . "', "
-             . $json . $arg . ");</script>\n";
+        $call = "track('" . $event . "', " . $json . $arg . ");";
+        return "<script>"
+             . ($meta ? "window.tqMeta && window.tqMeta." . $call : '')
+             . ($tik  ? "window.tqTik && window.tqTik." . $call : '')
+             . "</script>\n";
     }
 }
 
@@ -832,7 +840,8 @@ if (!function_exists('tq_meta_flush')) {
      */
     function tq_meta_flush()
     {
-        if (tq_meta_pixel_id() === '') return '';
+        if (tq_meta_pixel_id() === ''
+            && !(function_exists('tq_tiktok_pixel_id') && tq_tiktok_pixel_id() !== '')) return '';
 
         $CI = function_exists('get_instance') ? get_instance() : null;
         if (!$CI || !isset($CI->session)) return '';
@@ -1010,6 +1019,225 @@ if (!function_exists('tq_clarity')) {
 })();
 </script>
 <!-- End Microsoft Clarity -->
+<?php
+        return ob_get_clean();
+    }
+}
+
+
+/* =====================================================================
+   بكسل تيك توك — قياس الإعلان على تيك توك
+   ===================================================================== */
+
+if (!defined('TQ_TIKTOK_PIXEL_DEFAULT')) {
+    /**
+     * معرف البكسل الذي سلمه فريق التسويق. وهو **ليس سرا** كمعرف بكسل
+     * ميتا: يطبع في وسم كل صفحة. فمكانه الشيفرة لا `taqdar_secret.php`.
+     */
+    define('TQ_TIKTOK_PIXEL_DEFAULT', 'DASD8TJC77U17TEHT36G');
+}
+
+if (!function_exists('tq_tiktok_pixel_id')) {
+    /**
+     * المعرف الفعال، بقاعدة `tq_meta_pixel_id()` نفسها:
+     *
+     *   لا صف أصلا (NULL)   ⇐ لم يضبط أحد شيئا  ⇐ الافتراضي
+     *   صف بقيمة فارغة ('') ⇐ مسؤول مسحه عمدا   ⇐ لا بكسل
+     *
+     * ومعرف تيك توك **حروف كبيرة وأرقام** (`DASD8TJC77U17TEHT36G`) — فمصفاة
+     * البكسل الرقمية تمحوه، وخفض الحروف كما في Clarity يجعله معرفا لا
+     * تعرفه تيك توك. وهو يدخل حرفيا في سلسلة جافاسكربت.
+     */
+    function tq_tiktok_pixel_id()
+    {
+        $v = get_settings('tq_tiktok_pixel_id');
+        if ($v === null) $v = TQ_TIKTOK_PIXEL_DEFAULT;
+
+        $v = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) $v));
+        return $v !== '' ? $v : '';
+    }
+}
+
+if (!function_exists('tq_tiktok_pixel_id_input')) {
+    /**
+     * ما يكتبه المسؤول ⇐ معرف. **ويقبل القصاصة كاملة** كـClarity.
+     *
+     * والقصاصة هي ما يسلمه تيك توك وما يصل في واتساب، ولصقها هو الفعل
+     * الطبيعي. ومصفاة عمياء تحولها إلى سلسلة من ألف حرف تحفظ **وتبدو
+     * معرفا** — فلا يقاس شيء ولا يقول شيء لماذا. فالاستخراج من
+     * `ttq.load('<id>')` أو `sdkid=<id>` قبل التصفية.
+     */
+    function tq_tiktok_pixel_id_input($raw)
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') return '';
+
+        if (preg_match('~ttq\.load\(\s*["\']([A-Za-z0-9]+)["\']~i', $raw, $m)) {
+            $raw = $m[1];
+        } elseif (preg_match('~sdkid=([A-Za-z0-9]+)~i', $raw, $m)) {
+            $raw = $m[1];
+        }
+
+        /* معرف تيك توك عشرون حرفا، وما تجاوز الثلاثين بقية قصاصة لم تفهم —
+           وحفظه يطفئ القياس صامتا. */
+        $raw = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $raw));
+        return strlen($raw) > 32 ? '' : $raw;
+    }
+}
+
+if (!function_exists('tq_tiktok_identity')) {
+    /**
+     * المطابقة المتقدمة — بريد المستخدم الداخل وجواله ومعرفه **مهشومة**
+     * بـSHA-256، فتربط تيك توك الزيارة بصاحب حسابها عندها وإن حذف كعكته.
+     * وبلاها يضيع أكثر الشراء من الحملة: المشتري يفتح الإعلان في تطبيق
+     * تيك توك ويدفع في متصفح آخر.
+     *
+     * ولا يخرج نص صريح أبدا — ما يطبع في الصفحة هاش لا يرد إلى أصله.
+     * والزائر بلا حساب لا شيء له. والجوال بصيغة E.164 (`+966…`) قبل
+     * الهش، وهي الصيغة التي تهشم بها تيك توك من جهتها؛ ورقم وطني عار
+     * يخزن قديما (`501234567`) سعودي كما تعرفه `to_e164()`.
+     */
+    function tq_tiktok_identity()
+    {
+        $CI = function_exists('get_instance') ? get_instance() : null;
+        if (!$CI || !isset($CI->session)) return array();
+
+        $uid = (int) $CI->session->userdata('user_id');
+        if ($uid <= 0) return array();
+
+        try {
+            $u = $CI->db->select('email, phone')->where('id', $uid)->get('users')->row_array();
+        } catch (Throwable $e) {
+            $CI->db->reset_query();
+            return array();
+        }
+        if (!$u) return array();
+
+        $out = array('external_id' => hash('sha256', 'tq-user-' . $uid));
+
+        $email = strtolower(trim((string) $u['email']));
+        if ($email !== '' && strpos($email, '@') !== false) {
+            $out['email'] = hash('sha256', $email);
+        }
+
+        $phone = preg_replace('/[^0-9+]/', '', (string) $u['phone']);
+        if (strpos($phone, '00') === 0) $phone = '+' . substr($phone, 2);
+        if ($phone !== '' && $phone[0] !== '+') {
+            $phone = ltrim($phone, '0');
+            $phone = preg_match('/^5\d{8}$/', $phone) ? '+966' . $phone : '';
+        }
+        if (preg_match('/^\+\d{8,15}$/', $phone)) {
+            $out['phone_number'] = hash('sha256', $phone);
+        }
+
+        return $out;
+    }
+}
+
+if (!function_exists('tq_tiktok_pixel')) {
+    /**
+     * وسم بكسل تيك توك — يطبع **مرة واحدة لكل صفحة** بحارس `static`.
+     *
+     * والقصاصة الواصلة من التسويق تنفذ وقت التحليل في الرأس بلا سؤال عن
+     * الموافقة؛ فبنيت على قواعد بكسل ميتا حرفا بحرف:
+     *
+     * - **لا يحمل إلا بموافقة** (`tq-cookie === 'accepted'`)، ويبدأ متى
+     *   وافق الزائر في الصفحة نفسها (`tq-consent-change`).
+     * - **مؤجل إلى `load` ثم وقت خمول** (TQ-PERF-PIXEL): قياس لا يرسم شيئا
+     *   لا يزاحم الرسم، و`page()` لا تفقد شيئا بتأخير ثانيتين.
+     * - **والطابور يعرف أولا** (TQ-META-QUEUE): أحداث التحويل تطبع في متن
+     *   الصفحة فتنفذ قبل البكسل بثوان، و`window.tqTik` يمسكها حتى يبدأ.
+     *
+     * **والأحداث بأسماء ميتا تترجم هنا**: `tq_meta_track()` تنادي الاثنين
+     * بالاسم نفسه، وتيك توك تسمي الشراء `CompletePayment` وتريد المنتجات
+     * في `contents` لا `content_ids`. وترجمة في موضع واحد خير من نداء ثان
+     * في كل قالب — شاشة تأكيد جديدة غدا تبلغ المنصتين بلا سطر.
+     */
+    function tq_tiktok_pixel()
+    {
+        static $printed = false;
+        if ($printed) return '';
+
+        $id = tq_tiktok_pixel_id();
+        if ($id === '') return '';
+        $printed = true;
+
+        $who = tq_tiktok_identity();
+        $who_json = $who ? json_encode($who, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) : 'null';
+
+        ob_start(); ?>
+<!-- TikTok Pixel Code -->
+<script>
+(function () {
+    var T = window.tqTik = window.tqTik || { q: [], ready: false };
+    T.track = T.track || function () { T.q.push([].slice.call(arguments)); };
+
+    var choice = null;
+    try { choice = localStorage.getItem('tq-cookie'); } catch (e) {}
+    window.addEventListener('tq-consent-change', function (e) {
+        choice = e.detail;
+        if (choice === 'accepted') start();
+    });
+
+    /* اسم ميتا ⇐ اسم تيك توك، ومعاملات ميتا ⇐ معاملات تيك توك. */
+    var NAMES = { Purchase: 'CompletePayment', Lead: 'SubmitForm' };
+    function shape(p) {
+        p = p || {};
+        var o = {};
+        if (p.value !== undefined) o.value = p.value;
+        if (p.currency) o.currency = p.currency;
+        o.content_type = p.content_type || 'product';
+        if (p.content_ids && p.content_ids.length) {
+            var n = p.content_ids.length;
+            o.contents = p.content_ids.map(function (cid) {
+                var c = { content_id: String(cid), quantity: 1 };
+                if (p.content_name) c.content_name = p.content_name;
+                if (n === 1 && p.value !== undefined) c.price = p.value;
+                return c;
+            });
+        }
+        if (p.content_name) o.description = p.content_name;
+        if (p.order_id) o.order_id = p.order_id;
+        return o;
+    }
+
+    var started = false;
+    function start() {
+        if (started || choice !== 'accepted') return;
+        started = true;
+
+        !function (w, d, t) {
+          w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+          ttq.load('<?php echo $id; ?>');
+        }(window, document, 'ttq');
+
+        var who = <?php echo $who_json; ?>;
+        if (who) window.ttq.identify(who);
+        window.ttq.page();
+
+        /* ومن الآن يمضي الحدث مباشرة، ومعه `event_id` — به تطرح تيك توك
+           المكرر إن أرسل الحدث نفسه من مصدر ثان يوما. */
+        T.ready = true;
+        T.track = function (name, params, id) {
+            window.ttq.track(NAMES[name] || name, shape(params), id ? { event_id: id } : undefined);
+        };
+        for (var i = 0; i < T.q.length; i++) T.track.apply(null, T.q[i]);
+        T.q = [];
+    }
+
+    function later() {
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(start, { timeout: 2500 });
+        } else {
+            setTimeout(start, 900);
+        }
+    }
+
+    if (document.readyState === 'complete') later();
+    else window.addEventListener('load', later, { once: true });
+})();
+</script>
+<!-- End TikTok Pixel Code -->
 <?php
         return ob_get_clean();
     }

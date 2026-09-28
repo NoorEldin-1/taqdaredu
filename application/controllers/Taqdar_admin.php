@@ -2551,6 +2551,18 @@ class Taqdar_admin extends CI_Controller
                 array('tq_clarity_id' => $cl_val));
         }
 
+        /* TQ-TIKTOK — بكسل تيك توك بقاعدة Clarity نفسها: القصاصة كاملة
+           تقبل ويستخرج منها المعرف (`tq_tiktok_pixel_id_input()`)، والصف
+           يكتب ولو كان فارغا فالفارغ إطفاء. */
+        $tt_was = $this->db->where('key', 'tq_tiktok_pixel_id')->get('settings')->row('value');
+        $tt_val = tq_tiktok_pixel_id_input($this->input->post('tq_tiktok_pixel_id'));
+        $this->tracking_put('tq_tiktok_pixel_id', $tt_val);
+
+        if ((string) $tt_was !== (string) $tt_val) {
+            $this->taqdar_admin_model->audit('tracking.tiktok', 'settings',
+                array('tq_tiktok_pixel_id' => $tt_was),
+                array('tq_tiktok_pixel_id' => $tt_val));
+        }
 
         $msg = $val !== ''
             ? 'حفظ معرف البكسل، وهو يعمل الآن على كل صفحات الموقع والبوابات.'
@@ -2558,6 +2570,9 @@ class Taqdar_admin extends CI_Controller
         $msg .= $cl_val !== ''
             ? ' وسلوك الزائر يسجل بـ Clarity على الصفحات نفسها.'
             : ' ولا يسجل سلوك الزائر: معرف Clarity فارغ.';
+        $msg .= $tt_val !== ''
+            ? ' وبكسل تيك توك يعمل على الصفحات نفسها.'
+            : ' وبكسل تيك توك مطفأ.';
         $this->session->set_flashdata('flash_message', $msg);
         redirect(site_url('taqdar_admin/tracking'), 'location', 302);
     }

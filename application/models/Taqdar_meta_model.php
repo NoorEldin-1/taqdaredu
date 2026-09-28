@@ -576,7 +576,10 @@ class Taqdar_meta_model extends CI_Model
     public function browser_purchase($invoice_id)
     {
         $c = $this->config();
-        if ($c['pixel'] === '') return null;
+        /* TQ-TIKTOK — الوديعة تبلغ البكسلين معا (`tq_meta_track()`)، فلا
+           تسقط لأن ميتا وحده مطفأ. */
+        $tik = function_exists('tq_tiktok_pixel_id') && tq_tiktok_pixel_id() !== '';
+        if ($c['pixel'] === '' && !$tik) return null;
 
         try {
             $inv = $this->db->where('id', (int) $invoice_id)->get('invoices')->row_array();
