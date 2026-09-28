@@ -1195,8 +1195,9 @@ if (!function_exists('tq_tiktok_pixel')) {
         var o = {};
         if (p.value !== undefined) o.value = p.value;
         if (p.currency) o.currency = p.currency;
-        o.content_type = p.content_type || 'product';
+        if (p.content_type) o.content_type = p.content_type;
         if (p.content_ids && p.content_ids.length) {
+            o.content_type = o.content_type || 'product';
             var n = p.content_ids.length;
             o.contents = p.content_ids.map(function (cid) {
                 var c = { content_id: String(cid), quantity: 1 };
@@ -1228,6 +1229,7 @@ if (!function_exists('tq_tiktok_pixel')) {
            المكرر إن أرسل الحدث نفسه من مصدر ثان يوما. */
         T.ready = true;
         T.track = function (name, params, id) {
+            if (choice !== 'accepted') return;   // سحب موافقته بعد البدء
             window.ttq.track(NAMES[name] || name, shape(params), id ? { event_id: id } : undefined);
         };
         for (var i = 0; i < T.q.length; i++) T.track.apply(null, T.q[i]);
