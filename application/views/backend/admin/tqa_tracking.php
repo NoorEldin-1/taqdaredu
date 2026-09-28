@@ -31,6 +31,11 @@ $tq_cl_saved = get_settings('tq_clarity_id');      // NULL = لم يضبط قط
 $tq_cl_live  = tq_clarity_id();                    // المعرف الفعال بعد الافتراضي
 $tq_cl_on    = $tq_cl_live !== '';
 $tq_cl_def   = ($tq_cl_saved === null);
+
+$tq_tt_saved = get_settings('tq_tiktok_pixel_id'); // NULL = لم يضبط قط
+$tq_tt_live  = tq_tiktok_pixel_id();               // المعرف الفعال بعد الافتراضي
+$tq_tt_on    = $tq_tt_live !== '';
+$tq_tt_def   = ($tq_tt_saved === null);
 ?>
 
 <?php tqa_head(t('التتبع والقياس'), t('قياس زيارات الموقع ومبيعاته وسلوك زائريه.'), 'chart'); ?>
@@ -85,6 +90,24 @@ $tq_cl_def   = ($tq_cl_saved === null);
         <?php else: ?>
             <strong><?php echo t('وسلوك الزائر لا يسجل.'); ?></strong>
             <?php echo t('تعرف كم زائرا جاء ولا تعرف أين نقر ولا إلى أين نزل ولا عند أي شاشة أغلق — وهي الشاشة التي يسقط عندها المشترون.'); ?>
+        <?php endif; ?>
+    </span>
+</div>
+
+<?php /* وتيك توك سطر رابع: حملاته تقاس ببكسله لا ببكسل ميتا، ويعمل
+         ويسكت مستقلا عن الثلاثة. */ ?>
+<div class="tqa-note <?php echo $tq_tt_on ? '' : 'tqa-note--warn'; ?> tqa-section">
+    <span aria-hidden="true"><?php echo tq_icon($tq_tt_on ? 'check-badge' : 'alert', 18); ?></span>
+    <span>
+        <?php if ($tq_tt_on): ?>
+            <strong><?php echo t('وإعلانات تيك توك تقاس'); ?></strong>
+            <?php echo t('— بمعرف البكسل ____: الزيارة وعرض الباقة وبدء الدفع والشراء، على صفحات الموقع والبوابات جميعا، ولا يحمل في لوحة الإدارة.', '<span dir="ltr">' . html_escape($tq_tt_live) . '</span>'); ?>
+            <?php if ($tq_tt_def): ?>
+                <?php echo t('وهو المعرف الافتراضي المكتوب في الشيفرة؛ الحفظ من هنا يعلو عليه.'); ?>
+            <?php endif; ?>
+        <?php else: ?>
+            <strong><?php echo t('وإعلانات تيك توك لا تقاس.'); ?></strong>
+            <?php echo t('بكسل تيك توك مطفأ، فلا تعرف الحملة من جاء منها ولا من اشترى.'); ?>
         <?php endif; ?>
     </span>
 </div>
@@ -162,6 +185,22 @@ $tq_cl_def   = ($tq_cl_saved === null);
             </span>
         </div>
 
+        <h3 class="tqa-formsec" style="margin-block:var(--tq-space-xl) var(--tq-space-m)">
+            <?php echo t('إعلانات تيك توك (TikTok Pixel)'); ?>
+        </h3>
+
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="f_tiktok"><?php echo t('معرف البكسل (Pixel ID)'); ?></label>
+            <input class="tqa-input tqa-input--ltr" type="text" id="f_tiktok"
+                   name="tq_tiktok_pixel_id" dir="ltr"
+                   autocomplete="off" spellcheck="false"
+                   placeholder="DASD8TJC77U17TEHT36G"
+                   value="<?php echo html_escape($tq_tt_saved === null ? $tq_tt_live : $tq_tt_saved); ?>">
+            <span class="tqa-field__hint">
+                <?php echo t('حروف وأرقام — من TikTok Ads Manager ← Assets ← Events ← Web Events. والصق القصاصة كاملة يعمل: يستخرج المعرف منها ولا يحفظها كما هي. واتركه فارغا لإطفاء البكسل كله.'); ?>
+            </span>
+        </div>
+
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
                 <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ'); ?>
@@ -184,6 +223,7 @@ $tq_cl_def   = ($tq_cl_saved === null);
             <strong>PageView</strong> <?php echo t('بالمعرف نفسه أعلاه.'); ?></li>
         <li><?php echo t('وفي «مدير الأحداث» عند ميتا يظهر النشاط خلال دقائق — لا فورا، فلا يستعجل الحكم بالفشل.'); ?></li>
         <li><?php echo t('ولـ Clarity: افتح لوحته ثم Recordings — تظهر أول جلسة خلال ساعتين من أول زيارة، لا في الحال. وخرائط الحرارة تحتاج زيارات تتجمع قبل أن تقرأ.'); ?></li>
+        <li><?php echo t('ولتيك توك: ثبت إضافة TikTok Pixel Helper وافتح الرئيسية بعد قبول ملفات الارتباط — يجب أن يظهر حدث Pageview بالمعرف أعلاه. وفي Events Manager عند تيك توك يظهر النشاط خلال دقائق.'); ?></li>
         <li><?php echo t('وللربط البرمجي: اضغط «اسأل ميتا» أدناه. يسأل ميتا عن الرمز المحفوظ نفسه، فيثبت أنه صالح وأن صلاحيته على هذا البكسل بعينه — وهو الخطأ الأكثر وقوعا: رمز سليم لحساب آخر، تقبله ميتا ولا يظهر منه حدث.'); ?></li>
     </ol>
 
@@ -286,5 +326,6 @@ $tq_cl_def   = ($tq_cl_saved === null);
         <?php echo t('يطلق في شاشات التأكيد الثلاث (باقة · كورس · كتاب)، و'); ?><strong>Purchase</strong>
         <?php echo t('يطلق من الخادم عند السداد ومن المتصفح عند العودة — وميتا تطرح المكرر بمعرف الحدث فيعد شراء واحدا. وما بقي (تسجيل حساب) يضاف بالدالة'); ?>
         <code>tq_meta_track()</code><?php echo t('.'); ?>
+        <br><?php echo t('والدالة نفسها تبلغ تيك توك بالحدث نفسه: الشراء يصله باسم CompletePayment، وعرض الباقة وبدء الدفع باسميهما. ومع المستخدم الداخل يرسل بريده وجواله مهشومين لا نصا صريحا، فتربط تيك توك الشراء بحملته.'); ?>
     </span>
 </div>

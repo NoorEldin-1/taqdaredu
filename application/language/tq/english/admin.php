@@ -2515,4 +2515,12 @@ return array(
     'محتوى ملف JSON كاملا' => 'Full JSON file content',
     'من Firebase Console ← Project settings ← Service accounts ← Generate new private key. وليس ملف google-services.json — ذاك للتطبيق. والمفتاح لا يعرض هنا بعد حفظه.' => 'From Firebase Console → Project settings → Service accounts → Generate new private key. Not google-services.json — that one is for the app. The key is never shown here after saving.',
     'احفظ وافحص' => 'Save and check',
+    'وإعلانات تيك توك تقاس' => 'And TikTok ads are measured',
+    '— بمعرف البكسل ____: الزيارة وعرض الباقة وبدء الدفع والشراء، على صفحات الموقع والبوابات جميعا، ولا يحمل في لوحة الإدارة.' => '— with pixel ID ____: visits, plan views, checkout starts and purchases, on every site and portal page; it never loads in the admin panel.',
+    'وإعلانات تيك توك لا تقاس.' => 'And TikTok ads are not measured.',
+    'بكسل تيك توك مطفأ، فلا تعرف الحملة من جاء منها ولا من اشترى.' => 'The TikTok pixel is off, so the campaign cannot tell who came from it or who bought.',
+    'إعلانات تيك توك (TikTok Pixel)' => 'TikTok ads (TikTok Pixel)',
+    'حروف وأرقام — من TikTok Ads Manager ← Assets ← Events ← Web Events. والصق القصاصة كاملة يعمل: يستخرج المعرف منها ولا يحفظها كما هي. واتركه فارغا لإطفاء البكسل كله.' => 'Letters and digits — from TikTok Ads Manager → Assets → Events → Web Events. Pasting the full snippet works: the ID is extracted and the snippet is not stored. Leave it empty to turn the pixel off entirely.',
+    'ولتيك توك: ثبت إضافة TikTok Pixel Helper وافتح الرئيسية بعد قبول ملفات الارتباط — يجب أن يظهر حدث Pageview بالمعرف أعلاه. وفي Events Manager عند تيك توك يظهر النشاط خلال دقائق.' => 'For TikTok: install the TikTok Pixel Helper extension and open the home page after accepting cookies — a Pageview event with the ID above must appear. Activity shows in TikTok Events Manager within minutes.',
+    'والدالة نفسها تبلغ تيك توك بالحدث نفسه: الشراء يصله باسم CompletePayment، وعرض الباقة وبدء الدفع باسميهما. ومع المستخدم الداخل يرسل بريده وجواله مهشومين لا نصا صريحا، فتربط تيك توك الشراء بحملته.' => 'The same function sends the same event to TikTok: a purchase arrives as CompletePayment, plan views and checkout starts under their own names. For signed-in users their email and phone are sent hashed, never in plain text, so TikTok can tie the purchase to its campaign.',
 );
