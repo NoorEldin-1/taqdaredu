@@ -2487,6 +2487,8 @@ return array(
     'الإشعارات تكتب داخل المنصة كما كانت، ولا يطرق جوال أحد حتى يحفظ المفتاح أسفل الشاشة.' => 'Notifications are written in-app as before; no phone is notified until the key below is saved.',
     'فحص الاتصال' => 'Connection check',
     'يعمل' => 'Working',
+    'يعمل في تطبيق آيفون' => 'Works in the iPhone app',
+    'الويب' => 'Web',
     'لا يعمل' => 'Not working',
     'مفتاح محفوظ' => 'Key saved',
     'جوجل تقبل المفتاح (OAuth)' => 'Google accepts the key (OAuth)',

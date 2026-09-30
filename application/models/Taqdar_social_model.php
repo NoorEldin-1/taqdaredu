@@ -222,27 +222,41 @@ class Taqdar_social_model extends CI_Model
         if ($c['apple_key_id'] === '') $a_miss[] = 'معرف المفتاح';
         if ($c['apple_key'] === '')    $a_miss[] = 'المفتاح الخاص';
 
+        /* `app` — التطبيق لا يتبادل رمز تفويض ولا يحتاج سرا: يصل بـ
+           `id_token` من مكتبة المزود، والحكم عليه بمفاتيح المزود المعلنة
+           وبالجمهور وحده (`audiences()`). فالمفتاح الخاص لأبل وسر جوجل
+           شرطا **الويب** لا التطبيق — وربط التطبيق بهما كان يرد كل دخول
+           بأبل من آيفون بـ`provider_not_configured` ومعرف التطبيق مضبوط. */
         return array(
             'google' => array(
                 'key'   => 'google',
                 'label' => 'جوجل',
                 'on'    => empty($g_miss),
+                'app'   => !empty($this->audiences('google')),
                 'why'   => empty($g_miss) ? '' : ('ينقصه: ' . implode(' · ', $g_miss)),
             ),
             'apple' => array(
                 'key'   => 'apple',
                 'label' => 'أبل',
                 'on'    => empty($a_miss),
+                'app'   => $c['apple_bundle'] !== '',
                 'why'   => empty($a_miss) ? '' : ('ينقصه: ' . implode(' · ', $a_miss)),
             ),
         );
     }
 
-    /** هل هذا المزود مضبوط؟ */
+    /** هل هذا المزود مضبوط للويب؟ */
     public function enabled($provider)
     {
         $p = $this->providers();
         return isset($p[$provider]) && $p[$provider]['on'];
+    }
+
+    /** هل يقبل دخول التطبيق بهذا المزود؟ — جمهور التطبيق وحده شرطه. */
+    public function app_enabled($provider)
+    {
+        $p = $this->providers();
+        return isset($p[$provider]) && !empty($p[$provider]['app']);
     }
 
     /** المزودون العاملون وحدهم — وهو ما تطبعه الشاشة العامة. */

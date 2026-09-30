@@ -168,7 +168,10 @@ $tq_has_akey = trim((string) get_settings('tq_apple_private_key')) !== '';
             <?php if (!empty($tq_p['apple']['on'])): ?>
                 <span class="tqa-badge tqa-badge--ok"><?php echo t('يعمل'); ?></span>
             <?php else: ?>
-                <span class="tqa-badge tqa-badge--warn"><?php echo html_escape((string) $tq_p['apple']['why']); ?></span>
+                <?php if (!empty($tq_p['apple']['app'])): ?>
+                    <span class="tqa-badge tqa-badge--ok"><?php echo t('يعمل في تطبيق آيفون'); ?></span>
+                <?php endif; ?>
+                <span class="tqa-badge tqa-badge--warn"><?php echo t('الويب'); ?> — <?php echo html_escape((string) $tq_p['apple']['why']); ?></span>
             <?php endif; ?>
         </h2>
 

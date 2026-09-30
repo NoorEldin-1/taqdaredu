@@ -585,7 +585,7 @@ class Api_v1 extends CI_Controller
 
         $this->load->model('taqdar_social_model', 'social');
 
-        if (!$this->social->enabled($provider)) {
+        if (!$this->social->app_enabled($provider)) {
             $this->fail('هذه الطريقة غير متاحة حاليا.', 'provider_not_configured', 503);
         }
 
