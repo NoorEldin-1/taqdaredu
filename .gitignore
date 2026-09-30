@@ -51,3 +51,6 @@ Thumbs.db
 # سجلات تشغيل مزامن فيميو — أثرٌ محلي لا يُرفع.
 /scripts/vimeo/runs/*
 !/scripts/vimeo/runs/.gitkeep
+
+# Apple / signing keys never enter the repo
+*.p8
