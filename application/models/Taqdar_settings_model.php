@@ -685,8 +685,11 @@ class Taqdar_settings_model extends CI_Model
         /* TQ-QUICK-BUY — حساب أنشئ من شاشة الدفع كلمته عشوائية لا يعرفها
            صاحبه، فطلب «الحالية» منه باب مغلق. ولا يضعف ذلك شيئا: شاشة
            الإكمال (`/account/complete`) تضعها له بجلسته نفسها. */
-        $this->load->model('taqdar_signup_model');
-        $quick = $this->taqdar_signup_model->is_quick($user_id);
+        /* TQ-SOCIAL-APP-PW — والمنشأ بجوجل أو أبل مثله: كلمته عشوائية
+           بحكم البناء. `password_unknown()` تجمع الحالين، ولا تشمل حسابا
+           قديما بكلمة مرور ربط مزودا — ذاك يعرف كلمته ويسأل عنها. */
+        $this->load->model('taqdar_social_model');
+        $quick = $this->taqdar_social_model->password_unknown($user_id);
 
         $errors = array();
         if ($cur === '' && !$quick)      $errors[] = 'اكتب كلمة المرور الحالية.';

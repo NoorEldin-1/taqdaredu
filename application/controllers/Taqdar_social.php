@@ -193,31 +193,9 @@ class Taqdar_social extends CI_Controller
             return;
         }
 
-        $owner = $this->social->link_row($id['provider'], $id['uid']);
-        if ($owner && (int) $owner['user_id'] !== $uid) {
-            $this->back_to_settings(
-                'حساب ' . $this->label($id['provider']) . ' هذا مرتبط بحساب آخر في تقدر. '
-                . 'افصله من هناك أولا، أو اربط حسابا غيره.', false);
-            return;
-        }
-
-        $this->social->link($uid, $id);
-
-        /* والبريد الموثق يختم الحساب كما يختمه الدخول: من ربط جوجل
-           ببريد حسابه نفسه أثبت ملكيته له، فلا معنى لأن تبقى لافتة
-           «أكد بريدك» فوق لوحته بعدها. */
-        if (!empty($id['verified']) && $id['email'] !== '') {
-            $u = $this->db->select('email, tq_verified_at')->where('id', $uid)
-                          ->get('users')->row_array();
-            if ($u && strtolower((string) $u['email']) === $id['email']
-                && empty($u['tq_verified_at'])) {
-                $this->db->where('id', $uid)->update('users',
-                    array('tq_verified_at' => date('Y-m-d H:i:s')));
-            }
-        }
-
-        $this->back_to_settings('ربط حساب ' . $this->label($id['provider'])
-            . '. تستطيع الدخول به من الآن.', true);
+        /* القرار في النموذج — والتطبيق يناديه نفسه (TQ-SOCIAL-API). */
+        $r = $this->social->link_for($uid, $id);
+        $this->back_to_settings($r['error'], !empty($r['ok']));
     }
 
     /**
@@ -287,74 +265,20 @@ class Taqdar_social extends CI_Controller
         $next = tqs_safe_next($this->input->post('tq_next'));
         $back = site_url('account/complete') . ($next !== '' ? '?next=' . rawurlencode($next) : '');
 
-        $u = $this->db->select('tq_gate')->where('id', $uid)->get('users')->row_array();
-        $gate = $u ? (string) $u['tq_gate'] : 'student';
-
-        $data = array();
-
-        /* TQ-QUICK-BUY — كلمة المرور لحساب أنشئ من شاشة الدفع. وشرطها شرط
-           التسجيل نفسه (ثمانية فأكثر، ودون اثنتين وسبعين بايت: bcrypt يقص
-           بعدها بلا إشعار). والفارغ لا يمس الكلمة — «لاحقا» حق هنا أيضا. */
-        $this->load->model('taqdar_signup_model');
-        $quick = $this->taqdar_signup_model->is_quick($uid);
-        $pw    = (string) $this->input->post('password');
-        if ($quick && $pw !== '') {
-            if (mb_strlen($pw) < 8 || strlen($pw) > 72) {
-                $this->session->set_flashdata('error_message',
-                    'كلمة المرور ثمانية محارف على الأقل، ودون اثنتين وسبعين خانة.');
-                redirect($back, 'location', 302);
-                return;
-            }
-            $data['password'] = tq_password_hash($pw);
-        }
-
-        /* الجوال بقاعدة TQ-PHONE-INTL نفسها: دولة منتقاة ورقم وطني،
-           ويخزن `+<رمز><وطني>`. وفحص ثان مكتوب هنا بيده يقبل ما يرفضه
-           التسجيل أو يرفض ما يقبله. */
-        $raw = trim((string) $this->input->post('phone'));
-        if ($raw !== '') {
-            $chk = tq_phone_check($raw, tq_phone_iso_ok((string) $this->input->post('phone_cc')));
-            if (!$chk['ok']) {
-                $this->session->set_flashdata('error_message', $chk['error']);
-                redirect($back, 'location', 302);
-                return;
-            }
-            $data['phone'] = $chk['e164'];
-        }
-
-        if ($gate !== 'parent') {
-            $age = (int) $this->input->post('age');
-            if ($age > 0) {
-                if ($age < 5 || $age > 99) {
-                    $this->session->set_flashdata('error_message', 'اكتب عمرا صحيحا بين 5 و99.');
-                    redirect($back, 'location', 302);
-                    return;
-                }
-                $data['age'] = $age;
-            }
-
-            /* الصف يأتي من قائمة، والقائمة تحرر في الطلب: معرف لا يقابل
-               صفا فعالا كان يحفظ كما هو فيصير الحساب في صف لا وجود له. */
-            $grade = (int) $this->input->post('grade_id');
-            if ($grade > 0) {
-                if ($this->db->where(array('id' => $grade, 'active' => 1))
-                             ->count_all_results('grades') === 0) {
-                    $this->session->set_flashdata('error_message',
-                        'الصف الدراسي المختار غير متاح. اختر من القائمة.');
-                    redirect($back, 'location', 302);
-                    return;
-                }
-                $data['grade_id'] = $grade;
-            }
-        }
-
-        if ($data) {
-            $this->db->where('id', $uid)->update('users', $data);
-        }
-        if (isset($data['password'])) {
-            /* صار يعرف كلمته: لا لافتة تطلبها بعد (`mark_own_password()`
-               تطفئها)، وفصل ربط جوجل يوما لا يقفل حسابه (TQ-SOCIAL-LASTDOOR). */
-            $this->social->mark_own_password($uid);
+        /* القواعد في النموذج — ونقطة التطبيق تناديها نفسها، ففحصان
+           لحقل واحد يقبل أحدهما ما يرده الآخر. */
+        $r = $this->social->complete_profile($uid, array(
+            'password' => (string) $this->input->post('password'),
+            'phone'    => (string) $this->input->post('phone'),
+            'phone_cc' => (string) $this->input->post('phone_cc'),
+            'age'      => (string) $this->input->post('age'),
+            'grade_id' => (string) $this->input->post('grade_id'),
+        ));
+        if (empty($r['ok'])) {
+            $first = reset($r['errors']);
+            $this->session->set_flashdata('error_message', (string) $first[0]);
+            redirect($back, 'location', 302);
+            return;
         }
 
         $this->session->set_flashdata('flash_message', 'حفظت بياناتك.');

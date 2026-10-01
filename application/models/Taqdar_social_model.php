@@ -1112,6 +1112,22 @@ class Taqdar_social_model extends CI_Model
     }
 
     /**
+     * TQ-SOCIAL-FORGET — حذف الحساب يحذف روابطه.
+     *
+     * الحذف **تجهيل لا محو**: صف `users` يبقى موقوفا ببريد مجهول. فربط
+     * باق يشير إليه يجعل من حذف حسابه ثم ضغط «ادخل بجوجل» يلتقطه فرع
+     * الربط القائم ويرد عليه «هذا الحساب موقوف» — إلى الأبد، ولا يستطيع
+     * أن ينشئ حسابا جديدا بحساب جوجل نفسه. وبلا الربط يمضي كأنه أول مرة.
+     */
+    public function forget_user($user_id)
+    {
+        $this->install_schema();
+        try {
+            $this->db->where('user_id', (int) $user_id)->delete('tq_social_accounts');
+        } catch (Throwable $e) { $this->db->reset_query(); }
+    }
+
+    /**
      * أللمستخدم كلمة مرور يعرفها؟
      *
      * ولا عمود في `users` يقول ذلك، ولا يميز هاش عشوائي عن هاش حقيقي
@@ -1144,9 +1160,236 @@ class Taqdar_social_model extends CI_Model
         $this->taqdar_signup_model->clear_quick($user_id);
     }
 
+    /**
+     * أأنشئ هذا الحساب من باب مزود؟
+     *
+     * والأثر في `audit_log` (`social.signup`) هو الشاهد: يكتبه `create()`
+     * وحدها، فلا عمود يضاف ولا علامة ثانية تفترق عنه.
+     */
+    public function born_social($user_id)
+    {
+        try {
+            if (!$this->db->table_exists('audit_log')) return false;
+            return $this->db->where('actor_id', (int) $user_id)
+                            ->where('action', 'social.signup')
+                            ->count_all_results('audit_log') > 0;
+        } catch (Throwable $e) { $this->db->reset_query(); return false; }
+    }
+
+    /**
+     * TQ-SOCIAL-APP-PW — أكلمة هذا الحساب عشوائية لا يعرفها صاحبه؟
+     *
+     * حسابان كذلك: المنشأ من شاشة الدفع (TQ-QUICK-BUY)، والمنشأ بجوجل أو
+     * أبل ولم يضع صاحبه كلمة بيده بعد. وطلب «الحالية» من أيهما باب مغلق —
+     * والويب يخرج منه بـ«نسيت كلمة المرور»، والتطبيق لا يملك ذلك الباب:
+     * فمن أنشأ حسابه بجوجل من جواله لا يضع كلمة أبدا، فلا يفصل ربطه أبدا.
+     *
+     * **ولا يشمل حسابا قديما بكلمة مرور ربط مزودا**: ذاك يعرف كلمته، و
+     * إسقاط «الحالية» عنه يجعل جلسة مسروقة تبدل كلمته بلا أن تعرفها.
+     */
+    public function password_unknown($user_id)
+    {
+        $user_id = (int) $user_id;
+        if ($user_id <= 0) return false;
+
+        $this->load->model('taqdar_signup_model');
+        if ($this->taqdar_signup_model->is_quick($user_id)) return true;
+
+        return !$this->has_own_password($user_id) && $this->born_social($user_id);
+    }
+
+    /**
+     * ربط مزود بحساب معروف صاحبه — الويب (رحلة `mode=link`) والتطبيق معا.
+     *
+     * و**حساب المزود لا يربط بحسابين**: `uq_provider_uid` يمنعه في المخطط،
+     * ولكن الرسالة أولى من ارتداد قاعدة. و**مستخدم واحد لا يربط حسابين من
+     * المزود نفسه** (`uq_user_provider`): كان الإدراج يرتد صامتا والشاشة
+     * تقول «ربط» — فيظن صاحبه أن حسابه الثاني يفتح وهو لا يفتح.
+     *
+     * @return array ok · code (`in_use` · `already_linked` · `failed`) · error
+     */
+    public function link_for($user_id, array $id)
+    {
+        $this->install_schema();
+        $user_id = (int) $user_id;
+        $label   = ($id['provider'] === 'apple') ? 'أبل' : 'جوجل';
+
+        $owner = $this->link_row($id['provider'], $id['uid']);
+        if ($owner && (int) $owner['user_id'] !== $user_id) {
+            return array('ok' => false, 'code' => 'in_use',
+                'error' => 'حساب ' . $label . ' هذا مرتبط بحساب آخر في تقدر. '
+                         . 'افصله من هناك أولا، أو اربط حسابا غيره.');
+        }
+
+        if (!$owner) {
+            foreach ($this->links_of($user_id) as $l) {
+                if ((string) $l['provider'] === $id['provider']) {
+                    return array('ok' => false, 'code' => 'already_linked',
+                        'error' => 'حسابك مرتبط بحساب ' . $label . ' آخر. افصله أولا ثم اربط هذا.');
+                }
+            }
+        }
+
+        if (!$this->link($user_id, $id)) {
+            return array('ok' => false, 'code' => 'failed', 'error' => 'تعذر الربط. أعد المحاولة.');
+        }
+
+        /* والبريد الموثق يختم الحساب كما يختمه الدخول: من ربط جوجل ببريد
+           حسابه نفسه أثبت ملكيته له، فلا معنى لأن تبقى لافتة «أكد بريدك»
+           فوق لوحته بعدها. */
+        if (!empty($id['verified']) && $id['email'] !== '') {
+            try {
+                $u = $this->db->select('email, tq_verified_at')->where('id', $user_id)
+                              ->get('users')->row_array();
+                if ($u && strtolower((string) $u['email']) === $id['email']
+                    && empty($u['tq_verified_at'])) {
+                    $this->db->where('id', $user_id)->update('users',
+                        array('tq_verified_at' => date('Y-m-d H:i:s')));
+                }
+            } catch (Throwable $e) { $this->db->reset_query(); }
+        }
+
+        $this->audit('social.link', $user_id, array('provider' => $id['provider']));
+
+        return array('ok' => true, 'code' => '',
+            'error' => 'ربط حساب ' . $label . '. تستطيع الدخول به من الآن.');
+    }
+
+    /**
+     * TQ-SOCIAL-API — ما يحتاجه التطبيق ليرسم الزرين ويهيئ مكتبتيه.
+     *
+     * والمعرفات هنا **ليست أسرارا**: معرف العميل يسافر في كل طلب تفويض
+     * ويقرؤه من يفتح التطبيق. والسر والمفتاح الخاص لا يخرجان من هنا أبدا.
+     * و`server_client_id` معرف الويب: مكتبة جوجل على أندرويد تطلب به
+     * `id_token` فيخرج جمهوره هو — وبلاه ترد المكتبة رمزا فارغا.
+     */
+    public function app_config()
+    {
+        $c = $this->config();
+        $p = $this->providers();
+
+        return array(
+            array(
+                'provider'          => 'google',
+                'label'             => 'جوجل',
+                'enabled'           => !empty($p['google']['app']),
+                'platforms'         => array('android', 'ios'),
+                'server_client_id'  => $c['google_id'] !== '' ? $c['google_id'] : null,
+                'ios_client_id'     => $c['google_ios'] !== '' ? $c['google_ios'] : null,
+                'android_client_id' => $c['google_and'] !== '' ? $c['google_and'] : null,
+            ),
+            array(
+                'provider'   => 'apple',
+                'label'      => 'أبل',
+                'enabled'    => !empty($p['apple']['app']),
+                'platforms'  => array('ios'),
+                'bundle_id'  => $c['apple_bundle'] !== '' ? $c['apple_bundle'] : null,
+            ),
+        );
+    }
+
+    /**
+     * `nonce` التطبيق — يفحص متى أرسله، ولا يشترط.
+     *
+     * مكتبة أبل تأخذ **هاش** القيمة (SHA-256) وتضعه في الرمز، ومكتبة
+     * جوجل تضع القيمة كما هي. فيقبل الشكلان، والعميل يرسل القيمة الخام.
+     */
+    public function app_nonce_ok(array $claims, $nonce)
+    {
+        $nonce = (string) $nonce;
+        if ($nonce === '') return true;
+        $got = (string) (isset($claims['nonce']) ? $claims['nonce'] : '');
+        if ($got === '') return false;
+        return hash_equals($nonce, $got) || hash_equals(hash('sha256', $nonce), $got);
+    }
+
     /* =====================================================================
        ما ينقص بعد الدخول — TQ-SOCIAL-COMPLETE
        ===================================================================== */
+
+    /**
+     * حفظ ما ينقص — شاشة `/account/complete` ونقطة التطبيق معا.
+     *
+     * والفحص هنا كما يفحص التسجيل حرفا: الجوال بقاعدة TQ-PHONE-INTL،
+     * والعمر بين ٥ و٩٩، والصف من القائمة الفعالة، وكلمة المرور ثمانية
+     * فأكثر ودون اثنتين وسبعين بايت (bcrypt يقص بعدها بلا إشعار).
+     * **والفارغ لا يمس شيئا**: «لاحقا» حق في كل حقل.
+     *
+     * @param array $in phone · phone_cc · age · grade_id · password
+     * @return array ok · errors (حقل ← رسائل) · saved (ما كتب)
+     */
+    public function complete_profile($user_id, array $in)
+    {
+        $user_id = (int) $user_id;
+        $errors  = array();
+        $data    = array();
+
+        try {
+            $u = $this->db->select('tq_gate')->where('id', $user_id)->get('users')->row_array();
+        } catch (Throwable $e) { $this->db->reset_query(); $u = null; }
+        if (!$u) return array('ok' => false, 'errors' => array('account' => array('حساب غير موجود.')), 'saved' => array());
+        $gate = (string) $u['tq_gate'];
+
+        $pw = (string) (isset($in['password']) ? $in['password'] : '');
+        if ($pw !== '') {
+            if (!$this->password_unknown($user_id)) {
+                $errors['password'][] = 'لحسابك كلمة مرور. غيرها من الإعدادات بكلمتك الحالية.';
+            } elseif (mb_strlen($pw) < 8 || strlen($pw) > 72) {
+                $errors['password'][] = 'كلمة المرور ثمانية محارف على الأقل، ودون اثنتين وسبعين خانة.';
+            } else {
+                $data['password'] = tq_password_hash($pw);
+            }
+        }
+
+        $raw = trim((string) (isset($in['phone']) ? $in['phone'] : ''));
+        if ($raw !== '') {
+            $chk = tq_phone_check($raw, tq_phone_iso_ok((string) (isset($in['phone_cc']) ? $in['phone_cc'] : '')));
+            if (!$chk['ok']) $errors['phone'][] = $chk['error'];
+            else             $data['phone'] = $chk['e164'];
+        }
+
+        if ($gate !== 'parent') {
+            $age_raw = trim((string) (isset($in['age']) ? $in['age'] : ''));
+            $age     = (int) $age_raw;
+            if ($age_raw !== '' && $age_raw !== '0') {
+                if ($age < 5 || $age > 99) $errors['age'][] = 'اكتب عمرا صحيحا بين 5 و99.';
+                else                       $data['age'] = $age;
+            }
+
+            /* الصف يأتي من قائمة، والقائمة تحرر في الطلب: معرف لا يقابل
+               صفا فعالا كان يحفظ كما هو فيصير الحساب في صف لا وجود له. */
+            $grade = (int) (isset($in['grade_id']) ? $in['grade_id'] : 0);
+            if ($grade > 0) {
+                $n = 0;
+                try {
+                    $n = $this->db->where(array('id' => $grade, 'active' => 1))
+                                  ->count_all_results('grades');
+                } catch (Throwable $e) { $this->db->reset_query(); }
+                if ($n === 0) $errors['grade_id'][] = 'الصف الدراسي المختار غير متاح. اختر من القائمة.';
+                else          $data['grade_id'] = $grade;
+            }
+        }
+
+        if ($errors) return array('ok' => false, 'errors' => $errors, 'saved' => array());
+
+        if ($data) {
+            try {
+                $this->db->where('id', $user_id)->update('users', $data);
+            } catch (Throwable $e) {
+                $this->db->reset_query();
+                log_message('error', 'TQ-SOCIAL: تعذر حفظ الإكمال — ' . $e->getMessage());
+                return array('ok' => false, 'errors' => array('account' => array('تعذر الحفظ. أعد المحاولة.')),
+                             'saved' => array());
+            }
+        }
+        if (isset($data['password'])) {
+            /* صار يعرف كلمته: لا لافتة تطلبها بعد، وفصل ربط جوجل يوما لا
+               يقفل حسابه (TQ-SOCIAL-LASTDOOR). */
+            $this->mark_own_password($user_id);
+        }
+
+        return array('ok' => true, 'errors' => array(), 'saved' => array_keys($data));
+    }
 
     /**
      * الحقول التي لا يعطيها مزود ويحتاجها المنتج.
@@ -1167,6 +1410,8 @@ class Taqdar_social_model extends CI_Model
         $need = array();
         /* TQ-QUICK-BUY — حساب أنشئ من شاشة الدفع بثلاثة حقول: كلمته عشوائية
            لا يعرفها صاحبه، فأول ما ينقصه بابه إلى حسابه من جهاز آخر. */
+        /* والمنشأ بمزود لا يطلب منه كلمة هنا عمدا (TQ-SOCIAL-APP-PW): من
+           يدخل بجوجل له بابه، ولافتة تلاحقه بكلمة لا يريدها ضجيج. */
         $this->load->model('taqdar_signup_model');
         if ($this->taqdar_signup_model->is_quick($user_id)) $need[] = 'password';
         if (trim((string) $u['phone']) === '') $need[] = 'phone';

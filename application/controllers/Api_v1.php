@@ -565,48 +565,8 @@ class Api_v1 extends CI_Controller
         $this->method('POST');
 
         $b        = $this->body();
-        $provider = strtolower(trim((string) ($b['provider'] ?? '')));
-        $token    = trim((string) ($b['id_token'] ?? ''));
-
-        $errors = tq_api_validate($b, array(
-            'provider' => 'required|max:16',
-            'id_token' => 'required',
-        ));
-        if ($errors) {
-            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
-        }
-        if (!in_array($provider, array('google', 'apple'), true)) {
-            $this->fail('مزود غير مدعوم.', 'unsupported_provider', 422);
-        }
-
-        /* الحد على الجهاز والعنوان: البريد لا يعرف قبل فك الرمز، وحد
-           يقرأ من جسم الطلب يتخطى بتبديل حرف فيه. */
-        $this->limit('social:' . $provider, self::RL_LOGIN_MAX, self::RL_LOGIN_WINDOW);
-
-        $this->load->model('taqdar_social_model', 'social');
-
-        if (!$this->social->app_enabled($provider)) {
-            $this->fail('هذه الطريقة غير متاحة حاليا.', 'provider_not_configured', 503);
-        }
-
-        $v = $this->social->verify_id_token($provider, $token, null);
-        if (empty($v['ok'])) {
-            $this->fail($v['error'], 'invalid_social_token', 401);
-        }
-
-        /* TQ-APPLE-NAME — أبل تعطي الاسم للتطبيق مرة واحدة كذلك، وفي
-           رد المكتبة لا في الرمز. فيمرر كما يمرره الويب، وبلاه يقرأ
-           صاحب الحساب اسما مشتقا من بريد مرحل. */
-        $extra = array();
-        if (isset($b['user']) && is_array($b['user'])) $extra = $b['user'];
-        foreach (array('given_name' => 'firstName', 'family_name' => 'lastName') as $k => $k2) {
-            if (!empty($b[$k])) {
-                if (!isset($extra['name']) || !is_array($extra['name'])) $extra['name'] = array();
-                if (empty($extra['name'][$k2])) $extra['name'][$k2] = (string) $b[$k];
-            }
-        }
-
-        $id   = $this->social->identity_from($provider, $v['claims'], $extra);
+        $id       = $this->social_identity($b);
+        $provider = $id['provider'];
         $gate = (string) ($b['gate'] ?? 'student');
 
         $r = $this->social->resolve($id, array('gate' => $gate));
@@ -655,9 +615,268 @@ class Api_v1 extends CI_Controller
             'user'            => tq_api_user($row),
             'created'         => (bool) $r['created'],
             'missing_profile' => array_values($this->social->missing_of($uid)),
+            /* `false` = كلمته عشوائية لا يعرفها: شاشة «كلمة المرور» تعرض
+               «ضع كلمة مرور» بلا حقل «الحالية» (TQ-SOCIAL-APP-PW). */
+            'has_password'    => !$this->social->password_unknown($uid),
         ), !empty($r['created'])
             ? 'أنشئ حسابك. أهلا بك.'
             : ('أهلا بك، ' . trim($row['first_name'] . ' ' . $row['last_name']) . '.')), 200);
+    }
+
+    /**
+     * هوية موثقة من جسم الطلب — مشتركة بين الدخول والربط.
+     *
+     * يفحص المزود والرمز، ويحد الطلبات، ويتحقق من التوقيع والمصدر والجمهور
+     * والأجل، ثم `nonce` إن أرسل. وما يرد منه هوية يصح الحكم عليها.
+     */
+    private function social_identity(array $b)
+    {
+        $provider = strtolower(trim((string) ($b['provider'] ?? '')));
+        $token    = trim((string) ($b['id_token'] ?? ''));
+
+        $errors = tq_api_validate($b, array(
+            'provider' => 'required|max:16',
+            'id_token' => 'required',
+        ));
+        if ($errors) {
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
+        }
+        if (!in_array($provider, array('google', 'apple'), true)) {
+            $this->fail('مزود غير مدعوم.', 'unsupported_provider', 422,
+                        array('provider' => array('google · apple')));
+        }
+
+        /* الحد على الجهاز والعنوان: البريد لا يعرف قبل فك الرمز، وحد
+           يقرأ من جسم الطلب يتخطى بتبديل حرف فيه. */
+        $this->limit('social:' . $provider, self::RL_LOGIN_MAX, self::RL_LOGIN_WINDOW);
+
+        $this->load->model('taqdar_social_model', 'social');
+
+        if (!$this->social->app_enabled($provider)) {
+            $this->fail('هذه الطريقة غير متاحة حاليا.', 'provider_not_configured', 503);
+        }
+
+        $v = $this->social->verify_id_token($provider, $token, null);
+        if (empty($v['ok'])) {
+            $this->fail($v['error'], 'invalid_social_token', 401);
+        }
+
+        /* `nonce` اختياري: من أرسله يفحص له، فرمز التقط من رحلة سابقة لا
+           يعاد. ومن لم يرسله يحرسه الجمهور والأجل كما كان. */
+        if (!$this->social->app_nonce_ok($v['claims'], (string) ($b['nonce'] ?? ''))) {
+            $this->fail('لا تطابق بين الطلب والهوية. أعد المحاولة.', 'invalid_social_token', 401);
+        }
+
+        /* TQ-APPLE-NAME — أبل تعطي الاسم للتطبيق مرة واحدة كذلك، وفي
+           رد المكتبة لا في الرمز. فيمرر كما يمرره الويب، وبلاه يقرأ
+           صاحب الحساب اسما مشتقا من بريد مرحل. */
+        $extra = array();
+        if (isset($b['user']) && is_array($b['user'])) $extra = $b['user'];
+        foreach (array('given_name' => 'firstName', 'family_name' => 'lastName') as $k => $k2) {
+            if (!empty($b[$k])) {
+                if (!isset($extra['name']) || !is_array($extra['name'])) $extra['name'] = array();
+                if (empty($extra['name'][$k2])) $extra['name'][$k2] = (string) $b[$k];
+            }
+        }
+
+        return $this->social->identity_from($provider, $v['claims'], $extra);
+    }
+
+    /**
+     * GET /api/v1/auth/social/providers — ما يرسم به التطبيق الزرين.
+     *
+     * بلا رمز: تسأل قبل الدخول. والمعرفات تأتي من هنا لا من نسخة في
+     * Dart — مزود يطفأ في اللوحة غدا يختفي زره بلا إصدار تطبيق، وزر يبقى
+     * على مزود مطفأ يرد كل ضغطة بـ`provider_not_configured`.
+     */
+    public function auth_social_providers()
+    {
+        $this->method('GET');
+        $h = $this->limit('anon', self::RL_ANON_MAX, self::RL_ANON_WINDOW);
+
+        $this->load->model('taqdar_social_model', 'social');
+
+        $this->read(array(
+            'providers'   => $this->social->app_config(),
+            /* المعلم لا ينشأ من هذا الباب (TQ-TEACHER-GATE). */
+            'gates'       => array('student', 'parent'),
+            'terms_url'   => site_url('terms'),
+            'privacy_url' => site_url('privacy'),
+        ), '', array(), $h);
+    }
+
+    /** «الحسابات المرتبطة» بشكلها — يردها العرض والربط والفصل معا. */
+    private function social_links_out($uid)
+    {
+        $this->load->model('taqdar_social_model', 'social');
+
+        $rows = array();
+        foreach ($this->social->links_of($uid) as $l) $rows[(string) $l['provider']] = $l;
+
+        $unknown = $this->social->password_unknown($uid);
+        /* شرط الفصل شرط `unlink()` نفسه: باب ثان — ربط آخر أو كلمة يعرفها. */
+        $own_pw  = $this->social->has_own_password($uid);
+
+        $out = array();
+        foreach ($this->social->app_config() as $p) {
+            $l = isset($rows[$p['provider']]) ? $rows[$p['provider']] : null;
+            $out[] = array(
+                'provider'      => $p['provider'],
+                'label'         => $p['label'],
+                'available'     => (bool) $p['enabled'],
+                'platforms'     => $p['platforms'],
+                'linked'        => (bool) $l,
+                'email'         => $l ? (string) $l['email'] : null,
+                'is_relay'      => $l ? (bool) $l['is_relay'] : false,
+                'linked_at'     => $l ? tq_api_date($l['linked_at']) : null,
+                'last_login_at' => $l ? tq_api_date($l['last_login_at']) : null,
+                'can_unlink'    => $l ? (count($rows) > 1 || $own_pw) : false,
+            );
+        }
+
+        return array(
+            'providers'    => $out,
+            'has_password' => !$unknown,
+        );
+    }
+
+    /**
+     * GET · POST /api/v1/auth/social/links — الحسابات المرتبطة.
+     *
+     * `POST` يربط مزودا بالحساب الداخل: صاحبه معروف من رمز الدخول، فلا
+     * بحث ببريد ولا إنشاء. والقرار في `link_for()` — وهي ما يناديه الويب.
+     * والأدوار الثلاثة سواء: الربط موصول بالمستخدم لا بدوره.
+     */
+    public function auth_social_links()
+    {
+        $m = $this->method(array('GET', 'POST'));
+        $u = $this->require_portal();
+        $uid = (int) $u['id'];
+
+        if ($m === 'GET') {
+            $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+            $this->read($this->social_links_out($uid), '', array(), $h);
+        }
+
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $id = $this->social_identity($this->body());
+        $r  = $this->social->link_for($uid, $id);
+
+        if (empty($r['ok'])) {
+            $map = array(
+                'in_use'         => array('social_account_in_use', 409),
+                'already_linked' => array('provider_already_linked', 409),
+            );
+            $c = isset($map[$r['code']]) ? $map[$r['code']] : array('link_failed', 500);
+            $this->fail($r['error'], $c[0], $c[1]);
+        }
+
+        $this->api->audit('api.social.link', $uid, array('provider' => $id['provider']));
+        $this->respond(tq_api_ok($this->social_links_out($uid), $r['error']), 200);
+    }
+
+    /**
+     * DELETE /api/v1/auth/social/links/{provider} — فصل الربط.
+     *
+     * والحارس في النموذج (TQ-SOCIAL-LASTDOOR): من يفصل بابه الوحيد بلا
+     * كلمة مرور يقفل على نفسه حسابه واشتراكه — فيرد بـ409 ومعه ما يفعل.
+     */
+    public function auth_social_link($provider = '')
+    {
+        $this->method(array('DELETE', 'POST'));
+        $u = $this->require_portal();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $uid      = (int) $u['id'];
+        $provider = strtolower(trim((string) $provider));
+        if (!in_array($provider, array('google', 'apple'), true)) {
+            $this->fail('مزود غير مدعوم.', 'unsupported_provider', 404);
+        }
+
+        $this->load->model('taqdar_social_model', 'social');
+
+        $has = false;
+        foreach ($this->social->links_of($uid) as $l) {
+            if ((string) $l['provider'] === $provider) $has = true;
+        }
+        if (!$has) {
+            $this->fail('لا ربط بهذا المزود على حسابك.', 'not_linked', 404);
+        }
+
+        $r = $this->social->unlink($uid, $provider);
+        if (empty($r['ok'])) {
+            $this->fail('هذا هو بابك الوحيد إلى حسابك. ضع كلمة مرور أولا، ثم افصل الربط.',
+                        'last_sign_in_method', 409);
+        }
+
+        $this->api->audit('api.social.unlink', $uid, array('provider' => $provider));
+        $this->respond(tq_api_ok($this->social_links_out($uid),
+            'فصل ربط ' . ($provider === 'apple' ? 'أبل' : 'جوجل') . '.'), 200);
+    }
+
+    /**
+     * GET · PATCH /api/v1/auth/profile/complete — TQ-SOCIAL-COMPLETE
+     *
+     * ما لا يعطيه مزود: الجوال والعمر والصف، وكلمة المرور لمن لا يعرف
+     * كلمته. **وهي دعوة لا بوابة**: الحساب مفتوح وكل نقطة أخرى تعمل، و
+     * الحقل الفارغ لا يمس شيئا — «لاحقا» حق. والقواعد في
+     * `complete_profile()` نفسها التي تحفظ بها شاشة الويب.
+     */
+    public function auth_profile_complete()
+    {
+        $m = $this->method(array('GET', 'PATCH', 'PUT', 'POST'));
+        $u = $this->require_portal();
+        $uid = (int) $u['id'];
+
+        $this->load->model('taqdar_social_model', 'social');
+
+        if ($m === 'GET') {
+            $h = $this->limit('read', self::RL_READ_MAX, self::RL_READ_WINDOW);
+            $this->read($this->profile_complete_out($uid), '', array(), $h);
+        }
+
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+
+        $b = $this->body();
+        $r = $this->social->complete_profile($uid, array(
+            'password' => (string) ($b['password'] ?? ''),
+            'phone'    => (string) ($b['phone'] ?? ''),
+            /* `phone_country` اسم المواصفة، و`phone_cc` اسم حقل الويب. */
+            'phone_cc' => (string) ($b['phone_country'] ?? ($b['phone_cc'] ?? '')),
+            'age'      => (string) ($b['age'] ?? ''),
+            'grade_id' => (string) ($b['grade_id'] ?? ''),
+        ));
+
+        if (empty($r['ok'])) {
+            $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $r['errors']);
+        }
+
+        /* كلمة وضعت الآن تخرج بقية الأجهزة — قاعدة `settings_password()`. */
+        if (in_array('password', $r['saved'], true)) {
+            $this->api->revoke_all($uid, $this->token['family']);
+        }
+
+        $this->api->audit('api.profile.complete', $uid, array('fields' => $r['saved']));
+
+        $this->respond(tq_api_ok($this->profile_complete_out($uid),
+            $r['saved'] ? 'حفظت بياناتك.' : 'لم يتغير شيء.'), 200);
+    }
+
+    private function profile_complete_out($uid)
+    {
+        $row = $this->db->where('id', (int) $uid)->get('users')->row_array();
+
+        return array(
+            'missing'      => array_values($this->social->missing_of($uid)),
+            'has_password' => !$this->social->password_unknown($uid),
+            /* العمر والصف للطالب، والجوال للجميع: حقل يعرض ولا يحفظ يقرأ عطلا. */
+            'fields'       => ((string) $row['tq_gate'] === 'parent')
+                ? array('phone', 'phone_country')
+                : array('phone', 'phone_country', 'age', 'grade_id'),
+            'age'          => (int) ($row['age'] ?? 0) > 0 ? (int) $row['age'] : null,
+            'user'         => tq_api_user($row),
+        );
     }
 
     /* ================================================================
@@ -1194,8 +1413,17 @@ class Api_v1 extends CI_Controller
         $uid  = (int) $u['id'];
         $role = tq_role($uid);
 
+        $this->load->model('taqdar_social_model', 'social');
+        $linked = array();
+        foreach ($this->social->links_of($uid) as $l) $linked[] = (string) $l['provider'];
+
         $out = tq_api_user($u, array(
             'email_verified_at' => tq_api_date($u['tq_verified_at'] ?? null),
+            /* TQ-SOCIAL-API — ما تبنى منه لافتة «أكمل بياناتك» وشاشة
+               «الحسابات المرتبطة» بلا نداء ثان عند كل فتح. */
+            'missing_profile'   => array_values($this->social->missing_of($uid)),
+            'has_password'      => !$this->social->password_unknown($uid),
+            'linked_providers'  => $linked,
         ));
 
         if ($role === 'teacher') {
@@ -1671,8 +1899,12 @@ class Api_v1 extends CI_Controller
         $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
 
         $b = $this->body();
+        /* TQ-SOCIAL-APP-PW — من أنشئ حسابه بجوجل أو أبل لا «حالية» له:
+           يضع كلمته الأولى بلاها. و`has_password` في `/auth/me` تقول
+           للتطبيق أي الشاشتين يعرض. */
+        $this->load->model('taqdar_social_model', 'social');
         $errors = tq_api_validate($b, array(
-            'current_password' => 'required',
+            'current_password' => $this->social->password_unknown((int) $u['id']) ? 'max:255' : 'required',
             'new_password'     => 'required|min:8|max:255',
             'confirm_password' => 'required',
         ));
@@ -1933,6 +2165,11 @@ class Api_v1 extends CI_Controller
             'social_links' => '{}',
             'status'       => 0,
         ));
+
+        /* TQ-SOCIAL-FORGET — والربط يذهب مع الحساب، وإلا رد صاحبه
+           بـ«الحساب موقوف» متى عاد بزر جوجل نفسه. */
+        $this->load->model('taqdar_social_model', 'social');
+        $this->social->forget_user($uid);
 
         $this->api->revoke_all($uid);
         $this->api->audit('account.anonymised', $uid, array('by' => 'api', 'handle' => $anon));

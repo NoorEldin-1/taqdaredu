@@ -1286,6 +1286,11 @@ class Taqdar extends CI_Controller
             'status'       => 0,
         ));
 
+        /* TQ-SOCIAL-FORGET — والربط بجوجل وأبل يذهب معه: الصف المجهل يبقى
+           موقوفا، وربط باق يرد صاحبه بـ«الحساب موقوف» متى عاد بالزر نفسه. */
+        $this->load->model('taqdar_social_model');
+        $this->taqdar_social_model->forget_user($uid);
+
         if ($this->db->table_exists('audit_log')) {
             $this->db->insert('audit_log', array(
                 'actor_id' => $uid, 'action' => 'account.anonymised',

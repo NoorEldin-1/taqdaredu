@@ -157,6 +157,12 @@ $route['api/v1/auth/verify']      = 'api_v1/auth_verify';
 $route['api/v1/auth/login']       = 'api_v1/auth_login';
 // TQ-SOCIAL-API — دخول التطبيق بجوجل وأبل: `id_token` تولده مكتبة
 // المزود على الجهاز، والقرار هنا على توقيعه وجمهوره لا على دعواه.
+// والأخص قبل الأعم: بلا هذه القواعد يسقط `auth/social/links` إلى ما لا
+// وجود له ويرد 404 على طلب صحيح.
+$route['api/v1/auth/social/providers']     = 'api_v1/auth_social_providers';
+$route['api/v1/auth/social/links/(:any)']  = 'api_v1/auth_social_link/$1';
+$route['api/v1/auth/social/links']         = 'api_v1/auth_social_links';
+$route['api/v1/auth/profile/complete']     = 'api_v1/auth_profile_complete';
 $route['api/v1/auth/social']      = 'api_v1/auth_social';
 $route['api/v1/auth/refresh']     = 'api_v1/auth_refresh';
 $route['api/v1/auth/logout-all']  = 'api_v1/auth_logout_all';
