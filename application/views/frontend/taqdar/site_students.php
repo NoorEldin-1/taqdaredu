@@ -132,7 +132,7 @@ $tq_stage_href = function ($name) {
         <div class="path-card__body">
           <span class="path-card__icon"><svg aria-hidden="true"><use href="#i-book"></use></svg></span>
           <h3>المرحلة الابتدائية</h3><p>من الصف 1 إلى 6</p>
-          <a class="btn btn--text" href="<?php echo $tq_stage_href('المرحلة الابتدائية'); ?>" style="padding:10px 0;font-size:.85em">
+          <a class="btn btn--text" href="<?php echo $tq_stage_href('المرحلة الابتدائية'); ?>" rel="nofollow" style="padding:10px 0;font-size:.85em">
             استكشف البرنامج
             <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
         </div>
@@ -144,7 +144,7 @@ $tq_stage_href = function ($name) {
         <div class="path-card__body">
           <span class="path-card__icon"><svg aria-hidden="true"><use href="#i-headphones"></use></svg></span>
           <h3>المرحلة المتوسطة</h3><p>من الصف 1 إلى 3</p>
-          <a class="btn btn--text" href="<?php echo $tq_stage_href('المرحلة المتوسطة'); ?>" style="padding:10px 0;font-size:.85em">
+          <a class="btn btn--text" href="<?php echo $tq_stage_href('المرحلة المتوسطة'); ?>" rel="nofollow" style="padding:10px 0;font-size:.85em">
             استكشف البرنامج
             <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
         </div>
@@ -156,7 +156,7 @@ $tq_stage_href = function ($name) {
         <div class="path-card__body">
           <span class="path-card__icon"><svg aria-hidden="true"><use href="#i-cap"></use></svg></span>
           <h3>المرحلة الثانوية</h3><p>من الصف 1 إلى 3</p>
-          <a class="btn btn--text" href="<?php echo $tq_stage_href('المرحلة الثانوية'); ?>" style="padding:10px 0;font-size:.85em">
+          <a class="btn btn--text" href="<?php echo $tq_stage_href('المرحلة الثانوية'); ?>" rel="nofollow" style="padding:10px 0;font-size:.85em">
             استكشف البرنامج
             <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
         </div>
@@ -168,7 +168,7 @@ $tq_stage_href = function ($name) {
         <div class="path-card__body">
           <span class="path-card__icon"><svg aria-hidden="true"><use href="#i-target"></use></svg></span>
           <h3>اختبارات القدرات</h3><p>تجهيز شامل للاختبار</p>
-          <a class="btn btn--text" href="<?php echo $tq_stage_href('اختبارات القدرات'); ?>" style="padding:10px 0;font-size:.85em">
+          <a class="btn btn--text" href="<?php echo $tq_stage_href('اختبارات القدرات'); ?>" rel="nofollow" style="padding:10px 0;font-size:.85em">
             استكشف البرنامج
             <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
         </div>
@@ -180,7 +180,7 @@ $tq_stage_href = function ($name) {
         <div class="path-card__body">
           <span class="path-card__icon"><svg aria-hidden="true"><use href="#i-monitor"></use></svg></span>
           <h3>المهارات الرقمية</h3><p>مهارات المستقبل الأول</p>
-          <a class="btn btn--text" href="<?php echo $tq_stage_href('المهارات الرقمية'); ?>" style="padding:10px 0;font-size:.85em">
+          <a class="btn btn--text" href="<?php echo $tq_stage_href('المهارات الرقمية'); ?>" rel="nofollow" style="padding:10px 0;font-size:.85em">
             استكشف البرنامج
             <svg class="dir-icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
         </div>

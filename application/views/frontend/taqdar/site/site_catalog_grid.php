@@ -21,7 +21,7 @@ if (!empty($tq_f['auto'])): ?>
   <svg aria-hidden="true"><use href="#i-cap"></use></svg>
   <span>عرضنا لك <b><?php echo html_escape($tq_f['mine_label']); ?></b> لأنها مرحلة صفك،
         ورشح بالصف من اللوحة لتصل إلى ما يخصك وحدك.</span>
-  <a href="<?php echo html_escape(tqs_cat_query($tq_f, array('cat' => null))); ?>" data-tq-cat-link>
+  <a href="<?php echo html_escape($tq_url = tqs_cat_query($tq_f, array('cat' => null))); ?>"<?php echo tqs_cat_seo_rel($tq_url); ?> data-tq-cat-link>
     اعرض كل المراحل
   </a>
 </p>
@@ -31,9 +31,9 @@ if (!empty($tq_f['auto'])): ?>
 <div class="cactive" aria-label="المرشحات المفعلة">
 <?php foreach ($tq_res['active'] as $tq_c): ?>
   <a class="cactive__i"
-     href="<?php echo html_escape(($tq_c['key'] === 'q' || $tq_c['key'] === 'price')
+     href="<?php echo html_escape($tq_url = (($tq_c['key'] === 'q' || $tq_c['key'] === 'price')
          ? tqs_cat_query($tq_f, array($tq_c['key'] => null))
-         : tqs_cat_toggle($tq_f, $tq_c['key'], $tq_c['value'])); ?>"
+         : tqs_cat_toggle($tq_f, $tq_c['key'], $tq_c['value']))); ?>"<?php echo tqs_cat_seo_rel($tq_url); ?>
      data-tq-cat-link>
     <?php echo html_escape($tq_c['label']); ?>
     <svg aria-hidden="true"><use href="#i-close"></use></svg>
@@ -63,7 +63,7 @@ if (!empty($tq_f['auto'])): ?>
 <?php endif; ?>
   <?php /* `tqs_cat_clear` لا `base_url('catalog')`: الرابط العاري يعيد
            حقن مرحلة الطالب، فيقرأ الزر «اعرض كل المحتوى» ويعرض مرحلة. */ ?>
-  <a class="btn btn--primary" href="<?php echo html_escape(tqs_cat_clear($tq_f)); ?>" data-tq-cat-link>
+  <a class="btn btn--primary" href="<?php echo html_escape($tq_url = tqs_cat_clear($tq_f)); ?>"<?php echo tqs_cat_seo_rel($tq_url); ?> data-tq-cat-link>
     اعرض كل المحتوى
   </a>
 </div>

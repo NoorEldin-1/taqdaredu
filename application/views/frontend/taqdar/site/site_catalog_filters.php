@@ -26,7 +26,7 @@ $tq_prices = array(
       <svg aria-hidden="true"><use href="#i-filter"></use></svg>تصفية النتائج
     </h2>
 <?php if ($tq_res['active']): ?>
-    <a class="cfilters__clear" href="<?php echo html_escape(tqs_cat_clear($tq_f)); ?>" data-tq-cat-link>
+    <a class="cfilters__clear" href="<?php echo html_escape($tq_url = tqs_cat_clear($tq_f)); ?>"<?php echo tqs_cat_seo_rel($tq_url); ?> data-tq-cat-link>
       مسح الكل
     </a>
 <?php endif; ?>
@@ -40,12 +40,12 @@ if (isset($tq_facets['type'])): ?>
     <p class="cfil__label">النوع</p>
     <div class="cchips">
       <a class="cchip<?php echo $tq_f['type'] ? '' : ' is-on'; ?>"
-         href="<?php echo html_escape(tqs_cat_query($tq_f, array('type' => null))); ?>" data-tq-cat-link>
+         href="<?php echo html_escape($tq_url = tqs_cat_query($tq_f, array('type' => null))); ?>"<?php echo tqs_cat_seo_rel($tq_url); ?> data-tq-cat-link>
         الكل
       </a>
 <?php foreach ($tq_facets['type']['items'] as $tq_i): ?>
       <a class="cchip<?php echo $tq_i['on'] ? ' is-on' : ''; ?>"
-         href="<?php echo html_escape(tqs_cat_toggle($tq_f, 'type', $tq_i['value'])); ?>"
+         href="<?php echo html_escape($tq_url = tqs_cat_toggle($tq_f, 'type', $tq_i['value'])); ?>"<?php echo tqs_cat_seo_rel($tq_url); ?>
          data-tq-cat-link aria-pressed="<?php echo $tq_i['on'] ? 'true' : 'false'; ?>">
         <?php echo html_escape($tq_i['label']); ?>
         <b class="tq-ltr"><?php echo (int) $tq_i['n']; ?></b>
@@ -79,7 +79,7 @@ foreach ($tq_facets as $tq_key => $tq_g):
     <div class="cfil__list">
 <?php foreach ($tq_g['items'] as $tq_i): ?>
       <a class="copt<?php echo $tq_i['on'] ? ' is-on' : ''; ?>"
-         href="<?php echo html_escape(tqs_cat_toggle($tq_f, $tq_key, $tq_i['value'])); ?>"
+         href="<?php echo html_escape($tq_url = tqs_cat_toggle($tq_f, $tq_key, $tq_i['value'])); ?>"<?php echo tqs_cat_seo_rel($tq_url); ?>
          data-tq-cat-link aria-pressed="<?php echo $tq_i['on'] ? 'true' : 'false'; ?>">
         <span class="copt__box" aria-hidden="true"><svg><use href="#i-check"></use></svg></span>
         <span class="copt__t"><?php echo html_escape($tq_i['label']); ?></span>
@@ -96,7 +96,7 @@ foreach ($tq_facets as $tq_key => $tq_g):
     <div class="cchips">
 <?php foreach ($tq_prices as $tq_v => $tq_l): ?>
       <a class="cchip<?php echo ((string) $tq_f['price'] === (string) $tq_v) ? ' is-on' : ''; ?>"
-         href="<?php echo html_escape(tqs_cat_query($tq_f, array('price' => ($tq_v === '') ? null : $tq_v))); ?>"
+         href="<?php echo html_escape($tq_url = tqs_cat_query($tq_f, array('price' => ($tq_v === '') ? null : $tq_v))); ?>"<?php echo tqs_cat_seo_rel($tq_url); ?>
          data-tq-cat-link><?php echo html_escape($tq_l); ?></a>
 <?php endforeach; ?>
     </div>

@@ -73,6 +73,17 @@ if (!function_exists('tqs_cat_bare')) {
     }
 }
 
+if (!function_exists('tqs_cat_seo_rel')) {
+    /** Filter URLs remain usable but do not invite new crawl combinations. */
+    function tqs_cat_seo_rel($url)
+    {
+        $path = parse_url((string) $url, PHP_URL_PATH);
+        $query = parse_url((string) $url, PHP_URL_QUERY);
+        return ($path === parse_url(base_url('catalog'), PHP_URL_PATH)
+                && $query !== null && $query !== '') ? ' rel="nofollow"' : '';
+    }
+}
+
 if (!function_exists('tqs_cat_query')) {
     /**
      * رابط الكتالوج بمرشحاته — مع تعديل واحد.
@@ -498,8 +509,9 @@ if (!function_exists('tqs_cat_pager')) {
 
         $link = function ($p, $label, $cls = '', $aria = '') use ($f, $page) {
             $on = ((int) $p === $page);
+            $url = tqs_cat_query($f, array('page' => $p));
             return '    <a class="cpager__i' . ($cls !== '' ? ' ' . $cls : '') . ($on ? ' is-on' : '') . '"'
-                 . ' href="' . html_escape(tqs_cat_query($f, array('page' => $p))) . '"'
+                 . ' href="' . html_escape($url) . '"' . tqs_cat_seo_rel($url)
                  . ' data-tq-page="' . (int) $p . '"'
                  . ($on ? ' aria-current="page"' : '')
                  . ($aria !== '' ? ' aria-label="' . html_escape($aria) . '"' : '') . '>'
