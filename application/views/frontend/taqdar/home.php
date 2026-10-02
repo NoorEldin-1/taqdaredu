@@ -25,7 +25,7 @@ css: pages
              و`src` يحقن من `site.js` — الوسم الذي يحمل `src` يبدأ
              التفاوض على التنزيل قبل أن يعرف عرض الشاشة، فينزل
              الملف الكبير على جوال يكفيه الصغير. */ ?>
-    <div class="hero__frame">
+    <div class="hero__frame hero__frame--lic">
       <?php /* TQ-A11Y-HERO — الاخفاء ينزل درجة، فالزر ليس زخرفا.
 
                كان `aria-hidden="true"` على الغلاف كله وفيه
@@ -83,6 +83,10 @@ css: pages
       <?php /* النصوص تحرر من «المحتوى والموقع › نصوص الصفحات» في اللوحة.
                والمكتوب هنا هو الافتراضي الذي يعرض ما لم يحرر — فالصفحة
                تعمل بقاعدة فارغة كما تعمل بقاعدة ممتلئة. */ ?>
+      <?php /* TQ-HERO-LICENSE — بطاقة الترخيص صف أول في الإطار، فوق النص.
+               والنافذة تطبع بعد القسم لا هنا: انظر رأس الملف الجزئي. */ ?>
+      <?php $tq_lic_part = 'card'; include __DIR__ . '/site/site_license_card.php'; ?>
+
       <div class="hero__copy reveal">
         <p class="hero__eyebrow"><?php echo tq_text('home', 'hero_eyebrow', 'منصة تعليمية سعودية'); ?></p>
         <h1><?php echo tq_text('home', 'hero_title_1', 'نبني العقول'); ?><br><?php
@@ -125,6 +129,7 @@ css: pages
     </div>
   </div>
 </section>
+<?php $tq_lic_part = 'dialog'; include __DIR__ . '/site/site_license_card.php'; ?>
 
 <!-- ══════════ لماذا تختار تقدر؟ ══════════ -->
 <?php /* شريط داكن بخمسة أعمدة على تصميم المالك. وكل نص هنا افتراضي

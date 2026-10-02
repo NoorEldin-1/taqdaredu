@@ -5219,3 +5219,136 @@ html[dir='ltr'] .cpager__i--nav:not(.cpager__i--next) svg{transform:scaleX(-1)}
 
 /* Keep decorative motion inside the viewport without clipping controls. */
 html { overflow-x: clip; }
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-HERO-LICENSE · بطاقة «منشأة تدريب مرخصة» ونافذة بيانات الترخيص
+   ══════════════════════════════════════════════════════════════════
+   الوسم `site/site_license_card.php`. والحصر: `.tqlic` و`.tqlic-dlg`
+   اسمان لا وجود لهما في غير هذه البطاقة، و`.hero__frame--lic` معدِّل
+   يضاف إلى الإطار حين تكون البطاقة فيه.
+
+   البطاقة صف أول في شبكة الإطار لا عنصر مطلق: تأخذ ارتفاعها من
+   محتواها فلا تجلس فوق العنوان على شاشة قصيرة، وتنزل على الجوال إلى
+   عرض الإطار بلا قاعدة موضع ثانية. و`justify-self:start` يمين في
+   العربية ويسار في الإنجليزية وحده. */
+.hero__frame--lic{grid-template-rows:auto 1fr auto}
+.hero__frame--lic .hero__copy{padding-block-start:clamp(14px,2vw,28px)}
+
+.tqlic{
+  justify-self:start;max-inline-size:520px;
+  display:grid;grid-template-columns:auto 1px minmax(0,1fr);align-items:center;
+  gap:clamp(12px,1.4vw,18px);
+  margin:clamp(16px,2.2vw,28px) clamp(20px,3.4vw,52px) 0;
+  padding:clamp(11px,1.1vw,15px) clamp(14px,1.5vw,20px);
+  background:#FFFDF9;color:var(--ink);
+  border:1px solid rgba(221,181,122,.78);border-radius:20px;
+  box-shadow:0 18px 40px -22px rgba(1,33,31,.8),0 2px 6px rgba(1,33,31,.12);
+}
+.tqlic__logo{display:block;inline-size:clamp(116px,10.5vw,148px);block-size:auto}
+.tqlic__rule{align-self:stretch;inline-size:1px;background:rgba(221,181,122,.55)}
+.tqlic__body{min-inline-size:0;display:grid;gap:3px}
+.tqlic__title{
+  display:flex;align-items:center;gap:7px;margin:0;line-height:1.4;
+  font-family:'Cairo',sans-serif;font-weight:800;
+  font-size:clamp(13.5px,1.1vw,16px);color:var(--petrol-deep);
+}
+.tqlic__seal{flex:none;inline-size:1.5em;block-size:1.5em}
+.tqlic__issuer{margin:0;font-size:clamp(11px,.85vw,12.5px);line-height:1.55;color:var(--ink-2)}
+.tqlic__meta{
+  margin:2px 0 0;display:flex;flex-wrap:wrap;gap:1px 14px;
+  font-size:clamp(11px,.85vw,12.5px);line-height:1.6;color:var(--ink-2);
+}
+.tqlic__meta div{display:flex;align-items:baseline;gap:5px}
+.tqlic__meta dt{margin:0}
+.tqlic__meta dd{
+  margin:0;font-weight:700;color:var(--ink);
+  font-variant-numeric:tabular-nums;letter-spacing:.2px;
+}
+/* الرابط زر لا `<a>`: يفتح نافذة في الصفحة نفسها لا عنوانا. والذهب هنا
+   `--gold-text` لا `--gold`: الثاني على الأبيض يسقط تباينا. */
+.tqlic__more{
+  justify-self:start;display:inline-flex;align-items:center;gap:5px;
+  margin-block-start:1px;padding:3px 0;border:0;background:none;cursor:pointer;
+  font-family:'Cairo',sans-serif;font-weight:700;
+  font-size:clamp(11.5px,.9vw,13px);color:var(--gold-text);
+  text-decoration:underline;text-decoration-color:rgba(147,99,29,.35);text-underline-offset:3px;
+}
+.tqlic__more:hover{color:var(--gold-deep);text-decoration-color:currentColor}
+.tqlic__more:focus-visible{outline:2px solid var(--gold-deep);outline-offset:3px;border-radius:6px}
+.tqlic__more .dir-icon{inline-size:1em;block-size:1em;flex:none}
+.tqlic__more[hidden]{display:none}
+
+/* ── الجوال: البطاقة بعرض الإطار، والشعار أصغر ───────────────────── */
+@media (max-width:560px){
+  .tqlic{
+    justify-self:stretch;max-inline-size:none;
+    gap:10px;margin:14px 14px 0;padding:10px 12px;border-radius:16px;
+  }
+  .tqlic__logo{inline-size:86px}
+  .tqlic__title{font-size:13px;gap:6px}
+  .tqlic__issuer,.tqlic__meta{font-size:10.5px}
+  .tqlic__meta{gap:0 10px}
+  .tqlic__more{font-size:11.5px}
+}
+
+/* ── شريط المميزات: ثلاثة أعمدة على كل عرض ──────────────────────────
+   كان تحت ٩٨٠ عمودا واحدا من ثلاثة صفوف — ثلث ارتفاع الهيرو على
+   الجوال لثلاثة أسطر قصيرة. فيبقى ثلاثة أعمدة، والأيقونة فوق النص
+   تحت ٥٦٠ كما في تصميم المالك. */
+@media (max-width:980px){
+  .hero__feats{grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+  .hero__feat+.hero__feat::after{display:block}
+}
+@media (max-width:560px){
+  .hero__feats{padding:12px 4px;margin-inline:14px}
+  .hero__feat{flex-direction:column;justify-content:flex-start;text-align:center;gap:7px;padding-inline:4px}
+  /* ارتفاع صريح: في العمود يحسب المتصفح ارتفاع الدائرة من محتواها
+     (`svg` بنسبة ٤٨٪ من ارتفاع غير محدد) لا من `aspect-ratio` —
+     فتمطّ بيضاوية بطول الشريط. قيس في المعاينة قبل النشر. */
+  .hero__feat .ico{inline-size:34px;block-size:34px;flex:0 0 34px}
+  .hero__feat b{font-size:11.5px;line-height:1.35}
+  .hero__feat span{font-size:10px;line-height:1.35;margin-block-start:2px}
+}
+
+/* ── نافذة بيانات الترخيص — لغة `.tq-auth` نفسها ─────────────────── */
+.tqlic-dlg{
+  inline-size:min(520px,92vw);max-block-size:88vh;padding:0;overflow:auto;
+  border:1px solid var(--gold-line);border-radius:var(--r-panel);
+  background:var(--paper);color:var(--ink);box-shadow:var(--sh-raise);
+}
+.tqlic-dlg::backdrop{background:rgba(1,33,31,.62);backdrop-filter:blur(3px)}
+.tqlic-dlg__in{position:relative;padding:clamp(22px,3vw,32px)}
+.tqlic-dlg__x{
+  position:absolute;inset-block-start:14px;inset-inline-end:14px;
+  display:grid;place-items:center;cursor:pointer;
+  inline-size:34px;block-size:34px;border-radius:50%;
+  background:var(--beige);border:1px solid var(--gold-line-soft);color:var(--ink-2);
+}
+.tqlic-dlg__x svg{inline-size:14px;block-size:14px}
+.tqlic-dlg__x:hover{background:var(--gold-line-soft)}
+.tqlic-dlg__head{
+  display:flex;align-items:center;gap:16px;
+  padding-inline-end:40px;padding-block-end:16px;margin-block-end:4px;
+  border-block-end:1px solid var(--gold-line-soft);
+}
+.tqlic-dlg__logo{flex:none;inline-size:128px;block-size:auto}
+.tqlic-dlg__head h2{
+  margin:0 0 4px;font-family:'Cairo',sans-serif;font-weight:800;
+  font-size:clamp(17px,1.5vw,21px);color:var(--petrol-deep);
+}
+.tqlic-dlg__rows{margin:0;display:grid}
+.tqlic-dlg__rows>div{
+  display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  padding:12px 2px;border-block-end:1px dashed var(--gold-line-soft);
+}
+.tqlic-dlg__rows dt{color:var(--ink-2);font-size:13px}
+.tqlic-dlg__rows dd{margin:0;text-align:end;font-weight:700;font-size:14px;color:var(--ink)}
+/* `user-select:all`: نقرة تحدد الرقم كله لنسخه — بلا زر نسخ ولا سكربت. */
+.tqlic-dlg__num{font-variant-numeric:tabular-nums;letter-spacing:.4px;user-select:all}
+.tqlic-dlg__foot{display:flex;justify-content:flex-end;margin-block-start:18px}
+@media (max-width:480px){
+  .tqlic-dlg__head{flex-direction:column;align-items:flex-start;gap:10px}
+  .tqlic-dlg__rows>div{flex-direction:column;align-items:flex-start;gap:2px}
+  .tqlic-dlg__rows dd{text-align:start}
+  .tqlic-dlg__foot .btn{inline-size:100%}
+}
