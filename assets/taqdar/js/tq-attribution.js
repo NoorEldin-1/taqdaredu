@@ -25,8 +25,15 @@
             var first = existing && existing.first && now - existing.first.at < ttl * 1000 ? existing.first : touch;
             cookie(key, JSON.stringify({first:first,last:touch}), ttl);
         }
-        var clid = p.get('fbclid');
-        if (clid && /^[A-Za-z0-9_-]{1,200}$/.test(clid)) cookie('tq_fbc_v1', 'fb.1.' + now + '.' + clid, ttl);
+        // The pixel tag holds the ad click from the landing page until consent (TQ-META-FBC).
+        var clid = p.get('fbclid'), at = now, held = null;
+        if (!clid) {
+            try { held = JSON.parse(sessionStorage.getItem('tq-fbclid') || 'null'); } catch (_) {}
+            if (held && held.c && held.t) { clid = held.c; at = held.t; }
+        }
+        if (clid && /^[A-Za-z0-9_-]{1,500}$/.test(clid) && read('tq_fbc_v1').split('.').slice(3).join('.') !== clid) {
+            cookie('tq_fbc_v1', 'fb.1.' + at + '.' + clid, ttl);
+        }
     }
     window.addEventListener('tq-consent-change', function (e) {
         if (e.detail === 'accepted') capture();

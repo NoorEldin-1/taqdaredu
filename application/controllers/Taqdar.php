@@ -562,10 +562,13 @@ class Taqdar extends CI_Controller
             $this->trace('placement_submit', 'tq_diag_attempts#' . (int) $r['attempt_id'],
                          array('level' => $r['level'], 'score' => $r['score'], 'total' => $r['total']));
             // A completed free assessment is a lead, not a sale. No scores or identity sent.
+            $tq_lead = array('content_name' => 'free_assessment_completed', 'content_category' => 'free_assessment');
             $this->session->set_flashdata('tq_meta_events', array(array(
-                'name' => 'Lead', 'id' => 'tq-assessment-' . (int) $r['attempt_id'],
-                'params' => array('content_name' => 'free_assessment_completed', 'content_category' => 'free_assessment'),
+                'name' => 'Lead', 'id' => 'tq-assessment-' . (int) $r['attempt_id'], 'params' => $tq_lead,
             )));
+            /* TQ-META-LEAD — توأمه من الخادم بالمعرف نفسه. */
+            $this->load->model('taqdar_meta_model');
+            $this->taqdar_meta_model->lead_event('Lead', 'tq-assessment-' . (int) $r['attempt_id'], $uid, $tq_lead);
 
             /* الإبلاغ **بعد** حفظ النتيجة لا قبله: من يقرر أمر الباقة هو
                من يدفع، وهو في الغالب ليس صاحب هذه الشاشة. فتخرج النتيجة
@@ -4137,6 +4140,9 @@ class Taqdar extends CI_Controller
             'name' => 'CompleteRegistration', 'id' => 'tq-register-' . $uid,
             'params' => array('content_name' => 'checkout_account', 'status' => true),
         ));
+        $this->load->model('taqdar_meta_model');
+        $this->taqdar_meta_model->lead_event('CompleteRegistration', 'tq-register-' . $uid, $uid,
+            array('content_name' => 'checkout_account', 'status' => true));
 
         /* TQ-EXPRESS-PAY — أزرار الدفع المباشر لا تظهر إلا لصاحب جلسة، فمن
            لم يختر التحويل يعود إلى الشاشة وقد دخل فيجدها. */

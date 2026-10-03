@@ -284,7 +284,10 @@ $tq_tt_def   = ($tq_tt_saved === null);
                     $st = (string) $e['status']; ?>
                     <tr>
                         <td data-label="<?php echo te('الفاتورة'); ?>">
-                            <span class="tqa-num" dir="ltr"><?php echo html_escape((string) ($e['invoice_no'] ?: '#' . (int) $e['invoice_id'])); ?></span>
+                            <?php /* TQ-META-LEAD — حدث بلا فاتورة يعرض باسمه. */ ?>
+                            <span class="tqa-num" dir="ltr"><?php echo html_escape((int) $e['invoice_id'] > 0
+                                ? (string) ($e['invoice_no'] ?: '#' . (int) $e['invoice_id'])
+                                : (string) $e['event_name']); ?></span>
                         </td>
                         <td data-label="<?php echo te('المشتري'); ?>">
                             <?php echo html_escape(trim((string) $e['user_name']) ?: '—'); ?>

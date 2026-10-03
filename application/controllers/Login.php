@@ -553,10 +553,13 @@ class Login extends CI_Controller
             $this->session->set_userdata('user_login', '1');
 
             if (empty($tq_made['resumed'])) {
+                $tq_reg = array('content_name' => $tq_next_in === 'student/placement' ? 'free_assessment_account' : 'website_account', 'status' => true);
                 $this->session->set_userdata('tq_registration_event', array(
-                    'name' => 'CompleteRegistration', 'id' => 'tq-register-' . (int) $user_id,
-                    'params' => array('content_name' => $tq_next_in === 'student/placement' ? 'free_assessment_account' : 'website_account', 'status' => true),
+                    'name' => 'CompleteRegistration', 'id' => 'tq-register-' . (int) $user_id, 'params' => $tq_reg,
                 ));
+                /* TQ-META-LEAD — توأمه من الخادم بالمعرف نفسه. */
+                $this->load->model('taqdar_meta_model');
+                $this->taqdar_meta_model->lead_event('CompleteRegistration', 'tq-register-' . (int) $user_id, (int) $user_id, $tq_reg);
             }
 
             /* TQ-AUTOPAY — سجل من صفحة الدفع نفسها وضغط «ادفع الآن»:

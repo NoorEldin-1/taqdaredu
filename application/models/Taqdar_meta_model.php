@@ -163,7 +163,7 @@ class Taqdar_meta_model extends CI_Model
                 'CREATE TABLE IF NOT EXISTS `tq_meta_ids` (
                     `invoice_id` int(10) unsigned NOT NULL,
                     `fbp`        varchar(128) DEFAULT NULL,
-                    `fbc`        varchar(255) DEFAULT NULL,
+                    `fbc`        varchar(600) DEFAULT NULL,
                     `client_ip`  varchar(45)  DEFAULT NULL,
                     `user_agent` varchar(255) DEFAULT NULL,
                     `consent`    varchar(12)  DEFAULT NULL,
@@ -172,6 +172,12 @@ class Taqdar_meta_model extends CI_Model
                     PRIMARY KEY (`invoice_id`)
                  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
             );
+            /* TQ-META-FBC — معرف النقرة يتجاوز مئتي حرف أحيانا (لاحقة `_aem_`)،
+               والعمود القديم كان يقصه فيصل `fbc` مشوها لا يطابق نقرة. */
+            $col = $this->db->query("SHOW COLUMNS FROM `tq_meta_ids` LIKE 'fbc'")->row_array();
+            if ($col && stripos((string) $col['Type'], 'varchar(600)') === false) {
+                $this->db->query('ALTER TABLE `tq_meta_ids` MODIFY `fbc` varchar(600) DEFAULT NULL');
+            }
         } catch (Throwable $e) {
             $this->db->reset_query();
             log_message('error', 'TQ-META: تعذر إنشاء جداول القياس — ' . $e->getMessage());
@@ -251,19 +257,19 @@ class Taqdar_meta_model extends CI_Model
         }
 
         $fbp = isset($_COOKIE['_fbp']) ? mb_substr((string) $_COOKIE['_fbp'], 0, 128) : '';
-        $fbc = isset($_COOKIE['_fbc']) ? mb_substr((string) $_COOKIE['_fbc'], 0, 255) : '';
+        $fbc = isset($_COOKIE['_fbc']) ? mb_substr((string) $_COOKIE['_fbc'], 0, 600) : '';
 
         /* البكسل مؤجل إلى `load` (TQ-PERF-PIXEL)، فقد يصل الطلب قبل أن
            يكتب `_fbc`. و`fbclid` في الرابط يبنيه بالصيغة نفسها. */
         if ($fbc === '' && ($_COOKIE['tq_consent'] ?? '') === 'accepted') {
             $saved = (string) ($_COOKIE['tq_fbc_v1'] ?? '');
-            if (preg_match('/^fb\.1\.(\d{13})\.[A-Za-z0-9_-]{1,200}$/', $saved, $matches)
+            if (preg_match('/^fb\.1\.(\d{13})\.[A-Za-z0-9_-]{1,500}$/', $saved, $matches)
                 && (float) $matches[1] >= (time() - 30 * 86400) * 1000
                 && (float) $matches[1] <= (time() + 300) * 1000) $fbc = $saved;
         }
         if ($fbc === '') {
             $clid = trim((string) $this->input->get('fbclid'));
-            if (preg_match('/^[A-Za-z0-9_-]{1,200}$/', $clid)) $fbc = 'fb.1.' . (time() * 1000) . '.' . $clid;
+            if (preg_match('/^[A-Za-z0-9_-]{1,500}$/', $clid)) $fbc = 'fb.1.' . (time() * 1000) . '.' . $clid;
         }
 
         return array(
@@ -491,41 +497,8 @@ class Taqdar_meta_model extends CI_Model
 
     private function payload($name, $eid, $inv, $ids, $when, $halalas)
     {
-        $c    = $this->config();
-        $user = array();
-        try {
-            $row  = $this->db->select('first_name, last_name, email, phone')
-                             ->where('id', (int) $inv['user_id'])
-                             ->get('users')->row_array();
-            $user = $row ? $row : array();
-        } catch (Throwable $e) {
-            $this->db->reset_query();
-        }
-
-        /* المطابقة المتقدمة: ميتا لا ترى شيئا من هذا نصا — كل حقل يمر
-           بـsha256 بعد تسوية تكتبها هي (خفض الحرف، قص الفراغ، الجوال
-           أرقاما بلا `+`). وتسوية مختلفة تعني هاشا لا يطابق أحدا، فيصل
-           الحدث ولا ينسب إلى شخص. */
-        $ud = array();
-        $em = strtolower(trim((string) (isset($user['email']) ? $user['email'] : '')));
-        if ($em !== '') $ud['em'] = array(hash('sha256', $em));
-
-        $ph = preg_replace('/\D+/', '', (string) (isset($user['phone']) ? $user['phone'] : ''));
-        if (strlen($ph) >= 8) $ud['ph'] = array(hash('sha256', $ph));
-
-        $fn = mb_strtolower(trim((string) (isset($user['first_name']) ? $user['first_name'] : '')));
-        if ($fn !== '') $ud['fn'] = array(hash('sha256', $fn));
-        $ln = mb_strtolower(trim((string) (isset($user['last_name']) ? $user['last_name'] : '')));
-        if ($ln !== '') $ud['ln'] = array(hash('sha256', $ln));
-
-        if ((int) $inv['user_id'] > 0) {
-            $ud['external_id'] = array(hash('sha256', 'tq-user-' . (int) $inv['user_id']));
-        }
-
-        if (!empty($ids['client_ip']))  $ud['client_ip_address'] = (string) $ids['client_ip'];
-        if (!empty($ids['user_agent'])) $ud['client_user_agent'] = (string) $ids['user_agent'];
-        if (!empty($ids['fbp']))        $ud['fbp'] = (string) $ids['fbp'];
-        if (!empty($ids['fbc']))        $ud['fbc'] = (string) $ids['fbc'];
+        $c  = $this->config();
+        $ud = $this->user_data((int) $inv['user_id'], $ids);
 
         $what = $this->sold_of($inv);
         $url  = (string) (!empty($ids['source_url']) ? $ids['source_url'] : site_url('plans'));
@@ -548,6 +521,77 @@ class Taqdar_meta_model extends CI_Model
                 'order_id'         => (string) $inv['invoice_no'],
             ),
         );
+    }
+
+    /**
+     * `user_data` للحدث — هويته من `tq_meta_user_data()` وحدها (TQ-META-MATCH)
+     * وهوية متصفحه مما التقط. والخادم يرسل الحقول قوائم كما تشترط واجهته.
+     */
+    private function user_data($uid, $ids)
+    {
+        $ud = array();
+        foreach (tq_meta_user_data((int) $uid) as $k => $v) $ud[$k] = array($v);
+
+        if (!empty($ids['client_ip']))  $ud['client_ip_address'] = (string) $ids['client_ip'];
+        if (!empty($ids['user_agent'])) $ud['client_user_agent'] = (string) $ids['user_agent'];
+        if (!empty($ids['fbp']))        $ud['fbp'] = (string) $ids['fbp'];
+        if (!empty($ids['fbc']))        $ud['fbc'] = (string) $ids['fbc'];
+        return $ud;
+    }
+
+    /**
+     * TQ-META-LEAD — `Lead` و`CompleteRegistration` من الخادم كذلك، بمعرف
+     * حدث المتصفح نفسه.
+     *
+     * كان الخادم يرسل الشراء وحده، والحدثان الآخران يخرجان من المتصفح
+     * وحده — فيصلان بما التقطه البكسل لا أكثر، ويسقطان كلهما عند من معه
+     * مانع إعلانات. وهما ما تحسن عليه الحملات قبل الشراء. فالحدث يخرج
+     * من البابين ويطرح المكرر بالمعرف كالشراء، وتجتمع بيانات الاثنين.
+     *
+     * ويرسل في الطلب نفسه الذي وقع فيه الحدث: المتصفح حاضر فيه وكعكاته.
+     * والموافقة شرط كما في الشراء، وفشله لا يمس شيئا.
+     */
+    public function lead_event($name, $event_id, $uid, $custom = array())
+    {
+        try {
+            if (!in_array($name, array('Lead', 'CompleteRegistration'), true)) return false;
+            if (!$this->capi_ready()) return false;
+            $ids = $this->browser_ids();
+            if (!$ids || (string) $ids['consent'] !== 'accepted') return false;
+            $this->ensure_schema();
+
+            $eid  = preg_replace('/[^A-Za-z0-9_.:-]/', '', (string) $event_id);
+            if ($eid === '') return false;
+            $base = array('invoice_id' => 0, 'user_id' => (int) $uid, 'value' => 0,
+                          'currency' => $this->config()['currency'], 'source' => 'web');
+            $row_id = $this->claim($name, $eid, $base);
+            if ($row_id <= 0) return false;
+
+            $url = (string) $this->input->server('HTTP_REFERER');
+            if (!preg_match('~^https?://~i', $url)) $url = (string) $ids['source_url'];
+
+            $r = $this->send(array(
+                'event_name'       => $name,
+                'event_time'       => time(),
+                'event_id'         => $eid,
+                'action_source'    => 'website',
+                'event_source_url' => mb_substr($url, 0, 500),
+                'user_data'        => $this->user_data((int) $uid, $ids),
+                'custom_data'      => $custom ? $custom : new stdClass(),
+            ));
+            $this->db->where('id', $row_id)->update('tq_meta_events', array(
+                'status'    => $r['ok'] ? 'sent' : 'failed',
+                'http_code' => (int) $r['code'],
+                'note'      => mb_substr((string) $r['note'], 0, 255),
+                'sent_at'   => $r['ok'] ? date('Y-m-d H:i:s') : null,
+                'tries'     => 5,   // لا يعاد من الكرون: إعادته تفقد كعكات طلبه
+            ));
+            return $r['ok'];
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-META: تعذر إرسال ' . $name . ' — ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**

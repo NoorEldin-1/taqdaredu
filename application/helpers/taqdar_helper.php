@@ -658,6 +658,85 @@ if (!function_exists('tq_meta_pixel_id')) {
     }
 }
 
+if (!function_exists('tq_meta_user_data')) {
+    /**
+     * TQ-META-MATCH — بيانات المطابقة لصاحب الحساب، مهشومة، من موضع واحد.
+     *
+     * ميتا تقيس «جودة مطابقة الحدث» بما يصحبه من بيانات تعرف بها صاحبه:
+     * البريد والجوال والاسم والدولة ومعرفنا له. وكان البكسل يبدأ بـ
+     * `fbq('init', <id>)` عاريا، فلا يصل من ذلك شيء إلا ما تلتقطه ميتا
+     * وحدها من خانات النماذج — فقرأت ٥٧٪ للاسم الأول على أحداث داخلين
+     * نعرف أسماءهم كلهم. والخادم كان يكتب حقوله بيده في نسخة ثانية.
+     *
+     * فالاثنان يقرآن من هنا: `tq_meta_pixel()` تمررها في `init`، و
+     * `Taqdar_meta_model::payload()` في `user_data` — وتسويتان مختلفتان
+     * لحقل واحد تخرجان هاشين لا يلتقيان، فيبدو الحدثان لشخصين.
+     *
+     * والتسوية تسوية ميتا حرفا: البريد مخفوضا مقصوصا، والجوال أرقاما
+     * **برمز دولته** بلا `+` ولا صفر — والقاعدة تحمل أرقاما وطنية عارية
+     * من قبل TQ-PHONE-INTL (`501234567`)، وهاش رقم بلا رمز دولة لا يطابق
+     * أحدا. فالرقم يمر بـ`tq_phone_split()` كما تقرؤه شاشات الإعدادات.
+     * والاسم مخفوضا بلا ترقيم ولا فراغ، والدولة رمزها من حرفين.
+     *
+     * @return array مفاتيح ميتا (`em` · `ph` · `fn` · `ln` · `country` ·
+     *               `external_id`) وقيمها sha256 — أو فارغة لمن لا حساب له.
+     */
+    function tq_meta_user_data($uid)
+    {
+        $uid = (int) $uid;
+        if ($uid <= 0) return array();
+
+        $CI = function_exists('get_instance') ? get_instance() : null;
+        if (!$CI) return array();
+        try {
+            $u = $CI->db->select('first_name, last_name, email, phone')
+                        ->where('id', $uid)->get('users')->row_array();
+        } catch (Throwable $e) {
+            $CI->db->reset_query();
+            return array();
+        }
+        if (!$u) return array();
+
+        $h   = function ($v) { return hash('sha256', $v); };
+        $out = array('external_id' => $h('tq-user-' . $uid));
+
+        $em = strtolower(trim((string) $u['email']));
+        if ($em !== '' && strpos($em, '@') !== false) $out['em'] = $h($em);
+
+        $raw = trim((string) $u['phone']);
+        if ($raw !== '' && function_exists('tq_phone_split')) {
+            list($iso, $nat) = tq_phone_split($raw);
+            $all = tq_dial_codes();
+            if ($nat !== '' && isset($all[$iso])) {
+                $ph = $all[$iso]['dial'] . $nat;
+                if (strlen($ph) >= 8 && strlen($ph) <= 15) {
+                    $out['ph']      = $h($ph);
+                    $out['country'] = $h(strtolower($iso));
+                }
+            }
+        }
+
+        /* الاسم الكامل قد يكتب كله في الخانة الأولى («Noor El-Din») والثانية
+           فارغة — فالكلمة الأولى اسم أول وما بعدها اسم أخير. */
+        $norm  = function ($s) {
+            $s = mb_strtolower(trim((string) $s), 'UTF-8');
+            return preg_replace('/[\p{P}\p{S}\s]+/u', '', $s);
+        };
+        $first = trim((string) $u['first_name']);
+        $last  = trim((string) $u['last_name']);
+        if ($last === '' && preg_match('/^(\S+)\s+(.+)$/u', $first, $m)) {
+            $first = $m[1];
+            $last  = $m[2];
+        }
+        $fn = $norm($first);
+        $ln = $norm($last);
+        if ($fn !== '' && strpos($first, '@') === false) $out['fn'] = $h($fn);
+        if ($ln !== '') $out['ln'] = $h($ln);
+
+        return $out;
+    }
+}
+
 if (!function_exists('tq_meta_pixel')) {
     /**
      * وسم البكسل — يطبع **مرة واحدة لكل صفحة**.
@@ -681,9 +760,15 @@ if (!function_exists('tq_meta_pixel')) {
         if ($id === '') return '';
         $printed = true;
 
+        /* TQ-META-MATCH — الداخل يعرف نفسه للبكسل بهاشات لا نصوص. */
+        $CI  = function_exists('get_instance') ? get_instance() : null;
+        $uid = ($CI && isset($CI->session)) ? (int) $CI->session->userdata('user_id') : 0;
+        $ud  = tq_meta_user_data($uid);
+        $ud_json = $ud ? json_encode($ud, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) : 'null';
+
         ob_start(); ?>
 <!-- Meta Pixel Code -->
-<script src="<?php echo base_url('assets/taqdar/js/tq-attribution.js?v=20260924'); ?>" defer></script>
+<script src="<?php echo base_url('assets/taqdar/js/tq-attribution.js?v=20261003'); ?>" defer></script>
 <script>
 /* TQ-PERF-PIXEL — البكسل ينتظر اكتمال الرسم، ولا يزاحمه.
 
@@ -717,6 +802,36 @@ if (!function_exists('tq_meta_pixel')) {
     var choice = null;
     try { choice = localStorage.getItem('tq-cookie'); } catch (e) {}
 
+    /* TQ-META-FBC — نقرة الإعلان تحفظ في صفحة الهبوط، لا في صفحة الموافقة.
+
+       ميتا تعرف أن الزائر جاء من إعلانها بـ`fbclid` في الرابط، ومنه يكتب
+       البكسل كعكة `_fbc` التي تصحب كل حدث بعدها. والبكسل هنا لا يبدأ إلا
+       بعد الموافقة وبعد `load` — فمن هبط من الإعلان ثم تنقل صفحة قبل أن
+       يوافق يبدأ بكسله على رابط بلا `fbclid`: لا `_fbc` أبدا، وكل ما يفعله
+       بعدها (تسجيل · اختبار · شراء) يصل ميتا بلا نسبة إلى الإعلان الذي
+       جاء منه. وهذا هو «fbc في ٢٠٪ من الأحداث».
+
+       فالمعرف يمسك هنا وقت التحليل في ذاكرة الجلسة — لا كعكة ولا شيء
+       يرسل، فالرفض يبقى رفضا — ثم يكتب `_fbc` بصيغة ميتا قبل أن يحمل
+       البكسل، فيقرؤه كما لو هبط عليه الآن. والوقت وقت الهبوط لا وقت
+       الكتابة: به تحسب ميتا نافذة النسب. */
+    var CLK = 'tq-fbclid';
+    try {
+        var hit = /[?&]fbclid=([A-Za-z0-9_-]{1,500})/.exec(location.search);
+        if (hit) sessionStorage.setItem(CLK, JSON.stringify({ c: hit[1], t: Date.now() }));
+    } catch (e) {}
+    function restoreFbc() {
+        var s = null;
+        try { s = JSON.parse(sessionStorage.getItem(CLK) || 'null'); } catch (e) {}
+        if (!s || !s.c || !s.t) return;
+        var have = /(?:^|;\s*)_fbc=([^;]*)/.exec(document.cookie);
+        if (have && decodeURIComponent(have[1]).split('.').slice(3).join('.') === s.c) return;
+        var h = location.hostname;
+        var dom = (/^[\d.]+$/.test(h) || h.indexOf('.') < 0) ? '' : ';domain=.' + h.replace(/^www\./, '');
+        document.cookie = '_fbc=fb.1.' + s.t + '.' + s.c + ';path=/;max-age=7776000;samesite=Lax'
+            + dom + (location.protocol === 'https:' ? ';secure' : '');
+    }
+
     /* والقرار يمرآ في كعكة لان الخادم يحتاجه: `Taqdar_meta_model` يرسل
        الشراء بعد ان يغلق المشتري متصفحه، فلا `localStorage` عنده حينها.
        وبلا هذه المرآة يرسل الخادم شراء زائر رفض — فيصير زر «رفض غير
@@ -736,6 +851,7 @@ if (!function_exists('tq_meta_pixel')) {
     function start() {
         if (started || choice !== 'accepted') return;
         started = true;
+        try { restoreFbc(); } catch (e) {}
         !function(f,b,e,v,n,t,s)
         {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
         n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -745,7 +861,9 @@ if (!function_exists('tq_meta_pixel')) {
         s.parentNode.insertBefore(t,s)}(window, document,'script',
         'https://connect.facebook.net/en_US/fbevents.js');
 
-        fbq('init', '<?php echo $id; ?>');
+        var who = <?php echo $ud_json; ?>;
+        if (who) fbq('init', '<?php echo $id; ?>', who);
+        else fbq('init', '<?php echo $id; ?>');
         fbq('track', 'PageView');
 
         /* ومن الان يمضي الحدث مباشرة، ويمر معه `eventID` — وهو ما تطرح
