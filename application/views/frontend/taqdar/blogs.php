@@ -86,17 +86,6 @@ css: pages
 <?php echo tqs_post_cards($tq_posts); ?>
         </div>
 
-        <div class="section-head" style="text-align:start;
-             margin-block:clamp(26px,3vw,42px) 16px">
-          <h2 style="font-size:clamp(15px,1.4vw,22px)"><span>مقالات أخرى قد تهمك</span></h2>
-        </div>
-
-        <div class="blog-posts-grid" id="postRows">
-          <?php echo tqs_post_cards(array_slice($tq_posts, 4), false, count($tq_posts)); ?>
-        </div>
-
-        <p class="dir-empty" id="postEmpty" hidden>لا توجد مقالات في هذا التصنيف حاليا.</p>
-
       </div>
 
       <aside>
@@ -145,6 +134,16 @@ css: pages
           <?php endif; ?>
         </div>
       </aside>
+
+      <div class="blog-posts-section">
+        <div class="section-head" style="text-align:start;margin-block-end:20px">
+          <h2 style="font-size:clamp(19px,1.6vw,26px)"><span>مقالات أخرى قد تهمك</span></h2>
+        </div>
+        <div class="blog-posts-grid" id="postRows">
+          <?php echo tqs_post_cards(array_slice($tq_posts, 4), false, count($tq_posts)); ?>
+        </div>
+        <p class="dir-empty" id="postEmpty" hidden>لا توجد مقالات في هذا التصنيف حاليا.</p>
+      </div>
 
     </div>
   </div>
