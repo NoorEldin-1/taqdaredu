@@ -601,6 +601,7 @@ class Taqdar_cron_vimeo extends CI_Controller
                 continue;
             }
             echo '  ✓ الدرس ' . $row['id'] . ' — ' . $a['link'] . ' (' . $a['privacy'] . ")\n";
+            $fixed++;
             if (!$write) continue;
             $this->db->where('id', (int) $row['id'])->update('lesson', array('video_url' => $a['link']));
             $this->db->insert('audit_log', array(
@@ -612,7 +613,6 @@ class Taqdar_cron_vimeo extends CI_Controller
                 'ip'       => 'cli',
                 'at'       => date('Y-m-d H:i:s'),
             ));
-            $fixed++;
         }
         echo str_repeat('─', 58) . "\n  " . ($write ? 'كتب' : 'سيكتب') . ' ' . $fixed
            . ' · بلا بصمة متاحة ' . $missing . "\n";
