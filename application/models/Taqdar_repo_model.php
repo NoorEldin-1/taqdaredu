@@ -290,7 +290,7 @@ class Taqdar_repo_model extends CI_Model
 
         $prev_progress = $this->db->where('student_id', $student_id)->where('lesson_id', $prev_id)
                                   ->get('lesson_progress')->row_array();
-        $prev_review   = $this->review_assessment($prev_id, false);
+        $prev_review   = $this->has_review($prev_id);
 
         if ($prev_review) {
             $state['unlocked'] = !empty($prev_progress['mastered_at']);
@@ -353,6 +353,10 @@ class Taqdar_repo_model extends CI_Model
         foreach ($this->db->select('lesson_id')->where('type', 'review')->where_in('lesson_id', $ids)
                           ->get('assessments')->result_array() as $r) {
             $reviews[(int) $r['lesson_id']] = true;
+        }
+        /* TQ-EMPTY-REVIEW — صف بلا سؤال ليس مراجعة: مرآة `has_review()`. */
+        foreach (array_keys($reviews) as $rid) {
+            if (!$this->count_review_questions($rid)) unset($reviews[$rid]);
         }
 
         $prev_done = true; $prev_title = null; $best = null;
@@ -480,6 +484,23 @@ class Taqdar_repo_model extends CI_Model
                      array('type' => 'review', 'lesson_id' => $lesson_id));
 
         return $this->db->where('id', $id)->get('assessments')->row_array();
+    }
+
+    /**
+     * TQ-EMPTY-REVIEW — للدرس مراجعة تجتاز: صف في `assessments` **وسؤال فيه
+     * أو في أهدافه**.
+     *
+     * الصف ينشأ تلقائيا أول مرة يفتح فيها الدرس وله أسئلة، وحذف الأسئلة بعدها
+     * لا يحذفه. فكان القفل يسأل عن الصف وحده فيطلب إتقانا لا يبلغ: صفر من صفر
+     * لا يبلغ حد النجاح، والدرس التالي مقفل على كل طالب إلى الأبد ولا شيء
+     * يقول لماذا. فدرس فقد أسئلته درس بلا مراجعة، وإكماله يفتح ما بعده.
+     * وكل موضع يسأل «أله مراجعة؟» يسأل هنا: القفل وحال المقرر وبدء المحاولة
+     * وحمولة الدرس.
+     */
+    public function has_review($lesson_id)
+    {
+        return $this->review_assessment($lesson_id, false)
+            && $this->count_review_questions($lesson_id) > 0;
     }
 
     /**
@@ -827,6 +848,7 @@ class Taqdar_repo_model extends CI_Model
         unset($o);
 
         $review   = $this->review_assessment($id, true);
+        if ($review && !$this->count_review_questions($id)) $review = null; // TQ-EMPTY-REVIEW
         $attempts = 0;
         if ($review) {
             $attempts = (int) $this->db->where('assessment_id', (int) $review['id'])
@@ -1730,7 +1752,8 @@ class Taqdar_repo_model extends CI_Model
         }
 
         $assessment = $this->review_assessment($lesson_id, true);
-        if (!$assessment) {
+        /* TQ-EMPTY-REVIEW — صف بلا سؤال يفتح محاولة بقائمة فارغة لا تجتاز. */
+        if (!$assessment || !$this->count_review_questions($lesson_id)) {
             return $this->error('NO_REVIEW', array('lesson_id' => $lesson_id));
         }
 

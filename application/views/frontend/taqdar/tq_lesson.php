@@ -301,7 +301,9 @@ include 'portal_open.php';
                     <a class="tq-btn tq-btn--secondary tq-btn--block" data-tq-prev hidden><?php echo t('الدرس السابق'); ?></a>
                     <a class="tq-btn tq-btn--primary tq-btn--block" data-tq-next hidden><?php echo t('الدرس التالي'); ?></a>
                     <span class="tq-caption tq-row" data-tq-next-locked hidden style="gap:var(--tq-space-xs)">
-                        <?php echo tq_icon('lock', 16); ?> <?php echo t('الدرس التالي يفتح بعد اجتياز المراجعة'); ?>
+                        <?php echo tq_icon('lock', 16); ?>
+                        <span data-tq-next-why="review"><?php echo t('الدرس التالي يفتح بعد اجتياز المراجعة'); ?></span>
+                        <span data-tq-next-why="watch" hidden><?php echo t('يفتح الدرس التالي حين تكمل مشاهدة هذا الدرس'); ?></span>
                     </span>
                     <a class="tq-btn tq-btn--ghost tq-btn--block" href="<?php echo base_url('student/lessons'); ?>"><?php echo t('كل دروسي'); ?></a>
                 </div>

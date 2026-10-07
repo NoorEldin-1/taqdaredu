@@ -774,13 +774,22 @@ class Taqdar_settings_model extends CI_Model
         $user_id = (int) $user_id;
         /* الوضع الليلي أزيل — الوجه واحد فاتح. يثبت ولا يقرأ من المدخل. */
         $theme   = 'auto';
-        $lang    = (string) $this->input->post('language', true);
+        $lang    = $this->input->post('language', true);
 
-        $langs = $this->languages();
         if (!isset($this->themes()[$theme])) $theme = 'auto';
-        if (!isset($langs[$lang]))           return $this->fail('لغة غير متاحة.', 'prefs');
+        $data = array('theme' => $theme);
 
-        $data = array('theme' => $theme, 'language' => $lang);
+        /* TQ-PREFS-LANG — واللغة تتبع القاعدة نفسها: ما لم يرسل لا يمس. كانت
+           تشترط في كل كتابة، فحفظ `alert_threshold` وحده يرد «لغة غير متاحة»
+           على حقل لم يحاول أحد تغييره، ويرجع الاختيار إلى ما كان. وقيمة
+           مرسلة لا تعرف ترفض كما كانت. */
+        if ($lang !== null && $lang !== '') {
+            $lang = (string) $lang;
+            if (!isset($this->languages()[$lang])) return $this->fail('لغة غير متاحة.', 'prefs');
+            $data['language'] = $lang;
+        } else {
+            $lang = null;
+        }
 
         /* **وما لم يرسل لا يمس** (TQ-TAB-WIPE): شاشة اللغة ترسل `language`
            وحدها، وكتابة الحقول كلها في كل حفظ تمحو حد التنبيه وتذكير
@@ -843,7 +852,7 @@ class Taqdar_settings_model extends CI_Model
            **دائما** — حتى في الويب حيث الجلسة محملة. والمتحكم يحمل
            مكتباته خصائص حقيقية، فالفحص عليه يقول الحقيقة. */
         $CI = get_instance();
-        if ($CI && isset($CI->session)) {
+        if ($lang !== null && $CI && isset($CI->session)) {
             $CI->session->set_userdata('language', $lang);
         }
 

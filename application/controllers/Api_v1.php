@@ -1970,7 +1970,8 @@ class Api_v1 extends CI_Controller
         $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
 
         $b = $this->body();
-        $errors = tq_api_validate($b, array('language' => 'required|max:32'));
+        /* TQ-PREFS-LANG — اللغة اختيارية كبقية الحقول: ما لم يرسل لا يمس. */
+        $errors = tq_api_validate($b, array('language' => 'max:32'));
         if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
 
         $this->as_post($this->prefs_post($b));
@@ -3228,7 +3229,7 @@ class Api_v1 extends CI_Controller
                 'duration_sec' => (int) $repo->lesson_duration($l),
                 'is_free'      => ((int) $l['is_free'] === 1),
                 'trackable'    => (bool) $repo->trackable($l),
-                'has_quiz'     => (bool) $repo->review_assessment($lid, false),
+                'has_quiz'     => (bool) $repo->has_review($lid),
                 'unlocked'     => !empty($st['unlocked']),
                 'lock_reason'  => $st['reason'],
                 'blocking_lesson_id' => isset($st['blocking_lesson_id']) && $st['blocking_lesson_id']
@@ -3454,6 +3455,18 @@ class Api_v1 extends CI_Controller
         if (($p['protection'] ?? '') === 'signed'
             && preg_match('~/taqdar_gate/media/([^/?#]+)~', $url, $m)) {
             $url = base_url('api/v1/student/media/' . $m[1]);
+        }
+
+        /* TQ-VIMEO-CANON — رابط فيميو يخرج بشكل واحد `https://vimeo.com/{id}/{hash}`
+           لا كما كتب في الصف (`?share=copy` · `manage/videos/…` · `player…?h=`).
+           والمطابق مطابق `vimeoRef()` و`Taqdar_cron_vimeo::vref()` حرفا، فيقرأ
+           كل عميل ما تقرؤه الأداة. ورابط لا يقرأ يمر كما هو ليظهر خطؤه. */
+        $host = preg_replace('/^www\./', '', strtolower((string) parse_url($url, PHP_URL_HOST)));
+        if (($host === 'vimeo.com' || $host === 'player.vimeo.com')
+            && preg_match('~vimeo\.com/(?:[\w-]+/)*?(\d{6,})(?:/([0-9A-Za-z]+))?~', $url, $vm)) {
+            $hash = isset($vm[2]) ? $vm[2] : '';
+            if ($hash === '' && preg_match('/[?&]h(?:ash)?=([0-9A-Za-z]+)/', $url, $q)) $hash = $q[1];
+            $url = 'https://vimeo.com/' . $vm[1] . ($hash !== '' ? '/' . $hash : '');
         }
 
         return array(
@@ -4936,8 +4949,9 @@ class Api_v1 extends CI_Controller
             );
         }
 
-        $cats  = $this->stu()->calendar_categories();
-        $items = array();
+        $cats    = $this->stu()->calendar_categories();
+        $items   = array();
+        $partial = false;
         try {
             foreach ($this->stu()->calendar_events($uid) as $e) {
                 $ts = (int) $e['ts'];
@@ -4954,7 +4968,13 @@ class Api_v1 extends CI_Controller
                 );
             }
         } catch (Throwable $e) {
+            /* TQ-PLAN-PARTIAL — التعذر يقال تعذرا لا فراغا. كان يرد `items: []`
+               ومعه «لا نشاط مسجل»، فيقرأ تعذر القراءة خبرا عن الطالب: يوم سلم
+               فيه اختبارا يظهر خاليا. فيبقى 200 (الخطوة التالية والهدف
+               صحيحان) ومعه `meta.partial`، ولا جملة فراغ. */
             $this->db->reset_query();       // TQ-BUILDER-DIRTY
+            $partial = true;
+            log_message('error', 'TQ-PLAN-PARTIAL calendar_events: ' . $e->getMessage());
         }
 
         usort($items, function ($a, $b) { return strcmp((string) $a['at'], (string) $b['at']); });
@@ -4968,8 +4988,9 @@ class Api_v1 extends CI_Controller
             'goal'      => $is_today ? $learn->goal_today($uid) : null,
             'items'     => $items,
         ), '', array(
-            'total' => count($items),
-            'note'  => $items ? '' : ($is_today
+            'total'   => count($items),
+            'partial' => $partial,
+            'note'    => ($items || $partial) ? '' : ($is_today
                 ? t('لا شيء مسجل اليوم بعد.')
                 : t('لا نشاط مسجل في هذا اليوم.')),
         ), $h);
@@ -5386,8 +5407,22 @@ class Api_v1 extends CI_Controller
             );
         }
 
+        /* TQ-FAV-LOCK — القفل من المصدر نفسه الذي يقرؤه `/student/materials`
+           (`tq_s_materials()`)، فلا تقول القائمتان شيئين عن ملف واحد. وملف
+           محفوظ لا يظهر فيه (كورس لم يعد يملكه · درس لم ينشر) يرده الحارس
+           إن طلب، فيقال مقفلا قبل الضغط لا بعده. */
+        $lock = array();
+        $fav_rows = (array) $this->tq_fav->materials($uid);
+        if ($fav_rows) {
+            foreach (tq_s_materials($uid) as $sm) {
+                if (($sm['src'] ?? '') !== 'file') continue;
+                $lock[(int) $sm['id']] = array(!empty($sm['locked']), (string) ($sm['lock_hint'] ?? ''));
+            }
+        }
+
         $materials = array();
-        foreach ((array) $this->tq_fav->materials($uid) as $m) {
+        foreach ($fav_rows as $m) {
+            $lk   = isset($lock[(int) $m['id']]) ? $lock[(int) $m['id']] : array(true, '');
             $rel  = 'uploads/resource_files/' . $m['file_name'];
             $kind = tq_file_kind($m['file_name']);
             $materials[] = array(
@@ -5400,6 +5435,8 @@ class Api_v1 extends CI_Controller
                 'kind_label' => $kind['label'],
                 'url'        => $this->material_api_url('file', (int) $m['id'], ''),
                 'bytes'      => is_file(FCPATH . $rel) ? (int) filesize(FCPATH . $rel) : 0,
+                'locked'     => $lk[0],
+                'lock_hint'  => $lk[1],
             );
         }
 

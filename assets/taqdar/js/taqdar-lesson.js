@@ -448,6 +448,7 @@
     show('[data-tq-gate-intro]', has && done && !state.mastered);
     show('[data-tq-gate-wait]',  has && !done);
     paintDone(has, done);
+    paintNav();
   }
 
   /**
@@ -552,11 +553,30 @@
        «وماذا الآن؟». وكان `return` هنا يترك آخر درس بلا شيء يعرض. */
     state.nextUrl = d.next_lesson_id ? ('../' + base + '/' + d.next_lesson_id) : '';
 
-    if (!d.next_lesson_id) return;
-    var mastered = d.progress && d.progress.mastered_at;
-    if (mastered || !d.review) {
-      if (next) { next.href = state.nextUrl; next.hidden = false; }
-    } else if (lock) { lock.hidden = false; }
+    state.navReview = !!d.review;
+    paintNav();
+  }
+
+  /**
+   * زر الدرس التالي في الحاشية — بشرط القفل نفسه في الخادم.
+   *
+   * كان يظهر على درس بلا مراجعة **قبل أن يكتمل** (`mastered || !review`)،
+   * فيضغطه الطالب فترده صفحة التالي بـ`previous_not_completed`. والقاعدة:
+   * له مراجعة ⟵ يفتح بالإتقان، ولا مراجعة له ⟵ يفتح بالإكمال. ويعاد رسمه
+   * حين يكتمل الدرس أثناء المشاهدة، وسطر القفل يقول أيهما ينتظر.
+   */
+  function paintNav() {
+    var next = $('[data-tq-next]'), lock = $('[data-tq-next-locked]');
+    if (!state.nextUrl) return;
+    var open = state.navReview ? state.mastered : state.completed;
+    if (next) { next.href = state.nextUrl; next.hidden = !open; }
+    if (lock) {
+      lock.hidden = open;
+      var why = state.navReview ? 'review' : 'watch';
+      Array.prototype.forEach.call(lock.querySelectorAll('[data-tq-next-why]'), function (el) {
+        el.hidden = el.getAttribute('data-tq-next-why') !== why;
+      });
+    }
   }
 
   /* ---- بوابة الإتقان ---- */

@@ -270,7 +270,20 @@ include 'portal_open.php';
                                                         <span class="tq-sr"><?php echo html_escape($m['title']); ?></span>
                                                     </span>
                                                 <?php else: ?>
-                                                <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($m['url']); ?>"
+                                                <?php
+                                                    /* TQ-VIMEO-HASH — مقطع فيميو مخفي لا صفحة له على vimeo.com
+                                                       (يفتح الطالب 404)، ويعمل من المشغل المضمن ببصمته وحده.
+                                                       فالرابط يوجه إلى المشغل بمطابق `tqs_video_embed()` نفسه. */
+                                                    $tq_href = (string) $m['url'];
+                                                    if ($k['key'] === 'link'
+                                                        && preg_match('~^https?://(?:www\.|player\.)?vimeo\.com/(?:[\w-]+/)*?(\d{6,})(?:/([0-9a-zA-Z]+))?~i',
+                                                                      html_entity_decode($tq_href, ENT_QUOTES, 'UTF-8'), $tq_vm)) {
+                                                        $tq_vh = isset($tq_vm[2]) ? $tq_vm[2] : '';
+                                                        if ($tq_vh === '' && preg_match('~[?&]h(?:ash)?=([0-9a-zA-Z]+)~', $tq_href, $tq_vq)) $tq_vh = $tq_vq[1];
+                                                        $tq_href = 'https://player.vimeo.com/video/' . $tq_vm[1] . ($tq_vh !== '' ? '?h=' . $tq_vh : '');
+                                                    }
+                                                ?>
+                                                <a class="tq-btn tq-btn--secondary tq-btn--sm" href="<?php echo html_escape($tq_href); ?>"
                                                    <?php echo $k['key'] === 'link' ? 'rel="noopener" target="_blank"' : 'download'; ?>>
                                                     <?php echo tq_icon($k['key'] === 'link' ? 'play' : 'download', 16); ?>
                                                     <?php echo $k['key'] === 'link' ? t('فتح') : t('تحميل'); ?>

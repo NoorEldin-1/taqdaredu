@@ -291,15 +291,19 @@ class Taqdar_learn_model extends CI_Model
 
         /* الصفر يسجل يوما ولا يزيد عدادا: من فتح درسا ولم يكمله درس اليوم
            في السلسلة. والسلسلة عن الحضور لا عن الإنجاز. */
+        /* TQ-DAY-TZ — اليوم من PHP لا من `CURDATE()`. القاعدة على الإنتاج بتوقيت
+           UTC والمنصة بتوقيت الرياض، فمن ذاكر الأربعاء 1:30 صباحا كان يكتب
+           نشاطه على الثلاثاء، ثم تسمي الشاشة الأيام بـ`date()` فيفترق المفتاحان.
+           ومصدر واحد لليوم هو ساعة المتحكم التي تسمي بها الشاشات أيامها. */
         $now = $this->now();
         $this->db->query(
             'INSERT INTO `tq_activity_day` (`student_id`,`day`,`' . $col . '`,`first_at`,`last_at`)
-             VALUES (?, CURDATE(), ?, ?, ?)
+             VALUES (?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 `' . $col . '` = `' . $col . '` + VALUES(`' . $col . '`),
                 `first_at`     = COALESCE(`first_at`, VALUES(`first_at`)),
                 `last_at`      = VALUES(`last_at`)',
-            array($student_id, $amount, $now, $now));
+            array($student_id, date('Y-m-d'), $amount, $now, $now));
     }
 
     /**
@@ -316,8 +320,8 @@ class Taqdar_learn_model extends CI_Model
 
         $rows = $this->safe(
             'SELECT `day` FROM `tq_activity_day`
-              WHERE `student_id` = ? AND `day` <= CURDATE()
-              ORDER BY `day` DESC LIMIT 400', array($student_id));
+              WHERE `student_id` = ? AND `day` <= ?
+              ORDER BY `day` DESC LIMIT 400', array($student_id, date('Y-m-d'))); // TQ-DAY-TZ
 
         if (!$rows) {
             return array('days' => 0, 'today' => false, 'best' => 0, 'has_source' => true);
@@ -395,8 +399,8 @@ class Taqdar_learn_model extends CI_Model
         $rows = $this->safe(
             'SELECT `day`, `lessons`, `reviews`, `seconds`
                FROM `tq_activity_day`
-              WHERE `student_id` = ? AND `day` > DATE_SUB(CURDATE(), INTERVAL ? DAY)
-              ORDER BY `day` ASC', array((int) $student_id, $days));
+              WHERE `student_id` = ? AND `day` > ?
+              ORDER BY `day` ASC', array((int) $student_id, date('Y-m-d', strtotime('-' . $days . ' day')))); // TQ-DAY-TZ
 
         $map = array();
         foreach ($rows as $r) {

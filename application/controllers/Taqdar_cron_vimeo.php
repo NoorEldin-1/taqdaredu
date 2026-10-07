@@ -30,6 +30,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  *   plan [folder_id]       الموضع المقترح وعواقبه — معاينة
  *   import [folder] [apply] الإنشاء — معاينة ما لم تكتب apply
  *   verify                 فحصٌ بعديّ
+ *   hashes [apply]         يكمل البصمة في روابط الدروس العارية من الحساب
  */
 class Taqdar_cron_vimeo extends CI_Controller
 {
@@ -559,6 +560,62 @@ class Taqdar_cron_vimeo extends CI_Controller
         $odd = $this->odd_rows();
         $this->ck('شواذّ (نوعه vimeo ورابطه سواه)', count($odd), count($odd) === 0);
         foreach ($odd as $o) echo '      الدرس ' . $o['id'] . ' — ' . $o['video_url'] . "\n";
+    }
+
+    /**
+     * hashes [apply] — يكمل البصمة في رابط كل درس فيميو بلا بصمة.
+     *
+     * المقطع المخفي (`privacy.view = disable`) لا صفحة له على vimeo.com، ولا
+     * يشغل إلا من `player.vimeo.com/video/{id}?h={hash}` — والبصمة شرط له.
+     * فدرس رابطه `vimeo.com/{id}` عار يفتح للطالب «Sorry, we couldn't find
+     * that page». والبصمة تؤخذ من `player_embed_url` في رد الحساب كما تأخذها
+     * `vref_api()`، ولا تلفق: مقطع لا يوجد في الحساب يقال ولا يمس.
+     * ويكتب الرابط بالشكل الموحد `canon`، وكل كتابة سطر في `audit_log`.
+     */
+    public function hashes($apply = '')
+    {
+        $write = ($apply === 'apply');
+        echo 'بصمات فيميو — ' . ($write ? 'تنفيذ' : 'معاينة (أضف apply للتنفيذ)')
+           . "\n" . str_repeat('─', 58) . "\n";
+        if (!$this->doctor()) return;
+
+        $vids = $this->api()->all_videos();
+        if ($vids === null) { echo '✗ ' . $this->api()->error() . "\n"; return; }
+        $acct = array();
+        foreach ($vids as $v) {
+            $r = $this->vref_api($v);
+            if ($r) $acct[$r['id']] = $r;
+        }
+
+        $rows = $this->db->query(
+            "SELECT id, video_url FROM `lesson` WHERE video_url LIKE '%vimeo.com/%'")->result_array();
+        $fixed = 0; $missing = 0;
+        foreach ($rows as $row) {
+            $v = $this->vref($row['video_url']);
+            if (!$v || $v['hash'] !== '') continue;
+            $a = isset($acct[$v['id']]) ? $acct[$v['id']] : null;
+            if (!$a || $a['hash'] === '') {
+                $missing++;
+                echo '  ✗ الدرس ' . $row['id'] . ' — ' . $v['id']
+                   . ($a ? ' (في الحساب بلا بصمة · ' . $a['privacy'] . ')' : ' (ليس في الحساب)') . "\n";
+                continue;
+            }
+            echo '  ✓ الدرس ' . $row['id'] . ' — ' . $a['link'] . ' (' . $a['privacy'] . ")\n";
+            if (!$write) continue;
+            $this->db->where('id', (int) $row['id'])->update('lesson', array('video_url' => $a['link']));
+            $this->db->insert('audit_log', array(
+                'actor_id' => 0,
+                'action'   => 'lesson.vimeo_hash',
+                'entity'   => 'lesson#' . (int) $row['id'],
+                'before'   => json_encode(array('video_url' => $row['video_url']), JSON_UNESCAPED_UNICODE),
+                'after'    => json_encode(array('video_url' => $a['link']), JSON_UNESCAPED_UNICODE),
+                'ip'       => 'cli',
+                'at'       => date('Y-m-d H:i:s'),
+            ));
+            $fixed++;
+        }
+        echo str_repeat('─', 58) . "\n  " . ($write ? 'كتب' : 'سيكتب') . ' ' . $fixed
+           . ' · بلا بصمة متاحة ' . $missing . "\n";
     }
 
     /* =====================================================================

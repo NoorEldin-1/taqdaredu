@@ -546,6 +546,7 @@ return array(
     'الدرس الأطول يقسم، والهدف الرابع يعني درسا ثانيا.' => 'A longer lesson gets split, and a fourth objective means a second lesson.',
     'الدرس التالي' => 'The next lesson',
     'الدرس التالي يفتح بعد اجتياز المراجعة' => 'The next lesson opens once the review is passed',
+    'يفتح الدرس التالي حين تكمل مشاهدة هذا الدرس' => 'The next lesson opens once you finish watching this one',
     'الدرس الحالي' => '',
     'الدرس الحالي يبقى يعمل أمام طلابك' => 'The current lesson keeps working for your students',
     'الدرس السابق' => 'The previous lesson',
