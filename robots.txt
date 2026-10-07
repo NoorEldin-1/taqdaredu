@@ -22,4 +22,22 @@ Disallow: /cart
 Disallow: /docs/
 Disallow: /uploads/temp/
 
+# AI crawler groups must repeat the private-path rules: a specific group
+# replaces the wildcard group. Public articles and clean catalog stay open.
+# The matching .htaccess guard enforces the catalog filter restriction.
+User-agent: ClaudeBot
+User-agent: meta-externalagent
+Disallow: /catalog?
+Disallow: /index.php/catalog?
+Disallow: /student/
+Disallow: /teacher/
+Disallow: /parent/
+Disallow: /admin/
+Disallow: /taqdar_admin/
+Disallow: /payment/
+Disallow: /cart
+Disallow: /docs/
+Disallow: /uploads/temp/
+Crawl-delay: 10
+
 Sitemap: https://taqdaredu.com/sitemap.xml

@@ -53,6 +53,14 @@
 <IfModule mod_rewrite.c>
 RewriteEngine On
 
+# TQ-INCIDENT-20261007: keep AI crawlers out of combinatorial catalog filters.
+# Run before PHP; normal visitors, Googlebot and Facebook link previews are
+# unaffected. Unfiltered catalog, product pages and articles remain crawlable.
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
+RewriteCond %{HTTP_USER_AGENT} (ClaudeBot|meta-externalagent) [NC]
+RewriteCond %{QUERY_STRING} (^|&)(grade|teacher|subject|type|cat)= [NC]
+RewriteRule ^catalog/?$ - [F,L]
+
 # ---------------------------------------------------------------------
 # حجب أدوات المستودع — أوّلُ ما يُنفَّذ، قبل أيّ تحويل.
 #

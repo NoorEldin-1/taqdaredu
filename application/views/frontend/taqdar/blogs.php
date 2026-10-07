@@ -15,6 +15,7 @@ active: blog
 header: solid
 css: pages
 -->
+<link rel="stylesheet" href="<?php echo tq_site_asset('css/blog-grid.css'); ?>">
 
 <!-- ══════════ الهيرو ══════════ -->
 <section class="page-hero">
@@ -90,18 +91,12 @@ css: pages
           <h2 style="font-size:clamp(15px,1.4vw,22px)"><span>مقالات أخرى قد تهمك</span></h2>
         </div>
 
-        <div class="grid-4" id="postRows">
-          <?php echo tqs_post_rows($tq_posts); ?>
+        <div class="blog-posts-grid" id="postRows">
+          <?php echo tqs_post_cards(array_slice($tq_posts, 4), false, count($tq_posts)); ?>
         </div>
 
         <p class="dir-empty" id="postEmpty" hidden>لا توجد مقالات في هذا التصنيف حاليا.</p>
 
-        <div style="text-align:center;margin-block-start:clamp(22px,2.6vw,36px)">
-          <a class="btn btn--ghost" href="#posts">
-            <svg aria-hidden="true" style="width:16px;height:16px"><use href="#i-grid"></use></svg>
-            عرض المزيد من المقالات
-          </a>
-        </div>
       </div>
 
       <aside>
