@@ -2548,4 +2548,6 @@ return array(
     'بلا دفع' => 'No payment',
     'لهذا الإصدار وحده، ولا بطاقة ولا تحويل معها. والكاش يصدر فاتورته ويفعله المسؤول من «الاشتراكات» بعد الاستلام.' => 'For that version only, with no card or bank transfer beside it. Cash issues its invoice, and an admin activates it from "Subscriptions" once the money is received.',
     'أندرويد' => 'Android',
+    'رابط المتجر (____)' => 'Store link (____)',
+    'يفتحه زر «حدث الآن» في التطبيق. والتحديث الإجباري يحتاجه.' => 'The app\'s "Update now" button opens it. A forced update needs it.',
 );

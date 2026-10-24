@@ -340,6 +340,7 @@ $spec = array(
         '| Field | Use |',
         '|---|---|',
         '| `update_required` | Block the app behind an update screen — `force_update` and `update_available` together. |',
+        '| `store_url` | Where its update button goes. Never `null` while `update_required` is true. |',
         '| `update_available` | This build is older than `latest_version`. Suggest, do not block. |',
         '| `force_close` | Block the app entirely. |',
         '| `pay_methods` | What purchase screens offer: `tap` (card) · `manual` (bank transfer) · `cash`. Empty = no purchase. |',
@@ -362,6 +363,7 @@ $spec = array(
             'data' => array(
                 'platform' => 'ios', 'version' => '1.2.3',
                 'latest_version' => '1.2.4',
+                'store_url' => 'https://apps.apple.com/app/id0000000000',
                 'update_available' => true, 'force_update' => true, 'update_required' => true,
                 'force_close' => false,
                 'pay_methods' => array('tap', 'manual'),

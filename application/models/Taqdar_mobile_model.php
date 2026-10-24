@@ -25,6 +25,8 @@ class Taqdar_mobile_model extends CI_Model
     private static $DEFAULTS = array(
         'tq_mobile_android_version' => '',
         'tq_mobile_ios_version'     => '',
+        'tq_mobile_android_store'   => '',
+        'tq_mobile_ios_store'       => '',
         'tq_mobile_android_force'   => '0',
         'tq_mobile_ios_force'       => '0',
         'tq_mobile_force_close'     => '0',
@@ -74,10 +76,20 @@ class Taqdar_mobile_model extends CI_Model
             $vals['tq_mobile_' . $p . '_version'] = $v;
             $vals['tq_mobile_' . $p . '_force']   = empty($in['tq_mobile_' . $p . '_force']) ? '0' : '1';
 
+            $url = trim((string) ($in['tq_mobile_' . $p . '_store'] ?? ''));
+            if ($url !== '' && !self::store_url($url)) {
+                $errors[] = t('رابط المتجر (____) غير صالح: «____». الصقه كاملا يبدأ بـ https://', array($label, $url));
+            }
+            $vals['tq_mobile_' . $p . '_store'] = $url;
+
             /* تحديث إجباري بلا رقم لا يقول إلى أي إصدار يحدث، فلا يقفل
-               التطبيق على أحد — وهو يبدو مفعلا في الشاشة. */
+               التطبيق على أحد — وهو يبدو مفعلا في الشاشة. وبلا رابط متجر
+               يقفله ولا يدل على باب: شاشة «حدث التطبيق» بلا زر يحدث به. */
             if ($vals['tq_mobile_' . $p . '_force'] === '1' && $v === '') {
                 $errors[] = t('التحديث الإجباري (____) يحتاج رقم آخر إصدار.', $label);
+            }
+            if ($vals['tq_mobile_' . $p . '_force'] === '1' && $url === '') {
+                $errors[] = t('التحديث الإجباري (____) يحتاج رابط المتجر.', $label);
             }
         }
 
@@ -187,10 +199,12 @@ class Taqdar_mobile_model extends CI_Model
     {
         $cfg    = $this->config();
         $latest = '';
+        $store  = '';
         $force  = false;
 
         if ($c['platform'] !== '') {
             $latest = $cfg['tq_mobile_' . $c['platform'] . '_version'];
+            $store  = $cfg['tq_mobile_' . $c['platform'] . '_store'];
             $force  = $cfg['tq_mobile_' . $c['platform'] . '_force'] === '1';
         }
 
@@ -198,10 +212,16 @@ class Taqdar_mobile_model extends CI_Model
         $behind = $l && $c['canon'] !== '' && version_compare($c['canon'], $l['c'], '<');
         $pol    = $this->policy($c, $card_ready);
 
+        /* والإجبار يشترط بابا: `save()` ترد التحديث الإجباري بلا رابط، وهذا
+           حزام ثان لصف كتب في القاعدة بيد — قفل بلا زر يحدث به لا يرجع
+           منه أحد. */
+        if (!self::store_url($store)) $force = false;
+
         return array(
             'platform'         => $c['platform'] !== '' ? $c['platform'] : null,
             'version'          => $c['version'] !== '' ? $c['version'] : null,
             'latest_version'   => $l ? $l['v'] : null,
+            'store_url'        => self::store_url($store) ? $store : null,
             'update_available' => (bool) $behind,
             'force_update'     => $force,
             'update_required'  => $force && $behind,
@@ -226,6 +246,16 @@ class Taqdar_mobile_model extends CI_Model
         $build = (isset($m[2]) && $m[2] !== '') ? $m[2] : (isset($m[3]) ? $m[3] : '');
         return array('v' => $m[1], 'c' => self::canon($m[1]),
                      'b' => $build === '' ? '' : (string) (int) $build);
+    }
+
+    /**
+     * رابط متجر يفتحه التطبيق: `https` وحده. فرابط بلا بروتوكول يكتب في
+     * الحقل يصل التطبيق نصا لا يفتح، فيبقى زر «حدث الآن» صامتا.
+     */
+    public static function store_url($u)
+    {
+        $u = trim((string) $u);
+        return $u !== '' && stripos($u, 'https://') === 0 && filter_var($u, FILTER_VALIDATE_URL) !== false;
     }
 
     /** «1.2» و«1.2.0» إصدار واحد: الأصفار الطرفية تحذف قبل كل مقارنة. */

@@ -72,6 +72,19 @@ $tq_platforms = array(
 
         <?php foreach ($tq_platforms as $tq_p => $tq_label): ?>
             <div class="tqa-field">
+                <label class="tqa-field__label" for="f_<?php echo $tq_p; ?>_store">
+                    <?php echo t('رابط المتجر (____)', $tq_label); ?>
+                </label>
+                <input class="tqa-input tqa-input--ltr" type="url" dir="ltr"
+                       id="f_<?php echo $tq_p; ?>_store" name="tq_mobile_<?php echo $tq_p; ?>_store"
+                       value="<?php echo html_escape($c['tq_mobile_' . $tq_p . '_store']); ?>"
+                       placeholder="https://" autocomplete="off" spellcheck="false">
+                <span class="tqa-field__hint"><?php echo t('يفتحه زر «حدث الآن» في التطبيق. والتحديث الإجباري يحتاجه.'); ?></span>
+            </div>
+        <?php endforeach; ?>
+
+        <?php foreach ($tq_platforms as $tq_p => $tq_label): ?>
+            <div class="tqa-field">
                 <span class="tqa-field__label"><?php echo t('تحديث إجباري (____)', $tq_label); ?></span>
                 <label class="tqa-switch">
                     <input type="checkbox" name="tq_mobile_<?php echo $tq_p; ?>_force" value="1"

@@ -58,10 +58,17 @@ $settings['tq_mobile_review_pay'] = 'bogus';
 check(methods('ios', '1.2.4+9') === array('cash'), 'unknown review payment falls back to cash');
 
 // Update and close: numeric comparison, per platform.
-$settings = array('tq_mobile_ios_version' => '1.10.0', 'tq_mobile_ios_force' => '1');
+$store = 'https://apps.apple.com/app/id1234567890';
+$settings = array('tq_mobile_ios_version' => '1.10.0', 'tq_mobile_ios_force' => '1', 'tq_mobile_ios_store' => $store);
 $m = model();
 $s = $m->app_state($m->client('ios', '1.9.5+3'), true);
 check($s['update_available'] && $s['update_required'], '1.9.5 is older than 1.10.0');
+check($s['store_url'] === $store, 'the update button has somewhere to go');
+$settings['tq_mobile_ios_store'] = '';
+$m = model();
+$s = $m->app_state($m->client('ios', '1.9.5+3'), true);
+check($s['update_available'] && !$s['update_required'], 'no store link, no lock');
+$settings['tq_mobile_ios_store'] = $store;
 $s = $m->app_state($m->client('ios', '1.10+4'), true);
 check(!$s['update_available'] && !$s['update_required'], '1.10 is 1.10.0');
 $s = $m->app_state($m->client('android', '1.0.0'), true);
@@ -75,7 +82,9 @@ check($m->app_state($m->client('android', '1.0.0'), true)['force_close'], 'close
 $r = model()->save(array('tq_mobile_ios_version' => '1.2.x'));
 check(!$r['ok'] && count($r['errors']) === 1, 'unreadable version refused');
 $r = model()->save(array('tq_mobile_android_force' => '1'));
-check(!$r['ok'], 'forced update without a version refused');
+check(!$r['ok'] && count($r['errors']) === 2, 'forced update without a version or a store link refused');
+$r = model()->save(array('tq_mobile_ios_store' => 'apps.apple.com/app/id1'));
+check(!$r['ok'], 'store link without https refused');
 $r = model()->save(array('tq_mobile_ios_review' => 'next'));
 check(!$r['ok'], 'unreadable review version refused');
 

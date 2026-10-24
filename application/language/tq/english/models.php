@@ -2250,4 +2250,6 @@ return array(
     'إصدار ____ غير مفهوم: «____». اكتبه أرقاما بنقاط مثل 1.2.3.' => '____ version not understood: "____". Write it as dot-separated numbers, like 1.2.3.',
     'التحديث الإجباري (____) يحتاج رقم آخر إصدار.' => 'Force update (____) needs the latest version number.',
     'إصدار المراجعة غير مفهوم: «____». اكتبه كما في App Store Connect، مثل 1.2.4.' => 'Review version not understood: "____". Write it as shown in App Store Connect, like 1.2.4.',
+    'رابط المتجر (____) غير صالح: «____». الصقه كاملا يبدأ بـ https://' => '____ store link is not valid: "____". Paste the full link, starting with https://',
+    'التحديث الإجباري (____) يحتاج رابط المتجر.' => 'Force update (____) needs the store link.',
 );
