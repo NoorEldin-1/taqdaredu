@@ -2251,10 +2251,16 @@ class Api_v1 extends CI_Controller
         $invoices = $this->tq_bill->invoices_of($uid);
 
         /* أول فاتورة `unpaid` بالحرف — لا «ليست مدفوعة»: المستردة ليست
-           مدفوعة أيضا، ولا يطلب من صاحبها أن يحول قيمتها من جديد. */
+           مدفوعة أيضا، ولا يطلب من صاحبها أن يحول قيمتها من جديد.
+           TQ-APP-CONFIG — وإصدار لا يبيع محتوى رقميا لا يطالب بفاتورة
+           اشتراك: `pay_invoice_now()` ترد دفعها منه بـ403، و«حولها بنكيا»
+           تحتها دعوة إلى دفع خارج IAP. وفاتورة الحصة تبقى (3.1.3(d)). */
+        $digital = (bool) $this->pay_policy()['digital'];
         $due = null;
         foreach ((array) $invoices as $i) {
-            if ($i['status'] === 'unpaid') { $due = $i; break; }
+            if ($i['status'] !== 'unpaid') continue;
+            if (!$digital && (int) $i['subscription_id'] > 0) continue;
+            $due = $i; break;
         }
 
         $level = null;
@@ -2281,7 +2287,12 @@ class Api_v1 extends CI_Controller
             'due_invoice'   => $due ? $this->invoice_out($due) : null,
             'invoices'      => array_map(array($this, 'invoice_out'), array_slice((array) $invoices, 0, 20)),
             'payment'       => array(
-                'card_enabled'  => $this->card_ready(),
+                /* فاتورة الحصة تدفع بما تدفع به الحصص (`session_card`)، لا
+                   بما يدفع به الاشتراك: حيث لا يباع محتوى رقمي تبقى البطاقة
+                   للحصة وحدها. وفي غير ذلك القيمتان واحدة. */
+                'card_enabled'  => ($due && (int) $due['subscription_id'] <= 0)
+                                   ? (bool) $this->pay_policy()['session_card']
+                                   : $this->card_ready(),
                 'card_is_test'  => (bool) $this->tq_tap->is_test_ready(),
                 'bank_transfer' => $this->bank_out($due ? (string) $due['invoice_no'] : null),
                 'cash'          => $this->cash_out($due ? (string) $due['invoice_no'] : null),
@@ -2390,7 +2401,10 @@ class Api_v1 extends CI_Controller
             'method'       => $i['method'],
             'issued_at'    => tq_api_date($i['issued_at']),
             'paid_at'      => tq_api_date($i['paid_at']),
-            'payable'      => ($i['status'] === 'unpaid'),
+            /* TQ-APP-CONFIG — فاتورة اشتراك لا تدفع من إصدار لا يبيع محتوى
+               رقميا (`pay_invoice_now()` ترد بـ403)، وزر لها يقرأ عطلا. */
+            'payable'      => ($i['status'] === 'unpaid')
+                              && ((int) ($i['subscription_id'] ?? 0) <= 0 || $this->pay_policy()['digital']),
         );
     }
 
@@ -3277,7 +3291,10 @@ class Api_v1 extends CI_Controller
             try {
                 $this->load->model('taqdar_course_sale_model', 'tq_cs');
                 $offer = $this->tq_cs->offer($cid);
-                if (!empty($offer['sellable'])) $details['offer'] = $this->offer_out($offer, $uid);
+                /* TQ-APP-CONFIG — ولا عرض من إصدار لا يبيع: الرفض يبقى رفضا. */
+                if (!empty($offer['sellable']) && $this->pay_policy()['digital']) {
+                    $details['offer'] = $this->offer_out($offer, $uid);
+                }
             } catch (Throwable $e) {
                 /* بيع الكورسات مطفأ أو جدوله لم ينشأ بعد: الرفض يبقى
                    رفضا كما كان، ولا يسقط على استثناء عرض. */
@@ -6251,9 +6268,11 @@ class Api_v1 extends CI_Controller
         /* TQ-FND-PACK — الباقات والرصيد يخرجان مع المسارات لا في نقطة
            ثانية: شاشة التطبيق تسأل السؤالين معا («ماذا أحجز؟ وبكم؟»)،
            ونداءان لشاشة واحدة يجعلان أحدهما يتأخر فتقرأ البطاقة «ادفع»
-           على حصة يغطيها رصيد صاحبها. */
+           على حصة يغطيها رصيد صاحبها.
+           TQ-APP-CONFIG — والباقة لا تعرض من إصدار لا يبيع محتوى رقميا
+           (`buy()` ترد شراءها منه)، والرصيد يعرض: هو ما يملكه صاحبه. */
         $packs = array();
-        foreach ($fnd->published() as $tid => $t) {
+        foreach ($this->pay_policy()['digital'] ? $fnd->published() : array() as $tid => $t) {
             foreach ($fnd->packs_of_track((int) $tid) as $pid => $po) {
                 $packs[] = array(
                     'id'         => (int) $pid,
@@ -6482,8 +6501,11 @@ class Api_v1 extends CI_Controller
 
         $this->load->model('taqdar_billing_model', 'tq_bill');
 
+        /* TQ-APP-CONFIG — إصدار لا يبيع محتوى رقميا (`digital` كاذبة) لا
+           تعرض فيه باقة أصلا: باقة بسعرها وزرها يرده الخادم بـ403 عرض شراء
+           بلا IAP يقرؤه المراجع (3.1.1)، وقائمة فارغة لا تعد بشيء. */
         $out = array();
-        foreach ((array) $this->tq_bill->plans(true) as $p) {
+        foreach ($this->pay_policy()['digital'] ? (array) $this->tq_bill->plans(true) : array() as $p) {
             if ((string) $p['scope'] !== 'grade') continue;
             $out[] = $this->plan_out($p);
         }
@@ -6855,8 +6877,9 @@ class Api_v1 extends CI_Controller
 
         $q = trim((string) $this->input->get('q'));
 
+        /* TQ-APP-CONFIG — وما لا يباع من هذا الإصدار لا يعرض فيه. */
         $list = array();
-        foreach ((array) $this->tq_cs->offers(true) as $o) {
+        foreach ($this->pay_policy()['digital'] ? (array) $this->tq_cs->offers(true) : array() as $o) {
             if (!$o['sellable']) continue;
             if ($q !== '' && mb_stripos($o['title'], $q) === false) continue;
             $list[] = $this->offer_out($o, $uid);
@@ -6899,10 +6922,13 @@ class Api_v1 extends CI_Controller
 
         $out = $this->offer_out($offer, $uid);
 
-        /* الباقات التي تفتح هذا الكورس — بفارق السعر لا بسعرها. */
+        /* الباقات التي تفتح هذا الكورس — بفارق السعر لا بسعرها. ولا باقة
+           من إصدار لا يبيع (TQ-APP-CONFIG). */
         $this->load->model('taqdar_site_model', 'tq_site');
         $plans = array();
-        foreach ((array) $this->tq_site->plans_for_course((int) $offer['course_id']) as $p) {
+        $for   = $this->pay_policy()['digital']
+            ? (array) $this->tq_site->plans_for_course((int) $offer['course_id']) : array();
+        foreach ($for as $p) {
             $row = isset($p['id']) ? $p : null;
             if (!$row) continue;
             $card = $this->plan_out($row);
@@ -6937,6 +6963,10 @@ class Api_v1 extends CI_Controller
              ->from('course c')->join('users t', 't.id = c.creator', 'left')
              ->where('c.id', (int) $o['course_id'])->get()->row_array();
 
+        /* TQ-APP-CONFIG — إصدار لا يبيع لا يرى سعرا ولا زرا: `sellable`
+           كاذبة بمفتاحها `app`، والسعر `null` — والشاشة تطبع السعر متى وجد. */
+        $sells = (bool) $this->pay_policy()['digital'];
+
         return array(
             'course_id'  => (int) $o['course_id'],
             'title'      => (string) $o['title'],
@@ -6944,15 +6974,15 @@ class Api_v1 extends CI_Controller
             'level'      => (string) ($c['level'] ?? ''),
             'teacher'    => trim((string) ($c['teacher_name'] ?? '')) ?: null,
             'thumbnail'  => $this->thumb_url($c['thumbnail'] ?? ''),
-            'sellable'   => (bool) $o['sellable'],
-            'reason'     => (string) $o['reason'],
-            'why'        => (string) $o['why'],
+            'sellable'   => $sells && (bool) $o['sellable'],
+            'reason'     => $sells ? (string) $o['reason'] : 'app',
+            'why'        => $sells ? (string) $o['why'] : '',
             'owned'      => (bool) $owned,
-            'price'      => tq_api_money($o['price']),
+            'price'      => $sells ? tq_api_money($o['price']) : null,
             /* `list_price` صفر يعني «لا خصم» — و`null` أوضح للعميل من صفر
                يرسمه شطبا فوق مجانية لا وجود لها. */
-            'list_price' => ((int) $o['list_price'] > 0) ? tq_api_money($o['list_price']) : null,
-            'discount'   => (int) $o['off'],
+            'list_price' => ($sells && (int) $o['list_price'] > 0) ? tq_api_money($o['list_price']) : null,
+            'discount'   => $sells ? (int) $o['off'] : 0,
             /* صفر يوما يعني وصولا **دائما**: `ends_at` تبقى `NULL` و
                `expire_due()` تشترط `IS NOT NULL` فلا تلمسه. وتاريخ بعيد
                مخترع ينتهي يوما ويقفل ما بيع على أنه دائم. */
@@ -9896,13 +9926,20 @@ class Api_v1 extends CI_Controller
             );
         }
 
+        /* TQ-APP-CONFIG — إصدار لا يبيع محتوى رقميا (`digital` كاذبة) لا
+           يعرض باقة ولا باقة حصص ولا كورسا ولا كتابا: `parent_pay()` ترد
+           شراءها منه بـ403. والحصة تبقى تدفع بالبطاقة (3.1.3(d)). */
+        $pol   = $this->pay_policy();
+        $card  = $pol['card'];
+        $sells = (bool) $pol['digital'];
+
         /* **والشكل شكل `/student/plans` نفسه** (`plan_out()`): TQ-CYCLE-BUY
            فيه بدوراتها، والغلاف والمزايا معه. وشكل ثان لشيء واحد يجعل
            شاشة الشراء عند ولي الأمر تطبع بطاقة بلا اسم وبلا مزايا ولا
            تخطئ — وهي علة `/plans` القديمة حرفا. */
         $plans = array();
         try {
-            foreach ((array) $this->tq_bill->plans(true) as $p) {
+            foreach ($sells ? (array) $this->tq_bill->plans(true) : array() as $p) {
                 if ((string) $p['scope'] !== 'grade') continue;
                 $plans[] = $this->plan_out($p);
             }
@@ -9913,14 +9950,14 @@ class Api_v1 extends CI_Controller
             $plans = array();
         }
 
-        $pol  = $this->pay_policy();
-        $card = $pol['card'];
-
         /* **والفاتورة التي تنتظر تعرض قبل ما يشترى**: من عاد إلى هذه
            الشاشة بعد الإنشاء يريد أن يكمل دفعه لا أن يبدأ شراء ثانيا —
-           وشاشة تخفيها تجعل لابنه اشتراكين معلقين. */
+           وشاشة تخفيها تجعل لابنه اشتراكين معلقين. وفاتورة الاشتراك لا
+           تعرض حيث لا يباع: لا تدفع منه، وصف بلا زر يقرأ «حولها بنكيا». */
         $due = array();
         foreach ($this->pm()->due_invoices($pid, 20) as $i) {
+            $is_sub = (int) $i['subscription_id'] > 0;
+            if (!$sells && $is_sub) continue;
             $due[] = array(
                 'invoice_id'   => (int) $i['id'],
                 'invoice_no'   => (string) $i['invoice_no'],
@@ -9932,8 +9969,10 @@ class Api_v1 extends CI_Controller
                 /* **ورابط السداد مع الصف**: الشاشة كانت تعرض الفاتورة
                    وتقول «حولها بنكيا» ولا زر لها — وهو الباب الذي فتحته
                    `parent/invoices/{id}/pay`. ولا رابط حين لا بطاقة لهذا
-                   العميل (TQ-APP-CONFIG): زر يرده الخادم بـ503 أسوأ من لا زر. */
-                'pay_url'      => $card ? base_url('api/v1/parent/invoices/' . (int) $i['id'] . '/pay') : null,
+                   العميل (TQ-APP-CONFIG): زر يرده الخادم بـ503 أسوأ من لا زر.
+                   وفاتورة الحصة تدفع بما تدفع به الحصص (`session_card`). */
+                'pay_url'      => ($is_sub ? $card : $pol['session_card'])
+                                  ? base_url('api/v1/parent/invoices/' . (int) $i['id'] . '/pay') : null,
             );
         }
 
@@ -9943,7 +9982,7 @@ class Api_v1 extends CI_Controller
         $packs = array();
         try {
             $this->load->model('taqdar_foundation_model', 'tq_fnd');
-            foreach ($this->tq_fnd->published() as $tid => $t) {
+            foreach ($sells ? $this->tq_fnd->published() : array() as $tid => $t) {
                 foreach ($this->tq_fnd->packs_of_track((int) $tid) as $pkid => $po) {
                     $packs[] = array(
                         'id'         => (int) $pkid,
@@ -9976,12 +10015,12 @@ class Api_v1 extends CI_Controller
         $course_offers = array();
         try {
             $this->load->model('taqdar_course_sale_model', 'tq_cs');
-            foreach ((array) $this->tq_cs->offers(true) as $id => $o) $course_offers[] = $offer_row($id, $o);
+            foreach ($sells ? (array) $this->tq_cs->offers(true) : array() as $id => $o) $course_offers[] = $offer_row($id, $o);
         } catch (Throwable $e) { $this->db->reset_query(); $course_offers = array(); }
         $book_offers = array();
         try {
             $this->load->model('taqdar_book_model', 'tq_book');
-            foreach ((array) $this->tq_book->offers(true) as $id => $o) $book_offers[] = $offer_row($id, $o);
+            foreach ($sells ? (array) $this->tq_book->offers(true) : array() as $id => $o) $book_offers[] = $offer_row($id, $o);
         } catch (Throwable $e) { $this->db->reset_query(); $book_offers = array(); }
 
         $this->read(array(
