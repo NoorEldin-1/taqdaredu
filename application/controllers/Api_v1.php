@@ -9924,8 +9924,9 @@ class Api_v1 extends CI_Controller
                 'issued_at'    => tq_api_date($i['issued_at']),
                 /* **ورابط السداد مع الصف**: الشاشة كانت تعرض الفاتورة
                    وتقول «حولها بنكيا» ولا زر لها — وهو الباب الذي فتحته
-                   `parent/invoices/{id}/pay`. */
-                'pay_url'      => base_url('api/v1/parent/invoices/' . (int) $i['id'] . '/pay'),
+                   `parent/invoices/{id}/pay`. ولا رابط حين لا بطاقة لهذا
+                   العميل (TQ-APP-CONFIG): زر يرده الخادم بـ503 أسوأ من لا زر. */
+                'pay_url'      => $card ? base_url('api/v1/parent/invoices/' . (int) $i['id'] . '/pay') : null,
             );
         }
 
