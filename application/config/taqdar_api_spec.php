@@ -325,6 +325,53 @@ $spec = array(
     ),
 )),
 
+'/api/v1/app/config' => array('get' => array(
+    'tags' => array('Meta'),
+    'summary' => 'Versions, forced update and close, and this build\'s payment methods',
+    'description' => implode("\n", array(
+        'TQ-APP-CONFIG. Call it on every launch, before the first screen. No token required.',
+        '',
+        'Identify the build with `X-App-Platform` (`ios` · `android`) and `X-App-Version` (`version+build`,',
+        'e.g. `1.2.4+9` — what `PackageInfo` gives). The query parameters `platform` and `version` work the',
+        'same here. **Send the two headers on every request, not only this one**: they decide which payment',
+        'methods every purchase screen offers. Without them the server falls back to the platform and',
+        'version recorded at sign-in.',
+        '',
+        '| Field | Use |',
+        '|---|---|',
+        '| `update_required` | Block the app behind an update screen — `force_update` and `update_available` together. |',
+        '| `update_available` | This build is older than `latest_version`. Suggest, do not block. |',
+        '| `force_close` | Block the app entirely. |',
+        '| `pay_methods` | What purchase screens offer: `tap` (card) · `manual` (bank transfer) · `cash`. Empty = no purchase. |',
+        '',
+        'Every purchase and listing reply carries the same `pay_methods`, with `card_enabled`, `bank` and',
+        '`cash` objects beside it. Buy with `pay_method: "cash"`: the invoice is issued and the reply carries',
+        '`cash.instructions` and the invoice number as `cash.reference`. A method not listed is not',
+        'accepted: `tap` falls back to what the build pays with, and an empty list answers',
+        '`403 purchase_unavailable`.',
+    )),
+    'security' => array(),
+    'parameters' => array(
+        array('name' => 'X-App-Platform', 'in' => 'header', 'required' => false,
+              'schema' => array('type' => 'string', 'enum' => array('ios', 'android'))),
+        array('name' => 'X-App-Version', 'in' => 'header', 'required' => false,
+              'schema' => array('type' => 'string', 'example' => '1.2.4+9')),
+    ),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array(
+                'platform' => 'ios', 'version' => '1.2.3',
+                'latest_version' => '1.2.4',
+                'update_available' => true, 'force_update' => true, 'update_required' => true,
+                'force_close' => false,
+                'pay_methods' => array('tap', 'manual'),
+            ),
+            'message' => '', 'meta' => new stdClass(),
+        )))),
+        '429' => $r_429,
+    ),
+)),
+
 /* ---- Authentication ---------------------------------------------- */
 
 /* ---------------------------------------------------------------------
@@ -4216,6 +4263,8 @@ $spec = array(
         '',
         'With `pay_method: "tap"` the reply carries `payment_url`; open it in an in-app browser. With',
         '`manual` it carries `bank` — the transfer details with the invoice number as the reference.',
+        'With `cash` it carries `cash` — the invoice is issued and the team collects the amount. Offer only',
+        'what `pay_methods` lists (see `GET /app/config`); the server enforces the same list.',
         'A free plan activates immediately: `free: true`, no invoice, no URL.',
         '',
         'If starting the card payment fails, the response is still **success**, because the invoice',
@@ -4232,7 +4281,7 @@ $spec = array(
                 'plan_id'    => array('type' => 'integer', 'example' => 31),
                 'cycle'      => array('type' => 'string', 'example' => 'monthly',
                                       'description' => 'A key from the plan\'s `cycles`. Omit for the plan\'s own cycle.'),
-                'pay_method' => array('type' => 'string', 'enum' => array('tap', 'manual'), 'default' => 'manual'),
+                'pay_method' => array('type' => 'string', 'enum' => array('tap', 'manual', 'cash'), 'default' => 'manual'),
                 'coupon'     => array('type' => 'string', 'example' => 'RAMADAN25',
                     'description' => 'Optional discount code (TQ-COUPON). Checked again at purchase; an invalid one is refused with 409 and `errors.coupon: [reason]` — never silently charged in full.'),
             )),
@@ -4266,7 +4315,7 @@ $spec = array(
         'schema' => array('type' => 'object', 'required' => array('path_id'),
             'properties' => array(
                 'path_id'    => array('type' => 'integer', 'example' => 204),
-                'pay_method' => array('type' => 'string', 'enum' => array('tap', 'manual')),
+                'pay_method' => array('type' => 'string', 'enum' => array('tap', 'manual', 'cash')),
                 'coupon'     => array('type' => 'string', 'example' => 'RAMADAN25',
                     'description' => 'Optional discount code (TQ-COUPON). Checked again at purchase; an invalid one is refused with 409 and `errors.coupon: [reason]` — never silently charged in full.'),
             )),
@@ -4464,7 +4513,7 @@ $spec = array(
         'schema' => array('type' => 'object', 'required' => array('course_id'),
             'properties' => array(
                 'course_id'  => array('type' => 'integer', 'example' => 12),
-                'pay_method' => array('type' => 'string', 'enum' => array('tap', 'manual')),
+                'pay_method' => array('type' => 'string', 'enum' => array('tap', 'manual', 'cash')),
                 'coupon'     => array('type' => 'string', 'example' => 'RAMADAN25',
                     'description' => 'Optional discount code (TQ-COUPON). Checked again at purchase; an invalid one is refused with 409 and `errors.coupon: [reason]` — never silently charged in full.'),
             )),
@@ -5592,7 +5641,7 @@ $spec = array(
             'course_id'  => array('type' => 'integer', 'description' => 'When kind = course.'),
             'book_id'    => array('type' => 'integer', 'description' => 'When kind = book.'),
             'pack_id'    => array('type' => 'integer', 'description' => 'When kind = foundation.'),
-            'pay_method' => array('type' => 'string', 'enum' => array('manual', 'tap'),
+            'pay_method' => array('type' => 'string', 'enum' => array('manual', 'tap', 'cash'),
                                   'default' => 'manual'),
             'coupon'     => array('type' => 'string', 'example' => 'RAMADAN25',
                                   'description' => 'Optional discount code (TQ-COUPON). Per-account limits apply to the child, who owns the purchase.'),

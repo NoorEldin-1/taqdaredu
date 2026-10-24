@@ -189,6 +189,9 @@ $tqa_nav = [
            من يفتحه هو من يضبط المنصة بمفاتيح مزودين، لا من يدير
            حسابات الناس. وهو جار «إعدادات المنصة» لذلك. */
         ['tqa_social',          t('الدخول بجوجل وأبل'),    'taqdar_admin/social',         'users',  null],
+        /* TQ-APP-CONFIG — الإصدارات والتحديث والإغلاق الإجباريان ووسيلة
+           الدفع لإصدار المراجعة. وجار ما فوقه: من يضبط التطبيق يضبطهما. */
+        ['tqa_mobile',          t('تطبيق الجوال'),         'taqdar_admin/mobile',         'package', null],
         ['tqa_audit_log',       t('سجل التدقيق'),          'taqdar_admin/module/audit_log', 'shield', null],
         [['manage_profile'],    t('حسابي'),                'admin/manage_profile',        'cog',    null],
     ]],

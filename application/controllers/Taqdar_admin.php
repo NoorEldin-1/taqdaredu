@@ -2619,6 +2619,42 @@ class Taqdar_admin extends CI_Controller
     }
 
     /* =====================================================================
+       تطبيق الجوال — TQ-APP-CONFIG
+
+       آخر إصدار لكل منصة، والتحديث والإغلاق الإجباريان، وإصدار iOS الذي
+       تحت مراجعة أبل ووسيلة الدفع التي يراها. يقرؤها التطبيق من
+       `api/v1/app/config` في كل تشغيل، والقرار في `Taqdar_mobile_model`.
+       ===================================================================== */
+
+    public function mobile()
+    {
+        $this->load->model('taqdar_mobile_model');
+        $this->render('tqa_mobile', 'تطبيق الجوال', array(
+            'tq_cfg' => $this->taqdar_mobile_model->config(),
+        ));
+    }
+
+    public function mobile_save()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_mobile_model');
+
+        $r = $this->taqdar_mobile_model->save((array) $this->input->post());
+        if (!$r['ok']) {
+            $this->session->set_flashdata('error_message', implode(' ', $r['errors']));
+            redirect(site_url('taqdar_admin/mobile'), 'location', 302);
+            return;
+        }
+
+        /* أثر مقصود: من يجد التطبيق مقفلا على الناس غدا، أو البطاقة غائبة
+           عن إصدار منشور، يحتاج أن يعرف من غير ماذا ومتى. */
+        $this->taqdar_admin_model->audit('mobile.config', 'settings', $r['before'], $r['after']);
+
+        $this->session->set_flashdata('flash_message', 'حفظت إعدادات التطبيق، وتسري من أول تشغيل بعدها.');
+        redirect(site_url('taqdar_admin/mobile'), 'location', 302);
+    }
+
+    /* =====================================================================
        إشعارات التطبيق — TQ-PUSH
 
        شاشة واحدة تجيب ثلاثة أسئلة بترتيبها: أيعمل الاتصال بـFirebase؟

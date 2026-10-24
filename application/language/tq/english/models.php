@@ -2247,4 +2247,7 @@ return array(
     'واجب مسند إليك في' => 'An assignment set for you in',
     'ولا نبحث بتشابه اسم، فخطأ واحد هنا يفتح بيانات طفل لغير أهله.' => 'We do not search by similar names: one mistake here opens a child\'s data to someone other than their family.',
     'ولا يفتح شيء من بياناته قبل أن يوافق من حسابه.' => 'Nothing of their data opens until they approve it from their account.',
+    'إصدار ____ غير مفهوم: «____». اكتبه أرقاما بنقاط مثل 1.2.3.' => '____ version not understood: "____". Write it as dot-separated numbers, like 1.2.3.',
+    'التحديث الإجباري (____) يحتاج رقم آخر إصدار.' => 'Force update (____) needs the latest version number.',
+    'إصدار المراجعة غير مفهوم: «____». اكتبه كما في App Store Connect، مثل 1.2.4.' => 'Review version not understood: "____". Write it as shown in App Store Connect, like 1.2.4.',
 );

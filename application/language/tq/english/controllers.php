@@ -919,4 +919,10 @@ return array(
     'الملف لا بد أن يكون بصيغة CSV.' => 'The file must be a CSV.',
     'بكسل ميتا' => 'Meta pixel',
     'حفظ المعرف، والبكسل يعمل الآن على كل صفحات الموقع والبوابات.' => 'The id was saved, and the pixel is now running on every site page and portal.',
+    'حفظت إعدادات التطبيق، وتسري من أول تشغيل بعدها.' => 'App settings saved. They apply from the next launch.',
+    'يتواصل معك فريق تقدر لتحصيل المبلغ نقدا، ويفعل ما اشتريته فور استلامه.' => 'The Taqdar team will contact you to collect the amount in cash, and your purchase is activated once it\'s received.',
+    'صدرت فاتورتك. يتواصل معك فريق تقدر لتحصيل المبلغ نقدا، ويفعل ما اشتريته فور استلامه.' => 'Your invoice has been issued. The Taqdar team will contact you to collect the amount in cash, and your purchase is activated once it\'s received.',
+    'الشراء غير متاح من هذا الإصدار من التطبيق.' => 'Purchasing isn\'t available in this version of the app.',
+    'يتواصل معك فريق تقدر لتحصيل قيمة الفاتورة ____ نقدا، ويفعل ما اشتريته فور استلامه.' => 'The Taqdar team will contact you to collect invoice ____ in cash, and your purchase is activated once it\'s received.',
+    'صدرت الفاتورة باسم ابنك. يتواصل معك فريق تقدر لتحصيل المبلغ نقدا، ويفعل ما اشتريته فور استلامه.' => 'The invoice was issued in your child\'s name. The Taqdar team will contact you to collect the amount in cash, and the purchase is activated once it\'s received.',
 );

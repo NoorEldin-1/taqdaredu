@@ -169,6 +169,9 @@ $route['api/v1/auth/logout-all']  = 'api_v1/auth_logout_all';
 $route['api/v1/auth/logout']      = 'api_v1/auth_logout';
 // TQ-PUSH — رمز Firebase للجهاز: POST يسجله و DELETE يلغيه، على مسار واحد.
 $route['api/v1/devices']          = 'api_v1/devices';
+// TQ-APP-CONFIG — ما يقرؤه التطبيق عند التشغيل: الإصدارات، والتحديث
+// والإغلاق الإجباريان، ووسائل الدفع لهذا الإصدار. بلا رمز دخول.
+$route['api/v1/app/config']       = 'api_v1/app_config';
 // وقاعدة الجهاز الواحد قبل قاعدة القائمة: `sessions/(:any)` مقطعان،
 // و`sessions` مقطع — والترتيب هو ترتيب هذا الملف كله، الأخص قبل الأعم.
 $route['api/v1/auth/sessions/(:any)'] = 'api_v1/auth_session_revoke/$1';

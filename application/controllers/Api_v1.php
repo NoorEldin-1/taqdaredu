@@ -58,6 +58,7 @@ class Api_v1 extends CI_Controller
     /** المستخدم الحالي وصف رمزه — يملآن مرة في `authenticate()`. */
     private $me    = null;
     private $token = null;
+    private $tap_is_ready = null;
 
     /** معرف الطلب — يرد في كل استجابة وفي كل سطر سجل. */
     private $request_id = '';
@@ -2280,9 +2281,11 @@ class Api_v1 extends CI_Controller
             'due_invoice'   => $due ? $this->invoice_out($due) : null,
             'invoices'      => array_map(array($this, 'invoice_out'), array_slice((array) $invoices, 0, 20)),
             'payment'       => array(
-                'card_enabled'  => (bool) $this->tq_tap->ready(),
+                'card_enabled'  => $this->card_ready(),
                 'card_is_test'  => (bool) $this->tq_tap->is_test_ready(),
                 'bank_transfer' => $this->bank_out($due ? (string) $due['invoice_no'] : null),
+                'cash'          => $this->cash_out($due ? (string) $due['invoice_no'] : null),
+                'pay_methods'   => $this->pay_policy()['methods'],
             ),
             /* العمود `result_level` لا `level` — انظر مخطط
                `tq_diag_attempts` في `Taqdar_diag_model::ensure_schema()`.
@@ -2443,6 +2446,11 @@ class Api_v1 extends CI_Controller
      */
     private function bank_out($invoice_no = null)
     {
+        /* TQ-APP-CONFIG — والإصدار الذي لا يدفع تحويلا لا تصله بياناته في
+           أي رد: هذه الدالة يناديها كل ما يعرض الآيبان، فالحارس هنا يغني
+           عن عشرة. */
+        if (!$this->pay_policy()['bank']) return array('enabled' => false);
+
         $b = function_exists('tqs_bank') ? tqs_bank() : null;
 
         if (!$b) return array('enabled' => false);
@@ -2455,6 +2463,92 @@ class Api_v1 extends CI_Controller
             'instructions' => $b['note'],
             'reference'    => $invoice_no,
         );
+    }
+
+    /**
+     * TQ-APP-CONFIG — الدفع كاش: يصدر الشراء فاتورته كالتحويل البنكي
+     * بالمحرك نفسه (`manual`)، ويفعل المسؤول ما اشتري من الزر نفسه في
+     * «الاشتراكات» بعد استلام المبلغ. ولا يعرض إلا لمن تقول `policy()` إنه
+     * يدفع كاش.
+     */
+    private function cash_out($invoice_no = null)
+    {
+        if (!$this->pay_policy()['cash']) return array('enabled' => false);
+
+        return array(
+            'enabled'      => true,
+            'instructions' => t('يتواصل معك فريق تقدر لتحصيل المبلغ نقدا، ويفعل ما اشتريته فور استلامه.'),
+            'reference'    => $invoice_no,
+        );
+    }
+
+    /**
+     * TQ-APP-CONFIG — من يسأل: منصته وإصداره.
+     *
+     * الترويسة أولا (`X-App-Platform` · `X-App-Version`) لأنها تقول ما
+     * يعمل على الجهاز الآن، ثم معاملا الرابط (`app/config`)، ثم صف رمز
+     * الدخول: التطبيق يرسل منصته وإصداره مع كل دخول منذ كتب، فالإصدار
+     * الذي لا يرسل الترويسة يعرف بها كذلك.
+     */
+    private function app_client()
+    {
+        $p = (string) $this->input->get_request_header('X-App-Platform', true);
+        $v = (string) $this->input->get_request_header('X-App-Version', true);
+
+        if ($p === '') $p = (string) $this->input->get('platform', true);
+        if ($v === '') $v = (string) $this->input->get('version', true);
+
+        if ($p === '' && !empty($this->token['platform']))    $p = (string) $this->token['platform'];
+        if ($v === '' && !empty($this->token['app_version'])) $v = (string) $this->token['app_version'];
+
+        return $this->mobile()->client($p, $v);
+    }
+
+    /** بأي وسيلة يدفع صاحب الطلب — `Taqdar_mobile_model::policy()` بقيمها الآن. */
+    private function pay_policy()
+    {
+        return $this->mobile()->policy($this->app_client(), $this->tap_ready());
+    }
+
+    /**
+     * أتعمل تاب الآن؟ — مرة لكل طلب، و`pay_policy()` تنادى من كل حقل
+     * يعلن وسيلة دفع. وخطأ في قراءتها يقرأ «لا» لا صفحة بيضاء.
+     */
+    private function tap_ready()
+    {
+        if ($this->tap_is_ready !== null) return $this->tap_is_ready;
+
+        $this->load->model('taqdar_tap_model', 'tq_tap');
+        try { $ok = (bool) $this->tq_tap->ready(); } catch (Throwable $e) { $ok = false; }
+        return $this->tap_is_ready = $ok;
+    }
+
+    /** البطاقة متاحة لهذا العميل: تاب تعمل **وإصداره يدفع بها**. */
+    private function card_ready()
+    {
+        return (bool) $this->pay_policy()['card'];
+    }
+
+    private function mobile()
+    {
+        $this->load->model('taqdar_mobile_model', 'tq_mobile');
+        return $this->tq_mobile;
+    }
+
+    /**
+     * GET /api/v1/app/config — TQ-APP-CONFIG. بلا رمز دخول.
+     *
+     * يسأله التطبيق عند كل تشغيل قبل أي شاشة: آخر إصدار لمنصته،
+     * والتحديث والإغلاق الإجباريان، ووسائل الدفع لهذا الإصدار. فتبدل
+     * كلها من اللوحة بلا إصدار جديد.
+     */
+    public function app_config()
+    {
+        $this->method('GET');
+        $h = $this->limit('anon', self::RL_ANON_MAX, self::RL_ANON_WINDOW);
+
+        $this->read($this->mobile()->app_state($this->app_client(), $this->tap_ready()),
+                    '', array(), $h);
     }
 
     /**
@@ -2641,6 +2735,10 @@ class Api_v1 extends CI_Controller
         }
 
         $this->load->model('taqdar_tap_model', 'tq_tap');
+
+        if ($this->pay_policy()['review']) {
+            $this->fail($this->review_pay_note((string) $inv['invoice_no']), 'card_payment_disabled', 503);
+        }
 
         if (!$this->tq_tap->ready()) {
             $this->fail('الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة بنكيا.',
@@ -5964,7 +6062,9 @@ class Api_v1 extends CI_Controller
                 'join_lead_min'=> (int) $cfg['lead_min'],
                 'grace_hours'  => (int) $cfg['grace_hours'],
             ),
-            'card_enabled' => (bool) $this->tq_tap->ready(),
+            'card_enabled' => $this->card_ready(),
+            'cash'         => $this->cash_out(),
+            'pay_methods'  => $this->pay_policy()['methods'],
             /* `teacher_subjects()` ترد خريطة **معلم ← مادة** لا قائمة
                مواد، فتشتق القائمة من قيمها مفردة — وقراءة مفتاح مخترع
                هنا ترد فارغا صامتا فيقرأ التطبيق منتقيا بلا خيار. */
@@ -6196,7 +6296,9 @@ class Api_v1 extends CI_Controller
                 'join_lead_min' => (int) $cfg['lead_min'],
                 'grace_hours'   => (int) $cfg['grace_hours'],
             ),
-            'card_enabled' => (bool) $this->tq_tap->ready(),
+            'card_enabled' => $this->card_ready(),
+            'cash'         => $this->cash_out(),
+            'pay_methods'  => $this->pay_policy()['methods'],
         ), '', array('filters' => array('track' => $track)), $h);
     }
 
@@ -6283,6 +6385,11 @@ class Api_v1 extends CI_Controller
         }
 
         $this->load->model('taqdar_tap_model', 'tq_tap');
+        if ($this->pay_policy()['review']) {
+            $no = (string) $this->db->select('invoice_no')->where('id', (int) $row['invoice_id'])
+                                    ->get('invoices')->row('invoice_no');
+            $this->fail($this->review_pay_note($no), 'card_payment_disabled', 503);
+        }
         if (!$this->tq_tap->ready()) {
             $no = (string) $this->db->select('invoice_no')->where('id', (int) $row['invoice_id'])
                                     ->get('invoices')->row('invoice_no');
@@ -6378,8 +6485,10 @@ class Api_v1 extends CI_Controller
 
         $this->read($out, '', array(
             'count'        => count($out),
-            'card_enabled' => (bool) $this->tq_tap->ready(),
+            'card_enabled' => $this->card_ready(),
             'bank'         => $this->bank_out(null),
+            'cash'         => $this->cash_out(null),
+            'pay_methods'  => $this->pay_policy()['methods'],
             'current'      => $this->tq_bill->active_subscription((int) $u['id']) ? true : false,
         ), $h);
     }
@@ -6547,8 +6656,15 @@ class Api_v1 extends CI_Controller
         $uid = (int) $this->me['id'];
 
         $this->load->model('taqdar_tap_model', 'tq_tap');
-        $by_card = ((string) $this->in('pay_method', 'manual') === 'tap')
-                && $this->tq_tap->ready();
+
+        /* TQ-APP-CONFIG — الخادم يحرس ما أخفاه الزر: `tap` من إصدار لا يدفع
+           بالبطاقة يرد إلى ما يدفع به، وإصدار لا يدفع أصلا لا ينشئ فاتورة. */
+        $pol = $this->pay_policy();
+        if ($pol['review'] && !$pol['methods']) {
+            $this->fail($this->review_pay_note(), 'purchase_unavailable', 403);
+        }
+
+        $by_card = ((string) $this->in('pay_method', 'manual') === 'tap') && $pol['card'];
 
         $r = $run($uid, $by_card ? 'tap' : 'manual');
 
@@ -6617,8 +6733,23 @@ class Api_v1 extends CI_Controller
             'invoice'         => $inv ? $this->invoice_out($inv) : null,
             'payment_url'     => null,
             'bank'            => $this->bank_out($inv ? (string) $inv['invoice_no'] : null),
+            'cash'            => $this->cash_out($inv ? (string) $inv['invoice_no'] : null),
             'coupon'          => $this->coupon_out($r),
-        ), $bank_message), 201);
+        ), $pol['cash'] ? t('صدرت فاتورتك. يتواصل معك فريق تقدر لتحصيل المبلغ نقدا، ويفعل ما اشتريته فور استلامه.')
+                        : $bank_message), 201);
+    }
+
+    /**
+     * TQ-APP-CONFIG — ما يقال لمن طلب البطاقة أو الشراء من إصدار لا يدفع
+     * بهما. ورقم الفاتورة يذكر متى وجد: به يطابق الفريق ما يحصله.
+     */
+    private function review_pay_note($invoice_no = '')
+    {
+        if (!$this->pay_policy()['cash']) return t('الشراء غير متاح من هذا الإصدار من التطبيق.');
+
+        return $invoice_no !== ''
+            ? t('يتواصل معك فريق تقدر لتحصيل قيمة الفاتورة ____ نقدا، ويفعل ما اشتريته فور استلامه.', $invoice_no)
+            : t('يتواصل معك فريق تقدر لتحصيل المبلغ نقدا، ويفعل ما اشتريته فور استلامه.');
     }
 
     /**
@@ -6732,7 +6863,9 @@ class Api_v1 extends CI_Controller
         $this->read(array_slice($list, $offset, $per), '', array_merge(
             tq_api_meta_page($page, $per, count($list)),
             array('enabled' => (bool) $this->tq_cs->enabled(),
-                  'card_enabled' => (bool) $this->tq_tap->ready(),
+                  'card_enabled' => $this->card_ready(),
+                  'cash' => $this->cash_out(),
+                  'pay_methods' => $this->pay_policy()['methods'],
                   'filters' => array('q' => $q))
         ), $h);
     }
@@ -6847,10 +6980,14 @@ class Api_v1 extends CI_Controller
         $this->load->model('taqdar_tap_model', 'tq_tap');
         $x = $this->tq_tap->express();
 
+        /* TQ-APP-CONFIG — الإصدار الذي لا يدفع بالبطاقة لا تعرض له
+           محافظها: Apple Pay وGoogle Pay بطاقة تاب بوجه آخر. */
+        $card = $this->card_ready();
+
         $this->read(array(
-            'card_ready'         => $this->tq_tap->ready(),
+            'card_ready'         => $card,
             'mode'               => (string) ($x['mode'] ?? 'test'),
-            'methods'            => array_values((array) $x['methods']),
+            'methods'            => $card ? array_values((array) $x['methods']) : array(),
             'public_key'         => (string) ($x['public'] ?? ''),
             'merchant_id'        => (string) ($x['merchant'] ?? ''),
             'currency'           => (string) ($x['currency'] ?? 'SAR'),
@@ -8425,7 +8562,13 @@ class Api_v1 extends CI_Controller
         $this->load->model('taqdar_billing_model', 'tq_bill');
         $this->load->model('taqdar_tap_model', 'tq_tap');
 
-        $by_card = ((string) ($b['pay_method'] ?? 'manual') === 'tap') && $this->tq_tap->ready();
+        /* TQ-APP-CONFIG — الحارس نفسه الذي في `buy()`. */
+        $pol = $this->pay_policy();
+        if ($pol['review'] && !$pol['methods']) {
+            $this->fail($this->review_pay_note(), 'purchase_unavailable', 403);
+        }
+
+        $by_card = ((string) ($b['pay_method'] ?? 'manual') === 'tap') && $pol['card'];
         $method  = $by_card ? 'tap' : 'manual';
 
         if ($kind === 'course') {
@@ -8490,7 +8633,9 @@ class Api_v1 extends CI_Controller
             'invoice'         => $inv ? $this->invoice_out($inv) : null,
             'payment_url'     => null,
             'bank'            => $this->bank_out($inv ? (string) $inv['invoice_no'] : null),
-        ), t('صدرت الفاتورة باسم ابنك. حول قيمتها ثم ترسل الإدارة التفعيل.')), 201);
+            'cash'            => $this->cash_out($inv ? (string) $inv['invoice_no'] : null),
+        ), $pol['cash'] ? t('صدرت الفاتورة باسم ابنك. يتواصل معك فريق تقدر لتحصيل المبلغ نقدا، ويفعل ما اشتريته فور استلامه.')
+                        : t('صدرت الفاتورة باسم ابنك. حول قيمتها ثم ترسل الإدارة التفعيل.')), 201);
     }
 
     /* =================================================================
@@ -9761,8 +9906,8 @@ class Api_v1 extends CI_Controller
             $plans = array();
         }
 
-        $card = false;
-        try { $card = (bool) $this->tq_tap->ready(); } catch (Throwable $e) {}
+        $pol  = $this->pay_policy();
+        $card = $pol['card'];
 
         /* **والفاتورة التي تنتظر تعرض قبل ما يشترى**: من عاد إلى هذه
            الشاشة بعد الإنشاء يريد أن يكمل دفعه لا أن يبدأ شراء ثانيا —
@@ -9839,8 +9984,9 @@ class Api_v1 extends CI_Controller
             'book_offers'   => $book_offers,
             'due_invoices'  => $due,
             'card_ready'    => $card,
-            'pay_methods'   => $card ? array('tap', 'manual') : array('manual'),
+            'pay_methods'   => $pol['methods'],
             'bank'          => $this->bank_out(),
+            'cash'          => $this->cash_out(),
         ), '', array(
             'note' => t('الاشتراك يفتح في حساب ابنك هو، والفاتورة تصدر باسمه.'),
         ), $h);
