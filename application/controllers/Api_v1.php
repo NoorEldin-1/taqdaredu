@@ -2740,6 +2740,13 @@ class Api_v1 extends CI_Controller
             $this->fail($this->review_pay_note((string) $inv['invoice_no']), 'card_payment_disabled', 503);
         }
 
+        /* TQ-APP-CONFIG — فاتورة اشتراك (باقة · كورس · كتاب) لا تدفع من iOS
+           والشراء موقوف عليه. وفاتورة الحصة يتيمة (`subscription_id = 0`)
+           فتمر: خدمة بين شخصين تجيزها أبل خارج IAP. */
+        if (!$this->pay_policy()['digital'] && (int) ($inv['subscription_id'] ?? 0) > 0) {
+            $this->fail($this->review_pay_note(), 'purchase_unavailable', 403);
+        }
+
         if (!$this->tq_tap->ready()) {
             $this->fail('الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة بنكيا.',
                         'card_payment_disabled', 503);
@@ -6062,7 +6069,7 @@ class Api_v1 extends CI_Controller
                 'join_lead_min'=> (int) $cfg['lead_min'],
                 'grace_hours'  => (int) $cfg['grace_hours'],
             ),
-            'card_enabled' => $this->card_ready(),
+            'card_enabled' => (bool) $this->pay_policy()['session_card'],
             'cash'         => $this->cash_out(),
             'pay_methods'  => $this->pay_policy()['methods'],
             /* `teacher_subjects()` ترد خريطة **معلم ← مادة** لا قائمة
@@ -6296,7 +6303,7 @@ class Api_v1 extends CI_Controller
                 'join_lead_min' => (int) $cfg['lead_min'],
                 'grace_hours'   => (int) $cfg['grace_hours'],
             ),
-            'card_enabled' => $this->card_ready(),
+            'card_enabled' => (bool) $this->pay_policy()['session_card'],
             'cash'         => $this->cash_out(),
             'pay_methods'  => $this->pay_policy()['methods'],
         ), '', array('filters' => array('track' => $track)), $h);
@@ -6660,7 +6667,7 @@ class Api_v1 extends CI_Controller
         /* TQ-APP-CONFIG — الخادم يحرس ما أخفاه الزر: `tap` من إصدار لا يدفع
            بالبطاقة يرد إلى ما يدفع به، وإصدار لا يدفع أصلا لا ينشئ فاتورة. */
         $pol = $this->pay_policy();
-        if ($pol['review'] && !$pol['methods']) {
+        if (!$pol['digital']) {
             $this->fail($this->review_pay_note(), 'purchase_unavailable', 403);
         }
 
@@ -8564,7 +8571,7 @@ class Api_v1 extends CI_Controller
 
         /* TQ-APP-CONFIG — الحارس نفسه الذي في `buy()`. */
         $pol = $this->pay_policy();
-        if ($pol['review'] && !$pol['methods']) {
+        if (!$pol['digital']) {
             $this->fail($this->review_pay_note(), 'purchase_unavailable', 403);
         }
 

@@ -11,6 +11,7 @@ $c         = $tq_cfg;
 $tq_review = $c['tq_mobile_ios_review'];
 $tq_cash   = $c['tq_mobile_review_pay'] === 'cash';
 $tq_closed = $c['tq_mobile_force_close'] === '1';
+$tq_no_sales = $c['tq_mobile_ios_no_sales'] === '1';
 
 $tq_platforms = array(
     'android' => t('أندرويد'),
@@ -44,6 +45,8 @@ $tq_platforms = array(
                     : t('إصدار iOS ____ يعمل الآن بلا دفع.', html_escape($tq_review)); ?>
             </strong>
             <?php echo t('امسح الحقل فور قبول أبل: بعد النشر يحمل الناس الإصدار نفسه، فيبقون بلا بطاقة ولا تحويل ما دام مكتوبا.'); ?>
+        <?php elseif ($tq_no_sales): ?>
+            <?php echo t('الشراء موقوف على كل إصدارات iOS، والحصص الخاصة تدفع بالبطاقة. أندرويد يدفع كما في الموقع.'); ?>
         <?php else: ?>
             <?php echo t('لا إصدار تحت المراجعة: كل نسخ التطبيق تدفع بالبطاقة والتحويل البنكي كما في الموقع.'); ?>
         <?php endif; ?>
@@ -107,6 +110,18 @@ $tq_platforms = array(
         </div>
 
         <p class="tqa-formsec" style="grid-column:1/-1"><?php echo t('مراجعة أبل'); ?></p>
+
+        <div class="tqa-field tqa-field--full">
+            <span class="tqa-field__label"><?php echo t('إيقاف الشراء على iOS لكل الإصدارات'); ?></span>
+            <label class="tqa-switch">
+                <input type="checkbox" name="tq_mobile_ios_no_sales" value="1" <?php echo $tq_no_sales ? 'checked' : ''; ?>>
+                <span class="tqa-switch__track" aria-hidden="true"></span>
+                <span><?php echo t('نعم'); ?></span>
+            </label>
+            <span class="tqa-field__hint">
+                <?php echo t('لا باقة ولا كورس ولا كتاب يشترى من تطبيق iOS، والطالب يجد فيه ما اشتراه من الموقع. والحصص الخاصة مع المعلم تبقى تدفع بالبطاقة. وهو الآمن عند أبل: إظهار الدفع بعد القبول يعد إخفاء عن المراجع (2.3.1).'); ?>
+            </span>
+        </div>
 
         <div class="tqa-field">
             <label class="tqa-field__label" for="f_ios_review"><?php echo t('إصدار iOS تحت مراجعة أبل'); ?></label>

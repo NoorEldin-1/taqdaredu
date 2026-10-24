@@ -2550,4 +2550,7 @@ return array(
     'أندرويد' => 'Android',
     'رابط المتجر (____)' => 'Store link (____)',
     'يفتحه زر «حدث الآن» في التطبيق. والتحديث الإجباري يحتاجه.' => 'The app\'s "Update now" button opens it. A forced update needs it.',
+    'إيقاف الشراء على iOS لكل الإصدارات' => 'Stop purchases on iOS for every version',
+    'لا باقة ولا كورس ولا كتاب يشترى من تطبيق iOS، والطالب يجد فيه ما اشتراه من الموقع. والحصص الخاصة مع المعلم تبقى تدفع بالبطاقة. وهو الآمن عند أبل: إظهار الدفع بعد القبول يعد إخفاء عن المراجع (2.3.1).' => 'No plan, course or book can be bought in the iOS app; students find there what they bought on the website. Private sessions with a teacher still pay by card. This is the safe option with Apple: showing payment after approval counts as hiding it from the reviewer (2.3.1).',
+    'الشراء موقوف على كل إصدارات iOS، والحصص الخاصة تدفع بالبطاقة. أندرويد يدفع كما في الموقع.' => 'Purchases are stopped on every iOS version, and private sessions pay by card. Android pays as on the website.',
 );

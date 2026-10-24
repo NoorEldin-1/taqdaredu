@@ -32,6 +32,7 @@ class Taqdar_mobile_model extends CI_Model
         'tq_mobile_force_close'     => '0',
         'tq_mobile_ios_review'      => '',
         'tq_mobile_review_pay'      => 'cash',
+        'tq_mobile_ios_no_sales'    => '0',
     );
 
     /** وسيلة الدفع للإصدار الذي تحت المراجعة: كاش، أو لا دفع أصلا. */
@@ -93,7 +94,8 @@ class Taqdar_mobile_model extends CI_Model
             }
         }
 
-        $vals['tq_mobile_force_close'] = empty($in['tq_mobile_force_close']) ? '0' : '1';
+        $vals['tq_mobile_force_close']  = empty($in['tq_mobile_force_close']) ? '0' : '1';
+        $vals['tq_mobile_ios_no_sales'] = empty($in['tq_mobile_ios_no_sales']) ? '0' : '1';
 
         $review = trim((string) ($in['tq_mobile_ios_review'] ?? ''));
         if ($review !== '' && !self::parse_version($review)) {
@@ -157,34 +159,57 @@ class Taqdar_mobile_model extends CI_Model
      * بأي وسيلة يدفع هذا العميل؟
      *
      * - **إصدار المراجعة**: كاش وحده، أو لا شيء — لا بطاقة ولا تحويل.
+     * - **iOS والشراء موقوف عليه** (`tq_mobile_ios_no_sales`): لا يباع
+     *   محتوى رقمي من أي إصدار iOS — لا باقة ولا كورس ولا كتاب. وهو
+     *   الدائم لا المؤقت: إظهار الدفع بعد قبول أبل إخفاء عن المراجع
+     *   (2.3.1)، والمحتوى الرقمي بلا In-App Purchase مخالفة (3.1.1).
+     *   والحصة الخاصة مع معلم تبقى تدفع بالبطاقة: خدمة بين شخصين تجيزها
+     *   أبل خارج IAP (3.1.3(d)) — و`session_card` هو ما يقرؤه بابها.
      * - **غيره**: ما كان قبل هذه الشاشة حرفا بحرف — البطاقة متى عملت
      *   تاب، والتحويل البنكي دائما (وبياناته تقول إن كانت مضبوطة).
      *
      * @param array $c          من `client()`
      * @param bool  $card_ready `Taqdar_tap_model::ready()` — تمرر ولا تقرأ
      *                          هنا، فيبقى هذا الملف بلا نموذج ثان
-     * @return array {review, card, bank, cash, methods[]}
+     * @return array {review, card, bank, cash, methods[], digital, session_card}
      */
     public function policy(array $c, $card_ready)
     {
         if ($this->in_review($c)) {
             $cash = $this->config()['tq_mobile_review_pay'] === 'cash';
             return array(
-                'review'  => true,
-                'card'    => false,
-                'bank'    => false,
-                'cash'    => $cash,
-                'methods' => $cash ? array(self::PAY_CASH) : array(),
+                'review'       => true,
+                'card'         => false,
+                'bank'         => false,
+                'cash'         => $cash,
+                'methods'      => $cash ? array(self::PAY_CASH) : array(),
+                'digital'      => $cash,
+                'session_card' => false,
             );
         }
 
         $card = (bool) $card_ready;
+
+        if ($c['platform'] === 'ios' && $this->config()['tq_mobile_ios_no_sales'] === '1') {
+            return array(
+                'review'       => false,
+                'card'         => false,
+                'bank'         => false,
+                'cash'         => false,
+                'methods'      => array(),
+                'digital'      => false,
+                'session_card' => $card,
+            );
+        }
+
         return array(
-            'review'  => false,
-            'card'    => $card,
-            'bank'    => true,
-            'cash'    => false,
-            'methods' => $card ? array(self::PAY_CARD, self::PAY_BANK) : array(self::PAY_BANK),
+            'review'       => false,
+            'card'         => $card,
+            'bank'         => true,
+            'cash'         => false,
+            'methods'      => $card ? array(self::PAY_CARD, self::PAY_BANK) : array(self::PAY_BANK),
+            'digital'      => true,
+            'session_card' => $card,
         );
     }
 
@@ -227,6 +252,8 @@ class Taqdar_mobile_model extends CI_Model
             'update_required'  => $force && $behind,
             'force_close'      => $cfg['tq_mobile_force_close'] === '1',
             'pay_methods'      => $pol['methods'],
+            'purchases_enabled'=> $pol['digital'],
+            'sessions_payable' => $pol['session_card'],
         );
     }
 

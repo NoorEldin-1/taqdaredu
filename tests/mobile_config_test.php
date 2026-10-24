@@ -57,6 +57,19 @@ check(methods('ios', '1.2.4+9') === array(), 'no payment at all');
 $settings['tq_mobile_review_pay'] = 'bogus';
 check(methods('ios', '1.2.4+9') === array('cash'), 'unknown review payment falls back to cash');
 
+// iOS sales off for every version: no digital purchase, private sessions still pay by card.
+$settings = array('tq_mobile_ios_no_sales' => '1');
+$m = model();
+$p = $m->policy($m->client('ios', '2.0.0+1'), true);
+check(!$p['digital'] && $p['methods'] === array() && !$p['bank'], 'iOS sales off: nothing digital sold');
+check($p['session_card'] && !$p['review'], 'iOS sales off: sessions still payable by card');
+check(methods('android', '2.0.0+1') === array('tap', 'manual'), 'iOS sales off leaves Android alone');
+$s = $m->app_state($m->client('ios', '2.0.0+1'), true);
+check($s['purchases_enabled'] === false && $s['sessions_payable'] === true, 'app config tells the app');
+$settings['tq_mobile_ios_review'] = '2.0.0';
+$m = model();
+check(!$m->policy($m->client('ios', '2.0.0+1'), true)['session_card'], 'review build keeps its own rule');
+
 // Update and close: numeric comparison, per platform.
 $store = 'https://apps.apple.com/app/id1234567890';
 $settings = array('tq_mobile_ios_version' => '1.10.0', 'tq_mobile_ios_force' => '1', 'tq_mobile_ios_store' => $store);
