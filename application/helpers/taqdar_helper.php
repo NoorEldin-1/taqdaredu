@@ -1151,6 +1151,95 @@ if (!function_exists('tq_clarity')) {
     }
 }
 
+/* =====================================================================
+   Google Analytics 4 — قياس الزيارات من جهة جوجل
+   ===================================================================== */
+
+if (!defined('TQ_GA4_DEFAULT')) {
+    /**
+     * معرف القياس الذي سلمه فريق التسويق. ليس سرا كأخويه: يطبع في وسم
+     * كل صفحة. وليس Google Tag Manager — ذاك حاوية `GTM-…`، وهذا
+     * `G-…` وسم Analytics وحده.
+     */
+    define('TQ_GA4_DEFAULT', 'G-0GNG9H35K5');
+}
+
+if (!function_exists('tq_ga4_id')) {
+    /**
+     * المعرف الفعال بقاعدة `tq_clarity_id()` نفسها: لا صف ⇐ الافتراضي،
+     * وصف فارغ ⇐ أطفأه مسؤول.
+     */
+    function tq_ga4_id()
+    {
+        $v = get_settings('tq_ga4_id');
+        if ($v === null) $v = TQ_GA4_DEFAULT;
+        return tq_ga4_id_input($v);
+    }
+}
+
+if (!function_exists('tq_ga4_id_input')) {
+    /**
+     * ما يكتبه المسؤول ⇐ معرف `G-XXXXXXX`. ويقبل القصاصة كاملة — وهي ما
+     * يصل في واتساب — فيستخرج أول `G-…` منها. وما لا يطابق يرد فارغا:
+     * سلسلة تحفظ وتبدو معرفا تطفئ القياس صامتة.
+     */
+    function tq_ga4_id_input($raw)
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') return '';
+        return preg_match('~\b(G-[A-Z0-9]{4,20})\b~i', $raw, $m) ? strtoupper($m[1]) : '';
+    }
+}
+
+if (!function_exists('tq_ga4')) {
+    /**
+     * وسم gtag — مرة واحدة لكل صفحة، ولا يحمل لمن رفض الارتباط، ويبدأ
+     * عند `load` كأخيه Clarity.
+     */
+    function tq_ga4()
+    {
+        static $printed = false;
+        if ($printed) return '';
+
+        $id = tq_ga4_id();
+        if ($id === '') return '';
+        $printed = true;
+
+        ob_start(); ?>
+<!-- Google Analytics 4 -->
+<script>
+(function () {
+    var choice = null;
+    try { choice = localStorage.getItem('tq-cookie'); } catch (e) {}
+    window.addEventListener('tq-consent-change', function (e) {
+        choice = e.detail;
+        start();
+    });
+
+    var started = false;
+    function start() {
+        if (started || choice === 'denied') return;
+        started = true;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=<?php echo $id; ?>';
+        document.head.appendChild(s);
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { dataLayer.push(arguments); };
+        gtag('js', new Date());
+        gtag('config', '<?php echo $id; ?>');
+    }
+
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
+})();
+</script>
+<!-- End Google Analytics 4 -->
+<?php
+        return ob_get_clean();
+    }
+}
+
 
 /* =====================================================================
    بكسل تيك توك — قياس الإعلان على تيك توك

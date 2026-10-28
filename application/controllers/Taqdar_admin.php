@@ -2564,6 +2564,17 @@ class Taqdar_admin extends CI_Controller
                 array('tq_tiktok_pixel_id' => $tt_val));
         }
 
+        /* Google Analytics 4 — بقاعدة Clarity نفسها. */
+        $ga_was = $this->db->where('key', 'tq_ga4_id')->get('settings')->row('value');
+        $ga_val = tq_ga4_id_input($this->input->post('tq_ga4_id'));
+        $this->tracking_put('tq_ga4_id', $ga_val);
+
+        if ((string) $ga_was !== (string) $ga_val) {
+            $this->taqdar_admin_model->audit('tracking.ga4', 'settings',
+                array('tq_ga4_id' => $ga_was),
+                array('tq_ga4_id' => $ga_val));
+        }
+
         $msg = $val !== ''
             ? 'حفظ معرف البكسل، وهو يعمل الآن على كل صفحات الموقع والبوابات.'
             : 'أطفئ البكسل. لا يحمل سكربت ميتا في أي صفحة حتى يكتب معرف من جديد.';

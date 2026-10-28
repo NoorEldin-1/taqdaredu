@@ -201,6 +201,23 @@ $tq_tt_def   = ($tq_tt_saved === null);
             </span>
         </div>
 
+        <h3 class="tqa-formsec" style="margin-block:var(--tq-space-xl) var(--tq-space-m)">
+            <?php echo t('تحليلات جوجل (Google Analytics 4)'); ?>
+        </h3>
+
+        <?php $tq_ga_saved = get_settings('tq_ga4_id'); ?>
+        <div class="tqa-field">
+            <label class="tqa-field__label" for="f_ga4"><?php echo t('معرف القياس (Measurement ID)'); ?></label>
+            <input class="tqa-input tqa-input--ltr" type="text" id="f_ga4"
+                   name="tq_ga4_id" dir="ltr"
+                   autocomplete="off" spellcheck="false"
+                   placeholder="G-0GNG9H35K5"
+                   value="<?php echo html_escape($tq_ga_saved === null ? tq_ga4_id() : $tq_ga_saved); ?>">
+            <span class="tqa-field__hint">
+                <?php echo t('يبدأ بـ G- — من Google Analytics ← Admin ← Data streams. والصق القصاصة كاملة يعمل: يستخرج المعرف منها. واتركه فارغا لإطفائه.'); ?>
+            </span>
+        </div>
+
         <div class="tqa-actions">
             <button type="submit" class="tqa-btn tqa-btn--primary">
                 <?php echo tq_icon('check', 16); ?> <?php echo t('احفظ'); ?>
