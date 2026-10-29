@@ -1157,11 +1157,12 @@ if (!function_exists('tq_clarity')) {
 
 if (!defined('TQ_GA4_DEFAULT')) {
     /**
-     * معرف القياس الذي سلمه فريق التسويق. ليس سرا كأخويه: يطبع في وسم
-     * كل صفحة. وليس Google Tag Manager — ذاك حاوية `GTM-…`، وهذا
-     * `G-…` وسم Analytics وحده.
+     * وسم جوجل الذي سلمه فريق التسويق. ليس سرا كأخويه: يطبع في وسم كل
+     * صفحة. والحقل واحد لصورتين: `G-…` وسم Analytics وحده، و`GTM-…`
+     * حاوية Tag Manager يدير التسويق ما فيها من شاشته. واستبدل الفريق
+     * الأول بالثانية — فلا يطبعان معا: Analytics داخل الحاوية يعد مرتين.
      */
-    define('TQ_GA4_DEFAULT', 'G-0GNG9H35K5');
+    define('TQ_GA4_DEFAULT', 'GTM-WKPB3VH5');
 }
 
 if (!function_exists('tq_ga4_id')) {
@@ -1179,22 +1180,24 @@ if (!function_exists('tq_ga4_id')) {
 
 if (!function_exists('tq_ga4_id_input')) {
     /**
-     * ما يكتبه المسؤول ⇐ معرف `G-XXXXXXX`. ويقبل القصاصة كاملة — وهي ما
-     * يصل في واتساب — فيستخرج أول `G-…` منها. وما لا يطابق يرد فارغا:
-     * سلسلة تحفظ وتبدو معرفا تطفئ القياس صامتة.
+     * ما يكتبه المسؤول ⇐ معرف `G-XXXXXXX` أو `GTM-XXXXXXX`. ويقبل القصاصة
+     * كاملة — وهي ما يصل في واتساب — فيستخرج أول معرف منها. وما لا يطابق
+     * يرد فارغا: سلسلة تحفظ وتبدو معرفا تطفئ القياس صامتة.
      */
     function tq_ga4_id_input($raw)
     {
         $raw = trim((string) $raw);
         if ($raw === '') return '';
-        return preg_match('~\b(G-[A-Z0-9]{4,20})\b~i', $raw, $m) ? strtoupper($m[1]) : '';
+        return preg_match('~\b((?:GTM|G)-[A-Z0-9]{4,20})\b~i', $raw, $m) ? strtoupper($m[1]) : '';
     }
 }
 
 if (!function_exists('tq_ga4')) {
     /**
-     * وسم gtag — مرة واحدة لكل صفحة، ولا يحمل لمن رفض الارتباط، ويبدأ
-     * عند `load` كأخيه Clarity.
+     * وسم جوجل — مرة واحدة لكل صفحة، ولا يحمل لمن رفض الارتباط، ويبدأ
+     * عند `load` كأخيه Clarity. والحاوية تحتاج حدث `gtm.js` في الطابور
+     * قبل سكربتها: بلاه تحمل ولا يطلق وسم «كل الصفحات» فيها شيئا — وهو
+     * ما في القصاصة التي وصلت، فلا تلصق كما هي.
      */
     function tq_ga4()
     {
@@ -1204,9 +1207,10 @@ if (!function_exists('tq_ga4')) {
         $id = tq_ga4_id();
         if ($id === '') return '';
         $printed = true;
+        $gtm = strpos($id, 'GTM-') === 0;
 
         ob_start(); ?>
-<!-- Google Analytics 4 -->
+<!-- Google tag -->
 <script>
 (function () {
     var choice = null;
@@ -1220,21 +1224,26 @@ if (!function_exists('tq_ga4')) {
     function start() {
         if (started || choice === 'denied') return;
         started = true;
+        window.dataLayer = window.dataLayer || [];
         var s = document.createElement('script');
         s.async = true;
+<?php if ($gtm): ?>
+        dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+        s.src = 'https://www.googletagmanager.com/gtm.js?id=<?php echo $id; ?>';
+<?php else: ?>
         s.src = 'https://www.googletagmanager.com/gtag/js?id=<?php echo $id; ?>';
-        document.head.appendChild(s);
-        window.dataLayer = window.dataLayer || [];
         window.gtag = function () { dataLayer.push(arguments); };
         gtag('js', new Date());
         gtag('config', '<?php echo $id; ?>');
+<?php endif; ?>
+        document.head.appendChild(s);
     }
 
     if (document.readyState === 'complete') start();
     else window.addEventListener('load', start, { once: true });
 })();
 </script>
-<!-- End Google Analytics 4 -->
+<!-- End Google tag -->
 <?php
         return ob_get_clean();
     }
