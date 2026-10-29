@@ -211,7 +211,7 @@ $tq_tt_def   = ($tq_tt_saved === null);
             <input class="tqa-input tqa-input--ltr" type="text" id="f_ga4"
                    name="tq_ga4_id" dir="ltr"
                    autocomplete="off" spellcheck="false"
-                   placeholder="GTM-WKPB3VH5"
+                   placeholder="GTM-KHHQH3T7"
                    value="<?php echo html_escape($tq_ga_saved === null ? tq_ga4_id() : $tq_ga_saved); ?>">
             <span class="tqa-field__hint">
                 <?php echo t('GTM- لحاوية Tag Manager، أو G- لوسم Analytics وحده — واحد منهما لا الاثنان. ولا تضعوا بكسل ميتا أو تيك توك داخل الحاوية: يطبعان من هذه الشاشة أصلا فيعدان مرتين. والصق القصاصة كاملة يعمل، واتركه فارغا لإطفائه.'); ?>

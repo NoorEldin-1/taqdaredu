@@ -1162,7 +1162,7 @@ if (!defined('TQ_GA4_DEFAULT')) {
      * حاوية Tag Manager يدير التسويق ما فيها من شاشته. واستبدل الفريق
      * الأول بالثانية — فلا يطبعان معا: Analytics داخل الحاوية يعد مرتين.
      */
-    define('TQ_GA4_DEFAULT', 'GTM-WKPB3VH5');
+    define('TQ_GA4_DEFAULT', 'GTM-KHHQH3T7');
 }
 
 if (!function_exists('tq_ga4_id')) {
