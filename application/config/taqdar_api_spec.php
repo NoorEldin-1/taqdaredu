@@ -4073,6 +4073,12 @@ $spec = array(
             'paid → `confirmed` → `live` → `completed`. **Payment comes after confirmation, not before**',
             '— declining is common, and paying first would mean a card refund on every decline.',
             '',
+            'TQ-LIVE: each booking also carries `state` (`key`/`label`/`tone` from `display_state()`: one of',
+            'pending_payment, payment_failed, expired, scheduled, ready, live, completed, recording_processing,',
+            'recording_available, missed, rescheduled, cancelled), `join_url` (the `/join` endpoint or null),',
+            '`ics_url`, `opens_at` and `pay_deadline`. With instant booking on, POST creates the session',
+            'directly in `awaiting_payment` (`instant: true`, `invoice_id`, short `pay_deadline`), card only.',
+            '',
             '`can_join` and `meet_url` come from the same guard the website uses. A link the client',
             'decides to show opens an empty room two days early, or one that has already ended.',
             '',
@@ -4144,6 +4150,43 @@ $spec = array(
     'responses' => array('200' => array('description' => 'OK'),
                          '401' => $r_401, '403' => $r_403, '429' => $r_429),
 )),
+
+// TQ-LIVE — begin
+'/api/v1/student/sessions/{id}/join' => array('get' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Join a session through the server',
+    'description' => implode("
+", array(
+        'Checks ownership and the join window (`join_state()` for the student), stamps the join',
+        '(`attended_at`, first call only)',
+        'and returns the external meeting URL in `data.url`. The app opens that URL; it never receives',
+        'the raw link before the window opens. Payloads carry `join_url` pointing here only when joinable.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array('url' => 'https://meet.google.com/abc-defg-hij'), 'message' => '', 'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403,
+        '409' => $err_ref('Not yours, not paid, or outside the join window.',
+                          array('message' => 'الرابط يفتح قبل الموعد بـ10 دقيقة.', 'code' => 'session_not_joinable')),
+        '429' => $r_429,
+    ),
+)),
+
+'/api/v1/student/sessions/{id}/ics' => array('get' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Calendar file for a session',
+    'description' => 'Returns `text/calendar` (RFC 5545, UTC times, `UID: tq-session-<id>@taqdaredu.com`). The meeting link is included only once the session is paid. Payloads carry it as `ics_url`.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'text/calendar'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404),
+)),
+// TQ-LIVE — end
 
 '/api/v1/student/sessions/{id}/pay' => array('post' => array(
     'tags' => array('Sessions'),
@@ -5069,7 +5112,8 @@ $spec = array(
     'summary' => 'Private sessions',
     'description' => implode("\n", array(
         'The eight states of `tutoring_sessions`. `status` is the key to branch on, `status_label` the',
-        'Arabic to render.',
+        'Arabic to render. TQ-LIVE: rows also carry `state`, `join_url`, `ics_url`, `opens_at` (the',
+        'teacher window) and `pay_deadline`.',
         '',
         '**`awaiting_payment` is not decoration.** The student pays *after* you confirm, not before —',
         'declining is common, and paying first means a card refund on every decline. So a confirmed',
@@ -5144,6 +5188,43 @@ $spec = array(
         '429' => $r_429,
     ),
 )),
+
+// TQ-LIVE — begin
+'/api/v1/teacher/sessions/{id}/join' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Join a session through the server',
+    'description' => implode("
+", array(
+        'Checks ownership and the join window (`join_state()` for the teacher), stamps the join',
+        '(`teacher_joined_at`, and moves a `confirmed` session to `live`)',
+        'and returns the external meeting URL in `data.url`. The app opens that URL; it never receives',
+        'the raw link before the window opens. Payloads carry `join_url` pointing here only when joinable.',
+    )),
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'responses' => array(
+        '200' => array('description' => 'OK', 'content' => array('application/json' => array('example' => array(
+            'data' => array('url' => 'https://meet.google.com/abc-defg-hij'), 'message' => '', 'meta' => array(),
+        )))),
+        '401' => $r_401, '403' => $r_403,
+        '409' => $err_ref('Not yours, not paid, or outside the join window.',
+                          array('message' => 'الرابط يفتح قبل الموعد بـ10 دقيقة.', 'code' => 'session_not_joinable')),
+        '429' => $r_429,
+    ),
+)),
+
+'/api/v1/teacher/sessions/{id}/ics' => array('get' => array(
+    'tags' => array('Teacher'),
+    'summary' => 'Calendar file for a session',
+    'description' => 'Returns `text/calendar` (RFC 5545, UTC times, `UID: tq-session-<id>@taqdaredu.com`). The meeting link is included only once the session is paid. Payloads carry it as `ics_url`.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
+                                'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'text/calendar'),
+                         '401' => $r_401, '403' => $r_403, '404' => $r_404),
+)),
+// TQ-LIVE — end
 
 '/api/v1/teacher/sessions/{id}/complete' => array('post' => array(
     'tags' => array('Teacher'),
