@@ -2622,7 +2622,9 @@ class Api_v1 extends CI_Controller
             }
         }
 
-        $out['bank_transfer'] = $this->bank_out((string) $inv['invoice_no']);
+        /* TQ-LIVE (D1-b) — فاتورة حجز فوري بطاقة وحدها: لا تعليمات تحويل. */
+        $out['bank_transfer'] = $this->instant_invoice((int) $inv['id'])
+                                 ? null : $this->bank_out((string) $inv['invoice_no']);
 
         $this->read($out, '', array(), $h);
     }
@@ -2740,6 +2742,13 @@ class Api_v1 extends CI_Controller
      * @param array $inv   صف الفاتورة — فحصت ملكيته قبل النداء
      * @param int   $payer من يدفع: الطالب أو وليه المرتبط برابط نشط
      */
+    /** TQ-LIVE — اهي فاتورة حجز فوري (تدفع بالبطاقة وحدها)؟ */
+    private function instant_invoice($invoice_id)
+    {
+        try { return (bool) $this->sess()->is_instant_invoice((int) $invoice_id); }
+        catch (Throwable $e) { return false; }
+    }
+
     private function pay_invoice_now($inv, $payer)
     {
         $payer = (int) $payer;
@@ -2761,8 +2770,10 @@ class Api_v1 extends CI_Controller
             $this->fail($this->review_pay_note(), 'purchase_unavailable', 403);
         }
 
+        $card_only = (int) ($inv['subscription_id'] ?? 0) === 0 && $this->instant_invoice((int) $inv['id']);   // TQ-LIVE
         if (!$this->tq_tap->ready()) {
-            $this->fail('الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة بنكيا.',
+            $this->fail($card_only ? 'الدفع بالبطاقة غير متاح الآن، وهذا الحجز يدفع بالبطاقة وحدها. يعود الموعد متاحا بعد المهلة ولم يخصم منك شيء.'
+                                   : 'الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة بنكيا.',
                         'card_payment_disabled', 503);
         }
 
@@ -2770,7 +2781,7 @@ class Api_v1 extends CI_Controller
 
         if (empty($pay['ok'])) {
             $this->fail(implode(' ', (array) $pay['errors'])
-                        . ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا.',
+                        . ($card_only ? ' أعد المحاولة بالبطاقة قبل انتهاء المهلة.' : ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا.'),
                         'payment_start_failed', 502);
         }
 
@@ -6436,7 +6447,9 @@ class Api_v1 extends CI_Controller
         if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
 
         $uid = (int) $u['id'];
-        $r   = $this->sess()->request_session($uid, (int) $b['slot_id']);
+        /* TQ-LIVE — الحجز الفوري لمن يدفع الحصة بالبطاقة وحده (سياسة العميل). */
+        $r   = $this->sess()->request_session($uid, (int) $b['slot_id'],
+                                             (bool) $this->pay_policy()['session_card']);
 
         if (empty($r['ok'])) {
             $this->fail(isset($r['msg']) ? $r['msg'] : 'تعذر إرسال الطلب.', 'session_request_failed', 409);
@@ -6496,6 +6509,10 @@ class Api_v1 extends CI_Controller
         if (!$this->tq_tap->ready()) {
             $no = (string) $this->db->select('invoice_no')->where('id', (int) $row['invoice_id'])
                                     ->get('invoices')->row('invoice_no');
+            if (empty($row['confirmed_at'])) {   // TQ-LIVE — حجز فوري: بطاقة وحدها
+                $this->fail('الدفع بالبطاقة غير متاح الآن، وهذا الحجز يدفع بالبطاقة وحدها. يعود الموعد متاحا بعد المهلة ولم يخصم منك شيء.',
+                            'card_payment_disabled', 503);
+            }
             $this->fail('الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة ' . $no
                         . ' بنكيا وأبلغ الإدارة.', 'card_payment_disabled', 503);
         }

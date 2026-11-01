@@ -1474,7 +1474,7 @@ class Taqdar_sessions_model extends CI_Model
      *
      * @return array ['ok'=>bool, 'msg'=>string, 'id'=>int]
      */
-    public function request_session($student_id, $slot_id)
+    public function request_session($student_id, $slot_id, $card_payable = true)
     {
         $this->install_schema();
 
@@ -1587,7 +1587,10 @@ class Taqdar_sessions_model extends CI_Model
            والدفع يثبتها بلا تاكيد. والباقة والمجانية تمران بالمسار القديم
            (تثبتان بتاكيد المعلم كما اليوم)، والمفتاح مطفأ يعيد كل شيء كما كان. */
         $cfg     = $this->config();
-        $instant = $cfg['instant_book'] && !$pack && (int) $p['price'] > 0 && $this->card_ready();
+        /* والعميل الذي لا يدفع الحصة بالبطاقة (سياسة التطبيق: بناء المراجعة
+           وغيره) لا يحجز فوريا: حجز لا يدفع في مهلته قفل بلا مخرج. */
+        $instant = self::instant_allowed($cfg['instant_book'], (bool) $pack, (int) $p['price'],
+                                         $card_payable && $this->card_ready());
 
         $this->db->insert('tutoring_sessions', [
             'slot_id'               => $slot_id,
@@ -1722,7 +1725,7 @@ class Taqdar_sessions_model extends CI_Model
                 'grade_name'   => $this->grade_name((int) ($r['grade_id'] ?? 0)),
                 'subject_id'   => (int) ($r['subject_id'] ?? 0),
                 'subject_name' => $this->subject_name((int) ($r['subject_id'] ?? 0)),
-                'meet_url'     => (string) ($r['meet_url'] ?? ''),
+                'meet_url'     => $this->meet_url_for($r),   // TQ-LIVE — والا رابط المعلم الثابت (D2-b)
                 'price'        => (int) $r['price_halalas'],
                 'percent'      => (float) $r['teacher_percent'],
                 'share'        => (int) $r['teacher_share_halalas'],
@@ -2076,8 +2079,8 @@ class Taqdar_sessions_model extends CI_Model
         $is_over = $done || ($dead > 0 && $dead < $now);
         $ready   = in_array($status, array('confirmed', 'live'), true);
         /* D2-b — رابط الحصة، والا رابط المعلم الثابت ان جاء مع الصف. */
-        $link    = trim((string) ($row['meet_url'] ?? ''));
-        if ($link === '') $link = trim((string) ($row['teacher_meet_url'] ?? ''));
+        $link    = $this->clean_meet_url($row['meet_url'] ?? '');
+        if ($link === '') $link = $this->clean_meet_url($row['teacher_meet_url'] ?? '');
 
         $note = '';
         if ($status === 'awaiting_payment')      $note = 'ادفع لتثبيت الحصة — الرابط يفتح بعد الدفع.';
@@ -2464,6 +2467,21 @@ class Taqdar_sessions_model extends CI_Model
         return $n;
     }
 
+    /** ايحجز هذا الطلب فوريا؟ مفتاح مفعل، حصة مفردة بثمن، وعميل يدفع بالبطاقة. */
+    public static function instant_allowed($switch_on, $is_pack, $price_halalas, $card_payable)
+    {
+        return (bool) $switch_on && !$is_pack && (int) $price_halalas > 0 && (bool) $card_payable;
+    }
+
+    /**
+     * ايخبر المعلم ان حجزا لم يدفع؟ فقط ان كان اكده (`confirmed_at`): الحجز
+     * الفوري لم يبلغه اصلا، وخبر عن شيء لم يعرفه ضجيج.
+     */
+    public static function hold_notifies_teacher($row)
+    {
+        return !empty($row['confirmed_at']);
+    }
+
     /** مواعيد المعلم المفتوحة القادمة — لزر «اغلق هذا الموعد». */
     public function open_slots_for($teacher_id, $limit = 40)
     {
@@ -2489,7 +2507,7 @@ class Taqdar_sessions_model extends CI_Model
         $now = $now ? (int) $now : time();
         $n   = 0;
         try {
-            $rows = $this->db->select('t.id, t.slot_id, t.invoice_id, t.teacher_id, t.student_id')
+            $rows = $this->db->select('t.id, t.slot_id, t.invoice_id, t.teacher_id, t.student_id, t.confirmed_at')
                              ->from('tutoring_sessions t')
                              ->where('t.status', 'awaiting_payment')
                              ->where('t.pay_deadline IS NOT NULL', null, false)
@@ -2512,7 +2530,7 @@ class Taqdar_sessions_model extends CI_Model
             $this->tell((int) $r['student_id'], 'مضت مهلة دفع حصتك',
                 'لم يصل دفع ثمن الحصة قبل انتهاء المهلة، فعاد الموعد متاحا لغيرك '
                 . 'وشطبت فاتورته. لم يخصم منك شيء، ولك أن تطلب موعدا آخر.');
-            $this->tell((int) $r['teacher_id'], 'لم يدفع الطالب ثمن الحصة',
+            if (self::hold_notifies_teacher($r)) $this->tell((int) $r['teacher_id'], 'لم يدفع الطالب ثمن الحصة',
                 'مضت مهلة الدفع على حصة في جدولك، فعاد الموعد متاحا.');
         }
         return $n;
@@ -3080,7 +3098,7 @@ class Taqdar_sessions_model extends CI_Model
                 'grade_id'      => (int) ($r['grade_id'] ?? 0),
                 'grade_name'    => $this->grade_name((int) ($r['grade_id'] ?? 0)),
                 'minutes'       => (int) ($r['duration_min'] ?: $this->config()['minutes']),
-                'meet_url'      => (string) ($r['meet_url'] ?? ''),
+                'meet_url'      => $this->meet_url_for($r),   // TQ-LIVE — والا رابط المعلم الثابت (D2-b)
                 'price'         => (int) $r['price_halalas'],
                 'invoice_id'    => (int) $r['invoice_id'],
                 'invoice_no'    => (string) ($r['invoice_no'] ?? ''),

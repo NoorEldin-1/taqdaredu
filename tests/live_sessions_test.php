@@ -136,4 +136,15 @@ check(Taqdar_sessions_model::enum_with_closed("enum('open','held','booked')") ==
 check(Taqdar_sessions_model::enum_with_closed("enum('open','closed')") === null, 'already there: no change');
 check(Taqdar_sessions_model::enum_with_closed('varchar(16)') === null, 'not an enum: no change');
 
+// ---- Fix round: instant gate, cleaned teacher link, hold notice ---------
+check(Taqdar_sessions_model::instant_allowed(true, false, 12000, true), 'instant: on, priced, single, card payable');
+check(!Taqdar_sessions_model::instant_allowed(true, false, 12000, false), 'no card for this client: old flow');
+check(!Taqdar_sessions_model::instant_allowed(false, false, 12000, true), 'switch off: old flow');
+check(!Taqdar_sessions_model::instant_allowed(true, true, 12000, true), 'pack booking: old flow');
+check(!Taqdar_sessions_model::instant_allowed(true, false, 0, true), 'free: old flow');
+$evil = array('meet_url' => '', 'teacher_meet_url' => 'http://evil.example/room') + $row;
+check(!$m->join_state($evil, $starts, 'student')['can_join'], 'invalid legacy teacher link does not open the door');
+check(!Taqdar_sessions_model::hold_notifies_teacher(array('confirmed_at' => null)), 'instant hold: teacher never told');
+check(Taqdar_sessions_model::hold_notifies_teacher(array('confirmed_at' => '2026-11-01 10:00:00')), 'confirmed then unpaid: teacher told');
+
 echo "OK — $checks checks\n";
