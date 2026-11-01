@@ -26,7 +26,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 class Taqdar_group_model extends CI_Model
 {
-    const SCHEMA_V = '1';
+    const SCHEMA_V = '2';
     const T_GROUPS = 'tq_groups';
     const T_SESS   = 'tq_group_sessions';
     const T_ATT    = 'tq_group_attendance';
@@ -122,6 +122,10 @@ class Taqdar_group_model extends CI_Model
            بيد: قائمة مكتوبة هنا تسقط قيمة اضافها غيرنا بعدها، و MODIFY الى
            سرد اضيق يحول تلك القيم الى `''` في كل صف قائم. */
         $this->extend_items_enum('group');
+
+        /* TQ-GROUP (المهمة الخامسة) — ختم «ذكر قبل ساعة» على الحصة: اضافي
+           ولا يكتب في صف قائم. وبه لا يذكر العضو مرتين بالحصة نفسها. */
+        $this->try_sql('ALTER TABLE `' . self::T_SESS . '` ADD COLUMN IF NOT EXISTS `reminded_at` DATETIME NULL DEFAULT NULL');
 
         $this->db->data_cache = array();
         $this->put_setting('tq_group_schema_v', self::SCHEMA_V);
@@ -733,6 +737,12 @@ class Taqdar_group_model extends CI_Model
                          ->update(self::T_SESS, array('teacher_joined_at' => $now));
                 $this->db->where('id', (int) $gs['id'])->where('status', 'scheduled')
                          ->update(self::T_SESS, array('status' => 'live'));
+                /* «بدأت الآن» مرة واحدة: النقلة الى `live` تقع مرة. */
+                if ((int) $this->db->affected_rows() > 0) {
+                    $g = $this->get((int) $gs['group_id']);
+                    if ($g) $this->notify_members_now((int) $g['id'], t('بدأت الحصة الآن'),
+                        t('دخل معلمك حصة «____» الآن — ادخلها من شاشة مجموعاتك.', array($g['title'])));
+                }
             }
         } catch (Throwable $e) {
             $this->db->reset_query();
@@ -1029,6 +1039,7 @@ class Taqdar_group_model extends CI_Model
             'rescheduled_from_at' => $gs['starts_at'],
             'starts_at'           => date('Y-m-d H:i:s', $ts),
             'cancel_reason'       => mb_substr($reason, 0, 255),
+            'reminded_at'         => null,
         ));
         $this->audit('group_session.rescheduled', self::T_SESS . '#' . (int) $gs['id'], $gs, $this->session($gs['id']));
         $this->notify_members((int) $g['id'], t('تأجيل حصة'),
@@ -1088,6 +1099,7 @@ class Taqdar_group_model extends CI_Model
             'recording_pending' => ($url === '' && $recording_pending) ? 1 : 0,
         ));
         $this->write_attendance((int) $gs['id'], (int) $g['id'], (array) $attendance);
+        if ($url !== '' && trim((string) $gs['recording_url']) === '') $this->notify_recording($g, $gs);
         $this->audit('group_session.completed', self::T_SESS . '#' . (int) $gs['id'], $gs, $this->session($gs['id']));
         return array('ok' => true);
     }
@@ -1124,7 +1136,29 @@ class Taqdar_group_model extends CI_Model
     {
         $this->ensure_schema();
         $now = $now ? (int) $now : time();
-        $out = array('closed' => 0, 'recordings_dropped' => 0);
+        $out = array('closed' => 0, 'recordings_dropped' => 0, 'reminded' => 0);
+
+        /* TQ-GROUP — «قبل كل حصة بساعة» (§4.5). الكرون كل ساعة، فالنافذة
+           ساعة وخمس دقائق، والختم `reminded_at` يمنع التكرار. والبريد في
+           الطابور (يرث ساعات الصمت)، والصف داخل المنصة والجوال في الحال. */
+        try {
+            $soon = $this->db->where('status', 'scheduled')->where('reminded_at IS NULL', null, false)
+                             ->where('starts_at >', date('Y-m-d H:i:s', $now))
+                             ->where('starts_at <=', date('Y-m-d H:i:s', $now + self::REMIND_WINDOW))
+                             ->get(self::T_SESS)->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); $soon = array(); }
+        foreach ($soon as $r) {
+            if (!self::reminder_due($r, $now)) continue;
+            $this->db->where('id', (int) $r['id'])->where('reminded_at IS NULL', null, false)
+                     ->update(self::T_SESS, array('reminded_at' => date('Y-m-d H:i:s', $now)));
+            if ((int) $this->db->affected_rows() < 1) continue;
+            $g = $this->get((int) $r['group_id']);
+            if (!$g || $g['status'] === 'closed') continue;
+            $this->notify_members((int) $g['id'], t('حصتك بعد قليل'),
+                t('تبدأ حصة «____» في ____ (توقيت مكة). ادخلها من شاشة مجموعاتك.',
+                  array($g['title'], date('H:i', strtotime((string) $r['starts_at']) + 3 * 3600))));
+            $out['reminded']++;
+        }
 
         try {
             $rows = $this->db->where_in('status', array('scheduled', 'live'))
@@ -1150,6 +1184,135 @@ class Taqdar_group_model extends CI_Model
         } catch (Throwable $e) { $this->db->reset_query(); }
 
         return $out;
+    }
+
+    /* =====================================================================
+       TQ-GROUP (المهمة الخامسة) — دوال صرفة للشاشات
+       ===================================================================== */
+
+    /** نافذة التذكير بالثواني: ساعة وخمس دقائق (الكرون كل ساعة). */
+    const REMIND_WINDOW = 3900;
+
+    /** ايذكر بهذه الحصة الآن؟ — صرفة. */
+    public static function reminder_due($row, $now)
+    {
+        if ((string) ($row['status'] ?? '') !== 'scheduled') return false;
+        if (!empty($row['reminded_at'])) return false;
+        $starts = !empty($row['starts_at']) ? strtotime((string) $row['starts_at']) : 0;
+        return $starts > $now && $starts - $now <= self::REMIND_WINDOW;
+    }
+
+    /** جملة المقاعد — صرفة. `null` بلا حد، والعدد بقواعد العربية لا «2 مقاعد». */
+    public static function seats_text($left)
+    {
+        if ($left === null) return t('مقاعد مفتوحة');
+        $n = (int) $left;
+        if ($n <= 0)  return t('اكتملت المقاعد');
+        if ($n === 1) return t('بقي مقعد واحد');
+        if ($n === 2) return t('بقي مقعدان');
+        if ($n <= 10) return t('بقيت ____ مقاعد', array($n));
+        return t('بقي ____ مقعدا', array($n));
+    }
+
+    /**
+     * ملف تقويم لحصة واحدة او للجدول كله — صرفة.
+     *
+     * **ولا رابط لقاء فيه**: الملف يرسل ويتنقل، ورابط عار فيه يفتح الحصة
+     * لمن لم يشترها — والدخول من الزر الذي يمر بالخادم (1.5). والملغاة لا
+     * تكتب: حدث ملغى في تقويم الطالب يجلس فيه موعدا لا يقع.
+     */
+    public static function ics_schedule($group, array $sessions)
+    {
+        $esc = function ($s) {
+            return str_replace(array('\\', ';', ',', "\r\n", "\n"), array('\\\\', '\;', '\,', '\n', '\n'), (string) $s);
+        };
+        $lines = array('BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Taqdar//Groups//AR',
+                       'CALSCALE:GREGORIAN', 'METHOD:PUBLISH');
+        $stamp = gmdate('Ymd\THis\Z');
+        foreach ($sessions as $s) {
+            if ((string) ($s['status'] ?? '') === 'cancelled') continue;
+            $starts = !empty($s['starts_at']) ? (int) strtotime((string) $s['starts_at']) : 0;
+            if ($starts <= 0) continue;
+            $ends  = $starts + max(1, (int) ($s['duration_min'] ?? 60)) * 60;
+            $title = (string) $group['title'];
+            if (trim((string) ($s['title'] ?? '')) !== '') $title .= ' — ' . trim((string) $s['title']);
+            $lines[] = 'BEGIN:VEVENT';
+            $lines[] = 'UID:tq-gsession-' . (int) $s['id'] . '@taqdaredu.com';
+            $lines[] = 'DTSTAMP:' . $stamp;
+            $lines[] = 'DTSTART:' . gmdate('Ymd\THis\Z', $starts);
+            $lines[] = 'DTEND:' . gmdate('Ymd\THis\Z', $ends);
+            $lines[] = 'SUMMARY:' . $esc($title);
+            $lines[] = 'DESCRIPTION:' . $esc(t('ادخل الحصة من شاشة مجموعاتك على تقدر.'));
+            $lines[] = 'END:VEVENT';
+        }
+        $lines[] = 'END:VCALENDAR';
+        return implode("\r\n", $lines) . "\r\n";
+    }
+
+    /** رابط «اضف الى تقويم جوجل» لحصة — بلا رابط اللقاء. */
+    public static function google_calendar_url($group, $s)
+    {
+        $starts = !empty($s['starts_at']) ? (int) strtotime((string) $s['starts_at']) : 0;
+        $ends   = $starts + max(1, (int) ($s['duration_min'] ?? 60)) * 60;
+        return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+            . '&text=' . rawurlencode((string) $group['title'])
+            . '&dates=' . gmdate('Ymd\THis\Z', $starts) . '/' . gmdate('Ymd\THis\Z', $ends)
+            . '&details=' . rawurlencode(t('ادخل الحصة من شاشة مجموعاتك على تقدر.'));
+    }
+
+    /**
+     * يضع رابط التسجيل لحصة منتهية بعد اعلانها («سأرفعه لاحقا») ويبلغ
+     * الاعضاء — «التسجيل متاح» (§4.5).
+     */
+    public function set_recording($gs_id, $url, $actor)
+    {
+        $gs = $this->session($gs_id);
+        $g  = $gs ? $this->get((int) $gs['group_id']) : null;
+        if (!$gs || !$this->can_edit_group($g, $actor)) return array('ok' => false, 'errors' => array(t('هذه الحصة ليست لك.')));
+        if ($gs['status'] !== 'completed') return array('ok' => false, 'errors' => array(t('التسجيل لحصة منتهية.')));
+        $clean = function_exists('tq_clean_url') ? tq_clean_url($url) : trim((string) $url);
+        if ($clean === '' || !preg_match('#^https://#i', $clean)) {
+            return array('ok' => false, 'errors' => array(t('ضع رابط التسجيل كاملا يبدأ بـhttps.')));
+        }
+        $had = trim((string) $gs['recording_url']) !== '';
+        $this->db->where('id', (int) $gs['id'])->update(self::T_SESS, array('recording_url' => $clean, 'recording_pending' => 0));
+        if (!$had) $this->notify_recording($g, $gs);
+        return array('ok' => true);
+    }
+
+    private function notify_recording($g, $gs)
+    {
+        $this->notify_members((int) $g['id'], t('التسجيل متاح'),
+            t('رفع تسجيل حصة «____» — شاهده من شاشة مجموعاتك.', array($g['title'])));
+    }
+
+    /**
+     * «انضممت الى المجموعة» — ينادى من `activate_group_subscription()`.
+     * بلا بريد: اشعار الدفع يخرج بالبريد من بابه (`sold()`).
+     */
+    public function notify_activated($sub)
+    {
+        $g = $this->get((int) ($sub['group_id'] ?? 0));
+        if (!$g) return;
+        $next = '';
+        foreach ($this->sessions_of((int) $g['id']) as $s) {
+            if ($s['status'] === 'scheduled' && strtotime((string) $s['starts_at']) > time()) {
+                $next = date('Y-m-d H:i', strtotime((string) $s['starts_at']) + 3 * 3600);
+                break;
+            }
+        }
+        $text = $next !== ''
+              ? t('فعلت عضويتك في مجموعة «____». اول حصة قادمة: ____ (توقيت مكة).', array($g['title'], $next))
+              : t('فعلت عضويتك في مجموعة «____». تصلك مواعيد الحصص حين تجدول.', array($g['title']));
+        $this->notify((int) $sub['user_id'], t('انضممت الى المجموعة'), $text, 'session', false);
+    }
+
+    /** اشعار فوري لكل الاعضاء بلا بريد — «بدأت الآن» لا تنتظر طابورا. */
+    private function notify_members_now($group_id, $title, $text)
+    {
+        foreach ($this->members_of($group_id) as $m) {
+            $this->notify((int) $m['user_id'], $title, $text, 'session', false);
+        }
     }
 
     /** نهاية آخر حصة غير ملغاة — اجل العضوية حين `access_days = 0`. */
