@@ -1544,6 +1544,61 @@ class Taqdar_wallet_model extends CI_Model
         return $n > 0;
     }
 
+    // TQ-GROUP ===============================================================
+    /**
+     * TQ-GROUP — يقيد بيع عضوية مجموعة مباشرة في محفظة معلمها، **عند الدفع**
+     * (D7-c). نسبة واحدة لمعلم واحد كالكورس المفرد، والقسمة من
+     * `Taqdar_group_model::split()` — الحسبة التي يفحصها الاختبار — فالمجموع
+     * يساوي المبيع بالهللة. والاصل `groupsub:<id>` فريد: تفعيل مكرر لا يضاعف.
+     */
+    public function credit_group_sale($teacher_id, $group_id, $subscription_id,
+                                      $gross_halalas, $share_percent = null, $title = '')
+    {
+        $this->install_schema();
+
+        $teacher_id = (int) $teacher_id;
+        $gross      = (int) $gross_halalas;
+        if ($teacher_id < 1 || $gross <= 0) {
+            return array('ok' => false, 'errors' => array('لا معلم للمجموعة أو لا مبلغ.'));
+        }
+        if ($share_percent === null || $share_percent === '') {
+            $share_percent = $this->setting('tq_group_teacher_percent', 60);
+        }
+
+        $this->load->model('taqdar_group_model');
+        $sp    = Taqdar_group_model::split($gross, $share_percent);
+        $share = $sp['share'];
+        $cut   = $sp['cut'];
+
+        $wallet  = $this->wallet_of($teacher_id);
+        $wid     = $wallet['id'];
+        $origin  = 'groupsub:' . (int) $subscription_id;
+        $title   = trim((string) $title);
+        $subject = ($title !== '' ? $title : ('مجموعة #' . (int) $group_id)) . ' — عضوية مجموعة مباشرة';
+        $release = $this->at(time() + $this->hold_days() * 86400);
+
+        $this->post($wid, 'sale', self::B_PENDING, $gross,
+                    $this->ref_key($wid, $origin, 'sale'), $origin, $subject, null, $release);
+        if ($cut > 0) {
+            $this->post($wid, 'commission', self::B_PENDING, -$cut,
+                        $this->ref_key($wid, $origin, 'commission'), $origin, $subject, null, $release);
+        }
+        $this->recompute($wid);
+
+        return array('ok' => true, 'wallet_id' => $wid, 'share' => $share,
+                     'commission' => $cut, 'percent' => (float) $share_percent, 'gross' => $gross);
+    }
+
+    /** يعكس بيع عضوية — مجموعة الغيت قبل اول حصة (D7-c). */
+    public function reverse_group_sale($teacher_id, $subscription_id, $reason = '')
+    {
+        $wallet = $this->wallet_of((int) $teacher_id);
+        $n = $this->reverse_origin($wallet['id'], 'groupsub:' . (int) $subscription_id, $reason);
+        if ($n > 0) $this->recompute($wallet['id']);
+        return $n > 0;
+    }
+    // /TQ-GROUP ==============================================================
+
     /**
      * ملخص كسب الكتب المباعة مفردة لمعلم — لشاشته ولشاشة الإدارة.
      *

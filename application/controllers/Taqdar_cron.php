@@ -58,6 +58,17 @@ class Taqdar_cron extends CI_Controller
            . " completed={$r['completed']}"
            . " credited_halalas={$r['credited']}"
            . " teachers_laid_out={$r['laid_out']}\n";
+
+        // TQ-GROUP — حصص المجموعات في الدورة نفسها، وفشلها لا يوقف ما قبلها.
+        try {
+            $this->load->model('taqdar_group_model');
+            $g = $this->taqdar_group_model->lifecycle_tick();
+            echo date('Y-m-d H:i:s') . " group_sessions_closed={$g['closed']}"
+               . " group_recordings_dropped={$g['recordings_dropped']}\n";
+        } catch (Throwable $e) {
+            echo date('Y-m-d H:i:s') . ' group_tick_error=' . $e->getMessage() . "\n";
+        }
+        // /TQ-GROUP
     }
 
     /** المرادف الذي يقرأ اسمه ما يفعله — للتشغيل اليدوي. */

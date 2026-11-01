@@ -323,6 +323,76 @@ class Taqdar_admin_model extends CI_Model
                 ),
             ),
 
+            // TQ-GROUP — الحصص الجماعية المباشرة: وحدة البيع السادسة.
+            'groups' => array(
+                'table'    => 'tq_groups',
+                'title'    => 'المجموعات المباشرة',
+                'lead'     => 'مجموعة بجدول حصص مباشرة تباع عضويتها مرة — الطالب يدخل كل حصة بزرها.',
+                'icon'     => 'users',
+                'ensure'   => 'taqdar_group_model',
+                'order_by' => array('id' => 'DESC'),
+                'note'     => 'العضوية تباع بالسعر كاملا حتى «آخر موعد للانضمام»، ومن انضم متأخرا تفتح له تسجيلات ما فاته. '
+                            . 'ونصيب المعلم يقيد عند الدفع، ومجموعة تغلق قبل أول حصة تعكس قيودها. '
+                            . 'ومجموعة بيعت لا تحذف — تغلق.',
+                'fields'   => array(
+                    'title'           => array('label' => 'اسم المجموعة', 'type' => 'text', 'required' => true, 'list' => true,
+                                               'section' => 'التعريف'),
+                    'slug'            => array('label' => 'الاسم في الرابط', 'type' => 'text', 'required' => true,
+                                               'ltr' => true, 'unique' => true,
+                                               'hint' => 'حروف لاتينية وشرطات — يصير رابط الصفحة /group/&lt;الاسم&gt;. ولا يغير بعد النشر.'),
+                    'description'     => array('label' => 'الوصف', 'type' => 'textarea'),
+                    'image'           => array('label' => 'صورة البطاقة', 'type' => 'file',
+                                               'bucket' => 'groups', 'img_w' => 1200, 'img_h' => 800,
+                                               'accept' => '.jpg,.jpeg,.png,.webp'),
+                    'teacher_id'      => array('label' => 'المعلم', 'type' => 'ref', 'ref' => 'teachers', 'required' => true,
+                                               'list' => true, 'section' => 'من يدرسها ولمن'),
+                    'grade_id'        => array('label' => 'الصف', 'type' => 'ref', 'ref' => 'grades',
+                                               'hint' => 'اختياري — للترشيح في الكتالوج.'),
+                    'subject_id'      => array('label' => 'المادة', 'type' => 'ref', 'ref' => 'subjects',
+                                               'hint' => 'اختياري.'),
+                    'course_id'       => array('label' => 'كورس مرتبط', 'type' => 'ref', 'ref' => 'courses',
+                                               'hint' => 'اختياري — يعرض بجوار المجموعة، ولا تفتحه العضوية.'),
+                    'price'           => array('label' => 'سعر العضوية', 'type' => 'money', 'list' => true,
+                                               'section' => 'السعر والمقاعد',
+                                               'hint' => 'يدفع مرة واحدة للمجموعة كلها. وصفر يعني لا تباع.'),
+                    'teacher_percent' => array('label' => 'نصيب المعلم %', 'type' => 'percent', 'nullable' => true,
+                                               'mirror' => 'عمولة المنصة', 'placeholder' => 'الافتراض العام',
+                                               'hint' => 'فارغ = النسبة العامة (٦٠ افتراضا). وصفر غير الفارغ: صفر قرار.'),
+                    'capacity'        => array('label' => 'عدد المقاعد', 'type' => 'number', 'default' => 0, 'list' => true,
+                                               'hint' => 'صفر = بلا حد. والسعة تفحص بعد الحجز، فلا يباع مقعد مرتين.'),
+                    'access_days'     => array('label' => 'مدة العضوية (يوما)', 'type' => 'number', 'default' => 0,
+                                               'hint' => 'صفر = حتى نهاية آخر حصة في الجدول.'),
+                    'enroll_until'    => array('label' => 'آخر موعد للانضمام', 'type' => 'datetime',
+                                               'hint' => 'فارغ = ما دامت منشورة.'),
+                    'status'          => array('label' => 'الحالة', 'type' => 'enum', 'default' => 'draft', 'list' => true,
+                                               'section' => 'النشر',
+                                               'options' => array('draft' => 'مسودة', 'review' => 'بانتظار المراجعة',
+                                                                  'published' => 'منشورة', 'closed' => 'مغلقة')),
+                ),
+            ),
+            'group_sessions' => array(
+                'table'    => 'tq_group_sessions',
+                'title'    => 'حصص المجموعات',
+                'lead'     => 'جدول حصص كل مجموعة مباشرة.',
+                'icon'     => 'calendar',
+                'ensure'   => 'taqdar_group_model',
+                'order_by' => array('starts_at' => 'DESC'),
+                'note'     => 'المواعيد بتوقيت الخادم. وتأجيل حصة أو إلغاؤها بسبب يبلغ كل الأعضاء — '
+                            . 'والإلغاء بلا بديل قرار للإدارة وحدها.',
+                'fields'   => array(
+                    'group_id'     => array('label' => 'المجموعة', 'type' => 'ref', 'ref' => 'groups', 'required' => true, 'list' => true),
+                    'title'        => array('label' => 'عنوان الحصة', 'type' => 'text', 'list' => true),
+                    'starts_at'    => array('label' => 'الموعد', 'type' => 'datetime', 'required' => true, 'list' => true),
+                    'duration_min' => array('label' => 'المدة (دقيقة)', 'type' => 'number', 'default' => 60),
+                    'meet_url'     => array('label' => 'رابط اللقاء', 'type' => 'text', 'ltr' => true),
+                    'status'       => array('label' => 'الحالة', 'type' => 'enum', 'default' => 'scheduled', 'list' => true,
+                                            'options' => array('scheduled' => 'مجدولة', 'live' => 'مباشرة',
+                                                               'completed' => 'انتهت', 'cancelled' => 'ملغاة')),
+                    'recording_url' => array('label' => 'رابط التسجيل', 'type' => 'text', 'ltr' => true),
+                ),
+            ),
+            // /TQ-GROUP
+
             /* TQ-COUPON — أكواد الخصم. الوحدة الموصوفة تحرر الكود الواحد،
                وشاشة «أكواد الخصم» (`taqdar_admin/coupons`) تجيب ما لا تجيبه
                القائمة العامة: كم استعمل كل كود وبكم وفر، ومن استعمله،
@@ -362,6 +432,7 @@ class Taqdar_admin_model extends CI_Model
                     'on_books'       => array('label' => 'الكتب', 'type' => 'bool', 'default' => 1),
                     'on_packs'       => array('label' => 'باقات حصص التأسيس', 'type' => 'bool', 'default' => 1),
                     'on_paths'       => array('label' => 'المسارات', 'type' => 'bool', 'default' => 1),
+                    'on_groups'      => array('label' => 'المجموعات المباشرة', 'type' => 'bool', 'default' => 0),   // TQ-GROUP
                     'plan_ids'       => array('label' => 'باقات بعينها فقط', 'type' => 'multiref', 'ref' => 'plans',
                                               'hint' => 'اتركها بلا تحديد ليعمل على كل الباقات. وإن حددت، لا يعمل إلا على ما حددت.'),
                     'course_ids'     => array('label' => 'كورسات بعينها فقط', 'type' => 'multiref', 'ref' => 'sale_courses',
@@ -956,6 +1027,17 @@ class Taqdar_admin_model extends CI_Model
                 } catch (Throwable $e) { $this->db->reset_query(); }
                 break;
 
+            // TQ-GROUP — المجموعات المباشرة، لحقل `group_id` في وحدة الحصص.
+            case 'groups':
+                try {
+                    $this->load->model('taqdar_group_model', 'tq_grp_opt');
+                    $this->tq_grp_opt->ensure_schema();
+                    foreach ($this->db->select('id, title')->order_by('id', 'DESC')
+                                      ->get('tq_groups')->result_array() as $r) $out[$r['id']] = $r['title'];
+                } catch (Throwable $e) { $this->db->reset_query(); }
+                break;
+            // /TQ-GROUP
+
             /* TQ-COUPON — ما يباع مفردا فعلا، لحصر كود في عناصر بعينها.
                والمعلن وحده: كورس لا يباع لا معنى لكود عليه، وقائمة بخمسمئة
                كورس تدفن العشرة التي تباع. */
@@ -1521,6 +1603,33 @@ class Taqdar_admin_model extends CI_Model
                 log_message('error', 'TQ-BOOK delete guard: ' . $e->getMessage());
             }
         }
+
+        // TQ-GROUP — مجموعة بيعت لا تحذف، تغلق. والسبب بالرقم من النموذج.
+        if ($key === 'groups') {
+            try {
+                $this->load->model('taqdar_group_model', 'tq_grp_del');
+                $b = $this->tq_grp_del->delete_blockers((int) $id);
+                if (!empty($b['why'])) {
+                    $this->delete_error = t('لا تحذف هذه المجموعة: ') . implode(' ', $b['why'])
+                                        . ' ' . t('اجعل حالتها «مغلقة» — فلا تباع، ويبقى اعضاؤها على ما دفعوا.');
+                    return false;
+                }
+                $this->db->where('group_id', (int) $id)->delete('tq_group_sessions');
+            } catch (Throwable $e) {
+                $this->db->reset_query();
+                log_message('error', 'TQ-GROUP delete guard: ' . $e->getMessage());
+            }
+        }
+        if ($key === 'group_sessions') {
+            try {
+                $n = (int) $this->db->where('session_id', (int) $id)->count_all_results('tq_group_attendance');
+                if ($n > 0) {
+                    $this->delete_error = t('لا تحذف حصة لها حضور مسجل — اجلها او الغها بسبب.');
+                    return false;
+                }
+            } catch (Throwable $e) { $this->db->reset_query(); }
+        }
+        // /TQ-GROUP
 
         /* TQ-COUPON — كود استعمل لا يحذف، يوقف: سجل كل بيعة خصمت به يشير
            إليه. والسبب بالرقم من النموذج لا بـ«غير مسموح». */

@@ -34,7 +34,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 class Taqdar_coupon_model extends CI_Model
 {
-    const SCHEMA_V   = '1';
+    const SCHEMA_V   = '2';   // TQ-GROUP — 2 adds on_groups
 
     /** مهلة الحجز بالساعات — فوقها لا يحبس فاتورة معلقة كودا عن غيرها. */
     const HOLD_HOURS = 72;
@@ -145,6 +145,12 @@ class Taqdar_coupon_model extends CI_Model
         }
         if ($add) $this->try_sql('ALTER TABLE `subscriptions` ' . implode(', ', $add));
 
+        /* TQ-GROUP — المجموعات المباشرة نوع سادس. والافتراض صفر لا واحد:
+           كود صدر قبلها لم يقصدها من اصدره. */
+        if (!$this->field('on_groups', 'tq_coupons')) {
+            $this->try_sql("ALTER TABLE `tq_coupons` ADD COLUMN `on_groups` tinyint(1) NOT NULL DEFAULT 0");
+        }
+
         $this->put_setting('tq_coupon_schema_v', self::SCHEMA_V);
         $this->db->data_cache = array();
         return true;
@@ -170,6 +176,8 @@ class Taqdar_coupon_model extends CI_Model
             'course' => array('col' => 'on_courses', 'label' => 'الكورسات المفردة',   'noun' => 'الكورس'),
             'book'   => array('col' => 'on_books',   'label' => 'الكتب',              'noun' => 'الكتاب'),
             'pack'   => array('col' => 'on_packs',   'label' => 'باقات حصص التأسيس',  'noun' => 'باقة الحصص'),
+            // TQ-GROUP
+            'group'  => array('col' => 'on_groups',  'label' => 'المجموعات المباشرة', 'noun' => 'المجموعة المباشرة'),
         ));
     }
 
@@ -311,6 +319,13 @@ class Taqdar_coupon_model extends CI_Model
                     if (empty($o['sellable'])) return $out;
                     return array('ok' => true, 'gross' => (int) $o['price'],
                                  'title' => (string) $o['name'], 'why' => '');
+
+                case 'group':   // TQ-GROUP
+                    $this->load->model('taqdar_group_model', 'tq_grp');
+                    $o = $this->tq_grp->offer((int) $item_id);
+                    if (empty($o['sellable']) && $o['reason'] !== 'full') return $out;
+                    return array('ok' => true, 'gross' => (int) $o['price_halalas'],
+                                 'title' => (string) $o['title'], 'why' => '');
             }
         } catch (Throwable $e) {
             $this->db->reset_query();

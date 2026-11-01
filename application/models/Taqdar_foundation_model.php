@@ -193,11 +193,12 @@ class Taqdar_foundation_model extends CI_Model
            خطأ (خارج الوضع الصارم). فبلا هذا السطر يفعل الاشتراك، ويكتب
            بنده، ويقرأ `entity_type = ''` — فتقول شاشة تفاصيل البيعة «لا
            يفتح شيئا» عن رصيد قائم، ولا شيء يخطئ في اي موضع. */
-        $this->try_sql(
-            "ALTER TABLE `subscription_items` MODIFY COLUMN `entity_type`
-             ENUM('all','subject','path','course','trial','grade','book','foundation')
-             NOT NULL DEFAULT 'all'"
-        );
+        /* TQ-GROUP — **والسرد يقرأ حيا ويضاف اليه، لا يكتب بيد.** قائمة
+           مكتوبة هنا كانت تسقط `group` (وحدة البيع السادسة) متى جرى هذا
+           التجهيز بعد تجهيز المجموعات، و MODIFY الى سرد اضيق يحول بنود
+           المجموعات القائمة الى `''` بلا خطأ. فالقيم القائمة تبقى كلها،
+           وما ينقص من قائمتنا يضاف. */
+        $this->extend_items_enum(array('all','subject','path','course','trial','grade','book','foundation'));
 
         $this->try_sql('ALTER TABLE `subscriptions` ADD COLUMN IF NOT EXISTS `pack_id` INT(10) UNSIGNED NOT NULL DEFAULT 0');
         $this->try_sql('ALTER TABLE `subscriptions` ADD COLUMN IF NOT EXISTS `pack_sessions` SMALLINT(5) UNSIGNED NOT NULL DEFAULT 0');
@@ -308,6 +309,27 @@ class Taqdar_foundation_model extends CI_Model
             try { $this->db->insert(self::TABLE, $r); }
             catch (Throwable $e) { $this->db->reset_query(); }
         }
+    }
+
+    /** يضيف الى سرد `subscription_items.entity_type` ما ينقصه، ولا ينزع شيئا. */
+    private function extend_items_enum(array $need)
+    {
+        try {
+            $row = $this->db->query(
+                'SELECT `COLUMN_TYPE` t FROM `information_schema`.`COLUMNS`
+                  WHERE `TABLE_SCHEMA` = DATABASE() AND `TABLE_NAME` = "subscription_items"
+                    AND `COLUMN_NAME` = "entity_type"'
+            )->row_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return; }
+        if (!$row || !preg_match('/^enum\((.*)\)$/i', (string) $row['t'], $m)) return;
+
+        preg_match_all("/'((?:[^']|'')*)'/", $m[1], $mm);
+        $vals = $mm[1];
+        $add  = array_values(array_diff($need, $vals));
+        if (!$add) return;
+        $vals = array_merge($vals, $add);
+        $list = implode(',', array_map(function ($v) { return "'" . str_replace("'", "''", $v) . "'"; }, $vals));
+        $this->try_sql("ALTER TABLE `subscription_items` MODIFY COLUMN `entity_type` ENUM($list) NOT NULL DEFAULT 'all'");
     }
 
     private function try_sql($sql)
