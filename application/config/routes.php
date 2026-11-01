@@ -297,6 +297,10 @@ $route['api/v1/student/placement']        = 'api_v1/student_placement';
 
 // ---- الطالب · الحصص بالطلب ----
 // الأطول أولا: `sessions/12/pay` ثلاثة مقاطع، و`sessions` مقطع واحد.
+// TQ-LIVE — begin
+$route['api/v1/student/sessions/(:num)/join']   = 'api_v1/session_join/$1';
+$route['api/v1/student/sessions/(:num)/ics']    = 'api_v1/session_ics/$1';
+// TQ-LIVE — end
 $route['api/v1/student/sessions/(:num)/pay']    = 'api_v1/session_pay/$1';
 $route['api/v1/student/sessions/(:num)/cancel'] = 'api_v1/session_cancel/$1';
 $route['api/v1/student/sessions']               = 'api_v1/student_sessions';
@@ -339,6 +343,10 @@ $route['api/v1/teacher/marking/(quiz|homework)/(:num)'] = 'api_v1/teacher_markin
 $route['api/v1/teacher/marking']                       = 'api_v1/teacher_marking';
 $route['api/v1/teacher/wallet/withdraw']               = 'api_v1/teacher_wallet_withdraw';
 $route['api/v1/teacher/wallet']                        = 'api_v1/teacher_wallet';
+// TQ-LIVE — begin
+$route['api/v1/teacher/sessions/(:num)/join']          = 'api_v1/teacher_session_join/$1';
+$route['api/v1/teacher/sessions/(:num)/ics']           = 'api_v1/teacher_session_ics/$1';
+// TQ-LIVE — end
 $route['api/v1/teacher/sessions/(:num)/decide']        = 'api_v1/teacher_session_decide/$1';
 $route['api/v1/teacher/sessions/(:num)/complete']      = 'api_v1/teacher_session_complete/$1';
 $route['api/v1/teacher/sessions']                      = 'api_v1/teacher_sessions';
@@ -554,6 +562,14 @@ $route['student/settings/save']        = 'taqdar/settings_save';
 $route['student/sessions/request']     = 'taqdar/session_request';
 $route['student/sessions/pay']         = 'taqdar/session_pay';
 $route['student/sessions/cancel']      = 'taqdar/session_cancel';
+// TQ-LIVE — begin: writes first, then the per-session views (join · ics)
+$route['teacher/sessions/close-slot']      = 'taqdar/sessions_close_slot';
+$route['teacher/settings/meet-url']        = 'taqdar/teacher_meet_url_save';
+$route['student/sessions/(:num)/join']     = 'taqdar/session_join/$1';
+$route['student/sessions/(:num)/ics']      = 'taqdar/session_ics/$1';
+$route['teacher/sessions/(:num)/join']     = 'taqdar/teacher_session_join/$1';
+$route['teacher/sessions/(:num)/ics']      = 'taqdar/teacher_session_ics/$1';
+// TQ-LIVE — end
 $route['student/reviews']              = 'taqdar/reviews';
 $route['teacher/students/message']     = 'taqdar/students_message';
 $route['taqdar/teacher/students/message'] = 'taqdar/students_message';

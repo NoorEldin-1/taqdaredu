@@ -196,7 +196,9 @@ include 'portal_open.php';
                                         <?php echo t('رابط لقاء الحصة مع'); ?> <?php echo html_escape($tq_r['student_name']); ?>
                                     </label>
                                     <input class="tq-input" id="tq-meet-<?php echo (int) $tq_r['id']; ?>"
-                                           name="meet_url" type="url" dir="ltr" required
+                                           name="meet_url" type="url" dir="ltr"
+                                           value="<?php /* TQ-LIVE (D2-b) — رابطك الثابت يملأ مسبقا، ولك تغييره لهذه الحصة. */ echo html_escape($tq_m->teacher_meet_url($tq_uid)); ?>"
+                                           <?php echo $tq_m->teacher_meet_url($tq_uid) === '' ? 'required' : ''; ?>
                                            style="flex:1;min-inline-size:18rem"
                                            placeholder="https://meet.google.com/abc-defg-hij"
                                            aria-describedby="tq-meet-h-<?php echo (int) $tq_r['id']; ?>">
@@ -250,11 +252,11 @@ include 'portal_open.php';
                 </div>
                 <div class="tq-card">
                     <p class="tq-caption" style="margin-block-start:0">
-                        <?php echo t('أكدت هذه المواعيد وصدرت فواتيرها.'); ?> <strong><?php echo t('ولا تثبت حتى يدفع الطالب'); ?></strong> <?php echo t('— وحتى ذلك الحين يبقى الموعد معروضا، فإن مضت المهلة عاد متاحا لغيره.'); ?>
+                        <?php echo t('حجزت هذه المواعيد وصدرت فواتيرها (بتأكيدك، أو حجزا فوريا من الطالب).'); ?> <strong><?php echo t('ولا تثبت حتى يدفع الطالب'); ?></strong> <?php echo t('— وحتى ذلك الحين يبقى الموعد معروضا، فإن مضت المهلة عاد متاحا لغيره.'); ?>
                     </p>
                     <ul class="tq-stack">
                         <?php foreach ($tq_unpaid as $tq_c): ?>
-                            <?php $tq_b = $tq_m->status_badge($tq_c['status']); ?>
+                            <?php /* TQ-LIVE — الشارة من `display_state()` وحدها. */ $tq_b = array($tq_c['state']['tone'], $tq_c['state']['label']); ?>
                             <li class="tq-row" style="gap:var(--tq-space-l);padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
                                 <img class="tq-avatar" src="<?php echo html_escape($tq_ses_photo($tq_c['image'])); ?>"
                                      alt="<?php echo html_escape(t('صورة ') . $tq_c['student_name']); ?>">
@@ -299,7 +301,7 @@ include 'portal_open.php';
                 <div class="tq-card">
                     <ul class="tq-stack">
                         <?php foreach ($tq_confirmed as $tq_c): ?>
-                            <?php $tq_b = $tq_m->status_badge($tq_c['status']); ?>
+                            <?php /* TQ-LIVE — الشارة من `display_state()` وحدها. */ $tq_b = array($tq_c['state']['tone'], $tq_c['state']['label']); ?>
                             <li style="padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
                                 <div class="tq-row" style="gap:var(--tq-space-l)">
                                     <img class="tq-avatar" src="<?php echo html_escape($tq_ses_photo($tq_c['image'])); ?>"
@@ -326,14 +328,17 @@ include 'portal_open.php';
                                             <?php echo t('نصيبك'); ?>
                                         </span>
                                     <?php endif; ?>
-                                    <?php if ($tq_c['meet_url'] !== '' && !$tq_c['is_over']): ?>
-                                        <a class="tq-btn tq-btn--mastery tq-btn--sm" target="_blank" rel="noopener"
-                                           href="<?php echo html_escape($tq_c['meet_url']); ?>">
-                                            <?php echo tq_icon('video', 16); ?> <?php echo t('ادخل الحصة'); ?>
-                                        </a>
-                                    <?php endif; ?>
                                     <?php echo tq_badge($tq_b[0], $tq_b[1]); ?>
                                 </div>
+
+                                <?php /* TQ-LIVE — الدخول يمر بالخادم: يختم دخول المعلم وينقل
+                                         الحصة الى «مباشرة»، ويفتح من ١٥ دقيقة قبلها. */ ?>
+                                <?php if (!$tq_c['has_link'] && !$tq_c['is_over']): ?>
+                                    <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0;color:var(--tq-danger, inherit)">
+                                        <?php echo t('لا رابط لقاء لهذه الحصة. ضع رابطك الثابت في أعلى الشاشة.'); ?>
+                                    </p>
+                                <?php endif; ?>
+                                <?php $tq_live = $tq_c; $tq_live_role = 'teacher'; include APPPATH . 'views/components/tq_session_live.php'; ?>
 
                                 <?php /* «انتهت الحصة» — وهي اللحظة التي يقيد فيها نصيبه
                                          ويموت فيها الرابط. ولا تظهر قبل موعدها: زر ينهي
@@ -667,9 +672,62 @@ include 'portal_open.php';
                 <?php endif; /* $tq_grades && $tq_subs — بلا نطاق لا جدول ولا زر حفظ */ ?>
             </fieldset>
         </form>
+
+        <?php /* TQ-LIVE (D1) — فتح الموعد التزام به: في الحجز الفوري يحجز
+                 الطالب ويدفع بلا رجوع الى المعلم، فالمخرج «اغلق هذا الموعد»
+                 قبل ان يحجز. */ ?>
+        <?php $tq_open = $tq_m->open_slots_for($tq_uid); ?>
+        <?php if ($tq_open): ?>
+            <section class="tq-section" aria-labelledby="tq-open-h">
+                <div class="tq-sectionhead">
+                    <h2 id="tq-open-h"><?php echo t('مواعيدك المفتوحة'); ?></h2>
+                    <span class="tq-sectionhead__count"><?php echo TQ_LRI . count($tq_open) . TQ_PDI; ?></span>
+                </div>
+                <div class="tq-card">
+                    <?php if ($tq_cfg['instant_book']): ?>
+                        <p class="tq-caption" style="margin-block-start:0">
+                            <strong><?php echo t('كل موعد مفتوح يحجز ويدفع بلا رجوع إليك.'); ?></strong>
+                            <?php echo t('أغلق ما لا تستطيع الالتزام به قبل أن يحجزه طالب.'); ?>
+                        </p>
+                    <?php endif; ?>
+                    <ul class="tq-stack">
+                        <?php foreach ($tq_open as $tq_s): ?>
+                            <li class="tq-row" style="gap:var(--tq-space-m);padding-block:var(--tq-space-s);border-block-end:1px solid var(--tq-line)">
+                                <span style="flex:1;min-inline-size:0">
+                                    <span class="tq-micro" style="display:block"><?php echo tq_iso($tq_m->when_text($tq_s['starts_at'], (int) $tq_s['duration_min'])); ?></span>
+                                    <span class="tq-micro" style="display:block"><?php echo html_escape($tq_m->scope_of($tq_s)['label']); ?></span>
+                                </span>
+                                <form method="post" action="<?php echo base_url('teacher/sessions/close-slot'); ?>" class="tq-form-inline">
+                                    <?php echo tq_csrf(); ?>
+                                    <input type="hidden" name="slot_id" value="<?php echo (int) $tq_s['id']; ?>">
+                                    <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit"><?php echo t('أغلق هذا الموعد'); ?></button>
+                                </form>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            </section>
+        <?php endif; ?>
     </div>
 
     <aside class="tq-aside">
+
+        <?php /* TQ-LIVE (D2-b) — رابط اللقاء الثابت: يستعمل لكل حصة بلا رابط
+                 خاص، فلا يقف الطالب امام «لا رابط بعد». */ ?>
+        <div class="tq-card">
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('رابط لقائك الثابت'); ?></h2></div>
+            <form method="post" action="<?php echo base_url('teacher/settings/meet-url'); ?>">
+                <?php echo tq_csrf(); ?>
+                <label class="tq-sr" for="tq-meet-fixed"><?php echo t('رابط لقائك الثابت'); ?></label>
+                <input class="tq-input" id="tq-meet-fixed" name="tq_meet_url" type="url" dir="ltr"
+                       placeholder="https://meet.google.com/..."
+                       value="<?php echo html_escape($tq_m->teacher_meet_url($tq_uid)); ?>">
+                <p class="tq-micro" style="margin:var(--tq-space-xs) 0 var(--tq-space-s)">
+                    <?php echo t('يدخل منه طلابك كل حصة لم تضع لها رابطا خاصا.'); ?> (<?php echo html_escape($tq_m->meet_hosts_text()); ?>)
+                </p>
+                <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit"><?php echo t('حفظ الرابط'); ?></button>
+            </form>
+        </div>
 
         <?php /* ثمن حصتك ونصيبك منها — أول ما يسأل عنه معلم، ولم يكن في
                  بوابته موضع واحد يقوله: يدرس ولا يعرف بكم بيع وقته ولا كم

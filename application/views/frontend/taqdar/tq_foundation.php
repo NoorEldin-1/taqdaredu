@@ -562,7 +562,7 @@ include 'portal_open.php';
             <?php else: ?>
                 <ul class="tq-s-list">
                     <?php foreach ($tq_bookings as $b): ?>
-                        <?php $badge = $tq_m->status_badge($b['status']); ?>
+                        <?php /* TQ-LIVE — الشارة من `display_state()` وحدها. */ $badge = array($b['state']['tone'], $b['state']['label']); ?>
                         <li class="tq-s-item tq-s-item--stack">
                             <div class="tq-row" style="gap:var(--tq-space-m);inline-size:100%">
                                 <img class="tq-avatar" src="<?php echo html_escape($tq_ses_photo($b['image'])); ?>"
@@ -597,7 +597,7 @@ include 'portal_open.php';
                             <?php if ($b['needs_pay']): ?>
                                 <div class="tq-pastel tq-pastel--peach" style="margin-block-start:var(--tq-space-s);padding:var(--tq-space-m)">
                                     <p class="tq-pastel__body" style="margin:0 0 var(--tq-space-s);font-size:.85rem">
-                                        <?php echo t('أكد المعلم الموعد. ادفع'); ?>
+                                        <?php /* TQ-LIVE — الحجز الفوري لم يؤكده معلم. */ echo !empty($b['is_instant']) ? t('تم الحجز (حجز فوري). ادفع بالبطاقة') : t('أكد المعلم الموعد. ادفع'); ?>
                                         <strong><?php echo $tq_sar($b['invoice_total'] ?: $b['price']); ?></strong>
                                         <?php echo t('لتثبيته'); ?>
                                         <?php if ($b['pay_deadline']): ?>
@@ -622,16 +622,11 @@ include 'portal_open.php';
                                 </div>
                             <?php endif; ?>
 
-                            <?php if ($b['can_join']): ?>
-                                <a class="tq-btn tq-btn--mastery tq-btn--sm tq-btn--block"
-                                   href="<?php echo html_escape($b['meet_url']); ?>"
-                                   target="_blank" rel="noopener noreferrer"
-                                   style="margin-block-start:var(--tq-space-s)">
-                                    <?php echo tq_icon('video', 16); ?>
-                                    <?php echo $b['status'] === 'live' ? t('ادخل الحصة الجارية') : t('ادخل الحصة'); ?>
-                                    <span class="tq-sr"><?php echo t('— يفتح في نافذة جديدة'); ?></span>
-                                </a>
-                            <?php elseif ($b['note'] !== '' && !$b['needs_pay']): ?>
+                            <?php /* TQ-LIVE — الزر يمر بالخادم (`/join`) لا برابط عار، ومعه العد
+                                     والتقويم واعادة الدفع. */ ?>
+                            <?php $tq_live = $b; $tq_live_role = 'student'; include APPPATH . 'views/components/tq_session_live.php'; ?>
+                            <?php if (!$b['can_join'] && $b['note'] !== '' && !$b['needs_pay']
+                                      && !(in_array($b['status'], ['confirmed', 'live'], true) && (int) $b['opens_at'] > time())): ?>
                                 <p class="tq-micro" style="margin:var(--tq-space-xs) 0 0">
                                     <?php echo html_escape($b['note']); ?>
                                 </p>

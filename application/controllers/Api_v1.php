@@ -2622,7 +2622,9 @@ class Api_v1 extends CI_Controller
             }
         }
 
-        $out['bank_transfer'] = $this->bank_out((string) $inv['invoice_no']);
+        /* TQ-LIVE (D1-b) — فاتورة حجز فوري بطاقة وحدها: لا تعليمات تحويل. */
+        $out['bank_transfer'] = $this->instant_invoice((int) $inv['id'])
+                                 ? null : $this->bank_out((string) $inv['invoice_no']);
 
         $this->read($out, '', array(), $h);
     }
@@ -2740,6 +2742,13 @@ class Api_v1 extends CI_Controller
      * @param array $inv   صف الفاتورة — فحصت ملكيته قبل النداء
      * @param int   $payer من يدفع: الطالب أو وليه المرتبط برابط نشط
      */
+    /** TQ-LIVE — اهي فاتورة حجز فوري (تدفع بالبطاقة وحدها)؟ */
+    private function instant_invoice($invoice_id)
+    {
+        try { return (bool) $this->sess()->is_instant_invoice((int) $invoice_id); }
+        catch (Throwable $e) { return false; }
+    }
+
     private function pay_invoice_now($inv, $payer)
     {
         $payer = (int) $payer;
@@ -2761,8 +2770,10 @@ class Api_v1 extends CI_Controller
             $this->fail($this->review_pay_note(), 'purchase_unavailable', 403);
         }
 
+        $card_only = (int) ($inv['subscription_id'] ?? 0) === 0 && $this->instant_invoice((int) $inv['id']);   // TQ-LIVE
         if (!$this->tq_tap->ready()) {
-            $this->fail('الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة بنكيا.',
+            $this->fail($card_only ? 'الدفع بالبطاقة غير متاح الآن، وهذا الحجز يدفع بالبطاقة وحدها. يعود الموعد متاحا بعد المهلة ولم يخصم منك شيء.'
+                                   : 'الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة بنكيا.',
                         'card_payment_disabled', 503);
         }
 
@@ -2770,7 +2781,7 @@ class Api_v1 extends CI_Controller
 
         if (empty($pay['ok'])) {
             $this->fail(implode(' ', (array) $pay['errors'])
-                        . ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا.',
+                        . ($card_only ? ' أعد المحاولة بالبطاقة قبل انتهاء المهلة.' : ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا.'),
                         'payment_start_failed', 502);
         }
 
@@ -6149,8 +6160,81 @@ class Api_v1 extends CI_Controller
             'can_cancel'    => (bool) $b['can_cancel'],
             'can_join'      => (bool) $b['can_join'],
             'is_over'       => (bool) $b['is_over'],
+            // TQ-LIVE — begin
+        ) + $this->live_out($b, 'student');
+    }
+
+    /**
+     * TQ-LIVE — حالة العرض وباب الدخول والتقويم لحصة، من الطبقة نفسها التي
+     * تطبعها شاشات الويب. و`join_url` نقطة الواجهة لا رابط اللقاء: الخادم
+     * يفحص الوقت ويختم الحضور ثم يرد الرابط.
+     */
+    private function live_out($r, $role)
+    {
+        $st = (array) ($r['state'] ?? array());
+        $id = (int) $r['id'];
+        return array(
+            'state'    => array(
+                'key'   => (string) ($st['key'] ?? ''),
+                'label' => (string) ($st['label'] ?? ''),
+                'tone'  => (string) ($st['tone'] ?? ''),
+            ),
+            'join_url' => !empty($r['can_join']) ? site_url('api/v1/' . $role . '/sessions/' . $id . '/join') : null,
+            'ics_url'  => !empty($r['starts_ts']) ? site_url('api/v1/' . $role . '/sessions/' . $id . '/ics') : null,
+            'opens_at' => !empty($r['opens_at']) ? tq_api_date(date('Y-m-d H:i:s', (int) $r['opens_at'])) : null,
+            'pay_deadline' => tq_api_date($r['pay_deadline'] ?? null),
         );
     }
+
+    /** GET /api/v1/student/sessions/{id}/join — يختم الحضور ويرد الرابط. */
+    public function session_join($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $this->live_join_out((int) $id, (int) $u['id'], 'student');
+    }
+
+    /** GET /api/v1/teacher/sessions/{id}/join — ويجعل الحصة «مباشرة». */
+    public function teacher_session_join($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_teacher();
+        $this->live_join_out((int) $id, (int) $u['id'], 'teacher');
+    }
+
+    private function live_join_out($id, $uid, $role)
+    {
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+        $r = $this->sess()->record_join($id, $uid, $role);
+        if (empty($r['ok'])) $this->fail((string) $r['msg'], 'session_not_joinable', 409);
+        $this->respond(tq_api_ok(array('url' => $r['url']), ''), 200);
+    }
+
+    /** GET /api/v1/{student|teacher}/sessions/{id}/ics — ملف تقويم للحصة. */
+    public function session_ics($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $this->live_ics_out((int) $id, (int) $u['id'], 'student');
+    }
+
+    public function teacher_session_ics($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_teacher();
+        $this->live_ics_out((int) $id, (int) $u['id'], 'teacher');
+    }
+
+    private function live_ics_out($id, $uid, $role)
+    {
+        $row = $this->sess()->session_for($id, $uid, $role);
+        if (!$row || empty($row['starts_at'])) $this->fail('لا حصة بهذا الرقم في حسابك.', 'not_found', 404);
+        $this->output->set_status_header(200)
+             ->set_content_type('text/calendar; charset=utf-8')
+             ->set_header('Content-Disposition: attachment; filename="taqdar-session-' . $id . '.ics"')
+             ->set_output($this->sess()->ics_for($row));
+    }
+    // TQ-LIVE — end
 
     /** شكل المعلم المتاح ومواعيده. */
     private function tutors_out($rows)
@@ -6363,7 +6447,9 @@ class Api_v1 extends CI_Controller
         if ($errors) $this->fail('راجع البيانات المدخلة.', 'validation_failed', 422, $errors);
 
         $uid = (int) $u['id'];
-        $r   = $this->sess()->request_session($uid, (int) $b['slot_id']);
+        /* TQ-LIVE — الحجز الفوري لمن يدفع الحصة بالبطاقة وحده (سياسة العميل). */
+        $r   = $this->sess()->request_session($uid, (int) $b['slot_id'],
+                                             (bool) $this->pay_policy()['session_card']);
 
         if (empty($r['ok'])) {
             $this->fail(isset($r['msg']) ? $r['msg'] : 'تعذر إرسال الطلب.', 'session_request_failed', 409);
@@ -6372,7 +6458,7 @@ class Api_v1 extends CI_Controller
         /* يخبر المعلم أن طلبا ينتظر رده — وإلا لم يعرف إلا إن فتح شاشته.
            وفشل الإشعار لا يبطل الطلب: الصف كتب فعلا. */
         try {
-            $tid = (int) ($r['teacher_id'] ?? 0);
+            $tid = empty($r['instant']) ? (int) ($r['teacher_id'] ?? 0) : 0;   // TQ-LIVE — الفوري لا ينتظر ردا
             if ($tid > 0) {
                 $this->load->model('taqdar_admin_model');
                 $this->taqdar_admin_model->push_notification($tid, 'طلب حصة خاصة جديد',
@@ -6383,7 +6469,11 @@ class Api_v1 extends CI_Controller
 
         $this->api->audit('api.session.request', $uid, array('slot_id' => (int) $b['slot_id']));
 
-        $this->respond(tq_api_ok(array('session_id' => (int) ($r['id'] ?? 0)),
+        $this->respond(tq_api_ok(array('session_id' => (int) ($r['id'] ?? 0),
+                                       // TQ-LIVE — حجز فوري: الفاتورة صدرت، والمهلة دقائق
+                                       'instant'      => !empty($r['instant']),
+                                       'invoice_id'   => (int) ($r['invoice_id'] ?? 0),
+                                       'pay_deadline' => tq_api_date($r['deadline'] ?? null)),
                                  isset($r['msg']) ? $r['msg'] : 'أرسل طلبك.'), 201);
     }
 
@@ -6419,6 +6509,10 @@ class Api_v1 extends CI_Controller
         if (!$this->tq_tap->ready()) {
             $no = (string) $this->db->select('invoice_no')->where('id', (int) $row['invoice_id'])
                                     ->get('invoices')->row('invoice_no');
+            if (empty($row['confirmed_at'])) {   // TQ-LIVE — حجز فوري: بطاقة وحدها
+                $this->fail('الدفع بالبطاقة غير متاح الآن، وهذا الحجز يدفع بالبطاقة وحدها. يعود الموعد متاحا بعد المهلة ولم يخصم منك شيء.',
+                            'card_payment_disabled', 503);
+            }
             $this->fail('الدفع بالبطاقة غير مفعل حاليا. حول قيمة الفاتورة ' . $no
                         . ' بنكيا وأبلغ الإدارة.', 'card_payment_disabled', 503);
         }
@@ -7936,7 +8030,7 @@ class Api_v1 extends CI_Controller
                 'note'          => (string) $r['note'],
                 'paid_at'       => tq_api_date($r['paid_at']),
                 'pay_deadline'  => tq_api_date($r['pay_deadline']),
-            );
+            ) + $this->live_out($r, 'teacher');   // TQ-LIVE
         }
 
         $this->read($out, '', array(

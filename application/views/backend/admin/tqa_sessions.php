@@ -376,12 +376,53 @@ $tq_url  = function ($over = array()) use ($status, $tq_kind) {
                 </span>
             </div>
 
+            <?php /* TQ-LIVE — مهلتا دخول لا مهلة: المعلم يفتح غرفته قبل طالبه.
+                     والمفتاح القديم يبقى مرادفا يقرأ لمن لم يحفظ هذين بعد. */ ?>
             <div class="tqa-field">
-                <label class="tqa-field__label" for="p-lead"><?php echo t('يفتح الرابط قبل الموعد بـ (دقيقة)'); ?></label>
-                <input class="tqa-input tqa-input--ltr" id="p-lead" name="tq_session_join_lead_min" type="number"
-                       min="0" max="240" dir="ltr" value="<?php echo (int) $cfg['lead_min']; ?>">
+                <label class="tqa-field__label" for="p-lead-s"><?php echo t('يفتح الرابط للطالب قبل الموعد بـ (دقيقة)'); ?></label>
+                <input class="tqa-input tqa-input--ltr" id="p-lead-s" name="tq_session_join_lead_student" type="number"
+                       min="0" max="240" dir="ltr" value="<?php echo (int) ($cfg['lead_student'] ?? $cfg['lead_min']); ?>">
                 <span class="tqa-field__hint">
                     <?php echo t('رابط يفتح قبل يومين يجعل الطالب يدخل غرفة فارغة ويظن أن معلمه تخلف.'); ?>
+                </span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="p-lead-t"><?php echo t('يفتح الرابط للمعلم قبل الموعد بـ (دقيقة)'); ?></label>
+                <input class="tqa-input tqa-input--ltr" id="p-lead-t" name="tq_session_join_lead_teacher" type="number"
+                       min="0" max="240" dir="ltr" value="<?php echo (int) ($cfg['lead_teacher'] ?? $cfg['lead_min']); ?>">
+                <span class="tqa-field__hint">
+                    <?php echo t('أطول من مهلة الطالب: المعلم يدخل أولا فيجده طالبه في الغرفة.'); ?>
+                </span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="p-instant">
+                    <input type="hidden" name="tq_session_instant_book" value="0">
+                    <input id="p-instant" name="tq_session_instant_book" type="checkbox" value="1"
+                           <?php echo !empty($cfg['instant_book']) ? 'checked' : ''; ?>>
+                    <?php echo t('حجز فوري: الدفع يثبت الحصة بلا تأكيد المعلم'); ?>
+                </label>
+                <span class="tqa-field__hint">
+                    <?php echo t('الحصة المفردة بثمن تحجز وتدفع بالبطاقة في الحال، وفتح المعلم لموعد التزام به. والإطفاء يعيد «طلب ثم تأكيد ثم دفع». وحصص الباقة والمجانية تثبت بتأكيد المعلم كما كانت.'); ?>
+                </span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="p-hold"><?php echo t('مهلة الحجز المؤقت أثناء الدفع (دقيقة)'); ?></label>
+                <input class="tqa-input tqa-input--ltr" id="p-hold" name="tq_session_hold_min" type="number"
+                       min="5" max="120" dir="ltr" value="<?php echo (int) ($cfg['hold_min'] ?? 15); ?>">
+                <span class="tqa-field__hint">
+                    <?php echo t('تكفي دفع بطاقة أو Apple Pay، ولا تحبس موعدا عن غيره ساعات.'); ?>
+                </span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="p-refund"><?php echo t('حد الاسترداد عند إلغاء الطالب (ساعة قبل الموعد)'); ?></label>
+                <input class="tqa-input tqa-input--ltr" id="p-refund" name="tq_session_refund_hours" type="number"
+                       min="0" max="168" dir="ltr" value="<?php echo (int) ($cfg['refund_hours'] ?? 24); ?>">
+                <span class="tqa-field__hint">
+                    <?php echo t('يحفظ الآن ولا يطبق بعد: قواعد إلغاء الطالب والاسترداد لم تفعل في المنصة، والإلغاء بعد الدفع ما زال بيد الإدارة.'); ?>
                 </span>
             </div>
 
