@@ -579,4 +579,65 @@
     nav.scrollTop += (ar.top - nr.top) - Math.max(0, (nr.height - ar.height) / 2);
   }
   revealActiveRailItem();
+
+  /* ---- TQ-LIVE — عد مهلة الدفع وموعد فتح الحصة --------------------
+     الوقت من الخادم: `data-tq-now` يطبع مع البطاقة ويحسب الفارق مرة،
+     فساعة جهاز خاطئة لا تفتح زرا مبكرا. والحارس الحقيقي في الخادم عند
+     النقر (`join_state()`)؛ هذا عرض لا حراسة. */
+  (function liveCountdown() {
+    var boxes = $$('[data-tq-now]');
+    if (!boxes.length) return;
+    var skew = parseInt(boxes[0].getAttribute('data-tq-now'), 10) * 1000 - Date.now();
+    var now = function () { return Date.now() + skew; };
+    var tr = function (s) { return (window.TQ && TQ.t) ? TQ.t(s) : s; };
+
+    var fmt = function (ms) {
+      var s = Math.max(0, Math.floor(ms / 1000));
+      var d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600),
+          m = Math.floor(s % 3600 / 60), x = s % 60;
+      if (d > 0) return d + ' ' + tr('يوم') + ' ' + h + ' ' + tr('ساعة');
+      if (h > 0) return h + ':' + (m < 10 ? '0' : '') + m + ':' + (x < 10 ? '0' : '') + x;
+      return m + ':' + (x < 10 ? '0' : '') + x;
+    };
+
+    /* الموعد بتوقيت المتصفح مع اسم منطقته (D9). */
+    $$('[data-tq-local]').forEach(function (el) {
+      var ts = parseInt(el.getAttribute('data-tq-local'), 10);
+      if (!ts || !window.Intl) return;
+      try {
+        el.textContent = new Intl.DateTimeFormat(document.documentElement.lang || undefined, {
+          weekday: 'short', day: 'numeric', month: 'short',
+          hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
+        }).format(new Date(ts * 1000));
+      } catch (e) { /* العرض زيادة */ }
+    });
+
+    function tick() {
+      var t = now();
+      $$('[data-tq-deadline]').forEach(function (el) {
+        var left = parseInt(el.getAttribute('data-tq-deadline'), 10) * 1000 - t;
+        el.textContent = fmt(left);
+        if (left <= 0 && !el.hasAttribute('data-tq-done')) {
+          el.setAttribute('data-tq-done', '1');
+          window.location.reload();
+        }
+      });
+      $$('[data-tq-starts]').forEach(function (el) {
+        el.textContent = fmt(parseInt(el.getAttribute('data-tq-starts'), 10) * 1000 - t);
+      });
+      /* حلت النافذة: يبدل «يفتح بعد» بالزر بلا تحديث صفحة. */
+      $$('[data-tq-opens]').forEach(function (box) {
+        if (parseInt(box.getAttribute('data-tq-opens'), 10) * 1000 > t) return;
+        var a = document.createElement('a');
+        a.className = 'tq-btn tq-btn--mastery tq-btn--sm tq-btn--block';
+        a.href = box.getAttribute('data-tq-join');
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = box.getAttribute('data-tq-join-label');
+        box.parentNode.replaceChild(a, box);
+      });
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
 })();

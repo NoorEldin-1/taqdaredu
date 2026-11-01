@@ -1700,6 +1700,12 @@ class Taqdar_sessions_model extends CI_Model
                 'pay_deadline' => $r['pay_deadline'],
                 'credited_at'  => $r['credited_at'],
                 'can_join'     => $j['can_join'],
+                /* TQ-LIVE — حالة العرض والباب والتقويم من مصدر واحد. */
+                'state'        => $this->display_state($r, null, 'teacher'),
+                'opens_at'     => (int) $j['opens_at'],
+                'starts_ts'    => (int) $j['starts_ts'],
+                'has_link'     => $this->meet_url_for($r) !== '',
+                'gcal_url'     => $r['starts_at'] ? $this->google_calendar_url($r) : '',
                 'can_complete' => $j['can_complete'],
                 'is_over'      => $j['is_over'],
                 'note'         => $j['note'],
@@ -2354,6 +2360,19 @@ class Taqdar_sessions_model extends CI_Model
         return $this->db->affected_rows() > 0;
     }
 
+    /** مواعيد المعلم المفتوحة القادمة — لزر «اغلق هذا الموعد». */
+    public function open_slots_for($teacher_id, $limit = 40)
+    {
+        $this->install_schema();
+        try {
+            return $this->db->select('id, starts_at, duration_min, grade_id, subject_id, kind, track_id')
+                            ->where('teacher_id', (int) $teacher_id)->where('status', 'open')
+                            ->where('starts_at >', date('Y-m-d H:i:s'))
+                            ->order_by('starts_at', 'ASC')->limit((int) $limit)
+                            ->get('availability_slots')->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return array(); }
+    }
+
     /**
      * يفك الحجز المؤقت الذي مضت مهلة دفعه — كسولا عند كل قراءة لشبكة
      * المواعيد، فلا ينتظر موعد ساعة الكرون ليعود لغيره. وهو خطوة الكرون
@@ -2971,6 +2990,11 @@ class Taqdar_sessions_model extends CI_Model
                                        && !empty($r['starts_at'])
                                        && strtotime($r['starts_at']) - $this->config()['lead_min'] * 60 > time()),
                 'can_join'      => $j['can_join'],
+                /* TQ-LIVE — حالة العرض والباب والتقويم من مصدر واحد. */
+                'state'         => $this->display_state($r, null, 'student'),
+                'opens_at'      => (int) $j['opens_at'],
+                'starts_ts'     => (int) $j['starts_ts'],
+                'gcal_url'      => $r['starts_at'] ? $this->google_calendar_url($r) : '',
                 'is_over'       => $j['is_over'],
                 'note'          => $j['note'],
             ];

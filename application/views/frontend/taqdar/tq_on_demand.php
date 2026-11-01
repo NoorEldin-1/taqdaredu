@@ -410,7 +410,7 @@ include 'portal_open.php';
             <?php else: ?>
                 <ul class="tq-s-list">
                     <?php foreach ($tq_bookings as $b): ?>
-                        <?php $badge = $tq_m->status_badge($b['status']); ?>
+                        <?php /* TQ-LIVE — الشارة من `display_state()` وحدها. */ $badge = array($b['state']['tone'], $b['state']['label']); ?>
                         <li class="tq-s-item tq-s-item--stack">
                             <div class="tq-row" style="gap:var(--tq-space-m);inline-size:100%">
                                 <img class="tq-avatar" src="<?php echo html_escape($tq_ses_photo($b['image'])); ?>"
@@ -475,16 +475,11 @@ include 'portal_open.php';
                                      ولم يكن في الشاشة كلها ما ينضم به: يؤكد المعلم الموعد فيرى
                                      الطالب شارة «مؤكد» ولا يعرف أين تعقد. والرابط يضعه المعلم
                                      عند التأكيد، ولا يعرض إلا وقت نفعه — انظر `join_state()`. */ ?>
-                            <?php if ($b['can_join']): ?>
-                                <a class="tq-btn tq-btn--mastery tq-btn--sm tq-btn--block"
-                                   href="<?php echo html_escape($b['meet_url']); ?>"
-                                   target="_blank" rel="noopener noreferrer"
-                                   style="margin-block-start:var(--tq-space-s)">
-                                    <?php echo tq_icon('video', 16); ?>
-                                    <?php echo $b['status'] === 'live' ? t('ادخل الحصة الجارية') : t('ادخل الحصة'); ?>
-                                    <span class="tq-sr"><?php echo t('— يفتح في نافذة جديدة'); ?></span>
-                                </a>
-                            <?php elseif ($b['note'] !== '' && !$b['needs_pay']): ?>
+                            <?php /* TQ-LIVE — الزر يمر بالخادم (`/join`) لا برابط عار، ومعه العد
+                                     والتقويم واعادة الدفع. */ ?>
+                            <?php $tq_live = $b; $tq_live_role = 'student'; include APPPATH . 'views/components/tq_session_live.php'; ?>
+                            <?php if (!$b['can_join'] && $b['note'] !== '' && !$b['needs_pay']
+                                      && !(in_array($b['status'], ['confirmed', 'live'], true) && (int) $b['opens_at'] > time())): ?>
                                 <?php /* والنص من `join_state()` لا من فروع مكتوبة هنا:
                                          «لم يدفع» غير «لا رابط» غير «انتهت»، والشاشة
                                          التي تخلطها تقول للطالب شيئا لا يطابق حاله. */ ?>
