@@ -234,7 +234,8 @@ class Taqdar_billing_model extends CI_Model
            غير مدفوعتين لشيء واحد، يحول الأولى خطأ أو تبقى «بانتظار
            التحويل» أبدا. والباقة تفعل هذا منذ كتبت؛ فالأحدث يحل محل ما
            قبله للعنصر نفسه، والقديمة تشطب ولا تحذف (رقمها في التسلسل). */
-        $col = array('path' => 'path_id', 'course' => 'course_id', 'book' => 'book_id', 'pack' => 'pack_id');
+        $col = array('path' => 'path_id', 'course' => 'course_id', 'book' => 'book_id', 'pack' => 'pack_id',
+                     'group' => 'group_id');   // TQ-GROUP
         if (isset($col[$kind])) {
             foreach ($this->db->where('user_id', (int) $user_id)->where($col[$kind], (int) $item_id)
                               ->where('status', 'pending')->where('id !=', (int) $sid)
@@ -320,6 +321,8 @@ class Taqdar_billing_model extends CI_Model
                بـ«لديك اشتراك نشط بالفعل» — فيقفل شراء ست حصص باب المنهج
                كله. والرصيد يقرأ من `Taqdar_foundation_model::credits()`. */
             if ((int) (isset($row['pack_id']) ? $row['pack_id'] : 0) > 0) continue;
+            // TQ-GROUP — وعضوية المجموعة المباشرة مثلها: ليست «باقتك».
+            if ((int) (isset($row['group_id']) ? $row['group_id'] : 0) > 0) continue;
             return $row;
         }
         return null;
@@ -441,6 +444,17 @@ class Taqdar_billing_model extends CI_Model
         $path = (int) (isset($sub['path_id'])   ? $sub['path_id']   : 0);
         $plan = (int) (isset($sub['plan_id'])   ? $sub['plan_id']   : 0);
         $pack = (int) (isset($sub['pack_id'])   ? $sub['pack_id']   : 0);
+        $grp  = (int) (isset($sub['group_id'])  ? $sub['group_id']  : 0);
+
+        // TQ-GROUP — وحدة البيع السادسة، مع اخواتها المفردة قبل الباقة.
+        if ($grp > 0) {
+            $t = $of('tq_groups', 'title', $grp);
+            return array('kind' => 'group', 'id' => $grp, 'code' => null,
+                         'label' => t('مجموعة مباشرة'), 'noun' => t('مجموعة مباشرة'),
+                         'noun_def' => t('المجموعة المباشرة'),
+                         'title' => $t !== '' ? $t : t('مجموعة مباشرة') . ' #' . $grp);
+        }
+        // /TQ-GROUP
 
         /* TQ-FND-PACK — وحدة البيع الخامسة، وموضعها هنا قبل الباقة كما
            هي اخواتها: صفها يحمل `plan_id = 0`، فقراءة الباقة اولا ترد
@@ -1267,6 +1281,164 @@ class Taqdar_billing_model extends CI_Model
         return true;
     }
 
+    // TQ-GROUP ===============================================================
+    /**
+     * TQ-GROUP — يشتري الطالب عضوية مجموعة مباشرة: وحدة البيع السادسة.
+     *
+     * **ولا محرك ثان**: صف `subscriptions` بـ`group_id` وفاتورته، والكود معامل
+     * (TQ-COUPON)، وما بعد الفاتورة يتبعها بلا تعديل. والعرض من
+     * `Taqdar_group_model::offer()` وحدها.
+     *
+     * **والسعة تفحص بعد الادراج** (TQ-FND-PACK-RACE): نقرتان متزامنتان على
+     * آخر مقعد تقرآن «بقي واحد» معا. فبعد الكتابة يعاد العد على الصفوف
+     * **الاقدم** من هذا الصف وحدها — فيأخذ الاسبق المقعد، والمتجاوز تشطب
+     * فاتورته ويرد بـ`FULL`. والمعلق يحجز مقعده `tq_group_hold_hours` ثم يسقط.
+     *
+     * @param int $payer_id من يدفع ان لم يكن الطالب (ولي امر) — للسجل وحده:
+     *                      الصف باسم الطالب كما في كل شراء ولي امر
+     * @return array ok · subscription_id · invoice_id · free · offer · coupon · errors · code
+     */
+    public function subscribe_group($student_id, $group_id, $coupon = '', $payer_id = 0, $method = 'manual')
+    {
+        $this->load->model('taqdar_group_model', 'tq_grp');
+        $this->tq_grp->ensure_schema();
+
+        $user_id  = (int) $student_id;
+        $group_id = (int) $group_id;
+        if (!$user_id)  return array('ok' => false, 'errors' => array(t('لا مستخدم.')));
+        if (!$group_id) return array('ok' => false, 'errors' => array(t('لا مجموعة.')));
+
+        $group = $this->tq_grp->get($group_id);
+        $offer = $this->tq_grp->offer($group, $user_id);
+        /* `full` لا يرد قبل فحص المعلق: معلق هذا الطالب نفسه يشغل مقعدا،
+           فمن عاد ليدفع فاتورته يقرأ «اكتملت» عن مقعده هو. */
+        if (!$offer['sellable'] && $offer['reason'] !== 'full') {
+            return array('ok' => false, 'code' => $offer['reason'] === 'member' ? 'ALREADY_OWNED' : 'NOT_SELLABLE',
+                         'errors' => array($offer['why']));
+        }
+
+        $cq = $this->coupon_quote($coupon, $user_id, 'group', $group_id, (int) $offer['price_halalas']);
+        if (!$cq['ok']) return $cq;
+        $net = $cq['q'] ? (int) $cq['q']['net'] : (int) $offer['price_halalas'];
+
+        /* TQ-SUB-REUSE — معلق بفاتورة لم تدفع **وما زال يحجز مقعده** يعاد. */
+        $this->db->where('user_id', $user_id)->where('group_id', $group_id)
+                 ->where('status', 'pending')->where('price', $net)
+                 ->where('created_at >', date('Y-m-d H:i:s', time() - $this->tq_grp->hold_hours() * 3600));
+        if ($cq['q']) $this->db->where('coupon_id', (int) $cq['q']['coupon']['id']);
+        $pend = $this->db->order_by('id', 'DESC')->limit(1)->get('subscriptions')->row_array();
+        if ($pend) {
+            $old = $this->invoice_of_subscription((int) $pend['id']);
+            if ($old && $old['status'] === 'unpaid' && (int) $old['amount'] === $net) {
+                $this->db->where('id', (int) $pend['id'])->update('subscriptions', array('method' => $method));
+                $this->db->where('id', (int) $old['id'])->update('invoices', array('method' => $method));
+                return array('ok' => true, 'subscription_id' => (int) $pend['id'],
+                             'invoice_id' => (int) $old['id'], 'reused' => true,
+                             'offer' => $offer, 'coupon' => $cq['q']);
+            }
+        }
+
+        if (!$offer['sellable']) {
+            return array('ok' => false, 'code' => 'FULL', 'errors' => array($offer['why']));
+        }
+
+        $hold = $this->coupon_hold($cq, $user_id, 'group', $group_id);
+        if (!$hold['ok']) return array('ok' => false, 'code' => 'COUPON_INVALID', 'errors' => array($hold['message']));
+
+        $this->db->insert('subscriptions', array_merge(array(
+            'user_id'    => $user_id,
+            'plan_id'    => 0,
+            'path_id'    => 0,
+            /* `course_id` و`book_id` و`pack_id` تنشئها نماذجها وقت التشغيل
+               وافتراضها صفر — تسميتها هنا ترمي «Unknown column» على قاعدة
+               لم يمر عليها ذلك البيع (TQ-INVOICE-COL). */
+            'group_id'   => $group_id,
+            'status'     => 'pending',
+            'price'      => $net,
+            'auto_renew' => 0,
+            'method'     => $method,
+            'created_at' => date('Y-m-d H:i:s'),
+        ), $this->coupon_cols($cq)));
+        $sid = (int) $this->db->insert_id();
+        $inv = $this->issue_invoice($sid, $user_id, $net, $method);
+
+        /* العد بعد الكتابة — الاقدم وحده يحسب، فالاسبق يأخذ المقعد. */
+        $cap = (int) $group['capacity'];
+        if ($cap > 0 && $this->tq_grp->seats_taken($group_id, $sid) >= $cap) {
+            if (!empty($hold['id'])) $this->tq_cp->attach((int) $hold['id'], $user_id, 'group', $group_id, $sid, $inv);
+            $this->cancel_pending_invoice($inv);
+            return array('ok' => false, 'code' => 'FULL',
+                         'errors' => array(t('اكتملت مقاعد هذه المجموعة قبل ان يتم طلبك — لم يخصم منك شيء.')));
+        }
+
+        if ((int) $payer_id > 0 && (int) $payer_id !== $user_id) {
+            $this->audit('group.paid_by', 'subscriptions#' . $sid, null,
+                         array('payer_id' => (int) $payer_id, 'student_id' => $user_id));
+        }
+
+        $free = $this->coupon_after($cq, $hold, $user_id, 'group', $group_id, $sid, $inv);
+        if (!$free) $this->notify_invoice_issued($inv, $method);
+
+        return array('ok' => true, 'subscription_id' => $sid, 'invoice_id' => $inv,
+                     'free' => $free, 'offer' => $offer, 'coupon' => $cq['q']);
+    }
+
+    /**
+     * TQ-GROUP — تفعيل العضوية: اجل، وبند `group`، وقيد المعلم **عند الدفع**
+     * (D7-c) بنسبة واحدة لمعلم واحد.
+     *
+     * الاجل: `access_days` من الآن، والا نهاية آخر حصة مجدولة، والا `NULL`
+     * (لا حصص بعد — وصول بلا تاريخ مخترع؛ و`expire_due()` لا تلمسه).
+     * وفشل القيد لا يبطل التفعيل: الطالب دفع واستحق.
+     */
+    private function activate_group_subscription($sub, $method = null, $transaction_id = null)
+    {
+        $gid = (int) $sub['group_id'];
+        $this->load->model('taqdar_group_model', 'tq_grp');
+        $group = $this->tq_grp->get($gid);
+        if (!$group) return false;
+
+        $start = time();
+        $days  = (int) $group['access_days'];
+        if ($days > 0) {
+            $ends = date('Y-m-d H:i:s', strtotime('+' . $days . ' days', $start));
+        } else {
+            $last = $this->tq_grp->last_session_end($gid);
+            $ends = $last > $start ? date('Y-m-d H:i:s', $last) : null;
+        }
+
+        $data = array('status' => 'active', 'started_at' => date('Y-m-d H:i:s', $start), 'ends_at' => $ends);
+        if ($method)         $data['method']         = $method;
+        if ($transaction_id) $data['transaction_id'] = $transaction_id;
+        $this->db->where('id', (int) $sub['id'])->update('subscriptions', $data);
+
+        $this->db->where('subscription_id', (int) $sub['id'])->delete('subscription_items');
+        $this->db->insert('subscription_items', array(
+            'subscription_id' => (int) $sub['id'],
+            'entity_type'     => 'group',
+            'entity_id'       => $gid,
+        ));
+
+        if ((int) $sub['price'] > 0 && (int) $group['teacher_id'] > 0) {
+            try {
+                $this->load->model('taqdar_wallet_model');
+                $this->taqdar_wallet_model->credit_group_sale(
+                    (int) $group['teacher_id'], $gid, (int) $sub['id'], (int) $sub['price'],
+                    $this->tq_grp->teacher_percent_of($group), (string) $group['title']
+                );
+            } catch (Throwable $e) {
+                $this->db->reset_query();
+                log_message('error', 'TQ-GROUP: تعذر قيد بيع مجموعة #' . $gid
+                    . ' لاشتراك #' . (int) $sub['id'] . ' — ' . $e->getMessage());
+            }
+        }
+
+        $this->audit('subscription_activate_group', 'subscriptions#' . (int) $sub['id'],
+                     $sub, $this->subscription($sub['id']));
+        return true;
+    }
+    // /TQ-GROUP ==============================================================
+
     /* =====================================================================
        الشراء والتفعيل
        ===================================================================== */
@@ -1601,6 +1773,11 @@ class Taqdar_billing_model extends CI_Model
            «حصل المال ولم يفعل الاشتراك». */
         if ((int) (isset($sub['pack_id']) ? $sub['pack_id'] : 0) > 0) {
             return $this->activate_foundation_subscription($sub, $method, $transaction_id);
+        }
+
+        // TQ-GROUP — وعضوية المجموعة المباشرة، في الموضع نفسه وللعلة نفسها.
+        if ((int) (isset($sub['group_id']) ? $sub['group_id'] : 0) > 0) {
+            return $this->activate_group_subscription($sub, $method, $transaction_id);
         }
 
         $plan = $this->plan($sub['plan_id']);
@@ -2535,10 +2712,11 @@ class Taqdar_billing_model extends CI_Model
                FROM `wallet_entries` e
           LEFT JOIN `wallets` w ON w.`id` = e.`wallet_id`
           LEFT JOIN `users`   u ON u.`id` = w.`owner_user_id`
-              WHERE e.`origin` IN (?, ?, ?, ?)
+              WHERE e.`origin` IN (?, ?, ?, ?, ?)
            ORDER BY e.`id` DESC',
             array('plansub:' . $id, 'pathsub:' . $id,
-                  'coursesub:' . $id, 'booksub:' . $id));
+                  'coursesub:' . $id, 'booksub:' . $id,
+                  'groupsub:' . $id));   // TQ-GROUP
 
         /* الأثر — و`entity` يكتب بصورتين في المستودع: `subscriptions#12`
            في أكثر المواضع، و`subscriptions:12` في `revenue.resplit`.
@@ -2579,6 +2757,7 @@ class Taqdar_billing_model extends CI_Model
                «اين يحجز هذا الرصيد»، وشاشة تقرأ «#3» بلا اسم تترك
                المسؤول يخمن اي مسار فتحته البيعة. */
             'foundation' => array('tq_foundation_tracks', 'name_ar', t('مسار تأسيس')),
+            'group'      => array('tq_groups', 'title', t('مجموعة مباشرة')),   // TQ-GROUP
         );
         if (!isset($map[$type])) return '#' . $entity_id;
 
