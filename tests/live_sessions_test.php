@@ -119,4 +119,21 @@ check(strpos($paid, 'meet.google.com') !== false, 'meet url once paid');
 check(strpos($m->google_calendar_url(array('id' => 7) + $row), 'https://calendar.google.com/calendar/render?action=TEMPLATE') === 0,
       'google calendar url');
 
+// ---- D2-b: no-link alert predicate ------------------------------------
+$now0 = $starts - 30 * 60;
+$bare = array('status' => 'confirmed', 'meet_url' => '', 'teacher_meet_url' => '') + $row;
+check($m->nolink_alert_due($bare, $now0), 'due: confirmed, no link, starts within the hour');
+check(!$m->nolink_alert_due($bare, $starts - 2 * 3600), 'not due two hours out');
+check(!$m->nolink_alert_due($bare, $starts + 60), 'not due once started');
+check(!$m->nolink_alert_due(array('nolink_alerted_at' => '2026-11-10 16:20:00') + $bare, $now0), 'once only');
+check(!$m->nolink_alert_due(array('teacher_meet_url' => 'https://zoom.us/j/1') + $bare, $now0), 'teacher link covers it');
+check(!$m->nolink_alert_due($row, $now0), 'own link covers it');
+check(!$m->nolink_alert_due(array('status' => 'awaiting_payment') + $bare, $now0), 'unpaid not alerted');
+
+// ---- ENUM extension is additive ------------------------------------------
+check(Taqdar_sessions_model::enum_with_closed("enum('open','held','booked')") === "enum('open','held','booked','closed')",
+      'closed appended, order kept');
+check(Taqdar_sessions_model::enum_with_closed("enum('open','closed')") === null, 'already there: no change');
+check(Taqdar_sessions_model::enum_with_closed('varchar(16)') === null, 'not an enum: no change');
+
 echo "OK — $checks checks\n";

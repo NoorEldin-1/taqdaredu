@@ -269,7 +269,8 @@ class Taqdar_sessions_model extends CI_Model
         $this->try_sql('ALTER TABLE `tutoring_sessions` ADD COLUMN IF NOT EXISTS `attended_at` DATETIME NULL DEFAULT NULL');
         $this->try_sql('ALTER TABLE `tutoring_sessions` ADD COLUMN IF NOT EXISTS `teacher_joined_at` DATETIME NULL DEFAULT NULL');
         $this->try_sql('ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `tq_meet_url` VARCHAR(512) NULL DEFAULT NULL');
-        $this->try_sql("ALTER TABLE `availability_slots` MODIFY COLUMN `status` VARCHAR(16) NOT NULL DEFAULT 'open'");
+        $this->try_sql('ALTER TABLE `tutoring_sessions` ADD COLUMN IF NOT EXISTS `nolink_alerted_at` DATETIME NULL DEFAULT NULL');
+        $this->extend_slot_status_enum();
 
         $this->put_setting('tq_session_schema_v', self::SCHEMA_V);
     }
@@ -329,6 +330,38 @@ class Taqdar_sessions_model extends CI_Model
                 );
             }
         }
+    }
+
+    /**
+     * TQ-LIVE — يضيف `closed` الى سرد حال الموعد **اضافة لا تبديلا**: يقرأ
+     * السرد الحي من `information_schema` ويلحق القيمة في اخره بترتيب ما
+     * قبلها كما هو. ولا يمس صفا. وعمود ليس سردا لا يمس اصلا.
+     */
+    private function extend_slot_status_enum()
+    {
+        try {
+            $r = $this->db->query(
+                "SELECT COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT FROM information_schema.COLUMNS
+                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'availability_slots'
+                    AND COLUMN_NAME = 'status'")->row_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return; }
+        if (!$r) return;
+        $sql = self::enum_with_closed((string) $r['COLUMN_TYPE']);
+        if ($sql === null) return;
+        $def = $r['COLUMN_DEFAULT'];
+        if ($def !== null) $def = trim((string) $def, "'");
+        $this->try_sql('ALTER TABLE `availability_slots` MODIFY COLUMN `status` ' . $sql
+            . ($r['IS_NULLABLE'] === 'YES' ? ' NULL' : ' NOT NULL')
+            . ($def !== null && $def !== 'NULL' ? ' DEFAULT ' . $this->db->escape($def) : ''));
+    }
+
+    /** السرد بعد الحاق `closed`، او null ان لم يكن سردا او كانت فيه. */
+    public static function enum_with_closed($column_type)
+    {
+        $t = trim((string) $column_type);
+        if (stripos($t, 'enum(') !== 0) return null;
+        if (preg_match("/'closed'/", $t)) return null;
+        return substr($t, 0, -1) . ",'closed')";
     }
 
     /** كـ`try_sql` ولكن بمعاملات مربوطة. */
@@ -1702,6 +1735,7 @@ class Taqdar_sessions_model extends CI_Model
                 'can_join'     => $j['can_join'],
                 /* TQ-LIVE — حالة العرض والباب والتقويم من مصدر واحد. */
                 'state'        => $this->display_state($r, null, 'teacher'),
+                'is_instant'   => $r['status'] === 'awaiting_payment' && empty($r['confirmed_at']),
                 'opens_at'     => (int) $j['opens_at'],
                 'starts_ts'    => (int) $j['starts_ts'],
                 'has_link'     => $this->meet_url_for($r) !== '',
@@ -1747,6 +1781,10 @@ class Taqdar_sessions_model extends CI_Model
         $meet = '';
         if ($decision === 'confirm') {
             $meet = $this->clean_meet_url($meet_url);
+            /* TQ-LIVE (D2-b) — بلا رابط خاص يؤخذ رابط المعلم الثابت. */
+            if ($meet === '' && trim((string) $meet_url) === '') {
+                $meet = $this->meet_url_for(array('teacher_id' => $teacher_id));
+            }
             if ($meet === '') {
                 return ['ok' => false, 'msg' => 'ضع رابط اللقاء (' . $this->meet_hosts_text() . ') قبل التأكيد — الطالب يدخل الحصة منه.'];
             }
@@ -1958,7 +1996,15 @@ class Taqdar_sessions_model extends CI_Model
            فالدفع تاكيده، ويخبر الطرفان هنا — لا احد غيره يخبرهما. */
         $instant = empty($row['confirmed_at']);
         $upd = array('status' => 'confirmed', 'paid_at' => $now, 'updated_at' => $now);
-        if ($instant) $upd['confirmed_at'] = $now;
+        if ($instant) {
+            $upd['confirmed_at'] = $now;
+            /* D2-b — الحصة بلا رابط تاخذ رابط معلمها الثابت عند التثبيت،
+               ويبقى للمعلم ان يخالفه لهذه الحصة بعدها. */
+            if (trim((string) ($row['meet_url'] ?? '')) === '') {
+                $fixed = $this->meet_url_for(array('teacher_id' => (int) $row['teacher_id']));
+                if ($fixed !== '') $upd['meet_url'] = $fixed;
+            }
+        }
         $this->db->where('id', (int) $row['id'])->where('status', 'awaiting_payment')
                  ->update('tutoring_sessions', $upd);
         if ($this->db->affected_rows() < 1) {
@@ -2358,6 +2404,64 @@ class Taqdar_sessions_model extends CI_Model
         $this->db->where('id', $slot_id)->where('teacher_id', $teacher_id)->where('status', 'open')
                  ->update('availability_slots', array('status' => 'closed'));
         return $this->db->affected_rows() > 0;
+    }
+
+    /**
+     * D2-b — احان تنبيه «حصة بلا رابط»؟ حصة مثبتة تبدأ خلال ساعة، بلا رابط
+     * خاص ولا رابط معلم ثابت، ولم ينبه عنها من قبل. والصف يحمل
+     * `teacher_meet_url` (ولو فارغا) فلا يسأل القاعدة.
+     */
+    public function nolink_alert_due($row, $now = null)
+    {
+        $now = $now ? (int) $now : time();
+        if (!in_array((string) ($row['status'] ?? ''), array('confirmed', 'live'), true)) return false;
+        if (!empty($row['nolink_alerted_at'])) return false;
+        $starts = !empty($row['starts_at']) ? (int) strtotime((string) $row['starts_at']) : 0;
+        if ($starts <= $now || $starts > $now + 3600) return false;
+        if (!array_key_exists('teacher_meet_url', $row)) $row['teacher_meet_url'] = null;
+        return $this->meet_url_for($row) === '';
+    }
+
+    /** ينبه المعلم والمسؤولين مرة واحدة لكل حصة بلا رابط قبل ساعة. */
+    public function alert_missing_links($now = null)
+    {
+        $now = $now ? (int) $now : time();
+        $n   = 0;
+        try {
+            $rows = $this->db->select('t.*, a.starts_at, a.duration_min, a.grade_id, a.subject_id,
+                                       ut.tq_meet_url AS teacher_meet_url')
+                             ->from('tutoring_sessions t')
+                             ->join('availability_slots a', 'a.id = t.slot_id', 'inner')
+                             ->join('users ut', 'ut.id = t.teacher_id', 'left')
+                             ->where_in('t.status', array('confirmed', 'live'))
+                             ->where('t.nolink_alerted_at IS NULL', null, false)
+                             ->where('a.starts_at >', date('Y-m-d H:i:s', $now))
+                             ->where('a.starts_at <=', date('Y-m-d H:i:s', $now + 3600))
+                             ->limit(200)->get()->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return 0; }
+
+        $admins = null;
+        foreach ($rows as $r) {
+            if (!$this->nolink_alert_due($r, $now)) continue;
+            $this->db->where('id', (int) $r['id'])->where('nolink_alerted_at IS NULL', null, false)
+                     ->update('tutoring_sessions', array('nolink_alerted_at' => date('Y-m-d H:i:s', $now)));
+            if ($this->db->affected_rows() < 1) continue;
+            $n++;
+            $when = $this->when_text($r['starts_at'], (int) $r['duration_min']);
+            $this->tell((int) $r['teacher_id'], 'حصتك بعد أقل من ساعة بلا رابط',
+                'حصة ' . $when . ' لا رابط لقاء لها. ضع رابطك الثابت في شاشة «الحصص» الآن — الطالب لا يجد بابا يدخل منه.');
+            if ($admins === null) {
+                try {
+                    $admins = array_column($this->db->select('id')->where('role_id', 1)
+                                    ->get('users')->result_array(), 'id');
+                } catch (Throwable $e) { $this->db->reset_query(); $admins = array(); }
+            }
+            foreach ($admins as $aid) {
+                $this->tell((int) $aid, 'حصة بلا رابط لقاء',
+                    'الحصة #' . (int) $r['id'] . ' ' . $when . ' تبدأ خلال ساعة ولا رابط لها ولا لمعلمها.');
+            }
+        }
+        return $n;
     }
 
     /** مواعيد المعلم المفتوحة القادمة — لزر «اغلق هذا الموعد». */
@@ -2807,6 +2911,9 @@ class Taqdar_sessions_model extends CI_Model
            نفسه الذي تناديه شبكة المواعيد كسولا. */
         $out['expired_unpaid'] = $this->expire_holds($now);
 
+        /* D2-b — حصة بلا رابط قبل ساعة: تنبيه واحد للمعلم والمسؤول. */
+        $out['nolink_alerts'] = $this->alert_missing_links($now);
+
         /* ٣ — حل وقتها. */
         $this->db->query(
             'UPDATE `tutoring_sessions` t
@@ -2992,6 +3099,7 @@ class Taqdar_sessions_model extends CI_Model
                 'can_join'      => $j['can_join'],
                 /* TQ-LIVE — حالة العرض والباب والتقويم من مصدر واحد. */
                 'state'         => $this->display_state($r, null, 'student'),
+                'is_instant'    => $r['status'] === 'awaiting_payment' && empty($r['confirmed_at']),
                 'opens_at'      => (int) $j['opens_at'],
                 'starts_ts'     => (int) $j['starts_ts'],
                 'gcal_url'      => $r['starts_at'] ? $this->google_calendar_url($r) : '',

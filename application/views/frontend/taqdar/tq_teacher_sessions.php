@@ -196,7 +196,9 @@ include 'portal_open.php';
                                         <?php echo t('رابط لقاء الحصة مع'); ?> <?php echo html_escape($tq_r['student_name']); ?>
                                     </label>
                                     <input class="tq-input" id="tq-meet-<?php echo (int) $tq_r['id']; ?>"
-                                           name="meet_url" type="url" dir="ltr" required
+                                           name="meet_url" type="url" dir="ltr"
+                                           value="<?php /* TQ-LIVE (D2-b) — رابطك الثابت يملأ مسبقا، ولك تغييره لهذه الحصة. */ echo html_escape($tq_m->teacher_meet_url($tq_uid)); ?>"
+                                           <?php echo $tq_m->teacher_meet_url($tq_uid) === '' ? 'required' : ''; ?>
                                            style="flex:1;min-inline-size:18rem"
                                            placeholder="https://meet.google.com/abc-defg-hij"
                                            aria-describedby="tq-meet-h-<?php echo (int) $tq_r['id']; ?>">
@@ -250,7 +252,7 @@ include 'portal_open.php';
                 </div>
                 <div class="tq-card">
                     <p class="tq-caption" style="margin-block-start:0">
-                        <?php echo t('أكدت هذه المواعيد وصدرت فواتيرها.'); ?> <strong><?php echo t('ولا تثبت حتى يدفع الطالب'); ?></strong> <?php echo t('— وحتى ذلك الحين يبقى الموعد معروضا، فإن مضت المهلة عاد متاحا لغيره.'); ?>
+                        <?php echo t('حجزت هذه المواعيد وصدرت فواتيرها (بتأكيدك، أو حجزا فوريا من الطالب).'); ?> <strong><?php echo t('ولا تثبت حتى يدفع الطالب'); ?></strong> <?php echo t('— وحتى ذلك الحين يبقى الموعد معروضا، فإن مضت المهلة عاد متاحا لغيره.'); ?>
                     </p>
                     <ul class="tq-stack">
                         <?php foreach ($tq_unpaid as $tq_c): ?>

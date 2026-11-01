@@ -422,7 +422,7 @@ $tq_url  = function ($over = array()) use ($status, $tq_kind) {
                 <input class="tqa-input tqa-input--ltr" id="p-refund" name="tq_session_refund_hours" type="number"
                        min="0" max="168" dir="ltr" value="<?php echo (int) ($cfg['refund_hours'] ?? 24); ?>">
                 <span class="tqa-field__hint">
-                    <?php echo t('قبله استرداد كامل أو موعد بديل، وبعده لا استرداد: وقت المعلم حجز.'); ?>
+                    <?php echo t('يحفظ الآن ولا يطبق بعد: قواعد إلغاء الطالب والاسترداد لم تفعل في المنصة، والإلغاء بعد الدفع ما زال بيد الإدارة.'); ?>
                 </span>
             </div>
 

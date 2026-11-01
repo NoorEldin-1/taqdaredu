@@ -444,7 +444,7 @@ include 'portal_open.php';
                             <?php if ($b['needs_pay']): ?>
                                 <div class="tq-pastel tq-pastel--peach" style="margin-block-start:var(--tq-space-s);padding:var(--tq-space-m)">
                                     <p class="tq-pastel__body" style="margin:0 0 var(--tq-space-s);font-size:.85rem">
-                                        <?php echo t('أكد المعلم الموعد. ادفع'); ?>
+                                        <?php /* TQ-LIVE — الحجز الفوري لم يؤكده معلم. */ echo !empty($b['is_instant']) ? t('تم الحجز (حجز فوري). ادفع بالبطاقة') : t('أكد المعلم الموعد. ادفع'); ?>
                                         <strong><?php echo $tq_sar($b['invoice_total'] ?: $b['price']); ?></strong>
                                         <?php echo t('لتثبيته'); ?>
                                         <?php if ($b['pay_deadline']): ?>
