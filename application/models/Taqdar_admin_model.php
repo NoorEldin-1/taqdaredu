@@ -352,7 +352,7 @@ class Taqdar_admin_model extends CI_Model
                                                'hint' => 'اختياري.'),
                     'course_id'       => array('label' => 'كورس مرتبط', 'type' => 'ref', 'ref' => 'courses',
                                                'hint' => 'اختياري — يعرض بجوار المجموعة، ولا تفتحه العضوية.'),
-                    'price'           => array('label' => 'سعر العضوية (ريال)', 'type' => 'number', 'list' => true,
+                    'price'           => array('label' => 'سعر العضوية', 'type' => 'money', 'list' => true,
                                                'section' => 'السعر والمقاعد',
                                                'hint' => 'يدفع مرة واحدة للمجموعة كلها. وصفر يعني لا تباع.'),
                     'teacher_percent' => array('label' => 'نصيب المعلم %', 'type' => 'percent', 'nullable' => true,

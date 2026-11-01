@@ -68,7 +68,7 @@ class Taqdar_group_model extends CI_Model
                `grade_id`        INT(10) NOT NULL DEFAULT 0,
                `subject_id`      INT(10) NOT NULL DEFAULT 0,
                `course_id`       INT(10) NOT NULL DEFAULT 0,
-               `price`           DECIMAL(10,2) NOT NULL DEFAULT 0,
+               `price`           BIGINT NOT NULL DEFAULT 0,
                `teacher_percent` DECIMAL(5,2) NULL DEFAULT NULL,
                `capacity`        INT(10) UNSIGNED NOT NULL DEFAULT 0,
                `access_days`     INT(10) UNSIGNED NOT NULL DEFAULT 0,
@@ -136,14 +136,47 @@ class Taqdar_group_model extends CI_Model
                     AND `COLUMN_NAME` = "entity_type"'
             )->row_array();
         } catch (Throwable $e) { $this->db->reset_query(); return; }
-        if (!$row || !preg_match('/^enum\((.*)\)$/i', (string) $row['t'], $m)) return;
+        if (!$row) return;
+        $type = self::enum_with((string) $row['t'], $value);
+        if ($type !== null) {
+            $this->try_sql("ALTER TABLE `subscription_items` MODIFY COLUMN `entity_type` $type NOT NULL DEFAULT 'all'");
+        }
+    }
 
+    /**
+     * يضيف قيمة الى سرد ENUM ولا ينزع شيئا — صرفة: ترد `null` ان كانت
+     * موجودة (او لم يفهم النوع)، والا التعريف الجديد بكل القائم ثم الجديد.
+     */
+    public static function enum_with($column_type, $value)
+    {
+        if (!preg_match('/^enum\((.*)\)$/is', trim((string) $column_type), $m)) return null;
         preg_match_all("/'((?:[^']|'')*)'/", $m[1], $mm);
-        $vals = $mm[1];
-        if (in_array($value, $vals, true)) return;
+        $vals = array_map(function ($v) { return str_replace("''", "'", $v); }, $mm[1]);
+        if (in_array($value, $vals, true)) return null;
         $vals[] = $value;
-        $list = implode(',', array_map(function ($v) { return "'" . str_replace("'", "''", $v) . "'"; }, $vals));
-        $this->try_sql("ALTER TABLE `subscription_items` MODIFY COLUMN `entity_type` ENUM($list) NOT NULL DEFAULT 'all'");
+        return 'ENUM(' . implode(',', array_map(function ($v) {
+            return "'" . str_replace("'", "''", $v) . "'";
+        }, $vals)) . ')';
+    }
+
+    /**
+     * حارس `group` في السرد **مستقلا عن رقم الاصدار** — مرة لكل طلب. تجهيز
+     * آخر قد يعيد كتابة السرد بعد ان مر تجهيزنا، فيكتب بند `group` نصا
+     * فارغا بلا خطأ. فينادى قبل كل كتابة بند (فحص `information_schema` رخيص).
+     */
+    public function ensure_item_enum()
+    {
+        static $ok = false;
+        if ($ok) return;
+        $ok = true;
+        $this->extend_items_enum('group');
+    }
+
+    /** ريال (نص النموذج) الى هللات — تحويل نوع `money` في `spec()` نفسه. */
+    public static function to_halalas($riyal)
+    {
+        $s = trim(str_replace(',', '', (string) $riyal));
+        return max(0, (int) round(((float) $s) * 100));
     }
 
     /* =====================================================================
@@ -331,6 +364,24 @@ class Taqdar_group_model extends CI_Model
         return max(0, $cap - (int) $taken);
     }
 
+    /**
+     * ايتجاوز تفعيل هذا الصف السعة؟ — صرفة. تعد المقاعد **سواه**: دفعة سويت
+     * بعد ان سقطت مهلة حجزها قد يكون مقعدها اخذه غيره.
+     */
+    public static function over_capacity($group, array $rows, $now, $hold_hours, $sub_id)
+    {
+        $cap = (int) (isset($group['capacity']) ? $group['capacity'] : 0);
+        if ($cap <= 0) return false;
+        $others = array_values(array_filter($rows, function ($r) use ($sub_id) { return (int) $r['id'] !== (int) $sub_id; }));
+        return self::count_seats($others, $now, $hold_hours) >= $cap;
+    }
+
+    /** النسخة الحية من `over_capacity()`. */
+    public function activation_over_capacity($group, $sub_id)
+    {
+        return self::over_capacity($group, $this->seat_rows((int) $group['id']), time(), $this->hold_hours(), $sub_id);
+    }
+
     private function seat_rows($group_id)
     {
         try {
@@ -383,7 +434,9 @@ class Taqdar_group_model extends CI_Model
         }
         $now = isset($ctx['now']) ? (int) $ctx['now'] : time();
 
-        $price = $group ? (int) round(((float) $group['price']) * 100) : 0;
+        /* `price` بالهللات — نوع `money` في `spec()` يخزن هللات، فلا تقريب
+           الى ريال كامل يضيع كسرا. */
+        $price = $group ? max(0, (int) $group['price']) : 0;
         $out = array(
             'sellable'        => false,
             'reason'          => 'missing',
@@ -722,7 +775,8 @@ class Taqdar_group_model extends CI_Model
         foreach (array('grade_id', 'subject_id', 'course_id', 'capacity', 'access_days') as $k) {
             if (array_key_exists($k, $data)) $row[$k] = max(0, (int) $data[$k]);
         }
-        if (array_key_exists('price', $data)) $row['price'] = max(0, round((float) $data['price'], 2));
+        // السعر يدخل بالريال ويخزن بالهللات — تحويل `money` في `spec()` نفسه.
+        if (array_key_exists('price', $data)) $row['price'] = self::to_halalas($data['price']);
         if (array_key_exists('enroll_until', $data)) {
             $ts = trim((string) $data['enroll_until']) !== '' ? strtotime((string) $data['enroll_until']) : false;
             $row['enroll_until'] = $ts ? date('Y-m-d H:i:s', $ts) : null;

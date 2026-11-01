@@ -52,7 +52,7 @@ check($m->teacher_percent_of(array('teacher_percent' => null)) === 55.0, 'NULL t
 $settings = array();
 
 // ---- offer() reasons.
-$g = array('id' => 9, 'status' => 'published', 'price' => '150', 'capacity' => 3, 'teacher_id' => 7,
+$g = array('id' => 9, 'status' => 'published', 'price' => '15000', 'capacity' => 3, 'teacher_id' => 7,
            'teacher_percent' => null, 'enroll_until' => null, 'title' => 'G');
 $ctx = array('enabled' => true, 'seats_taken' => 1, 'member' => false, 'now' => $now);
 $o = $m->offer($g, 0, $ctx);
@@ -136,5 +136,31 @@ foreach (array(0, 1, 33.33, 50, 60, 66.67, 99.99, 100) as $p) {
     }
 }
 check(Taqdar_group_model::split(15000, 60)['share'] === 9000, '60% of 150 SAR');
+
+// ---- Fix round 1: ENUM guard (pure), over-capacity on late activation, riyal -> halala.
+$cur = "enum('all','subject','path','course','trial','grade','book','foundation')";
+$new = Taqdar_group_model::enum_with($cur, 'group');
+check($new === "ENUM('all','subject','path','course','trial','grade','book','foundation','group')", 'group appended, all kept');
+check(Taqdar_group_model::enum_with($new, 'group') === null, 'already present: no ALTER');
+check(Taqdar_group_model::enum_with("enum('all','group','zz')", 'group') === null, 'values added by others kept, no ALTER');
+check(Taqdar_group_model::enum_with('varchar(20)', 'group') === null, 'not an enum: leave it');
+check(Taqdar_group_model::enum_with("enum('a''b')", 'group') === "ENUM('a''b','group')", 'quotes survive');
+
+$cap2 = array('id' => 9, 'capacity' => 2);
+$late = array(
+    array('id' => 20, 'status' => 'active',  'created_at' => $at($now - 86400), 'ends_at' => null),
+    array('id' => 21, 'status' => 'active',  'created_at' => $at($now - 86400), 'ends_at' => null),
+    array('id' => 22, 'status' => 'pending', 'created_at' => $at($now - 5 * 3600), 'ends_at' => null), // hold lapsed, now paying
+);
+check(Taqdar_group_model::over_capacity($cap2, $late, $now, 2, 22), 'late payment over capacity is flagged');
+check(!Taqdar_group_model::over_capacity($cap2, array_slice($late, 1), $now, 2, 22), 'room left: not flagged');
+check(!Taqdar_group_model::over_capacity(array('capacity' => 0) + $cap2, $late, $now, 2, 22), 'unlimited never over');
+check(!Taqdar_group_model::over_capacity($cap2, array($late[0], $late[2]), $now, 2, 22), 'own row not counted');
+
+check(Taqdar_group_model::to_halalas('149.99') === 14999, 'riyal with halalas kept');
+check(Taqdar_group_model::to_halalas('1,250.5') === 125050, 'thousands separator');
+check(Taqdar_group_model::to_halalas('0.1') === 10, 'float rounding');
+check(Taqdar_group_model::to_halalas('') === 0 && Taqdar_group_model::to_halalas('-5') === 0, 'empty/negative');
+check($m->offer(array('price' => 14999) + $g, 0, $ctx)['price_halalas'] === 14999, 'offer reads halalas as stored');
 
 echo "OK {$checks} checks\n";

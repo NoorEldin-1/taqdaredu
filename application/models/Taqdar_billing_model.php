@@ -1395,8 +1395,18 @@ class Taqdar_billing_model extends CI_Model
     {
         $gid = (int) $sub['group_id'];
         $this->load->model('taqdar_group_model', 'tq_grp');
+        $this->tq_grp->ensure_schema();
+        $this->tq_grp->ensure_item_enum();   // `group` في السرد قبل كتابة البند
         $group = $this->tq_grp->get($gid);
         if (!$group) return false;
+
+        /* دفعة سويت بعد سقوط مهلة الحجز قد تجد المقعد ماخوذا. **والتفعيل
+           يمضي** — المال دخل والطالب استحق — ويقال للادارة لتقرر. */
+        if ($this->tq_grp->activation_over_capacity($group, (int) $sub['id'])) {
+            $this->audit('group.over_capacity', 'subscriptions#' . (int) $sub['id'], null,
+                         array('group_id' => $gid, 'capacity' => (int) $group['capacity']));
+            $this->notify_admins_over_capacity($group, (int) $sub['id']);
+        }
 
         $start = time();
         $days  = (int) $group['access_days'];
@@ -1436,6 +1446,21 @@ class Taqdar_billing_model extends CI_Model
         $this->audit('subscription_activate_group', 'subscriptions#' . (int) $sub['id'],
                      $sub, $this->subscription($sub['id']));
         return true;
+    }
+    private function notify_admins_over_capacity($group, $sid)
+    {
+        try {
+            $admins = $this->db->select('id')->where('role_id', 1)->where('status', 1)->get('users')->result_array();
+            $this->load->model('taqdar_admin_model');
+            foreach ($admins as $a) {
+                $this->taqdar_admin_model->push_notification((int) $a['id'], t('مجموعة تجاوزت سعتها'),
+                    t('فعل اشتراك #____ في مجموعة «____» بعد اكتمال مقاعدها (____) — دفعة سويت بعد انتهاء مهلة الحجز.',
+                      array($sid, $group['title'], (int) $group['capacity'])), 'system');
+            }
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-GROUP over-capacity notice: ' . $e->getMessage());
+        }
     }
     // /TQ-GROUP ==============================================================
 
