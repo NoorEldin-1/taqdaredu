@@ -554,6 +554,14 @@ $route['student/settings/save']        = 'taqdar/settings_save';
 $route['student/sessions/request']     = 'taqdar/session_request';
 $route['student/sessions/pay']         = 'taqdar/session_pay';
 $route['student/sessions/cancel']      = 'taqdar/session_cancel';
+// TQ-LIVE — begin: writes first, then the per-session views (join · ics)
+$route['teacher/sessions/close-slot']      = 'taqdar/sessions_close_slot';
+$route['teacher/settings/meet-url']        = 'taqdar/teacher_meet_url_save';
+$route['student/sessions/(:num)/join']     = 'taqdar/session_join/$1';
+$route['student/sessions/(:num)/ics']      = 'taqdar/session_ics/$1';
+$route['teacher/sessions/(:num)/join']     = 'taqdar/teacher_session_join/$1';
+$route['teacher/sessions/(:num)/ics']      = 'taqdar/teacher_session_ics/$1';
+// TQ-LIVE — end
 $route['student/reviews']              = 'taqdar/reviews';
 $route['teacher/students/message']     = 'taqdar/students_message';
 $route['taqdar/teacher/students/message'] = 'taqdar/students_message';

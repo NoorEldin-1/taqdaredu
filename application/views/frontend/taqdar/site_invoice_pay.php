@@ -17,6 +17,8 @@ $total  = (int) $inv['total'];
 $closed = (string) $tq_closed;
 $tq_card = !empty($tq_card);
 $tq_test = !empty($tq_card_test);
+/* TQ-LIVE (D1-b) — حجز فوري: الموعد محجوز دقائق، والتحويل لا يصل فيها. */
+$tq_card_only = !empty($tq_card_only) && $tq_card;
 $CI = get_instance();
 ?>
 
@@ -87,6 +89,9 @@ $CI = get_instance();
               </span>
               <span class="tq-caption"><?php echo t('كل طرق الدفع في صفحة تاب: مدى وفيزا وماستركارد وApple Pay. الزر في البطاقة الجانبية.'); ?></span>
             </p>
+            <?php if ($tq_card_only): ?>
+              <p class="tq-caption"><?php echo t('الدفع بالبطاقة وحدها لهذه الحصة: الموعد محجوز لك دقائق، والتحويل البنكي لا يصل فيها.'); ?></p>
+            <?php endif; ?>
             <?php if ($tq_test): ?>
               <p class="co-pay__test">
                 <svg aria-hidden="true"><use href="#i-shield"></use></svg>
@@ -98,7 +103,7 @@ $CI = get_instance();
 
           <?php /* التحويل يبقى متاحا لمن لا بطاقة معه: الفاتورة قائمة
                    ومرجعها رقمها، فلا شيء يضغط — يحول ويفعل بعد التحقق. */ ?>
-          <?php if (tqs_bank() !== null || !$tq_card): ?>
+          <?php if (!$tq_card_only && (tqs_bank() !== null || !$tq_card)): ?>
             <div class="co-bank">
               <?php echo tqs_bank_block($inv['invoice_no'], $total); ?>
             </div>

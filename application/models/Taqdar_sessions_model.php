@@ -1554,7 +1554,7 @@ class Taqdar_sessions_model extends CI_Model
            والدفع يثبتها بلا تاكيد. والباقة والمجانية تمران بالمسار القديم
            (تثبتان بتاكيد المعلم كما اليوم)، والمفتاح مطفأ يعيد كل شيء كما كان. */
         $cfg     = $this->config();
-        $instant = $cfg['instant_book'] && !$pack && (int) $p['price'] > 0;
+        $instant = $cfg['instant_book'] && !$pack && (int) $p['price'] > 0 && $this->card_ready();
 
         $this->db->insert('tutoring_sessions', [
             'slot_id'               => $slot_id,
@@ -2393,6 +2393,20 @@ class Taqdar_sessions_model extends CI_Model
                 'مضت مهلة الدفع على حصة في جدولك، فعاد الموعد متاحا.');
         }
         return $n;
+    }
+
+    /**
+     * ايدفع بالبطاقة الان؟ الحجز الفوري بطاقة وحدها (D1-b)، فبلا بوابة
+     * يرجع الى المسار القديم بدل حجز لا يدفع في مهلته.
+     */
+    private function card_ready()
+    {
+        try {
+            $this->load->model('taqdar_tap_model');
+            return (bool) $this->taqdar_tap_model->ready();
+        } catch (Throwable $e) {
+            return false;
+        }
     }
 
     /** أهي فاتورة حجز فوري؟ شاشة دفعها تعرض البطاقة وحدها (D1-b). */

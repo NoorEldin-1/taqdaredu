@@ -2350,6 +2350,12 @@ class Taqdar extends CI_Controller
         $this->trace('student.sessions.request', 'availability_slots:' . (int) $this->input->post('slot_id'),
             array('ok' => !empty($r['ok']), 'session' => (int) ($r['id'] ?? 0)));
 
+        /* TQ-LIVE (D1) — حجز فوري: لا قرار ينتظره المعلم، فلا يخبر هنا
+           (يخبره التثبيت بعد الدفع)، والطالب يمضي الى الدفع في الحال. */
+        if (!empty($r['ok']) && !empty($r['instant'])) {
+            $this->done('pay/' . (int) $r['invoice_id'], true, $r['msg']);
+        }
+
         if (!empty($r['ok'])) $this->notify_session_requested($r, $uid);
 
         $this->done($this->session_back(), !empty($r['ok']),
@@ -2507,6 +2513,8 @@ class Taqdar extends CI_Controller
             'tq_closed'    => $closed,
             'tq_card'      => $this->taqdar_tap_model->ready(),
             'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
+            // TQ-LIVE (D1-b) — فاتورة حجز فوري تدفع بالبطاقة وحدها
+            'tq_card_only' => $sess && $this->taqdar_sessions_model->is_instant_invoice((int) $inv['id']),
         ));
     }
 
@@ -2516,6 +2524,104 @@ class Taqdar extends CI_Controller
                       ->get('invoices')->row_array();
         return $i ? $i['invoice_no'] : '';
     }
+
+    // TQ-LIVE — begin: join gate · calendar file · close slot · teacher meet url
+    /* =====================================================================
+       TQ-LIVE — الزر يمر بالخادم لا برابط عار
+       ===================================================================== */
+
+    /**
+     * GET student/sessions/<id>/join — يفحص الملكية والوقت ويختم الحضور ثم
+     * يحول الى رابط اللقاء. وقبل وقته يعود الى الشاشة برسالة: الرابط لا
+     * يتسرب في صفحة لم يحن وقتها، ولا بتعديل الرابط يدويا.
+     */
+    public function session_join($session_id = 0)
+    {
+        $user = $this->require_role('student');
+        $this->live_join((int) $session_id, (int) $user['id'], 'student');
+    }
+
+    /** GET teacher/sessions/<id>/join — ويختم دخول المعلم وينقل الحصة الى «مباشرة». */
+    public function teacher_session_join($session_id = 0)
+    {
+        $user = $this->require_role('teacher');
+        $this->live_join((int) $session_id, (int) $user['id'], 'teacher');
+    }
+
+    private function live_join($sid, $uid, $actor)
+    {
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->record_join($sid, $uid, $actor);
+        $this->trace($actor . '.sessions.join', 'tutoring_sessions:' . $sid, array('ok' => !empty($r['ok'])));
+        if (empty($r['ok'])) {
+            $back = $actor === 'teacher' ? 'teacher/sessions' : $this->live_back($sid, $uid);
+            $this->done($back, false, $r['msg']);
+        }
+        redirect($r['url'], 'location', 302);
+    }
+
+    /** شاشة الطالب التي تحمل هذه الحصة — بحسب نوعها. */
+    private function live_back($sid, $uid)
+    {
+        $row = $this->db->select('kind')->where('id', (int) $sid)->where('student_id', (int) $uid)
+                        ->get('tutoring_sessions')->row_array();
+        return ($row && (string) $row['kind'] === 'foundation') ? 'student/foundation' : 'student/on-demand';
+    }
+
+    /** GET student/sessions/<id>/ics — حدث تقويم للحصة. */
+    public function session_ics($session_id = 0)
+    {
+        $user = $this->require_role('student');
+        $this->live_ics((int) $session_id, (int) $user['id'], 'student');
+    }
+
+    /** GET teacher/sessions/<id>/ics */
+    public function teacher_session_ics($session_id = 0)
+    {
+        $user = $this->require_role('teacher');
+        $this->live_ics((int) $session_id, (int) $user['id'], 'teacher');
+    }
+
+    private function live_ics($sid, $uid, $actor)
+    {
+        $this->load->model('taqdar_sessions_model');
+        $row = $this->taqdar_sessions_model->session_for($sid, $uid, $actor);
+        if (!$row || empty($row['starts_at'])) show_404();
+
+        $this->output
+             ->set_content_type('text/calendar; charset=utf-8')
+             ->set_header('Content-Disposition: attachment; filename="taqdar-session-' . (int) $sid . '.ics"')
+             ->set_header('Cache-Control: private, no-store')
+             ->set_output($this->taqdar_sessions_model->ics_for($row));
+    }
+
+    /** POST teacher/sessions/close-slot — «اغلق هذا الموعد» قبل ان يحجز. */
+    public function sessions_close_slot()
+    {
+        $user = $this->write_guard('teacher');
+        $slot = (int) $this->input->post('slot_id');
+        $this->load->model('taqdar_sessions_model');
+        $ok = $this->taqdar_sessions_model->close_slot((int) $user['id'], $slot);
+        $this->trace('teacher.sessions.close_slot', 'availability_slots:' . $slot, array('ok' => $ok));
+        $this->done('teacher/sessions', $ok, $ok
+            ? 'أغلق الموعد، ولا يحجزه أحد.'
+            : 'تعذر إغلاق الموعد: حجز أو لم يعد مفتوحا.');
+    }
+
+    /**
+     * POST teacher/settings/meet-url — رابط اللقاء الثابت (D2-b).
+     * الحقل في شاشة «الحصص» نفسها: هناك يظهر اثره، وحصة بلا رابط تقرأ
+     * «لا رابط بعد» في الشاشة نفسها.
+     */
+    public function teacher_meet_url_save()
+    {
+        $user = $this->write_guard('teacher');
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->save_teacher_meet_url((int) $user['id'],
+                                                                 (string) $this->input->post('tq_meet_url'));
+        $this->done('teacher/sessions', !empty($r['ok']), $r['msg']);
+    }
+    // TQ-LIVE — end
 
     /**
      * POST student/sessions/cancel — يلغي الطالب حجزه قبل الدفع.
