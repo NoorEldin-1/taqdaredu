@@ -484,7 +484,9 @@ include 'portal_open.php';
                                  واحد: حقل لا يبدل شيئا ضجيج، والقيمة ترسل
                                  مخفية — والمصفوفات الأربع تبقى متوازية. */ ?>
                         <input type="hidden" name="win_kind[]"
-                               value="<?php echo $tq_has_cur ? 'curriculum' : 'foundation'; ?>">
+                               value="<?php /* السطر المحفوظ يرسل نوعه هو لا الافتراضي: سطر تأسيس عند من فقد مساره
+                                                كان يعود «منهجا» بلا صف فيرد كل حفظ ولو لم يغير شيء. */
+                                             echo $w ? html_escape($kind) : ($tq_has_cur ? 'curriculum' : 'foundation'); ?>">
                     <?php endif; ?>
                     <label class="tq-sr"><?php echo t('يوم الأسبوع'); ?></label>
                     <select class="tq-select" name="win_dow[]" data-tq-row-req>
@@ -526,7 +528,10 @@ include 'portal_open.php';
                             <?php endforeach; ?>
                         </select>
                     <?php else: ?>
-                        <input type="hidden" name="win_track[]" value="0">
+                        <input type="hidden" name="win_track[]" value="<?php echo $w ? (int) $w['track_id'] : 0; ?>">
+                    <?php endif; ?>
+                    <?php if ($w && $kind === 'foundation' && !isset($tq_tracks[(int) $w['track_id']])): ?>
+                        <span class="tq-micro" style="display:block;color:var(--tq-danger)"><?php echo t('هذا المسار لم يعد مسندا إليك — احذف هذا السطر ثم احفظ.'); ?></span>
                     <?php endif; ?>
                     <span class="tq-winrow__na" aria-hidden="true">—</span>
                 </td>

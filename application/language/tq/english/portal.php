@@ -2188,4 +2188,5 @@ return array(
     '— ويقيد نصيبك' => '— and your share is credited',
     '— يكفيه مسار من مساراتك، ويحجزه الطالب أيا كان صفه. والتأسيس مستوى لا منهج صف.' => '— one of your tracks is enough, and any student can book it whatever their grade. Foundation is a level, not a grade syllabus.',
     'لم يعلن الحضور بعد' => 'Attendance not recorded yet',
+    'هذا المسار لم يعد مسندا إليك — احذف هذا السطر ثم احفظ.' => 'This track is no longer assigned to you — delete this row, then save.',
 );
