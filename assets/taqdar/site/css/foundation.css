@@ -662,3 +662,18 @@ span.fndp-tutor__img{display:grid;place-items:center;font-size:19px}
   color:var(--f-mute);font-size:12.5px;line-height:1.75;
 }
 .fnd26-card__pack b{color:var(--f-gold-lt);font-family:'Cairo',sans-serif;font-weight:700}
+
+/* ══════════════════════════════════════════════════════════════════
+   TQ-GROUP — بطاقات المجموعات المباشرة وجدولها (`/groups` · `/group/<slug>`).
+   تبنى على متغيرات الموقع نفسها، فلا لون ثان يكتب هنا.
+   ══════════════════════════════════════════════════════════════════ */
+.grp-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));margin-block-end:28px}
+.grp-card{display:flex;flex-direction:column;gap:8px}
+.grp-card__t{margin:0;font-size:1.15rem}
+.grp-card__t a{color:var(--ink);text-decoration:none}
+.grp-card__price{margin:4px 0 8px;font-size:1.2rem;color:var(--ink)}
+.grp-sched{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.grp-sched li{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;padding:10px 14px;
+  background:var(--paper);border:1px solid var(--gold-line);border-radius:14px}
+.grp-sched li.is-off{opacity:.6;text-decoration:line-through}
+.grp-facts{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 14px;color:var(--ink-2)}

@@ -1331,6 +1331,8 @@ class Taqdar extends CI_Controller
             'marking'       => ['tq_teacher_marking',        'الواجبات والتصحيح'],
             'students'      => ['tq_teacher_students',       'طلابي'],
             'sessions'      => ['tq_teacher_sessions',       'الحصص'],
+            /* TQ-GROUP — المجموعات المباشرة: جدول ومقاعد وحضور جماعي. */
+            'groups'        => ['tq_teacher_groups',         'مجموعاتي'],
             'wallet'        => ['tq_teacher_wallet',         'المحفظة والأرباح'],
             /* الثلاثة الأخيرة كانت غائبة عن البوابة كلها: لا رسائل يقرأ فيها
                المعلم رد طالبه، ولا إشعارات رغم أن `counts()` يعدها له، ولا
@@ -4283,6 +4285,9 @@ class Taqdar extends CI_Controller
             case 'pack':
                 $id = (int) $this->input->post('pack_id');
                 return $id > 0 ? 'foundation-checkout/' . $id : '';
+            case 'group':   // TQ-GROUP
+                $id = (int) $this->input->post('group_id');
+                return $id > 0 ? 'group-checkout/' . $id : '';
         }
         return '';
     }
@@ -4295,6 +4300,7 @@ class Taqdar extends CI_Controller
             case 'course': $this->buy_course();     return;
             case 'book':   $this->buy_book();       return;
             case 'pack':   $this->buy_foundation(); return;
+            case 'group':  $this->buy_group();      return;
         }
         show_404();
     }
@@ -5362,5 +5368,316 @@ class Taqdar extends CI_Controller
         $this->output->set_content_type('application/json', 'utf-8')
                      ->set_header('Cache-Control: no-store')
                      ->set_output(json_encode($out, JSON_UNESCAPED_UNICODE));
+    }
+
+    /* =====================================================================
+       TQ-GROUP — المجموعات المباشرة: الصفحات العامة والشراء والبوابتان
+       ---------------------------------------------------------------------
+       لا قاعدة عمل هنا: العرض والمقاعد والدخول من `Taqdar_group_model`،
+       والشراء من `Taqdar_billing_model::subscribe_group()`. والقسم كله
+       يرد 404 ما دام `enabled()` كاذبة — «بلا مفتاح لا شيء يتغير».
+       ===================================================================== */
+
+    private function grp()
+    {
+        $this->load->model('taqdar_group_model', 'tq_grp');
+        $this->tq_grp->ensure_schema();
+        return $this->tq_grp;
+    }
+
+    private function grp_on()
+    {
+        if (!$this->grp()->enabled()) show_404();
+    }
+
+    /** GET groups — المجموعات المنشورة. */
+    public function groups_page()
+    {
+        $this->grp_on();
+        $uid  = (int) $this->session->userdata('user_id');
+        $rows = array();
+        foreach ($this->grp()->published() as $g) $rows[] = $this->grp()->summary_of($g, $uid);
+        $this->show('site_groups', 'المجموعات المباشرة', array('tq_groups' => $rows));
+    }
+
+    /** GET group/<slug> — صفحة مجموعة بجدولها ومقاعدها. */
+    public function group_page($slug = '')
+    {
+        $this->grp_on();
+        $g = $this->grp()->by_slug(rawurldecode((string) $slug));
+        /* المسودة والمراجعة لا تعرضان — صفحة تبيع ما يرده الخادم. والمغلقة
+           تعرض لمن له رابطها، والزر يقول انها اغلقت. */
+        if (!$g || !in_array($g['status'], array('published', 'closed'), true)) show_404();
+        $uid = (int) $this->session->userdata('user_id');
+        $this->show('site_group', $g['title'], array(
+            'tq_group'    => $g,
+            'tq_sum'      => $this->grp()->summary_of($g, $uid),
+            'tq_sessions' => $this->grp()->sessions_of((int) $g['id']),
+            'tq_member'   => $uid > 0 && $this->grp()->has_group($uid, (int) $g['id']),
+        ));
+    }
+
+    /** GET group-checkout/<id> — اخت `book_checkout()`. */
+    public function group_checkout($group_id = 0)
+    {
+        $this->grp_on();
+        $gid = (int) $group_id;
+        $g   = $this->grp()->get($gid);
+        if (!$g) show_404();
+        $uid   = (int) $this->session->userdata('user_id');
+        $offer = $this->grp()->offer($g, $uid);
+        $back  = 'group/' . rawurlencode((string) $g['slug']);
+
+        if ($uid > 0 && $offer['reason'] === 'member') {
+            $this->done('student/groups', true, 'انت عضو في هذه المجموعة بالفعل.');
+            return;
+        }
+        if (!$offer['sellable']) {
+            $this->session->set_flashdata('error_message', $offer['why']);
+            redirect(base_url($back), 'location', 302);
+            return;
+        }
+        if ($uid > 0 && function_exists('tq_role') && tq_role() !== 'student') {
+            $this->session->set_flashdata('error_message',
+                'الانضمام الى المجموعات لحسابات الطلاب. وولي الامر يشتري لابنه من «ادفع عن ابنك».');
+            redirect(base_url($back), 'location', 302);
+            return;
+        }
+
+        $this->load->model('taqdar_tap_model');
+        $this->show('site_group_checkout', 'تأكيد الانضمام — ' . $g['title'], array(
+            'tq_cpn'       => tq_coupon_state('group', $gid, (int) $offer['price_halalas'], $uid),
+            'tq_offer'     => $offer,
+            'tq_group'     => $g,
+            'tq_sum'       => $this->grp()->summary_of($g, $uid),
+            'user_id'      => $uid,
+            'tq_guest'     => $uid <= 0,
+            'tq_card'      => $this->taqdar_tap_model->ready(),
+            'tq_card_test' => $this->taqdar_tap_model->is_test_ready(),
+        ));
+    }
+
+    /** POST student/buy-group — الفاتورة اولا ثم الدفع، كسائر الشراء. */
+    public function buy_group()
+    {
+        $this->require_role('student');
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->grp_on();
+
+        $uid = (int) $this->session->userdata('user_id');
+        $gid = (int) $this->input->post('group_id');
+
+        $this->load->model('taqdar_tap_model');
+        $by_card = ((string) $this->input->post('pay_method') === 'tap') && $this->taqdar_tap_model->ready();
+
+        $this->load->model('taqdar_billing_model');
+        $r = $this->taqdar_billing_model->subscribe_group($uid, $gid, $this->tq_coupon_for_buy(), 0,
+                                                          $by_card ? 'tap' : 'manual');
+        if (empty($r['ok'])) {
+            $this->session->set_flashdata('error_message', implode(' ', (array) $r['errors']));
+            redirect(base_url('group-checkout/' . $gid), 'location', 302);
+            return;
+        }
+        if (!empty($r['free'])) {
+            $this->done('student/groups', true, 'انضممت الى المجموعة — كود الخصم غطى ثمنها كاملا.');
+            return;
+        }
+        $this->trace('student.group.buy', 'tq_groups#' . $gid,
+                     array('subscription_id' => $r['subscription_id'] ?? 0, 'invoice_id' => $r['invoice_id'] ?? 0));
+
+        if ($by_card) {
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $uid, tq_tap_pay_input());
+            if (!empty($pay['ok'])) { redirect($pay['url'], 'location', 302); return; }
+            $this->session->set_flashdata('error_message', implode(' ', $pay['errors'])
+                . ' وفاتورتك صدرت، فيمكنك تحويل قيمتها بنكيا أو إعادة المحاولة من هنا.');
+            redirect(base_url('student/subscription'), 'location', 302);
+            return;
+        }
+        $this->session->set_flashdata('flash_message', 'صدرت فاتورتك، ومقعدك محجوز '
+            . (int) $this->grp()->hold_hours() . ' ساعة. حول قيمتها وتفعل عضويتك بعد التحقق من الحوالة.');
+        redirect(base_url('student/subscription'), 'location', 302);
+    }
+
+    /** POST parent/pay/group — ولي الامر يشتري مقعدا لابنه، والصف باسم الابن. */
+    public function parent_pay_group()
+    {
+        $this->write_guard('parent');
+        $this->grp_on();
+        $pid   = (int) $this->session->userdata('user_id');
+        $child = (int) $this->input->post('child_id');
+        $gid   = (int) $this->input->post('group_id');
+
+        if (!$this->parent_owns_child($pid, $child)) {
+            $this->done('parent/pay', false, 'هذا الحساب ليس من أبنائك.');
+            return;
+        }
+        $this->load->model('taqdar_tap_model');
+        $by_card = ((string) $this->input->post('pay_method') === 'tap') && $this->taqdar_tap_model->ready();
+
+        $this->load->model('taqdar_billing_model');
+        $r = $this->taqdar_billing_model->subscribe_group($child, $gid, $this->tq_coupon_for_buy(), $pid,
+                                                          $by_card ? 'tap' : 'manual');
+        if (empty($r['ok'])) { $this->done('parent/pay', false, implode(' ', (array) $r['errors'])); return; }
+        if (!empty($r['free'])) {
+            $this->done('parent/payments', true, 'انضم ابنك الى المجموعة — كود الخصم غطى ثمنها كاملا.');
+            return;
+        }
+        $this->trace('parent.group.buy', 'tq_groups#' . $gid, array('child' => $child, 'invoice_id' => $r['invoice_id'] ?? 0));
+        if ($by_card) {
+            $pay = $this->taqdar_tap_model->start((int) $r['invoice_id'], $pid, tq_tap_pay_input());
+            if (!empty($pay['ok'])) { redirect($pay['url'], 'location', 302); return; }
+            $this->done('parent/payments', false, implode(' ', $pay['errors'])
+                . ' وفاتورة ابنك صدرت، فيمكنك تحويل قيمتها بنكيا.');
+            return;
+        }
+        $this->done('parent/payments', true,
+            'صدرت الفاتورة. حول قيمتها وتفعل عضوية ابنك بعد التحقق من الحوالة.');
+    }
+
+    /** GET student/groups — مجموعاتي: الجدول والدخول والتسجيلات. */
+    public function student_groups()
+    {
+        $this->grp_on();
+        $this->student('tq_groups', 'مجموعاتي');
+    }
+
+    /** GET student/group-sessions/<id>/join — يسجل الحضور ثم يحول الى الرابط. */
+    public function group_session_join($gs_id = 0)
+    {
+        $user = $this->require_role('student');
+        $this->grp_join((int) $gs_id, (int) $user['id'], 'student');
+    }
+
+    /** GET teacher/group-sessions/<id>/join — ويعلن «بدأت الآن» للاعضاء. */
+    public function teacher_group_session_join($gs_id = 0)
+    {
+        $user = $this->require_role('teacher');
+        $this->grp_join((int) $gs_id, (int) $user['id'], 'teacher');
+    }
+
+    private function grp_join($gs_id, $uid, $actor)
+    {
+        $r = $this->grp()->record_join($gs_id, $uid, $actor);
+        $this->trace($actor . '.groups.join', 'tq_group_sessions:' . $gs_id, array('ok' => !empty($r['ok'])));
+        if (empty($r['ok'])) {
+            $gs = $this->grp()->session($gs_id);
+            $this->done($actor === 'teacher' ? 'teacher/groups/' . ($gs ? (int) $gs['group_id'] : 0) : 'student/groups',
+                        false, implode(' ', (array) $r['errors']));
+            return;
+        }
+        redirect($r['url'], 'location', 302);
+    }
+
+    /**
+     * GET student/groups/<id>/ics — الجدول كله، او `?session=<id>` حصة واحدة.
+     * للعضو وحده، وبلا رابط اللقاء (`ics_schedule()`).
+     */
+    public function group_ics($group_id = 0)
+    {
+        $user = $this->require_role('student');
+        $gid  = (int) $group_id;
+        $g    = $this->grp()->get($gid);
+        if (!$g || !$this->grp()->has_group((int) $user['id'], $gid)) show_404();
+        $rows = $this->grp()->sessions_of($gid);
+        $one  = (int) $this->input->get('session');
+        if ($one > 0) $rows = array_values(array_filter($rows, function ($s) use ($one) { return (int) $s['id'] === $one; }));
+        if (!$rows) show_404();
+        $this->output
+             ->set_content_type('text/calendar; charset=utf-8')
+             ->set_header('Content-Disposition: attachment; filename="taqdar-group-' . $gid . ($one ? '-' . $one : '') . '.ics"')
+             ->set_header('Cache-Control: private, no-store')
+             ->set_output(Taqdar_group_model::ics_schedule($g, $rows));
+    }
+
+    /** GET teacher/groups/<id> (0 = جديدة) — تحرير المجموعة وجدولها وحضورها. */
+    public function teacher_group($group_id = 0)
+    {
+        $user = $this->require_role('teacher');
+        $this->grp_on();
+        $gid = (int) $group_id;
+        $g   = $gid ? $this->grp()->get($gid) : null;
+        if ($gid && (!$g || (int) $g['teacher_id'] !== (int) $user['id'])) show_404();
+        $this->show('tq_teacher_group', $g ? $g['title'] : 'مجموعة جديدة', array(
+            'tq_counts'   => $this->counts($user['id'], 'teacher'),
+            'user_id'     => $user['id'],
+            'tq_group'    => $g,
+            'tq_sum'      => $g ? $this->grp()->summary_of($g) : null,
+            'tq_sessions' => $g ? $this->grp()->sessions_of($gid) : array(),
+            'tq_members'  => $g ? $this->grp()->members_of($gid) : array(),
+        ));
+    }
+
+    /** POST teacher/groups/save — `save_group()`، والنشر يمر بـ`may_publish()`. */
+    public function teacher_group_save()
+    {
+        $user = $this->write_guard('teacher');
+        $this->grp_on();
+        $data = array();
+        foreach (array('id', 'title', 'description', 'grade_id', 'subject_id', 'capacity', 'access_days',
+                       'enroll_until', 'price', 'status') as $k) {
+            $v = $this->input->post($k);
+            if ($v !== null) $data[$k] = $v;
+        }
+        $r  = $this->grp()->save_group($data, (int) $user['id'], 'teacher');
+        $to = !empty($r['ok']) ? (int) $r['id'] : (int) ($data['id'] ?? 0);
+        $this->trace('teacher.groups.save', 'tq_groups#' . $to, array('ok' => !empty($r['ok'])));
+        $this->done($to > 0 ? 'teacher/groups/' . $to : 'teacher/groups/new',
+                    !empty($r['ok']), $this->result_message($r, 'حفظت المجموعة.'));
+    }
+
+    private function grp_actor($user) { return array('id' => (int) $user['id'], 'role' => 'teacher'); }
+
+    /** POST teacher/groups/session-save — حصة جديدة او تعديل عنوانها ورابطها. */
+    public function teacher_group_session_save()
+    {
+        $user = $this->write_guard('teacher');
+        $gid  = (int) $this->input->post('group_id');
+        $data = array();
+        foreach (array('id', 'title', 'starts_at', 'duration_min', 'meet_url') as $k) {
+            $v = $this->input->post($k);
+            if ($v !== null && $v !== '') $data[$k] = $v;
+        }
+        $r = $this->grp()->save_session($gid, $data, $this->grp_actor($user));
+        $this->done('teacher/groups/' . $gid, !empty($r['ok']), $this->result_message($r, 'حفظت الحصة.'));
+    }
+
+    /** POST teacher/groups/session-reschedule — تأجيل بسببه، ويبلغ كل الاعضاء. */
+    public function teacher_group_session_reschedule()
+    {
+        $user = $this->write_guard('teacher');
+        $sid  = (int) $this->input->post('session_id');
+        $gs   = $this->grp()->session($sid);
+        $r    = $this->grp()->reschedule_session($sid, (string) $this->input->post('starts_at'),
+                    (string) $this->input->post('reason'), $this->grp_actor($user));
+        $this->done('teacher/groups/' . ($gs ? (int) $gs['group_id'] : 0), !empty($r['ok']),
+                    $this->result_message($r, 'اجلت الحصة وبلغ الاعضاء.'));
+    }
+
+    /** POST teacher/groups/session-complete — الحضور ورابط التسجيل او «لاحقا». */
+    public function teacher_group_session_complete()
+    {
+        $user = $this->write_guard('teacher');
+        $sid  = (int) $this->input->post('session_id');
+        $gs   = $this->grp()->session($sid);
+        $att  = array();
+        foreach ((array) $this->input->post('att') as $stu => $v) {
+            if (in_array($v, array('present', 'absent'), true)) $att[(int) $stu] = $v;
+        }
+        $r = $this->grp()->complete_session($sid, $att, (string) $this->input->post('recording_url'),
+                                            (string) $this->input->post('recording_pending') === '1',
+                                            $this->grp_actor($user));
+        $this->done('teacher/groups/' . ($gs ? (int) $gs['group_id'] : 0), !empty($r['ok']),
+                    $this->result_message($r, 'اعلن انتهاء الحصة.'));
+    }
+
+    /** POST teacher/groups/session-recording — رابط التسجيل بعد «سأرفعه لاحقا». */
+    public function teacher_group_session_recording()
+    {
+        $user = $this->write_guard('teacher');
+        $sid  = (int) $this->input->post('session_id');
+        $gs   = $this->grp()->session($sid);
+        $r    = $this->grp()->set_recording($sid, (string) $this->input->post('recording_url'), $this->grp_actor($user));
+        $this->done('teacher/groups/' . ($gs ? (int) $gs['group_id'] : 0), !empty($r['ok']),
+                    $this->result_message($r, 'رفع التسجيل وبلغ الاعضاء.'));
     }
 }
