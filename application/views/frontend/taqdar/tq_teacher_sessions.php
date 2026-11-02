@@ -355,6 +355,20 @@ include 'portal_open.php';
                                           data-tq-confirm-ok="<?php echo te('نعم، انتهت'); ?>">
                                         <?php echo tq_csrf(); ?>
                                         <input type="hidden" name="session_id" value="<?php echo (int) $tq_c['id']; ?>">
+                                        <?php /* TQ-LIVE (D3/D4) — الحضور معلم مسبقا من نقرة الطالب ويصحح
+                                                 (دخل من رابط حفظه)، والتسجيل اختياري. والغياب لا يغير المال. */ ?>
+                                        <fieldset style="border:0;padding:0;margin:0 0 var(--tq-space-xs)">
+                                            <legend class="tq-micro"><?php echo t('الطالب حضر؟'); ?></legend>
+                                            <label class="tq-micro"><input type="radio" name="attendance" value="present"
+                                                <?php echo !empty($tq_c['attended']) ? 'checked' : ''; ?>> <?php echo t('حضر'); ?></label>
+                                            <label class="tq-micro"><input type="radio" name="attendance" value="absent"
+                                                <?php echo empty($tq_c['attended']) ? 'checked' : ''; ?>> <?php echo t('لم يحضر'); ?></label>
+                                            <span class="tq-micro" style="display:block"><?php echo t('الغياب لا يغير نصيبك: وقتك كان محجوزا.'); ?></span>
+                                        </fieldset>
+                                        <label class="tq-micro" for="tq-rec-<?php echo (int) $tq_c['id']; ?>"><?php echo t('رابط التسجيل (اختياري — يوتيوب غير مدرج أو فيميو أو درايف)'); ?></label>
+                                        <input class="tq-input" id="tq-rec-<?php echo (int) $tq_c['id']; ?>" type="url" name="recording_url" dir="ltr"
+                                               placeholder="https://">
+                                        <label class="tq-micro"><input type="checkbox" name="recording_later" value="1"> <?php echo t('سأرفعه لاحقا'); ?></label>
                                         <button class="tq-btn tq-btn--secondary tq-btn--sm" type="submit">
                                             <?php echo tq_icon('check', 16); ?> <?php echo t('أعلن انتهاء الحصة'); ?>
                                             <?php if ($tq_c['price'] > 0): ?>
@@ -390,7 +404,7 @@ include 'portal_open.php';
                 <div class="tq-card">
                     <ul class="tq-stack">
                         <?php foreach ($tq_done as $tq_c): ?>
-                            <li class="tq-row" style="gap:var(--tq-space-l);padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line)">
+                            <li class="tq-row" style="gap:var(--tq-space-l);padding-block:var(--tq-space-m);border-block-end:1px solid var(--tq-line);flex-wrap:wrap">
                                 <div style="flex:1;min-inline-size:0">
                                     <p class="tq-strong" style="margin:0;color:var(--tq-navy)"><?php echo html_escape($tq_c['student_name']); ?></p>
                                     <p class="tq-micro" style="margin:0"><?php echo tq_iso($tq_c['when_text']); ?></p>
@@ -407,6 +421,24 @@ include 'portal_open.php';
                                         <strong style="display:block;color:var(--tq-navy)"><?php echo $tq_sar($tq_c['share']); ?></strong>
                                         <?php echo $tq_c['credited_at'] ? t('في محفظتك') : t('لم يقيد بعد'); ?>
                                     </span>
+                                <?php endif; ?>
+                                <?php /* TQ-LIVE (D3/D4) — التسجيل بعد الحصة، وتصحيح الحضور خلال ٢٤ ساعة. */ ?>
+                                <?php if (empty($tq_c['has_recording'])): ?>
+                                    <form method="post" action="<?php echo base_url('teacher/sessions/recording'); ?>"
+                                          class="tq-form-inline" style="flex-basis:100%">
+                                        <?php echo tq_csrf(); ?>
+                                        <input type="hidden" name="session_id" value="<?php echo (int) $tq_c['id']; ?>">
+                                        <label class="tq-sr" for="tq-recd-<?php echo (int) $tq_c['id']; ?>"><?php echo t('رابط التسجيل'); ?></label>
+                                        <input class="tq-input" id="tq-recd-<?php echo (int) $tq_c['id']; ?>" type="url" name="recording_url"
+                                               dir="ltr" placeholder="https://" required>
+                                        <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit">
+                                            <?php echo !empty($tq_c['recording_pending']) ? t('أضف التسجيل الموعود') : t('أضف رابط التسجيل'); ?></button>
+                                    </form>
+                                <?php else: ?>
+                                    <span class="tq-micro" style="flex-basis:100%"><?php echo t('التسجيل مضاف'); ?></span>
+                                <?php endif; ?>
+                                <?php if (($tq_c['attendance'] ?? null) !== null): ?>
+                                    <span class="tq-micro"><?php echo $tq_c['attendance'] === 'present' ? t('حضر') : t('لم يحضر'); ?></span>
                                 <?php endif; ?>
                             </li>
                         <?php endforeach; ?>

@@ -74,7 +74,7 @@ class Taqdar_sessions_model extends CI_Model
     const WINDOW_DAYS = 14;
 
     /** إصدار بنية الحصص — يمنع إعادة فحص الأعمدة في كل طلب. */
-    const SCHEMA_V = '8';
+    const SCHEMA_V = '9';
 
     /**
      * TQ-FOUNDATION — نوعا الوقت، وهما بعد واحد لا محركان.
@@ -272,6 +272,28 @@ class Taqdar_sessions_model extends CI_Model
         $this->try_sql('ALTER TABLE `tutoring_sessions` ADD COLUMN IF NOT EXISTS `nolink_alerted_at` DATETIME NULL DEFAULT NULL');
         $this->extend_slot_status_enum();
 
+        /* ---- TQ-LIVE (الاصدار 9) — التاجيل والالغاء بسبب والحضور والتسجيل
+           اضافة لا تبديل: اعمدة فارغة او بافتراض، ولا صف يمس. و`cancel_reason`
+           قائم منذ الاصدار الاول (اعلاه) فلا يعاد. و`attendance` نص لا سرد:
+           قيمة خارج سرد تكتب فارغة ولا تخطئ، والقيم تحرس في `clean_attendance()`.
+           و`rescheduled_from` معرف **الموعد** القديم لا الحصة. */
+        $v9 = array(
+            'rescheduled_from'      => 'INT(10) UNSIGNED NULL DEFAULT NULL',
+            'rescheduled_at'        => 'DATETIME NULL DEFAULT NULL',
+            'rescheduled_by'        => 'VARCHAR(16) NULL DEFAULT NULL',
+            'reschedule_count'      => 'INT(10) UNSIGNED NOT NULL DEFAULT 0',
+            'cancelled_by'          => 'VARCHAR(16) NULL DEFAULT NULL',
+            'attendance'            => 'VARCHAR(8) NULL DEFAULT NULL',
+            'recording_url'         => 'VARCHAR(500) NULL DEFAULT NULL',
+            'recording_pending'     => 'TINYINT(1) NOT NULL DEFAULT 0',
+            'recording_reminded_at' => 'DATETIME NULL DEFAULT NULL',
+            'teacher_absent_at'     => 'DATETIME NULL DEFAULT NULL',
+            'refund_state'          => 'VARCHAR(20) NULL DEFAULT NULL',
+        );
+        foreach ($v9 as $name => $def) {
+            $this->try_sql('ALTER TABLE `tutoring_sessions` ADD COLUMN IF NOT EXISTS `' . $name . '` ' . $def);
+        }
+
         $this->put_setting('tq_session_schema_v', self::SCHEMA_V);
     }
 
@@ -397,6 +419,7 @@ class Taqdar_sessions_model extends CI_Model
         'tq_session_instant_book'      => 1,   // D1 — الدفع يثبت الحجز بلا تاكيد معلم
         'tq_session_hold_min'          => 15,  // D1-b — مهلة الحجز المؤقت اثناء الدفع
         'tq_session_refund_hours'      => 24,  // D5-b — حد الاسترداد عند الغاء الطالب
+        'tq_session_reschedule_hours'  => 12,  // D6 — اخر حد لتاجيل الطالب قبل الموعد
     );
 
     private static $cfg_cache = null;
@@ -445,6 +468,7 @@ class Taqdar_sessions_model extends CI_Model
             'instant_book' => (string) $c['tq_session_instant_book'] !== '0',
             'hold_min'     => max(5, min(120, (int) $c['tq_session_hold_min'])),
             'refund_hours' => max(0, min(168, (int) $c['tq_session_refund_hours'])),
+            'reschedule_hours' => max(0, min(168, (int) $c['tq_session_reschedule_hours'])),
         );
     }
 
@@ -1746,7 +1770,8 @@ class Taqdar_sessions_model extends CI_Model
                 'can_complete' => $j['can_complete'],
                 'is_over'      => $j['is_over'],
                 'note'         => $j['note'],
-            ];
+                'cancel_reason' => (string) ($r['cancel_reason'] ?? ''),
+            ] + $this->live_extra($r, 'teacher');
         }
         return $out;
     }
@@ -2145,9 +2170,20 @@ class Taqdar_sessions_model extends CI_Model
 
         $key = 'scheduled'; $label = ''; $tone = 'idle'; $button = '';
 
+        $refund = (string) ($row['refund_state'] ?? '');
         if (in_array($status, array('declined', 'refunded'), true)) {
             $key = 'cancelled'; $tone = 'late';
             $label = $status === 'refunded' ? 'ألغيت واسترد مبلغها' : 'ألغيت';
+            /* D5 — اعتذر المعلم او غاب بعد الدفع: الطالب يختار البديل او
+               الاسترداد، والزر له وحده. */
+            if ($status === 'declined' && $refund === 'choice') {
+                $tone = 'due'; $label = 'اعتذر المعلم — اختر موعدا بديلا أو الاسترداد';
+                $button = (string) $actor === 'student' ? 'teacher_fault' : '';
+            } elseif ($status === 'declined' && $refund === 'review') {
+                $tone = 'due'; $label = 'طلبك قيد مراجعة الإدارة';
+            } elseif ($status === 'refunded' && $refund === 'pending') {
+                $label = 'ألغيت — يرد مبلغها خلال 5 أيام عمل خارج المنصة';
+            }
         } elseif ($status === 'expired') {
             $key = 'expired'; $tone = 'late'; $label = 'مضت مهلتها';
         } elseif ($status === 'awaiting_payment') {
@@ -2181,6 +2217,13 @@ class Taqdar_sessions_model extends CI_Model
             } elseif ($status === 'live' || ($starts > 0 && $starts <= $now)) {
                 $key = 'live'; $tone = 'progress'; $label = 'مباشرة الآن';
                 $button = $j['can_join'] ? 'join' : '';
+                /* D10 — غياب المعلم: بعد عشر دقائق «تاخر»، وبعد عشرين زر
+                   «المعلم لم يحضر» للطالب يفتح خياري D5. */
+                $absent = self::absence_stage($row, $now, $this->config()['grace_hours']);
+                if ($absent >= 1 && (string) $actor === 'student') {
+                    $tone = 'late'; $label = 'المعلم تأخر';
+                    if ($absent >= 2) $button = 'teacher_no_show';
+                }
             } elseif ($j['opens_at'] > 0 && $j['opens_at'] <= $now) {
                 $key = 'ready'; $tone = 'mastered'; $label = 'جاهزة للدخول';
                 $button = $j['can_join'] ? 'join' : '';
@@ -2569,7 +2612,7 @@ class Taqdar_sessions_model extends CI_Model
      * @param int    $teacher_id صفر للنداء الإداري أو الآلي
      * @param string $actor      teacher|admin|cron
      */
-    public function complete($session_id, $teacher_id, $actor = 'teacher')
+    public function complete($session_id, $teacher_id, $actor = 'teacher', $extra = array())
     {
         $this->install_schema();
 
@@ -2594,14 +2637,26 @@ class Taqdar_sessions_model extends CI_Model
             return array('ok' => false, 'msg' => 'لم يحن موعد هذه الحصة بعد.');
         }
 
+        /* TQ-LIVE (D3/D4) — الحضور معلم مسبقا من النقرة ويصححه المعلم،
+           والتسجيل رابط اختياري او «ساضيفه لاحقا». والغياب لا يغير المال. */
+        $extra = (array) $extra;
+        $rec   = '';
+        if (trim((string) ($extra['recording_url'] ?? '')) !== '') {
+            $rec = $this->clean_recording_url($extra['recording_url']);
+            if ($rec === '') {
+                return array('ok' => false, 'msg' => 'رابط التسجيل يكون من يوتيوب أو فيميو أو جوجل درايف ويبدأ بـhttps.');
+            }
+        }
+
         $now = date('Y-m-d H:i:s');
+        $upd = array('status' => 'completed', 'completed_at' => $now, 'updated_at' => $now);
+        $att = self::clean_attendance($extra['attendance'] ?? '');
+        if ($att !== null) $upd['attendance'] = $att;
+        if ($rec !== '') $upd['recording_url'] = $rec;
+        elseif (!empty($extra['recording_later'])) $upd['recording_pending'] = 1;
         $this->db->where('id', $session_id)
                  ->where_in('status', array('confirmed', 'live'))
-                 ->update('tutoring_sessions', array(
-                     'status'       => 'completed',
-                     'completed_at' => $now,
-                     'updated_at'   => $now,
-                 ));
+                 ->update('tutoring_sessions', $upd);
         if ($this->db->affected_rows() < 1) {
             return array('ok' => false, 'msg' => 'تعذر إنهاء الحصة. حدث الصفحة وأعد المحاولة.');
         }
@@ -2609,7 +2664,11 @@ class Taqdar_sessions_model extends CI_Model
         $credit = $this->credit($row);
 
         $this->audit('session.complete', $session_id,
-            array('by' => $actor, 'credited' => (int) ($credit['share'] ?? 0)));
+            array('by' => $actor, 'credited' => (int) ($credit['share'] ?? 0),
+                  'attendance' => $att, 'recording' => $rec !== '' ? 'url' : (!empty($upd['recording_pending']) ? 'later' : '')));
+        if ($rec !== '') {
+            $this->tell_parents((int) $row['student_id'], 'تسجيل حصة ابنك متاح', 'أضاف المعلم تسجيل الحصة.');
+        }
 
         return array('ok' => true, 'credited' => $credit,
                      'student_id' => (int) $row['student_id'],
@@ -2711,6 +2770,52 @@ class Taqdar_sessions_model extends CI_Model
                    ? strtotime($row['starts_at']) - $this->config()['lead_min'] * 60 : 0;
         $may_pack = $prepaid && $row['status'] === 'confirmed' && $opens > time();
 
+        /* TQ-LIVE (D5-b) — حصة مفردة مدفوعة: قبل `refund_hours` من الموعد
+           تسترد كاملة (او يؤجلها)، واقل منها لا استرداد — وقت المعلم حجز
+           له — ويبقى التاجيل ان بقيت مرته. والمال يرد خارج المنصة. */
+        if (!$prepaid && $row['status'] === 'confirmed' && !empty($row['paid_at']) && (int) $row['price_halalas'] > 0) {
+            $starts = !empty($row['starts_at']) ? (int) strtotime((string) $row['starts_at']) : 0;
+            $c      = $this->config();
+            $dec    = self::refund_decision($starts, time(), $c['refund_hours'], true, false);
+            if ($dec !== 'refund') {
+                $can_move = self::reschedule_block('student', 'confirmed', $starts, time(),
+                                (int) ($row['reschedule_count'] ?? 0), $c['reschedule_hours']) === '';
+                return array('ok' => false, 'code' => 'no_refund',
+                    'msg' => 'بقي على الموعد أقل من ' . $c['refund_hours'] . ' ساعة، فلا تلغى ولا يسترد مبلغها: وقت المعلم محجوز لك.'
+                           . ($can_move ? ' يمكنك تأجيلها مرة واحدة إلى موعد آخر مع المعلم نفسه.' : ''));
+            }
+            $this->db->where('id', (int) $row['id'])->where('student_id', (int) $student_id)
+                     ->where('status', 'confirmed')
+                     ->update('tutoring_sessions', array(
+                         'status'        => 'refunded',
+                         'meet_url'      => null,
+                         'cancel_reason' => trim((string) $reason) !== '' ? mb_substr(trim($reason), 0, 255) : 'ألغاه الطالب',
+                         'cancelled_by'  => 'student',
+                         'refund_state'  => 'pending',
+                         'updated_at'    => date('Y-m-d H:i:s'),
+                     ));
+            if ($this->db->affected_rows() < 1) return array('ok' => false, 'msg' => 'تعذر إلغاء الحجز.');
+            /* الحال تكتب اولا قفلا على التزاحم، ثم الفاتورة والعكس؛ وفشلهما
+               يعيد الحصة الى `confirmed` ويعلم المسؤول (refund_failed) — فلا
+               تبقى «مستردة» والمال لم يمس. والموعد يحرر بعد النجاح وحده. */
+            $res = $this->mark_refunded($row, 'student_cancel');
+            if (empty($res['ok'])) {
+                return $this->refund_failed($row, array(
+                    'status' => 'confirmed', 'meet_url' => $row['meet_url'] ?? null, 'cancel_reason' => $row['cancel_reason'] ?? null,
+                    'cancelled_by' => $row['cancelled_by'] ?? null, 'refund_state' => $row['refund_state'] ?? null,
+                ), $res, 'student_cancel');
+            }
+            try {
+                $this->release_slot($row);
+            } catch (Throwable $e) {
+                $this->db->reset_query();
+                log_message('error', 'TQ-SESSION-REFUND: تعذر تحرير موعد حصة #' . (int) $row['id'] . ' — ' . $e->getMessage());
+            }
+            $this->tell_parents((int) $student_id, 'ألغيت حصة ابنك', 'ألغى ابنك حصته، ويرد مبلغها خلال ٥ أيام عمل خارج المنصة.');
+            return array('ok' => true, 'teacher_id' => (int) $row['teacher_id'], 'refunded' => true,
+                         'msg' => 'ألغيت حصتك. يرد خلال ٥ أيام عمل خارج المنصة.');
+        }
+
         if (!$may_pack && !in_array($row['status'], array('requested', 'awaiting_payment'), true)) {
             if ($prepaid && in_array($row['status'], array('confirmed', 'live'), true)) {
                 return array('ok' => false,
@@ -2730,6 +2835,7 @@ class Taqdar_sessions_model extends CI_Model
                      'meet_url'      => null,
                      'cancel_reason' => trim((string) $reason) !== ''
                                         ? mb_substr(trim($reason), 0, 255) : 'ألغاه الطالب',
+                     'cancelled_by'  => 'student',
                      'updated_at'    => $now,
                  ));
         if ($this->db->affected_rows() < 1) {
@@ -2793,8 +2899,13 @@ class Taqdar_sessions_model extends CI_Model
                         ->join('availability_slots a', 'a.id = t.slot_id', 'left')
                         ->where('t.id', (int) $session_id)->get()->row_array();
         if (!$row) return array('ok' => false, 'msg' => 'الحصة غير موجودة.');
+        /* TQ-LIVE — سبب الالغاء مطلوب: يقرؤه الطالب والمعلم مع حال المال. */
+        if (trim((string) $reason) === '') {
+            return array('ok' => false, 'msg' => 'اكتب سبب الإلغاء — يقرؤه الطالب والمعلم.');
+        }
 
-        if (in_array($row['status'], array('declined', 'expired', 'refunded'), true)) {
+        if (in_array($row['status'], array('declined', 'expired', 'refunded'), true)
+            && !((string) ($row['refund_state'] ?? '') === 'choice' && $row['status'] === 'declined')) {
             return array('ok' => false, 'msg' => 'هذه الحصة مغلقة أصلا، ولا مال فيها يرد.');
         }
         if ($row['status'] === 'completed' && empty($row['paid_at'])) {
@@ -2818,6 +2929,8 @@ class Taqdar_sessions_model extends CI_Model
                      'meet_url'      => null,
                      'cancel_reason' => trim((string) $reason) !== ''
                                         ? mb_substr(trim($reason), 0, 255) : 'ألغتها الإدارة',
+                     'cancelled_by'  => 'admin',
+                     'refund_state'  => $new === 'refunded' ? 'pending' : null,
                      'updated_at'    => $now,
                  ));
 
@@ -2832,7 +2945,10 @@ class Taqdar_sessions_model extends CI_Model
                     (int) $row['teacher_id'], (int) $row['id'],
                     $pack ? 'ألغيت حصة باقة' : 'استردت الحصة');
             } catch (Throwable $e) {
-                log_message('error', 'TQ-SESSION-REVERSE: تعذر عكس حصة #' . (int) $row['id']);
+                $this->db->reset_query();
+                $rev_failed = true;
+                log_message('error', 'TQ-SESSION-REVERSE: تعذر عكس حصة #' . (int) $row['id'] . ' — ' . $e->getMessage());
+                $this->audit('session.reverse_failed', (int) $row['id'], array('error' => $e->getMessage()));
             }
         } else {
             $this->void_invoice($row);
@@ -2842,22 +2958,828 @@ class Taqdar_sessions_model extends CI_Model
         $this->audit('session.' . ($paid ? 'refund' : 'cancel'), (int) $row['id'],
             array('reason' => $reason, 'actor' => (int) $actor_id, 'amount' => (int) $row['price_halalas']));
 
+        /* العكس ذري، فإن تعثر لم يمس قيد — ويقال للمسؤول صراحة لا يبتلع. */
+        $warn = !empty($rev_failed)
+            ? ' تنبيه: تعذر عكس قيد المعلم الآن فبقي في محفظته — راجع قيود محفظته قبل أي تسوية.'
+            : '';
+
         if ($pack) {
             return array('ok' => true, 'refunded' => false, 'pack' => true,
+                         'reverse_failed' => !empty($rev_failed),
                          'student_id' => (int) $row['student_id'],
                          'teacher_id' => (int) $row['teacher_id'],
                          'amount'     => (int) $row['price_halalas'],
-                         'msg' => 'ألغيت الحصة، وعادت إلى رصيد باقة الطالب، وعكس قيد معلمها إن كان قيد.'
-                                . ' ولا مال يرد: ثمنها في رصيده يحجز به من جديد.');
+                         'msg' => (!empty($rev_failed)
+                                    ? 'ألغيت الحصة، وعادت إلى رصيد باقة الطالب.'
+                                    : 'ألغيت الحصة، وعادت إلى رصيد باقة الطالب، وعكس قيد معلمها إن كان قيد.')
+                                . ' ولا مال يرد: ثمنها في رصيده يحجز به من جديد.' . $warn);
         }
 
         return array('ok' => true, 'refunded' => $paid,
+                     'reverse_failed' => !empty($rev_failed),
                      'student_id' => (int) $row['student_id'],
                      'teacher_id' => (int) $row['teacher_id'],
                      'amount'     => (int) $row['price_halalas'],
                      'msg' => $paid
-                         ? 'وسمت الحصة مستردة وعكس قيد معلمها. رد المبلغ إلى الطالب من لوحة تاب — المنصة لا تردها بنفسها.'
+                         ? (!empty($rev_failed) ? 'وسمت الحصة مستردة.' : 'وسمت الحصة مستردة وعكس قيد معلمها.')
+                           . ' رد المبلغ إلى الطالب من لوحة تاب — المنصة لا تردها بنفسها.' . $warn
                          : 'ألغيت الحصة، وشطبت فاتورتها، وحرر وقتها.');
+    }
+
+    /* =====================================================================
+       TQ-LIVE — المرحلة الثانية والثالثة: التاجيل، الالغاء بسبب،
+       الاسترداد بالساعات، غياب المعلم، الحضور، التسجيل.
+       القواعد الخالصة ساكنة (تفحص بلا قاعدة)، والكتابة تحتها.
+       ===================================================================== */
+
+    /** الحالات التي تؤجل منها حصة: مدفوعة مثبتة، او محجوزة تنتظر الدفع. */
+    public static $MOVABLE = array('confirmed', 'awaiting_payment');
+
+    /**
+     * ايجوز التاجيل؟ '' = نعم، والا مفتاح المانع:
+     * status · past · count · window. والطالب مرة واحدة حتى `$hours` قبل
+     * الموعد (D6)، والمعلم والمسؤول اي وقت قبله.
+     */
+    public static function reschedule_block($role, $status, $starts_ts, $now, $count, $hours)
+    {
+        if (!in_array((string) $status, self::$MOVABLE, true)) return 'status';
+        if ((int) $starts_ts <= 0 || (int) $starts_ts <= (int) $now) return 'past';
+        if ((string) $role === 'student') {
+            if ((int) $count >= 1) return 'count';
+            if ((int) $starts_ts - (int) $now < (int) $hours * 3600) return 'window';
+        }
+        return '';
+    }
+
+    /** نص المانع لمن يقرؤه. */
+    public function reschedule_block_text($code)
+    {
+        $h = $this->config()['reschedule_hours'];
+        $map = array(
+            'status' => 'لا تؤجل إلا حصة مثبتة أو تنتظر الدفع.',
+            'past'   => 'بدأ موعد هذه الحصة أو مضى، فلا تؤجل.',
+            'count'  => 'أجلت هذه الحصة من قبل، والتأجيل مرة واحدة لكل حصة.',
+            'window' => 'التأجيل متاح حتى ' . $h . ' ساعة قبل الموعد، وقد قرب الموعد.',
+        );
+        return $map[$code] ?? 'لا يجوز تأجيل هذه الحصة.';
+    }
+
+    /**
+     * الموعد الجديد من نطاق القديم: المعلم نفسه والنوع نفسه، ومسار التاسيس
+     * نفسه، او الصف والمادة نفسهما (والموعد المفتوح للكل يقبل).
+     */
+    public static function same_scope($old, $new)
+    {
+        if ((int) ($old['teacher_id'] ?? 0) !== (int) ($new['teacher_id'] ?? -1)) return false;
+        $ko = (string) ($old['kind'] ?? 'curriculum') ?: 'curriculum';
+        $kn = (string) ($new['kind'] ?? 'curriculum') ?: 'curriculum';
+        if ($ko !== $kn) return false;
+        if ($ko === 'foundation') {
+            return (int) ($old['track_id'] ?? 0) === (int) ($new['track_id'] ?? 0);
+        }
+        foreach (array('grade_id', 'subject_id') as $k) {
+            $n = (int) ($new[$k] ?? 0);
+            if ($n > 0 && $n !== (int) ($old[$k] ?? 0)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * D5-b — الغاء الطالب لحصة مدفوعة: refund · no_refund · pack · unpaid.
+     * والحد شامل: من الغى قبل الموعد بالمدة تماما يسترد.
+     */
+    public static function refund_decision($starts_ts, $now, $hours, $paid, $pack)
+    {
+        if ($pack) return 'pack';
+        if (!$paid) return 'unpaid';
+        return ((int) $starts_ts - (int) $now >= (int) $hours * 3600) ? 'refund' : 'no_refund';
+    }
+
+    /**
+     * D10 — مرحلة غياب المعلم: 0 لا شيء · 1 تاخر عشر دقائق · 2 عشرون.
+     * تشترط حصة مثبتة او جارية بلا `teacher_joined_at`، ولم يغلق رابطها.
+     */
+    public static function absence_stage($row, $now, $grace_hours = 6)
+    {
+        if (!in_array((string) ($row['status'] ?? ''), array('confirmed', 'live'), true)) return 0;
+        if (!empty($row['teacher_joined_at'])) return 0;
+        $starts = !empty($row['starts_at']) ? (int) strtotime((string) $row['starts_at']) : 0;
+        if ($starts <= 0) return 0;
+        $mins = (int) ($row['duration_min'] ?? 0) ?: 60;
+        if ((int) $now > $starts + $mins * 60 + (int) $grace_hours * 3600) return 0;
+        $late = (int) $now - $starts;
+        if ($late >= 20 * 60) return 2;
+        if ($late >= 10 * 60) return 1;
+        return 0;
+    }
+
+    /**
+     * D4 — ما يجب على تسجيل منتظر: '' · remind (بعد ٤٨ ساعة مرة) · drop
+     * (بعد سبعة ايام يسقط الانتظار الى «لا تسجيل»).
+     */
+    public static function recording_step($row, $now)
+    {
+        if ((int) ($row['recording_pending'] ?? 0) !== 1) return '';
+        if (trim((string) ($row['recording_url'] ?? '')) !== '') return '';
+        $done = !empty($row['completed_at']) ? (int) strtotime((string) $row['completed_at']) : 0;
+        if ($done <= 0) return '';
+        if ((int) $now >= $done + 7 * 86400) return 'drop';
+        if ((int) $now >= $done + 48 * 3600 && empty($row['recording_reminded_at'])) return 'remind';
+        return '';
+    }
+
+    /**
+     * D3 — الحضور الذي يعتمد بعد ٢٤ ساعة بلا تصحيح، او null (لا يمس).
+     * النقرة حضور، وغيابها غياب **متى كان الدخول يقاس** (دخل المعلم من
+     * بابنا)؛ وحصة لم يقس فيها شيء تبقى بلا حكم — لا يكتب غياب على تخمين.
+     */
+    public static function attendance_final($row, $now)
+    {
+        if (!empty($row['attendance'])) return null;
+        if ((string) ($row['status'] ?? '') !== 'completed') return null;
+        $done = !empty($row['completed_at']) ? (int) strtotime((string) $row['completed_at']) : 0;
+        if ($done <= 0 || (int) $now < $done + 24 * 3600) return null;
+        if (!empty($row['attended_at'])) return 'present';
+        if (!empty($row['teacher_joined_at'])) return 'absent';
+        return null;
+    }
+
+    /** D3 — يصحح الحضور خلال ٢٤ ساعة من الانتهاء وحدها، ضبط ام لم يضبط. */
+    public static function attendance_editable($row, $now)
+    {
+        $done = !empty($row['completed_at']) ? (int) strtotime((string) $row['completed_at']) : 0;
+        return $done > 0 && (int) $now <= $done + 24 * 3600;
+    }
+
+    /**
+     * ايقيد الاغلاق الالي نصيب المعلم؟ لا لمعلم سجل غيابه ولم يدخل بعده،
+     * ولا لحصة استردادها قيد مراجعة الادارة.
+     */
+    public static function may_auto_credit($row)
+    {
+        if ((string) ($row['refund_state'] ?? '') === 'review') return false;
+        if (!empty($row['teacher_absent_at']) && empty($row['teacher_joined_at'])) return false;
+        return true;
+    }
+
+    public static function clean_attendance($v)
+    {
+        $v = (string) $v;
+        return in_array($v, array('present', 'absent'), true) ? $v : null;
+    }
+
+    /** رابط تسجيل مقبول: https على يوتيوب او فيميو او درايف. */
+    public static function recording_host_ok($url)
+    {
+        $url = (string) $url;
+        if (stripos($url, 'https://') !== 0) return false;
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        foreach (array('youtube.com', 'youtu.be', 'vimeo.com', 'drive.google.com') as $h) {
+            if ($host === $h || substr($host, -strlen('.' . $h)) === '.' . $h) return true;
+        }
+        return false;
+    }
+
+    public function clean_recording_url($raw)
+    {
+        $u = function_exists('tq_clean_url') ? tq_clean_url($raw) : trim((string) $raw);
+        return self::recording_host_ok($u) ? $u : '';
+    }
+
+    /** صف الحصة مع موعدها — بلا شرط ملكية (يفحصه النادي). */
+    private function live_row($session_id)
+    {
+        try {
+            return $this->db->select('t.*, a.starts_at, a.duration_min, a.grade_id, a.subject_id,
+                                      ut.tq_meet_url AS teacher_meet_url')
+                            ->from('tutoring_sessions t')
+                            ->join('availability_slots a', 'a.id = t.slot_id', 'left')
+                            ->join('users ut', 'ut.id = t.teacher_id', 'left')
+                            ->where('t.id', (int) $session_id)
+                            ->get()->row_array();
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            return null;
+        }
+    }
+
+    /** ايملك هذا الفاعل الحصة؟ الطالب صاحبها، والمعلم معلمها، والمسؤول كلها. */
+    private function actor_owns($row, $actor_id, $role)
+    {
+        if ((string) $role === 'admin') return true;
+        if ((string) $role === 'teacher') return (int) $row['teacher_id'] === (int) $actor_id;
+        if ((string) $role === 'student') return (int) $row['student_id'] === (int) $actor_id;
+        return false;
+    }
+
+    /** الصف والمادة والمسار التي ينسب اليها الموعد القديم. */
+    private function scope_row($row)
+    {
+        return array(
+            'teacher_id' => (int) $row['teacher_id'],
+            'kind'       => (string) ($row['kind'] ?? 'curriculum'),
+            'track_id'   => (int) ($row['track_id'] ?? 0),
+            'grade_id'   => (int) ($row['grade_id'] ?? 0),
+            'subject_id' => (int) ($row['subject_id'] ?? 0),
+        );
+    }
+
+    /**
+     * مواعيد بديلة: المفتوحة القادمة للمعلم نفسه في النطاق نفسه — شبكة
+     * `available_teachers()` نفسها مرشحة بالمعلم.
+     */
+    public function reschedule_options($session_id, $actor_role, $actor_id = 0)
+    {
+        $this->install_schema();
+        $row = $this->live_row($session_id);
+        if (!$row) return array();
+        if ((string) $actor_role !== 'admin' && !$this->actor_owns($row, $actor_id, $actor_role)) return array();
+
+        $this->expire_holds();
+        try {
+            $slots = $this->db->select('id, teacher_id, starts_at, duration_min, grade_id, subject_id, kind, track_id')
+                              ->where('teacher_id', (int) $row['teacher_id'])
+                              ->where('status', 'open')
+                              ->where('starts_at >', date('Y-m-d H:i:s'))
+                              ->order_by('starts_at', 'ASC')->limit(60)
+                              ->get('availability_slots')->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return array(); }
+
+        $old = $this->scope_row($row);
+        $out = array();
+        foreach ($slots as $s) {
+            if ((int) $s['id'] === (int) $row['slot_id']) continue;
+            if (!self::same_scope($old, $s)) continue;
+            $out[] = array(
+                'id'        => (int) $s['id'],
+                'starts_at' => $s['starts_at'],
+                'when_text' => $this->when_text($s['starts_at'], (int) $s['duration_min']),
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * ينقل الحصة الى موعد جديد — قاعدة واحدة للتاجيل ولبديل خطا المعلم.
+     * التحديث المشروط على الموعد الجديد حارس التزاحم، ثم يفك القديم. والسعر
+     * والفاتورة لا يتغيران.
+     *
+     * @param array $set اعمدة تكتب مع النقل (الحال، العداد…)
+     * @param array $from الحالات المقبولة للتحديث المشروط
+     */
+    private function move_to_slot($row, $new_slot_id, $set, $from, $guards = array())
+    {
+        $new_slot_id = (int) $new_slot_id;
+        $slot = $this->db->where('id', $new_slot_id)->get('availability_slots')->row_array();
+        $now  = time();
+        if (!$slot || (string) $slot['status'] !== 'open' || strtotime((string) $slot['starts_at']) <= $now) {
+            return array('ok' => false, 'msg' => 'هذا الموعد لم يعد متاحا. اختر غيره.');
+        }
+        if (!self::same_scope($this->scope_row($row), $slot)) {
+            return array('ok' => false, 'msg' => 'الموعد البديل يكون من مواعيد المعلم نفسه وفي النطاق نفسه.');
+        }
+
+        $target = ($set['status'] ?? $row['status']) === 'awaiting_payment' ? 'held' : 'booked';
+        $this->db->where('id', $new_slot_id)->where('status', 'open')
+                 ->update('availability_slots', array('status' => $target));
+        if ($this->db->affected_rows() < 1) {
+            return array('ok' => false, 'msg' => 'سبقك أحد إلى هذا الموعد. اختر غيره.');
+        }
+
+        $stamp = date('Y-m-d H:i:s', $now);
+        $upd = array_merge(array(
+            'slot_id'           => $new_slot_id,
+            'rescheduled_from'  => (int) $row['slot_id'],
+            'rescheduled_at'    => $stamp,
+            'teacher_joined_at' => null,
+            'attended_at'       => null,
+            'teacher_absent_at' => null,
+            'nolink_alerted_at' => null,
+            'updated_at'        => $stamp,
+        ), $set);
+        $new_start = strtotime((string) $slot['starts_at']);
+        if (($upd['status'] ?? $row['status']) === 'awaiting_payment' && !empty($row['pay_deadline'])
+            && strtotime((string) $row['pay_deadline']) > $new_start) {
+            $upd['pay_deadline'] = date('Y-m-d H:i:s', $new_start);
+        }
+
+        /* حارس التزاحم: الصف كما قرئ — موعده، وعداد الطالب ان كان هو. فطلبان
+           متزامنان ينجح اولهما، ويطابق الثاني صفرا فيفك ما حجزه. */
+        $this->db->where('id', (int) $row['id'])->where_in('status', $from)
+                 ->where('slot_id', (int) $row['slot_id']);
+        if (array_key_exists('reschedule_count', $set)) {
+            $this->db->where('reschedule_count', (int) ($row['reschedule_count'] ?? 0));
+        }
+        foreach ((array) $guards as $g) $this->db->where($g, null, false);
+        $this->db->update('tutoring_sessions', $upd);
+        if ($this->db->affected_rows() < 1) {
+            $this->db->where('id', $new_slot_id)->where('status', $target)
+                     ->update('availability_slots', array('status' => 'open'));
+            return array('ok' => false, 'msg' => 'تغير حال الحصة. حدث الصفحة وأعد المحاولة.');
+        }
+        $this->release_slot($row);
+        return array('ok' => true, 'slot' => $slot);
+    }
+
+    /**
+     * التاجيل (spec §2.2). الطالب مرة حتى `reschedule_hours` قبل الموعد،
+     * والمعلم والمسؤول اي وقت قبله. ويخبر الطرف الاخر وولي الامر.
+     */
+    public function reschedule($session_id, $new_slot_id, $actor_id, $actor_role)
+    {
+        $this->install_schema();
+        $role = in_array((string) $actor_role, array('student', 'teacher', 'admin'), true) ? (string) $actor_role : '';
+        $row  = $this->live_row($session_id);
+        if (!$row || $role === '' || !$this->actor_owns($row, $actor_id, $role)) {
+            return array('ok' => false, 'msg' => 'هذه الحصة ليست لك أو لم تعد موجودة.');
+        }
+        $starts = !empty($row['starts_at']) ? (int) strtotime((string) $row['starts_at']) : 0;
+        $block  = self::reschedule_block($role, $row['status'], $starts, time(),
+                                         (int) ($row['reschedule_count'] ?? 0), $this->config()['reschedule_hours']);
+        if ($block !== '') return array('ok' => false, 'code' => $block, 'msg' => $this->reschedule_block_text($block));
+
+        /* العداد يحسب تاجيل الطالب وحده: مرته له، وتاجيل المعلم لا ياكلها. */
+        $set = array('rescheduled_by' => $role);
+        if ($role === 'student') $set['reschedule_count'] = (int) ($row['reschedule_count'] ?? 0) + 1;
+        $m = $this->move_to_slot($row, $new_slot_id, $set, array($row['status']));
+        if (empty($m['ok'])) return $m;
+
+        $old_when = $starts > 0 ? $this->when_text($row['starts_at'], (int) $row['duration_min']) : '';
+        $new_when = $this->when_text($m['slot']['starts_at'], (int) $m['slot']['duration_min']);
+        $this->audit('session.rescheduled', (int) $row['id'], array(
+            'by' => $role, 'actor' => (int) $actor_id,
+            'from_slot' => (int) $row['slot_id'], 'to_slot' => (int) $new_slot_id,
+        ));
+
+        $text = 'تغير موعد الحصة من ' . $old_when . ' إلى ' . $new_when . '. السعر والفاتورة كما هما.';
+        if ($role !== 'student') $this->tell((int) $row['student_id'], 'تغير موعد حصتك', $text);
+        if ($role !== 'teacher') $this->tell((int) $row['teacher_id'], 'تغير موعد حصة في جدولك', $text);
+        $this->tell_parents((int) $row['student_id'], 'تغير موعد حصة ابنك', $text);
+
+        return array('ok' => true, 'student_id' => (int) $row['student_id'], 'teacher_id' => (int) $row['teacher_id'],
+                     'starts_at' => $m['slot']['starts_at'],
+                     'msg' => 'أجلت الحصة إلى ' . $new_when . '.');
+    }
+
+    /**
+     * الغاء المعلم حصة (D5) — السبب مطلوب. المدفوعة تفتح للطالب خياري
+     * البديل او الاسترداد (`refund_state = choice`)، والباقة تعود الى الرصيد،
+     * وغير المدفوعة تشطب فاتورتها.
+     */
+    public function teacher_cancel($session_id, $teacher_id, $reason)
+    {
+        $this->install_schema();
+        $reason = trim((string) $reason);
+        if ($reason === '') return array('ok' => false, 'msg' => 'اكتب سبب الإلغاء — يقرؤه الطالب.');
+        $row = $this->live_row($session_id);
+        if (!$row || (int) $row['teacher_id'] !== (int) $teacher_id) {
+            return array('ok' => false, 'msg' => 'هذه الحصة ليست لك أو لم تعد موجودة.');
+        }
+        if (!in_array($row['status'], array('confirmed', 'awaiting_payment'), true)) {
+            return array('ok' => false, 'msg' => 'لا تلغى إلا حصة مثبتة أو تنتظر الدفع لم تبدأ.');
+        }
+        $starts = !empty($row['starts_at']) ? (int) strtotime((string) $row['starts_at']) : 0;
+        if ($starts > 0 && $starts <= time()) {
+            return array('ok' => false, 'msg' => 'بدأ موعد هذه الحصة، فلا تلغى الآن. راسل الإدارة.');
+        }
+
+        $paid = !empty($row['paid_at']) && (int) $row['price_halalas'] > 0;
+        $pack = (int) ($row['pack_sub_id'] ?? 0) > 0;
+        /* مفردة مثبتة (مدفوعة او مجانية): للطالب موعد بديل، وللمدفوعة استرداد. */
+        $choice = !$pack && $row['status'] === 'confirmed';
+        $now  = date('Y-m-d H:i:s');
+        $this->db->where('id', (int) $row['id'])->where('status', $row['status'])
+                 ->update('tutoring_sessions', array(
+                     'status'        => 'declined',
+                     'cancel_reason' => mb_substr($reason, 0, 255),
+                     'cancelled_by'  => 'teacher',
+                     'refund_state'  => $choice ? 'choice' : null,
+                     'updated_at'    => $now,
+                 ));
+        if ($this->db->affected_rows() < 1) return array('ok' => false, 'msg' => 'تعذر الإلغاء. حدث الصفحة.');
+
+        if (!$paid) $this->void_invoice($row);
+        $this->release_slot($row);
+        $this->audit('session.teacher_cancel', (int) $row['id'], array('reason' => $reason, 'paid' => $paid, 'pack' => $pack));
+
+        $when = $starts > 0 ? $this->when_text($row['starts_at'], (int) $row['duration_min']) : '';
+        $body = 'ألغى المعلم الحصة ' . $when . ' — ' . $reason . '. '
+              . ($choice ? 'اختر من شاشة حصصك موعدا بديلا مع المعلم نفسه بلا رسوم' . ($paid ? '، أو الاسترداد.' : '.')
+                                 : ($pack ? 'عادت الحصة إلى رصيد باقتك.' : 'لم يخصم منك شيء.'));
+        $this->tell((int) $row['student_id'], 'ألغى المعلم حصتك', $body);
+        $this->tell_parents((int) $row['student_id'], 'ألغيت حصة ابنك', $body);
+
+        return array('ok' => true, 'student_id' => (int) $row['student_id'], 'choice' => $choice,
+                     'msg' => 'ألغيت الحصة، وأخبر الطالب بالسبب.'
+                            . ($choice ? ' يختار الطالب موعدا بديلا معك' . ($paid ? ' أو الاسترداد.' : '.') : ''));
+    }
+
+    /**
+     * D10 — فحص كسول لغياب المعلم عند قراءة الشاشة: بعد عشر دقائق بلا دخوله
+     * يخبر المسؤول والطالب مرة واحدة (`teacher_absent_at`). يرد المرحلة.
+     */
+    public function check_teacher_absence($row, $now = null)
+    {
+        $now   = $now ? (int) $now : time();
+        $stage = self::absence_stage($row, $now, $this->config()['grace_hours']);
+        if ($stage < 1 || !empty($row['teacher_absent_at']) || empty($row['id'])) return $stage;
+
+        try {
+            $this->db->where('id', (int) $row['id'])->where('teacher_absent_at IS NULL', null, false)
+                     ->where('teacher_joined_at IS NULL', null, false)
+                     ->update('tutoring_sessions', array('teacher_absent_at' => date('Y-m-d H:i:s', $now)));
+            if ($this->db->affected_rows() < 1) return $stage;
+        } catch (Throwable $e) { $this->db->reset_query(); return $stage; }
+
+        $this->tell((int) $row['student_id'], 'المعلم تأخر',
+            'لم يدخل معلمك الحصة بعد عشر دقائق من موعدها. انتظر قليلا، وإن لم يحضر خلال عشرين دقيقة '
+            . 'يظهر لك في شاشة حصصك زر «المعلم لم يحضر» لتختار موعدا بديلا أو الاسترداد.');
+        foreach ($this->admin_ids() as $aid) {
+            $this->tell($aid, 'معلم لم يدخل حصته', 'الحصة #' . (int) $row['id'] . ' بدأت منذ عشر دقائق ولم يدخلها معلمها.');
+        }
+        $this->audit('session.teacher_late', (int) $row['id'], array());
+        return $stage;
+    }
+
+    /**
+     * خيار الطالب بعد خطا المعلم (اعتذار بعد الدفع او غياب — D5/D10):
+     * reschedule الى موعد للمعلم نفسه بلا رسوم، او refund يسجل استردادا
+     * ينفذ خارج المنصة. ولا يقيد للمعلم شيء.
+     */
+    public function choose_after_teacher_fault($session_id, $student_id, $choice, $slot_id = 0)
+    {
+        $this->install_schema();
+        $row = $this->live_row($session_id);
+        if (!$row || (int) $row['student_id'] !== (int) $student_id) {
+            return array('ok' => false, 'msg' => 'هذه الحصة ليست لك أو لم تعد موجودة.');
+        }
+        if (!in_array($choice, array('reschedule', 'refund'), true)) {
+            return array('ok' => false, 'msg' => 'اختر موعدا بديلا أو الاسترداد.');
+        }
+
+        /* غياب: الزر يظهر بعد عشرين دقيقة، والخادم يعيد الحكم لا يصدق الزر.
+           والغياب دعوى الطالب و`teacher_joined_at` شاهد واحد (قد يدخل المعلم
+           برابط محفوظ)، فالاسترداد لا يقع هنا: يرفع الى الادارة (`review`)
+           والمال لا يمس. والبديل يقع في الحال — لا مال فيه — والحال لا
+           تكتب قبل نجاح النقل. */
+        if (in_array($row['status'], array('confirmed', 'live'), true)) {
+            if (self::absence_stage($row, time(), $this->config()['grace_hours']) < 2) {
+                return array('ok' => false, 'msg' => 'لم تمض عشرون دقيقة على الموعد بلا معلم بعد.');
+            }
+            $absent_at = !empty($row['teacher_absent_at']) ? $row['teacher_absent_at'] : date('Y-m-d H:i:s');
+            if ($choice === 'reschedule') {
+                $m = $this->move_to_slot($row, $slot_id, array(
+                    'status' => 'confirmed', 'rescheduled_by' => 'teacher_fault',
+                ), array('confirmed', 'live'), array('teacher_joined_at IS NULL'));
+                if (empty($m['ok'])) return $m;
+                $this->audit('session.teacher_no_show', (int) $row['id'], array('choice' => 'reschedule', 'absent_at' => $absent_at));
+                $when = $this->when_text($m['slot']['starts_at'], (int) $m['slot']['duration_min']);
+                $this->tell((int) $row['teacher_id'], 'سجل غيابك عن حصة',
+                    'لم تدخل الحصة #' . (int) $row['id'] . ' في موعدها، فاختار الطالب موعدا بديلا: ' . $when . '.');
+                $this->tell_parents((int) $row['student_id'], 'موعد بديل لحصة ابنك', 'الموعد الجديد: ' . $when . '.');
+                return array('ok' => true, 'msg' => 'ثبت الموعد البديل ' . $when . ' بلا رسوم.');
+            }
+            $this->db->where('id', (int) $row['id'])->where_in('status', array('confirmed', 'live'))
+                     ->where('teacher_joined_at IS NULL', null, false)
+                     ->update('tutoring_sessions', array(
+                         'status' => 'declined', 'cancel_reason' => 'أعلن الطالب غياب المعلم',
+                         'cancelled_by' => 'teacher', 'refund_state' => 'review',
+                         'teacher_absent_at' => $absent_at, 'updated_at' => date('Y-m-d H:i:s')));
+            if ($this->db->affected_rows() < 1) return array('ok' => false, 'msg' => 'تغير حال الحصة. حدث الصفحة.');
+            $this->release_slot($row);
+            $this->audit('session.teacher_no_show', (int) $row['id'], array('choice' => 'refund', 'state' => 'review'));
+            $this->tell((int) $row['teacher_id'], 'بلاغ غياب عن حصة',
+                'أبلغ الطالب أنك لم تدخل الحصة #' . (int) $row['id'] . '. تراجع الإدارة البلاغ قبل أي قرار.');
+            foreach ($this->admin_ids() as $aid) {
+                $this->tell($aid, 'بلاغ غياب معلم ينتظر قرارك',
+                    'الحصة #' . (int) $row['id'] . ' — أعلن الطالب غياب المعلم وطلب الاسترداد. قرر من شاشة الحصص.');
+            }
+            return array('ok' => true, 'review' => true,
+                         'msg' => 'وصل بلاغك إلى الإدارة، وتراجعه وتخبرك بقرارها.');
+        }
+
+        if ((string) $row['status'] !== 'declined') {
+            return array('ok' => false, 'msg' => 'لا خيار ينتظرك في هذه الحصة.');
+        }
+        /* حصة الباقة او المجانية لا خيار فيها: الاعتذار اعادها الى الرصيد
+           (`declined` ليست من `$SPENT`)، واعادة حجزها هنا تنفق الحصة مرتين. */
+        if ((int) ($row['pack_sub_id'] ?? 0) > 0 && (string) ($row['cancelled_by'] ?? '') === 'teacher') {
+            return array('ok' => true, 'pack' => true, 'msg' => 'عادت الحصة إلى رصيد باقتك، احجز بها موعدا متى شئت.');
+        }
+        if ((string) ($row['refund_state'] ?? '') !== 'choice') {
+            return array('ok' => false, 'msg' => 'لا خيار ينتظرك في هذه الحصة.');
+        }
+
+        if ($choice === 'reschedule') {
+            $m = $this->move_to_slot($row, $slot_id, array(
+                'status' => 'confirmed', 'refund_state' => null, 'rescheduled_by' => 'teacher_fault',
+                'cancel_reason' => null, 'cancelled_by' => null,
+            ), array('declined'));
+            if (empty($m['ok'])) return $m;
+            $when = $this->when_text($m['slot']['starts_at'], (int) $m['slot']['duration_min']);
+            $this->audit('session.rescheduled', (int) $row['id'], array('by' => 'teacher_fault',
+                'from_slot' => (int) $row['slot_id'], 'to_slot' => (int) $slot_id));
+            $this->tell((int) $row['teacher_id'], 'موعد بديل لحصة ألغيت',
+                'اختار الطالب موعدا بديلا: ' . $when . '. احضر في موعدك.');
+            $this->tell_parents((int) $row['student_id'], 'موعد بديل لحصة ابنك', 'الموعد الجديد: ' . $when . '.');
+            return array('ok' => true, 'msg' => 'ثبت الموعد البديل ' . $when . ' بلا رسوم.');
+        }
+
+        if (empty($row['paid_at']) || (int) $row['price_halalas'] <= 0) {
+            $this->db->where('id', (int) $row['id'])->where('refund_state', 'choice')
+                     ->update('tutoring_sessions', array('refund_state' => null, 'updated_at' => date('Y-m-d H:i:s')));
+            return array('ok' => true, 'msg' => 'أغلقت الحصة. لم تدفع فيها شيئا فلا مبلغ يرد.');
+        }
+        $this->db->where('id', (int) $row['id'])->where('status', 'declined')->where('refund_state', 'choice')
+                 ->update('tutoring_sessions', array('status' => 'refunded', 'refund_state' => 'pending',
+                                                     'updated_at' => date('Y-m-d H:i:s')));
+        if ($this->db->affected_rows() < 1) return array('ok' => false, 'msg' => 'تغير حال الحصة. حدث الصفحة.');
+        $res = $this->mark_refunded($row, 'student_choice');
+        if (empty($res['ok'])) {
+            return $this->refund_failed($row, array('status' => 'declined', 'refund_state' => 'choice'), $res, 'student_choice');
+        }
+        return array('ok' => true, 'refunded' => true,
+                     'msg' => 'سجل طلب الاسترداد. يرد خلال ٥ أيام عمل خارج المنصة.');
+    }
+
+    /**
+     * قرار الادارة في بلاغ غياب المعلم (`refund_state = review`): approve →
+     * مسار الاسترداد نفسه مع عكس قيد المعلم؛ deny → تعود الحصة منتهية
+     * ويقيد نصيب معلمها. والملاحظة مطلوبة، والطرفان يعلمان.
+     */
+    public function admin_noshow_decide($session_id, $decision, $note, $actor_id = 0)
+    {
+        $this->install_schema();
+        $note = trim((string) $note);
+        if (!in_array($decision, array('approve', 'deny'), true)) return array('ok' => false, 'msg' => 'قرار غير معروف.');
+        if ($note === '') return array('ok' => false, 'msg' => 'اكتب ملاحظة القرار — يقرؤها الطالب والمعلم.');
+        $row = $this->live_row($session_id);
+        if (!$row || $row['status'] !== 'declined' || (string) ($row['refund_state'] ?? '') !== 'review') {
+            return array('ok' => false, 'msg' => 'لا بلاغ ينتظر قرارا في هذه الحصة.');
+        }
+        $now = date('Y-m-d H:i:s');
+        $paid = !empty($row['paid_at']) && (int) $row['price_halalas'] > 0;
+        if ($decision === 'approve') {
+            $this->db->where('id', (int) $row['id'])->where('refund_state', 'review')
+                     ->update('tutoring_sessions', array(
+                         'status' => $paid ? 'refunded' : 'declined', 'refund_state' => $paid ? 'pending' : null,
+                         'updated_at' => $now));
+            if ($this->db->affected_rows() < 1) return array('ok' => false, 'msg' => 'تغير حال الحصة. حدث الصفحة.');
+            if ($paid) {
+                $res = $this->mark_refunded($row, 'noshow_review');
+                if (empty($res['ok'])) {
+                    return $this->refund_failed($row, array('status' => 'declined', 'refund_state' => 'review'), $res, 'noshow_review');
+                }
+            }
+            $s_txt = 'ثبت غياب المعلم' . ($paid ? '، ويرد مبلغ الحصة خلال ٥ أيام عمل خارج المنصة' : '') . '. ' . $note;
+            $t_txt = 'ثبت غيابك عن الحصة #' . (int) $row['id'] . '، فلا يقيد لك شيء عنها. ' . $note;
+        } else {
+            $this->db->where('id', (int) $row['id'])->where('refund_state', 'review')
+                     ->update('tutoring_sessions', array(
+                         'status' => 'completed', 'refund_state' => 'denied',
+                         'completed_at' => !empty($row['completed_at']) ? $row['completed_at'] : $now,
+                         'cancel_reason' => null, 'cancelled_by' => null, 'updated_at' => $now));
+            if ($this->db->affected_rows() < 1) return array('ok' => false, 'msg' => 'تغير حال الحصة. حدث الصفحة.');
+            $this->credit($row);
+            $s_txt = 'راجعت الإدارة بلاغك عن غياب المعلم ولم يثبت، فاعتمدت الحصة منتهية. ' . $note;
+            $t_txt = 'لم يثبت بلاغ الغياب عن الحصة #' . (int) $row['id'] . '، واعتمدت منتهية وقيد نصيبك. ' . $note;
+        }
+        $this->audit('session.noshow_review', (int) $row['id'], array('decision' => $decision, 'note' => $note, 'actor' => (int) $actor_id));
+        $this->tell((int) $row['student_id'], 'قرار الإدارة في بلاغ الغياب', $s_txt);
+        $this->tell((int) $row['teacher_id'], 'قرار الإدارة في بلاغ الغياب', $t_txt);
+        return array('ok' => true, 'msg' => $decision === 'approve'
+            ? ($paid ? 'ثبت الغياب ووسمت الحصة مستردة. رد المبلغ من لوحة تاب.' : 'ثبت الغياب وأغلقت الحصة.')
+            : 'رفض البلاغ واعتمدت الحصة منتهية وقيد نصيب المعلم.');
+    }
+
+    /**
+     * الفاتورة مستردة، وقيد المعلم يعكس ان وجد، والمسؤول يعلم ليرد من تاب.
+     * ويرد `ok`: فشل الفاتورة او العكس لا يبتلع — تعاد الفاتورة الى حالها
+     * ويرد `failed` فيعيد المنادي الحصة الى ما كانت عليه (refund_failed).
+     */
+    private function mark_refunded($row, $why)
+    {
+        $inv_id = (int) ($row['invoice_id'] ?? 0);
+        $prev_inv = null;
+        if ($inv_id > 0) {
+            try {
+                $r = $this->db->select('status')->where('id', $inv_id)->get('invoices')->row_array();
+                $prev_inv = $r ? (string) $r['status'] : null;
+                $this->db->where('id', $inv_id)->update('invoices', array('status' => 'refunded'));
+            } catch (Throwable $e) {
+                $this->db->reset_query();
+                log_message('error', 'TQ-SESSION-REFUND: تعذر وسم فاتورة حصة #' . (int) $row['id'] . ' — ' . $e->getMessage());
+                return array('ok' => false, 'failed' => 'invoice', 'error' => $e->getMessage());
+            }
+        }
+        try {
+            $this->load->model('taqdar_wallet_model');
+            $this->taqdar_wallet_model->reverse_session((int) $row['teacher_id'], (int) $row['id'], 'استردت الحصة');
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-SESSION-REVERSE: تعذر عكس حصة #' . (int) $row['id'] . ' — ' . $e->getMessage());
+            if ($inv_id > 0 && $prev_inv !== null) {
+                try {
+                    $this->db->where('id', $inv_id)->update('invoices', array('status' => $prev_inv));
+                } catch (Throwable $e2) {
+                    $this->db->reset_query();
+                    log_message('error', 'TQ-SESSION-REFUND: تعذر إعادة فاتورة حصة #' . (int) $row['id']);
+                }
+            }
+            return array('ok' => false, 'failed' => 'reversal', 'error' => $e->getMessage());
+        }
+        $this->audit('session.refund', (int) $row['id'], array('why' => $why, 'amount' => (int) $row['price_halalas']));
+        foreach ($this->admin_ids() as $aid) {
+            $this->tell($aid, 'استرداد حصة ينتظر التنفيذ',
+                'الحصة #' . (int) $row['id'] . ' وسمت مستردة (' . number_format((int) $row['price_halalas'] / 100, 2)
+                . ' ريال). رد المبلغ إلى الطالب من لوحة تاب خلال ٥ أيام عمل.');
+        }
+        return array('ok' => true);
+    }
+
+    /**
+     * تعويض استرداد لم يكتمل: الحصة تعود الى ما كانت عليه (`$restore`) فلا
+     * تبقى «مستردة» وفاتورتها او قيد معلمها لم يمس، والمسؤول يعلم بالرقم
+     * وبما فشل. ويرد رسالة للمنادي.
+     */
+    private function refund_failed($row, $restore, $res, $why)
+    {
+        $what = ($res['failed'] ?? '') === 'invoice' ? 'وسم الفاتورة مستردة' : 'عكس قيد المعلم';
+        $restored = false;
+        try {
+            $this->db->where('id', (int) $row['id'])->where('status', 'refunded')
+                     ->update('tutoring_sessions', $restore + array('updated_at' => date('Y-m-d H:i:s')));
+            $restored = true;
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-SESSION-REFUND: تعذر إعادة حال حصة #' . (int) $row['id'] . ' — ' . $e->getMessage());
+        }
+        $this->audit('session.refund_failed', (int) $row['id'], array('why' => $why, 'failed' => $res['failed'] ?? '',
+                     'error' => (string) ($res['error'] ?? ''), 'restored' => $restored));
+        foreach ($this->admin_ids() as $aid) {
+            $this->tell($aid, 'استرداد حصة لم يكتمل',
+                'الحصة #' . (int) $row['id'] . ': تعذر ' . $what . '، '
+                . ($restored ? 'فأعيدت الحصة إلى حالها السابقة ولم تسترد.' : 'وتعذرت إعادة الحصة إلى حالها كذلك.')
+                . ' راجعها قبل أي رد مبلغ.');
+        }
+        return array('ok' => false, 'msg' => 'تعذر إتمام الاسترداد الآن، وأبلغت الإدارة. حاول بعد قليل.');
+    }
+
+    /**
+     * تسجيل الحصة بعد انتهائها، او تصحيح الحضور خلال ٢٤ ساعة (D3/D4).
+     * الرابط يمر بـ`tq_clean_url()` ويقبل يوتيوب وفيميو ودرايف.
+     */
+    public function set_recording($session_id, $teacher_id, $url, $attendance = null, $later = false)
+    {
+        $this->install_schema();
+        $row = $this->live_row($session_id);
+        if (!$row || ((int) $teacher_id > 0 && (int) $row['teacher_id'] !== (int) $teacher_id)) {
+            return array('ok' => false, 'msg' => 'هذه الحصة ليست لك أو لم تعد موجودة.');
+        }
+        if ($row['status'] !== 'completed') return array('ok' => false, 'msg' => 'التسجيل يضاف لحصة انتهت.');
+
+        $upd = array();
+        $raw = trim((string) $url);
+        if ($raw !== '') {
+            $clean = $this->clean_recording_url($raw);
+            if ($clean === '') return array('ok' => false, 'msg' => 'رابط التسجيل يكون من يوتيوب أو فيميو أو جوجل درايف ويبدأ بـhttps.');
+            $upd['recording_url'] = $clean;
+            $upd['recording_pending'] = 0;
+        } elseif ($later) {
+            $upd['recording_pending'] = 1;
+        }
+        $att = self::clean_attendance($attendance);
+        if ($att !== null) {
+            if (!self::attendance_editable($row, time())) {
+                return array('ok' => false, 'msg' => 'مضت ٢٤ ساعة على الحصة، واعتمد الحضور كما سجل.');
+            }
+            $upd['attendance'] = $att;
+        }
+        if (!$upd) return array('ok' => false, 'msg' => 'لا شيء يحفظ.');
+        $upd['updated_at'] = date('Y-m-d H:i:s');
+        $this->db->where('id', (int) $row['id'])->update('tutoring_sessions', $upd);
+
+        if (!empty($upd['recording_url'])) {
+            $this->tell((int) $row['student_id'], 'تسجيل حصتك متاح', 'أضاف معلمك تسجيل الحصة. تجده في شاشة حصصك.');
+            $this->tell_parents((int) $row['student_id'], 'تسجيل حصة ابنك متاح', 'أضاف المعلم تسجيل الحصة.');
+        }
+        return array('ok' => true, 'msg' => !empty($upd['recording_url']) ? 'حفظ رابط التسجيل، وأخبر الطالب.' : 'حفظ.');
+    }
+
+    /**
+     * التسجيل لمن يحق له: الطالب صاحب الحصة، او ولي امره، او معلمها. يرد
+     * الصف ورابطه النظيف، او null — والعرض بـ`tqs_video_embed()` لا رابط عار.
+     */
+    public function recording_for($session_id, $user_id, $role)
+    {
+        $this->install_schema();
+        $row = $this->live_row($session_id);
+        if (!$row || trim((string) ($row['recording_url'] ?? '')) === '' || $row['status'] !== 'completed') return null;
+        $ok = false;
+        if ($role === 'student') $ok = (int) $row['student_id'] === (int) $user_id;
+        elseif ($role === 'teacher') $ok = (int) $row['teacher_id'] === (int) $user_id;
+        elseif ($role === 'admin') $ok = true;
+        elseif ($role === 'parent') {
+            $this->load->model('taqdar_parent_model');
+            $ok = $this->taqdar_parent_model->owns((int) $user_id, (int) $row['student_id']);
+        }
+        if (!$ok) return null;
+        $row['scope'] = $this->scope_of($row);
+        $row['when_text'] = !empty($row['starts_at']) ? $this->when_text($row['starts_at'], (int) $row['duration_min']) : '';
+        return $row;
+    }
+
+    /**
+     * حقول المرحلتين الثانية والثالثة على صف حصة — يضاف الى الصفوف ولا
+     * يغير مفتاحا قائما.
+     */
+    private function live_extra($r, $actor)
+    {
+        $starts = !empty($r['starts_at']) ? (int) strtotime((string) $r['starts_at']) : 0;
+        $role   = (string) $actor;
+        $block  = self::reschedule_block($role, (string) $r['status'], $starts, time(),
+                                         (int) ($r['reschedule_count'] ?? 0), $this->config()['reschedule_hours']);
+        $paid   = !empty($r['paid_at']) && (int) ($r['price_halalas'] ?? 0) > 0;
+        $pack   = (int) ($r['pack_sub_id'] ?? 0) > 0;
+        $refund = '';
+        if ($role === 'student' && $r['status'] === 'confirmed' && $paid && !$pack) {
+            $refund = self::refund_decision($starts, time(), $this->config()['refund_hours'], true, false);
+        }
+        return array(
+            'can_reschedule'    => $block === '',
+            'reschedule_block'  => $block,
+            'reschedule_count'  => (int) ($r['reschedule_count'] ?? 0),
+            'rescheduled_from'  => (int) ($r['rescheduled_from'] ?? 0),
+            'rescheduled_at'    => $r['rescheduled_at'] ?? null,
+            'cancelled_by'      => (string) ($r['cancelled_by'] ?? ''),
+            'refund_state'      => (string) ($r['refund_state'] ?? ''),
+            /* D5-b — للطالب على حصة مدفوعة: refund · no_refund · '' */
+            'cancel_refund'     => $refund,
+            'attendance'        => isset($r['attendance']) && $r['attendance'] !== '' ? (string) $r['attendance'] : null,
+            'attended'          => !empty($r['attended_at']),
+            'has_recording'     => trim((string) ($r['recording_url'] ?? '')) !== '' && $r['status'] === 'completed',
+            'recording_pending' => (int) ($r['recording_pending'] ?? 0) === 1,
+            'teacher_absent'    => !empty($r['teacher_absent_at']),
+        );
+    }
+
+    private function admin_ids()
+    {
+        static $ids = null;
+        if ($ids !== null) return $ids;
+        try {
+            $ids = array_map('intval', array_column($this->db->select('id')->where('role_id', 1)
+                                ->get('users')->result_array(), 'id'));
+        } catch (Throwable $e) { $this->db->reset_query(); $ids = array(); }
+        return $ids;
+    }
+
+    /** اولياء امر الطالب بربط نشط — رسالة التاجيل والتسجيل تبلغهم. */
+    private function tell_parents($student_id, $title, $text)
+    {
+        try {
+            $rows = $this->db->query(
+                'SELECT DISTINCT pl.`parent_user_id` id FROM `parent_links` pl
+                  WHERE pl.`student_id` = ? AND pl.`status` = "active"', array((int) $student_id))->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return; }
+        foreach ($rows as $r) $this->tell((int) $r['id'], $title, $text);
+    }
+
+    /** خطوة الكرون: تذكير التسجيل، واسقاط انتظاره، واعتماد الحضور. */
+    private function followups_tick($now)
+    {
+        $n = array('rec_reminded' => 0, 'rec_dropped' => 0, 'attendance_set' => 0);
+        try {
+            $rows = $this->db->select('id, teacher_id, status, completed_at, recording_pending, recording_url,
+                                       recording_reminded_at, attendance, attended_at, teacher_joined_at')
+                             ->where('status', 'completed')
+                             ->where('completed_at >=', date('Y-m-d H:i:s', $now - 9 * 86400))
+                             ->limit(500)->get('tutoring_sessions')->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return $n; }
+
+        foreach ($rows as $r) {
+            $step = self::recording_step($r, $now);
+            if ($step === 'remind') {
+                $this->db->where('id', (int) $r['id'])->where('recording_reminded_at IS NULL', null, false)
+                         ->update('tutoring_sessions', array('recording_reminded_at' => date('Y-m-d H:i:s', $now)));
+                if ($this->db->affected_rows() > 0) {
+                    $n['rec_reminded']++;
+                    $this->tell((int) $r['teacher_id'], 'تسجيل حصة ينتظرك',
+                        'وعدت برفع تسجيل الحصة #' . (int) $r['id'] . '. أضف رابطه من شاشة الحصص — بعد سبعة أيام يقرأ الطالب «لا تسجيل».');
+                }
+            } elseif ($step === 'drop') {
+                $this->db->where('id', (int) $r['id'])->where('recording_pending', 1)
+                         ->update('tutoring_sessions', array('recording_pending' => 0));
+                $n['rec_dropped'] += (int) $this->db->affected_rows();
+            }
+            $att = self::attendance_final($r, $now);
+            if ($att !== null) {
+                $this->db->where('id', (int) $r['id'])->where('attendance IS NULL', null, false)
+                         ->update('tutoring_sessions', array('attendance' => $att));
+                $n['attendance_set'] += (int) $this->db->affected_rows();
+            }
+        }
+        return $n;
     }
 
     /* =====================================================================
@@ -2929,8 +3851,27 @@ class Taqdar_sessions_model extends CI_Model
            نفسه الذي تناديه شبكة المواعيد كسولا. */
         $out['expired_unpaid'] = $this->expire_holds($now);
 
+        /* TQ-LIVE (D3/D4) — تذكير التسجيل واسقاطه، واعتماد الحضور. */
+        $out = array_merge($out, $this->followups_tick($now));
+
         /* D2-b — حصة بلا رابط قبل ساعة: تنبيه واحد للمعلم والمسؤول. */
         $out['nolink_alerts'] = $this->alert_missing_links($now);
+
+        /* D10 — غياب المعلم: الفحص الكسول عند القراءة، وهذا لمن لا يفتح شاشته. */
+        try {
+            $abs = $this->db->select('t.*, a.starts_at, a.duration_min')
+                            ->from('tutoring_sessions t')
+                            ->join('availability_slots a', 'a.id = t.slot_id', 'inner')
+                            ->where_in('t.status', array('confirmed', 'live'))
+                            ->where('t.teacher_absent_at IS NULL', null, false)
+                            ->where('t.teacher_joined_at IS NULL', null, false)
+                            ->where('a.starts_at <=', date('Y-m-d H:i:s', $now - 600))
+                            ->limit(200)->get()->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); $abs = array(); }
+        $out['absence_alerts'] = 0;
+        foreach ($abs as $r) {
+            if ($this->check_teacher_absence($r, $now) >= 1) $out['absence_alerts']++;
+        }
 
         /* ٣ — حل وقتها. */
         $this->db->query(
@@ -2957,7 +3898,8 @@ class Taqdar_sessions_model extends CI_Model
                          'updated_at' => date('Y-m-d H:i:s')));
             if ($this->db->affected_rows() < 1) continue;
             $out['completed']++;
-            $c = $this->credit($r);
+            /* معلم سجل غيابه ولم يدخل، او حصة قيد مراجعة: لا قيد آلي. */
+            $c = self::may_auto_credit($r) ? $this->credit($r) : array('share' => 0);
             $out['credited'] += (int) ($c['share'] ?? 0);
 
             $this->tell((int) $r['student_id'], 'أغلقت حصتك',
@@ -3070,6 +4012,7 @@ class Taqdar_sessions_model extends CI_Model
 
         $out = [];
         foreach ($rows as $r) {
+            $this->check_teacher_absence($r);   // TQ-LIVE (D10) — فحص كسول
             $name = trim((string) $r['first_name'] . ' ' . (string) $r['last_name']);
             $j    = $this->join_state($r, null, 'student');
             $sc   = $this->scope_of($r);
@@ -3123,7 +4066,7 @@ class Taqdar_sessions_model extends CI_Model
                 'gcal_url'      => $r['starts_at'] ? $this->google_calendar_url($r) : '',
                 'is_over'       => $j['is_over'],
                 'note'          => $j['note'],
-            ];
+            ] + $this->live_extra($r, 'student');
         }
         return $out;
     }

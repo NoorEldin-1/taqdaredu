@@ -1931,9 +1931,35 @@ class Taqdar_parent_model extends CI_Model
             )->result_array();
         }
 
+        /* TQ-LIVE (D3/D4) — الحصص المنتهية بحضورها وتسجيلها. ولي الامر يرى
+           «حضر / لم يحضر» ويفتح التسجيل من المسار الحارس نفسه الذي يفتحه
+           ابنه (`student/sessions/<id>/recording`) — لا رابط عار. */
+        $past_sessions = array();
+        try {
+            $this->load->model('taqdar_sessions_model');
+            $this->taqdar_sessions_model->install_schema();
+            $past_sessions = $this->db->query(
+                "SELECT ts.`id`, ts.`attendance`, ts.`recording_pending`,
+                        (ts.`recording_url` IS NOT NULL AND ts.`recording_url` <> '') has_recording,
+                        s.`starts_at`, s.`duration_min`, sj.`name_ar` subject_name,
+                        TRIM(CONCAT(COALESCE(u.`first_name`,''), ' ', COALESCE(u.`last_name`,''))) teacher
+                   FROM `tutoring_sessions` ts
+              LEFT JOIN `availability_slots` s ON s.`id` = ts.`slot_id`
+              LEFT JOIN `subjects` sj ON sj.`id` = s.`subject_id`
+              LEFT JOIN `users`    u  ON u.`id`  = ts.`teacher_id`
+                  WHERE ts.`student_id` = ? AND ts.`status` = 'completed'
+                  ORDER BY s.`starts_at` DESC
+                  LIMIT 5",
+                array($student_id)
+            )->result_array();
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+        }
+
         return array(
             'child'      => $child,
             'week'       => $w,
+            'past_sessions' => $past_sessions,
             'plan_days'  => (int) $plan['days'],
             'plan_is_default' => !empty($plan['is_default']),
             'days_this'  => $days_this,

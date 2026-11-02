@@ -6183,7 +6183,155 @@ class Api_v1 extends CI_Controller
             'ics_url'  => !empty($r['starts_ts']) ? site_url('api/v1/' . $role . '/sessions/' . $id . '/ics') : null,
             'opens_at' => !empty($r['opens_at']) ? tq_api_date(date('Y-m-d H:i:s', (int) $r['opens_at'])) : null,
             'pay_deadline' => tq_api_date($r['pay_deadline'] ?? null),
+            /* TQ-LIVE (المرحلة ٢ و٣) — حقول تضاف ولا تبدل. `action` زر
+               الحالة: teacher_fault · teacher_no_show · recording · join ·
+               pay · retry_pay · ''. والاحكام من `live_extra()` نفسها. */
+            'action'            => (string) ($st['button'] ?? ''),
+            'can_reschedule'    => !empty($r['can_reschedule']),
+            'reschedule_block'  => (string) ($r['reschedule_block'] ?? ''),
+            'reschedule_count'  => (int) ($r['reschedule_count'] ?? 0),
+            'rescheduled_at'    => tq_api_date($r['rescheduled_at'] ?? null),
+            'cancelled_by'      => (string) ($r['cancelled_by'] ?? ''),
+            'refund_state'      => (string) ($r['refund_state'] ?? ''),
+            'cancel_refund'     => (string) ($r['cancel_refund'] ?? ''),
+            'attendance'        => isset($r['attendance']) ? $r['attendance'] : null,
+            'recording_pending' => !empty($r['recording_pending']) && empty($r['has_recording']),
+            'recording_url'     => !empty($r['has_recording'])
+                ? site_url('api/v1/' . $role . '/sessions/' . $id . '/recording') : null,
         );
+    }
+
+    /* ---- TQ-LIVE — التاجيل والالغاء بسبب وخطا المعلم والتسجيل ---------- */
+
+    /** GET /api/v1/{student|teacher}/sessions/{id}/reschedule-options */
+    public function session_reschedule_options($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_student();
+        $this->read($this->sess()->reschedule_options((int) $id, 'student', (int) $u['id']));
+    }
+
+    public function teacher_session_reschedule_options($id = 0)
+    {
+        $this->method('GET');
+        $u = $this->require_teacher();
+        $this->read($this->sess()->reschedule_options((int) $id, 'teacher', (int) $u['id']));
+    }
+
+    /** POST /api/v1/{student|teacher}/sessions/{id}/reschedule {slot_id} */
+    public function session_reschedule($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->live_reschedule_out((int) $id, (int) $u['id'], 'student');
+    }
+
+    public function teacher_session_reschedule($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_teacher();
+        $this->live_reschedule_out((int) $id, (int) $u['id'], 'teacher');
+    }
+
+    private function live_reschedule_out($id, $uid, $role)
+    {
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+        $slot = (int) $this->in('slot_id', 0);
+        if ($slot <= 0) {
+            $this->fail('اختر الموعد الجديد.', 'validation_failed', 422, array('slot_id' => array(t('مطلوب'))));
+        }
+        $r = $this->sess()->reschedule($id, $slot, $uid, $role);
+        if (empty($r['ok'])) {
+            $this->fail($this->model_msg($r, t('تعذر التأجيل.')), 'reschedule_failed', 409,
+                        !empty($r['code']) ? array('reason' => array((string) $r['code'])) : array());
+        }
+        $this->api->audit('api.session.reschedule', $uid, array('session_id' => $id, 'slot_id' => $slot));
+        $this->respond(tq_api_ok(array('id' => $id, 'starts_at' => tq_api_date($r['starts_at'] ?? null)),
+                                 $this->model_msg($r, t('أجلت الحصة.'))), 200);
+    }
+
+    /** POST /api/v1/student/sessions/{id}/teacher-fault {choice: reschedule|refund, slot_id} */
+    public function session_teacher_fault($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_student();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+        $choice = (string) $this->in('choice', '');
+        if (!in_array($choice, array('reschedule', 'refund'), true)) {
+            $this->fail('اختر موعدا بديلا أو الاسترداد.', 'validation_failed', 422,
+                        array('choice' => array(t('القيم المقبولة: reschedule · refund'))));
+        }
+        $r = $this->sess()->choose_after_teacher_fault((int) $id, (int) $u['id'], $choice, (int) $this->in('slot_id', 0));
+        if (empty($r['ok'])) $this->fail($this->model_msg($r, t('تعذر تنفيذ اختيارك.')), 'teacher_fault_failed', 409);
+        $this->api->audit('api.session.teacher_fault', (int) $u['id'], array('session_id' => (int) $id, 'choice' => $choice));
+        $this->respond(tq_api_ok(array('id' => (int) $id, 'choice' => $choice, 'refunded' => !empty($r['refunded']),
+                                       /* TQ-LIVE — بلاغ الغياب يرفع الى الادارة: review لا استرداد. */
+                                       'refund_state' => !empty($r['review']) ? 'review' : (!empty($r['refunded']) ? 'pending' : '')),
+                                 $this->model_msg($r, t('سجل اختيارك.'))), 200);
+    }
+
+    /** POST /api/v1/teacher/sessions/{id}/cancel {reason} — السبب مطلوب. */
+    public function teacher_session_cancel($id = 0)
+    {
+        $this->method('POST');
+        $u = $this->require_teacher();
+        $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+        $reason = trim((string) $this->in('reason', ''));
+        if ($reason === '') {
+            $this->fail('اكتب سبب الإلغاء — يقرؤه الطالب.', 'validation_failed', 422, array('reason' => array(t('مطلوب'))));
+        }
+        $r = $this->sess()->teacher_cancel((int) $id, (int) $u['id'], $reason);
+        if (empty($r['ok'])) $this->fail($this->model_msg($r, t('تعذر الإلغاء.')), 'session_cancel_failed', 409);
+        $this->api->audit('api.session.teacher_cancel', (int) $u['id'], array('session_id' => (int) $id));
+        $this->respond(tq_api_ok(array('id' => (int) $id, 'status' => 'declined', 'student_choice' => !empty($r['choice'])),
+                                 $this->model_msg($r, t('ألغيت الحصة.'))), 200);
+    }
+
+    /**
+     * /api/v1/{student|teacher|parent}/sessions/{id}/recording
+     * GET — رابط التسجيل لمن يحق له وحده (`recording_for()` نفسها التي
+     * تحرس الويب). POST (المعلم) — {recording_url, attendance, recording_later}.
+     * والمسار يربط لا الطريقة، فالدالة توزع على الطريقة.
+     */
+    public function session_recording($id = 0)
+    {
+        /* مسار الطالب وولي الامر قراءة وحدها؛ الكتابة على مسار المعلم وحده. */
+        $this->method('GET');
+        $this->recording_read_out($id);
+    }
+
+    /** /api/v1/teacher/sessions/{id}/recording — GET يقرأ، وPOST يحفظ الرابط والحضور. */
+    public function teacher_session_recording($id = 0)
+    {
+        if ($this->input->method(true) === 'POST') {
+            $u = $this->require_teacher();
+            $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+            $later = filter_var($this->in('recording_later', false), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            $r = $this->sess()->set_recording((int) $id, (int) $u['id'], (string) $this->in('recording_url', ''),
+                                              $this->in('attendance', null), (bool) $later);
+            if (empty($r['ok'])) $this->fail($this->model_msg($r, t('تعذر الحفظ.')), 'recording_failed', 409);
+            $this->api->audit('api.session.recording', (int) $u['id'], array('session_id' => (int) $id));
+            $this->respond(tq_api_ok(array('id' => (int) $id), $this->model_msg($r, t('حفظ.'))), 200);
+        }
+        $this->method('GET');
+        $this->require_teacher();
+        $this->recording_read_out($id);
+    }
+
+    private function recording_read_out($id)
+    {
+        $u   = $this->require_portal(array('student', 'teacher', 'parent'));
+        $row = $this->sess()->recording_for((int) $id, (int) $u['id'], $this->role);
+        if (!$row) $this->fail('لا تسجيل لهذه الحصة في حسابك.', 'not_found', 404);
+        $url  = (string) $row['recording_url'];
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $this->read(array(
+            'id'        => (int) $row['id'],
+            'url'       => $url,
+            'provider'  => strpos($host, 'vimeo') !== false ? 'vimeo'
+                         : (strpos($host, 'drive.google') !== false ? 'drive' : 'youtube'),
+            'when_text' => (string) $row['when_text'],
+        ));
     }
 
     /** GET /api/v1/student/sessions/{id}/join — يختم الحضور ويرد الرابط. */
@@ -8090,7 +8238,12 @@ class Api_v1 extends CI_Controller
         $u = $this->require_teacher();
         $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
 
-        $r = $this->tq_sessions()->complete((int) $id, (int) $u['id'], 'teacher');
+        /* TQ-LIVE (D3/D4) — الحضور والتسجيل اختياريان مع الانتهاء. */
+        $r = $this->tq_sessions()->complete((int) $id, (int) $u['id'], 'teacher', array(
+            'attendance'      => (string) $this->in('attendance', ''),
+            'recording_url'   => (string) $this->in('recording_url', ''),
+            'recording_later' => (bool) filter_var($this->in('recording_later', false), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
+        ));
 
         if (empty($r['ok'])) {
             $this->fail($this->model_msg($r, t('تعذر إنهاء الحصة.')), 'complete_failed', 409);
@@ -8322,6 +8475,23 @@ class Api_v1 extends CI_Controller
             );
         }
 
+        /* TQ-LIVE — الحصص المنتهية بحضورها وتسجيلها: حقل يضاف ولا يبدل. */
+        $past_sessions = array();
+        foreach ((array) ($d['past_sessions'] ?? array()) as $s) {
+            $past_sessions[] = array(
+                'id'                => (int) $s['id'],
+                'starts_at'         => tq_api_date($s['starts_at']),
+                'minutes'           => (int) $s['duration_min'],
+                'teacher'           => (string) $s['teacher'],
+                'subject'           => (string) ($s['subject_name'] ?? ''),
+                'attendance'        => $s['attendance'] !== null && $s['attendance'] !== '' ? (string) $s['attendance'] : null,
+                'has_recording'     => (bool) $s['has_recording'],
+                'recording_pending' => (int) $s['recording_pending'] === 1 && !$s['has_recording'],
+                'recording_url'     => $s['has_recording']
+                    ? site_url('api/v1/parent/sessions/' . (int) $s['id'] . '/recording') : null,
+            );
+        }
+
         $notes = array();
         foreach ($d['notes'] as $n) {
             $notes[] = array(
@@ -8362,6 +8532,7 @@ class Api_v1 extends CI_Controller
             'lessons_completed' => (int) $d['completed'],
             'subjects'          => $subjects,
             'sessions'          => $sessions,
+            'past_sessions'     => $past_sessions,
             'teacher_notes'     => $notes,
             'payments'          => array_map(array($this, 'parent_payment_out'), $d['payments']),
             'quiz_results'      => $this->child_quiz_results((int) $d['child']['id']),

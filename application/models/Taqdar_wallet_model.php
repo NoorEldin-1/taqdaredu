@@ -622,32 +622,62 @@ class Taqdar_wallet_model extends CI_Model
         return $n;
     }
 
+    /**
+     * قيود العكس كلها أو لا شيء. فحص «عكس من قبل» يقرأ أي قيد `refund`
+     * للأصل، فدلو كتب ثم سقط ما بعده يجعل الإعادة تتخطى الباقي إلى الأبد.
+     * فالكتابة في معاملة، والفشل يرمى ليصل إلى من ينادي (مسار
+     * `reversal` في استرداد الحصة). وإن كانت معاملة خارجية قائمة لا تفتح
+     * ثانية ولا تغلق: الرمي يتركها لصاحبها يلغيها.
+     */
     private function reverse_origin($wallet_id, $origin, $reason = '')
     {
-        $has = $this->db->query(
-            'SELECT COUNT(*) c FROM `wallet_entries`
-              WHERE `wallet_id` = ? AND `origin` = ? AND `type` = "refund"',
-            array($wallet_id, $origin)
-        )->row_array();
-        if ((int) $has['c'] > 0) return 0;
+        $own = !$this->in_transaction();
+        if ($own) $this->db->trans_begin();
+        try {
+            $has = $this->db->query(
+                'SELECT COUNT(*) c FROM `wallet_entries`
+                  WHERE `wallet_id` = ? AND `origin` = ? AND `type` = "refund"',
+                array($wallet_id, $origin)
+            )->row_array();
+            if ((int) $has['c'] > 0) {
+                if ($own) $this->db->trans_commit();
+                return 0;
+            }
 
-        $rows = $this->db->query(
-            'SELECT `bucket`, SUM(`amount`) net, MAX(`subject`) subject
-               FROM `wallet_entries` WHERE `wallet_id` = ? AND `origin` = ?
-              GROUP BY `bucket` HAVING net <> 0',
-            array($wallet_id, $origin)
-        )->result_array();
+            $rows = $this->db->query(
+                'SELECT `bucket`, SUM(`amount`) net, MAX(`subject`) subject
+                   FROM `wallet_entries` WHERE `wallet_id` = ? AND `origin` = ?
+                  GROUP BY `bucket` HAVING net <> 0',
+                array($wallet_id, $origin)
+            )->result_array();
 
-        $n = 0;
-        $now = $this->now();
-        foreach ($rows as $r) {
-            $subject = $r['subject'];
-            if ($reason !== '') $subject = $subject . ' — ' . $reason;
-            $n += $this->post($wallet_id, 'refund', $r['bucket'], -(int) $r['net'],
-                              $this->ref_key($wallet_id, $origin, 'refund:' . $r['bucket']),
-                              $origin, $subject, $now);
+            $n = 0;
+            $now = $this->now();
+            foreach ($rows as $r) {
+                $subject = $r['subject'];
+                if ($reason !== '') $subject = $subject . ' — ' . $reason;
+                $n += $this->post($wallet_id, 'refund', $r['bucket'], -(int) $r['net'],
+                                  $this->ref_key($wallet_id, $origin, 'refund:' . $r['bucket']),
+                                  $origin, $subject, $now);
+                if ($this->db->trans_status() === false) {
+                    throw new RuntimeException('wallet reverse_origin: refund entry failed for ' . $origin);
+                }
+            }
+            if ($own) $this->db->trans_commit();
+            return $n;
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            if ($own) $this->db->trans_rollback();
+            throw $e;
         }
-        return $n;
+    }
+
+    /** أمعاملة قائمة على الاتصال؟ `_trans_depth` محمي في CI3 فيقرأ من داخله. */
+    private function in_transaction()
+    {
+        $db = $this->db;
+        $read = function () { return isset($this->_trans_depth) ? (int) $this->_trans_depth : 0; };
+        return \Closure::bind($read, $db, get_class($db))() > 0;
     }
 
     /**
@@ -990,7 +1020,13 @@ class Taqdar_wallet_model extends CI_Model
         $wid    = $wallet['id'];
 
         $n  = $this->post_sales($user_id);
-        $n += $this->reconcile_refunds($wid);
+        try {
+            $n += $this->reconcile_refunds($wid);
+        } catch (Throwable $e) {
+            /* العكس ذري فلم يكتب منه شيء، ويعاد في المزامنة التالية. */
+            $this->db->reset_query();
+            log_message('error', 'TQ-WALLET sync reconcile_refunds #' . (int) $wid . ': ' . $e->getMessage());
+        }
         $n += $this->release_matured($wid);
         $n += $this->reconcile_payouts($user_id);
         $this->recompute($wid);

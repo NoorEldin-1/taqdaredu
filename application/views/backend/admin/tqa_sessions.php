@@ -164,7 +164,8 @@ $tq_url  = function ($over = array()) use ($status, $tq_kind) {
                أو يشتكي الطالب بعد الحصة لا قبلها، والقيد قائم في محفظة
                معلمها حتى يعكس. */
             $can_cancel = !in_array($st, array('declined', 'expired', 'refunded'), true)
-                       && !($st === 'completed' && !$paid);
+                       && !($st === 'completed' && !$paid)
+                       || ($st === 'declined' && (string) ($r['refund_state'] ?? '') === 'choice' && $paid);
             $can_mark   = $st === 'awaiting_payment' && (int) ($r['invoice_id'] ?? 0) > 0;
         ?>
             <tr>
@@ -290,13 +291,57 @@ $tq_url  = function ($over = array()) use ($status, $tq_kind) {
                               style="margin:0;display:flex;gap:6px;align-items:center">
                             <?php echo tq_csrf(); ?>
                             <input type="hidden" name="session_id" value="<?php echo (int) $r['id']; ?>">
-                            <input class="tqa-input tqa-btn--sm" type="text" name="reason"
-                                   placeholder="<?php echo te('السبب (اختياري)'); ?>" style="min-block-size:34px;inline-size:130px">
+                            <input class="tqa-input tqa-btn--sm" type="text" name="reason" required maxlength="255"
+                                   placeholder="<?php echo te('السبب (مطلوب)'); ?>" style="min-block-size:34px;inline-size:130px">
                             <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit">
                                 <?php echo $paid ? t('استرداد') : t('إلغاء'); ?></button>
                         </form>
                     <?php else: ?>
                         <span style="color:var(--tq-text3)">—</span>
+                    <?php endif; ?>
+
+                    <?php /* TQ-LIVE (§2.2) — تأجيل إداري: مواعيد المعلم نفسه في النطاق نفسه. */ ?>
+                    <?php if (in_array($st, array('confirmed', 'awaiting_payment'), true) && $when > time()):
+                        $opts = $this->taqdar_sessions_model->reschedule_options((int) $r['id'], 'admin'); ?>
+                        <?php if ($opts): ?>
+                            <form action="<?php echo site_url('taqdar_admin/session_reschedule'); ?>" method="post"
+                                  style="margin:6px 0 0;display:flex;gap:6px;align-items:center">
+                                <?php echo tq_csrf(); ?>
+                                <input type="hidden" name="session_id" value="<?php echo (int) $r['id']; ?>">
+                                <label class="tqa-sr" for="rs-<?php echo (int) $r['id']; ?>"><?php echo t('الموعد الجديد'); ?></label>
+                                <select class="tqa-input tqa-btn--sm" id="rs-<?php echo (int) $r['id']; ?>" name="slot_id" required
+                                        style="min-block-size:34px;inline-size:150px">
+                                    <?php foreach ($opts as $o): ?>
+                                        <option value="<?php echo (int) $o['id']; ?>"><?php echo html_escape($o['when_text']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit"><?php echo t('أجل'); ?></button>
+                            </form>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    <?php if (!empty($r['refund_state']) && $r['refund_state'] === 'pending'): ?>
+                        <br><span class="tqa-badge tqa-badge--warn"><?php echo t('استرداد ينتظر التنفيذ من تاب'); ?></span>
+                    <?php elseif (!empty($r['refund_state']) && $r['refund_state'] === 'review'): ?>
+                        <br><span class="tqa-badge tqa-badge--warn"><?php echo t('بلاغ غياب المعلم ينتظر قرارك'); ?></span>
+                        <form action="<?php echo site_url('taqdar_admin/session_noshow_decide'); ?>" method="post"
+                              style="margin:6px 0 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                            <?php echo tq_csrf(); ?>
+                            <input type="hidden" name="session_id" value="<?php echo (int) $r['id']; ?>">
+                            <label class="tqa-sr" for="ns-<?php echo (int) $r['id']; ?>"><?php echo t('ملاحظة القرار'); ?></label>
+                            <input class="tqa-input tqa-btn--sm" id="ns-<?php echo (int) $r['id']; ?>" type="text" name="note"
+                                   required maxlength="255" placeholder="<?php echo te('ملاحظة القرار (مطلوبة)'); ?>"
+                                   style="min-block-size:34px;inline-size:150px">
+                            <button class="tqa-btn tqa-btn--sm" type="submit" name="decision" value="approve"><?php echo t('ثبت الغياب واسترد'); ?></button>
+                            <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit" name="decision" value="deny"><?php echo t('لم يثبت — اعتمد الحصة'); ?></button>
+                        </form>
+                    <?php elseif (!empty($r['refund_state']) && $r['refund_state'] === 'choice'): ?>
+                        <br><span class="tqa-badge tqa-badge--info"><?php echo t('ينتظر اختيار الطالب: بديل أو استرداد'); ?></span>
+                    <?php endif; ?>
+                    <?php if (!empty($r['attendance'])): ?>
+                        <br><span class="tqa-badge tqa-badge--muted"><?php echo $r['attendance'] === 'present' ? t('حضر') : t('لم يحضر'); ?></span>
+                    <?php endif; ?>
+                    <?php if (!empty($r['teacher_absent_at'])): ?>
+                        <br><span class="tqa-badge tqa-badge--warn"><?php echo t('تأخر المعلم أو غاب'); ?></span>
                     <?php endif; ?>
                 </td>
             </tr>
@@ -422,7 +467,16 @@ $tq_url  = function ($over = array()) use ($status, $tq_kind) {
                 <input class="tqa-input tqa-input--ltr" id="p-refund" name="tq_session_refund_hours" type="number"
                        min="0" max="168" dir="ltr" value="<?php echo (int) ($cfg['refund_hours'] ?? 24); ?>">
                 <span class="tqa-field__hint">
-                    <?php echo t('يحفظ الآن ولا يطبق بعد: قواعد إلغاء الطالب والاسترداد لم تفعل في المنصة، والإلغاء بعد الدفع ما زال بيد الإدارة.'); ?>
+                    <?php echo t('يطبق الآن: الطالب يلغي حصته المدفوعة قبل هذا الحد فتوسم مستردة ويرد مبلغها خلال ٥ أيام عمل من لوحة تاب، وبعده لا استرداد ويبقى له التأجيل. وحصص الباقة تعود للرصيد كما كانت.'); ?>
+                </span>
+            </div>
+
+            <div class="tqa-field">
+                <label class="tqa-field__label" for="p-resched"><?php echo t('آخر حد لتأجيل الطالب (ساعة قبل الموعد)'); ?></label>
+                <input class="tqa-input tqa-input--ltr" id="p-resched" name="tq_session_reschedule_hours" type="number"
+                       min="0" max="168" dir="ltr" value="<?php echo (int) ($cfg['reschedule_hours'] ?? 12); ?>">
+                <span class="tqa-field__hint">
+                    <?php echo t('الطالب يؤجل حصته مرة واحدة حتى هذا الحد، إلى موعد من مواعيد المعلم نفسه. والمعلم والإدارة يؤجلان في أي وقت قبل الموعد.'); ?>
                 </span>
             </div>
 
