@@ -2294,6 +2294,14 @@ if (!function_exists('tqs_video_embed')) {
                  . ' allowfullscreen loading="lazy"></iframe>';
         }
 
+        /* TQ-LIVE (D4) — تسجيل الحصة قد يكون على جوجل درايف: صفحة الملف
+           تمنع التاطير، و`/preview` هو باب التضمين. */
+        if (preg_match('~drive\.google\.com/(?:file/d/|open\?id=)([\w-]{10,})~i',
+                       html_entity_decode($url, ENT_QUOTES, 'UTF-8'), $m)) {
+            return '<iframe src="https://drive.google.com/file/d/' . html_escape($m[1]) . '/preview"'
+                 . ' title="' . $t . '" allow="autoplay; fullscreen" allowfullscreen loading="lazy"></iframe>';
+        }
+
         return '<video controls preload="metadata" playsinline'
              . ' src="' . html_escape($url) . '"></video>';
     }

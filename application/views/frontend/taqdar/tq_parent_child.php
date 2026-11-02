@@ -341,6 +341,37 @@ include 'portal_open.php';
             <?php endif; ?>
         </div>
 
+        <?php /* TQ-LIVE (D3/D4) — حصص انتهت: الحضور والتسجيل. */ ?>
+        <?php if (!empty($tq_detail['past_sessions'])): ?>
+        <div class="tq-card">
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('حصص انتهت'); ?></h2></div>
+            <ul class="tq-stack">
+                <?php foreach ($tq_detail['past_sessions'] as $tq_ps): $tq_pts = !empty($tq_ps['starts_at']) ? strtotime($tq_ps['starts_at']) : 0; ?>
+                    <li class="tq-row" style="gap:var(--tq-space-m);flex-wrap:wrap">
+                        <span style="flex:1;min-inline-size:0">
+                            <span class="tq-strong" style="display:block;color:var(--tq-navy)"><?php echo html_escape($tq_ps['teacher'] ?: t('معلم')); ?></span>
+                            <span class="tq-micro" style="display:block">
+                                <?php echo $tq_pts > 0 ? tq_iso(html_escape(date('Y-m-d', $tq_pts) . ' — ' . date('H:i', $tq_pts))) : ''; ?>
+                                <?php if (!empty($tq_ps['subject_name'])) echo ' · ' . html_escape($tq_ps['subject_name']); ?>
+                            </span>
+                        </span>
+                        <?php if ((string) $tq_ps['attendance'] === 'present'): ?>
+                            <?php echo tq_badge('mastered', t('حضر')); ?>
+                        <?php elseif ((string) $tq_ps['attendance'] === 'absent'): ?>
+                            <?php echo tq_badge('late', t('لم يحضر')); ?>
+                        <?php endif; ?>
+                        <?php if (!empty($tq_ps['has_recording'])): ?>
+                            <a class="tq-btn tq-btn--secondary tq-btn--sm"
+                               href="<?php echo base_url('student/sessions/' . (int) $tq_ps['id'] . '/recording'); ?>"><?php echo t('شاهد التسجيل'); ?></a>
+                        <?php elseif ((int) $tq_ps['recording_pending'] === 1): ?>
+                            <span class="tq-micro"><?php echo t('جاري تجهيز التسجيل'); ?></span>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+        <?php endif; ?>
+
         <div class="tq-card">
             <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('ملاحظات المعلمين'); ?></h2></div>
 

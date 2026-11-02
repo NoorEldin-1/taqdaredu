@@ -2557,7 +2557,7 @@ class Taqdar_admin_model extends CI_Model
 
         $note = trim((string) $reason) !== '' ? ' — ' . trim((string) $reason) : '';
         $body = !empty($r['refunded'])
-              ? 'ألغت الإدارة الحصة المتفق عليها' . $note . '، ويرد مبلغها إليك.'
+              ? 'ألغت الإدارة الحصة المتفق عليها' . $note . '، ويرد مبلغها إليك خلال ٥ أيام عمل خارج المنصة.'
               : 'ألغت الإدارة الحصة المتفق عليها' . $note . '.';
 
         foreach (array((int) ($r['student_id'] ?? 0), (int) ($r['teacher_id'] ?? 0)) as $uid) {

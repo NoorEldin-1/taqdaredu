@@ -565,6 +565,12 @@ $route['student/sessions/cancel']      = 'taqdar/session_cancel';
 // TQ-LIVE — begin: writes first, then the per-session views (join · ics)
 $route['teacher/sessions/close-slot']      = 'taqdar/sessions_close_slot';
 $route['teacher/settings/meet-url']        = 'taqdar/teacher_meet_url_save';
+$route['student/sessions/reschedule']      = 'taqdar/session_reschedule';
+$route['student/sessions/teacher-fault']   = 'taqdar/session_teacher_fault';
+$route['teacher/sessions/reschedule']      = 'taqdar/teacher_session_reschedule';
+$route['teacher/sessions/cancel']          = 'taqdar/teacher_session_cancel';
+$route['teacher/sessions/recording']       = 'taqdar/sessions_recording';
+$route['student/sessions/(:num)/recording'] = 'taqdar/session_recording/$1';
 $route['student/sessions/(:num)/join']     = 'taqdar/session_join/$1';
 $route['student/sessions/(:num)/ics']      = 'taqdar/session_ics/$1';
 $route['teacher/sessions/(:num)/join']     = 'taqdar/teacher_session_join/$1';

@@ -2289,7 +2289,12 @@ class Taqdar extends CI_Controller
         $sid  = (int) $this->input->post('session_id');
 
         $this->load->model('taqdar_sessions_model');
-        $r = $this->taqdar_sessions_model->complete($sid, $tid, 'teacher');
+        /* TQ-LIVE (D3/D4) — الحضور والتسجيل مع اعلان الانتهاء. */
+        $r = $this->taqdar_sessions_model->complete($sid, $tid, 'teacher', array(
+            'attendance'      => (string) $this->input->post('attendance'),
+            'recording_url'   => (string) $this->input->post('recording_url'),
+            'recording_later' => (bool) $this->input->post('recording_later'),
+        ));
 
         $this->trace('teacher.sessions.complete', 'tutoring_sessions:' . $sid,
             array('ok' => !empty($r['ok']), 'share' => (int) ($r['credited']['share'] ?? 0)));
@@ -2620,6 +2625,96 @@ class Taqdar extends CI_Controller
         $r = $this->taqdar_sessions_model->save_teacher_meet_url((int) $user['id'],
                                                                  (string) $this->input->post('tq_meet_url'));
         $this->done('teacher/sessions', !empty($r['ok']), $r['msg']);
+    }
+
+    /* =====================================================================
+       TQ-LIVE — المرحلة الثانية والثالثة: تاجيل · الغاء بسبب · خطا المعلم ·
+       الحضور والتسجيل. القواعد كلها في `Taqdar_sessions_model`.
+       ===================================================================== */
+
+    /** POST student/sessions/reschedule — مرة واحدة حتى ١٢ ساعة قبل الموعد. */
+    public function session_reschedule()
+    {
+        $user = $this->write_guard('student');
+        $sid  = (int) $this->input->post('session_id');
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->reschedule($sid, (int) $this->input->post('slot_id'), (int) $user['id'], 'student');
+        $this->trace('student.sessions.reschedule', 'tutoring_sessions:' . $sid, array('ok' => !empty($r['ok'])));
+        $this->done($this->session_back(), !empty($r['ok']), $r['msg']);
+    }
+
+    /** POST teacher/sessions/reschedule — اي وقت قبل الموعد. */
+    public function teacher_session_reschedule()
+    {
+        $user = $this->write_guard('teacher');
+        $sid  = (int) $this->input->post('session_id');
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->reschedule($sid, (int) $this->input->post('slot_id'), (int) $user['id'], 'teacher');
+        $this->trace('teacher.sessions.reschedule', 'tutoring_sessions:' . $sid, array('ok' => !empty($r['ok'])));
+        $this->done('teacher/sessions', !empty($r['ok']), $r['msg']);
+    }
+
+    /** POST teacher/sessions/cancel — السبب مطلوب، والمدفوعة تفتح للطالب خياريه. */
+    public function teacher_session_cancel()
+    {
+        $user = $this->write_guard('teacher');
+        $sid  = (int) $this->input->post('session_id');
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->teacher_cancel($sid, (int) $user['id'], (string) $this->input->post('reason'));
+        $this->trace('teacher.sessions.cancel', 'tutoring_sessions:' . $sid, array('ok' => !empty($r['ok'])));
+        $this->done('teacher/sessions', !empty($r['ok']), $r['msg']);
+    }
+
+    /** POST student/sessions/teacher-fault — بعد اعتذار المعلم او غيابه: بديل او استرداد. */
+    public function session_teacher_fault()
+    {
+        $user = $this->write_guard('student');
+        $sid  = (int) $this->input->post('session_id');
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->choose_after_teacher_fault(
+            $sid, (int) $user['id'], (string) $this->input->post('choice'), (int) $this->input->post('slot_id'));
+        $this->trace('student.sessions.teacher_fault', 'tutoring_sessions:' . $sid,
+            array('ok' => !empty($r['ok']), 'choice' => (string) $this->input->post('choice')));
+        $this->done($this->session_back(), !empty($r['ok']), $r['msg']);
+    }
+
+    /** POST teacher/sessions/recording — رابط التسجيل بعد الحصة، او تصحيح الحضور. */
+    public function sessions_recording()
+    {
+        $user = $this->write_guard('teacher');
+        $sid  = (int) $this->input->post('session_id');
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->set_recording($sid, (int) $user['id'],
+            (string) $this->input->post('recording_url'), $this->input->post('attendance'),
+            (bool) $this->input->post('recording_later'));
+        $this->trace('teacher.sessions.recording', 'tutoring_sessions:' . $sid, array('ok' => !empty($r['ok'])));
+        $this->done('teacher/sessions', !empty($r['ok']), $r['msg']);
+    }
+
+    /**
+     * GET student/sessions/<id>/recording — التسجيل للطالب صاحب الحصة ولولي
+     * امره، عبر `tqs_video_embed()` لا رابط عار.
+     */
+    public function session_recording($session_id = 0)
+    {
+        $this->require_login();
+        $uid  = (int) $this->session->userdata('user_id');
+        $role = tq_role($uid);
+        if (!in_array($role, array('student', 'parent'), true)) show_404();
+
+        $this->load->model('taqdar_sessions_model');
+        $row = $this->taqdar_sessions_model->recording_for((int) $session_id, $uid, $role);
+        if (!$row) show_404();
+
+        $back = $role === 'parent' ? 'parent/child?id=' . (int) $row['student_id']
+              : (((string) ($row['kind'] ?? '') === 'foundation') ? 'student/foundation' : 'student/on-demand');
+        $this->show('tq_session_recording', 'تسجيل الحصة', array(
+            'tq_counts'   => $this->counts($uid, $role),
+            'user_id'     => $uid,
+            'tq_rec'      => $row,
+            'tq_rec_role' => $role,
+            'tq_back'     => $back,
+        ));
     }
     // TQ-LIVE — end
 
