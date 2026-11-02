@@ -153,4 +153,6 @@ return array(
     'يفتح بعد اجتياز مراجعة «____».' => '',
     'يقرأ مدة المقطع…' => 'Reading the clip\'s duration…',
     'يقرأ مدة الملف…' => 'Reading the file\'s duration…',
+    'حدد الكل' => 'Select all',
+    'امسح التحديد' => 'Clear selection',
 );
