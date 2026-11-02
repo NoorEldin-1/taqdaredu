@@ -775,7 +775,8 @@ class TaqdarApi {
                                 <td>
                                     <?php echo html_escape($s['description'] ?? ''); ?>
                                     <?php if (isset($s['example'])): ?>
-                                        <span class="dim">e.g. <code><?php echo html_escape((string) $s['example']); ?></code></span>
+                                        <span class="dim">e.g. <code><?php /* مثال الحقل قد يكون كائنا (حضور كل طالب بمعرفه) — يطبع JSON لا «Array» */
+                                            echo html_escape(is_array($s['example']) ? json_encode($s['example'], JSON_UNESCAPED_UNICODE) : (string) $s['example']); ?></code></span>
                                     <?php endif; ?>
                                 </td>
                             </tr>
