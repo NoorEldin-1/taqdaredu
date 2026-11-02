@@ -80,7 +80,7 @@ $url  = base_url('group/' . rawurlencode($sum['slug']));
               <svg aria-hidden="true"><use href="#i-calendar"></use></svg>
               <?php echo html_escape(tq_count_units((int) $sum['sessions_total'], 'حصة', 'حصتان', 'حصتين', 'حصص', 'حصة', '', 'nom')); ?>
               <?php if ($sum['first_starts_at']): ?>
-                — <?php echo t('أولها'); ?> <b class="tq-ltr"><?php echo html_escape(date('Y-m-d H:i', strtotime($sum['first_starts_at']) + 3 * 3600)); ?></b>
+                — <?php echo t('أولها'); ?> <b class="tq-ltr"><?php echo html_escape(date('Y-m-d H:i', strtotime($sum['first_starts_at']))); ?></b>
                 <?php echo t('(توقيت مكة)'); ?>
               <?php endif; ?>
             </p>

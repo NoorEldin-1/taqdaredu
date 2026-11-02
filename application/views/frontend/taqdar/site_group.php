@@ -51,7 +51,7 @@ include __DIR__ . '/site/site_pagehero.php';
       <ol class="grp-sched">
         <?php foreach ($rows as $s): $off = $s['status'] === 'cancelled'; ?>
           <li class="<?php echo $off ? 'is-off' : ''; ?>">
-            <b class="tq-ltr"><?php echo html_escape(date('Y-m-d H:i', strtotime($s['starts_at']) + 3 * 3600)); ?></b>
+            <b class="tq-ltr"><?php echo html_escape(date('Y-m-d H:i', strtotime($s['starts_at']))); ?></b>
             <span><?php echo t('(توقيت مكة)'); ?> · <?php echo (int) $s['duration_min']; ?> <?php echo t('دقيقة'); ?></span>
             <?php if (trim((string) $s['title']) !== ''): ?><span><?php echo html_escape($s['title']); ?></span><?php endif; ?>
             <?php if ($off): ?><span><?php echo t('ملغاة'); ?></span><?php endif; ?>

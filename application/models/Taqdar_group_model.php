@@ -1156,7 +1156,7 @@ class Taqdar_group_model extends CI_Model
             if (!$g || $g['status'] === 'closed') continue;
             $this->notify_members((int) $g['id'], t('حصتك بعد قليل'),
                 t('تبدأ حصة «____» في ____ (توقيت مكة). ادخلها من شاشة مجموعاتك.',
-                  array($g['title'], date('H:i', strtotime((string) $r['starts_at']) + 3 * 3600))));
+                  array($g['title'], date('H:i', strtotime((string) $r['starts_at'])))));
             $out['reminded']++;
         }
 
@@ -1350,7 +1350,7 @@ class Taqdar_group_model extends CI_Model
         $next = '';
         foreach ($this->sessions_of((int) $g['id']) as $s) {
             if ($s['status'] === 'scheduled' && strtotime((string) $s['starts_at']) > time()) {
-                $next = date('Y-m-d H:i', strtotime((string) $s['starts_at']) + 3 * 3600);
+                $next = date('Y-m-d H:i', strtotime((string) $s['starts_at']));
                 break;
             }
         }

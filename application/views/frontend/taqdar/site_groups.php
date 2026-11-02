@@ -31,7 +31,7 @@ include __DIR__ . '/site/site_pagehero.php';
             </h2>
             <?php if ($g['next_starts_at']): ?>
               <p class="tq-caption"><?php echo t('أقرب حصة:'); ?>
-                <b class="tq-ltr"><?php echo html_escape(date('Y-m-d H:i', strtotime($g['next_starts_at']) + 3 * 3600)); ?></b>
+                <b class="tq-ltr"><?php echo html_escape(date('Y-m-d H:i', strtotime($g['next_starts_at']))); ?></b>
                 <?php echo t('(توقيت مكة)'); ?></p>
             <?php endif; ?>
             <p class="tq-caption">
