@@ -948,11 +948,16 @@ class Taqdar_group_model extends CI_Model
     public function group_attendance($group_id)
     {
         try {
-            $rows = $this->db->select('a.attendance')->from(self::T_ATT . ' a')
+            $rows = $this->db->select('a.attendance, a.joined_at')->from(self::T_ATT . ' a')
                              ->join(self::T_SESS . ' s', 's.id = a.session_id')
                              ->where('s.group_id', (int) $group_id)->where('s.status', 'completed')
                              ->get()->result_array();
         } catch (Throwable $e) { $this->db->reset_query(); $rows = array(); }
+        /* ما يقرؤه `attendance_of()` لولي الامر: دخول بلا اعلان حضور. رقمان لحقيقة واحدة يفترقان. */
+        foreach ($rows as &$r) {
+            if (empty($r['attendance']) && !empty($r['joined_at'])) $r['attendance'] = 'present';
+        }
+        unset($r);
         return self::attendance_rate($rows);
     }
 

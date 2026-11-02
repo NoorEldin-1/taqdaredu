@@ -399,7 +399,9 @@ include 'portal_open.php';
                                 if ($tq_ka['status'] !== 'completed') continue; ?>
                                 <span class="tq-micro" style="display:block">
                                     <?php echo tq_iso(html_escape(date('Y-m-d H:i', strtotime($tq_ka['starts_at'])))); ?> ·
-                                    <?php echo $tq_ka['attendance'] === 'present' ? t('حضر') : t('لم يحضر'); ?>
+                                    <?php /* ما لم يعلن ليس غيابا — قاعدة `attendance_rate()` نفسها */
+                                    echo $tq_ka['attendance'] === 'present' ? t('حضر')
+                                        : ($tq_ka['attendance'] === 'absent' ? t('لم يحضر') : t('لم يعلن الحضور بعد')); ?>
                                     <?php if ($tq_ka['has_recording']): ?>
                                         · <a href="<?php echo base_url('student/group-sessions/' . (int) $tq_ka['id'] . '/recording'); ?>"><?php echo t('شاهد التسجيل'); ?></a>
                                     <?php endif; ?>
