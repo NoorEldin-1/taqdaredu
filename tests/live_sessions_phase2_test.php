@@ -150,4 +150,21 @@ check(!$S::recording_host_ok('http://youtu.be/abc'), 'http refused');
 check(!$S::recording_host_ok('https://evil.com/youtube.com') && !$S::recording_host_ok('https://notyoutube.com/x'), 'look-alike hosts refused');
 check(!$S::recording_host_ok('javascript:alert(1)'), 'script refused');
 
+// ---- fix round 1 -----------------------------------------------------------
+// #5 attendance editable strictly within 24h of completion, set or not
+$cmp = array('status' => 'completed', 'completed_at' => date('Y-m-d H:i:s', $c0), 'attendance' => null);
+check($S::attendance_editable($cmp, $c0 + 23 * $H) === true, 'attendance editable before 24h');
+check($S::attendance_editable($cmp, $c0 + 25 * $H) === false, 'attendance locked after 24h even when unset');
+check($S::attendance_editable(array('attendance' => 'present') + $cmp, $c0 + 25 * $H) === false, 'locked after 24h when set');
+// #6 auto-complete never credits an absent teacher or a session under review
+check($S::may_auto_credit(array('teacher_absent_at' => null, 'refund_state' => null)) === true, 'normal: credit');
+check($S::may_auto_credit(array('teacher_absent_at' => '2026-11-10 17:10:00', 'teacher_joined_at' => null)) === false, 'absent teacher: no credit');
+check($S::may_auto_credit(array('teacher_absent_at' => '2026-11-10 17:10:00', 'teacher_joined_at' => '2026-11-10 17:12:00')) === true, 'late but joined: credit');
+check($S::may_auto_credit(array('refund_state' => 'review')) === false, 'under review: no credit');
+// #2 no-show refund goes to admin review, no refund promise
+$rev = array('status' => 'declined', 'refund_state' => 'review') + $live;
+$d = $m->display_state($rev, $starts + 3600, 'student');
+check($d['key'] === 'cancelled' && $d['button'] === '' && strpos($d['label'], 'مراجعة') !== false, 'review: under admin review, no button');
+check(strpos($d['label'], 'يرد') === false, 'review: no refund promise');
+
 echo "OK — $checks checks\n";

@@ -95,7 +95,7 @@ $tq_confirmed = in_array($tq_lv['status'], array('confirmed', 'live'), true);
         <div class="tq-note" style="margin-block-start:var(--tq-space-s)">
             <p class="tq-micro" style="margin:0 0 var(--tq-space-xs)">
                 <?php echo $tq_btn === 'teacher_no_show'
-                    ? t('لم يدخل المعلم بعد عشرين دقيقة من الموعد. اختر موعدا بديلا معه بلا رسوم، أو الاسترداد.')
+                    ? t('لم يدخل المعلم بعد عشرين دقيقة من الموعد. اختر موعدا بديلا معه بلا رسوم، أو أبلغ الإدارة لتراجع طلب الاسترداد.')
                     : t('اعتذر المعلم عن الحصة. اختر موعدا بديلا معه بلا رسوم، أو الاسترداد.'); ?>
             </p>
             <form method="post" action="<?php echo base_url('student/sessions/teacher-fault'); ?>" class="tq-form-inline">
@@ -111,11 +111,14 @@ $tq_confirmed = in_array($tq_lv['status'], array('confirmed', 'live'), true);
             <form method="post" action="<?php echo base_url('student/sessions/teacher-fault'); ?>" class="tq-form-inline"
                   style="margin-block-start:var(--tq-space-xs)"
                   data-tq-confirm-title="<?php echo te('طلب الاسترداد؟'); ?>"
-                  data-tq-confirm="<?php echo te('تغلق الحصة، ويرد مبلغها خلال ٥ أيام عمل خارج المنصة.'); ?>"
+                  data-tq-confirm="<?php echo $tq_btn === 'teacher_no_show'
+                      ? te('يصل بلاغك إلى الإدارة فتراجعه وتخبرك بقرارها.')
+                      : te('تغلق الحصة، ويرد مبلغها خلال ٥ أيام عمل خارج المنصة.'); ?>"
                   data-tq-confirm-ok="<?php echo te('اطلب الاسترداد'); ?>">
                 <?php echo tq_csrf(); ?><?php echo $tq_back_in; ?>
                 <input type="hidden" name="session_id" value="<?php echo $tq_sid; ?>">
-                <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit" name="choice" value="refund"><?php echo t('أريد الاسترداد'); ?></button>
+                <button class="tq-btn tq-btn--ghost tq-btn--sm" type="submit" name="choice" value="refund"><?php echo $tq_btn === 'teacher_no_show'
+                    ? t('أبلغ الإدارة واطلب الاسترداد') : t('أريد الاسترداد'); ?></button>
             </form>
         </div>
     <?php endif; ?>

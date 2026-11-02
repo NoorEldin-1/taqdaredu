@@ -6264,7 +6264,9 @@ class Api_v1 extends CI_Controller
         $r = $this->sess()->choose_after_teacher_fault((int) $id, (int) $u['id'], $choice, (int) $this->in('slot_id', 0));
         if (empty($r['ok'])) $this->fail($this->model_msg($r, t('تعذر تنفيذ اختيارك.')), 'teacher_fault_failed', 409);
         $this->api->audit('api.session.teacher_fault', (int) $u['id'], array('session_id' => (int) $id, 'choice' => $choice));
-        $this->respond(tq_api_ok(array('id' => (int) $id, 'choice' => $choice, 'refunded' => !empty($r['refunded'])),
+        $this->respond(tq_api_ok(array('id' => (int) $id, 'choice' => $choice, 'refunded' => !empty($r['refunded']),
+                                       /* TQ-LIVE — بلاغ الغياب يرفع الى الادارة: review لا استرداد. */
+                                       'refund_state' => !empty($r['review']) ? 'review' : (!empty($r['refunded']) ? 'pending' : '')),
                                  $this->model_msg($r, t('سجل اختيارك.'))), 200);
     }
 
@@ -6293,16 +6295,31 @@ class Api_v1 extends CI_Controller
      */
     public function session_recording($id = 0)
     {
+        /* مسار الطالب وولي الامر قراءة وحدها؛ الكتابة على مسار المعلم وحده. */
+        $this->method('GET');
+        $this->recording_read_out($id);
+    }
+
+    /** /api/v1/teacher/sessions/{id}/recording — GET يقرأ، وPOST يحفظ الرابط والحضور. */
+    public function teacher_session_recording($id = 0)
+    {
         if ($this->input->method(true) === 'POST') {
             $u = $this->require_teacher();
             $this->limit('write', self::RL_WRITE_MAX, self::RL_WRITE_WINDOW);
+            $later = filter_var($this->in('recording_later', false), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
             $r = $this->sess()->set_recording((int) $id, (int) $u['id'], (string) $this->in('recording_url', ''),
-                                              $this->in('attendance', null), (bool) $this->in('recording_later', false));
+                                              $this->in('attendance', null), (bool) $later);
             if (empty($r['ok'])) $this->fail($this->model_msg($r, t('تعذر الحفظ.')), 'recording_failed', 409);
             $this->api->audit('api.session.recording', (int) $u['id'], array('session_id' => (int) $id));
             $this->respond(tq_api_ok(array('id' => (int) $id), $this->model_msg($r, t('حفظ.'))), 200);
         }
         $this->method('GET');
+        $this->require_teacher();
+        $this->recording_read_out($id);
+    }
+
+    private function recording_read_out($id)
+    {
         $u   = $this->require_portal(array('student', 'teacher', 'parent'));
         $row = $this->sess()->recording_for((int) $id, (int) $u['id'], $this->role);
         if (!$row) $this->fail('لا تسجيل لهذه الحصة في حسابك.', 'not_found', 404);
@@ -8225,7 +8242,7 @@ class Api_v1 extends CI_Controller
         $r = $this->tq_sessions()->complete((int) $id, (int) $u['id'], 'teacher', array(
             'attendance'      => (string) $this->in('attendance', ''),
             'recording_url'   => (string) $this->in('recording_url', ''),
-            'recording_later' => (bool) $this->in('recording_later', false),
+            'recording_later' => (bool) filter_var($this->in('recording_later', false), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
         ));
 
         if (empty($r['ok'])) {

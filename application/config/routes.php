@@ -354,7 +354,7 @@ $route['api/v1/teacher/sessions/(:num)/ics']           = 'api_v1/teacher_session
 $route['api/v1/teacher/sessions/(:num)/reschedule-options'] = 'api_v1/teacher_session_reschedule_options/$1';
 $route['api/v1/teacher/sessions/(:num)/reschedule']    = 'api_v1/teacher_session_reschedule/$1';
 $route['api/v1/teacher/sessions/(:num)/cancel']        = 'api_v1/teacher_session_cancel/$1';
-$route['api/v1/teacher/sessions/(:num)/recording']     = 'api_v1/session_recording/$1';
+$route['api/v1/teacher/sessions/(:num)/recording']     = 'api_v1/teacher_session_recording/$1';
 // TQ-LIVE — end
 $route['api/v1/teacher/sessions/(:num)/decide']        = 'api_v1/teacher_session_decide/$1';
 $route['api/v1/teacher/sessions/(:num)/complete']      = 'api_v1/teacher_session_complete/$1';

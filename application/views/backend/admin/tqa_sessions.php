@@ -321,6 +321,19 @@ $tq_url  = function ($over = array()) use ($status, $tq_kind) {
                     <?php endif; ?>
                     <?php if (!empty($r['refund_state']) && $r['refund_state'] === 'pending'): ?>
                         <br><span class="tqa-badge tqa-badge--warn"><?php echo t('استرداد ينتظر التنفيذ من تاب'); ?></span>
+                    <?php elseif (!empty($r['refund_state']) && $r['refund_state'] === 'review'): ?>
+                        <br><span class="tqa-badge tqa-badge--warn"><?php echo t('بلاغ غياب المعلم ينتظر قرارك'); ?></span>
+                        <form action="<?php echo site_url('taqdar_admin/session_noshow_decide'); ?>" method="post"
+                              style="margin:6px 0 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                            <?php echo tq_csrf(); ?>
+                            <input type="hidden" name="session_id" value="<?php echo (int) $r['id']; ?>">
+                            <label class="tqa-sr" for="ns-<?php echo (int) $r['id']; ?>"><?php echo t('ملاحظة القرار'); ?></label>
+                            <input class="tqa-input tqa-btn--sm" id="ns-<?php echo (int) $r['id']; ?>" type="text" name="note"
+                                   required maxlength="255" placeholder="<?php echo te('ملاحظة القرار (مطلوبة)'); ?>"
+                                   style="min-block-size:34px;inline-size:150px">
+                            <button class="tqa-btn tqa-btn--sm" type="submit" name="decision" value="approve"><?php echo t('ثبت الغياب واسترد'); ?></button>
+                            <button class="tqa-btn tqa-btn--ghost tqa-btn--sm" type="submit" name="decision" value="deny"><?php echo t('لم يثبت — اعتمد الحصة'); ?></button>
+                        </form>
                     <?php elseif (!empty($r['refund_state']) && $r['refund_state'] === 'choice'): ?>
                         <br><span class="tqa-badge tqa-badge--info"><?php echo t('ينتظر اختيار الطالب: بديل أو استرداد'); ?></span>
                     <?php endif; ?>

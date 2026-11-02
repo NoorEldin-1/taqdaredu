@@ -159,6 +159,24 @@ class Taqdar_admin extends CI_Controller
     }
 
     /**
+     * TQ-LIVE (D10) — قرار الإدارة في بلاغ غياب المعلم: ثبت (استرداد) او
+     * لم يثبت (اعتماد الحصة وقيد المعلم). والملاحظة مطلوبة.
+     */
+    public function session_noshow_decide()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+
+        $this->load->model('taqdar_sessions_model');
+        $r = $this->taqdar_sessions_model->admin_noshow_decide(
+            (int) $this->input->post('session_id'), (string) $this->input->post('decision'),
+            (string) $this->input->post('note'), (int) $this->session->userdata('user_id'));
+
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
+            isset($r['msg']) ? $r['msg'] : 'تعذر حفظ القرار.');
+        redirect(site_url('taqdar_admin/sessions'), 'location', 302);
+    }
+
+    /**
      * تسجيل دفع حصة بالتحويل البنكي.
      *
      * وهي الباب الثاني للحصة كما `activate_manually()` باب الاشتراك
