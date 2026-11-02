@@ -320,7 +320,7 @@ class Taqdar_foundation_model extends CI_Model
                   WHERE `TABLE_SCHEMA` = DATABASE() AND `TABLE_NAME` = "subscription_items"
                     AND `COLUMN_NAME` = "entity_type"'
             )->row_array();
-        } catch (Throwable $e) { $this->db->reset_query(); return; }
+        } catch (Throwable $e) { $this->db->reset_query(); log_message('error', 'TQ-ENUM read entity_type: ' . $e->getMessage()); return; }
         if (!$row || !preg_match('/^enum\((.*)\)$/i', (string) $row['t'], $m)) return;
 
         preg_match_all("/'((?:[^']|'')*)'/", $m[1], $mm);
@@ -334,7 +334,7 @@ class Taqdar_foundation_model extends CI_Model
 
     private function try_sql($sql)
     {
-        try { $this->db->query($sql); } catch (Throwable $e) { $this->db->reset_query(); }
+        try { $this->db->query($sql); } catch (Throwable $e) { $this->db->reset_query(); log_message('error', 'TQ-ENUM extend entity_type: ' . $e->getMessage()); }
     }
 
     private function put_setting($key, $value)
