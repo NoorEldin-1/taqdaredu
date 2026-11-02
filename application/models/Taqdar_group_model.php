@@ -848,30 +848,102 @@ class Taqdar_group_model extends CI_Model
         return (bool) $this->taqdar_curriculum_model->may_publish(array('role' => (string) $role));
     }
 
+    /**
+     * طابور المراجعة — بشكل صفوف `Taqdar_curriculum_model::pending()` نفسه،
+     * فشاشة `taqdar_admin/review` الواحدة تقرأ المجموعة بجوار الدرس والكتاب.
+     */
+    public function pending_groups($limit = 200)
+    {
+        $this->ensure_schema();
+        try {
+            $rows = $this->db->select('g.id, g.title, g.price, g.capacity, g.created_at, g.teacher_id, u.first_name, u.last_name')
+                             ->from(self::T_GROUPS . ' g')
+                             ->join('users u', 'u.id = g.teacher_id', 'left')
+                             ->where('g.status', 'review')->order_by('g.id', 'ASC')->limit((int) $limit)
+                             ->get()->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return array(); }
+        $out = array();
+        foreach ($rows as $r) {
+            $n = count(array_filter($this->sessions_of((int) $r['id']), function ($s) { return $s['status'] !== 'cancelled'; }));
+            $out[] = array(
+                'kind' => 'group', 'entity' => 'group', 'entity_id' => (int) $r['id'], 'revision_id' => 0,
+                'title' => (string) $r['title'], 'course_id' => 0, 'course' => '', 'section' => '',
+                'author' => trim($r['first_name'] . ' ' . $r['last_name']), 'tq_kind' => 'group',
+                'objectives' => 0, 'duration' => '', 'sessions' => $n,
+                'price' => (int) $r['price'], 'capacity' => (int) $r['capacity'],
+                'at' => !empty($r['created_at']) ? (int) strtotime((string) $r['created_at']) : 0, 'note' => '',
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * ارقام اللوحة لكل مجموعة: الاعضاء الساريون، والمعلق، والمحصل
+     * (بالهللات)، والحصص، وما ينتظر رده بعد الغاء قبل اول حصة
+     * (`group.refund_due` — الرد يدوي خارج المنصة).
+     */
+    public function group_stats()
+    {
+        $this->ensure_schema();
+        try {
+            $groups = $this->db->order_by('id', 'DESC')->get(self::T_GROUPS)->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); return array(); }
+        $agg = array();
+        try {
+            foreach ($this->db->select('group_id, status, COUNT(*) n, SUM(price) s', false)
+                              ->where('group_id >', 0)->group_by(array('group_id', 'status'))
+                              ->get('subscriptions')->result_array() as $r) {
+                $agg[(int) $r['group_id']][(string) $r['status']] = array((int) $r['n'], (int) $r['s']);
+            }
+        } catch (Throwable $e) { $this->db->reset_query(); }
+        $refund = array();
+        try {
+            foreach ($this->db->select('entity')->where('action', 'group.refund_due')->get('audit_log')->result_array() as $r) {
+                $refund[] = (string) $r['entity'];
+            }
+        } catch (Throwable $e) { $this->db->reset_query(); }
+
+        $out = array();
+        foreach ($groups as $g) {
+            $a = isset($agg[(int) $g['id']]) ? $agg[(int) $g['id']] : array();
+            $sum = self::summary($g, array('seats_left' => self::seats_left_of($g, $this->seats_taken((int) $g['id'])),
+                                           'price_halalas' => (int) $g['price']),
+                                 $this->sessions_of((int) $g['id']), time());
+            $sum['members']  = count($this->members_of((int) $g['id']));
+            $sum['pending']  = isset($a['pending']) ? $a['pending'][0] : 0;
+            $sum['gross']    = (isset($a['active']) ? $a['active'][1] : 0) + (isset($a['expired']) ? $a['expired'][1] : 0);
+            $sum['refund_due'] = 0;
+            if ($g['status'] === 'closed' && isset($a['cancelled'])) $sum['refund_due'] = $a['cancelled'][0];
+            $sum['blockers'] = $this->delete_blockers((int) $g['id']);
+            $out[] = $sum;
+        }
+        return array('rows' => $out, 'refund_logged' => count($refund));
+    }
+
     /** المراجعة: `review` ← `published`، ويبلغ صاحبها. */
     public function approve_group($id)
     {
         $g = $this->get($id);
-        if (!$g || $g['status'] !== 'review') return array('ok' => false, 'errors' => array(t('ليست بانتظار المراجعة.')));
+        if (!$g || $g['status'] !== 'review') return array('ok' => false, 'errors' => array(t('ليست بانتظار المراجعة.')), 'message' => t('ليست بانتظار المراجعة.'));
         $this->db->where('id', (int) $id)->update(self::T_GROUPS, array('status' => 'published'));
         $this->notify((int) $g['teacher_id'], t('نشرت مجموعتك'),
                       t('اعتمدت الادارة مجموعة «____» ونشرتها.', array($g['title'])), 'system');
         $this->audit('group.approve', self::T_GROUPS . '#' . (int) $id, $g, $this->get($id));
-        return array('ok' => true);
+        return array('ok' => true, 'message' => t('نشرت المجموعة، وبلغ معلمها.'));
     }
 
     /** الرفض ينزل الى `draft` ويطلب سببه — «مرفوض» وحدها لا تقول ما يصحح. */
     public function reject_group($id, $reason)
     {
         $reason = trim((string) $reason);
-        if ($reason === '') return array('ok' => false, 'errors' => array(t('اكتب سبب الرفض — به يعرف المعلم ما يصحح.')));
+        if ($reason === '') return array('ok' => false, 'errors' => array(t('اكتب سبب الرفض — به يعرف المعلم ما يصحح.')), 'message' => t('اكتب سبب الرفض — به يعرف المعلم ما يصحح.'));
         $g = $this->get($id);
-        if (!$g || $g['status'] !== 'review') return array('ok' => false, 'errors' => array(t('ليست بانتظار المراجعة.')));
+        if (!$g || $g['status'] !== 'review') return array('ok' => false, 'errors' => array(t('ليست بانتظار المراجعة.')), 'message' => t('ليست بانتظار المراجعة.'));
         $this->db->where('id', (int) $id)->update(self::T_GROUPS, array('status' => 'draft'));
         $this->notify((int) $g['teacher_id'], t('اعيدت مجموعتك للتعديل'),
                       t('لم تنشر مجموعة «____»: ____', array($g['title'], $reason)), 'system');
         $this->audit('group.reject', self::T_GROUPS . '#' . (int) $id, $g, array('reason' => $reason));
-        return array('ok' => true);
+        return array('ok' => true, 'message' => t('اعيدت المجموعة الى معلمها بسبب الرفض.'));
     }
 
     /**

@@ -491,6 +491,19 @@ class Taqdar_admin extends CI_Controller
        وهو بعينه ما وقع في «أوقات المعلمين» قبل أن يكتب لها عمود «الصف».
        ===================================================================== */
 
+    /**
+     * TQ-GROUP — المجموعات المباشرة: ارقام كل مجموعة (اعضاء · معلق · محصل
+     * · حصص · مقاعد)، والتحرير في الوحدة الموصوفة `module/groups`.
+     */
+    public function groups()
+    {
+        $this->load->model('taqdar_group_model');
+        $this->render('tqa_groups', 'المجموعات المباشرة', array(
+            'stats'   => $this->taqdar_group_model->group_stats(),
+            'enabled' => $this->taqdar_group_model->enabled(),
+        ));
+    }
+
     public function foundation()
     {
         $this->load->model('taqdar_sessions_model');

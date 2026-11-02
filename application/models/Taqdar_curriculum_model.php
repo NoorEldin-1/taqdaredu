@@ -2267,6 +2267,17 @@ class Taqdar_curriculum_model extends CI_Model
             } catch (Throwable $e) {
                 log_message('error', 'TQ-CURRIC pending(book): ' . $e->getMessage());
             }
+
+            /* ٤ — مجموعات مباشرة ينتظر نشرها — TQ-GROUP. والطابور واحد،
+               والقرار في `Taqdar_group_model::approve_group()`/`reject_group()`. */
+            try {
+                $CI = get_instance();
+                $CI->load->model('taqdar_group_model', 'tq_grp_q');
+                foreach ($CI->tq_grp_q->pending_groups() as $r) $out[] = $r;
+            } catch (Throwable $e) {
+                $this->db->reset_query();
+                log_message('error', 'TQ-CURRIC pending(group): ' . $e->getMessage());
+            }
         }
 
         usort($out, function ($a, $b) { return $a['at'] <=> $b['at']; });
@@ -2297,6 +2308,11 @@ class Taqdar_curriculum_model extends CI_Model
             $n += (int) $this->db->query(
                 'SELECT COUNT(*) n FROM `books` WHERE `status` = "review"')->row('n');
         } catch (Throwable $e) { /* العمود لم يوسع بعد */ }
+        try {
+            /* والمجموعة المباشرة كذلك — TQ-GROUP. */
+            $n += (int) $this->db->query(
+                'SELECT COUNT(*) n FROM `tq_groups` WHERE `status` = "review"')->row('n');
+        } catch (Throwable $e) { /* الجدول لم ينشأ */ }
         return $n;
     }
 
@@ -2326,6 +2342,12 @@ class Taqdar_curriculum_model extends CI_Model
             $CI = get_instance();
             $CI->load->model('taqdar_book_model', 'tq_bk_ap');
             return $CI->tq_bk_ap->approve_book($actor, $entity_id);
+        }
+        /* TQ-GROUP — والمجموعة تفوض الى نموذجها كذلك. */
+        if ((string) $entity === 'group') {
+            $CI = get_instance();
+            $CI->load->model('taqdar_group_model', 'tq_grp_ap');
+            return $CI->tq_grp_ap->approve_group($entity_id);
         }
 
         /* اقتراح على منشور: الحمولة تطبق ثم يقفل الصف. */
@@ -2410,6 +2432,11 @@ class Taqdar_curriculum_model extends CI_Model
             $CI = get_instance();
             $CI->load->model('taqdar_book_model', 'tq_bk_rj');
             return $CI->tq_bk_rj->reject_book($actor, $entity_id, $reason);
+        }
+        if ((string) $entity === 'group') {   // TQ-GROUP
+            $CI = get_instance();
+            $CI->load->model('taqdar_group_model', 'tq_grp_rj');
+            return $CI->tq_grp_rj->reject_group($entity_id, $reason);
         }
 
         if ($revision_id > 0) {

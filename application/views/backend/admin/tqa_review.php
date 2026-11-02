@@ -133,29 +133,36 @@ $tq_ago = function ($ts) {
         $tq_kind_row   = $tq_it['kind'];
         $tq_course_row = $tq_kind_row === 'course';
         $tq_book_row   = $tq_kind_row === 'book';
+        $tq_group_row  = $tq_kind_row === 'group';   // TQ-GROUP
         $tq_new        = $tq_kind_row === 'new';
-        $tq_live = $tq_book_row
+        $tq_live = $tq_group_row
+            ? site_url('taqdar_admin/form/groups/' . (int) $tq_it['entity_id'])
+            : ($tq_book_row
             ? site_url('taqdar_admin/form/books/' . (int) $tq_it['entity_id'])
             : ($tq_course_row
                 ? site_url('admin/course_form/course_edit/' . (int) $tq_it['course_id']) . '?tab=basic'
-                : site_url('admin/course_form/course_edit/' . (int) $tq_it['course_id']) . '?tab=curriculum');
+                : site_url('admin/course_form/course_edit/' . (int) $tq_it['course_id']) . '?tab=curriculum'));
     ?>
     <article class="tqr-item">
 
         <div class="tqr-item__top">
             <span class="tqa-iconbox <?php echo $tq_book_row ? 'tqa-sky' : ($tq_course_row ? 'tqa-sand' : ($tq_new ? 'tqa-mint' : 'tqa-peach')); ?>" aria-hidden="true">
-                <?php echo tq_icon(($tq_course_row || $tq_book_row) ? 'book' : $tq_kind_icon($tq_it['tq_kind']), 20); ?>
+                <?php echo tq_icon($tq_group_row ? 'users' : (($tq_course_row || $tq_book_row) ? 'book' : $tq_kind_icon($tq_it['tq_kind'])), 20); ?>
             </span>
 
             <div class="tqr-item__body">
                 <h2 style="font:var(--tq-type-h2)"><?php echo html_escape($tq_it['title']); ?></h2>
                 <div class="tqr-item__meta">
                     <span class="tqa-badge <?php echo ($tq_new && !$tq_book_row) ? 'tqa-badge--ok' : 'tqa-badge--warn'; ?>">
-                        <?php echo $tq_book_row ? t('كتاب جديد')
+                        <?php echo $tq_group_row ? t('مجموعة مباشرة') : ($tq_book_row ? t('كتاب جديد')
                              : ($tq_course_row ? t('كورس جديد')
-                             : ($tq_new ? t('درس جديد') : t('تعديل على منشور'))); ?>
+                             : ($tq_new ? t('درس جديد') : t('تعديل على منشور')))); ?>
                     </span>
-                    <?php if ($tq_book_row): ?>
+                    <?php if ($tq_group_row): ?>
+                        <span><?php echo tq_num((int) $tq_it['sessions']); ?> <?php echo t('حصة مجدولة'); ?></span>
+                        <span><?php echo t('السعر'); ?> <span class="tq-ltr"><?php echo number_format(((int) $tq_it['price']) / 100, 2); ?></span> <?php echo t('ر.س'); ?></span>
+                        <span><?php echo (int) $tq_it['capacity'] > 0 ? tq_num((int) $tq_it['capacity']) . ' ' . t('مقعدا') : t('بلا حد للمقاعد'); ?></span>
+                    <?php elseif ($tq_book_row): ?>
                         <?php if ((int) $tq_it['pages'] > 0): ?>
                             <span><?php echo tq_num((int) $tq_it['pages']); ?> <?php echo t('صفحة'); ?></span>
                         <?php endif; ?>
@@ -198,8 +205,8 @@ $tq_ago = function ($ts) {
 
             <a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo $tq_live; ?>">
                 <?php echo tq_icon('external', 14); ?>
-                <?php echo $tq_book_row ? t('افتح الكتاب')
-                     : ($tq_course_row ? t('افتح الكورس') : t('افتح المقرر')); ?>
+                <?php echo $tq_group_row ? t('افتح المجموعة') : ($tq_book_row ? t('افتح الكتاب')
+                     : ($tq_course_row ? t('افتح الكورس') : t('افتح المقرر'))); ?>
             </a>
         </div>
 
