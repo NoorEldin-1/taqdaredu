@@ -4121,6 +4121,162 @@ $spec = array(
 
 /* ---- Foundation (TQ-FOUNDATION) ------------------------------------ */
 
+/* ---- TQ-GROUP — live groups ------------------------------------------ */
+'/api/v1/student/groups' => array('get' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Live groups — mine and those on sale',
+    'description' => implode("\n", array(
+        'A live group is a **published schedule of live sessions** sold as one seat. It runs on the',
+        'same subscription engine as books and courses: one `subscriptions` row, one invoice, Tap or',
+        'bank transfer, `expire_due()` at the end.',
+        '',
+        '`mine` carries each group with its sessions and the derived `state` per session',
+        '(`scheduled` · `ready` · `live` · `completed` · `recording_processing` · `recording_available`',
+        '· `missed` · `rescheduled` · `cancelled`). **The meeting link is never in the payload** —',
+        'join through `student/group-sessions/{id}/join`, which records attendance first.',
+        '',
+        '`offers` is empty when the app build may not sell digital content (`purchases_enabled` false,',
+        'iOS — TQ-APP-CONFIG). `enabled` false means the whole section is off: hide it.',
+        'Prices are in halalas inside `tq_api_money()`.',
+    )),
+    'security' => $auth,
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '429' => $r_429),
+)),
+
+'/api/v1/student/groups/{id}' => array('get' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'One live group with its schedule',
+    'description' => 'Same shape as an entry of `mine`, plus `member`. A non-member reads the schedule'
+                   . ' (dates, titles, states) but `can_join` is always false. On builds that cannot'
+                   . ' sell, `sellable` is false with `reason: app` and `price: null`.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '404' => $r_404, '429' => $r_429),
+)),
+
+'/api/v1/student/buy-group' => array('post' => array(
+    'tags' => array('Store'),
+    'summary' => 'Buy a seat in a live group',
+    'description' => implode("\n", array(
+        'Invoice first, then card payment — the single purchase path of every other unit.',
+        'The seat is held `tq_group_hold_hours` while the invoice is unpaid, then released.',
+        'Refusal codes: `already_owned` (already a member), `not_sellable`, `full` (seats ran out,',
+        'nothing charged), `purchase_unavailable` (403, this app build cannot sell — iOS).',
+        '',
+        '**No automatic refunds.** If a group is cancelled before its first session the membership',
+        'is cancelled and the money is returned manually outside the platform.',
+    )),
+    'security' => $auth,
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'example' => array('group_id' => 4, 'pay_method' => 'tap', 'coupon' => ''),
+    ))),
+    'responses' => array('201' => array('description' => 'Invoice issued'), '401' => $r_401, '403' => $r_403,
+                         '409' => $r_409, '422' => $r_422, '429' => $r_429),
+)),
+
+'/api/v1/student/group-sessions/{id}/join' => array('get' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Join a group session',
+    'description' => 'Records attendance and returns `{url}` to open. 409 `session_not_joinable` with the'
+                   . ' reason when the link is not open yet, the session is over, or the caller is not a member.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '409' => $r_409, '429' => $r_429),
+)),
+
+'/api/v1/student/groups/{id}/ics' => array('get' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Calendar file of the schedule',
+    'description' => '`text/calendar` with one event per non-cancelled session; `?session=<id>` narrows to'
+                   . ' one. Members only. No meeting link inside — the file travels.',
+    'security' => $auth,
+    'parameters' => array(
+        array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer')),
+        array('name' => 'session', 'in' => 'query', 'required' => false, 'schema' => array('type' => 'integer')),
+    ),
+    'responses' => array('200' => array('description' => 'text/calendar'), '401' => $r_401, '404' => $r_404),
+)),
+
+'/api/v1/teacher/groups' => array(
+    'get' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'My live groups',
+        'security' => $auth,
+        'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403, '429' => $r_429),
+    ),
+    'post' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Create a live group',
+        'description' => '`price` is written in riyals and stored in halalas. `status: published` from a teacher'
+                       . ' becomes `review` (`staged: true`) unless direct publishing is on — the admin approves it'
+                       . ' in the single review queue. `teacher_percent` is an admin decision and is ignored here.',
+        'security' => $auth,
+        'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+            'example' => array('title' => 'رياضيات الثالث — مراجعة', 'price' => 199, 'capacity' => 12,
+                               'enroll_until' => '2026-11-20 23:59', 'status' => 'published'),
+        ))),
+        'responses' => array('201' => array('description' => 'Saved'), '401' => $r_401, '403' => $r_403,
+                             '409' => $r_409, '429' => $r_429),
+    ),
+),
+
+'/api/v1/teacher/groups/{id}' => array(
+    'get' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'One group — schedule, members, delete blockers',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
+        'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '403' => $r_403, '404' => $r_404),
+    ),
+    'patch' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Edit a group (writes only the fields sent)',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
+        'responses' => array('200' => array('description' => 'Saved'), '401' => $r_401, '404' => $r_404, '409' => $r_409),
+    ),
+),
+
+'/api/v1/teacher/groups/{id}/sessions' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Add a session to the schedule',
+    'description' => '`starts_at` in platform time (`Asia/Riyadh`) and in the future; `duration_min` 15–300.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'example' => array('starts_at' => '2026-11-10 17:00', 'duration_min' => 60, 'title' => 'الكسور',
+                           'meet_url' => 'https://meet.google.com/abc-defg-hij'),
+    ))),
+    'responses' => array('201' => array('description' => 'Saved'), '401' => $r_401, '404' => $r_404, '409' => $r_409),
+)),
+
+'/api/v1/teacher/group-sessions/{id}' => array(
+    'patch' => array(
+        'tags' => array('Teacher authoring'),
+        'summary' => 'Edit or reschedule a session',
+        'description' => 'A new `starts_at` **with** `reason` reschedules and notifies every member. Without a new'
+                       . ' time it edits `title`, `meet_url`, `duration_min`.',
+        'security' => $auth,
+        'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
+        'responses' => array('200' => array('description' => 'Saved'), '401' => $r_401, '404' => $r_404, '409' => $r_409),
+    ),
+),
+
+'/api/v1/teacher/group-sessions/{id}/complete' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Declare a session over — attendance and recording',
+    'description' => '`attendance` as `{student_id: present|absent}` or `[{student_id, attendance}]`; members not'
+                   . ' listed are judged by whether they pressed join. `recording_url` notifies members;'
+                   . ' `recording_pending: true` promises it later.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'example' => array('attendance' => array('512' => 'present', '513' => 'absent'),
+                           'recording_url' => '', 'recording_pending' => true),
+    ))),
+    'responses' => array('200' => array('description' => 'Saved'), '401' => $r_401, '404' => $r_404, '409' => $r_409),
+)),
+
 '/api/v1/student/foundation' => array('get' => array(
     'tags' => array('Sessions'),
     'summary' => 'Foundation section — tracks, teachers and bookings',
@@ -5879,7 +6035,7 @@ $spec = array(
     'requestBody' => array('required' => true, 'content' => array('application/json' => array(
         'schema' => array('type' => 'object', 'required' => array('child_id', 'kind'), 'properties' => array(
             'child_id'   => array('type' => 'integer', 'example' => 403),
-            'kind'       => array('type' => 'string', 'enum' => array('plan', 'course', 'book')),
+            'kind'       => array('type' => 'string', 'enum' => array('plan', 'course', 'book', 'foundation', 'group')),
             'plan_id'    => array('type' => 'integer', 'description' => 'When kind = plan.'),
             'cycle'      => array('type' => 'string',
                                   'enum' => array('free','monthly','quarterly','annual'),
@@ -5887,6 +6043,7 @@ $spec = array(
             'course_id'  => array('type' => 'integer', 'description' => 'When kind = course.'),
             'book_id'    => array('type' => 'integer', 'description' => 'When kind = book.'),
             'pack_id'    => array('type' => 'integer', 'description' => 'When kind = foundation.'),
+            'group_id'   => array('type' => 'integer', 'description' => 'When kind = group (TQ-GROUP). `GET parent/pay` lists them in `group_offers`.'),
             'pay_method' => array('type' => 'string', 'enum' => array('manual', 'tap', 'cash'),
                                   'default' => 'manual'),
             'coupon'     => array('type' => 'string', 'example' => 'RAMADAN25',

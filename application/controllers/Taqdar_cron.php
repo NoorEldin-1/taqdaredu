@@ -18,7 +18,12 @@ class Taqdar_cron extends CI_Controller
             show_404();
         }
 
-        date_default_timezone_set(get_settings('timezone'));
+        /* اعداد ناقص لا يبرر طابعا عشوائيا — البديل الصريح نفسه في Taqdar.php. */
+        $tz = trim((string) get_settings('timezone'));
+        if ($tz === '' || !in_array($tz, DateTimeZone::listIdentifiers(), true)) {
+            $tz = 'Asia/Riyadh';
+        }
+        date_default_timezone_set($tz);
         $this->load->database();
         $this->load->model('taqdar_billing_model');
     }

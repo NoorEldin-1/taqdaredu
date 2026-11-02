@@ -1445,6 +1445,8 @@ class Taqdar_billing_model extends CI_Model
 
         $this->audit('subscription_activate_group', 'subscriptions#' . (int) $sub['id'],
                      $sub, $this->subscription($sub['id']));
+        /* TQ-GROUP §4.5 — «انضممت»: الشاشة التي فيها حصصه وموعد اولها. */
+        try { $this->tq_grp->notify_activated($sub); } catch (Throwable $e) { $this->db->reset_query(); }
         return true;
     }
     private function notify_admins_over_capacity($group, $sid)

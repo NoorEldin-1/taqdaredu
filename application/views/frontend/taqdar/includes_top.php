@@ -68,7 +68,9 @@ $tq_fav = get_frontend_settings('favicon') ?: 'favicon.png';
         وصفحة الباقات، وصفحتا `/foundation` و`/foundation/<slug>`. أربع
         صفحات تقرأ بطاقة واحدة، فالورقة واحدة لا نسخة في كل منها. */ ?>
 <?php if (isset($page_name) && in_array($page_name, array('home', 'home_elegant', 'plans', 'site_foundation', 'site_foundation_track',
-                                              'site_foundation_pack_checkout'), true)): ?>
+                                              'site_foundation_pack_checkout',
+                                              /* TQ-GROUP — بطاقات `.grp-*` وملاحظة `.fndp-note` في هذه الورقة. */
+                                              'site_groups', 'site_group', 'site_group_checkout'), true)): ?>
     <?php /* TQ-FND-PACK — وشاشة تأكيد شراء الباقة منها: شارة عدد الحصص
              (`.fndco-badge`) مكتوبة في هذه الورقة، وبلا تحميلها تخرج
              مربعا بلا لون في أول ما يقرأه المشتري. */ ?>

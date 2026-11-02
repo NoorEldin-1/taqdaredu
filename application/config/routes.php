@@ -313,6 +313,17 @@ $route['api/v1/student/sessions']               = 'api_v1/student_sessions';
    نقاط `student/sessions` نفسها — المحرك واحد، ونقطة طلب ثانية تعني
    حارسا ثانيا يفترق عن أخيه عند أول تعديل. */
 $route['api/v1/student/foundation']             = 'api_v1/student_foundation';
+/* TQ-GROUP — المجموعات المباشرة. الكتابة قبل القراءة، والاطول قبل الاقصر. */
+$route['api/v1/student/buy-group']                  = 'api_v1/buy_group';
+$route['api/v1/student/group-sessions/(:num)/join'] = 'api_v1/group_session_join/$1';
+$route['api/v1/student/groups/(:num)/ics']          = 'api_v1/group_ics/$1';
+$route['api/v1/student/groups/(:num)']              = 'api_v1/student_group/$1';
+$route['api/v1/student/groups']                     = 'api_v1/student_groups';
+$route['api/v1/teacher/groups/(:num)/sessions']     = 'api_v1/teacher_group_sessions/$1';
+$route['api/v1/teacher/group-sessions/(:num)/complete'] = 'api_v1/teacher_group_session_complete/$1';
+$route['api/v1/teacher/group-sessions/(:num)']      = 'api_v1/teacher_group_session/$1';
+$route['api/v1/teacher/groups/(:num)']              = 'api_v1/teacher_group/$1';
+$route['api/v1/teacher/groups']                     = 'api_v1/teacher_groups';
 
 // ---- الطالب · المتجر (TQ-COURSE-SALE · TQ-CYCLE-BUY) ----
 // `store/courses/(:num)` قبل `store/courses`، وكلاهما قبل `plans/(:any)`
@@ -500,6 +511,8 @@ $route['parent/pay/book']           = 'taqdar/parent_pay_book';
    الأمر هو من يدفع في أكثر الأسر — وباب بلا باقات يعني أنه يشتري لابنه
    حصة حصة بفاتورة لكل واحدة، وهو ما جاءت الباقة لتغنيه عنه. */
 $route['parent/pay/foundation']     = 'taqdar/parent_pay_foundation';
+/* TQ-GROUP — ومقعدا في مجموعة مباشرة لابنه. */
+$route['parent/pay/group']          = 'taqdar/parent_pay_group';
 /* TQ-INVOICE-CANCEL — إلغاء فاتورة لم تدفع. كتابة، فقبل `parent/(:any)`. */
 $route['parent/pay/cancel']         = 'taqdar/parent_pay_cancel';
 
@@ -597,6 +610,22 @@ $route['student/buy-course']           = 'taqdar/buy_course';
 $route['student/buy-book']             = 'taqdar/buy_book';
 /* TQ-FND-PACK — وشراء باقة حصص تأسيس، وفي الموضع نفسه وللعلة نفسها. */
 $route['student/buy-foundation']       = 'taqdar/buy_foundation';
+/* TQ-GROUP — شراء مقعد في مجموعة مباشرة، والدخول والتقويم. كتابة ثم ما هو
+   اطول، وكلها قبل `student/(:any)`. */
+$route['student/buy-group']                     = 'taqdar/buy_group';
+$route['student/group-sessions/(:num)/join']    = 'taqdar/group_session_join/$1';
+$route['student/groups/(:num)/ics']             = 'taqdar/group_ics/$1';
+$route['student/groups']                        = 'taqdar/student_groups';
+/* المعلم: الكتابة قبل العرض — `teacher/(:any)` تبتلع `groups/save` الى شاشة. */
+$route['teacher/groups/save']                   = 'taqdar/teacher_group_save';
+$route['teacher/groups/session-save']           = 'taqdar/teacher_group_session_save';
+$route['teacher/groups/session-reschedule']     = 'taqdar/teacher_group_session_reschedule';
+$route['teacher/groups/session-complete']       = 'taqdar/teacher_group_session_complete';
+$route['teacher/groups/session-recording']      = 'taqdar/teacher_group_session_recording';
+$route['teacher/group-sessions/(:num)/join']    = 'taqdar/teacher_group_session_join/$1';
+$route['teacher/groups/new']                    = 'taqdar/teacher_group/0';
+$route['teacher/groups/(:num)']                 = 'taqdar/teacher_group/$1';
+$route['teacher/groups']                        = 'taqdar/teacher/groups';
 // ---- التهيئة ووضع الامتحان والتلعيب ----
 // الكتابة قبل العرض كما في كل هذا الملف: `student/(:any)` تطابق مقطعا
 // واحدا، فبلا `student/setup/save` صريحة يسقط الطلب إلى
@@ -741,6 +770,15 @@ $route['course-checkout/(:num)'] = 'taqdar/course_checkout/$1';
 $route['book-checkout/(:num)']   = 'taqdar/book_checkout/$1';
 /* TQ-FND-PACK — وشاشة تأكيد شراء باقة حصص تأسيس. */
 $route['foundation-checkout/(:num)'] = 'taqdar/foundation_checkout/$1';
+/* TQ-GROUP — الصفحتان العامتان وشاشة تأكيد الشراء. */
+/* TQ-GROUP — كتابة اللوحة صريحة قبل العرض. */
+$route['taqdar_admin/group_close']           = 'taqdar_admin/group_close';
+$route['taqdar_admin/group_session_cancel']  = 'taqdar_admin/group_session_cancel';
+$route['taqdar_admin/group_session_reschedule'] = 'taqdar_admin/group_session_reschedule';
+$route['taqdar_admin/group_refund_resolved'] = 'taqdar_admin/group_refund_resolved';
+$route['groups']                 = 'taqdar/groups_page';
+$route['group/(:any)']           = 'taqdar/group_page/$1';
+$route['group-checkout/(:num)']  = 'taqdar/group_checkout/$1';
 /* TQ-COUPON — معاينة كود الخصم من شاشات الدفع (POST، JSON). وبلا هذه
    القاعدة يصل `coupon/check` إلى متحكم لا وجود له فيرد 404 على كل «طبق». */
 $route['coupon/check']         = 'taqdar/coupon_check';

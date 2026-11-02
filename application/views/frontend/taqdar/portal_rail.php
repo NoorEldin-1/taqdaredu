@@ -75,6 +75,8 @@ $tq_rail_map = [
                وموضعه هنا لا في «التعلم»: التأسيس وقت معلم يحجز، لا
                محتوى مسجل — وهو جار «حصص بالطلب» لا جار «كورساتي». */
             ['foundation',    t('التأسيس'),    'student/foundation',    'graduation'],
+            /* TQ-GROUP — مجموعاتي المباشرة: جار التأسيس، وقت معلم لا محتوى مسجل. */
+            ['groups',        t('مجموعاتي'),   'student/groups',        'users'],
             ['messages',      t('رسائلي'),     'student/messages',      'chat'],
             ['notifications', t('الإشعارات'),  'student/notifications', 'bell'],
         ]],
@@ -109,6 +111,7 @@ $tq_rail_map = [
             ['marking',   t('الواجبات والتصحيح'), 'teacher/marking',   'clipboard'],
             ['students',  t('طلابي'),             'teacher/students',  'users'],
             ['sessions',  t('الحصص'),             'teacher/sessions',  'video'],
+            ['groups',    t('مجموعاتي'),          'teacher/groups',    'users'],
             /* التحليلات مع الطلاب لا مع التدريس: الخريطة الحرارية تقرأ
                سلوك الطلاب لا حال المحتوى، وكل صف فيها ينتهي بإجراء. */
             ['analytics', t('التحليلات'),         'teacher/analytics', 'chart'],
@@ -203,6 +206,26 @@ if ($tq_role === 'student') {
         foreach ($tq_rail_groups as $tq_gi => $tq_grp) {
             foreach ($tq_grp[1] as $tq_ii => $tq_item) {
                 if ($tq_item[0] === 'foundation') unset($tq_rail_groups[$tq_gi][1][$tq_ii]);
+            }
+        }
+    }
+}
+
+/* TQ-GROUP — وبند «مجموعاتي» يرفع ان كان البيع مطفأ: «بلا مفتاح لا شيء
+   يتغير». والقراءة ملفوفة كأختها اعلاه. */
+if ($tq_role === 'student' || $tq_role === 'teacher') {
+    $tq_has_grp = false;
+    try {
+        $tq_gr_ci = &get_instance();
+        $tq_gr_ci->load->model('taqdar_group_model', 'tq_rail_grp');
+        $tq_has_grp = $tq_gr_ci->tq_rail_grp->enabled();
+    } catch (Throwable $tq_gr_e) {
+        $tq_has_grp = false;
+    }
+    if (!$tq_has_grp) {
+        foreach ($tq_rail_groups as $tq_gi => $tq_grp) {
+            foreach ($tq_grp[1] as $tq_ii => $tq_item) {
+                if ($tq_item[0] === 'groups') unset($tq_rail_groups[$tq_gi][1][$tq_ii]);
             }
         }
     }

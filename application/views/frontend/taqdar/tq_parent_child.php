@@ -372,6 +372,35 @@ include 'portal_open.php';
         </div>
         <?php endif; ?>
 
+        <?php
+        /* TQ-GROUP — مجموعات الابن المباشرة: الاسم واقرب حصة وحضوره. والحاجز
+           نفسه: لا رابط لقاء هنا، الدخول للابن من حسابه. */
+        $tq_grp_ci = &get_instance();
+        $tq_grp_ci->load->model('taqdar_group_model', 'tq_grp_pc');
+        $tq_kid_groups = ($tq_child && $tq_grp_ci->tq_grp_pc->enabled())
+                       ? $tq_grp_ci->tq_grp_pc->groups_of_student($tq_cid) : array();
+        if ($tq_kid_groups): ?>
+        <div class="tq-card">
+            <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('المجموعات المباشرة'); ?></h2></div>
+            <ul class="tq-stack">
+                <?php foreach ($tq_kid_groups as $tq_kg):
+                    $tq_kgs = $tq_grp_ci->tq_grp_pc->summary_of($tq_kg); ?>
+                    <li class="tq-row" style="gap:var(--tq-space-m);align-items:flex-start">
+                        <span class="tq-icon-box tq-pastel--lilac" style="color:var(--tq-lilac-ink)" aria-hidden="true"><?php echo tq_icon('users'); ?></span>
+                        <span style="flex:1;min-inline-size:0">
+                            <span class="tq-strong" style="display:block;color:var(--tq-navy)"><?php echo html_escape($tq_kg['title']); ?></span>
+                            <span class="tq-micro" style="display:block">
+                                <?php echo $tq_kgs && $tq_kgs['next_starts_at']
+                                    ? t('أقرب حصة:') . ' ' . tq_iso(html_escape(date('Y-m-d H:i', strtotime($tq_kgs['next_starts_at']))))
+                                    : t('لا حصة قادمة مجدولة'); ?>
+                            </span>
+                        </span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+        <?php endif; ?>
+
         <div class="tq-card">
             <div class="tq-card__head"><h2 class="tq-card__title"><?php echo t('ملاحظات المعلمين'); ?></h2></div>
 

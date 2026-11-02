@@ -15,7 +15,12 @@ class Taqdar_admin extends CI_Controller
     {
         parent::__construct();
 
-        date_default_timezone_set(get_settings('timezone'));
+        /* المنطقة الناقصة او المكتوبة خطأ لا تبرر طابعا عشوائيا — كما في Taqdar وTaqdar_cron. */
+        $tz = trim((string) get_settings('timezone'));
+        if ($tz === '' || !in_array($tz, DateTimeZone::listIdentifiers(), true)) {
+            $tz = 'Asia/Riyadh';
+        }
+        date_default_timezone_set($tz);
         $this->load->database();
         $this->load->library('session');
         $this->load->model('taqdar_admin_model');
@@ -526,6 +531,88 @@ class Taqdar_admin extends CI_Controller
        وشاشة تقول «صفر مواعيد» بلا تفريق تترك المسؤول يقلب في القاعدة —
        وهو بعينه ما وقع في «أوقات المعلمين» قبل أن يكتب لها عمود «الصف».
        ===================================================================== */
+
+    /**
+     * TQ-GROUP — المجموعات المباشرة: ارقام كل مجموعة (اعضاء · معلق · محصل
+     * · حصص · مقاعد)، والتحرير في الوحدة الموصوفة `module/groups`.
+     */
+    public function groups()
+    {
+        $this->load->model('taqdar_group_model');
+        $this->render('tqa_groups', 'المجموعات المباشرة', array(
+            'stats'   => $this->taqdar_group_model->group_stats(),
+            'enabled' => $this->taqdar_group_model->enabled(),
+        ));
+    }
+
+    /** POST — يغلق مجموعة بسبب (D7-c): قبل اول حصة تعكس قيود المعلم ويسجل رد الاعضاء. */
+    public function group_close()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_group_model');
+        $reason = trim((string) $this->input->post('reason'));
+        if ($reason === '') {
+            $r = array('ok' => false, 'errors' => array(t('اكتب سبب الاغلاق.')));
+        } else {
+            $r = $this->taqdar_group_model->close_group((int) $this->input->post('group_id'), $reason);
+        }
+        if (!empty($r['ok'])) {
+            $msg = !empty($r['before_start'])
+                ? t('اغلقت المجموعة. الغيت ____ عضوية وسجل ردها، وشطبت ____ فاتورة معلقة. رد المال يدوي خارج المنصة.',
+                    array((int) $r['refunded'], (int) $r['voided']))
+                : t('اغلقت المجموعة. بدأت حصصها فلا رد تلقائي، ويبقى الاعضاء على ما دفعوا.');
+            $this->session->set_flashdata('flash_message', $msg);
+        } else {
+            $this->session->set_flashdata('error_message', implode(' ', (array) ($r['errors'] ?? array())));
+        }
+        redirect(site_url('taqdar_admin/groups'), 'location', 302);
+    }
+
+    /** POST — يلغي حصة مجموعة بلا بديل، قرار للادارة وحدها (§4.3). */
+    public function group_session_cancel()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_group_model');
+        $r = $this->taqdar_group_model->cancel_session(
+            (int) $this->input->post('session_id'),
+            (string) $this->input->post('reason'),
+            array('id' => (int) $this->session->userdata('user_id'), 'role' => 'admin'),
+            true
+        );
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
+            !empty($r['ok']) ? t('الغيت الحصة بلا بديل وبلغ الاعضاء. اي رد للمال يدوي خارج المنصة.')
+                             : implode(' ', (array) ($r['errors'] ?? array())));
+        redirect(site_url('taqdar_admin/groups'), 'location', 302);
+    }
+
+    /** POST — يؤجل حصة مجموعة الى موعد جديد بسبب، ويبلغ الاعضاء (D7-d). */
+    public function group_session_reschedule()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_group_model');
+        $r = $this->taqdar_group_model->reschedule_session(
+            (int) $this->input->post('session_id'),
+            (string) $this->input->post('starts_at'),
+            (string) $this->input->post('reason'),
+            array('id' => (int) $this->session->userdata('user_id'), 'role' => 'admin')
+        );
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
+            !empty($r['ok']) ? t('أجلت الحصة وبلغ الأعضاء بالموعد الجديد وسببه.')
+                             : implode(' ', (array) ($r['errors'] ?? array())));
+        redirect(site_url('taqdar_admin/groups'), 'location', 302);
+    }
+
+    /** POST — يسجل ان مبلغ عضوية رد خارج المنصة. */
+    public function group_refund_resolved()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_group_model');
+        $r = $this->taqdar_group_model->resolve_refund((int) $this->input->post('subscription_id'),
+                                                      (string) $this->input->post('note'));
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
+            !empty($r['ok']) ? $r['message'] : implode(' ', (array) ($r['errors'] ?? array())));
+        redirect(site_url('taqdar_admin/groups'), 'location', 302);
+    }
 
     public function foundation()
     {
