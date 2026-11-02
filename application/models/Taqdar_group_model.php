@@ -1249,6 +1249,59 @@ class Taqdar_group_model extends CI_Model
         return implode("\r\n", $lines) . "\r\n";
     }
 
+    /**
+     * الشكل الواحد الذي تقرؤه الشاشات والواجهة — صرفة.
+     *
+     * السعر **بالهللات** كما يخزن (نوع `money`)، فلا تقرؤه شاشة على انه
+     * ريال. ورابط اللقاء لا يدخله: الدخول من الزر الذي يمر بالخادم.
+     */
+    public static function summary($group, $offer, array $sessions, $now)
+    {
+        $total = 0; $left = 0; $next = null; $first = null;
+        foreach ($sessions as $s) {
+            if ((string) ($s['status'] ?? '') === 'cancelled') continue;
+            $total++;
+            $ts = !empty($s['starts_at']) ? strtotime((string) $s['starts_at']) : 0;
+            if ($first === null || $ts < strtotime($first)) $first = (string) $s['starts_at'];
+            if ($ts > (int) $now && (string) $s['status'] === 'scheduled') {
+                $left++;
+                if ($next === null || $ts < strtotime($next)) $next = (string) $s['starts_at'];
+            }
+        }
+        $seats = array_key_exists('seats_left', (array) $offer) ? $offer['seats_left'] : null;
+        return array(
+            'id'              => (int) $group['id'],
+            'title'           => (string) $group['title'],
+            'slug'            => (string) ($group['slug'] ?? ''),
+            'description'     => (string) ($group['description'] ?? ''),
+            'image'           => (string) ($group['image'] ?? ''),
+            'teacher_id'      => (int) ($group['teacher_id'] ?? 0),
+            'grade_id'        => (int) ($group['grade_id'] ?? 0),
+            'subject_id'      => (int) ($group['subject_id'] ?? 0),
+            'status'          => (string) ($group['status'] ?? ''),
+            'capacity'        => (int) ($group['capacity'] ?? 0),
+            'enroll_until'    => !empty($group['enroll_until']) ? (string) $group['enroll_until'] : null,
+            'price_halalas'   => (int) ($offer['price_halalas'] ?? ($group['price'] ?? 0)),
+            'seats_left'      => $seats === null ? null : (int) $seats,
+            'seats_text'      => self::seats_text($seats === null ? null : (int) $seats),
+            'sessions_total'  => $total,
+            'sessions_left'   => $left,
+            'first_starts_at' => $first,
+            'next_starts_at'  => $next,
+            'sellable'        => !empty($offer['sellable']),
+            'reason'          => (string) ($offer['reason'] ?? ''),
+            'why'             => (string) ($offer['why'] ?? ''),
+        );
+    }
+
+    /** `summary()` من القاعدة — للشاشات والواجهة. */
+    public function summary_of($group, $student_id = 0)
+    {
+        if (!is_array($group)) $group = $this->get((int) $group);
+        if (!$group) return null;
+        return self::summary($group, $this->offer($group, $student_id), $this->sessions_of((int) $group['id']), time());
+    }
+
     /** رابط «اضف الى تقويم جوجل» لحصة — بلا رابط اللقاء. */
     public static function google_calendar_url($group, $s)
     {

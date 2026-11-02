@@ -63,4 +63,23 @@ check(!Taqdar_group_model::reminder_due(array('status' => 'cancelled') + $row, $
 check(!Taqdar_group_model::reminder_due($row, strtotime('2026-11-10 13:00:00')), 'two hours ahead not yet');
 check(!Taqdar_group_model::reminder_due($row, strtotime('2026-11-10 15:01:00')), 'started already');
 
+// ---- summary(): the one shape screens and the API read (no meet link, price in halalas).
+$offer = array('sellable' => true, 'reason' => 'ok', 'why' => '', 'price_halalas' => 19950, 'seats_left' => 2);
+$g2 = $g + array('description' => 'وصف', 'price' => 19950, 'capacity' => 10, 'status' => 'published',
+                 'grade_id' => 3, 'subject_id' => 5, 'teacher_id' => 9, 'enroll_until' => null, 'image' => '');
+$sum = Taqdar_group_model::summary($g2, $offer, $s, strtotime('2026-11-11 10:00:00'));
+check($sum['id'] === 4 && $sum['slug'] === 'math-3', 'id and slug');
+check($sum['price_halalas'] === 19950, 'price stays halalas');
+check($sum['seats_left'] === 2 && $sum['seats_text'] === 'بقي مقعدان', 'seats in summary');
+check($sum['sessions_total'] === 2, 'cancelled not counted in total');
+check($sum['sessions_left'] === 1, 'one upcoming after now');
+check($sum['next_starts_at'] === '2026-11-14 15:00:00', 'next session is the first upcoming');
+check($sum['first_starts_at'] === '2026-11-10 15:00:00', 'first session');
+check($sum['sellable'] === true && $sum['reason'] === 'ok', 'offer carried');
+check(strpos(json_encode($sum), 'zoom') === false, 'no meeting link in summary');
+$none = Taqdar_group_model::summary($g2, array('sellable' => false, 'reason' => 'full', 'why' => 'x',
+                                                'price_halalas' => 19950, 'seats_left' => 0), array(), time());
+check($none['next_starts_at'] === null && $none['sessions_total'] === 0, 'no sessions → null next');
+check($none['seats_text'] === 'اكتملت المقاعد', 'full text');
+
 echo "OK — {$checks} checks\n";
