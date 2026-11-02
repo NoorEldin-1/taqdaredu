@@ -1714,6 +1714,9 @@ class Taqdar_sessions_model extends CI_Model
 
         $teacher_id = (int) $teacher_id;
         if ($teacher_id <= 0) return [];
+        /* TQ-LIVE gap 2 — تنبيه «بلا رابط» كسول عند قراءة شاشة المعلم، فلا
+           ينتظر دورة الساعة وحدها. لهذا المعلم وحده. */
+        $this->alert_missing_links(null, $teacher_id);
 
         $this->db->select('t.*, a.starts_at, a.duration_min, a.grade_id, a.subject_id,
                            u.first_name, u.last_name, u.image, ut.tq_meet_url AS teacher_meet_url')
@@ -2059,13 +2062,12 @@ class Taqdar_sessions_model extends CI_Model
             $when = ($full && !empty($full['starts_at']))
                     ? $this->when_text($full['starts_at'], (int) $full['duration_min']) : '';
             $this->tell((int) $row['student_id'], 'ثبتت حصتك',
-                'وصل دفعك وثبتت الحصة ' . $when . '. زر الدخول يفتح في شاشة حصصك قبل الموعد بـ'
-                . $this->join_lead_min('student') . ' دقائق.');
+                t('وصل دفعك وثبتت الحصة ____. زر الدخول يفتح في شاشة حصصك قبل الموعد بـ____ دقائق.',
+                  array($when, $this->join_lead_min('student'))));
             $this->tell((int) $row['teacher_id'], 'حجزت حصة في جدولك',
-                'حجز طالب موعدك ' . $when . ' ودفع ثمنه. '
-                . ($full && $this->meet_url_for($full) === ''
-                    ? 'ضع رابط لقائك الثابت في شاشة حصصك — لا رابط للحصة بعد.'
-                    : 'يدخل الطالب من رابط لقائك.'));
+                ($full && $this->meet_url_for($full) === ''
+                    ? t('حجز طالب موعدك ____ ودفع ثمنه. ضع رابط لقائك الثابت في شاشة حصصك — لا رابط للحصة بعد.', array($when))
+                    : t('حجز طالب موعدك ____ ودفع ثمنه. يدخل الطالب من رابط لقائك.', array($when))));
         }
 
         return array('ok' => true, 'session_id' => (int) $row['id'],
@@ -2168,7 +2170,7 @@ class Taqdar_sessions_model extends CI_Model
         $starts = (int) $j['starts_ts'];
         $dl     = !empty($row['pay_deadline']) ? (int) strtotime((string) $row['pay_deadline']) : 0;
 
-        $key = 'scheduled'; $label = ''; $tone = 'idle'; $button = '';
+        $key = 'scheduled'; $label = ''; $tone = 'idle'; $button = ''; $hint = '';
 
         $refund = (string) ($row['refund_state'] ?? '');
         if (in_array($status, array('declined', 'refunded'), true)) {
@@ -2224,9 +2226,12 @@ class Taqdar_sessions_model extends CI_Model
                     $tone = 'late'; $label = 'المعلم تأخر';
                     if ($absent >= 2) $button = 'teacher_no_show';
                 }
+                /* TQ-LIVE gap 14 (§5-1) — الغرفة مفتوحة والمعلم لم يدخل بعد. */
+                if ($absent < 1 && (string) $actor === 'student' && empty($row['teacher_joined_at'])) $hint = 'المعلم لم يدخل بعد';
             } elseif ($j['opens_at'] > 0 && $j['opens_at'] <= $now) {
                 $key = 'ready'; $tone = 'mastered'; $label = 'جاهزة للدخول';
                 $button = $j['can_join'] ? 'join' : '';
+                if ((string) $actor === 'student' && empty($row['teacher_joined_at'])) $hint = 'المعلم لم يدخل بعد';
             } else {
                 $key = 'scheduled'; $tone = 'mastered'; $label = 'مؤكدة';
             }
@@ -2239,6 +2244,7 @@ class Taqdar_sessions_model extends CI_Model
             'label'       => t($label),
             'tone'        => $tone,
             'button'      => $button,
+            'hint'        => $hint !== '' ? t($hint) : '',
             'starts_ts'   => $starts,
             'deadline_ts' => $key === 'pending_payment' || $key === 'payment_failed' ? $dl : 0,
         );
@@ -2469,7 +2475,7 @@ class Taqdar_sessions_model extends CI_Model
     }
 
     /** ينبه المعلم والمسؤولين مرة واحدة لكل حصة بلا رابط قبل ساعة. */
-    public function alert_missing_links($now = null)
+    public function alert_missing_links($now = null, $teacher_id = 0)
     {
         $now = $now ? (int) $now : time();
         $n   = 0;
@@ -2482,8 +2488,9 @@ class Taqdar_sessions_model extends CI_Model
                              ->where_in('t.status', array('confirmed', 'live'))
                              ->where('t.nolink_alerted_at IS NULL', null, false)
                              ->where('a.starts_at >', date('Y-m-d H:i:s', $now))
-                             ->where('a.starts_at <=', date('Y-m-d H:i:s', $now + 3600))
-                             ->limit(200)->get()->result_array();
+                             ->where('a.starts_at <=', date('Y-m-d H:i:s', $now + 3600));
+            if ((int) $teacher_id > 0) $this->db->where('t.teacher_id', (int) $teacher_id);
+            $rows = $this->db->limit(200)->get()->result_array();
         } catch (Throwable $e) { $this->db->reset_query(); return 0; }
 
         $admins = null;
@@ -2495,7 +2502,7 @@ class Taqdar_sessions_model extends CI_Model
             $n++;
             $when = $this->when_text($r['starts_at'], (int) $r['duration_min']);
             $this->tell((int) $r['teacher_id'], 'حصتك بعد أقل من ساعة بلا رابط',
-                'حصة ' . $when . ' لا رابط لقاء لها. ضع رابطك الثابت في شاشة «الحصص» الآن — الطالب لا يجد بابا يدخل منه.');
+                t('حصة ____ لا رابط لقاء لها. ضع رابطك الثابت في شاشة «الحصص» الآن — الطالب لا يجد بابا يدخل منه.', array($when)));
             if ($admins === null) {
                 try {
                     $admins = array_column($this->db->select('id')->where('role_id', 1)
@@ -2504,10 +2511,35 @@ class Taqdar_sessions_model extends CI_Model
             }
             foreach ($admins as $aid) {
                 $this->tell((int) $aid, 'حصة بلا رابط لقاء',
-                    'الحصة #' . (int) $r['id'] . ' ' . $when . ' تبدأ خلال ساعة ولا رابط لها ولا لمعلمها.');
+                    t('الحصة #____ ____ تبدأ خلال ساعة ولا رابط لها ولا لمعلمها.', array((int) $r['id'], $when)));
             }
         }
         return $n;
+    }
+
+    /**
+     * TQ-LIVE gap 2 (D2) — الإدارة تضع رابط حصة بعينها أو تمحوه. الرابط
+     * يطهر بـ`clean_meet_url()` نفسها، والمرفوض يرد برسالته، والأثر في
+     * `audit_log`. ولا يكتب على حصة انتهت أو أغلقت.
+     */
+    public function admin_set_meet_url($session_id, $url, $actor_id)
+    {
+        $this->install_schema();
+        $url   = trim((string) $url);
+        $clean = $this->clean_meet_url($url);
+        if ($url !== '' && $clean === '') {
+            return array('ok' => false, 'msg' => t('الرابط غير مقبول. ضع رابط ____ يبدأ بـhttps.', array($this->meet_hosts_text())));
+        }
+        $row = $this->db->where('id', (int) $session_id)->get('tutoring_sessions')->row_array();
+        if (!$row || in_array((string) $row['status'], array('completed', 'declined', 'expired', 'refunded'), true)) {
+            return array('ok' => false, 'msg' => t('لا يعدل رابط حصة انتهت أو أغلقت.'));
+        }
+        $this->db->where('id', (int) $row['id'])->update('tutoring_sessions', array(
+            'meet_url' => $clean !== '' ? $clean : null, 'updated_at' => date('Y-m-d H:i:s')));
+        $this->audit('session.meet_url_admin', (int) $row['id'], array(
+            'from' => (string) ($row['meet_url'] ?? ''), 'to' => $clean, 'actor' => (int) $actor_id));
+        return array('ok' => true, 'url' => $clean,
+                     'msg' => $clean !== '' ? t('حفظ رابط الحصة.') : t('محي رابط الحصة.'));
     }
 
     /** ايحجز هذا الطلب فوريا؟ مفتاح مفعل، حصة مفردة بثمن، وعميل يدفع بالبطاقة. */
@@ -2571,8 +2603,7 @@ class Taqdar_sessions_model extends CI_Model
             $this->void_invoice($r);
             $this->release_slot($r);
             $this->tell((int) $r['student_id'], 'مضت مهلة دفع حصتك',
-                'لم يصل دفع ثمن الحصة قبل انتهاء المهلة، فعاد الموعد متاحا لغيرك '
-                . 'وشطبت فاتورته. لم يخصم منك شيء، ولك أن تطلب موعدا آخر.');
+                'لم يصل دفع ثمن الحصة قبل انتهاء المهلة، فعاد الموعد متاحا لغيرك وشطبت فاتورته. لم يخصم منك شيء، ولك أن تطلب موعدا آخر.');
             if (self::hold_notifies_teacher($r)) $this->tell((int) $r['teacher_id'], 'لم يدفع الطالب ثمن الحصة',
                 'مضت مهلة الدفع على حصة في جدولك، فعاد الموعد متاحا.');
         }
@@ -3311,7 +3342,7 @@ class Taqdar_sessions_model extends CI_Model
             'from_slot' => (int) $row['slot_id'], 'to_slot' => (int) $new_slot_id,
         ));
 
-        $text = 'تغير موعد الحصة من ' . $old_when . ' إلى ' . $new_when . '. السعر والفاتورة كما هما.';
+        $text = t('تغير موعد الحصة من ____ إلى ____. السعر والفاتورة كما هما.', array($old_when, $new_when));
         if ($role !== 'student') $this->tell((int) $row['student_id'], 'تغير موعد حصتك', $text);
         if ($role !== 'teacher') $this->tell((int) $row['teacher_id'], 'تغير موعد حصة في جدولك', $text);
         $this->tell_parents((int) $row['student_id'], 'تغير موعد حصة ابنك', $text);
@@ -3363,11 +3394,19 @@ class Taqdar_sessions_model extends CI_Model
         $this->audit('session.teacher_cancel', (int) $row['id'], array('reason' => $reason, 'paid' => $paid, 'pack' => $pack));
 
         $when = $starts > 0 ? $this->when_text($row['starts_at'], (int) $row['duration_min']) : '';
-        $body = 'ألغى المعلم الحصة ' . $when . ' — ' . $reason . '. '
-              . ($choice ? 'اختر من شاشة حصصك موعدا بديلا مع المعلم نفسه بلا رسوم' . ($paid ? '، أو الاسترداد.' : '.')
-                                 : ($pack ? 'عادت الحصة إلى رصيد باقتك.' : 'لم يخصم منك شيء.'));
+        $tail = $choice ? ($paid ? t('اختر من شاشة حصصك موعدا بديلا مع المعلم نفسه بلا رسوم، أو الاسترداد.')
+                                  : t('اختر من شاشة حصصك موعدا بديلا مع المعلم نفسه بلا رسوم.'))
+                        : ($pack ? t('عادت الحصة إلى رصيد باقتك.') : t('لم يخصم منك شيء.'));
+        $body = t('ألغى المعلم الحصة ____ — ____. ____', array($when, $reason, $tail));
         $this->tell((int) $row['student_id'], 'ألغى المعلم حصتك', $body);
         $this->tell_parents((int) $row['student_id'], 'ألغيت حصة ابنك', $body);
+        /* TQ-LIVE gap 4 (D5 / 1.7e) — والإدارة تعلم باعتذار المعلم بعد الدفع. */
+        if ($paid || $choice) {
+            foreach ($this->admin_ids() as $aid) {
+                $this->tell($aid, 'معلم اعتذر عن حصة',
+                    t('اعتذر المعلم #____ عن الحصة #____ ____ — السبب: ____', array((int) $teacher_id, (int) $row['id'], $when, $reason)));
+            }
+        }
 
         return array('ok' => true, 'student_id' => (int) $row['student_id'], 'choice' => $choice,
                      'msg' => 'ألغيت الحصة، وأخبر الطالب بالسبب.'
@@ -3392,10 +3431,9 @@ class Taqdar_sessions_model extends CI_Model
         } catch (Throwable $e) { $this->db->reset_query(); return $stage; }
 
         $this->tell((int) $row['student_id'], 'المعلم تأخر',
-            'لم يدخل معلمك الحصة بعد عشر دقائق من موعدها. انتظر قليلا، وإن لم يحضر خلال عشرين دقيقة '
-            . 'يظهر لك في شاشة حصصك زر «المعلم لم يحضر» لتختار موعدا بديلا أو الاسترداد.');
+            'لم يدخل معلمك الحصة بعد عشر دقائق من موعدها. انتظر قليلا، وإن لم يحضر خلال عشرين دقيقة يظهر لك في شاشة حصصك زر «المعلم لم يحضر» لتختار موعدا بديلا أو الاسترداد.');
         foreach ($this->admin_ids() as $aid) {
-            $this->tell($aid, 'معلم لم يدخل حصته', 'الحصة #' . (int) $row['id'] . ' بدأت منذ عشر دقائق ولم يدخلها معلمها.');
+            $this->tell($aid, 'معلم لم يدخل حصته', t('الحصة #____ بدأت منذ عشر دقائق ولم يدخلها معلمها.', array((int) $row['id'])));
         }
         $this->audit('session.teacher_late', (int) $row['id'], array());
         return $stage;
@@ -3435,8 +3473,8 @@ class Taqdar_sessions_model extends CI_Model
                 $this->audit('session.teacher_no_show', (int) $row['id'], array('choice' => 'reschedule', 'absent_at' => $absent_at));
                 $when = $this->when_text($m['slot']['starts_at'], (int) $m['slot']['duration_min']);
                 $this->tell((int) $row['teacher_id'], 'سجل غيابك عن حصة',
-                    'لم تدخل الحصة #' . (int) $row['id'] . ' في موعدها، فاختار الطالب موعدا بديلا: ' . $when . '.');
-                $this->tell_parents((int) $row['student_id'], 'موعد بديل لحصة ابنك', 'الموعد الجديد: ' . $when . '.');
+                    t('لم تدخل الحصة #____ في موعدها، فاختار الطالب موعدا بديلا: ____.', array((int) $row['id'], $when)));
+                $this->tell_parents((int) $row['student_id'], 'موعد بديل لحصة ابنك', t('الموعد الجديد: ____.', array($when)));
                 return array('ok' => true, 'msg' => 'ثبت الموعد البديل ' . $when . ' بلا رسوم.');
             }
             $this->db->where('id', (int) $row['id'])->where_in('status', array('confirmed', 'live'))
@@ -3449,10 +3487,10 @@ class Taqdar_sessions_model extends CI_Model
             $this->release_slot($row);
             $this->audit('session.teacher_no_show', (int) $row['id'], array('choice' => 'refund', 'state' => 'review'));
             $this->tell((int) $row['teacher_id'], 'بلاغ غياب عن حصة',
-                'أبلغ الطالب أنك لم تدخل الحصة #' . (int) $row['id'] . '. تراجع الإدارة البلاغ قبل أي قرار.');
+                t('أبلغ الطالب أنك لم تدخل الحصة #____. تراجع الإدارة البلاغ قبل أي قرار.', array((int) $row['id'])));
             foreach ($this->admin_ids() as $aid) {
                 $this->tell($aid, 'بلاغ غياب معلم ينتظر قرارك',
-                    'الحصة #' . (int) $row['id'] . ' — أعلن الطالب غياب المعلم وطلب الاسترداد. قرر من شاشة الحصص.');
+                    t('الحصة #____ — أعلن الطالب غياب المعلم وطلب الاسترداد. قرر من شاشة الحصص.', array((int) $row['id'])));
             }
             return array('ok' => true, 'review' => true,
                          'msg' => 'وصل بلاغك إلى الإدارة، وتراجعه وتخبرك بقرارها.');
@@ -3480,8 +3518,8 @@ class Taqdar_sessions_model extends CI_Model
             $this->audit('session.rescheduled', (int) $row['id'], array('by' => 'teacher_fault',
                 'from_slot' => (int) $row['slot_id'], 'to_slot' => (int) $slot_id));
             $this->tell((int) $row['teacher_id'], 'موعد بديل لحصة ألغيت',
-                'اختار الطالب موعدا بديلا: ' . $when . '. احضر في موعدك.');
-            $this->tell_parents((int) $row['student_id'], 'موعد بديل لحصة ابنك', 'الموعد الجديد: ' . $when . '.');
+                t('اختار الطالب موعدا بديلا: ____. احضر في موعدك.', array($when)));
+            $this->tell_parents((int) $row['student_id'], 'موعد بديل لحصة ابنك', t('الموعد الجديد: ____.', array($when)));
             return array('ok' => true, 'msg' => 'ثبت الموعد البديل ' . $when . ' بلا رسوم.');
         }
 
@@ -3531,8 +3569,8 @@ class Taqdar_sessions_model extends CI_Model
                     return $this->refund_failed($row, array('status' => 'declined', 'refund_state' => 'review'), $res, 'noshow_review');
                 }
             }
-            $s_txt = 'ثبت غياب المعلم' . ($paid ? '، ويرد مبلغ الحصة خلال ٥ أيام عمل خارج المنصة' : '') . '. ' . $note;
-            $t_txt = 'ثبت غيابك عن الحصة #' . (int) $row['id'] . '، فلا يقيد لك شيء عنها. ' . $note;
+            $s_txt = $paid ? t('ثبت غياب المعلم، ويرد مبلغ الحصة خلال ٥ أيام عمل خارج المنصة. ____', array($note)) : t('ثبت غياب المعلم. ____', array($note));
+            $t_txt = t('ثبت غيابك عن الحصة #____، فلا يقيد لك شيء عنها. ____', array((int) $row['id'], $note));
         } else {
             $this->db->where('id', (int) $row['id'])->where('refund_state', 'review')
                      ->update('tutoring_sessions', array(
@@ -3541,8 +3579,8 @@ class Taqdar_sessions_model extends CI_Model
                          'cancel_reason' => null, 'cancelled_by' => null, 'updated_at' => $now));
             if ($this->db->affected_rows() < 1) return array('ok' => false, 'msg' => 'تغير حال الحصة. حدث الصفحة.');
             $this->credit($row);
-            $s_txt = 'راجعت الإدارة بلاغك عن غياب المعلم ولم يثبت، فاعتمدت الحصة منتهية. ' . $note;
-            $t_txt = 'لم يثبت بلاغ الغياب عن الحصة #' . (int) $row['id'] . '، واعتمدت منتهية وقيد نصيبك. ' . $note;
+            $s_txt = t('راجعت الإدارة بلاغك عن غياب المعلم ولم يثبت، فاعتمدت الحصة منتهية. ____', array($note));
+            $t_txt = t('لم يثبت بلاغ الغياب عن الحصة #____، واعتمدت منتهية وقيد نصيبك. ____', array((int) $row['id'], $note));
         }
         $this->audit('session.noshow_review', (int) $row['id'], array('decision' => $decision, 'note' => $note, 'actor' => (int) $actor_id));
         $this->tell((int) $row['student_id'], 'قرار الإدارة في بلاغ الغياب', $s_txt);
@@ -3591,8 +3629,8 @@ class Taqdar_sessions_model extends CI_Model
         $this->audit('session.refund', (int) $row['id'], array('why' => $why, 'amount' => (int) $row['price_halalas']));
         foreach ($this->admin_ids() as $aid) {
             $this->tell($aid, 'استرداد حصة ينتظر التنفيذ',
-                'الحصة #' . (int) $row['id'] . ' وسمت مستردة (' . number_format((int) $row['price_halalas'] / 100, 2)
-                . ' ريال). رد المبلغ إلى الطالب من لوحة تاب خلال ٥ أيام عمل.');
+                t('الحصة #____ وسمت مستردة (____ ريال). رد المبلغ إلى الطالب من لوحة تاب خلال ٥ أيام عمل.',
+                  array((int) $row['id'], number_format((int) $row['price_halalas'] / 100, 2))));
         }
         return array('ok' => true);
     }
@@ -3618,9 +3656,9 @@ class Taqdar_sessions_model extends CI_Model
                      'error' => (string) ($res['error'] ?? ''), 'restored' => $restored));
         foreach ($this->admin_ids() as $aid) {
             $this->tell($aid, 'استرداد حصة لم يكتمل',
-                'الحصة #' . (int) $row['id'] . ': تعذر ' . $what . '، '
-                . ($restored ? 'فأعيدت الحصة إلى حالها السابقة ولم تسترد.' : 'وتعذرت إعادة الحصة إلى حالها كذلك.')
-                . ' راجعها قبل أي رد مبلغ.');
+                t('الحصة #____: تعذر ____، ____ راجعها قبل أي رد مبلغ.',
+                  array((int) $row['id'], $what, $restored ? t('فأعيدت الحصة إلى حالها السابقة ولم تسترد.')
+                                                           : t('وتعذرت إعادة الحصة إلى حالها كذلك.'))));
         }
         return array('ok' => false, 'msg' => 'تعذر إتمام الاسترداد الآن، وأبلغت الإدارة. حاول بعد قليل.');
     }
@@ -3765,7 +3803,7 @@ class Taqdar_sessions_model extends CI_Model
                 if ($this->db->affected_rows() > 0) {
                     $n['rec_reminded']++;
                     $this->tell((int) $r['teacher_id'], 'تسجيل حصة ينتظرك',
-                        'وعدت برفع تسجيل الحصة #' . (int) $r['id'] . '. أضف رابطه من شاشة الحصص — بعد سبعة أيام يقرأ الطالب «لا تسجيل».');
+                        t('وعدت برفع تسجيل الحصة #____. أضف رابطه من شاشة الحصص — بعد سبعة أيام يقرأ الطالب «لا تسجيل».', array((int) $r['id'])));
                 }
             } elseif ($step === 'drop') {
                 $this->db->where('id', (int) $r['id'])->where('recording_pending', 1)
@@ -3840,9 +3878,8 @@ class Taqdar_sessions_model extends CI_Model
             $this->release_slot($r);
             $sc = $this->scope_of($r);
             $this->tell((int) $r['student_id'], 'ألغي طلب حصتك',
-                'مضت مهلة رد المعلم على طلبك، فألغي تلقائيا وعاد الموعد متاحا. '
-                . 'لم يخصم منك شيء — اختر موعدا آخر من شاشة '
-                . ($sc['is_foundation'] ? '«التأسيس»' : '«حصص بالطلب»') . '.');
+                t('مضت مهلة رد المعلم على طلبك، فألغي تلقائيا وعاد الموعد متاحا. لم يخصم منك شيء — اختر موعدا آخر من شاشة ____.',
+                  array($sc['is_foundation'] ? t('«التأسيس»') : t('«حصص بالطلب»'))));
             $this->tell((int) $r['teacher_id'], 'ألغي طلب حصة لم ترد عليه',
                 'مضت مهلة الرد على طلب حصة، فألغي وعاد الموعد متاحا في جدولك.');
         }
@@ -3903,12 +3940,10 @@ class Taqdar_sessions_model extends CI_Model
             $out['credited'] += (int) ($c['share'] ?? 0);
 
             $this->tell((int) $r['student_id'], 'أغلقت حصتك',
-                'مضى وقت الحصة ولم يعلن معلمها انتهاءها، فأغلقت تلقائيا وأغلق رابطها. '
-                . 'إن لم تنعقد الحصة فراسل الإدارة.');
+                'مضى وقت الحصة ولم يعلن معلمها انتهاءها، فأغلقت تلقائيا وأغلق رابطها. إن لم تنعقد الحصة فراسل الإدارة.');
             if ((int) ($c['share'] ?? 0) > 0) {
                 $this->tell((int) $r['teacher_id'], 'أغلقت حصة تلقائيا وقيد نصيبك',
-                    'مضى وقت الحصة ولم تعلن انتهاءها، فأغلقت تلقائيا وقيد نصيبك في محفظتك. '
-                    . 'وإعلان الانتهاء بنفسك أدق: به يعرف طالبك أن الحصة تمت.');
+                    'مضى وقت الحصة ولم تعلن انتهاءها، فأغلقت تلقائيا وقيد نصيبك في محفظتك. وإعلان الانتهاء بنفسك أدق: به يعرف طالبك أن الحصة تمت.');
             }
         }
 
@@ -3928,7 +3963,9 @@ class Taqdar_sessions_model extends CI_Model
         if ((int) $user_id <= 0) return;
         try {
             $this->load->model('taqdar_admin_model');
-            $this->taqdar_admin_model->push_notification((int) $user_id, $title, $text, 'session');
+            /* TQ-LIVE gap 15 — النص يترجم هنا بلغة الجلسة، والمتغير فيه
+               علامة `____` في مفتاح واحد لا تركيب بالنقطة. */
+            $this->taqdar_admin_model->push_notification((int) $user_id, t($title), t($text), 'session');
         } catch (Throwable $e) {
             log_message('error', 'TQ-SESSION-NOTIFY: تعذر إشعار #' . (int) $user_id);
         }

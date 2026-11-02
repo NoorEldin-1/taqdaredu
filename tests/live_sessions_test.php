@@ -103,7 +103,7 @@ foreach (array('declined', 'refunded') as $s) {
     check($ds(array('status' => $s) + $row, time()) === 'cancelled', 'cancelled from ' . $s);
 }
 check($ds(array('status' => 'requested') + $row, $starts - 3600) === 'scheduled', 'requested reads scheduled');
-$keys = array('key', 'label', 'tone', 'button', 'starts_ts', 'deadline_ts');
+$keys = array('key', 'label', 'tone', 'button', 'hint', 'starts_ts', 'deadline_ts');
 check(array_keys($m->display_state($row, time())) === $keys, 'display_state shape');
 
 // ---- ics_for -----------------------------------------------------------

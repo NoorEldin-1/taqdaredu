@@ -1912,8 +1912,12 @@ class Taqdar_parent_model extends CI_Model
            ليست «قادمة»، وعرضها يجعل ولي الأمر يترقب موعدا لن يقع. */
         $sessions = array();
         if ($this->db->table_exists('tutoring_sessions')) {
+            /* TQ-LIVE gap 9 — الأعمدة التي يقرؤها `display_state()` تنشأ
+               وقت التشغيل، فتجهز قبل الاستعلام عنها. */
+            $this->load->model('taqdar_sessions_model');
+            $this->taqdar_sessions_model->install_schema();
             $sessions = $this->db->query(
-                "SELECT ts.`id`, ts.`status`, ts.`meet_url`, s.`starts_at`, s.`duration_min`,
+                "SELECT ts.*, s.`starts_at`, s.`duration_min`,
                         s.`grade_id`, g.`name_ar` grade_name, sj.`name_ar` subject_name,
                         TRIM(CONCAT(COALESCE(u.`first_name`,''), ' ',
                                     COALESCE(u.`last_name`,''))) teacher
@@ -1929,6 +1933,16 @@ class Taqdar_parent_model extends CI_Model
                   LIMIT 5",
                 array($student_id)
             )->result_array();
+            /* TQ-LIVE gap 9 (1.1b / 1.2) — الحال من `display_state()` نفسها
+               التي تعرضها شاشة الابن: «جاهزة للدخول» و«بانتظار الدفع» لا
+               `confirmed` خاما. ولا يمر رابط اللقاء إلى ولي الأمر. */
+            foreach ($sessions as &$tq_row) {
+                $tq_ds = $this->taqdar_sessions_model->display_state($tq_row, null, 'student');
+                $tq_row['state'] = array('key' => $tq_ds['key'], 'label' => $tq_ds['label'], 'tone' => $tq_ds['tone'],
+                                         'hint' => $tq_ds['hint']);
+                unset($tq_row['meet_url']);
+            }
+            unset($tq_row);
         }
 
         /* TQ-LIVE (D3/D4) — الحصص المنتهية بحضورها وتسجيلها. ولي الامر يرى
