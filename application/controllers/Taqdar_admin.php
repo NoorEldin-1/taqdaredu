@@ -545,6 +545,24 @@ class Taqdar_admin extends CI_Controller
         ));
     }
 
+    /**
+     * POST — مفتاح بيع المجموعات `tq_group_sales_enabled` في ذيل شاشتها:
+     * هنا يظهر اثره، ومفتاح يكتب بيد في `settings` ميزة لا توجد.
+     */
+    public function groups_settings()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $before = (string) get_settings('tq_group_sales_enabled') === '1' ? '1' : '0';
+        $on     = $this->input->post('tq_group_sales_enabled') ? '1' : '0';
+        $this->settings_put(array('tq_group_sales_enabled' => $on));
+        $this->taqdar_admin_model->audit('group_sales_toggle', 'settings#tq_group_sales_enabled',
+            array('value' => $before), array('value' => $on));
+        $this->session->set_flashdata('flash_message', $on === '1'
+            ? t('فتح بيع المجموعات — تظهر الصفحات العامة وعروض الشراء الآن.')
+            : t('أطفئ بيع المجموعات — لا صفحة عامة ولا شراء جديد.'));
+        redirect(site_url('taqdar_admin/groups'), 'location', 302);
+    }
+
     /** POST — يغلق مجموعة بسبب (D7-c): قبل اول حصة تعكس قيود المعلم ويسجل رد الاعضاء. */
     public function group_close()
     {

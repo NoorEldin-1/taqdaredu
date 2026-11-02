@@ -40,7 +40,8 @@ $tq_label = array('draft' => t('مسودة'), 'review' => t('بانتظار ال
     <div class="tqa-note tqa-note--warn" style="margin-block-end:var(--tq-space-xl)">
         <span aria-hidden="true"><?php echo tq_icon('alert', 18); ?></span>
         <span><strong><?php echo t('البيع مطفأ.'); ?></strong>
-            <?php echo t('لا صفحة عامة ولا بند في البوابات ولا شراء حتى يفعل مفتاح «tq_group_sales_enabled».'); ?></span>
+            <?php echo t('لا صفحة عامة ولا بند في البوابات ولا شراء حتى يفعل مفتاح «tq_group_sales_enabled».'); ?>
+            <a href="#tq-group-sales"><?php echo t('فعله من ذيل الشاشة'); ?></a></span>
     </div>
 <?php endif; ?>
 
@@ -176,4 +177,20 @@ $tq_label = array('draft' => t('مسودة'), 'review' => t('بانتظار ال
             </tbody>
         </table>
     </div>
+</section>
+
+<section class="tqa-card" id="tq-group-sales" style="margin-block-start:var(--tq-space-xl)">
+    <h3><?php echo t('بيع المجموعات'); ?></h3>
+    <p><?php echo t('الحال الآن:'); ?>
+        <span class="tqa-badge <?php echo $tq_on ? 'tqa-badge--ok' : 'tqa-badge--warn'; ?>"><?php echo $tq_on ? t('مفعل') : t('مطفأ'); ?></span></p>
+    <p class="tqa-hint"><?php echo t('متى فعل ظهرت صفحة المجموعات العامة ونوعها في الكتالوج وشاشة الشراء وعروض التطبيق. ومتى أطفئ اختفت كلها ولا يباع مقعد جديد، ومن اشترى يبقى على ما دفع. وإصدارات iOS لا تبيع في الحالين.'); ?></p>
+    <form method="post" action="<?php echo site_url('taqdar_admin/groups_settings'); ?>"
+          style="display:flex;gap:var(--tq-space-sm);align-items:center;flex-wrap:wrap">
+        <?php echo tq_csrf(); ?>
+        <label style="display:flex;gap:var(--tq-space-xs);align-items:center">
+            <input type="checkbox" name="tq_group_sales_enabled" value="1"<?php echo $tq_on ? ' checked' : ''; ?>>
+            <?php echo t('افتح بيع المجموعات'); ?>
+        </label>
+        <button class="tqa-btn tqa-btn--primary tqa-btn--sm" type="submit"><?php echo t('احفظ'); ?></button>
+    </form>
 </section>

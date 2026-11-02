@@ -100,6 +100,15 @@ check(strpos($ctl, 'function group_session_reschedule') !== false && strpos($ctl
 check(strpos($view, 'taqdar_admin/group_session_reschedule') !== false, 'reschedule form');
 check(substr_count($view, 'tq_csrf()') >= 4 && substr_count($view, 'confirm(') >= 3, 'reschedule form has csrf + confirm');
 
+// ---- 9. Sales switch in the foot of taqdar_admin/groups.
+check(preg_match("~route\['taqdar_admin/groups_settings'\]~", $routes) === 1, 'groups_settings route');
+check(strpos($routes, "taqdar_admin/groups_settings") < strpos($routes, "\$route['groups']"), 'groups_settings route before view routes');
+$gsp = strpos($ctl, 'function groups_settings');
+$gsb = $gsp === false ? '' : substr($ctl, $gsp, 1200);
+check($gsp !== false && strpos($gsb, "settings_put(array('tq_group_sales_enabled'") !== false, 'controller writes the key');
+check(strpos($gsb, "!== 'POST'") !== false && strpos($gsb, '->audit(') !== false, 'switch is POST-only and audited');
+check(strpos($view, 'taqdar_admin/groups_settings') !== false && substr_count($view, 'tq_csrf()') >= 5, 'switch form with csrf');
+
 // ---- 8. resolve_refund resets the builder on failure; admin timezone guard.
 $rp = strpos($gm, 'public function resolve_refund');
 $rb = substr($gm, $rp, strpos($gm, 'public static function module_status_error') - $rp);
