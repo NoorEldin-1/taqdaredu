@@ -89,6 +89,10 @@ check(Taqdar_group_model::module_session_error($o, array('status' => 'scheduled'
 check(Taqdar_group_model::module_session_error(array('status' => 'cancelled', 'starts_at' => $o['starts_at']), array('status' => 'cancelled', 'starts_at' => $o['starts_at'])) === null, 'cancelled row saves unchanged');
 check(Taqdar_group_model::module_session_error(null, array('status' => 'cancelled', 'starts_at' => '2026-12-05 10:00:00')) === null, 'insert unaffected');
 check(Taqdar_group_model::module_session_error($o, array('status' => 'completed', 'starts_at' => $o['starts_at'])) === null, 'other transitions pass');
+check(Taqdar_group_model::module_session_error(array('status' => 'scheduled', 'starts_at' => '2026-12-01 18:00:37'), array('status' => 'scheduled', 'starts_at' => '2026-12-01 18:00')) === null, 'seconds ignored (minute compare)');
+$og = $o + array('group_id' => 4);
+check(is_string(Taqdar_group_model::module_session_error($og, array('status' => 'scheduled', 'group_id' => 5))), 'group_id move refused');
+check(Taqdar_group_model::module_session_error($og, array('status' => 'scheduled', 'group_id' => '4')) === null, 'same group_id passes');
 check(strpos($src('application/models/Taqdar_admin_model.php'), 'module_session_error') !== false, 'save() calls the session guard');
 check(preg_match("~route\['taqdar_admin/group_session_reschedule'\]~", $routes) === 1, 'reschedule route');
 check(strpos($routes, "taqdar_admin/group_session_reschedule") < strpos($routes, "\$route['groups']"), 'reschedule route before view routes');

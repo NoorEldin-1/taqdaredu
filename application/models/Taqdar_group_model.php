@@ -1005,11 +1005,15 @@ class Taqdar_group_model extends CI_Model
             return t('الحصة الملغاة لا تعاد من هنا — أضف حصة جديدة للمجموعة.');
         }
         if (array_key_exists('starts_at', $new)) {
-            $a = strtotime((string) ($old['starts_at'] ?? ''));
-            $b = strtotime((string) $new['starts_at']);
+            /* بالدقيقة لا بالثانية: النموذج يعرض الموعد بلا ثوان. */
+            $a = (int) floor((int) strtotime((string) ($old['starts_at'] ?? '')) / 60);
+            $b = (int) floor((int) strtotime((string) $new['starts_at']) / 60);
             if ($a !== $b) {
                 return t('لا يتغير موعد الحصة من هنا — استعمل «أجل الحصة» في شاشة المجموعات المباشرة: به يبلغ الأعضاء بالموعد الجديد وسببه.');
             }
+        }
+        if (array_key_exists('group_id', $new) && (int) $new['group_id'] !== (int) ($old['group_id'] ?? 0)) {
+            return t('لا تنقل الحصة إلى مجموعة أخرى — ألغها هنا بلا بديل وأضف حصة في المجموعة الأخرى، فيبلغ أعضاء الاثنتين.');
         }
         return null;
     }
