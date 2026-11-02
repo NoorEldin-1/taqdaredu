@@ -5588,8 +5588,8 @@ class Taqdar extends CI_Controller
             redirect(base_url('student/subscription'), 'location', 302);
             return;
         }
-        $this->session->set_flashdata('flash_message', 'صدرت فاتورتك، ومقعدك محجوز '
-            . (int) $this->grp()->hold_hours() . ' ساعة. حول قيمتها وتفعل عضويتك بعد التحقق من الحوالة.');
+        $this->session->set_flashdata('flash_message', t('صدرت فاتورتك، ومقعدك محجوز ____ ساعة. حول قيمتها وتفعل عضويتك بعد التحقق من الحوالة.',
+            array((int) $this->grp()->hold_hours())));
         redirect(base_url('student/subscription'), 'location', 302);
     }
 

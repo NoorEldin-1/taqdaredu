@@ -301,7 +301,7 @@ $tq_url  = function ($over = array()) use ($status, $tq_kind) {
                                   : t('سيحرر وقتها، وتشطب فاتورتها، ويخطر الطالب والمعلم.'); ?>"
                               data-tqa-confirm-ok="<?php echo $paid ? t('وسمها مستردة') : t('ألغ الحصة'); ?>"
                               data-tqa-confirm-tone="danger"
-                              style="margin:0;display:flex;gap:6px;align-items:center">
+                              style="margin:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
                             <?php echo tq_csrf(); ?>
                             <input type="hidden" name="session_id" value="<?php echo (int) $r['id']; ?>">
                             <input class="tqa-input tqa-btn--sm" type="text" name="reason" required maxlength="255"
@@ -318,7 +318,7 @@ $tq_url  = function ($over = array()) use ($status, $tq_kind) {
                         $opts = get_instance()->taqdar_sessions_model->reschedule_options((int) $r['id'], 'admin'); ?>
                         <?php if ($opts): ?>
                             <form action="<?php echo site_url('taqdar_admin/session_reschedule'); ?>" method="post"
-                                  style="margin:6px 0 0;display:flex;gap:6px;align-items:center">
+                                  style="margin:6px 0 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
                                 <?php echo tq_csrf(); ?>
                                 <input type="hidden" name="session_id" value="<?php echo (int) $r['id']; ?>">
                                 <label class="tqa-sr" for="rs-<?php echo (int) $r['id']; ?>"><?php echo t('الموعد الجديد'); ?></label>

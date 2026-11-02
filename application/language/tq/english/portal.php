@@ -1674,6 +1674,7 @@ return array(
     'لم يسند معلم إلى هذا المسار بعد' => 'No teacher has been assigned to this track yet',
     'لم يضبط حد السحب في المنصة بعد، فلا يستقبل النموذج طلبا الآن. رصيدك محفوظ في دفترك كما هو — وتواصل مع الإدارة إن احتجت السحب.' => 'The platform has not set a withdrawal limit yet, so the form cannot take requests right now. Your balance stays safe in your ledger — contact the administration if you need to withdraw.',
     'لم يعد ملف هذا الكتاب موجودا. أبلغ معلمك.' => 'This book\'s file is gone. Tell your teacher.',
+    'لم يعلن الحضور بعد' => 'Attendance not recorded yet',
     'لم يفتح بعد درسا له أهداف مقاسة. يظهر هنا كم هدفا أتقن من المفتوح له.' => 'They have not yet opened a lesson with measured objectives. How many objectives they have mastered out of those open to them will appear here.',
     'لم يفتح هدفا مقاسا بعد' => 'No measured objective opened yet',
     'لم يقيد بعد' => 'Not credited yet',
@@ -1990,6 +1991,7 @@ return array(
     'هذا الكتاب محمي بكلمة مرور ولا يفتح هنا.' => 'This book is password-protected and will not open here.',
     'هذا الكورس لم ينشر بعد.' => 'This course is not published yet.',
     'هذا الكورس يصل إلى الطالب.' => 'This course reaches the student.',
+    'هذا المسار لم يعد مسندا إليك — احذف هذا السطر ثم احفظ.' => 'This track is no longer assigned to you — delete this row, then save.',
     'هذا المصدر لا يقاس تلقائيا' => 'This source is not measured automatically',
     'هذه أحداث مفيدة لكنها لا تستدعي أن تقطع يومك. تصلك مجمعة صباح الأحد.' => 'These are useful events that do not warrant breaking into your day. They reach you together on Sunday morning.',
     'هذه الأحداث وحدها تقطع يومك، وما عداها ينتظر التقرير الأسبوعي. وهذه الشاشة تحدد أيها تريد.' => 'Only these events break into your day; everything else waits for the weekly report. This screen decides which of them you want.',
@@ -2187,6 +2189,4 @@ return array(
     '— ومن لم يجتز يعاد إلى دقيقة المفهوم الذي أخطأ فيه، ثم يعرض له شرح بديل، ثم يحال إلى معلمه في المحاولة الثالثة. ولا حد لعدد المحاولات: العقاب بقاء القفل لا منع الإعادة.' => '— whoever does not pass is sent back to the minute of the concept they missed, then shown an alternative explanation, then referred to their teacher on the third attempt. There is no cap on attempts: the penalty is the lock staying shut, not being barred from retrying.',
     '— ويقيد نصيبك' => '— and your share is credited',
     '— يكفيه مسار من مساراتك، ويحجزه الطالب أيا كان صفه. والتأسيس مستوى لا منهج صف.' => '— one of your tracks is enough, and any student can book it whatever their grade. Foundation is a level, not a grade syllabus.',
-    'لم يعلن الحضور بعد' => 'Attendance not recorded yet',
-    'هذا المسار لم يعد مسندا إليك — احذف هذا السطر ثم احفظ.' => 'This track is no longer assigned to you — delete this row, then save.',
 );

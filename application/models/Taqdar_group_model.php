@@ -683,7 +683,7 @@ class Taqdar_group_model extends CI_Model
             $note  = 'اجلت هذه الحصة الى موعد جديد.';
         } else {
             $state = 'scheduled';
-            $note  = 'الرابط يفتح قبل الموعد بـ' . $lead . ' دقيقة.';
+            $note  = t('الرابط يفتح قبل الموعد بـ____ دقيقة.', array($lead));
         }
 
         $open_now = in_array($state, array('ready', 'live'), true);
