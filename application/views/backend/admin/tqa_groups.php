@@ -69,12 +69,13 @@ $tq_label = array('draft' => t('مسودة'), 'review' => t('بانتظار ال
                 <th><?php echo t('الأعضاء'); ?></th>
                 <th><?php echo t('المقاعد'); ?></th>
                 <th><?php echo t('الحصص'); ?></th>
+                <th><?php echo t('الحضور'); ?></th>
                 <th><?php echo t('المحصل'); ?></th>
                 <th></th>
             </tr></thead>
             <tbody>
             <?php if (!$tq_rows): ?>
-                <tr><td colspan="8"><?php echo t('لا مجموعات بعد.'); ?></td></tr>
+                <tr><td colspan="9"><?php echo t('لا مجموعات بعد.'); ?></td></tr>
             <?php endif; ?>
             <?php foreach ($tq_rows as $r): ?>
                 <tr>
@@ -89,11 +90,17 @@ $tq_label = array('draft' => t('مسودة'), 'review' => t('بانتظار ال
                     <td><?php echo html_escape($r['seats_text']); ?></td>
                     <td><span class="tqa-num"><?php echo (int) $r['sessions_total']; ?></span>
                         <small>(<?php echo (int) $r['sessions_left']; ?> <?php echo t('قادمة'); ?>)</small></td>
+                    <td><?php /* TQ-GROUP gap 4.4 — الحضور المعلن في الحصص المنتهية */
+                        $tq_at = isset($r['attendance']) ? $r['attendance'] : array('total' => 0, 'present_pct' => null);
+                        if ($tq_at['present_pct'] === null): ?>—<?php else: ?>
+                        <span class="tqa-num"><?php echo (int) $tq_at['present_pct']; ?>%</span> <?php echo t('حضور'); ?>
+                        <small>(<?php echo (int) $tq_at['absent_pct']; ?>% <?php echo t('غياب'); ?> · <?php echo (int) $tq_at['total']; ?>)</small>
+                        <?php endif; ?></td>
                     <td><?php echo $tq_sar($r['gross']); ?></td>
                     <td><a class="tqa-btn tqa-btn--ghost tqa-btn--sm" href="<?php echo site_url('taqdar_admin/form/groups/' . (int) $r['id']); ?>"><?php echo t('حرر'); ?></a></td>
                 </tr>
                 <tr>
-                    <td colspan="8">
+                    <td colspan="9">
                         <details>
                             <summary><?php echo t('إجراءات الإدارة'); ?></summary>
                             <?php

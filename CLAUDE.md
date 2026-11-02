@@ -1790,6 +1790,16 @@ TQ-SESSION-PAY بنى المال: طلب ثم تأكيد ثم دفع ثم راب
   `enroll_until`، وأجلها `access_days` أو نهاية آخر حصة.
 - **ولي الأمر يشتري لابنه** من `parent/pay/group`، والعضوية باسم الابن كسائر
   الشراء.
+- **فجوات المجموعة المغلقة (TQ-GROUP gap):** تذكير المعلم بعد ٤٨ ساعة بتسجيل
+  «سأرفعه لاحقا» مرة واحدة (`recording_reminded_at`، قبل اسقاط السبعة ايام)؛
+  والتسجيل بحارس `student/group-sessions/<id>/recording` (عضو · ولي امر · معلم)
+  و`tqs_video_embed()` لا رابط عار، ونظيره `api/v1/{student|parent}/group-sessions/<id>/recording`؛
+  والعدد في `seats_text()` عند خمسة فأقل وإلا «مقاعد متاحة»؛ والعد التنازلي
+  وتوقيت الجهاز في `tq_groups.php` بآلية `data-tq-now/starts/local` نفسها؛
+  و`api/v1/teacher/group-sessions/<id>/join` و`…/recording` بالنداء النموذجي نفسه
+  للويب؛ و`parent_child` يرد `groups` بحضور الابن؛ و`group_stats()` يرد
+  `attendance` (نسبة المعلن وحده، و`null` لا صفرا بلا بيانات)؛ و«المعلم لم
+  يدخل بعد» للطالب والنافذة مفتوحة قبل +١٠ دقائق (`teacher_joined` في الحالة).
 - **D8 — ولا تباع على iOS**: المقعد محتوى رقمي بحكم أبل (3.1.1)، فحيث
   `digital` كاذبة ترد `buy()` الشراء، وتعرض المجموعة بلا سعر ولا زر — وما
   يملكه صاحبه يدخله كما هو. وهي قاعدة TQ-APP-CONFIG نفسها.

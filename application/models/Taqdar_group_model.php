@@ -26,7 +26,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
  */
 class Taqdar_group_model extends CI_Model
 {
-    const SCHEMA_V = '2';
+    const SCHEMA_V = '3';
     const T_GROUPS = 'tq_groups';
     const T_SESS   = 'tq_group_sessions';
     const T_ATT    = 'tq_group_attendance';
@@ -40,6 +40,12 @@ class Taqdar_group_model extends CI_Model
 
     /** ايام بقاء «سأرفعه لاحقا» قبل ان يسقط الى «لا تسجيل». */
     const RECORDING_WAIT_DAYS = 7;
+
+    /** TQ-GROUP gap D4 — تذكير المعلم بتسجيل «سأرفعه لاحقا» بعد ٤٨ ساعة (قبل اسقاطه عند ٧ ايام). */
+    const RECORDING_REMIND_HOURS = 48;
+
+    /** TQ-GROUP gap §5-1 — بعد عشر دقائق من الموعد لا يقال «لم يدخل بعد» بل يترك للمراجعة. */
+    const TEACHER_LATE_SEC = 600;
 
     /* =====================================================================
        المخطط
@@ -126,6 +132,9 @@ class Taqdar_group_model extends CI_Model
         /* TQ-GROUP (المهمة الخامسة) — ختم «ذكر قبل ساعة» على الحصة: اضافي
            ولا يكتب في صف قائم. وبه لا يذكر العضو مرتين بالحصة نفسها. */
         $this->try_sql('ALTER TABLE `' . self::T_SESS . '` ADD COLUMN IF NOT EXISTS `reminded_at` DATETIME NULL DEFAULT NULL');
+
+        // TQ-GROUP gap D4 — ختم «ذكر المعلم بالتسجيل بعد ٤٨ ساعة»: اضافي.
+        $this->try_sql('ALTER TABLE `' . self::T_SESS . '` ADD COLUMN IF NOT EXISTS `recording_reminded_at` DATETIME NULL DEFAULT NULL');
 
         $this->db->data_cache = array();
         $this->put_setting('tq_group_schema_v', self::SCHEMA_V);
@@ -680,6 +689,12 @@ class Taqdar_group_model extends CI_Model
         $open_now = in_array($state, array('ready', 'live'), true);
         if ($open_now && !$member)      $note = 'الدخول لاعضاء المجموعة وحدهم.';
         elseif ($open_now && $link === '') $note = 'لا رابط بعد — راسل معلمك.';
+        // TQ-GROUP gap §5-1 — «المعلم لم يدخل بعد» للطالب والنافذة مفتوحة، قبل مرحلة التأخر (+١٠ دقائق).
+        $teacher_in = !empty($gsession['teacher_joined_at']);
+        if ($open_now && $actor === 'student' && $member && $link !== '' && !$teacher_in
+            && $starts > 0 && $now < $starts + self::TEACHER_LATE_SEC) {
+            $note = 'المعلم لم يدخل بعد.';
+        }
 
         static $labels = array(
             'scheduled'            => array('مجدولة', 'neutral'),
@@ -705,6 +720,7 @@ class Taqdar_group_model extends CI_Model
             'starts_ts'    => $starts,
             'ends_ts'      => $ends,
             'opens_ts'     => $opens,
+            'teacher_joined' => $teacher_in,
         );
     }
 
@@ -921,10 +937,70 @@ class Taqdar_group_model extends CI_Model
             $sum['refund_due']   = count($open);
             $sum['refund_items'] = $open;
             $sum['sessions']     = $this->sessions_of((int) $g['id']);
+            $sum['attendance']   = $this->group_attendance((int) $g['id']);
             $sum['blockers'] = $this->delete_blockers((int) $g['id']);
             $out[] = $sum;
         }
         return array('rows' => $out, 'refund_logged' => $logged);
+    }
+
+    /** TQ-GROUP gap 4.4 — حضور المجموعة كلها (المعلن وحده) من `tq_group_attendance`. */
+    public function group_attendance($group_id)
+    {
+        try {
+            $rows = $this->db->select('a.attendance')->from(self::T_ATT . ' a')
+                             ->join(self::T_SESS . ' s', 's.id = a.session_id')
+                             ->where('s.group_id', (int) $group_id)->where('s.status', 'completed')
+                             ->get()->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); $rows = array(); }
+        return self::attendance_rate($rows);
+    }
+
+    /**
+     * TQ-GROUP gap 4.4 — حصص مجموعة لطالب بحضوره وتسجيله (لولي الامر): بلا رابط لقاء.
+     * @return array [{id, starts_at, duration_min, status, attendance, has_recording, recording_pending}]
+     */
+    public function attendance_list($group_id, $student_id)
+    {
+        $out = array();
+        foreach ($this->sessions_of((int) $group_id) as $s) {
+            $out[] = array(
+                'id' => (int) $s['id'], 'title' => (string) $s['title'], 'starts_at' => (string) $s['starts_at'],
+                'duration_min' => (int) $s['duration_min'], 'status' => (string) $s['status'],
+                'attendance' => $this->attendance_of((int) $s['id'], (int) $student_id),
+                'has_recording' => trim((string) $s['recording_url']) !== '' && $s['status'] === 'completed',
+                'recording_pending' => (int) $s['recording_pending'] === 1 && trim((string) $s['recording_url']) === '',
+            );
+        }
+        return $out;
+    }
+
+    /**
+     * TQ-GROUP gap 3.2 — تسجيل حصة جماعية عبر حارس: العضو الساري، وصاحب
+     * المجموعة، والمسؤول، وولي امر عضو (برابط نشط). كأختها `recording_for()` في الفردية.
+     * @return array|null الصف + `group` · `when_text` · `student_id` (للعودة)، او null
+     */
+    public function recording_for($gs_id, $user_id, $role)
+    {
+        $gs = $this->session($gs_id);
+        if (!$gs || $gs['status'] !== 'completed' || trim((string) $gs['recording_url']) === '') return null;
+        $g = $this->get((int) $gs['group_id']);
+        if (!$g) return null;
+        $uid = (int) $user_id; $student = 0; $ok = false;
+        if ($role === 'student')      { $ok = $this->has_group($uid, (int) $g['id']); $student = $uid; }
+        elseif ($role === 'teacher')  $ok = (int) $g['teacher_id'] === $uid;
+        elseif ($role === 'admin')    $ok = true;
+        elseif ($role === 'parent') {
+            $this->load->model('taqdar_parent_model');
+            foreach ($this->members_of((int) $g['id']) as $m) {
+                if ($this->taqdar_parent_model->owns($uid, (int) $m['user_id'])) { $ok = true; $student = (int) $m['user_id']; break; }
+            }
+        }
+        if (!$ok) return null;
+        $gs['group'] = $g;
+        $gs['student_id'] = $student;
+        $gs['when_text'] = date('Y-m-d H:i', strtotime((string) $gs['starts_at'])) . ' · ' . (int) $gs['duration_min'] . ' ' . t('دقيقة');
+        return $gs;
     }
 
     /**
@@ -1309,7 +1385,7 @@ class Taqdar_group_model extends CI_Model
     {
         $this->ensure_schema();
         $now = $now ? (int) $now : time();
-        $out = array('closed' => 0, 'recordings_dropped' => 0, 'reminded' => 0);
+        $out = array('closed' => 0, 'recordings_dropped' => 0, 'reminded' => 0, 'recording_reminders' => 0);
 
         /* TQ-GROUP — «قبل كل حصة بساعة» (§4.5). الكرون كل ساعة، فالنافذة
            ساعة وخمس دقائق، والختم `reminded_at` يمنع التكرار. والبريد في
@@ -1349,6 +1425,27 @@ class Taqdar_group_model extends CI_Model
             $out['closed']++;
         }
 
+        /* TQ-GROUP gap D4 — بعد ٤٨ ساعة بلا تسجيل يذكر المعلم مرة (ختم `recording_reminded_at`)،
+           وهذا قبل اسقاط الوعد عند سبعة ايام. */
+        try {
+            $pend = $this->db->where('status', 'completed')->where('recording_pending', 1)
+                             ->where('recording_reminded_at IS NULL', null, false)
+                             ->where('completed_at <=', date('Y-m-d H:i:s', $now - self::RECORDING_REMIND_HOURS * 3600))
+                             ->get(self::T_SESS)->result_array();
+        } catch (Throwable $e) { $this->db->reset_query(); $pend = array(); }
+        foreach ($pend as $r) {
+            if (!self::recording_reminder_due($r, $now)) continue;
+            $this->db->where('id', (int) $r['id'])->where('recording_reminded_at IS NULL', null, false)
+                     ->update(self::T_SESS, array('recording_reminded_at' => date('Y-m-d H:i:s', $now)));
+            if ((int) $this->db->affected_rows() < 1) continue;
+            $g = $this->get((int) $r['group_id']);
+            if (!$g) continue;
+            $this->notify((int) $g['teacher_id'], t('تسجيل الحصة ينتظرك'),
+                t('وعدت برفع تسجيل حصة «____» ولم يصل بعد — ارفعه من شاشة المجموعة قبل أن يسقط الوعد بعد سبعة أيام.',
+                  array($g['title'])));
+            $out['recording_reminders']++;
+        }
+
         try {
             $this->db->where('status', 'completed')->where('recording_pending', 1)
                      ->where('completed_at <', date('Y-m-d H:i:s', $now - self::RECORDING_WAIT_DAYS * 86400))
@@ -1383,8 +1480,38 @@ class Taqdar_group_model extends CI_Model
         if ($n <= 0)  return t('اكتملت المقاعد');
         if ($n === 1) return t('بقي مقعد واحد');
         if ($n === 2) return t('بقي مقعدان');
-        if ($n <= 10) return t('بقيت ____ مقاعد', array($n));
-        return t('بقي ____ مقعدا', array($n));
+        if ($n <= 5)  return t('بقيت ____ مقاعد', array($n));
+        /* TQ-GROUP gap D7 — العدد يقال عند خمسة فأقل (الخطة)؛ فوقها رقم يخيف او يطمئن بلا داع. */
+        return t('مقاعد متاحة');
+    }
+
+    /** TQ-GROUP gap D4 — ايذكر المعلم بتسجيل هذه الحصة الآن؟ صرفة: منتهية · معلقة · بلا رابط · لم يذكر · مضت ٤٨ ساعة. */
+    public static function recording_reminder_due($row, $now)
+    {
+        if ((string) ($row['status'] ?? '') !== 'completed') return false;
+        if ((int) ($row['recording_pending'] ?? 0) !== 1) return false;
+        if (trim((string) ($row['recording_url'] ?? '')) !== '') return false;
+        if (!empty($row['recording_reminded_at'])) return false;
+        $done = !empty($row['completed_at']) ? strtotime((string) $row['completed_at']) : 0;
+        return $done > 0 && $now - $done >= self::RECORDING_REMIND_HOURS * 3600;
+    }
+
+    /**
+     * TQ-GROUP gap 4.4 — نسبة الحضور من صفوف `tq_group_attendance`. صرفة.
+     * ما لم يعلن (`attendance` فارغ) لا يعد: الغائب غير المعلن ليس غائبا.
+     * وبلا بيانات تعود النسبة `null` لا صفرا.
+     */
+    public static function attendance_rate(array $rows)
+    {
+        $p = 0; $a = 0;
+        foreach ($rows as $r) {
+            $v = (string) ($r['attendance'] ?? '');
+            if ($v === 'present') $p++; elseif ($v === 'absent') $a++;
+        }
+        $t = $p + $a;
+        return array('present' => $p, 'absent' => $a, 'total' => $t,
+                     'present_pct' => $t ? (int) round($p * 100 / $t) : null,
+                     'absent_pct'  => $t ? (int) round($a * 100 / $t) : null);
     }
 
     /**

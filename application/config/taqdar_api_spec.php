@@ -4184,6 +4184,25 @@ $spec = array(
     'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '409' => $r_409, '429' => $r_429),
 )),
 
+'/api/v1/student/group-sessions/{id}/recording' => array('get' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Recording of a group session (guarded)',
+    'description' => 'Members only (a linked parent through `/api/v1/parent/group-sessions/{id}/recording`).'
+                   . ' Returns `{id, url, provider, when_text}`; 404 when there is no recording or the caller is not a party.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '404' => $r_404),
+)),
+
+'/api/v1/parent/group-sessions/{id}/recording' => array('get' => array(
+    'tags' => array('Sessions'),
+    'summary' => 'Recording of a group session a child belongs to',
+    'description' => 'A linked parent (active link) of any current member. Same shape as the student route.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '404' => $r_404),
+)),
+
 '/api/v1/student/groups/{id}/ics' => array('get' => array(
     'tags' => array('Sessions'),
     'summary' => 'Calendar file of the schedule',
@@ -4261,6 +4280,30 @@ $spec = array(
         'responses' => array('200' => array('description' => 'Saved'), '401' => $r_401, '404' => $r_404, '409' => $r_409),
     ),
 ),
+
+'/api/v1/teacher/group-sessions/{id}/join' => array('get' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Teacher joins a group session',
+    'description' => 'Returns `{url}`. The first join stamps `teacher_joined_at`, moves the session to `live` and'
+                   . ' sends the members the "started now" notice. 409 `session_not_joinable` when the window is'
+                   . ' not open or the session is not the caller\'s.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
+    'responses' => array('200' => array('description' => 'OK'), '401' => $r_401, '409' => $r_409, '429' => $r_429),
+)),
+
+'/api/v1/teacher/group-sessions/{id}/recording' => array('post' => array(
+    'tags' => array('Teacher authoring'),
+    'summary' => 'Add a recording after the session is completed',
+    'description' => 'For a session declared over with `recording_pending`. `recording_url` must be https; members are'
+                   . ' notified once. 409 when the session is not completed.',
+    'security' => $auth,
+    'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true, 'schema' => array('type' => 'integer'))),
+    'requestBody' => array('required' => true, 'content' => array('application/json' => array(
+        'example' => array('recording_url' => 'https://youtu.be/abc123'),
+    ))),
+    'responses' => array('200' => array('description' => 'Saved'), '401' => $r_401, '404' => $r_404, '409' => $r_409),
+)),
 
 '/api/v1/teacher/group-sessions/{id}/complete' => array('post' => array(
     'tags' => array('Teacher authoring'),
@@ -5771,6 +5814,10 @@ $spec = array(
         '`quiz_results` are the rows the website child page shows: the **latest** attempt per lesson quiz',
         '(the question is "where is the child now?"), `total` being the number of questions. No single',
         'answer is exposed. `subjects[].mastery.percent` is `null` when no objective is open yet.',
+        '',
+        '`groups` (TQ-GROUP): live groups of the child, each with per-session `attendance`',
+        '(`present`/`absent`/`null`), `has_recording` and a guarded `recording_url`',
+        '(`parent/group-sessions/{id}/recording`), plus the group `attendance` rate. No meeting link.',
     )),
     'security' => $auth,
     'parameters' => array(array('name' => 'id', 'in' => 'path', 'required' => true,
