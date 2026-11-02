@@ -2795,18 +2795,21 @@ class Taqdar_sessions_model extends CI_Model
                          'updated_at'    => date('Y-m-d H:i:s'),
                      ));
             if ($this->db->affected_rows() < 1) return array('ok' => false, 'msg' => 'تعذر إلغاء الحجز.');
-            /* الحصة صارت مستردة؛ فشل ما بعدها لا يبتلع: يسجل ويعلم المسؤول
-               فلا يضيع استرداد صامتا. */
+            /* الحال تكتب اولا قفلا على التزاحم، ثم الفاتورة والعكس؛ وفشلهما
+               يعيد الحصة الى `confirmed` ويعلم المسؤول (refund_failed) — فلا
+               تبقى «مستردة» والمال لم يمس. والموعد يحرر بعد النجاح وحده. */
+            $res = $this->mark_refunded($row, 'student_cancel');
+            if (empty($res['ok'])) {
+                return $this->refund_failed($row, array(
+                    'status' => 'confirmed', 'meet_url' => $row['meet_url'] ?? null, 'cancel_reason' => $row['cancel_reason'] ?? null,
+                    'cancelled_by' => $row['cancelled_by'] ?? null, 'refund_state' => $row['refund_state'] ?? null,
+                ), $res, 'student_cancel');
+            }
             try {
                 $this->release_slot($row);
-                $this->mark_refunded($row, 'student_cancel');
             } catch (Throwable $e) {
                 $this->db->reset_query();
-                log_message('error', 'TQ-SESSION-REFUND: تعذر وسم استرداد حصة #' . (int) $row['id'] . ' — ' . $e->getMessage());
-                foreach ($this->admin_ids() as $aid) {
-                    $this->tell($aid, 'استرداد حصة لم يكتمل وسمه',
-                        'ألغى الطالب الحصة #' . (int) $row['id'] . ' ويستحق الاسترداد، وتعذر وسم الفاتورة أو تحرير الموعد. راجعها ورد المبلغ من لوحة تاب.');
-                }
+                log_message('error', 'TQ-SESSION-REFUND: تعذر تحرير موعد حصة #' . (int) $row['id'] . ' — ' . $e->getMessage());
             }
             $this->tell_parents((int) $student_id, 'ألغيت حصة ابنك', 'ألغى ابنك حصته، ويرد مبلغها خلال ٥ أيام عمل خارج المنصة.');
             return array('ok' => true, 'teacher_id' => (int) $row['teacher_id'], 'refunded' => true,
@@ -3211,7 +3214,7 @@ class Taqdar_sessions_model extends CI_Model
      * @param array $set اعمدة تكتب مع النقل (الحال، العداد…)
      * @param array $from الحالات المقبولة للتحديث المشروط
      */
-    private function move_to_slot($row, $new_slot_id, $set, $from)
+    private function move_to_slot($row, $new_slot_id, $set, $from, $guards = array())
     {
         $new_slot_id = (int) $new_slot_id;
         $slot = $this->db->where('id', $new_slot_id)->get('availability_slots')->row_array();
@@ -3254,6 +3257,7 @@ class Taqdar_sessions_model extends CI_Model
         if (array_key_exists('reschedule_count', $set)) {
             $this->db->where('reschedule_count', (int) ($row['reschedule_count'] ?? 0));
         }
+        foreach ((array) $guards as $g) $this->db->where($g, null, false);
         $this->db->update('tutoring_sessions', $upd);
         if ($this->db->affected_rows() < 1) {
             $this->db->where('id', $new_slot_id)->where('status', $target)
@@ -3413,7 +3417,7 @@ class Taqdar_sessions_model extends CI_Model
             if ($choice === 'reschedule') {
                 $m = $this->move_to_slot($row, $slot_id, array(
                     'status' => 'confirmed', 'rescheduled_by' => 'teacher_fault',
-                ), array('confirmed', 'live'));
+                ), array('confirmed', 'live'), array('teacher_joined_at IS NULL'));
                 if (empty($m['ok'])) return $m;
                 $this->audit('session.teacher_no_show', (int) $row['id'], array('choice' => 'reschedule', 'absent_at' => $absent_at));
                 $when = $this->when_text($m['slot']['starts_at'], (int) $m['slot']['duration_min']);
@@ -3477,7 +3481,10 @@ class Taqdar_sessions_model extends CI_Model
                  ->update('tutoring_sessions', array('status' => 'refunded', 'refund_state' => 'pending',
                                                      'updated_at' => date('Y-m-d H:i:s')));
         if ($this->db->affected_rows() < 1) return array('ok' => false, 'msg' => 'تغير حال الحصة. حدث الصفحة.');
-        $this->mark_refunded($row, 'student_choice');
+        $res = $this->mark_refunded($row, 'student_choice');
+        if (empty($res['ok'])) {
+            return $this->refund_failed($row, array('status' => 'declined', 'refund_state' => 'choice'), $res, 'student_choice');
+        }
         return array('ok' => true, 'refunded' => true,
                      'msg' => 'سجل طلب الاسترداد. يرد خلال ٥ أيام عمل خارج المنصة.');
     }
@@ -3505,7 +3512,12 @@ class Taqdar_sessions_model extends CI_Model
                          'status' => $paid ? 'refunded' : 'declined', 'refund_state' => $paid ? 'pending' : null,
                          'updated_at' => $now));
             if ($this->db->affected_rows() < 1) return array('ok' => false, 'msg' => 'تغير حال الحصة. حدث الصفحة.');
-            if ($paid) $this->mark_refunded($row, 'noshow_review');
+            if ($paid) {
+                $res = $this->mark_refunded($row, 'noshow_review');
+                if (empty($res['ok'])) {
+                    return $this->refund_failed($row, array('status' => 'declined', 'refund_state' => 'review'), $res, 'noshow_review');
+                }
+            }
             $s_txt = 'ثبت غياب المعلم' . ($paid ? '، ويرد مبلغ الحصة خلال ٥ أيام عمل خارج المنصة' : '') . '. ' . $note;
             $t_txt = 'ثبت غيابك عن الحصة #' . (int) $row['id'] . '، فلا يقيد لك شيء عنها. ' . $note;
         } else {
@@ -3527,17 +3539,41 @@ class Taqdar_sessions_model extends CI_Model
             : 'رفض البلاغ واعتمدت الحصة منتهية وقيد نصيب المعلم.');
     }
 
-    /** الفاتورة مستردة، وقيد المعلم يعكس ان وجد، والمسؤول يعلم ليرد من تاب. */
+    /**
+     * الفاتورة مستردة، وقيد المعلم يعكس ان وجد، والمسؤول يعلم ليرد من تاب.
+     * ويرد `ok`: فشل الفاتورة او العكس لا يبتلع — تعاد الفاتورة الى حالها
+     * ويرد `failed` فيعيد المنادي الحصة الى ما كانت عليه (refund_failed).
+     */
     private function mark_refunded($row, $why)
     {
-        if ((int) ($row['invoice_id'] ?? 0) > 0) {
-            $this->db->where('id', (int) $row['invoice_id'])->update('invoices', array('status' => 'refunded'));
+        $inv_id = (int) ($row['invoice_id'] ?? 0);
+        $prev_inv = null;
+        if ($inv_id > 0) {
+            try {
+                $r = $this->db->select('status')->where('id', $inv_id)->get('invoices')->row_array();
+                $prev_inv = $r ? (string) $r['status'] : null;
+                $this->db->where('id', $inv_id)->update('invoices', array('status' => 'refunded'));
+            } catch (Throwable $e) {
+                $this->db->reset_query();
+                log_message('error', 'TQ-SESSION-REFUND: تعذر وسم فاتورة حصة #' . (int) $row['id'] . ' — ' . $e->getMessage());
+                return array('ok' => false, 'failed' => 'invoice', 'error' => $e->getMessage());
+            }
         }
         try {
             $this->load->model('taqdar_wallet_model');
             $this->taqdar_wallet_model->reverse_session((int) $row['teacher_id'], (int) $row['id'], 'استردت الحصة');
         } catch (Throwable $e) {
-            log_message('error', 'TQ-SESSION-REVERSE: تعذر عكس حصة #' . (int) $row['id']);
+            $this->db->reset_query();
+            log_message('error', 'TQ-SESSION-REVERSE: تعذر عكس حصة #' . (int) $row['id'] . ' — ' . $e->getMessage());
+            if ($inv_id > 0 && $prev_inv !== null) {
+                try {
+                    $this->db->where('id', $inv_id)->update('invoices', array('status' => $prev_inv));
+                } catch (Throwable $e2) {
+                    $this->db->reset_query();
+                    log_message('error', 'TQ-SESSION-REFUND: تعذر إعادة فاتورة حصة #' . (int) $row['id']);
+                }
+            }
+            return array('ok' => false, 'failed' => 'reversal', 'error' => $e->getMessage());
         }
         $this->audit('session.refund', (int) $row['id'], array('why' => $why, 'amount' => (int) $row['price_halalas']));
         foreach ($this->admin_ids() as $aid) {
@@ -3545,6 +3581,35 @@ class Taqdar_sessions_model extends CI_Model
                 'الحصة #' . (int) $row['id'] . ' وسمت مستردة (' . number_format((int) $row['price_halalas'] / 100, 2)
                 . ' ريال). رد المبلغ إلى الطالب من لوحة تاب خلال ٥ أيام عمل.');
         }
+        return array('ok' => true);
+    }
+
+    /**
+     * تعويض استرداد لم يكتمل: الحصة تعود الى ما كانت عليه (`$restore`) فلا
+     * تبقى «مستردة» وفاتورتها او قيد معلمها لم يمس، والمسؤول يعلم بالرقم
+     * وبما فشل. ويرد رسالة للمنادي.
+     */
+    private function refund_failed($row, $restore, $res, $why)
+    {
+        $what = ($res['failed'] ?? '') === 'invoice' ? 'وسم الفاتورة مستردة' : 'عكس قيد المعلم';
+        $restored = false;
+        try {
+            $this->db->where('id', (int) $row['id'])->where('status', 'refunded')
+                     ->update('tutoring_sessions', $restore + array('updated_at' => date('Y-m-d H:i:s')));
+            $restored = true;
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-SESSION-REFUND: تعذر إعادة حال حصة #' . (int) $row['id'] . ' — ' . $e->getMessage());
+        }
+        $this->audit('session.refund_failed', (int) $row['id'], array('why' => $why, 'failed' => $res['failed'] ?? '',
+                     'error' => (string) ($res['error'] ?? ''), 'restored' => $restored));
+        foreach ($this->admin_ids() as $aid) {
+            $this->tell($aid, 'استرداد حصة لم يكتمل',
+                'الحصة #' . (int) $row['id'] . ': تعذر ' . $what . '، '
+                . ($restored ? 'فأعيدت الحصة إلى حالها السابقة ولم تسترد.' : 'وتعذرت إعادة الحصة إلى حالها كذلك.')
+                . ' راجعها قبل أي رد مبلغ.');
+        }
+        return array('ok' => false, 'msg' => 'تعذر إتمام الاسترداد الآن، وأبلغت الإدارة. حاول بعد قليل.');
     }
 
     /**

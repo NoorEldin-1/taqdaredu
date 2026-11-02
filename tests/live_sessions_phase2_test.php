@@ -167,4 +167,126 @@ $d = $m->display_state($rev, $starts + 3600, 'student');
 check($d['key'] === 'cancelled' && $d['button'] === '' && strpos($d['label'], 'مراجعة') !== false, 'review: under admin review, no button');
 check(strpos($d['label'], 'يرد') === false, 'review: no refund promise');
 
+// ---- fix round 2: refund is atomic or compensated --------------------------
+class ScriptDb {
+    public $tbl = ''; public $wheres = array(); public $updates = array(); public $resets = 0;
+    public $session = null; public $throw_on = array(); public $aff = 1; public $last_aff = 1;
+    public function __call($name, $args) {
+        if (in_array($name, array('get', 'from', 'count_all_results'), true) && isset($args[0])) $this->tbl = (string) $args[0];
+        if ($name === 'count_all_results') { $this->wheres = array(); return 0; }
+        if (in_array($name, array('where', 'where_in'), true)) $this->wheres[] = $args[0];
+        if ($name === 'table_exists') return false;
+        return $this;
+    }
+    public function update($t, $d) {
+        $w = $this->wheres; $this->wheres = array();
+        if (in_array($t, $this->throw_on, true)) { throw new RuntimeException('boom ' . $t); }
+        $this->updates[] = array($t, $d, $w);
+        $this->last_aff = $this->aff;
+        return true;
+    }
+    public function affected_rows() { return $this->last_aff; }
+    public function reset_query() { $this->resets++; $this->wheres = array(); return $this; }
+    public function insert() { return true; }
+    public function row_array() {
+        if (strpos($this->tbl, 'tutoring_sessions') !== false) return $this->session;
+        if ($this->tbl === 'invoices') return array('status' => 'unpaid');
+        return null;
+    }
+    public function result_array() { return $this->tbl === 'users' ? array(array('id' => 1)) : array(); }
+}
+class FakeLoad { public function model() {} }
+class FakeWallet { public $throw = false; public $calls = 0;
+    public function reverse_session() { $this->calls++; if ($this->throw) throw new RuntimeException('wallet down'); return true; } }
+class FakeAdmin { public $sent = array();
+    public function push_notification($uid, $title, $text) { $this->sent[] = array($uid, $title, $text); } }
+function smodel($session, $opts = array()) {
+    $m = (new ReflectionClass('Taqdar_sessions_model'))->newInstanceWithoutConstructor();
+    $db = new ScriptDb(); $db->session = $session; $db->throw_on = $opts['throw_on'] ?? array();
+    $m->db = $db; $m->load = new FakeLoad(); $m->input = new class { public function is_cli_request() { return true; } };
+    $m->taqdar_wallet_model = new FakeWallet(); $m->taqdar_wallet_model->throw = !empty($opts['wallet_throw']);
+    $m->taqdar_admin_model = new FakeAdmin();
+    $m->install_schema();
+    $m->config(true);
+    return $m;
+}
+function ups($m, $table) { return array_values(array_filter($m->db->updates, function ($u) use ($table) { return $u[0] === $table; })); }
+function admin_told($m, $needle) {
+    foreach ($m->taqdar_admin_model->sent as $s) if ($s[0] === 1 && strpos($s[2], $needle) !== false) return true;
+    return false;
+}
+$mr = new ReflectionMethod('Taqdar_sessions_model', 'mark_refunded'); $mr->setAccessible(true);
+$paidrow = array('id' => 77, 'teacher_id' => 5, 'student_id' => 9, 'invoice_id' => 40, 'price_halalas' => 12000,
+                 'paid_at' => '2026-11-01 10:00:00', 'slot_id' => 3, 'meet_url' => 'https://meet.google.com/x',
+                 'status' => 'declined', 'refund_state' => 'review', 'pack_sub_id' => 0, 'reschedule_count' => 0);
+
+// mark_refunded reports success
+$m = smodel($paidrow);
+$r = $mr->invoke($m, $paidrow, 'test');
+check(is_array($r) && !empty($r['ok']), 'mark_refunded: ok result');
+check(count(ups($m, 'invoices')) === 1 && $m->taqdar_wallet_model->calls === 1, 'mark_refunded: invoice + reversal done');
+// reversal failure: reported, builder reset, invoice put back
+$m = smodel($paidrow, array('wallet_throw' => true));
+$r = $mr->invoke($m, $paidrow, 'test');
+check(is_array($r) && empty($r['ok']) && ($r['failed'] ?? '') === 'reversal', 'mark_refunded: reversal failure reported');
+check($m->db->resets >= 1, 'mark_refunded: reset_query on failure');
+$inv = ups($m, 'invoices');
+check(count($inv) === 2 && $inv[1][1]['status'] === 'unpaid', 'mark_refunded: invoice restored after reversal failure');
+// invoice failure: reported, no reversal
+$m = smodel($paidrow, array('throw_on' => array('invoices')));
+$r = $mr->invoke($m, $paidrow, 'test');
+check(empty($r['ok']) && ($r['failed'] ?? '') === 'invoice' && $m->taqdar_wallet_model->calls === 0, 'mark_refunded: invoice failure reported');
+
+// admin_noshow_decide approve: failure compensates back to review and tells admins
+$m = smodel($paidrow, array('wallet_throw' => true));
+$r = $m->admin_noshow_decide(77, 'approve', 'ثبت', 1);
+check(empty($r['ok']), 'noshow approve: failure returns not ok');
+$ts = ups($m, 'tutoring_sessions');
+$lastS = end($ts);
+check($lastS && $lastS[1]['status'] === 'declined' && $lastS[1]['refund_state'] === 'review', 'noshow approve: session restored to review');
+check(admin_told($m, '#77'), 'noshow approve: admins told with session id');
+$m = smodel($paidrow);
+$r = $m->admin_noshow_decide(77, 'approve', 'ثبت', 1);
+check(!empty($r['ok']), 'noshow approve: success');
+
+// student_cancel refund branch: failure compensates back to confirmed, slot kept
+$cf = array('status' => 'confirmed', 'refund_state' => null, 'starts_at' => date('Y-m-d H:i:s', time() + 72 * $H)) + $paidrow;
+$m = smodel($cf, array('wallet_throw' => true));
+$r = $m->student_cancel(77, 9, '');
+check(empty($r['ok']), 'student cancel: failure returns not ok');
+$ts = ups($m, 'tutoring_sessions'); $lastS = end($ts);
+check($lastS && $lastS[1]['status'] === 'confirmed' && $lastS[1]['meet_url'] === $cf['meet_url'], 'student cancel: session restored');
+check(count(ups($m, 'availability_slots')) === 0, 'student cancel: slot not released on failure');
+check(admin_told($m, '#77'), 'student cancel: admins told with session id');
+$m = smodel($cf);
+$r = $m->student_cancel(77, 9, '');
+check(!empty($r['ok']) && !empty($r['refunded']), 'student cancel: success');
+
+// choose_after_teacher_fault refund (student_choice): failure compensates back to choice
+$ch = array('status' => 'declined', 'refund_state' => 'choice', 'cancelled_by' => 'teacher') + $paidrow;
+$m = smodel($ch, array('wallet_throw' => true));
+$r = $m->choose_after_teacher_fault(77, 9, 'refund');
+$ts = ups($m, 'tutoring_sessions'); $lastS = end($ts);
+check(empty($r['ok']) && $lastS[1]['status'] === 'declined' && $lastS[1]['refund_state'] === 'choice', 'choice refund: restored on failure');
+
+// no-show reschedule guards teacher_joined_at IS NULL in SQL
+$ns = array('status' => 'confirmed', 'refund_state' => null, 'teacher_joined_at' => null, 'duration_min' => 60,
+            'starts_at' => date('Y-m-d H:i:s', time() - 30 * 60), 'kind' => 'curriculum', 'track_id' => 0,
+            'grade_id' => 0, 'subject_id' => 0) + $paidrow;
+$m = smodel($ns);
+$m->db->session = $ns;
+$slotDb = $m->db;
+// the new slot row is read from availability_slots: return an open future slot there
+$slotDb2 = new class extends ScriptDb {
+    public function row_array() {
+        if ($this->tbl === 'availability_slots') return array('id' => 4, 'status' => 'open', 'starts_at' => date('Y-m-d H:i:s', time() + 86400),
+            'duration_min' => 60, 'teacher_id' => 5, 'kind' => 'curriculum', 'track_id' => 0, 'grade_id' => 0, 'subject_id' => 0);
+        return parent::row_array();
+    }
+};
+$slotDb2->session = $ns; $m->db = $slotDb2;
+$r = $m->choose_after_teacher_fault(77, 9, 'reschedule', 4);
+$ts = ups($m, 'tutoring_sessions');
+check(count($ts) === 1 && in_array('teacher_joined_at IS NULL', $ts[0][2], true), 'no-show reschedule: teacher_joined_at IS NULL guard');
+
 echo "OK — $checks checks\n";
