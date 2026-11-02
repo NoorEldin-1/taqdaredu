@@ -954,12 +954,18 @@ class Taqdar_group_model extends CI_Model
     /** يسجل ان المسؤول رد مبلغ عضوية خارج المنصة — فيخرج من «رد مستحق». */
     public function resolve_refund($sub_id, $note)
     {
-        $sub = $this->db->where('id', (int) $sub_id)->where('group_id >', 0)->get('subscriptions')->row_array();
-        if (!$sub) return array('ok' => false, 'errors' => array(t('لا عضوية مجموعة بهذا الرقم.')));
-        $open = self::refund_open($this->db->select('action, entity, after')
-            ->where_in('action', array('group.refund_due', 'group.refund_resolved'))
-            ->where('entity', 'subscriptions#' . (int) $sub_id)->order_by('id', 'ASC')
-            ->get('audit_log')->result_array());
+        try {
+            $sub = $this->db->where('id', (int) $sub_id)->where('group_id >', 0)->get('subscriptions')->row_array();
+            if (!$sub) return array('ok' => false, 'errors' => array(t('لا عضوية مجموعة بهذا الرقم.')));
+            $open = self::refund_open($this->db->select('action, entity, after')
+                ->where_in('action', array('group.refund_due', 'group.refund_resolved'))
+                ->where('entity', 'subscriptions#' . (int) $sub_id)->order_by('id', 'ASC')
+                ->get('audit_log')->result_array());
+        } catch (Throwable $e) {
+            $this->db->reset_query();
+            log_message('error', 'TQ-GROUP resolve_refund #' . (int) $sub_id . ': ' . $e->getMessage());
+            return array('ok' => false, 'errors' => array(t('تعذر قراءة سجل الرد الآن — أعد المحاولة.')));
+        }
         if (empty($open[(int) $sub['group_id']][(int) $sub_id])) {
             return array('ok' => false, 'errors' => array(t('لا رد مستحق مفتوح لهذه العضوية.')));
         }
@@ -977,6 +983,35 @@ class Taqdar_group_model extends CI_Model
     {
         if ((string) $new_status !== 'closed' || (string) $old_status === 'closed') return null;
         return t('لا تغلق المجموعة من هنا — استعمل زر «أغلق المجموعة» في شاشة المجموعات المباشرة: به تعكس قيود المعلم ويسجل رد الاعضاء.');
+    }
+
+    /**
+     * حارس وحدة `group_sessions` الموصوفة: الالغاء يمر بزر الالغاء في شاشة
+     * المجموعات المباشرة (يبلغ الاعضاء ويسجل السبب)، والملغاة لا تعود بحفظ،
+     * والموعد لا يتغير الا بالتأجيل `reschedule_session()`. والصف الجديد حر.
+     * @param array|null $old الصف الحالي، او null عند الادراج
+     * @param array      $new القيم المرسلة
+     * @return string|null نص الرفض، او null
+     */
+    public static function module_session_error($old, array $new)
+    {
+        if (!$old) return null;
+        $was = (string) ($old['status'] ?? '');
+        $now = array_key_exists('status', $new) ? (string) $new['status'] : $was;
+        if ($now === 'cancelled' && $was !== 'cancelled') {
+            return t('لا تلغى الحصة من هنا — استعمل زر «ألغ بلا بديل» في شاشة المجموعات المباشرة: به يبلغ الأعضاء بالسبب.');
+        }
+        if ($was === 'cancelled' && $now !== 'cancelled') {
+            return t('الحصة الملغاة لا تعاد من هنا — أضف حصة جديدة للمجموعة.');
+        }
+        if (array_key_exists('starts_at', $new)) {
+            $a = strtotime((string) ($old['starts_at'] ?? ''));
+            $b = strtotime((string) $new['starts_at']);
+            if ($a !== $b) {
+                return t('لا يتغير موعد الحصة من هنا — استعمل «أجل الحصة» في شاشة المجموعات المباشرة: به يبلغ الأعضاء بالموعد الجديد وسببه.');
+            }
+        }
+        return null;
     }
 
     /** المراجعة: `review` ← `published`، ويبلغ صاحبها. */

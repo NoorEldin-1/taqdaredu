@@ -15,7 +15,12 @@ class Taqdar_admin extends CI_Controller
     {
         parent::__construct();
 
-        date_default_timezone_set(get_settings('timezone'));
+        /* المنطقة الناقصة او المكتوبة خطأ لا تبرر طابعا عشوائيا — كما في Taqdar وTaqdar_cron. */
+        $tz = trim((string) get_settings('timezone'));
+        if ($tz === '' || !in_array($tz, DateTimeZone::listIdentifiers(), true)) {
+            $tz = 'Asia/Riyadh';
+        }
+        date_default_timezone_set($tz);
         $this->load->database();
         $this->load->library('session');
         $this->load->model('taqdar_admin_model');
@@ -540,6 +545,23 @@ class Taqdar_admin extends CI_Controller
         );
         $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
             !empty($r['ok']) ? t('الغيت الحصة بلا بديل وبلغ الاعضاء. اي رد للمال يدوي خارج المنصة.')
+                             : implode(' ', (array) ($r['errors'] ?? array())));
+        redirect(site_url('taqdar_admin/groups'), 'location', 302);
+    }
+
+    /** POST — يؤجل حصة مجموعة الى موعد جديد بسبب، ويبلغ الاعضاء (D7-d). */
+    public function group_session_reschedule()
+    {
+        if ($this->input->method(true) !== 'POST') show_404();
+        $this->load->model('taqdar_group_model');
+        $r = $this->taqdar_group_model->reschedule_session(
+            (int) $this->input->post('session_id'),
+            (string) $this->input->post('starts_at'),
+            (string) $this->input->post('reason'),
+            array('id' => (int) $this->session->userdata('user_id'), 'role' => 'admin')
+        );
+        $this->session->set_flashdata(!empty($r['ok']) ? 'flash_message' : 'error_message',
+            !empty($r['ok']) ? t('أجلت الحصة وبلغ الأعضاء بالموعد الجديد وسببه.')
                              : implode(' ', (array) ($r['errors'] ?? array())));
         redirect(site_url('taqdar_admin/groups'), 'location', 302);
     }

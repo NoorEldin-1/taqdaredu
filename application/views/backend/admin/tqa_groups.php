@@ -117,6 +117,27 @@ $tq_label = array('draft' => t('مسودة'), 'review' => t('بانتظار ال
                                 <?php endforeach; ?>
                             <?php endif; ?>
 
+                            <?php
+                            $tq_sched_s = array_filter($tq_live_s, function ($s) { return $s['status'] === 'scheduled'; });
+                            if ($tq_sched_s): ?>
+                                <h4><?php echo t('تأجيل حصة'); ?></h4>
+                                <p class="tqa-hint"><?php echo t('الموعد يتغير من هنا وحده: يبلغ كل الأعضاء بالموعد الجديد وسببه.'); ?></p>
+                                <?php foreach ($tq_sched_s as $s): ?>
+                                    <form method="post" action="<?php echo site_url('taqdar_admin/group_session_reschedule'); ?>"
+                                          onsubmit="return confirm('<?php echo te('تؤجل هذه الحصة ويبلغ كل الأعضاء بالموعد الجديد. أتتابع؟'); ?>');"
+                                          style="display:flex;gap:var(--tq-space-sm);align-items:center;flex-wrap:wrap;margin-block-end:var(--tq-space-sm)">
+                                        <?php echo tq_csrf(); ?>
+                                        <input type="hidden" name="session_id" value="<?php echo (int) $s['id']; ?>">
+                                        <span><?php echo html_escape(($s['title'] !== '' ? $s['title'] . ' · ' : '') . $s['starts_at']); ?></span>
+                                        <input class="form-control" type="datetime-local" name="starts_at" required style="max-width:220px"
+                                               aria-label="<?php echo te('الموعد الجديد'); ?>">
+                                        <input class="form-control" type="text" name="reason" required maxlength="255"
+                                               placeholder="<?php echo te('سبب التأجيل — يقرؤه الأعضاء'); ?>" style="max-width:320px">
+                                        <button class="tqa-btn tqa-btn--sm" type="submit"><?php echo t('أجل الحصة'); ?></button>
+                                    </form>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+
                             <?php if ($r['status'] !== 'closed'): ?>
                                 <h4><?php echo t('إغلاق المجموعة'); ?></h4>
                                 <p class="tqa-hint"><?php echo t('لا تباع بعده. وقبل أول حصة تلغى العضويات ويعكس قيد المعلم ويسجل رد مستحق لكل عضو — ورد المال نفسه يدوي خارج المنصة.'); ?></p>

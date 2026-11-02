@@ -1431,6 +1431,13 @@ class Taqdar_admin_model extends CI_Model
             if ($err !== null) $errors[] = $err;
         }
 
+        /* TQ-GROUP — والحصة كذلك: الالغاء والتأجيل لهما بابان يبلغان الاعضاء. */
+        if ($key === 'group_sessions') {
+            $this->load->model('taqdar_group_model', 'tq_grp_save');
+            $err = Taqdar_group_model::module_session_error($row_now, $data);
+            if ($err !== null) $errors[] = $err;
+        }
+
         if ($key === 'coupons') {
             $this->load->model('taqdar_coupon_model', 'tq_cp_save');
             $cl = $this->tq_cp_save->clean($data, (int) $id);

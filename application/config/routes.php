@@ -759,6 +759,7 @@ $route['foundation-checkout/(:num)'] = 'taqdar/foundation_checkout/$1';
 /* TQ-GROUP — كتابة اللوحة صريحة قبل العرض. */
 $route['taqdar_admin/group_close']           = 'taqdar_admin/group_close';
 $route['taqdar_admin/group_session_cancel']  = 'taqdar_admin/group_session_cancel';
+$route['taqdar_admin/group_session_reschedule'] = 'taqdar_admin/group_session_reschedule';
 $route['taqdar_admin/group_refund_resolved'] = 'taqdar_admin/group_refund_resolved';
 $route['groups']                 = 'taqdar/groups_page';
 $route['group/(:any)']           = 'taqdar/group_page/$1';

@@ -80,4 +80,27 @@ $cron = $src('application/controllers/Taqdar_cron.php');
 check(strpos($cron, 'DateTimeZone::listIdentifiers()') !== false, 'cron validates timezone');
 check(strpos($cron, "date_default_timezone_set(get_settings('timezone'))") === false, 'raw setting not used');
 
+// ---- 7. Group-session module guard: cancel / un-cancel / starts_at change go through their paths.
+$o = array('status' => 'scheduled', 'starts_at' => '2026-12-01 18:00:00');
+check(is_string(Taqdar_group_model::module_session_error($o, array('status' => 'cancelled', 'starts_at' => $o['starts_at']))), 'into cancelled refused');
+check(is_string(Taqdar_group_model::module_session_error(array('status' => 'cancelled', 'starts_at' => $o['starts_at']), array('status' => 'scheduled', 'starts_at' => $o['starts_at']))), 'out of cancelled refused');
+check(is_string(Taqdar_group_model::module_session_error($o, array('status' => 'scheduled', 'starts_at' => '2026-12-02 18:00:00'))), 'starts_at change refused');
+check(Taqdar_group_model::module_session_error($o, array('status' => 'scheduled', 'starts_at' => '2026-12-01 18:00')) === null, 'same moment, other format passes');
+check(Taqdar_group_model::module_session_error(array('status' => 'cancelled', 'starts_at' => $o['starts_at']), array('status' => 'cancelled', 'starts_at' => $o['starts_at'])) === null, 'cancelled row saves unchanged');
+check(Taqdar_group_model::module_session_error(null, array('status' => 'cancelled', 'starts_at' => '2026-12-05 10:00:00')) === null, 'insert unaffected');
+check(Taqdar_group_model::module_session_error($o, array('status' => 'completed', 'starts_at' => $o['starts_at'])) === null, 'other transitions pass');
+check(strpos($src('application/models/Taqdar_admin_model.php'), 'module_session_error') !== false, 'save() calls the session guard');
+check(preg_match("~route\['taqdar_admin/group_session_reschedule'\]~", $routes) === 1, 'reschedule route');
+check(strpos($routes, "taqdar_admin/group_session_reschedule") < strpos($routes, "\$route['groups']"), 'reschedule route before view routes');
+check(strpos($ctl, 'function group_session_reschedule') !== false && strpos($ctl, 'reschedule_session(') !== false, 'controller reschedule');
+check(strpos($view, 'taqdar_admin/group_session_reschedule') !== false, 'reschedule form');
+check(substr_count($view, 'tq_csrf()') >= 4 && substr_count($view, 'confirm(') >= 3, 'reschedule form has csrf + confirm');
+
+// ---- 8. resolve_refund resets the builder on failure; admin timezone guard.
+$rp = strpos($gm, 'public function resolve_refund');
+$rb = substr($gm, $rp, strpos($gm, 'public static function module_status_error') - $rp);
+check(strpos($rb, 'reset_query()') !== false && strpos($rb, 'catch') !== false && strpos($rb, 'log_message') !== false, 'resolve_refund try/catch + reset');
+check(strpos($ctl, 'DateTimeZone::listIdentifiers()') !== false, 'admin validates timezone');
+check(strpos($ctl, "date_default_timezone_set(get_settings('timezone'))") === false, 'admin raw setting not used');
+
 echo "OK $checks checks\n";
